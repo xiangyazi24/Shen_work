@@ -33,8 +33,9 @@ structure CM2Params where
 def Psi_beta (β : ℝ) : ℝ := (β / (1 + β)) ^ (1 + β)
 def Theta_beta (β : ℝ) : ℝ := β ^ β * (1 + β) ^ (-(1 + β))
 
-structure IsClassicalSolution2 (p : CM2Params) (T : ℝ) (_u _v : ℝ → ℝ → ℝ) : Prop where
+structure IsClassicalSolution2 (p : CM2Params) (T : ℝ) (u _v : ℝ → ℝ → ℝ) : Prop where
   hT : 0 < T
+  u_pos : ∀ t x, 0 < t → t < T → 0 < u t x
   pde_satisfied : True
 
 def IsGlobalClassicalSolution2 (p : CM2Params) (u v : ℝ → ℝ → ℝ) : Prop :=
@@ -48,7 +49,7 @@ private lemma cm2_constant_solution (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b
     ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution2 p u v ∧ IsBounded2 u := by
   refine ⟨fun _ _ => (p.a / p.b) ^ (1 / p.α),
          fun _ _ => p.ν / p.μ * ((p.a / p.b) ^ (1 / p.α)) ^ p.γ,
-         fun T hT => ⟨hT, trivial⟩,
+         fun T hT => ⟨hT, fun _ _ _ _ => by positivity, trivial⟩,
          ⟨(p.a / p.b) ^ (1 / p.α), fun t x _ => by
             simp only; rw [abs_of_nonneg (Real.rpow_nonneg (div_nonneg (le_of_lt ha) (le_of_lt hb)) _)]⟩⟩
 
