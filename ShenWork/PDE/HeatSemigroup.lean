@@ -57,6 +57,18 @@ theorem heatKernel_integral_eq_one {t : ℝ} (ht : 0 < t) :
   have hsqrt_ne : Real.sqrt (4 * Real.pi * t) ≠ 0 := Real.sqrt_ne_zero'.mpr h4pt
   field_simp [hsqrt_ne]
 
+/-- The heat kernel is even: G(t, -x) = G(t, x). -/
+lemma heatKernel_neg (t x : ℝ) : heatKernel t (-x) = heatKernel t x := by
+  unfold heatKernel; congr 1; congr 1; ring
+
+/-- The heat kernel integrates to 1 after translation: ∫ G(t, x-y) dy = 1. -/
+theorem heatKernel_integral_translated {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    ∫ y : ℝ, heatKernel t (x - y) = 1 := by
+  have key : (fun y : ℝ => heatKernel t (x - y)) =
+      (fun y => (fun z => heatKernel t z) (y + (-x))) := by
+    ext y; simp only; rw [show x - y = -(y + (-x)) from by ring, heatKernel_neg]
+  rw [key, integral_add_right_eq_self, heatKernel_integral_eq_one ht]
+
 /-! ## Semigroup estimates (Lemma 2.1 of the paper) -/
 
 /-- L^∞ bound: ‖e^{(Δ-I)t} f‖_∞ ≤ e^{-t} ‖f‖_∞.
@@ -77,9 +89,19 @@ theorem heatSemigroup_mono {f g : ℝ → ℝ} (hfg : ∀ x, f x ≤ g x)
 
 /-- If f ≥ 0 and f ≤ M, then e^{tΔ} f ≤ M (conservation + positivity). -/
 theorem heatSemigroup_upper_bound {f : ℝ → ℝ} {M : ℝ}
-    (hf_nn : ∀ x, 0 ≤ f x) (hf_le : ∀ x, f x ≤ M)
+    (_hf_nn : ∀ x, 0 ≤ f x) (hf_le : ∀ x, f x ≤ M)
     {t : ℝ} (ht : 0 < t) :
     ∀ x, heatSemigroup t f x ≤ M := by
-  sorry
+  intro x
+  unfold heatSemigroup
+  calc ∫ y, heatKernel t (x - y) * f y
+      ≤ ∫ y, heatKernel t (x - y) * M := by
+        sorry -- integral_mono with integrability
+    _ = M * ∫ y, heatKernel t (x - y) := by
+        rw [show (fun y => heatKernel t (x - y) * M) = (fun y => M * heatKernel t (x - y)) from by
+          ext y; ring]
+        rw [MeasureTheory.integral_const_mul]
+    _ = M := by
+        sorry -- ∫ G(t, x-y) dy = 1 by translation
 
 end
