@@ -210,9 +210,9 @@ theorem Psi_const {c : ℝ} (_hc : 0 ≤ c) (x : ℝ) :
   rw [MeasureTheory.integral_const_mul, integral_exp_neg_abs_sub x]
   ring
 
-private lemma integral_exp_kernel_exp {k : ℝ} (_hk : 0 < k) (_hk1 : k < 1) (x : ℝ) :
-    (∫ y : ℝ, Real.exp (-|x - y|) * Real.exp (-k * y)) =
-      2 * (1 / (1 - k ^ 2) * Real.exp (-k * x)) := by
+private lemma integral_exp_kernel_exp {k : ℝ} (_hk : 0 < k) (_hk1 : k < 1) (_x : ℝ) :
+    (∫ y : ℝ, Real.exp (-|_x - y|) * Real.exp (-k * y)) =
+      2 * (1 / (1 - k ^ 2) * Real.exp (-k * _x)) := by
   sorry
 
 theorem Psi_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
