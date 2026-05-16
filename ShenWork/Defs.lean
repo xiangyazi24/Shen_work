@@ -110,6 +110,14 @@ def kappa (c : ℝ) : ℝ := (c - Real.sqrt (c ^ 2 - 4)) / 2
 def Psi (u : ℝ → ℝ) (l mu : ℝ) (x : ℝ) : ℝ :=
   mu / (2 * Real.sqrt l) * ∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * u y
 
+lemma kernel_mul_const_integrable (M : ℝ) (x : ℝ) :
+    MeasureTheory.Integrable (fun y => Real.exp (-1 * |x - y|) * M) := by
+  sorry
+
+lemma kernel_mul_exp_integrable (k : ℝ) (_hk : 0 < k) (_hk1 : k < 1) (x : ℝ) :
+    MeasureTheory.Integrable (fun y => Real.exp (-1 * |x - y|) * Real.exp (-k * y)) := by
+  sorry
+
 theorem Psi_nonneg {u : ℝ → ℝ} {l mu : ℝ} (_hl : 0 < l) (hmu : 0 < mu)
     (hu : ∀ x, 0 ≤ u x) (x : ℝ) : 0 ≤ Psi u l mu x := by
   unfold Psi
@@ -147,9 +155,15 @@ theorem Psi_const {c : ℝ} (_hc : 0 ≤ c) (x : ℝ) :
   rw [MeasureTheory.integral_const_mul, integral_exp_neg_abs_sub x]
   ring
 
-private lemma integral_exp_kernel_exp {k : ℝ} (_hk : 0 < k) (_hk1 : k < 1) (x : ℝ) :
+private lemma integral_exp_kernel_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
     (∫ y : ℝ, Real.exp (-|x - y|) * Real.exp (-k * y)) =
       2 * (1 / (1 - k ^ 2) * Real.exp (-k * x)) := by
+  have h1mk : 0 < 1 - k := by linarith
+  have h1pk : 0 < 1 + k := by linarith
+  have hk2 : k ^ 2 < 1 := by nlinarith
+  -- Split: on Iic x, |x-y| = x-y; on Ioi x, |x-y| = y-x
+  -- Left integral: ∫_{Iic x} e^{-(x-y)} e^{-ky} dy = e^{-x} ∫_{Iic x} e^{(1-k)y} dy
+  -- Right integral: ∫_{Ioi x} e^{-(y-x)} e^{-ky} dy = e^x ∫_{Ioi x} e^{-(1+k)y} dy
   sorry
 
 theorem Psi_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
