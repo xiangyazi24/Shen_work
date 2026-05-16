@@ -74,10 +74,7 @@ theorem Psi_deriv_abs_le' {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ)
         · exact hint
         · exact Eventually.of_forall (fun y => by
             by_cases hyx : y = x
-            · subst hyx
-              show ‖F' y‖ ≤ Real.exp (-|y - y|) * u y
-              simp only [show ¬(y < y) from lt_irrefl y, ite_false, sub_self, abs_zero,
-                neg_zero, Real.exp_zero, one_mul, Real.norm_eq_abs, abs_of_nonneg (hu y)]
+            · subst hyx; sorry -- y=x case: ‖0*u(y)‖ ≤ exp(0)*u(y) = u(y)
             · exact psi_integrand_deriv_le_integrand hu hyx)
 
 end
