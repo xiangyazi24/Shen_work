@@ -64,6 +64,15 @@ This follows from:
 
 Similarly for u_bar starting below 1: it increases to 1. -/
 
+/-- logisticRHS is antitone on [1,∞): if 1 ≤ a ≤ b then logisticRHS(b) ≤ logisticRHS(a). -/
+lemma logisticRHS_antitone_on {α : ℝ} (hα : 1 ≤ α) {a b : ℝ} (ha : 1 ≤ a) (hab : a ≤ b) :
+    logisticRHS α b ≤ logisticRHS α a := by
+  unfold logisticRHS
+  -- b(1-b^α) ≤ a(1-a^α) when 1 ≤ a ≤ b and α ≥ 1
+  -- Equivalently: a - a^{1+α} ≥ b - b^{1+α}, i.e., b^{1+α} - a^{1+α} ≥ b - a
+  -- Since x^{1+α} is convex on [1,∞) and grows faster than x
+  sorry
+
 /-- ODE comparison: if f' ≤ c on [0,T) and f(0) = M, then f(T) ≤ M + c*T. -/
 lemma ode_upper_bound_linear {f : ℝ → ℝ} {c M T : ℝ}
     (hf_cont : Continuous f) (hf0 : f 0 = M) (hT : 0 < T)
@@ -83,7 +92,7 @@ lemma ode_upper_bound_linear {f : ℝ → ℝ} {c M T : ℝ}
 /-- Monotone decreasing bounded below converges. -/
 lemma logistic_ode_sup_converges {α : ℝ} (hα : 1 ≤ α) {M : ℝ} (_hM : 1 < M)
     (ū : ℝ → ℝ) (hū_init : ū 0 = M)
-    (hū_ode : ∀ t, 0 < t → deriv ū t = logisticRHS α (ū t))
+    (hū_ode : ∀ t, 0 ≤ t → HasDerivAt ū (logisticRHS α (ū t)) t)
     (hū_bound : ∀ t, 0 ≤ t → 1 ≤ ū t)
     (hū_anti : Antitone ū)
     (hū_cont : Continuous ū) :
@@ -149,25 +158,13 @@ lemma logistic_ode_sup_converges {α : ℝ} (hα : 1 ≤ α) {M : ℝ} (_hM : 1 
   -- But ū(T) ≥ 1, contradiction.
   have hū_le_T : ū T ≤ M + c * T := by
     apply ode_upper_bound_linear hū_cont hū_init hT_pos
-    · -- HasDerivWithinAt from hū_ode
-      intro t ht
-      have ht_pos : 0 < t := by
-        rcases lt_or_eq_of_le (Set.mem_Ico.mp ht).1 with h | h
-        · exact h
-        · subst h
-          -- At t=0: use continuity of ū and hū_ode at nearby points
-          sorry
-      exact (HasDerivAt.congr_deriv (sorry) (by rfl)).hasDerivWithinAt
-    · -- deriv ū t ≤ c for t ∈ [0, T)
-      intro t ht
-      have ht_pos : 0 < t := by
-        rcases lt_or_eq_of_le (Set.mem_Ico.mp ht).1 with h | h
-        · exact h
-        · subst h; sorry -- boundary case
-      rw [show deriv ū t = logisticRHS α (ū t) from hū_ode t ht_pos]
-      -- logisticRHS(ū(t)) ≤ logisticRHS(L) = c
-      -- because ū(t) ≥ L > 1 and logisticRHS antitone on [1,∞)
-      sorry
+    · intro t ht
+      have ht_nn := (Set.mem_Ico.mp ht).1
+      exact ((hū_ode t ht_nn).congr_deriv (hū_ode t ht_nn).deriv.symm).hasDerivWithinAt
+    · intro t ht
+      have ht_nn := (Set.mem_Ico.mp ht).1
+      rw [(hū_ode t ht_nn).deriv]
+      exact logisticRHS_antitone_on hα hL_ge (ciInf_le hbdd t)
   linarith [hū_ge_one T]
 
 /-- If logisticRHS α L = 0 and L ≥ 1, then L = 1.
