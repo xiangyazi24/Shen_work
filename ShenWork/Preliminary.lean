@@ -47,7 +47,10 @@ theorem psi_exponential_bound {k M : ℝ} (hk : 0 < k) (hk1 : k < 1) (hM : 0 < M
         · norm_num
         · norm_num
         · intro y; exact le_trans (hu_bound y).2 (min_le_left M _)
-        · sorry -- integrability of kernel * u (bounded by M)
+        · convert kernel_mul_bounded_integrable u M (le_of_lt hM)
+            (fun y => by rw [abs_of_nonneg (hu_bound y).1]; exact le_trans (hu_bound y).2 (min_le_left M _))
+            x sorry using 2
+          simp [Real.sqrt_one]
         · convert kernel_mul_const_integrable M x using 2; simp [Real.sqrt_one]
       _ = M := Psi_const (le_of_lt hM) x
   · calc
@@ -56,7 +59,10 @@ theorem psi_exponential_bound {k M : ℝ} (hk : 0 < k) (hk1 : k < 1) (hM : 0 < M
         · norm_num
         · norm_num
         · intro y; exact le_trans (hu_bound y).2 (min_le_right M _)
-        · sorry -- integrability of kernel * u (bounded by exp(-ky))
+        · convert kernel_mul_bounded_integrable u M (le_of_lt hM)
+            (fun y => by rw [abs_of_nonneg (hu_bound y).1]; exact le_trans (hu_bound y).2 (min_le_left M _))
+            x sorry using 2
+          simp [Real.sqrt_one]
         · convert kernel_mul_exp_integrable k hk hk1 x using 2; simp [Real.sqrt_one]
       _ = 1 / (1 - k ^ 2) * Real.exp (-k * x) := Psi_exp hk hk1 x
 
