@@ -305,16 +305,9 @@ theorem Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ)
     (hint : MeasureTheory.Integrable (fun y => Real.exp (-|x - y|) * u y))
     (_hu_meas : MeasureTheory.AEStronglyMeasurable u MeasureTheory.volume) :
     |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x := by
-  -- Step 1: Apply hasDerivAt_integral to get deriv formula
-  -- F(x', y) = exp(-|x'-y|) * u(y), F'(x, y) for y ≠ x
-  -- The derivative of exp(-|x'-y|)*u(y) w.r.t. x' equals ±exp(-|x-y|)*u(y)
-  -- |F'| ≤ exp(-|x-y|)*u(y) = F(x,y) since |±1| = 1
-  -- Step 2: Leibniz gives HasDerivAt (fun x' => ∫ F(x',y) dy) (∫ F'(x,y) dy) x
-  -- Step 3: deriv(Psi) = (1/2) * ∫ F'(x,y) dy
-  -- Step 4: |deriv(Psi)| ≤ (1/2) |∫ F'| ≤ (1/2) ∫ |F'| ≤ (1/2) ∫ F = Psi
-  -- The Leibniz rule (step 2) uses hasDerivAt_integral_of_dominated_loc_of_deriv_le
-  -- with hasDerivAt_kernel_left/right providing the pointwise derivative.
-  -- The bound (step 4) uses norm_integral_le_integral_norm.
+  -- Infrastructure for this proof is in PDE/LeibnizRule.lean:
+  -- hasDerivAt_psi_integrand_left/right, psi_integrand_deriv_le_integrand
+  -- Full proof needs hasDerivAt_integral_of_dominated_loc_of_deriv_le assembly
   sorry
 
 /-- c**_{χ,m,α,γ} from Theorem 1.2. -/
