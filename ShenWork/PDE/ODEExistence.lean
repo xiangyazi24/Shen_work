@@ -36,7 +36,10 @@ theorem logistic_ode_local_existence (α : ℝ) (_hα : 1 ≤ α) (M : ℝ) (hM 
     rw [max_eq_left hTnonneg]
     exact le_of_eq (mul_div_cancel₀ _ (ne_of_gt hLpos))
   have hb : ∀ x ∈ Metric.closedBall M (a : ℝ), ‖g x‖ ≤ (L : ℝ) := by
-    intro x _hx; sorry
+    intro x hx
+    -- |x - M| ≤ M+1, so |x| ≤ 2M+1
+    -- |g(x)| = |x(1-x^α)| ≤ |x|(1+|x|^α) ≤ (2M+1)(1+(2M+1)^α) ≤ L
+    sorry
   have hl : LipschitzOnWith K g (Metric.closedBall M (a : ℝ)) := by sorry
   have hf : IsPicardLindelof f t₀ M a (0 : ℝ≥0) L K := by
     simpa [f] using
