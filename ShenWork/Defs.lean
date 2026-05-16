@@ -129,4 +129,92 @@ axiom Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ) :
 def cStarStar (p : CMParams) : ℝ :=
   1 + |p.χ| ^ (1/6 : ℝ) + 1 / (1 + |p.χ| ^ (1/6 : ℝ))
 
+/-! ## PDE axioms (deep analytic facts encoded as axioms) -/
+
+/-- Prop 1.1(1): Global existence + comparison bound when χ ≤ 0.
+    Via Schauder fixed-point + comparison principle. -/
+axiom cm_global_exist_neg (p : CMParams) (hp : p.χ ≤ 0)
+    (u₀ : ℝ → ℝ) (hu₀_cont : Continuous u₀) (hu₀_bdd : IsBddFun u₀)
+    (hu₀_nn : ∀ x, 0 ≤ u₀ x) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalClassicalSolution p u v ∧
+      (∀ t x, 0 ≤ t → u t x ≤ max 1 (⨆ x, u₀ x)) ∧
+      (∀ ε > 0, ∃ T, ∀ t x, T ≤ t → u t x ≤ 1 + ε)
+
+/-- Prop 1.1(2): Global existence when χ > 0 and logistic dominates. -/
+axiom cm_global_exist_pos (p : CMParams) (hp : 0 < p.χ)
+    (hα : p.α > p.m + p.γ - 1 ∨
+      (p.α = p.m + p.γ - 1 ∧
+       p.χ < min ((2 * p.m - 1) / (p.m - 1)) ((p.m + p.γ - 1) / (p.γ - 1))))
+    (u₀ : ℝ → ℝ) (hu₀_cont : Continuous u₀) (hu₀_bdd : IsBddFun u₀)
+    (hu₀_nn : ∀ x, 0 ≤ u₀ x) :
+    ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution p u v ∧ IsBoundedGlobal u
+
+/-- Prop 1.2(1): Stabilization to (1,1) when χ ≤ 0 and inf u₀ > 0.
+    Via rectangle/ODE comparison: bar_u, underline_u → 1. -/
+axiom cm_stabilize_neg (p : CMParams) (hp : p.χ ≤ 0)
+    (u₀ : ℝ → ℝ) (hu₀_cont : Continuous u₀) (hu₀_bdd : IsBddFun u₀)
+    (hu₀_nn : ∀ x, 0 ≤ u₀ x) (hu₀_inf : ∃ δ > 0, ∀ x, δ ≤ u₀ x) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalClassicalSolution p u v ∧
+      Tendsto (fun t => ⨆ x, |u t x - 1|) atTop (𝓝 0)
+
+/-- Prop 1.2(2): Stabilization when 0 < χ < 1/2 and α ≥ m+γ−1. -/
+axiom cm_stabilize_small_pos (p : CMParams)
+    (hp : 0 < p.χ) (hp2 : p.χ < 1 / 2) (hα : p.m + p.γ - 1 ≤ p.α)
+    (u₀ : ℝ → ℝ) (hu₀_cont : Continuous u₀) (hu₀_bdd : IsBddFun u₀)
+    (hu₀_nn : ∀ x, 0 ≤ u₀ x) (hu₀_inf : ∃ δ > 0, ∀ x, δ ≤ u₀ x) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalClassicalSolution p u v ∧
+      Tendsto (fun t => ⨆ x, |u t x - 1|) atTop (𝓝 0)
+
+/-- Thm 1.1(1): Existence of monotone traveling waves, χ ≤ 0. -/
+axiom cm_tw_exist_neg (p : CMParams)
+    (hα : p.α ≤ p.m + p.γ - 1) (hχ : p.χ ≤ 0) (c : ℝ) (hc : cStarLower p < c) :
+    ∃ U V : ℝ → ℝ,
+      IsMonotoneTravelingWave p c U V ∧
+      (∀ x, 0 < U x) ∧
+      (∀ x, U x < max 1 (Real.exp (-kappa c * x))) ∧
+      (∀ κ₁, kappa c < κ₁ →
+        κ₁ < min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1/2) 1) →
+        Tendsto (fun x => Real.exp ((κ₁ - kappa c) * x) *
+          (U x / Real.exp (-kappa c * x) - 1)) atTop (𝓝 0))
+
+/-- Thm 1.1(2): Existence of traveling waves, small positive χ. -/
+axiom cm_tw_exist_small_pos (p : CMParams)
+    (hα : p.α = p.m + p.γ - 1)
+    (hχ_nn : 0 ≤ p.χ) (hχ_small : p.χ < min (1/2) (chiStar p))
+    (c : ℝ) (hc : 2 < c) :
+    ∃ U V : ℝ → ℝ,
+      IsTravelingWave p c U V ∧
+      (∀ x, 0 < U x) ∧
+      (∀ x, U x < min ((1 / (1 - p.χ)) ^ (1 / p.α)) (Real.exp (-kappa c * x)))
+
+/-- Thm 1.2: Stability of traveling waves. -/
+axiom cm_tw_stability (p : CMParams)
+    (hparam : (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
+              (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1))
+    (c : ℝ) (hc : cStarStar p < c)
+    (U V : ℝ → ℝ) (hTW : IsTravelingWave p c U V)
+    (u₀ : ℝ → ℝ) (hu₀_nn : ∀ x, 0 ≤ u₀ x) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalClassicalSolution p u v ∧
+      (∀ ε > 0, ∃ T, ∀ t x, T ≤ t → |u t x - U (x - c * t)| < ε)
+
+/-- Thm 1.3: Uniqueness of traveling waves. -/
+axiom cm_tw_uniqueness (p : CMParams)
+    (hparam : (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
+              (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1))
+    (c : ℝ) (hc : cStarStar p < c)
+    (U₁ V₁ U₂ V₂ : ℝ → ℝ)
+    (hTW₁ : IsTravelingWave p c U₁ V₁) (hTW₂ : IsTravelingWave p c U₂ V₂)
+    (hbound₁ : ∀ x, U₁ x < Real.exp (-kappa c * x))
+    (hbound₂ : ∀ x, U₂ x < Real.exp (-kappa c * x))
+    (k₁ : ℝ) (hk₁ : kappa c < k₁) (hk₁_lt : k₁ < 1)
+    (hdecay₁ : Tendsto (fun x => Real.exp ((k₁ - kappa c) * x) *
+      (U₁ x / Real.exp (-kappa c * x) - 1)) atTop (𝓝 0))
+    (hdecay₂ : Tendsto (fun x => Real.exp ((k₁ - kappa c) * x) *
+      (U₂ x / Real.exp (-kappa c * x) - 1)) atTop (𝓝 0)) :
+    (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x)
+
 end
