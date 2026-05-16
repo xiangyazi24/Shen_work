@@ -19,7 +19,7 @@ theorem cm_global_exist_neg_constant_case (p : CMParams) (hp : p.χ = 0) :
       IsGlobalClassicalSolution p u v ∧
       (∀ t x, 0 ≤ t → u t x ≤ max 1 1) ∧
       (∀ ε > 0, ∃ T, ∀ t x, T ≤ t → u t x ≤ 1 + ε) := by
-  refine ⟨fun _ _ => 1, fun _ _ => 1, constant_solution_is_global p hp, ?_, ?_⟩
+  refine ⟨fun _ _ => 1, fun _ _ => 1, constant_solution_is_global p, ?_, ?_⟩
   · intro t x _; simp
   · intro ε hε; exact ⟨0, fun t x _ => by linarith⟩
 
@@ -29,7 +29,7 @@ theorem cm_stabilize_neg_constant_case (p : CMParams) (hp : p.χ = 0) :
     ∃ u v : ℝ → ℝ → ℝ,
       IsGlobalClassicalSolution p u v ∧
       Tendsto (fun t => ⨆ x, |u t x - 1|) atTop (𝓝 0) := by
-  refine ⟨fun _ _ => 1, fun _ _ => 1, constant_solution_is_global p hp, ?_⟩
+  refine ⟨fun _ _ => 1, fun _ _ => 1, constant_solution_is_global p, ?_⟩
   simp only [sub_self, abs_zero, ciSup_const]
   exact tendsto_const_nhds
 
