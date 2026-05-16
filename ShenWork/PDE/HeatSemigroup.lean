@@ -69,6 +69,12 @@ theorem heatKernel_integral_translated {t : ℝ} (ht : 0 < t) (x : ℝ) :
     ext y; simp only; rw [show x - y = -(y + (-x)) from by ring, heatKernel_neg]
   rw [key, integral_add_right_eq_self, heatKernel_integral_eq_one ht]
 
+/-- The heat kernel (translated) times a bounded function is integrable. -/
+lemma heatKernel_mul_bounded_integrable {t : ℝ} (ht : 0 < t) (x : ℝ)
+    {f : ℝ → ℝ} {M : ℝ} (hf : ∀ y, |f y| ≤ M) :
+    MeasureTheory.Integrable (fun y => heatKernel t (x - y) * f y) := by
+  sorry
+
 /-! ## Semigroup estimates (Lemma 2.1 of the paper) -/
 
 /-- L^∞ bound: ‖e^{(Δ-I)t} f‖_∞ ≤ e^{-t} ‖f‖_∞.
@@ -99,7 +105,7 @@ theorem heatSemigroup_upper_bound {f : ℝ → ℝ} {M : ℝ}
         apply MeasureTheory.integral_mono_of_nonneg
         · exact Filter.Eventually.of_forall (fun y =>
             mul_nonneg (heatKernel_nonneg ht _) (_hf_nn y))
-        · sorry -- integrability of G * M
+        · sorry -- integrability of G(t,x-·)*M: follows from Gaussian integrability
         · exact Filter.Eventually.of_forall (fun y =>
             mul_le_mul_of_nonneg_left (hf_le y) (heatKernel_nonneg ht _))
     _ = M * ∫ y, heatKernel t (x - y) := by
