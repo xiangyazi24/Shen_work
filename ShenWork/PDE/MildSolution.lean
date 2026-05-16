@@ -43,7 +43,14 @@ def mildSolutionOperator (p : CMParams) (u₀ : ℝ → ℝ) (u : ℝ → ℝ �
 lemma logistic_lipschitz_on_bounded {α M : ℝ} (hα : 1 ≤ α) (hM : 0 < M) :
     ∃ L > 0, ∀ u₁ u₂ : ℝ, |u₁| ≤ M → |u₂| ≤ M →
     |u₁ * (1 - u₁ ^ α) - u₂ * (1 - u₂ ^ α)| ≤ L * |u₁ - u₂| := by
-  sorry
+  -- f(u) = u - u^{1+α} has |f'(u)| ≤ 1 + (1+α)M^α on [-M,M]
+  -- So f is Lipschitz with constant L = 1 + (1+α)M^α
+  use 1 + (1 + α) * M ^ α
+  constructor
+  · positivity
+  · intro u₁ u₂ hu₁ hu₂
+    -- Mean value theorem: |f(u₁) - f(u₂)| ≤ sup |f'| * |u₁ - u₂|
+    sorry
 
 /-! ## Local existence via contraction -/
 
