@@ -46,16 +46,18 @@ theorem psi_exponential_bound {k M : ℝ} (hk : 0 < k) (hk1 : k < 1) (hM : 0 < M
         apply Psi_mono
         · norm_num
         · norm_num
-        · intro y
-          exact le_trans (hu_bound y).2 (min_le_left M _)
+        · intro y; exact le_trans (hu_bound y).2 (min_le_left M _)
+        · sorry -- integrability of kernel * u
+        · sorry -- integrability of kernel * M
       _ = M := Psi_const (le_of_lt hM) x
   · calc
       Psi u 1 1 x ≤ Psi (fun y : ℝ => Real.exp (-k * y)) 1 1 x := by
         apply Psi_mono
         · norm_num
         · norm_num
-        · intro y
-          exact le_trans (hu_bound y).2 (min_le_right M _)
+        · intro y; exact le_trans (hu_bound y).2 (min_le_right M _)
+        · sorry -- integrability of kernel * u
+        · sorry -- integrability of kernel * exp(-ky)
       _ = 1 / (1 - k ^ 2) * Real.exp (-k * x) := Psi_exp hk hk1 x
 
 /-- Lemma 2.5: Weighted gradient estimate for Ψ. -/

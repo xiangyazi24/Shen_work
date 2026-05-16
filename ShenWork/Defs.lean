@@ -15,7 +15,12 @@ import Mathlib.Analysis.Calculus.Deriv.Basic
 import Mathlib.Analysis.Calculus.Deriv.Comp
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+import Mathlib.Analysis.SpecialFunctions.ImproperIntegrals
+import Mathlib.Analysis.Convolution
 import Mathlib.MeasureTheory.Integral.Bochner.Basic
+import Mathlib.MeasureTheory.Integral.Bochner.Set
+import Mathlib.MeasureTheory.Measure.Haar.OfBasis
+import Mathlib.MeasureTheory.Measure.Lebesgue.Integral
 import Mathlib.Order.Filter.Basic
 
 open Filter Topology MeasureTheory
@@ -101,29 +106,64 @@ def kappa (c : ℝ) : ℝ := (c - Real.sqrt (c ^ 2 - 4)) / 2
 
 /-! ## The elliptic Green's function Ψ -/
 
-/-- Ψ(x; u, l, mu) = (mu / 2√l) ∫ e^{-√l |x-y|} u(y) dy. (Lemma 2.2)
-    Stated axiomatically; the integral formula is proved in Preliminary.lean. -/
-axiom Psi (u : ℝ → ℝ) (l mu : ℝ) (x : ℝ) : ℝ
+/-- Ψ(x; u, l, μ) = (μ / (2√l)) ∫ e^{-√l |x-y|} u(y) dy -/
+def Psi (u : ℝ → ℝ) (l mu : ℝ) (x : ℝ) : ℝ :=
+  mu / (2 * Real.sqrt l) * ∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * u y
 
-/-- Ψ is nonneg for nonneg u. -/
-axiom Psi_nonneg {u : ℝ → ℝ} {l mu : ℝ} (hl : 0 < l) (hmu : 0 < mu)
-    (hu : ∀ x, 0 ≤ u x) (x : ℝ) : 0 ≤ Psi u l mu x
+theorem Psi_nonneg {u : ℝ → ℝ} {l mu : ℝ} (_hl : 0 < l) (hmu : 0 < mu)
+    (hu : ∀ x, 0 ≤ u x) (x : ℝ) : 0 ≤ Psi u l mu x := by
+  unfold Psi
+  apply mul_nonneg
+  · exact div_nonneg (le_of_lt hmu) (mul_nonneg (by norm_num) (Real.sqrt_nonneg l))
+  · exact MeasureTheory.integral_nonneg (fun y => mul_nonneg (Real.exp_nonneg _) (hu y))
 
-/-- Ψ is monotone in u. -/
-axiom Psi_mono {u v : ℝ → ℝ} {l mu : ℝ} (hl : 0 < l) (hmu : 0 < mu)
-    (huv : ∀ x, u x ≤ v x) (x : ℝ) : Psi u l mu x ≤ Psi v l mu x
+theorem Psi_mono {u v : ℝ → ℝ} {l mu : ℝ} (hl : 0 < l) (hmu : 0 < mu)
+    (huv : ∀ x, u x ≤ v x) (x : ℝ)
+    (hiu : MeasureTheory.Integrable (fun y => Real.exp (-Real.sqrt l * |x - y|) * u y))
+    (hiv : MeasureTheory.Integrable (fun y => Real.exp (-Real.sqrt l * |x - y|) * v y)) :
+    Psi u l mu x ≤ Psi v l mu x := by
+  unfold Psi
+  apply mul_le_mul_of_nonneg_left
+  · exact MeasureTheory.integral_mono hiu hiv (fun y =>
+      mul_le_mul_of_nonneg_left (huv y) (Real.exp_nonneg _))
+  · exact div_nonneg (le_of_lt hmu) (mul_nonneg (by norm_num) (Real.sqrt_nonneg l))
 
-/-- Ψ of a constant = the constant (kernel integrates to 1). -/
-axiom Psi_const {c : ℝ} (hc : 0 ≤ c) (x : ℝ) : Psi (fun _ : ℝ => c) 1 1 x = c
+private lemma integral_exp_neg_abs : ∫ x : ℝ, Real.exp (-|x|) = 2 := by
+  have h := @integral_comp_abs (fun t => Real.exp (-t))
+  simp only [Function.comp] at h
+  linarith [integral_exp_neg_Ioi_zero]
 
-/-- Ψ of an exponential: Ψ(e^{-kx}, 1, 1) = e^{-kx}/(1−k²) for 0 < k < 1. -/
-axiom Psi_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
+private lemma integral_exp_neg_abs_sub (x : ℝ) :
+    ∫ y : ℝ, Real.exp (-|x - y|) = 2 := by
+  have h : (fun y : ℝ => Real.exp (-|x - y|)) = (fun y => Real.exp (-|y + (-x)|)) := by
+    ext y; congr 2; rw [abs_sub_comm]; ring_nf
+  rw [h, integral_add_right_eq_self (fun z => Real.exp (-|z|)) (-x), integral_exp_neg_abs]
+
+theorem Psi_const {c : ℝ} (_hc : 0 ≤ c) (x : ℝ) :
+    Psi (fun _ : ℝ => c) 1 1 x = c := by
+  simp only [Psi, Real.sqrt_one, mul_one]
+  rw [show (fun y : ℝ => Real.exp (-1 * |x - y|) * c) =
+    (fun y => c * Real.exp (-|x - y|)) from by ext y; ring]
+  rw [MeasureTheory.integral_const_mul, integral_exp_neg_abs_sub x]
+  ring
+
+private lemma integral_exp_kernel_exp {k : ℝ} (_hk : 0 < k) (_hk1 : k < 1) (x : ℝ) :
+    (∫ y : ℝ, Real.exp (-|x - y|) * Real.exp (-k * y)) =
+      2 * (1 / (1 - k ^ 2) * Real.exp (-k * x)) := by
+  sorry
+
+theorem Psi_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
     Psi (fun y : ℝ => Real.exp (-k * y)) 1 1 x =
-      1 / (1 - k ^ 2) * Real.exp (-k * x)
+      1 / (1 - k ^ 2) * Real.exp (-k * x) := by
+  simp only [Psi, Real.sqrt_one, mul_one]
+  rw [show (fun y : ℝ => Real.exp (-1 * |x - y|) * Real.exp (-k * y)) =
+    (fun y => Real.exp (-|x - y|) * Real.exp (-k * y)) from by ext y; ring_nf]
+  rw [integral_exp_kernel_exp hk hk1 x]
+  ring
 
-/-- |Ψ'(x)| ≤ √l · Ψ(x) for nonneg u (Lemma 2.3). Specialized to l=1. -/
-axiom Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ) :
-    |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x
+theorem Psi_deriv_abs_le {u : ℝ → ℝ} (_hu : ∀ x, 0 ≤ u x) (_x : ℝ) :
+    |deriv (Psi u 1 1) _x| ≤ Psi u 1 1 _x := by
+  sorry
 
 /-- c**_{χ,m,α,γ} from Theorem 1.2. -/
 def cStarStar (p : CMParams) : ℝ :=
