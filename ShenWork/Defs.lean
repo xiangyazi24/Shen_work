@@ -288,7 +288,7 @@ theorem Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ) :
     sorry -- Leibniz rule: d/dx ∫ exp(-|x-y|) u(y) dy = ∫ sgn(x-y) exp(-|x-y|) u(y) dy
   have htriangle : |∫ y : ℝ, sgn y * Real.exp (-|x - y|) * u y| ≤
       ∫ y : ℝ, Real.exp (-|x - y|) * u y := by
-    sorry -- norm_integral_le + |sgn| ≤ 1
+    sorry -- norm_integral_le + |sgn| ≤ 1 + integral_mono
   calc |deriv (Psi u 1 1) x|
       = |(1/2 : ℝ) * ∫ y, sgn y * Real.exp (-|x - y|) * u y| := by rw [hderiv]
     _ = (1/2 : ℝ) * |∫ y, sgn y * Real.exp (-|x - y|) * u y| := by rw [abs_mul]; simp
