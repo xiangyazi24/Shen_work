@@ -77,6 +77,20 @@ lemma logistic_ode_sup_converges {α : ℝ} (hα : 1 ≤ α) {M : ℝ} (_hM : 1 
   -- logisticRHS α L = L(1-L^α) = 0 with L ≥ 1 implies L = 1
   sorry
 
+/-- If logisticRHS α L = 0 and L ≥ 1, then L = 1.
+    From L(1-L^α) = 0: either L = 0 or L^α = 1. With L ≥ 1 and α ≥ 1, L^α = 1 → L = 1. -/
+lemma logisticRHS_eq_zero_of_ge_one {α L : ℝ} (hα : 1 ≤ α) (hL : 1 ≤ L)
+    (h : logisticRHS α L = 0) : L = 1 := by
+  unfold logisticRHS at h
+  have hL_pos : 0 < L := by linarith
+  rcases mul_eq_zero.mp h with hL0 | h1
+  · linarith
+  · have hLα : L ^ α = 1 := by linarith
+    by_contra hne
+    have hL_gt : 1 < L := lt_of_le_of_ne hL (Ne.symm hne)
+    have := Real.one_lt_rpow hL_gt (by linarith : 0 < α)
+    linarith
+
 /-- The decreasing monotonicity of ū when ū ≥ 1. -/
 lemma logistic_ode_monotone_decreasing {α : ℝ} (hα : 1 ≤ α)
     (ū : ℝ → ℝ)
