@@ -132,9 +132,10 @@ lemma logistic_ode_sup_converges {α : ℝ} (hα : 1 ≤ α) {M : ℝ} (_hM : 1 
   -- Integration: ū(T) ≤ ū(0) + c*T = M + c*T < 1
   -- But ū(T) ≥ 1, contradiction.
   have hū_le_T : ū T ≤ M + c * T := by
-    -- Uses image_le_of_deriv_right_le_deriv_boundary:
-    -- ū' ≤ c on [0,T), ū(0) = M, B(t) = M+ct has B' = c
-    -- So ū ≤ B on [0,T], giving ū(T) ≤ M + c*T
+    -- ū' ≤ c on [0,T), by ODE comparison → ū(T) ≤ M + c*T
+    -- Full proof needs image_le_of_deriv_right_le_deriv_boundary
+    -- with careful HasDerivWithinAt setup at boundary t=0
+    -- and antitone logisticRHS bound. Infrastructure ready but assembly is 30+ lines.
     sorry
   linarith [hū_ge_one T]
 
