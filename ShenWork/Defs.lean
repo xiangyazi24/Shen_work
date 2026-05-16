@@ -278,7 +278,8 @@ theorem Psi_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
   rw [integral_exp_kernel_exp hk hk1 x]
   ring
 
-theorem Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ) :
+theorem Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ)
+    (hint : MeasureTheory.Integrable (fun y => Real.exp (-|x - y|) * u y)) :
     |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x := by
   let sgn : ℝ → ℝ := fun y => if y < x then 1 else if x < y then -1 else 0
   have hPsi : Psi u 1 1 x = (1 / 2 : ℝ) * ∫ y : ℝ, Real.exp (-|x - y|) * u y := by
@@ -305,7 +306,7 @@ theorem Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ) :
       _ ≤ ∫ y, Real.exp (-|x - y|) * u y :=
           MeasureTheory.integral_mono_of_nonneg
             (Filter.Eventually.of_forall (fun y => norm_nonneg _))
-            sorry -- integrability
+            hint
             (Filter.Eventually.of_forall h1)
   calc |deriv (Psi u 1 1) x|
       = |(1/2 : ℝ) * ∫ y, sgn y * Real.exp (-|x - y|) * u y| := by rw [hderiv]

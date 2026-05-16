@@ -33,7 +33,7 @@ theorem semigroup_div_Linfty_estimate {p : ℝ} (hp : 1 ≤ p) :
 /-- Lemma 2.3: |d/dx Ψ(x; u, 1, 1)| ≤ Ψ(x; u, 1, 1) for nonneg u. -/
 theorem psi_gradient_bound (u : ℝ → ℝ) (hu : Continuous u) (hu_nn : ∀ x, 0 ≤ u x) :
     ∀ x : ℝ, |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x :=
-  fun x => Psi_deriv_abs_le hu_nn x
+  fun x => Psi_deriv_abs_le hu_nn x sorry -- integrability of kernel * u
 
 /-- Lemma 2.4: Exponential bound for Ψ. -/
 theorem psi_exponential_bound {k M : ℝ} (hk : 0 < k) (hk1 : k < 1) (hM : 0 < M)
