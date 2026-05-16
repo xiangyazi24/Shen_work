@@ -278,100 +278,79 @@ theorem Psi_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
   rw [integral_exp_kernel_exp hk hk1 x]
   ring
 
-/-- |Ψ'(x)| ≤ Ψ(x) for nonneg u. Requires the Leibniz rule (differentiation under integral)
-    which gives deriv(Psi) = (1/2) ∫ sgn(x-y) exp(-|x-y|) u(y) dy. The bound follows from
-    |sgn| ≤ 1 and the triangle inequality for integrals.
-
-    The Leibniz rule hypothesis `hderiv` encodes the result of applying
-    hasDerivAt_integral_of_dominated_loc_of_deriv_le from Mathlib. -/
-theorem Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ)
-    (hint : MeasureTheory.Integrable (fun y => Real.exp (-|x - y|) * u y))
-    (hderiv_val : deriv (Psi u 1 1) x =
-      (1 / 2 : ℝ) * ∫ y : ℝ, (if y < x then 1 else if x < y then -1 else 0) *
-        Real.exp (-|x - y|) * u y) :
-    |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x := by
-  let sgn : ℝ → ℝ := fun y => if y < x then 1 else if x < y then -1 else 0
-  have hPsi : Psi u 1 1 x = (1 / 2 : ℝ) * ∫ y : ℝ, Real.exp (-|x - y|) * u y := by
-    simp [Psi]
-  have htriangle : |∫ y : ℝ, sgn y * Real.exp (-|x - y|) * u y| ≤
-      ∫ y : ℝ, Real.exp (-|x - y|) * u y := by
-    have h1 : ∀ y, ‖sgn y * Real.exp (-|x - y|) * u y‖ ≤ Real.exp (-|x - y|) * u y := by
-      intro y
-      rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_of_nonneg (Real.exp_nonneg _),
-          abs_of_nonneg (hu y)]
-      calc |sgn y| * Real.exp (-|x - y|) * u y
-          ≤ 1 * Real.exp (-|x - y|) * u y := by
-            apply mul_le_mul_of_nonneg_right
-            · apply mul_le_mul_of_nonneg_right _ (Real.exp_nonneg _)
-              simp only [sgn]; split_ifs <;> simp
-            · exact hu y
-        _ = Real.exp (-|x - y|) * u y := by ring
-    calc |∫ y, sgn y * Real.exp (-|x - y|) * u y|
-        ≤ ∫ y, ‖sgn y * Real.exp (-|x - y|) * u y‖ := by
-          rw [← Real.norm_eq_abs]; exact norm_integral_le_integral_norm _
-      _ ≤ ∫ y, Real.exp (-|x - y|) * u y :=
-          MeasureTheory.integral_mono_of_nonneg
-            (Filter.Eventually.of_forall (fun y => norm_nonneg _)) hint
-            (Filter.Eventually.of_forall h1)
-  calc |deriv (Psi u 1 1) x|
-      = |(1/2 : ℝ) * ∫ y, sgn y * Real.exp (-|x - y|) * u y| := by rw [hderiv_val]
-    _ = (1/2 : ℝ) * |∫ y, sgn y * Real.exp (-|x - y|) * u y| := by rw [abs_mul]; simp
-    _ ≤ (1/2 : ℝ) * ∫ y, Real.exp (-|x - y|) * u y := by
-        exact mul_le_mul_of_nonneg_left htriangle (by norm_num)
-    _ = Psi u 1 1 x := by rw [hPsi]
+theorem Psi_deriv_abs_le {u : ℝ → ℝ} (_hu : ∀ x, 0 ≤ u x) (_x : ℝ) :
+    |deriv (Psi u 1 1) _x| ≤ Psi u 1 1 _x := by
+  sorry
 
 /-- c**_{χ,m,α,γ} from Theorem 1.2. -/
 def cStarStar (p : CMParams) : ℝ :=
   1 + |p.χ| ^ (1/6 : ℝ) + 1 / (1 + |p.χ| ^ (1/6 : ℝ))
 
-/-! ## PDE Theory class — bundles deep analytic facts as hypotheses.
+/-! ## PDE theorems — to be proved from scratch by building PDE infrastructure -/
 
-These are the main theorems of the paper. They require parabolic PDE infrastructure
-(local existence, comparison principles, phase plane analysis, weighted energy estimates)
-that Mathlib does not yet have. We encode them as a typeclass so downstream code can
-use them without sorry or axiom. The mathematical content is faithfully preserved —
-these are exactly the paper's theorem statements. -/
-
-class PDETheory (p : CMParams) : Prop where
-  global_exist_neg : p.χ ≤ 0 →
-    ∀ u₀ : ℝ → ℝ, Continuous u₀ → IsBddFun u₀ → (∀ x, 0 ≤ u₀ x) →
+theorem cm_global_exist_neg (p : CMParams) (hp : p.χ ≤ 0)
+    (u₀ : ℝ → ℝ) (hu₀_cont : Continuous u₀) (hu₀_bdd : IsBddFun u₀)
+    (hu₀_nn : ∀ x, 0 ≤ u₀ x) :
     ∃ u v : ℝ → ℝ → ℝ,
       IsGlobalClassicalSolution p u v ∧
       (∀ t x, 0 ≤ t → u t x ≤ max 1 (⨆ x, u₀ x)) ∧
-      (∀ ε > 0, ∃ T, ∀ t x, T ≤ t → u t x ≤ 1 + ε)
-  global_exist_pos : 0 < p.χ →
-    (p.α > p.m + p.γ - 1 ∨ (p.α = p.m + p.γ - 1 ∧
-      p.χ < min ((2 * p.m - 1) / (p.m - 1)) ((p.m + p.γ - 1) / (p.γ - 1)))) →
-    ∀ u₀ : ℝ → ℝ, Continuous u₀ → IsBddFun u₀ → (∀ x, 0 ≤ u₀ x) →
-    ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution p u v ∧ IsBoundedGlobal u
-  stabilize_neg : p.χ ≤ 0 →
-    ∀ u₀ : ℝ → ℝ, Continuous u₀ → IsBddFun u₀ → (∀ x, 0 ≤ u₀ x) →
-    (∃ δ > 0, ∀ x, δ ≤ u₀ x) →
-    ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution p u v ∧
-      Tendsto (fun t => ⨆ x, |u t x - 1|) atTop (𝓝 0)
-  stabilize_small_pos : 0 < p.χ → p.χ < 1 / 2 → p.m + p.γ - 1 ≤ p.α →
-    ∀ u₀ : ℝ → ℝ, Continuous u₀ → IsBddFun u₀ → (∀ x, 0 ≤ u₀ x) →
-    (∃ δ > 0, ∀ x, δ ≤ u₀ x) →
-    ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution p u v ∧
-      Tendsto (fun t => ⨆ x, |u t x - 1|) atTop (𝓝 0)
-  tw_exist_neg : p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 → ∀ c, cStarLower p < c →
-    ∃ U V : ℝ → ℝ, IsMonotoneTravelingWave p c U V ∧
-      (∀ x, 0 < U x) ∧ (∀ x, U x < max 1 (Real.exp (-kappa c * x)))
-  tw_exist_small_pos : p.α = p.m + p.γ - 1 → 0 ≤ p.χ → p.χ < min (1/2) (chiStar p) →
-    ∀ c, 2 < c → ∃ U V : ℝ → ℝ, IsTravelingWave p c U V ∧ (∀ x, 0 < U x)
-  tw_stability :
-    ((p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨ (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1)) →
-    ∀ c, cStarStar p < c → ∀ U V : ℝ → ℝ, IsTravelingWave p c U V →
-    ∀ u₀ : ℝ → ℝ, (∀ x, 0 ≤ u₀ x) →
-    ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution p u v ∧
-      (∀ ε > 0, ∃ T, ∀ t x, T ≤ t → |u t x - U (x - c * t)| < ε)
-  tw_uniqueness :
-    ((p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨ (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1)) →
-    ∀ c, cStarStar p < c → ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
-    IsTravelingWave p c U₁ V₁ → IsTravelingWave p c U₂ V₂ →
-    (∀ x, U₁ x < Real.exp (-kappa c * x)) → (∀ x, U₂ x < Real.exp (-kappa c * x)) →
-    (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x)
+      (∀ ε > 0, ∃ T, ∀ t x, T ≤ t → u t x ≤ 1 + ε) := by sorry
 
--- Downstream code uses [PDETheory p] to access results without sorry.
+theorem cm_global_exist_pos (p : CMParams) (hp : 0 < p.χ)
+    (hα : p.α > p.m + p.γ - 1 ∨
+      (p.α = p.m + p.γ - 1 ∧
+       p.χ < min ((2 * p.m - 1) / (p.m - 1)) ((p.m + p.γ - 1) / (p.γ - 1))))
+    (u₀ : ℝ → ℝ) (hu₀_cont : Continuous u₀) (hu₀_bdd : IsBddFun u₀)
+    (hu₀_nn : ∀ x, 0 ≤ u₀ x) :
+    ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution p u v ∧ IsBoundedGlobal u := by sorry
+
+theorem cm_stabilize_neg (p : CMParams) (hp : p.χ ≤ 0)
+    (u₀ : ℝ → ℝ) (hu₀_cont : Continuous u₀) (hu₀_bdd : IsBddFun u₀)
+    (hu₀_nn : ∀ x, 0 ≤ u₀ x) (hu₀_inf : ∃ δ > 0, ∀ x, δ ≤ u₀ x) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalClassicalSolution p u v ∧
+      Tendsto (fun t => ⨆ x, |u t x - 1|) atTop (𝓝 0) := by sorry
+
+theorem cm_stabilize_small_pos (p : CMParams)
+    (hp : 0 < p.χ) (hp2 : p.χ < 1 / 2) (hα : p.m + p.γ - 1 ≤ p.α)
+    (u₀ : ℝ → ℝ) (hu₀_cont : Continuous u₀) (hu₀_bdd : IsBddFun u₀)
+    (hu₀_nn : ∀ x, 0 ≤ u₀ x) (hu₀_inf : ∃ δ > 0, ∀ x, δ ≤ u₀ x) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalClassicalSolution p u v ∧
+      Tendsto (fun t => ⨆ x, |u t x - 1|) atTop (𝓝 0) := by sorry
+
+theorem cm_tw_exist_neg (p : CMParams)
+    (hα : p.α ≤ p.m + p.γ - 1) (hχ : p.χ ≤ 0) (c : ℝ) (hc : cStarLower p < c) :
+    ∃ U V : ℝ → ℝ,
+      IsMonotoneTravelingWave p c U V ∧
+      (∀ x, 0 < U x) ∧
+      (∀ x, U x < max 1 (Real.exp (-kappa c * x))) := by sorry
+
+theorem cm_tw_exist_small_pos (p : CMParams)
+    (hα : p.α = p.m + p.γ - 1)
+    (hχ_nn : 0 ≤ p.χ) (hχ_small : p.χ < min (1/2) (chiStar p))
+    (c : ℝ) (hc : 2 < c) :
+    ∃ U V : ℝ → ℝ,
+      IsTravelingWave p c U V ∧ (∀ x, 0 < U x) := by sorry
+
+theorem cm_tw_stability (p : CMParams)
+    (hparam : (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
+              (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1))
+    (c : ℝ) (hc : cStarStar p < c)
+    (U V : ℝ → ℝ) (hTW : IsTravelingWave p c U V)
+    (u₀ : ℝ → ℝ) (hu₀_nn : ∀ x, 0 ≤ u₀ x) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalClassicalSolution p u v ∧
+      (∀ ε > 0, ∃ T, ∀ t x, T ≤ t → |u t x - U (x - c * t)| < ε) := by sorry
+
+theorem cm_tw_uniqueness (p : CMParams)
+    (hparam : (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
+              (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1))
+    (c : ℝ) (hc : cStarStar p < c)
+    (U₁ V₁ U₂ V₂ : ℝ → ℝ)
+    (hTW₁ : IsTravelingWave p c U₁ V₁) (hTW₂ : IsTravelingWave p c U₂ V₂)
+    (hbound₁ : ∀ x, U₁ x < Real.exp (-kappa c * x))
+    (hbound₂ : ∀ x, U₂ x < Real.exp (-kappa c * x)) :
+    (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by sorry
 
 end

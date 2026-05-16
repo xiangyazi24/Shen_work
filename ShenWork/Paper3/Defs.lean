@@ -17,26 +17,14 @@ def IsGloballyAsymptoticallyStable (p : CM2Params) (u_star v_star : ℝ) : Prop 
     Tendsto (fun t => ⨆ x, |u t x - u_star|) atTop (𝓝 0) ∧
     Tendsto (fun t => ⨆ x, |v t x - v_star|) atTop (𝓝 0)
 
-/-- PDE Theory for Part II: persistence and stabilization. -/
-class PDETheory3 (p : CM2Params) : Prop where
-  persistence : 1 ≤ p.m →
-    ∀ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution2 p u v → IsBounded2 u →
-    ∃ δ > 0, ∀ ε > 0, ∃ T, ∀ t x, T ≤ t → δ ≤ u t x
-  global_stability_neg : p.χ₀ ≤ 0 → 1 ≤ p.m → 0 < p.a → 0 < p.b →
-    let (u_star, v_star) := equilibrium p ⟨‹_›, ‹_›⟩
-    IsGloballyAsymptoticallyStable p u_star v_star
+theorem cm3_persistence (p : CM2Params) (hm : 1 ≤ p.m) :
+    ∀ u v : ℝ → ℝ → ℝ,
+      IsGlobalClassicalSolution2 p u v → IsBounded2 u →
+      (∃ δ > 0, ∀ ε > 0, ∃ T, ∀ t x, T ≤ t → δ ≤ u t x) := by sorry
 
-variable {p : CM2Params} [PDETheory3 p]
-
-theorem cm3_persistence (hm : 1 ≤ p.m)
-    (u v : ℝ → ℝ → ℝ) (hg : IsGlobalClassicalSolution2 p u v) (hb : IsBounded2 u) :
-    ∃ δ > 0, ∀ ε > 0, ∃ T, ∀ t x, T ≤ t → δ ≤ u t x :=
-  PDETheory3.persistence hm u v hg hb
-
-theorem cm3_global_stability_neg (hχ : p.χ₀ ≤ 0) (hm : 1 ≤ p.m)
-    (ha : 0 < p.a) (hb : 0 < p.b) :
-    let (u_star, v_star) := equilibrium p ⟨ha, hb⟩
-    IsGloballyAsymptoticallyStable p u_star v_star :=
-  PDETheory3.global_stability_neg hχ hm ha hb
+theorem cm3_global_stability_neg (p : CM2Params)
+    (hχ : p.χ₀ ≤ 0) (hm : 1 ≤ p.m) (hab : 0 < p.a ∧ 0 < p.b) :
+    let (u_star, v_star) := equilibrium p hab
+    IsGloballyAsymptoticallyStable p u_star v_star := by sorry
 
 end
