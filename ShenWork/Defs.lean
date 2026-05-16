@@ -286,7 +286,12 @@ theorem Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ)
     simp [Psi]
   have hderiv : deriv (Psi u 1 1) x =
       (1 / 2 : ℝ) * ∫ y : ℝ, sgn y * Real.exp (-|x - y|) * u y := by
-    sorry -- Leibniz rule: d/dx ∫ exp(-|x-y|) u(y) dy = ∫ sgn(x-y) exp(-|x-y|) u(y) dy
+    -- Leibniz rule via hasDerivAt_integral_of_dominated_loc_of_deriv_le
+    -- F(x', y) = exp(-|x'-y|) * u(y)
+    -- F'(x', y) = -sgn(x'-y) * exp(-|x'-y|) * u(y) for y ≠ x'
+    -- Bound: |F'| ≤ exp(-|x-y|) * |u(y)| (integrable)
+    -- HasDerivAt holds for each y ≠ x (ae)
+    sorry
   have htriangle : |∫ y : ℝ, sgn y * Real.exp (-|x - y|) * u y| ≤
       ∫ y : ℝ, Real.exp (-|x - y|) * u y := by
     have h1 : ∀ y, ‖sgn y * Real.exp (-|x - y|) * u y‖ ≤ Real.exp (-|x - y|) * u y := by
