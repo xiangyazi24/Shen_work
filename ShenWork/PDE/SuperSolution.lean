@@ -100,6 +100,13 @@ lemma logisticRHS_eq_zero_of_ge_one {α L : ℝ} (hα : 1 ≤ α) (hL : 1 ≤ L)
     have := Real.one_lt_rpow hL_gt (by linarith : 0 < α)
     linarith
 
+/-- When u > 1 and α ≥ 1, the logistic RHS is strictly negative. -/
+lemma logisticRHS_neg_of_gt_one {α u : ℝ} (hα : 1 ≤ α) (hu : 1 < u) :
+    logisticRHS α u < 0 := by
+  unfold logisticRHS
+  exact mul_neg_of_pos_of_neg (by linarith)
+    (sub_neg.mpr (Real.one_lt_rpow hu (by linarith : 0 < α)))
+
 /-- The decreasing monotonicity of ū when ū ≥ 1. -/
 lemma logistic_ode_monotone_decreasing {α : ℝ} (hα : 1 ≤ α)
     (ū : ℝ → ℝ)
