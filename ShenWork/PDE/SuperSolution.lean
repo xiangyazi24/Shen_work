@@ -71,10 +71,19 @@ lemma logistic_ode_sup_converges {α : ℝ} (hα : 1 ≤ α) {M : ℝ} (_hM : 1 
     (hū_bound : ∀ t, 0 ≤ t → 1 ≤ ū t)
     (hū_anti : Antitone ū) :
     Tendsto ū atTop (𝓝 1) := by
-  -- Proof: tendsto_atTop_ciInf gives ū → ⨅ t, ū t
-  -- Since ū ≥ 1 for all t, the inf L ≥ 1
-  -- At the limit: ū' → 0, so logisticRHS α L = 0
-  -- logisticRHS α L = L(1-L^α) = 0 with L ≥ 1 implies L = 1
+  -- Step 1: ū is antitone and bounded below by 1 → converges to some L
+  have hbdd : BddBelow (Set.range ū) :=
+    ⟨1, fun _ ⟨t, ht⟩ => ht ▸ hū_bound t (by sorry)⟩
+  have h_conv := tendsto_atTop_ciInf hū_anti hbdd
+  -- Step 2: L = ⨅ t, ū t ≥ 1
+  have hL_ge : 1 ≤ ⨅ t, ū t :=
+    le_ciInf (fun t => hū_bound t (by sorry))
+  -- Step 3: At the limit, logisticRHS α L = 0
+  -- This requires: ū' → 0 as t → ∞ (since ū converges)
+  -- and ū' = logisticRHS α (ū t) → logisticRHS α L (by continuity)
+  -- So logisticRHS α L = 0
+  -- Step 4: L = 1 from logisticRHS_eq_zero_of_ge_one
+  suffices h : ⨅ t, ū t = 1 by rw [h] at h_conv; exact h_conv
   sorry
 
 /-- If logisticRHS α L = 0 and L ≥ 1, then L = 1.
