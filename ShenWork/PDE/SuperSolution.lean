@@ -68,10 +68,18 @@ Similarly for u_bar starting below 1: it increases to 1. -/
 lemma logisticRHS_antitone_on {α : ℝ} (hα : 1 ≤ α) {a b : ℝ} (ha : 1 ≤ a) (hab : a ≤ b) :
     logisticRHS α b ≤ logisticRHS α a := by
   unfold logisticRHS
-  -- b(1-b^α) ≤ a(1-a^α) when 1 ≤ a ≤ b and α ≥ 1
-  -- Equivalently: a - a^{1+α} ≥ b - b^{1+α}, i.e., b^{1+α} - a^{1+α} ≥ b - a
-  -- Since x^{1+α} is convex on [1,∞) and grows faster than x
-  sorry
+  -- b(1-b^α) ≤ a(1-a^α) ↔ a(a^α-1) ≤ b(b^α-1) [both nonpos, flip sign]
+  -- Since both sides ≤ 0, suffices: |b(1-b^α)| ≥ |a(1-a^α)|
+  -- i.e., b(b^α-1) ≥ a(a^α-1), which follows from b ≥ a ≥ 1, b^α ≥ a^α ≥ 1
+  have ha_pos : 0 < a := by linarith
+  have hb_pos : 0 < b := by linarith
+  have haα : 1 ≤ a ^ α := Real.one_le_rpow ha (by linarith : 0 ≤ α)
+  have hbα : 1 ≤ b ^ α := Real.one_le_rpow (le_trans ha hab) (by linarith : 0 ≤ α)
+  have hab_α : a ^ α ≤ b ^ α := Real.rpow_le_rpow (by linarith) hab (by linarith : 0 ≤ α)
+  -- b(1-b^α) ≤ a(1-a^α) ↔ a*a^α - b*b^α ≤ a - b
+  -- ↔ b*b^α - a*a^α ≥ b - a
+  -- Since b*b^α ≥ a*a^α (both factors increase) and b*b^α - a*a^α ≥ b - a
+  nlinarith [mul_le_mul hab hab_α (by linarith) (by linarith)]
 
 /-- ODE comparison: if f' ≤ c on [0,T) and f(0) = M, then f(T) ≤ M + c*T. -/
 lemma ode_upper_bound_linear {f : ℝ → ℝ} {c M T : ℝ}
