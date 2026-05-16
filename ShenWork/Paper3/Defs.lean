@@ -20,11 +20,18 @@ def IsGloballyAsymptoticallyStable (p : CM2Params) (u_star v_star : ℝ) : Prop 
 theorem cm3_persistence (p : CM2Params) (hm : 1 ≤ p.m) :
     ∀ u v : ℝ → ℝ → ℝ,
       IsGlobalClassicalSolution2 p u v → IsBounded2 u →
-      (∃ δ > 0, ∀ ε > 0, ∃ T, ∀ t x, T ≤ t → δ ≤ u t x) := by sorry
+      (∃ δ > 0, ∀ ε > 0, ∃ T, ∀ t x, T ≤ t → δ ≤ u t x) := by
+  -- Persistence requires actual PDE structure (parabolic Harnack / maximum principle).
+  -- With current IsClassicalSolution2 (pde_satisfied = True), this needs
+  -- additional PDE-specific hypotheses beyond boundedness.
+  sorry
 
 theorem cm3_global_stability_neg (p : CM2Params)
     (hχ : p.χ₀ ≤ 0) (hm : 1 ≤ p.m) (hab : 0 < p.a ∧ 0 < p.b) :
     let (u_star, v_star) := equilibrium p hab
-    IsGloballyAsymptoticallyStable p u_star v_star := by sorry
+    IsGloballyAsymptoticallyStable p u_star v_star := by
+  -- Global asymptotic stability: every globally defined bounded positive solution
+  -- converges to (u*, v*). This needs the full PDE structure.
+  sorry
 
 end
