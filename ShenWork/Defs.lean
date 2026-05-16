@@ -280,11 +280,21 @@ theorem Psi_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
 
 theorem Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ) :
     |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x := by
-  -- The derivative of Ψ at x is (1/2) ∫ sgn(x-y) e^{-|x-y|} u(y) dy
-  -- |Ψ'(x)| ≤ (1/2) ∫ |sgn(x-y)| e^{-|x-y|} u(y) dy = (1/2) ∫ e^{-|x-y|} u(y) dy = Ψ(x)
-  -- This requires: (1) Leibniz rule to differentiate under ∫, (2) triangle inequality
-  -- Both require substantial Mathlib infrastructure (hasDerivAt_integral + norm_integral_le)
-  sorry
+  let sgn : ℝ → ℝ := fun y => if y < x then 1 else if x < y then -1 else 0
+  have hPsi : Psi u 1 1 x = (1 / 2 : ℝ) * ∫ y : ℝ, Real.exp (-|x - y|) * u y := by
+    simp [Psi]
+  have hderiv : deriv (Psi u 1 1) x =
+      (1 / 2 : ℝ) * ∫ y : ℝ, sgn y * Real.exp (-|x - y|) * u y := by
+    sorry -- Leibniz rule: d/dx ∫ exp(-|x-y|) u(y) dy = ∫ sgn(x-y) exp(-|x-y|) u(y) dy
+  have htriangle : |∫ y : ℝ, sgn y * Real.exp (-|x - y|) * u y| ≤
+      ∫ y : ℝ, Real.exp (-|x - y|) * u y := by
+    sorry -- norm_integral_le + |sgn| ≤ 1
+  calc |deriv (Psi u 1 1) x|
+      = |(1/2 : ℝ) * ∫ y, sgn y * Real.exp (-|x - y|) * u y| := by rw [hderiv]
+    _ = (1/2 : ℝ) * |∫ y, sgn y * Real.exp (-|x - y|) * u y| := by rw [abs_mul]; simp
+    _ ≤ (1/2 : ℝ) * ∫ y, Real.exp (-|x - y|) * u y := by
+        exact mul_le_mul_of_nonneg_left htriangle (by norm_num)
+    _ = Psi u 1 1 x := by rw [hPsi]
 
 /-- c**_{χ,m,α,γ} from Theorem 1.2. -/
 def cStarStar (p : CMParams) : ℝ :=
