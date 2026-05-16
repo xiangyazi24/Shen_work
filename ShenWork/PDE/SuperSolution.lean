@@ -53,4 +53,33 @@ theorem logistic_heat_bound {f : ℝ → ℝ} {M : ℝ}
     ∀ x, heatSemigroup t f x ≤ M :=
   heatSemigroup_upper_bound hf_nn hf_le ht
 
+/-! ## Long-time behavior of the logistic ODE
+
+The ODE ū'(t) = ū(t)(1 - ū(t)^α) with ū(0) = M > 1 converges to 1 as t → ∞.
+This follows from:
+1. ū is monotone decreasing (logisticRHS ≤ 0 when ū ≥ 1)
+2. ū is bounded below by 1 (if ū hits 1, the RHS is 0)
+3. Monotone bounded ⟹ convergent (to some limit L ≥ 1)
+4. At the limit, ū' → 0, so L(1-L^α) = 0, hence L = 1
+
+Similarly for u_bar starting below 1: it increases to 1. -/
+
+/-- Monotone decreasing bounded below converges. -/
+lemma logistic_ode_sup_converges {α : ℝ} (hα : 1 ≤ α) {M : ℝ} (hM : 1 < M)
+    (ū : ℝ → ℝ) (hū_init : ū 0 = M)
+    (hū_ode : ∀ t, 0 < t → deriv ū t = logisticRHS α (ū t))
+    (hū_bound : ∀ t, 0 ≤ t → 1 ≤ ū t) :
+    Tendsto ū atTop (𝓝 1) := by
+  sorry
+
+/-- The decreasing monotonicity of ū when ū ≥ 1. -/
+lemma logistic_ode_monotone_decreasing {α : ℝ} (hα : 1 ≤ α)
+    (ū : ℝ → ℝ)
+    (hū_ode : ∀ t, 0 < t → deriv ū t = logisticRHS α (ū t))
+    (hū_bound : ∀ t, 0 ≤ t → 1 ≤ ū t) :
+    ∀ t, 0 < t → deriv ū t ≤ 0 := by
+  intro t ht
+  rw [hū_ode t ht]
+  exact logisticRHS_nonpos_of_ge_one hα (hū_bound t (le_of_lt ht))
+
 end
