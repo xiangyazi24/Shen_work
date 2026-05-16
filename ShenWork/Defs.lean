@@ -311,6 +311,29 @@ theorem Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ)
 def cStarStar (p : CMParams) : ℝ :=
   1 + |p.χ| ^ (1/6 : ℝ) + 1 / (1 + |p.χ| ^ (1/6 : ℝ))
 
+/-! ## Explicit solutions for special cases -/
+
+/-- The constant solution u ≡ 1, v ≡ 1 is a global classical solution when χ = 0. -/
+theorem constant_solution_is_global (p : CMParams) (hp : p.χ = 0) :
+    IsGlobalClassicalSolution p (fun _ _ => 1) (fun _ _ => 1) := by
+  intro T hT
+  exact {
+    hT := hT
+    u_smooth := fun t x _ _ => ⟨differentiableAt_const 1, differentiableAt_const 1⟩
+    v_smooth := fun t x _ _ => differentiableAt_const 1
+    pde_u := fun t x _ _ => by
+      simp only [Function.comp_apply, hp]
+      rw [deriv_const, show iteratedDeriv 2 (fun _ : ℝ => (1:ℝ)) x = 0 from by
+        rw [iteratedDeriv_succ, iteratedDeriv_succ, iteratedDeriv_zero]
+        simp [deriv_const]]
+      simp [Real.one_rpow, deriv_const]
+    pde_v := fun t x _ _ => by
+      rw [show iteratedDeriv 2 (fun _ : ℝ => (1:ℝ)) x = 0 from by
+        rw [iteratedDeriv_succ, iteratedDeriv_succ, iteratedDeriv_zero]
+        simp [deriv_const]]
+      simp [Real.one_rpow]
+  }
+
 /-! ## PDE theorems — to be proved from scratch by building PDE infrastructure -/
 
 theorem cm_global_exist_neg (p : CMParams) (hp : p.χ ≤ 0)
