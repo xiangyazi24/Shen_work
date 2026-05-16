@@ -24,7 +24,7 @@ noncomputable section
 
 /-- The heat kernel on ℝ at time t > 0. -/
 def heatKernel (t : ℝ) (x : ℝ) : ℝ :=
-  (4 * Real.pi * t) ^ (-(1:ℝ)/2) * Real.exp (-x ^ 2 / (4 * t))
+  1 / Real.sqrt (4 * Real.pi * t) * Real.exp (-x ^ 2 / (4 * t))
 
 /-- The heat semigroup acting on a function f. -/
 def heatSemigroup (t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
@@ -40,15 +40,22 @@ def modifiedSemigroup (t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
 lemma heatKernel_nonneg {t : ℝ} (ht : 0 < t) (x : ℝ) : 0 ≤ heatKernel t x := by
   unfold heatKernel
   apply mul_nonneg
-  · apply Real.rpow_nonneg
-    apply mul_nonneg (mul_nonneg (by norm_num : (0:ℝ) ≤ 4) (Real.pi_nonneg)) (le_of_lt ht)
+  · apply div_nonneg one_pos.le
+    exact Real.sqrt_nonneg _
   · exact Real.exp_nonneg _
 
 /-- The heat kernel integrates to 1: ∫ G(t,x) dx = 1 for t > 0.
     This is the Gaussian integral. -/
 theorem heatKernel_integral_eq_one {t : ℝ} (ht : 0 < t) :
     ∫ x : ℝ, heatKernel t x = 1 := by
-  sorry
+  unfold heatKernel
+  rw [show (fun x : ℝ => 1 / Real.sqrt (4 * Real.pi * t) * Real.exp (-x ^ 2 / (4 * t))) =
+    (fun x => 1 / Real.sqrt (4 * Real.pi * t) * Real.exp (-(1/(4*t)) * x ^ 2)) from by
+      ext x; congr 1; ring]
+  rw [MeasureTheory.integral_const_mul, integral_gaussian (1/(4*t))]
+  have h4pt : 0 < 4 * Real.pi * t := by positivity
+  have hsqrt_ne : Real.sqrt (4 * Real.pi * t) ≠ 0 := Real.sqrt_ne_zero'.mpr h4pt
+  field_simp [hsqrt_ne]
 
 /-! ## Semigroup estimates (Lemma 2.1 of the paper) -/
 
