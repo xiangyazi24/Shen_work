@@ -343,17 +343,6 @@ theorem cm_global_exist_neg (p : CMParams) (hp : p.χ ≤ 0)
       IsGlobalClassicalSolution p u v ∧
       (∀ t x, 0 ≤ t → u t x ≤ max 1 (⨆ x, u₀ x)) ∧
       (∀ ε > 0, ∃ T, ∀ t x, T ≤ t → u t x ≤ 1 + ε) := by
-  -- Proof structure (Section 3.1 of the paper):
-  -- 1. Local existence via Schauder/contraction fixed-point on X_T
-  -- 2. Upper bound: u ≤ max{1, sup u₀} via comparison with constant super-solution
-  --    (logisticRHS_nonpos_of_ge_one + heat semigroup upper bound)
-  -- 3. Lower bound: u ≥ 0 (positivity preservation)
-  -- 4. Global extension: bounded solution can't blow up in finite time
-  -- 5. Long-time: logistic damping drives u → 1
-  --    (logisticRHS_neg_of_gt_one + ODE convergence)
-  -- Infrastructure proved: heatSemigroup_upper_bound, logisticRHS_nonpos_of_ge_one,
-  --   logisticRHS_neg_of_gt_one, longtime_bound (all in PDE/ files)
-  -- Remaining gap: constructing the solution (local existence + regularity bootstrap)
   sorry
 
 theorem cm_global_exist_pos (p : CMParams) (hp : 0 < p.χ)
