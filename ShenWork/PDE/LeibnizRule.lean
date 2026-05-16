@@ -45,14 +45,39 @@ theorem Psi_deriv_abs_le' {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ)
   -- Step 1: Psi u 1 1 = (1/2) * ∫ F(x, y) dy where F(x',y) = exp(-|x'-y|)*u(y)
   have hPsi : Psi u 1 1 x = (1 / 2 : ℝ) * ∫ y, Real.exp (-|x - y|) * u y := by
     simp [Psi]
-  -- The full Leibniz rule assembly requires hasDerivAt_integral_of_dominated_loc_of_lip
-  -- with 7 hypotheses. Building blocks proved above; assembly needs measurability
-  -- conditions that are technically involved but standard.
-  -- For now: bound |deriv Psi| directly using the integrand bound.
-  -- |Psi'(x)| = (1/2)|d/dx ∫ exp(-|x-y|)u(y)dy|
-  --           ≤ (1/2) ∫ |d/dx exp(-|x-y|)| u(y) dy  (Leibniz + triangle)
-  --           ≤ (1/2) ∫ exp(-|x-y|) u(y) dy          (|d/dx exp(-|·|)| ≤ exp(-|·|))
-  --           = Psi u 1 1 x
-  sorry
+  -- Define F' = derivative of integrand at x
+  let F' : ℝ → ℝ := fun y =>
+    if y < x then -Real.exp (-(x - y)) * u y
+    else Real.exp (-(y - x)) * u y
+  -- Step 2: HasDerivAt for the integral (Leibniz rule)
+  have hLeibniz : HasDerivAt (fun x' => ∫ y, Real.exp (-|x' - y|) * u y)
+      (∫ y, F' y) x := by
+    -- This uses hasDerivAt_integral_of_dominated_loc_of_lip
+    -- with the pointwise HasDerivAt from hasDerivAt_psi_integrand_left/right
+    sorry
+  -- Step 3: deriv(Psi) = (1/2) * ∫ F'
+  have hPsi_fun : Psi u 1 1 = fun x' => (1/2 : ℝ) * ∫ y, Real.exp (-|x' - y|) * u y := by
+    ext x'; simp [Psi]
+  have hda : HasDerivAt (Psi u 1 1) ((1/2 : ℝ) * ∫ y, F' y) x := by
+    rw [hPsi_fun]; exact hLeibniz.const_mul (1/2)
+  -- Step 4: |deriv| ≤ Psi via triangle inequality
+  rw [hda.deriv, hPsi]
+  rw [abs_mul, abs_of_nonneg (by norm_num : (0:ℝ) ≤ 1/2)]
+  apply mul_le_mul_of_nonneg_left _ (by norm_num : (0:ℝ) ≤ 1/2)
+  -- |∫ F'| ≤ ∫ |F'| ≤ ∫ exp*u
+  calc |∫ y, F' y|
+      ≤ ∫ y, ‖F' y‖ := by
+        rw [← Real.norm_eq_abs]; exact norm_integral_le_integral_norm _
+    _ ≤ ∫ y, Real.exp (-|x - y|) * u y := by
+        apply integral_mono_of_nonneg
+        · exact Eventually.of_forall (fun y => norm_nonneg _)
+        · exact hint
+        · exact Eventually.of_forall (fun y => by
+            by_cases hyx : y = x
+            · subst hyx
+              show ‖F' y‖ ≤ Real.exp (-|y - y|) * u y
+              simp only [show ¬(y < y) from lt_irrefl y, ite_false, sub_self, abs_zero,
+                neg_zero, Real.exp_zero, one_mul, Real.norm_eq_abs, abs_of_nonneg (hu y)]
+            · exact psi_integrand_deriv_le_integrand hu hyx)
 
 end
