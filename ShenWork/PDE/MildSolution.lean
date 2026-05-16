@@ -76,6 +76,13 @@ theorem local_existence_mild (p : CMParams)
       heatSemigroup t u₀ x +
       ∫ s in Set.Icc 0 t, heatSemigroup (t - s)
         (fun y => chemotaxisSource p (u s) (fun _ => 0) y) x) := by
+  -- Strategy:
+  -- 1. Fix M = 2 * sup|u₀| as the ball radius
+  -- 2. The Duhamel operator Φ maps B(0,M) → B(0,M) for small T
+  --    (from heat semigroup L^∞ bound + logistic bound)
+  -- 3. Φ is contracting for small T (from logistic Lipschitz)
+  -- 4. ContractingWith.fixedPoint gives the fixed point = mild solution
+  -- Each step uses infrastructure from HeatSemigroup.lean
   sorry
 
 end
