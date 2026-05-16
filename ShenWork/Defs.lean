@@ -303,7 +303,7 @@ lemma hasDerivAt_kernel_right {x y : ℝ} (hy : x < y) :
 
 theorem Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ)
     (hint : MeasureTheory.Integrable (fun y => Real.exp (-|x - y|) * u y))
-    (_hu_meas : MeasureTheory.AEStronglyMeasurable u MeasureTheory.volume) :
+    (hu_meas : MeasureTheory.AEStronglyMeasurable u MeasureTheory.volume) :
     |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x := by
   sorry
 
