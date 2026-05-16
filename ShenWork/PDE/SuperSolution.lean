@@ -66,10 +66,11 @@ Similarly for u_bar starting below 1: it increases to 1. -/
 
 /-- Monotone decreasing bounded below converges. -/
 lemma logistic_ode_sup_converges {α : ℝ} (hα : 1 ≤ α) {M : ℝ} (_hM : 1 < M)
-    (ū : ℝ → ℝ) (_hū_init : ū 0 = M)
+    (ū : ℝ → ℝ) (hū_init : ū 0 = M)
     (hū_ode : ∀ t, 0 < t → deriv ū t = logisticRHS α (ū t))
     (hū_bound : ∀ t, 0 ≤ t → 1 ≤ ū t)
-    (hū_anti : Antitone ū) :
+    (hū_anti : Antitone ū)
+    (hū_cont : Continuous ū) :
     Tendsto ū atTop (𝓝 1) := by
   -- Step 1: ū is antitone and bounded below by 1 → converges to some L
   have hū_ge_one : ∀ t, 1 ≤ ū t := by
@@ -126,7 +127,14 @@ lemma logistic_ode_sup_converges {α : ℝ} (hα : 1 ≤ α) {M : ℝ} (_hM : 1 
           linarith [this]
       _ = 1 + c := by ring
       _ < 1 := by linarith
-  sorry
+  -- ODE comparison: ū'(t) = logisticRHS(ū(t)) ≤ c for all t > 0
+  -- (because ū(t) ≥ L and logisticRHS antitone on [1,∞))
+  -- Integration: ū(T) ≤ ū(0) + c*T = M + c*T < 1
+  -- But ū(T) ≥ 1, contradiction.
+  have hū_le_T : ū T ≤ M + c * T := by
+    -- From: ū' ≤ c on (0,T), ū(0) = M, by image_le_of_deriv_right_le_deriv_boundary
+    sorry
+  linarith [hū_ge_one T]
 
 /-- If logisticRHS α L = 0 and L ≥ 1, then L = 1.
     From L(1-L^α) = 0: either L = 0 or L^α = 1. With L ≥ 1 and α ≥ 1, L^α = 1 → L = 1. -/
