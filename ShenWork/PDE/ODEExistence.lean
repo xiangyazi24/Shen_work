@@ -34,7 +34,7 @@ theorem logistic_ode_local_existence (α : ℝ) (_hα : 1 ≤ α) (M : ℝ) (hM 
     have hTnonneg : 0 ≤ (M + 1) / (L : ℝ) := le_of_lt (div_pos (by linarith [hM]) hLpos)
     dsimp [T, t₀, a]; simp only [sub_zero, sub_self]
     rw [max_eq_left hTnonneg]
-    sorry -- mul_div_cancel: L * (M+1)/L = M+1 ≤ M+1
+    exact le_of_eq (mul_div_cancel₀ _ (ne_of_gt hLpos))
   have hb : ∀ x ∈ Metric.closedBall M (a : ℝ), ‖g x‖ ≤ (L : ℝ) := by
     intro x _hx; sorry
   have hl : LipschitzOnWith K g (Metric.closedBall M (a : ℝ)) := by sorry
