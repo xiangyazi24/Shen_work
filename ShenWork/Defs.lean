@@ -329,7 +329,19 @@ theorem cm_global_exist_neg (p : CMParams) (hp : p.χ ≤ 0)
     ∃ u v : ℝ → ℝ → ℝ,
       IsGlobalClassicalSolution p u v ∧
       (∀ t x, 0 ≤ t → u t x ≤ max 1 (⨆ x, u₀ x)) ∧
-      (∀ ε > 0, ∃ T, ∀ t x, T ≤ t → u t x ≤ 1 + ε) := by sorry
+      (∀ ε > 0, ∃ T, ∀ t x, T ≤ t → u t x ≤ 1 + ε) := by
+  -- Proof structure (Section 3.1 of the paper):
+  -- 1. Local existence via Schauder/contraction fixed-point on X_T
+  -- 2. Upper bound: u ≤ max{1, sup u₀} via comparison with constant super-solution
+  --    (logisticRHS_nonpos_of_ge_one + heat semigroup upper bound)
+  -- 3. Lower bound: u ≥ 0 (positivity preservation)
+  -- 4. Global extension: bounded solution can't blow up in finite time
+  -- 5. Long-time: logistic damping drives u → 1
+  --    (logisticRHS_neg_of_gt_one + ODE convergence)
+  -- Infrastructure proved: heatSemigroup_upper_bound, logisticRHS_nonpos_of_ge_one,
+  --   logisticRHS_neg_of_gt_one, longtime_bound (all in PDE/ files)
+  -- Remaining gap: constructing the solution (local existence + regularity bootstrap)
+  sorry
 
 theorem cm_global_exist_pos (p : CMParams) (hp : 0 < p.χ)
     (hα : p.α > p.m + p.γ - 1 ∨
@@ -337,14 +349,24 @@ theorem cm_global_exist_pos (p : CMParams) (hp : 0 < p.χ)
        p.χ < min ((2 * p.m - 1) / (p.m - 1)) ((p.m + p.γ - 1) / (p.γ - 1))))
     (u₀ : ℝ → ℝ) (hu₀_cont : Continuous u₀) (hu₀_bdd : IsBddFun u₀)
     (hu₀_nn : ∀ x, 0 ≤ u₀ x) :
-    ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution p u v ∧ IsBoundedGlobal u := by sorry
+    ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution p u v ∧ IsBoundedGlobal u := by
+  -- Similar to cm_global_exist_neg but for χ > 0 with logistic dominance.
+  -- When α > m+γ-1, the logistic term dominates chemotaxis for large u.
+  -- Infrastructure: logisticRHS analysis + heat semigroup bounds
+  sorry
 
 theorem cm_stabilize_neg (p : CMParams) (hp : p.χ ≤ 0)
     (u₀ : ℝ → ℝ) (hu₀_cont : Continuous u₀) (hu₀_bdd : IsBddFun u₀)
     (hu₀_nn : ∀ x, 0 ≤ u₀ x) (hu₀_inf : ∃ δ > 0, ∀ x, δ ≤ u₀ x) :
     ∃ u v : ℝ → ℝ → ℝ,
       IsGlobalClassicalSolution p u v ∧
-      Tendsto (fun t => ⨆ x, |u t x - 1|) atTop (𝓝 0) := by sorry
+      Tendsto (fun t => ⨆ x, |u t x - 1|) atTop (𝓝 0) := by
+  -- Proof (Section 3.2): rectangle/ODE comparison.
+  -- bar_u(t) = sup_x u(t,x) and underline_u(t) = inf_x u(t,x)
+  -- Both satisfy the ODE comparison → both converge to 1
+  -- Infrastructure: ode_ū_decreasing, ode_u_bar_increasing,
+  --   logisticRHS_eq_zero_of_ge_one (limit uniqueness)
+  sorry
 
 theorem cm_stabilize_small_pos (p : CMParams)
     (hp : 0 < p.χ) (hp2 : p.χ < 1 / 2) (hα : p.m + p.γ - 1 ≤ p.α)
@@ -352,21 +374,30 @@ theorem cm_stabilize_small_pos (p : CMParams)
     (hu₀_nn : ∀ x, 0 ≤ u₀ x) (hu₀_inf : ∃ δ > 0, ∀ x, δ ≤ u₀ x) :
     ∃ u v : ℝ → ℝ → ℝ,
       IsGlobalClassicalSolution p u v ∧
-      Tendsto (fun t => ⨆ x, |u t x - 1|) atTop (𝓝 0) := by sorry
+      Tendsto (fun t => ⨆ x, |u t x - 1|) atTop (𝓝 0) := by
+  -- Similar to cm_stabilize_neg, using rectangle/ODE for small positive χ.
+  sorry
 
 theorem cm_tw_exist_neg (p : CMParams)
     (hα : p.α ≤ p.m + p.γ - 1) (hχ : p.χ ≤ 0) (c : ℝ) (hc : cStarLower p < c) :
     ∃ U V : ℝ → ℝ,
       IsMonotoneTravelingWave p c U V ∧
       (∀ x, 0 < U x) ∧
-      (∀ x, U x < max 1 (Real.exp (-kappa c * x))) := by sorry
+      (∀ x, U x < max 1 (Real.exp (-kappa c * x))) := by
+  -- Proof (Section 4): super/sub-solution in moving frame + Schauder.
+  -- Super-solution: U⁺_{κ,M} = min{M, e^{-κx}} (proved in Psi theory)
+  -- Sub-solution: constructed from exponential profiles
+  -- Fixed-point gives monotone traveling wave
+  sorry
 
 theorem cm_tw_exist_small_pos (p : CMParams)
     (hα : p.α = p.m + p.γ - 1)
     (hχ_nn : 0 ≤ p.χ) (hχ_small : p.χ < min (1/2) (chiStar p))
     (c : ℝ) (hc : 2 < c) :
     ∃ U V : ℝ → ℝ,
-      IsTravelingWave p c U V ∧ (∀ x, 0 < U x) := by sorry
+      IsTravelingWave p c U V ∧ (∀ x, 0 < U x) := by
+  -- Similar to cm_tw_exist_neg, adapted for small positive χ.
+  sorry
 
 theorem cm_tw_stability (p : CMParams)
     (hparam : (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
@@ -376,7 +407,10 @@ theorem cm_tw_stability (p : CMParams)
     (u₀ : ℝ → ℝ) (hu₀_nn : ∀ x, 0 ≤ u₀ x) :
     ∃ u v : ℝ → ℝ → ℝ,
       IsGlobalClassicalSolution p u v ∧
-      (∀ ε > 0, ∃ T, ∀ t x, T ≤ t → |u t x - U (x - c * t)| < ε) := by sorry
+      (∀ ε > 0, ∃ T, ∀ t x, T ≤ t → |u t x - U (x - c * t)| < ε) := by
+  -- Proof (Section 5): weighted energy estimates.
+  -- Key: c > c** ensures exponential stability in weighted L² space
+  sorry
 
 theorem cm_tw_uniqueness (p : CMParams)
     (hparam : (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
@@ -386,6 +420,9 @@ theorem cm_tw_uniqueness (p : CMParams)
     (hTW₁ : IsTravelingWave p c U₁ V₁) (hTW₂ : IsTravelingWave p c U₂ V₂)
     (hbound₁ : ∀ x, U₁ x < Real.exp (-kappa c * x))
     (hbound₂ : ∀ x, U₂ x < Real.exp (-kappa c * x)) :
-    (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by sorry
+    (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
+  -- Proof (Section 5.3): sliding method + maximum principle.
+  -- Uses weighted a priori estimates from Section 5.1
+  sorry
 
 end
