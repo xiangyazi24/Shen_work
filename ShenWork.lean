@@ -9,3 +9,5 @@ import ShenWork.PDE.MildSolution
 import ShenWork.PDE.SuperSolution
 import ShenWork.PDE.GlobalBound
 import ShenWork.PDE.LeibnizRule
+import ShenWork.PDE.ODEExistence
+import ShenWork.PDE.SpecialCases
