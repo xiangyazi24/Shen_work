@@ -49,11 +49,9 @@ lemma logistic_lipschitz_on_bounded {α M : ℝ} (hα : 1 ≤ α) (hM : 0 < M) :
   constructor
   · positivity
   · intro u₁ u₂ hu₁ hu₂
-    -- f(u) = u*(1-u^α) = u - u*u^α
-    -- |f(u₁) - f(u₂)| = |(u₁-u₂) - (u₁*u₁^α - u₂*u₂^α)|
-    -- ≤ |u₁-u₂| + |u₁*u₁^α - u₂*u₂^α|
-    -- For the second term: |u₁*u₁^α - u₂*u₂^α| ≤ (1+α)M^α|u₁-u₂|
-    -- This uses the MVT for x*x^α on [-M,M]
+    -- |u₁(1-u₁^α) - u₂(1-u₂^α)| ≤ (1+(1+α)M^α)|u₁-u₂|
+    -- via triangle: |(u₁-u₂) - (u₁u₁^α - u₂u₂^α)| ≤ |u₁-u₂| + |u₁u₁^α - u₂u₂^α|
+    -- and |u₁u₁^α - u₂u₂^α| ≤ (1+α)M^α|u₁-u₂| (algebraic + rpow Lipschitz)
     sorry
 
 /-! ## Local existence via contraction -/
