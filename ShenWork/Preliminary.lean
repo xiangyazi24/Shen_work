@@ -37,7 +37,8 @@ theorem psi_gradient_bound (u : ℝ → ℝ) (hu : Continuous u) (hu_nn : ∀ x,
 
 /-- Lemma 2.4: Exponential bound for Ψ. -/
 theorem psi_exponential_bound {k M : ℝ} (hk : 0 < k) (hk1 : k < 1) (hM : 0 < M)
-    (u : ℝ → ℝ) (hu_bound : ∀ x, 0 ≤ u x ∧ u x ≤ min M (Real.exp (-k * x))) :
+    (u : ℝ → ℝ) (hu_bound : ∀ x, 0 ≤ u x ∧ u x ≤ min M (Real.exp (-k * x)))
+    (hu_meas : MeasureTheory.AEStronglyMeasurable u MeasureTheory.volume) :
     ∀ x : ℝ, Psi u 1 1 x ≤ min M (1 / (1 - k ^ 2) * Real.exp (-k * x)) := by
   intro x
   apply le_min
@@ -49,7 +50,7 @@ theorem psi_exponential_bound {k M : ℝ} (hk : 0 < k) (hk1 : k < 1) (hM : 0 < M
         · intro y; exact le_trans (hu_bound y).2 (min_le_left M _)
         · convert kernel_mul_bounded_integrable u M (le_of_lt hM)
             (fun y => by rw [abs_of_nonneg (hu_bound y).1]; exact le_trans (hu_bound y).2 (min_le_left M _))
-            x sorry using 2
+            x hu_meas using 2
           simp [Real.sqrt_one]
         · convert kernel_mul_const_integrable M x using 2; simp [Real.sqrt_one]
       _ = M := Psi_const (le_of_lt hM) x
@@ -61,7 +62,7 @@ theorem psi_exponential_bound {k M : ℝ} (hk : 0 < k) (hk1 : k < 1) (hM : 0 < M
         · intro y; exact le_trans (hu_bound y).2 (min_le_right M _)
         · convert kernel_mul_bounded_integrable u M (le_of_lt hM)
             (fun y => by rw [abs_of_nonneg (hu_bound y).1]; exact le_trans (hu_bound y).2 (min_le_left M _))
-            x sorry using 2
+            x hu_meas using 2
           simp [Real.sqrt_one]
         · convert kernel_mul_exp_integrable k hk hk1 x using 2; simp [Real.sqrt_one]
       _ = 1 / (1 - k ^ 2) * Real.exp (-k * x) := Psi_exp hk hk1 x
