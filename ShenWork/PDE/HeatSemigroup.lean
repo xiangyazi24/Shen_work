@@ -106,11 +106,13 @@ lemma heatKernel_mul_bounded_integrable {t : ℝ} (ht : 0 < t) (x : ℝ)
 /-- The comparison principle for the heat equation:
     If f ≤ g pointwise, then e^{tΔ} f ≤ e^{tΔ} g. -/
 theorem heatSemigroup_mono {f g : ℝ → ℝ} (hfg : ∀ x, f x ≤ g x)
-    {t : ℝ} (ht : 0 < t) :
-    ∀ x, heatSemigroup t f x ≤ heatSemigroup t g x := by
-  intro x
+    {t : ℝ} (ht : 0 < t)
+    (hf_int : MeasureTheory.Integrable (fun y => heatKernel t (x₀ - y) * f y))
+    (hg_int : MeasureTheory.Integrable (fun y => heatKernel t (x₀ - y) * g y)) :
+    heatSemigroup t f x₀ ≤ heatSemigroup t g x₀ := by
   unfold heatSemigroup
-  sorry -- needs integrability + monotonicity of integral with nonneg kernel
+  exact MeasureTheory.integral_mono hf_int hg_int
+    (fun y => mul_le_mul_of_nonneg_left (hfg y) (heatKernel_nonneg ht _))
 
 /-- If f ≥ 0 and f ≤ M, then e^{tΔ} f ≤ M (conservation + positivity). -/
 theorem heatSemigroup_upper_bound {f : ℝ → ℝ} {M : ℝ}
