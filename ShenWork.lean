@@ -8,3 +8,4 @@ import ShenWork.PDE.HeatSemigroup
 import ShenWork.PDE.MildSolution
 import ShenWork.PDE.SuperSolution
 import ShenWork.PDE.GlobalBound
+import ShenWork.PDE.LeibnizRule
