@@ -101,8 +101,11 @@ lemma logistic_ode_sup_converges {α : ℝ} (hα : 1 ≤ α) {M : ℝ} (_hM : 1 
     unfold logisticRHS
     exact mul_neg_of_pos_of_neg (by linarith)
       (sub_neg.mpr (Real.one_lt_rpow hL_gt (by linarith : 0 < α)))
-  -- But ū → ⨅, so ū(t) is eventually in (1, ⨅+ε), and ū' = logisticRHS(ū(t)) < 0
-  -- This means ū decreases by at least δ per unit time, contradicting convergence
+  -- logisticRHS is continuous at L, and logisticRHS(L) < 0
+  -- Since ū → L, logisticRHS ∘ ū → logisticRHS(L) < 0
+  -- So ū' = logisticRHS(ū(t)) is eventually ≤ logisticRHS(L)/2 < 0
+  -- But then ū(t) → -∞, contradicting ū ≥ 1
+  -- Full formalization: continuity of rpow + Filter.Tendsto + eventually_le
   sorry
 
 /-- If logisticRHS α L = 0 and L ≥ 1, then L = 1.
