@@ -137,9 +137,35 @@ theorem heatSemigroup_upper_bound {f : ℝ → ℝ} {M : ℝ}
     _ = M := by ring
 
 /-- L^∞ bound: ‖e^{(Δ-I)t} f‖_∞ ≤ e^{-t} ‖f‖_∞. -/
+theorem heatSemigroup_abs_bound {f : ℝ → ℝ} {M : ℝ}
+    (hf : ∀ x, |f x| ≤ M) {t : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume) :
+    ∀ x, |heatSemigroup t f x| ≤ M := by
+  intro x; unfold heatSemigroup
+  calc |∫ y, heatKernel t (x - y) * f y|
+      ≤ ∫ y, ‖heatKernel t (x - y) * f y‖ := by
+        rw [← Real.norm_eq_abs]; exact norm_integral_le_integral_norm _
+    _ = ∫ y, heatKernel t (x - y) * |f y| := by
+        congr 1; ext y
+        rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (heatKernel_nonneg ht _)]
+    _ ≤ ∫ y, heatKernel t (x - y) * M := by
+        apply MeasureTheory.integral_mono_of_nonneg
+        · exact Filter.Eventually.of_forall (fun y =>
+            mul_nonneg (heatKernel_nonneg ht _) (abs_nonneg _))
+        · exact (heatKernel_translated_integrable ht x).mul_const M
+        · exact Filter.Eventually.of_forall (fun y =>
+            mul_le_mul_of_nonneg_left (hf y) (heatKernel_nonneg ht _))
+    _ = M := by
+        rw [show (fun y => heatKernel t (x - y) * M) = (fun y => M * heatKernel t (x - y)) from by
+          ext y; ring]
+        rw [MeasureTheory.integral_const_mul, heatKernel_integral_translated ht x, mul_one]
+
 theorem modifiedSemigroup_Linfty_bound {f : ℝ → ℝ} {M : ℝ}
-    (hf : ∀ x, |f x| ≤ M) {t : ℝ} (ht : 0 < t) (_hM : 0 ≤ M) :
+    (hf : ∀ x, |f x| ≤ M) {t : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume) :
     ∀ x, |modifiedSemigroup t f x| ≤ Real.exp (-t) * M := by
-  sorry
+  intro x; unfold modifiedSemigroup
+  rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+  exact mul_le_mul_of_nonneg_left (heatSemigroup_abs_bound hf ht hM hf_meas x) (Real.exp_nonneg _)
 
 end
