@@ -31,9 +31,16 @@ theorem semigroup_div_Linfty_estimate {p : ℝ} (hp : 1 ≤ p) :
 /-! ## §2.2 Elliptic equation properties (Lemmas 2.2–2.5) -/
 
 /-- Lemma 2.3: |d/dx Ψ(x; u, 1, 1)| ≤ Ψ(x; u, 1, 1) for nonneg u. -/
-theorem psi_gradient_bound (u : ℝ → ℝ) (_hu : Continuous u) (hu_nn : ∀ x, 0 ≤ u x) :
-    ∀ x : ℝ, |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x :=
-  fun x => Psi_deriv_abs_le hu_nn x
+theorem psi_gradient_bound (u : ℝ → ℝ) (hu : Continuous u) (hu_nn : ∀ x, 0 ≤ u x)
+    (hu_bdd : IsBddFun u) :
+    ∀ x : ℝ, |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x := by
+  intro x
+  obtain ⟨M, hM⟩ := hu_bdd
+  have hM_nn : 0 ≤ M := le_trans (abs_nonneg (u 0)) (hM 0)
+  have hint : MeasureTheory.Integrable (fun y => Real.exp (-|x - y|) * u y) := by
+    have h := kernel_mul_bounded_integrable u M hM_nn hM x hu.aestronglyMeasurable
+    convert h using 2 with y; simp [neg_one_mul]
+  exact Psi_deriv_abs_le hu_nn x hint hu.aestronglyMeasurable
 
 /-- Lemma 2.4: Exponential bound for Ψ. -/
 theorem psi_exponential_bound {k M : ℝ} (hk : 0 < k) (hk1 : k < 1) (hM : 0 < M)
