@@ -303,13 +303,18 @@ private lemma hasDerivAt_kernel_right {x y : ℝ} (hy : x < y) :
 
 theorem Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ)
     (hint : MeasureTheory.Integrable (fun y => Real.exp (-|x - y|) * u y))
-    (hu_meas : MeasureTheory.AEStronglyMeasurable u MeasureTheory.volume) :
+    (_hu_meas : MeasureTheory.AEStronglyMeasurable u MeasureTheory.volume) :
     |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x := by
-  -- The full proof requires hasDerivAt_integral_of_dominated_loc_of_deriv_le
-  -- to establish: deriv(Psi u 1 1) x = (1/2) ∫ y, F'(x,y) dy
-  -- where F'(x,y) = -sgn(x-y) * exp(-|x-y|) * u(y)
-  -- Then |deriv| ≤ (1/2) ∫ |F'| dy ≤ (1/2) ∫ exp(-|x-y|) u(y) dy = Psi
-  -- Building blocks proved: hasDerivAt_kernel_left/right, norm_integral_le
+  -- Step 1: Apply hasDerivAt_integral to get deriv formula
+  -- F(x', y) = exp(-|x'-y|) * u(y), F'(x, y) for y ≠ x
+  -- The derivative of exp(-|x'-y|)*u(y) w.r.t. x' equals ±exp(-|x-y|)*u(y)
+  -- |F'| ≤ exp(-|x-y|)*u(y) = F(x,y) since |±1| = 1
+  -- Step 2: Leibniz gives HasDerivAt (fun x' => ∫ F(x',y) dy) (∫ F'(x,y) dy) x
+  -- Step 3: deriv(Psi) = (1/2) * ∫ F'(x,y) dy
+  -- Step 4: |deriv(Psi)| ≤ (1/2) |∫ F'| ≤ (1/2) ∫ |F'| ≤ (1/2) ∫ F = Psi
+  -- The Leibniz rule (step 2) uses hasDerivAt_integral_of_dominated_loc_of_deriv_le
+  -- with hasDerivAt_kernel_left/right providing the pointwise derivative.
+  -- The bound (step 4) uses norm_integral_le_integral_norm.
   sorry
 
 /-- c**_{χ,m,α,γ} from Theorem 1.2. -/
