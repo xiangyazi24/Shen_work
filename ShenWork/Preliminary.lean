@@ -32,14 +32,31 @@ theorem semigroup_div_Linfty_estimate {p : ℝ} (hp : 1 ≤ p) :
 
 /-- Lemma 2.3: |d/dx Ψ(x; u, 1, 1)| ≤ Ψ(x; u, 1, 1) for nonneg u. -/
 theorem psi_gradient_bound (u : ℝ → ℝ) (hu : Continuous u) (hu_nn : ∀ x, 0 ≤ u x) :
-    ∀ x : ℝ, |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x := by
-  sorry
+    ∀ x : ℝ, |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x :=
+  fun x => Psi_deriv_abs_le hu_nn x
 
 /-- Lemma 2.4: Exponential bound for Ψ. -/
 theorem psi_exponential_bound {k M : ℝ} (hk : 0 < k) (hk1 : k < 1) (hM : 0 < M)
     (u : ℝ → ℝ) (hu_bound : ∀ x, 0 ≤ u x ∧ u x ≤ min M (Real.exp (-k * x))) :
     ∀ x : ℝ, Psi u 1 1 x ≤ min M (1 / (1 - k ^ 2) * Real.exp (-k * x)) := by
-  sorry
+  intro x
+  apply le_min
+  · calc
+      Psi u 1 1 x ≤ Psi (fun _ : ℝ => M) 1 1 x := by
+        apply Psi_mono
+        · norm_num
+        · norm_num
+        · intro y
+          exact le_trans (hu_bound y).2 (min_le_left M _)
+      _ = M := Psi_const (le_of_lt hM) x
+  · calc
+      Psi u 1 1 x ≤ Psi (fun y : ℝ => Real.exp (-k * y)) 1 1 x := by
+        apply Psi_mono
+        · norm_num
+        · norm_num
+        · intro y
+          exact le_trans (hu_bound y).2 (min_le_right M _)
+      _ = 1 / (1 - k ^ 2) * Real.exp (-k * x) := Psi_exp hk hk1 x
 
 /-- Lemma 2.5: Weighted gradient estimate for Ψ. -/
 theorem psi_weighted_gradient_estimate {p g : ℝ} (hp : 1 < p) (hg : 0 < g) :

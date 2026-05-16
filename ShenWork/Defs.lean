@@ -105,6 +105,26 @@ def kappa (c : ℝ) : ℝ := (c - Real.sqrt (c ^ 2 - 4)) / 2
     Stated axiomatically; the integral formula is proved in Preliminary.lean. -/
 axiom Psi (u : ℝ → ℝ) (l mu : ℝ) (x : ℝ) : ℝ
 
+/-- Ψ is nonneg for nonneg u. -/
+axiom Psi_nonneg {u : ℝ → ℝ} {l mu : ℝ} (hl : 0 < l) (hmu : 0 < mu)
+    (hu : ∀ x, 0 ≤ u x) (x : ℝ) : 0 ≤ Psi u l mu x
+
+/-- Ψ is monotone in u. -/
+axiom Psi_mono {u v : ℝ → ℝ} {l mu : ℝ} (hl : 0 < l) (hmu : 0 < mu)
+    (huv : ∀ x, u x ≤ v x) (x : ℝ) : Psi u l mu x ≤ Psi v l mu x
+
+/-- Ψ of a constant = the constant (kernel integrates to 1). -/
+axiom Psi_const {c : ℝ} (hc : 0 ≤ c) (x : ℝ) : Psi (fun _ : ℝ => c) 1 1 x = c
+
+/-- Ψ of an exponential: Ψ(e^{-kx}, 1, 1) = e^{-kx}/(1−k²) for 0 < k < 1. -/
+axiom Psi_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
+    Psi (fun y : ℝ => Real.exp (-k * y)) 1 1 x =
+      1 / (1 - k ^ 2) * Real.exp (-k * x)
+
+/-- |Ψ'(x)| ≤ √l · Ψ(x) for nonneg u (Lemma 2.3). Specialized to l=1. -/
+axiom Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ) :
+    |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x
+
 /-- c**_{χ,m,α,γ} from Theorem 1.2. -/
 def cStarStar (p : CMParams) : ℝ :=
   1 + |p.χ| ^ (1/6 : ℝ) + 1 / (1 + |p.χ| ^ (1/6 : ℝ))
