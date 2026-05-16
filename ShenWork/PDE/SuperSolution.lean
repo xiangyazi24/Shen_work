@@ -65,11 +65,16 @@ This follows from:
 Similarly for u_bar starting below 1: it increases to 1. -/
 
 /-- Monotone decreasing bounded below converges. -/
-lemma logistic_ode_sup_converges {α : ℝ} (hα : 1 ≤ α) {M : ℝ} (hM : 1 < M)
-    (ū : ℝ → ℝ) (hū_init : ū 0 = M)
+lemma logistic_ode_sup_converges {α : ℝ} (hα : 1 ≤ α) {M : ℝ} (_hM : 1 < M)
+    (ū : ℝ → ℝ) (_hū_init : ū 0 = M)
     (hū_ode : ∀ t, 0 < t → deriv ū t = logisticRHS α (ū t))
-    (hū_bound : ∀ t, 0 ≤ t → 1 ≤ ū t) :
+    (hū_bound : ∀ t, 0 ≤ t → 1 ≤ ū t)
+    (hū_anti : Antitone ū) :
     Tendsto ū atTop (𝓝 1) := by
+  -- Proof: tendsto_atTop_ciInf gives ū → ⨅ t, ū t
+  -- Since ū ≥ 1 for all t, the inf L ≥ 1
+  -- At the limit: ū' → 0, so logisticRHS α L = 0
+  -- logisticRHS α L = L(1-L^α) = 0 with L ≥ 1 implies L = 1
   sorry
 
 /-- The decreasing monotonicity of ū when ū ≥ 1. -/

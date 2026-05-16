@@ -305,10 +305,11 @@ theorem Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ)
     (hint : MeasureTheory.Integrable (fun y => Real.exp (-|x - y|) * u y))
     (hu_meas : MeasureTheory.AEStronglyMeasurable u MeasureTheory.volume) :
     |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x := by
-  -- Strategy: Leibniz rule gives deriv = (1/2) ∫ sgn(x-y) exp(-|x-y|) u(y) dy
-  -- Then |deriv| ≤ (1/2) ∫ |sgn| exp(-|x-y|) u(y) dy ≤ (1/2) ∫ exp u = Psi
-  -- The Leibniz rule application is the hardest part; we use sorry for now
-  -- and focus on the triangle inequality which is proved.
+  -- The full proof requires hasDerivAt_integral_of_dominated_loc_of_deriv_le
+  -- to establish: deriv(Psi u 1 1) x = (1/2) ∫ y, F'(x,y) dy
+  -- where F'(x,y) = -sgn(x-y) * exp(-|x-y|) * u(y)
+  -- Then |deriv| ≤ (1/2) ∫ |F'| dy ≤ (1/2) ∫ exp(-|x-y|) u(y) dy = Psi
+  -- Building blocks proved: hasDerivAt_kernel_left/right, norm_integral_le
   sorry
 
 /-- c**_{χ,m,α,γ} from Theorem 1.2. -/
