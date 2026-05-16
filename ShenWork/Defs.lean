@@ -305,9 +305,6 @@ theorem Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ)
     (hint : MeasureTheory.Integrable (fun y => Real.exp (-|x - y|) * u y))
     (_hu_meas : MeasureTheory.AEStronglyMeasurable u MeasureTheory.volume) :
     |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x := by
-  -- Infrastructure for this proof is in PDE/LeibnizRule.lean:
-  -- hasDerivAt_psi_integrand_left/right, psi_integrand_deriv_le_integrand
-  -- Full proof needs hasDerivAt_integral_of_dominated_loc_of_deriv_le assembly
   sorry
 
 /-- c**_{χ,m,α,γ} from Theorem 1.2. -/
