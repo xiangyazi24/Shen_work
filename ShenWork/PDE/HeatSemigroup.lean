@@ -69,20 +69,39 @@ theorem heatKernel_integral_translated {t : ℝ} (ht : 0 < t) (x : ℝ) :
     ext y; simp only; rw [show x - y = -(y + (-x)) from by ring, heatKernel_neg]
   rw [key, integral_add_right_eq_self, heatKernel_integral_eq_one ht]
 
+/-- The heat kernel is integrable. -/
+lemma heatKernel_integrable {t : ℝ} (ht : 0 < t) :
+    MeasureTheory.Integrable (fun x => heatKernel t x) := by
+  unfold heatKernel
+  have hb : 0 < 1 / (4 * t) := by positivity
+  rw [show (fun x : ℝ => 1 / Real.sqrt (4 * Real.pi * t) * Real.exp (-x ^ 2 / (4 * t))) =
+    (fun x => 1 / Real.sqrt (4 * Real.pi * t) * Real.exp (-(1/(4*t)) * x ^ 2)) from by
+      ext x; congr 1; ring]
+  exact (integrable_exp_neg_mul_sq hb).const_mul _
+
+/-- The translated heat kernel is integrable. -/
+lemma heatKernel_translated_integrable {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    MeasureTheory.Integrable (fun y => heatKernel t (x - y)) := by
+  have h := heatKernel_integrable ht
+  have key : (fun y : ℝ => heatKernel t (x - y)) =
+      (fun y => (fun z => heatKernel t z) (-(y + (-x)))) := by
+    ext y; congr 1; ring
+  rw [key, show (fun y : ℝ => (fun z => heatKernel t z) (-(y + -x))) =
+    (fun y => (fun z => heatKernel t (-z)) (y + (-x))) from rfl]
+  simp_rw [heatKernel_neg]
+  rw [show (fun y : ℝ => heatKernel t (y + -x)) =
+    (fun y => (fun z => heatKernel t z) (y + (-x))) from rfl]
+  exact h.comp_add_right (-x)
+
 /-- The heat kernel (translated) times a bounded function is integrable. -/
 lemma heatKernel_mul_bounded_integrable {t : ℝ} (ht : 0 < t) (x : ℝ)
-    {f : ℝ → ℝ} {M : ℝ} (hf : ∀ y, |f y| ≤ M) :
-    MeasureTheory.Integrable (fun y => heatKernel t (x - y) * f y) := by
-  sorry
+    {f : ℝ → ℝ} {M : ℝ} (hf : ∀ y, |f y| ≤ M)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume) :
+    MeasureTheory.Integrable (fun y => heatKernel t (x - y) * f y) :=
+  (heatKernel_translated_integrable ht x).mul_bdd hf_meas
+    (Filter.Eventually.of_forall fun y => by simpa [Real.norm_eq_abs] using hf y)
 
 /-! ## Semigroup estimates (Lemma 2.1 of the paper) -/
-
-/-- L^∞ bound: ‖e^{(Δ-I)t} f‖_∞ ≤ e^{-t} ‖f‖_∞.
-    The heat semigroup is a contraction on L^∞. -/
-theorem modifiedSemigroup_Linfty_bound {f : ℝ → ℝ} {M : ℝ}
-    (hf : ∀ x, |f x| ≤ M) {t : ℝ} (ht : 0 < t) :
-    ∀ x, |modifiedSemigroup t f x| ≤ Real.exp (-t) * M := by
-  sorry
 
 /-- The comparison principle for the heat equation:
     If f ≤ g pointwise, then e^{tΔ} f ≤ e^{tΔ} g. -/
@@ -105,7 +124,7 @@ theorem heatSemigroup_upper_bound {f : ℝ → ℝ} {M : ℝ}
         apply MeasureTheory.integral_mono_of_nonneg
         · exact Filter.Eventually.of_forall (fun y =>
             mul_nonneg (heatKernel_nonneg ht _) (_hf_nn y))
-        · sorry -- integrability of G(t,x-·)*M: follows from Gaussian integrability
+        · exact (heatKernel_translated_integrable ht x).mul_const M
         · exact Filter.Eventually.of_forall (fun y =>
             mul_le_mul_of_nonneg_left (hf_le y) (heatKernel_nonneg ht _))
     _ = M * ∫ y, heatKernel t (x - y) := by
@@ -114,5 +133,11 @@ theorem heatSemigroup_upper_bound {f : ℝ → ℝ} {M : ℝ}
         exact MeasureTheory.integral_const_mul _ _
     _ = M * 1 := by rw [heatKernel_integral_translated ht x]
     _ = M := by ring
+
+/-- L^∞ bound: ‖e^{(Δ-I)t} f‖_∞ ≤ e^{-t} ‖f‖_∞. -/
+theorem modifiedSemigroup_Linfty_bound {f : ℝ → ℝ} {M : ℝ}
+    (hf : ∀ x, |f x| ≤ M) {t : ℝ} (ht : 0 < t) (_hM : 0 ≤ M) :
+    ∀ x, |modifiedSemigroup t f x| ≤ Real.exp (-t) * M := by
+  sorry
 
 end
