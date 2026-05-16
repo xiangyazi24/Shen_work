@@ -153,6 +153,22 @@ lemma logisticRHS_eq_zero_of_ge_one {α L : ℝ} (hα : 1 ≤ α) (hL : 1 ≤ L)
     have := Real.one_lt_rpow hL_gt (by linarith : 0 < α)
     linarith
 
+/-- ODE comparison: if f' ≤ c everywhere and f(0) = M, then f(T) ≤ M + c*T. -/
+lemma ode_upper_bound_linear {f : ℝ → ℝ} {c M T : ℝ}
+    (hf_cont : Continuous f) (hf0 : f 0 = M) (hT : 0 < T)
+    (hf_deriv : ∀ t ∈ Set.Ico (0:ℝ) T, HasDerivWithinAt f (deriv f t) (Set.Ici t) t)
+    (hderiv_le : ∀ t ∈ Set.Ico (0:ℝ) T, deriv f t ≤ c) :
+    f T ≤ M + c * T := by
+  have key := image_le_of_deriv_right_le_deriv_boundary
+    (B := fun t => M + c * t) (B' := fun _ => c)
+    hf_cont.continuousOn hf_deriv
+    (by rw [hf0]; linarith [mul_nonneg (le_refl (0:ℝ)) (le_refl (0:ℝ))])
+    (continuousOn_const.add (continuousOn_const.mul continuousOn_id))
+    (fun t _ => ((hasDerivAt_const t M).add
+      ((hasDerivAt_const t c).mul (hasDerivAt_id' t))).hasDerivWithinAt.congr_deriv (by ring))
+    hderiv_le
+  exact key (Set.right_mem_Icc.mpr (le_of_lt hT))
+
 /-- When u > 1 and α ≥ 1, the logistic RHS is strictly negative. -/
 lemma logisticRHS_neg_of_gt_one {α u : ℝ} (hα : 1 ≤ α) (hu : 1 < u) :
     logisticRHS α u < 0 := by
