@@ -288,7 +288,25 @@ theorem Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ) :
     sorry -- Leibniz rule: d/dx ∫ exp(-|x-y|) u(y) dy = ∫ sgn(x-y) exp(-|x-y|) u(y) dy
   have htriangle : |∫ y : ℝ, sgn y * Real.exp (-|x - y|) * u y| ≤
       ∫ y : ℝ, Real.exp (-|x - y|) * u y := by
-    sorry -- norm_integral_le + |sgn| ≤ 1 + integral_mono
+    have h1 : ∀ y, ‖sgn y * Real.exp (-|x - y|) * u y‖ ≤ Real.exp (-|x - y|) * u y := by
+      intro y
+      rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_of_nonneg (Real.exp_nonneg _),
+          abs_of_nonneg (hu y)]
+      calc |sgn y| * Real.exp (-|x - y|) * u y
+          ≤ 1 * Real.exp (-|x - y|) * u y := by
+            apply mul_le_mul_of_nonneg_right
+            · apply mul_le_mul_of_nonneg_right _ (Real.exp_nonneg _)
+              simp only [sgn]; split_ifs <;> simp
+            · exact hu y
+        _ = Real.exp (-|x - y|) * u y := by ring
+    calc |∫ y, sgn y * Real.exp (-|x - y|) * u y|
+        ≤ ∫ y, ‖sgn y * Real.exp (-|x - y|) * u y‖ := by
+          rw [← Real.norm_eq_abs]; exact norm_integral_le_integral_norm _
+      _ ≤ ∫ y, Real.exp (-|x - y|) * u y :=
+          MeasureTheory.integral_mono_of_nonneg
+            (Filter.Eventually.of_forall (fun y => norm_nonneg _))
+            sorry -- integrability
+            (Filter.Eventually.of_forall h1)
   calc |deriv (Psi u 1 1) x|
       = |(1/2 : ℝ) * ∫ y, sgn y * Real.exp (-|x - y|) * u y| := by rw [hderiv]
     _ = (1/2 : ℝ) * |∫ y, sgn y * Real.exp (-|x - y|) * u y| := by rw [abs_mul]; simp
