@@ -278,6 +278,29 @@ theorem Psi_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
   rw [integral_exp_kernel_exp hk hk1 x]
   ring
 
+/-- HasDerivAt for exp(-|x'-y|) at x'=x when y < x. -/
+private lemma hasDerivAt_kernel_left {x y : ℝ} (hy : y < x) :
+    HasDerivAt (fun x' => Real.exp (-|x' - y|)) (-Real.exp (-(x - y))) x := by
+  have hev : (fun x' => Real.exp (-|x' - y|)) =ᶠ[𝓝 x]
+      (fun x' => Real.exp (-(x' - y))) := by
+    filter_upwards [Ioi_mem_nhds hy] with x' hx'
+    show Real.exp (-|x' - y|) = Real.exp (-(x' - y))
+    congr 1; rw [abs_of_pos (sub_pos.mpr hx')]
+  exact hev.hasDerivAt_iff.mpr
+    ((((hasDerivAt_id x).sub_const y).neg.exp).congr_deriv (by simp [neg_sub]))
+
+/-- HasDerivAt for exp(-|x'-y|) at x'=x when y > x. -/
+private lemma hasDerivAt_kernel_right {x y : ℝ} (hy : x < y) :
+    HasDerivAt (fun x' => Real.exp (-|x' - y|)) (Real.exp (-(y - x))) x := by
+  have hev : (fun x' => Real.exp (-|x' - y|)) =ᶠ[𝓝 x]
+      (fun x' => Real.exp (x' - y)) := by
+    filter_upwards [Iio_mem_nhds hy] with x' hx'
+    show Real.exp (-|x' - y|) = Real.exp (x' - y)
+    rw [show -|x' - y| = x' - y from by
+      rw [abs_of_nonpos (sub_nonpos.mpr (le_of_lt hx'))]; ring]
+  exact hev.hasDerivAt_iff.mpr
+    (((hasDerivAt_id x).sub_const y).exp.congr_deriv (by simp [neg_sub]))
+
 theorem Psi_deriv_abs_le {u : ℝ → ℝ} (_hu : ∀ x, 0 ≤ u x) (_x : ℝ) :
     |deriv (Psi u 1 1) _x| ≤ Psi u 1 1 _x := by
   sorry
