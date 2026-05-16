@@ -3,3 +3,8 @@ import ShenWork.Preliminary
 import ShenWork.GlobalExistence
 import ShenWork.TravelingWaves
 import ShenWork.StabilityUniqueness
+import ShenWork.ComparisonPrinciple
+import ShenWork.PDE.HeatSemigroup
+import ShenWork.PDE.MildSolution
+import ShenWork.PDE.SuperSolution
+import ShenWork.PDE.GlobalBound
