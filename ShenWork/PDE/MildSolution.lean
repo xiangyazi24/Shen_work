@@ -49,7 +49,11 @@ lemma logistic_lipschitz_on_bounded {α M : ℝ} (hα : 1 ≤ α) (hM : 0 < M) :
   constructor
   · positivity
   · intro u₁ u₂ hu₁ hu₂
-    -- Mean value theorem: |f(u₁) - f(u₂)| ≤ sup |f'| * |u₁ - u₂|
+    -- f(u) = u*(1-u^α) = u - u*u^α
+    -- |f(u₁) - f(u₂)| = |(u₁-u₂) - (u₁*u₁^α - u₂*u₂^α)|
+    -- ≤ |u₁-u₂| + |u₁*u₁^α - u₂*u₂^α|
+    -- For the second term: |u₁*u₁^α - u₂*u₂^α| ≤ (1+α)M^α|u₁-u₂|
+    -- This uses the MVT for x*x^α on [-M,M]
     sorry
 
 /-! ## Local existence via contraction -/
