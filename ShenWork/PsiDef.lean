@@ -73,10 +73,20 @@ theorem Psi_const {c : ℝ} (_hc : 0 ≤ c) (x : ℝ) :
 
 /-! ## Psi_exp: Ψ of an exponential -/
 
+/-- The core integral: ∫ e^{-|x-y|} e^{-ky} dy = 2/(1-k²) e^{-kx}. -/
+lemma integral_exp_kernel_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
+    (∫ y : ℝ, Real.exp (-|x - y|) * Real.exp (-k * y)) =
+      2 * (1 / (1 - k ^ 2) * Real.exp (-k * x)) := by
+  sorry
+
 theorem Psi_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
     Psi (fun y : ℝ => Real.exp (-k * y)) 1 1 x =
       1 / (1 - k ^ 2) * Real.exp (-k * x) := by
-  sorry
+  simp only [Psi, Real.sqrt_one, mul_one]
+  rw [show (fun y : ℝ => Real.exp (-1 * |x - y|) * Real.exp (-k * y)) =
+    (fun y => Real.exp (-|x - y|) * Real.exp (-k * y)) from by ext y; ring_nf]
+  rw [integral_exp_kernel_exp hk hk1 x]
+  ring
 
 /-! ## Gradient bound -/
 

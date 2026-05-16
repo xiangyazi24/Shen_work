@@ -53,8 +53,41 @@ structure RectangleODESolution (p : CMParams) where
   ū_lim : Tendsto ū atTop (𝓝 1)
   u_bar_lim : Tendsto u_bar atTop (𝓝 1)
 
-/-- When χ ≤ 0 and both u_bar, ū start near 1 (from below/above respectively),
-    the logistic term drives both to 1. -/
+/-! ### Key monotonicity: when χ ≤ 0, ū > 1 is decreasing -/
+
+/-- When χ ≤ 0 and ū > 1 > u_bar > 0, the derivative of ū is negative. -/
+lemma ode_ū_decreasing (p : CMParams) (hp : p.χ ≤ 0)
+    (ū u_bar : ℝ) (hū : 1 < ū) (hu_bar_pos : 0 < u_bar) (hu_bar_lt : u_bar < ū) :
+    p.χ * ū ^ p.m * (ū ^ p.γ - u_bar ^ p.γ) + ū * (1 - ū ^ p.α) < 0 := by
+  have hū_pos : 0 < ū := by linarith
+  have hα_pos : 0 < p.α := lt_of_lt_of_le one_pos p.hα
+  have hγ_pos : 0 < p.γ := lt_of_lt_of_le one_pos p.hγ
+  have h_first_nonpos : p.χ * ū ^ p.m * (ū ^ p.γ - u_bar ^ p.γ) ≤ 0 := by
+    apply mul_nonpos_of_nonpos_of_nonneg
+    · exact mul_nonpos_of_nonpos_of_nonneg hp (Real.rpow_nonneg (le_of_lt hū_pos) p.m)
+    · exact sub_nonneg.mpr (Real.rpow_le_rpow (le_of_lt hu_bar_pos) (le_of_lt hu_bar_lt) (le_of_lt hγ_pos))
+  have h_second_neg : ū * (1 - ū ^ p.α) < 0 := by
+    apply mul_neg_of_pos_of_neg hū_pos
+    exact sub_neg.mpr (Real.one_lt_rpow hū hα_pos)
+  linarith
+
+/-- When χ ≤ 0 and 0 < u_bar < 1 < ū, the derivative of u_bar is positive. -/
+lemma ode_u_bar_increasing (p : CMParams) (hp : p.χ ≤ 0)
+    (ū u_bar : ℝ) (hū : 1 < ū) (hu_bar_pos : 0 < u_bar) (hu_bar_lt : u_bar < 1) :
+    0 < p.χ * u_bar ^ p.m * (u_bar ^ p.γ - ū ^ p.γ) + u_bar * (1 - u_bar ^ p.α) := by
+  have hα_pos : 0 < p.α := lt_of_lt_of_le one_pos p.hα
+  have hγ_pos : 0 < p.γ := lt_of_lt_of_le one_pos p.hγ
+  have h_first_nonneg : 0 ≤ p.χ * u_bar ^ p.m * (u_bar ^ p.γ - ū ^ p.γ) := by
+    have h1 : p.χ * u_bar ^ p.m ≤ 0 :=
+      mul_nonpos_of_nonpos_of_nonneg hp (Real.rpow_nonneg (le_of_lt hu_bar_pos) p.m)
+    have h2 : u_bar ^ p.γ - ū ^ p.γ ≤ 0 :=
+      sub_nonpos.mpr (Real.rpow_le_rpow (le_of_lt hu_bar_pos) (le_of_lt (lt_trans hu_bar_lt hū)) (le_of_lt hγ_pos))
+    exact mul_nonneg_of_nonpos_of_nonpos h1 h2
+  have h_second_pos : 0 < u_bar * (1 - u_bar ^ p.α) := by
+    apply mul_pos hu_bar_pos
+    exact sub_pos.mpr (Real.rpow_lt_one (le_of_lt hu_bar_pos) hu_bar_lt hα_pos)
+  linarith
+
 theorem rectangle_ode_converges (p : CMParams) (hp : p.χ ≤ 0)
     (M₀ : ℝ) (hM₀ : 1 < M₀) (δ₀ : ℝ) (hδ₀ : 0 < δ₀) (hδ₀_lt : δ₀ < 1) :
     ∃ sol : RectangleODESolution p, sol.ū 0 = M₀ ∧ sol.u_bar 0 = δ₀ := by
