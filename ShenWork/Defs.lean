@@ -213,6 +213,11 @@ theorem Psi_const {c : ℝ} (_hc : 0 ≤ c) (x : ℝ) :
 private lemma integral_exp_kernel_exp {k : ℝ} (_hk : 0 < k) (_hk1 : k < 1) (_x : ℝ) :
     (∫ y : ℝ, Real.exp (-|_x - y|) * Real.exp (-k * y)) =
       2 * (1 / (1 - k ^ 2) * Real.exp (-k * _x)) := by
+  -- Proof outline (verified structure, Lean API blocked on set integral const_mul):
+  -- Split ∫ = ∫_{Iic x} + ∫_{Ioi x} via integral_add_compl
+  -- Left: exp(-(x-y)) * exp(-ky) = exp(-x) * exp((1-k)y), use integral_exp_mul_Iic → exp(-kx)/(1-k)
+  -- Right: exp(y-x) * exp(-ky) = exp(x) * exp(-(1+k)y), use integral_exp_mul_Ioi → exp(-kx)/(1+k)
+  -- Sum: exp(-kx)/(1-k) + exp(-kx)/(1+k) = 2*exp(-kx)/(1-k²)
   sorry
 
 theorem Psi_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
