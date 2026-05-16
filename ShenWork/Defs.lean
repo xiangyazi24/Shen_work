@@ -278,8 +278,12 @@ theorem Psi_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
   rw [integral_exp_kernel_exp hk hk1 x]
   ring
 
-theorem Psi_deriv_abs_le {u : ℝ → ℝ} (_hu : ∀ x, 0 ≤ u x) (_x : ℝ) :
-    |deriv (Psi u 1 1) _x| ≤ Psi u 1 1 _x := by
+theorem Psi_deriv_abs_le {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ) :
+    |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x := by
+  -- The derivative of Ψ at x is (1/2) ∫ sgn(x-y) e^{-|x-y|} u(y) dy
+  -- |Ψ'(x)| ≤ (1/2) ∫ |sgn(x-y)| e^{-|x-y|} u(y) dy = (1/2) ∫ e^{-|x-y|} u(y) dy = Ψ(x)
+  -- This requires: (1) Leibniz rule to differentiate under ∫, (2) triangle inequality
+  -- Both require substantial Mathlib infrastructure (hasDerivAt_integral + norm_integral_le)
   sorry
 
 /-- c**_{χ,m,α,γ} from Theorem 1.2. -/
