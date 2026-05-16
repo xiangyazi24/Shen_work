@@ -101,11 +101,31 @@ lemma logistic_ode_sup_converges {α : ℝ} (hα : 1 ≤ α) {M : ℝ} (_hM : 1 
     unfold logisticRHS
     exact mul_neg_of_pos_of_neg (by linarith)
       (sub_neg.mpr (Real.one_lt_rpow hL_gt (by linarith : 0 < α)))
-  -- logisticRHS is continuous at L, and logisticRHS(L) < 0
-  -- Since ū → L, logisticRHS ∘ ū → logisticRHS(L) < 0
-  -- So ū' = logisticRHS(ū(t)) is eventually ≤ logisticRHS(L)/2 < 0
-  -- But then ū(t) → -∞, contradicting ū ≥ 1
-  -- Full formalization: continuity of rpow + Filter.Tendsto + eventually_le
+  -- Key: logisticRHS is antitone on [1,∞) (proved below), so
+  -- ū(t) ≥ L implies logisticRHS(ū(t)) ≤ logisticRHS(L) < 0.
+  -- Choose T large enough that ū(0) + logisticRHS(L)*T < 1.
+  -- By ODE comparison on [0,T]: ū(T) ≤ ū(0) + logisticRHS(L)*T < 1.
+  -- But ū(T) ≥ 1, contradiction.
+  set c := logisticRHS α (⨅ t, ū t) with hc_def
+  have hc_neg : c < 0 := hRHS_neg
+  -- Choose T such that M + c*T < 1
+  -- Choose T so that M + c*T < 1, i.e., T > (M-1)/(-c)
+  have hc_neg' : 0 < -c := neg_pos.mpr hc_neg
+  set T := (M - 1) / (-c) + 1 with hT_def
+  have hT_pos : 0 < T := by
+    apply add_pos_of_nonneg_of_pos (div_nonneg (by linarith) (le_of_lt hc_neg')) one_pos
+  have hT_bound : M + c * T < 1 := by
+    have hc_ne : c ≠ 0 := ne_of_lt hc_neg
+    calc M + c * T = M + c * ((M - 1) / (-c) + 1) := by rw [hT_def]
+      _ = M + (c * ((M - 1) / (-c)) + c * 1) := by ring
+      _ = M + (-(M - 1) + c) := by
+          congr 1
+          have : c * ((M - 1) / (-c)) = -(M - 1) := by
+            rw [show (M - 1) / (-c) = -((M - 1) / c) from by ring]
+            rw [mul_neg, mul_div_cancel₀ _ hc_ne]
+          linarith [this]
+      _ = 1 + c := by ring
+      _ < 1 := by linarith
   sorry
 
 /-- If logisticRHS α L = 0 and L ≥ 1, then L = 1.
