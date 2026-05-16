@@ -210,15 +210,64 @@ theorem Psi_const {c : ℝ} (_hc : 0 ≤ c) (x : ℝ) :
   rw [MeasureTheory.integral_const_mul, integral_exp_neg_abs_sub x]
   ring
 
-private lemma integral_exp_kernel_exp {k : ℝ} (_hk : 0 < k) (_hk1 : k < 1) (_x : ℝ) :
-    (∫ y : ℝ, Real.exp (-|_x - y|) * Real.exp (-k * y)) =
-      2 * (1 / (1 - k ^ 2) * Real.exp (-k * _x)) := by
-  -- Proof outline (verified structure, Lean API blocked on set integral const_mul):
-  -- Split ∫ = ∫_{Iic x} + ∫_{Ioi x} via integral_add_compl
-  -- Left: exp(-(x-y)) * exp(-ky) = exp(-x) * exp((1-k)y), use integral_exp_mul_Iic → exp(-kx)/(1-k)
-  -- Right: exp(y-x) * exp(-ky) = exp(x) * exp(-(1+k)y), use integral_exp_mul_Ioi → exp(-kx)/(1+k)
-  -- Sum: exp(-kx)/(1-k) + exp(-kx)/(1+k) = 2*exp(-kx)/(1-k²)
-  sorry
+private lemma exp_kernel_left_eq (x y k : ℝ) (hy : y ≤ x) :
+    Real.exp (-|x - y|) * Real.exp (-k * y) = Real.exp (-x) * Real.exp ((1 - k) * y) := by
+  rw [abs_of_nonneg (sub_nonneg.mpr hy), ← Real.exp_add, ← Real.exp_add]; congr 1; ring
+
+private lemma exp_kernel_right_eq (x y k : ℝ) (hy : x < y) :
+    Real.exp (-|x - y|) * Real.exp (-k * y) = Real.exp x * Real.exp (-(1 + k) * y) := by
+  rw [abs_of_nonpos (sub_nonpos.mpr (le_of_lt hy)), ← Real.exp_add, ← Real.exp_add]; congr 1; ring
+
+private lemma integral_exp_kernel_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
+    (∫ y : ℝ, Real.exp (-|x - y|) * Real.exp (-k * y)) =
+      2 * (1 / (1 - k ^ 2) * Real.exp (-k * x)) := by
+  have hkpos : 0 < 1 - k := by linarith
+  have hkneg : -(1 + k) < 0 := by linarith
+  have hk1p_pos : 0 < 1 + k := by linarith
+  -- Integrability
+  have hfi : MeasureTheory.Integrable (fun y => Real.exp (-|x - y|) * Real.exp (-k * y)) := by
+    have h := kernel_mul_exp_integrable k hk hk1 x
+    rwa [show (fun y => Real.exp (-1 * |x - y|) * Real.exp (-k * y)) =
+      (fun y => Real.exp (-|x - y|) * Real.exp (-k * y)) from by
+        ext y; norm_num] at h
+  -- Split
+  have hsplit := MeasureTheory.integral_add_compl (s := Set.Iic x) measurableSet_Iic hfi
+  simp only [Set.compl_Iic] at hsplit
+  -- Left value
+  have hleft_val : ∫ y in Set.Iic x, Real.exp (-|x - y|) * Real.exp (-k * y) =
+      Real.exp (-k * x) / (1 - k) := by
+    rw [MeasureTheory.setIntegral_congr_fun measurableSet_Iic (fun y hy => exp_kernel_left_eq x y k hy)]
+    calc ∫ y in Set.Iic x, Real.exp (-x) * Real.exp ((1 - k) * y)
+        = Real.exp (-x) * ∫ y in Set.Iic x, Real.exp ((1 - k) * y) := by
+          change _ = Real.exp (-x) * ∫ y, _ ∂(MeasureTheory.volume.restrict _)
+          exact MeasureTheory.integral_const_mul _ _
+      _ = Real.exp (-x) * (Real.exp ((1 - k) * x) / (1 - k)) := by rw [integral_exp_mul_Iic hkpos x]
+      _ = Real.exp (-k * x) / (1 - k) := by
+          rw [show Real.exp (-x) * (Real.exp ((1 - k) * x) / (1 - k)) =
+            (Real.exp (-x) * Real.exp ((1 - k) * x)) / (1 - k) from by ring,
+            ← Real.exp_add]; congr 1; ring
+  -- Right value
+  have hright_val : ∫ y in Set.Ioi x, Real.exp (-|x - y|) * Real.exp (-k * y) =
+      Real.exp (-k * x) / (1 + k) := by
+    rw [MeasureTheory.setIntegral_congr_fun measurableSet_Ioi (fun y hy => exp_kernel_right_eq x y k hy)]
+    calc ∫ y in Set.Ioi x, Real.exp x * Real.exp (-(1 + k) * y)
+        = Real.exp x * ∫ y in Set.Ioi x, Real.exp (-(1 + k) * y) := by
+          change _ = Real.exp x * ∫ y, _ ∂(MeasureTheory.volume.restrict _)
+          exact MeasureTheory.integral_const_mul _ _
+      _ = Real.exp x * (-Real.exp (-(1 + k) * x) / (-(1 + k))) := by rw [integral_exp_mul_Ioi hkneg x]
+      _ = Real.exp (-k * x) / (1 + k) := by
+          have hne : (1 : ℝ) + k ≠ 0 := by linarith
+          field_simp [hne]
+          rw [← Real.exp_add]; congr 1; ring
+  -- Combine
+  calc ∫ y, Real.exp (-|x - y|) * Real.exp (-k * y)
+      = (∫ y in Set.Iic x, _) + (∫ y in Set.Ioi x, _) := hsplit.symm
+    _ = Real.exp (-k * x) / (1 - k) + Real.exp (-k * x) / (1 + k) := by rw [hleft_val, hright_val]
+    _ = 2 * (1 / (1 - k ^ 2) * Real.exp (-k * x)) := by
+        have h1 : (1 : ℝ) - k ≠ 0 := by linarith
+        have h2 : (1 : ℝ) + k ≠ 0 := by linarith
+        have hden : (1 : ℝ) - k ^ 2 ≠ 0 := by nlinarith [mul_pos hkpos hk1p_pos]
+        field_simp [h1, h2, hden]; ring
 
 theorem Psi_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
     Psi (fun y : ℝ => Real.exp (-k * y)) 1 1 x =
