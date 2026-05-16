@@ -64,6 +64,22 @@ This follows from:
 
 Similarly for u_bar starting below 1: it increases to 1. -/
 
+/-- ODE comparison: if f' ≤ c on [0,T) and f(0) = M, then f(T) ≤ M + c*T. -/
+lemma ode_upper_bound_linear {f : ℝ → ℝ} {c M T : ℝ}
+    (hf_cont : Continuous f) (hf0 : f 0 = M) (hT : 0 < T)
+    (hf_deriv : ∀ t ∈ Set.Ico (0:ℝ) T, HasDerivWithinAt f (deriv f t) (Set.Ici t) t)
+    (hderiv_le : ∀ t ∈ Set.Ico (0:ℝ) T, deriv f t ≤ c) :
+    f T ≤ M + c * T := by
+  have key := image_le_of_deriv_right_le_deriv_boundary
+    (B := fun t => M + c * t) (B' := fun _ => c)
+    hf_cont.continuousOn hf_deriv
+    (by rw [hf0]; linarith [mul_nonneg (le_refl (0:ℝ)) (le_refl (0:ℝ))])
+    (continuousOn_const.add (continuousOn_const.mul continuousOn_id))
+    (fun t _ => ((hasDerivAt_const t M).add
+      ((hasDerivAt_const t c).mul (hasDerivAt_id' t))).hasDerivWithinAt.congr_deriv (by ring))
+    hderiv_le
+  exact key (Set.right_mem_Icc.mpr (le_of_lt hT))
+
 /-- Monotone decreasing bounded below converges. -/
 lemma logistic_ode_sup_converges {α : ℝ} (hα : 1 ≤ α) {M : ℝ} (_hM : 1 < M)
     (ū : ℝ → ℝ) (hū_init : ū 0 = M)
@@ -132,11 +148,26 @@ lemma logistic_ode_sup_converges {α : ℝ} (hα : 1 ≤ α) {M : ℝ} (_hM : 1 
   -- Integration: ū(T) ≤ ū(0) + c*T = M + c*T < 1
   -- But ū(T) ≥ 1, contradiction.
   have hū_le_T : ū T ≤ M + c * T := by
-    -- ū' ≤ c on [0,T), by ODE comparison → ū(T) ≤ M + c*T
-    -- Full proof needs image_le_of_deriv_right_le_deriv_boundary
-    -- with careful HasDerivWithinAt setup at boundary t=0
-    -- and antitone logisticRHS bound. Infrastructure ready but assembly is 30+ lines.
-    sorry
+    apply ode_upper_bound_linear hū_cont hū_init hT_pos
+    · -- HasDerivWithinAt from hū_ode
+      intro t ht
+      have ht_pos : 0 < t := by
+        rcases lt_or_eq_of_le (Set.mem_Ico.mp ht).1 with h | h
+        · exact h
+        · subst h
+          -- At t=0: use continuity of ū and hū_ode at nearby points
+          sorry
+      exact (HasDerivAt.congr_deriv (sorry) (by rfl)).hasDerivWithinAt
+    · -- deriv ū t ≤ c for t ∈ [0, T)
+      intro t ht
+      have ht_pos : 0 < t := by
+        rcases lt_or_eq_of_le (Set.mem_Ico.mp ht).1 with h | h
+        · exact h
+        · subst h; sorry -- boundary case
+      rw [show deriv ū t = logisticRHS α (ū t) from hū_ode t ht_pos]
+      -- logisticRHS(ū(t)) ≤ logisticRHS(L) = c
+      -- because ū(t) ≥ L > 1 and logisticRHS antitone on [1,∞)
+      sorry
   linarith [hū_ge_one T]
 
 /-- If logisticRHS α L = 0 and L ≥ 1, then L = 1.
@@ -152,22 +183,6 @@ lemma logisticRHS_eq_zero_of_ge_one {α L : ℝ} (hα : 1 ≤ α) (hL : 1 ≤ L)
     have hL_gt : 1 < L := lt_of_le_of_ne hL (Ne.symm hne)
     have := Real.one_lt_rpow hL_gt (by linarith : 0 < α)
     linarith
-
-/-- ODE comparison: if f' ≤ c everywhere and f(0) = M, then f(T) ≤ M + c*T. -/
-lemma ode_upper_bound_linear {f : ℝ → ℝ} {c M T : ℝ}
-    (hf_cont : Continuous f) (hf0 : f 0 = M) (hT : 0 < T)
-    (hf_deriv : ∀ t ∈ Set.Ico (0:ℝ) T, HasDerivWithinAt f (deriv f t) (Set.Ici t) t)
-    (hderiv_le : ∀ t ∈ Set.Ico (0:ℝ) T, deriv f t ≤ c) :
-    f T ≤ M + c * T := by
-  have key := image_le_of_deriv_right_le_deriv_boundary
-    (B := fun t => M + c * t) (B' := fun _ => c)
-    hf_cont.continuousOn hf_deriv
-    (by rw [hf0]; linarith [mul_nonneg (le_refl (0:ℝ)) (le_refl (0:ℝ))])
-    (continuousOn_const.add (continuousOn_const.mul continuousOn_id))
-    (fun t _ => ((hasDerivAt_const t M).add
-      ((hasDerivAt_const t c).mul (hasDerivAt_id' t))).hasDerivWithinAt.congr_deriv (by ring))
-    hderiv_le
-  exact key (Set.right_mem_Icc.mpr (le_of_lt hT))
 
 /-- When u > 1 and α ≥ 1, the logistic RHS is strictly negative. -/
 lemma logisticRHS_neg_of_gt_one {α u : ℝ} (hα : 1 ≤ α) (hu : 1 < u) :
