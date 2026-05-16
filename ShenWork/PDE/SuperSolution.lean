@@ -72,18 +72,37 @@ lemma logistic_ode_sup_converges {α : ℝ} (hα : 1 ≤ α) {M : ℝ} (_hM : 1 
     (hū_anti : Antitone ū) :
     Tendsto ū atTop (𝓝 1) := by
   -- Step 1: ū is antitone and bounded below by 1 → converges to some L
+  have hū_ge_one : ∀ t, 1 ≤ ū t := by
+    intro t
+    by_cases ht : 0 ≤ t
+    · exact hū_bound t ht
+    · push_neg at ht
+      calc 1 ≤ ū 0 := hū_bound 0 le_rfl
+        _ ≤ ū t := hū_anti (le_of_lt ht)
   have hbdd : BddBelow (Set.range ū) :=
-    ⟨1, fun _ ⟨t, ht⟩ => ht ▸ hū_bound t (by sorry)⟩
+    ⟨1, fun _ ⟨t, ht⟩ => ht ▸ hū_ge_one t⟩
   have h_conv := tendsto_atTop_ciInf hū_anti hbdd
-  -- Step 2: L = ⨅ t, ū t ≥ 1
-  have hL_ge : 1 ≤ ⨅ t, ū t :=
-    le_ciInf (fun t => hū_bound t (by sorry))
+  have hL_ge : 1 ≤ ⨅ t, ū t := le_ciInf hū_ge_one
   -- Step 3: At the limit, logisticRHS α L = 0
   -- This requires: ū' → 0 as t → ∞ (since ū converges)
   -- and ū' = logisticRHS α (ū t) → logisticRHS α L (by continuity)
   -- So logisticRHS α L = 0
   -- Step 4: L = 1 from logisticRHS_eq_zero_of_ge_one
   suffices h : ⨅ t, ū t = 1 by rw [h] at h_conv; exact h_conv
+  apply le_antisymm _ hL_ge
+  -- If ⨅ > 1, then logisticRHS(⨅) < 0, contradicting convergence
+  by_contra h_gt
+  push_neg at h_gt
+  have hL_gt : 1 < ⨅ t, ū t := by
+    rcases lt_or_eq_of_le hL_ge with h | h
+    · exact h
+    · exact absurd h.symm (by linarith)
+  have hRHS_neg : logisticRHS α (⨅ t, ū t) < 0 := by
+    unfold logisticRHS
+    exact mul_neg_of_pos_of_neg (by linarith)
+      (sub_neg.mpr (Real.one_lt_rpow hL_gt (by linarith : 0 < α)))
+  -- But ū → ⨅, so ū(t) is eventually in (1, ⨅+ε), and ū' = logisticRHS(ū(t)) < 0
+  -- This means ū decreases by at least δ per unit time, contradicting convergence
   sorry
 
 /-- If logisticRHS α L = 0 and L ≥ 1, then L = 1.
