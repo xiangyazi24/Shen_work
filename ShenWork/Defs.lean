@@ -279,7 +279,7 @@ theorem Psi_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
   ring
 
 /-- HasDerivAt for exp(-|x'-y|) at x'=x when y < x. -/
-private lemma hasDerivAt_kernel_left {x y : ℝ} (hy : y < x) :
+lemma hasDerivAt_kernel_left {x y : ℝ} (hy : y < x) :
     HasDerivAt (fun x' => Real.exp (-|x' - y|)) (-Real.exp (-(x - y))) x := by
   have hev : (fun x' => Real.exp (-|x' - y|)) =ᶠ[𝓝 x]
       (fun x' => Real.exp (-(x' - y))) := by
@@ -290,7 +290,7 @@ private lemma hasDerivAt_kernel_left {x y : ℝ} (hy : y < x) :
     ((((hasDerivAt_id x).sub_const y).neg.exp).congr_deriv (by simp [neg_sub]))
 
 /-- HasDerivAt for exp(-|x'-y|) at x'=x when y > x. -/
-private lemma hasDerivAt_kernel_right {x y : ℝ} (hy : x < y) :
+lemma hasDerivAt_kernel_right {x y : ℝ} (hy : x < y) :
     HasDerivAt (fun x' => Real.exp (-|x' - y|)) (Real.exp (-(y - x))) x := by
   have hev : (fun x' => Real.exp (-|x' - y|)) =ᶠ[𝓝 x]
       (fun x' => Real.exp (x' - y)) := by
