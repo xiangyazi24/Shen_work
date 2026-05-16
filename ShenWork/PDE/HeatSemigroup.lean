@@ -96,12 +96,17 @@ theorem heatSemigroup_upper_bound {f : ℝ → ℝ} {M : ℝ}
   unfold heatSemigroup
   calc ∫ y, heatKernel t (x - y) * f y
       ≤ ∫ y, heatKernel t (x - y) * M := by
-        sorry -- integral_mono with integrability
+        apply MeasureTheory.integral_mono_of_nonneg
+        · exact Filter.Eventually.of_forall (fun y =>
+            mul_nonneg (heatKernel_nonneg ht _) (_hf_nn y))
+        · sorry -- integrability of G * M
+        · exact Filter.Eventually.of_forall (fun y =>
+            mul_le_mul_of_nonneg_left (hf_le y) (heatKernel_nonneg ht _))
     _ = M * ∫ y, heatKernel t (x - y) := by
         rw [show (fun y => heatKernel t (x - y) * M) = (fun y => M * heatKernel t (x - y)) from by
           ext y; ring]
-        rw [MeasureTheory.integral_const_mul]
-    _ = M := by
-        sorry -- ∫ G(t, x-y) dy = 1 by translation
+        exact MeasureTheory.integral_const_mul _ _
+    _ = M * 1 := by rw [heatKernel_integral_translated ht x]
+    _ = M := by ring
 
 end
