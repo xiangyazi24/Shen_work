@@ -59,6 +59,9 @@ private lemma exp_neg_abs_sub_mul_lipschitzOnWith_ball (x y : ℝ) (c : ℝ) (hc
           ≤ c * (Real.exp 1 * Real.exp (-|x - y|) * |x₁ - x₂|) :=
             mul_le_mul_of_nonneg_left h hc
         _ = Real.exp 1 * (Real.exp (-|x - y|) * c) * |x₁ - x₂| := by ring
+    -- Core estimate: |exp(-|x₁-y|) - exp(-|x₂-y|)| ≤ e*exp(-|x-y|)*|x₁-x₂|
+    -- Uses: exp(-|·-y|) is 1-Lipschitz, and on ball(x,1) the
+    -- derivative is ≤ e*exp(-|x-y|). Both cases give the bound.
     sorry
 
 /-- Full Psi_deriv_abs_le proved via Leibniz rule + triangle inequality.
