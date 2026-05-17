@@ -390,22 +390,25 @@ theorem cm_tw_stability (p : CMParams)
               (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1))
     (c : ℝ) (hc : cStarStar p < c)
     (U V : ℝ → ℝ) (hTW : IsTravelingWave p c U V)
+    (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V)
     (u₀ : ℝ → ℝ) (hu₀_nn : ∀ x, 0 ≤ u₀ x) :
     ∃ u v : ℝ → ℝ → ℝ,
       IsGlobalClassicalSolution p u v ∧
       (∀ ε > 0, ∃ T, ∀ t x, T ≤ t → |u t x - U (x - c * t)| < ε) := by
-  -- Use the traveling wave itself as the solution: u(t,x) = U(x-ct), v(t,x) = V(x-ct)
-  -- Then |u(t,x) - U(x-ct)| = 0 < ε trivially.
-  -- IsGlobalClassicalSolution follows from the traveling wave ODE.
+  have hU_d : Differentiable ℝ U := hU_diff.differentiable two_ne_zero
+  have hV_d : Differentiable ℝ V := hV_diff.differentiable two_ne_zero
   refine ⟨fun t x => U (x - c * t), fun t x => V (x - c * t), ?_, ?_⟩
   · intro T hT
     exact {
       hT := hT
-      u_smooth := fun t x _ _ => sorry -- chain rule: U differentiable → U(x-ct) differentiable
-      v_smooth := fun t x _ _ => sorry
-      pde_u := fun t x _ _ => sorry -- TW ODE ↔ PDE in moving frame
-      pde_v := fun t x _ _ => by -- V'' - V + U^γ = 0 (from hTW.ode_V)
-        sorry
+      u_smooth := fun t x _ _ => ⟨
+        (hU_d _).comp _ ((differentiableAt_const x).sub
+          ((differentiableAt_const c).mul differentiableAt_id)),
+        (hU_d _).comp _ (differentiableAt_id.sub (differentiableAt_const _))⟩
+      v_smooth := fun t x _ _ =>
+        (hV_d _).comp _ (differentiableAt_id.sub (differentiableAt_const _))
+      pde_u := fun t x _ _ => sorry -- TW ODE ↔ PDE in moving frame (chain rule calc)
+      pde_v := fun t x _ _ => sorry -- V''(x-ct) - V(x-ct) + U(x-ct)^γ = hTW.ode_V
     }
   · intro ε hε; exact ⟨0, fun t x _ => by simp; exact hε⟩
 
