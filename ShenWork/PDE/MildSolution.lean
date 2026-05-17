@@ -114,15 +114,17 @@ lemma logistic_lipschitz_on_bounded {α M : ℝ} (hα : 1 ≤ α) (hM : 0 < M) :
 private lemma mildSolutionOperator_lipschitz_estimate (p : CMParams) (u₀ : ℝ → ℝ)
     (L T : ℝ) (u₁ u₂ : ℝ → ℝ → ℝ) (t x : ℝ)
     (_hT_nn : 0 ≤ T)
-    (_hLip : ∀ a b : ℝ, |a| ≤ 2 * sSup (Set.range fun x => |u₀ x|) →
+    (hLip : ∀ a b : ℝ, |a| ≤ 2 * sSup (Set.range fun x => |u₀ x|) →
       |b| ≤ 2 * sSup (Set.range fun x => |u₀ x|) →
       |chemotaxisSource p (fun _ => a) (fun _ => 0) 0 -
        chemotaxisSource p (fun _ => b) (fun _ => 0) 0| ≤ L * |a - b|)
-    (_hu₁ : ∀ t x, |u₁ t x| ≤ 2 * sSup (Set.range fun x => |u₀ x|))
-    (_hu₂ : ∀ t x, |u₂ t x| ≤ 2 * sSup (Set.range fun x => |u₀ x|))
-    (_ht : 0 ≤ t) (_htT : t ≤ T) :
+    (hu₁ : ∀ t x, |u₁ t x| ≤ 2 * sSup (Set.range fun x => |u₀ x|))
+    (hu₂ : ∀ t x, |u₂ t x| ≤ 2 * sSup (Set.range fun x => |u₀ x|))
+    (ht : 0 ≤ t) (htT : t ≤ T) :
     |mildSolutionOperator p u₀ u₁ t x - mildSolutionOperator p u₀ u₂ t x| ≤
       L * T * sSup (Set.range fun s => sSup (Set.range fun y => |u₁ s y - u₂ s y|)) := by
+  -- Framework from ChatGPT Pro: decompose into linearity + heat L∞ + integral bound
+  -- Each step is a standard analysis fact; sorry'd pending Lean API details.
   sorry
 
 theorem mild_solution_operator_contracting (p : CMParams)
