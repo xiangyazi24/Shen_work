@@ -6,6 +6,7 @@
   - §2.2: Basic properties of the elliptic equation v_xx − λv + μu = 0
 -/
 import ShenWork.Defs
+import ShenWork.PDE.LeibnizRule
 
 open Filter Topology
 
@@ -40,7 +41,7 @@ theorem psi_gradient_bound (u : ℝ → ℝ) (hu : Continuous u) (hu_nn : ∀ x,
   have hint : MeasureTheory.Integrable (fun y => Real.exp (-|x - y|) * u y) := by
     have h := kernel_mul_bounded_integrable u M hM_nn hM x hu.aestronglyMeasurable
     convert h using 2 with y; simp [neg_one_mul]
-  exact Psi_deriv_abs_le hu_nn x hint hu.aestronglyMeasurable
+  exact Psi_deriv_abs_le' hu_nn x hint hu.aestronglyMeasurable
 
 /-- Lemma 2.4: Exponential bound for Ψ. -/
 theorem psi_exponential_bound {k M : ℝ} (hk : 0 < k) (hk1 : k < 1) (hM : 0 < M)
