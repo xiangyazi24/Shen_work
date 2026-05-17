@@ -38,7 +38,24 @@ theorem logistic_ode_local_existence (α : ℝ) (_hα : 1 ≤ α) (M : ℝ) (hM 
   have hb : ∀ x ∈ Metric.closedBall M (a : ℝ), ‖g x‖ ≤ (L : ℝ) := by
     intro x hx
     show ‖x * (1 - x ^ α)‖ ≤ (L : ℝ)
-    sorry
+    have hx_dist : dist x M ≤ M + 1 := Metric.mem_closedBall.mp hx
+    have hx_abs : |x| ≤ 2 * M + 1 := by
+      rw [Real.dist_eq] at hx_dist
+      exact abs_le.mpr ⟨by linarith [abs_le.mp hx_dist |>.1],
+                         by linarith [abs_le.mp hx_dist |>.2]⟩
+    have hα_nn : (0 : ℝ) ≤ α := le_trans zero_le_one _hα
+    have h2M1_nn : (0 : ℝ) ≤ 2 * M + 1 := by linarith
+    have h_abs_rpow : |x ^ α| ≤ (2 * M + 1) ^ α :=
+      (Real.abs_rpow_le_abs_rpow x α).trans (Real.rpow_le_rpow (abs_nonneg x) hx_abs hα_nn)
+    have h_sub : |1 - x ^ α| ≤ 1 + |x ^ α| := by
+      have := norm_sub_le (1 : ℝ) (x ^ α)
+      simp only [Real.norm_eq_abs, abs_one] at this; exact this
+    rw [Real.norm_eq_abs, abs_mul]
+    calc |x| * |1 - x ^ α|
+        ≤ (2 * M + 1) * (1 + (2 * M + 1) ^ α) :=
+          mul_le_mul hx_abs (h_sub.trans (by linarith [h_abs_rpow]))
+            (abs_nonneg _) h2M1_nn
+      _ ≤ (L : ℝ) := le_max_right _ _
   have hl : LipschitzOnWith K g (Metric.closedBall M (a : ℝ)) := by sorry
   have hf : IsPicardLindelof f t₀ M a (0 : ℝ≥0) L K := by
     simpa [f] using
