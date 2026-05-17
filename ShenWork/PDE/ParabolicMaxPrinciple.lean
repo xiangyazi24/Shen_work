@@ -185,6 +185,29 @@ Proof idea:
 
 This is the only genuinely hard analytic maximum-principle step.
 -/
+private lemma le_zero_of_forall_pos_le_mul {z A : ℝ} (hA : 0 ≤ A)
+    (h : ∀ ε : ℝ, 0 < ε → z ≤ ε * A) : z ≤ 0 := by
+  by_contra hz
+  push_neg at hz
+  by_cases hA0 : A = 0
+  · linarith [h 1 one_pos, hA0]
+  · have hA_pos : 0 < A := lt_of_le_of_ne hA (Ne.symm hA0)
+    have := h (z / (2 * A)) (div_pos hz (by positivity))
+    have : z / (2 * A) * A = z / 2 := by field_simp
+    linarith
+
+/-- Core barrier estimate: for all ε > 0, exp(-(c+3)t)*w(t,x) ≤ ε*(1+x²).
+    This is the irreducible analytic step using the coercive spatial barrier. -/
+private theorem coercive_exponential_barrier_estimate
+    {c T : ℝ} {w : ℝ → ℝ → ℝ}
+    (_hT : 0 < T) (_hc : 0 ≤ c)
+    (_hw : IsClassicalLinearSubSolution c T w)
+    (_hinit : ∀ x : ℝ, w 0 x ≤ 0) :
+    ∀ ε : ℝ, 0 < ε →
+      ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x : ℝ,
+        expBarrier (c + 3) w t x ≤ ε * (1 + x ^ 2) := by
+  sorry
+
 theorem weak_maximum_principle_linear
     {c T : ℝ} {w : ℝ → ℝ → ℝ}
     (hT : 0 < T)
@@ -192,7 +215,13 @@ theorem weak_maximum_principle_linear
     (hw : IsClassicalLinearSubSolution c T w)
     (hinit : ∀ x : ℝ, w 0 x ≤ 0) :
     ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x : ℝ, w t x ≤ 0 := by
-  sorry
+  have hbar := coercive_exponential_barrier_estimate hT hc hw hinit
+  intro t ht x
+  have hA : 0 ≤ 1 + x ^ 2 := by nlinarith [sq_nonneg x]
+  have hz : expBarrier (c + 3) w t x ≤ 0 :=
+    le_zero_of_forall_pos_le_mul hA (fun ε hε => hbar ε hε t ht x)
+  simp only [expBarrier] at hz
+  nlinarith [Real.exp_pos (-((c + 3) * t))]
 
 /--
 Maximum principle with boundary value `M`.
