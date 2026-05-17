@@ -5,6 +5,7 @@
 -/
 import ShenWork.Defs
 import Mathlib.Analysis.Calculus.ParametricIntegral
+import Mathlib.Analysis.Calculus.MeanValue
 
 open MeasureTheory Filter Topology Real Set
 
@@ -40,8 +41,6 @@ lemma psi_integrand_deriv_le_integrand {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x)
 private lemma exp_neg_abs_sub_mul_lipschitzOnWith_ball (x y : ℝ) (c : ℝ) (_hc : 0 ≤ c) :
     LipschitzOnWith (Real.nnabs (Real.exp 1 * (Real.exp (-|x - y|) * c)))
       (fun x' => Real.exp (-|x' - y|) * c) (Metric.ball x 1) := by
-  -- Proof sketch: |exp(-|x₁-y|)-exp(-|x₂-y|)| ≤ exp(-min(|x₁-y|,|x₂-y|))*||x₁-y|-|x₂-y||
-  -- (MVT for exp(-·)), then min ≥ |x-y|-1 (triangle) and ||·|-|·|| ≤ |·-·| (rev tri).
   sorry
 
 /-- Full Psi_deriv_abs_le proved via Leibniz rule + triangle inequality.
