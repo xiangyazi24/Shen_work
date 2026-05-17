@@ -111,6 +111,24 @@ lemma logistic_lipschitz_on_bounded {α M : ℝ} (hα : 1 ≤ α) (hM : 0 < M) :
 
 /-- For sufficiently small T > 0, the mild solution operator Φ is a contraction
     on the space of bounded continuous functions [0,T] → C^b(ℝ). -/
+private lemma mildSolutionOperator_difference_integral_identity
+    (p : CMParams) (u₀ : ℝ → ℝ) (u₁ u₂ : ℝ → ℝ → ℝ) (t x : ℝ) :
+    mildSolutionOperator p u₀ u₁ t x - mildSolutionOperator p u₀ u₂ t x =
+      ∫ s in Set.Icc 0 t, heatSemigroup (t - s)
+        (fun y => chemotaxisSource p (u₁ s) (fun _ => 0) y -
+          chemotaxisSource p (u₂ s) (fun _ => 0) y) x := by
+  sorry
+
+private lemma mildSolutionOperator_duhamel_integral_bound
+    (p : CMParams) (u₁ u₂ : ℝ → ℝ → ℝ) (L D t x : ℝ)
+    (_hL_nn : 0 ≤ L) (_hD_nn : 0 ≤ D) (_ht : 0 ≤ t)
+    (_hsource_bound : ∀ s y, |chemotaxisSource p (u₁ s) (fun _ => 0) y -
+      chemotaxisSource p (u₂ s) (fun _ => 0) y| ≤ L * D) :
+    |∫ s in Set.Icc 0 t, heatSemigroup (t - s)
+      (fun y => chemotaxisSource p (u₁ s) (fun _ => 0) y -
+        chemotaxisSource p (u₂ s) (fun _ => 0) y) x| ≤ L * t * D := by
+  sorry
+
 private lemma mildSolutionOperator_lipschitz_estimate (p : CMParams) (u₀ : ℝ → ℝ)
     (L T : ℝ) (u₁ u₂ : ℝ → ℝ → ℝ) (t x : ℝ)
     (_hT_nn : 0 ≤ T)
@@ -123,8 +141,6 @@ private lemma mildSolutionOperator_lipschitz_estimate (p : CMParams) (u₀ : ℝ
     (ht : 0 ≤ t) (htT : t ≤ T) :
     |mildSolutionOperator p u₀ u₁ t x - mildSolutionOperator p u₀ u₂ t x| ≤
       L * T * sSup (Set.range fun s => sSup (Set.range fun y => |u₁ s y - u₂ s y|)) := by
-  -- Framework from ChatGPT Pro: decompose into linearity + heat L∞ + integral bound
-  -- Each step is a standard analysis fact; sorry'd pending Lean API details.
   sorry
 
 theorem mild_solution_operator_contracting (p : CMParams)
