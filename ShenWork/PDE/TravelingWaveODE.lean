@@ -149,7 +149,12 @@ theorem localSolutionExists (p : Params) (x₀ : State) (t₀ : ℝ) :
     ∃ z : ℝ → State,
     z t₀ = x ∧ ∀ t ∈ Ioo (t₀ - eps) (t₀ + eps),
       HasDerivAt z (vectorField p (z t)) t := by
-  sorry
+  obtain ⟨eps, heps, a, r, L, K, hr, hPL⟩ := picardLindelofData p x₀
+  refine ⟨r, by exact_mod_cast hr, eps, heps, fun x hx => ?_⟩
+  obtain ⟨α, hα⟩ := (hPL t₀).exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt
+  refine ⟨α x, (hα x hx).1, fun t ht => ?_⟩
+  exact ((hα x hx).2 t (Ioo_subset_Icc_self ht)).hasDerivAt
+    (Icc_mem_nhds (by linarith [ht.1]) (by linarith [ht.2]))
 
 theorem linearization_at_E1 (p : Params) :
 (fun h : State => fderiv ℝ (vectorField p) E1 h)
