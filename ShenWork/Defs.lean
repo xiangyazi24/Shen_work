@@ -379,10 +379,6 @@ theorem cm_tw_exist_neg (p : CMParams)
       IsMonotoneTravelingWave p c U V ∧
       (∀ x, 0 < U x) ∧
       (∀ x, U x < max 1 (Real.exp (-kappa c * x))) := by
-  -- Proof (Section 4): super/sub-solution in moving frame + Schauder.
-  -- Super-solution: U⁺_{κ,M} = min{M, e^{-κx}} (proved in Psi theory)
-  -- Sub-solution: constructed from exponential profiles
-  -- Fixed-point gives monotone traveling wave
   sorry
 
 theorem cm_tw_exist_small_pos (p : CMParams)
