@@ -118,7 +118,17 @@ private lemma mildSolutionOperator_difference_integral_identity
         (fun y => chemotaxisSource p (u₁ s) (fun _ => 0) y -
           chemotaxisSource p (u₂ s) (fun _ => 0) y) x := by
   simp only [mildSolutionOperator, add_sub_add_left_eq_sub]
-  sorry
+  let F₁ : ℝ → ℝ → ℝ := fun s y => chemotaxisSource p (u₁ s) (fun _ => 0) y
+  let F₂ : ℝ → ℝ → ℝ := fun s y => chemotaxisSource p (u₂ s) (fun _ => 0) y
+  have hG₁ : MeasureTheory.Integrable (fun s => heatSemigroup (t - s) (F₁ s) x)
+      (MeasureTheory.volume.restrict (Set.Icc 0 t)) := by sorry
+  have hG₂ : MeasureTheory.Integrable (fun s => heatSemigroup (t - s) (F₂ s) x)
+      (MeasureTheory.volume.restrict (Set.Icc 0 t)) := by sorry
+  rw [← MeasureTheory.integral_sub hG₁ hG₂]
+  apply MeasureTheory.setIntegral_congr_fun measurableSet_Icc
+  intro s _hs
+  exact (heatSemigroup_sub (f := F₁ s) (g := F₂ s) (t := t - s) x
+    (by sorry) (by sorry)).symm
 
 private lemma mildSolutionOperator_duhamel_integral_bound
     (p : CMParams) (u₁ u₂ : ℝ → ℝ → ℝ) (L D t x : ℝ)
