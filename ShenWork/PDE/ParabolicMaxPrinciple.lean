@@ -197,7 +197,19 @@ private lemma le_zero_of_forall_pos_le_mul {z A : ℝ} (hA : 0 ≤ A)
     linarith
 
 /-- Core barrier estimate: for all ε > 0, exp(-(c+3)t)*w(t,x) ≤ ε*(1+x²).
-    This is the irreducible analytic step using the coercive spatial barrier. -/
+
+Proof sketch (exponential barrier + spatial coercion):
+1. Let z(t,x) = exp(-(c+3)t)*w(t,x). At positive points: z_t - z_xx ≤ -3z.
+2. For ε > 0, let ψ(t,x) = z(t,x) - ε*(1+t+x²). Then ψ → -∞ as |x| → ∞.
+3. At t=0: ψ(0,x) = w(0,x) - ε*(1+x²) ≤ -ε < 0.
+4. If ψ > 0 somewhere, max at interior (t₀,x₀) with t₀ > 0:
+   ψ_t ≥ 0, ψ_xx ≤ 0, so 0 ≤ ψ_t - ψ_xx = (z_t - z_xx) - ε + 2ε ≤ -3z + ε.
+   Since z > ε*(1+t₀+x₀²) ≥ ε: -3z + ε < -3ε + ε = -2ε < 0. Contradiction.
+5. So ψ ≤ 0, i.e., z ≤ ε*(1+t+x²) ≤ ε*(1+T+x²). In particular z ≤ ε*(1+x²)
+   after adjusting the barrier constant.
+
+This is the irreducible analytic step — needs compactness on truncated domain
+and interior max characterization (∂_t ≥ 0, ∂_xx ≤ 0 at spatial max). -/
 private theorem coercive_exponential_barrier_estimate
     {c T : ℝ} {w : ℝ → ℝ → ℝ}
     (_hT : 0 < T) (_hc : 0 ≤ c)
