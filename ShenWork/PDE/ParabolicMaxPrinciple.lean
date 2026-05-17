@@ -325,8 +325,42 @@ private lemma difference_is_linear_subsolution
         (fun y => dx u t y - dx v t y) := by
       funext y
       exact dx_sub_of_hasDerivAt (hsub.space_hasDerivAt htIoo) (hsuper.space_hasDerivAt htIoo)
-    sorry -- space_second: dxx(u-v) = dxx u - dxx v (needs simpa adjustment)
-  · sorry -- pde_le_of_pos: parabolicOp(u-v) ≤ L*(u-v) (core PDE step)
+    have hdx : (fun y => dx (fun τ z => u τ z - v τ z) t y) =
+        (fun y => dx u t y - dx v t y) := by
+      funext y
+      simpa [dx] using ((hsub.space_hasDerivAt htIoo (x := y)).sub
+        (hsuper.space_hasDerivAt htIoo (x := y))).deriv
+    have hder : HasDerivAt (fun y => dx u t y - dx v t y) (dxx u t x - dxx v t x) x :=
+      (hsub.space_second_hasDerivAt htIoo (x := x)).sub
+        (hsuper.space_second_hasDerivAt htIoo (x := x))
+    have hder_w : HasDerivAt (fun y => dx (fun τ z => u τ z - v τ z) t y)
+        (dxx u t x - dxx v t x) x := by simpa [hdx] using hder
+    have hdxx : dxx (fun τ y => u τ y - v τ y) t x = dxx u t x - dxx v t x := by
+      simpa [dxx] using hder_w.deriv
+    rw [hdxx]; exact hder_w
+  · intro t x htIoo hpos
+    have htIcc : t ∈ Set.Icc (0 : ℝ) T := ⟨le_of_lt htIoo.1, le_of_lt htIoo.2⟩
+    have hdt : dt (fun τ y => u τ y - v τ y) t x = dt u t x - dt v t x := by
+      simpa [dt] using ((hsub.time_hasDerivAt htIoo (x := x)).sub
+        (hsuper.time_hasDerivAt htIoo (x := x))).deriv
+    have hdx : (fun y => dx (fun τ z => u τ z - v τ z) t y) =
+        (fun y => dx u t y - dx v t y) := by
+      funext y
+      simpa [dx] using ((hsub.space_hasDerivAt htIoo (x := y)).sub
+        (hsuper.space_hasDerivAt htIoo (x := y))).deriv
+    have hdxx : dxx (fun τ y => u τ y - v τ y) t x = dxx u t x - dxx v t x := by
+      simpa [dxx, hdx] using ((hsub.space_second_hasDerivAt htIoo (x := x)).sub
+        (hsuper.space_second_hasDerivAt htIoo (x := x))).deriv
+    have hop : parabolicOp (fun τ y => u τ y - v τ y) t x =
+        parabolicOp u t x - parabolicOp v t x := by
+      unfold parabolicOp; rw [hdt, hdxx]; ring
+    calc parabolicOp (fun τ y => u τ y - v τ y) t x
+        = parabolicOp u t x - parabolicOp v t x := hop
+      _ ≤ g (u t x) - g (v t x) := by
+          linarith [hsub.pde_le htIoo (x := x), hsuper.pde_ge htIoo (x := x)]
+      _ ≤ |g (u t x) - g (v t x)| := le_abs_self _
+      _ ≤ L * |u t x - v t x| := hLip _ _ (huR t htIcc x) (hvR t htIcc x)
+      _ = L * (u t x - v t x) := by rw [abs_of_pos hpos]
   · rcases hsub.bounded with ⟨Mu, hMu_nn, hMu⟩
     rcases hsuper.bounded with ⟨Mv, hMv_nn, hMv⟩
     exact ⟨Mu + Mv, add_nonneg hMu_nn hMv_nn, fun t ht x => by
