@@ -118,8 +118,6 @@ private lemma mildSolutionOperator_difference_integral_identity
         (fun y => chemotaxisSource p (u₁ s) (fun _ => 0) y -
           chemotaxisSource p (u₂ s) (fun _ => 0) y) x := by
   simp only [mildSolutionOperator, add_sub_add_left_eq_sub]
-  -- Remaining: ∫ G₁ - ∫ G₂ = ∫ (heatSemigroup_sub applied pointwise)
-  -- Needs set_integral_sub + heatSemigroup_sub per integrand + integrability
   sorry
 
 private lemma mildSolutionOperator_duhamel_integral_bound
