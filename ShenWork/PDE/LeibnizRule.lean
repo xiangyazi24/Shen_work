@@ -37,13 +37,73 @@ lemma psi_integrand_deriv_le_integrand {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x)
       abs_of_nonneg (Real.exp_nonneg _), abs_of_nonneg (hu y),
       abs_of_nonpos (sub_nonpos.mpr (le_of_lt hy))]
 
-/-- exp(-|·-y|)*c is Lipschitz on ball(x,1) with constant e*exp(-|x-y|)*c.
-    Proof: MVT on [min(|x₁-y|,|x₂-y|), max(...)], derivative exp(-t) ≤ exp(-min),
-    min ≥ |x-y|-1 from ball(x,1), reverse triangle for the argument diff. -/
-private lemma exp_neg_abs_sub_mul_lipschitzOnWith_ball (x y : ℝ) (c : ℝ) (_hc : 0 ≤ c) :
+/-- |exp(-a) - exp(-b)| ≤ exp(-min a b) * |a - b| for a, b ≥ 0. -/
+private lemma exp_neg_abs_sub_le (a b : ℝ) (_ha : 0 ≤ a) (_hb : 0 ≤ b) :
+    |Real.exp (-a) - Real.exp (-b)| ≤ Real.exp (-min a b) * |a - b| := by
+  have hderiv_any : ∀ (s : Set ℝ) (x' : ℝ),
+      HasDerivWithinAt (fun t => Real.exp (-t)) (-Real.exp (-x')) s x' := by
+    intro s x'; simpa [mul_comm] using ((hasDerivAt_id' x').neg.exp).hasDerivWithinAt (s := s)
+  have hordered : ∀ {u v : ℝ}, u ≤ v →
+      |Real.exp (-u) - Real.exp (-v)| ≤ Real.exp (-u) * |u - v| := by
+    intro u v huv
+    have hseg := norm_image_sub_le_of_norm_deriv_le_segment'
+      (f := fun t => Real.exp (-t)) (f' := fun t => -Real.exp (-t))
+      (a := u) (b := v) (C := Real.exp (-u))
+      (fun x' _hx' => hderiv_any _ x')
+      (fun x' hx' => by
+        simp only [Real.norm_eq_abs, abs_neg, abs_of_pos (Real.exp_pos _)]
+        exact Real.exp_le_exp.mpr (neg_le_neg hx'.1))
+      v ⟨huv, le_rfl⟩
+    calc |Real.exp (-u) - Real.exp (-v)|
+        = ‖(fun t => Real.exp (-t)) v - (fun t => Real.exp (-t)) u‖ := by
+          simp [Real.norm_eq_abs, abs_sub_comm]
+      _ ≤ Real.exp (-u) * (v - u) := hseg
+      _ = Real.exp (-u) * |u - v| := by rw [abs_sub_comm, abs_of_nonneg (sub_nonneg.mpr huv)]
+  by_cases hab : a ≤ b
+  · calc |Real.exp (-a) - Real.exp (-b)| ≤ Real.exp (-a) * |a - b| := hordered hab
+      _ = Real.exp (-min a b) * |a - b| := by rw [min_eq_left hab]
+  · push_neg at hab
+    calc |Real.exp (-a) - Real.exp (-b)| = |Real.exp (-b) - Real.exp (-a)| := abs_sub_comm _ _
+      _ ≤ Real.exp (-b) * |b - a| := hordered (le_of_lt hab)
+      _ = Real.exp (-min a b) * |a - b| := by rw [min_eq_right (le_of_lt hab), abs_sub_comm]
+
+/-- exp(-|·-y|)*c is Lipschitz on ball(x,1) with constant e*exp(-|x-y|)*c. -/
+private lemma exp_neg_abs_sub_mul_lipschitzOnWith_ball (x y : ℝ) (c : ℝ) (hc : 0 ≤ c) :
     LipschitzOnWith (Real.nnabs (Real.exp 1 * (Real.exp (-|x - y|) * c)))
       (fun x' => Real.exp (-|x' - y|) * c) (Metric.ball x 1) := by
-  sorry
+  rw [lipschitzOnWith_iff_dist_le_mul]
+  intro x₁ hx₁ x₂ hx₂
+  simp only [Real.dist_eq, NNReal.coe_mk, Real.coe_nnabs,
+    abs_of_nonneg (by positivity : (0 : ℝ) ≤ Real.exp 1 * (Real.exp (-|x - y|) * c))]
+  rw [show (fun x' => Real.exp (-|x' - y|) * c) x₁ - (fun x' => Real.exp (-|x' - y|) * c) x₂ =
+    c * (Real.exp (-|x₁ - y|) - Real.exp (-|x₂ - y|)) from by ring]
+  rw [abs_mul, abs_of_nonneg hc]
+  by_cases hc0 : c = 0
+  · simp [hc0]
+  · have hc_pos : 0 < c := lt_of_le_of_ne hc (Ne.symm hc0)
+    have hx₁b : |x₁ - x| < 1 := Real.dist_eq x₁ x ▸ Metric.mem_ball.mp hx₁
+    have hx₂b : |x₂ - x| < 1 := Real.dist_eq x₂ x ▸ Metric.mem_ball.mp hx₂
+    have hmin_ge : |x - y| - 1 ≤ min (|x₁ - y|) (|x₂ - y|) := by
+      apply le_min
+      · have h := (le_abs_self (|x - y| - |x₁ - y|)).trans
+            (abs_abs_sub_abs_le_abs_sub (x - y) (x₁ - y))
+        rw [show (x - y) - (x₁ - y) = -(x₁ - x) from by ring, abs_neg] at h; linarith
+      · have h := (le_abs_self (|x - y| - |x₂ - y|)).trans
+            (abs_abs_sub_abs_le_abs_sub (x - y) (x₂ - y))
+        rw [show (x - y) - (x₂ - y) = -(x₂ - x) from by ring, abs_neg] at h; linarith
+    have h_rev : abs (|x₁ - y| - |x₂ - y|) ≤ |x₁ - x₂| := by
+      calc abs (|x₁ - y| - |x₂ - y|)
+          ≤ |(x₁ - y) - (x₂ - y)| := abs_abs_sub_abs_le_abs_sub _ _
+        _ = |x₁ - x₂| := by congr 1; ring
+    have h_exp := exp_neg_abs_sub_le (|x₁ - y|) (|x₂ - y|) (abs_nonneg _) (abs_nonneg _)
+    calc c * |Real.exp (-|x₁ - y|) - Real.exp (-|x₂ - y|)|
+        ≤ c * (Real.exp (-min (|x₁ - y|) (|x₂ - y|)) * abs (|x₁ - y| - |x₂ - y|)) :=
+          mul_le_mul_of_nonneg_left h_exp hc
+      _ ≤ c * (Real.exp (-(|x - y| - 1)) * |x₁ - x₂|) :=
+          mul_le_mul_of_nonneg_left (mul_le_mul
+            (Real.exp_le_exp.mpr (neg_le_neg hmin_ge)) h_rev (abs_nonneg _) (Real.exp_pos _).le) hc
+      _ = Real.exp 1 * (Real.exp (-|x - y|) * c) * |x₁ - x₂| := by
+          rw [show -(|x - y| - 1) = 1 + (-|x - y|) from by ring, Real.exp_add]; ring
 
 /-- Full Psi_deriv_abs_le proved via Leibniz rule + triangle inequality.
     This is the assembled proof using all building blocks above. -/
