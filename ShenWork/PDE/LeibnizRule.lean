@@ -39,10 +39,27 @@ lemma psi_integrand_deriv_le_integrand {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x)
 /-- exp(-|·-y|)*c is Lipschitz on ball(x,1) with constant e*exp(-|x-y|)*c.
     Proof: exp(-|·-y|) is 1-Lipschitz globally; on ball(x,1) the derivative
     is bounded by e*exp(-|x-y|). -/
-private lemma exp_neg_abs_sub_mul_lipschitzOnWith_ball (x y : ℝ) (c : ℝ) (_hc : 0 ≤ c) :
+private lemma exp_neg_abs_sub_mul_lipschitzOnWith_ball (x y : ℝ) (c : ℝ) (hc : 0 ≤ c) :
     LipschitzOnWith (Real.nnabs (Real.exp 1 * (Real.exp (-|x - y|) * c)))
       (fun x' => Real.exp (-|x' - y|) * c) (Metric.ball x 1) := by
-  sorry
+  rw [lipschitzOnWith_iff_dist_le_mul]
+  intro x₁ hx₁ x₂ hx₂
+  simp only [Real.dist_eq, Real.coe_nnabs, abs_of_nonneg (by positivity : 0 ≤ Real.exp 1 * (Real.exp (-|x - y|) * c))]
+  rw [show (fun x' => Real.exp (-|x' - y|) * c) x₁ - (fun x' => Real.exp (-|x' - y|) * c) x₂ =
+    c * (Real.exp (-|x₁ - y|) - Real.exp (-|x₂ - y|)) from by ring]
+  rw [abs_mul, abs_of_nonneg hc]
+  have hx₁_ball := Metric.mem_ball.mp hx₁
+  have hx₂_ball := Metric.mem_ball.mp hx₂
+  by_cases hc0 : c = 0
+  · simp [hc0]
+  · have hc_pos : 0 < c := lt_of_le_of_ne hc (Ne.symm hc0)
+    suffices h : |Real.exp (-|x₁ - y|) - Real.exp (-|x₂ - y|)| ≤
+        Real.exp 1 * Real.exp (-|x - y|) * |x₁ - x₂| by
+      calc c * |Real.exp (-|x₁ - y|) - Real.exp (-|x₂ - y|)|
+          ≤ c * (Real.exp 1 * Real.exp (-|x - y|) * |x₁ - x₂|) :=
+            mul_le_mul_of_nonneg_left h hc
+        _ = Real.exp 1 * (Real.exp (-|x - y|) * c) * |x₁ - x₂| := by ring
+    sorry
 
 /-- Full Psi_deriv_abs_le proved via Leibniz rule + triangle inequality.
     This is the assembled proof using all building blocks above. -/
