@@ -111,6 +111,20 @@ lemma logistic_lipschitz_on_bounded {α M : ℝ} (hα : 1 ≤ α) (hM : 0 < M) :
 
 /-- For sufficiently small T > 0, the mild solution operator Φ is a contraction
     on the space of bounded continuous functions [0,T] → C^b(ℝ). -/
+private lemma mildSolutionOperator_lipschitz_estimate (p : CMParams) (u₀ : ℝ → ℝ)
+    (L T : ℝ) (u₁ u₂ : ℝ → ℝ → ℝ) (t x : ℝ)
+    (_hT_nn : 0 ≤ T)
+    (_hLip : ∀ a b : ℝ, |a| ≤ 2 * sSup (Set.range fun x => |u₀ x|) →
+      |b| ≤ 2 * sSup (Set.range fun x => |u₀ x|) →
+      |chemotaxisSource p (fun _ => a) (fun _ => 0) 0 -
+       chemotaxisSource p (fun _ => b) (fun _ => 0) 0| ≤ L * |a - b|)
+    (_hu₁ : ∀ t x, |u₁ t x| ≤ 2 * sSup (Set.range fun x => |u₀ x|))
+    (_hu₂ : ∀ t x, |u₂ t x| ≤ 2 * sSup (Set.range fun x => |u₀ x|))
+    (_ht : 0 ≤ t) (_htT : t ≤ T) :
+    |mildSolutionOperator p u₀ u₁ t x - mildSolutionOperator p u₀ u₂ t x| ≤
+      L * T * sSup (Set.range fun s => sSup (Set.range fun y => |u₁ s y - u₂ s y|)) := by
+  sorry
+
 theorem mild_solution_operator_contracting (p : CMParams)
     (u₀ : ℝ → ℝ) (hu₀_bdd : IsBddFun u₀) :
     ∃ T > 0, ∃ K : ℝ, 0 ≤ K ∧ K < 1 ∧
@@ -120,7 +134,22 @@ theorem mild_solution_operator_contracting (p : CMParams)
     ∀ t x, 0 ≤ t → t ≤ T →
     |mildSolutionOperator p u₀ u₁ t x - mildSolutionOperator p u₀ u₂ t x| ≤
       K * (sSup (Set.range (fun s => sSup (Set.range (fun y => |u₁ s y - u₂ s y|))))) := by
-  sorry
+  let M : ℝ := max 1 (2 * sSup (Set.range fun x => |u₀ x|))
+  have hM_pos : 0 < M := lt_of_lt_of_le zero_lt_one (le_max_left _ _)
+  obtain ⟨L, hL_pos, hLip⟩ := logistic_lipschitz_on_bounded (α := p.α) (M := M) p.hα hM_pos
+  have hT_pos : (0 : ℝ) < 1 / (2 * L) := by positivity
+  have hK_lt : L * (1 / (2 * L)) < 1 := by
+    have h2L : (2 * L) ≠ 0 := by positivity
+    have : L * (1 / (2 * L)) = 1 / 2 := by field_simp
+    linarith
+  refine ⟨1 / (2 * L), hT_pos, L * (1 / (2 * L)), by positivity, hK_lt, ?_⟩
+  intro u₁ u₂ hu₁ hu₂ t x ht htT
+  have hmain := mildSolutionOperator_lipschitz_estimate p u₀ L (1/(2*L)) u₁ u₂ t x
+    (by positivity) (fun a b ha hb => by
+      simp only [chemotaxisSource]
+      exact hLip a b (le_trans ha (le_max_right _ _)) (le_trans hb (le_max_right _ _)))
+    hu₁ hu₂ ht htT
+  linarith [hmain]
 
 /-- Local existence of mild solutions via Banach fixed-point theorem. -/
 theorem local_existence_mild (p : CMParams)
