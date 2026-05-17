@@ -36,6 +36,14 @@ lemma psi_integrand_deriv_le_integrand {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x)
       abs_of_nonneg (Real.exp_nonneg _), abs_of_nonneg (hu y),
       abs_of_nonpos (sub_nonpos.mpr (le_of_lt hy))]
 
+/-- exp(-|·-y|)*c is Lipschitz on ball(x,1) with constant e*exp(-|x-y|)*c.
+    Proof: exp(-|·-y|) is 1-Lipschitz globally; on ball(x,1) the derivative
+    is bounded by e*exp(-|x-y|). -/
+private lemma exp_neg_abs_sub_mul_lipschitzOnWith_ball (x y : ℝ) (c : ℝ) (_hc : 0 ≤ c) :
+    LipschitzOnWith (Real.nnabs (Real.exp 1 * (Real.exp (-|x - y|) * c)))
+      (fun x' => Real.exp (-|x' - y|) * c) (Metric.ball x 1) := by
+  sorry
+
 /-- Full Psi_deriv_abs_le proved via Leibniz rule + triangle inequality.
     This is the assembled proof using all building blocks above. -/
 theorem Psi_deriv_abs_le' {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ)
@@ -64,13 +72,15 @@ theorem Psi_deriv_abs_le' {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ)
         hu_meas
     have hG_int : Integrable (G x) volume := by simpa [G] using hint
     have hG'_meas : AEStronglyMeasurable G' volume := by
-      dsimp [G', F']; sorry
+      dsimp [G', F']
+      sorry -- measurability of piecewise (technical, both branches ae-measurable)
     have hbound_int : Integrable bound volume := by
       dsimp [bound]; simpa [mul_assoc] using hint.const_mul (Real.exp 1)
     have h_lip : ∀ᵐ y ∂volume,
         LipschitzOnWith (Real.nnabs (bound y)) (fun x' => G x' y) (Metric.ball x 1) := by
       filter_upwards with y
-      sorry
+      dsimp [G, bound]
+      exact exp_neg_abs_sub_mul_lipschitzOnWith_ball x y (u y) (hu y)
     have hdiff : ∀ᵐ y ∂volume, HasDerivAt (fun x' => G x' y) (G' y) x := by
       have hne : ∀ᵐ y ∂volume, y ≠ x := by rw [ae_iff]; simp
       filter_upwards [hne] with y hy
