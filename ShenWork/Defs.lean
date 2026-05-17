@@ -402,8 +402,15 @@ theorem cm_tw_stability (p : CMParams)
   -- Then |u(t,x) - U(x-ct)| = 0 < ε trivially.
   -- IsGlobalClassicalSolution follows from the traveling wave ODE.
   refine ⟨fun t x => U (x - c * t), fun t x => V (x - c * t), ?_, ?_⟩
-  · -- IsGlobalClassicalSolution: u(t,x) = U(x-ct) satisfies the PDE
-    sorry
+  · intro T hT
+    exact {
+      hT := hT
+      u_smooth := fun t x _ _ => sorry -- chain rule: U differentiable → U(x-ct) differentiable
+      v_smooth := fun t x _ _ => sorry
+      pde_u := fun t x _ _ => sorry -- TW ODE ↔ PDE in moving frame
+      pde_v := fun t x _ _ => by -- V'' - V + U^γ = 0 (from hTW.ode_V)
+        sorry
+    }
   · intro ε hε; exact ⟨0, fun t x _ => by simp; exact hε⟩
 
 theorem cm_tw_uniqueness (p : CMParams)
