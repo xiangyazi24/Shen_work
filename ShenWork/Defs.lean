@@ -387,7 +387,6 @@ theorem cm_tw_exist_small_pos (p : CMParams)
     (c : ℝ) (hc : 2 < c) :
     ∃ U V : ℝ → ℝ,
       IsTravelingWave p c U V ∧ (∀ x, 0 < U x) := by
-  -- Similar to cm_tw_exist_neg, adapted for small positive χ.
   sorry
 
 theorem cm_tw_stability (p : CMParams)
