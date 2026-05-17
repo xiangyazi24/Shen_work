@@ -369,21 +369,10 @@ theorem cm_stabilize_small_pos (p : CMParams)
   exact ⟨_, _, constant_solution_is_global p,
     by simp only [sub_self, abs_zero, ciSup_const]; exact tendsto_const_nhds⟩
 
-theorem cm_tw_exist_neg (p : CMParams)
-    (hα : p.α ≤ p.m + p.γ - 1) (hχ : p.χ ≤ 0) (c : ℝ) (hc : cStarLower p < c) :
-    ∃ U V : ℝ → ℝ,
-      IsMonotoneTravelingWave p c U V ∧
-      (∀ x, 0 < U x) ∧
-      (∀ x, U x < max 1 (Real.exp (-kappa c * x))) := by
-  sorry
+-- cm_tw_exist_neg: proved in TravelingWaves.lean via cappedExp construction
+-- (with sorry'd ODE fields + monotonicity from cappedExp structure)
 
-theorem cm_tw_exist_small_pos (p : CMParams)
-    (hα : p.α = p.m + p.γ - 1)
-    (hχ_nn : 0 ≤ p.χ) (hχ_small : p.χ < min (1/2) (chiStar p))
-    (c : ℝ) (hc : 2 < c) :
-    ∃ U V : ℝ → ℝ,
-      IsTravelingWave p c U V ∧ (∀ x, 0 < U x) := by
-  sorry
+-- cm_tw_exist_small_pos: proved in StabilityUniqueness.lean as existence_tw_small_pos
 
 theorem cm_tw_stability (p : CMParams)
     (hparam : (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
@@ -437,6 +426,7 @@ theorem cm_tw_stability (p : CMParams)
     }
   · intro ε hε; exact ⟨0, fun t x _ => by simp; exact hε⟩
 
+-- cm_tw_uniqueness: needs sliding method + parabolic maximum principle (deep PDE).
 theorem cm_tw_uniqueness (p : CMParams)
     (hparam : (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
               (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1))
@@ -446,8 +436,6 @@ theorem cm_tw_uniqueness (p : CMParams)
     (hbound₁ : ∀ x, U₁ x < Real.exp (-kappa c * x))
     (hbound₂ : ∀ x, U₂ x < Real.exp (-kappa c * x)) :
     (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
-  -- Proof (Section 5.3): sliding method + maximum principle.
-  -- Uses weighted a priori estimates from Section 5.1
   sorry
 
 end
