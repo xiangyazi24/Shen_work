@@ -37,7 +37,9 @@ lemma psi_integrand_deriv_le_integrand {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x)
       abs_of_nonneg (Real.exp_nonneg _), abs_of_nonneg (hu y),
       abs_of_nonpos (sub_nonpos.mpr (le_of_lt hy))]
 
-/-- exp(-|·-y|)*c is Lipschitz on ball(x,1) with constant e*exp(-|x-y|)*c. -/
+/-- exp(-|·-y|)*c is Lipschitz on ball(x,1) with constant e*exp(-|x-y|)*c.
+    Proof: MVT on [min(|x₁-y|,|x₂-y|), max(...)], derivative exp(-t) ≤ exp(-min),
+    min ≥ |x-y|-1 from ball(x,1), reverse triangle for the argument diff. -/
 private lemma exp_neg_abs_sub_mul_lipschitzOnWith_ball (x y : ℝ) (c : ℝ) (_hc : 0 ≤ c) :
     LipschitzOnWith (Real.nnabs (Real.exp 1 * (Real.exp (-|x - y|) * c)))
       (fun x' => Real.exp (-|x' - y|) * c) (Metric.ball x 1) := by
