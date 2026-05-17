@@ -247,20 +247,65 @@ The derivative identities
 
 are routine but verbose in Lean, so this bridge lemma is isolated.
 -/
+private lemma dt_sub_of_hasDerivAt {u v : ℝ → ℝ → ℝ} {t x : ℝ}
+    (hu : HasDerivAt (fun τ => u τ x) (dt u t x) t)
+    (hv : HasDerivAt (fun τ => v τ x) (dt v t x) t) :
+    dt (fun τ y => u τ y - v τ y) t x = dt u t x - dt v t x := by
+  simpa [dt] using (hu.sub hv).deriv
+
+private lemma dx_sub_of_hasDerivAt {u v : ℝ → ℝ → ℝ} {t x : ℝ}
+    (hu : HasDerivAt (fun y => u t y) (dx u t x) x)
+    (hv : HasDerivAt (fun y => v t y) (dx v t x) x) :
+    dx (fun τ y => u τ y - v τ y) t x = dx u t x - dx v t x := by
+  simpa [dx] using (hu.sub hv).deriv
+
+private lemma dxx_sub_of_hasDerivAt {u v : ℝ → ℝ → ℝ} {t x : ℝ}
+    (hu₁ : ∀ y, HasDerivAt (fun z => u t z) (dx u t y) y)
+    (hv₁ : ∀ y, HasDerivAt (fun z => v t z) (dx v t y) y)
+    (hu₂ : HasDerivAt (fun y => dx u t y) (dxx u t x) x)
+    (hv₂ : HasDerivAt (fun y => dx v t y) (dxx v t x) x) :
+    dxx (fun τ y => u τ y - v τ y) t x = dxx u t x - dxx v t x := by
+  have hdx_fun : (fun y => dx (fun τ z => u τ z - v τ z) t y) =
+      (fun y => dx u t y - dx v t y) := by
+    funext y; exact dx_sub_of_hasDerivAt (hu₁ y) (hv₁ y)
+  simpa [dxx, hdx_fun] using (hu₂.sub hv₂).deriv
+
 private lemma difference_is_linear_subsolution
     {g : ℝ → ℝ} {T L R : ℝ} {u v : ℝ → ℝ → ℝ}
     (hsub : IsClassicalSubSolution g T u)
     (hsuper : IsClassicalSuperSolution g T v)
-    (hLip :
-      ∀ a b : ℝ,
-        |a| ≤ R →
-        |b| ≤ R →
-          |g a - g b| ≤ L * |a - b|)
+    (hLip : ∀ a b : ℝ, |a| ≤ R → |b| ≤ R → |g a - g b| ≤ L * |a - b|)
     (hL_nn : 0 ≤ L)
     (huR : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x : ℝ, |u t x| ≤ R)
     (hvR : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x : ℝ, |v t x| ≤ R) :
     IsClassicalLinearSubSolution L T (fun t x => u t x - v t x) := by
-  sorry
+  refine { time_hasDerivAt := ?_, space_hasDerivAt := ?_,
+           space_second_hasDerivAt := ?_, pde_le_of_pos := ?_, bounded := ?_ }
+  · intro t x htIoo
+    have hu := hsub.time_hasDerivAt htIoo (x := x)
+    have hv := hsuper.time_hasDerivAt htIoo (x := x)
+    simpa [dt_sub_of_hasDerivAt hu hv] using hu.sub hv
+  · intro t x htIoo
+    have hu := hsub.space_hasDerivAt htIoo (x := x)
+    have hv := hsuper.space_hasDerivAt htIoo (x := x)
+    simpa [dx_sub_of_hasDerivAt hu hv] using hu.sub hv
+  · intro t x htIoo
+    have hu₂ := hsub.space_second_hasDerivAt htIoo (x := x)
+    have hv₂ := hsuper.space_second_hasDerivAt htIoo (x := x)
+    have hdx_fun : (fun y => dx (fun τ z => u τ z - v τ z) t y) =
+        (fun y => dx u t y - dx v t y) := by
+      funext y
+      exact dx_sub_of_hasDerivAt (hsub.space_hasDerivAt htIoo) (hsuper.space_hasDerivAt htIoo)
+    sorry -- space_second: dxx(u-v) = dxx u - dxx v (needs simpa adjustment)
+  · sorry -- pde_le_of_pos: parabolicOp(u-v) ≤ L*(u-v) (core PDE step)
+  · rcases hsub.bounded with ⟨Mu, hMu_nn, hMu⟩
+    rcases hsuper.bounded with ⟨Mv, hMv_nn, hMv⟩
+    exact ⟨Mu + Mv, add_nonneg hMu_nn hMv_nn, fun t ht x => by
+      have h1 := hMu t ht x; have h2 := hMv t ht x
+      have h3 : |u t x - v t x| ≤ |u t x| + |v t x| := by
+        have := norm_sub_le (u t x) (v t x)
+        simp [Real.norm_eq_abs] at this; exact this
+      linarith⟩
 
 /--
 Classical comparison principle for one-dimensional scalar parabolic equations.
@@ -364,7 +409,18 @@ lemma spatiallyConstant_superSolution_of_ode
     {g : ℝ → ℝ} {T : ℝ} {bar : ℝ → ℝ}
     (hbar : IsClassicalODESuperSolution g T bar) :
     IsClassicalSuperSolution g T (spatiallyConstant bar) := by
-  sorry
+  refine { time_hasDerivAt := ?_, space_hasDerivAt := ?_,
+           space_second_hasDerivAt := ?_, pde_ge := ?_, bounded := ?_ }
+  · intro t x ht
+    simpa [spatiallyConstant, dt] using hbar.time_hasDerivAt (t := t) ht
+  · intro t x ht
+    simpa [spatiallyConstant, dx] using (hasDerivAt_const x (bar t) : HasDerivAt (fun _ => bar t) 0 x)
+  · intro t x ht
+    simpa [spatiallyConstant, dx, dxx] using (hasDerivAt_const x (0 : ℝ) : HasDerivAt (fun _ => (0 : ℝ)) 0 x)
+  · intro t x ht
+    simpa [spatiallyConstant, parabolicOp, dt, dx, dxx] using hbar.ode_ge (t := t) ht
+  · rcases hbar.bounded with ⟨M, hM_nn, hM⟩
+    exact ⟨M, hM_nn, fun t ht x => by simpa [spatiallyConstant] using hM t ht⟩
 
 /--
 Application: comparison against a spatially constant ODE supersolution.
