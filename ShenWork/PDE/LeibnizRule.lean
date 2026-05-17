@@ -72,8 +72,16 @@ theorem Psi_deriv_abs_le' {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ)
         hu_meas
     have hG_int : Integrable (G x) volume := by simpa [G] using hint
     have hG'_meas : AEStronglyMeasurable G' volume := by
-      dsimp [G', F']
-      sorry -- measurability of piecewise (technical, both branches ae-measurable)
+      show AEStronglyMeasurable (fun y =>
+        if y < x then -Real.exp (-(x - y)) * u y
+        else Real.exp (-(y - x)) * u y) volume
+      have : AEStronglyMeasurable (fun y =>
+          (if y < x then -Real.exp (-(x - y)) else Real.exp (-(y - x))) * u y) volume := by
+        exact (StronglyMeasurable.piecewise measurableSet_Iio
+          (by fun_prop : Continuous fun y => -Real.exp (-(x - y))).stronglyMeasurable
+          (by fun_prop : Continuous fun y => Real.exp (-(y - x))).stronglyMeasurable).aestronglyMeasurable.mul
+          hu_meas
+      exact this.congr (by filter_upwards with y; split_ifs <;> rfl)
     have hbound_int : Integrable bound volume := by
       dsimp [bound]; simpa [mul_assoc] using hint.const_mul (Real.exp 1)
     have h_lip : ∀ᵐ y ∂volume,
