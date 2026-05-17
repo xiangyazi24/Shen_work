@@ -41,16 +41,14 @@ vectorField p x = 0
 
 @[simp]
 theorem vectorField_E1 (p : Params) :
-vectorField p E1 = 0 := by
-funext i
-fin_cases i <;> simp [vectorField, E1]
+    vectorField p E1 = 0 := by
+  funext i; fin_cases i <;> simp [vectorField, E1, one_pow] <;> ring
 
 @[simp]
 theorem vectorField_E0 (p : Params) :
-vectorField p E0 = 0 := by
-funext i
-fin_cases i <;>
-simp [vectorField, E0, Nat.ne_of_gt p.hm, Nat.ne_of_gt p.hgamma]
+    vectorField p E0 = 0 := by
+  funext i; fin_cases i <;>
+    simp [vectorField, E0, Nat.ne_of_gt p.hm, Nat.ne_of_gt p.hgamma, zero_pow] <;> ring
 
 theorem E1_equilibrium (p : Params) :
 IsEquilibrium p E1 := by
