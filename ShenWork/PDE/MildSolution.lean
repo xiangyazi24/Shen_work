@@ -14,6 +14,7 @@
 import ShenWork.PDE.HeatSemigroup
 import ShenWork.Defs
 import Mathlib.Topology.MetricSpace.Contracting
+import Mathlib.Analysis.Calculus.MeanValue
 
 open MeasureTheory Filter Topology Real
 
@@ -49,10 +50,62 @@ lemma logistic_lipschitz_on_bounded {α M : ℝ} (hα : 1 ≤ α) (hM : 0 < M) :
   constructor
   · positivity
   · intro u₁ u₂ hu₁ hu₂
-    -- |u₁(1-u₁^α) - u₂(1-u₂^α)| ≤ (1+(1+α)M^α)|u₁-u₂|
-    -- via triangle: |(u₁-u₂) - (u₁u₁^α - u₂u₂^α)| ≤ |u₁-u₂| + |u₁u₁^α - u₂u₂^α|
-    -- and |u₁u₁^α - u₂u₂^α| ≤ (1+α)M^α|u₁-u₂| (algebraic + rpow Lipschitz)
-    sorry
+    let f : ℝ → ℝ := fun x => x * (1 - x ^ α)
+    let fp : ℝ → ℝ := fun x => 1 * (1 - x ^ α) + x * (0 - α * x ^ (α - 1))
+    let C : ℝ := 1 + (1 + α) * M ^ α
+    have hα0 : 0 ≤ α := by linarith
+    have hαm1 : 0 ≤ α - 1 := by linarith
+    have hM0 : 0 ≤ M := le_of_lt hM
+    have hu₁s : u₁ ∈ Set.Icc (-M) M := abs_le.mp hu₁
+    have hu₂s : u₂ ∈ Set.Icc (-M) M := abs_le.mp hu₂
+    have hder : ∀ x ∈ Set.Icc (-M) M, HasDerivWithinAt f (fp x) (Set.Icc (-M) M) x := by
+      intro x _hx
+      have hp : HasDerivAt (fun y : ℝ => y ^ α) (α * x ^ (α - 1)) x :=
+        Real.hasDerivAt_rpow_const (x := x) (p := α) (Or.inr hα)
+      have hsub : HasDerivAt (fun y : ℝ => 1 - y ^ α) (0 - α * x ^ (α - 1)) x :=
+        (hasDerivAt_const x (1 : ℝ)).sub hp
+      have hmul : HasDerivAt (fun y : ℝ => y * (1 - y ^ α))
+          (1 * (1 - x ^ α) + x * (0 - α * x ^ (α - 1))) x := by
+        simpa using (hasDerivAt_id' x).fun_mul hsub
+      simpa [f, fp] using hmul.hasDerivWithinAt
+    have hbound : ∀ x ∈ Set.Icc (-M) M, ‖fp x‖ ≤ C := by
+      intro x hx
+      have hxabs : |x| ≤ M := abs_le.mpr hx
+      have hxpow : |x ^ α| ≤ M ^ α := by
+        calc |x ^ α| ≤ |x| ^ α := Real.abs_rpow_le_abs_rpow x α
+          _ ≤ M ^ α := Real.rpow_le_rpow (abs_nonneg x) hxabs hα0
+      have hxpowm1 : |x ^ (α - 1)| ≤ M ^ (α - 1) := by
+        calc |x ^ (α - 1)| ≤ |x| ^ (α - 1) := Real.abs_rpow_le_abs_rpow x (α - 1)
+          _ ≤ M ^ (α - 1) := Real.rpow_le_rpow (abs_nonneg x) hxabs hαm1
+      have hMpow : M ^ (α - 1) * M = M ^ α := by
+        rw [← Real.rpow_add_one (ne_of_gt hM) (α - 1)]
+        congr 1; ring
+      have hMpow2 : M * (α * M ^ (α - 1)) = α * M ^ α := by
+        calc M * (α * M ^ (α - 1)) = α * (M ^ (α - 1) * M) := by ring
+          _ = α * M ^ α := by rw [hMpow]
+      have hterm1 : |1 * (1 - x ^ α)| ≤ 1 + M ^ α := by
+        simp only [one_mul]
+        have h_tri := norm_sub_le (1 : ℝ) (x ^ α)
+        simp only [Real.norm_eq_abs, abs_one] at h_tri
+        linarith [hxpow]
+      have hinner_nonneg : 0 ≤ α * |x ^ (α - 1)| :=
+        mul_nonneg hα0 (abs_nonneg _)
+      have hterm2 : |x * (0 - α * x ^ (α - 1))| ≤ α * M ^ α := by
+        rw [abs_mul, show |0 - α * x ^ (α - 1)| = α * |x ^ (α - 1)| from by
+          simp [abs_mul, abs_of_nonneg hα0]]
+        calc |x| * (α * |x ^ (α - 1)|)
+            ≤ M * (α * M ^ (α - 1)) :=
+              mul_le_mul hxabs (mul_le_mul_of_nonneg_left hxpowm1 hα0) hinner_nonneg hM0
+          _ = α * M ^ α := hMpow2
+      simp only [fp, C, Real.norm_eq_abs]
+      calc |1 * (1 - x ^ α) + x * (0 - α * x ^ (α - 1))|
+          ≤ |1 * (1 - x ^ α)| + |x * (0 - α * x ^ (α - 1))| := abs_add_le _ _
+        _ ≤ (1 + M ^ α) + α * M ^ α := add_le_add hterm1 hterm2
+        _ = 1 + (1 + α) * M ^ α := by ring
+    have hmv : ‖f u₁ - f u₂‖ ≤ C * ‖u₁ - u₂‖ :=
+      Convex.norm_image_sub_le_of_norm_hasDerivWithin_le
+        hder hbound (convex_Icc (-M) M) hu₂s hu₁s
+    simpa [f, C, Real.norm_eq_abs] using hmv
 
 /-! ## Local existence via contraction -/
 
