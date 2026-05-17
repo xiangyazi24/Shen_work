@@ -408,7 +408,9 @@ theorem cm_tw_stability (p : CMParams)
       v_smooth := fun t x _ _ =>
         (hV_d _).comp _ (differentiableAt_id.sub (differentiableAt_const _))
       pde_u := fun t x _ _ => sorry -- TW ODE ↔ PDE in moving frame (chain rule calc)
-      pde_v := fun t x _ _ => sorry -- V''(x-ct) - V(x-ct) + U(x-ct)^γ = hTW.ode_V
+      pde_v := fun t x _ _ => by
+        have h := congr_fun (iteratedDeriv_comp_sub_const 2 V (c * t)) x
+        rw [h]; exact hTW.ode_V (x - c * t)
     }
   · intro ε hε; exact ⟨0, fun t x _ => by simp; exact hε⟩
 
