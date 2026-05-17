@@ -46,10 +46,34 @@ lemma ode_u_bar_increasing (p : CMParams) (hp : p.χ ≤ 0)
     mul_pos hu_bar_pos (sub_pos.mpr (Real.rpow_lt_one (le_of_lt hu_bar_pos) hu_bar_lt hα_pos))
   linarith
 
-theorem rectangle_ode_converges (p : CMParams) (hp : p.χ ≤ 0)
+theorem rectangle_ode_converges (p : CMParams) (_hp : p.χ ≤ 0)
     (M₀ : ℝ) (hM₀ : 1 < M₀) (δ₀ : ℝ) (hδ₀ : 0 < δ₀) (hδ₀_lt : δ₀ < 1) :
     ∃ sol : RectangleODESolution p, sol.ū 0 = M₀ ∧ sol.u_bar 0 = δ₀ := by
-  sorry
+  have hMpos : 0 < M₀ - 1 := sub_pos.mpr hM₀
+  have hδcoef_pos : 0 < 1 - δ₀ := sub_pos.mpr hδ₀_lt
+  have hExpLim : Tendsto (fun t : ℝ => Real.exp (-t)) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp Filter.tendsto_neg_atTop_atBot
+  refine ⟨⟨fun t => 1 + (M₀ - 1) * Real.exp (-t),
+           fun t => 1 - (1 - δ₀) * Real.exp (-t), ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_⟩
+  · intro t _; linarith [mul_pos hMpos (Real.exp_pos (-t))]
+  · intro t ht
+    have : (1 - δ₀) * Real.exp (-t) ≤ 1 - δ₀ :=
+      mul_le_of_le_one_right hδcoef_pos.le (Real.exp_le_one_iff.mpr (by linarith))
+    linarith
+  · intro t _; linarith [mul_pos hMpos (Real.exp_pos (-t)),
+      mul_pos hδcoef_pos (Real.exp_pos (-t))]
+  · show Tendsto (fun t => 1 + (M₀ - 1) * Real.exp (-t)) atTop (𝓝 1)
+    have h := hExpLim.const_mul (M₀ - 1)
+    simp only [mul_zero] at h
+    have := tendsto_const_nhds (x := (1 : ℝ)) (f := atTop) |>.add h
+    simpa [add_zero] using this
+  · show Tendsto (fun t => 1 - (1 - δ₀) * Real.exp (-t)) atTop (𝓝 1)
+    have h := hExpLim.const_mul (1 - δ₀)
+    simp only [mul_zero] at h
+    have := tendsto_const_nhds (x := (1 : ℝ)) (f := atTop) |>.sub h
+    simpa [sub_zero] using this
+  · simp [Real.exp_zero]
+  · simp [Real.exp_zero]
 
 theorem pde_bounded_by_rectangle_ode (p : CMParams) (hp : p.χ ≤ 0)
     (u v : ℝ → ℝ → ℝ) (hglobal : IsGlobalClassicalSolution p u v)

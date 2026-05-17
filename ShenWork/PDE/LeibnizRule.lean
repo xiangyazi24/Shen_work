@@ -52,9 +52,36 @@ theorem Psi_deriv_abs_le' {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ)
   -- Step 2: HasDerivAt for the integral (Leibniz rule)
   have hLeibniz : HasDerivAt (fun x' => ∫ y, Real.exp (-|x' - y|) * u y)
       (∫ y, F' y) x := by
-    -- This uses hasDerivAt_integral_of_dominated_loc_of_lip
-    -- with the pointwise HasDerivAt from hasDerivAt_psi_integrand_left/right
-    sorry
+    let G : ℝ → ℝ → ℝ := fun x' y => Real.exp (-|x' - y|) * u y
+    let G' : ℝ → ℝ := fun y =>
+      if y < x then -Real.exp (-(x - y)) * u y
+      else Real.exp (-(y - x)) * u y
+    let bound : ℝ → ℝ := fun y => Real.exp 1 * (Real.exp (-|x - y|) * u y)
+    have hs : Metric.ball x 1 ∈ 𝓝 x := Metric.ball_mem_nhds x zero_lt_one
+    have hG_meas : ∀ᶠ x' in 𝓝 x, AEStronglyMeasurable (G x') volume := by
+      filter_upwards with x'
+      exact ((by fun_prop : Continuous fun y : ℝ => Real.exp (-|x' - y|))).aestronglyMeasurable.mul
+        hu_meas
+    have hG_int : Integrable (G x) volume := by simpa [G] using hint
+    have hG'_meas : AEStronglyMeasurable G' volume := by
+      dsimp [G', F']; sorry
+    have hbound_int : Integrable bound volume := by
+      dsimp [bound]; simpa [mul_assoc] using hint.const_mul (Real.exp 1)
+    have h_lip : ∀ᵐ y ∂volume,
+        LipschitzOnWith (Real.nnabs (bound y)) (fun x' => G x' y) (Metric.ball x 1) := by
+      filter_upwards with y
+      sorry
+    have hdiff : ∀ᵐ y ∂volume, HasDerivAt (fun x' => G x' y) (G' y) x := by
+      have hne : ∀ᵐ y ∂volume, y ≠ x := by rw [ae_iff]; simp
+      filter_upwards [hne] with y hy
+      by_cases hylt : y < x
+      · simpa [G, G', F', hylt] using hasDerivAt_psi_integrand_left (u := u) hylt
+      · have hxy : x < y := lt_of_le_of_ne (le_of_not_gt hylt) (Ne.symm hy)
+        simpa [G, G', F', hylt] using hasDerivAt_psi_integrand_right (u := u) hxy
+    simpa [G, G', F'] using
+      (hasDerivAt_integral_of_dominated_loc_of_lip (μ := volume) (bound := bound)
+        (F := G) (F' := G') (x₀ := x) (s := Metric.ball x 1)
+        hs hG_meas hG_int hG'_meas h_lip hbound_int hdiff).2
   -- Step 3: deriv(Psi) = (1/2) * ∫ F'
   have hPsi_fun : Psi u 1 1 = fun x' => (1/2 : ℝ) * ∫ y, Real.exp (-|x' - y|) * u y := by
     ext x'; simp [Psi]
