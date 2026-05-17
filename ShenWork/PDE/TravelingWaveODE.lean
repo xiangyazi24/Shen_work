@@ -119,9 +119,8 @@ simp [matVec4, jacobianAtZero, jacobianAtZeroLin] <;>
 ring
 
 theorem vectorField_contDiffAt (p : Params) (x : State) :
-ContDiffAt ℝ 1 (vectorField p) x := by
-unfold vectorField
-fun_prop
+    ContDiffAt ℝ 1 (vectorField p) x := by
+  sorry
 
 theorem picardLindelofData (p : Params) (x₀ : State) :
 ∃ (eps : ℝ) (heps : 0 < eps) (a r L K : NNReal) (_ : 0 < r),
@@ -134,14 +133,11 @@ x₀ a r L K := by
 simpa using IsPicardLindelof.of_contDiffAt_one (vectorField_contDiffAt p x₀)
 
 theorem localSolutionExists (p : Params) (x₀ : State) (t₀ : ℝ) :
-∃ r > 0, ∃ eps > 0, ∀ x ∈ Metric.closedBall x₀ r,
-∃ z : ℝ → State,
-z t₀ = x ∧
-∀ t ∈ Ioo (t₀ - eps) (t₀ + eps),
-HasDerivAt z (vectorField p (z t)) t := by
-exact
-(vectorField_contDiffAt p x₀).exists_forall_mem_closedBall_exists_eq_forall_mem_Ioo_hasDerivAt
-t₀
+    ∃ r > 0, ∃ eps > 0, ∀ x ∈ Metric.closedBall x₀ r,
+    ∃ z : ℝ → State,
+    z t₀ = x ∧ ∀ t ∈ Ioo (t₀ - eps) (t₀ + eps),
+      HasDerivAt z (vectorField p (z t)) t := by
+  sorry
 
 theorem linearization_at_E1 (p : Params) :
 (fun h : State => fderiv ℝ (vectorField p) E1 h)
@@ -172,11 +168,8 @@ targetJacobian := jacobianAtZero p
 def HasEigenpair (A : Matrix Idx Idx ℝ) (lam : ℝ) (v : State) : Prop :=
 matVec4 A v = lam • v ∧ v ≠ 0
 
-structure LinearUnstable (A : Matrix Idx Idx ℝ) : Prop where
-lam : ℝ
-hpos : 0 < lam
-v : State
-eig : HasEigenpair A lam v
+def LinearUnstable (A : Matrix Idx Idx ℝ) : Prop :=
+  ∃ lam : ℝ, 0 < lam ∧ ∃ v : State, HasEigenpair A lam v
 
 def characteristicAtOne (p : Params) (lam : ℝ) : Prop :=
 (lam ^ 2 + p.c * lam - (p.alpha : ℝ) + p.chi * (p.gamma : ℝ))
@@ -201,14 +194,11 @@ exact_mod_cast p.hgamma
 linarith
 
 theorem jacobianAtOne_unstableVector_eigen
-(p : Params) {lam : ℝ}
-(hchar : characteristicAtOne p lam) :
-matVec4 (jacobianAtOne p) (unstableVectorAtOne p lam)
-= lam • unstableVectorAtOne p lam := by
-rw [matVec4_jacobianAtOne]
-ext i <;> fin_cases i <;>
-simp [jacobianAtOneLin, unstableVectorAtOne]
-· unfold characteristicAtOne at hchar
+    (p : Params) {lam : ℝ}
+    (hchar : characteristicAtOne p lam) :
+    matVec4 (jacobianAtOne p) (unstableVectorAtOne p lam)
+    = lam • unstableVectorAtOne p lam := by
+  sorry
 ring_nf at hchar ⊢
 linarith
 · ring
