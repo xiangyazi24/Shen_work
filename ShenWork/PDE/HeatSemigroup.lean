@@ -168,4 +168,11 @@ theorem modifiedSemigroup_Linfty_bound {f : ℝ → ℝ} {M : ℝ}
   rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
   exact mul_le_mul_of_nonneg_left (heatSemigroup_abs_bound hf ht hM hf_meas x) (Real.exp_nonneg _)
 
+theorem heatSemigroup_sub {f g : ℝ → ℝ} {t : ℝ} (x : ℝ)
+    (hf : MeasureTheory.Integrable (fun y => heatKernel t (x - y) * f y))
+    (hg : MeasureTheory.Integrable (fun y => heatKernel t (x - y) * g y)) :
+    heatSemigroup t (fun y => f y - g y) x =
+    heatSemigroup t f x - heatSemigroup t g x := by
+  simpa [heatSemigroup, mul_sub] using MeasureTheory.integral_sub hf hg
+
 end
