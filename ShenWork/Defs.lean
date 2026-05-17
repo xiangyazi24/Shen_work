@@ -407,7 +407,30 @@ theorem cm_tw_stability (p : CMParams)
         (hU_d _).comp _ (differentiableAt_id.sub (differentiableAt_const _))⟩
       v_smooth := fun t x _ _ =>
         (hV_d _).comp _ (differentiableAt_id.sub (differentiableAt_const _))
-      pde_u := fun t x _ _ => sorry -- TW ODE ↔ PDE in moving frame (chain rule calc)
+      pde_u := fun t x _ _ => by
+        -- Time derivative via chain rule
+        have hinner : HasDerivAt (fun t' => x - c * t') (-c) t := by
+          have := (hasDerivAt_const t x).sub ((hasDerivAt_id t).const_mul c)
+          simpa using this
+        have htime : deriv (fun t' => U (x - c * t')) t = deriv U (x - c * t) * (-c) :=
+          ((hU_d _).hasDerivAt.comp t hinner).deriv
+        -- Spatial translations
+        have hU2 := congr_fun (iteratedDeriv_comp_sub_const 2 U (c * t)) x
+        have hV1 : ∀ y, deriv (fun z => V (z - c * t)) y = deriv V (y - c * t) := by
+          intro y
+          have := congr_fun (iteratedDeriv_comp_sub_const 1 V (c * t)) y
+          simpa [iteratedDeriv_one] using this
+        have hChem : deriv (fun y => U (y - c * t) ^ p.m * deriv (fun z => V (z - c * t)) y) x
+            = deriv (fun ξ => U ξ ^ p.m * deriv V ξ) (x - c * t) := by
+          have hfun : (fun y => U (y - c * t) ^ p.m * deriv (fun z => V (z - c * t)) y) =
+              (fun y => U (y - c * t) ^ p.m * deriv V (y - c * t)) := by
+            ext y; rw [hV1 y]
+          rw [hfun]
+          have := congr_fun (iteratedDeriv_comp_sub_const 1
+            (fun ξ => U ξ ^ p.m * deriv V ξ) (c * t)) x
+          simpa [iteratedDeriv_one] using this
+        rw [htime, hU2, hChem]
+        linarith [hTW.ode_U (x - c * t)]
       pde_v := fun t x _ _ => by
         have h := congr_fun (iteratedDeriv_comp_sub_const 2 V (c * t)) x
         rw [h]; exact hTW.ode_V (x - c * t)
