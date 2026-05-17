@@ -138,7 +138,31 @@ private lemma mildSolutionOperator_duhamel_integral_bound
     |∫ s in Set.Icc 0 t, heatSemigroup (t - s)
       (fun y => chemotaxisSource p (u₁ s) (fun _ => 0) y -
         chemotaxisSource p (u₂ s) (fun _ => 0) y) x| ≤ L * t * D := by
-  sorry
+  let G : ℝ → ℝ := fun s => heatSemigroup (t - s)
+    (fun y => chemotaxisSource p (u₁ s) (fun _ => 0) y -
+      chemotaxisSource p (u₂ s) (fun _ => 0) y) x
+  have hLD_nn : 0 ≤ L * D := mul_nonneg _hL_nn _hD_nn
+  have hG_bound : ∀ s ∈ Set.Icc 0 t, |G s| ≤ L * D := by
+    intro s hs
+    simp only [G]
+    by_cases hts : t - s = 0
+    · rw [hts, heatSemigroup_zero, abs_zero]; exact hLD_nn
+    · have hts_pos : 0 < t - s := lt_of_le_of_ne (by linarith [hs.2]) (Ne.symm hts)
+      exact heatSemigroup_abs_bound (fun y => _hsource_bound s y) hts_pos hLD_nn
+        (by sorry) x
+  have hG_int : IntegrableOn G (Set.Icc 0 t) := by sorry
+  have hfinite : MeasureTheory.volume (Set.Icc (0 : ℝ) t) < ⊤ := by simp [Real.volume_Icc]
+  have hnorm : ‖∫ s in Set.Icc 0 t, G s‖ ≤
+      (L * D) * MeasureTheory.volume.real (Set.Icc (0 : ℝ) t) :=
+    MeasureTheory.norm_setIntegral_le_of_norm_le_const hfinite
+      (fun s hs => by simpa [Real.norm_eq_abs] using hG_bound s hs)
+  have hvol : MeasureTheory.volume.real (Set.Icc (0 : ℝ) t) = t := by
+    simpa using Real.volume_real_Icc_of_le _ht
+  calc |∫ s in Set.Icc 0 t, G s|
+      = ‖∫ s in Set.Icc 0 t, G s‖ := by rw [Real.norm_eq_abs]
+    _ ≤ (L * D) * MeasureTheory.volume.real (Set.Icc (0 : ℝ) t) := hnorm
+    _ = (L * D) * t := by rw [hvol]
+    _ = L * t * D := by ring
 
 private lemma mildSolutionOperator_lipschitz_estimate (p : CMParams) (u₀ : ℝ → ℝ)
     (L T : ℝ) (u₁ u₂ : ℝ → ℝ → ℝ) (t x : ℝ)
