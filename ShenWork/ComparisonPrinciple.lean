@@ -3,6 +3,7 @@
   Comparison principles for the chemotaxis system.
 -/
 import ShenWork.Defs
+import ShenWork.PDE.ParabolicMaxPrinciple
 
 open Filter Topology
 
