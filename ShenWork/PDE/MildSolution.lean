@@ -150,7 +150,11 @@ private lemma mildSolutionOperator_duhamel_integral_bound
     · have hts_pos : 0 < t - s := lt_of_le_of_ne (by linarith [hs.2]) (Ne.symm hts)
       exact heatSemigroup_abs_bound (fun y => _hsource_bound s y) hts_pos hLD_nn
         (by sorry) x
-  have hG_int : IntegrableOn G (Set.Icc 0 t) := by sorry
+  have hG_int : IntegrableOn G (Set.Icc 0 t) :=
+    Measure.integrableOn_of_bounded (by simp [Real.volume_Icc] : volume (Set.Icc 0 t) ≠ ⊤)
+      (by sorry : AEStronglyMeasurable G volume)
+      ((ae_restrict_mem measurableSet_Icc).mono fun s hs =>
+        by simpa [Real.norm_eq_abs] using hG_bound s hs)
   have hfinite : MeasureTheory.volume (Set.Icc (0 : ℝ) t) < ⊤ := by simp [Real.volume_Icc]
   have hnorm : ‖∫ s in Set.Icc 0 t, G s‖ ≤
       (L * D) * MeasureTheory.volume.real (Set.Icc (0 : ℝ) t) :=

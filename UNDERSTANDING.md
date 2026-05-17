@@ -21,18 +21,32 @@ v_xx − v + u^γ = 0
 - Main theorems: existence, stability, uniqueness (some sorry'd)
 
 ### PDE infrastructure layer
-- **HeatSemigroup.lean**: heat kernel, semigroup, L∞ bounds, linearity (`heatSemigroup_sub`)
+- **HeatSemigroup.lean**: heat kernel, semigroup, L∞ bounds, linearity (`heatSemigroup_sub`),
+  `heatKernel_zero`/`heatSemigroup_zero` (t=0 gives kernel=0, semigroup=0)
 - **LeibnizRule.lean**: **fully proved** — parametric integral differentiation via
   `hasDerivAt_integral_of_dominated_loc_of_lip`, Lipschitz kernel bound (exp MVT),
   measurability (piecewise). This is the technical core for Ψ derivative bounds.
-- **MildSolution.lean**: Duhamel operator, logistic Lipschitz, contraction framework
+- **MildSolution.lean**: Duhamel operator, logistic Lipschitz, contraction framework.
+  `duhamel_integral_bound` decomposed: pointwise bound (via `heatSemigroup_abs_bound` +
+  `heatSemigroup_zero`) → `norm_setIntegral_le_of_norm_le_const` → `L*t*D` bound.
+  Integrability via `Measure.integrableOn_of_bounded` + `ae_restrict_mem`.
+  Remaining sorrys: `AEStronglyMeasurable` (measurability of parametric integral)
 - **ODEExistence.lean**: Picard-Lindelöf for logistic ODE (norm bound + Lipschitz proved)
 - **ParabolicMaxPrinciple.lean**: classical comparison principle framework.
   Complete chain: subsolution/supersolution → difference is linear subsolution →
   weak max principle → comparison. ONE core sorry: coercive barrier estimate.
 - **TravelingWaveConstruction.lean**: cappedExp approximation + tendsto + monotonicity
 - **TravelingWaveODE.lean**: phase space (Fin 4 → ℝ), equilibria E0/E1, Jacobian matrices,
-  eigenvector structure, shooting theorem statement
+  eigenvector structure, shooting theorem statement.
+  `jacobianAtZero_stable_eigenpair` **proved** (simp + ring).
+  `jacobianAtOne_unstableVector_eigen` **proved** (simp + (try ring) <;> linear_combination hchar;
+  key insight: `first | ring | linear_combination` fails because `first` retries ALL goals per branch;
+  `(try ring) <;> linear_combination` correctly closes ring-identity goals first, then applies hchar only to the remaining goal).
+  `vectorField_contDiffAt` **proved** (ContinuousLinearMap.proj + contDiffAt_pi + dsimp;
+  key: use `dsimp` not `simp only [Matrix.cons_val_...]` to reduce vector indexing after `fin_cases`;
+  explicit `contDiffAt_const (c := ...)` annotations needed for Lean to infer constants).
+  Remaining sorrys: localSolutionExists, linearization_at_E1/E0 (fderiv computation),
+  shooting_theorem (deep)
 
 ### Paper theorem layer
 - **ComparisonPrinciple.lean**: rectangle ODE barriers (proved) + PDE comparison (sorry)

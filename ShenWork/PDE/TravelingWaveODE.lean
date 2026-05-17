@@ -118,7 +118,21 @@ ring
 
 theorem vectorField_contDiffAt (p : Params) (x : State) :
     ContDiffAt ℝ 1 (vectorField p) x := by
-  sorry
+  apply ContDiffAt.of_le _ le_top
+  have hi : ∀ i : Idx, ContDiffAt ℝ ⊤ (fun x : State => x i) x :=
+    fun i => (ContinuousLinearMap.proj i : (Idx → ℝ) →L[ℝ] ℝ).contDiff.contDiffAt
+  have h0 := hi 0; have h1 := hi 1; have h2 := hi 2; have h3 := hi 3
+  unfold vectorField
+  refine contDiffAt_pi.mpr fun i => ?_
+  fin_cases i <;> dsimp
+  · exact h1
+  · exact ((contDiffAt_const (c := p.c)).mul h1).neg.add
+      ((contDiffAt_const (c := p.chi)).mul
+        (((contDiffAt_const (c := (p.m : ℝ))).mul (h0.pow (p.m - 1)) |>.mul h1 |>.mul h3).add
+          ((h0.pow p.m).mul (h2.sub (h0.pow p.gamma))))).sub
+      (h0.mul ((contDiffAt_const (c := (1 : ℝ))).sub (h0.pow p.alpha)))
+  · exact h3
+  · exact h2.sub (h0.pow p.gamma)
 
 theorem picardLindelofData (p : Params) (x₀ : State) :
 ∃ (eps : ℝ) (heps : 0 < eps) (a r L K : NNReal) (_ : 0 < r),
@@ -192,10 +206,14 @@ theorem unstableVectorAtOne_ne_zero (p : Params) (lam : ℝ) :
 
 theorem jacobianAtOne_unstableVector_eigen
     (p : Params) {lam : ℝ}
-    (_hchar : characteristicAtOne p lam) :
+    (hchar : characteristicAtOne p lam) :
     matVec4 (jacobianAtOne p) (unstableVectorAtOne p lam)
     = lam • unstableVectorAtOne p lam := by
-  sorry
+  unfold characteristicAtOne at hchar
+  ext i; fin_cases i <;>
+    simp [matVec4, jacobianAtOne, unstableVectorAtOne, Pi.smul_apply, smul_eq_mul] <;>
+    (try ring) <;>
+    linear_combination hchar
 
 theorem jacobianAtOne_eigenpair_of_characteristic
 (p : Params) {lam : ℝ}
@@ -235,7 +253,10 @@ theorem stableVectorAtZero_ne_zero :
 
 theorem jacobianAtZero_stable_eigenpair (p : Params) :
     HasEigenpair (jacobianAtZero p) (-1) stableVectorAtZero := by
-  sorry
+  refine ⟨?_, stableVectorAtZero_ne_zero⟩
+  ext i; fin_cases i <;>
+    simp [matVec4, jacobianAtZero, stableVectorAtZero, powSlopeAtZero,
+      Pi.smul_apply, smul_eq_mul]
 
 def SolvesTWODE (p : Params) (z : ℝ → State) : Prop :=
 ∀ t : ℝ, HasDerivAt z (vectorField p (z t)) t
