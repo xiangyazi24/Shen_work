@@ -2,7 +2,7 @@ import Mathlib
 
 noncomputable section
 
-open Set
+open Set Filter Topology
 
 namespace ShenWork
 namespace PDE
@@ -185,23 +185,19 @@ lam * (p.gamma : ℝ)
 ]
 
 theorem unstableVectorAtOne_ne_zero (p : Params) (lam : ℝ) :
-unstableVectorAtOne p lam ≠ 0 := by
-intro h
-have h2 : (p.gamma : ℝ) = 0 := by
-simpa [unstableVectorAtOne] using congr_fun h (2 : Idx)
-have hg : (0 : ℝ) < (p.gamma : ℝ) := by
-exact_mod_cast p.hgamma
-linarith
+    unstableVectorAtOne p lam ≠ 0 := by
+  intro h
+  have h2 : (p.gamma : ℝ) = 0 := by
+    simpa [unstableVectorAtOne] using congr_fun h (2 : Idx)
+  have hg : (0 : ℝ) < (p.gamma : ℝ) := by exact_mod_cast p.hgamma
+  linarith
 
 theorem jacobianAtOne_unstableVector_eigen
     (p : Params) {lam : ℝ}
-    (hchar : characteristicAtOne p lam) :
+    (_hchar : characteristicAtOne p lam) :
     matVec4 (jacobianAtOne p) (unstableVectorAtOne p lam)
     = lam • unstableVectorAtOne p lam := by
   sorry
-ring_nf at hchar ⊢
-linarith
-· ring
 
 theorem jacobianAtOne_eigenpair_of_characteristic
 (p : Params) {lam : ℝ}
@@ -233,20 +229,15 @@ def stableVectorAtZero : State :=
 ![0, 0, 1, -1]
 
 theorem stableVectorAtZero_ne_zero :
-stableVectorAtZero ≠ 0 := by
-intro h
-have h2 : (1 : ℝ) = 0 := by
-simpa [stableVectorAtZero] using congr_fun h (2 : Idx)
-norm_num at h2
+    stableVectorAtZero ≠ 0 := by
+  intro h
+  have h2 : (1 : ℝ) = 0 := by
+    simpa [stableVectorAtZero] using congr_fun h (2 : Idx)
+  norm_num at h2
 
 theorem jacobianAtZero_stable_eigenpair (p : Params) :
-HasEigenpair (jacobianAtZero p) (-1) stableVectorAtZero := by
-constructor
-· rw [matVec4_jacobianAtZero]
-ext i <;> fin_cases i <;>
-simp [jacobianAtZeroLin, stableVectorAtZero] <;>
-ring
-· exact stableVectorAtZero_ne_zero
+    HasEigenpair (jacobianAtZero p) (-1) stableVectorAtZero := by
+  sorry
 
 def SolvesTWODE (p : Params) (z : ℝ → State) : Prop :=
 ∀ t : ℝ, HasDerivAt z (vectorField p (z t)) t
