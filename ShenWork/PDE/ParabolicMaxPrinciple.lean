@@ -330,11 +330,10 @@ private lemma difference_is_linear_subsolution
   · rcases hsub.bounded with ⟨Mu, hMu_nn, hMu⟩
     rcases hsuper.bounded with ⟨Mv, hMv_nn, hMv⟩
     exact ⟨Mu + Mv, add_nonneg hMu_nn hMv_nn, fun t ht x => by
-      have h1 := hMu t ht x; have h2 := hMv t ht x
-      have h3 : |u t x - v t x| ≤ |u t x| + |v t x| := by
-        have := norm_sub_le (u t x) (v t x)
-        simp [Real.norm_eq_abs] at this; exact this
-      linarith⟩
+      calc |u t x - v t x| = |u t x + -(v t x)| := by ring_nf
+        _ ≤ |u t x| + |-(v t x)| := abs_add_le _ _
+        _ = |u t x| + |v t x| := by simp
+        _ ≤ Mu + Mv := add_le_add (hMu t ht x) (hMv t ht x)⟩
 
 /--
 Classical comparison principle for one-dimensional scalar parabolic equations.
