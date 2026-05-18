@@ -597,6 +597,48 @@ structure Paper3Constants (D : BoundedDomainData) (p : CM2Params) where
   eventualMinimalUBound : ℝ → ℝ
   eventualMinimalVLower : ℝ → ℝ
 
+def betaTilde (beta : ℝ) : ℝ :=
+  positivePart (min 1 (2 * beta - 1))
+
+def CAlphaGamma (alpha gamma : ℝ) : ℝ :=
+  if alpha < 1 then
+    (alpha + 1) ^ 2 / (4 * alpha)
+  else if gamma ≤ 1 then
+    1
+  else
+    gamma ^ 2 / (2 * gamma - 1)
+
+lemma betaTilde_nonneg (beta : ℝ) :
+    0 ≤ betaTilde beta := by
+  unfold betaTilde
+  exact positivePart_nonneg _
+
+lemma betaTilde_eq_zero_of_beta_le_half {beta : ℝ}
+    (hbeta : beta ≤ (1 / 2 : ℝ)) :
+    betaTilde beta = 0 := by
+  unfold betaTilde
+  apply positivePart_eq_zero_of_nonpos
+  exact le_trans (min_le_right _ _) (by linarith)
+
+lemma CAlphaGamma_pos {alpha gamma : ℝ}
+    (halpha : 0 < alpha) (_hgamma : 0 < gamma) :
+    0 < CAlphaGamma alpha gamma := by
+  unfold CAlphaGamma
+  by_cases halpha_lt : alpha < 1
+  · rw [if_pos halpha_lt]
+    exact div_pos
+      (sq_pos_of_ne_zero (by linarith : alpha + 1 ≠ 0))
+      (by positivity)
+  · rw [if_neg halpha_lt]
+    by_cases hgamma_le : gamma ≤ 1
+    · rw [if_pos hgamma_le]
+      norm_num
+    · rw [if_neg hgamma_le]
+      have hgamma_gt : 1 < gamma := lt_of_not_ge hgamma_le
+      exact div_pos
+        (sq_pos_of_ne_zero (by linarith : gamma ≠ 0))
+        (by linarith)
+
 def EventuallyUpperBoundMinimalConclusion
     (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p)
     (u : ℝ → D.Point → ℝ) : Prop :=
@@ -842,8 +884,8 @@ def Lemma_A_6 : Prop :=
   ∀ alpha gamma,
     0 < alpha → 0 < gamma →
       2 * gamma ≤ alpha + 1 →
-        ∃ C > 0, ∀ uStar > 0,
-          PowerDifferenceInequality C alpha gamma uStar
+        ∀ uStar > 0,
+          PowerDifferenceInequality (CAlphaGamma alpha gamma) alpha gamma uStar
 
 def Lemma_A_7
     (D : BoundedDomainData) (p : CM2Params)
