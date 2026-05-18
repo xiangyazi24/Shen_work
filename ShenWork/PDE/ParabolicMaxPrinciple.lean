@@ -7,8 +7,8 @@ A Lean framework for the one-dimensional classical parabolic maximum principle
 and the comparison theorem used for scalar reaction-diffusion equations.
 
 The key analytic maximum-principle argument is isolated in
-`weak_maximum_principle_linear` and marked with `sorry`.  The comparison theorem
-itself is then proved from this weak maximum principle.
+`weak_maximum_principle_linear`.  The comparison theorem itself is then proved
+from this weak maximum principle.
 -/
 
 noncomputable section
@@ -904,6 +904,159 @@ private lemma spatialCoercivePerturbation_no_positive_interior_rect_max
       (c := c) (T := T) (ε := ε) (w := w)
       hε hw ht (by simpa [ψ] using hpos) hdt_nonneg hdxx_nonpos
 
+private lemma spatialCoercivePerturbation_expBarrier_time_hasDerivAt
+    {c T ε : ℝ} {w : ℝ → ℝ → ℝ}
+    (hw : IsClassicalLinearSubSolution c T w)
+    {t x : ℝ}
+    (ht : t ∈ Set.Ioc (0 : ℝ) T) :
+    HasDerivAt
+      (fun τ : ℝ =>
+        spatialCoercivePerturbation ε (expBarrier (c + 3) w) τ x)
+      (dt (spatialCoercivePerturbation ε (expBarrier (c + 3) w)) t x) t := by
+  let z : ℝ → ℝ → ℝ := expBarrier (c + 3) w
+  have hdt_z : HasDerivAt (fun τ : ℝ => z τ x) (dt z t x) t := by
+    have hExp :
+        HasDerivAt (fun τ : ℝ => Real.exp (-((c + 3) * τ)))
+          (Real.exp (-((c + 3) * t)) * (-(c + 3))) t := by
+      simpa [mul_comm, mul_left_comm, mul_assoc] using
+        (((hasDerivAt_id t).const_mul (c + 3)).neg.exp)
+    have hprod :
+        HasDerivAt (fun τ : ℝ => Real.exp (-((c + 3) * τ)) * w τ x)
+          (Real.exp (-((c + 3) * t)) * (-(c + 3)) * w t x +
+            Real.exp (-((c + 3) * t)) * dt w t x) t := by
+      simpa [Pi.mul_apply] using hExp.mul (hw.time_hasDerivAt (t := t) (x := x) ht)
+    unfold z dt expBarrier
+    convert hprod using 1
+    exact hprod.deriv
+  have hψ :
+      HasDerivAt
+        (fun τ : ℝ => z τ x - ε * (1 + x ^ 2)) (dt z t x) t :=
+    hdt_z.sub_const (ε * (1 + x ^ 2))
+  have hdt_eq :
+      dt (spatialCoercivePerturbation ε (expBarrier (c + 3) w)) t x = dt z t x := by
+    unfold dt spatialCoercivePerturbation
+    exact hψ.deriv
+  change HasDerivAt (fun τ : ℝ => z τ x - ε * (1 + x ^ 2))
+    (dt (spatialCoercivePerturbation ε (expBarrier (c + 3) w)) t x) t
+  rw [hdt_eq]
+  exact hψ
+
+private lemma spatialCoercivePerturbation_expBarrier_space_hasDerivAt_formula
+    {c T ε : ℝ} {w : ℝ → ℝ → ℝ}
+    (hw : IsClassicalLinearSubSolution c T w)
+    {t : ℝ}
+    (ht : t ∈ Set.Ioc (0 : ℝ) T)
+    (y : ℝ) :
+    HasDerivAt
+      (fun r : ℝ =>
+        spatialCoercivePerturbation ε (expBarrier (c + 3) w) t r)
+      (dx (expBarrier (c + 3) w) t y - 2 * ε * y) y := by
+  let z : ℝ → ℝ → ℝ := expBarrier (c + 3) w
+  have hdx_z : HasDerivAt (fun r : ℝ => z t r) (dx z t y) y := by
+    have hprod :
+        HasDerivAt
+          (fun r : ℝ => Real.exp (-((c + 3) * t)) * w t r)
+          (Real.exp (-((c + 3) * t)) * dx w t y) y := by
+      simpa [Pi.mul_apply] using
+        (hasDerivAt_const y (Real.exp (-((c + 3) * t)))).mul
+          (hw.space_hasDerivAt (t := t) (x := y) ht)
+    unfold z dx expBarrier
+    convert hprod using 1
+    exact hprod.deriv
+  have hquad :
+      HasDerivAt (fun r : ℝ => ε * (1 + r ^ 2)) (2 * ε * y) y := by
+    have hinner :
+        HasDerivAt (fun r : ℝ => 1 + r ^ 2) (2 * y) y := by
+      have hpow : HasDerivAt (fun r : ℝ => r ^ 2) (2 * y) y := by
+        convert ((hasDerivAt_id y).mul (hasDerivAt_id y)) using 1
+        · funext r
+          simp [Pi.mul_apply, pow_two]
+        · simp only [id_eq]
+          ring
+      convert (hasDerivAt_const (x := y) (c := (1 : ℝ))).add hpow using 1
+      ring
+    convert hinner.const_mul ε using 1 <;> ring
+  change HasDerivAt (fun r : ℝ => z t r - ε * (1 + r ^ 2))
+    (dx z t y - 2 * ε * y) y
+  exact hdx_z.sub hquad
+
+private lemma spatialCoercivePerturbation_expBarrier_space_hasDerivAt
+    {c T ε : ℝ} {w : ℝ → ℝ → ℝ}
+    (hw : IsClassicalLinearSubSolution c T w)
+    {t : ℝ}
+    (ht : t ∈ Set.Ioc (0 : ℝ) T) :
+    ∀ y : ℝ,
+      HasDerivAt
+        (fun r : ℝ =>
+          spatialCoercivePerturbation ε (expBarrier (c + 3) w) t r)
+        (dx (spatialCoercivePerturbation ε (expBarrier (c + 3) w)) t y) y := by
+  intro y
+  have hψ :=
+    spatialCoercivePerturbation_expBarrier_space_hasDerivAt_formula
+      (c := c) (T := T) (ε := ε) (w := w) hw (t := t) ht y
+  have hdx_eq :
+      dx (spatialCoercivePerturbation ε (expBarrier (c + 3) w)) t y =
+        dx (expBarrier (c + 3) w) t y - 2 * ε * y := by
+    unfold dx
+    exact hψ.deriv
+  rw [hdx_eq]
+  convert hψ using 1
+
+private lemma spatialCoercivePerturbation_expBarrier_space_second_hasDerivAt
+    {c T ε : ℝ} {w : ℝ → ℝ → ℝ}
+    (hw : IsClassicalLinearSubSolution c T w)
+    {t x : ℝ}
+    (ht : t ∈ Set.Ioc (0 : ℝ) T) :
+    HasDerivAt
+      (fun y : ℝ =>
+        dx (spatialCoercivePerturbation ε (expBarrier (c + 3) w)) t y)
+      (dxx (spatialCoercivePerturbation ε (expBarrier (c + 3) w)) t x) x := by
+  let z : ℝ → ℝ → ℝ := expBarrier (c + 3) w
+  let ψ : ℝ → ℝ → ℝ := spatialCoercivePerturbation ε z
+  have hdxψ_eq : ∀ y : ℝ, dx ψ t y = dx z t y - 2 * ε * y := by
+    intro y
+    have h :=
+      spatialCoercivePerturbation_expBarrier_space_hasDerivAt_formula
+        (c := c) (T := T) (ε := ε) (w := w) hw (t := t) ht y
+    unfold ψ z dx
+    exact h.deriv
+  have hdx_fun :
+      (fun y : ℝ => dx ψ t y) =
+        fun y : ℝ => dx z t y - 2 * ε * y := by
+    funext y
+    exact hdxψ_eq y
+  have hdxx_z : HasDerivAt (fun y : ℝ => dx z t y) (dxx z t x) x := by
+    have hdx_fun_z :
+        (fun y : ℝ => dx z t y) =
+          fun y : ℝ => Real.exp (-((c + 3) * t)) * dx w t y := by
+      funext y
+      exact dx_expBarrier_of_hasDerivAt
+        (lam := c + 3) (w := w) (t := t) (x := y)
+        (hw.space_hasDerivAt (t := t) (x := y) ht)
+    have hder :
+        HasDerivAt
+          (fun y : ℝ => Real.exp (-((c + 3) * t)) * dx w t y)
+          (Real.exp (-((c + 3) * t)) * dxx w t x) x := by
+      simpa [Pi.mul_apply] using
+        (hasDerivAt_const x (Real.exp (-((c + 3) * t)))).mul
+          (hw.space_second_hasDerivAt (t := t) (x := x) ht)
+    have hder_z :
+        HasDerivAt (fun y : ℝ => dx z t y)
+          (Real.exp (-((c + 3) * t)) * dxx w t x) x := by
+      simpa [hdx_fun_z] using hder
+    convert hder_z using 1
+    simpa [z] using dxx_expBarrier_of_hasDerivAt
+      (lam := c + 3) (w := w) (t := t) (x := x)
+      (fun y => hw.space_hasDerivAt (t := t) (x := y) ht)
+      (hw.space_second_hasDerivAt (t := t) (x := x) ht)
+  have hlin : HasDerivAt (fun y : ℝ => 2 * ε * y) (2 * ε) x := by
+    simpa [mul_assoc] using (hasDerivAt_id x).const_mul (2 * ε)
+  have hψ :
+      HasDerivAt (fun y : ℝ => dx ψ t y) (dxx z t x - 2 * ε) x := by
+    simpa [hdx_fun] using hdxx_z.sub hlin
+  convert hψ using 1
+  exact hψ.deriv
+
 /--
 Weak parabolic maximum principle on the whole line.
 
@@ -988,11 +1141,66 @@ private theorem coercive_exponential_barrier_estimate
       linarith
     have hmul := mul_lt_mul_of_pos_right hdiv_lt hε
     simpa [div_mul_cancel₀ B (ne_of_gt hε), mul_comm, mul_left_comm, mul_assoc] using hmul
-  -- On the rectangle [0,T]×[-R,R], ψ is continuous and achieves max
-  -- ψ < 0 on boundary (t=0, x=±R)
-  -- If ψ(t,x) > 0, max on rectangle is positive and at interior point
-  -- At interior max: dt ≥ 0, dxx ≤ 0 → contradiction
-  sorry
+  have hxIcc : x ∈ Set.Icc (-R) R := by
+    rcases abs_lt.mp hxR with ⟨hx_left, hx_right⟩
+    exact ⟨le_of_lt hx_left, le_of_lt hx_right⟩
+  have hψ_cont :
+      ContinuousOn
+        (fun p : ℝ × ℝ =>
+          spatialCoercivePerturbation ε (expBarrier (c + 3) w) p.1 p.2)
+        (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R) := by
+    have hw_cont :
+        ContinuousOn (fun p : ℝ × ℝ => w p.1 p.2)
+          (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R) :=
+      _hw.continuousOn_rect R
+    have hlin_cont :
+        Continuous (fun p : ℝ × ℝ => -((c + 3) * p.1)) :=
+      (continuous_const.mul continuous_fst).neg
+    have hexp_cont :
+        ContinuousOn (fun p : ℝ × ℝ => Real.exp (-((c + 3) * p.1)))
+          (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R) :=
+      (Real.continuous_exp.comp hlin_cont).continuousOn
+    have hz_cont :
+        ContinuousOn (fun p : ℝ × ℝ => expBarrier (c + 3) w p.1 p.2)
+          (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R) := by
+      change ContinuousOn
+        (fun p : ℝ × ℝ => Real.exp (-((c + 3) * p.1)) * w p.1 p.2)
+        (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R)
+      exact hexp_cont.mul hw_cont
+    have hpoly_cont :
+        Continuous (fun p : ℝ × ℝ => ε * (1 + p.2 ^ 2)) :=
+      continuous_const.mul (continuous_const.add (continuous_snd.pow 2))
+    have hquad_cont :
+        ContinuousOn (fun p : ℝ × ℝ => ε * (1 + p.2 ^ 2))
+          (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R) :=
+      hpoly_cont.continuousOn
+    change ContinuousOn
+      (fun p : ℝ × ℝ =>
+        expBarrier (c + 3) w p.1 p.2 - ε * (1 + p.2 ^ 2))
+      (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R)
+    exact hz_cont.sub hquad_cont
+  by_contra hnot
+  have hpos :
+      0 < spatialCoercivePerturbation ε (expBarrier (c + 3) w) t x := by
+    exact lt_of_not_ge hnot
+  obtain ⟨p, hp, hp_pos, hp_max, hp_t_pos, hp_x_int⟩ :=
+    spatialCoercivePerturbation_exists_positive_interior_max_on_rect
+      (c := c) (T := T) (M := M) (ε := ε) (R := R) (w := w)
+      (le_of_lt _hT) (le_of_lt hR_pos) hM_nn hε hM hR_large _hinit
+      hψ_cont ht hxIcc hpos
+  rcases p with ⟨t₀, x₀⟩
+  have ht₀Ioc : t₀ ∈ Set.Ioc (0 : ℝ) T := ⟨hp_t_pos, hp.1.2⟩
+  exact
+    spatialCoercivePerturbation_no_positive_interior_rect_max
+      (c := c) (T := T) (ε := ε) (R := R) (w := w)
+      hε _hw hp ht₀Ioc hp_x_int hp_pos
+      (spatialCoercivePerturbation_expBarrier_time_hasDerivAt
+        (c := c) (T := T) (ε := ε) (w := w) _hw ht₀Ioc)
+      (spatialCoercivePerturbation_expBarrier_space_hasDerivAt
+        (c := c) (T := T) (ε := ε) (w := w) _hw ht₀Ioc)
+      (spatialCoercivePerturbation_expBarrier_space_second_hasDerivAt
+        (c := c) (T := T) (ε := ε) (w := w) _hw ht₀Ioc)
+      hp_max
 
 theorem weak_maximum_principle_linear
     {c T : ℝ} {w : ℝ → ℝ → ℝ}
