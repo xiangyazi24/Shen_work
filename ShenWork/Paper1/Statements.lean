@@ -218,6 +218,13 @@ theorem upperBarrier_pos {κ M : ℝ} (hM : 0 < M) (x : ℝ) :
     0 < upperBarrier κ M x :=
   lt_min hM (Real.exp_pos _)
 
+theorem upperBarrier_antitone {κ M : ℝ} (hκ : 0 ≤ κ) :
+    Antitone (upperBarrier κ M) := by
+  intro x₁ x₂ hx
+  unfold upperBarrier
+  exact min_le_min le_rfl
+    (Real.exp_le_exp.mpr (by nlinarith))
+
 def lowerBarrierRaw (κ κtilde D : ℝ) : ℝ → ℝ :=
   fun x => Real.exp (-κ * x) - D * Real.exp (-κtilde * x)
 
@@ -538,6 +545,12 @@ theorem lowerBarrierPlateau_le_exp
 def InWaveTrapSet (κ M : ℝ) (u : ℝ → ℝ) : Prop :=
   IsCUnifBdd u ∧ ∀ x, 0 ≤ u x ∧ u x ≤ upperBarrier κ M x
 
+def NonincreasingProfile (u : ℝ → ℝ) : Prop :=
+  Antitone u
+
+def InMonotoneWaveTrapSet (κ M : ℝ) (u : ℝ → ℝ) : Prop :=
+  InWaveTrapSet κ M u ∧ NonincreasingProfile u
+
 theorem InWaveTrapSet.cunif_bdd {κ M : ℝ} {u : ℝ → ℝ}
     (h : InWaveTrapSet κ M u) :
     IsCUnifBdd u :=
@@ -590,6 +603,30 @@ theorem InWaveTrapSet.rpow_le_exp_mul
       rw [← Real.exp_mul]
       congr 1
       ring
+
+theorem InMonotoneWaveTrapSet.trap
+    {κ M : ℝ} {u : ℝ → ℝ}
+    (h : InMonotoneWaveTrapSet κ M u) :
+    InWaveTrapSet κ M u :=
+  h.1
+
+theorem InMonotoneWaveTrapSet.antitone
+    {κ M : ℝ} {u : ℝ → ℝ}
+    (h : InMonotoneWaveTrapSet κ M u) :
+    Antitone u :=
+  h.2
+
+theorem InMonotoneWaveTrapSet.nonneg
+    {κ M : ℝ} {u : ℝ → ℝ}
+    (h : InMonotoneWaveTrapSet κ M u) (x : ℝ) :
+    0 ≤ u x :=
+  h.trap.nonneg x
+
+theorem InMonotoneWaveTrapSet.le_upperBarrier
+    {κ M : ℝ} {u : ℝ → ℝ}
+    (h : InMonotoneWaveTrapSet κ M u) (x : ℝ) :
+    u x ≤ upperBarrier κ M x :=
+  h.trap.le_upperBarrier x
 
 structure SubsolutionConstants where
   K : ℝ
