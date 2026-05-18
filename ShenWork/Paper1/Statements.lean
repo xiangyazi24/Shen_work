@@ -237,6 +237,22 @@ theorem lowerBarrierRaw_nonneg_of_xminus_le
     simpa [Real.exp_add, Real.exp_log hD] using hexp_le
   linarith
 
+theorem lowerBarrierRaw_pos_of_xminus_lt
+    {κ κtilde D x : ℝ} (hgap : 0 < κtilde - κ) (hD : 0 < D)
+    (hx : lowerBarrierXMinus κ κtilde D < x) :
+    0 < lowerBarrierRaw κ κtilde D x := by
+  rw [lowerBarrierRaw_eq_exp_mul]
+  apply mul_pos (Real.exp_pos _)
+  have hlog_lt : Real.log D < (κtilde - κ) * x := by
+    rw [lowerBarrierXMinus] at hx
+    simpa [mul_comm] using (div_lt_iff₀ hgap).mp hx
+  have hexp_lt :
+      Real.exp (Real.log D + (-(κtilde - κ) * x)) < Real.exp 0 :=
+    Real.exp_lt_exp.mpr (by linarith)
+  have hDexp_lt : D * Real.exp (-(κtilde - κ) * x) < 1 := by
+    simpa [Real.exp_add, Real.exp_log hD] using hexp_lt
+  linarith
+
 theorem lowerBarrierRaw_eq_zero_at_xminus
     {κ κtilde D : ℝ} (hgap : 0 < κtilde - κ) (hD : 0 < D) :
     lowerBarrierRaw κ κtilde D (lowerBarrierXMinus κ κtilde D) = 0 := by
