@@ -644,7 +644,8 @@ structure Paper3Constants (D : BoundedDomainData) (p : CM2Params) where
   chiMinimal1 : ℝ → ℝ
   chiMinimal2 : ℝ → ℝ
   eventualMinimalUBound : ℝ → ℝ
-  eventualMinimalVLower : ℝ → ℝ
+  gaussianLowerConst : ℝ
+  gaussianLowerConst_pos : 0 < gaussianLowerConst
 
 def betaTilde (beta : ℝ) : ℝ :=
   positivePart (min 1 (2 * beta - 1))
@@ -1299,7 +1300,9 @@ def Theorem_2_1_part4
       ∀ uStar > 0, ∀ u v : ℝ → D.Point → ℝ,
         PositiveGlobalBoundedSolution D p u v →
         HasInitialMass D u uStar →
-          EventuallyLowerBound D v (C.eventualMinimalVLower uStar)
+          EventuallyLowerBound D v
+            (minimalVLowerFormula
+              C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar))
 
 /-- Paper3 Theorem 2.1: uniform persistence. -/
 def Theorem_2_1 (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) : Prop :=
