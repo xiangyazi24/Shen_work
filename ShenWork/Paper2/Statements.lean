@@ -108,6 +108,29 @@ lemma chiBeta_pos_of_one_le_beta (p : CM2Params) (hβ : 1 ≤ p.β) :
   have hnum : 0 < 2 * (2 * p.β - 1) := by nlinarith
   exact div_pos hnum (chiBeta_denom_pos p)
 
+lemma chiBeta_half_pos_of_one_le_beta (p : CM2Params) (hβ : 1 ≤ p.β) :
+    0 < chiBeta p / 2 := by
+  exact half_pos (chiBeta_pos_of_one_le_beta p hβ)
+
+lemma sqrt_chiBeta_pos_of_one_le_beta (p : CM2Params) (hβ : 1 ≤ p.β) :
+    0 < Real.sqrt (chiBeta p) := by
+  exact Real.sqrt_pos.mpr (chiBeta_pos_of_one_le_beta p hβ)
+
+lemma min_chiBeta_half_sqrt_pos_of_one_le_beta
+    (p : CM2Params) (hβ : 1 ≤ p.β) :
+    0 < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) :=
+  lt_min
+    (chiBeta_half_pos_of_one_le_beta p hβ)
+    (sqrt_chiBeta_pos_of_one_le_beta p hβ)
+
+lemma lt_chiBeta_of_lt_min_half_sqrt
+    (p : CM2Params) {chi : ℝ} (hβ : 1 ≤ p.β)
+    (hchi : chi < min (chiBeta p / 2) (Real.sqrt (chiBeta p))) :
+    chi < chiBeta p := by
+  have hhalf : chi < chiBeta p / 2 := lt_of_lt_of_le hchi (min_le_left _ _)
+  have hpos : 0 < chiBeta p := chiBeta_pos_of_one_le_beta p hβ
+  nlinarith
+
 lemma chiBeta_nonneg_of_half_le_beta (p : CM2Params) (hβ : (1 / 2 : ℝ) ≤ p.β) :
     0 ≤ chiBeta p := by
   unfold chiBeta

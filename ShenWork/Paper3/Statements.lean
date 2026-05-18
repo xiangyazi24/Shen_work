@@ -647,7 +647,7 @@ def Theorem_2_1_part3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
 def Theorem_2_1_part4
     (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) : Prop :=
   p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
-    0 < p.χ₀ → p.χ₀ < min (p.χ₀ / (2 * p.β)) (chiBeta p) →
+    0 < p.χ₀ → p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) →
       ∀ uStar > 0, ∀ u v : ℝ → D.Point → ℝ,
         PositiveGlobalBoundedSolution D p u v →
         HasInitialMass D u uStar →
@@ -759,7 +759,7 @@ def Lemma_3_4
 def Lemma_3_5
     (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) : Prop :=
   p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
-    0 < p.χ₀ → p.χ₀ < min (p.χ₀ / (2 * p.β)) (chiBeta p) →
+    0 < p.χ₀ → p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) →
       ∀ u v : ℝ → D.Point → ℝ,
         PositiveGlobalBoundedSolution D p u v →
           EventuallyUpperBoundMinimalConclusion D p C u
