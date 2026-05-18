@@ -105,6 +105,155 @@ lemma chiBeta_pos_of_one_le_beta (p : CM2Params) (hβ : 1 ≤ p.β) :
     lt_of_lt_of_le (by norm_num) (le_max_left _ _)
   exact div_pos hnum hden
 
+lemma chiBeta_nonneg_of_half_le_beta (p : CM2Params) (hβ : (1 / 2 : ℝ) ≤ p.β) :
+    0 ≤ chiBeta p := by
+  unfold chiBeta
+  apply div_nonneg
+  · nlinarith
+  · exact le_trans (by norm_num : (0 : ℝ) ≤ 2) (le_max_left _ _)
+
+lemma chiBeta_pos_of_half_lt_beta (p : CM2Params) (hβ : (1 / 2 : ℝ) < p.β) :
+    0 < chiBeta p := by
+  unfold chiBeta
+  apply div_pos
+  · nlinarith
+  · exact lt_of_lt_of_le (by norm_num : (0 : ℝ) < 2) (le_max_left _ _)
+
+lemma chiBeta_le_two_beta_sub_one (p : CM2Params) (hβ : (1 / 2 : ℝ) ≤ p.β) :
+    chiBeta p ≤ 2 * p.β - 1 := by
+  unfold chiBeta
+  have hnum_nonneg : 0 ≤ 2 * (2 * p.β - 1) := by nlinarith
+  have hden_ge_two : (2 : ℝ) ≤ max 2 (p.γ * (p.N : ℝ)) := le_max_left _ _
+  have hden_pos : 0 < max (2 : ℝ) (p.γ * (p.N : ℝ)) :=
+    lt_of_lt_of_le (by norm_num) hden_ge_two
+  have hmul :
+      2 * (2 * p.β - 1) / max 2 (p.γ * (p.N : ℝ)) ≤
+        2 * (2 * p.β - 1) / 2 := by
+    exact div_le_div_of_nonneg_left hnum_nonneg (by norm_num) hden_ge_two
+  nlinarith
+
+structure SemigroupEstimateData (D : BoundedDomainData) where
+  lpNorm : ℝ → (D.Point → ℝ) → ℝ
+  vectorLpNorm : ℝ → (D.Point → ℝ) → ℝ
+  fractionalNorm : ℝ → ℝ → (D.Point → ℝ) → ℝ
+  semigroup : ℝ → (D.Point → ℝ) → D.Point → ℝ
+  divergenceSemigroup : ℝ → (D.Point → ℝ) → D.Point → ℝ
+  embeddingNorm : ℝ → ℝ → ℝ → (D.Point → ℝ) → ℝ
+
+def Lemma_2_1 (D : BoundedDomainData) (p : CM2Params)
+    (S : SemigroupEstimateData D) : Prop :=
+  (∀ sigma q delta, 0 ≤ sigma → 1 ≤ q → 0 < delta → delta < p.μ →
+    ∃ C > 0, ∀ t > 0, ∀ u : D.Point → ℝ,
+      S.fractionalNorm sigma q (S.semigroup t u) ≤
+        C * t ^ (-sigma) * Real.exp (-delta * t) * S.lpNorm q u) ∧
+  (∀ sigma, 0 < sigma → sigma ≤ 1 →
+    ∃ C > 0, ∀ t > 0, ∀ u : D.Point → ℝ,
+      S.lpNorm 2 (fun x => S.semigroup t u x - u x) ≤
+        C * t ^ sigma * S.fractionalNorm sigma 2 u)
+
+def Lemma_2_2 (D : BoundedDomainData) (S : SemigroupEstimateData D) : Prop :=
+  (∀ sigma q k r, 0 ≤ sigma → 1 ≤ q → q ≤ r →
+    k - (D.volume / r) < 2 * sigma - D.volume / q →
+      ∃ C > 0, ∀ u : D.Point → ℝ,
+        S.embeddingNorm k r sigma u ≤ C * S.fractionalNorm sigma q u) ∧
+  (∀ sigma q theta, 0 ≤ theta → theta < 2 * sigma - D.volume / q →
+      ∃ C > 0, ∀ u : D.Point → ℝ,
+        S.embeddingNorm theta q sigma u ≤ C * S.fractionalNorm sigma q u)
+
+def Lemma_2_3 (D : BoundedDomainData) (p : CM2Params)
+    (S : SemigroupEstimateData D) : Prop :=
+  ∃ C > 0, ∀ q > 1, ∀ t > 0, ∀ phi : D.Point → ℝ,
+    S.lpNorm q (S.divergenceSemigroup t phi) ≤
+      C * (1 + t ^ (-(1 / 2 : ℝ))) *
+        Real.exp (-(p.μ) * t) * S.vectorLpNorm q phi
+
+def Lemma_2_4 (D : BoundedDomainData) (p : CM2Params)
+    (S : SemigroupEstimateData D) : Prop :=
+  ∀ sigma q, 0 < sigma → 1 < q →
+    ∃ C > 0, ∀ t > 0, ∀ phi : D.Point → ℝ,
+      S.fractionalNorm sigma q (S.divergenceSemigroup t phi) ≤
+        C * t ^ (-sigma) * (1 + t ^ (-(1 / 2 : ℝ))) *
+          Real.exp (-(p.μ / 2) * t) * S.vectorLpNorm q phi
+
+def Lemma_2_5 : Prop :=
+  ∀ beta v : ℝ, 0 < beta → 0 < v →
+    beta * v / (1 + v) ^ (1 + beta) ≤ Psi_beta beta
+
+def AbstractLpBootstrapHypothesis
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 : ℝ) : Prop :=
+  0 < rho ∧
+    0 < T ∧
+    max 1 (rho * D.volume / 2) < p0 ∧
+    (∃ C, ∀ t, 0 < t → t < T → D.integral (fun x => (u t x) ^ p0) ≤ C)
+
+def Lemma_2_6 (D : BoundedDomainData) : Prop :=
+  ∀ u : ℝ → D.Point → ℝ, ∀ T rho p0,
+    AbstractLpBootstrapHypothesis D u T rho p0 →
+      (∀ pExp, p0 ≤ pExp →
+        ∃ A > 0, ∃ B > 0, ∃ K > 0, ∃ L,
+          ∀ t, 0 < t → t < T →
+            D.integral (fun x => (u t x) ^ pExp) ≤
+              K * D.integral (fun x => (u t x) ^ (pExp + rho)) + L) →
+      ∀ pExp > 1, ∃ C, ∀ t, 0 < t → t < T →
+        D.integral (fun x => (u t x) ^ pExp) ≤ C
+
+def Corollary_2_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+    IsPaper2ClassicalSolution D p T u v →
+      (∃ rho > 0, ∃ p0 > max 1 (rho * D.volume / 2),
+        ∃ C, ∀ t, 0 < t → t < T →
+          D.integral (fun x => (u t x) ^ p0) ≤ C) →
+      ∀ pExp > 1, ∃ C, ∀ t, 0 < t → t < T →
+        D.integral (fun x => (u t x) ^ pExp) ≤ C
+
+def Proposition_2_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+    IsPaper2ClassicalSolution D p T u v →
+      ∀ pExp > 1, ∃ C, ∀ t, 0 < t → t < T →
+        D.integral (fun x => (u t x) ^ pExp) ≤ C
+
+def Proposition_2_3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+    IsPaper2ClassicalSolution D p T u v →
+      ∀ pExp, max 1 p.β < pExp →
+        ∀ eps > 0, ∃ Ceps, ∀ t, 0 < t → t < T →
+          D.integral (fun x => (u t x) ^ pExp) ≤ Ceps
+
+def Proposition_2_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+    IsPaper2ClassicalSolution D p T u v →
+      IsPaper2Bounded D u
+
+def Proposition_2_5 (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+    ∀ Tmax > 0, ∀ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v →
+        IsPaper2Bounded D u →
+          IsPaper2GlobalClassicalSolution D p u v
+
+def Lemma_2_7 : Prop :=
+  ∀ y : ℝ → ℝ, ∀ T C1 C2 C3 C4 eps alpha,
+    0 < T → 0 ≤ C1 → 0 ≤ C2 → 0 ≤ C3 → 0 < C4 →
+      0 < eps → eps ≤ alpha →
+        (∀ t, 0 < t → t < T → y t ≤ C1 + C2 * y t - C4 * (y t) ^ (1 + eps) + C3) →
+          ∃ C, ∀ t, 0 < t → t < T → y t ≤ C
+
+def Lemma_3_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  p.χ₀ ≤ 0 →
+    ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p T u v →
+        ∀ t, 0 < t → t < T →
+          D.supNorm (u t) ≤ D.supNorm (u 0)
+
+def Lemma_4_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+    IsPaper2ClassicalSolution D p T u v →
+      1 ≤ p.β →
+        ∃ rho > 0, ∀ eps > 0, ∃ Ceps,
+          ∀ t, 0 < t → t < T →
+            D.integral (fun x => (u t x) ^ (p.m + rho)) ≤ Ceps
+
 structure Paper2Constants (p : CM2Params) where
   K : ℝ
   K_nonneg : 0 ≤ K

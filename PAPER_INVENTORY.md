@@ -51,14 +51,14 @@ Source: `paper2.pdf`, Chen-Ruau-Shen Part I.
 | Theorem 1.2 | `Paper2.Theorem_1_2` | statement target | Weak nonlinear cross diffusion. |
 | Theorem 1.3 | `Paper2.Theorem_1_3` | statement target | Strong logistic source. |
 | Remarks 1.1--1.7 | none | remark/doc | Useful for proof strategy and parameter comparisons. |
-| Lemmas 2.1--2.4 | none | missing | Sectorial/semigroup/elliptic estimates on bounded domain. |
-| Lemma 2.5 | `Psi_beta`, `Theta_beta` | partial | The key scalar inequality is not yet stated/proved. |
-| Lemma 2.6 | none | missing | Abstract `L^p` bootstrap. |
-| Corollary 2.1 | none | missing | Chemotaxis cross-term bootstrap. |
-| Propositions 2.2--2.5 | none | missing | Integral estimates and boundedness criterion. |
-| Lemma 2.7 | none | missing | ODE/integral inequality used in bootstrap. |
-| Lemma 3.1 | none | missing | Negative-sensitivity estimate. |
-| Lemma 4.1 | none | missing | Weak cross-diffusion estimate. |
+| Lemmas 2.1--2.4 | `SemigroupEstimateData`, `Lemma_2_1`--`Lemma_2_4` | statement target | Abstract semigroup/fractional-power estimate layer. |
+| Lemma 2.5 | `Psi_beta`, `Theta_beta`, `Lemma_2_5` | statement target | Scalar entropy inequality is stated; monotonicity/limits remain to formalize. |
+| Lemma 2.6 | `AbstractLpBootstrapHypothesis`, `Lemma_2_6` | statement target | Abstract `L^p` bootstrap target. |
+| Corollary 2.1 | `Corollary_2_1` | statement target | Chemotaxis cross-term bootstrap target. |
+| Propositions 2.2--2.5 | `Proposition_2_2`--`Proposition_2_5` | statement target | Integral estimates and boundedness criterion. |
+| Lemma 2.7 | `Lemma_2_7` | statement target | ODE/integral inequality used in bootstrap. |
+| Lemma 3.1 | `Lemma_3_1` | statement target | Negative-sensitivity estimate. |
+| Lemma 4.1 | `Lemma_4_1` | statement target | Weak cross-diffusion estimate. |
 
 ## Paper3: persistence and stabilization
 
@@ -66,7 +66,7 @@ Source: `paper3.pdf`, Chen-Ruau-Shen Part II.
 
 | Paper item | Lean artifact | Status | Notes |
 | --- | --- | --- | --- |
-| Propositions 1.1--1.4 | Paper2 targets | statement target | Recalled from Part I. |
+| Propositions 1.1--1.4 | `Paper3.Proposition_1_1`--`Paper3.Proposition_1_4` | statement target | Recalled from Part I. |
 | Definition 2.1 | `LinearlyStable`, `LinearlyUnstable`, stability predicates | partial | Needs exact spectral-domain API and local exponential stability statement. |
 | Theorem 2.1 | `Paper3.Theorem_2_1` | statement target | Uniform persistence. |
 | Theorem 2.2 | `Paper3.Theorem_2_2` | statement target | Linear stability/instability. |

@@ -131,6 +131,36 @@ def ExponentialC1Convergence
     N.c1Distance (u t) (fun _ => uStar) +
       N.c1Distance (v t) (fun _ => vStar) ≤ C * Real.exp (-rate * t)
 
+def Proposition_1_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  Paper2.Proposition_1_1 D p
+
+def Proposition_1_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  p.χ₀ ≤ 0 → 1 ≤ p.m →
+    ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+      ∃ u v : ℝ → D.Point → ℝ,
+        IsPaper2GlobalClassicalSolution D p u v ∧
+        InitialTrace D u₀ u ∧
+        IsPaper2Bounded D u
+
+def Proposition_1_3
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p) : Prop :=
+  0 < p.a → 0 < p.b → 1 ≤ p.m → StrongLogisticCondition p C →
+    ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+      ∃ u v : ℝ → D.Point → ℝ,
+        IsPaper2GlobalClassicalSolution D p u v ∧
+        InitialTrace D u₀ u ∧
+        IsPaper2Bounded D u
+
+def Proposition_1_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  p.m = 1 → 1 ≤ p.β →
+    ((p.a = 0 ∧ p.b = 0) ∨ (0 ≤ p.a ∧ 0 < p.b)) →
+      p.χ₀ < chiBeta p →
+        ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+          ∃ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            IsPaper2Bounded D u
+
 lemma sigma_zero (p : CM2Params) (uStar vStar : ℝ) :
     sigma p uStar vStar 0 = -p.a * p.α := by
   simp [sigma]
