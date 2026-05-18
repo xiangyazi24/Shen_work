@@ -397,6 +397,74 @@ theorem lowerBarrierRaw_deriv_eq_zero_at_xplus
   rw [hexp]
   nlinarith [Real.exp_pos (-κ * lowerBarrierXPlus κ κtilde D)]
 
+theorem lowerBarrierRaw_deriv_nonpos_of_xplus_le
+    {κ κtilde D x : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D)
+    (hx : lowerBarrierXPlus κ κtilde D ≤ x) :
+    deriv (lowerBarrierRaw κ κtilde D) x ≤ 0 := by
+  have hκtilde_pos : 0 < κtilde := by linarith
+  have harg_pos : 0 < κtilde * D / κ := by positivity
+  have hlog_le : Real.log (κtilde * D / κ) ≤ (κtilde - κ) * x := by
+    rw [lowerBarrierXPlus] at hx
+    simpa [mul_comm] using (div_le_iff₀ hgap).mp hx
+  have hexp_le :
+      Real.exp (Real.log (κtilde * D / κ) + (-(κtilde - κ) * x)) ≤
+        Real.exp 0 :=
+    Real.exp_le_exp.mpr (by linarith)
+  have hcrit_le :
+      D * κtilde * Real.exp (-(κtilde - κ) * x) ≤ κ := by
+    have hle :
+        (κtilde * D / κ) * Real.exp (-(κtilde - κ) * x) ≤ 1 := by
+      simpa [Real.exp_add, Real.exp_log harg_pos] using hexp_le
+    have hκ_nonneg : 0 ≤ κ := hκ.le
+    have hmul := mul_le_mul_of_nonneg_right hle hκ_nonneg
+    have hκ_ne : κ ≠ 0 := ne_of_gt hκ
+    field_simp [hκ_ne] at hmul
+    convert hmul using 1
+    ring_nf
+  rw [lowerBarrierRaw_deriv]
+  have hexp :
+      Real.exp (-κtilde * x) =
+        Real.exp (-κ * x) * Real.exp (-(κtilde - κ) * x) := by
+    rw [← Real.exp_add]
+    congr 1
+    ring
+  rw [hexp]
+  nlinarith [Real.exp_pos (-κ * x)]
+
+theorem lowerBarrierRaw_deriv_nonneg_of_le_xplus
+    {κ κtilde D x : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D)
+    (hx : x ≤ lowerBarrierXPlus κ κtilde D) :
+    0 ≤ deriv (lowerBarrierRaw κ κtilde D) x := by
+  have hκtilde_pos : 0 < κtilde := by linarith
+  have harg_pos : 0 < κtilde * D / κ := by positivity
+  have hlog_ge : Real.log (κtilde * D / κ) ≥ (κtilde - κ) * x := by
+    rw [lowerBarrierXPlus] at hx
+    simpa [mul_comm] using (le_div_iff₀ hgap).mp hx
+  have hexp_ge :
+      Real.exp 0 ≤
+        Real.exp (Real.log (κtilde * D / κ) + (-(κtilde - κ) * x)) :=
+    Real.exp_le_exp.mpr (by linarith)
+  have hcrit_ge :
+      κ ≤ D * κtilde * Real.exp (-(κtilde - κ) * x) := by
+    have hle :
+        1 ≤ (κtilde * D / κ) * Real.exp (-(κtilde - κ) * x) := by
+      simpa [Real.exp_add, Real.exp_log harg_pos] using hexp_ge
+    have hκ_nonneg : 0 ≤ κ := hκ.le
+    have hmul := mul_le_mul_of_nonneg_right hle hκ_nonneg
+    have hκ_ne : κ ≠ 0 := ne_of_gt hκ
+    field_simp [hκ_ne] at hmul
+    convert hmul using 1
+    ring_nf
+  rw [lowerBarrierRaw_deriv]
+  have hexp :
+      Real.exp (-κtilde * x) =
+        Real.exp (-κ * x) * Real.exp (-(κtilde - κ) * x) := by
+    rw [← Real.exp_add]
+    congr 1
+    ring
+  rw [hexp]
+  nlinarith [Real.exp_pos (-κ * x)]
+
 theorem lowerBarrierRaw_pos_at_xplus
     {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
     0 < lowerBarrierRaw κ κtilde D (lowerBarrierXPlus κ κtilde D) :=
