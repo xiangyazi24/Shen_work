@@ -67,7 +67,7 @@ Source: `paper3.pdf`, Chen-Ruau-Shen Part II.
 | Paper item | Lean artifact | Status | Notes |
 | --- | --- | --- | --- |
 | Propositions 1.1--1.4 | `Paper3.Proposition_1_1`--`Paper3.Proposition_1_4` | statement target | Recalled from Part I. |
-| Definition 2.1 | `LinearlyStable`, `LinearlyUnstable`, stability predicates | partial | Needs exact spectral-domain API and local exponential stability statement. |
+| Definition 2.1 | `LinearlyStable`, `LinearlyUnstable`, stability predicates | partial | Needs exact spectral-domain API and local exponential stability statement; equilibrium positivity, constant-state algebra, and negative-sensitivity spectral sign lemmas are proved. |
 | Theorem 2.1 | `Paper3.Theorem_2_1` | statement target | Uniform persistence. |
 | Theorem 2.2 | `Paper3.Theorem_2_2` | statement target | Linear stability/instability; negative-sensitivity `sigma < 0` and linearly-stable corollaries proved for positive equilibria under nonnegative eigenvalues and for minimal equilibria under positive nonzero eigenvalues. |
 | Theorem 2.3 | `Paper3.Theorem_2_3` | statement target | Global stability for negative sensitivity. |
@@ -86,10 +86,8 @@ Source: `paper3.pdf`, Chen-Ruau-Shen Part II.
 
 These are small, non-PDE targets worth proving before the next analytic push:
 
-1. Algebra around Paper3 equilibria and spectral quantities:
-   `sigma_zero`, `sigma_zero_neg_of_a_pos`, `sigma_zero_eq_zero_of_a_eq_zero`,
-   `positiveEquilibrium_fst_pos`, `positiveEquilibrium_snd_pos`,
-   `minimalEquilibrium_snd_pos`.
+1. Extend Paper3 spectral-domain API: exact Neumann eigenvalue assumptions,
+   instability threshold predicates, and local exponential stability packaging.
 2. Basic positivity/nonnegativity of packaged constants:
    `positivePart_nonneg`, `chiBeta_nonneg_of_half_le_beta`,
    `chiBeta_pos_of_half_lt_beta`, `chiBeta_le_two_beta_sub_one`.

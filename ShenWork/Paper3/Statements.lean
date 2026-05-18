@@ -39,6 +39,30 @@ lemma positiveEquilibrium_snd_pos
     (Real.rpow_pos_of_pos
       (Real.rpow_pos_of_pos (div_pos hab.1 hab.2) _) _)
 
+lemma positiveEquilibrium_fst_rpow_alpha
+    (p : CM2Params) (hab : 0 < p.a ∧ 0 < p.b) :
+    (positiveEquilibrium p hab).1 ^ p.α = p.a / p.b := by
+  change ((p.a / p.b) ^ (1 / p.α)) ^ p.α = p.a / p.b
+  rw [← Real.rpow_mul (div_pos hab.1 hab.2).le]
+  have hα_ne : p.α ≠ 0 := ne_of_gt p.hα
+  field_simp [hα_ne]
+  rw [Real.rpow_one]
+
+lemma positiveEquilibrium_logistic_zero
+    (p : CM2Params) (hab : 0 < p.a ∧ 0 < p.b) :
+    p.a - p.b * (positiveEquilibrium p hab).1 ^ p.α = 0 := by
+  rw [positiveEquilibrium_fst_rpow_alpha p hab]
+  field_simp [ne_of_gt hab.2]
+  ring
+
+lemma positiveEquilibrium_elliptic_relation
+    (p : CM2Params) (hab : 0 < p.a ∧ 0 < p.b) :
+    p.μ * (positiveEquilibrium p hab).2 =
+      p.ν * (positiveEquilibrium p hab).1 ^ p.γ := by
+  change p.μ * (p.ν / p.μ * ((p.a / p.b) ^ (1 / p.α)) ^ p.γ) =
+    p.ν * ((p.a / p.b) ^ (1 / p.α)) ^ p.γ
+  field_simp [ne_of_gt p.hμ]
+
 lemma minimalEquilibrium_fst_eq (p : CM2Params) (uStar : ℝ) :
     (minimalEquilibrium p uStar).1 = uStar := by
   rfl
@@ -48,6 +72,13 @@ lemma minimalEquilibrium_snd_pos
     0 < (minimalEquilibrium p uStar).2 := by
   change 0 < p.ν / p.μ * uStar ^ p.γ
   exact mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos huStar _)
+
+lemma minimalEquilibrium_elliptic_relation
+    (p : CM2Params) (uStar : ℝ) :
+    p.μ * (minimalEquilibrium p uStar).2 =
+      p.ν * (minimalEquilibrium p uStar).1 ^ p.γ := by
+  change p.μ * (p.ν / p.μ * uStar ^ p.γ) = p.ν * uStar ^ p.γ
+  field_simp [ne_of_gt p.hμ]
 
 def PositiveGlobalBoundedSolution
     (D : BoundedDomainData) (p : CM2Params)
