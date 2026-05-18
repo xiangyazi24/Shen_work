@@ -89,6 +89,24 @@ def UniformMovingFrameConvergence
     (c : ℝ) (u : ℝ → ℝ → ℝ) (U : ℝ → ℝ) : Prop :=
   ∀ ε > 0, ∃ T, ∀ t x, T ≤ t → |u t x - U (x - c * t)| < ε
 
+theorem UniformMovingFrameConvergence.profile_eq_of_movingFrame
+    {c : ℝ} {U W : ℝ → ℝ}
+    (h : UniformMovingFrameConvergence c (fun t x => W (x - c * t)) U) :
+    ∀ x, W x = U x := by
+  intro y
+  by_contra hne
+  have hdist_pos : 0 < |W y - U y| :=
+    abs_pos.mpr (sub_ne_zero.mpr hne)
+  rcases h (|W y - U y| / 2) (by positivity) with ⟨T, hT⟩
+  let t : ℝ := T
+  let x : ℝ := y + c * T
+  have hx : x - c * t = y := by
+    dsimp [x, t]
+    ring
+  have hlt := hT t x le_rfl
+  simp [t, x, hx] at hlt
+  linarith [abs_nonneg (W y - U y)]
+
 theorem WeightedL2InitialCloseness.refl
     (η : ℝ) (U : ℝ → ℝ) :
     WeightedL2InitialCloseness η U U := by
