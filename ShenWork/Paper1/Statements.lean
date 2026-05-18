@@ -24,6 +24,26 @@ def UniformlyPositive (u₀ : ℝ → ℝ) : Prop :=
 def StrictlyPositiveAtLeft (u₀ : ℝ → ℝ) : Prop :=
   ∃ δ > 0, ∀ᶠ x in atBot, δ ≤ u₀ x
 
+theorem UniformlyPositive.pos
+    {u₀ : ℝ → ℝ} (h : UniformlyPositive u₀) :
+    ∀ x, 0 < u₀ x := by
+  rcases h with ⟨δ, hδ, hδle⟩
+  intro x
+  exact lt_of_lt_of_le hδ (hδle x)
+
+theorem UniformlyPositive.strictlyPositiveAtLeft
+    {u₀ : ℝ → ℝ} (h : UniformlyPositive u₀) :
+    StrictlyPositiveAtLeft u₀ := by
+  rcases h with ⟨δ, hδ, hδle⟩
+  exact ⟨δ, hδ, Eventually.of_forall hδle⟩
+
+theorem StrictlyPositiveAtLeft.eventually_pos
+    {u₀ : ℝ → ℝ} (h : StrictlyPositiveAtLeft u₀) :
+    ∀ᶠ x in atBot, 0 < u₀ x := by
+  rcases h with ⟨δ, hδ, hδle⟩
+  filter_upwards [hδle] with x hx
+  exact lt_of_lt_of_le hδ hx
+
 def HasInitialDatum (u : ℝ → ℝ → ℝ) (u₀ : ℝ → ℝ) : Prop :=
   ∀ x, u 0 x = u₀ x
 
