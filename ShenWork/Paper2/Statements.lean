@@ -755,6 +755,37 @@ lemma Psi_beta_tendsto_atTop :
     rw [← Real.exp_neg]
   simpa [hinv_exp] using hlim.congr' heq.symm
 
+lemma Psi_beta_le_exp_neg_one {beta : ℝ} (hbeta : 0 < beta) :
+    Psi_beta beta ≤ Real.exp (-1) := by
+  have hden_pos : 0 < 1 + beta := by linarith
+  have hq_pos : 0 < beta / (1 + beta) := div_pos hbeta hden_pos
+  have hx_pos : 0 < 1 + 1 / beta := by positivity
+  have hquot : beta / (1 + beta) = (1 + 1 / beta)⁻¹ := by
+    field_simp [ne_of_gt hbeta, ne_of_gt hden_pos]
+    ring
+  have hxinv :
+      (1 + 1 / beta)⁻¹ = beta / (1 + beta) := hquot.symm
+  have hlog_lower := Real.one_sub_inv_le_log_of_pos hx_pos
+  rw [hxinv] at hlog_lower
+  have hunit :
+      1 - beta / (1 + beta) = 1 / (1 + beta) := by
+    field_simp [ne_of_gt hden_pos]
+    ring
+  rw [hunit] at hlog_lower
+  have hmul :
+      1 ≤ (1 + beta) * Real.log (1 + 1 / beta) := by
+    have hmul' := mul_le_mul_of_nonneg_left hlog_lower hden_pos.le
+    have hone : (1 + beta) * (1 / (1 + beta)) = 1 := by
+      field_simp [ne_of_gt hden_pos]
+    nlinarith
+  have hlog :
+      Real.log (Psi_beta beta) ≤ Real.log (Real.exp (-1)) := by
+    unfold Psi_beta
+    rw [Real.log_rpow hq_pos, hquot, Real.log_inv]
+    rw [Real.log_exp]
+    nlinarith
+  exact (Real.log_le_log_iff (Psi_beta_pos hbeta) (Real.exp_pos _)).mp hlog
+
 lemma Theta_beta_pos {beta : ℝ} (hbeta : 0 < beta) :
     0 < Theta_beta beta := by
   unfold Theta_beta
