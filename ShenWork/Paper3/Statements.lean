@@ -159,6 +159,15 @@ def sigmaCriticalChi
   (lambdaN + p.a * p.α) /
     sigmaChemCoefficient p uStar vStar lambdaN
 
+/-- The explicit per-mode factor appearing inside the paper's critical
+sensitivity threshold `(2.10)`.  The paper's `χ*` is the infimum of these
+quantities over the nonzero Neumann modes. -/
+def sigmaCriticalChiPaperFormula
+    (p : CM2Params) (uStar vStar lambdaN : ℝ) : ℝ :=
+  ((1 + vStar) ^ p.β /
+      (p.ν * p.γ * uStar ^ (p.m + p.γ - 1))) *
+    ((lambdaN + p.a * p.α) * (p.μ + lambdaN) / lambdaN)
+
 lemma sigma_eq_base_add_chi_coeff
     (p : CM2Params) (uStar vStar lambdaN : ℝ) :
     sigma p uStar vStar lambdaN =
@@ -209,6 +218,33 @@ lemma sigmaCriticalChi_pos
   have hden : 0 < sigmaChemCoefficient p uStar vStar lambdaN :=
     sigmaChemCoefficient_pos p huStar hvStar hlambda
   exact div_pos hnum hden
+
+lemma sigmaCriticalChi_eq_paperFormula
+    (p : CM2Params) {uStar vStar lambdaN : ℝ}
+    (huStar : 0 < uStar) (hvStar : 0 ≤ vStar) (hlambda : 0 < lambdaN) :
+    sigmaCriticalChi p uStar vStar lambdaN =
+      sigmaCriticalChiPaperFormula p uStar vStar lambdaN := by
+  unfold sigmaCriticalChi sigmaChemCoefficient sigmaCriticalChiPaperFormula
+  have hvpos : 0 < 1 + vStar := by linarith
+  have hpowv : (1 + vStar) ^ p.β ≠ 0 :=
+    ne_of_gt (Real.rpow_pos_of_pos hvpos _)
+  have hpowu : uStar ^ (p.m + p.γ - 1) ≠ 0 :=
+    ne_of_gt (Real.rpow_pos_of_pos huStar _)
+  have hmulcoeff :
+      p.ν * p.γ * uStar ^ (p.m + p.γ - 1) ≠ 0 :=
+    mul_ne_zero (mul_ne_zero (ne_of_gt p.hν) (ne_of_gt p.hγ)) hpowu
+  have hmulden :
+      (1 + vStar) ^ p.β * (p.μ + lambdaN) ≠ 0 :=
+    mul_ne_zero hpowv (ne_of_gt (by linarith [p.hμ, hlambda]))
+  field_simp [hmulcoeff, hmulden, hpowv, hpowu, ne_of_gt hlambda,
+    ne_of_gt p.hν, ne_of_gt p.hγ]
+
+lemma sigmaCriticalChiPaperFormula_pos
+    (p : CM2Params) {uStar vStar lambdaN : ℝ}
+    (huStar : 0 < uStar) (hvStar : 0 ≤ vStar) (hlambda : 0 < lambdaN) :
+    0 < sigmaCriticalChiPaperFormula p uStar vStar lambdaN := by
+  rw [← sigmaCriticalChi_eq_paperFormula p huStar hvStar hlambda]
+  exact sigmaCriticalChi_pos p huStar hvStar hlambda
 
 lemma sigma_eq_chi_sub_critical_mul_coeff
     (p : CM2Params) (uStar vStar lambdaN : ℝ)
