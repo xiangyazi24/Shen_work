@@ -211,6 +211,20 @@ theorem upperBarrier_le_exp (κ M x : ℝ) :
     upperBarrier κ M x ≤ Real.exp (-κ * x) :=
   min_le_right _ _
 
+theorem upperBarrier_mono_M {κ M₁ M₂ : ℝ} (hM : M₁ ≤ M₂) (x : ℝ) :
+    upperBarrier κ M₁ x ≤ upperBarrier κ M₂ x :=
+  min_le_min hM le_rfl
+
+theorem upperBarrier_eq_M_of_le_exp {κ M x : ℝ}
+    (h : M ≤ Real.exp (-κ * x)) :
+    upperBarrier κ M x = M := by
+  exact min_eq_left h
+
+theorem upperBarrier_eq_exp_of_exp_le {κ M x : ℝ}
+    (h : Real.exp (-κ * x) ≤ M) :
+    upperBarrier κ M x = Real.exp (-κ * x) := by
+  exact min_eq_right h
+
 theorem upperBarrier_nonneg {κ M : ℝ} (hM : 0 ≤ M) (x : ℝ) :
     0 ≤ upperBarrier κ M x :=
   le_min hM (Real.exp_pos _).le
@@ -715,6 +729,22 @@ theorem InWaveTrapSet.convex_combo
           (mul_le_mul_of_nonneg_left (hv.le_upperBarrier x) (sub_nonneg.mpr hθ1))
       _ = upperBarrier κ M x := by ring
 
+theorem InWaveTrapSet.mono_M
+    {κ M₁ M₂ : ℝ} {u : ℝ → ℝ}
+    (hM : M₁ ≤ M₂) (h : InWaveTrapSet κ M₁ u) :
+    InWaveTrapSet κ M₂ u := by
+  refine ⟨h.cunif_bdd, ?_⟩
+  intro x
+  exact
+    ⟨h.nonneg x,
+      le_trans (h.le_upperBarrier x) (upperBarrier_mono_M hM x)⟩
+
+theorem WaveTrapSet_subset_of_M_le
+    {κ M₁ M₂ : ℝ} (hM : M₁ ≤ M₂) :
+    WaveTrapSet κ M₁ ⊆ WaveTrapSet κ M₂ := by
+  intro u hu
+  exact InWaveTrapSet.mono_M hM hu
+
 theorem InWaveTrapSet.set_nonempty {κ M : ℝ} (hM : 0 ≤ M) :
     ({u : ℝ → ℝ | InWaveTrapSet κ M u}).Nonempty :=
   ⟨fun _ => 0, InWaveTrapSet.zero hM⟩
@@ -783,6 +813,18 @@ theorem InMonotoneWaveTrapSet.convex_combo
   exact add_le_add
     (mul_le_mul_of_nonneg_left (hu.antitone hxy) hθ0)
     (mul_le_mul_of_nonneg_left (hv.antitone hxy) (sub_nonneg.mpr hθ1))
+
+theorem InMonotoneWaveTrapSet.mono_M
+    {κ M₁ M₂ : ℝ} {u : ℝ → ℝ}
+    (hM : M₁ ≤ M₂) (h : InMonotoneWaveTrapSet κ M₁ u) :
+    InMonotoneWaveTrapSet κ M₂ u :=
+  ⟨InWaveTrapSet.mono_M hM h.trap, h.antitone⟩
+
+theorem MonotoneWaveTrapSet_subset_of_M_le
+    {κ M₁ M₂ : ℝ} (hM : M₁ ≤ M₂) :
+    MonotoneWaveTrapSet κ M₁ ⊆ MonotoneWaveTrapSet κ M₂ := by
+  intro u hu
+  exact InMonotoneWaveTrapSet.mono_M hM hu
 
 theorem InMonotoneWaveTrapSet.set_nonempty {κ M : ℝ} (hM : 0 ≤ M) :
     ({u : ℝ → ℝ | InMonotoneWaveTrapSet κ M u}).Nonempty :=
