@@ -397,6 +397,27 @@ lemma hasDerivAt_kernel_right {x y : ℝ} (hy : x < y) :
 def cStarStar (p : CMParams) : ℝ :=
   1 + |p.χ| ^ (1/6 : ℝ) + 1 / (1 + |p.χ| ^ (1/6 : ℝ))
 
+lemma cStarStar_ge_two (p : CMParams) :
+    2 ≤ cStarStar p := by
+  unfold cStarStar
+  set a : ℝ := |p.χ| ^ (1 / 6 : ℝ)
+  have ha : 0 ≤ a := by positivity
+  have hpos : 0 < 1 + a := by linarith
+  have hmul : 2 * (1 + a) ≤ (1 + a + 1 / (1 + a)) * (1 + a) := by
+    field_simp [ne_of_gt hpos]
+    nlinarith [sq_nonneg a]
+  exact le_of_mul_le_mul_right hmul hpos
+
+lemma two_lt_of_cStarStar_lt {p : CMParams} {c : ℝ}
+    (hc : cStarStar p < c) :
+    2 < c :=
+  lt_of_le_of_lt (cStarStar_ge_two p) hc
+
+lemma kappa_pos_of_cStarStar_lt {p : CMParams} {c : ℝ}
+    (hc : cStarStar p < c) :
+    0 < kappa c :=
+  kappa_pos_of_two_lt (two_lt_of_cStarStar_lt hc)
+
 /-! ## Explicit solutions for special cases -/
 
 /-- The constant solution u ≡ 1, v ≡ 1 is a global classical solution for ANY χ. -/

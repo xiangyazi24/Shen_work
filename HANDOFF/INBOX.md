@@ -51,6 +51,9 @@ BUILD OK, 3 sorry remaining. Priority order:
   `IsTravelingWave.shift`, `IsMonotoneTravelingWave.shift`, and
   `exp_bound_shift_right`. These are true phase-shift facts needed before any honest
   uniqueness proof can fix the wave phase using asymptotics/stability.
+- Added `cStarStar_ge_two`, `two_lt_of_cStarStar_lt`, and
+  `kappa_pos_of_cStarStar_lt`, extracting the speed facts needed from the
+  stability/uniqueness threshold.
 
 ## P0: MildSolution Banach fixed point (356)
 Need to instantiate `abstract_mild_fixed_point` by constructing the actual complete
