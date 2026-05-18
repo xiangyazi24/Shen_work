@@ -235,6 +235,27 @@ lemma sigma_neg_of_chi_nonpos_a_pos
   unfold sigma
   nlinarith [mul_pos ha p.hα, hlambda, hchem_nonpos']
 
+lemma LinearlyStable_of_chi_nonpos_a_pos
+    (S : SpectralData) (p : CM2Params) {uStar vStar : ℝ}
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a)
+    (huStar : 0 ≤ uStar) (hvStar : 0 ≤ vStar)
+    (heig_nonneg : ∀ n : ℕ, n ≠ 0 → 0 ≤ S.eigenvalue n) :
+    LinearlyStable S p uStar vStar := by
+  intro n hn
+  exact sigma_neg_of_chi_nonpos_a_pos p hχ ha huStar hvStar (heig_nonneg n hn)
+
+lemma positiveEquilibrium_linearlyStable_of_chi_nonpos
+    (S : SpectralData) (p : CM2Params)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (heig_nonneg : ∀ n : ℕ, n ≠ 0 → 0 ≤ S.eigenvalue n) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyStable S p eq.1 eq.2 := by
+  dsimp
+  exact LinearlyStable_of_chi_nonpos_a_pos S p hχ ha
+    (positiveEquilibrium_fst_pos p ⟨ha, hb⟩).le
+    (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
+    heig_nonneg
+
 def GloballyAsymptoticallyStableNonminimal
     (D : BoundedDomainData) (p : CM2Params) (uStar _vStar : ℝ) : Prop :=
   ∀ u v : ℝ → D.Point → ℝ,
