@@ -283,6 +283,13 @@ theorem lowerBarrierRaw_eq_exp_mul (κ κtilde D x : ℝ) :
   rw [hexp]
   ring
 
+theorem lowerBarrierRaw_le_exp {κ κtilde D x : ℝ} (hD : 0 ≤ D) :
+    lowerBarrierRaw κ κtilde D x ≤ Real.exp (-κ * x) := by
+  unfold lowerBarrierRaw
+  have hnonneg : 0 ≤ D * Real.exp (-κtilde * x) :=
+    mul_nonneg hD (Real.exp_pos _).le
+  linarith
+
 theorem lowerBarrierRaw_nonneg_of_xminus_le
     {κ κtilde D x : ℝ} (hgap : 0 < κtilde - κ) (hD : 0 < D)
     (hx : lowerBarrierXMinus κ κtilde D ≤ x) :
@@ -425,6 +432,24 @@ theorem lowerBarrierPlateau_pos
     rw [lowerBarrierPlateau_eq_raw_of_xplus_lt hxlt]
     exact lowerBarrierRaw_pos_of_xminus_lt hgap hD
       (lt_trans (lowerBarrierXMinus_lt_xplus hκ hgap hD) hxlt)
+
+theorem lowerBarrierPlateau_le_exp
+    {κ κtilde D : ℝ} (hκ : 0 ≤ κ) (hD : 0 ≤ D) (x : ℝ) :
+    lowerBarrierPlateau κ κtilde D x ≤ Real.exp (-κ * x) := by
+  by_cases hx : x ≤ lowerBarrierXPlus κ κtilde D
+  · rw [lowerBarrierPlateau_eq_const_of_le hx]
+    have hraw_le :
+        lowerBarrierRaw κ κtilde D (lowerBarrierXPlus κ κtilde D) ≤
+          Real.exp (-κ * lowerBarrierXPlus κ κtilde D) :=
+      lowerBarrierRaw_le_exp hD
+    have hexp_le :
+        Real.exp (-κ * lowerBarrierXPlus κ κtilde D) ≤ Real.exp (-κ * x) := by
+      apply Real.exp_le_exp.mpr
+      nlinarith [mul_nonneg hκ (sub_nonneg.mpr hx)]
+    exact le_trans hraw_le hexp_le
+  · have hxlt : lowerBarrierXPlus κ κtilde D < x := lt_of_not_ge hx
+    rw [lowerBarrierPlateau_eq_raw_of_xplus_lt hxlt]
+    exact lowerBarrierRaw_le_exp hD
 
 def InWaveTrapSet (κ M : ℝ) (u : ℝ → ℝ) : Prop :=
   IsCUnifBdd u ∧ ∀ x, 0 ≤ u x ∧ u x ≤ upperBarrier κ M x
