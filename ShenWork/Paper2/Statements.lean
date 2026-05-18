@@ -150,6 +150,43 @@ def WeightedSignalEstimate
           (D.integral
             (fun x => v t x / (1 + v t x) ^ (beta / (pExp + 1)))) ^ (pExp + 1)
 
+lemma WeightedGradientEstimate.first
+    {D : BoundedDomainData} {pExp beta gamma Mstar T : ℝ}
+    {u v : ℝ → D.Point → ℝ}
+    (h : WeightedGradientEstimate D pExp beta gamma Mstar T u v)
+    {t : ℝ} (ht0 : 0 < t) (htT : t < T) :
+    D.integral
+        (fun x => (D.gradNorm (v t) x) ^ (2 * pExp) / (v t x) ^ pExp) ≤
+      Mstar * D.integral (fun x => (u t x) ^ (gamma * pExp)) :=
+  (h t ht0 htT).1
+
+lemma WeightedGradientEstimate.second
+    {D : BoundedDomainData} {pExp beta gamma Mstar T : ℝ}
+    {u v : ℝ → D.Point → ℝ}
+    (h : WeightedGradientEstimate D pExp beta gamma Mstar T u v)
+    {t : ℝ} (ht0 : 0 < t) (htT : t < T) :
+    D.integral
+        (fun x =>
+          (D.gradNorm (v t) x) ^ (2 * pExp) /
+            (1 + v t x) ^ ((1 + beta) * pExp)) ≤
+      (Theta_beta beta) ^ pExp * Mstar *
+        D.integral (fun x => (u t x) ^ (gamma * pExp)) :=
+  (h t ht0 htT).2
+
+lemma WeightedSignalEstimate.bound
+    {D : BoundedDomainData} {pExp beta gamma eps Ceps T : ℝ}
+    {u v : ℝ → D.Point → ℝ}
+    (h : WeightedSignalEstimate D pExp beta gamma eps Ceps T u v)
+    {t : ℝ} (ht0 : 0 < t) (htT : t < T) :
+    D.integral (fun x => (v t x) ^ (pExp + 1) / (1 + v t x) ^ beta) ≤
+      eps *
+          D.integral
+            (fun x => (u t x) ^ (gamma * (pExp + 1)) / (1 + v t x) ^ beta) +
+        Ceps *
+          (D.integral
+            (fun x => v t x / (1 + v t x) ^ (beta / (pExp + 1)))) ^ (pExp + 1) :=
+  h t ht0 htT
+
 def FiniteHorizonAlternative
     (D : BoundedDomainData) (Tmax : ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
   (∀ M, ∃ t x, 0 < t ∧ t < Tmax ∧ x ∈ D.inside ∧ M < u t x) ∨
