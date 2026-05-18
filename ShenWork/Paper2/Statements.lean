@@ -402,6 +402,21 @@ lemma Psi_beta_eq_beta_mul_Theta_beta {beta : ℝ} (hbeta : 0 < beta) :
   rw [Real.rpow_neg hden_nonneg]
   field_simp [ne_of_gt (Real.rpow_pos_of_pos (by linarith : 0 < beta + 1) (beta + 1))]
 
+lemma Theta_beta_lt_one {beta : ℝ} (hbeta : 0 < beta) :
+    Theta_beta beta < 1 := by
+  have h := Psi_beta_lt_self hbeta
+  rw [Psi_beta_eq_beta_mul_Theta_beta hbeta] at h
+  rw [← div_self (ne_of_gt hbeta)]
+  rw [lt_div_iff₀ hbeta]
+  rwa [mul_comm]
+
+lemma Theta_beta_le_one {beta : ℝ} (hbeta : 0 ≤ beta) :
+    Theta_beta beta ≤ 1 := by
+  by_cases hzero : beta = 0
+  · subst beta
+    rw [Theta_beta_zero]
+  · exact le_of_lt (Theta_beta_lt_one (lt_of_le_of_ne hbeta (Ne.symm hzero)))
+
 lemma Theta_beta_eq_Psi_beta_div {beta : ℝ} (hbeta : 0 < beta) :
     Theta_beta beta = Psi_beta beta / beta := by
   rw [Psi_beta_eq_beta_mul_Theta_beta hbeta]
