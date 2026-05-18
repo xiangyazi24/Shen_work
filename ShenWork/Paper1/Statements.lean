@@ -116,6 +116,19 @@ def Lemma_2_4 : Prop :=
       (∀ x, u x ≤ min M (Real.exp (-k * x))) →
         ∀ x, Psi u 1 1 x ≤ min M (1 / (1 - k ^ 2) * Real.exp (-k * x))
 
+theorem Lemma_2_4_proved : Lemma_2_4 := by
+  intro M k hM hk hk1 u hu hu_nonneg hu_bound x
+  have hM_nonneg : 0 ≤ M := le_trans zero_le_one hM
+  have huM : ∀ y, u y ≤ M := by
+    intro y
+    exact le_trans (hu_bound y) (min_le_left _ _)
+  have huexp : ∀ y, u y ≤ Real.exp (-k * y) := by
+    intro y
+    exact le_trans (hu_bound y) (min_le_right _ _)
+  exact
+    Psi_le_min_const_exp_of_nonneg_le hM_nonneg hk hk1
+      hu.1 hu_nonneg huM huexp x
+
 structure ExponentialWeight where
   weight : ℝ → ℝ
   smooth : ContDiff ℝ 2 weight

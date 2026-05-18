@@ -30,7 +30,7 @@ systems.
 | Lemma 2.1 | `HeatSemigroupEstimateData`, `Paper1.Lemma_2_1` | statement target | Semigroup `L^p-L^q` estimates. |
 | Lemma 2.2 | `PsiDerivativeFormula`, `Paper1.Lemma_2_2` | statement target | Elliptic resolvent kernel and derivative formula. |
 | Lemma 2.3 | `Paper1.Lemma_2_3` | statement target | Resolvent derivative upper bound. |
-| Lemma 2.4 | `Paper1.Lemma_2_4`, `Psi_le_min_const_exp_of_nonneg_le` | partial | Paper-shaped statement target plus proved `Ψ(·;u,1,1)` upper-bound wrapper. |
+| Lemma 2.4 | `Paper1.Lemma_2_4_proved`, `Psi_le_min_const_exp_of_nonneg_le` | proved | Exponential resolvent bound for `Ψ(·;u,1,1)`. |
 | Lemma 2.5 | `ExponentialWeight`, `Paper1.Lemma_2_5` | statement target | Weighted `L^p` estimate for `∇Ψ(u^γ)`. |
 | Lemma 4.1 | none | missing | Super-solution barrier for frozen moving-frame equation. |
 | Lemma 4.2 | none | missing | Sub-solution barriers. |
@@ -96,4 +96,4 @@ These are small, non-PDE targets worth proving before the next analytic push:
 3. Paper1 speed/decay algebra already has `cStarLower_ge_two` and
    `kappa_pos_of_two_lt`; next small additions should support `Theorem_1_1`.
 4. Continue proving Paper1 Lemma 2.2/2.3: the statement targets are in place,
-   and Lemma 2.4 has a proved nonnegative bounded wrapper for `Ψ(·;u,1,1)`.
+   and Lemma 2.4 is now proved for `Ψ(·;u,1,1)`.
