@@ -660,6 +660,34 @@ lemma StrongLogisticCondition.beta_nonneg
   · exact h.1
   · linarith [h.1]
 
+lemma StrongLogisticCondition.alpha_ge_m_add_gamma_sub_one_of_m_ge_one
+    {p : CM2Params} {C : Paper2Constants p}
+    (hm : 1 ≤ p.m) (h : StrongLogisticCondition p C) :
+    p.m + p.γ - 1 ≤ p.α := by
+  rcases h with h | h | h | h
+  · exact le_of_lt h.2
+  · have hle : p.m + p.γ - 1 ≤ 2 * p.m + p.γ - 2 := by
+      linarith
+    exact le_trans hle (le_of_lt h.2)
+  · linarith [h.2.1]
+  · have hle : p.m + p.γ - 1 ≤ 2 * p.m + p.γ - 2 := by
+      linarith
+    linarith [hle, h.2.1]
+
+lemma StrongLogisticCondition.alpha_ge_two_mul_m_add_gamma_sub_two_of_m_le_one
+    {p : CM2Params} {C : Paper2Constants p}
+    (hm : p.m ≤ 1) (h : StrongLogisticCondition p C) :
+    2 * p.m + p.γ - 2 ≤ p.α := by
+  rcases h with h | h | h | h
+  · have hle : 2 * p.m + p.γ - 2 ≤ p.m + p.γ - 1 := by
+      linarith
+    exact le_trans hle (le_of_lt h.2)
+  · exact le_of_lt h.2
+  · have hle : 2 * p.m + p.γ - 2 ≤ p.m + p.γ - 1 := by
+      linarith
+    linarith [hle, h.2.1]
+  · linarith [h.2.1]
+
 /-- Paper2 Proposition 1.1: local existence and blow-up alternative. -/
 def Proposition_1_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →

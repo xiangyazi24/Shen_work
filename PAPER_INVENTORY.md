@@ -50,7 +50,7 @@ Source: `paper2.pdf`, Chen-Ruau-Shen Part I.
 | Proposition 1.1 | `Paper2.Proposition_1_1` | statement target | Local existence/blow-up alternative. |
 | Theorem 1.1 | `Paper2.Theorem_1_1` | statement target | Negative sensitivity. |
 | Theorem 1.2 | `Paper2.Theorem_1_2` | statement target | Weak nonlinear cross diffusion. |
-| Theorem 1.3 | `Paper2.Theorem_1_3`, `StrongLogisticCondition` | statement target | Strong logistic source; branch constructors, low-dimensional critical-branch constructors, and common `β ≥ 0` projection proved. |
+| Theorem 1.3 | `Paper2.Theorem_1_3`, `StrongLogisticCondition` | statement target | Strong logistic source; branch constructors, low-dimensional critical-branch constructors, common `β ≥ 0` projection, and unified `α` lower-bound projections for `m ≥ 1` / `m ≤ 1` proved. |
 | Remarks 1.1--1.7 | none | remark/doc | Useful for proof strategy and parameter comparisons. |
 | Lemmas 2.1--2.4 | `SemigroupEstimateData`, `Lemma_2_1`--`Lemma_2_4` | statement target | Abstract semigroup/fractional-power estimate layer. |
 | Lemma 2.5 | `Psi_beta`, `Theta_beta`, `Lemma_2_5_proved`, `Psi_beta_eq_at_inv`, `Psi_beta_pos`, `Psi_beta_lt_one`, `Psi_beta_lt_self`, `Theta_beta_zero`, `Theta_beta_pos_of_nonneg`, `Theta_beta_lt_one`, `Psi_beta_eq_beta_mul_Theta_beta` | partial | Scalar entropy inequality, equality case at `v=1/β`, and basic `Ψβ`/`Θβ` endpoint, positivity, bounds, self-bound, and relations proved; monotonicity and asymptotic limit of `Ψβ` remain. |
