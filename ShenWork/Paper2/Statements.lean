@@ -686,6 +686,17 @@ def Lemma_2_6 (D : BoundedDomainData) : Prop :=
       LpBootstrapEnergyInequality D u T rho p0 →
         ∀ pExp > 1, LpPowerBoundedBefore D pExp T u
 
+lemma Lemma_2_6.lp_bound
+    {D : BoundedDomainData}
+    (h : Lemma_2_6 D)
+    {N : ℝ} (hN : 0 < N) {u : ℝ → D.Point → ℝ}
+    {T rho p0 : ℝ}
+    (hhyp : AbstractLpBootstrapHypothesis D u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality D u T rho p0)
+    {pExp : ℝ} (hpExp : 1 < pExp) :
+    LpPowerBoundedBefore D pExp T u :=
+  h N hN u T rho p0 hhyp henergy pExp hpExp
+
 lemma AbstractLpBootstrapHypothesis.rho_pos
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {N T rho p0 : ℝ}
     (h : AbstractLpBootstrapHypothesis D u N T rho p0) :
@@ -849,6 +860,23 @@ def Lemma_2_7 (D : BoundedDomainData) : Prop :=
                 C4 * D.integral (fun x => (u t x) ^ (pExp + alpha))) →
             LpPowerBoundedBefore D pExp T u
 
+lemma Lemma_2_7.lp_bound
+    {D : BoundedDomainData}
+    (h : Lemma_2_7 D)
+    {u : ℝ → D.Point → ℝ} {T pExp C1 C2 C3 C4 eps alpha : ℝ}
+    (hT : 0 < T) (hpExp : 1 < pExp)
+    (hC1 : 0 ≤ C1) (hC2 : 0 ≤ C2) (hC3 : 0 ≤ C3) (hC4 : 0 < C4)
+    (heps : 0 < eps) (heps_alpha : eps ≤ alpha)
+    (hdiff :
+      ∀ t, 0 < t → t < T →
+        deriv (fun τ => D.integral (fun x => (u τ x) ^ pExp)) t +
+            C3 * D.integral (fun x => (u t x) ^ (pExp + alpha - eps)) ≤
+          C1 + C2 * D.integral (fun x => (u t x) ^ pExp) -
+            C4 * D.integral (fun x => (u t x) ^ (pExp + alpha))) :
+    LpPowerBoundedBefore D pExp T u :=
+  h u T pExp C1 C2 C3 C4 eps alpha
+    hT hpExp hC1 hC2 hC3 hC4 heps heps_alpha hdiff
+
 def Lemma_3_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   p.χ₀ ≤ 0 →
     (0 < p.a → 0 < p.b →
@@ -862,6 +890,26 @@ def Lemma_3_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
         IsPaper2ClassicalSolution D p T u v →
           SupNormNonincreasingOn D u (Set.Ioo (0 : ℝ) T))
 
+lemma Lemma_3_1.nonminimal_sup_norm_monotone
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Lemma_3_1 D p)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution D p T u v)
+    {t₀ : ℝ} (ht₀_pos : 0 < t₀) (ht₀_T : t₀ < T)
+    (hsup : (p.a / p.b) ^ (1 / p.α) < D.supNorm (u t₀)) :
+    SupNormNonincreasingOn D u (Set.Ioc (0 : ℝ) t₀) :=
+  (h hχ).1 ha hb T hT u v hsol t₀ ht₀_pos ht₀_T hsup
+
+lemma Lemma_3_1.minimal_sup_norm_monotone
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Lemma_3_1 D p)
+    (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (hb : p.b = 0)
+    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution D p T u v) :
+    SupNormNonincreasingOn D u (Set.Ioo (0 : ℝ) T) :=
+  (h hχ).2 ha hb T hT u v hsol
+
 def Lemma_4_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
   ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
@@ -869,6 +917,17 @@ def Lemma_4_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
       InitialTrace D u₀ u →
         ∀ eps > 0, ∀ pExp > 1, ∃ Ceps > 0,
           LpMassGradientInterpolationEstimate D pExp eps Ceps T u
+
+lemma Lemma_4_1.interpolation_estimate
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Lemma_4_1 D p)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀)
+    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution D p T u v)
+    (htrace : InitialTrace D u₀ u)
+    {eps pExp : ℝ} (heps : 0 < eps) (hpExp : 1 < pExp) :
+    ∃ Ceps > 0, LpMassGradientInterpolationEstimate D pExp eps Ceps T u :=
+  h u₀ hu₀ T hT u v hsol htrace eps heps pExp hpExp
 
 structure Paper2Constants (p : CM2Params) where
   K : ℝ
@@ -997,6 +1056,17 @@ def Proposition_1_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
       InitialTrace D u₀ u ∧
       FiniteHorizonAlternative D Tmax u ∧
       (1 ≤ p.m → MGeOneFiniteHorizonAlternative D Tmax u)
+
+lemma Proposition_1_1.solution
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Proposition_1_1 D p)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v ∧
+      InitialTrace D u₀ u ∧
+      FiniteHorizonAlternative D Tmax u ∧
+      (1 ≤ p.m → MGeOneFiniteHorizonAlternative D Tmax u) :=
+  h u₀ hu₀
 
 /-- Paper2 Theorem 1.1: boundedness/global existence for negative sensitivity. -/
 def Theorem_1_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
