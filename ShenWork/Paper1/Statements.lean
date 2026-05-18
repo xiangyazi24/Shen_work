@@ -2265,6 +2265,37 @@ def StableWaveParameterRegime (p : CMParams) : Prop :=
   (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
     (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1)
 
+theorem StableWaveParameterRegime.of_negative
+    {p : CMParams} (hχ : p.χ < 0) (halpha : p.α ≤ p.m + p.γ - 1) :
+    StableWaveParameterRegime p :=
+  Or.inl ⟨hχ, halpha⟩
+
+theorem StableWaveParameterRegime.of_positive
+    {p : CMParams}
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_small : p.χ < chiStar p)
+    (halpha : p.α = p.m + p.γ - 1) :
+    StableWaveParameterRegime p :=
+  Or.inr ⟨hχ_nonneg, hχ_small, halpha⟩
+
+theorem StableWaveParameterRegime.alpha_le
+    {p : CMParams} (h : StableWaveParameterRegime p) :
+    p.α ≤ p.m + p.γ - 1 := by
+  rcases h with hneg | hpos
+  · exact hneg.2
+  · exact le_of_eq hpos.2.2
+
+theorem StableWaveParameterRegime.positive_branch_of_chi_nonneg
+    {p : CMParams} (h : StableWaveParameterRegime p) (hχ_nonneg : 0 ≤ p.χ) :
+    p.χ < chiStar p ∧ p.α = p.m + p.γ - 1 := by
+  rcases h with hneg | hpos
+  · linarith
+  · exact ⟨hpos.2.1, hpos.2.2⟩
+
+theorem StableWaveParameterRegime.MChi_eq_one_of_chi_neg
+    {p : CMParams} (_h : StableWaveParameterRegime p) (hχ : p.χ < 0) :
+    MChi p = 1 :=
+  MChi_eq_one_of_chi_nonpos p (le_of_lt hχ)
+
 def stabilitySpeedBaseline (p : CMParams) : ℝ :=
   1 + |p.χ| ^ (1 / 6 : ℝ) + (1 + |p.χ| ^ (1 / 6 : ℝ))⁻¹
 
