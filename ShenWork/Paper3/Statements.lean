@@ -1353,17 +1353,19 @@ def Theorem_2_3
     (∀ (ha : 0 < p.a) (hb : 0 < p.b),
       let eq := positiveEquilibrium p ⟨ha, hb⟩
       GloballyAsymptoticallyStableNonminimal D p eq.1 eq.2 ∧
-      ∀ u v : ℝ → D.Point → ℝ,
-        PositiveGlobalBoundedSolution D p u v →
-          ExponentialC1Convergence D N u v eq.1 eq.2) ∧
+      ∃ A > 0, ∃ rate > 0,
+        ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+            ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) ∧
     (p.a = 0 → p.b = 0 →
       ∀ uStar > 0,
         let eq := minimalEquilibrium p uStar
         GloballyAsymptoticallyStableMinimal D p eq.1 eq.2 ∧
-        ∀ u v : ℝ → D.Point → ℝ,
-          PositiveGlobalBoundedSolution D p u v →
-          HasInitialMass D u uStar →
-            ExponentialC1Convergence D N u v eq.1 eq.2)
+        ∃ A > 0, ∃ rate > 0,
+          ∀ u v : ℝ → D.Point → ℝ,
+            PositiveGlobalBoundedSolution D p u v →
+            HasInitialMass D u uStar →
+              ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate)
 
 /-- Paper3 Theorem 2.4: global stability under relatively strong logistic source. -/
 def Theorem_2_4
@@ -1374,9 +1376,10 @@ def Theorem_2_4
     let eq := positiveEquilibrium p ⟨ha, hb⟩
     NonminimalGlobalStabilityCondition D p C eq.1 →
       GloballyAsymptoticallyStableNonminimal D p eq.1 eq.2 ∧
-      ∀ u v : ℝ → D.Point → ℝ,
-        PositiveGlobalBoundedSolution D p u v →
-          ExponentialC1Convergence D N u v eq.1 eq.2
+      ∃ A > 0, ∃ rate > 0,
+        ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+            ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate
 
 /-- Paper3 Theorem 2.5: global stability in the minimal model. -/
 def Theorem_2_5
@@ -1387,10 +1390,11 @@ def Theorem_2_5
       let eq := minimalEquilibrium p uStar
       MinimalGlobalStabilityCondition D p C uStar →
         GloballyAsymptoticallyStableMinimal D p eq.1 eq.2 ∧
-        ∀ u v : ℝ → D.Point → ℝ,
-          PositiveGlobalBoundedSolution D p u v →
-          HasInitialMass D u uStar →
-            ExponentialC1Convergence D N u v eq.1 eq.2
+        ∃ A > 0, ∃ rate > 0,
+          ∀ u v : ℝ → D.Point → ℝ,
+            PositiveGlobalBoundedSolution D p u v →
+            HasInitialMass D u uStar →
+              ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate
 
 def Lemma_3_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ u v : ℝ → D.Point → ℝ,
