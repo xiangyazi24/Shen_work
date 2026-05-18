@@ -17,6 +17,20 @@ noncomputable section
 
 def positivePart (r : ℝ) : ℝ := max r 0
 
+lemma positivePart_nonneg (r : ℝ) : 0 ≤ positivePart r := by
+  exact le_max_right r 0
+
+lemma le_positivePart (r : ℝ) : r ≤ positivePart r := by
+  exact le_max_left r 0
+
+lemma positivePart_eq_self_of_nonneg {r : ℝ} (hr : 0 ≤ r) :
+    positivePart r = r := by
+  simp [positivePart, hr]
+
+lemma positivePart_eq_zero_of_nonpos {r : ℝ} (hr : r ≤ 0) :
+    positivePart r = 0 := by
+  simp [positivePart, hr]
+
 /--
 Abstract data for the smooth bounded Neumann domain used in Paper2.
 
@@ -82,6 +96,14 @@ def MGeOneFiniteHorizonAlternative
 
 def chiBeta (p : CM2Params) : ℝ :=
   2 * (2 * p.β - 1) / max 2 (p.γ * (p.N : ℝ))
+
+lemma chiBeta_pos_of_one_le_beta (p : CM2Params) (hβ : 1 ≤ p.β) :
+    0 < chiBeta p := by
+  unfold chiBeta
+  have hnum : 0 < 2 * (2 * p.β - 1) := by nlinarith
+  have hden : 0 < max (2 : ℝ) (p.γ * (p.N : ℝ)) :=
+    lt_of_lt_of_le (by norm_num) (le_max_left _ _)
+  exact div_pos hnum hden
 
 structure Paper2Constants (p : CM2Params) where
   K : ℝ
