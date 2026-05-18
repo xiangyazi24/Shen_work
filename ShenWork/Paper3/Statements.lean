@@ -311,6 +311,26 @@ def ExponentialC1Convergence
     N.c1Distance (u t) (fun _ => uStar) +
       N.c1Distance (v t) (fun _ => vStar) ≤ C * Real.exp (-rate * t)
 
+def ExponentialC1ConvergenceWith
+    (D : BoundedDomainData) (N : StabilityNorms D)
+    (u v : ℝ → D.Point → ℝ) (uStar vStar C rate : ℝ) : Prop :=
+  ∀ t, 0 ≤ t →
+    N.c1Distance (u t) (fun _ => uStar) +
+      N.c1Distance (v t) (fun _ => vStar) ≤ C * Real.exp (-rate * t)
+
+lemma ExponentialC1ConvergenceWith.exists
+    {D : BoundedDomainData} {N : StabilityNorms D}
+    {u v : ℝ → D.Point → ℝ} {uStar vStar C rate : ℝ}
+    (hC : 0 < C) (hrate : 0 < rate)
+    (h :
+      ExponentialC1ConvergenceWith D N u v uStar vStar C rate) :
+    ExponentialC1Convergence D N u v uStar vStar :=
+  ⟨C, hC, rate, hrate, h⟩
+
+def SupCloseToConstant
+    (D : BoundedDomainData) (u₀ : D.Point → ℝ) (uStar δ : ℝ) : Prop :=
+  D.supNorm (fun x => u₀ x - uStar) < δ
+
 def Proposition_1_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   Paper2.Proposition_1_1 D p
 
@@ -1296,11 +1316,13 @@ def Theorem_2_2
     let eq := positiveEquilibrium p ⟨ha, hb⟩
     p.χ₀ < C.chiCritical eq.1 →
       LinearlyStable S p eq.1 eq.2 ∧
-      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
-        ∃ u v : ℝ → D.Point → ℝ,
-          IsPaper2GlobalClassicalSolution D p u v ∧
-          InitialTrace D u₀ u ∧
-          ExponentialC1Convergence D N u v eq.1 eq.2) ∧
+      ∃ δ > 0, ∃ A > 0, ∃ rate > 0,
+        ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+          SupCloseToConstant D u₀ eq.1 δ →
+            ∃ u v : ℝ → D.Point → ℝ,
+              IsPaper2GlobalClassicalSolution D p u v ∧
+              InitialTrace D u₀ u ∧
+              ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) ∧
   (∀ (ha : 0 < p.a) (hb : 0 < p.b),
     let eq := positiveEquilibrium p ⟨ha, hb⟩
     C.chiCritical eq.1 < p.χ₀ →
@@ -1309,7 +1331,15 @@ def Theorem_2_2
     ∀ uStar > 0,
       let eq := minimalEquilibrium p uStar
       p.χ₀ < C.chiCritical uStar →
-        LinearlyStable S p eq.1 eq.2) ∧
+        LinearlyStable S p eq.1 eq.2 ∧
+        ∃ δ > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+            SupCloseToConstant D u₀ eq.1 δ →
+            D.integral u₀ = D.volume * uStar →
+              ∃ u v : ℝ → D.Point → ℝ,
+                IsPaper2GlobalClassicalSolution D p u v ∧
+                InitialTrace D u₀ u ∧
+                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) ∧
   (p.a = 0 → p.b = 0 →
     ∀ uStar > 0,
       let eq := minimalEquilibrium p uStar
