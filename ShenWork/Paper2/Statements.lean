@@ -227,6 +227,21 @@ def CrossDiffusionBootstrapEstimate
               (fun x => (u t x) ^ (pExp - 2) * (D.gradNorm (u t) x) ^ 2) +
           Ceps * D.integral (fun x => (u t x) ^ (pExp + rho))
 
+lemma CrossDiffusionBootstrapEstimate.bound
+    {D : BoundedDomainData} {p : CM2Params} {T rho : ℝ}
+    {u v : ℝ → D.Point → ℝ}
+    (h : CrossDiffusionBootstrapEstimate D p T rho u v)
+    {eps pExp t : ℝ} (heps : 0 < eps) (hpExp : 1 < pExp)
+    (ht0 : 0 < t) (htT : t < T) :
+    ∃ Ceps,
+      D.crossDiffusionEnergyTerm p pExp (u t) (v t) ≤
+        eps *
+            D.integral
+              (fun x => (u t x) ^ (pExp - 2) * (D.gradNorm (u t) x) ^ 2) +
+          Ceps * D.integral (fun x => (u t x) ^ (pExp + rho)) := by
+  rcases h eps heps pExp hpExp with ⟨Ceps, hCeps⟩
+  exact ⟨Ceps, hCeps t ht0 htT⟩
+
 def FiniteHorizonAlternative
     (D : BoundedDomainData) (Tmax : ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
   (∀ M, ∃ t x, 0 < t ∧ t < Tmax ∧ x ∈ D.inside ∧ M < u t x) ∨
@@ -610,6 +625,30 @@ def Lemma_2_6 (D : BoundedDomainData) : Prop :=
     AbstractLpBootstrapHypothesis D u N T rho p0 →
       LpBootstrapEnergyInequality D u T rho p0 →
         ∀ pExp > 1, LpPowerBoundedBefore D pExp T u
+
+lemma AbstractLpBootstrapHypothesis.rho_pos
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {N T rho p0 : ℝ}
+    (h : AbstractLpBootstrapHypothesis D u N T rho p0) :
+    0 < rho :=
+  h.1
+
+lemma AbstractLpBootstrapHypothesis.T_pos
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {N T rho p0 : ℝ}
+    (h : AbstractLpBootstrapHypothesis D u N T rho p0) :
+    0 < T :=
+  h.2.1
+
+lemma AbstractLpBootstrapHypothesis.p0_gt_threshold
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {N T rho p0 : ℝ}
+    (h : AbstractLpBootstrapHypothesis D u N T rho p0) :
+    max 1 (rho * N / 2) < p0 :=
+  h.2.2.1
+
+lemma AbstractLpBootstrapHypothesis.initial_lp_bound
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {N T rho p0 : ℝ}
+    (h : AbstractLpBootstrapHypothesis D u N T rho p0) :
+    LpPowerBoundedBefore D p0 T u :=
+  h.2.2.2
 
 def Corollary_2_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
