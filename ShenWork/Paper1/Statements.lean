@@ -1879,6 +1879,19 @@ theorem LocalUniformContinuousOn.fixed_of_approx_fixed
     simpa [hfix n] using hn
   exact himage.unique hsame
 
+theorem LocalUniformContinuousOn.fixed_of_common_limit
+    {trap : (ℝ → ℝ) → Prop} {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hcont : LocalUniformContinuousOn trap Tmap)
+    {seq : ℕ → ℝ → ℝ} {u : ℝ → ℝ}
+    (hseq : ∀ n, trap (seq n)) (hu : trap u)
+    (hconv : LocallyUniformConverges seq u)
+    (himage : LocallyUniformConverges (fun n => Tmap (seq n)) u) :
+    Tmap u = u := by
+  have hT :
+      LocallyUniformConverges (fun n => Tmap (seq n)) (Tmap u) :=
+    hcont seq u hseq hu hconv
+  exact hT.unique himage
+
 theorem LocalUniformContinuousOn.fixed_of_subseq_fixed_limit
     {trap : (ℝ → ℝ) → Prop} {Tmap : (ℝ → ℝ) → ℝ → ℝ}
     (hcont : LocalUniformContinuousOn trap Tmap)
