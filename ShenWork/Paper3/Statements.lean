@@ -620,6 +620,18 @@ lemma betaTilde_eq_zero_of_beta_le_half {beta : ℝ}
   apply positivePart_eq_zero_of_nonpos
   exact le_trans (min_le_right _ _) (by linarith)
 
+lemma betaTilde_le_two_mul {beta : ℝ} (hbeta : 0 ≤ beta) :
+    betaTilde beta ≤ 2 * beta := by
+  unfold betaTilde
+  by_cases hhalf : beta ≤ (1 / 2 : ℝ)
+  · rw [positivePart_eq_zero_of_nonpos]
+    · nlinarith
+    · exact le_trans (min_le_right _ _) (by linarith)
+  · have hpos : 0 ≤ min (1 : ℝ) (2 * beta - 1) := by
+      exact le_min (by norm_num) (by linarith)
+    rw [positivePart_eq_self_of_nonneg hpos]
+    exact le_trans (min_le_right _ _) (by linarith)
+
 lemma CAlphaGamma_pos {alpha gamma : ℝ}
     (halpha : 0 < alpha) (_hgamma : 0 < gamma) :
     0 < CAlphaGamma alpha gamma := by
@@ -638,6 +650,36 @@ lemma CAlphaGamma_pos {alpha gamma : ℝ}
       exact div_pos
         (sq_pos_of_ne_zero (by linarith : gamma ≠ 0))
         (by linarith)
+
+lemma one_le_CAlphaGamma_mul_alpha_div_gamma_sq
+    {alpha gamma : ℝ} (halpha : 0 < alpha) (hgamma : 0 < gamma)
+    (hrel : 2 * gamma ≤ alpha + 1) :
+    1 ≤ CAlphaGamma alpha gamma * alpha / gamma ^ 2 := by
+  unfold CAlphaGamma
+  by_cases halpha_lt : alpha < 1
+  · rw [if_pos halpha_lt]
+    have hgamma_le : gamma ≤ (alpha + 1) / 2 := by linarith
+    have hsq : gamma ^ 2 ≤ (alpha + 1) ^ 2 / 4 := by
+      nlinarith [sq_nonneg ((alpha + 1) / 2 - gamma)]
+    rw [le_div_iff₀ (by positivity : 0 < gamma ^ 2)]
+    calc
+      1 * gamma ^ 2 = gamma ^ 2 := by ring
+      _ ≤ (alpha + 1) ^ 2 / 4 := hsq
+      _ = ((alpha + 1) ^ 2 / (4 * alpha)) * alpha := by
+        field_simp [ne_of_gt halpha]
+  · rw [if_neg halpha_lt]
+    have halpha_ge : 1 ≤ alpha := le_of_not_gt halpha_lt
+    by_cases hgamma_le : gamma ≤ 1
+    · rw [if_pos hgamma_le]
+      rw [le_div_iff₀ (by positivity : 0 < gamma ^ 2)]
+      nlinarith [sq_nonneg (gamma - 1)]
+    · rw [if_neg hgamma_le]
+      have hgamma_gt : 1 < gamma := lt_of_not_ge hgamma_le
+      rw [le_div_iff₀ (by positivity : 0 < gamma ^ 2)]
+      have hden_pos : 0 < 2 * gamma - 1 := by linarith
+      rw [div_mul_eq_mul_div]
+      rw [le_div_iff₀ hden_pos]
+      nlinarith
 
 def EventuallyUpperBoundMinimalConclusion
     (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p)
