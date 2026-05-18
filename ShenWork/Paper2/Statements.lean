@@ -699,12 +699,17 @@ def Proposition_2_5 (D : BoundedDomainData) (p : CM2Params) : Prop :=
             LpPowerBoundedBefore D pExp Tmax u →
               IsPaper2BoundedBefore D Tmax u
 
-def Lemma_2_7 : Prop :=
-  ∀ y : ℝ → ℝ, ∀ T C1 C2 C3 C4 eps alpha,
-    0 < T → 0 ≤ C1 → 0 ≤ C2 → 0 ≤ C3 → 0 < C4 →
-      0 < eps → eps ≤ alpha →
-        (∀ t, 0 < t → t < T → y t ≤ C1 + C2 * y t - C4 * (y t) ^ (1 + eps) + C3) →
-          ∃ C, ∀ t, 0 < t → t < T → y t ≤ C
+def Lemma_2_7 (D : BoundedDomainData) : Prop :=
+  ∀ u : ℝ → D.Point → ℝ, ∀ T pExp C1 C2 C3 C4 eps alpha,
+    0 < T → 1 < pExp →
+      0 ≤ C1 → 0 ≤ C2 → 0 ≤ C3 → 0 < C4 →
+        0 < eps → eps ≤ alpha →
+          (∀ t, 0 < t → t < T →
+            deriv (fun τ => D.integral (fun x => (u τ x) ^ pExp)) t +
+                C3 * D.integral (fun x => (u t x) ^ (pExp + alpha - eps)) ≤
+              C1 + C2 * D.integral (fun x => (u t x) ^ pExp) -
+                C4 * D.integral (fun x => (u t x) ^ (pExp + alpha))) →
+            LpPowerBoundedBefore D pExp T u
 
 def Lemma_3_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   p.χ₀ ≤ 0 →
