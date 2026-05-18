@@ -124,6 +124,18 @@ def LpPowerBoundedBefore
   ∃ C, ∀ t, 0 < t → t < Tmax →
     D.integral (fun x => (u t x) ^ pExp) ≤ C
 
+def MassConservedBefore
+    (D : BoundedDomainData) (Tmax : ℝ)
+    (u₀ : D.Point → ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
+  ∀ t, 0 < t → t < Tmax → D.integral (u t) = D.integral u₀
+
+def LogisticMassUpperBoundBefore
+    (D : BoundedDomainData) (p : CM2Params) (Tmax : ℝ)
+    (u₀ : D.Point → ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
+  ∀ t, 0 < t → t < Tmax →
+    D.integral (u t) ≤
+      max (D.integral u₀) (((p.a / p.b) ^ (1 / p.α)) * D.volume)
+
 def WeightedGradientEstimate
     (D : BoundedDomainData) (pExp beta gamma Mstar T : ℝ)
     (u v : ℝ → D.Point → ℝ) : Prop :=
@@ -609,9 +621,12 @@ def Proposition_2_3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
           WeightedSignalEstimate D pExp p.β p.γ eps Ceps T u v
 
 def Proposition_2_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
-  ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
-    IsPaper2ClassicalSolution D p T u v →
-      IsPaper2BoundedBefore D T u
+  ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+    ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p T u v →
+      InitialTrace D u₀ u →
+        (p.a = 0 → p.b = 0 → MassConservedBefore D T u₀ u) ∧
+          (0 < p.a → 0 < p.b → LogisticMassUpperBoundBefore D p T u₀ u)
 
 def Proposition_2_5 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
