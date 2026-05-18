@@ -1,8 +1,7 @@
 /-
   ShenWork/PDE/SpecialCases.lean
 
-  Complete proofs of PDE theorems for special cases.
-  These demonstrate the full proof chain for specific initial data.
+  Complete proofs of elementary constant-solution facts.
 -/
 import ShenWork.Defs
 import ShenWork.PDE.SuperSolution
@@ -12,9 +11,8 @@ open Filter Topology MeasureTheory Real
 
 noncomputable section
 
-/-- Prop 1.1(1) for the special case u₀ ≡ 1 and χ = 0:
-    The constant solution u ≡ 1, v ≡ 1 satisfies all conditions. -/
-theorem cm_global_exist_neg_constant_case (p : CMParams) (hp : p.χ = 0) :
+/-- For χ = 0, the constant solution u ≡ 1, v ≡ 1 has the expected global bounds. -/
+theorem constant_one_global_bounds (p : CMParams) (hp : p.χ = 0) :
     ∃ u v : ℝ → ℝ → ℝ,
       IsGlobalClassicalSolution p u v ∧
       (∀ t x, 0 ≤ t → u t x ≤ max 1 1) ∧
@@ -23,9 +21,8 @@ theorem cm_global_exist_neg_constant_case (p : CMParams) (hp : p.χ = 0) :
   · intro t x _; simp
   · intro ε hε; exact ⟨0, fun t x _ => by linarith⟩
 
-/-- Prop 1.2(1) for the special case u₀ ≡ 1 and χ = 0:
-    The constant solution already IS the equilibrium. -/
-theorem cm_stabilize_neg_constant_case (p : CMParams) (hp : p.χ = 0) :
+/-- For χ = 0, the constant solution u ≡ 1, v ≡ 1 is already at equilibrium. -/
+theorem constant_one_stabilizes (p : CMParams) (hp : p.χ = 0) :
     ∃ u v : ℝ → ℝ → ℝ,
       IsGlobalClassicalSolution p u v ∧
       Tendsto (fun t => ⨆ x, |u t x - 1|) atTop (𝓝 0) := by

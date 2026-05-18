@@ -33,6 +33,11 @@ structure CM2Params where
 def Psi_beta (β : ℝ) : ℝ := (β / (1 + β)) ^ (1 + β)
 def Theta_beta (β : ℝ) : ℝ := β ^ β * (1 + β) ^ (-(1 + β))
 
+/-!
+This is a toy placeholder, not the bounded-domain parabolic-elliptic PDE from
+the paper.  It is kept only to document why the old paper-level theorem shapes
+were unsound under the current definitions.
+-/
 structure IsClassicalSolution2 (p : CM2Params) (T : ℝ) (u _v : ℝ → ℝ → ℝ) : Prop where
   hT : 0 < T
   u_pos : ∀ t x, 0 < t → t < T → 0 < u t x
@@ -77,8 +82,9 @@ theorem persistence_property_false_under_current_solution_def
       _ = δ := Real.exp_log hδ_pos
   linarith
 
-/-- Helper: the constant function (a/b)^{1/α} is a global solution of the bounded-domain system. -/
-private lemma cm2_constant_solution (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) :
+/-- Under the current toy solution definition, the positive equilibrium is a global solution. -/
+theorem cm2_constant_solution_under_current_solution_def
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) :
     let c := (p.a / p.b) ^ (1 / p.α)
     ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution2 p u v ∧ IsBounded2 u := by
   refine ⟨fun _ _ => (p.a / p.b) ^ (1 / p.α),
@@ -86,25 +92,5 @@ private lemma cm2_constant_solution (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b
          fun T hT => ⟨hT, fun _ _ _ _ => by positivity, trivial⟩,
          ⟨(p.a / p.b) ^ (1 / p.α), fun t x _ => by
             simp only; rw [abs_of_nonneg (Real.rpow_nonneg (div_nonneg (le_of_lt ha) (le_of_lt hb)) _)]⟩⟩
-
-theorem cm2_thm1_neg_sensitivity (p : CM2Params) (hp : p.χ₀ ≤ 0)
-    (hab : 0 < p.a ∧ 0 < p.b) :
-    ∀ u₀ : ℝ → ℝ, (∀ x, 0 < u₀ x) →
-    ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution2 p u v ∧ IsBounded2 u :=
-  fun _ _ => cm2_constant_solution p hab.1 hab.2
-
-theorem cm2_thm2_weak_diffusion (p : CM2Params)
-    (hab : 0 < p.a ∧ 0 < p.b) (hm1 : p.m ≤ 1) (hβ1 : 1 ≤ p.β) :
-    ∀ u₀ : ℝ → ℝ, (∀ x, 0 < u₀ x) →
-    ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution2 p u v ∧ IsBounded2 u :=
-  fun _ _ => cm2_constant_solution p hab.1 hab.2
-
-theorem cm2_thm3_strong_logistic (p : CM2Params)
-    (hab : 0 < p.a ∧ 0 < p.b) (hm_pos : 0 < p.m)
-    (hparam : p.α > p.m + p.γ - 1 ∨ (1/2 ≤ p.β ∧ p.α > 2 * p.m + p.γ - 2) ∨
-              (0 ≤ p.β ∧ p.α = p.m + p.γ - 1) ∨ (1/2 ≤ p.β ∧ p.α = 2 * p.m + p.γ - 2)) :
-    ∀ u₀ : ℝ → ℝ, (∀ x, 0 < u₀ x) →
-    ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution2 p u v ∧ IsBounded2 u :=
-  fun _ _ => cm2_constant_solution p hab.1 hab.2
 
 end

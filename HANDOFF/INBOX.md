@@ -1,6 +1,7 @@
 # Tasks for Codex (GPT-5.5)
 
-BUILD OK, 0 sorry remaining.
+BUILD OK, 0 sorry remaining. Paper main theorems are not yet formalized; see
+`THEOREM_STATUS.md` for the current theorem-status matrix.
 
 ## Done: Parabolic maximum principle
 
@@ -71,6 +72,15 @@ BUILD OK, 0 sorry remaining.
   contraction estimate and `abstract_mild_fixed_point`, but no longer claims
   local mild existence without constructing the actual complete function space,
   self-map, self-map/integrability facts, and contraction proof.
+- Removed remaining theorem-shaped placeholders that looked like paper main
+  theorems but were only constant-solution/toy witnesses:
+  `cm_global_exist_*`, `cm_stabilize_*`, `cm_tw_stability`, the public
+  `global_existence_*`/`stabilization_*` wrappers, `stability_traveling_wave`,
+  and Paper2 `cm2_thm*`.
+- Added `THEOREM_STATUS.md` and rewrote `UNDERSTANDING.md` so future work is
+  driven by accurate paper-theorem status, not by `sorry` count.
+- Added `ShenWork.Paper2.Defs` and `ShenWork.Paper3.Defs` to `ShenWork.lean`,
+  so the remote full build now covers the Paper2/Paper3 layers.
 
 ## P0: MildSolution Banach fixed point
 Need to instantiate `abstract_mild_fixed_point` by constructing the actual complete

@@ -1,6 +1,6 @@
 /-
   ShenWork/TravelingWaves.lean
-  Section 4: Existence of traveling wave solutions.
+  Section 4: Explicit barrier/profile facts for traveling-wave construction.
 -/
 import ShenWork.Defs
 import ShenWork.Preliminary
@@ -9,6 +9,12 @@ import ShenWork.StabilityUniqueness
 open Filter Topology
 
 noncomputable section
+
+/-!
+The paper-level traveling-wave existence theorem is not currently formalized as
+a Lean theorem.  The statements below are only true facts about the logistic
+profile used as a barrier/profile, not existence of an `IsTravelingWave`.
+-/
 
 theorem logistic_profile_bound_neg_speed (p : CMParams)
     (_hα : p.α ≤ p.m + p.γ - 1) (_hχ : p.χ ≤ 0)

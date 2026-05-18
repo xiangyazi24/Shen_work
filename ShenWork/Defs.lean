@@ -464,102 +464,63 @@ theorem constant_solution_is_global (p : CMParams) :
       simp [Real.one_rpow]
   }
 
-/-! ## PDE theorems — to be proved from scratch by building PDE infrastructure -/
+/-! ## Honest projection lemmas
 
-theorem cm_global_exist_neg (p : CMParams) (_hp : p.χ ≤ 0)
-    (u₀ : ℝ → ℝ) (_hu₀_cont : Continuous u₀) (_hu₀_bdd : IsBddFun u₀)
-    (_hu₀_nn : ∀ x, 0 ≤ u₀ x) :
-    ∃ u v : ℝ → ℝ → ℝ,
-      IsGlobalClassicalSolution p u v ∧
-      (∀ t x, 0 ≤ t → u t x ≤ max 1 (⨆ x, u₀ x)) ∧
-      (∀ ε > 0, ∃ T, ∀ t x, T ≤ t → u t x ≤ 1 + ε) :=
-  ⟨fun _ _ => 1, fun _ _ => 1, constant_solution_is_global p,
-   fun _ _ _ => le_max_left _ _, fun ε hε => ⟨0, fun _ _ _ => by linarith⟩⟩
+The paper-level global existence, stabilization, traveling-wave existence,
+stability, and uniqueness theorems are not stated here as Lean theorems yet.
+This section keeps only facts that follow directly from the current definitions.
+-/
 
-theorem cm_global_exist_pos (p : CMParams) (hp : 0 < p.χ)
-    (hα : p.α > p.m + p.γ - 1 ∨
-      (p.α = p.m + p.γ - 1 ∧
-       p.χ < min ((2 * p.m - 1) / (p.m - 1)) ((p.m + p.γ - 1) / (p.γ - 1))))
-    (u₀ : ℝ → ℝ) (hu₀_cont : Continuous u₀) (hu₀_bdd : IsBddFun u₀)
-    (hu₀_nn : ∀ x, 0 ≤ u₀ x) :
-    ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution p u v ∧ IsBoundedGlobal u :=
-  ⟨fun _ _ => 1, fun _ _ => 1, constant_solution_is_global p, ⟨1, fun _ _ _ => by simp⟩⟩
-
-theorem cm_stabilize_neg (p : CMParams) (hp : p.χ ≤ 0)
-    (u₀ : ℝ → ℝ) (hu₀_cont : Continuous u₀) (hu₀_bdd : IsBddFun u₀)
-    (hu₀_nn : ∀ x, 0 ≤ u₀ x) (hu₀_inf : ∃ δ > 0, ∀ x, δ ≤ u₀ x) :
-    ∃ u v : ℝ → ℝ → ℝ,
-      IsGlobalClassicalSolution p u v ∧
-      Tendsto (fun t => ⨆ x, |u t x - 1|) atTop (𝓝 0) := by
-  exact ⟨_, _, constant_solution_is_global p,
-    by simp only [sub_self, abs_zero, ciSup_const]; exact tendsto_const_nhds⟩
-
-theorem cm_stabilize_small_pos (p : CMParams)
-    (hp : 0 < p.χ) (hp2 : p.χ < 1 / 2) (hα : p.m + p.γ - 1 ≤ p.α)
-    (u₀ : ℝ → ℝ) (hu₀_cont : Continuous u₀) (hu₀_bdd : IsBddFun u₀)
-    (hu₀_nn : ∀ x, 0 ≤ u₀ x) (hu₀_inf : ∃ δ > 0, ∀ x, δ ≤ u₀ x) :
-    ∃ u v : ℝ → ℝ → ℝ,
-      IsGlobalClassicalSolution p u v ∧
-      Tendsto (fun t => ⨆ x, |u t x - 1|) atTop (𝓝 0) := by
-  exact ⟨_, _, constant_solution_is_global p,
-    by simp only [sub_self, abs_zero, ciSup_const]; exact tendsto_const_nhds⟩
-
--- cm_tw_exist_neg: not formalized here; explicit profiles in TravelingWaves.lean are barriers,
--- not traveling waves.
-
--- cm_tw_exist_small_pos: not formalized here; explicit profiles in StabilityUniqueness.lean are
--- barriers, not traveling waves.
-
-theorem cm_tw_stability (p : CMParams)
-    (hparam : (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
-              (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1))
-    (c : ℝ) (hc : cStarStar p < c)
-    (U V : ℝ → ℝ) (hTW : IsTravelingWave p c U V)
+theorem IsTravelingWave.to_global_classical_solution (p : CMParams)
+    {c : ℝ} {U V : ℝ → ℝ} (hTW : IsTravelingWave p c U V)
     (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V)
-    (u₀ : ℝ → ℝ) (hu₀_nn : ∀ x, 0 ≤ u₀ x) :
-    ∃ u v : ℝ → ℝ → ℝ,
-      IsGlobalClassicalSolution p u v ∧
-      (∀ ε > 0, ∃ T, ∀ t x, T ≤ t → |u t x - U (x - c * t)| < ε) := by
+    : ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution p u v := by
   have hU_d : Differentiable ℝ U := hU_diff.differentiable two_ne_zero
   have hV_d : Differentiable ℝ V := hV_diff.differentiable two_ne_zero
-  refine ⟨fun t x => U (x - c * t), fun t x => V (x - c * t), ?_, ?_⟩
-  · intro T hT
-    exact {
-      hT := hT
-      u_smooth := fun t x _ _ => ⟨
-        (hU_d _).comp _ ((differentiableAt_const x).sub
-          ((differentiableAt_const c).mul differentiableAt_id)),
-        (hU_d _).comp _ (differentiableAt_id.sub (differentiableAt_const _))⟩
-      v_smooth := fun t x _ _ =>
-        (hV_d _).comp _ (differentiableAt_id.sub (differentiableAt_const _))
-      pde_u := fun t x _ _ => by
-        -- Time derivative via chain rule
-        have hinner : HasDerivAt (fun t' => x - c * t') (-c) t := by
-          have := (hasDerivAt_const t x).sub ((hasDerivAt_id t).const_mul c)
-          simpa using this
-        have htime : deriv (fun t' => U (x - c * t')) t = deriv U (x - c * t) * (-c) :=
-          ((hU_d _).hasDerivAt.comp t hinner).deriv
-        -- Spatial translations
-        have hU2 := congr_fun (iteratedDeriv_comp_sub_const 2 U (c * t)) x
-        have hV1 : ∀ y, deriv (fun z => V (z - c * t)) y = deriv V (y - c * t) := by
-          intro y
-          have := congr_fun (iteratedDeriv_comp_sub_const 1 V (c * t)) y
-          simpa [iteratedDeriv_one] using this
-        have hChem : deriv (fun y => U (y - c * t) ^ p.m * deriv (fun z => V (z - c * t)) y) x
-            = deriv (fun ξ => U ξ ^ p.m * deriv V ξ) (x - c * t) := by
-          have hfun : (fun y => U (y - c * t) ^ p.m * deriv (fun z => V (z - c * t)) y) =
-              (fun y => U (y - c * t) ^ p.m * deriv V (y - c * t)) := by
-            ext y; rw [hV1 y]
-          rw [hfun]
-          have := congr_fun (iteratedDeriv_comp_sub_const 1
-            (fun ξ => U ξ ^ p.m * deriv V ξ) (c * t)) x
-          simpa [iteratedDeriv_one] using this
-        rw [htime, hU2, hChem]
-        linarith [hTW.ode_U (x - c * t)]
-      pde_v := fun t x _ _ => by
-        have h := congr_fun (iteratedDeriv_comp_sub_const 2 V (c * t)) x
-        rw [h]; exact hTW.ode_V (x - c * t)
-    }
-  · intro ε hε; exact ⟨0, fun t x _ => by simp; exact hε⟩
+  refine ⟨fun t x => U (x - c * t), fun t x => V (x - c * t), ?_⟩
+  intro T hT
+  exact {
+    hT := hT
+    u_smooth := fun t x _ _ => ⟨
+      (hU_d _).comp _ ((differentiableAt_const x).sub
+        ((differentiableAt_const c).mul differentiableAt_id)),
+      (hU_d _).comp _ (differentiableAt_id.sub (differentiableAt_const _))⟩
+    v_smooth := fun t x _ _ =>
+      (hV_d _).comp _ (differentiableAt_id.sub (differentiableAt_const _))
+    pde_u := fun t x _ _ => by
+      -- Time derivative via chain rule.
+      have hinner : HasDerivAt (fun t' => x - c * t') (-c) t := by
+        have := (hasDerivAt_const t x).sub ((hasDerivAt_id t).const_mul c)
+        simpa using this
+      have htime :
+          deriv (fun t' => U (x - c * t')) t = deriv U (x - c * t) * (-c) :=
+        ((hU_d _).hasDerivAt.comp t hinner).deriv
+      -- Spatial translations.
+      have hU2 := congr_fun (iteratedDeriv_comp_sub_const 2 U (c * t)) x
+      have hV1 : ∀ y, deriv (fun z => V (z - c * t)) y = deriv V (y - c * t) := by
+        intro y
+        have := congr_fun (iteratedDeriv_comp_sub_const 1 V (c * t)) y
+        simpa [iteratedDeriv_one] using this
+      have hChem :
+          deriv (fun y => U (y - c * t) ^ p.m *
+            deriv (fun z => V (z - c * t)) y) x =
+          deriv (fun ξ => U ξ ^ p.m * deriv V ξ) (x - c * t) := by
+        have hfun :
+            (fun y => U (y - c * t) ^ p.m *
+              deriv (fun z => V (z - c * t)) y) =
+            (fun y => U (y - c * t) ^ p.m * deriv V (y - c * t)) := by
+          ext y
+          rw [hV1 y]
+        rw [hfun]
+        have := congr_fun (iteratedDeriv_comp_sub_const 1
+          (fun ξ => U ξ ^ p.m * deriv V ξ) (c * t)) x
+        simpa [iteratedDeriv_one] using this
+      rw [htime, hU2, hChem]
+      linarith [hTW.ode_U (x - c * t)]
+    pde_v := fun t x _ _ => by
+      have h := congr_fun (iteratedDeriv_comp_sub_const 2 V (c * t)) x
+      rw [h]
+      exact hTW.ode_V (x - c * t)
+  }
 
 end

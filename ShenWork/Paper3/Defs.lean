@@ -46,9 +46,8 @@ theorem cm3_global_stability_neg_false_under_current_solution_def
     refine ⟨uStar + 1, ?_⟩
     intro _t _x _ht0
     dsimp [u]
-    rw [abs_of_nonneg]
-    · rfl
-    · linarith
+    have hnonneg : 0 ≤ uStar + 1 := by linarith
+    rw [abs_of_nonneg hnonneg]
   have hconv := hstable u v hglobal hbdd
   have hone :
       Tendsto (fun _ : ℝ => (1 : ℝ)) atTop (𝓝 1) :=

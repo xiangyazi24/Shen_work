@@ -11,3 +11,5 @@ import ShenWork.PDE.GlobalBound
 import ShenWork.PDE.LeibnizRule
 import ShenWork.PDE.ODEExistence
 import ShenWork.PDE.SpecialCases
+import ShenWork.Paper2.Defs
+import ShenWork.Paper3.Defs
