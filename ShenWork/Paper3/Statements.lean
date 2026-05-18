@@ -838,10 +838,11 @@ def PowerDifferenceInequality
         ((u - uStar) * (u ^ alpha - uStar ^ alpha))
 
 def Lemma_A_6 : Prop :=
-  ∀ C alpha gamma uStar,
-    0 < C → 0 < alpha → 0 < gamma → 0 < uStar →
+  ∀ alpha gamma,
+    0 < alpha → 0 < gamma →
       2 * gamma ≤ alpha + 1 →
-        PowerDifferenceInequality C alpha gamma uStar
+        ∃ C > 0, ∀ uStar > 0,
+          PowerDifferenceInequality C alpha gamma uStar
 
 def Lemma_A_7
     (D : BoundedDomainData) (p : CM2Params)
