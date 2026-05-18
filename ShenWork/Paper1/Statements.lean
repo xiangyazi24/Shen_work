@@ -2877,6 +2877,47 @@ theorem Theorem_1_1.positive_wave
         HasWaveRightTailAsymptotic c κ₁ U :=
   h.2 p halpha hχ_nonneg hχ_small c hc
 
+theorem Theorem_1_1.of_frozenStationaryProfile_branches
+    (hneg :
+      ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
+        ∀ c : ℝ, cStarLower p < c →
+          ∃ U : ℝ → ℝ,
+            FrozenStationaryWaveProfile p c U ∧
+              (∀ x, deriv U x ≤ 0) ∧
+              (∀ x, deriv (frozenElliptic p U) x ≤ 0) ∧
+              ShenUpperBoundNegative c U ∧
+              ∀ κ₁, kappa c < κ₁ →
+                κ₁ <
+                  min ((1 + p.α) * kappa c)
+                    (min (p.m * kappa c + 1 / 2) 1) →
+                HasWaveRightTailAsymptotic c κ₁ U)
+    (hpos :
+      ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+        0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+        ∀ c : ℝ, 2 < c →
+          ∃ U : ℝ → ℝ,
+            FrozenStationaryWaveProfile p c U ∧
+              ShenUpperBoundPositive p c U ∧
+              ∀ κ₁, kappa c < κ₁ →
+                κ₁ <
+                  min ((1 + p.α) * kappa c)
+                    (min (p.m * kappa c + 1 / 2) 1) →
+                HasWaveRightTailAsymptotic c κ₁ U) :
+    Theorem_1_1 := by
+  constructor
+  · intro p halpha hχ c hc
+    rcases hneg p halpha hχ c hc with
+      ⟨U, hprofile, hUmono, hVmono, hupper, htail⟩
+    exact
+      ⟨U, frozenElliptic p U,
+        hprofile.to_monotoneTravelingWave hUmono hVmono, hupper, htail⟩
+  · intro p halpha hχ_nonneg hχ_small c hc
+    rcases hpos p halpha hχ_nonneg hχ_small c hc with
+      ⟨U, hprofile, hupper, htail⟩
+    exact
+      ⟨U, frozenElliptic p U,
+        hprofile.to_travelingWave, hupper, htail⟩
+
 def StableWaveParameterRegime (p : CMParams) : Prop :=
   (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
     (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1)
