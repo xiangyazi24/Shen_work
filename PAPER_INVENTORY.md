@@ -37,6 +37,7 @@ systems.
 | Remarks 4.1--4.3 | none | remark/doc | Include constants/asymptotics used by later theorem statements. |
 | Lemma 5.1 | `MChi`, `HasWaveUpperTailBound`, `Paper1.Lemma_5_1` | statement target | A priori estimates for stationary wave profiles; basic `MChi`, `MChi` power positivity, tail-bound projections, and `U^γ` bounds proved. |
 | Lemma 5.2 | `Paper1.Lemma_5_2` | statement target | Estimate for `u_x/u`. |
+| Lemma 5.3 | `Paper1.Lemma_5_3` | statement target | Weighted elliptic perturbation estimates used in the stability energy proof. |
 | Remarks 5.1--5.2 | none | remark/doc | Feed into definition of `cStarStar` and stability constants. |
 
 ## Paper2: boundedness and global existence on bounded domains

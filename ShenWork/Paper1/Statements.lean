@@ -757,6 +757,25 @@ def Lemma_5_2 : Prop :=
         HasWaveUpperTailBound p c U →
           ∃ B > 0, ∀ x, deriv U x / U x ≤ B
 
+def Lemma_5_3 : Prop :=
+  ∀ gamma M eta : ℝ,
+    1 ≤ gamma → 1 ≤ M → 0 < eta → eta < 1 →
+      ∀ u1 u2 : ℝ → ℝ,
+        IsCUnifBdd u1 → IsCUnifBdd u2 →
+        (∀ x, 0 ≤ u1 x ∧ u1 x ≤ M) →
+        (∀ x, 0 ≤ u2 x ∧ u2 x ≤ M) →
+        Integrable
+          (fun x => Real.exp (2 * eta * x) * |u2 x - u1 x| ^ 2) →
+          let v := Psi (fun x => u2 x ^ gamma - u1 x ^ gamma) 1 1
+          let U := fun x => Real.exp (eta * x) * (u2 x - u1 x)
+          let V := fun x => Real.exp (eta * x) * v x
+          (∫ x : ℝ, |V x| ^ 2 ≤
+              gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta) ^ 2 *
+                ∫ x : ℝ, |U x| ^ 2) ∧
+            (∫ x : ℝ, |deriv V x| ^ 2 ≤
+              gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta ^ 2) *
+                ∫ x : ℝ, |U x| ^ 2)
+
 /-- Paper1 Proposition 1.1: global existence and boundedness of Cauchy solutions. -/
 def Proposition_1_1 : Prop :=
   (∀ p : CMParams, p.χ ≤ 0 →
