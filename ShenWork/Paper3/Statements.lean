@@ -56,6 +56,13 @@ lemma positiveEquilibrium_logistic_zero
   field_simp [ne_of_gt hab.2]
   ring
 
+lemma positiveEquilibrium_reaction_zero
+    (p : CM2Params) (hab : 0 < p.a ∧ 0 < p.b) :
+    (positiveEquilibrium p hab).1 *
+      (p.a - p.b * (positiveEquilibrium p hab).1 ^ p.α) = 0 := by
+  rw [positiveEquilibrium_logistic_zero p hab]
+  ring
+
 lemma positiveEquilibrium_elliptic_relation
     (p : CM2Params) (hab : 0 < p.a ∧ 0 < p.b) :
     p.μ * (positiveEquilibrium p hab).2 =
@@ -80,6 +87,12 @@ lemma minimalEquilibrium_elliptic_relation
       p.ν * (minimalEquilibrium p uStar).1 ^ p.γ := by
   change p.μ * (p.ν / p.μ * uStar ^ p.γ) = p.ν * uStar ^ p.γ
   field_simp [ne_of_gt p.hμ]
+
+lemma minimalEquilibrium_reaction_zero_of_a_b_zero
+    (p : CM2Params) (uStar : ℝ) (ha : p.a = 0) (hb : p.b = 0) :
+    (minimalEquilibrium p uStar).1 *
+      (p.a - p.b * (minimalEquilibrium p uStar).1 ^ p.α) = 0 := by
+  simp [minimalEquilibrium, ha, hb]
 
 def PositiveGlobalBoundedSolution
     (D : BoundedDomainData) (p : CM2Params)
