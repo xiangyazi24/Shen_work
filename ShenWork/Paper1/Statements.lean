@@ -1683,6 +1683,20 @@ theorem LocalUniformContinuousOn.fixed_of_approx_fixed
     simpa [hfix n] using hn
   exact himage.unique hsame
 
+theorem LocalUniformContinuousOn.fixed_of_subseq_fixed_limit
+    {trap : (ℝ → ℝ) → Prop} {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hcont : LocalUniformContinuousOn trap Tmap)
+    {seq : ℕ → ℝ → ℝ} {u : ℝ → ℝ} {subseq : ℕ → ℕ}
+    (_hsubseq : StrictMono subseq)
+    (hseq : ∀ n, trap (seq n)) (hu : trap u)
+    (hconv : LocallyUniformConverges (fun n => seq (subseq n)) u)
+    (hfix : ∀ n, Tmap (seq n) = seq n) :
+    Tmap u = u := by
+  exact hcont.fixed_of_approx_fixed
+    (seq := fun n => seq (subseq n)) (u := u)
+    (fun n => hseq (subseq n)) hu hconv
+    (fun n => hfix (subseq n))
+
 /-- Sequential compactness of the range of a wave map in the local-uniform
 topology, restricted to a trapping set. -/
 def LocalUniformSequentiallyCompactRange
@@ -1693,6 +1707,28 @@ def LocalUniformSequentiallyCompactRange
         ∃ U : ℝ → ℝ,
           trap U ∧
             LocallyUniformConverges (fun n => Tmap (seq (subseq n))) U
+
+theorem LocalUniformSequentiallyCompactRange.exists_fixed_subseq_limit
+    {trap : (ℝ → ℝ) → Prop} {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hcompact : LocalUniformSequentiallyCompactRange trap Tmap)
+    (hcont : LocalUniformContinuousOn trap Tmap)
+    {seq : ℕ → ℝ → ℝ}
+    (hseq : ∀ n, trap (seq n))
+    (hfix : ∀ n, Tmap (seq n) = seq n) :
+    ∃ subseq : ℕ → ℕ, StrictMono subseq ∧
+      ∃ U : ℝ → ℝ,
+        trap U ∧
+          LocallyUniformConverges (fun n => seq (subseq n)) U ∧
+          Tmap U = U := by
+  rcases hcompact seq hseq with ⟨subseq, hsubseq, U, hU, hconv_image⟩
+  have hconv_seq :
+      LocallyUniformConverges (fun n => seq (subseq n)) U := by
+    intro R hR ε hε
+    filter_upwards [hconv_image R hR ε hε] with n hn
+    simpa [hfix (subseq n)] using hn
+  exact
+    ⟨subseq, hsubseq, U, hU, hconv_seq,
+      hcont.fixed_of_subseq_fixed_limit hsubseq hseq hU hconv_seq hfix⟩
 
 /-- The frozen auxiliary parabolic equation used in Section 4.2/4.3.
 The frozen profile supplies the elliptic response; the orbit starts from the
