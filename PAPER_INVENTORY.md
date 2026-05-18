@@ -32,11 +32,11 @@ systems.
 | Lemma 2.3 | `Paper1.Lemma_2_3`, `Paper1.Lemma_2_3_unit_proved` | partial | Unit-parameter derivative bound is proved; general `(λ, μ)` packaging remains. |
 | Lemma 2.4 | `Paper1.Lemma_2_4_proved`, `Psi_le_min_const_exp_of_nonneg_le` | proved | Exponential resolvent bound for `Ψ(·;u,1,1)`. |
 | Lemma 2.5 | `ExponentialWeight`, `Paper1.Lemma_2_5` | statement target | Weighted `L^p` estimate for `∇Ψ(u^γ)`. |
-| Lemma 4.1 | none | missing | Super-solution barrier for frozen moving-frame equation. |
-| Lemma 4.2 | none | missing | Sub-solution barriers. |
+| Lemma 4.1 | `frozenWaveOperator`, `upperBarrier`, `Paper1.Lemma_4_1` | statement target | Super-solution barrier for frozen moving-frame equation. |
+| Lemma 4.2 | `lowerBarrierRaw`, `lowerBarrierPlateau`, `SubsolutionConstants`, `Paper1.Lemma_4_2` | statement target | Sub-solution barriers. |
 | Remarks 4.1--4.3 | none | remark/doc | Include constants/asymptotics used by later theorem statements. |
-| Lemma 5.1 | none | missing | A priori estimates for stationary wave profiles. |
-| Lemma 5.2 | none | missing | Estimate for `u_x/u`. |
+| Lemma 5.1 | `MChi`, `HasWaveUpperTailBound`, `Paper1.Lemma_5_1` | statement target | A priori estimates for stationary wave profiles. |
+| Lemma 5.2 | `Paper1.Lemma_5_2` | statement target | Estimate for `u_x/u`. |
 | Remarks 5.1--5.2 | none | remark/doc | Feed into definition of `cStarStar` and stability constants. |
 
 ## Paper2: boundedness and global existence on bounded domains

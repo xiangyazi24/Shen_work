@@ -167,6 +167,121 @@ def Lemma_2_5 : Prop :=
               psi.weight x
           ≤ C * ∫ x : ℝ, (u x) ^ (gamma * pExp) * psi.weight x
 
+def frozenElliptic (p : CMParams) (u : ℝ → ℝ) : ℝ → ℝ :=
+  fun x => Psi (fun y => (u y) ^ p.γ) 1 1 x
+
+def frozenWaveOperator (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) : ℝ → ℝ :=
+  fun x =>
+    iteratedDeriv 2 W x + c * deriv W x
+      - p.χ *
+        deriv (fun y => (W y) ^ p.m * deriv (frozenElliptic p u) y) x
+      + W x * (1 - (W x) ^ p.α)
+
+def IsFrozenSuperSolution (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) : Prop :=
+  ∀ x, frozenWaveOperator p c u W x ≤ 0
+
+def IsFrozenSubSolutionOn (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) (s : Set ℝ) : Prop :=
+  ∀ x ∈ s, 0 ≤ frozenWaveOperator p c u W x
+
+def upperBarrier (κ M : ℝ) : ℝ → ℝ :=
+  fun x => min M (Real.exp (-κ * x))
+
+def lowerBarrierRaw (κ κtilde D : ℝ) : ℝ → ℝ :=
+  fun x => Real.exp (-κ * x) - D * Real.exp (-κtilde * x)
+
+def lowerBarrierXMinus (κ κtilde D : ℝ) : ℝ :=
+  Real.log D / (κtilde - κ)
+
+def lowerBarrierXPlus (κ κtilde D : ℝ) : ℝ :=
+  Real.log (κtilde * D / κ) / (κtilde - κ)
+
+def lowerBarrierPlateau (κ κtilde D : ℝ) : ℝ → ℝ :=
+  fun x =>
+    if x ≤ lowerBarrierXPlus κ κtilde D then
+      lowerBarrierRaw κ κtilde D (lowerBarrierXPlus κ κtilde D)
+    else
+      lowerBarrierRaw κ κtilde D x
+
+def InWaveTrapSet (κ M : ℝ) (u : ℝ → ℝ) : Prop :=
+  IsCUnifBdd u ∧ ∀ x, 0 ≤ u x ∧ u x ≤ upperBarrier κ M x
+
+structure SubsolutionConstants where
+  K : ℝ
+  D : ℝ
+  d : ℝ
+  K_pos : 0 < K
+  D_pos : 0 < D
+  d_pos : 0 < d
+
+def Lemma_4_1 : Prop :=
+  (∀ p : CMParams, p.χ ≤ 0 → p.α ≤ p.m + p.γ - 1 →
+    ∀ κ M c : ℝ, 0 < κ → κ < 1 → 1 ≤ M → c = κ + κ⁻¹ →
+      ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
+        IsFrozenSuperSolution p c u (upperBarrier κ M)) ∧
+  (∀ p : CMParams, 0 ≤ p.χ → p.χ < chiStar p →
+    p.α = p.m + p.γ - 1 →
+    ∀ κ M c : ℝ, 0 < κ → κ < 1 → 1 ≤ M →
+      (1 / (1 - p.χ)) ^ (1 / p.α) ≤ M → c = κ + κ⁻¹ →
+      ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
+        IsFrozenSuperSolution p c u (upperBarrier κ M))
+
+def Lemma_4_2 : Prop :=
+  ∀ p : CMParams, ∀ κ κtilde M c : ℝ,
+    0 < κ → κ < 1 →
+      κ < κtilde →
+      κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
+      1 ≤ M → c = κ + κ⁻¹ →
+        ∃ C : SubsolutionConstants,
+          ∀ D : ℝ, C.D < D →
+            ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
+              IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+                (Set.Ioi (lowerBarrierXMinus κ κtilde D)) ∧
+              ∀ d : ℝ, 0 < d → d ≤ C.d →
+                IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ
+
+def MChi (p : CMParams) : ℝ :=
+  if p.χ ≤ 0 then 1 else (1 / (1 - p.χ)) ^ (1 / p.α)
+
+def HasWaveUpperTailBound (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop :=
+  ∀ x, 0 < U x ∧ U x ≤ min (MChi p) (Real.exp (-(kappa c) * x))
+
+def WaveDerivativeTendsZero (U : ℝ → ℝ) : Prop :=
+  Tendsto (fun x => deriv U x) atBot (𝓝 0) ∧
+    Tendsto (fun x => deriv U x) atTop (𝓝 0)
+
+def Lemma_5_1 : Prop :=
+  ∀ p : CMParams, ∀ c : ℝ, 2 < c →
+    ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V →
+      HasWaveUpperTailBound p c U →
+        (∀ x, |V x| ≤ (MChi p) ^ p.γ ∧ |deriv V x| ≤ (MChi p) ^ p.γ) ∧
+        (p.γ + p.γ⁻¹ < c →
+          ∀ x,
+            |V x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x)) ∧
+            |deriv V x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x))) ∧
+        WaveDerivativeTendsZero U ∧
+        (c > p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) →
+          ∃ B > 0, ∀ x, |deriv U x| ≤ B) ∧
+        (c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+          ∃ B1 B2, ∀ x,
+            |deriv U x| ≤
+              B1 * Real.exp (-(kappa c) * x) +
+                B2 * Real.exp (-(kappa c) * p.γ * x))
+
+def Lemma_5_2 : Prop :=
+  ∀ p : CMParams, ∀ c : ℝ,
+    c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+          ∃ B > 0, ∀ x, deriv U x / U x ≤ B
+
 /-- Paper1 Proposition 1.1: global existence and boundedness of Cauchy solutions. -/
 def Proposition_1_1 : Prop :=
   (∀ p : CMParams, p.χ ≤ 0 →
