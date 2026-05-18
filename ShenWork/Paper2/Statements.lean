@@ -718,6 +718,19 @@ def Corollary_2_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
           LpPowerBoundedBefore D p0 T u) →
       ∀ pExp > 1, LpPowerBoundedBefore D pExp T u
 
+lemma Corollary_2_1.lp_bound
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Corollary_2_1 D p)
+    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution D p T u v)
+    (hboot :
+      ∃ rho > 0, CrossDiffusionBootstrapEstimate D p T rho u v ∧
+        ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+          LpPowerBoundedBefore D p0 T u)
+    {pExp : ℝ} (hpExp : 1 < pExp) :
+    LpPowerBoundedBefore D pExp T u :=
+  h T hT u v hsol hboot pExp hpExp
+
 def Proposition_2_1
     (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
@@ -728,11 +741,31 @@ def Proposition_2_1
           S.lpNorm pExp (v t) ≤
             (p.ν / p.μ) * S.lpNorm pExp (fun x => (u t x) ^ p.γ)
 
+lemma Proposition_2_1.signal_lp_bound
+    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
+    (h : Proposition_2_1 D p S)
+    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution D p T u v)
+    {pExp : ℝ} (hpExp : 1 ≤ pExp)
+    {t : ℝ} (ht0 : 0 < t) (htT : t < T) :
+    S.lpNorm pExp (v t) ≤
+      (p.ν / p.μ) * S.lpNorm pExp (fun x => (u t x) ^ p.γ) :=
+  h T hT u v hsol pExp hpExp t ht0 htT
+
 def Proposition_2_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
     IsPaper2ClassicalSolution D p T u v →
       ∀ pExp > 1, ∃ Mstar > 0,
         WeightedGradientEstimate D pExp p.β p.γ Mstar T u v
+
+lemma Proposition_2_2.weighted_gradient
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Proposition_2_2 D p)
+    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution D p T u v)
+    {pExp : ℝ} (hpExp : 1 < pExp) :
+    ∃ Mstar > 0, WeightedGradientEstimate D pExp p.β p.γ Mstar T u v :=
+  h T hT u v hsol pExp hpExp
 
 def Proposition_2_3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
@@ -740,6 +773,15 @@ def Proposition_2_3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
       ∀ pExp, max 1 p.β < pExp →
         ∀ eps > 0, ∃ Ceps > 0,
           WeightedSignalEstimate D pExp p.β p.γ eps Ceps T u v
+
+lemma Proposition_2_3.weighted_signal
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Proposition_2_3 D p)
+    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution D p T u v)
+    {pExp eps : ℝ} (hpExp : max 1 p.β < pExp) (heps : 0 < eps) :
+    ∃ Ceps > 0, WeightedSignalEstimate D pExp p.β p.γ eps Ceps T u v :=
+  h T hT u v hsol pExp hpExp eps heps
 
 def Proposition_2_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
