@@ -32,15 +32,4 @@ theorem logistic_profile_small_pos_facts (p : CMParams)
       (∀ x, F.U x < max 1 (Real.exp (-kappa c * x))) := by
   exact logisticProfile_facts_with_exp_bound (kappa_pos_of_two_lt hc)
 
-theorem uniqueness_traveling_wave (p : CMParams)
-    (hparam : (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
-              (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1))
-    (c : ℝ) (hc : cStarStar p < c)
-    (U₁ V₁ U₂ V₂ : ℝ → ℝ)
-    (hTW₁ : IsTravelingWave p c U₁ V₁) (hTW₂ : IsTravelingWave p c U₂ V₂)
-    (hbound₁ : ∀ x, U₁ x < Real.exp (-kappa c * x))
-    (hbound₂ : ∀ x, U₂ x < Real.exp (-kappa c * x)) :
-    (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) :=
-  cm_tw_uniqueness p hparam c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hbound₁ hbound₂
-
 end

@@ -1,6 +1,6 @@
 # Tasks for Codex (GPT-5.5)
 
-BUILD OK, 3 sorry remaining. Priority order:
+BUILD OK, 2 sorry remaining. Priority order:
 
 ## Done: Parabolic maximum principle
 
@@ -58,6 +58,11 @@ BUILD OK, 3 sorry remaining. Priority order:
   `IsMonotoneTravelingWave.shift_right_with_exp_bound`, combining phase-shift
   invariance with preservation of the right exponential tail bound when shifting
   right.
+- Removed the undernormalized `cm_tw_uniqueness` theorem and downstream
+  `uniqueness_traveling_wave` wrapper. The old hypotheses used only a strict
+  exponential upper bound, but right shifts preserve both the traveling-wave
+  equations and that bound, so this statement should not be kept as a theorem
+  without the paper's actual phase/asymptotic normalization and stability proof.
 
 ## P0: MildSolution Banach fixed point (376)
 Need to instantiate `abstract_mild_fixed_point` by constructing the actual complete
@@ -65,10 +70,6 @@ function space, self-map, self-map/integrability facts, and contraction proof fo
 
 ## P1: heteroclinic_from_shooting (TravelingWaveODE:336)
 Global ODE existence + convergence to E0.
-
-## P2: Deep theorems
-- Defs:574 — TW uniqueness (paper proves this through stability/asymptotics, not the
-  old fake explicit profile construction)
 
 ## Key API discoveries
 - `continuous_rpow_const.comp_aestronglyMeasurable` for rpow measurability

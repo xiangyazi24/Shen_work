@@ -562,15 +562,4 @@ theorem cm_tw_stability (p : CMParams)
     }
   · intro ε hε; exact ⟨0, fun t x _ => by simp; exact hε⟩
 
-theorem cm_tw_uniqueness (p : CMParams)
-    (hparam : (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
-              (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1))
-    (c : ℝ) (hc : cStarStar p < c)
-    (U₁ V₁ U₂ V₂ : ℝ → ℝ)
-    (hTW₁ : IsTravelingWave p c U₁ V₁) (hTW₂ : IsTravelingWave p c U₂ V₂)
-    (hbound₁ : ∀ x, U₁ x < Real.exp (-kappa c * x))
-    (hbound₂ : ∀ x, U₂ x < Real.exp (-kappa c * x)) :
-    (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
-  sorry
-
 end
