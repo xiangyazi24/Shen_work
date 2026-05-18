@@ -1787,24 +1787,68 @@ def Lemma_A_1
                     N.c1Distance (v t) (fun _ => vStar) ≤
                       C * Real.exp (-rate * t)
 
+lemma Lemma_A_1.local_exponential_stability
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D}
+    (h : Lemma_A_1 D p S N)
+    {sigma pNorm uStar vStar : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hstable : LinearlyStable S p uStar vStar) :
+    ∃ eps > 0, ∃ C > 0, ∃ rate > 0,
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤ eps →
+          ∀ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v →
+            InitialTrace D u₀ u →
+              ∀ t, 0 ≤ t →
+                N.c1Distance (u t) (fun _ => uStar) +
+                  N.c1Distance (v t) (fun _ => vStar) ≤
+                    C * Real.exp (-rate * t) :=
+  h sigma pNorm uStar vStar hsigma_low hsigma_high hpNorm hstable
+
 def Lemma_A_2
     (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
   Paper2.Lemma_2_1 D p S
 
+lemma Lemma_A_2.paper2
+    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
+    (h : Lemma_A_2 D p S) :
+    Paper2.Lemma_2_1 D p S :=
+  h
+
 def Lemma_A_3
     (D : BoundedDomainData) (S : SemigroupEstimateData D) : Prop :=
   Paper2.Lemma_2_2 D S
+
+lemma Lemma_A_3.paper2
+    {D : BoundedDomainData} {S : SemigroupEstimateData D}
+    (h : Lemma_A_3 D S) :
+    Paper2.Lemma_2_2 D S :=
+  h
 
 def Lemma_A_4
     (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
   Paper2.Lemma_2_3 D p S
 
+lemma Lemma_A_4.paper2
+    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
+    (h : Lemma_A_4 D p S) :
+    Paper2.Lemma_2_3 D p S :=
+  h
+
 def Lemma_A_5
     (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
   Paper2.Lemma_2_4 D p S
+
+lemma Lemma_A_5.paper2
+    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
+    (h : Lemma_A_5 D p S) :
+    Paper2.Lemma_2_4 D p S :=
+  h
 
 def PowerDifferenceInequality
     (C alpha gamma uStar : ℝ) : Prop :=
@@ -1813,12 +1857,40 @@ def PowerDifferenceInequality
       C * uStar ^ (2 * gamma - alpha - 1) *
         ((u - uStar) * (u ^ alpha - uStar ^ alpha))
 
+lemma PowerDifferenceInequality.apply
+    {C alpha gamma uStar u : ℝ}
+    (h : PowerDifferenceInequality C alpha gamma uStar)
+    (hu : 0 < u) :
+    (u ^ gamma - uStar ^ gamma) ^ 2 ≤
+      C * uStar ^ (2 * gamma - alpha - 1) *
+        ((u - uStar) * (u ^ alpha - uStar ^ alpha)) :=
+  h u hu
+
 def Lemma_A_6 : Prop :=
   ∀ alpha gamma,
     0 < alpha → 0 < gamma →
       2 * gamma ≤ alpha + 1 →
         ∀ uStar > 0,
           PowerDifferenceInequality (CAlphaGamma alpha gamma) alpha gamma uStar
+
+lemma Lemma_A_6.power_difference
+    (h : Lemma_A_6)
+    {alpha gamma uStar : ℝ}
+    (halpha : 0 < alpha) (hgamma : 0 < gamma)
+    (hrel : 2 * gamma ≤ alpha + 1) (huStar : 0 < uStar) :
+    PowerDifferenceInequality (CAlphaGamma alpha gamma) alpha gamma uStar :=
+  h alpha gamma halpha hgamma hrel uStar huStar
+
+lemma Lemma_A_6.apply
+    (h : Lemma_A_6)
+    {alpha gamma uStar u : ℝ}
+    (halpha : 0 < alpha) (hgamma : 0 < gamma)
+    (hrel : 2 * gamma ≤ alpha + 1)
+    (huStar : 0 < uStar) (hu : 0 < u) :
+    (u ^ gamma - uStar ^ gamma) ^ 2 ≤
+      CAlphaGamma alpha gamma * uStar ^ (2 * gamma - alpha - 1) *
+        ((u - uStar) * (u ^ alpha - uStar ^ alpha)) :=
+  (h.power_difference halpha hgamma hrel huStar).apply hu
 
 def Lemma_A_7
     (D : BoundedDomainData) (p : CM2Params)
