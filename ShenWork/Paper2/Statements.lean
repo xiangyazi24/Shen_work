@@ -1203,6 +1203,27 @@ structure Paper2Constants (p : CM2Params) where
   K : ℝ
   K_nonneg : 0 ≤ K
 
+/-- Paper2 Remark 1.6 threshold `(1.30a)` in the slice
+`m = 1`, `α = γ`, `β ≥ 1`. -/
+def remark16ChiStar1 (p : CM2Params) (C : Paper2Constants p) : ℝ :=
+  ((p.N : ℝ) * p.γ * p.b) /
+    (((p.N : ℝ) * p.γ - 2) * (p.ν + Psi_beta p.β * C.K))
+
+/-- Paper2 Remark 1.6 threshold `(1.30b)` in the slice
+`m = 1`, `α = γ`, `β ≥ 1`. -/
+def remark16ChiStar2 (p : CM2Params) (C : Paper2Constants p) : ℝ :=
+  Real.sqrt
+    (8 * p.b /
+      (((p.N : ℝ) * p.γ - 2) * Theta_beta (2 * p.β - 1) * C.K))
+
+/-- Paper2 Remark 1.6 threshold `(1.30c)`, identical to `χ_β`. -/
+def remark16ChiStarWeak (p : CM2Params) : ℝ :=
+  2 * (2 * p.β - 1) / max 2 (p.γ * (p.N : ℝ))
+
+lemma remark16ChiStarWeak_eq_chiBeta (p : CM2Params) :
+    remark16ChiStarWeak p = chiBeta p := by
+  rfl
+
 def StrongLogisticCondition (p : CM2Params) (C : Paper2Constants p) : Prop :=
   (p.β ≥ 0 ∧ p.α > p.m + p.γ - 1) ∨
     (p.β ≥ 1 / 2 ∧ p.α > 2 * p.m + p.γ - 2) ∨
@@ -1279,6 +1300,48 @@ lemma StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two_low_dimens
   exact
     StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two hβ hα
       (Or.inl (positivePart_eq_zero_of_nonpos (by linarith)))
+
+lemma StrongLogisticCondition.of_remark16_chiStar1
+    {p : CM2Params} {C : Paper2Constants p}
+    (hβ : 1 ≤ p.β) (hm : p.m = 1) (hα : p.α = p.γ)
+    (hdim : 2 < (p.N : ℝ) * p.γ)
+    (hχ : p.χ₀ < remark16ChiStar1 p C) :
+    StrongLogisticCondition p C := by
+  have hβ0 : 0 ≤ p.β := by linarith
+  have hcrit : p.α = p.m + p.γ - 1 := by
+    rw [hα, hm]
+    ring
+  refine StrongLogisticCondition.of_critical_m_add_gamma_sub_one hβ0 hcrit ?_
+  right
+  have hpospart :
+      positivePart ((p.N : ℝ) * p.α - 2) = (p.N : ℝ) * p.γ - 2 := by
+    rw [hα]
+    exact positivePart_eq_self_of_nonneg (by linarith)
+  rw [hpospart, hm]
+  convert hχ using 1
+  unfold remark16ChiStar1
+  ring
+
+lemma StrongLogisticCondition.of_remark16_chiStar2
+    {p : CM2Params} {C : Paper2Constants p}
+    (hβ : 1 ≤ p.β) (hm : p.m = 1) (hα : p.α = p.γ)
+    (hdim : 2 < (p.N : ℝ) * p.γ)
+    (hχ : p.χ₀ < remark16ChiStar2 p C) :
+    StrongLogisticCondition p C := by
+  have hβ_half : (1 / 2 : ℝ) ≤ p.β := by linarith
+  have hcrit : p.α = 2 * p.m + p.γ - 2 := by
+    rw [hα, hm]
+    ring
+  refine
+    StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two
+      hβ_half hcrit ?_
+  right
+  have hpospart :
+      positivePart ((p.N : ℝ) * p.α - 2) = (p.N : ℝ) * p.γ - 2 := by
+    rw [hα]
+    exact positivePart_eq_self_of_nonneg (by linarith)
+  rw [hpospart]
+  simpa [remark16ChiStar2] using hχ
 
 lemma StrongLogisticCondition.beta_nonneg
     {p : CM2Params} {C : Paper2Constants p}
