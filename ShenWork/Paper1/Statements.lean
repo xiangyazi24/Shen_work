@@ -2003,6 +2003,19 @@ theorem FrozenAuxiliaryLimitOutput.le_exp_of_inWaveTrapSet
     exact (htrap t ht).le_exp x
   exact le_of_tendsto (htendsto x) heventually
 
+theorem FrozenAuxiliaryLimitOutput.antitone_of_inMonotoneWaveTrapSet
+    {p : CMParams} {c κ M : ℝ} {frozen U : ℝ → ℝ}
+    (h :
+      FrozenAuxiliaryLimitOutput p c κ M
+        (fun u => InMonotoneWaveTrapSet κ M u) frozen U) :
+    Antitone U := by
+  rcases h with ⟨z, _hz, htrap, _hanti, htendsto⟩
+  intro x y hxy
+  have heventually : (fun t : ℝ => z t y) ≤ᶠ[atTop] fun t : ℝ => z t x := by
+    filter_upwards [eventually_ge_atTop (0 : ℝ)] with t ht
+    exact (htrap t ht).antitone hxy
+  exact le_of_tendsto_of_tendsto (htendsto y) (htendsto x) heventually
+
 /-- The Schauder-map statement target from the proof of Theorem 1.1: construct
 a local-uniformly compact and continuous limit map on a trapping set, then get a
 fixed point. -/
