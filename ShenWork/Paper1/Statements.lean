@@ -186,11 +186,76 @@ def IsFrozenSubSolutionOn (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) (s : Set 
 def upperBarrier (κ M : ℝ) : ℝ → ℝ :=
   fun x => min M (Real.exp (-κ * x))
 
+theorem upperBarrier_le_M (κ M x : ℝ) :
+    upperBarrier κ M x ≤ M :=
+  min_le_left _ _
+
+theorem upperBarrier_le_exp (κ M x : ℝ) :
+    upperBarrier κ M x ≤ Real.exp (-κ * x) :=
+  min_le_right _ _
+
+theorem upperBarrier_nonneg {κ M : ℝ} (hM : 0 ≤ M) (x : ℝ) :
+    0 ≤ upperBarrier κ M x :=
+  le_min hM (Real.exp_pos _).le
+
+theorem upperBarrier_pos {κ M : ℝ} (hM : 0 < M) (x : ℝ) :
+    0 < upperBarrier κ M x :=
+  lt_min hM (Real.exp_pos _)
+
 def lowerBarrierRaw (κ κtilde D : ℝ) : ℝ → ℝ :=
   fun x => Real.exp (-κ * x) - D * Real.exp (-κtilde * x)
 
 def lowerBarrierXMinus (κ κtilde D : ℝ) : ℝ :=
   Real.log D / (κtilde - κ)
+
+theorem lowerBarrierRaw_eq_exp_mul (κ κtilde D x : ℝ) :
+    lowerBarrierRaw κ κtilde D x =
+      Real.exp (-κ * x) * (1 - D * Real.exp (-(κtilde - κ) * x)) := by
+  unfold lowerBarrierRaw
+  have hexp :
+      Real.exp (-κtilde * x) =
+        Real.exp (-κ * x) * Real.exp (-(κtilde - κ) * x) := by
+    rw [← Real.exp_add]
+    congr 1
+    ring
+  rw [hexp]
+  ring
+
+theorem lowerBarrierRaw_nonneg_of_xminus_le
+    {κ κtilde D x : ℝ} (hgap : 0 < κtilde - κ) (hD : 0 < D)
+    (hx : lowerBarrierXMinus κ κtilde D ≤ x) :
+    0 ≤ lowerBarrierRaw κ κtilde D x := by
+  rw [lowerBarrierRaw_eq_exp_mul]
+  apply mul_nonneg (Real.exp_pos _).le
+  have hlog_le : Real.log D ≤ (κtilde - κ) * x := by
+    rw [lowerBarrierXMinus] at hx
+    simpa [mul_comm] using (div_le_iff₀ hgap).mp hx
+  have hexp_le :
+      Real.exp (Real.log D + (-(κtilde - κ) * x)) ≤ Real.exp 0 :=
+    Real.exp_le_exp.mpr (by linarith)
+  have hDexp_le : D * Real.exp (-(κtilde - κ) * x) ≤ 1 := by
+    simpa [Real.exp_add, Real.exp_log hD] using hexp_le
+  linarith
+
+theorem lowerBarrierRaw_eq_zero_at_xminus
+    {κ κtilde D : ℝ} (hgap : 0 < κtilde - κ) (hD : 0 < D) :
+    lowerBarrierRaw κ κtilde D (lowerBarrierXMinus κ κtilde D) = 0 := by
+  rw [lowerBarrierRaw_eq_exp_mul]
+  have hx :
+      (κtilde - κ) * lowerBarrierXMinus κ κtilde D = Real.log D := by
+    unfold lowerBarrierXMinus
+    field_simp [ne_of_gt hgap]
+  have hDexp :
+      D * Real.exp (-(κtilde - κ) * lowerBarrierXMinus κ κtilde D) = 1 := by
+    have hexp :
+        Real.exp
+          (Real.log D + (-(κtilde - κ) * lowerBarrierXMinus κ κtilde D)) =
+          Real.exp 0 := by
+      congr 1
+      linarith
+    simpa [Real.exp_add, Real.exp_log hD] using hexp
+  rw [hDexp]
+  ring
 
 def lowerBarrierXPlus (κ κtilde D : ℝ) : ℝ :=
   Real.log (κtilde * D / κ) / (κtilde - κ)
@@ -204,6 +269,31 @@ def lowerBarrierPlateau (κ κtilde D : ℝ) : ℝ → ℝ :=
 
 def InWaveTrapSet (κ M : ℝ) (u : ℝ → ℝ) : Prop :=
   IsCUnifBdd u ∧ ∀ x, 0 ≤ u x ∧ u x ≤ upperBarrier κ M x
+
+theorem InWaveTrapSet.cunif_bdd {κ M : ℝ} {u : ℝ → ℝ}
+    (h : InWaveTrapSet κ M u) :
+    IsCUnifBdd u :=
+  h.1
+
+theorem InWaveTrapSet.nonneg {κ M : ℝ} {u : ℝ → ℝ}
+    (h : InWaveTrapSet κ M u) (x : ℝ) :
+    0 ≤ u x :=
+  (h.2 x).1
+
+theorem InWaveTrapSet.le_upperBarrier {κ M : ℝ} {u : ℝ → ℝ}
+    (h : InWaveTrapSet κ M u) (x : ℝ) :
+    u x ≤ upperBarrier κ M x :=
+  (h.2 x).2
+
+theorem InWaveTrapSet.le_M {κ M : ℝ} {u : ℝ → ℝ}
+    (h : InWaveTrapSet κ M u) (x : ℝ) :
+    u x ≤ M :=
+  le_trans (h.le_upperBarrier x) (min_le_left _ _)
+
+theorem InWaveTrapSet.le_exp {κ M : ℝ} {u : ℝ → ℝ}
+    (h : InWaveTrapSet κ M u) (x : ℝ) :
+    u x ≤ Real.exp (-κ * x) :=
+  le_trans (h.le_upperBarrier x) (min_le_right _ _)
 
 structure SubsolutionConstants where
   K : ℝ
@@ -242,8 +332,66 @@ def Lemma_4_2 : Prop :=
 def MChi (p : CMParams) : ℝ :=
   if p.χ ≤ 0 then 1 else (1 / (1 - p.χ)) ^ (1 / p.α)
 
+theorem MChi_eq_one_of_chi_nonpos (p : CMParams) (hχ : p.χ ≤ 0) :
+    MChi p = 1 := by
+  simp [MChi, hχ]
+
+theorem MChi_eq_rpow_of_chi_pos (p : CMParams) (hχ : 0 < p.χ) :
+    MChi p = (1 / (1 - p.χ)) ^ (1 / p.α) := by
+  simp [MChi, not_le.mpr hχ]
+
+theorem MChi_pos_of_chi_lt_one (p : CMParams) (hχ : p.χ < 1) :
+    0 < MChi p := by
+  by_cases hχ_nonpos : p.χ ≤ 0
+  · simp [MChi, hχ_nonpos]
+  · have hχ_pos : 0 < p.χ := lt_of_not_ge hχ_nonpos
+    have hden_pos : 0 < 1 - p.χ := by linarith
+    rw [MChi_eq_rpow_of_chi_pos p hχ_pos]
+    exact Real.rpow_pos_of_pos (div_pos one_pos hden_pos) _
+
+theorem one_le_MChi_of_chi_nonneg_lt_one
+    (p : CMParams) (hχ_nonneg : 0 ≤ p.χ) (hχ_lt : p.χ < 1) :
+    1 ≤ MChi p := by
+  by_cases hχ_zero : p.χ = 0
+  · have hχ_nonpos : p.χ ≤ 0 := by linarith
+    simp [MChi_eq_one_of_chi_nonpos p hχ_nonpos]
+  · have hχ_pos : 0 < p.χ := lt_of_le_of_ne hχ_nonneg (Ne.symm hχ_zero)
+    have hden_pos : 0 < 1 - p.χ := by linarith
+    have hbase : 1 ≤ 1 / (1 - p.χ) := by
+      rw [le_div_iff₀ hden_pos]
+      linarith
+    have hα_pos : 0 < p.α := lt_of_lt_of_le one_pos p.hα
+    have hexp_nonneg : 0 ≤ 1 / p.α := by positivity
+    rw [MChi_eq_rpow_of_chi_pos p hχ_pos]
+    exact Real.one_le_rpow hbase hexp_nonneg
+
+theorem MChi_pos_of_chi_lt_chiStar (p : CMParams) (hχ : p.χ < chiStar p) :
+    0 < MChi p :=
+  MChi_pos_of_chi_lt_one p (lt_of_lt_of_le hχ (chiStar_le_one p))
+
+theorem one_le_MChi_of_chi_nonneg_lt_chiStar
+    (p : CMParams) (hχ_nonneg : 0 ≤ p.χ) (hχ : p.χ < chiStar p) :
+    1 ≤ MChi p :=
+  one_le_MChi_of_chi_nonneg_lt_one p hχ_nonneg
+    (lt_of_lt_of_le hχ (chiStar_le_one p))
+
 def HasWaveUpperTailBound (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop :=
   ∀ x, 0 < U x ∧ U x ≤ min (MChi p) (Real.exp (-(kappa c) * x))
+
+theorem HasWaveUpperTailBound.pos {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveUpperTailBound p c U) (x : ℝ) :
+    0 < U x :=
+  (h x).1
+
+theorem HasWaveUpperTailBound.le_MChi {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveUpperTailBound p c U) (x : ℝ) :
+    U x ≤ MChi p :=
+  le_trans (h x).2 (min_le_left _ _)
+
+theorem HasWaveUpperTailBound.le_exp {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveUpperTailBound p c U) (x : ℝ) :
+    U x ≤ Real.exp (-(kappa c) * x) :=
+  le_trans (h x).2 (min_le_right _ _)
 
 def WaveDerivativeTendsZero (U : ℝ → ℝ) : Prop :=
   Tendsto (fun x => deriv U x) atBot (𝓝 0) ∧
