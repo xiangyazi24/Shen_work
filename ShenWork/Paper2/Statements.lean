@@ -433,6 +433,26 @@ def Lemma_2_1 (D : BoundedDomainData) (p : CM2Params)
       S.lpNorm 2 (fun x => S.semigroup t u x - u x) ≤
         C * t ^ sigma * S.fractionalNorm sigma 2 u)
 
+lemma Lemma_2_1.fractional_decay
+    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
+    (h : Lemma_2_1 D p S)
+    {sigma q delta : ℝ}
+    (hsigma : 0 ≤ sigma) (hq : 1 ≤ q)
+    (hdelta_pos : 0 < delta) (hdelta_mu : delta < p.μ) :
+    ∃ C > 0, ∀ t > 0, ∀ u : D.Point → ℝ,
+      S.fractionalNorm sigma q (S.semigroup t u) ≤
+        C * t ^ (-sigma) * Real.exp (-delta * t) * S.lpNorm q u :=
+  h.1 sigma q delta hsigma hq hdelta_pos hdelta_mu
+
+lemma Lemma_2_1.semigroup_continuity
+    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
+    (h : Lemma_2_1 D p S)
+    {sigma : ℝ} (hsigma_pos : 0 < sigma) (hsigma_one : sigma ≤ 1) :
+    ∃ C > 0, ∀ t > 0, ∀ u : D.Point → ℝ,
+      S.lpNorm 2 (fun x => S.semigroup t u x - u x) ≤
+        C * t ^ sigma * S.fractionalNorm sigma 2 u :=
+  h.2 sigma hsigma_pos hsigma_one
+
 def Lemma_2_2 (D : BoundedDomainData) (S : SemigroupEstimateData D) : Prop :=
   (∀ sigma q k r, 0 ≤ sigma → 1 ≤ q → q ≤ r →
     k - (D.volume / r) < 2 * sigma - D.volume / q →
@@ -442,12 +462,41 @@ def Lemma_2_2 (D : BoundedDomainData) (S : SemigroupEstimateData D) : Prop :=
       ∃ C > 0, ∀ u : D.Point → ℝ,
         S.embeddingNorm theta q sigma u ≤ C * S.fractionalNorm sigma q u)
 
+lemma Lemma_2_2.embedding_general
+    {D : BoundedDomainData} {S : SemigroupEstimateData D}
+    (h : Lemma_2_2 D S)
+    {sigma q k r : ℝ}
+    (hsigma : 0 ≤ sigma) (hq : 1 ≤ q) (hqr : q ≤ r)
+    (hcond : k - (D.volume / r) < 2 * sigma - D.volume / q) :
+    ∃ C > 0, ∀ u : D.Point → ℝ,
+      S.embeddingNorm k r sigma u ≤ C * S.fractionalNorm sigma q u :=
+  h.1 sigma q k r hsigma hq hqr hcond
+
+lemma Lemma_2_2.embedding_same_q
+    {D : BoundedDomainData} {S : SemigroupEstimateData D}
+    (h : Lemma_2_2 D S)
+    {sigma q theta : ℝ}
+    (htheta_nonneg : 0 ≤ theta)
+    (hcond : theta < 2 * sigma - D.volume / q) :
+    ∃ C > 0, ∀ u : D.Point → ℝ,
+      S.embeddingNorm theta q sigma u ≤ C * S.fractionalNorm sigma q u :=
+  h.2 sigma q theta htheta_nonneg hcond
+
 def Lemma_2_3 (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
   ∃ C > 0, ∀ q > 1, ∀ t > 0, ∀ phi : D.Point → ℝ,
     S.lpNorm q (S.divergenceSemigroup t phi) ≤
       C * (1 + t ^ (-(1 / 2 : ℝ))) *
         Real.exp (-(p.μ) * t) * S.vectorLpNorm q phi
+
+lemma Lemma_2_3.divergence_bound
+    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
+    (h : Lemma_2_3 D p S) :
+    ∃ C > 0, ∀ q > 1, ∀ t > 0, ∀ phi : D.Point → ℝ,
+      S.lpNorm q (S.divergenceSemigroup t phi) ≤
+        C * (1 + t ^ (-(1 / 2 : ℝ))) *
+          Real.exp (-(p.μ) * t) * S.vectorLpNorm q phi :=
+  h
 
 def Lemma_2_4 (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
@@ -456,6 +505,16 @@ def Lemma_2_4 (D : BoundedDomainData) (p : CM2Params)
       S.fractionalNorm sigma q (S.divergenceSemigroup t phi) ≤
         C * t ^ (-sigma) * (1 + t ^ (-(1 / 2 : ℝ))) *
           Real.exp (-(p.μ / 2) * t) * S.vectorLpNorm q phi
+
+lemma Lemma_2_4.fractional_divergence_bound
+    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
+    (h : Lemma_2_4 D p S)
+    {sigma q : ℝ} (hsigma : 0 < sigma) (hq : 1 < q) :
+    ∃ C > 0, ∀ t > 0, ∀ phi : D.Point → ℝ,
+      S.fractionalNorm sigma q (S.divergenceSemigroup t phi) ≤
+        C * t ^ (-sigma) * (1 + t ^ (-(1 / 2 : ℝ))) *
+          Real.exp (-(p.μ / 2) * t) * S.vectorLpNorm q phi :=
+  h sigma q hsigma hq
 
 def Lemma_2_5 : Prop :=
   ∀ beta v : ℝ, 0 < beta → 0 < v →
