@@ -200,6 +200,41 @@ lemma sigma_zero_eq_zero_of_a_eq_zero
     sigma p uStar vStar 0 = 0 := by
   simp [sigma_zero, ha]
 
+lemma sigma_neg_of_chi_nonpos_a_pos
+    (p : CM2Params) {uStar vStar lambdaN : ℝ}
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a)
+    (huStar : 0 ≤ uStar) (hvStar : 0 ≤ vStar) (hlambda : 0 ≤ lambdaN) :
+    sigma p uStar vStar lambdaN < 0 := by
+  have hden_pos :
+      0 < (1 + vStar) ^ p.β * (p.μ + lambdaN) := by
+    exact mul_pos
+      (Real.rpow_pos_of_pos (by linarith : 0 < 1 + vStar) _)
+      (by linarith [p.hμ])
+  have hfrac_nonneg :
+      0 ≤
+        (uStar ^ (p.m + p.γ - 1) * lambdaN) /
+          ((1 + vStar) ^ p.β * (p.μ + lambdaN)) := by
+    exact div_nonneg
+      (mul_nonneg (Real.rpow_nonneg huStar _) hlambda)
+      hden_pos.le
+  have hchem_nonpos :
+      p.χ₀ * p.ν * p.γ *
+        ((uStar ^ (p.m + p.γ - 1) * lambdaN) /
+          ((1 + vStar) ^ p.β * (p.μ + lambdaN))) ≤ 0 := by
+    have hcoef_nonneg :
+        0 ≤ p.ν * p.γ *
+          ((uStar ^ (p.m + p.γ - 1) * lambdaN) /
+            ((1 + vStar) ^ p.β * (p.μ + lambdaN))) := by
+      exact mul_nonneg (mul_pos p.hν p.hγ).le hfrac_nonneg
+    nlinarith [mul_nonpos_of_nonpos_of_nonneg hχ hcoef_nonneg]
+  have hchem_nonpos' :
+      p.χ₀ * p.ν * p.γ * (uStar ^ (p.m + p.γ - 1) * lambdaN) /
+          ((1 + vStar) ^ p.β * (p.μ + lambdaN)) ≤ 0 := by
+    convert hchem_nonpos using 1
+    ring
+  unfold sigma
+  nlinarith [mul_pos ha p.hα, hlambda, hchem_nonpos']
+
 def GloballyAsymptoticallyStableNonminimal
     (D : BoundedDomainData) (p : CM2Params) (uStar _vStar : ℝ) : Prop :=
   ∀ u v : ℝ → D.Point → ℝ,
