@@ -808,6 +808,51 @@ theorem lowerBarrierPlateau_le_exp_xplus
         apply Real.exp_le_exp.mpr
         nlinarith [mul_nonneg hκ (sub_nonneg.mpr hxlt.le)]
 
+theorem lowerBarrierPlateau_rpow_le_exp
+    {κ κtilde D a : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hD : 0 < D) (ha : 0 ≤ a) (x : ℝ) :
+    (lowerBarrierPlateau κ κtilde D x) ^ a ≤
+      (Real.exp (-κ * x)) ^ a :=
+  Real.rpow_le_rpow
+    (lowerBarrierPlateau_pos hκ hgap hD x).le
+    (lowerBarrierPlateau_le_exp hκ.le hD.le x) ha
+
+theorem lowerBarrierPlateau_rpow_le_exp_mul
+    {κ κtilde D a : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hD : 0 < D) (ha : 0 ≤ a) (x : ℝ) :
+    (lowerBarrierPlateau κ κtilde D x) ^ a ≤ Real.exp (-κ * a * x) := by
+  calc
+    (lowerBarrierPlateau κ κtilde D x) ^ a ≤
+        (Real.exp (-κ * x)) ^ a :=
+      lowerBarrierPlateau_rpow_le_exp hκ hgap hD ha x
+    _ = Real.exp (-κ * a * x) := by
+      rw [← Real.exp_mul]
+      congr 1
+      ring
+
+theorem lowerBarrierPlateau_rpow_le_exp_xplus
+    {κ κtilde D a : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hD : 0 < D) (ha : 0 ≤ a) (x : ℝ) :
+    (lowerBarrierPlateau κ κtilde D x) ^ a ≤
+      (Real.exp (-κ * lowerBarrierXPlus κ κtilde D)) ^ a :=
+  Real.rpow_le_rpow
+    (lowerBarrierPlateau_pos hκ hgap hD x).le
+    (lowerBarrierPlateau_le_exp_xplus hκ.le hD.le x) ha
+
+theorem lowerBarrierPlateau_rpow_le_exp_xplus_mul
+    {κ κtilde D a : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hD : 0 < D) (ha : 0 ≤ a) (x : ℝ) :
+    (lowerBarrierPlateau κ κtilde D x) ^ a ≤
+      Real.exp (-κ * a * lowerBarrierXPlus κ κtilde D) := by
+  calc
+    (lowerBarrierPlateau κ κtilde D x) ^ a ≤
+        (Real.exp (-κ * lowerBarrierXPlus κ κtilde D)) ^ a :=
+      lowerBarrierPlateau_rpow_le_exp_xplus hκ hgap hD ha x
+    _ = Real.exp (-κ * a * lowerBarrierXPlus κ κtilde D) := by
+      rw [← Real.exp_mul]
+      congr 1
+      ring
+
 theorem lowerBarrierPlateau_isBddFun
     {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
     IsBddFun (lowerBarrierPlateau κ κtilde D) := by
@@ -1074,6 +1119,42 @@ theorem InMonotoneWaveTrapSet.le_upperBarrier
     (h : InMonotoneWaveTrapSet κ M u) (x : ℝ) :
     u x ≤ upperBarrier κ M x :=
   h.trap.le_upperBarrier x
+
+theorem InMonotoneWaveTrapSet.le_M
+    {κ M : ℝ} {u : ℝ → ℝ}
+    (h : InMonotoneWaveTrapSet κ M u) (x : ℝ) :
+    u x ≤ M :=
+  h.trap.le_M x
+
+theorem InMonotoneWaveTrapSet.le_exp
+    {κ M : ℝ} {u : ℝ → ℝ}
+    (h : InMonotoneWaveTrapSet κ M u) (x : ℝ) :
+    u x ≤ Real.exp (-κ * x) :=
+  h.trap.le_exp x
+
+theorem InMonotoneWaveTrapSet.le_one_of_M_le_one
+    {κ M : ℝ} {u : ℝ → ℝ}
+    (h : InMonotoneWaveTrapSet κ M u) (hM : M ≤ 1) (x : ℝ) :
+    u x ≤ 1 :=
+  h.trap.le_one_of_M_le_one hM x
+
+theorem InMonotoneWaveTrapSet.rpow_le_M
+    {κ M : ℝ} {u : ℝ → ℝ} {a : ℝ}
+    (h : InMonotoneWaveTrapSet κ M u) (ha : 0 ≤ a) (x : ℝ) :
+    (u x) ^ a ≤ M ^ a :=
+  h.trap.rpow_le_M ha x
+
+theorem InMonotoneWaveTrapSet.rpow_le_exp
+    {κ M : ℝ} {u : ℝ → ℝ} {a : ℝ}
+    (h : InMonotoneWaveTrapSet κ M u) (ha : 0 ≤ a) (x : ℝ) :
+    (u x) ^ a ≤ (Real.exp (-κ * x)) ^ a :=
+  h.trap.rpow_le_exp ha x
+
+theorem InMonotoneWaveTrapSet.rpow_le_exp_mul
+    {κ M : ℝ} {u : ℝ → ℝ} {a : ℝ}
+    (h : InMonotoneWaveTrapSet κ M u) (ha : 0 ≤ a) (x : ℝ) :
+    (u x) ^ a ≤ Real.exp (-κ * a * x) :=
+  h.trap.rpow_le_exp_mul ha x
 
 theorem InMonotoneWaveTrapSet.zero {κ M : ℝ} (hM : 0 ≤ M) :
     InMonotoneWaveTrapSet κ M (fun _ : ℝ => (0 : ℝ)) := by
