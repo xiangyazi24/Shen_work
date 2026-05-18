@@ -123,10 +123,4 @@ theorem pde_bounded_by_rectangle_ode_statement_false :
     simpa [sol, Real.exp_zero] using hbound.1
   norm_num at hbad
 
-theorem pde_bounded_by_rectangle_ode (p : CMParams) (hp : p.χ ≤ 0)
-    (u v : ℝ → ℝ → ℝ) (hglobal : IsGlobalClassicalSolution p u v)
-    (sol : RectangleODESolution p) :
-    ∀ t x, 0 ≤ t → sol.u_bar t ≤ u t x ∧ u t x ≤ sol.ū t := by
-  sorry
-
 end

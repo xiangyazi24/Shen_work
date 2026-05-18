@@ -66,21 +66,25 @@ i.e.
 -/
 structure IsClassicalSubSolution
     (g : ℝ → ℝ) (T : ℝ) (u : ℝ → ℝ → ℝ) : Prop where
+  continuousOn_rect :
+    ∀ R : ℝ,
+      ContinuousOn (fun p : ℝ × ℝ => u p.1 p.2)
+        (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R)
   time_hasDerivAt :
     ∀ ⦃t x : ℝ⦄,
-      t ∈ Set.Ioo (0 : ℝ) T →
+      t ∈ Set.Ioc (0 : ℝ) T →
         HasDerivAt (fun τ : ℝ => u τ x) (dt u t x) t
   space_hasDerivAt :
     ∀ ⦃t x : ℝ⦄,
-      t ∈ Set.Ioo (0 : ℝ) T →
+      t ∈ Set.Ioc (0 : ℝ) T →
         HasDerivAt (fun y : ℝ => u t y) (dx u t x) x
   space_second_hasDerivAt :
     ∀ ⦃t x : ℝ⦄,
-      t ∈ Set.Ioo (0 : ℝ) T →
+      t ∈ Set.Ioc (0 : ℝ) T →
         HasDerivAt (fun y : ℝ => dx u t y) (dxx u t x) x
   pde_le :
     ∀ ⦃t x : ℝ⦄,
-      t ∈ Set.Ioo (0 : ℝ) T →
+      t ∈ Set.Ioc (0 : ℝ) T →
         parabolicOp u t x ≤ g (u t x)
   bounded :
     BoundedOnStrip T u
@@ -96,21 +100,25 @@ i.e.
 -/
 structure IsClassicalSuperSolution
     (g : ℝ → ℝ) (T : ℝ) (v : ℝ → ℝ → ℝ) : Prop where
+  continuousOn_rect :
+    ∀ R : ℝ,
+      ContinuousOn (fun p : ℝ × ℝ => v p.1 p.2)
+        (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R)
   time_hasDerivAt :
     ∀ ⦃t x : ℝ⦄,
-      t ∈ Set.Ioo (0 : ℝ) T →
+      t ∈ Set.Ioc (0 : ℝ) T →
         HasDerivAt (fun τ : ℝ => v τ x) (dt v t x) t
   space_hasDerivAt :
     ∀ ⦃t x : ℝ⦄,
-      t ∈ Set.Ioo (0 : ℝ) T →
+      t ∈ Set.Ioc (0 : ℝ) T →
         HasDerivAt (fun y : ℝ => v t y) (dx v t x) x
   space_second_hasDerivAt :
     ∀ ⦃t x : ℝ⦄,
-      t ∈ Set.Ioo (0 : ℝ) T →
+      t ∈ Set.Ioc (0 : ℝ) T →
         HasDerivAt (fun y : ℝ => dx v t y) (dxx v t x) x
   pde_ge :
     ∀ ⦃t x : ℝ⦄,
-      t ∈ Set.Ioo (0 : ℝ) T →
+      t ∈ Set.Ioc (0 : ℝ) T →
         g (v t x) ≤ parabolicOp v t x
   bounded :
     BoundedOnStrip T v
@@ -127,21 +135,25 @@ Lipschitz condition on `g` when `w = u - v`.
 -/
 structure IsClassicalLinearSubSolution
     (c : ℝ) (T : ℝ) (w : ℝ → ℝ → ℝ) : Prop where
+  continuousOn_rect :
+    ∀ R : ℝ,
+      ContinuousOn (fun p : ℝ × ℝ => w p.1 p.2)
+        (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R)
   time_hasDerivAt :
     ∀ ⦃t x : ℝ⦄,
-      t ∈ Set.Ioo (0 : ℝ) T →
+      t ∈ Set.Ioc (0 : ℝ) T →
         HasDerivAt (fun τ : ℝ => w τ x) (dt w t x) t
   space_hasDerivAt :
     ∀ ⦃t x : ℝ⦄,
-      t ∈ Set.Ioo (0 : ℝ) T →
+      t ∈ Set.Ioc (0 : ℝ) T →
         HasDerivAt (fun y : ℝ => w t y) (dx w t x) x
   space_second_hasDerivAt :
     ∀ ⦃t x : ℝ⦄,
-      t ∈ Set.Ioo (0 : ℝ) T →
+      t ∈ Set.Ioc (0 : ℝ) T →
         HasDerivAt (fun y : ℝ => dx w t y) (dxx w t x) x
   pde_le_of_pos :
     ∀ ⦃t x : ℝ⦄,
-      t ∈ Set.Ioo (0 : ℝ) T →
+      t ∈ Set.Ioc (0 : ℝ) T →
         0 < w t x →
           parabolicOp w t x ≤ c * w t x
   bounded :
@@ -206,7 +218,7 @@ private lemma expBarrier_parabolicOp_le_of_pos
     {c T lam : ℝ} {w : ℝ → ℝ → ℝ}
     (hw : IsClassicalLinearSubSolution c T w) :
     ∀ ⦃t x : ℝ⦄,
-      t ∈ Set.Ioo (0 : ℝ) T →
+      t ∈ Set.Ioc (0 : ℝ) T →
       0 < expBarrier lam w t x →
         parabolicOp (expBarrier lam w) t x ≤
           (c - lam) * expBarrier lam w t x := by
@@ -251,7 +263,7 @@ private lemma expBarrier_c_add_three_parabolicOp_le
     {c T : ℝ} {w : ℝ → ℝ → ℝ}
     (hw : IsClassicalLinearSubSolution c T w) :
     ∀ ⦃t x : ℝ⦄,
-      t ∈ Set.Ioo (0 : ℝ) T →
+      t ∈ Set.Ioc (0 : ℝ) T →
       0 < expBarrier (c + 3) w t x →
         parabolicOp (expBarrier (c + 3) w) t x ≤
           -3 * expBarrier (c + 3) w t x := by
@@ -284,6 +296,50 @@ private lemma exists_max_on_Icc_prod
     · exact ⟨by linarith, hR⟩
   obtain ⟨p, hp, hmax⟩ := hK.exists_isMaxOn hne hF
   exact ⟨p, hp, fun q hq => hmax hq⟩
+
+private lemma exists_positive_interior_max_on_Icc_prod
+    {T R : ℝ} (hT : 0 ≤ T) (hR : 0 ≤ R)
+    {F : ℝ × ℝ → ℝ}
+    (hF :
+      ContinuousOn F
+        (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R))
+    (hpos_point :
+      ∃ q : ℝ × ℝ,
+        q ∈ Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R ∧ 0 < F q)
+    (hinit : ∀ x ∈ Set.Icc (-R) R, F (0, x) < 0)
+    (hside :
+      ∀ t ∈ Set.Icc (0 : ℝ) T,
+        F (t, R) < 0 ∧ F (t, -R) < 0) :
+    ∃ p : ℝ × ℝ,
+      p ∈ Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R ∧
+      0 < F p ∧
+      (∀ q ∈ Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R, F q ≤ F p) ∧
+      0 < p.1 ∧ p.2 ∈ Set.Ioo (-R) R := by
+  obtain ⟨p, hp, hmax⟩ :=
+    exists_max_on_Icc_prod (T := T) (R := R) hT hR hF
+  rcases p with ⟨pt, px⟩
+  rcases hpos_point with ⟨q, hq, hqpos⟩
+  have hp_pos : 0 < F (pt, px) := lt_of_lt_of_le hqpos (hmax q hq)
+  have hp_t_ne_zero : pt ≠ 0 := by
+    intro ht0
+    have hneg : F (pt, px) < 0 := by
+      simpa [ht0] using hinit px hp.2
+    exact (not_lt_of_ge (le_of_lt hp_pos)) hneg
+  have hp_x_ne_R : px ≠ R := by
+    intro hxR
+    have hneg : F (pt, px) < 0 := by
+      simpa [hxR] using (hside pt hp.1).1
+    exact (not_lt_of_ge (le_of_lt hp_pos)) hneg
+  have hp_x_ne_negR : px ≠ -R := by
+    intro hxR
+    have hneg : F (pt, px) < 0 := by
+      simpa [hxR] using (hside pt hp.1).2
+    exact (not_lt_of_ge (le_of_lt hp_pos)) hneg
+  refine ⟨(pt, px), hp, hp_pos, hmax, ?_, ?_⟩
+  · exact lt_of_le_of_ne hp.1.1 (Ne.symm hp_t_ne_zero)
+  · exact
+      ⟨lt_of_le_of_ne hp.2.1 (Ne.symm hp_x_ne_negR),
+        lt_of_le_of_ne hp.2.2 hp_x_ne_R⟩
 
 private lemma parabolicOp_spatialCoercivePerturbation_eq
     {z : ℝ → ℝ → ℝ} {ε t x : ℝ}
@@ -335,7 +391,7 @@ private lemma spatialCoercivePerturbation_parabolicOp_lt_of_pos
     (hε : 0 < ε)
     (hw : IsClassicalLinearSubSolution c T w)
     {t x : ℝ}
-    (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    (ht : t ∈ Set.Ioc (0 : ℝ) T)
     (hpos :
       0 < spatialCoercivePerturbation ε
         (expBarrier (c + 3) w) t x) :
@@ -446,7 +502,7 @@ private lemma spatialCoercivePerturbation_no_positive_max_with_derivative_signs
     (hε : 0 < ε)
     (hw : IsClassicalLinearSubSolution c T w)
     {t x : ℝ}
-    (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    (ht : t ∈ Set.Ioc (0 : ℝ) T)
     (hpos :
       0 < spatialCoercivePerturbation ε
         (expBarrier (c + 3) w) t x)
@@ -606,6 +662,248 @@ private lemma spatialCoercivePerturbation_pos_has_positive_time_and_interior_spa
       ⟨lt_of_le_of_ne hp.2.1 (Ne.symm hnot.2.2),
         lt_of_le_of_ne hp.2.2 hnot.2.1⟩
 
+private lemma spatialCoercivePerturbation_exists_positive_interior_max_on_rect
+    {c T M ε R : ℝ} {w : ℝ → ℝ → ℝ}
+    (hT : 0 ≤ T)
+    (hR : 0 ≤ R)
+    (hM : 0 ≤ M)
+    (hε : 0 < ε)
+    (hw_bound : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x : ℝ, |w t x| ≤ M)
+    (hR_large : Real.exp (|c + 3| * T) * M < ε * (1 + R ^ 2))
+    (hinit : ∀ x : ℝ, w 0 x ≤ 0)
+    (hψ_cont :
+      ContinuousOn
+        (fun p : ℝ × ℝ =>
+          spatialCoercivePerturbation ε (expBarrier (c + 3) w) p.1 p.2)
+        (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R))
+    {t x : ℝ}
+    (ht : t ∈ Set.Icc (0 : ℝ) T)
+    (hx : x ∈ Set.Icc (-R) R)
+    (hpos :
+      0 < spatialCoercivePerturbation ε
+        (expBarrier (c + 3) w) t x) :
+    ∃ p : ℝ × ℝ,
+      p ∈ Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R ∧
+      0 < spatialCoercivePerturbation ε (expBarrier (c + 3) w) p.1 p.2 ∧
+      (∀ q ∈ Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R,
+        spatialCoercivePerturbation ε (expBarrier (c + 3) w) q.1 q.2 ≤
+          spatialCoercivePerturbation ε (expBarrier (c + 3) w) p.1 p.2) ∧
+      0 < p.1 ∧ p.2 ∈ Set.Ioo (-R) R := by
+  let F : ℝ × ℝ → ℝ :=
+    fun p => spatialCoercivePerturbation ε (expBarrier (c + 3) w) p.1 p.2
+  have hside :
+      ∀ t ∈ Set.Icc (0 : ℝ) T,
+        F (t, R) < 0 ∧ F (t, -R) < 0 := by
+    exact
+      spatialCoercivePerturbation_neg_on_large_spatial_boundary
+        (c := c) (T := T) (M := M) (ε := ε) (R := R) (w := w)
+        hT hM hε hw_bound hR_large
+  have hinitF : ∀ x ∈ Set.Icc (-R) R, F (0, x) < 0 := by
+    intro y _hy
+    exact
+      spatialCoercivePerturbation_initial_neg
+        (c := c) (ε := ε) (w := w) hε hinit y
+  obtain ⟨p, hp, hp_pos, hp_max, hp_t_pos, hp_x_int⟩ :=
+    exists_positive_interior_max_on_Icc_prod
+      (T := T) (R := R) hT hR
+      (F := F) hψ_cont
+      ⟨(t, x), ⟨ht, hx⟩, hpos⟩
+      hinitF hside
+  exact ⟨p, hp, hp_pos, hp_max, hp_t_pos, hp_x_int⟩
+
+private lemma time_deriv_nonneg_at_Icc_max
+    {ψ : ℝ → ℝ → ℝ} {T t₀ x₀ : ℝ}
+    (ht₀ : t₀ ∈ Set.Icc (0 : ℝ) T)
+    (htpos : 0 < t₀)
+    (hdt : HasDerivAt (fun τ : ℝ => ψ τ x₀) (dt ψ t₀ x₀) t₀)
+    (hmax : ∀ t ∈ Set.Icc (0 : ℝ) T, ψ t x₀ ≤ ψ t₀ x₀) :
+    0 ≤ dt ψ t₀ x₀ := by
+  let f : ℝ → ℝ := fun τ => ψ τ x₀
+  have hmaxOn : IsMaxOn f (Set.Icc (0 : ℝ) T) t₀ := by
+    intro y hy
+    exact hmax y hy
+  have hT : 0 ≤ T := le_trans htpos.le ht₀.2
+  have hseg : segment ℝ t₀ 0 ⊆ Set.Icc (0 : ℝ) T := by
+    exact (convex_Icc (0 : ℝ) T).segment_subset ht₀ (left_mem_Icc.mpr hT)
+  have htan : (0 : ℝ) - t₀ ∈ posTangentConeAt (Set.Icc (0 : ℝ) T) t₀ :=
+    sub_mem_posTangentConeAt_of_segment_subset hseg
+  have hfderiv :
+      HasFDerivWithinAt f (ContinuousLinearMap.toSpanSingleton ℝ (dt ψ t₀ x₀))
+        (Set.Icc (0 : ℝ) T) t₀ := by
+    exact hdt.hasFDerivAt.hasFDerivWithinAt
+  have hle :
+      (ContinuousLinearMap.toSpanSingleton ℝ (dt ψ t₀ x₀)) ((0 : ℝ) - t₀) ≤ 0 :=
+    hmaxOn.localize.hasFDerivWithinAt_nonpos hfderiv htan
+  simp only [ContinuousLinearMap.toSpanSingleton_apply, smul_eq_mul] at hle
+  nlinarith
+
+private lemma space_deriv_eq_zero_at_Icc_interior_max
+    {ψ : ℝ → ℝ → ℝ} {R t₀ x₀ : ℝ}
+    (hx₀ : x₀ ∈ Set.Ioo (-R) R)
+    (hdx : HasDerivAt (fun y : ℝ => ψ t₀ y) (dx ψ t₀ x₀) x₀)
+    (hmax : ∀ x ∈ Set.Icc (-R) R, ψ t₀ x ≤ ψ t₀ x₀) :
+    dx ψ t₀ x₀ = 0 := by
+  let f : ℝ → ℝ := fun y => ψ t₀ y
+  have hmaxOn : IsMaxOn f (Set.Icc (-R) R) x₀ := by
+    intro y hy
+    exact hmax y hy
+  have hnhds : Set.Icc (-R) R ∈ 𝓝 x₀ := by
+    rw [← mem_interior_iff_mem_nhds, interior_Icc]
+    exact hx₀
+  exact (hmaxOn.isLocalMax hnhds).hasDerivAt_eq_zero hdx
+
+private lemma time_deriv_nonneg_at_Icc_prod_max
+    {ψ : ℝ → ℝ → ℝ} {T R t₀ x₀ : ℝ}
+    (hp : (t₀, x₀) ∈ Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R)
+    (htpos : 0 < t₀)
+    (hdt : HasDerivAt (fun τ : ℝ => ψ τ x₀) (dt ψ t₀ x₀) t₀)
+    (hmax :
+      ∀ q ∈ Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R,
+        ψ q.1 q.2 ≤ ψ t₀ x₀) :
+    0 ≤ dt ψ t₀ x₀ := by
+  exact
+    time_deriv_nonneg_at_Icc_max hp.1 htpos hdt
+      (fun t ht => hmax (t, x₀) ⟨ht, hp.2⟩)
+
+private lemma space_deriv_eq_zero_at_Icc_prod_interior_max
+    {ψ : ℝ → ℝ → ℝ} {T R t₀ x₀ : ℝ}
+    (hp : (t₀, x₀) ∈ Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R)
+    (hxint : x₀ ∈ Set.Ioo (-R) R)
+    (hdx : HasDerivAt (fun y : ℝ => ψ t₀ y) (dx ψ t₀ x₀) x₀)
+    (hmax :
+      ∀ q ∈ Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R,
+        ψ q.1 q.2 ≤ ψ t₀ x₀) :
+    dx ψ t₀ x₀ = 0 := by
+  exact
+    space_deriv_eq_zero_at_Icc_interior_max hxint hdx
+      (fun x hx => hmax (t₀, x) ⟨hp.1, hx⟩)
+
+private lemma second_space_deriv_nonpos_at_Icc_interior_max
+    {ψ : ℝ → ℝ → ℝ} {R t₀ x₀ : ℝ}
+    (hx₀ : x₀ ∈ Set.Ioo (-R) R)
+    (hdx : ∀ y : ℝ, HasDerivAt (fun r : ℝ => ψ t₀ r) (dx ψ t₀ y) y)
+    (hdxx : HasDerivAt (fun y : ℝ => dx ψ t₀ y) (dxx ψ t₀ x₀) x₀)
+    (hmax : ∀ x ∈ Set.Icc (-R) R, ψ t₀ x ≤ ψ t₀ x₀) :
+    dxx ψ t₀ x₀ ≤ 0 := by
+  by_contra hnot
+  push_neg at hnot
+  let f : ℝ → ℝ := fun y => ψ t₀ y
+  let g : ℝ → ℝ := fun y => dx ψ t₀ y
+  have hgx₀ : g x₀ = 0 := by
+    exact space_deriv_eq_zero_at_Icc_interior_max hx₀ (hdx x₀) hmax
+  have hhalf_pos : 0 < dxx ψ t₀ x₀ / 2 := by linarith
+  have hslope_tendsto :
+      Filter.Tendsto (slope g x₀) (𝓝[>] x₀) (𝓝 (dxx ψ t₀ x₀)) := by
+    simpa [g] using hdxx.tendsto_slope.mono_left (nhdsGT_le_nhdsNE x₀)
+  have hpos_near : {y : ℝ | 0 < g y} ∈ 𝓝[>] x₀ := by
+    have hhalf_lt : dxx ψ t₀ x₀ / 2 < dxx ψ t₀ x₀ := by
+      nlinarith
+    have hslope_event :
+        {y : ℝ | dxx ψ t₀ x₀ / 2 < slope g x₀ y} ∈ 𝓝[>] x₀ :=
+      hslope_tendsto (isOpen_Ioi.mem_nhds hhalf_lt)
+    filter_upwards [hslope_event, self_mem_nhdsWithin] with y hslope hygt
+    have hden : 0 < y - x₀ := sub_pos.mpr hygt
+    have hslope_pos : 0 < slope g x₀ y := lt_trans hhalf_pos hslope
+    rw [slope_def_field] at hslope_pos
+    have hnum : 0 < g y - g x₀ := by
+      rcases (div_pos_iff.mp hslope_pos) with h | h
+      · exact h.1
+      · linarith
+    linarith
+  obtain ⟨b₁, hx₀b₁, hb₁_sub⟩ :=
+    mem_nhdsGT_iff_exists_Ioo_subset.mp hpos_near
+  let b₀ : ℝ := (x₀ + R) / 2
+  have hx₀b₀ : x₀ < b₀ := by
+    dsimp [b₀]
+    linarith [hx₀.2]
+  have hb₀R : b₀ < R := by
+    dsimp [b₀]
+    linarith [hx₀.2]
+  let b : ℝ := min b₁ b₀
+  have hx₀b : x₀ < b := lt_min hx₀b₁ hx₀b₀
+  have hbR : b < R := lt_of_le_of_lt (min_le_right b₁ b₀) hb₀R
+  have hb_le_b₁ : b ≤ b₁ := min_le_left b₁ b₀
+  have hf_cont : ContinuousOn f (Set.Icc x₀ b) := by
+    intro y _hy
+    exact (hdx y).continuousAt.continuousWithinAt
+  have hmono : StrictMonoOn f (Set.Icc x₀ b) := by
+    refine strictMonoOn_of_hasDerivWithinAt_pos (f' := g)
+      (convex_Icc x₀ b) hf_cont ?_ ?_
+    · intro y _hy
+      exact (hdx y).hasDerivWithinAt
+    · intro y hy
+      have hyIoo : y ∈ Set.Ioo x₀ b := by
+        simpa [interior_Icc, hx₀b] using hy
+      exact hb₁_sub ⟨hyIoo.1, lt_of_lt_of_le hyIoo.2 hb_le_b₁⟩
+  have hb_full : b ∈ Set.Icc (-R) R := by
+    exact ⟨le_trans (le_of_lt hx₀.1) (le_of_lt hx₀b), le_of_lt hbR⟩
+  have hlt : f x₀ < f b :=
+    hmono (left_mem_Icc.mpr hx₀b.le) (right_mem_Icc.mpr hx₀b.le) hx₀b
+  have hle : f b ≤ f x₀ := hmax b hb_full
+  linarith
+
+private lemma second_space_deriv_nonpos_at_Icc_prod_interior_max
+    {ψ : ℝ → ℝ → ℝ} {T R t₀ x₀ : ℝ}
+    (hp : (t₀, x₀) ∈ Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R)
+    (hxint : x₀ ∈ Set.Ioo (-R) R)
+    (hdx : ∀ y : ℝ, HasDerivAt (fun r : ℝ => ψ t₀ r) (dx ψ t₀ y) y)
+    (hdxx : HasDerivAt (fun y : ℝ => dx ψ t₀ y) (dxx ψ t₀ x₀) x₀)
+    (hmax :
+      ∀ q ∈ Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R,
+        ψ q.1 q.2 ≤ ψ t₀ x₀) :
+    dxx ψ t₀ x₀ ≤ 0 := by
+  exact
+    second_space_deriv_nonpos_at_Icc_interior_max hxint hdx hdxx
+      (fun x hx => hmax (t₀, x) ⟨hp.1, hx⟩)
+
+private lemma spatialCoercivePerturbation_no_positive_interior_rect_max
+    {c T ε R : ℝ} {w : ℝ → ℝ → ℝ} {t x : ℝ}
+    (hε : 0 < ε)
+    (hw : IsClassicalLinearSubSolution c T w)
+    (hp : (t, x) ∈ Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R)
+    (ht : t ∈ Set.Ioc (0 : ℝ) T)
+    (hxint : x ∈ Set.Ioo (-R) R)
+    (hpos :
+      0 < spatialCoercivePerturbation ε
+        (expBarrier (c + 3) w) t x)
+    (hdt :
+      HasDerivAt
+        (fun τ : ℝ =>
+          spatialCoercivePerturbation ε (expBarrier (c + 3) w) τ x)
+        (dt (spatialCoercivePerturbation ε (expBarrier (c + 3) w)) t x) t)
+    (hdx :
+      ∀ y : ℝ,
+        HasDerivAt
+          (fun r : ℝ =>
+            spatialCoercivePerturbation ε (expBarrier (c + 3) w) t r)
+          (dx (spatialCoercivePerturbation ε (expBarrier (c + 3) w)) t y) y)
+    (hdxx :
+      HasDerivAt
+        (fun y : ℝ =>
+          dx (spatialCoercivePerturbation ε (expBarrier (c + 3) w)) t y)
+        (dxx (spatialCoercivePerturbation ε (expBarrier (c + 3) w)) t x) x)
+    (hmax :
+      ∀ q ∈ Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R,
+        spatialCoercivePerturbation ε (expBarrier (c + 3) w) q.1 q.2 ≤
+          spatialCoercivePerturbation ε (expBarrier (c + 3) w) t x) :
+    False := by
+  let ψ : ℝ → ℝ → ℝ :=
+    spatialCoercivePerturbation ε (expBarrier (c + 3) w)
+  have hdt_nonneg : 0 ≤ dt ψ t x := by
+    exact time_deriv_nonneg_at_Icc_prod_max hp ht.1 (by simpa [ψ] using hdt)
+      (by simpa [ψ] using hmax)
+  have hdxx_nonpos : dxx ψ t x ≤ 0 := by
+    exact
+      second_space_deriv_nonpos_at_Icc_prod_interior_max
+        (ψ := ψ) hp hxint
+        (by simpa [ψ] using hdx)
+        (by simpa [ψ] using hdxx)
+        (by simpa [ψ] using hmax)
+  exact
+    spatialCoercivePerturbation_no_positive_max_with_derivative_signs
+      (c := c) (T := T) (ε := ε) (w := w)
+      hε hw ht (by simpa [ψ] using hpos) hdt_nonneg hdxx_nonpos
+
 /--
 Weak parabolic maximum principle on the whole line.
 
@@ -678,7 +976,18 @@ private theorem coercive_exponential_barrier_estimate
   set R := max (|x| + 1) (Real.sqrt ((B / ε) + 1) + 1)
   have hR_pos : 0 < R := lt_of_lt_of_le (by positivity) (le_max_left _ _)
   have hxR : |x| < R := by linarith [le_max_left (|x| + 1) (Real.sqrt ((B / ε) + 1) + 1)]
-  have hR_large : B < ε * (1 + R ^ 2) := by sorry
+  have hR_large : B < ε * (1 + R ^ 2) := by
+    have hA_nonneg : 0 ≤ B / ε + 1 := by
+      positivity
+    have hsqrt_lt_R : Real.sqrt (B / ε + 1) < R := by
+      linarith [le_max_right (|x| + 1) (Real.sqrt ((B / ε) + 1) + 1)]
+    have hA_lt_Rsq : B / ε + 1 < R ^ 2 := by
+      nlinarith [Real.sq_sqrt hA_nonneg, Real.sqrt_nonneg (B / ε + 1), hsqrt_lt_R,
+        hR_pos]
+    have hdiv_lt : B / ε < 1 + R ^ 2 := by
+      linarith
+    have hmul := mul_lt_mul_of_pos_right hdiv_lt hε
+    simpa [div_mul_cancel₀ B (ne_of_gt hε), mul_comm, mul_left_comm, mul_assoc] using hmul
   -- On the rectangle [0,T]×[-R,R], ψ is continuous and achieves max
   -- ψ < 0 on boundary (t=0, x=±R)
   -- If ψ(t,x) > 0, max on rectangle is positive and at interior point
@@ -785,8 +1094,10 @@ private lemma difference_is_linear_subsolution
     (huR : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x : ℝ, |u t x| ≤ R)
     (hvR : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x : ℝ, |v t x| ≤ R) :
     IsClassicalLinearSubSolution L T (fun t x => u t x - v t x) := by
-  refine { time_hasDerivAt := ?_, space_hasDerivAt := ?_,
+  refine { continuousOn_rect := ?_, time_hasDerivAt := ?_, space_hasDerivAt := ?_,
            space_second_hasDerivAt := ?_, pde_le_of_pos := ?_, bounded := ?_ }
+  · intro R
+    simpa using (hsub.continuousOn_rect R).sub (hsuper.continuousOn_rect R)
   · intro t x htIoo
     have hu := hsub.time_hasDerivAt htIoo (x := x)
     have hv := hsuper.time_hasDerivAt htIoo (x := x)
@@ -816,7 +1127,7 @@ private lemma difference_is_linear_subsolution
       simpa [dxx] using hder_w.deriv
     rw [hdxx]; exact hder_w
   · intro t x htIoo hpos
-    have htIcc : t ∈ Set.Icc (0 : ℝ) T := ⟨le_of_lt htIoo.1, le_of_lt htIoo.2⟩
+    have htIcc : t ∈ Set.Icc (0 : ℝ) T := ⟨le_of_lt htIoo.1, htIoo.2⟩
     have hdt : dt (fun τ y => u τ y - v τ y) t x = dt u t x - dt v t x := by
       simpa [dt] using ((hsub.time_hasDerivAt htIoo (x := x)).sub
         (hsuper.time_hasDerivAt htIoo (x := x))).deriv
@@ -927,13 +1238,17 @@ i.e.
 -/
 structure IsClassicalODESuperSolution
     (g : ℝ → ℝ) (T : ℝ) (bar : ℝ → ℝ) : Prop where
+  continuousOn_rect :
+    ∀ R : ℝ,
+      ContinuousOn (fun p : ℝ × ℝ => bar p.1)
+        (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R)
   time_hasDerivAt :
     ∀ ⦃t : ℝ⦄,
-      t ∈ Set.Ioo (0 : ℝ) T →
+      t ∈ Set.Ioc (0 : ℝ) T →
         HasDerivAt bar (deriv bar t) t
   ode_ge :
     ∀ ⦃t : ℝ⦄,
-      t ∈ Set.Ioo (0 : ℝ) T →
+      t ∈ Set.Ioc (0 : ℝ) T →
         g (bar t) ≤ deriv bar t
   bounded :
     ∃ M : ℝ,
@@ -948,8 +1263,10 @@ lemma spatiallyConstant_superSolution_of_ode
     {g : ℝ → ℝ} {T : ℝ} {bar : ℝ → ℝ}
     (hbar : IsClassicalODESuperSolution g T bar) :
     IsClassicalSuperSolution g T (spatiallyConstant bar) := by
-  refine { time_hasDerivAt := ?_, space_hasDerivAt := ?_,
+  refine { continuousOn_rect := ?_, time_hasDerivAt := ?_, space_hasDerivAt := ?_,
            space_second_hasDerivAt := ?_, pde_ge := ?_, bounded := ?_ }
+  · intro R
+    simpa [spatiallyConstant] using hbar.continuousOn_rect R
   · intro t x ht
     simpa [spatiallyConstant, dt] using hbar.time_hasDerivAt (t := t) ht
   · intro t x ht
