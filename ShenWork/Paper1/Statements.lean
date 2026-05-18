@@ -1577,6 +1577,41 @@ def LocallyUniformConverges
   ∀ R > 0, ∀ ε > 0,
     ∀ᶠ n in atTop, ∀ x : ℝ, x ∈ Set.Icc (-R) R → |fs n x - f x| < ε
 
+theorem LocallyUniformConverges.tendsto_at
+    {fs : ℕ → ℝ → ℝ} {f : ℝ → ℝ}
+    (h : LocallyUniformConverges fs f) (x : ℝ) :
+    Tendsto (fun n : ℕ => fs n x) atTop (𝓝 (f x)) := by
+  rw [Metric.tendsto_atTop]
+  intro ε hε
+  let R : ℝ := |x| + 1
+  have hR : 0 < R := by
+    dsimp [R]
+    nlinarith [abs_nonneg x]
+  have hxR : x ∈ Set.Icc (-R) R := by
+    have hxabs : |x| ≤ R := by
+      dsimp [R]
+      nlinarith [abs_nonneg x]
+    exact abs_le.mp hxabs
+  rcases (eventually_atTop.1 (h R hR ε hε)) with ⟨N, hN⟩
+  refine ⟨N, ?_⟩
+  intro n hn
+  simpa [Real.dist_eq] using hN n hn x hxR
+
+theorem LocallyUniformConverges.unique
+    {fs : ℕ → ℝ → ℝ} {f g : ℝ → ℝ}
+    (hf : LocallyUniformConverges fs f)
+    (hg : LocallyUniformConverges fs g) :
+    f = g := by
+  funext x
+  exact tendsto_nhds_unique (hf.tendsto_at x) (hg.tendsto_at x)
+
+theorem LocallyUniformConverges.comp_strictMono
+    {fs : ℕ → ℝ → ℝ} {f : ℝ → ℝ} {subseq : ℕ → ℕ}
+    (h : LocallyUniformConverges fs f) (hsubseq : StrictMono subseq) :
+    LocallyUniformConverges (fun n => fs (subseq n)) f := by
+  intro R hR ε hε
+  exact hsubseq.tendsto_atTop.eventually (h R hR ε hε)
+
 /-- Sequential continuity of a wave map in the local-uniform topology, restricted
 to a trapping set. -/
 def LocalUniformContinuousOn
