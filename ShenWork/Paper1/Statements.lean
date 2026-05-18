@@ -888,17 +888,40 @@ theorem HasWaveUpperTailBound.inMonotoneWaveTrapSet
     InMonotoneWaveTrapSet (kappa c) (MChi p) U :=
   ⟨h.inWaveTrapSet hU, hmono⟩
 
+theorem HasWaveUpperTailBound.rpow_le_MChi
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ} {a : ℝ}
+    (h : HasWaveUpperTailBound p c U) (ha : 0 ≤ a) (x : ℝ) :
+    (U x) ^ a ≤ (MChi p) ^ a :=
+  Real.rpow_le_rpow (h.pos x).le (h.le_MChi x) ha
+
+theorem HasWaveUpperTailBound.rpow_le_exp
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ} {a : ℝ}
+    (h : HasWaveUpperTailBound p c U) (ha : 0 ≤ a) (x : ℝ) :
+    (U x) ^ a ≤ (Real.exp (-(kappa c) * x)) ^ a :=
+  Real.rpow_le_rpow (h.pos x).le (h.le_exp x) ha
+
+theorem HasWaveUpperTailBound.rpow_le_exp_mul
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ} {a : ℝ}
+    (h : HasWaveUpperTailBound p c U) (ha : 0 ≤ a) (x : ℝ) :
+    (U x) ^ a ≤ Real.exp (-(kappa c) * a * x) := by
+  calc
+    (U x) ^ a ≤ (Real.exp (-(kappa c) * x)) ^ a := h.rpow_le_exp ha x
+    _ = Real.exp (-(kappa c) * a * x) := by
+      rw [← Real.exp_mul]
+      congr 1
+      ring
+
 theorem HasWaveUpperTailBound.rpow_le_MChi_gamma
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (h : HasWaveUpperTailBound p c U) (x : ℝ) :
     (U x) ^ p.γ ≤ (MChi p) ^ p.γ :=
-  Real.rpow_le_rpow (h.pos x).le (h.le_MChi x) (le_trans zero_le_one p.hγ)
+  h.rpow_le_MChi (le_trans zero_le_one p.hγ) x
 
 theorem HasWaveUpperTailBound.rpow_le_exp_gamma
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (h : HasWaveUpperTailBound p c U) (x : ℝ) :
     (U x) ^ p.γ ≤ (Real.exp (-(kappa c) * x)) ^ p.γ :=
-  Real.rpow_le_rpow (h.pos x).le (h.le_exp x) (le_trans zero_le_one p.hγ)
+  h.rpow_le_exp (le_trans zero_le_one p.hγ) x
 
 theorem HasWaveUpperTailBound.rpow_abs_le_MChi_gamma
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
