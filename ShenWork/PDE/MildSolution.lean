@@ -333,6 +333,26 @@ theorem mild_solution_operator_contracting (p : CMParams)
     (htime_int t x ht htT).1 (htime_int t x ht htT).2 ht htT
   linarith [hmain]
 
+private theorem abstract_mild_fixed_point
+    {X : Type*} [MetricSpace X] [CompleteSpace X] [Nonempty X]
+    {K : NNReal}
+    (F : X → X)
+    (hF : ContractingWith K F)
+    (eval : X → ℝ → ℝ → ℝ)
+    (Φ : (ℝ → ℝ → ℝ) → ℝ → ℝ → ℝ)
+    (hcomm : ∀ z t x, eval (F z) t x = Φ (eval z) t x) :
+    ∃ u : ℝ → ℝ → ℝ, ∀ t x, u t x = Φ u t x := by
+  let z : X := ContractingWith.fixedPoint F hF
+  have hz : Function.IsFixedPt F z := by
+    change Function.IsFixedPt F (ContractingWith.fixedPoint F hF)
+    exact hF.fixedPoint_isFixedPt
+  refine ⟨eval z, ?_⟩
+  intro t x
+  calc
+    eval z t x = eval (F z) t x := by
+      rw [hz.eq]
+    _ = Φ (eval z) t x := hcomm z t x
+
 /-- Local existence of mild solutions via Banach fixed-point theorem. -/
 theorem local_existence_mild (p : CMParams)
     (u₀ : ℝ → ℝ) (hu₀_cont : Continuous u₀) (hu₀_bdd : IsBddFun u₀)

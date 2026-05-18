@@ -44,9 +44,13 @@ BUILD OK, 3 sorry remaining. Priority order:
   The theorem now proves the algebraic integral identity from genuine
   `MeasureTheory.Integrable` assumptions instead of pretending spatial measurability
   implies time integrability.
+- Added `abstract_mild_fixed_point`, a proved Banach fixed-point wrapper that converts
+  a complete metric self-map, a contraction proof, and an eval/Φ commutation lemma
+  into a raw mild fixed point.
 
 ## P0: MildSolution Banach fixed point (356)
-Need to construct fixed point of Φ on function space. Use `BoundedContinuousFunction` or `ContractingWith.fixedPoint`.
+Need to instantiate `abstract_mild_fixed_point` by constructing the actual complete
+function space, self-map, self-map/integrability facts, and contraction proof for Φ.
 
 ## P1: heteroclinic_from_shooting (TravelingWaveODE:336)
 Global ODE existence + convergence to E0.
