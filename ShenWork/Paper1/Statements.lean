@@ -442,6 +442,37 @@ theorem lowerBarrierRaw_linear_part_eq_of_kappa_speed
   rw [hzero]
   ring
 
+theorem lowerBarrierRaw_speed_coefficient_neg
+    {κ κtilde c : ℝ}
+    (hκ0 : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
+    (hκtilde1 : κtilde ≤ 1) (hc : c = κ + κ⁻¹) :
+    κtilde ^ 2 - c * κtilde + 1 < 0 := by
+  have hinv_gt_one : 1 < κ⁻¹ := (one_lt_inv₀ hκ0).2 hκ1
+  have hleft : 0 < κtilde - κ := sub_pos.mpr hgap
+  have hright : κtilde - κ⁻¹ < 0 := sub_neg.mpr (lt_of_le_of_lt hκtilde1 hinv_gt_one)
+  have hfactor :
+      κtilde ^ 2 - c * κtilde + 1 =
+        (κtilde - κ) * (κtilde - κ⁻¹) := by
+    rw [hc]
+    field_simp [ne_of_gt hκ0]
+    ring
+  rw [hfactor]
+  exact mul_neg_of_pos_of_neg hleft hright
+
+theorem lowerBarrierRaw_linear_part_pos_of_kappa_speed
+    {κ κtilde D c x : ℝ}
+    (hκ0 : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
+    (hκtilde1 : κtilde ≤ 1) (hD : 0 < D) (hc : c = κ + κ⁻¹) :
+    0 <
+      iteratedDeriv 2 (lowerBarrierRaw κ κtilde D) x +
+        c * deriv (lowerBarrierRaw κ κtilde D) x +
+        lowerBarrierRaw κ κtilde D x := by
+  rw [lowerBarrierRaw_linear_part_eq_of_kappa_speed (ne_of_gt hκ0) hc]
+  apply mul_pos
+  · exact mul_pos_of_neg_of_neg (neg_lt_zero.mpr hD)
+      (lowerBarrierRaw_speed_coefficient_neg hκ0 hκ1 hgap hκtilde1 hc)
+  · exact Real.exp_pos _
+
 def lowerBarrierXMinus (κ κtilde D : ℝ) : ℝ :=
   Real.log D / (κtilde - κ)
 
