@@ -1795,6 +1795,64 @@ theorem LocallyUniformConverges.congr
   filter_upwards [hfg, h R hR ε hε] with n hn hconv
   simpa [← hn] using hconv
 
+theorem LocallyUniformConverges.le_of_forall_le
+    {fs : ℕ → ℝ → ℝ} {f : ℝ → ℝ} {b x : ℝ}
+    (h : LocallyUniformConverges fs f)
+    (hle : ∀ n, fs n x ≤ b) :
+    f x ≤ b :=
+  le_of_tendsto' (h.tendsto_at x) hle
+
+theorem LocallyUniformConverges.nonneg_of_forall_nonneg
+    {fs : ℕ → ℝ → ℝ} {f : ℝ → ℝ} {x : ℝ}
+    (h : LocallyUniformConverges fs f)
+    (hnonneg : ∀ n, 0 ≤ fs n x) :
+    0 ≤ f x :=
+  le_of_tendsto_of_tendsto' tendsto_const_nhds (h.tendsto_at x) hnonneg
+
+theorem LocallyUniformConverges.antitone_of_forall_antitone
+    {fs : ℕ → ℝ → ℝ} {f : ℝ → ℝ}
+    (h : LocallyUniformConverges fs f)
+    (hanti : ∀ n, Antitone (fs n)) :
+    Antitone f := by
+  intro x y hxy
+  exact le_of_tendsto_of_tendsto'
+    (h.tendsto_at y) (h.tendsto_at x) (fun n => hanti n hxy)
+
+theorem LocallyUniformConverges.nonneg_of_inWaveTrapSet
+    {κ M : ℝ} {fs : ℕ → ℝ → ℝ} {f : ℝ → ℝ}
+    (h : LocallyUniformConverges fs f)
+    (htrap : ∀ n, InWaveTrapSet κ M (fs n)) :
+    ∀ x, 0 ≤ f x :=
+  fun x => h.nonneg_of_forall_nonneg (fun n => (htrap n).nonneg x)
+
+theorem LocallyUniformConverges.le_upperBarrier_of_inWaveTrapSet
+    {κ M : ℝ} {fs : ℕ → ℝ → ℝ} {f : ℝ → ℝ}
+    (h : LocallyUniformConverges fs f)
+    (htrap : ∀ n, InWaveTrapSet κ M (fs n)) :
+    ∀ x, f x ≤ upperBarrier κ M x :=
+  fun x => h.le_of_forall_le (fun n => (htrap n).le_upperBarrier x)
+
+theorem LocallyUniformConverges.le_M_of_inWaveTrapSet
+    {κ M : ℝ} {fs : ℕ → ℝ → ℝ} {f : ℝ → ℝ}
+    (h : LocallyUniformConverges fs f)
+    (htrap : ∀ n, InWaveTrapSet κ M (fs n)) :
+    ∀ x, f x ≤ M :=
+  fun x => h.le_of_forall_le (fun n => (htrap n).le_M x)
+
+theorem LocallyUniformConverges.le_exp_of_inWaveTrapSet
+    {κ M : ℝ} {fs : ℕ → ℝ → ℝ} {f : ℝ → ℝ}
+    (h : LocallyUniformConverges fs f)
+    (htrap : ∀ n, InWaveTrapSet κ M (fs n)) :
+    ∀ x, f x ≤ Real.exp (-κ * x) :=
+  fun x => h.le_of_forall_le (fun n => (htrap n).le_exp x)
+
+theorem LocallyUniformConverges.antitone_of_inMonotoneWaveTrapSet
+    {κ M : ℝ} {fs : ℕ → ℝ → ℝ} {f : ℝ → ℝ}
+    (h : LocallyUniformConverges fs f)
+    (htrap : ∀ n, InMonotoneWaveTrapSet κ M (fs n)) :
+    Antitone f :=
+  h.antitone_of_forall_antitone (fun n => (htrap n).antitone)
+
 /-- Sequential continuity of a wave map in the local-uniform topology, restricted
 to a trapping set. -/
 def LocalUniformContinuousOn
