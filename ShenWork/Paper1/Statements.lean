@@ -390,12 +390,41 @@ theorem lowerBarrierRaw_deriv_eq_zero_at_xplus
   rw [hexp]
   nlinarith [Real.exp_pos (-κ * lowerBarrierXPlus κ κtilde D)]
 
+theorem lowerBarrierRaw_pos_at_xplus
+    {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
+    0 < lowerBarrierRaw κ κtilde D (lowerBarrierXPlus κ κtilde D) :=
+  lowerBarrierRaw_pos_of_xminus_lt hgap hD
+    (lowerBarrierXMinus_lt_xplus hκ hgap hD)
+
 def lowerBarrierPlateau (κ κtilde D : ℝ) : ℝ → ℝ :=
   fun x =>
     if x ≤ lowerBarrierXPlus κ κtilde D then
       lowerBarrierRaw κ κtilde D (lowerBarrierXPlus κ κtilde D)
     else
       lowerBarrierRaw κ κtilde D x
+
+theorem lowerBarrierPlateau_eq_const_of_le
+    {κ κtilde D x : ℝ} (hx : x ≤ lowerBarrierXPlus κ κtilde D) :
+    lowerBarrierPlateau κ κtilde D x =
+      lowerBarrierRaw κ κtilde D (lowerBarrierXPlus κ κtilde D) := by
+  simp [lowerBarrierPlateau, hx]
+
+theorem lowerBarrierPlateau_eq_raw_of_xplus_lt
+    {κ κtilde D x : ℝ} (hx : lowerBarrierXPlus κ κtilde D < x) :
+    lowerBarrierPlateau κ κtilde D x = lowerBarrierRaw κ κtilde D x := by
+  simp [lowerBarrierPlateau, not_le.mpr hx]
+
+theorem lowerBarrierPlateau_pos
+    {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D)
+    (x : ℝ) :
+    0 < lowerBarrierPlateau κ κtilde D x := by
+  by_cases hx : x ≤ lowerBarrierXPlus κ κtilde D
+  · rw [lowerBarrierPlateau_eq_const_of_le hx]
+    exact lowerBarrierRaw_pos_at_xplus hκ hgap hD
+  · have hxlt : lowerBarrierXPlus κ κtilde D < x := lt_of_not_ge hx
+    rw [lowerBarrierPlateau_eq_raw_of_xplus_lt hxlt]
+    exact lowerBarrierRaw_pos_of_xminus_lt hgap hD
+      (lt_trans (lowerBarrierXMinus_lt_xplus hκ hgap hD) hxlt)
 
 def InWaveTrapSet (κ M : ℝ) (u : ℝ → ℝ) : Prop :=
   IsCUnifBdd u ∧ ∀ x, 0 ≤ u x ∧ u x ≤ upperBarrier κ M x

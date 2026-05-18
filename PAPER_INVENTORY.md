@@ -33,7 +33,7 @@ systems.
 | Lemma 2.4 | `Paper1.Lemma_2_4_proved`, `Psi_le_min_const_exp_of_nonneg_le` | proved | Exponential resolvent bound for `Ψ(·;u,1,1)`. |
 | Lemma 2.5 | `ExponentialWeight`, `Paper1.Lemma_2_5` | statement target | Weighted `L^p` estimate for `∇Ψ(u^γ)`. |
 | Lemma 4.1 | `frozenWaveOperator`, `upperBarrier`, `Paper1.Lemma_4_1` | statement target | Super-solution barrier for frozen moving-frame equation; basic `upperBarrier` bounds proved. |
-| Lemma 4.2 | `lowerBarrierRaw`, `lowerBarrierPlateau`, `SubsolutionConstants`, `Paper1.Lemma_4_2` | statement target | Sub-solution barriers; raw lower-barrier factorization, derivative formulas, `x_- < x_+`, critical point at `x_+`, and nonnegativity/positivity past `x_-` proved. |
+| Lemma 4.2 | `lowerBarrierRaw`, `lowerBarrierPlateau`, `SubsolutionConstants`, `Paper1.Lemma_4_2` | statement target | Sub-solution barriers; raw lower-barrier factorization, derivative formulas, `x_- < x_+`, critical point at `x_+`, and positivity of raw/plateau lower barriers proved. |
 | Remarks 4.1--4.3 | none | remark/doc | Include constants/asymptotics used by later theorem statements. |
 | Lemma 5.1 | `MChi`, `HasWaveUpperTailBound`, `Paper1.Lemma_5_1` | statement target | A priori estimates for stationary wave profiles; basic `MChi` and tail-bound projections proved. |
 | Lemma 5.2 | `Paper1.Lemma_5_2` | statement target | Estimate for `u_x/u`. |
