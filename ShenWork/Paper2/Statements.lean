@@ -812,6 +812,22 @@ lemma Psi_beta_lt_exp_neg_one {beta : ℝ} (hbeta : 0 < beta) :
       _ = -1 := hunit
   exact (Real.log_lt_log_iff (Psi_beta_pos hbeta) (Real.exp_pos _)).mp hlog
 
+lemma Psi_beta_le_exp_neg_one_of_nonneg {beta : ℝ} (hbeta : 0 ≤ beta) :
+    Psi_beta beta ≤ Real.exp (-1) := by
+  by_cases hzero : beta = 0
+  · subst beta
+    rw [Psi_beta_zero]
+    exact (Real.exp_pos _).le
+  · exact le_of_lt (Psi_beta_lt_exp_neg_one (lt_of_le_of_ne hbeta (Ne.symm hzero)))
+
+lemma Psi_beta_lt_exp_neg_one_of_nonneg {beta : ℝ} (hbeta : 0 ≤ beta) :
+    Psi_beta beta < Real.exp (-1) := by
+  by_cases hzero : beta = 0
+  · subst beta
+    rw [Psi_beta_zero]
+    exact Real.exp_pos _
+  · exact Psi_beta_lt_exp_neg_one (lt_of_le_of_ne hbeta (Ne.symm hzero))
+
 lemma Theta_beta_pos {beta : ℝ} (hbeta : 0 < beta) :
     0 < Theta_beta beta := by
   unfold Theta_beta
