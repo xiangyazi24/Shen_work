@@ -1139,6 +1139,32 @@ theorem lowerBarrierPlateau_mem_InMonotoneWaveTrapSet_of_exp_xplus_le
   ⟨lowerBarrierPlateau_mem_InWaveTrapSet_of_exp_xplus_le hκ hgap hD hM,
     lowerBarrierPlateau_antitone hκ hgap hD⟩
 
+theorem exists_D_gt_lowerBarrierPlateau_mem_InWaveTrapSet
+    {κ κtilde M B : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hM : 0 < M) (hB : 0 ≤ B) :
+    ∃ D > B, InWaveTrapSet κ M (lowerBarrierPlateau κ κtilde D) := by
+  rcases exists_D_gt_with_exp_xplus_le (κ := κ) (κtilde := κtilde)
+      (M := M) (B := B) hκ hgap hM with
+    ⟨D, hBD, hheight⟩
+  have hD : 0 < D := lt_of_le_of_lt hB hBD
+  exact
+    ⟨D, hBD,
+      lowerBarrierPlateau_mem_InWaveTrapSet_of_exp_xplus_le
+        hκ hgap hD hheight⟩
+
+theorem exists_D_gt_lowerBarrierPlateau_mem_InMonotoneWaveTrapSet
+    {κ κtilde M B : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hM : 0 < M) (hB : 0 ≤ B) :
+    ∃ D > B, InMonotoneWaveTrapSet κ M (lowerBarrierPlateau κ κtilde D) := by
+  rcases exists_D_gt_with_exp_xplus_le (κ := κ) (κtilde := κtilde)
+      (M := M) (B := B) hκ hgap hM with
+    ⟨D, hBD, hheight⟩
+  have hD : 0 < D := lt_of_le_of_lt hB hBD
+  exact
+    ⟨D, hBD,
+      lowerBarrierPlateau_mem_InMonotoneWaveTrapSet_of_exp_xplus_le
+        hκ hgap hD hheight⟩
+
 theorem WaveTrapSet_subset_of_M_le
     {κ M₁ M₂ : ℝ} (hM : M₁ ≤ M₂) :
     WaveTrapSet κ M₁ ⊆ WaveTrapSet κ M₂ := by
