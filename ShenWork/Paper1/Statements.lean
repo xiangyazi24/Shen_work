@@ -3313,6 +3313,32 @@ theorem Lemma_5_3.weighted_elliptic_perturbation_of_stable_strict_tail_bounds
     heta_pos heta_one hu1 hu2
     hbound1.hasWaveUpperTailBound hbound2.hasWaveUpperTailBound hclose
 
+theorem Lemma_5_3.weighted_elliptic_perturbation_of_stability_hypotheses
+    (h : Lemma_5_3) {p : CMParams} {threshold : ℝ → ℝ} {c eta : ℝ}
+    (hregime : StableWaveParameterRegime p)
+    (hlower : stabilitySpeedBaseline p < threshold p.χ)
+    (hc : threshold p.χ < c) (hketa : kappa c < eta)
+    (heta_upper : eta < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)))
+    {u1 u2 : ℝ → ℝ}
+    (hu1 : IsCUnifBdd u1) (hu2 : IsCUnifBdd u2)
+    (hbound1 : HasStrictWaveUpperTailBound p c u1)
+    (hbound2 : HasStrictWaveUpperTailBound p c u2)
+    (hclose : Integrable
+      (fun x => Real.exp (2 * eta * x) * |u2 x - u1 x| ^ 2)) :
+    let v := Psi (fun x => u2 x ^ p.γ - u1 x ^ p.γ) 1 1
+    let U := fun x => Real.exp (eta * x) * (u2 x - u1 x)
+    let V := fun x => Real.exp (eta * x) * v x
+    (∫ x : ℝ, |V x| ^ 2 ≤
+        p.γ ^ 2 * (MChi p) ^ (2 * (p.γ - 1)) / (1 - eta) ^ 2 *
+          ∫ x : ℝ, |U x| ^ 2) ∧
+      (∫ x : ℝ, |deriv V x| ^ 2 ≤
+        p.γ ^ 2 * (MChi p) ^ (2 * (p.γ - 1)) / (1 - eta ^ 2) *
+          ∫ x : ℝ, |U x| ^ 2) :=
+  h.weighted_elliptic_perturbation_of_stable_strict_tail_bounds hregime
+    (eta_pos_of_stability_weight_hypotheses hlower hc hketa)
+    (eta_lt_one_of_stability_weight_upper_bound p heta_upper)
+    hu1 hu2 hbound1 hbound2 hclose
+
 /-- Paper1 Theorem 1.2: weighted stability of traveling waves. -/
 def Theorem_1_2 : Prop :=
   ∀ p : CMParams, StableWaveParameterRegime p →

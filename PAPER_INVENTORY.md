@@ -37,7 +37,7 @@ systems.
 | Remarks 4.1--4.3 | none | remark/doc | Include constants/asymptotics used by later theorem statements. |
 | Lemma 5.1 | `MChi`, `HasWaveUpperTailBound`, `HasStrictWaveUpperTailBound`, `Paper1.Lemma_5_1` | statement target | A priori estimates for stationary wave profiles; basic `MChi`, `MChi` power positivity, explicit positive-sensitivity `MChi` formula, strict-to-weak upper-tail conversion, positive Shen upper-bound conversion to tail/trap-set bounds, tail-bound projections, conversion to ordinary/monotone trap-set membership, generic/`γ` power bounds, and direct a-priori estimate projections proved. |
 | Lemma 5.2 | `Paper1.Lemma_5_2` | statement target | Estimate for `u_x/u`; direct log-derivative-bound projection lemma proved. |
-| Lemma 5.3 | `Paper1.Lemma_5_3` | statement target | Weighted elliptic perturbation estimates used in the stability energy proof; direct weighted-elliptic-perturbation projection lemma, CM-parameter specialization, upper-tail-bound specialization, stable-regime `Mχ ≥ 1`, and stable weak/strict upper-tail-bound specializations proved. |
+| Lemma 5.3 | `Paper1.Lemma_5_3` | statement target | Weighted elliptic perturbation estimates used in the stability energy proof; direct weighted-elliptic-perturbation projection lemma, CM-parameter specialization, upper-tail-bound specialization, stable-regime `Mχ ≥ 1`, stable weak/strict upper-tail-bound specializations, and direct Theorem 1.2 speed/weight-hypothesis specialization proved. |
 | Remarks 5.1--5.2 | none | remark/doc | Feed into definition of `cStarStar` and stability constants. |
 
 ## Paper2: boundedness and global existence on bounded domains
