@@ -3444,6 +3444,56 @@ theorem Theorem_1_2.stability_package
               UniformMovingFrameConvergence c u U :=
   h p hp
 
+theorem Theorem_1_2.stability_from_wave_initial_package
+    (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        IsCUnifBdd U →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6)) →
+          ∃ u v : ℝ → ℝ → ℝ,
+            IsGlobalCauchySolutionFrom p U u v ∧
+            WeightedL2MovingFrameConvergence η c u U ∧
+            UniformMovingFrameConvergence c u U := by
+  rcases h.stability_package hp with ⟨cStarStar, hasymp, hlower, hstable⟩
+  refine ⟨cStarStar, hasymp, hlower, ?_⟩
+  intro c hc U V hTW hU hbound htail η hketa heta
+  exact hstable c hc U V hTW hbound htail η hketa heta U
+    (IsTravelingWave.nonnegativeInitialDatum hTW hU)
+    (IsTravelingWave.strictlyPositiveAtLeft hTW)
+    (WeightedL2InitialCloseness.refl η U)
+
+theorem Theorem_1_2.stability_from_second_wave_initial_package
+    (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        IsCUnifBdd U₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U₁) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6)) →
+          WeightedL2InitialCloseness η U₂ U₁ →
+          ∃ u v : ℝ → ℝ → ℝ,
+            IsGlobalCauchySolutionFrom p U₂ u v ∧
+            WeightedL2MovingFrameConvergence η c u U₁ ∧
+            UniformMovingFrameConvergence c u U₁ := by
+  rcases h.stability_package hp with ⟨cStarStar, hasymp, hlower, hstable⟩
+  refine ⟨cStarStar, hasymp, hlower, ?_⟩
+  intro c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hU₂ hbound₁ htail₁ η hketa heta hclose
+  exact hstable c hc U₁ V₁ hTW₁ hbound₁ htail₁ η hketa heta U₂
+    (IsTravelingWave.nonnegativeInitialDatum hTW₂ hU₂)
+    (IsTravelingWave.strictlyPositiveAtLeft hTW₂)
+    hclose
+
 /-- Paper1 Theorem 1.3: uniqueness of traveling waves with the prescribed right tail. -/
 def Theorem_1_3 : Prop :=
   ∀ p : CMParams, StableWaveParameterRegime p →
