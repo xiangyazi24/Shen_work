@@ -9,6 +9,7 @@
 -/
 import ShenWork.Paper2.Defs
 import Mathlib.Analysis.MeanInequalities
+import Mathlib.Analysis.Calculus.Deriv.Basic
 
 open Filter Topology
 
@@ -79,6 +80,7 @@ structure BoundedDomainData where
   timeDeriv : (ℝ → Point → ℝ) → ℝ → Point → ℝ
   laplacian : (Point → ℝ) → Point → ℝ
   chemotaxisDiv : CM2Params → (Point → ℝ) → (Point → ℝ) → Point → ℝ
+  crossDiffusionEnergyTerm : CM2Params → ℝ → (Point → ℝ) → (Point → ℝ) → ℝ
   normalDeriv : (Point → ℝ) → Point → ℝ
   initialAdmissible : (Point → ℝ) → Prop
   classicalRegularity : ℝ → (ℝ → Point → ℝ) → (ℝ → Point → ℝ) → Prop
@@ -198,6 +200,32 @@ lemma WeightedSignalEstimate.bound
           (D.integral
             (fun x => v t x / (1 + v t x) ^ (beta / (pExp + 1)))) ^ (pExp + 1) :=
   h t ht0 htT
+
+def LpBootstrapEnergyInequality
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 : ℝ) : Prop :=
+  ∀ pExp, p0 ≤ pExp →
+    ∃ A > 0, ∃ B > 0, ∃ K > 0, ∃ L,
+      ∀ t, 0 < t → t < T →
+        (1 / pExp) *
+            deriv (fun τ => D.integral (fun x => (u τ x) ^ pExp)) t +
+          A *
+            D.integral
+              (fun x =>
+                (D.gradNorm (fun y => (u t y) ^ (pExp / 2)) x) ^ 2) +
+          B * D.integral (fun x => (u t x) ^ pExp) ≤
+        K * D.integral (fun x => (u t x) ^ (pExp + rho)) + L
+
+def CrossDiffusionBootstrapEstimate
+    (D : BoundedDomainData) (p : CM2Params) (T rho : ℝ)
+    (u v : ℝ → D.Point → ℝ) : Prop :=
+  ∀ eps > 0, ∀ pExp > 1, ∃ Ceps,
+    ∀ t, 0 < t → t < T →
+      D.crossDiffusionEnergyTerm p pExp (u t) (v t) ≤
+        eps *
+            D.integral
+              (fun x => (u t x) ^ (pExp - 2) * (D.gradNorm (u t) x) ^ 2) +
+          Ceps * D.integral (fun x => (u t x) ^ (pExp + rho))
 
 def FiniteHorizonAlternative
     (D : BoundedDomainData) (Tmax : ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
@@ -571,31 +599,25 @@ theorem Lemma_2_5_proved : Lemma_2_5 := by
 
 def AbstractLpBootstrapHypothesis
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
-    (T rho p0 : ℝ) : Prop :=
+    (N T rho p0 : ℝ) : Prop :=
   0 < rho ∧
     0 < T ∧
-    max 1 (rho * D.volume / 2) < p0 ∧
-    (∃ C, ∀ t, 0 < t → t < T → D.integral (fun x => (u t x) ^ p0) ≤ C)
+    max 1 (rho * N / 2) < p0 ∧
+    LpPowerBoundedBefore D p0 T u
 
 def Lemma_2_6 (D : BoundedDomainData) : Prop :=
-  ∀ u : ℝ → D.Point → ℝ, ∀ T rho p0,
-    AbstractLpBootstrapHypothesis D u T rho p0 →
-      (∀ pExp, p0 ≤ pExp →
-        ∃ A > 0, ∃ B > 0, ∃ K > 0, ∃ L,
-          ∀ t, 0 < t → t < T →
-            D.integral (fun x => (u t x) ^ pExp) ≤
-              K * D.integral (fun x => (u t x) ^ (pExp + rho)) + L) →
-      ∀ pExp > 1, ∃ C, ∀ t, 0 < t → t < T →
-        D.integral (fun x => (u t x) ^ pExp) ≤ C
+  ∀ N > 0, ∀ u : ℝ → D.Point → ℝ, ∀ T rho p0,
+    AbstractLpBootstrapHypothesis D u N T rho p0 →
+      LpBootstrapEnergyInequality D u T rho p0 →
+        ∀ pExp > 1, LpPowerBoundedBefore D pExp T u
 
 def Corollary_2_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
     IsPaper2ClassicalSolution D p T u v →
-      (∃ rho > 0, ∃ p0 > max 1 (rho * D.volume / 2),
-        ∃ C, ∀ t, 0 < t → t < T →
-          D.integral (fun x => (u t x) ^ p0) ≤ C) →
-      ∀ pExp > 1, ∃ C, ∀ t, 0 < t → t < T →
-        D.integral (fun x => (u t x) ^ pExp) ≤ C
+      (∃ rho > 0, CrossDiffusionBootstrapEstimate D p T rho u v ∧
+        ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+          LpPowerBoundedBefore D p0 T u) →
+      ∀ pExp > 1, LpPowerBoundedBefore D pExp T u
 
 def Proposition_2_1
     (D : BoundedDomainData) (p : CM2Params)
