@@ -338,6 +338,19 @@ theorem lowerBarrierRaw_eq_zero_at_xminus
 def lowerBarrierXPlus (κ κtilde D : ℝ) : ℝ :=
   Real.log (κtilde * D / κ) / (κtilde - κ)
 
+theorem lowerBarrierXMinus_lt_xplus
+    {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
+    lowerBarrierXMinus κ κtilde D < lowerBarrierXPlus κ κtilde D := by
+  have harg_pos : 0 < κtilde * D / κ := by
+    have hκtilde_pos : 0 < κtilde := by linarith
+    positivity
+  have hD_lt_arg : D < κtilde * D / κ := by
+    rw [lt_div_iff₀ hκ]
+    nlinarith
+  unfold lowerBarrierXMinus lowerBarrierXPlus
+  rw [div_lt_div_iff_of_pos_right hgap]
+  exact Real.log_lt_log hD hD_lt_arg
+
 theorem lowerBarrierRaw_deriv_eq_zero_at_xplus
     {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
     deriv (lowerBarrierRaw κ κtilde D) (lowerBarrierXPlus κ κtilde D) = 0 := by
