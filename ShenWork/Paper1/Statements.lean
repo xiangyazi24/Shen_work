@@ -3192,6 +3192,58 @@ theorem one_lt_stabilitySpeedBaseline (p : CMParams) :
     inv_pos.mpr hden_pos
   linarith
 
+theorem stabilitySpeedBaseline_eq_cStarStar (p : CMParams) :
+    stabilitySpeedBaseline p = cStarStar p := by
+  simp [stabilitySpeedBaseline, cStarStar, one_div]
+
+theorem two_le_stabilitySpeedBaseline (p : CMParams) :
+    2 ≤ stabilitySpeedBaseline p := by
+  rw [stabilitySpeedBaseline_eq_cStarStar]
+  exact cStarStar_ge_two p
+
+theorem two_lt_of_stabilitySpeedBaseline_lt
+    {p : CMParams} {threshold : ℝ → ℝ} {c : ℝ}
+    (hlower : stabilitySpeedBaseline p < threshold p.χ)
+    (hc : threshold p.χ < c) :
+    2 < c :=
+  lt_of_le_of_lt (two_le_stabilitySpeedBaseline p) (lt_trans hlower hc)
+
+theorem kappa_pos_of_stabilitySpeedBaseline_lt
+    {p : CMParams} {threshold : ℝ → ℝ} {c : ℝ}
+    (hlower : stabilitySpeedBaseline p < threshold p.χ)
+    (hc : threshold p.χ < c) :
+    0 < kappa c :=
+  kappa_pos_of_two_lt (two_lt_of_stabilitySpeedBaseline_lt hlower hc)
+
+theorem eta_pos_of_stability_weight_hypotheses
+    {p : CMParams} {threshold : ℝ → ℝ} {c eta : ℝ}
+    (hlower : stabilitySpeedBaseline p < threshold p.χ)
+    (hc : threshold p.χ < c) (hketa : kappa c < eta) :
+    0 < eta :=
+  lt_trans (kappa_pos_of_stabilitySpeedBaseline_lt hlower hc) hketa
+
+theorem eta_lt_one_of_stability_weight_upper_bound
+    (p : CMParams) {eta : ℝ}
+    (heta : eta < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ))) :
+    eta < 1 := by
+  have hpow_nonneg : 0 ≤ |p.χ| ^ (1 / 6 : ℝ) :=
+    Real.rpow_nonneg (abs_nonneg p.χ) _
+  have hden_one : 1 ≤ 1 + |p.χ| ^ (1 / 6 : ℝ) := by
+    linarith
+  have hbound :
+      1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) ≤ (1 : ℝ) := by
+    simpa [one_div] using inv_le_one_of_one_le₀ hden_one
+  exact lt_of_lt_of_le heta hbound
+
+theorem eta_mem_Ioo_zero_one_of_stability_weight_hypotheses
+    {p : CMParams} {threshold : ℝ → ℝ} {c eta : ℝ}
+    (hlower : stabilitySpeedBaseline p < threshold p.χ)
+    (hc : threshold p.χ < c) (hketa : kappa c < eta)
+    (heta_upper : eta < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ))) :
+    eta ∈ Set.Ioo (0 : ℝ) 1 :=
+  ⟨eta_pos_of_stability_weight_hypotheses hlower hc hketa,
+    eta_lt_one_of_stability_weight_upper_bound p heta_upper⟩
+
 theorem StableWaveParameterRegime.chi_lt_one
     {p : CMParams} (h : StableWaveParameterRegime p) :
     p.χ < 1 := by
