@@ -168,7 +168,17 @@ private lemma matVec4_eq_mulVec (A : Matrix Idx Idx ℝ) (x : State) :
 theorem linearization_at_E0 (p : Params) :
 (fun h : State => fderiv ℝ (vectorField p) E0 h)
 = matVec4 (jacobianAtZero p) := by
-  sorry
+  have hd : DifferentiableAt ℝ (vectorField p) E0 :=
+    (vectorField_contDiffAt p E0).differentiableAt le_rfl
+  have hdiff : ∀ i : Idx, DifferentiableAt ℝ (fun x : State => vectorField p x i) E0 :=
+    fun i => (differentiableAt_apply i _).comp _ hd
+  funext h; ext i
+  rw [show (fun x : State => fun i : Idx => vectorField p x i) = vectorField p from rfl,
+    fderiv_pi hdiff]
+  simp only [ContinuousLinearMap.coe_pi, ContinuousLinearMap.proj_apply]
+  fin_cases i <;> simp [vectorField, E0, matVec4, jacobianAtZero, powSlopeAtZero,
+    zero_pow (Nat.ne_of_gt p.hm), zero_pow (Nat.ne_of_gt p.hgamma),
+    zero_pow (Nat.ne_of_gt p.halpha)]
 
 structure PhasePortrait (p : Params) where
 source : State
