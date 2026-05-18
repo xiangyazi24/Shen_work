@@ -1518,6 +1518,39 @@ theorem
     (kappa_add_inv_eq_of_cStarLower_lt hc).symm
     hD
 
+theorem kappaTilde_pos_of_kappa_lt
+    {κ κtilde : ℝ} (hκ : 0 < κ) (hgap : κ < κtilde) :
+    0 < κtilde := by
+  linarith
+
+theorem kappaTilde_le_one_plus_alpha_mul_kappa_of_subsolution_range
+    {alpha m κ κtilde : ℝ}
+    (hrange :
+      κtilde ≤ min ((1 + alpha) * κ) (min (m * κ + 1 / 2) 1)) :
+    κtilde ≤ (1 + alpha) * κ :=
+  le_trans hrange (min_le_left _ _)
+
+theorem kappaTilde_le_m_mul_kappa_add_half_of_subsolution_range
+    {alpha m κ κtilde : ℝ}
+    (hrange :
+      κtilde ≤ min ((1 + alpha) * κ) (min (m * κ + 1 / 2) 1)) :
+    κtilde ≤ m * κ + 1 / 2 :=
+  le_trans hrange (le_trans (min_le_right _ _) (min_le_left _ _))
+
+theorem kappaTilde_le_one_of_subsolution_range
+    {alpha m κ κtilde : ℝ}
+    (hrange :
+      κtilde ≤ min ((1 + alpha) * κ) (min (m * κ + 1 / 2) 1)) :
+    κtilde ≤ 1 :=
+  le_trans hrange (le_trans (min_le_right _ _) (min_le_right _ _))
+
+theorem kappaTilde_lt_one_of_lt_subsolution_range
+    {alpha m κ κtilde : ℝ}
+    (hrange :
+      κtilde < min ((1 + alpha) * κ) (min (m * κ + 1 / 2) 1)) :
+    κtilde < 1 :=
+  lt_of_lt_of_le hrange (le_trans (min_le_right _ _) (min_le_right _ _))
+
 def Lemma_4_1 : Prop :=
   (∀ p : CMParams, p.χ ≤ 0 → p.α ≤ p.m + p.γ - 1 →
     ∀ κ M c : ℝ, 0 < κ → κ < 1 → 1 ≤ M → c = κ + κ⁻¹ →
