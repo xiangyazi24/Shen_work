@@ -159,7 +159,15 @@ theorem localSolutionExists (p : Params) (x₀ : State) (t₀ : ℝ) :
 theorem linearization_at_E1 (p : Params) :
 (fun h : State => fderiv ℝ (vectorField p) E1 h)
 = matVec4 (jacobianAtOne p) := by
-sorry
+  have hd : DifferentiableAt ℝ (vectorField p) E1 :=
+    (vectorField_contDiffAt p E1).differentiableAt le_rfl
+  have hdiff : ∀ i : Idx, DifferentiableAt ℝ (fun x : State => vectorField p x i) E1 :=
+    fun i => (differentiableAt_apply i _).comp _ hd
+  funext h; ext i
+  rw [show (fun x : State => fun i : Idx => vectorField p x i) = vectorField p from rfl,
+    fderiv_pi hdiff]
+  simp only [ContinuousLinearMap.coe_pi, ContinuousLinearMap.proj_apply]
+  fin_cases i <;> simp [vectorField, E1, matVec4, jacobianAtOne, one_pow, sub_self]
 
 private lemma matVec4_eq_mulVec (A : Matrix Idx Idx ℝ) (x : State) :
     matVec4 A x = A.mulVec x := by
