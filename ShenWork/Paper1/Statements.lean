@@ -207,6 +207,10 @@ theorem Lemma_2_3.derivative_bound
     ∀ x, |deriv (fun z => Psi u l mu z) x| ≤ Real.sqrt l * Psi u l mu x :=
   h u l mu hl hmu hu hu_nonneg
 
+theorem Lemma_2_3_proved : Lemma_2_3 := by
+  intro u l mu hl hmu hu hu_nonneg x
+  exact Psi_deriv_abs_le_general hl hmu hu hu_nonneg x
+
 theorem Lemma_2_3_of_Lemma_2_2 (h22 : Lemma_2_2) : Lemma_2_3 := by
   intro u l mu hl hmu hu hu_nonneg x
   let a : ℝ := Real.sqrt l
