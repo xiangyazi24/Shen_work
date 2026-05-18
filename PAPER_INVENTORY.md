@@ -55,6 +55,7 @@ Source: `paper2.pdf`, Chen-Ruau-Shen Part I.
 | Lemma 2.5 | `Psi_beta`, `Theta_beta`, `Lemma_2_5_proved`, `Psi_beta_pos`, `Psi_beta_lt_one`, `Theta_beta_pos`, `Psi_beta_eq_beta_mul_Theta_beta` | partial | Scalar entropy inequality and basic `Ψβ`/`Θβ` endpoint, positivity, bounds, and relations proved; monotonicity and asymptotic limit of `Ψβ` remain. |
 | Lemma 2.6 | `AbstractLpBootstrapHypothesis`, `Lemma_2_6` | statement target | Abstract `L^p` bootstrap target. |
 | Corollary 2.1 | `Corollary_2_1` | statement target | Chemotaxis cross-term bootstrap target. |
+| Proposition 2.1 | `Proposition_2_1` | statement target | Fundamental `L^p` estimate for elliptic signal `v` in terms of `u^γ`. |
 | Propositions 2.2--2.5 | `Proposition_2_2`--`Proposition_2_5` | statement target | Integral estimates and boundedness criterion; `χβ` positivity, upper-bound, and denominator branch algebra proved. |
 | Lemma 2.7 | `Lemma_2_7` | statement target | ODE/integral inequality used in bootstrap. |
 | Lemma 3.1 | `Lemma_3_1` | statement target | Negative-sensitivity estimate. |
@@ -81,6 +82,10 @@ Source: `paper3.pdf`, Chen-Ruau-Shen Part II.
 | Lemma 3.5 | `Paper3.Lemma_3_5` | statement target | Eventual upper bound in minimal model. |
 | Corollary 5.1 | `Paper3.Corollary_5_1` | statement target | Converts convergence plus linear stability into exponential convergence. |
 | Lemma 7.1 | `Paper3.Lemma_7_1` | statement target | Neumann resolvent gradient estimate. |
+| Lemma A.1 | `Paper3.Lemma_A_1` | statement target | Abstract sectorial linearized stability theorem, specialized to local exponential convergence packaging. |
+| Lemmas A.2--A.5 | `Paper3.Lemma_A_2`--`Paper3.Lemma_A_5` | statement target | Appendix semigroup and embedding estimates, linked to the Part I semigroup API. |
+| Lemma A.6 | `PowerDifferenceInequality`, `Paper3.Lemma_A_6` | statement target | Power-difference inequality used in Theorem 2.4. |
+| Lemmas A.7--A.8 | `Paper3.Lemma_A_7`, `Paper3.Lemma_A_8` | statement target | Comparison between explicit global-stability thresholds and the linear critical sensitivity. |
 
 ## Immediate proof candidates
 

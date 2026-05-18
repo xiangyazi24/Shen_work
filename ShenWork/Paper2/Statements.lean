@@ -395,6 +395,16 @@ def Corollary_2_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
       ∀ pExp > 1, ∃ C, ∀ t, 0 < t → t < T →
         D.integral (fun x => (u t x) ^ pExp) ≤ C
 
+def Proposition_2_1
+    (D : BoundedDomainData) (p : CM2Params)
+    (S : SemigroupEstimateData D) : Prop :=
+  ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+    IsPaper2ClassicalSolution D p T u v →
+      ∀ pExp, 1 ≤ pExp →
+        ∀ t, 0 < t → t < T →
+          S.lpNorm pExp (v t) ≤
+            (p.ν / p.μ) * S.lpNorm pExp (fun x => (u t x) ^ p.γ)
+
 def Proposition_2_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
     IsPaper2ClassicalSolution D p T u v →

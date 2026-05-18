@@ -795,6 +795,77 @@ def Lemma_7_1 (D : BoundedDomainData) (K : CompactnessData D) : Prop :=
     0 < mu → 0 < nu →
       K.neumannResolventGradientBound mu nu f M0
 
+def Lemma_A_1
+    (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
+    (N : StabilityNorms D) : Prop :=
+  ∀ uStar vStar,
+    LinearlyStable S p uStar vStar →
+      ∃ eps > 0, ∃ C > 0, ∃ rate > 0,
+        ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+          N.xpSigmaDistance (1 / 2) 2 u₀ (fun _ => uStar) ≤ eps →
+            ∀ u v : ℝ → D.Point → ℝ,
+              IsPaper2GlobalClassicalSolution D p u v →
+              InitialTrace D u₀ u →
+                ∀ t, 0 ≤ t →
+                  N.c1Distance (u t) (fun _ => uStar) +
+                    N.c1Distance (v t) (fun _ => vStar) ≤
+                      C * Real.exp (-rate * t)
+
+def Lemma_A_2
+    (D : BoundedDomainData) (p : CM2Params)
+    (S : SemigroupEstimateData D) : Prop :=
+  Paper2.Lemma_2_1 D p S
+
+def Lemma_A_3
+    (D : BoundedDomainData) (S : SemigroupEstimateData D) : Prop :=
+  Paper2.Lemma_2_2 D S
+
+def Lemma_A_4
+    (D : BoundedDomainData) (p : CM2Params)
+    (S : SemigroupEstimateData D) : Prop :=
+  Paper2.Lemma_2_3 D p S
+
+def Lemma_A_5
+    (D : BoundedDomainData) (p : CM2Params)
+    (S : SemigroupEstimateData D) : Prop :=
+  Paper2.Lemma_2_4 D p S
+
+def PowerDifferenceInequality
+    (C alpha gamma uStar : ℝ) : Prop :=
+  ∀ u > 0,
+    (u ^ gamma - uStar ^ gamma) ^ 2 ≤
+      C * uStar ^ (2 * gamma - alpha - 1) *
+        ((u - uStar) * (u ^ alpha - uStar ^ alpha))
+
+def Lemma_A_6 : Prop :=
+  ∀ C alpha gamma uStar,
+    0 < C → 0 < alpha → 0 < gamma → 0 < uStar →
+      2 * gamma ≤ alpha + 1 →
+        PowerDifferenceInequality C alpha gamma uStar
+
+def Lemma_A_7
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper3Constants D p) : Prop :=
+  0 ≤ p.β → 1 ≤ p.m →
+    ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      (p.α + 1 ≥ 2 * p.γ →
+        C.chiStrong1 eq.1 ≤ C.chiCritical eq.1) ∧
+      (1 ≤ p.β → p.α + 1 ≥ 2 * p.γ →
+        C.chiStrong2 eq.1 ≤ C.chiCritical eq.1) ∧
+      (1 ≤ p.γ → p.α + 1 ≥ p.m + p.γ →
+        C.chiStrong3 eq.1 ≤ C.chiCritical eq.1) ∧
+      (1 ≤ p.β → 1 ≤ p.γ → p.α + 1 ≥ p.m + 2 * p.γ →
+        C.chiStrong4 eq.1 ≤ C.chiCritical eq.1)
+
+def Lemma_A_8
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper3Constants D p) : Prop :=
+  p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+    ∀ uStar > 0,
+      (0 < p.γ → C.chiMinimal1 uStar ≤ C.chiCritical uStar) ∧
+      (p.γ = 1 → C.chiMinimal2 uStar ≤ C.chiCritical uStar)
+
 end
 
 end ShenWork.Paper3
