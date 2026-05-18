@@ -1389,6 +1389,50 @@ def Theorem_2_2
       C.chiCritical uStar < p.χ₀ →
         LinearlyUnstable S p eq.1 eq.2)
 
+lemma Theorem_2_2.nonminimal_stable
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ : p.χ₀ < C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    LinearlyStable S p
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+  exact (h.1 ha hb hχ).1
+
+lemma Theorem_2_2.nonminimal_unstable
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ : C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 < p.χ₀) :
+    LinearlyUnstable S p
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+  exact h.2.1 ha hb hχ
+
+lemma Theorem_2_2.minimal_stable
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C)
+    (ha : p.a = 0) (hb : p.b = 0) {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ : p.χ₀ < C.chiCritical uStar) :
+    LinearlyStable S p
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 := by
+  exact (h.2.2.1 ha hb uStar huStar hχ).1
+
+lemma Theorem_2_2.minimal_unstable
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C)
+    (ha : p.a = 0) (hb : p.b = 0) {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ : C.chiCritical uStar < p.χ₀) :
+    LinearlyUnstable S p
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 := by
+  exact h.2.2.2 ha hb uStar huStar hχ
+
 /-- Paper3 Theorem 2.3: global stability for negative sensitivity. -/
 def Theorem_2_3
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D) : Prop :=
