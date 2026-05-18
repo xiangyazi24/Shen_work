@@ -428,6 +428,35 @@ theorem Lemma_2_5.weighted_resolvent_gradient
           ≤ C * ∫ x : ℝ, (u x) ^ (gamma * pExp) * psi.weight x :=
   h pExp gamma l mu hpExp hgamma hl hmu
 
+theorem Lemma_2_5.weighted_resolvent_gradient_unit
+    (h : Lemma_2_5) (p : CMParams) {pExp : ℝ} (hpExp : 1 < pExp) :
+    ∃ C > 0, ∀ u : ℝ → ℝ, ∀ psi : ExponentialWeight,
+      Integrable (fun x => (u x) ^ (p.γ * pExp) * psi.weight x) →
+        Integrable
+          (fun x =>
+            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^ pExp *
+              psi.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^ pExp *
+              psi.weight x
+          ≤ C * ∫ x : ℝ, (u x) ^ (p.γ * pExp) * psi.weight x :=
+  h.weighted_resolvent_gradient hpExp
+    (lt_of_lt_of_le one_pos p.hγ) one_pos one_pos
+
+theorem Lemma_2_5.weighted_resolvent_gradient_unit_L2
+    (h : Lemma_2_5) (p : CMParams) :
+    ∃ C > 0, ∀ u : ℝ → ℝ, ∀ psi : ExponentialWeight,
+      Integrable (fun x => (u x) ^ (p.γ * (2 : ℝ)) * psi.weight x) →
+        Integrable
+          (fun x =>
+            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^ (2 : ℝ) *
+              psi.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^ (2 : ℝ) *
+              psi.weight x
+          ≤ C * ∫ x : ℝ, (u x) ^ (p.γ * (2 : ℝ)) * psi.weight x :=
+  h.weighted_resolvent_gradient_unit p (by norm_num : (1 : ℝ) < 2)
+
 def frozenElliptic (p : CMParams) (u : ℝ → ℝ) : ℝ → ℝ :=
   fun x => Psi (fun y => (u y) ^ p.γ) 1 1 x
 
