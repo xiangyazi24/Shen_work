@@ -827,6 +827,19 @@ lemma chiStrong3Formula_pos
       exact mul_nonneg (mul_nonneg p.hβ hvStar) (sq_nonneg M0)
     linarith
 
+lemma chiStrong3Formula_nonneg
+    (p : CM2Params) {M0 uStar vStar : ℝ}
+    (huStar : 0 < uStar) (hvStar : 0 ≤ vStar) :
+    0 ≤ chiStrong3Formula p M0 uStar vStar := by
+  unfold chiStrong3Formula
+  apply mul_nonneg
+  · exact div_nonneg p.ha
+      (mul_pos p.hν (Real.rpow_pos_of_pos huStar _)).le
+  · apply div_nonneg zero_le_one
+    have hnonneg : 0 ≤ p.β * vStar * M0 ^ 2 := by
+      exact mul_nonneg (mul_nonneg p.hβ hvStar) (sq_nonneg M0)
+    linarith
+
 lemma chiBarFormula_pos
     (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b)
     (hβ : 1 < p.β) :
@@ -840,6 +853,19 @@ lemma chiBarFormula_pos
   · rw [if_neg hm_eq]
     apply div_pos hb
     exact mul_pos p.hμ (Theta_beta_pos (by linarith))
+
+lemma chiBarFormula_nonneg
+    (p : CM2Params) (hβ : 1 < p.β) :
+    0 ≤ chiBarFormula p := by
+  unfold chiBarFormula
+  by_cases hm_eq : p.m = 1
+  · rw [if_pos hm_eq]
+    apply div_nonneg p.ha
+    exact (mul_pos (mul_pos (by norm_num) p.hμ)
+      (Theta_beta_pos (by linarith))).le
+  · rw [if_neg hm_eq]
+    apply div_nonneg p.hb
+    exact (mul_pos p.hμ (Theta_beta_pos (by linarith))).le
 
 lemma vABLowerFormula_pos
     (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b)
@@ -906,6 +932,19 @@ lemma chiStrong4Formula_pos
     exact mul_pos
       (Real.rpow_pos_of_pos hvpos _)
       (chiStrong3Formula_pos p ha huStar hveq_nonneg)
+
+lemma chiStrong2Formula_nonneg
+    (p : CM2Params) (uStar : ℝ) (hβ : 1 < p.β) :
+    0 ≤ chiStrong2Formula p uStar := by
+  unfold chiStrong2Formula
+  exact le_min (chiBarFormula_nonneg p hβ) (Real.sqrt_nonneg _)
+
+lemma chiStrong4Formula_nonneg
+    (p : CM2Params) {M0 uStar : ℝ}
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hβ : 1 < p.β) (huStar : 0 < uStar) :
+    0 ≤ chiStrong4Formula p M0 uStar := by
+  exact (chiStrong4Formula_pos p ha hb hm hβ huStar).le
 
 lemma chiStrong2Formula_le_chiBarFormula
     (p : CM2Params) (uStar : ℝ) :
