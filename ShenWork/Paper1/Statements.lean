@@ -144,6 +144,20 @@ theorem IsTravelingWave.nonnegativeInitialDatum
     NonnegativeInitialDatum U :=
   ⟨hU, fun x => (hTW.U_pos x).le⟩
 
+theorem IsTravelingWave.to_globalCauchySolutionFrom
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V) :
+    IsGlobalCauchySolutionFrom p U
+      (fun t x => U (x - c * t)) (fun t x => V (x - c * t)) := by
+  refine ⟨?_, ?_, ?_⟩
+  · exact _root_.IsTravelingWave.to_movingFrame_global_classical_solution
+      p hTW hU_diff hV_diff
+  · intro x
+    simp
+  · intro t x _ht
+    exact hTW.U_pos (x - c * t)
+
 structure HeatSemigroupEstimateData where
   lpNorm : ℝ → (ℝ → ℝ) → ℝ
   lqNorm : ℝ → (ℝ → ℝ) → ℝ

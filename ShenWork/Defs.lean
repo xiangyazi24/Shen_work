@@ -1003,13 +1003,13 @@ stability, and uniqueness theorems are not stated here as Lean theorems yet.
 This section keeps only facts that follow directly from the current definitions.
 -/
 
-theorem IsTravelingWave.to_global_classical_solution (p : CMParams)
+theorem IsTravelingWave.to_movingFrame_global_classical_solution (p : CMParams)
     {c : ℝ} {U V : ℝ → ℝ} (hTW : IsTravelingWave p c U V)
-    (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V)
-    : ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution p u v := by
+    (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V) :
+    IsGlobalClassicalSolution p
+      (fun t x => U (x - c * t)) (fun t x => V (x - c * t)) := by
   have hU_d : Differentiable ℝ U := hU_diff.differentiable two_ne_zero
   have hV_d : Differentiable ℝ V := hV_diff.differentiable two_ne_zero
-  refine ⟨fun t x => U (x - c * t), fun t x => V (x - c * t), ?_⟩
   intro T hT
   exact {
     hT := hT
@@ -1054,5 +1054,12 @@ theorem IsTravelingWave.to_global_classical_solution (p : CMParams)
       rw [h]
       exact hTW.ode_V (x - c * t)
   }
+
+theorem IsTravelingWave.to_global_classical_solution (p : CMParams)
+    {c : ℝ} {U V : ℝ → ℝ} (hTW : IsTravelingWave p c U V)
+    (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V)
+    : ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution p u v :=
+  ⟨fun t x => U (x - c * t), fun t x => V (x - c * t),
+    hTW.to_movingFrame_global_classical_solution p hU_diff hV_diff⟩
 
 end
