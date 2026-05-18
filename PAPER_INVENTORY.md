@@ -22,9 +22,9 @@ systems.
 | Paper item | Lean artifact | Status | Notes |
 | --- | --- | --- | --- |
 | Proposition 1.1 | `Paper1.Proposition_1_1` | statement target | Global Cauchy existence and bounds. |
-| Proposition 1.2 | `Paper1.Proposition_1_2` | statement target | Stability of `(1,1)`. |
+| Proposition 1.2 | `Paper1.Proposition_1_2`, `UniformlyPositive`, `StrictlyPositiveAtLeft` | statement target | Stability of `(1,1)`; global uniform positivity is separated from the left-tail positivity used in wave stability. |
 | Theorem 1.1 | `Paper1.Theorem_1_1`, `FrozenWaveMapConstruction`, `NegativeSensitivityWaveFixedPointConstruction`, `PositiveSensitivityWaveFixedPointConstruction` | statement target | Traveling-wave existence; the Section 4.2/4.3 frozen auxiliary parabolic orbit, local-uniform limit map, compact/continuous Schauder-map interface, and fixed-point construction targets are now represented separately from the final wave conversion, with fixed-limit projection lemmas proved. |
-| Theorem 1.2 | `Paper1.Theorem_1_2`, `StableWaveParameterRegime`, `stabilitySpeedBaseline` | statement target | Weighted stability of waves; includes the paper's lower bound on `c**`, and stable-regime projections `χ < 1`, `Mχ > 0`, and `1 < stabilitySpeedBaseline` are proved. |
+| Theorem 1.2 | `Paper1.Theorem_1_2`, `StableWaveParameterRegime`, `stabilitySpeedBaseline`, `StrictlyPositiveAtLeft` | statement target | Weighted stability of waves; includes the paper's lower bound on `c**`, the paper's left-tail positivity condition on initial data, and stable-regime projections `χ < 1`, `Mχ > 0`, and `1 < stabilitySpeedBaseline` are proved. |
 | Theorem 1.3 | `Paper1.Theorem_1_3`, `stabilitySpeedBaseline` | statement target | Uniqueness with right-tail normalization; includes the same paper lower bound on `c**`. |
 | Remarks 1.1--1.5 | none | remark/doc | Mine later for dependencies and parameter regimes. |
 | Lemma 2.1 | `HeatSemigroupEstimateData`, `Paper1.Lemma_2_1` | statement target | Semigroup `L^p-L^q` estimates. |

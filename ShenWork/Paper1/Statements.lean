@@ -18,8 +18,11 @@ noncomputable section
 def NonnegativeInitialDatum (u₀ : ℝ → ℝ) : Prop :=
   IsCUnifBdd u₀ ∧ ∀ x, 0 ≤ u₀ x
 
-def StrictlyPositiveAtLeft (u₀ : ℝ → ℝ) : Prop :=
+def UniformlyPositive (u₀ : ℝ → ℝ) : Prop :=
   ∃ δ > 0, ∀ x, δ ≤ u₀ x
+
+def StrictlyPositiveAtLeft (u₀ : ℝ → ℝ) : Prop :=
+  ∃ δ > 0, ∀ᶠ x in atBot, δ ≤ u₀ x
 
 def HasInitialDatum (u : ℝ → ℝ → ℝ) (u₀ : ℝ → ℝ) : Prop :=
   ∀ x, u 0 x = u₀ x
@@ -1941,13 +1944,13 @@ def Proposition_1_1 : Prop :=
 /-- Paper1 Proposition 1.2: stability of the positive constant solution. -/
 def Proposition_1_2 : Prop :=
   (∀ p : CMParams, p.χ ≤ 0 →
-    ∀ u₀ : ℝ → ℝ, NonnegativeInitialDatum u₀ → StrictlyPositiveAtLeft u₀ →
+    ∀ u₀ : ℝ → ℝ, NonnegativeInitialDatum u₀ → UniformlyPositive u₀ →
       ∃ u v : ℝ → ℝ → ℝ,
         IsGlobalCauchySolutionFrom p u₀ u v ∧
         UniformConvergesToConstant u 1) ∧
   (∀ p : CMParams, 0 < p.χ → p.χ < (1 / 2 : ℝ) →
     p.m + p.γ - 1 ≤ p.α →
-    ∀ u₀ : ℝ → ℝ, NonnegativeInitialDatum u₀ → StrictlyPositiveAtLeft u₀ →
+    ∀ u₀ : ℝ → ℝ, NonnegativeInitialDatum u₀ → UniformlyPositive u₀ →
       ∃ u v : ℝ → ℝ → ℝ,
         IsGlobalCauchySolutionFrom p u₀ u v ∧
         UniformConvergesToConstant u 1)
