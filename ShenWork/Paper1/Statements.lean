@@ -89,6 +89,61 @@ def UniformMovingFrameConvergence
     (c : ℝ) (u : ℝ → ℝ → ℝ) (U : ℝ → ℝ) : Prop :=
   ∀ ε > 0, ∃ T, ∀ t x, T ≤ t → |u t x - U (x - c * t)| < ε
 
+theorem WeightedL2InitialCloseness.refl
+    (η : ℝ) (U : ℝ → ℝ) :
+    WeightedL2InitialCloseness η U U := by
+  simp [WeightedL2InitialCloseness]
+
+theorem WeightedL2InitialCloseness.symm
+    {η : ℝ} {u₀ U : ℝ → ℝ}
+    (h : WeightedL2InitialCloseness η u₀ U) :
+    WeightedL2InitialCloseness η U u₀ := by
+  unfold WeightedL2InitialCloseness at h ⊢
+  convert h using 1
+  ext x
+  rw [abs_sub_comm]
+
+theorem IsGlobalCauchySolutionFrom.classical
+    {p : CMParams} {u₀ : ℝ → ℝ} {u v : ℝ → ℝ → ℝ}
+    (h : IsGlobalCauchySolutionFrom p u₀ u v) :
+    IsGlobalClassicalSolution p u v :=
+  h.1
+
+theorem IsGlobalCauchySolutionFrom.initial
+    {p : CMParams} {u₀ : ℝ → ℝ} {u v : ℝ → ℝ → ℝ}
+    (h : IsGlobalCauchySolutionFrom p u₀ u v) :
+    HasInitialDatum u u₀ :=
+  h.2.1
+
+theorem IsGlobalCauchySolutionFrom.pos
+    {p : CMParams} {u₀ : ℝ → ℝ} {u v : ℝ → ℝ → ℝ}
+    (h : IsGlobalCauchySolutionFrom p u₀ u v) :
+    ∀ t x, 0 ≤ t → 0 < u t x :=
+  h.2.2
+
+theorem IsGlobalCauchySolutionFrom.initial_pos
+    {p : CMParams} {u₀ : ℝ → ℝ} {u v : ℝ → ℝ → ℝ}
+    (h : IsGlobalCauchySolutionFrom p u₀ u v) (x : ℝ) :
+    0 < u₀ x := by
+  rw [← h.initial x]
+  exact h.pos 0 x le_rfl
+
+theorem IsTravelingWave.strictlyPositiveAtLeft
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V) :
+    StrictlyPositiveAtLeft U := by
+  refine ⟨1 / 2, by norm_num, ?_⟩
+  have hnhds : Set.Ioi (1 / 2 : ℝ) ∈ 𝓝 (1 : ℝ) :=
+    Ioi_mem_nhds (by norm_num)
+  filter_upwards [hTW.lim_neg_inf.1 hnhds] with x hx
+  exact le_of_lt hx
+
+theorem IsTravelingWave.nonnegativeInitialDatum
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V) (hU : IsCUnifBdd U) :
+    NonnegativeInitialDatum U :=
+  ⟨hU, fun x => (hTW.U_pos x).le⟩
+
 structure HeatSemigroupEstimateData where
   lpNorm : ℝ → (ℝ → ℝ) → ℝ
   lqNorm : ℝ → (ℝ → ℝ) → ℝ
