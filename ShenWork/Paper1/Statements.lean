@@ -3581,6 +3581,52 @@ theorem Theorem_1_3.uniqueness_package
         (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) :=
   h p hp
 
+theorem Theorem_1_3.uniqueness_at_admissible_threshold
+    {p : CMParams} {cStarStar : ℝ → ℝ}
+    (hthreshold :
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧
+          HasWaveRightTailAsymptotic c κ₁ U₁ ∧
+          HasWaveRightTailAsymptotic c κ₁ U₂) →
+        (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x))
+    {c : ℝ} (hc : cStarStar p.χ < c)
+    {U₁ V₁ U₂ V₂ : ℝ → ℝ}
+    (hTW₁ : IsTravelingWave p c U₁ V₁)
+    (hTW₂ : IsTravelingWave p c U₂ V₂)
+    (hbound₁ : HasStrictWaveUpperTailBound p c U₁)
+    (hbound₂ : HasStrictWaveUpperTailBound p c U₂)
+    (htail :
+      ∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧
+        HasWaveRightTailAsymptotic c κ₁ U₁ ∧
+        HasWaveRightTailAsymptotic c κ₁ U₂) :
+    (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) :=
+  hthreshold.2.2 c hc U₁ V₁ U₂ V₂
+    hTW₁ hTW₂ hbound₁ hbound₂ htail
+
+theorem Theorem_1_3.exists_threshold_with_uniqueness_at_speed
+    (h : Theorem_1_3) {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧
+          HasWaveRightTailAsymptotic c κ₁ U₁ ∧
+          HasWaveRightTailAsymptotic c κ₁ U₂) →
+        (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) :=
+  h.uniqueness_package hp
+
 end
 
 end ShenWork.Paper1
