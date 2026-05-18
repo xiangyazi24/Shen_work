@@ -1465,6 +1465,59 @@ theorem
       (lt_of_lt_of_le one_pos p.hγ)
       (kappa_add_inv_eq_of_cStarLower_lt hc).symm
 
+theorem D_pos_of_subsolutionDThreshold_lt_of_kappa_speed
+    {χ M κ κtilde m gamma c D : ℝ}
+    (hM : 0 < M) (hκ0 : 0 < κ) (hκ1 : κ < 1)
+    (hgap : κ < κtilde) (hκtilde1 : κtilde ≤ 1)
+    (hm : 0 < m) (hgamma : 0 < gamma) (hc : c = κ + κ⁻¹)
+    (hD : subsolutionDThreshold χ M κ κtilde m gamma c < D) :
+    0 < D :=
+  lt_trans
+    (subsolutionDThreshold_pos_of_kappa_speed hM hκ0 hκ1 hgap
+      hκtilde1 hm hgamma hc)
+    hD
+
+theorem exists_d_pos_le_constantSubsolutionThreshold
+    {χ κ κtilde D : ℝ}
+    (hκ : 0 < κ) (hgap : κ < κtilde) (hD : 0 < D) :
+    ∃ d : ℝ, 0 < d ∧ d ≤ constantSubsolutionThreshold χ κ κtilde D := by
+  let d := constantSubsolutionThreshold χ κ κtilde D / 2
+  have hthr : 0 < constantSubsolutionThreshold χ κ κtilde D :=
+    constantSubsolutionThreshold_pos hκ (sub_pos.mpr hgap) hD
+  refine ⟨d, ?_, ?_⟩
+  · dsimp [d]
+    linarith
+  · dsimp [d]
+    linarith
+
+theorem
+    exists_d_pos_le_constantSubsolutionThreshold_of_subsolutionDThreshold_lt
+    {χ M κ κtilde m gamma c D : ℝ}
+    (hM : 0 < M) (hκ0 : 0 < κ) (hκ1 : κ < 1)
+    (hgap : κ < κtilde) (hκtilde1 : κtilde ≤ 1)
+    (hm : 0 < m) (hgamma : 0 < gamma) (hc : c = κ + κ⁻¹)
+    (hD : subsolutionDThreshold χ M κ κtilde m gamma c < D) :
+    ∃ d : ℝ, 0 < d ∧ d ≤ constantSubsolutionThreshold χ κ κtilde D :=
+  exists_d_pos_le_constantSubsolutionThreshold hκ0 hgap
+    (D_pos_of_subsolutionDThreshold_lt_of_kappa_speed hM hκ0 hκ1 hgap
+      hκtilde1 hm hgamma hc hD)
+
+theorem
+    exists_d_pos_le_constantSubsolutionThreshold_of_cStarLower_lt
+    {p : CMParams} {M κtilde c D : ℝ}
+    (hM : 0 < M) (hc : cStarLower p < c)
+    (hgap : kappa c < κtilde) (hκtilde1 : κtilde ≤ 1)
+    (hD : subsolutionDThreshold p.χ M (kappa c) κtilde p.m p.γ c < D) :
+    ∃ d : ℝ, 0 < d ∧
+      d ≤ constantSubsolutionThreshold p.χ (kappa c) κtilde D :=
+  exists_d_pos_le_constantSubsolutionThreshold_of_subsolutionDThreshold_lt
+    hM (kappa_pos_of_cStarLower_lt hc) (kappa_lt_one_of_cStarLower_lt hc)
+    hgap hκtilde1
+    (lt_of_lt_of_le one_pos p.hm)
+    (lt_of_lt_of_le one_pos p.hγ)
+    (kappa_add_inv_eq_of_cStarLower_lt hc).symm
+    hD
+
 def Lemma_4_1 : Prop :=
   (∀ p : CMParams, p.χ ≤ 0 → p.α ≤ p.m + p.γ - 1 →
     ∀ κ M c : ℝ, 0 < κ → κ < 1 → 1 ≤ M → c = κ + κ⁻¹ →
