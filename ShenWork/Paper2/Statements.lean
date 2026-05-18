@@ -939,6 +939,31 @@ def Theorem_1_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
           (∀ t, 0 < t → t < Tmax → D.supNorm (u t) ≤ D.supNorm u₀) ∧
           (1 ≤ p.m → IsPaper2GlobalClassicalSolution D p u v))
 
+lemma Theorem_1_1.nonminimal_solution
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Theorem_1_1 D p)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v ∧
+      InitialTrace D u₀ u ∧
+      (∀ t, 0 < t → t < Tmax →
+        D.supNorm (u t) ≤ max (D.supNorm u₀) ((p.a / p.b) ^ (1 / p.α))) ∧
+      (1 ≤ p.m → IsPaper2GlobalClassicalSolution D p u v) :=
+  (h hχ).1 ha hb u₀ hu₀
+
+lemma Theorem_1_1.minimal_solution
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Theorem_1_1 D p)
+    (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (hb : p.b = 0)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v ∧
+      InitialTrace D u₀ u ∧
+      (∀ t, 0 < t → t < Tmax → D.supNorm (u t) ≤ D.supNorm u₀) ∧
+      (1 ≤ p.m → IsPaper2GlobalClassicalSolution D p u v) :=
+  (h hχ).2 ha hb u₀ hu₀
+
 /-- Paper2 Theorem 1.2: boundedness/global existence for weak nonlinear cross diffusion. -/
 def Theorem_1_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
@@ -955,6 +980,30 @@ def Theorem_1_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
             InitialTrace D u₀ u ∧
             IsPaper2Bounded D u))
 
+lemma Theorem_1_2.sublinear_solution
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Theorem_1_2 D p)
+    (ha : 0 ≤ p.a) (hb : 0 ≤ p.b) (hβ : 1 ≤ p.β)
+    (hm_pos : 0 < p.m) (hm_lt : p.m < 1)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2BoundedBefore D Tmax u :=
+  (h ha hb hβ).1 hm_pos hm_lt u₀ hu₀
+
+lemma Theorem_1_2.linear_solution
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Theorem_1_2 D p)
+    (ha : 0 ≤ p.a) (hb : 0 ≤ p.b) (hβ : 1 ≤ p.β)
+    (hm : p.m = 1) (hχ : p.χ₀ < chiBeta p)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  (h ha hb hβ).2 hm hχ u₀ hu₀
+
 /-- Paper2 Theorem 1.3: boundedness/global existence under a strong logistic source. -/
 def Theorem_1_3 (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p) : Prop :=
   0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
@@ -969,6 +1018,30 @@ def Theorem_1_3 (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p) 
           IsPaper2GlobalClassicalSolution D p u v ∧
             InitialTrace D u₀ u ∧
             IsPaper2Bounded D u)
+
+lemma Theorem_1_3.finite_horizon_solution
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm_pos : 0 < p.m)
+    (hcond : StrongLogisticCondition p C)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2BoundedBefore D Tmax u :=
+  (h ha hb hm_pos hcond).1 u₀ hu₀
+
+lemma Theorem_1_3.global_solution
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm_pos : 0 < p.m)
+    (hcond : StrongLogisticCondition p C) (hm : 1 ≤ p.m)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  (h ha hb hm_pos hcond).2 hm u₀ hu₀
 
 end
 
