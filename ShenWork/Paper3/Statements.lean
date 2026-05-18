@@ -1716,10 +1716,59 @@ def Corollary_5_1
             UniformConvergesInSup D u eq.1 →
               ExponentialC1Convergence D N u v eq.1 eq.2)
 
+lemma Corollary_5_1.uniform_convergence_of_theta
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (h : Corollary_5_1 D p N C) (hm : 1 ≤ p.m)
+    {uStar vStar theta : ℝ} (htheta : 0 < theta)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hthetaConv : ThetaMomentConvergesToZero D u uStar theta) :
+    UniformConvergesInSup D u uStar :=
+  (h hm).1 uStar vStar theta htheta u v huv hthetaConv
+
+lemma Corollary_5_1.nonminimal_exponential
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (h : Corollary_5_1 D p N C) (hm : 1 ≤ p.m)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ : p.χ₀ < C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hconv : UniformConvergesInSup D u (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  (h hm).2.1 ha hb hχ u v huv hconv
+
+lemma Corollary_5_1.minimal_exponential
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (h : Corollary_5_1 D p N C) (hm : 1 ≤ p.m)
+    (ha : p.a = 0) (hb : p.b = 0)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ : p.χ₀ < C.chiCritical uStar)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar)
+    (hconv : UniformConvergesInSup D u (minimalEquilibrium p uStar).1) :
+    ExponentialC1Convergence D N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  (h hm).2.2 ha hb uStar huStar hχ u v huv hmass hconv
+
 def Lemma_7_1 (D : BoundedDomainData) (K : CompactnessData D) : Prop :=
   ∃ M0 > 0, ∀ mu nu : ℝ, ∀ f : D.Point → ℝ,
     0 < mu → 0 < nu →
       K.neumannResolventGradientBound mu nu f M0
+
+lemma Lemma_7_1.bound
+    {D : BoundedDomainData} {K : CompactnessData D}
+    (h : Lemma_7_1 D K) :
+    ∃ M0 > 0, ∀ mu nu : ℝ, ∀ f : D.Point → ℝ,
+      0 < mu → 0 < nu →
+        K.neumannResolventGradientBound mu nu f M0 :=
+  h
 
 def Lemma_A_1
     (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)

@@ -81,8 +81,8 @@ Source: `paper3.pdf`, Chen-Ruau-Shen Part II.
 | Lemma 3.3 | `Paper3.Lemma_3_3`, `InitialContinuityConclusion` | statement target | Continuity with respect to initial data; corrected so the compared functions are actual classical solutions at the common time `T₀`, not arbitrary functions, and direct projection lemma proved. |
 | Lemma 3.4 | `Paper3.Lemma_3_4`, `UpperEnvelopeMonotonicityConclusion` | statement target | Monotonicity of upper envelope from Part I; corrected to the paper's nonincreasing direction on `(0,t₀]`, with nonminimal/minimal/direct projection lemmas proved. |
 | Lemma 3.5 | `Paper3.Lemma_3_5` | statement target | Eventual upper bound in minimal model; direct projection lemma proved. |
-| Corollary 5.1 | `Paper3.Corollary_5_1` | statement target | Converts convergence plus linear stability into exponential convergence. |
-| Lemma 7.1 | `Paper3.Lemma_7_1` | statement target | Neumann resolvent gradient estimate. |
+| Corollary 5.1 | `Paper3.Corollary_5_1` | statement target | Converts convergence plus linear stability into exponential convergence; uniform-convergence and nonminimal/minimal exponential projection lemmas are proved. |
+| Lemma 7.1 | `Paper3.Lemma_7_1` | statement target | Neumann resolvent gradient estimate; bound projection lemma is proved. |
 | Lemma A.1 | `Paper3.Lemma_A_1` | statement target | Abstract sectorial linearized stability theorem, specialized to local exponential convergence packaging. |
 | Lemmas A.2--A.5 | `Paper3.Lemma_A_2`--`Paper3.Lemma_A_5` | statement target | Appendix semigroup and embedding estimates, linked to the Part I semigroup API. |
 | Lemma A.6 | `CAlphaGamma`, `PowerDifferenceInequality`, `Paper3.Lemma_A_6` | statement target | Exact paper constant `C_{α,γ}` and power-difference inequality used in Theorem 2.4; positivity and `C_{α,γ} α / γ^2 ≥ 1` under `2γ ≤ α+1` proved. |
