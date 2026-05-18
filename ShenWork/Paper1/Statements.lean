@@ -478,6 +478,15 @@ theorem lowerBarrierRaw_speed_coefficient_neg
   rw [hfactor]
   exact mul_neg_of_pos_of_neg hleft hright
 
+theorem lowerBarrierRaw_speed_denominator_pos
+    {κ κtilde c : ℝ}
+    (hκ0 : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
+    (hκtilde1 : κtilde ≤ 1) (hc : c = κ + κ⁻¹) :
+    0 < c * κtilde - κtilde ^ 2 - 1 := by
+  have h :=
+    lowerBarrierRaw_speed_coefficient_neg hκ0 hκ1 hgap hκtilde1 hc
+  nlinarith
+
 theorem lowerBarrierRaw_linear_part_pos_of_kappa_speed
     {κ κtilde D c x : ℝ}
     (hκ0 : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
@@ -1369,6 +1378,36 @@ theorem subsolutionDThreshold_pos
       (mul_nonneg (abs_nonneg χ)
         (subsolutionK_pos hM hκ hgap hm hgamma).le)
   · exact hden
+
+theorem subsolutionDThreshold_pos_of_kappa_speed
+    {χ M κ κtilde m gamma c : ℝ}
+    (hM : 0 < M) (hκ0 : 0 < κ) (hκ1 : κ < 1)
+    (hgap : κ < κtilde) (hκtilde1 : κtilde ≤ 1)
+    (hm : 0 < m) (hgamma : 0 < gamma) (hc : c = κ + κ⁻¹) :
+    0 < subsolutionDThreshold χ M κ κtilde m gamma c :=
+  subsolutionDThreshold_pos hM hκ0 (sub_pos.mpr hgap) hm hgamma
+    (lowerBarrierRaw_speed_denominator_pos hκ0 hκ1 hgap hκtilde1 hc)
+
+theorem subsolutionDThreshold_pos_of_speed_gt_two
+    {χ M κtilde m gamma c : ℝ}
+    (hM : 0 < M) (hc : 2 < c) (hgap : kappa c < κtilde)
+    (hκtilde1 : κtilde ≤ 1) (hm : 0 < m) (hgamma : 0 < gamma) :
+    0 < subsolutionDThreshold χ M (kappa c) κtilde m gamma c :=
+  subsolutionDThreshold_pos_of_kappa_speed hM
+    (kappa_pos_of_two_lt hc)
+    (kappa_lt_one_of_two_lt hc)
+    hgap hκtilde1 hm hgamma
+    (kappa_add_inv_eq_of_two_lt hc).symm
+
+theorem subsolutionDThreshold_pos_of_cStarLower_lt
+    {p : CMParams} {M κtilde c : ℝ}
+    (hM : 0 < M) (hc : cStarLower p < c)
+    (hgap : kappa c < κtilde) (hκtilde1 : κtilde ≤ 1) :
+    0 < subsolutionDThreshold p.χ M (kappa c) κtilde p.m p.γ c :=
+  subsolutionDThreshold_pos_of_speed_gt_two hM
+    (two_lt_of_cStarLower_lt hc) hgap hκtilde1
+    (lt_of_lt_of_le one_pos p.hm)
+    (lt_of_lt_of_le one_pos p.hγ)
 
 theorem constantSubsolutionThreshold_pos
     {χ κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
