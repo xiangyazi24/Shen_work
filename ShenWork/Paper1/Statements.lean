@@ -158,6 +158,19 @@ theorem IsTravelingWave.to_globalCauchySolutionFrom
   · intro t x _ht
     exact hTW.U_pos (x - c * t)
 
+theorem IsTravelingWave.weightedL2MovingFrameConvergence_self
+    {p : CMParams} {c η : ℝ} {U V : ℝ → ℝ}
+    (_hTW : IsTravelingWave p c U V) :
+    WeightedL2MovingFrameConvergence η c (fun t x => U (x - c * t)) U := by
+  simp [WeightedL2MovingFrameConvergence]
+
+theorem IsTravelingWave.uniformMovingFrameConvergence_self
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (_hTW : IsTravelingWave p c U V) :
+    UniformMovingFrameConvergence c (fun t x => U (x - c * t)) U := by
+  intro ε hε
+  exact ⟨0, fun _t _x _ht => by simpa using hε⟩
+
 structure HeatSemigroupEstimateData where
   lpNorm : ℝ → (ℝ → ℝ) → ℝ
   lqNorm : ℝ → (ℝ → ℝ) → ℝ
