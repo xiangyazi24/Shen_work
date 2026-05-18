@@ -1,6 +1,6 @@
 /-
   ShenWork/PDE/TravelingWaveConstruction.lean
-  Explicit traveling wave construction using capped exponential.
+  Explicit front profiles used as barriers in the traveling-wave construction.
 -/
 import ShenWork.Defs
 import Mathlib.Analysis.SpecialFunctions.Sigmoid
@@ -123,30 +123,17 @@ def logisticProfile_facts {κ : ℝ} (hκ : 0 < κ) :
     U_deriv_nonpos := fun x => logisticProfile_deriv_nonpos hκ x
   }
 
-theorem traveling_wave_exists_with_exp_bound (p : CMParams) (c : ℝ)
-    (hc : 0 < c) (hκ : 0 < kappa c) :
-    ∃ U V : ℝ → ℝ, IsMonotoneTravelingWave p c U V ∧
-      (∀ x, 0 < U x) ∧ (∀ x, U x < max 1 (Real.exp (-kappa c * x))) := by
-  let U := logisticProfile (kappa c)
-  let V := logisticProfile (kappa c)
-  refine ⟨U, V, ?_, fun x => logisticProfile_pos _ x, ?_⟩
-  · refine ⟨?_, fun x => logisticProfile_deriv_nonpos hκ x,
-      fun x => logisticProfile_deriv_nonpos hκ x⟩
-    exact {
-      hc := hc
-      U_pos := fun x => logisticProfile_pos _ x
-      ode_U := fun x => by sorry  -- traveling wave ODE
-      ode_V := fun x => by sorry  -- elliptic equation
-      lim_neg_inf := ⟨logisticProfile_tendsto_atBot hκ, logisticProfile_tendsto_atBot hκ⟩
-      lim_pos_inf := ⟨logisticProfile_tendsto_atTop hκ, logisticProfile_tendsto_atTop hκ⟩
-    }
-  · intro x
-    exact (logisticProfile_lt_one (kappa c) x).trans_le (le_max_left _ _)
+lemma logisticProfile_strict_exp_bound (κ x : ℝ) :
+    logisticProfile κ x < max 1 (Real.exp (-κ * x)) := by
+  exact (logisticProfile_lt_one κ x).trans_le (le_max_left _ _)
 
-/-- Construct a monotone traveling wave using a logistic profile, with ODE fields sorry'd. -/
-theorem traveling_wave_exists (p : CMParams) (c : ℝ) (hc : 0 < c) (hκ : 0 < kappa c) :
-    ∃ U V : ℝ → ℝ, IsMonotoneTravelingWave p c U V ∧ (∀ x, 0 < U x) := by
-  obtain ⟨U, V, hTW, hUpos, _hbound⟩ := traveling_wave_exists_with_exp_bound p c hc hκ
-  exact ⟨U, V, hTW, hUpos⟩
+theorem logisticProfile_facts_with_exp_bound {κ : ℝ} (hκ : 0 < κ) :
+    ∃ F : LogisticProfileFacts κ,
+      F.U = logisticProfile κ ∧
+      (∀ x, 0 < F.U x) ∧
+      (∀ x, F.U x < max 1 (Real.exp (-κ * x))) := by
+  refine ⟨logisticProfile_facts hκ, rfl, ?_, ?_⟩
+  · exact fun x => logisticProfile_pos κ x
+  · exact fun x => logisticProfile_strict_exp_bound κ x
 
 end

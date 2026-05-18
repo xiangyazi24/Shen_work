@@ -1,6 +1,6 @@
 # Tasks for Codex (GPT-5.5)
 
-BUILD OK, 7 sorry remaining. Priority order:
+BUILD OK, 5 sorry remaining. Priority order:
 
 ## Done: Parabolic maximum principle
 
@@ -35,6 +35,10 @@ BUILD OK, 7 sorry remaining. Priority order:
   theorems under the current toy solution definitions.
 - Removed the unused false positive theorem `pde_bounded_by_rectangle_ode`; the file already proves
   the corresponding universal statement false under the current toy PDE definitions.
+- Removed the false explicit logistic-profile traveling-wave construction:
+  `TravelingWaveConstruction.lean` now states only true profile/barrier facts, and
+  `TravelingWaves.lean` / `StabilityUniqueness.lean` no longer claim those profiles
+  prove `IsTravelingWave`.
 
 ## P0: MildSolution integrability (173, 175)
 Need `AEStronglyMeasurable` for time-parametric integral `s ↦ ∫ y, heatKernel(t-s)(x-y) * F(s,y)`.
@@ -47,7 +51,8 @@ Need to construct fixed point of Φ on function space. Use `BoundedContinuousFun
 Global ODE existence + convergence to E0.
 
 ## P3: Deep theorems
-- Defs:456 — TW uniqueness (sliding method)
+- Defs:458 — TW uniqueness (paper proves this through stability/asymptotics, not the
+  old fake explicit profile construction)
 
 ## Key API discoveries
 - `continuous_rpow_const.comp_aestronglyMeasurable` for rpow measurability

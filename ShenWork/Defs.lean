@@ -388,9 +388,11 @@ theorem cm_stabilize_small_pos (p : CMParams)
   exact ⟨_, _, constant_solution_is_global p,
     by simp only [sub_self, abs_zero, ciSup_const]; exact tendsto_const_nhds⟩
 
--- cm_tw_exist_neg: packaged in TravelingWaves.lean from an explicit traveling-wave existence assumption.
+-- cm_tw_exist_neg: not formalized here; explicit profiles in TravelingWaves.lean are barriers,
+-- not traveling waves.
 
--- cm_tw_exist_small_pos: proved in StabilityUniqueness.lean as existence_tw_small_pos
+-- cm_tw_exist_small_pos: not formalized here; explicit profiles in StabilityUniqueness.lean are
+-- barriers, not traveling waves.
 
 theorem cm_tw_stability (p : CMParams)
     (hparam : (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨

@@ -22,21 +22,15 @@ theorem stability_traveling_wave (p : CMParams)
       (∀ ε > 0, ∃ T, ∀ t x, T ≤ t → |u t x - U (x - c * t)| < ε) :=
   cm_tw_stability p hparam c hc U V hTW hU_diff hV_diff u₀ hu₀_nn
 
-theorem existence_tw_small_pos (p : CMParams)
-    (hα : p.α = p.m + p.γ - 1)
-    (hχ_nn : 0 ≤ p.χ) (hχ_small : p.χ < min (1/2) (chiStar p))
+theorem logistic_profile_small_pos_facts (p : CMParams)
+    (_hα : p.α = p.m + p.γ - 1)
+    (_hχ_nn : 0 ≤ p.χ) (_hχ_small : p.χ < min (1 / 2) (chiStar p))
     (c : ℝ) (hc : 2 < c) :
-    ∃ U V : ℝ → ℝ, IsTravelingWave p c U V ∧ (∀ x, 0 < U x) := by
-  have hc0 : 0 < c := by linarith
-  have hκ : 0 < kappa c := by
-    simp only [kappa]
-    have hrad_pos : 0 < c ^ 2 - 4 := by nlinarith
-    have hsqrt_lt : Real.sqrt (c ^ 2 - 4) < c := by
-      have hsq : (Real.sqrt (c ^ 2 - 4)) ^ 2 = c ^ 2 - 4 := Real.sq_sqrt (by linarith)
-      nlinarith [Real.sqrt_nonneg (c ^ 2 - 4)]
-    linarith
-  obtain ⟨U, V, hTW, hUpos⟩ := traveling_wave_exists p c hc0 hκ
-  exact ⟨U, V, hTW.1, hUpos⟩
+    ∃ F : LogisticProfileFacts (kappa c),
+      F.U = logisticProfile (kappa c) ∧
+      (∀ x, 0 < F.U x) ∧
+      (∀ x, F.U x < max 1 (Real.exp (-kappa c * x))) := by
+  exact logisticProfile_facts_with_exp_bound (kappa_pos_of_two_lt hc)
 
 theorem uniqueness_traveling_wave (p : CMParams)
     (hparam : (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
