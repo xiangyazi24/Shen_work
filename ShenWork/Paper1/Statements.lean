@@ -873,6 +873,21 @@ theorem HasWaveUpperTailBound.le_exp {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     U x ≤ Real.exp (-(kappa c) * x) :=
   le_trans (h x).2 (min_le_right _ _)
 
+theorem HasWaveUpperTailBound.inWaveTrapSet
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveUpperTailBound p c U) (hU : IsCUnifBdd U) :
+    InWaveTrapSet (kappa c) (MChi p) U := by
+  refine ⟨hU, ?_⟩
+  intro x
+  exact ⟨(h.pos x).le, by simpa [upperBarrier] using (h x).2⟩
+
+theorem HasWaveUpperTailBound.inMonotoneWaveTrapSet
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveUpperTailBound p c U) (hU : IsCUnifBdd U)
+    (hmono : NonincreasingProfile U) :
+    InMonotoneWaveTrapSet (kappa c) (MChi p) U :=
+  ⟨h.inWaveTrapSet hU, hmono⟩
+
 theorem HasWaveUpperTailBound.rpow_le_MChi_gamma
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (h : HasWaveUpperTailBound p c U) (x : ℝ) :

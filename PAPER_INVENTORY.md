@@ -35,7 +35,7 @@ systems.
 | Lemma 4.1 | `frozenWaveOperator`, `frozenElliptic`, `upperBarrier`, `InWaveTrapSet`, `InMonotoneWaveTrapSet`, `Paper1.Lemma_4_1` | partial | Super-solution barrier for frozen moving-frame equation; frozen elliptic nonnegativity, `upperBarrier` continuity/boundedness/membership facts, ordinary/monotone trap-set projection, trap-set power bounds, zero-profile membership/nonemptiness, and ordinary/monotone trap-set convexity proved. |
 | Lemma 4.2 | `lowerBarrierRaw`, `lowerBarrierPlateau`, `SubsolutionConstants`, `Paper1.Lemma_4_2` | statement target | Sub-solution barriers; raw lower-barrier factorization, derivative formulas/signs, `x_- < x_+`, critical point at `x_+`, positivity, and exponential upper control of raw/plateau lower barriers proved. |
 | Remarks 4.1--4.3 | none | remark/doc | Include constants/asymptotics used by later theorem statements. |
-| Lemma 5.1 | `MChi`, `HasWaveUpperTailBound`, `Paper1.Lemma_5_1` | statement target | A priori estimates for stationary wave profiles; basic `MChi`, `MChi` power positivity, tail-bound projections, and `U^γ` bounds proved. |
+| Lemma 5.1 | `MChi`, `HasWaveUpperTailBound`, `Paper1.Lemma_5_1` | statement target | A priori estimates for stationary wave profiles; basic `MChi`, `MChi` power positivity, tail-bound projections, conversion to ordinary/monotone trap-set membership, and `U^γ` bounds proved. |
 | Lemma 5.2 | `Paper1.Lemma_5_2` | statement target | Estimate for `u_x/u`. |
 | Lemma 5.3 | `Paper1.Lemma_5_3` | statement target | Weighted elliptic perturbation estimates used in the stability energy proof. |
 | Remarks 5.1--5.2 | none | remark/doc | Feed into definition of `cStarStar` and stability constants. |
