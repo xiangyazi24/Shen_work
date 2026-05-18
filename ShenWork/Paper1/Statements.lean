@@ -3034,6 +3034,35 @@ def HasWaveUpperTailBound (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop :=
 def HasStrictWaveUpperTailBound (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop :=
   ∀ x, 0 < U x ∧ U x < min (MChi p) (Real.exp (-(kappa c) * x))
 
+theorem InWaveTrapSet.hasWaveUpperTailBound_of_pos
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (htrap : InWaveTrapSet (kappa c) (MChi p) U)
+    (hpos : ∀ x, 0 < U x) :
+    HasWaveUpperTailBound p c U := by
+  intro x
+  exact ⟨hpos x, by simpa [upperBarrier] using htrap.le_upperBarrier x⟩
+
+theorem InMonotoneWaveTrapSet.hasWaveUpperTailBound_of_pos
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U)
+    (hpos : ∀ x, 0 < U x) :
+    HasWaveUpperTailBound p c U :=
+  htrap.trap.hasWaveUpperTailBound_of_pos hpos
+
+theorem FrozenStationaryWaveProfile.hasWaveUpperTailBound_of_inWaveTrapSet
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (htrap : InWaveTrapSet (kappa c) (MChi p) U) :
+    HasWaveUpperTailBound p c U :=
+  htrap.hasWaveUpperTailBound_of_pos hprofile.U_pos
+
+theorem FrozenStationaryWaveProfile.hasWaveUpperTailBound_of_inMonotoneWaveTrapSet
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U) :
+    HasWaveUpperTailBound p c U :=
+  htrap.hasWaveUpperTailBound_of_pos hprofile.U_pos
+
 theorem HasStrictWaveUpperTailBound.hasWaveUpperTailBound
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (h : HasStrictWaveUpperTailBound p c U) :
