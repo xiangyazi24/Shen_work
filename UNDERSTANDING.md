@@ -58,6 +58,23 @@ Rebuild the theorem layer accurately:
    statement is mathematically honest and represents real paper work, not a fake
    shortcut or toy theorem.
 
+## Reference notes
+
+The `ref/` directory now includes travelling-wave background material:
+
+- Wang, *Mathematics of traveling waves in chemotaxis* (2013), a review focused
+  on logarithmic-sensitivity chemotaxis waves, including existence, wave speed,
+  decay, stability, and diffusion limits.
+- Li--Park, *Traveling waves in a chemotaxis model with logistic growth* (2019),
+  which proves a heteroclinic travelling wave for a different chemotaxis model by
+  constructing a positively invariant set in a three-dimensional phase space.
+
+These references are useful for comparison and for general travelling-wave
+infrastructure, but Shen 2026 should still be formalized along its own route:
+parabolic fixed point, comparison, barriers, local-uniform compactness, weighted
+stability, and uniqueness via stability.  Do not replace Shen's construction by
+an unsupported shooting/phase-plane theorem.
+
 ## Build policy
 
 Do not run local Lean builds.  Use uisai1 only:
