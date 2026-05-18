@@ -200,6 +200,56 @@ def IsFrozenSuperSolution (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) : Prop :=
 def IsFrozenSubSolutionOn (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) (s : Set ℝ) : Prop :=
   ∀ x ∈ s, 0 ≤ frozenWaveOperator p c u W x
 
+def expDecay (κ : ℝ) : ℝ → ℝ :=
+  fun x => Real.exp (-κ * x)
+
+theorem expDecay_pos (κ x : ℝ) :
+    0 < expDecay κ x := by
+  exact Real.exp_pos _
+
+theorem expDecay_hasDerivAt (κ x : ℝ) :
+    HasDerivAt (expDecay κ) (-κ * expDecay κ x) x := by
+  have hlin : HasDerivAt (fun y : ℝ => -κ * y) (-κ) x :=
+    by simpa using (hasDerivAt_id x).const_mul (-κ)
+  change
+    HasDerivAt (fun y : ℝ => Real.exp (-κ * y))
+      (-κ * Real.exp (-κ * x)) x
+  simpa [expDecay, mul_comm, mul_left_comm, mul_assoc] using hlin.exp
+
+theorem expDecay_deriv (κ x : ℝ) :
+    deriv (expDecay κ) x = -κ * expDecay κ x :=
+  (expDecay_hasDerivAt κ x).deriv
+
+theorem expDecay_iteratedDeriv_two (κ x : ℝ) :
+    iteratedDeriv 2 (expDecay κ) x = κ ^ 2 * expDecay κ x := by
+  rw [iteratedDeriv_succ, iteratedDeriv_succ, iteratedDeriv_zero]
+  change deriv (deriv (expDecay κ)) x = κ ^ 2 * expDecay κ x
+  have hderiv :
+      deriv (expDecay κ) = fun y => -κ * expDecay κ y := by
+    ext y
+    exact expDecay_deriv κ y
+  rw [hderiv]
+  have h :=
+    ((expDecay_hasDerivAt κ x).const_mul (-κ)).deriv
+  simpa [pow_two, mul_assoc] using h
+
+theorem expDecay_linear_part_eq
+    (κ c x : ℝ) :
+    iteratedDeriv 2 (expDecay κ) x + c * deriv (expDecay κ) x +
+        expDecay κ x =
+      (κ ^ 2 - c * κ + 1) * expDecay κ x := by
+  rw [expDecay_iteratedDeriv_two, expDecay_deriv]
+  ring
+
+theorem expDecay_linear_part_kappa_eq_zero
+    {c : ℝ} (hc : 2 ≤ c) (x : ℝ) :
+    iteratedDeriv 2 (expDecay (kappa c)) x +
+        c * deriv (expDecay (kappa c)) x +
+        expDecay (kappa c) x = 0 := by
+  rw [expDecay_linear_part_eq]
+  rw [kappa_quadratic_eq_zero hc]
+  ring
+
 def upperBarrier (κ M : ℝ) : ℝ → ℝ :=
   fun x => min M (Real.exp (-κ * x))
 
