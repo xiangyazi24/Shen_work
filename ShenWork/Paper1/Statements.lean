@@ -7,6 +7,7 @@
   They are not proofs of the paper theorems.
 -/
 import ShenWork.PDE.LeibnizRule
+import Mathlib.Analysis.Convex.Basic
 
 open Filter Topology MeasureTheory
 
@@ -664,6 +665,20 @@ theorem InWaveTrapSet.convex_combo
           (mul_le_mul_of_nonneg_left (hv.le_upperBarrier x) (sub_nonneg.mpr hθ1))
       _ = upperBarrier κ M x := by ring
 
+theorem InWaveTrapSet.set_nonempty {κ M : ℝ} (hM : 0 ≤ M) :
+    ({u : ℝ → ℝ | InWaveTrapSet κ M u}).Nonempty :=
+  ⟨fun _ => 0, InWaveTrapSet.zero hM⟩
+
+theorem InWaveTrapSet.set_convex (κ M : ℝ) :
+    Convex ℝ {u : ℝ → ℝ | InWaveTrapSet κ M u} := by
+  rw [convex_iff_add_mem]
+  intro u hu v hv a b ha hb hab
+  have ha_le_one : a ≤ 1 := by nlinarith
+  have hb_eq : b = 1 - a := by linarith
+  convert InWaveTrapSet.convex_combo ha ha_le_one hu hv using 1
+  ext x
+  simp [hb_eq, smul_eq_mul]
+
 theorem InMonotoneWaveTrapSet.trap
     {κ M : ℝ} {u : ℝ → ℝ}
     (h : InMonotoneWaveTrapSet κ M u) :
@@ -705,6 +720,20 @@ theorem InMonotoneWaveTrapSet.convex_combo
   exact add_le_add
     (mul_le_mul_of_nonneg_left (hu.antitone hxy) hθ0)
     (mul_le_mul_of_nonneg_left (hv.antitone hxy) (sub_nonneg.mpr hθ1))
+
+theorem InMonotoneWaveTrapSet.set_nonempty {κ M : ℝ} (hM : 0 ≤ M) :
+    ({u : ℝ → ℝ | InMonotoneWaveTrapSet κ M u}).Nonempty :=
+  ⟨fun _ => 0, InMonotoneWaveTrapSet.zero hM⟩
+
+theorem InMonotoneWaveTrapSet.set_convex (κ M : ℝ) :
+    Convex ℝ {u : ℝ → ℝ | InMonotoneWaveTrapSet κ M u} := by
+  rw [convex_iff_add_mem]
+  intro u hu v hv a b ha hb hab
+  have ha_le_one : a ≤ 1 := by nlinarith
+  have hb_eq : b = 1 - a := by linarith
+  convert InMonotoneWaveTrapSet.convex_combo ha ha_le_one hu hv using 1
+  ext x
+  simp [hb_eq, smul_eq_mul]
 
 structure SubsolutionConstants where
   K : ℝ
