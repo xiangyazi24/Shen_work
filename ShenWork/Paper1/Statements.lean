@@ -553,6 +553,18 @@ theorem MChi_pos_of_chi_lt_chiStar (p : CMParams) (hχ : p.χ < chiStar p) :
     0 < MChi p :=
   MChi_pos_of_chi_lt_one p (lt_of_lt_of_le hχ (chiStar_le_one p))
 
+theorem MChi_nonneg_of_chi_lt_one (p : CMParams) (hχ : p.χ < 1) :
+    0 ≤ MChi p :=
+  (MChi_pos_of_chi_lt_one p hχ).le
+
+theorem MChi_rpow_pos_of_chi_lt_one (p : CMParams) (hχ : p.χ < 1) (a : ℝ) :
+    0 < (MChi p) ^ a :=
+  Real.rpow_pos_of_pos (MChi_pos_of_chi_lt_one p hχ) a
+
+theorem MChi_gamma_pos_of_chi_lt_one (p : CMParams) (hχ : p.χ < 1) :
+    0 < (MChi p) ^ p.γ :=
+  MChi_rpow_pos_of_chi_lt_one p hχ p.γ
+
 theorem one_le_MChi_of_chi_nonneg_lt_chiStar
     (p : CMParams) (hχ_nonneg : 0 ≤ p.χ) (hχ : p.χ < chiStar p) :
     1 ≤ MChi p :=

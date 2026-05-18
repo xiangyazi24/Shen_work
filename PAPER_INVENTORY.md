@@ -35,7 +35,7 @@ systems.
 | Lemma 4.1 | `frozenWaveOperator`, `upperBarrier`, `Paper1.Lemma_4_1` | statement target | Super-solution barrier for frozen moving-frame equation; basic `upperBarrier` bounds proved. |
 | Lemma 4.2 | `lowerBarrierRaw`, `lowerBarrierPlateau`, `SubsolutionConstants`, `Paper1.Lemma_4_2` | statement target | Sub-solution barriers; raw lower-barrier factorization, derivative formulas, `x_- < x_+`, critical point at `x_+`, positivity, and exponential upper control of raw/plateau lower barriers proved. |
 | Remarks 4.1--4.3 | none | remark/doc | Include constants/asymptotics used by later theorem statements. |
-| Lemma 5.1 | `MChi`, `HasWaveUpperTailBound`, `Paper1.Lemma_5_1` | statement target | A priori estimates for stationary wave profiles; basic `MChi` and tail-bound projections proved. |
+| Lemma 5.1 | `MChi`, `HasWaveUpperTailBound`, `Paper1.Lemma_5_1` | statement target | A priori estimates for stationary wave profiles; basic `MChi`, `MChi` power positivity, and tail-bound projections proved. |
 | Lemma 5.2 | `Paper1.Lemma_5_2` | statement target | Estimate for `u_x/u`. |
 | Remarks 5.1--5.2 | none | remark/doc | Feed into definition of `cStarStar` and stability constants. |
 
