@@ -613,12 +613,42 @@ lemma betaTilde_nonneg (beta : ℝ) :
   unfold betaTilde
   exact positivePart_nonneg _
 
+lemma betaTilde_le_one (beta : ℝ) :
+    betaTilde beta ≤ 1 := by
+  unfold betaTilde
+  by_cases hnonneg : 0 ≤ min (1 : ℝ) (2 * beta - 1)
+  · rw [positivePart_eq_self_of_nonneg hnonneg]
+    exact min_le_left _ _
+  · rw [positivePart_eq_zero_of_nonpos (le_of_not_ge hnonneg)]
+    norm_num
+
+lemma betaTilde_mem_Icc_zero_one (beta : ℝ) :
+    betaTilde beta ∈ Set.Icc (0 : ℝ) 1 :=
+  ⟨betaTilde_nonneg beta, betaTilde_le_one beta⟩
+
 lemma betaTilde_eq_zero_of_beta_le_half {beta : ℝ}
     (hbeta : beta ≤ (1 / 2 : ℝ)) :
     betaTilde beta = 0 := by
   unfold betaTilde
   apply positivePart_eq_zero_of_nonpos
   exact le_trans (min_le_right _ _) (by linarith)
+
+lemma betaTilde_eq_two_mul_sub_one_of_mem_Icc {beta : ℝ}
+    (hbeta : beta ∈ Set.Icc (1 / 2 : ℝ) 1) :
+    betaTilde beta = 2 * beta - 1 := by
+  unfold betaTilde
+  have hnonneg : 0 ≤ 2 * beta - 1 := by linarith [hbeta.1]
+  have hle_one : 2 * beta - 1 ≤ 1 := by linarith [hbeta.2]
+  rw [min_eq_right hle_one]
+  exact positivePart_eq_self_of_nonneg hnonneg
+
+lemma betaTilde_eq_one_of_one_le_beta {beta : ℝ}
+    (hbeta : 1 ≤ beta) :
+    betaTilde beta = 1 := by
+  unfold betaTilde
+  have hone_le : 1 ≤ 2 * beta - 1 := by linarith
+  rw [min_eq_left hone_le]
+  exact positivePart_eq_self_of_nonneg zero_le_one
 
 lemma betaTilde_le_two_mul {beta : ℝ} (hbeta : 0 ≤ beta) :
     betaTilde beta ≤ 2 * beta := by
