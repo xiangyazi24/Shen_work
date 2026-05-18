@@ -1,6 +1,6 @@
 # Tasks for Codex (GPT-5.5)
 
-BUILD OK, 2 sorry remaining. Priority order:
+BUILD OK, 1 sorry remaining. Priority order:
 
 ## Done: Parabolic maximum principle
 
@@ -63,13 +63,14 @@ BUILD OK, 2 sorry remaining. Priority order:
   exponential upper bound, but right shifts preserve both the traveling-wave
   equations and that bound, so this statement should not be kept as a theorem
   without the paper's actual phase/asymptotic normalization and stability proof.
+- Removed `heteroclinic_from_shooting_hypotheses` and `shooting_theorem` from
+  `TravelingWaveODE.lean`. The file keeps the proved local shooting-segment
+  lemmas and the honest `travelingWave_of_heteroclinic` projection, but no
+  longer claims that a one-dimensional positive root gives a global heteroclinic.
 
 ## P0: MildSolution Banach fixed point (376)
 Need to instantiate `abstract_mild_fixed_point` by constructing the actual complete
 function space, self-map, self-map/integrability facts, and contraction proof for Φ.
-
-## P1: heteroclinic_from_shooting (TravelingWaveODE:336)
-Global ODE existence + convergence to E0.
 
 ## Key API discoveries
 - `continuous_rpow_const.comp_aestronglyMeasurable` for rpow measurability

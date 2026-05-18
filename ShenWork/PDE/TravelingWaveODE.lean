@@ -329,18 +329,6 @@ theorem travelingWave_of_heteroclinic
   rcases h with ⟨z, hzode, hleft, hright⟩
   exact ⟨⟨z, hzode, hleft, hright⟩⟩
 
-theorem heteroclinic_from_shooting_hypotheses
-    (p : Params)
-    (hsource : OneDimUnstableRoot p) :
-    HasHeteroclinicE1E0 p := by
-  sorry
-
-theorem shooting_theorem
-(p : Params)
-(hsource : OneDimUnstableRoot p) :
-Nonempty (TravelingWave p) := by
-exact travelingWave_of_heteroclinic p (heteroclinic_from_shooting_hypotheses p hsource)
-
 end TravelingWaveODE
 end PDE
 end ShenWork
