@@ -681,6 +681,85 @@ lemma one_le_CAlphaGamma_mul_alpha_div_gamma_sq
       rw [le_div_iff₀ hden_pos]
       nlinarith
 
+def chiStrong1Formula (p : CM2Params) (uStar vStar : ℝ) : ℝ :=
+  Real.sqrt
+    (p.b *
+      (16 * (1 + betaTilde p.β * vStar) * p.μ /
+        ((2 * p.m - 1) * p.ν ^ 2 * CAlphaGamma p.α p.γ *
+          uStar ^ (2 * p.γ - p.α + 2 * p.m - 2))))
+
+def chiBarFormula (p : CM2Params) : ℝ :=
+  if p.m = 1 then
+    p.a / (2 * p.μ * Theta_beta (p.β - 1))
+  else
+    p.b / (p.μ * Theta_beta (p.β - 1))
+
+def vABLowerFormula (p : CM2Params) : ℝ :=
+  if p.m = 1 then
+    p.ν / p.μ * (p.a / (2 * p.b)) ^ (p.γ / p.α)
+  else
+    p.ν / p.μ *
+      (min 1
+        ((p.a / (2 * p.b)) ^
+          max (1 / (p.m - 1)) (1 / p.α))) ^ p.γ
+
+def chiStrong2Formula (p : CM2Params) (uStar : ℝ) : ℝ :=
+  min (chiBarFormula p)
+    (Real.sqrt
+      (p.b *
+        (16 * (1 + vABLowerFormula p) ^ (2 * p.β) * p.μ /
+          ((2 * p.m - 1) * p.ν ^ 2 * CAlphaGamma p.α p.γ *
+            uStar ^ (2 * p.γ - p.α + 2 * p.m - 2)))))
+
+def chiStrong3Formula (p : CM2Params) (M0 uStar vStar : ℝ) : ℝ :=
+  p.a / (p.ν * uStar ^ (p.m + p.γ - 1)) *
+    (1 / (2 + p.β * vStar * M0 ^ 2))
+
+def chiStrong4Formula (p : CM2Params) (M0 uStar : ℝ) : ℝ :=
+  min (chiBarFormula p)
+    ((1 + vABLowerFormula p) ^ p.β *
+      chiStrong3Formula p M0 uStar
+        (p.ν / p.μ * uStar ^ p.γ))
+
+lemma chiStrong1Formula_nonneg (p : CM2Params) (uStar vStar : ℝ) :
+    0 ≤ chiStrong1Formula p uStar vStar := by
+  unfold chiStrong1Formula
+  exact Real.sqrt_nonneg _
+
+lemma chiStrong1Formula_pos
+    (p : CM2Params) {uStar vStar : ℝ}
+    (hb : 0 < p.b) (hm : 1 ≤ p.m)
+    (huStar : 0 < uStar) (hvStar : 0 ≤ vStar) :
+    0 < chiStrong1Formula p uStar vStar := by
+  unfold chiStrong1Formula
+  apply Real.sqrt_pos.mpr
+  apply mul_pos hb
+  apply div_pos
+  · have hfactor : 0 < 1 + betaTilde p.β * vStar := by
+      have hmul : 0 ≤ betaTilde p.β * vStar :=
+        mul_nonneg (betaTilde_nonneg p.β) hvStar
+      linarith
+    exact mul_pos (mul_pos (by norm_num) hfactor) p.hμ
+  · have hmpos : 0 < 2 * p.m - 1 := by linarith
+    have hνsq : 0 < p.ν ^ 2 := sq_pos_of_ne_zero (ne_of_gt p.hν)
+    have hC : 0 < CAlphaGamma p.α p.γ := CAlphaGamma_pos p.hα p.hγ
+    have hupow : 0 < uStar ^ (2 * p.γ - p.α + 2 * p.m - 2) :=
+      Real.rpow_pos_of_pos huStar _
+    exact mul_pos (mul_pos (mul_pos hmpos hνsq) hC) hupow
+
+lemma chiStrong3Formula_pos
+    (p : CM2Params) {M0 uStar vStar : ℝ}
+    (ha : 0 < p.a) (huStar : 0 < uStar)
+    (hvStar : 0 ≤ vStar) :
+    0 < chiStrong3Formula p M0 uStar vStar := by
+  unfold chiStrong3Formula
+  apply mul_pos
+  · exact div_pos ha (mul_pos p.hν (Real.rpow_pos_of_pos huStar _))
+  · apply div_pos zero_lt_one
+    have hnonneg : 0 ≤ p.β * vStar * M0 ^ 2 := by
+      exact mul_nonneg (mul_nonneg p.hβ hvStar) (sq_nonneg M0)
+    linarith
+
 def EventuallyUpperBoundMinimalConclusion
     (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p)
     (u : ℝ → D.Point → ℝ) : Prop :=
