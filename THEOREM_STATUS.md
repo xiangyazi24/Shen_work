@@ -14,8 +14,10 @@ formalized.  The current invariant is:
 - `not stated`: no Lean theorem currently claims this paper theorem.
 - `toy only`: current definitions are too weak or intentionally fake, so the
   theorem is not meaningful as a paper formalization.
+- `statement target`: theorem statement is represented as a Lean `Prop` target,
+  but is not yet proved.
 - `accurately stated`: theorem statement matches the intended mathematical
-  theorem, but proof infrastructure may still be missing.
+  theorem and is ready to prove.
 - `proved`: theorem is proved from non-toy definitions.
 
 ## Paper A: traveling waves for chemotaxis-logistic systems
@@ -25,10 +27,11 @@ File header reference: `ShenWork/Defs.lean`, arXiv `2605.04401`.
 | Paper theorem area | Current Lean artifact | Status | Notes |
 | --- | --- | --- | --- |
 | PDE and traveling-wave definitions | `CMParams`, `IsClassicalSolution`, `IsGlobalClassicalSolution`, `IsTravelingWave`, `IsMonotoneTravelingWave` | partially stated | Basic whole-line PDE and TW ODE predicates exist. They do not yet encode all regularity/asymptotic normalizations needed for the paper proofs. |
-| Global Cauchy existence, boundedness, stabilization | none | not stated | Removed former `cm_global_exist_*`, `cm_stabilize_*`, and wrapper theorems because they used the constant solution and ignored the initial datum. |
-| Traveling-wave existence | none | not stated | `TravelingWaves.lean` contains true logistic profile/barrier facts only; it does not produce `IsTravelingWave`. |
-| Traveling-wave stability | none | not stated | Removed the former stability wrapper because it only constructed the traveling wave as its own global solution. |
-| Traveling-wave uniqueness | none | not stated | Removed the undernormalized uniqueness theorem; right shifts preserve the old hypotheses, so that statement could not be correct. |
+| Proposition 1.1 global Cauchy existence/bounds | `Paper1.Proposition_1_1` | statement target | Stated from `paper1.pdf`; proof infrastructure still missing. |
+| Proposition 1.2 constant-solution stability | `Paper1.Proposition_1_2` | statement target | Stated from `paper1.pdf`; proof infrastructure still missing. |
+| Theorem 1.1 traveling-wave existence | `Paper1.Theorem_1_1` | statement target | Stated as existence of actual `IsTravelingWave`/`IsMonotoneTravelingWave`; no explicit fake ansatz. |
+| Theorem 1.2 traveling-wave stability | `Paper1.Theorem_1_2` | statement target | Uses weighted `L2` closeness/convergence predicates. Constants are represented abstractly by existence of `cStarStar`. |
+| Theorem 1.3 traveling-wave uniqueness | `Paper1.Theorem_1_3` | statement target | Includes shared right-tail asymptotic normalization; avoids the old shift-invariant false statement. |
 | Traveling-wave phase-shift facts | `IsTravelingWave.shift`, `IsMonotoneTravelingWave.shift`, `shift_right_with_exp_bound` | proved | Useful infrastructure for future phase normalization and uniqueness. |
 | Maximum/comparison principle | `weak_maximum_principle_linear`, `comparison_principle`, related lemmas | proved | This is real PDE infrastructure, not a paper main theorem by itself. |
 | Local ODE shooting segment | `local_shooting_segment_from_E1_*` | proved | Kept as local ODE infrastructure. Removed unsupported global shooting theorem. |
@@ -36,13 +39,13 @@ File header reference: `ShenWork/Defs.lean`, arXiv `2605.04401`.
 
 Next accurate theorem work:
 
-1. Define the elliptic resolvent layer and moving-frame frozen equation needed by
+1. Make a complete inventory of every Definition/Proposition/Lemma/Theorem in
+   `paper1.pdf` and add Lean statement targets for the ones used downstream.
+2. Define the elliptic resolvent layer and moving-frame frozen equation needed by
    Shen's fixed-point construction.
-2. Define the invariant sets and barrier predicates used for the Schauder map.
-3. State traveling-wave existence only after the map, compactness, continuity,
-   and asymptotic normalization are represented.
-4. State stability/uniqueness only after the weighted stability theorem and
-   right-tail phase normalization are represented.
+3. Define the invariant sets and barrier predicates used for the Schauder map.
+4. Replace abstract weighted/stability predicates with the exact paper
+   estimates as the energy infrastructure is added.
 
 ## Paper B: boundedness/global existence on bounded domains
 
@@ -51,17 +54,23 @@ File header reference: `ShenWork/Paper2/Defs.lean`, arXiv `2512.14858`.
 | Paper theorem area | Current Lean artifact | Status | Notes |
 | --- | --- | --- | --- |
 | Bounded-domain PDE solution predicate | `IsToyClassicalSolution2` | toy only | `pde_satisfied : True`; no domain, boundary condition, PDE, elliptic equation for `v`, or regularity beyond positivity. |
-| Boundedness/global existence main theorems | none | not stated | Removed former `cm2_thm*` names because they returned a constant solution independent of the initial datum. |
+| Bounded-domain PDE statement interface | `Paper2.BoundedDomainData`, `Paper2.IsPaper2ClassicalSolution`, `Paper2.IsPaper2GlobalClassicalSolution` | statement target | Abstract domain/operator interface for the bounded smooth Neumann problem. It is not yet an instantiated smooth-domain theory. |
+| Proposition 1.1 local existence/blow-up alternative | `Paper2.Proposition_1_1` | statement target | Stated from `paper2.pdf` against the non-toy PDE interface. |
+| Theorem 1.1 negative sensitivity boundedness/global existence | `Paper2.Theorem_1_1` | statement target | Stated from `paper2.pdf`. |
+| Theorem 1.2 weak nonlinear cross diffusion | `Paper2.Theorem_1_2` | statement target | Stated from `paper2.pdf`. |
+| Theorem 1.3 relatively strong logistic source | `Paper2.Theorem_1_3` | statement target | Stated with a `Paper2Constants` package for the paper constants. |
 | Constant equilibrium under toy definition | `cm2_constant_solution_under_current_solution_def` | proved, toy only | Useful only as a sanity check for the current toy predicate. |
 | Persistence counterexample under toy definition | `persistence_property_false_under_current_solution_def` | proved, toy only | Documents why Paper3-style persistence cannot follow from the current Paper2 predicate. |
 
 Next accurate theorem work:
 
-1. Replace `IsToyClassicalSolution2` with a genuine bounded-domain
-   parabolic-elliptic solution predicate.
-2. Add domain/boundary data, likely Neumann boundary conditions, regularity,
-   positivity, and the exact PDE fields.
-3. Only then state Paper2 boundedness/global-existence theorems.
+1. Make a complete inventory of every Definition/Proposition/Lemma/Theorem in
+   `paper2.pdf`.
+2. Refine `BoundedDomainData` into an instantiated smooth bounded-domain API:
+   domain, Neumann boundary, Sobolev/Hölder spaces, Laplacian, divergence,
+   gradient estimates, and semigroup constants.
+3. Replace packaged constants by their exact definitions once the required
+   elliptic estimates are available.
 
 ## Paper C: persistence and stabilization
 
@@ -71,15 +80,34 @@ File header reference: `ShenWork/Paper3/Defs.lean`, arXiv `2604.02599`.
 | --- | --- | --- | --- |
 | Positive equilibrium | `equilibrium` | stated | Algebraic target only; depends on Paper2 parameters. |
 | Global asymptotic stability predicate | `IsToyGloballyAsymptoticallyStable` | toy dependent | Quantifies over `IsToyGlobalClassicalSolution2`, so it inherits the toy PDE issue. |
-| Persistence theorem | none | not stated | Current file proves the old persistence shape false under the toy definition. |
-| Negative-sensitivity global stability | none | not stated | Current file proves the old stability shape false under the toy definition. |
+| Non-toy bounded positive solution/stability predicates | `Paper3.PositiveGlobalBoundedSolution`, `Paper3.GloballyAsymptoticallyStableNonminimal`, `Paper3.GloballyAsymptoticallyStableMinimal` | statement target | Built on `Paper2.IsPaper2GlobalClassicalSolution`, not the toy predicate. |
+| Theorem 2.1 uniform persistence | `Paper3.Theorem_2_1` | statement target | Stated from `paper3.pdf`, split into four parts. |
+| Theorem 2.2 linear stability/instability | `Paper3.Theorem_2_2` | statement target | Uses spectral data and packaged paper thresholds. |
+| Theorem 2.3 negative-sensitivity global stability | `Paper3.Theorem_2_3` | statement target | Stated from `paper3.pdf`. |
+| Theorem 2.4 strong logistic-source global stability | `Paper3.Theorem_2_4` | statement target | Stated from `paper3.pdf`. |
+| Theorem 2.5 minimal-model global stability | `Paper3.Theorem_2_5` | statement target | Stated from `paper3.pdf`. |
 
 Next accurate theorem work:
 
-1. Wait for the real Paper2 solution predicate.
-2. Restate persistence and stabilization against that predicate.
-3. Add comparison/energy/compactness dependencies from the papers before proving
-   any main theorem.
+1. Make a complete inventory of every Definition/Proposition/Lemma/Theorem in
+   `paper3.pdf`.
+2. Replace packaged spectral/stability constants with exact definitions.
+3. Add the comparison, persistence, Hopf lemma, energy, and semigroup
+   dependencies before proving main theorems.
+
+## Next phase: full-paper statement inventory
+
+The main theorem statement layer is now only the top level.  The next phase is a
+full inventory pass over `paper1.pdf`, `paper2.pdf`, and `paper3.pdf`:
+
+1. Extract every numbered Definition, Proposition, Lemma, Corollary, Theorem,
+   and named estimate into an inventory table.
+2. For each item, record whether it is already `proved`, a `statement target`,
+   `toy only`, or `not stated`.
+3. Add Lean statement targets for all items that are dependencies of later paper
+   results, even if their proofs will initially be `sorry`.
+4. Then proceed section by section proving the targets and replacing abstract
+   constant/operator packages by exact definitions.
 
 ## Current non-paper infrastructure that is useful
 
