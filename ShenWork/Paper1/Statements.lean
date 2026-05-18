@@ -2017,6 +2017,61 @@ def Lemma_5_1 : Prop :=
               B1 * Real.exp (-(kappa c) * x) +
                 B2 * Real.exp (-(kappa c) * p.γ * x))
 
+theorem Lemma_5_1.signal_bound
+    (h : Lemma_5_1) {p : CMParams} {c : ℝ} (hc : 2 < c)
+    {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U) :
+    ∀ x, |V x| ≤ (MChi p) ^ p.γ ∧ |deriv V x| ≤ (MChi p) ^ p.γ :=
+  (h p c hc U V hTW hbound).1
+
+theorem Lemma_5_1.exponential_signal_bound
+    (h : Lemma_5_1) {p : CMParams} {c : ℝ} (hc : 2 < c)
+    {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hspeed : p.γ + p.γ⁻¹ < c) :
+    ∀ x,
+      |V x| ≤
+        min ((MChi p) ^ p.γ)
+          ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+            Real.exp (-(kappa c) * p.γ * x)) ∧
+      |deriv V x| ≤
+        min ((MChi p) ^ p.γ)
+          ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+            Real.exp (-(kappa c) * p.γ * x)) :=
+  (h p c hc U V hTW hbound).2.1 hspeed
+
+theorem Lemma_5_1.wave_derivative_tends_zero
+    (h : Lemma_5_1) {p : CMParams} {c : ℝ} (hc : 2 < c)
+    {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U) :
+    WaveDerivativeTendsZero U :=
+  (h p c hc U V hTW hbound).2.2.1
+
+theorem Lemma_5_1.wave_derivative_bounded
+    (h : Lemma_5_1) {p : CMParams} {c : ℝ} (hc : 2 < c)
+    {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hspeed : c > p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) :
+    ∃ B > 0, ∀ x, |deriv U x| ≤ B :=
+  (h p c hc U V hTW hbound).2.2.2.1 hspeed
+
+theorem Lemma_5_1.wave_derivative_exp_bound
+    (h : Lemma_5_1) {p : CMParams} {c : ℝ} (hc : 2 < c)
+    {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1))) :
+    ∃ B1 B2, ∀ x,
+      |deriv U x| ≤
+        B1 * Real.exp (-(kappa c) * x) +
+          B2 * Real.exp (-(kappa c) * p.γ * x) :=
+  (h p c hc U V hTW hbound).2.2.2.2 hspeed
+
 def Lemma_5_2 : Prop :=
   ∀ p : CMParams, ∀ c : ℝ,
     c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
@@ -2024,6 +2079,16 @@ def Lemma_5_2 : Prop :=
         IsTravelingWave p c U V →
         HasWaveUpperTailBound p c U →
           ∃ B > 0, ∀ x, deriv U x / U x ≤ B
+
+theorem Lemma_5_2.log_derivative_bound
+    (h : Lemma_5_2) {p : CMParams} {c : ℝ}
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
+    {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U) :
+    ∃ B > 0, ∀ x, deriv U x / U x ≤ B :=
+  h p c hspeed U V hTW hbound
 
 def Lemma_5_3 : Prop :=
   ∀ gamma M eta : ℝ,
@@ -2043,6 +2108,28 @@ def Lemma_5_3 : Prop :=
             (∫ x : ℝ, |deriv V x| ^ 2 ≤
               gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta ^ 2) *
                 ∫ x : ℝ, |U x| ^ 2)
+
+theorem Lemma_5_3.weighted_elliptic_perturbation
+    (h : Lemma_5_3)
+    {gamma M eta : ℝ}
+    (hgamma : 1 ≤ gamma) (hM : 1 ≤ M) (heta_pos : 0 < eta) (heta_one : eta < 1)
+    {u1 u2 : ℝ → ℝ}
+    (hu1 : IsCUnifBdd u1) (hu2 : IsCUnifBdd u2)
+    (hu1_bound : ∀ x, 0 ≤ u1 x ∧ u1 x ≤ M)
+    (hu2_bound : ∀ x, 0 ≤ u2 x ∧ u2 x ≤ M)
+    (hclose : Integrable
+      (fun x => Real.exp (2 * eta * x) * |u2 x - u1 x| ^ 2)) :
+    let v := Psi (fun x => u2 x ^ gamma - u1 x ^ gamma) 1 1
+    let U := fun x => Real.exp (eta * x) * (u2 x - u1 x)
+    let V := fun x => Real.exp (eta * x) * v x
+    (∫ x : ℝ, |V x| ^ 2 ≤
+        gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta) ^ 2 *
+          ∫ x : ℝ, |U x| ^ 2) ∧
+      (∫ x : ℝ, |deriv V x| ^ 2 ≤
+        gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta ^ 2) *
+          ∫ x : ℝ, |U x| ^ 2) :=
+  h gamma M eta hgamma hM heta_pos heta_one
+    u1 u2 hu1 hu2 hu1_bound hu2_bound hclose
 
 /-- Paper1 Proposition 1.1: global existence and boundedness of Cauchy solutions. -/
 def Proposition_1_1 : Prop :=
