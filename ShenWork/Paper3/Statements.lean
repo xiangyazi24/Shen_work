@@ -361,6 +361,98 @@ def SupCloseToConstant
     (D : BoundedDomainData) (u₀ : D.Point → ℝ) (uStar δ : ℝ) : Prop :=
   D.supNorm (fun x => u₀ x - uStar) < δ
 
+/-- Local exponential stability from small perturbations in the sup norm.
+
+This is the nonminimal stability package in Paper3 Theorem 2.2. -/
+def LocallyExponentiallyStableFromSup
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (uStar vStar : ℝ) : Prop :=
+  ∃ δ > 0, ∃ A > 0, ∃ rate > 0,
+    ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+      SupCloseToConstant D u₀ uStar δ →
+        ∃ u v : ℝ → D.Point → ℝ,
+          IsPaper2GlobalClassicalSolution D p u v ∧
+          InitialTrace D u₀ u ∧
+          ExponentialC1ConvergenceWith D N u v uStar vStar A rate
+
+/-- Local exponential stability for the minimal model, where the perturbation
+must preserve the prescribed mass. -/
+def MassConstrainedLocallyExponentiallyStableFromSup
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (uStar vStar : ℝ) : Prop :=
+  ∃ δ > 0, ∃ A > 0, ∃ rate > 0,
+    ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+      SupCloseToConstant D u₀ uStar δ →
+      D.integral u₀ = D.volume * uStar →
+        ∃ u v : ℝ → D.Point → ℝ,
+          IsPaper2GlobalClassicalSolution D p u v ∧
+          InitialTrace D u₀ u ∧
+          ExponentialC1ConvergenceWith D N u v uStar vStar A rate
+
+lemma LocallyExponentiallyStableFromSup.solution
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {uStar vStar : ℝ}
+    (h : LocallyExponentiallyStableFromSup D p N uStar vStar) :
+    ∃ δ > 0, ∃ A > 0, ∃ rate > 0,
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        SupCloseToConstant D u₀ uStar δ →
+          ∃ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            ExponentialC1ConvergenceWith D N u v uStar vStar A rate :=
+  h
+
+lemma LocallyExponentiallyStableFromSup.exponential_convergence
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {uStar vStar : ℝ}
+    (h : LocallyExponentiallyStableFromSup D p N uStar vStar) :
+    ∃ δ > 0,
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        SupCloseToConstant D u₀ uStar δ →
+          ∃ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            ExponentialC1Convergence D N u v uStar vStar := by
+  rcases h with ⟨δ, hδ, A, hA, rate, hrate, hsol⟩
+  refine ⟨δ, hδ, ?_⟩
+  intro u₀ hu₀ hclose
+  rcases hsol u₀ hu₀ hclose with ⟨u, v, huv, htrace, hexp⟩
+  exact ⟨u, v, huv, htrace,
+    ExponentialC1ConvergenceWith.exists hA hrate hexp⟩
+
+lemma MassConstrainedLocallyExponentiallyStableFromSup.solution
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {uStar vStar : ℝ}
+    (h : MassConstrainedLocallyExponentiallyStableFromSup D p N uStar vStar) :
+    ∃ δ > 0, ∃ A > 0, ∃ rate > 0,
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        SupCloseToConstant D u₀ uStar δ →
+        D.integral u₀ = D.volume * uStar →
+          ∃ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            ExponentialC1ConvergenceWith D N u v uStar vStar A rate :=
+  h
+
+lemma MassConstrainedLocallyExponentiallyStableFromSup.exponential_convergence
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {uStar vStar : ℝ}
+    (h : MassConstrainedLocallyExponentiallyStableFromSup D p N uStar vStar) :
+    ∃ δ > 0,
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        SupCloseToConstant D u₀ uStar δ →
+        D.integral u₀ = D.volume * uStar →
+          ∃ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            ExponentialC1Convergence D N u v uStar vStar := by
+  rcases h with ⟨δ, hδ, A, hA, rate, hrate, hsol⟩
+  refine ⟨δ, hδ, ?_⟩
+  intro u₀ hu₀ hclose hmass
+  rcases hsol u₀ hu₀ hclose hmass with ⟨u, v, huv, htrace, hexp⟩
+  exact ⟨u, v, huv, htrace,
+    ExponentialC1ConvergenceWith.exists hA hrate hexp⟩
+
 def Proposition_1_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   Paper2.Proposition_1_1 D p
 
@@ -1475,6 +1567,31 @@ lemma Theorem_2_2.nonminimal_stable
       (positiveEquilibrium p ⟨ha, hb⟩).2 := by
   exact (h.1 ha hb hχ).1
 
+lemma Theorem_2_2.nonminimal_local_exponential
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ : p.χ₀ < C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    LocallyExponentiallyStableFromSup D p N
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+  exact (h.1 ha hb hχ).2
+
+lemma Theorem_2_2.nonminimal_stability_package
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ : p.χ₀ < C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    LinearlyStable S p
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 ∧
+    LocallyExponentiallyStableFromSup D p N
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.1 ha hb hχ
+
 lemma Theorem_2_2.nonminimal_unstable
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
     {N : StabilityNorms D} {C : Paper3Constants D p}
@@ -1496,6 +1613,31 @@ lemma Theorem_2_2.minimal_stable
       (minimalEquilibrium p uStar).1
       (minimalEquilibrium p uStar).2 := by
   exact (h.2.2.1 ha hb uStar huStar hχ).1
+
+lemma Theorem_2_2.minimal_local_exponential
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C)
+    (ha : p.a = 0) (hb : p.b = 0) {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ : p.χ₀ < C.chiCritical uStar) :
+    MassConstrainedLocallyExponentiallyStableFromSup D p N
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 := by
+  exact (h.2.2.1 ha hb uStar huStar hχ).2
+
+lemma Theorem_2_2.minimal_stability_package
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C)
+    (ha : p.a = 0) (hb : p.b = 0) {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ : p.χ₀ < C.chiCritical uStar) :
+    LinearlyStable S p
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 ∧
+    MassConstrainedLocallyExponentiallyStableFromSup D p N
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  h.2.2.1 ha hb uStar huStar hχ
 
 lemma Theorem_2_2.minimal_unstable
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
