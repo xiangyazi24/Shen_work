@@ -1783,6 +1783,24 @@ theorem HasStrictWaveUpperTailBound.hasWaveUpperTailBound
   intro x
   exact ⟨(h x).1, (h x).2.le⟩
 
+theorem HasStrictWaveUpperTailBound.pos
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasStrictWaveUpperTailBound p c U) (x : ℝ) :
+    0 < U x :=
+  (h x).1
+
+theorem HasStrictWaveUpperTailBound.lt_MChi
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasStrictWaveUpperTailBound p c U) (x : ℝ) :
+    U x < MChi p :=
+  lt_of_lt_of_le (h x).2 (min_le_left _ _)
+
+theorem HasStrictWaveUpperTailBound.lt_exp
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasStrictWaveUpperTailBound p c U) (x : ℝ) :
+    U x < Real.exp (-(kappa c) * x) :=
+  lt_of_lt_of_le (h x).2 (min_le_right _ _)
+
 theorem HasWaveUpperTailBound.pos {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (h : HasWaveUpperTailBound p c U) (x : ℝ) :
     0 < U x :=
@@ -1855,16 +1873,22 @@ theorem HasWaveUpperTailBound.rpow_abs_le_MChi_gamma
   rw [abs_of_nonneg (Real.rpow_nonneg (h.pos x).le _)]
   exact h.rpow_le_MChi_gamma x
 
+theorem ShenUpperBoundPositive.hasStrictWaveUpperTailBound
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : ShenUpperBoundPositive p c U)
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_lt : p.χ < 1) :
+    HasStrictWaveUpperTailBound p c U := by
+  intro x
+  refine ⟨(h x).1, ?_⟩
+  rw [MChi_eq_rpow_of_chi_nonneg_lt_one p hχ_nonneg hχ_lt]
+  exact (h x).2
+
 theorem ShenUpperBoundPositive.hasWaveUpperTailBound
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (hχ_nonneg : 0 ≤ p.χ) (hχ_lt : p.χ < 1)
     (h : ShenUpperBoundPositive p c U) :
-    HasWaveUpperTailBound p c U := by
-  intro x
-  refine ⟨(h x).1, ?_⟩
-  have hx := (h x).2.le
-  rw [MChi_eq_rpow_of_chi_nonneg_lt_one p hχ_nonneg hχ_lt]
-  exact hx
+    HasWaveUpperTailBound p c U :=
+  (h.hasStrictWaveUpperTailBound hχ_nonneg hχ_lt).hasWaveUpperTailBound
 
 theorem ShenUpperBoundPositive.inWaveTrapSet
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
