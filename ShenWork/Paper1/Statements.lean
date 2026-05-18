@@ -1657,6 +1657,15 @@ theorem LocallyUniformConverges.comp_strictMono
   intro R hR ε hε
   exact hsubseq.tendsto_atTop.eventually (h R hR ε hε)
 
+theorem LocallyUniformConverges.congr
+    {fs gs : ℕ → ℝ → ℝ} {f : ℝ → ℝ}
+    (hfg : ∀ᶠ n in atTop, fs n = gs n)
+    (h : LocallyUniformConverges fs f) :
+    LocallyUniformConverges gs f := by
+  intro R hR ε hε
+  filter_upwards [hfg, h R hR ε hε] with n hn hconv
+  simpa [← hn] using hconv
+
 /-- Sequential continuity of a wave map in the local-uniform topology, restricted
 to a trapping set. -/
 def LocalUniformContinuousOn
@@ -1696,6 +1705,17 @@ theorem LocalUniformContinuousOn.fixed_of_subseq_fixed_limit
     (seq := fun n => seq (subseq n)) (u := u)
     (fun n => hseq (subseq n)) hu hconv
     (fun n => hfix (subseq n))
+
+theorem LocalUniformContinuousOn.comp_strictMono
+    {trap : (ℝ → ℝ) → Prop} {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hcont : LocalUniformContinuousOn trap Tmap)
+    {seq : ℕ → ℝ → ℝ} {u : ℝ → ℝ} {subseq : ℕ → ℕ}
+    (_hsubseq : StrictMono subseq)
+    (hseq : ∀ n, trap (seq n)) (hu : trap u)
+    (hconv : LocallyUniformConverges (fun n => seq (subseq n)) u) :
+    LocallyUniformConverges
+      (fun n => Tmap (seq (subseq n))) (Tmap u) :=
+  hcont (fun n => seq (subseq n)) u (fun n => hseq (subseq n)) hu hconv
 
 /-- Sequential compactness of the range of a wave map in the local-uniform
 topology, restricted to a trapping set. -/
