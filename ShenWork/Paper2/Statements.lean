@@ -75,6 +75,7 @@ structure BoundedDomainData where
   supNorm : (Point → ℝ) → ℝ
   infValue : (Point → ℝ) → ℝ
   integral : (Point → ℝ) → ℝ
+  gradNorm : (Point → ℝ) → Point → ℝ
   timeDeriv : (ℝ → Point → ℝ) → ℝ → Point → ℝ
   laplacian : (Point → ℝ) → Point → ℝ
   chemotaxisDiv : CM2Params → (Point → ℝ) → (Point → ℝ) → Point → ℝ
@@ -122,6 +123,32 @@ def LpPowerBoundedBefore
     (D : BoundedDomainData) (pExp Tmax : ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
   ∃ C, ∀ t, 0 < t → t < Tmax →
     D.integral (fun x => (u t x) ^ pExp) ≤ C
+
+def WeightedGradientEstimate
+    (D : BoundedDomainData) (pExp beta gamma Mstar T : ℝ)
+    (u v : ℝ → D.Point → ℝ) : Prop :=
+  ∀ t, 0 < t → t < T →
+    D.integral
+        (fun x => (D.gradNorm (v t) x) ^ (2 * pExp) / (v t x) ^ pExp) ≤
+      Mstar * D.integral (fun x => (u t x) ^ (gamma * pExp)) ∧
+    D.integral
+        (fun x =>
+          (D.gradNorm (v t) x) ^ (2 * pExp) /
+            (1 + v t x) ^ ((1 + beta) * pExp)) ≤
+      (Theta_beta beta) ^ pExp * Mstar *
+        D.integral (fun x => (u t x) ^ (gamma * pExp))
+
+def WeightedSignalEstimate
+    (D : BoundedDomainData) (pExp beta gamma eps Ceps T : ℝ)
+    (u v : ℝ → D.Point → ℝ) : Prop :=
+  ∀ t, 0 < t → t < T →
+    D.integral (fun x => (v t x) ^ (pExp + 1) / (1 + v t x) ^ beta) ≤
+      eps *
+          D.integral
+            (fun x => (u t x) ^ (gamma * (pExp + 1)) / (1 + v t x) ^ beta) +
+        Ceps *
+          (D.integral
+            (fun x => v t x / (1 + v t x) ^ (beta / (pExp + 1)))) ^ (pExp + 1)
 
 def FiniteHorizonAlternative
     (D : BoundedDomainData) (Tmax : ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
@@ -534,15 +561,15 @@ def Proposition_2_1
 def Proposition_2_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
     IsPaper2ClassicalSolution D p T u v →
-      ∀ pExp > 1, ∃ C, ∀ t, 0 < t → t < T →
-        D.integral (fun x => (u t x) ^ pExp) ≤ C
+      ∀ pExp > 1, ∃ Mstar > 0,
+        WeightedGradientEstimate D pExp p.β p.γ Mstar T u v
 
 def Proposition_2_3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
     IsPaper2ClassicalSolution D p T u v →
       ∀ pExp, max 1 p.β < pExp →
-        ∀ eps > 0, ∃ Ceps, ∀ t, 0 < t → t < T →
-          D.integral (fun x => (u t x) ^ pExp) ≤ Ceps
+        ∀ eps > 0, ∃ Ceps > 0,
+          WeightedSignalEstimate D pExp p.β p.γ eps Ceps T u v
 
 def Proposition_2_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
