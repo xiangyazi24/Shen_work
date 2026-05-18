@@ -3209,6 +3209,58 @@ theorem StableWaveParameterRegime.MChi_nonneg
     0 ≤ MChi p :=
   h.MChi_pos.le
 
+theorem StableWaveParameterRegime.one_le_MChi
+    {p : CMParams} (h : StableWaveParameterRegime p) :
+    1 ≤ MChi p := by
+  rcases h with hneg | hpos
+  · simp [MChi_eq_one_of_chi_nonpos p (le_of_lt hneg.1)]
+  · exact one_le_MChi_of_chi_nonneg_lt_chiStar p hpos.1 hpos.2.1
+
+theorem Lemma_5_3.weighted_elliptic_perturbation_of_stable_tail_bounds
+    (h : Lemma_5_3) {p : CMParams} {c eta : ℝ}
+    (hregime : StableWaveParameterRegime p)
+    (heta_pos : 0 < eta) (heta_one : eta < 1)
+    {u1 u2 : ℝ → ℝ}
+    (hu1 : IsCUnifBdd u1) (hu2 : IsCUnifBdd u2)
+    (hbound1 : HasWaveUpperTailBound p c u1)
+    (hbound2 : HasWaveUpperTailBound p c u2)
+    (hclose : Integrable
+      (fun x => Real.exp (2 * eta * x) * |u2 x - u1 x| ^ 2)) :
+    let v := Psi (fun x => u2 x ^ p.γ - u1 x ^ p.γ) 1 1
+    let U := fun x => Real.exp (eta * x) * (u2 x - u1 x)
+    let V := fun x => Real.exp (eta * x) * v x
+    (∫ x : ℝ, |V x| ^ 2 ≤
+        p.γ ^ 2 * (MChi p) ^ (2 * (p.γ - 1)) / (1 - eta) ^ 2 *
+          ∫ x : ℝ, |U x| ^ 2) ∧
+      (∫ x : ℝ, |deriv V x| ^ 2 ≤
+        p.γ ^ 2 * (MChi p) ^ (2 * (p.γ - 1)) / (1 - eta ^ 2) *
+          ∫ x : ℝ, |U x| ^ 2) :=
+  h.weighted_elliptic_perturbation_of_tail_bounds
+    hregime.one_le_MChi heta_pos heta_one hu1 hu2 hbound1 hbound2 hclose
+
+theorem Lemma_5_3.weighted_elliptic_perturbation_of_stable_strict_tail_bounds
+    (h : Lemma_5_3) {p : CMParams} {c eta : ℝ}
+    (hregime : StableWaveParameterRegime p)
+    (heta_pos : 0 < eta) (heta_one : eta < 1)
+    {u1 u2 : ℝ → ℝ}
+    (hu1 : IsCUnifBdd u1) (hu2 : IsCUnifBdd u2)
+    (hbound1 : HasStrictWaveUpperTailBound p c u1)
+    (hbound2 : HasStrictWaveUpperTailBound p c u2)
+    (hclose : Integrable
+      (fun x => Real.exp (2 * eta * x) * |u2 x - u1 x| ^ 2)) :
+    let v := Psi (fun x => u2 x ^ p.γ - u1 x ^ p.γ) 1 1
+    let U := fun x => Real.exp (eta * x) * (u2 x - u1 x)
+    let V := fun x => Real.exp (eta * x) * v x
+    (∫ x : ℝ, |V x| ^ 2 ≤
+        p.γ ^ 2 * (MChi p) ^ (2 * (p.γ - 1)) / (1 - eta) ^ 2 *
+          ∫ x : ℝ, |U x| ^ 2) ∧
+      (∫ x : ℝ, |deriv V x| ^ 2 ≤
+        p.γ ^ 2 * (MChi p) ^ (2 * (p.γ - 1)) / (1 - eta ^ 2) *
+          ∫ x : ℝ, |U x| ^ 2) :=
+  h.weighted_elliptic_perturbation_of_stable_tail_bounds hregime
+    heta_pos heta_one hu1 hu2
+    hbound1.hasWaveUpperTailBound hbound2.hasWaveUpperTailBound hclose
+
 /-- Paper1 Theorem 1.2: weighted stability of traveling waves. -/
 def Theorem_1_2 : Prop :=
   ∀ p : CMParams, StableWaveParameterRegime p →
