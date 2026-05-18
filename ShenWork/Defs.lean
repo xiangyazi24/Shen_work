@@ -520,6 +520,41 @@ theorem Psi_const_general {c l mu : ℝ} (hl : 0 < l) (x : ℝ) :
     _ = (mu / l) * c := by
           rw [hsqrt_sq]
 
+theorem Psi_le_const_general_of_le {u : ℝ → ℝ} {l mu M : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hM : 0 ≤ M)
+    (huM : ∀ y, u y ≤ M) (x : ℝ)
+    (hiu : MeasureTheory.Integrable
+      (fun y => Real.exp (-Real.sqrt l * |x - y|) * u y)) :
+    Psi u l mu x ≤ (mu / l) * M := by
+  have hconst_int :
+      MeasureTheory.Integrable
+        (fun y =>
+          Real.exp (-Real.sqrt l * |x - y|) *
+            (fun _ : ℝ => M) y) := by
+    exact psi_kernel_mul_bounded_integrable hl hM
+      (fun _ => by simp [abs_of_nonneg hM])
+      x aestronglyMeasurable_const
+  calc
+    Psi u l mu x ≤ Psi (fun _ : ℝ => M) l mu x :=
+      Psi_mono hl hmu huM x hiu hconst_int
+    _ = (mu / l) * M := Psi_const_general hl x
+
+theorem Psi_le_const_general_of_nonneg_le {u : ℝ → ℝ} {l mu M : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hM : 0 ≤ M)
+    (hu_cont : Continuous u)
+    (hu_nonneg : ∀ y, 0 ≤ u y)
+    (huM : ∀ y, u y ≤ M) (x : ℝ) :
+    Psi u l mu x ≤ (mu / l) * M := by
+  have hiu :
+      MeasureTheory.Integrable
+        (fun y => Real.exp (-Real.sqrt l * |x - y|) * u y) := by
+    exact psi_kernel_mul_bounded_integrable hl hM
+      (fun y => by
+        rw [abs_of_nonneg (hu_nonneg y)]
+        exact huM y)
+      x hu_cont.aestronglyMeasurable
+  exact Psi_le_const_general_of_le hl hmu hM huM x hiu
+
 private lemma exp_kernel_left_eq (x y k : ℝ) (hy : y ≤ x) :
     Real.exp (-|x - y|) * Real.exp (-k * y) = Real.exp (-x) * Real.exp ((1 - k) * y) := by
   rw [abs_of_nonneg (sub_nonneg.mpr hy), ← Real.exp_add, ← Real.exp_add]; congr 1; ring
