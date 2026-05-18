@@ -2022,6 +2022,78 @@ def constantSubsolutionThreshold (χ κ κtilde D : ℝ) : ℝ :=
     ((κ / (κtilde * D)) ^ (κ / (κtilde - κ)) *
       (1 - κ / κtilde))
 
+/-- The simplified `K_{κ,m,γ}` from Paper1 Remark 4.1, obtained from
+`K_{M,κ,κ̃,m,γ}` when `κ̃ = 2κ` and `γκ < 1`. -/
+def remark41K (κ m gamma : ℝ) : ℝ :=
+  (3 * m * κ + 1) / (1 - gamma ^ 2 * κ ^ 2)
+
+/-- The simplified upper bound `D_{κ,χ,m,γ}` from Paper1 Remark 4.1. -/
+def remark41DUpperBound (χ κ m gamma : ℝ) : ℝ :=
+  2 * (1 - gamma ^ 2 * κ ^ 2 + |χ| * (3 * m * κ + 1)) /
+    (1 - gamma ^ 2 * κ ^ 2)
+
+/-- The lower bound for the small constant subsolution threshold recorded in
+Paper1 Remark 4.1.  The paper writes `|χ|σ`; this definition represents that
+product as `|χ| * σ`. -/
+def remark41ConstantSubsolutionLowerBound
+    (χ m gamma sigma : ℝ) : ℝ :=
+  (1 + gamma) * |χ| * sigma /
+    (8 * (1 + |χ| + 2 * m * |χ|) * (gamma + |χ| * sigma))
+
+theorem subsolutionK_eq_remark41K_of_double_kappa
+    {M κ m gamma : ℝ} (hγκ : gamma * κ < 1) :
+    subsolutionK M κ (2 * κ) m gamma = remark41K κ m gamma := by
+  unfold subsolutionK remark41K
+  have hne : ¬ gamma * κ = 1 := ne_of_lt hγκ
+  rw [if_neg hne, if_pos hγκ]
+  ring
+
+theorem lowerBarrierRaw_speed_denominator_double_kappa_eq
+    {κ : ℝ} (hκ : κ ≠ 0) :
+    (κ + κ⁻¹) * (2 * κ) - (2 * κ) ^ 2 - 1 = 1 - 2 * κ ^ 2 := by
+  field_simp [hκ]
+  ring
+
+theorem lowerBarrierRaw_speed_denominator_double_kappa_pos
+    {κ : ℝ} (hκ_pos : 0 < κ) (hκ_half : κ < 1 / 2) :
+    0 < (κ + κ⁻¹) * (2 * κ) - (2 * κ) ^ 2 - 1 := by
+  rw [lowerBarrierRaw_speed_denominator_double_kappa_eq (ne_of_gt hκ_pos)]
+  nlinarith
+
+theorem subsolutionDThreshold_double_kappa_le_remark41DUpperBound
+    {χ M κ m gamma : ℝ}
+    (hκ_pos : 0 < κ) (hκ_half : κ < 1 / 2)
+    (hm_pos : 0 < m) (hgamma_pos : 0 < gamma)
+    (hγκ : gamma * κ < 1) :
+    subsolutionDThreshold χ M κ (2 * κ) m gamma (κ + κ⁻¹) ≤
+      remark41DUpperBound χ κ m gamma := by
+  have hK : subsolutionK M κ (2 * κ) m gamma = remark41K κ m gamma :=
+    subsolutionK_eq_remark41K_of_double_kappa hγκ
+  have hden :
+      (κ + κ⁻¹) * (2 * κ) - (2 * κ) ^ 2 - 1 = 1 - 2 * κ ^ 2 :=
+    lowerBarrierRaw_speed_denominator_double_kappa_eq (ne_of_gt hκ_pos)
+  have hgamma_kappa_pos : 0 < gamma * κ := mul_pos hgamma_pos hκ_pos
+  have hG_pos : 0 < 1 - gamma ^ 2 * κ ^ 2 := by
+    nlinarith
+  have hH_pos : 0 < 1 - 2 * κ ^ 2 := by
+    nlinarith
+  have hA_nonneg : 0 ≤ 3 * m * κ + 1 := by
+    nlinarith [mul_pos hm_pos hκ_pos]
+  have hN_nonneg :
+      0 ≤ 1 - gamma ^ 2 * κ ^ 2 + |χ| * (3 * m * κ + 1) :=
+    add_nonneg hG_pos.le (mul_nonneg (abs_nonneg χ) hA_nonneg)
+  unfold subsolutionDThreshold remark41DUpperBound
+  rw [hK, hden]
+  unfold remark41K
+  by_contra hnot
+  push Not at hnot
+  have hG_pos' : 0 < 1 - κ ^ 2 * gamma ^ 2 := by
+    nlinarith
+  have hH_pos' : 0 < 1 - κ ^ 2 * 2 := by
+    nlinarith
+  field_simp [hG_pos'.ne', hH_pos'.ne'] at hnot
+  nlinarith
+
 theorem subsolutionK_pos
     {M κ κtilde m gamma : ℝ} (hM : 0 < M) (hκ : 0 < κ)
     (hgap : 0 < κtilde - κ) (hm : 0 < m) (hgamma : 0 < gamma) :
