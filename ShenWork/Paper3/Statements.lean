@@ -1625,6 +1625,14 @@ def Lemma_3_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
     PositiveGlobalBoundedSolution D p u v →
       UniformRegularityConclusion D p u v
 
+lemma Lemma_3_1.regularity
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Lemma_3_1 D p)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    UniformRegularityConclusion D p u v :=
+  h u v huv
+
 def Lemma_3_2
     (D : BoundedDomainData) (p : CM2Params) (K : CompactnessData D) : Prop :=
   1 ≤ p.m → 0 < p.γ →
@@ -1632,14 +1640,36 @@ def Lemma_3_2
       PositiveGlobalBoundedSolution D p u v →
         TimeTranslateCompactnessConclusion D p K u v
 
+lemma Lemma_3_2.compactness
+    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
+    (h : Lemma_3_2 D p K) (hm : 1 ≤ p.m) (hγ : 0 < p.γ)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    TimeTranslateCompactnessConclusion D p K u v :=
+  h hm hγ u v huv
+
 def Lemma_3_3 (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D) : Prop :=
   ∀ uStar > 0, InitialContinuityConclusion D p N uStar
+
+lemma Lemma_3_3.initial_continuity
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    (h : Lemma_3_3 D p N) {uStar : ℝ} (huStar : 0 < uStar) :
+    InitialContinuityConclusion D p N uStar :=
+  h uStar huStar
 
 def Lemma_3_4
     (D : BoundedDomainData) (p : CM2Params) (K : CompactnessData D) : Prop :=
   ∀ u v : ℝ → D.Point → ℝ,
     PositiveGlobalBoundedSolution D p u v →
       UpperEnvelopeMonotonicityConclusion D p K u
+
+lemma Lemma_3_4.upper_envelope
+    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
+    (h : Lemma_3_4 D p K)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    UpperEnvelopeMonotonicityConclusion D p K u :=
+  h u v huv
 
 def Lemma_3_5
     (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) : Prop :=
@@ -1648,6 +1678,17 @@ def Lemma_3_5
       ∀ u v : ℝ → D.Point → ℝ,
         PositiveGlobalBoundedSolution D p u v →
           EventuallyUpperBoundMinimalConclusion D p C u
+
+lemma Lemma_3_5.eventual_upper_bound
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_3_5 D p C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ_pos : 0 < p.χ₀)
+    (hχ_small : p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    EventuallyUpperBoundMinimalConclusion D p C u :=
+  h ha hb hm hβ hχ_pos hχ_small u v huv
 
 def Corollary_5_1
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
