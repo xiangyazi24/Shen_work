@@ -918,6 +918,18 @@ theorem upperBarrier_mem_InWaveTrapSet {κ M : ℝ} (hM : 0 ≤ M) :
   intro x
   exact ⟨upperBarrier_nonneg hM x, le_rfl⟩
 
+theorem lowerBarrierPlateau_mem_InWaveTrapSet_exp_xplus
+    {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
+    InWaveTrapSet κ
+      (Real.exp (-κ * lowerBarrierXPlus κ κtilde D))
+      (lowerBarrierPlateau κ κtilde D) := by
+  refine ⟨lowerBarrierPlateau_cunif_bdd hκ hgap hD, ?_⟩
+  intro x
+  refine ⟨(lowerBarrierPlateau_pos hκ hgap hD x).le, ?_⟩
+  exact le_min
+    (lowerBarrierPlateau_le_exp_xplus hκ.le hD.le x)
+    (lowerBarrierPlateau_le_exp hκ.le hD.le x)
+
 theorem InWaveTrapSet.convex_combo
     {κ M : ℝ} {u v : ℝ → ℝ} {θ : ℝ}
     (hθ0 : 0 ≤ θ) (hθ1 : θ ≤ 1)
