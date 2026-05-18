@@ -354,6 +354,21 @@ theorem upperBarrier_antitone {κ M : ℝ} (hκ : 0 ≤ κ) :
 def lowerBarrierRaw (κ κtilde D : ℝ) : ℝ → ℝ :=
   fun x => Real.exp (-κ * x) - D * Real.exp (-κtilde * x)
 
+theorem lowerBarrierRaw_continuous (κ κtilde D : ℝ) :
+    Continuous (lowerBarrierRaw κ κtilde D) := by
+  have hlinκ : Continuous (fun x : ℝ => (-κ) * x) :=
+    continuous_const.mul continuous_id
+  have hlinκtilde : Continuous (fun x : ℝ => (-κtilde) * x) :=
+    continuous_const.mul continuous_id
+  have hκ : Continuous (fun x : ℝ => Real.exp ((-κ) * x)) :=
+    Real.continuous_exp.comp hlinκ
+  have hκtilde : Continuous (fun x : ℝ => Real.exp ((-κtilde) * x)) :=
+    Real.continuous_exp.comp hlinκtilde
+  have hD : Continuous (fun _ : ℝ => D) := continuous_const
+  change Continuous
+    (fun x : ℝ => Real.exp ((-κ) * x) - D * Real.exp ((-κtilde) * x))
+  exact hκ.sub (hD.mul hκtilde)
+
 theorem lowerBarrierRaw_deriv (κ κtilde D x : ℝ) :
     deriv (lowerBarrierRaw κ κtilde D) x =
       -κ * Real.exp (-κ * x) + D * κtilde * Real.exp (-κtilde * x) := by
@@ -721,6 +736,14 @@ theorem lowerBarrierPlateau_eq_raw_of_xplus_lt
     lowerBarrierPlateau κ κtilde D x = lowerBarrierRaw κ κtilde D x := by
   simp [lowerBarrierPlateau, not_le.mpr hx]
 
+theorem lowerBarrierPlateau_continuous (κ κtilde D : ℝ) :
+    Continuous (lowerBarrierPlateau κ κtilde D) := by
+  unfold lowerBarrierPlateau
+  exact continuous_if_le continuous_id continuous_const
+    continuous_const.continuousOn
+    (lowerBarrierRaw_continuous κ κtilde D).continuousOn
+    (fun x hx => by rw [hx])
+
 theorem lowerBarrierPlateau_pos
     {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D)
     (x : ℝ) :
@@ -773,6 +796,12 @@ theorem lowerBarrierPlateau_isBddFun
   intro x
   rw [abs_of_nonneg (lowerBarrierPlateau_pos hκ hgap hD x).le]
   exact lowerBarrierPlateau_le_exp_xplus hκ.le hD.le x
+
+theorem lowerBarrierPlateau_cunif_bdd
+    {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
+    IsCUnifBdd (lowerBarrierPlateau κ κtilde D) :=
+  ⟨lowerBarrierPlateau_continuous κ κtilde D,
+    lowerBarrierPlateau_isBddFun hκ hgap hD⟩
 
 def InWaveTrapSet (κ M : ℝ) (u : ℝ → ℝ) : Prop :=
   IsCUnifBdd u ∧ ∀ x, 0 ≤ u x ∧ u x ≤ upperBarrier κ M x
