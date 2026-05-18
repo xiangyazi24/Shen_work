@@ -78,8 +78,8 @@ Source: `paper3.pdf`, Chen-Ruau-Shen Part II.
 | Remarks 2.1--2.4 | none | remark/doc | Threshold comparisons and biological interpretation. |
 | Lemma 3.1 | `Paper3.Lemma_3_1` | statement target | Uniform regularity for bounded positive global solutions. |
 | Lemma 3.2 | `Paper3.Lemma_3_2` | statement target | Compactness of time translates. |
-| Lemma 3.3 | `Paper3.Lemma_3_3` | statement target | Continuity with respect to initial data. |
-| Lemma 3.4 | `Paper3.Lemma_3_4` | statement target | Monotonicity of upper envelope from Part I. |
+| Lemma 3.3 | `Paper3.Lemma_3_3`, `InitialContinuityConclusion` | statement target | Continuity with respect to initial data; corrected so the compared functions are actual classical solutions at the common time `T₀`, not arbitrary functions. |
+| Lemma 3.4 | `Paper3.Lemma_3_4`, `UpperEnvelopeMonotonicityConclusion` | statement target | Monotonicity of upper envelope from Part I; corrected to the paper's nonincreasing direction on `(0,t₀]`, with nonminimal/minimal projection lemmas proved. |
 | Lemma 3.5 | `Paper3.Lemma_3_5` | statement target | Eventual upper bound in minimal model. |
 | Corollary 5.1 | `Paper3.Corollary_5_1` | statement target | Converts convergence plus linear stability into exponential convergence. |
 | Lemma 7.1 | `Paper3.Lemma_7_1` | statement target | Neumann resolvent gradient estimate. |

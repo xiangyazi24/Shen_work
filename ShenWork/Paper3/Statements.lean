@@ -286,12 +286,20 @@ def TimeTranslateCompactnessConclusion
       EntireClassicalSolution D p uInf vInf
 
 def InitialContinuityConclusion
-    (D : BoundedDomainData) (N : StabilityNorms D)
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (uConst : ℝ) : Prop :=
   ∀ sigma pNorm eps, 1 / 2 < sigma → 1 < pNorm → 0 < eps →
-    ∃ delta > 0, ∃ T0 > 0, ∀ u₀ u : D.Point → ℝ,
-      D.supNorm (fun x => u₀ x - uConst) ≤ delta →
-      N.xpSigmaDistance sigma pNorm u (fun _ => uConst) ≤ eps
+    ∃ delta > 0, ∃ T0 > 0, ∃ T > T0,
+      ∀ u₀ : D.Point → ℝ,
+      ∀ u v uConstSol vConstSol : ℝ → D.Point → ℝ,
+        PositiveInitialDatum D u₀ →
+        PositiveInitialDatum D (fun _ : D.Point => uConst) →
+        D.supNorm (fun x => u₀ x - uConst) ≤ delta →
+        IsPaper2ClassicalSolution D p T u v →
+        InitialTrace D u₀ u →
+        IsPaper2ClassicalSolution D p T uConstSol vConstSol →
+        InitialTrace D (fun _ : D.Point => uConst) uConstSol →
+          N.xpSigmaDistance sigma pNorm (u T0) (uConstSol T0) ≤ eps
 
 def UpperEnvelopeMonotonicityConclusion
     (D : BoundedDomainData) (p : CM2Params) (K : CompactnessData D)
@@ -299,10 +307,32 @@ def UpperEnvelopeMonotonicityConclusion
   (p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
     ∀ t₀, 0 < t₀ →
       (p.a / p.b) ^ (1 / p.α) < K.upperEnvelope (u t₀) →
-      ∀ t, 0 < t → t ≤ t₀ → K.upperEnvelope (u t) ≤ K.upperEnvelope (u t₀)) ∧
+      ∀ t₁ t₂, 0 < t₁ → t₁ ≤ t₂ → t₂ ≤ t₀ →
+        K.upperEnvelope (u t₂) ≤ K.upperEnvelope (u t₁)) ∧
   (p.χ₀ ≤ 0 → p.a = 0 → p.b = 0 →
     ∀ t₁ t₂, 0 < t₁ → t₁ ≤ t₂ →
       K.upperEnvelope (u t₂) ≤ K.upperEnvelope (u t₁))
+
+lemma UpperEnvelopeMonotonicityConclusion.nonminimal_bound
+    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
+    {u : ℝ → D.Point → ℝ}
+    (h : UpperEnvelopeMonotonicityConclusion D p K u)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    {t₀ t₁ t₂ : ℝ}
+    (ht₀ : 0 < t₀)
+    (hlarge : (p.a / p.b) ^ (1 / p.α) < K.upperEnvelope (u t₀))
+    (ht₁ : 0 < t₁) (h12 : t₁ ≤ t₂) (h2₀ : t₂ ≤ t₀) :
+    K.upperEnvelope (u t₂) ≤ K.upperEnvelope (u t₁) :=
+  h.1 hχ ha hb t₀ ht₀ hlarge t₁ t₂ ht₁ h12 h2₀
+
+lemma UpperEnvelopeMonotonicityConclusion.minimal_bound
+    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
+    {u : ℝ → D.Point → ℝ}
+    (h : UpperEnvelopeMonotonicityConclusion D p K u)
+    (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (hb : p.b = 0)
+    {t₁ t₂ : ℝ} (ht₁ : 0 < t₁) (h12 : t₁ ≤ t₂) :
+    K.upperEnvelope (u t₂) ≤ K.upperEnvelope (u t₁) :=
+  h.2 hχ ha hb t₁ t₂ ht₁ h12
 
 def ExponentialC1Convergence
     (D : BoundedDomainData) (N : StabilityNorms D)
@@ -1421,8 +1451,8 @@ def Lemma_3_2
       PositiveGlobalBoundedSolution D p u v →
         TimeTranslateCompactnessConclusion D p K u v
 
-def Lemma_3_3 (D : BoundedDomainData) (N : StabilityNorms D) : Prop :=
-  ∀ uStar > 0, InitialContinuityConclusion D N uStar
+def Lemma_3_3 (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D) : Prop :=
+  ∀ uStar > 0, InitialContinuityConclusion D p N uStar
 
 def Lemma_3_4
     (D : BoundedDomainData) (p : CM2Params) (K : CompactnessData D) : Prop :=
