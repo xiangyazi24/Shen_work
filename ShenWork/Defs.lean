@@ -770,6 +770,22 @@ theorem Psi_exp_general {l mu k : ℝ}
     _ = mu / (l - k ^ 2) * Real.exp (-k * x) := by
           rw [show Real.sqrt l ^ 2 = l from Real.sq_sqrt hl.le]
 
+lemma resolvent_exp_denom_pos
+    {l k : ℝ} (hl : 0 < l) (hk_nonneg : 0 ≤ k) (hklt : k < Real.sqrt l) :
+    0 < l - k ^ 2 := by
+  have hprod : 0 < (Real.sqrt l - k) * (Real.sqrt l + k) := by
+    exact mul_pos (sub_pos.mpr hklt) (by positivity)
+  have hsqrt_sq : Real.sqrt l * Real.sqrt l = l := by
+    rw [← sq]
+    exact Real.sq_sqrt hl.le
+  nlinarith
+
+lemma resolvent_exp_coeff_pos
+    {l mu k : ℝ} (hl : 0 < l) (hmu : 0 < mu)
+    (hk_nonneg : 0 ≤ k) (hklt : k < Real.sqrt l) :
+    0 < mu / (l - k ^ 2) := by
+  exact div_pos hmu (resolvent_exp_denom_pos hl hk_nonneg hklt)
+
 theorem Psi_le_exp_general_of_le {u : ℝ → ℝ} {l mu k : ℝ}
     (hl : 0 < l) (hmu : 0 < mu) (hk : 0 < k) (hklt : k < Real.sqrt l)
     (huexp : ∀ y, u y ≤ Real.exp (-k * y)) (x : ℝ)
