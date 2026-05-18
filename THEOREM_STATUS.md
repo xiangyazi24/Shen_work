@@ -34,7 +34,7 @@ File header reference: `ShenWork/Defs.lean`, arXiv `2605.04401`.
 | Theorem 1.3 traveling-wave uniqueness | `Paper1.Theorem_1_3` | statement target | Includes shared right-tail asymptotic normalization; avoids the old shift-invariant false statement. |
 | Paper1 fixed-point trap-set infrastructure | `expDecay`, `upperBarrier`, `WaveTrapSet`, `MonotoneWaveTrapSet`, `HasWaveUpperTailBound` | partial | Ordinary/monotone trap sets now have names, nonemptiness, convexity, monotonicity in `M`, zero/upper-barrier membership, and tail-bound-to-trap-set bridge lemmas. Smooth exponential branch positivity, monotonicity, limits, derivative identities, linear-part identities, and generic power estimates are proved. Closedness/compactness and Schauder-map invariance remain analytic work. |
 | Traveling-wave phase-shift facts | `IsTravelingWave.shift`, `IsMonotoneTravelingWave.shift`, `shift_right_with_exp_bound` | proved | Useful infrastructure for future phase normalization and uniqueness. |
-| Maximum/comparison principle | `weak_maximum_principle_linear`, `comparison_principle`, related lemmas | proved | This is real PDE infrastructure, not a paper main theorem by itself. |
+| Maximum/comparison principle | `weak_maximum_principle_linear`, `comparison_principle`, related lemmas | proved | This is real PDE infrastructure, not a paper main theorem by itself; local time-horizon restriction for linear subsolutions is also proved. |
 | Local ODE shooting segment | `local_shooting_segment_from_E1_*` | proved | Kept as local ODE infrastructure. Removed unsupported global shooting theorem. |
 | Heteroclinic to wave projection | `travelingWave_of_heteroclinic` | proved | Converts a supplied global heteroclinic into a wave; does not prove existence. |
 

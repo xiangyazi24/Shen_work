@@ -159,6 +159,38 @@ structure IsClassicalLinearSubSolution
   bounded :
     BoundedOnStrip T w
 
+lemma IsClassicalLinearSubSolution.restrict_time
+    {c T S : ℝ} {w : ℝ → ℝ → ℝ}
+    (hw : IsClassicalLinearSubSolution c T w)
+    (hST : S ≤ T) :
+    IsClassicalLinearSubSolution c S w := by
+  refine
+    { continuousOn_rect := ?_
+      time_hasDerivAt := ?_
+      space_hasDerivAt := ?_
+      space_second_hasDerivAt := ?_
+      pde_le_of_pos := ?_
+      bounded := ?_ }
+  · intro R
+    exact (hw.continuousOn_rect R).mono <| by
+      intro p hp
+      exact ⟨⟨hp.1.1, le_trans hp.1.2 hST⟩, hp.2⟩
+  · intro t x ht
+    exact hw.time_hasDerivAt (t := t) (x := x)
+      ⟨ht.1, le_trans ht.2 hST⟩
+  · intro t x ht
+    exact hw.space_hasDerivAt (t := t) (x := x)
+      ⟨ht.1, le_trans ht.2 hST⟩
+  · intro t x ht
+    exact hw.space_second_hasDerivAt (t := t) (x := x)
+      ⟨ht.1, le_trans ht.2 hST⟩
+  · intro t x ht hpos
+    exact hw.pde_le_of_pos
+      ⟨ht.1, le_trans ht.2 hST⟩ hpos
+  · rcases hw.bounded with ⟨M, hM, hbound⟩
+    exact ⟨M, hM, fun t ht x =>
+      hbound t ⟨ht.1, le_trans ht.2 hST⟩ x⟩
+
 /--
 The exponential barrier
 
