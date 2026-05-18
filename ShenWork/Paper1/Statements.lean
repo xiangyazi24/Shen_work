@@ -1995,6 +1995,33 @@ def Proposition_1_1 : Prop :=
         UniformEventuallyBounded u ∧
         (0 < p.χ → p.χ < 1 → UniformLimsupLe u ((1 / (1 - p.χ)) ^ (1 / p.α))))
 
+theorem Proposition_1_1.negative_solution
+    (h : Proposition_1_1) {p : CMParams}
+    (hχ : p.χ ≤ 0) {u₀ : ℝ → ℝ}
+    (hu₀ : NonnegativeInitialDatum u₀) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p u₀ u v ∧
+      (∀ M, (∀ x, u₀ x ≤ M) →
+        ∀ t x, 0 ≤ t → u t x ≤ max 1 M) ∧
+      UniformLimsupLe u 1 :=
+  h.1 p hχ u₀ hu₀
+
+theorem Proposition_1_1.positive_solution
+    (h : Proposition_1_1) {p : CMParams}
+    (hparam :
+      (0 < p.χ ∧ p.α > p.m + p.γ - 1) ∨
+        (0 < p.χ ∧
+          p.χ < min
+            ((p.m + p.γ - 1) / (2 * p.m - 1))
+            ((p.m + p.γ - 1) / (p.γ - 1)) ∧
+          p.α = p.m + p.γ - 1))
+    {u₀ : ℝ → ℝ} (hu₀ : NonnegativeInitialDatum u₀) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p u₀ u v ∧
+      UniformEventuallyBounded u ∧
+      (0 < p.χ → p.χ < 1 → UniformLimsupLe u ((1 / (1 - p.χ)) ^ (1 / p.α))) :=
+  h.2 p hparam u₀ hu₀
+
 /-- Paper1 Proposition 1.2: stability of the positive constant solution. -/
 def Proposition_1_2 : Prop :=
   (∀ p : CMParams, p.χ ≤ 0 →
@@ -2008,6 +2035,28 @@ def Proposition_1_2 : Prop :=
       ∃ u v : ℝ → ℝ → ℝ,
         IsGlobalCauchySolutionFrom p u₀ u v ∧
         UniformConvergesToConstant u 1)
+
+theorem Proposition_1_2.negative_stability
+    (h : Proposition_1_2) {p : CMParams}
+    (hχ : p.χ ≤ 0) {u₀ : ℝ → ℝ}
+    (hu₀_nonneg : NonnegativeInitialDatum u₀)
+    (hu₀_pos : UniformlyPositive u₀) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p u₀ u v ∧
+      UniformConvergesToConstant u 1 :=
+  h.1 p hχ u₀ hu₀_nonneg hu₀_pos
+
+theorem Proposition_1_2.positive_stability
+    (h : Proposition_1_2) {p : CMParams}
+    (hχ_pos : 0 < p.χ) (hχ_small : p.χ < (1 / 2 : ℝ))
+    (halpha : p.m + p.γ - 1 ≤ p.α)
+    {u₀ : ℝ → ℝ}
+    (hu₀_nonneg : NonnegativeInitialDatum u₀)
+    (hu₀_pos : UniformlyPositive u₀) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p u₀ u v ∧
+      UniformConvergesToConstant u 1 :=
+  h.2 p hχ_pos hχ_small halpha u₀ hu₀_nonneg hu₀_pos
 
 /-- Paper1 Theorem 1.1: existence of traveling waves. -/
 def Theorem_1_1 : Prop :=
@@ -2028,6 +2077,31 @@ def Theorem_1_1 : Prop :=
         ∀ κ₁, kappa c < κ₁ →
           κ₁ < min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) →
           HasWaveRightTailAsymptotic c κ₁ U)
+
+theorem Theorem_1_1.negative_wave
+    (h : Theorem_1_1) {p : CMParams}
+    (halpha : p.α ≤ p.m + p.γ - 1) (hχ : p.χ ≤ 0)
+    {c : ℝ} (hc : cStarLower p < c) :
+    ∃ U V : ℝ → ℝ,
+      IsMonotoneTravelingWave p c U V ∧
+      ShenUpperBoundNegative c U ∧
+      ∀ κ₁, kappa c < κ₁ →
+        κ₁ < min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) →
+        HasWaveRightTailAsymptotic c κ₁ U :=
+  h.1 p halpha hχ c hc
+
+theorem Theorem_1_1.positive_wave
+    (h : Theorem_1_1) {p : CMParams}
+    (halpha : p.α = p.m + p.γ - 1)
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    {c : ℝ} (hc : 2 < c) :
+    ∃ U V : ℝ → ℝ,
+      IsTravelingWave p c U V ∧
+      ShenUpperBoundPositive p c U ∧
+      ∀ κ₁, kappa c < κ₁ →
+        κ₁ < min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) →
+        HasWaveRightTailAsymptotic c κ₁ U :=
+  h.2 p halpha hχ_nonneg hχ_small c hc
 
 def StableWaveParameterRegime (p : CMParams) : Prop :=
   (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
@@ -2116,6 +2190,27 @@ theorem Theorem_1_2.threshold_family
   rcases h p hp with ⟨cStarStar, hasymp, hlower, _hconcl⟩
   exact ⟨cStarStar, hasymp, hlower⟩
 
+theorem Theorem_1_2.stability_package
+    (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6)) →
+          ∀ u₀ : ℝ → ℝ,
+            NonnegativeInitialDatum u₀ →
+            StrictlyPositiveAtLeft u₀ →
+            WeightedL2InitialCloseness η u₀ U →
+            ∃ u v : ℝ → ℝ → ℝ,
+              IsGlobalCauchySolutionFrom p u₀ u v ∧
+              WeightedL2MovingFrameConvergence η c u U ∧
+              UniformMovingFrameConvergence c u U :=
+  h p hp
+
 /-- Paper1 Theorem 1.3: uniqueness of traveling waves with the prescribed right tail. -/
 def Theorem_1_3 : Prop :=
   ∀ p : CMParams, StableWaveParameterRegime p →
@@ -2140,6 +2235,23 @@ theorem Theorem_1_3.threshold_family
         stabilitySpeedBaseline p < cStarStar p.χ := by
   rcases h p hp with ⟨cStarStar, hasymp, hlower, _hconcl⟩
   exact ⟨cStarStar, hasymp, hlower⟩
+
+theorem Theorem_1_3.uniqueness_package
+    (h : Theorem_1_3) {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧
+          HasWaveRightTailAsymptotic c κ₁ U₁ ∧
+          HasWaveRightTailAsymptotic c κ₁ U₂) →
+        (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) :=
+  h p hp
 
 end
 
