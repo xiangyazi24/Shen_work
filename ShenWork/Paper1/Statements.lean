@@ -236,6 +236,27 @@ theorem upperBarrier_cunif_bdd {κ M : ℝ} (hM : 0 ≤ M) :
     IsCUnifBdd (upperBarrier κ M) :=
   ⟨upperBarrier_continuous κ M, upperBarrier_isBddFun hM⟩
 
+theorem upperBarrier_rpow_le_M
+    {κ M a : ℝ} (hM : 0 ≤ M) (ha : 0 ≤ a) (x : ℝ) :
+    (upperBarrier κ M x) ^ a ≤ M ^ a :=
+  Real.rpow_le_rpow (upperBarrier_nonneg hM x) (upperBarrier_le_M κ M x) ha
+
+theorem upperBarrier_rpow_le_exp
+    {κ M a : ℝ} (hM : 0 ≤ M) (ha : 0 ≤ a) (x : ℝ) :
+    (upperBarrier κ M x) ^ a ≤ (Real.exp (-κ * x)) ^ a :=
+  Real.rpow_le_rpow (upperBarrier_nonneg hM x) (upperBarrier_le_exp κ M x) ha
+
+theorem upperBarrier_rpow_le_exp_mul
+    {κ M a : ℝ} (hM : 0 ≤ M) (ha : 0 ≤ a) (x : ℝ) :
+    (upperBarrier κ M x) ^ a ≤ Real.exp (-κ * a * x) := by
+  calc
+    (upperBarrier κ M x) ^ a ≤ (Real.exp (-κ * x)) ^ a :=
+      upperBarrier_rpow_le_exp hM ha x
+    _ = Real.exp (-κ * a * x) := by
+      rw [← Real.exp_mul]
+      congr 1
+      ring
+
 theorem upperBarrier_antitone {κ M : ℝ} (hκ : 0 ≤ κ) :
     Antitone (upperBarrier κ M) := by
   intro x₁ x₂ hx
