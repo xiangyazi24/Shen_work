@@ -32,6 +32,34 @@ lemma positivePart_eq_zero_of_nonpos {r : ℝ} (hr : r ≤ 0) :
     positivePart r = 0 := by
   simp [positivePart, hr]
 
+lemma positivePart_eq_zero_iff {r : ℝ} :
+    positivePart r = 0 ↔ r ≤ 0 := by
+  constructor
+  · intro h
+    have hr : r ≤ positivePart r := le_positivePart r
+    linarith
+  · exact positivePart_eq_zero_of_nonpos
+
+lemma positivePart_pos_iff {r : ℝ} :
+    0 < positivePart r ↔ 0 < r := by
+  constructor
+  · intro h
+    by_contra hn
+    have hzero : positivePart r = 0 :=
+      positivePart_eq_zero_of_nonpos (le_of_not_gt hn)
+    linarith
+  · intro hr
+    have hle : r ≤ positivePart r := le_positivePart r
+    linarith
+
+lemma positivePart_eq_self_iff {r : ℝ} :
+    positivePart r = r ↔ 0 ≤ r := by
+  constructor
+  · intro h
+    rw [← h]
+    exact positivePart_nonneg r
+  · exact positivePart_eq_self_of_nonneg
+
 /--
 Abstract data for the smooth bounded Neumann domain used in Paper2.
 

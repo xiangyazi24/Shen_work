@@ -46,7 +46,7 @@ Source: `paper2.pdf`, Chen-Ruau-Shen Part I.
 
 | Paper item | Lean artifact | Status | Notes |
 | --- | --- | --- | --- |
-| Definition 1.1 | `Paper2.IsPaper2ClassicalSolution` | partial | Abstract domain/operator interface, not instantiated smooth domain. |
+| Definition 1.1 | `Paper2.IsPaper2ClassicalSolution` | partial | Abstract domain/operator interface, not instantiated smooth domain; basic `positivePart` branch and iff lemmas proved. |
 | Proposition 1.1 | `Paper2.Proposition_1_1` | statement target | Local existence/blow-up alternative. |
 | Theorem 1.1 | `Paper2.Theorem_1_1` | statement target | Negative sensitivity. |
 | Theorem 1.2 | `Paper2.Theorem_1_2` | statement target | Weak nonlinear cross diffusion. |
