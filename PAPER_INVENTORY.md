@@ -24,7 +24,7 @@ systems.
 | Proposition 1.1 | `Paper1.Proposition_1_1` | statement target | Global Cauchy existence and bounds. |
 | Proposition 1.2 | `Paper1.Proposition_1_2` | statement target | Stability of `(1,1)`. |
 | Theorem 1.1 | `Paper1.Theorem_1_1` | statement target | Traveling-wave existence. |
-| Theorem 1.2 | `Paper1.Theorem_1_2` | statement target | Weighted stability of waves. |
+| Theorem 1.2 | `Paper1.Theorem_1_2`, `StableWaveParameterRegime` | statement target | Weighted stability of waves; stable-regime projections `χ < 1` and `Mχ > 0` proved. |
 | Theorem 1.3 | `Paper1.Theorem_1_3` | statement target | Uniqueness with right-tail normalization. |
 | Remarks 1.1--1.5 | none | remark/doc | Mine later for dependencies and parameter regimes. |
 | Lemma 2.1 | `HeatSemigroupEstimateData`, `Paper1.Lemma_2_1` | statement target | Semigroup `L^p-L^q` estimates. |

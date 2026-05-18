@@ -1854,6 +1854,23 @@ def StableWaveParameterRegime (p : CMParams) : Prop :=
   (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
     (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1)
 
+theorem StableWaveParameterRegime.chi_lt_one
+    {p : CMParams} (h : StableWaveParameterRegime p) :
+    p.χ < 1 := by
+  rcases h with h | h
+  · linarith [h.1]
+  · exact lt_of_lt_of_le h.2.1 (chiStar_le_one p)
+
+theorem StableWaveParameterRegime.MChi_pos
+    {p : CMParams} (h : StableWaveParameterRegime p) :
+    0 < MChi p :=
+  MChi_pos_of_chi_lt_one p h.chi_lt_one
+
+theorem StableWaveParameterRegime.MChi_nonneg
+    {p : CMParams} (h : StableWaveParameterRegime p) :
+    0 ≤ MChi p :=
+  h.MChi_pos.le
+
 /-- Paper1 Theorem 1.2: weighted stability of traveling waves. -/
 def Theorem_1_2 : Prop :=
   ∀ p : CMParams, StableWaveParameterRegime p →
