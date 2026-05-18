@@ -1854,6 +1854,18 @@ def StableWaveParameterRegime (p : CMParams) : Prop :=
   (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
     (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1)
 
+def stabilitySpeedBaseline (p : CMParams) : ℝ :=
+  1 + |p.χ| ^ (1 / 6 : ℝ) + (1 + |p.χ| ^ (1 / 6 : ℝ))⁻¹
+
+theorem stabilitySpeedBaseline_pos (p : CMParams) :
+    0 < stabilitySpeedBaseline p := by
+  unfold stabilitySpeedBaseline
+  have hpow_nonneg : 0 ≤ |p.χ| ^ (1 / 6 : ℝ) :=
+    Real.rpow_nonneg (abs_nonneg p.χ) _
+  have hden_pos : 0 < 1 + |p.χ| ^ (1 / 6 : ℝ) := by
+    linarith
+  positivity
+
 theorem StableWaveParameterRegime.chi_lt_one
     {p : CMParams} (h : StableWaveParameterRegime p) :
     p.χ < 1 := by
@@ -1874,7 +1886,7 @@ theorem StableWaveParameterRegime.MChi_nonneg
 /-- Paper1 Theorem 1.2: weighted stability of traveling waves. -/
 def Theorem_1_2 : Prop :=
   ∀ p : CMParams, StableWaveParameterRegime p →
-    ∃ cStarStar > 0, ∀ c : ℝ, cStarStar < c →
+    ∃ cStarStar > stabilitySpeedBaseline p, ∀ c : ℝ, cStarStar < c →
       ∀ U V : ℝ → ℝ,
         IsTravelingWave p c U V →
         (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
@@ -1891,7 +1903,7 @@ def Theorem_1_2 : Prop :=
 /-- Paper1 Theorem 1.3: uniqueness of traveling waves with the prescribed right tail. -/
 def Theorem_1_3 : Prop :=
   ∀ p : CMParams, StableWaveParameterRegime p →
-    ∃ cStarStar > 0, ∀ c : ℝ, cStarStar < c →
+    ∃ cStarStar > stabilitySpeedBaseline p, ∀ c : ℝ, cStarStar < c →
       ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
         IsTravelingWave p c U₁ V₁ →
         IsTravelingWave p c U₂ V₂ →

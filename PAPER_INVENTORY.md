@@ -24,8 +24,8 @@ systems.
 | Proposition 1.1 | `Paper1.Proposition_1_1` | statement target | Global Cauchy existence and bounds. |
 | Proposition 1.2 | `Paper1.Proposition_1_2` | statement target | Stability of `(1,1)`. |
 | Theorem 1.1 | `Paper1.Theorem_1_1` | statement target | Traveling-wave existence. |
-| Theorem 1.2 | `Paper1.Theorem_1_2`, `StableWaveParameterRegime` | statement target | Weighted stability of waves; stable-regime projections `χ < 1` and `Mχ > 0` proved. |
-| Theorem 1.3 | `Paper1.Theorem_1_3` | statement target | Uniqueness with right-tail normalization. |
+| Theorem 1.2 | `Paper1.Theorem_1_2`, `StableWaveParameterRegime`, `stabilitySpeedBaseline` | statement target | Weighted stability of waves; includes the paper's lower bound on `c**`, and stable-regime projections `χ < 1` and `Mχ > 0` are proved. |
+| Theorem 1.3 | `Paper1.Theorem_1_3`, `stabilitySpeedBaseline` | statement target | Uniqueness with right-tail normalization; includes the same paper lower bound on `c**`. |
 | Remarks 1.1--1.5 | none | remark/doc | Mine later for dependencies and parameter regimes. |
 | Lemma 2.1 | `HeatSemigroupEstimateData`, `Paper1.Lemma_2_1` | statement target | Semigroup `L^p-L^q` estimates. |
 | Lemma 2.2 | `PsiDerivativeFormula`, `Paper1.Lemma_2_2`, `Paper1.Lemma_2_2_kernel_formula_proved` | partial | Elliptic resolvent kernel formula proved by definition; derivative formula remains. |
