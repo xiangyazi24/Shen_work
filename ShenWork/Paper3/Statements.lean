@@ -1351,6 +1351,39 @@ def Theorem_2_1 (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p
     Theorem_2_1_part3 D p ∧
     Theorem_2_1_part4 D p C
 
+lemma Theorem_2_1.part1
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Theorem_2_1 D p C) :
+    Theorem_2_1_part1 D p :=
+  h.1
+
+lemma Theorem_2_1.part2
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Theorem_2_1 D p C) :
+    Theorem_2_1_part2 D p :=
+  h.2.1
+
+lemma Theorem_2_1.part3
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Theorem_2_1 D p C) :
+    Theorem_2_1_part3 D p :=
+  h.2.2.1
+
+lemma Theorem_2_1.part4
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Theorem_2_1 D p C) :
+    Theorem_2_1_part4 D p C :=
+  h.2.2.2
+
+lemma Theorem_2_1.persistence
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Theorem_2_1 D p C) (hm : 1 ≤ p.m)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    ∃ δu > 0, EventuallyLowerBound D u δu ∧
+      EventuallyLowerBound D v (p.ν / p.μ * δu ^ p.γ) :=
+  h.part1 hm u v huv
+
 /-- Paper3 Theorem 2.2: linear stability/instability and local exponential stability. -/
 def Theorem_2_2
     (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
