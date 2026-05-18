@@ -54,8 +54,12 @@ BUILD OK, 3 sorry remaining. Priority order:
 - Added `cStarStar_ge_two`, `two_lt_of_cStarStar_lt`, and
   `kappa_pos_of_cStarStar_lt`, extracting the speed facts needed from the
   stability/uniqueness threshold.
+- Added `IsTravelingWave.shift_right_with_exp_bound` and
+  `IsMonotoneTravelingWave.shift_right_with_exp_bound`, combining phase-shift
+  invariance with preservation of the right exponential tail bound when shifting
+  right.
 
-## P0: MildSolution Banach fixed point (356)
+## P0: MildSolution Banach fixed point (376)
 Need to instantiate `abstract_mild_fixed_point` by constructing the actual complete
 function space, self-map, self-map/integrability facts, and contraction proof for Φ.
 
@@ -63,7 +67,7 @@ function space, self-map, self-map/integrability facts, and contraction proof fo
 Global ODE existence + convergence to E0.
 
 ## P2: Deep theorems
-- Defs:458 — TW uniqueness (paper proves this through stability/asymptotics, not the
+- Defs:574 — TW uniqueness (paper proves this through stability/asymptotics, not the
   old fake explicit profile construction)
 
 ## Key API discoveries

@@ -418,6 +418,30 @@ lemma kappa_pos_of_cStarStar_lt {p : CMParams} {c : ℝ}
     0 < kappa c :=
   kappa_pos_of_two_lt (two_lt_of_cStarStar_lt hc)
 
+theorem IsTravelingWave.shift_right_with_exp_bound (p : CMParams)
+    {c a : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hc : cStarStar p < c)
+    (ha : 0 ≤ a)
+    (hbound : ∀ x, U x < Real.exp (-kappa c * x)) :
+    IsTravelingWave p c (fun x => U (x + a)) (fun x => V (x + a)) ∧
+      ∀ x, U (x + a) < Real.exp (-kappa c * x) := by
+  exact
+    ⟨hTW.shift p a,
+      exp_bound_shift_right (kappa_pos_of_cStarStar_lt hc).le ha hbound⟩
+
+theorem IsMonotoneTravelingWave.shift_right_with_exp_bound (p : CMParams)
+    {c a : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsMonotoneTravelingWave p c U V)
+    (hc : cStarStar p < c)
+    (ha : 0 ≤ a)
+    (hbound : ∀ x, U x < Real.exp (-kappa c * x)) :
+    IsMonotoneTravelingWave p c (fun x => U (x + a)) (fun x => V (x + a)) ∧
+      ∀ x, U (x + a) < Real.exp (-kappa c * x) := by
+  exact
+    ⟨hTW.shift p a,
+      exp_bound_shift_right (kappa_pos_of_cStarStar_lt hc).le ha hbound⟩
+
 /-! ## Explicit solutions for special cases -/
 
 /-- The constant solution u ≡ 1, v ≡ 1 is a global classical solution for ANY χ. -/
