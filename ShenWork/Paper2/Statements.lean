@@ -325,10 +325,21 @@ lemma Theta_beta_pos {beta : ℝ} (hbeta : 0 < beta) :
   unfold Theta_beta
   positivity
 
+lemma Theta_beta_zero :
+    Theta_beta 0 = 1 := by
+  norm_num [Theta_beta]
+
+lemma Theta_beta_pos_of_nonneg {beta : ℝ} (hbeta : 0 ≤ beta) :
+    0 < Theta_beta beta := by
+  by_cases hzero : beta = 0
+  · subst beta
+    rw [Theta_beta_zero]
+    norm_num
+  · exact Theta_beta_pos (lt_of_le_of_ne hbeta (Ne.symm hzero))
+
 lemma Theta_beta_nonneg {beta : ℝ} (hbeta : 0 ≤ beta) :
     0 ≤ Theta_beta beta := by
-  unfold Theta_beta
-  exact mul_nonneg (Real.rpow_nonneg hbeta _) (Real.rpow_nonneg (by positivity) _)
+  exact (Theta_beta_pos_of_nonneg hbeta).le
 
 lemma Psi_beta_eq_beta_mul_Theta_beta {beta : ℝ} (hbeta : 0 < beta) :
     Psi_beta beta = beta * Theta_beta beta := by
