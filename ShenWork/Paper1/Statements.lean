@@ -2378,6 +2378,22 @@ theorem InTimeWaveTrapSet.le_scaledUpperBarrier
     u t x ≤ scaledUpperBarrier κ M x :=
   ((h t ht).2 x).2
 
+theorem scaledUpperBarrier_one_eq_upperBarrier (κ : ℝ) :
+    scaledUpperBarrier κ 1 = upperBarrier κ 1 := by
+  ext x
+  simp [scaledUpperBarrier, upperBarrier]
+
+theorem InTimeWaveTrapSet.slice_inWaveTrapSet_one
+    {κ T : ℝ} {u : ℝ → ℝ → ℝ}
+    (h : InTimeWaveTrapSet κ 1 T u)
+    {t : ℝ} (ht : t ∈ Set.Icc (0 : ℝ) T) :
+    InWaveTrapSet κ 1 (u t) := by
+  refine ⟨h.slice_cunif ht, ?_⟩
+  intro x
+  refine ⟨h.nonneg ht x, ?_⟩
+  simpa [scaledUpperBarrier_one_eq_upperBarrier κ] using
+    h.le_scaledUpperBarrier ht x
+
 /-- Paper1 Remark 4.2: the lower and constant subsolution construction also
 works for finite-time frozen coefficient paths in `\tilde E_{κ,M,T}`. -/
 def Remark_4_2 : Prop :=
