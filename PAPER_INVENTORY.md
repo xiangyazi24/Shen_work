@@ -52,7 +52,7 @@ Source: `paper2.pdf`, Chen-Ruau-Shen Part I.
 | Theorem 1.3 | `Paper2.Theorem_1_3` | statement target | Strong logistic source. |
 | Remarks 1.1--1.7 | none | remark/doc | Useful for proof strategy and parameter comparisons. |
 | Lemmas 2.1--2.4 | `SemigroupEstimateData`, `Lemma_2_1`--`Lemma_2_4` | statement target | Abstract semigroup/fractional-power estimate layer. |
-| Lemma 2.5 | `Psi_beta`, `Theta_beta`, `Lemma_2_5_proved`, `Psi_beta_pos`, `Psi_beta_lt_one`, `Theta_beta_pos`, `Psi_beta_eq_beta_mul_Theta_beta` | partial | Scalar entropy inequality and basic `Ψβ`/`Θβ` positivity/bounds/relations proved; monotonicity and endpoint limits of `Ψβ` remain. |
+| Lemma 2.5 | `Psi_beta`, `Theta_beta`, `Lemma_2_5_proved`, `Psi_beta_pos`, `Psi_beta_lt_one`, `Theta_beta_pos`, `Psi_beta_eq_beta_mul_Theta_beta` | partial | Scalar entropy inequality and basic `Ψβ`/`Θβ` endpoint, positivity, bounds, and relations proved; monotonicity and asymptotic limit of `Ψβ` remain. |
 | Lemma 2.6 | `AbstractLpBootstrapHypothesis`, `Lemma_2_6` | statement target | Abstract `L^p` bootstrap target. |
 | Corollary 2.1 | `Corollary_2_1` | statement target | Chemotaxis cross-term bootstrap target. |
 | Propositions 2.2--2.5 | `Proposition_2_2`--`Proposition_2_5` | statement target | Integral estimates and boundedness criterion. |

@@ -209,6 +209,33 @@ lemma Psi_beta_nonneg {beta : ℝ} (hbeta : 0 ≤ beta) :
   unfold Psi_beta
   positivity
 
+lemma Psi_beta_zero :
+    Psi_beta 0 = 0 := by
+  norm_num [Psi_beta]
+
+lemma Psi_beta_eq_zero_iff_of_nonneg {beta : ℝ} (hbeta : 0 ≤ beta) :
+    Psi_beta beta = 0 ↔ beta = 0 := by
+  constructor
+  · intro h
+    by_contra hne
+    have hpos : 0 < beta := lt_of_le_of_ne hbeta (Ne.symm hne)
+    have := Psi_beta_pos hpos
+    linarith
+  · intro h
+    subst beta
+    exact Psi_beta_zero
+
+lemma Psi_beta_pos_iff_of_nonneg {beta : ℝ} (hbeta : 0 ≤ beta) :
+    0 < Psi_beta beta ↔ 0 < beta := by
+  constructor
+  · intro h
+    exact lt_of_le_of_ne hbeta
+      (fun hzero => by
+        subst beta
+        rw [Psi_beta_zero] at h
+        exact (lt_irrefl (0 : ℝ)) h)
+  · exact Psi_beta_pos
+
 lemma Psi_beta_lt_one {beta : ℝ} (hbeta : 0 < beta) :
     Psi_beta beta < 1 := by
   unfold Psi_beta
@@ -259,6 +286,15 @@ lemma beta_mul_Theta_beta_lt_one {beta : ℝ} (hbeta : 0 < beta) :
     beta * Theta_beta beta < 1 := by
   rw [← Psi_beta_eq_beta_mul_Theta_beta hbeta]
   exact Psi_beta_lt_one hbeta
+
+lemma beta_mul_Theta_beta_pos {beta : ℝ} (hbeta : 0 < beta) :
+    0 < beta * Theta_beta beta := by
+  rw [← Psi_beta_eq_beta_mul_Theta_beta hbeta]
+  exact Psi_beta_pos hbeta
+
+lemma beta_mul_Theta_beta_le_one {beta : ℝ} (hbeta : 0 < beta) :
+    beta * Theta_beta beta ≤ 1 :=
+  le_of_lt (beta_mul_Theta_beta_lt_one hbeta)
 
 theorem Lemma_2_5_proved : Lemma_2_5 := by
   intro beta v hbeta hv
