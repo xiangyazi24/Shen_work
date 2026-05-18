@@ -179,6 +179,13 @@ def Lemma_2_5 : Prop :=
 def frozenElliptic (p : CMParams) (u : ℝ → ℝ) : ℝ → ℝ :=
   fun x => Psi (fun y => (u y) ^ p.γ) 1 1 x
 
+theorem frozenElliptic_nonneg
+    (p : CMParams) {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ) :
+    0 ≤ frozenElliptic p u x := by
+  unfold frozenElliptic
+  exact Psi_nonneg one_pos one_pos
+    (fun y => Real.rpow_nonneg (hu y) p.γ) x
+
 def frozenWaveOperator (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) : ℝ → ℝ :=
   fun x =>
     iteratedDeriv 2 W x + c * deriv W x
