@@ -1160,6 +1160,40 @@ structure Paper3Constants (D : BoundedDomainData) (p : CM2Params) where
   gaussianLowerConst : ℝ
   gaussianLowerConst_pos : 0 < gaussianLowerConst
 
+/-- The constants package uses the paper's concrete spectral formula `(2.10)`
+for the linear critical sensitivity. -/
+def Paper3ConstantsUsesCriticalSpectrum
+    (S : SpectralData) (p : CM2Params) {D : BoundedDomainData}
+    (C : Paper3Constants D p) : Prop :=
+  ∀ uStar : ℝ, 0 < uStar →
+    C.chiCritical uStar =
+      paperCriticalSensitivity S p uStar (p.ν / p.μ * uStar ^ p.γ)
+
+lemma Paper3ConstantsUsesCriticalSpectrum.chiCritical_positiveEquilibrium
+    {D : BoundedDomainData} {S : SpectralData} {p : CM2Params}
+    {C : Paper3Constants D p}
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) :
+    C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 =
+      paperCriticalSensitivity S p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+  dsimp [positiveEquilibrium]
+  exact hC ((p.a / p.b) ^ (1 / p.α))
+    (positiveEquilibrium_fst_pos p ⟨ha, hb⟩)
+
+lemma Paper3ConstantsUsesCriticalSpectrum.chiCritical_minimalEquilibrium
+    {D : BoundedDomainData} {S : SpectralData} {p : CM2Params}
+    {C : Paper3Constants D p} {uStar : ℝ}
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (huStar : 0 < uStar) :
+    C.chiCritical uStar =
+      paperCriticalSensitivity S p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 := by
+  dsimp [minimalEquilibrium]
+  exact hC uStar huStar
+
 def betaTilde (beta : ℝ) : ℝ :=
   positivePart (min 1 (2 * beta - 1))
 
@@ -2014,6 +2048,27 @@ lemma Theorem_2_2.nonminimal_stability_package
       (positiveEquilibrium p ⟨ha, hb⟩).2 :=
   h.1 ha hb hχ
 
+lemma Theorem_2_2.nonminimal_stability_package_of_chi_lt_paperCriticalSensitivity
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C)
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2) :
+    LinearlyStable S p
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 ∧
+    LocallyExponentiallyStableFromSup D p N
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+  exact h.nonminimal_stability_package ha hb
+    (by
+      rwa [hC.chiCritical_positiveEquilibrium ha hb])
+
 lemma Theorem_2_2.nonminimal_unstable
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
     {N : StabilityNorms D} {C : Paper3Constants D p}
@@ -2024,6 +2079,23 @@ lemma Theorem_2_2.nonminimal_unstable
       (positiveEquilibrium p ⟨ha, hb⟩).1
       (positiveEquilibrium p ⟨ha, hb⟩).2 := by
   exact h.2.1 ha hb hχ
+
+lemma Theorem_2_2.nonminimal_unstable_of_paperCriticalSensitivity_lt_chi
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C)
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      paperCriticalSensitivity S p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 < p.χ₀) :
+    LinearlyUnstable S p
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+  exact h.nonminimal_unstable ha hb
+    (by
+      rwa [hC.chiCritical_positiveEquilibrium ha hb])
 
 lemma Theorem_2_2.minimal_stable
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
@@ -2061,6 +2133,27 @@ lemma Theorem_2_2.minimal_stability_package
       (minimalEquilibrium p uStar).2 :=
   h.2.2.1 ha hb uStar huStar hχ
 
+lemma Theorem_2_2.minimal_stability_package_of_chi_lt_paperCriticalSensitivity
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C)
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (ha : p.a = 0) (hb : p.b = 0) {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2) :
+    LinearlyStable S p
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 ∧
+    MassConstrainedLocallyExponentiallyStableFromSup D p N
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 := by
+  exact h.minimal_stability_package ha hb huStar
+    (by
+      rwa [hC.chiCritical_minimalEquilibrium huStar])
+
 lemma Theorem_2_2.minimal_unstable
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
     {N : StabilityNorms D} {C : Paper3Constants D p}
@@ -2071,6 +2164,23 @@ lemma Theorem_2_2.minimal_unstable
       (minimalEquilibrium p uStar).1
       (minimalEquilibrium p uStar).2 := by
   exact h.2.2.2 ha hb uStar huStar hχ
+
+lemma Theorem_2_2.minimal_unstable_of_paperCriticalSensitivity_lt_chi
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C)
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (ha : p.a = 0) (hb : p.b = 0) {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ :
+      paperCriticalSensitivity S p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 < p.χ₀) :
+    LinearlyUnstable S p
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 := by
+  exact h.minimal_unstable ha hb huStar
+    (by
+      rwa [hC.chiCritical_minimalEquilibrium huStar])
 
 /-- Paper3 Theorem 2.3: global stability for negative sensitivity. -/
 def Theorem_2_3
