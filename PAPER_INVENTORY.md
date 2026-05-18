@@ -67,7 +67,7 @@ Source: `paper3.pdf`, Chen-Ruau-Shen Part II.
 | Paper item | Lean artifact | Status | Notes |
 | --- | --- | --- | --- |
 | Propositions 1.1--1.4 | `Paper3.Proposition_1_1`--`Paper3.Proposition_1_4` | statement target | Recalled from Part I. |
-| Definition 2.1 | `LinearlyStable`, `LinearlyUnstable`, stability predicates | partial | Needs exact spectral-domain API and local exponential stability statement; equilibrium positivity, constant-state algebra, and negative-sensitivity spectral sign lemmas are proved. |
+| Definition 2.1 | `LinearlyStable`, `LinearlyUnstable`, `HasNeumannSpectrum`, stability predicates | partial | Neumann spectral API, equilibrium positivity, constant-state algebra, and negative-sensitivity spectral sign lemmas are proved; local exponential stability packaging remains. |
 | Theorem 2.1 | `Paper3.Theorem_2_1` | statement target | Uniform persistence. |
 | Theorem 2.2 | `Paper3.Theorem_2_2` | statement target | Linear stability/instability; negative-sensitivity `sigma < 0` and linearly-stable corollaries proved for positive equilibria under nonnegative eigenvalues and for minimal equilibria under positive nonzero eigenvalues. |
 | Theorem 2.3 | `Paper3.Theorem_2_3` | statement target | Global stability for negative sensitivity. |
@@ -86,8 +86,8 @@ Source: `paper3.pdf`, Chen-Ruau-Shen Part II.
 
 These are small, non-PDE targets worth proving before the next analytic push:
 
-1. Extend Paper3 spectral-domain API: exact Neumann eigenvalue assumptions,
-   instability threshold predicates, and local exponential stability packaging.
+1. Extend Paper3 Definition 2.1 around instability threshold predicates and
+   local exponential stability packaging.
 2. Paper1 speed/decay algebra already has `cStarLower_ge_two`,
    `kappa_pos_of_two_lt`, `kappa_lt_one_of_two_lt`,
    `kappa_add_inv_eq_of_two_lt`, and the corresponding `cStarLower` bridge

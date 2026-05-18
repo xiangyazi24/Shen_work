@@ -111,6 +111,18 @@ structure SpectralData where
   eigenvalue : ℕ → ℝ
   firstNonzero : ℝ
 
+structure HasNeumannSpectrum (S : SpectralData) : Prop where
+  zero_eigenvalue : S.eigenvalue 0 = 0
+  eigenvalue_nonneg : ∀ n : ℕ, 0 ≤ S.eigenvalue n
+  eigenvalue_pos_of_ne_zero : ∀ n : ℕ, n ≠ 0 → 0 < S.eigenvalue n
+  firstNonzero_pos : 0 < S.firstNonzero
+  firstNonzero_le_eigenvalue : ∀ n : ℕ, n ≠ 0 → S.firstNonzero ≤ S.eigenvalue n
+
+lemma HasNeumannSpectrum.eigenvalue_nonneg_of_ne_zero
+    {S : SpectralData} (H : HasNeumannSpectrum S) {n : ℕ} (_hn : n ≠ 0) :
+    0 ≤ S.eigenvalue n :=
+  H.eigenvalue_nonneg n
+
 def sigma
     (p : CM2Params) (uStar vStar lambdaN : ℝ) : ℝ :=
   -lambdaN +
@@ -331,6 +343,15 @@ lemma positiveEquilibrium_linearlyStable_of_chi_nonpos
     (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
     heig_nonneg
 
+lemma positiveEquilibrium_linearlyStable_of_chi_nonpos_neumann
+    (S : SpectralData) (p : CM2Params)
+    (H : HasNeumannSpectrum S)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyStable S p eq.1 eq.2 := by
+  exact positiveEquilibrium_linearlyStable_of_chi_nonpos S p hχ ha hb
+    (fun n hn => H.eigenvalue_nonneg_of_ne_zero hn)
+
 lemma minimalEquilibrium_linearlyStable_of_chi_nonpos
     (S : SpectralData) (p : CM2Params) {uStar : ℝ}
     (hχ : p.χ₀ ≤ 0) (ha : 0 ≤ p.a) (huStar : 0 < uStar)
@@ -351,6 +372,24 @@ lemma minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero
     LinearlyStable S p eq.1 eq.2 := by
   exact minimalEquilibrium_linearlyStable_of_chi_nonpos S p hχ
     (by rw [ha]) huStar heig_pos
+
+lemma minimalEquilibrium_linearlyStable_of_chi_nonpos_neumann
+    (S : SpectralData) (p : CM2Params) {uStar : ℝ}
+    (H : HasNeumannSpectrum S)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 ≤ p.a) (huStar : 0 < uStar) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyStable S p eq.1 eq.2 := by
+  exact minimalEquilibrium_linearlyStable_of_chi_nonpos S p hχ ha huStar
+    H.eigenvalue_pos_of_ne_zero
+
+lemma minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero_neumann
+    (S : SpectralData) (p : CM2Params) {uStar : ℝ}
+    (H : HasNeumannSpectrum S)
+    (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (huStar : 0 < uStar) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyStable S p eq.1 eq.2 := by
+  exact minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero S p hχ ha huStar
+    H.eigenvalue_pos_of_ne_zero
 
 def GloballyAsymptoticallyStableNonminimal
     (D : BoundedDomainData) (p : CM2Params) (uStar _vStar : ℝ) : Prop :=
