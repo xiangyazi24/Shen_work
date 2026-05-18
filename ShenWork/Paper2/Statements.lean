@@ -514,6 +514,56 @@ def StrongLogisticCondition (p : CM2Params) (C : Paper2Constants p) : Prop :=
               (positivePart ((p.N : ℝ) * p.α - 2) *
                 Theta_beta (2 * p.β - 1) * C.K))))
 
+lemma StrongLogisticCondition.of_alpha_gt_m_add_gamma_sub_one
+    {p : CM2Params} {C : Paper2Constants p}
+    (hβ : 0 ≤ p.β) (hα : p.m + p.γ - 1 < p.α) :
+    StrongLogisticCondition p C := by
+  exact Or.inl ⟨hβ, hα⟩
+
+lemma StrongLogisticCondition.of_alpha_gt_two_mul_m_add_gamma_sub_two
+    {p : CM2Params} {C : Paper2Constants p}
+    (hβ : (1 / 2 : ℝ) ≤ p.β)
+    (hα : 2 * p.m + p.γ - 2 < p.α) :
+    StrongLogisticCondition p C := by
+  exact Or.inr (Or.inl ⟨hβ, hα⟩)
+
+lemma StrongLogisticCondition.of_critical_m_add_gamma_sub_one
+    {p : CM2Params} {C : Paper2Constants p}
+    (hβ : 0 ≤ p.β)
+    (hα : p.α = p.m + p.γ - 1)
+    (hχ :
+      positivePart ((p.N : ℝ) * p.α - 2) = 0 ∨
+        p.χ₀ <
+          ((positivePart ((p.N : ℝ) * p.α - 2) + 2 * p.m) * p.b) /
+            (positivePart ((p.N : ℝ) * p.α - 2) *
+              (p.ν + Psi_beta p.β * C.K))) :
+    StrongLogisticCondition p C := by
+  exact Or.inr (Or.inr (Or.inl ⟨hβ, hα, hχ⟩))
+
+lemma StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two
+    {p : CM2Params} {C : Paper2Constants p}
+    (hβ : (1 / 2 : ℝ) ≤ p.β)
+    (hα : p.α = 2 * p.m + p.γ - 2)
+    (hχ :
+      positivePart ((p.N : ℝ) * p.α - 2) = 0 ∨
+        p.χ₀ <
+          Real.sqrt
+            (8 * p.b /
+              (positivePart ((p.N : ℝ) * p.α - 2) *
+                Theta_beta (2 * p.β - 1) * C.K))) :
+    StrongLogisticCondition p C := by
+  exact Or.inr (Or.inr (Or.inr ⟨hβ, hα, hχ⟩))
+
+lemma StrongLogisticCondition.beta_nonneg
+    {p : CM2Params} {C : Paper2Constants p}
+    (h : StrongLogisticCondition p C) :
+    0 ≤ p.β := by
+  rcases h with h | h | h | h
+  · exact h.1
+  · linarith [h.1]
+  · exact h.1
+  · linarith [h.1]
+
 /-- Paper2 Proposition 1.1: local existence and blow-up alternative. -/
 def Proposition_1_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
