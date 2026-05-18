@@ -338,6 +338,45 @@ theorem lowerBarrierRaw_eq_zero_at_xminus
 def lowerBarrierXPlus (κ κtilde D : ℝ) : ℝ :=
   Real.log (κtilde * D / κ) / (κtilde - κ)
 
+theorem lowerBarrierRaw_deriv_eq_zero_at_xplus
+    {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
+    deriv (lowerBarrierRaw κ κtilde D) (lowerBarrierXPlus κ κtilde D) = 0 := by
+  have hκtilde_pos : 0 < κtilde := by linarith
+  have harg_pos : 0 < κtilde * D / κ := by positivity
+  have hx :
+      (κtilde - κ) * lowerBarrierXPlus κ κtilde D =
+        Real.log (κtilde * D / κ) := by
+    unfold lowerBarrierXPlus
+    field_simp [ne_of_gt hgap]
+  have hargexp :
+      (κtilde * D / κ) *
+        Real.exp (-(κtilde - κ) * lowerBarrierXPlus κ κtilde D) = 1 := by
+    have hexp :
+        Real.exp
+          (Real.log (κtilde * D / κ) +
+            (-(κtilde - κ) * lowerBarrierXPlus κ κtilde D)) =
+          Real.exp 0 := by
+      congr 1
+      linarith
+    simpa [Real.exp_add, Real.exp_log harg_pos] using hexp
+  have hcrit :
+      D * κtilde *
+        Real.exp (-(κtilde - κ) * lowerBarrierXPlus κ κtilde D) = κ := by
+    have hκ_ne : κ ≠ 0 := ne_of_gt hκ
+    field_simp [hκ_ne] at hargexp
+    convert hargexp using 1
+    ring_nf
+  rw [lowerBarrierRaw_deriv]
+  have hexp :
+      Real.exp (-κtilde * lowerBarrierXPlus κ κtilde D) =
+        Real.exp (-κ * lowerBarrierXPlus κ κtilde D) *
+          Real.exp (-(κtilde - κ) * lowerBarrierXPlus κ κtilde D) := by
+    rw [← Real.exp_add]
+    congr 1
+    ring
+  rw [hexp]
+  nlinarith [Real.exp_pos (-κ * lowerBarrierXPlus κ κtilde D)]
+
 def lowerBarrierPlateau (κ κtilde D : ℝ) : ℝ → ℝ :=
   fun x =>
     if x ≤ lowerBarrierXPlus κ κtilde D then
