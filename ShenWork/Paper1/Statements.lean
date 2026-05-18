@@ -578,6 +578,14 @@ theorem IsCUnifBdd.convex_combo
   · exact (continuous_const.mul hu.1).add (continuous_const.mul hv.1)
   · exact IsBddFun.convex_combo hθ0 hθ1 hu.2 hv.2
 
+theorem IsBddFun.zero :
+    IsBddFun (fun _ : ℝ => (0 : ℝ)) := by
+  exact ⟨0, by simp⟩
+
+theorem IsCUnifBdd.zero :
+    IsCUnifBdd (fun _ : ℝ => (0 : ℝ)) := by
+  exact ⟨continuous_const, IsBddFun.zero⟩
+
 theorem InWaveTrapSet.cunif_bdd {κ M : ℝ} {u : ℝ → ℝ}
     (h : InWaveTrapSet κ M u) :
     IsCUnifBdd u :=
@@ -631,6 +639,12 @@ theorem InWaveTrapSet.rpow_le_exp_mul
       congr 1
       ring
 
+theorem InWaveTrapSet.zero {κ M : ℝ} (hM : 0 ≤ M) :
+    InWaveTrapSet κ M (fun _ : ℝ => (0 : ℝ)) := by
+  refine ⟨IsCUnifBdd.zero, ?_⟩
+  intro x
+  exact ⟨le_rfl, upperBarrier_nonneg hM x⟩
+
 theorem InWaveTrapSet.convex_combo
     {κ M : ℝ} {u v : ℝ → ℝ} {θ : ℝ}
     (hθ0 : 0 ≤ θ) (hθ1 : θ ≤ 1)
@@ -673,6 +687,10 @@ theorem InMonotoneWaveTrapSet.le_upperBarrier
     (h : InMonotoneWaveTrapSet κ M u) (x : ℝ) :
     u x ≤ upperBarrier κ M x :=
   h.trap.le_upperBarrier x
+
+theorem InMonotoneWaveTrapSet.zero {κ M : ℝ} (hM : 0 ≤ M) :
+    InMonotoneWaveTrapSet κ M (fun _ : ℝ => (0 : ℝ)) := by
+  exact ⟨InWaveTrapSet.zero hM, antitone_const⟩
 
 theorem InMonotoneWaveTrapSet.convex_combo
     {κ M : ℝ} {u v : ℝ → ℝ} {θ : ℝ}
