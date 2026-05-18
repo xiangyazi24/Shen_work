@@ -1563,6 +1563,48 @@ def Theorem_2_1_part3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
         EventuallyLowerBound D u lowerU ∧
           EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
 
+lemma theorem_2_1_part2_lowerU_pos
+    (p : CM2Params)
+    (_ha : 0 < p.a) (hb : 0 < p.b) (_hχ0 : 0 < p.χ₀)
+    (_hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1))) :
+    0 <
+      ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
+        (1 / p.α) := by
+  have hTheta : 0 < Theta_beta (p.β - 1) :=
+    Theta_beta_pos_of_nonneg (by linarith)
+  have hden : 0 < p.μ * Theta_beta (p.β - 1) :=
+    mul_pos p.hμ hTheta
+  have hχmul : p.χ₀ * (p.μ * Theta_beta (p.β - 1)) < p.a := by
+    rw [lt_div_iff₀ hden] at hχ
+    simpa [mul_comm, mul_left_comm, mul_assoc] using hχ
+  have hbase :
+      0 < (p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b := by
+    apply div_pos
+    · nlinarith
+    · exact hb
+  exact Real.rpow_pos_of_pos hbase _
+
+lemma theorem_2_1_part3_lowerU_pos
+    (p : CM2Params)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (_hm : 1 < p.m) (hβ : 1 ≤ p.β) :
+    0 <
+      min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
+        max (1 / (p.m - 1)) (1 / p.α) := by
+  have hTheta : 0 < Theta_beta (p.β - 1) :=
+    Theta_beta_pos_of_nonneg (by linarith)
+  have hden : 0 < p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1) := by
+    have hterm : 0 < p.χ₀ * p.μ * Theta_beta (p.β - 1) := by
+      exact mul_pos (mul_pos hχ0 p.hμ) hTheta
+    linarith
+  have hratio : 0 < p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1)) :=
+    div_pos ha hden
+  have hbase :
+      0 < min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) :=
+    lt_min zero_lt_one hratio
+  exact Real.rpow_pos_of_pos hbase _
+
 def Theorem_2_1_part4
     (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) : Prop :=
   p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
