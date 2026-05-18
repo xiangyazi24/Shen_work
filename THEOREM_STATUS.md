@@ -65,8 +65,9 @@ File header reference: `ShenWork/Paper2/Defs.lean`, arXiv `2512.14858`.
 
 Next accurate theorem work:
 
-1. Make a complete inventory of every Definition/Proposition/Lemma/Theorem in
-   `paper2.pdf`.
+1. Audit exact statement fidelity for the numbered Paper2 items already listed
+   in `PAPER_INVENTORY.md`, especially the abstract `BoundedDomainData` fields
+   and the packaged constants in `Paper2Constants`.
 2. Refine `BoundedDomainData` into an instantiated smooth bounded-domain API:
    domain, Neumann boundary, Sobolev/Hölder spaces, Laplacian, divergence,
    gradient estimates, and semigroup constants.
@@ -90,22 +91,25 @@ File header reference: `ShenWork/Paper3/Defs.lean`, arXiv `2604.02599`.
 
 Next accurate theorem work:
 
-1. Make a complete inventory of every Definition/Proposition/Lemma/Theorem in
-   `paper3.pdf`.
+1. Audit exact statement fidelity for the numbered Paper3 items already listed
+   in `PAPER_INVENTORY.md`, especially Definition 2.1, Theorems 2.1--2.5,
+   and Appendix Lemmas A.1--A.8.
 2. Replace packaged spectral/stability constants with exact definitions.
 3. Add the comparison, persistence, Hopf lemma, energy, and semigroup
    dependencies before proving main theorems.
 
 ## Next phase: full-paper statement inventory
 
-The main theorem statement layer is now only the top level.  The next phase is a
-full inventory pass over `paper1.pdf`, `paper2.pdf`, and `paper3.pdf`:
+The main theorem statement layer is no longer only the top level.  The initial
+numbered-item inventory for Paper2/Paper3 is in `PAPER_INVENTORY.md`; Paper1
+still needs a careful full-paper pass for the statements used in the fixed-point
+and stability proofs.  The next phase is:
 
-1. Extract every numbered Definition, Proposition, Lemma, Corollary, Theorem,
-   and named estimate into an inventory table.
+1. Finish the Paper1 numbered-item/named-estimate inventory beyond the current
+   top-level and Lemma 2/4/5 rows.
 2. For each item, record whether it is already `proved`, a `statement target`,
    `toy only`, or `not stated`.
-3. Add Lean statement targets for all items that are dependencies of later paper
+3. Add or refine Lean statement targets for all items that are dependencies of later paper
    results, even if their proofs will initially be `sorry`.
 4. Then proceed section by section proving the targets and replacing abstract
    constant/operator packages by exact definitions.
