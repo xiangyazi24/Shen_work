@@ -145,10 +145,10 @@ theorem Lemma_2_1.divergence_linf
 def PsiDerivativeFormula (u : ℝ → ℝ) (l mu : ℝ) : Prop :=
   ∀ x,
     deriv (fun z => Psi u l mu z) x =
-      -(mu / 2) * Real.exp (-Real.sqrt l * x) *
-          (∫ y in Set.Iic x, Real.exp (Real.sqrt l * y) * u y)
-        + (mu / 2) * Real.exp (Real.sqrt l * x) *
-          (∫ y in Set.Ioi x, Real.exp (-Real.sqrt l * y) * u y)
+      (-(mu / 2) * Real.exp (-Real.sqrt l * x) *
+          (∫ y in Set.Iic x, Real.exp (Real.sqrt l * y) * u y))
+        + ((mu / 2) * Real.exp (Real.sqrt l * x) *
+          (∫ y in Set.Ioi x, Real.exp (-Real.sqrt l * y) * u y))
 
 def Lemma_2_2 : Prop :=
   ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →

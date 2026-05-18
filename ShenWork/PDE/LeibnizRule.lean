@@ -610,10 +610,10 @@ theorem Psi_derivative_formula_general {u : ℝ → ℝ} {l mu : ℝ}
     (hl : 0 < l) (_hmu : 0 < mu) (hu : IsCUnifBdd u) :
     ∀ x,
       deriv (fun z => Psi u l mu z) x =
-        -(mu / 2) * Real.exp (-Real.sqrt l * x) *
-            (∫ y in Set.Iic x, Real.exp (Real.sqrt l * y) * u y)
-          + (mu / 2) * Real.exp (Real.sqrt l * x) *
-            (∫ y in Set.Ioi x, Real.exp (-Real.sqrt l * y) * u y) := by
+        (-(mu / 2) * Real.exp (-Real.sqrt l * x) *
+            (∫ y in Set.Iic x, Real.exp (Real.sqrt l * y) * u y))
+          + ((mu / 2) * Real.exp (Real.sqrt l * x) *
+            (∫ y in Set.Ioi x, Real.exp (-Real.sqrt l * y) * u y)) := by
   intro x
   let a : ℝ := Real.sqrt l
   have ha : 0 < a := by
@@ -725,10 +725,10 @@ theorem Psi_derivative_formula_general {u : ℝ → ℝ} {l mu : ℝ}
     _ = -(mu / 2) * Real.exp (-a * x) * L +
           (mu / 2) * Real.exp (a * x) * R := by
           field_simp [ne_of_gt ha]
-    _ = -(mu / 2) * Real.exp (-Real.sqrt l * x) *
-            (∫ y in Set.Iic x, Real.exp (Real.sqrt l * y) * u y)
-          + (mu / 2) * Real.exp (Real.sqrt l * x) *
-            (∫ y in Set.Ioi x, Real.exp (-Real.sqrt l * y) * u y) := by
+    _ = (-(mu / 2) * Real.exp (-Real.sqrt l * x) *
+            (∫ y in Set.Iic x, Real.exp (Real.sqrt l * y) * u y))
+          + ((mu / 2) * Real.exp (Real.sqrt l * x) *
+            (∫ y in Set.Ioi x, Real.exp (-Real.sqrt l * y) * u y)) := by
           simp [L, R, a]
 
 end
