@@ -112,6 +112,36 @@ def Lemma_2_1 (S : HeatSemigroupEstimateData) : Prop :=
         Cp * t ^ (-(1 / 2 : ℝ) - (1 / (2 * p))) *
           Real.exp (-t) * S.lpNorm p u)
 
+theorem Lemma_2_1.semigroup_lp_lq
+    {S : HeatSemigroupEstimateData}
+    (h : Lemma_2_1 S)
+    {p q : ℝ} (hp : 1 < p) (hpq : p ≤ q) :
+    ∃ Cpq > 0, ∀ t > 0, ∀ u : ℝ → ℝ,
+      S.lqNorm q (S.semigroup t u) ≤
+        Cpq * t ^ (-(1 / 2 : ℝ) * (1 / p - 1 / q)) *
+          Real.exp (-t) * S.lpNorm p u :=
+  (h p q hp hpq).1
+
+theorem Lemma_2_1.gradient_lp_lq
+    {S : HeatSemigroupEstimateData}
+    (h : Lemma_2_1 S)
+    {p q : ℝ} (hp : 1 < p) (hpq : p ≤ q) :
+    ∃ Cpq > 0, ∀ t > 0, ∀ u : ℝ → ℝ,
+      S.gradientNorm q (S.semigroup t u) ≤
+        Cpq * t ^ (-(1 / 2 : ℝ) - (1 / 2 : ℝ) * (1 / p - 1 / q)) *
+          Real.exp (-t) * S.lpNorm p u :=
+  (h p q hp hpq).2.1
+
+theorem Lemma_2_1.divergence_linf
+    {S : HeatSemigroupEstimateData}
+    (h : Lemma_2_1 S)
+    {p q : ℝ} (hp : 1 < p) (hpq : p ≤ q) :
+    ∃ Cp > 0, ∀ t > 0, ∀ u : ℝ → ℝ,
+      S.linftyNorm (S.divergenceSemigroup t u) ≤
+        Cp * t ^ (-(1 / 2 : ℝ) - (1 / (2 * p))) *
+          Real.exp (-t) * S.lpNorm p u :=
+  (h p q hp hpq).2.2
+
 def PsiDerivativeFormula (u : ℝ → ℝ) (l mu : ℝ) : Prop :=
   ∀ x,
     deriv (fun z => Psi u l mu z) x =
@@ -128,6 +158,23 @@ def Lemma_2_2 : Prop :=
           ∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * u y) ∧
     PsiDerivativeFormula u l mu
 
+theorem Lemma_2_2.kernel_formula
+    (h : Lemma_2_2)
+    {u : ℝ → ℝ} {l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hu : IsCUnifBdd u) :
+    ∀ x,
+      Psi u l mu x =
+        mu / (2 * Real.sqrt l) *
+          ∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * u y :=
+  (h u l mu hl hmu hu).1
+
+theorem Lemma_2_2.derivative_formula
+    (h : Lemma_2_2)
+    {u : ℝ → ℝ} {l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hu : IsCUnifBdd u) :
+    PsiDerivativeFormula u l mu :=
+  (h u l mu hl hmu hu).2
+
 theorem Lemma_2_2_kernel_formula_proved :
     ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
       ∀ x,
@@ -141,6 +188,14 @@ def Lemma_2_3 : Prop :=
   ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
     (∀ x, 0 ≤ u x) →
       ∀ x, |deriv (fun z => Psi u l mu z) x| ≤ Real.sqrt l * Psi u l mu x
+
+theorem Lemma_2_3.derivative_bound
+    (h : Lemma_2_3)
+    {u : ℝ → ℝ} {l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hu : IsCUnifBdd u)
+    (hu_nonneg : ∀ x, 0 ≤ u x) :
+    ∀ x, |deriv (fun z => Psi u l mu z) x| ≤ Real.sqrt l * Psi u l mu x :=
+  h u l mu hl hmu hu hu_nonneg
 
 def Lemma_2_3_unit : Prop :=
   ∀ u : ℝ → ℝ, IsCUnifBdd u →
@@ -199,6 +254,22 @@ def Lemma_2_5 : Prop :=
             |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
               psi.weight x
           ≤ C * ∫ x : ℝ, (u x) ^ (gamma * pExp) * psi.weight x
+
+theorem Lemma_2_5.weighted_resolvent_gradient
+    (h : Lemma_2_5)
+    {pExp gamma l mu : ℝ}
+    (hpExp : 1 < pExp) (hgamma : 0 < gamma) (hl : 0 < l) (hmu : 0 < mu) :
+    ∃ C > 0, ∀ u : ℝ → ℝ, ∀ psi : ExponentialWeight,
+      Integrable (fun x => (u x) ^ (gamma * pExp) * psi.weight x) →
+        Integrable
+          (fun x =>
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+              psi.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+              psi.weight x
+          ≤ C * ∫ x : ℝ, (u x) ^ (gamma * pExp) * psi.weight x :=
+  h pExp gamma l mu hpExp hgamma hl hmu
 
 def frozenElliptic (p : CMParams) (u : ℝ → ℝ) : ℝ → ℝ :=
   fun x => Psi (fun y => (u y) ^ p.γ) 1 1 x
