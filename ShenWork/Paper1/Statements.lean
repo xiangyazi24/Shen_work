@@ -1588,6 +1588,16 @@ theorem MChi_eq_rpow_of_chi_pos (p : CMParams) (hχ : 0 < p.χ) :
     MChi p = (1 / (1 - p.χ)) ^ (1 / p.α) := by
   simp [MChi, not_le.mpr hχ]
 
+theorem MChi_eq_rpow_of_chi_nonneg_lt_one
+    (p : CMParams) (hχ_nonneg : 0 ≤ p.χ) (_hχ_lt : p.χ < 1) :
+    MChi p = (1 / (1 - p.χ)) ^ (1 / p.α) := by
+  by_cases hχ_zero : p.χ = 0
+  · have hχ_nonpos : p.χ ≤ 0 := by linarith
+    simp [MChi_eq_one_of_chi_nonpos p hχ_nonpos, hχ_zero]
+  · exact
+      MChi_eq_rpow_of_chi_pos p
+        (lt_of_le_of_ne hχ_nonneg (Ne.symm hχ_zero))
+
 theorem MChi_pos_of_chi_lt_one (p : CMParams) (hχ : p.χ < 1) :
     0 < MChi p := by
   by_cases hχ_nonpos : p.χ ≤ 0
@@ -1709,6 +1719,24 @@ theorem HasWaveUpperTailBound.rpow_abs_le_MChi_gamma
     |(U x) ^ p.γ| ≤ (MChi p) ^ p.γ := by
   rw [abs_of_nonneg (Real.rpow_nonneg (h.pos x).le _)]
   exact h.rpow_le_MChi_gamma x
+
+theorem ShenUpperBoundPositive.hasWaveUpperTailBound
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_lt : p.χ < 1)
+    (h : ShenUpperBoundPositive p c U) :
+    HasWaveUpperTailBound p c U := by
+  intro x
+  refine ⟨(h x).1, ?_⟩
+  have hx := (h x).2.le
+  rw [MChi_eq_rpow_of_chi_nonneg_lt_one p hχ_nonneg hχ_lt]
+  exact hx
+
+theorem ShenUpperBoundPositive.inWaveTrapSet
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_lt : p.χ < 1)
+    (h : ShenUpperBoundPositive p c U) (hU : IsCUnifBdd U) :
+    InWaveTrapSet (kappa c) (MChi p) U :=
+  (ShenUpperBoundPositive.hasWaveUpperTailBound hχ_nonneg hχ_lt h).inWaveTrapSet hU
 
 def WaveDerivativeTendsZero (U : ℝ → ℝ) : Prop :=
   Tendsto (fun x => deriv U x) atBot (𝓝 0) ∧
