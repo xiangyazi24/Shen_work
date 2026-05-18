@@ -205,6 +205,181 @@ private lemma exp_neg_mul_abs_sub_mul_lipschitzOnWith_ball
               Real.exp_add]
             ring
 
+/-- Arbitrary-sign version of the local Lipschitz bound, controlled by `|c|`. -/
+private lemma exp_neg_mul_abs_sub_mul_lipschitzOnWith_ball_abs
+    {a : ℝ} (ha : 0 < a) (x y c : ℝ) :
+    LipschitzOnWith
+      (Real.nnabs (a * Real.exp a * (Real.exp (-a * |x - y|) * |c|)))
+      (fun x' => Real.exp (-a * |x' - y|) * c) (Metric.ball x 1) := by
+  rw [lipschitzOnWith_iff_dist_le_mul]
+  intro x₁ hx₁ x₂ hx₂
+  have hcoef_nonneg :
+      0 ≤ a * Real.exp a * (Real.exp (-a * |x - y|) * |c|) := by
+    exact mul_nonneg (mul_nonneg ha.le (Real.exp_pos a).le)
+      (mul_nonneg (Real.exp_pos (-a * |x - y|)).le (abs_nonneg c))
+  simp only [Real.dist_eq, NNReal.coe_mk, Real.coe_nnabs]
+  rw [abs_of_nonneg hcoef_nonneg]
+  rw [show (fun x' => Real.exp (-a * |x' - y|) * c) x₁ -
+      (fun x' => Real.exp (-a * |x' - y|) * c) x₂ =
+        c * (Real.exp (-a * |x₁ - y|) - Real.exp (-a * |x₂ - y|)) from by ring]
+  rw [abs_mul]
+  by_cases hc0 : c = 0
+  · simp [hc0]
+  · have hx₁b : |x₁ - x| < 1 := Real.dist_eq x₁ x ▸ Metric.mem_ball.mp hx₁
+    have hx₂b : |x₂ - x| < 1 := Real.dist_eq x₂ x ▸ Metric.mem_ball.mp hx₂
+    have hmin_ge : a * |x - y| - a ≤ min (a * |x₁ - y|) (a * |x₂ - y|) := by
+      apply le_min
+      · have h := (le_abs_self (|x - y| - |x₁ - y|)).trans
+            (abs_abs_sub_abs_le_abs_sub (x - y) (x₁ - y))
+        rw [show (x - y) - (x₁ - y) = -(x₁ - x) from by ring, abs_neg] at h
+        nlinarith
+      · have h := (le_abs_self (|x - y| - |x₂ - y|)).trans
+            (abs_abs_sub_abs_le_abs_sub (x - y) (x₂ - y))
+        rw [show (x - y) - (x₂ - y) = -(x₂ - x) from by ring, abs_neg] at h
+        nlinarith
+    have h_absdist : abs (|x₁ - y| - |x₂ - y|) ≤ |x₁ - x₂| := by
+      calc abs (|x₁ - y| - |x₂ - y|)
+          ≤ |(x₁ - y) - (x₂ - y)| := abs_abs_sub_abs_le_abs_sub _ _
+        _ = |x₁ - x₂| := by congr 1; ring
+    have h_exp :=
+      exp_neg_abs_sub_le (a * |x₁ - y|) (a * |x₂ - y|)
+        (mul_nonneg ha.le (abs_nonneg _))
+        (mul_nonneg ha.le (abs_nonneg _))
+    have h_exp' :
+        |Real.exp (-a * |x₁ - y|) - Real.exp (-a * |x₂ - y|)| ≤
+          Real.exp (-min (a * |x₁ - y|) (a * |x₂ - y|)) *
+            |a * (|x₁ - y|) - a * (|x₂ - y|)| := by
+      simpa using h_exp
+    have h_arg :
+        |a * (|x₁ - y|) - a * (|x₂ - y|)| ≤ a * |x₁ - x₂| := by
+      rw [← mul_sub, abs_mul, abs_of_nonneg ha.le]
+      exact mul_le_mul_of_nonneg_left h_absdist ha.le
+    calc
+      |c| * |Real.exp (-a * |x₁ - y|) - Real.exp (-a * |x₂ - y|)|
+          ≤ |c| * (Real.exp (-min (a * |x₁ - y|) (a * |x₂ - y|)) *
+              |a * (|x₁ - y|) - a * (|x₂ - y|)|) :=
+            mul_le_mul_of_nonneg_left h_exp' (abs_nonneg c)
+      _ ≤ |c| * (Real.exp (-(a * |x - y| - a)) * (a * |x₁ - x₂|)) :=
+            mul_le_mul_of_nonneg_left
+              (mul_le_mul (Real.exp_le_exp.mpr (neg_le_neg hmin_ge)) h_arg
+                (abs_nonneg _) (Real.exp_pos _).le) (abs_nonneg c)
+      _ = a * Real.exp a * (Real.exp (-a * |x - y|) * |c|) *
+            |x₁ - x₂| := by
+            rw [show -(a * |x - y| - a) = a + (-a * |x - y|) by ring,
+              Real.exp_add]
+            ring
+
+private lemma psi_integral_deriv_measurable_general
+    {u : ℝ → ℝ} {a x : ℝ} (hu_meas : AEStronglyMeasurable u volume) :
+    AEStronglyMeasurable
+      (fun y : ℝ =>
+        if y ≤ x then -a * Real.exp (-a * (x - y)) * u y
+        else a * Real.exp (-a * (y - x)) * u y) volume := by
+  have : AEStronglyMeasurable (fun y =>
+      (if y ≤ x then -a * Real.exp (-a * (x - y))
+        else a * Real.exp (-a * (y - x))) * u y) volume := by
+    exact (StronglyMeasurable.piecewise measurableSet_Iic
+      (by fun_prop : Continuous fun y => -a * Real.exp (-a * (x - y))).stronglyMeasurable
+      (by fun_prop : Continuous fun y => a * Real.exp (-a * (y - x))).stronglyMeasurable
+      ).aestronglyMeasurable.mul hu_meas
+  exact this.congr (by filter_upwards with y; split_ifs <;> ring)
+
+private lemma psi_integral_deriv_integrable_general
+    {u : ℝ → ℝ} {a : ℝ} (ha : 0 < a) (hu : IsCUnifBdd u) (x : ℝ) :
+    Integrable
+      (fun y : ℝ =>
+        if y ≤ x then -a * Real.exp (-a * (x - y)) * u y
+        else a * Real.exp (-a * (y - x)) * u y) volume := by
+  rcases hu.2 with ⟨M, hM⟩
+  have hM_nonneg : 0 ≤ M := le_trans (abs_nonneg (u 0)) (hM 0)
+  have hbound :
+      Integrable
+        (fun y : ℝ => a * (Real.exp (-a * |x - y|) * |u y|)) volume := by
+    exact (kernel_mul_bounded_integrable_of_pos ha hM_nonneg
+      (fun y => by
+        rw [abs_abs]
+        exact hM y)
+      x (hu.1.abs.aestronglyMeasurable)).const_mul a
+  refine hbound.mono' (psi_integral_deriv_measurable_general hu.1.aestronglyMeasurable) ?_
+  exact Eventually.of_forall (fun y => by
+    by_cases hy : y ≤ x
+    · calc
+        ‖(if y ≤ x then -a * Real.exp (-a * (x - y)) * u y
+            else a * Real.exp (-a * (y - x)) * u y)‖
+            = a * Real.exp (-a * (x - y)) * |u y| := by
+              simp only [hy, ite_true]
+              rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_neg,
+                abs_of_nonneg ha.le, abs_of_nonneg (Real.exp_nonneg _)]
+          _ ≤ a * (Real.exp (-a * |x - y|) * |u y|) := by
+              rw [abs_of_nonneg (sub_nonneg.mpr hy)]
+              simpa [mul_assoc, mul_left_comm, mul_comm]
+    · have hxy : x < y := lt_of_not_ge hy
+      calc
+        ‖(if y ≤ x then -a * Real.exp (-a * (x - y)) * u y
+            else a * Real.exp (-a * (y - x)) * u y)‖
+            = a * Real.exp (-a * (y - x)) * |u y| := by
+              simp only [hy, ite_false]
+              rw [Real.norm_eq_abs, abs_mul, abs_mul,
+                abs_of_nonneg ha.le, abs_of_nonneg (Real.exp_nonneg _)]
+          _ ≤ a * (Real.exp (-a * |x - y|) * |u y|) := by
+              rw [abs_of_nonpos (sub_nonpos.mpr (le_of_lt hxy))]
+              simpa [mul_assoc, mul_left_comm, mul_comm])
+
+theorem hasDerivAt_integral_exp_neg_mul_abs_sub_general
+    {u : ℝ → ℝ} {a : ℝ} (ha : 0 < a) (hu : IsCUnifBdd u) (x : ℝ) :
+    HasDerivAt
+      (fun x' => ∫ y, Real.exp (-a * |x' - y|) * u y)
+      (∫ y,
+        if y ≤ x then -a * Real.exp (-a * (x - y)) * u y
+        else a * Real.exp (-a * (y - x)) * u y) x := by
+  rcases hu.2 with ⟨M, hM⟩
+  have hM_nonneg : 0 ≤ M := le_trans (abs_nonneg (u 0)) (hM 0)
+  let G : ℝ → ℝ → ℝ := fun x' y => Real.exp (-a * |x' - y|) * u y
+  let G' : ℝ → ℝ := fun y =>
+    if y ≤ x then -a * Real.exp (-a * (x - y)) * u y
+    else a * Real.exp (-a * (y - x)) * u y
+  let bound : ℝ → ℝ := fun y => a * Real.exp a *
+    (Real.exp (-a * |x - y|) * |u y|)
+  have hs : Metric.ball x 1 ∈ 𝓝 x := Metric.ball_mem_nhds x zero_lt_one
+  have hG_meas : ∀ᶠ x' in 𝓝 x, AEStronglyMeasurable (G x') volume := by
+    filter_upwards with x'
+    exact ((by fun_prop : Continuous fun y : ℝ =>
+      Real.exp (-a * |x' - y|))).aestronglyMeasurable.mul
+        hu.1.aestronglyMeasurable
+  have hG_int : Integrable (G x) volume := by
+    exact kernel_mul_bounded_integrable_of_pos ha hM_nonneg hM x
+      hu.1.aestronglyMeasurable
+  have hG'_meas : AEStronglyMeasurable G' volume := by
+    exact psi_integral_deriv_measurable_general hu.1.aestronglyMeasurable
+  have hbound_int : Integrable bound volume := by
+    dsimp [bound]
+    exact ((kernel_mul_bounded_integrable_of_pos ha hM_nonneg
+      (fun y => by
+        rw [abs_abs]
+        exact hM y)
+      x hu.1.abs.aestronglyMeasurable).const_mul (a * Real.exp a))
+  have h_lip : ∀ᵐ y ∂volume,
+      LipschitzOnWith (Real.nnabs (bound y)) (fun x' => G x' y)
+        (Metric.ball x 1) := by
+    filter_upwards with y
+    dsimp [G, bound]
+    exact exp_neg_mul_abs_sub_mul_lipschitzOnWith_ball_abs ha x y (u y)
+  have hdiff : ∀ᵐ y ∂volume, HasDerivAt (fun x' => G x' y) (G' y) x := by
+    have hne : ∀ᵐ y ∂volume, y ≠ x := by rw [ae_iff]; simp
+    filter_upwards [hne] with y hy
+    by_cases hylt : y < x
+    · have hyle : y ≤ x := le_of_lt hylt
+      simpa [G, G', hyle] using
+        hasDerivAt_psi_integrand_left_general (u := u) (a := a) hylt
+    · have hxy : x < y := lt_of_le_of_ne (le_of_not_gt hylt) (Ne.symm hy)
+      have hnle : ¬y ≤ x := not_le.mpr hxy
+      simpa [G, G', hnle] using
+        hasDerivAt_psi_integrand_right_general (u := u) (a := a) hxy
+  simpa [G, G'] using
+    (hasDerivAt_integral_of_dominated_loc_of_lip (μ := volume) (bound := bound)
+      (F := G) (F' := G') (x₀ := x) (s := Metric.ball x 1)
+      hs hG_meas hG_int hG'_meas h_lip hbound_int hdiff).2
+
 /-- Full Psi_deriv_abs_le proved via Leibniz rule + triangle inequality.
     This is the assembled proof using all building blocks above. -/
 theorem Psi_deriv_abs_le' {u : ℝ → ℝ} (hu : ∀ x, 0 ≤ u x) (x : ℝ)
@@ -430,5 +605,130 @@ theorem Psi_deriv_abs_le_general {u : ℝ → ℝ} {l mu : ℝ}
     _ = Real.sqrt l * Psi u l mu x := by
           simp [Psi, a]
           field_simp [ne_of_gt ha]
+
+theorem Psi_derivative_formula_general {u : ℝ → ℝ} {l mu : ℝ}
+    (hl : 0 < l) (_hmu : 0 < mu) (hu : IsCUnifBdd u) :
+    ∀ x,
+      deriv (fun z => Psi u l mu z) x =
+        -(mu / 2) * Real.exp (-Real.sqrt l * x) *
+            (∫ y in Set.Iic x, Real.exp (Real.sqrt l * y) * u y)
+          + (mu / 2) * Real.exp (Real.sqrt l * x) *
+            (∫ y in Set.Ioi x, Real.exp (-Real.sqrt l * y) * u y) := by
+  intro x
+  let a : ℝ := Real.sqrt l
+  have ha : 0 < a := by
+    dsimp [a]
+    exact Real.sqrt_pos.mpr hl
+  let F' : ℝ → ℝ := fun y =>
+    if y ≤ x then -a * Real.exp (-a * (x - y)) * u y
+    else a * Real.exp (-a * (y - x)) * u y
+  have hLeibniz :
+      HasDerivAt
+        (fun x' => ∫ y, Real.exp (-a * |x' - y|) * u y)
+        (∫ y, F' y) x := by
+    simpa [F'] using
+      hasDerivAt_integral_exp_neg_mul_abs_sub_general
+        (u := u) (a := a) ha hu x
+  have hPsi_fun :
+      (fun z => Psi u l mu z) =
+        fun x' => mu / (2 * a) *
+          ∫ y, Real.exp (-a * |x' - y|) * u y := by
+    ext x'
+    simp [Psi, a]
+  have hda :
+      HasDerivAt (fun z => Psi u l mu z)
+        (mu / (2 * a) * ∫ y, F' y) x := by
+    rw [hPsi_fun]
+    exact hLeibniz.const_mul (mu / (2 * a))
+  have hF'_int : Integrable F' volume := by
+    simpa [F'] using psi_integral_deriv_integrable_general
+      (u := u) (a := a) ha hu x
+  have hsplit :=
+    MeasureTheory.integral_add_compl (s := Set.Iic x) measurableSet_Iic hF'_int
+  simp only [Set.compl_Iic] at hsplit
+  have hleft :
+      ∫ y in Set.Iic x, F' y =
+        (-a * Real.exp (-a * x)) *
+          ∫ y in Set.Iic x, Real.exp (a * y) * u y := by
+    have hleft_eq :
+        Set.EqOn F'
+          (fun y : ℝ => (-a * Real.exp (-a * x)) *
+            (Real.exp (a * y) * u y))
+          (Set.Iic x) := by
+      intro y hy
+      have hyx : y ≤ x := by simpa using hy
+      change F' y =
+        (-a * Real.exp (-a * x)) * (Real.exp (a * y) * u y)
+      simp only [F', hyx, ite_true]
+      rw [show -a * (x - y) = -a * x + a * y by ring, Real.exp_add]
+      ring
+    calc
+      ∫ y in Set.Iic x, F' y
+          = ∫ y in Set.Iic x,
+              (-a * Real.exp (-a * x)) * (Real.exp (a * y) * u y) := by
+            exact MeasureTheory.setIntegral_congr_fun measurableSet_Iic hleft_eq
+      _ = (-a * Real.exp (-a * x)) *
+            ∫ y in Set.Iic x, Real.exp (a * y) * u y := by
+            exact MeasureTheory.integral_const_mul _ _
+  have hright :
+      ∫ y in Set.Ioi x, F' y =
+        (a * Real.exp (a * x)) *
+          ∫ y in Set.Ioi x, Real.exp (-a * y) * u y := by
+    have hright_eq :
+        Set.EqOn F'
+          (fun y : ℝ => (a * Real.exp (a * x)) *
+            (Real.exp (-a * y) * u y))
+          (Set.Ioi x) := by
+      intro y hy
+      have hxy : x < y := by simpa using hy
+      have hnle : ¬y ≤ x := not_le.mpr hxy
+      change F' y =
+        (a * Real.exp (a * x)) * (Real.exp (-a * y) * u y)
+      simp only [F', hnle, ite_false]
+      rw [show -a * (y - x) = a * x + -a * y by ring, Real.exp_add]
+      ring
+    calc
+      ∫ y in Set.Ioi x, F' y
+          = ∫ y in Set.Ioi x,
+              (a * Real.exp (a * x)) * (Real.exp (-a * y) * u y) := by
+            exact MeasureTheory.setIntegral_congr_fun measurableSet_Ioi hright_eq
+      _ = (a * Real.exp (a * x)) *
+            ∫ y in Set.Ioi x, Real.exp (-a * y) * u y := by
+            exact MeasureTheory.integral_const_mul _ _
+  have hInt :
+      ∫ y, F' y =
+        (-a * Real.exp (-a * x)) *
+            (∫ y in Set.Iic x, Real.exp (a * y) * u y)
+          + (a * Real.exp (a * x)) *
+            (∫ y in Set.Ioi x, Real.exp (-a * y) * u y) := by
+    calc
+      ∫ y, F' y =
+          (∫ y in Set.Iic x, F' y) + (∫ y in Set.Ioi x, F' y) :=
+            hsplit.symm
+      _ = (-a * Real.exp (-a * x)) *
+              (∫ y in Set.Iic x, Real.exp (a * y) * u y)
+            + (a * Real.exp (a * x)) *
+              (∫ y in Set.Ioi x, Real.exp (-a * y) * u y) := by
+            rw [hleft, hright]
+  let L : ℝ := ∫ y in Set.Iic x, Real.exp (a * y) * u y
+  let R : ℝ := ∫ y in Set.Ioi x, Real.exp (-a * y) * u y
+  have hIntLR :
+      ∫ y, F' y =
+        (-a * Real.exp (-a * x)) * L + (a * Real.exp (a * x)) * R := by
+    simpa [L, R] using hInt
+  calc
+    deriv (fun z => Psi u l mu z) x
+        = mu / (2 * a) * ∫ y, F' y := hda.deriv
+    _ = mu / (2 * a) *
+          ((-a * Real.exp (-a * x)) * L + (a * Real.exp (a * x)) * R) := by
+          rw [hIntLR]
+    _ = -(mu / 2) * Real.exp (-a * x) * L +
+          (mu / 2) * Real.exp (a * x) * R := by
+          field_simp [ne_of_gt ha]
+    _ = -(mu / 2) * Real.exp (-Real.sqrt l * x) *
+            (∫ y in Set.Iic x, Real.exp (Real.sqrt l * y) * u y)
+          + (mu / 2) * Real.exp (Real.sqrt l * x) *
+            (∫ y in Set.Ioi x, Real.exp (-Real.sqrt l * y) * u y) := by
+          simp [L, R, a]
 
 end

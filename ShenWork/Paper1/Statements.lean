@@ -194,6 +194,18 @@ theorem Lemma_2_2_kernel_formula_proved :
   intro u l mu _hl _hmu _hu x
   rfl
 
+theorem Lemma_2_2_derivative_formula_proved :
+    ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
+      PsiDerivativeFormula u l mu := by
+  intro u l mu hl hmu hu
+  exact Psi_derivative_formula_general hl hmu hu
+
+theorem Lemma_2_2_proved : Lemma_2_2 := by
+  intro u l mu hl hmu hu
+  exact
+    ⟨Lemma_2_2_kernel_formula_proved u l mu hl hmu hu,
+      Lemma_2_2_derivative_formula_proved u l mu hl hmu hu⟩
+
 def Lemma_2_3 : Prop :=
   ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
     (∀ x, 0 ≤ u x) →
