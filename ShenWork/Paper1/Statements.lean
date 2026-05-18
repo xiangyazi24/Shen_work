@@ -175,6 +175,16 @@ theorem Lemma_2_2.derivative_formula
     PsiDerivativeFormula u l mu :=
   (h u l mu hl hmu hu).2
 
+theorem Psi_kernel_integrable_of_isCUnifBdd
+    {u : ℝ → ℝ} {l : ℝ}
+    (hl : 0 < l) (hu : IsCUnifBdd u) (x : ℝ) :
+    Integrable
+      (fun y : ℝ => Real.exp (-Real.sqrt l * |x - y|) * u y) := by
+  rcases hu.2 with ⟨M, hM⟩
+  have hM_nonneg : 0 ≤ M := le_trans (abs_nonneg (u 0)) (hM 0)
+  exact _root_.psi_kernel_mul_bounded_integrable hl hM_nonneg hM x
+    hu.1.aestronglyMeasurable
+
 theorem Lemma_2_2_kernel_formula_proved :
     ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
       ∀ x,
