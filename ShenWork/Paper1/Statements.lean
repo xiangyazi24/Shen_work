@@ -959,6 +959,14 @@ theorem InWaveTrapSet.mono_M
     ⟨h.nonneg x,
       le_trans (h.le_upperBarrier x) (upperBarrier_mono_M hM x)⟩
 
+theorem lowerBarrierPlateau_mem_InWaveTrapSet_of_exp_xplus_le
+    {κ κtilde D M : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hD : 0 < D)
+    (hM : Real.exp (-κ * lowerBarrierXPlus κ κtilde D) ≤ M) :
+    InWaveTrapSet κ M (lowerBarrierPlateau κ κtilde D) :=
+  InWaveTrapSet.mono_M hM
+    (lowerBarrierPlateau_mem_InWaveTrapSet_exp_xplus hκ hgap hD)
+
 theorem WaveTrapSet_subset_of_M_le
     {κ M₁ M₂ : ℝ} (hM : M₁ ≤ M₂) :
     WaveTrapSet κ M₁ ⊆ WaveTrapSet κ M₂ := by
