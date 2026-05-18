@@ -199,6 +199,25 @@ def Lemma_2_5 : Prop :=
   ∀ beta v : ℝ, 0 < beta → 0 < v →
     beta * v / (1 + v) ^ (1 + beta) ≤ Psi_beta beta
 
+lemma Psi_beta_pos {beta : ℝ} (hbeta : 0 < beta) :
+    0 < Psi_beta beta := by
+  unfold Psi_beta
+  positivity
+
+lemma Psi_beta_nonneg {beta : ℝ} (hbeta : 0 ≤ beta) :
+    0 ≤ Psi_beta beta := by
+  unfold Psi_beta
+  positivity
+
+lemma Psi_beta_lt_one {beta : ℝ} (hbeta : 0 < beta) :
+    Psi_beta beta < 1 := by
+  unfold Psi_beta
+  have hbase_nonneg : 0 ≤ beta / (1 + beta) := by positivity
+  have hbase_lt : beta / (1 + beta) < 1 := by
+    rw [div_lt_one (by positivity : 0 < 1 + beta)]
+    linarith
+  exact Real.rpow_lt_one hbase_nonneg hbase_lt (by linarith : 0 < 1 + beta)
+
 theorem Lemma_2_5_proved : Lemma_2_5 := by
   intro beta v hbeta hv
   have hden_pos : 0 < 1 + beta := by linarith
