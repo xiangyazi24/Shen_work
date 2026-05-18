@@ -2161,6 +2161,18 @@ theorem NegativeSensitivityWaveFixedPointConstruction.cStarLower_lt
     cStarLower p < c :=
   h.2.2.1
 
+theorem NegativeSensitivityWaveFixedPointConstruction.two_lt_c
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    2 < c :=
+  two_lt_of_cStarLower_lt h.cStarLower_lt
+
+theorem NegativeSensitivityWaveFixedPointConstruction.c_pos
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    0 < c :=
+  lt_trans (by norm_num : (0 : ℝ) < 2) h.two_lt_c
+
 theorem NegativeSensitivityWaveFixedPointConstruction.kappa_lt_kappaOne
     {p : CMParams} {c κ₁ κtilde D : ℝ}
     (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
@@ -2204,6 +2216,12 @@ theorem NegativeSensitivityWaveFixedPointConstruction.kappa_lt_one
     (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
     kappa c < 1 :=
   kappa_lt_one_of_cStarLower_lt h.cStarLower_lt
+
+theorem NegativeSensitivityWaveFixedPointConstruction.kappa_add_inv_eq
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    kappa c + (kappa c)⁻¹ = c :=
+  kappa_add_inv_eq_of_cStarLower_lt h.cStarLower_lt
 
 theorem NegativeSensitivityWaveFixedPointConstruction.kappa_lt_kappaTilde
     {p : CMParams} {c κ₁ κtilde D : ℝ}
@@ -2290,6 +2308,12 @@ theorem PositiveSensitivityWaveFixedPointConstruction.two_lt_c
     2 < c :=
   h.2.2.2.1
 
+theorem PositiveSensitivityWaveFixedPointConstruction.c_pos
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    0 < c :=
+  lt_trans (by norm_num : (0 : ℝ) < 2) h.two_lt_c
+
 theorem PositiveSensitivityWaveFixedPointConstruction.kappa_lt_kappaOne
     {p : CMParams} {c κ₁ κtilde D : ℝ}
     (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
@@ -2333,6 +2357,12 @@ theorem PositiveSensitivityWaveFixedPointConstruction.kappa_lt_one
     (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
     kappa c < 1 :=
   kappa_lt_one_of_two_lt h.two_lt_c
+
+theorem PositiveSensitivityWaveFixedPointConstruction.kappa_add_inv_eq
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    kappa c + (kappa c)⁻¹ = c :=
+  kappa_add_inv_eq_of_two_lt h.two_lt_c
 
 theorem PositiveSensitivityWaveFixedPointConstruction.kappa_lt_kappaTilde
     {p : CMParams} {c κ₁ κtilde D : ℝ}
