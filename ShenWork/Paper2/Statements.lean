@@ -114,6 +114,10 @@ def PositiveInitialDatum (D : BoundedDomainData) (u₀ : D.Point → ℝ) : Prop
 def IsPaper2Bounded (D : BoundedDomainData) (u : ℝ → D.Point → ℝ) : Prop :=
   ∃ M, ∀ᶠ t in atTop, D.supNorm (u t) ≤ M
 
+def IsPaper2BoundedBefore
+    (D : BoundedDomainData) (Tmax : ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
+  ∃ M, ∀ t, 0 < t → t < Tmax → D.supNorm (u t) ≤ M
+
 def FiniteHorizonAlternative
     (D : BoundedDomainData) (Tmax : ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
   (∀ M, ∃ t x, 0 < t ∧ t < Tmax ∧ x ∈ D.inside ∧ M < u t x) ∨
@@ -702,16 +706,19 @@ def Theorem_1_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   p.χ₀ ≤ 0 →
     (0 < p.a → 0 < p.b →
       ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
-        ∃ u v : ℝ → D.Point → ℝ,
-          IsPaper2GlobalClassicalSolution D p u v ∧
+        ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+          IsPaper2ClassicalSolution D p Tmax u v ∧
           InitialTrace D u₀ u ∧
-          ∀ t > 0, D.supNorm (u t) ≤ max (D.supNorm u₀) ((p.a / p.b) ^ (1 / p.α))) ∧
+          (∀ t, 0 < t → t < Tmax →
+            D.supNorm (u t) ≤ max (D.supNorm u₀) ((p.a / p.b) ^ (1 / p.α))) ∧
+          (1 ≤ p.m → IsPaper2GlobalClassicalSolution D p u v)) ∧
     (p.a = 0 → p.b = 0 →
       ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
-        ∃ u v : ℝ → D.Point → ℝ,
-          IsPaper2GlobalClassicalSolution D p u v ∧
+        ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+          IsPaper2ClassicalSolution D p Tmax u v ∧
           InitialTrace D u₀ u ∧
-          ∀ t > 0, D.supNorm (u t) ≤ D.supNorm u₀)
+          (∀ t, 0 < t → t < Tmax → D.supNorm (u t) ≤ D.supNorm u₀) ∧
+          (1 ≤ p.m → IsPaper2GlobalClassicalSolution D p u v))
 
 /-- Paper2 Theorem 1.2: boundedness/global existence for weak nonlinear cross diffusion. -/
 def Theorem_1_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
@@ -719,7 +726,7 @@ def Theorem_1_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
     ((0 < p.m → p.m < 1 →
       ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
         ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
-          IsPaper2ClassicalSolution D p Tmax u v ∧ IsPaper2Bounded D u) ∧
+          IsPaper2ClassicalSolution D p Tmax u v ∧ IsPaper2BoundedBefore D Tmax u) ∧
     (p.m = 1 → p.χ₀ < chiBeta p →
       ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
         ∃ u v : ℝ → D.Point → ℝ,
@@ -730,7 +737,7 @@ def Theorem_1_3 (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p) 
   0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
     (∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
       ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
-        IsPaper2ClassicalSolution D p Tmax u v ∧ IsPaper2Bounded D u) ∧
+        IsPaper2ClassicalSolution D p Tmax u v ∧ IsPaper2BoundedBefore D Tmax u) ∧
     (1 ≤ p.m →
       ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
         ∃ u v : ℝ → D.Point → ℝ,

@@ -57,9 +57,9 @@ File header reference: `ShenWork/Paper2/Defs.lean`, arXiv `2512.14858`.
 | Bounded-domain PDE solution predicate | `IsToyClassicalSolution2` | toy only | `pde_satisfied : True`; no domain, boundary condition, PDE, elliptic equation for `v`, or regularity beyond positivity. |
 | Bounded-domain PDE statement interface | `Paper2.BoundedDomainData`, `Paper2.IsPaper2ClassicalSolution`, `Paper2.IsPaper2GlobalClassicalSolution` | statement target | Abstract domain/operator interface for the bounded smooth Neumann problem. It is not yet an instantiated smooth-domain theory. |
 | Proposition 1.1 local existence/blow-up alternative | `Paper2.Proposition_1_1` | statement target | Stated from `paper2.pdf` against the non-toy PDE interface. |
-| Theorem 1.1 negative sensitivity boundedness/global existence | `Paper2.Theorem_1_1` | statement target | Stated from `paper2.pdf`. |
-| Theorem 1.2 weak nonlinear cross diffusion | `Paper2.Theorem_1_2` | statement target | Stated from `paper2.pdf`. |
-| Theorem 1.3 relatively strong logistic source | `Paper2.Theorem_1_3` | statement target | Stated with a `Paper2Constants` package for the paper constants. |
+| Theorem 1.1 negative sensitivity boundedness/global existence | `Paper2.Theorem_1_1` | statement target | Stated from `paper2.pdf`; finite-horizon boundedness is separated from the `m ≥ 1` global-existence conclusion. |
+| Theorem 1.2 weak nonlinear cross diffusion | `Paper2.Theorem_1_2` | statement target | Stated from `paper2.pdf`; the `0 < m < 1` branch uses boundedness before `Tmax`, while the `m = 1` branch gives global boundedness. |
+| Theorem 1.3 relatively strong logistic source | `Paper2.Theorem_1_3` | statement target | Stated with a `Paper2Constants` package for the paper constants; boundedness and `m ≥ 1` global existence are represented separately. |
 | Constant equilibrium under toy definition | `cm2_constant_solution_under_current_solution_def` | proved, toy only | Useful only as a sanity check for the current toy predicate. |
 | Persistence counterexample under toy definition | `persistence_property_false_under_current_solution_def` | proved, toy only | Documents why Paper3-style persistence cannot follow from the current Paper2 predicate. |
 
