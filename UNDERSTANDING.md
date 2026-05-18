@@ -47,8 +47,17 @@ v_xx − v + u^γ = 0
   explicit `contDiffAt_const (c := ...)` annotations needed for Lean to infer constants).
   `localSolutionExists` **proved** (Picard-Lindelöf extraction from picardLindelofData;
   HasDerivWithinAt → HasDerivAt via Icc_mem_nhds).
-  Remaining sorrys: linearization_at_E1/E0 (fderiv computation — needs HasFDerivAt
-  construction for polynomial vector field), shooting_theorem (deep)
+  `linearization_at_E0` **proved** (fderiv_pi + simp with zero_pow).
+  `linearization_at_E1` **proved** (fderiv_pi + simp with one_pow).
+  `localSolutionExists` **proved** (Picard-Lindelöf + HasDerivWithinAt → HasDerivAt).
+  Remaining sorrys: shooting_theorem (deep — phase plane analysis).
+
+  Key techniques discovered:
+  - `(try ring) <;> linear_combination hchar` for mixed ring/hypothesis goals
+  - `dsimp` (not simp only [Matrix.cons_val...]) for vector index reduction
+  - `contDiffAt_const (c := ...)` for explicit constant annotation
+  - `fderiv_pi hdiff` + `ContinuousLinearMap.coe_pi/proj_apply` for componentwise fderiv
+  - `continuous_rpow_const.comp_aestronglyMeasurable` for rpow measurability (MildSolution)
 
 ### Paper theorem layer
 - **ComparisonPrinciple.lean**: rectangle ODE barriers (proved) + PDE comparison (sorry)
