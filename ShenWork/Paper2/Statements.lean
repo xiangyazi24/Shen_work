@@ -118,6 +118,11 @@ def IsPaper2BoundedBefore
     (D : BoundedDomainData) (Tmax : ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
   ∃ M, ∀ t, 0 < t → t < Tmax → D.supNorm (u t) ≤ M
 
+def LpPowerBoundedBefore
+    (D : BoundedDomainData) (pExp Tmax : ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
+  ∃ C, ∀ t, 0 < t → t < Tmax →
+    D.integral (fun x => (u t x) ^ pExp) ≤ C
+
 def FiniteHorizonAlternative
     (D : BoundedDomainData) (Tmax : ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
   (∀ M, ∃ t x, 0 < t ∧ t < Tmax ∧ x ∈ D.inside ∧ M < u t x) ∨
@@ -542,14 +547,17 @@ def Proposition_2_3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
 def Proposition_2_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
     IsPaper2ClassicalSolution D p T u v →
-      IsPaper2Bounded D u
+      IsPaper2BoundedBefore D T u
 
 def Proposition_2_5 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
     ∀ Tmax > 0, ∀ u v : ℝ → D.Point → ℝ,
       IsPaper2ClassicalSolution D p Tmax u v →
-        IsPaper2Bounded D u →
-          IsPaper2GlobalClassicalSolution D p u v
+      InitialTrace D u₀ u →
+        ∀ pExp,
+          max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+            LpPowerBoundedBefore D pExp Tmax u →
+              IsPaper2BoundedBefore D Tmax u
 
 def Lemma_2_7 : Prop :=
   ∀ y : ℝ → ℝ, ∀ T C1 C2 C3 C4 eps alpha,

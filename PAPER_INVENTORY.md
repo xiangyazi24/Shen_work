@@ -57,7 +57,7 @@ Source: `paper2.pdf`, Chen-Ruau-Shen Part I.
 | Lemma 2.6 | `AbstractLpBootstrapHypothesis`, `Lemma_2_6` | statement target | Abstract `L^p` bootstrap target. |
 | Corollary 2.1 | `Corollary_2_1` | statement target | Chemotaxis cross-term bootstrap target. |
 | Proposition 2.1 | `Proposition_2_1` | statement target | Fundamental `L^p` estimate for elliptic signal `v` in terms of `u^γ`. |
-| Propositions 2.2--2.5 | `Proposition_2_2`--`Proposition_2_5` | statement target | Integral estimates and boundedness criterion; `χβ` positivity, upper-bound, half/sqrt threshold projections, and denominator branch algebra proved. |
+| Propositions 2.2--2.5 | `Proposition_2_2`--`Proposition_2_5`, `LpPowerBoundedBefore` | statement target | Integral estimates and boundedness criterion; Proposition 2.4/2.5 now use finite-horizon boundedness and Proposition 2.5 includes the paper's high-exponent `L^p` boundedness hypothesis; `χβ` positivity, upper-bound, half/sqrt threshold projections, and denominator branch algebra proved. |
 | Lemma 2.7 | `Lemma_2_7` | statement target | ODE/integral inequality used in bootstrap. |
 | Lemma 3.1 | `Lemma_3_1` | statement target | Negative-sensitivity estimate. |
 | Lemma 4.1 | `Lemma_4_1` | statement target | Weak cross-diffusion estimate. |
