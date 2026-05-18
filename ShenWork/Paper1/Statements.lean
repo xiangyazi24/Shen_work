@@ -596,6 +596,77 @@ theorem lowerBarrierRaw_eq_zero_at_xminus
 def lowerBarrierXPlus (κ κtilde D : ℝ) : ℝ :=
   Real.log (κtilde * D / κ) / (κtilde - κ)
 
+theorem lowerBarrierXPlus_of_exp_choice
+    {κ κtilde x : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) :
+    lowerBarrierXPlus κ κtilde
+        (κ / κtilde * Real.exp ((κtilde - κ) * x)) = x := by
+  have hκtilde : 0 < κtilde := by linarith
+  unfold lowerBarrierXPlus
+  have harg :
+      κtilde * (κ / κtilde * Real.exp ((κtilde - κ) * x)) / κ =
+        Real.exp ((κtilde - κ) * x) := by
+    field_simp [ne_of_gt hκ, ne_of_gt hκtilde]
+  rw [harg, Real.log_exp]
+  field_simp [ne_of_gt hgap]
+
+theorem lowerBarrierXPlus_mono_D
+    {κ κtilde D₁ D₂ : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hD₁ : 0 < D₁) (hDle : D₁ ≤ D₂) :
+    lowerBarrierXPlus κ κtilde D₁ ≤ lowerBarrierXPlus κ κtilde D₂ := by
+  have hκtilde : 0 < κtilde := by linarith
+  have harg₁ : 0 < κtilde * D₁ / κ := by positivity
+  have hmul : κtilde * D₁ ≤ κtilde * D₂ :=
+    mul_le_mul_of_nonneg_left hDle hκtilde.le
+  have hargle : κtilde * D₁ / κ ≤ κtilde * D₂ / κ :=
+    div_le_div_of_nonneg_right hmul hκ.le
+  unfold lowerBarrierXPlus
+  exact div_le_div_of_nonneg_right (Real.log_le_log harg₁ hargle) hgap.le
+
+theorem lowerBarrierExpXPlus_antitone_D
+    {κ κtilde D₁ D₂ : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hD₁ : 0 < D₁) (hDle : D₁ ≤ D₂) :
+    Real.exp (-κ * lowerBarrierXPlus κ κtilde D₂) ≤
+      Real.exp (-κ * lowerBarrierXPlus κ κtilde D₁) := by
+  apply Real.exp_le_exp.mpr
+  have hx :=
+    lowerBarrierXPlus_mono_D hκ hgap hD₁ hDle
+  nlinarith [mul_nonneg hκ.le (sub_nonneg.mpr hx)]
+
+theorem exists_D_gt_with_exp_xplus_le
+    {κ κtilde M B : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hM : 0 < M) :
+    ∃ D > B, Real.exp (-κ * lowerBarrierXPlus κ κtilde D) ≤ M := by
+  have hκtilde : 0 < κtilde := by linarith
+  let x₀ : ℝ := max 0 (-(Real.log M) / κ)
+  let Dneed : ℝ := κ / κtilde * Real.exp ((κtilde - κ) * x₀)
+  let D : ℝ := max (B + 1) Dneed
+  have hDneed_pos : 0 < Dneed := by
+    dsimp [Dneed]
+    positivity
+  have hB_D : B < D := by
+    have h : B < B + 1 := by linarith
+    exact lt_of_lt_of_le h (le_max_left _ _)
+  have hDneed_le_D : Dneed ≤ D := le_max_right _ _
+  have hx₀_bound : Real.exp (-κ * x₀) ≤ M := by
+    have hx₀_ge : -(Real.log M) / κ ≤ x₀ := le_max_right _ _
+    have hmul : -κ * x₀ ≤ Real.log M := by
+      rw [neg_mul]
+      have hmul' := mul_le_mul_of_nonneg_left hx₀_ge hκ.le
+      rw [mul_div_cancel₀ _ (ne_of_gt hκ)] at hmul'
+      linarith
+    calc
+      Real.exp (-κ * x₀) ≤ Real.exp (Real.log M) :=
+        Real.exp_le_exp.mpr hmul
+      _ = M := Real.exp_log hM
+  refine ⟨D, hB_D, ?_⟩
+  calc
+    Real.exp (-κ * lowerBarrierXPlus κ κtilde D) ≤
+        Real.exp (-κ * lowerBarrierXPlus κ κtilde Dneed) :=
+      lowerBarrierExpXPlus_antitone_D hκ hgap hDneed_pos hDneed_le_D
+    _ = Real.exp (-κ * x₀) := by
+      rw [lowerBarrierXPlus_of_exp_choice hκ hgap]
+    _ ≤ M := hx₀_bound
+
 theorem lowerBarrierXMinus_lt_xplus
     {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
     lowerBarrierXMinus κ κtilde D < lowerBarrierXPlus κ κtilde D := by
