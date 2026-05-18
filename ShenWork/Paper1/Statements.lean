@@ -224,6 +224,27 @@ theorem Lemma_2_3_unit_proved : Lemma_2_3_unit := by
     simpa using hint_raw
   exact Psi_deriv_abs_le' hu_nonneg x hint hu.1.aestronglyMeasurable
 
+theorem Psi_one_mu_eq (u : ℝ → ℝ) (mu x : ℝ) :
+    Psi u 1 mu x = mu * Psi u 1 1 x := by
+  simp [Psi]
+  ring
+
+theorem Lemma_2_3_unit_mu_proved :
+    ∀ u : ℝ → ℝ, ∀ mu : ℝ, 0 < mu → IsCUnifBdd u →
+      (∀ x, 0 ≤ u x) →
+        ∀ x, |deriv (Psi u 1 mu) x| ≤ Psi u 1 mu x := by
+  intro u mu hmu hu hu_nonneg x
+  have hderiv :
+      deriv (Psi u 1 mu) x = mu * deriv (Psi u 1 1) x := by
+    rw [show Psi u 1 mu = fun z => mu * Psi u 1 1 z from by
+      ext z
+      exact Psi_one_mu_eq u mu z]
+    rw [deriv_const_mul_field]
+  rw [hderiv, Psi_one_mu_eq u mu x]
+  rw [abs_mul, abs_of_pos hmu]
+  exact mul_le_mul_of_nonneg_left
+    (Lemma_2_3_unit_proved u hu hu_nonneg x) hmu.le
+
 def Lemma_2_4 : Prop :=
   ∀ M k : ℝ, 1 ≤ M → 0 < k → k < 1 →
     ∀ u : ℝ → ℝ, IsCUnifBdd u →
