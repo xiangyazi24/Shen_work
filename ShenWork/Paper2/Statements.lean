@@ -291,6 +291,24 @@ lemma Psi_beta_lt_one {beta : ℝ} (hbeta : 0 < beta) :
     linarith
   exact Real.rpow_lt_one hbase_nonneg hbase_lt (by linarith : 0 < 1 + beta)
 
+lemma Psi_beta_eq_at_inv {beta : ℝ} (hbeta : 0 < beta) :
+    beta * (1 / beta) / (1 + 1 / beta) ^ (1 + beta) = Psi_beta beta := by
+  have hbeta_ne : beta ≠ 0 := ne_of_gt hbeta
+  have hden_pos : 0 < 1 + beta := by linarith
+  have hbase :
+      1 + 1 / beta = (1 + beta) / beta := by
+    field_simp [hbeta_ne]
+    ring
+  have hquot :
+      (1 + beta) / beta = (beta / (1 + beta))⁻¹ := by
+    field_simp [hbeta_ne, ne_of_gt hden_pos]
+  have hfrac_nonneg : 0 ≤ beta / (1 + beta) :=
+    div_nonneg hbeta.le hden_pos.le
+  unfold Psi_beta
+  rw [show beta * (1 / beta) = 1 by field_simp [hbeta_ne]]
+  rw [hbase, hquot, Real.inv_rpow hfrac_nonneg]
+  field_simp [ne_of_gt (Real.rpow_pos_of_pos (div_pos hbeta hden_pos) (1 + beta))]
+
 lemma Psi_beta_le_one {beta : ℝ} (hbeta : 0 ≤ beta) :
     Psi_beta beta ≤ 1 := by
   by_cases hzero : beta = 0
