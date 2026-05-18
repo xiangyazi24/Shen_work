@@ -30,7 +30,7 @@ systems.
 | Lemma 2.1 | `HeatSemigroup.lean` estimates | partial | Semigroup `L^p-L^q` estimates; current file only has simple heat-kernel facts. |
 | Lemma 2.2 | `Psi`, `Psi_kernel_eq`-style facts | partial | Elliptic resolvent formula and derivative formula need exact statement layer. |
 | Lemma 2.3 | none | missing | Resolvent derivative upper bound. |
-| Lemma 2.4 | none | missing | Exponential resolvent bound for `0 ≤ u ≤ min{M,e^{-κx}}`. |
+| Lemma 2.4 | `Psi_le_const_of_le`, `Psi_le_exp_of_le`, `Psi_le_min_const_exp_of_le` | partial | Core upper bounds proved for `Ψ(·;u,1,1)`; still need the exact paper packaging and hypotheses. |
 | Lemma 2.5 | none | missing | Weighted `L^p` estimate for `∇Ψ(u^γ)`. |
 | Lemma 4.1 | none | missing | Super-solution barrier for frozen moving-frame equation. |
 | Lemma 4.2 | none | missing | Sub-solution barriers. |
@@ -92,5 +92,6 @@ These are small, non-PDE targets worth proving before the next analytic push:
    `positivePart_nonneg`, simple consequences of `CM2Params`.
 3. Paper1 speed/decay algebra already has `cStarLower_ge_two` and
    `kappa_pos_of_two_lt`; next small additions should support `Theorem_1_1`.
-4. Then move to exact statement/proof of Paper1 Lemma 2.2/2.4, because those
-   are concrete elliptic-resolvent estimates and feed the wave barrier proof.
+4. Continue exact statement/proof of Paper1 Lemma 2.2/2.4: the basic `Ψ`
+   upper-bound components are now proved, but derivative formula and exact
+   paper packaging remain.

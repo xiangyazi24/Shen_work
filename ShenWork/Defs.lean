@@ -194,6 +194,45 @@ lemma kappa_pos_of_two_lt {c : ℝ} (hc : 2 < c) :
     nlinarith [Real.sqrt_nonneg (c ^ 2 - 4)]
   linarith
 
+lemma cStarLower_pos (p : CMParams) :
+    0 < cStarLower p :=
+  lt_of_lt_of_le (by norm_num : (0 : ℝ) < 2) (cStarLower_ge_two p)
+
+lemma kappa_lt_one_of_two_lt {c : ℝ} (hc : 2 < c) :
+    kappa c < 1 := by
+  simp only [kappa]
+  have hsq_lt : (c - 2) ^ 2 < c ^ 2 - 4 := by nlinarith
+  have hsqrt_gt : c - 2 < Real.sqrt (c ^ 2 - 4) :=
+    Real.lt_sqrt_of_sq_lt hsq_lt
+  linarith
+
+lemma kappa_quadratic_eq_zero {c : ℝ} (hc : 2 ≤ c) :
+    kappa c ^ 2 - c * kappa c + 1 = 0 := by
+  unfold kappa
+  have hrad_nonneg : 0 ≤ c ^ 2 - 4 := by nlinarith
+  have hsq : (Real.sqrt (c ^ 2 - 4)) ^ 2 = c ^ 2 - 4 :=
+    Real.sq_sqrt hrad_nonneg
+  nlinarith
+
+lemma chiStar_pos (p : CMParams) :
+    0 < chiStar p := by
+  unfold chiStar
+  apply lt_min
+  · norm_num
+  · apply div_pos
+    · nlinarith [p.hm, p.hγ]
+    · nlinarith [sq_nonneg p.m, p.hm, p.hγ]
+
+lemma chiStar_le_one (p : CMParams) :
+    chiStar p ≤ 1 := by
+  unfold chiStar
+  exact min_le_left _ _
+
+lemma chiStar_le_ratio (p : CMParams) :
+    chiStar p ≤ (2 * p.m + 2 * p.γ) / (p.m ^ 2 + p.m + 2 * p.γ) := by
+  unfold chiStar
+  exact min_le_right _ _
+
 /-! ## The elliptic Green's function Ψ -/
 
 /-- Ψ(x; u, l, μ) = (μ / (2√l)) ∫ e^{-√l |x-y|} u(y) dy -/
@@ -367,6 +406,48 @@ theorem Psi_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
     (fun y => Real.exp (-|x - y|) * Real.exp (-k * y)) from by ext y; ring_nf]
   rw [integral_exp_kernel_exp hk hk1 x]
   ring
+
+theorem Psi_le_const_of_le {u : ℝ → ℝ} {M : ℝ}
+    (hM : 0 ≤ M) (huM : ∀ y, u y ≤ M) (x : ℝ)
+    (hiu : MeasureTheory.Integrable
+      (fun y => Real.exp (-Real.sqrt 1 * |x - y|) * u y)) :
+    Psi u 1 1 x ≤ M := by
+  have hconst_int :
+      MeasureTheory.Integrable
+        (fun y => Real.exp (-Real.sqrt 1 * |x - y|) * (fun _ : ℝ => M) y) := by
+    simpa [Real.sqrt_one] using kernel_mul_const_integrable M x
+  calc
+    Psi u 1 1 x ≤ Psi (fun _ : ℝ => M) 1 1 x :=
+      Psi_mono one_pos one_pos huM x hiu hconst_int
+    _ = M := Psi_const hM x
+
+theorem Psi_le_exp_of_le {u : ℝ → ℝ} {k : ℝ}
+    (hk : 0 < k) (hk1 : k < 1)
+    (huexp : ∀ y, u y ≤ Real.exp (-k * y)) (x : ℝ)
+    (hiu : MeasureTheory.Integrable
+      (fun y => Real.exp (-Real.sqrt 1 * |x - y|) * u y)) :
+    Psi u 1 1 x ≤ 1 / (1 - k ^ 2) * Real.exp (-k * x) := by
+  have hexp_int :
+      MeasureTheory.Integrable
+        (fun y =>
+          Real.exp (-Real.sqrt 1 * |x - y|) *
+            (fun y : ℝ => Real.exp (-k * y)) y) := by
+    simpa [Real.sqrt_one] using kernel_mul_exp_integrable k hk hk1 x
+  calc
+    Psi u 1 1 x ≤ Psi (fun y : ℝ => Real.exp (-k * y)) 1 1 x :=
+      Psi_mono one_pos one_pos huexp x hiu hexp_int
+    _ = 1 / (1 - k ^ 2) * Real.exp (-k * x) := Psi_exp hk hk1 x
+
+theorem Psi_le_min_const_exp_of_le {u : ℝ → ℝ} {M k : ℝ}
+    (hM : 0 ≤ M) (hk : 0 < k) (hk1 : k < 1)
+    (huM : ∀ y, u y ≤ M)
+    (huexp : ∀ y, u y ≤ Real.exp (-k * y)) (x : ℝ)
+    (hiu : MeasureTheory.Integrable
+      (fun y => Real.exp (-Real.sqrt 1 * |x - y|) * u y)) :
+    Psi u 1 1 x ≤ min M (1 / (1 - k ^ 2) * Real.exp (-k * x)) := by
+  exact le_min
+    (Psi_le_const_of_le hM huM x hiu)
+    (Psi_le_exp_of_le hk hk1 huexp x hiu)
 
 /-- HasDerivAt for exp(-|x'-y|) at x'=x when y < x. -/
 lemma hasDerivAt_kernel_left {x y : ℝ} (hy : y < x) :
