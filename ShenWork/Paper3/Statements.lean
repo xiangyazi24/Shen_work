@@ -760,6 +760,96 @@ lemma chiStrong3Formula_pos
       exact mul_nonneg (mul_nonneg p.hβ hvStar) (sq_nonneg M0)
     linarith
 
+def minimalUpperBoundFormula (CN qPrime qDoublePrime uStar : ℝ) : ℝ :=
+  CN * (uStar ^ qPrime + uStar ^ qDoublePrime)
+
+def minimalVLowerFormula
+    (COmega gamma uStar uBar : ℝ) : ℝ :=
+  COmega *
+    if gamma ≤ 1 then
+      uStar * uBar ^ (gamma - 1)
+    else
+      uStar ^ gamma
+
+def GammaMinimalFormula
+    (gamma uStar uBar : ℝ) : ℝ :=
+  if gamma ≤ 1 then
+    uStar ^ (gamma - 1) * uBar
+  else
+    gamma * uBar ^ gamma
+
+def chiMinimal1Formula
+    (p : CM2Params) (lambdaStar uStar uBar vLower : ℝ) : ℝ :=
+  min (min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
+    (2 * Real.sqrt (p.μ * lambdaStar) * (1 + vLower) ^ p.β /
+      (p.ν * GammaMinimalFormula p.γ uStar uBar))
+
+def chiMinimal2Formula
+    (p : CM2Params) (uBar vLower : ℝ) : ℝ :=
+  min (min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
+    (p.μ * (1 + vLower) ^ p.β / (p.ν * uBar))
+
+lemma minimalUpperBoundFormula_pos
+    {CN qPrime qDoublePrime uStar : ℝ}
+    (hCN : 0 < CN) (huStar : 0 < uStar) :
+    0 < minimalUpperBoundFormula CN qPrime qDoublePrime uStar := by
+  unfold minimalUpperBoundFormula
+  exact mul_pos hCN
+    (add_pos
+      (Real.rpow_pos_of_pos huStar _)
+      (Real.rpow_pos_of_pos huStar _))
+
+lemma minimalVLowerFormula_pos
+    {COmega gamma uStar uBar : ℝ}
+    (hCOmega : 0 < COmega) (huStar : 0 < uStar) (huBar : 0 < uBar) :
+    0 < minimalVLowerFormula COmega gamma uStar uBar := by
+  unfold minimalVLowerFormula
+  apply mul_pos hCOmega
+  by_cases hle : gamma ≤ 1
+  · rw [if_pos hle]
+    exact mul_pos huStar (Real.rpow_pos_of_pos huBar _)
+  · rw [if_neg hle]
+    exact Real.rpow_pos_of_pos huStar _
+
+lemma GammaMinimalFormula_pos
+    {gamma uStar uBar : ℝ}
+    (hgamma : 0 < gamma) (huStar : 0 < uStar) (huBar : 0 < uBar) :
+    0 < GammaMinimalFormula gamma uStar uBar := by
+  unfold GammaMinimalFormula
+  by_cases hle : gamma ≤ 1
+  · rw [if_pos hle]
+    exact mul_pos (Real.rpow_pos_of_pos huStar _) huBar
+  · rw [if_neg hle]
+    exact mul_pos hgamma (Real.rpow_pos_of_pos huBar _)
+
+lemma chiMinimal1Formula_pos
+    (p : CM2Params) {lambdaStar uStar uBar vLower : ℝ}
+    (hβ : 1 ≤ p.β) (hlambda : 0 < lambdaStar)
+    (huStar : 0 < uStar) (huBar : 0 < uBar) (hvLower : 0 ≤ vLower) :
+    0 < chiMinimal1Formula p lambdaStar uStar uBar vLower := by
+  unfold chiMinimal1Formula
+  apply lt_min
+  · exact min_chiBeta_half_sqrt_pos_of_one_le_beta p hβ
+  · apply div_pos
+    · exact mul_pos
+        (mul_pos (by norm_num)
+          (Real.sqrt_pos.mpr (mul_pos p.hμ hlambda)))
+        (Real.rpow_pos_of_pos (by linarith : 0 < 1 + vLower) _)
+    · exact mul_pos p.hν
+        (GammaMinimalFormula_pos p.hγ huStar huBar)
+
+lemma chiMinimal2Formula_pos
+    (p : CM2Params) {uBar vLower : ℝ}
+    (hβ : 1 ≤ p.β) (huBar : 0 < uBar) (hvLower : 0 ≤ vLower) :
+    0 < chiMinimal2Formula p uBar vLower := by
+  unfold chiMinimal2Formula
+  apply lt_min
+  · exact min_chiBeta_half_sqrt_pos_of_one_le_beta p hβ
+  · apply div_pos
+    · exact mul_pos p.hμ
+        (Real.rpow_pos_of_pos (by linarith : 0 < 1 + vLower) _)
+    · exact mul_pos p.hν huBar
+
 def EventuallyUpperBoundMinimalConclusion
     (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p)
     (u : ℝ → D.Point → ℝ) : Prop :=
