@@ -1504,6 +1504,12 @@ theorem InMonotoneWaveTrapSet.antitone
     Antitone u :=
   h.2
 
+theorem InMonotoneWaveTrapSet.deriv_nonpos
+    {κ M : ℝ} {u : ℝ → ℝ}
+    (h : InMonotoneWaveTrapSet κ M u) (x : ℝ) :
+    deriv u x ≤ 0 :=
+  h.antitone.deriv_nonpos
+
 theorem InMonotoneWaveTrapSet.nonneg
     {κ M : ℝ} {u : ℝ → ℝ}
     (h : InMonotoneWaveTrapSet κ M u) (x : ℝ) :
@@ -2917,6 +2923,40 @@ theorem Theorem_1_1.of_frozenStationaryProfile_branches
     exact
       ⟨U, frozenElliptic p U,
         hprofile.to_travelingWave, hupper, htail⟩
+
+theorem Theorem_1_1.of_frozenStationaryProfile_trap_branches
+    (hneg :
+      ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
+        ∀ c : ℝ, cStarLower p < c →
+          ∃ U : ℝ → ℝ,
+            InMonotoneWaveTrapSet (kappa c) 1 U ∧
+              FrozenStationaryWaveProfile p c U ∧
+              (∀ x, deriv (frozenElliptic p U) x ≤ 0) ∧
+              ShenUpperBoundNegative c U ∧
+              ∀ κ₁, kappa c < κ₁ →
+                κ₁ <
+                  min ((1 + p.α) * kappa c)
+                    (min (p.m * kappa c + 1 / 2) 1) →
+                HasWaveRightTailAsymptotic c κ₁ U)
+    (hpos :
+      ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+        0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+        ∀ c : ℝ, 2 < c →
+          ∃ U : ℝ → ℝ,
+            FrozenStationaryWaveProfile p c U ∧
+              ShenUpperBoundPositive p c U ∧
+              ∀ κ₁, kappa c < κ₁ →
+                κ₁ <
+                  min ((1 + p.α) * kappa c)
+                    (min (p.m * kappa c + 1 / 2) 1) →
+                HasWaveRightTailAsymptotic c κ₁ U) :
+    Theorem_1_1 := by
+  refine Theorem_1_1.of_frozenStationaryProfile_branches ?_ hpos
+  intro p halpha hχ c hc
+  rcases hneg p halpha hχ c hc with
+    ⟨U, htrap, hprofile, hVmono, hupper, htail⟩
+  exact
+    ⟨U, hprofile, htrap.deriv_nonpos, hVmono, hupper, htail⟩
 
 def StableWaveParameterRegime (p : CMParams) : Prop :=
   (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
