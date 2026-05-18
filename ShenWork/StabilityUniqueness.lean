@@ -35,7 +35,8 @@ theorem existence_tw_small_pos (p : CMParams)
       have hsq : (Real.sqrt (c ^ 2 - 4)) ^ 2 = c ^ 2 - 4 := Real.sq_sqrt (by linarith)
       nlinarith [Real.sqrt_nonneg (c ^ 2 - 4)]
     linarith
-  exact traveling_wave_exists p c hc0 hκ
+  obtain ⟨U, V, hTW, hUpos⟩ := traveling_wave_exists p c hc0 hκ
+  exact ⟨U, V, hTW.1, hUpos⟩
 
 theorem uniqueness_traveling_wave (p : CMParams)
     (hparam : (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨

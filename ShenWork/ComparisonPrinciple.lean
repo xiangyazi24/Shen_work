@@ -76,6 +76,53 @@ theorem rectangle_ode_converges (p : CMParams) (_hp : p.χ ≤ 0)
   · simp [Real.exp_zero]
   · simp [Real.exp_zero]
 
+theorem pde_bounded_by_rectangle_ode_statement_false :
+    ¬ (∀ (p : CMParams), p.χ ≤ 0 →
+      ∀ u v : ℝ → ℝ → ℝ,
+        IsGlobalClassicalSolution p u v →
+        ∀ sol : RectangleODESolution p,
+          ∀ t x, 0 ≤ t → sol.u_bar t ≤ u t x ∧ u t x ≤ sol.ū t) := by
+  intro h
+  let p : CMParams :=
+    { m := 1
+      α := 1
+      γ := 1
+      χ := 0
+      hm := by norm_num
+      hα := by norm_num
+      hγ := by norm_num }
+  have hp : p.χ ≤ 0 := by norm_num [p]
+  have hExpLim : Tendsto (fun t : ℝ => Real.exp (-t)) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp Filter.tendsto_neg_atTop_atBot
+  let sol : RectangleODESolution p :=
+    { ū := fun t => 1 + 2 * Real.exp (-t)
+      u_bar := fun t => 1 + Real.exp (-t)
+      ū_pos := by
+        intro t _ht
+        positivity
+      u_bar_pos := by
+        intro t _ht
+        positivity
+      ordering := by
+        intro t _ht
+        have hpos : 0 < Real.exp (-t) := Real.exp_pos _
+        linarith
+      ū_lim := by
+        have h := hExpLim.const_mul 2
+        simp only [mul_zero] at h
+        simpa [add_zero] using
+          (tendsto_const_nhds (x := (1 : ℝ)) (f := atTop)).add h
+      u_bar_lim := by
+        simpa [add_zero] using
+          (tendsto_const_nhds (x := (1 : ℝ)) (f := atTop)).add hExpLim }
+  have hglobal : IsGlobalClassicalSolution p (fun _ _ => 1) (fun _ _ => 1) :=
+    constant_solution_is_global p
+  have hbound :=
+    h p hp (fun _ _ => 1) (fun _ _ => 1) hglobal sol 0 0 (by norm_num)
+  have hbad : (1 : ℝ) ≤ 0 := by
+    simpa [sol, Real.exp_zero] using hbound.1
+  norm_num at hbad
+
 theorem pde_bounded_by_rectangle_ode (p : CMParams) (hp : p.χ ≤ 0)
     (u v : ℝ → ℝ → ℝ) (hglobal : IsGlobalClassicalSolution p u v)
     (sol : RectangleODESolution p) :

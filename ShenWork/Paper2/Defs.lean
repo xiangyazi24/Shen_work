@@ -43,6 +43,40 @@ def IsGlobalClassicalSolution2 (p : CM2Params) (u v : ℝ → ℝ → ℝ) : Pro
 
 def IsBounded2 (u : ℝ → ℝ → ℝ) : Prop := ∃ M : ℝ, ∀ t x, 0 ≤ t → |u t x| ≤ M
 
+theorem persistence_property_false_under_current_solution_def
+    (p : CM2Params) :
+    ¬ (∀ u v : ℝ → ℝ → ℝ,
+      IsGlobalClassicalSolution2 p u v → IsBounded2 u →
+      ∃ δ > 0, ∀ _ε > 0, ∃ T, ∀ t x, T ≤ t → δ ≤ u t x) := by
+  intro h
+  let u : ℝ → ℝ → ℝ := fun t _x => Real.exp (-t)
+  let v : ℝ → ℝ → ℝ := fun _t _x => 0
+  have hglobal : IsGlobalClassicalSolution2 p u v := by
+    intro T hT
+    refine ⟨hT, ?_, trivial⟩
+    intro t _x _ht0 _htT
+    dsimp [u]
+    positivity
+  have hbdd : IsBounded2 u := by
+    refine ⟨1, ?_⟩
+    intro t _x ht0
+    dsimp [u]
+    rw [abs_of_nonneg (Real.exp_pos _).le]
+    exact Real.exp_le_one_iff.mpr (by linarith)
+  obtain ⟨δ, hδ_pos, hpersist⟩ := h u v hglobal hbdd
+  obtain ⟨T, hT⟩ := hpersist 1 one_pos
+  let t : ℝ := max T (-Real.log δ + 1)
+  have htT : T ≤ t := le_max_left _ _
+  have htlog : -Real.log δ + 1 ≤ t := le_max_right _ _
+  have hδ_le : δ ≤ u t 0 := hT t 0 htT
+  have hlt_log : -t < Real.log δ := by linarith
+  have hexp_lt : u t 0 < δ := by
+    dsimp [u]
+    calc
+      Real.exp (-t) < Real.exp (Real.log δ) := Real.exp_lt_exp.mpr hlt_log
+      _ = δ := Real.exp_log hδ_pos
+  linarith
+
 /-- Helper: the constant function (a/b)^{1/α} is a global solution of the bounded-domain system. -/
 private lemma cm2_constant_solution (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) :
     let c := (p.a / p.b) ^ (1 / p.α)

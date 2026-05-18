@@ -157,6 +157,391 @@ For `λ > c`, one obtains a strict inequality at positive maxima.
 def expBarrier (lam : ℝ) (w : ℝ → ℝ → ℝ) (t x : ℝ) : ℝ :=
   Real.exp (-(lam * t)) * w t x
 
+private def spatialCoercivePerturbation
+    (ε : ℝ) (z : ℝ → ℝ → ℝ) : ℝ → ℝ → ℝ :=
+  fun t x => z t x - ε * (1 + x ^ 2)
+
+private lemma dt_expBarrier_of_hasDerivAt
+    {lam : ℝ} {w : ℝ → ℝ → ℝ} {t x : ℝ}
+    (hw : HasDerivAt (fun τ : ℝ => w τ x) (dt w t x) t) :
+    dt (expBarrier lam w) t x =
+      Real.exp (-(lam * t)) * (dt w t x - lam * w t x) := by
+  have hExp :
+      HasDerivAt (fun τ : ℝ => Real.exp (-(lam * τ)))
+        (Real.exp (-(lam * t)) * (-lam)) t := by
+    simpa [mul_comm, mul_left_comm, mul_assoc] using
+      (((hasDerivAt_id t).const_mul lam).neg.exp)
+  have h := (hExp.mul hw).deriv
+  unfold dt expBarrier
+  convert h using 1
+  · simp [dt]
+    ring
+
+private lemma dx_expBarrier_of_hasDerivAt
+    {lam : ℝ} {w : ℝ → ℝ → ℝ} {t x : ℝ}
+    (hw : HasDerivAt (fun y : ℝ => w t y) (dx w t x) x) :
+    dx (expBarrier lam w) t x =
+      Real.exp (-(lam * t)) * dx w t x := by
+  simpa [dx, expBarrier, mul_comm, mul_left_comm, mul_assoc] using
+    ((hasDerivAt_const x (Real.exp (-(lam * t)))).mul hw).deriv
+
+private lemma dxx_expBarrier_of_hasDerivAt
+    {lam : ℝ} {w : ℝ → ℝ → ℝ} {t x : ℝ}
+    (hw₁ : ∀ y : ℝ,
+      HasDerivAt (fun z : ℝ => w t z) (dx w t y) y)
+    (hw₂ : HasDerivAt (fun y : ℝ => dx w t y) (dxx w t x) x) :
+    dxx (expBarrier lam w) t x =
+      Real.exp (-(lam * t)) * dxx w t x := by
+  have hdx_fun :
+      (fun y : ℝ => dx (expBarrier lam w) t y)
+        =
+      (fun y : ℝ => Real.exp (-(lam * t)) * dx w t y) := by
+    funext y
+    exact dx_expBarrier_of_hasDerivAt
+      (lam := lam) (w := w) (t := t) (x := y) (hw₁ y)
+  simpa [dxx, hdx_fun, mul_comm, mul_left_comm, mul_assoc] using
+    ((hasDerivAt_const x (Real.exp (-(lam * t)))).mul hw₂).deriv
+
+private lemma expBarrier_parabolicOp_le_of_pos
+    {c T lam : ℝ} {w : ℝ → ℝ → ℝ}
+    (hw : IsClassicalLinearSubSolution c T w) :
+    ∀ ⦃t x : ℝ⦄,
+      t ∈ Set.Ioo (0 : ℝ) T →
+      0 < expBarrier lam w t x →
+        parabolicOp (expBarrier lam w) t x ≤
+          (c - lam) * expBarrier lam w t x := by
+  intro t x ht hpos
+  have hEpos : 0 < Real.exp (-(lam * t)) := Real.exp_pos _
+  have hwpos : 0 < w t x := by
+    exact pos_of_mul_pos_right (by simpa [expBarrier] using hpos) hEpos.le
+  have hdt :
+      dt (expBarrier lam w) t x =
+        Real.exp (-(lam * t)) * (dt w t x - lam * w t x) :=
+    dt_expBarrier_of_hasDerivAt
+      (lam := lam) (w := w) (t := t) (x := x)
+      (hw.time_hasDerivAt ht)
+  have hdxx :
+      dxx (expBarrier lam w) t x =
+        Real.exp (-(lam * t)) * dxx w t x :=
+    dxx_expBarrier_of_hasDerivAt
+      (lam := lam) (w := w) (t := t) (x := x)
+      (fun y => hw.space_hasDerivAt (t := t) (x := y) ht)
+      (hw.space_second_hasDerivAt ht)
+  have hop :
+      parabolicOp (expBarrier lam w) t x =
+        Real.exp (-(lam * t)) *
+          (parabolicOp w t x - lam * w t x) := by
+    unfold parabolicOp
+    rw [hdt, hdxx]
+    ring
+  have hpde : parabolicOp w t x ≤ c * w t x :=
+    hw.pde_le_of_pos ht hwpos
+  calc
+    parabolicOp (expBarrier lam w) t x
+        = Real.exp (-(lam * t)) *
+            (parabolicOp w t x - lam * w t x) := hop
+    _ ≤ Real.exp (-(lam * t)) *
+            (c * w t x - lam * w t x) := by
+          gcongr
+    _ = (c - lam) * expBarrier lam w t x := by
+          simp [expBarrier]
+          ring
+
+private lemma expBarrier_c_add_three_parabolicOp_le
+    {c T : ℝ} {w : ℝ → ℝ → ℝ}
+    (hw : IsClassicalLinearSubSolution c T w) :
+    ∀ ⦃t x : ℝ⦄,
+      t ∈ Set.Ioo (0 : ℝ) T →
+      0 < expBarrier (c + 3) w t x →
+        parabolicOp (expBarrier (c + 3) w) t x ≤
+          -3 * expBarrier (c + 3) w t x := by
+  intro t x ht hpos
+  have h :=
+    expBarrier_parabolicOp_le_of_pos
+      (c := c) (T := T) (lam := c + 3) (w := w) hw ht hpos
+  convert h using 1
+  ring
+
+private lemma exists_max_on_Icc_prod
+    {T R : ℝ} (hT : 0 ≤ T) (hR : 0 ≤ R)
+    {F : ℝ × ℝ → ℝ}
+    (hF :
+      ContinuousOn F
+        (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R)) :
+    ∃ p : ℝ × ℝ,
+      p ∈ Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R ∧
+      ∀ q ∈ Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R,
+        F q ≤ F p := by
+  have hK :
+      IsCompact
+        (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R) :=
+    isCompact_Icc.prod isCompact_Icc
+  have hne :
+      (Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R).Nonempty := by
+    refine ⟨(0, 0), ?_⟩
+    constructor
+    · exact ⟨le_rfl, hT⟩
+    · exact ⟨by linarith, hR⟩
+  obtain ⟨p, hp, hmax⟩ := hK.exists_isMaxOn hne hF
+  exact ⟨p, hp, fun q hq => hmax hq⟩
+
+private lemma parabolicOp_spatialCoercivePerturbation_eq
+    {z : ℝ → ℝ → ℝ} {ε t x : ℝ}
+    (hdt : HasDerivAt (fun τ : ℝ => z τ x) (dt z t x) t)
+    (hdx : ∀ y : ℝ,
+      HasDerivAt (fun r : ℝ => z t r) (dx z t y) y)
+    (hdxx : HasDerivAt (fun y : ℝ => dx z t y) (dxx z t x) x) :
+    parabolicOp (spatialCoercivePerturbation ε z) t x =
+      parabolicOp z t x + 2 * ε := by
+  have hdtψ :
+      dt (spatialCoercivePerturbation ε z) t x = dt z t x := by
+    unfold dt spatialCoercivePerturbation
+    simpa using
+      (hdt.sub
+        (hasDerivAt_const t (ε * (1 + x ^ 2)))).deriv
+  have hdxψ_fun :
+      (fun y : ℝ => dx (spatialCoercivePerturbation ε z) t y) =
+        fun y : ℝ => dx z t y - 2 * ε * y := by
+    funext y
+    unfold dx spatialCoercivePerturbation
+    have hquad :
+        HasDerivAt (fun r : ℝ => ε * (1 + r ^ 2)) (2 * ε * y) y := by
+      have hinner :
+          HasDerivAt (fun r : ℝ => 1 + r ^ 2) (2 * y) y := by
+        have hpow : HasDerivAt (fun r : ℝ => r ^ 2) (2 * y) y := by
+          convert ((hasDerivAt_id y).mul (hasDerivAt_id y)) using 1
+          · funext r
+            simp [Pi.mul_apply, pow_two]
+          · simp only [id_eq]
+            ring
+        convert (hasDerivAt_const (x := y) (c := (1 : ℝ))).add hpow using 1
+        ring
+      convert hinner.const_mul ε using 1 <;> ring
+    simpa [mul_assoc] using ((hdx y).sub hquad).deriv
+  have hdxxψ :
+      dxx (spatialCoercivePerturbation ε z) t x = dxx z t x - 2 * ε := by
+    unfold dxx
+    rw [hdxψ_fun]
+    have hlin :
+        HasDerivAt (fun y : ℝ => 2 * ε * y) (2 * ε) x := by
+      simpa [mul_assoc] using (hasDerivAt_id x).const_mul (2 * ε)
+    simpa using (hdxx.sub hlin).deriv
+  unfold parabolicOp
+  rw [hdtψ, hdxxψ]
+  ring
+
+private lemma spatialCoercivePerturbation_parabolicOp_lt_of_pos
+    {c T ε : ℝ} {w : ℝ → ℝ → ℝ}
+    (hε : 0 < ε)
+    (hw : IsClassicalLinearSubSolution c T w)
+    {t x : ℝ}
+    (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    (hpos :
+      0 < spatialCoercivePerturbation ε
+        (expBarrier (c + 3) w) t x) :
+    parabolicOp
+      (spatialCoercivePerturbation ε (expBarrier (c + 3) w)) t x < 0 := by
+  let z : ℝ → ℝ → ℝ := expBarrier (c + 3) w
+  have hpos_z : 0 < z t x := by
+    dsimp [z, spatialCoercivePerturbation] at hpos
+    nlinarith [sq_nonneg x, hε]
+  have hε_le_z : ε < z t x := by
+    dsimp [z, spatialCoercivePerturbation] at hpos
+    nlinarith [sq_nonneg x, hε]
+  have hop_z :
+      parabolicOp z t x ≤ -3 * z t x := by
+    exact expBarrier_c_add_three_parabolicOp_le
+      (c := c) (T := T) (w := w) hw ht (by simpa [z] using hpos_z)
+  have hop :
+      parabolicOp
+        (spatialCoercivePerturbation ε (expBarrier (c + 3) w)) t x =
+        parabolicOp z t x + 2 * ε := by
+    have hdt_z :
+        HasDerivAt (fun τ : ℝ => z τ x) (dt z t x) t := by
+      have hExp :
+          HasDerivAt (fun τ : ℝ => Real.exp (-((c + 3) * τ)))
+            (Real.exp (-((c + 3) * t)) * (-(c + 3))) t := by
+        simpa [mul_comm, mul_left_comm, mul_assoc] using
+          (((hasDerivAt_id t).const_mul (c + 3)).neg.exp)
+      have hprod :
+          HasDerivAt (fun τ : ℝ => Real.exp (-((c + 3) * τ)) * w τ x)
+            (Real.exp (-((c + 3) * t)) * (-(c + 3)) * w t x +
+              Real.exp (-((c + 3) * t)) * dt w t x) t := by
+        simpa [Pi.mul_apply] using hExp.mul (hw.time_hasDerivAt (t := t) (x := x) ht)
+      unfold z dt expBarrier
+      convert hprod using 1
+      exact hprod.deriv
+    have hdx_z :
+        ∀ y : ℝ, HasDerivAt (fun r : ℝ => z t r) (dx z t y) y := by
+      intro y
+      have hprod :
+          HasDerivAt
+            (fun r : ℝ => Real.exp (-((c + 3) * t)) * w t r)
+            (Real.exp (-((c + 3) * t)) * dx w t y) y := by
+        simpa [Pi.mul_apply] using
+          (hasDerivAt_const y (Real.exp (-((c + 3) * t)))).mul
+            (hw.space_hasDerivAt (t := t) (x := y) ht)
+      unfold z dx expBarrier
+      convert hprod using 1
+      exact hprod.deriv
+    have hdxx_z :
+        HasDerivAt (fun y : ℝ => dx z t y) (dxx z t x) x := by
+      have hdx_fun :
+          (fun y : ℝ => dx z t y) =
+            fun y : ℝ => Real.exp (-((c + 3) * t)) * dx w t y := by
+        funext y
+        exact dx_expBarrier_of_hasDerivAt
+          (lam := c + 3) (w := w) (t := t) (x := y)
+          (hw.space_hasDerivAt (t := t) (x := y) ht)
+      have hder :
+          HasDerivAt
+            (fun y : ℝ => Real.exp (-((c + 3) * t)) * dx w t y)
+            (Real.exp (-((c + 3) * t)) * dxx w t x) x := by
+        simpa [Pi.mul_apply] using
+          (hasDerivAt_const x (Real.exp (-((c + 3) * t)))).mul
+            (hw.space_second_hasDerivAt (t := t) (x := x) ht)
+      have hder_z :
+          HasDerivAt (fun y : ℝ => dx z t y)
+            (Real.exp (-((c + 3) * t)) * dxx w t x) x := by
+        simpa [hdx_fun] using hder
+      convert hder_z using 1
+      simpa [z] using dxx_expBarrier_of_hasDerivAt
+        (lam := c + 3) (w := w) (t := t) (x := x)
+        (fun y => hw.space_hasDerivAt (t := t) (x := y) ht)
+        (hw.space_second_hasDerivAt (t := t) (x := x) ht)
+    exact parabolicOp_spatialCoercivePerturbation_eq
+      (z := z) (ε := ε) (t := t) (x := x)
+      hdt_z hdx_z hdxx_z
+  rw [hop]
+  nlinarith
+
+private lemma dt_eq_zero_at_space_time_global_max
+    {ψ : ℝ → ℝ → ℝ} {t₀ x₀ : ℝ}
+    (hdt : HasDerivAt (fun τ : ℝ => ψ τ x₀) (dt ψ t₀ x₀) t₀)
+    (hmax : ∀ t x : ℝ, ψ t x ≤ ψ t₀ x₀) :
+    dt ψ t₀ x₀ = 0 := by
+  have hloc : IsLocalMax (fun τ : ℝ => ψ τ x₀) t₀ :=
+    Filter.Eventually.of_forall fun τ => hmax τ x₀
+  exact hloc.hasDerivAt_eq_zero hdt
+
+private lemma dx_eq_zero_at_space_time_global_max
+    {ψ : ℝ → ℝ → ℝ} {t₀ x₀ : ℝ}
+    (hdx : HasDerivAt (fun y : ℝ => ψ t₀ y) (dx ψ t₀ x₀) x₀)
+    (hmax : ∀ t x : ℝ, ψ t x ≤ ψ t₀ x₀) :
+    dx ψ t₀ x₀ = 0 := by
+  have hloc : IsLocalMax (fun y : ℝ => ψ t₀ y) x₀ :=
+    Filter.Eventually.of_forall fun y => hmax t₀ y
+  exact hloc.hasDerivAt_eq_zero hdx
+
+private lemma parabolicOp_nonneg_at_max_derivative_signs
+    {ψ : ℝ → ℝ → ℝ} {t x : ℝ}
+    (hdt : 0 ≤ dt ψ t x)
+    (hdxx : dxx ψ t x ≤ 0) :
+    0 ≤ parabolicOp ψ t x := by
+  unfold parabolicOp
+  linarith
+
+private lemma spatialCoercivePerturbation_no_positive_max_with_derivative_signs
+    {c T ε : ℝ} {w : ℝ → ℝ → ℝ}
+    (hε : 0 < ε)
+    (hw : IsClassicalLinearSubSolution c T w)
+    {t x : ℝ}
+    (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    (hpos :
+      0 < spatialCoercivePerturbation ε
+        (expBarrier (c + 3) w) t x)
+    (hdt :
+      0 ≤ dt
+        (spatialCoercivePerturbation ε (expBarrier (c + 3) w)) t x)
+    (hdxx :
+      dxx
+        (spatialCoercivePerturbation ε (expBarrier (c + 3) w)) t x ≤ 0) :
+    False := by
+  have hneg :=
+    spatialCoercivePerturbation_parabolicOp_lt_of_pos
+      (c := c) (T := T) (ε := ε) (w := w) hε hw ht hpos
+  have hnonneg :=
+    parabolicOp_nonneg_at_max_derivative_signs
+      (ψ := spatialCoercivePerturbation ε (expBarrier (c + 3) w))
+      (t := t) (x := x) hdt hdxx
+  linarith
+
+private lemma spatialCoercivePerturbation_initial_neg
+    {c ε : ℝ} {w : ℝ → ℝ → ℝ}
+    (hε : 0 < ε)
+    (hinit : ∀ x : ℝ, w 0 x ≤ 0)
+    (x : ℝ) :
+    spatialCoercivePerturbation ε (expBarrier (c + 3) w) 0 x < 0 := by
+  unfold spatialCoercivePerturbation expBarrier
+  simp only [mul_zero, neg_zero, Real.exp_zero, one_mul]
+  have hquad : 0 ≤ x ^ 2 := sq_nonneg x
+  have hw0 : w 0 x ≤ 0 := hinit x
+  nlinarith
+
+private lemma expBarrier_le_on_strip_of_bounded
+    {c T M : ℝ} {w : ℝ → ℝ → ℝ}
+    (hT : 0 ≤ T)
+    (hM : 0 ≤ M)
+    (hw : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x : ℝ, |w t x| ≤ M) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x : ℝ,
+      expBarrier (c + 3) w t x ≤ Real.exp (|c + 3| * T) * M := by
+  intro t ht x
+  have ht0 : 0 ≤ t := ht.1
+  have htT : t ≤ T := ht.2
+  have hexp_le :
+      Real.exp (-((c + 3) * t)) ≤ Real.exp (|c + 3| * T) := by
+    apply Real.exp_le_exp.mpr
+    have hneg_le_abs : -(c + 3) ≤ |c + 3| := neg_le_abs (c + 3)
+    have habs_nonneg : 0 ≤ |c + 3| := abs_nonneg (c + 3)
+    calc
+      -((c + 3) * t) = (-(c + 3)) * t := by ring
+      _ ≤ |c + 3| * t := mul_le_mul_of_nonneg_right hneg_le_abs ht0
+      _ ≤ |c + 3| * T := mul_le_mul_of_nonneg_left htT habs_nonneg
+  have hw_le : w t x ≤ M := by
+    exact (le_abs_self (w t x)).trans (hw t ht x)
+  have hMexp_nonneg : 0 ≤ Real.exp (-((c + 3) * t)) :=
+    (Real.exp_pos _).le
+  calc
+    expBarrier (c + 3) w t x
+        = Real.exp (-((c + 3) * t)) * w t x := rfl
+    _ ≤ Real.exp (-((c + 3) * t)) * M :=
+        mul_le_mul_of_nonneg_left hw_le hMexp_nonneg
+    _ ≤ Real.exp (|c + 3| * T) * M :=
+        mul_le_mul_of_nonneg_right hexp_le hM
+
+private lemma spatialCoercivePerturbation_neg_of_barrier_lt
+    {c ε B t x : ℝ} {w : ℝ → ℝ → ℝ}
+    (hz_le : expBarrier (c + 3) w t x ≤ B)
+    (hB : B < ε * (1 + x ^ 2)) :
+    spatialCoercivePerturbation ε (expBarrier (c + 3) w) t x < 0 := by
+  unfold spatialCoercivePerturbation
+  linarith
+
+private lemma spatialCoercivePerturbation_neg_on_large_spatial_boundary
+    {c T M ε R : ℝ} {w : ℝ → ℝ → ℝ}
+    (hT : 0 ≤ T)
+    (hM : 0 ≤ M)
+    (hε : 0 < ε)
+    (hw : ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x : ℝ, |w t x| ≤ M)
+    (hR : Real.exp (|c + 3| * T) * M < ε * (1 + R ^ 2)) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T,
+      spatialCoercivePerturbation ε (expBarrier (c + 3) w) t R < 0 ∧
+      spatialCoercivePerturbation ε (expBarrier (c + 3) w) t (-R) < 0 := by
+  intro t ht
+  have hbound :=
+    expBarrier_le_on_strip_of_bounded
+      (c := c) (T := T) (M := M) (w := w) hT hM hw t ht
+  constructor
+  · exact spatialCoercivePerturbation_neg_of_barrier_lt
+      (c := c) (ε := ε) (B := Real.exp (|c + 3| * T) * M)
+      (w := w) (t := t) (x := R) (hbound R) hR
+  · have hRneg :
+        Real.exp (|c + 3| * T) * M < ε * (1 + (-R) ^ 2) := by
+      simpa using hR
+    exact spatialCoercivePerturbation_neg_of_barrier_lt
+      (c := c) (ε := ε) (B := Real.exp (|c + 3| * T) * M)
+      (w := w) (t := t) (x := -R) (hbound (-R)) hRneg
+
 /--
 Weak parabolic maximum principle on the whole line.
 

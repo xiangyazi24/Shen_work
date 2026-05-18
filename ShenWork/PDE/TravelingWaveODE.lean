@@ -126,11 +126,25 @@ theorem vectorField_contDiffAt (p : Params) (x : State) :
   refine contDiffAt_pi.mpr fun i => ?_
   fin_cases i <;> dsimp
   · exact h1
-  · exact ((contDiffAt_const (c := p.c)).mul h1).neg.add
-      ((contDiffAt_const (c := p.chi)).mul
-        (((contDiffAt_const (c := (p.m : ℝ))).mul (h0.pow (p.m - 1)) |>.mul h1 |>.mul h3).add
-          ((h0.pow p.m).mul (h2.sub (h0.pow p.gamma))))).sub
-      (h0.mul ((contDiffAt_const (c := (1 : ℝ))).sub (h0.pow p.alpha)))
+  · have hchem :
+        ContDiffAt ℝ ⊤
+          (fun x : State =>
+            (p.m : ℝ) * x 0 ^ (p.m - 1) * x 1 * x 3
+              + x 0 ^ p.m * (x 2 - x 0 ^ p.gamma)) x :=
+      (((contDiffAt_const (c := (p.m : ℝ))).mul (h0.pow (p.m - 1))).mul h1 |>.mul h3).add
+        ((h0.pow p.m).mul (h2.sub (h0.pow p.gamma)))
+    have hrep :
+        ContDiffAt ℝ ⊤
+          (fun x : State =>
+            p.chi *
+              ((p.m : ℝ) * x 0 ^ (p.m - 1) * x 1 * x 3
+                + x 0 ^ p.m * (x 2 - x 0 ^ p.gamma))) x :=
+      (contDiffAt_const (c := p.chi)).mul hchem
+    have hgrowth :
+        ContDiffAt ℝ ⊤
+          (fun x : State => x 0 * (1 - x 0 ^ p.alpha)) x :=
+      h0.mul ((contDiffAt_const (c := (1 : ℝ))).sub (h0.pow p.alpha))
+    simpa [neg_mul] using (((contDiffAt_const (c := p.c)).mul h1).neg.add hrep).sub hgrowth
   · exact h3
   · exact h2.sub (h0.pow p.gamma)
 
@@ -155,38 +169,6 @@ theorem localSolutionExists (p : Params) (x₀ : State) (t₀ : ℝ) :
   refine ⟨α x, (hα x hx).1, fun t ht => ?_⟩
   exact ((hα x hx).2 t (Ioo_subset_Icc_self ht)).hasDerivAt
     (Icc_mem_nhds (by linarith [ht.1]) (by linarith [ht.2]))
-
-theorem linearization_at_E1 (p : Params) :
-(fun h : State => fderiv ℝ (vectorField p) E1 h)
-= matVec4 (jacobianAtOne p) := by
-  have hd : DifferentiableAt ℝ (vectorField p) E1 :=
-    (vectorField_contDiffAt p E1).differentiableAt le_rfl
-  have hdiff : ∀ i : Idx, DifferentiableAt ℝ (fun x : State => vectorField p x i) E1 :=
-    fun i => (differentiableAt_apply i _).comp _ hd
-  funext h; ext i
-  rw [show (fun x : State => fun i : Idx => vectorField p x i) = vectorField p from rfl,
-    fderiv_pi hdiff]
-  simp only [ContinuousLinearMap.coe_pi, ContinuousLinearMap.proj_apply]
-  fin_cases i <;> simp [vectorField, E1, matVec4, jacobianAtOne, one_pow, sub_self]
-
-private lemma matVec4_eq_mulVec (A : Matrix Idx Idx ℝ) (x : State) :
-    matVec4 A x = A.mulVec x := by
-  ext i; simp [matVec4, Matrix.mulVec, Matrix.dotProduct, Fin.sum_univ_four]
-
-theorem linearization_at_E0 (p : Params) :
-(fun h : State => fderiv ℝ (vectorField p) E0 h)
-= matVec4 (jacobianAtZero p) := by
-  have hd : DifferentiableAt ℝ (vectorField p) E0 :=
-    (vectorField_contDiffAt p E0).differentiableAt le_rfl
-  have hdiff : ∀ i : Idx, DifferentiableAt ℝ (fun x : State => vectorField p x i) E0 :=
-    fun i => (differentiableAt_apply i _).comp _ hd
-  funext h; ext i
-  rw [show (fun x : State => fun i : Idx => vectorField p x i) = vectorField p from rfl,
-    fderiv_pi hdiff]
-  simp only [ContinuousLinearMap.coe_pi, ContinuousLinearMap.proj_apply]
-  fin_cases i <;> simp [vectorField, E0, matVec4, jacobianAtZero, powSlopeAtZero,
-    zero_pow (Nat.ne_of_gt p.hm), zero_pow (Nat.ne_of_gt p.hgamma),
-    zero_pow (Nat.ne_of_gt p.halpha)]
 
 structure PhasePortrait (p : Params) where
 source : State
@@ -294,11 +276,70 @@ ode : SolvesTWODE p z
 leftLimit : Tendsto z atBot (nhds E1)
 rightLimit : Tendsto z atTop (nhds E0)
 
+theorem local_shooting_segment_from_E1_positive_eigenpair
+    (p : Params) {lam δ t₀ : ℝ}
+    (hpos : 0 < lam)
+    (hchar : characteristicAtOne p lam) :
+    ∃ v : State,
+      0 < lam ∧
+      HasEigenpair (jacobianAtOne p) lam v ∧
+      ∃ r > 0, ∃ eps > 0,
+        (E1 + δ • v ∈ Metric.closedBall E1 r →
+          ∃ z : ℝ → State,
+            z t₀ = E1 + δ • v ∧
+            ∀ t ∈ Ioo (t₀ - eps) (t₀ + eps),
+              HasDerivAt z (vectorField p (z t)) t) := by
+  let v : State := unstableVectorAtOne p lam
+  have hv : HasEigenpair (jacobianAtOne p) lam v := by
+    simpa [v] using jacobianAtOne_eigenpair_of_characteristic p hchar
+  obtain ⟨r, hr, eps, heps, hloc⟩ := localSolutionExists p E1 t₀
+  refine ⟨v, hpos, hv, r, hr, eps, heps, ?_⟩
+  intro hnear
+  exact hloc (E1 + δ • v) hnear
+
+theorem local_shooting_segment_from_E1_oneDimRoot
+    (p : Params) (hroot : OneDimUnstableRoot p) {δ t₀ : ℝ} :
+    ∃ lam : ℝ,
+      0 < lam ∧
+      characteristicAtOne p lam ∧
+      ∃ v : State,
+        HasEigenpair (jacobianAtOne p) lam v ∧
+        ∃ r > 0, ∃ eps > 0,
+          (E1 + δ • v ∈ Metric.closedBall E1 r →
+            ∃ z : ℝ → State,
+              z t₀ = E1 + δ • v ∧
+              ∀ t ∈ Ioo (t₀ - eps) (t₀ + eps),
+                HasDerivAt z (vectorField p (z t)) t) := by
+  rcases hroot with ⟨lam, ⟨hpos, hchar⟩, _huniq⟩
+  obtain ⟨v, _hpos, hv, r, hr, eps, heps, hseg⟩ :=
+    local_shooting_segment_from_E1_positive_eigenpair
+      (p := p) (lam := lam) (δ := δ) (t₀ := t₀) hpos hchar
+  exact ⟨lam, hpos, hchar, v, hv, r, hr, eps, heps, hseg⟩
+
+def HasHeteroclinicE1E0 (p : Params) : Prop :=
+  ∃ z : ℝ → State,
+    SolvesTWODE p z ∧
+    Tendsto z atBot (nhds E1) ∧
+    Tendsto z atTop (nhds E0)
+
+theorem travelingWave_of_heteroclinic
+    (p : Params)
+    (h : HasHeteroclinicE1E0 p) :
+    Nonempty (TravelingWave p) := by
+  rcases h with ⟨z, hzode, hleft, hright⟩
+  exact ⟨⟨z, hzode, hleft, hright⟩⟩
+
+theorem heteroclinic_from_shooting_hypotheses
+    (p : Params)
+    (hsource : OneDimUnstableRoot p) :
+    HasHeteroclinicE1E0 p := by
+  sorry
+
 theorem shooting_theorem
 (p : Params)
 (hsource : OneDimUnstableRoot p) :
 Nonempty (TravelingWave p) := by
-sorry
+exact travelingWave_of_heteroclinic p (heteroclinic_from_shooting_hypotheses p hsource)
 
 end TravelingWaveODE
 end PDE

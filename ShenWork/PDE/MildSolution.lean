@@ -116,6 +116,29 @@ private lemma chemotaxisSource_aestronglyMeasurable (p : CMParams) (u : ℝ → 
   exact hu.mul (aestronglyMeasurable_const.sub
     (Continuous.comp_aestronglyMeasurable (continuous_rpow_const (le_trans zero_le_one p.hα)) hu))
 
+private lemma chemotaxisSource_bound_of_bounded (p : CMParams) (u : ℝ → ℝ) {M : ℝ}
+    (hu : ∀ y, |u y| ≤ M) :
+    ∀ y, |chemotaxisSource p u (fun _ => 0) y| ≤ M * (1 + M ^ p.α) := by
+  have hM_nn : 0 ≤ M := (abs_nonneg (u 0)).trans (hu 0)
+  have hα_nn : 0 ≤ p.α := le_trans zero_le_one p.hα
+  intro y
+  have hy_abs : |u y| ≤ M := hu y
+  have hy_pow : |(u y) ^ p.α| ≤ M ^ p.α := by
+    calc |(u y) ^ p.α| ≤ |u y| ^ p.α := Real.abs_rpow_le_abs_rpow (u y) p.α
+      _ ≤ M ^ p.α := Real.rpow_le_rpow (abs_nonneg (u y)) hy_abs hα_nn
+  have hfactor : |1 - (u y) ^ p.α| ≤ 1 + M ^ p.α := by
+    have htri : |1 - (u y) ^ p.α| ≤ 1 + |(u y) ^ p.α| := by
+      simpa [abs_neg] using (abs_sub_le (1 : ℝ) 0 ((u y) ^ p.α))
+    calc |1 - (u y) ^ p.α|
+        ≤ 1 + |(u y) ^ p.α| := htri
+      _ ≤ 1 + M ^ p.α := by
+        exact add_le_add (le_refl 1) hy_pow
+  simp only [chemotaxisSource]
+  calc |u y * (1 - (u y) ^ p.α)|
+      = |u y| * |1 - (u y) ^ p.α| := abs_mul _ _
+    _ ≤ M * (1 + M ^ p.α) :=
+        mul_le_mul hy_abs hfactor (abs_nonneg _) hM_nn
+
 /-- For sufficiently small T > 0, the mild solution operator Φ is a contraction
     on the space of bounded continuous functions [0,T] → C^b(ℝ). -/
 private lemma mildSolutionOperator_difference_integral_identity
@@ -145,8 +168,10 @@ private lemma mildSolutionOperator_difference_integral_identity
     have hF₁_meas := chemotaxisSource_aestronglyMeasurable p (u₁ s) (hu₁_meas s)
     have hF₂_meas := chemotaxisSource_aestronglyMeasurable p (u₂ s) (hu₂_meas s)
     exact (heatSemigroup_sub x
-      (heatKernel_mul_bounded_integrable hts_pos x (M := M₁) (sorry) hF₁_meas)
-      (heatKernel_mul_bounded_integrable hts_pos x (M := M₂) (sorry) hF₂_meas)).symm
+      (heatKernel_mul_bounded_integrable hts_pos x (M := M₁ * (1 + M₁ ^ p.α))
+        (chemotaxisSource_bound_of_bounded p (u₁ s) hM₁) hF₁_meas)
+      (heatKernel_mul_bounded_integrable hts_pos x (M := M₂ * (1 + M₂ ^ p.α))
+        (chemotaxisSource_bound_of_bounded p (u₂ s) hM₂) hF₂_meas)).symm
 
 private lemma mildSolutionOperator_duhamel_integral_bound
     (p : CMParams) (u₁ u₂ : ℝ → ℝ → ℝ) (L D t x : ℝ)
@@ -171,11 +196,6 @@ private lemma mildSolutionOperator_duhamel_integral_bound
       exact heatSemigroup_abs_bound (fun y => _hsource_bound s y) hts_pos hLD_nn
         ((chemotaxisSource_aestronglyMeasurable p (u₁ s) (hu₁_meas s)).sub
           (chemotaxisSource_aestronglyMeasurable p (u₂ s) (hu₂_meas s))) x
-  have hG_int : IntegrableOn G (Set.Icc 0 t) :=
-    Measure.integrableOn_of_bounded (by simp [Real.volume_Icc] : volume (Set.Icc 0 t) ≠ ⊤)
-      (by sorry : AEStronglyMeasurable G volume)
-      ((ae_restrict_mem measurableSet_Icc).mono fun s hs =>
-        by simpa [Real.norm_eq_abs] using hG_bound s hs)
   have hfinite : MeasureTheory.volume (Set.Icc (0 : ℝ) t) < ⊤ := by simp [Real.volume_Icc]
   have hnorm : ‖∫ s in Set.Icc 0 t, G s‖ ≤
       (L * D) * MeasureTheory.volume.real (Set.Icc (0 : ℝ) t) :=

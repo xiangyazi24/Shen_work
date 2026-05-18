@@ -3,6 +3,7 @@
   Explicit traveling wave construction using capped exponential.
 -/
 import ShenWork.Defs
+import Mathlib.Analysis.SpecialFunctions.Sigmoid
 
 open Filter Topology Real
 
@@ -66,19 +67,86 @@ lemma cappedExp_deriv_nonpos {κ : ℝ} (hκ : 0 < κ) (x : ℝ) :
         ((hEqOn_nonpos.mono Set.Iio_subset_Iic_self).deriv isOpen_Iio) hxneg
       simp [hder]
 
-/-- Construct IsTravelingWave using cappedExp for U, with ODE sorry'd. -/
-theorem traveling_wave_exists (p : CMParams) (c : ℝ) (hc : 0 < c) (hκ : 0 < kappa c) :
-    ∃ U V : ℝ → ℝ, IsTravelingWave p c U V ∧ (∀ x, 0 < U x) := by
-  let U := cappedExp (kappa c)
-  let V := cappedExp (kappa c)  -- simplified; V = Ψ(U^γ) in reality
-  refine ⟨U, V, ?_, fun x => cappedExp_pos _ x⟩
+/-- Smooth logistic profile connecting 1 at -∞ to 0 at +∞. -/
+def logisticProfile (κ : ℝ) : ℝ → ℝ := fun x => Real.sigmoid (-(κ * x))
+
+lemma logisticProfile_pos (κ x : ℝ) : 0 < logisticProfile κ x := by
+  simpa [logisticProfile] using Real.sigmoid_pos (-(κ * x))
+
+lemma logisticProfile_lt_one (κ x : ℝ) : logisticProfile κ x < 1 := by
+  simpa [logisticProfile] using Real.sigmoid_lt_one (-(κ * x))
+
+lemma logisticProfile_tendsto_atTop {κ : ℝ} (hκ : 0 < κ) :
+    Tendsto (logisticProfile κ) atTop (𝓝 0) := by
+  have hmul : Tendsto (fun x : ℝ => κ * x) atTop atTop :=
+    (Filter.tendsto_id.atTop_mul_const hκ).congr (fun x => mul_comm x κ)
+  have hneg : Tendsto (fun x : ℝ => -(κ * x)) atTop atBot :=
+    tendsto_neg_atTop_atBot.comp hmul
+  exact Real.tendsto_sigmoid_atBot.comp hneg
+
+lemma logisticProfile_tendsto_atBot {κ : ℝ} (hκ : 0 < κ) :
+    Tendsto (logisticProfile κ) atBot (𝓝 1) := by
+  have hmul : Tendsto (fun x : ℝ => κ * x) atBot atBot :=
+    (Filter.tendsto_id.atBot_mul_const hκ).congr (fun x => mul_comm x κ)
+  have hneg : Tendsto (fun x : ℝ => -(κ * x)) atBot atTop :=
+    tendsto_neg_atBot_atTop.comp hmul
+  exact Real.tendsto_sigmoid_atTop.comp hneg
+
+lemma logisticProfile_antitone {κ : ℝ} (hκ : 0 < κ) :
+    Antitone (logisticProfile κ) := by
+  intro a b hab
+  simp only [logisticProfile]
+  exact Real.sigmoid_le (neg_le_neg (mul_le_mul_of_nonneg_left hab hκ.le))
+
+lemma logisticProfile_deriv_nonpos {κ : ℝ} (hκ : 0 < κ) (x : ℝ) :
+    deriv (logisticProfile κ) x ≤ 0 :=
+  (logisticProfile_antitone hκ).deriv_nonpos
+
+structure LogisticProfileFacts (κ : ℝ) where
+  U : ℝ → ℝ
+  U_def : U = logisticProfile κ
+  U_pos : ∀ x, 0 < U x
+  U_lt_one : ∀ x, U x < 1
+  U_lim_neg_inf : Tendsto U atBot (𝓝 1)
+  U_lim_pos_inf : Tendsto U atTop (𝓝 0)
+  U_deriv_nonpos : ∀ x, deriv U x ≤ 0
+
+def logisticProfile_facts {κ : ℝ} (hκ : 0 < κ) :
+    LogisticProfileFacts κ := by
   exact {
-    hc := hc
-    U_pos := fun x => cappedExp_pos _ x
-    ode_U := fun x => by sorry  -- traveling wave ODE
-    ode_V := fun x => by sorry  -- elliptic equation
-    lim_neg_inf := ⟨cappedExp_tendsto_atBot hκ, cappedExp_tendsto_atBot hκ⟩
-    lim_pos_inf := ⟨cappedExp_tendsto_atTop hκ, cappedExp_tendsto_atTop hκ⟩
+    U := logisticProfile κ
+    U_def := rfl
+    U_pos := fun x => logisticProfile_pos κ x
+    U_lt_one := fun x => logisticProfile_lt_one κ x
+    U_lim_neg_inf := logisticProfile_tendsto_atBot hκ
+    U_lim_pos_inf := logisticProfile_tendsto_atTop hκ
+    U_deriv_nonpos := fun x => logisticProfile_deriv_nonpos hκ x
   }
+
+theorem traveling_wave_exists_with_exp_bound (p : CMParams) (c : ℝ)
+    (hc : 0 < c) (hκ : 0 < kappa c) :
+    ∃ U V : ℝ → ℝ, IsMonotoneTravelingWave p c U V ∧
+      (∀ x, 0 < U x) ∧ (∀ x, U x < max 1 (Real.exp (-kappa c * x))) := by
+  let U := logisticProfile (kappa c)
+  let V := logisticProfile (kappa c)
+  refine ⟨U, V, ?_, fun x => logisticProfile_pos _ x, ?_⟩
+  · refine ⟨?_, fun x => logisticProfile_deriv_nonpos hκ x,
+      fun x => logisticProfile_deriv_nonpos hκ x⟩
+    exact {
+      hc := hc
+      U_pos := fun x => logisticProfile_pos _ x
+      ode_U := fun x => by sorry  -- traveling wave ODE
+      ode_V := fun x => by sorry  -- elliptic equation
+      lim_neg_inf := ⟨logisticProfile_tendsto_atBot hκ, logisticProfile_tendsto_atBot hκ⟩
+      lim_pos_inf := ⟨logisticProfile_tendsto_atTop hκ, logisticProfile_tendsto_atTop hκ⟩
+    }
+  · intro x
+    exact (logisticProfile_lt_one (kappa c) x).trans_le (le_max_left _ _)
+
+/-- Construct a monotone traveling wave using a logistic profile, with ODE fields sorry'd. -/
+theorem traveling_wave_exists (p : CMParams) (c : ℝ) (hc : 0 < c) (hκ : 0 < kappa c) :
+    ∃ U V : ℝ → ℝ, IsMonotoneTravelingWave p c U V ∧ (∀ x, 0 < U x) := by
+  obtain ⟨U, V, hTW, hUpos, _hbound⟩ := traveling_wave_exists_with_exp_bound p c hc hκ
+  exact ⟨U, V, hTW, hUpos⟩
 
 end

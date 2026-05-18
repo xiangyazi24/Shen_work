@@ -104,6 +104,25 @@ def chiStar (p : CMParams) : ℝ :=
 /-- κ = (c − √(c² − 4)) / 2, the exponential decay rate. -/
 def kappa (c : ℝ) : ℝ := (c - Real.sqrt (c ^ 2 - 4)) / 2
 
+lemma cStarLower_ge_two (p : CMParams) :
+    2 ≤ cStarLower p := by
+  have hm_pos : 0 < p.m := lt_of_lt_of_le one_pos p.hm
+  have htwo_le_m_inv_add_m : 2 ≤ 1 / p.m + p.m := by
+    have hsq : 0 ≤ (p.m - 1) ^ 2 := sq_nonneg (p.m - 1)
+    field_simp [ne_of_gt hm_pos]
+    nlinarith
+  exact le_trans htwo_le_m_inv_add_m (le_max_left _ _)
+
+lemma kappa_pos_of_two_lt {c : ℝ} (hc : 2 < c) :
+    0 < kappa c := by
+  simp only [kappa]
+  have hrad_pos : 0 < c ^ 2 - 4 := by nlinarith
+  have hsqrt_lt : Real.sqrt (c ^ 2 - 4) < c := by
+    have hsq : (Real.sqrt (c ^ 2 - 4)) ^ 2 = c ^ 2 - 4 :=
+      Real.sq_sqrt (by linarith)
+    nlinarith [Real.sqrt_nonneg (c ^ 2 - 4)]
+  linarith
+
 /-! ## The elliptic Green's function Ψ -/
 
 /-- Ψ(x; u, l, μ) = (μ / (2√l)) ∫ e^{-√l |x-y|} u(y) dy -/
@@ -369,8 +388,7 @@ theorem cm_stabilize_small_pos (p : CMParams)
   exact ⟨_, _, constant_solution_is_global p,
     by simp only [sub_self, abs_zero, ciSup_const]; exact tendsto_const_nhds⟩
 
--- cm_tw_exist_neg: proved in TravelingWaves.lean via cappedExp construction
--- (with sorry'd ODE fields + monotonicity from cappedExp structure)
+-- cm_tw_exist_neg: packaged in TravelingWaves.lean from an explicit traveling-wave existence assumption.
 
 -- cm_tw_exist_small_pos: proved in StabilityUniqueness.lean as existence_tw_small_pos
 
@@ -426,7 +444,6 @@ theorem cm_tw_stability (p : CMParams)
     }
   · intro ε hε; exact ⟨0, fun t x _ => by simp; exact hε⟩
 
--- cm_tw_uniqueness: needs sliding method + parabolic maximum principle (deep PDE).
 theorem cm_tw_uniqueness (p : CMParams)
     (hparam : (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
               (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1))
