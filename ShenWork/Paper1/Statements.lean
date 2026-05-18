@@ -219,6 +219,23 @@ theorem upperBarrier_pos {κ M : ℝ} (hM : 0 < M) (x : ℝ) :
     0 < upperBarrier κ M x :=
   lt_min hM (Real.exp_pos _)
 
+theorem upperBarrier_continuous (κ M : ℝ) :
+    Continuous (upperBarrier κ M) := by
+  unfold upperBarrier
+  exact continuous_const.min
+    (Real.continuous_exp.comp (continuous_const.mul continuous_id))
+
+theorem upperBarrier_isBddFun {κ M : ℝ} (hM : 0 ≤ M) :
+    IsBddFun (upperBarrier κ M) := by
+  refine ⟨M, ?_⟩
+  intro x
+  rw [abs_of_nonneg (upperBarrier_nonneg hM x)]
+  exact upperBarrier_le_M κ M x
+
+theorem upperBarrier_cunif_bdd {κ M : ℝ} (hM : 0 ≤ M) :
+    IsCUnifBdd (upperBarrier κ M) :=
+  ⟨upperBarrier_continuous κ M, upperBarrier_isBddFun hM⟩
+
 theorem upperBarrier_antitone {κ M : ℝ} (hκ : 0 ≤ κ) :
     Antitone (upperBarrier κ M) := by
   intro x₁ x₂ hx
@@ -646,6 +663,12 @@ theorem InWaveTrapSet.zero {κ M : ℝ} (hM : 0 ≤ M) :
   intro x
   exact ⟨le_rfl, upperBarrier_nonneg hM x⟩
 
+theorem upperBarrier_mem_InWaveTrapSet {κ M : ℝ} (hM : 0 ≤ M) :
+    InWaveTrapSet κ M (upperBarrier κ M) := by
+  refine ⟨upperBarrier_cunif_bdd hM, ?_⟩
+  intro x
+  exact ⟨upperBarrier_nonneg hM x, le_rfl⟩
+
 theorem InWaveTrapSet.convex_combo
     {κ M : ℝ} {u v : ℝ → ℝ} {θ : ℝ}
     (hθ0 : 0 ≤ θ) (hθ1 : θ ≤ 1)
@@ -706,6 +729,11 @@ theorem InMonotoneWaveTrapSet.le_upperBarrier
 theorem InMonotoneWaveTrapSet.zero {κ M : ℝ} (hM : 0 ≤ M) :
     InMonotoneWaveTrapSet κ M (fun _ : ℝ => (0 : ℝ)) := by
   exact ⟨InWaveTrapSet.zero hM, antitone_const⟩
+
+theorem upperBarrier_mem_InMonotoneWaveTrapSet
+    {κ M : ℝ} (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
+    InMonotoneWaveTrapSet κ M (upperBarrier κ M) := by
+  exact ⟨upperBarrier_mem_InWaveTrapSet hM, upperBarrier_antitone hκ⟩
 
 theorem InMonotoneWaveTrapSet.convex_combo
     {κ M : ℝ} {u v : ℝ → ℝ} {θ : ℝ}
