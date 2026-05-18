@@ -8,6 +8,7 @@
   predicates in `Paper2/Defs.lean`.
 -/
 import ShenWork.Paper2.Defs
+import Mathlib.Analysis.MeanInequalities
 
 open Filter Topology
 
@@ -197,6 +198,54 @@ def Lemma_2_4 (D : BoundedDomainData) (p : CM2Params)
 def Lemma_2_5 : Prop :=
   ∀ beta v : ℝ, 0 < beta → 0 < v →
     beta * v / (1 + v) ^ (1 + beta) ≤ Psi_beta beta
+
+theorem Lemma_2_5_proved : Lemma_2_5 := by
+  intro beta v hbeta hv
+  have hden_pos : 0 < 1 + beta := by linarith
+  have hvden_pos : 0 < 1 + v := by linarith
+  have hweights : 1 / (1 + beta) + beta / (1 + beta) = 1 := by
+    field_simp [ne_of_gt hden_pos]
+  have hgm :=
+    Real.geom_mean_le_arith_mean2_weighted
+      (show 0 ≤ 1 / (1 + beta) by positivity)
+      (show 0 ≤ beta / (1 + beta) by positivity)
+      (mul_nonneg hbeta.le hv.le)
+      (show 0 ≤ (1 : ℝ) by norm_num)
+      hweights
+      (p₁ := beta * v) (p₂ := 1)
+  have hgm' :
+      (beta * v) ^ (1 / (1 + beta)) ≤ beta * (1 + v) / (1 + beta) := by
+    calc
+      (beta * v) ^ (1 / (1 + beta))
+          ≤ beta / (beta + 1) + (beta + 1)⁻¹ * (beta * v) := by
+            simpa [Real.one_rpow, one_div, add_comm] using hgm
+      _ = beta * (1 + v) / (1 + beta) := by
+            field_simp [ne_of_gt hden_pos]
+            ring
+  have hpow :=
+    Real.rpow_le_rpow
+      (Real.rpow_nonneg (mul_nonneg hbeta.le hv.le) _)
+      hgm' (show 0 ≤ 1 + beta by linarith)
+  have hleft_eq :
+      ((beta * v) ^ (1 / (1 + beta))) ^ (1 + beta) = beta * v := by
+    rw [← Real.rpow_mul (mul_nonneg hbeta.le hv.le)]
+    have hprod : 1 / (1 + beta) * (1 + beta) = 1 := by
+      field_simp [ne_of_gt hden_pos]
+    rw [hprod, Real.rpow_one]
+  have hrhs_eq :
+      (beta * (1 + v) / (1 + beta)) ^ (1 + beta) =
+        Psi_beta beta * (1 + v) ^ (1 + beta) := by
+    have hbase : beta * (1 + v) / (1 + beta) = (beta / (1 + beta)) * (1 + v) := by
+      ring
+    rw [hbase]
+    rw [Real.mul_rpow (div_nonneg hbeta.le hden_pos.le) hvden_pos.le]
+    rfl
+  have hmain : beta * v ≤ Psi_beta beta * (1 + v) ^ (1 + beta) := by
+    rw [hleft_eq, hrhs_eq] at hpow
+    exact hpow
+  have hden_rpow_pos : 0 < (1 + v) ^ (1 + beta) :=
+    Real.rpow_pos_of_pos hvden_pos _
+  exact (div_le_iff₀ hden_rpow_pos).mpr hmain
 
 def AbstractLpBootstrapHypothesis
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
