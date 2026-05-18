@@ -593,6 +593,26 @@ lemma StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two
     StrongLogisticCondition p C := by
   exact Or.inr (Or.inr (Or.inr ⟨hβ, hα, hχ⟩))
 
+lemma StrongLogisticCondition.of_critical_m_add_gamma_sub_one_low_dimension
+    {p : CM2Params} {C : Paper2Constants p}
+    (hβ : 0 ≤ p.β)
+    (hα : p.α = p.m + p.γ - 1)
+    (hdim : (p.N : ℝ) * p.α ≤ 2) :
+    StrongLogisticCondition p C := by
+  exact
+    StrongLogisticCondition.of_critical_m_add_gamma_sub_one hβ hα
+      (Or.inl (positivePart_eq_zero_of_nonpos (by linarith)))
+
+lemma StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two_low_dimension
+    {p : CM2Params} {C : Paper2Constants p}
+    (hβ : (1 / 2 : ℝ) ≤ p.β)
+    (hα : p.α = 2 * p.m + p.γ - 2)
+    (hdim : (p.N : ℝ) * p.α ≤ 2) :
+    StrongLogisticCondition p C := by
+  exact
+    StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two hβ hα
+      (Or.inl (positivePart_eq_zero_of_nonpos (by linarith)))
+
 lemma StrongLogisticCondition.beta_nonneg
     {p : CM2Params} {C : Paper2Constants p}
     (h : StrongLogisticCondition p C) :
