@@ -161,7 +161,15 @@ private lemma mildSolutionOperator_difference_integral_identity
     (hu₁_meas : ∀ s, AEStronglyMeasurable (u₁ s) volume)
     (hu₂_meas : ∀ s, AEStronglyMeasurable (u₂ s) volume)
     (hu₁_bdd : ∀ s, ∃ M, ∀ y, |u₁ s y| ≤ M)
-    (hu₂_bdd : ∀ s, ∃ M, ∀ y, |u₂ s y| ≤ M) :
+    (hu₂_bdd : ∀ s, ∃ M, ∀ y, |u₂ s y| ≤ M)
+    (hG₁ : MeasureTheory.Integrable
+      (fun s => heatSemigroup (t - s)
+        (fun y => chemotaxisSource p (u₁ s) (fun _ => 0) y) x)
+      (MeasureTheory.volume.restrict (Set.Icc 0 t)))
+    (hG₂ : MeasureTheory.Integrable
+      (fun s => heatSemigroup (t - s)
+        (fun y => chemotaxisSource p (u₂ s) (fun _ => 0) y) x)
+      (MeasureTheory.volume.restrict (Set.Icc 0 t))) :
     mildSolutionOperator p u₀ u₁ t x - mildSolutionOperator p u₀ u₂ t x =
       ∫ s in Set.Icc 0 t, heatSemigroup (t - s)
         (fun y => chemotaxisSource p (u₁ s) (fun _ => 0) y -
@@ -169,11 +177,13 @@ private lemma mildSolutionOperator_difference_integral_identity
   simp only [mildSolutionOperator, add_sub_add_left_eq_sub]
   let F₁ : ℝ → ℝ → ℝ := fun s y => chemotaxisSource p (u₁ s) (fun _ => 0) y
   let F₂ : ℝ → ℝ → ℝ := fun s y => chemotaxisSource p (u₂ s) (fun _ => 0) y
-  have hG₁ : MeasureTheory.Integrable (fun s => heatSemigroup (t - s) (F₁ s) x)
-      (MeasureTheory.volume.restrict (Set.Icc 0 t)) := by sorry
-  have hG₂ : MeasureTheory.Integrable (fun s => heatSemigroup (t - s) (F₂ s) x)
-      (MeasureTheory.volume.restrict (Set.Icc 0 t)) := by sorry
-  rw [← MeasureTheory.integral_sub hG₁ hG₂]
+  have hG₁' : MeasureTheory.Integrable (fun s => heatSemigroup (t - s) (F₁ s) x)
+      (MeasureTheory.volume.restrict (Set.Icc 0 t)) := by
+    simpa [F₁] using hG₁
+  have hG₂' : MeasureTheory.Integrable (fun s => heatSemigroup (t - s) (F₂ s) x)
+      (MeasureTheory.volume.restrict (Set.Icc 0 t)) := by
+    simpa [F₂] using hG₂
+  rw [← MeasureTheory.integral_sub hG₁' hG₂']
   apply MeasureTheory.setIntegral_congr_fun measurableSet_Icc
   intro s _hs
   by_cases hts : t - s = 0
@@ -237,6 +247,14 @@ private lemma mildSolutionOperator_lipschitz_estimate (p : CMParams) (u₀ : ℝ
     (hu₂_meas : ∀ s, AEStronglyMeasurable (u₂ s) volume)
     (hu₁_bdd : ∀ s, ∃ M, ∀ y, |u₁ s y| ≤ M)
     (hu₂_bdd : ∀ s, ∃ M, ∀ y, |u₂ s y| ≤ M)
+    (hG₁ : MeasureTheory.Integrable
+      (fun s => heatSemigroup (t - s)
+        (fun y => chemotaxisSource p (u₁ s) (fun _ => 0) y) x)
+      (MeasureTheory.volume.restrict (Set.Icc 0 t)))
+    (hG₂ : MeasureTheory.Integrable
+      (fun s => heatSemigroup (t - s)
+        (fun y => chemotaxisSource p (u₂ s) (fun _ => 0) y) x)
+      (MeasureTheory.volume.restrict (Set.Icc 0 t)))
     (ht : 0 ≤ t) (htT : t ≤ T) :
     |mildSolutionOperator p u₀ u₁ t x - mildSolutionOperator p u₀ u₂ t x| ≤
       L * T * sSup (Set.range fun s => sSup (Set.range fun y => |u₁ s y - u₂ s y|)) := by
@@ -265,7 +283,7 @@ private lemma mildSolutionOperator_lipschitz_estimate (p : CMParams) (u₀ : ℝ
         ≤ L * |u₁ s y - u₂ s y| := hLip _ _ (hu₁ s y) (hu₂ s y)
       _ ≤ L * D := mul_le_mul_of_nonneg_left (hle_D s y) hL_nn
   rw [mildSolutionOperator_difference_integral_identity p u₀ u₁ u₂ t x
-    hu₁_meas hu₂_meas hu₁_bdd hu₂_bdd]
+    hu₁_meas hu₂_meas hu₁_bdd hu₂_bdd hG₁ hG₂]
   calc |∫ s in Set.Icc 0 t, heatSemigroup (t - s)
         (fun y => chemotaxisSource p (u₁ s) (fun _ => 0) y -
           chemotaxisSource p (u₂ s) (fun _ => 0) y) x|
@@ -281,6 +299,15 @@ theorem mild_solution_operator_contracting (p : CMParams)
     (∀ t x, |u₂ t x| ≤ 2 * (sSup (Set.range (fun x => |u₀ x|)))) →
     (∀ s, AEStronglyMeasurable (u₁ s) volume) →
     (∀ s, AEStronglyMeasurable (u₂ s) volume) →
+    (∀ t x, 0 ≤ t → t ≤ T →
+      MeasureTheory.Integrable
+        (fun s => heatSemigroup (t - s)
+          (fun y => chemotaxisSource p (u₁ s) (fun _ => 0) y) x)
+        (MeasureTheory.volume.restrict (Set.Icc 0 t)) ∧
+      MeasureTheory.Integrable
+        (fun s => heatSemigroup (t - s)
+          (fun y => chemotaxisSource p (u₂ s) (fun _ => 0) y) x)
+        (MeasureTheory.volume.restrict (Set.Icc 0 t))) →
     ∀ t x, 0 ≤ t → t ≤ T →
     |mildSolutionOperator p u₀ u₁ t x - mildSolutionOperator p u₀ u₂ t x| ≤
       K * (sSup (Set.range (fun s => sSup (Set.range (fun y => |u₁ s y - u₂ s y|))))) := by
@@ -293,7 +320,7 @@ theorem mild_solution_operator_contracting (p : CMParams)
     have : L * (1 / (2 * L)) = 1 / 2 := by field_simp
     linarith
   refine ⟨1 / (2 * L), hT_pos, L * (1 / (2 * L)), by positivity, hK_lt, ?_⟩
-  intro u₁ u₂ hu₁ hu₂ hu₁m hu₂m t x ht htT
+  intro u₁ u₂ hu₁ hu₂ hu₁m hu₂m htime_int t x ht htT
   have hu₁_bdd : ∀ s, ∃ C, ∀ y, |u₁ s y| ≤ C :=
     fun s => ⟨2 * sSup (Set.range fun x => |u₀ x|), hu₁ s⟩
   have hu₂_bdd : ∀ s, ∃ C, ∀ y, |u₂ s y| ≤ C :=
@@ -302,7 +329,8 @@ theorem mild_solution_operator_contracting (p : CMParams)
     (by positivity) hL_pos.le (fun a b ha hb => by
       simp only [chemotaxisSource]
       exact hLip a b (le_trans ha (le_max_right _ _)) (le_trans hb (le_max_right _ _)))
-    hu₁ hu₂ hu₁m hu₂m hu₁_bdd hu₂_bdd ht htT
+    hu₁ hu₂ hu₁m hu₂m hu₁_bdd hu₂_bdd
+    (htime_int t x ht htT).1 (htime_int t x ht htT).2 ht htT
   linarith [hmain]
 
 /-- Local existence of mild solutions via Banach fixed-point theorem. -/

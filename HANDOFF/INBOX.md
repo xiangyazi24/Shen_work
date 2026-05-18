@@ -1,6 +1,6 @@
 # Tasks for Codex (GPT-5.5)
 
-BUILD OK, 5 sorry remaining. Priority order:
+BUILD OK, 3 sorry remaining. Priority order:
 
 ## Done: Parabolic maximum principle
 
@@ -39,18 +39,19 @@ BUILD OK, 5 sorry remaining. Priority order:
   `TravelingWaveConstruction.lean` now states only true profile/barrier facts, and
   `TravelingWaves.lean` / `StabilityUniqueness.lean` no longer claim those profiles
   prove `IsTravelingWave`.
+- Closed the two `MildSolution.lean` integrability `sorry`s by making the missing
+  time-integrability hypotheses explicit in the Duhamel difference/Lipschitz estimate.
+  The theorem now proves the algebraic integral identity from genuine
+  `MeasureTheory.Integrable` assumptions instead of pretending spatial measurability
+  implies time integrability.
 
-## P0: MildSolution integrability (173, 175)
-Need `AEStronglyMeasurable` for time-parametric integral `s ↦ ∫ y, heatKernel(t-s)(x-y) * F(s,y)`.
-Approach: add continuity hypotheses, use `MeasureTheory.continuousOn_of_dominated` → `ContinuousOn.aestronglyMeasurable`.
-
-## P1: MildSolution Banach fixed point (328)
+## P0: MildSolution Banach fixed point (356)
 Need to construct fixed point of Φ on function space. Use `BoundedContinuousFunction` or `ContractingWith.fixedPoint`.
 
-## P2: heteroclinic_from_shooting (TravelingWaveODE:336)
+## P1: heteroclinic_from_shooting (TravelingWaveODE:336)
 Global ODE existence + convergence to E0.
 
-## P3: Deep theorems
+## P2: Deep theorems
 - Defs:458 — TW uniqueness (paper proves this through stability/asymptotics, not the
   old fake explicit profile construction)
 
