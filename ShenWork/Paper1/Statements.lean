@@ -1310,13 +1310,26 @@ theorem MonotoneWaveTrapSet_convex (κ M : ℝ) :
     Convex ℝ (MonotoneWaveTrapSet κ M) :=
   InMonotoneWaveTrapSet.set_convex κ M
 
-structure SubsolutionConstants where
-  K : ℝ
-  D : ℝ
-  d : ℝ
-  K_pos : 0 < K
-  D_pos : 0 < D
-  d_pos : 0 < d
+def subsolutionK (M κ κtilde m gamma : ℝ) : ℝ :=
+  let prefactor := m * (κtilde + κ) + 1
+  if gamma * κ = 1 then
+    prefactor * (M ^ gamma + 3 / 4)
+  else if gamma * κ < 1 then
+    prefactor * (1 / (1 - gamma ^ 2 * κ ^ 2))
+  else
+    prefactor *
+      (M ^ gamma * (κ ^ 2 * gamma ^ 2 - 1 + gamma * κ) /
+        (κ ^ 2 * gamma ^ 2 - 1))
+
+def subsolutionDThreshold
+    (χ M κ κtilde m gamma c : ℝ) : ℝ :=
+  (1 + |χ| * subsolutionK M κ κtilde m gamma) /
+    (c * κtilde - κtilde ^ 2 - 1)
+
+def constantSubsolutionThreshold (χ κ κtilde D : ℝ) : ℝ :=
+  min (1 / (1 + |χ|))
+    ((κ / (κtilde * D)) ^ (κ / (κtilde - κ)) *
+      (1 - κ / κtilde))
 
 def Lemma_4_1 : Prop :=
   (∀ p : CMParams, p.χ ≤ 0 → p.α ≤ p.m + p.γ - 1 →
@@ -1336,12 +1349,12 @@ def Lemma_4_2 : Prop :=
       κ < κtilde →
       κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
       1 ≤ M → c = κ + κ⁻¹ →
-        ∃ C : SubsolutionConstants,
-          ∀ D : ℝ, C.D < D →
+        ∀ D : ℝ,
+          subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D →
             ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
               IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
                 (Set.Ioi (lowerBarrierXMinus κ κtilde D)) ∧
-              ∀ d : ℝ, 0 < d → d ≤ C.d →
+              ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
                 IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ
 
 def MChi (p : CMParams) : ℝ :=
