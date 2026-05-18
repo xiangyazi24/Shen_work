@@ -69,7 +69,7 @@ Source: `paper3.pdf`, Chen-Ruau-Shen Part II.
 | Propositions 1.1--1.4 | `Paper3.Proposition_1_1`--`Paper3.Proposition_1_4` | statement target | Recalled from Part I. |
 | Definition 2.1 | `LinearlyStable`, `LinearlyUnstable`, `HasNeumannSpectrum`, stability predicates | partial | Neumann spectral API, equilibrium positivity, constant-state algebra, and negative-sensitivity spectral sign lemmas are proved; local exponential stability packaging remains. |
 | Theorem 2.1 | `Paper3.Theorem_2_1` | statement target | Uniform persistence. |
-| Theorem 2.2 | `Paper3.Theorem_2_2` | statement target | Linear stability/instability; negative-sensitivity `sigma < 0` and linearly-stable corollaries proved for positive equilibria under nonnegative eigenvalues and for minimal equilibria under positive nonzero eigenvalues. |
+| Theorem 2.2 | `Paper3.Theorem_2_2` | statement target | Linear stability/instability; negative-sensitivity `sigma < 0`, linear `σ` decomposition in `χ₀`, positive chemotaxis coefficient, and linearly-stable corollaries proved for positive/minimal equilibria under Neumann spectrum hypotheses. |
 | Theorem 2.3 | `Paper3.Theorem_2_3` | statement target | Global stability for negative sensitivity. |
 | Theorem 2.4 | `Paper3.Theorem_2_4` | statement target | Global stability with strong logistic source. |
 | Theorem 2.5 | `Paper3.Theorem_2_5` | statement target | Minimal-model stability. |

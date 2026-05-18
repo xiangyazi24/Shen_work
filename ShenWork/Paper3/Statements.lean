@@ -131,6 +131,55 @@ def sigma
         ((1 + vStar) ^ p.β * (p.μ + lambdaN)) -
     p.a * p.α
 
+def sigmaBase (p : CM2Params) (lambdaN : ℝ) : ℝ :=
+  -lambdaN - p.a * p.α
+
+def sigmaChemCoefficient
+    (p : CM2Params) (uStar vStar lambdaN : ℝ) : ℝ :=
+  p.ν * p.γ *
+    (uStar ^ (p.m + p.γ - 1) * lambdaN) /
+      ((1 + vStar) ^ p.β * (p.μ + lambdaN))
+
+lemma sigma_eq_base_add_chi_coeff
+    (p : CM2Params) (uStar vStar lambdaN : ℝ) :
+    sigma p uStar vStar lambdaN =
+      sigmaBase p lambdaN +
+        p.χ₀ * sigmaChemCoefficient p uStar vStar lambdaN := by
+  unfold sigma sigmaBase sigmaChemCoefficient
+  ring
+
+lemma sigmaChemCoefficient_nonneg
+    (p : CM2Params) {uStar vStar lambdaN : ℝ}
+    (huStar : 0 ≤ uStar) (hvStar : 0 ≤ vStar) (hlambda : 0 ≤ lambdaN) :
+    0 ≤ sigmaChemCoefficient p uStar vStar lambdaN := by
+  unfold sigmaChemCoefficient
+  have hden_pos :
+      0 < (1 + vStar) ^ p.β * (p.μ + lambdaN) := by
+    exact mul_pos
+      (Real.rpow_pos_of_pos (by linarith : 0 < 1 + vStar) _)
+      (by linarith [p.hμ])
+  have hnum_nonneg :
+      0 ≤ p.ν * p.γ * (uStar ^ (p.m + p.γ - 1) * lambdaN) := by
+    exact mul_nonneg (mul_pos p.hν p.hγ).le
+      (mul_nonneg (Real.rpow_nonneg huStar _) hlambda)
+  exact div_nonneg hnum_nonneg hden_pos.le
+
+lemma sigmaChemCoefficient_pos
+    (p : CM2Params) {uStar vStar lambdaN : ℝ}
+    (huStar : 0 < uStar) (hvStar : 0 ≤ vStar) (hlambda : 0 < lambdaN) :
+    0 < sigmaChemCoefficient p uStar vStar lambdaN := by
+  unfold sigmaChemCoefficient
+  have hden_pos :
+      0 < (1 + vStar) ^ p.β * (p.μ + lambdaN) := by
+    exact mul_pos
+      (Real.rpow_pos_of_pos (by linarith : 0 < 1 + vStar) _)
+      (by linarith [p.hμ])
+  have hnum_pos :
+      0 < p.ν * p.γ * (uStar ^ (p.m + p.γ - 1) * lambdaN) := by
+    exact mul_pos (mul_pos p.hν p.hγ)
+      (mul_pos (Real.rpow_pos_of_pos huStar _) hlambda)
+  exact div_pos hnum_pos hden_pos
+
 def LinearlyStable
     (S : SpectralData) (p : CM2Params) (uStar vStar : ℝ) : Prop :=
   ∀ n : ℕ, n ≠ 0 → sigma p uStar vStar (S.eigenvalue n) < 0
