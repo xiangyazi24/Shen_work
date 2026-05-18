@@ -1866,6 +1866,17 @@ theorem stabilitySpeedBaseline_pos (p : CMParams) :
     linarith
   positivity
 
+theorem one_lt_stabilitySpeedBaseline (p : CMParams) :
+    1 < stabilitySpeedBaseline p := by
+  unfold stabilitySpeedBaseline
+  have hpow_nonneg : 0 ≤ |p.χ| ^ (1 / 6 : ℝ) :=
+    Real.rpow_nonneg (abs_nonneg p.χ) _
+  have hden_pos : 0 < 1 + |p.χ| ^ (1 / 6 : ℝ) := by
+    linarith
+  have hinv_pos : 0 < (1 + |p.χ| ^ (1 / 6 : ℝ))⁻¹ :=
+    inv_pos.mpr hden_pos
+  linarith
+
 theorem StableWaveParameterRegime.chi_lt_one
     {p : CMParams} (h : StableWaveParameterRegime p) :
     p.χ < 1 := by
