@@ -590,6 +590,12 @@ def NonincreasingProfile (u : ℝ → ℝ) : Prop :=
 def InMonotoneWaveTrapSet (κ M : ℝ) (u : ℝ → ℝ) : Prop :=
   InWaveTrapSet κ M u ∧ NonincreasingProfile u
 
+def WaveTrapSet (κ M : ℝ) : Set (ℝ → ℝ) :=
+  {u | InWaveTrapSet κ M u}
+
+def MonotoneWaveTrapSet (κ M : ℝ) : Set (ℝ → ℝ) :=
+  {u | InMonotoneWaveTrapSet κ M u}
+
 theorem IsBddFun.convex_combo
     {u v : ℝ → ℝ} {θ : ℝ}
     (_hθ0 : 0 ≤ θ) (_hθ1 : θ ≤ 1)
@@ -713,6 +719,10 @@ theorem InWaveTrapSet.set_nonempty {κ M : ℝ} (hM : 0 ≤ M) :
     ({u : ℝ → ℝ | InWaveTrapSet κ M u}).Nonempty :=
   ⟨fun _ => 0, InWaveTrapSet.zero hM⟩
 
+theorem WaveTrapSet_nonempty {κ M : ℝ} (hM : 0 ≤ M) :
+    (WaveTrapSet κ M).Nonempty :=
+  InWaveTrapSet.set_nonempty hM
+
 theorem InWaveTrapSet.set_convex (κ M : ℝ) :
     Convex ℝ {u : ℝ → ℝ | InWaveTrapSet κ M u} := by
   rw [convex_iff_add_mem]
@@ -722,6 +732,10 @@ theorem InWaveTrapSet.set_convex (κ M : ℝ) :
   convert InWaveTrapSet.convex_combo ha ha_le_one hu hv using 1
   ext x
   simp [hb_eq, smul_eq_mul]
+
+theorem WaveTrapSet_convex (κ M : ℝ) :
+    Convex ℝ (WaveTrapSet κ M) :=
+  InWaveTrapSet.set_convex κ M
 
 theorem InMonotoneWaveTrapSet.trap
     {κ M : ℝ} {u : ℝ → ℝ}
@@ -774,6 +788,10 @@ theorem InMonotoneWaveTrapSet.set_nonempty {κ M : ℝ} (hM : 0 ≤ M) :
     ({u : ℝ → ℝ | InMonotoneWaveTrapSet κ M u}).Nonempty :=
   ⟨fun _ => 0, InMonotoneWaveTrapSet.zero hM⟩
 
+theorem MonotoneWaveTrapSet_nonempty {κ M : ℝ} (hM : 0 ≤ M) :
+    (MonotoneWaveTrapSet κ M).Nonempty :=
+  InMonotoneWaveTrapSet.set_nonempty hM
+
 theorem InMonotoneWaveTrapSet.set_convex (κ M : ℝ) :
     Convex ℝ {u : ℝ → ℝ | InMonotoneWaveTrapSet κ M u} := by
   rw [convex_iff_add_mem]
@@ -783,6 +801,10 @@ theorem InMonotoneWaveTrapSet.set_convex (κ M : ℝ) :
   convert InMonotoneWaveTrapSet.convex_combo ha ha_le_one hu hv using 1
   ext x
   simp [hb_eq, smul_eq_mul]
+
+theorem MonotoneWaveTrapSet_convex (κ M : ℝ) :
+    Convex ℝ (MonotoneWaveTrapSet κ M) :=
+  InMonotoneWaveTrapSet.set_convex κ M
 
 structure SubsolutionConstants where
   K : ℝ
