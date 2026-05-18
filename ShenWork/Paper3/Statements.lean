@@ -1605,6 +1605,37 @@ lemma theorem_2_1_part3_lowerU_pos
     lt_min zero_lt_one hratio
   exact Real.rpow_pos_of_pos hbase _
 
+lemma theorem_2_1_part2_lowerV_pos
+    (p : CM2Params)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1))) :
+    0 <
+      p.ν / p.μ *
+        (((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
+          (1 / p.α)) ^ p.γ := by
+  have hU :
+      0 <
+        ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
+          (1 / p.α) :=
+    theorem_2_1_part2_lowerU_pos p ha hb hχ0 hm hβ hχ
+  exact mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos hU _)
+
+lemma theorem_2_1_part3_lowerV_pos
+    (p : CM2Params)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : 1 < p.m) (hβ : 1 ≤ p.β) :
+    0 <
+      p.ν / p.μ *
+        (min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
+          max (1 / (p.m - 1)) (1 / p.α)) ^ p.γ := by
+  have hU :
+      0 <
+        min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
+          max (1 / (p.m - 1)) (1 / p.α) :=
+    theorem_2_1_part3_lowerU_pos p ha hb hχ0 hm hβ
+  exact mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos hU _)
+
 def Theorem_2_1_part4
     (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) : Prop :=
   p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
