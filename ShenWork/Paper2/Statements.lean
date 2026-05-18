@@ -138,6 +138,11 @@ def LogisticMassUpperBoundBefore
     D.integral (u t) ≤
       max (D.integral u₀) (((p.a / p.b) ^ (1 / p.α)) * D.volume)
 
+def SupNormNonincreasingOn
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ) (I : Set ℝ) : Prop :=
+  ∀ t₁, t₁ ∈ I → ∀ t₂, t₂ ∈ I → t₁ ≤ t₂ →
+    D.supNorm (u t₂) ≤ D.supNorm (u t₁)
+
 def WeightedGradientEstimate
     (D : BoundedDomainData) (pExp beta gamma Mstar T : ℝ)
     (u v : ℝ → D.Point → ℝ) : Prop :=
@@ -713,10 +718,16 @@ def Lemma_2_7 (D : BoundedDomainData) : Prop :=
 
 def Lemma_3_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   p.χ₀ ≤ 0 →
-    ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
-      IsPaper2ClassicalSolution D p T u v →
-        ∀ t, 0 < t → t < T →
-          D.supNorm (u t) ≤ D.supNorm (u 0)
+    (0 < p.a → 0 < p.b →
+      ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+        IsPaper2ClassicalSolution D p T u v →
+          ∀ t₀, 0 < t₀ → t₀ < T →
+            (p.a / p.b) ^ (1 / p.α) < D.supNorm (u t₀) →
+              SupNormNonincreasingOn D u (Set.Ioc (0 : ℝ) t₀)) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+        IsPaper2ClassicalSolution D p T u v →
+          SupNormNonincreasingOn D u (Set.Ioo (0 : ℝ) T))
 
 def Lemma_4_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,

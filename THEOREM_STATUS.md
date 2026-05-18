@@ -67,6 +67,7 @@ File header reference: `ShenWork/Paper2/Defs.lean`, arXiv `2512.14858`.
 | Proposition 2.3 signal estimate | `Paper2.Proposition_2_3`, `WeightedSignalEstimate` | statement target | Stated as the paper's weighted `v` estimate with the small `ε` term and integral-power remainder; the pointwise-in-time projection lemma is proved. |
 | Proposition 2.4 mass comparison | `Paper2.Proposition_2_4`, `MassConservedBefore`, `LogisticMassUpperBoundBefore` | statement target | Stated as the paper's mass conservation in the minimal case and logistic mass upper bound in the nonminimal case. |
 | Proposition 2.5 boundedness criterion | `Paper2.Proposition_2_5`, `LpPowerBoundedBefore` | statement target | Stated as a finite-horizon `L^p`-to-`L∞` boundedness criterion, matching its role before the blow-up alternative. |
+| Lemma 3.1 upper-envelope monotonicity | `Paper2.Lemma_3_1`, `SupNormNonincreasingOn` | statement target | Corrected from a false all-time `supNorm ≤ initial supNorm` statement to the paper's conditional upper-envelope monotonicity result. |
 | Constant equilibrium under toy definition | `cm2_constant_solution_under_current_solution_def` | proved, toy only | Useful only as a sanity check for the current toy predicate. |
 | Persistence counterexample under toy definition | `persistence_property_false_under_current_solution_def` | proved, toy only | Documents why Paper3-style persistence cannot follow from the current Paper2 predicate. |
 

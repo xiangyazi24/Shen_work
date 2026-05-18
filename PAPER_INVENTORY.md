@@ -59,7 +59,7 @@ Source: `paper2.pdf`, Chen-Ruau-Shen Part I.
 | Proposition 2.1 | `Proposition_2_1` | statement target | Fundamental `L^p` estimate for elliptic signal `v` in terms of `u^γ`. |
 | Propositions 2.2--2.5 | `Proposition_2_2`--`Proposition_2_5`, `WeightedGradientEstimate`, `WeightedSignalEstimate`, `MassConservedBefore`, `LogisticMassUpperBoundBefore`, `LpPowerBoundedBefore` | statement target | Fundamental weighted `∇v` and signal estimates, mass comparison, and boundedness criteria; Proposition 2.4 now states the paper's mass conservation/upper-bound result and Proposition 2.5 includes the high-exponent `L^p` boundedness hypothesis; estimate projection lemmas, `χβ` positivity, upper-bound, half/sqrt threshold projections, and denominator branch algebra proved. |
 | Lemma 2.7 | `Lemma_2_7` | statement target | Integral differential inequality used in bootstrap, with the paper's `d/dt ∫u^p` and damping powers represented explicitly. |
-| Lemma 3.1 | `Lemma_3_1` | statement target | Negative-sensitivity estimate. |
+| Lemma 3.1 | `Lemma_3_1`, `SupNormNonincreasingOn` | statement target | Negative-sensitivity upper-envelope monotonicity; corrected from a false global `supNorm ≤ initial supNorm` claim to the paper's conditional monotonicity statement. |
 | Lemma 4.1 | `Lemma_4_1` | statement target | Weak cross-diffusion estimate. |
 
 ## Paper3: persistence and stabilization
