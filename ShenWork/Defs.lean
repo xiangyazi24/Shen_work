@@ -89,6 +89,77 @@ structure IsTravelingWave (p : CMParams) (c : ℝ) (U V : ℝ → ℝ) : Prop wh
 def IsMonotoneTravelingWave (p : CMParams) (c : ℝ) (U V : ℝ → ℝ) : Prop :=
   IsTravelingWave p c U V ∧ (∀ x, deriv U x ≤ 0) ∧ (∀ x, deriv V x ≤ 0)
 
+theorem IsTravelingWave.shift (p : CMParams) {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V) (a : ℝ) :
+    IsTravelingWave p c (fun x => U (x + a)) (fun x => V (x + a)) := by
+  refine
+    { hc := hTW.hc
+      U_pos := fun x => hTW.U_pos (x + a)
+      ode_U := ?_
+      ode_V := ?_
+      lim_neg_inf := ?_
+      lim_pos_inf := ?_ }
+  · intro x
+    have hU2 := congr_fun (iteratedDeriv_comp_add_const 2 U a) x
+    have hU1 := deriv_comp_add_const U a x
+    have hV1 : ∀ y,
+        deriv (fun z => V (z + a)) y = deriv V (y + a) := by
+      intro y
+      exact deriv_comp_add_const V a y
+    have hChem :
+        deriv
+          (fun y => (U (y + a)) ^ p.m *
+            deriv (fun z => V (z + a)) y) x =
+        deriv (fun ξ => (U ξ) ^ p.m * deriv V ξ) (x + a) := by
+      have hfun :
+          (fun y => (U (y + a)) ^ p.m *
+            deriv (fun z => V (z + a)) y) =
+          (fun y => (U (y + a)) ^ p.m * deriv V (y + a)) := by
+        ext y
+        rw [hV1 y]
+      rw [hfun]
+      have := congr_fun
+        (iteratedDeriv_comp_add_const 1
+          (fun ξ => (U ξ) ^ p.m * deriv V ξ) a) x
+      simpa [iteratedDeriv_one] using this
+    rw [hU2, hU1, hChem]
+    exact hTW.ode_U (x + a)
+  · intro x
+    have hV2 := congr_fun (iteratedDeriv_comp_add_const 2 V a) x
+    rw [hV2]
+    exact hTW.ode_V (x + a)
+  · exact
+      ⟨hTW.lim_neg_inf.1.comp
+          (tendsto_atBot_add_const_right atBot a tendsto_id),
+        hTW.lim_neg_inf.2.comp
+          (tendsto_atBot_add_const_right atBot a tendsto_id)⟩
+  · exact
+      ⟨hTW.lim_pos_inf.1.comp
+          (tendsto_atTop_add_const_right atTop a tendsto_id),
+        hTW.lim_pos_inf.2.comp
+          (tendsto_atTop_add_const_right atTop a tendsto_id)⟩
+
+theorem IsMonotoneTravelingWave.shift (p : CMParams) {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsMonotoneTravelingWave p c U V) (a : ℝ) :
+    IsMonotoneTravelingWave p c (fun x => U (x + a)) (fun x => V (x + a)) := by
+  refine ⟨hTW.1.shift p a, ?_, ?_⟩
+  · intro x
+    rw [deriv_comp_add_const]
+    exact hTW.2.1 (x + a)
+  · intro x
+    rw [deriv_comp_add_const]
+    exact hTW.2.2 (x + a)
+
+lemma exp_bound_shift_right {k a : ℝ} (hk : 0 ≤ k) (ha : 0 ≤ a)
+    {U : ℝ → ℝ} (hbound : ∀ x, U x < Real.exp (-k * x)) :
+    ∀ x, U (x + a) < Real.exp (-k * x) := by
+  intro x
+  have hshift := hbound (x + a)
+  have hle_exp : Real.exp (-k * (x + a)) ≤ Real.exp (-k * x) := by
+    apply Real.exp_le_exp.mpr
+    nlinarith [mul_nonneg hk ha]
+  exact hshift.trans_le hle_exp
+
 /-! ## Wave speed bounds -/
 
 /-- c*_{χ,m,γ} from Theorem 1.1(1), eq (1.13). -/

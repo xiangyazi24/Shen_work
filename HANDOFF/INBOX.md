@@ -47,6 +47,10 @@ BUILD OK, 3 sorry remaining. Priority order:
 - Added `abstract_mild_fixed_point`, a proved Banach fixed-point wrapper that converts
   a complete metric self-map, a contraction proof, and an eval/Φ commutation lemma
   into a raw mild fixed point.
+- Added traveling-wave translation infrastructure in `Defs.lean`:
+  `IsTravelingWave.shift`, `IsMonotoneTravelingWave.shift`, and
+  `exp_bound_shift_right`. These are true phase-shift facts needed before any honest
+  uniqueness proof can fix the wave phase using asymptotics/stability.
 
 ## P0: MildSolution Banach fixed point (356)
 Need to instantiate `abstract_mild_fixed_point` by constructing the actual complete
