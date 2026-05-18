@@ -997,6 +997,38 @@ lemma chiMinimal2Formula_pos
         (Real.rpow_pos_of_pos (by linarith : 0 < 1 + vLower) _)
     · exact mul_pos p.hν huBar
 
+lemma chiMinimal1Formula_le_min_half_sqrt
+    (p : CM2Params) (lambdaStar uStar uBar vLower : ℝ) :
+    chiMinimal1Formula p lambdaStar uStar uBar vLower ≤
+      min (chiBeta p / 2) (Real.sqrt (chiBeta p)) := by
+  unfold chiMinimal1Formula
+  exact min_le_left _ _
+
+lemma chiMinimal2Formula_le_min_half_sqrt
+    (p : CM2Params) (uBar vLower : ℝ) :
+    chiMinimal2Formula p uBar vLower ≤
+      min (chiBeta p / 2) (Real.sqrt (chiBeta p)) := by
+  unfold chiMinimal2Formula
+  exact min_le_left _ _
+
+lemma chi_lt_chiBeta_of_lt_chiMinimal1Formula
+    (p : CM2Params) {chi lambdaStar uStar uBar vLower : ℝ}
+    (hβ : 1 ≤ p.β)
+    (hchi : chi < chiMinimal1Formula p lambdaStar uStar uBar vLower) :
+    chi < chiBeta p :=
+  lt_chiBeta_of_lt_min_half_sqrt p hβ
+    (lt_of_lt_of_le hchi
+      (chiMinimal1Formula_le_min_half_sqrt p lambdaStar uStar uBar vLower))
+
+lemma chi_lt_chiBeta_of_lt_chiMinimal2Formula
+    (p : CM2Params) {chi uBar vLower : ℝ}
+    (hβ : 1 ≤ p.β)
+    (hchi : chi < chiMinimal2Formula p uBar vLower) :
+    chi < chiBeta p :=
+  lt_chiBeta_of_lt_min_half_sqrt p hβ
+    (lt_of_lt_of_le hchi
+      (chiMinimal2Formula_le_min_half_sqrt p uBar vLower))
+
 def EventuallyUpperBoundMinimalConclusion
     (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p)
     (u : ℝ → D.Point → ℝ) : Prop :=
@@ -1118,6 +1150,24 @@ lemma MinimalGlobalStabilityCondition.chi_lt_max_threshold
   rcases h with h | h
   · exact lt_of_lt_of_le h.2 (le_max_left _ _)
   · exact lt_of_lt_of_le h.2.2 (le_max_right _ _)
+
+lemma MinimalGlobalStabilityCondition.chi_lt_chiBeta
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar uBar vLower : ℝ}
+    (hβ : 1 ≤ p.β)
+    (hC1 :
+      C.chiMinimal1 uStar =
+        chiMinimal1Formula p 1 uStar uBar vLower)
+    (hC2 :
+      C.chiMinimal2 uStar =
+        chiMinimal2Formula p uBar vLower)
+    (h : MinimalGlobalStabilityCondition D p C uStar) :
+    p.χ₀ < chiBeta p := by
+  rcases h with h | h
+  · exact chi_lt_chiBeta_of_lt_chiMinimal1Formula p hβ
+      (by simpa [hC1] using h.2)
+  · exact chi_lt_chiBeta_of_lt_chiMinimal2Formula p hβ
+      (by simpa [hC2] using h.2.2)
 
 def Theorem_2_1_part1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   1 ≤ p.m →
