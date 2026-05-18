@@ -146,9 +146,9 @@ def PsiDerivativeFormula (u : ℝ → ℝ) (l mu : ℝ) : Prop :=
   ∀ x,
     deriv (fun z => Psi u l mu z) x =
       -(mu / 2) * Real.exp (-Real.sqrt l * x) *
-          ∫ y in Set.Iic x, Real.exp (Real.sqrt l * y) * u y
+          (∫ y in Set.Iic x, Real.exp (Real.sqrt l * y) * u y)
         + (mu / 2) * Real.exp (Real.sqrt l * x) *
-          ∫ y in Set.Ioi x, Real.exp (-Real.sqrt l * y) * u y
+          (∫ y in Set.Ioi x, Real.exp (-Real.sqrt l * y) * u y)
 
 def Lemma_2_2 : Prop :=
   ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
@@ -206,6 +206,116 @@ theorem Lemma_2_3.derivative_bound
     (hu_nonneg : ∀ x, 0 ≤ u x) :
     ∀ x, |deriv (fun z => Psi u l mu z) x| ≤ Real.sqrt l * Psi u l mu x :=
   h u l mu hl hmu hu hu_nonneg
+
+theorem Lemma_2_3_of_Lemma_2_2 (h22 : Lemma_2_2) : Lemma_2_3 := by
+  intro u l mu hl hmu hu hu_nonneg x
+  let a : ℝ := Real.sqrt l
+  have ha : 0 < a := by
+    dsimp [a]
+    exact Real.sqrt_pos.mpr hl
+  let A : ℝ :=
+    Real.exp (-a * x) * ∫ y in Set.Iic x, Real.exp (a * y) * u y
+  let B : ℝ :=
+    Real.exp (a * x) * ∫ y in Set.Ioi x, Real.exp (-a * y) * u y
+  have hA_nonneg : 0 ≤ A := by
+    dsimp [A]
+    exact mul_nonneg (Real.exp_nonneg _)
+      (MeasureTheory.integral_nonneg
+        (fun y => mul_nonneg (Real.exp_nonneg _) (hu_nonneg y)))
+  have hB_nonneg : 0 ≤ B := by
+    dsimp [B]
+    exact mul_nonneg (Real.exp_nonneg _)
+      (MeasureTheory.integral_nonneg
+        (fun y => mul_nonneg (Real.exp_nonneg _) (hu_nonneg y)))
+  have hder :
+      deriv (fun z => Psi u l mu z) x =
+        -(mu / 2) * A + (mu / 2) * B := by
+    have h := (h22.derivative_formula hl hmu hu) x
+    simpa [A, B, a, mul_assoc, mul_left_comm, mul_comm] using h
+  have habs :
+      |deriv (fun z => Psi u l mu z) x| ≤ (mu / 2) * (A + B) := by
+    rw [hder]
+    have hmu2_nonneg : 0 ≤ mu / 2 := by positivity
+    have htermA : |-(mu / 2) * A| = (mu / 2) * A := by
+      rw [show -(mu / 2) * A = -((mu / 2) * A) by ring]
+      rw [abs_neg, abs_of_nonneg (mul_nonneg hmu2_nonneg hA_nonneg)]
+    have htermB : |(mu / 2) * B| = (mu / 2) * B := by
+      rw [abs_of_nonneg (mul_nonneg hmu2_nonneg hB_nonneg)]
+    calc
+      |-(mu / 2) * A + (mu / 2) * B|
+          ≤ |-(mu / 2) * A| + |(mu / 2) * B| := abs_add_le _ _
+      _ = (mu / 2) * A + (mu / 2) * B := by
+            rw [htermA, htermB]
+      _ = (mu / 2) * (A + B) := by ring
+  have hiu :
+      Integrable
+        (fun y : ℝ => Real.exp (-a * |x - y|) * u y) := by
+    dsimp [a]
+    simpa using Psi_kernel_integrable_of_isCUnifBdd hl hu x
+  have hkernel_split :
+      (∫ y : ℝ, Real.exp (-a * |x - y|) * u y) = A + B := by
+    have hsplit :=
+      MeasureTheory.integral_add_compl (s := Set.Iic x) measurableSet_Iic hiu
+    simp only [Set.compl_Iic] at hsplit
+    have hleft :
+        ∫ y in Set.Iic x, Real.exp (-a * |x - y|) * u y = A := by
+      have hleft_eq :
+          Set.EqOn
+            (fun y : ℝ => Real.exp (-a * |x - y|) * u y)
+            (fun y : ℝ => Real.exp (-a * x) * (Real.exp (a * y) * u y))
+            (Set.Iic x) := by
+        intro y hy
+        have hyx : y ≤ x := by simpa using hy
+        change
+          Real.exp (-a * |x - y|) * u y =
+            Real.exp (-a * x) * (Real.exp (a * y) * u y)
+        rw [abs_of_nonneg (sub_nonneg.mpr hyx)]
+        rw [show -a * (x - y) = -a * x + a * y by ring, Real.exp_add]
+        ring_nf
+      calc
+        ∫ y in Set.Iic x, Real.exp (-a * |x - y|) * u y
+            = ∫ y in Set.Iic x,
+                Real.exp (-a * x) * (Real.exp (a * y) * u y) := by
+              exact MeasureTheory.setIntegral_congr_fun measurableSet_Iic hleft_eq
+        _ = Real.exp (-a * x) * ∫ y in Set.Iic x, Real.exp (a * y) * u y := by
+              exact MeasureTheory.integral_const_mul _ _
+        _ = A := by rfl
+    have hright :
+        ∫ y in Set.Ioi x, Real.exp (-a * |x - y|) * u y = B := by
+      have hright_eq :
+          Set.EqOn
+            (fun y : ℝ => Real.exp (-a * |x - y|) * u y)
+            (fun y : ℝ => Real.exp (a * x) * (Real.exp (-a * y) * u y))
+            (Set.Ioi x) := by
+        intro y hy
+        have hxy : x < y := by simpa using hy
+        change
+          Real.exp (-a * |x - y|) * u y =
+            Real.exp (a * x) * (Real.exp (-a * y) * u y)
+        rw [abs_of_nonpos (sub_nonpos.mpr (le_of_lt hxy))]
+        rw [show -a * -(x - y) = a * x + -a * y by ring, Real.exp_add]
+        ring_nf
+      calc
+        ∫ y in Set.Ioi x, Real.exp (-a * |x - y|) * u y
+            = ∫ y in Set.Ioi x,
+                Real.exp (a * x) * (Real.exp (-a * y) * u y) := by
+              exact MeasureTheory.setIntegral_congr_fun measurableSet_Ioi hright_eq
+        _ = Real.exp (a * x) * ∫ y in Set.Ioi x, Real.exp (-a * y) * u y := by
+              exact MeasureTheory.integral_const_mul _ _
+        _ = B := by rfl
+    calc
+      ∫ y : ℝ, Real.exp (-a * |x - y|) * u y
+          = (∫ y in Set.Iic x, Real.exp (-a * |x - y|) * u y) +
+              (∫ y in Set.Ioi x, Real.exp (-a * |x - y|) * u y) := hsplit.symm
+      _ = A + B := by rw [hleft, hright]
+  have hpsi :
+      Real.sqrt l * Psi u l mu x = (mu / 2) * (A + B) := by
+    dsimp [a] at hkernel_split
+    unfold Psi
+    rw [hkernel_split]
+    have hsqrt_pos : 0 < Real.sqrt l := Real.sqrt_pos.mpr hl
+    field_simp [ne_of_gt hsqrt_pos]
+  exact le_trans habs (le_of_eq hpsi.symm)
 
 def Lemma_2_3_unit : Prop :=
   ∀ u : ℝ → ℝ, IsCUnifBdd u →
