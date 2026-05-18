@@ -139,6 +139,21 @@ private lemma chemotaxisSource_bound_of_bounded (p : CMParams) (u : ℝ → ℝ)
     _ ≤ M * (1 + M ^ p.α) :=
         mul_le_mul hy_abs hfactor (abs_nonneg _) hM_nn
 
+private lemma integrable_on_Icc_of_aestronglyMeasurable_norm_bound
+    {G : ℝ → ℝ} {t C : ℝ}
+    (hG_meas :
+      AEStronglyMeasurable G
+        (MeasureTheory.volume.restrict (Set.Icc (0 : ℝ) t)))
+    (hG_bound :
+      ∀ᵐ s ∂(MeasureTheory.volume.restrict (Set.Icc (0 : ℝ) t)),
+        ‖G s‖ ≤ C) :
+    MeasureTheory.Integrable G
+      (MeasureTheory.volume.restrict (Set.Icc (0 : ℝ) t)) := by
+  exact
+    MeasureTheory.IntegrableOn.of_bound
+      (μ := MeasureTheory.volume) (s := Set.Icc (0 : ℝ) t)
+      (by simp [Real.volume_Icc]) hG_meas C hG_bound
+
 /-- For sufficiently small T > 0, the mild solution operator Φ is a contraction
     on the space of bounded continuous functions [0,T] → C^b(ℝ). -/
 private lemma mildSolutionOperator_difference_integral_identity
