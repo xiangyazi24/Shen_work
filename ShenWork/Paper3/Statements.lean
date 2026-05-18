@@ -244,6 +244,50 @@ lemma LinearlyStable_of_chi_nonpos_a_pos
   intro n hn
   exact sigma_neg_of_chi_nonpos_a_pos p hχ ha huStar hvStar (heig_nonneg n hn)
 
+lemma sigma_neg_of_chi_nonpos_lambda_pos
+    (p : CM2Params) {uStar vStar lambdaN : ℝ}
+    (hχ : p.χ₀ ≤ 0) (ha : 0 ≤ p.a)
+    (huStar : 0 ≤ uStar) (hvStar : 0 ≤ vStar) (hlambda : 0 < lambdaN) :
+    sigma p uStar vStar lambdaN < 0 := by
+  have hden_pos :
+      0 < (1 + vStar) ^ p.β * (p.μ + lambdaN) := by
+    exact mul_pos
+      (Real.rpow_pos_of_pos (by linarith : 0 < 1 + vStar) _)
+      (by linarith [p.hμ])
+  have hfrac_nonneg :
+      0 ≤
+        (uStar ^ (p.m + p.γ - 1) * lambdaN) /
+          ((1 + vStar) ^ p.β * (p.μ + lambdaN)) := by
+    exact div_nonneg
+      (mul_nonneg (Real.rpow_nonneg huStar _) hlambda.le)
+      hden_pos.le
+  have hchem_nonpos :
+      p.χ₀ * p.ν * p.γ *
+        ((uStar ^ (p.m + p.γ - 1) * lambdaN) /
+          ((1 + vStar) ^ p.β * (p.μ + lambdaN))) ≤ 0 := by
+    have hcoef_nonneg :
+        0 ≤ p.ν * p.γ *
+          ((uStar ^ (p.m + p.γ - 1) * lambdaN) /
+            ((1 + vStar) ^ p.β * (p.μ + lambdaN))) := by
+      exact mul_nonneg (mul_pos p.hν p.hγ).le hfrac_nonneg
+    nlinarith [mul_nonpos_of_nonpos_of_nonneg hχ hcoef_nonneg]
+  have hchem_nonpos' :
+      p.χ₀ * p.ν * p.γ * (uStar ^ (p.m + p.γ - 1) * lambdaN) /
+          ((1 + vStar) ^ p.β * (p.μ + lambdaN)) ≤ 0 := by
+    convert hchem_nonpos using 1
+    ring
+  unfold sigma
+  nlinarith [mul_nonneg ha p.hα.le, hlambda, hchem_nonpos']
+
+lemma LinearlyStable_of_chi_nonpos_a_nonneg_eigen_pos
+    (S : SpectralData) (p : CM2Params) {uStar vStar : ℝ}
+    (hχ : p.χ₀ ≤ 0) (ha : 0 ≤ p.a)
+    (huStar : 0 ≤ uStar) (hvStar : 0 ≤ vStar)
+    (heig_pos : ∀ n : ℕ, n ≠ 0 → 0 < S.eigenvalue n) :
+    LinearlyStable S p uStar vStar := by
+  intro n hn
+  exact sigma_neg_of_chi_nonpos_lambda_pos p hχ ha huStar hvStar (heig_pos n hn)
+
 lemma positiveEquilibrium_linearlyStable_of_chi_nonpos
     (S : SpectralData) (p : CM2Params)
     (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
@@ -255,6 +299,27 @@ lemma positiveEquilibrium_linearlyStable_of_chi_nonpos
     (positiveEquilibrium_fst_pos p ⟨ha, hb⟩).le
     (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
     heig_nonneg
+
+lemma minimalEquilibrium_linearlyStable_of_chi_nonpos
+    (S : SpectralData) (p : CM2Params) {uStar : ℝ}
+    (hχ : p.χ₀ ≤ 0) (ha : 0 ≤ p.a) (huStar : 0 < uStar)
+    (heig_pos : ∀ n : ℕ, n ≠ 0 → 0 < S.eigenvalue n) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyStable S p eq.1 eq.2 := by
+  dsimp
+  exact LinearlyStable_of_chi_nonpos_a_nonneg_eigen_pos S p hχ ha
+    huStar.le
+    (minimalEquilibrium_snd_pos p huStar).le
+    heig_pos
+
+lemma minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero
+    (S : SpectralData) (p : CM2Params) {uStar : ℝ}
+    (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (huStar : 0 < uStar)
+    (heig_pos : ∀ n : ℕ, n ≠ 0 → 0 < S.eigenvalue n) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyStable S p eq.1 eq.2 := by
+  exact minimalEquilibrium_linearlyStable_of_chi_nonpos S p hχ
+    (by rw [ha]) huStar heig_pos
 
 def GloballyAsymptoticallyStableNonminimal
     (D : BoundedDomainData) (p : CM2Params) (uStar _vStar : ℝ) : Prop :=
