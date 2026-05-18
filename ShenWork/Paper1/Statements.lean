@@ -2345,6 +2345,74 @@ def Lemma_4_2 : Prop :=
               ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
                 IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ
 
+/-- The finite-time upper barrier from Paper1 Remark 4.2:
+`\tilde U^+_{κ,M}(x) = min {M, M exp(-κx)}`. -/
+def scaledUpperBarrier (κ M : ℝ) : ℝ → ℝ :=
+  fun x => min M (M * Real.exp (-κ * x))
+
+/-- The finite-time trapping set `\tilde E_{κ,M,T}` from Paper1 Remark 4.2. -/
+def InTimeWaveTrapSet
+    (κ M T : ℝ) (u : ℝ → ℝ → ℝ) : Prop :=
+  ∀ t : ℝ, t ∈ Set.Icc (0 : ℝ) T →
+    IsCUnifBdd (u t) ∧
+      ∀ x : ℝ, 0 ≤ u t x ∧ u t x ≤ scaledUpperBarrier κ M x
+
+theorem InTimeWaveTrapSet.slice_cunif
+    {κ M T : ℝ} {u : ℝ → ℝ → ℝ}
+    (h : InTimeWaveTrapSet κ M T u)
+    {t : ℝ} (ht : t ∈ Set.Icc (0 : ℝ) T) :
+    IsCUnifBdd (u t) :=
+  (h t ht).1
+
+theorem InTimeWaveTrapSet.nonneg
+    {κ M T : ℝ} {u : ℝ → ℝ → ℝ}
+    (h : InTimeWaveTrapSet κ M T u)
+    {t : ℝ} (ht : t ∈ Set.Icc (0 : ℝ) T) (x : ℝ) :
+    0 ≤ u t x :=
+  ((h t ht).2 x).1
+
+theorem InTimeWaveTrapSet.le_scaledUpperBarrier
+    {κ M T : ℝ} {u : ℝ → ℝ → ℝ}
+    (h : InTimeWaveTrapSet κ M T u)
+    {t : ℝ} (ht : t ∈ Set.Icc (0 : ℝ) T) (x : ℝ) :
+    u t x ≤ scaledUpperBarrier κ M x :=
+  ((h t ht).2 x).2
+
+/-- Paper1 Remark 4.2: the lower and constant subsolution construction also
+works for finite-time frozen coefficient paths in `\tilde E_{κ,M,T}`. -/
+def Remark_4_2 : Prop :=
+  ∀ p : CMParams, ∀ κ κtilde M c T : ℝ,
+    0 < κ → κ < 1 →
+      κ < κtilde →
+      κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
+      1 ≤ M → 0 < T → c = κ + κ⁻¹ →
+        ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
+          ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ M T u →
+            (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+              IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
+                (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
+            ∀ d : ℝ, 0 < d →
+              d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+                ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+                  IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ
+
+theorem Remark_4_2.exists_time_slice_subsolutions
+    (h : Remark_4_2) {p : CMParams} {κ κtilde M c T : ℝ}
+    (hκ0 : 0 < κ) (hκ1 : κ < 1)
+    (hgap : κ < κtilde)
+    (hrange : κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (hM : 1 ≤ M) (hT : 0 < T) (hc : c = κ + κ⁻¹) :
+    ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
+      ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ M T u →
+        (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+          IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
+            (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
+        ∀ d : ℝ, 0 < d →
+          d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+            ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+              IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ :=
+  h p κ κtilde M c T hκ0 hκ1 hgap hrange hM hT hc
+
 def MChi (p : CMParams) : ℝ :=
   if p.χ ≤ 0 then 1 else (1 / (1 - p.χ)) ^ (1 / p.α)
 
