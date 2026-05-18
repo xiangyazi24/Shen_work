@@ -1,0 +1,96 @@
+# Paper inventory
+
+This is the working checklist for paper-level formalization.  It is generated
+from the root PDFs (`paper1.pdf`, `paper2.pdf`, `paper3.pdf`) and should be kept
+in sync with Lean statement targets.
+
+Status labels:
+
+- `proved`: proved from current non-toy Lean definitions.
+- `statement target`: represented as a Lean `Prop`/definition target, not proved.
+- `partial`: some supporting definitions exist, but the paper item is not fully
+  stated.
+- `missing`: no Lean statement target yet.
+- `remark/doc`: explanatory paper material; formalize only when it carries a
+  reusable hypothesis, estimate, or dependency.
+
+## Paper1: traveling waves on the line
+
+Source: `paper1.pdf`, Wenxian Shen, traveling waves for chemotaxis-logistic
+systems.
+
+| Paper item | Lean artifact | Status | Notes |
+| --- | --- | --- | --- |
+| Proposition 1.1 | `Paper1.Proposition_1_1` | statement target | Global Cauchy existence and bounds. |
+| Proposition 1.2 | `Paper1.Proposition_1_2` | statement target | Stability of `(1,1)`. |
+| Theorem 1.1 | `Paper1.Theorem_1_1` | statement target | Traveling-wave existence. |
+| Theorem 1.2 | `Paper1.Theorem_1_2` | statement target | Weighted stability of waves. |
+| Theorem 1.3 | `Paper1.Theorem_1_3` | statement target | Uniqueness with right-tail normalization. |
+| Remarks 1.1--1.5 | none | remark/doc | Mine later for dependencies and parameter regimes. |
+| Lemma 2.1 | `HeatSemigroup.lean` estimates | partial | Semigroup `L^p-L^q` estimates; current file only has simple heat-kernel facts. |
+| Lemma 2.2 | `Psi`, `Psi_kernel_eq`-style facts | partial | Elliptic resolvent formula and derivative formula need exact statement layer. |
+| Lemma 2.3 | none | missing | Resolvent derivative upper bound. |
+| Lemma 2.4 | none | missing | Exponential resolvent bound for `0 ≤ u ≤ min{M,e^{-κx}}`. |
+| Lemma 2.5 | none | missing | Weighted `L^p` estimate for `∇Ψ(u^γ)`. |
+| Lemma 4.1 | none | missing | Super-solution barrier for frozen moving-frame equation. |
+| Lemma 4.2 | none | missing | Sub-solution barriers. |
+| Remarks 4.1--4.3 | none | remark/doc | Include constants/asymptotics used by later theorem statements. |
+| Lemma 5.1 | none | missing | A priori estimates for stationary wave profiles. |
+| Lemma 5.2 | none | missing | Estimate for `u_x/u`. |
+| Remarks 5.1--5.2 | none | remark/doc | Feed into definition of `cStarStar` and stability constants. |
+
+## Paper2: boundedness and global existence on bounded domains
+
+Source: `paper2.pdf`, Chen-Ruau-Shen Part I.
+
+| Paper item | Lean artifact | Status | Notes |
+| --- | --- | --- | --- |
+| Definition 1.1 | `Paper2.IsPaper2ClassicalSolution` | partial | Abstract domain/operator interface, not instantiated smooth domain. |
+| Proposition 1.1 | `Paper2.Proposition_1_1` | statement target | Local existence/blow-up alternative. |
+| Theorem 1.1 | `Paper2.Theorem_1_1` | statement target | Negative sensitivity. |
+| Theorem 1.2 | `Paper2.Theorem_1_2` | statement target | Weak nonlinear cross diffusion. |
+| Theorem 1.3 | `Paper2.Theorem_1_3` | statement target | Strong logistic source. |
+| Remarks 1.1--1.7 | none | remark/doc | Useful for proof strategy and parameter comparisons. |
+| Lemmas 2.1--2.4 | none | missing | Sectorial/semigroup/elliptic estimates on bounded domain. |
+| Lemma 2.5 | `Psi_beta`, `Theta_beta` | partial | The key scalar inequality is not yet stated/proved. |
+| Lemma 2.6 | none | missing | Abstract `L^p` bootstrap. |
+| Corollary 2.1 | none | missing | Chemotaxis cross-term bootstrap. |
+| Propositions 2.2--2.5 | none | missing | Integral estimates and boundedness criterion. |
+| Lemma 2.7 | none | missing | ODE/integral inequality used in bootstrap. |
+| Lemma 3.1 | none | missing | Negative-sensitivity estimate. |
+| Lemma 4.1 | none | missing | Weak cross-diffusion estimate. |
+
+## Paper3: persistence and stabilization
+
+Source: `paper3.pdf`, Chen-Ruau-Shen Part II.
+
+| Paper item | Lean artifact | Status | Notes |
+| --- | --- | --- | --- |
+| Propositions 1.1--1.4 | Paper2 targets | statement target | Recalled from Part I. |
+| Definition 2.1 | `LinearlyStable`, `LinearlyUnstable`, stability predicates | partial | Needs exact spectral-domain API and local exponential stability statement. |
+| Theorem 2.1 | `Paper3.Theorem_2_1` | statement target | Uniform persistence. |
+| Theorem 2.2 | `Paper3.Theorem_2_2` | statement target | Linear stability/instability. |
+| Theorem 2.3 | `Paper3.Theorem_2_3` | statement target | Global stability for negative sensitivity. |
+| Theorem 2.4 | `Paper3.Theorem_2_4` | statement target | Global stability with strong logistic source. |
+| Theorem 2.5 | `Paper3.Theorem_2_5` | statement target | Minimal-model stability. |
+| Remarks 2.1--2.4 | none | remark/doc | Threshold comparisons and biological interpretation. |
+| Lemma 3.1 | `Paper3.Lemma_3_1` | statement target | Uniform regularity for bounded positive global solutions. |
+| Lemma 3.2 | `Paper3.Lemma_3_2` | statement target | Compactness of time translates. |
+| Lemma 3.3 | `Paper3.Lemma_3_3` | statement target | Continuity with respect to initial data. |
+| Lemma 3.4 | `Paper3.Lemma_3_4` | statement target | Monotonicity of upper envelope from Part I. |
+| Lemma 3.5 | `Paper3.Lemma_3_5` | statement target | Eventual upper bound in minimal model. |
+| Corollary 5.1 | `Paper3.Corollary_5_1` | statement target | Converts convergence plus linear stability into exponential convergence. |
+| Lemma 7.1 | `Paper3.Lemma_7_1` | statement target | Neumann resolvent gradient estimate. |
+
+## Immediate proof candidates
+
+These are small, non-PDE targets worth proving before the next analytic push:
+
+1. Algebra around Paper3 equilibria and spectral quantities:
+   `sigma_zero`, `sigma_zero_neg_of_a_pos`, `sigma_zero_eq_zero_of_a_eq_zero`.
+2. Basic positivity/nonnegativity of packaged constants:
+   `positivePart_nonneg`, simple consequences of `CM2Params`.
+3. Paper1 speed/decay algebra already has `cStarLower_ge_two` and
+   `kappa_pos_of_two_lt`; next small additions should support `Theorem_1_1`.
+4. Then move to exact statement/proof of Paper1 Lemma 2.2/2.4, because those
+   are concrete elliptic-resolvent estimates and feed the wave barrier proof.

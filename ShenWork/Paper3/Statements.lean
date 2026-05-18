@@ -44,6 +44,14 @@ def HasInitialMass
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ) (uStar : ℝ) : Prop :=
   D.integral (u 0) = D.volume * uStar
 
+def ThetaMomentConvergesToZero
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (uStar theta : ℝ) : Prop :=
+  Tendsto
+    (fun t => D.integral
+      (fun x => (u t x - uStar) * ((u t x) ^ theta - uStar ^ theta)))
+    atTop (𝓝 0)
+
 structure SpectralData where
   eigenvalue : ℕ → ℝ
   firstNonzero : ℝ
@@ -66,6 +74,55 @@ def LinearlyUnstable
 
 structure StabilityNorms (D : BoundedDomainData) where
   c1Distance : (D.Point → ℝ) → (D.Point → ℝ) → ℝ
+  xpSigmaDistance : ℝ → ℝ → (D.Point → ℝ) → (D.Point → ℝ) → ℝ
+
+structure CompactnessData (D : BoundedDomainData) where
+  locallyConverges :
+    (ℕ → ℝ → D.Point → ℝ) → (ℝ → D.Point → ℝ) → Prop
+  upperEnvelope : (D.Point → ℝ) → ℝ
+  neumannResolventGradientBound :
+    (mu nu : ℝ) → (D.Point → ℝ) → ℝ → Prop
+
+def EntireClassicalSolution
+    (D : BoundedDomainData) (p : CM2Params)
+    (u v : ℝ → D.Point → ℝ) : Prop :=
+  ∀ T > 0, IsPaper2ClassicalSolution D p T
+    (fun t x => u (t - T / 2) x)
+    (fun t x => v (t - T / 2) x)
+
+def UniformRegularityConclusion
+    (D : BoundedDomainData) (_p : CM2Params)
+    (u v : ℝ → D.Point → ℝ) : Prop :=
+  ∀ T > 0, D.classicalRegularity T u v
+
+def TimeTranslateCompactnessConclusion
+    (D : BoundedDomainData) (p : CM2Params) (K : CompactnessData D)
+    (u v : ℝ → D.Point → ℝ) : Prop :=
+  ∀ times : ℕ → ℝ, Tendsto times atTop atTop →
+    ∃ subseq : ℕ → ℕ, StrictMono subseq ∧
+    ∃ uInf vInf : ℝ → D.Point → ℝ,
+      K.locallyConverges (fun n t x => u (t + times (subseq n)) x) uInf ∧
+      K.locallyConverges (fun n t x => v (t + times (subseq n)) x) vInf ∧
+      EntireClassicalSolution D p uInf vInf
+
+def InitialContinuityConclusion
+    (D : BoundedDomainData) (N : StabilityNorms D)
+    (uConst : ℝ) : Prop :=
+  ∀ sigma pNorm eps, 1 / 2 < sigma → 1 < pNorm → 0 < eps →
+    ∃ delta > 0, ∃ T0 > 0, ∀ u₀ u : D.Point → ℝ,
+      D.supNorm (fun x => u₀ x - uConst) ≤ delta →
+      N.xpSigmaDistance sigma pNorm u (fun _ => uConst) ≤ eps
+
+def UpperEnvelopeMonotonicityConclusion
+    (D : BoundedDomainData) (p : CM2Params) (K : CompactnessData D)
+    (u : ℝ → D.Point → ℝ) : Prop :=
+  (p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
+    ∀ t₀, 0 < t₀ →
+      (p.a / p.b) ^ (1 / p.α) < K.upperEnvelope (u t₀) →
+      ∀ t, 0 < t → t ≤ t₀ → K.upperEnvelope (u t) ≤ K.upperEnvelope (u t₀)) ∧
+  (p.χ₀ ≤ 0 → p.a = 0 → p.b = 0 →
+    ∀ t₁ t₂, 0 < t₁ → t₁ ≤ t₂ →
+      K.upperEnvelope (u t₂) ≤ K.upperEnvelope (u t₁))
 
 def ExponentialC1Convergence
     (D : BoundedDomainData) (N : StabilityNorms D)
@@ -73,6 +130,21 @@ def ExponentialC1Convergence
   ∃ C > 0, ∃ rate > 0, ∀ t, 0 ≤ t →
     N.c1Distance (u t) (fun _ => uStar) +
       N.c1Distance (v t) (fun _ => vStar) ≤ C * Real.exp (-rate * t)
+
+lemma sigma_zero (p : CM2Params) (uStar vStar : ℝ) :
+    sigma p uStar vStar 0 = -p.a * p.α := by
+  simp [sigma]
+
+lemma sigma_zero_neg_of_a_pos
+    (p : CM2Params) (uStar vStar : ℝ) (ha : 0 < p.a) :
+    sigma p uStar vStar 0 < 0 := by
+  rw [sigma_zero]
+  nlinarith [mul_pos ha p.hα]
+
+lemma sigma_zero_eq_zero_of_a_eq_zero
+    (p : CM2Params) (uStar vStar : ℝ) (ha : p.a = 0) :
+    sigma p uStar vStar 0 = 0 := by
+  simp [sigma_zero, ha]
 
 def GloballyAsymptoticallyStableNonminimal
     (D : BoundedDomainData) (p : CM2Params) (uStar _vStar : ℝ) : Prop :=
@@ -97,6 +169,12 @@ structure Paper3Constants (D : BoundedDomainData) (p : CM2Params) where
   chiMinimal2 : ℝ → ℝ
   eventualMinimalUBound : ℝ → ℝ
   eventualMinimalVLower : ℝ → ℝ
+
+def EventuallyUpperBoundMinimalConclusion
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p)
+    (u : ℝ → D.Point → ℝ) : Prop :=
+  ∀ uStar > 0, HasInitialMass D u uStar →
+    ∀ᶠ t in atTop, D.supNorm (u t) ≤ C.eventualMinimalUBound uStar
 
 def NonminimalGlobalStabilityCondition
     (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p)
@@ -229,6 +307,66 @@ def Theorem_2_5
           PositiveGlobalBoundedSolution D p u v →
           HasInitialMass D u uStar →
             ExponentialC1Convergence D N u v eq.1 eq.2
+
+def Lemma_3_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  ∀ u v : ℝ → D.Point → ℝ,
+    PositiveGlobalBoundedSolution D p u v →
+      UniformRegularityConclusion D p u v
+
+def Lemma_3_2
+    (D : BoundedDomainData) (p : CM2Params) (K : CompactnessData D) : Prop :=
+  1 ≤ p.m → 0 < p.γ →
+    ∀ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v →
+        TimeTranslateCompactnessConclusion D p K u v
+
+def Lemma_3_3 (D : BoundedDomainData) (N : StabilityNorms D) : Prop :=
+  ∀ uStar > 0, InitialContinuityConclusion D N uStar
+
+def Lemma_3_4
+    (D : BoundedDomainData) (p : CM2Params) (K : CompactnessData D) : Prop :=
+  ∀ u v : ℝ → D.Point → ℝ,
+    PositiveGlobalBoundedSolution D p u v →
+      UpperEnvelopeMonotonicityConclusion D p K u
+
+def Lemma_3_5
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) : Prop :=
+  p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+    0 < p.χ₀ → p.χ₀ < min (p.χ₀ / (2 * p.β)) (chiBeta p) →
+      ∀ u v : ℝ → D.Point → ℝ,
+        PositiveGlobalBoundedSolution D p u v →
+          EventuallyUpperBoundMinimalConclusion D p C u
+
+def Corollary_5_1
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (C : Paper3Constants D p) : Prop :=
+  1 ≤ p.m →
+    (∀ (uStar _vStar theta : ℝ), 0 < theta →
+      ∀ u v : ℝ → D.Point → ℝ,
+        PositiveGlobalBoundedSolution D p u v →
+        ThetaMomentConvergesToZero D u uStar theta →
+          UniformConvergesInSup D u uStar) ∧
+    (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      p.χ₀ < C.chiCritical eq.1 →
+        ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+          UniformConvergesInSup D u eq.1 →
+            ExponentialC1Convergence D N u v eq.1 eq.2) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        p.χ₀ < C.chiCritical uStar →
+          ∀ u v : ℝ → D.Point → ℝ,
+            PositiveGlobalBoundedSolution D p u v →
+            HasInitialMass D u uStar →
+            UniformConvergesInSup D u eq.1 →
+              ExponentialC1Convergence D N u v eq.1 eq.2)
+
+def Lemma_7_1 (D : BoundedDomainData) (K : CompactnessData D) : Prop :=
+  ∃ M0 > 0, ∀ mu nu : ℝ, ∀ f : D.Point → ℝ,
+    0 < mu → 0 < nu →
+      K.neumannResolventGradientBound mu nu f M0
 
 end
 
