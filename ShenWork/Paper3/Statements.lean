@@ -1002,6 +1002,82 @@ def NonminimalGlobalStabilityCondition
       p.α + 1 ≥ p.m + 2 * p.γ ∧
       p.χ₀ < C.chiStrong4 uStar)
 
+lemma NonminimalGlobalStabilityCondition.of_chiStrong1
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar : ℝ}
+    (hm : 1 ≤ p.m) (hαγ : 2 * p.γ ≤ p.α + 1)
+    (hχ0 : 0 < p.χ₀) (hχ : p.χ₀ < C.chiStrong1 uStar) :
+    NonminimalGlobalStabilityCondition D p C uStar := by
+  exact Or.inl ⟨hm, hαγ, hχ0, hχ⟩
+
+lemma NonminimalGlobalStabilityCondition.of_chiStrong2
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar : ℝ}
+    (hm : 1 ≤ p.m) (hβ : 1 ≤ p.β) (hαγ : 2 * p.γ ≤ p.α + 1)
+    (hχ0 : 0 < p.χ₀) (hχ : p.χ₀ < C.chiStrong2 uStar) :
+    NonminimalGlobalStabilityCondition D p C uStar := by
+  exact Or.inr (Or.inl ⟨hm, hβ, hαγ, hχ0, hχ⟩)
+
+lemma NonminimalGlobalStabilityCondition.of_chiStrong3
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar : ℝ}
+    (hm : 1 ≤ p.m) (hγ : 1 ≤ p.γ)
+    (hαγ :
+      p.m + p.γ + (if p.β = 0 then 0 else p.γ) ≤ p.α + 1)
+    (hχ : p.χ₀ < C.chiStrong3 uStar) :
+    NonminimalGlobalStabilityCondition D p C uStar := by
+  exact Or.inr (Or.inr (Or.inl ⟨hm, hγ, hαγ, hχ⟩))
+
+lemma NonminimalGlobalStabilityCondition.of_chiStrong4
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar : ℝ}
+    (hm : 1 ≤ p.m) (hβ : 1 ≤ p.β) (hγ : 1 ≤ p.γ)
+    (hαγ : p.m + 2 * p.γ ≤ p.α + 1)
+    (hχ : p.χ₀ < C.chiStrong4 uStar) :
+    NonminimalGlobalStabilityCondition D p C uStar := by
+  exact Or.inr (Or.inr (Or.inr ⟨hm, hβ, hγ, hαγ, hχ⟩))
+
+lemma NonminimalGlobalStabilityCondition.m_ge_one
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar : ℝ}
+    (h : NonminimalGlobalStabilityCondition D p C uStar) :
+    1 ≤ p.m := by
+  rcases h with h | h | h | h
+  · exact h.1
+  · exact h.1
+  · exact h.1
+  · exact h.1
+
+def MinimalGlobalStabilityCondition
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p)
+    (uStar : ℝ) : Prop :=
+  (0 < p.χ₀ ∧ p.χ₀ < C.chiMinimal1 uStar) ∨
+    (p.γ = 1 ∧ 0 < p.χ₀ ∧ p.χ₀ < C.chiMinimal2 uStar)
+
+lemma MinimalGlobalStabilityCondition.of_chiMinimal1
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar : ℝ}
+    (hχ0 : 0 < p.χ₀) (hχ : p.χ₀ < C.chiMinimal1 uStar) :
+    MinimalGlobalStabilityCondition D p C uStar := by
+  exact Or.inl ⟨hχ0, hχ⟩
+
+lemma MinimalGlobalStabilityCondition.of_chiMinimal2
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar : ℝ}
+    (hγ : p.γ = 1) (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < C.chiMinimal2 uStar) :
+    MinimalGlobalStabilityCondition D p C uStar := by
+  exact Or.inr ⟨hγ, hχ0, hχ⟩
+
+lemma MinimalGlobalStabilityCondition.chi_pos
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar : ℝ}
+    (h : MinimalGlobalStabilityCondition D p C uStar) :
+    0 < p.χ₀ := by
+  rcases h with h | h
+  · exact h.1
+  · exact h.2.1
+
 def Theorem_2_1_part1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   1 ≤ p.m →
     ∀ u v : ℝ → D.Point → ℝ,
@@ -1112,8 +1188,7 @@ def Theorem_2_5
   p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
     ∀ uStar > 0,
       let eq := minimalEquilibrium p uStar
-      ((0 < p.χ₀ ∧ p.χ₀ < C.chiMinimal1 uStar) ∨
-        (p.γ = 1 ∧ 0 < p.χ₀ ∧ p.χ₀ < C.chiMinimal2 uStar)) →
+      MinimalGlobalStabilityCondition D p C uStar →
         GloballyAsymptoticallyStableMinimal D p eq.1 eq.2 ∧
         ∀ u v : ℝ → D.Point → ℝ,
           PositiveGlobalBoundedSolution D p u v →

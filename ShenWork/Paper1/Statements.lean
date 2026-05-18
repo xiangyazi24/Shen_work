@@ -473,6 +473,32 @@ theorem lowerBarrierRaw_linear_part_pos_of_kappa_speed
       (lowerBarrierRaw_speed_coefficient_neg hκ0 hκ1 hgap hκtilde1 hc)
   · exact Real.exp_pos _
 
+theorem lowerBarrierRaw_linear_part_pos_of_speed_gt_two
+    {κtilde D c x : ℝ}
+    (hc : 2 < c) (hgap : kappa c < κtilde)
+    (hκtilde1 : κtilde ≤ 1) (hD : 0 < D) :
+    0 <
+      iteratedDeriv 2 (lowerBarrierRaw (kappa c) κtilde D) x +
+        c * deriv (lowerBarrierRaw (kappa c) κtilde D) x +
+        lowerBarrierRaw (kappa c) κtilde D x := by
+  exact
+    lowerBarrierRaw_linear_part_pos_of_kappa_speed
+      (kappa_pos_of_two_lt hc)
+      (kappa_lt_one_of_two_lt hc)
+      hgap hκtilde1 hD
+      (kappa_add_inv_eq_of_two_lt hc).symm
+
+theorem lowerBarrierRaw_linear_part_pos_of_cStarLower_lt
+    {p : CMParams} {κtilde D c x : ℝ}
+    (hc : cStarLower p < c) (hgap : kappa c < κtilde)
+    (hκtilde1 : κtilde ≤ 1) (hD : 0 < D) :
+    0 <
+      iteratedDeriv 2 (lowerBarrierRaw (kappa c) κtilde D) x +
+        c * deriv (lowerBarrierRaw (kappa c) κtilde D) x +
+        lowerBarrierRaw (kappa c) κtilde D x :=
+  lowerBarrierRaw_linear_part_pos_of_speed_gt_two
+    (two_lt_of_cStarLower_lt hc) hgap hκtilde1 hD
+
 def lowerBarrierXMinus (κ κtilde D : ℝ) : ℝ :=
   Real.log D / (κtilde - κ)
 
