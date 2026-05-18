@@ -168,6 +168,25 @@ def sigmaCriticalChiPaperFormula
       (p.ν * p.γ * uStar ^ (p.m + p.γ - 1))) *
     ((lambdaN + p.a * p.α) * (p.μ + lambdaN) / lambdaN)
 
+/-- The nonzero-mode values whose infimum is the paper's critical sensitivity
+threshold `(2.10)`. -/
+def paperCriticalSensitivitySet
+    (S : SpectralData) (p : CM2Params) (uStar vStar : ℝ) : Set ℝ :=
+  {χ | ∃ n : ℕ, n ≠ 0 ∧
+    χ = sigmaCriticalChiPaperFormula p uStar vStar (S.eigenvalue n)}
+
+/-- Paper3's critical sensitivity threshold `χ*`, represented as the infimum
+of the explicit nonzero-mode values in `(2.10)`. -/
+def paperCriticalSensitivity
+    (S : SpectralData) (p : CM2Params) (uStar vStar : ℝ) : ℝ :=
+  sInf (paperCriticalSensitivitySet S p uStar vStar)
+
+lemma paperCriticalSensitivitySet_nonempty
+    (S : SpectralData) (p : CM2Params) (uStar vStar : ℝ) :
+    (paperCriticalSensitivitySet S p uStar vStar).Nonempty := by
+  refine ⟨sigmaCriticalChiPaperFormula p uStar vStar (S.eigenvalue 1), ?_⟩
+  exact ⟨1, by norm_num, rfl⟩
+
 lemma sigma_eq_base_add_chi_coeff
     (p : CM2Params) (uStar vStar lambdaN : ℝ) :
     sigma p uStar vStar lambdaN =
@@ -245,6 +264,15 @@ lemma sigmaCriticalChiPaperFormula_pos
     0 < sigmaCriticalChiPaperFormula p uStar vStar lambdaN := by
   rw [← sigmaCriticalChi_eq_paperFormula p huStar hvStar hlambda]
   exact sigmaCriticalChi_pos p huStar hvStar hlambda
+
+lemma paperCriticalSensitivitySet_bddBelow
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    {uStar vStar : ℝ} (huStar : 0 < uStar) (hvStar : 0 ≤ vStar) :
+    BddBelow (paperCriticalSensitivitySet S p uStar vStar) := by
+  refine ⟨0, ?_⟩
+  rintro χ ⟨n, hn, rfl⟩
+  exact (sigmaCriticalChiPaperFormula_pos p huStar hvStar
+    (H.eigenvalue_pos_of_ne_zero n hn)).le
 
 lemma sigma_eq_chi_sub_critical_mul_coeff
     (p : CM2Params) (uStar vStar lambdaN : ℝ)
@@ -337,6 +365,53 @@ lemma BelowAllLinearCriticalThresholds_of_chi_nonpos
     sigmaCriticalChi_pos p huStar hvStar
       (H.eigenvalue_pos_of_ne_zero n hn)
   exact lt_of_le_of_lt hχ hcrit
+
+lemma BelowAllLinearCriticalThresholds_of_chi_lt_paperCriticalSensitivity
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    {uStar vStar : ℝ}
+    (hχ : p.χ₀ < paperCriticalSensitivity S p uStar vStar)
+    (huStar : 0 < uStar) (hvStar : 0 ≤ vStar) :
+    BelowAllLinearCriticalThresholds S p uStar vStar := by
+  intro n hn
+  have hbdd :
+      BddBelow (paperCriticalSensitivitySet S p uStar vStar) :=
+    paperCriticalSensitivitySet_bddBelow S p H huStar hvStar
+  have hmem :
+      sigmaCriticalChiPaperFormula p uStar vStar (S.eigenvalue n) ∈
+        paperCriticalSensitivitySet S p uStar vStar :=
+    ⟨n, hn, rfl⟩
+  have hinf_le :
+      paperCriticalSensitivity S p uStar vStar ≤
+        sigmaCriticalChiPaperFormula p uStar vStar (S.eigenvalue n) := by
+    unfold paperCriticalSensitivity
+    exact csInf_le hbdd hmem
+  have hχ_mode :
+      p.χ₀ <
+        sigmaCriticalChiPaperFormula p uStar vStar (S.eigenvalue n) :=
+    lt_of_lt_of_le hχ hinf_le
+  rw [sigmaCriticalChi_eq_paperFormula p huStar hvStar
+    (H.eigenvalue_pos_of_ne_zero n hn)]
+  exact hχ_mode
+
+lemma AboveSomeLinearCriticalThreshold_of_paperCriticalSensitivity_lt_chi
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    {uStar vStar : ℝ}
+    (hχ : paperCriticalSensitivity S p uStar vStar < p.χ₀)
+    (huStar : 0 < uStar) (hvStar : 0 ≤ vStar) :
+    AboveSomeLinearCriticalThreshold S p uStar vStar := by
+  have hbdd :
+      BddBelow (paperCriticalSensitivitySet S p uStar vStar) :=
+    paperCriticalSensitivitySet_bddBelow S p H huStar hvStar
+  have hne :
+      (paperCriticalSensitivitySet S p uStar vStar).Nonempty :=
+    paperCriticalSensitivitySet_nonempty S p uStar vStar
+  unfold paperCriticalSensitivity at hχ
+  rcases (csInf_lt_iff hbdd hne).mp hχ with
+    ⟨χmode, ⟨n, hn, hχmode_eq⟩, hχmode_lt⟩
+  refine ⟨n, hn, ?_⟩
+  rw [sigmaCriticalChi_eq_paperFormula p huStar hvStar
+    (H.eigenvalue_pos_of_ne_zero n hn)]
+  rwa [hχmode_eq] at hχmode_lt
 
 structure StabilityNorms (D : BoundedDomainData) where
   c1Distance : (D.Point → ℝ) → (D.Point → ℝ) → ℝ
