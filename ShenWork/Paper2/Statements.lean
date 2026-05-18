@@ -786,6 +786,32 @@ lemma Psi_beta_le_exp_neg_one {beta : ℝ} (hbeta : 0 < beta) :
     nlinarith
   exact (Real.log_le_log_iff (Psi_beta_pos hbeta) (Real.exp_pos _)).mp hlog
 
+lemma Psi_beta_lt_exp_neg_one {beta : ℝ} (hbeta : 0 < beta) :
+    Psi_beta beta < Real.exp (-1) := by
+  have hden_pos : 0 < 1 + beta := by linarith
+  have hq_pos : 0 < beta / (1 + beta) := div_pos hbeta hden_pos
+  have hq_ne_one : beta / (1 + beta) ≠ 1 := by
+    have hq_lt_one : beta / (1 + beta) < 1 := by
+      rw [div_lt_one hden_pos]
+      linarith
+    exact ne_of_lt hq_lt_one
+  have hlog_q_lt : Real.log (beta / (1 + beta)) < beta / (1 + beta) - 1 :=
+    Real.log_lt_sub_one_of_pos hq_pos hq_ne_one
+  have hunit :
+      (1 + beta) * (beta / (1 + beta) - 1) = -1 := by
+    field_simp [ne_of_gt hden_pos]
+    ring
+  have hlog :
+      Real.log (Psi_beta beta) < Real.log (Real.exp (-1)) := by
+    unfold Psi_beta
+    rw [Real.log_rpow hq_pos, Real.log_exp]
+    calc
+      (1 + beta) * Real.log (beta / (1 + beta))
+          < (1 + beta) * (beta / (1 + beta) - 1) :=
+            mul_lt_mul_of_pos_left hlog_q_lt hden_pos
+      _ = -1 := hunit
+  exact (Real.log_lt_log_iff (Psi_beta_pos hbeta) (Real.exp_pos _)).mp hlog
+
 lemma Theta_beta_pos {beta : ℝ} (hbeta : 0 < beta) :
     0 < Theta_beta beta := by
   unfold Theta_beta
