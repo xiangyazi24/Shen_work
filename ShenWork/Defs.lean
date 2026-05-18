@@ -198,6 +198,11 @@ lemma cStarLower_pos (p : CMParams) :
     0 < cStarLower p :=
   lt_of_lt_of_le (by norm_num : (0 : ℝ) < 2) (cStarLower_ge_two p)
 
+lemma two_lt_of_cStarLower_lt {p : CMParams} {c : ℝ}
+    (hc : cStarLower p < c) :
+    2 < c :=
+  lt_of_le_of_lt (cStarLower_ge_two p) hc
+
 lemma kappa_lt_one_of_two_lt {c : ℝ} (hc : 2 < c) :
     kappa c < 1 := by
   simp only [kappa]
@@ -230,6 +235,21 @@ lemma inv_kappa_eq_of_two_lt {c : ℝ} (hc : 2 < c) :
 lemma kappa_mem_Ioo_zero_one_of_two_lt {c : ℝ} (hc : 2 < c) :
     kappa c ∈ Set.Ioo (0 : ℝ) 1 :=
   ⟨kappa_pos_of_two_lt hc, kappa_lt_one_of_two_lt hc⟩
+
+lemma kappa_pos_of_cStarLower_lt {p : CMParams} {c : ℝ}
+    (hc : cStarLower p < c) :
+    0 < kappa c :=
+  kappa_pos_of_two_lt (two_lt_of_cStarLower_lt hc)
+
+lemma kappa_lt_one_of_cStarLower_lt {p : CMParams} {c : ℝ}
+    (hc : cStarLower p < c) :
+    kappa c < 1 :=
+  kappa_lt_one_of_two_lt (two_lt_of_cStarLower_lt hc)
+
+lemma kappa_add_inv_eq_of_cStarLower_lt {p : CMParams} {c : ℝ}
+    (hc : cStarLower p < c) :
+    kappa c + (kappa c)⁻¹ = c :=
+  kappa_add_inv_eq_of_two_lt (two_lt_of_cStarLower_lt hc)
 
 lemma chiStar_pos (p : CMParams) :
     0 < chiStar p := by

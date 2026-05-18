@@ -89,7 +89,8 @@ These are small, non-PDE targets worth proving before the next analytic push:
 1. Extend Paper3 spectral-domain API: exact Neumann eigenvalue assumptions,
    instability threshold predicates, and local exponential stability packaging.
 2. Paper1 speed/decay algebra already has `cStarLower_ge_two`,
-   `kappa_pos_of_two_lt`, `kappa_lt_one_of_two_lt`, and
-   `kappa_add_inv_eq_of_two_lt`; next additions should support `Theorem_1_1`.
+   `kappa_pos_of_two_lt`, `kappa_lt_one_of_two_lt`,
+   `kappa_add_inv_eq_of_two_lt`, and the corresponding `cStarLower` bridge
+   lemmas; next additions should support `Theorem_1_1`.
 3. Continue proving Paper1 Lemma 2.2/2.3: unit-parameter Lemma 2.3 and
    Lemma 2.4 are proved; general `(λ, μ)` derivative formula remains.
