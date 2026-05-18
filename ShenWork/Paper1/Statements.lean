@@ -2350,6 +2350,40 @@ def Lemma_4_2 : Prop :=
 def scaledUpperBarrier (κ M : ℝ) : ℝ → ℝ :=
   fun x => min M (M * Real.exp (-κ * x))
 
+theorem scaledUpperBarrier_le_M (κ M x : ℝ) :
+    scaledUpperBarrier κ M x ≤ M :=
+  min_le_left _ _
+
+theorem scaledUpperBarrier_le_scaled_exp (κ M x : ℝ) :
+    scaledUpperBarrier κ M x ≤ M * Real.exp (-κ * x) :=
+  min_le_right _ _
+
+theorem scaledUpperBarrier_nonneg {κ M : ℝ} (hM : 0 ≤ M) (x : ℝ) :
+    0 ≤ scaledUpperBarrier κ M x :=
+  le_min hM (mul_nonneg hM (Real.exp_pos _).le)
+
+theorem scaledUpperBarrier_pos {κ M : ℝ} (hM : 0 < M) (x : ℝ) :
+    0 < scaledUpperBarrier κ M x :=
+  lt_min hM (mul_pos hM (Real.exp_pos _))
+
+theorem scaledUpperBarrier_continuous (κ M : ℝ) :
+    Continuous (scaledUpperBarrier κ M) := by
+  unfold scaledUpperBarrier
+  exact continuous_const.min
+    (continuous_const.mul
+      (Real.continuous_exp.comp (continuous_const.mul continuous_id)))
+
+theorem scaledUpperBarrier_isBddFun {κ M : ℝ} (hM : 0 ≤ M) :
+    IsBddFun (scaledUpperBarrier κ M) := by
+  refine ⟨M, ?_⟩
+  intro x
+  rw [abs_of_nonneg (scaledUpperBarrier_nonneg hM x)]
+  exact scaledUpperBarrier_le_M κ M x
+
+theorem scaledUpperBarrier_cunif_bdd {κ M : ℝ} (hM : 0 ≤ M) :
+    IsCUnifBdd (scaledUpperBarrier κ M) :=
+  ⟨scaledUpperBarrier_continuous κ M, scaledUpperBarrier_isBddFun hM⟩
+
 /-- The finite-time trapping set `\tilde E_{κ,M,T}` from Paper1 Remark 4.2. -/
 def InTimeWaveTrapSet
     (κ M T : ℝ) (u : ℝ → ℝ → ℝ) : Prop :=
