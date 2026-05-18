@@ -749,6 +749,28 @@ def Proposition_2_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
         (p.a = 0 → p.b = 0 → MassConservedBefore D T u₀ u) ∧
           (0 < p.a → 0 < p.b → LogisticMassUpperBoundBefore D p T u₀ u)
 
+lemma Proposition_2_4.mass_conserved
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Proposition_2_4 D p)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀)
+    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution D p T u v)
+    (htrace : InitialTrace D u₀ u)
+    (ha : p.a = 0) (hb : p.b = 0) :
+    MassConservedBefore D T u₀ u :=
+  (h u₀ hu₀ T hT u v hsol htrace).1 ha hb
+
+lemma Proposition_2_4.logistic_mass_upper
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Proposition_2_4 D p)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀)
+    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution D p T u v)
+    (htrace : InitialTrace D u₀ u)
+    (ha : 0 < p.a) (hb : 0 < p.b) :
+    LogisticMassUpperBoundBefore D p T u₀ u :=
+  (h u₀ hu₀ T hT u v hsol htrace).2 ha hb
+
 def Proposition_2_5 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
     ∀ Tmax > 0, ∀ u v : ℝ → D.Point → ℝ,
@@ -758,6 +780,20 @@ def Proposition_2_5 (D : BoundedDomainData) (p : CM2Params) : Prop :=
           max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
             LpPowerBoundedBefore D pExp Tmax u →
               IsPaper2BoundedBefore D Tmax u
+
+lemma Proposition_2_5.bounded_before
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Proposition_2_5 D p)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀)
+    {Tmax : ℝ} (hTmax : 0 < Tmax) {u v : ℝ → D.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution D p Tmax u v)
+    (htrace : InitialTrace D u₀ u)
+    {pExp : ℝ}
+    (hpExp :
+      max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp)
+    (hLp : LpPowerBoundedBefore D pExp Tmax u) :
+    IsPaper2BoundedBefore D Tmax u :=
+  h u₀ hu₀ Tmax hTmax u v hsol htrace pExp hpExp hLp
 
 def Lemma_2_7 (D : BoundedDomainData) : Prop :=
   ∀ u : ℝ → D.Point → ℝ, ∀ T pExp C1 C2 C3 C4 eps alpha,
