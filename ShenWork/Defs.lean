@@ -449,6 +449,26 @@ theorem Psi_le_min_const_exp_of_le {u : ℝ → ℝ} {M k : ℝ}
     (Psi_le_const_of_le hM huM x hiu)
     (Psi_le_exp_of_le hk hk1 huexp x hiu)
 
+theorem Psi_le_min_const_exp_of_nonneg_le {u : ℝ → ℝ} {M k : ℝ}
+    (hM : 0 ≤ M) (hk : 0 < k) (hk1 : k < 1)
+    (hu_cont : Continuous u)
+    (hu_nonneg : ∀ y, 0 ≤ u y)
+    (huM : ∀ y, u y ≤ M)
+    (huexp : ∀ y, u y ≤ Real.exp (-k * y)) (x : ℝ) :
+    Psi u 1 1 x ≤ min M (1 / (1 - k ^ 2) * Real.exp (-k * x)) := by
+  have hiu_raw :
+      MeasureTheory.Integrable (fun y => Real.exp (-1 * |x - y|) * u y) :=
+    kernel_mul_bounded_integrable u M hM
+      (fun y => by
+        rw [abs_of_nonneg (hu_nonneg y)]
+        exact huM y)
+      x hu_cont.aestronglyMeasurable
+  have hiu :
+      MeasureTheory.Integrable
+        (fun y => Real.exp (-Real.sqrt 1 * |x - y|) * u y) := by
+    simpa [Real.sqrt_one] using hiu_raw
+  exact Psi_le_min_const_exp_of_le hM hk hk1 huM huexp x hiu
+
 /-- HasDerivAt for exp(-|x'-y|) at x'=x when y < x. -/
 lemma hasDerivAt_kernel_left {x y : ℝ} (hy : y < x) :
     HasDerivAt (fun x' => Real.exp (-|x' - y|)) (-Real.exp (-(x - y))) x := by

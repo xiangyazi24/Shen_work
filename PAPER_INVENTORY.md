@@ -27,11 +27,11 @@ systems.
 | Theorem 1.2 | `Paper1.Theorem_1_2` | statement target | Weighted stability of waves. |
 | Theorem 1.3 | `Paper1.Theorem_1_3` | statement target | Uniqueness with right-tail normalization. |
 | Remarks 1.1--1.5 | none | remark/doc | Mine later for dependencies and parameter regimes. |
-| Lemma 2.1 | `HeatSemigroup.lean` estimates | partial | Semigroup `L^p-L^q` estimates; current file only has simple heat-kernel facts. |
-| Lemma 2.2 | `Psi`, `Psi_kernel_eq`-style facts | partial | Elliptic resolvent formula and derivative formula need exact statement layer. |
-| Lemma 2.3 | none | missing | Resolvent derivative upper bound. |
-| Lemma 2.4 | `Psi_le_const_of_le`, `Psi_le_exp_of_le`, `Psi_le_min_const_exp_of_le` | partial | Core upper bounds proved for `Ψ(·;u,1,1)`; still need the exact paper packaging and hypotheses. |
-| Lemma 2.5 | none | missing | Weighted `L^p` estimate for `∇Ψ(u^γ)`. |
+| Lemma 2.1 | `HeatSemigroupEstimateData`, `Paper1.Lemma_2_1` | statement target | Semigroup `L^p-L^q` estimates. |
+| Lemma 2.2 | `PsiDerivativeFormula`, `Paper1.Lemma_2_2` | statement target | Elliptic resolvent kernel and derivative formula. |
+| Lemma 2.3 | `Paper1.Lemma_2_3` | statement target | Resolvent derivative upper bound. |
+| Lemma 2.4 | `Paper1.Lemma_2_4`, `Psi_le_min_const_exp_of_nonneg_le` | partial | Paper-shaped statement target plus proved `Ψ(·;u,1,1)` upper-bound wrapper. |
+| Lemma 2.5 | `ExponentialWeight`, `Paper1.Lemma_2_5` | statement target | Weighted `L^p` estimate for `∇Ψ(u^γ)`. |
 | Lemma 4.1 | none | missing | Super-solution barrier for frozen moving-frame equation. |
 | Lemma 4.2 | none | missing | Sub-solution barriers. |
 | Remarks 4.1--4.3 | none | remark/doc | Include constants/asymptotics used by later theorem statements. |
@@ -95,6 +95,5 @@ These are small, non-PDE targets worth proving before the next analytic push:
    `chiBeta_pos_of_half_lt_beta`, `chiBeta_le_two_beta_sub_one`.
 3. Paper1 speed/decay algebra already has `cStarLower_ge_two` and
    `kappa_pos_of_two_lt`; next small additions should support `Theorem_1_1`.
-4. Continue exact statement/proof of Paper1 Lemma 2.2/2.4: the basic `Ψ`
-   upper-bound components are now proved, but derivative formula and exact
-   paper packaging remain.
+4. Continue proving Paper1 Lemma 2.2/2.3: the statement targets are in place,
+   and Lemma 2.4 has a proved nonnegative bounded wrapper for `Ψ(·;u,1,1)`.

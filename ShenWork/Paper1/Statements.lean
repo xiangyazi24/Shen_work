@@ -65,6 +65,78 @@ def UniformMovingFrameConvergence
     (c : ℝ) (u : ℝ → ℝ → ℝ) (U : ℝ → ℝ) : Prop :=
   ∀ ε > 0, ∃ T, ∀ t x, T ≤ t → |u t x - U (x - c * t)| < ε
 
+structure HeatSemigroupEstimateData where
+  lpNorm : ℝ → (ℝ → ℝ) → ℝ
+  lqNorm : ℝ → (ℝ → ℝ) → ℝ
+  linftyNorm : (ℝ → ℝ) → ℝ
+  gradientNorm : ℝ → (ℝ → ℝ) → ℝ
+  semigroup : ℝ → (ℝ → ℝ) → ℝ → ℝ
+  divergenceSemigroup : ℝ → (ℝ → ℝ) → ℝ → ℝ
+
+def Lemma_2_1 (S : HeatSemigroupEstimateData) : Prop :=
+  ∀ p q : ℝ, 1 < p → p ≤ q →
+    (∃ Cpq > 0, ∀ t > 0, ∀ u : ℝ → ℝ,
+      S.lqNorm q (S.semigroup t u) ≤
+        Cpq * t ^ (-(1 / 2 : ℝ) * (1 / p - 1 / q)) *
+          Real.exp (-t) * S.lpNorm p u) ∧
+    (∃ Cpq > 0, ∀ t > 0, ∀ u : ℝ → ℝ,
+      S.gradientNorm q (S.semigroup t u) ≤
+        Cpq * t ^ (-(1 / 2 : ℝ) - (1 / 2 : ℝ) * (1 / p - 1 / q)) *
+          Real.exp (-t) * S.lpNorm p u) ∧
+    (∃ Cp > 0, ∀ t > 0, ∀ u : ℝ → ℝ,
+      S.linftyNorm (S.divergenceSemigroup t u) ≤
+        Cp * t ^ (-(1 / 2 : ℝ) - (1 / (2 * p))) *
+          Real.exp (-t) * S.lpNorm p u)
+
+def PsiDerivativeFormula (u : ℝ → ℝ) (l mu : ℝ) : Prop :=
+  ∀ x,
+    deriv (fun z => Psi u l mu z) x =
+      -(mu / 2) * Real.exp (-Real.sqrt l * x) *
+          ∫ y in Set.Iic x, Real.exp (Real.sqrt l * y) * u y
+        + (mu / 2) * Real.exp (Real.sqrt l * x) *
+          ∫ y in Set.Ioi x, Real.exp (-Real.sqrt l * y) * u y
+
+def Lemma_2_2 : Prop :=
+  ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
+    (∀ x,
+      Psi u l mu x =
+        mu / (2 * Real.sqrt l) *
+          ∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * u y) ∧
+    PsiDerivativeFormula u l mu
+
+def Lemma_2_3 : Prop :=
+  ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
+    (∀ x, 0 ≤ u x) →
+      ∀ x, |deriv (fun z => Psi u l mu z) x| ≤ Real.sqrt l * Psi u l mu x
+
+def Lemma_2_4 : Prop :=
+  ∀ M k : ℝ, 1 ≤ M → 0 < k → k < 1 →
+    ∀ u : ℝ → ℝ, IsCUnifBdd u →
+      (∀ x, 0 ≤ u x) →
+      (∀ x, u x ≤ min M (Real.exp (-k * x))) →
+        ∀ x, Psi u 1 1 x ≤ min M (1 / (1 - k ^ 2) * Real.exp (-k * x))
+
+structure ExponentialWeight where
+  weight : ℝ → ℝ
+  smooth : ContDiff ℝ 2 weight
+  pos : ∀ x, 0 < weight x
+  decay : ∃ k > 0, ∀ x, weight x ≤ Real.exp (-k * |x|)
+  deriv_abs_le : ∃ k > 0, ∀ x, |deriv weight x| ≤ k * weight x
+  second_deriv_abs_le : ∃ k > 0, ∀ x, |iteratedDeriv 2 weight x| ≤ k * weight x
+
+def Lemma_2_5 : Prop :=
+  ∀ pExp gamma l mu : ℝ, 1 < pExp → 0 < gamma → 0 < l → 0 < mu →
+    ∃ C > 0, ∀ u : ℝ → ℝ, ∀ psi : ExponentialWeight,
+      Integrable (fun x => (u x) ^ (gamma * pExp) * psi.weight x) →
+        Integrable
+          (fun x =>
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+              psi.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+              psi.weight x
+          ≤ C * ∫ x : ℝ, (u x) ^ (gamma * pExp) * psi.weight x
+
 /-- Paper1 Proposition 1.1: global existence and boundedness of Cauchy solutions. -/
 def Proposition_1_1 : Prop :=
   (∀ p : CMParams, p.χ ≤ 0 →
