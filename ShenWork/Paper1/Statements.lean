@@ -104,6 +104,15 @@ def Lemma_2_2 : Prop :=
           ∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * u y) ∧
     PsiDerivativeFormula u l mu
 
+theorem Lemma_2_2_kernel_formula_proved :
+    ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
+      ∀ x,
+        Psi u l mu x =
+          mu / (2 * Real.sqrt l) *
+            ∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * u y := by
+  intro u l mu _hl _hmu _hu x
+  rfl
+
 def Lemma_2_3 : Prop :=
   ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
     (∀ x, 0 ≤ u x) →

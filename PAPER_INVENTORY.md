@@ -28,7 +28,7 @@ systems.
 | Theorem 1.3 | `Paper1.Theorem_1_3` | statement target | Uniqueness with right-tail normalization. |
 | Remarks 1.1--1.5 | none | remark/doc | Mine later for dependencies and parameter regimes. |
 | Lemma 2.1 | `HeatSemigroupEstimateData`, `Paper1.Lemma_2_1` | statement target | Semigroup `L^p-L^q` estimates. |
-| Lemma 2.2 | `PsiDerivativeFormula`, `Paper1.Lemma_2_2` | statement target | Elliptic resolvent kernel and derivative formula. |
+| Lemma 2.2 | `PsiDerivativeFormula`, `Paper1.Lemma_2_2`, `Paper1.Lemma_2_2_kernel_formula_proved` | partial | Elliptic resolvent kernel formula proved by definition; derivative formula remains. |
 | Lemma 2.3 | `Paper1.Lemma_2_3`, `Paper1.Lemma_2_3_unit_proved` | partial | Unit-parameter derivative bound is proved; general `(λ, μ)` packaging remains. |
 | Lemma 2.4 | `Paper1.Lemma_2_4_proved`, `Psi_le_min_const_exp_of_nonneg_le` | proved | Exponential resolvent bound for `Ψ(·;u,1,1)`. |
 | Lemma 2.5 | `ExponentialWeight`, `Paper1.Lemma_2_5` | statement target | Weighted `L^p` estimate for `∇Ψ(u^γ)`. |
