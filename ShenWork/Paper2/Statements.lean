@@ -121,15 +121,39 @@ def IsPaper2BoundedBefore
     (D : BoundedDomainData) (Tmax : ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
   ∃ M, ∀ t, 0 < t → t < Tmax → D.supNorm (u t) ≤ M
 
+lemma IsPaper2BoundedBefore.bound
+    {D : BoundedDomainData} {Tmax : ℝ} {u : ℝ → D.Point → ℝ}
+    (h : IsPaper2BoundedBefore D Tmax u)
+    {t : ℝ} (ht0 : 0 < t) (htT : t < Tmax) :
+    ∃ M, D.supNorm (u t) ≤ M := by
+  rcases h with ⟨M, hM⟩
+  exact ⟨M, hM t ht0 htT⟩
+
 def LpPowerBoundedBefore
     (D : BoundedDomainData) (pExp Tmax : ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
   ∃ C, ∀ t, 0 < t → t < Tmax →
     D.integral (fun x => (u t x) ^ pExp) ≤ C
 
+lemma LpPowerBoundedBefore.bound
+    {D : BoundedDomainData} {pExp Tmax : ℝ} {u : ℝ → D.Point → ℝ}
+    (h : LpPowerBoundedBefore D pExp Tmax u)
+    {t : ℝ} (ht0 : 0 < t) (htT : t < Tmax) :
+    ∃ C, D.integral (fun x => (u t x) ^ pExp) ≤ C := by
+  rcases h with ⟨C, hC⟩
+  exact ⟨C, hC t ht0 htT⟩
+
 def MassConservedBefore
     (D : BoundedDomainData) (Tmax : ℝ)
     (u₀ : D.Point → ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
   ∀ t, 0 < t → t < Tmax → D.integral (u t) = D.integral u₀
+
+lemma MassConservedBefore.eq
+    {D : BoundedDomainData} {Tmax : ℝ}
+    {u₀ : D.Point → ℝ} {u : ℝ → D.Point → ℝ}
+    (h : MassConservedBefore D Tmax u₀ u)
+    {t : ℝ} (ht0 : 0 < t) (htT : t < Tmax) :
+    D.integral (u t) = D.integral u₀ :=
+  h t ht0 htT
 
 def LogisticMassUpperBoundBefore
     (D : BoundedDomainData) (p : CM2Params) (Tmax : ℝ)
@@ -137,6 +161,15 @@ def LogisticMassUpperBoundBefore
   ∀ t, 0 < t → t < Tmax →
     D.integral (u t) ≤
       max (D.integral u₀) (((p.a / p.b) ^ (1 / p.α)) * D.volume)
+
+lemma LogisticMassUpperBoundBefore.bound
+    {D : BoundedDomainData} {p : CM2Params} {Tmax : ℝ}
+    {u₀ : D.Point → ℝ} {u : ℝ → D.Point → ℝ}
+    (h : LogisticMassUpperBoundBefore D p Tmax u₀ u)
+    {t : ℝ} (ht0 : 0 < t) (htT : t < Tmax) :
+    D.integral (u t) ≤
+      max (D.integral u₀) (((p.a / p.b) ^ (1 / p.α)) * D.volume) :=
+  h t ht0 htT
 
 def SupNormNonincreasingOn
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ) (I : Set ℝ) : Prop :=
