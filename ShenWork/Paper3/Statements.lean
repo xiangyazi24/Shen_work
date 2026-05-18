@@ -798,11 +798,12 @@ def Lemma_7_1 (D : BoundedDomainData) (K : CompactnessData D) : Prop :=
 def Lemma_A_1
     (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
     (N : StabilityNorms D) : Prop :=
-  ∀ uStar vStar,
+  ∀ sigma pNorm uStar vStar,
+    1 / 2 < sigma → sigma < 1 → 1 < pNorm →
     LinearlyStable S p uStar vStar →
       ∃ eps > 0, ∃ C > 0, ∃ rate > 0,
         ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
-          N.xpSigmaDistance (1 / 2) 2 u₀ (fun _ => uStar) ≤ eps →
+          N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤ eps →
             ∀ u v : ℝ → D.Point → ℝ,
               IsPaper2GlobalClassicalSolution D p u v →
               InitialTrace D u₀ u →
