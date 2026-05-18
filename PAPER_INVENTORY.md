@@ -73,7 +73,7 @@ Source: `paper3.pdf`, Chen-Ruau-Shen Part II.
 | Theorem 2.1 | `Paper3.Theorem_2_1` | statement target | Uniform persistence. |
 | Theorem 2.2 | `Paper3.Theorem_2_2` | statement target | Linear stability/instability; negative-sensitivity `sigma < 0`, linear `σ` decomposition in `χ₀`, positive chemotaxis coefficient, critical-`χ` threshold algebra, and stable/unstable corollaries proved for positive/minimal equilibria under Neumann spectrum hypotheses. |
 | Theorem 2.3 | `Paper3.Theorem_2_3` | statement target | Global stability for negative sensitivity. |
-| Theorem 2.4 | `Paper3.Theorem_2_4`, `chiStrong1Formula`--`chiStrong4Formula`, `chiBarFormula`, `vABLowerFormula` | partial | Global stability with strong logistic source; exact paper threshold formulas `(2.13)`, `(2.15)`--`(2.19)` and positivity for `χ**1`, `χ**3` proved. |
+| Theorem 2.4 | `Paper3.Theorem_2_4`, `chiStrong1Formula`--`chiStrong4Formula`, `chiBarFormula`, `vABLowerFormula` | partial | Global stability with strong logistic source; exact paper threshold formulas `(2.13)`, `(2.15)`--`(2.19)` and positivity for `χ**1`--`χ**4`, `\barχ`, and `\underline v_{a,b}` proved under usable hypotheses. |
 | Theorem 2.5 | `Paper3.Theorem_2_5`, `minimalUpperBoundFormula`, `minimalVLowerFormula`, `GammaMinimalFormula`, `chiMinimal1Formula`, `chiMinimal2Formula` | partial | Minimal-model stability; exact auxiliary threshold formulas around `(2.21)`--`(2.22)` and their positivity lemmas proved. |
 | Remarks 2.1--2.4 | none | remark/doc | Threshold comparisons and biological interpretation. |
 | Lemma 3.1 | `Paper3.Lemma_3_1` | statement target | Uniform regularity for bounded positive global solutions. |

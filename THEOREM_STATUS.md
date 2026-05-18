@@ -84,8 +84,8 @@ File header reference: `ShenWork/Paper3/Defs.lean`, arXiv `2604.02599`.
 | Theorem 2.1 uniform persistence | `Paper3.Theorem_2_1` | statement target | Stated from `paper3.pdf`, split into four parts. |
 | Theorem 2.2 linear stability/instability | `Paper3.Theorem_2_2` | statement target | Uses spectral data and packaged paper thresholds. |
 | Theorem 2.3 negative-sensitivity global stability | `Paper3.Theorem_2_3` | statement target | Stated from `paper3.pdf`. |
-| Theorem 2.4 strong logistic-source global stability | `Paper3.Theorem_2_4` | statement target | Stated from `paper3.pdf`. |
-| Theorem 2.5 minimal-model global stability | `Paper3.Theorem_2_5` | statement target | Stated from `paper3.pdf`. |
+| Theorem 2.4 strong logistic-source global stability | `Paper3.Theorem_2_4`, `chiStrong1Formula`--`chiStrong4Formula` | partial | Stated from `paper3.pdf`; exact threshold formulas `(2.13)`, `(2.15)`--`(2.19)` are now represented, with positivity facts for all four `χ**` formulas and their auxiliary thresholds. |
+| Theorem 2.5 minimal-model global stability | `Paper3.Theorem_2_5`, `minimalUpperBoundFormula`, `minimalVLowerFormula`, `GammaMinimalFormula`, `chiMinimal1Formula`, `chiMinimal2Formula` | partial | Stated from `paper3.pdf`; exact auxiliary formulas around `(2.21)`--`(2.22)` are represented, with positivity facts. |
 
 Next accurate theorem work:
 

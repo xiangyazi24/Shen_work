@@ -760,6 +760,86 @@ lemma chiStrong3Formula_pos
       exact mul_nonneg (mul_nonneg p.hβ hvStar) (sq_nonneg M0)
     linarith
 
+lemma chiBarFormula_pos
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hβ : 1 < p.β) :
+    0 < chiBarFormula p := by
+  unfold chiBarFormula
+  by_cases hm_eq : p.m = 1
+  · rw [if_pos hm_eq]
+    apply div_pos ha
+    exact mul_pos (mul_pos (by norm_num) p.hμ)
+      (Theta_beta_pos (by linarith))
+  · rw [if_neg hm_eq]
+    apply div_pos hb
+    exact mul_pos p.hμ (Theta_beta_pos (by linarith))
+
+lemma vABLowerFormula_pos
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) :
+    0 < vABLowerFormula p := by
+  unfold vABLowerFormula
+  by_cases hm_eq : p.m = 1
+  · rw [if_pos hm_eq]
+    exact mul_pos (div_pos p.hν p.hμ)
+      (Real.rpow_pos_of_pos (div_pos ha (mul_pos (by norm_num) hb)) _)
+  · rw [if_neg hm_eq]
+    have hm_gt : 1 < p.m := lt_of_le_of_ne hm (fun h => hm_eq h.symm)
+    have hbase : 0 < p.a / (2 * p.b) :=
+      div_pos ha (mul_pos (by norm_num) hb)
+    have hpow :
+        0 <
+          (p.a / (2 * p.b)) ^
+            max (1 / (p.m - 1)) (1 / p.α) :=
+      Real.rpow_pos_of_pos hbase _
+    have hmin :
+        0 <
+          min 1
+            ((p.a / (2 * p.b)) ^
+              max (1 / (p.m - 1)) (1 / p.α)) :=
+      lt_min zero_lt_one hpow
+    exact mul_pos (div_pos p.hν p.hμ)
+      (Real.rpow_pos_of_pos hmin _)
+
+lemma chiStrong2Formula_pos
+    (p : CM2Params) {uStar : ℝ}
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hβ : 1 < p.β) (huStar : 0 < uStar) :
+    0 < chiStrong2Formula p uStar := by
+  unfold chiStrong2Formula
+  apply lt_min
+  · exact chiBarFormula_pos p ha hb hβ
+  · apply Real.sqrt_pos.mpr
+    apply mul_pos hb
+    apply div_pos
+    · have hvpos : 0 < 1 + vABLowerFormula p :=
+        by linarith [vABLowerFormula_pos p ha hb hm]
+      exact mul_pos (mul_pos (by norm_num)
+        (Real.rpow_pos_of_pos hvpos _)) p.hμ
+    · have hmpos : 0 < 2 * p.m - 1 := by linarith
+      have hνsq : 0 < p.ν ^ 2 := sq_pos_of_ne_zero (ne_of_gt p.hν)
+      have hC : 0 < CAlphaGamma p.α p.γ := CAlphaGamma_pos p.hα p.hγ
+      have hupow : 0 < uStar ^ (2 * p.γ - p.α + 2 * p.m - 2) :=
+        Real.rpow_pos_of_pos huStar _
+      exact mul_pos (mul_pos (mul_pos hmpos hνsq) hC) hupow
+
+lemma chiStrong4Formula_pos
+    (p : CM2Params) {M0 uStar : ℝ}
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hβ : 1 < p.β) (huStar : 0 < uStar) :
+    0 < chiStrong4Formula p M0 uStar := by
+  unfold chiStrong4Formula
+  apply lt_min
+  · exact chiBarFormula_pos p ha hb hβ
+  · have hvpos : 0 < 1 + vABLowerFormula p :=
+      by linarith [vABLowerFormula_pos p ha hb hm]
+    have hveq_nonneg : 0 ≤ p.ν / p.μ * uStar ^ p.γ := by
+      exact (mul_pos (div_pos p.hν p.hμ)
+        (Real.rpow_pos_of_pos huStar _)).le
+    exact mul_pos
+      (Real.rpow_pos_of_pos hvpos _)
+      (chiStrong3Formula_pos p ha huStar hveq_nonneg)
+
 def minimalUpperBoundFormula (CN qPrime qDoublePrime uStar : ℝ) : ℝ :=
   CN * (uStar ^ qPrime + uStar ^ qDoublePrime)
 
