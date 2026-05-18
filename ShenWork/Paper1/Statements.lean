@@ -2108,6 +2108,14 @@ def Theorem_1_2 : Prop :=
               WeightedL2MovingFrameConvergence η c u U ∧
               UniformMovingFrameConvergence c u U
 
+theorem Theorem_1_2.threshold_family
+    (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+        stabilitySpeedBaseline p < cStarStar p.χ := by
+  rcases h p hp with ⟨cStarStar, hasymp, hlower, _hconcl⟩
+  exact ⟨cStarStar, hasymp, hlower⟩
+
 /-- Paper1 Theorem 1.3: uniqueness of traveling waves with the prescribed right tail. -/
 def Theorem_1_3 : Prop :=
   ∀ p : CMParams, StableWaveParameterRegime p →
@@ -2124,6 +2132,14 @@ def Theorem_1_3 : Prop :=
           HasWaveRightTailAsymptotic c κ₁ U₁ ∧
           HasWaveRightTailAsymptotic c κ₁ U₂) →
         (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x)
+
+theorem Theorem_1_3.threshold_family
+    (h : Theorem_1_3) {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+        stabilitySpeedBaseline p < cStarStar p.χ := by
+  rcases h p hp with ⟨cStarStar, hasymp, hlower, _hconcl⟩
+  exact ⟨cStarStar, hasymp, hlower⟩
 
 end
 
