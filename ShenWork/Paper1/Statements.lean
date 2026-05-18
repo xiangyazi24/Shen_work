@@ -1743,6 +1743,24 @@ def PositiveSensitivityWaveFixedPointConstruction
     FrozenWaveMapConstruction p c (kappa c) (MChi p)
       (fun u => InWaveTrapSet (kappa c) (MChi p) u)
 
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    ∃ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet (kappa c) 1 U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) 1
+          (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U := by
+  exact FrozenWaveMapConstruction.exists_fixed_limit h.2.2.2.2.2.2.2
+
+theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    ∃ U : ℝ → ℝ,
+      InWaveTrapSet (kappa c) (MChi p) U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) (MChi p)
+          (fun u => InWaveTrapSet (kappa c) (MChi p) u) U U := by
+  exact FrozenWaveMapConstruction.exists_fixed_limit h.2.2.2.2.2.2.2.2
+
 theorem one_le_MChi_of_chi_nonneg_lt_chiStar
     (p : CMParams) (hχ_nonneg : 0 ≤ p.χ) (hχ : p.χ < chiStar p) :
     1 ≤ MChi p :=
