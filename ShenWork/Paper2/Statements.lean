@@ -218,6 +218,27 @@ lemma Psi_beta_lt_one {beta : ℝ} (hbeta : 0 < beta) :
     linarith
   exact Real.rpow_lt_one hbase_nonneg hbase_lt (by linarith : 0 < 1 + beta)
 
+lemma Theta_beta_pos {beta : ℝ} (hbeta : 0 < beta) :
+    0 < Theta_beta beta := by
+  unfold Theta_beta
+  positivity
+
+lemma Theta_beta_nonneg {beta : ℝ} (hbeta : 0 ≤ beta) :
+    0 ≤ Theta_beta beta := by
+  unfold Theta_beta
+  exact mul_nonneg (Real.rpow_nonneg hbeta _) (Real.rpow_nonneg (by positivity) _)
+
+lemma Psi_beta_eq_beta_mul_Theta_beta {beta : ℝ} (hbeta : 0 < beta) :
+    Psi_beta beta = beta * Theta_beta beta := by
+  have hden_pos : 0 < 1 + beta := by linarith
+  unfold Psi_beta Theta_beta
+  rw [Real.div_rpow hbeta.le hden_pos.le]
+  rw [show 1 + beta = beta + 1 by ring]
+  rw [Real.rpow_add_one hbeta.ne' beta]
+  have hden_nonneg : 0 ≤ beta + 1 := by linarith
+  rw [Real.rpow_neg hden_nonneg]
+  field_simp [ne_of_gt (Real.rpow_pos_of_pos (by linarith : 0 < beta + 1) (beta + 1))]
+
 theorem Lemma_2_5_proved : Lemma_2_5 := by
   intro beta v hbeta hv
   have hden_pos : 0 < 1 + beta := by linarith
