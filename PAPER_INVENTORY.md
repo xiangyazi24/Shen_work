@@ -69,7 +69,7 @@ Source: `paper3.pdf`, Chen-Ruau-Shen Part II.
 | Paper item | Lean artifact | Status | Notes |
 | --- | --- | --- | --- |
 | Propositions 1.1--1.4 | `Paper3.Proposition_1_1`--`Paper3.Proposition_1_4` | statement target | Recalled from Part I; direct Paper2/global-solution projection lemmas proved. |
-| Definition 2.1 | `LinearlyStable`, `LinearlyUnstable`, `HasNeumannSpectrum`, stability predicates | partial | Neumann spectral API, equilibrium positivity, constant-state/logistic-reaction algebra, stable/unstable incompatibility, negative-sensitivity spectral sign lemmas, and ordinary/mass-constrained local exponential stability packages with projection lemmas are proved; remaining work is sharper paper-level instability threshold organization. |
+| Definition 2.1 | `LinearlyStable`, `LinearlyUnstable`, `HasNeumannSpectrum`, stability predicates | partial | Neumann spectral API, equilibrium positivity, constant-state/logistic-reaction algebra, stable/unstable incompatibility, negative-sensitivity spectral sign lemmas, all/some linear critical-threshold predicates with stable/unstable projections, and ordinary/mass-constrained local exponential stability packages with projection lemmas are proved; remaining work is sharper paper-specific threshold formula identification. |
 | Theorem 2.1 | `Paper3.Theorem_2_1`, `minimalVLowerFormula` | statement target | Uniform persistence; the minimal-model `v` lower bound now uses the paper's explicit Gaussian-lower-bound constant formula rather than an opaque placeholder, with formula positivity projected from positive data and theorem-part/persistence projection lemmas proved. |
 | Theorem 2.2 | `Paper3.Theorem_2_2`, `SupCloseToConstant`, `ExponentialC1ConvergenceWith` | statement target | Linear stability/instability with local exponential stability now stated with the paper's small-sup-norm perturbation hypothesis and minimal-model mass constraint; negative-sensitivity `sigma < 0`, linear `σ` decomposition in `χ₀`, positive chemotaxis coefficient, critical-`χ` threshold algebra, stable/unstable corollaries proved for positive/minimal equilibria under Neumann spectrum hypotheses, and theorem-branch projection lemmas proved. |
 | Theorem 2.3 | `Paper3.Theorem_2_3`, `ExponentialC1ConvergenceWith` | statement target | Global stability for negative sensitivity; exponential constants are now quantified uniformly over the solution class, matching the paper, and nonminimal/minimal stability/exponential projection lemmas are proved. |
@@ -92,8 +92,8 @@ Source: `paper3.pdf`, Chen-Ruau-Shen Part II.
 
 These are small, non-PDE targets worth proving before the next analytic push:
 
-1. Extend Paper3 Definition 2.1 around instability threshold predicates and
-   local exponential stability packaging.
+1. Extend Paper3 Definition 2.1 from abstract linear critical-threshold
+   predicates toward the exact paper-specific critical sensitivity formula.
 2. Paper1 speed/decay algebra already has `cStarLower_ge_two`,
    `kappa_pos_of_two_lt`, `kappa_lt_one_of_two_lt`,
    `kappa_add_inv_eq_of_two_lt`, and the corresponding `cStarLower` bridge
