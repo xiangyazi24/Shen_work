@@ -445,6 +445,45 @@ def frozenWaveOperator (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) : ℝ → �
         deriv (fun y => (W y) ^ p.m * deriv (frozenElliptic p u) y) x
       + W x * (1 - (W x) ^ p.α)
 
+/-- Stationary profile obtained after the frozen auxiliary fixed-point step.
+This is the exact bridge object needed before producing an `IsTravelingWave`.
+The hard analytic work is to prove these fields for the Schauder fixed point. -/
+structure FrozenStationaryWaveProfile
+    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
+  hc : 0 < c
+  U_pos : ∀ x, 0 < U x
+  stationary_eq : ∀ x, frozenWaveOperator p c U U x = 0
+  elliptic_eq :
+    ∀ x,
+      iteratedDeriv 2 (frozenElliptic p U) x -
+          frozenElliptic p U x + (U x) ^ p.γ = 0
+  lim_neg_inf :
+    Tendsto U atBot (𝓝 1) ∧ Tendsto (frozenElliptic p U) atBot (𝓝 1)
+  lim_pos_inf :
+    Tendsto U atTop (𝓝 0) ∧ Tendsto (frozenElliptic p U) atTop (𝓝 0)
+
+theorem FrozenStationaryWaveProfile.to_travelingWave
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : FrozenStationaryWaveProfile p c U) :
+    IsTravelingWave p c U (frozenElliptic p U) := by
+  refine
+    { hc := h.hc
+      U_pos := h.U_pos
+      ode_U := ?_
+      ode_V := h.elliptic_eq
+      lim_neg_inf := h.lim_neg_inf
+      lim_pos_inf := h.lim_pos_inf }
+  intro x
+  simpa [frozenWaveOperator] using h.stationary_eq x
+
+theorem FrozenStationaryWaveProfile.to_monotoneTravelingWave
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : FrozenStationaryWaveProfile p c U)
+    (hUmono : ∀ x, deriv U x ≤ 0)
+    (hVmono : ∀ x, deriv (frozenElliptic p U) x ≤ 0) :
+    IsMonotoneTravelingWave p c U (frozenElliptic p U) :=
+  ⟨h.to_travelingWave, hUmono, hVmono⟩
+
 def IsFrozenSuperSolution (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) : Prop :=
   ∀ x, frozenWaveOperator p c u W x ≤ 0
 
@@ -1656,6 +1695,37 @@ def FrozenAuxiliaryLimitOutput
       (∀ x, Antitone (fun t => z t x)) ∧
       ∀ x, Tendsto (fun t : ℝ => z t x) atTop (𝓝 (U x))
 
+theorem FrozenAuxiliaryLimitOutput.exists_orbit
+    {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
+    {frozen U : ℝ → ℝ}
+    (h : FrozenAuxiliaryLimitOutput p c κ M trap frozen U) :
+    ∃ z : ℝ → ℝ → ℝ,
+      FrozenAuxiliarySolutionFrom p c frozen (upperBarrier κ M) z ∧
+        (∀ t, 0 ≤ t → trap (z t)) ∧
+        (∀ x, Antitone (fun t => z t x)) ∧
+        ∀ x, Tendsto (fun t : ℝ => z t x) atTop (𝓝 (U x)) :=
+  h
+
+theorem FrozenAuxiliaryLimitOutput.solution_from
+    {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
+    {frozen U : ℝ → ℝ}
+    (h : FrozenAuxiliaryLimitOutput p c κ M trap frozen U) :
+    ∃ z : ℝ → ℝ → ℝ,
+      FrozenAuxiliarySolutionFrom p c frozen (upperBarrier κ M) z := by
+  rcases h with ⟨z, hz, _htrap, _hanti, _htendsto⟩
+  exact ⟨z, hz⟩
+
+theorem FrozenAuxiliaryLimitOutput.exists_trapped_antitone_orbit
+    {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
+    {frozen U : ℝ → ℝ}
+    (h : FrozenAuxiliaryLimitOutput p c κ M trap frozen U) :
+    ∃ z : ℝ → ℝ → ℝ,
+      (∀ t, 0 ≤ t → trap (z t)) ∧
+        (∀ x, Antitone (fun t => z t x)) ∧
+        ∀ x, Tendsto (fun t : ℝ => z t x) atTop (𝓝 (U x)) := by
+  rcases h with ⟨z, _hz, htrap, hanti, htendsto⟩
+  exact ⟨z, htrap, hanti, htendsto⟩
+
 /-- The Schauder-map statement target from the proof of Theorem 1.1: construct
 a local-uniformly compact and continuous limit map on a trapping set, then get a
 fixed point. -/
@@ -1677,6 +1747,36 @@ theorem FrozenWaveMapConstruction.exists_fixed_limit
   refine ⟨U, hU, ?_⟩
   have hUlimit := hlimit U hU
   rwa [hfix] at hUlimit
+
+theorem FrozenWaveMapConstruction.exists_fixed_inWaveTrapSet_with_bounds
+    {p : CMParams} {c κ M : ℝ}
+    (h : FrozenWaveMapConstruction p c κ M (fun u => InWaveTrapSet κ M u)) :
+    ∃ U : ℝ → ℝ,
+      InWaveTrapSet κ M U ∧
+        FrozenAuxiliaryLimitOutput p c κ M
+          (fun u => InWaveTrapSet κ M u) U U ∧
+        (∀ x, 0 ≤ U x) ∧
+        (∀ x, U x ≤ M) ∧
+        ∀ x, U x ≤ Real.exp (-κ * x) := by
+  rcases h.exists_fixed_limit with ⟨U, hU, hlimit⟩
+  exact ⟨U, hU, hlimit, hU.nonneg, hU.le_M, hU.le_exp⟩
+
+theorem FrozenWaveMapConstruction.exists_fixed_inMonotoneWaveTrapSet_with_bounds
+    {p : CMParams} {c κ M : ℝ}
+    (h :
+      FrozenWaveMapConstruction p c κ M
+        (fun u => InMonotoneWaveTrapSet κ M u)) :
+    ∃ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet κ M U ∧
+        FrozenAuxiliaryLimitOutput p c κ M
+          (fun u => InMonotoneWaveTrapSet κ M u) U U ∧
+        Antitone U ∧
+        (∀ x, 0 ≤ U x) ∧
+        (∀ x, U x ≤ M) ∧
+        ∀ x, U x ≤ Real.exp (-κ * x) := by
+  rcases h.exists_fixed_limit with ⟨U, hU, hlimit⟩
+  exact
+    ⟨U, hU, hlimit, hU.antitone, hU.nonneg, hU.le_M, hU.le_exp⟩
 
 def subsolutionK (M κ κtilde m gamma : ℝ) : ℝ :=
   let prefactor := m * (κtilde + κ) + 1
@@ -2307,6 +2407,19 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit
           (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U := by
   exact FrozenWaveMapConstruction.exists_fixed_limit h.map_construction
 
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_bounds
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    ∃ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet (kappa c) 1 U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) 1
+          (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U ∧
+        Antitone U ∧
+        (∀ x, 0 ≤ U x) ∧
+        (∀ x, U x ≤ 1) ∧
+        ∀ x, U x ≤ Real.exp (-(kappa c) * x) := by
+  exact h.map_construction.exists_fixed_inMonotoneWaveTrapSet_with_bounds
+
 theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit
     {p : CMParams} {c κ₁ κtilde D : ℝ}
     (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
@@ -2315,6 +2428,18 @@ theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit
         FrozenAuxiliaryLimitOutput p c (kappa c) (MChi p)
           (fun u => InWaveTrapSet (kappa c) (MChi p) u) U U := by
   exact FrozenWaveMapConstruction.exists_fixed_limit h.map_construction
+
+theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_bounds
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    ∃ U : ℝ → ℝ,
+      InWaveTrapSet (kappa c) (MChi p) U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) (MChi p)
+          (fun u => InWaveTrapSet (kappa c) (MChi p) u) U U ∧
+        (∀ x, 0 ≤ U x) ∧
+        (∀ x, U x ≤ MChi p) ∧
+        ∀ x, U x ≤ Real.exp (-(kappa c) * x) := by
+  exact h.map_construction.exists_fixed_inWaveTrapSet_with_bounds
 
 theorem one_le_MChi_of_chi_nonneg_lt_chiStar
     (p : CMParams) (hχ_nonneg : 0 ≤ p.χ) (hχ : p.χ < chiStar p) :
