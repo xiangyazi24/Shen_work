@@ -199,6 +199,17 @@ lemma sigmaChemCoefficient_pos
       (mul_pos (Real.rpow_pos_of_pos huStar _) hlambda)
   exact div_pos hnum_pos hden_pos
 
+lemma sigmaCriticalChi_pos
+    (p : CM2Params) {uStar vStar lambdaN : ℝ}
+    (huStar : 0 < uStar) (hvStar : 0 ≤ vStar) (hlambda : 0 < lambdaN) :
+    0 < sigmaCriticalChi p uStar vStar lambdaN := by
+  unfold sigmaCriticalChi
+  have hnum : 0 < lambdaN + p.a * p.α := by
+    nlinarith [hlambda, p.ha, p.hα]
+  have hden : 0 < sigmaChemCoefficient p uStar vStar lambdaN :=
+    sigmaChemCoefficient_pos p huStar hvStar hlambda
+  exact div_pos hnum hden
+
 lemma sigma_eq_chi_sub_critical_mul_coeff
     (p : CM2Params) (uStar vStar lambdaN : ℝ)
     (hcoeff :
@@ -279,6 +290,17 @@ lemma BelowAllLinearCriticalThresholds.not_aboveSome
     ¬ AboveSomeLinearCriticalThreshold S p uStar vStar := by
   intro habove
   exact habove.not_belowAll hbelow
+
+lemma BelowAllLinearCriticalThresholds_of_chi_nonpos
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    {uStar vStar : ℝ}
+    (hχ : p.χ₀ ≤ 0) (huStar : 0 < uStar) (hvStar : 0 ≤ vStar) :
+    BelowAllLinearCriticalThresholds S p uStar vStar := by
+  intro n hn
+  have hcrit : 0 < sigmaCriticalChi p uStar vStar (S.eigenvalue n) :=
+    sigmaCriticalChi_pos p huStar hvStar
+      (H.eigenvalue_pos_of_ne_zero n hn)
+  exact lt_of_le_of_lt hχ hcrit
 
 structure StabilityNorms (D : BoundedDomainData) where
   c1Distance : (D.Point → ℝ) → (D.Point → ℝ) → ℝ
@@ -722,6 +744,17 @@ lemma positiveEquilibrium_linearlyStable_of_chi_nonpos_neumann
   exact positiveEquilibrium_linearlyStable_of_chi_nonpos S p hχ ha hb
     (fun n hn => H.eigenvalue_nonneg_of_ne_zero hn)
 
+lemma positiveEquilibrium_belowAllLinearCriticalThresholds_of_chi_nonpos
+    (S : SpectralData) (p : CM2Params)
+    (H : HasNeumannSpectrum S)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    BelowAllLinearCriticalThresholds S p eq.1 eq.2 := by
+  dsimp
+  exact BelowAllLinearCriticalThresholds_of_chi_nonpos S p H hχ
+    (positiveEquilibrium_fst_pos p ⟨ha, hb⟩)
+    (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
+
 lemma positiveEquilibrium_linearlyStable_of_chi_lt_sigmaCriticalChi_neumann
     (S : SpectralData) (p : CM2Params)
     (H : HasNeumannSpectrum S) (ha : 0 < p.a) (hb : 0 < p.b)
@@ -821,6 +854,17 @@ lemma minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero_neumann
     LinearlyStable S p eq.1 eq.2 := by
   exact minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero S p hχ ha huStar
     H.eigenvalue_pos_of_ne_zero
+
+lemma minimalEquilibrium_belowAllLinearCriticalThresholds_of_chi_nonpos
+    (S : SpectralData) (p : CM2Params) {uStar : ℝ}
+    (H : HasNeumannSpectrum S)
+    (hχ : p.χ₀ ≤ 0) (huStar : 0 < uStar) :
+    let eq := minimalEquilibrium p uStar
+    BelowAllLinearCriticalThresholds S p eq.1 eq.2 := by
+  dsimp
+  exact BelowAllLinearCriticalThresholds_of_chi_nonpos S p H hχ
+    huStar
+    (minimalEquilibrium_snd_pos p huStar).le
 
 lemma minimalEquilibrium_linearlyStable_of_chi_lt_sigmaCriticalChi_neumann
     (S : SpectralData) (p : CM2Params) {uStar : ℝ}
