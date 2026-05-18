@@ -10,6 +10,7 @@
 import ShenWork.Paper2.Defs
 import Mathlib.Analysis.MeanInequalities
 import Mathlib.Analysis.Calculus.Deriv.Basic
+import Mathlib.Analysis.Calculus.Deriv.MeanValue
 import Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
 
 open Filter Topology
@@ -569,6 +570,62 @@ lemma Psi_beta_deriv_raw {beta : ℝ} (hbeta : 0 < beta) :
         1 * (beta / (1 + beta)) ^ (1 + beta) *
           Real.log (beta / (1 + beta)) :=
   (Psi_beta_hasDerivAt_raw hbeta).deriv
+
+lemma Psi_beta_deriv_eq {beta : ℝ} (hbeta : 0 < beta) :
+    deriv Psi_beta beta =
+      Psi_beta beta * (1 / beta + Real.log (beta / (1 + beta))) := by
+  have hden_pos : 0 < 1 + beta := by linarith
+  have hq_pos : 0 < beta / (1 + beta) := div_pos hbeta hden_pos
+  have hpow :
+      (beta / (1 + beta)) ^ ((1 + beta) - 1) =
+        (beta / (1 + beta)) ^ (1 + beta) / (beta / (1 + beta)) := by
+    simpa using Real.rpow_sub hq_pos (1 + beta) 1
+  rw [Psi_beta_deriv_raw hbeta]
+  unfold Psi_beta
+  rw [hpow]
+  field_simp [ne_of_gt hbeta, ne_of_gt hden_pos, ne_of_gt hq_pos]
+
+lemma Psi_beta_log_factor_pos {beta : ℝ} (hbeta : 0 < beta) :
+    0 < 1 / beta + Real.log (beta / (1 + beta)) := by
+  have hx_pos : 0 < 1 + 1 / beta := by positivity
+  have hx_ne : 1 + 1 / beta ≠ 1 := by
+    intro h
+    have hinv_pos : 0 < 1 / beta := by positivity
+    linarith
+  have hlog_lt := Real.log_lt_sub_one_of_pos hx_pos hx_ne
+  have hquot : beta / (1 + beta) = (1 + 1 / beta)⁻¹ := by
+    field_simp [ne_of_gt hbeta, ne_of_gt (by linarith : 0 < 1 + beta)]
+    ring
+  rw [hquot, Real.log_inv]
+  linarith
+
+lemma Psi_beta_deriv_pos {beta : ℝ} (hbeta : 0 < beta) :
+    0 < deriv Psi_beta beta := by
+  rw [Psi_beta_deriv_eq hbeta]
+  exact mul_pos (Psi_beta_pos hbeta) (Psi_beta_log_factor_pos hbeta)
+
+lemma Psi_beta_strictMonoOn_Ioi :
+    StrictMonoOn Psi_beta (Set.Ioi (0 : ℝ)) := by
+  refine strictMonoOn_of_deriv_pos (convex_Ioi (0 : ℝ)) ?_ ?_
+  · intro beta hbeta
+    exact (Psi_beta_hasDerivAt_raw hbeta).continuousAt.continuousWithinAt
+  · intro beta hbeta
+    exact Psi_beta_deriv_pos (by simpa using hbeta)
+
+lemma Psi_beta_monotoneOn_Ici :
+    MonotoneOn Psi_beta (Set.Ici (0 : ℝ)) := by
+  intro beta hbeta gamma hgamma hle
+  by_cases hbeta_zero : beta = 0
+  · subst beta
+    rw [Psi_beta_zero]
+    exact Psi_beta_nonneg hgamma
+  · have hbeta_pos : 0 < beta := lt_of_le_of_ne hbeta (Ne.symm hbeta_zero)
+    by_cases h_eq : beta = gamma
+    · subst gamma
+      rfl
+    · have hlt : beta < gamma := lt_of_le_of_ne hle h_eq
+      have hgamma_pos : 0 < gamma := lt_trans hbeta_pos hlt
+      exact le_of_lt (Psi_beta_strictMonoOn_Ioi hbeta_pos hgamma_pos hlt)
 
 lemma Psi_beta_eq_zero_iff_of_nonneg {beta : ℝ} (hbeta : 0 ≤ beta) :
     Psi_beta beta = 0 ↔ beta = 0 := by
