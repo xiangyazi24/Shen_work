@@ -1837,6 +1837,197 @@ def PositiveSensitivityWaveFixedPointConstruction
     FrozenWaveMapConstruction p c (kappa c) (MChi p)
       (fun u => InWaveTrapSet (kappa c) (MChi p) u)
 
+theorem NegativeSensitivityWaveFixedPointConstruction.chi_neg
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    p.χ < 0 :=
+  h.1
+
+theorem NegativeSensitivityWaveFixedPointConstruction.alpha_le
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    p.α ≤ p.m + p.γ - 1 :=
+  h.2.1
+
+theorem NegativeSensitivityWaveFixedPointConstruction.cStarLower_lt
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    cStarLower p < c :=
+  h.2.2.1
+
+theorem NegativeSensitivityWaveFixedPointConstruction.kappa_lt_kappaOne
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    kappa c < κ₁ :=
+  h.2.2.2.1
+
+theorem NegativeSensitivityWaveFixedPointConstruction.kappaOne_lt_kappaTilde
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    κ₁ < κtilde :=
+  h.2.2.2.2.1
+
+theorem NegativeSensitivityWaveFixedPointConstruction.kappaTilde_range
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    κtilde ≤
+      min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) :=
+  h.2.2.2.2.2.1
+
+theorem NegativeSensitivityWaveFixedPointConstruction.D_gt_threshold
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    subsolutionDThreshold p.χ 1 (kappa c) κtilde p.m p.γ c < D :=
+  h.2.2.2.2.2.2.1
+
+theorem NegativeSensitivityWaveFixedPointConstruction.map_construction
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    FrozenWaveMapConstruction p c (kappa c) 1
+      (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) :=
+  h.2.2.2.2.2.2.2
+
+theorem NegativeSensitivityWaveFixedPointConstruction.kappa_pos
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    0 < kappa c :=
+  kappa_pos_of_cStarLower_lt h.cStarLower_lt
+
+theorem NegativeSensitivityWaveFixedPointConstruction.kappa_lt_one
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    kappa c < 1 :=
+  kappa_lt_one_of_cStarLower_lt h.cStarLower_lt
+
+theorem NegativeSensitivityWaveFixedPointConstruction.kappa_lt_kappaTilde
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    kappa c < κtilde :=
+  lt_trans h.kappa_lt_kappaOne h.kappaOne_lt_kappaTilde
+
+theorem NegativeSensitivityWaveFixedPointConstruction.kappaTilde_pos
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    0 < κtilde :=
+  kappaTilde_pos_of_kappa_lt h.kappa_pos h.kappa_lt_kappaTilde
+
+theorem NegativeSensitivityWaveFixedPointConstruction.kappaTilde_le_one
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    κtilde ≤ 1 :=
+  kappaTilde_le_one_of_subsolution_range h.kappaTilde_range
+
+theorem NegativeSensitivityWaveFixedPointConstruction.MChi_eq_one
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    MChi p = 1 :=
+  MChi_eq_one_of_chi_nonpos p (le_of_lt h.chi_neg)
+
+theorem PositiveSensitivityWaveFixedPointConstruction.chi_nonneg
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    0 ≤ p.χ :=
+  h.1
+
+theorem PositiveSensitivityWaveFixedPointConstruction.chi_lt_min
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    p.χ < min (1 / 2 : ℝ) (chiStar p) :=
+  h.2.1
+
+theorem PositiveSensitivityWaveFixedPointConstruction.chi_lt_chiStar
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    p.χ < chiStar p :=
+  lt_of_lt_of_le h.chi_lt_min (min_le_right _ _)
+
+theorem PositiveSensitivityWaveFixedPointConstruction.alpha_eq
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    p.α = p.m + p.γ - 1 :=
+  h.2.2.1
+
+theorem PositiveSensitivityWaveFixedPointConstruction.two_lt_c
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    2 < c :=
+  h.2.2.2.1
+
+theorem PositiveSensitivityWaveFixedPointConstruction.kappa_lt_kappaOne
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    kappa c < κ₁ :=
+  h.2.2.2.2.1
+
+theorem PositiveSensitivityWaveFixedPointConstruction.kappaOne_lt_kappaTilde
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    κ₁ < κtilde :=
+  h.2.2.2.2.2.1
+
+theorem PositiveSensitivityWaveFixedPointConstruction.kappaTilde_range
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    κtilde ≤
+      min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) :=
+  h.2.2.2.2.2.2.1
+
+theorem PositiveSensitivityWaveFixedPointConstruction.D_gt_threshold
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    subsolutionDThreshold p.χ (MChi p) (kappa c) κtilde p.m p.γ c < D :=
+  h.2.2.2.2.2.2.2.1
+
+theorem PositiveSensitivityWaveFixedPointConstruction.map_construction
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    FrozenWaveMapConstruction p c (kappa c) (MChi p)
+      (fun u => InWaveTrapSet (kappa c) (MChi p) u) :=
+  h.2.2.2.2.2.2.2.2
+
+theorem PositiveSensitivityWaveFixedPointConstruction.kappa_pos
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    0 < kappa c :=
+  kappa_pos_of_two_lt h.two_lt_c
+
+theorem PositiveSensitivityWaveFixedPointConstruction.kappa_lt_one
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    kappa c < 1 :=
+  kappa_lt_one_of_two_lt h.two_lt_c
+
+theorem PositiveSensitivityWaveFixedPointConstruction.kappa_lt_kappaTilde
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    kappa c < κtilde :=
+  lt_trans h.kappa_lt_kappaOne h.kappaOne_lt_kappaTilde
+
+theorem PositiveSensitivityWaveFixedPointConstruction.kappaTilde_pos
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    0 < κtilde :=
+  kappaTilde_pos_of_kappa_lt h.kappa_pos h.kappa_lt_kappaTilde
+
+theorem PositiveSensitivityWaveFixedPointConstruction.kappaTilde_le_one
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    κtilde ≤ 1 :=
+  kappaTilde_le_one_of_subsolution_range h.kappaTilde_range
+
+theorem PositiveSensitivityWaveFixedPointConstruction.MChi_pos
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    0 < MChi p :=
+  MChi_pos_of_chi_lt_chiStar p h.chi_lt_chiStar
+
+theorem PositiveSensitivityWaveFixedPointConstruction.one_le_MChi
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    1 ≤ MChi p :=
+  one_le_MChi_of_chi_nonneg_lt_one p h.chi_nonneg
+    (lt_of_lt_of_le h.chi_lt_chiStar (chiStar_le_one p))
+
 theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit
     {p : CMParams} {c κ₁ κtilde D : ℝ}
     (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
@@ -1844,7 +2035,7 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit
       InMonotoneWaveTrapSet (kappa c) 1 U ∧
         FrozenAuxiliaryLimitOutput p c (kappa c) 1
           (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U := by
-  exact FrozenWaveMapConstruction.exists_fixed_limit h.2.2.2.2.2.2.2
+  exact FrozenWaveMapConstruction.exists_fixed_limit h.map_construction
 
 theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit
     {p : CMParams} {c κ₁ κtilde D : ℝ}
@@ -1853,7 +2044,7 @@ theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit
       InWaveTrapSet (kappa c) (MChi p) U ∧
         FrozenAuxiliaryLimitOutput p c (kappa c) (MChi p)
           (fun u => InWaveTrapSet (kappa c) (MChi p) u) U U := by
-  exact FrozenWaveMapConstruction.exists_fixed_limit h.2.2.2.2.2.2.2.2
+  exact FrozenWaveMapConstruction.exists_fixed_limit h.map_construction
 
 theorem one_le_MChi_of_chi_nonneg_lt_chiStar
     (p : CMParams) (hχ_nonneg : 0 ≤ p.χ) (hχ : p.χ < chiStar p) :
