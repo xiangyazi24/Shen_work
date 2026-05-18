@@ -907,6 +907,30 @@ lemma chiStrong4Formula_pos
       (Real.rpow_pos_of_pos hvpos _)
       (chiStrong3Formula_pos p ha huStar hveq_nonneg)
 
+lemma chiStrong2Formula_le_chiBarFormula
+    (p : CM2Params) (uStar : ℝ) :
+    chiStrong2Formula p uStar ≤ chiBarFormula p := by
+  unfold chiStrong2Formula
+  exact min_le_left _ _
+
+lemma chiStrong4Formula_le_chiBarFormula
+    (p : CM2Params) (M0 uStar : ℝ) :
+    chiStrong4Formula p M0 uStar ≤ chiBarFormula p := by
+  unfold chiStrong4Formula
+  exact min_le_left _ _
+
+lemma chi_lt_chiBarFormula_of_lt_chiStrong2Formula
+    (p : CM2Params) {chi uStar : ℝ}
+    (hchi : chi < chiStrong2Formula p uStar) :
+    chi < chiBarFormula p :=
+  lt_of_lt_of_le hchi (chiStrong2Formula_le_chiBarFormula p uStar)
+
+lemma chi_lt_chiBarFormula_of_lt_chiStrong4Formula
+    (p : CM2Params) {chi M0 uStar : ℝ}
+    (hchi : chi < chiStrong4Formula p M0 uStar) :
+    chi < chiBarFormula p :=
+  lt_of_lt_of_le hchi (chiStrong4Formula_le_chiBarFormula p M0 uStar)
+
 def minimalUpperBoundFormula (CN qPrime qDoublePrime uStar : ℝ) : ℝ :=
   CN * (uStar ^ qPrime + uStar ^ qDoublePrime)
 
