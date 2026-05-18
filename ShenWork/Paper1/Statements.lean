@@ -1773,6 +1773,16 @@ theorem one_le_MChi_of_chi_nonneg_lt_chiStar
 def HasWaveUpperTailBound (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop :=
   ∀ x, 0 < U x ∧ U x ≤ min (MChi p) (Real.exp (-(kappa c) * x))
 
+def HasStrictWaveUpperTailBound (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop :=
+  ∀ x, 0 < U x ∧ U x < min (MChi p) (Real.exp (-(kappa c) * x))
+
+theorem HasStrictWaveUpperTailBound.hasWaveUpperTailBound
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasStrictWaveUpperTailBound p c U) :
+    HasWaveUpperTailBound p c U := by
+  intro x
+  exact ⟨(h x).1, (h x).2.le⟩
+
 theorem HasWaveUpperTailBound.pos {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (h : HasWaveUpperTailBound p c U) (x : ℝ) :
     0 < U x :=
@@ -2025,6 +2035,7 @@ def Theorem_1_2 : Prop :=
     ∃ cStarStar > stabilitySpeedBaseline p, ∀ c : ℝ, cStarStar < c →
       ∀ U V : ℝ → ℝ,
         IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
         (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
         ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6)) →
           ∀ u₀ : ℝ → ℝ,
@@ -2043,6 +2054,8 @@ def Theorem_1_3 : Prop :=
       ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
         IsTravelingWave p c U₁ V₁ →
         IsTravelingWave p c U₂ V₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
         (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧
           HasWaveRightTailAsymptotic c κ₁ U₁ ∧
           HasWaveRightTailAsymptotic c κ₁ U₂) →
