@@ -1949,6 +1949,60 @@ theorem FrozenAuxiliaryLimitOutput.exists_trapped_antitone_orbit
   rcases h with ⟨z, _hz, htrap, hanti, htendsto⟩
   exact ⟨z, htrap, hanti, htendsto⟩
 
+theorem FrozenAuxiliaryLimitOutput.le_initial_upperBarrier
+    {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
+    {frozen U : ℝ → ℝ}
+    (h : FrozenAuxiliaryLimitOutput p c κ M trap frozen U) (x : ℝ) :
+    U x ≤ upperBarrier κ M x := by
+  rcases h with ⟨z, hz, _htrap, hanti, htendsto⟩
+  have heventually :
+      ∀ᶠ t in atTop, z t x ≤ upperBarrier κ M x := by
+    filter_upwards [eventually_ge_atTop (0 : ℝ)] with t ht
+    have hle : z t x ≤ z 0 x := hanti x ht
+    simpa [FrozenAuxiliarySolutionFrom.initial_eq hz x] using hle
+  exact le_of_tendsto (htendsto x) heventually
+
+theorem FrozenAuxiliaryLimitOutput.nonneg_of_inWaveTrapSet
+    {p : CMParams} {c κ M : ℝ} {frozen U : ℝ → ℝ}
+    (h :
+      FrozenAuxiliaryLimitOutput p c κ M
+        (fun u => InWaveTrapSet κ M u) frozen U)
+    (x : ℝ) :
+    0 ≤ U x := by
+  rcases h with ⟨z, _hz, htrap, _hanti, htendsto⟩
+  have heventually :
+      (fun _ : ℝ => (0 : ℝ)) ≤ᶠ[atTop] fun t : ℝ => z t x := by
+    filter_upwards [eventually_ge_atTop (0 : ℝ)] with t ht
+    exact (htrap t ht).nonneg x
+  exact le_of_tendsto_of_tendsto tendsto_const_nhds (htendsto x) heventually
+
+theorem FrozenAuxiliaryLimitOutput.le_M_of_inWaveTrapSet
+    {p : CMParams} {c κ M : ℝ} {frozen U : ℝ → ℝ}
+    (h :
+      FrozenAuxiliaryLimitOutput p c κ M
+        (fun u => InWaveTrapSet κ M u) frozen U)
+    (x : ℝ) :
+    U x ≤ M := by
+  rcases h with ⟨z, _hz, htrap, _hanti, htendsto⟩
+  have heventually : ∀ᶠ t in atTop, z t x ≤ M := by
+    filter_upwards [eventually_ge_atTop (0 : ℝ)] with t ht
+    exact (htrap t ht).le_M x
+  exact le_of_tendsto (htendsto x) heventually
+
+theorem FrozenAuxiliaryLimitOutput.le_exp_of_inWaveTrapSet
+    {p : CMParams} {c κ M : ℝ} {frozen U : ℝ → ℝ}
+    (h :
+      FrozenAuxiliaryLimitOutput p c κ M
+        (fun u => InWaveTrapSet κ M u) frozen U)
+    (x : ℝ) :
+    U x ≤ Real.exp (-κ * x) := by
+  rcases h with ⟨z, _hz, htrap, _hanti, htendsto⟩
+  have heventually :
+      ∀ᶠ t in atTop, z t x ≤ Real.exp (-κ * x) := by
+    filter_upwards [eventually_ge_atTop (0 : ℝ)] with t ht
+    exact (htrap t ht).le_exp x
+  exact le_of_tendsto (htendsto x) heventually
+
 /-- The Schauder-map statement target from the proof of Theorem 1.1: construct
 a local-uniformly compact and continuous limit map on a trapping set, then get a
 fixed point. -/
