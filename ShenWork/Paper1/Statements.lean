@@ -2827,6 +2827,88 @@ theorem ShenUpperBoundPositive.inWaveTrapSet
     InWaveTrapSet (kappa c) (MChi p) U :=
   (ShenUpperBoundPositive.hasWaveUpperTailBound hχ_nonneg hχ_lt h).inWaveTrapSet hU
 
+/-- The admissible extra right-tail decay rate in Paper1 Remark 4.3:
+`0 < η < min {ακ, (m-1)κ+1/2, 1-κ}`. -/
+def Remark43TailRateBound (p : CMParams) (c eta : ℝ) : Prop :=
+  0 < eta ∧
+    eta <
+      min (p.α * kappa c)
+        (min ((p.m - 1) * kappa c + 1 / 2) (1 - kappa c))
+
+/-- The pointwise right-tail normalization recorded in Paper1 Remark 4.3. -/
+def HasRemark43TailAsymptotic
+    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop :=
+  ∀ eta : ℝ, Remark43TailRateBound p c eta →
+    Tendsto
+      (fun x => Real.exp (eta * x) *
+        (U x / Real.exp (-(kappa c) * x) - 1))
+      atTop (𝓝 0)
+
+/-- Paper1 Remark 4.3: the construction gives the sharper right-tail
+normalization, and two waves with that normalization are close in the weighted
+space used by the stability theorem. -/
+def Remark_4_3 : Prop :=
+  ∀ p : CMParams, ∀ c : ℝ, 0 < kappa c →
+    ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+      IsTravelingWave p c U₁ V₁ →
+      IsTravelingWave p c U₂ V₂ →
+      HasWaveUpperTailBound p c U₁ →
+      HasWaveUpperTailBound p c U₂ →
+      HasRemark43TailAsymptotic p c U₁ →
+      HasRemark43TailAsymptotic p c U₂ →
+      ∀ eta : ℝ, Remark43TailRateBound p c eta →
+        WeightedL2InitialCloseness (eta + kappa c) U₂ U₁
+
+theorem Remark43TailRateBound.pos
+    {p : CMParams} {c eta : ℝ} (h : Remark43TailRateBound p c eta) :
+    0 < eta :=
+  h.1
+
+theorem Remark43TailRateBound.lt_alpha_kappa
+    {p : CMParams} {c eta : ℝ} (h : Remark43TailRateBound p c eta) :
+    eta < p.α * kappa c :=
+  lt_of_lt_of_le h.2 (min_le_left _ _)
+
+theorem Remark43TailRateBound.lt_m_kappa_add_half
+    {p : CMParams} {c eta : ℝ} (h : Remark43TailRateBound p c eta) :
+    eta < (p.m - 1) * kappa c + 1 / 2 :=
+  lt_of_lt_of_le h.2 (le_trans (min_le_right _ _) (min_le_left _ _))
+
+theorem Remark43TailRateBound.lt_one_sub_kappa
+    {p : CMParams} {c eta : ℝ} (h : Remark43TailRateBound p c eta) :
+    eta < 1 - kappa c :=
+  lt_of_lt_of_le h.2 (le_trans (min_le_right _ _) (min_le_right _ _))
+
+theorem Remark43TailRateBound.weight_pos
+    {p : CMParams} {c eta : ℝ} (h : Remark43TailRateBound p c eta)
+    (hkappa : 0 < kappa c) :
+    0 < eta + kappa c := by
+  linarith [h.pos, hkappa]
+
+theorem HasRemark43TailAsymptotic.at_rate
+    {p : CMParams} {c eta : ℝ} {U : ℝ → ℝ}
+    (h : HasRemark43TailAsymptotic p c U)
+    (heta : Remark43TailRateBound p c eta) :
+    Tendsto
+      (fun x => Real.exp (eta * x) *
+        (U x / Real.exp (-(kappa c) * x) - 1))
+      atTop (𝓝 0) :=
+  h eta heta
+
+theorem Remark_4_3.weighted_initial_closeness
+    (h : Remark_4_3) {p : CMParams} {c eta : ℝ}
+    (hkappa : 0 < kappa c) (heta : Remark43TailRateBound p c eta)
+    {U₁ V₁ U₂ V₂ : ℝ → ℝ}
+    (hTW₁ : IsTravelingWave p c U₁ V₁)
+    (hTW₂ : IsTravelingWave p c U₂ V₂)
+    (hbound₁ : HasWaveUpperTailBound p c U₁)
+    (hbound₂ : HasWaveUpperTailBound p c U₂)
+    (htail₁ : HasRemark43TailAsymptotic p c U₁)
+    (htail₂ : HasRemark43TailAsymptotic p c U₂) :
+    WeightedL2InitialCloseness (eta + kappa c) U₂ U₁ :=
+  h p c hkappa U₁ V₁ U₂ V₂ hTW₁ hTW₂
+    hbound₁ hbound₂ htail₁ htail₂ eta heta
+
 def WaveDerivativeTendsZero (U : ℝ → ℝ) : Prop :=
   Tendsto (fun x => deriv U x) atBot (𝓝 0) ∧
     Tendsto (fun x => deriv U x) atTop (𝓝 0)
