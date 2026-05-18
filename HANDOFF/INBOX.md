@@ -81,6 +81,10 @@ BUILD OK, 0 sorry remaining. Paper main theorems are not yet formalized; see
   driven by accurate paper-theorem status, not by `sorry` count.
 - Added `ShenWork.Paper2.Defs` and `ShenWork.Paper3.Defs` to `ShenWork.lean`,
   so the remote full build now covers the Paper2/Paper3 layers.
+- Renamed Paper2/Paper3 placeholder predicates to `IsToyClassicalSolution2`,
+  `IsToyGlobalClassicalSolution2`, `IsToyBounded2`, and
+  `IsToyGloballyAsymptoticallyStable`, so the Lean API no longer suggests that
+  the bounded-domain paper PDE has been encoded.
 
 ## P0: MildSolution Banach fixed point
 Need to instantiate `abstract_mild_fixed_point` by constructing the actual complete

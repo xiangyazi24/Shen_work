@@ -50,14 +50,14 @@ File header reference: `ShenWork/Paper2/Defs.lean`, arXiv `2512.14858`.
 
 | Paper theorem area | Current Lean artifact | Status | Notes |
 | --- | --- | --- | --- |
-| Bounded-domain PDE solution predicate | `IsClassicalSolution2` | toy only | `pde_satisfied : True`; no domain, boundary condition, PDE, elliptic equation for `v`, or regularity beyond positivity. |
+| Bounded-domain PDE solution predicate | `IsToyClassicalSolution2` | toy only | `pde_satisfied : True`; no domain, boundary condition, PDE, elliptic equation for `v`, or regularity beyond positivity. |
 | Boundedness/global existence main theorems | none | not stated | Removed former `cm2_thm*` names because they returned a constant solution independent of the initial datum. |
 | Constant equilibrium under toy definition | `cm2_constant_solution_under_current_solution_def` | proved, toy only | Useful only as a sanity check for the current toy predicate. |
 | Persistence counterexample under toy definition | `persistence_property_false_under_current_solution_def` | proved, toy only | Documents why Paper3-style persistence cannot follow from the current Paper2 predicate. |
 
 Next accurate theorem work:
 
-1. Replace `IsClassicalSolution2` with a genuine bounded-domain
+1. Replace `IsToyClassicalSolution2` with a genuine bounded-domain
    parabolic-elliptic solution predicate.
 2. Add domain/boundary data, likely Neumann boundary conditions, regularity,
    positivity, and the exact PDE fields.
@@ -70,7 +70,7 @@ File header reference: `ShenWork/Paper3/Defs.lean`, arXiv `2604.02599`.
 | Paper theorem area | Current Lean artifact | Status | Notes |
 | --- | --- | --- | --- |
 | Positive equilibrium | `equilibrium` | stated | Algebraic target only; depends on Paper2 parameters. |
-| Global asymptotic stability predicate | `IsGloballyAsymptoticallyStable` | toy dependent | Quantifies over `IsGlobalClassicalSolution2`, so it inherits the toy PDE issue. |
+| Global asymptotic stability predicate | `IsToyGloballyAsymptoticallyStable` | toy dependent | Quantifies over `IsToyGlobalClassicalSolution2`, so it inherits the toy PDE issue. |
 | Persistence theorem | none | not stated | Current file proves the old persistence shape false under the toy definition. |
 | Negative-sensitivity global stability | none | not stated | Current file proves the old stability shape false under the toy definition. |
 

@@ -38,31 +38,31 @@ This is a toy placeholder, not the bounded-domain parabolic-elliptic PDE from
 the paper.  It is kept only to document why the old paper-level theorem shapes
 were unsound under the current definitions.
 -/
-structure IsClassicalSolution2 (p : CM2Params) (T : ℝ) (u _v : ℝ → ℝ → ℝ) : Prop where
+structure IsToyClassicalSolution2 (p : CM2Params) (T : ℝ) (u _v : ℝ → ℝ → ℝ) : Prop where
   hT : 0 < T
   u_pos : ∀ t x, 0 < t → t < T → 0 < u t x
   pde_satisfied : True
 
-def IsGlobalClassicalSolution2 (p : CM2Params) (u v : ℝ → ℝ → ℝ) : Prop :=
-  ∀ T > 0, IsClassicalSolution2 p T u v
+def IsToyGlobalClassicalSolution2 (p : CM2Params) (u v : ℝ → ℝ → ℝ) : Prop :=
+  ∀ T > 0, IsToyClassicalSolution2 p T u v
 
-def IsBounded2 (u : ℝ → ℝ → ℝ) : Prop := ∃ M : ℝ, ∀ t x, 0 ≤ t → |u t x| ≤ M
+def IsToyBounded2 (u : ℝ → ℝ → ℝ) : Prop := ∃ M : ℝ, ∀ t x, 0 ≤ t → |u t x| ≤ M
 
 theorem persistence_property_false_under_current_solution_def
     (p : CM2Params) :
     ¬ (∀ u v : ℝ → ℝ → ℝ,
-      IsGlobalClassicalSolution2 p u v → IsBounded2 u →
+      IsToyGlobalClassicalSolution2 p u v → IsToyBounded2 u →
       ∃ δ > 0, ∀ _ε > 0, ∃ T, ∀ t x, T ≤ t → δ ≤ u t x) := by
   intro h
   let u : ℝ → ℝ → ℝ := fun t _x => Real.exp (-t)
   let v : ℝ → ℝ → ℝ := fun _t _x => 0
-  have hglobal : IsGlobalClassicalSolution2 p u v := by
+  have hglobal : IsToyGlobalClassicalSolution2 p u v := by
     intro T hT
     refine ⟨hT, ?_, trivial⟩
     intro t _x _ht0 _htT
     dsimp [u]
     positivity
-  have hbdd : IsBounded2 u := by
+  have hbdd : IsToyBounded2 u := by
     refine ⟨1, ?_⟩
     intro t _x ht0
     dsimp [u]
@@ -86,7 +86,7 @@ theorem persistence_property_false_under_current_solution_def
 theorem cm2_constant_solution_under_current_solution_def
     (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) :
     let c := (p.a / p.b) ^ (1 / p.α)
-    ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution2 p u v ∧ IsBounded2 u := by
+    ∃ u v : ℝ → ℝ → ℝ, IsToyGlobalClassicalSolution2 p u v ∧ IsToyBounded2 u := by
   refine ⟨fun _ _ => (p.a / p.b) ^ (1 / p.α),
          fun _ _ => p.ν / p.μ * ((p.a / p.b) ^ (1 / p.α)) ^ p.γ,
          fun T hT => ⟨hT, fun _ _ _ _ => by positivity, trivial⟩,
