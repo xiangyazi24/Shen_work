@@ -45,8 +45,10 @@ v_xx − v + u^γ = 0
   `vectorField_contDiffAt` **proved** (ContinuousLinearMap.proj + contDiffAt_pi + dsimp;
   key: use `dsimp` not `simp only [Matrix.cons_val_...]` to reduce vector indexing after `fin_cases`;
   explicit `contDiffAt_const (c := ...)` annotations needed for Lean to infer constants).
-  Remaining sorrys: localSolutionExists, linearization_at_E1/E0 (fderiv computation),
-  shooting_theorem (deep)
+  `localSolutionExists` **proved** (Picard-Lindelöf extraction from picardLindelofData;
+  HasDerivWithinAt → HasDerivAt via Icc_mem_nhds).
+  Remaining sorrys: linearization_at_E1/E0 (fderiv computation — needs HasFDerivAt
+  construction for polynomial vector field), shooting_theorem (deep)
 
 ### Paper theorem layer
 - **ComparisonPrinciple.lean**: rectangle ODE barriers (proved) + PDE comparison (sorry)

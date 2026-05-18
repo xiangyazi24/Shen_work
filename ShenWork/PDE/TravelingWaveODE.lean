@@ -161,10 +161,14 @@ theorem linearization_at_E1 (p : Params) :
 = matVec4 (jacobianAtOne p) := by
 sorry
 
+private lemma matVec4_eq_mulVec (A : Matrix Idx Idx ℝ) (x : State) :
+    matVec4 A x = A.mulVec x := by
+  ext i; simp [matVec4, Matrix.mulVec, Matrix.dotProduct, Fin.sum_univ_four]
+
 theorem linearization_at_E0 (p : Params) :
 (fun h : State => fderiv ℝ (vectorField p) E0 h)
 = matVec4 (jacobianAtZero p) := by
-sorry
+  sorry
 
 structure PhasePortrait (p : Params) where
 source : State
