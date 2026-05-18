@@ -224,6 +224,21 @@ def LinearlyUnstable
     (S : SpectralData) (p : CM2Params) (uStar vStar : ℝ) : Prop :=
   ∃ n : ℕ, n ≠ 0 ∧ 0 < sigma p uStar vStar (S.eigenvalue n)
 
+lemma LinearlyStable.not_linearlyUnstable
+    {S : SpectralData} {p : CM2Params} {uStar vStar : ℝ}
+    (hstable : LinearlyStable S p uStar vStar) :
+    ¬ LinearlyUnstable S p uStar vStar := by
+  rintro ⟨n, hn, hpos⟩
+  have hneg := hstable n hn
+  linarith
+
+lemma LinearlyUnstable.not_linearlyStable
+    {S : SpectralData} {p : CM2Params} {uStar vStar : ℝ}
+    (hunstable : LinearlyUnstable S p uStar vStar) :
+    ¬ LinearlyStable S p uStar vStar := by
+  intro hstable
+  exact hstable.not_linearlyUnstable hunstable
+
 structure StabilityNorms (D : BoundedDomainData) where
   c1Distance : (D.Point → ℝ) → (D.Point → ℝ) → ℝ
   xpSigmaDistance : ℝ → ℝ → (D.Point → ℝ) → (D.Point → ℝ) → ℝ
