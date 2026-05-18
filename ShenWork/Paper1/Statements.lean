@@ -589,6 +589,25 @@ theorem HasWaveUpperTailBound.le_exp {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     U x ≤ Real.exp (-(kappa c) * x) :=
   le_trans (h x).2 (min_le_right _ _)
 
+theorem HasWaveUpperTailBound.rpow_le_MChi_gamma
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveUpperTailBound p c U) (x : ℝ) :
+    (U x) ^ p.γ ≤ (MChi p) ^ p.γ :=
+  Real.rpow_le_rpow (h.pos x).le (h.le_MChi x) (le_trans zero_le_one p.hγ)
+
+theorem HasWaveUpperTailBound.rpow_le_exp_gamma
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveUpperTailBound p c U) (x : ℝ) :
+    (U x) ^ p.γ ≤ (Real.exp (-(kappa c) * x)) ^ p.γ :=
+  Real.rpow_le_rpow (h.pos x).le (h.le_exp x) (le_trans zero_le_one p.hγ)
+
+theorem HasWaveUpperTailBound.rpow_abs_le_MChi_gamma
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveUpperTailBound p c U) (x : ℝ) :
+    |(U x) ^ p.γ| ≤ (MChi p) ^ p.γ := by
+  rw [abs_of_nonneg (Real.rpow_nonneg (h.pos x).le _)]
+  exact h.rpow_le_MChi_gamma x
+
 def WaveDerivativeTendsZero (U : ℝ → ℝ) : Prop :=
   Tendsto (fun x => deriv U x) atBot (𝓝 0) ∧
     Tendsto (fun x => deriv U x) atTop (𝓝 0)
