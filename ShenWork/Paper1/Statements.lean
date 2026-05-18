@@ -551,6 +551,33 @@ def NonincreasingProfile (u : ℝ → ℝ) : Prop :=
 def InMonotoneWaveTrapSet (κ M : ℝ) (u : ℝ → ℝ) : Prop :=
   InWaveTrapSet κ M u ∧ NonincreasingProfile u
 
+theorem IsBddFun.convex_combo
+    {u v : ℝ → ℝ} {θ : ℝ}
+    (_hθ0 : 0 ≤ θ) (_hθ1 : θ ≤ 1)
+    (hu : IsBddFun u) (hv : IsBddFun v) :
+    IsBddFun (fun x => θ * u x + (1 - θ) * v x) := by
+  rcases hu with ⟨Mu, hu⟩
+  rcases hv with ⟨Mv, hv⟩
+  refine ⟨|θ| * Mu + |1 - θ| * Mv, ?_⟩
+  intro x
+  calc
+    |θ * u x + (1 - θ) * v x| ≤
+        |θ * u x| + |(1 - θ) * v x| := abs_add_le _ _
+    _ = |θ| * |u x| + |1 - θ| * |v x| := by rw [abs_mul, abs_mul]
+    _ ≤ |θ| * Mu + |1 - θ| * Mv := by
+      exact add_le_add
+        (mul_le_mul_of_nonneg_left (hu x) (abs_nonneg θ))
+        (mul_le_mul_of_nonneg_left (hv x) (abs_nonneg (1 - θ)))
+
+theorem IsCUnifBdd.convex_combo
+    {u v : ℝ → ℝ} {θ : ℝ}
+    (hθ0 : 0 ≤ θ) (hθ1 : θ ≤ 1)
+    (hu : IsCUnifBdd u) (hv : IsCUnifBdd v) :
+    IsCUnifBdd (fun x => θ * u x + (1 - θ) * v x) := by
+  constructor
+  · exact (continuous_const.mul hu.1).add (continuous_const.mul hv.1)
+  · exact IsBddFun.convex_combo hθ0 hθ1 hu.2 hv.2
+
 theorem InWaveTrapSet.cunif_bdd {κ M : ℝ} {u : ℝ → ℝ}
     (h : InWaveTrapSet κ M u) :
     IsCUnifBdd u :=
@@ -604,6 +631,25 @@ theorem InWaveTrapSet.rpow_le_exp_mul
       congr 1
       ring
 
+theorem InWaveTrapSet.convex_combo
+    {κ M : ℝ} {u v : ℝ → ℝ} {θ : ℝ}
+    (hθ0 : 0 ≤ θ) (hθ1 : θ ≤ 1)
+    (hu : InWaveTrapSet κ M u) (hv : InWaveTrapSet κ M v) :
+    InWaveTrapSet κ M (fun x => θ * u x + (1 - θ) * v x) := by
+  refine ⟨IsCUnifBdd.convex_combo hθ0 hθ1 hu.cunif_bdd hv.cunif_bdd, ?_⟩
+  intro x
+  constructor
+  · exact add_nonneg
+      (mul_nonneg hθ0 (hu.nonneg x))
+      (mul_nonneg (sub_nonneg.mpr hθ1) (hv.nonneg x))
+  · calc
+      θ * u x + (1 - θ) * v x ≤
+          θ * upperBarrier κ M x + (1 - θ) * upperBarrier κ M x :=
+        add_le_add
+          (mul_le_mul_of_nonneg_left (hu.le_upperBarrier x) hθ0)
+          (mul_le_mul_of_nonneg_left (hv.le_upperBarrier x) (sub_nonneg.mpr hθ1))
+      _ = upperBarrier κ M x := by ring
+
 theorem InMonotoneWaveTrapSet.trap
     {κ M : ℝ} {u : ℝ → ℝ}
     (h : InMonotoneWaveTrapSet κ M u) :
@@ -627,6 +673,20 @@ theorem InMonotoneWaveTrapSet.le_upperBarrier
     (h : InMonotoneWaveTrapSet κ M u) (x : ℝ) :
     u x ≤ upperBarrier κ M x :=
   h.trap.le_upperBarrier x
+
+theorem InMonotoneWaveTrapSet.convex_combo
+    {κ M : ℝ} {u v : ℝ → ℝ} {θ : ℝ}
+    (hθ0 : 0 ≤ θ) (hθ1 : θ ≤ 1)
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hv : InMonotoneWaveTrapSet κ M v) :
+    InMonotoneWaveTrapSet κ M
+      (fun x => θ * u x + (1 - θ) * v x) := by
+  refine
+    ⟨InWaveTrapSet.convex_combo hθ0 hθ1 hu.trap hv.trap, ?_⟩
+  intro x y hxy
+  exact add_le_add
+    (mul_le_mul_of_nonneg_left (hu.antitone hxy) hθ0)
+    (mul_le_mul_of_nonneg_left (hv.antitone hxy) (sub_nonneg.mpr hθ1))
 
 structure SubsolutionConstants where
   K : ℝ
