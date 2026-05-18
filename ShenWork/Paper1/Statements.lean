@@ -751,6 +751,29 @@ theorem lowerBarrierPlateau_le_exp
     rw [lowerBarrierPlateau_eq_raw_of_xplus_lt hxlt]
     exact lowerBarrierRaw_le_exp hD
 
+theorem lowerBarrierPlateau_le_exp_xplus
+    {κ κtilde D : ℝ} (hκ : 0 ≤ κ) (hD : 0 ≤ D) (x : ℝ) :
+    lowerBarrierPlateau κ κtilde D x ≤
+      Real.exp (-κ * lowerBarrierXPlus κ κtilde D) := by
+  by_cases hx : x ≤ lowerBarrierXPlus κ κtilde D
+  · rw [lowerBarrierPlateau_eq_const_of_le hx]
+    exact lowerBarrierRaw_le_exp hD
+  · have hxlt : lowerBarrierXPlus κ κtilde D < x := lt_of_not_ge hx
+    calc
+      lowerBarrierPlateau κ κtilde D x ≤ Real.exp (-κ * x) :=
+        lowerBarrierPlateau_le_exp hκ hD x
+      _ ≤ Real.exp (-κ * lowerBarrierXPlus κ κtilde D) := by
+        apply Real.exp_le_exp.mpr
+        nlinarith [mul_nonneg hκ (sub_nonneg.mpr hxlt.le)]
+
+theorem lowerBarrierPlateau_isBddFun
+    {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
+    IsBddFun (lowerBarrierPlateau κ κtilde D) := by
+  refine ⟨Real.exp (-κ * lowerBarrierXPlus κ κtilde D), ?_⟩
+  intro x
+  rw [abs_of_nonneg (lowerBarrierPlateau_pos hκ hgap hD x).le]
+  exact lowerBarrierPlateau_le_exp_xplus hκ.le hD.le x
+
 def InWaveTrapSet (κ M : ℝ) (u : ℝ → ℝ) : Prop :=
   IsCUnifBdd u ∧ ∀ x, 0 ≤ u x ∧ u x ≤ upperBarrier κ M x
 
