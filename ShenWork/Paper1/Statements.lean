@@ -1423,6 +1423,48 @@ theorem constantSubsolutionThreshold_pos
     · rw [sub_pos]
       exact (div_lt_one hκtilde).mpr (by linarith)
 
+theorem exists_D_gt_subsolutionDThreshold_lowerBarrierPlateau_mem_InWaveTrapSet
+    {χ M κ κtilde m gamma c : ℝ}
+    (hM : 0 < M) (hκ0 : 0 < κ) (hκ1 : κ < 1)
+    (hgap : κ < κtilde) (hκtilde1 : κtilde ≤ 1)
+    (hm : 0 < m) (hgamma : 0 < gamma) (hc : c = κ + κ⁻¹) :
+    ∃ D > subsolutionDThreshold χ M κ κtilde m gamma c,
+      InWaveTrapSet κ M (lowerBarrierPlateau κ κtilde D) := by
+  exact
+    exists_D_gt_lowerBarrierPlateau_mem_InWaveTrapSet
+      hκ0 (sub_pos.mpr hgap) hM
+      (subsolutionDThreshold_pos_of_kappa_speed hM hκ0 hκ1 hgap
+        hκtilde1 hm hgamma hc).le
+
+theorem exists_D_gt_subsolutionDThreshold_lowerBarrierPlateau_mem_InMonotoneWaveTrapSet
+    {χ M κ κtilde m gamma c : ℝ}
+    (hM : 0 < M) (hκ0 : 0 < κ) (hκ1 : κ < 1)
+    (hgap : κ < κtilde) (hκtilde1 : κtilde ≤ 1)
+    (hm : 0 < m) (hgamma : 0 < gamma) (hc : c = κ + κ⁻¹) :
+    ∃ D > subsolutionDThreshold χ M κ κtilde m gamma c,
+      InMonotoneWaveTrapSet κ M (lowerBarrierPlateau κ κtilde D) := by
+  exact
+    exists_D_gt_lowerBarrierPlateau_mem_InMonotoneWaveTrapSet
+      hκ0 (sub_pos.mpr hgap) hM
+      (subsolutionDThreshold_pos_of_kappa_speed hM hκ0 hκ1 hgap
+        hκtilde1 hm hgamma hc).le
+
+theorem
+    exists_D_gt_subsolutionDThreshold_lowerBarrierPlateau_mem_InMonotoneWaveTrapSet_of_cStarLower_lt
+    {p : CMParams} {M κtilde c : ℝ}
+    (hM : 0 < M) (hc : cStarLower p < c)
+    (hgap : kappa c < κtilde) (hκtilde1 : κtilde ≤ 1) :
+    ∃ D > subsolutionDThreshold p.χ M (kappa c) κtilde p.m p.γ c,
+      InMonotoneWaveTrapSet (kappa c) M
+        (lowerBarrierPlateau (kappa c) κtilde D) := by
+  exact
+    exists_D_gt_subsolutionDThreshold_lowerBarrierPlateau_mem_InMonotoneWaveTrapSet
+      hM (kappa_pos_of_cStarLower_lt hc) (kappa_lt_one_of_cStarLower_lt hc)
+      hgap hκtilde1
+      (lt_of_lt_of_le one_pos p.hm)
+      (lt_of_lt_of_le one_pos p.hγ)
+      (kappa_add_inv_eq_of_cStarLower_lt hc).symm
+
 def Lemma_4_1 : Prop :=
   (∀ p : CMParams, p.χ ≤ 0 → p.α ≤ p.m + p.γ - 1 →
     ∀ κ M c : ℝ, 0 < κ → κ < 1 → 1 ≤ M → c = κ + κ⁻¹ →
