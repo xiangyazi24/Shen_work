@@ -10,6 +10,7 @@
 import ShenWork.Paper2.Defs
 import Mathlib.Analysis.MeanInequalities
 import Mathlib.Analysis.Calculus.Deriv.Basic
+import Mathlib.Analysis.SpecialFunctions.Complex.LogBounds
 
 open Filter Topology
 
@@ -616,6 +617,51 @@ lemma Psi_beta_le_one {beta : ℝ} (hbeta : 0 ≤ beta) :
 lemma Psi_beta_mem_Icc_zero_one {beta : ℝ} (hbeta : 0 ≤ beta) :
     Psi_beta beta ∈ Set.Icc (0 : ℝ) 1 :=
   ⟨Psi_beta_nonneg hbeta, Psi_beta_le_one hbeta⟩
+
+lemma one_add_inv_tendsto_one_atTop :
+    Tendsto (fun beta : ℝ => 1 + 1 / beta) atTop (𝓝 1) := by
+  have hinv : Tendsto (fun beta : ℝ => 1 / beta) atTop (𝓝 0) := by
+    simpa [one_div] using tendsto_inv_atTop_zero
+  simpa using tendsto_const_nhds.add hinv
+
+lemma one_add_inv_rpow_one_add_tendsto_exp :
+    Tendsto (fun beta : ℝ => (1 + 1 / beta) ^ (1 + beta)) atTop
+      (𝓝 (Real.exp 1)) := by
+  have hp : Tendsto (fun beta : ℝ => (1 + 1 / beta) ^ beta) atTop
+      (𝓝 (Real.exp 1)) := by
+    simpa [one_div] using Real.tendsto_one_add_div_rpow_exp 1
+  have hbase : Tendsto (fun beta : ℝ => 1 + 1 / beta) atTop (𝓝 1) :=
+    one_add_inv_tendsto_one_atTop
+  have heq :
+      (fun beta : ℝ => (1 + 1 / beta) ^ beta * (1 + 1 / beta)) =ᶠ[atTop]
+        fun beta : ℝ => (1 + 1 / beta) ^ (1 + beta) := by
+    filter_upwards [eventually_gt_atTop (0 : ℝ)] with beta hbeta
+    have hbase_pos : 0 < 1 + 1 / beta := by positivity
+    rw [show 1 + beta = beta + 1 by ring]
+    rw [Real.rpow_add hbase_pos]
+    rw [Real.rpow_one]
+  simpa using (hp.mul hbase).congr' heq
+
+lemma Psi_beta_tendsto_atTop :
+    Tendsto Psi_beta atTop (𝓝 (Real.exp (-1))) := by
+  have hlim :
+      Tendsto (fun beta : ℝ => ((1 + 1 / beta) ^ (1 + beta))⁻¹)
+        atTop (𝓝 ((Real.exp 1)⁻¹)) :=
+    one_add_inv_rpow_one_add_tendsto_exp.inv₀ (by positivity)
+  have heq :
+      (fun beta : ℝ => Psi_beta beta) =ᶠ[atTop]
+        fun beta : ℝ => ((1 + 1 / beta) ^ (1 + beta))⁻¹ := by
+    filter_upwards [eventually_gt_atTop (0 : ℝ)] with beta hbeta
+    have hbeta_ne : beta ≠ 0 := ne_of_gt hbeta
+    have hbase_nonneg : 0 ≤ 1 + 1 / beta := by positivity
+    have hquot : beta / (1 + beta) = (1 + 1 / beta)⁻¹ := by
+      field_simp [hbeta_ne, ne_of_gt (by linarith : 0 < 1 + beta)]
+      ring
+    unfold Psi_beta
+    rw [hquot, Real.inv_rpow hbase_nonneg]
+  have hinv_exp : (Real.exp 1)⁻¹ = Real.exp (-1) := by
+    rw [← Real.exp_neg]
+  simpa [hinv_exp] using hlim.congr' heq.symm
 
 lemma Theta_beta_pos {beta : ℝ} (hbeta : 0 < beta) :
     0 < Theta_beta beta := by
