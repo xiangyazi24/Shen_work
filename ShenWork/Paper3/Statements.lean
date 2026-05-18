@@ -1063,6 +1063,23 @@ lemma NonminimalGlobalStabilityCondition.m_ge_one
   · exact h.1
   · exact h.1
 
+lemma NonminimalGlobalStabilityCondition.chi_lt_max_threshold
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar : ℝ}
+    (h : NonminimalGlobalStabilityCondition D p C uStar) :
+    p.χ₀ <
+      max (max (C.chiStrong1 uStar) (C.chiStrong2 uStar))
+        (max (C.chiStrong3 uStar) (C.chiStrong4 uStar)) := by
+  rcases h with h | h | h | h
+  · exact lt_of_lt_of_le h.2.2.2
+      (le_trans (le_max_left _ _) (le_max_left _ _))
+  · exact lt_of_lt_of_le h.2.2.2.2
+      (le_trans (le_max_right _ _) (le_max_left _ _))
+  · exact lt_of_lt_of_le h.2.2.2
+      (le_trans (le_max_left _ _) (le_max_right _ _))
+  · exact lt_of_lt_of_le h.2.2.2.2
+      (le_trans (le_max_right _ _) (le_max_right _ _))
+
 def MinimalGlobalStabilityCondition
     (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p)
     (uStar : ℝ) : Prop :=
@@ -1092,6 +1109,15 @@ lemma MinimalGlobalStabilityCondition.chi_pos
   rcases h with h | h
   · exact h.1
   · exact h.2.1
+
+lemma MinimalGlobalStabilityCondition.chi_lt_max_threshold
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar : ℝ}
+    (h : MinimalGlobalStabilityCondition D p C uStar) :
+    p.χ₀ < max (C.chiMinimal1 uStar) (C.chiMinimal2 uStar) := by
+  rcases h with h | h
+  · exact lt_of_lt_of_le h.2 (le_max_left _ _)
+  · exact lt_of_lt_of_le h.2.2 (le_max_right _ _)
 
 def Theorem_2_1_part1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   1 ≤ p.m →
