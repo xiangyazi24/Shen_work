@@ -458,6 +458,47 @@ lemma kernel_mul_exp_integrable (k : ℝ) (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
   rw [← MeasureTheory.integrableOn_univ, ← hcover]
   exact hleft.union hright
 
+lemma kernel_mul_exp_integrable_of_lt
+    {a k : ℝ} (hk : 0 < k) (hka : k < a) (x : ℝ) :
+    MeasureTheory.Integrable
+      (fun y => Real.exp (-a * |x - y|) * Real.exp (-k * y)) := by
+  have ha : 0 < a := lt_trans hk hka
+  let f : ℝ → ℝ := fun y => Real.exp (-a * |x - y|) * Real.exp (-k * y)
+  have hleft_eq :
+      Set.EqOn (fun y : ℝ => Real.exp (-a * x) * Real.exp ((a - k) * y))
+        f (Set.Iic x) := by
+    intro y hy
+    have hyx : y ≤ x := by simpa using hy
+    simp only [f]
+    rw [abs_of_nonneg (sub_nonneg.mpr hyx), ← Real.exp_add, ← Real.exp_add]
+    congr 1
+    ring
+  have hright_eq :
+      Set.EqOn (fun y : ℝ => Real.exp (a * x) * Real.exp (-(a + k) * y))
+        f (Set.Ioi x) := by
+    intro y hy
+    have hxy : x < y := by simpa using hy
+    simp only [f]
+    rw [abs_of_nonpos (sub_nonpos.mpr (le_of_lt hxy)), ← Real.exp_add,
+      ← Real.exp_add]
+    congr 1
+    ring
+  have hleft : MeasureTheory.IntegrableOn f (Set.Iic x) := by
+    have h1 :=
+      integrableOn_exp_mul_Iic (by linarith : (0 : ℝ) < a - k) x
+    have h2 := h1.const_mul (Real.exp (-a * x))
+    exact MeasureTheory.IntegrableOn.congr_fun h2 hleft_eq measurableSet_Iic
+  have hright : MeasureTheory.IntegrableOn f (Set.Ioi x) := by
+    have h1 :=
+      integrableOn_exp_mul_Ioi (by linarith : -(a + k) < (0 : ℝ)) x
+    have h2 := h1.const_mul (Real.exp (a * x))
+    exact MeasureTheory.IntegrableOn.congr_fun h2 hright_eq measurableSet_Ioi
+  have hcover : Set.Iic x ∪ Set.Ioi x = (Set.univ : Set ℝ) := by
+    ext y
+    by_cases hy : y ≤ x <;> simp [hy, lt_of_not_ge]
+  rw [← MeasureTheory.integrableOn_univ, ← hcover]
+  exact hleft.union hright
+
 lemma kernel_mul_bounded_integrable (u : ℝ → ℝ) (M : ℝ) (_hM : 0 ≤ M)
     (hu : ∀ y, |u y| ≤ M) (x : ℝ)
     (hu_meas : AEStronglyMeasurable u MeasureTheory.volume) :
@@ -614,6 +655,94 @@ private lemma integral_exp_kernel_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : 
         have hden : (1 : ℝ) - k ^ 2 ≠ 0 := by nlinarith [mul_pos hkpos hk1p_pos]
         field_simp [h1, h2, hden]; ring
 
+private lemma integral_exp_kernel_exp_general
+    {a k : ℝ} (hk : 0 < k) (hka : k < a) (x : ℝ) :
+    (∫ y : ℝ, Real.exp (-a * |x - y|) * Real.exp (-k * y)) =
+      (2 * a / (a ^ 2 - k ^ 2)) * Real.exp (-k * x) := by
+  have ha : 0 < a := lt_trans hk hka
+  have hleft_pos : 0 < a - k := by linarith
+  have hright_neg : -(a + k) < 0 := by linarith
+  have hright_pos : 0 < a + k := by linarith
+  have hfi :
+      MeasureTheory.Integrable
+        (fun y => Real.exp (-a * |x - y|) * Real.exp (-k * y)) :=
+    kernel_mul_exp_integrable_of_lt hk hka x
+  have hsplit := MeasureTheory.integral_add_compl (s := Set.Iic x) measurableSet_Iic hfi
+  simp only [Set.compl_Iic] at hsplit
+  have hleft_val :
+      ∫ y in Set.Iic x, Real.exp (-a * |x - y|) * Real.exp (-k * y) =
+        Real.exp (-k * x) / (a - k) := by
+    have hleft_eq :
+        Set.EqOn
+          (fun y : ℝ => Real.exp (-a * x) * Real.exp ((a - k) * y))
+          (fun y => Real.exp (-a * |x - y|) * Real.exp (-k * y))
+          (Set.Iic x) := by
+      intro y hy
+      have hyx : y ≤ x := by simpa using hy
+      change
+        Real.exp (-a * x) * Real.exp ((a - k) * y) =
+          Real.exp (-a * |x - y|) * Real.exp (-k * y)
+      rw [abs_of_nonneg (sub_nonneg.mpr hyx), ← Real.exp_add, ← Real.exp_add]
+      congr 1
+      ring
+    rw [MeasureTheory.setIntegral_congr_fun measurableSet_Iic hleft_eq.symm]
+    calc
+      ∫ y in Set.Iic x, Real.exp (-a * x) * Real.exp ((a - k) * y)
+          = Real.exp (-a * x) * ∫ y in Set.Iic x, Real.exp ((a - k) * y) := by
+            change _ = Real.exp (-a * x) * ∫ y, _ ∂(MeasureTheory.volume.restrict _)
+            exact MeasureTheory.integral_const_mul _ _
+      _ = Real.exp (-a * x) * (Real.exp ((a - k) * x) / (a - k)) := by
+            rw [integral_exp_mul_Iic hleft_pos x]
+      _ = Real.exp (-k * x) / (a - k) := by
+            rw [show Real.exp (-a * x) * (Real.exp ((a - k) * x) / (a - k)) =
+              (Real.exp (-a * x) * Real.exp ((a - k) * x)) / (a - k) from by ring,
+              ← Real.exp_add]
+            congr 1
+            ring
+  have hright_val :
+      ∫ y in Set.Ioi x, Real.exp (-a * |x - y|) * Real.exp (-k * y) =
+        Real.exp (-k * x) / (a + k) := by
+    have hright_eq :
+        Set.EqOn
+          (fun y : ℝ => Real.exp (a * x) * Real.exp (-(a + k) * y))
+          (fun y => Real.exp (-a * |x - y|) * Real.exp (-k * y))
+          (Set.Ioi x) := by
+      intro y hy
+      have hxy : x < y := by simpa using hy
+      change
+        Real.exp (a * x) * Real.exp (-(a + k) * y) =
+          Real.exp (-a * |x - y|) * Real.exp (-k * y)
+      rw [abs_of_nonpos (sub_nonpos.mpr (le_of_lt hxy)), ← Real.exp_add,
+        ← Real.exp_add]
+      congr 1
+      ring
+    rw [MeasureTheory.setIntegral_congr_fun measurableSet_Ioi hright_eq.symm]
+    calc
+      ∫ y in Set.Ioi x, Real.exp (a * x) * Real.exp (-(a + k) * y)
+          = Real.exp (a * x) * ∫ y in Set.Ioi x, Real.exp (-(a + k) * y) := by
+            change _ = Real.exp (a * x) * ∫ y, _ ∂(MeasureTheory.volume.restrict _)
+            exact MeasureTheory.integral_const_mul _ _
+      _ = Real.exp (a * x) * (-Real.exp (-(a + k) * x) / (-(a + k))) := by
+            rw [integral_exp_mul_Ioi hright_neg x]
+      _ = Real.exp (-k * x) / (a + k) := by
+            have hne : a + k ≠ 0 := by linarith
+            field_simp [hne]
+            rw [← Real.exp_add]
+            congr 1
+            ring
+  calc
+    ∫ y, Real.exp (-a * |x - y|) * Real.exp (-k * y)
+        = (∫ y in Set.Iic x, _) + (∫ y in Set.Ioi x, _) := hsplit.symm
+    _ = Real.exp (-k * x) / (a - k) + Real.exp (-k * x) / (a + k) := by
+          rw [hleft_val, hright_val]
+    _ = (2 * a / (a ^ 2 - k ^ 2)) * Real.exp (-k * x) := by
+          have h1 : a - k ≠ 0 := by linarith
+          have h2 : a + k ≠ 0 := by linarith
+          have hden : a ^ 2 - k ^ 2 ≠ 0 := by
+            nlinarith [mul_pos hleft_pos hright_pos]
+          field_simp [h1, h2, hden]
+          ring
+
 theorem Psi_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
     Psi (fun y : ℝ => Real.exp (-k * y)) 1 1 x =
       1 / (1 - k ^ 2) * Real.exp (-k * x) := by
@@ -622,6 +751,76 @@ theorem Psi_exp {k : ℝ} (hk : 0 < k) (hk1 : k < 1) (x : ℝ) :
     (fun y => Real.exp (-|x - y|) * Real.exp (-k * y)) from by ext y; ring_nf]
   rw [integral_exp_kernel_exp hk hk1 x]
   ring
+
+theorem Psi_exp_general {l mu k : ℝ}
+    (hl : 0 < l) (hk : 0 < k) (hklt : k < Real.sqrt l) (x : ℝ) :
+    Psi (fun y : ℝ => Real.exp (-k * y)) l mu x =
+      mu / (l - k ^ 2) * Real.exp (-k * x) := by
+  have hsqrt_pos : 0 < Real.sqrt l := Real.sqrt_pos.mpr hl
+  have hsqrt_sq : Real.sqrt l * Real.sqrt l = l := by
+    rw [← sq]
+    exact Real.sq_sqrt hl.le
+  simp only [Psi]
+  rw [integral_exp_kernel_exp_general hk hklt x]
+  calc
+    mu / (2 * Real.sqrt l) *
+        ((2 * Real.sqrt l / (Real.sqrt l ^ 2 - k ^ 2)) * Real.exp (-k * x))
+        = mu / (Real.sqrt l ^ 2 - k ^ 2) * Real.exp (-k * x) := by
+          field_simp [ne_of_gt hsqrt_pos]
+    _ = mu / (l - k ^ 2) * Real.exp (-k * x) := by
+          rw [show Real.sqrt l ^ 2 = l from Real.sq_sqrt hl.le]
+
+theorem Psi_le_exp_general_of_le {u : ℝ → ℝ} {l mu k : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hk : 0 < k) (hklt : k < Real.sqrt l)
+    (huexp : ∀ y, u y ≤ Real.exp (-k * y)) (x : ℝ)
+    (hiu : MeasureTheory.Integrable
+      (fun y => Real.exp (-Real.sqrt l * |x - y|) * u y)) :
+    Psi u l mu x ≤ mu / (l - k ^ 2) * Real.exp (-k * x) := by
+  have hexp_int :
+      MeasureTheory.Integrable
+        (fun y =>
+          Real.exp (-Real.sqrt l * |x - y|) *
+            (fun y : ℝ => Real.exp (-k * y)) y) := by
+    exact kernel_mul_exp_integrable_of_lt hk hklt x
+  calc
+    Psi u l mu x ≤ Psi (fun y : ℝ => Real.exp (-k * y)) l mu x :=
+      Psi_mono hl hmu huexp x hiu hexp_int
+    _ = mu / (l - k ^ 2) * Real.exp (-k * x) :=
+      Psi_exp_general hl hk hklt x
+
+theorem Psi_le_min_const_exp_general_of_le
+    {u : ℝ → ℝ} {l mu M k : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hM : 0 ≤ M)
+    (hk : 0 < k) (hklt : k < Real.sqrt l)
+    (huM : ∀ y, u y ≤ M)
+    (huexp : ∀ y, u y ≤ Real.exp (-k * y)) (x : ℝ)
+    (hiu : MeasureTheory.Integrable
+      (fun y => Real.exp (-Real.sqrt l * |x - y|) * u y)) :
+    Psi u l mu x ≤
+      min ((mu / l) * M) (mu / (l - k ^ 2) * Real.exp (-k * x)) := by
+  exact le_min
+    (Psi_le_const_general_of_le hl hmu hM huM x hiu)
+    (Psi_le_exp_general_of_le hl hmu hk hklt huexp x hiu)
+
+theorem Psi_le_min_const_exp_general_of_nonneg_le
+    {u : ℝ → ℝ} {l mu M k : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hM : 0 ≤ M)
+    (hk : 0 < k) (hklt : k < Real.sqrt l)
+    (hu_cont : Continuous u)
+    (hu_nonneg : ∀ y, 0 ≤ u y)
+    (huM : ∀ y, u y ≤ M)
+    (huexp : ∀ y, u y ≤ Real.exp (-k * y)) (x : ℝ) :
+    Psi u l mu x ≤
+      min ((mu / l) * M) (mu / (l - k ^ 2) * Real.exp (-k * x)) := by
+  have hiu :
+      MeasureTheory.Integrable
+        (fun y => Real.exp (-Real.sqrt l * |x - y|) * u y) := by
+    exact psi_kernel_mul_bounded_integrable hl hM
+      (fun y => by
+        rw [abs_of_nonneg (hu_nonneg y)]
+        exact huM y)
+      x hu_cont.aestronglyMeasurable
+  exact Psi_le_min_const_exp_general_of_le hl hmu hM hk hklt huM huexp x hiu
 
 theorem Psi_le_const_of_le {u : ℝ → ℝ} {M : ℝ}
     (hM : 0 ≤ M) (huM : ∀ y, u y ≤ M) (x : ℝ)
