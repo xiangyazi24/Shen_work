@@ -353,31 +353,4 @@ private theorem abstract_mild_fixed_point
       rw [hz.eq]
     _ = Φ (eval z) t x := hcomm z t x
 
-/-- Local existence of mild solutions via Banach fixed-point theorem. -/
-theorem local_existence_mild (p : CMParams)
-    (u₀ : ℝ → ℝ) (hu₀_cont : Continuous u₀) (hu₀_bdd : IsBddFun u₀)
-    (hu₀_nn : ∀ x, 0 ≤ u₀ x) :
-    ∃ T > 0, ∃ u : ℝ → ℝ → ℝ,
-    (∀ t x, 0 ≤ t → t ≤ T → u t x =
-      heatSemigroup t u₀ x +
-      ∫ s in Set.Icc 0 t, heatSemigroup (t - s)
-        (fun y => chemotaxisSource p (u s) (fun _ => 0) y) x) := by
-  obtain ⟨T, hT, K, _hK0, _hK1, _hcontr⟩ :=
-    mild_solution_operator_contracting p u₀ hu₀_bdd
-  let Φ : (ℝ → ℝ → ℝ) → ℝ → ℝ → ℝ :=
-    fun u t x =>
-      heatSemigroup t u₀ x +
-        ∫ s in Set.Icc 0 t,
-          heatSemigroup (t - s)
-            (fun y => chemotaxisSource p (u s) (fun _ => 0) y) x
-  have hfixed :
-      ∃ u : ℝ → ℝ → ℝ,
-        ∀ t x, 0 ≤ t → t ≤ T → u t x = Φ u t x := by
-    sorry
-  obtain ⟨u, hu_fixed⟩ := hfixed
-  refine ⟨T, hT, u, ?_⟩
-  intro t x ht0 htT
-  specialize hu_fixed t x ht0 htT
-  simpa [Φ] using hu_fixed
-
 end

@@ -1,6 +1,6 @@
 # Tasks for Codex (GPT-5.5)
 
-BUILD OK, 1 sorry remaining. Priority order:
+BUILD OK, 0 sorry remaining.
 
 ## Done: Parabolic maximum principle
 
@@ -67,8 +67,12 @@ BUILD OK, 1 sorry remaining. Priority order:
   `TravelingWaveODE.lean`. The file keeps the proved local shooting-segment
   lemmas and the honest `travelingWave_of_heteroclinic` projection, but no
   longer claims that a one-dimensional positive root gives a global heteroclinic.
+- Removed `local_existence_mild`. The file keeps the proved pointwise
+  contraction estimate and `abstract_mild_fixed_point`, but no longer claims
+  local mild existence without constructing the actual complete function space,
+  self-map, self-map/integrability facts, and contraction proof.
 
-## P0: MildSolution Banach fixed point (376)
+## P0: MildSolution Banach fixed point
 Need to instantiate `abstract_mild_fixed_point` by constructing the actual complete
 function space, self-map, self-map/integrability facts, and contraction proof for Φ.
 
