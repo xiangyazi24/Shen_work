@@ -214,6 +214,23 @@ lemma kappa_quadratic_eq_zero {c : ℝ} (hc : 2 ≤ c) :
     Real.sq_sqrt hrad_nonneg
   nlinarith
 
+lemma kappa_add_inv_eq_of_two_lt {c : ℝ} (hc : 2 < c) :
+    kappa c + (kappa c)⁻¹ = c := by
+  have hk_pos : 0 < kappa c := kappa_pos_of_two_lt hc
+  have hquad : kappa c ^ 2 - c * kappa c + 1 = 0 :=
+    kappa_quadratic_eq_zero hc.le
+  field_simp [ne_of_gt hk_pos]
+  nlinarith
+
+lemma inv_kappa_eq_of_two_lt {c : ℝ} (hc : 2 < c) :
+    (kappa c)⁻¹ = c - kappa c := by
+  have h := kappa_add_inv_eq_of_two_lt hc
+  linarith
+
+lemma kappa_mem_Ioo_zero_one_of_two_lt {c : ℝ} (hc : 2 < c) :
+    kappa c ∈ Set.Ioo (0 : ℝ) 1 :=
+  ⟨kappa_pos_of_two_lt hc, kappa_lt_one_of_two_lt hc⟩
+
 lemma chiStar_pos (p : CMParams) :
     0 < chiStar p := by
   unfold chiStar
