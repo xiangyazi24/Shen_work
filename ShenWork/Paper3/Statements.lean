@@ -2688,6 +2688,48 @@ lemma Lemma_A_8.chiMinimal2_le
     C.chiMinimal2 uStar ≤ C.chiCritical uStar :=
   (h ha hb hm hβ uStar huStar).2 hγ
 
+lemma Lemma_A_7.nonminimal_condition_chi_lt_critical
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_A_7 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hcond :
+      NonminimalGlobalStabilityCondition D p C
+        (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    p.χ₀ < C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 := by
+  rcases hcond with h1 | h2 | h3 | h4
+  · rcases h1 with ⟨hm, hαγ, _hχ0, hχ⟩
+    exact lt_of_lt_of_le hχ
+      (h.chiStrong1_le p.hβ hm ha hb hαγ)
+  · rcases h2 with ⟨hm, hβ, hαγ, _hχ0, hχ⟩
+    exact lt_of_lt_of_le hχ
+      (h.chiStrong2_le p.hβ hm ha hb hβ hαγ)
+  · rcases h3 with ⟨hm, hγ, hαγ, hχ⟩
+    have hbase :
+        p.m + p.γ ≤
+          p.m + p.γ + (if p.β = 0 then 0 else p.γ) := by
+      by_cases hβzero : p.β = 0
+      · rw [if_pos hβzero, add_zero]
+      · rw [if_neg hβzero]
+        exact le_add_of_nonneg_right p.hγ.le
+    exact lt_of_lt_of_le hχ
+      (h.chiStrong3_le p.hβ hm ha hb hγ (le_trans hbase hαγ))
+  · rcases h4 with ⟨hm, hβ, hγ, hαγ, hχ⟩
+    exact lt_of_lt_of_le hχ
+      (h.chiStrong4_le p.hβ hm ha hb hβ hγ hαγ)
+
+lemma Lemma_A_8.minimal_condition_chi_lt_critical
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_A_8 D p C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hcond : MinimalGlobalStabilityCondition D p C uStar) :
+    p.χ₀ < C.chiCritical uStar := by
+  rcases hcond with h1 | h2
+  · exact lt_of_lt_of_le h1.2
+      (h.chiMinimal1_le ha hb hm hβ huStar p.hγ)
+  · exact lt_of_lt_of_le h2.2.2
+      (h.chiMinimal2_le ha hb hm hβ huStar h2.1)
+
 end
 
 end ShenWork.Paper3
