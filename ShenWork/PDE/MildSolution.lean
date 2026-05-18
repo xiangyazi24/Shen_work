@@ -170,7 +170,7 @@ private lemma mildSolutionOperator_duhamel_integral_bound
 
 private lemma mildSolutionOperator_lipschitz_estimate (p : CMParams) (u₀ : ℝ → ℝ)
     (L T : ℝ) (u₁ u₂ : ℝ → ℝ → ℝ) (t x : ℝ)
-    (_hT_nn : 0 ≤ T)
+    (_hT_nn : 0 ≤ T) (hL_nn : 0 ≤ L)
     (hLip : ∀ a b : ℝ, |a| ≤ 2 * sSup (Set.range fun x => |u₀ x|) →
       |b| ≤ 2 * sSup (Set.range fun x => |u₀ x|) →
       |chemotaxisSource p (fun _ => a) (fun _ => 0) 0 -
@@ -180,7 +180,37 @@ private lemma mildSolutionOperator_lipschitz_estimate (p : CMParams) (u₀ : ℝ
     (ht : 0 ≤ t) (htT : t ≤ T) :
     |mildSolutionOperator p u₀ u₁ t x - mildSolutionOperator p u₀ u₂ t x| ≤
       L * T * sSup (Set.range fun s => sSup (Set.range fun y => |u₁ s y - u₂ s y|)) := by
-  sorry
+  set M := sSup (Set.range fun x => |u₀ x|)
+  set D := sSup (Set.range fun s => sSup (Set.range fun y => |u₁ s y - u₂ s y|))
+  have hdiff_bound : ∀ s y, |u₁ s y - u₂ s y| ≤ 4 * M :=
+    fun s y => (abs_sub _ _).trans (add_le_add (hu₁ s y) (hu₂ s y)) |>.trans (by ring_nf; linarith)
+  have hbdd_inner : ∀ s, BddAbove (Set.range fun y => |u₁ s y - u₂ s y|) :=
+    fun s => ⟨4 * M, by rintro _ ⟨y, rfl⟩; exact hdiff_bound s y⟩
+  have hbdd_outer : BddAbove (Set.range fun s => sSup (Set.range fun y => |u₁ s y - u₂ s y|)) :=
+    ⟨4 * M, by rintro _ ⟨s, rfl⟩; exact csSup_le (Set.range_nonempty _) (fun _ ⟨y, hy⟩ => hy ▸ hdiff_bound s y)⟩
+  have hle_D : ∀ s y, |u₁ s y - u₂ s y| ≤ D :=
+    fun s y => (le_csSup (hbdd_inner s) ⟨y, rfl⟩).trans (le_csSup hbdd_outer ⟨s, rfl⟩)
+  have hD_nn : 0 ≤ D := le_csSup_of_le hbdd_outer ⟨0, rfl⟩
+      (le_csSup_of_le (hbdd_inner 0) ⟨0, rfl⟩ (abs_nonneg _))
+  have hsource_bound : ∀ s y, |chemotaxisSource p (u₁ s) (fun _ => 0) y -
+      chemotaxisSource p (u₂ s) (fun _ => 0) y| ≤ L * D := by
+    intro s y
+    have h1 : chemotaxisSource p (u₁ s) (fun _ => 0) y =
+        chemotaxisSource p (fun _ => u₁ s y) (fun _ => 0) 0 := by simp [chemotaxisSource]
+    have h2 : chemotaxisSource p (u₂ s) (fun _ => 0) y =
+        chemotaxisSource p (fun _ => u₂ s y) (fun _ => 0) 0 := by simp [chemotaxisSource]
+    rw [h1, h2]
+    calc |chemotaxisSource p (fun _ => u₁ s y) (fun _ => 0) 0 -
+            chemotaxisSource p (fun _ => u₂ s y) (fun _ => 0) 0|
+        ≤ L * |u₁ s y - u₂ s y| := hLip _ _ (hu₁ s y) (hu₂ s y)
+      _ ≤ L * D := mul_le_mul_of_nonneg_left (hle_D s y) hL_nn
+  rw [mildSolutionOperator_difference_integral_identity]
+  calc |∫ s in Set.Icc 0 t, heatSemigroup (t - s)
+        (fun y => chemotaxisSource p (u₁ s) (fun _ => 0) y -
+          chemotaxisSource p (u₂ s) (fun _ => 0) y) x|
+      ≤ L * t * D := mildSolutionOperator_duhamel_integral_bound p u₁ u₂ L D t x
+          hL_nn hD_nn ht hsource_bound
+    _ ≤ L * T * D := by nlinarith [mul_nonneg hL_nn hD_nn]
 
 theorem mild_solution_operator_contracting (p : CMParams)
     (u₀ : ℝ → ℝ) (hu₀_bdd : IsBddFun u₀) :
@@ -202,7 +232,7 @@ theorem mild_solution_operator_contracting (p : CMParams)
   refine ⟨1 / (2 * L), hT_pos, L * (1 / (2 * L)), by positivity, hK_lt, ?_⟩
   intro u₁ u₂ hu₁ hu₂ t x ht htT
   have hmain := mildSolutionOperator_lipschitz_estimate p u₀ L (1/(2*L)) u₁ u₂ t x
-    (by positivity) (fun a b ha hb => by
+    (by positivity) hL_pos.le (fun a b ha hb => by
       simp only [chemotaxisSource]
       exact hLip a b (le_trans ha (le_max_right _ _)) (le_trans hb (le_max_right _ _)))
     hu₁ hu₂ ht htT
