@@ -1705,6 +1705,22 @@ def FrozenAuxiliarySolutionFrom
       deriv (fun τ : ℝ => z τ x) t =
         frozenWaveOperator p c frozen (z t) x
 
+theorem FrozenAuxiliarySolutionFrom.initial_eq
+    {p : CMParams} {c : ℝ} {frozen initial : ℝ → ℝ}
+    {z : ℝ → ℝ → ℝ}
+    (h : FrozenAuxiliarySolutionFrom p c frozen initial z) (x : ℝ) :
+    z 0 x = initial x :=
+  h.1 x
+
+theorem FrozenAuxiliarySolutionFrom.evolution_eq
+    {p : CMParams} {c : ℝ} {frozen initial : ℝ → ℝ}
+    {z : ℝ → ℝ → ℝ}
+    (h : FrozenAuxiliarySolutionFrom p c frozen initial z)
+    {t x : ℝ} (ht : 0 < t) :
+    deriv (fun τ : ℝ => z τ x) t =
+      frozenWaveOperator p c frozen (z t) x :=
+  h.2 t x ht
+
 /-- Output of the auxiliary parabolic construction: the orbit stays in the
 chosen trapping set, is monotone in time pointwise, and converges locally
 pointwise to the profile `U`. -/
