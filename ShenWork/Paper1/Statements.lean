@@ -1319,6 +1319,79 @@ theorem MonotoneWaveTrapSet_convex (κ M : ℝ) :
     Convex ℝ (MonotoneWaveTrapSet κ M) :=
   InMonotoneWaveTrapSet.set_convex κ M
 
+/-- Local-uniform convergence on compact intervals of the line.  This is the
+topology used in the Schauder step of the traveling-wave construction. -/
+def LocallyUniformConverges
+    (fs : ℕ → ℝ → ℝ) (f : ℝ → ℝ) : Prop :=
+  ∀ R > 0, ∀ ε > 0,
+    ∀ᶠ n in atTop, ∀ x : ℝ, x ∈ Set.Icc (-R) R → |fs n x - f x| < ε
+
+/-- Sequential continuity of a wave map in the local-uniform topology, restricted
+to a trapping set. -/
+def LocalUniformContinuousOn
+    (trap : (ℝ → ℝ) → Prop) (Tmap : (ℝ → ℝ) → ℝ → ℝ) : Prop :=
+  ∀ (seq : ℕ → ℝ → ℝ) (u : ℝ → ℝ),
+    (∀ n, trap (seq n)) →
+      trap u →
+        LocallyUniformConverges seq u →
+          LocallyUniformConverges (fun n => Tmap (seq n)) (Tmap u)
+
+/-- Sequential compactness of the range of a wave map in the local-uniform
+topology, restricted to a trapping set. -/
+def LocalUniformSequentiallyCompactRange
+    (trap : (ℝ → ℝ) → Prop) (Tmap : (ℝ → ℝ) → ℝ → ℝ) : Prop :=
+  ∀ seq : ℕ → ℝ → ℝ,
+    (∀ n, trap (seq n)) →
+      ∃ subseq : ℕ → ℕ, StrictMono subseq ∧
+        ∃ U : ℝ → ℝ,
+          trap U ∧
+            LocallyUniformConverges (fun n => Tmap (seq (subseq n))) U
+
+/-- The frozen auxiliary parabolic equation used in Section 4.2/4.3.
+The frozen profile supplies the elliptic response; the orbit starts from the
+upper barrier. -/
+def FrozenAuxiliarySolutionFrom
+    (p : CMParams) (c : ℝ) (frozen initial : ℝ → ℝ)
+    (z : ℝ → ℝ → ℝ) : Prop :=
+  (∀ x, z 0 x = initial x) ∧
+    ∀ t x, 0 < t →
+      deriv (fun τ : ℝ => z τ x) t =
+        frozenWaveOperator p c frozen (z t) x
+
+/-- Output of the auxiliary parabolic construction: the orbit stays in the
+chosen trapping set, is monotone in time pointwise, and converges locally
+pointwise to the profile `U`. -/
+def FrozenAuxiliaryLimitOutput
+    (p : CMParams) (c κ M : ℝ) (trap : (ℝ → ℝ) → Prop)
+    (frozen U : ℝ → ℝ) : Prop :=
+  ∃ z : ℝ → ℝ → ℝ,
+    FrozenAuxiliarySolutionFrom p c frozen (upperBarrier κ M) z ∧
+      (∀ t, 0 ≤ t → trap (z t)) ∧
+      (∀ x, Antitone (fun t => z t x)) ∧
+      ∀ x, Tendsto (fun t : ℝ => z t x) atTop (𝓝 (U x))
+
+/-- The Schauder-map statement target from the proof of Theorem 1.1: construct
+a local-uniformly compact and continuous limit map on a trapping set, then get a
+fixed point. -/
+def FrozenWaveMapConstruction
+    (p : CMParams) (c κ M : ℝ) (trap : (ℝ → ℝ) → Prop) : Prop :=
+  ∃ Tmap : (ℝ → ℝ) → ℝ → ℝ,
+    (∀ u, trap u → trap (Tmap u)) ∧
+      (∀ u, trap u → FrozenAuxiliaryLimitOutput p c κ M trap u (Tmap u)) ∧
+      LocalUniformContinuousOn trap Tmap ∧
+      LocalUniformSequentiallyCompactRange trap Tmap ∧
+      ∃ U : ℝ → ℝ, trap U ∧ Tmap U = U
+
+theorem FrozenWaveMapConstruction.exists_fixed_limit
+    {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
+    (h : FrozenWaveMapConstruction p c κ M trap) :
+    ∃ U : ℝ → ℝ,
+      trap U ∧ FrozenAuxiliaryLimitOutput p c κ M trap U U := by
+  rcases h with ⟨Tmap, _hmap, hlimit, _hcont, _hcompact, U, hU, hfix⟩
+  refine ⟨U, hU, ?_⟩
+  have hUlimit := hlimit U hU
+  rwa [hfix] at hUlimit
+
 def subsolutionK (M κ κtilde m gamma : ℝ) : ℝ :=
   let prefactor := m * (κtilde + κ) + 1
   if gamma * κ = 1 then
@@ -1638,6 +1711,37 @@ theorem MChi_rpow_pos_of_chi_lt_one (p : CMParams) (hχ : p.χ < 1) (a : ℝ) :
 theorem MChi_gamma_pos_of_chi_lt_one (p : CMParams) (hχ : p.χ < 1) :
     0 < (MChi p) ^ p.γ :=
   MChi_rpow_pos_of_chi_lt_one p hχ p.γ
+
+/-- Section 4.2 fixed-point construction for negative sensitivity, before the
+final conversion of the fixed point into a traveling wave. -/
+def NegativeSensitivityWaveFixedPointConstruction
+    (p : CMParams) (c κ₁ κtilde D : ℝ) : Prop :=
+  p.χ < 0 ∧
+    p.α ≤ p.m + p.γ - 1 ∧
+    cStarLower p < c ∧
+    kappa c < κ₁ ∧
+    κ₁ < κtilde ∧
+    κtilde ≤
+      min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) ∧
+    subsolutionDThreshold p.χ 1 (kappa c) κtilde p.m p.γ c < D ∧
+    FrozenWaveMapConstruction p c (kappa c) 1
+      (fun u => InMonotoneWaveTrapSet (kappa c) 1 u)
+
+/-- Section 4.3 fixed-point construction for positive sensitivity, before the
+final conversion of the fixed point into a traveling wave. -/
+def PositiveSensitivityWaveFixedPointConstruction
+    (p : CMParams) (c κ₁ κtilde D : ℝ) : Prop :=
+  0 ≤ p.χ ∧
+    p.χ < min (1 / 2 : ℝ) (chiStar p) ∧
+    p.α = p.m + p.γ - 1 ∧
+    2 < c ∧
+    kappa c < κ₁ ∧
+    κ₁ < κtilde ∧
+    κtilde ≤
+      min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) ∧
+    subsolutionDThreshold p.χ (MChi p) (kappa c) κtilde p.m p.γ c < D ∧
+    FrozenWaveMapConstruction p c (kappa c) (MChi p)
+      (fun u => InWaveTrapSet (kappa c) (MChi p) u)
 
 theorem one_le_MChi_of_chi_nonneg_lt_chiStar
     (p : CMParams) (hχ_nonneg : 0 ≤ p.χ) (hχ : p.χ < chiStar p) :
