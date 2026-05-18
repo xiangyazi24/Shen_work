@@ -232,6 +232,28 @@ def CrossDiffusionBootstrapEstimate
               (fun x => (u t x) ^ (pExp - 2) * (D.gradNorm (u t) x) ^ 2) +
           Ceps * D.integral (fun x => (u t x) ^ (pExp + rho))
 
+def LpMassGradientInterpolationEstimate
+    (D : BoundedDomainData) (pExp eps Ceps T : ℝ)
+    (u : ℝ → D.Point → ℝ) : Prop :=
+  ∀ t, 0 < t → t < T →
+    D.integral (fun x => (u t x) ^ pExp) ≤
+      eps *
+          D.integral
+            (fun x => (u t x) ^ (pExp - 2) * (D.gradNorm (u t) x) ^ 2) +
+        Ceps * (D.integral (u t)) ^ pExp
+
+lemma LpMassGradientInterpolationEstimate.bound
+    {D : BoundedDomainData} {pExp eps Ceps T : ℝ}
+    {u : ℝ → D.Point → ℝ}
+    (h : LpMassGradientInterpolationEstimate D pExp eps Ceps T u)
+    {t : ℝ} (ht0 : 0 < t) (htT : t < T) :
+    D.integral (fun x => (u t x) ^ pExp) ≤
+      eps *
+          D.integral
+            (fun x => (u t x) ^ (pExp - 2) * (D.gradNorm (u t) x) ^ 2) +
+        Ceps * (D.integral (u t)) ^ pExp :=
+  h t ht0 htT
+
 lemma CrossDiffusionBootstrapEstimate.bound
     {D : BoundedDomainData} {p : CM2Params} {T rho : ℝ}
     {u v : ℝ → D.Point → ℝ}
@@ -730,12 +752,12 @@ def Lemma_3_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
           SupNormNonincreasingOn D u (Set.Ioo (0 : ℝ) T))
 
 def Lemma_4_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
   ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
     IsPaper2ClassicalSolution D p T u v →
-      1 ≤ p.β →
-        ∃ rho > 0, ∀ eps > 0, ∃ Ceps,
-          ∀ t, 0 < t → t < T →
-            D.integral (fun x => (u t x) ^ (p.m + rho)) ≤ Ceps
+      InitialTrace D u₀ u →
+        ∀ eps > 0, ∀ pExp > 1, ∃ Ceps > 0,
+          LpMassGradientInterpolationEstimate D pExp eps Ceps T u
 
 structure Paper2Constants (p : CM2Params) where
   K : ℝ
@@ -890,22 +912,30 @@ def Theorem_1_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
     ((0 < p.m → p.m < 1 →
       ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
         ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
-          IsPaper2ClassicalSolution D p Tmax u v ∧ IsPaper2BoundedBefore D Tmax u) ∧
+          IsPaper2ClassicalSolution D p Tmax u v ∧
+            InitialTrace D u₀ u ∧
+            IsPaper2BoundedBefore D Tmax u) ∧
     (p.m = 1 → p.χ₀ < chiBeta p →
       ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
         ∃ u v : ℝ → D.Point → ℝ,
-          IsPaper2GlobalClassicalSolution D p u v ∧ IsPaper2Bounded D u))
+          IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            IsPaper2Bounded D u))
 
 /-- Paper2 Theorem 1.3: boundedness/global existence under a strong logistic source. -/
 def Theorem_1_3 (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p) : Prop :=
   0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
     (∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
       ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
-        IsPaper2ClassicalSolution D p Tmax u v ∧ IsPaper2BoundedBefore D Tmax u) ∧
+        IsPaper2ClassicalSolution D p Tmax u v ∧
+          InitialTrace D u₀ u ∧
+          IsPaper2BoundedBefore D Tmax u) ∧
     (1 ≤ p.m →
       ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
         ∃ u v : ℝ → D.Point → ℝ,
-          IsPaper2GlobalClassicalSolution D p u v ∧ IsPaper2Bounded D u)
+          IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            IsPaper2Bounded D u)
 
 end
 
