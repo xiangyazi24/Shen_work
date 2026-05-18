@@ -1667,6 +1667,22 @@ def LocalUniformContinuousOn
         LocallyUniformConverges seq u →
           LocallyUniformConverges (fun n => Tmap (seq n)) (Tmap u)
 
+theorem LocalUniformContinuousOn.fixed_of_approx_fixed
+    {trap : (ℝ → ℝ) → Prop} {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hcont : LocalUniformContinuousOn trap Tmap)
+    {seq : ℕ → ℝ → ℝ} {u : ℝ → ℝ}
+    (hseq : ∀ n, trap (seq n)) (hu : trap u)
+    (hconv : LocallyUniformConverges seq u)
+    (hfix : ∀ n, Tmap (seq n) = seq n) :
+    Tmap u = u := by
+  have himage : LocallyUniformConverges (fun n => Tmap (seq n)) (Tmap u) :=
+    hcont seq u hseq hu hconv
+  have hsame : LocallyUniformConverges (fun n => Tmap (seq n)) u := by
+    intro R hR ε hε
+    filter_upwards [hconv R hR ε hε] with n hn
+    simpa [hfix n] using hn
+  exact himage.unique hsame
+
 /-- Sequential compactness of the range of a wave map in the local-uniform
 topology, restricted to a trapping set. -/
 def LocalUniformSequentiallyCompactRange
