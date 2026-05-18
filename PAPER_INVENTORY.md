@@ -86,7 +86,7 @@ Source: `paper3.pdf`, Chen-Ruau-Shen Part II.
 | Lemma A.1 | `Paper3.Lemma_A_1` | statement target | Abstract sectorial linearized stability theorem, specialized to local exponential convergence packaging. |
 | Lemmas A.2--A.5 | `Paper3.Lemma_A_2`--`Paper3.Lemma_A_5` | statement target | Appendix semigroup and embedding estimates, linked to the Part I semigroup API. |
 | Lemma A.6 | `CAlphaGamma`, `PowerDifferenceInequality`, `Paper3.Lemma_A_6` | statement target | Exact paper constant `C_{α,γ}` and power-difference inequality used in Theorem 2.4; positivity and `C_{α,γ} α / γ^2 ≥ 1` under `2γ ≤ α+1` proved. |
-| Lemmas A.7--A.8 | `Paper3.Lemma_A_7`, `Paper3.Lemma_A_8` | statement target | Comparison between explicit global-stability thresholds and the linear critical sensitivity. |
+| Lemmas A.7--A.8 | `Paper3.Lemma_A_7`, `Paper3.Lemma_A_8` | statement target | Comparison between explicit global-stability thresholds and the linear critical sensitivity; all nonminimal/minimal threshold comparison projection lemmas are proved. |
 
 ## Immediate proof candidates
 

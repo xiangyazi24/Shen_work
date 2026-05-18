@@ -1835,6 +1835,47 @@ def Lemma_A_7
       (1 ≤ p.β → 1 ≤ p.γ → p.α + 1 ≥ p.m + 2 * p.γ →
         C.chiStrong4 eq.1 ≤ C.chiCritical eq.1)
 
+lemma Lemma_A_7.chiStrong1_le
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_A_7 D p C)
+    (hβ0 : 0 ≤ p.β) (hm : 1 ≤ p.m)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hαγ : p.α + 1 ≥ 2 * p.γ) :
+    C.chiStrong1 (positiveEquilibrium p ⟨ha, hb⟩).1 ≤
+      C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 :=
+  ((h hβ0 hm ha hb).1 hαγ)
+
+lemma Lemma_A_7.chiStrong2_le
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_A_7 D p C)
+    (hβ0 : 0 ≤ p.β) (hm : 1 ≤ p.m)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hβ1 : 1 ≤ p.β) (hαγ : p.α + 1 ≥ 2 * p.γ) :
+    C.chiStrong2 (positiveEquilibrium p ⟨ha, hb⟩).1 ≤
+      C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 :=
+  ((h hβ0 hm ha hb).2.1 hβ1 hαγ)
+
+lemma Lemma_A_7.chiStrong3_le
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_A_7 D p C)
+    (hβ0 : 0 ≤ p.β) (hm : 1 ≤ p.m)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ : 1 ≤ p.γ) (hαγ : p.α + 1 ≥ p.m + p.γ) :
+    C.chiStrong3 (positiveEquilibrium p ⟨ha, hb⟩).1 ≤
+      C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 :=
+  ((h hβ0 hm ha hb).2.2.1 hγ hαγ)
+
+lemma Lemma_A_7.chiStrong4_le
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_A_7 D p C)
+    (hβ0 : 0 ≤ p.β) (hm : 1 ≤ p.m)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hβ1 : 1 ≤ p.β) (hγ : 1 ≤ p.γ)
+    (hαγ : p.α + 1 ≥ p.m + 2 * p.γ) :
+    C.chiStrong4 (positiveEquilibrium p ⟨ha, hb⟩).1 ≤
+      C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 :=
+  ((h hβ0 hm ha hb).2.2.2 hβ1 hγ hαγ)
+
 def Lemma_A_8
     (D : BoundedDomainData) (p : CM2Params)
     (C : Paper3Constants D p) : Prop :=
@@ -1842,6 +1883,22 @@ def Lemma_A_8
     ∀ uStar > 0,
       (0 < p.γ → C.chiMinimal1 uStar ≤ C.chiCritical uStar) ∧
       (p.γ = 1 → C.chiMinimal2 uStar ≤ C.chiCritical uStar)
+
+lemma Lemma_A_8.chiMinimal1_le
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_A_8 D p C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (hγ : 0 < p.γ) :
+    C.chiMinimal1 uStar ≤ C.chiCritical uStar :=
+  (h ha hb hm hβ uStar huStar).1 hγ
+
+lemma Lemma_A_8.chiMinimal2_le
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_A_8 D p C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (hγ : p.γ = 1) :
+    C.chiMinimal2 uStar ≤ C.chiCritical uStar :=
+  (h ha hb hm hβ uStar huStar).2 hγ
 
 end
 
