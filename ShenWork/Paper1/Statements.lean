@@ -416,6 +416,32 @@ theorem lowerBarrierRaw_second_deriv (κ κtilde D x : ℝ) :
   have hder := hκ.add hκtilde
   simpa [sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc] using hder.deriv
 
+theorem lowerBarrierRaw_linear_part_eq
+    (κ κtilde D c x : ℝ) :
+    iteratedDeriv 2 (lowerBarrierRaw κ κtilde D) x +
+        c * deriv (lowerBarrierRaw κ κtilde D) x +
+        lowerBarrierRaw κ κtilde D x =
+      (κ ^ 2 - c * κ + 1) * Real.exp (-κ * x) -
+        D * (κtilde ^ 2 - c * κtilde + 1) *
+          Real.exp (-κtilde * x) := by
+  rw [lowerBarrierRaw_second_deriv, lowerBarrierRaw_deriv]
+  unfold lowerBarrierRaw
+  ring
+
+theorem lowerBarrierRaw_linear_part_eq_of_kappa_speed
+    {κ κtilde D c x : ℝ} (hκ : κ ≠ 0) (hc : c = κ + κ⁻¹) :
+    iteratedDeriv 2 (lowerBarrierRaw κ κtilde D) x +
+        c * deriv (lowerBarrierRaw κ κtilde D) x +
+        lowerBarrierRaw κ κtilde D x =
+      -D * (κtilde ^ 2 - c * κtilde + 1) *
+        Real.exp (-κtilde * x) := by
+  rw [lowerBarrierRaw_linear_part_eq, hc]
+  have hzero : κ ^ 2 - (κ + κ⁻¹) * κ + 1 = 0 := by
+    field_simp [hκ]
+    ring
+  rw [hzero]
+  ring
+
 def lowerBarrierXMinus (κ κtilde D : ℝ) : ℝ :=
   Real.log D / (κtilde - κ)
 
