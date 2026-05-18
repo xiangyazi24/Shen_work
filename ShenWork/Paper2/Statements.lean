@@ -132,6 +132,25 @@ lemma chiBeta_le_two_beta_sub_one (p : CM2Params) (hβ : (1 / 2 : ℝ) ≤ p.β)
     exact div_le_div_of_nonneg_left hnum_nonneg (by norm_num) hden_ge_two
   nlinarith
 
+lemma chiBeta_lt_two_beta_sub_one_of_two_lt_denom
+    (p : CM2Params) (hβ : (1 / 2 : ℝ) < p.β)
+    (hden : (2 : ℝ) < max 2 (p.γ * (p.N : ℝ))) :
+    chiBeta p < 2 * p.β - 1 := by
+  unfold chiBeta
+  have hnum_pos : 0 < 2 * (2 * p.β - 1) := by nlinarith
+  calc
+    2 * (2 * p.β - 1) / max 2 (p.γ * (p.N : ℝ))
+        < 2 * (2 * p.β - 1) / 2 := by
+          exact div_lt_div_of_pos_left hnum_pos (by norm_num) hden
+    _ = 2 * p.β - 1 := by ring
+
+lemma chiBeta_lt_of_lt_two_beta_sub_one
+    (p : CM2Params) {chi : ℝ} (hβ : (1 / 2 : ℝ) < p.β)
+    (hden : (2 : ℝ) < max 2 (p.γ * (p.N : ℝ)))
+    (hchi : chi < chiBeta p) :
+    chi < 2 * p.β - 1 :=
+  lt_trans hchi (chiBeta_lt_two_beta_sub_one_of_two_lt_denom p hβ hden)
+
 structure SemigroupEstimateData (D : BoundedDomainData) where
   lpNorm : ℝ → (D.Point → ℝ) → ℝ
   vectorLpNorm : ℝ → (D.Point → ℝ) → ℝ

@@ -25,6 +25,30 @@ def positiveEquilibrium (p : CM2Params) (_hab : 0 < p.a ∧ 0 < p.b) : ℝ × �
 def minimalEquilibrium (p : CM2Params) (uStar : ℝ) : ℝ × ℝ :=
   (uStar, p.ν / p.μ * uStar ^ p.γ)
 
+lemma positiveEquilibrium_fst_pos
+    (p : CM2Params) (hab : 0 < p.a ∧ 0 < p.b) :
+    0 < (positiveEquilibrium p hab).1 := by
+  change 0 < (p.a / p.b) ^ (1 / p.α)
+  exact Real.rpow_pos_of_pos (div_pos hab.1 hab.2) _
+
+lemma positiveEquilibrium_snd_pos
+    (p : CM2Params) (hab : 0 < p.a ∧ 0 < p.b) :
+    0 < (positiveEquilibrium p hab).2 := by
+  change 0 < p.ν / p.μ * ((p.a / p.b) ^ (1 / p.α)) ^ p.γ
+  exact mul_pos (div_pos p.hν p.hμ)
+    (Real.rpow_pos_of_pos
+      (Real.rpow_pos_of_pos (div_pos hab.1 hab.2) _) _)
+
+lemma minimalEquilibrium_fst_eq (p : CM2Params) (uStar : ℝ) :
+    (minimalEquilibrium p uStar).1 = uStar := by
+  rfl
+
+lemma minimalEquilibrium_snd_pos
+    (p : CM2Params) {uStar : ℝ} (huStar : 0 < uStar) :
+    0 < (minimalEquilibrium p uStar).2 := by
+  change 0 < p.ν / p.μ * uStar ^ p.γ
+  exact mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos huStar _)
+
 def PositiveGlobalBoundedSolution
     (D : BoundedDomainData) (p : CM2Params)
     (u v : ℝ → D.Point → ℝ) : Prop :=

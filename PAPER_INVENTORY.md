@@ -87,9 +87,12 @@ Source: `paper3.pdf`, Chen-Ruau-Shen Part II.
 These are small, non-PDE targets worth proving before the next analytic push:
 
 1. Algebra around Paper3 equilibria and spectral quantities:
-   `sigma_zero`, `sigma_zero_neg_of_a_pos`, `sigma_zero_eq_zero_of_a_eq_zero`.
+   `sigma_zero`, `sigma_zero_neg_of_a_pos`, `sigma_zero_eq_zero_of_a_eq_zero`,
+   `positiveEquilibrium_fst_pos`, `positiveEquilibrium_snd_pos`,
+   `minimalEquilibrium_snd_pos`.
 2. Basic positivity/nonnegativity of packaged constants:
-   `positivePart_nonneg`, simple consequences of `CM2Params`.
+   `positivePart_nonneg`, `chiBeta_nonneg_of_half_le_beta`,
+   `chiBeta_pos_of_half_lt_beta`, `chiBeta_le_two_beta_sub_one`.
 3. Paper1 speed/decay algebra already has `cStarLower_ge_two` and
    `kappa_pos_of_two_lt`; next small additions should support `Theorem_1_1`.
 4. Continue exact statement/proof of Paper1 Lemma 2.2/2.4: the basic `Ψ`
