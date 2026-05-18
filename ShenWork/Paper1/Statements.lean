@@ -1801,6 +1801,20 @@ theorem D_pos_of_subsolutionDThreshold_lt_of_kappa_speed
       hκtilde1 hm hgamma hc)
     hD
 
+theorem D_pos_of_subsolutionDThreshold_lt_of_cStarLower_lt
+    {p : CMParams} {M κtilde c D : ℝ}
+    (hM : 0 < M) (hc : cStarLower p < c)
+    (hgap : kappa c < κtilde) (hκtilde1 : κtilde ≤ 1)
+    (hD : subsolutionDThreshold p.χ M (kappa c) κtilde p.m p.γ c < D) :
+    0 < D :=
+  D_pos_of_subsolutionDThreshold_lt_of_kappa_speed
+    hM (kappa_pos_of_cStarLower_lt hc) (kappa_lt_one_of_cStarLower_lt hc)
+    hgap hκtilde1
+    (lt_of_lt_of_le one_pos p.hm)
+    (lt_of_lt_of_le one_pos p.hγ)
+    (kappa_add_inv_eq_of_cStarLower_lt hc).symm
+    hD
+
 theorem exists_d_pos_le_constantSubsolutionThreshold
     {χ κ κtilde D : ℝ}
     (hκ : 0 < κ) (hgap : κ < κtilde) (hD : 0 < D) :
@@ -2074,6 +2088,37 @@ theorem NegativeSensitivityWaveFixedPointConstruction.kappaTilde_le_one
     κtilde ≤ 1 :=
   kappaTilde_le_one_of_subsolution_range h.kappaTilde_range
 
+theorem NegativeSensitivityWaveFixedPointConstruction.kappaTilde_le_one_plus_alpha_mul_kappa
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    κtilde ≤ (1 + p.α) * kappa c :=
+  kappaTilde_le_one_plus_alpha_mul_kappa_of_subsolution_range
+    h.kappaTilde_range
+
+theorem NegativeSensitivityWaveFixedPointConstruction.kappaTilde_le_m_mul_kappa_add_half
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    κtilde ≤ p.m * kappa c + 1 / 2 :=
+  kappaTilde_le_m_mul_kappa_add_half_of_subsolution_range
+    h.kappaTilde_range
+
+theorem NegativeSensitivityWaveFixedPointConstruction.D_pos
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    0 < D :=
+  D_pos_of_subsolutionDThreshold_lt_of_cStarLower_lt
+    one_pos h.cStarLower_lt h.kappa_lt_kappaTilde h.kappaTilde_le_one
+    h.D_gt_threshold
+
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_constant_subsolution
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    ∃ d : ℝ, 0 < d ∧
+      d ≤ constantSubsolutionThreshold p.χ (kappa c) κtilde D :=
+  exists_d_pos_le_constantSubsolutionThreshold_of_cStarLower_lt
+    one_pos h.cStarLower_lt h.kappa_lt_kappaTilde h.kappaTilde_le_one
+    h.D_gt_threshold
+
 theorem NegativeSensitivityWaveFixedPointConstruction.MChi_eq_one
     {p : CMParams} {c κ₁ κtilde D : ℝ}
     (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
@@ -2172,11 +2217,44 @@ theorem PositiveSensitivityWaveFixedPointConstruction.kappaTilde_le_one
     κtilde ≤ 1 :=
   kappaTilde_le_one_of_subsolution_range h.kappaTilde_range
 
+theorem PositiveSensitivityWaveFixedPointConstruction.kappaTilde_le_one_plus_alpha_mul_kappa
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    κtilde ≤ (1 + p.α) * kappa c :=
+  kappaTilde_le_one_plus_alpha_mul_kappa_of_subsolution_range
+    h.kappaTilde_range
+
+theorem PositiveSensitivityWaveFixedPointConstruction.kappaTilde_le_m_mul_kappa_add_half
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    κtilde ≤ p.m * kappa c + 1 / 2 :=
+  kappaTilde_le_m_mul_kappa_add_half_of_subsolution_range
+    h.kappaTilde_range
+
 theorem PositiveSensitivityWaveFixedPointConstruction.MChi_pos
     {p : CMParams} {c κ₁ κtilde D : ℝ}
     (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
     0 < MChi p :=
   MChi_pos_of_chi_lt_chiStar p h.chi_lt_chiStar
+
+theorem PositiveSensitivityWaveFixedPointConstruction.D_pos
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    0 < D :=
+  D_pos_of_subsolutionDThreshold_lt_of_kappa_speed h.MChi_pos
+    h.kappa_pos h.kappa_lt_one h.kappa_lt_kappaTilde h.kappaTilde_le_one
+    (lt_of_lt_of_le one_pos p.hm)
+    (lt_of_lt_of_le one_pos p.hγ)
+    (kappa_add_inv_eq_of_two_lt h.two_lt_c).symm
+    h.D_gt_threshold
+
+theorem PositiveSensitivityWaveFixedPointConstruction.exists_constant_subsolution
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    ∃ d : ℝ, 0 < d ∧
+      d ≤ constantSubsolutionThreshold p.χ (kappa c) κtilde D :=
+  exists_d_pos_le_constantSubsolutionThreshold h.kappa_pos
+    h.kappa_lt_kappaTilde h.D_pos
 
 theorem PositiveSensitivityWaveFixedPointConstruction.one_le_MChi
     {p : CMParams} {c κ₁ κtilde D : ℝ}
