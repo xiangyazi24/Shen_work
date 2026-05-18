@@ -542,6 +542,61 @@ private lemma spatialCoercivePerturbation_neg_on_large_spatial_boundary
       (c := c) (ε := ε) (B := Real.exp (|c + 3| * T) * M)
       (w := w) (t := t) (x := -R) (hbound (-R)) hRneg
 
+private lemma spatialCoercivePerturbation_pos_not_on_parabolic_boundary
+    {c T ε R : ℝ} {w : ℝ → ℝ → ℝ}
+    (hε : 0 < ε)
+    (hinit : ∀ x : ℝ, w 0 x ≤ 0)
+    (hside :
+      ∀ t ∈ Set.Icc (0 : ℝ) T,
+        spatialCoercivePerturbation ε (expBarrier (c + 3) w) t R < 0 ∧
+        spatialCoercivePerturbation ε (expBarrier (c + 3) w) t (-R) < 0)
+    {p : ℝ × ℝ}
+    (hp : p ∈ Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R)
+    (hpos :
+      0 < spatialCoercivePerturbation ε
+        (expBarrier (c + 3) w) p.1 p.2) :
+    p.1 ≠ 0 ∧ p.2 ≠ R ∧ p.2 ≠ -R := by
+  constructor
+  · intro ht0
+    have hneg :=
+      spatialCoercivePerturbation_initial_neg
+        (c := c) (ε := ε) (w := w) hε hinit p.2
+    rw [ht0] at hpos
+    linarith
+  constructor
+  · intro hxR
+    have hneg := (hside p.1 hp.1).1
+    rw [hxR] at hpos
+    linarith
+  · intro hxR
+    have hneg := (hside p.1 hp.1).2
+    rw [hxR] at hpos
+    linarith
+
+private lemma spatialCoercivePerturbation_pos_has_positive_time_and_interior_space
+    {c T ε R : ℝ} {w : ℝ → ℝ → ℝ}
+    (hε : 0 < ε)
+    (hinit : ∀ x : ℝ, w 0 x ≤ 0)
+    (hside :
+      ∀ t ∈ Set.Icc (0 : ℝ) T,
+        spatialCoercivePerturbation ε (expBarrier (c + 3) w) t R < 0 ∧
+        spatialCoercivePerturbation ε (expBarrier (c + 3) w) t (-R) < 0)
+    {p : ℝ × ℝ}
+    (hp : p ∈ Set.Icc (0 : ℝ) T ×ˢ Set.Icc (-R) R)
+    (hpos :
+      0 < spatialCoercivePerturbation ε
+        (expBarrier (c + 3) w) p.1 p.2) :
+    0 < p.1 ∧ p.2 ∈ Set.Ioo (-R) R := by
+  have hnot :=
+    spatialCoercivePerturbation_pos_not_on_parabolic_boundary
+      (c := c) (T := T) (ε := ε) (R := R) (w := w)
+      hε hinit hside hp hpos
+  constructor
+  · exact lt_of_le_of_ne hp.1.1 (Ne.symm hnot.1)
+  · exact
+      ⟨lt_of_le_of_ne hp.2.1 (Ne.symm hnot.2.2),
+        lt_of_le_of_ne hp.2.2 hnot.2.1⟩
+
 /--
 Weak parabolic maximum principle on the whole line.
 
@@ -603,6 +658,10 @@ private theorem coercive_exponential_barrier_estimate
     ∀ ε : ℝ, 0 < ε →
       ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x : ℝ,
         expBarrier (c + 3) w t x ≤ ε * (1 + x ^ 2) := by
+  intro ε hε t ht x
+  suffices h : spatialCoercivePerturbation ε (expBarrier (c + 3) w) t x ≤ 0 by
+    simp only [spatialCoercivePerturbation] at h; linarith
+  obtain ⟨M, hM_nn, hM⟩ := _hw.bounded
   sorry
 
 theorem weak_maximum_principle_linear

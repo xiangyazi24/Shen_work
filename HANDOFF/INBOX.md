@@ -40,10 +40,23 @@ All building blocks are proved. The proof structure:
 9. At interior max: `dt ψ t₀ x₀ ≥ 0`, `dxx ψ t₀ x₀ ≤ 0` (from HasDerivAt + IsLocalMax)
 10. Apply `spatialCoercivePerturbation_no_positive_max_with_derivative_signs` → False
 
-Key Mathlib lemmas needed:
-- `IsCompact.exists_isMaxOn` for max on compact set
-- `IsLocalMax.hasDerivAt_le_zero` or similar for derivative test at local max
-- `HasDerivAt.deriv` to extract derivative value
+Key Mathlib lemmas:
+- `exists_max_on_Icc_prod` (already proved by you)
+- `IsLocalMax.hasDerivAt_eq_zero` — first derivative = 0 at interior local max
+- For `dxx ≤ 0` at spatial max: need `IsLocalMax.deriv_nonpos_left` or similar
+  Mathlib has `IsLocalMaxOn.fderivWithin_nonpos` in LocalExtr/Basic.lean
+- `spatialCoercivePerturbation_no_positive_max_with_derivative_signs` (already proved)
+
+The main gap: proving `dt ≥ 0` and `dxx ≤ 0` at the compact-domain max.
+For interior max (t₀ ∈ Ioo 0 T, x₀ ∈ Ioo (-R) R):
+- dt = 0 follows from IsLocalMax (since t₀ is interior in time)
+- dxx ≤ 0: at spatial local max, second deriv ≤ 0
+  This needs: IsLocalMax (fun y => ψ t₀ y) x₀ → dxx ψ t₀ x₀ ≤ 0
+  Approach: from IsLocalMax and HasDerivAt (dx = 0), plus dx changes sign
+  → deriv of dx at x₀ is ≤ 0 (by one-sided argument)
+
+Critical subtlety: the max might be at t=T boundary. Then dt ≥ 0 needs
+one-sided argument (left derivative ≥ 0). Use IsLocalMaxOn instead.
 
 ## Protocol
 - Write tasks/results to HANDOFF/OUTBOX.md
