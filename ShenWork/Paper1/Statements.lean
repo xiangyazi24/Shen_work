@@ -1331,6 +1331,59 @@ def constantSubsolutionThreshold (χ κ κtilde D : ℝ) : ℝ :=
     ((κ / (κtilde * D)) ^ (κ / (κtilde - κ)) *
       (1 - κ / κtilde))
 
+theorem subsolutionK_pos
+    {M κ κtilde m gamma : ℝ} (hM : 0 < M) (hκ : 0 < κ)
+    (hgap : 0 < κtilde - κ) (hm : 0 < m) (hgamma : 0 < gamma) :
+    0 < subsolutionK M κ κtilde m gamma := by
+  have hκtilde : 0 < κtilde := by linarith
+  have hprefactor : 0 < m * (κtilde + κ) + 1 := by
+    nlinarith [mul_pos hm (by linarith : 0 < κtilde + κ)]
+  unfold subsolutionK
+  by_cases heq : gamma * κ = 1
+  · rw [if_pos heq]
+    exact mul_pos hprefactor
+      (add_pos (Real.rpow_pos_of_pos hM _) (by norm_num))
+  · rw [if_neg heq]
+    by_cases hlt : gamma * κ < 1
+    · rw [if_pos hlt]
+      apply mul_pos hprefactor
+      apply div_pos one_pos
+      nlinarith [mul_pos hgamma hκ]
+    · rw [if_neg hlt]
+      have hgt : 1 < gamma * κ := lt_of_le_of_ne (le_of_not_gt hlt) (Ne.symm heq)
+      apply mul_pos hprefactor
+      apply div_pos
+      · apply mul_pos (Real.rpow_pos_of_pos hM _)
+        nlinarith
+      · nlinarith
+
+theorem subsolutionDThreshold_pos
+    {χ M κ κtilde m gamma c : ℝ}
+    (hM : 0 < M) (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hm : 0 < m) (hgamma : 0 < gamma)
+    (hden : 0 < c * κtilde - κtilde ^ 2 - 1) :
+    0 < subsolutionDThreshold χ M κ κtilde m gamma c := by
+  unfold subsolutionDThreshold
+  apply div_pos
+  · exact add_pos_of_pos_of_nonneg one_pos
+      (mul_nonneg (abs_nonneg χ)
+        (subsolutionK_pos hM hκ hgap hm hgamma).le)
+  · exact hden
+
+theorem constantSubsolutionThreshold_pos
+    {χ κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hD : 0 < D) :
+    0 < constantSubsolutionThreshold χ κ κtilde D := by
+  have hκtilde : 0 < κtilde := by linarith
+  unfold constantSubsolutionThreshold
+  apply lt_min
+  · exact div_pos one_pos (by positivity)
+  · apply mul_pos
+    · apply Real.rpow_pos_of_pos
+      exact div_pos hκ (mul_pos hκtilde hD)
+    · rw [sub_pos]
+      exact (div_lt_one hκtilde).mpr (by linarith)
+
 def Lemma_4_1 : Prop :=
   (∀ p : CMParams, p.χ ≤ 0 → p.α ≤ p.m + p.γ - 1 →
     ∀ κ M c : ℝ, 0 < κ → κ < 1 → 1 ≤ M → c = κ + κ⁻¹ →
