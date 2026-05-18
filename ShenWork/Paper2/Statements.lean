@@ -535,6 +535,41 @@ lemma Psi_beta_zero :
     Psi_beta 0 = 0 := by
   norm_num [Psi_beta]
 
+lemma beta_div_one_add_beta_hasDerivAt {beta : ℝ} (hbeta : 0 < beta) :
+    HasDerivAt (fun b : ℝ => b / (1 + b)) (1 / (1 + beta) ^ 2) beta := by
+  have hden : 1 + beta ≠ 0 := by linarith
+  have hden_deriv : HasDerivAt (fun b : ℝ => 1 + b) 1 beta := by
+    simpa using ((hasDerivAt_const beta (1 : ℝ)).add (hasDerivAt_id beta))
+  have hraw :
+      HasDerivAt (fun b : ℝ => b / (1 + b))
+        ((1 * (1 + beta) - beta * 1) / (1 + beta) ^ 2) beta := by
+    simpa using (hasDerivAt_id beta).div hden_deriv hden
+  convert hraw using 1
+  field_simp [hden]
+  ring_nf
+
+lemma Psi_beta_hasDerivAt_raw {beta : ℝ} (hbeta : 0 < beta) :
+    HasDerivAt Psi_beta
+      ((1 / (1 + beta) ^ 2) * (1 + beta) *
+          (beta / (1 + beta)) ^ ((1 + beta) - 1) +
+        1 * (beta / (1 + beta)) ^ (1 + beta) *
+          Real.log (beta / (1 + beta)))
+      beta := by
+  have hbase : 0 < beta / (1 + beta) := by positivity
+  have hexp_deriv : HasDerivAt (fun b : ℝ => 1 + b) 1 beta := by
+    simpa using ((hasDerivAt_const beta (1 : ℝ)).add (hasDerivAt_id beta))
+  unfold Psi_beta
+  exact (beta_div_one_add_beta_hasDerivAt hbeta).rpow
+    hexp_deriv hbase
+
+lemma Psi_beta_deriv_raw {beta : ℝ} (hbeta : 0 < beta) :
+    deriv Psi_beta beta =
+      (1 / (1 + beta) ^ 2) * (1 + beta) *
+          (beta / (1 + beta)) ^ ((1 + beta) - 1) +
+        1 * (beta / (1 + beta)) ^ (1 + beta) *
+          Real.log (beta / (1 + beta)) :=
+  (Psi_beta_hasDerivAt_raw hbeta).deriv
+
 lemma Psi_beta_eq_zero_iff_of_nonneg {beta : ℝ} (hbeta : 0 ≤ beta) :
     Psi_beta beta = 0 ↔ beta = 0 := by
   constructor
