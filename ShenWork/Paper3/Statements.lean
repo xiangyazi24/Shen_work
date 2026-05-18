@@ -140,6 +140,11 @@ def sigmaChemCoefficient
     (uStar ^ (p.m + p.γ - 1) * lambdaN) /
       ((1 + vStar) ^ p.β * (p.μ + lambdaN))
 
+def sigmaCriticalChi
+    (p : CM2Params) (uStar vStar lambdaN : ℝ) : ℝ :=
+  (lambdaN + p.a * p.α) /
+    sigmaChemCoefficient p uStar vStar lambdaN
+
 lemma sigma_eq_base_add_chi_coeff
     (p : CM2Params) (uStar vStar lambdaN : ℝ) :
     sigma p uStar vStar lambdaN =
@@ -179,6 +184,36 @@ lemma sigmaChemCoefficient_pos
     exact mul_pos (mul_pos p.hν p.hγ)
       (mul_pos (Real.rpow_pos_of_pos huStar _) hlambda)
   exact div_pos hnum_pos hden_pos
+
+lemma sigma_eq_chi_sub_critical_mul_coeff
+    (p : CM2Params) (uStar vStar lambdaN : ℝ)
+    (hcoeff :
+      sigmaChemCoefficient p uStar vStar lambdaN ≠ 0) :
+    sigma p uStar vStar lambdaN =
+      (p.χ₀ - sigmaCriticalChi p uStar vStar lambdaN) *
+        sigmaChemCoefficient p uStar vStar lambdaN := by
+  rw [sigma_eq_base_add_chi_coeff]
+  unfold sigmaBase sigmaCriticalChi
+  field_simp [hcoeff]
+  ring
+
+lemma sigma_pos_of_sigmaCriticalChi_lt_chi
+    (p : CM2Params) {uStar vStar lambdaN : ℝ}
+    (hcoeff : 0 < sigmaChemCoefficient p uStar vStar lambdaN)
+    (hχ : sigmaCriticalChi p uStar vStar lambdaN < p.χ₀) :
+    0 < sigma p uStar vStar lambdaN := by
+  rw [sigma_eq_chi_sub_critical_mul_coeff p uStar vStar lambdaN
+    (ne_of_gt hcoeff)]
+  exact mul_pos (sub_pos.mpr hχ) hcoeff
+
+lemma sigma_neg_of_chi_lt_sigmaCriticalChi
+    (p : CM2Params) {uStar vStar lambdaN : ℝ}
+    (hcoeff : 0 < sigmaChemCoefficient p uStar vStar lambdaN)
+    (hχ : p.χ₀ < sigmaCriticalChi p uStar vStar lambdaN) :
+    sigma p uStar vStar lambdaN < 0 := by
+  rw [sigma_eq_chi_sub_critical_mul_coeff p uStar vStar lambdaN
+    (ne_of_gt hcoeff)]
+  exact mul_neg_of_neg_of_pos (sub_neg.mpr hχ) hcoeff
 
 def LinearlyStable
     (S : SpectralData) (p : CM2Params) (uStar vStar : ℝ) : Prop :=
@@ -380,6 +415,34 @@ lemma LinearlyStable_of_chi_nonpos_a_nonneg_eigen_pos
   intro n hn
   exact sigma_neg_of_chi_nonpos_lambda_pos p hχ ha huStar hvStar (heig_pos n hn)
 
+lemma LinearlyStable_of_chi_lt_sigmaCriticalChi
+    (S : SpectralData) (p : CM2Params) {uStar vStar : ℝ}
+    (H : HasNeumannSpectrum S)
+    (huStar : 0 < uStar) (hvStar : 0 ≤ vStar)
+    (hχ :
+      ∀ n : ℕ, n ≠ 0 →
+        p.χ₀ < sigmaCriticalChi p uStar vStar (S.eigenvalue n)) :
+    LinearlyStable S p uStar vStar := by
+  intro n hn
+  have hcoeff :
+      0 < sigmaChemCoefficient p uStar vStar (S.eigenvalue n) :=
+    sigmaChemCoefficient_pos p huStar hvStar
+      (H.eigenvalue_pos_of_ne_zero n hn)
+  exact sigma_neg_of_chi_lt_sigmaCriticalChi p hcoeff (hχ n hn)
+
+lemma LinearlyUnstable_of_sigmaCriticalChi_lt_chi
+    (S : SpectralData) (p : CM2Params) {uStar vStar : ℝ}
+    (H : HasNeumannSpectrum S)
+    (huStar : 0 < uStar) (hvStar : 0 ≤ vStar)
+    {n : ℕ} (hn : n ≠ 0)
+    (hχ : sigmaCriticalChi p uStar vStar (S.eigenvalue n) < p.χ₀) :
+    LinearlyUnstable S p uStar vStar := by
+  have hcoeff :
+      0 < sigmaChemCoefficient p uStar vStar (S.eigenvalue n) :=
+    sigmaChemCoefficient_pos p huStar hvStar
+      (H.eigenvalue_pos_of_ne_zero n hn)
+  exact ⟨n, hn, sigma_pos_of_sigmaCriticalChi_lt_chi p hcoeff hχ⟩
+
 lemma positiveEquilibrium_linearlyStable_of_chi_nonpos
     (S : SpectralData) (p : CM2Params)
     (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
@@ -400,6 +463,41 @@ lemma positiveEquilibrium_linearlyStable_of_chi_nonpos_neumann
     LinearlyStable S p eq.1 eq.2 := by
   exact positiveEquilibrium_linearlyStable_of_chi_nonpos S p hχ ha hb
     (fun n hn => H.eigenvalue_nonneg_of_ne_zero hn)
+
+lemma positiveEquilibrium_linearlyStable_of_chi_lt_sigmaCriticalChi_neumann
+    (S : SpectralData) (p : CM2Params)
+    (H : HasNeumannSpectrum S) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      ∀ n : ℕ, n ≠ 0 →
+        p.χ₀ <
+          sigmaCriticalChi p
+            (positiveEquilibrium p ⟨ha, hb⟩).1
+            (positiveEquilibrium p ⟨ha, hb⟩).2
+            (S.eigenvalue n)) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyStable S p eq.1 eq.2 := by
+  dsimp
+  exact LinearlyStable_of_chi_lt_sigmaCriticalChi S p H
+    (positiveEquilibrium_fst_pos p ⟨ha, hb⟩)
+    (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
+    hχ
+
+lemma positiveEquilibrium_linearlyUnstable_of_sigmaCriticalChi_lt_chi_neumann
+    (S : SpectralData) (p : CM2Params)
+    (H : HasNeumannSpectrum S) (ha : 0 < p.a) (hb : 0 < p.b)
+    {n : ℕ} (hn : n ≠ 0)
+    (hχ :
+      sigmaCriticalChi p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2
+        (S.eigenvalue n) < p.χ₀) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyUnstable S p eq.1 eq.2 := by
+  dsimp
+  exact LinearlyUnstable_of_sigmaCriticalChi_lt_chi S p H
+    (positiveEquilibrium_fst_pos p ⟨ha, hb⟩)
+    (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
+    hn hχ
 
 lemma minimalEquilibrium_linearlyStable_of_chi_nonpos
     (S : SpectralData) (p : CM2Params) {uStar : ℝ}
@@ -439,6 +537,41 @@ lemma minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero_neumann
     LinearlyStable S p eq.1 eq.2 := by
   exact minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero S p hχ ha huStar
     H.eigenvalue_pos_of_ne_zero
+
+lemma minimalEquilibrium_linearlyStable_of_chi_lt_sigmaCriticalChi_neumann
+    (S : SpectralData) (p : CM2Params) {uStar : ℝ}
+    (H : HasNeumannSpectrum S) (huStar : 0 < uStar)
+    (hχ :
+      ∀ n : ℕ, n ≠ 0 →
+        p.χ₀ <
+          sigmaCriticalChi p
+            (minimalEquilibrium p uStar).1
+            (minimalEquilibrium p uStar).2
+            (S.eigenvalue n)) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyStable S p eq.1 eq.2 := by
+  dsimp
+  exact LinearlyStable_of_chi_lt_sigmaCriticalChi S p H
+    huStar
+    (minimalEquilibrium_snd_pos p huStar).le
+    hχ
+
+lemma minimalEquilibrium_linearlyUnstable_of_sigmaCriticalChi_lt_chi_neumann
+    (S : SpectralData) (p : CM2Params) {uStar : ℝ}
+    (H : HasNeumannSpectrum S) (huStar : 0 < uStar)
+    {n : ℕ} (hn : n ≠ 0)
+    (hχ :
+      sigmaCriticalChi p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2
+        (S.eigenvalue n) < p.χ₀) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyUnstable S p eq.1 eq.2 := by
+  dsimp
+  exact LinearlyUnstable_of_sigmaCriticalChi_lt_chi S p H
+    huStar
+    (minimalEquilibrium_snd_pos p huStar).le
+    hn hχ
 
 def GloballyAsymptoticallyStableNonminimal
     (D : BoundedDomainData) (p : CM2Params) (uStar _vStar : ℝ) : Prop :=
