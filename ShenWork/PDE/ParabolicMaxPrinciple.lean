@@ -561,17 +561,26 @@ private lemma spatialCoercivePerturbation_pos_not_on_parabolic_boundary
     have hneg :=
       spatialCoercivePerturbation_initial_neg
         (c := c) (ε := ε) (w := w) hε hinit p.2
-    rw [ht0] at hpos
-    linarith
+    have hpos0 :
+        0 < spatialCoercivePerturbation ε
+          (expBarrier (c + 3) w) 0 p.2 := by
+      simpa [ht0] using hpos
+    exact (not_lt_of_ge (le_of_lt hneg)) hpos0
   constructor
   · intro hxR
     have hneg := (hside p.1 hp.1).1
-    rw [hxR] at hpos
-    linarith
+    have hposR :
+        0 < spatialCoercivePerturbation ε
+          (expBarrier (c + 3) w) p.1 R := by
+      simpa [hxR] using hpos
+    exact (not_lt_of_ge (le_of_lt hneg)) hposR
   · intro hxR
     have hneg := (hside p.1 hp.1).2
-    rw [hxR] at hpos
-    linarith
+    have hposR :
+        0 < spatialCoercivePerturbation ε
+          (expBarrier (c + 3) w) p.1 (-R) := by
+      simpa [hxR] using hpos
+    exact (not_lt_of_ge (le_of_lt hneg)) hposR
 
 private lemma spatialCoercivePerturbation_pos_has_positive_time_and_interior_space
     {c T ε R : ℝ} {w : ℝ → ℝ → ℝ}
@@ -662,6 +671,18 @@ private theorem coercive_exponential_barrier_estimate
   suffices h : spatialCoercivePerturbation ε (expBarrier (c + 3) w) t x ≤ 0 by
     simp only [spatialCoercivePerturbation] at h; linarith
   obtain ⟨M, hM_nn, hM⟩ := _hw.bounded
+  -- Choose R large enough for boundary conditions
+  set B := Real.exp (|c + 3| * T) * M
+  have hB_nn : 0 ≤ B := mul_nonneg (Real.exp_nonneg _) hM_nn
+  -- Need R s.t. B < ε * (1 + R²) and |x| ≤ R
+  set R := max (|x| + 1) (Real.sqrt ((B / ε) + 1) + 1)
+  have hR_pos : 0 < R := lt_of_lt_of_le (by positivity) (le_max_left _ _)
+  have hxR : |x| < R := by linarith [le_max_left (|x| + 1) (Real.sqrt ((B / ε) + 1) + 1)]
+  have hR_large : B < ε * (1 + R ^ 2) := by sorry
+  -- On the rectangle [0,T]×[-R,R], ψ is continuous and achieves max
+  -- ψ < 0 on boundary (t=0, x=±R)
+  -- If ψ(t,x) > 0, max on rectangle is positive and at interior point
+  -- At interior max: dt ≥ 0, dxx ≤ 0 → contradiction
   sorry
 
 theorem weak_maximum_principle_linear
