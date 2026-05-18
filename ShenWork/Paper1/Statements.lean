@@ -547,6 +547,34 @@ theorem InWaveTrapSet.le_exp {κ M : ℝ} {u : ℝ → ℝ}
     u x ≤ Real.exp (-κ * x) :=
   le_trans (h.le_upperBarrier x) (min_le_right _ _)
 
+theorem InWaveTrapSet.le_one_of_M_le_one {κ M : ℝ} {u : ℝ → ℝ}
+    (h : InWaveTrapSet κ M u) (hM : M ≤ 1) (x : ℝ) :
+    u x ≤ 1 :=
+  le_trans (h.le_M x) hM
+
+theorem InWaveTrapSet.rpow_le_M
+    {κ M : ℝ} {u : ℝ → ℝ} {a : ℝ}
+    (h : InWaveTrapSet κ M u) (ha : 0 ≤ a) (x : ℝ) :
+    (u x) ^ a ≤ M ^ a :=
+  Real.rpow_le_rpow (h.nonneg x) (h.le_M x) ha
+
+theorem InWaveTrapSet.rpow_le_exp
+    {κ M : ℝ} {u : ℝ → ℝ} {a : ℝ}
+    (h : InWaveTrapSet κ M u) (ha : 0 ≤ a) (x : ℝ) :
+    (u x) ^ a ≤ (Real.exp (-κ * x)) ^ a :=
+  Real.rpow_le_rpow (h.nonneg x) (h.le_exp x) ha
+
+theorem InWaveTrapSet.rpow_le_exp_mul
+    {κ M : ℝ} {u : ℝ → ℝ} {a : ℝ}
+    (h : InWaveTrapSet κ M u) (ha : 0 ≤ a) (x : ℝ) :
+    (u x) ^ a ≤ Real.exp (-κ * a * x) := by
+  calc
+    (u x) ^ a ≤ (Real.exp (-κ * x)) ^ a := h.rpow_le_exp ha x
+    _ = Real.exp (-κ * a * x) := by
+      rw [← Real.exp_mul]
+      congr 1
+      ring
+
 structure SubsolutionConstants where
   K : ℝ
   D : ℝ
