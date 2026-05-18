@@ -369,9 +369,9 @@ theorem lowerBarrierRaw_continuous (κ κtilde D : ℝ) :
     (fun x : ℝ => Real.exp ((-κ) * x) - D * Real.exp ((-κtilde) * x))
   exact hκ.sub (hD.mul hκtilde)
 
-theorem lowerBarrierRaw_deriv (κ κtilde D x : ℝ) :
-    deriv (lowerBarrierRaw κ κtilde D) x =
-      -κ * Real.exp (-κ * x) + D * κtilde * Real.exp (-κtilde * x) := by
+theorem lowerBarrierRaw_hasDerivAt (κ κtilde D x : ℝ) :
+    HasDerivAt (lowerBarrierRaw κ κtilde D)
+      (-κ * Real.exp (-κ * x) + D * κtilde * Real.exp (-κtilde * x)) x := by
   unfold lowerBarrierRaw
   have hκ :
       HasDerivAt
@@ -390,8 +390,12 @@ theorem lowerBarrierRaw_deriv (κ κtilde D x : ℝ) :
       simpa [mul_comm, mul_left_comm, mul_assoc] using
         (((hasDerivAt_id x).const_mul κtilde).neg.exp)
     simpa [mul_comm, mul_left_comm, mul_assoc] using hbase.const_mul D
-  have hder := hκ.sub hκtilde
-  simpa [sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc] using hder.deriv
+  simpa [sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc] using hκ.sub hκtilde
+
+theorem lowerBarrierRaw_deriv (κ κtilde D x : ℝ) :
+    deriv (lowerBarrierRaw κ κtilde D) x =
+      -κ * Real.exp (-κ * x) + D * κtilde * Real.exp (-κtilde * x) := by
+  exact (lowerBarrierRaw_hasDerivAt κ κtilde D x).deriv
 
 theorem lowerBarrierRaw_second_deriv (κ κtilde D x : ℝ) :
     iteratedDeriv 2 (lowerBarrierRaw κ κtilde D) x =
@@ -678,6 +682,21 @@ theorem lowerBarrierRaw_deriv_nonpos_of_xplus_le
   rw [hexp]
   nlinarith [Real.exp_pos (-κ * x)]
 
+theorem lowerBarrierRaw_antitoneOn_Ici_xplus
+    {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
+    AntitoneOn (lowerBarrierRaw κ κtilde D)
+      (Set.Ici (lowerBarrierXPlus κ κtilde D)) := by
+  refine antitoneOn_of_deriv_nonpos (convex_Ici _)
+    (lowerBarrierRaw_continuous κ κtilde D).continuousOn ?_ ?_
+  · intro x _hx
+    exact (lowerBarrierRaw_hasDerivAt κ κtilde D x).differentiableAt.differentiableWithinAt
+  · intro x hx
+    exact lowerBarrierRaw_deriv_nonpos_of_xplus_le hκ hgap hD
+      (by
+        have hx' : lowerBarrierXPlus κ κtilde D < x := by
+          simpa using hx
+        exact hx'.le)
+
 theorem lowerBarrierRaw_deriv_nonneg_of_le_xplus
     {κ κtilde D x : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D)
     (hx : x ≤ lowerBarrierXPlus κ κtilde D) :
@@ -802,6 +821,27 @@ theorem lowerBarrierPlateau_cunif_bdd
     IsCUnifBdd (lowerBarrierPlateau κ κtilde D) :=
   ⟨lowerBarrierPlateau_continuous κ κtilde D,
     lowerBarrierPlateau_isBddFun hκ hgap hD⟩
+
+theorem lowerBarrierPlateau_antitone
+    {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
+    Antitone (lowerBarrierPlateau κ κtilde D) := by
+  intro x y hxy
+  by_cases hy : y ≤ lowerBarrierXPlus κ κtilde D
+  · have hx : x ≤ lowerBarrierXPlus κ κtilde D := le_trans hxy hy
+    rw [lowerBarrierPlateau_eq_const_of_le hx,
+      lowerBarrierPlateau_eq_const_of_le hy]
+  · have hylt : lowerBarrierXPlus κ κtilde D < y := lt_of_not_ge hy
+    by_cases hx : x ≤ lowerBarrierXPlus κ κtilde D
+    · rw [lowerBarrierPlateau_eq_const_of_le hx,
+        lowerBarrierPlateau_eq_raw_of_xplus_lt hylt]
+      exact lowerBarrierRaw_antitoneOn_Ici_xplus hκ hgap hD
+        (le_rfl : lowerBarrierXPlus κ κtilde D ≤ lowerBarrierXPlus κ κtilde D)
+        hylt.le hylt.le
+    · have hxlt : lowerBarrierXPlus κ κtilde D < x := lt_of_not_ge hx
+      rw [lowerBarrierPlateau_eq_raw_of_xplus_lt hxlt,
+        lowerBarrierPlateau_eq_raw_of_xplus_lt hylt]
+      exact lowerBarrierRaw_antitoneOn_Ici_xplus hκ hgap hD
+        hxlt.le hylt.le hxy
 
 def InWaveTrapSet (κ M : ℝ) (u : ℝ → ℝ) : Prop :=
   IsCUnifBdd u ∧ ∀ x, 0 ≤ u x ∧ u x ≤ upperBarrier κ M x
@@ -966,6 +1006,22 @@ theorem lowerBarrierPlateau_mem_InWaveTrapSet_of_exp_xplus_le
     InWaveTrapSet κ M (lowerBarrierPlateau κ κtilde D) :=
   InWaveTrapSet.mono_M hM
     (lowerBarrierPlateau_mem_InWaveTrapSet_exp_xplus hκ hgap hD)
+
+theorem lowerBarrierPlateau_mem_InMonotoneWaveTrapSet_exp_xplus
+    {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
+    InMonotoneWaveTrapSet κ
+      (Real.exp (-κ * lowerBarrierXPlus κ κtilde D))
+      (lowerBarrierPlateau κ κtilde D) :=
+  ⟨lowerBarrierPlateau_mem_InWaveTrapSet_exp_xplus hκ hgap hD,
+    lowerBarrierPlateau_antitone hκ hgap hD⟩
+
+theorem lowerBarrierPlateau_mem_InMonotoneWaveTrapSet_of_exp_xplus_le
+    {κ κtilde D M : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hD : 0 < D)
+    (hM : Real.exp (-κ * lowerBarrierXPlus κ κtilde D) ≤ M) :
+    InMonotoneWaveTrapSet κ M (lowerBarrierPlateau κ κtilde D) :=
+  ⟨lowerBarrierPlateau_mem_InWaveTrapSet_of_exp_xplus_le hκ hgap hD hM,
+    lowerBarrierPlateau_antitone hκ hgap hD⟩
 
 theorem WaveTrapSet_subset_of_M_le
     {κ M₁ M₂ : ℝ} (hM : M₁ ≤ M₂) :
