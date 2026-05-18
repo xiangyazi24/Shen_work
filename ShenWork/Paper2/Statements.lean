@@ -98,13 +98,15 @@ def MGeOneFiniteHorizonAlternative
 def chiBeta (p : CM2Params) : ℝ :=
   2 * (2 * p.β - 1) / max 2 (p.γ * (p.N : ℝ))
 
+lemma chiBeta_denom_pos (p : CM2Params) :
+    0 < max (2 : ℝ) (p.γ * (p.N : ℝ)) :=
+  lt_of_lt_of_le (by norm_num : (0 : ℝ) < 2) (le_max_left _ _)
+
 lemma chiBeta_pos_of_one_le_beta (p : CM2Params) (hβ : 1 ≤ p.β) :
     0 < chiBeta p := by
   unfold chiBeta
   have hnum : 0 < 2 * (2 * p.β - 1) := by nlinarith
-  have hden : 0 < max (2 : ℝ) (p.γ * (p.N : ℝ)) :=
-    lt_of_lt_of_le (by norm_num) (le_max_left _ _)
-  exact div_pos hnum hden
+  exact div_pos hnum (chiBeta_denom_pos p)
 
 lemma chiBeta_nonneg_of_half_le_beta (p : CM2Params) (hβ : (1 / 2 : ℝ) ≤ p.β) :
     0 ≤ chiBeta p := by
@@ -133,6 +135,13 @@ lemma chiBeta_le_two_beta_sub_one (p : CM2Params) (hβ : (1 / 2 : ℝ) ≤ p.β)
     exact div_le_div_of_nonneg_left hnum_nonneg (by norm_num) hden_ge_two
   nlinarith
 
+lemma chiBeta_eq_two_beta_sub_one_of_gamma_mul_N_le_two
+    (p : CM2Params) (hden : p.γ * (p.N : ℝ) ≤ 2) :
+    chiBeta p = 2 * p.β - 1 := by
+  unfold chiBeta
+  rw [max_eq_left hden]
+  ring
+
 lemma chiBeta_lt_two_beta_sub_one_of_two_lt_denom
     (p : CM2Params) (hβ : (1 / 2 : ℝ) < p.β)
     (hden : (2 : ℝ) < max 2 (p.γ * (p.N : ℝ))) :
@@ -151,6 +160,20 @@ lemma chiBeta_lt_of_lt_two_beta_sub_one
     (hchi : chi < chiBeta p) :
     chi < 2 * p.β - 1 :=
   lt_trans hchi (chiBeta_lt_two_beta_sub_one_of_two_lt_denom p hβ hden)
+
+lemma chiBeta_lt_two_beta_sub_one_of_two_lt_gamma_mul_N
+    (p : CM2Params) (hβ : (1 / 2 : ℝ) < p.β)
+    (hden : (2 : ℝ) < p.γ * (p.N : ℝ)) :
+    chiBeta p < 2 * p.β - 1 :=
+  chiBeta_lt_two_beta_sub_one_of_two_lt_denom p hβ
+    (by rwa [max_eq_right hden.le])
+
+lemma chiBeta_lt_of_lt_two_beta_sub_one_gamma_mul_N
+    (p : CM2Params) {chi : ℝ} (hβ : (1 / 2 : ℝ) < p.β)
+    (hden : (2 : ℝ) < p.γ * (p.N : ℝ))
+    (hchi : chi < chiBeta p) :
+    chi < 2 * p.β - 1 :=
+  lt_trans hchi (chiBeta_lt_two_beta_sub_one_of_two_lt_gamma_mul_N p hβ hden)
 
 structure SemigroupEstimateData (D : BoundedDomainData) where
   lpNorm : ℝ → (D.Point → ℝ) → ℝ

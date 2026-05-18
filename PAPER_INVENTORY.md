@@ -55,7 +55,7 @@ Source: `paper2.pdf`, Chen-Ruau-Shen Part I.
 | Lemma 2.5 | `Psi_beta`, `Theta_beta`, `Lemma_2_5_proved`, `Psi_beta_pos`, `Psi_beta_lt_one`, `Theta_beta_pos`, `Psi_beta_eq_beta_mul_Theta_beta` | partial | Scalar entropy inequality and basic `Ψβ`/`Θβ` endpoint, positivity, bounds, and relations proved; monotonicity and asymptotic limit of `Ψβ` remain. |
 | Lemma 2.6 | `AbstractLpBootstrapHypothesis`, `Lemma_2_6` | statement target | Abstract `L^p` bootstrap target. |
 | Corollary 2.1 | `Corollary_2_1` | statement target | Chemotaxis cross-term bootstrap target. |
-| Propositions 2.2--2.5 | `Proposition_2_2`--`Proposition_2_5` | statement target | Integral estimates and boundedness criterion. |
+| Propositions 2.2--2.5 | `Proposition_2_2`--`Proposition_2_5` | statement target | Integral estimates and boundedness criterion; `χβ` positivity, upper-bound, and denominator branch algebra proved. |
 | Lemma 2.7 | `Lemma_2_7` | statement target | ODE/integral inequality used in bootstrap. |
 | Lemma 3.1 | `Lemma_3_1` | statement target | Negative-sensitivity estimate. |
 | Lemma 4.1 | `Lemma_4_1` | statement target | Weak cross-diffusion estimate. |
@@ -88,10 +88,7 @@ These are small, non-PDE targets worth proving before the next analytic push:
 
 1. Extend Paper3 spectral-domain API: exact Neumann eigenvalue assumptions,
    instability threshold predicates, and local exponential stability packaging.
-2. Basic positivity/nonnegativity of packaged constants:
-   `positivePart_nonneg`, `chiBeta_nonneg_of_half_le_beta`,
-   `chiBeta_pos_of_half_lt_beta`, `chiBeta_le_two_beta_sub_one`.
-3. Paper1 speed/decay algebra already has `cStarLower_ge_two` and
+2. Paper1 speed/decay algebra already has `cStarLower_ge_two` and
    `kappa_pos_of_two_lt`; next small additions should support `Theorem_1_1`.
-4. Continue proving Paper1 Lemma 2.2/2.3: unit-parameter Lemma 2.3 and
+3. Continue proving Paper1 Lemma 2.2/2.3: unit-parameter Lemma 2.3 and
    Lemma 2.4 are proved; general `(λ, μ)` derivative formula remains.
