@@ -205,6 +205,68 @@ theorem upperBarrier_pos {κ M : ℝ} (hM : 0 < M) (x : ℝ) :
 def lowerBarrierRaw (κ κtilde D : ℝ) : ℝ → ℝ :=
   fun x => Real.exp (-κ * x) - D * Real.exp (-κtilde * x)
 
+theorem lowerBarrierRaw_deriv (κ κtilde D x : ℝ) :
+    deriv (lowerBarrierRaw κ κtilde D) x =
+      -κ * Real.exp (-κ * x) + D * κtilde * Real.exp (-κtilde * x) := by
+  unfold lowerBarrierRaw
+  have hκ :
+      HasDerivAt
+        (fun y : ℝ => Real.exp (-κ * y))
+        (-κ * Real.exp (-κ * x)) x := by
+    simpa [mul_comm, mul_left_comm, mul_assoc] using
+      (((hasDerivAt_id x).const_mul κ).neg.exp)
+  have hκtilde :
+      HasDerivAt
+        (fun y : ℝ => D * Real.exp (-κtilde * y))
+        (D * (-κtilde * Real.exp (-κtilde * x))) x := by
+    have hbase :
+        HasDerivAt
+          (fun y : ℝ => Real.exp (-κtilde * y))
+          (-κtilde * Real.exp (-κtilde * x)) x := by
+      simpa [mul_comm, mul_left_comm, mul_assoc] using
+        (((hasDerivAt_id x).const_mul κtilde).neg.exp)
+    simpa [mul_comm, mul_left_comm, mul_assoc] using hbase.const_mul D
+  have hder := hκ.sub hκtilde
+  simpa [sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc] using hder.deriv
+
+theorem lowerBarrierRaw_second_deriv (κ κtilde D x : ℝ) :
+    iteratedDeriv 2 (lowerBarrierRaw κ κtilde D) x =
+      κ ^ 2 * Real.exp (-κ * x) - D * κtilde ^ 2 * Real.exp (-κtilde * x) := by
+  rw [iteratedDeriv_succ, iteratedDeriv_succ, iteratedDeriv_zero]
+  have hder_fun :
+      deriv (lowerBarrierRaw κ κtilde D) =
+        fun y : ℝ =>
+          -κ * Real.exp (-κ * y) + D * κtilde * Real.exp (-κtilde * y) := by
+    funext y
+    exact lowerBarrierRaw_deriv κ κtilde D y
+  rw [hder_fun]
+  have hκbase :
+      HasDerivAt
+        (fun y : ℝ => Real.exp (-κ * y))
+        (-κ * Real.exp (-κ * x)) x := by
+    simpa [mul_comm, mul_left_comm, mul_assoc] using
+      (((hasDerivAt_id x).const_mul κ).neg.exp)
+  have hκ :
+      HasDerivAt
+        (fun y : ℝ => -κ * Real.exp (-κ * y))
+        (κ ^ 2 * Real.exp (-κ * x)) x := by
+    convert hκbase.const_mul (-κ) using 1
+    ring
+  have hκtilde_base :
+      HasDerivAt
+        (fun y : ℝ => Real.exp (-κtilde * y))
+        (-κtilde * Real.exp (-κtilde * x)) x := by
+    simpa [mul_comm, mul_left_comm, mul_assoc] using
+      (((hasDerivAt_id x).const_mul κtilde).neg.exp)
+  have hκtilde :
+      HasDerivAt
+        (fun y : ℝ => D * κtilde * Real.exp (-κtilde * y))
+        (-(D * κtilde ^ 2 * Real.exp (-κtilde * x))) x := by
+    convert hκtilde_base.const_mul (D * κtilde) using 1
+    ring
+  have hder := hκ.add hκtilde
+  simpa [sub_eq_add_neg, mul_comm, mul_left_comm, mul_assoc] using hder.deriv
+
 def lowerBarrierXMinus (κ κtilde D : ℝ) : ℝ :=
   Real.log D / (κtilde - κ)
 
