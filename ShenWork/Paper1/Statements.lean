@@ -2036,6 +2036,20 @@ def StableWaveParameterRegime (p : CMParams) : Prop :=
 def stabilitySpeedBaseline (p : CMParams) : ℝ :=
   1 + |p.χ| ^ (1 / 6 : ℝ) + (1 + |p.χ| ^ (1 / 6 : ℝ))⁻¹
 
+/-- The paper's `c**_{χ,m,α,γ} - γ - γ⁻¹ = O(|χ|^{1/6})`
+as `χ → 0`, represented by an explicit big-O bound for a threshold family. -/
+def StabilitySpeedThresholdFamilyAsymptotic
+    (p : CMParams) (cStarStar : ℝ → ℝ) : Prop :=
+  ∃ A > 0, ∃ δ > 0, ∀ χ : ℝ, |χ| < δ →
+    |cStarStar χ - (p.γ + p.γ⁻¹)| ≤ A * |χ| ^ (1 / 6 : ℝ)
+
+lemma StabilitySpeedThresholdFamilyAsymptotic.bound
+    {p : CMParams} {cStarStar : ℝ → ℝ}
+    (h : StabilitySpeedThresholdFamilyAsymptotic p cStarStar) :
+    ∃ A > 0, ∃ δ > 0, ∀ χ : ℝ, |χ| < δ →
+      |cStarStar χ - (p.γ + p.γ⁻¹)| ≤ A * |χ| ^ (1 / 6 : ℝ) :=
+  h
+
 theorem stabilitySpeedBaseline_pos (p : CMParams) :
     0 < stabilitySpeedBaseline p := by
   unfold stabilitySpeedBaseline
@@ -2076,7 +2090,10 @@ theorem StableWaveParameterRegime.MChi_nonneg
 /-- Paper1 Theorem 1.2: weighted stability of traveling waves. -/
 def Theorem_1_2 : Prop :=
   ∀ p : CMParams, StableWaveParameterRegime p →
-    ∃ cStarStar > stabilitySpeedBaseline p, ∀ c : ℝ, cStarStar < c →
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
       ∀ U V : ℝ → ℝ,
         IsTravelingWave p c U V →
         HasStrictWaveUpperTailBound p c U →
@@ -2094,7 +2111,10 @@ def Theorem_1_2 : Prop :=
 /-- Paper1 Theorem 1.3: uniqueness of traveling waves with the prescribed right tail. -/
 def Theorem_1_3 : Prop :=
   ∀ p : CMParams, StableWaveParameterRegime p →
-    ∃ cStarStar > stabilitySpeedBaseline p, ∀ c : ℝ, cStarStar < c →
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
       ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
         IsTravelingWave p c U₁ V₁ →
         IsTravelingWave p c U₂ V₂ →
