@@ -201,19 +201,42 @@ def IsFrozenSubSolutionOn (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) (s : Set 
   ∀ x ∈ s, 0 ≤ frozenWaveOperator p c u W x
 
 def expDecay (κ : ℝ) : ℝ → ℝ :=
-  fun x => Real.exp (-κ * x)
+  fun x => Real.exp (-(κ * x))
 
 theorem expDecay_pos (κ x : ℝ) :
     0 < expDecay κ x := by
   exact Real.exp_pos _
+
+theorem expDecay_antitone {κ : ℝ} (hκ : 0 ≤ κ) :
+    Antitone (expDecay κ) := by
+  intro x y hxy
+  unfold expDecay
+  apply Real.exp_le_exp.mpr
+  nlinarith [mul_le_mul_of_nonneg_left hxy hκ]
+
+theorem expDecay_tendsto_atTop {κ : ℝ} (hκ : 0 < κ) :
+    Tendsto (expDecay κ) atTop (𝓝 0) := by
+  have hmul : Tendsto (fun x : ℝ => κ * x) atTop atTop :=
+    (Filter.tendsto_id.atTop_mul_const hκ).congr (fun x => mul_comm x κ)
+  have hneg : Tendsto (fun x : ℝ => -(κ * x)) atTop atBot :=
+    tendsto_neg_atTop_atBot.comp hmul
+  simpa [expDecay] using Real.tendsto_exp_atBot.comp hneg
+
+theorem expDecay_tendsto_atBot {κ : ℝ} (hκ : 0 < κ) :
+    Tendsto (expDecay κ) atBot atTop := by
+  have hmul : Tendsto (fun x : ℝ => κ * x) atBot atBot :=
+    (Filter.tendsto_id.atBot_mul_const hκ).congr (fun x => mul_comm x κ)
+  have hneg : Tendsto (fun x : ℝ => -(κ * x)) atBot atTop :=
+    tendsto_neg_atBot_atTop.comp hmul
+  simpa [expDecay] using Real.tendsto_exp_atTop.comp hneg
 
 theorem expDecay_hasDerivAt (κ x : ℝ) :
     HasDerivAt (expDecay κ) (-κ * expDecay κ x) x := by
   have hlin : HasDerivAt (fun y : ℝ => -κ * y) (-κ) x :=
     by simpa using (hasDerivAt_id x).const_mul (-κ)
   change
-    HasDerivAt (fun y : ℝ => Real.exp (-κ * y))
-      (-κ * Real.exp (-κ * x)) x
+    HasDerivAt (fun y : ℝ => Real.exp (-(κ * y)))
+      (-κ * Real.exp (-(κ * x))) x
   simpa [expDecay, mul_comm, mul_left_comm, mul_assoc] using hlin.exp
 
 theorem expDecay_deriv (κ x : ℝ) :
