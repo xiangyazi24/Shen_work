@@ -896,6 +896,36 @@ lemma positiveEquilibrium_linearlyStable_of_belowAll_neumann
   exact positiveEquilibrium_linearlyStable_of_chi_lt_sigmaCriticalChi_neumann
     S p H ha hb hχ
 
+lemma positiveEquilibrium_belowAllLinearCriticalThresholds_of_chi_lt_paperCriticalSensitivity
+    (S : SpectralData) (p : CM2Params)
+    (H : HasNeumannSpectrum S) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    BelowAllLinearCriticalThresholds S p eq.1 eq.2 := by
+  dsimp
+  exact BelowAllLinearCriticalThresholds_of_chi_lt_paperCriticalSensitivity
+    S p H hχ
+    (positiveEquilibrium_fst_pos p ⟨ha, hb⟩)
+    (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
+
+lemma positiveEquilibrium_linearlyStable_of_chi_lt_paperCriticalSensitivity_neumann
+    (S : SpectralData) (p : CM2Params)
+    (H : HasNeumannSpectrum S) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyStable S p eq.1 eq.2 := by
+  exact positiveEquilibrium_linearlyStable_of_belowAll_neumann S p H ha hb
+    (positiveEquilibrium_belowAllLinearCriticalThresholds_of_chi_lt_paperCriticalSensitivity
+      S p H ha hb hχ)
+
 lemma positiveEquilibrium_linearlyUnstable_of_sigmaCriticalChi_lt_chi_neumann
     (S : SpectralData) (p : CM2Params)
     (H : HasNeumannSpectrum S) (ha : 0 < p.a) (hb : 0 < p.b)
@@ -926,6 +956,26 @@ lemma positiveEquilibrium_linearlyUnstable_of_aboveSome_neumann
   exact hχ.linearlyUnstable H
     (positiveEquilibrium_fst_pos p ⟨ha, hb⟩)
     (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
+
+lemma positiveEquilibrium_linearlyUnstable_of_paperCriticalSensitivity_lt_chi_neumann
+    (S : SpectralData) (p : CM2Params)
+    (H : HasNeumannSpectrum S) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      paperCriticalSensitivity S p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 < p.χ₀) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyUnstable S p eq.1 eq.2 := by
+  have habove :
+      AboveSomeLinearCriticalThreshold S p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    AboveSomeLinearCriticalThreshold_of_paperCriticalSensitivity_lt_chi
+      S p H hχ
+      (positiveEquilibrium_fst_pos p ⟨ha, hb⟩)
+      (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
+  exact positiveEquilibrium_linearlyUnstable_of_aboveSome_neumann
+    S p H ha hb habove
 
 lemma minimalEquilibrium_linearlyStable_of_chi_nonpos
     (S : SpectralData) (p : CM2Params) {uStar : ℝ}
@@ -1007,6 +1057,35 @@ lemma minimalEquilibrium_linearlyStable_of_belowAll_neumann
   exact minimalEquilibrium_linearlyStable_of_chi_lt_sigmaCriticalChi_neumann
     S p H huStar hχ
 
+lemma minimalEquilibrium_belowAllLinearCriticalThresholds_of_chi_lt_paperCriticalSensitivity
+    (S : SpectralData) (p : CM2Params) {uStar : ℝ}
+    (H : HasNeumannSpectrum S) (huStar : 0 < uStar)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2) :
+    let eq := minimalEquilibrium p uStar
+    BelowAllLinearCriticalThresholds S p eq.1 eq.2 := by
+  dsimp
+  exact BelowAllLinearCriticalThresholds_of_chi_lt_paperCriticalSensitivity
+    S p H hχ huStar
+    (minimalEquilibrium_snd_pos p huStar).le
+
+lemma minimalEquilibrium_linearlyStable_of_chi_lt_paperCriticalSensitivity_neumann
+    (S : SpectralData) (p : CM2Params) {uStar : ℝ}
+    (H : HasNeumannSpectrum S) (huStar : 0 < uStar)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyStable S p eq.1 eq.2 := by
+  exact minimalEquilibrium_linearlyStable_of_belowAll_neumann S p H huStar
+    (minimalEquilibrium_belowAllLinearCriticalThresholds_of_chi_lt_paperCriticalSensitivity
+      S p H huStar hχ)
+
 lemma minimalEquilibrium_linearlyUnstable_of_sigmaCriticalChi_lt_chi_neumann
     (S : SpectralData) (p : CM2Params) {uStar : ℝ}
     (H : HasNeumannSpectrum S) (huStar : 0 < uStar)
@@ -1036,6 +1115,25 @@ lemma minimalEquilibrium_linearlyUnstable_of_aboveSome_neumann
   dsimp
   exact hχ.linearlyUnstable H huStar
     (minimalEquilibrium_snd_pos p huStar).le
+
+lemma minimalEquilibrium_linearlyUnstable_of_paperCriticalSensitivity_lt_chi_neumann
+    (S : SpectralData) (p : CM2Params) {uStar : ℝ}
+    (H : HasNeumannSpectrum S) (huStar : 0 < uStar)
+    (hχ :
+      paperCriticalSensitivity S p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 < p.χ₀) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyUnstable S p eq.1 eq.2 := by
+  have habove :
+      AboveSomeLinearCriticalThreshold S p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 :=
+    AboveSomeLinearCriticalThreshold_of_paperCriticalSensitivity_lt_chi
+      S p H hχ huStar
+      (minimalEquilibrium_snd_pos p huStar).le
+  exact minimalEquilibrium_linearlyUnstable_of_aboveSome_neumann
+    S p H huStar habove
 
 def GloballyAsymptoticallyStableNonminimal
     (D : BoundedDomainData) (p : CM2Params) (uStar _vStar : ℝ) : Prop :=
