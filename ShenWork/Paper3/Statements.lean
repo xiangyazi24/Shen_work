@@ -7,6 +7,7 @@
   the non-toy bounded-domain PDE interface from `Paper2/Statements.lean`.
 -/
 import ShenWork.Paper2.Statements
+import Mathlib.Analysis.Convex.SpecificFunctions.Basic
 
 open Filter Topology
 
@@ -661,6 +662,27 @@ lemma betaTilde_le_two_mul {beta : ℝ} (hbeta : 0 ≤ beta) :
       exact le_min (by norm_num) (by linarith)
     rw [positivePart_eq_self_of_nonneg hpos]
     exact le_trans (min_le_right _ _) (by linarith)
+
+lemma one_add_betaTilde_mul_le_one_add_rpow
+    {beta v : ℝ} (hbeta : 0 ≤ beta) (hv : 0 ≤ v) :
+    1 + betaTilde beta * v ≤ (1 + v) ^ (2 * beta) := by
+  by_cases hhalf : beta < (1 / 2 : ℝ)
+  · have htilde : betaTilde beta = 0 :=
+      betaTilde_eq_zero_of_beta_le_half (le_of_lt hhalf)
+    rw [htilde, zero_mul, add_zero]
+    exact Real.one_le_rpow (by linarith : 1 ≤ 1 + v) (by nlinarith)
+  · have hpow : 1 ≤ 2 * beta := by linarith
+    have hbern :
+        1 + (2 * beta) * v ≤ (1 + v) ^ (2 * beta) := by
+      exact one_add_mul_self_le_rpow_one_add (s := v)
+        (by linarith : -1 ≤ v) hpow
+    have hcoef : betaTilde beta * v ≤ (2 * beta) * v := by
+      exact mul_le_mul_of_nonneg_right
+        (betaTilde_le_two_mul hbeta) hv
+    have hstep :
+        1 + betaTilde beta * v ≤ 1 + (2 * beta) * v :=
+      by simpa [add_comm] using add_le_add_left hcoef 1
+    exact hstep.trans hbern
 
 lemma CAlphaGamma_pos {alpha gamma : ℝ}
     (halpha : 0 < alpha) (_hgamma : 0 < gamma) :
