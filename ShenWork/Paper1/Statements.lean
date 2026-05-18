@@ -6,7 +6,7 @@
   The declarations below formalize the paper-level targets as propositions.
   They are not proofs of the paper theorems.
 -/
-import ShenWork.Defs
+import ShenWork.PDE.LeibnizRule
 
 open Filter Topology MeasureTheory
 
@@ -108,6 +108,23 @@ def Lemma_2_3 : Prop :=
   ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
     (∀ x, 0 ≤ u x) →
       ∀ x, |deriv (fun z => Psi u l mu z) x| ≤ Real.sqrt l * Psi u l mu x
+
+def Lemma_2_3_unit : Prop :=
+  ∀ u : ℝ → ℝ, IsCUnifBdd u →
+    (∀ x, 0 ≤ u x) →
+      ∀ x, |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x
+
+theorem Lemma_2_3_unit_proved : Lemma_2_3_unit := by
+  intro u hu hu_nonneg x
+  rcases hu.2 with ⟨M, hM⟩
+  have hM_nonneg : 0 ≤ M := le_trans (abs_nonneg (u 0)) (hM 0)
+  have hint_raw :
+      Integrable (fun y => Real.exp (-1 * |x - y|) * u y) :=
+    kernel_mul_bounded_integrable u M hM_nonneg hM x hu.1.aestronglyMeasurable
+  have hint :
+      Integrable (fun y => Real.exp (-|x - y|) * u y) := by
+    simpa using hint_raw
+  exact Psi_deriv_abs_le' hu_nonneg x hint hu.1.aestronglyMeasurable
 
 def Lemma_2_4 : Prop :=
   ∀ M k : ℝ, 1 ≤ M → 0 < k → k < 1 →
