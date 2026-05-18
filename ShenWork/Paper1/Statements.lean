@@ -3242,6 +3242,31 @@ theorem Remark43TailRateBound.weight_pos
     0 < eta + kappa c := by
   linarith [h.pos, hkappa]
 
+theorem Remark43TailRateBound.of_kappaOne_range
+    {p : CMParams} {c κ₁ : ℝ}
+    (hκ₁ : kappa c < κ₁)
+    (hrange :
+      κ₁ <
+        min ((1 + p.α) * kappa c)
+          (min (p.m * kappa c + 1 / 2) 1)) :
+    Remark43TailRateBound p c (κ₁ - kappa c) := by
+  refine ⟨by linarith, ?_⟩
+  have hα :
+      κ₁ < (1 + p.α) * kappa c :=
+    lt_of_lt_of_le hrange (min_le_left _ _)
+  have hm :
+      κ₁ < p.m * kappa c + 1 / 2 :=
+    lt_of_lt_of_le hrange
+      (le_trans (min_le_right _ _) (min_le_left _ _))
+  have hone : κ₁ < 1 :=
+    lt_of_lt_of_le hrange
+      (le_trans (min_le_right _ _) (min_le_right _ _))
+  apply lt_min
+  · nlinarith
+  · apply lt_min
+    · nlinarith
+    · linarith
+
 theorem HasRemark43TailAsymptotic.at_rate
     {p : CMParams} {c eta : ℝ} {U : ℝ → ℝ}
     (h : HasRemark43TailAsymptotic p c U)
@@ -3251,6 +3276,17 @@ theorem HasRemark43TailAsymptotic.at_rate
         (U x / Real.exp (-(kappa c) * x) - 1))
       atTop (𝓝 0) :=
   h eta heta
+
+theorem HasRemark43TailAsymptotic.hasWaveRightTailAsymptotic
+    {p : CMParams} {c κ₁ : ℝ} {U : ℝ → ℝ}
+    (h : HasRemark43TailAsymptotic p c U)
+    (hκ₁ : kappa c < κ₁)
+    (hrange :
+      κ₁ <
+        min ((1 + p.α) * kappa c)
+          (min (p.m * kappa c + 1 / 2) 1)) :
+    HasWaveRightTailAsymptotic c κ₁ U :=
+  h.at_rate (Remark43TailRateBound.of_kappaOne_range hκ₁ hrange)
 
 theorem Remark_4_3.weighted_initial_closeness
     (h : Remark_4_3) {p : CMParams} {c eta : ℝ}
