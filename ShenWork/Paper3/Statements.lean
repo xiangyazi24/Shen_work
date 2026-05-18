@@ -1055,6 +1055,16 @@ lemma minimalVLowerFormula_pos
   · rw [if_neg hle]
     exact Real.rpow_pos_of_pos huStar _
 
+lemma Paper3Constants.minimalVLower_pos
+    {D : BoundedDomainData} {p : CM2Params} (C : Paper3Constants D p)
+    {uStar : ℝ}
+    (huStar : 0 < uStar)
+    (hUpper : 0 < C.eventualMinimalUBound uStar) :
+    0 <
+      minimalVLowerFormula
+        C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar) :=
+  minimalVLowerFormula_pos C.gaussianLowerConst_pos huStar hUpper
+
 lemma GammaMinimalFormula_pos
     {gamma uStar uBar : ℝ}
     (hgamma : 0 < gamma) (huStar : 0 < uStar) (huBar : 0 < uBar) :
