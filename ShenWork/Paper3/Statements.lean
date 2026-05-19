@@ -2336,6 +2336,68 @@ lemma Theorem_2_5.exponential
             (minimalEquilibrium p uStar).2 A rate := by
   exact (h ha hb hm hβ uStar huStar hcond).2
 
+lemma Theorem_2_5.stability_of_chiMinimal1
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (h : Theorem_2_5 D p N C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ0 : 0 < p.χ₀) (hχ : p.χ₀ < C.chiMinimal1 uStar) :
+    GloballyAsymptoticallyStableMinimal D p
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  h.stability ha hb hm hβ huStar
+    (MinimalGlobalStabilityCondition.of_chiMinimal1 hχ0 hχ)
+
+lemma Theorem_2_5.exponential_of_chiMinimal1
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (h : Theorem_2_5 D p N C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ0 : 0 < p.χ₀) (hχ : p.χ₀ < C.chiMinimal1 uStar) :
+    ∃ A > 0, ∃ rate > 0,
+      ∀ u v : ℝ → D.Point → ℝ,
+        PositiveGlobalBoundedSolution D p u v →
+        HasInitialMass D u uStar →
+          ExponentialC1ConvergenceWith D N u v
+            (minimalEquilibrium p uStar).1
+            (minimalEquilibrium p uStar).2 A rate :=
+  h.exponential ha hb hm hβ huStar
+    (MinimalGlobalStabilityCondition.of_chiMinimal1 hχ0 hχ)
+
+lemma Theorem_2_5.stability_of_chiMinimal2
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (h : Theorem_2_5 D p N C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hγ : p.γ = 1) (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < C.chiMinimal2 uStar) :
+    GloballyAsymptoticallyStableMinimal D p
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  h.stability ha hb hm hβ huStar
+    (MinimalGlobalStabilityCondition.of_chiMinimal2 hγ hχ0 hχ)
+
+lemma Theorem_2_5.exponential_of_chiMinimal2
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (h : Theorem_2_5 D p N C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hγ : p.γ = 1) (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < C.chiMinimal2 uStar) :
+    ∃ A > 0, ∃ rate > 0,
+      ∀ u v : ℝ → D.Point → ℝ,
+        PositiveGlobalBoundedSolution D p u v →
+        HasInitialMass D u uStar →
+          ExponentialC1ConvergenceWith D N u v
+            (minimalEquilibrium p uStar).1
+            (minimalEquilibrium p uStar).2 A rate :=
+  h.exponential ha hb hm hβ huStar
+    (MinimalGlobalStabilityCondition.of_chiMinimal2 hγ hχ0 hχ)
+
 def Lemma_3_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ u v : ℝ → D.Point → ℝ,
     PositiveGlobalBoundedSolution D p u v →
