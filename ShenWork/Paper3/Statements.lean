@@ -8,6 +8,7 @@
 -/
 import ShenWork.Paper2.Statements
 import Mathlib.Analysis.Convex.SpecificFunctions.Basic
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.DerivHyp
 
 open Filter Topology
 
@@ -1545,6 +1546,363 @@ lemma power_difference_normalized_of_one_le_alpha_of_gamma_le_one
           (1 - t) * (1 - t ^ alpha) :=
       mul_le_mul hA_le_B hA_le_C hA_nonneg hB_nonneg
     nlinarith
+
+lemma sinh_mul_le_mul_sinh_of_mem_Icc
+    {a x : ℝ} (ha0 : 0 ≤ a) (ha1 : a ≤ 1) (hx : 0 ≤ x) :
+    Real.sinh (a * x) ≤ a * Real.sinh x := by
+  let F : ℝ → ℝ := fun y => a * Real.sinh y - Real.sinh (a * y)
+  have hcont : ContinuousOn F (Set.Icc 0 x) := by
+    dsimp [F]
+    exact ((Real.continuous_sinh.const_mul a).sub
+      (Real.continuous_sinh.comp (continuous_const.mul continuous_id))).continuousOn
+  have hdiff : DifferentiableOn ℝ F (interior (Set.Icc 0 x)) := by
+    intro y hy
+    dsimp [F]
+    exact (((Real.differentiableAt_sinh.const_mul a).sub
+      (Real.differentiableAt_sinh.comp y
+        ((differentiableAt_const (c := a)).mul differentiableAt_id))).differentiableWithinAt)
+  have hderiv_nonneg :
+      ∀ y ∈ interior (Set.Icc 0 x), (0 : ℝ) ≤ deriv F y := by
+    intro y hy
+    rw [interior_Icc] at hy
+    have hy_nonneg : 0 ≤ y := hy.1.le
+    have hay_abs : |a * y| ≤ |y| := by
+      rw [abs_of_nonneg hy_nonneg]
+      rw [abs_of_nonneg (mul_nonneg ha0 hy_nonneg)]
+      nlinarith
+    have hcosh : Real.cosh (a * y) ≤ Real.cosh y :=
+      Real.cosh_le_cosh.2 hay_abs
+    have hderiv : deriv F y = a * Real.cosh y - a * Real.cosh (a * y) := by
+      have hA : HasDerivAt (fun y : ℝ => a * Real.sinh y) (a * Real.cosh y) y := by
+        simpa [mul_comm] using (Real.hasDerivAt_sinh y).const_mul a
+      have hB : HasDerivAt (fun y : ℝ => Real.sinh (a * y)) (a * Real.cosh (a * y)) y := by
+        simpa [mul_comm, mul_left_comm, mul_assoc] using
+          (Real.hasDerivAt_sinh (a * y)).comp y ((hasDerivAt_id y).const_mul a)
+      exact (hA.sub hB).deriv
+    rw [hderiv]
+    exact sub_nonneg.mpr (mul_le_mul_of_nonneg_left hcosh ha0)
+  have hmain :=
+    (convex_Icc (0 : ℝ) x).mul_sub_le_image_sub_of_le_deriv
+      hcont hdiff hderiv_nonneg (x := 0) (y := x)
+      (by exact ⟨le_rfl, hx⟩) (by exact ⟨hx, le_rfl⟩) hx
+  dsimp [F] at hmain
+  simpa using hmain
+
+lemma sinh_sq_mid_le_const_mul_sinh_mul_sinh
+    {alpha x : ℝ} (halpha0 : 0 < alpha) (halpha1 : alpha < 1)
+    (hx : 0 ≤ x) :
+    Real.sinh (((alpha + 1) / 2) * x) ^ 2 ≤
+      ((alpha + 1) ^ 2 / (4 * alpha)) *
+        (Real.sinh x * Real.sinh (alpha * x)) := by
+  let m : ℝ := ((alpha + 1) / 2) * x
+  let d : ℝ := ((1 - alpha) / 2) * x
+  let k : ℝ := (1 - alpha) / (alpha + 1)
+  have hm_nonneg : 0 ≤ m := by
+    dsimp [m]
+    exact mul_nonneg (by positivity) hx
+  have hk_nonneg : 0 ≤ k := by
+    dsimp [k]
+    exact div_nonneg (by linarith) (by linarith)
+  have hk_le_one : k ≤ 1 := by
+    dsimp [k]
+    rw [div_le_iff₀ (by linarith : 0 < alpha + 1)]
+    linarith
+  have hd_eq : d = k * m := by
+    dsimp [d, k, m]
+    have ha1_ne : alpha + 1 ≠ 0 := by linarith
+    field_simp [ha1_ne]
+  have hsinh_d_le : Real.sinh d ≤ k * Real.sinh m := by
+    rw [hd_eq]
+    exact sinh_mul_le_mul_sinh_of_mem_Icc hk_nonneg hk_le_one hm_nonneg
+  have hsinh_d_nonneg : 0 ≤ Real.sinh d := by
+    rw [Real.sinh_nonneg_iff]
+    dsimp [d]
+    exact mul_nonneg (by linarith) hx
+  have hsinh_m_nonneg : 0 ≤ Real.sinh m := by
+    rw [Real.sinh_nonneg_iff]
+    exact hm_nonneg
+  have hd_sq_le : Real.sinh d ^ 2 ≤ k ^ 2 * Real.sinh m ^ 2 := by
+    have h := mul_le_mul hsinh_d_le hsinh_d_le hsinh_d_nonneg
+      (mul_nonneg hk_nonneg hsinh_m_nonneg)
+    nlinarith
+  have hx_eq : x = m + d := by
+    dsimp [m, d]
+    ring
+  have hax_eq : alpha * x = m - d := by
+    dsimp [m, d]
+    ring
+  have hprod :
+        Real.sinh x * Real.sinh (alpha * x) =
+        Real.sinh m ^ 2 - Real.sinh d ^ 2 := by
+    rw [hax_eq, hx_eq, Real.sinh_add, Real.sinh_sub]
+    ring_nf
+    rw [Real.cosh_sq', Real.cosh_sq']
+    ring
+  have hmain :
+      (1 - k ^ 2) * Real.sinh m ^ 2 ≤
+        Real.sinh x * Real.sinh (alpha * x) := by
+    rw [hprod]
+    nlinarith
+  have hcoef_pos : 0 < (alpha + 1) ^ 2 / (4 * alpha) := by
+    positivity
+  have hcoef :
+      ((alpha + 1) ^ 2 / (4 * alpha)) * (1 - k ^ 2) = 1 := by
+    dsimp [k]
+    have ha_ne : alpha ≠ 0 := ne_of_gt halpha0
+    have ha1_ne : alpha + 1 ≠ 0 := by linarith
+    field_simp [ha_ne, ha1_ne]
+    ring
+  have hscaled := mul_le_mul_of_nonneg_left hmain hcoef_pos.le
+  calc
+    Real.sinh (((alpha + 1) / 2) * x) ^ 2 =
+        Real.sinh m ^ 2 := by rfl
+    _ = ((alpha + 1) ^ 2 / (4 * alpha)) *
+          ((1 - k ^ 2) * Real.sinh m ^ 2) := by
+        rw [← mul_assoc, hcoef, one_mul]
+    _ ≤ ((alpha + 1) ^ 2 / (4 * alpha)) *
+        (Real.sinh x * Real.sinh (alpha * x)) := hscaled
+
+lemma rpow_sub_one_eq_two_mul_rpow_half_mul_sinh
+    {t p : ℝ} (ht : 0 < t) :
+    t ^ p - 1 = 2 * t ^ (p / 2) * Real.sinh ((p * Real.log t) / 2) := by
+  rw [Real.rpow_def_of_pos ht, Real.rpow_def_of_pos ht]
+  rw [Real.sinh_eq]
+  ring_nf
+  rw [← Real.exp_add (Real.log t * p * (1 / 2)) (Real.log t * p * (-1 / 2))]
+  rw [show Real.log t * p * (1 / 2) + Real.log t * p * (-1 / 2) = 0 by ring]
+  rw [Real.exp_zero, sq, ← Real.exp_add]
+  rw [show Real.log t * p * (1 / 2) + Real.log t * p * (1 / 2) =
+    Real.log t * p by ring]
+
+lemma power_difference_midpoint_normalized_of_one_le
+    {alpha t : ℝ} (halpha0 : 0 < alpha) (halpha1 : alpha < 1)
+    (ht : 1 ≤ t) :
+    (t ^ ((alpha + 1) / 2) - 1) ^ 2 ≤
+      ((alpha + 1) ^ 2 / (4 * alpha)) * ((t - 1) * (t ^ alpha - 1)) := by
+  let delta : ℝ := (alpha + 1) / 2
+  let x : ℝ := Real.log t / 2
+  have ht_pos : 0 < t := lt_of_lt_of_le zero_lt_one ht
+  have hx_nonneg : 0 ≤ x := by
+    dsimp [x]
+    exact div_nonneg (Real.log_nonneg ht) (by norm_num)
+  have hdelta_pos : 0 < delta := by
+    dsimp [delta]
+    positivity
+  have hpow_half_sq (p : ℝ) :
+      (t ^ (p / 2)) ^ 2 = t ^ p := by
+    rw [sq, ← Real.rpow_add ht_pos]
+    congr 1
+    ring
+  have hpow_half_mul :
+      t ^ ((1 : ℝ) / 2) * t ^ (alpha / 2) = t ^ delta := by
+    rw [← Real.rpow_add ht_pos]
+    congr 1
+    dsimp [delta]
+    ring
+  have hdelta_arg :
+      ((delta * Real.log t) / 2) = delta * x := by
+    dsimp [x]
+    ring
+  have halpha_arg :
+      ((alpha * Real.log t) / 2) = alpha * x := by
+    dsimp [x]
+    ring
+  have hone_arg :
+      (((1 : ℝ) * Real.log t) / 2) = x := by
+    dsimp [x]
+    ring
+  have hsub_delta :
+      t ^ delta - 1 = 2 * t ^ (delta / 2) * Real.sinh (delta * x) := by
+    simpa [hdelta_arg] using
+      (rpow_sub_one_eq_two_mul_rpow_half_mul_sinh (t := t) (p := delta) ht_pos)
+  have hsub_alpha :
+      t ^ alpha - 1 = 2 * t ^ (alpha / 2) * Real.sinh (alpha * x) := by
+    simpa [halpha_arg] using
+      (rpow_sub_one_eq_two_mul_rpow_half_mul_sinh (t := t) (p := alpha) ht_pos)
+  have hsub_one :
+      t - 1 = 2 * t ^ ((1 : ℝ) / 2) * Real.sinh x := by
+    simpa [hone_arg, Real.rpow_one] using
+      (rpow_sub_one_eq_two_mul_rpow_half_mul_sinh (t := t) (p := (1 : ℝ)) ht_pos)
+  have hsinh :
+      Real.sinh (delta * x) ^ 2 ≤
+        ((alpha + 1) ^ 2 / (4 * alpha)) *
+          (Real.sinh x * Real.sinh (alpha * x)) := by
+    dsimp [delta]
+    exact sinh_sq_mid_le_const_mul_sinh_mul_sinh halpha0 halpha1 hx_nonneg
+  have hfactor_nonneg : 0 ≤ 4 * t ^ delta := by
+    positivity
+  have hscaled :
+      4 * t ^ delta * Real.sinh (delta * x) ^ 2 ≤
+        4 * t ^ delta *
+          (((alpha + 1) ^ 2 / (4 * alpha)) *
+            (Real.sinh x * Real.sinh (alpha * x))) :=
+    mul_le_mul_of_nonneg_left hsinh hfactor_nonneg
+  calc
+    (t ^ ((alpha + 1) / 2) - 1) ^ 2 =
+        4 * t ^ delta * Real.sinh (delta * x) ^ 2 := by
+      dsimp [delta] at hsub_delta ⊢
+      rw [hsub_delta]
+      rw [show (2 * t ^ (((alpha + 1) / 2 / 2)) *
+          Real.sinh (((alpha + 1) / 2 * x))) ^ 2 =
+          4 * (t ^ (((alpha + 1) / 2 / 2))) ^ 2 *
+            Real.sinh (((alpha + 1) / 2 * x)) ^ 2 by ring]
+      rw [hpow_half_sq]
+    _ ≤ 4 * t ^ delta *
+          (((alpha + 1) ^ 2 / (4 * alpha)) *
+            (Real.sinh x * Real.sinh (alpha * x))) := hscaled
+    _ = ((alpha + 1) ^ 2 / (4 * alpha)) * ((t - 1) * (t ^ alpha - 1)) := by
+      rw [hsub_one, hsub_alpha]
+      rw [show (2 * t ^ ((1 : ℝ) / 2) * Real.sinh x) *
+          (2 * t ^ (alpha / 2) * Real.sinh (alpha * x)) =
+          4 * (t ^ ((1 : ℝ) / 2) * t ^ (alpha / 2)) *
+            (Real.sinh x * Real.sinh (alpha * x)) by ring]
+      rw [hpow_half_mul]
+      ring
+
+lemma power_difference_midpoint_normalized_of_le_one
+    {alpha t : ℝ} (halpha0 : 0 < alpha) (halpha1 : alpha < 1)
+    (ht_pos : 0 < t) (ht : t ≤ 1) :
+    (t ^ ((alpha + 1) / 2) - 1) ^ 2 ≤
+      ((alpha + 1) ^ 2 / (4 * alpha)) * ((t - 1) * (t ^ alpha - 1)) := by
+  let delta : ℝ := (alpha + 1) / 2
+  let x : ℝ := -Real.log t / 2
+  have hx_nonneg : 0 ≤ x := by
+    dsimp [x]
+    exact div_nonneg (neg_nonneg.mpr (Real.log_nonpos ht_pos.le ht)) (by norm_num)
+  have hpow_half_sq (p : ℝ) :
+      (t ^ (p / 2)) ^ 2 = t ^ p := by
+    rw [sq, ← Real.rpow_add ht_pos]
+    congr 1
+    ring
+  have hpow_half_mul :
+      t ^ ((1 : ℝ) / 2) * t ^ (alpha / 2) = t ^ delta := by
+    rw [← Real.rpow_add ht_pos]
+    congr 1
+    dsimp [delta]
+    ring
+  have hdelta_arg :
+      ((delta * Real.log t) / 2) = -(delta * x) := by
+    dsimp [x]
+    ring
+  have halpha_arg :
+      ((alpha * Real.log t) / 2) = -(alpha * x) := by
+    dsimp [x]
+    ring
+  have hone_arg :
+      (((1 : ℝ) * Real.log t) / 2) = -x := by
+    dsimp [x]
+    ring
+  have hsub_delta :
+      t ^ delta - 1 = -(2 * t ^ (delta / 2) * Real.sinh (delta * x)) := by
+    rw [rpow_sub_one_eq_two_mul_rpow_half_mul_sinh (t := t) (p := delta) ht_pos]
+    rw [hdelta_arg, Real.sinh_neg]
+    ring
+  have hsub_alpha :
+      t ^ alpha - 1 = -(2 * t ^ (alpha / 2) * Real.sinh (alpha * x)) := by
+    rw [rpow_sub_one_eq_two_mul_rpow_half_mul_sinh (t := t) (p := alpha) ht_pos]
+    rw [halpha_arg, Real.sinh_neg]
+    ring
+  have hsub_one :
+      t - 1 = -(2 * t ^ ((1 : ℝ) / 2) * Real.sinh x) := by
+    rw [show t - 1 = t ^ (1 : ℝ) - 1 by rw [Real.rpow_one]]
+    rw [rpow_sub_one_eq_two_mul_rpow_half_mul_sinh (t := t) (p := (1 : ℝ)) ht_pos]
+    rw [hone_arg, Real.sinh_neg]
+    ring
+  have hsinh :
+      Real.sinh (delta * x) ^ 2 ≤
+        ((alpha + 1) ^ 2 / (4 * alpha)) *
+          (Real.sinh x * Real.sinh (alpha * x)) := by
+    dsimp [delta]
+    exact sinh_sq_mid_le_const_mul_sinh_mul_sinh halpha0 halpha1 hx_nonneg
+  have hfactor_nonneg : 0 ≤ 4 * t ^ delta := by
+    positivity
+  have hscaled :
+      4 * t ^ delta * Real.sinh (delta * x) ^ 2 ≤
+        4 * t ^ delta *
+          (((alpha + 1) ^ 2 / (4 * alpha)) *
+            (Real.sinh x * Real.sinh (alpha * x))) :=
+    mul_le_mul_of_nonneg_left hsinh hfactor_nonneg
+  calc
+    (t ^ ((alpha + 1) / 2) - 1) ^ 2 =
+        4 * t ^ delta * Real.sinh (delta * x) ^ 2 := by
+      dsimp [delta] at hsub_delta ⊢
+      rw [hsub_delta]
+      rw [show (-(2 * t ^ (((alpha + 1) / 2 / 2)) *
+          Real.sinh (((alpha + 1) / 2 * x)))) ^ 2 =
+          4 * (t ^ (((alpha + 1) / 2 / 2))) ^ 2 *
+            Real.sinh (((alpha + 1) / 2 * x)) ^ 2 by ring]
+      rw [hpow_half_sq]
+    _ ≤ 4 * t ^ delta *
+          (((alpha + 1) ^ 2 / (4 * alpha)) *
+            (Real.sinh x * Real.sinh (alpha * x))) := hscaled
+    _ = ((alpha + 1) ^ 2 / (4 * alpha)) * ((t - 1) * (t ^ alpha - 1)) := by
+      rw [hsub_one, hsub_alpha]
+      rw [show (-(2 * t ^ ((1 : ℝ) / 2) * Real.sinh x)) *
+          (-(2 * t ^ (alpha / 2) * Real.sinh (alpha * x))) =
+          4 * (t ^ ((1 : ℝ) / 2) * t ^ (alpha / 2)) *
+            (Real.sinh x * Real.sinh (alpha * x)) by ring]
+      rw [hpow_half_mul]
+      ring
+
+lemma power_difference_midpoint_normalized_of_lt_alpha
+    {alpha t : ℝ} (halpha0 : 0 < alpha) (halpha1 : alpha < 1)
+    (ht : 0 < t) :
+    (t ^ ((alpha + 1) / 2) - 1) ^ 2 ≤
+      ((alpha + 1) ^ 2 / (4 * alpha)) * ((t - 1) * (t ^ alpha - 1)) := by
+  by_cases ht_ge : 1 ≤ t
+  · exact power_difference_midpoint_normalized_of_one_le halpha0 halpha1 ht_ge
+  · exact power_difference_midpoint_normalized_of_le_one halpha0 halpha1 ht
+      (le_of_not_ge ht_ge)
+
+lemma power_difference_normalized_of_lt_alpha
+    {alpha gamma t : ℝ}
+    (halpha0 : 0 < alpha) (halpha1 : alpha < 1)
+    (hgamma_pos : 0 < gamma) (hrel : 2 * gamma ≤ alpha + 1)
+    (ht : 0 < t) :
+    (t ^ gamma - 1) ^ 2 ≤
+      ((alpha + 1) ^ 2 / (4 * alpha)) * ((t - 1) * (t ^ alpha - 1)) := by
+  let delta : ℝ := (alpha + 1) / 2
+  have hgamma_le_delta : gamma ≤ delta := by
+    dsimp [delta]
+    linarith
+  have hdelta_nonneg : 0 ≤ delta := by
+    dsimp [delta]
+    positivity
+  have hgamma_nonneg : 0 ≤ gamma := hgamma_pos.le
+  have hmid :
+      (t ^ delta - 1) ^ 2 ≤
+        ((alpha + 1) ^ 2 / (4 * alpha)) * ((t - 1) * (t ^ alpha - 1)) := by
+    dsimp [delta]
+    exact power_difference_midpoint_normalized_of_lt_alpha halpha0 halpha1 ht
+  by_cases ht_ge : 1 ≤ t
+  · have hγ_ge_one : 1 ≤ t ^ gamma := Real.one_le_rpow ht_ge hgamma_nonneg
+    have hδ_ge_one : 1 ≤ t ^ delta := Real.one_le_rpow ht_ge hdelta_nonneg
+    have hγ_le_δ : t ^ gamma ≤ t ^ delta :=
+      Real.rpow_le_rpow_of_exponent_le ht_ge hgamma_le_delta
+    have hdiff_le : t ^ gamma - 1 ≤ t ^ delta - 1 :=
+      sub_le_sub_right hγ_le_δ 1
+    have hsq_le : (t ^ gamma - 1) ^ 2 ≤ (t ^ delta - 1) ^ 2 := by
+      have hmul := mul_le_mul hdiff_le hdiff_le
+        (sub_nonneg.mpr hγ_ge_one) (sub_nonneg.mpr hδ_ge_one)
+      simpa [sq] using hmul
+    exact hsq_le.trans hmid
+  · have ht_le : t ≤ 1 := le_of_not_ge ht_ge
+    have hγ_le_one : t ^ gamma ≤ 1 :=
+      Real.rpow_le_one ht.le ht_le hgamma_nonneg
+    have hδ_le_one : t ^ delta ≤ 1 :=
+      Real.rpow_le_one ht.le ht_le hdelta_nonneg
+    have hδ_le_γ : t ^ delta ≤ t ^ gamma :=
+      Real.rpow_le_rpow_of_exponent_ge ht ht_le hgamma_le_delta
+    have hdiff_le : 1 - t ^ gamma ≤ 1 - t ^ delta :=
+      sub_le_sub_left hδ_le_γ 1
+    have hsq_le : (t ^ gamma - 1) ^ 2 ≤ (t ^ delta - 1) ^ 2 := by
+      have hsq : (1 - t ^ gamma) ^ 2 ≤ (1 - t ^ delta) ^ 2 :=
+        by
+          have hmul := mul_le_mul hdiff_le hdiff_le
+            (sub_nonneg.mpr hγ_le_one) (sub_nonneg.mpr hδ_le_one)
+          simpa [sq] using hmul
+      nlinarith
+    exact hsq_le.trans hmid
 
 def chiStrong1Formula (p : CM2Params) (uStar vStar : ℝ) : ℝ :=
   Real.sqrt
@@ -3235,6 +3593,101 @@ lemma PowerDifferenceInequality.apply
         ((u - uStar) * (u ^ alpha - uStar ^ alpha)) :=
   h u hu
 
+lemma PowerDifferenceInequality.of_normalized
+    {C alpha gamma uStar : ℝ}
+    (hnorm : ∀ t > 0,
+      (t ^ gamma - 1) ^ 2 ≤ C * ((t - 1) * (t ^ alpha - 1)))
+    (huStar : 0 < uStar) :
+    PowerDifferenceInequality C alpha gamma uStar := by
+  intro u hu
+  let t : ℝ := u / uStar
+  have ht : 0 < t := div_pos hu huStar
+  have hu_eq : u = uStar * t := by
+    dsimp [t]
+    field_simp [ne_of_gt huStar]
+  have huStar_nonneg : 0 ≤ uStar := huStar.le
+  have ht_nonneg : 0 ≤ t := ht.le
+  have hnorm_t := hnorm t ht
+  have hpow_u_gamma : u ^ gamma = uStar ^ gamma * t ^ gamma := by
+    rw [hu_eq]
+    exact Real.mul_rpow huStar_nonneg ht_nonneg
+  have hpow_u_alpha : u ^ alpha = uStar ^ alpha * t ^ alpha := by
+    rw [hu_eq]
+    exact Real.mul_rpow huStar_nonneg ht_nonneg
+  have hpow_gamma_sq : (uStar ^ gamma) * (uStar ^ gamma) = uStar ^ (2 * gamma) := by
+    calc
+      (uStar ^ gamma) * (uStar ^ gamma) = uStar ^ (gamma + gamma) := by
+        rw [← Real.rpow_add huStar]
+      _ = uStar ^ (2 * gamma) := by
+        congr 1
+        ring
+  have hleft :
+      (u ^ gamma - uStar ^ gamma) ^ 2 =
+        uStar ^ (2 * gamma) * (t ^ gamma - 1) ^ 2 := by
+    rw [hpow_u_gamma]
+    calc
+      (uStar ^ gamma * t ^ gamma - uStar ^ gamma) ^ 2 =
+          ((uStar ^ gamma) * (t ^ gamma - 1)) ^ 2 := by ring
+      _ = ((uStar ^ gamma) * (uStar ^ gamma)) * (t ^ gamma - 1) ^ 2 := by
+          ring
+      _ = uStar ^ (2 * gamma) * (t ^ gamma - 1) ^ 2 := by
+          rw [hpow_gamma_sq]
+  have hpow_alpha_one : uStar * uStar ^ alpha = uStar ^ (alpha + 1) := by
+    calc
+      uStar * uStar ^ alpha = uStar ^ (1 : ℝ) * uStar ^ alpha := by
+        rw [Real.rpow_one]
+      _ = uStar ^ (1 + alpha) := by
+        rw [← Real.rpow_add huStar]
+      _ = uStar ^ (alpha + 1) := by
+        congr 1
+        ring
+  have hpow_total :
+      uStar ^ (2 * gamma - alpha - 1) * (uStar * uStar ^ alpha) =
+        uStar ^ (2 * gamma) := by
+    rw [hpow_alpha_one]
+    calc
+      uStar ^ (2 * gamma - alpha - 1) * uStar ^ (alpha + 1) =
+          uStar ^ ((2 * gamma - alpha - 1) + (alpha + 1)) := by
+        rw [← Real.rpow_add huStar]
+      _ = uStar ^ (2 * gamma) := by
+        congr 1
+        ring
+  have hright :
+      C * uStar ^ (2 * gamma - alpha - 1) *
+          ((u - uStar) * (u ^ alpha - uStar ^ alpha)) =
+        uStar ^ (2 * gamma) *
+          (C * ((t - 1) * (t ^ alpha - 1))) := by
+    rw [hpow_u_alpha, hu_eq]
+    calc
+      C * uStar ^ (2 * gamma - alpha - 1) *
+          ((uStar * t - uStar) *
+            (uStar ^ alpha * t ^ alpha - uStar ^ alpha)) =
+        C * (uStar ^ (2 * gamma - alpha - 1) *
+          ((uStar * (t - 1)) * (uStar ^ alpha * (t ^ alpha - 1)))) := by
+          ring
+      _ = C * ((uStar ^ (2 * gamma - alpha - 1) * (uStar * uStar ^ alpha)) *
+          ((t - 1) * (t ^ alpha - 1))) := by
+          ring
+      _ = C * (uStar ^ (2 * gamma) * ((t - 1) * (t ^ alpha - 1))) := by
+          rw [hpow_total]
+      _ = uStar ^ (2 * gamma) *
+          (C * ((t - 1) * (t ^ alpha - 1))) := by
+          ring
+  have hcoeff_nonneg : 0 ≤ uStar ^ (2 * gamma) :=
+    Real.rpow_nonneg huStar_nonneg _
+  have hscaled :
+      uStar ^ (2 * gamma) * (t ^ gamma - 1) ^ 2 ≤
+        uStar ^ (2 * gamma) *
+          (C * ((t - 1) * (t ^ alpha - 1))) :=
+    mul_le_mul_of_nonneg_left hnorm_t hcoeff_nonneg
+  calc
+    (u ^ gamma - uStar ^ gamma) ^ 2 =
+        uStar ^ (2 * gamma) * (t ^ gamma - 1) ^ 2 := hleft
+    _ ≤ uStar ^ (2 * gamma) *
+          (C * ((t - 1) * (t ^ alpha - 1))) := hscaled
+    _ = C * uStar ^ (2 * gamma - alpha - 1) *
+          ((u - uStar) * (u ^ alpha - uStar ^ alpha)) := hright.symm
+
 lemma PowerDifferenceInequality.of_one_le_alpha_of_gamma_le_one
     {alpha gamma uStar : ℝ}
     (halpha : 1 ≤ alpha) (hgamma_pos : 0 < gamma) (hgamma_le : gamma ≤ 1)
@@ -3325,6 +3778,107 @@ lemma PowerDifferenceInequality.of_one_le_alpha_of_gamma_le_one
     _ = 1 * uStar ^ (2 * gamma - alpha - 1) *
           ((u - uStar) * (u ^ alpha - uStar ^ alpha)) := hright.symm
 
+lemma PowerDifferenceInequality.CAlphaGamma_of_lt_alpha
+    {alpha gamma uStar : ℝ}
+    (halpha_pos : 0 < alpha) (halpha_lt : alpha < 1)
+    (hgamma_pos : 0 < gamma) (hrel : 2 * gamma ≤ alpha + 1)
+    (huStar : 0 < uStar) :
+    PowerDifferenceInequality (CAlphaGamma alpha gamma) alpha gamma uStar := by
+  intro u hu
+  let C : ℝ := (alpha + 1) ^ 2 / (4 * alpha)
+  let t : ℝ := u / uStar
+  have hC_eq : CAlphaGamma alpha gamma = C := by
+    unfold CAlphaGamma C
+    rw [if_pos halpha_lt]
+  have ht : 0 < t := div_pos hu huStar
+  have hu_eq : u = uStar * t := by
+    dsimp [t]
+    field_simp [ne_of_gt huStar]
+  have huStar_nonneg : 0 ≤ uStar := huStar.le
+  have ht_nonneg : 0 ≤ t := ht.le
+  have hnorm :
+      (t ^ gamma - 1) ^ 2 ≤ C * ((t - 1) * (t ^ alpha - 1)) := by
+    dsimp [C]
+    exact power_difference_normalized_of_lt_alpha
+      halpha_pos halpha_lt hgamma_pos hrel ht
+  have hpow_u_gamma : u ^ gamma = uStar ^ gamma * t ^ gamma := by
+    rw [hu_eq]
+    exact Real.mul_rpow huStar_nonneg ht_nonneg
+  have hpow_u_alpha : u ^ alpha = uStar ^ alpha * t ^ alpha := by
+    rw [hu_eq]
+    exact Real.mul_rpow huStar_nonneg ht_nonneg
+  have hpow_gamma_sq : (uStar ^ gamma) * (uStar ^ gamma) = uStar ^ (2 * gamma) := by
+    calc
+      (uStar ^ gamma) * (uStar ^ gamma) = uStar ^ (gamma + gamma) := by
+        rw [← Real.rpow_add huStar]
+      _ = uStar ^ (2 * gamma) := by
+        congr 1
+        ring
+  have hleft :
+      (u ^ gamma - uStar ^ gamma) ^ 2 =
+        uStar ^ (2 * gamma) * (t ^ gamma - 1) ^ 2 := by
+    rw [hpow_u_gamma]
+    calc
+      (uStar ^ gamma * t ^ gamma - uStar ^ gamma) ^ 2 =
+          ((uStar ^ gamma) * (t ^ gamma - 1)) ^ 2 := by ring
+      _ = ((uStar ^ gamma) * (uStar ^ gamma)) * (t ^ gamma - 1) ^ 2 := by
+          ring
+      _ = uStar ^ (2 * gamma) * (t ^ gamma - 1) ^ 2 := by
+          rw [hpow_gamma_sq]
+  have hpow_alpha_one : uStar * uStar ^ alpha = uStar ^ (alpha + 1) := by
+    calc
+      uStar * uStar ^ alpha = uStar ^ (1 : ℝ) * uStar ^ alpha := by
+        rw [Real.rpow_one]
+      _ = uStar ^ (1 + alpha) := by
+        rw [← Real.rpow_add huStar]
+      _ = uStar ^ (alpha + 1) := by
+        congr 1
+        ring
+  have hpow_total :
+      uStar ^ (2 * gamma - alpha - 1) * (uStar * uStar ^ alpha) =
+        uStar ^ (2 * gamma) := by
+    rw [hpow_alpha_one]
+    calc
+      uStar ^ (2 * gamma - alpha - 1) * uStar ^ (alpha + 1) =
+          uStar ^ ((2 * gamma - alpha - 1) + (alpha + 1)) := by
+        rw [← Real.rpow_add huStar]
+      _ = uStar ^ (2 * gamma) := by
+        congr 1
+        ring
+  have hright :
+      C * uStar ^ (2 * gamma - alpha - 1) *
+          ((u - uStar) * (u ^ alpha - uStar ^ alpha)) =
+        uStar ^ (2 * gamma) * (C * ((t - 1) * (t ^ alpha - 1))) := by
+    rw [hpow_u_alpha, hu_eq]
+    calc
+      C * uStar ^ (2 * gamma - alpha - 1) *
+          ((uStar * t - uStar) *
+            (uStar ^ alpha * t ^ alpha - uStar ^ alpha)) =
+        C * uStar ^ (2 * gamma - alpha - 1) *
+          ((uStar * (t - 1)) * (uStar ^ alpha * (t ^ alpha - 1))) := by
+          ring
+      _ = C * (uStar ^ (2 * gamma - alpha - 1) *
+            (uStar * uStar ^ alpha)) *
+          ((t - 1) * (t ^ alpha - 1)) := by
+          ring
+      _ = uStar ^ (2 * gamma) * (C * ((t - 1) * (t ^ alpha - 1))) := by
+          rw [hpow_total]
+          ring
+  have hcoeff_nonneg : 0 ≤ uStar ^ (2 * gamma) :=
+    Real.rpow_nonneg huStar_nonneg _
+  have hscaled :
+      uStar ^ (2 * gamma) * (t ^ gamma - 1) ^ 2 ≤
+        uStar ^ (2 * gamma) * (C * ((t - 1) * (t ^ alpha - 1))) :=
+    mul_le_mul_of_nonneg_left hnorm hcoeff_nonneg
+  calc
+    (u ^ gamma - uStar ^ gamma) ^ 2 =
+        uStar ^ (2 * gamma) * (t ^ gamma - 1) ^ 2 := hleft
+    _ ≤ uStar ^ (2 * gamma) * (C * ((t - 1) * (t ^ alpha - 1))) := hscaled
+    _ = C * uStar ^ (2 * gamma - alpha - 1) *
+          ((u - uStar) * (u ^ alpha - uStar ^ alpha)) := hright.symm
+    _ = CAlphaGamma alpha gamma * uStar ^ (2 * gamma - alpha - 1) *
+          ((u - uStar) * (u ^ alpha - uStar ^ alpha)) := by rw [hC_eq]
+
 lemma PowerDifferenceInequality.CAlphaGamma_of_one_le_alpha_of_gamma_le_one
     {alpha gamma uStar : ℝ}
     (halpha : 1 ≤ alpha) (hgamma_pos : 0 < gamma) (hgamma_le : gamma ≤ 1)
@@ -3337,12 +3891,47 @@ lemma PowerDifferenceInequality.CAlphaGamma_of_one_le_alpha_of_gamma_le_one
     PowerDifferenceInequality.of_one_le_alpha_of_gamma_le_one
       halpha hgamma_pos hgamma_le huStar
 
+lemma PowerDifferenceInequality.of_alpha_lt_one
+    {alpha gamma uStar : ℝ}
+    (halpha0 : 0 < alpha) (halpha1 : alpha < 1)
+    (hgamma0 : 0 < gamma) (hrel : 2 * gamma ≤ alpha + 1)
+    (huStar : 0 < uStar) :
+    PowerDifferenceInequality ((alpha + 1) ^ 2 / (4 * alpha))
+      alpha gamma uStar := by
+  exact PowerDifferenceInequality.of_normalized
+    (fun t ht =>
+      power_difference_normalized_of_lt_alpha
+        halpha0 halpha1 hgamma0 hrel ht)
+    huStar
+
+lemma PowerDifferenceInequality.CAlphaGamma_of_alpha_lt_one
+    {alpha gamma uStar : ℝ}
+    (halpha0 : 0 < alpha) (halpha1 : alpha < 1)
+    (hgamma0 : 0 < gamma) (hrel : 2 * gamma ≤ alpha + 1)
+    (huStar : 0 < uStar) :
+    PowerDifferenceInequality (CAlphaGamma alpha gamma) alpha gamma uStar := by
+  have hC : CAlphaGamma alpha gamma = (alpha + 1) ^ 2 / (4 * alpha) := by
+    unfold CAlphaGamma
+    rw [if_pos halpha1]
+  simpa [hC] using
+    PowerDifferenceInequality.of_alpha_lt_one
+      halpha0 halpha1 hgamma0 hrel huStar
+
 def Lemma_A_6 : Prop :=
   ∀ alpha gamma,
     0 < alpha → 0 < gamma →
       2 * gamma ≤ alpha + 1 →
         ∀ uStar > 0,
           PowerDifferenceInequality (CAlphaGamma alpha gamma) alpha gamma uStar
+
+lemma Lemma_A_6.alpha_lt_one_branch
+    {alpha gamma uStar : ℝ}
+    (halpha0 : 0 < alpha) (halpha1 : alpha < 1)
+    (hgamma0 : 0 < gamma) (hrel : 2 * gamma ≤ alpha + 1)
+    (huStar : 0 < uStar) :
+    PowerDifferenceInequality (CAlphaGamma alpha gamma) alpha gamma uStar :=
+  PowerDifferenceInequality.CAlphaGamma_of_alpha_lt_one
+    halpha0 halpha1 hgamma0 hrel huStar
 
 lemma Lemma_A_6.power_difference
     (h : Lemma_A_6)
