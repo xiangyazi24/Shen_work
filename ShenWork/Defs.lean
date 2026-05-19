@@ -391,6 +391,41 @@ lemma kappa_strictAntiOn :
     have hab' : a < b := hab
     nlinarith
 
+lemma kappa_sq_lt_one {c : ℝ} (hc : 2 < c) :
+    kappa c ^ 2 < 1 := by
+  have hk1 := kappa_lt_one_of_two_lt hc
+  have hk0 := kappa_pos_of_two_lt hc
+  nlinarith [sq_abs (kappa c)]
+
+lemma kappa_sq_le_one {c : ℝ} (hc : 2 ≤ c) :
+    kappa c ^ 2 ≤ 1 := by
+  rcases lt_or_eq_of_le hc with h | h
+  · exact (kappa_sq_lt_one h).le
+  · subst h; simp [kappa]; norm_num
+
+lemma one_div_one_sub_kappa_sq_pos {c : ℝ} (hc : 2 < c) :
+    0 < 1 / (1 - kappa c ^ 2) :=
+  div_pos one_pos (one_sub_kappa_sq_pos hc)
+
+lemma gamma_kappa_lt_one_of_gamma_le_one {c : ℝ} {γ : ℝ}
+    (hc : 2 < c) (hγ : γ ≤ 1) :
+    γ * kappa c < 1 := by
+  calc γ * kappa c ≤ 1 * kappa c :=
+        mul_le_mul_of_nonneg_right hγ (kappa_pos_of_two_lt hc).le
+    _ = kappa c := one_mul _
+    _ < 1 := kappa_lt_one_of_two_lt hc
+
+lemma gamma_sq_kappa_sq_lt_one {c : ℝ} {γ : ℝ}
+    (hc : 2 < c) (hγ : 0 < γ) (hγκ : γ * kappa c < 1) :
+    γ ^ 2 * kappa c ^ 2 < 1 := by
+  have hgk := mul_pos hγ (kappa_pos_of_two_lt hc)
+  nlinarith [sq_nonneg (γ * kappa c - 1)]
+
+lemma one_sub_gamma_sq_kappa_sq_pos {c : ℝ} {γ : ℝ}
+    (hc : 2 < c) (hγ : 0 < γ) (hγκ : γ * kappa c < 1) :
+    0 < 1 - γ ^ 2 * kappa c ^ 2 := by
+  linarith [gamma_sq_kappa_sq_lt_one hc hγ hγκ]
+
 lemma chiStar_pos (p : CMParams) :
     0 < chiStar p := by
   unfold chiStar
