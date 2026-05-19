@@ -1371,6 +1371,22 @@ theorem FrozenStationaryWaveProfile.mk_from_stationary
     lim_neg_inf := hlim_neg
     lim_pos_inf := hlim_pos }
 
+theorem paperWaveOperator_eq_frozenWaveOperator_at_fixed_point
+    (p : CMParams) {c : ℝ} {U : ℝ → ℝ}
+    (hU : IsCUnifBdd U) (hU_nonneg : ∀ x, 0 ≤ U x)
+    (hU_diff : DifferentiableAt ℝ U x)
+    (hV_diff : DifferentiableAt ℝ (deriv (frozenElliptic p U)) x)
+    (hU_rpow_diff : DifferentiableAt ℝ (fun y => (U y) ^ p.m) x)
+    (x : ℝ) :
+    paperWaveOperator p c U U x = frozenWaveOperator p c U U x := by
+  unfold paperWaveOperator frozenWaveOperator
+  simp only
+  -- The product rule expansion:
+  -- deriv(U^m · V') = m U^{m-1} U' V' + U^m V''
+  -- V'' = V - U^γ (by frozenElliptic_ode)
+  -- Substituting gives the paper form.
+  sorry
+
 theorem FrozenStationaryWaveProfile.mk_auto_limits
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (hc : 0 < c)
