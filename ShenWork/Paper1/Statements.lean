@@ -95,6 +95,30 @@ theorem UniformConvergesToConstant.shift_space
   rcases h ε hε with ⟨T, hT⟩
   exact ⟨T, fun t x ht => hT t (x + a) ht⟩
 
+theorem UniformConvergesToConstant.uniformLimsupLe
+    {u : ℝ → ℝ → ℝ} {a : ℝ} (h : UniformConvergesToConstant u a) :
+    UniformLimsupLe u a := by
+  intro ε hε
+  rcases h ε hε with ⟨T, hT⟩
+  refine eventually_atTop.2 ⟨T, ?_⟩
+  intro t ht x
+  have hlt : u t x - a < ε :=
+    lt_of_le_of_lt (le_abs_self (u t x - a)) (hT t x ht)
+  linarith
+
+theorem UniformConvergesToConstant.uniformEventuallyBounded
+    {u : ℝ → ℝ → ℝ} {a : ℝ} (h : UniformConvergesToConstant u a) :
+    UniformEventuallyBounded u := by
+  rcases h 1 (by norm_num) with ⟨T, hT⟩
+  refine ⟨|a| + 1, eventually_atTop.2 ⟨T, ?_⟩⟩
+  intro t ht x
+  have hdist : |u t x - a| < 1 := hT t x ht
+  have htri : |u t x| ≤ |u t x - a| + |a| := by
+    calc
+      |u t x| = |(u t x - a) + a| := by ring_nf
+      _ ≤ |u t x - a| + |a| := abs_add_le _ _
+  linarith
+
 def HasWaveRightTailAsymptotic (c κ₁ : ℝ) (U : ℝ → ℝ) : Prop :=
   Tendsto
     (fun x => Real.exp ((κ₁ - kappa c) * x) *
