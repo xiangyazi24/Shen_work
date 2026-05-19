@@ -1457,6 +1457,28 @@ theorem paperWaveOperator_eq_frozenWaveOperator_at_fixed_point
           ring
     nlinarith [hchem_tail]
 
+theorem FrozenStationaryWaveProfile.mk_from_paper_stationarity
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hc : 0 < c)
+    (hU_pos : ∀ x, 0 < U x)
+    (hU_bdd : IsCUnifBdd U)
+    (hU_diff : ∀ x, DifferentiableAt ℝ U x)
+    (hV_diff : ∀ x, DifferentiableAt ℝ (deriv (frozenElliptic p U)) x)
+    (hU_rpow_diff : ∀ x, DifferentiableAt ℝ (fun y => (U y) ^ p.m) x)
+    (hpaper_stat : ∀ x, paperWaveOperator p c U U x = 0)
+    (hU_lim_neg : Tendsto U atBot (𝓝 1))
+    (hU_lim_pos : Tendsto U atTop (𝓝 0)) :
+    FrozenStationaryWaveProfile p c U := by
+  apply FrozenStationaryWaveProfile.mk_from_stationary hc hU_pos hU_bdd
+  · intro x
+    rw [← paperWaveOperator_eq_frozenWaveOperator_at_fixed_point p x
+      hU_bdd (fun y => (hU_pos y).le) (hU_diff x) (hV_diff x) (hU_rpow_diff x)]
+    exact hpaper_stat x
+  · exact ⟨hU_lim_neg, frozenElliptic_tendsto_atBot_of_U_tendsto p hU_bdd
+      (fun y => (hU_pos y).le) hU_lim_neg⟩
+  · exact ⟨hU_lim_pos, frozenElliptic_tendsto_atTop_of_U_tendsto p hU_bdd
+      (fun y => (hU_pos y).le) hU_lim_pos⟩
+
 theorem FrozenStationaryWaveProfile.mk_auto_limits
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (hc : 0 < c)
