@@ -2222,6 +2222,65 @@ theorem paperWaveOperator_const_nonpos_neg
   apply mul_nonpos_of_nonneg_of_nonpos hM_pos.le
   nlinarith
 
+theorem one_le_one_sub_chi_mul_M_rpow_alpha
+    (p : CMParams) {M : ℝ} (hχ : p.χ < 1)
+    (hM : 0 ≤ M)
+    (hMchi : (1 / (1 - p.χ)) ^ (1 / p.α) ≤ M) :
+    1 ≤ (1 - p.χ) * M ^ p.α := by
+  have hden_pos : 0 < 1 - p.χ := by linarith
+  have hbase_pos : 0 < 1 / (1 - p.χ) := div_pos one_pos hden_pos
+  have hα_pos : 0 < p.α := lt_of_lt_of_le one_pos p.hα
+  have hpow_le :
+      (1 / (1 - p.χ)) ≤ M ^ p.α := by
+    calc
+      1 / (1 - p.χ)
+          = ((1 / (1 - p.χ)) ^ (1 / p.α)) ^ p.α := by
+              rw [← Real.rpow_mul hbase_pos.le]
+              have hα_ne : p.α ≠ 0 := ne_of_gt hα_pos
+              have hmul_exp : (1 / p.α) * p.α = 1 := by
+                field_simp [hα_ne]
+              rw [hmul_exp, Real.rpow_one]
+      _ ≤ M ^ p.α :=
+          Real.rpow_le_rpow
+            (Real.rpow_nonneg hbase_pos.le _) hMchi
+            (le_of_lt hα_pos)
+  have hmul := mul_le_mul_of_nonneg_left hpow_le hden_pos.le
+  have hleft : (1 - p.χ) * (1 / (1 - p.χ)) = 1 := by
+    field_simp [ne_of_gt hden_pos]
+  nlinarith
+
+theorem paperWaveOperator_const_nonpos_pos
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hχ_nonneg : 0 ≤ p.χ) (hχ : p.χ < chiStar p)
+    (hα : p.α = p.m + p.γ - 1)
+    (hM : 1 ≤ M)
+    (hMchi : (1 / (1 - p.χ)) ^ (1 / p.α) ≤ M)
+    (hu : InWaveTrapSet κ M u) (x : ℝ) :
+    paperWaveOperator p c u (fun _ => M) x ≤ 0 := by
+  rw [paperWaveOperator_const_eq p hu.cunif_bdd hu.nonneg x]
+  have hM_nonneg : 0 ≤ M := le_trans zero_le_one hM
+  have hχ_lt_one : p.χ < 1 := lt_of_lt_of_le hχ (chiStar_le_one p)
+  have hmain :
+      1 ≤ (1 - p.χ) * M ^ p.α :=
+    one_le_one_sub_chi_mul_M_rpow_alpha p hχ_lt_one hM_nonneg hMchi
+  have hV_nonneg : 0 ≤ frozenElliptic p u x :=
+    frozenElliptic_nonneg p hu.nonneg x
+  have hpow_nonneg : 0 ≤ M ^ (p.m - 1) :=
+    Real.rpow_nonneg hM_nonneg (p.m - 1)
+  have hVterm :
+      -p.χ * M ^ (p.m - 1) * frozenElliptic p u x ≤ 0 := by
+    exact mul_nonpos_of_nonpos_of_nonneg
+      (mul_nonpos_of_nonpos_of_nonneg (neg_nonpos.mpr hχ_nonneg) hpow_nonneg)
+      hV_nonneg
+  have hpow_eq : M ^ (p.m + p.γ - 1) = M ^ p.α := by
+    rw [hα]
+  have hinside :
+      1 - p.χ * M ^ (p.m - 1) * frozenElliptic p u x -
+          (M ^ p.α - p.χ * M ^ (p.m + p.γ - 1)) ≤ 0 := by
+    rw [hpow_eq]
+    nlinarith
+  exact mul_nonpos_of_nonneg_of_nonpos hM_nonneg hinside
+
 theorem InWaveTrapSet.zero {κ M : ℝ} (hM : 0 ≤ M) :
     InWaveTrapSet κ M (fun _ : ℝ => (0 : ℝ)) := by
   refine ⟨IsCUnifBdd.zero, ?_⟩
