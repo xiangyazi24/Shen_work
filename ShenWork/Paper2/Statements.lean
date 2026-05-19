@@ -1527,6 +1527,21 @@ lemma Theorem_1_1.nonminimal_solution
       (1 ≤ p.m → IsPaper2GlobalClassicalSolution D p u v) :=
   (h hχ).1 ha hb u₀ hu₀
 
+lemma Theorem_1_1.nonminimal_bounded_before_solution
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Theorem_1_1 D p)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2BoundedBefore D Tmax u ∧
+      (1 ≤ p.m → IsPaper2GlobalClassicalSolution D p u v) := by
+  rcases h.nonminimal_solution hχ ha hb hu₀ with
+    ⟨Tmax, hTmax, u, v, hsol, htrace, hbound, hglobal⟩
+  refine ⟨Tmax, hTmax, u, v, hsol, htrace, ?_, hglobal⟩
+  exact ⟨max (D.supNorm u₀) ((p.a / p.b) ^ (1 / p.α)), hbound⟩
+
 lemma Theorem_1_1.minimal_solution
     {D : BoundedDomainData} {p : CM2Params}
     (h : Theorem_1_1 D p)
@@ -1538,6 +1553,21 @@ lemma Theorem_1_1.minimal_solution
       (∀ t, 0 < t → t < Tmax → D.supNorm (u t) ≤ D.supNorm u₀) ∧
       (1 ≤ p.m → IsPaper2GlobalClassicalSolution D p u v) :=
   (h hχ).2 ha hb u₀ hu₀
+
+lemma Theorem_1_1.minimal_bounded_before_solution
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Theorem_1_1 D p)
+    (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (hb : p.b = 0)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2BoundedBefore D Tmax u ∧
+      (1 ≤ p.m → IsPaper2GlobalClassicalSolution D p u v) := by
+  rcases h.minimal_solution hχ ha hb hu₀ with
+    ⟨Tmax, hTmax, u, v, hsol, htrace, hbound, hglobal⟩
+  refine ⟨Tmax, hTmax, u, v, hsol, htrace, ?_, hglobal⟩
+  exact ⟨D.supNorm u₀, hbound⟩
 
 /-- Paper2 Theorem 1.2: boundedness/global existence for weak nonlinear cross diffusion. -/
 def Theorem_1_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
