@@ -2454,6 +2454,22 @@ lemma Theorem_2_4.exponential_of_chiStrong1
   h.exponential ha hb hβ p.hα p.hγ ha hb
     (NonminimalGlobalStabilityCondition.of_chiStrong1 hm hαγ hχ0 hχ)
 
+lemma Theorem_2_4.exponential_convergence_of_chiStrong1
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (h : Theorem_2_4 D p N C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hβ : 0 ≤ p.β)
+    (hm : 1 ≤ p.m) (hαγ : 2 * p.γ ≤ p.α + 1)
+    (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < C.chiStrong1 (positiveEquilibrium p ⟨ha, hb⟩).1)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.exponential_convergence ha hb hβ p.hα p.hγ ha hb
+    (NonminimalGlobalStabilityCondition.of_chiStrong1 hm hαγ hχ0 hχ) huv
+
 lemma Theorem_2_4.stability_of_chiStrong2
     {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
     {C : Paper3Constants D p}
@@ -2486,6 +2502,23 @@ lemma Theorem_2_4.exponential_of_chiStrong2
             (positiveEquilibrium p ⟨ha, hb⟩).2 A rate :=
   h.exponential ha hb (by linarith : 0 ≤ p.β) p.hα p.hγ ha hb
     (NonminimalGlobalStabilityCondition.of_chiStrong2 hm hβ hαγ hχ0 hχ)
+
+lemma Theorem_2_4.exponential_convergence_of_chiStrong2
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (h : Theorem_2_4 D p N C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hβ : 1 ≤ p.β)
+    (hαγ : 2 * p.γ ≤ p.α + 1)
+    (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < C.chiStrong2 (positiveEquilibrium p ⟨ha, hb⟩).1)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.exponential_convergence ha hb (by linarith : 0 ≤ p.β) p.hα p.hγ ha hb
+    (NonminimalGlobalStabilityCondition.of_chiStrong2 hm hβ hαγ hχ0 hχ) huv
 
 lemma Theorem_2_4.stability_of_chiStrong3
     {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
@@ -2520,6 +2553,23 @@ lemma Theorem_2_4.exponential_of_chiStrong3
   h.exponential ha hb hβ p.hα p.hγ ha hb
     (NonminimalGlobalStabilityCondition.of_chiStrong3 hm hγ hαγ hχ)
 
+lemma Theorem_2_4.exponential_convergence_of_chiStrong3
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (h : Theorem_2_4 D p N C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hβ : 0 ≤ p.β)
+    (hm : 1 ≤ p.m) (hγ : 1 ≤ p.γ)
+    (hαγ :
+      p.m + p.γ + (if p.β = 0 then 0 else p.γ) ≤ p.α + 1)
+    (hχ : p.χ₀ < C.chiStrong3 (positiveEquilibrium p ⟨ha, hb⟩).1)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.exponential_convergence ha hb hβ p.hα p.hγ ha hb
+    (NonminimalGlobalStabilityCondition.of_chiStrong3 hm hγ hαγ hχ) huv
+
 lemma Theorem_2_4.stability_of_chiStrong4
     {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
     {C : Paper3Constants D p}
@@ -2550,6 +2600,22 @@ lemma Theorem_2_4.exponential_of_chiStrong4
             (positiveEquilibrium p ⟨ha, hb⟩).2 A rate :=
   h.exponential ha hb (by linarith : 0 ≤ p.β) p.hα p.hγ ha hb
     (NonminimalGlobalStabilityCondition.of_chiStrong4 hm hβ hγ hαγ hχ)
+
+lemma Theorem_2_4.exponential_convergence_of_chiStrong4
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (h : Theorem_2_4 D p N C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hβ : 1 ≤ p.β) (hγ : 1 ≤ p.γ)
+    (hαγ : p.m + 2 * p.γ ≤ p.α + 1)
+    (hχ : p.χ₀ < C.chiStrong4 (positiveEquilibrium p ⟨ha, hb⟩).1)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.exponential_convergence ha hb (by linarith : 0 ≤ p.β) p.hα p.hγ ha hb
+    (NonminimalGlobalStabilityCondition.of_chiStrong4 hm hβ hγ hαγ hχ) huv
 
 /-- Paper3 Theorem 2.5: global stability in the minimal model. -/
 def Theorem_2_5
@@ -2641,6 +2707,22 @@ lemma Theorem_2_5.exponential_of_chiMinimal1
   h.exponential ha hb hm hβ huStar
     (MinimalGlobalStabilityCondition.of_chiMinimal1 hχ0 hχ)
 
+lemma Theorem_2_5.exponential_convergence_of_chiMinimal1
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (h : Theorem_2_5 D p N C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ0 : 0 < p.χ₀) (hχ : p.χ₀ < C.chiMinimal1 uStar)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar) :
+    ExponentialC1Convergence D N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  h.exponential_convergence ha hb hm hβ huStar
+    (MinimalGlobalStabilityCondition.of_chiMinimal1 hχ0 hχ) huv hmass
+
 lemma Theorem_2_5.stability_of_chiMinimal2
     {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
     {C : Paper3Constants D p}
@@ -2672,6 +2754,23 @@ lemma Theorem_2_5.exponential_of_chiMinimal2
             (minimalEquilibrium p uStar).2 A rate :=
   h.exponential ha hb hm hβ huStar
     (MinimalGlobalStabilityCondition.of_chiMinimal2 hγ hχ0 hχ)
+
+lemma Theorem_2_5.exponential_convergence_of_chiMinimal2
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (h : Theorem_2_5 D p N C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hγ : p.γ = 1) (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < C.chiMinimal2 uStar)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar) :
+    ExponentialC1Convergence D N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  h.exponential_convergence ha hb hm hβ huStar
+    (MinimalGlobalStabilityCondition.of_chiMinimal2 hγ hχ0 hχ) huv hmass
 
 def Lemma_3_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ u v : ℝ → D.Point → ℝ,
