@@ -66,6 +66,63 @@ structure IsClassicalSolution (p : CMParams) (T : ℝ) (u v : ℝ → ℝ → �
 def IsGlobalClassicalSolution (p : CMParams) (u v : ℝ → ℝ → ℝ) : Prop :=
   ∀ T > 0, IsClassicalSolution p T u v
 
+theorem IsClassicalSolution.shift_space
+    {p : CMParams} {T : ℝ} {u v : ℝ → ℝ → ℝ}
+    (h : IsClassicalSolution p T u v) (a : ℝ) :
+    IsClassicalSolution p T
+      (fun t x => u t (x + a)) (fun t x => v t (x + a)) := by
+  refine
+    { hT := h.hT
+      u_smooth := ?_
+      v_smooth := ?_
+      pde_u := ?_
+      pde_v := ?_ }
+  · intro t x ht0 htT
+    exact
+      ⟨(h.u_smooth t (x + a) ht0 htT).1,
+        (h.u_smooth t (x + a) ht0 htT).2.comp x
+          (differentiableAt_id.add (differentiableAt_const a))⟩
+  · intro t x ht0 htT
+    exact
+      (h.v_smooth t (x + a) ht0 htT).comp x
+        (differentiableAt_id.add (differentiableAt_const a))
+  · intro t x ht0 htT
+    have hU2 := congr_fun (iteratedDeriv_comp_add_const 2 (u t) a) x
+    have hV1 : ∀ y,
+        deriv (fun z => v t (z + a)) y = deriv (v t) (y + a) := by
+      intro y
+      exact deriv_comp_add_const (v t) a y
+    have hChem :
+        deriv
+          (fun y => (u t (y + a)) ^ p.m *
+            deriv (fun z => v t (z + a)) y) x =
+        deriv (fun ξ => (u t ξ) ^ p.m * deriv (v t) ξ) (x + a) := by
+      have hfun :
+          (fun y => (u t (y + a)) ^ p.m *
+            deriv (fun z => v t (z + a)) y) =
+          (fun y => (u t (y + a)) ^ p.m * deriv (v t) (y + a)) := by
+        ext y
+        rw [hV1 y]
+      rw [hfun]
+      have := congr_fun
+        (iteratedDeriv_comp_add_const 1
+          (fun ξ => (u t ξ) ^ p.m * deriv (v t) ξ) a) x
+      simpa [iteratedDeriv_one] using this
+    rw [hU2, hChem]
+    exact h.pde_u t (x + a) ht0 htT
+  · intro t x ht0 htT
+    have hV2 := congr_fun (iteratedDeriv_comp_add_const 2 (v t) a) x
+    rw [hV2]
+    exact h.pde_v t (x + a) ht0 htT
+
+theorem IsGlobalClassicalSolution.shift_space
+    {p : CMParams} {u v : ℝ → ℝ → ℝ}
+    (h : IsGlobalClassicalSolution p u v) (a : ℝ) :
+    IsGlobalClassicalSolution p
+      (fun t x => u t (x + a)) (fun t x => v t (x + a)) := by
+  intro T hT
+  exact (h T hT).shift_space a
+
 def IsPositiveClassicalSolution (p : CMParams) (T : ℝ) (u v : ℝ → ℝ → ℝ) : Prop :=
   IsClassicalSolution p T u v ∧ ∀ t x, 0 ≤ t → t < T → 0 < u t x
 

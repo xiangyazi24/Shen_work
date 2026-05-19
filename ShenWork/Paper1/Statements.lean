@@ -466,6 +466,17 @@ theorem IsGlobalCauchySolutionFrom.initial_pos
   rw [← h.initial x]
   exact h.pos 0 x le_rfl
 
+theorem IsGlobalCauchySolutionFrom.shift_space
+    {p : CMParams} {u₀ : ℝ → ℝ} {u v : ℝ → ℝ → ℝ}
+    (h : IsGlobalCauchySolutionFrom p u₀ u v) (a : ℝ) :
+    IsGlobalCauchySolutionFrom p (fun x => u₀ (x + a))
+      (fun t x => u t (x + a)) (fun t x => v t (x + a)) := by
+  refine ⟨_root_.IsGlobalClassicalSolution.shift_space h.classical a, ?_, ?_⟩
+  · intro x
+    exact h.initial (x + a)
+  · intro t x ht
+    exact h.pos t (x + a) ht
+
 theorem IsTravelingWave.strictlyPositiveAtLeft
     {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
     (hTW : IsTravelingWave p c U V) :
