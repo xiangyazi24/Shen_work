@@ -25,6 +25,11 @@ Use `THEOREM_STATUS.md` as the source of truth for paper-theorem status.
   shooting-segment lemmas.
 - Pointwise mild/Duhamel contraction estimates and an abstract Banach fixed-point
   wrapper.
+- For Paper1, positive-sensitivity Shen upper bounds imply the strict upper-tail
+  bound used in the stability/uniqueness layer.  The negative-sensitivity bound
+  stated as `U < max 1 exp(-κx)` does **not** imply the strict `min` tail bound;
+  do not use it as a stability-tail bridge without an additional right-tail
+  estimate.
 
 ## What is intentionally not claimed
 

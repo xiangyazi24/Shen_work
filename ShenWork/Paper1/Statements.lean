@@ -3734,6 +3734,28 @@ theorem Theorem_1_1.positive_wave
         HasWaveRightTailAsymptotic c κ₁ U :=
   h.2 p halpha hχ_nonneg hχ_small c hc
 
+theorem Theorem_1_1.positive_wave_with_strict_tail_bound
+    (h : Theorem_1_1) {p : CMParams}
+    (halpha : p.α = p.m + p.γ - 1)
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    {c : ℝ} (hc : 2 < c) :
+    ∃ U V : ℝ → ℝ,
+      IsTravelingWave p c U V ∧
+      HasStrictWaveUpperTailBound p c U ∧
+      ∀ κ₁, kappa c < κ₁ →
+        κ₁ < min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) →
+        HasWaveRightTailAsymptotic c κ₁ U := by
+  rcases h.positive_wave halpha hχ_nonneg hχ_small hc with
+    ⟨U, V, hTW, hupper, htail⟩
+  have hχ_lt_one : p.χ < 1 := by
+    have hχ_lt_half : p.χ < (1 / 2 : ℝ) :=
+      lt_of_lt_of_le hχ_small (min_le_left _ _)
+    linarith
+  exact
+    ⟨U, V, hTW,
+      ShenUpperBoundPositive.hasStrictWaveUpperTailBound hupper hχ_nonneg hχ_lt_one,
+      htail⟩
+
 theorem Theorem_1_1.of_frozenStationaryProfile_branches
     (hneg :
       ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
