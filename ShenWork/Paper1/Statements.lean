@@ -68,6 +68,40 @@ def HasWaveRightTailAsymptotic (c κ₁ : ℝ) (U : ℝ → ℝ) : Prop :=
       (U x / Real.exp (-(kappa c) * x) - 1))
     atTop (𝓝 0)
 
+def positiveSensitivityExtendedThreshold (p : CMParams) : ℝ :=
+  (2 * p.m + 2 * p.γ) / (p.m ^ 2 + p.m + 2 * p.γ)
+
+/-- A weaker traveling-wave target used in Paper1 Remark 1.3(2) and
+Remark 4.3(2): the right end converges to `(0,0)`, while the left end is only
+bounded away from zero and may be oscillatory. -/
+structure IsRightVanishingTravelingWave
+    (p : CMParams) (c : ℝ) (U V : ℝ → ℝ) : Prop where
+  hc : 0 < c
+  U_pos : ∀ x, 0 < U x
+  ode_U : ∀ x,
+    iteratedDeriv 2 U x + c * deriv U x
+    - p.χ * deriv (fun y => (U y) ^ p.m * deriv V y) x
+    + U x * (1 - (U x) ^ p.α) = 0
+  ode_V : ∀ x, iteratedDeriv 2 V x - V x + (U x) ^ p.γ = 0
+  lim_pos_inf : Tendsto U atTop (𝓝 0) ∧ Tendsto V atTop (𝓝 0)
+  positive_at_left : StrictlyPositiveAtLeft U
+
+theorem IsTravelingWave.to_rightVanishingTravelingWave
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (h : IsTravelingWave p c U V) :
+    IsRightVanishingTravelingWave p c U V :=
+  { hc := h.hc
+    U_pos := h.U_pos
+    ode_U := h.ode_U
+    ode_V := h.ode_V
+    lim_pos_inf := h.lim_pos_inf
+    positive_at_left := by
+      refine ⟨1 / 2, by norm_num, ?_⟩
+      have hnhds : Set.Ioi (1 / 2 : ℝ) ∈ 𝓝 (1 : ℝ) :=
+        Ioi_mem_nhds (by norm_num)
+      filter_upwards [h.lim_neg_inf.1 hnhds] with x hx
+      exact le_of_lt hx }
+
 def ShenUpperBoundNegative (c : ℝ) (U : ℝ → ℝ) : Prop :=
   ∀ x, 0 < U x ∧ U x < max 1 (Real.exp (-(kappa c) * x))
 
@@ -3216,6 +3250,23 @@ def Remark_4_3 : Prop :=
       ∀ eta : ℝ, Remark43TailRateBound p c eta →
         WeightedL2InitialCloseness (eta + kappa c) U₂ U₁
 
+/-- Paper1 Remark 1.3(2), repeated in Remark 4.3(2): in the extended
+positive-sensitivity range, the construction yields a wave whose right end is
+`(0,0)` and whose left end stays uniformly positive, without claiming
+convergence to `(1,1)`. -/
+def Remark_1_3_2 : Prop :=
+  ∀ p : CMParams,
+    p.α = p.m + p.γ - 1 →
+    (1 / 2 : ℝ) < positiveSensitivityExtendedThreshold p →
+    (1 / 2 : ℝ) ≤ p.χ →
+    p.χ < min (positiveSensitivityExtendedThreshold p) 1 →
+      ∀ c : ℝ, 2 < c →
+        ∃ U V : ℝ → ℝ, IsRightVanishingTravelingWave p c U V
+
+/-- Paper1 Remark 4.3(2) invokes the same extended positive-sensitivity
+right-vanishing wave conclusion as Remark 1.3(2). -/
+def Remark_4_3_part2 : Prop := Remark_1_3_2
+
 theorem Remark43TailRateBound.pos
     {p : CMParams} {c eta : ℝ} (h : Remark43TailRateBound p c eta) :
     0 < eta :=
@@ -3901,6 +3952,16 @@ theorem Theorem_1_1.positive_wave
         κ₁ < min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) →
         HasWaveRightTailAsymptotic c κ₁ U :=
   h.2 p halpha hχ_nonneg hχ_small c hc
+
+theorem Theorem_1_1.positive_rightVanishingWave
+    (h : Theorem_1_1) {p : CMParams}
+    (halpha : p.α = p.m + p.γ - 1)
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    {c : ℝ} (hc : 2 < c) :
+    ∃ U V : ℝ → ℝ, IsRightVanishingTravelingWave p c U V := by
+  rcases h.positive_wave halpha hχ_nonneg hχ_small hc with
+    ⟨U, V, hTW, _hupper, _htail⟩
+  exact ⟨U, V, IsTravelingWave.to_rightVanishingTravelingWave hTW⟩
 
 theorem Theorem_1_1.positive_wave_with_strict_tail_bound
     (h : Theorem_1_1) {p : CMParams}
