@@ -1554,6 +1554,10 @@ theorem expDecay_pos (κ x : ℝ) :
     0 < expDecay κ x := by
   exact Real.exp_pos _
 
+theorem expDecay_continuous (κ : ℝ) : Continuous (expDecay κ) := by
+  unfold expDecay
+  exact Real.continuous_exp.comp (continuous_const.mul continuous_id).neg
+
 theorem expDecay_antitone {κ : ℝ} (hκ : 0 ≤ κ) :
     Antitone (expDecay κ) := by
   intro x y hxy
