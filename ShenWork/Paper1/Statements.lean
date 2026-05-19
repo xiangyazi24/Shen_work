@@ -3325,6 +3325,51 @@ theorem frozenWaveOperator_exp_eq
     linarith
   nlinarith [expDecay_pos κ x, Real.rpow_nonneg (expDecay_pos κ x).le p.α]
 
+theorem constant_subsolution_frozenWaveOperator_nonneg_of_chem_nonneg
+    (p : CMParams) {κ κtilde D d c M : ℝ} {u : ℝ → ℝ}
+    (hd_pos : 0 < d)
+    (hd_le : d ≤ constantSubsolutionThreshold p.χ κ κtilde D)
+    (hu : InWaveTrapSet κ M u)
+    (hchem :
+      ∀ x, 0 ≤
+        -p.χ * (d ^ p.m *
+          (frozenElliptic p u x - (u x) ^ p.γ))) :
+    IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ := by
+  intro x _hx
+  rw [frozenWaveOperator_const_eq p hu.cunif_bdd hu.nonneg x]
+  apply add_nonneg
+  · exact hchem x
+  · have hd_nonneg : 0 ≤ d := hd_pos.le
+    have hd_le_inv : d ≤ 1 / (1 + |p.χ|) := by
+      exact le_trans hd_le (min_le_left _ _)
+    have hinv_le_one : 1 / (1 + |p.χ|) ≤ (1 : ℝ) := by
+      have hden_ge : 1 ≤ 1 + |p.χ| := by
+        exact le_add_of_nonneg_right (abs_nonneg p.χ)
+      simpa [one_div] using inv_le_one_of_one_le₀ hden_ge
+    have hd_le_one : d ≤ 1 := le_trans hd_le_inv hinv_le_one
+    exact mul_nonneg hd_nonneg
+      (sub_nonneg.mpr
+        (Real.rpow_le_one hd_nonneg hd_le_one
+          (by linarith [p.hα] : 0 ≤ p.α)))
+
+theorem expDecay_rpow_eq (κ m x : ℝ) :
+    (expDecay κ x) ^ m = expDecay (m * κ) x := by
+  unfold expDecay
+  rw [← Real.exp_mul]
+  congr 1; ring
+
+theorem expDecay_rpow_hasDerivAt (κ m x : ℝ) :
+    HasDerivAt (fun y => (expDecay κ y) ^ m)
+      (-(m * κ) * (expDecay κ x) ^ m) x := by
+  have : (fun y => (expDecay κ y) ^ m) = expDecay (m * κ) := by
+    ext y; exact expDecay_rpow_eq κ m y
+  rw [this, expDecay_rpow_eq κ m x]
+  exact expDecay_hasDerivAt (m * κ) x
+
+theorem expDecay_rpow_deriv (κ m x : ℝ) :
+    deriv (fun y => (expDecay κ y) ^ m) x = -(m * κ) * (expDecay κ x) ^ m :=
+  (expDecay_rpow_hasDerivAt κ m x).deriv
+
 def Lemma_4_2 : Prop :=
   ∀ p : CMParams, ∀ κ κtilde M c : ℝ,
     0 < κ → κ < 1 →
