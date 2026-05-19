@@ -2496,6 +2496,37 @@ def FrozenWaveMapConstruction
       LocalUniformSequentiallyCompactRange trap Tmap ∧
       ∃ U : ℝ → ℝ, trap U ∧ Tmap U = U
 
+theorem FrozenWaveMapConstruction.exists_map
+    {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
+    (h : FrozenWaveMapConstruction p c κ M trap) :
+    ∃ Tmap : (ℝ → ℝ) → ℝ → ℝ,
+      (∀ u, trap u → trap (Tmap u)) ∧
+        (∀ u, trap u → FrozenAuxiliaryLimitOutput p c κ M trap u (Tmap u)) ∧
+        LocalUniformContinuousOn trap Tmap ∧
+        LocalUniformSequentiallyCompactRange trap Tmap ∧
+        ∃ U : ℝ → ℝ, trap U ∧ Tmap U = U :=
+  h
+
+theorem FrozenWaveMapConstruction.exists_map_self
+    {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
+    (h : FrozenWaveMapConstruction p c κ M trap) :
+    ∃ Tmap : (ℝ → ℝ) → ℝ → ℝ,
+      (∀ u, trap u → trap (Tmap u)) ∧
+        ∀ u, trap u →
+          FrozenAuxiliaryLimitOutput p c κ M trap u (Tmap u) := by
+  rcases h with ⟨Tmap, hmap, hlimit, _hcont, _hcompact, _hfixed⟩
+  exact ⟨Tmap, hmap, hlimit⟩
+
+theorem FrozenWaveMapConstruction.exists_continuous_compact_map
+    {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
+    (h : FrozenWaveMapConstruction p c κ M trap) :
+    ∃ Tmap : (ℝ → ℝ) → ℝ → ℝ,
+      LocalUniformContinuousOn trap Tmap ∧
+        LocalUniformSequentiallyCompactRange trap Tmap ∧
+        ∃ U : ℝ → ℝ, trap U ∧ Tmap U = U := by
+  rcases h with ⟨Tmap, _hmap, _hlimit, hcont, hcompact, hfixed⟩
+  exact ⟨Tmap, hcont, hcompact, hfixed⟩
+
 theorem FrozenWaveMapConstruction.exists_fixed_limit
     {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
     (h : FrozenWaveMapConstruction p c κ M trap) :
@@ -3482,6 +3513,17 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_bo
         ∀ x, U x ≤ Real.exp (-(kappa c) * x) := by
   exact h.map_construction.exists_fixed_inMonotoneWaveTrapSet_with_bounds
 
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_limit_map
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    ∃ Tmap : (ℝ → ℝ) → ℝ → ℝ,
+      (∀ u, InMonotoneWaveTrapSet (kappa c) 1 u →
+        InMonotoneWaveTrapSet (kappa c) 1 (Tmap u)) ∧
+        ∀ u, InMonotoneWaveTrapSet (kappa c) 1 u →
+          FrozenAuxiliaryLimitOutput p c (kappa c) 1
+            (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) u (Tmap u) :=
+  h.map_construction.exists_map_self
+
 theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit
     {p : CMParams} {c κ₁ κtilde D : ℝ}
     (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
@@ -3502,6 +3544,17 @@ theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_bo
         (∀ x, U x ≤ MChi p) ∧
         ∀ x, U x ≤ Real.exp (-(kappa c) * x) := by
   exact h.map_construction.exists_fixed_inWaveTrapSet_with_bounds
+
+theorem PositiveSensitivityWaveFixedPointConstruction.exists_limit_map
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    ∃ Tmap : (ℝ → ℝ) → ℝ → ℝ,
+      (∀ u, InWaveTrapSet (kappa c) (MChi p) u →
+        InWaveTrapSet (kappa c) (MChi p) (Tmap u)) ∧
+        ∀ u, InWaveTrapSet (kappa c) (MChi p) u →
+          FrozenAuxiliaryLimitOutput p c (kappa c) (MChi p)
+            (fun u => InWaveTrapSet (kappa c) (MChi p) u) u (Tmap u) :=
+  h.map_construction.exists_map_self
 
 theorem one_le_MChi_of_chi_nonneg_lt_chiStar
     (p : CMParams) (hχ_nonneg : 0 ≤ p.χ) (hχ : p.χ < chiStar p) :
