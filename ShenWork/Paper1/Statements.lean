@@ -179,6 +179,19 @@ theorem IsRightVanishingTravelingWave.nonnegativeInitialDatum
     NonnegativeInitialDatum U :=
   ⟨hU, fun x => (hTW.U_pos x).le⟩
 
+theorem IsRightVanishingTravelingWave.to_globalCauchySolutionFrom
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsRightVanishingTravelingWave p c U V)
+    (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V) :
+    IsGlobalCauchySolutionFrom p U
+      (fun t x => U (x - c * t)) (fun t x => V (x - c * t)) := by
+  refine ⟨?_, ?_, ?_⟩
+  · exact hTW.to_movingFrame_global_classical_solution hU_diff hV_diff
+  · intro x
+    simp
+  · intro t x _ht
+    exact hTW.U_pos (x - c * t)
+
 def ShenUpperBoundNegative (c : ℝ) (U : ℝ → ℝ) : Prop :=
   ∀ x, 0 < U x ∧ U x < max 1 (Real.exp (-(kappa c) * x))
 
@@ -199,6 +212,19 @@ def WeightedL2MovingFrameConvergence
 def UniformMovingFrameConvergence
     (c : ℝ) (u : ℝ → ℝ → ℝ) (U : ℝ → ℝ) : Prop :=
   ∀ ε > 0, ∃ T, ∀ t x, T ≤ t → |u t x - U (x - c * t)| < ε
+
+theorem IsRightVanishingTravelingWave.weightedL2MovingFrameConvergence_self
+    {p : CMParams} {c η : ℝ} {U V : ℝ → ℝ}
+    (_hTW : IsRightVanishingTravelingWave p c U V) :
+    WeightedL2MovingFrameConvergence η c (fun t x => U (x - c * t)) U := by
+  simp [WeightedL2MovingFrameConvergence]
+
+theorem IsRightVanishingTravelingWave.uniformMovingFrameConvergence_self
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (_hTW : IsRightVanishingTravelingWave p c U V) :
+    UniformMovingFrameConvergence c (fun t x => U (x - c * t)) U := by
+  intro ε hε
+  exact ⟨0, fun _t _x _ht => by simpa using hε⟩
 
 theorem UniformMovingFrameConvergence.profile_eq_of_movingFrame
     {c : ℝ} {U W : ℝ → ℝ}
