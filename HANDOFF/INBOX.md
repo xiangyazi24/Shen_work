@@ -1,97 +1,72 @@
-# Tasks for Codex (GPT-5.5)
+# Shen_work Lean 4 Formalization — Full Task List for Codex
 
-BUILD OK, 0 sorry remaining. Paper main theorems are not yet formalized; see
-`THEOREM_STATUS.md` for the current theorem-status matrix.
+## Project state
 
-## Done: Parabolic maximum principle
+- **Repo**: `~/repos/shen_work`, Lean 4 + Mathlib
+- **Build**: `cd ~/repos/shen_work && ~/.openclaw/workspace/scripts/remote-build.sh shen_work` (DO NOT run local `lake build`)
+- **Single file**: `~/.openclaw/workspace/scripts/remote-build.sh shen_work --file ShenWork/Defs.lean`
+- **Current invariant**: 0 sorry, full build clean
+- **Papers**: `paper1.pdf` (traveling waves), `paper2.pdf` (boundedness), `paper3.pdf` (persistence)
 
-- Fixed the definition-level obstruction in the maximum-principle API:
-  `IsClassicalSubSolution`, `IsClassicalSuperSolution`, and
-  `IsClassicalLinearSubSolution` now include closed-rectangle `ContinuousOn`
-  fields, and their derivative/PDE hypotheses use `Ioc 0 T` instead of `Ioo 0 T`.
-  This rules out the old initial/terminal jump counterexamples and makes a
-  compact-rectangle maximum proof mathematically honest.
-- `hR_large : B < ε * (1 + R ^ 2)` closed by arithmetic with `Real.sqrt`.
-- Added `exists_positive_interior_max_on_Icc_prod`: with `ContinuousOn`, a positive point
-  and negative parabolic boundary produce a positive max at `t > 0`, `x ∈ (-R,R)`.
-- Added `spatialCoercivePerturbation_exists_positive_interior_max_on_rect`, the coercive
-  perturbation specialization of the previous lemma.
-- Added `time_deriv_nonneg_at_Icc_max`: at a positive-time max on `[0,T]`,
-  the time derivative is nonnegative.
-- Added `space_deriv_eq_zero_at_Icc_interior_max`: at an interior spatial max,
-  the first spatial derivative is zero.
-- Added rectangle-max projection wrappers `time_deriv_nonneg_at_Icc_prod_max` and
-  `space_deriv_eq_zero_at_Icc_prod_interior_max`.
-- Added `second_space_deriv_nonpos_at_Icc_interior_max` plus the rectangle wrapper:
-  at an interior spatial maximum, the second spatial derivative is nonpositive.
-- Added `spatialCoercivePerturbation_no_positive_interior_rect_max`: a positive
-  interior rectangle maximum contradicts the strict PDE inequality.
-- Closed `coercive_exponential_barrier_estimate` by constructing a compact
-  rectangle maximum for the coercive exponential perturbation, proving it cannot
-  be positive, and then sending `ε → 0`.
-- As a result, `weak_maximum_principle_linear`, `parabolic_maximum_principle`,
-  `comparison_principle`, and `comparison_with_spatially_constant_super` are now
-  proved without `sorry`.
-- Replaced the two Paper3 false positive theorem bodies with proved negation/counterexample
-  theorems under the current toy solution definitions.
-- Removed the unused false positive theorem `pde_bounded_by_rectangle_ode`; the file already proves
-  the corresponding universal statement false under the current toy PDE definitions.
-- Removed the false explicit logistic-profile traveling-wave construction:
-  `TravelingWaveConstruction.lean` now states only true profile/barrier facts, and
-  `TravelingWaves.lean` / `StabilityUniqueness.lean` no longer claim those profiles
-  prove `IsTravelingWave`.
-- Closed the two `MildSolution.lean` integrability `sorry`s by making the missing
-  time-integrability hypotheses explicit in the Duhamel difference/Lipschitz estimate.
-  The theorem now proves the algebraic integral identity from genuine
-  `MeasureTheory.Integrable` assumptions instead of pretending spatial measurability
-  implies time integrability.
-- Added `abstract_mild_fixed_point`, a proved Banach fixed-point wrapper that converts
-  a complete metric self-map, a contraction proof, and an eval/Φ commutation lemma
-  into a raw mild fixed point.
-- Added traveling-wave translation infrastructure in `Defs.lean`:
-  `IsTravelingWave.shift`, `IsMonotoneTravelingWave.shift`, and
-  `exp_bound_shift_right`. These are true phase-shift facts needed before any honest
-  uniqueness proof can fix the wave phase using asymptotics/stability.
-- Added `cStarStar_ge_two`, `two_lt_of_cStarStar_lt`, and
-  `kappa_pos_of_cStarStar_lt`, extracting the speed facts needed from the
-  stability/uniqueness threshold.
-- Added `IsTravelingWave.shift_right_with_exp_bound` and
-  `IsMonotoneTravelingWave.shift_right_with_exp_bound`, combining phase-shift
-  invariance with preservation of the right exponential tail bound when shifting
-  right.
-- Removed the undernormalized `cm_tw_uniqueness` theorem and downstream
-  `uniqueness_traveling_wave` wrapper. The old hypotheses used only a strict
-  exponential upper bound, but right shifts preserve both the traveling-wave
-  equations and that bound, so this statement should not be kept as a theorem
-  without the paper's actual phase/asymptotic normalization and stability proof.
-- Removed `heteroclinic_from_shooting_hypotheses` and `shooting_theorem` from
-  `TravelingWaveODE.lean`. The file keeps the proved local shooting-segment
-  lemmas and the honest `travelingWave_of_heteroclinic` projection, but no
-  longer claims that a one-dimensional positive root gives a global heteroclinic.
-- Removed `local_existence_mild`. The file keeps the proved pointwise
-  contraction estimate and `abstract_mild_fixed_point`, but no longer claims
-  local mild existence without constructing the actual complete function space,
-  self-map, self-map/integrability facts, and contraction proof.
-- Removed remaining theorem-shaped placeholders that looked like paper main
-  theorems but were only constant-solution/toy witnesses:
-  `cm_global_exist_*`, `cm_stabilize_*`, `cm_tw_stability`, the public
-  `global_existence_*`/`stabilization_*` wrappers, `stability_traveling_wave`,
-  and Paper2 `cm2_thm*`.
-- Added `THEOREM_STATUS.md` and rewrote `UNDERSTANDING.md` so future work is
-  driven by accurate paper-theorem status, not by `sorry` count.
-- Added `ShenWork.Paper2.Defs` and `ShenWork.Paper3.Defs` to `ShenWork.lean`,
-  so the remote full build now covers the Paper2/Paper3 layers.
-- Renamed Paper2/Paper3 placeholder predicates to `IsToyClassicalSolution2`,
-  `IsToyGlobalClassicalSolution2`, `IsToyBounded2`, and
-  `IsToyGloballyAsymptoticallyStable`, so the Lean API no longer suggests that
-  the bounded-domain paper PDE has been encoded.
+## What's wrong
 
-## P0: MildSolution Banach fixed point
-Need to instantiate `abstract_mild_fixed_point` by constructing the actual complete
-function space, self-map, self-map/integrability facts, and contraction proof for Φ.
+All paper theorems are defined as `def Foo : Prop := ...` (statement targets) with
+projection lemmas proved between them. **No actual PDE theorem is proved.** The 0-sorry
+invariant is fake — it just means nothing uses `sorry` because the hard theorems are
+encoded as Prop definitions, not as `theorem ... := sorry`.
 
-## Key API discoveries
-- `continuous_rpow_const.comp_aestronglyMeasurable` for rpow measurability
-- `fderiv_pi` + `dsimp` for componentwise fderiv
-- `(try ring) <;> linear_combination` for mixed ring/hypothesis goals
-- `MeasureTheory.continuousOn_of_dominated` for parametric integral continuity
+## What to do
+
+Convert statement targets into real theorems (with `sorry` initially) and then prove them.
+Introduce `sorry` honestly where real math is needed, then eliminate each one.
+
+## Priority 1: Psi elliptic ODE identity
+
+The resolvent `v(x) = Ψ(x; f, λ, μ) = (μ/(2√λ)) ∫ e^{-√λ|x-y|} f(y) dy` satisfies:
+
+```
+v''(x) - λ v(x) + μ f(x) = 0
+```
+
+This is in `ShenWork/PDE/LeibnizRule.lean` as `Psi_elliptic_ode` (currently `sorry`).
+
+**Proof strategy**: 
+1. The first derivative `v'(x)` is already proved as `Psi_derivative_formula_general`
+2. v'(x) = -(μ/2) e^{-ax} L(x) + (μ/2) e^{ax} R(x) where a = √λ
+3. L(x) = ∫_{Iic x} e^{ay} f(y) dy, R(x) = ∫_{Ioi x} e^{-ay} f(y) dy
+4. Use FTC: L'(x) = e^{ax}f(x), R'(x) = -e^{-ax}f(x)
+5. Product rule → v''(x) = a²v(x) - μf(x) = λv(x) - μf(x)
+
+FTC for half-line integrals: `hasDerivAt_setIntegral_Iic_of_continuous` is started (also in LeibnizRule.lean, currently `sorry`). Use `Set.Iic_union_Ioc_eq_Iic` to split, then `intervalIntegral.integral_hasDerivAt_right` for the interval part.
+
+## Priority 2: Lemma 4.1 — upper barrier supersolution
+
+`IsFrozenSuperSolution p c u (upperBarrier κ M)` — the upper barrier `min(M, exp(-κx))` 
+is a supersolution of the frozen wave equation when u is in the trap set.
+
+Key facts already proved:
+- `expDecay_logistic_wave_nonpos_at_kappa`: exponential part satisfies logistic ≤ 0
+- `constant_logistic_nonpos`: constant M ≥ 1 satisfies logistic ≤ 0
+- Comparison principle proved in `ParabolicMaxPrinciple.lean`
+
+The chemotaxis term `χ·(W^m · V_x)_x` needs Psi ODE identity (Priority 1) to handle.
+
+## Priority 3: Lemma 4.2 — lower barrier subsolution  
+
+Similar structure but for `lowerBarrierPlateau` and constant subsolutions.
+
+## Priority 4: Paper1 Proposition 1.1 — global existence
+
+Schauder fixed point on the function space `E_T(u₀)`. Needs comparison principle + 
+compactness. Very involved.
+
+## Priority 5: Paper2/Paper3 theorems
+
+Less urgent. Paper2 bounded-domain PDE predicates need genuine instantiation first.
+
+## Build rules
+
+- **Remote only**: `~/.openclaw/workspace/scripts/remote-build.sh shen_work`
+- **Never** run `lake build` or `lake env lean` locally
+- Introduce `sorry` where needed — honest sorry is better than fake 0-sorry
+- Run `rg -n "\bsorry\b|axiom|admit" ShenWork --glob '*.lean'` to track progress

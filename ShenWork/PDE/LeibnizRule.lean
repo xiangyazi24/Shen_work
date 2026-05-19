@@ -875,7 +875,7 @@ private lemma integrableOn_exp_neg_mul_u_Ioi
 
 theorem Psi_elliptic_ode {u : ℝ → ℝ} {l mu : ℝ}
     (hl : 0 < l) (hmu : 0 < mu) (hu : IsCUnifBdd u)
-    (hu_nonneg : ∀ x, 0 ≤ u x) (x : ℝ) :
+    (_hu_nonneg : ∀ x, 0 ≤ u x) (x : ℝ) :
     iteratedDeriv 2 (fun z => Psi u l mu z) x -
       l * Psi u l mu x + mu * u x = 0 := by
   let a : ℝ := Real.sqrt l
