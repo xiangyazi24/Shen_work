@@ -2545,6 +2545,18 @@ theorem FrozenWaveMapSchauderData.exists_fixed_of_principle
     ∃ U : ℝ → ℝ, trap U ∧ Tmap U = U :=
   hprinciple Tmap h.1 h.continuousOn h.compactRange
 
+theorem FrozenWaveMapSchauderData.exists_fixed_limit_of_principle
+    {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
+    {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hprinciple : LocalUniformSchauderFixedPointPrinciple trap)
+    (h : FrozenWaveMapSchauderData p c κ M trap Tmap) :
+    ∃ U : ℝ → ℝ,
+      trap U ∧ FrozenAuxiliaryLimitOutput p c κ M trap U U := by
+  rcases h.exists_fixed_of_principle hprinciple with ⟨U, hU, hfix⟩
+  refine ⟨U, hU, ?_⟩
+  have hlimit := h.limit_output hU
+  rwa [hfix] at hlimit
+
 /-- The Schauder-map statement target from the proof of Theorem 1.1: construct
 a local-uniformly compact and continuous limit map on a trapping set, then get a
 fixed point. -/
