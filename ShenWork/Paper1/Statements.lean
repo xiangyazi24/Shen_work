@@ -1372,36 +1372,33 @@ theorem FrozenStationaryWaveProfile.mk_from_stationary
     lim_pos_inf := hlim_pos }
 
 theorem paperWaveOperator_eq_frozenWaveOperator_at_fixed_point
-    (p : CMParams) {c : ℝ} {U : ℝ → ℝ}
+    (p : CMParams) {c : ℝ} {U : ℝ → ℝ} (x : ℝ)
     (hU : IsCUnifBdd U) (hU_nonneg : ∀ x, 0 ≤ U x)
     (hU_diff : DifferentiableAt ℝ U x)
     (hV_diff : DifferentiableAt ℝ (deriv (frozenElliptic p U)) x)
-    (hU_rpow_diff : DifferentiableAt ℝ (fun y => (U y) ^ p.m) x)
-    (x : ℝ) :
+    (_hU_rpow_diff : DifferentiableAt ℝ (fun y => (U y) ^ p.m) x) :
     paperWaveOperator p c U U x = frozenWaveOperator p c U U x := by
   unfold paperWaveOperator frozenWaveOperator
   simp only
   have hU_pow_deriv : HasDerivAt (fun y => (U y) ^ p.m)
-      (p.m * (U x) ^ (p.m - 1) * deriv U x) x := by
-    have hm_cond : U x ≠ 0 ∨ 1 ≤ p.m := Or.inr p.hm
-    simpa [mul_assoc] using hU_diff.hasDerivAt.rpow_const hm_cond
+      (deriv U x * p.m * (U x) ^ (p.m - 1)) x :=
+    hU_diff.hasDerivAt.rpow_const (Or.inr p.hm)
+  have hV'' := frozenElliptic_deriv_deriv_eq p hU hU_nonneg x
   have hV_deriv : HasDerivAt (deriv (frozenElliptic p U))
       (frozenElliptic p U x - (U x) ^ p.γ) x := by
-    rw [← frozenElliptic_deriv_deriv_eq p hU hU_nonneg x]
-    exact hV_diff.hasDerivAt
+    convert hV_diff.hasDerivAt using 1
+    exact hV''.symm
   have hprod := hU_pow_deriv.mul hV_deriv
   have hfun_eq :
       (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) =
       (fun y => (U y) ^ p.m) * deriv (frozenElliptic p U) := by
-    ext y
-    simp [Pi.mul_apply]
+    ext y; simp [Pi.mul_apply]
   have hchem :
       deriv (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) x =
-        p.m * (U x) ^ (p.m - 1) * deriv U x *
+        deriv U x * p.m * (U x) ^ (p.m - 1) *
             deriv (frozenElliptic p U) x +
           (U x) ^ p.m * (frozenElliptic p U x - (U x) ^ p.γ) := by
     rw [hfun_eq, hprod.deriv]
-    ring
   rw [hchem]
   have hm_pos : 0 < p.m := lt_of_lt_of_le zero_lt_one p.hm
   have hγ_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
@@ -1412,7 +1409,7 @@ theorem paperWaveOperator_eq_frozenWaveOperator_at_fixed_point
     have hUγ_zero : (U x) ^ p.γ = 0 := by
       rw [hUx_zero]
       exact Real.zero_rpow (ne_of_gt hγ_pos)
-    rw [hUx_zero, hUm_zero, hUγ_zero]
+    rw [hUm_zero, hUγ_zero, hUx_zero]
     ring
   · have hUx_pos : 0 < U x := lt_of_le_of_ne (hU_nonneg x) (Ne.symm hUx_zero)
     have hpow_m : (U x) ^ p.m = U x * (U x) ^ (p.m - 1) := by
@@ -1424,19 +1421,41 @@ theorem paperWaveOperator_eq_frozenWaveOperator_at_fixed_point
           rw [Real.rpow_add hUx_pos]
         _ = U x * (U x) ^ (p.m - 1) := by
           rw [Real.rpow_one]
-    have hpow_tailγ :
-        (U x) ^ (p.m - 1) * (U x) ^ p.γ =
-          (U x) ^ (p.m + p.γ - 1) := by
+    have hpow_tailγ_nf :
+        (U x) ^ (-1 + p.m) * U x * (U x) ^ p.γ =
+          U x * (U x) ^ (-1 + p.m + p.γ) := by
       calc
-        (U x) ^ (p.m - 1) * (U x) ^ p.γ =
-            (U x) ^ ((p.m - 1) + p.γ) := by
+        (U x) ^ (-1 + p.m) * U x * (U x) ^ p.γ =
+            ((U x) ^ (-1 + p.m) * (U x) ^ (1 : ℝ)) * (U x) ^ p.γ := by
+          rw [Real.rpow_one]
+        _ = (U x) ^ ((-1 + p.m) + 1) * (U x) ^ p.γ := by
           rw [← Real.rpow_add hUx_pos]
-        _ = (U x) ^ (p.m + p.γ - 1) := by
+        _ = (U x) ^ p.m * (U x) ^ p.γ := by
+          congr 2
+          ring
+        _ = (U x) ^ (p.m + p.γ) := by
+          rw [← Real.rpow_add hUx_pos]
+        _ = (U x) ^ (1 + (-1 + p.m + p.γ)) := by
           congr 1
           ring
+        _ = (U x) ^ (1 : ℝ) * (U x) ^ (-1 + p.m + p.γ) := by
+          rw [Real.rpow_add hUx_pos]
+        _ = U x * (U x) ^ (-1 + p.m + p.γ) := by
+          rw [Real.rpow_one]
     rw [hpow_m]
     ring_nf
-    rw [hpow_tailγ]
+    have hchem_tail :
+        p.χ * U x * (U x) ^ (-1 + p.m + p.γ) =
+          p.χ * (U x) ^ (-1 + p.m) * U x * (U x) ^ p.γ := by
+      calc
+        p.χ * U x * (U x) ^ (-1 + p.m + p.γ) =
+            p.χ * (U x * (U x) ^ (-1 + p.m + p.γ)) := by
+          ring
+        _ = p.χ * ((U x) ^ (-1 + p.m) * U x * (U x) ^ p.γ) := by
+          rw [← hpow_tailγ_nf]
+        _ = p.χ * (U x) ^ (-1 + p.m) * U x * (U x) ^ p.γ := by
+          ring
+    nlinarith [hchem_tail]
 
 theorem FrozenStationaryWaveProfile.mk_auto_limits
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
