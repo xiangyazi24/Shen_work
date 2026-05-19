@@ -3630,6 +3630,34 @@ theorem Lemma_5_1.wave_derivative_exp_bound
           B2 * Real.exp (-(kappa c) * p.γ * x) :=
   (h p c hc U V hTW hbound).2.2.2.2 hspeed
 
+/-- The explicit log-derivative bound from Paper1 Lemma 5.2. -/
+def logDerivativeBoundFormula (p : CMParams) (c : ℝ) : ℝ :=
+  (1 / 2 : ℝ) *
+    (c + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) +
+      Real.sqrt
+        ((c + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1)) ^ 2 +
+          4 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+          4 * (MChi p) ^ p.α))
+
+/-- Paper1 Lemma 5.2 with the explicit constant displayed in the paper. -/
+def Lemma_5_2_explicit : Prop :=
+  ∀ p : CMParams, ∀ c : ℝ,
+    c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+          ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c
+
+theorem Lemma_5_2_explicit.log_derivative_bound
+    (h : Lemma_5_2_explicit) {p : CMParams} {c : ℝ}
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
+    {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U) :
+    ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c :=
+  h p c hspeed U V hTW hbound
+
 def Lemma_5_2 : Prop :=
   ∀ p : CMParams, ∀ c : ℝ,
     c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
@@ -3637,6 +3665,16 @@ def Lemma_5_2 : Prop :=
         IsTravelingWave p c U V →
         HasWaveUpperTailBound p c U →
           ∃ B > 0, ∀ x, deriv U x / U x ≤ B
+
+theorem Lemma_5_2_explicit.to_Lemma_5_2
+    (h : Lemma_5_2_explicit) : Lemma_5_2 := by
+  intro p c hspeed U V hTW hbound
+  refine ⟨max (logDerivativeBoundFormula p c) 1, ?_, ?_⟩
+  · exact lt_of_lt_of_le zero_lt_one (le_max_right _ _)
+  · intro x
+    exact le_trans
+      (h.log_derivative_bound hspeed hTW hbound x)
+      (le_max_left _ _)
 
 theorem Lemma_5_2.log_derivative_bound
     (h : Lemma_5_2) {p : CMParams} {c : ℝ}
