@@ -1115,6 +1115,34 @@ theorem expDecay_linear_part_kappa_eq_zero
   rw [kappa_quadratic_eq_zero hc]
   ring
 
+theorem expDecay_logistic_wave_eq
+    (p : CMParams) (κ c x : ℝ) :
+    iteratedDeriv 2 (expDecay κ) x + c * deriv (expDecay κ) x +
+        expDecay κ x * (1 - (expDecay κ x) ^ p.α) =
+      (κ ^ 2 - c * κ + 1) * expDecay κ x -
+        expDecay κ x * (expDecay κ x) ^ p.α := by
+  rw [expDecay_iteratedDeriv_two, expDecay_deriv]
+  ring
+
+theorem expDecay_logistic_wave_at_kappa
+    {c : ℝ} (hc : 2 ≤ c) (p : CMParams) (x : ℝ) :
+    iteratedDeriv 2 (expDecay (kappa c)) x +
+        c * deriv (expDecay (kappa c)) x +
+        expDecay (kappa c) x * (1 - (expDecay (kappa c) x) ^ p.α) =
+      -expDecay (kappa c) x * (expDecay (kappa c) x) ^ p.α := by
+  rw [expDecay_logistic_wave_eq]
+  rw [kappa_quadratic_eq_zero hc]
+  ring
+
+theorem expDecay_logistic_wave_nonpos_at_kappa
+    {c : ℝ} (hc : 2 ≤ c) (p : CMParams) (x : ℝ) :
+    iteratedDeriv 2 (expDecay (kappa c)) x +
+        c * deriv (expDecay (kappa c)) x +
+        expDecay (kappa c) x * (1 - (expDecay (kappa c) x) ^ p.α) ≤ 0 := by
+  rw [expDecay_logistic_wave_at_kappa hc p x]
+  exact mul_nonpos_of_nonpos_of_nonneg (neg_nonpos.mpr (expDecay_pos (kappa c) x).le)
+    (Real.rpow_nonneg (expDecay_pos (kappa c) x).le _)
+
 def upperBarrier (κ M : ℝ) : ℝ → ℝ :=
   fun x => min M (Real.exp (-κ * x))
 
