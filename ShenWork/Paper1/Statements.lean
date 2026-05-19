@@ -3807,7 +3807,7 @@ theorem setIntegral_Ioi_exp_le_of_rpow_le
 
 theorem chemotaxis_resolvent_bound
     (p : CMParams) {κ M : ℝ} {u : ℝ → ℝ}
-    (hκ : 0 < κ) (hγκ : p.γ * κ < 1)
+    (hκ : 0 < κ) (hγκ : p.γ * κ < 1) (hmκ : κ * p.m ≤ 1)
     (_hM : 1 ≤ M) (hu : InWaveTrapSet κ M u) (x : ℝ) :
     -κ * p.m * deriv (frozenElliptic p u) x +
         frozenElliptic p u x ≤
@@ -3840,9 +3840,41 @@ theorem chemotaxis_resolvent_bound
   set L := ∫ y in Set.Iic x, Real.exp (1 * y) * (u y) ^ p.γ
   set R := ∫ y in Set.Ioi x, Real.exp (-1 * y) * (u y) ^ p.γ
   have hL_int : IntegrableOn (fun y => Real.exp (1 * y) * (u y) ^ p.γ)
-      (Set.Iic x) := by sorry
+      (Set.Iic x) := by
+    have hdom : IntegrableOn
+        (fun y => Real.exp ((1 - p.γ * κ) * y)) (Set.Iic x) :=
+      integrableOn_exp_mul_Iic h1mgk x
+    refine hdom.mono' ?_ (Filter.Eventually.of_forall fun y => ?_)
+    · exact ((Real.continuous_exp.comp (continuous_const.mul continuous_id)).mul
+        hu_rpow.1).aestronglyMeasurable
+    · rw [Real.norm_eq_abs]
+      rw [abs_of_nonneg
+        (mul_nonneg (Real.exp_nonneg _) (Real.rpow_nonneg (hf y) p.γ))]
+      calc Real.exp (1 * y) * (u y) ^ p.γ
+          ≤ Real.exp (1 * y) * Real.exp (-(p.γ * κ) * y) :=
+            mul_le_mul_of_nonneg_left (hu_rpow_le_exp y) (Real.exp_nonneg _)
+        _ = Real.exp ((1 - p.γ * κ) * y) := by
+            rw [← Real.exp_add]
+            congr 1
+            ring
   have hR_int : IntegrableOn (fun y => Real.exp (-1 * y) * (u y) ^ p.γ)
-      (Set.Ioi x) := by sorry
+      (Set.Ioi x) := by
+    have hdom : IntegrableOn
+        (fun y => Real.exp (-(1 + p.γ * κ) * y)) (Set.Ioi x) :=
+      integrableOn_exp_mul_Ioi (by linarith : -(1 + p.γ * κ) < (0 : ℝ)) x
+    refine hdom.mono' ?_ (Filter.Eventually.of_forall fun y => ?_)
+    · exact ((Real.continuous_exp.comp (continuous_const.mul continuous_id)).mul
+        hu_rpow.1).aestronglyMeasurable
+    · rw [Real.norm_eq_abs]
+      rw [abs_of_nonneg
+        (mul_nonneg (Real.exp_nonneg _) (Real.rpow_nonneg (hf y) p.γ))]
+      calc Real.exp (-1 * y) * (u y) ^ p.γ
+          ≤ Real.exp (-1 * y) * Real.exp (-(p.γ * κ) * y) :=
+            mul_le_mul_of_nonneg_left (hu_rpow_le_exp y) (Real.exp_nonneg _)
+        _ = Real.exp (-(1 + p.γ * κ) * y) := by
+            rw [← Real.exp_add]
+            congr 1
+            ring
   have hL_bound := setIntegral_Iic_exp_le_of_rpow_le hκ hγ_pos hγκ
     hu_rpow_le_exp x hL_int
   have hR_bound := setIntegral_Ioi_exp_le_of_rpow_le hκ hγ_pos hγκ
@@ -3862,7 +3894,12 @@ theorem chemotaxis_resolvent_bound
       1 / 2 * (Real.exp (-1 * x) * L + Real.exp (1 * x) * R) := by
     exact Psi_kernel_splitting hu_rpow (fun y => hf_rpow y) x
   -- Combine: -κm·V' + V = (1/2)(κm+1)·exp(-x)·L + (1/2)(1-κm)·exp(x)·R
-  rw [hV', hV]
+  have hcomb :
+      -κ * p.m * deriv (frozenElliptic p u) x + frozenElliptic p u x =
+        1 / 2 * (κ * p.m + 1) * (Real.exp (-1 * x) * L) +
+          1 / 2 * (1 - κ * p.m) * (Real.exp (1 * x) * R) := by
+    rw [hV', hV]; ring
+  rw [hcomb]
   -- Apply bounds and coefficient algebra
   have hcoeff :
       (κ * p.m + 1) * (1 + p.γ * κ) + (1 - κ * p.m) * (1 - p.γ * κ) =
@@ -3903,12 +3940,42 @@ theorem chemotaxis_resolvent_bound
             (Real.exp (-(p.γ * κ) * x) / (1 - p.γ * κ)) := by
           rw [hexp_combine_L]
       _ = _ := by ring
-  -- Second term: (1/2)(1-κm)·exp(x)·R
-  -- If 1-κm ≥ 0: bound R, total ≤ [(κm+1)/(2(1-γκ)) + (1-κm)/(2(1+γκ))]·exp(-γκx)
-  -- If 1-κm < 0: this term ≤ 0, total ≤ first term alone
-  -- In both cases ≤ (1+mγκ²)/(1-γ²κ²) · exp(-γκx) by hcoeff algebra.
-  -- Detailed case analysis deferred to next session.
-  sorry
+  -- Second term bound
+  have hterm2_bound :
+      Real.exp (1 * x) * R ≤ Real.exp (-(p.γ * κ) * x) / (1 + p.γ * κ) := by
+    calc Real.exp (1 * x) * R
+        ≤ Real.exp (1 * x) * (Real.exp (-(1 + p.γ * κ) * x) / (1 + p.γ * κ)) :=
+          mul_le_mul_of_nonneg_left hR_bound (Real.exp_nonneg _)
+      _ = _ := hexp_combine_R
+  -- Both terms contribute positively (using hmκ : κ * p.m ≤ 1)
+  have h2 : (0 : ℝ) ≤ 1 / 2 * (1 - κ * p.m) := by linarith
+  have hterm2 :
+      1 / 2 * (1 - κ * p.m) * (Real.exp (1 * x) * R) ≤
+        1 / 2 * (1 - κ * p.m) / (1 + p.γ * κ) *
+          Real.exp (-(p.γ * κ) * x) := by
+    calc 1 / 2 * (1 - κ * p.m) * (Real.exp (1 * x) * R)
+        ≤ 1 / 2 * (1 - κ * p.m) *
+            (Real.exp (-(p.γ * κ) * x) / (1 + p.γ * κ)) :=
+          mul_le_mul_of_nonneg_left hterm2_bound h2
+      _ = _ := by ring
+  have htotal := add_le_add hterm1 hterm2
+  -- Show the bound sum = target
+  suffices hbound_eq :
+      1 / 2 * (κ * p.m + 1) / (1 - p.γ * κ) * Real.exp (-(p.γ * κ) * x) +
+        1 / 2 * (1 - κ * p.m) / (1 + p.γ * κ) * Real.exp (-(p.γ * κ) * x) =
+        (1 + p.m * p.γ * κ ^ 2) / (1 - p.γ ^ 2 * κ ^ 2) *
+          Real.exp (-(p.γ * κ) * x) by
+    linarith
+  -- Factor out exp(-γκx), use coefficient identity
+  have hfact : ∀ a b : ℝ,
+      a * Real.exp (-(p.γ * κ) * x) + b * Real.exp (-(p.γ * κ) * x) =
+        (a + b) * Real.exp (-(p.γ * κ) * x) := by intros; ring
+  rw [hfact]
+  congr 1
+  rw [← hden]
+  rw [div_add_div _ _ (ne_of_gt h1mgk) (ne_of_gt h1pgk)]
+  congr 1
+  nlinarith [hcoeff]
 
 def Lemma_4_2 : Prop :=
   ∀ p : CMParams, ∀ κ κtilde M c : ℝ,
