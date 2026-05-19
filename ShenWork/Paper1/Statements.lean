@@ -2196,10 +2196,10 @@ theorem paperWaveOperator_const_nonpos_neg
     paperWaveOperator p c u (fun _ => M) x ≤ 0 := by
   rw [paperWaveOperator_const_eq p hu.cunif_bdd hu.nonneg x]
   have hM_pos : 0 < M := by linarith
-  have hV_le : frozenElliptic p u x ≤ M ^ p.γ := by
-    apply frozenElliptic_le_of_rpow_le p hM_pos.le hu.cunif_bdd.1 hu.nonneg
-    intro y
-    exact hu.rpow_le_M (by linarith [p.hγ]) y
+  have hV_le : frozenElliptic p u x ≤ M ^ p.γ :=
+    frozenElliptic_le_of_rpow_le p
+      (Real.rpow_nonneg hM_pos.le p.γ) hu.cunif_bdd.1 hu.nonneg
+      (fun y => hu.rpow_le_M (by linarith [p.hγ]) y) x
   have hchem : -p.χ * M ^ (p.m - 1) * frozenElliptic p u x ≤
       -p.χ * M ^ (p.m + p.γ - 1) := by
     have h1 : 0 ≤ -p.χ := by linarith
