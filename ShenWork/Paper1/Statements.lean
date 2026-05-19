@@ -1089,18 +1089,108 @@ theorem frozenElliptic_tendsto_atTop_of_U_tendsto
     (hU : IsCUnifBdd U) (hU_nonneg : ∀ x, 0 ≤ U x)
     (hU_lim : Tendsto U atTop (𝓝 0)) :
     Tendsto (frozenElliptic p U) atTop (𝓝 0) := by
-  -- V(x) = (1/2) ∫ e^{-|x-y|} U(y)^γ dy = (1/2) ∫ e^{-|z|} U(x+z)^γ dz
-  -- DCT: U(x+z)^γ → 0 pointwise, dominated by M^γ · e^{-|z|} (integrable)
-  -- So V(x) → (1/2) ∫ e^{-|z|} · 0 dz = 0
   have hγ_pos : 0 < p.γ := by linarith [p.hγ]
+  let f : ℝ → ℝ := fun y => (U y) ^ p.γ
   have hf_lim : Tendsto (fun x => (U x) ^ p.γ) atTop (𝓝 0) := by
     have h0γ : (0 : ℝ) ^ p.γ = 0 := Real.zero_rpow (ne_of_gt hγ_pos)
     rw [← h0γ]
     exact hU_lim.rpow_const (Or.inr hγ_pos.le)
-  -- V(x) ≤ M^γ (bounded) and V(x) ≥ 0 (nonneg)
-  -- Use squeeze: V(x) ≤ Psi(constant M^γ) * something → 0
-  -- Actually use the explicit integral representation + DCT
-  sorry
+  have hf_lim' : Tendsto f atTop (𝓝 0) := by
+    simpa [f] using hf_lim
+  have hf_cunif : IsCUnifBdd f := by
+    simpa [f] using rpow_cunif_bdd_of_nonneg p hU hU_nonneg
+  rcases hU.2 with ⟨M, hM⟩
+  have hM_nonneg : 0 ≤ M := le_trans (abs_nonneg (U 0)) (hM 0)
+  let B : ℝ := M ^ p.γ
+  have hB_nonneg : 0 ≤ B := Real.rpow_nonneg hM_nonneg p.γ
+  have hf_bound : ∀ y, f y ≤ B := by
+    intro y
+    dsimp [f, B]
+    exact Real.rpow_le_rpow (hU_nonneg y)
+      (le_trans (le_abs_self (U y)) (hM y)) hγ_pos.le
+  let F : ℝ → ℝ → ℝ := fun x z => (1 / 2 : ℝ) * (Real.exp (-|z|) * f (x + z))
+  let bound : ℝ → ℝ := fun z => (1 / 2 : ℝ) * (Real.exp (-|z|) * B)
+  have hbound_int : Integrable bound := by
+    have hk0 :
+        Integrable (fun z : ℝ => Real.exp (-1 * |0 - z|)) :=
+      _root_.kernel_exp_neg_mul_abs_integrable (by norm_num : (0 : ℝ) < 1) 0
+    have hk : Integrable (fun z : ℝ => Real.exp (-|z|)) := by
+      convert hk0 using 1
+      ext z
+      rw [zero_sub, abs_neg]
+      ring_nf
+    simpa [bound, mul_assoc, mul_left_comm, mul_comm] using
+      hk.const_mul ((1 / 2 : ℝ) * B)
+  have hF_meas :
+      ∀ᶠ x in atTop, AEStronglyMeasurable (F x) volume := by
+    refine Eventually.of_forall ?_
+    intro x
+    have hcont_kernel : Continuous fun z : ℝ => Real.exp (-|z|) :=
+      Real.continuous_exp.comp continuous_abs.neg
+    have hcont_shift : Continuous fun z : ℝ => f (x + z) :=
+      hf_cunif.1.comp (continuous_const.add continuous_id)
+    exact (continuous_const.mul (hcont_kernel.mul hcont_shift)).aestronglyMeasurable
+  have h_bound :
+      ∀ᶠ x in atTop, ∀ᵐ z ∂volume, ‖F x z‖ ≤ bound z := by
+    refine Eventually.of_forall ?_
+    intro x
+    refine Eventually.of_forall ?_
+    intro z
+    have hf_nonneg : 0 ≤ f (x + z) := by
+      dsimp [f]
+      exact Real.rpow_nonneg (hU_nonneg (x + z)) p.γ
+    have hprod_nonneg : 0 ≤ Real.exp (-|z|) * f (x + z) :=
+      mul_nonneg (Real.exp_nonneg _) hf_nonneg
+    have hprod_le :
+        Real.exp (-|z|) * f (x + z) ≤ Real.exp (-|z|) * B :=
+      mul_le_mul_of_nonneg_left (hf_bound (x + z)) (Real.exp_nonneg _)
+    dsimp [F, bound]
+    rw [abs_of_nonneg (mul_nonneg (by norm_num : (0 : ℝ) ≤ 1 / 2) hprod_nonneg)]
+    exact mul_le_mul_of_nonneg_left hprod_le (by norm_num : (0 : ℝ) ≤ 1 / 2)
+  have h_lim :
+      ∀ᵐ z ∂volume, Tendsto (fun x => F x z) atTop (𝓝 0) := by
+    refine Eventually.of_forall ?_
+    intro z
+    have hshift : Tendsto (fun x : ℝ => x + z) atTop atTop :=
+      tendsto_atTop_add_const_right atTop z tendsto_id
+    have hf_shift : Tendsto (fun x : ℝ => f (x + z)) atTop (𝓝 0) :=
+      hf_lim'.comp hshift
+    have hconst :
+        Tendsto (fun _x : ℝ => (1 / 2 : ℝ) * Real.exp (-|z|)) atTop
+          (𝓝 ((1 / 2 : ℝ) * Real.exp (-|z|))) :=
+      tendsto_const_nhds
+    simpa [F, mul_assoc] using hconst.mul hf_shift
+  have hInt_tendsto :
+      Tendsto (fun x => ∫ z, F x z) atTop (𝓝 0) := by
+    have h := MeasureTheory.tendsto_integral_filter_of_dominated_convergence
+      (μ := volume) (l := atTop) (F := F) (f := fun _z : ℝ => (0 : ℝ))
+      bound hF_meas h_bound hbound_int h_lim
+    simpa using h
+  have hrepr : ∀ x, frozenElliptic p U x = ∫ z, F x z := by
+    intro x
+    have hchange :
+        (∫ y : ℝ, Real.exp (-1 * |x - y|) * f y) =
+          ∫ z : ℝ, Real.exp (-|z|) * f (x + z) := by
+      let g : ℝ → ℝ := fun y => Real.exp (-1 * |x - y|) * f y
+      have htrans := integral_add_right_eq_self (μ := (volume : Measure ℝ)) g x
+      calc
+        (∫ y : ℝ, Real.exp (-1 * |x - y|) * f y) = ∫ y : ℝ, g y := rfl
+        _ = ∫ z : ℝ, g (z + x) := htrans.symm
+        _ = ∫ z : ℝ, Real.exp (-|z|) * f (x + z) := by
+          apply integral_congr_ae
+          refine Eventually.of_forall ?_
+          intro z
+          dsimp [g]
+          rw [show x - (z + x) = -z by ring, abs_neg]
+          ring_nf
+    unfold frozenElliptic Psi
+    simp only [Real.sqrt_one, mul_one]
+    rw [hchange]
+    dsimp [F]
+    change (1 / 2 : ℝ) * (∫ z : ℝ, Real.exp (-|z|) * f (x + z)) =
+      ∫ z : ℝ, (1 / 2 : ℝ) * (Real.exp (-|z|) * f (x + z))
+    rw [MeasureTheory.integral_const_mul]
+  exact hInt_tendsto.congr' (Eventually.of_forall fun x => (hrepr x).symm)
 
 theorem frozenElliptic_const_eq (p : CMParams) {c : ℝ} (hc : 0 ≤ c) (x : ℝ) :
     frozenElliptic p (fun _ => c) x = c ^ p.γ := by
@@ -1111,6 +1201,36 @@ theorem frozenElliptic_const_eq (p : CMParams) {c : ℝ} (hc : 0 ≤ c) (x : ℝ
 theorem frozenElliptic_one_eq (p : CMParams) (x : ℝ) :
     frozenElliptic p (fun _ => (1 : ℝ)) x = 1 := by
   rw [frozenElliptic_const_eq p (by norm_num) x, Real.one_rpow]
+
+theorem frozenWaveOperator_one_eq_zero (p : CMParams) (c x : ℝ) :
+    frozenWaveOperator p c (fun _ => (1 : ℝ)) (fun _ => (1 : ℝ)) x = 0 := by
+  unfold frozenWaveOperator
+  simp only [iteratedDeriv_const, deriv_const, show (2 : ℕ) ≠ 0 from by norm_num,
+    ite_false, mul_zero, zero_add, add_zero, sub_zero]
+  have hV_eq : frozenElliptic p (fun _ => (1 : ℝ)) x = 1 :=
+    frozenElliptic_one_eq p x
+  have hV'_eq : deriv (frozenElliptic p (fun _ => (1 : ℝ))) x = 0 := by
+    have hV_const : (fun z => frozenElliptic p (fun _ => (1 : ℝ)) z) = fun _ => (1 : ℝ) := by
+      ext z; exact frozenElliptic_one_eq p z
+    rw [show deriv (frozenElliptic p (fun _ => (1 : ℝ))) x =
+        deriv (fun _ => (1 : ℝ)) x from congr_arg (fun f => deriv f x) hV_const]
+    exact deriv_const x 1
+  have h1m : (1 : ℝ) ^ p.m = 1 := Real.one_rpow p.m
+  have h1α : (1 : ℝ) ^ p.α = 1 := Real.one_rpow p.α
+  have hprod : (fun y => (1 : ℝ) ^ p.m * deriv (frozenElliptic p (fun _ => (1 : ℝ))) y) =
+      fun y => deriv (frozenElliptic p (fun _ => (1 : ℝ))) y := by
+    ext y; rw [h1m, one_mul]
+  have hV'_const :
+      (fun y => deriv (frozenElliptic p (fun _ => (1 : ℝ))) y) =
+        fun _ => (0 : ℝ) := by
+    ext y
+    have hV_const : (fun z => frozenElliptic p (fun _ => (1 : ℝ)) z) = fun _ => (1 : ℝ) := by
+      ext z; exact frozenElliptic_one_eq p z
+    rw [show deriv (frozenElliptic p (fun _ => (1 : ℝ))) y =
+        deriv (fun _ => (1 : ℝ)) y from congr_arg (fun f => deriv f y) hV_const]
+    exact deriv_const y 1
+  rw [hprod, hV'_const, deriv_const, h1α]
+  ring
 
 theorem frozenElliptic_tendsto_atBot_of_U_tendsto
     (p : CMParams) {U : ℝ → ℝ}
