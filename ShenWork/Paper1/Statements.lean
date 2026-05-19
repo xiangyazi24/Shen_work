@@ -76,6 +76,25 @@ def UniformLimsupLe (u : ℝ → ℝ → ℝ) (L : ℝ) : Prop :=
 def UniformConvergesToConstant (u : ℝ → ℝ → ℝ) (a : ℝ) : Prop :=
   ∀ ε > 0, ∃ T, ∀ t x, T ≤ t → |u t x - a| < ε
 
+theorem UniformEventuallyBounded.shift_space
+    {u : ℝ → ℝ → ℝ} (h : UniformEventuallyBounded u) (a : ℝ) :
+    UniformEventuallyBounded (fun t x => u t (x + a)) := by
+  rcases h with ⟨M, hM⟩
+  exact ⟨M, hM.mono fun _t ht x => ht (x + a)⟩
+
+theorem UniformLimsupLe.shift_space
+    {u : ℝ → ℝ → ℝ} {L : ℝ} (h : UniformLimsupLe u L) (a : ℝ) :
+    UniformLimsupLe (fun t x => u t (x + a)) L := by
+  intro ε hε
+  exact (h ε hε).mono fun _t ht x => ht (x + a)
+
+theorem UniformConvergesToConstant.shift_space
+    {u : ℝ → ℝ → ℝ} {b : ℝ} (h : UniformConvergesToConstant u b) (a : ℝ) :
+    UniformConvergesToConstant (fun t x => u t (x + a)) b := by
+  intro ε hε
+  rcases h ε hε with ⟨T, hT⟩
+  exact ⟨T, fun t x ht => hT t (x + a) ht⟩
+
 def HasWaveRightTailAsymptotic (c κ₁ : ℝ) (U : ℝ → ℝ) : Prop :=
   Tendsto
     (fun x => Real.exp ((κ₁ - kappa c) * x) *
