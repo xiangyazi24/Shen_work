@@ -1084,6 +1084,22 @@ structure FrozenStationaryWaveProfile
   lim_pos_inf :
     Tendsto U atTop (𝓝 0) ∧ Tendsto (frozenElliptic p U) atTop (𝓝 0)
 
+theorem FrozenStationaryWaveProfile.mk_from_stationary
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hc : 0 < c)
+    (hU_pos : ∀ x, 0 < U x)
+    (hU_bdd : IsCUnifBdd U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hlim_neg : Tendsto U atBot (𝓝 1) ∧ Tendsto (frozenElliptic p U) atBot (𝓝 1))
+    (hlim_pos : Tendsto U atTop (𝓝 0) ∧ Tendsto (frozenElliptic p U) atTop (𝓝 0)) :
+    FrozenStationaryWaveProfile p c U :=
+  { hc
+    U_pos := hU_pos
+    stationary_eq := hstat
+    elliptic_eq := frozenElliptic_ode p hU_bdd (fun x => (hU_pos x).le)
+    lim_neg_inf := hlim_neg
+    lim_pos_inf := hlim_pos }
+
 theorem FrozenStationaryWaveProfile.to_travelingWave
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (h : FrozenStationaryWaveProfile p c U) :
@@ -3619,6 +3635,84 @@ theorem constant_subsolution_paperWaveOperator_nonneg_of_chi_nonpos
   intro x _hx
   exact paperWaveOperator_const_subsolution_nonneg_of_chi_nonpos
     p hχ hu.cunif_bdd hu.nonneg hd_pos hd_le x
+
+theorem paperWaveOperator_const_subsolution_nonneg_of_chi_nonneg
+    (p : CMParams) {c κ κtilde D d : ℝ} {u : ℝ → ℝ}
+    (hχ_nonneg : 0 ≤ p.χ) (hχ : p.χ < chiStar p)
+    (hα : p.α = p.m + p.γ - 1)
+    (hd_pos : 0 < d)
+    (hd_le : d ≤ constantSubsolutionThreshold p.χ κ κtilde D)
+    (hu : InWaveTrapSet κ 1 u)
+    (x : ℝ) :
+    0 ≤ paperWaveOperator p c u (fun _ => d) x := by
+  rw [paperWaveOperator_const_eq p hu.cunif_bdd hu.nonneg x]
+  apply mul_nonneg hd_pos.le
+  have hd_nonneg : 0 ≤ d := hd_pos.le
+  have hd_le_inv : d ≤ 1 / (1 + |p.χ|) := by
+    exact le_trans hd_le (min_le_left _ _)
+  have hden_pos : 0 < 1 + |p.χ| := by positivity
+  have hinv_le_one : 1 / (1 + |p.χ|) ≤ (1 : ℝ) := by
+    have hden_ge : 1 ≤ 1 + |p.χ| :=
+      le_add_of_nonneg_right (abs_nonneg p.χ)
+    simpa [one_div] using inv_le_one_of_one_le₀ hden_ge
+  have hd_le_one : d ≤ 1 := le_trans hd_le_inv hinv_le_one
+  have hχ_le_one : p.χ ≤ 1 :=
+    le_trans (le_of_lt hχ) (chiStar_le_one p)
+  have hV_le_one : frozenElliptic p u x ≤ 1 := by
+    simpa using
+      (frozenElliptic_le_M_of_inWaveTrapSet p one_pos le_rfl hu x)
+  have hq_nonneg : 0 ≤ d ^ (p.m - 1) :=
+    Real.rpow_nonneg hd_nonneg _
+  have hq_le_one : d ^ (p.m - 1) ≤ 1 :=
+    Real.rpow_le_one hd_nonneg hd_le_one (by linarith [p.hm])
+  have hr_nonneg : 0 ≤ d ^ p.γ :=
+    Real.rpow_nonneg hd_nonneg _
+  have hr_le_one : d ^ p.γ ≤ 1 :=
+    Real.rpow_le_one hd_nonneg hd_le_one (by linarith [p.hγ])
+  have hpow_mγ :
+      d ^ (p.m + p.γ - 1) = d ^ (p.m - 1) * d ^ p.γ := by
+    rw [← Real.rpow_add hd_pos]
+    congr 1
+    ring
+  have hcore_model :
+      0 ≤ 1 - d ^ (p.m + p.γ - 1) -
+          p.χ * d ^ (p.m - 1) + p.χ * d ^ (p.m + p.γ - 1) := by
+    rw [hpow_mγ]
+    have hpart1 : 0 ≤ 1 - d ^ (p.m - 1) :=
+      sub_nonneg.mpr hq_le_one
+    have hpart2 :
+        0 ≤ (1 - p.χ) * d ^ (p.m - 1) * (1 - d ^ p.γ) :=
+      mul_nonneg
+        (mul_nonneg (sub_nonneg.mpr hχ_le_one) hq_nonneg)
+        (sub_nonneg.mpr hr_le_one)
+    have hdecomp :
+        1 - d ^ (p.m - 1) * d ^ p.γ -
+            p.χ * d ^ (p.m - 1) +
+            p.χ * (d ^ (p.m - 1) * d ^ p.γ) =
+          (1 - d ^ (p.m - 1)) +
+            (1 - p.χ) * d ^ (p.m - 1) * (1 - d ^ p.γ) := by
+      ring
+    rw [hdecomp]
+    exact add_nonneg hpart1 hpart2
+  have hVterm_le :
+      p.χ * d ^ (p.m - 1) * frozenElliptic p u x ≤
+        p.χ * d ^ (p.m - 1) * 1 := by
+    exact mul_le_mul_of_nonneg_left hV_le_one
+      (mul_nonneg hχ_nonneg hq_nonneg)
+  rw [hα]
+  nlinarith
+
+theorem constant_subsolution_paperWaveOperator_nonneg_of_chi_nonneg
+    (p : CMParams) {κ κtilde D d c : ℝ} {u : ℝ → ℝ}
+    (hχ_nonneg : 0 ≤ p.χ) (hχ : p.χ < chiStar p)
+    (hα : p.α = p.m + p.γ - 1)
+    (hd_pos : 0 < d)
+    (hd_le : d ≤ constantSubsolutionThreshold p.χ κ κtilde D)
+    (hu : InWaveTrapSet κ 1 u) :
+    IsPaperFrozenSubSolutionOn p c u (fun _ => d) Set.univ := by
+  intro x _hx
+  exact paperWaveOperator_const_subsolution_nonneg_of_chi_nonneg
+    p hχ_nonneg hχ hα hd_pos hd_le hu x
 
 theorem expDecay_rpow_eq (κ m x : ℝ) :
     (expDecay κ x) ^ m = expDecay (m * κ) x := by
