@@ -1143,6 +1143,29 @@ theorem expDecay_logistic_wave_nonpos_at_kappa
   exact mul_nonpos_of_nonpos_of_nonneg (neg_nonpos.mpr (expDecay_pos (kappa c) x).le)
     (Real.rpow_nonneg (expDecay_pos (kappa c) x).le _)
 
+theorem constant_logistic_nonpos
+    (p : CMParams) {M : ℝ} (hM : 1 ≤ M) :
+    M * (1 - M ^ p.α) ≤ 0 := by
+  have hM_pos : 0 < M := by linarith
+  exact mul_nonpos_of_nonneg_of_nonpos hM_pos.le
+    (sub_nonpos.mpr (Real.one_le_rpow hM (by linarith [p.hα])))
+
+theorem constant_logistic_neg
+    (p : CMParams) {M : ℝ} (hM : 1 < M) :
+    M * (1 - M ^ p.α) < 0 := by
+  have hM_pos : 0 < M := by linarith
+  exact mul_neg_of_pos_of_neg hM_pos
+    (sub_neg.mpr (Real.one_lt_rpow hM (by linarith [p.hα])))
+
+theorem expDecay_logistic_wave_neg_at_kappa
+    {c : ℝ} (hc : 2 < c) (p : CMParams) (x : ℝ) :
+    iteratedDeriv 2 (expDecay (kappa c)) x +
+        c * deriv (expDecay (kappa c)) x +
+        expDecay (kappa c) x * (1 - (expDecay (kappa c) x) ^ p.α) < 0 := by
+  rw [expDecay_logistic_wave_at_kappa hc.le p x]
+  have hpos := expDecay_pos (kappa c) x
+  nlinarith [Real.rpow_pos_of_pos hpos p.α]
+
 def upperBarrier (κ M : ℝ) : ℝ → ℝ :=
   fun x => min M (Real.exp (-κ * x))
 
