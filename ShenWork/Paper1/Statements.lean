@@ -3860,7 +3860,7 @@ theorem chemotaxis_resolvent_bound
   -- V(x) = (1/2)·(exp(-x)·L + exp(x)·R) from kernel splitting
   have hV : frozenElliptic p u x =
       1 / 2 * (Real.exp (-1 * x) * L + Real.exp (1 * x) * R) := by
-    sorry
+    exact Psi_kernel_splitting hu_rpow (fun y => hf_rpow y) x
   -- Combine: -κm·V' + V = (1/2)(κm+1)·exp(-x)·L + (1/2)(1-κm)·exp(x)·R
   rw [hV', hV]
   -- Apply bounds and coefficient algebra
