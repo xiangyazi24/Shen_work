@@ -4321,6 +4321,19 @@ theorem Proposition_1_2.negative_stability
       UniformConvergesToConstant u 1 :=
   h.1 p hχ u₀ hu₀_nonneg hu₀_pos
 
+theorem Proposition_1_2.negative_stability_with_long_time_bounds
+    (h : Proposition_1_2) {p : CMParams}
+    (hχ : p.χ ≤ 0) {u₀ : ℝ → ℝ}
+    (hu₀_nonneg : NonnegativeInitialDatum u₀)
+    (hu₀_pos : UniformlyPositive u₀) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p u₀ u v ∧
+      UniformConvergesToConstant u 1 ∧
+      UniformEventuallyBounded u ∧
+      UniformLimsupLe u 1 := by
+  rcases h.negative_stability hχ hu₀_nonneg hu₀_pos with ⟨u, v, hsol, hconv⟩
+  exact ⟨u, v, hsol, hconv, hconv.uniformEventuallyBounded, hconv.uniformLimsupLe⟩
+
 theorem Proposition_1_2.positive_stability
     (h : Proposition_1_2) {p : CMParams}
     (hχ_pos : 0 < p.χ) (hχ_small : p.χ < (1 / 2 : ℝ))
@@ -4332,6 +4345,22 @@ theorem Proposition_1_2.positive_stability
       IsGlobalCauchySolutionFrom p u₀ u v ∧
       UniformConvergesToConstant u 1 :=
   h.2 p hχ_pos hχ_small halpha u₀ hu₀_nonneg hu₀_pos
+
+theorem Proposition_1_2.positive_stability_with_long_time_bounds
+    (h : Proposition_1_2) {p : CMParams}
+    (hχ_pos : 0 < p.χ) (hχ_small : p.χ < (1 / 2 : ℝ))
+    (halpha : p.m + p.γ - 1 ≤ p.α)
+    {u₀ : ℝ → ℝ}
+    (hu₀_nonneg : NonnegativeInitialDatum u₀)
+    (hu₀_pos : UniformlyPositive u₀) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p u₀ u v ∧
+      UniformConvergesToConstant u 1 ∧
+      UniformEventuallyBounded u ∧
+      UniformLimsupLe u 1 := by
+  rcases h.positive_stability hχ_pos hχ_small halpha hu₀_nonneg hu₀_pos with
+    ⟨u, v, hsol, hconv⟩
+  exact ⟨u, v, hsol, hconv, hconv.uniformEventuallyBounded, hconv.uniformLimsupLe⟩
 
 /-- Paper1 Theorem 1.1: existence of traveling waves. -/
 def Theorem_1_1 : Prop :=
