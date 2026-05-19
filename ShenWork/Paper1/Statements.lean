@@ -102,6 +102,23 @@ theorem HasWaveRightTailAsymptotic.ratio_tendsto_one
     · simp
   simpa [sub_eq_add_neg] using hminus.add_const 1
 
+theorem HasWaveRightTailAsymptotic.tendsto_atTop_zero
+    {c κ₁ : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveRightTailAsymptotic c κ₁ U)
+    (hk : 0 < kappa c) (hκ₁ : kappa c < κ₁) :
+    Tendsto U atTop (𝓝 0) := by
+  have hratio := h.ratio_tendsto_one hκ₁
+  have hmul : Tendsto (fun x : ℝ => kappa c * x) atTop atTop :=
+    (Filter.tendsto_id.atTop_mul_const hk).congr
+      (fun x => mul_comm x (kappa c))
+  have hexp : Tendsto (fun x : ℝ => Real.exp (-(kappa c * x))) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp (Filter.tendsto_neg_atTop_atBot.comp hmul)
+  have hprod := hratio.mul hexp
+  convert hprod using 1
+  · ext x
+    field_simp [Real.exp_ne_zero]
+  · simp
+
 def positiveSensitivityExtendedThreshold (p : CMParams) : ℝ :=
   (2 * p.m + 2 * p.γ) / (p.m ^ 2 + p.m + 2 * p.γ)
 
