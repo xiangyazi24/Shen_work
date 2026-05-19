@@ -3281,6 +3281,29 @@ def Lemma_4_1 : Prop :=
       ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
         IsFrozenSuperSolution p c u (upperBarrier κ M))
 
+theorem frozenWaveOperator_const_eq
+    (p : CMParams) {c M : ℝ} {u : ℝ → ℝ}
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x) (x : ℝ) :
+    frozenWaveOperator p c u (fun _ => M) x =
+      -p.χ * (M ^ p.m *
+        (frozenElliptic p u x - (u x) ^ p.γ)) +
+        M * (1 - M ^ p.α) := by
+  unfold frozenWaveOperator
+  simp only [iteratedDeriv_const, deriv_const, mul_zero, add_zero, zero_add,
+    show (2 : ℕ) ≠ 0 from by norm_num, ite_false]
+  have hconst_deriv :
+      deriv (fun y => (fun _ => M) y ^ p.m *
+        deriv (frozenElliptic p u) y) x =
+      M ^ p.m * (frozenElliptic p u x - (u x) ^ p.γ) := by
+    have hW : (fun y => (fun _ : ℝ => M) y ^ p.m *
+        deriv (frozenElliptic p u) y) =
+      (fun y => M ^ p.m * deriv (frozenElliptic p u) y) := by
+      ext y; simp
+    rw [hW, deriv_const_mul_field,
+      frozenElliptic_deriv_deriv_eq p hu hu_nonneg x]
+  rw [hconst_deriv]
+  ring
+
 def Lemma_4_2 : Prop :=
   ∀ p : CMParams, ∀ κ κtilde M c : ℝ,
     0 < κ → κ < 1 →
