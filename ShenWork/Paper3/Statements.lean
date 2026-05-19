@@ -133,12 +133,46 @@ lemma PositiveGlobalBoundedSolution.bounded
     IsPaper2Bounded D u :=
   h.2.1
 
+lemma PositiveGlobalBoundedSolution.regularity
+    {D : BoundedDomainData} {p : CM2Params} {T : ℝ}
+    {u v : ℝ → D.Point → ℝ}
+    (h : PositiveGlobalBoundedSolution D p u v) (hT : 0 < T) :
+    D.classicalRegularity T u v :=
+  h.classical.regularity hT
+
 lemma PositiveGlobalBoundedSolution.pos
     {D : BoundedDomainData} {p : CM2Params} {u v : ℝ → D.Point → ℝ}
     (h : PositiveGlobalBoundedSolution D p u v)
     {t : ℝ} {x : D.Point} (ht : 0 < t) (hx : x ∈ D.inside) :
     0 < u t x :=
   h.2.2 t x ht hx
+
+lemma PositiveGlobalBoundedSolution.pde_u
+    {D : BoundedDomainData} {p : CM2Params} {t : ℝ}
+    {u v : ℝ → D.Point → ℝ} {x : D.Point}
+    (h : PositiveGlobalBoundedSolution D p u v)
+    (ht0 : 0 < t) (hx : x ∈ D.inside) :
+    D.timeDeriv u t x =
+      D.laplacian (u t) x
+        - p.χ₀ * D.chemotaxisDiv p (u t) (v t) x
+        + u t x * (p.a - p.b * (u t x) ^ p.α) :=
+  h.classical.pde_u ht0 hx
+
+lemma PositiveGlobalBoundedSolution.pde_v
+    {D : BoundedDomainData} {p : CM2Params} {t : ℝ}
+    {u v : ℝ → D.Point → ℝ} {x : D.Point}
+    (h : PositiveGlobalBoundedSolution D p u v)
+    (ht0 : 0 < t) (hx : x ∈ D.inside) :
+    0 = D.laplacian (v t) x - p.μ * v t x + p.ν * (u t x) ^ p.γ :=
+  h.classical.pde_v ht0 hx
+
+lemma PositiveGlobalBoundedSolution.neumann
+    {D : BoundedDomainData} {p : CM2Params} {t : ℝ}
+    {u v : ℝ → D.Point → ℝ} {x : D.Point}
+    (h : PositiveGlobalBoundedSolution D p u v)
+    (ht0 : 0 < t) (hx : x ∈ D.boundary) :
+    D.normalDeriv (u t) x = 0 ∧ D.normalDeriv (v t) x = 0 :=
+  h.classical.neumann ht0 hx
 
 lemma EventuallyLowerBound.delta_pos
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {δ : ℝ}
