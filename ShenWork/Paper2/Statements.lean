@@ -164,6 +164,52 @@ lemma IsPaper2GlobalClassicalSolution.classical
     IsPaper2ClassicalSolution D p T u v :=
   h T hT
 
+lemma IsPaper2GlobalClassicalSolution.regularity
+    {D : BoundedDomainData} {p : CM2Params} {T : ℝ}
+    {u v : ℝ → D.Point → ℝ}
+    (h : IsPaper2GlobalClassicalSolution D p u v) (hT : 0 < T) :
+    D.classicalRegularity T u v :=
+  (h.classical hT).regularity
+
+lemma IsPaper2GlobalClassicalSolution.u_pos
+    {D : BoundedDomainData} {p : CM2Params} {t : ℝ}
+    {u v : ℝ → D.Point → ℝ} {x : D.Point}
+    (h : IsPaper2GlobalClassicalSolution D p u v)
+    (ht0 : 0 < t) (hx : x ∈ D.inside) :
+    0 < u t x := by
+  have hT : 0 < t + 1 := by linarith
+  exact (h.classical hT).u_pos ht0 (by linarith) hx
+
+lemma IsPaper2GlobalClassicalSolution.pde_u
+    {D : BoundedDomainData} {p : CM2Params} {t : ℝ}
+    {u v : ℝ → D.Point → ℝ} {x : D.Point}
+    (h : IsPaper2GlobalClassicalSolution D p u v)
+    (ht0 : 0 < t) (hx : x ∈ D.inside) :
+    D.timeDeriv u t x =
+      D.laplacian (u t) x
+        - p.χ₀ * D.chemotaxisDiv p (u t) (v t) x
+        + u t x * (p.a - p.b * (u t x) ^ p.α) := by
+  have hT : 0 < t + 1 := by linarith
+  exact (h.classical hT).pde_u ht0 (by linarith) hx
+
+lemma IsPaper2GlobalClassicalSolution.pde_v
+    {D : BoundedDomainData} {p : CM2Params} {t : ℝ}
+    {u v : ℝ → D.Point → ℝ} {x : D.Point}
+    (h : IsPaper2GlobalClassicalSolution D p u v)
+    (ht0 : 0 < t) (hx : x ∈ D.inside) :
+    0 = D.laplacian (v t) x - p.μ * v t x + p.ν * (u t x) ^ p.γ := by
+  have hT : 0 < t + 1 := by linarith
+  exact (h.classical hT).pde_v ht0 (by linarith) hx
+
+lemma IsPaper2GlobalClassicalSolution.neumann
+    {D : BoundedDomainData} {p : CM2Params} {t : ℝ}
+    {u v : ℝ → D.Point → ℝ} {x : D.Point}
+    (h : IsPaper2GlobalClassicalSolution D p u v)
+    (ht0 : 0 < t) (hx : x ∈ D.boundary) :
+    D.normalDeriv (u t) x = 0 ∧ D.normalDeriv (v t) x = 0 := by
+  have hT : 0 < t + 1 := by linarith
+  exact (h.classical hT).neumann ht0 (by linarith) hx
+
 def InitialTrace
     (D : BoundedDomainData) (u₀ : D.Point → ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
   ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ →
