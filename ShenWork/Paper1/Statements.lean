@@ -3830,11 +3830,35 @@ theorem chemotaxis_resolvent_bound
   have h1pgk : 0 < 1 + p.γ * κ := by positivity
   have hmk_pos : 0 ≤ p.m * κ := mul_nonneg (by linarith [p.hm]) hκ.le
   have hmk1 : 0 < κ * p.m + 1 := by linarith [mul_pos hκ (by linarith [p.hm] : 0 < p.m)]
-  -- Use V' formula and V formula to write -κm·V' + V as a combination
-  -- of half-line integrals of u^γ, then bound by exp(-γκy) and compute.
-  -- For now, use the bound |V'| ≤ V and V ≤ exp(-γκx)/(1-γ²κ²), which
-  -- gives a weaker coefficient but suffices when combined with the M bound.
-  -- The full equation (4.4) proof will be added in a subsequent commit.
+  -- Write V'(x) from Psi_derivative_formula_general (with √1=1, μ=1):
+  -- V'(x) = -(1/2)·exp(-x)·L(x) + (1/2)·exp(x)·R(x)
+  -- V(x) = (1/2)·[exp(-x)·L(x) + exp(x)·R(x)]  (kernel splitting)
+  -- -κm·V' + V = (1/2)(κm+1)·exp(-x)·L + (1/2)(1-κm)·exp(x)·R
+  -- Use L ≤ exp((1-γκ)x)/(1-γκ), R ≤ exp(-(1+γκ)x)/(1+γκ)
+  -- Second term ≤ 0 when mκ ≥ 1, and contributes positively when mκ < 1.
+  -- In both cases: total ≤ (1+mγκ²)/(1-γ²κ²) · exp(-γκx).
+  set L := ∫ y in Set.Iic x, Real.exp (1 * y) * (u y) ^ p.γ
+  set R := ∫ y in Set.Ioi x, Real.exp (-1 * y) * (u y) ^ p.γ
+  have hL_int : IntegrableOn (fun y => Real.exp (1 * y) * (u y) ^ p.γ)
+      (Set.Iic x) := by sorry
+  have hR_int : IntegrableOn (fun y => Real.exp (-1 * y) * (u y) ^ p.γ)
+      (Set.Ioi x) := by sorry
+  have hL_bound := setIntegral_Iic_exp_le_of_rpow_le hκ hγ_pos hγκ
+    hu_rpow_le_exp x hL_int
+  have hR_bound := setIntegral_Ioi_exp_le_of_rpow_le hκ hγ_pos hγκ
+    hu_rpow_le_exp x hR_int
+  -- Coefficient algebra
+  have hcoeff_algebra :
+      (κ * p.m + 1) * (1 + p.γ * κ) + (1 - κ * p.m) * (1 - p.γ * κ) =
+        2 * (1 + p.m * p.γ * κ ^ 2) := by ring
+  -- The final assembly connects V'(x), V(x), the half-line bounds,
+  -- and the coefficient identity. This is the paper's equation (4.4)
+  -- computation.
+  -- The key remaining steps:
+  -- (a) Express V(x) via kernel splitting as (1/2)(e^{-x}L + e^x R)
+  -- (b) Form -κm V' + V = (1/2)(κm+1)e^{-x}L + (1/2)(1-κm)e^x R
+  -- (c) Apply hL_bound and hR_bound
+  -- (d) Use hcoeff_algebra to simplify
   sorry
 
 def Lemma_4_2 : Prop :=
