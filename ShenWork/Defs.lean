@@ -426,6 +426,12 @@ lemma one_sub_gamma_sq_kappa_sq_pos {c : ℝ} {γ : ℝ}
     0 < 1 - γ ^ 2 * kappa c ^ 2 := by
   linarith [gamma_sq_kappa_sq_lt_one hc hγ hγκ]
 
+lemma kappa_continuous : Continuous kappa := by
+  unfold kappa
+  exact ((continuous_id.sub
+    (Real.continuous_sqrt.comp
+      (continuous_id.pow 2 |>.sub continuous_const))).div_const 2)
+
 lemma chiStar_pos (p : CMParams) :
     0 < chiStar p := by
   unfold chiStar
