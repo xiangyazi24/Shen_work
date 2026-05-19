@@ -121,6 +121,59 @@ def ThetaMomentConvergesToZero
       (fun x => (u t x - uStar) * ((u t x) ^ theta - uStar ^ theta)))
     atTop (𝓝 0)
 
+lemma PositiveGlobalBoundedSolution.classical
+    {D : BoundedDomainData} {p : CM2Params} {u v : ℝ → D.Point → ℝ}
+    (h : PositiveGlobalBoundedSolution D p u v) :
+    IsPaper2GlobalClassicalSolution D p u v :=
+  h.1
+
+lemma PositiveGlobalBoundedSolution.bounded
+    {D : BoundedDomainData} {p : CM2Params} {u v : ℝ → D.Point → ℝ}
+    (h : PositiveGlobalBoundedSolution D p u v) :
+    IsPaper2Bounded D u :=
+  h.2.1
+
+lemma PositiveGlobalBoundedSolution.pos
+    {D : BoundedDomainData} {p : CM2Params} {u v : ℝ → D.Point → ℝ}
+    (h : PositiveGlobalBoundedSolution D p u v)
+    {t : ℝ} {x : D.Point} (ht : 0 < t) (hx : x ∈ D.inside) :
+    0 < u t x :=
+  h.2.2 t x ht hx
+
+lemma EventuallyLowerBound.delta_pos
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {δ : ℝ}
+    (h : EventuallyLowerBound D u δ) :
+    0 < δ :=
+  h.1
+
+lemma EventuallyLowerBound.eventually
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {δ : ℝ}
+    (h : EventuallyLowerBound D u δ) :
+    ∀ᶠ t in atTop, δ ≤ D.infValue (u t) :=
+  h.2
+
+lemma UniformConvergesInSup.tendsto
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {a : ℝ}
+    (h : UniformConvergesInSup D u a) :
+    Tendsto (fun t => D.supNorm (fun x => u t x - a)) atTop (𝓝 0) :=
+  h
+
+lemma HasInitialMass.eq
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {uStar : ℝ}
+    (h : HasInitialMass D u uStar) :
+    D.integral (u 0) = D.volume * uStar :=
+  h
+
+lemma ThetaMomentConvergesToZero.tendsto
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {uStar theta : ℝ}
+    (h : ThetaMomentConvergesToZero D u uStar theta) :
+    Tendsto
+      (fun t => D.integral
+        (fun x => (u t x - uStar) * ((u t x) ^ theta - uStar ^ theta)))
+      atTop (𝓝 0) :=
+  h
+
 structure SpectralData where
   eigenvalue : ℕ → ℝ
   firstNonzero : ℝ
