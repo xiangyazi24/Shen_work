@@ -1485,6 +1485,19 @@ lemma Theorem_1_2.linear_solution
       IsPaper2Bounded D u :=
   (h ha hb hβ).2 hm hχ u₀ hu₀
 
+lemma Theorem_1_2.linear_solution_of_remark16_weak
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Theorem_1_2 D p)
+    (ha : 0 ≤ p.a) (hb : 0 ≤ p.b) (hβ : 1 ≤ p.β)
+    (hm : p.m = 1) (hχ : p.χ₀ < remark16ChiStarWeak p)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.linear_solution ha hb hβ hm
+    (by simpa [remark16ChiStarWeak_eq_chiBeta] using hχ) hu₀
+
 /-- Paper2 Theorem 1.3: boundedness/global existence under a strong logistic source. -/
 def Theorem_1_3 (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p) : Prop :=
   0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
@@ -1523,6 +1536,82 @@ lemma Theorem_1_3.global_solution
       InitialTrace D u₀ u ∧
       IsPaper2Bounded D u :=
   (h ha hb hm_pos hcond).2 hm u₀ hu₀
+
+lemma Theorem_1_3.finite_horizon_solution_of_remark16_chiStar1
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hβ : 1 ≤ p.β) (hm : p.m = 1) (hα : p.α = p.γ)
+    (hdim : 2 < (p.N : ℝ) * p.γ)
+    (hχ : p.χ₀ < remark16ChiStar1 p C)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2BoundedBefore D Tmax u := by
+  have hm_pos : 0 < p.m := by
+    rw [hm]
+    norm_num
+  exact h.finite_horizon_solution ha hb hm_pos
+    (StrongLogisticCondition.of_remark16_chiStar1 hβ hm hα hdim hχ) hu₀
+
+lemma Theorem_1_3.global_solution_of_remark16_chiStar1
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hβ : 1 ≤ p.β) (hm : p.m = 1) (hα : p.α = p.γ)
+    (hdim : 2 < (p.N : ℝ) * p.γ)
+    (hχ : p.χ₀ < remark16ChiStar1 p C)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u := by
+  have hm_pos : 0 < p.m := by
+    rw [hm]
+    norm_num
+  have hm_ge : 1 ≤ p.m := by
+    rw [hm]
+  exact h.global_solution ha hb hm_pos
+    (StrongLogisticCondition.of_remark16_chiStar1 hβ hm hα hdim hχ) hm_ge hu₀
+
+lemma Theorem_1_3.finite_horizon_solution_of_remark16_chiStar2
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hβ : 1 ≤ p.β) (hm : p.m = 1) (hα : p.α = p.γ)
+    (hdim : 2 < (p.N : ℝ) * p.γ)
+    (hχ : p.χ₀ < remark16ChiStar2 p C)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2BoundedBefore D Tmax u := by
+  have hm_pos : 0 < p.m := by
+    rw [hm]
+    norm_num
+  exact h.finite_horizon_solution ha hb hm_pos
+    (StrongLogisticCondition.of_remark16_chiStar2 hβ hm hα hdim hχ) hu₀
+
+lemma Theorem_1_3.global_solution_of_remark16_chiStar2
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hβ : 1 ≤ p.β) (hm : p.m = 1) (hα : p.α = p.γ)
+    (hdim : 2 < (p.N : ℝ) * p.γ)
+    (hχ : p.χ₀ < remark16ChiStar2 p C)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u := by
+  have hm_pos : 0 < p.m := by
+    rw [hm]
+    norm_num
+  have hm_ge : 1 ≤ p.m := by
+    rw [hm]
+  exact h.global_solution ha hb hm_pos
+    (StrongLogisticCondition.of_remark16_chiStar2 hβ hm hα hdim hχ) hm_ge hu₀
 
 end
 
