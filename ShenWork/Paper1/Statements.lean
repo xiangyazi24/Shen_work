@@ -1095,7 +1095,11 @@ theorem frozenElliptic_continuous
       1 / 2 * ∫ y, Real.exp (-1 * |x - y|) * (U y) ^ p.γ := by
     ext x; simp [Psi, Real.sqrt_one]
   rw [this]
-  sorry
+  have hdiff : Differentiable ℝ (fun x => ∫ y, Real.exp (-1 * |x - y|) * (U y) ^ p.γ) := by
+    intro x
+    exact (hasDerivAt_integral_exp_neg_mul_abs_sub_general
+      (a := 1) one_pos hu_rpow x).differentiableAt
+  exact hdiff.continuous.const_mul _
 
 theorem frozenElliptic_zero_eq (p : CMParams) (x : ℝ) :
     frozenElliptic p (fun _ => (0 : ℝ)) x = 0 := by
