@@ -4336,6 +4336,32 @@ theorem Theorem_1_1.positive_wave_with_stability_tail_data
       exists_waveRightTailAsymptotic_of_forall_kappaOne_range
         htail (kappa_pos_of_two_lt hc) (kappa_lt_one_of_two_lt hc)⟩
 
+theorem Theorem_1_1.negative_wave_with_ratio_limit
+    (h : Theorem_1_1) {p : CMParams}
+    (halpha : p.α ≤ p.m + p.γ - 1) (hχ : p.χ ≤ 0)
+    {c : ℝ} (hc : cStarLower p < c) :
+    ∃ U V : ℝ → ℝ,
+      IsMonotoneTravelingWave p c U V ∧
+      ShenUpperBoundNegative c U ∧
+      Tendsto (fun x => U x / Real.exp (-(kappa c) * x)) atTop (𝓝 1) := by
+  rcases h.negative_wave_with_tail_witness halpha hχ hc with
+    ⟨U, V, hTW, hupper, κ₁, hκ₁_gt, _hκ₁_lt, htail⟩
+  exact ⟨U, V, hTW, hupper, htail.ratio_tendsto_one hκ₁_gt⟩
+
+theorem Theorem_1_1.positive_wave_with_ratio_limit
+    (h : Theorem_1_1) {p : CMParams}
+    (halpha : p.α = p.m + p.γ - 1)
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    {c : ℝ} (hc : 2 < c) :
+    ∃ U V : ℝ → ℝ,
+      IsTravelingWave p c U V ∧
+      HasStrictWaveUpperTailBound p c U ∧
+      Tendsto (fun x => U x / Real.exp (-(kappa c) * x)) atTop (𝓝 1) := by
+  rcases h.positive_wave_with_stability_tail_data
+      halpha hχ_nonneg hχ_small hc with
+    ⟨U, V, hTW, hbound, κ₁, hκ₁_gt, _hκ₁_lt, htail⟩
+  exact ⟨U, V, hTW, hbound, htail.ratio_tendsto_one hκ₁_gt⟩
+
 theorem Theorem_1_1.of_frozenStationaryProfile_branches
     (hneg :
       ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
