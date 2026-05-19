@@ -1509,6 +1509,43 @@ lemma one_le_CAlphaGamma_mul_alpha_div_gamma_sq
       rw [le_div_iff₀ hden_pos]
       nlinarith
 
+lemma power_difference_normalized_of_one_le_alpha_of_gamma_le_one
+    {alpha gamma t : ℝ}
+    (halpha : 1 ≤ alpha) (hgamma_pos : 0 < gamma) (hgamma_le : gamma ≤ 1)
+    (ht : 0 < t) :
+    (t ^ gamma - 1) ^ 2 ≤ (t - 1) * (t ^ alpha - 1) := by
+  have hgamma_nonneg : 0 ≤ gamma := hgamma_pos.le
+  have hgamma_le_alpha : gamma ≤ alpha := hgamma_le.trans halpha
+  by_cases ht_ge : 1 ≤ t
+  · have htγ_ge_one : 1 ≤ t ^ gamma := Real.one_le_rpow ht_ge hgamma_nonneg
+    have htγ_le_t : t ^ gamma ≤ t := Real.rpow_le_self_of_one_le ht_ge hgamma_le
+    have htγ_le_tα : t ^ gamma ≤ t ^ alpha :=
+      Real.rpow_le_rpow_of_exponent_le ht_ge hgamma_le_alpha
+    have hA_nonneg : 0 ≤ t ^ gamma - 1 := sub_nonneg.mpr htγ_ge_one
+    have hB_nonneg : 0 ≤ t - 1 := sub_nonneg.mpr ht_ge
+    have hA_le_B : t ^ gamma - 1 ≤ t - 1 := sub_le_sub_right htγ_le_t 1
+    have hA_le_C : t ^ gamma - 1 ≤ t ^ alpha - 1 :=
+      sub_le_sub_right htγ_le_tα 1
+    have hmul :
+        (t ^ gamma - 1) * (t ^ gamma - 1) ≤
+          (t - 1) * (t ^ alpha - 1) :=
+      mul_le_mul hA_le_B hA_le_C hA_nonneg hB_nonneg
+    simpa [sq] using hmul
+  · have ht_le : t ≤ 1 := le_of_not_ge ht_ge
+    have htγ_le_one : t ^ gamma ≤ 1 := Real.rpow_le_one ht.le ht_le hgamma_nonneg
+    have ht_le_tγ : t ≤ t ^ gamma := Real.self_le_rpow_of_le_one ht.le ht_le hgamma_le
+    have htα_le_tγ : t ^ alpha ≤ t ^ gamma :=
+      Real.rpow_le_rpow_of_exponent_ge ht ht_le hgamma_le_alpha
+    have hA_nonneg : 0 ≤ 1 - t ^ gamma := sub_nonneg.mpr htγ_le_one
+    have hB_nonneg : 0 ≤ 1 - t := sub_nonneg.mpr ht_le
+    have hA_le_B : 1 - t ^ gamma ≤ 1 - t := sub_le_sub_left ht_le_tγ 1
+    have hA_le_C : 1 - t ^ gamma ≤ 1 - t ^ alpha := sub_le_sub_left htα_le_tγ 1
+    have hmul :
+        (1 - t ^ gamma) * (1 - t ^ gamma) ≤
+          (1 - t) * (1 - t ^ alpha) :=
+      mul_le_mul hA_le_B hA_le_C hA_nonneg hB_nonneg
+    nlinarith
+
 def chiStrong1Formula (p : CM2Params) (uStar vStar : ℝ) : ℝ :=
   Real.sqrt
     (p.b *
@@ -3197,6 +3234,108 @@ lemma PowerDifferenceInequality.apply
       C * uStar ^ (2 * gamma - alpha - 1) *
         ((u - uStar) * (u ^ alpha - uStar ^ alpha)) :=
   h u hu
+
+lemma PowerDifferenceInequality.of_one_le_alpha_of_gamma_le_one
+    {alpha gamma uStar : ℝ}
+    (halpha : 1 ≤ alpha) (hgamma_pos : 0 < gamma) (hgamma_le : gamma ≤ 1)
+    (huStar : 0 < uStar) :
+    PowerDifferenceInequality 1 alpha gamma uStar := by
+  intro u hu
+  let t : ℝ := u / uStar
+  have ht : 0 < t := div_pos hu huStar
+  have hu_eq : u = uStar * t := by
+    dsimp [t]
+    field_simp [ne_of_gt huStar]
+  have huStar_nonneg : 0 ≤ uStar := huStar.le
+  have ht_nonneg : 0 ≤ t := ht.le
+  have hnorm :=
+    power_difference_normalized_of_one_le_alpha_of_gamma_le_one
+      halpha hgamma_pos hgamma_le ht
+  have hpow_u_gamma : u ^ gamma = uStar ^ gamma * t ^ gamma := by
+    rw [hu_eq]
+    exact Real.mul_rpow huStar_nonneg ht_nonneg
+  have hpow_u_alpha : u ^ alpha = uStar ^ alpha * t ^ alpha := by
+    rw [hu_eq]
+    exact Real.mul_rpow huStar_nonneg ht_nonneg
+  have hpow_gamma_sq : (uStar ^ gamma) * (uStar ^ gamma) = uStar ^ (2 * gamma) := by
+    calc
+      (uStar ^ gamma) * (uStar ^ gamma) = uStar ^ (gamma + gamma) := by
+        rw [← Real.rpow_add huStar]
+      _ = uStar ^ (2 * gamma) := by
+        congr 1
+        ring
+  have hleft :
+      (u ^ gamma - uStar ^ gamma) ^ 2 =
+        uStar ^ (2 * gamma) * (t ^ gamma - 1) ^ 2 := by
+    rw [hpow_u_gamma]
+    calc
+      (uStar ^ gamma * t ^ gamma - uStar ^ gamma) ^ 2 =
+          ((uStar ^ gamma) * (t ^ gamma - 1)) ^ 2 := by ring
+      _ = ((uStar ^ gamma) * (uStar ^ gamma)) * (t ^ gamma - 1) ^ 2 := by
+          ring
+      _ = uStar ^ (2 * gamma) * (t ^ gamma - 1) ^ 2 := by
+          rw [hpow_gamma_sq]
+  have hpow_alpha_one : uStar * uStar ^ alpha = uStar ^ (alpha + 1) := by
+    calc
+      uStar * uStar ^ alpha = uStar ^ (1 : ℝ) * uStar ^ alpha := by
+        rw [Real.rpow_one]
+      _ = uStar ^ (1 + alpha) := by
+        rw [← Real.rpow_add huStar]
+      _ = uStar ^ (alpha + 1) := by
+        congr 1
+        ring
+  have hpow_total :
+      uStar ^ (2 * gamma - alpha - 1) * (uStar * uStar ^ alpha) =
+        uStar ^ (2 * gamma) := by
+    rw [hpow_alpha_one]
+    calc
+      uStar ^ (2 * gamma - alpha - 1) * uStar ^ (alpha + 1) =
+          uStar ^ ((2 * gamma - alpha - 1) + (alpha + 1)) := by
+        rw [← Real.rpow_add huStar]
+      _ = uStar ^ (2 * gamma) := by
+        congr 1
+        ring
+  have hright :
+      1 * uStar ^ (2 * gamma - alpha - 1) *
+          ((u - uStar) * (u ^ alpha - uStar ^ alpha)) =
+        uStar ^ (2 * gamma) * ((t - 1) * (t ^ alpha - 1)) := by
+    rw [hpow_u_alpha, hu_eq]
+    calc
+      1 * uStar ^ (2 * gamma - alpha - 1) *
+          ((uStar * t - uStar) *
+            (uStar ^ alpha * t ^ alpha - uStar ^ alpha)) =
+        uStar ^ (2 * gamma - alpha - 1) *
+          ((uStar * (t - 1)) * (uStar ^ alpha * (t ^ alpha - 1))) := by
+          ring
+      _ = (uStar ^ (2 * gamma - alpha - 1) * (uStar * uStar ^ alpha)) *
+          ((t - 1) * (t ^ alpha - 1)) := by
+          ring
+      _ = uStar ^ (2 * gamma) * ((t - 1) * (t ^ alpha - 1)) := by
+          rw [hpow_total]
+  have hcoeff_nonneg : 0 ≤ uStar ^ (2 * gamma) :=
+    Real.rpow_nonneg huStar_nonneg _
+  have hscaled :
+      uStar ^ (2 * gamma) * (t ^ gamma - 1) ^ 2 ≤
+        uStar ^ (2 * gamma) * ((t - 1) * (t ^ alpha - 1)) :=
+    mul_le_mul_of_nonneg_left hnorm hcoeff_nonneg
+  calc
+    (u ^ gamma - uStar ^ gamma) ^ 2 =
+        uStar ^ (2 * gamma) * (t ^ gamma - 1) ^ 2 := hleft
+    _ ≤ uStar ^ (2 * gamma) * ((t - 1) * (t ^ alpha - 1)) := hscaled
+    _ = 1 * uStar ^ (2 * gamma - alpha - 1) *
+          ((u - uStar) * (u ^ alpha - uStar ^ alpha)) := hright.symm
+
+lemma PowerDifferenceInequality.CAlphaGamma_of_one_le_alpha_of_gamma_le_one
+    {alpha gamma uStar : ℝ}
+    (halpha : 1 ≤ alpha) (hgamma_pos : 0 < gamma) (hgamma_le : gamma ≤ 1)
+    (huStar : 0 < uStar) :
+    PowerDifferenceInequality (CAlphaGamma alpha gamma) alpha gamma uStar := by
+  have hC : CAlphaGamma alpha gamma = 1 := by
+    unfold CAlphaGamma
+    rw [if_neg (not_lt_of_ge halpha), if_pos hgamma_le]
+  simpa [hC] using
+    PowerDifferenceInequality.of_one_le_alpha_of_gamma_le_one
+      halpha hgamma_pos hgamma_le huStar
 
 def Lemma_A_6 : Prop :=
   ∀ alpha gamma,
