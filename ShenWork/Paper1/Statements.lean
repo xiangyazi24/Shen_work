@@ -3879,8 +3879,31 @@ theorem chemotaxis_resolvent_bound
         Real.exp (-(p.γ * κ) * x) / (1 + p.γ * κ) := by
     field_simp [ne_of_gt h1pgk]
     rw [← Real.exp_add]; congr 1; ring
-  -- After rw [hV', hV], the goal is a linear combination of L and R.
-  -- Use hL_bound, hR_bound, and the coefficient identity.
+  -- The LHS after rewriting equals:
+  -- (1/2)(κm+1)·exp(-x)·L + (1/2)(1-κm)·exp(x)·R
+  -- Bound L and R, simplify exp products, combine coefficients.
+  have hL_nonneg : 0 ≤ L := by
+    apply MeasureTheory.setIntegral_nonneg measurableSet_Iic
+    intro y _; exact mul_nonneg (Real.exp_nonneg _) (hf_rpow y)
+  have hR_nonneg : 0 ≤ R := by
+    apply MeasureTheory.setIntegral_nonneg measurableSet_Ioi
+    intro y _; exact mul_nonneg (Real.exp_nonneg _) (hf_rpow y)
+  have hexp_nonneg : 0 ≤ Real.exp (-(p.γ * κ) * x) := Real.exp_nonneg _
+  -- First term bound
+  have hterm1 :
+      1 / 2 * (κ * p.m + 1) * (Real.exp (-1 * x) * L) ≤
+        1 / 2 * (κ * p.m + 1) / (1 - p.γ * κ) * Real.exp (-(p.γ * κ) * x) := by
+    have h1 : 0 ≤ 1 / 2 * (κ * p.m + 1) := by positivity
+    calc 1 / 2 * (κ * p.m + 1) * (Real.exp (-1 * x) * L)
+        ≤ 1 / 2 * (κ * p.m + 1) *
+            (Real.exp (-1 * x) * (Real.exp ((1 - p.γ * κ) * x) / (1 - p.γ * κ))) :=
+          mul_le_mul_of_nonneg_left
+            (mul_le_mul_of_nonneg_left hL_bound (Real.exp_nonneg _)) h1
+      _ = 1 / 2 * (κ * p.m + 1) *
+            (Real.exp (-(p.γ * κ) * x) / (1 - p.γ * κ)) := by
+          rw [hexp_combine_L]
+      _ = _ := by ring
+  -- For the second term, case split on mκ ≤ 1
   sorry
 
 def Lemma_4_2 : Prop :=
