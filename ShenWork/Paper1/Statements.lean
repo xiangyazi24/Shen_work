@@ -1095,9 +1095,9 @@ theorem frozenElliptic_continuous
       1 / 2 * ∫ y, Real.exp (-1 * |x - y|) * (U y) ^ p.γ := by
     ext x; simp [Psi, Real.sqrt_one]
   rw [this]
-  -- Psi is a convolution of the integrable kernel exp(-|·|) with
-  -- the bounded continuous function f = u^γ. Convolution of L¹ with
-  -- L^∞ is continuous. Requires Mathlib's convolution API.
+  -- Psi is a convolution: ∫ exp(-|x-y|) f(y) dy.
+  -- Continuity follows from continuousAt_of_dominated with local bound
+  -- exp(1)*exp(-|x₀-y|)*M^γ (integrable, dominates exp(-|x-y|)*f(y) for |x-x₀|<1).
   sorry
 
 theorem frozenElliptic_zero_eq (p : CMParams) (x : ℝ) :
