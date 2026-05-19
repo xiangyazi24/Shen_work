@@ -3322,6 +3322,17 @@ theorem exists_kappaOne_in_tail_range
       · exact hκ₁_lt_one
   exact ⟨κ₁, hκ₁_gt, hκ₁_lt_one, hκ₁_range⟩
 
+theorem exists_remark43TailRateBound
+    {p : CMParams} {c : ℝ}
+    (hkappa_pos : 0 < kappa c) (hkappa_lt_one : kappa c < 1) :
+    ∃ eta : ℝ, 0 < eta ∧ Remark43TailRateBound p c eta := by
+  rcases exists_kappaOne_in_tail_range
+      (p := p) (c := c) hkappa_pos hkappa_lt_one with
+    ⟨κ₁, hκ₁_gt, _hκ₁_lt_one, hκ₁_range⟩
+  exact
+    ⟨κ₁ - kappa c, by linarith,
+      Remark43TailRateBound.of_kappaOne_range hκ₁_gt hκ₁_range⟩
+
 theorem exists_waveRightTailAsymptotic_of_forall_kappaOne_range
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (htail :
@@ -3513,6 +3524,27 @@ theorem Remark_4_3.weighted_initial_closeness
     WeightedL2InitialCloseness (eta + kappa c) U₂ U₁ :=
   h p c hkappa U₁ V₁ U₂ V₂ hTW₁ hTW₂
     hbound₁ hbound₂ htail₁ htail₂ eta heta
+
+theorem Remark_4_3.exists_weighted_initial_closeness
+    (h : Remark_4_3) {p : CMParams} {c : ℝ}
+    (hkappa_pos : 0 < kappa c) (hkappa_lt_one : kappa c < 1)
+    {U₁ V₁ U₂ V₂ : ℝ → ℝ}
+    (hTW₁ : IsTravelingWave p c U₁ V₁)
+    (hTW₂ : IsTravelingWave p c U₂ V₂)
+    (hbound₁ : HasWaveUpperTailBound p c U₁)
+    (hbound₂ : HasWaveUpperTailBound p c U₂)
+    (htail₁ : HasRemark43TailAsymptotic p c U₁)
+    (htail₂ : HasRemark43TailAsymptotic p c U₂) :
+    ∃ eta : ℝ, 0 < eta ∧
+      Remark43TailRateBound p c eta ∧
+        WeightedL2InitialCloseness (eta + kappa c) U₂ U₁ := by
+  rcases exists_remark43TailRateBound
+      (p := p) (c := c) hkappa_pos hkappa_lt_one with
+    ⟨eta, heta_pos, heta⟩
+  exact
+    ⟨eta, heta_pos, heta,
+      h.weighted_initial_closeness hkappa_pos heta
+        hTW₁ hTW₂ hbound₁ hbound₂ htail₁ htail₂⟩
 
 def WaveDerivativeTendsZero (U : ℝ → ℝ) : Prop :=
   Tendsto (fun x => deriv U x) atBot (𝓝 0) ∧
