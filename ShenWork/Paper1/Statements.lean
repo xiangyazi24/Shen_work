@@ -383,6 +383,11 @@ theorem ShenUpperBoundNegative.shift_right_of_cStarLower_lt
     ShenUpperBoundNegative c (fun x => U (x + a)) :=
   h.shift_right (kappa_pos_of_cStarLower_lt hc).le ha
 
+theorem ShenUpperBoundNegative.nonneg
+    {c : ℝ} {U : ℝ → ℝ} (h : ShenUpperBoundNegative c U) (x : ℝ) :
+    0 ≤ U x :=
+  (h.pos x).le
+
 def ShenUpperBoundPositive (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop :=
   ∀ x, 0 < U x ∧
     U x < min ((1 / (1 - p.χ)) ^ (1 / p.α)) (Real.exp (-(kappa c) * x))
@@ -393,17 +398,35 @@ theorem ShenUpperBoundPositive.pos
     0 < U x :=
   (h x).1
 
+theorem ShenUpperBoundPositive.nonneg
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : ShenUpperBoundPositive p c U) (x : ℝ) :
+    0 ≤ U x :=
+  (h.pos x).le
+
 theorem ShenUpperBoundPositive.lt_constant
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (h : ShenUpperBoundPositive p c U) (x : ℝ) :
     U x < (1 / (1 - p.χ)) ^ (1 / p.α) :=
   lt_of_lt_of_le (h x).2 (min_le_left _ _)
 
+theorem ShenUpperBoundPositive.le_constant
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : ShenUpperBoundPositive p c U) (x : ℝ) :
+    U x ≤ (1 / (1 - p.χ)) ^ (1 / p.α) :=
+  (h.lt_constant x).le
+
 theorem ShenUpperBoundPositive.lt_exp
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (h : ShenUpperBoundPositive p c U) (x : ℝ) :
     U x < Real.exp (-(kappa c) * x) :=
   lt_of_lt_of_le (h x).2 (min_le_right _ _)
+
+theorem ShenUpperBoundPositive.le_exp
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : ShenUpperBoundPositive p c U) (x : ℝ) :
+    U x ≤ Real.exp (-(kappa c) * x) :=
+  (h.lt_exp x).le
 
 theorem ShenUpperBoundPositive.shift_right
     {p : CMParams} {c a : ℝ} {U : ℝ → ℝ}
