@@ -79,6 +79,15 @@ def HasWaveRightTailAsymptotic (c κ₁ : ℝ) (U : ℝ → ℝ) : Prop :=
 def positiveSensitivityExtendedThreshold (p : CMParams) : ℝ :=
   (2 * p.m + 2 * p.γ) / (p.m ^ 2 + p.m + 2 * p.γ)
 
+theorem positiveSensitivityExtendedThreshold_pos (p : CMParams) :
+    0 < positiveSensitivityExtendedThreshold p := by
+  unfold positiveSensitivityExtendedThreshold
+  have hnum : 0 < 2 * p.m + 2 * p.γ := by
+    nlinarith [p.hm, p.hγ]
+  have hden : 0 < p.m ^ 2 + p.m + 2 * p.γ := by
+    nlinarith [p.hm, p.hγ, sq_nonneg p.m]
+  exact div_pos hnum hden
+
 /-- A weaker traveling-wave target used in Paper1 Remark 1.3(2) and
 Remark 4.3(2): the right end converges to `(0,0)`, while the left end is only
 bounded away from zero and may be oscillatory. -/
@@ -3454,6 +3463,26 @@ def Remark_1_3_2 : Prop :=
 /-- Paper1 Remark 4.3(2) invokes the same extended positive-sensitivity
 right-vanishing wave conclusion as Remark 1.3(2). -/
 def Remark_4_3_part2 : Prop := Remark_1_3_2
+
+theorem Remark_1_3_2.rightVanishingWave
+    (h : Remark_1_3_2) {p : CMParams}
+    (halpha : p.α = p.m + p.γ - 1)
+    (hthreshold : (1 / 2 : ℝ) < positiveSensitivityExtendedThreshold p)
+    (hχ_half : (1 / 2 : ℝ) ≤ p.χ)
+    (hχ_small : p.χ < min (positiveSensitivityExtendedThreshold p) 1)
+    {c : ℝ} (hc : 2 < c) :
+    ∃ U V : ℝ → ℝ, IsRightVanishingTravelingWave p c U V :=
+  h p halpha hthreshold hχ_half hχ_small c hc
+
+theorem Remark_4_3_part2.rightVanishingWave
+    (h : Remark_4_3_part2) {p : CMParams}
+    (halpha : p.α = p.m + p.γ - 1)
+    (hthreshold : (1 / 2 : ℝ) < positiveSensitivityExtendedThreshold p)
+    (hχ_half : (1 / 2 : ℝ) ≤ p.χ)
+    (hχ_small : p.χ < min (positiveSensitivityExtendedThreshold p) 1)
+    {c : ℝ} (hc : 2 < c) :
+    ∃ U V : ℝ → ℝ, IsRightVanishingTravelingWave p c U V :=
+  Remark_1_3_2.rightVanishingWave h halpha hthreshold hχ_half hχ_small hc
 
 theorem Remark43TailRateBound.pos
     {p : CMParams} {c eta : ℝ} (h : Remark43TailRateBound p c eta) :
