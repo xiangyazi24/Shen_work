@@ -941,6 +941,32 @@ theorem frozenElliptic_nonneg
   exact Psi_nonneg one_pos one_pos
     (fun y => Real.rpow_nonneg (hu y) p.γ) x
 
+theorem frozenElliptic_le_of_rpow_le
+    (p : CMParams) {u : ℝ → ℝ} {M : ℝ}
+    (hM : 0 ≤ M)
+    (hu_cont : Continuous u)
+    (hu_nonneg : ∀ x, 0 ≤ u x)
+    (hu_rpow_le : ∀ x, (u x) ^ p.γ ≤ M) (x : ℝ) :
+    frozenElliptic p u x ≤ M := by
+  unfold frozenElliptic
+  have hle := Psi_le_const_general_of_nonneg_le one_pos one_pos hM
+    (hu_cont.rpow_const (fun _ => Or.inr (by linarith [p.hγ] : 0 ≤ p.γ)))
+    (fun y => Real.rpow_nonneg (hu_nonneg y) p.γ)
+    hu_rpow_le x
+  simp [div_one] at hle
+  exact hle
+
+theorem frozenElliptic_le_one_of_le_one
+    (p : CMParams) {u : ℝ → ℝ}
+    (hu_cont : Continuous u)
+    (hu_nonneg : ∀ x, 0 ≤ u x)
+    (hu_le : ∀ x, u x ≤ 1) (x : ℝ) :
+    frozenElliptic p u x ≤ 1 := by
+  apply frozenElliptic_le_of_rpow_le p (by norm_num) hu_cont hu_nonneg
+  intro y
+  exact Real.rpow_le_one (hu_nonneg y) (hu_le y)
+    (by linarith [p.hγ] : 0 ≤ p.γ)
+
 def frozenWaveOperator (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) : ℝ → ℝ :=
   fun x =>
     iteratedDeriv 2 W x + c * deriv W x
@@ -1886,6 +1912,27 @@ theorem InWaveTrapSet.rpow_le_exp_mul
       rw [← Real.exp_mul]
       congr 1
       ring
+
+theorem frozenElliptic_le_M_of_inWaveTrapSet
+    (p : CMParams) {κ M : ℝ} {u : ℝ → ℝ}
+    (hM : 0 < M) (hM1 : M ≤ 1)
+    (hu : InWaveTrapSet κ M u) (x : ℝ) :
+    frozenElliptic p u x ≤ M := by
+  apply frozenElliptic_le_of_rpow_le p hM.le hu.cunif_bdd.1 hu.nonneg
+  intro y
+  calc (u y) ^ p.γ ≤ M ^ p.γ :=
+        Real.rpow_le_rpow (hu.nonneg y) (hu.le_M y)
+          (by linarith [p.hγ])
+    _ ≤ M ^ (1 : ℝ) :=
+        Real.rpow_le_rpow_of_exponent_ge hM hM1 p.hγ
+    _ = M := Real.rpow_one M
+
+theorem frozenElliptic_le_M_of_inMonotoneWaveTrapSet
+    (p : CMParams) {κ M : ℝ} {u : ℝ → ℝ}
+    (hM : 0 < M) (hM1 : M ≤ 1)
+    (hu : InMonotoneWaveTrapSet κ M u) (x : ℝ) :
+    frozenElliptic p u x ≤ M :=
+  frozenElliptic_le_M_of_inWaveTrapSet p hM hM1 hu.1 x
 
 theorem InWaveTrapSet.zero {κ M : ℝ} (hM : 0 ≤ M) :
     InWaveTrapSet κ M (fun _ : ℝ => (0 : ℝ)) := by
@@ -4519,6 +4566,25 @@ theorem remark52MTriplePrime_eq_of_gt
           (p.γ + |p.χ| * sigma) / (1 + p.γ) * remark51MPrime p)
         (2 * remark51MDoublePrime p sigma) := by
   simp [remark52MTriplePrime, not_le.mpr hc]
+
+theorem remark52MTriplePrime.first_branch_le_of_gt
+    {p : CMParams} {c sigma : ℝ} (hc : (5 / 2 : ℝ) < c) :
+    8 * (1 + |p.χ| + 2 * p.m * |p.χ|) *
+        (p.γ + |p.χ| * sigma) / (1 + p.γ) * remark51MPrime p ≤
+      remark52MTriplePrime p c sigma := by
+  rw [remark52MTriplePrime_eq_of_gt hc]
+  exact le_max_left _ _
+
+theorem remark52MTriplePrime.doublePrime_branch_le_of_gt
+    {p : CMParams} {c sigma : ℝ} (hc : (5 / 2 : ℝ) < c) :
+    2 * remark51MDoublePrime p sigma ≤ remark52MTriplePrime p c sigma := by
+  rw [remark52MTriplePrime_eq_of_gt hc]
+  exact le_max_right _ _
+
+theorem remark5Denominator_pos
+    {p : CMParams} {sigma : ℝ} (hsigma : 0 < sigma) (hχ : p.χ ≠ 0) :
+    0 < |p.χ| ^ 2 * sigma := by
+  exact mul_pos (pow_pos (abs_pos.mpr hχ) 2) hsigma
 
 /-- Paper1 Remark 5.2: the `sigma` speed condition gives the displayed
 `U'/U` bound with the piecewise constant `M'''`. -/

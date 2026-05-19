@@ -321,6 +321,76 @@ lemma kappa_add_inv_eq_of_cStarLower_lt {p : CMParams} {c : ℝ}
     kappa c + (kappa c)⁻¹ = c :=
   kappa_add_inv_eq_of_two_lt (two_lt_of_cStarLower_lt hc)
 
+lemma kappa_mul_c_eq {c : ℝ} (hc : 2 ≤ c) :
+    kappa c * c = kappa c ^ 2 + 1 := by
+  have hquad := kappa_quadratic_eq_zero hc
+  nlinarith
+
+lemma one_sub_kappa_sq_pos {c : ℝ} (hc : 2 < c) :
+    0 < 1 - kappa c ^ 2 := by
+  have hk := kappa_pos_of_two_lt hc
+  have hk1 := kappa_lt_one_of_two_lt hc
+  nlinarith [sq_nonneg (1 - kappa c), sq_abs (kappa c)]
+
+lemma one_sub_kappa_sq_eq {c : ℝ} (hc : 2 ≤ c) :
+    1 - kappa c ^ 2 = c * kappa c - 2 * kappa c ^ 2 := by
+  have hquad := kappa_quadratic_eq_zero hc
+  nlinarith
+
+lemma kappa_nonneg_of_two_le {c : ℝ} (hc : 2 ≤ c) :
+    0 ≤ kappa c := by
+  rcases lt_or_eq_of_le hc with h | h
+  · exact (kappa_pos_of_two_lt h).le
+  · subst h; simp [kappa]; norm_num
+
+lemma kappa_le_one_of_two_le {c : ℝ} (hc : 2 ≤ c) :
+    kappa c ≤ 1 := by
+  rcases lt_or_eq_of_le hc with h | h
+  · exact (kappa_lt_one_of_two_lt h).le
+  · subst h; simp [kappa]; norm_num
+
+lemma sqrt_discriminant_eq {c : ℝ} (hc : 2 ≤ c) :
+    Real.sqrt (c ^ 2 - 4) = (kappa c)⁻¹ - kappa c := by
+  have hk_pos : 0 < kappa c := by
+    rcases lt_or_eq_of_le hc with h | h
+    · exact kappa_pos_of_two_lt h
+    · subst h; simp [kappa]; norm_num
+  have hquad := kappa_quadratic_eq_zero hc
+  have hrad_nonneg : 0 ≤ c ^ 2 - 4 := by nlinarith
+  have hk_le_one := kappa_le_one_of_two_le hc
+  have hinv_sub_pos : 0 ≤ (kappa c)⁻¹ - kappa c := by
+    rw [sub_nonneg]
+    calc kappa c ≤ 1 := hk_le_one
+      _ ≤ (kappa c)⁻¹ := one_le_inv_iff₀.mpr ⟨hk_pos, hk_le_one⟩
+  rw [← Real.sqrt_sq hinv_sub_pos]
+  congr 1
+  field_simp [ne_of_gt hk_pos]
+  nlinarith
+
+lemma kappa_strictAntiOn :
+    StrictAntiOn kappa (Set.Ioi 2) := by
+  intro a ha b hb hab
+  simp only [Set.mem_Ioi] at ha hb
+  have hka := kappa_pos_of_two_lt ha
+  have hkb := kappa_pos_of_two_lt (lt_trans ha hab)
+  have hka1 := kappa_lt_one_of_two_lt ha
+  have hkb1 := kappa_lt_one_of_two_lt (lt_trans ha hab)
+  have hqa := kappa_quadratic_eq_zero ha.le
+  have hqb := kappa_quadratic_eq_zero (le_of_lt (lt_trans ha hab))
+  by_contra hle
+  push_neg at hle
+  rcases lt_or_eq_of_le hle with hlt | heq
+  · have h1 : kappa a ^ 2 - a * kappa a + 1 = 0 := hqa
+    have h2 : kappa b ^ 2 - b * kappa b + 1 = 0 := hqb
+    have hab' : a < b := hab
+    have hkab : kappa a < kappa b := hlt
+    nlinarith [sq_nonneg (kappa b - kappa a),
+      mul_pos (sub_pos.mpr hab') (sub_pos.mpr hkab)]
+  · rw [heq] at hqa
+    have h2 := hqb
+    have hab' : a < b := hab
+    nlinarith
+
 lemma chiStar_pos (p : CMParams) :
     0 < chiStar p := by
   unfold chiStar
@@ -630,6 +700,54 @@ theorem Psi_const_general {c l mu : ℝ} (hl : 0 < l) (x : ℝ) :
           field_simp [ne_of_gt hsqrt_pos]
     _ = (mu / l) * c := by
           rw [hsqrt_sq]
+
+theorem Psi_smul {u : ℝ → ℝ} {l mu a : ℝ} (x : ℝ) :
+    Psi (fun y => a * u y) l mu x = a * Psi u l mu x := by
+  unfold Psi
+  rw [show (fun y : ℝ => Real.exp (-Real.sqrt l * |x - y|) * (a * u y)) =
+    (fun y => a * (Real.exp (-Real.sqrt l * |x - y|) * u y)) from by ext y; ring]
+  rw [MeasureTheory.integral_const_mul]
+  ring
+
+theorem Psi_neg {u : ℝ → ℝ} {l mu : ℝ} (x : ℝ) :
+    Psi (fun y => -u y) l mu x = -Psi u l mu x := by
+  have h := Psi_smul (u := u) (l := l) (mu := mu) (a := -1) x
+  simp only [neg_one_mul] at h
+  exact h
+
+theorem Psi_add {u v : ℝ → ℝ} {l mu : ℝ} (x : ℝ)
+    (hiu : MeasureTheory.Integrable
+      (fun y => Real.exp (-Real.sqrt l * |x - y|) * u y))
+    (hiv : MeasureTheory.Integrable
+      (fun y => Real.exp (-Real.sqrt l * |x - y|) * v y)) :
+    Psi (fun y => u y + v y) l mu x = Psi u l mu x + Psi v l mu x := by
+  unfold Psi
+  rw [show (fun y : ℝ => Real.exp (-Real.sqrt l * |x - y|) * (u y + v y)) =
+    (fun y => Real.exp (-Real.sqrt l * |x - y|) * u y +
+      Real.exp (-Real.sqrt l * |x - y|) * v y) from by ext y; ring]
+  rw [MeasureTheory.integral_add hiu hiv]
+  ring
+
+theorem Psi_sub {u v : ℝ → ℝ} {l mu : ℝ} (x : ℝ)
+    (hiu : MeasureTheory.Integrable
+      (fun y => Real.exp (-Real.sqrt l * |x - y|) * u y))
+    (hiv : MeasureTheory.Integrable
+      (fun y => Real.exp (-Real.sqrt l * |x - y|) * v y)) :
+    Psi (fun y => u y - v y) l mu x = Psi u l mu x - Psi v l mu x := by
+  unfold Psi
+  rw [show (fun y : ℝ => Real.exp (-Real.sqrt l * |x - y|) * (u y - v y)) =
+    (fun y => Real.exp (-Real.sqrt l * |x - y|) * u y -
+      Real.exp (-Real.sqrt l * |x - y|) * v y) from by ext y; ring]
+  rw [MeasureTheory.integral_sub hiu hiv]
+  ring
+
+theorem Psi_mu_smul {u : ℝ → ℝ} {l mu₁ mu₂ : ℝ}
+    (hl : 0 < l) (x : ℝ) :
+    Psi u l (mu₁ * mu₂) x = mu₁ * Psi u l mu₂ x := by
+  unfold Psi
+  have hsqrt_ne : (2 * Real.sqrt l) ≠ 0 := by
+    positivity
+  field_simp [hsqrt_ne]
 
 theorem Psi_le_const_general_of_le {u : ℝ → ℝ} {l mu M : ℝ}
     (hl : 0 < l) (hmu : 0 < mu) (hM : 0 ≤ M)
