@@ -700,13 +700,86 @@ theorem Psi_mono {u v : ℝ → ℝ} {l mu : ℝ} (hl : 0 < l) (hmu : 0 < mu)
   · exact div_nonneg (le_of_lt hmu) (mul_nonneg (by norm_num) (Real.sqrt_nonneg l))
 
 theorem Psi_kernel_splitting {u : ℝ → ℝ}
-    (_hu : IsCUnifBdd u) (_hu_nonneg : ∀ y, 0 ≤ u y) (x : ℝ) :
+    (hu : IsCUnifBdd u) (_hu_nonneg : ∀ y, 0 ≤ u y) (x : ℝ) :
     Psi u 1 1 x =
       1 / 2 * (Real.exp (-1 * x) *
-          ∫ y in Set.Iic x, Real.exp (1 * y) * u y +
+          (∫ y in Set.Iic x, Real.exp (1 * y) * u y) +
         Real.exp (1 * x) *
-          ∫ y in Set.Ioi x, Real.exp (-1 * y) * u y) := by
-  sorry
+          (∫ y in Set.Ioi x, Real.exp (-1 * y) * u y)) := by
+  let A : ℝ :=
+    Real.exp (-1 * x) * (∫ y in Set.Iic x, Real.exp (1 * y) * u y)
+  let B : ℝ :=
+    Real.exp (1 * x) * (∫ y in Set.Ioi x, Real.exp (-1 * y) * u y)
+  obtain ⟨M, hMbound⟩ := hu.2
+  have hM_nonneg : 0 ≤ M := by
+    exact le_trans (abs_nonneg (u 0)) (hMbound 0)
+  have hiu :
+      Integrable
+        (fun y : ℝ => Real.exp (-Real.sqrt (1 : ℝ) * |x - y|) * u y) := by
+    exact psi_kernel_mul_bounded_integrable (by norm_num : (0 : ℝ) < 1)
+      hM_nonneg hMbound x hu.1.aestronglyMeasurable
+  have hkernel_split :
+      (∫ y : ℝ, Real.exp (-Real.sqrt (1 : ℝ) * |x - y|) * u y) = A + B := by
+    have hsplit :=
+      MeasureTheory.integral_add_compl (s := Set.Iic x) measurableSet_Iic hiu
+    simp only [Set.compl_Iic] at hsplit
+    have hleft :
+        ∫ y in Set.Iic x, Real.exp (-Real.sqrt (1 : ℝ) * |x - y|) * u y = A := by
+      have hleft_eq :
+          Set.EqOn
+            (fun y : ℝ => Real.exp (-Real.sqrt (1 : ℝ) * |x - y|) * u y)
+            (fun y : ℝ => Real.exp (-1 * x) * (Real.exp (1 * y) * u y))
+            (Set.Iic x) := by
+        intro y hy
+        have hyx : y ≤ x := by simpa using hy
+        change
+          Real.exp (-Real.sqrt (1 : ℝ) * |x - y|) * u y =
+            Real.exp (-1 * x) * (Real.exp (1 * y) * u y)
+        rw [Real.sqrt_one, abs_of_nonneg (sub_nonneg.mpr hyx)]
+        rw [show -1 * (x - y) = -1 * x + 1 * y by ring, Real.exp_add]
+        ring
+      calc
+        ∫ y in Set.Iic x, Real.exp (-Real.sqrt (1 : ℝ) * |x - y|) * u y
+            = ∫ y in Set.Iic x,
+                Real.exp (-1 * x) * (Real.exp (1 * y) * u y) := by
+              exact MeasureTheory.setIntegral_congr_fun measurableSet_Iic hleft_eq
+        _ = Real.exp (-1 * x) * ∫ y in Set.Iic x, Real.exp (1 * y) * u y := by
+              exact MeasureTheory.integral_const_mul _ _
+        _ = A := by rfl
+    have hright :
+        ∫ y in Set.Ioi x, Real.exp (-Real.sqrt (1 : ℝ) * |x - y|) * u y = B := by
+      have hright_eq :
+          Set.EqOn
+            (fun y : ℝ => Real.exp (-Real.sqrt (1 : ℝ) * |x - y|) * u y)
+            (fun y : ℝ => Real.exp (1 * x) * (Real.exp (-1 * y) * u y))
+            (Set.Ioi x) := by
+        intro y hy
+        have hxy : x < y := by simpa using hy
+        change
+          Real.exp (-Real.sqrt (1 : ℝ) * |x - y|) * u y =
+            Real.exp (1 * x) * (Real.exp (-1 * y) * u y)
+        rw [Real.sqrt_one, abs_of_nonpos (sub_nonpos.mpr (le_of_lt hxy))]
+        rw [show -1 * -(x - y) = 1 * x + -1 * y by ring, Real.exp_add]
+        ring
+      calc
+        ∫ y in Set.Ioi x, Real.exp (-Real.sqrt (1 : ℝ) * |x - y|) * u y
+            = ∫ y in Set.Ioi x,
+                Real.exp (1 * x) * (Real.exp (-1 * y) * u y) := by
+              exact MeasureTheory.setIntegral_congr_fun measurableSet_Ioi hright_eq
+        _ = Real.exp (1 * x) * ∫ y in Set.Ioi x, Real.exp (-1 * y) * u y := by
+              exact MeasureTheory.integral_const_mul _ _
+        _ = B := by rfl
+    calc
+      ∫ y : ℝ, Real.exp (-Real.sqrt (1 : ℝ) * |x - y|) * u y
+          = (∫ y in Set.Iic x, Real.exp (-Real.sqrt (1 : ℝ) * |x - y|) * u y) +
+              (∫ y in Set.Ioi x, Real.exp (-Real.sqrt (1 : ℝ) * |x - y|) * u y) :=
+            hsplit.symm
+      _ = A + B := by rw [hleft, hright]
+  unfold Psi
+  rw [hkernel_split]
+  dsimp only [A, B]
+  simp only [Real.sqrt_one]
+  ring
 
 private lemma integral_exp_neg_abs : ∫ x : ℝ, Real.exp (-|x|) = 2 := by
   have h := @integral_comp_abs (fun t => Real.exp (-t))
