@@ -129,6 +129,19 @@ def IsPositiveClassicalSolution (p : CMParams) (T : ℝ) (u v : ℝ → ℝ → 
 def IsBoundedGlobal (u : ℝ → ℝ → ℝ) : Prop :=
   ∃ M : ℝ, ∀ t x, 0 ≤ t → |u t x| ≤ M
 
+theorem IsPositiveClassicalSolution.shift_space
+    {p : CMParams} {T : ℝ} {u v : ℝ → ℝ → ℝ}
+    (h : IsPositiveClassicalSolution p T u v) (a : ℝ) :
+    IsPositiveClassicalSolution p T
+      (fun t x => u t (x + a)) (fun t x => v t (x + a)) := by
+  exact ⟨h.1.shift_space a, fun t x ht0 htT => h.2 t (x + a) ht0 htT⟩
+
+theorem IsBoundedGlobal.shift_space
+    {u : ℝ → ℝ → ℝ} (h : IsBoundedGlobal u) (a : ℝ) :
+    IsBoundedGlobal (fun t x => u t (x + a)) := by
+  rcases h with ⟨M, hM⟩
+  exact ⟨M, fun t x ht => hM t (x + a) ht⟩
+
 /-! ## Traveling wave solutions -/
 
 /-- A traveling wave solution of (CM) connecting (1,1) and (0,0) with speed c. -/
