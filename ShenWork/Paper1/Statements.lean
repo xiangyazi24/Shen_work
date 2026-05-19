@@ -2288,6 +2288,46 @@ theorem paperWaveOperator_const_nonpos_pos
     nlinarith
   exact mul_nonpos_of_nonneg_of_nonpos hM_nonneg hinside
 
+theorem paperWaveOperator_upperBarrier_const_region_eq
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    {x : ℝ} (hx : M < Real.exp (-κ * x)) :
+    paperWaveOperator p c u (upperBarrier κ M) x =
+      M * (1 - p.χ * M ^ (p.m - 1) * frozenElliptic p u x
+        - (M ^ p.α - p.χ * M ^ (p.m + p.γ - 1))) := by
+  unfold paperWaveOperator
+  rw [upperBarrier_iteratedDeriv_two_eq_zero_of_const_lt hx,
+    upperBarrier_deriv_eq_zero_of_const_lt hx,
+    upperBarrier_eq_M_of_le_exp (le_of_lt hx)]
+  ring
+
+theorem paperWaveOperator_upperBarrier_const_region_nonpos_neg
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ ≤ 0) (hα : p.α ≤ p.m + p.γ - 1)
+    (hκ : 0 < κ) (hM : 1 ≤ M)
+    (hu : InWaveTrapSet κ M u) {x : ℝ}
+    (hx : M < Real.exp (-κ * x)) :
+    paperWaveOperator p c u (upperBarrier κ M) x ≤ 0 := by
+  have hconst := paperWaveOperator_const_nonpos_neg
+    p (c := c) hχ hα hκ hM hu x
+  rw [paperWaveOperator_const_eq p hu.cunif_bdd hu.nonneg x] at hconst
+  rw [paperWaveOperator_upperBarrier_const_region_eq p hx]
+  exact hconst
+
+theorem paperWaveOperator_upperBarrier_const_region_nonpos_pos
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hχ_nonneg : 0 ≤ p.χ) (hχ : p.χ < chiStar p)
+    (hα : p.α = p.m + p.γ - 1)
+    (hM : 1 ≤ M)
+    (hMchi : (1 / (1 - p.χ)) ^ (1 / p.α) ≤ M)
+    (hu : InWaveTrapSet κ M u) {x : ℝ}
+    (hx : M < Real.exp (-κ * x)) :
+    paperWaveOperator p c u (upperBarrier κ M) x ≤ 0 := by
+  have hconst := paperWaveOperator_const_nonpos_pos
+    p (c := c) hχ_nonneg hχ hα hM hMchi hu x
+  rw [paperWaveOperator_const_eq p hu.cunif_bdd hu.nonneg x] at hconst
+  rw [paperWaveOperator_upperBarrier_const_region_eq p hx]
+  exact hconst
+
 theorem InWaveTrapSet.zero {κ M : ℝ} (hM : 0 ≤ M) :
     InWaveTrapSet κ M (fun _ : ℝ => (0 : ℝ)) := by
   refine ⟨IsCUnifBdd.zero, ?_⟩
