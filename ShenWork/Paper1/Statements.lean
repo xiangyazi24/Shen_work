@@ -3903,7 +3903,11 @@ theorem chemotaxis_resolvent_bound
             (Real.exp (-(p.γ * κ) * x) / (1 - p.γ * κ)) := by
           rw [hexp_combine_L]
       _ = _ := by ring
-  -- For the second term, case split on mκ ≤ 1
+  -- Second term: (1/2)(1-κm)·exp(x)·R
+  -- If 1-κm ≥ 0: bound R, total ≤ [(κm+1)/(2(1-γκ)) + (1-κm)/(2(1+γκ))]·exp(-γκx)
+  -- If 1-κm < 0: this term ≤ 0, total ≤ first term alone
+  -- In both cases ≤ (1+mγκ²)/(1-γ²κ²) · exp(-γκx) by hcoeff algebra.
+  -- Detailed case analysis deferred to next session.
   sorry
 
 def Lemma_4_2 : Prop :=
