@@ -289,6 +289,38 @@ def ShenUpperBoundPositive (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop :=
   ∀ x, 0 < U x ∧
     U x < min ((1 / (1 - p.χ)) ^ (1 / p.α)) (Real.exp (-(kappa c) * x))
 
+theorem ShenUpperBoundPositive.pos
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : ShenUpperBoundPositive p c U) (x : ℝ) :
+    0 < U x :=
+  (h x).1
+
+theorem ShenUpperBoundPositive.lt_constant
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : ShenUpperBoundPositive p c U) (x : ℝ) :
+    U x < (1 / (1 - p.χ)) ^ (1 / p.α) :=
+  lt_of_lt_of_le (h x).2 (min_le_left _ _)
+
+theorem ShenUpperBoundPositive.lt_exp
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : ShenUpperBoundPositive p c U) (x : ℝ) :
+    U x < Real.exp (-(kappa c) * x) :=
+  lt_of_lt_of_le (h x).2 (min_le_right _ _)
+
+theorem ShenUpperBoundPositive.shift_right
+    {p : CMParams} {c a : ℝ} {U : ℝ → ℝ}
+    (h : ShenUpperBoundPositive p c U) (hk : 0 ≤ kappa c) (ha : 0 ≤ a) :
+    ShenUpperBoundPositive p c (fun x => U (x + a)) := by
+  intro x
+  refine ⟨h.pos (x + a), ?_⟩
+  apply lt_min
+  · exact h.lt_constant (x + a)
+  · have hle_exp :
+        Real.exp (-(kappa c) * (x + a)) ≤ Real.exp (-(kappa c) * x) := by
+      apply Real.exp_le_exp.mpr
+      nlinarith [mul_nonneg hk ha]
+    exact (h.lt_exp (x + a)).trans_le hle_exp
+
 def WeightedL2InitialCloseness (η : ℝ) (u₀ U : ℝ → ℝ) : Prop :=
   Integrable (fun x : ℝ => Real.exp (2 * η * x) * |u₀ x - U x| ^ 2)
 
