@@ -44,6 +44,14 @@ theorem StrictlyPositiveAtLeft.eventually_pos
   filter_upwards [hδle] with x hx
   exact lt_of_lt_of_le hδ hx
 
+theorem StrictlyPositiveAtLeft.shift
+    {u₀ : ℝ → ℝ} (h : StrictlyPositiveAtLeft u₀) (a : ℝ) :
+    StrictlyPositiveAtLeft (fun x => u₀ (x + a)) := by
+  rcases h with ⟨δ, hδ, hδle⟩
+  refine ⟨δ, hδ, ?_⟩
+  exact
+    (tendsto_atBot_add_const_right atBot a tendsto_id).eventually hδle
+
 def HasInitialDatum (u : ℝ → ℝ → ℝ) (u₀ : ℝ → ℝ) : Prop :=
   ∀ x, u 0 x = u₀ x
 
@@ -101,6 +109,53 @@ theorem IsTravelingWave.to_rightVanishingTravelingWave
         Ioi_mem_nhds (by norm_num)
       filter_upwards [h.lim_neg_inf.1 hnhds] with x hx
       exact le_of_lt hx }
+
+theorem IsRightVanishingTravelingWave.shift
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsRightVanishingTravelingWave p c U V) (a : ℝ) :
+    IsRightVanishingTravelingWave p c
+      (fun x => U (x + a)) (fun x => V (x + a)) := by
+  refine
+    { hc := hTW.hc
+      U_pos := fun x => hTW.U_pos (x + a)
+      ode_U := ?_
+      ode_V := ?_
+      lim_pos_inf := ?_
+      positive_at_left := hTW.positive_at_left.shift a }
+  · intro x
+    have hU2 := congr_fun (iteratedDeriv_comp_add_const 2 U a) x
+    have hU1 := deriv_comp_add_const U a x
+    have hV1 : ∀ y,
+        deriv (fun z => V (z + a)) y = deriv V (y + a) := by
+      intro y
+      exact deriv_comp_add_const V a y
+    have hChem :
+        deriv
+          (fun y => (U (y + a)) ^ p.m *
+            deriv (fun z => V (z + a)) y) x =
+        deriv (fun ξ => (U ξ) ^ p.m * deriv V ξ) (x + a) := by
+      have hfun :
+          (fun y => (U (y + a)) ^ p.m *
+            deriv (fun z => V (z + a)) y) =
+          (fun y => (U (y + a)) ^ p.m * deriv V (y + a)) := by
+        ext y
+        rw [hV1 y]
+      rw [hfun]
+      have := congr_fun
+        (iteratedDeriv_comp_add_const 1
+          (fun ξ => (U ξ) ^ p.m * deriv V ξ) a) x
+      simpa [iteratedDeriv_one] using this
+    rw [hU2, hU1, hChem]
+    exact hTW.ode_U (x + a)
+  · intro x
+    have hV2 := congr_fun (iteratedDeriv_comp_add_const 2 V a) x
+    rw [hV2]
+    exact hTW.ode_V (x + a)
+  · exact
+      ⟨hTW.lim_pos_inf.1.comp
+          (tendsto_atTop_add_const_right atTop a tendsto_id),
+        hTW.lim_pos_inf.2.comp
+          (tendsto_atTop_add_const_right atTop a tendsto_id)⟩
 
 theorem IsRightVanishingTravelingWave.to_movingFrame_global_classical_solution
     {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
