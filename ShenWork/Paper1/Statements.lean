@@ -5594,6 +5594,13 @@ theorem HasWaveUpperTailBound.inWaveTrapSet
   intro x
   exact ⟨(h.pos x).le, by simpa [upperBarrier] using (h x).2⟩
 
+theorem HasWaveUpperTailBound.frozenElliptic_le
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveUpperTailBound p c U) (hU : IsCUnifBdd U)
+    (hMChi_pos : 0 < MChi p) (x : ℝ) :
+    frozenElliptic p U x ≤ (MChi p) ^ p.γ :=
+  frozenElliptic_le_rpow_of_inWaveTrapSet p hMChi_pos (h.inWaveTrapSet hU) x
+
 theorem HasWaveUpperTailBound.inMonotoneWaveTrapSet
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (h : HasWaveUpperTailBound p c U) (hU : IsCUnifBdd U)
