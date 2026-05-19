@@ -699,6 +699,10 @@ theorem Psi_mono {u v : ℝ → ℝ} {l mu : ℝ} (hl : 0 < l) (hmu : 0 < mu)
       mul_le_mul_of_nonneg_left (huv y) (Real.exp_nonneg _))
   · exact div_nonneg (le_of_lt hmu) (mul_nonneg (by norm_num) (Real.sqrt_nonneg l))
 
+theorem Psi_zero (l mu : ℝ) (x : ℝ) :
+    Psi (fun _ => (0 : ℝ)) l mu x = 0 := by
+  simp [Psi]
+
 theorem Psi_kernel_splitting {u : ℝ → ℝ}
     (hu : IsCUnifBdd u) (_hu_nonneg : ∀ y, 0 ≤ u y) (x : ℝ) :
     Psi u 1 1 x =

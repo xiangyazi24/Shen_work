@@ -1084,6 +1084,11 @@ structure FrozenStationaryWaveProfile
   lim_pos_inf :
     Tendsto U atTop (𝓝 0) ∧ Tendsto (frozenElliptic p U) atTop (𝓝 0)
 
+theorem frozenElliptic_zero_eq (p : CMParams) (x : ℝ) :
+    frozenElliptic p (fun _ => (0 : ℝ)) x = 0 := by
+  unfold frozenElliptic
+  simp [Real.zero_rpow (ne_of_gt (by linarith [p.hγ] : 0 < p.γ)), Psi_zero]
+
 theorem frozenElliptic_tendsto_atTop_of_U_tendsto
     (p : CMParams) {U : ℝ → ℝ}
     (hU : IsCUnifBdd U) (hU_nonneg : ∀ x, 0 ≤ U x)
