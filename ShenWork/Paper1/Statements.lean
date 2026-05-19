@@ -1269,6 +1269,13 @@ theorem frozenWaveOperator_one_eq_zero (p : CMParams) (c x : ℝ) :
   rw [hprod, hV'_const, deriv_const, h1α]
   ring
 
+theorem paperWaveOperator_one_eq_zero (p : CMParams) (c x : ℝ) :
+    paperWaveOperator p c (fun _ => (1 : ℝ)) (fun _ => (1 : ℝ)) x = 0 := by
+  rw [paperWaveOperator_const_eq p
+    ⟨continuous_const, ⟨1, fun _ => by simp⟩⟩ (fun _ => by norm_num) x,
+    frozenElliptic_one_eq p x]
+  simp [Real.one_rpow]
+
 theorem frozenElliptic_tendsto_atBot_of_U_tendsto
     (p : CMParams) {U : ℝ → ℝ}
     (hU : IsCUnifBdd U) (hU_nonneg : ∀ x, 0 ≤ U x)
