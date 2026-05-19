@@ -2880,6 +2880,40 @@ def Lemma_4_2 : Prop :=
               ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
                 IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ
 
+theorem Lemma_4_1.negative_superSolution
+    (h : Lemma_4_1) {p : CMParams} (hχ : p.χ ≤ 0)
+    (hα : p.α ≤ p.m + p.γ - 1)
+    {κ M c : ℝ} (hκ_pos : 0 < κ) (hκ_lt_one : κ < 1)
+    (hM : 1 ≤ M) (hc : c = κ + κ⁻¹)
+    {u : ℝ → ℝ} (hu : InWaveTrapSet κ M u) :
+    IsFrozenSuperSolution p c u (upperBarrier κ M) :=
+  h.1 p hχ hα κ M c hκ_pos hκ_lt_one hM hc u hu
+
+theorem Lemma_4_1.positive_superSolution
+    (h : Lemma_4_1) {p : CMParams} (hχ_nonneg : 0 ≤ p.χ)
+    (hχ : p.χ < chiStar p) (hα : p.α = p.m + p.γ - 1)
+    {κ M c : ℝ} (hκ_pos : 0 < κ) (hκ_lt_one : κ < 1)
+    (hM : 1 ≤ M)
+    (hMchi : (1 / (1 - p.χ)) ^ (1 / p.α) ≤ M)
+    (hc : c = κ + κ⁻¹)
+    {u : ℝ → ℝ} (hu : InWaveTrapSet κ M u) :
+    IsFrozenSuperSolution p c u (upperBarrier κ M) :=
+  h.2 p hχ_nonneg hχ hα κ M c hκ_pos hκ_lt_one hM hMchi hc u hu
+
+theorem Lemma_4_2.subsolutions
+    (h : Lemma_4_2) {p : CMParams} {κ κtilde M c D : ℝ}
+    (hκ_pos : 0 < κ) (hκ_lt_one : κ < 1) (hκ_gap : κ < κtilde)
+    (hrange :
+      κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (hM : 1 ≤ M) (hc : c = κ + κ⁻¹)
+    (hD : subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D)
+    {u : ℝ → ℝ} (hu : InWaveTrapSet κ M u) :
+    IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+        (Set.Ioi (lowerBarrierXMinus κ κtilde D)) ∧
+      ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+        IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ :=
+  h p κ κtilde M c hκ_pos hκ_lt_one hκ_gap hrange hM hc D hD u hu
+
 /-- The finite-time upper barrier from Paper1 Remark 4.2:
 `\tilde U^+_{κ,M}(x) = min {M, M exp(-κx)}`. -/
 def scaledUpperBarrier (κ M : ℝ) : ℝ → ℝ :=
@@ -3226,6 +3260,28 @@ theorem NegativeSensitivityWaveFixedPointConstruction.MChi_eq_one
     MChi p = 1 :=
   MChi_eq_one_of_chi_nonpos p (le_of_lt h.chi_neg)
 
+theorem Lemma_4_1.negative_superSolution_of_fixedPointConstruction
+    (hL : Lemma_4_1) {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D)
+    {u : ℝ → ℝ} (hu : InMonotoneWaveTrapSet (kappa c) 1 u) :
+    IsFrozenSuperSolution p c u (upperBarrier (kappa c) 1) :=
+  hL.negative_superSolution (le_of_lt h.chi_neg) h.alpha_le
+    h.kappa_pos h.kappa_lt_one le_rfl h.kappa_add_inv_eq.symm hu.trap
+
+theorem Lemma_4_2.subsolutions_of_negative_fixedPointConstruction
+    (hL : Lemma_4_2) {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D)
+    {u : ℝ → ℝ} (hu : InMonotoneWaveTrapSet (kappa c) 1 u) :
+    IsFrozenSubSolutionOn p c u (lowerBarrierRaw (kappa c) κtilde D)
+        (Set.Ioi (lowerBarrierXMinus (kappa c) κtilde D)) ∧
+      ∀ d : ℝ,
+        0 < d →
+          d ≤ constantSubsolutionThreshold p.χ (kappa c) κtilde D →
+            IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ :=
+  hL.subsolutions h.kappa_pos h.kappa_lt_one h.kappa_lt_kappaTilde
+    h.kappaTilde_range le_rfl h.kappa_add_inv_eq.symm
+    h.D_gt_threshold hu.trap
+
 theorem PositiveSensitivityWaveFixedPointConstruction.chi_nonneg
     {p : CMParams} {c κ₁ κtilde D : ℝ}
     (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
@@ -3375,6 +3431,34 @@ theorem PositiveSensitivityWaveFixedPointConstruction.one_le_MChi
     1 ≤ MChi p :=
   one_le_MChi_of_chi_nonneg_lt_one p h.chi_nonneg
     (lt_of_lt_of_le h.chi_lt_chiStar (chiStar_le_one p))
+
+theorem Lemma_4_1.positive_superSolution_of_fixedPointConstruction
+    (hL : Lemma_4_1) {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D)
+    {u : ℝ → ℝ} (hu : InWaveTrapSet (kappa c) (MChi p) u) :
+    IsFrozenSuperSolution p c u (upperBarrier (kappa c) (MChi p)) := by
+  have hχ_lt_one : p.χ < 1 :=
+    lt_of_lt_of_le h.chi_lt_chiStar (chiStar_le_one p)
+  have hMchi :
+      (1 / (1 - p.χ)) ^ (1 / p.α) ≤ MChi p :=
+    le_of_eq (MChi_eq_rpow_of_chi_nonneg_lt_one p h.chi_nonneg hχ_lt_one).symm
+  exact hL.positive_superSolution h.chi_nonneg h.chi_lt_chiStar h.alpha_eq
+    h.kappa_pos h.kappa_lt_one h.one_le_MChi hMchi
+    h.kappa_add_inv_eq.symm hu
+
+theorem Lemma_4_2.subsolutions_of_positive_fixedPointConstruction
+    (hL : Lemma_4_2) {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D)
+    {u : ℝ → ℝ} (hu : InWaveTrapSet (kappa c) (MChi p) u) :
+    IsFrozenSubSolutionOn p c u (lowerBarrierRaw (kappa c) κtilde D)
+        (Set.Ioi (lowerBarrierXMinus (kappa c) κtilde D)) ∧
+      ∀ d : ℝ,
+        0 < d →
+          d ≤ constantSubsolutionThreshold p.χ (kappa c) κtilde D →
+            IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ :=
+  hL.subsolutions h.kappa_pos h.kappa_lt_one h.kappa_lt_kappaTilde
+    h.kappaTilde_range h.one_le_MChi h.kappa_add_inv_eq.symm
+    h.D_gt_threshold hu
 
 theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit
     {p : CMParams} {c κ₁ κtilde D : ℝ}
