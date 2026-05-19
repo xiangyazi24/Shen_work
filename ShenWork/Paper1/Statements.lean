@@ -3754,6 +3754,30 @@ theorem frozenWaveOperator_exp_nonpos_of_chi_nonpos_of_dominance
   rw [frozenWaveOperator_exp_full_eq p hc hκ_eq hu.cunif_bdd hu.nonneg x hV_diff]
   linarith
 
+theorem setIntegral_Iic_exp_le_of_rpow_le
+    {κ : ℝ} {u : ℝ → ℝ} {γ : ℝ}
+    (_hκ : 0 < κ) (_hγ : 0 < γ) (hγκ : γ * κ < 1)
+    (hu_exp : ∀ y, (u y) ^ γ ≤ Real.exp (-(γ * κ) * y))
+    (x : ℝ)
+    (hint : IntegrableOn (fun y => Real.exp (1 * y) * (u y) ^ γ) (Set.Iic x)) :
+    ∫ y in Set.Iic x, Real.exp (1 * y) * (u y) ^ γ ≤
+      Real.exp ((1 - γ * κ) * x) / (1 - γ * κ) := by
+  have h1mgk : 0 < 1 - γ * κ := by linarith
+  have hint_exp : IntegrableOn
+      (fun y => Real.exp ((1 - γ * κ) * y)) (Set.Iic x) :=
+    integrableOn_exp_mul_Iic h1mgk x
+  calc ∫ y in Set.Iic x, Real.exp (1 * y) * (u y) ^ γ
+      ≤ ∫ y in Set.Iic x, Real.exp ((1 - γ * κ) * y) := by
+        apply MeasureTheory.setIntegral_mono hint hint_exp
+        intro y
+        calc Real.exp (1 * y) * (u y) ^ γ
+            ≤ Real.exp (1 * y) * Real.exp (-(γ * κ) * y) :=
+              mul_le_mul_of_nonneg_left (hu_exp y) (Real.exp_nonneg _)
+          _ = Real.exp ((1 - γ * κ) * y) := by
+              rw [← Real.exp_add]; congr 1; ring
+    _ = Real.exp ((1 - γ * κ) * x) / (1 - γ * κ) :=
+        integral_exp_mul_Iic h1mgk x
+
 theorem chemotaxis_resolvent_bound
     (p : CMParams) {κ M : ℝ} {u : ℝ → ℝ}
     (hκ : 0 < κ) (hγκ : p.γ * κ < 1)
@@ -3774,12 +3798,16 @@ theorem chemotaxis_resolvent_bound
     calc (u y) ^ p.γ ≤ (Real.exp (-κ * y)) ^ p.γ :=
           Real.rpow_le_rpow (hf y) (hu.le_exp y) (by linarith)
       _ = Real.exp (-(p.γ * κ) * y) := by rw [← Real.exp_mul]; congr 1; ring
-  -- Paper equation (4.4): combine -κm·V' + V using the explicit Psi
-  -- half-line integral formula. The coefficient arises from:
-  -- (mκ+1)/(2(1-γκ)) + (1-mκ)/(2(1+γκ)) = (1+mγκ²)/(1-γ²κ²)
-  -- after bounding ∫ u^γ ≤ ∫ exp(-γκy) on each half-line.
-  -- This requires: Psi_derivative_formula_general, integral_exp_mul_Iic/Ioi,
-  -- setIntegral_mono, and algebra.
+  have hgk : p.γ * κ < 1 := hγκ
+  have h1mgk : 0 < 1 - p.γ * κ := by linarith
+  have h1pgk : 0 < 1 + p.γ * κ := by positivity
+  have hmk_pos : 0 ≤ p.m * κ := mul_nonneg (by linarith [p.hm]) hκ.le
+  have hmk1 : 0 < κ * p.m + 1 := by linarith [mul_pos hκ (by linarith [p.hm] : 0 < p.m)]
+  -- Use V' formula and V formula to write -κm·V' + V as a combination
+  -- of half-line integrals of u^γ, then bound by exp(-γκy) and compute.
+  -- For now, use the bound |V'| ≤ V and V ≤ exp(-γκx)/(1-γ²κ²), which
+  -- gives a weaker coefficient but suffices when combined with the M bound.
+  -- The full equation (4.4) proof will be added in a subsequent commit.
   sorry
 
 def Lemma_4_2 : Prop :=
