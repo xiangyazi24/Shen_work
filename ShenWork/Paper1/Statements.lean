@@ -3977,6 +3977,82 @@ theorem chemotaxis_resolvent_bound
   congr 1
   nlinarith [hcoeff]
 
+theorem paperWaveOperator_exp_region_hdom_of_resolvent_bound
+    (p : CMParams) {κ M : ℝ} {u : ℝ → ℝ}
+    (hκ : 0 < κ) (hγκ : p.γ * κ < 1) (hmκ : κ * p.m ≤ 1)
+    (hχ : p.χ ≤ 0) (hM : 1 ≤ M) (hu : InWaveTrapSet κ M u) (x : ℝ)
+    (hgap :
+      -p.χ * (expDecay κ x) ^ p.m *
+          (((1 + p.m * p.γ * κ ^ 2) / (1 - p.γ ^ 2 * κ ^ 2)) *
+            (expDecay κ x) ^ p.γ - (expDecay κ x) ^ p.γ) ≤
+        expDecay κ x * (expDecay κ x) ^ p.α) :
+    - p.χ * p.m * (expDecay κ x) ^ (p.m - 1) *
+          deriv (frozenElliptic p u) x * (-κ * expDecay κ x)
+        + expDecay κ x *
+          (-p.χ * (expDecay κ x) ^ (p.m - 1) *
+            frozenElliptic p u x
+          + p.χ * (expDecay κ x) ^ (p.m + p.γ - 1)) ≤
+        expDecay κ x * (expDecay κ x) ^ p.α := by
+  let E := expDecay κ x
+  let V := frozenElliptic p u x
+  let Vx := deriv (frozenElliptic p u) x
+  let C := (1 + p.m * p.γ * κ ^ 2) / (1 - p.γ ^ 2 * κ ^ 2)
+  have hE_pos : 0 < E := by
+    dsimp [E]
+    exact expDecay_pos κ x
+  have hE_nonneg : 0 ≤ E := hE_pos.le
+  have hEgamma :
+      Real.exp (-(p.γ * κ) * x) = E ^ p.γ := by
+    dsimp [E]
+    rw [expDecay_rpow_eq κ p.γ x]
+    unfold expDecay
+    congr 1
+    ring
+  have hres :
+      -(κ * p.m) * Vx + V ≤ C * E ^ p.γ := by
+    dsimp [V, Vx, C]
+    have h := chemotaxis_resolvent_bound p hκ hγκ hmκ hM hu x
+    rw [hEgamma] at h
+    convert h using 1 <;> ring
+  have hbracket :
+      -(κ * p.m) * Vx + V - E ^ p.γ ≤ C * E ^ p.γ - E ^ p.γ := by
+    linarith
+  have hcoef_nonneg : 0 ≤ -p.χ * E ^ p.m := by
+    exact mul_nonneg (neg_nonneg.mpr hχ)
+      (Real.rpow_nonneg hE_nonneg p.m)
+  have hchem_le :
+      -p.χ * E ^ p.m * (-(κ * p.m) * Vx + V - E ^ p.γ) ≤
+        -p.χ * E ^ p.m * (C * E ^ p.γ - E ^ p.γ) :=
+    mul_le_mul_of_nonneg_left hbracket hcoef_nonneg
+  have hpow_m : E ^ (p.m - 1) * E = E ^ p.m := by
+    rw [← Real.rpow_add hE_nonneg]
+    congr 1
+    ring
+  have hpow_mγ : E * E ^ (p.m + p.γ - 1) = E ^ p.m * E ^ p.γ := by
+    rw [← Real.rpow_add hE_nonneg, ← Real.rpow_add hE_nonneg]
+    congr 1
+    ring
+  have hrewrite :
+      - p.χ * p.m * E ^ (p.m - 1) * Vx * (-κ * E)
+        + E * (-p.χ * E ^ (p.m - 1) * V + p.χ * E ^ (p.m + p.γ - 1)) =
+      -p.χ * E ^ p.m * (-(κ * p.m) * Vx + V - E ^ p.γ) := by
+    calc
+      - p.χ * p.m * E ^ (p.m - 1) * Vx * (-κ * E)
+          + E * (-p.χ * E ^ (p.m - 1) * V + p.χ * E ^ (p.m + p.γ - 1))
+          =
+        - p.χ * p.m * (E ^ (p.m - 1) * E) * Vx * (-κ)
+          + (-p.χ * (E ^ (p.m - 1) * E) * V
+            + p.χ * (E * E ^ (p.m + p.γ - 1))) := by
+            ring
+      _ = -p.χ * p.m * E ^ p.m * Vx * (-κ)
+          + (-p.χ * E ^ p.m * V + p.χ * (E ^ p.m * E ^ p.γ)) := by
+            rw [hpow_m, hpow_mγ]
+      _ = -p.χ * E ^ p.m * (-(κ * p.m) * Vx + V - E ^ p.γ) := by
+            ring
+  dsimp [E, V, Vx, C] at hrewrite hchem_le hgap
+  rw [hrewrite]
+  exact le_trans hchem_le hgap
+
 theorem paperWaveOperator_exp_nonpos_of_chi_nonpos
     (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
     (hχ : p.χ ≤ 0) (hα : p.α ≤ p.m + p.γ - 1)
@@ -3988,6 +4064,11 @@ theorem paperWaveOperator_exp_nonpos_of_chi_nonpos
     {x : ℝ} (hx : Real.exp (-κ * x) < M)
     (hc : c = κ + κ⁻¹) :
     paperWaveOperator p c u (upperBarrier κ M) x ≤ 0 := by
+  apply paperWaveOperator_upperBarrier_exp_region_nonpos_of_dominance p
+    (ne_of_gt hκ) hc hx
+  -- Need to prove the hdom condition from chemotaxis_resolvent_bound
+  -- and the M bound hMbound. This is the paper's equation (4.5)-(4.6).
+  have hresbound := chemotaxis_resolvent_bound p hκ hγκ hmκ hM hu x
   sorry
 
 def Lemma_4_2 : Prop :=
