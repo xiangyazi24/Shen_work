@@ -3267,6 +3267,77 @@ theorem Remark43TailRateBound.of_kappaOne_range
     · nlinarith
     · linarith
 
+theorem exists_kappaOne_in_tail_range
+    {p : CMParams} {c : ℝ}
+    (hkappa_pos : 0 < kappa c) (hkappa_lt_one : kappa c < 1) :
+    ∃ κ₁ : ℝ,
+      kappa c < κ₁ ∧ κ₁ < 1 ∧
+        κ₁ <
+          min ((1 + p.α) * kappa c)
+            (min (p.m * kappa c + 1 / 2) 1) := by
+  let etaMax : ℝ :=
+    min (p.α * kappa c)
+      (min ((p.m - 1) * kappa c + 1 / 2) (1 - kappa c))
+  have hAlpha_pos : 0 < p.α * kappa c :=
+    mul_pos (lt_of_lt_of_le one_pos p.hα) hkappa_pos
+  have hmterm_nonneg : 0 ≤ (p.m - 1) * kappa c :=
+    mul_nonneg (sub_nonneg.mpr p.hm) hkappa_pos.le
+  have hm_pos : 0 < (p.m - 1) * kappa c + 1 / 2 := by
+    linarith
+  have hone_pos : 0 < 1 - kappa c := by
+    linarith
+  have hetaMax_pos : 0 < etaMax := by
+    dsimp [etaMax]
+    exact lt_min hAlpha_pos (lt_min hm_pos hone_pos)
+  let eta : ℝ := etaMax / 2
+  let κ₁ : ℝ := kappa c + eta
+  have heta_pos : 0 < eta := by
+    dsimp [eta]
+    linarith
+  have hκ₁_gt : kappa c < κ₁ := by
+    dsimp [κ₁]
+    linarith
+  have hκ₁_lt_one : κ₁ < 1 := by
+    have hetaMax_le : etaMax ≤ 1 - kappa c := by
+      dsimp [etaMax]
+      exact le_trans (min_le_right _ _) (min_le_right _ _)
+    dsimp [κ₁, eta]
+    nlinarith
+  have hκ₁_range :
+      κ₁ <
+        min ((1 + p.α) * kappa c)
+          (min (p.m * kappa c + 1 / 2) 1) := by
+    have hle_alpha : etaMax ≤ p.α * kappa c := by
+      dsimp [etaMax]
+      exact min_le_left _ _
+    have hle_m : etaMax ≤ (p.m - 1) * kappa c + 1 / 2 := by
+      dsimp [etaMax]
+      exact le_trans (min_le_right _ _) (min_le_left _ _)
+    apply lt_min
+    · dsimp [κ₁, eta]
+      nlinarith
+    · apply lt_min
+      · dsimp [κ₁, eta]
+        nlinarith
+      · exact hκ₁_lt_one
+  exact ⟨κ₁, hκ₁_gt, hκ₁_lt_one, hκ₁_range⟩
+
+theorem exists_waveRightTailAsymptotic_of_forall_kappaOne_range
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (htail :
+      ∀ κ₁, kappa c < κ₁ →
+        κ₁ <
+          min ((1 + p.α) * kappa c)
+            (min (p.m * kappa c + 1 / 2) 1) →
+        HasWaveRightTailAsymptotic c κ₁ U)
+    (hkappa_pos : 0 < kappa c) (hkappa_lt_one : kappa c < 1) :
+    ∃ κ₁ : ℝ,
+      kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U := by
+  rcases exists_kappaOne_in_tail_range
+      (p := p) (c := c) hkappa_pos hkappa_lt_one with
+    ⟨κ₁, hκ₁_gt, hκ₁_lt_one, hκ₁_range⟩
+  exact ⟨κ₁, hκ₁_gt, hκ₁_lt_one, htail κ₁ hκ₁_gt hκ₁_range⟩
+
 theorem HasRemark43TailAsymptotic.at_rate
     {p : CMParams} {c eta : ℝ} {U : ℝ → ℝ}
     (h : HasRemark43TailAsymptotic p c U)
@@ -3755,6 +3826,39 @@ theorem Theorem_1_1.positive_wave_with_strict_tail_bound
     ⟨U, V, hTW,
       ShenUpperBoundPositive.hasStrictWaveUpperTailBound hupper hχ_nonneg hχ_lt_one,
       htail⟩
+
+theorem Theorem_1_1.negative_wave_with_tail_witness
+    (h : Theorem_1_1) {p : CMParams}
+    (halpha : p.α ≤ p.m + p.γ - 1) (hχ : p.χ ≤ 0)
+    {c : ℝ} (hc : cStarLower p < c) :
+    ∃ U V : ℝ → ℝ,
+      IsMonotoneTravelingWave p c U V ∧
+      ShenUpperBoundNegative c U ∧
+      ∃ κ₁ : ℝ,
+        kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U := by
+  rcases h.negative_wave halpha hχ hc with ⟨U, V, hTW, hupper, htail⟩
+  exact
+    ⟨U, V, hTW, hupper,
+      exists_waveRightTailAsymptotic_of_forall_kappaOne_range
+        htail (kappa_pos_of_cStarLower_lt hc) (kappa_lt_one_of_cStarLower_lt hc)⟩
+
+theorem Theorem_1_1.positive_wave_with_stability_tail_data
+    (h : Theorem_1_1) {p : CMParams}
+    (halpha : p.α = p.m + p.γ - 1)
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    {c : ℝ} (hc : 2 < c) :
+    ∃ U V : ℝ → ℝ,
+      IsTravelingWave p c U V ∧
+      HasStrictWaveUpperTailBound p c U ∧
+      ∃ κ₁ : ℝ,
+        kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U := by
+  rcases h.positive_wave_with_strict_tail_bound
+      halpha hχ_nonneg hχ_small hc with
+    ⟨U, V, hTW, hbound, htail⟩
+  exact
+    ⟨U, V, hTW, hbound,
+      exists_waveRightTailAsymptotic_of_forall_kappaOne_range
+        htail (kappa_pos_of_two_lt hc) (kappa_lt_one_of_two_lt hc)⟩
 
 theorem Theorem_1_1.of_frozenStationaryProfile_branches
     (hneg :
