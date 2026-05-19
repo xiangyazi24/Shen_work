@@ -703,6 +703,22 @@ theorem Psi_zero (l mu : ℝ) (x : ℝ) :
     Psi (fun _ => (0 : ℝ)) l mu x = 0 := by
   simp [Psi]
 
+theorem Psi_sub_le {u v : ℝ → ℝ} {l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu)
+    (huv : ∀ x, u x ≤ v x)
+    (hu_cont : Continuous u) (hv_cont : Continuous v)
+    (hu_bdd : IsBddFun u) (hv_bdd : IsBddFun v) (x : ℝ) :
+    Psi u l mu x ≤ Psi v l mu x := by
+  rcases hu_bdd with ⟨Mu, hMu⟩
+  rcases hv_bdd with ⟨Mv, hMv⟩
+  have hMu_nn : 0 ≤ Mu := le_trans (abs_nonneg _) (hMu 0)
+  have hMv_nn : 0 ≤ Mv := le_trans (abs_nonneg _) (hMv 0)
+  exact Psi_mono hl hmu huv x
+    (psi_kernel_mul_bounded_integrable hl hMu_nn hMu x
+      hu_cont.aestronglyMeasurable)
+    (psi_kernel_mul_bounded_integrable hl hMv_nn hMv x
+      hv_cont.aestronglyMeasurable)
+
 theorem Psi_kernel_splitting {u : ℝ → ℝ}
     (hu : IsCUnifBdd u) (_hu_nonneg : ∀ y, 0 ≤ u y) (x : ℝ) :
     Psi u 1 1 x =
