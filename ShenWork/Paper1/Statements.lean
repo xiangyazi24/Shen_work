@@ -3778,6 +3778,33 @@ theorem setIntegral_Iic_exp_le_of_rpow_le
     _ = Real.exp ((1 - γ * κ) * x) / (1 - γ * κ) :=
         integral_exp_mul_Iic h1mgk x
 
+theorem setIntegral_Ioi_exp_le_of_rpow_le
+    {κ : ℝ} {u : ℝ → ℝ} {γ : ℝ}
+    (_hκ : 0 < κ) (_hγ : 0 < γ) (hγκ : γ * κ < 1)
+    (hu_exp : ∀ y, (u y) ^ γ ≤ Real.exp (-(γ * κ) * y))
+    (x : ℝ)
+    (hint : IntegrableOn (fun y => Real.exp (-1 * y) * (u y) ^ γ) (Set.Ioi x)) :
+    ∫ y in Set.Ioi x, Real.exp (-1 * y) * (u y) ^ γ ≤
+      Real.exp (-(1 + γ * κ) * x) / (1 + γ * κ) := by
+  have h1pgk : 0 < 1 + γ * κ := by positivity
+  have hneg : -(1 + γ * κ) < 0 := by linarith
+  have hint_exp : IntegrableOn
+      (fun y => Real.exp (-(1 + γ * κ) * y)) (Set.Ioi x) :=
+    integrableOn_exp_mul_Ioi hneg x
+  calc ∫ y in Set.Ioi x, Real.exp (-1 * y) * (u y) ^ γ
+      ≤ ∫ y in Set.Ioi x, Real.exp (-(1 + γ * κ) * y) := by
+        apply MeasureTheory.setIntegral_mono hint hint_exp
+        intro y
+        calc Real.exp (-1 * y) * (u y) ^ γ
+            ≤ Real.exp (-1 * y) * Real.exp (-(γ * κ) * y) :=
+              mul_le_mul_of_nonneg_left (hu_exp y) (Real.exp_nonneg _)
+          _ = Real.exp (-(1 + γ * κ) * y) := by
+              rw [← Real.exp_add]; congr 1; ring
+    _ = -Real.exp (-(1 + γ * κ) * x) / (-(1 + γ * κ)) :=
+        integral_exp_mul_Ioi hneg x
+    _ = Real.exp (-(1 + γ * κ) * x) / (1 + γ * κ) := by
+        field_simp
+
 theorem chemotaxis_resolvent_bound
     (p : CMParams) {κ M : ℝ} {u : ℝ → ℝ}
     (hκ : 0 < κ) (hγκ : p.γ * κ < 1)
