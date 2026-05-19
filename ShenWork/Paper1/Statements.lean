@@ -2188,6 +2188,40 @@ theorem frozenElliptic_le_M_of_inMonotoneWaveTrapSet
     frozenElliptic p u x ≤ M :=
   frozenElliptic_le_M_of_inWaveTrapSet p hM hM1 hu.1 x
 
+theorem paperWaveOperator_const_nonpos_neg
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ ≤ 0) (hα : p.α ≤ p.m + p.γ - 1)
+    (_hκ : 0 < κ) (hM : 1 ≤ M)
+    (hu : InWaveTrapSet κ M u) (x : ℝ) :
+    paperWaveOperator p c u (fun _ => M) x ≤ 0 := by
+  rw [paperWaveOperator_const_eq p hu.cunif_bdd hu.nonneg x]
+  have hM_pos : 0 < M := by linarith
+  have hV_le : frozenElliptic p u x ≤ M ^ p.γ := by
+    apply frozenElliptic_le_of_rpow_le p hM_pos.le hu.cunif_bdd.1 hu.nonneg
+    intro y
+    exact hu.rpow_le_M (by linarith [p.hγ]) y
+  have hchem : -p.χ * M ^ (p.m - 1) * frozenElliptic p u x ≤
+      -p.χ * M ^ (p.m + p.γ - 1) := by
+    have h1 : 0 ≤ -p.χ := by linarith
+    have h2 : 0 ≤ M ^ (p.m - 1) := Real.rpow_nonneg hM_pos.le _
+    have h3 : M ^ (p.m - 1) * frozenElliptic p u x ≤
+        M ^ (p.m - 1) * M ^ p.γ :=
+      mul_le_mul_of_nonneg_left hV_le h2
+    have h4 : M ^ (p.m - 1) * M ^ p.γ = M ^ (p.m + p.γ - 1) := by
+      rw [← Real.rpow_add hM_pos]
+      congr 1; ring
+    calc -p.χ * M ^ (p.m - 1) * frozenElliptic p u x
+          = -p.χ * (M ^ (p.m - 1) * frozenElliptic p u x) := by ring
+      _ ≤ -p.χ * (M ^ (p.m - 1) * M ^ p.γ) :=
+            mul_le_mul_of_nonneg_left h3 h1
+      _ = -p.χ * M ^ (p.m + p.γ - 1) := by rw [h4]
+  have hα_le : M ^ p.α ≤ M ^ (p.m + p.γ - 1) :=
+    Real.rpow_le_rpow_of_exponent_le hM hα
+  have hlogistic : M ^ p.α ≥ 1 :=
+    Real.one_le_rpow hM (by linarith [p.hα])
+  apply mul_nonpos_of_nonneg_of_nonpos hM_pos.le
+  nlinarith
+
 theorem InWaveTrapSet.zero {κ M : ℝ} (hM : 0 ≤ M) :
     InWaveTrapSet κ M (fun _ : ℝ => (0 : ℝ)) := by
   refine ⟨IsCUnifBdd.zero, ?_⟩
