@@ -259,6 +259,32 @@ theorem IsRightVanishingTravelingWave.to_globalCauchySolutionFrom
 def ShenUpperBoundNegative (c : ℝ) (U : ℝ → ℝ) : Prop :=
   ∀ x, 0 < U x ∧ U x < max 1 (Real.exp (-(kappa c) * x))
 
+theorem ShenUpperBoundNegative.pos
+    {c : ℝ} {U : ℝ → ℝ} (h : ShenUpperBoundNegative c U) (x : ℝ) :
+    0 < U x :=
+  (h x).1
+
+theorem ShenUpperBoundNegative.lt_max
+    {c : ℝ} {U : ℝ → ℝ} (h : ShenUpperBoundNegative c U) (x : ℝ) :
+    U x < max 1 (Real.exp (-(kappa c) * x)) :=
+  (h x).2
+
+theorem ShenUpperBoundNegative.shift_right
+    {c a : ℝ} {U : ℝ → ℝ}
+    (h : ShenUpperBoundNegative c U) (hk : 0 ≤ kappa c) (ha : 0 ≤ a) :
+    ShenUpperBoundNegative c (fun x => U (x + a)) := by
+  intro x
+  refine ⟨h.pos (x + a), ?_⟩
+  have hle_exp :
+      Real.exp (-(kappa c) * (x + a)) ≤ Real.exp (-(kappa c) * x) := by
+    apply Real.exp_le_exp.mpr
+    nlinarith [mul_nonneg hk ha]
+  have hle_max :
+      max 1 (Real.exp (-(kappa c) * (x + a))) ≤
+        max 1 (Real.exp (-(kappa c) * x)) := by
+    exact max_le (le_max_left _ _) (hle_exp.trans (le_max_right _ _))
+  exact (h.lt_max (x + a)).trans_le hle_max
+
 def ShenUpperBoundPositive (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop :=
   ∀ x, 0 < U x ∧
     U x < min ((1 / (1 - p.χ)) ^ (1 / p.α)) (Real.exp (-(kappa c) * x))
