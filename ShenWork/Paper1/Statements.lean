@@ -990,6 +990,31 @@ theorem frozenElliptic_le_one_of_le_one
   exact Real.rpow_le_one (hu_nonneg y) (hu_le y)
     (by linarith [p.hγ] : 0 ≤ p.γ)
 
+theorem rpow_cunif_bdd_of_nonneg
+    (p : CMParams) {u : ℝ → ℝ}
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x) :
+    IsCUnifBdd (fun y => (u y) ^ p.γ) := by
+  rcases hu.2 with ⟨M, hM⟩
+  have hγ_nonneg : 0 ≤ p.γ := by linarith [p.hγ]
+  have hM_nonneg : 0 ≤ M := le_trans (abs_nonneg (u 0)) (hM 0)
+  refine ⟨?_, ⟨M ^ p.γ, ?_⟩⟩
+  · exact hu.1.rpow_const (fun y => Or.inr hγ_nonneg)
+  · intro y
+    rw [abs_of_nonneg (Real.rpow_nonneg (hu_nonneg y) p.γ)]
+    exact Real.rpow_le_rpow (hu_nonneg y)
+      (by simpa [abs_of_nonneg (hu_nonneg y)] using hM y) hγ_nonneg
+
+theorem frozenElliptic_ode
+    (p : CMParams) {u : ℝ → ℝ}
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x) (x : ℝ) :
+    iteratedDeriv 2 (frozenElliptic p u) x -
+        frozenElliptic p u x + (u x) ^ p.γ = 0 := by
+  unfold frozenElliptic
+  simpa using
+    (Psi_elliptic_ode (u := fun y => (u y) ^ p.γ) (l := 1) (mu := 1)
+      one_pos one_pos (rpow_cunif_bdd_of_nonneg p hu hu_nonneg)
+      (fun y => Real.rpow_nonneg (hu_nonneg y) p.γ) x)
+
 def frozenWaveOperator (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) : ℝ → ℝ :=
   fun x =>
     iteratedDeriv 2 W x + c * deriv W x
