@@ -3338,6 +3338,33 @@ theorem exists_waveRightTailAsymptotic_of_forall_kappaOne_range
     ⟨κ₁, hκ₁_gt, hκ₁_lt_one, hκ₁_range⟩
   exact ⟨κ₁, hκ₁_gt, hκ₁_lt_one, htail κ₁ hκ₁_gt hκ₁_range⟩
 
+theorem exists_common_waveRightTailAsymptotic_of_forall_kappaOne_range
+    {p : CMParams} {c : ℝ} {U₁ U₂ : ℝ → ℝ}
+    (htail₁ :
+      ∀ κ₁, kappa c < κ₁ →
+        κ₁ <
+          min ((1 + p.α) * kappa c)
+            (min (p.m * kappa c + 1 / 2) 1) →
+        HasWaveRightTailAsymptotic c κ₁ U₁)
+    (htail₂ :
+      ∀ κ₁, kappa c < κ₁ →
+        κ₁ <
+          min ((1 + p.α) * kappa c)
+            (min (p.m * kappa c + 1 / 2) 1) →
+        HasWaveRightTailAsymptotic c κ₁ U₂)
+    (hkappa_pos : 0 < kappa c) (hkappa_lt_one : kappa c < 1) :
+    ∃ κ₁ : ℝ,
+      kappa c < κ₁ ∧ κ₁ < 1 ∧
+        HasWaveRightTailAsymptotic c κ₁ U₁ ∧
+        HasWaveRightTailAsymptotic c κ₁ U₂ := by
+  rcases exists_kappaOne_in_tail_range
+      (p := p) (c := c) hkappa_pos hkappa_lt_one with
+    ⟨κ₁, hκ₁_gt, hκ₁_lt_one, hκ₁_range⟩
+  exact
+    ⟨κ₁, hκ₁_gt, hκ₁_lt_one,
+      htail₁ κ₁ hκ₁_gt hκ₁_range,
+      htail₂ κ₁ hκ₁_gt hκ₁_range⟩
+
 theorem HasRemark43TailAsymptotic.at_rate
     {p : CMParams} {c eta : ℝ} {U : ℝ → ℝ}
     (h : HasRemark43TailAsymptotic p c U)
@@ -4446,6 +4473,39 @@ theorem Theorem_1_3.uniqueness_package_of_remark43_tail
   exact huniq c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hbound₁ hbound₂
     (htail₁.exists_common_waveRightTailAsymptotic htail₂ hkappa_pos hkappa_lt_one)
 
+theorem Theorem_1_3.uniqueness_package_of_forall_kappaOne_range_tail
+    (h : Theorem_1_3) {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        (∀ κ₁, kappa c < κ₁ →
+          κ₁ <
+            min ((1 + p.α) * kappa c)
+              (min (p.m * kappa c + 1 / 2) 1) →
+          HasWaveRightTailAsymptotic c κ₁ U₁) →
+        (∀ κ₁, kappa c < κ₁ →
+          κ₁ <
+            min ((1 + p.α) * kappa c)
+              (min (p.m * kappa c + 1 / 2) 1) →
+          HasWaveRightTailAsymptotic c κ₁ U₂) →
+        (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
+  rcases h.uniqueness_package hp with ⟨cStarStar, hasymp, hlower, huniq⟩
+  refine ⟨cStarStar, hasymp, hlower, ?_⟩
+  intro c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hbound₁ hbound₂ htail₁ htail₂
+  have hkappa_pos : 0 < kappa c :=
+    kappa_pos_of_stabilitySpeedBaseline_lt hlower hc
+  have hkappa_lt_one : kappa c < 1 :=
+    kappa_lt_one_of_stabilitySpeedBaseline_lt hlower hc
+  exact huniq c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hbound₁ hbound₂
+    (exists_common_waveRightTailAsymptotic_of_forall_kappaOne_range
+      htail₁ htail₂ hkappa_pos hkappa_lt_one)
+
 theorem Theorem_1_3.uniqueness_at_admissible_threshold
     {p : CMParams} {cStarStar : ℝ → ℝ}
     (hthreshold :
@@ -4507,6 +4567,49 @@ theorem Theorem_1_3.uniqueness_at_admissible_threshold_of_remark43_tail
     hthreshold hc hTW₁ hTW₂ hbound₁ hbound₂
     (htail₁.exists_common_waveRightTailAsymptotic htail₂ hkappa_pos hkappa_lt_one)
 
+theorem Theorem_1_3.uniqueness_at_admissible_threshold_of_forall_kappaOne_range_tail
+    {p : CMParams} {cStarStar : ℝ → ℝ}
+    (hthreshold :
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧
+          HasWaveRightTailAsymptotic c κ₁ U₁ ∧
+          HasWaveRightTailAsymptotic c κ₁ U₂) →
+        (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x))
+    {c : ℝ} (hc : cStarStar p.χ < c)
+    {U₁ V₁ U₂ V₂ : ℝ → ℝ}
+    (hTW₁ : IsTravelingWave p c U₁ V₁)
+    (hTW₂ : IsTravelingWave p c U₂ V₂)
+    (hbound₁ : HasStrictWaveUpperTailBound p c U₁)
+    (hbound₂ : HasStrictWaveUpperTailBound p c U₂)
+    (htail₁ :
+      ∀ κ₁, kappa c < κ₁ →
+        κ₁ <
+          min ((1 + p.α) * kappa c)
+            (min (p.m * kappa c + 1 / 2) 1) →
+        HasWaveRightTailAsymptotic c κ₁ U₁)
+    (htail₂ :
+      ∀ κ₁, kappa c < κ₁ →
+        κ₁ <
+          min ((1 + p.α) * kappa c)
+            (min (p.m * kappa c + 1 / 2) 1) →
+        HasWaveRightTailAsymptotic c κ₁ U₂) :
+    (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
+  have hkappa_pos : 0 < kappa c :=
+    kappa_pos_of_stabilitySpeedBaseline_lt hthreshold.2.1 hc
+  have hkappa_lt_one : kappa c < 1 :=
+    kappa_lt_one_of_stabilitySpeedBaseline_lt hthreshold.2.1 hc
+  exact Theorem_1_3.uniqueness_at_admissible_threshold
+    hthreshold hc hTW₁ hTW₂ hbound₁ hbound₂
+    (exists_common_waveRightTailAsymptotic_of_forall_kappaOne_range
+      htail₁ htail₂ hkappa_pos hkappa_lt_one)
+
 theorem Theorem_1_3.exists_threshold_with_uniqueness_at_speed
     (h : Theorem_1_3) {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
@@ -4539,6 +4642,30 @@ theorem Theorem_1_3.exists_threshold_with_uniqueness_at_speed_of_remark43_tail
         HasRemark43TailAsymptotic p c U₂ →
         (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) :=
   h.uniqueness_package_of_remark43_tail hp
+
+theorem Theorem_1_3.exists_threshold_with_uniqueness_at_speed_of_forall_kappaOne_range_tail
+    (h : Theorem_1_3) {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        (∀ κ₁, kappa c < κ₁ →
+          κ₁ <
+            min ((1 + p.α) * kappa c)
+              (min (p.m * kappa c + 1 / 2) 1) →
+          HasWaveRightTailAsymptotic c κ₁ U₁) →
+        (∀ κ₁, kappa c < κ₁ →
+          κ₁ <
+            min ((1 + p.α) * kappa c)
+              (min (p.m * kappa c + 1 / 2) 1) →
+          HasWaveRightTailAsymptotic c κ₁ U₂) →
+        (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) :=
+  h.uniqueness_package_of_forall_kappaOne_range_tail hp
 
 end
 
