@@ -4101,7 +4101,9 @@ theorem paperWaveOperator_exp_nonpos_of_chi_nonpos
   -- E · E^α = E^{α+1}
   have _hE_pow :
       E * E ^ p.α = E ^ (p.α + 1) := by
-    sorry
+    have : E = E ^ (1 : ℝ) := (Real.rpow_one E).symm
+    nth_rw 1 [this]
+    rw [← Real.rpow_add hE_pos]; congr 1; ring
   -- The remaining goal is pure coefficient algebra + rpow manipulation
   -- using hMbound, hE_rpow_le, hexp_split, and the exponential identities.
   sorry
