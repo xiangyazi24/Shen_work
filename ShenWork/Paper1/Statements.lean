@@ -3774,10 +3774,12 @@ theorem chemotaxis_resolvent_bound
     calc (u y) ^ p.γ ≤ (Real.exp (-κ * y)) ^ p.γ :=
           Real.rpow_le_rpow (hf y) (hu.le_exp y) (by linarith)
       _ = Real.exp (-(p.γ * κ) * y) := by rw [← Real.exp_mul]; congr 1; ring
-  -- The full proof uses Psi_derivative_formula_general to write V'(x) in
-  -- half-line integral form, bounds each integral by exp(-γκy), computes
-  -- the resulting exponential integrals, and simplifies the coefficient.
-  -- Paper equation (4.4).
+  -- Paper equation (4.4): combine -κm·V' + V using the explicit Psi
+  -- half-line integral formula. The coefficient arises from:
+  -- (mκ+1)/(2(1-γκ)) + (1-mκ)/(2(1+γκ)) = (1+mγκ²)/(1-γ²κ²)
+  -- after bounding ∫ u^γ ≤ ∫ exp(-γκy) on each half-line.
+  -- This requires: Psi_derivative_formula_general, integral_exp_mul_Iic/Ioi,
+  -- setIntegral_mono, and algebra.
   sorry
 
 def Lemma_4_2 : Prop :=
