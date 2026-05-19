@@ -1101,6 +1101,21 @@ theorem frozenElliptic_continuous
       (a := 1) one_pos hu_rpow x).differentiableAt
   exact hdiff.continuous.const_mul _
 
+theorem frozenElliptic_differentiable
+    (p : CMParams) {U : ℝ → ℝ} (hU : IsCUnifBdd U) (hU_nonneg : ∀ x, 0 ≤ U x) :
+    Differentiable ℝ (frozenElliptic p U) := by
+  have hu_rpow := rpow_cunif_bdd_of_nonneg p hU hU_nonneg
+  intro x
+  have hPsi_diff : DifferentiableAt ℝ
+      (fun y => 1 / 2 * ∫ z, Real.exp (-1 * |y - z|) * (U z) ^ p.γ) x :=
+    ((hasDerivAt_integral_exp_neg_mul_abs_sub_general
+      (a := 1) one_pos hu_rpow x).const_mul (1 / 2)).differentiableAt
+  have hfun : (fun y => frozenElliptic p U y) =
+      (fun y => 1 / 2 * ∫ z, Real.exp (-1 * |y - z|) * (U z) ^ p.γ) := by
+    ext y; simp [frozenElliptic, Psi, Real.sqrt_one]
+  rwa [show frozenElliptic p U = fun y =>
+      1 / 2 * ∫ z, Real.exp (-1 * |y - z|) * (U z) ^ p.γ from hfun]
+
 theorem frozenElliptic_zero_eq (p : CMParams) (x : ℝ) :
     frozenElliptic p (fun _ => (0 : ℝ)) x = 0 := by
   unfold frozenElliptic
