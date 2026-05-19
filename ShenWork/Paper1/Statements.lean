@@ -37,6 +37,12 @@ theorem UniformlyPositive.strictlyPositiveAtLeft
   rcases h with ⟨δ, hδ, hδle⟩
   exact ⟨δ, hδ, Eventually.of_forall hδle⟩
 
+theorem UniformlyPositive.shift
+    {u₀ : ℝ → ℝ} (h : UniformlyPositive u₀) (a : ℝ) :
+    UniformlyPositive (fun x => u₀ (x + a)) := by
+  rcases h with ⟨δ, hδ, hδle⟩
+  exact ⟨δ, hδ, fun x => hδle (x + a)⟩
+
 theorem StrictlyPositiveAtLeft.eventually_pos
     {u₀ : ℝ → ℝ} (h : StrictlyPositiveAtLeft u₀) :
     ∀ᶠ x in atBot, 0 < u₀ x := by
@@ -1747,9 +1753,27 @@ theorem IsBddFun.zero :
     IsBddFun (fun _ : ℝ => (0 : ℝ)) := by
   exact ⟨0, by simp⟩
 
+theorem IsBddFun.shift
+    {u : ℝ → ℝ} (hu : IsBddFun u) (a : ℝ) :
+    IsBddFun (fun x => u (x + a)) := by
+  rcases hu with ⟨M, hM⟩
+  exact ⟨M, fun x => hM (x + a)⟩
+
 theorem IsCUnifBdd.zero :
     IsCUnifBdd (fun _ : ℝ => (0 : ℝ)) := by
   exact ⟨continuous_const, IsBddFun.zero⟩
+
+theorem IsCUnifBdd.shift
+    {u : ℝ → ℝ} (hu : IsCUnifBdd u) (a : ℝ) :
+    IsCUnifBdd (fun x => u (x + a)) := by
+  constructor
+  · exact hu.1.comp (continuous_id.add continuous_const)
+  · exact IsBddFun.shift hu.2 a
+
+theorem NonnegativeInitialDatum.shift
+    {u₀ : ℝ → ℝ} (h : NonnegativeInitialDatum u₀) (a : ℝ) :
+    NonnegativeInitialDatum (fun x => u₀ (x + a)) :=
+  ⟨IsCUnifBdd.shift h.1 a, fun x => h.2 (x + a)⟩
 
 theorem InWaveTrapSet.cunif_bdd {κ M : ℝ} {u : ℝ → ℝ}
     (h : InWaveTrapSet κ M u) :
