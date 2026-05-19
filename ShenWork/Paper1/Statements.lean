@@ -4423,6 +4423,27 @@ def remark5SpeedCondition (p : CMParams) (c sigma : ℝ) : Prop :=
       (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
         |p.χ| * sigma)
 
+theorem remark5SpeedCondition.gt_first
+    {p : CMParams} {c sigma : ℝ}
+    (h : remark5SpeedCondition p c sigma) :
+    p.γ + |p.χ| * sigma + (p.γ + |p.χ|) / sigma < c :=
+  lt_of_le_of_lt (le_max_left _ _) h
+
+theorem remark5SpeedCondition.gt_second
+    {p : CMParams} {c sigma : ℝ}
+    (h : remark5SpeedCondition p c sigma) :
+    p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+        |p.χ| * sigma < c :=
+  lt_of_le_of_lt (le_max_right _ _) h
+
+theorem remark5SpeedCondition.gt_waveDerivativeSpeed
+    {p : CMParams} {c sigma : ℝ}
+    (h : remark5SpeedCondition p c sigma) (hsigma : 0 ≤ sigma) :
+    p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) < c := by
+  have hnonneg : 0 ≤ |p.χ| * sigma :=
+    mul_nonneg (abs_nonneg p.χ) hsigma
+  exact lt_of_le_of_lt (by linarith) h.gt_second
+
 /-- Paper1 Remark 5.1: under the stronger `sigma` speed condition, the
 stationary profile derivative has a global `1/(|χ|σ)` bound and a right-tail
 exponential `1/(|χ|^2 σ)` bound. -/
