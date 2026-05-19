@@ -1089,6 +1089,17 @@ theorem frozenElliptic_tendsto_atTop_of_U_tendsto
     (hU : IsCUnifBdd U) (hU_nonneg : ∀ x, 0 ≤ U x)
     (hU_lim : Tendsto U atTop (𝓝 0)) :
     Tendsto (frozenElliptic p U) atTop (𝓝 0) := by
+  -- V(x) = (1/2) ∫ e^{-|x-y|} U(y)^γ dy = (1/2) ∫ e^{-|z|} U(x+z)^γ dz
+  -- DCT: U(x+z)^γ → 0 pointwise, dominated by M^γ · e^{-|z|} (integrable)
+  -- So V(x) → (1/2) ∫ e^{-|z|} · 0 dz = 0
+  have hγ_pos : 0 < p.γ := by linarith [p.hγ]
+  have hf_lim : Tendsto (fun x => (U x) ^ p.γ) atTop (𝓝 0) := by
+    have h0γ : (0 : ℝ) ^ p.γ = 0 := Real.zero_rpow (ne_of_gt hγ_pos)
+    rw [← h0γ]
+    exact hU_lim.rpow_const (Or.inr hγ_pos.le)
+  -- V(x) ≤ M^γ (bounded) and V(x) ≥ 0 (nonneg)
+  -- Use squeeze: V(x) ≤ Psi(constant M^γ) * something → 0
+  -- Actually use the explicit integral representation + DCT
   sorry
 
 theorem frozenElliptic_tendsto_atBot_of_U_tendsto
