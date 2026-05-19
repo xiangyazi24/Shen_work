@@ -4025,13 +4025,26 @@ theorem paperWaveOperator_exp_region_hdom_of_resolvent_bound
         -p.χ * E ^ p.m * (C * E ^ p.γ - E ^ p.γ) :=
     mul_le_mul_of_nonneg_left hbracket hcoef_nonneg
   have hpow_m : E ^ (p.m - 1) * E = E ^ p.m := by
-    rw [← Real.rpow_add hE_nonneg]
-    congr 1
-    ring
+    calc
+      E ^ (p.m - 1) * E = E ^ (p.m - 1) * E ^ (1 : ℝ) := by
+        rw [Real.rpow_one E]
+      _ = E ^ ((p.m - 1) + 1) := by
+        rw [Real.rpow_add hE_pos]
+      _ = E ^ p.m := by
+        congr 1
+        ring
   have hpow_mγ : E * E ^ (p.m + p.γ - 1) = E ^ p.m * E ^ p.γ := by
-    rw [← Real.rpow_add hE_nonneg, ← Real.rpow_add hE_nonneg]
-    congr 1
-    ring
+    calc
+      E * E ^ (p.m + p.γ - 1) =
+          E ^ (1 : ℝ) * E ^ (p.m + p.γ - 1) := by
+        rw [Real.rpow_one E]
+      _ = E ^ (1 + (p.m + p.γ - 1)) := by
+        rw [Real.rpow_add hE_pos]
+      _ = E ^ (p.m + p.γ) := by
+        congr 1
+        ring
+      _ = E ^ p.m * E ^ p.γ := by
+        rw [← Real.rpow_add hE_pos]
   have hrewrite :
       - p.χ * p.m * E ^ (p.m - 1) * Vx * (-κ * E)
         + E * (-p.χ * E ^ (p.m - 1) * V + p.χ * E ^ (p.m + p.γ - 1)) =
