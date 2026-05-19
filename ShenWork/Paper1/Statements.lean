@@ -4882,6 +4882,47 @@ theorem Theorem_1_2.positive_existing_wave_stability_package
     ⟨U, V, hTW, hbound, htail⟩
   exact ⟨U, V, hTW, hbound, hstable c hc U V hTW hbound htail⟩
 
+theorem Theorem_1_2.positive_existing_wave_stability_package_with_ratio_limit
+    (hstability : Theorem_1_2) (hexistence : Theorem_1_1)
+    {p : CMParams}
+    (halpha : p.α = p.m + p.γ - 1)
+    (hχ_nonneg : 0 ≤ p.χ)
+    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p)) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+        ∃ U V : ℝ → ℝ,
+          IsTravelingWave p c U V ∧
+          HasStrictWaveUpperTailBound p c U ∧
+          Tendsto (fun x => U x / Real.exp (-(kappa c) * x)) atTop (𝓝 1) ∧
+          (∀ η : ℝ, kappa c < η →
+            η < 1 / (1 + |p.χ| ^ (1 / 6)) →
+            ∀ u₀ : ℝ → ℝ,
+              NonnegativeInitialDatum u₀ →
+              StrictlyPositiveAtLeft u₀ →
+              WeightedL2InitialCloseness η u₀ U →
+              ∃ u v : ℝ → ℝ → ℝ,
+                IsGlobalCauchySolutionFrom p u₀ u v ∧
+                WeightedL2MovingFrameConvergence η c u U ∧
+                UniformMovingFrameConvergence c u U) := by
+  have hp : StableWaveParameterRegime p :=
+    StableWaveParameterRegime.of_positive hχ_nonneg
+      (lt_of_lt_of_le hχ_small (min_le_right _ _)) halpha
+  rcases hstability.stability_package hp with
+    ⟨cStarStar, hasymp, hlower, hstable⟩
+  refine ⟨cStarStar, hasymp, hlower, ?_⟩
+  intro c hc
+  have hc2 : 2 < c :=
+    two_lt_of_stabilitySpeedBaseline_lt hlower hc
+  rcases hexistence.positive_wave_with_stability_tail_data
+      halpha hχ_nonneg hχ_small hc2 with
+    ⟨U, V, hTW, hbound, κ₁, hκ₁_gt, _hκ₁_lt, htail⟩
+  exact
+    ⟨U, V, hTW, hbound, htail.ratio_tendsto_one hκ₁_gt,
+      hstable c hc U V hTW hbound
+        ⟨κ₁, hκ₁_gt, _hκ₁_lt, htail⟩⟩
+
 /-- Paper1 Theorem 1.3: uniqueness of traveling waves with the prescribed right tail. -/
 def Theorem_1_3 : Prop :=
   ∀ p : CMParams, StableWaveParameterRegime p →
