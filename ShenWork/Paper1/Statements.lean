@@ -1049,6 +1049,24 @@ def frozenWaveOperator (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) : ℝ → �
         deriv (fun y => (W y) ^ p.m * deriv (frozenElliptic p u) y) x
       + W x * (1 - (W x) ^ p.α)
 
+def paperWaveOperator (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) : ℝ → ℝ :=
+  fun x =>
+    let V := frozenElliptic p u
+    iteratedDeriv 2 W x + c * deriv W x
+      - p.χ * p.m * (W x) ^ (p.m - 1) * deriv V x * deriv W x
+      + W x * (1 - p.χ * (W x) ^ (p.m - 1) * V x
+        - ((W x) ^ p.α - p.χ * (W x) ^ (p.m + p.γ - 1)))
+
+theorem paperWaveOperator_const_eq
+    (p : CMParams) {c M : ℝ} {u : ℝ → ℝ}
+    (_hu : IsCUnifBdd u) (_hu_nonneg : ∀ x, 0 ≤ u x) (x : ℝ) :
+    paperWaveOperator p c u (fun _ => M) x =
+      M * (1 - p.χ * M ^ (p.m - 1) * frozenElliptic p u x
+        - (M ^ p.α - p.χ * M ^ (p.m + p.γ - 1))) := by
+  unfold paperWaveOperator
+  simp only [iteratedDeriv_const, deriv_const, show (2 : ℕ) ≠ 0 from by norm_num,
+    ite_false, mul_zero, zero_add, add_zero, sub_zero]
+
 /-- Stationary profile obtained after the frozen auxiliary fixed-point step.
 This is the exact bridge object needed before producing an `IsTravelingWave`.
 The hard analytic work is to prove these fields for the Schauder fixed point. -/
