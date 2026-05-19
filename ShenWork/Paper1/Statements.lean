@@ -3370,6 +3370,28 @@ theorem expDecay_rpow_deriv (κ m x : ℝ) :
     deriv (fun y => (expDecay κ y) ^ m) x = -(m * κ) * (expDecay κ x) ^ m :=
   (expDecay_rpow_hasDerivAt κ m x).deriv
 
+theorem chemotaxis_product_rule_exp
+    (p : CMParams) {κ : ℝ} {u : ℝ → ℝ}
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x) (x : ℝ)
+    (hV_diff : DifferentiableAt ℝ (deriv (frozenElliptic p u)) x) :
+    deriv (fun y => (expDecay κ y) ^ p.m *
+        deriv (frozenElliptic p u) y) x =
+      (expDecay κ x) ^ p.m *
+        (-(p.m * κ) * deriv (frozenElliptic p u) x +
+          frozenElliptic p u x - (u x) ^ p.γ) := by
+  have hexp_deriv := expDecay_rpow_hasDerivAt κ p.m x
+  have hV_deriv : HasDerivAt (deriv (frozenElliptic p u))
+      (frozenElliptic p u x - (u x) ^ p.γ) x := by
+    rw [← frozenElliptic_deriv_deriv_eq p hu hu_nonneg x]
+    exact hV_diff.hasDerivAt
+  have hprod := hexp_deriv.mul hV_deriv
+  have hfun_eq :
+      (fun y => (expDecay κ y) ^ p.m * deriv (frozenElliptic p u) y) =
+      (fun y => (expDecay κ y) ^ p.m) * deriv (frozenElliptic p u) := by
+    ext y; simp [Pi.mul_apply]
+  rw [hfun_eq, hprod.deriv]
+  ring
+
 def Lemma_4_2 : Prop :=
   ∀ p : CMParams, ∀ κ κtilde M c : ℝ,
     0 < κ → κ < 1 →
