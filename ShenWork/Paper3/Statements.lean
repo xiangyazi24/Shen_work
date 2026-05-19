@@ -797,6 +797,13 @@ lemma Proposition_1_3.positive_global_solution
   exact ⟨u, v,
     PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
 
+lemma Proposition_1_3.of_paper2_theorem_1_3
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C) :
+    Proposition_1_3 D p C := by
+  intro ha hb hm hcond u₀ hu₀
+  exact h.global_solution ha hb p.hm hcond hm hu₀
+
 def Proposition_1_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   p.m = 1 → 1 ≤ p.β →
     ((p.a = 0 ∧ p.b = 0) ∨ (0 ≤ p.a ∧ 0 < p.b)) →
@@ -834,6 +841,13 @@ lemma Proposition_1_4.positive_global_solution
     ⟨u, v, hglobal, htrace, hbdd⟩
   exact ⟨u, v,
     PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
+
+lemma Proposition_1_4.of_paper2_theorem_1_2
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Paper2.Theorem_1_2 D p) :
+    Proposition_1_4 D p := by
+  intro hm hβ _hab hχ u₀ hu₀
+  exact h.linear_solution p.ha p.hb hβ hm hχ hu₀
 
 lemma sigma_zero (p : CM2Params) (uStar vStar : ℝ) :
     sigma p uStar vStar 0 = -p.a * p.α := by
