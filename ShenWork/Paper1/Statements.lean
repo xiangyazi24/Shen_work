@@ -1084,6 +1084,20 @@ structure FrozenStationaryWaveProfile
   lim_pos_inf :
     Tendsto U atTop (𝓝 0) ∧ Tendsto (frozenElliptic p U) atTop (𝓝 0)
 
+theorem frozenElliptic_tendsto_atTop_of_U_tendsto
+    (p : CMParams) {U : ℝ → ℝ}
+    (hU : IsCUnifBdd U) (hU_nonneg : ∀ x, 0 ≤ U x)
+    (hU_lim : Tendsto U atTop (𝓝 0)) :
+    Tendsto (frozenElliptic p U) atTop (𝓝 0) := by
+  sorry
+
+theorem frozenElliptic_tendsto_atBot_of_U_tendsto
+    (p : CMParams) {U : ℝ → ℝ}
+    (hU : IsCUnifBdd U) (hU_nonneg : ∀ x, 0 ≤ U x)
+    (hU_lim : Tendsto U atBot (𝓝 1)) :
+    Tendsto (frozenElliptic p U) atBot (𝓝 1) := by
+  sorry
+
 theorem FrozenStationaryWaveProfile.mk_from_stationary
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (hc : 0 < c)
