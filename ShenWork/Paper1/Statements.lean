@@ -102,6 +102,65 @@ theorem IsTravelingWave.to_rightVanishingTravelingWave
       filter_upwards [h.lim_neg_inf.1 hnhds] with x hx
       exact le_of_lt hx }
 
+theorem IsRightVanishingTravelingWave.to_movingFrame_global_classical_solution
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsRightVanishingTravelingWave p c U V)
+    (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V) :
+    IsGlobalClassicalSolution p
+      (fun t x => U (x - c * t)) (fun t x => V (x - c * t)) := by
+  have hU_d : Differentiable ℝ U := hU_diff.differentiable two_ne_zero
+  have hV_d : Differentiable ℝ V := hV_diff.differentiable two_ne_zero
+  intro T hT
+  exact {
+    hT := hT
+    u_smooth := fun t x _ _ => ⟨
+      (hU_d _).comp _ ((differentiableAt_const x).sub
+        ((differentiableAt_const c).mul differentiableAt_id)),
+      (hU_d _).comp _ (differentiableAt_id.sub (differentiableAt_const _))⟩
+    v_smooth := fun t x _ _ =>
+      (hV_d _).comp _ (differentiableAt_id.sub (differentiableAt_const _))
+    pde_u := fun t x _ _ => by
+      have hinner : HasDerivAt (fun t' => x - c * t') (-c) t := by
+        have := (hasDerivAt_const t x).sub ((hasDerivAt_id t).const_mul c)
+        simpa using this
+      have htime :
+          deriv (fun t' => U (x - c * t')) t = deriv U (x - c * t) * (-c) :=
+        ((hU_d _).hasDerivAt.comp t hinner).deriv
+      have hU2 := congr_fun (iteratedDeriv_comp_sub_const 2 U (c * t)) x
+      have hV1 : ∀ y, deriv (fun z => V (z - c * t)) y = deriv V (y - c * t) := by
+        intro y
+        have := congr_fun (iteratedDeriv_comp_sub_const 1 V (c * t)) y
+        simpa [iteratedDeriv_one] using this
+      have hChem :
+          deriv (fun y => U (y - c * t) ^ p.m *
+            deriv (fun z => V (z - c * t)) y) x =
+          deriv (fun ξ => U ξ ^ p.m * deriv V ξ) (x - c * t) := by
+        have hfun :
+            (fun y => U (y - c * t) ^ p.m *
+              deriv (fun z => V (z - c * t)) y) =
+            (fun y => U (y - c * t) ^ p.m * deriv V (y - c * t)) := by
+          ext y
+          rw [hV1 y]
+        rw [hfun]
+        have := congr_fun (iteratedDeriv_comp_sub_const 1
+          (fun ξ => U ξ ^ p.m * deriv V ξ) (c * t)) x
+        simpa [iteratedDeriv_one] using this
+      rw [htime, hU2, hChem]
+      linarith [hTW.ode_U (x - c * t)]
+    pde_v := fun t x _ _ => by
+      have h := congr_fun (iteratedDeriv_comp_sub_const 2 V (c * t)) x
+      rw [h]
+      exact hTW.ode_V (x - c * t)
+  }
+
+theorem IsRightVanishingTravelingWave.to_global_classical_solution
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsRightVanishingTravelingWave p c U V)
+    (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V) :
+    ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution p u v :=
+  ⟨fun t x => U (x - c * t), fun t x => V (x - c * t),
+    hTW.to_movingFrame_global_classical_solution hU_diff hV_diff⟩
+
 def ShenUpperBoundNegative (c : ℝ) (U : ℝ → ℝ) : Prop :=
   ∀ x, 0 < U x ∧ U x < max 1 (Real.exp (-(kappa c) * x))
 
