@@ -1215,6 +1215,23 @@ def GloballyAsymptoticallyStableMinimal
     HasInitialMass D u uStar →
       UniformConvergesInSup D u uStar
 
+lemma GloballyAsymptoticallyStableNonminimal.convergence
+    {D : BoundedDomainData} {p : CM2Params} {uStar vStar : ℝ}
+    (h : GloballyAsymptoticallyStableNonminimal D p uStar vStar)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    UniformConvergesInSup D u uStar :=
+  h u v huv
+
+lemma GloballyAsymptoticallyStableMinimal.convergence
+    {D : BoundedDomainData} {p : CM2Params} {uStar vStar : ℝ}
+    (h : GloballyAsymptoticallyStableMinimal D p uStar vStar)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar) :
+    UniformConvergesInSup D u uStar :=
+  h u v huv hmass
+
 structure Paper3Constants (D : BoundedDomainData) (p : CM2Params) where
   chiCritical : ℝ → ℝ
   chiStrong1 : ℝ → ℝ
