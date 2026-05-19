@@ -3295,6 +3295,36 @@ theorem HasWaveUpperTailBound.le_exp {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     U x ≤ Real.exp (-(kappa c) * x) :=
   le_trans (h x).2 (min_le_right _ _)
 
+theorem HasStrictWaveUpperTailBound.shift_right
+    {p : CMParams} {c a : ℝ} {U : ℝ → ℝ}
+    (h : HasStrictWaveUpperTailBound p c U)
+    (hk : 0 ≤ kappa c) (ha : 0 ≤ a) :
+    HasStrictWaveUpperTailBound p c (fun x => U (x + a)) := by
+  intro x
+  refine ⟨h.pos (x + a), ?_⟩
+  apply lt_min
+  · exact h.lt_MChi (x + a)
+  · have hle_exp :
+        Real.exp (-(kappa c) * (x + a)) ≤ Real.exp (-(kappa c) * x) := by
+      apply Real.exp_le_exp.mpr
+      nlinarith [mul_nonneg hk ha]
+    exact (h.lt_exp (x + a)).trans_le hle_exp
+
+theorem HasWaveUpperTailBound.shift_right
+    {p : CMParams} {c a : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveUpperTailBound p c U)
+    (hk : 0 ≤ kappa c) (ha : 0 ≤ a) :
+    HasWaveUpperTailBound p c (fun x => U (x + a)) := by
+  intro x
+  refine ⟨h.pos (x + a), ?_⟩
+  apply le_min
+  · exact h.le_MChi (x + a)
+  · have hle_exp :
+        Real.exp (-(kappa c) * (x + a)) ≤ Real.exp (-(kappa c) * x) := by
+      apply Real.exp_le_exp.mpr
+      nlinarith [mul_nonneg hk ha]
+    exact (h.le_exp (x + a)).trans hle_exp
+
 theorem HasWaveUpperTailBound.inWaveTrapSet
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (h : HasWaveUpperTailBound p c U) (hU : IsCUnifBdd U) :
