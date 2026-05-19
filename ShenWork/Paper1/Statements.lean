@@ -3757,65 +3757,17 @@ theorem frozenWaveOperator_exp_nonpos_of_chi_nonpos_of_dominance
 theorem chemotaxis_resolvent_bound
     (p : CMParams) {κ M : ℝ} {u : ℝ → ℝ}
     (hκ : 0 < κ) (hγκ : p.γ * κ < 1)
-    (hM : 1 ≤ M) (hu : InWaveTrapSet κ M u) (x : ℝ) :
+    (_hM : 1 ≤ M) (hu : InWaveTrapSet κ M u) (x : ℝ) :
     -κ * p.m * deriv (frozenElliptic p u) x +
         frozenElliptic p u x ≤
       (1 + p.m * p.γ * κ ^ 2) / (1 - p.γ ^ 2 * κ ^ 2) *
         Real.exp (-(p.γ * κ) * x) := by
-  have hγ := p.hγ
-  have hm := p.hm
-  have hγ_pos : 0 < p.γ := by linarith
-  have hγκ_pos : 0 < p.γ * κ := mul_pos hγ_pos hκ
-  have hden_pos : 0 < 1 - p.γ ^ 2 * κ ^ 2 := by
-    nlinarith [sq_nonneg (p.γ * κ - 1)]
-  have hVx_abs := frozenElliptic_deriv_abs_le p hu.cunif_bdd hu.nonneg x
-  have hneg_Vx : -deriv (frozenElliptic p u) x ≤ frozenElliptic p u x :=
-    le_trans (neg_le_abs _) hVx_abs
-  have hmk_nonneg : 0 ≤ κ * p.m := mul_nonneg hκ.le (by linarith)
-  have hterm : -κ * p.m * deriv (frozenElliptic p u) x ≤
-      κ * p.m * frozenElliptic p u x := by
-    calc -κ * p.m * deriv (frozenElliptic p u) x
-        = κ * p.m * (-deriv (frozenElliptic p u) x) := by ring
-      _ ≤ κ * p.m * frozenElliptic p u x :=
-          mul_le_mul_of_nonneg_left hneg_Vx hmk_nonneg
-  have hV_bound : frozenElliptic p u x ≤
-      1 / (1 - (p.γ * κ) ^ 2) * Real.exp (-(p.γ * κ) * x) := by
-    unfold frozenElliptic
-    exact le_trans
-      (Psi_le_min_const_exp_of_nonneg_le
-        (Real.rpow_nonneg (by linarith : 0 ≤ M) p.γ)
-        hγκ_pos hγκ
-        (hu.cunif_bdd.1.rpow_const (fun _ => Or.inr (by linarith : 0 ≤ p.γ)))
-        (fun y => Real.rpow_nonneg (hu.nonneg y) p.γ)
-        (fun y => hu.rpow_le_M (by linarith) y)
-        (fun y => by
-          calc (u y) ^ p.γ ≤ (Real.exp (-κ * y)) ^ p.γ :=
-                Real.rpow_le_rpow (hu.nonneg y) (hu.le_exp y) (by linarith)
-            _ = Real.exp (-(p.γ * κ) * y) := by
-                rw [← Real.exp_mul]; congr 1; ring)
-        x)
-      (min_le_right _ _)
-  -- NOTE: This coefficient comparison is FALSE as stated.
-  -- The crude bound -(mκ)V' + V ≤ (1+mκ)V gives coefficient (1+mκ),
-  -- which is LARGER than the paper's (1+mγκ²). The paper uses the
-  -- explicit half-line integral formula for V' (equation 4.4) to get
-  -- the tighter coefficient. Proving this requires substituting
-  -- Psi_derivative_formula_general and computing the resulting integrals.
-  have hcoeff : (1 + κ * p.m) / (1 - (p.γ * κ) ^ 2) ≤
-      (1 + p.m * p.γ * κ ^ 2) / (1 - p.γ ^ 2 * κ ^ 2) := by
-    sorry
-  calc -κ * p.m * deriv (frozenElliptic p u) x +
-        frozenElliptic p u x
-      ≤ κ * p.m * frozenElliptic p u x + frozenElliptic p u x := by linarith
-    _ = (1 + κ * p.m) * frozenElliptic p u x := by ring
-    _ ≤ (1 + κ * p.m) * (1 / (1 - (p.γ * κ) ^ 2) *
-          Real.exp (-(p.γ * κ) * x)) :=
-        mul_le_mul_of_nonneg_left hV_bound (by nlinarith)
-    _ = (1 + κ * p.m) / (1 - (p.γ * κ) ^ 2) *
-          Real.exp (-(p.γ * κ) * x) := by ring
-    _ ≤ (1 + p.m * p.γ * κ ^ 2) / (1 - p.γ ^ 2 * κ ^ 2) *
-          Real.exp (-(p.γ * κ) * x) :=
-        mul_le_mul_of_nonneg_right hcoeff (Real.exp_nonneg _)
+  -- Paper equation (4.4): uses the explicit half-line integral formula
+  -- for V'(x) = Psi'(x; u^γ, 1, 1) from Psi_derivative_formula_general,
+  -- bounds u^γ(y) ≤ exp(-γκy) using the trap set, computes the resulting
+  -- exponential integrals, and algebraically simplifies the coefficient
+  -- (mκ+1)/(2(1-γκ)) + (1-mκ)/(2(1+γκ)) = (1+mγκ²)/(1-γ²κ²).
+  sorry
 
 def Lemma_4_2 : Prop :=
   ∀ p : CMParams, ∀ κ κtilde M c : ℝ,
