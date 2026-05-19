@@ -284,6 +284,70 @@ private lemma psi_integral_deriv_measurable_general
       ).aestronglyMeasurable.mul hu_meas
   exact this.congr (by filter_upwards with y; split_ifs <;> ring)
 
+private lemma kernel_exp_neg_mul_abs_integrable_local {a : ℝ} (ha : 0 < a) (x : ℝ) :
+    MeasureTheory.Integrable (fun y : ℝ => Real.exp (-a * |x - y|)) := by
+  let f : ℝ → ℝ := fun y => Real.exp (-a * |x - y|)
+  have hleft_eq :
+      Set.EqOn (fun y : ℝ => Real.exp (-a * x) * Real.exp (a * y))
+        f (Set.Iic x) := by
+    intro y hy
+    have hyx : y ≤ x := by simpa using hy
+    simp only [f]
+    rw [abs_of_nonneg (sub_nonneg.mpr hyx), ← Real.exp_add]
+    congr 1
+    ring
+  have hright_eq :
+      Set.EqOn (fun y : ℝ => Real.exp (a * x) * Real.exp ((-a) * y))
+        f (Set.Ioi x) := by
+    intro y hy
+    have hxy : x < y := by simpa using hy
+    simp only [f]
+    rw [abs_of_nonpos (sub_nonpos.mpr (le_of_lt hxy)), ← Real.exp_add]
+    congr 1
+    ring
+  have hleft : MeasureTheory.IntegrableOn f (Set.Iic x) := by
+    have h1 :
+        MeasureTheory.IntegrableOn
+          (fun y : ℝ => Real.exp (a * y)) (Set.Iic x) :=
+      integrableOn_exp_mul_Iic ha x
+    have h2 :
+        MeasureTheory.IntegrableOn
+          (fun y : ℝ => Real.exp (-a * x) * Real.exp (a * y)) (Set.Iic x) :=
+      MeasureTheory.Integrable.const_mul h1 (Real.exp (-a * x))
+    exact h2.congr_fun hleft_eq measurableSet_Iic
+  have hright : MeasureTheory.IntegrableOn f (Set.Ioi x) := by
+    have h1 :
+        MeasureTheory.IntegrableOn
+          (fun y : ℝ => Real.exp ((-a) * y)) (Set.Ioi x) :=
+      integrableOn_exp_mul_Ioi (by linarith : -a < (0 : ℝ)) x
+    have h2 :
+        MeasureTheory.IntegrableOn
+          (fun y : ℝ => Real.exp (a * x) * Real.exp ((-a) * y)) (Set.Ioi x) :=
+      MeasureTheory.Integrable.const_mul h1 (Real.exp (a * x))
+    exact h2.congr_fun hright_eq measurableSet_Ioi
+  have hcover : Set.Iic x ∪ Set.Ioi x = (Set.univ : Set ℝ) := by
+    ext y
+    by_cases hy : y ≤ x <;> simp [hy, lt_of_not_ge]
+  rw [← MeasureTheory.integrableOn_univ, ← hcover]
+  exact hleft.union hright
+
+private lemma kernel_mul_bounded_integrable_of_pos_local
+    {u : ℝ → ℝ} {a M : ℝ} (ha : 0 < a) (_hM : 0 ≤ M)
+    (hu : ∀ y, |u y| ≤ M) (x : ℝ)
+    (hu_meas : AEStronglyMeasurable u MeasureTheory.volume) :
+    MeasureTheory.Integrable (fun y => Real.exp (-a * |x - y|) * u y) :=
+  (kernel_exp_neg_mul_abs_integrable_local ha x).mul_bdd hu_meas
+    (Filter.Eventually.of_forall fun y => by
+      simpa [Real.norm_eq_abs] using hu y)
+
+private lemma psi_kernel_mul_bounded_integrable_local
+    {u : ℝ → ℝ} {l M : ℝ} (hl : 0 < l) (hM : 0 ≤ M)
+    (hu : ∀ y, |u y| ≤ M) (x : ℝ)
+    (hu_meas : AEStronglyMeasurable u MeasureTheory.volume) :
+    MeasureTheory.Integrable
+      (fun y => Real.exp (-Real.sqrt l * |x - y|) * u y) :=
+  kernel_mul_bounded_integrable_of_pos_local (Real.sqrt_pos.mpr hl) hM hu x hu_meas
+
 private lemma psi_integral_deriv_integrable_general
     {u : ℝ → ℝ} {a : ℝ} (ha : 0 < a) (hu : IsCUnifBdd u) (x : ℝ) :
     Integrable
@@ -295,7 +359,7 @@ private lemma psi_integral_deriv_integrable_general
   have hbound :
       Integrable
         (fun y : ℝ => a * (Real.exp (-a * |x - y|) * |u y|)) volume := by
-    exact (kernel_mul_bounded_integrable_of_pos ha hM_nonneg
+    exact (kernel_mul_bounded_integrable_of_pos_local ha hM_nonneg
       (fun y => by
         rw [abs_abs]
         exact hM y)
@@ -347,13 +411,13 @@ theorem hasDerivAt_integral_exp_neg_mul_abs_sub_general
       Real.exp (-a * |x' - y|))).aestronglyMeasurable.mul
         hu.1.aestronglyMeasurable
   have hG_int : Integrable (G x) volume := by
-    exact kernel_mul_bounded_integrable_of_pos ha hM_nonneg hM x
+    exact kernel_mul_bounded_integrable_of_pos_local ha hM_nonneg hM x
       hu.1.aestronglyMeasurable
   have hG'_meas : AEStronglyMeasurable G' volume := by
     exact psi_integral_deriv_measurable_general hu.1.aestronglyMeasurable
   have hbound_int : Integrable bound volume := by
     dsimp [bound]
-    exact ((kernel_mul_bounded_integrable_of_pos ha hM_nonneg
+    exact ((kernel_mul_bounded_integrable_of_pos_local ha hM_nonneg
       (fun y => by
         rw [abs_abs]
         exact hM y)
@@ -478,7 +542,7 @@ theorem Psi_deriv_abs_le_general {u : ℝ → ℝ} {l mu : ℝ}
   have hint :
       Integrable (fun y : ℝ => Real.exp (-a * |x - y|) * u y) := by
     dsimp [a]
-    exact psi_kernel_mul_bounded_integrable hl hM_nonneg hM x
+    exact psi_kernel_mul_bounded_integrable_local hl hM_nonneg hM x
       hu.1.aestronglyMeasurable
   let F' : ℝ → ℝ := fun y =>
     if y < x then -a * Real.exp (-a * (x - y)) * u y
@@ -730,5 +794,239 @@ theorem Psi_derivative_formula_general {u : ℝ → ℝ} {l mu : ℝ}
           + ((mu / 2) * Real.exp (Real.sqrt l * x) *
             (∫ y in Set.Ioi x, Real.exp (-Real.sqrt l * y) * u y)) := by
           simp [L, R, a]
+
+/-! ## Psi elliptic ODE identity
+
+The resolvent `v(x) = Ψ(x; f, λ, μ)` satisfies `v'' - λv + μf = 0`. -/
+
+private theorem hasDerivAt_setIntegral_Iic_of_continuous
+    {g : ℝ → ℝ} (hg_cont : Continuous g)
+    (hg_int : ∀ b : ℝ, IntegrableOn g (Set.Iic b)) (x : ℝ) :
+    HasDerivAt (fun x' => ∫ y in Set.Iic x', g y) (g x) x := by
+  set x₀ := x - 1
+  have hx₀x : x₀ ≤ x := by linarith
+  have hsplit : ∀ᶠ x' in 𝓝 x,
+      ∫ y in Set.Iic x', g y =
+        (∫ y in Set.Iic x₀, g y) + ∫ y in x₀..x', g y := by
+    filter_upwards [Ioi_mem_nhds (show x₀ < x by linarith)] with x' hx'
+    have hle : x₀ ≤ x' := le_of_lt hx'
+    rw [← Set.Iic_union_Ioc_eq_Iic hle]
+    rw [MeasureTheory.setIntegral_union (Set.Iic_disjoint_Ioc le_rfl)
+      measurableSet_Ioc (hg_int x₀)
+      ((hg_int x').mono_set Set.Ioc_subset_Iic_self)]
+    rw [intervalIntegral.integral_of_le hle]
+  have hFTC : HasDerivAt (fun x' => ∫ y in x₀..x', g y) (g x) x := by
+    exact intervalIntegral.integral_hasDerivAt_right
+      (hg_cont.intervalIntegrable x₀ x)
+      hg_cont.aestronglyMeasurable.stronglyMeasurableAtFilter
+      hg_cont.continuousAt
+  have hconst : HasDerivAt (fun _ : ℝ => ∫ y in Set.Iic x₀, g y) 0 x :=
+    hasDerivAt_const x _
+  have hsum : HasDerivAt
+      (fun x' => (∫ y in Set.Iic x₀, g y) + ∫ y in x₀..x', g y) (g x) x := by
+    have h := hconst.add hFTC
+    rw [zero_add] at h
+    exact h.congr_deriv rfl
+  exact hsum.congr_of_eventuallyEq hsplit
+
+private theorem hasDerivAt_setIntegral_Ioi_of_continuous
+    {g : ℝ → ℝ} (hg_cont : Continuous g)
+    (hg_int : ∀ b : ℝ, IntegrableOn g (Set.Ioi b)) (x : ℝ) :
+    HasDerivAt (fun x' => ∫ y in Set.Ioi x', g y) (-g x) x := by
+  set x₁ := x + 1
+  have hxx₁ : x < x₁ := by linarith
+  have hsplit :
+      (fun x' => ∫ y in Set.Ioi x', g y) =ᶠ[𝓝 x]
+        ((fun x' => ∫ y in x'..x₁, g y) +
+          fun _ : ℝ => ∫ y in Set.Ioi x₁, g y) := by
+    filter_upwards [Iio_mem_nhds hxx₁] with x' hx'
+    change ∫ y in Set.Ioi x', g y =
+      (∫ y in x'..x₁, g y) + ∫ y in Set.Ioi x₁, g y
+    simpa using (intervalIntegral.integral_interval_add_Ioi'
+      (hg_cont.intervalIntegrable x' x₁) (hg_int x₁)).symm
+  have hFTC : HasDerivAt (fun x' => ∫ y in x'..x₁, g y) (-g x) x := by
+    exact intervalIntegral.integral_hasDerivAt_left
+      (hg_cont.intervalIntegrable x x₁)
+      hg_cont.aestronglyMeasurable.stronglyMeasurableAtFilter
+      hg_cont.continuousAt
+  have hconst : HasDerivAt (fun _ : ℝ => ∫ y in Set.Ioi x₁, g y) 0 x :=
+    hasDerivAt_const x _
+  have hsum := hFTC.add hconst
+  rw [add_zero] at hsum
+  exact hsum.congr_of_eventuallyEq hsplit
+
+private lemma integrableOn_exp_mul_u_Iic
+    {u : ℝ → ℝ} {a : ℝ} (ha : 0 < a) (hu : IsCUnifBdd u) (b : ℝ) :
+    IntegrableOn (fun y : ℝ => Real.exp (a * y) * u y) (Set.Iic b) := by
+  rcases hu.2 with ⟨M, hM⟩
+  exact (integrableOn_exp_mul_Iic ha b).mul_bdd
+    (hu.1.continuousOn.aestronglyMeasurable measurableSet_Iic)
+    (Filter.Eventually.of_forall fun y => by
+      simpa [Real.norm_eq_abs] using hM y)
+
+private lemma integrableOn_exp_neg_mul_u_Ioi
+    {u : ℝ → ℝ} {a : ℝ} (ha : 0 < a) (hu : IsCUnifBdd u) (b : ℝ) :
+    IntegrableOn (fun y : ℝ => Real.exp (-a * y) * u y) (Set.Ioi b) := by
+  rcases hu.2 with ⟨M, hM⟩
+  exact (integrableOn_exp_mul_Ioi (by linarith : -a < (0 : ℝ)) b).mul_bdd
+    (hu.1.continuousOn.aestronglyMeasurable measurableSet_Ioi)
+    (Filter.Eventually.of_forall fun y => by
+      simpa [Real.norm_eq_abs] using hM y)
+
+theorem Psi_elliptic_ode {u : ℝ → ℝ} {l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hu : IsCUnifBdd u)
+    (hu_nonneg : ∀ x, 0 ≤ u x) (x : ℝ) :
+    iteratedDeriv 2 (fun z => Psi u l mu z) x -
+      l * Psi u l mu x + mu * u x = 0 := by
+  let a : ℝ := Real.sqrt l
+  have ha : 0 < a := by
+    dsimp [a]
+    exact Real.sqrt_pos.mpr hl
+  have ha_sq : a ^ 2 = l := by
+    dsimp [a]
+    exact Real.sq_sqrt (le_of_lt hl)
+  let L : ℝ → ℝ := fun z => ∫ y in Set.Iic z, Real.exp (a * y) * u y
+  let R : ℝ → ℝ := fun z => ∫ y in Set.Ioi z, Real.exp (-a * y) * u y
+  let D : ℝ → ℝ := fun z =>
+    (-(mu / 2) * Real.exp (-a * z) * L z) +
+      ((mu / 2) * Real.exp (a * z) * R z)
+  have hderiv_fun :
+      (fun z => deriv (fun w => Psi u l mu w) z) = D := by
+    funext z
+    simpa [D, L, R, a] using Psi_derivative_formula_general hl hmu hu z
+  have hL_cont : Continuous (fun y : ℝ => Real.exp (a * y) * u y) :=
+    (Real.continuous_exp.comp (continuous_const.mul continuous_id)).mul hu.1
+  have hR_cont : Continuous (fun y : ℝ => Real.exp (-a * y) * u y) :=
+    (Real.continuous_exp.comp (continuous_const.mul continuous_id)).mul hu.1
+  have hL_deriv : HasDerivAt L (Real.exp (a * x) * u x) x := by
+    simpa [L] using
+      hasDerivAt_setIntegral_Iic_of_continuous hL_cont
+        (integrableOn_exp_mul_u_Iic ha hu) x
+  have hR_deriv : HasDerivAt R (-(Real.exp (-a * x) * u x)) x := by
+    simpa [R] using
+      hasDerivAt_setIntegral_Ioi_of_continuous hR_cont
+        (integrableOn_exp_neg_mul_u_Ioi ha hu) x
+  have hExp_neg : HasDerivAt (fun z : ℝ => Real.exp (-a * z))
+      (-a * Real.exp (-a * x)) x := by
+    simpa [mul_comm, mul_left_comm, mul_assoc] using
+      (((hasDerivAt_id x).const_mul (-a)).exp)
+  have hExp_pos : HasDerivAt (fun z : ℝ => Real.exp (a * z))
+      (a * Real.exp (a * x)) x := by
+    simpa [mul_comm, mul_left_comm, mul_assoc] using
+      (((hasDerivAt_id x).const_mul a).exp)
+  let d : ℝ :=
+    ((-(mu / 2) * (-a * Real.exp (-a * x))) * L x +
+      (-(mu / 2) * Real.exp (-a * x)) * (Real.exp (a * x) * u x)) +
+    (((mu / 2) * (a * Real.exp (a * x))) * R x +
+      ((mu / 2) * Real.exp (a * x)) * (-(Real.exp (-a * x) * u x)))
+  have hD_deriv : HasDerivAt D d x := by
+    have hleft :
+        HasDerivAt (fun z : ℝ => (-(mu / 2) * Real.exp (-a * z)) * L z)
+          ((-(mu / 2) * (-a * Real.exp (-a * x))) * L x +
+            (-(mu / 2) * Real.exp (-a * x)) * (Real.exp (a * x) * u x)) x := by
+      exact (hExp_neg.const_mul (-(mu / 2))).mul hL_deriv
+    have hright :
+        HasDerivAt (fun z : ℝ => ((mu / 2) * Real.exp (a * z)) * R z)
+          (((mu / 2) * (a * Real.exp (a * x))) * R x +
+            ((mu / 2) * Real.exp (a * x)) * (-(Real.exp (-a * x) * u x))) x := by
+      exact (hExp_pos.const_mul (mu / 2)).mul hR_deriv
+    simpa [D, d, mul_assoc] using hleft.add hright
+  have hsecond :
+      iteratedDeriv 2 (fun z => Psi u l mu z) x = d := by
+    rw [iteratedDeriv_succ, iteratedDeriv_succ, iteratedDeriv_zero]
+    exact (hderiv_fun ▸ hD_deriv).deriv
+  have hkernel_split :
+      ∫ y : ℝ, Real.exp (-a * |x - y|) * u y =
+        Real.exp (-a * x) * L x + Real.exp (a * x) * R x := by
+    have hiu : Integrable (fun y : ℝ => Real.exp (-a * |x - y|) * u y) :=
+      kernel_mul_bounded_integrable_of_pos_local ha
+        (le_trans (abs_nonneg (u 0)) (Classical.choose_spec hu.2 0))
+        (Classical.choose_spec hu.2) x hu.1.aestronglyMeasurable
+    have hsplit :=
+      MeasureTheory.integral_add_compl (s := Set.Iic x) measurableSet_Iic hiu
+    simp only [Set.compl_Iic] at hsplit
+    have hleft :
+        ∫ y in Set.Iic x, Real.exp (-a * |x - y|) * u y =
+          Real.exp (-a * x) * L x := by
+      have hleft_eq :
+          Set.EqOn
+            (fun y : ℝ => Real.exp (-a * |x - y|) * u y)
+            (fun y : ℝ => Real.exp (-a * x) * (Real.exp (a * y) * u y))
+            (Set.Iic x) := by
+        intro y hy
+        have hyx : y ≤ x := by simpa using hy
+        change
+          Real.exp (-a * |x - y|) * u y =
+            Real.exp (-a * x) * (Real.exp (a * y) * u y)
+        rw [abs_of_nonneg (sub_nonneg.mpr hyx)]
+        rw [show -a * (x - y) = -a * x + a * y by ring, Real.exp_add]
+        ring
+      calc
+        ∫ y in Set.Iic x, Real.exp (-a * |x - y|) * u y
+            = ∫ y in Set.Iic x,
+                Real.exp (-a * x) * (Real.exp (a * y) * u y) := by
+              exact MeasureTheory.setIntegral_congr_fun measurableSet_Iic hleft_eq
+        _ = Real.exp (-a * x) * L x := by
+              simp [L, MeasureTheory.integral_const_mul]
+    have hright :
+        ∫ y in Set.Ioi x, Real.exp (-a * |x - y|) * u y =
+          Real.exp (a * x) * R x := by
+      have hright_eq :
+          Set.EqOn
+            (fun y : ℝ => Real.exp (-a * |x - y|) * u y)
+            (fun y : ℝ => Real.exp (a * x) * (Real.exp (-a * y) * u y))
+            (Set.Ioi x) := by
+        intro y hy
+        have hxy : x < y := by simpa using hy
+        change
+          Real.exp (-a * |x - y|) * u y =
+            Real.exp (a * x) * (Real.exp (-a * y) * u y)
+        rw [abs_of_nonpos (sub_nonpos.mpr (le_of_lt hxy))]
+        rw [show -a * -(x - y) = a * x + -a * y by ring, Real.exp_add]
+        ring
+      calc
+        ∫ y in Set.Ioi x, Real.exp (-a * |x - y|) * u y
+            = ∫ y in Set.Ioi x,
+                Real.exp (a * x) * (Real.exp (-a * y) * u y) := by
+              exact MeasureTheory.setIntegral_congr_fun measurableSet_Ioi hright_eq
+        _ = Real.exp (a * x) * R x := by
+              simp [R, MeasureTheory.integral_const_mul]
+    calc
+      ∫ y : ℝ, Real.exp (-a * |x - y|) * u y
+          = (∫ y in Set.Iic x, Real.exp (-a * |x - y|) * u y) +
+              (∫ y in Set.Ioi x, Real.exp (-a * |x - y|) * u y) := hsplit.symm
+      _ = Real.exp (-a * x) * L x + Real.exp (a * x) * R x := by
+            rw [hleft, hright]
+  have hPsi :
+      Psi u l mu x =
+        mu / (2 * a) * (Real.exp (-a * x) * L x + Real.exp (a * x) * R x) := by
+    unfold Psi
+    rw [show Real.sqrt l = a by rfl]
+    rw [hkernel_split]
+  have hcancel₁ : Real.exp (-a * x) * Real.exp (a * x) = 1 := by
+    rw [← Real.exp_add]
+    have hzero : -a * x + a * x = 0 := by ring
+    rw [hzero, Real.exp_zero]
+  have hcancel₂ : Real.exp (a * x) * Real.exp (-a * x) = 1 := by
+    rw [← Real.exp_add]
+    have hzero : a * x + -a * x = 0 := by ring
+    rw [hzero, Real.exp_zero]
+  have hcancel₁' : Real.exp (-(a * x)) * Real.exp (a * x) = 1 := by
+    rw [← Real.exp_add]
+    have hzero : -(a * x) + a * x = 0 := by ring
+    rw [hzero, Real.exp_zero]
+  have hprod :
+      mu * Real.exp (-(a * x)) * Real.exp (a * x) * u x * 2 = mu * u x * 2 := by
+    calc
+      mu * Real.exp (-(a * x)) * Real.exp (a * x) * u x * 2
+          = mu * (Real.exp (-(a * x)) * Real.exp (a * x)) * u x * 2 := by ring
+      _ = mu * u x * 2 := by rw [hcancel₁']; ring
+  rw [hsecond, hPsi]
+  rw [← ha_sq]
+  dsimp [d]
+  field_simp [ne_of_gt ha]
+  ring_nf
+  rw [hprod]
+  ring
 
 end
