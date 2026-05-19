@@ -699,6 +699,15 @@ theorem Psi_mono {u v : ℝ → ℝ} {l mu : ℝ} (hl : 0 < l) (hmu : 0 < mu)
       mul_le_mul_of_nonneg_left (huv y) (Real.exp_nonneg _))
   · exact div_nonneg (le_of_lt hmu) (mul_nonneg (by norm_num) (Real.sqrt_nonneg l))
 
+theorem Psi_kernel_splitting {u : ℝ → ℝ}
+    (_hu : IsCUnifBdd u) (_hu_nonneg : ∀ y, 0 ≤ u y) (x : ℝ) :
+    Psi u 1 1 x =
+      1 / 2 * (Real.exp (-1 * x) *
+          ∫ y in Set.Iic x, Real.exp (1 * y) * u y +
+        Real.exp (1 * x) *
+          ∫ y in Set.Ioi x, Real.exp (-1 * y) * u y) := by
+  sorry
+
 private lemma integral_exp_neg_abs : ∫ x : ℝ, Real.exp (-|x|) = 2 := by
   have h := @integral_comp_abs (fun t => Real.exp (-t))
   simp only [Function.comp] at h
