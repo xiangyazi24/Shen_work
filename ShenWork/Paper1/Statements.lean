@@ -3392,6 +3392,20 @@ theorem chemotaxis_product_rule_exp
   rw [hfun_eq, hprod.deriv]
   ring
 
+theorem frozenWaveOperator_exp_full_eq
+    (p : CMParams) {c κ : ℝ} {u : ℝ → ℝ}
+    (hc : 2 ≤ c) (hκ : κ = kappa c)
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x) (x : ℝ)
+    (hV_diff : DifferentiableAt ℝ (deriv (frozenElliptic p u)) x) :
+    frozenWaveOperator p c u (expDecay κ) x =
+      -(expDecay κ x) * (expDecay κ x) ^ p.α
+      - p.χ * (expDecay κ x) ^ p.m *
+        (-(p.m * κ) * deriv (frozenElliptic p u) x +
+          frozenElliptic p u x - (u x) ^ p.γ) := by
+  rw [frozenWaveOperator_exp_eq p hc hκ hu hu_nonneg x,
+    chemotaxis_product_rule_exp p hu hu_nonneg x hV_diff]
+  ring
+
 def Lemma_4_2 : Prop :=
   ∀ p : CMParams, ∀ κ κtilde M c : ℝ,
     0 < κ → κ < 1 →
