@@ -4081,9 +4081,29 @@ theorem paperWaveOperator_exp_nonpos_of_chi_nonpos
     (ne_of_gt hκ) hc hx
   -- Use the bridge theorem
   apply paperWaveOperator_exp_region_hdom_of_resolvent_bound p hκ hγκ hmκ hχ hM hu x
-  -- hgap: paper equation (4.6). From hMbound and E < M:
-  -- |χ|·(C-1)·E^{m+γ} ≤ E^{α+1} using E^{m+γ-α-1} ≤ M^{m+γ-α-1}
-  -- and |χ|·(C-1)·M ≤ 1 (from hMbound). Needs rpow monotonicity + algebra.
+  -- hgap: paper equation (4.6)
+  -- Goal: -χ · E^m · ((C-1)·E^γ) ≤ E · E^α
+  -- i.e., |χ|·(C-1)·E^{m+γ} ≤ E^{α+1}
+  set E := expDecay κ x
+  have hE_pos : 0 < E := expDecay_pos κ x
+  have hE_lt_M : E < M := by simpa [E, expDecay] using hx
+  have hα_le : p.α ≤ p.m + p.γ - 1 := hα
+  -- Factor E^{m+γ} = E^{α+1} · E^{m+γ-α-1}
+  have hexp_split :
+      E ^ p.m * E ^ p.γ = E ^ (p.α + 1) * E ^ (p.m + p.γ - p.α - 1) := by
+    rw [← Real.rpow_add hE_pos, ← Real.rpow_add hE_pos]
+    congr 1; ring
+  -- E^{m+γ-α-1} ≤ M^{m+γ-α-1} since E < M and exponent ≥ 0
+  have hexp_le : 0 ≤ p.m + p.γ - p.α - 1 := by linarith
+  have hE_rpow_le :
+      E ^ (p.m + p.γ - p.α - 1) ≤ M ^ (p.m + p.γ - p.α - 1) :=
+    Real.rpow_le_rpow hE_pos.le hE_lt_M.le hexp_le
+  -- E · E^α = E^{α+1}
+  have _hE_pow :
+      E * E ^ p.α = E ^ (p.α + 1) := by
+    sorry
+  -- The remaining goal is pure coefficient algebra + rpow manipulation
+  -- using hMbound, hE_rpow_le, hexp_split, and the exponential identities.
   sorry
 
 def Lemma_4_2 : Prop :=
