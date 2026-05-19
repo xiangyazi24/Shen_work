@@ -1102,6 +1102,16 @@ theorem frozenElliptic_tendsto_atTop_of_U_tendsto
   -- Actually use the explicit integral representation + DCT
   sorry
 
+theorem frozenElliptic_const_eq (p : CMParams) {c : ℝ} (hc : 0 ≤ c) (x : ℝ) :
+    frozenElliptic p (fun _ => c) x = c ^ p.γ := by
+  unfold frozenElliptic
+  simp only
+  exact Psi_const (Real.rpow_nonneg hc p.γ) x
+
+theorem frozenElliptic_one_eq (p : CMParams) (x : ℝ) :
+    frozenElliptic p (fun _ => (1 : ℝ)) x = 1 := by
+  rw [frozenElliptic_const_eq p (by norm_num) x, Real.one_rpow]
+
 theorem frozenElliptic_tendsto_atBot_of_U_tendsto
     (p : CMParams) {U : ℝ → ℝ}
     (hU : IsCUnifBdd U) (hU_nonneg : ∀ x, 0 ≤ U x)
