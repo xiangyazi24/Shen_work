@@ -3406,6 +3406,49 @@ theorem frozenWaveOperator_exp_full_eq
     chemotaxis_product_rule_exp p hu hu_nonneg x hV_diff]
   ring
 
+theorem frozenWaveOperator_exp_nonpos_of_chi_nonpos_of_dominance
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hc : 2 ≤ c) (hκ_eq : κ = kappa c) (hκ_nonneg : 0 ≤ κ)
+    (hχ : p.χ ≤ 0) (hu : InWaveTrapSet κ M u) (x : ℝ)
+    (hV_diff : DifferentiableAt ℝ (deriv (frozenElliptic p u)) x)
+    (hdom :
+      -p.χ * (expDecay κ x) ^ p.m *
+          ((p.m * κ + 1) * frozenElliptic p u x - (u x) ^ p.γ) ≤
+        expDecay κ x * (expDecay κ x) ^ p.α) :
+    frozenWaveOperator p c u (expDecay κ) x ≤ 0 := by
+  have hVx_abs := frozenElliptic_deriv_abs_le p hu.cunif_bdd hu.nonneg x
+  have hnegVx_le :
+      -deriv (frozenElliptic p u) x ≤ frozenElliptic p u x :=
+    le_trans (neg_le_abs _) hVx_abs
+  have hmk_nonneg : 0 ≤ p.m * κ :=
+    mul_nonneg (le_trans zero_le_one p.hm) hκ_nonneg
+  have hterm :
+      -(p.m * κ) * deriv (frozenElliptic p u) x ≤
+        (p.m * κ) * frozenElliptic p u x := by
+    calc
+      -(p.m * κ) * deriv (frozenElliptic p u) x =
+          (p.m * κ) * (-deriv (frozenElliptic p u) x) := by ring
+      _ ≤ (p.m * κ) * frozenElliptic p u x :=
+          mul_le_mul_of_nonneg_left hnegVx_le hmk_nonneg
+  have hbracket :
+      -(p.m * κ) * deriv (frozenElliptic p u) x +
+          frozenElliptic p u x - (u x) ^ p.γ ≤
+        (p.m * κ + 1) * frozenElliptic p u x - (u x) ^ p.γ := by
+    nlinarith [hterm]
+  have hcoef_nonneg :
+      0 ≤ -p.χ * (expDecay κ x) ^ p.m :=
+    mul_nonneg (neg_nonneg.mpr hχ)
+      (Real.rpow_nonneg (expDecay_pos κ x).le p.m)
+  have hchem_le :
+      -p.χ * (expDecay κ x) ^ p.m *
+          (-(p.m * κ) * deriv (frozenElliptic p u) x +
+            frozenElliptic p u x - (u x) ^ p.γ) ≤
+        -p.χ * (expDecay κ x) ^ p.m *
+          ((p.m * κ + 1) * frozenElliptic p u x - (u x) ^ p.γ) :=
+    mul_le_mul_of_nonneg_left hbracket hcoef_nonneg
+  rw [frozenWaveOperator_exp_full_eq p hc hκ_eq hu.cunif_bdd hu.nonneg x hV_diff]
+  linarith
+
 def Lemma_4_2 : Prop :=
   ∀ p : CMParams, ∀ κ κtilde M c : ℝ,
     0 < κ → κ < 1 →
