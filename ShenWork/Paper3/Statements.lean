@@ -2308,6 +2308,19 @@ lemma Theorem_2_3.nonminimal_exponential
             (positiveEquilibrium p ⟨ha, hb⟩).2 A rate := by
   exact ((h hχ hm).1 ha hb).2
 
+lemma Theorem_2_3.nonminimal_exponential_convergence
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    (h : Theorem_2_3 D p N)
+    (hχ : p.χ₀ ≤ 0) (hm : 1 ≤ p.m) (ha : 0 < p.a) (hb : 0 < p.b)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+  rcases h.nonminimal_exponential hχ hm ha hb with
+    ⟨A, hA, rate, hrate, hexp⟩
+  exact ExponentialC1ConvergenceWith.exists hA hrate (hexp u v huv)
+
 lemma Theorem_2_3.minimal_stability
     {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
     (h : Theorem_2_3 D p N)
@@ -2331,6 +2344,21 @@ lemma Theorem_2_3.minimal_exponential
             (minimalEquilibrium p uStar).1
             (minimalEquilibrium p uStar).2 A rate := by
   exact ((h hχ hm).2 ha hb uStar huStar).2
+
+lemma Theorem_2_3.minimal_exponential_convergence
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    (h : Theorem_2_3 D p N)
+    (hχ : p.χ₀ ≤ 0) (hm : 1 ≤ p.m) (ha : p.a = 0) (hb : p.b = 0)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar) :
+    ExponentialC1Convergence D N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 := by
+  rcases h.minimal_exponential hχ hm ha hb huStar with
+    ⟨A, hA, rate, hrate, hexp⟩
+  exact ExponentialC1ConvergenceWith.exists hA hrate (hexp u v huv hmass)
 
 /-- Paper3 Theorem 2.4: global stability under relatively strong logistic source. -/
 def Theorem_2_4
@@ -2376,6 +2404,24 @@ lemma Theorem_2_4.exponential
             (positiveEquilibrium p ⟨ha, hb⟩).1
             (positiveEquilibrium p ⟨ha, hb⟩).2 A rate := by
   exact (h ha0 hb0 hβ hα hγ ha hb hcond).2
+
+lemma Theorem_2_4.exponential_convergence
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (h : Theorem_2_4 D p N C)
+    (ha0 : 0 < p.a) (hb0 : 0 < p.b) (hβ : 0 ≤ p.β)
+    (hα : 0 < p.α) (hγ : 0 < p.γ)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hcond : NonminimalGlobalStabilityCondition D p C
+      (positiveEquilibrium p ⟨ha, hb⟩).1)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+  rcases h.exponential ha0 hb0 hβ hα hγ ha hb hcond with
+    ⟨A, hA, rate, hrate, hexp⟩
+  exact ExponentialC1ConvergenceWith.exists hA hrate (hexp u v huv)
 
 lemma Theorem_2_4.stability_of_chiStrong1
     {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
@@ -2547,6 +2593,23 @@ lemma Theorem_2_5.exponential
             (minimalEquilibrium p uStar).1
             (minimalEquilibrium p uStar).2 A rate := by
   exact (h ha hb hm hβ uStar huStar hcond).2
+
+lemma Theorem_2_5.exponential_convergence
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (h : Theorem_2_5 D p N C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hcond : MinimalGlobalStabilityCondition D p C uStar)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar) :
+    ExponentialC1Convergence D N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 := by
+  rcases h.exponential ha hb hm hβ huStar hcond with
+    ⟨A, hA, rate, hrate, hexp⟩
+  exact ExponentialC1ConvergenceWith.exists hA hrate (hexp u v huv hmass)
 
 lemma Theorem_2_5.stability_of_chiMinimal1
     {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
