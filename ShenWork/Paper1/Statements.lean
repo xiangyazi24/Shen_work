@@ -161,6 +161,24 @@ theorem IsRightVanishingTravelingWave.to_global_classical_solution
   ⟨fun t x => U (x - c * t), fun t x => V (x - c * t),
     hTW.to_movingFrame_global_classical_solution hU_diff hV_diff⟩
 
+theorem IsRightVanishingTravelingWave.strictlyPositiveAtLeft
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsRightVanishingTravelingWave p c U V) :
+    StrictlyPositiveAtLeft U :=
+  hTW.positive_at_left
+
+theorem IsRightVanishingTravelingWave.eventually_pos_atLeft
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsRightVanishingTravelingWave p c U V) :
+    ∀ᶠ x in atBot, 0 < U x :=
+  hTW.positive_at_left.eventually_pos
+
+theorem IsRightVanishingTravelingWave.nonnegativeInitialDatum
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsRightVanishingTravelingWave p c U V) (hU : IsCUnifBdd U) :
+    NonnegativeInitialDatum U :=
+  ⟨hU, fun x => (hTW.U_pos x).le⟩
+
 def ShenUpperBoundNegative (c : ℝ) (U : ℝ → ℝ) : Prop :=
   ∀ x, 0 < U x ∧ U x < max 1 (Real.exp (-(kappa c) * x))
 
