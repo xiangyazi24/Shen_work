@@ -4072,7 +4072,9 @@ theorem paperWaveOperator_exp_nonpos_of_chi_nonpos
     (hκ : 0 < κ) (hκ1 : κ < 1) (hγκ : p.γ * κ < 1) (hmκ : κ * p.m ≤ 1)
     (hM : 1 ≤ M)
     (hMbound : |p.χ| * (1 + p.m * p.γ * κ ^ 2) /
-        (1 - p.γ ^ 2 * κ ^ 2) * M ≤ 1 + |p.χ| * M)
+        (1 - p.γ ^ 2 * κ ^ 2) *
+        M ^ (p.m + p.γ - p.α - 1) ≤
+        1 + |p.χ| * M ^ (p.m + p.γ - p.α - 1))
     (hu : InWaveTrapSet κ M u)
     {x : ℝ} (hx : Real.exp (-κ * x) < M)
     (hc : c = κ + κ⁻¹) :
@@ -4085,6 +4087,8 @@ theorem paperWaveOperator_exp_nonpos_of_chi_nonpos
   -- Goal: -χ · E^m · ((C-1)·E^γ) ≤ E · E^α
   -- i.e., |χ|·(C-1)·E^{m+γ} ≤ E^{α+1}
   set E := expDecay κ x
+  set C := (1 + p.m * p.γ * κ ^ 2) / (1 - p.γ ^ 2 * κ ^ 2)
+  set δ := p.m + p.γ - p.α - 1
   have hE_pos : 0 < E := expDecay_pos κ x
   have hE_lt_M : E < M := by simpa [E, expDecay] using hx
   have hα_le : p.α ≤ p.m + p.γ - 1 := hα
@@ -4099,14 +4103,139 @@ theorem paperWaveOperator_exp_nonpos_of_chi_nonpos
       E ^ (p.m + p.γ - p.α - 1) ≤ M ^ (p.m + p.γ - p.α - 1) :=
     Real.rpow_le_rpow hE_pos.le hE_lt_M.le hexp_le
   -- E · E^α = E^{α+1}
-  have _hE_pow :
+  have hE_pow :
       E * E ^ p.α = E ^ (p.α + 1) := by
     have : E = E ^ (1 : ℝ) := (Real.rpow_one E).symm
     nth_rw 1 [this]
     rw [← Real.rpow_add hE_pos]; congr 1; ring
-  -- The remaining goal is pure coefficient algebra + rpow manipulation
-  -- using hMbound, hE_rpow_le, hexp_split, and the exponential identities.
-  sorry
+  have hγ_pos : 0 < p.γ := by linarith [p.hγ]
+  have hγκ_pos : 0 < p.γ * κ := mul_pos hγ_pos hκ
+  have hden_pos : 0 < 1 - p.γ ^ 2 * κ ^ 2 := by
+    have hsq : (p.γ * κ) ^ 2 < 1 := by
+      rw [sq_lt_one_iff_abs_lt_one]
+      rw [abs_of_pos hγκ_pos]
+      exact hγκ
+    nlinarith
+  have hC_ge_one : 1 ≤ C := by
+    dsimp [C]
+    rw [le_div_iff₀ hden_pos]
+    have hm_nonneg : 0 ≤ p.m := by linarith [p.hm]
+    have hγ_nonneg : 0 ≤ p.γ := by linarith [p.hγ]
+    have hk2_nonneg : 0 ≤ κ ^ 2 := sq_nonneg κ
+    have hterm1 : 0 ≤ p.m * p.γ * κ ^ 2 :=
+      mul_nonneg (mul_nonneg hm_nonneg hγ_nonneg) hk2_nonneg
+    have hterm2 : 0 ≤ p.γ ^ 2 * κ ^ 2 :=
+      mul_nonneg (sq_nonneg p.γ) hk2_nonneg
+    nlinarith
+  have hcoef_nonneg : 0 ≤ |p.χ| * (C - 1) := by
+    exact mul_nonneg (abs_nonneg p.χ) (sub_nonneg.mpr hC_ge_one)
+  have hMboundC :
+      |p.χ| * C * M ^ δ ≤ 1 + |p.χ| * M ^ δ := by
+    have heq :
+        |p.χ| * C * M ^ δ =
+          |p.χ| * (1 + p.m * p.γ * κ ^ 2) /
+            (1 - p.γ ^ 2 * κ ^ 2) * M ^ δ := by
+      dsimp [C]
+      ring
+    rw [heq]
+    exact hMbound
+  have hcoef_M : |p.χ| * (C - 1) * M ^ δ ≤ 1 := by
+    nlinarith
+  have hE_rpow_le_delta : E ^ δ ≤ M ^ δ := by
+    simpa [δ] using hE_rpow_le
+  have hcoef_E : |p.χ| * (C - 1) * E ^ δ ≤ 1 := by
+    exact le_trans
+      (mul_le_mul_of_nonneg_left hE_rpow_le_delta hcoef_nonneg) hcoef_M
+  have hminus_chi : -p.χ = |p.χ| := by
+    rw [abs_of_nonpos hχ]
+  have hright_nonneg : 0 ≤ E * E ^ p.α := by
+    exact mul_nonneg hE_pos.le (Real.rpow_nonneg hE_pos.le p.α)
+  calc
+    -p.χ * E ^ p.m * (C * E ^ p.γ - E ^ p.γ)
+        = (|p.χ| * (C - 1) * E ^ δ) * (E * E ^ p.α) := by
+          rw [hminus_chi, hE_pow]
+          calc
+            |p.χ| * E ^ p.m * (C * E ^ p.γ - E ^ p.γ)
+                = |p.χ| * (C - 1) * (E ^ p.m * E ^ p.γ) := by ring
+            _ = |p.χ| * (C - 1) *
+                  (E ^ (p.α + 1) * E ^ (p.m + p.γ - p.α - 1)) := by
+                rw [hexp_split]
+            _ = |p.χ| * (C - 1) * (E ^ (p.α + 1) * E ^ δ) := by
+                simp [δ]
+            _ = (|p.χ| * (C - 1) * E ^ δ) * E ^ (p.α + 1) := by ring
+    _ ≤ 1 * (E * E ^ p.α) :=
+        mul_le_mul_of_nonneg_right hcoef_E hright_nonneg
+    _ = E * E ^ p.α := by ring
+
+theorem Lemma_4_1_neg_holds_away_from_interface
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ ≤ 0) (hα : p.α ≤ p.m + p.γ - 1)
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hγκ : p.γ * κ < 1) (hmκ : κ * p.m ≤ 1)
+    (hM : 1 ≤ M)
+    (hMbound : |p.χ| * (1 + p.m * p.γ * κ ^ 2) /
+        (1 - p.γ ^ 2 * κ ^ 2) *
+        M ^ (p.m + p.γ - p.α - 1) ≤
+        1 + |p.χ| * M ^ (p.m + p.γ - p.α - 1))
+    (hu : InWaveTrapSet κ M u)
+    (hc : c = κ + κ⁻¹) :
+    ∀ x, Real.exp (-κ * x) ≠ M →
+      paperWaveOperator p c u (upperBarrier κ M) x ≤ 0 := by
+  intro x hneq
+  rcases lt_or_gt_of_ne hneq with hlt | hgt
+  ·
+    exact paperWaveOperator_exp_nonpos_of_chi_nonpos p hχ hα hκ hκ1 hγκ hmκ
+      hM hMbound hu hlt hc
+  ·
+    exact paperWaveOperator_upperBarrier_const_region_nonpos_neg p hχ hα hκ hM hu hgt
+
+theorem paperWaveOperator_exp_nonpos_of_chi_nonpos_one_of_speed_bound
+    (p : CMParams) {c κ : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ ≤ 0) (hα : p.α ≤ p.m + p.γ - 1)
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hmκ : κ * p.m ≤ 1)
+    (hspeed :
+      (p.m * p.γ * |p.χ| + p.γ ^ 2 * |p.χ| + p.γ ^ 2) * κ ^ 2 < 1)
+    (hu : InWaveTrapSet κ 1 u)
+    {x : ℝ} (hx : Real.exp (-κ * x) < 1)
+    (hc : c = κ + κ⁻¹) :
+    paperWaveOperator p c u (upperBarrier κ 1) x ≤ 0 := by
+  have hγ_pos : 0 < p.γ := by linarith [p.hγ]
+  have hγκ_pos : 0 < p.γ * κ := mul_pos hγ_pos hκ
+  have hγsqκsq_lt :
+      p.γ ^ 2 * κ ^ 2 < 1 := by
+    have hA_ge :
+        p.γ ^ 2 ≤
+          p.m * p.γ * |p.χ| + p.γ ^ 2 * |p.χ| + p.γ ^ 2 := by
+      have hm_nonneg : 0 ≤ p.m := by linarith [p.hm]
+      have hγ_nonneg : 0 ≤ p.γ := by linarith [p.hγ]
+      have hχ_abs : 0 ≤ |p.χ| := abs_nonneg p.χ
+      have hterm1 : 0 ≤ p.m * p.γ * |p.χ| :=
+        mul_nonneg (mul_nonneg hm_nonneg hγ_nonneg) hχ_abs
+      have hterm2 : 0 ≤ p.γ ^ 2 * |p.χ| :=
+        mul_nonneg (sq_nonneg p.γ) hχ_abs
+      nlinarith
+    have hk2_nonneg : 0 ≤ κ ^ 2 := sq_nonneg κ
+    have hmul_le :
+        p.γ ^ 2 * κ ^ 2 ≤
+          (p.m * p.γ * |p.χ| + p.γ ^ 2 * |p.χ| + p.γ ^ 2) * κ ^ 2 :=
+      mul_le_mul_of_nonneg_right hA_ge hk2_nonneg
+    exact lt_of_le_of_lt hmul_le hspeed
+  have hγκ : p.γ * κ < 1 := by
+    have hsquare : (p.γ * κ) ^ 2 < 1 := by
+      nlinarith
+    rw [sq_lt_one_iff_abs_lt_one] at hsquare
+    rwa [abs_of_pos hγκ_pos] at hsquare
+  have hden_pos : 0 < 1 - p.γ ^ 2 * κ ^ 2 := by
+    linarith
+  have hMbound :
+      |p.χ| * (1 + p.m * p.γ * κ ^ 2) /
+          (1 - p.γ ^ 2 * κ ^ 2) *
+          (1 : ℝ) ^ (p.m + p.γ - p.α - 1) ≤
+        1 + |p.χ| * (1 : ℝ) ^ (p.m + p.γ - p.α - 1) := by
+    simp only [Real.one_rpow, mul_one]
+    rw [div_le_iff₀ hden_pos]
+    nlinarith [le_of_lt hspeed]
+  exact paperWaveOperator_exp_nonpos_of_chi_nonpos p hχ hα hκ hκ1 hγκ hmκ
+    le_rfl hMbound hu hx hc
 
 def Lemma_4_2 : Prop :=
   ∀ p : CMParams, ∀ κ κtilde M c : ℝ,
