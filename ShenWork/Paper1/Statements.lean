@@ -4079,9 +4079,9 @@ theorem paperWaveOperator_exp_nonpos_of_chi_nonpos
     paperWaveOperator p c u (upperBarrier κ M) x ≤ 0 := by
   apply paperWaveOperator_upperBarrier_exp_region_nonpos_of_dominance p
     (ne_of_gt hκ) hc hx
-  -- Need to prove the hdom condition from chemotaxis_resolvent_bound
-  -- and the M bound hMbound. This is the paper's equation (4.5)-(4.6).
-  have hresbound := chemotaxis_resolvent_bound p hκ hγκ hmκ hM hu x
+  -- Use the bridge theorem
+  apply paperWaveOperator_exp_region_hdom_of_resolvent_bound p hκ hγκ hmκ hχ hM hu x
+  -- Need hgap: the M bound condition in exponential form
   sorry
 
 def Lemma_4_2 : Prop :=
