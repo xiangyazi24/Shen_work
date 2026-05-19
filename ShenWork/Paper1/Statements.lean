@@ -1770,6 +1770,11 @@ theorem IsCUnifBdd.shift
   · exact hu.1.comp (continuous_id.add continuous_const)
   · exact IsBddFun.shift hu.2 a
 
+theorem ContDiff.two_shift
+    {u : ℝ → ℝ} (hu : ContDiff ℝ 2 u) (a : ℝ) :
+    ContDiff ℝ 2 (fun x => u (x + a)) := by
+  exact hu.comp (contDiff_id.add contDiff_const)
+
 theorem NonnegativeInitialDatum.shift
     {u₀ : ℝ → ℝ} (h : NonnegativeInitialDatum u₀) (a : ℝ) :
     NonnegativeInitialDatum (fun x => u₀ (x + a)) :=
