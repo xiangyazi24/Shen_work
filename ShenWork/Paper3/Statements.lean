@@ -101,6 +101,13 @@ def PositiveGlobalBoundedSolution
     IsPaper2Bounded D u ∧
     ∀ t x, 0 < t → x ∈ D.inside → 0 < u t x
 
+lemma PositiveGlobalBoundedSolution.of_global_bounded
+    {D : BoundedDomainData} {p : CM2Params} {u v : ℝ → D.Point → ℝ}
+    (hglobal : IsPaper2GlobalClassicalSolution D p u v)
+    (hbdd : IsPaper2Bounded D u) :
+    PositiveGlobalBoundedSolution D p u v :=
+  ⟨hglobal, hbdd, fun t x ht hx => hglobal.u_pos (t := t) (x := x) ht hx⟩
+
 def EventuallyLowerBound
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ) (δ : ℝ) : Prop :=
   0 < δ ∧ ∀ᶠ t in atTop, δ ≤ D.infValue (u t)
