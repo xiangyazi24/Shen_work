@@ -76,6 +76,32 @@ def HasWaveRightTailAsymptotic (c κ₁ : ℝ) (U : ℝ → ℝ) : Prop :=
       (U x / Real.exp (-(kappa c) * x) - 1))
     atTop (𝓝 0)
 
+theorem HasWaveRightTailAsymptotic.ratio_tendsto_one
+    {c κ₁ : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveRightTailAsymptotic c κ₁ U) (hκ₁ : kappa c < κ₁) :
+    Tendsto (fun x => U x / Real.exp (-(kappa c) * x)) atTop (𝓝 1) := by
+  have hcoef : 0 < κ₁ - kappa c := sub_pos.mpr hκ₁
+  have hexp_atTop :
+      Tendsto (fun x : ℝ => Real.exp ((κ₁ - kappa c) * x)) atTop atTop := by
+    have hmul : Tendsto (fun x : ℝ => (κ₁ - kappa c) * x) atTop atTop :=
+      (Filter.tendsto_id.atTop_mul_const hcoef).congr
+        (fun x => mul_comm x (κ₁ - kappa c))
+    exact Real.tendsto_exp_atTop.comp hmul
+  have hinv :
+      Tendsto (fun x : ℝ => (Real.exp ((κ₁ - kappa c) * x))⁻¹)
+        atTop (𝓝 0) :=
+    tendsto_inv_atTop_zero.comp hexp_atTop
+  have hminus :
+      Tendsto
+        (fun x => U x / Real.exp (-(kappa c) * x) - 1)
+        atTop (𝓝 0) := by
+    have hprod := h.mul hinv
+    convert hprod using 1
+    · ext x
+      field_simp [Real.exp_ne_zero]
+    · simp
+  simpa [sub_eq_add_neg] using hminus.add_const 1
+
 def positiveSensitivityExtendedThreshold (p : CMParams) : ℝ :=
   (2 * p.m + 2 * p.γ) / (p.m ^ 2 + p.m + 2 * p.γ)
 
