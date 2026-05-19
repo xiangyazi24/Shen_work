@@ -4081,7 +4081,9 @@ theorem paperWaveOperator_exp_nonpos_of_chi_nonpos
     (ne_of_gt hκ) hc hx
   -- Use the bridge theorem
   apply paperWaveOperator_exp_region_hdom_of_resolvent_bound p hκ hγκ hmκ hχ hM hu x
-  -- Need hgap: the M bound condition in exponential form
+  -- hgap: paper equation (4.6). From hMbound and E < M:
+  -- |χ|·(C-1)·E^{m+γ} ≤ E^{α+1} using E^{m+γ-α-1} ≤ M^{m+γ-α-1}
+  -- and |χ|·(C-1)·M ≤ 1 (from hMbound). Needs rpow monotonicity + algebra.
   sorry
 
 def Lemma_4_2 : Prop :=
