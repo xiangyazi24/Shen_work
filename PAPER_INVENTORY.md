@@ -46,7 +46,7 @@ Source: `paper2.pdf`, Chen-Ruau-Shen Part I.
 
 | Paper item | Lean artifact | Status | Notes |
 | --- | --- | --- | --- |
-| Definition 1.1 | `Paper2.IsPaper2ClassicalSolution` | partial | Abstract domain/operator interface, not instantiated smooth domain; basic `positivePart` branch and iff lemmas proved. |
+| Definition 1.1 | `Paper2.IsPaper2ClassicalSolution` | partial | Abstract domain/operator interface, not instantiated smooth domain; basic `positivePart` branch and iff lemmas plus classical-solution, global-solution, and positive-initial-datum accessors proved. |
 | Proposition 1.1 | `Paper2.Proposition_1_1` | statement target | Local existence/blow-up alternative; direct solution projection lemma proved. |
 | Theorem 1.1 | `Paper2.Theorem_1_1`, `IsPaper2BoundedBefore` | statement target | Negative sensitivity; now separates finite-horizon boundedness from the paper's `m ≥ 1` global-existence conclusion, with nonminimal/minimal branch projection lemmas proved. |
 | Theorem 1.2 | `Paper2.Theorem_1_2`, `IsPaper2BoundedBefore` | statement target | Weak nonlinear cross diffusion; sublinear branch states finite-horizon boundedness, the `m = 1` branch states global boundedness, both retain the initial trace, and branch projection lemmas including the Remark 1.6 weak-threshold specialization are proved. |

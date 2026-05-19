@@ -108,6 +108,62 @@ def IsPaper2GlobalClassicalSolution
     (u v : ℝ → D.Point → ℝ) : Prop :=
   ∀ T > 0, IsPaper2ClassicalSolution D p T u v
 
+lemma IsPaper2ClassicalSolution.T_pos
+    {D : BoundedDomainData} {p : CM2Params} {T : ℝ}
+    {u v : ℝ → D.Point → ℝ}
+    (h : IsPaper2ClassicalSolution D p T u v) :
+    0 < T :=
+  h.1
+
+lemma IsPaper2ClassicalSolution.regularity
+    {D : BoundedDomainData} {p : CM2Params} {T : ℝ}
+    {u v : ℝ → D.Point → ℝ}
+    (h : IsPaper2ClassicalSolution D p T u v) :
+    D.classicalRegularity T u v :=
+  h.2.1
+
+lemma IsPaper2ClassicalSolution.u_pos
+    {D : BoundedDomainData} {p : CM2Params} {T t : ℝ}
+    {u v : ℝ → D.Point → ℝ} {x : D.Point}
+    (h : IsPaper2ClassicalSolution D p T u v)
+    (ht0 : 0 < t) (htT : t < T) (hx : x ∈ D.inside) :
+    0 < u t x :=
+  h.2.2.1 t x ht0 htT hx
+
+lemma IsPaper2ClassicalSolution.pde_u
+    {D : BoundedDomainData} {p : CM2Params} {T t : ℝ}
+    {u v : ℝ → D.Point → ℝ} {x : D.Point}
+    (h : IsPaper2ClassicalSolution D p T u v)
+    (ht0 : 0 < t) (htT : t < T) (hx : x ∈ D.inside) :
+    D.timeDeriv u t x =
+      D.laplacian (u t) x
+        - p.χ₀ * D.chemotaxisDiv p (u t) (v t) x
+        + u t x * (p.a - p.b * (u t x) ^ p.α) :=
+  h.2.2.2.1 t x ht0 htT hx
+
+lemma IsPaper2ClassicalSolution.pde_v
+    {D : BoundedDomainData} {p : CM2Params} {T t : ℝ}
+    {u v : ℝ → D.Point → ℝ} {x : D.Point}
+    (h : IsPaper2ClassicalSolution D p T u v)
+    (ht0 : 0 < t) (htT : t < T) (hx : x ∈ D.inside) :
+    0 = D.laplacian (v t) x - p.μ * v t x + p.ν * (u t x) ^ p.γ :=
+  h.2.2.2.2.1 t x ht0 htT hx
+
+lemma IsPaper2ClassicalSolution.neumann
+    {D : BoundedDomainData} {p : CM2Params} {T t : ℝ}
+    {u v : ℝ → D.Point → ℝ} {x : D.Point}
+    (h : IsPaper2ClassicalSolution D p T u v)
+    (ht0 : 0 < t) (htT : t < T) (hx : x ∈ D.boundary) :
+    D.normalDeriv (u t) x = 0 ∧ D.normalDeriv (v t) x = 0 :=
+  h.2.2.2.2.2 t x ht0 htT hx
+
+lemma IsPaper2GlobalClassicalSolution.classical
+    {D : BoundedDomainData} {p : CM2Params} {T : ℝ}
+    {u v : ℝ → D.Point → ℝ}
+    (h : IsPaper2GlobalClassicalSolution D p u v) (hT : 0 < T) :
+    IsPaper2ClassicalSolution D p T u v :=
+  h T hT
+
 def InitialTrace
     (D : BoundedDomainData) (u₀ : D.Point → ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
   ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ →
@@ -115,6 +171,18 @@ def InitialTrace
 
 def PositiveInitialDatum (D : BoundedDomainData) (u₀ : D.Point → ℝ) : Prop :=
   D.initialAdmissible u₀ ∧ ∀ x, x ∈ D.inside → 0 < u₀ x
+
+lemma PositiveInitialDatum.admissible
+    {D : BoundedDomainData} {u₀ : D.Point → ℝ}
+    (h : PositiveInitialDatum D u₀) :
+    D.initialAdmissible u₀ :=
+  h.1
+
+lemma PositiveInitialDatum.pos
+    {D : BoundedDomainData} {u₀ : D.Point → ℝ}
+    (h : PositiveInitialDatum D u₀) {x : D.Point} (hx : x ∈ D.inside) :
+    0 < u₀ x :=
+  h.2 x hx
 
 def IsPaper2Bounded (D : BoundedDomainData) (u : ℝ → D.Point → ℝ) : Prop :=
   ∃ M, ∀ᶠ t in atTop, D.supNorm (u t) ≤ M
