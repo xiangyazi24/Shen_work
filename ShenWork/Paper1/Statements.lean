@@ -2328,6 +2328,51 @@ theorem paperWaveOperator_upperBarrier_const_region_nonpos_pos
   rw [paperWaveOperator_upperBarrier_const_region_eq p hx]
   exact hconst
 
+theorem paperWaveOperator_upperBarrier_exp_region_eq_of_kappa_speed
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hκ : κ ≠ 0) (hc : c = κ + κ⁻¹)
+    {x : ℝ} (hx : Real.exp (-κ * x) < M) :
+    paperWaveOperator p c u (upperBarrier κ M) x =
+      -expDecay κ x * (expDecay κ x) ^ p.α
+        - p.χ * p.m * (expDecay κ x) ^ (p.m - 1) *
+          deriv (frozenElliptic p u) x * (-κ * expDecay κ x)
+        + expDecay κ x *
+          (-p.χ * (expDecay κ x) ^ (p.m - 1) *
+            frozenElliptic p u x
+          + p.χ * (expDecay κ x) ^ (p.m + p.γ - 1)) := by
+  unfold paperWaveOperator
+  rw [upperBarrier_iteratedDeriv_two_eq_exp_of_lt hx,
+    upperBarrier_deriv_eq_exp_of_lt hx,
+    upperBarrier_eq_exp_of_exp_le (le_of_lt hx)]
+  simp only [expDecay]
+  have hexp : Real.exp (-κ * x) = Real.exp (-(κ * x)) := by
+    congr 1
+    ring
+  rw [hexp]
+  have hlin :
+      κ ^ 2 * Real.exp (-(κ * x)) + c * (-κ * Real.exp (-(κ * x))) +
+          Real.exp (-(κ * x)) = 0 := by
+    have h := expDecay_linear_part_eq_of_kappa_speed
+      (κ := κ) (c := c) (x := x) hκ hc
+    simpa [expDecay, expDecay_iteratedDeriv_two, expDecay_deriv] using h
+  nlinarith
+
+theorem paperWaveOperator_upperBarrier_exp_region_nonpos_of_dominance
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hκ : κ ≠ 0) (hc : c = κ + κ⁻¹)
+    {x : ℝ} (hx : Real.exp (-κ * x) < M)
+    (hdom :
+      - p.χ * p.m * (expDecay κ x) ^ (p.m - 1) *
+          deriv (frozenElliptic p u) x * (-κ * expDecay κ x)
+        + expDecay κ x *
+          (-p.χ * (expDecay κ x) ^ (p.m - 1) *
+            frozenElliptic p u x
+          + p.χ * (expDecay κ x) ^ (p.m + p.γ - 1)) ≤
+        expDecay κ x * (expDecay κ x) ^ p.α) :
+    paperWaveOperator p c u (upperBarrier κ M) x ≤ 0 := by
+  rw [paperWaveOperator_upperBarrier_exp_region_eq_of_kappa_speed p hκ hc hx]
+  nlinarith
+
 theorem InWaveTrapSet.zero {κ M : ℝ} (hM : 0 ≤ M) :
     InWaveTrapSet κ M (fun _ : ℝ => (0 : ℝ)) := by
   refine ⟨IsCUnifBdd.zero, ?_⟩
