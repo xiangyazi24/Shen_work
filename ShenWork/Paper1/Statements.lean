@@ -3847,18 +3847,27 @@ theorem chemotaxis_resolvent_bound
     hu_rpow_le_exp x hL_int
   have hR_bound := setIntegral_Ioi_exp_le_of_rpow_le hκ hγ_pos hγκ
     hu_rpow_le_exp x hR_int
-  -- Coefficient algebra
-  have hcoeff_algebra :
+  -- V'(x) from Psi_derivative_formula_general:
+  -- V'(x) = -(1/2)·exp(-x)·L + (1/2)·exp(x)·R
+  simp only [Real.sqrt_one] at hVx
+  have hV' : deriv (frozenElliptic p u) x =
+      -(1 / 2) * Real.exp (-1 * x) * L + (1 / 2) * Real.exp (1 * x) * R := by
+    have : (fun z => frozenElliptic p u z) =
+        (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) := rfl
+    rw [show deriv (frozenElliptic p u) x =
+        deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x from
+      congr_arg (fun f => deriv f x) this, hVx]
+  -- V(x) = (1/2)·(exp(-x)·L + exp(x)·R) from kernel splitting
+  have hV : frozenElliptic p u x =
+      1 / 2 * (Real.exp (-1 * x) * L + Real.exp (1 * x) * R) := by
+    sorry
+  -- Combine: -κm·V' + V = (1/2)(κm+1)·exp(-x)·L + (1/2)(1-κm)·exp(x)·R
+  rw [hV', hV]
+  -- Apply bounds and coefficient algebra
+  have hcoeff :
       (κ * p.m + 1) * (1 + p.γ * κ) + (1 - κ * p.m) * (1 - p.γ * κ) =
         2 * (1 + p.m * p.γ * κ ^ 2) := by ring
-  -- The final assembly connects V'(x), V(x), the half-line bounds,
-  -- and the coefficient identity. This is the paper's equation (4.4)
-  -- computation.
-  -- The key remaining steps:
-  -- (a) Express V(x) via kernel splitting as (1/2)(e^{-x}L + e^x R)
-  -- (b) Form -κm V' + V = (1/2)(κm+1)e^{-x}L + (1/2)(1-κm)e^x R
-  -- (c) Apply hL_bound and hR_bound
-  -- (d) Use hcoeff_algebra to simplify
+  have hden : (1 - p.γ * κ) * (1 + p.γ * κ) = 1 - p.γ ^ 2 * κ ^ 2 := by ring
   sorry
 
 def Lemma_4_2 : Prop :=
