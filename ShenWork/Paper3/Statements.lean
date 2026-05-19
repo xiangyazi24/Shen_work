@@ -562,6 +562,14 @@ def ExponentialC1ConvergenceWith
     N.c1Distance (u t) (fun _ => uStar) +
       N.c1Distance (v t) (fun _ => vStar) ≤ C * Real.exp (-rate * t)
 
+lemma ExponentialC1Convergence.bound
+    {D : BoundedDomainData} {N : StabilityNorms D}
+    {u v : ℝ → D.Point → ℝ} {uStar vStar : ℝ}
+    (h : ExponentialC1Convergence D N u v uStar vStar) :
+    ∃ C > 0, ∃ rate > 0,
+      ExponentialC1ConvergenceWith D N u v uStar vStar C rate :=
+  h
+
 lemma ExponentialC1ConvergenceWith.exists
     {D : BoundedDomainData} {N : StabilityNorms D}
     {u v : ℝ → D.Point → ℝ} {uStar vStar C rate : ℝ}
@@ -574,6 +582,12 @@ lemma ExponentialC1ConvergenceWith.exists
 def SupCloseToConstant
     (D : BoundedDomainData) (u₀ : D.Point → ℝ) (uStar δ : ℝ) : Prop :=
   D.supNorm (fun x => u₀ x - uStar) < δ
+
+lemma SupCloseToConstant.lt
+    {D : BoundedDomainData} {u₀ : D.Point → ℝ} {uStar δ : ℝ}
+    (h : SupCloseToConstant D u₀ uStar δ) :
+    D.supNorm (fun x => u₀ x - uStar) < δ :=
+  h
 
 /-- Local exponential stability from small perturbations in the sup norm.
 
