@@ -1854,6 +1854,66 @@ lemma power_difference_midpoint_normalized_of_lt_alpha
   · exact power_difference_midpoint_normalized_of_le_one halpha0 halpha1 ht
       (le_of_not_ge ht_ge)
 
+lemma power_difference_midpoint_normalized
+    {beta t : ℝ} (hbeta0 : 0 < beta) (ht : 0 < t) :
+    (t ^ ((beta + 1) / 2) - 1) ^ 2 ≤
+      ((beta + 1) ^ 2 / (4 * beta)) * ((t - 1) * (t ^ beta - 1)) := by
+  by_cases hbeta_lt : beta < 1
+  · exact power_difference_midpoint_normalized_of_lt_alpha hbeta0 hbeta_lt ht
+  · by_cases hbeta_eq : beta = 1
+    · subst beta
+      simp [Real.rpow_one]
+      ring_nf
+      exact le_rfl
+    · have hbeta_gt : 1 < beta := lt_of_le_of_ne (le_of_not_gt hbeta_lt)
+        (fun h : 1 = beta => hbeta_eq h.symm)
+      let a : ℝ := 1 / beta
+      let s : ℝ := t ^ beta
+      have ha0 : 0 < a := by
+        dsimp [a]
+        positivity
+      have ha1 : a < 1 := by
+        dsimp [a]
+        rw [div_lt_one₀ hbeta0]
+        exact hbeta_gt
+      have hs_pos : 0 < s := by
+        dsimp [s]
+        exact Real.rpow_pos_of_pos ht beta
+      have hbase :
+          (s ^ ((a + 1) / 2) - 1) ^ 2 ≤
+            ((a + 1) ^ 2 / (4 * a)) * ((s - 1) * (s ^ a - 1)) :=
+        power_difference_midpoint_normalized_of_lt_alpha ha0 ha1 hs_pos
+      have hs_a : s ^ a = t := by
+        dsimp [s, a]
+        rw [← Real.rpow_mul ht.le]
+        have hbeta_ne : beta ≠ 0 := ne_of_gt hbeta0
+        rw [mul_one_div_cancel hbeta_ne, Real.rpow_one]
+      have hs_mid : s ^ ((a + 1) / 2) = t ^ ((beta + 1) / 2) := by
+        dsimp [s, a]
+        rw [← Real.rpow_mul ht.le]
+        congr 1
+        have hbeta_ne : beta ≠ 0 := ne_of_gt hbeta0
+        field_simp [hbeta_ne]
+        ring
+      have hcoef :
+          (a + 1) ^ 2 / (4 * a) = (beta + 1) ^ 2 / (4 * beta) := by
+        dsimp [a]
+        have hbeta_ne : beta ≠ 0 := ne_of_gt hbeta0
+        field_simp [hbeta_ne]
+        ring
+      have hprod :
+          (s - 1) * (s ^ a - 1) = (t - 1) * (t ^ beta - 1) := by
+        rw [hs_a]
+        dsimp [s]
+        ring
+      calc
+        (t ^ ((beta + 1) / 2) - 1) ^ 2 =
+            (s ^ ((a + 1) / 2) - 1) ^ 2 := by rw [hs_mid]
+        _ ≤ ((a + 1) ^ 2 / (4 * a)) * ((s - 1) * (s ^ a - 1)) := hbase
+        _ = ((beta + 1) ^ 2 / (4 * beta)) *
+              ((t - 1) * (t ^ beta - 1)) := by
+            rw [hcoef, hprod]
+
 lemma power_difference_normalized_of_lt_alpha
     {alpha gamma t : ℝ}
     (halpha0 : 0 < alpha) (halpha1 : alpha < 1)
@@ -1886,6 +1946,7 @@ lemma power_difference_normalized_of_lt_alpha
         (sub_nonneg.mpr hγ_ge_one) (sub_nonneg.mpr hδ_ge_one)
       simpa [sq] using hmul
     exact hsq_le.trans hmid
+
   · have ht_le : t ≤ 1 := le_of_not_ge ht_ge
     have hγ_le_one : t ^ gamma ≤ 1 :=
       Real.rpow_le_one ht.le ht_le hgamma_nonneg
@@ -1903,6 +1964,49 @@ lemma power_difference_normalized_of_lt_alpha
           simpa [sq] using hmul
       nlinarith
     exact hsq_le.trans hmid
+
+lemma power_difference_normalized_of_one_le_alpha_of_one_lt_gamma
+    {alpha gamma t : ℝ}
+    (_halpha : 1 ≤ alpha) (hgamma : 1 < gamma)
+    (hrel : 2 * gamma ≤ alpha + 1) (ht : 0 < t) :
+    (t ^ gamma - 1) ^ 2 ≤
+      (gamma ^ 2 / (2 * gamma - 1)) * ((t - 1) * (t ^ alpha - 1)) := by
+  let beta : ℝ := 2 * gamma - 1
+  have hbeta0 : 0 < beta := by
+    dsimp [beta]
+    linarith
+  have hbeta_le_alpha : beta ≤ alpha := by
+    dsimp [beta]
+    linarith
+  have hgamma_eq : gamma = (beta + 1) / 2 := by
+    dsimp [beta]
+    ring
+  have hcoef :
+      (beta + 1) ^ 2 / (4 * beta) = gamma ^ 2 / (2 * gamma - 1) := by
+    dsimp [beta]
+    have hden_ne : 2 * gamma - 1 ≠ 0 := by linarith
+    field_simp [hden_ne]
+    ring
+  have hmid :
+      (t ^ gamma - 1) ^ 2 ≤
+        (gamma ^ 2 / (2 * gamma - 1)) * ((t - 1) * (t ^ beta - 1)) := by
+    simpa [hgamma_eq, hcoef] using
+      power_difference_midpoint_normalized (beta := beta) (t := t) hbeta0 ht
+  have hprod :
+      (t - 1) * (t ^ beta - 1) ≤ (t - 1) * (t ^ alpha - 1) := by
+    by_cases ht_ge : 1 ≤ t
+    · have hpow : t ^ beta ≤ t ^ alpha :=
+        Real.rpow_le_rpow_of_exponent_le ht_ge hbeta_le_alpha
+      exact mul_le_mul_of_nonneg_left (sub_le_sub_right hpow 1)
+        (sub_nonneg.mpr ht_ge)
+    · have ht_le : t ≤ 1 := le_of_not_ge ht_ge
+      have hpow : t ^ alpha ≤ t ^ beta :=
+        Real.rpow_le_rpow_of_exponent_ge ht ht_le hbeta_le_alpha
+      exact mul_le_mul_of_nonpos_left (sub_le_sub_right hpow 1)
+        (sub_nonpos.mpr ht_le)
+  have hcoef_nonneg : 0 ≤ gamma ^ 2 / (2 * gamma - 1) := by
+    positivity
+  exact hmid.trans (mul_le_mul_of_nonneg_left hprod hcoef_nonneg)
 
 def chiStrong1Formula (p : CM2Params) (uStar vStar : ℝ) : ℝ :=
   Real.sqrt
@@ -3891,6 +3995,30 @@ lemma PowerDifferenceInequality.CAlphaGamma_of_one_le_alpha_of_gamma_le_one
     PowerDifferenceInequality.of_one_le_alpha_of_gamma_le_one
       halpha hgamma_pos hgamma_le huStar
 
+lemma PowerDifferenceInequality.of_one_le_alpha_of_one_lt_gamma
+    {alpha gamma uStar : ℝ}
+    (halpha : 1 ≤ alpha) (hgamma : 1 < gamma)
+    (hrel : 2 * gamma ≤ alpha + 1) (huStar : 0 < uStar) :
+    PowerDifferenceInequality (gamma ^ 2 / (2 * gamma - 1))
+      alpha gamma uStar := by
+  exact PowerDifferenceInequality.of_normalized
+    (fun t ht =>
+      power_difference_normalized_of_one_le_alpha_of_one_lt_gamma
+        halpha hgamma hrel ht)
+    huStar
+
+lemma PowerDifferenceInequality.CAlphaGamma_of_one_le_alpha_of_one_lt_gamma
+    {alpha gamma uStar : ℝ}
+    (halpha : 1 ≤ alpha) (hgamma : 1 < gamma)
+    (hrel : 2 * gamma ≤ alpha + 1) (huStar : 0 < uStar) :
+    PowerDifferenceInequality (CAlphaGamma alpha gamma) alpha gamma uStar := by
+  have hC : CAlphaGamma alpha gamma = gamma ^ 2 / (2 * gamma - 1) := by
+    unfold CAlphaGamma
+    rw [if_neg (not_lt_of_ge halpha), if_neg (not_le_of_gt hgamma)]
+  simpa [hC] using
+    PowerDifferenceInequality.of_one_le_alpha_of_one_lt_gamma
+      halpha hgamma hrel huStar
+
 lemma PowerDifferenceInequality.of_alpha_lt_one
     {alpha gamma uStar : ℝ}
     (halpha0 : 0 < alpha) (halpha1 : alpha < 1)
@@ -3923,6 +4051,18 @@ def Lemma_A_6 : Prop :=
       2 * gamma ≤ alpha + 1 →
         ∀ uStar > 0,
           PowerDifferenceInequality (CAlphaGamma alpha gamma) alpha gamma uStar
+
+lemma Lemma_A_6_proved : Lemma_A_6 := by
+  intro alpha gamma halpha hgamma hrel uStar huStar
+  by_cases halpha_lt : alpha < 1
+  · exact PowerDifferenceInequality.CAlphaGamma_of_alpha_lt_one
+      halpha halpha_lt hgamma hrel huStar
+  · have halpha_ge : 1 ≤ alpha := le_of_not_gt halpha_lt
+    by_cases hgamma_le : gamma ≤ 1
+    · exact PowerDifferenceInequality.CAlphaGamma_of_one_le_alpha_of_gamma_le_one
+        halpha_ge hgamma hgamma_le huStar
+    · exact PowerDifferenceInequality.CAlphaGamma_of_one_le_alpha_of_one_lt_gamma
+        halpha_ge (lt_of_not_ge hgamma_le) hrel huStar
 
 lemma Lemma_A_6.alpha_lt_one_branch
     {alpha gamma uStar : ℝ}
