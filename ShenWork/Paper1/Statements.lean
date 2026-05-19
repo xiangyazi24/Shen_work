@@ -2484,6 +2484,48 @@ theorem FrozenAuxiliaryLimitOutput.antitone_of_inMonotoneWaveTrapSet
     exact (htrap t ht).antitone hxy
   exact le_of_tendsto_of_tendsto (htendsto y) (htendsto x) heventually
 
+/-- Data constructed before applying Schauder in the Section 4 wave proof:
+a self-map on the trapping set, the auxiliary parabolic limit output for each
+frozen profile, sequential local-uniform continuity, and sequential compactness
+of the image range.  This deliberately does not include a fixed point. -/
+def FrozenWaveMapSchauderData
+    (p : CMParams) (c κ M : ℝ) (trap : (ℝ → ℝ) → Prop)
+    (Tmap : (ℝ → ℝ) → ℝ → ℝ) : Prop :=
+  (∀ u, trap u → trap (Tmap u)) ∧
+    (∀ u, trap u → FrozenAuxiliaryLimitOutput p c κ M trap u (Tmap u)) ∧
+    LocalUniformContinuousOn trap Tmap ∧
+    LocalUniformSequentiallyCompactRange trap Tmap
+
+theorem FrozenWaveMapSchauderData.self_mem
+    {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
+    {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (h : FrozenWaveMapSchauderData p c κ M trap Tmap)
+    {u : ℝ → ℝ} (hu : trap u) :
+    trap (Tmap u) :=
+  h.1 u hu
+
+theorem FrozenWaveMapSchauderData.limit_output
+    {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
+    {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (h : FrozenWaveMapSchauderData p c κ M trap Tmap)
+    {u : ℝ → ℝ} (hu : trap u) :
+    FrozenAuxiliaryLimitOutput p c κ M trap u (Tmap u) :=
+  h.2.1 u hu
+
+theorem FrozenWaveMapSchauderData.continuousOn
+    {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
+    {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (h : FrozenWaveMapSchauderData p c κ M trap Tmap) :
+    LocalUniformContinuousOn trap Tmap :=
+  h.2.2.1
+
+theorem FrozenWaveMapSchauderData.compactRange
+    {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
+    {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (h : FrozenWaveMapSchauderData p c κ M trap Tmap) :
+    LocalUniformSequentiallyCompactRange trap Tmap :=
+  h.2.2.2
+
 /-- The Schauder-map statement target from the proof of Theorem 1.1: construct
 a local-uniformly compact and continuous limit map on a trapping set, then get a
 fixed point. -/
@@ -2506,6 +2548,15 @@ theorem FrozenWaveMapConstruction.exists_map
         LocalUniformSequentiallyCompactRange trap Tmap ∧
         ∃ U : ℝ → ℝ, trap U ∧ Tmap U = U :=
   h
+
+theorem FrozenWaveMapConstruction.exists_schauderData
+    {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
+    (h : FrozenWaveMapConstruction p c κ M trap) :
+    ∃ Tmap : (ℝ → ℝ) → ℝ → ℝ,
+      FrozenWaveMapSchauderData p c κ M trap Tmap ∧
+        ∃ U : ℝ → ℝ, trap U ∧ Tmap U = U := by
+  rcases h with ⟨Tmap, hmap, hlimit, hcont, hcompact, hfixed⟩
+  exact ⟨Tmap, ⟨hmap, hlimit, hcont, hcompact⟩, hfixed⟩
 
 theorem FrozenWaveMapConstruction.exists_map_self
     {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
