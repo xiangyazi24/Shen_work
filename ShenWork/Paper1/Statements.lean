@@ -4400,6 +4400,129 @@ theorem Lemma_5_2.log_derivative_bound
     ∃ B > 0, ∀ x, deriv U x / U x ≤ B :=
   h p c hspeed U V hTW hbound
 
+/-- The constant `M'_{\chi,m,\alpha,\gamma}` from Paper1 Remark 5.1. -/
+def remark51MPrime (p : CMParams) : ℝ :=
+  |p.χ| * (MChi p) ^ (p.m + p.γ) + (MChi p) ^ (1 + p.α)
+
+/-- The constant `M''_{\chi,m,\alpha,\gamma,\sigma}` from Paper1 Remark 5.1.
+The paper writes `|χ|2σ`; here it is represented as `|χ|^2 * σ`. -/
+def remark51MDoublePrime (p : CMParams) (sigma : ℝ) : ℝ :=
+  2 *
+    (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + (MChi p) ^ p.α) *
+      (|p.χ| ^ 2 * sigma +
+        |p.χ| * p.m * (MChi p) ^ (p.m - 1) *
+          (|p.χ| * (MChi p) ^ (p.m + p.γ) +
+            (MChi p) ^ (p.α + 1)) *
+          (p.γ + |p.χ| * sigma))
+
+/-- The stronger speed hypothesis used in Paper1 Remarks 5.1 and 5.2. -/
+def remark5SpeedCondition (p : CMParams) (c sigma : ℝ) : Prop :=
+  c >
+    max
+      (p.γ + |p.χ| * sigma + (p.γ + |p.χ|) / sigma)
+      (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+        |p.χ| * sigma)
+
+/-- Paper1 Remark 5.1: under the stronger `sigma` speed condition, the
+stationary profile derivative has a global `1/(|χ|σ)` bound and a right-tail
+exponential `1/(|χ|^2 σ)` bound. -/
+def Remark_5_1 : Prop :=
+  ∀ p : CMParams, ∀ c sigma : ℝ,
+    0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+          (∀ x : ℝ,
+            |deriv U x| ≤ remark51MPrime p / (|p.χ| * sigma)) ∧
+          ∀ x : ℝ, 0 ≤ x →
+            |deriv U x| ≤
+              remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
+                Real.exp (-(kappa c) * x)
+
+theorem Remark_5_1.derivative_bound
+    (h : Remark_5_1) {p : CMParams} {c sigma : ℝ}
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U) :
+    ∀ x : ℝ, |deriv U x| ≤ remark51MPrime p / (|p.χ| * sigma) :=
+  (h p c sigma hsigma hχ hspeed U V hTW hbound).1
+
+theorem Remark_5_1.derivative_exp_bound
+    (h : Remark_5_1) {p : CMParams} {c sigma : ℝ}
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U) :
+    ∀ x : ℝ, 0 ≤ x →
+      |deriv U x| ≤
+        remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
+          Real.exp (-(kappa c) * x) :=
+  (h p c sigma hsigma hχ hspeed U V hTW hbound).2
+
+/-- The piecewise constant `M'''_{\chi,m,\alpha,\gamma,\sigma}` from
+Paper1 Remark 5.2.  The branch at `c ≤ 5/2` comes from Lemma 5.2; the branch at
+`5/2 < c` comes from Remark 4.1 and Remark 5.1. -/
+def remark52MTriplePrime (p : CMParams) (c sigma : ℝ) : ℝ :=
+  if c ≤ (5 / 2 : ℝ) then
+    |p.χ| ^ 2 * sigma / 2 *
+      (5 / 2 + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) +
+        Real.sqrt
+          ((5 / 2 + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1)) ^ 2 +
+            4 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+            4 * (MChi p) ^ p.α))
+  else
+    max
+      (8 * (1 + |p.χ| + 2 * p.m * |p.χ|) *
+        (p.γ + |p.χ| * sigma) / (1 + p.γ) * remark51MPrime p)
+      (2 * remark51MDoublePrime p sigma)
+
+theorem remark52MTriplePrime_eq_of_le
+    {p : CMParams} {c sigma : ℝ} (hc : c ≤ (5 / 2 : ℝ)) :
+    remark52MTriplePrime p c sigma =
+      |p.χ| ^ 2 * sigma / 2 *
+        (5 / 2 + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) +
+          Real.sqrt
+            ((5 / 2 + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1)) ^ 2 +
+              4 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+              4 * (MChi p) ^ p.α)) := by
+  simp [remark52MTriplePrime, hc]
+
+theorem remark52MTriplePrime_eq_of_gt
+    {p : CMParams} {c sigma : ℝ} (hc : (5 / 2 : ℝ) < c) :
+    remark52MTriplePrime p c sigma =
+      max
+        (8 * (1 + |p.χ| + 2 * p.m * |p.χ|) *
+          (p.γ + |p.χ| * sigma) / (1 + p.γ) * remark51MPrime p)
+        (2 * remark51MDoublePrime p sigma) := by
+  simp [remark52MTriplePrime, not_le.mpr hc]
+
+/-- Paper1 Remark 5.2: the `sigma` speed condition gives the displayed
+`U'/U` bound with the piecewise constant `M'''`. -/
+def Remark_5_2 : Prop :=
+  ∀ p : CMParams, ∀ c sigma : ℝ,
+    0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+          ∀ x : ℝ,
+            deriv U x / U x ≤
+              remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma)
+
+theorem Remark_5_2.log_derivative_bound
+    (h : Remark_5_2) {p : CMParams} {c sigma : ℝ}
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U) :
+    ∀ x : ℝ,
+      deriv U x / U x ≤
+        remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) :=
+  h p c sigma hsigma hχ hspeed U V hTW hbound
+
 def Lemma_5_3 : Prop :=
   ∀ gamma M eta : ℝ,
     1 ≤ gamma → 1 ≤ M → 0 < eta → eta < 1 →
