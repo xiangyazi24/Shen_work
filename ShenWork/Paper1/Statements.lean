@@ -1255,6 +1255,21 @@ theorem FrozenStationaryWaveProfile.mk_from_stationary
     lim_neg_inf := hlim_neg
     lim_pos_inf := hlim_pos }
 
+theorem FrozenStationaryWaveProfile.mk_auto_limits
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hc : 0 < c)
+    (hU_pos : ∀ x, 0 < U x)
+    (hU_bdd : IsCUnifBdd U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hU_lim_neg : Tendsto U atBot (𝓝 1))
+    (hU_lim_pos : Tendsto U atTop (𝓝 0)) :
+    FrozenStationaryWaveProfile p c U :=
+  FrozenStationaryWaveProfile.mk_from_stationary hc hU_pos hU_bdd hstat
+    ⟨hU_lim_neg, frozenElliptic_tendsto_atBot_of_U_tendsto p hU_bdd
+      (fun x => (hU_pos x).le) hU_lim_neg⟩
+    ⟨hU_lim_pos, frozenElliptic_tendsto_atTop_of_U_tendsto p hU_bdd
+      (fun x => (hU_pos x).le) hU_lim_pos⟩
+
 theorem FrozenStationaryWaveProfile.to_travelingWave
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (h : FrozenStationaryWaveProfile p c U) :
