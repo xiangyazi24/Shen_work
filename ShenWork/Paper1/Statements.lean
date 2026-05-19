@@ -1112,6 +1112,13 @@ def IsFrozenSuperSolution (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) : Prop :=
 def IsFrozenSubSolutionOn (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) (s : Set ℝ) : Prop :=
   ∀ x ∈ s, 0 ≤ frozenWaveOperator p c u W x
 
+def IsPaperFrozenSuperSolution (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) : Prop :=
+  ∀ x, paperWaveOperator p c u W x ≤ 0
+
+def IsPaperFrozenSubSolutionOn (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) (s : Set ℝ) :
+    Prop :=
+  ∀ x ∈ s, 0 ≤ paperWaveOperator p c u W x
+
 def expDecay (κ : ℝ) : ℝ → ℝ :=
   fun x => Real.exp (-(κ * x))
 
@@ -3462,6 +3469,71 @@ theorem constant_subsolution_frozenWaveOperator_nonneg_of_chem_nonneg
       (sub_nonneg.mpr
         (Real.rpow_le_one hd_nonneg hd_le_one
           (by linarith [p.hα] : 0 ≤ p.α)))
+
+theorem paperWaveOperator_const_subsolution_nonneg_of_chi_nonpos
+    (p : CMParams) {c κ κtilde D d : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ ≤ 0) (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x)
+    (hd_pos : 0 < d)
+    (hd_le : d ≤ constantSubsolutionThreshold p.χ κ κtilde D)
+    (x : ℝ) :
+    0 ≤ paperWaveOperator p c u (fun _ => d) x := by
+  rw [paperWaveOperator_const_eq p hu hu_nonneg x]
+  apply mul_nonneg hd_pos.le
+  have hd_nonneg : 0 ≤ d := hd_pos.le
+  have hd_le_inv : d ≤ 1 / (1 + |p.χ|) := by
+    exact le_trans hd_le (min_le_left _ _)
+  have hden_pos : 0 < 1 + |p.χ| := by positivity
+  have hsmall : (1 + |p.χ|) * d ≤ 1 := by
+    have hmul := mul_le_mul_of_nonneg_left hd_le_inv hden_pos.le
+    have hleft : (1 + |p.χ|) * (1 / (1 + |p.χ|)) = 1 := by
+      field_simp [ne_of_gt hden_pos]
+    nlinarith
+  have hd_le_one : d ≤ 1 := by
+    nlinarith [abs_nonneg p.χ, hsmall]
+  have hd_alpha_le :
+      d ^ p.α ≤ d := by
+    calc d ^ p.α ≤ d ^ (1 : ℝ) :=
+          Real.rpow_le_rpow_of_exponent_ge hd_pos hd_le_one p.hα
+      _ = d := Real.rpow_one d
+  have hmg_ge_one : 1 ≤ p.m + p.γ - 1 := by
+    linarith [p.hm, p.hγ]
+  have hd_mg_le :
+      d ^ (p.m + p.γ - 1) ≤ d := by
+    calc d ^ (p.m + p.γ - 1) ≤ d ^ (1 : ℝ) :=
+          Real.rpow_le_rpow_of_exponent_ge hd_pos hd_le_one hmg_ge_one
+      _ = d := Real.rpow_one d
+  have hcore_abs :
+      0 ≤ 1 - d ^ p.α - |p.χ| * d ^ (p.m + p.γ - 1) := by
+    have hchem_small :
+        |p.χ| * d ^ (p.m + p.γ - 1) ≤ |p.χ| * d :=
+      mul_le_mul_of_nonneg_left hd_mg_le (abs_nonneg p.χ)
+    nlinarith
+  have hχ_abs : -p.χ = |p.χ| := by
+    rw [abs_of_nonpos hχ]
+  have hcore :
+      0 ≤ 1 - d ^ p.α - (-p.χ) * d ^ (p.m + p.γ - 1) := by
+    simpa [hχ_abs] using hcore_abs
+  have hV_nonneg : 0 ≤ frozenElliptic p u x :=
+    frozenElliptic_nonneg p hu_nonneg x
+  have hdm_nonneg : 0 ≤ d ^ (p.m - 1) :=
+    Real.rpow_nonneg hd_nonneg _
+  have hVterm :
+      0 ≤ -p.χ * d ^ (p.m - 1) * frozenElliptic p u x := by
+    exact mul_nonneg
+      (mul_nonneg (neg_nonneg.mpr hχ) hdm_nonneg)
+      hV_nonneg
+  nlinarith
+
+theorem constant_subsolution_paperWaveOperator_nonneg_of_chi_nonpos
+    (p : CMParams) {κ κtilde D d c M : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ ≤ 0)
+    (hd_pos : 0 < d)
+    (hd_le : d ≤ constantSubsolutionThreshold p.χ κ κtilde D)
+    (hu : InWaveTrapSet κ M u) :
+    IsPaperFrozenSubSolutionOn p c u (fun _ => d) Set.univ := by
+  intro x _hx
+  exact paperWaveOperator_const_subsolution_nonneg_of_chi_nonpos
+    p hχ hu.cunif_bdd hu.nonneg hd_pos hd_le x
 
 theorem expDecay_rpow_eq (κ m x : ℝ) :
     (expDecay κ x) ^ m = expDecay (m * κ) x := by
