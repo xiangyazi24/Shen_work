@@ -3977,6 +3977,19 @@ theorem chemotaxis_resolvent_bound
   congr 1
   nlinarith [hcoeff]
 
+theorem paperWaveOperator_exp_nonpos_of_chi_nonpos
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ ≤ 0) (hα : p.α ≤ p.m + p.γ - 1)
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hγκ : p.γ * κ < 1) (hmκ : κ * p.m ≤ 1)
+    (hM : 1 ≤ M)
+    (hMbound : |p.χ| * (1 + p.m * p.γ * κ ^ 2) /
+        (1 - p.γ ^ 2 * κ ^ 2) * M ≤ 1 + |p.χ| * M)
+    (hu : InWaveTrapSet κ M u)
+    {x : ℝ} (hx : Real.exp (-κ * x) < M)
+    (hc : c = κ + κ⁻¹) :
+    paperWaveOperator p c u (upperBarrier κ M) x ≤ 0 := by
+  sorry
+
 def Lemma_4_2 : Prop :=
   ∀ p : CMParams, ∀ κ κtilde M c : ℝ,
     0 < κ → κ < 1 →
