@@ -2631,6 +2631,23 @@ theorem frozenElliptic_le_M_of_inMonotoneWaveTrapSet
     frozenElliptic p u x ≤ M :=
   frozenElliptic_le_M_of_inWaveTrapSet p hM hM1 hu.1 x
 
+theorem frozenElliptic_bddFun_of_inWaveTrapSet
+    (p : CMParams) {κ M : ℝ} {u : ℝ → ℝ}
+    (hM : 0 < M) (hu : InWaveTrapSet κ M u) :
+    IsBddFun (frozenElliptic p u) :=
+  ⟨M ^ p.γ, fun x => by
+    rw [abs_of_nonneg (frozenElliptic_nonneg p hu.nonneg x)]
+    exact frozenElliptic_le_of_rpow_le p
+      (Real.rpow_nonneg hM.le p.γ) hu.cunif_bdd.1 hu.nonneg
+      (fun y => hu.rpow_le_M (by linarith [p.hγ]) y) x⟩
+
+theorem frozenElliptic_isCUnifBdd_of_inWaveTrapSet
+    (p : CMParams) {κ M : ℝ} {u : ℝ → ℝ}
+    (hM : 0 < M) (hu : InWaveTrapSet κ M u) :
+    IsCUnifBdd (frozenElliptic p u) :=
+  ⟨frozenElliptic_continuous p hu.cunif_bdd hu.nonneg,
+    frozenElliptic_bddFun_of_inWaveTrapSet p hM hu⟩
+
 theorem paperWaveOperator_const_nonpos_neg
     (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
     (hχ : p.χ ≤ 0) (hα : p.α ≤ p.m + p.γ - 1)
