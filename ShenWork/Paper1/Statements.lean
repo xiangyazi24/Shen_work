@@ -4312,6 +4312,38 @@ theorem Theorem_1_3.uniqueness_at_admissible_threshold
   hthreshold.2.2 c hc U₁ V₁ U₂ V₂
     hTW₁ hTW₂ hbound₁ hbound₂ htail
 
+theorem Theorem_1_3.uniqueness_at_admissible_threshold_of_remark43_tail
+    {p : CMParams} {cStarStar : ℝ → ℝ}
+    (hthreshold :
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧
+          HasWaveRightTailAsymptotic c κ₁ U₁ ∧
+          HasWaveRightTailAsymptotic c κ₁ U₂) →
+        (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x))
+    {c : ℝ} (hc : cStarStar p.χ < c)
+    {U₁ V₁ U₂ V₂ : ℝ → ℝ}
+    (hTW₁ : IsTravelingWave p c U₁ V₁)
+    (hTW₂ : IsTravelingWave p c U₂ V₂)
+    (hbound₁ : HasStrictWaveUpperTailBound p c U₁)
+    (hbound₂ : HasStrictWaveUpperTailBound p c U₂)
+    (htail₁ : HasRemark43TailAsymptotic p c U₁)
+    (htail₂ : HasRemark43TailAsymptotic p c U₂) :
+    (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
+  have hkappa_pos : 0 < kappa c :=
+    kappa_pos_of_stabilitySpeedBaseline_lt hthreshold.2.1 hc
+  have hkappa_lt_one : kappa c < 1 :=
+    kappa_lt_one_of_stabilitySpeedBaseline_lt hthreshold.2.1 hc
+  exact Theorem_1_3.uniqueness_at_admissible_threshold
+    hthreshold hc hTW₁ hTW₂ hbound₁ hbound₂
+    (htail₁.exists_common_waveRightTailAsymptotic htail₂ hkappa_pos hkappa_lt_one)
+
 theorem Theorem_1_3.exists_threshold_with_uniqueness_at_speed
     (h : Theorem_1_3) {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
@@ -4328,6 +4360,22 @@ theorem Theorem_1_3.exists_threshold_with_uniqueness_at_speed
           HasWaveRightTailAsymptotic c κ₁ U₂) →
         (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) :=
   h.uniqueness_package hp
+
+theorem Theorem_1_3.exists_threshold_with_uniqueness_at_speed_of_remark43_tail
+    (h : Theorem_1_3) {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        HasRemark43TailAsymptotic p c U₁ →
+        HasRemark43TailAsymptotic p c U₂ →
+        (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) :=
+  h.uniqueness_package_of_remark43_tail hp
 
 end
 
