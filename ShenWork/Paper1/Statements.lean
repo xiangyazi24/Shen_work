@@ -3304,6 +3304,27 @@ theorem frozenWaveOperator_const_eq
   rw [hconst_deriv]
   ring
 
+theorem frozenWaveOperator_exp_eq
+    (p : CMParams) {c κ : ℝ} {u : ℝ → ℝ}
+    (hc : 2 ≤ c) (hκ : κ = kappa c)
+    (_hu : IsCUnifBdd u) (_hu_nonneg : ∀ x, 0 ≤ u x) (x : ℝ) :
+    frozenWaveOperator p c u (expDecay κ) x =
+      -(expDecay κ x) * (expDecay κ x) ^ p.α
+      - p.χ * deriv (fun y => (expDecay κ y) ^ p.m *
+          deriv (frozenElliptic p u) y) x := by
+  unfold frozenWaveOperator
+  have hW2 := expDecay_iteratedDeriv_two κ x
+  have hW1 := expDecay_deriv κ x
+  have hquad : κ ^ 2 - c * κ + 1 = 0 := by
+    rw [hκ]; exact kappa_quadratic_eq_zero hc
+  rw [hW2, hW1]
+  have h : κ ^ 2 * expDecay κ x + c * (-κ * expDecay κ x) +
+      expDecay κ x = 0 := by
+    have := expDecay_linear_part_eq κ c x
+    rw [hW2, hW1, hquad, zero_mul] at this
+    linarith
+  nlinarith [expDecay_pos κ x, Real.rpow_nonneg (expDecay_pos κ x).le p.α]
+
 def Lemma_4_2 : Prop :=
   ∀ p : CMParams, ∀ κ κtilde M c : ℝ,
     0 < κ → κ < 1 →
