@@ -169,6 +169,13 @@ def InitialTrace
   ∀ ε > 0, ∃ δ > 0, ∀ t, 0 < t → t < δ →
     D.supNorm (fun x => u t x - u₀ x) < ε
 
+lemma InitialTrace.eventually_small
+    {D : BoundedDomainData} {u₀ : D.Point → ℝ} {u : ℝ → D.Point → ℝ}
+    (h : InitialTrace D u₀ u) {ε : ℝ} (hε : 0 < ε) :
+    ∃ δ > 0, ∀ t, 0 < t → t < δ →
+      D.supNorm (fun x => u t x - u₀ x) < ε :=
+  h ε hε
+
 def PositiveInitialDatum (D : BoundedDomainData) (u₀ : D.Point → ℝ) : Prop :=
   D.initialAdmissible u₀ ∧ ∀ x, x ∈ D.inside → 0 < u₀ x
 
@@ -187,9 +194,21 @@ lemma PositiveInitialDatum.pos
 def IsPaper2Bounded (D : BoundedDomainData) (u : ℝ → D.Point → ℝ) : Prop :=
   ∃ M, ∀ᶠ t in atTop, D.supNorm (u t) ≤ M
 
+lemma IsPaper2Bounded.eventually_bound
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    (h : IsPaper2Bounded D u) :
+    ∃ M, ∀ᶠ t in atTop, D.supNorm (u t) ≤ M :=
+  h
+
 def IsPaper2BoundedBefore
     (D : BoundedDomainData) (Tmax : ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
   ∃ M, ∀ t, 0 < t → t < Tmax → D.supNorm (u t) ≤ M
+
+lemma IsPaper2BoundedBefore.uniform_bound
+    {D : BoundedDomainData} {Tmax : ℝ} {u : ℝ → D.Point → ℝ}
+    (h : IsPaper2BoundedBefore D Tmax u) :
+    ∃ M, ∀ t, 0 < t → t < Tmax → D.supNorm (u t) ≤ M :=
+  h
 
 lemma IsPaper2BoundedBefore.bound
     {D : BoundedDomainData} {Tmax : ℝ} {u : ℝ → D.Point → ℝ}
@@ -203,6 +222,13 @@ def LpPowerBoundedBefore
     (D : BoundedDomainData) (pExp Tmax : ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
   ∃ C, ∀ t, 0 < t → t < Tmax →
     D.integral (fun x => (u t x) ^ pExp) ≤ C
+
+lemma LpPowerBoundedBefore.uniform_bound
+    {D : BoundedDomainData} {pExp Tmax : ℝ} {u : ℝ → D.Point → ℝ}
+    (h : LpPowerBoundedBefore D pExp Tmax u) :
+    ∃ C, ∀ t, 0 < t → t < Tmax →
+      D.integral (fun x => (u t x) ^ pExp) ≤ C :=
+  h
 
 lemma LpPowerBoundedBefore.bound
     {D : BoundedDomainData} {pExp Tmax : ℝ} {u : ℝ → D.Point → ℝ}
