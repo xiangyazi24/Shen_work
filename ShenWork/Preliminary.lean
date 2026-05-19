@@ -15,19 +15,21 @@ noncomputable section
 /-! ## §2.1 Semigroup estimates (Lemma 2.1) -/
 
 /-- Lemma 2.1: Lp → Lq estimate for the semigroup e^{(Δ−I)t}. -/
-theorem semigroup_Lp_Lq_estimate {p q : ℝ} (hp : 1 < p) (hpq : p ≤ q) :
-    ∃ C > 0, ∀ (u : ℝ → ℝ) (t : ℝ), 0 < t → True := by
-  exact ⟨1, by norm_num, fun _ _ _ => trivial⟩
+-- NOTE: These semigroup estimates are PLACEHOLDERS. The `True` conclusion
+-- makes them trivially provable but mathematically vacuous. The actual
+-- Paper1 Lemma 2.1 estimates are in the Prop def `Paper1.Lemma_2_1`
+-- in Paper1/Statements.lean.
+theorem semigroup_Lp_Lq_estimate {p q : ℝ} (_hp : 1 < p) (_hpq : p ≤ q) :
+    ∃ C > 0, ∀ (u : ℝ → ℝ) (t : ℝ), 0 < t → True :=
+  ⟨1, by norm_num, fun _ _ _ => trivial⟩
 
-/-- Lemma 2.1 (gradient version). -/
-theorem semigroup_grad_Lp_Lq_estimate {p q : ℝ} (hp : 1 < p) (hpq : p ≤ q) :
-    ∃ C > 0, ∀ (u : ℝ → ℝ) (t : ℝ), 0 < t → True := by
-  exact ⟨1, by norm_num, fun _ _ _ => trivial⟩
+theorem semigroup_grad_Lp_Lq_estimate {p q : ℝ} (_hp : 1 < p) (_hpq : p ≤ q) :
+    ∃ C > 0, ∀ (u : ℝ → ℝ) (t : ℝ), 0 < t → True :=
+  ⟨1, by norm_num, fun _ _ _ => trivial⟩
 
-/-- Lemma 2.1 (divergence version). -/
-theorem semigroup_div_Linfty_estimate {p : ℝ} (hp : 1 ≤ p) :
-    ∃ C > 0, ∀ (u : ℝ → ℝ) (t : ℝ), 0 < t → True := by
-  exact ⟨1, by norm_num, fun _ _ _ => trivial⟩
+theorem semigroup_div_Linfty_estimate {p : ℝ} (_hp : 1 ≤ p) :
+    ∃ C > 0, ∀ (u : ℝ → ℝ) (t : ℝ), 0 < t → True :=
+  ⟨1, by norm_num, fun _ _ _ => trivial⟩
 
 /-! ## §2.2 Elliptic equation properties (Lemmas 2.2–2.5) -/
 
@@ -75,9 +77,10 @@ theorem psi_exponential_bound {k M : ℝ} (hk : 0 < k) (hk1 : k < 1) (hM : 0 < M
         · convert kernel_mul_exp_integrable k hk hk1 x using 2; simp [Real.sqrt_one]
       _ = 1 / (1 - k ^ 2) * Real.exp (-k * x) := Psi_exp hk hk1 x
 
-/-- Lemma 2.5: Weighted gradient estimate for Ψ. -/
-theorem psi_weighted_gradient_estimate {p g : ℝ} (hp : 1 < p) (hg : 0 < g) :
-    ∃ C > 0, ∀ (u : ℝ → ℝ), True := by
-  exact ⟨1, by norm_num, fun _ => trivial⟩
+-- NOTE: This is a PLACEHOLDER with `True` conclusion.
+-- The actual Lemma 2.5 weighted gradient estimate is in Paper1/Statements.lean.
+theorem psi_weighted_gradient_estimate {p g : ℝ} (_hp : 1 < p) (_hg : 0 < g) :
+    ∃ C > 0, ∀ (u : ℝ → ℝ), True :=
+  ⟨1, by norm_num, fun _ => trivial⟩
 
 end
