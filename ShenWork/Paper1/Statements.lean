@@ -2526,6 +2526,25 @@ theorem FrozenWaveMapSchauderData.compactRange
     LocalUniformSequentiallyCompactRange trap Tmap :=
   h.2.2.2
 
+/-- Abstract fixed-point principle needed after constructing a continuous compact
+self-map in the local-uniform topology.  The analytic/topological proof of this
+principle is deliberately separated from the paper-specific wave map data. -/
+def LocalUniformSchauderFixedPointPrinciple
+    (trap : (ℝ → ℝ) → Prop) : Prop :=
+  ∀ Tmap : (ℝ → ℝ) → ℝ → ℝ,
+    (∀ u, trap u → trap (Tmap u)) →
+      LocalUniformContinuousOn trap Tmap →
+        LocalUniformSequentiallyCompactRange trap Tmap →
+          ∃ U : ℝ → ℝ, trap U ∧ Tmap U = U
+
+theorem FrozenWaveMapSchauderData.exists_fixed_of_principle
+    {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
+    {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hprinciple : LocalUniformSchauderFixedPointPrinciple trap)
+    (h : FrozenWaveMapSchauderData p c κ M trap Tmap) :
+    ∃ U : ℝ → ℝ, trap U ∧ Tmap U = U :=
+  hprinciple Tmap h.1 h.continuousOn h.compactRange
+
 /-- The Schauder-map statement target from the proof of Theorem 1.1: construct
 a local-uniformly compact and continuous limit map on a trapping set, then get a
 fixed point. -/
@@ -2537,6 +2556,25 @@ def FrozenWaveMapConstruction
       LocalUniformContinuousOn trap Tmap ∧
       LocalUniformSequentiallyCompactRange trap Tmap ∧
       ∃ U : ℝ → ℝ, trap U ∧ Tmap U = U
+
+theorem FrozenWaveMapSchauderData.to_construction
+    {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
+    {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hprinciple : LocalUniformSchauderFixedPointPrinciple trap)
+    (h : FrozenWaveMapSchauderData p c κ M trap Tmap) :
+    FrozenWaveMapConstruction p c κ M trap :=
+  ⟨Tmap, h.1, h.2.1, h.continuousOn, h.compactRange,
+    h.exists_fixed_of_principle hprinciple⟩
+
+theorem FrozenWaveMapConstruction.of_schauderData
+    {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
+    (hprinciple : LocalUniformSchauderFixedPointPrinciple trap)
+    (hdata :
+      ∃ Tmap : (ℝ → ℝ) → ℝ → ℝ,
+        FrozenWaveMapSchauderData p c κ M trap Tmap) :
+    FrozenWaveMapConstruction p c κ M trap := by
+  rcases hdata with ⟨Tmap, h⟩
+  exact h.to_construction hprinciple
 
 theorem FrozenWaveMapConstruction.exists_map
     {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
