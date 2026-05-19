@@ -324,9 +324,15 @@ theorem ShenUpperBoundNegative.shift_right
     nlinarith [mul_nonneg hk ha]
   have hle_max :
       max 1 (Real.exp (-(kappa c) * (x + a))) ≤
-        max 1 (Real.exp (-(kappa c) * x)) := by
+      max 1 (Real.exp (-(kappa c) * x)) := by
     exact max_le (le_max_left _ _) (hle_exp.trans (le_max_right _ _))
   exact (h.lt_max (x + a)).trans_le hle_max
+
+theorem ShenUpperBoundNegative.shift_right_of_cStarLower_lt
+    {p : CMParams} {c a : ℝ} {U : ℝ → ℝ}
+    (h : ShenUpperBoundNegative c U) (hc : cStarLower p < c) (ha : 0 ≤ a) :
+    ShenUpperBoundNegative c (fun x => U (x + a)) :=
+  h.shift_right (kappa_pos_of_cStarLower_lt hc).le ha
 
 def ShenUpperBoundPositive (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop :=
   ∀ x, 0 < U x ∧
@@ -363,6 +369,12 @@ theorem ShenUpperBoundPositive.shift_right
       apply Real.exp_le_exp.mpr
       nlinarith [mul_nonneg hk ha]
     exact (h.lt_exp (x + a)).trans_le hle_exp
+
+theorem ShenUpperBoundPositive.shift_right_of_two_lt
+    {p : CMParams} {c a : ℝ} {U : ℝ → ℝ}
+    (h : ShenUpperBoundPositive p c U) (hc : 2 < c) (ha : 0 ≤ a) :
+    ShenUpperBoundPositive p c (fun x => U (x + a)) :=
+  h.shift_right (kappa_pos_of_two_lt hc).le ha
 
 def WeightedL2InitialCloseness (η : ℝ) (u₀ U : ℝ → ℝ) : Prop :=
   Integrable (fun x : ℝ => Real.exp (2 * η * x) * |u₀ x - U x| ^ 2)
@@ -3420,6 +3432,12 @@ theorem HasStrictWaveUpperTailBound.shift_right
       nlinarith [mul_nonneg hk ha]
     exact (h.lt_exp (x + a)).trans_le hle_exp
 
+theorem HasStrictWaveUpperTailBound.shift_right_of_two_lt
+    {p : CMParams} {c a : ℝ} {U : ℝ → ℝ}
+    (h : HasStrictWaveUpperTailBound p c U) (hc : 2 < c) (ha : 0 ≤ a) :
+    HasStrictWaveUpperTailBound p c (fun x => U (x + a)) :=
+  h.shift_right (kappa_pos_of_two_lt hc).le ha
+
 theorem HasWaveUpperTailBound.shift_right
     {p : CMParams} {c a : ℝ} {U : ℝ → ℝ}
     (h : HasWaveUpperTailBound p c U)
@@ -3434,6 +3452,12 @@ theorem HasWaveUpperTailBound.shift_right
       apply Real.exp_le_exp.mpr
       nlinarith [mul_nonneg hk ha]
     exact (h.le_exp (x + a)).trans hle_exp
+
+theorem HasWaveUpperTailBound.shift_right_of_two_lt
+    {p : CMParams} {c a : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveUpperTailBound p c U) (hc : 2 < c) (ha : 0 ≤ a) :
+    HasWaveUpperTailBound p c (fun x => U (x + a)) :=
+  h.shift_right (kappa_pos_of_two_lt hc).le ha
 
 theorem HasWaveUpperTailBound.inWaveTrapSet
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
