@@ -750,6 +750,18 @@ lemma Proposition_1_2.global_solution
       IsPaper2Bounded D u :=
   h hχ hm u₀ hu₀
 
+lemma Proposition_1_2.positive_global_solution
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Proposition_1_2 D p)
+    (hχ : p.χ₀ ≤ 0) (hm : 1 ≤ p.m)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v ∧
+      InitialTrace D u₀ u := by
+  rcases h.global_solution hχ hm hu₀ with ⟨u, v, hglobal, htrace, hbdd⟩
+  exact ⟨u, v,
+    PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
+
 def Proposition_1_3
     (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p) : Prop :=
   0 < p.a → 0 < p.b → 1 ≤ p.m → StrongLogisticCondition p C →
@@ -770,6 +782,20 @@ lemma Proposition_1_3.global_solution
       InitialTrace D u₀ u ∧
       IsPaper2Bounded D u :=
   h ha hb hm hcond u₀ hu₀
+
+lemma Proposition_1_3.positive_global_solution
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Proposition_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm : 1 ≤ p.m)
+    (hcond : StrongLogisticCondition p C)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v ∧
+      InitialTrace D u₀ u := by
+  rcases h.global_solution ha hb hm hcond hu₀ with
+    ⟨u, v, hglobal, htrace, hbdd⟩
+  exact ⟨u, v,
+    PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
 
 def Proposition_1_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   p.m = 1 → 1 ≤ p.β →
@@ -793,6 +819,21 @@ lemma Proposition_1_4.global_solution
       InitialTrace D u₀ u ∧
       IsPaper2Bounded D u :=
   h hm hβ hab hχ u₀ hu₀
+
+lemma Proposition_1_4.positive_global_solution
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Proposition_1_4 D p)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hab : (p.a = 0 ∧ p.b = 0) ∨ (0 ≤ p.a ∧ 0 < p.b))
+    (hχ : p.χ₀ < chiBeta p)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v ∧
+      InitialTrace D u₀ u := by
+  rcases h.global_solution hm hβ hab hχ hu₀ with
+    ⟨u, v, hglobal, htrace, hbdd⟩
+  exact ⟨u, v,
+    PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
 
 lemma sigma_zero (p : CM2Params) (uStar vStar : ℝ) :
     sigma p uStar vStar 0 = -p.a * p.α := by
