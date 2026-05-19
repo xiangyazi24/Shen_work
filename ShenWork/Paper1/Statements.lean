@@ -3868,6 +3868,19 @@ theorem chemotaxis_resolvent_bound
       (κ * p.m + 1) * (1 + p.γ * κ) + (1 - κ * p.m) * (1 - p.γ * κ) =
         2 * (1 + p.m * p.γ * κ ^ 2) := by ring
   have hden : (1 - p.γ * κ) * (1 + p.γ * κ) = 1 - p.γ ^ 2 * κ ^ 2 := by ring
+  have hden_pos : 0 < 1 - p.γ ^ 2 * κ ^ 2 := by nlinarith [sq_nonneg (p.γ * κ - 1)]
+  have hexp_combine_L :
+      Real.exp (-1 * x) * (Real.exp ((1 - p.γ * κ) * x) / (1 - p.γ * κ)) =
+        Real.exp (-(p.γ * κ) * x) / (1 - p.γ * κ) := by
+    field_simp [ne_of_gt h1mgk]
+    rw [← Real.exp_add]; congr 1; ring
+  have hexp_combine_R :
+      Real.exp (1 * x) * (Real.exp (-(1 + p.γ * κ) * x) / (1 + p.γ * κ)) =
+        Real.exp (-(p.γ * κ) * x) / (1 + p.γ * κ) := by
+    field_simp [ne_of_gt h1pgk]
+    rw [← Real.exp_add]; congr 1; ring
+  -- After rw [hV', hV], the goal is a linear combination of L and R.
+  -- Use hL_bound, hR_bound, and the coefficient identity.
   sorry
 
 def Lemma_4_2 : Prop :=
