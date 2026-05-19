@@ -1015,6 +1015,33 @@ theorem frozenElliptic_ode
       one_pos one_pos (rpow_cunif_bdd_of_nonneg p hu hu_nonneg)
       (fun y => Real.rpow_nonneg (hu_nonneg y) p.γ) x)
 
+theorem frozenElliptic_iteratedDeriv_two_eq
+    (p : CMParams) {u : ℝ → ℝ}
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x) (x : ℝ) :
+    iteratedDeriv 2 (frozenElliptic p u) x =
+        frozenElliptic p u x - (u x) ^ p.γ := by
+  have h := frozenElliptic_ode p hu hu_nonneg x
+  linarith
+
+theorem frozenElliptic_deriv_deriv_eq
+    (p : CMParams) {u : ℝ → ℝ}
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x) (x : ℝ) :
+    deriv (deriv (frozenElliptic p u)) x =
+        frozenElliptic p u x - (u x) ^ p.γ := by
+  simpa [iteratedDeriv_succ, iteratedDeriv_zero] using
+    frozenElliptic_iteratedDeriv_two_eq p hu hu_nonneg x
+
+theorem frozenElliptic_deriv_abs_le
+    (p : CMParams) {u : ℝ → ℝ}
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x) (x : ℝ) :
+    |deriv (frozenElliptic p u) x| ≤ frozenElliptic p u x := by
+  unfold frozenElliptic
+  simpa using
+    (Psi_deriv_abs_le_general
+      (u := fun y => (u y) ^ p.γ) (l := 1) (mu := 1)
+      one_pos one_pos (rpow_cunif_bdd_of_nonneg p hu hu_nonneg)
+      (fun y => Real.rpow_nonneg (hu_nonneg y) p.γ) x)
+
 def frozenWaveOperator (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) : ℝ → ℝ :=
   fun x =>
     iteratedDeriv 2 W x + c * deriv W x
@@ -1168,6 +1195,32 @@ theorem expDecay_logistic_wave_nonpos_at_kappa
   exact mul_nonpos_of_nonpos_of_nonneg (neg_nonpos.mpr (expDecay_pos (kappa c) x).le)
     (Real.rpow_nonneg (expDecay_pos (kappa c) x).le _)
 
+theorem expDecay_linear_part_eq_of_kappa_speed
+    {κ c x : ℝ} (hκ : κ ≠ 0) (hc : c = κ + κ⁻¹) :
+    iteratedDeriv 2 (expDecay κ) x + c * deriv (expDecay κ) x +
+        expDecay κ x = 0 := by
+  rw [expDecay_linear_part_eq, hc]
+  have hzero : κ ^ 2 - (κ + κ⁻¹) * κ + 1 = 0 := by
+    field_simp [hκ]
+    ring
+  rw [hzero]
+  ring
+
+theorem expDecay_logistic_wave_nonpos_of_kappa_speed
+    {κ c : ℝ} (hκ : κ ≠ 0) (hc : c = κ + κ⁻¹)
+    (p : CMParams) (x : ℝ) :
+    iteratedDeriv 2 (expDecay κ) x + c * deriv (expDecay κ) x +
+        expDecay κ x * (1 - (expDecay κ x) ^ p.α) ≤ 0 := by
+  rw [expDecay_logistic_wave_eq, hc]
+  have hzero : κ ^ 2 - (κ + κ⁻¹) * κ + 1 = 0 := by
+    field_simp [hκ]
+    ring
+  rw [hzero]
+  ring_nf
+  exact neg_nonpos.mpr
+    (mul_nonneg (expDecay_pos κ x).le
+      (Real.rpow_nonneg (expDecay_pos κ x).le _))
+
 theorem constant_logistic_nonpos
     (p : CMParams) {M : ℝ} (hM : 1 ≤ M) :
     M * (1 - M ^ p.α) ≤ 0 := by
@@ -1215,6 +1268,90 @@ theorem upperBarrier_eq_exp_of_exp_le {κ M x : ℝ}
     (h : Real.exp (-κ * x) ≤ M) :
     upperBarrier κ M x = Real.exp (-κ * x) := by
   exact min_eq_right h
+
+theorem upperBarrier_eventuallyEq_const_of_lt {κ M x : ℝ}
+    (h : M < Real.exp (-κ * x)) :
+    upperBarrier κ M =ᶠ[𝓝 x] fun _ : ℝ => M := by
+  have hcont : Continuous fun z : ℝ => Real.exp (-κ * z) :=
+    Real.continuous_exp.comp (continuous_const.mul continuous_id)
+  have hopen : IsOpen {z : ℝ | M < Real.exp (-κ * z)} :=
+    isOpen_lt continuous_const hcont
+  filter_upwards [hopen.mem_nhds h] with z hz
+  exact upperBarrier_eq_M_of_le_exp (le_of_lt hz)
+
+theorem upperBarrier_eventuallyEq_exp_of_lt {κ M x : ℝ}
+    (h : Real.exp (-κ * x) < M) :
+    upperBarrier κ M =ᶠ[𝓝 x] expDecay κ := by
+  have hcont : Continuous fun z : ℝ => Real.exp (-κ * z) :=
+    Real.continuous_exp.comp (continuous_const.mul continuous_id)
+  have hopen : IsOpen {z : ℝ | Real.exp (-κ * z) < M} :=
+    isOpen_lt hcont continuous_const
+  filter_upwards [hopen.mem_nhds h] with z hz
+  simpa [expDecay] using upperBarrier_eq_exp_of_exp_le (le_of_lt hz)
+
+theorem upperBarrier_deriv_eq_zero_of_const_lt {κ M x : ℝ}
+    (h : M < Real.exp (-κ * x)) :
+    deriv (upperBarrier κ M) x = 0 := by
+  rw [Filter.EventuallyEq.deriv_eq (upperBarrier_eventuallyEq_const_of_lt h)]
+  exact deriv_const x M
+
+theorem upperBarrier_deriv_eq_exp_of_lt {κ M x : ℝ}
+    (h : Real.exp (-κ * x) < M) :
+    deriv (upperBarrier κ M) x = -κ * expDecay κ x := by
+  rw [Filter.EventuallyEq.deriv_eq (upperBarrier_eventuallyEq_exp_of_lt h)]
+  exact expDecay_deriv κ x
+
+theorem upperBarrier_iteratedDeriv_two_eq_zero_of_const_lt {κ M x : ℝ}
+    (h : M < Real.exp (-κ * x)) :
+    iteratedDeriv 2 (upperBarrier κ M) x = 0 := by
+  have hderiv :
+      deriv (upperBarrier κ M) =ᶠ[𝓝 x] deriv (fun _ : ℝ => M) :=
+    (upperBarrier_eventuallyEq_const_of_lt h).deriv
+  rw [iteratedDeriv_succ, iteratedDeriv_succ, iteratedDeriv_zero]
+  rw [Filter.EventuallyEq.deriv_eq hderiv]
+  simp [deriv_const]
+
+theorem upperBarrier_iteratedDeriv_two_eq_exp_of_lt {κ M x : ℝ}
+    (h : Real.exp (-κ * x) < M) :
+    iteratedDeriv 2 (upperBarrier κ M) x = κ ^ 2 * expDecay κ x := by
+  have hderiv :
+      deriv (upperBarrier κ M) =ᶠ[𝓝 x] deriv (expDecay κ) :=
+    (upperBarrier_eventuallyEq_exp_of_lt h).deriv
+  rw [iteratedDeriv_succ, iteratedDeriv_succ, iteratedDeriv_zero]
+  rw [Filter.EventuallyEq.deriv_eq hderiv]
+  simpa [iteratedDeriv_succ, iteratedDeriv_zero] using
+    expDecay_iteratedDeriv_two κ x
+
+theorem frozenWaveOperator_upperBarrier_const_region_eq
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x)
+    {x : ℝ} (hx : M < Real.exp (-κ * x)) :
+    frozenWaveOperator p c u (upperBarrier κ M) x =
+      -p.χ * (M ^ p.m *
+        (frozenElliptic p u x - (u x) ^ p.γ)) +
+        M * (1 - M ^ p.α) := by
+  have hW : upperBarrier κ M =ᶠ[𝓝 x] fun _ : ℝ => M :=
+    upperBarrier_eventuallyEq_const_of_lt hx
+  have hWpow :
+      (fun y => (upperBarrier κ M y) ^ p.m *
+          deriv (frozenElliptic p u) y) =ᶠ[𝓝 x]
+        fun y => M ^ p.m * deriv (frozenElliptic p u) y := by
+    filter_upwards [hW] with y hy
+    rw [hy]
+  have hchem :
+      deriv
+          (fun y => (upperBarrier κ M y) ^ p.m *
+            deriv (frozenElliptic p u) y) x =
+        M ^ p.m * (frozenElliptic p u x - (u x) ^ p.γ) := by
+    rw [Filter.EventuallyEq.deriv_eq hWpow]
+    rw [deriv_const_mul_field]
+    rw [frozenElliptic_deriv_deriv_eq p hu hu_nonneg x]
+  have hW_x : upperBarrier κ M x = M :=
+    upperBarrier_eq_M_of_le_exp (le_of_lt hx)
+  unfold frozenWaveOperator
+  rw [upperBarrier_iteratedDeriv_two_eq_zero_of_const_lt hx,
+    upperBarrier_deriv_eq_zero_of_const_lt hx, hchem, hW_x]
+  ring
 
 theorem upperBarrier_nonneg {κ M : ℝ} (hM : 0 ≤ M) (x : ℝ) :
     0 ≤ upperBarrier κ M x :=
