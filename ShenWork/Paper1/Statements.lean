@@ -3762,11 +3762,22 @@ theorem chemotaxis_resolvent_bound
         frozenElliptic p u x ≤
       (1 + p.m * p.γ * κ ^ 2) / (1 - p.γ ^ 2 * κ ^ 2) *
         Real.exp (-(p.γ * κ) * x) := by
-  -- Paper equation (4.4): uses the explicit half-line integral formula
-  -- for V'(x) = Psi'(x; u^γ, 1, 1) from Psi_derivative_formula_general,
-  -- bounds u^γ(y) ≤ exp(-γκy) using the trap set, computes the resulting
-  -- exponential integrals, and algebraically simplifies the coefficient
-  -- (mκ+1)/(2(1-γκ)) + (1-mκ)/(2(1+γκ)) = (1+mγκ²)/(1-γ²κ²).
+  have hγ_pos : 0 < p.γ := by linarith [p.hγ]
+  have hγκ_pos : 0 < p.γ * κ := mul_pos hγ_pos hκ
+  have hf := fun y => (hu.nonneg y)
+  have hf_rpow : ∀ y, 0 ≤ (u y) ^ p.γ := fun y => Real.rpow_nonneg (hf y) p.γ
+  have hu_bdd := hu.cunif_bdd
+  have hu_rpow := rpow_cunif_bdd_of_nonneg p hu_bdd hf
+  have hVx := Psi_derivative_formula_general (l := 1) (mu := 1) one_pos one_pos hu_rpow x
+  have hu_rpow_le_exp : ∀ y, (u y) ^ p.γ ≤ Real.exp (-(p.γ * κ) * y) := by
+    intro y
+    calc (u y) ^ p.γ ≤ (Real.exp (-κ * y)) ^ p.γ :=
+          Real.rpow_le_rpow (hf y) (hu.le_exp y) (by linarith)
+      _ = Real.exp (-(p.γ * κ) * y) := by rw [← Real.exp_mul]; congr 1; ring
+  -- The full proof uses Psi_derivative_formula_general to write V'(x) in
+  -- half-line integral form, bounds each integral by exp(-γκy), computes
+  -- the resulting exponential integrals, and simplifies the coefficient.
+  -- Paper equation (4.4).
   sorry
 
 def Lemma_4_2 : Prop :=
