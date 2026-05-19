@@ -3553,6 +3553,43 @@ theorem expDecay_rpow_deriv (κ m x : ℝ) :
     deriv (fun y => (expDecay κ y) ^ m) x = -(m * κ) * (expDecay κ x) ^ m :=
   (expDecay_rpow_hasDerivAt κ m x).deriv
 
+theorem paperWaveOperator_exp_eq_of_kappa_speed
+    (p : CMParams) {c κ : ℝ} {u : ℝ → ℝ}
+    (hκ : κ ≠ 0) (hc : c = κ + κ⁻¹) (x : ℝ) :
+    paperWaveOperator p c u (expDecay κ) x =
+      -expDecay κ x * (expDecay κ x) ^ p.α
+        - p.χ * p.m * (expDecay κ x) ^ (p.m - 1) *
+          deriv (frozenElliptic p u) x * (-κ * expDecay κ x)
+        + expDecay κ x *
+          (-p.χ * (expDecay κ x) ^ (p.m - 1) *
+            frozenElliptic p u x
+          + p.χ * (expDecay κ x) ^ (p.m + p.γ - 1)) := by
+  unfold paperWaveOperator
+  rw [expDecay_iteratedDeriv_two, expDecay_deriv]
+  have hlin :
+      κ ^ 2 * expDecay κ x + c * (-κ * expDecay κ x) +
+          expDecay κ x = 0 := by
+    have h := expDecay_linear_part_eq_of_kappa_speed
+      (κ := κ) (c := c) (x := x) hκ hc
+    rw [expDecay_iteratedDeriv_two, expDecay_deriv] at h
+    exact h
+  nlinarith
+
+theorem paperWaveOperator_exp_nonpos_of_kappa_speed_of_dominance
+    (p : CMParams) {c κ : ℝ} {u : ℝ → ℝ}
+    (hκ : κ ≠ 0) (hc : c = κ + κ⁻¹) (x : ℝ)
+    (hdom :
+      - p.χ * p.m * (expDecay κ x) ^ (p.m - 1) *
+          deriv (frozenElliptic p u) x * (-κ * expDecay κ x)
+        + expDecay κ x *
+          (-p.χ * (expDecay κ x) ^ (p.m - 1) *
+            frozenElliptic p u x
+          + p.χ * (expDecay κ x) ^ (p.m + p.γ - 1)) ≤
+        expDecay κ x * (expDecay κ x) ^ p.α) :
+    paperWaveOperator p c u (expDecay κ) x ≤ 0 := by
+  rw [paperWaveOperator_exp_eq_of_kappa_speed p hκ hc x]
+  nlinarith
+
 theorem chemotaxis_product_rule_exp
     (p : CMParams) {κ : ℝ} {u : ℝ → ℝ}
     (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x) (x : ℝ)
