@@ -171,11 +171,12 @@ projection theorem wrappers have been removed.
   `heatSemigroup_contraction`, `modifiedSemigroup_contraction`: real
   whole-line heat-kernel estimates for the heat and modified semigroups.  They
   use heat-kernel positivity, translated kernel mass one, the explicit
-  first-derivative formula, bounded measurable input data, and Bochner integral
-  linearity to prove monotonicity, pointwise lower-, upper-, and interval-bound
-  preservation, modified-semigroup lower/upper/interval bounds, domination by
-  a nonnegative majorant, heat/modified-semigroup linearity, `L∞` decay, and
-  heat/modified pairwise `L∞` contraction.
+  first-derivative formula, derivative-kernel integrability, bounded
+  measurable input data, and Bochner integral linearity to prove monotonicity,
+  pointwise lower-, upper-, and interval-bound preservation,
+  modified-semigroup lower/upper/interval bounds, domination by a nonnegative
+  majorant, heat/modified-semigroup linearity, `L∞` decay, and heat/modified
+  pairwise `L∞` contraction.
 - `Lemma_2_2_proved`, `Lemma_2_3_proved`, `Lemma_2_4_proved`
 - `Lemma_2_5_pointwise_bound`, `Lemma_2_5_attained_at_inv`,
   `Lemma_2_5_sharp_bound`, `Lemma_2_5_sharp_constant_minimal`,

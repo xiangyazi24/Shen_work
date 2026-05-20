@@ -124,6 +124,28 @@ lemma deriv_heatKernel {t : ℝ} (ht : 0 < t) (x : ℝ) :
       -(x / (2 * t)) * heatKernel t x :=
   (heatKernel_hasDerivAt ht x).deriv
 
+lemma heatKernel_deriv_integrable {t : ℝ} (ht : 0 < t) :
+    MeasureTheory.Integrable
+      (fun x : ℝ => deriv (fun z : ℝ => heatKernel t z) x) := by
+  have hb : 0 < 1 / (4 * t) := by positivity
+  have hbase :
+      MeasureTheory.Integrable
+        (fun x : ℝ => x * Real.exp (-(1 / (4 * t)) * x ^ 2)) :=
+    integrable_mul_exp_neg_mul_sq hb
+  convert
+    hbase.const_mul (-(1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t)))
+    using 1
+  ext x
+  rw [deriv_heatKernel ht]
+  unfold heatKernel
+  rw [show -x ^ 2 / (4 * t) = -(1 / (4 * t)) * x ^ 2 by ring]
+  ring
+
+lemma heatKernel_deriv_abs_integrable {t : ℝ} (ht : 0 < t) :
+    MeasureTheory.Integrable
+      (fun x : ℝ => |deriv (fun z : ℝ => heatKernel t z) x|) := by
+  simpa [Real.norm_eq_abs] using (heatKernel_deriv_integrable ht).norm
+
 lemma heatKernel_translated_hasDerivAt_left {t : ℝ} (ht : 0 < t)
     (x y : ℝ) :
     HasDerivAt (fun z : ℝ => heatKernel t (z - y))
@@ -131,6 +153,11 @@ lemma heatKernel_translated_hasDerivAt_left {t : ℝ} (ht : 0 < t)
   simpa using
     (heatKernel_hasDerivAt ht (x - y)).comp x
       ((hasDerivAt_id x).sub (hasDerivAt_const x y))
+
+lemma deriv_heatKernel_translated_left {t : ℝ} (ht : 0 < t) (x y : ℝ) :
+    deriv (fun z : ℝ => heatKernel t (z - y)) x =
+      -((x - y) / (2 * t)) * heatKernel t (x - y) :=
+  (heatKernel_translated_hasDerivAt_left ht x y).deriv
 
 lemma heatKernel_translated_hasDerivAt_right {t : ℝ} (ht : 0 < t)
     (x y : ℝ) :
@@ -141,6 +168,24 @@ lemma heatKernel_translated_hasDerivAt_right {t : ℝ} (ht : 0 < t)
   have h := (heatKernel_hasDerivAt ht (x - y)).comp y hinner
   convert h using 1
   ring
+
+lemma deriv_heatKernel_translated_right {t : ℝ} (ht : 0 < t) (x y : ℝ) :
+    deriv (fun z : ℝ => heatKernel t (x - z)) y =
+      ((x - y) / (2 * t)) * heatKernel t (x - y) :=
+  (heatKernel_translated_hasDerivAt_right ht x y).deriv
+
+lemma heatKernel_deriv_abs_translated_integrable {t : ℝ} (ht : 0 < t)
+    (x : ℝ) :
+    MeasureTheory.Integrable
+      (fun y : ℝ => |deriv (fun z : ℝ => heatKernel t (z - y)) x|) := by
+  have hshift :
+      MeasureTheory.Integrable
+        (fun y : ℝ => |deriv (fun z : ℝ => heatKernel t z) (x - y)|) := by
+    simpa [sub_eq_add_neg, add_comm] using
+      ((heatKernel_deriv_abs_integrable ht).comp_neg.comp_add_right (-x))
+  convert hshift using 1
+  ext y
+  rw [deriv_heatKernel_translated_left ht x y, deriv_heatKernel ht (x - y)]
 
 /-- The translated heat kernel is integrable. -/
 lemma heatKernel_translated_integrable {t : ℝ} (ht : 0 < t) (x : ℝ) :
