@@ -593,6 +593,89 @@ theorem halfLineReflectedKernelOperator_Linfty_bound
         rw [neumannHeatKernel_zerothReflection_setIntegral_Ioi ht x]
         ring
 
+/-- The half-line reflected helper operator is dominated by the same operator
+applied to the pointwise absolute value. -/
+theorem halfLineReflectedKernelOperator_abs_le_operator_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    |halfLineReflectedKernelOperator t f x| ≤
+      halfLineReflectedKernelOperator t (fun y => |f y|) x := by
+  unfold halfLineReflectedKernelOperator
+  calc
+    |∫ y in Set.Ioi (0 : ℝ),
+        neumannHeatKernel_zerothReflection 0 t x y * f y|
+        ≤ ∫ y in Set.Ioi (0 : ℝ),
+            ‖neumannHeatKernel_zerothReflection 0 t x y * f y‖ := by
+          rw [← Real.norm_eq_abs]
+          exact MeasureTheory.norm_integral_le_integral_norm _
+    _ = ∫ y in Set.Ioi (0 : ℝ),
+          |neumannHeatKernel_zerothReflection 0 t x y * f y| := by
+        simp [Real.norm_eq_abs]
+    _ = ∫ y in Set.Ioi (0 : ℝ),
+          neumannHeatKernel_zerothReflection 0 t x y * |f y| := by
+        congr 1
+        ext y
+        rw [abs_mul, abs_of_nonneg
+          (neumannHeatKernel_zerothReflection_nonneg ht 0 x y)]
+
+/-- Domination principle for the half-line reflected helper operator:
+if `|f| ≤ g` pointwise, then `|Tf| ≤ Tg`. -/
+theorem halfLineReflectedKernelOperator_abs_le_of_abs_le
+    {f g : ℝ → ℝ} (hfg : ∀ y, |f y| ≤ g y)
+    {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hg_int : IntegrableOn
+      (fun y => neumannHeatKernel_zerothReflection 0 t x y * g y)
+      (Set.Ioi 0) volume) :
+    |halfLineReflectedKernelOperator t f x| ≤
+      halfLineReflectedKernelOperator t g x := by
+  exact le_trans
+    (halfLineReflectedKernelOperator_abs_le_operator_abs ht x)
+    (by
+      unfold halfLineReflectedKernelOperator
+      apply MeasureTheory.integral_mono_of_nonneg
+      · exact Filter.Eventually.of_forall fun y =>
+          mul_nonneg
+            (neumannHeatKernel_zerothReflection_nonneg ht 0 x y)
+            (abs_nonneg (f y))
+      · exact hg_int
+      · exact Filter.Eventually.of_forall fun y =>
+          mul_le_mul_of_nonneg_left (hfg y)
+            (neumannHeatKernel_zerothReflection_nonneg ht 0 x y))
+
+/-- Bounded-input domination for the half-line reflected helper operator. -/
+theorem halfLineReflectedKernelOperator_abs_le_of_abs_le_bounded
+    {f g : ℝ → ℝ} {Mg t : ℝ}
+    (hfg : ∀ y, |f y| ≤ g y)
+    (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (ht : 0 < t) :
+    ∀ x,
+      |halfLineReflectedKernelOperator t f x| ≤
+        halfLineReflectedKernelOperator t g x := by
+  intro x
+  exact halfLineReflectedKernelOperator_abs_le_of_abs_le hfg ht x
+    (halfLineReflectedKernelOperator_integrableOn hg_bound hg_meas ht x)
+
+/-- `L∞` contraction for the half-line reflected helper operator. -/
+theorem halfLineReflectedKernelOperator_contraction
+    {f g : ℝ → ℝ} {M t : ℝ}
+    (hfg : ∀ y, |f y - g y| ≤ M)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    {Mf Mg : ℝ} (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hg_bound : ∀ y, |g y| ≤ Mg)
+    (ht : 0 < t) :
+    ∀ x,
+      |halfLineReflectedKernelOperator t f x -
+        halfLineReflectedKernelOperator t g x| ≤ M := by
+  intro x
+  have hsub :=
+    halfLineReflectedKernelOperator_sub_bounded
+      hf_bound hg_bound hf_meas hg_meas ht x
+  have hbound :=
+    halfLineReflectedKernelOperator_Linfty_bound
+      (f := fun y : ℝ => f y - g y) hfg ht x
+  simpa [hsub] using hbound
+
 /-- Full-line mass-normalized version of the two-term reflected kernel.  This
 is still only a helper kernel, not the interval Neumann heat kernel. -/
 def normalizedZerothReflectionKernel (L t x y : ℝ) : ℝ :=
@@ -957,6 +1040,50 @@ theorem heatKernel_pointwise_bound {t : ℝ} (ht : 0 < t) (x : ℝ) :
     (div_nonneg one_pos.le (Real.sqrt_nonneg _))
     (Real.exp_le_one_iff.mpr (div_nonpos_of_nonpos_of_nonneg
       (neg_nonpos.mpr (sq_nonneg x)) (by linarith)))
+
+/-- Pointwise bound for the unnormalized two-term reflected kernel. -/
+theorem neumannHeatKernel_zerothReflection_pointwise_bound
+    {t : ℝ} (ht : 0 < t) (L x y : ℝ) :
+    neumannHeatKernel_zerothReflection L t x y ≤
+      2 / Real.sqrt (4 * Real.pi * t) := by
+  unfold neumannHeatKernel_zerothReflection
+  calc heatKernel t (x - y) + heatKernel t (x + y)
+      ≤ 1 / Real.sqrt (4 * Real.pi * t) +
+          1 / Real.sqrt (4 * Real.pi * t) :=
+        add_le_add (heatKernel_pointwise_bound ht _)
+          (heatKernel_pointwise_bound ht _)
+    _ = 2 / Real.sqrt (4 * Real.pi * t) := by ring
+
+/-- `L¹ → L∞` smoothing for the half-line reflected helper operator. -/
+theorem halfLineReflectedKernelOperator_L1_Linfty_smoothing
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : IntegrableOn f (Set.Ioi 0) volume) :
+    ‖halfLineReflectedKernelOperator t f x‖ ≤
+      (2 / Real.sqrt (4 * Real.pi * t)) *
+        ∫ y in Set.Ioi (0 : ℝ), ‖f y‖ := by
+  unfold halfLineReflectedKernelOperator
+  calc ‖∫ y in Set.Ioi (0 : ℝ),
+        neumannHeatKernel_zerothReflection 0 t x y * f y‖
+      ≤ ∫ y in Set.Ioi (0 : ℝ),
+          ‖neumannHeatKernel_zerothReflection 0 t x y * f y‖ :=
+        norm_integral_le_integral_norm _
+    _ ≤ ∫ y in Set.Ioi (0 : ℝ),
+          (2 / Real.sqrt (4 * Real.pi * t)) * ‖f y‖ := by
+        apply MeasureTheory.integral_mono_of_nonneg
+        · exact Filter.Eventually.of_forall fun y => norm_nonneg _
+        · exact hf_int.norm.const_mul (2 / Real.sqrt (4 * Real.pi * t))
+        · exact Filter.Eventually.of_forall fun y => by
+            change ‖neumannHeatKernel_zerothReflection 0 t x y * f y‖ ≤
+              (2 / Real.sqrt (4 * Real.pi * t)) * ‖f y‖
+            rw [norm_mul, Real.norm_eq_abs,
+              abs_of_nonneg
+                (neumannHeatKernel_zerothReflection_nonneg ht 0 x y)]
+            exact mul_le_mul_of_nonneg_right
+              (neumannHeatKernel_zerothReflection_pointwise_bound ht 0 x y)
+              (norm_nonneg _)
+    _ = (2 / Real.sqrt (4 * Real.pi * t)) *
+        ∫ y in Set.Ioi (0 : ℝ), ‖f y‖ :=
+        MeasureTheory.integral_const_mul _ _
 
 /-- The normalized reflected kernel pointwise bound. -/
 theorem normalizedZerothReflectionKernel_pointwise_bound

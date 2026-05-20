@@ -411,3 +411,6 @@ The helper now also proves the exact right-half-line mass identity for the
 two-term kernel, constant preservation, and the sharp half-line `L∞` bound.
 Using those facts, it proves lower-, upper-, and interval-bound preservation for
 bounded inputs.
+The half-line operator now also has domination, bounded-input domination,
+`L∞` contraction, the two-term pointwise kernel bound, and an `L¹ → L∞`
+smoothing estimate on the right half-line.
