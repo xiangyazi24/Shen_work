@@ -1,0 +1,5313 @@
+arXiv:2605.04401v1 [math.AP] 6 May 2026
+
+Existence, uniqueness, stability, and monotonicity of traveling waves
+for repulsion/attraction chemotaxis models with logistic type source
+Wenxian Shen
+Department of Mathematics and Statistics
+Auburn University, Auburn, AL 36849, USA
+
+Abstract
+This paper is devoted to the study of existence, uniqueness, stability, and monotonicity of
+traveling wave solutions to the following parabolic-elliptic chemotaxis system with logistic type
+source
+(
+ut = uxx − χ(um vx )x + u(1 − uα ),
+x∈R
+(CM )
+γ
+0 = vxx − v + u ,
+x ∈ R,
+where m, α, γ ≥ 1 and χ ∈ R. System (CM) can be used to describe the evolution of a
+biological species inﬂuenced by a chemical substance produced by the species itself. In this
+context, the function u denotes the population density of the biological species, and v denotes
+the concentration of the chemical agent. Traveling wave solutions of (CM) connecting the two
+constant solutions (1, 1) and (0, 0) are among important types of solutions, which characterize
+the front propagation phenomena in (CM). The existence of such traveling wave solutions to
+(CM) with m = α = γ = 1 has been studied in several papers. However, there is little study
+on the uniqueness, stability, and monotonicity of traveling wave solutions of (CM) in literature
+and there is also no study on the existence of traveling wave solutions of (CM) connecting (1, 1)
+and (0, 0) for general m, α, γ ≥ 1. In the current paper, we prove the existence of traveling
+wave solutions of (CM) connecting (1, 1) and (0, 0) for any χ ≤ 0 with speed c large than some
+number c∗χ,m,γ , or for 0 < χ < 1/2 with any speed c > 2. We prove that the traveling wave
+solutions are monotone when χ ≤ 0. We also prove the uniqueness and stability of traveling
+wave solutions of (CM) connecting (1, 1) and (0, 0) when the speed c is larger than some number
+∗
+c∗∗
+χ,m,α,γ (≥ cχ,m,γ ).
+Note that when m = γ = α = 1, it is proved in [21]
+p that negative chemotaxis speeds up
+front propagation and when χ ≪ −1, the speed c ≥ O( |χ|). The lower bound c∗χ,m,γ for wave
+speeds of traveling wave solutions of (CM) with χ ≤ 0 is not expected to be optimal, but it is
+close to optimal when |χ| is small and large in the sense that when χ = 0 and γ = 1, c∗χ,m,γ = 2,
+which is thep
+optimal lower bound for the wave speeds of (CM) with χ = 0, and when χ → −∞,
+∗∗
+c∗χ,m,γ = O( |χ|). Also, c∗∗
+χ,m,α,γ is not expected to be optimal, but cχ,m,α,γ is close to optimal
+∗∗
+1/6
+when |χ| is small and γ = 1 in the sense that cχ,m,α,γ = 2 + O(|χ| ) when |χ| → 0.
+
+Keywords. Existence, uniqueness, stability, monotonicity, traveling waves, parabolic-elliptic chemotaxis model, logistic type source.
+AMS Subject Classiﬁcation (2020): 35B35, 35C07, 35K45, 35Q92, 92C17, 92D25.
+
+1
+
+Contents
+1 Introduction
+1.1 Overview . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1.2 Statements of the main results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1.3 Remarks . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+3
+3
+6
+8
+
+2 Preliminary lemmas
+11
+2.1 Basic estimates for the analytic semigroup e(∆−I)t . . . . . . . . . . . . . . . . . . . 12
+2.2 Basic properties of the elliptic equation vxx − λv + µu = 0 . . . . . . . . . . . . . . . 12
+3 Global existence, boundedness, and stabilization of positive classical solutions
+and proofs of Propositions 1.1 and 1.2
+14
+3.1 Global existence and boundedness of positive classical solutions and proof of Proposition 1.1 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+3.2 Stabilization of positive classical solutions and proof of Proposition 1.2 . . . . . . . . 21
+4 Existence of traveling wave solutions and proof of Theorem 1.1
+4.1 Super- and sub-solutions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.2 Existence of monotone traveling wave solutions with negative sensitivity and proof
+of Theorem 1.1(1) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.3 Existence of traveling wave solutions with positivity sensitivity and proof of Theorem
+1.1(2) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+23
+23
+
+5 Uniqueness and stability of traveling waves connecting constant solutions
+5.1 Some a priori estimates for traveling wave solutions . . . . . . . . . . . . . . . . . . .
+5.2 Stability of traveling wave solutions and proof of Theorem 1.2 . . . . . . . . . . . . .
+5.3 Uniqueness of traveling wave solutions and proof of Theorem 1.3 . . . . . . . . . . .
+
+33
+34
+41
+47
+
+2
+
+30
+33
+
+1
+
+Introduction
+
+1.1
+
+Overview
+
+The current paper is concerned with the existence, stability, and monotonicity of traveling wave
+solutions to the following parabolic-elliptic chemotaxis system with logistic type source,
+(
+ut = uxx − χ(um vx )x + u(1 − uα ),
+x∈R
+(1.1)
+γ
+0 = vxx − v + u ,
+x ∈ R,
+where m, α, γ ≥ 1 and χ ∈ R. System (1.1) can be used to describe the evolution of a biological
+species inﬂuenced by a chemical substance which is produced by the species itself and diﬀuses very
+fast. In this context, the function u denotes the population density of the biological species, and
+v denotes the concentration of the chemical agent. The constant χ is referred to as chemotaxis
+sensitivity coeﬃcient. The chemotaxis sensitivity coeﬃcient χ > 0 indicates that the signal is a
+chemoattractant, in this case, (1.1) is called an attraction chemotaxis system, while χ < 0 indicates
+that the signal is a chemorepellent, in this case, (1.1) is called a repulsion chemotaxis system.
+Considering chemotaxis models, it is interesting to study how the chemical signal aﬀects the
+evolution of the biological species, say, whether the chemical signal induces ﬁnite time blow-up,
+whether it creates certain pattern formation, etc. Numerous works have been carried out toward
+these central problems for various chemotaxis models on both bounded and unbounded domains.
+Chemotaxis models on unbounded domains can describe the inﬂuence of chemical signals from
+more angles, say, from the angle of spatial spreading, which is strongly related to traveling wave
+solutions connecting two diﬀerent states.
+It is clear that (1.1) has two constant states (1, 1) and (0, 0). Positive traveling wave solutions of (1.1) connecting these two states with speed c are solutions (u(t, x), v(t, x)) of the form
+(u(t, x), v(t, x)) = (φ(x − ct), ψ(x − ct)) for some one variable positive functions φ(·), ψ(·) satisfying
+limx→−∞ (φ(x), ψ(x)) = (1, 1) and limx→∞ (φ(x), ψ(x)) = (0, 0). Such solutions describe how fast
+the biological species spreads from higher density regions to lower density regions. Throughout this
+paper, we only consider positive traveling wave solutions, which we may just call traveling wave
+solutions.
+When χ = 0, the ﬁrst equation in (1.1) is decoupled from the second one and becomes
+ut = uxx + u(1 − uα ),
+
+x ∈ R.
+
+(1.2)
+
+Equation (1.2) is referred to as a Fisher-KPP type equation in literature due to the pioneering
+work [14], [28] for the case α = 1. It is well known that (1.2) has positive traveling wave solutions
+u(t, x) = φ(x − ct) connecting 1 and 0 (i.e., φ(−∞) = 1, φ(∞) = 0) of all speeds c ≥ c∗0 := 2 and has
+no such traveling wave solutions of slower speed. The traveling wave solutions of (1.2) connecting
+1 and 0 are also monotone and stable in proper weighted spaces. Moreover, for any nonnegative
+solution u(t, x) of (1.2), if the support supp(u(0, ·)) of u(0, x) is nonempty and compact, then
+lim inf
+
+|x|≤c′′ t,t→∞
+
+u(t, x) > 0 ∀ 0 < c′′ < c∗0 ,
+
+(1.3)
+
+and
+lim sup u(t, x) = 0
+|x|≥c′t,t→∞
+
+∀ c′ > c∗0 .
+
+(1.4)
+
+Hence, in literature, the minimal wave speed c∗0 = 2 is also called the spreading speed for (1.2).
+Since the pioneering works by [14] and [28], a huge amount of research has been carried out toward
+3
+
+the front propagation dynamics of reaction diﬀusion equations of the form,
+ut = ∆u + uf (t, x, u),
+
+x ∈ RN ,
+
+(1.5)
+
+where f (t, x, u) < 0 for u ≫ 1, ∂u f (t, x, u) < 0 for u ≥ 0 (see [4, 7–9, 15, 16, 30, 31, 34, 36, 37, 46, 47,
+51–53], etc.).
+Consider (1.1) with χ 6= 0. It is important to study whether (1.1) has traveling wave solutions
+connecting (1, 1) and (0, 0), and if so, whether the traveling wave solutions are monotone and stable
+in proper weighted spaces; whether (1.1) possesses a spreading speed; whether the chemotaxis
+speeds up or slows down the wave speeds or the spatial spreading of the biological species, etc.
+There are several studies on the existence of traveling wave solutions and spreading speeds of (1.1)
+with m = α = γ = 1, see, for example, [6, 21, 22, 24, 25, 35, 38–43, 45].
+Suppose that m = α = γ = 1. Among those, the following have been proved/observed in
+literature:
+• (Spatial spreading speeds). The spreading property (1.3) holds for nonnegative solutions
+(u(t, x), v(t, x)) of (1.1) with supp(u(0, ·)) being nonempty (see [22, Theorem 1.1], [45, Theorem 1.1]). This indicates that chemotaxis does not slow down the spatial spreading of
+the biological species. When 0 < χ ≤ 1, the spreading property (1.4) holds for nonnegative solutions (u(t, x), v(t, x)) of (1.1) with supp(u(0, ·)) being nonempty and compact (see
+[45, Theorem 1.1]). This indicates that when 0 < χ ≤ 1, chemotaxis neither slows down nor
+speeds up the spatial spreading of the biological species. In general, (1.4) holds with c∗0 being
+replaced by some c∗+ ≥ 2 (see [22, Theorem 1.1], [40, Theorem B], [43, Theorem C]).
+• (Lower bound of wave speeds or minimal wave speed). c∗0 = 2 is a lower bound of the wave
+speeds in the sense that if (u(t, x), v(t, x)) = (φ(x − ct), ψ(x − ct)) is a traveling wave solution
+of (1.1) connecting (1, 1) and (0, 0) with speed c, then c ≥ 2 (it follows from [22, Theorem
+1.2], [24, Proposition 1.3], [25, Theorem 1.2], [43, Theorem C]). This indicates that no matter
+the chemotaxis sensitivity is positive or negative, it does not slow down the wave speeds.
+Moreover, if |χ| is relatively small, then c∗0 = 2 is the minimal wave speed of traveling wave
+solutions, or, there are traveling wave solutions of (1.1) connecting (1, 1) and (0, 0) with
+speed c = 2 (it follows from [24, Theorem 1.4], [45, Theorem 1.4]). This indicates that the
+chemotaxis sensitivity does not speed up the spatial spreading of the biological species when
+|χ| is small.
+• (Negative chemotaxis sensitivity and speed-up). For any χ < 0, there is c∗χ ≥ 2 such that for
+any c > c∗χ , (1.1) has a traveling wave solution connecting (1, 1) and (0, 0) with speed c (it
+follows from [43, Theorem A]). When χ ≪ −1, any speed c of a traveling wave solution of
+(1.1) connecting (1, 1) and (0, 0) is very large and hence strong negative sensitivity speeds up
+the wave speeds (see [21, Theorem 2.1]).
+• (Positive chemotaxis sensitivity and oscillatory traveling waves). When 0 < χ < 1/2, for any
+c ≥ 2, (1.1) admits a traveling wave solution connecting (1, 1) and (0, 0) with speed c (see
+[45, Theorem 1.4]). For general χ > 0, there exist a c ≥ 2 and a traveling wave solution
+(u(t, x), v(t, x)) = (φ(x − ct), ψ(x − ct)) with lim inf x→∞ φ(x) > 0 and limx→∞ φ(x) = 0 (it
+follows from [25, Theorem 1.2]). Note that this traveling wave solution may not converge to
+(1, 1) and may be oscillatory as x → −∞ (see the numerical simulations in [25]). Moreover,
+It is observed numerically that the minimal speed (1.1) appears to always be 2 for χ > 0 (see
+[25]).
+4
+
+The above results from literature provide deep insights into the understanding of front propagation phenomena in (1.1). Though there exist many studies on traveling wave solutions of (1.1),
+there is still little study on numerous interesting problems about traveling wave solutions of (1.1),
+for example, there is little study about the stability and monotonicity of traveling wave solutions
+of (1.1) in literature, even when m = α = γ = 1; there is no study on the existence of traveling
+wave solutions of (1.1) for general m, α, γ ≥ 1.
+The objective of the current paper is to study the existence, uniqueness, stability, and monotonicity of traveling wave solutions (1.1) connecting (1, 1) and (0, 0) for general m, α, γ ≥ 1, including m = α = γ = 1 as a special case. To this end, we ﬁrst study the Cauchy problem for general
+m, α, γ and the stability of the positive constant solution (1, 1) since they have not been studied
+for general m, α, γ ≥ 1 and play important roles in the study of traveling waves. Before we state
+our main results in next subsection, let us highlight some of the contributions of this paper in the
+following:
+• (Global well-posedness of the Cauchy problem) This paper establishes explicit parameter regions for the global existence and boundedness of positive classical solutions (see Proposition
+1.1), which provides impacts of the parameters on the global existence and extends [23, Theorem 1.4] for the case m = α = γ = 1 to the general case m, α, γ ≥ 1.
+• (Stability of the positive constant solution) This paper establishes explicit parameter regions
+for the global stability of the positive constant solution (1, 1) with respect to strictly positive
+perturbations (see Proposition 1.2), which provides impacts of the parameters on the stability
+of the positive constant solution and extends [42, Theorem B] for the case m = α = γ = 1 to
+the general case m, α, γ ≥ 1.
+• (Existence of monotone traveling wave solutions with negative sensitivity) This paper ﬁnds an
+explicit lower bound c∗χ,m,γ for the wave speeds and shows that for any χ ≤ 0 and c > c∗χ,m,γ ,
+(1.1) with α ≤ m + γ − 1 has a monotone traveling wave solution connecting (1, 1) and
+(0, 0) with speed c and explicit decay rate (see Theorem 1.1(1)), which not only extends the
+existence result in [43, Theorem A] for the case m = α = γ = 1 to the general case m, α, γ ≥ 1,
+but also shows the monotonicity and explicit decay rate of traveling wave solutions for the ﬁrst
+time. Moreover, the lower bound c∗χ,m,γ is close to be optimal in certain sense (see Remark
+1.2(2)).
+• (Existence of traveling wave solutions with positivity sensitivity) This paper proves the existence of traveling wave solutions of (1.1) connecting (1, 1) and (0, 0) with explicit exponentially
+2γ+2
+} and α = m + γ − 1, which
+decay rate for any speed c > 2 when 0 ≤ χ < min{ 12 , 2γ+m+1
+extends the existence results in [45, Theorem 1.2] for the case m = α = γ = 1 to the more
+general case α = m + γ − 1 (see Theorem 1.1(2)) and also recovers the existing results for the
+Fisher-KPP equation.
+• (Uniqueness and stability of traveling wave solutions) This paper ﬁnds a positive c∗∗
+χ,m,α,γ ,
+which depends on χ, m, α, γ explicitly and goes to 2 as χ → 0, and proves that for any
+c > c∗χ,m,α,γ , traveling wave solutions of (1.1) connecting (1, 1) and (0, 0) with speed c (if
+exist) are stable in some weighted spaces (see Theorem 1.2), which is new even for the case
+that m = α = γ = 1. Uniqueness of traveling wave solutions of (1.1) connecting (1, 1) and
+(0, 0) with speed c > c∗∗
+χ,m,α,γ is also obtained in this paper.
+• (New techniques/ideas and extension of existing methods) This paper develops several techniques and extends some existing methods for the study of Cauchy problem and existence,
+5
+
+uniqueness, and stability of traveling wave solutions of (1.1) (see Remark 1.1(1),(2), Remark
+1.2 (4), Remark 1.3 (2), and Remark 1.4(2)). These techniques and methods can also be
+applied to some other chemotaxis models.
+It should be pointed out that there are a lot of works on the studies of traveling wave solutions
+of various types of chemotaxis models, see, for example [1, 2, 11, 13, 17, 27, 29, 32, 33, 35, 50], etc.
+
+1.2
+
+Statements of the main results
+
+In this subsection, we state our main results on the existence, stability, and monotonicity of traveling
+wave solutions of (1.1) connecting (1, 1) and (0, 0).
+To this end, we ﬁrst discuss the Cauchy problem of (1.1). By the arguments of [39, Theorem
+b (R), there is T
+1.1], for any u0 ∈ Cunif
+max (u0 ) ∈ (0, ∞] such that (1.1) has a unique classical solution
+(u(t, x; u0 ), v(t, x; u0 )) with u(0, x; u0 ) = u0 (x) for t ∈ (0, Tmax (u0 )), and if Tmax (u0 ) < ∞, then
+lim sup
+t→Tmax (u0 )−
+
+ku(t, ·; u0 )k∞ = ∞.
+
+b (R) with
+When m = α = γ = 1, it is proved in [23] (see [23, Theorem 1.4]) that for any u0 ∈ Cunif
+u0 ≥ 0, it holds that
+
+Tmax (u0 ) = ∞
+
+and
+
+lim sup ku(t, ·; u0 )k∞ < ∞.
+
+(1.6)
+
+t→∞
+
+b (R) with
+Moreover, it is proved in [42] (see [42, Theorem B]) that, if χ < 12 , then for any u0 ∈ Cunif
+inf x∈R u0 (x) > 0, it holds that
+
+
+(1.7)
+lim ku(t, ·; u0 ) − 1k∞ + kv(t, ·; u0 ) − 1k∞ = 0.
+t→∞
+
+For general m, α, γ ≥ 1, the work [18] studied the global existence of positive solutions and
+stability of the positive constant solution of the counterpart of (1.1) on bounded domain with
+Neumann boundary condition. However, there is little study on the global existence, boundedness,
+and stabilization of positive classical solutions of (1.1), which play important roles in the study of
+existence and stability of traveling wave solutions connecting (1, 1) and (0, 0). We therefore give a
+study on the Cauchy problem of (1.1) in this paper.
+Let
+b
+Cunif
+(R) = {u ∈ C(R, R) | u is uniformly continuous and bounded on R}
+with norm kuk = supx∈R |u(x)|. We have the following two propositions, which will be proved in
+Section 3.
+Proposition 1.1 (Global existence and boundedness of classical solutions). Assume that m, α, γ ≥
+1.
+b (R) with u ≥ 0, the classical solution (u(t, x; u ), v(t, x; u ))
+(1) If χ ≤ 0, then for any u0 ∈ Cunif
+0
+0
+0
+of (1.1) with u(0, x; u0 ) = u0 (x) exists globally (i.e. Tmax (u0 ) = ∞),
+
+u(t, x; u0 ) ≤ max{1, sup u0 (x)}
+x∈R
+
+∀ t ≥ 0, x ∈ R,
+
+(1.8)
+
+and
+lim sup sup u(t, x; u0 ) ≤ 1.
+t→∞
+
+x∈R
+
+6
+
+(1.9)
+
+m+γ−1
+(2) If χ > 0 and α > m + γ − 1, or 0 < χ < min{ 2m−1
+m−1 , γ−1 } and α = m + γ − 1, then
+b (R) with u ≥ 0, the classical solution (u(t, x; u ), v(t, x; u )) of (1.1) with
+for any u0 ∈ Cunif
+0
+0
+0
+u(0, x; u0 ) = u0 (x) exists globally (i.e. Tmax (u0 ) = ∞) and
+
+lim sup ku(t, ·; u0 )k∞ < ∞.
+
+(1.10)
+
+t→∞
+
+If, in addition, 0 < χ < 1, then
+lim sup sup u(t, x; u0 ) ≤
+t→∞
+
+x∈R
+
+
+
+1  α1
+.
+1−χ
+
+(1.11)
+
+Proposition 1.2 (Stability of the positive constant solution). Assume that m, α, γ ≥ 1.
+b (R) with u (x) ≥ 0 and inf
+(1) If χ ≤ 0, then for any u0 ∈ Cunif
+0
+x∈R u0 (x) > 0, there holds
+
+lim ku(t, ·; u0 ) − 1k∞ = 0.
+
+t→∞
+
+(1.12)
+
+b (R) with u (x) ≥ 0 and
+(2 If If 0 < χ < 21 and α ≥ m + γ − 1, then for any u0 ∈ Cunif
+0
+inf x∈R u0 (x) > 0, (1.12) holds.
+
+Next, we state our main results on the existence of traveling wave solutions of (1.1) connecting
+(1, 1) and (0, 0).
+Theorem 1.1 (Existence of traveling waves).
+(1) (Existence of monotone traveling wave solutions with negative sensitivity)
+Assume that α ≤ m + γ − 1 and χ ≤ 0. For any c > 0 satisfying
+o
+n1
+p
+1
++ mγ|χ| + γ 2 |χ| + γ 2 ,
+c > c∗χ,m,γ := max
++ m, p
+m
+mγ|χ| + γ 2 |χ| + γ 2
+
+(1.13)
+
+there is a traveling wave solution (u(t, x), v(t, x)) = (U ∗ (x− ct), V ∗ (x− ct)) of (1.1) satisfying
+that
+0 < U ∗ (x) < max{1, e−κx }, Ux∗ (x) ≤ 0, Vx∗ (x) ≤ 0 ∀ x ∈ R,
+(1.14)
+√
+
+2
+
+where κ = c− 2c −4 , and
+lim (U ∗ (x), V ∗ (x)) = (1, 1),
+
+x→−∞
+
+lim (U ∗ (x), V ∗ (x)) = (0, 0).
+
+x→∞
+
+(1.15)
+
+Moreover, for any κ1 satisfying κ < κ1 < min{(1 + α)κ, mκ + 1/2, 1}, it holds that
+lim e(κ1 −κ)x
+
+x→∞
+
+
+−
+1
+= 0.
+e−κx
+
+ U ∗ (x)
+
+(1.16)
+
+(2) (Existence of traveling wave solutions with positive sensitivity)
+Assume that α = m + γ − 1 and 0 ≤ χ < min{ 12 , χ∗ }, where
+n
+χ∗ = χ∗ (m, α, γ) := min 1,
+
+2m + 2γ o
+.
+m2 + m + 2γ
+
+(1.17)
+
+For any c > 2 there is a traveling wave solution (u(t, x), v(t, x)) = (U ∗ (x − ct), V ∗ (x − ct)) of
+(1.1) satisfying (1.15), (1.16), and
+7
+
+0 < U ∗ (x) < min
+
+n
+
+1 1/α −κx o
+,e
+1−χ
+
+∀ x ∈ R.
+
+(1.18)
+
+Theorem 1.1 will be proved in Section 4. The following theorem is about the stability of traveling
+wave solutions and will be proved in Section 5.
+Theorem 1.2 (Stability of traveling waves connecting constant solutions).
+Assume that χ < 0
+1/α
+1
+∗
+and α ≤ m + γ − 1, or 0 ≤ χ < χ and α = m + γ − 1. Let Mχ = 1 if χ < 0 and Mχ = 1−χ
+if
+
+1
+1
+∗∗
+∗
+∗∗
+1/6
+1/6
+0 ≤ χ < χ . There is cχ,m,α,γ > 1 + |χ| + 1+|χ|1/6 with cχ,m,α,γ − γ + γ = O(|χ| ) as χ → 0
+∗
+∗
+such that the following hold: If c > c∗∗
+χ,m,α,γ and (u(t, x), v(t, x)) = (U (x − ct), V (x − ct)) is a
+traveling wave solution of (1.1) connecting (1, 1) and (0, 0) with speed c and satisfying
+
+ U ∗ (x)
+(1.19)
+0 < U ∗ (x) < min{Mχ , e−κx }, and lim e(κ1 −κ)x −κx − 1 = 0
+x→∞
+e
+√
+
+2
+
+1
+b
+for some κ1 ∈ (κ, 1), where κ = c− 2c −4 , then for any η ∈ (κ, 1+|χ|
+1/6 ) and any u0 ∈ Cunif (R)
+satisfying that
+Z
+e2ηx |u0 (x) − U ∗ (x)|2 < ∞,
+(1.20)
+u0 ≥ 0, lim inf u0 (x) > 0, and
+x→−∞
+
+there hold
+
+lim
+
+R
+
+Z
+
+t→∞ R
+
+and
+
+e2ηx |u(t, x; u0 ) − U ∗ (x − ct)|2 dx = 0,
+
+lim sup |u(t, x; u0 ) − U ∗ (x − ct)| = 0.
+
+t→∞ x∈R
+
+(1.21)
+(1.22)
+
+Theorem 1.3 (Uniqueness of traveling waves connecting constant solutions).
+Assume that χ < 0
+1/α
+1
+∗
+and α ≤ m + γ − 1, or 0 ≤ χ < χ and α = m + γ − 1. Let Mχ = 1 if χ < 0 and Mχ = 1−χ
+∗
+∗
+if 0 ≤ χ < χ∗ . Suppose that c > c∗∗
+χ,m,α,γ and (ui (t, x), vi (t, x)) = (Ui (x − ct), Vi (y − ct)) (i = 1, 2)
+are two traveling wave solution of (1.1) connecting (1, 1) and (0, 0) with speed c and satisfying
+ U ∗ (x)
+
+0 < Ui∗ (x) < min{Mχ , e−κx }, and lim e(κ1 −κ)x i−κx − 1 = 0
+(1.23)
+x→∞
+e
+for i = 1, 2 and some κ1 ∈ (κ, 1), then
+
+(U1∗ (x), V1∗ (x)) ≡ (U2∗ (x), V2∗ (x)).
+
+Theorem 1.3 will be proved in Section 5.
+
+1.3
+
+Remarks
+
+In this subsection, we give some remarks/discussions on our main results and the techniques established in the proofs of the results.
+Remark 1.1. This remark is about the global existence, boundedness, and stabilization of positive
+classical solutions of (1.1).
+(1) (Global existence and boundedness) The results stated in Proposition 1.1 are new for general
+m, α, γ ≥ 1. When m = α = γ = 1, part (1) of this proposition is proved in [42, Theorem A]
+and part (2) is proved in [23, Theorem 1.4]. We extend the arguments in [23, Theorrm 1.4]
+and [42, Theorem A] for the special case m = α = γ = 1 with χ > 0 and χ < 0 to prove
+Proposition 1.1 for the case χ > 0 and χ < 0, respectively. Such extension can also be applied
+for (1.1) in higher dimensional space as well as some other chemotaxis models.
+8
+
+(2) (Stabilization) The results stated in Proposition 1.2 are also new for general m, α, γ ≥ 1, and
+are utilized in the proof of limx→−∞ (u(t, x), v(t, x)) = (1, 1) for the traveling wave solutions in
+Theorem 1.1 and in the proof of stability of traveling wave solutions. When m = α = γ = 1,
+Proposition 1.2 is proved in [42, Theorem B]. But it is not easy to extend the arguments
+of [42, Theorem B] for the case m = α = γ = 1 to the general case m, α, γ ≥ 1. Our
+idea to prove Proposition 1.2 in the case χ < 0 can be describe as follows: let ū(t) =
+supx∈R u(t, x; u0 ) and u(t) = inf x∈R u(t, x; u0 ) and prove that if ū(t0 ) > 1 (resp. 0 < u(t0 ) < 1)
+for some t0 > 0, then ū(t) (resp. u(t)) is decreasing (resp. increasing) on [0, t0 ), which
+implies that limt→∞ ku(t, ·; u0 ) − 1k∞ = 0. This idea is new and can be applied to (1.1) in
+higher dimensional space as well as some other chemotaxis models. We adopt the following
+rectangle/ODE approach to prove Proposition 1.2 in the case 0 < χ < 1/2: Consider the
+following system of ODEs,
+
+m
+γ
+α
+γ
+
+U t = χU (U − U ) + U(1 − U )
+γ
+U t = χU m (U γ − U ) + U(1 − U α )
+
+
+U(0) = max{ku0 k∞ , 1} + ǫ, U (0) = min{inf x∈R u0 (x), 1} − ǫ
+for some 0 < ǫ ≪ 1, and prove that
+
+0 < U (t) ≤ u(t, x; u0 ) ≤ U (t) ∀ t ∈ [0, ∞), x ∈ R,
+and
+lim U (t) = lim U (t) = 1
+
+t→∞
+
+t→∞
+
+which implies that limt→∞ ku(t, ·; u0 )−1k∞ = 0. This approach is an extension of the rectangle
+/ODE approach developed in [18, Theorem 1.2] for chemotaxis models of the form (1.1) on
+bounded domains to bounded domains, and can also be applied for (1.1) in higher dimensional
+space as well as some other chemotaxis models.
+Remark 1.2. This remark is about traveling wave solutions of (1.1) connecting (1, 1) and (0, 0)
+when χ ≤ 0.
+(1) (Monotonicity and exponential decay rate of wave proﬁles). The monotonicity and exponential
+decay rate of traveling wave solutions of (1.1) with χ < 0 are proved for the ﬁrst time even
+when m = α = γ = 1.
+(2) (Lower bound c∗χ,m,γ of wave speeds). The lower bound c∗χ,m,γ established in Theorem 1.1(1)
+for the wave speeds in the case χ ≤ 0 depends only on χ, m, and γ, and is not expected to
+be optimal, but it is close to be optimal in certain sense.
+To be more precise, suppose that χ < 0 and (u(t, x), v(t, x)) = (Ũ (x − ct), Ṽ (x − ct)) is a
+traveling wave solution of (1.1) connecting (1, 1) and (0, 0) with speed c. Then (Ũ , Ṽ ) satisfy
+(
+Ũxx + cŨx − χ(Ũ m Ṽx )x + Ũ (1 − Ũ α ) = 0,
+x∈R
+γ
+Ṽxx − Ṽ + Ũ = 0,
+x ∈ R.
+q
+q
+q
+|χ|γ
+|χ|γ
+|χ|γ
+x), V (x) = Ṽ ( m+γ
+x), c = m+γ
+c̄χ . Then (U (x), V (x)) satisfy
+Let U (x) = Ũ ( m+γ
+
+ 1 m+γ Uxx + c̄χ Ux + m+γ (U m Vx )x + U (1 − U α ) = 0,
+x∈R
+γ
+|χ| γ
+m+γ
+1
+γ
+x ∈ R,
+√
+γ Vxx − V + U = 0,
+|χ|
+
+9
+
+which formally converges to
+c̄Ux + (U m+γ )xx + U (1 − U α ) = 0,
+
+x∈R
+
+(1.24)
+
+as χ → −∞ provided that c̄χ → c̄. Note that solutions of (1.24) give rise to traveling wave
+solutions of the following porous medium equation with logistic type source,
+Ut = (U m+γ )xx + U (1 − U α ),
+
+x ∈ R.
+
+(1.25)
+
+Note also that (1.25) admits a minimal wave speed c∗∞ (m, γ, α) > 0 (see [3, 5, 10], etc.).
+Therefore, formally, it is expected that
+r
+c∗χ,m,γ
+c∗χ,m,γ
+γ
+∗
+≥ cp (m, γ, α)
+= O(1) as χ → −∞,
+lim inf p
+, in particular, p
+χ→−∞
+m+γ
+|χ|
+|χ|
+which is proved to be true for the case that m = γ = 1 (see [21, Theorem 2.1]).
+
+Note that
+
+p
+c∗χ,m,γ
+p
+= mγ + γ 2 .
+χ→−∞
+|χ|
+lim
+
+(1.26)
+
+The lower bound c∗χ,m,γ for the wave speeds is hence close to optimal in the sense that when
+χ = 0 and γ = 1, c∗χ,m,γ = 2, which is the optimal lower bound for the wave speeds of (1.2),
+c∗χ,m,γ
+and when χ → −∞, √
+= O(1).
+|χ|
+
+(3) (Speed-up of wave speeds by strong negative sensitivity). When m = α = γ = 1, by [21, Theorem 2.1], strong negative chemotaxis sensitivity speeds up the wave speeds. We conjecture that strong negative chemotaxis sensitivity also speeds up the wave speeds for general
+m, α, γ ≥ 1. Thanks to the length of the paper, we do not carry out a study on this issue in
+this paper.
+(4) (Approaches/techniques). We prove Theorem 1.1(1) by properly modiﬁed arguments, in particular, super- and sub-solutions to some equation relevant to (1.1), developed in [40, 43, 45]
+for the case m = α = γ = 1.
+Remark 1.3. This remark is about traveling wave solutions of (1.1) connecting (1, 1) and (0, 0)
+when χ ≥ 0.
+(1) (Relatively small positive χ and traveling waves connecting (1, 1) and (0, 0)). Theorem 1.1(2)
+extends [45, Theorem 1.4] for the case m = α = γ = 1 to the general case m, α, γ ≥ 1. It
+is proved by properly modiﬁed arguments, in particular, super- and sub-solutions to some
+equation relevant to (1.1), developed in [40, 43, 45] for the case m = α = γ = 1. The
+exponential decay rate of the traveling wave solutions is newly established even for the case
+m = α = γ = 1.
+2γ+2
+, by
+(2) (Strong positive sensitivity and oscillatory traveling waves). In the case that 12 < 2γ+m+1
+
+2γ+2
+the arguments of Theorem 1.1(2), when 21 ≤ χ < min{ 2γ+m+1
+, 1}, for any c > 2, (1.1) has a
+traveling wave solution (u(t, x), v(t, x)) = (U (x − ct), V (x − ct)) satisfying
+
+lim (U (x), V (x)) = (0, 0),
+
+x→∞
+
+10
+
+lim inf U (x) > 0.
+x→−∞
+
+As it is mentioned before, when m = α = γ = 1, for general χ > 0, it is proved in [25, Theorem
+1.2] that there exist a c ≥ 2 and a traveling wave solution (u(t, x), v(t, x)) = (φ(x − ct), ψ(x −
+ct)) with lim inf x→∞ φ(x) > 0 and limx→∞ φ(x) = 0. Such traveling wave solution with χ
+being not small may not converge to (1, 1) and may be oscillatory as x → −∞ (see the
+numerical simulations in [25]). Moreover, It is observed numerically that the minimal speed
+(1.1) with m = α = γ = 1 appears to always be 2 for χ > 0 (see [25]). We conjecture that, for
+general m, α, γ ≥ 1, (1.1) admits oscillatory traveling wave solutions when χ is not small and
+strong positive sensitivity does not speed up the wave speeds. Again, thanks to the length of
+the paper, we do not carry out a study on this issue in this paper.
+Remark 1.4. This remark is about the stability and uniqueness of traveling wave solutions of (1.1)
+connecting (1, 1) and (0, 0).
+(1) (Lower bound χ∗∗
+χ,m,α,γ of wave speeds). Theorems 1.2 and 1.3 indicate that traveling wave
+solutions of (1.1) connecting (1, 1) and (0, 0) with relatively large speed c, namely, c > c∗∗
+χ,m,α,γ ,
+are stable and unique in certain weighted norm space. Such stability and uniqueness results
+are proved for the ﬁrst time for traveling wave solutions of (1.1) connecting (1, 1) and (0, 0).
+∗∗
+In spite that c∗∗
+χ,m,α,γ is not expected to be optimal, cχ,m,α,γ is close to optimal when |χ| is
+∗∗
+1/6
+small and γ = 1 in the sense that cχ,m,α,γ − 2 = O(|χ| ).
+(2) (Approaches/techniques). It is natural to study stability of traveling wave solutions in certain
+weighted space (see [48, 49]). However, thanks to the presence of chemotaxis, it is nontrivial
+to determine c∗∗
+χ,m,α,γ in Theorem 1.2, and prove the stability of the traveling wave solutions
+of (1.1) with speed c > c∗∗
+χ,m,α,γ in certain weighted space. Our main idea is ﬁrst to provide
+some a priori estimates for traveling wave solutions (u, v), in particular, for |ux | and |uux | (see
+Lemmas 5.1 and 5.2); next set up some a priori assumption on the wave speed (see (5.14));
+then determine c∗∗
+χ,m,α,γ (see (5.34)) via various nontrivial estimates; ﬁnally prove (1.21) and
+(1.22). We believe that the techniques developed in this paper can be applied to some other
+chemotaxis models.
+Remark 1.5. This remark is about some comments given by Zhi-An Wang. The author of the
+current paper gave a presentation of the main results of this paper at the International Conference
+on Nonlinear PDEs and Applications in Mathematical Biology, Shanghai Jiao-Tong University.
+April 20-24, 2026. After the presentation, Wang commented that, in an on-going work, they
+proved the monotonicity and stability of traveling wave solutions of (1.1) connecting (1, 1) and
+(0, 0) in the special case m = α = γ = 1 by some diﬀerent approaches.
+The rest of the paper is organized as follows. In Section 2, we present some preliminary lemmas
+to be used in the proofs of the main results. We study global existence and boundedness of positive
+classical solutions of (1.1) and the stability of the positive constant solution (1, 1) of (1.1), and
+prove Propositions 1.1 and 1.2 in Section 3. In Section 4, we study the existence of traveling wave
+solutions of (1.1) connecting (1, 1) and (0, 0), and prove Theorem 1.1. Finally, in Section 5, we
+study the stability of traveling wave solutions of (1.1) and prove Theorem 1.2.
+
+2
+
+Preliminary lemmas
+
+In this section, we present some basic estimates for the analytic semigroup e(∆−I)t and some basic
+properties for the solutions of the elliptic equation vxx − λv + µu = 0 for λ, µ > 0.
+
+11
+
+2.1
+
+Basic estimates for the analytic semigroup e(∆−I)t
+
+b (R) or Lp (R) with
+Let T (t) = e(∆−I)t be the analytic semigroup generated by ∆ − I on X = Cunif
+1 ≤ p < ∞. In this subsection, we present some basic estimates for e(∆−I)t .
+
+Lemma 2.1. For any 1 < p ≤ q < ∞, there are Cp > 0 and Cp,q > 0 such that for any u ∈ Lp (R),
+the following hold:
+
+1
+
+1
+
+1
+
+ke(∆−I)t ukLq (R) ≤ Cp,q t− 2 p − q e−t kukLp (R) ,
+
+− 21 − 21 p1 − 1q −t
+(∆−I)t
+k∇e
+ukLq (R) ≤ Cp,q t
+e kukLp (R) ,
+1
+
+(2.1)
+
+(2.2)
+
+1
+
+ke(∆−I)t ∇ · ukL∞ (R) ≤ Cp t− 2 − 2p e−t kukLp (R) .
+
+(2.3)
+
+Proof. The estimates (2.1) and (2.2) follow from the Lp -Lq estimates for the convolution product
+and (2.3) follows from [39, Lemma 3.1].
+
+2.2
+
+Basic properties of the elliptic equation vxx − λv + µu = 0
+
+In this subsection, we present some basic properties for the solutions of the elliptic equation
+vxx − λv + µu = 0,
+
+x ∈ R,
+
+(2.4)
+
+b (R), let Ψ(x; u, λ, µ) be the solution of (2.4).
+where λ, µ > 0 are positive constants. For u ∈ Cunif
+Note that
+Z ∞ Z −λs − |y−x|2
+e e 4s
+√
+u(y)dyds.
+(2.5)
+Ψ(x; u, λ, µ) = µ
+4πs
+0
+R
+
+Lemma 2.2. It holds that
+µ
+Ψ(x; u, λ, µ) = √
+2 λ
+and
+
+µ √
+d
+Ψ(x; u, λ, µ) = − e− λx
+dx
+2
+
+Z x
+
+√
+
+e
+
+Z
+
+λy
+
+−∞
+
+√
+
+e− λ|x−y| u(y)dy,
+
+(2.6)
+
+R
+
+µ √
+u(y)dy + e λx
+2
+
+Z ∞
+
+√
+
+e− λy u(y)dy.
+
+(2.7)
+
+x
+
+Proof. It follows from [45, Lemma 2.1].
+b (R), u(x) ≥ 0, it holds that
+Lemma 2.3. For every u ∈ Cunif
+
+√
+d
+Ψ(x; u, λ, µ) ≤ λΨ(x; u),
+dx
+
+∀ x ∈ R.
+
+(2.8)
+
+Proof. It follows from [45, Lemma 2.2].
+b (R) with
+Lemma 2.4. For any 0 < κ < 1, let ϕκ = e−κx . Then, for any M ≥ 1 and u0 ∈ Cunif
+0 ≤ u ≤ min{M, ϕκ }, it holds that
+
+
+Ψ(x; u) := Ψ(x; u, 1, 1) ≤ min M,
+
+12
+
+1
+e−κx
+1 − κ2
+
+∀ x ∈ R.
+
+Proof. By (2.6),
+Z
+1 ∞ −|x−y| −κy
+e
+e
+u(y)dy
+2 −∞
+Z
+Z
+1 x ∞ (−1−κ)y
+1 −x x (1−κ)y
+e
+dy + e
+e
+dy
+≤ e
+2
+2
+−∞
+x
+1
+1
+1
+e−κx +
+e−κx =
+e−κx .
+=
+2(1 − κ)
+2(1 + κ)
+1 − κ2
+
+Ψ(x; u) =
+
+Similarly, we have
+Ψ(x; u) ≤ M
+
+∀ x ∈ R.
+
+The lemma is thus proved.
+b (R), Ψ(·; u, λ, µ) ∈ Lp (R) for any p ≥ 1, but we may not have
+Note that for u ∈ Cunif
+loc
+Ψ(·; u, λ, µ) ∈ Lp (R). To estimate kΨ(·; u, λ, µ)kLp (R) , it suﬃces to estimate kΨ(·; u, λ, µ)ψ(·)kLp (R)
+loc
+for certain exponential decay function ψ. Note also that, for any κ1 > 0, there are κ2 > 0 and
+ψ ∈ C ∞ (Rn ) such that
+
+0 < ψ(x) ≤ e−κ2 |x| ,
+
+|ψx (x)| ≤ κ1 ψ(x),
+
+|ψxx (x)| ≤ κ1 ψ
+
+∀x ∈ R
+
+(2.9)
+
+(see [23, Lemma 2.4]).
+Lemma 2.5. For given p > 1, there is Cp′ such that for any κ1 ≪ 1,
+Z
+Z
+γ
+p
+′
+|∇Ψ(·; u , λ, µ)| ψ ≤ Cp
+uγp ψ,
+R
+
+R
+
+where ψ is as in (2.9), and γ > 0.
+Proof. It can be proved by the arguments of [23, Proposition 3.1]. For reader’s convenience, we
+give a proof in the following.
+First, let v(x) = Ψ(x; uγ , λ, µ) and w = vψ. Then w satisﬁes
+wxx − 2vx ψx + vψxx − λw + µuγ ψ = 0.
+By (2.5), we have
+w=
+=
+
+Z ∞Z
+Z0 ∞
+0
+
+and
+∇w =
+
+
+− 2vx ψx + vψxx + µuγ ψ dyds
+
+
+e(1−λ)s e(∆−I)s − 2vx ψx + vψxx + µuγ ψ ds,
+
+Z ∞
+0
+
+Then by (2.1), it holds that
+kv(·)ψ(·)kLp ≤ Cp,p
+
+|y−x|2
+
+e−λs e− 4s
+√
+4πs
+R
+
+
+∇e(1−λ)s e(∆−I)s − 2vx ψx + vψxx + µuγ ψ ds.
+
+Z ∞
+0
+
+
+
+e−λs 2κ1 k(∇v(·))ψkLp + κ1 kv(·)ψkLp + µkuγ (·)ψkLp ds
+
+
+Cp,p 
+Cp,p
+2κ1 k∇v(·)ψkLp + κ1 kv(·)ψkLp .
+µkuγ (·)ψkLp +
+≤
+λ
+λ
+13
+
+(2.10)
+
+By (2.2), it holds that
+k(∇v(·))ψkLp = k∇(v(·)ψ) − v(·)∇ψkLp
+
+≤ kv(·)∇ψkLp + k∇(v(·)ψ)kLp
+Z ∞
+
+
+1
+e−λs s− 2 2κ1 k(∇v(·))ψkLp + κ1 kv(·)ψkLp + µkuγ (·)ψkLp ds
+≤ κ1 kv(·)ψkLp + Cp,p
+0
+Z ∞
+1
+e−λs s− 2 ds
+≤ κ1 kv(·)ψkLp + Cp,pµkuγ (·)ψkLp
+0
+
+Z ∞
+1
++ Cp,p κ1 2k∇v(·)ψkLp + kv(·)ψkLp
+e−λs s− 2 ds.
+(2.11)
+0
+
+By (2.10) and (2.11),
+kvψkLp + k∇vψkLp (R) ≤ C̃p kuγ ψkLp (R)
+
+
+R∞
+µC
+for all 0 < κ1 ≪ 1, where C̃p = 2 λp,p + µCp,p 0 e−λs s−1/2 ds .
+
+Replacing ψ be ψ 1/p in the above arguments, there is Cp′ independent of u such that
+Z
+Z
+p
+′
+|∇v| ψ ≤ Cp
+uγp ψ
+R
+
+R
+
+for all κ1 ≪ 1. The lemma is thus proved.
+
+3
+
+Global existence, boundedness, and stabilization of positive classical solutions and proofs of Propositions 1.1 and 1.2
+
+In this section, we study the global existence and boundedness of classical solutions of (1.1) with
+b (R) and u ≥ 0, and the stability of the positive constant solution (1, 1)
+initial condition u0 ∈ Cunif
+0
+of (1.1), and prove Propositions 1.1 and 1.2.
+
+3.1
+
+Global existence and boundedness of positive classical solutions and proof
+of Proposition 1.1
+
+In this subsection, we prove Proposition 1.1.
+Proof of Proposition 1.1(1). Assume that χ ≤ 0. We ﬁrst prove Tmax (u0 ) = ∞ and (1.8) holds.
+The idea to do so is described as follows. For given T > 0, let
+b
+(R))
+XT = C([0, T ], Cunif
+
+endowed with the norm
+kukXT =
+
+∞
+X
+1
+k=1
+
+2k
+
+ku(·, ·)kL∞ ([0,T ]×[−k,k]).
+
+b (R) with u ≥ 0, let
+For given T > 0 and u0 ∈ Cunif
+0
+
+u0 = min{1, inf u0 (x)},
+x∈R
+
+ū0 = max{1, sup u0 (x)},
+x∈R
+
+and
+ET (u0 ) = {XT | u(0, x) = u0 (x), u0 ≤ u(t, x) ≤ ū0 }.
+14
+
+Then XT is a locally convex topological vector space and ET is a nonempty convex closed subset of
+XT . We prove via Schauder ﬁxed-point theorem that for any T > 0, there hold T < Tmax (u0 ) and
+u(·, ·; u0 ) ∈ ET . We provide the detailed proof in three steps.
+Step 1. In this step, we construct a mapping T : ET (u0 ) → ET (u0 ).
+For any u ∈ ET (u0 ), let
+
+V (t, x; u) = Ψ(x; uγ (t, ·), 1, 1),
+
+where Ψ(x; uγ (t, ·), 1, 1) is as in (2.5) with µ = λ = 1. Note that
+uγ0 ≤ uγ (t, x) ≤ ūγ0
+
+∀ t ∈ [0, T ], x ∈ R.
+
+By comparison principle for elliptic equations, it holds that
+uγ0 ≤ V (t, x; u) ≤ ūγ0
+
+∀ t ∈ [0, T ], x ∈ R.
+
+Let U (t, x; u) be the solution of
+(
+
+Ut = Uxx + |χ|mU m−1 Ux Vx + U 1 + |χ|U m−1 V − (U α + |χ|U m+γ−1 ) ,
+U (0, x; u0 ) = u0 (x),
+
+x∈R
+x ∈ R.
+
+(3.1)
+
+It is clear that U ≡ u0 is a sub-solution of (3.1) and U ≡ ū0 is a super-solution of (3.1). Then by
+comparison principle for parabolic equations, we have
+u0 ≤ U (T, x; u) ≤ ū0
+
+∀ t ∈ [0, T ], x ∈ R.
+
+Hence
+U (·, ·; u) ∈ ET ,
+
+U (0, ·; u) = u0 (·),
+
+and then the mapping T deﬁned by T (u) = U (·, ·; u) maps ET (u0 ) into itself.
+
+Step 2. In this step, we prove that the mapping T : ET (u0 ) → ET (u0 ) is continuous and compact.
+
+The compactness and continuity of the mapping T can be proved by the similar arguments of
+[40, Lemma 4.3]. For reader’s convenience, we outline the proof through the following two claims.
+
+Claim 1. For any sequence {un } ⊂ ET (u0 ), there is a subsequence {unk } such that {T (unk )}
+converges to some U ∈ ET (u0 ) in the norm k · kXT , which implies that the mapping T : ET (u0 ) →
+ET (u0 ) is compact. The idea to prove this claim is as follows. First, let Un (t, x) = U (t, x; un ). Then
+Z t
+
+e(∆−I)(t−s) ∂x Unm (s, ·)Vx (s, ·; un (s, ·)) dx
+Un (t, ·) = e(∆−I)t u0 (·) − χ
+0
+Z t
+
+e(∆−I)(t−s) Un (s, ·) 2 − Unα (s, ·) ds.
++
+0
+
+Applying this equality, the boundedness of Un , and the estimates in Lemma 2.1, we can prove that
+lim kU (t, ·; un ) − u0 (·)k∞ = 0
+
+t→0+
+
+uniformly in n ≥ 1.
+
+(3.2)
+
+Next, applying (3.2), a priori estimates for parabolic equations, and the diagonal argument, we
+can prove that there are {unk } and U (t, x) ∈ XT such that
+lim U (t, x; unk ) = U (t, x)
+
+nk →∞
+
+locally uniformly in (t, x) ∈ [0, T ] × R.
+15
+
+(3.3)
+
+By (3.2) and (3.3),
+lim kU (·, ·; unk ) − U (·, ·)kXT = 0,
+
+nk →∞
+
+and U (0, x) = u0 (x). Hence the mapping T is compact.
+
+Claim 2. The mapping T is continuous. The idea to prove this claim is as follows. Suppose that
+un , ũ ∈ ET (u0 ), and limn→∞ kun − ũkXT = 0. First, applying (2.6) and (2.7), we can prove that
+
+
+lim kV (·, ·; un ) − V (·, ·; ũ)kXT + kVx (·, ·); un ) − Vx (·, ·; ũ)kXT = 0.
+n→∞
+
+Next, we prove limn→∞ kU (·; ·; un ) − U (·; ·; ũ)kXT = 0 by contradiction. Assume that U (t, x; un )
+does not converge to U (t, x; ũ) in XT . Then there is ǫ0 > 0 and unk such that
+kU (·, ·; unk ) − U (·, ·; ũ)kXT ≥ ǫ0 .
+
+(3.4)
+
+By the compactness of T , without loss of generality, we may assume that there is Ũ ∈ XT (u0 ) such
+that
+lim kU (·, ·; unk ) − Ũ (·, ·)kXT = 0.
+nk →∞
+
+Let Ṽ (t, x) = V (t, x; ũ). Then both Ũ (t, x) and u(t, x; ũ) are solutions of (3.1) with V = V (t, x; ũ).
+Then we must have U (t, x; ũ) = Ũ (t, x) and hence limnk →∞ kU (·, ·; unk ) − u(·, ·; ũ)kXT = 0, which
+contradicts to (3.4). This implies limn→∞ kU (·; ·; un ) − U (·; ·; ũ)kXT = 0, that is, the mapping T is
+continuous.
+Step 3. In this step, we show that for any T > 0, we have T < Tmax (u0 ) and u(·, ·; u0 ) ∈ XT (u0 ).
+
+First, for any T > 0, by the arguments in Steps 1 and 2, the mapping T : ET (u0 ) → ET (u0 ) is
+continuous and compact. Then, by Schauder ﬁxed-point theorem, there is u∗ (·, ·) ∈ ET (u0 ) such
+that
+U (t, x; u∗ ) = u∗ (t, x) ∀ t ∈ [0, T ], x ∈ R.
+It is clear that
+u(t, x; u0 ) = u∗ (t, x),
+
+v(t, x; u0 ) = V (t, x; u∗ )
+
+∀ t ∈ [0, Tmax (u0 )) ∩ [0, T ], x ∈ R.
+
+Note that
+lim sup
+t→Tmax (u0 )−
+
+ku(t, ·; u0 )k∞ = ∞
+
+if
+
+Tmax (u0 ) < ∞.
+
+It then follows that T < Tmax (u0 ) and u(·, ·; u0 ) ∈ ET for any T < ∞. Therefore, Tmax (u0 ) = ∞
+and u(t, x; u0 ) ≤ max{1, supx∈R u0 (x)} ∀ t ≥ 0, x ∈ R, i.e., (1.8) holds.
+In the following, we show that (1.9) holds. To this end, we ﬁrst prove that if ū(t0 ) > 1 for
+some t0 > 0, then ū(t) is non-increasing on [0, t0 ). Suppose that t0 ∈ (0, ∞) is such that ū(t0 ) > 1.
+Note that ū(t) is continuous in t ∈ [0, ∞). Assume that there is t1 ∈ [0, t0 ) such that ū(t1 ) < ū(t0 ).
+Then there is t2 ∈ [t1 , t0 ) such that 1 ≤ ū(t2 ) < ū(t0 ). By the arguments of (1.8), ū(t0 ) ≤ ū(t2 ),
+which is a contradiction. Hence, for any t ∈ [0, t0 ), ū(t) ≥ ū(t0 ) > 1. Then, for any t1 < t2 , by the
+arguments in Proposition 1.1(1) again, ū(t2 ) ≤ ū(t1 ). Therefore, ū(t) is non-increasing on [0, t0 ).
+Next, we prove that (1.9) holds by contradiction. Assume that (1.9) does not hold. Then there
+are tn → ∞ and xn ∈ R such that limn→∞ u(tn , xn ) exists, and
+lim u(tn , xn ; u0 ) > 1.
+
+n→∞
+
+16
+
+By the above arguments, ū(t) is non-increasing on [0, ∞). Hence
+ū(t) > 1 ∀ t > 0
+
+and u+ := lim ū(t) > 1.
+t→∞
+
+Let x̃n ∈ R be such that
+|u(tn , x̃n ; u0 ) − ū(tn )| <
+
+1
+n
+
+for
+
+n = 1, 2, · · · .
+
+Without loss of generality, we may assume that the limit (u∗ (t, x), v ∗ (t, x)) := limn→∞ (u(t + tn ,
+x + x̃n ; u0 ), v(t + tn , x + x̃n ; u0 )) exists locally uniformly in t ∈ R and x ∈ R, and
+u∗t = u∗xx − χm(u∗ )m−1 u∗x vx∗ − χ(u∗ )m (v ∗ − (u∗ )γ ) + u∗ (1 − (u∗ )α ),
+
+x ∈ R,
+
+and
+∗
+0 = vxx
+− v ∗ + (u∗ )γ .
+
+Then, by the monotonicity of ū(t), there holds
+ū∗ (t) := sup u∗ (t, x) ≤ u+ (> 1)
+
+∀ t ∈ R,
+
+x∈R
+
+and
+
+u∗ (0, 0) = u+ .
+
+Hence u∗ (t, x) achieves its maximum u+ at (0, 0). By comparison principle for elliptic equations,
+v ∗ (t, x) ≤ uγ+
+
+∀ t ∈ R, x ∈ R.
+
+It then follows that
+0 ≤ u∗t (0, 0) = u∗xx (0, 0) − χ(v ∗ (0, 0) − uγ+ ) + u+ (1 − uα+ ) < 0,
+which is a contradiction. Therefore (1.9) holds. Proposition 1.1(1) is thus proved.
+Proof of Proposition 1.1(2). Assume that the condition (ii) holds, that is, χ > 0 and α > m + γ − 1
+m+γ−1
+or 0 < χ < min{ 2m−1
+m−1 , γ−1 } and α = m + γ − 1.
+
+We ﬁrst prove Tmax (u0 ) = ∞ and (1.10) holds. The idea to do so is described as follows:
+First, we prove ku(t, ·; u0 )kLp (R) stays bounded for some p > max{1, m, γ}, next we prove that
+loc
+k∇v(t, ·; u0 )k∞ stays bounded, and then we prove that ku(t, ·; u0 )k∞ stays bounded. We provide
+the detailed proof in three steps.
+Step 1. In this step, we prove that ku(t, ·; u0 )kLp (R) stays bounded.
+loc
+
+To this end, ﬁrst choose κ1 to be suﬃciently small (to be determined later), and
+ψ ∈ C ∞ (Rn )
+R let
+p
+be as in (2.9). To prove ku(t, ·; u0 )kLp (R) stays bounded, it then suﬃces to prove Ω u (t, x; u0 )ψ(x−
+loc
+x0 )dx stays bounded uniformly in x0 ∈ R.
+Note that, for any p > 1. we have
+Z
+Z
+Z
+Z
+1 d
+up ψ(1 − uα )dx
+up−1 ψ∆u − χ up−1 ψ∇ · (um ∇v)dx +
+up ψdx =
+p dt R
+R
+R
+R
+Z
+Z
+up−1 ∇u · ∇ψ
+= −(p − 1) up−2 |∇u|2 ψ −
+R
+RZ
+Z
+Z
+p+m−1
+m+p−2
+up (1 − uα )ψ.
+∇v · ∇ψ +
+∇u · (∇v)ψ + χ u
++ χ(p − 1) u
+R
+
+R
+
+17
+
+R
+
+By ∆v = v − uγ , there holds
+Z
+Z
+p+m−2
+∇u · (∇v)ψ + χ up+m−1 ∇v · ∇ψ
+χ(p − 1) u
+R
+R
+Z
+Z
+Z
+χ(p − 1)
+χ(p − 1)
+p+m−1
+u
+∇v · ∇ψ −
+up+m−1 (∆v)ψ + χ up+m−1 ∇v · ∇ψ
+=−
+p+m−1 R
+p+m−1 R
+R
+Z
+Z
+Z
+χm
+χ(p
+−
+1)
+χ(p
+−
+1)
+p+m−1
+p+m−1
+=
+u
+∇v · ∇ψ −
+u
+vψ +
+up+m+γ−1 ψ
+p+m−1 R
+p+m−1 R
+p+m−1 R
+Z
+Z
+χmκ1
+χ(p − 1)
+p+m−1
+≤
+u
+|∇v|ψ +
+up+m+γ−1 ψ.
+p+m−1 R
+p+m−1 R
+We then have
+1 d
+p dt
+
+Z
+
+Z
+
+Z
+κ1
+u ψdx ≤ −(p − 1) u
+u |∇u| ψ +
+up ψ
+2
+R
+R
+R
+R
+Z
+Z
+χ(p
+−
+1)
+χmκ1
+up+m−1 |∇v|ψ +
+up+m+γ−1 ψ
++
+p+m−1 R
+p+m−1 R
+Z
+Z
+p
+up+α ψ.
+u ψ−
++
+p
+
+p−2
+
+κ1
+|∇u| ψ +
+2
+2
+
+Z
+
+p−1
+
+2
+
+(3.5)
+
+R
+
+R
+
+In the case α > m + γ − 1, ﬁx a p such that max{1, m, γ} < p < m + γ. In the case that
+m+γ−1
+α = m + γ − 1 and 0 < χ < min{ 2m−1
+m−1 , γ−1 }, ﬁx a p such that max{1, m, γ} < p < m + γ and
+χ<
+Note that
+
+Z
+
+R
+
+up+m−1 |∇v|ψ ≤
+
+p+m−1
+.
+p−1
+
+1
+4
+
+Z
+
+up+α +
+
+R
+
+Z
+
+p+α
+
+R
+
+|∇v| α+1−m ψ.
+
+By Lemma 2.5, there are Cp∗ > 0 and κ∗1 > 0 such that for any κ1 < κ∗1 ,
+Z
+We then have
+1 d
+p dt
+
+Z
+
+R
+
+R
+
+|∇v|
+
+p+α
+α+1−m
+
+ψ ≤ Cp∗
+
+Z
+
+γ(p+α)
+
+u α+1−m ψ.
+
+R
+
+Z
+
+Z
+Z
+κ1
+κ1
+up−2 |∇u|2 ψ +
+up−1 |∇u|2 ψ +
+up ψ
+2
+2
+R
+R
+R
+Z
+Z
+γ(p+α)
+χmκ1
+p+α
+∗ χmκ1
+u
+ψ + Cp
+u α+1−m ψ
++
+4(p + m − 1) R
+p+m−1 R
+Z
+Z
+Z
+χ(p − 1)
+p
+p+m+γ−1
+up+α ψ.
++
+u ψ−
+u
+ψ+
+p+m−1 R
+R
+R
+
+up ψdx ≤ −(p − 1)
+
+Next, in the case that α > m + γ − 1, it holds
+γ(p + α)
+< p + α.
+α+1−m
+By Young’s inequality, for any ǫ > 0, there is Cǫ > 0 such that
+Z
+Z
+Z
+γ(p+α)
+χmκ1
+ψ,
+u α+1−m ψ ≤ ǫ up+α ψ + Cǫ
+Cp∗
+p+m−1 R
+R
+R
+18
+
+(3.6)
+
+and
+
+χ(p − 1)
+p+m−1
+
+Z
+
+R
+
+up+m+γ−1 ψ ≤ ǫ
+
+Z
+
+up+α ψ + Cǫ
+R
+
+1
+Choose κ1 < min{κ∗1 , 2(p − 1), p+m−1
+χm } and ǫ = 8 . Then by (3.6),
+
+1 d
+p dt
+
+Z
+
+R
+
+up ψdx ≤ 2Cǫ
+
+Z
+
+ψ+ 1+
+R
+
+In the case that α = m + γ − 1,
+
+κ1 
+2
+
+Z
+
+R
+
+up ψ −
+
+1
+2
+
+Z
+Z
+
+ψ.
+R
+
+up+α ψ.
+
+(3.7)
+
+R
+
+γ(p + α)
+= p + α.
+α+1−m
+By (3.6), we have
+Z
+Z
+Z
+Z
+κ1
+κ1 
+1 d
+up ψdx ≤ −(p − 1) up−2 |∇u|2 ψ +
+up−1 |∇u|2 ψ + 1 +
+up ψ
+p dt R
+2
+2
+R
+R
+R
+
+Z
+χmκ1
+χmκ
+χ(p
+−
+1)
+1
++
++ Cp∗
++
+−1
+up+α ψ.
+4(p + m − 1)
+p+m−1 p+m−1
+R
+χ(p−1)
+Note that p+m−1
+− 1 < 0. Hence we can choose 0 < κ1 < min{κ∗1 , 2(p − 1)} such that
+
+
+
+
+χmκ1
+χ(p − 1)
+χmκ1
++ Cp∗
++
+− 1 < 0.
+4(p + m − 1)
+p+m−1 p+m−1
+
+This together with (3.6) implies that there is λ > 0 such that
+Z
+Z
+Z
+1d
+up ψdx ≤ (1 + κ1 /2) up ψ − λ up+α ψ.
+p dt R
+R
+R
+
+(3.8)
+
+By (3.7) in the case that α > m + γ − 1 and (3.8) in the case α = m + γ − 1, we have
+Z
+sup
+up ψ < ∞.
+t∈[0,Tmax (u0 ))
+
+R
+
+Moreover, by replacing ψ(·) by ψ(· − x0 ) in the above arguments, there is p > max{1, m, γ} such
+that
+Z
+sup
+up (t, x; u0 )ψ(x − x0 )dx < ∞.
+(3.9)
+t∈[0,Tmax (u0 )),x0 ∈R R
+
+Step 2. In this step, we prove that k∇v(t, ·; u0 )k∞ stays bounded.
+To then end, let p′ = γp . Then p′ > 1 and by (3.9), there holds
+Z
+
+sup
+
+t∈[0,Tmax (u0 )),x0 ∈R R
+
+p ′
+uγ (t, x; u0 ) ψ(x − x0 ) < ∞.
+
+This together with [19, Theorem 9.11] implies that
+sup
+t∈[0,Tmax (u0 ))
+
+k∇v(t, ·; u0 )k∞ < ∞.
+
+Step 3. In this step, we prove that Tmax (u0 ) = ∞ and ku(t, ·; u0 )k∞ stays bounded.
+19
+
+(3.10)
+
+To this end, let w = uψ. Then w satisﬁes
+wt = wxx − 2(uψx )x + 3uψxx − χ(um vx ψ)x + χum vx ψx + u(1 − uα )ψ.
+It then follows that
+(∆−I)t
+
+w(t, ·) = e
+|
+
+w(0, ·) −
+{z
+}
+I1
+
++
+
+Z t
+
+Z t
+
+
+e(∆−I)(t−s) 2uψx + χum vx ψ x ds
+{z
+}
+|0
+I2
+
+
+e(∆−I)(t−s) 3uψxx + χum vx ψx + 2uψ − u1+α ψ .
+|0
+{z
+}
+
+(3.11)
+
+I3
+
+It is clear that
+
+kI1 k∞ ≤ kw(0, ·)k∞ .
+
+(3.12)
+
+Since α + 1 > m, there is M ′ > 0 such that
+
+3uψxx + χum vx ψx + 2uψ − u1+α ψ ≤ 3κ1 uψ + χκ1 kvx k∞ um ψ + 2uψ − u1+α ψ ≤ M ′ .
+Therefore,
+I3 ≤ M ′
+
+Z t
+0
+
+ke(∆−I)(t−s) k∞ ds ≤ M ′
+
+(3.13)
+
+p
+. Then p′′ > 1. By Lemma 2.1, (3.9), and (3.10), there are Cp′′ and M ′′ such that
+Let p′′ = m
+
+Z t
+
+− 1 − 1′′ −λ(t−s)
+2 2p
+e
+k2uψx + χum vx ψkLp′′ ds
+0
+Z
+Z
+1/p′′
+ t
+− 1 − 1
+′′
+′′
+(up ψ + ump ψ)
+ds
+≤ 2Cp′′ 2χκ1 + χkvx k∞
+t − s 2 2p′′ e−λ(t−s)
+
+kI2 k∞ ≤ Cp′′
+
+t−s
+
+0
+
+R
+
+≤ M ′′ .
+
+It then follows from (3.11)-(3.12) that
+0 ≤ w(t, x) = u(t, x)ψ(x) ≤ kw(0, ·)k∞ + M ′ + M ′′
+
+∀ t ∈ [0, Tmax ), x ∈ R.
+
+Replaying ψ(·) by ψ(· − x0 ) in the above arguments yields that
+sup
+t∈(0,Tmax (u0 )),x0 ∈R
+
+ku(t, ·)ψ(· − x0 )k∞ < ∞,
+
+which implies that Tmax (u0 ) = ∞ and lim supt→∞ ku(t, ·; u0 )k∞ < ∞, i.e., (1.10) holds.
+In the following, we prove that (1.11) holds. First, note that
+ut = uxx − χmum−1 ux vx − χum (v − uγ ) + u(1 − uα )
+≤ uxx − χmum−1 ux vx + u(1 − uα + χum+γ−1 ).
+
+Let ū(t; u0 ) be the solution of the following ODE:
+(
+dū
+α
+m+γ−1 )
+dt = ū(1 − ū + χū
+ū(0) = supx∈R u0 (x).
+20
+
+(3.14)
+
+By comparison principle for parabolic equations,
+u(t, x; u0 ) ≤ ū(t; u0 ) ∀ t ≥ 0, x ∈ R.
+It then suﬃces to prove that
+lim sup ū(t; u0 ) ≤
+t→∞
+
+
+
+1  α1
+.
+1−χ
+
+(3.15)
+
+Assume that (3.15) does not hold. Then there are 0 < t1 < t2 < · · · < tn < · · · with tn → ∞
+such that
+ 1 1
+α
+.
+lim ū(tn ; u0 ) >
+n→∞
+1−χ
+Without loss of generality, we may assume that
+ū(tn ; u0 ) ≥
+for some ǫ0 > 0. Note that for u >
+
+
+
+1
+1−χ
+
+
+
+1
+
+α
+
+1  α1
++ ǫ0
+1−χ
+
+∀n ≥ 1
+
+(3.16)
+
+,
+
+1 − uα + χum+γ−1 ≤ 1 − uα + χuα = 1 − (1 − χ)uα < 0.
+
+1
+α
+1
+, ū(t; u0 ) is decreasing for t near t0 . This together with
+Hence at any t0 with ū(t0 ; u0 ) > 1−χ
+(3.16) implies that u(t, ; u0 ) is decreasing on [t1 , ∞). Note also that
+h
+1 − ūα (tn ; u0 ) + χūm+γ−1 (tn ; u0 ) ≤ 1 − (1 − χ)
+
+iα
+1  α1
++ ǫ0 < 0
+1−χ
+
+∀ n ≥ 0.
+
+It then follows that there is δ0 > 0 such that
+ū(tn+1 ; u0 ) ≤ ū(tn ; u0 ) − δ0
+
+∀ n ≥ 1.
+
+This implies that
+lim ū(tn+1 ; u0 ) ≤ lim ū(tn ; u0 ) − δ0 ,
+
+n→∞
+
+n→∞
+
+which is a contradiction. Hence (3.15) holds. Proposition 1.1(2) is thus proved.
+
+3.2
+
+Stabilization of positive classical solutions and proof of Proposition 1.2
+
+In this subsection, we prove Proposition 1.2.
+Proof of Proposition 1.2(1). Assume that χ ≤ 0 and inf x∈R u0 (x) > 0. Put
+ū(t) = sup u(t, x; u0 ) and
+x∈R
+
+u(t) = inf u(t, x; u0 ).
+x∈R
+
+By the similar arguments of (1.9), we can prove that, if 0 < u(t0 ) < 1 for some t0 > 0, then u(t) is
+non-decreasing on [0, t0 ), and that
+lim inf u(t) ≥ 1.
+t→∞
+
+This together with (1.9) implies that (1.12) holds. Proposition 1.2(1) is thus proved.
+
+21
+
+Proof of Proposition 1.2(2). Assume that 0 < χ < 12 , α ≥ m + γ − 1, and inf x∈R u0 (x) > 0. We
+adopt rectangle idea developed in [18] to prove that (1.12) holds. This idea can be described as
+follows: Fix an ǫ ∈ (0, min{inf x∈R u0 (x), 1}). Consider the following system of ODEs,
+
+m
+γ
+α
+γ
+
+U t = χU (U − U ) + U (1 − U )
+γ
+U t = χU m (U γ − U ) + U (1 − U α )
+
+
+U (0) = max{ku0 k∞ , 1} + ǫ, U (0) = min{inf x∈R u0 (x), 1} − ǫ.
+Let
+
+u(t) := inf u(t, x; u0 ),
+
+ū(t) := sup u(t, x; u0 ).
+
+x∈R
+
+x∈R
+
+We prove that
+0 < U (t) < u(t) ≤ ū(t) < U (t)
+
+∀ t ∈ [0, ∞),
+
+(3.17)
+
+and
+lim U (t) = lim U (t) = 1.
+
+(3.18)
+
+t→∞
+
+t→∞
+
+First, by the arguments in [18, Lemmas 3.1, 3.2], (U (t), U (t)) exists for all t ≥ 0,
+0 < U (t) < 1 < U (t),
+
+∀ t ≥ 0,
+
+and
+lim U (t) = lim U (t) = 1.
+t→∞
+
+t→∞
+
+Hence (3.18) holds.
+Next, we prove (3.17) holds. Assume by contradiction that (3.17) does not hold. Since (3.17)
+holds for 0 ≤ t ≪ 1. Then there is t0 > 0 such that (3.17) holds for 0 ≤ t < t0 , and there is
+{xn } ⊂ R such that
+lim u(t0 , xn ; u0 ) = U (t0 ) or
+
+n→∞
+
+lim u(t, xn ; u0 ) = U (t0 ).
+
+n→∞
+
+Assume that limn→∞ u(t0 , xn ; u0 ) = U (t0 ). Without loss of generality, we may assume that
+u∗ (t, x) := lim u(t, x + xn ; u0 ),
+n→∞
+
+v ∗ (t, x) := lim v(t, x + xn ; u0 )
+n→∞
+
+exist locally uniformly in (t, x) ∈ (0, ∞) × R, moreover, u∗ (t, x) satisﬁes
+
+
+u∗t = u∗xx − χm(u∗ )m−1 u∗x vx∗ + u∗ 1 − (u∗ )α + χ (u∗ )m+γ−1 − (u∗ )m−1 v ∗
+γ
+
+≥ u∗xx − χm(u∗ )m−1 u∗x vx∗ + χ((u∗ )m+γ − (u∗ )m U (t)) + u∗ (1 − (u∗ )α ),
+
+0 < t ≤ t0 ,
+
+Note that w = U (t) satisﬁes
+γ
+
+wt = wxx − χmwm−1 wx vx∗ + χ(wm+γ − wm U (t)) + w(1 − wα )
+and
+inf u∗ (t0 /2, x) > U (t0 /2).
+
+x∈R
+
+Then by strong comparison principle for parabolic equations, we have
+u∗ (t, x) > U (t) ∀ t ∈ [t0 /2, t0 ], x ∈ R.
+22
+
+x ∈ R.
+
+This implies that
+U (t0 ) < u∗ (t0 , 0) = lim u(t0 , xn ; u0 ) = U (t0 ),
+n→∞
+
+which is a contradiction. Hence, it is not possible that limn→∞ u(t0 , xn ) = U (t0 ).
+Similarly, it is not possible limn→∞ u(t0 , xn ) = U (t0 ). Then we must have (3.17) holds. By
+(3.17) and (3.18), we have
+lim ku(t, ·; u0 ) − 1k∞ = 0.
+t→∞
+
+Proposition 1.2(2) is thus proved.
+
+4
+
+Existence of traveling wave solutions and proof of Theorem 1.1
+
+In this section, we study the existence of traveling wave solutions of (1.1) connecting (1, 1) and
+(0, 0), and prove Theorem 1.1.
+To study traveling wave solutions of (1.1) with speed c, we introduce the moving coordinate
+(t, x − ct). Note that in this moving coordinate, (1.1) becomes
+(
+ut = uxx + cux − χ(um vx )x + u(1 − uα ),
+x∈R
+(4.1)
+γ
+0 = vxx − v + u ,
+x ∈ R.
+It is clear that if (u, v) = (φ(x), ψ(x)) is a stationary solution of (4.1) connecting (1, 1) and (0, 0),
+then (u, v) = (φ(x − ct), ψ(x − ct)) is a traveling wave solution of (1.1) connection (1, 1) and (0, 0)
+with speed c.
+In the following, we ﬁrst present some super- and sub-solutions of some equations relevant
+to (4.1) in Subsection 3.1, and then prove Theorem 1.1(1) and (2) in Subsections 3.2 and 3.3,
+respectively.
+
+4.1
+
+Super- and sub-solutions
+
+In this subsection, we present some super- and sub-solutions of some equations relevant to (4.1),
+which will be used to construct traveling wave solutions in next two subsections.
+We ﬁrst present some super-solutions of some equations relevant to (4.1). To this end, we ﬁrst
+introduce some notations.
+For given 0 < κ < 1, M ≥ 1, and T > 0, let
++
+= min{M, e−κx },
+Uκ,M
+
+and
+
+
++
+b
+(x)
+Eκ,M,T = {u ∈ C [0, T ], Cunif
+(R) | 0 ≤ u(t, x) ≤ Uκ,M
+
+∀ t ∈ [0, T ], x ∈ R}.
+
+For given u ∈ Eκ,M,T , let
+
+V (t, x) = V (t, x; u) := Ψ(x; uγ (t, ·), 1, 1),
+where Ψ is as in (2.5) with λ = µ = 1, and deﬁne
+
+
+A(W ; u) = Wxx + cWx − χmW m−1 Vx Wx + W 1 − χW m−1 V − W α − χW m+γ−1
+
+for W ∈ C 2 (R) with W ≥ 0, where
+
+c =κ+
+23
+
+1
+.
+κ
+
+Lemma 4.1 (Super-solutions). Assume that one of the following sets of conditions is satisﬁed:
+(i) α ≤ m + γ − 1, χ ≤ 0, 0 < κ < 1 is such that c := κ + κ1 > c∗χ,m,γ , and 1 ≤ M ≤ Mχ,κ,m,γ :=
+√ 2 21
+(> 1), where c∗χ,m,γ is as in (1.13).
+κ
+
+γ +γ |χ|+mγ|χ|
+
+(ii) α = m + γ − 1, 0 ≤ χ < χ∗ (m, α, γ), 0 < κ < 1, and M ≥ Mχ :=
+is as in (1.17).
+
+1/α
+1
+, where χ∗ (m, α, γ)
+1−χ
+
+Then for any u ∈ Eκ,M,T , the following hold:
+(1) W = e−κx is a super-solution of
+
+Wt = A(W ; u),
+
+t ∈ (0, T ), x ≥ −
+
+ln M
+.
+κ
+
+(2) W = M is a super-solution of
+Wt = A(W ; u),
+
+t ∈ (0, T ), x ∈ R.
+
+Proof. The Lemma can be proved by properly modiﬁed similar arguments of [43, Theorem 2.1(2)].
+For reader’s convenience and for seeing the eﬀects of the parameters m, α, γ , we provide a proof
+in the following. We divide the proof into two cases.
+Case 1. Assume that the condition (i) holds, i.e., χ ≤ 0, α ≤ m + γ − 1, 0 < κ < 1 is such that
+c = κ + κ1 satisﬁes (1.13), and 1 ≤ M ≤ Mχ,κ,m,γ . Note that, by the assumption c = κ + κ1 > c∗χ,m,γ ,
+there holds
+1
+=⇒ Mκ,χ,m,γ > 1.
+(4.2)
+κ< p
+γ 2 + γ 2 |χ| + mγ|χ|
+In this case,
+
+
+A(W ; u) = Wxx + cWx + mW m−1 |χ|Vx Wx + W 1 + |χ|W m−1 V − (W α + |χ|W m+γ−1 ) ,
+
+where V (t, x) = Ψ(x; uγ (t, ·), 1, 1).
+(1) It suﬃces to prove that
+
+A(e−κx ; u) ≤ 0
+
+∀x ≥ −
+
+ln M
+.
+κ
+
+First, note that
+A(e−κx ; u)
+
+= (e−κx )xx + c(e−κx )x + m|χ|(e−κx )m−1 (e−κx )x Vx
+
+
++ e−κx 1 + |χ|(e−κx )m−1 V − (e−κx )α + |χ|(e−κx )m+γ−1
+
+
+= e−κx − κ|χ|m(e−κx )m−1 Vx + |χ|(e−κx )m−1 V − (e−κx )α + |χ|(e−κx )m+γ−1 .
+
+Next, by Lemma 2.2, we have
+
+− κm|χ|Vx + |χ|V
+
+
+Z
+Z
+Z
+m −x x y γ
+m x ∞ −y γ
+|χ|
+= −κ|χ| − e
+e−|x−y| uγ (y)dy
+e u (y)dy + e
+e u (y)dy +
+2
+2
+2
+R
+−∞
+x
+Z x
+Z ∞
+|χ|
+|χ|
+(mκ + 1)e−x
+(1 − mκ)ex
+ey uγ (y)dy +
+e−y uγ (y)dy.
+=
+2
+2
+−∞
+x
+24
+
+(4.3)
+
+Note that u ≤ e−κx and c = κ + κ1 . By the assumption c > c∗χ,m,γ , we have κγ < 1 and κm < 1. It
+then holds that
+Z x
+Z ∞
+|χ|
+|χ|
+−x
+x
+y −κγy
+−κm|χ|Vx + |χ|V ≤
+(1 + mκ)e
+(1 − mκ)e
+e e
+dy +
+e−y e−κγy dy
+2
+2
+−∞
+x
+|χ| 1 + mκ −γκx |χ| 1 − mκ −κγx
+e
++
+e
+=
+2 1 − κγ
+2 1 + γκ
+1 + mγκ2 −κγx
+= |χ|
+e
+.
+(4.4)
+1 − γ 2 κ2
+Now, by (4.3) and (4.4), we have
+ 1 + mγκ2
+ −κx
+−(m+γ−1)κx
+−ακx
+−(m+γ−1)κx
+A(e−κx ; u) ≤ |χ|
+e
+.
+e
+−
+e
++
+|χ|e
+1 − γ 2 κ2
+
+(4.5)
+
+By (4.5) and α ≤ m + γ − 1, we have
+
+m+γ−1−α
+
+i
+h  1 + mγκ2
+−κx
+−
+1
+e
+−
+1
+e−(α+1)κx
+A(e−κx ; u) ≤ |χ|
+1 − γ 2 κ2
+
+ 1 + mγκ2
+ln M
+M
+−
+(1
++
+|χ|M
+)
+if x ≥ −
+.
+≤ e−(1+α)κx |χ|
+2
+2
+1−γ κ
+κ
+
+(4.6)
+
+Finally, by (4.2), there holds
+√
+κ M ≤ κM ≤ p
+
+1
+γ 2 + γ 2 |χ| + mγ|χ|
+
+=⇒ (γ 2 + γ 2 |χ| + mγ|χ|)κ2 M ≤ 1.
+
+This implies that
+
+
+
+(γ 2 + γ 2 |χ|M )κ2 + mγ|χ|κ2 M + |χ|M ≤ 1 + |χ|M =⇒ |χ| 1 + mγκ2 M ≤ 1 − γ 2 κ2 (1 + |χ|M ).
+
+Hence
+
+|χ|
+It then follows from (4.6) that
+
+1 + mγκ2
+M − (1 + |χ|M ) ≤ 0.
+1 − γ 2 κ2
+
+A(W ; u)(x) ≤ 0 ∀ x ≥ −
+
+ln M
+,
+κ
+
+and (1) is thus proved.
+(2) Note that u ≤ M . Hence
+
+V ≤ Mγ,
+
+and
+
+A(M ; u) = M 1 + |χ|M m−1 V − (M α + |χ|M m+γ−1 )
+
+
+≤ M 1 + |χ|M m−1 M γ − (M α + |χ|M m+γ−1 )
+≤ 0.
+
+This completes the proof of (2).
+25
+
+Case 2. Assume that the condition (ii) holds, i.e., 0 ≤ χ < χ∗ (m, α, γ), α = m + γ − 1, M ≥
+
+1/α
+1
+, and 0 < κ < 1.
+1−χ
+In this case,
+
+
+A(W ; u) = Wxx + cWx − mW m−1 |χ|Vx Wx + W 1 − |χ|W m−1 V − (W α − |χ|W m+γ−1 ) ,
+
+where c = κ + κ1 .
+(1) Note that
+
+A(e−κx ; u) = (e−κx )xx + c(e−κx )x − m|χ|(e−κx )m−1 (e−κx )x Vx
+
+
++ e−κx 1 − |χ|(e−κx )m−1 V − (e−κx )α − |χ|(e−κx )m+γ−1
+
+
+= κ|χ|m(e−κx )m−1 Vx − |χ|(e−κx )m−1 V − (e−κx )α − |χ|(e−κx )m+γ−1 e−κx .
+
+By 0 ≤ u ≤ e−κx and Lemma 2.2, we have
+
+κm|χ|Vx − |χ|V
+
+
+Z
+Z
+Z
+m −x x y γ
+m x ∞ −y γ
+1
+= κ|χ| − e
+e−|x−y| uγ (y)dy
+e u (y)dy + e
+e u (y)dy − |χ|
+2
+2
+2 R
+−∞
+x
+Z x
+Z ∞
+|χ|
+|χ|
+−x
+x
+y γ
+(mκ − 1)e
+e u (y)dy +
+e−y uγ (y)dy
+= − (mκ + 1)e
+2
+2
+−∞
+x
+|χ| (mκ − 1)+ −γκx
+≤
+e
+.
+2 1 + κγ
+This together with α = m + γ − 1 implies that
+
+
+ −κx
+|χ| (mκ − 1)+ −(γ+m−1)κx
+−ακx
+−(m+γ−1)κx
+−κx
+e
+− e
+− |χ|e
+e
+A(e
+; u) ≤
+2 1 + κγ
+h |χ| (mκ − 1)
+
+i
++
+= e−(1+α)κx
++ |χ| − 1 .
+2 1 + κγ
+
+Note that
+
+
+χ − 1
+
+
+
++
++ |χ| − 1 ≤
+m−1 
+−1
++
+1
+χ
+
+1 + κγ
+γ
+
+ |χ| (mκ − 1)
+2
+
+2 1+ m
+
+if κ ≤ 1/m
+
+if κ > 1/m.
+
+This together with χ < χ∗ (m, α, γ) implies that
+
+A(e−κx ; u) ≤ 0
+
+∀x ≥ −
+
+ln M
+.
+κ
+
+This completes the proof of (1).
+(2) Note that
+
+A(M ; u) = M 1 − |χ|M m−1 V − (M α − |χ|M m+γ−1 )
+
+≤ M 1 − (M α − |χ|M m+γ−1 )
+= M − (1 − |χ|)M α
+
+≤0
+This proves (2).
+26
+
+(by α = m + γ − 1)
+1  α1 
+since M ≥
+.
+1−χ
+
+In the following, we present some subsolutions of some equations relevant to (4.1). We ﬁrst
+introduce some notations.
+For given 0 < κ < κ̃ ≤ 1 and D > 0, let
+Uκ,κ̃,D (x) = e−κx − De−κ̃x .
+Let x±
+κ,κ̃,D > 0 be such that
+
+Uκ,κ̃,D (x−
+κ,κ̃,D ) = 0.
+Uκ,κ̃,D (x+
+κ,κ̃,D ) = max Uκ,κ̃,D (x).
+x∈R
+
+Observe that
+x−
+κ,κ̃,D =
+and
+x+
+κ,κ̃,D =
+Let
+
+1
+ln D,
+κ̃ − κ
+
+κ̃D
+1
+ln
+.
+κ̃ − κ
+κ
+
+(
+Uκ,κ̃,D (x+
+−
+κ,κ̃,D )
+(x) =
+Uκ,κ̃,D
+Uκ,κ̃,D (x)
+
+if
+if
+
+x ≤ x+
+κ,κ̃,D
+x > x+
+κ,κ̃,D .
+
+Furthermore, for given M ≥ 1, let
+
+
+
+
+m(k̃ + k) + 1 M γ + 43 ,
+
+
+
+
+
+
+
+
+m(κ̃ + κ) + 1 · 1−γ12 κ2
+KM,κ,κ̃,m,γ =
+
+
+
+
+
+
+
+
+ m(κ̃ + κ) + 1 · M γ (κ22γ 22−1)+γκ ,
+(κ γ −1)
+
+and
+
+DM,κ,κ̃,χ,m,γ :=
+where c = κ + κ1 .
+
+if
+
+γκ = 1
+
+if
+
+γκ < 1
+
+if
+
+γκ > 1,
+
+1 + |χ|Kκ,κ̃,m,γ
+,
+cκ̃ − κ̃2 − 1
+
+Lemma 4.2 (Sub-solutions). Assume that 0 < κ < 1, κ̃ is such that 0 < κ < κ̃ ≤ min{(1 +
+α)κ, mκ + 1/2, 1}, and M ≥ 1. Then for any u ∈ Eκ,M,T , the following hold:
+(1) For D > DM,κ,κ̃,χ,m,γ , W = Uκ,κ̃,D (x) is a sub-solution of
+Wt = A(W ; u)
+(2) For 0 < d ≤ dκ,κ̃,D,χ := min
+
+n
+
+1
+1+|χ| ,
+
+t ∈ (0, T ),
+
+
+κ
+κ̃D
+
+t ∈ (0, T ), x > x−
+κ,κ̃,D .
+
+ κ 
+o
+κ̃−κ
+1 − κκ̃ , W = d is a sub-solution of
+
+Wt = A(W ; u),
+
+t ∈ (0, T ), x ∈ R.
+
+Proof. The Lemma can be proved by properly modiﬁed arguments of [43, Theorem 2.1(3)]. For
+self-completeness and reader’s convenience, we provide a proof in the following.
+
+27
+
+First of all, by Lemma 2.2, for x ≥ 0, we have
+Z
+Z
+Z
+1 −x x y γ
+1 x ∞ −y γ
+1 −x 0 y γ
+e u (t, y)dy + e
+e u (t, y)dy + e
+e u (t, y)dy.
+V (t, x) = e
+2
+2
+2
+−∞
+0
+x
+This implies that for x ≥ 0,
+
+
+ γ
+x
+1
+M
+−x
+
++
++
+
+2
+4 e ,
+ 2
+V (t, x) ≤ 1−γ12 κ2 e−γκx ,
+
+
+
+
+ M γ + γκ
+e−x ,
+2
+
+Note that
+
+Mγ
+2
+
+Hence, for x ≥ 0
+
++
+
+κ2 γ 2 −1
+
+x 1  −x/2 M γ
+3
+e
+≤
++
++
+2 4
+2
+4
+
+
+
+3
+γ
+
+M + 4 e−x/2 ,
+
+
+V (t, x) ≤ 1−γ12 κ2 e−γκx ,
+
+
+
+
+ M γ (κ2 γ 2 −1)+γκ e−x ,
+(κ2 γ 2 −1)
+
+if
+
+γκ = 1
+
+if
+
+γκ < 1
+
+if
+
+γκ > 1.
+
+∀ x ≥ 0.
+if
+
+γκ = 1
+
+if
+
+γκ < 1
+
+if
+
+γκ > 1.
+
+This together with Lemma 2.3 implies that for x ≥ 0,
+
+ 
+
+− M γ + 34 e−x/2 ,
+
+
+−|Vx (t, x)| ≥ − 1−γ12 κ2 e−γκx ,
+
+
+
+
+− M γ (κ2 γ 2 −1)+γκ e−x ,
+(κ2 γ 2 −1)
+
+(4.7)
+
+if γκ = 1
+if
+
+γκ < 1
+
+(4.8)
+
+if γκ > 1.
+
+We divide the rest of the proof into two cases.
+Case 1. χ ≤ 0.
+In this case,
+
+
+A(W ; u) = Wxx + cWx + mW m−1 |χ|Vx Wx + W 1 + |χ|W m−1 V − (W α + |χ|W m+γ−1 ) ,
+
+where V (t, x) = Ψ(x; uγ (t, ·), 1, 1)
+(1) It suﬃces to prove that
+
+A(Uκ,κ̃,D ; u) ≥ 0
+
+∀ x ≥ x−
+κ,κ̃,D .
+
+Note that x−
+κ,κ̃,D > 0 and
+A(Uκ,κ̃,D ; u) = (e−κx − De−κ̃x )xx + c(e−κx − De−κ̃x )x + |χ|m(e−κx − De−κ̃x )m−1 Vx (e−κx − De−κ̃x )x
++ (e−κx − De−κ̃x )(1 + |χ|(e−κx − De−κ̃x )m−1 V )
+
+
+− (e−κx − De−κ̃x ) (e−κx − De−κ̃x )α + |χ|(e−κx − De−κ̃x )m+γ−1
+
+
+
+
+≥ D cκ̃ − κ̃2 − 1 e−κ̃x + |χ|m(e−κx − De−κ̃x )m−1 κ̃De−κ̃x − κe−κx Vx
+
+
+− (e−κx − De−κ̃x ) (e−κx − De−κ̃x )α + |χ|(e−κx − De−κ̃x )m+γ−1 .
+28
+
+By (4.8), for x ≥ x−
+κ,κ̃,D , we have
+
+
+
+|χ|m(e−κx − De−κ̃x )m−1 κ̃De−κ̃x − κe−κx Vx
+
+
+≥ −|χ|me−(m−1)κx e−κx κ̃De−(κ̃−κ)x + κ |Vx |
+
+
+Mγ
+3 −(mκ+1/2)x
+
+,
+
+−|χ|m(k̃ + k) 2 + 4 e
+|χ|m(κ̃+κ) −(m+γ)κx
+≥ − 1−γ 2 κ2 e 
+
+
+
+−|χ|m(κ̃ + κ) M γ (κ22γ 22−1)+γκ e−(mκ+1)x ,
+2(κ γ −1)
+
+if
+if
+
+γκ = 1
+γκ < 1
+
+if
+
+γκ > 1.
+
+It then follows that
+
+
+
+A(Uκ,κ̃,D ; u) ≥ D cκ̃ − κ̃2 − 1 − 1 − |χ|KM,κ,κ̃,m,γ e−κ̃x
+
+Note that for κ < κ̃ ≤ 1,
+
+∀ x > x−
+κ,κ̃,D .
+
+cκ̃ − κ̃2 − 1 > 0.
+
+Hence
+A(Uκ,κ̃,D ; u)(x) ≥ 0 ∀ x ≥ x−
+κ,κ̃,D , D ≥ DM,κ,κ̃,χ,m,γ .
+(2) It follows directly.
+Case 2. χ > 0.
+In this case,
+
+A(W ; u) = Wxx + cWx − mW m−1 |χ|Vx Wx + W 1 − |χ|W m−1 V − (W α − |χ|W m+γ−1 ) ,
+
+(1) Note that
+
+
+
+
+
+A(Uκ,κ̃,D ; u) = D cκ̃ − κ̃2 − 1 e−κ̃x − |χ|m(e−κx − De−κ̃x )m−1 κ̃De−κ̃x − κe−κx Vx
+m
+− |χ|V e−κx − De−κ̃x
+
+
+− (e−κx − De−κ̃x ) (e−κx − De−κ̃x )α − |χ|(e−κx − De−κ̃x )m+γ−1
+
+
+
+
+≥ D cκ̃ − κ̃2 − 1 e−κ̃x − |χ|m(e−κx − De−κ̃x )m−1 κ̃De−κ̃x − κe−κx Vx
+m
+α
+− |χ|V e−κx − De−κ̃x − (e−κx − De−κ̃x ) e−κx − De−κ̃x .
+
+By (4.7) and (4.8), we have
+
+
+
+A(Uκ,κ̃,D ; u) ≥ D cκ̃ − κ̃2 − 1 − 1 − |χ|KM,κ,κ̃,m,γ e−κ̃x
+≥ 0 ∀ x ≥ x−
+κ,κ̃,D , D ≥ DM,κ,κ̃,χ,m,γ .
+
+(2) It follows directly.
+Remark 4.1. Suppose that 0 < κ < 21 , γκ < 1, and κ̃ = 2κ. Then
+c̃κ̃ − κ̃2 − 1 = 2cκ − 4κ2 − 1 = 2 κ +
+and for any M ≥ 1,
+
+1
+κ − 4κ2 − 1 = 1 − 2κ2 ,
+κ
+
+KM,κ,κ̃,m,γ = Kκ,m,γ :=
+29
+
+3mκ + 1
+,
+1 − γ 2 κ2
+
+(4.9)
+
+and
+DM,κ,κ̃,χ,m,γ =
+
+
+
+1 − γ 2 κ2 + |χ| 3mκ + 1
+(1 − 2κ2 )(1 − γ 2 κ2 )
+
+≤ Dκ,χ,m,γ :=
+
+
+
+2 1 − γ 2 κ2 + |χ| 3mκ + 1
+1 − γ 2 κ2
+
+.
+
+(4.10)
+
+We also have
+ κ 
+
+κ o
+κ
+1
+κ̃−κ
+1−
+,
+1 + |χ| κ̃Dκ,χ,m,γ
+κ̃
+n 1
+o
+1
+1
+= min
+,
+1 + |χ| 4 Dκ,χ,m,γ
+1 − γ 2 κ2
+1
+.
+=
+8 1 − γ 2 κ2 + |χ| 3mκ + 1
+
+dκ,χ,m,γ := min
+
+1
+Assume κ < γ+|χ|
+σ . Then
+
+n
+
+dκ,χ,m,γ ≥
+
+(4.11)
+
+(1 + γ)|χ|σ
+1
+.
+8 (1 + |χ| + 2m|χ|)(γ + |χ|σ )
+
+The above estimates will be used in the proof of Theorem 1.2.
+Remark 4.2. For given M ≥ 1, 0 < κ < 1, and T > 0, let
+
+b
+e + (x)
+(R) | 0 ≤ u(t, x) ≤ U
+Eeκ,M,T = {u ∈ C [0, T ], Cunif
+κ,M
+
+where
+
+∀ t ∈ [0, T ], x ∈ R},
+
+e + = min{M, M e−κx }.
+U
+κ,M
+
+Assume that 0 < κ < 1, and κ̃ is such that 0 < κ < κ̃ ≤ min{(1 + α)κ, mκ + 1/2, 1}. By the similar
+arguments of Lemma 4.2, we also have that for any u ∈ Eeκ,M,T , the following hold:
+(1) For D ≫ 1, W = Uκ,κ̃,D (x) is a sub-solution of
+
+Wt = A(W ; u) t ∈ (0, T ),
+
+t ∈ (0, T ), x > x−
+κ,κ̃,D .
+
+(2) For 0 < d ≪ 1, W = d is a sub-solution of
+Wt = A(W ; u),
+
+t ∈ (0, T ), x ∈ R.
+
+This remark will also be used in the proof of Theorem 1.2.
+
+4.2
+
+Existence of monotone traveling wave solutions with negative sensitivity
+and proof of Theorem 1.1(1)
+
+In this subsection, we prove Theorem 1.1(1). Throughout this subsection, we assume that χ ≤ 0
+and α ≤ m + γ − 1.
+√
+
+2
+
+Proof of Theorem 1.1(1). First, for ﬁxed c satisfying (1.13), i.e, c > c∗χ,m,γ , let κ = c− 2c −4 . For
+ﬁxed κ1 satisfying κ < κ1 < min{(α + 1)κ, mκ + 1/2, 1}, let κ̃ be such that 0 < κ1 < κ̃ ≤
+min{(1 + α)κ, mκ + 1/2, 1}. Fix M ≥ 1 and D ≥ DM,κ,κ̃,χ,m,γ , where D is as Lemma 4.2(1). Let
++
+−
+b
+(x) ∀ x ∈ R},
+(x) ≤ u(x) ≤ Uκ,M
+(R) | Uκ,κ̃,D
+Eκ,M = {u ∈ Cunif
+
+30
+
+and
+′
+Eκ,M
+= {u ∈ Eκ,M | u(x1 ) ≥ u(x2 ) ∀ − ∞ < x1 < x2 < ∞}.
+′
+b (R).
+It is clear that Eκ,M Eκ,M
+are convex closed subsets of Cunif
+′
+′
+and prove that
+→ Eκ,1
+Our idea to prove Theorem 1.1(1) is to construct a mapping Tκ,1 : Eκ,1
+∗
+∗
+it has a ﬁxed point U , which gives rise to a traveling wave solution u(t, x) = U (x − ct) of (1.1).
+We divide the proof into four steps. In the rest of the proof, we always assume that χ < 0.
+′ , let u(t, x; U + , u) be the solution of
+Step 1. In this step, for given u ∈ Eκ,1
+κ,1
+
+ut = uxx + cux − χmum−1 ux Vx − χum V + χum+γ + u(1 − uα )
+
+(4.12)
+
++
++
+with initial condition u(0, x; Uκ,1
+, u) = Uκ,1
+(x), where V (x) = Ψ(x; uγ (·), 1, 1). We prove that
++
+U (x; u) := lim u(t, x; Uκ,1
+, u)
+t→∞
+
+′ .
+exists, and that U (·; u) ∈ Eκ,1
+
+First, note that V is the solution of
+Vxx − V + uγ (x) = 0.
+
+By comparison principle for elliptic equations, there holds
+0 ≤ V (x) ≤ 1 and Vx (x) ≤ 0
+
+∀ x ∈ R.
+
++
+, u). Then w satisﬁes
+Let w = ux (t, x; Uκ,1
+
+
+
+wt = wxx + c + |χ|mum−1 Vx wx + |χ|m(m − 1)um−2 w2 + |χ|um Vx
+
+
++ |χ|mum−1 Vxx + |χ|mum−1 v + χ(m + γ)um+γ−1 + 1 − (α + 1)uα w
+
+≤ wxx + c + |χ|mum−1 Vx wx
+
+
++ |χ|mum−1 Vxx + |χ|mum−1 v + χ(m + γ)um+γ−1 + 1 − (α + 1)uα w (since Vx ≤ 0)
+
+for t > 0, and
+
+w(0, x) ≤ 0 ∀ x 6= 0.
+It then follows from comparison principle for parabolic equations that
++
+ux (t, x; Uκ,1
+, u) = w(t, x) ≤ 0 ∀ t > 0, x ∈ R.
+
+(4.13)
+
+By Lemmas 4.1 and 4.2,
++
++
+−
+(x) ≤ u(t, x; Uκ,1
+, u) ≤ Uκ,1
+(x)
+Uκ,κ̃,D
+
+∀ t ≥ 0, x ∈ R.
+
++
+′
+Hence u(t, ·; Uκ,1
+, u) ∈ Eκ,1
+for all t ≥ 0.
+Next, by (4.14) and comparison principle for parabolic equations, it holds that
++
++
+Uκ,κ̃,D (x) ≤ u(t2 , x; Uκ,1
+, u) ≤ u(t1 , x; Uκ,1 , u) ≤ Uκ,1
+(x) ∀ 0 ≤ t1 ≤ t2 , x ∈ R.
+
+It then follows that
++
+U (x; u) := lim u(t, x; Uκ,1
+, u)
+t→∞
+
+31
+
+(4.14)
+
+exists. Moreover, by a priori estimates for parabolic equations, U (x; u) is uniformly continuous on
+′ .
+R. Then by (4.14) again, U (·; u) ∈ Eκ,1
+
+′ → E′
+Step 2. In this step, we deﬁne the mapping Tκ,1 : Eκ,1
+κ,1 by
+
+Tκ,1 u = U (·; u),
+and prove that Tκ,1 has a ﬁxed point.
+To do so, we let
+
+b
+X = Cunif
+(R)
+
+be equipped with the norm
+kukX =
+
+∞
+X
+1
+k=1
+
+2k
+
+kukL∞ ([−k,k]).
+
+′
+as a subset of X and applying a priori estimate for parabolic equations, it is not
+Viewing Eκ,1
+diﬃcult to see that the mapping Tκ,1 is compact. By the arguments in [40, Theorem 3.1], T1,κ is
+′
+such that
+also continuous. Then by Schauder ﬁxed-point theorem, there is U ∗ ∈ Eκ,1
+
+U (·; U ∗ ) = U ∗ (·).
+Step 3. In this step, we prove that (u(t, x), v(t, x) = (U ∗ (x − ct), V ∗ (x − ct)) is a traveling wave
+solution of (1.1) satisfying the properties in the statement of Theorem 1.1(1), where V ∗ (x) =
+Ψ(x; U ∗ , 1, 1).
+First, it is clear that (u, v) = (U ∗ (x), V ∗ (x)) is a stationary solution of (4.1). Hence (u(t, x),
+v(t, x)) = (U ∗ (x − ct), V ∗ (x − ct)) is a traveling wave solution of (1.1) with speed c. Moreover, by
+(4.14), it holds
++
+−
+(x) ≤ U ∗ (x) ≤ Uκ,1
+(x) ∀ x ∈ R.
+Uκ,κ̃,D
+This implies that
+lim e(κ1 −κ)x
+
+x→∞
+
+It remains to prove that
+
+ U ∗ (x − ct)
+e−κ(x−ct)
+
+
+− 1 = 0.
+
+lim U ∗ (x) = 1.
+
+x→−∞
+
+Assume by contradiction that the above does not hold. Then there is xn → −∞ such that
+0 < lim u∗ (xn ) < 1.
+n→∞
+
+Without loss of generality, we may assume that
+e ∗ (x), Ve ∗ (x)) = lim (U ∗ (x + xn ), V ∗ (x + xn ))
+(U
+n→∞
+
+e ∗ (x) > 0 and (U
+e ∗ , Ve ∗ ) is a stationary solution of
+exists locally uniformly in x ∈ R. Then inf x∈R U
+e ∗ ≡ 1, in particular, U
+e ∗ (0) = 1, which is a contradiction.
+(4.1). By Proposition 1.2, U
+
+32
+
+4.3
+
+Existence of traveling wave solutions with positivity sensitivity and proof
+of Theorem 1.1(2)
+
+In this subsection, we prove Theorem 1.1(2). Throughout this subsection, we assume that 0 ≤ χ <
+min{ 12 , m2m+2γ
+2 +m+2γ } and α = m + γ − 1.
+√
+
+2
+
+Proof of Theorem 1.1(2). First, for ﬁxed c > 2, let κ = c− 2c −4 . For ﬁxed κ1 satisfying κ < κ1 <
+min{(1 + α)κ, mκ + 1/2, 1}, let κ̃ be such that 0 < κ1 < κ̃ ≤ min{(1 + α)κ, mκ + 1/2, 1}. Let
+1/α
+1
+and ﬁx D ≥ DM,κ,κ̃,χ,m,γ , where D is as Lemma 4.2(1).
+M = Mχ := 1−χ
++
+Next, for given u ∈ Eκ,Mχ , let V (x) = Ψ(x; u, 1, 1) and u(t, x; Uκ,M
+, u) be the solution of (4.12)
+χ
++
++
+with u(0, x; Uκ,Mχ , u) = Uχ,Mχ (x). By the arguments of Step 1 in the proof of Theorem 1.1(1), we
+have
++
+, u)
+U (x; u) := lim u(t, x; Uκ,M
+χ
+t→∞
+
+exists, and U (·; u) ∈ Eκ,Mχ .
+Now, by the arguments of Step 2 in the proof of Theorem 1.1(1), the mapping Tκ,Mχ : Eκ,Mχ →
+Eκ,Mχ deﬁned by
+Tκ,Mχ u = U (·; u)
+
+has a ﬁxed point U ∗ ∈ Eκ,Mχ .
+Finally, by the arguments of Step 3 in the proof of Theorem 1.1(1), and Proposition 1.2,
+(u(t, x), v(t, x)) = (U ∗ (x − ct), V ∗ (x − ct)) is a traveling wave solution of (1.1) satisfying (1.15),
+(1.16), and (1.18).
+Remark 4.3. (1) The traveling wave solution (u(t, x), v(t, x)) = U (x − ct), V (x − ct)) obtained from
+the above construction satisﬁes
+
+ U (x)
+lim eηx −κx − 1 = 0
+x→∞
+e
+for any 0 < η ≤ min{ακ, (m − 1)κ + 1/2, 1 − κ}. Note that, if (U1 , V1 ) and (U2 , V2 ) are two such
+traveling wave solutions obtained from the above arguments, then
+ U (x) U (x) 
+
+1
+2
+lim e(η+κ)x U1 (x) − U2 (x) = lim eηx −κx − −κx = 0
+x→∞
+x→∞
+e
+e
+for any 0 < η < min{ακ, (m − 1)κ + 1/2, 1 − κ}. This implies that
+Z
+e2(η+κ)x |U1 (x) − U2 (x)|2 dx < ∞
+R
+
+for any 0 < η < min{ακ, (m − 1)κ + 1/2, 1 − κ}.
+1
+(2) In the case that 12 < m2m+2γ
+2 +m+2γ , by the arguments of Theorem 1.1(2), when 2 ≤ χ <
+
+min{ m2m+2γ
+2 +m+2γ , 1}, for any c > 2, (1.1) has a traveling wave solution (u(t, x), v(t, x)) = (U (x −
+ct), V (x − ct)) satisfying
+lim (U (x), V (x)) = (0, 0),
+
+x→∞
+
+5
+
+lim inf U (x) > 0.
+x→−∞
+
+Uniqueness and stability of traveling waves connecting constant
+solutions
+
+In this section we study the uniqueness and stability of traveling wave solutions of (1.1) and prove
+Theorems 1.2 and 1.3. To this end, we ﬁrst establish some a priori estimates for traveling wave
+solutions of (1.1) connecting (1, 1) and (0, 0).
+33
+
+5.1
+
+Some a priori estimates for traveling wave solutions
+
+In the ﬁrst lemma, we provide some a priori estimates for traveling wave solutions of (1.1) or
+stationary solutions of (4.1) connecting (1, 1) and (0, 0). Throughout this subsection, we assume
+(
+1
+if χ ≤ 0
+1/α
+Mχ =
+1
+if 0 < χ < 1/2.
+1−χ
+Lemma 5.1. Suppose that c > 2, and (u(x), v(x)) is s stationary
+solution of (4.1) connecting (1, 1)
+√
+c− c2 −4
+−κx
+and (0, 0) and 0 < u(x) ≤ min{Mχ , e
+}, where k =
+.
+2
+(1) There hold
+|v(x)| ≤ Mχγ and |vx (x)| ≤ Mχγ
+
+∀ x ∈ R.
+
+(5.1)
+
+If, in addition, c > γ + γ1 , which is equivalent to κ < γ1 , then
+
+|v(x)| ≤ min Mχγ ,
+
+1
+e−κγx
+1 − κ2 γ 2
+
+and |vx (x)| ≤ min{Mχγ ,
+
+1
+e−κγx }
+1 − κ2 γ 2
+
+∀ x ∈ R.
+
+(5.2)
+
+(2) limx→±∞ ux (x) = 0.
+(3) If c > m|χ|Mχm+γ−1 , then
+−
+
+|χ|Mχm+γ + Mχ
+
+m+γ−1 ≤ ux (x) ≤
+
+c − m|χ|Mχ
+
+|χ|Mχm+γ + Mχ (Mχα − 1)
+c − m|χ|Mχm+γ−1
+
+
+(4) If c > max γ + γ1 , m|χ|Mχm+γ−1 , then
+where
+
+
+
+2 
+|ux (x)| ≤ 1 +
+M1,κ,χ,m,α,γ e−κx + M2,κ,χ,m,α,γ e−γκx
+c
+
+∀ x ∈ R.
+
+(5.3)
+
+∀ x ∈ R,
+
+(5.4)
+
+M1,κ,χ,m,α,γ := 1 + 2|χ|Mχm+γ−1 + Mχα .
+and
+M2,κ,χ,m,α,γ :=
+
+|χ|mMχm−1 (|χ|Mχm+γ + Mχα+1 )
+(c − m|χ|Mχm+γ−1 )(1 − γ 2 κ2 )
+
+.
+
+Proof. (1) By the assumption,
+0 ≤ u(x) ≤ min{Mχ , e−κx } ∀ x ∈ R.
+
+(5.5)
+
+This together with Lemmas 2.3 and 2.4 implies that (5.1) and (5.2) hold.
+(2) First, we prove that limx→−∞ ux (x) = 0. Assume by contradiction that limx→∞ ux (x) 6= 0.
+Then there is ǫ0 > 0 and xn → −∞ such that
+|ux (xn )| ≥ ǫ0 .
+Without loss of generality, we may assume that the limit
+u∞ (x) = lim u(x + xn ),
+n→∞
+
+34
+
+v∞ (x) = lim v(x + xn )
+n→∞
+
+exist locally uniformly in x ∈ R. Then by regularity for parabolic and elliptic equations, (u∞ , v∞ )
+is a stationary solution of (4.1) and
+inf u∞ (x) > 0,
+
+inf v∞ (x) > 0.
+
+x∈R
+
+x∈R
+
+We then must have u∞ (x) ≡ 1, but |(u∞ )x (0)| ≥ ǫ0 , which is a contradiction. Hence limx→−∞ ux (x) =
+0.
+Next, we prove limx→∞ ux (x) = 0. Assume by contradiction that limx→∞ ux (x0 ) 6= 0. Then by
+the uniform continuity of ux (x), there are ǫ0 > 0, δ0 > 0, and xn → ∞ such that
+|ux (x)| ≥ δ0
+
+∀ x ∈ [xn − δ0 , xn + δn ], n = 1, 2, · · · .
+
+Without loss of generality, we may assume that
+ux (x) ≥ δ0
+
+∀ x ∈ [xn − δ0 , xn + δn ], n = 1, 2, · · · .
+
+Note that
+lim u(x + xn ) = 0
+
+n→∞
+
+∀ x ∈ [xn , xn + δ0 ], n = 1, 2, · · · .
+
+On the other hand,
+u(xn + δ0 ) = u(xn ) +
+
+Z nn +δ0
+xn
+
+ux (y)dy ≥ u(xn ) + δ0 ǫ0 6→ 0
+
+as n → ∞, which is a contradiction. Hence limx→∞ ux (x) = 0.
+(3) First, note that
+
+uxx + cux − χmum−1 ux vx − χum (v − uγ ) + u(1 − uα ) = 0.
+By (2),
+lim ux (x) = 0.
+
+x→±∞
+
+This together with limx→−∞ u(x) = 1 and limx→∞ u(x) = 0 implies that ux (x) < 0 for some x ∈ R.
+Hence there is xmin ∈ R such that
+0 > ux (xmin ) = min ux (x),
+x∈R
+
+uxx (xmin ) = 0.
+
+It then follows from (5.1) that
+
+
+
+c − χmum−1 (xmin )vx (xmin ux (xmin ) ≤ c − m|χ|Mχm+γ−1 ux (xmin ).
+
+This together with (5.1) implies that
+
+0 = uxx (xmin ) + cux (xmin ) − χmum−1 (xmin )ux (xmin )vx (xmin )
+
+It then follows that
+
+− χum (xmin )(v(xmin ) − uγ (xmin )) + u(xmin )(1 − uα (xmin ))
+
+≤ c − m|χ|Mχm+γ−1 ux (xmin ) + |χ|Mχm+γ + Mχ .
+ux (x) ≥ ux (xmin ) ≥ −
+
+|χ|Mχm+γ + Mχ
+
+c − m|χ|Mχm+γ−1
+35
+
+∀ x ∈ R.
+
+Next, note that if ux (x) ≤ 0 for all x ∈ R, then (5.3) is proved. If ux (x) > 0 for some x ∈ R,
+then there is xmax ∈ R such that
+0 < ux (xmax ) = max ux (x),
+x∈R
+
+uxx (xmax ) = 0.
+
+By (5.1) again,
+c − χmu
+
+m−1
+
+
+
+
+m+γ−1
+ux (xmax ).
+(xmax )vx (xmax ) ux (xmax ) ≥ c − m|χ|Mχ
+
+This together with (5.1) implies that
+
+0 = uxx (xmax ) + cux (xmax ) − χmum−1 (xmax )ux (xmax )vx (xmax )
+
+Therefore
+
+− χum (xmax )(v(xmin ) − uγ (xmax )) + u(xmax )(1 − uα (xmax ))
+
+
+≥ (c − m|χ|Mχm+γ−1 ux (xmax ) − |χ|Mχm+γ − Mχ Mχα − 1 .
+ux (xmax ) ≤
+
+Hence (5.3) holds.
+(4) First, note that
+
+|χ|Mχm+γ + Mχ (Mχα − 1)
+c − m|χ|Mχm+γ−1
+
+.
+
+uxx + cux − u + f (x) = 0,
+where
+f (x) = u(x) − χmum−1 (x)ux (x)vx (x) − χum (x)(v(x) − uγ (x)) + u(x)(1 − uα (x)).
+By Lemma [44, Lemma 2.1], it holds that
+√
+Z
+− 4+c2 |x−y|−c(x−y)
+1
+2
+√
+u(x) =
+f (y)dy
+e
+4 + c2 R
+
+
+Z x
+Z ∞
+1
+−λc1 x
+λc1 y
+λc2 x
+−λc2 y
+e
+e f (y)dy + e
+e
+f (y)dy ,
+=√
+4 + c2
+−∞
+x
+and
+
+
+
+Z x
+Z ∞
+1
+c −λc1 x
+λc1 y
+c λc2 x
+−λc2 y
+−λ1 e
+e f (y)dy + λ2 e
+ux (x) = √
+e
+f (y)dy ,
+4 + c2
+−∞
+x
+
+where
+
+√
+
+4 + c2 + c
+,
+2
+By (5.1), (5.1), and (5.3), it holds that
+λc1 =
+
+λ22 =
+
+√
+4 + c2 − c
+.
+2
+
+|f (x)| ≤ u(x) + |χmum−1 ux vx | + |χum (v − uγ )| + |u(1 − uα )|
+|χ|mMχm−1 (|χ|Mχm+γ + Mχα+1 )
+
+|vx | + |χ|um (uγ + v) + |u(1 − uα )|
+m+γ−1
+c − m|χ|Mχ
+
+|χ|mMχm−1 (|χ|Mχm+γ + Mχα+1 ) −γκx 
+−κx
+m+γ−1
+α
+≤ e−κx +
+e
++
+2|χ|M
++
+M
+χ
+χ e
+(c − m|χ|Mχm+γ−1 )(1 − γ 2 κ2 )
+= M1,κ,χ,m,α,γ e−κx + M2,κ,χ,m,α,γ e−γκx .
+
+≤ u(x) +
+
+36
+
+(5.6)
+
+(5.7)
+
+It then follows that
+
+
+Z x
+Z ∞
+1
+c −λc1 x
+λc1 y −κy
+c λc2 x
+−λc2 y −κy
+λ1 e
+|ux (x)| ≤ M1,κ,χ,m,α,γ √
+e e
+dy + λ2 e
+e
+e
+dy
+4 + c2
+−∞
+x
+
+
+Z x
+Z ∞
+1
+c −λc1 x
+λc1 y −γκy
+c λc2 x
+−λc2 y −γκy
+λ1 e
+e e
+dy + λ2 e
+e
+e
+dy
++ M2,κ,χ,m,α,γ √
+4 + c2
+−∞
+x
+ λc
+λc2
+1
+1  −κx
+√
+= M1,κ,χ,m,α,γ √ 1
+e
++
+4 + c2 λc1 − κ
+4 + c2 λc2 + κ
+ λc
+
+1
+1
+λc2
+−γκx
+√
++ M2,κ,χ,m,α,γ √ 1
++
+c − γκ
+c + γκ e
+2
+2
+λ
+λ
+4+c 1
+4+c 2
+Note that 0 < κ < 1, 0 < γκ < 1, and c > 2. Hence
+√
+λc1
+1
+1
+4 + c2 + c
+1
+√
+√
+≤ √
+≤1+ ,
+c
+2
+2
+2
+λ
+−
+κ
+c
+4+c 1
+4+c
+4+c
+and
+√
+
+1
+1
+1
+λc2
+≤√
+≤ .
+c
+c
+4 + c2 λ2 + κ
+4 + c2
+
+Similarly,
+λc
+1
+√ 1
+≤
+c
+4 + c2 λ1 − γκ
+
+√
+1
+4 + c2 + c
+1
+√
+√
+≤1+ ,
+c
+4 + c2
+4 + c2
+
+and
+√
+Hence
+This proves (5.4).
+
+1
+λc2
+1
+1
+≤ .
+≤√
+c
+c
+4 + c2 λ2 + γκ
+4 + c2
+
+
+
+2 
+M1,κ,χ,m,α,γ e−κx + M2,κ,χ,m,α,γ e−γκx .
+|ux (x)| ≤ 1 +
+c
+
+
+m+γ−1
+1
++ |χ|σ } for some σ > 0, then by (5.3),
+Remark 5.1. If c > max γ + |χ|σ + γ+|χ|
+σ , m|χ|Mχ
+there holds
+′
+Mχ,m,α,γ
+|ux (x)| ≤
+∀ x ∈ R,
+(5.8)
+|χ|σ
+
+where
+
+′
+Mχ,m,α,γ
+= |χ|Mχm+γ + Mχ1+α .
+
+By (5.4), there holds
+|ux (x)| ≤
+
+′′
+Mχ,m,α,γ,σ
+e−κx
+|χ|2σ
+
+∀ x ≥ 0,
+
+(5.9)
+
+where
+
+
+
+′′
+Mχ,m,α,γ,σ
+= 2 1 + 2|χ|Mχm+γ−1 + Mχα |χ|2σ + +|χ|mMχm−1 (|χ|Mχm+γ + Mχα+1 )(γ + |χ|σ ) .
+
+′
+′′
+Note that both Mκ,m,α,γ
+and Mκ,m,α,γ,σ
+stay bounded as χ → 0.
+
+37
+
+In the second lemma, we provide estimates for uux for stationary solutions of (4.1).
+
+Lemma 5.2. Assume that c > max γ+ γ1 , m|χ|Mχm+γ−1 . Suppose that (u(x), v(x)) is s stationary
+√
+
+2
+
+solution of (4.1) connecting (1, 1) and (0, 0) and 0 < u(x) ≤ min{Mχ , e−κx }, where κ = c− 2c −4 .
+Then
+ux (x)
+fc,χ,m,α,γ ,
+≤M
+u(x)
+where
+
+fc,χ,m,α,γ := 1
+M
+2
+
+
+
+c + |χ|mMχm+γ−1 +
+
+q
+
+(c + |χ|mMχm+γ−1 )2 + 4|χ|Mχm+γ−1 + 4Mχα
+
+
+
+.
+
+x (x)
+Proof. First, let w(x) = uu(x)
+. Note that
+
+uxx + cux (x) − χmum−1 ux (x)vx (x) − χum (x)(v(x) − uγ (x)) + u(x)(1 − uα (x)) = 0.
+Hence
+
+uxx
++ cw − χmum−1 vx w − χum−1 (v − uγ ) + (1 − uα (x)) = 0.
+u
+By Lemmas 4.1 and 4.2, and Lemma 5.1(2) and (4),
+lim w(x) = 0,
+
+x→−∞
+
+(5.10)
+
+lim sup |w(x)| < ∞.
+x→∞
+
+Hence
+kwk∞ < ∞.
+Then by (5.10),
+k
+
+uxx
+k∞ < ∞.
+u
+
+Next, if there is x0 ∈ R such that
+|w(x0 )| = kwk∞ ,
+then
+wx (x0 ) =
+
+uxx (x0 )
+− w2 (x0 ) = 0.
+u(x0 )
+
+This together with (5.10) implies that
+
+
+w(x0 )2 + c − χmum−1 (x0 )vx (x0 ) w(x0 ) − χum−1 (x0 )(v(x0 ) − uγ (x0 )) + (1 − uα (x)(x0 )) = 0
+
+Let
+
+a(x0 ) = c − χmum−1 (x0 )vx (x0 ),
+and
+b(x0 ) = −χum−1 (x0 )(v(x0 ) − uγ (x0 )) + (1 − uα (x)(x0 )).
+Then
+w(x0 ) =
+
+−a(x0 ) ±
+
+p
+
+38
+
+(a(x0 ))2 − 4b(x0 )
+.
+2
+
+Hence
+p
+
+|a(x0 )|2 + 4|b(x0 )|
+2
+
+
+q
+1
+m+γ−1 2
+m+γ−1
+m+γ−1
+α
+) + 4|χ|Mχ
++ 4Mχ
+c + |χ|mMχ
++ (c + |χ|mMχ
+≤
+2
+fc,χ,m,α,γ .
+=M
+
+|w(x0 )| ≤
+
+|a(x0 )| +
+
+If w(x0 ) 6= kwk∞ for any x0 ∈ R, then there is xn → ∞ such that
+lim |w(xn )| = kwk∞ .
+
+n→∞
+
+Note that
+wx =
+
+uxx
+− w2 .
+u
+
+
+Hence kwx k∞ < ∞. This together with (5.10) implies that k uuxx x k∞ < ∞ and then
+kwxx k∞ = k
+
+uxx 
+− 2wwx k∞ < ∞.
+u x
+
+Without loss of generality, we may assume that
+w∗ (x) := lim w(x + xn ) and
+x→∞
+
+wx∗ (x) = lim wx (x + xn )
+n→∞
+
+exist locally uniformly in x ∈ R. Clearly,
+|w∗ (0)| = kw∗ k∞ = kwk∞ ,
+and
+
+
+uxx (xn )
+= lim w2 (xn ) + wx (xn ) = (w∗ (0))2 + wx∗ (0) = (w∗ (0))2 .
+n→∞
+n→∞ u(xn )
+lim
+
+Then by (5.10), it holds that
+
+(w∗ (0))2 + cw∗ (0) + 1 = 0.
+This implies that
+∗
+
+kwk∞ = |w (0)| ≤
+Note that
+c+
+The lemma is thus proved.
+
+c+
+
+√
+c2 − 4
+.
+2
+
+√
+
+c2 − 4
+fc,χ,m,α,γ .
+≤M
+2
+
+
+m+γ−1
+1
+Remark 5.2. Assume that c > max γ + |χ|σ + γ+|χ|
++ |χ|σ , and (u(x), v(x)) is
+σ , m|χ|Mχ
+s stationary
+solution of (4.1) connecting (1, 1) and (0, 0) and 0 < u(x) ≤ min{Mχ , e−κx }, where
+√
+2
+κ = c− 2c −4 . Then
+′′′
+Mχ,m,α,γ,σ
+ux (x)
+≤
+,
+(5.11)
+u(x)
+|χ|2σ
+
+39
+
+where
+′′′
+Mχ,m,α,γ,σ
+
+
+
+q
+|χ|2σ
+m+γ−1 2
+m+γ−1
+m+γ−1
+
+α
+
+) + 4|χ|Mχ
++ 4Mχ
+2.5 + |χ|mMχ
++ (2.5 + |χ|mMχ
+
+ 2
+:=
+
+n
+o
+
+
+max 8(1+|χ|+2m|χ|)(γ+|χ|σ ) M ′
+′′
+,
+2M
+χ,m,α,γ,σ
+χ,m,α,γ
+1+γ
+
+if c ≤ 2.5
+if c > 2.5.
+
+In fact, if c ≤ 2.5, (5.11) follows from Lemma 5.2. If c > 2.5, then κ < 1/2, and (5.11) follows from
+′′′
+stays bounded as χ → 0.
+Remark 4.1, (5.8), and (5.9). Note that Mκ,m,α,γ,σ
+b (R), 0 ≤ u ≤ M (i = 1, 2) for some M ≥ 1, and
+5.3. Suppose that ui ∈ Cunif
+i
+RLemma
+2ηx
+2
+e
+|u
+(x)
+−
+u
+(x)|
+<
+∞
+for
+some
+0
+<
+η
+<
+1.
+Let v(x) = Ψ(x; uγ2 − uγ1 , 1, 1). Let U (x) =
+2
+1
+R
+eηx (u2 (x) − u1 (x)) and V (x) = eηx v(x). If γ ≥ 1, then
+Z
+Z
+γ 2 M 2(γ−1)
+2
+U 2,
+(5.12)
+V (x)dx ≤
+(1 − η)2 R
+R
+
+and
+
+Z
+
+R
+
+Vx2 (x)dx ≤
+
+γ 2 M 2(γ−1)
+1 − η2
+
+Z
+
+U 2,
+
+(5.13)
+
+R
+
+where U (x) = eηx (u2 (x) − u1 (x)) and V (x) = eηx (v2 (x) − v1 (x)).
+Proof. First, we prove (5.12). Observe that
+Z u2 (x)
+wγ−1 dw|
+|uγ2 (x) − uγ1 (x)| = |γ
+u1 (x)
+
+Z 1
+
+= γ|(u2 (x) − u1 (x))|
+
+0
+
+≤ γM γ−1 |u2 (x) − u1 (x)|
+
+γ−1
+τ u2 (x) + (1 − τ )u1 (x)
+dτ
+
+(since γ ≥ 1, 0 ≤ u1 (x) ≤ M, 0 ≤ u2 (x) ≤ M.
+
+Then by Lemma 2.2, we have
+Z
+1 ηx
+|V (x)| = | e
+e−|x−y| (uγ2 (y) − uγ1 (y))dy|
+2
+Z R
+1
+e−|x−y| eη(x−y) eηy (uγ2 (y) − uγ2 (y))dy|
+≤|
+2 R
+Z
+γ−1 γ
+e−|x−y| eη(x−y) eηy |u2 (y) − u1 (y)|dy
+≤M
+2 R
+Z
+Z
+γ x −(x−y) η(x−y)
+γ ∞ −(y−x) η(x−y)
+= M γ−1
+e
+e
+|U (y)|dy + M γ−1
+e
+e
+|U (y)|dy
+2 −∞
+2 x
+Z
+γ−1 γ
+≤M
+e−(1−η)|x−y| |U (y)|dy.
+2 R
+Let
+V (x) =
+
+γ
+2
+
+Z
+
+R
+
+e−(1−η)|x−y| eηy |U (y)|dy.
+
+Then by Lemma 2.2, V is the solution of
+V xx − (1 − η)2 V + γ(1 − η)|U | = 0.
+40
+
+This implies that
+
+Z
+
+R
+
+V 2 ≤ M 2(γ−1)
+
+Z
+
+2
+
+R
+
+V ≤
+
+Therefore, (5.12) holds.
+Next, we prove (5.13). Observe that V satisﬁes
+
+γ 2 M 2(γ−1)
+(1 − η)2
+
+Z
+
+R
+
+|U |2 .
+
+Vxx − 2ηVx + (η 2 − 1)V + eηx (uγ2 − uγ1 ) = 0.
+This implies that
+Z
+
+R
+
+Z 2
+
+Z
+
+eηx (uγ2 (x) − uγ1 (x))V
+R
+RZ
+Z
+2
+2
+|U (x)| · |V (x)|
+≤ −(1 − η ) V + γM γ−1
+R
+R
+Z
+γ 2 M 2(γ−1)
+≤
+U 2.
+1 − η2
+R
+
+Vx2 = (η 2 − 1)
+
+V2+
+
+This proves (5.12).
+
+5.2
+
+Stability of traveling wave solutions and proof of Theorem 1.2
+
+In this subsection, we prove Theorem 1.2.
+Observe that for any β > 0, and u1 , u2 > 0,
+Z u2
+wβ−1 dw
+uβ2 − uβ1 = β
+u1
+Z τ
+β−1
+dτ.
+= β(u2 − u1 )
+τ u2 + (1 − τ )u1
+0
+
+Proof of Theorem 1.2. Suppose that (U ∗ , V ∗ ) is a positive stationary solution of (4.1) connecting
+∗∗
+(1, 1) and (0, 0) with speed c > c∗∗
+χ,m,α,γ for some cχ,m,α,γ to be determined later, and satisfying
+b (R)
+(1.19). Let (u(t, x), v(t, x)) = (u(t, x; u0 ), v(t, x; u0 )) be the solution of (4.1) with u0 ∈ Cunif
+1
+satisfying (1.20) for some η ∈ (κ, 1+|χ|1/6 ).
+We ﬁrst assume that
+c > c1,χ,γ := γ + |χ|1/6 +
+
+1
+γ + |χ|1/6
+
+In the following, we put
+
+c > c2,χ,m,γ := m|χ|Mχm+γ−1 + |χ|1/6 .
+
+(5.14)
+
+1
+σ= .
+6
+
+Note that (5.14) implies
+κ<
+By Proposition 1.1,
+
+and
+
+1
+γ + |χ|σ
+
+and c > m|χ|Mχm+γ−1 .
+
+(5.15)
+
+lim sup sup u(t, x; u0 ) ≤ Mχ .
+t→∞
+
+x∈R
+
+fχ > Mχ , without loss of generality, we may assume that
+Then for any M
+fχ
+0 ≤ u(t, x; u0 ) ≤ M
+41
+
+∀ t ≥ 0, x ∈ R.
+
+(5.16)
+
+This together with Lemmas 2.3 and comparison principle for elliptic equations implies that
+fχγ
+0 ≤ v(t, x; u0 ) ≤ M
+
+and
+
+fχγ
+|vx (t, x; u0 )| ≤ M
+
+∀ t ≥ 0, x ∈ R.
+
+(5.17)
+
+fχ > Mχ such that (5.15) holds with Mχ being replaced by M
+fχ .
+In the following, we choose M
+e (t, x) = u(t, x) − U ∗ (x) and Ve (t, x) = v(t, x) − V ∗ (x). For β ≥ 0, let
+Next, let U
+aβ (t, x) := β
+
+Z 1
+0
+
+β−1
+τ u(x) + (1 − τ )U ∗ (x)
+dτ.
+
+e , Ve ) satisﬁes
+Then (U
+
+et (t, x) = U
+exx + (c − χb1 (t, x))U
+ex
+
+U
+
+
+
+
+
+
+
+e
++ 1 − a1+α (t, x) − χ vam (t, x) + am+γ (t, x) + b2 (t, x) U
+
+
+−χb3 (t, x)Vex + χb4 (t, x)Ve ,
+
+
+
+
+
+
+
+0 = Ve v − Ve + a (t, x)U
+e,
+xx
+
+x
+
+γ
+
+x ∈ R,
+
+(5.18)
+
+x ∈ R,
+
+where
+
+b1 (t, x) = mvx (t, x)um−1 (t, x), b2 (t, x) = mUx∗ (x)vx (t, x)am−1 (t, x),
+
+and
+b3 (t, x) = m(U ∗ (x))m−1 Ux∗ (x), b4 (t, x) = (U ∗ (x))m .
+e and V = eηx Ve . Then (U, V ) satisﬁes
+Let U = eηx U
+
+
+
+Ut = Uxx + c − χb1 (x) − 2η Ux
+
+
+
+
+
+
++ η 2 − cη + 1 − a1+α − χ(vam + am+γ − ηb1 + b2 U
+
+
+−χb3 Vx + χ(b4 + ηb3 V,
+
+
+
+
+
+
+
+0 = Vxx − 2ηVx − (1 − η 2 )V + aγ (t, x)U,
+
+x ∈ R,
+
+(5.19)
+
+x ∈ R.
+
+By [26, Theorem 7.1.3], U (t, ·), Ux (t, ·) ∈ L2 (R) for all t > 0. Multiplying the ﬁrst equation in
+(5.19) by U and integrating over R yields
+Z
+Z
+Z
+
+1 d
+c − χb1 − 2η Ux U dx
+U 2 = − Ux2 (x)dx +
+2 dt R
+R
+|R
+{z
+}
+J1
+Z
+
+η 2 − cη + 1 − a1+α − χ(vam + am+γ − ηb1 + b2 U 2 dx
++
+{z
+}
+|R
+J2
+Z
+Z
+
+χb3 Vx U dx +
+−
+χb4 + ηχb3 V U dx .
+| R {z
+} |R
+{z
+}
+J3
+
+J4
+
+We divide the rest of the proof into four steps.
+
+Step 1. In this step, we provide estimates for bi (i = 1, 2, 3, 4).
+42
+
+(i) Estimate for b1 (t, x) = mvx (t, x)um−1 (t, x). By (5.16) and (5.17), we have
+fχ ) := mM
+fχm+γ−1 .
+|b1 (t, x)| ≤ b1,χ,m,γ (M
+
+(5.20)
+
+(ii) Estimate for b2 (t, x) = mUx∗ (x)vx (t, x)am−1 (t, x). We divide the estimate of b2 into three
+cases.
+Case ii.1. m = 1. In this case, am−1 (t, x) ≡ 0. Hence
+kb2 k∞ = 0.
+
+(5.21)
+
+Case ii. 2. m ≥ 2. In this case, we have
+fχm−2 .
+|am−1 (t, x)| ≤ (m − 1)M
+
+Then we have
+
+fχm+γ−1 kUx∗ k∞
+kb2 k∞ ≤ m(m − 1)M
+fm+γ−1
+≤ m(m − 1)M
+χ
+
+fχm+γ−1
+≤ m(m − 1)M
+
+fχm+γ + M
+fχ (M
+fχα − 1)
+|χ|M
+fχm+γ−1
+c − m|χ|M
+
+fχm+γ + M
+fχ (M
+fχα − 1)
+|χ|M
+.
+|χ|σ
+
+(5.22)
+
+Case ii.3. 1 < m < 2. Note hat
+
+By (5.11),
+
+|b2 (t, x)| = m|Ux∗ (x)| · |vx (t, x)| · |am−1 (t, x)|
+Z 1
+(τ u(t, x) + (1 − τ )U ∗ (x))m−2
+≤ m(m − 1)|Ux∗ (x)| · |vx (t, x)| ·
+0
+Z
+1
+m(m − 1)|Ux∗ (x)| · |vx (t, x)| 1
+dτ
+≤
+∗
+2−m
+2−m
+(U (x))
+0 (1 − τ )
+m|Ux∗ (x)| · |vx (t, x)|(U ∗ )m−1
+=
+(U ∗ (x))
+∗
+fm+γ−1 |Ux (x)| .
+≤ mM
+χ
+U ∗ (x)
+′′′
+Mχ,m,α,γ,σ
+|Ux∗ (x)|
+≤
+,
+U ∗ (x)|
+|χ|2σ
+
+which implies that
+kb2 k∞ ≤
+
+′′′
+fχm+γ−1 Mχ,m,α,γ,σ
+mM
+.
+|χ|2σ
+
+fχ ) which stays bounded as χ → 0 such that
+By (5.21)-(5.23), there is b2,χ,m,α,γ (M
+kb2 k∞ ≤
+
+1
+fχ ).
+b2,χ,m,α,γ (M
+|χ|2σ
+43
+
+(5.23)
+
+(5.24)
+
+(iii) Estimate for b3 (t, x) = m(U ∗ (x))m−1 Ux∗ (x). By Lemma 5.1, it holds that
+fχm−1 ·
+kb3 k∞ ≤ mM
+=
+
+where
+
+fχm+γ + M
+fχ1+α
+fχm+γ + M
+fχ1+α
+|χ|M
+|χ|M
+fχm−1 ·
+≤
+m
+M
+fχm+γ−1
+|χ|σ
+c − m|χ|M
+
+fχ )
+b3,χ,m,α,γ (M
+.
+|χ|σ
+
+(5.25)
+
+fχ ) := mM
+fχm−1 · (|χ|M
+fχm+γ + M
+fχ1+α ).
+b3,χ,m,α,γ (M
+
+(iv) Estimate for b4 (t, x) = (U ∗ (x))m . It is clear that
+
+fχ ) := M
+fχm .
+kb4 k∞ ≤ b4,χ,m (M
+
+(5.26)
+
+Step 2. In this step, we give estimates for Ji (i = 1, 2, 3, 4) based on the estimates of kbj k∞
+(j = 1, 2, 3, 4).
+(i) Estimate for J1 . By (5.20), it holds that
+Z
+Z
+Z
+J1 = (c − 2η)Ux U dx − χ b1 (t, x)Ux U = −χ b1 (t, x)Ux U
+R
+R
+R
+Z
+Z
+2
+1
+|χ|
+fχ ) U 2 .
+≤
+(5.27)
+U2 +
+b1,χ,m,γ (M
+2 R x
+2
+R
+(ii) Estimate for J2 .
+Note that
+
+−χ vam (x) + am+γ (x) ≤
+Hence
+
+
+fm+γ−1
+
+≤ |χ|(2m + γ)Mχ
+
+
+0
+
+if
+
+χ<0
+
+if
+
+χ > 0.
+
+η 2 − cη + 1 − a1+α − χ(−vam (x) + am+γ ) − ηχb1 (t, x) + χb2 (t, x)
+fm+γ−1 − ηχb1 (t, x) + χb2 (t, x).
+≤ η 2 − cη + 1 + |χ|(2m + γ)M
+χ
+
+This together with (5.20) and (5.24) implies that
+
+Z
+fχm+γ−1 + |χ|ηb1,χ,m,γ (M
+fχ ) + |χ|1−2σ b2,χ,m,α,γ (M
+fχ )
+J2 ≤ η 2 − cη + 1 + |χ|(2m + γ)M
+U 2 . (5.28)
+R
+
+(iii) Estimate for J3 . By Lemma 5.3 and (5.25), we have
+Z
+Z
+Z
+kb3 k∞
+kb3 k∞
+2
+|Vx | + |χ|
+U2
+−J3 = − χb3 (x)Vx U dx ≤ |χ|
+2
+2
+R
+R
+R
+Z
+f 
+γ2 
+1−σ b3,χ,m,α,γ (Mχ )
+1+
+U 2.
+≤ |χ|
+2
+1 − η2 R
+1
+Since η ∈ (κ, 1+|χ|
+σ ), there holds that
+
+1+
+
+
+γ2
+1
+γ2
+≤
+1
++
+≤
+|χ|σ + γ 2 (1 + |χ|σ ) .
+2
+σ
+1−η
+1−η
+|χ|
+44
+
+Hence
+
+
+|χ|1−2σ
+fχ ) |χ|σ + γ 2 (1 + |χ|σ )
+b3,χ,m,α,γ (M
+J3 ≤
+2
+
+Z
+
+U 2.
+
+(5.29)
+
+R
+
+1
+(iv) Estimate for J4 . Since η ∈ (κ, 1+|χ|
+σ ), it holds
+
+1+
+
+
+γ2
+1
+2σ
+2
+σ 2
+|χ|
++
+γ
+(1
++
+|χ|
+)
+≤
+.
+(1 − η)2
+|χ|2σ
+
+Then by Lemma 5.3, (5.25) and (5.26), it holds that
+Z
+Z
+1
+1
+2
+J4 ≤
+|χb4 (t, x) + ηχb3 (t, x)|V +
+|χb4 (x) + ηχb3 (x)|U 2
+2 R
+2 R
+Z
+
+ Z
+1  fm
+1−σ
+2
+f
+U2
+|χ|Mχ + η|χ|
+b3,χ,m,α,γ (Mχ )
+V +
+≤
+2
+R
+R
+
+
+Z
+2
+γ
+1
+fχm + η|χ|1−σ b3,χ,m,α,γ (M
+fχ ) 1 +
+|χ|M
+U2
+≤
+2
+(1 − η)2 R
+Z
+
+
+|χ|1−3σ
+3σ fm
+2σ
+2
+σ 2
+f
+U 2.
+|χ| Mχ + ηb3,χ,m,α,γ (M3 ) |χ| + γ (1 + |χ| )
+≤
+2
+R
+By (5.27)-(5.30),
+Z
+Z
+
+Z
+1
+1 d
+2
+2
+2
+1−3σ e ′
+1−3σ e ′′
+U +
+U dx ≤ η − (c − |χ|
+U 2,
+Dχ )η + (1 + |χ|
+Dχ )
+2 dt R
+2 R x
+R
+
+(5.30)
+
+(5.31)
+
+where
+
+and
+
+fχ )
+
+b3,χ,mα,κ (M
+3σ
+e′ = D
+e′
+f
+f
+D
+|χ|2σ + γ 2 (1 + |χ|σ )2 ,
+χ
+χ,m,α,γ (Mχ ) := |χ| b1,χ,m,κ (Mχ ) +
+2
+
+(5.32)
+
+1 1+σ
+fχ )
+fχ ) + |χ|3σ (2m + γ)M
+fm+γ−1 + |χ|σ b2,χ,m,α,γ (M
+f
+e ′′
+e ′′ = D
+b1,χ,m,γ (M
+D
+χ
+χ,m,α,γ (Mχ ) := |χ|
+χ
+2
+
+|χ|σ
+fχ ) |χ|σ + γ 2 (1 + |χ|σ )
++
+b3,χ,m,α,γ (M
+2
+
+1 3σ fm
++ |χ| Mχ |χ|2σ + γ 2 1 + |χ|σ )2 .
+(5.33)
+2
+
+∗∗
+Step 3. In this step, we prove there is c∗∗
+χ,m,α,γ > 0R such that for any c > cχ,m,α,γ and any
+R
+1
+2
+2ηx (u (x) − U ∗ (x))2 dx < ∞.
+η ∈ (κ, 1+|χ|
+σ ), limt→∞ R U (t, x)dx = 0 provided that R e
+0
+
+To this end, ﬁrst, let
+
+′
+′
+Dχ,m,α,γ
+:= Dχ,m,α,γ
+(Mχ ) and
+
+Let
+and
+
+′′
+′′
+Dχ,m,α,γ
+:= Dχ,m,α,γ
+(Mχ ).
+
+q
+′
+′′
+,
+c3,χ,m,α,γ := |χ|1−3σ Dχ,m,α,γ
++ 2 1 + |χ|1−3σ Dχ,m,α,γ
+c∗∗
+χ,m,α,γ := max{c1,χ,σ , c2,χ,m,γ , c3,χ,m,α,γ }.
+
+45
+
+(5.34)
+
+Note that for any c > c∗∗
+χ,m,α,γ ,
+κ−
+c,χ,m,α,γ :=
+
+′
+c − |χ|1−3σ Dχ,m,α,γ
+−
+
+1
+≤κ<
+1 + |χ|σ
+< κ+
+c,χ,m,α,γ :=
+
+q
+
+′
+′′
+(c − |χ|1−3σ Dχ,m,α,γ
+)2 − 4(1 + |χ|1−3σ Dχ,m,α,γ
+)
+
+′
+c − |χ|1−3σ Dχ,m,α,γ
++
+
+2
+q
+
+′
+′′
+)2 − 4(1 + |χ|1−3σ Dχ,m,α,γ
+)
+(c − |χ|1−3σ Dχ,m,α,γ
+
+2
+
+. (5.35)
+
+Then
+η 2 − (c − |χ|1−3σ Dχ′ )η + (1 + |χ|1−3σ Dχ′′ ) < 0
+
+1
+for any η ∈ (κ, 1+|χ|
+σ ).
+
+1
+f
+Next, for any η ∈ (κ, 1+|χ|
+σ ), choose Mχ suﬃciently close to Mχ such that
+
+It then follows that, if
+
+R
+
+e ′ )η + (1 + |χ|1−3σ D
+e ′′ ) < 0
+λ := η 2 − (c − |χ|1−3σ D
+χ
+χ
+
+2ηx (u (x) − U ∗ (x))2 dx < ∞, then
+0
+Re
+
+Z
+
+R
+
+as t → ∞. Moreover,
+
+2
+
+−λt
+
+U (t, x)dx ≤ e
+
+R
+
+U 2 (0, x)dx → 0
+
+Z ∞Z
+
+U 2 (t, x)dx < ∞,
+
+(5.36)
+
+Z ∞Z
+
+Ux2 (t, x)dxdt < ∞.
+
+(5.37)
+
+0
+
+and
+
+Z
+
+0
+
+R
+
+R
+
+R
+Step 4. In this step, we prove limt→∞ ku(t, ·; u0 ) − U ∗ (·)k∞ = 0 provided that R e2ηx (u0 (x) −
+1
+U ∗ (x))2 dx < ∞, c > c∗∗
+χ,m,α,γ , and η ∈ (κ, 1+|χ|σ ).
+R
+R
+First, for any ﬁxed t0 > 0, there hold R U 2 (t0 , x)dx < ∞ and R Ux2 (t0 , x)dx < ∞. Then, by
+f > 0 such that
+Morrey’s inequality, there is M
+i.e.,
+
+f ∀ x ∈ R,
+|U (t0 , x)| = eηx |u(t0 , x) − U ∗ (x)| ≤ M
+
+fe−ηx ≤ u(t0 , x) ≤ U ∗ (x) + M
+fe−ηx
+U ∗ (x) − M
+
+∀ x ∈ R.
+
+This together with (1.19) and the boundedness of u(t0 , x) implies that
+e−κx − De−κ̃x ≤ u(t0 , x) ≤ max{M, M e−κx } ∀ x ∈ R
+
+(5.38)
+
+for some κ̃ ∈ (κ, min{(1 + α)κ, mκ + 1/2, 1}), M ≥ 1 and D ≫ 1. By Remark 4.2,
+u(t, x; u0 ) ≥ e−κx − De−κ̃x
+
+∀x ∈ R
+
+∀ t ≥ t0 , x ∈ R,
+
+and
+inf
+
+t≥t0 ,x≤−R0
+
+u(t, x; u0 ) > 0
+
+for some R0 > 0.
+46
+
+(5.39)
+
+Next, assume that
+lim sup ku(t, ·; u0 ) − U ∗ (·)k∞ > 0.
+t→∞
+
+Then there are ǫ0 > 0, tn → ∞ with 1 ≤ tn ≤ tn+1 − 1, and xn ∈ R such that
+|u(tn , xn ) − U ∗ (xn )| ≥ ǫ0 .
+
+By the uniform continuity of u(t, x) − U ∗ (x) in t ≥ 1 and x ∈ R, there is δ0 > 0 such that
+ǫ0
+∀ t ∈ [tn , tn + δ0 ], x ∈ [xn − δ0 , xn + δ0 ].
+|u(t, x) − U ∗ (x)| ≥
+2
+Without loss of generality, we may assume that limn→∞ xn = ∞, limn→∞ xn = x∗ for some x∗ ∈ R,
+or limn→∞ xn = −∞.
+In the case that limn→∞ xn = ∞ or limn→∞ xn = x∗ for some x∗ ∈ R, there is R ∈ R such that
+xn ≥ R for n ≫ 1. Then
+Z
+Z
+Z
+ǫ20 xn +δ0 2ηx
+ǫ20 R+δ0 2ηx
+2ηx
+∗
+2
+e (u(tn , x; u0 ) − U (x)) dx ≥
+e dx 6→ 0 as n → ∞,
+e dx ≥
+4 xn
+4 R
+R
+which is a contradiction.
+Hence, limx→∞ xn = −∞. By (5.39), there is d0 > 0 such that
+u(t, x; u0 ) ≥ d0
+
+∀ t ≥ t1 , x ≤ −R0 .
+
+(5.40)
+
+Let (ũn (t, x), ṽn (t, x)) = (u(t + tn , x + xn ; u0 ), v(t + tn , x + xn ; u0 )). Without loss of generality, we
+may assume that there is (u∗ (t, x), v ∗ (t, x)) such that
+lim (un (t, x), vn (t, x)) = (u∗ (t, x), v ∗ (t, x))
+
+n→∞
+
+locally uniformly in (t, x) ∈ R × R and (u∗ (t, x), v ∗ (t, x)) is a classical solution of (4.1). Note that
+u∗ (t, x) ≥ d0
+
+∀ t ∈ R, x ∈ R,
+
+and
+|u∗ (0, 0) − 1| ≥ ǫ0 .
+
+But by Proposition 1.2, u∗ (t, x) ≡ 1, which is a contradiction. Therefore, limt→∞ ku(t, ·; u0 ) −
+u∗ (·)k∞ = 0. Theorem 1.2 is thus proved.
+
+5.3
+
+Uniqueness of traveling wave solutions and proof of Theorem 1.3
+
+In this subsection, we prove Theorem 1.3.
+Proof of Theorem 1.3. By (1.23) and Remark 4.3(1), there is η such that
+κ < η < min{
+Z
+
+R
+
+and
+
+1
+, 1},
+1 + |χ|1/6
+
+e2ηx |U1∗ (x) − U2∗ (x)|2 dx < ∞,
+
+lim inf Ui∗ (x) > 0,
+x→−∞
+
+i = 1, 2.
+
+Then by Theorem 1.2, we have
+This proves the theorem 1.3.
+
+U1 (x) ≡ U2 (x).
+
+47
+
+References
+[1] S. Ai, W. Huang, and Z.-A. Wang, Reaction, diﬀusion and chemotaxis in wave propagation, Discrete Contin.
+Dyn. Syst. Ser. B 20 (2015), no. 1, 1-21.
+[2] S. Ai and Z.-A. Wang, Traveling bands for the Keller-Segel model with population growth, Math. Biosci. Eng.
+12 (2015), no. 4, 717-737.
+[3] D. G. Aronson, Density-dependent interaction-diﬀusion systems.Dynamics and modelling of reactive systems,
+(Proc. Adv. Sem., Math. Res. Center, Univ. Wisconsin, Madison, Wis., 1979), pp. 161-176 Publication of the
+Mathematics Research Center, University of Wisconsin, 44.
+[4] D. G. Aronson and H. F. Weinberger, Multidimensional nonlinear diﬀusions arising in population genetics, Adv.
+Math., 30 (1978), pp. 33-76.
+[5] C. Atkinsonm G.E.H. Reuter, and C. J. Ridler-Rowe, Traveling wave solution for some nonlinear diﬀusion equations, SIAM J. Math. Anal. 12 (1981), no. 6, 880-892.
+[6] M. Avery, M. Holzer, and A. Scheel, Pushed and pulled fronts in a logistic Keller-Segel model with chemorepulsion,
+Nonlinearity 38 (2025), no. 2, Paper No. 025017, 33 pp.
+[7] H. Berestycki, F. Hamel, and N. Nadirashvili, The speed of propagation for KPP type problems, I - Periodic
+framework, J. Eur. Math. Soc., 7 (2005), 172-213.
+[8] H. Berestycki and G. Nadin, Asymptotic spreading for general heterogeneous Fisher-KPP type, Mem. Amer.
+Math. Soc. 280 (2022), no. 1381, vi+100 pp.
+[9] H. Berestycki, F. Hamel, and N. Nadirashvili, The speed of propagation for KPP type problems, II - General
+domains, J. Amer. Math. Soc., 23 (2010), no. 1, 1-34.
+[10] Z. Biró, Stability of travelling waves for degenerate reaction-diﬀusion equations of KPP-type, Adv. Nonlinear
+Stud. 2 (2002), no. 4, 357-371.
+[11] M. Chae and K. Choi, Nonlinear stability of planar traveling waves in a chemotaxis model of tumor angiogenesis
+with chemical diﬀusion, J. Diﬀerential Equations , 268 (2020), no. 7, 3449-3496.
+[12] L. Chen, I. Ruau, and W. Shen, Chemotaxis models with signal-dependent sensitivity and a logistic-type source,
+I: Boundedness and global existence, https://arxiv.org/abs/2512.14858.
+[13] Y. Chen, and F. Zou, Nonlinear stability of strong traveling waves for a chemotaxis model with logarithmic
+sensitivity and periodic perturbations, Math. Methods Appl. Sci. 46 (2023), no. 14, 15123-15146.
+[14] R. Fisher, The wave of advance of advantageous genes., Ann of Eugenics, 7 (1937), 335-369.
+[15] M. Freidlin, On wave front propagation in periodic media. In: Stochastic analysis and applications, ed. M. Pinsky,
+Advances in probablity and related topics, 7:147-166, 1984.
+[16] M. Freidlin and J. Gärtner, On the propagation of concentration waves in periodic and ramdom media, Soviet
+Math. Dokl., 20 (1979), 1282-1286.
+[17] M. Funaki, M. Mimura and T. Tsujikawa, Travelling front solutions arising in the chemotaxis-growth model,
+Interfaces Free Bound., 8 (2006), 223-245.
+[18] E. Galakhov, O. Salieva, and J. I. Tello, On a parabolic-elliptic system with chemotaxis and logistic type growth,
+J. Diﬀerential Equations, 261 (2016), no. 8, 4631-4647.
+[19] D. Gilbarg and N. S. Trudinger, Elliptic partial diﬀerential equations of second order, 2nd edition, Springer,
+1983.
+[20] B. H. Gilding, and R. Kersner, Travelling waves in nonlinear diﬀusion-convection reaction, Progr. Nonlinear
+Diﬀerential Equations Appl., 60, 2004.
+[21] Q. Griette, C. Henderson, and O. Turanova, Speed-up of traveling waves by negative chemotaxis, J. Funct. Anal.
+285 (2023), no. 10, Paper No. 110115, 67 pp.
+[22] F. Hamel and C. Henderson, Propagation in a Fisher-KPP equation with non-local advection, J. Funct. Anal.
+278 (2020), no. 7, 108426, 53 pp.
+[23] Z. Hassan, W. Shen, and Y. P. Zhang, Global existence of classical solutions of chemotaxis systems with logistic
+source and consumption or linear signal production on Rn , J. Diﬀerential Equations, 413 (2024), 497-556.
+[24] C. Henderson, Slow and fast minimal speed traveling waves of the FKPP equation with chemotaxis, J. Math.
+Pures Appl. (9) 167 (2022), 175-203.
+
+48
+
+[25] C. Henderson and M. Rezek, Traveling waves for the Keller-Segel-FKPP equation with strong chemotaxis, J.
+Diﬀerential Equations, 379 (2024), 497-523.
+[26] D. Henry, , Geometric Theory of Semilinear Parabolic Equations, Springer-Verlag Berlin Heidelberg New York,
+1981.
+[27] D. Horstmann and A. Stevens, A constructive approach to traveling waves in chemotaxis, J. Nonlin. Sci., 14
+(2004), 1-25.
+[28] A. Kolmogorov, I/ Petrowsky, and N. Piskunov, A study of the equation of diﬀusion with increase in the quantity
+of matter, and its application to a biological problem, Bjul Moskovskogo Gos Univ, 1 (1931), 1-26.
+[29] J. Li, T. Li, and Z.-A. Wang, Stability of traveling waves of the Keller-Segel system with logarithmic sensitivity,
+Math. Models Methods Appl. Sci. 24 (2014), no. 14, 2819-2849.
+[30] X. Liang and X.-Q. Zhao, Asymptotic speeds of spread and traveling waves for monotone semiﬂows with applications, Comm. Pure Appl. Math., 60 (2007), no. 1, 1-40.
+[31] X. Liang and X.-Q. Zhao, Spreading speeds and traveling waves for abstract monostable evolution systems,
+Journal of Functional Analysis, 259 (2010), 857-903.
+[32] S. Liu, J. Li, and L. Xu, Nonlinear stability of planar traveling waves to a multidimensional parabolic-hyperbolic
+system arising from chemotaxis, J. Diﬀerential Equations, 439 (2025), Paper No. 113414, 52 pp.
+[33] B. P. Marchant, J. Norbury, and J. A. Sherratt, Travelling wave solutions to a haptotaxis-dominated model of
+malignant invasion, Nonlinearity, 14 (2001), 1653-1671.
+[34] G. Nadin, Traveling fronts in space-time periodic media, J. Math. Pures Anal., 92 (2009), 232-262.
+[35] G. Nadin, B. Perthame, and L. Ryzhik, Traveling waves for the Keller-Segel system with Fisher birth terms,
+Interfaces Free Bound. 10 (2008), no. 4, 517-538.
+[36] J. Nolen, M. Rudd, and J. Xin, Existence of KPP fronts in spatially-temporally periodic adevction and variational
+principle for propagation speeds, Dynamics of PDE, 2 (2005), 1-24.
+[37] J. Nolen and J. Xin, Existence of KPP type fronts in space-time periodic shear ﬂows and a study of minimal
+speeds based on variational principle, Discrete and Continuous Dynamical Systems, 13 (2005), 1217-1234.
+[38] R. B. Salako, Traveling waves of a full parabolic attraction-repulsion chemotaxis system with logistic source,
+Discrete Contin. Dyn. Syst. 39 (2019), no. 10, 5945-5973.
+[39] R. B. Salako and W. Shen, Global existence and asymptotic behavior of classical solutions to a parabolic-elliptic
+chemotaxis system with logistic source on RN , J. Diﬀerential Equations, 262 (2017), no. 11, 5635-5690.
+[40] R. B. Salako and W. Shen, Spreading speeds and traveling waves of a parabolic-elliptic chemotaxis system with
+logistic source on RN , Discrete Contin. Dyn. Syst. 37 (2017), no. 12, 6189-6225.
+[41] R. B. Salako and W. Shen, Existence of traveling wave solutions of parabolic-parabolic chemotaxis systems,
+Nonlinear Anal. Real World Appl. 42 (2018), 93-119.
+[42] R.B. Salako and W. Shen, Global classical solutions, stability of constant equilibria, and spreading speeds in
+attraction-repulsion chemotaxis systems with logistic source on RN , J. Dynam. Diﬀerential Equations, 31 (2019),
+no. 3, 1301-1325.
+[43] R. B. Salako and W. Shen, Existence of traveling wave solutions to parabolic-elliptic-elliptic chemotaxis systems
+with logistic source, Discrete Contin. Dyn. Syst. Ser. S 13 (2020), no. 2, 293-319.
+[44] R. B. Salako and W. Shen, Traveling wave solutions for fully parabolic Keller-Segel chemotaxis systems with a
+logistic source, Electron. J. Diﬀerential Equations, (2020), Paper No. 53, 18 pp.
+[45] R. B. Salako, W. Shen, and S. Xue, Can chemotaxis speed up or slow down the spatial spreading in parabolicelliptic Keller-Segel systems with logistic source? J. Math. Biol. 79 (2019), no. 4, 1455-1490.
+[46] W. Shen, Variational principle for spatial spreading speeds and generalized propgating speeds in time almost
+and space periodic KPP models, Trans. Amer. Math. Soc., 362 (2010), 5125-5168.
+[47] W. Shen, Existence of generalized traveling waves in time recurrent and space periodic monostable equations,
+J. Appl. Anal. Comput., 1 (2011), 69-93.
+[48] D. H. Sattinger, On the stability of waves of nonlinear parabolic systems, Advances in Math. 22 (1976), no. 3,
+312-355.
+[49] D. H. Sattinger, Weighted norms for the stability of traveling waves, J. Diﬀerential Equations, 25 (1977), no. 1,
+130-144.
+
+49
+
+[50] Z.-A. Wang, Mathematics of traveling waves in chemotaxis—review paper, Discrete Contin. Dyn. Syst. Ser. B
+18 (2013), no. 3, 601-641.
+[51] H. F. Weinberger, Long-time behavior of a class of biology models, SIAM J. Math. Anal., 13 (1982), 353-396.
+[52] H. F. Weinberger, On spreading speeds and traveling waves for growth and migration models in a periodic
+habitat, J. Math. Biol., 45 (2002), 511-548.
+[53] A. Zlatoš, Transition fronts in inhomogeneous Fisher-KPP reaction-diﬀusion equations, J. Math. Pures Appl. (9)
+98 (2012), no. 1, 89-102.
+
+50
+
+

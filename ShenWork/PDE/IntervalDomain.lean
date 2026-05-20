@@ -237,6 +237,25 @@ theorem normalizedZerothReflectionKernel_integral
   rw [neumannHeatKernel_zerothReflection_integral ht L x]
   norm_num
 
+/-- The normalized reflected helper kernel preserves constant inputs on the
+whole line.  This is a mass-normalization fact for the helper kernel only, not
+a full interval Neumann semigroup statement. -/
+theorem normalizedZerothReflectionKernel_const_integral
+    {t : ℝ} (ht : 0 < t) (L x c : ℝ) :
+    ∫ y, normalizedZerothReflectionKernel L t x y * c = c := by
+  rw [MeasureTheory.integral_mul_const]
+  rw [normalizedZerothReflectionKernel_integral ht L x]
+  ring
+
+/-- The normalized reflected helper kernel is positivity preserving at the
+level of its whole-line integral. -/
+theorem normalizedReflectedKernelIntegral_nonneg
+    {f : ℝ → ℝ} (hf : ∀ y, 0 ≤ f y)
+    {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    0 ≤ ∫ y, normalizedZerothReflectionKernel 0 t x y * f y := by
+  exact MeasureTheory.integral_nonneg fun y =>
+    mul_nonneg (normalizedZerothReflectionKernel_nonneg ht 0 x y) (hf y)
+
 theorem normalizedReflectedKernelIntegral_Linfty_bound
     {f : ℝ → ℝ} {M : ℝ} (hf : ∀ y, |f y| ≤ M)
     {t : ℝ} (ht : 0 < t) (x : ℝ)

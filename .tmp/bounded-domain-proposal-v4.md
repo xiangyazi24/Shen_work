@@ -367,26 +367,3 @@ Do not include:
 
 No Paper2 theorem wrappers or semigroup assumption structures now. Next action:
 approve the design doc, or implement only the tiny interval-measure helper.
-
-## First Helper Status
-
-The tiny interval-measure helper track is implemented in
-`ShenWork/PDE/IntervalDomain.lean`.  It defines `intervalSet`,
-`intervalMeasure`, and `intervalVolume`, and proves `intervalVolume_eq`,
-`intervalVolume_pos`, `intervalIntegral_const`, `intervalIntegral_nonneg`,
-`intervalIntegral_mono`, `intervalIntegral_add`,
-`identity_preserves_intervalIntegral`, `const_intervalIntegrable`,
-`intervalAverage`, `constantModeProjection`,
-`constantModeProjection_preserves_mass`, `constantModeProjection_nonneg`, and
-`intervalAverage_const` from Mathlib primitives.  These are concrete helper
-facts, not Paper2 theorem wrappers and not semigroup estimate assumptions.
-The file also contains a zeroth-reflection heat-kernel helper,
-`neumannHeatKernel_zerothReflection`, with proved nonnegativity and evenness in
-the reflected variable, plus the whole-line integral identities
-`heatKernel_integral_add` and `neumannHeatKernel_zerothReflection_integral`,
-and the bounded-input estimate `reflectedKernelIntegral_Linfty_bound`.
-It also defines the mass-normalized helper
-`normalizedZerothReflectionKernel` and proves its nonnegativity, evenness,
-whole-line mass-one identity, constant-input preservation, positivity
-preservation, and `L∞` bound.  This is not claimed to be the full interval
-Neumann heat semigroup.

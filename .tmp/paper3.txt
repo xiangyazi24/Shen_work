@@ -1,0 +1,5530 @@
+Chemotaxis models with signal-dependent sensitivity and a
+logistic-type source, II: Persistence and stabilization
+
+arXiv:2604.02599v1 [math.AP] 3 Apr 2026
+
+Le Chen
+lzc0090@auburn.edu
+
+Ian Ruau
+iir0001@auburn.edu
+
+Wenxian Shen
+wenxish@auburn.edu
+
+Department of Mathematics and Statistics
+Auburn University, Auburn, AL 36849, USA
+Abstract
+This paper is Part II of a series of papers on boundedness, global existence, and asymptotic
+behavior of positive classical solutions to the following parabolic–elliptic chemotaxis model (CM)
+with signal-dependent sensitivity and a logistic-type source
+
+
+
+um
+
+
+u
+=
+∆u
+−
+χ
+∇
+·
+∇v
++ au − bu1+α , x ∈ Ω,
+t
+0
+
+
+(1 + v)β
+
+(CM)
+0 = ∆v − µv + νuγ ,
+x ∈ Ω,
+
+
+
+
+ ∂u = ∂v = 0,
+x ∈ ∂Ω.
+∂n
+∂n
+Here, Ω is a bounded smooth domain in RN . The parameters α, γ, m, µ, ν are positive, χ0 ∈ R,
+and a, b, β are nonnegative. In Part I [7], we established several parameter regimes ensuring
+boundedness and global existence of positive classical solutions. In this part, we study persistence and stabilization of globally defined bounded positive solutions. In particular, we quantify
+how the signal-dependence exponent β and the sign of the sensitivity coefficient χ0 influence
+long-time dynamics.
+First, we prove uniform persistence in the sense that any globally defined, bounded, and
+positive classical solution stays bounded away from zero provided that m≥ 1. Next, whena, b >
+0, the system admits a unique positive constant equilibrium (u∗ , v ∗ ) = ( ab )1/α , µν ( ab )γ/α . We
+identify a critical sensitivity threshold χ∗ (u∗ ) such that (u∗ , v ∗ ) is linearly stable if χ0 < χ∗ (u∗ )
+and unstable if χ0 > χ∗ (u∗ ), and obtain local exponential decay in the stable regime. Moreover,
+we provide several explicit sufficient conditions ensuring that every globally defined bounded
+classical solution converges exponentially to (u∗ , v ∗ ). Finally, when a = b = 0, we study the
+stability of the one-parameter family of positive constant equilibria under the mass constraint
+and obtain both a linear stability threshold and global stabilization results.
+To obtain these results, we develop several new arguments and extend existing methods,
+including the Lyapunov functional method from m = 1 to m > 1 and the rectangle/ODE
+method from β = 0 to β > 0. Our results reveal the following biological scenarios when m ≥ 1:
+the chemical signal does not enforce asymptotic smallness of the population density at any
+location; signal saturation (large β) or repulsion (χ0 < 0) can prevent aggregation and promote
+relaxation to spatially homogeneous states. In the forthcoming Part III paper [8], we will study
+bifurcation of constant equilibria and demonstrate the occurrence of pattern formation when χ0
+passes through critical sensitivity thresholds.
+
+Keywords. Persistence, stabilization, Keller–Segel systems, parabolic–elliptic chemotaxis models,
+signal-dependent sensitivity, logistic-type source.
+AMS Subject Classification (2020): 35K45, 35M31, 35Q92, 92C17, 92D25
+1
+
+Contents
+1 Introduction
+1.1 A brief review of results in Part I . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1.2 Problems to be studied in Part II . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+1.3 Contributions of Part II . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+3
+4
+7
+7
+
+2 Statements of the main results and remarks
+8
+2.1 Definitions and notation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+2.2 Statements of the main results . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+2.3 Remarks . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+3 Preliminary: Basic properties of classical solutions
+
+17
+
+4 Persistence and proof of Theorem 2.1
+4.1 Proof of Theorem 2.1(1) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.2 Proof of Theorem 2.1(2) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.3 Proof of Theorem 2.1(3) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+4.4 Proof of Theorem 2.1(4) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+23
+23
+25
+26
+26
+
+5 Linear stability and instability and proof of Theorem 2.2
+5.1 Proof of Theorem 2.2(1) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.2 Proof of Theorem 2.2(2) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+5.3 A corollary . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+27
+27
+29
+30
+
+6 Global stability of constant solutions with negative sensitivity and proof of Theorem 2.3
+31
+6.1 Proof of Theorem 2.3(1) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31
+6.2 Proof of Theorem 2.3(2) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33
+7 Stability of the unique constant solution in the non-minimal model and proof of
+Theorem 2.4
+33
+7.1 Proof of Theorem 2.4 under condition (i) . . . . . . . . . . . . . . . . . . . . . . . . 34
+7.2 Proof of Theorem 2.4 under condition (ii) . . . . . . . . . . . . . . . . . . . . . . . . 35
+7.3 Proof of Theorem 2.4 under condition (iii) . . . . . . . . . . . . . . . . . . . . . . . . 36
+7.4 Proof of Theorem 2.4 under condition (iv) . . . . . . . . . . . . . . . . . . . . . . . . 40
+8 Global stability of positive constant solutions in the minimal model and proof
+of Theorem 2.5
+41
+8.1 Proof of Theorem 2.5 under condition (i) . . . . . . . . . . . . . . . . . . . . . . . . 41
+8.2 Proof of Theorem 2.5 under condition (ii) . . . . . . . . . . . . . . . . . . . . . . . . 43
+A Appendices
+A.1 Basic semigroup theory . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+A.2 A power-difference inequality . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+A.3 Comparison between the critical sensitivity thresholds . . . . . . . . . . . . . . . . .
+
+44
+44
+45
+46
+
+Acknowledgments
+
+48
+
+References
+
+48
+2
+
+1
+
+Introduction
+
+This paper is the second of a series of papers on the boundedness, global existence, and asymptotic
+behavior of classical solutions to chemotaxis models of the following form on a bounded, connected,
+and smooth domain Ω ⊂ RN :
+(
+ut = ∆u − ∇ · (um χ(v)∇v) + au − bu1+α , x ∈ Ω,
+(1.1)
+0 = ∆v − µv + νuγ ,
+x∈Ω
+complemented with the Neumann boundary conditions on ∂Ω:
+∂u
+∂v
+=
+= 0,
+∂n
+∂n
+
+x ∈ ∂Ω.
+
+(1.2)
+
+Here, the function χ(v), known in the literature as the chemotactic sensitivity function, is given by
+χ(v) =
+
+χ0
+.
+(1 + v)β
+
+(1.3)
+
+In equations (1.1) and (1.3), m, α, µ, ν, and γ are positive constants, χ0 is a real number, and a, b,
+and β are nonnegative constants. Unless otherwise stated, all PDEs in this paper are considered on
+Ω with homogeneous Neumann boundary conditions on ∂Ω. With this agreement, we may not write
+out the Neumann boundary conditions explicitly in such equations, and when we say system (1.1),
+it always means (1.1)+(1.2).
+System (1.1) describes the evolution of a biological species influenced by a chemical substance
+or signal produced by the species itself. In this context, u(t, x) represents the population density of
+the biological species, and v(t, x) represents the density of the chemical substance or signal. When
+β = 0, χ(v) simplifies to the constant chemotactic sensitivity function χ(v) ≡ χ0 . When β > 0,
+the sensitivity function χ(v) takes into account the partial loss of the signal substance through its
+binding (see [2, 5, 39, 41]). System (1.1) with β > 0 is known as a chemotaxis system with signaldependent sensitivity. The coefficient χ0 > 0 indicates that the signal is a chemoattractant signal,
+while χ0 < 0 indicates that the signal is chemorepellent. The reaction term au − bu1+α governs the
+local dynamics of the biological species and is known as a logistic-type source. When a = b = 0,
+(1.1) is a minimal chemotaxis system. In the literature, a chemotaxis system is also referred to as
+a Keller–Segel system, named after the pioneering works of E. F. Keller and L. A. Segel [25–27].
+Central problems in studying (1.1) include determining whether solutions with given initial
+conditions exist globally and understanding the asymptotic behavior of globally defined bounded
+solutions of (1.1). Numerous studies have addressed these issues for various special cases of (1.1)
+and their parabolic-parabolic counterparts. For example, the works [21, 22, 35, 36, 38] studied finite
+time blow-up and global existence of solutions to (1.1) and its parabolic-parabolic counterpart,
+with χ(v) ≡ χ0 and m = α = γ = 1, which is given by:
+(
+ut = ∆u − χ0 ∇ · (u∇v) + au − bu2 , x ∈ Ω,
+(1.4)
+τ vt = ∆v − µv + νu,
+x ∈ Ω.
+where τ ≥ 0. There are several studies of global existence and boundedness of solutions to (1.1) in
+the case that χ(v) ≡ χ0 , β = 0, and m, α, γ > 0, which is given by:
+(
+ut = ∆u − χ0 ∇ · (um ∇v) + au − bu1+α , x ∈ Ω,
+(1.5)
+0 = ∆v − v + uγ ,
+x ∈ Ω.
+3
+
+(see [17, 23, 24, 46, 48], etc.). The works [3, 4, 10, 13–15, 28, 30, 36, 43, 47] investigated finite time
+blow-up and global existence of solutions to system (1.1) and its parabolic-parabolic counterparts
+with singular sensitivity χ(v) = χ0 /v and m = α = γ = 1, which is given by:
+
+
+
+ut = ∆u − χ0 ∇ · u ∇v + au − bu2 , x ∈ Ω,
+v
+(1.6)
+τ v = ∆v − µv + νu,
+x ∈ Ω.
+t
+
+The reader is referred to Part I [7] of this series of papers for a more detailed review of systems (1.4)(1.6).
+Among others, the works [5, 34, 39, 41] studied global existence of solutions to system (1.1) and
+its parabolic-parabolic counterpart with m = α = γ = 1, which is given by
+
+
+
+u
+ut = ∆u − χ0 ∇ ·
+∇v
++ au − bu2 , x ∈ Ω,
+(1 + v)β
+(1.7)
+
+τ vt = ∆v − µv + νu,
+x ∈ Ω.
+χ0
+Note that the sensitivity function χ(v) = (1+v)
+β with β > 0 stays bounded for all v ≥ 0 and that
+the decay of χ(v) as v → ∞ has a damping effect on the ability of the biological species to move
+towards the signal when its concentration is high. Intuitively, one expects that positive classical
+solutions of (1.7) exist globally under some conditions which are weaker than those for the global
+existence of positive classical solutions of (1.4). Moreover, one might expect that such sensitivity
+could prevent finite-time blow-up in (1.7). The works [5,34,41] show that positive classical solutions
+of (1.7) exist globally in the case that β > 1, a = b = 0, and τ = 1, which implies that the nonlinear
+χ0
+sensitivity χ(v) = (1+v)
+β with β > 1 prevents finite-time blow-up in system (1.7) when it is of the
+parabolic-parabolic type.
+There is also a large literature on the asymptotic behavior of globally defined solutions to
+chemotaxis systems. For example, the works [38] and [44] studied the stability of the constant
+solution ( ab , µν ab ) of (1.4) with τ = 0 and τ = 1, respectively. The stability of the unique positive
+constant solution of (1.5) is studied in the works [17, 46]. The works [1, 30, 32, 45, 49] studied the
+stability of positive constant solutions of (1.6). The work [5] considered the stability of positive
+constant solutions of (1.7) with τ = 1 and a = b = 0.
+Fewer studies have focused on the global existence and asymptotic behavior of classical solutions
+of system (1.7) when it is of the parabolic-elliptic type, which is a special case of (1.1). The
+objective of this series of papers is to investigate the global existence, boundedness, and asymptotic
+behavior of positive classical solutions of (1.1). We pay special attention to the effects of the signaldependence exponent β and the sensitivity coefficient χ0 on the global existence and asymptotic
+behavior of positive classical solutions. In the following, we recall some relevant results proved in
+Part I [7], and state the main problems to be studied in Part II and the contributions of this paper.
+
+1.1
+
+A brief review of results in Part I
+
+In Part I [7] of this series, we studied the boundedness and global existence of positive classical
+solutions of (1.1) from three different angles: one from the angle of the role played by negative
+chemotaxis sensitivity coefficient χ0 , one from the angle of the role played by the nonlinear cross
+um
+α
+diffusion rate (1+v)
+β , and one from the angle of the role played by the logistic-type source u(a−bu ).
+We call a function (u(t, x), v(t, x)) a classical solution of the parabolic-elliptic system (1.1) on
+
+4
+
+the time interval (0, T ) if
+
+u(·, ·) ∈ C 1,2 ((0, T ) × Ω) ∩ C 0,1 (0, T ) × Ω ,
+
+v(·, ·) ∈ C 0,2 ((0, T ) × Ω) ∩ C 0,1 (0, T ) × Ω ,
+and (u(t, x), v(t, x)) satisfies (1.1) for all t ∈ (0, T ). A given function (u(t, x), v(t, x)) is said to
+be a global classical solution of (1.1) if it is a classical solution of (1.1) on (0, ∞). A global
+classical solution is said to be positive (resp. bounded) if inf x∈Ω u(t, x) > 0 for any t ∈ (0, ∞)
+(resp. lim supt→∞ ∥u(t, ·)∥∞ < ∞).
+In the following, we review some results established in [7] to be used in this paper. Specifically,
+we recall the local existence result proved in [7], and some global existence results obtained in [7] for
+the case that m ≥ 1. In this paper, we study the asymptotic behavior of globally defined classical
+solutions of (1.1) with m ≥ 1.
+Proposition 1.1 (Local existence, Proposition 1.1 of [7]). For any given u0 satisfying
+u0 ∈ C(Ω),
+
+inf u0 (x) > 0,
+
+(1.8)
+
+x∈Ω
+
+there is Tmax (u0 ) ∈ (0, ∞] such that the parabolic-elliptic system (1.1) admits a unique classical
+solution (u(t, x; u0 ), v(t, x; u0 )) on (0, Tmax (u0 )) satisfying that
+lim ∥u(t, ·; u0 ) − u0 (·)∥∞ = 0
+
+t→0+
+
+and
+
+u(t, x; u0 ) > 0
+
+for all (t, x) ∈ [0, Tmax (u0 )) × Ω,
+
+
+
+and u(·, ·; u0 ) ∈ C 1,2 (0, Tmax (u0 )) × Ω and v(·, ·; u0 ) ∈ C 0,2 (0, Tmax (u0 )) × Ω .
+Moreover, if Tmax (u0 ) < ∞, then either
+lim sup sup u(t, x; u0 ) = ∞
+
+or
+
+t↗Tmax (u0 ) x∈Ω
+
+lim inf
+
+inf u(t, x; u0 ) = 0.
+
+t↗Tmax (u0 ) x∈Ω
+
+If Tmax (u0 ) < ∞ and m ≥ 1, then lim supt↗Tmax (u0 ) supx∈Ω u(t, x; u0 ) = ∞.
+In the rest of this subsection, (u(t, x; u0 ), v(t, x; u0 )) denotes the unique classical solution of (1.1)
+with the initial condition u(0, x; u0 ) = u0 (x) on the interval (0, Tmax (u0 )), where u0 satisfies (1.8).
+Proposition 1.2 (Boundedness and global existence with negative chemotaxis sensitivity, Theorem 1.1 of [7]). Assume χ0 ≤ 0 and m ≥ 1. Then for any given u0 satisfying (1.8), Tmax (u0 ) = ∞.
+
+1/α
+Moreover, if a, b > 0, then ∥u(t, ·; u0 )∥∞ ≤ max ∥u0 ∥∞ , ab
+for all t > 0, while if a = b = 0,
+then ∥u(t, ·; u0 )∥∞ ≤ ∥u0 ∥∞ for all t > 0.
+Let
+∗
+:= inf
+CN,p
+
+
+
+Z
+
+2
+
+Z
+
+p
+
+|D v| ≤ C
+
+C > 0 C satisfies
+Ω
+
+M ∗ (N, p, µ, ν) := ν p
+
+(|∆v|p + v p )
+
+for all v ∈ W 2,p (Ω) ,
+
+Ω
+
+h 8p
+p
+
+∗
+CN,p
+2p +
+
+i
+1
+22p
++
+,
+µp
+(p − 1) pp
+
+(1.9)
+
+and
+K ∗ (N, α, γ, µ, ν) := lim inf
+
+q→q∗ , q>q∗
+
+h
+
+γ
+
+M ∗ N,
+
+iq+α
+q+α
+, µ, ν
+,
+γ
+
+5
+
+n Nαo
+with q∗ := max 1,
+.
+2
+
+(1.10)
+
+Let
+Θβ := β β (1 + β)−(1+β) ,
+and
+χβ :=
+
+2(2β − 1)
+max{2, γN }
+
+(β ≥ 1),
+
+Θ0 := lim Θβ = 1,
+
+(1.11)
+
+β→0+
+
+ (i,iii) (ii,iv)
+χa,b,β := max χa,b,β , χa,b,β
+
+(β ≥ 0),
+
+(1.12)
+
+where
+
+
+
+(N α−2)+ +2m b
+
+,
+
+
+ (N α−2)+ ν+β Θβ K ∗
+
+if β ≥ 0 and α = m + γ − 1,
+
+(i,iii)
+χa,b,β := +∞,
+
+
+(ii,iv)
+χa,b,β :=
+
+if β ≥ 0 and α > m + γ − 1,
+
+
+
+0,
+if α < m + γ − 1,
+
+1/2
+
+8b
+
+, if β ≥ 1/2 and α = 2m + γ − 2,
+∗
+
+ (N α−2)+ Θ2β−1 K
+if β ≥ 1/2 and α > 2m + γ − 2,
+
++∞,
+
+
+
+
+0,
+
+if 0 ≤ β < 1/2 or α < 2m + γ − 2.
+
+Here K ∗ is defined in (1.10), and the right-hand sides are understood as +∞ when (N α − 2)+ = 0.
+Note that χa,b,β is actually independent of a. Adding a here is just for comparison between χa,b,β
+and some other thresholds for χ0 we will establish in this paper (see Remark 2.1).
+Proposition 1.3 (Boundedness and global existence with relatively strong logistic source, Theorem 1.3 of [7]). Assume that a, b > 0 and m ≥ 1. Then for any given u0 satisfying (1.8),
+Tmax (u0 ) = ∞ and
+lim sup ∥u(t, ·; u0 )∥∞ < ∞
+t→∞
+
+provided that χ0 < χa,b,β and one of the following conditions holds
+(i) β ≥ 0, and α > m + γ − 1;
+
+(iii) β ≥ 0, and α = m + γ − 1;
+
+(ii) β ≥ 1/2, and α > 2m + γ − 2;
+
+(iv) β ≥ 1/2, and α = 2m + γ − 2.
+
+Proposition 1.4 (Boundedness and global existence with weak nonlinear cross diffusion, Theorem 1.2(2) of [7]). Assume that m = 1, β ≥ 1, and a = b = 0, or a ≥ 0, b > 0. If χ0 < χβ , then for
+any given u0 satisfying (1.8), Tmax (u0 ) = ∞ and
+lim sup ∥u(t, ·; u0 )∥∞ < ∞.
+t→∞
+
+We point out that, by the arguments of [7, Theorem 1.2(2)], when a = b = 0, m = 1, β ≥ 1, and
+χ
+1/2
+′ ≤ 1 ≤ q ′′ , depending only on
+0 < χ0 < min 2β , χβ , there exist constants CN > 0 and 0 < qN
+N
+(Ω, N, µ, ν, γ), such that for every u∗ > 0Rand any globally defined classical solution (u(t, x), v(t, x))
+of (1.1) with u(0, ·) satisfying (1.8) and Ω u(0, x) dx = u∗ |Ω|,
+′
+
+′′
+
+sup u(t, x) ≤ u0 (u∗ ) := CN (u∗ )qN + (u∗ )qN
+
+
+
+∀ t ≫ 1.
+
+(1.13)
+
+x∈Ω
+
+The above statement will play a role in the study of the asymptotic behavior of (1.1) when a = b = 0.
+Since it is not explicitly stated in [7], for the reader’s convenience, we give a proof in Lemma 3.5.
+
+6
+
+1.2
+
+Problems to be studied in Part II
+
+It is seen from Propositions 1.2, 1.3, and 1.4 that for any given u0 satisfying (1.8), the classical
+solution (u(t, x; u0 ), v(t, x; u0 )) of (1.1) exists globally and stays bounded on (0, ∞) provided that
+the chemotaxis sensitivity is negative, or the logistic source is relatively strong in certain sense, or
+the nonlinear cross diffusion is weak in certain sense. The following question arises naturally: How
+does a globally defined bounded positive solution of (1.1) change as time changes?
+In this paper, we study the asymptotic behavior of globally defined positive classical solutions,
+including uniform persistence and stabilization of positive constant solutions. To be more precise,
+we study the following problems:
+• Whether uniform persistence occurs in (1.1) in the sense that lim inf t→∞ inf x∈Ω u(t, x) > 0 for
+any globally defined bounded positive solution (u(t, x), v(t, x)) of (1.1). We provide a confirmative
+answer in the case that m ≥ 1 (see Theorem 2.1 for details).
+γ
+1
+• Whether the unique positive constant solution (u∗ , v ∗ ) = ( ab ) α , µν ( ab ) α in the non-minimal model,
+i.e., (1.1) with a, b > 0, is stable. We obtain an explicit critical sensitivity threshold for linear
+stability of (u∗ , v ∗ ) and several explicit sufficient conditions for global stability of (u∗ , v ∗ ) (see
+Theorems 2.2, 2.3, and 2.4 for details).
+• Whether positive constant solutions in the minimal model, i.e., (1.1) with a = b = 0, are stable.
+Note that in this case, (1.1) has a family {(u∗ , v ∗ ) := (u∗ , µν (u∗ )γ )}u∗ >0 of positive constant solutions.
+For each positive constant solution (u∗ , v ∗ ) := (u∗ , µν (u∗ )γ ), we obtain an explicit critical sensitivity
+threshold for linear stability of (u∗ , v ∗ ) and some sufficient conditions for global stability of (u∗ , v ∗ )
+(see Theorems 2.2 and 2.5 for details).
+In the forthcoming Part III paper [8], we will study bifurcation of positive constant solutions.
+
+1.3
+
+Contributions of Part II
+
+To the best of our knowledge, the problems stated above are studied here for the first time when
+β > 0. From the modeling viewpoint, the factor (1 + v)−β may be viewed as a signal-dependent
+desensitization mechanism (or receptor saturation/adaptation): when v is large, the effective drift
+toward the signal is reduced (when χ0 > 0). Negative sensitivity (χ0 < 0) corresponds to chemorepulsion, for which the drift acts against concentration of the signal. It is then expected that large
+β or negative sensitivity would weaken the possibility of aggregation and pattern initiation, or
+strengthen the possibility of stabilization at constant solutions. However, the signal-dependent
+sensitivity complicates the analysis of the asymptotic dynamics of (1.1). Many existing approaches
+for the study of stability of positive stationary solutions in chemotaxis models are difficult to apply
+directly to (1.1). The current paper makes several contributions to the study of the asymptotic
+dynamics of (1.1), including
+• (Establishment of stability regimes) This paper establishes explicit linear stability and instability
+criteria for positive constant solutions, together with computable critical sensitivity thresholds and
+explicit parameter dependence (see Theorem 2.2), which clarifies the impact of each parameter
+on the stability of positive constant solutions. It also establishes several sets of explicit sufficient
+conditions for global stability of the unique positive equilibrium in the non-minimal model (see
+Theorems 2.3 and 2.4) and for global stability of the family of positive constant solutions in the
+minimal model (see Theorem 2.5). These conditions provide various parameter regimes where
+chemical signal does not induce aggregation or nontrivial pattern formation, which is of great
+biological interest.
+• (Discovery of interesting biological scenarios) The results established in this paper reveal the following interesting biological scenarios when m ≥ 1: the chemical signal does not enforce asymptotic
+7
+
+smallness of the population density at any location (see Theorem 2.1); larger β leads to improved
+stability thresholds, reflecting the stabilizing role of signal saturation (see Theorem 2.4(ii), (iv),
+Theorem 2.5, and Remark 2.3(4)); negative sensitivity makes every globally defined positive solution stabilize at some constant solution and hence prevents nontrivial pattern formation (see
+Theorem 2.3).
+• (Development of new approaches and extension of existing methods) Due to the nonlinear senχ0
+sitivity function χ(v) = (1+v)
+β , many existing approaches for the study of stability of positive
+stationary solutions in chemotaxis models are difficult to apply directly to (1.1). Some new ideas
+and techniques are developed and several existing methods are extended in this paper to study the
+asymptotic dynamics of (1.1). For example, to establish the global stability regimes when χ0 > 0,
+we extended the existing Lyapunov functional method for m = 1 to m > 1 and the rectangle/ODE
+method for β = 0 to β > 0 (see Remark 2.3(2), (3)). When χ0 < 0, instead of applying certain
+Lyapunov functional method or rectangle/ODE method, we prove that every globally defined positive solution stabilizes at some positive constant solution through nontrivial applications of the
+maximum principle and Hopf’s Lemma for parabolic equations; this approach appears to be new.
+• (Extension and recovery of existing results) The results obtained in this paper cover the case
+β = 0, and recover and extend the relevant existing results in the literature for the case β = 0 (see
+Remark 2.3(5).)
+Organization of the paper: The rest of the paper is organized as follows. In Section 2, we
+state our main results and provide remarks. In Section 3, we collect basic properties of classical
+solutions of (1.1) to be used in the proofs of the main results. In Section 4, we study persistence and
+prove Theorem 2.1. In Section 5, we prove the linear stability/instability result in Theorem 2.2. In
+Section 6, we study global stability with negative sensitivity and prove Theorem 2.3. In Section 7,
+we establish global stability results for constant equilibria in the non-minimal model and prove
+Theorem 2.4. In Section 8, we analyze the minimal model and prove Theorem 2.5. Finally, in
+Appendix A.1 we record basic semigroup estimates, in Appendix A.2 we prove a power-difference
+inequality, and in Appendix A.3 we collect several comparison lemmas used to connect explicit
+stability thresholds with the critical sensitivity.
+
+2
+
+Statements of the main results and remarks
+
+In this section, we state our main results on uniform persistence and stability of positive constant
+solutions and provide some remarks on the main results and techniques. To this end, we first
+introduce some definitions and standing notation.
+
+2.1
+
+Definitions and notation
+
+In this subsection, we present some notation to be used throughout the paper, and introduce the
+definition of stability of positive constant solutions of (1.1).
+We assume that Ω ⊂ RN is a bounded smooth domain. Unless specified otherwise, the number
+C denotes a generic constant which is independent of the solutions of (1.1), but may depend on
+the parameters under consideration and may be different at different places. For a given function
+u ∈ C(Ω), we may use ∥u∥∞ for ∥u∥C(Ω) = supx∈Ω |u(x)|. For any p ≥ 1 and u ∈ Lp (Ω), we use
+1/p
+R
+∥u∥p to denote the Lp -norm of u, i.e., ∥u∥p := Ω |u(x)|p dx
+. For given θ1 , θ2 ∈ (0, 1) and an
+interval I ⊂ R, denote the Hölder space
+
+
+C θ1 ,θ2 I × Ω := u ∈ C(I × Ω) ∥u∥C θ1 ,θ2 (I×Ω) < ∞ ,
+8
+
+where the Hölder norm is defined by
+∥u∥C θ1 ,θ2 (I×Ω) :=
+
+sup
+
+|u(t, x)| +
+
+(t,x)∈I×Ω
+
+|u(t1 , x1 ) − u(t2 , x2 )|
+.
+θ2
+θ1
+(t1 ,x1 ),(t2 ,x2 )∈I×Ω |t1 − t2 | + |x1 − x2 |
+sup
+
+(t1 ,x1 )̸=(t2 ,x2 )
+
+We assume that u0 satisfies (1.8), and denote by (u(t, x; u0 ), v(t, x; u0 )) the classical solution
+of (1.1) satisfying u(0, x; u0 ) = u0 (x). We may drop t, x, u0 in u(t, x; u0 ) and v(t, x; u0 ), and drop
+u0 in Tmax (u0 ) if no confusion occurs.
+Note that when a, b > 0, (1.1) has a unique positive constant solution (u∗ , v ∗ ) given by
+ a
+
+1/α ν a γ/α
+(u∗ , v ∗ ) =
+,
+.
+(2.1)
+b
+µ b
+When a = b = 0, for any positive constant u∗ > 0, (u∗ , v ∗ ) is a positive constant solution of (1.1),
+where v ∗ = µν (u∗ )γ . Hence (1.1) with a = b = 0 has a one parameter family of positive constant
+solutions, {(u∗ , v ∗ )}u∗ >0 .
+To state the stability of positive constant solutions, let us introduce some notation. Let (u∗ , v ∗ )
+be a positive constant solution of (1.1). It is straightforward to verify that the linearization of (1.1)
+at (u∗ , v ∗ ) is given by
+
+
+∗ m 
+∗ γ−1
+ut = ∆u − χ0 (u )
+µv
+−
+νγ(u
+)
+u
+− aαu, x ∈ Ω,
+(1 + v ∗ )β
+(2.2)
+
+∗ γ−1
+0 = ∆v − µv + νγ(u ) u,
+x ∈ Ω.
+Let {λn }∞
+n=0 denote the eigenvalues of the negative Neumann Laplacian:
+−∆u = λu
+
+∂u
+=0
+∂n
+
+in Ω,
+
+on ∂Ω,
+
+with 0 = λ0 < λ1 ≤ λ2 ≤ · · · . Let
+σn = σn (χ0 ) := − λn + χ0 νγ
+
+(u∗ )m+γ−1 λn
+− aα.
+(1 + v ∗ )β µ + λn
+
+(2.3)
+
+Then {σn }∞
+n=0 are the eigenvalues of the linear operator associated with (2.2) (see the proof of
+Theorem 2.2 in Section 5). Note that, when a, b > 0, σ0 < 0, and when a = b = 0, σ0 = 0.
+Definition 2.1. (1) A positive constant solution (u∗ , v ∗ ) of (1.1) is said to be linearly stable if
+σn < 0 for all n ≥ 1.
+(2) A positive constant solution (u∗ , v ∗ ) of (1.1) is said to be linearly unstable if there is n ≥ 1
+such that σn > 0.
+(3) When a, b > 0, the unique positive constant solution (u∗ , v ∗ ) of (1.1) is said to be globally
+asymptotically stable if for any globally defined, positive, and bounded classical solution (u(t, x),
+v(t, x)) of (1.1), it holds that limt→∞ ∥u(t, ·) − u∗ ∥∞ = 0.
+(4) When a = b = 0, a positive constant solution (u∗ , v ∗ ) of (1.1) is said to be globally asymptotically
+stable if for any
+globally defined, positive, and bounded classical solution (u(t, x), v(t, x))
+R
+of (1.1) with Ω u(0, x)dx = |Ω|u∗ , it holds that limt→∞ ∥u(t, ·) − u∗ ∥∞ = 0.
+We point out that the global asymptotic stability defined above concerns the convergence
+of those positive solutions of (1.1) which exist globally and stay bounded. It does not require
+that for any u0 satisfying (1.8), the solution (u(t, x; u0 ), v(t, x; u0 )) of (1.1) with initial condition
+u(0, x; u0 ) = u0 (x) exists for all t > 0.
+9
+
+2.2
+
+Statements of the main results
+
+In this subsection, we state our main results. Our first main result addresses the persistence of
+globally defined, bounded, and positive solutions of the parabolic-elliptic system (1.1).
+Theorem 2.1 (Uniform persistence). (1) Assume m ≥ 1. Then, uniform persistence occurs in
+the parabolic-elliptic system (1.1) in the following sense: for any globally defined, bounded,
+and positive solution (u(t, x), v(t, x)) of (1.1), we have
+γ
+ν
+lim inf inf u(t, x) > 0 and lim inf inf v(t, x) ≥
+lim inf inf u(t, x) > 0.
+(2.4)
+t→∞ x∈Ω
+t→∞ x∈Ω
+µ t→∞ x∈Ω
+(2) If a, b > 0, χ0 > 0, m = 1, β ≥ 1, and χ0 < µΘaβ−1 , then for any globally defined, bounded,
+and positive solution (u(t, x), v(t, x)) of (1.1), it holds that
+ a − χ µΘ
+1
+0
+β−1 α
+(2.5)
+lim inf inf u(t, x) ≥
+t→∞ x∈Ω
+b
+and
+
+γ
+
+lim inf inf v(t, x) ≥
+t→∞ x∈Ω
+
+ν  a − χ0 µΘβ−1  α
+.
+µ
+b
+
+(2.6)
+
+(3) If a, b > 0, χ0 > 0, m > 1, and β ≥ 1, then for any globally defined, bounded, and positive
+solution (u(t, x), v(t, x)) of (1.1), it holds that
+n 
+lim inf inf u(t, x) ≥ min 1,
+t→∞ x∈Ω
+
+max{ 1 , 1 } o
+a
+m−1 α
+b + χ0 µΘβ−1
+
+and
+n
+ν
+lim inf inf v(t, x) ≥
+min 1,
+t→∞ x∈Ω
+µ
+
+
+
+a
+b + χ0 µΘβ−1
+
+(2.7)
+
+max{ 1 , 1 } o
+m−1 α
+
+γ
+
+.
+
+(2.8)
+
+χ
+1/2
+(4) Assume that a = b = 0, m = 1, β ≥ 1, and 0 < χ0 < min 2β , χβ . Then for any
+∗
+u
+defined, bounded, and positive solution (u(t, x), v(t, x)) of (1.1) with
+R > 0 and any globally
+∗ |Ω|, it holds that
+u(0,
+x)
+dx
+=
+u
+Ω
+
+u∗ (u0 (u∗ ))γ−1 , 0 < γ ≤ 1,
+lim inf inf v(t, x; u0 ) ≥ v 0 (u∗ ) := CΩ
+(2.9)
+t→∞ x∈Ω
+(u∗ )γ ,
+γ > 1,
+where CΩ > 0 depends only on (Ω, N, µ, ν) and arises from a Gaussian lower bound for the
+Neumann heat kernel on Ω, and u0 (u∗ ) is defined in (1.13).
+Theorem 2.1 is proved in Section 4.
+Our second main result is on the linear stability and instability of positive constant solutions
+(u∗ , v ∗ ) of (1.1). To state this result, we first introduce some notation. Let
+χ∗a,b,β (u∗ ) := inf
+
+n≥1
+
+h
+
+(1 + v ∗ )β
+(λn + aα)(µ + λn ) i
+×
+,
+νγ (u∗ )m+γ−1
+λn
+
+(2.10)
+
+where v ∗ = µν (u∗ )γ . Note that when a > 0 and b > 0, u∗ = (a/b)1/α is an implied parameter
+(see (2.1)), but when a = b = 0, u∗ > 0 is a free parameter. Note that
+χ∗a,b,β (u∗ ) ≥ inf
+
+λ>0
+
+h
+
+√
+(1 + v ∗ )β
+(λ + aα)(µ + λ) i
+(1 + v ∗ )β
+√ 2
+×
+=
+aα + µ .
+∗
+m+γ−1
+∗
+m+γ−1
+νγ (u )
+λ
+νγ(u )
+10
+
+(2.11)
+
+Theorem 2.2 (Linear stability and instability). (1) Assume that a > 0 and b > 0. Let (u∗ , v ∗ )
+be the unique positive constant solution of (1.1) given by (2.1). If χ0 < χ∗a,b,β (u∗ ), then
+(u∗ , v ∗ ) is a linearly stable equilibrium of (1.1). Otherwise, if χ0 > χ∗a,b,β (u∗ ), then (u∗ , v ∗ )
+is an unstable equilibrium of (1.1).
+Moreover, if χ0 < χ∗a,b,β (u∗ ), there are C, δ, λ > 0 such that for any u0 satisfying (1.8) and
+∥u0 − u∗ ∥∞ < δ, we have that Tmax (u0 ) = ∞ and
+∥u(t, ·; u0 ) − u∗ ∥C 1 (Ω) + ∥v(t, ·; u0 ) − v ∗ ∥C 1 (Ω) ≤ Ce−λt
+
+∀ t ≥ 0.
+
+(2.12)
+
+(2) Assume that a = b = 0. Let u∗ > 0 and set v ∗ := µν (u∗ )γ . Then (u∗ , v ∗ ) is a positive constant
+solution of (1.1). If χ0 < χ∗0,0,β (u∗ ), then (u∗ , v ∗ ) is linearly stable, and if χ0 > χ∗0,0,β (u∗ ),
+then it is unstable.
+Moreover, if χ0 < χ∗0,0,β (u∗ ), there are C, δ, λ > 0 such that for any u0 satisfying (1.8),
+R
+∥u0 − u∗ ∥∞ < δ, and Ω u0 (x)dx = |Ω|u∗ , we have that Tmax (u0 ) = ∞ and (2.12) holds.
+Theorem 2.2 is proved in Section 5. Because of the dichotomy established in Theorem 2.2, we
+refer to χ∗ (u∗ ) := χ∗a,b,β (u∗ ) as the critical sensitivity.
+Our third main result is on the global stability of positive constant solutions of (1.1) with
+negative sensitivity.
+Theorem 2.3 (Global stability in the model with negative sensitivity). Assume that χ0 ≤ 0,
+m ≥ 1.
+(1) Assume a, b > 0. The unique positive constant solution (u∗ , v ∗ ) given in (2.1) is a globally
+asymptotically stable equilibrium of (1.1). Moreover, there exist constants C > 0 and λ > 0
+such that for any globally defined bounded classical solution (u(t, x), v(t, x)) of (1.1), (2.12)
+holds.
+(2) Assume that a = b = 0. For any u∗ > 0, the constant solution (u∗ , v ∗ ) := (u∗ , µν (u∗ )γ ) of (1.1)
+is globally asymptotically stable in the sense of part (4) of Definition 2.1. Moreover, there
+exist constants C > 0 and λ >R 0 such that for any globally defined bounded classical solution
+(u(t, x), v(t, x)) of (1.1) with Ω u(0, x)dx = |Ω|u∗ , (2.12) holds.
+Theorem 2.3 is proved in Section 6.
+Our fourth main result is on the global stability of the unique positive constant solution with
+relatively strong logistic source. To state this theorem, we first introduce some notation.
+Assume that a, b > 0 and let (u∗ , v ∗ ) be the unique positive constant solution of (1.1) given
+by (2.1). In particular, u∗ = (a/b)1/α and v ∗ = (ν/µ) (u∗ )γ . For given b > 0 and m ≥ 1, let
+s
+
+16 1 + β̃ v ∗ µ
+∗∗,1
+∗
+χa,b,β (u ) := b ×
+with β̃ := [1 ∧ (2β − 1)]+ ,
+(2.13)
+(2m − 1)ν 2 Cα,γ (u∗ )2γ−α+2m−2
+where Cα,γ is defined by
+
+(α + 1)2
+
+
+, 0 < α < 1,
+
+
+
+ 4α
+α ≥ 1 and 0 < γ ≤ 1,
+Cα,γ := 1,
+
+
+
+2
+
+
+ γ ,
+α ≥ 1 and γ > 1.
+2γ − 1
+11
+
+(2.14)
+
+We use the notation ξ ∧ η = min{ξ, η} and similarly ξ ∨ η = max{ξ, η}. We define sign(z) := −1 if
+z < 0, sign(z) := 0 if z = 0, and sign(z) := 1 if z > 0.
+For m ≥ 1 and β ≥ 1, define
+
+a
+
+, if m = 1,
+
+
+ 2µΘβ−1
+χ̄a,b,β :=
+(2.15)
+
+b
+
+
+,
+if m > 1,
+
+µΘβ−1
+and
+v a,b :=
+
+  γ
+ν a α
+
+
+,
+
+ µ 2b
+
+if m = 1,
+
+
+
+n  max{ 1 , 1 } oγ
+
+m−1 α
+
+ ν min 1, a
+,
+µ
+2b
+
+if m > 1.
+
+(2.16)
+
+We also define
+∗
+χ∗∗,2
+a,b,β (u ) := min
+
+
+
+
+
+
+
+v
+u
+u
+t
+χ̄a,b,β , b ×
+
+
+
+
+
+2β
+
+16 1 + v a,b µ
+.
+(2m − 1)ν 2 Cα,γ (u∗ )2γ−α+2m−2 
+
+
+(2.17)
+
+Let M0 (Ω) > 0 be a constant depending only on Ω, coming from a standard Neumann resolvent
+gradient estimate (introduced later at its first use; see Lemma 7.1). For given u∗ > 0, m ≥ 1,
+γ ≥ 1, and β ≥ 0, let
+∗
+χ∗∗,3
+a,b,β (u ) :=
+
+1
+a  a −
+a
+·
+=
+ν(u∗ )m+γ−1 2 + βv ∗ M0 (Ω)2
+ν b
+
+m+γ−1
+α
+
+·
+
+1
+2 + βv ∗ M0 (Ω)2
+
+.
+
+(2.18)
+
+For m ≥ 1 and β ≥ 1, define
+n
+β ∗∗,3 ∗ o
+∗
+:=
+(u
+)
+min
+χ̄
+,
+1
++
+v
+χ∗∗,4
+χa,b,β (u ) .
+a,b,β
+a,b
+a,b,β
+
+(2.19)
+
+Theorem 2.4 (Global stability in the model with relatively strong logistic source). Assume that
+a, b > 0, β ≥ 0, and α, γ > 0. Let (u∗ , v ∗ ) be the unique positive constant solution of (1.1) given
+by (2.1). Assume that one of the following sets of conditions holds:
+∗
+(i) m ≥ 1, α + 1 ≥ 2γ, and 0 < χ0 < χ∗∗,1
+a,b,β (u ).
+∗
+(ii) m ≥ 1, β ≥ 1, α + 1 ≥ 2γ, and 0 < χ0 < χ∗∗,2
+a,b,β (u ).
+∗
+(iii) m ≥ 1, γ ≥ 1, α + 1 ≥ m + γ + sign(β)γ, and χ0 < χ∗∗,3
+a,b,β (u ).
+∗
+(iv) m ≥ 1, β ≥ 1, γ ≥ 1, α + 1 ≥ m + 2γ, and χ0 < χ∗∗,4
+a,b,β (u ).
+
+Then (u∗ , v ∗ ) is a globally asymptotically stable equilibrium of (1.1). Moreover, there exist constants
+C > 0 and λ > 0 such that for any globally defined bounded classical solution (u(t, x), v(t, x))
+of (1.1), (2.12) holds.
+
+12
+
+Theorem 2.4 is proved in Section 7.
+Our last result is on the stability of positive constant solutions of (1.1) when a = b = 0, and in
+this case, every positive constant solution of (1.1) is given by
+
+
+ν
+(u∗ , v ∗ ) = u∗ , (u∗ )γ ,
+u∗ > 0.
+(2.20)
+µ
+This family of equilibria plays the same role as (2.1) in the non-minimal model.
+Recall that u0 (u∗ ) is defined in (1.13) and v 0 (u∗ ) is defined in (2.9). Define
+
+(u∗ )γ−1 u0 (u∗ ), 0 < γ ≤ 1,
+∗
+:=
+Γγ (u )
+γ (u (u∗ ))γ ,
+γ > 1,
+0
+and
+∗
+χ∗∗,1
+β (u ) := min
+
+nχ
+
+1/2 2
+, χβ ,
+2
+
+√
+
+β
+
+µλ∗ (1 + v 0 (u∗ ))β o
+,
+νΓγ (u∗ )
+
+(2.21)
+
+(2.22)
+
+where λ∗ is the first nonzero Neumann eigenvalue of −∆ on Ω. In addition, when γ = 1, define
+∗
+χ∗∗,2
+β (u ) := min
+
+nχ
+
+β
+
+2
+
+1/2
+
+, χβ ,
+
+µ(1 + v 0 (u∗ ))β o
+.
+νu0 (u∗ )
+
+(2.23)
+
+Theorem 2.5 (Global stability of constant solutions in the minimal model). Assume that a = b =
+0. Let (u∗ , v ∗ ) be a positive constant solution of (1.1). Assume that m = 1, β ≥ 1, and that one of
+the following conditions holds:
+∗
+(i) 0 < χ0 < χ∗∗,1
+β (u ).
+
+∗
+(ii) γ = 1 and 0 < χ0 < χ∗∗,2
+β (u ).
+
+Then (u∗ , v ∗ ) is globally asymptotically stable in the sense of part (4) of Definition 2.1, and
+there
+are C, λ > 0 such that for any globally defined bounded positive solution (u(t, x), v(t, x)) with
+R
+∗
+Ω u(0, x)dx = |Ω|u , (2.12) holds.
+Theorem 2.5 is proved in Section 8.
+
+2.3
+
+Remarks
+
+In this subsection, we provide some remarks on our main results, some difficulties that arose, and
+the techniques and ideas developed for the proofs of those results.
+Remark 2.1 (Sensitivity thresholds). In this remark, we provide some discussions on the roles played
+∗∗,j
+∗
+∗
+by the sensitivity thresholds χa,b,β , χ∗a,b,β , and χ∗∗,i
+a,b,β (i = 1, 2, 3, 4) (resp. χβ , χβ := χ0,0,β , and χβ
+(j = 1, 2)) for the non-minimal model (resp. for the minimal model), and the relations between
+these sensitivity thresholds.
+(1) The constant χa,b,β (resp. χβ ) provides an upper bound for χ0 for the global existence and
+boundedness of classical solutions with any initial condition u0 satisfying (1.8) in the nonminimal model (resp. in the minimal model) (see Propositions 1.3 and 1.4). They are not
+expected to be optimal.
+(2) The quantity χ∗a,b,β (u∗ ) defined in (2.10) is the critical sensitivity for linear stability of the
+constant solution (u∗ , v ∗ ) (Theorem 2.2). It is determined by the spectrum of the Neumann
+Laplacian, it is optimal, but in general, it is not explicit.
+13
+
+∗∗,j ∗
+∗
+(3) The quantities χ∗∗,i
+a,b,β (u ) (i = 1, 2, 3, 4) (resp. χβ (u ) (j = 1, 2)) provide upper bounds for
+χ0 for any globally defined bounded positive solution (u(t,
+R x), v(t, x)) (resp. for any globally
+defined bounded positive solution (u(t, x), v(t, x)) with Ω u(0, x)dx = |Ω|u∗ ) to converge to
+the constant solution (u∗ , v ∗ ) := (u∗ , µν (u∗ )γ ) in the non-minimal model (resp. in the minimal
+model) (see Theorems 2.4 and 2.5). They are also not expected to be optimal.
+
+(4) In general, there may be no direct relation between χa,b,β and χ∗a,b,β (u∗ ), and likewise no
+∗
+direct relation between χa,b,β and χ∗∗,i
+a,b,β (u ) (i = 1, 2, 3, 4). For the minimal model, by the
+∗
+∗ ∗
+definition of χ∗∗,j
+and the proof of Lemma A.8, we always have χ∗∗,j
+β
+β (u ) ≤ χβ ≤ 2χβ (u )
+∗
+(j = 1, 2) for any u > 0.
+
+(5) In the forthcoming Part III paper [8], we will prove that there are non-constant stationary
+solutions bifurcating from (u∗ , v ∗ ) when χ0 passes through χ∗a,b,β (u∗ ). Therefore, it is expected
+∗∗,j ∗
+∗
+∗
+∗
+∗
+∗
+that χ∗∗,i
+a,b,β (u ) ≤ χa,b,β (u ) for i = 1, 2, 3, 4 (resp. χβ (u ) ≤ χ0,0,β (u ) for j = 1, 2), which
+have been proved to be true in Lemma A.7 (resp. in Lemma A.8). It should be pointed
+∗∗,j ∗
+∗
+∗
+∗
+∗
+∗
+out that it is possible that χ∗∗,i
+a,b,β (u ) < χa,b,β (u ) (i = 1, 2, 3, 4) (resp. χβ (u ) < χ0,0,β (u )
+(j = 1, 2) since backward pitchfork bifurcation may occur in (1.1) when χ0 passes through
+χ∗a,b,β (u∗ ) (see the forthcoming Part III paper [8]).
+
+Remark 2.2 (Negative sensitivity). This remark concerns the asymptotic dynamics of (1.1) in the
+case of negative sensitivity. Assume that χ0 < 0 and m ≥ 1. Note that χa,b,β > 0, χβ > 0, and
+χ∗a,b,β (u∗ ) > 0.
+(1) By Proposition 1.2 (proved in Part I [7]), for any u0 satisfying (1.8), (u(t, x; u0 ), v(t, x; u0 ))
+exists globally and stays bounded. By Theorem 2.3, (u(t, x; u0 ), v(t, x; u0 )) converges to the
+unique positive constant solution given in (2.1) in the case that a, b > 0, and converges to the
+positive constant solution
+Z
+
+
+ν
+1
+(u∗ , v ∗ ) := u∗ , (u∗ )γ , where u∗ =
+u0 (x) dx,
+µ
+|Ω| Ω
+in the case a = b = 0. Hence, the asymptotic dynamics in (1.1) with χ0 < 0 is the same as
+that of the following Fisher–KPP equation:
+ut = ∆u + u(a − buα ),
+
+x ∈ Ω.
+
+(2.24)
+
+and negative sensitivity does not produce nontrivial pattern formation.
+(2) To the best of our knowledge, the global stability of (u∗ , v ∗ ) for χ0 < 0 is established here
+for the first time. This result is achieved through nontrivial applications of the maximum
+principle and Hopf’s Lemma for parabolic equations.
+Remark 2.3 (Positive sensitivity with relatively strong logistic source). This
+ remark is about the
+a
+ν
+a
+∗
+∗
+1/α
+γ/α
+stability of the unique positive constant solution (u , v ) := ( b ) , µ ( b )
+in (1.1) with positive
+sensitivity χ0 > 0 and relatively strong logistic source.
+(1) It is of great interest to investigate the stability of the unique positive constant solution (u∗ , v ∗ )
+and the influence of the underlying parameters on the stability of (u∗ , v ∗ ). The stability of
+(u∗ , v ∗ ) has been studied in literature for various special cases, for example, it is studied in
+the paper by Tello and Winkler [38] for the case β = 0, m = α = γ = 1, and is studied in
+14
+
+the paper by Galakhov, Salieva, and Tello [17] for the case that β = 0, m, α, γ ≥ 1. Due
+1
+to the nonlinear sensitivity function (1+v)
+β with β > 0, it is difficult to apply the methods
+developed in literature for the stability study of constant solutions directly. In this paper, we
+establish two different approaches: an entropy approach and a rectangle/ODE approach, to
+investigate the stability of (u∗ , v ∗ ).
+(2) (Entropy approach) Regarding the entropy approach, we developed the following Lyapunov
+functional,
+Z s
+Z
+u∗ 2m−1 
+F (t) :=
+hm (u(t, x)) dx, where hm (s) :=
+1−
+dτ.
+(2.25)
+τ
+u∗
+Ω
+Note that h1 (s) = s − u∗ − u∗ ln us∗ , which has been used in the study of positive stationary
+solutions in other chemotaxis models (see, for example, [6, 19, 29, 40], etc.). The main idea is
+to prove
+Z
+lim
+
+t→∞ Ω
+
+(u(t, x) − u∗ )(uα (t, x) − (u∗ )α ) = 0
+
+by applying the Lyapunov functional F (t) and some eventual lower bound of v(t, x) under
+the conditions (i) or (ii) in Theorem 2.4, and then prove the global stability of (u∗ , v ∗ ) in the
+non-minimal model.
+(3) (Rectangle/ODE approach) The rectangle/ODE approach can be roughly described as follows: consider the following auxiliary ODE system:
+(
+ut = κ0 um (uγ − uγ ) + βM um (uγ − uγ )2 + u(a − buα ),
+(2.26)
+ut = κ0 um (uγ − uγ ) + u(a − buα )
+for properly chosen constants κ0 = κ0 (u∗ ) and M = M (u∗ ). Let (u(t), u(t)) be the unique
+global solution of (2.26) with
+n
+o
+n
+o
+u(0) = max u∗ , sup u(0, x) ,
+u(0) = min u∗ , inf u(0, x) .
+x∈Ω
+
+x∈Ω
+
+Prove that u(t) ≤ u(t, x) ≤ u(t) for all t ≥ 0 and x ∈ Ω, and that limt→∞ u(t) = limt→∞ u(t) =
+u∗ . We derived the ODE system (2.26) by adapting the rectangle/ODE method in [17,
+Section 3] to β ≥ 0 and applying eventual lower bounds of v(t, x) established in Theorem 2.1.
+By the rectangle/ODE approach, we obtain two sufficient sets of conditions in Theorem 2.4
+(iii) and (iv) for global stability of (u∗ , v ∗ ) in the non-minimal model.
+(4) (Effect of β) Observe that the conditions χ0 < χ∗∗,i
+a,b,β (i = 1, 2, 3, 4) are obtained by different
+approaches. In general, none of these four conditions dominates the other three, because the
+admissible ranges of (α, γ, m) are different. Nevertheless, one can identify regimes in which
+one of them is typically less restrictive. For instance, when m ≥ 1 and α + 1 ≥ 2γ, χ0 < χ∗∗,2
+a,b,β
+∗∗,2
+∗∗,1
+is less restrictive than χ0 < χ∗∗,1
+a,b,β when β ≫ 1 since χa,b,β → ∞ as β → ∞, but χa,b,β stays
+bounded as β → ∞. Similarly, when m ≥ 1, γ ≥ 1, and α + 1 ≥ m + 2γ, the condition
+∗∗,3
+∗∗,4
+∗∗,3
+χ0 < χ∗∗,4
+a,b,β is less restrictive than χ0 < χa,b,β when β ≫ 1 since χa,b,β → ∞ and χa,b,β → 0
+∗∗,j
+as β → ∞. By χ∗∗,i
+→ ∞ as β → ∞ for i = 2, 4 and j = 1, 2, it is seen that
+a,b,β → ∞ and χβ
+large β has positive effect on the stability of positive constant solutions.
+
+15
+
+b
+∗
+(5) When a = b, β = 0, µ = ν = 1, m ≥ 1, and α + 1 ≥ m + γ, we have χ∗∗,3
+a,b,β (u ) = 2 .
+
+The condition χ0 < χ∗∗,3
+1.2]. When a = b, β = 0,
+a,b,β recovers the condition in [17, Theorem
+√
+∗∗,1
+µ = ν = 1, m = γ = 1, and α ≥ 1, we have χa,b,β (u∗ ) = 4 b. In this normalization, the
+∗
+condition χ0 < χ∗∗,1
+a,b,β (u ) is weaker than χ0 < b/2 when b < 64. Therefore, when b < 64 we
+improve the sufficient condition χ0 < b/2 from [17, Theorem 1.2].
+
+Remark 2.4 (On the minimal model). This remark is about the stability of positive constant solutions in the minimal model. We develop two different approaches—the entropy approach and an
+Ahn–Kang–Lee-type mechanism developed in [1]—to investigate the stability of positive constant
+solutions. In contrast to [1], our stabilization results and the underlying estimates do not require
+convexity of the domain nor a restriction to the dimensions N = 3, 4.
+∗
+(1) (Entropy approach) The condition χ0 < χ∗∗,1
+β (u ) in Theorem 2.5(1) is derived by employing
+the following Lyapunov functional
+Z 
+u(t, x) 
+dx.
+F (t) :=
+u(t, x) − u∗ − u∗ ln
+u∗
+Ω
+
+together with eventual upper and lower bounds for u and v, respectively.
+∗
+(2) (Ahn–Kang–Lee-type mechanism) The condition χ0 < χ∗∗,2
+β (u ) is obtained by applying an
+alternative Ahn–Kang–Lee-type mechanism developed in [1] together with eventual upper
+and lower bounds for u and v, respectively.
+The main idea is to first prove exponential decay
+R
+of a suitable v-energy and then of Ω (u(t, x) − u∗ )2 dx.
+
+(3) (Comparison when γ = 1) When γ = 1, the conditions in Theorem 2.5(1) and Theorem 2.5(2)
+∗
+are, in general, incomparable. Indeed, the first two terms in the definitions of χ∗∗,1
+β (u ) and
+∗
+χ∗∗,2
+β (u ) are identical, so the difference lies only in the third terms:
+
+√
+2 µλ∗ (1 + v 0 (u∗ ))β
+A1 :=
+νu0 (u∗ )
+
+and
+
+A2 :=
+
+µ (1 + v 0 (u∗ ))β
+.
+νu0 (u∗ )
+
+Therefore,
+A2
+1
+=
+A1
+2
+
+r
+
+µ
+.
+λ∗
+
+Hence, if µ > 4λ∗ , then A2 > A1 , whereas if µ < 4λ∗ , then A1 > A2 . In other words, neither
+threshold uniformly dominates the other: when the signal degradation rate µ is large relative to the spectral gap λ∗ (i.e., µ > 4λ∗ ), the Ahn–Kang–Lee mechanism (Theorem 2.5(ii))
+provides a larger stability threshold, whereas when µ < 4λ∗ , the entropy approach (Theorem 2.5(i)) is more permissive. Physically, λ∗ measures the rate at which diffusion homogenizes spatial perturbations over Ω: when µ is large relative to λ∗ , the chemical signal degrades
+quickly and the Ahn–Kang–Lee approach—which exploits the v-equation directly through the
+identity ν(u − u∗ ) = µ(v − v ∗ ) − ∆(v − v ∗ )—gains an advantage.
+(4) (Dependence on the mean density u∗ ) Since u0 (u∗ ) and v 0 (u∗ ) both vanish as u∗ → 0, the
+quantity Γγ (u∗ ) → 0 as u∗ → 0, and consequently the third component in the definitions of
+∗∗,2 ∗
+∗
+χ∗∗,1
+β (u ) and χβ (u ) diverges to +∞. Therefore,
+∗
+∗
+lim
+χ∗∗,1
+χ∗∗,2
+β (u ) = lim
+β (u ) = min
+∗
+∗
+
+u →0
+
+u →0
+
+16
+
+nχ
+
+β
+
+2
+
+1/2
+
+, χβ
+
+o
+
+> 0.
+
+∗∗,2 ∗
+∗
+∗
+In particular, χ∗∗,1
+β (u ) and χβ (u ) remain bounded away from zero for all small u ; physically, populations with small total mass are always stabilizable under the sensitivity threshold.
+
+∗ q′
+∗ q ′′
+′ = p /(2p ) < 1, the bound u (u∗ ) ≤ C
+More precisely, since qN
+0
+0
+N (u ) N + (u ) N implies
+N
+′
+u0 (u∗ ) → 0 at rate (u∗ )qN as u∗ → 0. Conversely, as u∗ → ∞, one has Γγ (u∗ ) → ∞ while
+∗∗,2 ∗
+∗
+(1 + v 0 (u∗ ))β grows at a slower rate, so χ∗∗,1
+β (u ) → 0 and χβ (u ) → 0. This reflects the
+natural expectation that large populations face tighter stability constraints. We note that the
+present theorem requires β ≥ 1. In contrast, when β = 0 and γ = 1, the thresholds in Theorem 2.4 from the non-minimal model are independent of u∗ , because the factors (1 + v 0 )β = 1
+and Γ1 = u0 cancel in the defining ratios.
+
+3
+
+Preliminary: Basic properties of classical solutions
+
+In this section, we present some lemmas to be used in the proofs of the main results. They include
+various basic properties of classical solutions of (1.1), which are not proved in Part I [7].
+Throughout this section, (u(t, x; u0 ), v(t, x; u0 )) always denotes the classical solution of (1.1)
+with initial condition u0 satisfying (1.8). We may write it as (u(t, x), v(t, x)) if no confusion occurs.
+We set
+ū(t) := sup u(t, x), v̄(t) := sup v(t, x), and u(t) := inf u(t, x), v(t) := inf v(t, x).
+x∈Ω
+
+x∈Ω
+
+x∈Ω
+
+x∈Ω
+
+Note that we always have that
+ν
+ν γ
+u (t) ≤ v(t) ≤ v̄(t) ≤ ūγ (t).
+µ
+µ
+In the following, when we say w(·, ·) ∈ C θ1 ,θ2 ([1, ∞) × Ω), it means ∥w∥C θ1 ,θ2 ([1,∞)×Ω) < ∞.
+That is, there exists a constant C > 0 such that for every t ≥ 1, ∥w∥C θ1 ,θ2 ([t,t+1]×Ω) ≤ C, so
+the parabolic Hölder regularity is controlled uniformly on all unit time strips at large times (in
+particular, it does not deteriorate as t → ∞). The first two lemmas are on such uniform regularity
+of classical solutions of (1.1) and will be used in the proofs of Theorems 2.1, 2.4, and 2.5. We record
+only the regularity needed for the compactness arguments; higher regularity can be obtained by
+standard bootstrap arguments when the data allow it.
+Lemma 3.1. Suppose that u0 satisfies (1.8) and (u(t, x), v(t, x)) is a globally defined (i.e., Tmax =
+∞), bounded, positive classical solution of (1.1). Then we have the following regularity properties:
+
+(1) For all θ ∈ (0, 1), u(·, ·) ∈ C θ/2, θ [1, ∞) × Ω .
+(2) For all θ ∈ (0, 1), v ∈ C
+
+(1∧γ) θ
+, 2+(1∧γ) θ
+2
+
+
+[1, ∞) × Ω .
+
+
+(3) Assume m ≥ 1. For every k ≥ 1 and ℓ ≥ 1, we have u(·, ·) ∈ C k,ℓ [1, ∞) × Ω . In particular,
+u ∈ C 1,2 [1, ∞) × Ω .
+Proof. Part (1) follows from standard analytic semigroup smoothing estimates applied to the
+parabolic equation for u; see [20, 37]. Part (2) follows from elliptic Schauder estimates applied
+to −∆v + µv = νuγ ; see, e.g., [18]. Part (3) follows by a standard bootstrap: starting from
+parts (1)–(2), apply parabolic Schauder estimates (with Neumann boundary conditions) to the
+u–equation to upgrade the regularity of u, then apply elliptic Schauder estimates to the v–equation
+to upgrade v, and iterate; see, e.g., [31, Ch. IV] or [33].
+17
+
+Lemma 3.2. Assume m ≥ 1 and γ > 0. Let (u, v) be a globally defined, bounded, positive classical
+solution of (1.1) on [0, ∞) × Ω. Then for every sequence tn → ∞ there exist a subsequence tnk and
+a pair (u∞ , v ∞ ) : R × Ω → [0, ∞) × [0, ∞) such that
+1, 2
+(R × Ω)
+unk → u∞ in Cloc
+
+and
+
+0, 2
+(R × Ω).
+vnk → v ∞ in Cloc
+
+(3.1)
+
+Moreover, (u∞ , v ∞ ) is a classical solution of (1.1) on R × Ω.
+Proof. Set Q := [1, ∞) × Ω. By Lemma 3.1(3), we have u ∈ C 1,2 (Q). Moreover, by Lemma 3.1(2),
+we have v ∈ C 0,2 (Q).
+Fix any sequence tn → ∞ and define un (t, x) := u(t + tn , x) and vn (t, x) := v(t + tn , x). Given
+any compact interval I = [−T, T ] ⊂ R, for all large n we have t + tn ≥ 1 for every t ∈ I. The
+uniform bounds from Lemma 3.1 therefore imply that
+{un }n is bounded in C 1, 2 (I × Ω),
+
+{vn }n is bounded in C 0, 2 (I × Ω).
+
+By the Arzelà–Ascoli Theorem and a standard diagonal extraction over I = [−T, T ], T = 1, 2, . . . ,
+there exists a subsequence (not relabeled here for convenience) and (u∞ , v ∞ ) such that
+1, 2
+(R × Ω)
+un → u∞ in Cloc
+
+and
+
+0, 2
+(R × Ω).
+vn → v ∞ in Cloc
+
+This proves (3.1). It remains to show that (u∞ , v ∞ ) is a classical solution of (1.1) on R × Ω. Note
+that the two convergences in (3.1) imply the following local uniform convergences on R × Ω:
+un → u∞ ,
+
+vn → v ∞ ,
+
+∂t un → ∂t u∞ ,
+
+∇un → ∇u∞ ,
+
+∇vn → ∇v ∞ ,
+
+∆vn → ∆v ∞ .
+
+(3.2)
+
+Since (un (t, x), vn (t, x)) satisfies (1.1) for t > −tn , (3.2) implies that (u∞ , v ∞ ) is a classical solution
+of (1.1) on R × Ω. This completes the proof.
+The next lemma is about continuity of classical solutions of (1.1) with respect to the initial
+conditions and will be used in the proofs of Theorems 2.2, 2.4, and 2.5.
+Lemma 3.3. Fix 1/2 < σ < 1, p > 1, and a positive constant u∗0 > 0. For any ϵ > 0, there are
+δ > 0 and T0 > 0 such that for any u0 satisfying (1.8) and ∥u0 − u∗0 ∥∞ ≤ δ, we have Tmax (u0 ) > T0
+and ∥u(T0 , ·; u0 ) − u (T0 , ·; u∗ )∥Xpσ ≤ ϵ.
+∗
+
+Proof. First, by the arguments of Proposition 1.1 in [7], there are T0 ∈ (0, ∞) and 0 < δ0 < u2
+such that for any u0 satisfying (1.8) and ∥u0 − u∗ ∥∞ ≤ δ0 , we have that Tmax (u0 ) > T0 and
+u∗
+≤ u(t, x; u0 ) ≤ 2u∗
+2
+
+∀ t ∈ [0, T0 ], x ∈ Ω.
+
+(3.3)
+
+Next, we claim that for fixed 1/2 < σ < 1 and p > 1, for any ϵ > 0, there is 0 < δ < δ0 such
+that if ∥u0 − u∗0 ∥∞ < δ, then ∥u(T0 , ·; u0 ) − u(T0 , ·; u∗0 )∥Xpσ ≤ ϵ. Assume that the claim does not
+hold. Then there are ϵ0 > 0 and un satisfying (1.8) such that ∥un − u∗ ∥∞ → 0 as n → ∞ and
+∥u(T0 , ·; un ) − u(T0 , ·; u∗0 )∥Xpσ ≥ ϵ0 .
+
+(3.4)
+
+By (3.3) and standard parabolic/elliptic regularity estimates (as in Lemma 3.1), we have
+sup ∥u(·, ·; un )∥C 1,2 ([T0 /2,T0 ]×Ω) < ∞.
+n≥1
+
+18
+
+(3.5)
+
+Without loss of generality, we may then assume that
+(u(t, x; un ), v(t, x; un )) → (u∞ (t, x), v∞ (t, x))
+
+as n → ∞ in C 1,2 ([T0 /2, T0 ] × Ω),
+
+and (u∞ (t, x), v∞ (t, x)) is a classical solution of (1.1) on [T0 /2, T0 ]. Note that u∞ (T0 /2, x) =
+limn→∞ u(T0 /2, x; un ) = u(T0 /2, x; u∗0 ). This implies that
+u∞ (T0 , x) ≡ u(T0 , x; u∗0 ).
+
+(3.6)
+
+By (3.4), ∥u∞ (T0 , ·) − u(T0 , ·; u∗0 )∥Xpσ ≥ ϵ0 , which contradicts (3.6). Hence the claim holds and
+Lemma 3.3 is thus proved.
+The following lemma is about the monotonicity of ū(t), which was proved in [7] and will be
+used in the proof of Theorem 2.3.
+Lemma 3.4. For any u0 satisfying (1.8), the following hold.
+(1) Assume that χ0 ≤ 0 and a, b > 0. If ū(t0 ) > u∗ = (a/b)1/α for some t0 ∈ (0, Tmax (u0 )), then
+ū(t) is nonincreasing on (0, t0 ].
+(2) Assume that χ0 ≤ 0 and a = b = 0. Then ū(t) is non-increasing on (0, Tmax (u0 )).
+Proof. It follows from Lemma 3.1 of [7].
+The following lemma is about an eventual upper bound of classical solutions in the minimal
+model. It will be used in the proof of Theorems 2.1 and 2.5.
+Lemma 3.5 (Eventual upper
+o in the minimal model). Assume that a = b = 0, m = 1,
+n bound
+χβ
+1/2
+β ≥ 1, and 0 < χ0 < min 2 , χβ , where χβ is defined in (1.12). Then there exist constants
+′ ≤ 1 ≤ q ′′ such that for every u∗ > 0 and any globally defined classical solution
+CN > 0 and 0 < qN
+N
+R
+(u(t, x), v(t, x)) with u(0, ·) satisfying (1.8) and Ω u(0, x) dx = u∗ |Ω|, there exists T∗ > 0 such that
+
+
+′
+′′
+u(t, x) ≤ CN (u∗ )qN + (u∗ )qN
+for all t ≥ T∗ and all x ∈ Ω.
+(3.7)
+
+Proof. Suppose
+that (u(t, x), v(t, x)) is a globally defined classical solution
+ 3 3with u(0, ·) satisfying
+R
+∗
+(1.8) and Ω u(0, x)dx = u |Ω|. In the following, we let p0 := max 2 , 4 γN and pN = 2 +
+max{N, γN }. We divide the proof into three steps.
+R
+Step 1 (Eventual Lp0 bound). In this step, we show that Ω up0 (t, x)dx stays bounded.
+χ
+
+2β−1
+Since χ0 < 2β , we have 2β−1
+χ0 > max{2, γN }. Then p0 < max{2, γN } < χ0 . Note that
+
+1 d
+p0 dt
+
+Z
+
+p0
+
+u
+Ω
+
+p0 − 1
+≤−
+2
+
+Z
+
+p0 −2
+
+u
+Ω
+
+(p0 − 1)χ20
+|∇u| +
+2
+2
+
+up0 |∇v|2
+.
+2β
+Ω (1 + v)
+
+Z
+
+By [7, inequality (4.11)], we have
+
+Z
+up0
+(p0 − 1)χ0 (2β − 1) (p0 − 1)χ20
+−
+|∇v|2
+2β
+p0
+2
+(1
++
+v)
+Ω
+Z
+Z
+(p
+−
+1)Θ
+p0 − 1
+0
+2(β−1) χ0 µ
+≤
+up0 −2 |∇u|2 +
+up0 .
+2
+p
+0
+Ω
+Ω
+
+19
+
+(3.8)
+
+(3.9)
+
+This implies that
+Z
+up0 |∇v|2
+(p0 − 1)χ20
+2β
+2
+Ω (1 + v)
+
+ Z
+
+2β − 1
+up0
+(p0 − 1)χ0 (2β − 1) (p0 − 1)χ20 p0 − 1 2
+−
+χ0 p0 −
+=
++
+|∇v|2
+2β
+p0
+2
+p0
+χ0
+(1
++
+v)
+Ω
+
+
+
+Z
+Z
+(p
+−
+1)Θ
+2(2β − 1) − 2p0 χ0
+p0 − 1
+0
+2(β−1) χ0 µ
+p0 −2
+2
+p0
+.
+≤ 1−
+u
+|∇u| +
+u
+2(2β − 1) − p0 χ0
+2
+p0
+Ω
+Ω
+It then follows from (3.8) that
+Z
+Z
+Z
+(p0 − 1)Θ2(β−1) χ0 µ
+1 d
+((2β − 1) − p0 χ0 ) (p0 − 1)
+p0
+p0 −2
+2
+u ≤−
+u
+|∇u| +
+up0 .
+p0 dt Ω
+2(2β − 1) − p0 χ0
+p
+0
+Ω
+Ω
+
+(3.10)
+
+x−p0
+Note that 2x−p
+is an increasing function for x ∈ [p0 , ∞), and (2β − 1)/χ0 > max{2, γN } > p0 .
+0
+Hence,
+(2β − 1)/χ0 − p0
+max{2, γN } − p0
+1
+≥
+= .
+2(2β − 1)/χ0 − p0
+2 max{2, γN } − p0
+5
+1/2
+
+Moreover, since χ0 < χβ
+
+and
+
+κκ
+Θκ =
+=
+(1 + κ)1+κ
+
+
+
+κ
+1+κ
+
+κ
+
+1
+1
+≤
+1+κ
+1+κ
+
+for all κ ≥ 0,
+
+the quantity χ0 Θ2(β−1) is bounded by 1 for all β ≥ 1. Since p0 ≥ 32 , we have p0 (p0 − 1) ≥ 43 .
+Multiplying (3.10) by p0 and using the above estimate, we infer that
+Z
+Z
+Z
+d
+3
+p0
+p0 −2
+2
+u ≤−
+u
+|∇u| + µ (max {2, γN } − 1) up0 .
+(3.11)
+dt Ω
+20 Ω
+Ω
+3
+Apply Lemma 4.1 in Part I [7] with ε = 20
+(µ max{2, γN })−1 , there is Cγ,µ,N independent of χ0
+and β such that
+Z
+p0
+Z
+Z
+d
+p0
+p0
+u ≤ −µ u + Cγ,µ,N
+u(t, x)dx
+.
+(3.12)
+dt Ω
+Ω
+Ω
+′
+Therefore, there exist Cγ,ν,N
+> 0 and T0 > 0 such that for all t ≥ T0 ,
+Z
+′
+up0 (t, x)dx ≤ Cγ,µ,N
+(|Ω|u∗ )p0 .
+
+(3.13)
+
+Ω
+2pN and LγpN bounds). In this step, we show that
+Step
+R γp 2 (Eventual L
+N (t, x)dx stay bounded.
+Ωu
+
+R
+
+2pN (t, x)dx and
+Ωu
+
+First, note that for any p > 1, we have
+χ20
+
+1
+up |∇v|2
+≤
+2β
+2
+(1
++
+v)
+Ω
+
+Z
+
+Z
+
+p+γ
+
+u
+Ω
+
+2(p+γ)
+γ
+
++ χ0
+
+γ
+p+γ
+
+
+
+2p
+p+γ
+
+p/γ Z
+
+|∇v|
+
+2(p+γ)
+γ
+
+Ω (1 + v)
+
+2β(p+γ)
+γ
+
+′′ > 0, independent of χ and β, such that
+By Proposition 2.2 in Part I [7], there is CN
+0
+
+|∇v|2(p+γ)/γ
+=
+2β(p+γ)/γ
+Ω (1 + v)
+
+Z
+
+|∇v|2(p+γ)/γ
+(p+γ)/γ ′′
+≤ Θ2β−1 CN
+(1+(2β−1))(p+γ)/γ
+(1
++
+v)
+Ω
+
+Z
+
+20
+
+Z
+Ω
+
+up+γ .
+
+.
+
+(3.14)
+
+1/2
+
+Since χ0 < χβ
+
+1
+and Θ2β−1 ≤ 2β
+≤ 21 for β ≥ 1, we have χ20 Θ2β−1 ≤ 1. Hence,
+2(p+γ)
+
+p+γ
+γ
+Θ2β−1
+= χ20 Θ2β−1
+
+χ0 γ
+
+ p+γ
+γ
+
+≤ 1.
+
+′′′
+Combining these estimates with (3.8) with p0 replaced by p, we infer that there is CN,p
+> 0,
+independent of χ0 and β, such that
+Z
+Z
+Z
+1
+1 d
+′′′
+up+γ .
+(3.15)
+up ≤ − (p − 1) up−2 |∇u|2 + CN,p
+p dt Ω
+2
+Ω
+Ω
+
+Next, put RN := max{2pN , γpN }. We turn the above qualitative
+bootstrap into a quantitative
+
+one. Define a finite sequence by r0 := p0 and rj+1 := min 23 rj , RN , and choose J ∈ N so that
+rJ = RN . We claim that for every j ∈ {0, . . . , J} there exist constants Aj > 0 and Qj ≥ rj ,
+depending only on (Ω, N, µ, ν, γ), and a time τj ≥ T0 such that
+Z
+
+urj (t, x) dx ≤ Aj (u∗ )p0 + (u∗ )Qj .
+(3.16)
+sup
+t≥τj
+
+Ω
+
+We prove (3.16) by induction. First, for j = 0, (3.16) follows from (3.13) with τ0 := T0 and Q0 = p0 .
+Next, assume that (3.16) holds for some j < J, and set r := rj and p := rj+1 ∈ (r, 2r). Writing
+w = up/2 , (3.15) implies
+Z
+Z
+Z
+Z
+Z
+1 d
+p−1
+2+ 2γ
+2
+2
+2
+2
+′′′
+(3.17)
+w + 2
+|∇w| +
+w ≤
+w + CN,p
+w p.
+p dt Ω
+p
+Ω
+Ω
+Ω
+Ω
+:= 2 + 2γ
+Set q := 2r
+p and ℓ
+p . Note that ℓ > 2 > q. By Hölder interpolation inequality, there holds
+2(1−θ0 )
+0
+∥w∥22 ≤ ∥w∥2θ
+=
+q ∥w∥ℓ
+
+Z
+w
+
+q
+
+ 2θ0 Z
+q
+
+w
+
+Ω
+
+l
+
+ 2(1−θ0 )
+l
+
+,
+
+where
+
+θ0 =
+
+Ω
+
+q(l − 2)
+.
+2(l − q)
+
+Then, by Young’s inequality, for every ε > 0 there exists Cε > 0 such that
+Z
+Z
+Z
+w 2 ≤ ε w ℓ + Cε
+wq .
+Ω
+
+Ω
+
+Ω
+
+By the Gagliardo–Nirenberg inequality, there is CN,p,γ > 0 such that
+(1−θ)ℓ
+′′′
+CN,p
+∥w∥ℓℓ ≤ CN,p,γ ∥∇w∥θℓ
++ CN,p,γ ∥w∥ℓq ,
+2 ∥w∥q
+
+where
+
+θ=
+
+2N (l − q)
+.
+l(2N + 2q − N q)
+
+By the choice of l, p, q, it can be verified that θl2 < 1. Then Young’s inequality yields
+Z
+σj
+Z
+p−1
+θℓ
+(1−θ)ℓ
+2
+q
+e
+CN,p,γ ∥∇w∥2 ∥w∥q
+|∇w| + CN,p,γ
+w
+,
+≤
+2p2 Ω
+Ω
+eN,p,γ > 0 depends only on (Ω, N, µ, ν, γ), and
+where C
+σj :=
+
+2N + 2l − lN
+2(1 − θ)ℓ
+=
+.
+q(2 − θℓ)
+2N + 2q − lN
+
+Hence,
+′′′
+CN,p
+
+p−1
+w ≤
+2p2
+Ω
+
+Z
+
+ℓ
+
+Z
+
+Z
+
+2
+
+eN,p,γ
+|∇w| + C
+Ω
+
+w
+Ω
+
+21
+
+q
+
+σj
+
+Z
++ CN,p,γ
+
+w
+Ω
+
+q
+
+ℓ/q
+.
+
+ej > 0, depending only on (Ω, N, µ, ν, γ), such that
+We then infer that there exists C
+"Z
+Z
+σj Z
+ℓ/q #
+Z
+Z
+Z
+1 d
+p−1
+q
+q
+q
+2
+2
+2
+e
+w +
+w
++
+w
+w +
+|∇w| +
+w ≤ Cj
+p dt Ω
+2p2 Ω
+Ω
+Ω
+Ω
+Ω
+for all t ≥ τj . Since wq = ur , the induction hypothesis implies that there exist exponents Qj ≥ rj ,
+depending only on (N, µ, ν, γ), such that
+σj Z
+ℓ/q
+Z
+Z
+
+
+q
+q
+q
+ej (u∗ )p0 + (u∗ )Qj max{σj ,l/q}
+w +
+w
++
+w
+≤C
+for all t ≥ τj .
+Ω
+
+Then
+
+Ω
+
+d
+dt
+
+Ω
+
+Z
+
+p
+
+Z
+
+ej (u∗ )p0 + (u∗ )Qj+1
+up ≤ pC
+
+u +p
+Ω
+
+
+
+for all t ≥ τj ,
+
+Ω
+
+where Qj+1 = Qj max{σj , l/q}. It is not difficult to see that Qj+1 ≥ p(= rj+1 ). Then, by Grönwall’s
+inequality, there are Aj+1 > 0 and τj+1 ≥ τj , depending only on (Ω, N, µ, ν, γ), such that (3.16)
+holds with j + 1 in place of j. This proves the claim.
+eN > 0, depending only on (Ω, N, µ, ν, γ), q̃N ≥ max{2pN , γpN },
+Now, by induction, there exist C
+and some Te0 ≥ T0 such that
+Z
+Z
+
+
+
+
+2pN
+∗ p0
+∗ qeN
+e
+eN (u∗ )p0 + (u∗ )qeN .
+sup
+u (t, x) dx ≤ CN (u ) + (u )
+and sup
+uγpN (t, x) dx ≤ C
+t≥Te0
+
+Ω
+
+t≥Te0
+
+Ω
+
+(3.18)
+Replacing T0 by Te0 , we may assume in the following that (3.18) holds for all t ≥ T0 .
+Step 3 (Eventual L∞ bound). First, set p := pN and let Ap = −∆ + µ on Lp (Ω) with Neumann
+boundary conditions. Fix t ≥ T0 + 1 and write the variation-of-constants formula on [t − 1, t]:
+
+
+Z t
+Z t
+u(s, ·)
+−Ap (t−s)
+−Ap
+e
+∇·
+u(t − 1, ·) − χ0
+u(t, ·) = e
+∇v(s, ·) ds + µ
+e−Ap (t−s) u(s, ·) ds.
+(1 + v(s, ·))β
+t−1
+t−1
+(3.19)
+By Lemmas A.3 and A.5, there exists C∞ > 0, depending only on (Ω, N, µ), such that for all
+t ≥ T0 + 1,
+!
+u(s, ·)|∇v(s, ·)|
+∥u(t, ·)∥∞ ≤ C∞ sup ∥u(s, ·)∥p + χ0 sup
+.
+(1 + v(s, ·))β p
+s≥T0
+s≥T0
+By Hölder’s inequality,
+u(s, ·)|∇v(s, ·)|
+∇v(s, ·)
+≤ ∥u(s, ·)∥2p
+β
+(1 + v(s, ·))
+(1 + v(s, ·))β
+p
+
+for all s ≥ 0.
+2p
+
+bN > 0 (Here C
+bN =
+Next, since p is fixed, by Proposition 2.2 in Part I [7], there exists C
+M ∗ (N, p, µ, ν), p fixed), depending only on (Ω, N, µ, ν), such that
+Z
+Z
+|∇v(s, ·)|2p
+p
+b
+≤ CN Θβ
+uγp (s, x) dx
+for all s ≥ 0.
+(1+β)p
+Ω (1 + v(s, ·))
+Ω
+Since β ≥ 1, we have 2βp ≥ (1 + β)p and therefore
+∇v(s, ·)
+(1 + v(s, ·))β
+
+1
+
+1
+
+b 2p Θ 2
+≤C
+N
+β
+2p
+
+Z
+
+γp
+
+u (s, x) dx
+Ω
+
+22
+
+1
+
+2p
+
+for all s ≥ 0.
+
+bN > 0, deCombining this estimate with (3.18) and Hölder’s inequality, we obtain a constant C
+pending only on (Ω, N, µ, ν, γ), such that
+sup
+s≥T0
+
+
+1 
+u(s, ·)|∇v(s, ·)|
+bN Θ 2 (u∗ )p0 /pN + (u∗ )qeN /pN .
+≤
+C
+β
+(1 + v(s, ·))β p
+
+Similarly, by (3.18) and Hölder’s inequality,
+Z
+sup ∥u(s, ·)∥p ≤
+
+s≥T0
+
+1
+Finally, since Θβ = 1+β
+
+1/2
+χ0 Θβ ≤
+
+
+
+sup
+s≥T0
+β
+1+β
+
+β
+
+! 1
+u2pN
+
+2pN
+
+
+
+bN (u∗ )p0 /(2pN ) + (u∗ )qeN /(2pN ) .
+≤C
+
+Ω
+1/2
+
+for all β > 0, the assumption χ0 < χβ
+
+2
+2β − 1
+max{2, γN } 1 + β
+
+
+
+β
+1+β
+
+β !1/2
+
+
+≤
+
+yields
+
+4
+max{2, γN }
+
+1/2
+
+which is independent of χ0 and β. Combining the two estimates above and noting that p0 /(2pN ) <
+p0 /pN < qeN /pN , we conclude that there exists CN > 0, depending only on (Ω, N, µ, ν, γ), such that
+
+
+′
+′′
+∥u(t, ·)∥∞ ≤ CN (u∗ )qN + (u∗ )qN
+for all t ≥ T0 + 1,
+′ := p0 < 1 and q ′′ := qeN ≥ 1. This proves (3.7) with T := T + 1.
+where qN
+∗
+0
+N
+2pN
+pN
+
+4
+
+Persistence and proof of Theorem 2.1
+
+4.1
+
+Proof of Theorem 2.1(1)
+
+Proof of Theorem 2.1(1). Let (u, v) be a globally defined bounded positive solution of (1.1). Fix
+T > 0 and define, for each t > 0,
+u(t) := min u(t, x)
+
+and u(t) := max u(t, x).
+
+x∈Ω
+
+(4.1)
+
+x∈Ω
+
+It then suffices to prove that
+lim inf u(t) > 0.
+t→∞
+
+(4.2)
+
+We divide the proof of (4.2) into two cases.
+R
+R
+Case 1 (a = b = 0). In this case, we have Ω u(t, x; u0 ) = Ω u0 (x) for all t > 0. This implies that
+Z
+1
+u(t) ≥
+u0 (x) dx ∀ t > 0.
+(4.3)
+|Ω| Ω
+Assume that (4.2) does not hold. Then there are sequences {tn } ⊂ (0, ∞) and {xn } ⊂ Ω such that
+tn → ∞
+
+u(tn , xn ; u0 ) → 0.
+
+and
+
+By Lemma 3.2, without loss of generality, we may assume that xn → x∗ ,
+u(t + tn , x; u0 ) → u∗ (t, x)
+
+and
+23
+
+v(t + tn , x; u0 ) → v ∗ (t, x),
+
+and that (u∗ (t, x), v ∗ (t, x)) is a nonnegative classical solution of (1.1) defined for all t ∈ R. Then
+u∗ (0, x∗ ) = 0. By (4.3), for each t ∈ R we have u∗ (t, ·) ̸≡ 0. The comparison principle for parabolic
+equations therefore yields u∗ (t, x) > 0 for all x ∈ Ω, which is a contradiction. Therefore, (4.2) holds
+when a = b = 0.
+Case 2 (a, b > 0). The idea to prove (4.2) in this case is to prove that u cannot remain arbitrarily
+small on any open time interval after time T . The proof proceeds by three claims.
+Claim 1. For every ε ∈ (0, 1) there exists δε ∈ (0, ε] such that for all t ≥ T either u(t) ≥ δε or
+u(t) − u(t) ≤ ε.
+Suppose, by contradiction, that there exists ε0 > 0 and a sequence tn ≥ T with tn → ∞ and
+u(tn ) < δn
+
+and u(tn ) − u(tn ) > ε0 ,
+
+δn :=
+
+1
+.
+n
+
+By Lemma 3.2, after time translation we can extract a subsequence (not relabeled here) and a
+global classical limit (u∞ , v ∞ ) on R × Ω such that
+u(t + tn , ·) → u∞ (t, ·),
+
+v(t + tn , ·) → v ∞ (t, ·)
+
+locally uniformly on R × Ω.
+
+In particular,
+inf u∞ (0, x) = lim u(tn ) = 0
+
+x∈Ω
+
+n→∞
+
+and
+
+sup u∞ (0, x) ≥ ε0 .
+x∈Ω
+
+We show this is impossible by the parabolic strong maximum principle with Neumann boundary
+condition. Lemma 3.2 shows that u∞ satisfies
+ ∞m
+
+(u )
+∞
+∞
+u∞
+−
+∆u
+=
+−χ
+∇·
+∇v
++ a u∞ − b (u∞ )1+α .
+0
+t
+(1+v ∞ )β
+Expanding the divergence term gives
+∞
+∞
+∞
+u∞
+≥ 0
+t − ∆u + B(t, x) · ∇u + C(t, x) u
+
+on (−1, 0] × Ω,
+
+∂n u∞ = 0 on ∂Ω,
+
+where
+(u∞ )m−1
+∇v ∞ and
+(1 + v ∞ )β
+(u∞ )m−1
+(u∞ )m−1
+∞
+C(t, x) = a − b (u∞ )α − χ0
+∆v
++
+χ
+β
+|∇v ∞ |2 .
+0
+(1 + v ∞ )β
+(1 + v ∞ )β+1
+
+B(t, x) = mχ0
+
+Since u∞ , v ∞ , ∇v ∞ , ∆v ∞ are bounded, the coefficients B and C are bounded. Because u∞ ≥ 0 on
+(−1, 0]×Ω, attains its minimum value 0 at time t = 0, and satisfies a linear inequality with bounded
+lower-order terms and Neumann boundary condition, the strong maximum principle applies: the
+classical result (e.g., Theorem 5 in Chapter 2 of [12]) covers the attainment of a minimum at the
+terminal time t = 0 of the cylinder (−1, 0] × Ω, and forces u∞ ≡ 0 on (−1, 0] × Ω. This contradicts
+supx u∞ (0, x) ≥ ε0 . Hence, Claim 1 holds.
+Claim 2. There is no nonempty open interval (t1 , t2 ) ⊂ [T, ∞) such that u(t1 ) = δε and u(t) < δε
+for all t ∈ (t1 , t2 ).
+Assume the contrary. Then, by Claim 1,
+u(t) ≤ ε + u(t) ≤ ε + δε ≤ 2ε < 1,
+
+24
+
+for all t ∈ (t1 , t2 ).
+
+Since u(t) ≤ 2ε and γ > 0, we have uγ (t) ≤ (2ε)γ on (t1 , t2 ). From the elliptic v-equation and
+standard elliptic estimates (as in Lemma 3.1) there exists K > 0 such that for all t ≥ T ,
+∥v(t, ·)∥C(Ω) + β ∥∇v(t, ·)∥2C(Ω) + ∥∆v(t, ·)∥C(Ω) ≤ K uγ (t).
+Set ηε := 2γ |χ0 |K εγ . Choose 0 < ε < min{1/2, u(T )} so that ηε < a and ε <
+in the u-equation and m ≥ 1 yields, on (t1 , t2 ) × Ω,
+ut ≥ ∆u −
+
+(4.4)
+
+a−ηε 1/α
+. Using (4.4)
+b
+
+χ0 mum−1
+∇u · ∇v + (a − ηε ) u − b u1+α .
+(1 + v)β
+
+Let ũ solve the spatially homogeneous ODE ũt = (a − ηε )ũ − b ũ1+α with ũ(t1 ) = δε . Then ũ
+is a subsolution of the above PDE (its diffusion and drift terms vanish, and the reaction terms
+match), with the same Neumann boundary data. The parabolic comparison principle again implies
+
+ε 1/α
+u(t, x) ≥ ũ(t) on [t1 , t2 ] × Ω. Since δε < a−η
+, the ODE solution satisfies ũ(t) > δε for all
+b
+t > t1 , hence u(t, x) > δε on (t1 , t2 ) × Ω, contradicting the assumption. Thus, Claim 2 follows.
+Claim 3. lim inf u(t) > 0, i.e., (4.2) holds.
+t→∞
+
+Fix ε ∈ 0, min{ 12 , u(T )} and let δε be from Claim 1. The set Oε := { t > T : u(t) < δε } is
+open in (T, ∞). By Claim 2 it contains no interval; hence it is empty. Therefore, u(t) ≥ δε for
+all t ≥ T , and so lim inf t→∞ u(t) ≥ δε > 0. With Claim 3 established, we have completed the
+u-part of (2.4). For the v-part: for each t > 0, v(·, t) solves −∆v + µv = νuγ with Neumann
+boundary condition. Comparing with the constant barrier µν (inf Ω u(t, ·))γ and applying the elliptic
+comparison principle, we obtain
+γ
+ν
+inf v(t, x) ≥
+inf u(t, x)
+for all t > 0.
+(4.5)
+x∈Ω
+µ x∈Ω
+Taking lim inf t→∞ and using the positivity of the u-liminf obtained above proves the v-part of (2.4).
+This completes the proof of Theorem 2.1(1).
+
+4.2
+
+Proof of Theorem 2.1(2)
+
+Proof of Theorem 2.1(2). Assume that a, b > 0, χ0 > 0, m = 1, β ≥ 1, and χ0 < µΘaβ−1 . We first
+note that (2.6) follows from (2.5). Indeed, since −∆v + µv = νuγ in Ω with Neumann boundary
+conditions, the maximum principle yields
+ν
+for all t ≥ 0 and all x ∈ Ω.
+v(t, x) ≥ inf u(t, y)γ
+µ y∈Ω
+v
+It remains to prove (2.5). Since (1+v)
+β ≤ Θβ−1 for all v ≥ 0, we have
+
+ut ≥ ∆u − χ0
+
+1
+∇u · ∇v + (a − χ0 µΘβ−1 )u − bu1+α .
+(1 + v)β
+
+Let w be the solution of
+w′ (t) = (a − χ0 µΘβ−1 ) w(t) − bw(t)1+α ,
+
+w(0) = inf u(0, x).
+x∈Ω
+
+(4.6)
+
+Viewing w(t) as a spatially homogeneous function, the parabolic comparison principle implies
+w(t) ≤ u(t, x) for all t ≥ 0 and x ∈ Ω. Since a − χ0 µΘβ−1 > 0, we have
+ a − χ µΘ
+1
+0
+β−1 α
+lim w(t) =
+.
+(4.7)
+t→∞
+b
+This proves (2.5).
+25
+
+4.3
+
+Proof of Theorem 2.1(3)
+
+Proof of Theorem 2.1(3). Assume that a, b > 0, χ0 > 0, m > 1, and β ≥ 1. As in the proof of
+Theorem 2.1(2), (2.8) follows from (2.7) by the elliptic comparison principle.
+Let w be the solution of
+w′ (t) = aw(t) − bw(t)1+α − χ0 µΘβ−1 w(t)m ,
+
+w(0) = inf u(0, x).
+x∈Ω
+
+(4.8)
+
+Viewing w(t) as a spatially homogeneous function, the parabolic comparison principle implies
+w(t) ≤ u(t, x) for all t ≥ 0 and x ∈ Ω.
+We now derive an explicit lim inf bound for w. Put c := χ0 µΘβ−1 > 0 and for s > 0 define
+G(s) := a − bsα − csm−1 . Since G is continuous and strictly decreasing on (0, ∞) and satisfies
+lim G(s) = a > 0
+
+s↘0
+
+and
+
+lim G(s) = −∞,
+
+s→∞
+
+there exists a unique s∞ > 0 such that G(s∞ ) = 0. Since w′ = wG(w), it follows that w(t) is
+monotone and limt→∞ w(t) = s∞ . It remains to bound s∞ from below.
+Case 1. α + 1 ≥ m. For 0 < s ≤ 1, we have sα ≤ sm−1 , and hence G(s) ≥ a − (b + c)sm−1 .
+1
+  a  m−1
+, we have G(s0 ) ≥ 0, and hence s∞ ≥ s0 .
+Therefore, with s0 := min 1, b+c
+Case 2. α + 1 < m. For 0 < s ≤ 1, we have sm−1 ≤ sα , and hence G(s) ≥ a − (b + c)sα . Therefore,
+  a 1/α
+with s0 := min 1, b+c
+, we have G(s0 ) ≥ 0, and hence s∞ ≥ s0 .
+Combining the two cases, we obtain (2.7).
+
+4.4
+
+Proof of Theorem 2.1(4)
+
+R
+Proof of Theorem 2.1(4). First, note that Ω u(t, x; u0 ) dx = u∗ |Ω| for all t ≥ 0. If γ ≥ 1, then by
+Jensen’s inequality we have
+Z
+ 1 Z
+γ
+γ
+u (t, x) dx ≥ |Ω|
+u(t, x) dx = |Ω| (u∗ )γ
+for all t ≥ 0.
+(4.9)
+|Ω| Ω
+Ω
+If 0 < γ < 1, then by Lemma 3.5, there exists T1 > 0 such that for all t ≥ T1 , ∥u(t, ·)∥∞ ≤ u0 (u∗ ).
+Since γ − 1 < 0, we have, for all t ≥ T1 , uγ−1 (t, ·) ≥ (u0 (u∗ ))γ−1 , and hence
+Z
+Z
+Z
+1
+|Ω|u∗
+γ
+γ−1
+u (t, x) dx =
+u(t, x) u (t, x) dx ≥
+u(t,
+x)
+dx
+=
+.
+(4.10)
+(u0 (u∗ ))1−γ Ω
+(u0 (u∗ ))1−γ
+Ω
+Ω
+We next derive a pointwise lower bound for v from the elliptic equation −∆v + µv = νuγ in
+Ω with ∂n v = 0 on ∂Ω. Let K(τ, x, y) be the Neumann heat kernel on Ω. Using the standard
+resolvent identity (cf. [16, Lemma 2.1]), we may write, for each fixed t ≥ 0,
+Z ∞
+Z ∞
+Z
+
+−µτ
+τ∆ γ
+−µτ
+v(t, x) = ν
+e
+e u (t, ·) (x) dτ = ν
+e
+K(τ, x, y) uγ (t, y) dy dτ.
+0
+
+0
+
+Ω
+
+By the Gaussian lower bound for the Neumann heat kernel on a smooth domain (see [9, Theorem 4]),
+there exist positive constants c0 , C0 , and ω0 depending only on Ω such that
+
+
+C0
+1
+for all τ > 0 and all x, y ∈ Ω.
+K(τ, x, y) ≥ c0
+N exp −ω0 τ −
+τ
+(4πτ ) 2
+26
+
+R
+Consequently, for all t ≥ 0 and x ∈ Ω, v(t, x) ≥ δ0 Ω uγ (t, y) dy, where we may take
+
+
+Z ∞
+1
+C0
+dτ ∈ (0, ∞).
+δ0 := νc0
+N exp −(µ + ω0 )τ −
+τ
+0
+(4πτ ) 2
+This together with (4.9) and (4.10) implies that (2.9) holds with CΩ := δ0 |Ω|.
+
+5
+
+Linear stability and instability and proof of Theorem 2.2
+
+Throughout this section, we write χ∗ := χ∗a,b,β (u∗ ).
+
+5.1
+
+Proof of Theorem 2.2(1)
+
+Proof of Theorem 2.2(1). We divide the proof into two steps.
+Step 1. In this step, we prove that (u∗ , v ∗ ) is linearly stable if χ0 < χ∗ and is unstable if χ0 > χ∗ .
+Recall that the linearization of equation (1.1) at the point (u∗ , v ∗ ) is given by (2.2). Consider
+the corresponding eigenvalue problem of (2.2) as follows
+
+∗ m
+∆u − χ0 (u )
+(µv − νγ(u∗ )γ−1 u) − aαu = σu,
+(1 + v ∗ )β
+
+0 = ∆v − µv + νγ(u∗ )γ−1 u,
+
+x ∈ Ω,
+
+(5.1)
+
+x ∈ Ω.
+
+Note that, to prove the linear stability and instability of (u∗ , v ∗ ), it is equivalent to prove that all
+the eigenvalues of (5.1) have negative real parts when χ0 < χ∗ , and there is at least one eigenvalue
+of (5.1) having positive real part when χ0 > χ∗ .
+As in the Introduction section, let {λn }∞
+n=0 denote the eigenvalues of the negative Neumann
+Laplacian, with 0 = λ0 ≤ λ1 ≤ · · · ≤ λn ≤ · · · , and {ϕn } be the set of corresponding eigenfunctions.
+Suppose
+that σ is an eigenvalue of (5.1) with u being a corresponding eigenfunction. Let u =
+P
+un ϕn . Then by the second equation in (5.1),
+v=
+
+X νγ(u∗ )γ−1
+µ + λn
+
+un ϕn .
+
+This together with the first equation in (5.1) implies that, for some n,
+σ = σn (χ0 ) := − λn + χ0 νγ
+
+(u∗ )m+γ−1 λn
+− aα;
+(1 + v ∗ )β µ + λn
+
+see (2.3). Therefore, {σn }∞
+n=0 is the spectrum of the spectral problem (5.1).
+Because λ0 = 0 and λn are nondecreasing for n ≥ 0, and µ > 0, we see that if χ0 ≤ 0, σn are
+also nonincreasing with
+0 > σ1 ≥ σ2 ≥ · · · ≥ σn ≥ · · · .
+Consider the case when χ0 > 0. For fixed n ≥ 1, by solving σn = 0 for χ0 , we find that
+χ0 = χn :=
+
+(1 + v ∗ )β
+(λn + aα)(µ + λn )
+×
+∗
+m+γ−1
+νγ (u )
+λn
+27
+
+(> 0).
+
+Recall the definition of χ∗ = χ∗a,b,β (u∗ ) in (2.10). Therefore, if χ0 < χ∗ , then σn < 0 for all
+n = 0, 1, 2, · · · . Hence, all the eigenvalues of (5.1) are negative and (u∗ , v ∗ ) is linearly asymptotically
+stable. If χ0 > χ∗ , then there is n ≥ 1 such that σn > 0. Hence, (u∗ , v ∗ ) is unstable. Note that
+the above spectral characterization depends only on the linearization (2.2) and the definition of
+χ∗a,b,β (u∗ ).
+Step 2. In this step, we prove (2.12).
+To this end, let ũ = u − u∗ and ṽ = v − v ∗ . Then ũ satisfies
+ũt = ∆ũ − χ0
+
+
+(u∗ )m
+νγ(u∗ )γ−1 µ(µI − ∆)−1 − I ũ − aαũ + F (ũ, ṽ),
+∗
+β
+(1 + v )
+
+(5.2a)
+
+with Neumann boundary condition, where
+ṽ = ν(µI − ∆)−1 ((ũ + u∗ )γ − (u∗ )γ )
+
+and
+
+
+(ũ + u∗ )m
+∇ṽ + (ũ + u∗ ) (a − b(ũ + u∗ )α )
+F (ũ, ṽ) = −χ0 ∇ ·
+(1 + ṽ + v ∗ )β
+
+(u∗ )m 
+−1
+∗ γ−1
+∗ γ−1
+µνγ(u
+)
+(µI
+−
+∆)
+ũ
+−
+νγ(u
+)
+ũ
++ aαũ.
++ χ0
+(1 + v ∗ )β
+
+(5.2b)
+
+
+
+(5.2c)
+
+Then ũ = 0 is an equilibrium solution of (5.2). Let 12 < σ < 1 and p > 1 be such that 2σ− Np > 1. By
+
+Lemma A.3, Xpσ ,→ C 1 (Ω). Let δ0 > 0 be such that for any u0 ∈ B(δ0 ) := u ∈ Xpσ | ∥u∥Xpσ < δ0 ,
+it holds u∗ +u0 (x) ≥ δ0 for all x ∈ Ω. Such a δ0 can be chosen thanks to the embedding Xpσ ,→ C(Ω)
+and by shrinking δ0 if necessary. More precisely, by the continuous embedding Xpσ ,→ C(Ω) there
+exists Cemb > 0 such that ∥u∥C(Ω) ≤ Cemb ∥u∥Xpσ for all u ∈ Xpσ . Choosing δ0 > 0 small enough so
+∗
+
+∗
+
+that Cemb δ0 ≤ u2 yields |u0 (x)| ≤ Cemb δ0 ≤ u2 for all x ∈ Ω, whenever u0 ∈ B(δ0 ), and hence
+u∗ + u0 (x) ≥
+
+u∗
+≥ δ0
+2
+
+∀ x ∈ Ω.
+
+In particular, for all ũ ∈ B(δ0 ) the quantities (ũ + u∗ )(x) and (1 + ṽ + v ∗ )(x) stay in a fixed
+compact subset of (0, ∞), so all scalar nonlinearities appearing in F (ũ, ṽ) are C 1 with uniformly
+bounded derivatives on this range. Together with the bounded linearity of the operators ∇· and
+(µI − ∆)−1 , this implies that the map B(δ0 ) ∋ ũ 7→ F (ũ, ṽ) ∈ Lp (Ω) is locally Lipschitz near the
+origin. Moreover, by construction F (0, 0) = 0 and all terms of first order in ũ have already been
+absorbed into the linear part of (5.2), so the Fréchet derivative of F at (0, 0) vanishes. Hence,
+∥F (ũ,ṽ)∥Lp
+→ 0 as ∥ũ∥Xpσ → 0. Therefore, B(δ0 ) ∋ ũ 7→ F (ũ, ṽ) ∈ Lp (Ω) is Lipschitz continuous and
+∥ũ∥ σ
+Xp
+
+
+∥F (ũ, ṽ)∥Lp = o ∥ũ∥Xpσ .
+
+(5.3)
+
+Define the linear operator
+A∗ ũ := ∆ũ − χ0
+
+
+
+(u∗ )m
+−1
+∗ γ−1
+νγ(u
+)
+µ
+(µI
+−
+∆)
+−
+I
+ũ − aαũ
+(1 + v ∗ )β
+
+(5.4)
+
+
+∂ ũ
+with domain D(A∗ ) = ũ ∈ W 2,p (Ω) ∂n
+= 0 on ∂Ω . Then −A∗ is a sectorial operator on Lp (Ω),
+∗
+and the spectrum of A consists precisely of the numbers {σn }∞
+n=0 obtained in Step 1 (including
+∗
+σ0 = −aα). Since χ0 < χ , Step 1 gives σn < 0 for all n ≥ 0. Then by Lemma A.1, there is
+28
+
+0 < ϵ < δ0 such that for any ũ0 ∈ B(δ0 ) with ∥ũ0 ∥Xpσ < ϵ, ũ(t, x; ũ0 ) exists for all t > 0, moreover,
+for any 0 < λ < min{aα, inf n≥1 (−σn )}, there is C > 0 such that
+∥ũ(t, ·; ũ0 )∥Xpσ ≤ Ce−λt
+
+∀ t ≥ 0.
+
+(5.5)
+
+By Lemma 3.3, there is T0 > 0 such that for the above ϵ, there is 0 < δ < δ0 such that for
+any u0 satisfying (1.8) and ∥u0 − u∗ ∥∞ < δ, ∥u(T0 , ·; u0 ) − u∗ ∥Xpσ < ϵ. In particular, u(t, ·; u0 ) is
+well-defined at time T0 for all such u0 . Let ũ0 = u(T0 , ·; u0 ) − u∗ . Then, by the above arguments,
+ũ(t, x; ũ0 ) = u(t + T0 , x; u0 ) − u∗ exists for all t > 0. By (5.5) and the embedding Xpσ ,→ C 1 (Ω), it
+holds
+∥u(t + T0 , ·; u0 ) − u∗ ∥C 1 (Ω) ≤ C ∥ũ(t, ·; ũ0 )∥Xpσ ≤ Ce−λt ∀ t ≥ 0.
+Setting s = t + T0 and enlarging C if necessary, we deduce that
+∥u(s, ·; u0 ) − u∗ ∥C 1 (Ω) ≤ Ce−λs
+
+∀ s ≥ 0.
+
+(5.6)
+
+In particular, since ∥w∥∞ ≤ ∥w∥C 1 (Ω) for all w ∈ C 1 (Ω), the same exponential estimate holds with
+the L∞ –norm on the left-hand side, which will be used below. By the resolvent representation for
+v (see Section A.1) and (5.6),
+Z ∞
+∗
+e−As (uγ (t, ·) − (u∗ )γ ) ∞ ds ≤ Ce−λt ∀ t ≥ 0.
+(5.7)
+∥v(t, ·; u0 ) − v ∥∞ ≤ ν
+0
+
+Moreover, by the standard gradient estimates for the analytic semigroup {e−As }s>0 used in Section A.1, the same argument applied to ∇v yields
+∥v(t, ·; u0 ) − v ∗ ∥C 1 (Ω) ≤ C ∥u(t, ·; u0 ) − u∗ ∥∞ ≤ Ce−λt
+
+∀ t ≥ 0.
+
+This together with (5.6) proves (2.12). This completes the proof of Theorem 2.2(1).
+
+5.2
+
+Proof of Theorem 2.2(2)
+
+In this subsection, we prove Theorem 2.2(2). Throughout this subsection, we fix p > 1 and
+decompose
+Lp (Ω) = X1 ⊕ X2 ,
+(5.8a)
+where
+
+X1 := u ∈ Lp (Ω) u is a constant function
+
+and
+
+
+X2 := u ∈ Lp (Ω)
+
+Z
+u(x) dx = 0 . (5.8b)
+Ω
+
+1
+Thus, every u ∈ Lp (Ω) can be written uniquely as u = ū + (u − ū) with ū := |Ω|
+and u − ū ∈ X2 .
+
+R
+
+Ω u(x) dx ∈ X1
+
+Proof of Theorem 2.2(2). Let {σn } be defined as in (2.3). By the arguments in Step 1 in the proof
+of Theorem 2.2(1), {σn } is the spectrum of the corresponding spectrum problem of (2.2), and if
+χ0 < χ∗0,0,β (u∗ ), then σn < 0 for all n ≥ 1, if χ0 > χ∗0,0,β (u∗ ), then σn > 0 for some n ≥ 1.
+Hence (u∗ , v ∗ ) is linearly stable if χ0 < χ∗0,0,β (u∗ ) and is unstable if χ0 > χ∗0,0,β (u∗ ). Hence, it
+remains to prove that χ0 < χ∗0,0,β (u∗ ), there are C, δ, λ > 0 such that for any u0 satisfying (1.8),
+R
+∥u0 − u∗ ∥∞ < δ, and Ω u0 (x)dx = |Ω|u∗ , Tmax (u0 ) = ∞ and (2.12) holds.
+
+29
+
+As in Step 2 in the proof of Theorem 2.2(1), let ũ = u − u∗ and ṽ = v − v ∗ . Then ũ satisfies (5.2)
+with a = b = 0. That is,
+ũt = A∗ ũ + G(ũ, ṽ),
+(5.9a)
+with Neumann boundary condition, where A∗ is defined in (5.4) with a = 0 and
+
+
+(ũ + u∗ )m
+G(ũ, ṽ) = − χ0 ∇ ·
+∇ṽ
+(1 + ṽ + v ∗ )β
+
+(u∗ )m 
+−1
+∗ γ−1
+∗ γ−1
++ χ0
+µνγ(u
+)
+(µI
+−
+∆)
+ũ
+−
+νγ(u
+)
+ũ
+,
+(1 + v ∗ )β
+
+(5.9b)
+
+and ṽ is given in (5.2b)
+R
+Note that, if ũ0 ∈ X2 , then ũ(t, x; ũ0 ) ∈ X2 for all t ∈ (0, Tmax ). Since Ω u0 (x) dx = |Ω|u∗ , we
+have ũ0 ∈ X2 . Restrict (5.9) to X2 . By the arguments
+in Theorem 2.2(1), there is δ > 0 such that
+R
+∗
+for any u0 satisfying (1.8), ∥u0 − u ∥∞ < δ, and Ω u0 (x)dx = |Ω|u∗ , Tmax (u0 ) = ∞, and for any
+0 < λ < minn≥1 (−σn ), there is C > 0 such that (2.12) holds.
+
+5.3
+
+A corollary
+
+In this subsection, we present a corollary which follows from Lemma 3.2 and Theorem 2.2 and will
+be used in the proofs of Theorems 2.3, 2.4, and 2.5.
+Corollary 5.1. Assume m ≥ 1. Let (u∗ , v ∗ ) be a positive constant solution of (1.1).
+(1) For any globally defined bounded positive classical solution (u(t, x), v(t, x)) of (1.1) and θ > 0,
+then limt→∞ ∥u(t, ·) − u∗ ∥∞ = 0, provided that
+Z
+
+
+lim
+u(t, x) − u∗ uθ (t, x) − (u∗ )θ dx = 0.
+(5.10)
+t→∞ Ω
+
+(2) Assume that a, b > 0 and χ0 < χ∗a,b,β (u∗ ). There are C, δ, λ > 0 such that for any globally
+defined bounded positive classical solution (u(t, x), v(t, x)) of (1.1), if limt→∞ ∥u(t, ·)−u∗ ∥∞ =
+0, then (2.12) holds.
+(3) Assume that a = b = 0 and χ0 < χ∗0,0,β (u∗ ). There are C, δ, λ > 0 such that for any globally
+R
+defined bounded positive classical solution (u(t, x), v(t, x)) of (1.1) with Ω u(0, x) dx = |Ω|u∗ ,
+if limt→∞ ∥u(t, ·) − u∗ ∥∞ = 0, then (2.12) holds.
+Proof. (1) Let (u(t, x), v(t, x)) be a globally defined bounded positive classical solution of (1.1).
+Assume that (5.10) holds. We prove that ∥u(t, ·) − u∗ ∥∞ → 0 as t → ∞ by contradiction. Suppose
+that there are ϵ0 > 0 and tn → ∞ such that
+∥u(tn , ·) − u∗ ∥∞ ≥ ϵ0
+
+for all n = 1, 2, · · · .
+
+By Lemma 3.2, without loss of generality, we may assume that
+lim u(tn , x) = ũ(x)
+
+n→∞
+
+uniformly in x ∈ Ω.
+
+By (5.10) and the uniform convergence, we have
+Z
+
+
+∥ũ − u∗ ∥∞ ≥ ϵ0 and
+(ũ − u∗ ) ũθ − (u∗ )θ = 0.
+Ω
+
+30
+
+(5.11)
+
+Since s 7→ sθ is increasing on (0, ∞), the integrand is nonnegative and continuous. Hence it must
+vanish identically, which implies ũ ≡ u∗ on Ω. This contradicts (5.11). Therefore, ∥u(t, ·) − u∗ ∥∞ →
+0 as t → ∞.
+(2) Let C, δ, λ be as in Theorem 2.2(1). Assume that limt→∞ ∥u(t, ·) − u∗ ∥∞ = 0. Then there
+is Tδ > 0 such that ∥u(Tδ , ·) − u∗ ∥∞ < δ. Then by Theorem 2.2(1), (2.12) holds.
+(3) Similarly, let C, δ, λ be as in Theorem 2.2(2). Assume that
+limt→∞ ∥u(t,R·) − u∗ ∥∞ = 0. Then
+R
+there is Tδ > 0 such that ∥u(Tδ , ·) − u∗ ∥∞ < δ. Note that Ω u(Tδ , x) dx = Ω u(0, x) dx = |Ω|u∗ .
+Then by Theorem 2.2(2), (2.12) holds.
+
+6
+
+Global stability of constant solutions with negative sensitivity
+and proof of Theorem 2.3
+
+In this section, we study global stability of positive constant solutions of (1.1) with negative sensitivity and prove Theorem 2.3.
+
+6.1
+
+Proof of Theorem 2.3(1)
+
+Proof of Theorem 2.3(1). Assume that m ≥ 1 and χ0 ≤ 0. Let (u(t, x), v(t, x)) be a globally defined
+positive bounded classical solution of (1.1). For any t > 0, let u(t) and ū(t) be as defined in (4.1),
+and let v̄(t) be as defined by
+v(t) := max v(t, x).
+(6.1)
+x∈Ω
+
+By the second equation in (1.1) and the comparison principle for elliptic equations, we have v̄(t) ≤
+ν γ
+ū (t). We first prove the following claim.
+µ
+ a 1/α
+∗
+∗
+:=
+Claim 1. ū∞
+lim sup ū(t) ≤ u =
+.
+b
+t→∞
+In fact, if ū(t) ≤ u∗ for all t > 0, then Claim 1 holds automatically. If there is t0 > 0 such that
+ū(t0 ) > u∗ , then, by Lemma 3.4, there is t∞ ∈ (t0 , ∞] such that ū(t∞ ) > u∗ for all t ∈ (0, t∞ ) and
+ū(t) is nonincreasing on [0, t∞ ). Moreover, if t∞ < ∞, then ū(t∞ ) = u∗ .
+In the case that t∞ = ∞, ū∗∞ = limt→∞ ū(t). Take any sequence tn → ∞. By Lemma 3.2,
+without loss of generality, we may assume that u∞ (t, x) = limn→∞ u(tn + t, x) and v∞ (t, x) =
+limn→∞ v(t + tn , x) exist, and (u∞ (t, x), v∞ (t, x)) is a classical solution of (1.1) defined for all
+t ∈ R. Notice that
+ū∞ (t) = max u∞ (t, x) = ū∗∞ ≥ u∗ ,
+x∈Ω
+
+for all t ∈ R.
+
+Assume that ū∗∞ > u∗ . For given t ∈ R, let x∞ (t) ∈ Ω be such that u∞ (t, x∞ (t)) = ū∞ (t). Let
+B(y, ϵ) := {x ∈ Ω : |x − y| < ϵ}. It is then not difficult to see that there is ϵ > 0 such that
+∂t u∞ < ∆u∞ − χ0 m
+
+um−1
+∞
+∇u∞ · ∇v∞ ,
+(1 + v∞ )β
+
+for all (t, x) ∈ [t − ϵ, t] × B(x∞ (t), ϵ),
+
+(6.2)
+
+Applying the maximum principle for parabolic equations to (6.2) (precisely, applying [Chapter 2,
+Theorem 1] in [12] to (6.2) in the case that x∞ (t) ∈ Ω and applying Theorem 2 in [11] to (6.2) in
+the case that x∞ (t) ∈ ∂Ω)), we must have
+u∞ (τ, x) = ū∗∞ ,
+
+for all τ ∈ [t − ϵ, t] and x ∈ B(x∞ (t), ϵ) ∩ Ω.
+31
+
+(6.3)
+
+Repeating the arguments of (6.3), we have
+u∞ (τ, x) = ū∗∞ ,
+
+for all τ ∈ [t − ϵ, t], x ∈ B(y, ϵ) ∩ Ω, and y ∈ B(x∞ (t), ϵ).
+
+Repeating this process, we have u∞ (τ, x) = ū∗∞ for all τ ∈ [t − ϵ, t] and x ∈ Ω. Note that the above
+propagation to the whole domain follows from a covering argument using the connectedness of Ω
+and the time-continuity of u∞ on [t − ϵ, t]. Therefore, u∞ (t, x) = ū∗∞ for all t ∈ R and x ∈ Ω.
+We then must have ū∗∞ = u∗ (since (u∗ , v ∗ ) is the only positive constant solution of (1.1)), which
+contradicts the assumption that ū∗∞ > u∗ . Hence, Claim 1 holds.
+In the case that t∞ < ∞, ū(t∞ ) = u∗ . If there is t′0 > t∞ such that ū(t′0 ) > u∗ , then by Lemma
+3.4, ū(t) > u∗ for t ∈ (0, t′0 ], in particular, ū(t∞ ) > u∗ , which is a contradiction. Hence, ū(t) ≤ u∗
+for all t ≥ t∞ , and Claim 1 holds. Claim 1 is thus proved.
+Next, we prove the following claim.
+Z
+Claim 2. lim
+(u(t, x) − u∗ ) = 0.
+t→∞ Ω
+
+In fact, without loss of generality, we assume that u(t, x) ̸≡ u∗ . Then by the arguments of
+Claim 1, there is t∗ ∈ (0, ∞] such that 0 < lim supt→t∗ ū(t) ≤ u∗ . Moreover, if t∗ < ∞, ū(t) < u∗
+for t > t∗ , and in the case t∗ = ∞, lim supt→∞ ū(t) = u∗ .
+In the case that t∗ < ∞, we have u(t, x) < u∗ for t > t∗ . Note that
+Z
+Z
+d
+(u(t, x) − u∗ ) = b u(t, x)((u∗ )α − uα (t, x)) for all t > t∗ .
+dt Ω
+Ω
+By Theorem 2.1, lim inf t→∞ inf x∈Ω u(t, x) > 0. Then there are 0 < m0 < M1 < ∞ such that the
+following inequalities hold for all t ≥ t∗ :
+Z
+Z
+Z
+Z
+d
+∗
+∗ α
+α
+∗
+(u − u ) = b u((u ) − u ) ≤ M1 (u − u) = −M1 (u − u∗ ) and
+dt Ω
+ZΩ
+ZΩ
+ZΩ
+Z
+d
+∗
+∗ α
+α
+∗
+(u − u ) = b u((u ) − u ) ≥ m0 (u − u) = −m0 (u − u∗ ).
+dt Ω
+Ω
+Ω
+Ω
+R
+It then follows from the comparison principle for scalar ODEs that limt→∞ Ω (u(t, x) − u∗ ) = 0.
+In the case where t∗ = ∞, consider any sequence tn → ∞. Without loss of generality, we can
+assume that both limits below exist:
+u∞ (t, x) = lim u(t + tn , x)
+n→∞
+
+and
+
+v∞ (t, x) = lim v(t + tn , x)
+n→∞
+
+and (u∞ , v∞ ) is a classical solution of (1.1) defined for all t ∈ R. By Claim 1, ū∞ (t) = u∗ for all
+t ∈ R. By Theorem 2.1 again, inf u∞ (t, x) > 0. Note that
+t∈R,x∈Ω
+
+d
+dt
+
+Z
+
+∗
+
+Z
+
+(u∞ (t, x) − u ) = b
+Ω
+
+∗ α
+
+u∞ ((u )
+
+− uα∞ ) = b
+
+Ω
+
+Z
+u∞
+Ω
+
+(u∗ )α − uα∞ ∗
+(u − u∞ ).
+u∗ − u∞
+
+Similarly, there are 0 < m < M < ∞ such that
+Z
+Z
+Z
+Z
+Z
+d
+−m (u∞ − u∗ ) = m (u∗ − u∞ ) ≤
+(u∞ − u∗ ) ≤ M
+(u∗ − u∞ ) = −M
+(u∞ − u∗ ) .
+dt
+Ω
+Ω
+Ω
+Ω
+Ω
+Z
+It then follows from the comparison principle for scalar ODEs that
+(u∞ (t, x) − u∗ ) = 0 for all
+Ω
+Z
+t ∈ R and then lim
+(u(tn , x) − u∗ ) = 0. Claim 2 then follows.
+n→∞ Ω
+
+32
+
+Now, we prove the following claim.
+Claim 3. limt→∞ ∥u(t, ·) − u∗ ∥∞ = 0.
+Assume that Claim 3 does not hold. Thanks to Claim 1, then there are ϵ0 > 0, xn ∈ Ω, and
+tn → ∞ such that u(tn , xn )−u∗ ≤ −ϵ0 . Then there isRa constant δ0 > 0 such that u(tn , x)−u∗ < − ϵ20
+for all x ∈ B(xn , δ0 ) ∩ Ω. This implies that limn→∞ Ω (u(tn , x) − u∗ ) < 0, which is a contradiction
+with Claim 2. Hence, Claim 3 holds.
+Finally, by Corollary 5.1, (2.12) holds. Theorem 2.3(1) is proved.
+
+6.2
+
+Proof of Theorem 2.3(2)
+
+Proof of Theorem 2.3(2). Assume that m ≥ 1, a = b = 0, and χ0 ≤ 0. First, we prove that any
+bounded positive solution converges to (u∗ , v ∗ ).
+R
+∗
+Let (u(t, x), v(t, x)) be a globally
+defined
+bounded
+positive
+solution
+with
+Ω u(0, x)dx = |Ω|u .
+R
+∗
+∗
+Let ū(t) = maxx∈Ω u(t, x). Then Ω u(t, x)dx = u |Ω| for all t ≥ 0. Hence ū(t) ≥ u for all t ≥ 0.
+By Lemma 3.4, there holds ū(t1 ) ≥ ū(t2 ) for all 0 ≤ t1 ≤ t2 . We claim that
+lim ū(t) = u∗ .
+
+t→∞
+
+(6.4)
+
+Assume by contradiction that (6.4) does not hold. Then there is δ ∗ > 0 such that limt→∞ ū(t) =
+u∗ +δ ∗ . By Lemmas 3.1 and 3.2, we may assume that there are tn → ∞ and (u∞ (t, x), v ∞ (t, x)) such
+that (u(t+tn , x), v(t+tn , x)) → (u∞ (t, x), v ∞ (t, x)) as n → ∞ locally uniformly in (t, x) ∈ R× Ω̄ and
+∞
+(u∞ (t,
+classical solution defined for all t ∈ R. Moreover, ū∞ (t) = u∗ + δ ∗
+R x),∞v (t, x)) is a positive
+∗
+and Ω u (t, x)dx = |Ω|u for all t ∈ R, which is a contradiction. Hence, (6.4) holds.
+We claim that
+lim ∥u(t, ·) − u∗ ∥∞ = 0.
+(6.5)
+t→∞
+
+Assume by contradiction that (6.5) does not hold. Then there are ϵ0 > 0, tn → ∞ and {xn } ⊂ Ω̄
+such that |u(tn , xn ) − u∗ | ≥ ϵ0 . By Lemmas 3.1 and 3.2 again, we may assume that there is
+(u∞ (t, x), v ∞ (t, x)) such that (u(t + tn , x), v(t + tn , x)) → (u∞ (t, x), v ∞ (t, x)) as n → ∞ locally
+uniformly in (t, x) ∈ R × Ω̄ and (u∞ (t, x), v ∞ (t, x)) is a positive classical solution defined for all
+t ∈ R. By (6.4), ū∞ (t) = u∗ for all t ∈ R. Then maximum principle for parabolic equations
+together with χ0 ≤ 0 yields that u∞ (t, x) = u∗ for all t ∈ R and x ∈ Ω̄. This implies that
+lim |u(tn , xn ) − u∗ | = 0,
+
+n→∞
+
+which is a contradiction. Hence, (6.5) holds.
+By Corollary 5.1 and (6.5), (2.12) holds. Theorem 2.3(2) is proved.
+
+7
+
+Stability of the unique constant solution in the non-minimal
+model and proof of Theorem 2.4
+
+In this section, we analyze the stability of the unique constant equilibrium (u∗ , v ∗ ), defined in (2.1),
+of (1.1) with a, b > 0, and prove Theorem 2.4. Throughout this section, we put χ∗ = χ∗a,b,β (u∗ ).
+
+33
+
+7.1
+
+Proof of Theorem 2.4 under condition (i)
+
+Proof of Theorem 2.4 under condition (i). Assume that m ≥ 1, α > 0, and γ > 0 satisfy 2γ ≤ α+1,
+∗∗,1
+∗
+∗
+∗
+and 0 < χ0 < χ∗∗,1
+a,b,β (u ). By Lemma A.7, χa,b,β (u ) ≤ χ . Assume that (u(t, x), v(t, x)) is a globally
+defined positive bounded solution of (1.1). Define, for s > 0,
+Z s
+u∗ 2m−1 
+hm (s) :=
+1−
+dτ.
+τ
+u∗
+In particular, h1 (s) = s − u∗ − u∗ ln us∗ . Let
+Z
+F (t) :=
+
+hm (u(t, x)) .
+
+(7.1)
+
+Ω
+
+We will use F as a Lyapunov functional and record the estimates that drive the argument:
+F (t) ≥ 0
+
+
+′
+
+F (t) ≤ −b 1 −
+Z
+D(t) :=
+
+for all t ≥ 0,
+
+χ20
+
+Z
+
+
+∗ 2
+χ∗∗,1
+a,b,β (u )
+
+(7.2)
+
+(u − u∗ )(uα − (u∗ )α ),
+
+(7.3)
+
+Ω
+
+
+(u(t, x) − u∗ ) u(t, x)α − (u∗ )α → 0
+
+as t → ∞.
+
+(7.4)
+
+Ω
+
+The key point is (7.4). Once (7.4) is proved, Corollary 5.1 implies (2.12), and the proof is
+complete. We start with (7.2). Indeed, hm (u∗ ) = 0 and
+(
+< 0, 0 < s < u∗ ,
+u∗ 2m−1
+′
+hm (s) = 1 −
+s
+> 0, s > u∗ ,
+hence hm attains its minimum at u∗ and hm ≥ 0 on (0, ∞).
+Next, we prove (7.3). Since h′′m (s) = (2m − 1)(u∗ )2m−1 s−2m , we have
+Z
+Z
+Z
+|∇u|2
+∇u · ∇v
+′
+′
+∗ 2m−1
+∗ 2m−1
+F (t) =
+hm (u) ut = −(2m − 1)(u )
++ χ0 (2m − 1)(u )
+2m
+m
+β
+Ω
+Ω u
+Ω u (1 + v)
+Z
+
+
+−b
+u − (u∗ )2m−1 u−(2m−2) uα − (u∗ )α
+Ω
+Z
+Z
+|∇v|2
+χ20 (2m − 1)(u∗ )2m−1
+≤
+− b (u − u∗ )(uα − (u∗ )α ).
+(7.5)
+2β
+4
+Ω (1 + v)
+Ω
+Here we have applied Young’s inequality in the form ab ≤ a2 + 14 b2 , and used that
+
+
+u∗ 2m−2  α
+u − (u∗ )2m−1 u−(2m−2) − (u − u∗ ) (uα − (u∗ )α ) = u∗ 1 −
+(u − (u∗ )α ) ≥ 0.
+u
+Recall that β̃ is defined in (2.13). By the second equation in (1.1), we have
+Z
+v − v∗
+0=
+(∆v − µv + νuγ )
+Ω (1 + v)β̃
+Z
+Z
+Z
+1 + v − β̃(v − v ∗ )
+(v − v ∗ )2
+(v − v ∗ )(uγ − (u∗ )γ )
+2
+=−
+|∇v| − µ
++ν
+(1 + v)β̃+1
+(1 + v)β̃
+Ω
+Ω (1 + v)β̃
+Ω
+Z
+Z
+1 + v − β̃(v − v ∗ )
+ν2
+(uγ − (u∗ )γ )2
+≤−
+|∇v|2 +
+.
+4µ Ω (1 + v)β̃
+(1 + v)β̃+1
+Ω
+34
+
+It then follows that
+Z
+Z
+Z
+1
+|∇v|2
+1
+ν2
+(uγ − (u∗ )γ )2
+ν2
+≤
+≤
+(uγ − (u∗ )γ )2 .
+2β
+∗
+∗
+β̃
+4µ
+4µ
+(1
++
+v)
+1 + β̃v
+1 + β̃v
+(1 + v)
+Ω
+Ω
+Ω
+
+(7.6)
+
+−2β is controlled
+Here
+ we have used thechoice β̃ = min{1, 2β − 1}+ so that the weight (1 + v)
+by 1 + β̃v ∗ + (1 − β̃)v (1 + v)−(β̃+1) ; this covers the three regimes 0 ≤ β < 1/2 (where β̃ = 0),
+
+1/2 ≤ β ≤ 1 (interpolating between β̃ = 0 and 1), and β ≥ 1 (where β̃ = 1). This, together
+with (7.5) and (7.6), implies that
+Z
+Z
+χ2 (2m − 1)(u∗ )2m−1 ν 2
+F ′ (t) ≤ 0
+(7.7)
+(uγ − (u∗ )γ )2 − b (u − u∗ )(uα − (u∗ )α ).
+4µ Ω
+4(1 + β̃v ∗ )
+Ω
+Applying Lemma A.6 yields
+F ′ (t) ≤ − b −
+
+
+χ20 (2m − 1)(u∗ )2m−1 ν 2
+Cα,γ (u∗ )2γ−α−1
+4µ
+4(1 + β̃v ∗ )
+
+Z
+
+(u − u∗ )(uα − (u∗ )α ).
+
+(7.8)
+
+Ω
+
+(7.3) then follows.
+Finally, we prove (7.4). By (7.2) and (7.8), there holds
+Z tZ
+
+χ20
+(u − u∗ )(uα − (u∗ )α ) ≤ F (0)
+b 1 − ∗∗,1
+2
+0
+Ω
+χa,b,β (u∗ )
+
+for all t ≥ 0.
+
+(7.9)
+
+R∞
+∗
+By the assumption 0 < χ0 < χ∗∗,1
+a,b,β (u ) and (7.9), we have 0 D(t) dt < ∞. Moreover, since
+(u, v) is bounded, Lemma 3.1 implies that u ∈ C θ/2,θ ([1, ∞) × Ω) for some θ ∈ (0, 1), hence
+D(·) ∈ C([0, ∞)) and D(t) Ris uniformly continuous on [1, ∞). Therefore, the uniform continuity of
+∞
+D on [1, ∞) together with 0 D(t) dt < ∞ yields D(t) → 0 as t → ∞, which is (7.4). The proof of
+Theorem 2.4 under condition (i) is thus completed.
+
+7.2
+
+Proof of Theorem 2.4 under condition (ii)
+
+Proof of Theorem 2.4 under condition (ii). The proof is similar to that of condition (i). Here we
+record the necessary modifications.
+By Theorem 2.1(2) and (3), we have lim inf t→∞ inf x∈Ω v(t, x) ≥ v a,b . Choose 0 < ϵ < v a,b such
+that
+χ2 (2m − 1)(u∗ )2m−1 ν 2
+b− 0
+Cα,γ (u∗ )2γ−α−1 > 0.
+4(1 + v a,b − ϵ)2β 4µ
+After a time-shift, we may assume that
+v(t, x) ≥ v a,b − ϵ
+
+∀ t ≥ 0, x ∈ Ω.
+
+Let F (t) be as in (7.1). By (7.5) and (7.10),
+Z
+Z
+χ20 (2m − 1)(u∗ )2m−1
+′
+2
+F (t) ≤
+|∇v| − b (u − u∗ )(uα − (u∗ )α ).
+4(1 + v a,b − ϵ)2β
+Ω
+Ω
+
+(7.10)
+
+(7.11)
+
+By (7.6) with β̃ = 0,
+Z
+Ω
+
+|∇v|2 ≤
+
+ν2
+4µ
+
+Z
+Ω
+
+35
+
+(uγ − (u∗ )γ )2 .
+
+(7.12)
+
+Proceeding as in (7.8), we obtain
+
+χ2 (2m − 1)(u∗ )2m−1 ν 2
+∗ 2γ−α−1
+F (t) ≤ − b − 0
+C
+(u
+)
+α,γ
+4(1 + v a,b − ϵ)2β 4µ
+′
+
+
+
+Z
+
+(u − u∗ )(uα − (u∗ )α ).
+
+(7.13)
+
+Ω
+
+By the arguments in the proof of Theorem 2.4 under condition (i),
+Z
+lim
+(u − u∗ )(uα − (u∗ )α ) = 0.
+t→∞ Ω
+
+Then, by Lemma A.7 and Corollary 5.1, (2.12) holds.
+
+7.3
+
+Proof of Theorem 2.4 under condition (iii)
+
+In this subsection, we prove Theorem 2.4 under condition (iii). The proof follows the rectangle
+method of Galakhov–Salieva–Tello [17, Section 3], adapted to our normalization. The key contribution here is to allow β > 0, which entails controlling the extra term involving |∇V |2 (see the
+definition of V below) coming from the derivative of (1 + v ∗ V )−β . We start this section with the
+following lemma, needed in the proof of Theorem 2.4(iii).
+Lemma 7.1. There exists a constant M0 (Ω) > 0, such that the following holds: for any µ > 0,
+ν > 0, and f ∈ C(Ω), if w solves 0 = ∆w − µw + νf in Ω with ∂n w = 0 on ∂Ω, then
+
+ν
+∥∇w∥∞ ≤ M0 (Ω) √ sup f (x) − inf f (x) .
+x∈Ω
+µ x∈Ω
+
+
+1
+:=
+:= f − c. Then ∥g∥∞ = 12 (supΩ f − inf Ω f ).
+Proof. Set c
+2 supx∈Ω f (x) + inf x∈Ω f (x) and g
+Writing et∆ for the Neumann heat semigroup on Ω, the resolvent representation gives
+Z ∞
+Z ∞
+−µt t∆
+w=ν
+e e g dt,
+∇w = ν
+e−µt ∇et∆ g dt.
+0
+
+0
+
+Using the standard estimate ∇et∆ g ∞ ≤ C(Ω) t−1/2 ∥g∥∞ and
+√
+
+obtain the desired inequality with M0 (Ω) :=
+
+R ∞ −µt −1/2
+√ √
+t
+dt = π/ µ, we
+0 e
+
+π
+2 C(Ω).
+
+Proof of Theorem 2.4 under condition (iii). Assume that m ≥ 1, γ ≥ 1, α + 1 ≥ m + γ + sign(β)γ,
+∗
+and χ0 < χ∗∗,3
+a,b,β (u ).
+First, we normalize the variables. Let (u(t, x), v(t, x)) be a globally defined positive bounded
+classical solution of (1.1). Put u∗ = (a/b)1/α and v ∗ = (ν/µ)(u∗ )γ . Define the normalized variables
+U (t, x) :=
+
+u(t, x)
+,
+u∗
+
+V (t, x) :=
+
+µ
+v(t, x),
+ν(u∗ )γ
+
+τ := at,
+
+(7.14)
+
+and the dimensionless parameter
+κ0 := a−1 χ0 ν(u∗ )m+γ−1 .
+
+(7.15)
+
+∗
+Then χ0 < χ∗∗,3
+a,b,β (u ) is equivalent to
+
+κ0 <
+
+1
+2 + βv ∗ M0 (Ω)2
+36
+
+.
+
+(7.16)
+
+The pair (U, V ) solves
+
+
+
+κ0
+Um
+1
+
+
+∇V
++ U (1 − U α ), x ∈ Ω,
+∆U
+−
+∇
+·
+U
+=
+
+τ
+
+a
+µ
+(1 + v ∗ V )β
+0 = ∆V − µV + µU γ ,
+x ∈ Ω,
+
+
+
+
+∗
+U (0, ·) = u0 /u ,
+x ∈ Ω,
+
+(7.17)
+
+and therefore, U and V inherit the regularity provided by Proposition 1.1 and 1.3 on [0, ∞) × Ω.
+Next, set U (τ ) := supx∈Ω U (τ, x) and U (τ ) := inf x∈Ω U (τ, x). Then U and U are locally
+Lipschitz on [0, ∞). For τ > 0, define the maximizing and minimizing sets
+
+
+A+ (τ ) := x ∈ Ω : U (τ, x) = U (τ ) ,
+A− (τ ) := x ∈ Ω : U (τ, x) = U (τ ) .
+Since Uτ is continuous on (0, ∞) × Ω, a standard envelope argument yields
+U (τ + h) − U (τ )
+= max Uτ (τ, x)
+h↓0
+h
+x∈A+ (τ )
+
+lim
+
+U (τ ) − U (τ − h)
+= min Uτ (τ, x).
+h↓0
+h
+x∈A+ (τ )
+
+and
+
+lim
+
+(7.18)
+
+Indeed, for h > 0 and x ∈ A+ (τ ),
+U (τ + h) − U (τ )
+U (τ + h, x) − U (τ, x)
+≥
+,
+h
+h
+so letting h ↓ 0 gives the first identity in (7.18). Conversely, if xh ∈ A+ (τ + h), then after passing
+to a sequence hj ↓ 0 we may assume that xhj → x̄ ∈ Ω. Since
+|U (τ + hj , xhj ) − U (τ, xhj )| ≤ hj sup ∥Uτ (τ + s, ·)∥∞ → 0
+0≤s≤hj
+
+and U (τ + hj , xhj ) = U (τ + hj ) → U (τ ), we obtain U (τ, x̄) = U (τ ), that is, x̄ ∈ A+ (τ ). Therefore,
+U (τ + hj , xhj ) − U (τ, xhj )
+U (τ + hj ) − U (τ )
+1
+≤
+=
+hj
+hj
+hj
+
+Z hj
+Uτ (τ + s, xhj ) ds → Uτ (τ, x̄),
+0
+
+which yields the reverse inequality in the first identity of (7.18). The second identity is analogous.
+Applying the same argument to −U shows that
+U (τ + h) − U (τ )
+= min Uτ (τ, x)
+h↓0
+h
+x∈A− (τ )
+
+lim
+
+U (τ ) − U (τ − h)
+= max Uτ (τ, x).
+h↓0
+h
+x∈A− (τ )
+
+and
+
+lim
+
+(7.19)
+
+′
+
+In particular, whenever U is differentiable at τ > 0, we have U (τ ) = Uτ (τ, x) for every x ∈ A+ (τ ),
+and whenever U is differentiable at τ > 0, we have U ′ (τ ) = Uτ (τ, x) for every x ∈ A− (τ ). By the
+maximum principle applied to the elliptic equation in (7.17), we have
+U (τ )γ ≤ V (τ, x) ≤ U (τ )γ
+
+for all τ > 0 and x ∈ Ω.
+
+(7.20)
+
+Applying Lemma 7.1 to the elliptic equation for V in (7.17) (with ν = µ and f = U γ ), we have
+
+
+√
+√
+∥∇V (τ, ·)∥∞ ≤ M0 (Ω) µ sup U (τ, x)γ − inf U (τ, x)γ = M0 (Ω) µ U (τ )γ − U (τ )γ , (7.21)
+x∈Ω
+
+x∈Ω
+
+37
+
+for all τ ∈ [0, ∞). We claim that for a.e. τ ∈ (0, τmax ),
+
+2
+
+′
+U (τ ) ≤ κ0 U (τ )m U (τ )γ − U (τ )γ + βv ∗ M0 (Ω)2 κ0 U (τ )m U (τ )γ − U (τ )γ + U (τ ) 1 − U (τ )α ,
+
+U ′ (τ ) ≥ κ0 U (τ )m U (τ )γ − U (τ )γ + U (τ ) (1 − U (τ )α ) .
+(7.22)
+In fact, we can rewrite the first equation in (7.17) in the form
+Uτ =
+
+1
+βv ∗ κ0
+Um
+mκ0 U m−1
+∇U
+·
+∇V
++
+|∇V |2
+∆U −
+a
+µ (1 + v ∗ V )β
+µ (1 + v ∗ V )β+1
+Um
++ κ0
+(U γ − V ) + U (1 − U α ),
+(1 + v ∗ V )β
+
+Fix τ at which U is differentiable and choose xτ ∈ A+ (τ ). If xτ ∈ Ω, then ∇U (τ, xτ ) = 0 and
+∆U (τ, xτ ) ≤ 0. If xτ ∈ ∂Ω, let ψ ∈ C 2 (Ω) satisfy ∂n ψ = 1 on ∂Ω, and set Uϵ := U − ϵψ. Then
+∂n Uϵ = −ϵ < 0 on ∂Ω, so the spatial maximum of Uϵ (τ, ·) is achieved at some interior point xτ,ϵ ∈ Ω,
+where ∇Uϵ (τ, xτ,ϵ ) = 0 and ∆Uϵ (τ, xτ,ϵ ) ≤ 0. Moreover, by compactness of Ω, for any sequence
+ϵj ↓ 0 there is a subsequence (not relabeled) such that xτ,ϵj → x̄τ ∈ Ω. Since
+Uϵj (τ, xτ,ϵj ) = max Uϵj (τ, ·) ≥ Uϵj (τ, xτ ) = U (τ ) − ϵj ψ(xτ ),
+Ω
+
+we have lim inf j→∞ U (τ, xτ,ϵj ) ≥ U (τ ), hence U (τ, x̄τ ) = U (τ ) by continuity. Evaluating the
+equation at (τ, xτ,ϵ ) and letting ϵ → 0, together with (7.20) and (7.21), yields
+
+2
+
+Uτ (τ, x̄τ ) ≤ κ0 U (τ )m U (τ )γ − U (τ )γ + βv ∗ M0 (Ω)2 κ0 U (τ )m U (τ )γ − U (τ )γ + U (τ ) 1 − U (τ )α .
+′
+
+Since x̄τ ∈ A+ (τ ), the above envelope identity gives U (τ ) = Uτ (τ, x̄τ ), and hence the first inequality
+in (7.22). The lower inequality is obtained analogously from (7.19); see also [17, Section 3].
+Now, following [17, Section 3], we compare U and U with an auxiliary ODE system. Let
+(u(τ ), u(τ )) be the unique global solution of
+
+m γ
+γ
+∗
+2
+m γ
+γ 2
+α
+∗
+uτ = κ0 u (u − u ) + βv M0 (Ω) κ0 u (u − u ) + u(1 − u ), u(0) = 1 ∨ ∥u(0, ·)/u ∥∞ ,
+u(0, x)
+uτ = κ0 um (uγ − uγ ) + u(1 − uα ),
+.
+u(0) = 1 ∧ inf
+x∈Ω
+u∗
+(7.23)
+We claim that
+u(τ ) ≤ 1 ≤ u(τ ) for all τ ≥ 0,
+
+(u(τ ), u(τ )) exists for all τ > 0,
+u(τ ) ≤ U (τ ) ≤ U (τ ) ≤ u(τ )
+
+(7.24)
+
+for all τ ∈ [0, ∞),
+
+(7.25)
+
+as τ → ∞.
+
+(7.26)
+
+and
+u(τ ) → 1
+
+and
+
+u(τ ) → 1
+
+Assuming that (7.25) and (7.26) hold, we have U (τ ) − U (τ ) → 0 as τ → ∞, and therefore
+∥U (τ, ·) − 1∥∞ → 0 as τ → ∞. The statements of Theorem 2.4 under condition (iii) then follow
+from Lemma A.7 and Corollary 5.1. In the following, we prove (7.24), (7.25), and (7.26).
+First, we prove (7.24). Note that 0 < u(0) ≤ 1 ≤ u(0). If u(τ0 ) = 1 and u(τ0 ) > 1, then
+uτ (τ0 ) = κ0 ( 1 − u(τ0 )γ ) < 0, and if u(τ0 ) = 1 and u(τ0 ) < 1, then uτ (τ0 ) ≥ κ0 ( 1 − u(τ0 )γ ) > 0.
+We claim that u(τ ) ≤ 1 ≤ u(τ ) for all τ in the existence interval of the solution. Indeed, set
+I := {τ ≥ 0 | u(τ ) ≤ 1 ≤ u(τ )} .
+38
+
+Then I is nonempty (since it contains 0) and closed. If τ ∈ I and u(τ ) = 1 < u(τ ), then uτ (τ ) =
+κ0 (1 − u(τ )γ ) < 0, so u < 1 immediately after τ . Similarly, if τ ∈ I and u(τ ) = 1 > u(τ ), then
+uτ (τ ) ≥ κ0 (1 − u(τ )γ ) > 0, so u > 1 immediately after τ . Finally, if u(τ ) = u(τ ) = 1, then
+(u, u) ≡ (1, 1) by uniqueness. Thus I is open, and therefore I = [0, τmax ).
+Since u(τ ) ≤ 1 ≤ u(τ ), uγ − uγ ≤ uγ , and since α ≥ m + γ − 1 when β = 0, and α ≥ m + 2γ − 1
+when β > 0, for u ≥ 1 we have um+γ ≤ u1+α and um+2γ ≤ u1+α , respectively. Therefore, (7.23)
+and (7.16) imply
+
+uτ ≤ u − 1 − κ0 1 + βv ∗ M0 (Ω)2 u1+α
+for all τ ≥ 0,
+with 1 − κ0 (1 + βv ∗ M0 (Ω)2 ) > 0. Hence u stays bounded on [0, ∞), and therefore the solution
+exists globally. (7.24) is thus proved.
+Next, we prove (7.25). Compare the pair (U , U ) with (u, u). Since U and U are locally Lipschitz,
+they are absolutely continuous and (7.22) holds in the integrated sense. Fix T ∈ (0, τmax ). On [0, T ],
+the right-hand sides in (7.23) are Lipschitz in (u, u) on the range of (U , U ) and (u, u). Set
+
+w2 (τ ) := (u(τ ) − U (τ ))+ .
+w1 (τ ) := U (τ ) − u(τ ) + ,
+Then w1 and w2 are absolutely continuous on [0, T ] and w1 (0) = w2 (0) = 0. Using (7.22) and (7.23),
+together with the fact that the right-hand side in the u–equation is decreasing as u increases and
+the right-hand side in the u–equation is decreasing as u increases, we obtain for a.e. τ ∈ (0, T ) that
+w1′ (τ ) ≤ LT (w1 (τ ) + w2 (τ ))
+
+and
+
+w2′ (τ ) ≤ LT (w1 (τ ) + w2 (τ ))
+
+for some constant LT > 0. Indeed, denote by F (u, u) and G(u, u) the right-hand sides in (7.23).
+Since w1 = (U − u)+ and w2 = (u − U )+ , it holds for a.e. τ ∈ (0, T ) that
+
+
+
+′
+w1′ (τ ) = U (τ ) − u′ (τ ) 1{U (τ )>u(τ )} and w2′ (τ ) = u′ (τ ) − U ′ (τ ) 1{u(τ )>U (τ )} .
+By (7.22) and (7.23), for a.e. τ ∈ (0, T ),
+
+′
+U (τ ) − u′ (τ ) ≤ F U (τ ), U (τ ) − F (u(τ ), u(τ )) ,
+
+u′ (τ ) − U ′ (τ ) ≤ G (u(τ ), u(τ )) − G U (τ ), U (τ ) .
+
+and
+
+Decompose
+
+F (U , U ) − F (u, u) = F (U , U ) − F (u, U ) + (F (u, U ) − F (u, u)) .
+The first term is bounded by LT |U − u| = LT w1 on {U > u}. The second term is nonpositive
+on {u ≤ U } by the monotonicity in u, and is bounded by LT |u − U | = LT w2 on {u > U }.
+This yields w1′ ≤ LT (w1 + w2 ) a.e. on (0, T ). The bound for w2′ follows similarly by decomposing
+G(u, u) − G(U , U ) and using the monotonicity in u. Consequently, for a.e. τ ∈ (0, T ),
+w1′ (τ ) + w2′ (τ ) ≤ 2LT (w1 (τ ) + w2 (τ )) .
+Set CT := 2LT . By Grönwall’s inequality, w1 ≡ w2 ≡ 0 on [0, T ]. Since T ∈ (0, τmax ) is arbitrary,
+this yields (7.25).
+Finally, we prove (7.26). As in [17, Section 3], the identities
+uτ
+= κ0 um−1 (uγ − uγ ) + βv ∗ M0 (Ω)2 κ0 um−1 (uγ − uγ )2 + (1 − uα ),
+u
+uτ
+= κ0 um−1 (uγ − uγ ) + (1 − uα ),
+u
+39
+
+yield
+
+d
+(ln u − ln u) ≤ 2κ0 + βv ∗ M0 (Ω)2 κ0 − 1 (uα − uα ) ,
+dτ
+
+(7.27)
+
+where we used that u ≤ 1 ≤ u on [0, ∞), um−1 ≤ um−1 , and
+um−1 (uγ − uγ ) ≤ um+γ−1 − um+γ−1 ≤ uα − uα ,
+so that
+
+um−1 + um−1 (uγ − uγ ) ≤ 2 (uα − uα ) ,
+and, when β > 0 (so α ≥ m + 2γ − 1),
+
+um−1 (uγ − uγ )2 ≤ um−1 u2γ − u2γ ≤ um+2γ−1 − um+2γ−1 ≤ uα − uα .
+Since (7.16) holds, (7.27) implies that ln u − ln u is non-increasing. In particular, u stays uniformly
+positive and u is uniformly bounded on [0, ∞). Using again (7.27) and the mean value theorem
+as in [17, Section 3], we obtain ln u(τ ) − ln u(τ ) → 0 as τ → ∞. Therefore, every limit point of
+(u(τ ), u(τ )) is of the form (ℓ, ℓ) with ℓ > 0. Passing to the limit in (7.23) shows ℓ(1 − ℓα ) = 0,
+hence ℓ = 1. Thus, (7.26) holds.
+
+7.4
+
+Proof of Theorem 2.4 under condition (iv)
+
+Proof of Theorem 2.4 under condition (iv). Assume that m ≥ 1, β ≥ 1, γ ≥ 1, α + 1 ≥ m + γ +
+∗
+sign(β)γ, and χ0 < χ∗∗,4
+a,b,β (u ). Let (u(t, x), v(t, x)) be a globally defined positive bounded classical
+solution of (1.1). Put u∗ = (a/b)1/α and v ∗ = (ν/µ)(u∗ )γ .
+∗
+∗
+β ∗∗,3
+Since χ0 < χ∗∗,4
+a,b,β (u ), by (2.19) we have χ0 < χ̄a,b,β and χ0 < (1 + v a,b ) χa,b,β (u ). Choose
+∗
+lb
+ϵ ∈ (0, v a,b ) sufficiently small such that χ0 < (1 + v a,b − ϵ)β χ∗∗,3
+a,b,β (u ), and set v0 := v a,b − ϵ > 0. By
+Theorem 2.1(2)–(3), we have lim inf t→∞ inf x∈Ω v(t, x) ≥ v a,b , and hence there exists T2 > 0 such
+that
+v(t, x) ≥ v0lb
+for all t ≥ T2 and all x ∈ Ω.
+After shifting the time origin by T2 , we may assume that the above bound holds for all t ≥ 0.
+Define the normalized variables (U, V ) and τ by (7.14), and the parameter κ0 by (7.15). Then
+(U, V ) solves (7.17) for all τ ≥ 0. Since v ∗ V (τ, x) = v(t, x) ≥ v0lb for τ ≥ 0, we have
+1
+(1 + v ∗ V (τ, x))β
+
+≤
+
+1
+(1 + v0lb )β
+
+and
+
+1
+(1 + v ∗ V (τ, x))β+1
+
+≤
+
+1
+(1 + v0lb )β+1
+
+for all τ ≥ 0, x ∈ Ω.
+
+Let U (τ ) := supx∈Ω U (τ, x), U (τ ) := inf x∈Ω U (τ, x), and κ
+b0 := κ0 (1 + v0lb )−β . Repeating the
+maximum principle argument leading to (7.22) in the proof under condition (iii) and using the
+above bounds yields that for a.e. τ ∈ (0, ∞),
+ βv ∗ M0 (Ω)2
+
+
+′
+m
+γ
+γ 2
+α
++
+,
+U (τ ) ≤ κ
+b0 U (τ )m U (τ )γ − U (τ )γ +
+κ
+b
+U
+(τ
+)
+U
+(τ
+)
+−
+U
+(τ
+)
+U
+(τ
+)
+1
+−
+U
+(τ
+)
+0
+1 + v0lb
+
+U ′ (τ ) ≥ κ
+b0 U (τ )m U (τ )γ − U (τ )γ + U (τ ) (1 − U (τ )α ) .
+(7.28)
+Let (u(τ ), u(τ )) solve the ODE system obtained from (7.23) by replacing κ0 by κ
+b0 and replacβv ∗ M0 (Ω)2
+∗
+2
+ing βv M0 (Ω) by
+, with initial data u(0) = U (0) and u(0) = U (0). Then the ODE
+1+v lb
+0
+
+comparison argument in the proof under condition (iii) yields
+u(τ ) ≤ U (τ ) ≤ U (τ ) ≤ u(τ )
+40
+
+for all τ ≥ 0.
+
+Moreover, our choice of ϵ implies b
+κ0 < 2 + βv ∗ M0 (Ω)2
+
+−1
+
+. The contraction argument in [17, Sec-
+
+∗ M (Ω)2
+0
+κ0 and βv 1+v
+in place of κ0 and βv ∗ M0 (Ω)2 ,
+tion 3] applies to (u, u) with the modified constants b
+lb
+0
+
+respectively. Indeed, the key mechanism is unchanged: the logarithmic difference ℓ(τ ) := log u(τ ) −
+log u(τ ) satisfies a differential inequality of the form ℓ′ (τ ) ≤ −c (u(τ )−u(τ )) for some c > 0, and replacing κ0 by the smaller κ
+b0 only reduces the destabilizing chemotaxis contribution while preserving
+the sign of the contraction rate c. Therefore, u(τ ) → 1 and u(τ ) → 1 as τ → ∞. Consequently,
+∥U (τ, ·) − 1∥∞ → 0
+
+∥V (τ, ·) − 1∥∞ → 0
+
+and
+
+as τ → ∞,
+
+and hence ∥u(t, ·) − u∗ ∥∞ + ∥v(t, ·) − v ∗ ∥∞ → 0 as t → ∞. This together with Lemma A.7 and
+Corollary 5.1 implies that (2.12) holds. This completes the proof of condition (iv).
+
+8
+
+Global stability of positive constant solutions in the minimal
+model and proof of Theorem 2.5
+
+In this section, we study the stability of positive constant solutions of (1.1) with a = b = 0 and
+prove Theorem 2.5.
+
+8.1
+
+Proof of Theorem 2.5 under condition (i)
+
+Proof of Theorem 2.5 under condition (i). Assume that m = 1, β ≥ 1, a = b = 0, and 0 <
+∗
+χ0 < χ∗∗,1
+β (u ). Let (u(t, x), v(t, x)) be a globally defined bounded classical solution of (1.1) with
+R
+∗
+Ω u(0, x)dx = |Ω|u .
+∗
+First, since 0 < χ0 < χ∗∗,1
+β (u ), by Theorem 2.1(4) and Lemma 3.5, for any 0 < ϵ ≪ 1, we may
+assume that
+v(t, x) ≥ v 0 (u∗ ) − ϵ
+
+and
+
+u(t, x) ≤ u0 (u∗ ) + ϵ
+
+∀ t ≥ 0, x ∈ Ω.
+
+(8.1)
+
+By 0 < χ0 < χ∗∗,1
+β , we can choose 0 < ϵ ≪ 1 such that
+λ∗
+2 u0 (u∗ ) + ϵ
+where
+Cγ (u∗ , ϵ) :=
+
+2 −
+
+χ20 ν 2 Cγ (u∗ , ϵ)
+> 0,
+8µ(1 + v 0 (u∗ ) − ϵ)2β
+
+
+(u∗ )2γ−2 ,
+γ 2 u (u∗ ) + ϵ
+0
+
+0 < γ < 1,
+2(γ−1)
+
+,
+
+γ ≥ 1.
+
+In the following, we fix 0 < ϵ ≪ 1 such that (8.2) holds.
+Next, as in the proof of Theorem 2.4, we introduce the entropy functional
+Z 
+u(t, x) 
+:=
+F (t)
+u(t, x) − u∗ − u∗ ln
+.
+u∗
+Ω
+Differentiating F along the flow and integrating by parts, we obtain
+Z
+Z
+Z
+|∇u|2
+∇u · ∇v
+u(t, x) − u∗
+′
+∗
+∗
+F (t) =
+ut (t, x) = −u
++ χ0 u
+.
+2
+u(t,
+x)
+u
+u(1
++ v)β
+Ω
+Ω
+Ω
+
+41
+
+(8.2)
+
+(8.3)
+
+(8.4)
+
+Applying Young’s inequality and (8.1) yield
+Z
+Z
+|∇u|2
+u∗ χ20
+u∗
+′
++
+|∇v|2 .
+F (t) ≤ −
+2 Ω u2
+2(1 + v 0 (u∗ ) − ϵ)2β Ω
+
+(8.5)
+
+Now, by (7.12),
+Z
+
+|∇v|2 ≤
+
+Ω
+
+Since
+
+ν2
+4µ
+
+Z
+
+(uγ − (u∗ )γ )2 .
+
+(8.6)
+
+Ω
+
+∗
+Ω (u(t, x) − u ) dx = 0 for all t ≥ 0, the Neumann Poincaré inequality and (8.1) imply that
+
+R
+
+|∇u|2
+λ∗
+≥
+2
+2
+Ω u
+u0 (u∗ ) + ϵ
+
+Z
+
+Z
+
+(u − u∗ )2 ,
+
+(8.7)
+
+Ω
+
+where λ∗ >γ 0 is∗ γthe first nonzero Neumann eigenvalue of −∆ on Ω. Note that, for 0 < γ ≤ 1 we
+−(u )
+have 0 ≤ u u−u
+≤ (u∗ )γ−1 for u ̸= u∗ , and hence
+∗
+(uγ − (u∗ )γ )2 ≤ (u∗ )2γ−2 (u − u∗ )2 ,
+
+for all u ≥ 0.
+
+On the other hand, for γ > 1, by the Mean Value Theorem, we have
+γ−1
+|uγ − (u∗ )γ | ≤ γ u0 (u∗ ) + ϵ
+|u − u∗ |
+for all u ≥ 0.
+Therefore, for all t ≥ 0, we have
+Z
+Z
+γ
+∗ γ 2
+∗
+(u − (u ) ) ≤ Cγ (u , ϵ) (u − u∗ )2 .
+Ω
+
+(8.8)
+
+Ω
+
+Combining (8.5), (8.6), (8.7), and (8.8), we obtain that for all t ≥ 0,
+F ′ (t) ≤ −
+
+Defining K0 :=
+
+h
+
+λ∗ u∗
+2 u0 (u∗ ) + ϵ
+
+2 −
+
+ν 2 Cγ (u∗ , ϵ)u∗ χ20 i
+8µ(1 + v 0 (u∗ ) − ϵ)2β
+
+Z
+
+(u − u∗ )2 .
+
+Ω
+
+χ2 ν 2 C (u∗ ,ϵ)
+
+λ∗
+2 u0 (u∗ )+ϵ
+
+γ
+0
+2 and K1 := 8µ(1+v
+, we obtain
+(u∗ )−ϵ)2β
+0
+
+′
+
+∗
+
+Z
+
+F (t) ≤ −(K0 − K1 )u
+
+(u − u∗ )2 ,
+
+∀ t > 0.
+
+(8.9)
+
+Ω
+
+By (8.2), C := (K0 − K1 )u∗ > 0. Since F (t) ≥ 0 for all t ≥ 0, integrating (8.9) over [0, t] yields
+Z tZ
+C
+0
+
+Hence,
+
+(u(s, x) − u∗ )2 dx ds ≤ F (0) − F (t) ≤ F (0)
+
+∀ t ≥ 0.
+
+Ω
+
+Z ∞Z
+0
+
+(u(s, x) − u∗ )2 dx ds < ∞.
+
+(8.10)
+
+Ω
+
+Finally, by the similar arguments
+in the proof of Theorem 2.4 under the condition (i), the
+R
+finiteness of (8.10) implies that Ω (u(t, x) − u∗ )2 dx → 0 as t → ∞. The conclusion of Theorem 2.5
+under condition (i) then follows from Lemma A.8 and Corollary 5.1.
+42
+
+8.2
+
+Proof of Theorem 2.5 under condition (ii)
+
+Proof of Theorem 2.5 under condition (ii). Assume that a = b = 0, m = 1, γ = 1, µ, ν > 0, β ≥ 1,
+∗
+and 0 < χ0 < χ∗∗,2
+β (u ). We follow the uv-energy strategy of Ahn, Kang, and Lee [1], adapted
+to (1.1).
+First, let w := v − v ∗ . Since γ = 1, the elliptic equation gives
+ν(u − u∗ ) = µw − ∆w.
+(8.11)
+R
+R
+Integrating the elliptic equation over Ω and using Ω u(t, x) dx = |Ω|u∗ , we obtain Ω w(t, x) dx = 0
+for all t ≥ 0. Differentiating (8.11) in time, multiplying by w, and integrating by parts yields
+Z
+Z
+Z
+µ d
+1 d
+2
+ut w =
+w +
+|∇w|2 .
+2ν dt Ω
+2ν dt Ω
+Ω
+On the other hand, multiplying the u–equation by w, integrating over Ω, and using Neumann
+boundary conditions, we obtain
+Z
+Z
+Z
+u
+ut w = − ∇u · ∇w + χ0
+|∇w|2 .
+(8.12)
+β
+(1
++
+v)
+Ω
+Ω
+Ω
+Since ν(u − u∗ ) = µw − ∆w,
+Z
+Z
+Z
+Z
+Z
+1
+µ
+|∇w|2 −
+|∆w|2 .
+− ∇u · ∇w = − ∇(u − u∗ ) · ∇w = (u − u∗ )∆w = −
+ν
+ν
+Ω
+Ω
+Ω
+Ω
+Ω
+Combining the previous identities and multiplying by ν, we obtain
+Z
+Z
+Z
+Z
+
+1d
+u
+µw2 + |∇w|2 +
+|∆w|2 = −µ |∇w|2 + νχ0
+|∇w|2 .
+β
+2 dt Ω
+(1
++
+v)
+Ω
+Ω
+Ω
+Next, as in the proof of (1), for any 0 < ϵ ≪ 1, we may assume that (8.1) holds. Moreover,
+since 0 < χ0 < χ∗∗,2
+β , we can fix 0 < ϵ ≪ 1 such that
+
+νχ0 u0 (u∗ ) + ϵ
+µ−
+> 0.
+(8.13)
+(1 + v 0 (u∗ ) − ϵ)β
+Then
+
+ Z
+νχ0 u0 (u∗ ) + ϵ
+u
+2
+|∇w| ≤
+|∇w|2 .
+β
+∗ ) − ϵ)β
+(1
++
+v)
+(1
++
+v
+(u
+Ω
+Ω
+0
+
+Z
+νχ0
+
+Therefore, for all t > 0,
+ Z
+Z
+ 
+νχ0 u0 (u∗ ) + ϵ 
+1d
+2
+2
+µw + |∇w| + µ −
+|∇w|2 ≤ 0.
+2 dt Ω
+(1 + v 0 (u∗ ) − ϵ)β
+Ω
+R
+R
+R
+Since Ω w = 0, Neumann Poincaré’s inequality yields Ω w2 ≤ λ1∗ Ω |∇w|2 , hence
+
+Z
+Z
+
+µ
+2
+2
+µw + |∇w| ≤ 1 +
+|∇w|2 .
+λ
+∗
+Ω
+Ω
+This together with (8.13) and (8.14) implies that
+Z
+
+µw2 + |∇w|2 ≤ C1 e−δv t for all t ≥ 0 with δv :=
+Ω
+
+43
+
+(8.14)
+
+
+νχ0 u0 (u∗ ) + ϵ 
+2λ∗ 
+µ−
+> 0. (8.15)
+λ∗ + µ
+(1 + v 0 (u∗ ) − ϵ)β
+
+R
+Now, put y(t) := Ω (u(t, x) − u∗ )2 dx. Multiplying the u–equation by (u − u∗ ), integrating by
+parts, and using Young’s inequality, we get
+ Z
+Z
+χ20 u0 (u∗ ) + ϵ
+1 ′
+1
+2
+|∇u| +
+y (t) ≤ −
+|∇v|2 , for all t ≥ 0.
+2
+2 Ω
+2(1 + v 0 (u∗ ) − ϵ)β Ω
+R
+R
+Since Ω (u − u∗ ) = 0, Neumann Poincaré’s inequality implies Ω |∇u|2 ≥ λ∗ y(t). Therefore,
+ Z
+ Z
+χ20 u0 (u∗ ) + ϵ
+χ20 u0 (u∗ ) + ϵ
+′
+2
+y (t) + λ∗ y(t) ≤
+|∇v| =
+|∇w|2 ,
+2(1 + v 0 (u∗ ) − ϵ)β Ω
+2(1 + v 0 (u∗ ) − ϵ)β Ω
+R
+for t ≥ 0. By (8.15), there exists C2 > 0 such that Ω |∇w|2 ≤ C2 e−δv t for t ≥ 0. Hence
+
+χ20 u0 (u∗ ) + ϵ
+′
+C2 e−δv t ,
+y (t) + λ∗ y(t) ≤
+2(1 + v 0 (u∗ ) − ϵ)β
+and a standard ODE comparison yields that for some C3 > 0,
+Z
+(u(t, x) − u∗ )2 dx ≤ C3 e−δu t ,
+t ≥ 0,
+
+(8.16)
+
+Ω
+
+R
+with δu := min{λ∗ , δv } > 0. This implies that Ω (u(t, x) − u∗ )2 dx → 0 as t → ∞. The conclusion
+of Theorem 2.5 under condition (ii) then follows from Lemma A.8 and Corollary 5.1.
+
+A
+
+Appendices
+
+A.1
+
+Basic semigroup theory
+
+In this appendix, we present some basic semigroup theory, which are used in the proofs of the
+main results. Let X be a Banach space, A be a sectorial operator on X, and X α be the fractional
+power space associated with A (see [20, Definitions 1.3.1 and 1.4.1] for the definitions of sectorial
+operators and fractional power spaces). Let f : R × U → X, where U is a neighborhood in X α for
+some 0 < α < 1. Consider
+dx
++ Ax = f (t, x).
+(A.1)
+dt
+Lemma A.1. Suppose that x0 ∈ D(A) ∩ U is an equilibrium solution of (A.1). Suppose also that
+f (t, x0 + z) = f (t, x0 ) + Bz + g(t, z),
+where B is a bounded linear operator from X α → X and ∥g(t, z)∥X = o (∥z∥X α ) as ∥z∥X α → 0
+uniformly in t ∈ R, and f (t, x) is locally Hölder continuous in t, and locally Lipschitz continuous
+in x, on R × U . If the spectrum of A − B lies in {Reλ > ρ} for some ρ > 0, then there are ϵ, C > 0
+such that for any x1 ∈ X α with ∥x1 − x0 ∥X α ≤ ϵ and t0 ∈ R, the solution x(t; t0 , x1 ) of (A.1) with
+initial condition x(t0 ; t0 , x1 ) = x1 exists for all t > t0 , and
+∥x(t; t0 , x1 ) − x0 ∥X α ≤ Ce−ρ(t−t0 ) ∥x1 − x0 ∥X α .
+Proof. It follows from Theorem 5.1.1 on p. 98 of [20].
+
+44
+
+(A.2)
+
+In the rest, we let 1 ≤ p < ∞ and Ap = −∆ + µI with domain D(Ap ) given by
+
+∂u
+= 0 on ∂Ω .
+D(Ap ) = u ∈ W 2,p (Ω) : ∂n
+The operator Ap generates an analytic semigroup, denoted by Tp (t) = e−Ap t , on Lp (Ω). Let Xpσ be
+the fractional power space associated with A, i.e., Xpσ := D(Aσp ) for σ > 0. Let A∞ = −∆ + µI
+whose domain D(A∞ ) is given by
+
+∂u
+D(A∞ ) = u ∈ C 2 (Ω) : ∂n
+= 0 on ∂Ω .
+The operator A∞ generates an analytic semigroup, denoted by T∞ (t) = e−A∞ t , on C(Ω). The
+reader is referred to [20] for further details on analytic semigroups and fractional power spaces.
+Throughout the rest of the paper, we suppress the subscript p in Ap and Tp (t) (1 ≤ p ≤ ∞)
+when context allows. It should be clear from the context whether e−At represents the analytic
+semigroup in Lp (Ω) generated by Ap or the analytic semigroup in C(Ω) generated by A∞ .
+Lemma A.2 ([20, Theorem 1.4.3] or [37, Theorem 6.13]). For all σ ≥ 0, p ∈ [1, ∞], and δ ∈ (0, µ),
+there is a constant Cσ,p,δ > 0 such that Aσp e−Ap t u p ≤ Cσ,p,δ t−σ e−δt ∥u∥p for all t > 0. For each
+
+σ ∈ (0, 1], there is a constant Cσ > 0 such that for any u ∈ Xpσ , e−Ap t − I u p ≤ Cσ tσ ∥Aσ u∥p
+for all t > 0.
+Lemma A.3 ([20, Theorem 1.6.1]). Suppose that σ ∈ [0, 1] and 1 ≤ p < ∞. Then the following
+Sobolev-type embeddings hold:
+Xpσ ,→ W k,q (Ω) when k − N/q < 2σ − N/p, q ≥ p, k ∈ {0, 1},
+Xpσ ,→ C θ (Ω) when 0 ≤ θ < 2σ − N/p.
+
+(A.3a)
+(A.3b)
+
+Lemma A.4. Let λ1 be the first nonzero eigenvalue of −∆ in Ω under Neumann boundary conditions. There exists some constant C > 0 which depends only on Ω, such that for all p ∈ (1, ∞) and
+t > 0, it holds that
+
+(A.4)
+e−tAp ∇ · ϕ p ≤ C 1 + t−1/2 e−(λ1 +µ)t ∥ϕ∥p
+where ϕ ∈ (C0∞ (Ω))N . Consequently, for all t > 0, the operator e−tAp ∇· possesses a uniquely determined extension to an operator from Lp (Ω) into Lp (Ω), with norm controlled according to (A.4).
+Proof. This lemma is a special case of part (iv) of [42, Lemma 1.3].
+Lemma A.5. For any σ > 0 and p ∈ (1, ∞), there is C > 0 such that for any u ∈ (Lp (Ω))N , it
+holds that ||Aσp e−Ap t ∇ · u||p ≤ Ct−σ (1 + t−1/2 )e−(λ1 +µ)t/2 ∥u∥p for all t > 0.
+
+A.2
+
+A power-difference inequality
+
+In this appendix section, we record a technical inequality used in the proof of Theorem 2.4.
+Lemma A.6 (A power-difference inequality). Suppose that u∗ > 0, α > 0, and γ > 0 such that
+2γ ≤ α + 1. Recall that Cα,γ is the explicit constant defined in (2.14). Then for all u > 0,
+(uγ − (u∗ )γ )2 ≤ Cα,γ (u∗ )2γ−α−1 (u − u∗ ) (uα − (u∗ )α ) .
+
+45
+
+(A.5)
+
+Proof. Fix u > 0 and set y := u/u∗ . Then u = u∗ y and
+(uγ − (u∗ )γ )2
+(y γ − 1)2
+∗ 2γ−α−1
+=
+(u
+)
+.
+(u − u∗ ) (uα − (u∗ )α )
+(y − 1)(y α − 1)
+
+(A.6)
+
+Hence, it suffices to bound the function
+Rα,γ (y) :=
+
+(y γ − 1)2
+,
+(y − 1)(y α − 1)
+
+y > 0, y ̸= 1.
+
+Case 1: 0 < α < 1. By the Cauchy–Schwarz inequality,
+  Z y √ α−1 2
+ Z y
+Z y
+1 ds ≥
+αsα−1 ds
+α s 2 ds =
+(y α − 1)(y − 1) =
+1
+
+1
+
+1
+
+2
+4α  α+1
+2
+y
+−
+1
+.
+(α + 1)2
+
+α+1
+
+γ
+2
+− 1 for all y > 0, and hence
+Since 2γ ≤ α + 1, we have γ ≤ α+1
+2 . Therefore, |y − 1| ≤ y
+α+1
+
+(y γ − 1)2 ≤ y 2 − 1
+
+2
+
+≤
+
+(α + 1)2
+(y − 1)(y α − 1).
+4α
+
+2
+
+This shows Rα,γ (y) ≤ (α+1)
+and yields (2.14) in this case.
+4α
+Case 2: α ≥ 1 and 0 < γ ≤ 1. We treat y > 1 and 0 < y < 1 separately. If y > 1, then
+y γ − 1 ≤ y − 1 and y α − 1 ≥ y − 1, hence (y γ − 1)2 ≤ (y − 1)(y α − 1). If 0 < y < 1, then 1 − y γ ≤ 1 − y
+and 1 − y α ≥ 1 − y, hence again (y γ − 1)2 = (1 − y γ )2 ≤ (1 − y)(1 − y α ) = (y − 1)(y α − 1). Therefore,
+Rα,γ (y) ≤ 1.
+Ry
+Case 3: α ≥ 1 and γ > 1. Using the identity y γ − 1 = γ 1 sγ−1 ds and Cauchy–Schwarz, we
+obtain
+Z max{1,y}
+Z y
+2
+γ2
+γ−1
+γ
+2
+2
+2
+s
+ds ≤ γ |y − 1|
+(y − 1) = γ
+s2γ−2 ds =
+|y − 1| |y 2γ−1 − 1|.
+2γ − 1
+1
+min{1,y}
+Since 2γ ≤ α + 1, we have α ≥ 2γ − 1. Thus |y 2γ−1 − 1| ≤ |y α − 1| for all y > 0, and also
+(y − 1)(y α − 1) = |y − 1| |y α − 1|. Consequently,
+(y γ − 1)2 ≤
+
+γ2
+(y − 1)(y α − 1),
+2γ − 1
+
+i.e. Rα,γ (y) ≤
+
+γ2
+.
+2γ − 1
+
+Combining the three cases and using (A.6) gives (A.5) with the constant in (2.14).
+
+A.3
+
+Comparison between the critical sensitivity thresholds
+
+In this appendix section, we present some comparisons between the explicit global stability thresholds and the critical sensitivity.
+Lemma A.7. Assume that β ≥ 0, m ≥ 1, a, b > 0, and α, γ > 0. Let (u∗ , v ∗ ) be the unique positive
+constant solution of (1.1) given by (2.1). Then
+∗
+∗
+∗
+(1) If α + 1 ≥ 2γ, then χ∗∗,1
+a,b,β (u ) ≤ χa,b,β (u ).
+∗
+∗
+∗
+(2) If β ≥ 1 and α + 1 ≥ 2γ, then χ∗∗,2
+a,b,β (u ) ≤ χa,b,β (u ).
+
+46
+
+∗
+∗
+∗
+(3) If γ ≥ 1 and α + 1 ≥ m + γ, then χ∗∗,3
+a,b,β (u ) ≤ χa,b,β (u ).
+∗
+∗
+∗
+(4) If β ≥ 1, γ ≥ 1, and α + 1 ≥ m + 2γ, then χ∗∗,4
+a,b,β (u ) ≤ χa,b,β (u ).
+
+√
+√
+√
+Proof. (1) First, by (2.11) and ( x + y)2 ≥ 4 xy for x, y ≥ 0, we have
+χ∗a,b,β (u∗ ) ≥
+
+4(1 + v ∗ )β √
+aαµ.
+νγ(u∗ )m+γ−1
+
+Since u∗ = (a/b)1/α , we have a = b(u∗ )α , and hence
+√
+√
+α
+4 bµ
+α
+∗
+∗
+χa,b,β (u ) ≥
+·
+(1 + v ∗ )β (u∗ ) 2 −m−γ+1 .
+ν
+γ
+
+(A.7)
+
+Since m ≥ 1, we have 2m − 1 ≥ 1. Under α + 1 ≥ 2γ, one checks from (2.14) that Cα,γ γα2 ≥ 1, and
+hence (2m − 1)Cα,γ γα2 ≥ 1. Together with (A.7), it holds that
+χ∗a,b,β (u∗ ) ≥
+Next, by (2.13),
+
+√
+α
+4 bµ
+p
+(1 + v ∗ )β (u∗ ) 2 −m−γ+1 .
+ν (2m − 1)Cα,γ
+
+(A.8)
+
+√ s
+α
+4
+bµ
+1 + β̃v ∗
+∗
+(u∗ ) 2 −m−γ+1 .
+χ∗∗,1
+a,b,β (u ) =
+ν
+(2m − 1)Cα,γ
+
+We claim that
+(1 + v ∗ )2β ≥ 1 + β̃v ∗
+
+∀ β ≥ 0.
+
+(A.9)
+
+In fact, if 0 ≤ β < 12 , then β̃ = 0, while if β ≥ 12 , Bernoulli’s inequality gives (1+v ∗ )2β ≥ 1+2βv ∗ ≥
+∗
+∗
+∗
+1 + β̃v ∗ . It then follows from (A.8) that χ∗∗,1
+a,b,β (u ) ≤ χa,b,β (u ).
+(2) By (2.17), we have
+v
+u
+u
+t
+∗∗,2
+∗
+χa,b,β (u ) ≤ b ×
+
+2β
+µ
+16 1 + v a,b
+.
+2
+∗
+2γ−α+2m−2
+(2m − 1)ν Cα,γ (u )
+
+Note that v a,b ≤ v ∗ (see (2.16)). Hence,
+(1 + v a,b )β ≤ (1 + v ∗ )β
+Therefore,
+∗
+χ∗∗,2
+a,b,β (u ) ≤
+
+∀β ≥ 0.
+
+(A.10)
+
+√
+α
+4 bµ
+(1 + v ∗ )β
+p
+(u∗ ) 2 −m−γ+1 .
+ν
+(2m − 1)Cα,γ
+
+∗
+∗
+∗
+This together with (A.8) implies that χ∗∗,2
+a,b,β (u ) ≤ χa,b,β (u ).
+√
+√
+(3) Since ( aα + µ)2 ≥ aα, (2.11) implies
+
+χ∗a,b,β (u∗ ) ≥
+
+aα(1 + v ∗ )β
+.
+νγ(u∗ )m+γ−1
+
+47
+
+(A.11)
+
+By (2.18) and β ≥ 0, we have
+∗
+χ∗∗,3
+a,b,β (u ) =
+
+a
+1
+a
+·
+≤
+.
+ν(u∗ )m+γ−1 2 + βv ∗ M0 (Ω)2
+2ν(u∗ )m+γ−1
+
+Since α + 1 ≥ m + γ and m ≥ 1, we have α ≥ γ, hence α/γ ≥ 1 ≥ 12 . Therefore,
+∗
+χ∗∗,3
+a,b,β (u ) ≤
+
+aα
+.
+νγ(u∗ )m+γ−1
+
+(A.12)
+
+∗
+∗
+∗
+By (A.11) and (A.12), we have χ∗∗,3
+a,b,β (u ) ≤ χa,b,β (u ).
+aα(1+v
+
+)β
+
+∗∗,4
+a,b
+∗
+(4) By (A.12) and the definition of χ∗∗,4
+a,b,β , it holds that χa,b,β (u ) ≤ νγ(u∗ )m+γ−1 . This together
+∗
+∗
+∗
+with (A.10) and (A.11) implies that χ∗∗,4
+a,b,β (u ) ≤ χa,b,β (u ).
+
+Lemma A.8. Assume that a = b = 0, m = 1, and β ≥ 1. Let (u∗ , v ∗ ) be a positive constant
+solution of (1.1).
+∗
+∗
+∗
+∗ ∗
+(1) For any γ > 0, χ∗∗,1
+β (u ) ≤ χβ (u ) := χ0,0,β (u ).
+∗
+∗ ∗
+(2) If γ = 1, then χ∗∗,2
+β (u ) ≤ χβ (u ).
+∗
+Proof. By the definitions of χ∗∗,l
+β (u ) (l = 1, 2), it suffices to prove that
+
+χβ
+∗ ∗
+2 ≤ χβ (u ). Recall that
+
+2(2β − 1)
+2(2β − 1)
+≤
+, and
+max{2, γN }
+γ
+
+
+(1 + v ∗ )β
+(1 + v ∗ )β
+(1 + v ∗ )β
+∗
+∗
+∗
+χβ = χ0,0,β (u ) = inf
+(µ
++
+λ
+)
+≥
+µ
+=
+n
+n≥1 νγ (u∗ )γ
+νγ (u∗ )γ
+γv ∗
+χβ =
+
+(A.13)
+
+(A.14)
+
+(since λ1 > 0 and v ∗ = µν (u∗ )γ ). Next, we claim that
+(1 + v)β
+≥ 2β − 1
+v
+
+for all v > 0.
+
+(A.15)
+β
+
+1
+:= (1+v)
+. A direct
+In fact, if β = 1, then 1+v
+v = 1 + v ≥ 1 = 2β − 1. If β > 1, consider f (v)
+v
+1
+computation shows that f attains its minimum at v = β−1
+and
+
+min f (v) = f
+v>0
+
+
+
+ β β
+
+1 
+1 β
+= (β − 1)
+= (β − 1) 1 +
+.
+β−1
+β−1
+β−1
+
+β 
+By Bernoulli’s inequality, (1 + x)β ≥ 1 + βx for all x > 0, hence minv>0 f (v) ≥ (β − 1) 1 + β−1
+=
+χβ
+∗
+2β − 1, which proves (A.15). By (A.13), (A.14), and (A.15), it holds that 2 ≤ χβ .
+
+Acknowledgments
+Both L. C. and I. R. were partially supported by NSF grants DMS-2246850 and DMS-2443823.
+L. C. was also partially supported by a Collaboration Grant for Mathematicians (#959981) from
+the Simons Foundation.
+
+48
+
+References
+[1] Jaewook Ahn, Kyungkeun Kang, and Jihoon Lee, Eventual smoothness and stabilization of global weak solutions
+in parabolic-elliptic chemotaxis systems with logarithmic sensitivity, Nonlinear Anal. Real World Appl. 49 (2019),
+312–330, https://doi.org/10.1016/j.nonrwa.2019.03.012. MR3937416.
+[2] Khadijeh Baghaei, Global boundedness of solutions to a chemotaxis consumption model with signal dependent
+motility and logistic source, C. R. Math. Acad. Sci. Paris 362 (2024), 1131–1146. MR4824914.
+[3] Piotr Biler, Global solutions to some parabolic-elliptic systems of chemotaxis, Adv. Math. Sci. Appl. 9 (1999),
+no. 1, 347–359. MR1690388.
+[4] Tobias Black, Global generalized solutions to a parabolic-elliptic Keller-Segel system with singular sensitivity, Discrete Contin. Dyn. Syst. Ser. S 13 (2020), no. 2, 119–137, https://doi.org/10.3934/dcdss.
+2020007. MR4043685.
+[5] Tobias Black, Johannes Lankeit, and Masaaki Mizukami, Stabilization in the Keller-Segel system with signaldependent sensitivity, Appl. Anal. 99 (2020), no. 16, 2877–2891, https://doi.org/10.1080/00036811.2019.
+1585534. MR4174428.
+[6] Junhong Cao, Wei Wang, and Hao Yu, Asymptotic behavior of solutions to two-dimensional chemotaxis system
+with logistic source and singular sensitivity, J. Math. Anal. Appl. 436 (2016), no. 1, 382–392, https://doi.org/
+10.1016/j.jmaa.2015.11.058. MR3440100.
+[7] Le Chen, Ian Ruau, and Wenxian Shen, Chemotaxis models with signal-dependent sensitivity and a logistictype source, I: Boundedness and global existence, J. Differential Equations (accepted pending revision), preprint
+arXiv:2512.14858 (2025).
+[8]
+
+, Chemotaxis models with signal-dependent sensitivity and a logistic-type source, III: Bifurcation, 2026. In
+preparation.
+
+[9] Mourad Choulli, El Maati Ouhabaz, and Masahiro Yamamoto, Stable determination of a semilinear term in a
+parabolic equation, Commun. Pure Appl. Anal. 5 (2006), no. 3, 447–462, https://doi.org/10.3934/cpaa.2006.
+5.447. MR2217590.
+[10] Mengyao Ding, Wei Wang, and Shulin Zhou, Global existence of solutions to a fully parabolic chemotaxis system
+with singular sensitivity and logistic source, Nonlinear Anal. Real World Appl. 49 (2019), 286–311, https:
+//doi.org/10.1016/j.nonrwa.2019.03.009. MR3936798.
+[11] Avner Friedman, Remarks on the maximum principle for parabolic equations and its applications, Pacific J. Math.
+8 (1958), 201–211, http://projecteuclid.org/euclid.pjm/1103040096. MR102655.
+[12]
+
+, Partial differential equations of parabolic type, Prentice-Hall, Inc., Englewood Cliffs, N.J.,
+1964. MR0181836.
+
+[13] Kentarou Fujie, Boundedness in a fully parabolic chemotaxis system with singular sensitivity, J. Math. Anal.
+Appl. 424 (2015), no. 1, 675–684, https://doi.org/10.1016/j.jmaa.2014.11.045. MR3286587.
+[14] Kentarou Fujie and Takasi Senba, Global existence and boundedness in a parabolic-elliptic Keller-Segel system
+with general sensitivity, Discrete Contin. Dyn. Syst. Ser. B 21 (2016), no. 1, 81–102, https://doi.org/10.3934/
+dcdsb.2016.21.81. MR3426833.
+[15] Kentarou Fujie, Michael Winkler, and Tomomi Yokota, Blow-up prevention by logistic sources in a parabolicelliptic Keller-Segel system with singular sensitivity, Nonlinear Anal. 109 (2014), 56–71, https://doi.org/10.
+1016/j.na.2014.06.017. MR3247293.
+[16]
+
+, Boundedness of solutions to parabolic-elliptic Keller-Segel systems with signal-dependent sensitivity,
+Math. Methods Appl. Sci. 38 (2015), no. 6, 1212–1224, https://doi.org/10.1002/mma.3149. MR3338145.
+
+[17] Evgeny Galakhov, Olga Salieva, and J. Ignacio Tello, On a parabolic-elliptic system with chemotaxis and logistic
+type growth, J. Differential Equations 261 (2016), no. 8, 4631–4647, https://doi.org/10.1016/j.jde.2016.
+07.008. MR3537839.
+[18] David Gilbarg and Neil S. Trudinger, Elliptic partial differential equations of second order, Classics in Mathematics, Springer-Verlag, Berlin, 2001. Reprint of the 1998 edition. MR1814364.
+[19] Xiao He and Sining Zheng, Convergence rate estimates of solutions in a higher dimensional chemotaxis system
+with logistic source, J. Math. Anal. Appl. 436 (2016), no. 2, 970–982, https://doi.org/10.1016/j.jmaa.2015.
+12.058. MR3446989.
+[20] Daniel Henry, Geometric theory of semilinear parabolic equations, Lecture Notes in Mathematics, vol. 840,
+Springer-Verlag, Berlin-New York, 1981. MR610244.
+
+49
+
+[21] M. A. Herrero, E. Medina, and J. J. L. Velázquez, Finite-time aggregation into a single point in a reactiondiffusion system, Nonlinearity 10 (1997), no. 6, 1739–1754, https://doi.org/10.1088/0951-7715/10/6/
+016. MR1483563.
+[22] Miguel A. Herrero and Juan J. L. Velázquez, Singularity patterns in a chemotaxis model, Math. Ann. 306 (1996),
+no. 3, 583–623, https://doi.org/10.1007/BF01445268. MR1415081.
+[23] Liang Hong, Miaoqing Tian, and Sining Zheng, An attraction-repulsion chemotaxis system with nonlinear
+productions, J. Math. Anal. Appl. 484 (2020), no. 1, 123703, 8, https://doi.org/10.1016/j.jmaa.2019.
+123703. MR4042624.
+[24] Bingran Hu and Youshan Tao, Boundedness in a parabolic-elliptic chemotaxis-growth system under a critical parameter condition, Appl. Math. Lett. 64 (2017), 1–7, https://doi.org/10.1016/j.aml.2016.08.
+003. MR3564732.
+[25] Evelyn F. Keller and Lee A. Segel, Initiation of slime mold aggregation viewed as an instability, J. Theoret. Biol.
+26 (1970), no. 3, 399–415, https://doi.org/10.1016/0022-5193(70)90092-5. MR3925816.
+[26] Evelyn F Keller and Lee A Segel, Model for chemotaxis, J. Theoret. Biol. 30 (1971), no. 2, 225–234.
+[27]
+
+, Traveling bands of chemotactic bacteria: a theoretical analysis, J. Theoret. Biol. 30 (1971), no. 2, 235–
+248.
+
+[28] Halil Ibrahim Kurt and Wenxian Shen, Chemotaxis systems with singular sensitivity and logistic source: boundedness, persistence, absorbing set, and entire solutions, Nonlinear Anal. Real World Appl. 69 (2023), Paper No.
+103762, 27, https://doi.org/10.1016/j.nonrwa.2022.103762. MR4489287.
+[29] Halil ibrahim Kurt and Wenxian Shen, Stabilization in two-species chemotaxis systems with singular sensitivity
+and Lotka-Volterra competitive kinetics, Discrete Contin. Dyn. Syst. 44 (2024), no. 4, 882–904, https://doi.
+org/10.3934/dcds.2023130. MR4696144.
+[30] Halil Ibrahim Kurt, Wenxian Shen, and Shuwen Xue, Stability, bifurcation and spikes of stationary solutions in
+a chemotaxis system with singular sensitivity and logistic source, Math. Models Methods Appl. Sci. 34 (2024),
+no. 9, 1797–1845, https://doi.org/10.1142/S0218202524500386.
+[31] O. A. Ladyženskaja, V. A. Solonnikov, and N. N. Ural′ceva, Linear and quasilinear equations of parabolic type,
+Translations of Mathematical Monographs, Vol. 23, American Mathematical Society, Providence, R.I., 1968.
+Translated from the Russian by S. Smith. MR0241822.
+[32] Jiaqin Li and Zhongping Li, Large time behavior of solutions to a chemotaxis system with singular sensitivity and logistic source, Math. Nachr. 294 (2021), no. 7, 1374–1383, https://doi.org/10.1002/mana.
+201900302. MR4316878.
+[33] Gary M. Lieberman, Second order parabolic differential equations, World Scientific Publishing Co., Inc., River
+Edge, NJ, 1996. MR1465184.
+[34] Masaaki Mizukami and Tomomi Yokota, A unified method for boundedness in fully parabolic chemotaxis systems
+with signal-dependent sensitivity, Math. Nachr. 290 (2017), no. 16, 2648–2660, https://doi.org/10.1002/mana.
+201600399. MR3722501.
+[35] Toshitaka Nagai, Blowup of nonradial solutions to parabolic-elliptic systems modeling chemotaxis
+in two-dimensional domains, J. Inequal. Appl. 6 (2001), no. 1, 37–55, https://doi.org/10.1155/
+S1025583401000042. MR1887324.
+[36] Toshitaka Nagai and Takasi Senba, Global existence and blow-up of radial solutions to a parabolic-elliptic system
+of chemotaxis, Adv. Math. Sci. Appl. 8 (1998), no. 1, 145–156. MR1623326.
+[37] A. Pazy, Semigroups of linear operators and applications to partial differential equations, Applied Mathematical
+Sciences, vol. 44, Springer-Verlag, New York, 1983. MR710486.
+[38] J. Ignacio Tello and Michael Winkler, A chemotaxis system with logistic source, Comm. Partial Differential
+Equations 32 (2007), no. 4-6, 849–877, https://doi.org/10.1080/03605300701319003. MR2334836.
+[39] Giuseppe Viglialoro and Thomas E. Woolley, Boundedness in a parabolic-elliptic chemotaxis system with nonlinear diffusion and sensitivity and logistic source, Math. Methods Appl. Sci. 41 (2018), no. 5, 1809–1824,
+https://doi.org/10.1002/mma.4707. MR3778089.
+[40] Chang-Jian Wang, Ya-Jie Zhu, and Xin-Cai Zhu, Long time behavior of the solution to a chemotaxis system with
+nonlinear indirect signal production and logistic source, Electron. J. Qual. Theory Differ. Equ. (2023), Paper No.
+11, 21. MR4577527.
+[41] Michael Winkler, Absence of collapse in a parabolic chemotaxis system with signal-dependent sensitivity, Math.
+Nachr. 283 (2010), no. 11, 1664–1673, https://doi.org/10.1002/mana.200810838. MR2759803.
+
+50
+
+[42]
+
+, Aggregation vs. global diffusive behavior in the higher-dimensional Keller-Segel model, J. Differential
+Equations 248 (2010), no. 12, 2889–2905, https://doi.org/10.1016/j.jde.2010.02.008. MR2644137.
+
+[43]
+
+, Global solutions in a fully parabolic chemotaxis system with singular sensitivity, Math. Methods Appl.
+Sci. 34 (2011), no. 2, 176–190, https://doi.org/10.1002/mma.1346. MR2778870.
+
+[44]
+
+, Global asymptotic stability of constant equilibria in a fully parabolic chemotaxis system with strong
+logistic dampening, J. Differential Equations 257 (2014), no. 4, 1056–1077, https://doi.org/10.1016/j.jde.
+2014.04.023. MR3210023.
+
+[45] Michael Winkler and Tomomi Yokota, Stabilization in the logarithmic Keller-Segel system, Nonlinear Anal. 170
+(2018), 123–141, https://doi.org/10.1016/j.na.2018.01.002. MR3765558.
+[46] Tian Xiang, Dynamics in a parabolic-elliptic chemotaxis system with growth source and nonlinear secretion,
+Commun. Pure Appl. Anal. 18 (2019), no. 1, 255–284, https://doi.org/10.3934/cpaa.2019014. MR3845565.
+[47] Xiangdong Zhao and Sining Zheng, Global existence and asymptotic behavior to a chemotaxis-consumption system
+with singular sensitivity and logistic source, Nonlinear Anal. Real World Appl. 42 (2018), 120–139, https:
+//doi.org/10.1016/j.nonrwa.2017.12.007. MR3773354.
+[48] Pan Zheng, On a parabolic-elliptic Keller-Segel system with nonlinear signal production and nonlocal growth
+term, Dyn. Partial Differ. Equ. 21 (2024), no. 1, 61–76, https://doi.org/10.4310/dpde.2024.v21.n1.
+a3. MR4672992.
+[49] Pan Zheng, Chunlai Mu, Robert Willie, and Xuegang Hu, Global asymptotic stability of steady states in a
+chemotaxis-growth system with singular sensitivity, Comput. Math. Appl. 75 (2018), no. 5, 1667–1675, https:
+//doi.org/10.1016/j.camwa.2017.11.032. MR3766542.
+
+51
+
+

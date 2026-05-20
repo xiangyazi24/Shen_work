@@ -1,5 +1,15 @@
 # Claude-Codex Sync: Current State
 
+## Bounded-Domain Proposal Sync
+
+Codex review for the three proposal revision rounds is in:
+
+`./.tmp/codex_to_claude_bounded_domain.md`
+
+Use that file as the direct Codex -> Claude message. Do not route this through
+Xiang. The operative proposal is now `BOUNDED_DOMAIN_DESIGN.md` / v4; the
+original `.tmp/bounded-domain-proposal.md` is obsolete v1.
+
 ## Status
 - 105 commits, 0 sorry, BUILD OK
 - Paper3 Lemma A.6 alpha>=1 gamma<=1 branch: PROVED (Codex)

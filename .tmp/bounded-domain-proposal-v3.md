@@ -1,16 +1,16 @@
-# Bounded-Domain API Design Proposal v4
+# Bounded-Domain API Design Proposal v3
 
 ## Executive Decision Point
 
 This proposal supports two choices:
 
-**A. Design-doc only.** Keep this as a scratch proposal until Xiang approves a
-tracked location. Do not add Lean interfaces yet.
+**A. Design-doc only.** Keep this as a written policy for future bounded-domain
+work. Do not add Lean interfaces yet.
 
 **B. First tiny Lean implementation.** Add only interval-measure helper
-definitions plus one small theorem backed by Mathlib. Do not add Paper2 wrappers,
-semigroup estimate structures, or theorem names suggesting progress on
-bounded-domain semigroup theory.
+definitions plus one small theorem imported from Mathlib. Do not add Paper2
+wrappers, semigroup estimate structures, or theorem names suggesting progress
+on bounded-domain semigroup theory.
 
 The recommended next step is A, or B if Xiang wants a concrete audit-passing
 foothold.
@@ -66,7 +66,7 @@ mistaken for progress. The latter two are false if they depend on assumptions.
 ### Concrete End-to-End Track
 
 Classification: **audit-passing only when every analytic estimate is proved from
-definitions and has a clean temporary `#print axioms` audit**.
+definitions and passes `#print axioms`**.
 
 This track should start far below the full paper theorem: interval measure,
 constants, and simple integral facts. Full Neumann semigroup positivity and
@@ -116,16 +116,29 @@ boundarySmooth_witness : boundarySmooth
 ```
 
 Smooth boundary, traces, outward normals, Neumann heat theory, elliptic
-regularity, and semigroup estimates should be documentation-only for now.
+regularity, and semigroup estimates should be separate explicitly named
+assumptions, preferably documentation-only until there is a concrete use.
 
-If encoded later, the fields must be the exact analytic hypotheses being assumed,
-not markers such as `assumed : True`. For example, an encoded assumption class
-would need fields with the actual estimates, trace theorem, elliptic resolvent
-theorem, or semigroup theorem being assumed. Such declarations must live in a
-clearly conditional namespace, with theorem names using `from_assumed_*` and
-never `_proved`.
+If encoded in Lean, use names that cannot be confused with proved estimates:
 
-Module-level warning for any future conditional file:
+```lean
+-- Documentation/assumption namespace only.
+structure AssumesSmoothBoundary (D : BoundedDomainSkeleton N) : Prop where
+  -- Details intentionally not used as computational data.
+  assumed : True
+
+structure AssumesNeumannHeatTheory
+    (D : BoundedDomainSkeleton N)
+    (p : CM2Params) : Prop where
+  -- This represents standard PDE theory not yet formalized.
+  assumed_standard_theory : True
+```
+
+These assumptions are not useful as theorem content by themselves. They are only
+labels for conditional statements. If this feels too easy to misuse, keep the
+conditional track entirely in documentation and add no Lean declarations.
+
+Module-level warning for any conditional file:
 
 ```lean
 /-!
@@ -180,8 +193,7 @@ noncomputable def domainVolume (D : BoundedDomainSkeleton N) : ℝ :=
 ```
 
 Finite and positive volume should be proved for concrete domains or assumed
-under a clearly conditional name whose fields are the actual finite/positive
-measure hypotheses.
+under a clearly conditional name such as `AssumesFinitePositiveVolume D`.
 
 ## Parameter Alignment
 
@@ -207,11 +219,10 @@ semigroup.mu
 
 ## Concrete End-to-End Target: Revised Sequence
 
-The interval Neumann heat semigroup remains a plausible long-term target, but
-first-step feasibility should not be overstated. Positivity from a cosine
-expansion is not a small theorem because cosine coefficients can change sign.
-Positivity is more naturally approached through a reflected heat kernel or a
-maximum principle.
+The interval Neumann heat semigroup remains a plausible long-term target, but v2
+overstated first-step feasibility. Positivity from a cosine expansion is not a
+small first theorem because cosine coefficients can change sign. Positivity is
+more naturally approached through a reflected heat kernel or a maximum principle.
 
 ### First Implementation Target
 
@@ -288,8 +299,7 @@ Conditional assumption layer:
 Concrete end-to-end layer:
 
 - Use `_proved` only after the theorem is derived from definitions.
-- Run `#print axioms` temporarily before accepting the name, report the output,
-  and do not leave `#print axioms` commands in source.
+- Run `#print axioms` before accepting the name.
 - Prefer narrow helper names first, e.g. `intervalVolume_eq`, not
   `boundedDomainTheory_proved`.
 
@@ -301,8 +311,7 @@ Before adding or accepting any Lean declaration:
 - No structure field may have the same type as a target theorem conclusion.
 - No free `integral`, `supNorm`, `volume`, or `laplacian` fields in an
   end-to-end namespace.
-- Every concrete theorem must get a temporary `#print axioms` audit, reported
-  outside source.
+- Every concrete theorem must get a `#print axioms` audit.
 - Documentation must label every result as conditional or proved-from-definitions.
 - Existing `not_forall_*` obstruction tests must remain meaningful.
 - Paper2/Paper3 wrappers are forbidden until the concrete analytic helper
@@ -312,10 +321,7 @@ Before adding or accepting any Lean declaration:
 
 ### Round 1: Documentation
 
-- Keep this proposal in scratch space until Xiang approves.
-- If Xiang wants to preserve it, move the final proposal into a tracked docs path
-  such as `docs/bounded-domain-api-proposal.md` or another existing documentation
-  location.
+- Commit this proposal only.
 - Keep `BoundedDomainData` unchanged.
 - Add no Lean theorem wrappers.
 
@@ -324,8 +330,7 @@ Before adding or accepting any Lean declaration:
 - Add a new interval-domain helper file.
 - Include definitions for interval set, restricted measure, and derived volume.
 - Add at most one tiny Mathlib-backed theorem such as `intervalVolume_eq`.
-- Run `#print axioms` temporarily for that theorem and report the result; do not
-  commit the command.
+- Run `#print axioms` for that theorem.
 
 ### Round 3: Optional finite-mode or kernel experiment
 
@@ -336,16 +341,9 @@ Before adding or accepting any Lean declaration:
 
 ## Recommended Next PR/Commit
 
-Preferred next action:
+Preferred commit:
 
-- No commit yet. Keep this as a scratch proposal until Xiang approves the
-  direction.
-
-If Xiang wants the proposal preserved:
-
-- Move v4 into a tracked docs path, e.g.
-  `docs/bounded-domain-api-proposal.md`, or another existing documentation
-  location he chooses.
+- Add only `.tmp/bounded-domain-proposal-v3.md`.
 
 Alternative first Lean commit:
 
@@ -353,8 +351,7 @@ Alternative first Lean commit:
 - Define interval restricted measure and derived volume.
 - Prove one tiny theorem from Mathlib, such as interval volume or integral of a
   constant over `[0,L]`.
-- Run `#print axioms` temporarily and report the output in the commit message or
-  PR description; do not leave the command in source.
+- Include `#print axioms` output in the commit message or PR description.
 
 Do not include:
 
@@ -365,28 +362,7 @@ Do not include:
 
 ## Bottom Line
 
-No Paper2 theorem wrappers or semigroup assumption structures now. Next action:
-approve the design doc, or implement only the tiny interval-measure helper.
-
-## First Helper Status
-
-The tiny interval-measure helper track is implemented in
-`ShenWork/PDE/IntervalDomain.lean`.  It defines `intervalSet`,
-`intervalMeasure`, and `intervalVolume`, and proves `intervalVolume_eq`,
-`intervalVolume_pos`, `intervalIntegral_const`, `intervalIntegral_nonneg`,
-`intervalIntegral_mono`, `intervalIntegral_add`,
-`identity_preserves_intervalIntegral`, `const_intervalIntegrable`,
-`intervalAverage`, `constantModeProjection`,
-`constantModeProjection_preserves_mass`, `constantModeProjection_nonneg`, and
-`intervalAverage_const` from Mathlib primitives.  These are concrete helper
-facts, not Paper2 theorem wrappers and not semigroup estimate assumptions.
-The file also contains a zeroth-reflection heat-kernel helper,
-`neumannHeatKernel_zerothReflection`, with proved nonnegativity and evenness in
-the reflected variable, plus the whole-line integral identities
-`heatKernel_integral_add` and `neumannHeatKernel_zerothReflection_integral`,
-and the bounded-input estimate `reflectedKernelIntegral_Linfty_bound`.
-It also defines the mass-normalized helper
-`normalizedZerothReflectionKernel` and proves its nonnegativity, evenness,
-whole-line mass-one identity, constant-input preservation, positivity
-preservation, and `L∞` bound.  This is not claimed to be the full interval
-Neumann heat semigroup.
+The honest conditional path is useful for documentation, but not theorem
+progress. The audit-passing path should begin with tiny concrete interval
+measure facts and only move toward heat semigroups after the required Mathlib
+support is confirmed.
