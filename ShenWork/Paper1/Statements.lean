@@ -10152,6 +10152,64 @@ theorem Lemma_5_3_zero_difference_branch
   dsimp
   simp [Psi_zero]
 
+/-- A real zero-source branch of Lemma 5.3.  It is slightly more general than
+the zero-difference branch: the two profiles need not be equal, but the
+elliptic source `u₂^γ - u₁^γ` is assumed to vanish pointwise. -/
+theorem Lemma_5_3_zero_source_branch
+    {gamma M eta : ℝ}
+    (_hgamma : 1 ≤ gamma) (hM : 1 ≤ M)
+    (heta_pos : 0 < eta) (heta_one : eta < 1)
+    {u1 u2 : ℝ → ℝ}
+    (hsource : ∀ x, u2 x ^ gamma = u1 x ^ gamma) :
+    let v := Psi (fun x => u2 x ^ gamma - u1 x ^ gamma) 1 1
+    let U := fun x => Real.exp (eta * x) * (u2 x - u1 x)
+    let V := fun x => Real.exp (eta * x) * v x
+    (∫ x : ℝ, |V x| ^ 2 ≤
+        gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta) ^ 2 *
+          ∫ x : ℝ, |U x| ^ 2) ∧
+      (∫ x : ℝ, |deriv V x| ^ 2 ≤
+        gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta ^ 2) *
+          ∫ x : ℝ, |U x| ^ 2) := by
+  dsimp
+  have hsource_zero :
+      (fun x : ℝ => u2 x ^ gamma - u1 x ^ gamma) =
+        fun _ : ℝ => (0 : ℝ) := by
+    ext x
+    rw [hsource x]
+    ring
+  have hM_nonneg : 0 ≤ M := le_trans zero_le_one hM
+  have hpow_nonneg : 0 ≤ M ^ (2 * (gamma - 1)) :=
+    Real.rpow_nonneg hM_nonneg _
+  have hnum_nonneg : 0 ≤ gamma ^ 2 * M ^ (2 * (gamma - 1)) :=
+    mul_nonneg (sq_nonneg gamma) hpow_nonneg
+  have hcoef_one_nonneg :
+      0 ≤ gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta) ^ 2 := by
+    exact div_nonneg hnum_nonneg (sq_nonneg (1 - eta))
+  have heta_sq_lt_eta : eta ^ 2 < eta := by
+    rw [pow_two]
+    nlinarith [mul_lt_mul_of_pos_left heta_one heta_pos]
+  have hden_two_pos : 0 < 1 - eta ^ 2 := by
+    nlinarith
+  have hcoef_two_nonneg :
+      0 ≤ gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta ^ 2) := by
+    exact div_nonneg hnum_nonneg hden_two_pos.le
+  have hU_integral_nonneg :
+      0 ≤ ∫ x : ℝ, |Real.exp (eta * x) * (u2 x - u1 x)| ^ 2 :=
+    integral_nonneg fun x => sq_nonneg _
+  refine ⟨?_, ?_⟩
+  · have hright_nonneg :
+        0 ≤
+          gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta) ^ 2 *
+            ∫ x : ℝ, |Real.exp (eta * x) * (u2 x - u1 x)| ^ 2 :=
+      mul_nonneg hcoef_one_nonneg hU_integral_nonneg
+    simpa [hsource_zero, Psi_zero] using hright_nonneg
+  · have hright_nonneg :
+        0 ≤
+          gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta ^ 2) *
+            ∫ x : ℝ, |Real.exp (eta * x) * (u2 x - u1 x)| ^ 2 :=
+      mul_nonneg hcoef_two_nonneg hU_integral_nonneg
+    simpa [hsource_zero, Psi_zero] using hright_nonneg
+
 /-- The zero-difference branch of Lemma 5.3 in the same hypothesis shape as
 the full statement. -/
 theorem Lemma_5_3.self_difference_branch

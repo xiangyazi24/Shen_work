@@ -122,6 +122,13 @@ theorem heatSemigroup_nonneg {f : ℝ → ℝ}
   exact MeasureTheory.integral_nonneg
     (fun y => mul_nonneg (heatKernel_nonneg ht _) (hf_nn y))
 
+theorem heatSemigroup_ge_const {m : ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    m ≤ heatSemigroup t (fun _ => m) x := by
+  unfold heatSemigroup
+  rw [show (fun y => heatKernel t (x - y) * m) =
+      (fun y => m * heatKernel t (x - y)) from by ext y; ring]
+  rw [MeasureTheory.integral_const_mul, heatKernel_integral_translated ht x, mul_one]
+
 /-- If f ≥ 0 and f ≤ M, then e^{tΔ} f ≤ M (conservation + positivity). -/
 theorem heatSemigroup_upper_bound {f : ℝ → ℝ} {M : ℝ}
     (_hf_nn : ∀ x, 0 ≤ f x) (hf_le : ∀ x, f x ≤ M)
