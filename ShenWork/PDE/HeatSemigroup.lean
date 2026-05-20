@@ -563,6 +563,40 @@ theorem modifiedHeatKernel_deriv_convolution_diff_bounded_abs_le {t M : ℝ}
   modifiedHeatKernel_deriv_convolution_bounded_abs_le
     (f := fun y => f y - g y) ht hM hfg x
 
+/-- The derivative kernel times an `L¹` input is integrable. -/
+lemma heatKernel_deriv_mul_integrable_of_integrable
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    MeasureTheory.Integrable
+      (fun y : ℝ => deriv (fun z : ℝ => heatKernel t (z - y)) x * f y) := by
+  let C : ℝ :=
+    ((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+      (Real.sqrt (1 / (4 * t)))⁻¹
+  have hderiv_meas :
+      MeasureTheory.AEStronglyMeasurable
+        (fun y : ℝ => deriv (fun z : ℝ => heatKernel t (z - y)) x)
+        MeasureTheory.volume :=
+    (heatKernel_deriv_translated_integrable ht x).aestronglyMeasurable
+  have hderiv_bound :
+      ∀ y : ℝ, ‖deriv (fun z : ℝ => heatKernel t (z - y)) x‖ ≤ C := by
+    intro y
+    simpa [Real.norm_eq_abs, C] using
+      heatKernel_deriv_translated_pointwise_bound ht x y
+  simpa [mul_comm] using
+    hf_int.mul_bdd hderiv_meas
+      (Filter.Eventually.of_forall hderiv_bound)
+
+/-- The modified derivative kernel times an `L¹` input is integrable. -/
+lemma modifiedHeatKernel_deriv_mul_integrable_of_integrable
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    MeasureTheory.Integrable
+      (fun y : ℝ =>
+        Real.exp (-t) *
+          (deriv (fun z : ℝ => heatKernel t (z - y)) x * f y)) :=
+  (heatKernel_deriv_mul_integrable_of_integrable ht x hf_int).const_mul
+    (Real.exp (-t))
+
 /-- `L¹ → L∞` smoothing for the heat-kernel derivative convolution. -/
 theorem heatKernel_deriv_convolution_L1_Linfty_smoothing_abs
     {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
