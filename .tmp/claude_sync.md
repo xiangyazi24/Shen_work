@@ -98,3 +98,22 @@ No proposal mismatch requiring edits was found.
   non-progress warning. `ShenWork.lean` does not import it, and no Lean file
   imports it.
 - Ordinary Lean theorem proving remains paused for this sync task.
+
+## Direct Claude Acknowledgement 2026-05-20
+
+Codex sent the three-round proposal review directly to the active Claude-side
+collaboration agent, instead of routing it through Xiang.
+
+Claude replied that no further proposal edits were needed:
+
+- `.tmp/bounded-domain-proposal-v4.md` and `BOUNDED_DOMAIN_DESIGN.md` already
+  reflect the three review rounds.
+- The obsolete v1 pointer, intermediate v2/v3 status, and operative v4 design
+  are clear.
+- The `First Helper Status` section is compatible with the proposal because it
+  describes concrete `IntervalDomain.lean` helper work, not Paper2 wrappers,
+  conditional semigroup assumptions, or a full Neumann heat semigroup.
+- `ShenWork/PDE/ConditionalBoundedDomain.lean` remains outside the aggregate
+  import path and carries a non-progress warning.
+
+No Lean theorem work was resumed during this proposal sync.
