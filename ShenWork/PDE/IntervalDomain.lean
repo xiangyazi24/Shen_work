@@ -2023,6 +2023,31 @@ theorem intervalSemigroupOperator_interval_bound
     simpa [abs_of_nonneg (hf_nonneg y)] using hf_le y
   exact le_trans (le_abs_self _) (intervalSemigroupOperator_Linfty_bound ht hM hf_abs x)
 
+/-- Constant inputs are bounded by the same nonnegative constant under the
+interval helper operator. -/
+theorem intervalSemigroupOperator_const_nonneg_le
+    {L t c : ℝ} (ht : 0 < t) (hc : 0 ≤ c) (x : ℝ) :
+    0 ≤ intervalSemigroupOperator L t (fun _ => c) x ∧
+      intervalSemigroupOperator L t (fun _ => c) x ≤ c :=
+  intervalSemigroupOperator_interval_bound ht hc
+    (fun _ => hc) (fun _ => le_rfl) x
+
+/-- Constant inputs satisfy the same `L∞` contraction bound under the interval
+helper operator. -/
+theorem intervalSemigroupOperator_const_abs_le
+    {L t c : ℝ} (ht : 0 < t) (x : ℝ) :
+    |intervalSemigroupOperator L t (fun _ => c) x| ≤ |c| :=
+  intervalSemigroupOperator_Linfty_bound ht (abs_nonneg c)
+    (fun _ => le_rfl) x
+
+/-- The interval helper operator maps the constant one input to a value in
+`[0,1]`. -/
+theorem intervalSemigroupOperator_one_interval
+    {L t : ℝ} (ht : 0 < t) (x : ℝ) :
+    0 ≤ intervalSemigroupOperator L t (fun _ => 1) x ∧
+      intervalSemigroupOperator L t (fun _ => 1) x ≤ 1 :=
+  intervalSemigroupOperator_const_nonneg_le ht zero_le_one x
+
 /-- `L∞` contraction for the interval helper operator on `L¹` interval inputs. -/
 theorem intervalSemigroupOperator_contraction
     {L t : ℝ} (ht : 0 < t)
