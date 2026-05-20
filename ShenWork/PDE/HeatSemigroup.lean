@@ -15,6 +15,7 @@
 -/
 import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
 import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+import Mathlib.Analysis.SpecialFunctions.MulExpNegMulSq
 import Mathlib.MeasureTheory.Integral.Gamma
 import Mathlib.MeasureTheory.Integral.Bochner.Basic
 import Mathlib.MeasureTheory.Measure.Haar.OfBasis
@@ -138,6 +139,33 @@ lemma deriv_heatKernel {t : ℝ} (ht : 0 < t) (x : ℝ) :
     deriv (fun z : ℝ => heatKernel t z) x =
       -(x / (2 * t)) * heatKernel t x :=
   (heatKernel_hasDerivAt ht x).deriv
+
+/-- Pointwise bound for the spatial derivative of the heat kernel. -/
+theorem heatKernel_deriv_pointwise_bound {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    |deriv (fun z : ℝ => heatKernel t z) x| ≤
+      ((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+        (Real.sqrt (1 / (4 * t)))⁻¹ := by
+  have ht_ne : t ≠ 0 := ne_of_gt ht
+  have hsqrt_pos : 0 < Real.sqrt (4 * Real.pi * t) := by positivity
+  have hsqrt_ne : Real.sqrt (4 * Real.pi * t) ≠ 0 := ne_of_gt hsqrt_pos
+  have hcoeff_nonneg :
+      0 ≤ (1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t)) := by
+    positivity
+  rw [deriv_heatKernel ht]
+  unfold heatKernel
+  have hrepr :
+      -(x / (2 * t)) *
+          (1 / Real.sqrt (4 * Real.pi * t) *
+            Real.exp (-x ^ 2 / (4 * t))) =
+        -(((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+          Real.mulExpNegMulSq (1 / (4 * t)) x) := by
+    unfold Real.mulExpNegMulSq
+    rw [show -(1 / (4 * t) * x * x) = -x ^ 2 / (4 * t) by ring]
+    field_simp [ht_ne, hsqrt_ne]
+  rw [hrepr, abs_neg, abs_mul, abs_of_nonneg hcoeff_nonneg]
+  exact mul_le_mul_of_nonneg_left
+    (Real.abs_mulExpNegMulSq_le (by positivity : 0 < 1 / (4 * t)))
+    hcoeff_nonneg
 
 lemma heatKernel_deriv_integrable {t : ℝ} (ht : 0 < t) :
     MeasureTheory.Integrable
@@ -277,6 +305,16 @@ lemma deriv_heatKernel_translated_left {t : ℝ} (ht : 0 < t) (x y : ℝ) :
     deriv (fun z : ℝ => heatKernel t (z - y)) x =
       -((x - y) / (2 * t)) * heatKernel t (x - y) :=
   (heatKernel_translated_hasDerivAt_left ht x y).deriv
+
+/-- Pointwise bound for translated spatial derivative kernels. -/
+theorem heatKernel_deriv_translated_pointwise_bound {t : ℝ} (ht : 0 < t)
+    (x y : ℝ) :
+    |deriv (fun z : ℝ => heatKernel t (z - y)) x| ≤
+      ((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+        (Real.sqrt (1 / (4 * t)))⁻¹ := by
+  rw [deriv_heatKernel_translated_left ht x y]
+  simpa [deriv_heatKernel ht (x - y)] using
+    heatKernel_deriv_pointwise_bound ht (x - y)
 
 theorem heatKernel_deriv_abs_integral_translated {t : ℝ} (ht : 0 < t)
     (x : ℝ) :
@@ -524,6 +562,95 @@ theorem modifiedHeatKernel_deriv_convolution_diff_bounded_abs_le {t M : ℝ}
       Real.exp (-t) * ((2 / Real.sqrt (4 * Real.pi * t)) * M) :=
   modifiedHeatKernel_deriv_convolution_bounded_abs_le
     (f := fun y => f y - g y) ht hM hfg x
+
+/-- `L¹ → L∞` smoothing for the heat-kernel derivative convolution. -/
+theorem heatKernel_deriv_convolution_L1_Linfty_smoothing_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    |∫ y : ℝ, deriv (fun z : ℝ => heatKernel t (z - y)) x * f y| ≤
+      (((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+        (Real.sqrt (1 / (4 * t)))⁻¹) * ∫ y : ℝ, |f y| := by
+  let C : ℝ :=
+    ((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+      (Real.sqrt (1 / (4 * t)))⁻¹
+  have hC_nonneg : 0 ≤ C := by
+    dsimp [C]
+    positivity
+  calc
+    |∫ y : ℝ, deriv (fun z : ℝ => heatKernel t (z - y)) x * f y|
+        ≤ ∫ y : ℝ,
+            ‖deriv (fun z : ℝ => heatKernel t (z - y)) x * f y‖ := by
+          rw [← Real.norm_eq_abs]
+          exact norm_integral_le_integral_norm _
+    _ = ∫ y : ℝ,
+            |deriv (fun z : ℝ => heatKernel t (z - y)) x * f y| := by
+          simp [Real.norm_eq_abs]
+    _ ≤ ∫ y : ℝ, C * |f y| := by
+          apply MeasureTheory.integral_mono_of_nonneg
+          · exact Filter.Eventually.of_forall fun y => abs_nonneg _
+          · exact (hf_int.norm).const_mul C
+          · exact Filter.Eventually.of_forall fun y => by
+              change
+                |deriv (fun z : ℝ => heatKernel t (z - y)) x * f y| ≤
+                  C * |f y|
+              rw [abs_mul]
+              exact mul_le_mul_of_nonneg_right
+                (heatKernel_deriv_translated_pointwise_bound ht x y)
+                (abs_nonneg _)
+    _ = C * ∫ y : ℝ, |f y| := by
+          rw [MeasureTheory.integral_const_mul]
+
+/-- `L¹ → L∞` smoothing for the modified heat-kernel derivative convolution. -/
+theorem modifiedHeatKernel_deriv_convolution_L1_Linfty_smoothing_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    |∫ y : ℝ,
+        Real.exp (-t) *
+          (deriv (fun z : ℝ => heatKernel t (z - y)) x * f y)| ≤
+      Real.exp (-t) *
+        ((((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+          (Real.sqrt (1 / (4 * t)))⁻¹) * ∫ y : ℝ, |f y|) := by
+  let C : ℝ :=
+    ((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+      (Real.sqrt (1 / (4 * t)))⁻¹
+  have hC_nonneg : 0 ≤ C := by
+    dsimp [C]
+    positivity
+  calc
+    |∫ y : ℝ,
+        Real.exp (-t) *
+          (deriv (fun z : ℝ => heatKernel t (z - y)) x * f y)|
+        ≤ ∫ y : ℝ,
+            ‖Real.exp (-t) *
+              (deriv (fun z : ℝ => heatKernel t (z - y)) x * f y)‖ := by
+          rw [← Real.norm_eq_abs]
+          exact norm_integral_le_integral_norm _
+    _ = ∫ y : ℝ,
+            Real.exp (-t) *
+              |deriv (fun z : ℝ => heatKernel t (z - y)) x * f y| := by
+          congr 1
+          ext y
+          rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+    _ ≤ ∫ y : ℝ, Real.exp (-t) * (C * |f y|) := by
+          apply MeasureTheory.integral_mono_of_nonneg
+          · exact Filter.Eventually.of_forall fun y =>
+              mul_nonneg (Real.exp_nonneg _) (abs_nonneg _)
+          · exact ((hf_int.norm).const_mul C).const_mul (Real.exp (-t))
+          · exact Filter.Eventually.of_forall fun y => by
+              exact mul_le_mul_of_nonneg_left
+                (by
+                  rw [abs_mul]
+                  exact mul_le_mul_of_nonneg_right
+                    (heatKernel_deriv_translated_pointwise_bound ht x y)
+                    (abs_nonneg _))
+                (Real.exp_nonneg _)
+    _ = Real.exp (-t) * (C * ∫ y : ℝ, |f y|) := by
+          rw [show (fun y : ℝ => Real.exp (-t) * (C * |f y|)) =
+              fun y : ℝ => (Real.exp (-t) * C) * |f y| by
+              ext y
+              ring]
+          rw [MeasureTheory.integral_const_mul]
+          ring
 
 /-- The translated heat kernel is integrable. -/
 lemma heatKernel_translated_integrable {t : ℝ} (ht : 0 < t) (x : ℝ) :
