@@ -11581,6 +11581,23 @@ theorem Theorem_1_2_self_initial_data_branch
       IsTravelingWave.weightedL2MovingFrameConvergence_self hTW,
       IsTravelingWave.uniformMovingFrameConvergence_self hTW⟩
 
+theorem Theorem_1_2_self_initial_data_admissible_branch
+    {p : CMParams} {c η : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hU : IsCUnifBdd U)
+    (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V) :
+    NonnegativeInitialDatum U ∧
+      StrictlyPositiveAtLeft U ∧
+      WeightedL2InitialCloseness η U U ∧
+      ∃ u v : ℝ → ℝ → ℝ,
+        IsGlobalCauchySolutionFrom p U u v ∧
+        WeightedL2MovingFrameConvergence η c u U ∧
+        UniformMovingFrameConvergence c u U := by
+  exact ⟨IsTravelingWave.nonnegativeInitialDatum hTW hU,
+    IsTravelingWave.strictlyPositiveAtLeft hTW,
+    WeightedL2InitialCloseness.refl η U,
+    Theorem_1_2_self_initial_data_branch hTW hU_diff hV_diff⟩
+
 /-- Self-initial-data branch of Theorem 1.2 specialized to a frozen stationary
 profile.  The moving-frame Cauchy solution is the frozen profile itself, so the
 weighted and uniform stability errors are identically zero. -/
@@ -11599,6 +11616,24 @@ theorem Theorem_1_2_frozen_profile_self_initial_data_branch
       hprofile.to_globalCauchySolutionFrom hU_diff hV_diff,
       IsTravelingWave.weightedL2MovingFrameConvergence_self hprofile.to_travelingWave,
       IsTravelingWave.uniformMovingFrameConvergence_self hprofile.to_travelingWave⟩
+
+theorem Theorem_1_2_frozen_profile_self_initial_data_admissible_branch
+    {p : CMParams} {c η : ℝ} {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hU : IsCUnifBdd U)
+    (hU_diff : ContDiff ℝ 2 U)
+    (hV_diff : ContDiff ℝ 2 (frozenElliptic p U)) :
+    NonnegativeInitialDatum U ∧
+      StrictlyPositiveAtLeft U ∧
+      WeightedL2InitialCloseness η U U ∧
+      ∃ u v : ℝ → ℝ → ℝ,
+        IsGlobalCauchySolutionFrom p U u v ∧
+        WeightedL2MovingFrameConvergence η c u U ∧
+        UniformMovingFrameConvergence c u U := by
+  exact ⟨IsTravelingWave.nonnegativeInitialDatum hprofile.to_travelingWave hU,
+    IsTravelingWave.strictlyPositiveAtLeft hprofile.to_travelingWave,
+    WeightedL2InitialCloseness.refl η U,
+    Theorem_1_2_frozen_profile_self_initial_data_branch hprofile hU_diff hV_diff⟩
 
 theorem Theorem_1_2.threshold_family
     (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
