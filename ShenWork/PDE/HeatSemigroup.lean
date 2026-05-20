@@ -424,6 +424,29 @@ theorem modifiedSemigroup_sub_bounded {f g : ℝ → ℝ} {Mf Mg t : ℝ}
     (heatKernel_mul_bounded_integrable ht x hf_bound hf_meas)
     (heatKernel_mul_bounded_integrable ht x hg_bound hg_meas)
 
+theorem heatSemigroup_contraction {f g : ℝ → ℝ} {M t : ℝ}
+    (hfg : ∀ x, |f x - g x| ≤ M) (ht : 0 < t) (hM : 0 ≤ M)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)
+    (hg_meas : MeasureTheory.AEStronglyMeasurable g MeasureTheory.volume)
+    {Mf Mg : ℝ} (hf_bound : ∀ x, |f x| ≤ Mf)
+    (hg_bound : ∀ x, |g x| ≤ Mg) :
+    ∀ x, |heatSemigroup t f x - heatSemigroup t g x| ≤ M := by
+  intro x
+  have hf_int :
+      MeasureTheory.Integrable (fun y => heatKernel t (x - y) * f y) :=
+    heatKernel_mul_bounded_integrable ht x hf_bound hf_meas
+  have hg_int :
+      MeasureTheory.Integrable (fun y => heatKernel t (x - y) * g y) :=
+    heatKernel_mul_bounded_integrable ht x hg_bound hg_meas
+  have hsub_meas :
+      MeasureTheory.AEStronglyMeasurable
+        (fun y : ℝ => f y - g y) MeasureTheory.volume :=
+    hf_meas.sub hg_meas
+  have hbound :=
+    heatSemigroup_abs_bound
+      (f := fun y : ℝ => f y - g y) (M := M) hfg ht hM hsub_meas x
+  rwa [heatSemigroup_sub x hf_int hg_int] at hbound
+
 theorem modifiedSemigroup_contraction {f g : ℝ → ℝ} {M t : ℝ}
     (hfg : ∀ x, |f x - g x| ≤ M) (ht : 0 < t) (hM : 0 ≤ M)
     (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)
