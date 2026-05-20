@@ -216,6 +216,16 @@ theorem heatKernel_deriv_abs_integral {t : ℝ} (ht : 0 < t) :
   field_simp [ht_ne, hsqrt_ne]
   ring
 
+lemma heatKernel_deriv_abs_neg {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    |deriv (fun z : ℝ => heatKernel t z) (-x)| =
+      |deriv (fun z : ℝ => heatKernel t z) x| := by
+  rw [deriv_heatKernel ht (-x), deriv_heatKernel ht x, heatKernel_neg]
+  rw [show -((-x) / (2 * t)) * heatKernel t x =
+      - (-(x / (2 * t) * heatKernel t x)) by ring]
+  rw [abs_neg]
+  congr 1
+  ring
+
 lemma heatKernel_translated_hasDerivAt_left {t : ℝ} (ht : 0 < t)
     (x y : ℝ) :
     HasDerivAt (fun z : ℝ => heatKernel t (z - y))
@@ -228,6 +238,44 @@ lemma deriv_heatKernel_translated_left {t : ℝ} (ht : 0 < t) (x y : ℝ) :
     deriv (fun z : ℝ => heatKernel t (z - y)) x =
       -((x - y) / (2 * t)) * heatKernel t (x - y) :=
   (heatKernel_translated_hasDerivAt_left ht x y).deriv
+
+theorem heatKernel_deriv_abs_integral_translated {t : ℝ} (ht : 0 < t)
+    (x : ℝ) :
+    ∫ y : ℝ, |deriv (fun z : ℝ => heatKernel t (z - y)) x| =
+      2 / Real.sqrt (4 * Real.pi * t) := by
+  have hleft :
+      (fun y : ℝ => |deriv (fun z : ℝ => heatKernel t (z - y)) x|) =
+        fun y : ℝ => |deriv (fun z : ℝ => heatKernel t z) (x - y)| := by
+    ext y
+    rw [deriv_heatKernel_translated_left ht x y, deriv_heatKernel ht (x - y)]
+  rw [hleft]
+  have hshift :
+      (fun y : ℝ => |deriv (fun z : ℝ => heatKernel t z) (x - y)|) =
+        fun y : ℝ =>
+          (fun w : ℝ => |deriv (fun z : ℝ => heatKernel t z) w|)
+            (-(y + (-x))) := by
+    ext y
+    congr 1
+    ring
+  rw [hshift]
+  rw [show
+      (fun y : ℝ =>
+          (fun w : ℝ => |deriv (fun z : ℝ => heatKernel t z) w|)
+            (-(y + (-x)))) =
+        (fun y : ℝ =>
+          (fun w : ℝ => |deriv (fun z : ℝ => heatKernel t z) (-w)|)
+            (y + (-x))) by
+        rfl]
+  simp_rw [heatKernel_deriv_abs_neg ht]
+  rw [show
+      (fun y : ℝ => |deriv (fun z : ℝ => heatKernel t z) (y + -x)|) =
+        (fun y : ℝ =>
+          (fun w : ℝ => |deriv (fun z : ℝ => heatKernel t z) w|)
+            (y + (-x))) by
+        rfl]
+  rw [integral_add_right_eq_self
+    (fun w : ℝ => |deriv (fun z : ℝ => heatKernel t z) w|) (-x)]
+  exact heatKernel_deriv_abs_integral ht
 
 lemma heatKernel_translated_hasDerivAt_right {t : ℝ} (ht : 0 < t)
     (x y : ℝ) :
