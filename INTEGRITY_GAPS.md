@@ -181,8 +181,8 @@ projection theorem wrappers have been removed.
 - `Lemma_2_5_pointwise_bound`, `Lemma_2_5_attained_at_inv`,
   `Lemma_2_5_sharp_bound`, `Lemma_2_5_sharp_constant_minimal`,
   `Lemma_2_5_sharp_constant_positive`, `Lemma_2_5_sharp_constant_iff`,
-  `Lemma_2_5_full_statement`, `Lemma_2_5_pointwise_pos`,
-  `Lemma_2_5_pointwise_bound_lt_exp_neg_one`,
+  `Lemma_2_5_full_statement`, `Lemma_2_5_full_range_statement`,
+  `Lemma_2_5_pointwise_pos`, `Lemma_2_5_pointwise_bound_lt_exp_neg_one`,
   `Lemma_2_5_pointwise_mem_Ioo_zero_exp_neg_one`,
   `Lemma_2_5_pointwise_bound_le_larger_Psi_beta`, and
   `Lemma_2_5_pointwise_bound_lt_larger_Psi_beta` (Paper2): direct

@@ -1523,6 +1523,26 @@ theorem Lemma_2_5_sharp_constant_positive
   exact lt_of_lt_of_le (Psi_beta_pos hbeta)
     (Lemma_2_5_sharp_constant_minimal hbeta hC)
 
+/-- End-to-end strengthened range package for Paper2 Lemma 2.5.  It records
+the strict universal range, the strict larger-parameter bound coming from
+`Psi_beta` monotonicity, and positivity of every admissible sharp constant. -/
+theorem Lemma_2_5_full_range_statement :
+    (∀ beta v : ℝ, 0 < beta → 0 < v →
+      beta * v / (1 + v) ^ (1 + beta) ∈
+        Set.Ioo (0 : ℝ) (Real.exp (-1))) ∧
+    (∀ beta gamma v : ℝ, 0 < beta → beta < gamma → 0 < v →
+      beta * v / (1 + v) ^ (1 + beta) < Psi_beta gamma) ∧
+    (∀ beta C : ℝ, 0 < beta →
+      (∀ v > 0, beta * v / (1 + v) ^ (1 + beta) ≤ C) →
+        0 < C) := by
+  exact ⟨
+    (fun beta v hbeta hv =>
+      Lemma_2_5_pointwise_mem_Ioo_zero_exp_neg_one hbeta hv),
+    (fun beta gamma v hbeta hbg hv =>
+      Lemma_2_5_pointwise_bound_lt_larger_Psi_beta hbeta hbg hv),
+    (fun beta C hbeta hC =>
+      Lemma_2_5_sharp_constant_positive hbeta hC)⟩
+
 /-- Paper2 Lemma 2.5 with the coarse bound by `1`. -/
 theorem Lemma_2_5_pointwise_bound_one
     {beta v : ℝ} (hbeta : 0 < beta) (hv : 0 < v) :
