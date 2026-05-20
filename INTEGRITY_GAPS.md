@@ -286,6 +286,13 @@ projection theorem wrappers have been removed.
   the same fixed-point Lemma 5.1 signal estimates and explicit-`U'` conclusion
   specialized to a frozen stationary profile in the wave trap, avoiding the
   arbitrary-`IsTravelingWave` projection route
+- `NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_package`
+  and
+  `PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_package`:
+  construction-level bridges that take the Schauder fixed point/trap output
+  plus the explicit sharp-upper-bound obligation needed for strict positivity,
+  then derive Lemma 5.1's signal package for the constructed fixed point from
+  the `Psi` kernel estimates
 - `Lemma_5_2_explicit.nonincreasing_profile_branch`,
   `Lemma_5_2_explicit.nonincreasing_branch`,
   `Lemma_5_2_explicit.monotoneTravelingWave_branch`,

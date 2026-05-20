@@ -10066,6 +10066,78 @@ theorem FrozenStationaryWaveProfile.fixed_point_conclusion_of_wave_derivative_bo
     (hprofile.hasWaveUpperTailBound_of_inWaveTrapSet htrap)
     hderiv_tends hderiv_bound hderiv_exp
 
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_package
+    {p : CMParams} {c κ₀ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₀ κtilde D)
+    (hc : 2 < c)
+    (hupper :
+      ∀ U : ℝ → ℝ,
+        InMonotoneWaveTrapSet (kappa c) 1 U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) 1
+            (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U →
+            ShenUpperBoundNegative c U) :
+    ∃ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet (kappa c) 1 U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) 1
+          (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U ∧
+        (∀ x,
+          |frozenElliptic p U x| ≤ (MChi p) ^ p.γ ∧
+            |deriv (frozenElliptic p U) x| ≤ (MChi p) ^ p.γ) ∧
+        (p.γ + p.γ⁻¹ < c →
+          ∀ x,
+            |frozenElliptic p U x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x)) ∧
+            |deriv (frozenElliptic p U) x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x))) := by
+  rcases h.exists_fixed_limit_with_atTop_limits with
+    ⟨U, hU, haux, _hanti, _hU_top, _hV_top⟩
+  have hupperU : ShenUpperBoundNegative c U := hupper U hU haux
+  have htrapM : InMonotoneWaveTrapSet (kappa c) (MChi p) U := by
+    simpa [h.MChi_eq_one] using hU
+  exact
+    ⟨U, hU, haux,
+      Lemma_5_1.fixed_point_signal_package p hc htrapM.trap.cunif_bdd
+        (htrapM.hasWaveUpperTailBound_of_pos hupperU.pos)⟩
+
+theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_package
+    {p : CMParams} {c κ₀ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₀ κtilde D)
+    (hc : 2 < c)
+    (hupper :
+      ∀ U : ℝ → ℝ,
+        InWaveTrapSet (kappa c) (MChi p) U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) (MChi p)
+            (fun u => InWaveTrapSet (kappa c) (MChi p) u) U U →
+            ShenUpperBoundPositive p c U) :
+    ∃ U : ℝ → ℝ,
+      InWaveTrapSet (kappa c) (MChi p) U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) (MChi p)
+          (fun u => InWaveTrapSet (kappa c) (MChi p) u) U U ∧
+        (∀ x,
+          |frozenElliptic p U x| ≤ (MChi p) ^ p.γ ∧
+            |deriv (frozenElliptic p U) x| ≤ (MChi p) ^ p.γ) ∧
+        (p.γ + p.γ⁻¹ < c →
+          ∀ x,
+            |frozenElliptic p U x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x)) ∧
+            |deriv (frozenElliptic p U) x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x))) := by
+  rcases h.exists_fixed_limit_with_atTop_limits with
+    ⟨U, hU, haux, _hU_top, _hV_top⟩
+  have hupperU : ShenUpperBoundPositive p c U := hupper U hU haux
+  exact
+    ⟨U, hU, haux,
+      Lemma_5_1.fixed_point_signal_package p hc hU.cunif_bdd
+        (hU.hasWaveUpperTailBound_of_pos hupperU.pos)⟩
+
 theorem Lemma_5_1.signal_bound
     (h : Lemma_5_1) {p : CMParams} {c : ℝ} (hc : 2 < c)
     {U V : ℝ → ℝ}
