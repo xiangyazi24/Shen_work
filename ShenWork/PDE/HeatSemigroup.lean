@@ -769,6 +769,15 @@ theorem heatSemigroup_L1_Linfty_smoothing
     _ = (1 / Real.sqrt (4 * Real.pi * t)) * ∫ y : ℝ, ‖f y‖ :=
         MeasureTheory.integral_const_mul _ _
 
+/-- Absolute-value form of whole-line `L¹ → L∞` smoothing for the heat semigroup. -/
+theorem heatSemigroup_L1_Linfty_smoothing_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    |heatSemigroup t f x| ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) * ∫ y, |f y| := by
+  simpa [Real.norm_eq_abs] using
+    heatSemigroup_L1_Linfty_smoothing ht x hf_int
+
 /-- Whole-line `L¹ → L∞` smoothing for the modified heat semigroup. -/
 theorem modifiedSemigroup_L1_Linfty_smoothing
     {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
@@ -781,6 +790,16 @@ theorem modifiedSemigroup_L1_Linfty_smoothing
   exact mul_le_mul_of_nonneg_left
     (heatSemigroup_L1_Linfty_smoothing ht x hf_int)
     (Real.exp_nonneg _)
+
+/-- Absolute-value form of whole-line `L¹ → L∞` smoothing for the modified semigroup. -/
+theorem modifiedSemigroup_L1_Linfty_smoothing_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    |modifiedSemigroup t f x| ≤
+      Real.exp (-t) *
+        ((1 / Real.sqrt (4 * Real.pi * t)) * ∫ y, |f y|) := by
+  simpa [Real.norm_eq_abs] using
+    modifiedSemigroup_L1_Linfty_smoothing ht x hf_int
 
 theorem heatSemigroup_const {c : ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ) :
     heatSemigroup t (fun _ => c) x = c := by
