@@ -95,6 +95,53 @@ lemma heatKernel_integrable {t : ℝ} (ht : 0 < t) :
       ext x; congr 1; ring]
   exact (integrable_exp_neg_mul_sq hb).const_mul _
 
+lemma heatKernel_hasDerivAt {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    HasDerivAt (fun z : ℝ => heatKernel t z)
+      (-(x / (2 * t)) * heatKernel t x) x := by
+  have hden : 4 * t ≠ 0 := by nlinarith [ht]
+  have harg :
+      HasDerivAt (fun z : ℝ => -z ^ 2 / (4 * t))
+        (-(x / (2 * t))) x := by
+    have hsq : HasDerivAt (fun z : ℝ => z ^ 2) (2 * x) x := by
+      simpa [pow_two, two_mul] using
+        ((hasDerivAt_id x).mul (hasDerivAt_id x))
+    have hdiv := hsq.div_const (4 * t)
+    have harg0 :
+        HasDerivAt (fun z : ℝ => -(z ^ 2 / (4 * t)))
+          (-(2 * x / (4 * t))) x :=
+      hdiv.neg
+    convert harg0 using 1
+    · ext z
+      field_simp [hden]
+    · field_simp [hden]
+      ring
+  unfold heatKernel
+  convert harg.exp.const_mul (1 / Real.sqrt (4 * Real.pi * t)) using 1
+  ring
+
+lemma deriv_heatKernel {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    deriv (fun z : ℝ => heatKernel t z) x =
+      -(x / (2 * t)) * heatKernel t x :=
+  (heatKernel_hasDerivAt ht x).deriv
+
+lemma heatKernel_translated_hasDerivAt_left {t : ℝ} (ht : 0 < t)
+    (x y : ℝ) :
+    HasDerivAt (fun z : ℝ => heatKernel t (z - y))
+      (-((x - y) / (2 * t)) * heatKernel t (x - y)) x := by
+  simpa using
+    (heatKernel_hasDerivAt ht (x - y)).comp x
+      ((hasDerivAt_id x).sub (hasDerivAt_const x y))
+
+lemma heatKernel_translated_hasDerivAt_right {t : ℝ} (ht : 0 < t)
+    (x y : ℝ) :
+    HasDerivAt (fun z : ℝ => heatKernel t (x - z))
+      (((x - y) / (2 * t)) * heatKernel t (x - y)) y := by
+  have hinner : HasDerivAt (fun z : ℝ => x - z) (-1) y := by
+    simpa using (hasDerivAt_const y x).sub (hasDerivAt_id y)
+  have h := (heatKernel_hasDerivAt ht (x - y)).comp y hinner
+  convert h using 1
+  ring
+
 /-- The translated heat kernel is integrable. -/
 lemma heatKernel_translated_integrable {t : ℝ} (ht : 0 < t) (x : ℝ) :
     MeasureTheory.Integrable (fun y => heatKernel t (x - y)) := by

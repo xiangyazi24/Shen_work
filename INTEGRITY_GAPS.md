@@ -147,7 +147,9 @@ projection theorem wrappers have been removed.
   interface, closed under explicit nonnegativity of the input norm rather than
   by projecting from `Paper1AnalyticData`
 - `heatKernel_integral_abs_eq_one`,
-  `heatKernel_integral_abs_translated`, `heatSemigroup_mono_bounded`,
+  `heatKernel_integral_abs_translated`, `heatKernel_hasDerivAt`,
+  `deriv_heatKernel`, `heatKernel_translated_hasDerivAt_left`,
+  `heatKernel_translated_hasDerivAt_right`, `heatSemigroup_mono_bounded`,
   `modifiedSemigroup_mono_bounded`,
   `heatSemigroup_zero_fun`, `modifiedSemigroup_zero_fun`,
   `modifiedSemigroup_const`,
@@ -168,12 +170,12 @@ projection theorem wrappers have been removed.
   `heatSemigroup_sub_bounded`, `modifiedSemigroup_sub_bounded`, and
   `heatSemigroup_contraction`, `modifiedSemigroup_contraction`: real
   whole-line heat-kernel estimates for the heat and modified semigroups.  They
-  use heat-kernel positivity, translated kernel mass one, bounded measurable
-  input data, and Bochner integral linearity to prove monotonicity, pointwise
-  lower-, upper-, and interval-bound preservation, modified-semigroup
-  lower/upper/interval bounds, domination by a nonnegative majorant,
-  heat/modified-semigroup linearity, `L∞` decay, and heat/modified pairwise
-  `L∞` contraction.
+  use heat-kernel positivity, translated kernel mass one, the explicit
+  first-derivative formula, bounded measurable input data, and Bochner integral
+  linearity to prove monotonicity, pointwise lower-, upper-, and interval-bound
+  preservation, modified-semigroup lower/upper/interval bounds, domination by
+  a nonnegative majorant, heat/modified-semigroup linearity, `L∞` decay, and
+  heat/modified pairwise `L∞` contraction.
 - `Lemma_2_2_proved`, `Lemma_2_3_proved`, `Lemma_2_4_proved`
 - `Lemma_2_5_pointwise_bound`, `Lemma_2_5_attained_at_inv`,
   `Lemma_2_5_sharp_bound`, `Lemma_2_5_sharp_constant_minimal`,
