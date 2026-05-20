@@ -598,3 +598,24 @@ statement is not false before continuing.
 7. **P6**: Prove Schauder construction → Theorem_1_1
 8. **P7**: Prove stability/uniqueness → Theorem_1_2, 1.3
 9. **P8**: Instantiate bounded-domain API for Paper2/Paper3
+
+## Structures Assessment (per Playbook §1 Point 3)
+
+### Legitimate abstract interfaces (NOT escape hatches):
+- `BoundedDomainData`: abstract smooth bounded domain API (Point, boundary, norms, Laplacian, etc.) — any smooth bounded domain satisfies these. Mathlib doesn't have this.
+- `SpectralData` / `HasNeumannSpectrum`: Neumann eigenvalue API — any Neumann Laplacian provides this.
+- `HeatSemigroupEstimateData`: abstract semigroup norm API — any analytic semigroup provides this.
+- `Paper2Constants`: just a nonneg real constant K.
+
+### Assumption packages that bundle unproved estimates:
+- `SemigroupEstimateData`: L^p semigroup estimates as fields (should be proved from heat kernel)
+- `StabilityNorms` / `CompactnessData`: norm continuity, compactness (should be proved from Sobolev)
+- `Paper3Constants`: threshold formulas + persistence/boundedness estimates as fields
+
+### Assessment:
+The abstract interfaces are justified per standard mathematical practice.
+The assumption packages represent genuine open formalization challenges requiring bounded-domain PDE infrastructure not yet in Mathlib.
+
+Per Playbook §1 Point 11 (honest reporting):
+- Paper1: "unconditionally proved" for Lemma 2.2-2.4, Lemma 4.1/4.2 strengthened, chemotaxis resolvent, Psi ODE
+- Paper2/Paper3: "conditional on bounded-domain API instantiation" — the abstract domain interface is legitimate but the semigroup/stability estimate proofs require Mathlib infrastructure that doesn't exist
