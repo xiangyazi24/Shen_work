@@ -1652,6 +1652,18 @@ theorem intervalSemigroupOperator_L1_Linfty
         ∫ y, ‖f y‖ ∂ intervalMeasure L :=
         MeasureTheory.integral_const_mul _ _
 
+/-- Bounded-input `L¹ → L∞` smoothing for the interval helper operator. -/
+theorem intervalSemigroupOperator_L1_Linfty_bounded
+    {L t Mf : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf) (x : ℝ) :
+    ‖intervalSemigroupOperator L t f x‖ ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) *
+        ∫ y, ‖f y‖ ∂ intervalMeasure L :=
+  intervalSemigroupOperator_L1_Linfty ht
+    (intervalMeasure_integrable_of_abs_bound hf_meas hf_bound) x
+
 /-- The interval helper kernel times an `L¹` interval input is integrable. -/
 theorem intervalSemigroupOperator_mul_integrable_of_integrable
     {L t : ℝ} (ht : 0 < t) (x : ℝ)
@@ -1696,6 +1708,19 @@ theorem intervalSemigroupOperator_add
   simpa [intervalSemigroupOperator, mul_add] using
     MeasureTheory.integral_add hf_kernel hg_kernel
 
+/-- Bounded-input additivity for the interval helper operator. -/
+theorem intervalSemigroupOperator_add_bounded
+    {L t Mf Mg : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hg_meas : AEStronglyMeasurable g (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf) (hg_bound : ∀ y, |g y| ≤ Mg) (x : ℝ) :
+    intervalSemigroupOperator L t (fun y => f y + g y) x =
+      intervalSemigroupOperator L t f x + intervalSemigroupOperator L t g x :=
+  intervalSemigroupOperator_add ht
+    (intervalMeasure_integrable_of_abs_bound hf_meas hf_bound)
+    (intervalMeasure_integrable_of_abs_bound hg_meas hg_bound) x
+
 /-- Scalar multiplication for the interval helper operator. -/
 theorem intervalSemigroupOperator_const_mul
     (a : ℝ) (L t : ℝ) (f : ℝ → ℝ) (x : ℝ) :
@@ -1732,6 +1757,19 @@ theorem intervalSemigroupOperator_sub
   simpa [intervalSemigroupOperator, mul_sub] using
     MeasureTheory.integral_sub hf_kernel hg_kernel
 
+/-- Bounded-input subtraction for the interval helper operator. -/
+theorem intervalSemigroupOperator_sub_bounded
+    {L t Mf Mg : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hg_meas : AEStronglyMeasurable g (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf) (hg_bound : ∀ y, |g y| ≤ Mg) (x : ℝ) :
+    intervalSemigroupOperator L t (fun y => f y - g y) x =
+      intervalSemigroupOperator L t f x - intervalSemigroupOperator L t g x :=
+  intervalSemigroupOperator_sub ht
+    (intervalMeasure_integrable_of_abs_bound hf_meas hf_bound)
+    (intervalMeasure_integrable_of_abs_bound hg_meas hg_bound) x
+
 /-- Difference `L¹ → L∞` smoothing for the interval helper operator. -/
 theorem intervalSemigroupOperator_diff_L1_Linfty
     {L t : ℝ} (ht : 0 < t)
@@ -1759,6 +1797,36 @@ theorem intervalSemigroupOperator_diff_L1_Linfty_abs
         ∫ y, |f y - g y| ∂ intervalMeasure L := by
   simpa [Real.norm_eq_abs] using
     intervalSemigroupOperator_diff_L1_Linfty ht hf_int hg_int x
+
+/-- Bounded-input difference `L¹ → L∞` smoothing for the interval helper
+operator. -/
+theorem intervalSemigroupOperator_diff_L1_Linfty_bounded
+    {L t Mf Mg : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hg_meas : AEStronglyMeasurable g (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf) (hg_bound : ∀ y, |g y| ≤ Mg) (x : ℝ) :
+    ‖intervalSemigroupOperator L t f x - intervalSemigroupOperator L t g x‖ ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) *
+        ∫ y, ‖f y - g y‖ ∂ intervalMeasure L :=
+  intervalSemigroupOperator_diff_L1_Linfty ht
+    (intervalMeasure_integrable_of_abs_bound hf_meas hf_bound)
+    (intervalMeasure_integrable_of_abs_bound hg_meas hg_bound) x
+
+/-- Absolute-value bounded-input difference smoothing for the interval helper
+operator. -/
+theorem intervalSemigroupOperator_diff_L1_Linfty_abs_bounded
+    {L t Mf Mg : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hg_meas : AEStronglyMeasurable g (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf) (hg_bound : ∀ y, |g y| ≤ Mg) (x : ℝ) :
+    |intervalSemigroupOperator L t f x - intervalSemigroupOperator L t g x| ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) *
+        ∫ y, |f y - g y| ∂ intervalMeasure L := by
+  simpa [Real.norm_eq_abs] using
+    intervalSemigroupOperator_diff_L1_Linfty_bounded
+      ht hf_meas hg_meas hf_bound hg_bound x
 
 /-- Monotonicity for the interval helper operator on `L¹` interval inputs. -/
 theorem intervalSemigroupOperator_mono
