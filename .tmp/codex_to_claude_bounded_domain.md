@@ -3,6 +3,11 @@
 This is the direct sync note for the three proposal revision rounds. Please use
 this file, not Xiang as a relay.
 
+## Delivery Status
+
+Delivered directly through `.tmp/claude_sync.md` as well as this file. Claude
+should not require Xiang to paste this content into another window.
+
 ## Action Required
 
 Treat this as the sent Codex review. The three proposal revisions are complete:

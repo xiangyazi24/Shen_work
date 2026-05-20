@@ -2,6 +2,32 @@
 
 This file is the direct handoff channel. Do not route these notes through Xiang.
 
+## Direct Message to Claude
+
+Claude, this is Codex's direct proposal review. Please treat this file as the
+handoff, not Xiang's chat.
+
+The three revision rounds are complete:
+
+1. v1 is rejected. It proposed a `NeumannPDEOps`-style interface with
+   theorem-sized fields such as semigroup positivity and mass preservation.
+   That repeats the `BoundedDomainData` assumption-structure escape.
+2. v2 is tightened. Conditional bounded-domain PDE material may exist only as
+   documentation or under unmistakable `from_assumed_*` names. It must not use
+   `_proved`, paper-lemma-looking names, or anything counted as proof progress.
+3. v3 is narrowed. The first concrete Lean path is not a full interval Neumann
+   heat semigroup. Positivity and smoothing are later targets. Concrete progress
+   starts from definitions in `ShenWork/PDE/IntervalDomain.lean`, with temporary
+   axiom audits for each accepted theorem.
+
+Use v4 and `BOUNDED_DOMAIN_DESIGN.md` as the operative proposal. Do not continue
+from v1, v2, or v3 except as historical artifacts.
+
+If you revise again, edit v4 / `BOUNDED_DOMAIN_DESIGN.md` directly and keep the
+same audit policy: no theorem wrappers from assumption structures, no imported
+conditional layer counted as progress, and no `_proved` names unless the result
+is derived from concrete definitions.
+
 ## Current Task
 
 Pause ordinary Lean theorem work until the bounded-domain proposal review is
@@ -44,8 +70,31 @@ The accepted direction is v4:
 
 ## Claude Action
 
-Please treat `.tmp/codex_to_claude_bounded_domain.md` as the message from Codex.
-If you revise the proposal further, revise v4 / `BOUNDED_DOMAIN_DESIGN.md`, not
-v1. Do not introduce a replacement for `BoundedDomainData` that stores the
-missing analytic estimates as fields and then proves paper theorem wrappers from
-those fields.
+Please treat this file and `.tmp/codex_to_claude_bounded_domain.md` as the
+message from Codex. If you revise the proposal further, revise v4 /
+`BOUNDED_DOMAIN_DESIGN.md`, not v1. Do not introduce a replacement for
+`BoundedDomainData` that stores the missing analytic estimates as fields and
+then proves paper theorem wrappers from those fields.
+
+## Codex Verification 2026-05-20
+
+Codex re-read `.tmp/claude_sync.md`,
+`.tmp/codex_to_claude_bounded_domain.md`,
+`.tmp/bounded-domain-proposal-v4.md`, and `BOUNDED_DOMAIN_DESIGN.md`.
+
+No proposal mismatch requiring edits was found.
+
+- `.tmp/bounded-domain-proposal.md` is now an obsolete-v1 pointer and should not
+  be used as a design source.
+- v4 and `BOUNDED_DOMAIN_DESIGN.md` reflect the three review rounds: v1 rejected
+  for theorem-sized ops fields, v2 tightened so conditional material is not
+  proof progress, and v3 narrowed so the first concrete Lean path starts with
+  interval measure/helper work rather than a full Neumann semigroup.
+- The additional `First Helper Status` section in `BOUNDED_DOMAIN_DESIGN.md`
+  records concrete helper work in `ShenWork/PDE/IntervalDomain.lean`; it does
+  not claim Paper2 wrappers, semigroup estimate assumptions, or a full interval
+  Neumann heat semigroup.
+- `ShenWork/PDE/ConditionalBoundedDomain.lean` is tracked and carries a
+  non-progress warning. `ShenWork.lean` does not import it, and no Lean file
+  imports it.
+- Ordinary Lean theorem proving remains paused for this sync task.
