@@ -302,6 +302,37 @@ lemma inv_kappa_eq_of_two_lt {c : ℝ} (hc : 2 < c) :
   have h := kappa_add_inv_eq_of_two_lt hc
   linarith
 
+lemma two_lt_of_pos_lt_one_kappa_speed {κ c : ℝ}
+    (hκ0 : 0 < κ) (hκ1 : κ < 1) (hc : c = κ + κ⁻¹) :
+    2 < c := by
+  rw [hc]
+  have hκ_ne : κ ≠ 0 := ne_of_gt hκ0
+  have hsq_pos : 0 < (κ - 1) ^ 2 := sq_pos_of_ne_zero (by linarith)
+  have hidentity : κ + κ⁻¹ - 2 = (κ - 1) ^ 2 / κ := by
+    field_simp [hκ_ne]
+    ring
+  have hpos : 0 < κ + κ⁻¹ - 2 := by
+    rw [hidentity]
+    exact div_pos hsq_pos hκ0
+  linarith
+
+lemma kappa_eq_of_pos_lt_one_kappa_speed {κ c : ℝ}
+    (hκ0 : 0 < κ) (hκ1 : κ < 1) (hc : c = κ + κ⁻¹) :
+    kappa c = κ := by
+  have hκ_ne : κ ≠ 0 := ne_of_gt hκ0
+  have hinv_gt : κ < κ⁻¹ := by
+    have hinv_gt_one : 1 < κ⁻¹ := (one_lt_inv₀ hκ0).2 hκ1
+    linarith
+  have hsqrt :
+      Real.sqrt ((κ + κ⁻¹) ^ 2 - 4) = κ⁻¹ - κ := by
+    rw [← Real.sqrt_sq (sub_nonneg.mpr hinv_gt.le)]
+    congr 1
+    field_simp [hκ_ne]
+    ring
+  rw [kappa, hc, hsqrt]
+  field_simp [hκ_ne]
+  ring
+
 lemma kappa_mem_Ioo_zero_one_of_two_lt {c : ℝ} (hc : 2 < c) :
     kappa c ∈ Set.Ioo (0 : ℝ) 1 :=
   ⟨kappa_pos_of_two_lt hc, kappa_lt_one_of_two_lt hc⟩

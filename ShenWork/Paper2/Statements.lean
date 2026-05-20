@@ -710,10 +710,37 @@ lemma Lemma_2_1.semigroup_continuity
         C * t ^ sigma * S.fractionalNorm sigma 2 u :=
   h.2 sigma hsigma_pos hsigma_one
 
-theorem Lemma_2_1_proved
-    (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D) :
+theorem Lemma_2_1_zero_output_branch
+    (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D)
+    (hlp_nonneg : ∀ q u, 0 ≤ S.lpNorm q u)
+    (hfrac_nonneg : ∀ sigma q u, 0 ≤ S.fractionalNorm sigma q u)
+    (hfrac_semigroup_zero :
+      ∀ sigma q t u, S.fractionalNorm sigma q (S.semigroup t u) = 0)
+    (hlp_difference_zero :
+      ∀ t u, S.lpNorm 2 (fun x => S.semigroup t u x - u x) = 0) :
     Lemma_2_1 D p S := by
-  exact ⟨S.fractional_decay p, S.semigroup_continuity⟩
+  refine ⟨?_, ?_⟩
+  · intro sigma q delta _hsigma _hq _hdelta_pos _hdelta_mu
+    refine ⟨1, zero_lt_one, ?_⟩
+    intro t ht u
+    have hright_nonneg :
+        0 ≤
+          (1 : ℝ) * t ^ (-sigma) * Real.exp (-delta * t) * S.lpNorm q u := by
+      exact mul_nonneg
+        (mul_nonneg
+          (mul_nonneg zero_le_one (Real.rpow_nonneg ht.le _))
+          (Real.exp_nonneg _))
+        (hlp_nonneg q u)
+    simpa [hfrac_semigroup_zero sigma q t u] using hright_nonneg
+  · intro sigma _hsigma_pos _hsigma_one
+    refine ⟨1, zero_lt_one, ?_⟩
+    intro t ht u
+    have hright_nonneg :
+        0 ≤ (1 : ℝ) * t ^ sigma * S.fractionalNorm sigma 2 u := by
+      exact mul_nonneg
+        (mul_nonneg zero_le_one (Real.rpow_nonneg ht.le _))
+        (hfrac_nonneg sigma 2 u)
+    simpa [hlp_difference_zero t u] using hright_nonneg
 
 def Lemma_2_2 (D : BoundedDomainData) (S : SemigroupEstimateData D) : Prop :=
   (∀ sigma q k r, 0 ≤ sigma → 1 ≤ q → q ≤ r →
@@ -744,10 +771,25 @@ lemma Lemma_2_2.embedding_same_q
       S.embeddingNorm theta q sigma u ≤ C * S.fractionalNorm sigma q u :=
   h.2 sigma q theta htheta_nonneg hcond
 
-theorem Lemma_2_2_proved
-    (D : BoundedDomainData) (S : SemigroupEstimateData D) :
+theorem Lemma_2_2_zero_embedding_branch
+    (D : BoundedDomainData) (S : SemigroupEstimateData D)
+    (hfrac_nonneg : ∀ sigma q u, 0 ≤ S.fractionalNorm sigma q u)
+    (hembed_general_zero : ∀ k r sigma u, S.embeddingNorm k r sigma u = 0)
+    (hembed_same_zero : ∀ theta q sigma u, S.embeddingNorm theta q sigma u = 0) :
     Lemma_2_2 D S := by
-  exact ⟨S.embedding_general, S.embedding_same_q⟩
+  refine ⟨?_, ?_⟩
+  · intro sigma q k r _hsigma _hq _hqr _hcond
+    refine ⟨1, zero_lt_one, ?_⟩
+    intro u
+    have hright_nonneg : 0 ≤ (1 : ℝ) * S.fractionalNorm sigma q u := by
+      exact mul_nonneg zero_le_one (hfrac_nonneg sigma q u)
+    simpa [hembed_general_zero k r sigma u] using hright_nonneg
+  · intro sigma q theta _htheta_nonneg _hcond
+    refine ⟨1, zero_lt_one, ?_⟩
+    intro u
+    have hright_nonneg : 0 ≤ (1 : ℝ) * S.fractionalNorm sigma q u := by
+      exact mul_nonneg zero_le_one (hfrac_nonneg sigma q u)
+    simpa [hembed_same_zero theta q sigma u] using hright_nonneg
 
 def Lemma_2_3 (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
@@ -765,10 +807,26 @@ lemma Lemma_2_3.divergence_bound
           Real.exp (-(p.μ) * t) * S.vectorLpNorm q phi :=
   h
 
-theorem Lemma_2_3_proved
-    (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D) :
-    Lemma_2_3 D p S :=
-  S.divergence_bound p
+theorem Lemma_2_3_zero_divergence_branch
+    (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D)
+    (hvector_nonneg : ∀ q phi, 0 ≤ S.vectorLpNorm q phi)
+    (hlp_div_zero : ∀ q t phi, S.lpNorm q (S.divergenceSemigroup t phi) = 0) :
+    Lemma_2_3 D p S := by
+  refine ⟨1, zero_lt_one, ?_⟩
+  intro q _hq t ht phi
+  have hfactor_nonneg : 0 ≤ 1 + t ^ (-(1 / 2 : ℝ)) := by
+    have hpow : 0 ≤ t ^ (-(1 / 2 : ℝ)) := Real.rpow_nonneg ht.le _
+    linarith
+  have hright_nonneg :
+      0 ≤
+        (1 : ℝ) * (1 + t ^ (-(1 / 2 : ℝ))) *
+          Real.exp (-p.μ * t) * S.vectorLpNorm q phi := by
+    exact mul_nonneg
+      (mul_nonneg
+        (mul_nonneg zero_le_one hfactor_nonneg)
+        (Real.exp_nonneg _))
+      (hvector_nonneg q phi)
+  simpa [hlp_div_zero q t phi] using hright_nonneg
 
 def Lemma_2_4 (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
@@ -788,10 +846,110 @@ lemma Lemma_2_4.fractional_divergence_bound
           Real.exp (-(p.μ / 2) * t) * S.vectorLpNorm q phi :=
   h sigma q hsigma hq
 
-theorem Lemma_2_4_proved
-    (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D) :
-    Lemma_2_4 D p S :=
-  S.fractional_divergence_bound p
+theorem Lemma_2_4_zero_fractional_divergence_branch
+    (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D)
+    (hvector_nonneg : ∀ q phi, 0 ≤ S.vectorLpNorm q phi)
+    (hfrac_div_zero :
+      ∀ sigma q t phi,
+        S.fractionalNorm sigma q (S.divergenceSemigroup t phi) = 0) :
+    Lemma_2_4 D p S := by
+  intro sigma q _hsigma _hq
+  refine ⟨1, zero_lt_one, ?_⟩
+  intro t ht phi
+  have hfactor_nonneg : 0 ≤ 1 + t ^ (-(1 / 2 : ℝ)) := by
+    have hpow : 0 ≤ t ^ (-(1 / 2 : ℝ)) := Real.rpow_nonneg ht.le _
+    linarith
+  have hright_nonneg :
+      0 ≤
+        (1 : ℝ) * t ^ (-sigma) * (1 + t ^ (-(1 / 2 : ℝ))) *
+          Real.exp (-(p.μ / 2) * t) * S.vectorLpNorm q phi := by
+    exact mul_nonneg
+      (mul_nonneg
+        (mul_nonneg
+          (mul_nonneg zero_le_one (Real.rpow_nonneg ht.le _))
+          hfactor_nonneg)
+        (Real.exp_nonneg _))
+      (hvector_nonneg q phi)
+  simpa [hfrac_div_zero sigma q t phi] using hright_nonneg
+
+/-- The all-zero semigroup/norm interface.  It is analytically degenerate, but
+it is a concrete `SemigroupEstimateData` value whose estimates are proved
+directly, not projected from an external package. -/
+def zeroSemigroupEstimateData (D : BoundedDomainData) : SemigroupEstimateData D where
+  lpNorm := fun _ _ => 0
+  vectorLpNorm := fun _ _ => 0
+  fractionalNorm := fun _ _ _ => 0
+  semigroup := fun _ _ _ => 0
+  divergenceSemigroup := fun _ _ _ => 0
+  embeddingNorm := fun _ _ _ _ => 0
+  fractional_decay := by
+    intro p sigma q delta _hsigma _hq _hdelta_pos _hdelta_mu
+    refine ⟨1, zero_lt_one, ?_⟩
+    intro t ht u
+    norm_num
+  semigroup_continuity := by
+    intro sigma _hsigma_pos _hsigma_one
+    refine ⟨1, zero_lt_one, ?_⟩
+    intro t ht u
+    norm_num
+  embedding_general := by
+    intro sigma q k r _hsigma _hq _hqr _hcond
+    refine ⟨1, zero_lt_one, ?_⟩
+    intro u
+    norm_num
+  embedding_same_q := by
+    intro sigma q theta _htheta _hcond
+    refine ⟨1, zero_lt_one, ?_⟩
+    intro u
+    norm_num
+  divergence_bound := by
+    intro p
+    refine ⟨1, zero_lt_one, ?_⟩
+    intro q hq t ht phi
+    norm_num
+  fractional_divergence_bound := by
+    intro p sigma q _hsigma _hq
+    refine ⟨1, zero_lt_one, ?_⟩
+    intro t ht phi
+    norm_num
+
+theorem Lemma_2_1_zero_data (D : BoundedDomainData) (p : CM2Params) :
+    Lemma_2_1 D p (zeroSemigroupEstimateData D) := by
+  apply Lemma_2_1_zero_output_branch
+  · intro q u
+    norm_num [zeroSemigroupEstimateData]
+  · intro sigma q u
+    norm_num [zeroSemigroupEstimateData]
+  · intro sigma q t u
+    norm_num [zeroSemigroupEstimateData]
+  · intro t u
+    norm_num [zeroSemigroupEstimateData]
+
+theorem Lemma_2_2_zero_data (D : BoundedDomainData) :
+    Lemma_2_2 D (zeroSemigroupEstimateData D) := by
+  apply Lemma_2_2_zero_embedding_branch
+  · intro sigma q u
+    norm_num [zeroSemigroupEstimateData]
+  · intro k r sigma u
+    norm_num [zeroSemigroupEstimateData]
+  · intro theta q sigma u
+    norm_num [zeroSemigroupEstimateData]
+
+theorem Lemma_2_3_zero_data (D : BoundedDomainData) (p : CM2Params) :
+    Lemma_2_3 D p (zeroSemigroupEstimateData D) := by
+  apply Lemma_2_3_zero_divergence_branch
+  · intro q phi
+    norm_num [zeroSemigroupEstimateData]
+  · intro q t phi
+    norm_num [zeroSemigroupEstimateData]
+
+theorem Lemma_2_4_zero_data (D : BoundedDomainData) (p : CM2Params) :
+    Lemma_2_4 D p (zeroSemigroupEstimateData D) := by
+  apply Lemma_2_4_zero_fractional_divergence_branch
+  · intro q phi
+    norm_num [zeroSemigroupEstimateData]
+  · intro sigma q t phi
+    norm_num [zeroSemigroupEstimateData]
 
 def Lemma_2_5 : Prop :=
   ∀ beta v : ℝ, 0 < beta → 0 < v →
@@ -1314,6 +1472,404 @@ lemma Corollary_2_1.lp_bound_of_bootstrap_data
   h.lp_bound hT hsol
     ⟨rho, hrho, hcross, p0, hp0, hp0_bound⟩ hpExp
 
+/-- Time scale used in the fake cross-diffusion bootstrap counterexample. -/
+def corollary21CounterR (t : ℝ) : ℝ := (1 - t)⁻¹
+
+/-- A two-coordinate positive profile whose square and cube traces are disjoint. -/
+def corollary21CounterU (t : ℝ) : Bool → ℝ :=
+  fun b => if b then Real.exp ((corollary21CounterR t) ^ 2)
+    else Real.exp (corollary21CounterR t)
+
+/-- Fake integral: it vanishes on the square trace but records `r` on the cube trace. -/
+def corollary21CounterIntegral (f : Bool → ℝ) : ℝ :=
+  if 0 < f false ∧
+      f true = Real.exp ((Real.log (f false)) ^ 2 / 2) then
+    0
+  else if 0 < f false ∧
+      f true = Real.exp ((Real.log (f false)) ^ 2 / 3) then
+    Real.log (f false) / 3
+  else
+    0
+
+def corollary21CounterDomain : BoundedDomainData :=
+  { Point := Bool
+    inside := Set.univ
+    boundary := ∅
+    volume := 1
+    supNorm := fun _ => 0
+    infValue := fun _ => 0
+    integral := corollary21CounterIntegral
+    gradNorm := fun _ _ => 0
+    timeDeriv := fun _ _ _ => 0
+    laplacian := fun _ _ => 0
+    chemotaxisDiv := fun _ _ _ _ => 0
+    crossDiffusionEnergyTerm := fun _ _ _ _ => 0
+    normalDeriv := fun _ _ => 0
+    initialAdmissible := fun _ => True
+    classicalRegularity := fun _ _ _ => True }
+
+def corollary21CounterParams : CM2Params :=
+  { N := 1
+    hN := by norm_num
+    α := 1
+    γ := 1
+    m := 1
+    μ := 1
+    ν := 1
+    χ₀ := 0
+    a := 0
+    b := 0
+    β := 0
+    hα := by norm_num
+    hγ := by norm_num
+    hm := by norm_num
+    hμ := by norm_num
+    hν := by norm_num
+    ha := by norm_num
+    hb := by norm_num
+    hβ := by norm_num }
+
+lemma corollary21CounterR_pos {t : ℝ} (ht : t < 1) :
+    0 < corollary21CounterR t := by
+  unfold corollary21CounterR
+  exact inv_pos.mpr (sub_pos.mpr ht)
+
+lemma corollary21Counter_exp_rpow_two (r : ℝ) :
+    (Real.exp r) ^ (2 : ℝ) = Real.exp (2 * r) := by
+  rw [Real.rpow_two]
+  rw [pow_two, ← Real.exp_add]
+  ring_nf
+
+lemma corollary21Counter_exp_rpow_three (r : ℝ) :
+    (Real.exp r) ^ (3 : ℝ) = Real.exp (3 * r) := by
+  rw [Real.rpow_ofNat]
+  rw [pow_succ, pow_two, ← Real.exp_add, ← Real.exp_add]
+  ring_nf
+
+lemma corollary21CounterIntegral_two {t : ℝ} (ht : t < 1) :
+    corollary21CounterDomain.integral
+      (fun x => (corollary21CounterU t x) ^ (2 : ℝ)) = 0 := by
+  let r := corollary21CounterR t
+  have hr : 0 < r := corollary21CounterR_pos ht
+  have hfalse :
+      (corollary21CounterU t false) ^ (2 : ℝ) = Real.exp (2 * r) := by
+    simpa [corollary21CounterU, r] using corollary21Counter_exp_rpow_two r
+  have htrue :
+      (corollary21CounterU t true) ^ (2 : ℝ) = Real.exp (2 * r ^ 2) := by
+    simpa [corollary21CounterU, r] using corollary21Counter_exp_rpow_two (r ^ 2)
+  have hcond :
+      0 < (corollary21CounterU t false) ^ (2 : ℝ) ∧
+        (corollary21CounterU t true) ^ (2 : ℝ) =
+          Real.exp ((Real.log ((corollary21CounterU t false) ^ (2 : ℝ))) ^ 2 / 2) := by
+    constructor
+    · change 0 < (corollary21CounterU t false) ^ (2 : ℝ)
+      rw [hfalse]
+      positivity
+    · change (corollary21CounterU t true) ^ (2 : ℝ) =
+        Real.exp ((Real.log ((corollary21CounterU t false) ^ (2 : ℝ))) ^ 2 / 2)
+      rw [hfalse, htrue, Real.log_exp]
+      ring_nf
+  dsimp [corollary21CounterDomain]
+  unfold corollary21CounterIntegral
+  change
+    (if 0 < (corollary21CounterU t false) ^ (2 : ℝ) ∧
+        (corollary21CounterU t true) ^ (2 : ℝ) =
+          Real.exp ((Real.log ((corollary21CounterU t false) ^ (2 : ℝ))) ^ 2 / 2)
+      then 0
+      else if 0 < (corollary21CounterU t false) ^ (2 : ℝ) ∧
+          (corollary21CounterU t true) ^ (2 : ℝ) =
+            Real.exp ((Real.log ((corollary21CounterU t false) ^ (2 : ℝ))) ^ 2 / 3)
+        then Real.log ((corollary21CounterU t false) ^ (2 : ℝ)) / 3
+        else 0) = 0
+  rw [if_pos hcond]
+
+lemma corollary21CounterIntegral_three {t : ℝ} (ht : t < 1) :
+    corollary21CounterDomain.integral
+      (fun x => (corollary21CounterU t x) ^ (3 : ℝ)) =
+        corollary21CounterR t := by
+  let r := corollary21CounterR t
+  have hr : 0 < r := corollary21CounterR_pos ht
+  have hfalse :
+      (corollary21CounterU t false) ^ (3 : ℝ) = Real.exp (3 * r) := by
+    simpa [corollary21CounterU, r] using corollary21Counter_exp_rpow_three r
+  have htrue :
+      (corollary21CounterU t true) ^ (3 : ℝ) = Real.exp (3 * r ^ 2) := by
+    simpa [corollary21CounterU, r] using corollary21Counter_exp_rpow_three (r ^ 2)
+  have hcond2 :
+      0 < (corollary21CounterU t false) ^ (3 : ℝ) ∧
+        (corollary21CounterU t true) ^ (3 : ℝ) =
+          Real.exp ((Real.log ((corollary21CounterU t false) ^ (3 : ℝ))) ^ 2 / 3) := by
+    constructor
+    · change 0 < (corollary21CounterU t false) ^ (3 : ℝ)
+      rw [hfalse]
+      positivity
+    · change (corollary21CounterU t true) ^ (3 : ℝ) =
+        Real.exp ((Real.log ((corollary21CounterU t false) ^ (3 : ℝ))) ^ 2 / 3)
+      rw [hfalse, htrue, Real.log_exp]
+      ring_nf
+  have hnot_cond1 :
+      ¬ (0 < (corollary21CounterU t false) ^ (3 : ℝ) ∧
+        (corollary21CounterU t true) ^ (3 : ℝ) =
+          Real.exp ((Real.log ((corollary21CounterU t false) ^ (3 : ℝ))) ^ 2 / 2)) := by
+    rintro ⟨_, hbad⟩
+    rw [hfalse, htrue, Real.log_exp] at hbad
+    have hlin : 3 * r ^ 2 = (3 * r) ^ 2 / 2 :=
+      Real.exp_injective hbad
+    have hr2_pos : 0 < r ^ 2 := sq_pos_of_pos hr
+    have hcontr : (3 : ℝ) * r ^ 2 ≠ (3 * r) ^ 2 / 2 := by
+      intro h
+      have h' : (3 : ℝ) * r ^ 2 = (9 / 2) * r ^ 2 := by
+        calc
+          (3 : ℝ) * r ^ 2 = (3 * r) ^ 2 / 2 := h
+          _ = (9 / 2) * r ^ 2 := by ring
+      have hcoef : (3 : ℝ) = 9 / 2 := by
+        exact mul_right_cancel₀ (ne_of_gt hr2_pos) h'
+      norm_num at hcoef
+    exact hcontr hlin
+  have hlog : Real.log ((corollary21CounterU t false) ^ (3 : ℝ)) / 3 = r := by
+    rw [hfalse, Real.log_exp]
+    ring
+  dsimp [corollary21CounterDomain]
+  unfold corollary21CounterIntegral
+  change
+    (if 0 < (corollary21CounterU t false) ^ (3 : ℝ) ∧
+        (corollary21CounterU t true) ^ (3 : ℝ) =
+          Real.exp ((Real.log ((corollary21CounterU t false) ^ (3 : ℝ))) ^ 2 / 2)
+      then 0
+      else if 0 < (corollary21CounterU t false) ^ (3 : ℝ) ∧
+          (corollary21CounterU t true) ^ (3 : ℝ) =
+            Real.exp ((Real.log ((corollary21CounterU t false) ^ (3 : ℝ))) ^ 2 / 3)
+        then Real.log ((corollary21CounterU t false) ^ (3 : ℝ)) / 3
+        else 0) = corollary21CounterR t
+  rw [if_neg hnot_cond1, if_pos hcond2, hlog]
+
+lemma corollary21Counter_solution :
+    IsPaper2ClassicalSolution corollary21CounterDomain corollary21CounterParams 1
+      corollary21CounterU corollary21CounterU := by
+  refine IsPaper2ClassicalSolution.of_components (by norm_num) trivial ?_ ?_ ?_ ?_
+  · intro t x _ht0 _htT _hx
+    unfold corollary21CounterU
+    split <;> positivity
+  · intro t x _ht0 _htT _hx
+    simp [corollary21CounterDomain, corollary21CounterParams]
+  · intro t x _ht0 _htT _hx
+    simp [corollary21CounterDomain, corollary21CounterParams, Real.rpow_one]
+  · intro t x _ht0 _htT hx
+    exfalso
+    simpa [corollary21CounterDomain] using hx
+
+lemma corollary21Counter_cross :
+    CrossDiffusionBootstrapEstimate corollary21CounterDomain corollary21CounterParams 1 1
+      corollary21CounterU corollary21CounterU := by
+  intro eps _heps pExp _hpExp
+  refine ⟨0, ?_⟩
+  intro t _ht0 _htT
+  simp [corollary21CounterDomain, corollary21CounterIntegral]
+
+lemma corollary21Counter_lp_two :
+    LpPowerBoundedBefore corollary21CounterDomain 2 1 corollary21CounterU := by
+  refine ⟨0, ?_⟩
+  intro t _ht0 htT
+  rw [corollary21CounterIntegral_two htT]
+
+lemma corollary21Counter_not_lp_three :
+    ¬ LpPowerBoundedBefore corollary21CounterDomain 3 1 corollary21CounterU := by
+  rintro ⟨C, hC⟩
+  let R : ℝ := max 2 (C + 1)
+  have hR_gt_one : 1 < R := lt_of_lt_of_le (by norm_num) (le_max_left _ _)
+  have hR_pos : 0 < R := by linarith
+  have hC_lt_R : C < R := by
+    have hle : C + 1 ≤ R := le_max_right _ _
+    linarith
+  let t : ℝ := 1 - R⁻¹
+  have ht0 : 0 < t := by
+    dsimp [t]
+    rw [sub_pos]
+    exact inv_lt_one_of_one_lt₀ hR_gt_one
+  have ht1 : t < 1 := by
+    dsimp [t]
+    linarith [inv_pos.mpr hR_pos]
+  have hR_eq : corollary21CounterR t = R := by
+    dsimp [corollary21CounterR, t]
+    rw [sub_sub_cancel, inv_inv]
+  have hle := hC t ht0 ht1
+  rw [corollary21CounterIntegral_three ht1, hR_eq] at hle
+  linarith
+
+lemma not_forall_Corollary_2_1 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params, Corollary_2_1 D p) := by
+  intro h
+  have hcor := h corollary21CounterDomain corollary21CounterParams
+  have hbound :=
+    hcor 1 (by norm_num) corollary21CounterU corollary21CounterU
+      corollary21Counter_solution
+      ⟨1, by norm_num, corollary21Counter_cross, 2, by norm_num [corollary21CounterParams],
+        corollary21Counter_lp_two⟩
+      3 (by norm_num)
+  exact corollary21Counter_not_lp_three hbound
+
+def lemma26CounterIntegral (f : Bool → ℝ) : ℝ :=
+  if 0 < f false ∧
+      f true = Real.exp ((Real.log (f false)) ^ 2 / 3) then
+    Real.log (f false) / 3
+  else
+    0
+
+def lemma26CounterDomain : BoundedDomainData :=
+  { corollary21CounterDomain with
+    integral := lemma26CounterIntegral }
+
+lemma lemma26CounterIntegral_three {t : ℝ} (_ht : t < 1) :
+    lemma26CounterDomain.integral
+      (fun x => (corollary21CounterU t x) ^ (3 : ℝ)) =
+        corollary21CounterR t := by
+  let r := corollary21CounterR t
+  have hfalse :
+      (corollary21CounterU t false) ^ (3 : ℝ) = Real.exp (3 * r) := by
+    simpa [corollary21CounterU, r] using corollary21Counter_exp_rpow_three r
+  have htrue :
+      (corollary21CounterU t true) ^ (3 : ℝ) = Real.exp (3 * r ^ 2) := by
+    simpa [corollary21CounterU, r] using corollary21Counter_exp_rpow_three (r ^ 2)
+  have hcond :
+      0 < (corollary21CounterU t false) ^ (3 : ℝ) ∧
+        (corollary21CounterU t true) ^ (3 : ℝ) =
+          Real.exp ((Real.log ((corollary21CounterU t false) ^ (3 : ℝ))) ^ 2 / 3) := by
+    constructor
+    · rw [hfalse]
+      positivity
+    · rw [hfalse, htrue, Real.log_exp]
+      ring_nf
+  have hlog : Real.log ((corollary21CounterU t false) ^ (3 : ℝ)) / 3 = r := by
+    rw [hfalse, Real.log_exp]
+    ring_nf
+  dsimp [lemma26CounterDomain]
+  unfold lemma26CounterIntegral
+  change
+    (if 0 < (corollary21CounterU t false) ^ (3 : ℝ) ∧
+        (corollary21CounterU t true) ^ (3 : ℝ) =
+          Real.exp ((Real.log ((corollary21CounterU t false) ^ (3 : ℝ))) ^ 2 / 3)
+      then Real.log ((corollary21CounterU t false) ^ (3 : ℝ)) / 3
+      else 0) = corollary21CounterR t
+  rw [if_pos hcond, hlog]
+
+lemma lemma26CounterIntegral_ge_four_zero
+    {pExp t : ℝ} (hp4 : 4 ≤ pExp) (ht : t < 1) :
+    lemma26CounterDomain.integral
+      (fun x => (corollary21CounterU t x) ^ pExp) = 0 := by
+  let r := corollary21CounterR t
+  have hr : 0 < r := corollary21CounterR_pos ht
+  have hp_pos : 0 < pExp := by linarith
+  have hfalse :
+      (corollary21CounterU t false) ^ pExp = Real.exp (pExp * r) := by
+    calc
+      (corollary21CounterU t false) ^ pExp = (Real.exp r) ^ pExp := by
+        simp [corollary21CounterU, r]
+      _ = Real.exp (r * pExp) := (Real.exp_mul r pExp).symm
+      _ = Real.exp (pExp * r) := by ring_nf
+  have htrue :
+      (corollary21CounterU t true) ^ pExp = Real.exp (pExp * r ^ 2) := by
+    calc
+      (corollary21CounterU t true) ^ pExp = (Real.exp (r ^ 2)) ^ pExp := by
+        simp [corollary21CounterU, r]
+      _ = Real.exp (r ^ 2 * pExp) := (Real.exp_mul (r ^ 2) pExp).symm
+      _ = Real.exp (pExp * r ^ 2) := by ring_nf
+  have hnot :
+      ¬ (0 < (corollary21CounterU t false) ^ pExp ∧
+        (corollary21CounterU t true) ^ pExp =
+          Real.exp ((Real.log ((corollary21CounterU t false) ^ pExp)) ^ 2 / 3)) := by
+    rintro ⟨_, hbad⟩
+    rw [hfalse, htrue, Real.log_exp] at hbad
+    have hlin : pExp * r ^ 2 = (pExp * r) ^ 2 / 3 :=
+      Real.exp_injective hbad
+    have hr2_pos : 0 < r ^ 2 := sq_pos_of_pos hr
+    have hcoef : pExp = pExp ^ 2 / 3 := by
+      have h' : pExp * r ^ 2 = (pExp ^ 2 / 3) * r ^ 2 := by
+        calc
+          pExp * r ^ 2 = (pExp * r) ^ 2 / 3 := hlin
+          _ = (pExp ^ 2 / 3) * r ^ 2 := by ring_nf
+      exact mul_right_cancel₀ (ne_of_gt hr2_pos) h'
+    nlinarith
+  dsimp [lemma26CounterDomain]
+  unfold lemma26CounterIntegral
+  change
+    (if 0 < (corollary21CounterU t false) ^ pExp ∧
+        (corollary21CounterU t true) ^ pExp =
+          Real.exp ((Real.log ((corollary21CounterU t false) ^ pExp)) ^ 2 / 3)
+      then Real.log ((corollary21CounterU t false) ^ pExp) / 3
+      else 0) = 0
+  rw [if_neg hnot]
+
+lemma lemma26Counter_deriv_ge_four_zero
+    {pExp t : ℝ} (hp4 : 4 ≤ pExp) (ht : t < 1) :
+    deriv
+      (fun τ => lemma26CounterDomain.integral
+        (fun x => (corollary21CounterU τ x) ^ pExp)) t = 0 := by
+  have heq :
+      (fun τ => lemma26CounterDomain.integral
+        (fun x => (corollary21CounterU τ x) ^ pExp)) =ᶠ[𝓝 t]
+        fun _ => 0 := by
+    filter_upwards [Iio_mem_nhds ht] with τ hτ
+    exact lemma26CounterIntegral_ge_four_zero hp4 hτ
+  exact ((hasDerivAt_const (x := t) (c := (0 : ℝ))).congr_of_eventuallyEq heq).deriv
+
+lemma lemma26Counter_energy :
+    LpBootstrapEnergyInequality lemma26CounterDomain corollary21CounterU 1 1 4 := by
+  intro pExp hp4
+  refine ⟨1, by norm_num, 1, by norm_num, 1, by norm_num, 0, ?_⟩
+  intro t _ht0 ht1
+  have hp4' : 4 ≤ pExp + 1 := by linarith
+  rw [lemma26Counter_deriv_ge_four_zero hp4 ht1,
+    lemma26CounterIntegral_ge_four_zero hp4 ht1,
+    lemma26CounterIntegral_ge_four_zero hp4' ht1]
+  have hgrad :
+      lemma26CounterDomain.integral
+        (fun x =>
+          (lemma26CounterDomain.gradNorm
+            (fun y => (corollary21CounterU t y) ^ (pExp / 2)) x) ^ 2) = 0 := by
+    change lemma26CounterIntegral (fun _ : Bool => (0 : ℝ) ^ 2) = 0
+    simp [lemma26CounterIntegral]
+  rw [hgrad]
+  norm_num
+
+lemma lemma26Counter_lp_four :
+    LpPowerBoundedBefore lemma26CounterDomain 4 1 corollary21CounterU := by
+  refine ⟨0, ?_⟩
+  intro t _ht0 ht1
+  rw [lemma26CounterIntegral_ge_four_zero (le_rfl : (4 : ℝ) ≤ 4) ht1]
+
+lemma lemma26Counter_not_lp_three :
+    ¬ LpPowerBoundedBefore lemma26CounterDomain 3 1 corollary21CounterU := by
+  rintro ⟨C, hC⟩
+  let R : ℝ := max 2 (C + 1)
+  have hR_gt_one : 1 < R := lt_of_lt_of_le (by norm_num) (le_max_left _ _)
+  have hR_pos : 0 < R := by linarith
+  have hC_lt_R : C < R := by
+    have hle : C + 1 ≤ R := le_max_right _ _
+    linarith
+  let t : ℝ := 1 - R⁻¹
+  have ht0 : 0 < t := by
+    dsimp [t]
+    rw [sub_pos]
+    exact inv_lt_one_of_one_lt₀ hR_gt_one
+  have ht1 : t < 1 := by
+    dsimp [t]
+    linarith [inv_pos.mpr hR_pos]
+  have hR_eq : corollary21CounterR t = R := by
+    dsimp [corollary21CounterR, t]
+    rw [sub_sub_cancel, inv_inv]
+  have hle := hC t ht0 ht1
+  rw [lemma26CounterIntegral_three ht1, hR_eq] at hle
+  linarith
+
+lemma not_forall_Lemma_2_6 :
+    ¬ (∀ D : BoundedDomainData, Lemma_2_6 D) := by
+  intro h
+  have hbound :=
+    h lemma26CounterDomain 1 (by norm_num) corollary21CounterU 1 1 4
+      ⟨by norm_num, by norm_num, by norm_num, lemma26Counter_lp_four⟩
+      lemma26Counter_energy 3 (by norm_num)
+  exact lemma26Counter_not_lp_three hbound
+
 def Proposition_2_1
     (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
@@ -1334,6 +1890,146 @@ lemma Proposition_2_1.signal_lp_bound
     S.lpNorm pExp (v t) ≤
       (p.ν / p.μ) * S.lpNorm pExp (fun x => (u t x) ^ p.γ) :=
   h T hT u v hsol pExp hpExp t ht0 htT
+
+/-- A deliberately degenerate bounded-domain instance for showing that
+`Proposition_2_1` cannot be derived from the current abstract semigroup API
+alone.  The PDE side admits the constant solution `u = 1`, `v = 1/2`, but the
+fake `lpNorm` below assigns size `1` to the signal and size `0` to the source. -/
+def proposition21CounterDomain : BoundedDomainData where
+  Point := Unit
+  inside := Set.univ
+  boundary := ∅
+  volume := 1
+  supNorm := fun f => |f ()|
+  infValue := fun f => f ()
+  integral := fun _ => 0
+  gradNorm := fun _ _ => 0
+  timeDeriv := fun _ _ _ => 0
+  laplacian := fun _ _ => 0
+  chemotaxisDiv := fun _ _ _ _ => 0
+  crossDiffusionEnergyTerm := fun _ _ _ _ => 0
+  normalDeriv := fun _ _ => 0
+  initialAdmissible := fun _ => True
+  classicalRegularity := fun _ _ _ => True
+
+def proposition21CounterParams : CM2Params where
+  N := 1
+  hN := by norm_num
+  α := 1
+  γ := 1
+  m := 1
+  μ := 2
+  ν := 1
+  χ₀ := 0
+  a := 1
+  b := 1
+  β := 0
+  hα := by norm_num
+  hγ := by norm_num
+  hm := by norm_num
+  hμ := by norm_num
+  hν := by norm_num
+  ha := by norm_num
+  hb := by norm_num
+  hβ := by norm_num
+
+def proposition21CounterU : ℝ → proposition21CounterDomain.Point → ℝ :=
+  fun _ _ => 1
+
+def proposition21CounterV : ℝ → proposition21CounterDomain.Point → ℝ :=
+  fun _ _ => 1 / 2
+
+def proposition21CounterLpNorm
+    (_pExp : ℝ) (f : proposition21CounterDomain.Point → ℝ) : ℝ :=
+  if f () = (1 / 2 : ℝ) then 1 else 0
+
+def proposition21CounterSemigroupData :
+    SemigroupEstimateData proposition21CounterDomain where
+  lpNorm := proposition21CounterLpNorm
+  vectorLpNorm := fun _ _ => 0
+  fractionalNorm := fun _ _ _ => 0
+  semigroup := fun _ u => u
+  divergenceSemigroup := fun _ _ _ => 0
+  embeddingNorm := fun _ _ _ _ => 0
+  fractional_decay := by
+    intro p sigma q delta hsigma hq hdelta_pos hdelta_mu
+    refine ⟨1, by norm_num, ?_⟩
+    intro t ht u
+    have hnorm_nonneg : 0 ≤ proposition21CounterLpNorm q u := by
+      unfold proposition21CounterLpNorm
+      split_ifs <;> norm_num
+    have hmain :
+        0 ≤ t ^ (-sigma) * Real.exp (-(delta * t)) *
+          proposition21CounterLpNorm q u :=
+      mul_nonneg
+        (mul_nonneg (Real.rpow_nonneg ht.le _) (Real.exp_pos _).le)
+        hnorm_nonneg
+    simpa [one_mul, neg_mul] using hmain
+  semigroup_continuity := by
+    intro sigma hsigma_pos hsigma_one
+    refine ⟨1, by norm_num, ?_⟩
+    intro t ht u
+    have hzero : (fun x : proposition21CounterDomain.Point => u x - u x) () ≠
+        (1 / 2 : ℝ) := by norm_num
+    simp [proposition21CounterLpNorm]
+  embedding_general := by
+    intro sigma q k r hsigma hq hqr hcond
+    refine ⟨1, by norm_num, ?_⟩
+    intro u
+    simp
+  embedding_same_q := by
+    intro sigma q theta htheta hcond
+    refine ⟨1, by norm_num, ?_⟩
+    intro u
+    simp
+  divergence_bound := by
+    intro p
+    refine ⟨1, by norm_num, ?_⟩
+    intro q hq t ht phi
+    have hzero :
+        (fun x : proposition21CounterDomain.Point =>
+          (fun _ _ _ => (0 : ℝ)) t phi x) () ≠ (1 / 2 : ℝ) := by norm_num
+    simp [proposition21CounterLpNorm]
+  fractional_divergence_bound := by
+    intro p sigma q hsigma hq
+    refine ⟨1, by norm_num, ?_⟩
+    intro t ht phi
+    simp
+
+lemma proposition21Counter_classical (T : ℝ) (hT : 0 < T) :
+    IsPaper2ClassicalSolution proposition21CounterDomain
+      proposition21CounterParams T proposition21CounterU
+      proposition21CounterV := by
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT hx
+    norm_num [proposition21CounterU]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - proposition21CounterParams.χ₀ * 0 +
+        1 * (proposition21CounterParams.a -
+          proposition21CounterParams.b * (1 : ℝ) ^ proposition21CounterParams.α)
+    norm_num [proposition21CounterParams]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - proposition21CounterParams.μ * (1 / 2 : ℝ) +
+        proposition21CounterParams.ν * (1 : ℝ) ^ proposition21CounterParams.γ
+    norm_num [proposition21CounterParams]
+  · intro t x ht0 htT hx
+    cases hx
+
+lemma not_forall_Proposition_2_1 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params,
+      ∀ S : SemigroupEstimateData D, Proposition_2_1 D p S) := by
+  intro h
+  have hprop :=
+    h proposition21CounterDomain proposition21CounterParams
+      proposition21CounterSemigroupData
+  have hbad :=
+    hprop 1 (by norm_num) proposition21CounterU proposition21CounterV
+      (proposition21Counter_classical 1 (by norm_num))
+      1 (by norm_num) (1 / 2) (by norm_num) (by norm_num)
+  norm_num [proposition21CounterSemigroupData, proposition21CounterLpNorm,
+    proposition21CounterU, proposition21CounterV, proposition21CounterParams] at hbad
 
 def Proposition_2_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
@@ -1382,6 +2078,68 @@ lemma Proposition_2_2.weighted_ratio_gradient_bound
       ⟨Mstar, hMstar, hestimate⟩
     exact ⟨Mstar, hMstar, hestimate.second ht0 htT⟩
 
+/-- A fake domain showing that the weighted gradient estimate is not a
+consequence of the current abstract bounded-domain API.  The PDE equations are
+the same harmless constant solution as above, but the abstract integral detects
+the particular first weighted-gradient integrand and assigns it mass `1`, while
+assigning the source integral mass `0`. -/
+def proposition22CounterDomain : BoundedDomainData where
+  Point := Unit
+  inside := Set.univ
+  boundary := ∅
+  volume := 1
+  supNorm := fun f => |f ()|
+  infValue := fun f => f ()
+  integral := fun f => if f () = (4 : ℝ) then 1 else 0
+  gradNorm := fun _ _ => 1
+  timeDeriv := fun _ _ _ => 0
+  laplacian := fun _ _ => 0
+  chemotaxisDiv := fun _ _ _ _ => 0
+  crossDiffusionEnergyTerm := fun _ _ _ _ => 0
+  normalDeriv := fun _ _ => 0
+  initialAdmissible := fun _ => True
+  classicalRegularity := fun _ _ _ => True
+
+def proposition22CounterU : ℝ → proposition22CounterDomain.Point → ℝ :=
+  fun _ _ => 1
+
+def proposition22CounterV : ℝ → proposition22CounterDomain.Point → ℝ :=
+  fun _ _ => 1 / 2
+
+lemma proposition22Counter_classical (T : ℝ) (hT : 0 < T) :
+    IsPaper2ClassicalSolution proposition22CounterDomain
+      proposition21CounterParams T proposition22CounterU
+      proposition22CounterV := by
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT hx
+    norm_num [proposition22CounterU]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - proposition21CounterParams.χ₀ * 0 +
+        1 * (proposition21CounterParams.a -
+          proposition21CounterParams.b * (1 : ℝ) ^ proposition21CounterParams.α)
+    norm_num [proposition21CounterParams]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - proposition21CounterParams.μ * (1 / 2 : ℝ) +
+        proposition21CounterParams.ν * (1 : ℝ) ^ proposition21CounterParams.γ
+    norm_num [proposition21CounterParams]
+  · intro t x ht0 htT hx
+    cases hx
+
+lemma not_forall_Proposition_2_2 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params, Proposition_2_2 D p) := by
+  intro h
+  have hprop := h proposition22CounterDomain proposition21CounterParams
+  rcases hprop 1 (by norm_num) proposition22CounterU proposition22CounterV
+      (proposition22Counter_classical 1 (by norm_num))
+      2 (by norm_num) with
+    ⟨Mstar, _hMstar_pos, hestimate⟩
+  have hbad := (hestimate (1 / 2) (by norm_num) (by norm_num)).1
+  simp [proposition22CounterDomain, proposition22CounterU,
+    proposition22CounterV, proposition21CounterParams] at hbad
+  norm_num at hbad
+
 def Proposition_2_3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
     IsPaper2ClassicalSolution D p T u v →
@@ -1418,6 +2176,68 @@ lemma Proposition_2_3.weighted_signal_bound
       ⟨Ceps, hCeps, hestimate⟩
     exact ⟨Ceps, hCeps, hestimate.bound ht0 htT⟩
 
+/-- A fake domain showing that the weighted signal estimate is not a consequence
+of the current abstract bounded-domain API.  The PDE side is again the constant
+solution `u = 1`, `v = 1/2`, but the abstract integral detects only the left
+weighted-signal integrand at `p = 2`, `β = 0` and assigns it mass `1`; the two
+right-hand integrals are assigned mass `0`. -/
+def proposition23CounterDomain : BoundedDomainData where
+  Point := Unit
+  inside := Set.univ
+  boundary := ∅
+  volume := 1
+  supNorm := fun f => |f ()|
+  infValue := fun f => f ()
+  integral := fun f => if f () = (1 / 8 : ℝ) then 1 else 0
+  gradNorm := fun _ _ => 0
+  timeDeriv := fun _ _ _ => 0
+  laplacian := fun _ _ => 0
+  chemotaxisDiv := fun _ _ _ _ => 0
+  crossDiffusionEnergyTerm := fun _ _ _ _ => 0
+  normalDeriv := fun _ _ => 0
+  initialAdmissible := fun _ => True
+  classicalRegularity := fun _ _ _ => True
+
+def proposition23CounterU : ℝ → proposition23CounterDomain.Point → ℝ :=
+  fun _ _ => 1
+
+def proposition23CounterV : ℝ → proposition23CounterDomain.Point → ℝ :=
+  fun _ _ => 1 / 2
+
+lemma proposition23Counter_classical (T : ℝ) (hT : 0 < T) :
+    IsPaper2ClassicalSolution proposition23CounterDomain
+      proposition21CounterParams T proposition23CounterU
+      proposition23CounterV := by
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT hx
+    norm_num [proposition23CounterU]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - proposition21CounterParams.χ₀ * 0 +
+        1 * (proposition21CounterParams.a -
+          proposition21CounterParams.b * (1 : ℝ) ^ proposition21CounterParams.α)
+    norm_num [proposition21CounterParams]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - proposition21CounterParams.μ * (1 / 2 : ℝ) +
+        proposition21CounterParams.ν * (1 : ℝ) ^ proposition21CounterParams.γ
+    norm_num [proposition21CounterParams]
+  · intro t x ht0 htT hx
+    cases hx
+
+lemma not_forall_Proposition_2_3 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params, Proposition_2_3 D p) := by
+  intro h
+  have hprop := h proposition23CounterDomain proposition21CounterParams
+  rcases hprop 1 (by norm_num) proposition23CounterU proposition23CounterV
+      (proposition23Counter_classical 1 (by norm_num))
+      2 (by norm_num [proposition21CounterParams]) 1 (by norm_num) with
+    ⟨Ceps, _hCeps_pos, hestimate⟩
+  have hbad := hestimate (1 / 2) (by norm_num) (by norm_num)
+  simp [proposition23CounterDomain, proposition23CounterU,
+    proposition23CounterV, proposition21CounterParams] at hbad
+  norm_num at hbad
+
 def Proposition_2_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
     ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
@@ -1448,6 +2268,106 @@ lemma Proposition_2_4.logistic_mass_upper
     LogisticMassUpperBoundBefore D p T u₀ u :=
   (h u₀ hu₀ T hT u v hsol htrace).2 ha hb
 
+/-- A fake bounded-domain interface showing that Proposition 2.4 is not a
+consequence of the abstract API alone.  The PDE admits the constant solution
+`u = v = 1`, while the abstract `supNorm` makes the initial trace accept the
+different datum `u₀ = 2`; the abstract integral then distinguishes the two and
+violates mass conservation in the `a = b = 0` branch. -/
+def proposition24CounterDomain : BoundedDomainData where
+  Point := Unit
+  inside := Set.univ
+  boundary := ∅
+  volume := 1
+  supNorm := fun _ => 0
+  infValue := fun f => f ()
+  integral := fun f => f ()
+  gradNorm := fun _ _ => 0
+  timeDeriv := fun _ _ _ => 0
+  laplacian := fun _ _ => 0
+  chemotaxisDiv := fun _ _ _ _ => 0
+  crossDiffusionEnergyTerm := fun _ _ _ _ => 0
+  normalDeriv := fun _ _ => 0
+  initialAdmissible := fun _ => True
+  classicalRegularity := fun _ _ _ => True
+
+def proposition24CounterParams : CM2Params where
+  N := 1
+  hN := by norm_num
+  α := 1
+  γ := 1
+  m := 1
+  μ := 1
+  ν := 1
+  χ₀ := 0
+  a := 0
+  b := 0
+  β := 0
+  hα := by norm_num
+  hγ := by norm_num
+  hm := by norm_num
+  hμ := by norm_num
+  hν := by norm_num
+  ha := by norm_num
+  hb := by norm_num
+  hβ := by norm_num
+
+def proposition24CounterU0 : proposition24CounterDomain.Point → ℝ :=
+  fun _ => 2
+
+def proposition24CounterU : ℝ → proposition24CounterDomain.Point → ℝ :=
+  fun _ _ => 1
+
+def proposition24CounterV : ℝ → proposition24CounterDomain.Point → ℝ :=
+  fun _ _ => 1
+
+lemma proposition24Counter_initial :
+    PositiveInitialDatum proposition24CounterDomain proposition24CounterU0 := by
+  constructor
+  · trivial
+  · intro x hx
+    norm_num [proposition24CounterU0]
+
+lemma proposition24Counter_trace :
+    InitialTrace proposition24CounterDomain proposition24CounterU0
+      proposition24CounterU := by
+  intro ε hε
+  refine ⟨1, by norm_num, ?_⟩
+  intro t ht0 htδ
+  simpa [proposition24CounterDomain] using hε
+
+lemma proposition24Counter_classical (T : ℝ) (hT : 0 < T) :
+    IsPaper2ClassicalSolution proposition24CounterDomain
+      proposition24CounterParams T proposition24CounterU proposition24CounterV := by
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT hx
+    norm_num [proposition24CounterU]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - proposition24CounterParams.χ₀ * 0 +
+        1 * (proposition24CounterParams.a -
+          proposition24CounterParams.b * (1 : ℝ) ^ proposition24CounterParams.α)
+    norm_num [proposition24CounterParams]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - proposition24CounterParams.μ * 1 +
+        proposition24CounterParams.ν * (1 : ℝ) ^ proposition24CounterParams.γ
+    norm_num [proposition24CounterParams]
+  · intro t x ht0 htT hx
+    cases hx
+
+lemma not_forall_Proposition_2_4 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params, Proposition_2_4 D p) := by
+  intro h
+  have hprop := h proposition24CounterDomain proposition24CounterParams
+  have hmass :=
+    (hprop proposition24CounterU0 proposition24Counter_initial
+      1 (by norm_num) proposition24CounterU proposition24CounterV
+      (proposition24Counter_classical 1 (by norm_num))
+      proposition24Counter_trace).1 rfl rfl
+  have hbad := hmass (1 / 2) (by norm_num) (by norm_num)
+  simp [proposition24CounterDomain, proposition24CounterU0,
+    proposition24CounterU] at hbad
+
 def Proposition_2_5 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
     ∀ Tmax > 0, ∀ u v : ℝ → D.Point → ℝ,
@@ -1471,6 +2391,138 @@ lemma Proposition_2_5.bounded_before
     (hLp : LpPowerBoundedBefore D pExp Tmax u) :
     IsPaper2BoundedBefore D Tmax u :=
   h u₀ hu₀ Tmax hTmax u v hsol htrace pExp hpExp hLp
+
+/-- A fake bounded-domain interface showing that Proposition 2.5 is not a
+consequence of the current abstract API alone.  The fake operators make
+`u(t) = v(t) = (1 - t)⁻¹` a classical solution on `(0,1)`, and the fake
+integral makes every `Lᵖ` bound trivial.  The fake `supNorm`, however, records
+the blow-up of this spatially constant profile as `t → 1`. -/
+def proposition25CounterDomain : BoundedDomainData where
+  Point := Unit
+  inside := Set.univ
+  boundary := ∅
+  volume := 1
+  supNorm := fun f => if 0 ≤ f () ∧ f () < 1 then 0 else f ()
+  infValue := fun f => f ()
+  integral := fun _ => 0
+  gradNorm := fun _ _ => 0
+  timeDeriv := fun _ _ _ => 0
+  laplacian := fun _ _ => 0
+  chemotaxisDiv := fun _ _ _ _ => 0
+  crossDiffusionEnergyTerm := fun _ _ _ _ => 0
+  normalDeriv := fun _ _ => 0
+  initialAdmissible := fun _ => True
+  classicalRegularity := fun _ _ _ => True
+
+def proposition25CounterU0 : proposition25CounterDomain.Point → ℝ :=
+  fun _ => 1
+
+def proposition25CounterU : ℝ → proposition25CounterDomain.Point → ℝ :=
+  fun t _ => (1 - t)⁻¹
+
+def proposition25CounterV : ℝ → proposition25CounterDomain.Point → ℝ :=
+  fun t _ => (1 - t)⁻¹
+
+lemma proposition25Counter_initial :
+    PositiveInitialDatum proposition25CounterDomain proposition25CounterU0 := by
+  constructor
+  · trivial
+  · intro x hx
+    norm_num [proposition25CounterU0]
+
+lemma proposition25Counter_trace :
+    InitialTrace proposition25CounterDomain proposition25CounterU0
+      proposition25CounterU := by
+  intro ε hε
+  refine ⟨1 / 2, by norm_num, ?_⟩
+  intro t ht0 htδ
+  have hden : 0 < 1 - t := by linarith
+  have hdiff :
+      (1 - t)⁻¹ - 1 = t / (1 - t) := by
+    field_simp [ne_of_gt hden]
+    ring
+  have hdiff_nonneg : 0 ≤ (1 - t)⁻¹ - 1 := by
+    rw [hdiff]
+    exact div_nonneg ht0.le hden.le
+  have hdiff_lt_one : (1 - t)⁻¹ - 1 < 1 := by
+    rw [hdiff]
+    rw [div_lt_iff₀ hden]
+    linarith
+  simp [proposition25CounterDomain, proposition25CounterU0,
+    proposition25CounterU, hdiff_nonneg, hdiff_lt_one, hε]
+
+lemma proposition25Counter_classical (T : ℝ) (hT : T = 1) :
+    IsPaper2ClassicalSolution proposition25CounterDomain
+      proposition24CounterParams T proposition25CounterU proposition25CounterV := by
+  subst T
+  refine ⟨by norm_num, trivial, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT hx
+    have hden : 0 < 1 - t := by linarith
+    exact inv_pos.mpr hden
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - proposition24CounterParams.χ₀ * 0 +
+        (1 - t)⁻¹ * (proposition24CounterParams.a -
+          proposition24CounterParams.b *
+            ((1 - t)⁻¹) ^ proposition24CounterParams.α)
+    norm_num [proposition24CounterParams]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - proposition24CounterParams.μ * (1 - t)⁻¹ +
+        proposition24CounterParams.ν *
+          ((1 - t)⁻¹) ^ proposition24CounterParams.γ
+    norm_num [proposition24CounterParams]
+  · intro t x ht0 htT hx
+    cases hx
+
+lemma proposition25Counter_lp :
+    LpPowerBoundedBefore proposition25CounterDomain 2 1
+      proposition25CounterU := by
+  refine ⟨0, ?_⟩
+  intro t ht0 htT
+  simp [proposition25CounterDomain]
+
+lemma not_forall_Proposition_2_5 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params, Proposition_2_5 D p) := by
+  intro h
+  have hprop := h proposition25CounterDomain proposition24CounterParams
+  have hbounded :=
+    hprop proposition25CounterU0 proposition25Counter_initial
+      1 (by norm_num) proposition25CounterU proposition25CounterV
+      (proposition25Counter_classical 1 rfl) proposition25Counter_trace
+      2 (by norm_num [proposition24CounterParams]) proposition25Counter_lp
+  rcases hbounded with ⟨M, hM⟩
+  let t : ℝ := 1 - (|M| + 2)⁻¹
+  have hden_pos : 0 < |M| + 2 := by positivity
+  have hden_ne : |M| + 2 ≠ 0 := ne_of_gt hden_pos
+  have hden_gt_one : 1 < |M| + 2 := by
+    have h_abs : 0 ≤ |M| := abs_nonneg M
+    linarith
+  have hinv_pos : 0 < (|M| + 2)⁻¹ := inv_pos.mpr hden_pos
+  have hinv_lt_one : (|M| + 2)⁻¹ < 1 := by
+    rw [inv_lt_one₀ hden_pos]
+    exact hden_gt_one
+  have ht0 : 0 < t := by
+    dsimp [t]
+    linarith
+  have ht1 : t < 1 := by
+    dsimp [t]
+    linarith
+  have hle := hM t ht0 ht1
+  have hval : proposition25CounterU t () = |M| + 2 := by
+    dsimp [proposition25CounterU, t]
+    rw [sub_sub_cancel, inv_inv]
+  have hnot_small : ¬ (0 ≤ proposition25CounterU t () ∧ proposition25CounterU t () < 1) := by
+    rw [hval]
+    intro hsmall
+    linarith
+  have hnot_small_val : ¬ (0 ≤ |M| + 2 ∧ |M| + 2 < 1) := by
+    intro hsmall
+    linarith
+  have hle' : |M| + 2 ≤ M := by
+    simpa [proposition25CounterDomain, hnot_small, hnot_small_val, hval] using hle
+  have hM_abs : M ≤ |M| := le_abs_self M
+  linarith
 
 def Lemma_2_7 (D : BoundedDomainData) : Prop :=
   ∀ u : ℝ → D.Point → ℝ, ∀ T pExp C1 C2 C3 C4 eps alpha,
@@ -1500,6 +2552,190 @@ lemma Lemma_2_7.lp_bound
     LpPowerBoundedBefore D pExp T u :=
   h u T pExp C1 C2 C3 C4 eps alpha
     hT hpExp hC1 hC2 hC3 hC4 heps heps_alpha hdiff
+
+def lemma27CounterIntegral (f : Bool → ℝ) : ℝ :=
+  if 0 < f false ∧
+      f true = Real.exp ((Real.log (f false)) ^ 2 / 3) then
+    Real.log (f false) / 3
+  else if 0 < f false ∧
+      f true = Real.exp ((Real.log (f false)) ^ 2 / 4) then
+    -((Real.log (f false) / 4) ^ 2)
+  else
+    0
+
+def lemma27CounterDomain : BoundedDomainData :=
+  { corollary21CounterDomain with
+    integral := lemma27CounterIntegral }
+
+lemma corollary21Counter_exp_rpow_four (r : ℝ) :
+    (Real.exp r) ^ (4 : ℝ) = Real.exp (4 * r) := by
+  rw [Real.rpow_ofNat]
+  rw [pow_succ, pow_succ, pow_succ, pow_succ, pow_zero]
+  simp only [one_mul]
+  rw [← Real.exp_add, ← Real.exp_add, ← Real.exp_add]
+  ring_nf
+
+lemma lemma27CounterIntegral_three {t : ℝ} (ht : t < 1) :
+    lemma27CounterDomain.integral
+      (fun x => (corollary21CounterU t x) ^ (3 : ℝ)) =
+        corollary21CounterR t := by
+  let r := corollary21CounterR t
+  have hr : 0 < r := corollary21CounterR_pos ht
+  have hfalse :
+      (corollary21CounterU t false) ^ (3 : ℝ) = Real.exp (3 * r) := by
+    simpa [corollary21CounterU, r] using corollary21Counter_exp_rpow_three r
+  have htrue :
+      (corollary21CounterU t true) ^ (3 : ℝ) = Real.exp (3 * r ^ 2) := by
+    simpa [corollary21CounterU, r] using corollary21Counter_exp_rpow_three (r ^ 2)
+  have hcond :
+      0 < (corollary21CounterU t false) ^ (3 : ℝ) ∧
+        (corollary21CounterU t true) ^ (3 : ℝ) =
+          Real.exp ((Real.log ((corollary21CounterU t false) ^ (3 : ℝ))) ^ 2 / 3) := by
+    constructor
+    · rw [hfalse]
+      positivity
+    · rw [hfalse, htrue, Real.log_exp]
+      ring_nf
+  have hlog : Real.log ((corollary21CounterU t false) ^ (3 : ℝ)) / 3 = r := by
+    rw [hfalse, Real.log_exp]
+    ring
+  dsimp [lemma27CounterDomain]
+  unfold lemma27CounterIntegral
+  change
+    (if 0 < (corollary21CounterU t false) ^ (3 : ℝ) ∧
+        (corollary21CounterU t true) ^ (3 : ℝ) =
+          Real.exp ((Real.log ((corollary21CounterU t false) ^ (3 : ℝ))) ^ 2 / 3)
+      then Real.log ((corollary21CounterU t false) ^ (3 : ℝ)) / 3
+      else if 0 < (corollary21CounterU t false) ^ (3 : ℝ) ∧
+          (corollary21CounterU t true) ^ (3 : ℝ) =
+            Real.exp ((Real.log ((corollary21CounterU t false) ^ (3 : ℝ))) ^ 2 / 4)
+        then -((Real.log ((corollary21CounterU t false) ^ (3 : ℝ)) / 4) ^ 2)
+        else 0) = corollary21CounterR t
+  rw [if_pos hcond, hlog]
+
+lemma lemma27CounterIntegral_four {t : ℝ} (ht : t < 1) :
+    lemma27CounterDomain.integral
+      (fun x => (corollary21CounterU t x) ^ (4 : ℝ)) =
+        -(corollary21CounterR t) ^ 2 := by
+  let r := corollary21CounterR t
+  have hr : 0 < r := corollary21CounterR_pos ht
+  have hfalse :
+      (corollary21CounterU t false) ^ (4 : ℝ) = Real.exp (4 * r) := by
+    simpa [corollary21CounterU, r] using corollary21Counter_exp_rpow_four r
+  have htrue :
+      (corollary21CounterU t true) ^ (4 : ℝ) = Real.exp (4 * r ^ 2) := by
+    simpa [corollary21CounterU, r] using corollary21Counter_exp_rpow_four (r ^ 2)
+  have hnot_cond3 :
+      ¬ (0 < (corollary21CounterU t false) ^ (4 : ℝ) ∧
+        (corollary21CounterU t true) ^ (4 : ℝ) =
+          Real.exp ((Real.log ((corollary21CounterU t false) ^ (4 : ℝ))) ^ 2 / 3)) := by
+    rintro ⟨_, hbad⟩
+    rw [hfalse, htrue, Real.log_exp] at hbad
+    have hlin : 4 * r ^ 2 = (4 * r) ^ 2 / 3 :=
+      Real.exp_injective hbad
+    have hr2_pos : 0 < r ^ 2 := sq_pos_of_pos hr
+    have hcontr : (4 : ℝ) * r ^ 2 ≠ (4 * r) ^ 2 / 3 := by
+      intro h
+      have h' : (4 : ℝ) * r ^ 2 = (16 / 3) * r ^ 2 := by
+        calc
+          (4 : ℝ) * r ^ 2 = (4 * r) ^ 2 / 3 := h
+          _ = (16 / 3) * r ^ 2 := by ring
+      have hcoef : (4 : ℝ) = 16 / 3 := by
+        exact mul_right_cancel₀ (ne_of_gt hr2_pos) h'
+      norm_num at hcoef
+    exact hcontr hlin
+  have hcond4 :
+      0 < (corollary21CounterU t false) ^ (4 : ℝ) ∧
+        (corollary21CounterU t true) ^ (4 : ℝ) =
+          Real.exp ((Real.log ((corollary21CounterU t false) ^ (4 : ℝ))) ^ 2 / 4) := by
+    constructor
+    · rw [hfalse]
+      positivity
+    · rw [hfalse, htrue, Real.log_exp]
+      ring_nf
+  have hlog : Real.log ((corollary21CounterU t false) ^ (4 : ℝ)) / 4 = r := by
+    rw [hfalse, Real.log_exp]
+    ring
+  dsimp [lemma27CounterDomain]
+  unfold lemma27CounterIntegral
+  change
+    (if 0 < (corollary21CounterU t false) ^ (4 : ℝ) ∧
+        (corollary21CounterU t true) ^ (4 : ℝ) =
+          Real.exp ((Real.log ((corollary21CounterU t false) ^ (4 : ℝ))) ^ 2 / 3)
+      then Real.log ((corollary21CounterU t false) ^ (4 : ℝ)) / 3
+      else if 0 < (corollary21CounterU t false) ^ (4 : ℝ) ∧
+          (corollary21CounterU t true) ^ (4 : ℝ) =
+            Real.exp ((Real.log ((corollary21CounterU t false) ^ (4 : ℝ))) ^ 2 / 4)
+        then -((Real.log ((corollary21CounterU t false) ^ (4 : ℝ)) / 4) ^ 2)
+        else 0) = -(corollary21CounterR t) ^ 2
+  rw [if_neg hnot_cond3, if_pos hcond4, hlog]
+
+lemma corollary21CounterR_hasDerivAt {t : ℝ} (ht : t ≠ 1) :
+    HasDerivAt corollary21CounterR ((corollary21CounterR t) ^ 2) t := by
+  have hbase : HasDerivAt (fun s : ℝ => 1 - s) (-1) t := by
+    simpa using (hasDerivAt_const (x := t) (c := (1 : ℝ))).sub (hasDerivAt_id t)
+  have hne : (1 - t) ≠ 0 := by
+    intro hzero
+    apply ht
+    linarith
+  have h := hbase.inv hne
+  unfold corollary21CounterR
+  convert h using 1
+  field_simp [hne]
+
+lemma lemma27Counter_deriv_three {t : ℝ} (ht : t < 1) :
+    deriv
+      (fun τ => lemma27CounterDomain.integral
+        (fun x => (corollary21CounterU τ x) ^ (3 : ℝ))) t =
+      (corollary21CounterR t) ^ 2 := by
+  have ht_ne : t ≠ 1 := by linarith
+  have heq :
+      (fun τ => lemma27CounterDomain.integral
+        (fun x => (corollary21CounterU τ x) ^ (3 : ℝ))) =ᶠ[𝓝 t]
+        corollary21CounterR := by
+    filter_upwards [Iio_mem_nhds ht] with τ hτ
+    exact lemma27CounterIntegral_three hτ
+  exact ((corollary21CounterR_hasDerivAt ht_ne).congr_of_eventuallyEq heq).deriv
+
+lemma lemma27Counter_not_lp_three :
+    ¬ LpPowerBoundedBefore lemma27CounterDomain 3 1 corollary21CounterU := by
+  rintro ⟨C, hC⟩
+  let R : ℝ := max 2 (C + 1)
+  have hR_gt_one : 1 < R := lt_of_lt_of_le (by norm_num) (le_max_left _ _)
+  have hR_pos : 0 < R := by linarith
+  have hC_lt_R : C < R := by
+    have hle : C + 1 ≤ R := le_max_right _ _
+    linarith
+  let t : ℝ := 1 - R⁻¹
+  have ht0 : 0 < t := by
+    dsimp [t]
+    rw [sub_pos]
+    exact inv_lt_one_of_one_lt₀ hR_gt_one
+  have ht1 : t < 1 := by
+    dsimp [t]
+    linarith [inv_pos.mpr hR_pos]
+  have hR_eq : corollary21CounterR t = R := by
+    dsimp [corollary21CounterR, t]
+    rw [sub_sub_cancel, inv_inv]
+  have hle := hC t ht0 ht1
+  rw [lemma27CounterIntegral_three ht1, hR_eq] at hle
+  linarith
+
+lemma not_forall_Lemma_2_7 :
+    ¬ (∀ D : BoundedDomainData, Lemma_2_7 D) := by
+  intro h
+  have hbound :=
+    h lemma27CounterDomain corollary21CounterU 1 3 0 0 0 1 1 1
+      (by norm_num) (by norm_num) (by norm_num) (by norm_num)
+      (by norm_num) (by norm_num) (by norm_num) (by norm_num) ?_
+  · exact lemma27Counter_not_lp_three hbound
+  · intro t _ht0 ht1
+    rw [show (3 : ℝ) + 1 - 1 = 3 by norm_num,
+      show (3 : ℝ) + 1 = 4 by norm_num]
+    simp only [zero_mul, add_zero, one_mul]
+    rw [lemma27Counter_deriv_three ht1, lemma27CounterIntegral_four ht1]
+    ring_nf
+    exact le_rfl
 
 def Lemma_3_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   p.χ₀ ≤ 0 →
@@ -1533,6 +2769,69 @@ lemma Lemma_3_1.minimal_sup_norm_monotone
     (hsol : IsPaper2ClassicalSolution D p T u v) :
     SupNormNonincreasingOn D u (Set.Ioo (0 : ℝ) T) :=
   (h hχ).2 ha hb T hT u v hsol
+
+/-- A fake bounded-domain interface showing that Lemma 3.1 is not a consequence
+of the current abstract API alone.  The fake time derivative is identically
+zero, so the increasing spatially constant profile satisfies the abstract PDE,
+while the fake `supNorm` records its increase. -/
+def lemma31CounterDomain : BoundedDomainData where
+  Point := Unit
+  inside := Set.univ
+  boundary := ∅
+  volume := 1
+  supNorm := fun f => f ()
+  infValue := fun f => f ()
+  integral := fun _ => 0
+  gradNorm := fun _ _ => 0
+  timeDeriv := fun _ _ _ => 0
+  laplacian := fun _ _ => 0
+  chemotaxisDiv := fun _ _ _ _ => 0
+  crossDiffusionEnergyTerm := fun _ _ _ _ => 0
+  normalDeriv := fun _ _ => 0
+  initialAdmissible := fun _ => True
+  classicalRegularity := fun _ _ _ => True
+
+def lemma31CounterU : ℝ → lemma31CounterDomain.Point → ℝ :=
+  fun t _ => t + 1
+
+def lemma31CounterV : ℝ → lemma31CounterDomain.Point → ℝ :=
+  fun t _ => t + 1
+
+lemma lemma31Counter_classical (T : ℝ) (hT : 0 < T) :
+    IsPaper2ClassicalSolution lemma31CounterDomain
+      proposition24CounterParams T lemma31CounterU lemma31CounterV := by
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT hx
+    dsimp [lemma31CounterU]
+    linarith
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - proposition24CounterParams.χ₀ * 0 +
+        (t + 1) * (proposition24CounterParams.a -
+          proposition24CounterParams.b *
+            (t + 1) ^ proposition24CounterParams.α)
+    norm_num [proposition24CounterParams]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - proposition24CounterParams.μ * (t + 1) +
+        proposition24CounterParams.ν *
+          (t + 1) ^ proposition24CounterParams.γ
+    norm_num [proposition24CounterParams]
+  · intro t x ht0 htT hx
+    cases hx
+
+lemma not_forall_Lemma_3_1 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params, Lemma_3_1 D p) := by
+  intro h
+  have hprop := h lemma31CounterDomain proposition24CounterParams
+  have hmono :=
+    (hprop (by norm_num [proposition24CounterParams])).2 rfl rfl
+      1 (by norm_num) lemma31CounterU lemma31CounterV
+      (lemma31Counter_classical 1 (by norm_num))
+  have hbad :=
+    hmono (1 / 4) (by norm_num) (1 / 2) (by norm_num) (by norm_num)
+  simp [lemma31CounterDomain, lemma31CounterU] at hbad
+  norm_num at hbad
 
 def Lemma_4_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
@@ -1572,6 +2871,104 @@ lemma Lemma_4_1.interpolation_bound
     rcases h.interpolation_estimate hu₀ hT hsol htrace heps hpExp with
       ⟨Ceps, hCeps, hestimate⟩
     exact ⟨Ceps, hCeps, hestimate.bound ht0 htT⟩
+
+/-- A fake bounded-domain interface showing that Lemma 4.1's interpolation
+estimate is not a consequence of the current abstract API alone.  The constant
+profile `u = v = 2` solves the fake PDE, while the fake integral assigns mass
+to `u^2` but not to `u` or the zero gradient term. -/
+def lemma41CounterDomain : BoundedDomainData where
+  Point := Unit
+  inside := Set.univ
+  boundary := ∅
+  volume := 1
+  supNorm := fun f => |f ()|
+  infValue := fun f => f ()
+  integral := fun f => if f () = (4 : ℝ) then 1 else 0
+  gradNorm := fun _ _ => 0
+  timeDeriv := fun _ _ _ => 0
+  laplacian := fun _ _ => 0
+  chemotaxisDiv := fun _ _ _ _ => 0
+  crossDiffusionEnergyTerm := fun _ _ _ _ => 0
+  normalDeriv := fun _ _ => 0
+  initialAdmissible := fun _ => True
+  classicalRegularity := fun _ _ _ => True
+
+def lemma41CounterParams : CM2Params where
+  N := 1
+  hN := by norm_num
+  α := 1
+  γ := 1
+  m := 1
+  μ := 1
+  ν := 1
+  χ₀ := 0
+  a := 2
+  b := 1
+  β := 0
+  hα := by norm_num
+  hγ := by norm_num
+  hm := by norm_num
+  hμ := by norm_num
+  hν := by norm_num
+  ha := by norm_num
+  hb := by norm_num
+  hβ := by norm_num
+
+def lemma41CounterU0 : lemma41CounterDomain.Point → ℝ :=
+  fun _ => 2
+
+def lemma41CounterU : ℝ → lemma41CounterDomain.Point → ℝ :=
+  fun _ _ => 2
+
+def lemma41CounterV : ℝ → lemma41CounterDomain.Point → ℝ :=
+  fun _ _ => 2
+
+lemma lemma41Counter_initial :
+    PositiveInitialDatum lemma41CounterDomain lemma41CounterU0 := by
+  constructor
+  · trivial
+  · intro x hx
+    norm_num [lemma41CounterU0]
+
+lemma lemma41Counter_trace :
+    InitialTrace lemma41CounterDomain lemma41CounterU0 lemma41CounterU := by
+  intro ε hε
+  refine ⟨1, by norm_num, ?_⟩
+  intro t ht0 htδ
+  simpa [lemma41CounterDomain, lemma41CounterU0, lemma41CounterU] using hε
+
+lemma lemma41Counter_classical (T : ℝ) (hT : 0 < T) :
+    IsPaper2ClassicalSolution lemma41CounterDomain lemma41CounterParams T
+      lemma41CounterU lemma41CounterV := by
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT hx
+    norm_num [lemma41CounterU]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - lemma41CounterParams.χ₀ * 0 +
+        2 * (lemma41CounterParams.a -
+          lemma41CounterParams.b * (2 : ℝ) ^ lemma41CounterParams.α)
+    norm_num [lemma41CounterParams]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - lemma41CounterParams.μ * 2 +
+        lemma41CounterParams.ν * (2 : ℝ) ^ lemma41CounterParams.γ
+    norm_num [lemma41CounterParams]
+  · intro t x ht0 htT hx
+    cases hx
+
+lemma not_forall_Lemma_4_1 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params, Lemma_4_1 D p) := by
+  intro h
+  have hprop := h lemma41CounterDomain lemma41CounterParams
+  rcases hprop lemma41CounterU0 lemma41Counter_initial
+      1 (by norm_num) lemma41CounterU lemma41CounterV
+      (lemma41Counter_classical 1 (by norm_num)) lemma41Counter_trace
+      1 (by norm_num) 2 (by norm_num) with
+    ⟨Ceps, _hCeps_pos, hestimate⟩
+  have hbad := hestimate (1 / 2) (by norm_num) (by norm_num)
+  simp [lemma41CounterDomain, lemma41CounterU] at hbad
+  norm_num at hbad
 
 structure Paper2Constants (p : CM2Params) where
   K : ℝ
@@ -1784,6 +3181,62 @@ lemma Proposition_1_1.solution
       (1 ≤ p.m → MGeOneFiniteHorizonAlternative D Tmax u) :=
   h u₀ hu₀
 
+/-- A deliberately degenerate bounded-domain API instance showing that the
+current abstract interface alone cannot prove Paper2 Proposition 1.1 for every
+`BoundedDomainData`.  The regularity field is `False`, so no classical solution
+can exist even though every initial datum is admissible. -/
+def proposition11NoRegularityDomain : BoundedDomainData where
+  Point := Unit
+  inside := ∅
+  boundary := ∅
+  volume := 1
+  supNorm := fun _ => 0
+  infValue := fun _ => 0
+  integral := fun _ => 0
+  gradNorm := fun _ _ => 0
+  timeDeriv := fun _ _ _ => 0
+  laplacian := fun _ _ => 0
+  chemotaxisDiv := fun _ _ _ _ => 0
+  crossDiffusionEnergyTerm := fun _ _ _ _ => 0
+  normalDeriv := fun _ _ => 0
+  initialAdmissible := fun _ => True
+  classicalRegularity := fun _ _ _ => False
+
+def proposition11CounterParams : CM2Params :=
+  { N := 1
+    hN := by norm_num
+    α := 1
+    γ := 1
+    m := 1
+    μ := 1
+    ν := 1
+    χ₀ := 0
+    a := 0
+    b := 0
+    β := 0
+    hα := by norm_num
+    hγ := by norm_num
+    hm := by norm_num
+    hμ := by norm_num
+    hν := by norm_num
+    ha := by norm_num
+    hb := by norm_num
+    hβ := by norm_num }
+
+lemma not_forall_Proposition_1_1 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params, Proposition_1_1 D p) := by
+  intro h
+  let D := proposition11NoRegularityDomain
+  let p := proposition11CounterParams
+  let u₀ : D.Point → ℝ := fun _ => 1
+  have hu₀ : PositiveInitialDatum D u₀ := by
+    constructor
+    · trivial
+    · intro x hx
+      exact False.elim (by simpa [D, proposition11NoRegularityDomain] using hx)
+  rcases h D p u₀ hu₀ with ⟨Tmax, _hTmax, u, v, hsol, _htrace, _halt⟩
+  exact hsol.regularity
+
 /-- Paper2 Theorem 1.1: boundedness/global existence for negative sensitivity. -/
 def Theorem_1_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   p.χ₀ ≤ 0 →
@@ -1886,6 +3339,42 @@ lemma Theorem_1_1.minimal_global_bounded_before_solution
     ⟨Tmax, hTmax, u, v, _hsol, htrace, hbound, hglobal⟩
   exact ⟨Tmax, hTmax, u, v, hglobal hm, htrace, hbound⟩
 
+lemma not_forall_Theorem_1_1 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params, Theorem_1_1 D p) := by
+  intro h
+  let D := proposition11NoRegularityDomain
+  let p := proposition11CounterParams
+  let u₀ : D.Point → ℝ := fun _ => 1
+  have hu₀ : PositiveInitialDatum D u₀ := by
+    constructor
+    · trivial
+    · intro x hx
+      exact False.elim (by simpa [D, proposition11NoRegularityDomain] using hx)
+  rcases (h D p (by norm_num [p, proposition11CounterParams])).2 rfl rfl u₀ hu₀ with
+    ⟨Tmax, _hTmax, u, v, hsol, _htrace, _hbound, _hglobal⟩
+  exact hsol.regularity
+
+def theorem12NoRegularityParams : CM2Params :=
+  { N := 1
+    hN := by norm_num
+    α := 1
+    γ := 1
+    m := 1
+    μ := 1
+    ν := 1
+    χ₀ := 0
+    a := 0
+    b := 0
+    β := 1
+    hα := by norm_num
+    hγ := by norm_num
+    hm := by norm_num
+    hμ := by norm_num
+    hν := by norm_num
+    ha := by norm_num
+    hb := by norm_num
+    hβ := by norm_num }
+
 /-- Paper2 Theorem 1.2: boundedness/global existence for weak nonlinear cross diffusion. -/
 def Theorem_1_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
@@ -1953,6 +3442,51 @@ lemma Theorem_1_2.linear_solution_of_remark16_weak
   h.linear_solution ha hb hβ hm
     (by simpa [remark16ChiStarWeak_eq_chiBeta] using hχ) hu₀
 
+lemma not_forall_Theorem_1_2 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params, Theorem_1_2 D p) := by
+  intro h
+  let D := proposition11NoRegularityDomain
+  let p := theorem12NoRegularityParams
+  let u₀ : D.Point → ℝ := fun _ => 1
+  have hu₀ : PositiveInitialDatum D u₀ := by
+    constructor
+    · trivial
+    · intro x hx
+      exact False.elim (by simpa [D, proposition11NoRegularityDomain] using hx)
+  have hχ : p.χ₀ < chiBeta p := by
+    norm_num [p, theorem12NoRegularityParams, chiBeta]
+  rcases (h D p (by norm_num [p, theorem12NoRegularityParams])
+      (by norm_num [p, theorem12NoRegularityParams])
+      (by norm_num [p, theorem12NoRegularityParams])).2
+      (by norm_num [p, theorem12NoRegularityParams]) hχ u₀ hu₀ with
+    ⟨u, v, hglobal, _htrace, _hbounded⟩
+  exact hglobal.regularity (T := 1) (by norm_num)
+
+def theorem13NoRegularityParams : CM2Params :=
+  { N := 1
+    hN := by norm_num
+    α := 2
+    γ := 1
+    m := 1
+    μ := 1
+    ν := 1
+    χ₀ := 0
+    a := 1
+    b := 1
+    β := 0
+    hα := by norm_num
+    hγ := by norm_num
+    hm := by norm_num
+    hμ := by norm_num
+    hν := by norm_num
+    ha := by norm_num
+    hb := by norm_num
+    hβ := by norm_num }
+
+def theorem13NoRegularityConstants : Paper2Constants theorem13NoRegularityParams where
+  K := 0
+  K_nonneg := by norm_num
+
 /-- Paper2 Theorem 1.3: boundedness/global existence under a strong logistic source. -/
 def Theorem_1_3 (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p) : Prop :=
   0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
@@ -1991,6 +3525,31 @@ lemma Theorem_1_3.global_solution
       InitialTrace D u₀ u ∧
       IsPaper2Bounded D u :=
   (h ha hb hm_pos hcond).2 hm u₀ hu₀
+
+lemma not_forall_Theorem_1_3 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params,
+      ∀ C : Paper2Constants p, Theorem_1_3 D p C) := by
+  intro h
+  let D := proposition11NoRegularityDomain
+  let p := theorem13NoRegularityParams
+  let C := theorem13NoRegularityConstants
+  let u₀ : D.Point → ℝ := fun _ => 1
+  have hu₀ : PositiveInitialDatum D u₀ := by
+    constructor
+    · trivial
+    · intro x hx
+      exact False.elim (by simpa [D, proposition11NoRegularityDomain] using hx)
+  have hcond : StrongLogisticCondition p C :=
+    StrongLogisticCondition.of_alpha_gt_m_add_gamma_sub_one
+      (by norm_num [p, theorem13NoRegularityParams])
+      (by norm_num [p, theorem13NoRegularityParams])
+  rcases (h D p C
+      (by norm_num [p, theorem13NoRegularityParams])
+      (by norm_num [p, theorem13NoRegularityParams])
+      (by norm_num [p, theorem13NoRegularityParams])
+      hcond).1 u₀ hu₀ with
+    ⟨Tmax, _hTmax, u, v, hsol, _htrace, _hbounded⟩
+  exact hsol.regularity
 
 lemma Theorem_1_3.finite_horizon_solution_of_alpha_gt_m_add_gamma_sub_one
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -2314,113 +3873,6 @@ lemma Theorem_1_3.global_solution_of_remark16_min_chiStar12
   exact h.global_solution ha hb hm_pos
     (StrongLogisticCondition.of_remark16_min_chiStar12 hβ hm hα hdim hχ)
     hm_ge hu₀
-
-structure Paper2AnalyticData (D : BoundedDomainData) where
-  lpBootstrap : Lemma_2_6 D
-  crossDiffusionBootstrap : ∀ p : CM2Params, Corollary_2_1 D p
-  signalLpEstimate :
-    ∀ p : CM2Params, ∀ S : SemigroupEstimateData D,
-      Proposition_2_1 D p S
-  weightedGradientEstimate :
-    ∀ p : CM2Params, Proposition_2_2 D p
-  weightedSignalEstimate :
-    ∀ p : CM2Params, Proposition_2_3 D p
-  massComparison :
-    ∀ p : CM2Params, Proposition_2_4 D p
-  boundednessCriterion :
-    ∀ p : CM2Params, Proposition_2_5 D p
-  dampingInequality : Lemma_2_7 D
-  upperEnvelopeMonotonicity :
-    ∀ p : CM2Params, Lemma_3_1 D p
-  massGradientInterpolation :
-    ∀ p : CM2Params, Lemma_4_1 D p
-  localExistence :
-    ∀ p : CM2Params, Proposition_1_1 D p
-  negativeSensitivityGlobal :
-    ∀ p : CM2Params, Theorem_1_1 D p
-  weakCrossDiffusionGlobal :
-    ∀ p : CM2Params, Theorem_1_2 D p
-  strongLogisticGlobal :
-    ∀ p : CM2Params, ∀ C : Paper2Constants p, Theorem_1_3 D p C
-  negativeSensitivityGlobalBounded :
-    ∀ p : CM2Params, p.χ₀ ≤ 0 → 1 ≤ p.m →
-      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
-        ∃ u v : ℝ → D.Point → ℝ,
-          IsPaper2GlobalClassicalSolution D p u v ∧
-          InitialTrace D u₀ u ∧
-          IsPaper2Bounded D u
-
-lemma Lemma_2_6_proved
-    (D : BoundedDomainData) (A : Paper2AnalyticData D) :
-    Lemma_2_6 D :=
-  A.lpBootstrap
-
-lemma Corollary_2_1_proved
-    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
-    Corollary_2_1 D p :=
-  A.crossDiffusionBootstrap p
-
-lemma Proposition_2_1_proved
-    (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D)
-    (A : Paper2AnalyticData D) :
-    Proposition_2_1 D p S :=
-  A.signalLpEstimate p S
-
-lemma Proposition_2_2_proved
-    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
-    Proposition_2_2 D p :=
-  A.weightedGradientEstimate p
-
-lemma Proposition_2_3_proved
-    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
-    Proposition_2_3 D p :=
-  A.weightedSignalEstimate p
-
-lemma Proposition_2_4_proved
-    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
-    Proposition_2_4 D p :=
-  A.massComparison p
-
-lemma Proposition_2_5_proved
-    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
-    Proposition_2_5 D p :=
-  A.boundednessCriterion p
-
-lemma Lemma_2_7_proved
-    (D : BoundedDomainData) (A : Paper2AnalyticData D) :
-    Lemma_2_7 D :=
-  A.dampingInequality
-
-lemma Lemma_3_1_proved
-    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
-    Lemma_3_1 D p :=
-  A.upperEnvelopeMonotonicity p
-
-lemma Lemma_4_1_proved
-    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
-    Lemma_4_1 D p :=
-  A.massGradientInterpolation p
-
-lemma Proposition_1_1_proved
-    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
-    Proposition_1_1 D p :=
-  A.localExistence p
-
-lemma Theorem_1_1_proved
-    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
-    Theorem_1_1 D p :=
-  A.negativeSensitivityGlobal p
-
-lemma Theorem_1_2_proved
-    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
-    Theorem_1_2 D p :=
-  A.weakCrossDiffusionGlobal p
-
-lemma Theorem_1_3_proved
-    (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p)
-    (A : Paper2AnalyticData D) :
-    Theorem_1_3 D p C :=
-  A.strongLogisticGlobal p C
 
 end
 

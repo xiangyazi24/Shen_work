@@ -1,43 +1,38 @@
-# Claude-Codex Sync: Current Target Split
+# Claude-Codex Sync: Current State
 
-## Current State
+## Status
+- 105 commits, 0 sorry, BUILD OK
+- Paper3 Lemma A.6 alpha>=1 gamma<=1 branch: PROVED (Codex)
 
-BUILD OK, 0 sorry (but `Lemma_4_1_neg_holds` has an uncommitted sorry at the boundary case).
+## Active Work Split
 
-## Uncommitted Work (Claude)
+### Codex: Paper3 Lemma A.6 remaining branches + Paper1 Lemma 4.1 gaps
+- alpha < 1 branch (C = (alpha+1)^2/(4*alpha))
+- gamma > 1, alpha >= 1 branch (C = gamma^2/(2*gamma-1))
+- Paper1 Lemma 4.1 constant region trap-set connection
 
-`Lemma_4_1_neg_holds` at line ~4170: combines constant + exponential regions into
-full `IsPaperFrozenSuperSolution` for `upperBarrier`. Has 1 sorry at the boundary
-case `exp(-κx) = M`.
+### Claude: Paper1 infrastructure + new provable targets
+- paperWaveOperator_one_eq_zero: DONE
+- frozenElliptic_differentiable: DONE
+- Looking for more provable algebraic/PDE results
 
-**Fix for boundary**: When `exp(-κx) = M`, `upperBarrier κ M x = M = exp(-κx)`.
-Both the constant region formula AND the exponential region formula give the same
-value at the boundary. The paperWaveOperator at this point can be evaluated using
-either formula. The constant region proof `paperWaveOperator_upperBarrier_const_region_nonpos_neg`
-requires strict `M < exp(-κx)`, but we can instead directly compute
-`paperWaveOperator_const_eq` at x where `upperBarrier κ M x = M` (which is true
-when `exp(-κx) ≥ M`, i.e., when `M ≤ exp(-κx)`). So use `le_of_eq heq` to get
-`M ≤ exp(-κx)` and apply the constant region.
+## Key Proved Theorems (This Session)
+1. Psi_elliptic_ode, frozenElliptic_ode (resolvent ODE)
+2. frozenElliptic_continuous, frozenElliptic_differentiable
+3. frozenElliptic_tendsto_atTop/atBot (DCT limits)
+4. chemotaxis_resolvent_bound (paper eq 4.4)
+5. Lemma 4.1 constant/exponential region estimates
+6. paperWaveOperator_eq_frozenWaveOperator_at_fixed_point (bridge)
+7. FrozenStationaryWaveProfile.mk_auto_limits/mk_from_paper_stationarity
+8. Lemma A.6 alpha>=1 gamma<=1 branch (Paper3)
+9. Both chi branches of constant subsolution (Lemma 4.2)
 
-## Target Split
+## Remaining Paper Theorem Prop Defs: 49
+- Paper1: 23 (Lemma 2.1, 2.5, 4.1, 4.2, 5.1-5.3, Remark 4.2-4.3, 5.1-5.2, Prop 1.1-1.2, Thm 1.1-1.3)
+- Paper2: 15 (Lemma 2.1-2.4, 2.6-2.7, 3.1, 4.1, Prop 1.1, 2.1-2.5, Thm 1.1-1.3)
+- Paper3: 11 (Prop 1.1-1.4, Thm 2.1-2.5, Lemma 3.1-3.5, Cor 5.1, Lemma 7.1, A.1-A.8)
 
-### Claude: Fix boundary case + commit Lemma_4_1_neg_holds
-
-Fix the boundary sorry by using the non-strict constant region:
-when `exp(-κx) = M`, we have `M ≤ exp(-κx)` so the constant region
-formula applies. The key: `paperWaveOperator_const_nonpos_neg`
-(the standalone theorem) works with `InWaveTrapSet κ M u` and any x.
-
-### Codex: Prove the positive sensitivity constant region for Lemma 4.1
-
-Add `Lemma_4_1_pos_holds` — the `0 ≤ χ < χ*` branch. The constant region
-is already proved (`paperWaveOperator_upperBarrier_const_region_nonpos_pos`).
-The exponential region for positive χ needs the paper's Case 2 estimate.
-Start with the constant-only version.
-
-### Neither should touch: Defs.lean, LeibnizRule.lean
-
-## Files
-
-- Claude: `ShenWork/Paper1/Statements.lean` near line 4170 only
-- Codex: `ShenWork/Paper1/Statements.lean` after `Lemma_4_1_neg_holds`
+## Coordination
+- Claude: Paper1/Statements.lean, Defs.lean
+- Codex: Paper3/Statements.lean
+- Neither touch the other's file without syncing

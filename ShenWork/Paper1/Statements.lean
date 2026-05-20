@@ -88,6 +88,15 @@ theorem UniformLimsupLe.shift_space
   intro ε hε
   exact (h ε hε).mono fun _t ht x => ht (x + a)
 
+theorem UniformLimsupLe.mono
+    {u : ℝ → ℝ → ℝ} {L₁ L₂ : ℝ}
+    (h : UniformLimsupLe u L₁) (hL : L₁ ≤ L₂) :
+    UniformLimsupLe u L₂ := by
+  intro ε hε
+  exact (h ε hε).mono fun _t ht x => by
+    have := ht x
+    linarith
+
 theorem UniformConvergesToConstant.shift_space
     {u : ℝ → ℝ → ℝ} {b : ℝ} (h : UniformConvergesToConstant u b) (a : ℝ) :
     UniformConvergesToConstant (fun t x => u t (x + a)) b := by
@@ -488,7 +497,7 @@ theorem UniformMovingFrameConvergence.profile_eq_of_movingFrame
   let x : ℝ := y + c * T
   have hx : x - c * t = y := by
     dsimp [x, t]
-    ring
+    ring_nf
   have hlt := hT t x le_rfl
   simp [t, x, hx] at hlt
   linarith [abs_nonneg (W y - U y)]
@@ -506,6 +515,141 @@ theorem WeightedL2InitialCloseness.symm
   convert h using 1
   ext x
   rw [abs_sub_comm]
+
+/-- A real integrability bridge for the weighted `L²` tail norm.  It reduces
+the closeness condition to a left exponential domination and a right
+exponential domination of the weighted integrand. -/
+theorem WeightedL2InitialCloseness.of_integrand_exp_bounds
+    {η δ : ℝ} (hη : 0 < η) (hδ : 0 < δ)
+    {u₀ U : ℝ → ℝ}
+    (hmeas : AEStronglyMeasurable
+      (fun x : ℝ => Real.exp (2 * η * x) * |u₀ x - U x| ^ 2) volume)
+    (hleft :
+      ∃ A : ℝ, 0 ≤ A ∧ ∀ x : ℝ,
+        ‖Real.exp (2 * η * x) * |u₀ x - U x| ^ 2‖ ≤
+          A * Real.exp (2 * η * x))
+    (hright :
+      ∃ B : ℝ, 0 ≤ B ∧ ∀ x : ℝ,
+        ‖Real.exp (2 * η * x) * |u₀ x - U x| ^ 2‖ ≤
+          B * Real.exp (-δ * x)) :
+    WeightedL2InitialCloseness η u₀ U := by
+  rcases hleft with ⟨A, hA, hleft⟩
+  rcases hright with ⟨B, hB, hright⟩
+  let f : ℝ → ℝ := fun x => Real.exp (2 * η * x) * |u₀ x - U x| ^ 2
+  have hleft_int : IntegrableOn f (Set.Iic 0) := by
+    have hdom : IntegrableOn (fun x : ℝ => A * Real.exp (2 * η * x))
+        (Set.Iic 0) :=
+      (integrableOn_exp_mul_Iic (by linarith : (0 : ℝ) < 2 * η) 0).const_mul A
+    refine hdom.mono' (show AEStronglyMeasurable f (volume.restrict (Set.Iic 0)) from
+      hmeas.restrict) (Filter.Eventually.of_forall fun x => ?_)
+    dsimp [f]
+    simpa [Real.norm_eq_abs,
+      abs_of_nonneg (mul_nonneg hA (Real.exp_nonneg _))] using hleft x
+  have hright_int : IntegrableOn f (Set.Ioi 0) := by
+    have hdom : IntegrableOn (fun x : ℝ => B * Real.exp (-δ * x))
+        (Set.Ioi 0) :=
+      (integrableOn_exp_mul_Ioi (by linarith : -δ < (0 : ℝ)) 0).const_mul B
+    refine hdom.mono' (show AEStronglyMeasurable f (volume.restrict (Set.Ioi 0)) from
+      hmeas.restrict) (Filter.Eventually.of_forall fun x => ?_)
+    dsimp [f]
+    simpa [Real.norm_eq_abs,
+      abs_of_nonneg (mul_nonneg hB (Real.exp_nonneg _))] using hright x
+  have hcover : Set.Iic (0 : ℝ) ∪ Set.Ioi (0 : ℝ) = (Set.univ : Set ℝ) := by
+    ext x
+    simp only [Set.mem_union, Set.mem_Iic, Set.mem_Ioi, Set.mem_univ, iff_true]
+    exact le_or_gt x 0
+  unfold WeightedL2InitialCloseness
+  change Integrable f
+  rw [← MeasureTheory.integrableOn_univ, ← hcover]
+  exact hleft_int.union hright_int
+
+/-- Variant of `WeightedL2InitialCloseness.of_integrand_exp_bounds` where the
+right-tail domination is only required eventually.  The left exponential bound
+absorbs the finite interval before the eventual right tail. -/
+theorem WeightedL2InitialCloseness.of_left_exp_bound_eventual_right_exp_bound
+    {η δ : ℝ} (hη : 0 < η) (hδ : 0 < δ)
+    {u₀ U : ℝ → ℝ}
+    (hmeas : AEStronglyMeasurable
+      (fun x : ℝ => Real.exp (2 * η * x) * |u₀ x - U x| ^ 2) volume)
+    (hleft :
+      ∃ A : ℝ, 0 ≤ A ∧ ∀ x : ℝ,
+        ‖Real.exp (2 * η * x) * |u₀ x - U x| ^ 2‖ ≤
+          A * Real.exp (2 * η * x))
+    (hright :
+      ∃ R B : ℝ, 0 ≤ B ∧ ∀ x : ℝ, R < x →
+        ‖Real.exp (2 * η * x) * |u₀ x - U x| ^ 2‖ ≤
+          B * Real.exp (-δ * x)) :
+    WeightedL2InitialCloseness η u₀ U := by
+  rcases hleft with ⟨A, hA, hleft⟩
+  rcases hright with ⟨R, B, hB, hright⟩
+  let f : ℝ → ℝ := fun x => Real.exp (2 * η * x) * |u₀ x - U x| ^ 2
+  have hleft_int : IntegrableOn f (Set.Iic R) := by
+    have hdom : IntegrableOn (fun x : ℝ => A * Real.exp (2 * η * x))
+        (Set.Iic R) :=
+      (integrableOn_exp_mul_Iic (by linarith : (0 : ℝ) < 2 * η) R).const_mul A
+    refine hdom.mono' (show AEStronglyMeasurable f (volume.restrict (Set.Iic R)) from
+      hmeas.restrict) (Filter.Eventually.of_forall fun x => ?_)
+    dsimp [f]
+    simpa [Real.norm_eq_abs,
+      abs_of_nonneg (mul_nonneg hA (Real.exp_nonneg _))] using hleft x
+  have hright_int : IntegrableOn f (Set.Ioi R) := by
+    have hdom : IntegrableOn (fun x : ℝ => B * Real.exp (-δ * x))
+        (Set.Ioi R) :=
+      (integrableOn_exp_mul_Ioi (by linarith : -δ < (0 : ℝ)) R).const_mul B
+    refine hdom.mono' (show AEStronglyMeasurable f (volume.restrict (Set.Ioi R)) from
+      hmeas.restrict) ?_
+    filter_upwards [ae_restrict_mem measurableSet_Ioi] with x hx
+    dsimp [f]
+    simpa [Real.norm_eq_abs,
+      abs_of_nonneg (mul_nonneg hB (Real.exp_nonneg _))] using hright x hx
+  have hcover : Set.Iic R ∪ Set.Ioi R = (Set.univ : Set ℝ) := by
+    ext x
+    simp only [Set.mem_union, Set.mem_Iic, Set.mem_Ioi, Set.mem_univ, iff_true]
+    exact le_or_gt x R
+  unfold WeightedL2InitialCloseness
+  change Integrable f
+  rw [← MeasureTheory.integrableOn_univ, ← hcover]
+  exact hleft_int.union hright_int
+
+theorem weightedL2_integrand_norm_le_of_abs_sub_le
+    {η A : ℝ} {u₀ U : ℝ → ℝ} (hA : 0 ≤ A) {x : ℝ}
+    (habs : |u₀ x - U x| ≤ A) :
+    ‖Real.exp (2 * η * x) * |u₀ x - U x| ^ 2‖ ≤
+      A ^ 2 * Real.exp (2 * η * x) := by
+  have hsq : |u₀ x - U x| ^ 2 ≤ A ^ 2 := by
+    nlinarith [habs, abs_nonneg (u₀ x - U x)]
+  calc
+    ‖Real.exp (2 * η * x) * |u₀ x - U x| ^ 2‖
+        = Real.exp (2 * η * x) * |u₀ x - U x| ^ 2 := by
+          rw [Real.norm_eq_abs,
+            abs_of_nonneg (mul_nonneg (Real.exp_nonneg _) (sq_nonneg _))]
+    _ ≤ Real.exp (2 * η * x) * A ^ 2 :=
+      mul_le_mul_of_nonneg_left hsq (Real.exp_nonneg _)
+    _ = A ^ 2 * Real.exp (2 * η * x) := by ring
+
+theorem weightedL2_integrand_norm_le_of_abs_sub_le_exp
+    {η β B : ℝ} {u₀ U : ℝ → ℝ} (hB : 0 ≤ B) {x : ℝ}
+    (habs : |u₀ x - U x| ≤ B * Real.exp (-β * x)) :
+    ‖Real.exp (2 * η * x) * |u₀ x - U x| ^ 2‖ ≤
+      B ^ 2 * Real.exp (-(2 * (β - η)) * x) := by
+  have hA_nonneg : 0 ≤ B * Real.exp (-β * x) :=
+    mul_nonneg hB (Real.exp_nonneg _)
+  have hbasic :=
+    weightedL2_integrand_norm_le_of_abs_sub_le
+      (η := η) (A := B * Real.exp (-β * x))
+      (u₀ := u₀) (U := U) hA_nonneg habs
+  calc
+    ‖Real.exp (2 * η * x) * |u₀ x - U x| ^ 2‖
+        ≤ (B * Real.exp (-β * x)) ^ 2 * Real.exp (2 * η * x) := hbasic
+    _ = B ^ 2 * (Real.exp (-β * x) *
+        Real.exp (-β * x) * Real.exp (2 * η * x)) := by ring
+    _ = B ^ 2 * (Real.exp ((-β * x) + (-β * x)) *
+        Real.exp (2 * η * x)) := by rw [Real.exp_add]
+    _ = B ^ 2 * Real.exp ((-β * x) + (-β * x) + 2 * η * x) := by
+      rw [← Real.exp_add]
+    _ = B ^ 2 * Real.exp (-(2 * (β - η)) * x) := by
+      congr 1
+      ring
 
 theorem IsGlobalCauchySolutionFrom.classical
     {p : CMParams} {u₀ : ℝ → ℝ} {u v : ℝ → ℝ → ℝ}
@@ -652,6 +796,73 @@ theorem not_forall_Lemma_2_1 :
   rcases (hall S 2 2 (by norm_num) le_rfl).1 with ⟨C, hC_pos, hC⟩
   have hbad := hC 1 (by norm_num) (fun _ => 0)
   norm_num [S] at hbad
+
+theorem Lemma_2_1_zero_output_branch
+    (S : HeatSemigroupEstimateData)
+    (hlp_nonneg : ∀ p u, 0 ≤ S.lpNorm p u)
+    (hlq_zero : ∀ q t u, S.lqNorm q (S.semigroup t u) = 0)
+    (hgrad_zero : ∀ q t u, S.gradientNorm q (S.semigroup t u) = 0)
+    (hdiv_zero : ∀ t u, S.linftyNorm (S.divergenceSemigroup t u) = 0) :
+    Lemma_2_1 S := by
+  intro p q _hp _hpq
+  refine ⟨?_, ?_, ?_⟩
+  · refine ⟨1, zero_lt_one, ?_⟩
+    intro t ht u
+    have hright_nonneg :
+        0 ≤
+          (1 : ℝ) * t ^ (-(1 / 2 : ℝ) * (1 / p - 1 / q)) *
+            Real.exp (-t) * S.lpNorm p u := by
+      exact mul_nonneg
+        (mul_nonneg
+          (mul_nonneg zero_le_one (Real.rpow_nonneg ht.le _))
+          (Real.exp_nonneg _))
+        (hlp_nonneg p u)
+    simpa [hlq_zero q t u] using hright_nonneg
+  · refine ⟨1, zero_lt_one, ?_⟩
+    intro t ht u
+    have hright_nonneg :
+        0 ≤
+          (1 : ℝ) *
+            t ^ (-(1 / 2 : ℝ) - (1 / 2 : ℝ) * (1 / p - 1 / q)) *
+            Real.exp (-t) * S.lpNorm p u := by
+      exact mul_nonneg
+        (mul_nonneg
+          (mul_nonneg zero_le_one (Real.rpow_nonneg ht.le _))
+          (Real.exp_nonneg _))
+        (hlp_nonneg p u)
+    simpa [hgrad_zero q t u] using hright_nonneg
+  · refine ⟨1, zero_lt_one, ?_⟩
+    intro t ht u
+    have hright_nonneg :
+        0 ≤
+          (1 : ℝ) * t ^ (-(1 / 2 : ℝ) - (1 / (2 * p))) *
+            Real.exp (-t) * S.lpNorm p u := by
+      exact mul_nonneg
+        (mul_nonneg
+          (mul_nonneg zero_le_one (Real.rpow_nonneg ht.le _))
+          (Real.exp_nonneg _))
+        (hlp_nonneg p u)
+    simpa [hdiv_zero t u] using hright_nonneg
+
+theorem Lemma_2_1_zero_data :
+    Lemma_2_1
+      { lpNorm := fun _ _ => 0
+        lqNorm := fun _ _ => 0
+        linftyNorm := fun _ => 0
+        gradientNorm := fun _ _ => 0
+        semigroup := fun _ _ _ => 0
+        divergenceSemigroup := fun _ _ _ => 0 } :=
+  Lemma_2_1_zero_output_branch
+    { lpNorm := fun _ _ => 0
+      lqNorm := fun _ _ => 0
+      linftyNorm := fun _ => 0
+      gradientNorm := fun _ _ => 0
+      semigroup := fun _ _ _ => 0
+      divergenceSemigroup := fun _ _ _ => 0 }
+    (by intro _ _; norm_num)
+    (by intro _ _ _; norm_num)
+    (by intro _ _ _; norm_num)
+    (by intro _ _; norm_num)
 
 def PsiDerivativeFormula (u : ℝ → ℝ) (l mu : ℝ) : Prop :=
   ∀ x,
@@ -923,6 +1134,54 @@ def Lemma_2_5 : Prop :=
               psi.weight x
           ≤ C * ∫ x : ℝ, (u x) ^ (gamma * pExp) * psi.weight x
 
+/-- A real zero-function branch of the weighted resolvent-gradient estimate. -/
+theorem Lemma_2_5_zero_function_branch
+    {pExp gamma l mu C : ℝ} (hpExp : 1 < pExp) (hgamma : 0 < gamma)
+    (psi : ExponentialWeight) :
+    Integrable
+      (fun x : ℝ =>
+        |deriv (fun z => Psi (fun _ : ℝ => ((0 : ℝ) ^ gamma)) l mu z) x| ^
+          pExp * psi.weight x) ∧
+      ∫ x : ℝ,
+        |deriv (fun z => Psi (fun _ : ℝ => ((0 : ℝ) ^ gamma)) l mu z) x| ^
+            pExp * psi.weight x
+        ≤ C * ∫ x : ℝ, ((0 : ℝ) ^ (gamma * pExp)) * psi.weight x := by
+  have hpExp_pos : 0 < pExp := lt_trans zero_lt_one hpExp
+  have hgamma_pExp_pos : 0 < gamma * pExp := mul_pos hgamma hpExp_pos
+  simp [Real.zero_rpow (ne_of_gt hgamma),
+    Real.zero_rpow (ne_of_gt hpExp_pos),
+    Real.zero_rpow (ne_of_gt hgamma_pExp_pos), Psi_zero]
+
+/-- The zero-function branch of Lemma 2.5 with an explicit positive constant
+witness, in the same quantifier shape as the full theorem after fixing
+`u ≡ 0`. -/
+theorem Lemma_2_5.zero_function_witness
+    {pExp gamma l mu : ℝ}
+    (hpExp : 1 < pExp) (hgamma : 0 < gamma)
+    (_hl : 0 < l) (_hmu : 0 < mu) :
+    ∃ C > 0, ∀ psi : ExponentialWeight,
+      Integrable (fun x : ℝ =>
+        ((fun _ : ℝ => (0 : ℝ)) x) ^ (gamma * pExp) * psi.weight x) →
+        Integrable
+          (fun x =>
+            |deriv
+              (fun z => Psi
+                (fun y => ((fun _ : ℝ => (0 : ℝ)) y) ^ gamma) l mu z) x| ^
+                pExp * psi.weight x) ∧
+          ∫ x : ℝ,
+              |deriv
+                (fun z => Psi
+                  (fun y => ((fun _ : ℝ => (0 : ℝ)) y) ^ gamma) l mu z) x| ^
+                  pExp * psi.weight x
+            ≤ C * ∫ x : ℝ,
+              ((fun _ : ℝ => (0 : ℝ)) x) ^ (gamma * pExp) * psi.weight x := by
+  refine ⟨1, zero_lt_one, ?_⟩
+  intro psi _hint
+  simpa using
+    (Lemma_2_5_zero_function_branch
+      (pExp := pExp) (gamma := gamma) (l := l) (mu := mu) (C := 1)
+      hpExp hgamma psi)
+
 theorem Lemma_2_5.weighted_resolvent_gradient
     (h : Lemma_2_5)
     {pExp gamma l mu : ℝ}
@@ -1044,6 +1303,14 @@ theorem frozenElliptic_deriv_deriv_eq
         frozenElliptic p u x - (u x) ^ p.γ := by
   simpa [iteratedDeriv_succ, iteratedDeriv_zero] using
     frozenElliptic_iteratedDeriv_two_eq p hu hu_nonneg x
+
+theorem frozenElliptic_deriv_differentiableAt
+    (p : CMParams) {u : ℝ → ℝ}
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x) (x : ℝ) :
+    DifferentiableAt ℝ (deriv (frozenElliptic p u)) x := by
+  unfold frozenElliptic
+  exact Psi_deriv_differentiableAt one_pos one_pos
+    (rpow_cunif_bdd_of_nonneg p hu hu_nonneg) x
 
 theorem frozenElliptic_deriv_abs_le
     (p : CMParams) {u : ℝ → ℝ}
@@ -1468,7 +1735,7 @@ theorem paperWaveOperator_eq_frozenWaveOperator_at_fixed_point
       rw [hUx_zero]
       exact Real.zero_rpow (ne_of_gt hγ_pos)
     rw [hUm_zero, hUγ_zero, hUx_zero]
-    ring
+    ring_nf
   · have hUx_pos : 0 < U x := lt_of_le_of_ne (hU_nonneg x) (Ne.symm hUx_zero)
     have hpow_m : (U x) ^ p.m = U x * (U x) ^ (p.m - 1) := by
       calc
@@ -1565,6 +1832,16 @@ theorem FrozenStationaryWaveProfile.to_travelingWave
       lim_pos_inf := h.lim_pos_inf }
   intro x
   simpa [frozenWaveOperator] using h.stationary_eq x
+
+theorem FrozenStationaryWaveProfile.to_globalCauchySolutionFrom
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : FrozenStationaryWaveProfile p c U)
+    (hU_diff : ContDiff ℝ 2 U)
+    (hV_diff : ContDiff ℝ 2 (frozenElliptic p U)) :
+    IsGlobalCauchySolutionFrom p U
+      (fun t x => U (x - c * t))
+      (fun t x => frozenElliptic p U (x - c * t)) :=
+  IsTravelingWave.to_globalCauchySolutionFrom h.to_travelingWave hU_diff hV_diff
 
 theorem FrozenStationaryWaveProfile.to_monotoneTravelingWave
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
@@ -1819,6 +2096,84 @@ theorem upperBarrier_iteratedDeriv_two_eq_exp_of_lt {κ M x : ℝ}
   simpa [iteratedDeriv_succ, iteratedDeriv_zero] using
     expDecay_iteratedDeriv_two κ x
 
+theorem upperBarrier_eventuallyEq_const_left_of_interface {κ M x : ℝ}
+    (hκ : 0 < κ) (hx : Real.exp (-κ * x) = M) :
+    upperBarrier κ M =ᶠ[𝓝[Set.Iio x] x] fun _ : ℝ => M := by
+  filter_upwards [self_mem_nhdsWithin] with y hy
+  have hyexp : M < Real.exp (-κ * y) := by
+    rw [← hx]
+    apply Real.exp_lt_exp.mpr
+    have hylt : y < x := hy
+    nlinarith [hylt, hκ]
+  exact upperBarrier_eq_M_of_le_exp hyexp.le
+
+theorem upperBarrier_eventuallyEq_exp_right_of_interface {κ M x : ℝ}
+    (hκ : 0 < κ) (hx : Real.exp (-κ * x) = M) :
+    upperBarrier κ M =ᶠ[𝓝[Set.Ioi x] x] expDecay κ := by
+  filter_upwards [self_mem_nhdsWithin] with y hy
+  have hyexp : Real.exp (-κ * y) < M := by
+    rw [← hx]
+    apply Real.exp_lt_exp.mpr
+    have hylt : x < y := hy
+    nlinarith [hylt, hκ]
+  simpa [expDecay] using upperBarrier_eq_exp_of_exp_le hyexp.le
+
+theorem upperBarrier_derivWithin_left_eq_zero_of_interface {κ M x : ℝ}
+    (hκ : 0 < κ) (hx : Real.exp (-κ * x) = M) :
+    derivWithin (upperBarrier κ M) (Set.Iio x) x = 0 := by
+  have hW : upperBarrier κ M x = (fun _ : ℝ => M) x := by
+    exact upperBarrier_eq_M_of_le_exp hx.ge
+  rw [Filter.EventuallyEq.derivWithin_eq
+    (upperBarrier_eventuallyEq_const_left_of_interface hκ hx) hW]
+  exact (hasDerivAt_const (x := x) (c := M)).hasDerivWithinAt.derivWithin
+    (uniqueDiffWithinAt_Iio x)
+
+theorem upperBarrier_derivWithin_right_eq_exp_of_interface {κ M x : ℝ}
+    (hκ : 0 < κ) (hx : Real.exp (-κ * x) = M) :
+    derivWithin (upperBarrier κ M) (Set.Ioi x) x = -κ * M := by
+  have hW : upperBarrier κ M x = expDecay κ x := by
+    rw [upperBarrier_eq_exp_of_exp_le hx.le]
+    simp [expDecay]
+  rw [Filter.EventuallyEq.derivWithin_eq
+    (upperBarrier_eventuallyEq_exp_right_of_interface hκ hx) hW]
+  have hderiv :=
+    (expDecay_hasDerivAt κ x).hasDerivWithinAt.derivWithin
+      (uniqueDiffWithinAt_Ioi x)
+  rw [hderiv]
+  have hE : expDecay κ x = M := by
+    rw [expDecay]
+    rw [← hx]
+    congr 1
+    ring
+  rw [hE]
+
+/-- At the free interface `exp (-κ*x) = M`, the upper barrier has different
+one-sided derivatives.  Thus the classical frozen supersolution statement for
+`upperBarrier` cannot be an everywhere-smooth statement without treating the
+interface separately. -/
+theorem not_differentiableAt_upperBarrier_of_interface {κ M x : ℝ}
+    (hκ : 0 < κ) (hM : 0 < M) (hx : Real.exp (-κ * x) = M) :
+    ¬ DifferentiableAt ℝ (upperBarrier κ M) x := by
+  intro hdiff
+  have hleft :=
+    upperBarrier_derivWithin_left_eq_zero_of_interface (κ := κ) (M := M) (x := x)
+      hκ hx
+  have hright :=
+    upperBarrier_derivWithin_right_eq_exp_of_interface (κ := κ) (M := M) (x := x)
+      hκ hx
+  have hleft_deriv :
+      derivWithin (upperBarrier κ M) (Set.Iio x) x = deriv (upperBarrier κ M) x :=
+    hdiff.derivWithin (uniqueDiffWithinAt_Iio x)
+  have hright_deriv :
+      derivWithin (upperBarrier κ M) (Set.Ioi x) x = deriv (upperBarrier κ M) x :=
+    hdiff.derivWithin (uniqueDiffWithinAt_Ioi x)
+  have hzero : -κ * M = 0 := by
+    rw [hright_deriv, ← hleft_deriv, hleft] at hright
+    exact hright.symm
+  have hnonzero : -κ * M ≠ 0 := by
+    exact mul_ne_zero (neg_ne_zero.mpr (ne_of_gt hκ)) (ne_of_gt hM)
+  exact hnonzero hzero
+
 theorem frozenWaveOperator_upperBarrier_const_region_eq
     (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
     (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x)
@@ -2035,6 +2390,16 @@ theorem lowerBarrierRaw_linear_part_eq_of_kappa_speed
   rw [hzero]
   ring
 
+theorem lowerBarrierRaw_linear_part_eq_speed_denominator
+    {κ κtilde D c x : ℝ} (hκ : κ ≠ 0) (hc : c = κ + κ⁻¹) :
+    iteratedDeriv 2 (lowerBarrierRaw κ κtilde D) x +
+        c * deriv (lowerBarrierRaw κ κtilde D) x +
+        lowerBarrierRaw κ κtilde D x =
+      D * (c * κtilde - κtilde ^ 2 - 1) *
+        Real.exp (-κtilde * x) := by
+  rw [lowerBarrierRaw_linear_part_eq_of_kappa_speed hκ hc]
+  ring
+
 theorem lowerBarrierRaw_speed_coefficient_neg
     {κ κtilde c : ℝ}
     (hκ0 : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
@@ -2060,6 +2425,32 @@ theorem lowerBarrierRaw_speed_denominator_pos
   have h :=
     lowerBarrierRaw_speed_coefficient_neg hκ0 hκ1 hgap hκtilde1 hc
   nlinarith
+
+theorem lowerBarrierRaw_speed_denominator_le_one_of_kappaTilde_le_two_kappa
+    {κ κtilde c : ℝ}
+    (hκ0 : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
+    (hκtilde1 : κtilde ≤ 1) (hκtilde_le : κtilde ≤ 2 * κ)
+    (hc : c = κ + κ⁻¹) :
+    c * κtilde - κtilde ^ 2 - 1 ≤ 1 := by
+  have hκ_ne : κ ≠ 0 := ne_of_gt hκ0
+  have hinv_gt_one : 1 < κ⁻¹ := (one_lt_inv₀ hκ0).2 hκ1
+  have hfactor :
+      c * κtilde - κtilde ^ 2 - 1 =
+        (κtilde - κ) * (κ⁻¹ - κtilde) := by
+    rw [hc]
+    field_simp [hκ_ne]
+    ring
+  rw [hfactor]
+  have hleft_nonneg : 0 ≤ κtilde - κ := by linarith
+  have hleft_le : κtilde - κ ≤ κ := by linarith
+  have hright_nonneg : 0 ≤ κ⁻¹ - κtilde := by linarith
+  have hright_le : κ⁻¹ - κtilde ≤ κ⁻¹ := by linarith
+  have hmul :
+      (κtilde - κ) * (κ⁻¹ - κtilde) ≤ κ * κ⁻¹ :=
+    mul_le_mul hleft_le hright_le hright_nonneg hκ0.le
+  have hκ_mul : κ * κ⁻¹ = 1 := by
+    field_simp [hκ_ne]
+  linarith
 
 theorem lowerBarrierRaw_linear_part_pos_of_kappa_speed
     {κ κtilde D c x : ℝ}
@@ -2262,6 +2653,12 @@ theorem lowerBarrierXMinus_lt_xplus
   unfold lowerBarrierXMinus lowerBarrierXPlus
   rw [div_lt_div_iff_of_pos_right hgap]
   exact Real.log_lt_log hD hD_lt_arg
+
+theorem lowerBarrierXMinus_nonneg_of_one_le_D
+    {κ κtilde D : ℝ} (hgap : 0 < κtilde - κ) (hD : 1 ≤ D) :
+    0 ≤ lowerBarrierXMinus κ κtilde D := by
+  unfold lowerBarrierXMinus
+  exact div_nonneg (Real.log_nonneg hD) hgap.le
 
 theorem lowerBarrierRaw_deriv_eq_zero_at_xplus
     {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
@@ -2640,6 +3037,24 @@ theorem InWaveTrapSet.le_exp {κ M : ℝ} {u : ℝ → ℝ}
     u x ≤ Real.exp (-κ * x) :=
   le_trans (h.le_upperBarrier x) (min_le_right _ _)
 
+theorem InWaveTrapSet.tendsto_atTop_zero
+    {κ M : ℝ} {u : ℝ → ℝ}
+    (hκ : 0 < κ) (h : InWaveTrapSet κ M u) :
+    Tendsto u atTop (𝓝 0) := by
+  have hupper : Tendsto (fun x : ℝ => Real.exp (-κ * x)) atTop (𝓝 0) := by
+    convert expDecay_tendsto_atTop hκ using 1
+    ext x
+    simp [expDecay]
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le
+    tendsto_const_nhds hupper (fun x => h.nonneg x) (fun x => h.le_exp x)
+
+theorem InWaveTrapSet.frozenElliptic_tendsto_atTop_zero
+    (p : CMParams) {κ M : ℝ} {u : ℝ → ℝ}
+    (hκ : 0 < κ) (h : InWaveTrapSet κ M u) :
+    Tendsto (frozenElliptic p u) atTop (𝓝 0) :=
+  frozenElliptic_tendsto_atTop_of_U_tendsto p h.cunif_bdd h.nonneg
+    (h.tendsto_atTop_zero hκ)
+
 theorem InWaveTrapSet.le_one_of_M_le_one {κ M : ℝ} {u : ℝ → ℝ}
     (h : InWaveTrapSet κ M u) (hM : M ≤ 1) (x : ℝ) :
     u x ≤ 1 :=
@@ -2887,7 +3302,7 @@ theorem paperWaveOperator_upperBarrier_exp_region_nonpos_of_dominance
     (hκ : κ ≠ 0) (hc : c = κ + κ⁻¹)
     {x : ℝ} (hx : Real.exp (-κ * x) < M)
     (hdom :
-      - p.χ * p.m * (expDecay κ x) ^ (p.m - 1) *
+      -p.χ * p.m * (expDecay κ x) ^ (p.m - 1) *
           deriv (frozenElliptic p u) x * (-κ * expDecay κ x)
         + expDecay κ x *
           (-p.χ * (expDecay κ x) ^ (p.m - 1) *
@@ -2962,6 +3377,86 @@ theorem frozenWaveOperator_upperBarrier_const_region_nonpos_neg_of_saturated
     p hχ hM hu.cunif_bdd hu.nonneg hx
     (frozenElliptic_le_source_of_inWaveTrapSet_const_region_saturated
       p hM hu hx hsat)
+
+theorem frozenWaveOperator_upperBarrier_const_region_nonpos_neg_one_forces_source_bound
+    (p : CMParams) {c κ : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ < 0) (hu : InWaveTrapSet κ 1 u)
+    {x : ℝ} (hx : (1 : ℝ) < Real.exp (-κ * x))
+    (hop : frozenWaveOperator p c u (upperBarrier κ 1) x ≤ 0) :
+    frozenElliptic p u x ≤ (u x) ^ p.γ := by
+  rw [frozenWaveOperator_upperBarrier_const_region_eq p hu.cunif_bdd hu.nonneg hx] at hop
+  simp only [Real.one_rpow, one_mul, sub_self, mul_zero, add_zero] at hop
+  have hnegχ_pos : 0 < -p.χ := by linarith
+  have hdiff_nonpos :
+      frozenElliptic p u x - (u x) ^ p.γ ≤ 0 := by
+    nlinarith
+  exact sub_nonpos.mp hdiff_nonpos
+
+theorem frozenWaveOperator_upperBarrier_const_region_nonpos_pos
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hχ_nonneg : 0 ≤ p.χ) (hχ : p.χ < chiStar p)
+    (hα : p.α = p.m + p.γ - 1)
+    (hM : 1 ≤ M)
+    (hMchi : (1 / (1 - p.χ)) ^ (1 / p.α) ≤ M)
+    (hu : InWaveTrapSet κ M u) {x : ℝ}
+    (hx : M < Real.exp (-κ * x)) :
+    frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0 := by
+  rw [frozenWaveOperator_upperBarrier_const_region_eq p hu.cunif_bdd hu.nonneg hx]
+  have hM_nonneg : 0 ≤ M := le_trans zero_le_one hM
+  have hM_pos : 0 < M := lt_of_lt_of_le zero_lt_one hM
+  have hχ_lt_one : p.χ < 1 := lt_of_lt_of_le hχ (chiStar_le_one p)
+  have hmain :
+      1 ≤ (1 - p.χ) * M ^ p.α :=
+    one_le_one_sub_chi_mul_M_rpow_alpha p hχ_lt_one hM_nonneg hMchi
+  have hV_nonneg : 0 ≤ frozenElliptic p u x :=
+    frozenElliptic_nonneg p hu.nonneg x
+  have huγ_le_Mγ : (u x) ^ p.γ ≤ M ^ p.γ :=
+    hu.rpow_le_M (by linarith [p.hγ]) x
+  have hMm_nonneg : 0 ≤ M ^ p.m := Real.rpow_nonneg hM_nonneg _
+  have hchem_le :
+      -p.χ * (M ^ p.m *
+          (frozenElliptic p u x - (u x) ^ p.γ)) ≤
+        p.χ * (M ^ (p.m + p.γ)) := by
+    have hdrop :
+        -p.χ * (M ^ p.m *
+            (frozenElliptic p u x - (u x) ^ p.γ)) ≤
+          p.χ * (M ^ p.m * (u x) ^ p.γ) := by
+      have hleft_nonpos :
+          -p.χ * (M ^ p.m * frozenElliptic p u x) ≤ 0 := by
+        exact mul_nonpos_of_nonpos_of_nonneg
+          (neg_nonpos.mpr hχ_nonneg)
+          (mul_nonneg hMm_nonneg hV_nonneg)
+      nlinarith
+    have hsource :
+        p.χ * (M ^ p.m * (u x) ^ p.γ) ≤
+          p.χ * (M ^ p.m * M ^ p.γ) := by
+      exact mul_le_mul_of_nonneg_left
+        (mul_le_mul_of_nonneg_left huγ_le_Mγ hMm_nonneg) hχ_nonneg
+    have hpow :
+        M ^ p.m * M ^ p.γ = M ^ (p.m + p.γ) := by
+      rw [← Real.rpow_add hM_pos]
+    calc
+      -p.χ * (M ^ p.m *
+          (frozenElliptic p u x - (u x) ^ p.γ))
+          ≤ p.χ * (M ^ p.m * (u x) ^ p.γ) := hdrop
+      _ ≤ p.χ * (M ^ p.m * M ^ p.γ) := hsource
+      _ = p.χ * M ^ (p.m + p.γ) := by rw [hpow]
+  have hpow_succ :
+      M ^ (p.m + p.γ) = M * M ^ p.α := by
+    rw [hα]
+    calc
+      M ^ (p.m + p.γ) = M ^ (1 + (p.m + p.γ - 1)) := by
+        congr 1
+        ring
+      _ = M ^ (1 : ℝ) * M ^ (p.m + p.γ - 1) := by
+        rw [Real.rpow_add hM_pos]
+      _ = M * M ^ (p.m + p.γ - 1) := by
+        rw [Real.rpow_one]
+  have hlog_chem :
+      M * (1 - M ^ p.α) + p.χ * M ^ (p.m + p.γ) ≤ 0 := by
+    rw [hpow_succ]
+    nlinarith
+  linarith
 
 theorem lowerBarrierPlateau_mem_InWaveTrapSet_exp_xplus
     {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
@@ -3123,6 +3618,18 @@ theorem InMonotoneWaveTrapSet.le_exp
     (h : InMonotoneWaveTrapSet κ M u) (x : ℝ) :
     u x ≤ Real.exp (-κ * x) :=
   h.trap.le_exp x
+
+theorem InMonotoneWaveTrapSet.tendsto_atTop_zero
+    {κ M : ℝ} {u : ℝ → ℝ}
+    (hκ : 0 < κ) (h : InMonotoneWaveTrapSet κ M u) :
+    Tendsto u atTop (𝓝 0) :=
+  h.trap.tendsto_atTop_zero hκ
+
+theorem InMonotoneWaveTrapSet.frozenElliptic_tendsto_atTop_zero
+    (p : CMParams) {κ M : ℝ} {u : ℝ → ℝ}
+    (hκ : 0 < κ) (h : InMonotoneWaveTrapSet κ M u) :
+    Tendsto (frozenElliptic p u) atTop (𝓝 0) :=
+  h.trap.frozenElliptic_tendsto_atTop_zero p hκ
 
 theorem InMonotoneWaveTrapSet.le_one_of_M_le_one
     {κ M : ℝ} {u : ℝ → ℝ}
@@ -3535,6 +4042,22 @@ theorem FrozenAuxiliaryLimitOutput.le_exp_of_inWaveTrapSet
     exact (htrap t ht).le_exp x
   exact le_of_tendsto (htendsto x) heventually
 
+theorem FrozenAuxiliaryLimitOutput.tendsto_atTop_zero_of_inWaveTrapSet
+    {p : CMParams} {c κ M : ℝ} {frozen U : ℝ → ℝ}
+    (hκ : 0 < κ)
+    (h :
+      FrozenAuxiliaryLimitOutput p c κ M
+        (fun u => InWaveTrapSet κ M u) frozen U) :
+    Tendsto U atTop (𝓝 0) := by
+  have hupper : Tendsto (fun x : ℝ => Real.exp (-κ * x)) atTop (𝓝 0) := by
+    convert expDecay_tendsto_atTop hκ using 1
+    ext x
+    simp [expDecay]
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le
+    tendsto_const_nhds hupper
+    (fun x => h.nonneg_of_inWaveTrapSet x)
+    (fun x => h.le_exp_of_inWaveTrapSet x)
+
 theorem FrozenAuxiliaryLimitOutput.antitone_of_inMonotoneWaveTrapSet
     {p : CMParams} {c κ M : ℝ} {frozen U : ℝ → ℝ}
     (h :
@@ -3715,6 +4238,36 @@ theorem FrozenWaveMapConstruction.exists_fixed_inWaveTrapSet_with_bounds
   rcases h.exists_fixed_limit with ⟨U, hU, hlimit⟩
   exact ⟨U, hU, hlimit, hU.nonneg, hU.le_M, hU.le_exp⟩
 
+theorem FrozenWaveMapConstruction.exists_fixed_inWaveTrapSet_with_atTop_limit
+    {p : CMParams} {c κ M : ℝ}
+    (hκ : 0 < κ)
+    (h : FrozenWaveMapConstruction p c κ M (fun u => InWaveTrapSet κ M u)) :
+    ∃ U : ℝ → ℝ,
+      InWaveTrapSet κ M U ∧
+        FrozenAuxiliaryLimitOutput p c κ M
+          (fun u => InWaveTrapSet κ M u) U U ∧
+        Tendsto U atTop (𝓝 0) := by
+  rcases h.exists_fixed_limit with ⟨U, hU, hlimit⟩
+  exact
+    ⟨U, hU, hlimit,
+      FrozenAuxiliaryLimitOutput.tendsto_atTop_zero_of_inWaveTrapSet hκ hlimit⟩
+
+theorem FrozenWaveMapConstruction.exists_fixed_inWaveTrapSet_with_atTop_limits
+    {p : CMParams} {c κ M : ℝ}
+    (hκ : 0 < κ)
+    (h : FrozenWaveMapConstruction p c κ M (fun u => InWaveTrapSet κ M u)) :
+    ∃ U : ℝ → ℝ,
+      InWaveTrapSet κ M U ∧
+        FrozenAuxiliaryLimitOutput p c κ M
+          (fun u => InWaveTrapSet κ M u) U U ∧
+        Tendsto U atTop (𝓝 0) ∧
+        Tendsto (frozenElliptic p U) atTop (𝓝 0) := by
+  rcases h.exists_fixed_inWaveTrapSet_with_atTop_limit hκ with
+    ⟨U, hU, hlimit, hU_top⟩
+  exact
+    ⟨U, hU, hlimit, hU_top,
+      frozenElliptic_tendsto_atTop_of_U_tendsto p hU.cunif_bdd hU.nonneg hU_top⟩
+
 theorem FrozenWaveMapConstruction.exists_fixed_inMonotoneWaveTrapSet_with_bounds
     {p : CMParams} {c κ M : ℝ}
     (h :
@@ -3731,6 +4284,42 @@ theorem FrozenWaveMapConstruction.exists_fixed_inMonotoneWaveTrapSet_with_bounds
   rcases h.exists_fixed_limit with ⟨U, hU, hlimit⟩
   exact
     ⟨U, hU, hlimit, hU.antitone, hU.nonneg, hU.le_M, hU.le_exp⟩
+
+theorem FrozenWaveMapConstruction.exists_fixed_inMonotoneWaveTrapSet_with_atTop_limit
+    {p : CMParams} {c κ M : ℝ}
+    (hκ : 0 < κ)
+    (h :
+      FrozenWaveMapConstruction p c κ M
+        (fun u => InMonotoneWaveTrapSet κ M u)) :
+    ∃ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet κ M U ∧
+        FrozenAuxiliaryLimitOutput p c κ M
+          (fun u => InMonotoneWaveTrapSet κ M u) U U ∧
+        Antitone U ∧
+        Tendsto U atTop (𝓝 0) := by
+  rcases h.exists_fixed_limit with ⟨U, hU, hlimit⟩
+  exact
+    ⟨U, hU, hlimit, hU.antitone,
+      hU.tendsto_atTop_zero hκ⟩
+
+theorem FrozenWaveMapConstruction.exists_fixed_inMonotoneWaveTrapSet_with_atTop_limits
+    {p : CMParams} {c κ M : ℝ}
+    (hκ : 0 < κ)
+    (h :
+      FrozenWaveMapConstruction p c κ M
+        (fun u => InMonotoneWaveTrapSet κ M u)) :
+    ∃ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet κ M U ∧
+        FrozenAuxiliaryLimitOutput p c κ M
+          (fun u => InMonotoneWaveTrapSet κ M u) U U ∧
+        Antitone U ∧
+        Tendsto U atTop (𝓝 0) ∧
+        Tendsto (frozenElliptic p U) atTop (𝓝 0) := by
+  rcases h.exists_fixed_inMonotoneWaveTrapSet_with_atTop_limit hκ with
+    ⟨U, hU, hlimit, hanti, hU_top⟩
+  exact
+    ⟨U, hU, hlimit, hanti, hU_top,
+      frozenElliptic_tendsto_atTop_of_U_tendsto p hU.trap.cunif_bdd hU.nonneg hU_top⟩
 
 def subsolutionK (M κ κtilde m gamma : ℝ) : ℝ :=
   let prefactor := m * (κtilde + κ) + 1
@@ -3863,6 +4452,43 @@ theorem subsolutionDThreshold_pos
       (mul_nonneg (abs_nonneg χ)
         (subsolutionK_pos hM hκ hgap hm hgamma).le)
   · exact hden
+
+theorem one_lt_D_mul_speed_denominator_of_subsolutionDThreshold_lt_chi_zero
+    {M κ κtilde m gamma c D : ℝ}
+    (hden : 0 < c * κtilde - κtilde ^ 2 - 1)
+    (hD : subsolutionDThreshold 0 M κ κtilde m gamma c < D) :
+    1 < D * (c * κtilde - κtilde ^ 2 - 1) := by
+  unfold subsolutionDThreshold at hD
+  simp only [abs_zero, zero_mul, add_zero] at hD
+  have hmul :=
+    mul_lt_mul_of_pos_right hD hden
+  have hleft :
+      (1 / (c * κtilde - κtilde ^ 2 - 1)) *
+          (c * κtilde - κtilde ^ 2 - 1) = 1 := by
+    rw [one_div, inv_mul_cancel₀ (ne_of_gt hden)]
+  nlinarith
+
+theorem one_le_D_of_subsolutionDThreshold_lt_chi_zero_of_den_le_one
+    {M κ κtilde m gamma c D : ℝ}
+    (hden_pos : 0 < c * κtilde - κtilde ^ 2 - 1)
+    (hden_le_one : c * κtilde - κtilde ^ 2 - 1 ≤ 1)
+    (hD : subsolutionDThreshold 0 M κ κtilde m gamma c < D) :
+    1 ≤ D := by
+  have hscale :
+      1 < D * (c * κtilde - κtilde ^ 2 - 1) :=
+    one_lt_D_mul_speed_denominator_of_subsolutionDThreshold_lt_chi_zero
+      hden_pos hD
+  have hD_pos : 0 < D := by
+    by_contra hnot
+    have hD_nonpos : D ≤ 0 := le_of_not_gt hnot
+    have hprod_nonpos :
+        D * (c * κtilde - κtilde ^ 2 - 1) ≤ 0 :=
+      mul_nonpos_of_nonpos_of_nonneg hD_nonpos hden_pos.le
+    linarith
+  have hprod_le_D :
+      D * (c * κtilde - κtilde ^ 2 - 1) ≤ D * 1 :=
+    mul_le_mul_of_nonneg_left hden_le_one hD_pos.le
+  linarith
 
 theorem subsolutionDThreshold_pos_of_kappa_speed
     {χ M κ κtilde m gamma c : ℝ}
@@ -4062,6 +4688,194 @@ def Lemma_4_1 : Prop :=
       ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
         IsFrozenSuperSolution p c u (upperBarrier κ M))
 
+theorem Lemma_4_1_neg_branch_forces_const_region_source_bound
+    (hL : Lemma_4_1)
+    (p : CMParams) (hχ : p.χ < 0)
+    (hα : p.α ≤ p.m + p.γ - 1)
+    {κ c : ℝ} (hκ : 0 < κ) (hκ1 : κ < 1)
+    (hc : c = κ + κ⁻¹)
+    {u : ℝ → ℝ} (hu : InWaveTrapSet κ 1 u)
+    {x : ℝ} (hx : (1 : ℝ) < Real.exp (-κ * x)) :
+    frozenElliptic p u x ≤ (u x) ^ p.γ := by
+  have hsuper :
+      IsFrozenSuperSolution p c u (upperBarrier κ 1) :=
+    hL.1 p hχ.le hα κ 1 c hκ hκ1 le_rfl hc u hu
+  exact
+    frozenWaveOperator_upperBarrier_const_region_nonpos_neg_one_forces_source_bound
+      p hχ hu hx (hsuper x)
+
+/-- A concrete trap-set profile used to test the negative-χ plateau branch of
+Lemma 4.1.  It lies below `upperBarrier (1/2) 1`, vanishes at `x = -1`, but is
+positive nearby. -/
+def lemma41CounterexampleProfile : ℝ → ℝ :=
+  fun y => upperBarrier (1 / 2) 1 y * min 1 |y + 1|
+
+def lemma41CounterexampleParams : CMParams :=
+  { m := 1
+    α := 1
+    γ := 1
+    χ := -1
+    hm := by norm_num
+    hα := by norm_num
+    hγ := by norm_num }
+
+theorem lemma41CounterexampleProfile_mem_trap :
+    InWaveTrapSet (1 / 2) 1 lemma41CounterexampleProfile := by
+  have hfactor_cont : Continuous fun y : ℝ => min 1 |y + 1| :=
+    continuous_const.min ((continuous_id.add continuous_const).abs)
+  have hcont : Continuous lemma41CounterexampleProfile := by
+    unfold lemma41CounterexampleProfile
+    exact (upperBarrier_continuous (1 / 2) 1).mul hfactor_cont
+  have hnonneg : ∀ y, 0 ≤ lemma41CounterexampleProfile y := by
+    intro y
+    unfold lemma41CounterexampleProfile
+    exact mul_nonneg (upperBarrier_nonneg (by norm_num) y)
+      (le_min (by norm_num) (abs_nonneg _))
+  have hle : ∀ y, lemma41CounterexampleProfile y ≤ upperBarrier (1 / 2) 1 y := by
+    intro y
+    unfold lemma41CounterexampleProfile
+    have hupper_nonneg : 0 ≤ upperBarrier (1 / 2) 1 y :=
+      upperBarrier_nonneg (by norm_num) y
+    have hfactor_le : min 1 |y + 1| ≤ 1 := min_le_left _ _
+    calc
+      upperBarrier (1 / 2) 1 y * min 1 |y + 1| ≤
+          upperBarrier (1 / 2) 1 y * 1 :=
+        mul_le_mul_of_nonneg_left hfactor_le hupper_nonneg
+      _ = upperBarrier (1 / 2) 1 y := by ring
+  refine ⟨⟨hcont, ?_⟩, ?_⟩
+  · refine ⟨1, ?_⟩
+    intro y
+    rw [abs_of_nonneg (hnonneg y)]
+    exact le_trans (hle y) (upperBarrier_le_M (1 / 2) 1 y)
+  · intro y
+    exact ⟨hnonneg y, hle y⟩
+
+theorem lemma41CounterexampleProfile_at_neg_one :
+    lemma41CounterexampleProfile (-1) = 0 := by
+  simp [lemma41CounterexampleProfile]
+
+theorem lemma41CounterexampleProfile_at_zero :
+    lemma41CounterexampleProfile 0 = 1 := by
+  norm_num [lemma41CounterexampleProfile, upperBarrier]
+
+theorem frozenElliptic_lemma41CounterexampleProfile_pos :
+    0 <
+      frozenElliptic lemma41CounterexampleParams
+        lemma41CounterexampleProfile (-1) := by
+  let u := lemma41CounterexampleProfile
+  have htrap : InWaveTrapSet (1 / 2) 1 u :=
+    lemma41CounterexampleProfile_mem_trap
+  rcases htrap.cunif_bdd.2 with ⟨M, hM⟩
+  have hM_nonneg : 0 ≤ M := le_trans (abs_nonneg (u 0)) (hM 0)
+  have hint :
+      Integrable
+        (fun y =>
+          Real.exp (-Real.sqrt 1 * |-1 - y|) * u y) :=
+    psi_kernel_mul_bounded_integrable (l := 1) (M := M) one_pos
+      hM_nonneg hM (-1) htrap.cunif_bdd.1.aestronglyMeasurable
+  have hcont_integrand :
+      Continuous fun y : ℝ => Real.exp (-Real.sqrt 1 * |-1 - y|) * u y := by
+    have hkernel_cont :
+        Continuous fun y : ℝ => Real.exp (-Real.sqrt 1 * |-1 - y|) := by
+      fun_prop
+    exact hkernel_cont.mul htrap.cunif_bdd.1
+  have hnonneg_integrand :
+      0 ≤ fun y : ℝ => Real.exp (-Real.sqrt 1 * |-1 - y|) * u y := by
+    intro y
+    exact mul_nonneg (Real.exp_nonneg _) (htrap.nonneg y)
+  have hpos_at_zero :
+      0 < Real.exp (-Real.sqrt 1 * |-1 - (0 : ℝ)|) * u 0 := by
+    have hu0 : u 0 = 1 := lemma41CounterexampleProfile_at_zero
+    rw [hu0]
+    positivity
+  have hIntegral_pos :
+      0 < ∫ y : ℝ, Real.exp (-Real.sqrt 1 * |-1 - y|) * u y :=
+    integral_pos_of_integrable_nonneg_nonzero
+      hcont_integrand hint hnonneg_integrand (x := 0) (ne_of_gt hpos_at_zero)
+  unfold frozenElliptic Psi lemma41CounterexampleParams
+  simpa [Real.sqrt_one, Real.one_rpow, u] using
+    mul_pos (by norm_num : (0 : ℝ) < 1 / (2 * 1)) hIntegral_pos
+
+theorem lemma41Counterexample_source_lt_elliptic :
+    (lemma41CounterexampleProfile (-1)) ^
+        (lemma41CounterexampleParams.γ) <
+      frozenElliptic lemma41CounterexampleParams
+        lemma41CounterexampleProfile (-1) := by
+  rw [lemma41CounterexampleProfile_at_neg_one]
+  have hzero :
+      (0 : ℝ) ^ lemma41CounterexampleParams.γ = 0 := by
+    norm_num [lemma41CounterexampleParams]
+  rw [hzero]
+  exact frozenElliptic_lemma41CounterexampleProfile_pos
+
+theorem not_Lemma_4_1 : ¬ Lemma_4_1 := by
+  intro hL
+  have hforced :=
+    Lemma_4_1_neg_branch_forces_const_region_source_bound
+      hL lemma41CounterexampleParams
+      (by norm_num [lemma41CounterexampleParams])
+      (by norm_num [lemma41CounterexampleParams])
+      (κ := 1 / 2) (c := 5 / 2)
+      (by norm_num) (by norm_num)
+      (by norm_num)
+      lemma41CounterexampleProfile_mem_trap
+      (x := -1)
+      (by
+        have hpos : (0 : ℝ) < -(1 / 2) * (-1) := by norm_num
+        simpa using (Real.one_lt_exp_iff.mpr hpos))
+  exact not_lt_of_ge hforced lemma41Counterexample_source_lt_elliptic
+
+theorem not_Lemma_4_1_positive_hypotheses_force_m_kappa_le_one :
+    ¬ (∀ p : CMParams, 0 ≤ p.χ → p.χ < chiStar p →
+      p.α = p.m + p.γ - 1 →
+      ∀ κ : ℝ, 0 < κ → κ < 1 → p.m * κ ≤ 1) := by
+  intro h
+  let p : CMParams :=
+    { m := 3
+      α := 3
+      γ := 1
+      χ := 0
+      hm := by norm_num
+      hα := by norm_num
+      hγ := by norm_num }
+  have hχ : p.χ < chiStar p := by
+    simpa [p] using chiStar_pos p
+  have hmκ := h p (by norm_num [p]) hχ (by norm_num [p]) (1 / 2)
+    (by norm_num) (by norm_num)
+  norm_num [p] at hmκ
+
+theorem not_Lemma_4_1_negative_hypotheses_force_m_kappa_le_one :
+    ¬ (∀ p : CMParams, p.χ ≤ 0 → p.α ≤ p.m + p.γ - 1 →
+      ∀ κ : ℝ, 0 < κ → κ < 1 → κ * p.m ≤ 1) := by
+  intro h
+  let p : CMParams :=
+    { m := 3
+      α := 1
+      γ := 1
+      χ := -1
+      hm := by norm_num
+      hα := by norm_num
+      hγ := by norm_num }
+  have hmκ := h p (by norm_num [p]) (by norm_num [p]) (1 / 2)
+    (by norm_num) (by norm_num)
+  norm_num [p] at hmκ
+
+theorem not_Lemma_4_1_negative_hypotheses_force_gamma_kappa_lt_one :
+    ¬ (∀ p : CMParams, p.χ ≤ 0 → p.α ≤ p.m + p.γ - 1 →
+      ∀ κ : ℝ, 0 < κ → κ < 1 → p.γ * κ < 1) := by
+  intro h
+  let p : CMParams :=
+    { m := 1
+      α := 1
+      γ := 3
+      χ := -1
+      hm := by norm_num
+      hα := by norm_num
+      hγ := by norm_num }
+  have hγκ := h p (by norm_num [p]) (by norm_num [p]) (1 / 2)
+    (by norm_num) (by norm_num)
+  norm_num [p] at hγκ
+
 theorem frozenWaveOperator_const_eq
     (p : CMParams) {c M : ℝ} {u : ℝ → ℝ}
     (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x) (x : ℝ) :
@@ -4132,6 +4946,692 @@ theorem constant_subsolution_frozenWaveOperator_nonneg_of_chem_nonneg
       (sub_nonneg.mpr
         (Real.rpow_le_one hd_nonneg hd_le_one
           (by linarith [p.hα] : 0 ≤ p.α)))
+
+theorem constant_subsolution_frozenWaveOperator_nonneg_of_chi_zero
+    (p : CMParams) {κ κtilde D d c : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ = 0)
+    (hd_pos : 0 < d)
+    (hd_le : d ≤ constantSubsolutionThreshold p.χ κ κtilde D)
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x) :
+    IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ := by
+  intro x _hx
+  rw [frozenWaveOperator_const_eq p hu hu_nonneg x]
+  apply add_nonneg
+  · simp [hχ]
+  · have hd_nonneg : 0 ≤ d := hd_pos.le
+    have hd_le_inv : d ≤ 1 / (1 + |p.χ|) := by
+      exact le_trans hd_le (min_le_left _ _)
+    have hinv_le_one : 1 / (1 + |p.χ|) ≤ (1 : ℝ) := by
+      have hden_ge : 1 ≤ 1 + |p.χ| := by
+        exact le_add_of_nonneg_right (abs_nonneg p.χ)
+      simpa [one_div] using inv_le_one_of_one_le₀ hden_ge
+    have hd_le_one : d ≤ 1 := le_trans hd_le_inv hinv_le_one
+    exact mul_nonneg hd_nonneg
+      (sub_nonneg.mpr
+        (Real.rpow_le_one hd_nonneg hd_le_one
+          (by linarith [p.hα] : 0 ≤ p.α)))
+
+theorem constant_subsolution_frozenWaveOperator_nonneg_of_small_d_unit_trap
+    (p : CMParams) {κ d c : ℝ} {u : ℝ → ℝ}
+    (hd_pos : 0 < d)
+    (hsmall : |p.χ| * d ^ (p.m - 1) ≤ 1 - d ^ p.α)
+    (hu : InWaveTrapSet κ 1 u) :
+    IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ := by
+  intro x _hx
+  rw [frozenWaveOperator_const_eq p hu.cunif_bdd hu.nonneg x]
+  have hd_nonneg : 0 ≤ d := hd_pos.le
+  have hdm_nonneg : 0 ≤ d ^ p.m := Real.rpow_nonneg hd_nonneg _
+  have hV_nonneg : 0 ≤ frozenElliptic p u x :=
+    frozenElliptic_nonneg p hu.nonneg x
+  have hV_le_one : frozenElliptic p u x ≤ 1 :=
+    frozenElliptic_le_M_of_inWaveTrapSet p one_pos le_rfl hu x
+  have huγ_nonneg : 0 ≤ (u x) ^ p.γ :=
+    Real.rpow_nonneg (hu.nonneg x) _
+  have huγ_le_one : (u x) ^ p.γ ≤ 1 := by
+    have hu_le_one : u x ≤ 1 := hu.le_M x
+    exact Real.rpow_le_one (hu.nonneg x) hu_le_one
+      (by linarith [p.hγ] : 0 ≤ p.γ)
+  let Δ := frozenElliptic p u x - (u x) ^ p.γ
+  have hΔ_abs : |Δ| ≤ 1 := by
+    have hΔ_le : Δ ≤ 1 := by
+      dsimp [Δ]
+      linarith
+    have hneg_le : -1 ≤ Δ := by
+      dsimp [Δ]
+      linarith
+    exact abs_le.mpr ⟨hneg_le, hΔ_le⟩
+  have hchem_core :
+      -|p.χ| * d ^ p.m ≤ -p.χ * (d ^ p.m * Δ) := by
+    have hcoef_abs : |(-p.χ) * Δ| ≤ |p.χ| := by
+      calc
+        |(-p.χ) * Δ| = |p.χ| * |Δ| := by
+          rw [abs_mul, abs_neg]
+        _ ≤ |p.χ| * 1 :=
+          mul_le_mul_of_nonneg_left hΔ_abs (abs_nonneg p.χ)
+        _ = |p.χ| := by ring
+    have hlower : -|p.χ| ≤ (-p.χ) * Δ :=
+      le_trans (neg_le_neg hcoef_abs) (neg_abs_le _)
+    have hmul := mul_le_mul_of_nonneg_right hlower hdm_nonneg
+    calc
+      -|p.χ| * d ^ p.m = (-|p.χ|) * d ^ p.m := by ring
+      _ ≤ ((-p.χ) * Δ) * d ^ p.m := hmul
+      _ = -p.χ * (d ^ p.m * Δ) := by ring
+  have hdm_eq : d ^ p.m = d * d ^ (p.m - 1) := by
+    calc
+      d ^ p.m = d ^ (1 + (p.m - 1)) := by
+        congr 1
+        ring
+      _ = d ^ (1 : ℝ) * d ^ (p.m - 1) := by
+        rw [Real.rpow_add hd_pos]
+      _ = d * d ^ (p.m - 1) := by
+        rw [Real.rpow_one]
+  have hsmall_mul :
+      |p.χ| * d ^ p.m ≤ d * (1 - d ^ p.α) := by
+    rw [hdm_eq]
+    calc
+      |p.χ| * (d * d ^ (p.m - 1)) =
+          d * (|p.χ| * d ^ (p.m - 1)) := by ring
+      _ ≤ d * (1 - d ^ p.α) :=
+          mul_le_mul_of_nonneg_left hsmall hd_nonneg
+  have hnonneg :
+      0 ≤ -|p.χ| * d ^ p.m + d * (1 - d ^ p.α) := by
+    linarith
+  have hchem :
+      -p.χ * (d ^ p.m *
+          (frozenElliptic p u x - (u x) ^ p.γ)) +
+      d * (1 - d ^ p.α) ≥ 0 := by
+    dsimp [Δ] at hchem_core
+    linarith
+  linarith
+
+theorem constant_subsolution_frozenWaveOperator_nonneg_of_small_d_trap
+    (p : CMParams) {κ M d c : ℝ} {u : ℝ → ℝ}
+    (hM_pos : 0 < M)
+    (hd_pos : 0 < d)
+    (hsmall : |p.χ| * d ^ (p.m - 1) * M ^ p.γ ≤ 1 - d ^ p.α)
+    (hu : InWaveTrapSet κ M u) :
+    IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ := by
+  intro x _hx
+  rw [frozenWaveOperator_const_eq p hu.cunif_bdd hu.nonneg x]
+  have hd_nonneg : 0 ≤ d := hd_pos.le
+  have hM_nonneg : 0 ≤ M := hM_pos.le
+  have hdm_nonneg : 0 ≤ d ^ p.m := Real.rpow_nonneg hd_nonneg _
+  have hMγ_nonneg : 0 ≤ M ^ p.γ := Real.rpow_nonneg hM_nonneg _
+  have hV_nonneg : 0 ≤ frozenElliptic p u x :=
+    frozenElliptic_nonneg p hu.nonneg x
+  have hV_le : frozenElliptic p u x ≤ M ^ p.γ :=
+    frozenElliptic_le_rpow_of_inWaveTrapSet p hM_pos hu x
+  have huγ_nonneg : 0 ≤ (u x) ^ p.γ :=
+    Real.rpow_nonneg (hu.nonneg x) _
+  have huγ_le : (u x) ^ p.γ ≤ M ^ p.γ :=
+    hu.rpow_le_M (by linarith [p.hγ]) x
+  let Δ := frozenElliptic p u x - (u x) ^ p.γ
+  have hΔ_abs : |Δ| ≤ M ^ p.γ := by
+    have hΔ_le : Δ ≤ M ^ p.γ := by
+      dsimp [Δ]
+      linarith
+    have hneg_le : -(M ^ p.γ) ≤ Δ := by
+      dsimp [Δ]
+      linarith
+    exact abs_le.mpr ⟨hneg_le, hΔ_le⟩
+  have hchem_core :
+      -|p.χ| * (d ^ p.m * M ^ p.γ) ≤ -p.χ * (d ^ p.m * Δ) := by
+    have hcoef_abs : |(-p.χ) * Δ| ≤ |p.χ| * M ^ p.γ := by
+      calc
+        |(-p.χ) * Δ| = |p.χ| * |Δ| := by
+          rw [abs_mul, abs_neg]
+        _ ≤ |p.χ| * M ^ p.γ :=
+          mul_le_mul_of_nonneg_left hΔ_abs (abs_nonneg p.χ)
+    have hlower : -(|p.χ| * M ^ p.γ) ≤ (-p.χ) * Δ :=
+      le_trans (neg_le_neg hcoef_abs) (neg_abs_le _)
+    have hmul := mul_le_mul_of_nonneg_right hlower hdm_nonneg
+    calc
+      -|p.χ| * (d ^ p.m * M ^ p.γ) =
+          (-(|p.χ| * M ^ p.γ)) * d ^ p.m := by ring
+      _ ≤ ((-p.χ) * Δ) * d ^ p.m := hmul
+      _ = -p.χ * (d ^ p.m * Δ) := by ring
+  have hdm_eq : d ^ p.m = d * d ^ (p.m - 1) := by
+    calc
+      d ^ p.m = d ^ (1 + (p.m - 1)) := by
+        congr 1
+        ring
+      _ = d ^ (1 : ℝ) * d ^ (p.m - 1) := by
+        rw [Real.rpow_add hd_pos]
+      _ = d * d ^ (p.m - 1) := by
+        rw [Real.rpow_one]
+  have hsmall_mul :
+      |p.χ| * (d ^ p.m * M ^ p.γ) ≤ d * (1 - d ^ p.α) := by
+    rw [hdm_eq]
+    calc
+      |p.χ| * ((d * d ^ (p.m - 1)) * M ^ p.γ) =
+          d * (|p.χ| * d ^ (p.m - 1) * M ^ p.γ) := by ring
+      _ ≤ d * (1 - d ^ p.α) :=
+          mul_le_mul_of_nonneg_left hsmall hd_nonneg
+  have hnonneg :
+      0 ≤ -|p.χ| * (d ^ p.m * M ^ p.γ) +
+          d * (1 - d ^ p.α) := by
+    linarith
+  have hchem :
+      -p.χ * (d ^ p.m *
+          (frozenElliptic p u x - (u x) ^ p.γ)) +
+        d * (1 - d ^ p.α) ≥ 0 := by
+    dsimp [Δ] at hchem_core
+    linarith
+  linarith
+
+theorem constant_subsolution_frozen_smallness_of_half_bound
+    (p : CMParams) {M d : ℝ}
+    (hM_pos : 0 < M)
+    (hchem : |p.χ| * M ^ p.γ ≤ 1 / 2)
+    (hd_pos : 0 < d) (hd_le_half : d ≤ 1 / 2) :
+    |p.χ| * d ^ (p.m - 1) * M ^ p.γ ≤ 1 - d ^ p.α := by
+  have hd_nonneg : 0 ≤ d := hd_pos.le
+  have hd_le_one : d ≤ 1 := by linarith
+  have hMγ_nonneg : 0 ≤ M ^ p.γ :=
+    Real.rpow_nonneg hM_pos.le _
+  have hdm1_le_one : d ^ (p.m - 1) ≤ 1 :=
+    Real.rpow_le_one hd_nonneg hd_le_one (by linarith [p.hm])
+  have hleft :
+      |p.χ| * d ^ (p.m - 1) * M ^ p.γ ≤ |p.χ| * M ^ p.γ := by
+    calc
+      |p.χ| * d ^ (p.m - 1) * M ^ p.γ ≤
+          |p.χ| * 1 * M ^ p.γ := by
+        exact mul_le_mul_of_nonneg_right
+          (mul_le_mul_of_nonneg_left hdm1_le_one (abs_nonneg p.χ))
+          hMγ_nonneg
+      _ = |p.χ| * M ^ p.γ := by ring
+  have hdα_le_d : d ^ p.α ≤ d := by
+    calc
+      d ^ p.α ≤ d ^ (1 : ℝ) :=
+        Real.rpow_le_rpow_of_exponent_ge hd_pos hd_le_one p.hα
+      _ = d := Real.rpow_one d
+  have hhalf_le : (1 / 2 : ℝ) ≤ 1 - d ^ p.α := by
+    linarith
+  exact le_trans hleft (le_trans hchem hhalf_le)
+
+theorem constant_subsolution_frozenWaveOperator_nonneg_of_half_bound_trap
+    (p : CMParams) {κ M d c : ℝ} {u : ℝ → ℝ}
+    (hM_pos : 0 < M)
+    (hchem : |p.χ| * M ^ p.γ ≤ 1 / 2)
+    (hd_pos : 0 < d) (hd_le_half : d ≤ 1 / 2)
+    (hu : InWaveTrapSet κ M u) :
+    IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ :=
+  constant_subsolution_frozenWaveOperator_nonneg_of_small_d_trap
+    p hM_pos hd_pos
+    (constant_subsolution_frozen_smallness_of_half_bound
+      p hM_pos hchem hd_pos hd_le_half)
+    hu
+
+theorem lowerBarrierRaw_frozenWaveOperator_eq_of_chi_zero
+    (p : CMParams) {κ κtilde D c : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ = 0) (x : ℝ) :
+    frozenWaveOperator p c u (lowerBarrierRaw κ κtilde D) x =
+      (iteratedDeriv 2 (lowerBarrierRaw κ κtilde D) x +
+          c * deriv (lowerBarrierRaw κ κtilde D) x +
+          lowerBarrierRaw κ κtilde D x) -
+        lowerBarrierRaw κ κtilde D x *
+          (lowerBarrierRaw κ κtilde D x) ^ p.α := by
+  unfold frozenWaveOperator
+  rw [hχ]
+  ring
+
+theorem lowerBarrierRaw_frozenSubSolution_of_chi_zero_of_logistic_dominance
+    (p : CMParams) {κ κtilde D c : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ = 0)
+    (hdom :
+      ∀ x ∈ Set.Ioi (lowerBarrierXMinus κ κtilde D),
+        lowerBarrierRaw κ κtilde D x *
+            (lowerBarrierRaw κ κtilde D x) ^ p.α ≤
+          iteratedDeriv 2 (lowerBarrierRaw κ κtilde D) x +
+            c * deriv (lowerBarrierRaw κ κtilde D) x +
+            lowerBarrierRaw κ κtilde D x) :
+    IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+      (Set.Ioi (lowerBarrierXMinus κ κtilde D)) := by
+  intro x hx
+  rw [lowerBarrierRaw_frozenWaveOperator_eq_of_chi_zero p hχ x]
+  exact sub_nonneg.mpr (hdom x hx)
+
+theorem lowerBarrierRaw_logistic_dominance_of_pointwise_bound
+    (p : CMParams) {κ κtilde D c x : ℝ}
+    (hW_pos : 0 < lowerBarrierRaw κ κtilde D x)
+    (hW_le :
+      lowerBarrierRaw κ κtilde D x ≤
+        (iteratedDeriv 2 (lowerBarrierRaw κ κtilde D) x +
+            c * deriv (lowerBarrierRaw κ κtilde D) x +
+            lowerBarrierRaw κ κtilde D x) ^ (1 / (p.α + 1)))
+    (hlin_nonneg :
+      0 ≤ iteratedDeriv 2 (lowerBarrierRaw κ κtilde D) x +
+          c * deriv (lowerBarrierRaw κ κtilde D) x +
+          lowerBarrierRaw κ κtilde D x) :
+    lowerBarrierRaw κ κtilde D x *
+        (lowerBarrierRaw κ κtilde D x) ^ p.α ≤
+      iteratedDeriv 2 (lowerBarrierRaw κ κtilde D) x +
+        c * deriv (lowerBarrierRaw κ κtilde D) x +
+        lowerBarrierRaw κ κtilde D x := by
+  have hα1_pos : 0 < p.α + 1 := by linarith [p.hα]
+  have hW_nonneg : 0 ≤ lowerBarrierRaw κ κtilde D x := hW_pos.le
+  have hpow :
+      lowerBarrierRaw κ κtilde D x *
+          (lowerBarrierRaw κ κtilde D x) ^ p.α =
+        (lowerBarrierRaw κ κtilde D x) ^ (p.α + 1) := by
+    calc
+      lowerBarrierRaw κ κtilde D x *
+          (lowerBarrierRaw κ κtilde D x) ^ p.α =
+        (lowerBarrierRaw κ κtilde D x) ^ (1 : ℝ) *
+          (lowerBarrierRaw κ κtilde D x) ^ p.α := by
+          rw [Real.rpow_one]
+      _ = (lowerBarrierRaw κ κtilde D x) ^ ((1 : ℝ) + p.α) := by
+        rw [← Real.rpow_add hW_pos]
+      _ = (lowerBarrierRaw κ κtilde D x) ^ (p.α + 1) := by
+        congr 1
+        ring
+  rw [hpow]
+  calc
+    (lowerBarrierRaw κ κtilde D x) ^ (p.α + 1) ≤
+        ((iteratedDeriv 2 (lowerBarrierRaw κ κtilde D) x +
+            c * deriv (lowerBarrierRaw κ κtilde D) x +
+            lowerBarrierRaw κ κtilde D x) ^ (1 / (p.α + 1))) ^
+          (p.α + 1) :=
+      Real.rpow_le_rpow hW_nonneg hW_le hα1_pos.le
+    _ =
+        iteratedDeriv 2 (lowerBarrierRaw κ κtilde D) x +
+          c * deriv (lowerBarrierRaw κ κtilde D) x +
+          lowerBarrierRaw κ κtilde D x := by
+      rw [← Real.rpow_mul hlin_nonneg]
+      have hne : p.α + 1 ≠ 0 := ne_of_gt hα1_pos
+      field_simp [hne]
+      rw [Real.rpow_one]
+
+theorem lowerBarrierRaw_frozenSubSolution_chi_zero_of_pointwise_bound
+    (p : CMParams) {κ κtilde D c : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ = 0)
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
+    (hκtilde1 : κtilde ≤ 1) (hD : 0 < D) (hc : c = κ + κ⁻¹)
+    (hW_le :
+      ∀ x ∈ Set.Ioi (lowerBarrierXMinus κ κtilde D),
+        lowerBarrierRaw κ κtilde D x ≤
+          (iteratedDeriv 2 (lowerBarrierRaw κ κtilde D) x +
+              c * deriv (lowerBarrierRaw κ κtilde D) x +
+              lowerBarrierRaw κ κtilde D x) ^ (1 / (p.α + 1))) :
+    IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+      (Set.Ioi (lowerBarrierXMinus κ κtilde D)) := by
+  apply lowerBarrierRaw_frozenSubSolution_of_chi_zero_of_logistic_dominance
+    p hχ
+  intro x hx
+  exact lowerBarrierRaw_logistic_dominance_of_pointwise_bound p
+    (lowerBarrierRaw_pos_of_xminus_lt (sub_pos.mpr hgap) hD hx)
+    (hW_le x hx)
+    (lowerBarrierRaw_linear_part_pos_of_kappa_speed
+      hκ hκ1 hgap hκtilde1 hD hc).le
+
+theorem lowerBarrierRaw_logistic_dominance_of_D_ge_one
+    (p : CMParams) {κ κtilde D c x : ℝ}
+    (hκ : 0 < κ) (hgap : κ < κtilde) (hD_pos : 0 < D)
+    (hD_ge_one : 1 ≤ D) (hc : c = κ + κ⁻¹)
+    (hκtilde_le : κtilde ≤ (p.α + 1) * κ)
+    (hscale : 1 ≤ D * (c * κtilde - κtilde ^ 2 - 1))
+    (hx : x ∈ Set.Ioi (lowerBarrierXMinus κ κtilde D)) :
+    lowerBarrierRaw κ κtilde D x *
+        (lowerBarrierRaw κ κtilde D x) ^ p.α ≤
+      iteratedDeriv 2 (lowerBarrierRaw κ κtilde D) x +
+        c * deriv (lowerBarrierRaw κ κtilde D) x +
+        lowerBarrierRaw κ κtilde D x := by
+  have hgap_pos : 0 < κtilde - κ := sub_pos.mpr hgap
+  have hx_nonneg : 0 ≤ x := by
+    have hxminus_nonneg :=
+      lowerBarrierXMinus_nonneg_of_one_le_D hgap_pos hD_ge_one
+    exact le_trans hxminus_nonneg hx.le
+  have hα1_pos : 0 < p.α + 1 := by linarith [p.hα]
+  have hW_pos :
+      0 < lowerBarrierRaw κ κtilde D x :=
+    lowerBarrierRaw_pos_of_xminus_lt hgap_pos hD_pos hx
+  have hW_le_exp :
+      lowerBarrierRaw κ κtilde D x ≤ Real.exp (-κ * x) :=
+    lowerBarrierRaw_le_exp hD_pos.le
+  have hpow :
+      lowerBarrierRaw κ κtilde D x *
+          (lowerBarrierRaw κ κtilde D x) ^ p.α =
+        (lowerBarrierRaw κ κtilde D x) ^ (p.α + 1) := by
+    calc
+      lowerBarrierRaw κ κtilde D x *
+          (lowerBarrierRaw κ κtilde D x) ^ p.α =
+        (lowerBarrierRaw κ κtilde D x) ^ (1 : ℝ) *
+          (lowerBarrierRaw κ κtilde D x) ^ p.α := by
+          rw [Real.rpow_one]
+      _ = (lowerBarrierRaw κ κtilde D x) ^ ((1 : ℝ) + p.α) := by
+        rw [← Real.rpow_add hW_pos]
+      _ = (lowerBarrierRaw κ κtilde D x) ^ (p.α + 1) := by
+        congr 1
+        ring
+  rw [hpow]
+  calc
+    (lowerBarrierRaw κ κtilde D x) ^ (p.α + 1) ≤
+        (Real.exp (-κ * x)) ^ (p.α + 1) :=
+      Real.rpow_le_rpow hW_pos.le hW_le_exp hα1_pos.le
+    _ = Real.exp (-(p.α + 1) * κ * x) := by
+      rw [← Real.exp_mul]
+      congr 1
+      ring
+    _ ≤ Real.exp (-κtilde * x) := by
+      apply Real.exp_le_exp.mpr
+      nlinarith
+    _ ≤ D * (c * κtilde - κtilde ^ 2 - 1) *
+        Real.exp (-κtilde * x) := by
+      simpa [one_mul] using
+        mul_le_mul_of_nonneg_right hscale (Real.exp_pos (-κtilde * x)).le
+    _ =
+      iteratedDeriv 2 (lowerBarrierRaw κ κtilde D) x +
+        c * deriv (lowerBarrierRaw κ κtilde D) x +
+        lowerBarrierRaw κ κtilde D x := by
+      rw [lowerBarrierRaw_linear_part_eq_speed_denominator
+        (ne_of_gt hκ) hc]
+
+theorem lowerBarrierRaw_frozenSubSolution_chi_zero_of_D_ge_one
+    (p : CMParams) {κ κtilde D c : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ = 0)
+    (hκ : 0 < κ) (_hκ1 : κ < 1) (hgap : κ < κtilde)
+    (_hκtilde1 : κtilde ≤ 1) (hD_pos : 0 < D) (hD_ge_one : 1 ≤ D)
+    (hc : c = κ + κ⁻¹)
+    (hκtilde_le : κtilde ≤ (p.α + 1) * κ)
+    (hscale : 1 ≤ D * (c * κtilde - κtilde ^ 2 - 1)) :
+    IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+      (Set.Ioi (lowerBarrierXMinus κ κtilde D)) := by
+  exact lowerBarrierRaw_frozenSubSolution_of_chi_zero_of_logistic_dominance
+    p hχ
+    (fun x hx =>
+      lowerBarrierRaw_logistic_dominance_of_D_ge_one
+        p hκ hgap hD_pos hD_ge_one hc hκtilde_le hscale hx)
+
+theorem lowerBarrierRaw_frozenSubSolution_chi_zero_of_threshold_of_D_ge_one
+    (p : CMParams) {κ κtilde M D c : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ = 0)
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
+    (hrange :
+      κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (hD_ge_one : 1 ≤ D) (hc : c = κ + κ⁻¹)
+    (hD :
+      subsolutionDThreshold 0 M κ κtilde p.m p.γ c < D) :
+    IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+      (Set.Ioi (lowerBarrierXMinus κ κtilde D)) := by
+  have hκtilde1 : κtilde ≤ 1 :=
+    kappaTilde_le_one_of_subsolution_range hrange
+  have hκtilde_le : κtilde ≤ (p.α + 1) * κ := by
+    have h := kappaTilde_le_one_plus_alpha_mul_kappa_of_subsolution_range
+      (alpha := p.α) (m := p.m) (κ := κ) (κtilde := κtilde) hrange
+    convert h using 1
+    ring
+  have hden : 0 < c * κtilde - κtilde ^ 2 - 1 :=
+    lowerBarrierRaw_speed_denominator_pos hκ hκ1 hgap hκtilde1 hc
+  have hscale : 1 ≤ D * (c * κtilde - κtilde ^ 2 - 1) :=
+    (one_lt_D_mul_speed_denominator_of_subsolutionDThreshold_lt_chi_zero
+      hden hD).le
+  exact lowerBarrierRaw_frozenSubSolution_chi_zero_of_D_ge_one
+    p hχ hκ hκ1 hgap hκtilde1 (lt_of_lt_of_le zero_lt_one hD_ge_one)
+    hD_ge_one hc hκtilde_le hscale
+
+theorem lowerBarrierRaw_frozenSubSolution_chi_zero_alpha_one_of_threshold
+    (p : CMParams) {κ κtilde M D c : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ = 0) (hα : p.α = 1)
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
+    (hrange :
+      κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (hc : c = κ + κ⁻¹)
+    (hD :
+      subsolutionDThreshold 0 M κ κtilde p.m p.γ c < D) :
+    IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+      (Set.Ioi (lowerBarrierXMinus κ κtilde D)) := by
+  have hκtilde1 : κtilde ≤ 1 :=
+    kappaTilde_le_one_of_subsolution_range hrange
+  have hκtilde_twoκ : κtilde ≤ 2 * κ := by
+    have h := kappaTilde_le_one_plus_alpha_mul_kappa_of_subsolution_range
+      (alpha := p.α) (m := p.m) (κ := κ) (κtilde := κtilde) hrange
+    rw [hα] at h
+    calc
+      κtilde ≤ (1 + 1) * κ := h
+      _ = 2 * κ := by ring
+  have hden_pos : 0 < c * κtilde - κtilde ^ 2 - 1 :=
+    lowerBarrierRaw_speed_denominator_pos hκ hκ1 hgap hκtilde1 hc
+  have hden_le_one : c * κtilde - κtilde ^ 2 - 1 ≤ 1 :=
+    lowerBarrierRaw_speed_denominator_le_one_of_kappaTilde_le_two_kappa
+      hκ hκ1 hgap hκtilde1 hκtilde_twoκ hc
+  have hD_ge_one : 1 ≤ D :=
+    one_le_D_of_subsolutionDThreshold_lt_chi_zero_of_den_le_one
+      hden_pos hden_le_one hD
+  exact lowerBarrierRaw_frozenSubSolution_chi_zero_of_threshold_of_D_ge_one
+    p hχ hκ hκ1 hgap hrange hD_ge_one hc hD
+
+theorem Lemma_4_2_chi_zero_alpha_one_subsolutions
+    (p : CMParams) {κ κtilde M c D : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ = 0) (hα : p.α = 1)
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
+    (hrange :
+      κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (_hM : 1 ≤ M) (hc : c = κ + κ⁻¹)
+    (hD :
+      subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D)
+    (hu : InWaveTrapSet κ M u) :
+    IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+        (Set.Ioi (lowerBarrierXMinus κ κtilde D)) ∧
+      ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+        IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ := by
+  have hD0 :
+      subsolutionDThreshold 0 M κ κtilde p.m p.γ c < D := by
+    simpa [hχ] using hD
+  refine ⟨?_, ?_⟩
+  · exact lowerBarrierRaw_frozenSubSolution_chi_zero_alpha_one_of_threshold
+      p hχ hα hκ hκ1 hgap hrange hc hD0
+  · intro d hd_pos hd_le
+    exact constant_subsolution_frozenWaveOperator_nonneg_of_chem_nonneg
+      p hd_pos hd_le hu (fun x => by simp [hχ])
+
+theorem Lemma_4_2_chi_zero_subsolutions_of_D_ge_one
+    (p : CMParams) {κ κtilde M c D : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ = 0)
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
+    (hrange :
+      κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (hD_ge_one : 1 ≤ D)
+    (_hM : 1 ≤ M) (hc : c = κ + κ⁻¹)
+    (hD :
+      subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D)
+    (hu : InWaveTrapSet κ M u) :
+    IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+        (Set.Ioi (lowerBarrierXMinus κ κtilde D)) ∧
+      ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+        IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ := by
+  have hD0 :
+      subsolutionDThreshold 0 M κ κtilde p.m p.γ c < D := by
+    simpa [hχ] using hD
+  refine ⟨?_, ?_⟩
+  · exact lowerBarrierRaw_frozenSubSolution_chi_zero_of_threshold_of_D_ge_one
+      p hχ hκ hκ1 hgap hrange hD_ge_one hc hD0
+  · intro d hd_pos hd_le
+    exact constant_subsolution_frozenWaveOperator_nonneg_of_chem_nonneg
+      p hd_pos hd_le hu (fun x => by simp [hχ])
+
+theorem Lemma_4_2_chi_zero_subsolutions_of_kappaTilde_le_two_kappa
+    (p : CMParams) {κ κtilde M c D : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ = 0)
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
+    (hrange :
+      κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (hκtilde_twoκ : κtilde ≤ 2 * κ)
+    (_hM : 1 ≤ M) (hc : c = κ + κ⁻¹)
+    (hD :
+      subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D)
+    (hu : InWaveTrapSet κ M u) :
+    IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+        (Set.Ioi (lowerBarrierXMinus κ κtilde D)) ∧
+      ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+        IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ := by
+  have hD0 :
+      subsolutionDThreshold 0 M κ κtilde p.m p.γ c < D := by
+    simpa [hχ] using hD
+  have hκtilde1 : κtilde ≤ 1 :=
+    kappaTilde_le_one_of_subsolution_range hrange
+  have hden_pos : 0 < c * κtilde - κtilde ^ 2 - 1 :=
+    lowerBarrierRaw_speed_denominator_pos hκ hκ1 hgap hκtilde1 hc
+  have hden_le_one : c * κtilde - κtilde ^ 2 - 1 ≤ 1 :=
+    lowerBarrierRaw_speed_denominator_le_one_of_kappaTilde_le_two_kappa
+      hκ hκ1 hgap hκtilde1 hκtilde_twoκ hc
+  have hD_ge_one : 1 ≤ D :=
+    one_le_D_of_subsolutionDThreshold_lt_chi_zero_of_den_le_one
+      hden_pos hden_le_one hD0
+  refine ⟨?_, ?_⟩
+  · exact lowerBarrierRaw_frozenSubSolution_chi_zero_of_threshold_of_D_ge_one
+      p hχ hκ hκ1 hgap hrange hD_ge_one hc hD0
+  · intro d hd_pos hd_le
+    exact constant_subsolution_frozenWaveOperator_nonneg_of_chem_nonneg
+      p hd_pos hd_le hu (fun x => by simp [hχ])
+
+/-- A proved χ=0 version of Lemma 4.2 with the extra geometric condition
+`κtilde ≤ 2κ` made explicit. This records the actual hypotheses needed by the
+raw lower-barrier proof without reintroducing the former all-in-one analytic
+assumption package. -/
+def Lemma_4_2_chi_zero_strengthened : Prop :=
+  ∀ p : CMParams, p.χ = 0 →
+    ∀ κ κtilde M c : ℝ,
+      0 < κ → κ < 1 →
+        κ < κtilde →
+        κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
+        κtilde ≤ 2 * κ →
+        1 ≤ M → c = κ + κ⁻¹ →
+          ∀ D : ℝ,
+            subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D →
+              ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
+                IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+                  (Set.Ioi (lowerBarrierXMinus κ κtilde D)) ∧
+                ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+                  IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ
+
+theorem Lemma_4_2_chi_zero_strengthened_proved :
+    Lemma_4_2_chi_zero_strengthened := by
+  intro p hχ κ κtilde M c hκ hκ1 hgap hrange hκtilde_twoκ hM hc D hD u hu
+  exact Lemma_4_2_chi_zero_subsolutions_of_kappaTilde_le_two_kappa
+    p hχ hκ hκ1 hgap hrange hκtilde_twoκ hM hc hD hu
+
+/-- A proved χ=0 version of Lemma 4.2 with the missing large-`D`
+condition made explicit.  This is the direct assembly of the raw lower-barrier
+`D ≥ 1` estimate and the constant subsolution branch. -/
+def Lemma_4_2_chi_zero_D_ge_one_strengthened : Prop :=
+  ∀ p : CMParams, p.χ = 0 →
+    ∀ κ κtilde M c : ℝ,
+      0 < κ → κ < 1 →
+        κ < κtilde →
+        κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
+        1 ≤ M → c = κ + κ⁻¹ →
+          ∀ D : ℝ,
+            1 ≤ D →
+            subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D →
+              ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
+                IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+                  (Set.Ioi (lowerBarrierXMinus κ κtilde D)) ∧
+                ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+                  IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ
+
+theorem Lemma_4_2_chi_zero_D_ge_one_strengthened_proved :
+    Lemma_4_2_chi_zero_D_ge_one_strengthened := by
+  intro p hχ κ κtilde M c hκ hκ1 hgap hrange hM hc D hD_ge_one hD u hu
+  exact Lemma_4_2_chi_zero_subsolutions_of_D_ge_one
+    p hχ hκ hκ1 hgap hrange hD_ge_one hM hc hD hu
+
+/-- A proved χ=0, α=1 version of Lemma 4.2. In this slice the paper range
+condition implies `κtilde ≤ 2κ`, so no separate geometric hypothesis is needed. -/
+def Lemma_4_2_chi_zero_alpha_one_strengthened : Prop :=
+  ∀ p : CMParams, p.χ = 0 → p.α = 1 →
+    ∀ κ κtilde M c : ℝ,
+      0 < κ → κ < 1 →
+        κ < κtilde →
+        κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
+        1 ≤ M → c = κ + κ⁻¹ →
+          ∀ D : ℝ,
+            subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D →
+              ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
+                IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+                  (Set.Ioi (lowerBarrierXMinus κ κtilde D)) ∧
+                ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+                  IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ
+
+theorem Lemma_4_2_chi_zero_alpha_one_strengthened_proved :
+    Lemma_4_2_chi_zero_alpha_one_strengthened := by
+  intro p hχ hα κ κtilde M c hκ hκ1 hgap hrange hM hc D hD u hu
+  exact Lemma_4_2_chi_zero_alpha_one_subsolutions
+    p hχ hα hκ hκ1 hgap hrange hM hc hD hu
+
+theorem not_Lemma_4_2_chi_zero_hypotheses_force_kappaTilde_le_two_kappa :
+    ¬ (∀ p : CMParams, p.χ = 0 →
+      ∀ κ κtilde M c D : ℝ,
+        0 < κ → κ < 1 → κ < κtilde →
+        κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
+        1 ≤ M → c = κ + κ⁻¹ →
+        subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D →
+        κtilde ≤ 2 * κ) := by
+  intro h
+  let p : CMParams :=
+    { m := 3
+      α := 4
+      γ := 1
+      χ := 0
+      hm := by norm_num
+      hα := by norm_num
+      hγ := by norm_num }
+  have hD :
+      subsolutionDThreshold p.χ 1 (1 / 4) (3 / 4) p.m p.γ (17 / 4) <
+        (4 / 5 : ℝ) := by
+    norm_num [p, subsolutionDThreshold, subsolutionK]
+  have hbad := h p (by norm_num [p]) (1 / 4) (3 / 4) 1 (17 / 4)
+    (4 / 5) (by norm_num) (by norm_num) (by norm_num)
+    (by norm_num [p]) (by norm_num) (by norm_num) hD
+  norm_num at hbad
+
+theorem not_Lemma_4_2_chi_zero_hypotheses_force_D_ge_one :
+    ¬ (∀ p : CMParams, p.χ = 0 →
+      ∀ κ κtilde M c D : ℝ,
+        0 < κ → κ < 1 → κ < κtilde →
+        κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
+        1 ≤ M → c = κ + κ⁻¹ →
+        subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D →
+        1 ≤ D) := by
+  intro h
+  let p : CMParams :=
+    { m := 3
+      α := 4
+      γ := 1
+      χ := 0
+      hm := by norm_num
+      hα := by norm_num
+      hγ := by norm_num }
+  have hD :
+      subsolutionDThreshold p.χ 1 (1 / 4) (3 / 4) p.m p.γ (17 / 4) <
+        (4 / 5 : ℝ) := by
+    norm_num [p, subsolutionDThreshold, subsolutionK]
+  have hbad := h p (by norm_num [p]) (1 / 4) (3 / 4) 1 (17 / 4)
+    (4 / 5) (by norm_num) (by norm_num) (by norm_num)
+    (by norm_num [p]) (by norm_num) (by norm_num) hD
+  norm_num at hbad
+
+theorem not_constantSubsolutionThreshold_implies_frozen_smallness :
+    ¬ (∀ p : CMParams, ∀ κ κtilde D d : ℝ,
+      0 < d →
+        d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+          |p.χ| * d ^ (p.m - 1) ≤ 1 - d ^ p.α) := by
+  intro h
+  let p : CMParams :=
+    { m := 1
+      α := 1
+      γ := 1
+      χ := 2
+      hm := le_rfl
+      hα := le_rfl
+      hγ := le_rfl }
+  have hd_pos : 0 < (1 / 4 : ℝ) := by norm_num
+  have hd_le :
+      (1 / 4 : ℝ) ≤
+        constantSubsolutionThreshold p.χ (1 / 2 : ℝ) 1 1 := by
+    simp [constantSubsolutionThreshold, p]
+    norm_num
+  have hbad := h p (1 / 2 : ℝ) 1 1 (1 / 4 : ℝ) hd_pos hd_le
+  norm_num [p] at hbad
 
 theorem paperWaveOperator_const_subsolution_nonneg_of_chi_nonpos
     (p : CMParams) {c κ κtilde D d : ℝ} {u : ℝ → ℝ}
@@ -4320,7 +5820,7 @@ theorem paperWaveOperator_exp_nonpos_of_kappa_speed_of_dominance
     (p : CMParams) {c κ : ℝ} {u : ℝ → ℝ}
     (hκ : κ ≠ 0) (hc : c = κ + κ⁻¹) (x : ℝ)
     (hdom :
-      - p.χ * p.m * (expDecay κ x) ^ (p.m - 1) *
+      -p.χ * p.m * (expDecay κ x) ^ (p.m - 1) *
           deriv (frozenElliptic p u) x * (-κ * expDecay κ x)
         + expDecay κ x *
           (-p.χ * (expDecay κ x) ^ (p.m - 1) *
@@ -4758,17 +6258,104 @@ theorem frozenWaveOperator_exp_nonpos_of_chi_nonpos
           have hsource_nonneg : 0 ≤ (u x) ^ p.γ :=
             Real.rpow_nonneg (hu.nonneg x) p.γ
           exact mul_le_mul_of_nonneg_left (by linarith) hcoef
-    _ = (|p.χ| * C * E ^ δ) * (E * E ^ p.α) := by
-          rw [hminus_chi, hE_pow]
-          calc
-            |p.χ| * E ^ p.m * (C * E ^ p.γ)
-                = |p.χ| * C * (E ^ p.m * E ^ p.γ) := by ring
-            _ = |p.χ| * C * (E ^ (p.α + 1) * E ^ δ) := by
-                rw [hpow_split]
-            _ = (|p.χ| * C * E ^ δ) * E ^ (p.α + 1) := by ring
-    _ ≤ 1 * (E * E ^ p.α) :=
-        mul_le_mul_of_nonneg_right hcoef_Eδ hright_nonneg
-    _ = E * E ^ p.α := by ring
+      _ = (|p.χ| * C * E ^ δ) * (E * E ^ p.α) := by
+            rw [hminus_chi, hE_pow]
+            calc
+              |p.χ| * E ^ p.m * (C * E ^ p.γ)
+                  = |p.χ| * C * (E ^ p.m * E ^ p.γ) := by ring
+              _ = |p.χ| * C * (E ^ (p.α + 1) * E ^ δ) := by
+                  rw [hpow_split]
+              _ = (|p.χ| * C * E ^ δ) * E ^ (p.α + 1) := by ring_nf
+      _ ≤ 1 * (E * E ^ p.α) :=
+          mul_le_mul_of_nonneg_right hcoef_Eδ hright_nonneg
+      _ = E * E ^ p.α := by ring
+
+theorem frozenWaveOperator_exp_nonpos_of_chi_nonneg
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hc : 2 ≤ c) (hκ_eq : κ = kappa c)
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_le_one : p.χ ≤ 1)
+    (hα : p.α = p.m + p.γ - 1)
+    (hκ_nonneg : 0 ≤ κ) (hmκ : p.m * κ ≤ 1)
+    (hu : InWaveTrapSet κ M u) {x : ℝ}
+    (hV_diff : DifferentiableAt ℝ (deriv (frozenElliptic p u)) x) :
+    frozenWaveOperator p c u (expDecay κ) x ≤ 0 := by
+  let E := expDecay κ x
+  let V := frozenElliptic p u x
+  let Vx := deriv (frozenElliptic p u) x
+  have hE_pos : 0 < E := expDecay_pos κ x
+  have hE_nonneg : 0 ≤ E := hE_pos.le
+  have hV_nonneg : 0 ≤ V := by
+    dsimp [V]
+    exact frozenElliptic_nonneg p hu.nonneg x
+  have hVx_abs : |Vx| ≤ V := by
+    dsimp [V, Vx]
+    exact frozenElliptic_deriv_abs_le p hu.cunif_bdd hu.nonneg x
+  have hVx_le : Vx ≤ V := le_trans (le_abs_self _) hVx_abs
+  have hmk_nonneg : 0 ≤ p.m * κ :=
+    mul_nonneg (le_trans zero_le_one p.hm) hκ_nonneg
+  have hneg_term_lower :
+      -(p.m * κ) * V ≤ -(p.m * κ) * Vx := by
+    exact mul_le_mul_of_nonpos_left hVx_le (neg_nonpos.mpr hmk_nonneg)
+  have hbracket_lower :
+      -(p.m * κ) * Vx + V - (u x) ^ p.γ ≥ -((u x) ^ p.γ) := by
+    have hnonneg_part : 0 ≤ (1 - p.m * κ) * V :=
+      mul_nonneg (sub_nonneg.mpr hmκ) hV_nonneg
+    nlinarith
+  have hcoef_nonpos : -p.χ * E ^ p.m ≤ 0 := by
+    exact mul_nonpos_of_nonpos_of_nonneg
+      (neg_nonpos.mpr hχ_nonneg)
+      (Real.rpow_nonneg hE_nonneg p.m)
+  have hchem_le_source :
+      -p.χ * E ^ p.m *
+          (-(p.m * κ) * Vx + V - (u x) ^ p.γ) ≤
+          p.χ * E ^ p.m * (u x) ^ p.γ := by
+      have hmul :=
+        mul_le_mul_of_nonpos_left hbracket_lower hcoef_nonpos
+      calc
+        -p.χ * E ^ p.m *
+            (-(p.m * κ) * Vx + V - (u x) ^ p.γ)
+            ≤ -p.χ * E ^ p.m * (-(u x) ^ p.γ) := hmul
+        _ = p.χ * E ^ p.m * (u x) ^ p.γ := by ring
+  have huγ_le_Eγ : (u x) ^ p.γ ≤ E ^ p.γ := by
+    dsimp [E, expDecay]
+    simpa [neg_mul] using hu.rpow_le_exp (le_trans zero_le_one p.hγ) x
+  have hcoef_source_nonneg : 0 ≤ p.χ * E ^ p.m :=
+    mul_nonneg hχ_nonneg (Real.rpow_nonneg hE_nonneg p.m)
+  have hchem_le_E :
+      -p.χ * E ^ p.m *
+          (-(p.m * κ) * Vx + V - (u x) ^ p.γ) ≤
+        p.χ * E ^ p.m * E ^ p.γ := by
+    exact le_trans hchem_le_source
+      (mul_le_mul_of_nonneg_left huγ_le_Eγ hcoef_source_nonneg)
+  have hpow_mγ :
+      E ^ p.m * E ^ p.γ = E ^ (p.α + 1) := by
+    rw [← Real.rpow_add hE_pos, hα]
+    congr 1
+    ring
+  have hE_pow :
+      E * E ^ p.α = E ^ (p.α + 1) := by
+    have hE_one : E = E ^ (1 : ℝ) := (Real.rpow_one E).symm
+    nth_rw 1 [hE_one]
+    rw [← Real.rpow_add hE_pos]
+    congr 1
+    ring
+  have hchem_le_logistic :
+      -p.χ * E ^ p.m *
+          (-(p.m * κ) * Vx + V - (u x) ^ p.γ) ≤
+        E * E ^ p.α := by
+    calc
+          -p.χ * E ^ p.m *
+              (-(p.m * κ) * Vx + V - (u x) ^ p.γ)
+              ≤ p.χ * E ^ p.m * E ^ p.γ := hchem_le_E
+          _ = p.χ * (E ^ p.m * E ^ p.γ) := by ring
+          _ = p.χ * E ^ (p.α + 1) := by rw [hpow_mγ]
+          _ ≤ 1 * E ^ (p.α + 1) :=
+              mul_le_mul_of_nonneg_right hχ_le_one
+                (Real.rpow_nonneg hE_nonneg (p.α + 1))
+          _ = E * E ^ p.α := by rw [hE_pow]; ring
+  rw [frozenWaveOperator_exp_full_eq p hc hκ_eq hu.cunif_bdd hu.nonneg x hV_diff]
+  dsimp [E, V, Vx] at hchem_le_logistic
+  linarith
 
 theorem frozenWaveOperator_upperBarrier_exp_region_eq
     (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
@@ -4823,6 +6410,20 @@ theorem frozenWaveOperator_upperBarrier_exp_region_nonpos_of_chi_nonpos
   rw [frozenWaveOperator_upperBarrier_exp_region_eq p hx]
   exact frozenWaveOperator_exp_nonpos_of_chi_nonpos p hc hκ_eq hχ hα hκ hγκ
     hmκ hM hMbound hu hx hV_diff
+
+theorem frozenWaveOperator_upperBarrier_exp_region_nonpos_of_chi_nonneg
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hc : 2 ≤ c) (hκ_eq : κ = kappa c)
+    (hχ_nonneg : 0 ≤ p.χ) (hχ : p.χ < chiStar p)
+    (hα : p.α = p.m + p.γ - 1)
+    (hκ_nonneg : 0 ≤ κ) (hmκ : p.m * κ ≤ 1)
+    {x : ℝ} (hx : expDecay κ x < M)
+    (hu : InWaveTrapSet κ M u)
+    (hV_diff : DifferentiableAt ℝ (deriv (frozenElliptic p u)) x) :
+    frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0 := by
+  rw [frozenWaveOperator_upperBarrier_exp_region_eq p hx]
+  exact frozenWaveOperator_exp_nonpos_of_chi_nonneg p hc hκ_eq hχ_nonneg
+    (le_trans hχ.le (chiStar_le_one p)) hα hκ_nonneg hmκ hu hV_diff
 
 theorem paperWaveOperator_exp_region_hdom_of_resolvent_bound
     (p : CMParams) {κ M : ℝ} {u : ℝ → ℝ}
@@ -5029,11 +6630,102 @@ theorem Lemma_4_1_neg_holds_away_from_interface
       paperWaveOperator p c u (upperBarrier κ M) x ≤ 0 := by
   intro x hneq
   rcases lt_or_gt_of_ne hneq with hlt | hgt
-  ·
-    exact paperWaveOperator_exp_nonpos_of_chi_nonpos p hχ hα hκ hκ1 hγκ hmκ
+  · exact paperWaveOperator_exp_nonpos_of_chi_nonpos p hχ hα hκ hκ1 hγκ hmκ
       hM hMbound hu hlt hc
-  ·
-    exact paperWaveOperator_upperBarrier_const_region_nonpos_neg p hχ hα hκ hM hu hgt
+  · exact paperWaveOperator_upperBarrier_const_region_nonpos_neg p hχ hα hκ hM hu hgt
+
+theorem Lemma_4_1_pos_frozen_holds_away_from_interface_at_kappa
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hc : c = κ + κ⁻¹)
+    (hχ_nonneg : 0 ≤ p.χ) (hχ : p.χ < chiStar p)
+    (hα : p.α = p.m + p.γ - 1)
+    (hmκ : p.m * κ ≤ 1)
+    (hM : 1 ≤ M)
+    (hMchi : (1 / (1 - p.χ)) ^ (1 / p.α) ≤ M)
+    (hu : InWaveTrapSet κ M u) :
+    ∀ x, Real.exp (-κ * x) ≠ M →
+      frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0 := by
+  intro x hneq
+  rcases lt_or_gt_of_ne hneq with hlt | hgt
+  · have hx : expDecay κ x < M := by
+      simpa [expDecay] using hlt
+    have hc_two : 2 ≤ c :=
+      (two_lt_of_pos_lt_one_kappa_speed hκ hκ1 hc).le
+    have hκ_eq : κ = kappa c :=
+      (kappa_eq_of_pos_lt_one_kappa_speed hκ hκ1 hc).symm
+    exact frozenWaveOperator_upperBarrier_exp_region_nonpos_of_chi_nonneg
+      p hc_two hκ_eq hχ_nonneg hχ hα hκ.le hmκ hx hu
+      (frozenElliptic_deriv_differentiableAt p hu.cunif_bdd hu.nonneg x)
+  · exact frozenWaveOperator_upperBarrier_const_region_nonpos_pos
+      p hχ_nonneg hχ hα hM hMchi hu hgt
+
+theorem Lemma_4_1_neg_frozen_holds_away_from_interface_of_plateau_source_bound
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ ≤ 0) (hα : p.α ≤ p.m + p.γ - 1)
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hγκ : p.γ * κ < 1) (hmκ : κ * p.m ≤ 1)
+    (hM : 1 ≤ M)
+    (hMbound :
+      |p.χ| * ((1 + p.m * p.γ * κ ^ 2) / (1 - p.γ ^ 2 * κ ^ 2)) *
+        M ^ (p.m + p.γ - p.α - 1) ≤ 1)
+    (hu : InWaveTrapSet κ M u) (hc : c = κ + κ⁻¹)
+    (hplateau :
+      ∀ x, M < Real.exp (-κ * x) →
+        frozenElliptic p u x ≤ (u x) ^ p.γ) :
+    ∀ x, Real.exp (-κ * x) ≠ M →
+      frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0 := by
+  intro x hneq
+  rcases lt_or_gt_of_ne hneq with hlt | hgt
+  · have hx : expDecay κ x < M := by
+      simpa [expDecay] using hlt
+    have hc_two : 2 ≤ c :=
+      (two_lt_of_pos_lt_one_kappa_speed hκ hκ1 hc).le
+    have hκ_eq : κ = kappa c :=
+      (kappa_eq_of_pos_lt_one_kappa_speed hκ hκ1 hc).symm
+    exact frozenWaveOperator_upperBarrier_exp_region_nonpos_of_chi_nonpos
+      p hc_two hκ_eq hχ hα hκ hγκ hmκ hM hMbound hu hx
+      (frozenElliptic_deriv_differentiableAt p hu.cunif_bdd hu.nonneg x)
+  · exact frozenWaveOperator_upperBarrier_const_region_nonpos_of_elliptic_le_source
+      p hχ hM hu.cunif_bdd hu.nonneg hgt (hplateau x hgt)
+
+/-- A proved, explicit version of the upper-barrier supersolution estimate away
+from the free interface `exp (-κ*x) = M`.
+
+The original paper statement `Lemma_4_1` currently omits hypotheses needed by
+the frozen operator proof: speed bounds in both sign cases, and in the `χ ≤ 0`
+case an explicit plateau-region comparison between the elliptic resolvent and
+the source. This formulation records the proved branch statement directly,
+without an analytic-data package projection. -/
+def Lemma_4_1_strengthened_away_from_interface : Prop :=
+  (∀ p : CMParams, p.χ ≤ 0 → p.α ≤ p.m + p.γ - 1 →
+    ∀ κ M c : ℝ, 0 < κ → κ < 1 → p.γ * κ < 1 → κ * p.m ≤ 1 →
+      1 ≤ M →
+      |p.χ| * ((1 + p.m * p.γ * κ ^ 2) / (1 - p.γ ^ 2 * κ ^ 2)) *
+        M ^ (p.m + p.γ - p.α - 1) ≤ 1 →
+      c = κ + κ⁻¹ →
+      ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
+        (∀ x, M < Real.exp (-κ * x) →
+          frozenElliptic p u x ≤ (u x) ^ p.γ) →
+        ∀ x, Real.exp (-κ * x) ≠ M →
+          frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0) ∧
+  (∀ p : CMParams, 0 ≤ p.χ → p.χ < chiStar p →
+    p.α = p.m + p.γ - 1 →
+    ∀ κ M c : ℝ, 0 < κ → κ < 1 → p.m * κ ≤ 1 →
+      1 ≤ M →
+      (1 / (1 - p.χ)) ^ (1 / p.α) ≤ M →
+      c = κ + κ⁻¹ →
+      ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
+        ∀ x, Real.exp (-κ * x) ≠ M →
+          frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0)
+
+theorem Lemma_4_1_strengthened_away_from_interface_proved :
+    Lemma_4_1_strengthened_away_from_interface := by
+  constructor
+  · intro p hχ hα κ M c hκ hκ1 hγκ hmκ hM hMbound hc u hu hplateau
+    exact Lemma_4_1_neg_frozen_holds_away_from_interface_of_plateau_source_bound
+      p hχ hα hκ hκ1 hγκ hmκ hM hMbound hu hc hplateau
+  · intro p hχ_nonneg hχ hα κ M c hκ hκ1 hmκ hM hMchi hc u hu
+    exact Lemma_4_1_pos_frozen_holds_away_from_interface_at_kappa
+      p hκ hκ1 hc hχ_nonneg hχ hα hmκ hM hMchi hu
 
 theorem paperWaveOperator_exp_nonpos_of_chi_nonpos_one_of_speed_bound
     (p : CMParams) {c κ : ℝ} {u : ℝ → ℝ}
@@ -5098,39 +6790,94 @@ def Lemma_4_2 : Prop :=
               ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
                 IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ
 
-theorem Lemma_4_1.negative_superSolution
-    (h : Lemma_4_1) {p : CMParams} (hχ : p.χ ≤ 0)
-    (hα : p.α ≤ p.m + p.γ - 1)
-    {κ M c : ℝ} (hκ_pos : 0 < κ) (hκ_lt_one : κ < 1)
-    (hM : 1 ≤ M) (hc : c = κ + κ⁻¹)
-    {u : ℝ → ℝ} (hu : InWaveTrapSet κ M u) :
-    IsFrozenSuperSolution p c u (upperBarrier κ M) :=
-  h.1 p hχ hα κ M c hκ_pos hκ_lt_one hM hc u hu
-
-theorem Lemma_4_1.positive_superSolution
-    (h : Lemma_4_1) {p : CMParams} (hχ_nonneg : 0 ≤ p.χ)
-    (hχ : p.χ < chiStar p) (hα : p.α = p.m + p.γ - 1)
-    {κ M c : ℝ} (hκ_pos : 0 < κ) (hκ_lt_one : κ < 1)
-    (hM : 1 ≤ M)
-    (hMchi : (1 / (1 - p.χ)) ^ (1 / p.α) ≤ M)
-    (hc : c = κ + κ⁻¹)
-    {u : ℝ → ℝ} (hu : InWaveTrapSet κ M u) :
-    IsFrozenSuperSolution p c u (upperBarrier κ M) :=
-  h.2 p hχ_nonneg hχ hα κ M c hκ_pos hκ_lt_one hM hMchi hc u hu
-
-theorem Lemma_4_2.subsolutions
-    (h : Lemma_4_2) {p : CMParams} {κ κtilde M c D : ℝ}
-    (hκ_pos : 0 < κ) (hκ_lt_one : κ < 1) (hκ_gap : κ < κtilde)
-    (hrange :
-      κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
-    (hM : 1 ≤ M) (hc : c = κ + κ⁻¹)
-    (hD : subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D)
-    {u : ℝ → ℝ} (hu : InWaveTrapSet κ M u) :
-    IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
-        (Set.Ioi (lowerBarrierXMinus κ κtilde D)) ∧
-      ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
-        IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ :=
-  h p κ κtilde M c hκ_pos hκ_lt_one hκ_gap hrange hM hc D hD u hu
+theorem not_Lemma_4_2 : ¬ Lemma_4_2 := by
+  intro hL
+  let u : ℝ → ℝ := lemma41CounterexampleProfile
+  let V0 : ℝ :=
+    frozenElliptic lemma41CounterexampleParams lemma41CounterexampleProfile (-1)
+  have hV0_pos : 0 < V0 := by
+    simpa [V0] using frozenElliptic_lemma41CounterexampleProfile_pos
+  let p : CMParams :=
+    { m := 1
+      α := 1
+      γ := 1
+      χ := 2 / V0
+      hm := by norm_num
+      hα := by norm_num
+      hγ := by norm_num }
+  let κ : ℝ := 1 / 2
+  let κtilde : ℝ := 1
+  let M : ℝ := 1
+  let c : ℝ := 5 / 2
+  let D : ℝ :=
+    subsolutionDThreshold p.χ M κ κtilde p.m p.γ c + 1
+  let θ : ℝ := constantSubsolutionThreshold p.χ κ κtilde D
+  let d : ℝ := θ / 2
+  have htrap : InWaveTrapSet κ M u := by
+    simpa [u, κ, M] using lemma41CounterexampleProfile_mem_trap
+  have hDthr :
+      subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D := by
+    dsimp [D]
+    linarith
+  have hDpos : 0 < D := by
+    have hthr_pos :
+        0 < subsolutionDThreshold p.χ M κ κtilde p.m p.γ c := by
+      apply subsolutionDThreshold_pos_of_kappa_speed
+      · norm_num [M]
+      · norm_num [κ]
+      · norm_num [κ]
+      · norm_num [κ, κtilde]
+      · norm_num [κtilde]
+      · norm_num [p]
+      · norm_num [p]
+      · norm_num [c, κ, κtilde]
+    dsimp [D]
+    linarith
+  have hθ_pos : 0 < θ := by
+    dsimp [θ]
+    apply constantSubsolutionThreshold_pos
+    · norm_num [κ]
+    · norm_num [κ, κtilde]
+    · exact hDpos
+  have hd_pos : 0 < d := by
+    dsimp [d]
+    linarith
+  have hd_le : d ≤ θ := by
+    dsimp [d]
+    linarith
+  have hconst :
+      IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ := by
+    exact
+      (hL p κ κtilde M c
+        (by norm_num [κ]) (by norm_num [κ])
+        (by norm_num [κ, κtilde])
+        (by norm_num [p, κ, κtilde])
+        (by norm_num [M])
+        (by norm_num [c, κ])
+        D hDthr u htrap).2 d hd_pos (by simpa [θ] using hd_le)
+  have hop := hconst (-1) trivial
+  rw [frozenWaveOperator_const_eq p htrap.cunif_bdd htrap.nonneg (-1)] at hop
+  have hu_neg_one : u (-1) = 0 := by
+    simpa [u] using lemma41CounterexampleProfile_at_neg_one
+  have hVeq : frozenElliptic p u (-1) = V0 := by
+    simp [V0, p, u, lemma41CounterexampleParams, frozenElliptic]
+  have hbad :
+      -p.χ * (d ^ p.m *
+          (frozenElliptic p u (-1) - (u (-1)) ^ p.γ)) +
+        d * (1 - d ^ p.α) =
+        -d * (1 + d) := by
+    rw [hVeq, hu_neg_one]
+    have hzero_rpow : (0 : ℝ) ^ p.γ = 0 := by
+      norm_num [p]
+    rw [hzero_rpow]
+    norm_num [p]
+    field_simp [ne_of_gt hV0_pos]
+    ring
+  rw [hbad] at hop
+  have hneg : -d * (1 + d) < 0 := by
+    have hsum_pos : 0 < 1 + d := by linarith
+    exact mul_neg_of_neg_of_pos (neg_neg_of_pos hd_pos) hsum_pos
+  exact not_lt_of_ge hop hneg
 
 /-- The finite-time upper barrier from Paper1 Remark 4.2:
 `\tilde U^+_{κ,M}(x) = min {M, M exp(-κx)}`. -/
@@ -5199,6 +6946,114 @@ theorem InTimeWaveTrapSet.le_scaledUpperBarrier
     u t x ≤ scaledUpperBarrier κ M x :=
   ((h t ht).2 x).2
 
+theorem InTimeWaveTrapSet.le_M
+    {κ M T : ℝ} {u : ℝ → ℝ → ℝ}
+    (h : InTimeWaveTrapSet κ M T u)
+    {t : ℝ} (ht : t ∈ Set.Icc (0 : ℝ) T) (x : ℝ) :
+    u t x ≤ M :=
+  le_trans (h.le_scaledUpperBarrier ht x) (scaledUpperBarrier_le_M κ M x)
+
+theorem InTimeWaveTrapSet.rpow_le_M
+    {κ M T a : ℝ} {u : ℝ → ℝ → ℝ}
+    (h : InTimeWaveTrapSet κ M T u)
+    {t : ℝ} (ht : t ∈ Set.Icc (0 : ℝ) T)
+    (ha : 0 ≤ a) (x : ℝ) :
+    (u t x) ^ a ≤ M ^ a :=
+  Real.rpow_le_rpow (h.nonneg ht x) (h.le_M ht x) ha
+
+theorem frozenElliptic_le_rpow_of_inTimeWaveTrapSet_slice
+    (p : CMParams) {κ M T : ℝ} {u : ℝ → ℝ → ℝ}
+    (hM : 0 < M) (h : InTimeWaveTrapSet κ M T u)
+    {t : ℝ} (ht : t ∈ Set.Icc (0 : ℝ) T) (x : ℝ) :
+    frozenElliptic p (u t) x ≤ M ^ p.γ :=
+  frozenElliptic_le_of_rpow_le p (Real.rpow_nonneg hM.le p.γ)
+    (h.slice_cunif ht).1 (fun y => h.nonneg ht y)
+    (fun y => h.rpow_le_M ht (by linarith [p.hγ]) y) x
+
+theorem constant_subsolution_frozenWaveOperator_nonneg_of_small_d_time_trap
+    (p : CMParams) {κ M T d c : ℝ} {u : ℝ → ℝ → ℝ}
+    (hM_pos : 0 < M)
+    (hd_pos : 0 < d)
+    (hsmall : |p.χ| * d ^ (p.m - 1) * M ^ p.γ ≤ 1 - d ^ p.α)
+    (hu : InTimeWaveTrapSet κ M T u)
+    {t : ℝ} (ht : t ∈ Set.Icc (0 : ℝ) T) :
+    IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ := by
+  intro x _hx
+  rw [frozenWaveOperator_const_eq p (hu.slice_cunif ht) (fun y => hu.nonneg ht y) x]
+  have hd_nonneg : 0 ≤ d := hd_pos.le
+  have hdm_nonneg : 0 ≤ d ^ p.m := Real.rpow_nonneg hd_nonneg _
+  have hV_le : frozenElliptic p (u t) x ≤ M ^ p.γ :=
+    frozenElliptic_le_rpow_of_inTimeWaveTrapSet_slice p hM_pos hu ht x
+  have huγ_le : (u t x) ^ p.γ ≤ M ^ p.γ :=
+    hu.rpow_le_M ht (by linarith [p.hγ]) x
+  let Δ := frozenElliptic p (u t) x - (u t x) ^ p.γ
+  have hΔ_abs : |Δ| ≤ M ^ p.γ := by
+    have hV_nonneg : 0 ≤ frozenElliptic p (u t) x :=
+      frozenElliptic_nonneg p (fun y => hu.nonneg ht y) x
+    have huγ_nonneg : 0 ≤ (u t x) ^ p.γ :=
+      Real.rpow_nonneg (hu.nonneg ht x) _
+    have hΔ_le : Δ ≤ M ^ p.γ := by
+      dsimp [Δ]
+      linarith
+    have hneg_le : -(M ^ p.γ) ≤ Δ := by
+      dsimp [Δ]
+      linarith
+    exact abs_le.mpr ⟨hneg_le, hΔ_le⟩
+  have hchem_core :
+      -|p.χ| * (d ^ p.m * M ^ p.γ) ≤ -p.χ * (d ^ p.m * Δ) := by
+    have hcoef_abs : |(-p.χ) * Δ| ≤ |p.χ| * M ^ p.γ := by
+      calc
+        |(-p.χ) * Δ| = |p.χ| * |Δ| := by
+          rw [abs_mul, abs_neg]
+        _ ≤ |p.χ| * M ^ p.γ :=
+          mul_le_mul_of_nonneg_left hΔ_abs (abs_nonneg p.χ)
+    have hlower : -(|p.χ| * M ^ p.γ) ≤ (-p.χ) * Δ :=
+      le_trans (neg_le_neg hcoef_abs) (neg_abs_le _)
+    have hmul := mul_le_mul_of_nonneg_right hlower hdm_nonneg
+    calc
+      -|p.χ| * (d ^ p.m * M ^ p.γ) =
+          (-(|p.χ| * M ^ p.γ)) * d ^ p.m := by ring
+      _ ≤ ((-p.χ) * Δ) * d ^ p.m := hmul
+      _ = -p.χ * (d ^ p.m * Δ) := by ring
+  have hdm_eq : d ^ p.m = d * d ^ (p.m - 1) := by
+    calc
+      d ^ p.m = d ^ (1 + (p.m - 1)) := by
+        congr 1
+        ring
+      _ = d ^ (1 : ℝ) * d ^ (p.m - 1) := by
+        rw [Real.rpow_add hd_pos]
+      _ = d * d ^ (p.m - 1) := by
+        rw [Real.rpow_one]
+  have hsmall_mul :
+      |p.χ| * (d ^ p.m * M ^ p.γ) ≤ d * (1 - d ^ p.α) := by
+    rw [hdm_eq]
+    calc
+      |p.χ| * ((d * d ^ (p.m - 1)) * M ^ p.γ) =
+          d * (|p.χ| * d ^ (p.m - 1) * M ^ p.γ) := by ring
+      _ ≤ d * (1 - d ^ p.α) :=
+          mul_le_mul_of_nonneg_left hsmall hd_nonneg
+  have hchem :
+      -p.χ * (d ^ p.m *
+          (frozenElliptic p (u t) x - (u t x) ^ p.γ)) +
+        d * (1 - d ^ p.α) ≥ 0 := by
+    dsimp [Δ] at hchem_core
+    linarith
+  linarith
+
+theorem constant_subsolution_frozenWaveOperator_nonneg_of_half_bound_time_trap
+    (p : CMParams) {κ M T d c : ℝ} {u : ℝ → ℝ → ℝ}
+    (hM_pos : 0 < M)
+    (hchem : |p.χ| * M ^ p.γ ≤ 1 / 2)
+    (hd_pos : 0 < d) (hd_le_half : d ≤ 1 / 2)
+    (hu : InTimeWaveTrapSet κ M T u)
+    {t : ℝ} (ht : t ∈ Set.Icc (0 : ℝ) T) :
+    IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ :=
+  constant_subsolution_frozenWaveOperator_nonneg_of_small_d_time_trap
+    p hM_pos hd_pos
+    (constant_subsolution_frozen_smallness_of_half_bound
+      p hM_pos hchem hd_pos hd_le_half)
+    hu ht
+
 theorem scaledUpperBarrier_one_eq_upperBarrier (κ : ℝ) :
     scaledUpperBarrier κ 1 = upperBarrier κ 1 := by
   ext x
@@ -5214,6 +7069,24 @@ theorem InTimeWaveTrapSet.slice_inWaveTrapSet_one
   refine ⟨h.nonneg ht x, ?_⟩
   simpa [scaledUpperBarrier_one_eq_upperBarrier κ] using
     h.le_scaledUpperBarrier ht x
+
+theorem not_forall_InTimeWaveTrapSet_slice_inWaveTrapSet_general_M :
+    ¬ (∀ κ M T : ℝ, ∀ u : ℝ → ℝ → ℝ, ∀ t : ℝ,
+        1 ≤ M → t ∈ Set.Icc (0 : ℝ) T →
+          InTimeWaveTrapSet κ M T u → InWaveTrapSet κ M (u t)) := by
+  intro h
+  let u : ℝ → ℝ → ℝ := fun _ => scaledUpperBarrier 1 2
+  have ht : (0 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by
+    exact ⟨le_rfl, by norm_num⟩
+  have htime : InTimeWaveTrapSet 1 2 1 u := by
+    intro t _ht
+    refine ⟨scaledUpperBarrier_cunif_bdd (by norm_num : (0 : ℝ) ≤ 2), ?_⟩
+    intro x
+    exact ⟨scaledUpperBarrier_nonneg (by norm_num : (0 : ℝ) ≤ 2) x, le_rfl⟩
+  have hslice : InWaveTrapSet 1 2 (u 0) :=
+    h 1 2 1 u 0 (by norm_num) ht htime
+  have hle := hslice.le_upperBarrier 0
+  norm_num [u, scaledUpperBarrier, upperBarrier] at hle
 
 /-- Paper1 Remark 4.2: the lower and constant subsolution construction also
 works for finite-time frozen coefficient paths in `\tilde E_{κ,M,T}`. -/
@@ -5250,6 +7123,178 @@ theorem Remark_4_2.exists_time_slice_subsolutions
               IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ :=
   h p κ κtilde M c T hκ0 hκ1 hgap hrange hM hT hc
 
+theorem not_Remark_4_2 : ¬ Remark_4_2 := by
+  intro hR
+  let u : ℝ → ℝ := lemma41CounterexampleProfile
+  let uTime : ℝ → ℝ → ℝ := fun _ => u
+  let V0 : ℝ :=
+    frozenElliptic lemma41CounterexampleParams lemma41CounterexampleProfile (-1)
+  have hV0_pos : 0 < V0 := by
+    simpa [V0] using frozenElliptic_lemma41CounterexampleProfile_pos
+  let p : CMParams :=
+    { m := 1
+      α := 1
+      γ := 1
+      χ := 2 / V0
+      hm := by norm_num
+      hα := by norm_num
+      hγ := by norm_num }
+  let κ : ℝ := 1 / 2
+  let κtilde : ℝ := 1
+  let M : ℝ := 1
+  let c : ℝ := 5 / 2
+  let T : ℝ := 1
+  rcases
+    hR p κ κtilde M c T
+      (by norm_num [κ]) (by norm_num [κ])
+      (by norm_num [κ, κtilde])
+      (by norm_num [p, κ, κtilde])
+      (by norm_num [M]) (by norm_num [T])
+      (by norm_num [c, κ]) with
+    ⟨D0, hD0⟩
+  let D : ℝ :=
+    max D0 (subsolutionDThreshold p.χ M κ κtilde p.m p.γ c) + 1
+  let θ : ℝ := constantSubsolutionThreshold p.χ κ κtilde D
+  let d : ℝ := θ / 2
+  have htrap : InWaveTrapSet κ M u := by
+    simpa [u, κ, M] using lemma41CounterexampleProfile_mem_trap
+  have htime : InTimeWaveTrapSet κ M T uTime := by
+    intro t _ht
+    refine ⟨htrap.cunif_bdd, ?_⟩
+    intro x
+    exact ⟨htrap.nonneg x, by
+      simpa [uTime, M, scaledUpperBarrier_one_eq_upperBarrier κ] using
+        htrap.le_upperBarrier x⟩
+  have hDgt : D0 < D := by
+    dsimp [D]
+    have hle : D0 ≤ max D0 (subsolutionDThreshold p.χ M κ κtilde p.m p.γ c) :=
+      le_max_left _ _
+    linarith
+  have hDthr :
+      subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D := by
+    dsimp [D]
+    have hle :
+        subsolutionDThreshold p.χ M κ κtilde p.m p.γ c ≤
+          max D0 (subsolutionDThreshold p.χ M κ κtilde p.m p.γ c) :=
+      le_max_right _ _
+    linarith
+  have hDpos : 0 < D := by
+    have hthr_pos :
+        0 < subsolutionDThreshold p.χ M κ κtilde p.m p.γ c := by
+      apply subsolutionDThreshold_pos_of_kappa_speed
+      · norm_num [M]
+      · norm_num [κ]
+      · norm_num [κ]
+      · norm_num [κ, κtilde]
+      · norm_num [κtilde]
+      · norm_num [p]
+      · norm_num [p]
+      · norm_num [c, κ, κtilde]
+    linarith
+  have hθ_pos : 0 < θ := by
+    dsimp [θ]
+    apply constantSubsolutionThreshold_pos
+    · norm_num [κ]
+    · norm_num [κ, κtilde]
+    · exact hDpos
+  have hd_pos : 0 < d := by
+    dsimp [d]
+    linarith
+  have hd_le : d ≤ θ := by
+    dsimp [d]
+    linarith
+  have ht : (1 / 2 : ℝ) ∈ Set.Ioo (0 : ℝ) T := by
+    norm_num [T]
+  have hconst :
+      IsFrozenSubSolutionOn p c (uTime (1 / 2)) (fun _ => d) Set.univ :=
+    (hD0 D hDgt uTime htime).2 d hd_pos (by simpa [θ] using hd_le)
+      (1 / 2) ht
+  have hop := hconst (-1) trivial
+  rw [frozenWaveOperator_const_eq p htrap.cunif_bdd htrap.nonneg (-1)] at hop
+  have hu_neg_one : u (-1) = 0 := by
+    simpa [u] using lemma41CounterexampleProfile_at_neg_one
+  have hVeq : frozenElliptic p u (-1) = V0 := by
+    simp [V0, p, u, lemma41CounterexampleParams, frozenElliptic]
+  have hbad :
+      -p.χ * (d ^ p.m *
+          (frozenElliptic p u (-1) - (u (-1)) ^ p.γ)) +
+        d * (1 - d ^ p.α) =
+        -d * (1 + d) := by
+    rw [hVeq, hu_neg_one]
+    have hzero_rpow : (0 : ℝ) ^ p.γ = 0 := by
+      norm_num [p]
+    rw [hzero_rpow]
+    norm_num [p]
+    field_simp [ne_of_gt hV0_pos]
+    ring
+  rw [hbad] at hop
+  have hneg : -d * (1 + d) < 0 := by
+    have hsum_pos : 0 < 1 + d := by linarith
+    exact mul_neg_of_neg_of_pos (neg_neg_of_pos hd_pos) hsum_pos
+  exact not_lt_of_ge hop hneg
+
+theorem Remark_4_2_chi_zero
+    (p : CMParams) (hχ : p.χ = 0)
+    {κ κtilde M c T : ℝ}
+    (hκ0 : 0 < κ) (hκ1 : κ < 1)
+    (hgap : κ < κtilde)
+    (hrange : κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (_hM : 1 ≤ M) (_hT : 0 < T) (hc : c = κ + κ⁻¹) :
+    ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
+      ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ M T u →
+        (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+          IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
+            (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
+        ∀ d : ℝ, 0 < d →
+          d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+            ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+              IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ := by
+  refine ⟨max (subsolutionDThreshold p.χ M κ κtilde p.m p.γ c) 1, ?_⟩
+  intro D hD u hu
+  have hD_threshold :
+      subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D :=
+    lt_of_le_of_lt (le_max_left _ _) hD
+  have hD0 :
+      subsolutionDThreshold 0 M κ κtilde p.m p.γ c < D := by
+    simpa [hχ] using hD_threshold
+  have hD_ge_one : 1 ≤ D :=
+    (lt_of_le_of_lt (le_max_right _ _) hD).le
+  constructor
+  · intro t ht
+    exact lowerBarrierRaw_frozenSubSolution_chi_zero_of_threshold_of_D_ge_one
+      p hχ hκ0 hκ1 hgap hrange hD_ge_one hc hD0
+  · intro d hd_pos hd_le t ht
+    have htIcc : t ∈ Set.Icc (0 : ℝ) T :=
+      ⟨le_of_lt ht.1, le_of_lt ht.2⟩
+    exact constant_subsolution_frozenWaveOperator_nonneg_of_chi_zero
+      p hχ hd_pos hd_le (hu.slice_cunif htIcc)
+      (fun x => hu.nonneg htIcc x)
+
+/-- A proved general-`M`, finite-time χ=0 slice of Remark 4.2.  The
+large-`D` condition is absorbed into the existential threshold `D0`. -/
+def Remark_4_2_chi_zero_strengthened : Prop :=
+  ∀ p : CMParams, p.χ = 0 →
+    ∀ κ κtilde M c T : ℝ,
+      0 < κ → κ < 1 →
+        κ < κtilde →
+        κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
+        1 ≤ M → 0 < T → c = κ + κ⁻¹ →
+          ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
+            ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ M T u →
+              (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+                IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
+                  (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
+              ∀ d : ℝ, 0 < d →
+                d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+                  ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+                    IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ
+
+theorem Remark_4_2_chi_zero_strengthened_proved :
+    Remark_4_2_chi_zero_strengthened := by
+  intro p hχ κ κtilde M c T hκ hκ1 hgap hrange hM hT hc
+  exact Remark_4_2_chi_zero
+    p hχ hκ hκ1 hgap hrange hM hT hc
+
 /-- The `M = 1` slice of Paper1 Remark 4.2.  In this case the finite-time
 barrier `min 1 (1 * exp(-κx))` is exactly the wave-trap upper barrier, so this
 part follows from Lemma 4.2 without an additional analytic assumption. -/
@@ -5269,9 +7314,130 @@ def Remark_4_2_M_one : Prop :=
                 ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
                   IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ
 
-theorem Remark_4_2_M_one_of_Lemma_4_2 (h42 : Lemma_4_2) :
-    Remark_4_2_M_one := by
-  intro p κ κtilde c T hκ0 hκ1 hgap hrange hT hc
+theorem not_Remark_4_2_M_one : ¬ Remark_4_2_M_one := by
+  intro hR
+  let u : ℝ → ℝ := lemma41CounterexampleProfile
+  let uTime : ℝ → ℝ → ℝ := fun _ => u
+  let V0 : ℝ :=
+    frozenElliptic lemma41CounterexampleParams lemma41CounterexampleProfile (-1)
+  have hV0_pos : 0 < V0 := by
+    simpa [V0] using frozenElliptic_lemma41CounterexampleProfile_pos
+  let p : CMParams :=
+    { m := 1
+      α := 1
+      γ := 1
+      χ := 2 / V0
+      hm := by norm_num
+      hα := by norm_num
+      hγ := by norm_num }
+  let κ : ℝ := 1 / 2
+  let κtilde : ℝ := 1
+  let c : ℝ := 5 / 2
+  let T : ℝ := 1
+  rcases
+    hR p κ κtilde c T
+      (by norm_num [κ]) (by norm_num [κ])
+      (by norm_num [κ, κtilde])
+      (by norm_num [p, κ, κtilde])
+      (by norm_num [T])
+      (by norm_num [c, κ]) with
+    ⟨D0, hD0⟩
+  let M : ℝ := 1
+  let D : ℝ :=
+    max D0 (subsolutionDThreshold p.χ M κ κtilde p.m p.γ c) + 1
+  let θ : ℝ := constantSubsolutionThreshold p.χ κ κtilde D
+  let d : ℝ := θ / 2
+  have htrap : InWaveTrapSet κ M u := by
+    simpa [u, κ, M] using lemma41CounterexampleProfile_mem_trap
+  have htime : InTimeWaveTrapSet κ 1 T uTime := by
+    intro t _ht
+    refine ⟨htrap.cunif_bdd, ?_⟩
+    intro x
+    exact ⟨htrap.nonneg x, by
+      simpa [uTime, M, scaledUpperBarrier_one_eq_upperBarrier κ] using
+        htrap.le_upperBarrier x⟩
+  have hDgt : D0 < D := by
+    dsimp [D]
+    have hle : D0 ≤ max D0 (subsolutionDThreshold p.χ M κ κtilde p.m p.γ c) :=
+      le_max_left _ _
+    linarith
+  have hDpos : 0 < D := by
+    have hthr_pos :
+        0 < subsolutionDThreshold p.χ M κ κtilde p.m p.γ c := by
+      apply subsolutionDThreshold_pos_of_kappa_speed
+      · norm_num [M]
+      · norm_num [κ]
+      · norm_num [κ]
+      · norm_num [κ, κtilde]
+      · norm_num [κtilde]
+      · norm_num [p]
+      · norm_num [p]
+      · norm_num [c, κ, κtilde]
+    dsimp [D]
+    have hle :
+        subsolutionDThreshold p.χ M κ κtilde p.m p.γ c ≤
+          max D0 (subsolutionDThreshold p.χ M κ κtilde p.m p.γ c) :=
+      le_max_right _ _
+    linarith
+  have hθ_pos : 0 < θ := by
+    dsimp [θ]
+    apply constantSubsolutionThreshold_pos
+    · norm_num [κ]
+    · norm_num [κ, κtilde]
+    · exact hDpos
+  have hd_pos : 0 < d := by
+    dsimp [d]
+    linarith
+  have hd_le : d ≤ θ := by
+    dsimp [d]
+    linarith
+  have ht : (1 / 2 : ℝ) ∈ Set.Ioo (0 : ℝ) T := by
+    norm_num [T]
+  have hconst :
+      IsFrozenSubSolutionOn p c (uTime (1 / 2)) (fun _ => d) Set.univ :=
+    (hD0 D hDgt uTime htime).2 d hd_pos (by simpa [θ] using hd_le)
+      (1 / 2) ht
+  have hop := hconst (-1) trivial
+  rw [frozenWaveOperator_const_eq p htrap.cunif_bdd htrap.nonneg (-1)] at hop
+  have hu_neg_one : u (-1) = 0 := by
+    simpa [u] using lemma41CounterexampleProfile_at_neg_one
+  have hVeq : frozenElliptic p u (-1) = V0 := by
+    simp [V0, p, u, lemma41CounterexampleParams, frozenElliptic]
+  have hbad :
+      -p.χ * (d ^ p.m *
+          (frozenElliptic p u (-1) - (u (-1)) ^ p.γ)) +
+        d * (1 - d ^ p.α) =
+        -d * (1 + d) := by
+    rw [hVeq, hu_neg_one]
+    have hzero_rpow : (0 : ℝ) ^ p.γ = 0 := by
+      norm_num [p]
+    rw [hzero_rpow]
+    norm_num [p]
+    field_simp [ne_of_gt hV0_pos]
+    ring
+  rw [hbad] at hop
+  have hneg : -d * (1 + d) < 0 := by
+    have hsum_pos : 0 < 1 + d := by linarith
+    exact mul_neg_of_neg_of_pos (neg_neg_of_pos hd_pos) hsum_pos
+  exact not_lt_of_ge hop hneg
+
+theorem Remark_4_2_M_one_chi_zero_of_kappaTilde_le_two_kappa
+    (p : CMParams) (hχ : p.χ = 0)
+    {κ κtilde c T : ℝ}
+    (hκ0 : 0 < κ) (hκ1 : κ < 1)
+    (hgap : κ < κtilde)
+    (hrange : κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (hκtilde_twoκ : κtilde ≤ 2 * κ)
+    (_hT : 0 < T) (hc : c = κ + κ⁻¹) :
+    ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
+      ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ 1 T u →
+        (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+          IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
+            (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
+        ∀ d : ℝ, 0 < d →
+          d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+            ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+              IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ := by
   refine ⟨subsolutionDThreshold p.χ 1 κ κtilde p.m p.γ c, ?_⟩
   intro D hD u hu
   constructor
@@ -5279,14 +7445,153 @@ theorem Remark_4_2_M_one_of_Lemma_4_2 (h42 : Lemma_4_2) :
     have htIcc : t ∈ Set.Icc (0 : ℝ) T :=
       ⟨le_of_lt ht.1, le_of_lt ht.2⟩
     exact
-      (h42.subsolutions hκ0 hκ1 hgap hrange le_rfl hc hD
+      (Lemma_4_2_chi_zero_subsolutions_of_kappaTilde_le_two_kappa
+        p hχ hκ0 hκ1 hgap hrange hκtilde_twoκ le_rfl hc hD
         (hu.slice_inWaveTrapSet_one htIcc)).1
   · intro d hd_pos hd_le t ht
     have htIcc : t ∈ Set.Icc (0 : ℝ) T :=
       ⟨le_of_lt ht.1, le_of_lt ht.2⟩
     exact
-      (h42.subsolutions hκ0 hκ1 hgap hrange le_rfl hc hD
+      (Lemma_4_2_chi_zero_subsolutions_of_kappaTilde_le_two_kappa
+        p hχ hκ0 hκ1 hgap hrange hκtilde_twoκ le_rfl hc hD
         (hu.slice_inWaveTrapSet_one htIcc)).2 d hd_pos hd_le
+
+theorem Remark_4_2_M_one_chi_zero_alpha_one
+    (p : CMParams) (hχ : p.χ = 0) (hα : p.α = 1)
+    {κ κtilde c T : ℝ}
+    (hκ0 : 0 < κ) (hκ1 : κ < 1)
+    (hgap : κ < κtilde)
+    (hrange : κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (hT : 0 < T) (hc : c = κ + κ⁻¹) :
+    ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
+      ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ 1 T u →
+        (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+          IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
+            (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
+        ∀ d : ℝ, 0 < d →
+          d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+            ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+              IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ := by
+  have hκtilde_twoκ : κtilde ≤ 2 * κ := by
+    have h := kappaTilde_le_one_plus_alpha_mul_kappa_of_subsolution_range
+      (alpha := p.α) (m := p.m) (κ := κ) (κtilde := κtilde) hrange
+    rw [hα] at h
+    calc
+      κtilde ≤ (1 + 1) * κ := h
+      _ = 2 * κ := by ring
+  exact Remark_4_2_M_one_chi_zero_of_kappaTilde_le_two_kappa
+    p hχ hκ0 hκ1 hgap hrange hκtilde_twoκ hT hc
+
+theorem Remark_4_2_M_one_chi_zero_of_D_ge_one
+    (p : CMParams) (hχ : p.χ = 0)
+    {κ κtilde c T : ℝ}
+    (hκ0 : 0 < κ) (hκ1 : κ < 1)
+    (hgap : κ < κtilde)
+    (hrange : κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (_hT : 0 < T) (hc : c = κ + κ⁻¹) :
+    ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
+      1 ≤ D →
+      ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ 1 T u →
+        (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+          IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
+            (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
+        ∀ d : ℝ, 0 < d →
+          d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+            ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+              IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ := by
+  refine ⟨subsolutionDThreshold p.χ 1 κ κtilde p.m p.γ c, ?_⟩
+  intro D hD hD_ge_one u hu
+  constructor
+  · intro t ht
+    have htIcc : t ∈ Set.Icc (0 : ℝ) T :=
+      ⟨le_of_lt ht.1, le_of_lt ht.2⟩
+    exact
+      (Lemma_4_2_chi_zero_subsolutions_of_D_ge_one
+        p hχ hκ0 hκ1 hgap hrange hD_ge_one le_rfl hc hD
+        (hu.slice_inWaveTrapSet_one htIcc)).1
+  · intro d hd_pos hd_le t ht
+    have htIcc : t ∈ Set.Icc (0 : ℝ) T :=
+      ⟨le_of_lt ht.1, le_of_lt ht.2⟩
+    exact
+      (Lemma_4_2_chi_zero_subsolutions_of_D_ge_one
+        p hχ hκ0 hκ1 hgap hrange hD_ge_one le_rfl hc hD
+        (hu.slice_inWaveTrapSet_one htIcc)).2 d hd_pos hd_le
+
+/-- A proved finite-time `M = 1`, χ=0 slice of Remark 4.2 with the extra
+geometric condition `κtilde ≤ 2κ` made explicit. -/
+def Remark_4_2_M_one_chi_zero_strengthened : Prop :=
+  ∀ p : CMParams, p.χ = 0 →
+    ∀ κ κtilde c T : ℝ,
+      0 < κ → κ < 1 →
+        κ < κtilde →
+        κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
+        κtilde ≤ 2 * κ →
+        0 < T → c = κ + κ⁻¹ →
+          ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
+            ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ 1 T u →
+              (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+                IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
+                  (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
+              ∀ d : ℝ, 0 < d →
+                d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+                  ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+                    IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ
+
+theorem Remark_4_2_M_one_chi_zero_strengthened_proved :
+    Remark_4_2_M_one_chi_zero_strengthened := by
+  intro p hχ κ κtilde c T hκ hκ1 hgap hrange hκtilde_twoκ hT hc
+  exact Remark_4_2_M_one_chi_zero_of_kappaTilde_le_two_kappa
+    p hχ hκ hκ1 hgap hrange hκtilde_twoκ hT hc
+
+/-- A proved finite-time `M = 1`, χ=0 slice of Remark 4.2 with the
+large-`D` condition `1 ≤ D` made explicit. -/
+def Remark_4_2_M_one_chi_zero_D_ge_one_strengthened : Prop :=
+  ∀ p : CMParams, p.χ = 0 →
+    ∀ κ κtilde c T : ℝ,
+      0 < κ → κ < 1 →
+        κ < κtilde →
+        κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
+        0 < T → c = κ + κ⁻¹ →
+          ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
+            1 ≤ D →
+            ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ 1 T u →
+              (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+                IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
+                  (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
+              ∀ d : ℝ, 0 < d →
+                d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+                  ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+                    IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ
+
+theorem Remark_4_2_M_one_chi_zero_D_ge_one_strengthened_proved :
+    Remark_4_2_M_one_chi_zero_D_ge_one_strengthened := by
+  intro p hχ κ κtilde c T hκ hκ1 hgap hrange hT hc
+  exact Remark_4_2_M_one_chi_zero_of_D_ge_one
+    p hχ hκ hκ1 hgap hrange hT hc
+
+/-- A proved finite-time `M = 1`, χ=0, α=1 slice of Remark 4.2. -/
+def Remark_4_2_M_one_chi_zero_alpha_one_strengthened : Prop :=
+  ∀ p : CMParams, p.χ = 0 → p.α = 1 →
+    ∀ κ κtilde c T : ℝ,
+      0 < κ → κ < 1 →
+        κ < κtilde →
+        κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
+        0 < T → c = κ + κ⁻¹ →
+          ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
+            ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ 1 T u →
+              (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+                IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
+                  (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
+              ∀ d : ℝ, 0 < d →
+                d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+                  ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+                    IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ
+
+theorem Remark_4_2_M_one_chi_zero_alpha_one_strengthened_proved :
+    Remark_4_2_M_one_chi_zero_alpha_one_strengthened := by
+  intro p hχ hα κ κtilde c T hκ hκ1 hgap hrange hT hc
+  exact Remark_4_2_M_one_chi_zero_alpha_one
+    p hχ hα hκ hκ1 hgap hrange hT hc
 
 def MChi (p : CMParams) : ℝ :=
   if p.χ ≤ 0 then 1 else (1 / (1 - p.χ)) ^ (1 / p.α)
@@ -5516,27 +7821,27 @@ theorem NegativeSensitivityWaveFixedPointConstruction.MChi_eq_one
     MChi p = 1 :=
   MChi_eq_one_of_chi_nonpos p (le_of_lt h.chi_neg)
 
-theorem Lemma_4_1.negative_superSolution_of_fixedPointConstruction
-    (hL : Lemma_4_1) {p : CMParams} {c κ₁ κtilde D : ℝ}
+/-- Non-projection replacement for the negative-sensitivity upper-barrier
+branch in the fixed-point construction.  The original `Lemma_4_1` statement is
+false in the plateau region, so the needed plateau source comparison is kept as
+an explicit hypothesis. -/
+theorem NegativeSensitivityWaveFixedPointConstruction.upperBarrier_superSolution_away_from_interface
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
     (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D)
-    {u : ℝ → ℝ} (hu : InMonotoneWaveTrapSet (kappa c) 1 u) :
-    IsFrozenSuperSolution p c u (upperBarrier (kappa c) 1) :=
-  hL.negative_superSolution (le_of_lt h.chi_neg) h.alpha_le
-    h.kappa_pos h.kappa_lt_one le_rfl h.kappa_add_inv_eq.symm hu.trap
-
-theorem Lemma_4_2.subsolutions_of_negative_fixedPointConstruction
-    (hL : Lemma_4_2) {p : CMParams} {c κ₁ κtilde D : ℝ}
-    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D)
-    {u : ℝ → ℝ} (hu : InMonotoneWaveTrapSet (kappa c) 1 u) :
-    IsFrozenSubSolutionOn p c u (lowerBarrierRaw (kappa c) κtilde D)
-        (Set.Ioi (lowerBarrierXMinus (kappa c) κtilde D)) ∧
-      ∀ d : ℝ,
-        0 < d →
-          d ≤ constantSubsolutionThreshold p.χ (kappa c) κtilde D →
-            IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ :=
-  hL.subsolutions h.kappa_pos h.kappa_lt_one h.kappa_lt_kappaTilde
-    h.kappaTilde_range le_rfl h.kappa_add_inv_eq.symm
-    h.D_gt_threshold hu.trap
+    (hγκ : p.γ * kappa c < 1) (hmκ : kappa c * p.m ≤ 1)
+    (hMbound :
+      |p.χ| * ((1 + p.m * p.γ * (kappa c) ^ 2) /
+          (1 - p.γ ^ 2 * (kappa c) ^ 2)) *
+        (1 : ℝ) ^ (p.m + p.γ - p.α - 1) ≤ 1)
+    {u : ℝ → ℝ} (hu : InMonotoneWaveTrapSet (kappa c) 1 u)
+    (hplateau :
+      ∀ x, (1 : ℝ) < Real.exp (-(kappa c) * x) →
+        frozenElliptic p u x ≤ (u x) ^ p.γ) :
+    ∀ x, Real.exp (-(kappa c) * x) ≠ (1 : ℝ) →
+      frozenWaveOperator p c u (upperBarrier (kappa c) 1) x ≤ 0 :=
+  Lemma_4_1_neg_frozen_holds_away_from_interface_of_plateau_source_bound
+    p (le_of_lt h.chi_neg) h.alpha_le h.kappa_pos h.kappa_lt_one hγκ hmκ
+    le_rfl hMbound hu.trap h.kappa_add_inv_eq.symm hplateau
 
 theorem PositiveSensitivityWaveFixedPointConstruction.chi_nonneg
     {p : CMParams} {c κ₁ κtilde D : ℝ}
@@ -5688,33 +7993,24 @@ theorem PositiveSensitivityWaveFixedPointConstruction.one_le_MChi
   one_le_MChi_of_chi_nonneg_lt_one p h.chi_nonneg
     (lt_of_lt_of_le h.chi_lt_chiStar (chiStar_le_one p))
 
-theorem Lemma_4_1.positive_superSolution_of_fixedPointConstruction
-    (hL : Lemma_4_1) {p : CMParams} {c κ₁ κtilde D : ℝ}
+/-- Non-projection replacement for the positive-sensitivity upper-barrier
+branch in the fixed-point construction, away from the interface
+`exp (-(kappa c) * x) = MChi p`. -/
+theorem PositiveSensitivityWaveFixedPointConstruction.upperBarrier_superSolution_away_from_interface
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
     (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D)
+    (hmκ : p.m * kappa c ≤ 1)
     {u : ℝ → ℝ} (hu : InWaveTrapSet (kappa c) (MChi p) u) :
-    IsFrozenSuperSolution p c u (upperBarrier (kappa c) (MChi p)) := by
+    ∀ x, Real.exp (-(kappa c) * x) ≠ MChi p →
+      frozenWaveOperator p c u (upperBarrier (kappa c) (MChi p)) x ≤ 0 := by
   have hχ_lt_one : p.χ < 1 :=
     lt_of_lt_of_le h.chi_lt_chiStar (chiStar_le_one p)
   have hMchi :
       (1 / (1 - p.χ)) ^ (1 / p.α) ≤ MChi p :=
     le_of_eq (MChi_eq_rpow_of_chi_nonneg_lt_one p h.chi_nonneg hχ_lt_one).symm
-  exact hL.positive_superSolution h.chi_nonneg h.chi_lt_chiStar h.alpha_eq
-    h.kappa_pos h.kappa_lt_one h.one_le_MChi hMchi
-    h.kappa_add_inv_eq.symm hu
-
-theorem Lemma_4_2.subsolutions_of_positive_fixedPointConstruction
-    (hL : Lemma_4_2) {p : CMParams} {c κ₁ κtilde D : ℝ}
-    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D)
-    {u : ℝ → ℝ} (hu : InWaveTrapSet (kappa c) (MChi p) u) :
-    IsFrozenSubSolutionOn p c u (lowerBarrierRaw (kappa c) κtilde D)
-        (Set.Ioi (lowerBarrierXMinus (kappa c) κtilde D)) ∧
-      ∀ d : ℝ,
-        0 < d →
-          d ≤ constantSubsolutionThreshold p.χ (kappa c) κtilde D →
-            IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ :=
-  hL.subsolutions h.kappa_pos h.kappa_lt_one h.kappa_lt_kappaTilde
-    h.kappaTilde_range h.one_le_MChi h.kappa_add_inv_eq.symm
-    h.D_gt_threshold hu
+  exact Lemma_4_1_pos_frozen_holds_away_from_interface_at_kappa
+    p h.kappa_pos h.kappa_lt_one h.kappa_add_inv_eq.symm
+    h.chi_nonneg h.chi_lt_chiStar h.alpha_eq hmκ h.one_le_MChi hMchi hu
 
 theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit
     {p : CMParams} {c κ₁ κtilde D : ℝ}
@@ -5737,6 +8033,19 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_bo
         (∀ x, U x ≤ 1) ∧
         ∀ x, U x ≤ Real.exp (-(kappa c) * x) := by
   exact h.map_construction.exists_fixed_inMonotoneWaveTrapSet_with_bounds
+
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_atTop_limits
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    ∃ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet (kappa c) 1 U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) 1
+          (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U ∧
+        Antitone U ∧
+        Tendsto U atTop (𝓝 0) ∧
+        Tendsto (frozenElliptic p U) atTop (𝓝 0) := by
+  exact h.map_construction.exists_fixed_inMonotoneWaveTrapSet_with_atTop_limits
+    h.kappa_pos
 
 theorem NegativeSensitivityWaveFixedPointConstruction.exists_limit_map
     {p : CMParams} {c κ₁ κtilde D : ℝ}
@@ -5769,6 +8078,18 @@ theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_bo
         (∀ x, U x ≤ MChi p) ∧
         ∀ x, U x ≤ Real.exp (-(kappa c) * x) := by
   exact h.map_construction.exists_fixed_inWaveTrapSet_with_bounds
+
+theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_atTop_limits
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    ∃ U : ℝ → ℝ,
+      InWaveTrapSet (kappa c) (MChi p) U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) (MChi p)
+          (fun u => InWaveTrapSet (kappa c) (MChi p) u) U U ∧
+        Tendsto U atTop (𝓝 0) ∧
+        Tendsto (frozenElliptic p U) atTop (𝓝 0) := by
+  exact h.map_construction.exists_fixed_inWaveTrapSet_with_atTop_limits
+    h.kappa_pos
 
 theorem PositiveSensitivityWaveFixedPointConstruction.exists_limit_map
     {p : CMParams} {c κ₁ κtilde D : ℝ}
@@ -5829,6 +8150,43 @@ theorem HasStrictWaveUpperTailBound.hasWaveUpperTailBound
   intro x
   exact ⟨(h x).1, (h x).2.le⟩
 
+theorem HasWaveUpperTailBound.tendsto_atTop_zero
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hκ : 0 < kappa c) (h : HasWaveUpperTailBound p c U) :
+    Tendsto U atTop (𝓝 0) := by
+  have hupper :
+      Tendsto (fun x : ℝ => Real.exp (-(kappa c) * x)) atTop (𝓝 0) := by
+    convert expDecay_tendsto_atTop hκ using 1
+    ext x
+    simp [expDecay]
+  refine tendsto_of_tendsto_of_tendsto_of_le_of_le
+    tendsto_const_nhds hupper ?_ ?_
+  · intro x
+    exact (h x).1.le
+  · intro x
+    exact le_trans (h x).2 (min_le_right _ _)
+
+theorem HasWaveUpperTailBound.frozenElliptic_tendsto_atTop_zero
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hκ : 0 < kappa c) (hU : IsCUnifBdd U)
+    (h : HasWaveUpperTailBound p c U) :
+    Tendsto (frozenElliptic p U) atTop (𝓝 0) :=
+  frozenElliptic_tendsto_atTop_of_U_tendsto p hU (fun x => (h x).1.le)
+    (h.tendsto_atTop_zero hκ)
+
+theorem HasStrictWaveUpperTailBound.tendsto_atTop_zero
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hκ : 0 < kappa c) (h : HasStrictWaveUpperTailBound p c U) :
+    Tendsto U atTop (𝓝 0) :=
+  h.hasWaveUpperTailBound.tendsto_atTop_zero hκ
+
+theorem HasStrictWaveUpperTailBound.frozenElliptic_tendsto_atTop_zero
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hκ : 0 < kappa c) (hU : IsCUnifBdd U)
+    (h : HasStrictWaveUpperTailBound p c U) :
+    Tendsto (frozenElliptic p U) atTop (𝓝 0) :=
+  h.hasWaveUpperTailBound.frozenElliptic_tendsto_atTop_zero hκ hU
+
 theorem HasStrictWaveUpperTailBound.pos
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (h : HasStrictWaveUpperTailBound p c U) (x : ℝ) :
@@ -5861,6 +8219,31 @@ theorem HasWaveUpperTailBound.le_exp {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (h : HasWaveUpperTailBound p c U) (x : ℝ) :
     U x ≤ Real.exp (-(kappa c) * x) :=
   le_trans (h x).2 (min_le_right _ _)
+
+theorem HasWaveUpperTailBound.isBddFun
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveUpperTailBound p c U) :
+    IsBddFun U := by
+  refine ⟨MChi p, ?_⟩
+  intro x
+  rw [abs_of_nonneg (h.pos x).le]
+  exact h.le_MChi x
+
+theorem HasWaveUpperTailBound.isCUnifBdd_of_continuous
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveUpperTailBound p c U) (hU_cont : Continuous U) :
+    IsCUnifBdd U :=
+  ⟨hU_cont, h.isBddFun⟩
+
+theorem HasWaveUpperTailBound.abs_sub_le_two_MChi
+    {p : CMParams} {c : ℝ} {U₁ U₂ : ℝ → ℝ}
+    (h₁ : HasWaveUpperTailBound p c U₁)
+    (h₂ : HasWaveUpperTailBound p c U₂) (x : ℝ) :
+    |U₂ x - U₁ x| ≤ 2 * MChi p := by
+  have hM_pos : 0 < MChi p :=
+    lt_of_lt_of_le (h₁.pos x) (h₁.le_MChi x)
+  rw [abs_sub_le_iff]
+  constructor <;> linarith [h₁.pos x, h₂.pos x, h₁.le_MChi x, h₂.le_MChi x, hM_pos]
 
 theorem HasStrictWaveUpperTailBound.shift_right
     {p : CMParams} {c a : ℝ} {U : ℝ → ℝ}
@@ -6017,6 +8400,25 @@ def Remark_4_3 : Prop :=
       ∀ eta : ℝ, Remark43TailRateBound p c eta →
         WeightedL2InitialCloseness (eta + kappa c) U₂ U₁
 
+/-- Corrected regular version of Paper1 Remark 4.3.  The original formal
+statement does not include any measurability/continuity hypothesis on the two
+profiles, although the conclusion is an `Integrable` statement.  This version
+keeps the paper hypotheses and exposes the missing profile regularity
+explicitly. -/
+def Remark_4_3_regular : Prop :=
+  ∀ p : CMParams, ∀ c : ℝ, 0 < kappa c →
+    ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+      IsTravelingWave p c U₁ V₁ →
+      IsTravelingWave p c U₂ V₂ →
+      Continuous U₁ →
+      Continuous U₂ →
+      HasWaveUpperTailBound p c U₁ →
+      HasWaveUpperTailBound p c U₂ →
+      HasRemark43TailAsymptotic p c U₁ →
+      HasRemark43TailAsymptotic p c U₂ →
+      ∀ eta : ℝ, Remark43TailRateBound p c eta →
+        WeightedL2InitialCloseness (eta + kappa c) U₂ U₁
+
 /-- Paper1 Remark 1.3(2), repeated in Remark 4.3(2): in the extended
 positive-sensitivity range, the construction yields a wave whose right end is
 `(0,0)` and whose left end stays uniformly positive, without claiming
@@ -6079,6 +8481,23 @@ theorem Remark43TailRateBound.weight_pos
     (hkappa : 0 < kappa c) :
     0 < eta + kappa c := by
   linarith [h.pos, hkappa]
+
+/-- The admissible Remark 4.3 tail-rate window is open on the right: every
+admissible rate can be enlarged slightly while staying admissible. -/
+theorem Remark43TailRateBound.exists_larger
+    {p : CMParams} {c eta : ℝ} (h : Remark43TailRateBound p c eta) :
+    ∃ eta' : ℝ, eta < eta' ∧ Remark43TailRateBound p c eta' := by
+  let etaMax : ℝ :=
+    min (p.α * kappa c)
+      (min ((p.m - 1) * kappa c + 1 / 2) (1 - kappa c))
+  refine ⟨(eta + etaMax) / 2, ?_, ?_⟩
+  · dsimp [etaMax] at h ⊢
+    linarith [h.2]
+  · refine ⟨?_, ?_⟩
+    · dsimp [etaMax] at h ⊢
+      nlinarith [h.1, h.2]
+    · dsimp [etaMax] at h ⊢
+      linarith [h.2]
 
 theorem Remark43TailRateBound.of_kappaOne_range
     {p : CMParams} {c κ₁ : ℝ}
@@ -6171,6 +8590,53 @@ theorem exists_remark43TailRateBound
     ⟨κ₁ - kappa c, by linarith,
       Remark43TailRateBound.of_kappaOne_range hκ₁_gt hκ₁_range⟩
 
+/-- If the stability weight cap still lies to the right of `kappa c`, the
+Remark 4.3 tail-rate window has a rate whose shifted weight stays below that
+cap. -/
+theorem exists_remark43TailRateBound_with_weight_below
+    {p : CMParams} {c cap : ℝ}
+    (hkappa_pos : 0 < kappa c) (hkappa_lt_one : kappa c < 1)
+    (hkappa_cap : kappa c < cap) :
+    ∃ eta : ℝ,
+      Remark43TailRateBound p c eta ∧ eta + kappa c < cap := by
+  let etaMax : ℝ :=
+    min (p.α * kappa c)
+      (min ((p.m - 1) * kappa c + 1 / 2) (1 - kappa c))
+  have hAlpha_pos : 0 < p.α * kappa c :=
+    mul_pos (lt_of_lt_of_le one_pos p.hα) hkappa_pos
+  have hmterm_nonneg : 0 ≤ (p.m - 1) * kappa c :=
+    mul_nonneg (sub_nonneg.mpr p.hm) hkappa_pos.le
+  have hm_pos : 0 < (p.m - 1) * kappa c + 1 / 2 := by
+    linarith
+  have hone_pos : 0 < 1 - kappa c := by
+    linarith
+  have hetaMax_pos : 0 < etaMax := by
+    dsimp [etaMax]
+    exact lt_min hAlpha_pos (lt_min hm_pos hone_pos)
+  let etaCapMax : ℝ := min etaMax (cap - kappa c)
+  have hcap_gap_pos : 0 < cap - kappa c := by
+    linarith
+  have hetaCapMax_pos : 0 < etaCapMax := by
+    dsimp [etaCapMax]
+    exact lt_min hetaMax_pos hcap_gap_pos
+  let eta : ℝ := etaCapMax / 2
+  have heta_pos : 0 < eta := by
+    dsimp [eta]
+    linarith
+  have heta_lt_etaMax : eta < etaMax := by
+    have hle : etaCapMax ≤ etaMax := by
+      dsimp [etaCapMax]
+      exact min_le_left _ _
+    dsimp [eta]
+    nlinarith
+  have heta_weight : eta + kappa c < cap := by
+    have hle : etaCapMax ≤ cap - kappa c := by
+      dsimp [etaCapMax]
+      exact min_le_right _ _
+    dsimp [eta]
+    nlinarith
+  exact ⟨eta, ⟨heta_pos, by simpa [etaMax] using heta_lt_etaMax⟩, heta_weight⟩
+
 theorem exists_waveRightTailAsymptotic_of_forall_kappaOne_range
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (htail :
@@ -6223,6 +8689,174 @@ theorem HasRemark43TailAsymptotic.at_rate
         (U x / Real.exp (-(kappa c) * x) - 1))
       atTop (𝓝 0) :=
   h eta heta
+
+/-- A pointwise tail normalization gives an eventual unit bound on the
+normalized error.  This is the first half of the distinct-wave weighted
+closeness proof in Remark 4.3. -/
+theorem HasRemark43TailAsymptotic.eventually_norm_normalized_error_le_one
+    {p : CMParams} {c eta : ℝ} {U : ℝ → ℝ}
+    (h : HasRemark43TailAsymptotic p c U)
+    (heta : Remark43TailRateBound p c eta) :
+    ∀ᶠ x in atTop,
+      ‖Real.exp (eta * x) *
+          (U x / Real.exp (-(kappa c) * x) - 1)‖ ≤ (1 : ℝ) := by
+  have hball :
+      Metric.ball (0 : ℝ) 1 ∈ 𝓝 (0 : ℝ) :=
+    Metric.ball_mem_nhds _ zero_lt_one
+  filter_upwards [(h.at_rate heta).eventually hball] with x hx
+  have hxlt :
+      ‖Real.exp (eta * x) *
+          (U x / Real.exp (-(kappa c) * x) - 1)‖ < (1 : ℝ) := by
+    simpa [Metric.mem_ball, dist_eq_norm] using hx
+  exact hxlt.le
+
+/-- The normalized right-tail asymptotic gives an eventual pointwise
+exponential error bound against the leading exponential `exp (-κx)`. -/
+theorem HasRemark43TailAsymptotic.eventually_abs_sub_exp_le
+    {p : CMParams} {c eta : ℝ} {U : ℝ → ℝ}
+    (h : HasRemark43TailAsymptotic p c U)
+    (heta : Remark43TailRateBound p c eta) :
+    ∀ᶠ x in atTop,
+      |U x - Real.exp (-(kappa c) * x)| ≤
+        Real.exp (-(eta + kappa c) * x) := by
+  filter_upwards [h.eventually_norm_normalized_error_le_one heta] with x hx
+  set e : ℝ := Real.exp (-(kappa c) * x)
+  set r : ℝ := U x / e - 1
+  have he_pos : 0 < e := by
+    dsimp [e]
+    exact Real.exp_pos _
+  have hprod : Real.exp (eta * x) * |r| ≤ 1 := by
+    have hx' : |Real.exp (eta * x) * r| ≤ (1 : ℝ) := by
+      simpa [Real.norm_eq_abs, r, e] using hx
+    simpa [abs_mul, abs_of_nonneg (Real.exp_nonneg _)] using hx'
+  have hr : |r| ≤ Real.exp (-eta * x) := by
+    calc
+      |r| = (Real.exp (eta * x))⁻¹ * (Real.exp (eta * x) * |r|) := by
+        field_simp [Real.exp_ne_zero]
+      _ ≤ (Real.exp (eta * x))⁻¹ * 1 := by
+        exact mul_le_mul_of_nonneg_left hprod (inv_nonneg.mpr (Real.exp_nonneg _))
+      _ = Real.exp (-eta * x) := by
+        rw [← Real.exp_neg, mul_one]
+        congr 1
+        ring
+  calc
+    |U x - Real.exp (-(kappa c) * x)| = e * |r| := by
+      have hsub : U x - e = e * r := by
+        dsimp [r]
+        field_simp [ne_of_gt he_pos]
+      rw [show Real.exp (-(kappa c) * x) = e by rfl, hsub, abs_mul,
+        abs_of_nonneg he_pos.le]
+    _ ≤ e * Real.exp (-eta * x) :=
+      mul_le_mul_of_nonneg_left hr he_pos.le
+    _ = Real.exp (-(eta + kappa c) * x) := by
+      dsimp [e]
+      rw [← Real.exp_add]
+      congr 1
+      ring
+
+/-- Two profiles with the same sharp leading right tail differ by at most twice
+the faster exponential error, eventually on the right. -/
+theorem HasRemark43TailAsymptotic.eventually_abs_sub_abs_le_two_exp
+    {p : CMParams} {c eta : ℝ} {U₁ U₂ : ℝ → ℝ}
+    (h₁ : HasRemark43TailAsymptotic p c U₁)
+    (h₂ : HasRemark43TailAsymptotic p c U₂)
+    (heta : Remark43TailRateBound p c eta) :
+    ∀ᶠ x in atTop,
+      |U₂ x - U₁ x| ≤
+        2 * Real.exp (-(eta + kappa c) * x) := by
+  filter_upwards [h₁.eventually_abs_sub_exp_le heta,
+    h₂.eventually_abs_sub_exp_le heta] with x hx₁ hx₂
+  let E : ℝ := Real.exp (-(kappa c) * x)
+  have htri :
+      |U₂ x - U₁ x| ≤ |U₂ x - E| + |U₁ x - E| := by
+    have h :=
+      abs_sub_le (U₂ x - E) 0 (U₁ x - E)
+    have hsub : (U₂ x - E) - (U₁ x - E) = U₂ x - U₁ x := by ring
+    simpa [hsub, abs_neg, abs_sub_comm] using h
+  calc
+    |U₂ x - U₁ x| ≤ |U₂ x - E| + |U₁ x - E| := htri
+    _ ≤ Real.exp (-(eta + kappa c) * x) +
+        Real.exp (-(eta + kappa c) * x) :=
+      add_le_add (by simpa [E] using hx₂) (by simpa [E] using hx₁)
+    _ = 2 * Real.exp (-(eta + kappa c) * x) := by ring
+
+/-- Strengthened distinct-wave branch of Remark 4.3.  The original statement
+does not carry measurability of the weighted squared difference, so this
+version makes that analytic regularity explicit and proves the weighted `L²`
+closeness from the common sharp right-tail asymptotic and the global upper
+tail trap. -/
+theorem Remark_4_3.distinct_wave_branch_of_aestronglyMeasurable
+    {p : CMParams} {c eta : ℝ} {U₁ U₂ : ℝ → ℝ}
+    (hkappa : 0 < kappa c)
+    (hbound₁ : HasWaveUpperTailBound p c U₁)
+    (hbound₂ : HasWaveUpperTailBound p c U₂)
+    (htail₁ : HasRemark43TailAsymptotic p c U₁)
+    (htail₂ : HasRemark43TailAsymptotic p c U₂)
+    (heta : Remark43TailRateBound p c eta)
+    (hmeas : AEStronglyMeasurable
+      (fun x : ℝ =>
+        Real.exp (2 * (eta + kappa c) * x) * |U₂ x - U₁ x| ^ 2) volume) :
+    WeightedL2InitialCloseness (eta + kappa c) U₂ U₁ := by
+  rcases heta.exists_larger with ⟨etaFast, hetaFast_gt, hetaFast⟩
+  refine
+    WeightedL2InitialCloseness.of_left_exp_bound_eventual_right_exp_bound
+      (η := eta + kappa c) (δ := 2 * (etaFast - eta))
+      (heta.weight_pos hkappa) (by linarith) hmeas ?_ ?_
+  · have hM_pos : 0 < MChi p :=
+      lt_of_lt_of_le (hbound₁.pos 0) (hbound₁.le_MChi 0)
+    refine ⟨(2 * MChi p) ^ 2, sq_nonneg _, fun x => ?_⟩
+    exact
+      weightedL2_integrand_norm_le_of_abs_sub_le
+        (η := eta + kappa c) (A := 2 * MChi p)
+        (u₀ := U₂) (U := U₁) (by linarith)
+        (hbound₁.abs_sub_le_two_MChi hbound₂ x)
+  · have hevent :
+        ∀ᶠ x in atTop,
+          |U₂ x - U₁ x| ≤
+            2 * Real.exp (-(etaFast + kappa c) * x) :=
+      htail₁.eventually_abs_sub_abs_le_two_exp htail₂ hetaFast
+    rcases eventually_atTop.1 hevent with ⟨R, hR⟩
+    refine ⟨R, 4, by norm_num, fun x hx => ?_⟩
+    have habs : |U₂ x - U₁ x| ≤
+        2 * Real.exp (-(etaFast + kappa c) * x) :=
+      hR x (le_of_lt hx)
+    have hraw :=
+      weightedL2_integrand_norm_le_of_abs_sub_le_exp
+        (η := eta + kappa c) (β := etaFast + kappa c) (B := 2)
+        (u₀ := U₂) (U := U₁) (by norm_num : (0 : ℝ) ≤ 2) habs
+    convert hraw using 2 <;> ring
+
+/-- Continuous-profile version of the strengthened distinct-wave branch of
+Remark 4.3.  This isolates the only regularity missing from the original
+`Remark_4_3` statement: measurability of the weighted squared difference. -/
+theorem Remark_4_3.distinct_wave_branch_of_continuous
+    {p : CMParams} {c eta : ℝ} {U₁ U₂ : ℝ → ℝ}
+    (hkappa : 0 < kappa c)
+    (hU₁_cont : Continuous U₁) (hU₂_cont : Continuous U₂)
+    (hbound₁ : HasWaveUpperTailBound p c U₁)
+    (hbound₂ : HasWaveUpperTailBound p c U₂)
+    (htail₁ : HasRemark43TailAsymptotic p c U₁)
+    (htail₂ : HasRemark43TailAsymptotic p c U₂)
+    (heta : Remark43TailRateBound p c eta) :
+    WeightedL2InitialCloseness (eta + kappa c) U₂ U₁ := by
+  refine
+    Remark_4_3.distinct_wave_branch_of_aestronglyMeasurable
+      hkappa hbound₁ hbound₂ htail₁ htail₂ heta ?_
+  exact
+    (Continuous.mul
+      (Real.continuous_exp.comp
+        ((continuous_const.mul continuous_const).mul continuous_id))
+      ((hU₂_cont.sub hU₁_cont).abs.pow 2)).aestronglyMeasurable
+
+/-- End-to-end proof of the corrected regular Remark 4.3 statement.  This
+combines the explicit faster tail-rate selection, left trap domination,
+eventual right-tail domination, and weighted integrability bridge. -/
+theorem Remark_4_3_regular_proved : Remark_4_3_regular := by
+  intro p c hkappa U₁ V₁ U₂ V₂ _hTW₁ _hTW₂ hU₁_cont hU₂_cont
+    hbound₁ hbound₂ htail₁ htail₂ eta heta
+  exact
+    Remark_4_3.distinct_wave_branch_of_continuous
+      hkappa hU₁_cont hU₂_cont hbound₁ hbound₂ htail₁ htail₂ heta
 
 theorem HasRemark43TailAsymptotic.hasWaveRightTailAsymptotic
     {p : CMParams} {c κ₁ : ℝ} {U : ℝ → ℝ}
@@ -6384,6 +9018,37 @@ theorem Remark_4_3.exists_weighted_initial_closeness
       h.weighted_initial_closeness hkappa_pos heta
         hTW₁ hTW₂ hbound₁ hbound₂ htail₁ htail₂⟩
 
+/-- A real same-wave branch of Remark 4.3.  When the two waves are identical,
+the weighted initial distance is exactly zero, so no analytic package is
+needed. -/
+theorem Remark_4_3.same_wave_branch
+    {p : CMParams} {c eta : ℝ} {U V : ℝ → ℝ}
+    (_hkappa : 0 < kappa c)
+    (_hTW : IsTravelingWave p c U V)
+    (_hbound : HasWaveUpperTailBound p c U)
+    (_htail : HasRemark43TailAsymptotic p c U)
+    (_heta : Remark43TailRateBound p c eta) :
+    WeightedL2InitialCloseness (eta + kappa c) U U :=
+  WeightedL2InitialCloseness.refl (eta + kappa c) U
+
+/-- Existence form of the same-wave branch of Remark 4.3, with the admissible
+weight selected from the explicit rate window. -/
+theorem Remark_4_3.exists_same_wave_branch
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hkappa_pos : 0 < kappa c) (hkappa_lt_one : kappa c < 1)
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (htail : HasRemark43TailAsymptotic p c U) :
+    ∃ eta : ℝ, 0 < eta ∧
+      Remark43TailRateBound p c eta ∧
+        WeightedL2InitialCloseness (eta + kappa c) U U := by
+  rcases exists_remark43TailRateBound
+      (p := p) (c := c) hkappa_pos hkappa_lt_one with
+    ⟨eta, heta_pos, heta⟩
+  exact
+    ⟨eta, heta_pos, heta,
+      Remark_4_3.same_wave_branch hkappa_pos hTW hbound htail heta⟩
+
 def WaveDerivativeTendsZero (U : ℝ → ℝ) : Prop :=
   Tendsto (fun x => deriv U x) atBot (𝓝 0) ∧
     Tendsto (fun x => deriv U x) atTop (𝓝 0)
@@ -6412,6 +9077,312 @@ def Lemma_5_1 : Prop :=
             |deriv U x| ≤
               B1 * Real.exp (-(kappa c) * x) +
                 B2 * Real.exp (-(kappa c) * p.γ * x))
+
+theorem Lemma_5_1_signal_bound_for_frozenElliptic
+    (p : CMParams) {c : ℝ} {U : ℝ → ℝ}
+    (hU : IsCUnifBdd U) (hbound : HasWaveUpperTailBound p c U) :
+    ∀ x,
+      |frozenElliptic p U x| ≤ (MChi p) ^ p.γ ∧
+        |deriv (frozenElliptic p U) x| ≤ (MChi p) ^ p.γ := by
+  intro x
+  have hM_pos : 0 < MChi p :=
+    lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
+  have htrap : InWaveTrapSet (kappa c) (MChi p) U :=
+    hbound.inWaveTrapSet hU
+  have hU_nonneg : ∀ y, 0 ≤ U y := fun y => (hbound.pos y).le
+  have hV_nonneg : 0 ≤ frozenElliptic p U x :=
+    frozenElliptic_nonneg p hU_nonneg x
+  have hV_le : frozenElliptic p U x ≤ (MChi p) ^ p.γ :=
+    frozenElliptic_le_rpow_of_inWaveTrapSet p hM_pos htrap x
+  have hV_abs : |frozenElliptic p U x| ≤ (MChi p) ^ p.γ := by
+    simpa [abs_of_nonneg hV_nonneg] using hV_le
+  have hV_deriv_abs :
+      |deriv (frozenElliptic p U) x| ≤ frozenElliptic p U x :=
+    frozenElliptic_deriv_abs_le p hU hU_nonneg x
+  exact ⟨hV_abs, le_trans hV_deriv_abs hV_le⟩
+
+theorem gamma_mul_kappa_lt_one_of_gamma_add_inv_lt_speed
+    {c gamma : ℝ} (hc : 2 < c) (hgamma : 1 ≤ gamma)
+    (hspeed : gamma + gamma⁻¹ < c) :
+    gamma * kappa c < 1 := by
+  by_contra hnot
+  push_neg at hnot
+  have hk_pos : 0 < kappa c := kappa_pos_of_two_lt hc
+  have hk_lt_one : kappa c < 1 := kappa_lt_one_of_two_lt hc
+  have hgamma_pos : 0 < gamma := lt_of_lt_of_le zero_lt_one hgamma
+  have hgamma_ne : gamma ≠ 0 := ne_of_gt hgamma_pos
+  have hk_ne : kappa c ≠ 0 := ne_of_gt hk_pos
+  have hgamma_ge_k : kappa c ≤ gamma :=
+    le_trans hk_lt_one.le hgamma
+  have hdiff :
+      gamma * kappa c * (gamma + gamma⁻¹) -
+          gamma * kappa c * (kappa c + (kappa c)⁻¹) =
+        (gamma - kappa c) * (gamma * kappa c - 1) := by
+    field_simp [hgamma_ne, hk_ne]
+    ring
+  have hnonneg :
+      0 ≤ gamma * kappa c * (gamma + gamma⁻¹) -
+        gamma * kappa c * (kappa c + (kappa c)⁻¹) := by
+    rw [hdiff]
+    exact mul_nonneg (sub_nonneg.mpr hgamma_ge_k)
+      (sub_nonneg.mpr hnot)
+  have hsum_le : kappa c + (kappa c)⁻¹ ≤ gamma + gamma⁻¹ := by
+    have hmul :
+        gamma * kappa c * (kappa c + (kappa c)⁻¹) ≤
+          gamma * kappa c * (gamma + gamma⁻¹) := by
+      linarith
+    exact le_of_mul_le_mul_left hmul (mul_pos hgamma_pos hk_pos)
+  have hc_eq : kappa c + (kappa c)⁻¹ = c :=
+    kappa_add_inv_eq_of_two_lt hc
+  linarith
+
+theorem Lemma_5_1_exponential_signal_bound_for_frozenElliptic
+    (p : CMParams) {c : ℝ} {U : ℝ → ℝ}
+    (hc : 2 < c) (hspeed : p.γ + p.γ⁻¹ < c)
+    (hU : IsCUnifBdd U) (hbound : HasWaveUpperTailBound p c U) :
+    ∀ x,
+      |frozenElliptic p U x| ≤
+        min ((MChi p) ^ p.γ)
+          ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+            Real.exp (-(kappa c) * p.γ * x)) ∧
+      |deriv (frozenElliptic p U) x| ≤
+        min ((MChi p) ^ p.γ)
+          ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+            Real.exp (-(kappa c) * p.γ * x)) := by
+  intro x
+  have hM_pos : 0 < MChi p :=
+    lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
+  have hM_nonneg : 0 ≤ (MChi p) ^ p.γ :=
+    Real.rpow_nonneg hM_pos.le p.γ
+  have hU_nonneg : ∀ y, 0 ≤ U y := fun y => (hbound.pos y).le
+  have hgamma_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
+  have hk_pos : 0 < kappa c := kappa_pos_of_two_lt hc
+  have hkg_pos : 0 < kappa c * p.γ := mul_pos hk_pos hgamma_pos
+  have hkg_lt_one : kappa c * p.γ < 1 := by
+    have h := gamma_mul_kappa_lt_one_of_gamma_add_inv_lt_speed
+      (c := c) (gamma := p.γ) hc p.hγ hspeed
+    rwa [mul_comm] at h
+  have hpow_le_M : ∀ y, (U y) ^ p.γ ≤ (MChi p) ^ p.γ :=
+    fun y => hbound.rpow_le_MChi_gamma y
+  have hpow_le_exp : ∀ y, (U y) ^ p.γ ≤
+      Real.exp (-(kappa c * p.γ) * y) := by
+    intro y
+    have h := hbound.rpow_le_exp_mul (le_trans zero_le_one p.hγ) y
+    convert h using 1
+    ring
+  have hV_le_raw :
+      frozenElliptic p U x ≤
+        min ((MChi p) ^ p.γ)
+          (1 / (1 - (kappa c * p.γ) ^ 2) *
+            Real.exp (-(kappa c * p.γ) * x)) := by
+    unfold frozenElliptic
+    exact Psi_le_min_const_exp_of_nonneg_le hM_nonneg hkg_pos hkg_lt_one
+      (hU.1.rpow_const (fun _ => Or.inr (le_trans zero_le_one p.hγ)))
+      (fun y => Real.rpow_nonneg (hU_nonneg y) p.γ)
+      hpow_le_M hpow_le_exp x
+  have hV_le :
+      frozenElliptic p U x ≤
+        min ((MChi p) ^ p.γ)
+          ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+            Real.exp (-(kappa c) * p.γ * x)) := by
+    convert hV_le_raw using 2 <;> ring
+  have hV_nonneg : 0 ≤ frozenElliptic p U x :=
+    frozenElliptic_nonneg p hU_nonneg x
+  have hV_abs :
+      |frozenElliptic p U x| ≤
+        min ((MChi p) ^ p.γ)
+          ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+            Real.exp (-(kappa c) * p.γ * x)) := by
+    simpa [abs_of_nonneg hV_nonneg] using hV_le
+  have hV_deriv_abs :
+      |deriv (frozenElliptic p U) x| ≤ frozenElliptic p U x :=
+    frozenElliptic_deriv_abs_le p hU hU_nonneg x
+  exact ⟨hV_abs, le_trans hV_deriv_abs hV_le⟩
+
+/-- The signal-estimate part of Lemma 5.1 in the fixed-point case
+`V = frozenElliptic p U`, packaged in the same conjunctive shape as the first
+two conclusions of the full lemma. -/
+theorem Lemma_5_1.fixed_point_signal_package
+    (p : CMParams) {c : ℝ} {U : ℝ → ℝ}
+    (hc : 2 < c) (hU : IsCUnifBdd U)
+    (hbound : HasWaveUpperTailBound p c U) :
+    (∀ x,
+      |frozenElliptic p U x| ≤ (MChi p) ^ p.γ ∧
+        |deriv (frozenElliptic p U) x| ≤ (MChi p) ^ p.γ) ∧
+    (p.γ + p.γ⁻¹ < c →
+      ∀ x,
+        |frozenElliptic p U x| ≤
+          min ((MChi p) ^ p.γ)
+            ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+              Real.exp (-(kappa c) * p.γ * x)) ∧
+        |deriv (frozenElliptic p U) x| ≤
+          min ((MChi p) ^ p.γ)
+            ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+              Real.exp (-(kappa c) * p.γ * x))) := by
+  refine ⟨?_, ?_⟩
+  · exact Lemma_5_1_signal_bound_for_frozenElliptic p hU hbound
+  · intro hspeed
+    exact Lemma_5_1_exponential_signal_bound_for_frozenElliptic
+      p hc hspeed hU hbound
+
+/-- Fixed-point version of the full Lemma 5.1 conclusion.  The two signal
+estimate components are proved from the `Psi` kernel; the remaining `U'`
+components are kept as explicit derivative hypotheses. -/
+theorem Lemma_5_1.fixed_point_conclusion_of_wave_derivative_bounds
+    (p : CMParams) {c : ℝ} {U : ℝ → ℝ}
+    (hc : 2 < c) (hU : IsCUnifBdd U)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hderiv_tends : WaveDerivativeTendsZero U)
+    (hderiv_bound :
+      c > p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) →
+        ∃ B > 0, ∀ x, |deriv U x| ≤ B)
+    (hderiv_exp :
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+        ∃ B1 B2, ∀ x,
+          |deriv U x| ≤
+            B1 * Real.exp (-(kappa c) * x) +
+              B2 * Real.exp (-(kappa c) * p.γ * x)) :
+    (∀ x,
+      |frozenElliptic p U x| ≤ (MChi p) ^ p.γ ∧
+        |deriv (frozenElliptic p U) x| ≤ (MChi p) ^ p.γ) ∧
+    (p.γ + p.γ⁻¹ < c →
+      ∀ x,
+        |frozenElliptic p U x| ≤
+          min ((MChi p) ^ p.γ)
+            ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+              Real.exp (-(kappa c) * p.γ * x)) ∧
+        |deriv (frozenElliptic p U) x| ≤
+          min ((MChi p) ^ p.γ)
+            ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+              Real.exp (-(kappa c) * p.γ * x))) ∧
+    WaveDerivativeTendsZero U ∧
+    (c > p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) →
+      ∃ B > 0, ∀ x, |deriv U x| ≤ B) ∧
+    (c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+      ∃ B1 B2, ∀ x,
+        |deriv U x| ≤
+          B1 * Real.exp (-(kappa c) * x) +
+            B2 * Real.exp (-(kappa c) * p.γ * x)) := by
+  rcases Lemma_5_1.fixed_point_signal_package p hc hU hbound with
+    ⟨hsignal, hexpSignal⟩
+  exact ⟨hsignal, hexpSignal, hderiv_tends, hderiv_bound, hderiv_exp⟩
+
+/-- Strengthened Lemma 5.1 target with the missing resolvent identification
+and the remaining `U'` estimates exposed as explicit hypotheses.  This is the
+full conclusion shape of Lemma 5.1, with the remaining analytic inputs made
+explicit. -/
+def Lemma_5_1_resolvent_identified : Prop :=
+  ∀ p : CMParams, ∀ c : ℝ, 2 < c →
+    ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V →
+      V = frozenElliptic p U →
+      Continuous U →
+      HasWaveUpperTailBound p c U →
+      WaveDerivativeTendsZero U →
+      (c > p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) →
+        ∃ B > 0, ∀ x, |deriv U x| ≤ B) →
+      (c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+        ∃ B1 B2, ∀ x,
+          |deriv U x| ≤
+            B1 * Real.exp (-(kappa c) * x) +
+              B2 * Real.exp (-(kappa c) * p.γ * x)) →
+        (∀ x,
+          |V x| ≤ (MChi p) ^ p.γ ∧
+            |deriv V x| ≤ (MChi p) ^ p.γ) ∧
+        (p.γ + p.γ⁻¹ < c →
+          ∀ x,
+            |V x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x)) ∧
+            |deriv V x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x))) ∧
+        WaveDerivativeTendsZero U ∧
+        (c > p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) →
+          ∃ B > 0, ∀ x, |deriv U x| ≤ B) ∧
+        (c > max (p.γ + p.γ⁻¹)
+            (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+          ∃ B1 B2, ∀ x,
+            |deriv U x| ≤
+              B1 * Real.exp (-(kappa c) * x) +
+                B2 * Real.exp (-(kappa c) * p.γ * x))
+
+theorem Lemma_5_1_resolvent_identified_proved :
+    Lemma_5_1_resolvent_identified := by
+  intro p c hc U V _hTW hV hU_cont hbound hderiv_tends hderiv_bound hderiv_exp
+  have hU : IsCUnifBdd U := hbound.isCUnifBdd_of_continuous hU_cont
+  subst V
+  exact Lemma_5_1.fixed_point_conclusion_of_wave_derivative_bounds
+    p hc hU hbound hderiv_tends hderiv_bound hderiv_exp
+
+/-- Lemma 5.1's signal estimates for a frozen stationary profile already
+known to lie in the wave trap.  This avoids the arbitrary `IsTravelingWave`
+projection route: the elliptic signal is definitionally `frozenElliptic p U`,
+and the estimates come from the `Psi` kernel bounds. -/
+theorem FrozenStationaryWaveProfile.fixed_point_signal_package_of_inWaveTrapSet
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hc : 2 < c) (htrap : InWaveTrapSet (kappa c) (MChi p) U) :
+    (∀ x,
+      |frozenElliptic p U x| ≤ (MChi p) ^ p.γ ∧
+        |deriv (frozenElliptic p U) x| ≤ (MChi p) ^ p.γ) ∧
+    (p.γ + p.γ⁻¹ < c →
+      ∀ x,
+        |frozenElliptic p U x| ≤
+          min ((MChi p) ^ p.γ)
+            ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+              Real.exp (-(kappa c) * p.γ * x)) ∧
+        |deriv (frozenElliptic p U) x| ≤
+          min ((MChi p) ^ p.γ)
+            ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+              Real.exp (-(kappa c) * p.γ * x))) :=
+  Lemma_5_1.fixed_point_signal_package p hc htrap.cunif_bdd
+    (hprofile.hasWaveUpperTailBound_of_inWaveTrapSet htrap)
+
+/-- Full fixed-point/profile version of Lemma 5.1 with the `V` estimates
+proved from the resolvent and only the `U'` estimates left as explicit
+hypotheses. -/
+theorem FrozenStationaryWaveProfile.fixed_point_conclusion_of_wave_derivative_bounds
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hc : 2 < c) (htrap : InWaveTrapSet (kappa c) (MChi p) U)
+    (hderiv_tends : WaveDerivativeTendsZero U)
+    (hderiv_bound :
+      c > p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) →
+        ∃ B > 0, ∀ x, |deriv U x| ≤ B)
+    (hderiv_exp :
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+        ∃ B1 B2, ∀ x,
+          |deriv U x| ≤
+            B1 * Real.exp (-(kappa c) * x) +
+              B2 * Real.exp (-(kappa c) * p.γ * x)) :
+    (∀ x,
+      |frozenElliptic p U x| ≤ (MChi p) ^ p.γ ∧
+        |deriv (frozenElliptic p U) x| ≤ (MChi p) ^ p.γ) ∧
+    (p.γ + p.γ⁻¹ < c →
+      ∀ x,
+        |frozenElliptic p U x| ≤
+          min ((MChi p) ^ p.γ)
+            ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+              Real.exp (-(kappa c) * p.γ * x)) ∧
+        |deriv (frozenElliptic p U) x| ≤
+          min ((MChi p) ^ p.γ)
+            ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+              Real.exp (-(kappa c) * p.γ * x))) ∧
+    WaveDerivativeTendsZero U ∧
+    (c > p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) →
+      ∃ B > 0, ∀ x, |deriv U x| ≤ B) ∧
+    (c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+      ∃ B1 B2, ∀ x,
+        |deriv U x| ≤
+          B1 * Real.exp (-(kappa c) * x) +
+            B2 * Real.exp (-(kappa c) * p.γ * x)) := by
+  exact Lemma_5_1.fixed_point_conclusion_of_wave_derivative_bounds
+    p hc htrap.cunif_bdd
+    (hprofile.hasWaveUpperTailBound_of_inWaveTrapSet htrap)
+    hderiv_tends hderiv_bound hderiv_exp
 
 theorem Lemma_5_1.signal_bound
     (h : Lemma_5_1) {p : CMParams} {c : ℝ} (hc : 2 < c)
@@ -6486,6 +9457,62 @@ def Lemma_5_2_explicit : Prop :=
         HasWaveUpperTailBound p c U →
           ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c
 
+theorem logDerivativeBoundFormula_nonneg_of_speed
+    (p : CMParams) {c : ℝ}
+    (hMChi_nonneg : 0 ≤ MChi p)
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1))) :
+    0 ≤ logDerivativeBoundFormula p c := by
+  unfold logDerivativeBoundFormula
+  have hgamma_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
+  have hgamma_inv_pos : 0 < p.γ⁻¹ := inv_pos.mpr hgamma_pos
+  have hc_pos : 0 < c := by
+    have hsum_pos : 0 < p.γ + p.γ⁻¹ := add_pos hgamma_pos hgamma_inv_pos
+    exact lt_trans hsum_pos (lt_of_le_of_lt (le_max_left _ _) hspeed)
+  have hchi_nonneg : 0 ≤ |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) := by
+    have hm_nonneg : 0 ≤ p.m := le_trans zero_le_one p.hm
+    exact mul_nonneg (mul_nonneg (abs_nonneg p.χ) hm_nonneg)
+      (Real.rpow_nonneg hMChi_nonneg _)
+  have hsum_nonneg :
+      0 ≤
+        c + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) +
+          Real.sqrt
+            ((c + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1)) ^ 2 +
+              4 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+              4 * (MChi p) ^ p.α) := by
+    have hleft :
+        0 ≤ c + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) := by
+      linarith
+    exact add_nonneg hleft (Real.sqrt_nonneg _)
+  exact mul_nonneg (by norm_num : (0 : ℝ) ≤ 1 / 2) hsum_nonneg
+
+theorem Lemma_5_2_explicit.nonincreasing_branch
+    {p : CMParams} {c : ℝ}
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
+    {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hmono : ∀ x, deriv U x ≤ 0) :
+    ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c := by
+  have hMChi_nonneg : 0 ≤ MChi p := by
+    linarith [hbound.pos 0, hbound.le_MChi 0]
+  intro x
+  have hratio_nonpos : deriv U x / U x ≤ 0 := by
+    exact div_nonpos_of_nonpos_of_nonneg (hmono x) (hTW.U_pos x).le
+  exact le_trans hratio_nonpos
+    (logDerivativeBoundFormula_nonneg_of_speed p hMChi_nonneg hspeed)
+
+theorem Lemma_5_2_explicit.monotoneTravelingWave_branch
+    {p : CMParams} {c : ℝ}
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
+    {U V : ℝ → ℝ}
+    (hTW : IsMonotoneTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U) :
+    ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c :=
+  Lemma_5_2_explicit.nonincreasing_branch hspeed hTW.1 hbound hTW.2.1
+
 theorem Lemma_5_2_explicit.log_derivative_bound
     (h : Lemma_5_2_explicit) {p : CMParams} {c : ℝ}
     (hspeed :
@@ -6503,6 +9530,71 @@ def Lemma_5_2 : Prop :=
         IsTravelingWave p c U V →
         HasWaveUpperTailBound p c U →
           ∃ B > 0, ∀ x, deriv U x / U x ≤ B
+
+theorem Lemma_5_2.nonincreasing_branch
+    {p : CMParams} {c : ℝ}
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
+    {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hmono : ∀ x, deriv U x ≤ 0) :
+    ∃ B > 0, ∀ x, deriv U x / U x ≤ B := by
+  refine ⟨max (logDerivativeBoundFormula p c) 1, ?_, ?_⟩
+  · exact lt_of_lt_of_le zero_lt_one (le_max_right _ _)
+  · intro x
+    exact le_trans
+      (Lemma_5_2_explicit.nonincreasing_branch hspeed hTW hbound hmono x)
+      (le_max_left _ _)
+
+theorem Lemma_5_2.monotoneTravelingWave_branch
+    {p : CMParams} {c : ℝ}
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
+    {U V : ℝ → ℝ}
+    (hTW : IsMonotoneTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U) :
+    ∃ B > 0, ∀ x, deriv U x / U x ≤ B :=
+  Lemma_5_2.nonincreasing_branch hspeed hTW.1 hbound hTW.2.1
+
+/-- Fixed-point/trap version of the explicit Lemma 5.2 log-derivative
+estimate.  The profile is a frozen stationary wave in the monotone trap, so
+the traveling-wave and upper-tail hypotheses are supplied by the profile/trap
+structure. -/
+def Lemma_5_2_explicit_frozen_monotone_trap : Prop :=
+  ∀ p : CMParams, ∀ c : ℝ,
+    c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+      ∀ U : ℝ → ℝ,
+        FrozenStationaryWaveProfile p c U →
+        InMonotoneWaveTrapSet (kappa c) (MChi p) U →
+          ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c
+
+theorem Lemma_5_2_explicit_frozen_monotone_trap_proved :
+    Lemma_5_2_explicit_frozen_monotone_trap := by
+  intro p c hspeed U hprofile htrap
+  exact Lemma_5_2_explicit.nonincreasing_branch hspeed
+    hprofile.to_travelingWave
+    (hprofile.hasWaveUpperTailBound_of_inMonotoneWaveTrapSet htrap)
+    htrap.deriv_nonpos
+
+/-- Fixed-point/trap version of Lemma 5.2.  This packages the preceding
+explicit bound in the existential form of the paper lemma without projecting
+from the analytic package. -/
+def Lemma_5_2_frozen_monotone_trap : Prop :=
+  ∀ p : CMParams, ∀ c : ℝ,
+    c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+      ∀ U : ℝ → ℝ,
+        FrozenStationaryWaveProfile p c U →
+        InMonotoneWaveTrapSet (kappa c) (MChi p) U →
+          ∃ B > 0, ∀ x, deriv U x / U x ≤ B
+
+theorem Lemma_5_2_frozen_monotone_trap_proved :
+    Lemma_5_2_frozen_monotone_trap := by
+  intro p c hspeed U hprofile htrap
+  exact Lemma_5_2.nonincreasing_branch hspeed
+    hprofile.to_travelingWave
+    (hprofile.hasWaveUpperTailBound_of_inMonotoneWaveTrapSet htrap)
+    htrap.deriv_nonpos
 
 theorem Lemma_5_2_explicit.to_Lemma_5_2
     (h : Lemma_5_2_explicit) : Lemma_5_2 := by
@@ -6663,6 +9755,69 @@ theorem remark5Denominator_pos
     0 < |p.χ| ^ 2 * sigma := by
   exact mul_pos (pow_pos (abs_pos.mpr hχ) 2) hsigma
 
+theorem remark51MPrime_nonneg_of_MChi_pos
+    (p : CMParams) (hM : 0 < MChi p) :
+    0 ≤ remark51MPrime p := by
+  unfold remark51MPrime
+  exact add_nonneg
+    (mul_nonneg (abs_nonneg p.χ) (Real.rpow_pos_of_pos hM _).le)
+    (Real.rpow_pos_of_pos hM _).le
+
+theorem remark52MTriplePrime_nonneg_of_MChi_pos
+    (p : CMParams) {c sigma : ℝ}
+    (hsigma : 0 < sigma) (hM : 0 < MChi p) :
+    0 ≤ remark52MTriplePrime p c sigma := by
+  by_cases hc : c ≤ (5 / 2 : ℝ)
+  · rw [remark52MTriplePrime_eq_of_le hc]
+    have hfactor :
+        0 ≤ |p.χ| ^ 2 * sigma / 2 := by positivity
+    have hm_nonneg : 0 ≤ p.m := le_trans zero_le_one p.hm
+    have hpow :
+        0 ≤ (MChi p) ^ (p.m + p.γ - 1) :=
+      (Real.rpow_pos_of_pos hM _).le
+    have hterm :
+        0 ≤ |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) := by
+      exact mul_nonneg (mul_nonneg (abs_nonneg p.χ) hm_nonneg) hpow
+    have hsum :
+        0 ≤
+          5 / 2 + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) +
+            Real.sqrt
+              ((5 / 2 + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1)) ^ 2 +
+                4 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+                4 * (MChi p) ^ p.α) := by
+      exact add_nonneg (by nlinarith) (Real.sqrt_nonneg _)
+    exact mul_nonneg hfactor hsum
+  · have hc_gt : (5 / 2 : ℝ) < c := lt_of_not_ge hc
+    rw [remark52MTriplePrime_eq_of_gt hc_gt]
+    have hm_nonneg : 0 ≤ p.m := le_trans zero_le_one p.hm
+    have hpmul : 0 ≤ p.m * |p.χ| :=
+      mul_nonneg hm_nonneg (abs_nonneg p.χ)
+    have hparen :
+        0 ≤ 1 + |p.χ| + 2 * p.m * |p.χ| := by
+      nlinarith [abs_nonneg p.χ, hpmul]
+    have hsigma_term : 0 ≤ |p.χ| * sigma :=
+      mul_nonneg (abs_nonneg p.χ) hsigma.le
+    have hgamma_sigma : 0 ≤ p.γ + |p.χ| * sigma := by
+      nlinarith [p.hγ, hsigma_term]
+    have hden : 0 ≤ 1 + p.γ := by nlinarith [p.hγ]
+    have hcoef :
+        0 ≤
+          8 * (1 + |p.χ| + 2 * p.m * |p.χ|) *
+              (p.γ + |p.χ| * sigma) /
+            (1 + p.γ) := by
+      exact div_nonneg
+        (mul_nonneg
+          (mul_nonneg (by norm_num) hparen)
+          hgamma_sigma)
+        hden
+    have hbranch :
+        0 ≤
+          8 * (1 + |p.χ| + 2 * p.m * |p.χ|) *
+              (p.γ + |p.χ| * sigma) /
+            (1 + p.γ) * remark51MPrime p :=
+      mul_nonneg hcoef (remark51MPrime_nonneg_of_MChi_pos p hM)
+    exact le_trans hbranch (le_max_left _ _)
+
 /-- Paper1 Remark 5.2: the `sigma` speed condition gives the displayed
 `U'/U` bound with the piecewise constant `M'''`. -/
 def Remark_5_2 : Prop :=
@@ -6712,6 +9867,24 @@ theorem not_Remark52GammaSpeedAlgebra :
   have hbad := h p (3 / 2 : ℝ) 100 hsigma hχ hspeed
   norm_num [p] at hbad
 
+theorem not_remark5SpeedCondition_implies_Lemma_5_2_speed :
+    ¬ (∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+        c > max (p.γ + p.γ⁻¹)
+          (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1))) := by
+  intro h
+  apply not_Remark52GammaSpeedAlgebra
+  intro p c sigma hsigma hχ hspeed
+  exact lt_of_le_of_lt (le_max_left _ _) (h p c sigma hsigma hχ hspeed)
+
+theorem not_Remark52LogDerivativeAlgebra :
+    ¬ Remark52LogDerivativeAlgebra := by
+  intro h
+  apply not_Remark52GammaSpeedAlgebra
+  intro p c sigma hsigma hχ hspeed
+  exact lt_of_le_of_lt (le_max_left _ _)
+    (h p c sigma hsigma hχ hspeed).1
+
 def Remark52LogDerivativeConstantComparison : Prop :=
   ∀ p : CMParams, ∀ c sigma : ℝ,
     0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
@@ -6750,6 +9923,65 @@ theorem Remark_5_2.log_derivative_bound
         remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) :=
   h p c sigma hsigma hχ hspeed U V hTW hbound
 
+theorem Remark_5_2.nonincreasing_branch
+    {p : CMParams} {c sigma : ℝ}
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (_hspeed : remark5SpeedCondition p c sigma)
+    {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hmono : ∀ x, deriv U x ≤ 0) :
+    ∀ x : ℝ,
+      deriv U x / U x ≤
+        remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) := by
+  have hM : 0 < MChi p :=
+    lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
+  have hnum :
+      0 ≤ remark52MTriplePrime p c sigma :=
+    remark52MTriplePrime_nonneg_of_MChi_pos p hsigma hM
+  have hden : 0 < |p.χ| ^ 2 * sigma :=
+    remark5Denominator_pos hsigma hχ
+  have hrhs_nonneg :
+      0 ≤ remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) :=
+    div_nonneg hnum hden.le
+  intro x
+  have hratio_nonpos : deriv U x / U x ≤ 0 :=
+    div_nonpos_of_nonpos_of_nonneg (hmono x) (hTW.U_pos x).le
+  exact le_trans hratio_nonpos hrhs_nonneg
+
+theorem Remark_5_2.monotoneTravelingWave_branch
+    {p : CMParams} {c sigma : ℝ}
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    {U V : ℝ → ℝ}
+    (hTW : IsMonotoneTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U) :
+    ∀ x : ℝ,
+      deriv U x / U x ≤
+        remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) :=
+  Remark_5_2.nonincreasing_branch hsigma hχ hspeed hTW.1 hbound hTW.2.1
+
+/-- Fixed-point/trap version of Remark 5.2.  The monotone trap supplies
+`U' ≤ 0`, and the right-hand constant is nonnegative, so this branch is proved
+without a package-field projection. -/
+def Remark_5_2_frozen_monotone_trap : Prop :=
+  ∀ p : CMParams, ∀ c sigma : ℝ,
+    0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U : ℝ → ℝ,
+        FrozenStationaryWaveProfile p c U →
+        InMonotoneWaveTrapSet (kappa c) (MChi p) U →
+          ∀ x : ℝ,
+            deriv U x / U x ≤
+              remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma)
+
+theorem Remark_5_2_frozen_monotone_trap_proved :
+    Remark_5_2_frozen_monotone_trap := by
+  intro p c sigma hsigma hχ hspeed U hprofile htrap
+  exact Remark_5_2.nonincreasing_branch hsigma hχ hspeed
+    hprofile.to_travelingWave
+    (hprofile.hasWaveUpperTailBound_of_inMonotoneWaveTrapSet htrap)
+    htrap.deriv_nonpos
+
 def Lemma_5_3 : Prop :=
   ∀ gamma M eta : ℝ,
     1 ≤ gamma → 1 ≤ M → 0 < eta → eta < 1 →
@@ -6768,6 +10000,43 @@ def Lemma_5_3 : Prop :=
             (∫ x : ℝ, |deriv V x| ^ 2 ≤
               gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta ^ 2) *
                 ∫ x : ℝ, |U x| ^ 2)
+
+/-- A real, assumption-package-free zero-difference branch of Lemma 5.3. -/
+theorem Lemma_5_3_zero_difference_branch
+    (gamma M eta : ℝ) (u : ℝ → ℝ) :
+    let v := Psi (fun x => u x ^ gamma - u x ^ gamma) 1 1
+    let U := fun x => Real.exp (eta * x) * (u x - u x)
+    let V := fun x => Real.exp (eta * x) * v x
+    (∫ x : ℝ, |V x| ^ 2 ≤
+        gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta) ^ 2 *
+          ∫ x : ℝ, |U x| ^ 2) ∧
+      (∫ x : ℝ, |deriv V x| ^ 2 ≤
+        gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta ^ 2) *
+          ∫ x : ℝ, |U x| ^ 2) := by
+  dsimp
+  simp [Psi_zero]
+
+/-- The zero-difference branch of Lemma 5.3 in the same hypothesis shape as
+the full statement. -/
+theorem Lemma_5_3.self_difference_branch
+    {gamma M eta : ℝ}
+    (_hgamma : 1 ≤ gamma) (_hM : 1 ≤ M)
+    (_heta_pos : 0 < eta) (_heta_one : eta < 1)
+    {u : ℝ → ℝ}
+    (_hu : IsCUnifBdd u)
+    (_hubound : ∀ x, 0 ≤ u x ∧ u x ≤ M)
+    (_hclose : Integrable
+      (fun x => Real.exp (2 * eta * x) * |u x - u x| ^ 2)) :
+    let v := Psi (fun x => u x ^ gamma - u x ^ gamma) 1 1
+    let U := fun x => Real.exp (eta * x) * (u x - u x)
+    let V := fun x => Real.exp (eta * x) * v x
+    (∫ x : ℝ, |V x| ^ 2 ≤
+        gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta) ^ 2 *
+          ∫ x : ℝ, |U x| ^ 2) ∧
+      (∫ x : ℝ, |deriv V x| ^ 2 ≤
+        gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta ^ 2) *
+          ∫ x : ℝ, |U x| ^ 2) :=
+  Lemma_5_3_zero_difference_branch gamma M eta u
 
 theorem Lemma_5_3.weighted_elliptic_perturbation
     (h : Lemma_5_3)
@@ -6885,6 +10154,57 @@ theorem Proposition_1_1.positive_solution
       (0 < p.χ → p.χ < 1 → UniformLimsupLe u ((1 / (1 - p.χ)) ^ (1 / p.α))) :=
   h.2 p hparam u₀ hu₀
 
+/-- A real constant-initial-data branch of Proposition 1.1. -/
+theorem Proposition_1_1_constant_one_branch (p : CMParams) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
+        (∀ M, (∀ _x : ℝ, (1 : ℝ) ≤ M) →
+          ∀ t x, 0 ≤ t → u t x ≤ max 1 M) ∧
+        UniformLimsupLe u 1 ∧
+        UniformEventuallyBounded u := by
+  refine ⟨fun _ _ => (1 : ℝ), fun _ _ => (1 : ℝ), ?_, ?_, ?_, ?_⟩
+  · exact ⟨constant_solution_is_global p, by intro x; rfl, by intro t x _; norm_num⟩
+  · intro M hM t x _ht
+    exact le_trans (hM x) (le_max_right 1 M)
+  · intro ε hε
+    exact Eventually.of_forall fun _t _x => by linarith
+  · exact ⟨1, Eventually.of_forall fun _t _x => by norm_num⟩
+
+theorem Proposition_1_1_constant_one_negative_branch
+    (p : CMParams) (_hχ : p.χ ≤ 0) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
+      (∀ M, (∀ _x : ℝ, (1 : ℝ) ≤ M) →
+        ∀ t x, 0 ≤ t → u t x ≤ max 1 M) ∧
+      UniformLimsupLe u 1 := by
+  rcases Proposition_1_1_constant_one_branch p with
+    ⟨u, v, hsol, hmax, hlimsup, _hbounded⟩
+  exact ⟨u, v, hsol, hmax, hlimsup⟩
+
+theorem one_le_positive_branch_limsup_bound
+    (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1) :
+    1 ≤ (1 / (1 - p.χ)) ^ (1 / p.α) := by
+  have hden_pos : 0 < 1 - p.χ := sub_pos.mpr hχ_lt
+  have hbase_ge_one : 1 ≤ 1 / (1 - p.χ) := by
+    rw [le_div_iff₀ hden_pos]
+    linarith
+  have hexp_nonneg : 0 ≤ 1 / p.α := by
+    exact div_nonneg zero_le_one (le_trans zero_le_one p.hα)
+  exact Real.one_le_rpow hbase_ge_one hexp_nonneg
+
+theorem Proposition_1_1_constant_one_positive_branch
+    (p : CMParams) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
+      UniformEventuallyBounded u ∧
+      (0 < p.χ → p.χ < 1 →
+        UniformLimsupLe u ((1 / (1 - p.χ)) ^ (1 / p.α))) := by
+  rcases Proposition_1_1_constant_one_branch p with
+    ⟨u, v, hsol, _hmax, hlimsup, hbounded⟩
+  refine ⟨u, v, hsol, hbounded, ?_⟩
+  intro hχ_pos hχ_lt
+  exact hlimsup.mono (one_le_positive_branch_limsup_bound p hχ_pos hχ_lt)
+
 /-- Paper1 Proposition 1.2: stability of the positive constant solution. -/
 def Proposition_1_2 : Prop :=
   (∀ p : CMParams, p.χ ≤ 0 →
@@ -6949,6 +10269,31 @@ theorem Proposition_1_2.positive_stability_with_long_time_bounds
   rcases h.positive_stability hχ_pos hχ_small halpha hu₀_nonneg hu₀_pos with
     ⟨u, v, hsol, hconv⟩
   exact ⟨u, v, hsol, hconv, hconv.uniformEventuallyBounded, hconv.uniformLimsupLe⟩
+
+/-- A real constant-initial-data branch of Proposition 1.2. -/
+theorem Proposition_1_2_constant_one_branch (p : CMParams) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
+        UniformConvergesToConstant u 1 := by
+  refine ⟨fun _ _ => (1 : ℝ), fun _ _ => (1 : ℝ), ?_, ?_⟩
+  · exact ⟨constant_solution_is_global p, by intro x; rfl, by intro t x _; norm_num⟩
+  · intro ε hε
+    exact ⟨0, fun _t _x _ht => by simpa using hε⟩
+
+theorem Proposition_1_2_constant_one_negative_branch
+    (p : CMParams) (_hχ : p.χ ≤ 0) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
+        UniformConvergesToConstant u 1 :=
+  Proposition_1_2_constant_one_branch p
+
+theorem Proposition_1_2_constant_one_positive_branch
+    (p : CMParams) (_hχ_pos : 0 < p.χ) (_hχ_small : p.χ < (1 / 2 : ℝ))
+    (_halpha : p.m + p.γ - 1 ≤ p.α) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
+        UniformConvergesToConstant u 1 :=
+  Proposition_1_2_constant_one_branch p
 
 /-- Paper1 Theorem 1.1: existence of traveling waves. -/
 def Theorem_1_1 : Prop :=
@@ -7161,6 +10506,68 @@ theorem Theorem_1_1.of_frozenStationaryProfile_trap_branches
   exact
     ⟨U, hprofile, htrap.deriv_nonpos, hVmono, hupper, htail⟩
 
+/-- A lower-level Theorem 1.1 bridge: if the construction supplies raw
+stationary fixed-point profiles with positivity, boundedness, endpoint limits,
+monotonicity data, upper barriers, and the stated right-tail asymptotics, then
+the paper's traveling-wave existence conclusion follows.  The elliptic
+endpoint limits and the traveling-wave equations are assembled internally from
+`FrozenStationaryWaveProfile.mk_auto_limits`. -/
+theorem Theorem_1_1.of_raw_frozen_stationary_branches
+    (hneg :
+      ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
+        ∀ c : ℝ, cStarLower p < c →
+          ∃ U : ℝ → ℝ,
+            0 < c ∧
+              (∀ x, 0 < U x) ∧
+              IsCUnifBdd U ∧
+              (∀ x, frozenWaveOperator p c U U x = 0) ∧
+              Tendsto U atBot (𝓝 1) ∧
+              Tendsto U atTop (𝓝 0) ∧
+              (∀ x, deriv U x ≤ 0) ∧
+              (∀ x, deriv (frozenElliptic p U) x ≤ 0) ∧
+              ShenUpperBoundNegative c U ∧
+              (∀ κ₁, kappa c < κ₁ →
+                κ₁ <
+                  min ((1 + p.α) * kappa c)
+                    (min (p.m * kappa c + 1 / 2) 1) →
+                HasWaveRightTailAsymptotic c κ₁ U))
+    (hpos :
+      ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+        0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+        ∀ c : ℝ, 2 < c →
+          ∃ U : ℝ → ℝ,
+            0 < c ∧
+              (∀ x, 0 < U x) ∧
+              IsCUnifBdd U ∧
+              (∀ x, frozenWaveOperator p c U U x = 0) ∧
+              Tendsto U atBot (𝓝 1) ∧
+              Tendsto U atTop (𝓝 0) ∧
+              ShenUpperBoundPositive p c U ∧
+              (∀ κ₁, kappa c < κ₁ →
+                κ₁ <
+                  min ((1 + p.α) * kappa c)
+                    (min (p.m * kappa c + 1 / 2) 1) →
+                HasWaveRightTailAsymptotic c κ₁ U)) :
+    Theorem_1_1 := by
+  refine Theorem_1_1.of_frozenStationaryProfile_branches ?_ ?_
+  · intro p halpha hχ c hc
+    rcases hneg p halpha hχ c hc with
+      ⟨U, hc_pos, hU_pos, hU_bdd, hstat, hlim_bot, hlim_top,
+        hUmono, hVmono, hupper, htail⟩
+    exact
+      ⟨U,
+        FrozenStationaryWaveProfile.mk_auto_limits
+          hc_pos hU_pos hU_bdd hstat hlim_bot hlim_top,
+        hUmono, hVmono, hupper, htail⟩
+  · intro p halpha hχ_nonneg hχ_small c hc
+    rcases hpos p halpha hχ_nonneg hχ_small c hc with
+      ⟨U, hc_pos, hU_pos, hU_bdd, hstat, hlim_bot, hlim_top, hupper, htail⟩
+    exact
+      ⟨U,
+        FrozenStationaryWaveProfile.mk_auto_limits
+          hc_pos hU_pos hU_bdd hstat hlim_bot hlim_top,
+        hupper, htail⟩
+
 def StableWaveParameterRegime (p : CMParams) : Prop :=
   (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
     (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1)
@@ -7262,6 +10669,64 @@ theorem kappa_lt_one_of_stabilitySpeedBaseline_lt
     (hc : threshold p.χ < c) :
     kappa c < 1 :=
   kappa_lt_one_of_two_lt (two_lt_of_stabilitySpeedBaseline_lt hlower hc)
+
+theorem kappa_lt_stability_weight_cap_of_stabilitySpeedBaseline_lt
+    {p : CMParams} {threshold : ℝ → ℝ} {c : ℝ}
+    (hlower : stabilitySpeedBaseline p < threshold p.χ)
+    (hc : threshold p.χ < c) :
+    kappa c < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) := by
+  let a : ℝ := (1 + |p.χ| ^ (1 / 6 : ℝ))⁻¹
+  have hpow_nonneg : 0 ≤ |p.χ| ^ (1 / 6 : ℝ) :=
+    Real.rpow_nonneg (abs_nonneg p.χ) _
+  have hden_pos : 0 < 1 + |p.χ| ^ (1 / 6 : ℝ) := by
+    linarith
+  have ha_pos : 0 < a := by
+    dsimp [a]
+    exact inv_pos.mpr hden_pos
+  have ha_le_one : a ≤ 1 := by
+    have hden_one : 1 ≤ 1 + |p.χ| ^ (1 / 6 : ℝ) := by
+      linarith
+    dsimp [a]
+    exact inv_le_one_of_one_le₀ hden_one
+  have hc_two : 2 < c :=
+    two_lt_of_stabilitySpeedBaseline_lt hlower hc
+  have hk_pos : 0 < kappa c :=
+    kappa_pos_of_two_lt hc_two
+  have hk_lt_one : kappa c < 1 :=
+    kappa_lt_one_of_two_lt hc_two
+  have hbaseline_eq : stabilitySpeedBaseline p = a + a⁻¹ := by
+    dsimp [stabilitySpeedBaseline, a]
+    rw [inv_inv]
+    ring
+  have hspeed : a + a⁻¹ < kappa c + (kappa c)⁻¹ := by
+    have hbaseline_lt : stabilitySpeedBaseline p < c := lt_trans hlower hc
+    rw [hbaseline_eq] at hbaseline_lt
+    rw [kappa_add_inv_eq_of_two_lt hc_two]
+    exact hbaseline_lt
+  have hk_lt_a : kappa c < a := by
+    by_contra hnot
+    have ha_le_k : a ≤ kappa c := le_of_not_gt hnot
+    have hdiff_nonneg :
+        0 ≤ a + a⁻¹ - (kappa c + (kappa c)⁻¹) := by
+      have ha_ne : a ≠ 0 := ne_of_gt ha_pos
+      have hk_ne : kappa c ≠ 0 := ne_of_gt hk_pos
+      have hidentity :
+          a + a⁻¹ - (kappa c + (kappa c)⁻¹) =
+            (kappa c - a) * (1 - a * kappa c) / (a * kappa c) := by
+        field_simp [ha_ne, hk_ne]
+        ring
+      rw [hidentity]
+      apply div_nonneg
+      · apply mul_nonneg
+        · linarith
+        · have hak_le_one : a * kappa c ≤ 1 := by
+            nlinarith [ha_pos, hk_pos, ha_le_one, hk_lt_one.le]
+          linarith
+      · exact mul_nonneg ha_pos.le hk_pos.le
+    have hle : kappa c + (kappa c)⁻¹ ≤ a + a⁻¹ := by
+      linarith
+    linarith
+  simpa [a, one_div] using hk_lt_a
 
 theorem eta_pos_of_stability_weight_hypotheses
     {p : CMParams} {threshold : ℝ → ℝ} {c eta : ℝ}
@@ -7398,7 +10863,7 @@ def Theorem_1_2 : Prop :=
         IsTravelingWave p c U V →
         HasStrictWaveUpperTailBound p c U →
         (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
-        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6)) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
           ∀ u₀ : ℝ → ℝ,
             NonnegativeInitialDatum u₀ →
             StrictlyPositiveAtLeft u₀ →
@@ -7408,6 +10873,42 @@ def Theorem_1_2 : Prop :=
               WeightedL2MovingFrameConvergence η c u U ∧
               UniformMovingFrameConvergence c u U
 
+/-- A real self-initial-data branch of Paper1 Theorem 1.2.
+If the Cauchy datum is exactly the wave profile, the moving-frame solution is
+the traveling wave itself, so both stability conclusions have zero error. -/
+theorem Theorem_1_2_self_initial_data_branch
+    {p : CMParams} {c η : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p U u v ∧
+      WeightedL2MovingFrameConvergence η c u U ∧
+      UniformMovingFrameConvergence c u U := by
+  exact
+    ⟨fun t x => U (x - c * t), fun t x => V (x - c * t),
+      IsTravelingWave.to_globalCauchySolutionFrom hTW hU_diff hV_diff,
+      IsTravelingWave.weightedL2MovingFrameConvergence_self hTW,
+      IsTravelingWave.uniformMovingFrameConvergence_self hTW⟩
+
+/-- Self-initial-data branch of Theorem 1.2 specialized to a frozen stationary
+profile.  The moving-frame Cauchy solution is the frozen profile itself, so the
+weighted and uniform stability errors are identically zero. -/
+theorem Theorem_1_2_frozen_profile_self_initial_data_branch
+    {p : CMParams} {c η : ℝ} {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hU_diff : ContDiff ℝ 2 U)
+    (hV_diff : ContDiff ℝ 2 (frozenElliptic p U)) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p U u v ∧
+      WeightedL2MovingFrameConvergence η c u U ∧
+      UniformMovingFrameConvergence c u U := by
+  exact
+    ⟨fun t x => U (x - c * t),
+      fun t x => frozenElliptic p U (x - c * t),
+      hprofile.to_globalCauchySolutionFrom hU_diff hV_diff,
+      IsTravelingWave.weightedL2MovingFrameConvergence_self hprofile.to_travelingWave,
+      IsTravelingWave.uniformMovingFrameConvergence_self hprofile.to_travelingWave⟩
+
 theorem Theorem_1_2.threshold_family
     (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
@@ -7416,7 +10917,7 @@ theorem Theorem_1_2.threshold_family
   rcases h p hp with ⟨cStarStar, hasymp, hlower, _hconcl⟩
   exact ⟨cStarStar, hasymp, hlower⟩
 
-theorem Theorem_1_2.stability_package
+theorem Theorem_1_2.stability_conclusion
     (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
@@ -7426,7 +10927,7 @@ theorem Theorem_1_2.stability_package
         IsTravelingWave p c U V →
         HasStrictWaveUpperTailBound p c U →
         (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
-        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6)) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
           ∀ u₀ : ℝ → ℝ,
             NonnegativeInitialDatum u₀ →
             StrictlyPositiveAtLeft u₀ →
@@ -7437,7 +10938,7 @@ theorem Theorem_1_2.stability_package
               UniformMovingFrameConvergence c u U :=
   h p hp
 
-theorem Theorem_1_2.stability_package_of_remark43_tail
+theorem Theorem_1_2.stability_conclusion_of_remark43_tail
     (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
@@ -7447,7 +10948,7 @@ theorem Theorem_1_2.stability_package_of_remark43_tail
         IsTravelingWave p c U V →
         HasStrictWaveUpperTailBound p c U →
         HasRemark43TailAsymptotic p c U →
-        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6)) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
           ∀ u₀ : ℝ → ℝ,
             NonnegativeInitialDatum u₀ →
             StrictlyPositiveAtLeft u₀ →
@@ -7456,7 +10957,7 @@ theorem Theorem_1_2.stability_package_of_remark43_tail
               IsGlobalCauchySolutionFrom p u₀ u v ∧
               WeightedL2MovingFrameConvergence η c u U ∧
               UniformMovingFrameConvergence c u U := by
-  rcases h.stability_package hp with ⟨cStarStar, hasymp, hlower, hstable⟩
+  rcases h.stability_conclusion hp with ⟨cStarStar, hasymp, hlower, hstable⟩
   refine ⟨cStarStar, hasymp, hlower, ?_⟩
   intro c hc U V hTW hbound htail η hketa heta u₀ hu₀ hleft hclose
   have hkappa_pos : 0 < kappa c :=
@@ -7467,7 +10968,7 @@ theorem Theorem_1_2.stability_package_of_remark43_tail
     (htail.exists_waveRightTailAsymptotic hkappa_pos hkappa_lt_one)
     η hketa heta u₀ hu₀ hleft hclose
 
-theorem Theorem_1_2.stability_from_wave_initial_package
+theorem Theorem_1_2.stability_from_wave_initial_conclusion
     (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
@@ -7478,12 +10979,12 @@ theorem Theorem_1_2.stability_from_wave_initial_package
         IsCUnifBdd U →
         HasStrictWaveUpperTailBound p c U →
         (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
-        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6)) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
           ∃ u v : ℝ → ℝ → ℝ,
             IsGlobalCauchySolutionFrom p U u v ∧
             WeightedL2MovingFrameConvergence η c u U ∧
             UniformMovingFrameConvergence c u U := by
-  rcases h.stability_package hp with ⟨cStarStar, hasymp, hlower, hstable⟩
+  rcases h.stability_conclusion hp with ⟨cStarStar, hasymp, hlower, hstable⟩
   refine ⟨cStarStar, hasymp, hlower, ?_⟩
   intro c hc U V hTW hU hbound htail η hketa heta
   exact hstable c hc U V hTW hbound htail η hketa heta U
@@ -7491,7 +10992,7 @@ theorem Theorem_1_2.stability_from_wave_initial_package
     (IsTravelingWave.strictlyPositiveAtLeft hTW)
     (WeightedL2InitialCloseness.refl η U)
 
-theorem Theorem_1_2.stability_from_wave_initial_package_of_remark43_tail
+theorem Theorem_1_2.stability_from_wave_initial_conclusion_of_remark43_tail
     (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
@@ -7502,12 +11003,12 @@ theorem Theorem_1_2.stability_from_wave_initial_package_of_remark43_tail
         IsCUnifBdd U →
         HasStrictWaveUpperTailBound p c U →
         HasRemark43TailAsymptotic p c U →
-        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6)) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
           ∃ u v : ℝ → ℝ → ℝ,
             IsGlobalCauchySolutionFrom p U u v ∧
             WeightedL2MovingFrameConvergence η c u U ∧
             UniformMovingFrameConvergence c u U := by
-  rcases h.stability_package_of_remark43_tail hp with
+  rcases h.stability_conclusion_of_remark43_tail hp with
     ⟨cStarStar, hasymp, hlower, hstable⟩
   refine ⟨cStarStar, hasymp, hlower, ?_⟩
   intro c hc U V hTW hU hbound htail η hketa heta
@@ -7516,7 +11017,7 @@ theorem Theorem_1_2.stability_from_wave_initial_package_of_remark43_tail
     (IsTravelingWave.strictlyPositiveAtLeft hTW)
     (WeightedL2InitialCloseness.refl η U)
 
-theorem Theorem_1_2.stability_from_second_wave_initial_package
+theorem Theorem_1_2.stability_from_second_wave_initial_conclusion
     (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
@@ -7528,13 +11029,13 @@ theorem Theorem_1_2.stability_from_second_wave_initial_package
         IsCUnifBdd U₂ →
         HasStrictWaveUpperTailBound p c U₁ →
         (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U₁) →
-        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6)) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
           WeightedL2InitialCloseness η U₂ U₁ →
           ∃ u v : ℝ → ℝ → ℝ,
             IsGlobalCauchySolutionFrom p U₂ u v ∧
             WeightedL2MovingFrameConvergence η c u U₁ ∧
             UniformMovingFrameConvergence c u U₁ := by
-  rcases h.stability_package hp with ⟨cStarStar, hasymp, hlower, hstable⟩
+  rcases h.stability_conclusion hp with ⟨cStarStar, hasymp, hlower, hstable⟩
   refine ⟨cStarStar, hasymp, hlower, ?_⟩
   intro c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hU₂ hbound₁ htail₁ η hketa heta hclose
   exact hstable c hc U₁ V₁ hTW₁ hbound₁ htail₁ η hketa heta U₂
@@ -7542,7 +11043,7 @@ theorem Theorem_1_2.stability_from_second_wave_initial_package
     (IsTravelingWave.strictlyPositiveAtLeft hTW₂)
     hclose
 
-theorem Theorem_1_2.stability_from_second_wave_initial_package_of_remark43_tail
+theorem Theorem_1_2.stability_from_second_wave_initial_conclusion_of_remark43_tail
     (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
@@ -7554,13 +11055,13 @@ theorem Theorem_1_2.stability_from_second_wave_initial_package_of_remark43_tail
         IsCUnifBdd U₂ →
         HasStrictWaveUpperTailBound p c U₁ →
         HasRemark43TailAsymptotic p c U₁ →
-        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6)) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
           WeightedL2InitialCloseness η U₂ U₁ →
           ∃ u v : ℝ → ℝ → ℝ,
             IsGlobalCauchySolutionFrom p U₂ u v ∧
             WeightedL2MovingFrameConvergence η c u U₁ ∧
             UniformMovingFrameConvergence c u U₁ := by
-  rcases h.stability_package_of_remark43_tail hp with
+  rcases h.stability_conclusion_of_remark43_tail hp with
     ⟨cStarStar, hasymp, hlower, hstable⟩
   refine ⟨cStarStar, hasymp, hlower, ?_⟩
   intro c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hU₂ hbound₁ htail₁ η hketa heta hclose
@@ -7569,7 +11070,7 @@ theorem Theorem_1_2.stability_from_second_wave_initial_package_of_remark43_tail
     (IsTravelingWave.strictlyPositiveAtLeft hTW₂)
     hclose
 
-theorem Theorem_1_2.positive_existing_wave_stability_package
+theorem Theorem_1_2.positive_existing_wave_stability_conclusion
     (hstability : Theorem_1_2) (hexistence : Theorem_1_1)
     {p : CMParams}
     (halpha : p.α = p.m + p.γ - 1)
@@ -7583,7 +11084,7 @@ theorem Theorem_1_2.positive_existing_wave_stability_package
           IsTravelingWave p c U V ∧
           HasStrictWaveUpperTailBound p c U ∧
           (∀ η : ℝ, kappa c < η →
-            η < 1 / (1 + |p.χ| ^ (1 / 6)) →
+            η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
             ∀ u₀ : ℝ → ℝ,
               NonnegativeInitialDatum u₀ →
               StrictlyPositiveAtLeft u₀ →
@@ -7595,7 +11096,7 @@ theorem Theorem_1_2.positive_existing_wave_stability_package
   have hp : StableWaveParameterRegime p :=
     StableWaveParameterRegime.of_positive hχ_nonneg
       (lt_of_lt_of_le hχ_small (min_le_right _ _)) halpha
-  rcases hstability.stability_package hp with
+  rcases hstability.stability_conclusion hp with
     ⟨cStarStar, hasymp, hlower, hstable⟩
   refine ⟨cStarStar, hasymp, hlower, ?_⟩
   intro c hc
@@ -7606,7 +11107,7 @@ theorem Theorem_1_2.positive_existing_wave_stability_package
     ⟨U, V, hTW, hbound, htail⟩
   exact ⟨U, V, hTW, hbound, hstable c hc U V hTW hbound htail⟩
 
-theorem Theorem_1_2.positive_existing_wave_stability_package_with_ratio_limit
+theorem Theorem_1_2.positive_existing_wave_stability_conclusion_with_ratio_limit
     (hstability : Theorem_1_2) (hexistence : Theorem_1_1)
     {p : CMParams}
     (halpha : p.α = p.m + p.γ - 1)
@@ -7621,7 +11122,7 @@ theorem Theorem_1_2.positive_existing_wave_stability_package_with_ratio_limit
           HasStrictWaveUpperTailBound p c U ∧
           Tendsto (fun x => U x / Real.exp (-(kappa c) * x)) atTop (𝓝 1) ∧
           (∀ η : ℝ, kappa c < η →
-            η < 1 / (1 + |p.χ| ^ (1 / 6)) →
+            η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
             ∀ u₀ : ℝ → ℝ,
               NonnegativeInitialDatum u₀ →
               StrictlyPositiveAtLeft u₀ →
@@ -7633,7 +11134,7 @@ theorem Theorem_1_2.positive_existing_wave_stability_package_with_ratio_limit
   have hp : StableWaveParameterRegime p :=
     StableWaveParameterRegime.of_positive hχ_nonneg
       (lt_of_lt_of_le hχ_small (min_le_right _ _)) halpha
-  rcases hstability.stability_package hp with
+  rcases hstability.stability_conclusion hp with
     ⟨cStarStar, hasymp, hlower, hstable⟩
   refine ⟨cStarStar, hasymp, hlower, ?_⟩
   intro c hc
@@ -7664,6 +11165,341 @@ def Theorem_1_3 : Prop :=
           HasWaveRightTailAsymptotic c κ₁ U₂) →
         (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x)
 
+/-- A real reflexive branch of Paper1 Theorem 1.3: a wave is unique relative
+to itself, without using the uniqueness package. -/
+theorem Theorem_1_3_same_wave_branch
+    {U V : ℝ → ℝ} :
+    (∀ x, U x = U x) ∧ (∀ x, V x = V x) :=
+  ⟨fun _ => rfl, fun _ => rfl⟩
+
+/-- A non-projection uniqueness bridge: once stability (or another argument)
+has shown that the moving frame generated by `U₂` converges uniformly to `U₁`,
+the two profiles are equal.  If both signals are identified with the same
+elliptic resolvent, the signal profiles are equal as well. -/
+theorem Theorem_1_3_profile_eq_of_uniform_movingFrame_and_resolvent
+    {p : CMParams} {c : ℝ} {U₁ V₁ U₂ V₂ : ℝ → ℝ}
+    (hconv : UniformMovingFrameConvergence c (fun t x => U₂ (x - c * t)) U₁)
+    (hV₁ : V₁ = frozenElliptic p U₁)
+    (hV₂ : V₂ = frozenElliptic p U₂) :
+    (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
+  have hU₂₁ : ∀ x, U₂ x = U₁ x :=
+    UniformMovingFrameConvergence.profile_eq_of_movingFrame hconv
+  have hU_fun : U₂ = U₁ := funext hU₂₁
+  constructor
+  · intro x
+    exact (hU₂₁ x).symm
+  · intro x
+    rw [hV₁, hV₂, hU_fun]
+
+/-- A sharper non-projection uniqueness bridge.  If the weighted stability
+machinery applies to the second wave used as initial data, and Cauchy
+uniqueness identifies the produced solution with the moving second wave, then
+the final Theorem 1.3 profile equalities follow from the previous
+moving-frame/resolvent bridge. -/
+theorem Theorem_1_3_profile_eq_of_stability_cauchy_unique_and_resolvent
+    {p : CMParams} {c η : ℝ} {U₁ V₁ U₂ V₂ : ℝ → ℝ}
+    (hTW₂ : IsTravelingWave p c U₂ V₂)
+    (hU₂ : IsCUnifBdd U₂)
+    (hclose : WeightedL2InitialCloseness η U₂ U₁)
+    (hstable :
+      ∀ u₀ : ℝ → ℝ,
+        NonnegativeInitialDatum u₀ →
+        StrictlyPositiveAtLeft u₀ →
+        WeightedL2InitialCloseness η u₀ U₁ →
+          ∃ u v : ℝ → ℝ → ℝ,
+            IsGlobalCauchySolutionFrom p u₀ u v ∧
+              WeightedL2MovingFrameConvergence η c u U₁ ∧
+              UniformMovingFrameConvergence c u U₁)
+    (hcauchy_unique :
+      ∀ u v : ℝ → ℝ → ℝ,
+        IsGlobalCauchySolutionFrom p U₂ u v →
+          ∀ t x, u t x = U₂ (x - c * t))
+    (hV₁ : V₁ = frozenElliptic p U₁)
+    (hV₂ : V₂ = frozenElliptic p U₂) :
+    (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
+  rcases hstable U₂
+      (IsTravelingWave.nonnegativeInitialDatum hTW₂ hU₂)
+      (IsTravelingWave.strictlyPositiveAtLeft hTW₂)
+      hclose with
+    ⟨u, v, hsol, _hweighted, huniform⟩
+  have hconv :
+      UniformMovingFrameConvergence c (fun t x => U₂ (x - c * t)) U₁ := by
+    intro ε hε
+    rcases huniform ε hε with ⟨T, hT⟩
+    refine ⟨T, ?_⟩
+    intro t x ht
+    have hu_eq : u t x = U₂ (x - c * t) := hcauchy_unique u v hsol t x
+    simpa [hu_eq] using hT t x ht
+  exact
+    Theorem_1_3_profile_eq_of_uniform_movingFrame_and_resolvent
+      hconv hV₁ hV₂
+
+/-- The same uniqueness bridge with the weighted initial closeness supplied by
+the corrected regular Remark 4.3 tail theorem.  This replaces the explicit
+`WeightedL2InitialCloseness` input by the sharp right-tail asymptotics and the
+profile regularity needed for the weighted integral. -/
+theorem Theorem_1_3_profile_eq_of_remark43_stability_cauchy_unique_and_resolvent
+    {p : CMParams} {c eta : ℝ} {U₁ V₁ U₂ V₂ : ℝ → ℝ}
+    (hremark43 : Remark_4_3_regular)
+    (hkappa : 0 < kappa c)
+    (hTW₁ : IsTravelingWave p c U₁ V₁)
+    (hTW₂ : IsTravelingWave p c U₂ V₂)
+    (hU₁_cont : Continuous U₁)
+    (hU₂_cont : Continuous U₂)
+    (hU₂_bdd : IsCUnifBdd U₂)
+    (hbound₁ : HasWaveUpperTailBound p c U₁)
+    (hbound₂ : HasWaveUpperTailBound p c U₂)
+    (htail₁ : HasRemark43TailAsymptotic p c U₁)
+    (htail₂ : HasRemark43TailAsymptotic p c U₂)
+    (heta : Remark43TailRateBound p c eta)
+    (hstable :
+      ∀ u₀ : ℝ → ℝ,
+        NonnegativeInitialDatum u₀ →
+        StrictlyPositiveAtLeft u₀ →
+        WeightedL2InitialCloseness (eta + kappa c) u₀ U₁ →
+          ∃ u v : ℝ → ℝ → ℝ,
+            IsGlobalCauchySolutionFrom p u₀ u v ∧
+              WeightedL2MovingFrameConvergence (eta + kappa c) c u U₁ ∧
+              UniformMovingFrameConvergence c u U₁)
+    (hcauchy_unique :
+      ∀ u v : ℝ → ℝ → ℝ,
+        IsGlobalCauchySolutionFrom p U₂ u v →
+          ∀ t x, u t x = U₂ (x - c * t))
+    (hV₁ : V₁ = frozenElliptic p U₁)
+    (hV₂ : V₂ = frozenElliptic p U₂) :
+    (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
+  have hclose : WeightedL2InitialCloseness (eta + kappa c) U₂ U₁ :=
+    hremark43 p c hkappa U₁ V₁ U₂ V₂ hTW₁ hTW₂ hU₁_cont hU₂_cont
+      hbound₁ hbound₂ htail₁ htail₂ eta heta
+  exact
+    Theorem_1_3_profile_eq_of_stability_cauchy_unique_and_resolvent
+      hTW₂ hU₂_bdd hclose hstable hcauchy_unique hV₁ hV₂
+
+/-- A threshold-level non-projection route toward Theorem 1.3 from the
+stability theorem.  It uses `Theorem_1_2` to supply the weighted stability
+package, `Remark_4_3_regular` to supply the weighted closeness from sharp tail
+data, and leaves only Cauchy uniqueness plus elliptic resolvent identification
+as explicit analytic inputs. -/
+theorem Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent
+    (hstability : Theorem_1_2) (hremark43 : Remark_4_3_regular)
+    {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        Continuous U₁ →
+        Continuous U₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        HasRemark43TailAsymptotic p c U₁ →
+        HasRemark43TailAsymptotic p c U₂ →
+        ∀ eta : ℝ, Remark43TailRateBound p c eta →
+          eta + kappa c < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          (∀ u v : ℝ → ℝ → ℝ,
+            IsGlobalCauchySolutionFrom p U₂ u v →
+              ∀ t x, u t x = U₂ (x - c * t)) →
+          V₁ = frozenElliptic p U₁ →
+          V₂ = frozenElliptic p U₂ →
+          (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
+  rcases hstability.stability_conclusion_of_remark43_tail hp with
+    ⟨cStarStar, hasymp, hlower, hstable⟩
+  refine ⟨cStarStar, hasymp, hlower, ?_⟩
+  intro c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hU₁_cont hU₂_cont
+    hbound₁ hbound₂ htail₁ htail₂ eta heta hweight hcauchy_unique hV₁ hV₂
+  have hkappa_pos : 0 < kappa c :=
+    kappa_pos_of_stabilitySpeedBaseline_lt hlower hc
+  have hweight_lower : kappa c < eta + kappa c := by
+    linarith [heta.pos]
+  have hstable_at :
+      ∀ u₀ : ℝ → ℝ,
+        NonnegativeInitialDatum u₀ →
+        StrictlyPositiveAtLeft u₀ →
+        WeightedL2InitialCloseness (eta + kappa c) u₀ U₁ →
+          ∃ u v : ℝ → ℝ → ℝ,
+            IsGlobalCauchySolutionFrom p u₀ u v ∧
+              WeightedL2MovingFrameConvergence (eta + kappa c) c u U₁ ∧
+              UniformMovingFrameConvergence c u U₁ :=
+    hstable c hc U₁ V₁ hTW₁ hbound₁ htail₁
+      (eta + kappa c) hweight_lower hweight
+  exact
+    Theorem_1_3_profile_eq_of_remark43_stability_cauchy_unique_and_resolvent
+      hremark43 hkappa_pos hTW₁ hTW₂ hU₁_cont hU₂_cont
+      (hbound₂.hasWaveUpperTailBound.isCUnifBdd_of_continuous hU₂_cont)
+      hbound₁.hasWaveUpperTailBound hbound₂.hasWaveUpperTailBound
+      htail₁ htail₂ heta hstable_at hcauchy_unique hV₁ hV₂
+
+/-- Variant of the Theorem 1.3 stability/Remark 4.3 uniqueness bridge that
+chooses the admissible Remark 4.3 rate internally.  The only remaining
+stability-weight input is the open gap `kappa c < 1/(1+|χ|^(1/6))`, which
+ensures that a small positive tail rate can be added to `kappa c` without
+leaving the weight range of Theorem 1.2. -/
+theorem Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent_of_kappa_cap
+    (hstability : Theorem_1_2) (hremark43 : Remark_4_3_regular)
+    {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      kappa c < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        Continuous U₁ →
+        Continuous U₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        HasRemark43TailAsymptotic p c U₁ →
+        HasRemark43TailAsymptotic p c U₂ →
+        (∀ u v : ℝ → ℝ → ℝ,
+          IsGlobalCauchySolutionFrom p U₂ u v →
+            ∀ t x, u t x = U₂ (x - c * t)) →
+        V₁ = frozenElliptic p U₁ →
+        V₂ = frozenElliptic p U₂ →
+        (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
+  rcases hstability.stability_conclusion_of_remark43_tail hp with
+    ⟨cStarStar, hasymp, hlower, hstable⟩
+  refine ⟨cStarStar, hasymp, hlower, ?_⟩
+  intro c hc hkappa_cap U₁ V₁ U₂ V₂ hTW₁ hTW₂ hU₁_cont hU₂_cont
+    hbound₁ hbound₂ htail₁ htail₂ hcauchy_unique hV₁ hV₂
+  have hkappa_pos : 0 < kappa c :=
+    kappa_pos_of_stabilitySpeedBaseline_lt hlower hc
+  have hkappa_lt_one : kappa c < 1 :=
+    kappa_lt_one_of_stabilitySpeedBaseline_lt hlower hc
+  rcases exists_remark43TailRateBound_with_weight_below
+      (p := p) (c := c)
+      hkappa_pos hkappa_lt_one hkappa_cap with
+    ⟨eta, heta, hweight⟩
+  have hweight_lower : kappa c < eta + kappa c := by
+    linarith [heta.pos]
+  have hstable_at :
+      ∀ u₀ : ℝ → ℝ,
+        NonnegativeInitialDatum u₀ →
+        StrictlyPositiveAtLeft u₀ →
+        WeightedL2InitialCloseness (eta + kappa c) u₀ U₁ →
+          ∃ u v : ℝ → ℝ → ℝ,
+            IsGlobalCauchySolutionFrom p u₀ u v ∧
+              WeightedL2MovingFrameConvergence (eta + kappa c) c u U₁ ∧
+              UniformMovingFrameConvergence c u U₁ :=
+    hstable c hc U₁ V₁ hTW₁ hbound₁ htail₁
+      (eta + kappa c) hweight_lower hweight
+  exact
+    Theorem_1_3_profile_eq_of_remark43_stability_cauchy_unique_and_resolvent
+      hremark43 hkappa_pos hTW₁ hTW₂ hU₁_cont hU₂_cont
+      (hbound₂.hasWaveUpperTailBound.isCUnifBdd_of_continuous hU₂_cont)
+      hbound₁.hasWaveUpperTailBound hbound₂.hasWaveUpperTailBound
+      htail₁ htail₂ heta hstable_at hcauchy_unique hV₁ hV₂
+
+/-- Fully weight-admissible version of the Theorem 1.3 stability/Remark 4.3
+bridge.  The stability speed lower bound itself gives
+`kappa c < 1/(1+|χ|^(1/6))`, so the Remark 4.3 tail rate is chosen
+internally. -/
+theorem Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent_of_speed
+    (hstability : Theorem_1_2) (hremark43 : Remark_4_3_regular)
+    {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        Continuous U₁ →
+        Continuous U₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        HasRemark43TailAsymptotic p c U₁ →
+        HasRemark43TailAsymptotic p c U₂ →
+        (∀ u v : ℝ → ℝ → ℝ,
+          IsGlobalCauchySolutionFrom p U₂ u v →
+            ∀ t x, u t x = U₂ (x - c * t)) →
+        V₁ = frozenElliptic p U₁ →
+        V₂ = frozenElliptic p U₂ →
+        (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
+  rcases
+      Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent_of_kappa_cap
+        hstability hremark43 hp with
+    ⟨cStarStar, hasymp, hlower, huniq⟩
+  refine ⟨cStarStar, hasymp, hlower, ?_⟩
+  intro c hc
+  exact huniq c hc
+    (kappa_lt_stability_weight_cap_of_stabilitySpeedBaseline_lt hlower hc)
+
+/-- Fixed-point/profile version of the Theorem 1.3 stability/Remark 4.3
+bridge.  For waves produced as `FrozenStationaryWaveProfile`s, the elliptic
+signal is definitionally `frozenElliptic p U`; thus the bridge no longer needs
+external resolvent-identification hypotheses. -/
+theorem Theorem_1_3.frozen_profile_uniqueness_bridge_from_stability_remark43
+    (hstability : Theorem_1_2) (hremark43 : Remark_4_3_regular)
+    {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U₁ U₂ : ℝ → ℝ,
+        FrozenStationaryWaveProfile p c U₁ →
+        FrozenStationaryWaveProfile p c U₂ →
+        Continuous U₁ →
+        Continuous U₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        HasRemark43TailAsymptotic p c U₁ →
+        HasRemark43TailAsymptotic p c U₂ →
+        (∀ u v : ℝ → ℝ → ℝ,
+          IsGlobalCauchySolutionFrom p U₂ u v →
+            ∀ t x, u t x = U₂ (x - c * t)) →
+        (∀ x, U₁ x = U₂ x) ∧
+          (∀ x, frozenElliptic p U₁ x = frozenElliptic p U₂ x) := by
+  rcases
+      Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent_of_speed
+        hstability hremark43 hp with
+    ⟨cStarStar, hasymp, hlower, huniq⟩
+  refine ⟨cStarStar, hasymp, hlower, ?_⟩
+  intro c hc U₁ U₂ hprofile₁ hprofile₂ hU₁_cont hU₂_cont
+    hbound₁ hbound₂ htail₁ htail₂ hcauchy_unique
+  exact huniq c hc U₁ (frozenElliptic p U₁) U₂ (frozenElliptic p U₂)
+    hprofile₁.to_travelingWave hprofile₂.to_travelingWave
+    hU₁_cont hU₂_cont hbound₁ hbound₂ htail₁ htail₂
+    hcauchy_unique rfl rfl
+
+/-- Trap-set version of the fixed-point/profile Theorem 1.3 bridge.  The
+trap-set membership supplies the profile continuity needed by the corrected
+Remark 4.3 theorem, and the signal is still definitionally the frozen elliptic
+resolvent. -/
+theorem Theorem_1_3.frozen_trap_profile_uniqueness_bridge_from_stability_remark43
+    (hstability : Theorem_1_2) (hremark43 : Remark_4_3_regular)
+    {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U₁ U₂ : ℝ → ℝ,
+        FrozenStationaryWaveProfile p c U₁ →
+        FrozenStationaryWaveProfile p c U₂ →
+        InWaveTrapSet (kappa c) (MChi p) U₁ →
+        InWaveTrapSet (kappa c) (MChi p) U₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        HasRemark43TailAsymptotic p c U₁ →
+        HasRemark43TailAsymptotic p c U₂ →
+        (∀ u v : ℝ → ℝ → ℝ,
+          IsGlobalCauchySolutionFrom p U₂ u v →
+            ∀ t x, u t x = U₂ (x - c * t)) →
+        (∀ x, U₁ x = U₂ x) ∧
+          (∀ x, frozenElliptic p U₁ x = frozenElliptic p U₂ x) := by
+  rcases
+      Theorem_1_3.frozen_profile_uniqueness_bridge_from_stability_remark43
+        hstability hremark43 hp with
+    ⟨cStarStar, hasymp, hlower, huniq⟩
+  refine ⟨cStarStar, hasymp, hlower, ?_⟩
+  intro c hc U₁ U₂ hprofile₁ hprofile₂ htrap₁ htrap₂
+    hbound₁ hbound₂ htail₁ htail₂ hcauchy_unique
+  exact huniq c hc U₁ U₂ hprofile₁ hprofile₂
+    htrap₁.cunif_bdd.1 htrap₂.cunif_bdd.1
+    hbound₁ hbound₂ htail₁ htail₂ hcauchy_unique
+
 theorem Theorem_1_3.threshold_family
     (h : Theorem_1_3) {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
@@ -7672,7 +11508,7 @@ theorem Theorem_1_3.threshold_family
   rcases h p hp with ⟨cStarStar, hasymp, hlower, _hconcl⟩
   exact ⟨cStarStar, hasymp, hlower⟩
 
-theorem Theorem_1_3.uniqueness_package
+theorem Theorem_1_3.uniqueness_conclusion
     (h : Theorem_1_3) {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
@@ -7689,7 +11525,7 @@ theorem Theorem_1_3.uniqueness_package
         (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) :=
   h p hp
 
-theorem Theorem_1_3.uniqueness_package_of_remark43_tail
+theorem Theorem_1_3.uniqueness_conclusion_of_remark43_tail
     (h : Theorem_1_3) {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
@@ -7703,7 +11539,7 @@ theorem Theorem_1_3.uniqueness_package_of_remark43_tail
         HasRemark43TailAsymptotic p c U₁ →
         HasRemark43TailAsymptotic p c U₂ →
         (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
-  rcases h.uniqueness_package hp with ⟨cStarStar, hasymp, hlower, huniq⟩
+  rcases h.uniqueness_conclusion hp with ⟨cStarStar, hasymp, hlower, huniq⟩
   refine ⟨cStarStar, hasymp, hlower, ?_⟩
   intro c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hbound₁ hbound₂ htail₁ htail₂
   have hkappa_pos : 0 < kappa c :=
@@ -7713,7 +11549,7 @@ theorem Theorem_1_3.uniqueness_package_of_remark43_tail
   exact huniq c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hbound₁ hbound₂
     (htail₁.exists_common_waveRightTailAsymptotic htail₂ hkappa_pos hkappa_lt_one)
 
-theorem Theorem_1_3.uniqueness_package_of_forall_kappaOne_range_tail
+theorem Theorem_1_3.uniqueness_conclusion_of_forall_kappaOne_range_tail
     (h : Theorem_1_3) {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
@@ -7735,7 +11571,7 @@ theorem Theorem_1_3.uniqueness_package_of_forall_kappaOne_range_tail
               (min (p.m * kappa c + 1 / 2) 1) →
           HasWaveRightTailAsymptotic c κ₁ U₂) →
         (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
-  rcases h.uniqueness_package hp with ⟨cStarStar, hasymp, hlower, huniq⟩
+  rcases h.uniqueness_conclusion hp with ⟨cStarStar, hasymp, hlower, huniq⟩
   refine ⟨cStarStar, hasymp, hlower, ?_⟩
   intro c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hbound₁ hbound₂ htail₁ htail₂
   have hkappa_pos : 0 < kappa c :=
@@ -7865,7 +11701,7 @@ theorem Theorem_1_3.exists_threshold_with_uniqueness_at_speed
           HasWaveRightTailAsymptotic c κ₁ U₁ ∧
           HasWaveRightTailAsymptotic c κ₁ U₂) →
         (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) :=
-  h.uniqueness_package hp
+  h.uniqueness_conclusion hp
 
 theorem Theorem_1_3.exists_threshold_with_uniqueness_at_speed_of_remark43_tail
     (h : Theorem_1_3) {p : CMParams} (hp : StableWaveParameterRegime p) :
@@ -7881,7 +11717,7 @@ theorem Theorem_1_3.exists_threshold_with_uniqueness_at_speed_of_remark43_tail
         HasRemark43TailAsymptotic p c U₁ →
         HasRemark43TailAsymptotic p c U₂ →
         (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) :=
-  h.uniqueness_package_of_remark43_tail hp
+  h.uniqueness_conclusion_of_remark43_tail hp
 
 theorem Theorem_1_3.exists_threshold_with_uniqueness_at_speed_of_forall_kappaOne_range_tail
     (h : Theorem_1_3) {p : CMParams} (hp : StableWaveParameterRegime p) :
@@ -7905,87 +11741,7 @@ theorem Theorem_1_3.exists_threshold_with_uniqueness_at_speed_of_forall_kappaOne
               (min (p.m * kappa c + 1 / 2) 1) →
           HasWaveRightTailAsymptotic c κ₁ U₂) →
         (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) :=
-  h.uniqueness_package_of_forall_kappaOne_range_tail hp
-
-structure Paper1AnalyticData where
-  heatSemigroupData : HeatSemigroupEstimateData
-  heatSemigroupEstimates : Lemma_2_1 heatSemigroupData
-  weightedResolventGradient : Lemma_2_5
-  upperBarrierSuperSolution : Lemma_4_1
-  lowerBarrierSubSolution : Lemma_4_2
-  finiteTimeTrapSubSolution : Remark_4_2
-  sharpTailCloseness : Remark_4_3
-  rightVanishingWaves : Remark_1_3_2
-  stationaryAprioriEstimate : Lemma_5_1
-  explicitLogDerivative : Lemma_5_2_explicit
-  remark51DerivativeBounds : Remark_5_1
-  remark52LogDerivativeBound : Remark_5_2
-  weightedEllipticPerturbation : Lemma_5_3
-  cauchyExistenceBounds : Proposition_1_1
-  constantSolutionStability : Proposition_1_2
-  travelingWaveExistence : Theorem_1_1
-  travelingWaveStability : Theorem_1_2
-  travelingWaveUniqueness : Theorem_1_3
-
-theorem Lemma_2_1_proved (A : Paper1AnalyticData) :
-    Lemma_2_1 A.heatSemigroupData :=
-  A.heatSemigroupEstimates
-
-theorem Lemma_2_5_proved (A : Paper1AnalyticData) : Lemma_2_5 :=
-  A.weightedResolventGradient
-
-theorem Lemma_4_1_proved (A : Paper1AnalyticData) : Lemma_4_1 :=
-  A.upperBarrierSuperSolution
-
-theorem Lemma_4_2_proved (A : Paper1AnalyticData) : Lemma_4_2 :=
-  A.lowerBarrierSubSolution
-
-theorem Remark_4_2_proved (A : Paper1AnalyticData) : Remark_4_2 :=
-  A.finiteTimeTrapSubSolution
-
-theorem Remark_4_3_proved (A : Paper1AnalyticData) : Remark_4_3 :=
-  A.sharpTailCloseness
-
-theorem Remark_1_3_2_proved (A : Paper1AnalyticData) : Remark_1_3_2 :=
-  A.rightVanishingWaves
-
-theorem Remark_4_3_part2_proved (A : Paper1AnalyticData) :
-    Remark_4_3_part2 :=
-  A.rightVanishingWaves
-
-theorem Lemma_5_1_proved (A : Paper1AnalyticData) : Lemma_5_1 :=
-  A.stationaryAprioriEstimate
-
-theorem Lemma_5_2_explicit_proved (A : Paper1AnalyticData) :
-    Lemma_5_2_explicit :=
-  A.explicitLogDerivative
-
-theorem Lemma_5_2_proved (A : Paper1AnalyticData) : Lemma_5_2 :=
-  A.explicitLogDerivative.to_Lemma_5_2
-
-theorem Remark_5_1_proved (A : Paper1AnalyticData) : Remark_5_1 :=
-  A.remark51DerivativeBounds
-
-theorem Remark_5_2_proved (A : Paper1AnalyticData) : Remark_5_2 :=
-  A.remark52LogDerivativeBound
-
-theorem Lemma_5_3_proved (A : Paper1AnalyticData) : Lemma_5_3 :=
-  A.weightedEllipticPerturbation
-
-theorem Proposition_1_1_proved (A : Paper1AnalyticData) : Proposition_1_1 :=
-  A.cauchyExistenceBounds
-
-theorem Proposition_1_2_proved (A : Paper1AnalyticData) : Proposition_1_2 :=
-  A.constantSolutionStability
-
-theorem Theorem_1_1_proved (A : Paper1AnalyticData) : Theorem_1_1 :=
-  A.travelingWaveExistence
-
-theorem Theorem_1_2_proved (A : Paper1AnalyticData) : Theorem_1_2 :=
-  A.travelingWaveStability
-
-theorem Theorem_1_3_proved (A : Paper1AnalyticData) : Theorem_1_3 :=
-  A.travelingWaveUniqueness
+  h.uniqueness_conclusion_of_forall_kappaOne_range_tail hp
 
 end
 

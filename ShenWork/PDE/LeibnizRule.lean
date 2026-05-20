@@ -873,6 +873,62 @@ private lemma integrableOn_exp_neg_mul_u_Ioi
     (Filter.Eventually.of_forall fun y => by
       simpa [Real.norm_eq_abs] using hM y)
 
+theorem Psi_deriv_differentiableAt {u : ℝ → ℝ} {l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hu : IsCUnifBdd u) (x : ℝ) :
+    DifferentiableAt ℝ (deriv (fun z => Psi u l mu z)) x := by
+  let a : ℝ := Real.sqrt l
+  have ha : 0 < a := by
+    dsimp [a]
+    exact Real.sqrt_pos.mpr hl
+  let L : ℝ → ℝ := fun z => ∫ y in Set.Iic z, Real.exp (a * y) * u y
+  let R : ℝ → ℝ := fun z => ∫ y in Set.Ioi z, Real.exp (-a * y) * u y
+  let D : ℝ → ℝ := fun z =>
+    (-(mu / 2) * Real.exp (-a * z) * L z) +
+      ((mu / 2) * Real.exp (a * z) * R z)
+  have hderiv_fun :
+      deriv (fun w => Psi u l mu w) = D := by
+    funext z
+    simpa [D, L, R, a] using Psi_derivative_formula_general hl hmu hu z
+  have hL_cont : Continuous (fun y : ℝ => Real.exp (a * y) * u y) :=
+    (Real.continuous_exp.comp (continuous_const.mul continuous_id)).mul hu.1
+  have hR_cont : Continuous (fun y : ℝ => Real.exp (-a * y) * u y) :=
+    (Real.continuous_exp.comp (continuous_const.mul continuous_id)).mul hu.1
+  have hL_deriv : HasDerivAt L (Real.exp (a * x) * u x) x := by
+    simpa [L] using
+      hasDerivAt_setIntegral_Iic_of_continuous hL_cont
+        (integrableOn_exp_mul_u_Iic ha hu) x
+  have hR_deriv : HasDerivAt R (-(Real.exp (-a * x) * u x)) x := by
+    simpa [R] using
+      hasDerivAt_setIntegral_Ioi_of_continuous hR_cont
+        (integrableOn_exp_neg_mul_u_Ioi ha hu) x
+  have hExp_neg : HasDerivAt (fun z : ℝ => Real.exp (-a * z))
+      (-a * Real.exp (-a * x)) x := by
+    simpa [mul_comm, mul_left_comm, mul_assoc] using
+      (((hasDerivAt_id x).const_mul (-a)).exp)
+  have hExp_pos : HasDerivAt (fun z : ℝ => Real.exp (a * z))
+      (a * Real.exp (a * x)) x := by
+    simpa [mul_comm, mul_left_comm, mul_assoc] using
+      (((hasDerivAt_id x).const_mul a).exp)
+  let d : ℝ :=
+    ((-(mu / 2) * (-a * Real.exp (-a * x))) * L x +
+      (-(mu / 2) * Real.exp (-a * x)) * (Real.exp (a * x) * u x)) +
+    (((mu / 2) * (a * Real.exp (a * x))) * R x +
+      ((mu / 2) * Real.exp (a * x)) * (-(Real.exp (-a * x) * u x)))
+  have hD_deriv : HasDerivAt D d x := by
+    have hleft :
+        HasDerivAt (fun z : ℝ => (-(mu / 2) * Real.exp (-a * z)) * L z)
+          ((-(mu / 2) * (-a * Real.exp (-a * x))) * L x +
+            (-(mu / 2) * Real.exp (-a * x)) * (Real.exp (a * x) * u x)) x := by
+      exact (hExp_neg.const_mul (-(mu / 2))).mul hL_deriv
+    have hright :
+        HasDerivAt (fun z : ℝ => ((mu / 2) * Real.exp (a * z)) * R z)
+          (((mu / 2) * (a * Real.exp (a * x))) * R x +
+            ((mu / 2) * Real.exp (a * x)) * (-(Real.exp (-a * x) * u x))) x := by
+      exact (hExp_pos.const_mul (mu / 2)).mul hR_deriv
+    simpa [D, d, mul_assoc] using hleft.add hright
+  rw [hderiv_fun]
+  exact hD_deriv.differentiableAt
+
 theorem Psi_elliptic_ode {u : ℝ → ℝ} {l mu : ℝ}
     (hl : 0 < l) (hmu : 0 < mu) (hu : IsCUnifBdd u)
     (_hu_nonneg : ∀ x, 0 ≤ u x) (x : ℝ) :
