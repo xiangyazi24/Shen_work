@@ -149,3 +149,33 @@ Claude then acknowledged the recorded sync state:
   sync file;
 - no Lean proof files are part of this proposal sync;
 - ordinary Lean theorem work remains paused until Xiang explicitly resumes it.
+
+## Direct Claude Reconfirmation 2026-05-20
+
+Codex again sent the three-round proposal review directly through the active
+Claude-side collaboration channel after Xiang objected that the review had not
+been sent back to Claude directly.
+
+Claude re-read:
+
+- `.tmp/bounded-domain-proposal.md`
+- `.tmp/bounded-domain-proposal-v2.md`
+- `.tmp/bounded-domain-proposal-v3.md`
+- `.tmp/bounded-domain-proposal-v4.md`
+- `BOUNDED_DOMAIN_DESIGN.md`
+- `.tmp/codex_to_claude_bounded_domain.md`
+- `.tmp/claude_sync.md`
+
+Claude confirmed that no further proposal edits were needed:
+
+- v1 is an obsolete pointer and rejects the `NeumannPDEOps` /
+  theorem-sized-field route.
+- v2 and v3 remain historical artifacts only.
+- v4 and `BOUNDED_DOMAIN_DESIGN.md` are the operative design.
+- Conditional bounded-domain material is non-progress and cannot use `_proved`
+  or paper-theorem-looking wrappers.
+- Concrete accepted progress remains restricted to definition-level
+  `IntervalDomain.lean` helper theorems with temporary axiom audits.
+
+Claude made no file changes in this reconfirmation round. No Lean proof files
+were modified.
