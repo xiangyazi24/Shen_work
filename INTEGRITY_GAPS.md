@@ -302,7 +302,8 @@ projection theorem wrappers have been removed.
   `u1 = u2`; the stronger zero-source branch assumes only
   `u2^gamma = u1^gamma` pointwise; the self-difference branch exposes the
   result in the same hypothesis shape as the full Lemma 5.3 target.
-- `Lemma_2_5_proved` (Paper2)
+- `Lemma_2_5_proved` (Paper2), together with the sharp `Psi_beta` package and
+  normalized sharp `Theta_beta` form
 - `remark16ChiStarWeak_scalar_properties` (Paper2): direct scalar algebra for
   the weak Remark 1.6 threshold `(1.30c)`, including positivity, the
   min-half/sqrt smallness implication used by the linear Theorem 1.2 branch,
@@ -422,10 +423,13 @@ projection theorem wrappers have been removed.
   damping differential inequality cannot be derived over an arbitrary fake
   integral; a fake integral can make the differential inequality hold while
   the target `Lᵖ` integral blows up before `T = 1`
-- `not_forall_Lemma_3_1` (Paper2): formal obstruction showing that the
-  negative-sensitivity upper-envelope monotonicity cannot be derived from the
-  current abstract API alone; a fake time derivative makes an increasing
-  profile satisfy the PDE while `supNorm` records the increase
+- `not_Lemma_3_1_minimal_counter` and `not_forall_Lemma_3_1` (Paper2):
+  formal obstructions showing that the negative-sensitivity upper-envelope
+  monotonicity cannot be derived from the current abstract API alone; a fake
+  time derivative makes an increasing profile satisfy the PDE while `supNorm`
+  records the increase
+- `not_Lemma_3_1_nonminimal_counter` (Paper2): concrete counterexample to the
+  current abstract-domain Lemma 3.1 statement in the positive-logistic branch
 - `not_forall_Lemma_3_1_nonminimal_branch` (Paper2): formal obstruction for
   the first `a,b > 0` branch itself.  The fake `timeDeriv` field is chosen to
   equal the logistic reaction of an increasing profile, so the abstract PDE is

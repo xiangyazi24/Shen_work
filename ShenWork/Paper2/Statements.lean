@@ -1599,6 +1599,46 @@ theorem Lemma_2_5_strict_larger_parameter_package
   exact ⟨Lemma_2_5_pointwise_bound hbeta hv,
     Lemma_2_5_pointwise_bound_lt_larger_Psi_beta hbeta hbg hv⟩
 
+/-- Normalized `Theta_beta` form of Paper2 Lemma 2.5.  This is the same sharp
+bound after dividing the Lemma 2.5 expression by the positive parameter
+`beta`. -/
+theorem Lemma_2_5_normalized_Theta_bound
+    {beta v : ℝ} (hbeta : 0 < beta) (hv : 0 < v) :
+    v / (1 + v) ^ (1 + beta) ≤ Theta_beta beta := by
+  have h :=
+    Lemma_2_5_pointwise_bound (beta := beta) (v := v) hbeta hv
+  rw [Psi_beta_eq_beta_mul_Theta_beta hbeta] at h
+  have hmul :
+      beta * (v / (1 + v) ^ (1 + beta)) ≤
+        beta * Theta_beta beta := by
+    simpa [mul_div_assoc] using h
+  exact le_of_mul_le_mul_left hmul hbeta
+
+/-- The normalized `Theta_beta` bound is attained at `v = 1 / beta`. -/
+theorem Lemma_2_5_normalized_Theta_attained_at_inv
+    {beta : ℝ} (hbeta : 0 < beta) :
+    (1 / beta) / (1 + 1 / beta) ^ (1 + beta) =
+      Theta_beta beta := by
+  have h :=
+    Lemma_2_5_attained_at_inv (beta := beta) hbeta
+  rw [Psi_beta_eq_beta_mul_Theta_beta hbeta] at h
+  have hmul :
+      beta * ((1 / beta) / (1 + 1 / beta) ^ (1 + beta)) =
+        beta * Theta_beta beta := by
+    rwa [mul_div_assoc] at h
+  exact mul_left_cancel₀ (ne_of_gt hbeta) hmul
+
+/-- Sharp normalized form of Paper2 Lemma 2.5. -/
+theorem Lemma_2_5_normalized_Theta_sharp_bound
+    {beta : ℝ} (hbeta : 0 < beta) :
+    (∀ v > 0, v / (1 + v) ^ (1 + beta) ≤ Theta_beta beta) ∧
+      ∃ v > 0, v / (1 + v) ^ (1 + beta) = Theta_beta beta := by
+  refine ⟨?_, ?_⟩
+  · intro v hv
+    exact Lemma_2_5_normalized_Theta_bound hbeta hv
+  · refine ⟨1 / beta, div_pos one_pos hbeta, ?_⟩
+    exact Lemma_2_5_normalized_Theta_attained_at_inv hbeta
+
 def AbstractLpBootstrapHypothesis
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
     (N T rho p0 : ℝ) : Prop :=
@@ -3195,6 +3235,41 @@ lemma not_forall_Lemma_3_1_nonminimal_branch :
   have hmono :=
     h lemma31NonminimalCounterDomain lemma31NonminimalCounterParams
       (by norm_num [lemma31NonminimalCounterParams])
+      (by norm_num [lemma31NonminimalCounterParams])
+      (by norm_num [lemma31NonminimalCounterParams])
+      1 (by norm_num) lemma31NonminimalCounterU lemma31NonminimalCounterV
+      (lemma31NonminimalCounter_classical 1 (by norm_num))
+      (1 / 2) (by norm_num) (by norm_num) ?_
+  · have hbad :=
+      hmono (1 / 4) (by norm_num) (1 / 2) (by norm_num) (by norm_num)
+    simp [lemma31NonminimalCounterDomain, lemma31NonminimalCounterU] at hbad
+    norm_num at hbad
+  · norm_num [lemma31NonminimalCounterParams]
+    dsimp [lemma31NonminimalCounterDomain, lemma31NonminimalCounterU]
+    norm_num
+
+/-- Concrete minimal-branch counterexample to the current abstract-domain
+formulation of Paper2 Lemma 3.1. -/
+lemma not_Lemma_3_1_minimal_counter :
+    ¬ Lemma_3_1 lemma31CounterDomain proposition24CounterParams := by
+  intro h
+  have hmono :=
+    (h (by norm_num [proposition24CounterParams])).2 rfl rfl
+      1 (by norm_num) lemma31CounterU lemma31CounterV
+      (lemma31Counter_classical 1 (by norm_num))
+  have hbad :=
+    hmono (1 / 4) (by norm_num) (1 / 2) (by norm_num) (by norm_num)
+  simp [lemma31CounterDomain, lemma31CounterU] at hbad
+  norm_num at hbad
+
+/-- Concrete positive-logistic-branch counterexample to the current
+abstract-domain formulation of Paper2 Lemma 3.1. -/
+lemma not_Lemma_3_1_nonminimal_counter :
+    ¬ Lemma_3_1 lemma31NonminimalCounterDomain
+      lemma31NonminimalCounterParams := by
+  intro h
+  have hmono :=
+    (h (by norm_num [lemma31NonminimalCounterParams])).1
       (by norm_num [lemma31NonminimalCounterParams])
       (by norm_num [lemma31NonminimalCounterParams])
       1 (by norm_num) lemma31NonminimalCounterU lemma31NonminimalCounterV
