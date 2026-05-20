@@ -1096,8 +1096,8 @@ theorem modifiedSemigroup_abs_le_of_abs_le_bounded
 
 /-- L^∞ bound: ‖e^{(Δ-I)t} f‖_∞ ≤ e^{-t} ‖f‖_∞. -/
 theorem heatSemigroup_abs_bound {f : ℝ → ℝ} {M : ℝ}
-    (hf : ∀ x, |f x| ≤ M) {t : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
-    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume) :
+    (hf : ∀ x, |f x| ≤ M) {t : ℝ} (ht : 0 < t) (_hM : 0 ≤ M)
+    (_hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume) :
     ∀ x, |heatSemigroup t f x| ≤ M := by
   intro x; unfold heatSemigroup
   calc |∫ y, heatKernel t (x - y) * f y|
@@ -1383,6 +1383,47 @@ theorem modifiedSemigroup_sub {f g : ℝ → ℝ} {t : ℝ} (x : ℝ)
   unfold modifiedSemigroup
   rw [heatSemigroup_sub x hf hg]
   ring
+
+/-- Whole-line `L¹ → L∞` smoothing for heat-semigroup differences. -/
+theorem heatSemigroup_diff_L1_Linfty_smoothing_abs
+    {f g : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f)
+    (hg_int : MeasureTheory.Integrable g) :
+    |heatSemigroup t f x - heatSemigroup t g x| ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) * ∫ y, |f y - g y| := by
+  have hf_kernel :
+      MeasureTheory.Integrable (fun y : ℝ => heatKernel t (x - y) * f y) :=
+    heatKernel_mul_integrable_of_integrable ht x hf_int
+  have hg_kernel :
+      MeasureTheory.Integrable (fun y : ℝ => heatKernel t (x - y) * g y) :=
+    heatKernel_mul_integrable_of_integrable ht x hg_int
+  have hdiff_int : MeasureTheory.Integrable (fun y : ℝ => f y - g y) :=
+    hf_int.sub hg_int
+  have h :=
+    heatSemigroup_L1_Linfty_smoothing_abs
+      (f := fun y : ℝ => f y - g y) ht x hdiff_int
+  rwa [heatSemigroup_sub x hf_kernel hg_kernel] at h
+
+/-- Whole-line `L¹ → L∞` smoothing for modified-semigroup differences. -/
+theorem modifiedSemigroup_diff_L1_Linfty_smoothing_abs
+    {f g : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f)
+    (hg_int : MeasureTheory.Integrable g) :
+    |modifiedSemigroup t f x - modifiedSemigroup t g x| ≤
+      Real.exp (-t) *
+        ((1 / Real.sqrt (4 * Real.pi * t)) * ∫ y, |f y - g y|) := by
+  have hf_kernel :
+      MeasureTheory.Integrable (fun y : ℝ => heatKernel t (x - y) * f y) :=
+    heatKernel_mul_integrable_of_integrable ht x hf_int
+  have hg_kernel :
+      MeasureTheory.Integrable (fun y : ℝ => heatKernel t (x - y) * g y) :=
+    heatKernel_mul_integrable_of_integrable ht x hg_int
+  have hdiff_int : MeasureTheory.Integrable (fun y : ℝ => f y - g y) :=
+    hf_int.sub hg_int
+  have h :=
+    modifiedSemigroup_L1_Linfty_smoothing_abs
+      (f := fun y : ℝ => f y - g y) ht x hdiff_int
+  rwa [modifiedSemigroup_sub x hf_kernel hg_kernel] at h
 
 theorem heatSemigroup_sub_bounded {f g : ℝ → ℝ} {Mf Mg t : ℝ}
     (hf_bound : ∀ x, |f x| ≤ Mf) (hg_bound : ∀ x, |g x| ≤ Mg)
