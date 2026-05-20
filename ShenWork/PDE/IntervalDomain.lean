@@ -237,6 +237,25 @@ theorem normalizedZerothReflectionKernel_integral
   rw [neumannHeatKernel_zerothReflection_integral ht L x]
   norm_num
 
+/-- The normalized reflected helper kernel is integrable on the whole line. -/
+theorem normalizedZerothReflectionKernel_integrable
+    {t : ℝ} (ht : 0 < t) (L x : ℝ) :
+    Integrable (fun y => normalizedZerothReflectionKernel L t x y) := by
+  unfold normalizedZerothReflectionKernel neumannHeatKernel_zerothReflection
+  exact ((heatKernel_translated_integrable ht x).add
+    ((heatKernel_integrable ht).comp_add_left x)).const_mul (1 / 2)
+
+/-- The normalized reflected helper kernel times a bounded input is
+integrable. -/
+theorem normalizedZerothReflectionKernel_mul_bounded_integrable
+    {f : ℝ → ℝ} {M t : ℝ} (hf : ∀ y, |f y| ≤ M)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (ht : 0 < t) (x : ℝ) :
+    Integrable (fun y => normalizedZerothReflectionKernel 0 t x y * f y) :=
+  (normalizedZerothReflectionKernel_integrable ht 0 x).mul_bdd hf_meas
+    (Filter.Eventually.of_forall fun y => by
+      simpa [Real.norm_eq_abs] using hf y)
+
 /-- The normalized reflected helper kernel preserves constant inputs on the
 whole line.  This is a mass-normalization fact for the helper kernel only, not
 a full interval Neumann semigroup statement. -/
@@ -255,6 +274,39 @@ theorem normalizedReflectedKernelIntegral_nonneg
     0 ≤ ∫ y, normalizedZerothReflectionKernel 0 t x y * f y := by
   exact MeasureTheory.integral_nonneg fun y =>
     mul_nonneg (normalizedZerothReflectionKernel_nonneg ht 0 x y) (hf y)
+
+/-- The normalized reflected helper-kernel integral is monotone in its input. -/
+theorem normalizedReflectedKernelIntegral_mono
+    {f g : ℝ → ℝ} (hfg : ∀ y, f y ≤ g y)
+    {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : Integrable
+      (fun y => normalizedZerothReflectionKernel 0 t x y * f y))
+    (hg_int : Integrable
+      (fun y => normalizedZerothReflectionKernel 0 t x y * g y)) :
+    ∫ y, normalizedZerothReflectionKernel 0 t x y * f y ≤
+      ∫ y, normalizedZerothReflectionKernel 0 t x y * g y := by
+  exact MeasureTheory.integral_mono hf_int hg_int fun y =>
+    mul_le_mul_of_nonneg_left (hfg y)
+      (normalizedZerothReflectionKernel_nonneg ht 0 x y)
+
+/-- Bounded-input monotonicity for the normalized reflected helper-kernel
+integral. -/
+theorem normalizedReflectedKernelIntegral_mono_bounded
+    {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hfg : ∀ y, f y ≤ g y)
+    (hf_bound : ∀ y, |f y| ≤ Mf) (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (ht : 0 < t) :
+    ∀ x,
+      ∫ y, normalizedZerothReflectionKernel 0 t x y * f y ≤
+        ∫ y, normalizedZerothReflectionKernel 0 t x y * g y := by
+  intro x
+  exact normalizedReflectedKernelIntegral_mono hfg ht x
+    (normalizedZerothReflectionKernel_mul_bounded_integrable
+      hf_bound hf_meas ht x)
+    (normalizedZerothReflectionKernel_mul_bounded_integrable
+      hg_bound hg_meas ht x)
 
 theorem normalizedReflectedKernelIntegral_Linfty_bound
     {f : ℝ → ℝ} {M : ℝ} (hf : ∀ y, |f y| ≤ M)
