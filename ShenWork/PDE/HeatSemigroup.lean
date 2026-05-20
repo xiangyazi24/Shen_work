@@ -216,6 +216,31 @@ theorem heatKernel_deriv_abs_integral {t : ℝ} (ht : 0 < t) :
   field_simp [ht_ne, hsqrt_ne]
   ring
 
+lemma modifiedHeatKernel_deriv_abs_integrable {t : ℝ} (ht : 0 < t) :
+    MeasureTheory.Integrable
+      (fun x : ℝ => |Real.exp (-t) * deriv (fun z : ℝ => heatKernel t z) x|) := by
+  have hfun :
+      (fun x : ℝ =>
+        |Real.exp (-t) * deriv (fun z : ℝ => heatKernel t z) x|) =
+        fun x : ℝ =>
+          Real.exp (-t) * |deriv (fun z : ℝ => heatKernel t z) x| := by
+    ext x
+    rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+  rw [hfun]
+  exact (heatKernel_deriv_abs_integrable ht).const_mul (Real.exp (-t))
+
+theorem modifiedHeatKernel_deriv_abs_integral {t : ℝ} (ht : 0 < t) :
+    ∫ x : ℝ, |Real.exp (-t) * deriv (fun z : ℝ => heatKernel t z) x| =
+      Real.exp (-t) * (2 / Real.sqrt (4 * Real.pi * t)) := by
+  have hfun :
+      (fun x : ℝ =>
+        |Real.exp (-t) * deriv (fun z : ℝ => heatKernel t z) x|) =
+        fun x : ℝ =>
+          Real.exp (-t) * |deriv (fun z : ℝ => heatKernel t z) x| := by
+    ext x
+    rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+  rw [hfun, MeasureTheory.integral_const_mul, heatKernel_deriv_abs_integral ht]
+
 lemma heatKernel_deriv_abs_neg {t : ℝ} (ht : 0 < t) (x : ℝ) :
     |deriv (fun z : ℝ => heatKernel t z) (-x)| =
       |deriv (fun z : ℝ => heatKernel t z) x| := by
