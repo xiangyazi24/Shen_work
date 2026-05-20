@@ -1261,6 +1261,91 @@ theorem Lemma_2_5.constant_function_witness
       (pExp := pExp) (gamma := gamma) (l := l) (mu := mu) (c := c) (C := 1)
       hpExp hgamma hl hc (by norm_num) psi hint)
 
+/-- A real constant-source branch of the weighted resolvent-gradient estimate.
+It only assumes that the elliptic source `u^γ` is pointwise constant, so `Psi`
+is constant and the gradient contribution vanishes. -/
+theorem Lemma_2_5_constant_source_branch
+    {pExp gamma l mu a C : ℝ}
+    {u : ℝ → ℝ}
+    (hpExp : 1 < pExp) (_hgamma : 0 < gamma) (hl : 0 < l)
+    (hu_nonneg : ∀ x, 0 ≤ u x)
+    (hsource : ∀ x, (u x) ^ gamma = a) (hC : 0 ≤ C)
+    (psi : ExponentialWeight) :
+    Integrable (fun x : ℝ => (u x) ^ (gamma * pExp) * psi.weight x) →
+      Integrable
+        (fun x =>
+          |deriv (fun z => Psi (fun y : ℝ => (u y) ^ gamma) l mu z) x| ^
+              pExp * psi.weight x) ∧
+      ∫ x : ℝ,
+          |deriv (fun z => Psi (fun y : ℝ => (u y) ^ gamma) l mu z) x| ^
+              pExp * psi.weight x
+        ≤ C * ∫ x : ℝ, (u x) ^ (gamma * pExp) * psi.weight x := by
+  intro _hint
+  have hpExp_pos : 0 < pExp := lt_trans zero_lt_one hpExp
+  have hsource_fun :
+      (fun y : ℝ => (u y) ^ gamma) = fun _ : ℝ => a := by
+    ext y
+    exact hsource y
+  have hconst :
+      (fun z => Psi (fun y : ℝ => (u y) ^ gamma) l mu z) =
+        fun _ : ℝ => (mu / l) * a := by
+    ext z
+    rw [hsource_fun]
+    exact Psi_const_general (c := a) (l := l) (mu := mu) hl z
+  have hderiv :
+      ∀ x : ℝ,
+        deriv (fun z => Psi (fun y : ℝ => (u y) ^ gamma) l mu z) x = 0 := by
+    intro x
+    rw [hconst]
+    simp
+  have hleft_integrable :
+      Integrable
+        (fun x =>
+          |deriv (fun z => Psi (fun y : ℝ => (u y) ^ gamma) l mu z) x| ^
+              pExp * psi.weight x) := by
+    simp [hderiv, Real.zero_rpow (ne_of_gt hpExp_pos)]
+  have hright_nonneg :
+      0 ≤ ∫ x : ℝ, (u x) ^ (gamma * pExp) * psi.weight x := by
+    exact integral_nonneg fun x =>
+      mul_nonneg (Real.rpow_nonneg (hu_nonneg x) (gamma * pExp))
+        (psi.pos x).le
+  refine ⟨hleft_integrable, ?_⟩
+  have hleft_zero :
+      (∫ x : ℝ,
+          |deriv (fun z => Psi (fun y : ℝ => (u y) ^ gamma) l mu z) x| ^
+              pExp * psi.weight x) = 0 := by
+    simp [hderiv, Real.zero_rpow (ne_of_gt hpExp_pos)]
+  rw [hleft_zero]
+  exact mul_nonneg hC hright_nonneg
+
+/-- The constant-source branch of Lemma 2.5 with an explicit positive constant
+witness, in the full quantifier shape after fixing a nonnegative `u` whose
+`γ`-power is constant. -/
+theorem Lemma_2_5.constant_source_witness
+    {pExp gamma l mu : ℝ}
+    (hpExp : 1 < pExp) (hgamma : 0 < gamma)
+    (hl : 0 < l) (_hmu : 0 < mu)
+    {u : ℝ → ℝ} (hu_nonneg : ∀ x, 0 ≤ u x)
+    {a : ℝ} (hsource : ∀ x, (u x) ^ gamma = a) :
+    ∃ C > 0, ∀ psi : ExponentialWeight,
+      Integrable (fun x : ℝ => (u x) ^ (gamma * pExp) * psi.weight x) →
+        Integrable
+          (fun x =>
+            |deriv
+              (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^
+                pExp * psi.weight x) ∧
+          ∫ x : ℝ,
+              |deriv
+                (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^
+                  pExp * psi.weight x
+            ≤ C * ∫ x : ℝ, (u x) ^ (gamma * pExp) * psi.weight x := by
+  refine ⟨1, zero_lt_one, ?_⟩
+  intro psi hint
+  exact
+    Lemma_2_5_constant_source_branch
+      (pExp := pExp) (gamma := gamma) (l := l) (mu := mu) (u := u) (a := a)
+      (C := 1) hpExp hgamma hl hu_nonneg hsource (by norm_num) psi hint
+
 theorem Lemma_2_5.weighted_resolvent_gradient
     (h : Lemma_2_5)
     {pExp gamma l mu : ℝ}

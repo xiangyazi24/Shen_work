@@ -222,6 +222,11 @@ projection theorem wrappers have been removed.
   `Psi_const_general` to identify `Psi (c^γ; l, μ)` as a constant, so the
   derivative term vanishes and the weighted inequality follows from positivity
   of the exponential weight.
+- `Lemma_2_5_constant_source_branch` and
+  `Lemma_2_5.constant_source_witness`: real constant-source branches of the
+  same estimate for any nonnegative profile satisfying `u^γ = a` pointwise.
+  They use `Psi_const_general` after rewriting the source, not an assumption
+  package.
 - `Remark_4_3.same_wave_branch` and
   `Remark_4_3.exists_same_wave_branch`: real same-wave branches of the
   Remark 4.3 weighted initial closeness conclusion, proved by reducing the
