@@ -23,6 +23,27 @@ def intervalSet (L : ℝ) : Set ℝ := Set.Icc 0 L
 def intervalMeasure (L : ℝ) : Measure ℝ :=
   volume.restrict (intervalSet L)
 
+/-- The restricted Lebesgue measure on `[0,L]` is finite. -/
+theorem intervalMeasure_univ_lt_top (L : ℝ) :
+    intervalMeasure L Set.univ < ⊤ := by
+  unfold intervalMeasure intervalSet
+  simp [Real.volume_Icc]
+
+instance intervalMeasure_isFiniteMeasure (L : ℝ) :
+    IsFiniteMeasure (intervalMeasure L) :=
+  ⟨intervalMeasure_univ_lt_top L⟩
+
+/-- A measurable function bounded on the interval is integrable against the
+interval measure. -/
+theorem intervalMeasure_integrable_of_abs_bound
+    {L M : ℝ} {f : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ M) :
+    Integrable f (intervalMeasure L) := by
+  exact Integrable.of_bound hf_meas M
+    (Filter.Eventually.of_forall fun y => by
+      simpa [Real.norm_eq_abs] using hf_bound y)
+
 def intervalVolume (L : ℝ) : ℝ :=
   (intervalMeasure L Set.univ).toReal
 
@@ -1754,6 +1775,20 @@ theorem intervalSemigroupOperator_mono
   rw [intervalSemigroupOperator_sub ht hg_int hf_int x] at hnonneg
   linarith
 
+/-- Bounded-input monotonicity for the interval helper operator. -/
+theorem intervalSemigroupOperator_mono_bounded
+    {L t Mf Mg : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hg_meas : AEStronglyMeasurable g (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf) (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hfg : ∀ y, f y ≤ g y) (x : ℝ) :
+    intervalSemigroupOperator L t f x ≤ intervalSemigroupOperator L t g x := by
+  exact intervalSemigroupOperator_mono ht
+    (intervalMeasure_integrable_of_abs_bound hf_meas hf_bound)
+    (intervalMeasure_integrable_of_abs_bound hg_meas hg_bound)
+    hfg x
+
 /-- The interval helper operator is dominated by the integral of the pointwise
 absolute value. -/
 theorem intervalSemigroupOperator_abs_le_integral_abs
@@ -1869,6 +1904,21 @@ theorem intervalSemigroupOperator_contraction
     intervalSemigroupOperator_Linfty_bound
       (L := L) (t := t) ht hM (f := fun y => f y - g y) hfg x
   rwa [intervalSemigroupOperator_sub ht hf_int hg_int x] at hbound
+
+/-- Bounded-input `L∞` contraction for the interval helper operator. -/
+theorem intervalSemigroupOperator_contraction_bounded
+    {L t Mf Mg M : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    {f g : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hg_meas : AEStronglyMeasurable g (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf) (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hfg : ∀ y, |f y - g y| ≤ M) (x : ℝ) :
+    |intervalSemigroupOperator L t f x -
+      intervalSemigroupOperator L t g x| ≤ M := by
+  exact intervalSemigroupOperator_contraction ht hM
+    (intervalMeasure_integrable_of_abs_bound hf_meas hf_bound)
+    (intervalMeasure_integrable_of_abs_bound hg_meas hg_bound)
+    hfg x
 
 end ShenWork.IntervalDomain
 
