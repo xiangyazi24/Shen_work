@@ -71,12 +71,37 @@ theorem const_intervalIntegrable {L c : ℝ} :
     IntervalIntegrable (fun _ => c) volume 0 L :=
   intervalIntegrable_const
 
-end ShenWork.IntervalDomain
+/-- The average of a function on [0,L]. This is the zeroth Neumann mode. -/
+def intervalAverage (L : ℝ) (f : ℝ → ℝ) : ℝ :=
+  (1 / L) * ∫ x in (0 : ℝ)..L, f x
 
-#print axioms ShenWork.IntervalDomain.intervalIntegral_nonneg
-#print axioms ShenWork.IntervalDomain.intervalIntegral_mono
-#print axioms ShenWork.IntervalDomain.intervalIntegral_add
-#print axioms ShenWork.IntervalDomain.identity_preserves_intervalIntegral
-#print axioms ShenWork.IntervalDomain.const_intervalIntegrable
+/-- The constant-mode projection: maps f to its average on [0,L]. -/
+def constantModeProjection (L : ℝ) (f : ℝ → ℝ) : ℝ → ℝ :=
+  fun _ => intervalAverage L f
+
+/-- The constant-mode projection preserves mass. -/
+theorem constantModeProjection_preserves_mass {L : ℝ} (hL : 0 < L) (f : ℝ → ℝ) :
+    ∫ x in (0 : ℝ)..L, constantModeProjection L f x =
+      ∫ x in (0 : ℝ)..L, f x := by
+  unfold constantModeProjection intervalAverage
+  rw [intervalIntegral_const]
+  field_simp [ne_of_gt hL]
+
+/-- The constant-mode projection maps nonneg-average functions to nonneg. -/
+theorem constantModeProjection_nonneg {L : ℝ} (hL : 0 < L) {f : ℝ → ℝ}
+    (hf : 0 ≤ ∫ x in (0 : ℝ)..L, f x) :
+    ∀ x, 0 ≤ constantModeProjection L f x := by
+  intro x
+  unfold constantModeProjection intervalAverage
+  exact mul_nonneg (div_nonneg one_pos.le hL.le) hf
+
+/-- The average of a constant is itself. -/
+theorem intervalAverage_const {L c : ℝ} (hL : 0 < L) :
+    intervalAverage L (fun _ => c) = c := by
+  unfold intervalAverage
+  rw [intervalIntegral_const]
+  field_simp [ne_of_gt hL]
+
+end ShenWork.IntervalDomain
 
 end
