@@ -218,6 +218,18 @@ theorem heatSemigroup_const {c : ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ) :
       (fun y => c * heatKernel t (x - y)) from by ext y; ring]
   rw [MeasureTheory.integral_const_mul, heatKernel_integral_translated ht x, mul_one]
 
+theorem heatSemigroup_zero_fun (t x : ℝ) :
+    heatSemigroup t (fun _ => 0) x = 0 := by
+  simp [heatSemigroup]
+
+theorem modifiedSemigroup_zero_fun (t x : ℝ) :
+    modifiedSemigroup t (fun _ => 0) x = 0 := by
+  simp [modifiedSemigroup, heatSemigroup_zero_fun]
+
+theorem modifiedSemigroup_const {c : ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    modifiedSemigroup t (fun _ => c) x = Real.exp (-t) * c := by
+  simp [modifiedSemigroup, heatSemigroup_const ht x]
+
 theorem heatSemigroup_upper_bound_of_bound {f : ℝ → ℝ} {M Mf : ℝ}
     (hf_le : ∀ x, f x ≤ M) (hf_bound : ∀ x, |f x| ≤ Mf)
     (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)

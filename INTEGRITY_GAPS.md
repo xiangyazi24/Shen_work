@@ -147,6 +147,8 @@ projection theorem wrappers have been removed.
   interface, closed under explicit nonnegativity of the input norm rather than
   by projecting from `Paper1AnalyticData`
 - `heatSemigroup_mono_bounded`, `modifiedSemigroup_mono_bounded`,
+  `heatSemigroup_zero_fun`, `modifiedSemigroup_zero_fun`,
+  `modifiedSemigroup_const`,
   `heatSemigroup_lower_bound`, `heatSemigroup_upper_bound_of_bound`,
   `heatSemigroup_interval_bound`, `modifiedSemigroup_lower_bound`,
   `modifiedSemigroup_upper_bound`, `modifiedSemigroup_interval_bound`,
