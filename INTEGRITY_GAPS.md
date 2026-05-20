@@ -253,17 +253,29 @@ projection theorem wrappers have been removed.
   bound from Lemma 5.1 for the fixed-point case `V = frozenElliptic p U`,
   derived directly from the wave upper-tail bound and the `Psi` kernel
   estimates
+- `Lemma_5_1_signal_bound_for_frozenElliptic_of_continuous`: the same
+  fixed-point signal bound with `IsCUnifBdd U` derived from continuity plus the
+  upper-tail bound
 - `Lemma_5_1_exponential_signal_bound_for_frozenElliptic`: the exponential
   `V`/`V'` bound from Lemma 5.1 for the same fixed-point case, using the
   kernel exponential tail estimate and
   `gamma_mul_kappa_lt_one_of_gamma_add_inv_lt_speed`
+- `Lemma_5_1_exponential_signal_bound_for_frozenElliptic_of_continuous`: the
+  corresponding exponential signal bound with `IsCUnifBdd U` internalized from
+  continuity plus the upper-tail bound
 - `Lemma_5_1.fixed_point_signal_package`: the uniform and exponential
   fixed-point signal estimates packaged together in the same conjunctive shape
   as the first two conclusions of Lemma 5.1
+- `Lemma_5_1.fixed_point_signal_package_of_continuous`: the same signal package
+  with the boundedness/uniform-continuity input derived from continuity plus
+  the upper-tail bound
 - `Lemma_5_1.fixed_point_conclusion_of_wave_derivative_bounds`: the full
   fixed-point Lemma 5.1 conclusion with the signal estimates proved from the
   `Psi` kernel and only the remaining `U'` estimates left as explicit
   derivative hypotheses
+- `Lemma_5_1.fixed_point_conclusion_of_wave_derivative_bounds_of_continuous`:
+  the same fixed-point full-conclusion branch with `IsCUnifBdd U` internalized
+  from continuity plus the upper-tail bound
 - `Lemma_5_1_resolvent_identified_proved`: the same full Lemma 5.1 conclusion
   in the arbitrary-traveling-wave shape, once the missing identity
   `V = frozenElliptic p U`, continuity of `U`, and the remaining `U'`

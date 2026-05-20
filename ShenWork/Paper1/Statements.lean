@@ -9486,6 +9486,15 @@ theorem Lemma_5_1_signal_bound_for_frozenElliptic
     frozenElliptic_deriv_abs_le p hU hU_nonneg x
   exact ⟨hV_abs, le_trans hV_deriv_abs hV_le⟩
 
+theorem Lemma_5_1_signal_bound_for_frozenElliptic_of_continuous
+    (p : CMParams) {c : ℝ} {U : ℝ → ℝ}
+    (hU_cont : Continuous U) (hbound : HasWaveUpperTailBound p c U) :
+    ∀ x,
+      |frozenElliptic p U x| ≤ (MChi p) ^ p.γ ∧
+        |deriv (frozenElliptic p U) x| ≤ (MChi p) ^ p.γ :=
+  Lemma_5_1_signal_bound_for_frozenElliptic p
+    (hbound.isCUnifBdd_of_continuous hU_cont) hbound
+
 theorem gamma_mul_kappa_lt_one_of_gamma_add_inv_lt_speed
     {c gamma : ℝ} (hc : 2 < c) (hgamma : 1 ≤ gamma)
     (hspeed : gamma + gamma⁻¹ < c) :
@@ -9584,6 +9593,22 @@ theorem Lemma_5_1_exponential_signal_bound_for_frozenElliptic
     frozenElliptic_deriv_abs_le p hU hU_nonneg x
   exact ⟨hV_abs, le_trans hV_deriv_abs hV_le⟩
 
+theorem Lemma_5_1_exponential_signal_bound_for_frozenElliptic_of_continuous
+    (p : CMParams) {c : ℝ} {U : ℝ → ℝ}
+    (hc : 2 < c) (hspeed : p.γ + p.γ⁻¹ < c)
+    (hU_cont : Continuous U) (hbound : HasWaveUpperTailBound p c U) :
+    ∀ x,
+      |frozenElliptic p U x| ≤
+        min ((MChi p) ^ p.γ)
+          ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+            Real.exp (-(kappa c) * p.γ * x)) ∧
+      |deriv (frozenElliptic p U) x| ≤
+        min ((MChi p) ^ p.γ)
+          ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+            Real.exp (-(kappa c) * p.γ * x)) :=
+  Lemma_5_1_exponential_signal_bound_for_frozenElliptic
+    p hc hspeed (hbound.isCUnifBdd_of_continuous hU_cont) hbound
+
 /-- The signal-estimate part of Lemma 5.1 in the fixed-point case
 `V = frozenElliptic p U`, packaged in the same conjunctive shape as the first
 two conclusions of the full lemma. -/
@@ -9609,6 +9634,26 @@ theorem Lemma_5_1.fixed_point_signal_package
   · intro hspeed
     exact Lemma_5_1_exponential_signal_bound_for_frozenElliptic
       p hc hspeed hU hbound
+
+theorem Lemma_5_1.fixed_point_signal_package_of_continuous
+    (p : CMParams) {c : ℝ} {U : ℝ → ℝ}
+    (hc : 2 < c) (hU_cont : Continuous U)
+    (hbound : HasWaveUpperTailBound p c U) :
+    (∀ x,
+      |frozenElliptic p U x| ≤ (MChi p) ^ p.γ ∧
+        |deriv (frozenElliptic p U) x| ≤ (MChi p) ^ p.γ) ∧
+    (p.γ + p.γ⁻¹ < c →
+      ∀ x,
+        |frozenElliptic p U x| ≤
+          min ((MChi p) ^ p.γ)
+            ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+              Real.exp (-(kappa c) * p.γ * x)) ∧
+        |deriv (frozenElliptic p U) x| ≤
+          min ((MChi p) ^ p.γ)
+            ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+              Real.exp (-(kappa c) * p.γ * x))) :=
+  Lemma_5_1.fixed_point_signal_package p hc
+    (hbound.isCUnifBdd_of_continuous hU_cont) hbound
 
 /-- Fixed-point version of the full Lemma 5.1 conclusion.  The two signal
 estimate components are proved from the `Psi` kernel; the remaining `U'`
@@ -9651,6 +9696,45 @@ theorem Lemma_5_1.fixed_point_conclusion_of_wave_derivative_bounds
   rcases Lemma_5_1.fixed_point_signal_package p hc hU hbound with
     ⟨hsignal, hexpSignal⟩
   exact ⟨hsignal, hexpSignal, hderiv_tends, hderiv_bound, hderiv_exp⟩
+
+theorem Lemma_5_1.fixed_point_conclusion_of_wave_derivative_bounds_of_continuous
+    (p : CMParams) {c : ℝ} {U : ℝ → ℝ}
+    (hc : 2 < c) (hU_cont : Continuous U)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hderiv_tends : WaveDerivativeTendsZero U)
+    (hderiv_bound :
+      c > p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) →
+        ∃ B > 0, ∀ x, |deriv U x| ≤ B)
+    (hderiv_exp :
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+        ∃ B1 B2, ∀ x,
+          |deriv U x| ≤
+            B1 * Real.exp (-(kappa c) * x) +
+              B2 * Real.exp (-(kappa c) * p.γ * x)) :
+    (∀ x,
+      |frozenElliptic p U x| ≤ (MChi p) ^ p.γ ∧
+        |deriv (frozenElliptic p U) x| ≤ (MChi p) ^ p.γ) ∧
+    (p.γ + p.γ⁻¹ < c →
+      ∀ x,
+        |frozenElliptic p U x| ≤
+          min ((MChi p) ^ p.γ)
+            ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+              Real.exp (-(kappa c) * p.γ * x)) ∧
+        |deriv (frozenElliptic p U) x| ≤
+          min ((MChi p) ^ p.γ)
+            ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+              Real.exp (-(kappa c) * p.γ * x))) ∧
+    WaveDerivativeTendsZero U ∧
+    (c > p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) →
+      ∃ B > 0, ∀ x, |deriv U x| ≤ B) ∧
+    (c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+      ∃ B1 B2, ∀ x,
+        |deriv U x| ≤
+          B1 * Real.exp (-(kappa c) * x) +
+            B2 * Real.exp (-(kappa c) * p.γ * x)) :=
+  Lemma_5_1.fixed_point_conclusion_of_wave_derivative_bounds p hc
+    (hbound.isCUnifBdd_of_continuous hU_cont)
+    hbound hderiv_tends hderiv_bound hderiv_exp
 
 /-- Strengthened Lemma 5.1 target with the missing resolvent identification
 and the remaining `U'` estimates exposed as explicit hypotheses.  This is the
