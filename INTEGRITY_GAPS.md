@@ -146,10 +146,12 @@ projection theorem wrappers have been removed.
   zero-output/all-zero-data branches of the Paper1 heat-semigroup estimate
   interface, closed under explicit nonnegativity of the input norm rather than
   by projecting from `Paper1AnalyticData`
-- `modifiedSemigroup_Linfty_bound` and `modifiedSemigroup_Linfty_decay`:
-  real whole-line heat-kernel estimates for the modified semigroup
-  `e^{(Δ-I)t}`.  They use heat-kernel positivity, translated kernel mass one,
-  and bounded measurable input data to prove pointwise `L∞` decay.
+- `modifiedSemigroup_Linfty_bound`, `modifiedSemigroup_Linfty_decay`,
+  `modifiedSemigroup_sub`, and `modifiedSemigroup_contraction`: real
+  whole-line heat-kernel estimates for the modified semigroup `e^{(Δ-I)t}`.
+  They use heat-kernel positivity, translated kernel mass one, bounded
+  measurable input data, and Bochner integral linearity to prove pointwise
+  `L∞` decay and pairwise `L∞` contraction.
 - `Lemma_2_2_proved`, `Lemma_2_3_proved`, `Lemma_2_4_proved`
 - `Lemma_2_5_pointwise_bound`, `Lemma_2_5_attained_at_inv`,
   `Lemma_2_5_sharp_bound`, and
