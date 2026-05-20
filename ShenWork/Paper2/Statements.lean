@@ -372,6 +372,16 @@ lemma SupNormNonincreasingOn.bound
     D.supNorm (u t₂) ≤ D.supNorm (u t₁) :=
   h t₁ ht₁ t₂ ht₂ ht
 
+/-- Constant-in-time profiles have nonincreasing abstract sup norm on every
+time set.  This is the unconditional branch of the Lemma 3.1 conclusion that
+does not use the fakeable PDE fields. -/
+lemma SupNormNonincreasingOn.of_forall_eq
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {I : Set ℝ}
+    {w : D.Point → ℝ} (hconst : ∀ t, t ∈ I → u t = w) :
+    SupNormNonincreasingOn D u I := by
+  intro t₁ ht₁ t₂ ht₂ _ht
+  rw [hconst t₂ ht₂, hconst t₁ ht₁]
+
 def WeightedGradientEstimate
     (D : BoundedDomainData) (pExp beta gamma Mstar T : ℝ)
     (u v : ℝ → D.Point → ℝ) : Prop :=
