@@ -153,6 +153,63 @@ theorem neumannHeatKernel_zerothReflection_integral
   rw [heatKernel_integral_translated ht x, heatKernel_integral_add ht x]
   norm_num
 
+/-- The half-line Neumann semigroup: integrate the reflected kernel
+against f on [0,∞) only. For nonneg integrable f supported on [0,∞),
+this gives the Neumann heat equation solution on [0,∞). -/
+def halfLineNeumannSemigroup (t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
+  ∫ y in Set.Ioi 0, neumannHeatKernel_zerothReflection 0 t x y * f y
+
+/-- L^∞ bound for the reflected full-line semigroup:
+if |f| ≤ M, then |∫ K_N f| ≤ 2M. -/
+theorem reflectedSemigroup_Linfty_bound
+    {f : ℝ → ℝ} {M : ℝ} (hf : ∀ y, |f y| ≤ M)
+    {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (_hf_meas : AEStronglyMeasurable f volume) :
+    |∫ y, neumannHeatKernel_zerothReflection 0 t x y * f y| ≤ 2 * M := by
+  unfold neumannHeatKernel_zerothReflection
+  have hplus_int : Integrable (fun y : ℝ => heatKernel t (x + y)) :=
+    (heatKernel_integrable ht).comp_add_left x
+  have hsum_int :
+      Integrable (fun y : ℝ => heatKernel t (x - y) + heatKernel t (x + y)) :=
+    (heatKernel_translated_integrable ht x).add hplus_int
+  have hmajor_int :
+      Integrable
+        (fun y : ℝ => (heatKernel t (x - y) + heatKernel t (x + y)) * M) :=
+    hsum_int.mul_const M
+  have hkernel_integral :
+      ∫ y, heatKernel t (x - y) + heatKernel t (x + y) = 2 := by
+    have := neumannHeatKernel_zerothReflection_integral ht 0 x
+    simp only [neumannHeatKernel_zerothReflection] at this
+    exact this
+  calc |∫ y, (heatKernel t (x - y) + heatKernel t (x + y)) * f y|
+      ≤ ∫ y, ‖(heatKernel t (x - y) + heatKernel t (x + y)) * f y‖ := by
+        rw [← Real.norm_eq_abs]
+        exact MeasureTheory.norm_integral_le_integral_norm _
+    _ = ∫ y, |(heatKernel t (x - y) + heatKernel t (x + y)) * f y| := by
+        simp [Real.norm_eq_abs]
+    _ = ∫ y, (heatKernel t (x - y) + heatKernel t (x + y)) * |f y| := by
+        congr 1; ext y
+        rw [abs_mul, abs_of_nonneg
+          (add_nonneg (heatKernel_nonneg ht _) (heatKernel_nonneg ht _))]
+    _ ≤ ∫ y, (heatKernel t (x - y) + heatKernel t (x + y)) * M := by
+        apply MeasureTheory.integral_mono_of_nonneg
+        · exact Filter.Eventually.of_forall fun y =>
+            mul_nonneg
+              (add_nonneg (heatKernel_nonneg ht _) (heatKernel_nonneg ht _))
+              (abs_nonneg _)
+        · exact hmajor_int
+        · exact Filter.Eventually.of_forall fun y =>
+            mul_le_mul_of_nonneg_left (hf y)
+              (add_nonneg (heatKernel_nonneg ht _) (heatKernel_nonneg ht _))
+    _ = M * ∫ y, (heatKernel t (x - y) + heatKernel t (x + y)) := by
+        rw [show (fun y => (heatKernel t (x - y) + heatKernel t (x + y)) * M) =
+            (fun y => M * (heatKernel t (x - y) + heatKernel t (x + y))) from by
+          ext y; ring]
+        exact MeasureTheory.integral_const_mul _ _
+    _ = M * 2 := by
+        rw [hkernel_integral]
+    _ = 2 * M := by ring
+
 end ShenWork.IntervalDomain
 
 end
