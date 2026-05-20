@@ -303,13 +303,13 @@ projection theorem wrappers have been removed.
   constant is nonnegative and then uses `U' ≤ 0` and `U > 0` to get
   `U'/U ≤ 0`.
 - `Lemma_5_3_zero_difference_branch`, `Lemma_5_3_zero_source_branch`,
-  `Lemma_5_3.self_difference_branch`, and `Lemma_5_3.same_power_branch`: the
+  `Lemma_5_3.self_difference_branch`, `Lemma_5_3.same_power_branch`, and the
+  `Lemma_5_3.same_power_branch_*` CM/tail/stability specializations: the
   weighted elliptic perturbation estimate in zero-source cases, proved directly
   from `Psi_zero` and positivity of the right-hand side.  The zero-difference
   case uses `u1 = u2`; the stronger zero-source branch assumes only
-  `u2^gamma = u1^gamma` pointwise; the self-difference and same-power branches
-  expose these results in the same hypothesis shape as the full Lemma 5.3
-  target.
+  `u2^gamma = u1^gamma` pointwise; the same-power branch family exposes these
+  results in the full Lemma 5.3 hypothesis shapes used later in Section 5.
 - `Lemma_2_5_proved` (Paper2), together with the sharp `Psi_beta` package and
   normalized sharp `Theta_beta` form
 - `remark16ChiStarWeak_scalar_properties` (Paper2): direct scalar algebra for
