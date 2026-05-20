@@ -5104,6 +5104,68 @@ lemma not_EventualMinimalUpperBoundRaw_zero_bound :
   have hbad : (1 : ℝ) ≤ 0 := hT T le_rfl
   norm_num at hbad
 
+/-- Raw version of the Lemma A.7 threshold comparisons, with the four strong
+threshold functions and the critical threshold exposed instead of packaged as
+fields of `Paper3Constants`. -/
+def LemmaA7ThresholdComparisonsRaw
+    (p : CM2Params)
+    (chiCritical chiStrong1 chiStrong2 chiStrong3 chiStrong4 : ℝ → ℝ) :
+    Prop :=
+  0 ≤ p.β → 1 ≤ p.m →
+    ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      (p.α + 1 ≥ 2 * p.γ →
+        chiStrong1 eq.1 ≤ chiCritical eq.1) ∧
+      (1 ≤ p.β → p.α + 1 ≥ 2 * p.γ →
+        chiStrong2 eq.1 ≤ chiCritical eq.1) ∧
+      (1 ≤ p.γ → p.α + 1 ≥ p.m + p.γ →
+        chiStrong3 eq.1 ≤ chiCritical eq.1) ∧
+      (1 ≤ p.β → 1 ≤ p.γ → p.α + 1 ≥ p.m + 2 * p.γ →
+        chiStrong4 eq.1 ≤ chiCritical eq.1)
+
+/-- Raw obstruction for Lemma A.7-style threshold comparisons: the comparison
+is not a consequence of the parameter hypotheses alone when the threshold
+functions are exposed as arbitrary data. -/
+lemma not_LemmaA7ThresholdComparisonsRaw_arbitrary_thresholds :
+    ¬ LemmaA7ThresholdComparisonsRaw theorem21Part1CounterParams
+      (fun _ => (0 : ℝ)) (fun _ => (1 : ℝ)) (fun _ => (1 : ℝ))
+      (fun _ => (1 : ℝ)) (fun _ => (1 : ℝ)) := by
+  intro h
+  have hle : (1 : ℝ) ≤ 0 := by
+    simpa using
+      ((h (by norm_num [theorem21Part1CounterParams])
+          (by norm_num [theorem21Part1CounterParams])
+          (by norm_num [theorem21Part1CounterParams])
+          (by norm_num [theorem21Part1CounterParams])).1
+        (by norm_num [theorem21Part1CounterParams]))
+  norm_num at hle
+
+/-- Raw version of the Lemma A.8 minimal-model threshold comparisons, with the
+minimal and critical threshold functions exposed. -/
+def LemmaA8ThresholdComparisonsRaw
+    (p : CM2Params)
+    (chiCritical chiMinimal1 chiMinimal2 : ℝ → ℝ) : Prop :=
+  p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+    ∀ uStar > 0,
+      (0 < p.γ → chiMinimal1 uStar ≤ chiCritical uStar) ∧
+      (p.γ = 1 → chiMinimal2 uStar ≤ chiCritical uStar)
+
+/-- Raw obstruction for Lemma A.8-style threshold comparisons: without the
+exact threshold formulas, the minimal comparison fields are arbitrary data. -/
+lemma not_LemmaA8ThresholdComparisonsRaw_arbitrary_thresholds :
+    ¬ LemmaA8ThresholdComparisonsRaw theorem21Part4CounterParams
+      (fun _ => (0 : ℝ)) (fun _ => (1 : ℝ)) (fun _ => (1 : ℝ)) := by
+  intro h
+  have hle : (1 : ℝ) ≤ 0 := by
+    simpa using
+      ((h (by norm_num [theorem21Part4CounterParams])
+          (by norm_num [theorem21Part4CounterParams])
+          (by norm_num [theorem21Part4CounterParams])
+          (by norm_num [theorem21Part4CounterParams])
+          1 (by norm_num)).1
+        (by norm_num [theorem21Part4CounterParams]))
+  norm_num at hle
+
 lemma not_exists_Paper3Constants_theorem21_part4_counterdomain :
     ¬ Nonempty
       (Paper3Constants theorem21Part1NoLowerEnvelopeDomain

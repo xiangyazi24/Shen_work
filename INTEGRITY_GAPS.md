@@ -428,6 +428,16 @@ projection theorem wrappers have been removed.
   for `Paper3Constants.eventualMinimalUpperBound`.  If the exposed eventual
   upper-bound function is unrelated to the fake `supNorm`, the positive
   constant solution can violate the asserted eventual upper bound.
+- `not_LemmaA7ThresholdComparisonsRaw_arbitrary_thresholds` (Paper3): a raw
+  obstruction for Lemma A.7-style threshold comparison fields.  If the exposed
+  strong thresholds are constantly `1` and the exposed critical threshold is
+  constantly `0`, admissible concrete parameters force the impossible
+  inequality `1 ≤ 0`.
+- `not_LemmaA8ThresholdComparisonsRaw_arbitrary_thresholds` (Paper3): a raw
+  obstruction for Lemma A.8-style minimal threshold comparison fields.  If the
+  exposed minimal thresholds are constantly `1` and the exposed critical
+  threshold is constantly `0`, admissible minimal-model parameters force the
+  impossible inequality `1 ≤ 0`.
 - `Proposition_1_1_constant_one_branch` and
   `Proposition_1_2_constant_one_branch`: real Paper1 Cauchy/stability branches
   for the equilibrium initial datum `u₀ ≡ 1`, using the constant global
