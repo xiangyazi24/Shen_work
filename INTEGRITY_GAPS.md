@@ -647,9 +647,15 @@ projection theorem wrappers have been removed.
   `InMonotoneWaveTrapSet.tendsto_atTop_zero`,
   `InMonotoneWaveTrapSet.frozenElliptic_tendsto_atTop_zero`,
   `HasWaveUpperTailBound.tendsto_atTop_zero`,
+  `HasWaveUpperTailBound.inWaveTrapSet_of_continuous`,
+  `HasWaveUpperTailBound.inMonotoneWaveTrapSet_of_continuous`,
   `HasWaveUpperTailBound.frozenElliptic_tendsto_atTop_zero`,
+  `HasWaveUpperTailBound.frozenElliptic_tendsto_atTop_zero_of_continuous`,
   `HasStrictWaveUpperTailBound.tendsto_atTop_zero`,
+  `HasStrictWaveUpperTailBound.inWaveTrapSet_of_continuous`,
+  `HasStrictWaveUpperTailBound.inMonotoneWaveTrapSet_of_continuous`,
   `HasStrictWaveUpperTailBound.frozenElliptic_tendsto_atTop_zero`,
+  `HasStrictWaveUpperTailBound.frozenElliptic_tendsto_atTop_zero_of_continuous`,
   `FrozenAuxiliaryLimitOutput.tendsto_atTop_zero_of_inWaveTrapSet`, and the
   corresponding `FrozenWaveMapConstruction.exists_fixed_*_with_atTop_limit`
   and `exists_fixed_*_with_atTop_limits` bridges, plus the specialized

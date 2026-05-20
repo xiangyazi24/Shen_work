@@ -8620,6 +8620,22 @@ theorem HasStrictWaveUpperTailBound.nonnegativeInitialDatum_of_continuous
     NonnegativeInitialDatum U :=
   ⟨h.isCUnifBdd_of_continuous hU_cont, fun x => (h.pos x).le⟩
 
+theorem HasWaveUpperTailBound.frozenElliptic_tendsto_atTop_zero_of_continuous
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hκ : 0 < kappa c) (h : HasWaveUpperTailBound p c U)
+    (hU_cont : Continuous U) :
+    Tendsto (frozenElliptic p U) atTop (𝓝 0) :=
+  h.frozenElliptic_tendsto_atTop_zero hκ
+    (h.isCUnifBdd_of_continuous hU_cont)
+
+theorem HasStrictWaveUpperTailBound.frozenElliptic_tendsto_atTop_zero_of_continuous
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hκ : 0 < kappa c) (h : HasStrictWaveUpperTailBound p c U)
+    (hU_cont : Continuous U) :
+    Tendsto (frozenElliptic p U) atTop (𝓝 0) :=
+  h.hasWaveUpperTailBound.frozenElliptic_tendsto_atTop_zero_of_continuous
+    hκ hU_cont
+
 theorem HasWaveUpperTailBound.abs_sub_le_two_MChi
     {p : CMParams} {c : ℝ} {U₁ U₂ : ℝ → ℝ}
     (h₁ : HasWaveUpperTailBound p c U₁)
@@ -8680,12 +8696,38 @@ theorem HasWaveUpperTailBound.inWaveTrapSet
   intro x
   exact ⟨(h.pos x).le, by simpa [upperBarrier] using (h x).2⟩
 
+theorem HasWaveUpperTailBound.inWaveTrapSet_of_continuous
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveUpperTailBound p c U) (hU_cont : Continuous U) :
+    InWaveTrapSet (kappa c) (MChi p) U :=
+  h.inWaveTrapSet (h.isCUnifBdd_of_continuous hU_cont)
+
 theorem HasWaveUpperTailBound.inMonotoneWaveTrapSet
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (h : HasWaveUpperTailBound p c U) (hU : IsCUnifBdd U)
     (hmono : NonincreasingProfile U) :
     InMonotoneWaveTrapSet (kappa c) (MChi p) U :=
   ⟨h.inWaveTrapSet hU, hmono⟩
+
+theorem HasWaveUpperTailBound.inMonotoneWaveTrapSet_of_continuous
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveUpperTailBound p c U) (hU_cont : Continuous U)
+    (hmono : NonincreasingProfile U) :
+    InMonotoneWaveTrapSet (kappa c) (MChi p) U :=
+  h.inMonotoneWaveTrapSet (h.isCUnifBdd_of_continuous hU_cont) hmono
+
+theorem HasStrictWaveUpperTailBound.inWaveTrapSet_of_continuous
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasStrictWaveUpperTailBound p c U) (hU_cont : Continuous U) :
+    InWaveTrapSet (kappa c) (MChi p) U :=
+  h.hasWaveUpperTailBound.inWaveTrapSet_of_continuous hU_cont
+
+theorem HasStrictWaveUpperTailBound.inMonotoneWaveTrapSet_of_continuous
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasStrictWaveUpperTailBound p c U) (hU_cont : Continuous U)
+    (hmono : NonincreasingProfile U) :
+    InMonotoneWaveTrapSet (kappa c) (MChi p) U :=
+  h.hasWaveUpperTailBound.inMonotoneWaveTrapSet_of_continuous hU_cont hmono
 
 theorem HasWaveUpperTailBound.rpow_le_MChi
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ} {a : ℝ}
