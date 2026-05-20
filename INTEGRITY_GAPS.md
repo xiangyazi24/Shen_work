@@ -210,18 +210,16 @@ projection theorem wrappers have been removed.
 - `SupNormNonincreasingOn.of_forall_eq` (Paper2): an unconditional
   constant-time branch of the Lemma 3.1 conclusion, separate from the false
   arbitrary-API maximum-principle statement.
-- `Lemma_2_5_zero_function_branch`: a real zero-function branch of the
-  weighted resolvent-gradient estimate, closing the integrability and integral
-  inequality directly by `Psi_zero`
-- `Lemma_2_5.zero_function_witness`: the same zero-function branch exposed
-  with an explicit positive constant witness in the full Lemma 2.5 quantifier
-  shape after fixing `u ≡ 0`
+- `Lemma_2_5_zero_function_branch`, `Lemma_2_5.zero_function_witness`, plus
+  the unit and L² unit-resolvent witness specializations: real zero-function
+  branches of the weighted resolvent-gradient estimate, closing the
+  integrability and integral inequality directly by `Psi_zero`.
 - `Lemma_2_5_constant_function_branch` and
-  `Lemma_2_5.constant_function_witness`: real nonnegative constant-source
-  branches of the weighted resolvent-gradient estimate.  They use
-  `Psi_const_general` to identify `Psi (c^γ; l, μ)` as a constant, so the
-  derivative term vanishes and the weighted inequality follows from positivity
-  of the exponential weight.
+  `Lemma_2_5.constant_function_witness`, plus the unit and L² unit-resolvent
+  witness specializations: real nonnegative constant-source branches of the
+  weighted resolvent-gradient estimate.  They use `Psi_const_general` to
+  identify `Psi (c^γ; l, μ)` as a constant, so the derivative term vanishes and
+  the weighted inequality follows from positivity of the exponential weight.
 - `Lemma_2_5_constant_source_branch` and
   `Lemma_2_5.constant_source_witness`, plus the unit and L² unit-resolvent
   witness specializations: real constant-source branches of the same estimate

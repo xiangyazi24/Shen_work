@@ -1182,6 +1182,51 @@ theorem Lemma_2_5.zero_function_witness
       (pExp := pExp) (gamma := gamma) (l := l) (mu := mu) (C := 1)
       hpExp hgamma psi)
 
+/-- CM-parameter unit-resolvent version of the zero-function branch of
+Lemma 2.5. -/
+theorem Lemma_2_5.zero_function_witness_unit
+    (p : CMParams) {pExp : ℝ} (hpExp : 1 < pExp) :
+    ∃ C > 0, ∀ psi : ExponentialWeight,
+      Integrable (fun x : ℝ =>
+        ((fun _ : ℝ => (0 : ℝ)) x) ^ (p.γ * pExp) * psi.weight x) →
+        Integrable
+          (fun x =>
+            |deriv
+              (fun z => Psi
+                (fun y => ((fun _ : ℝ => (0 : ℝ)) y) ^ p.γ) 1 1 z) x| ^
+                pExp * psi.weight x) ∧
+          ∫ x : ℝ,
+              |deriv
+                (fun z => Psi
+                  (fun y => ((fun _ : ℝ => (0 : ℝ)) y) ^ p.γ) 1 1 z) x| ^
+                  pExp * psi.weight x
+            ≤ C * ∫ x : ℝ,
+              ((fun _ : ℝ => (0 : ℝ)) x) ^ (p.γ * pExp) * psi.weight x :=
+  Lemma_2_5.zero_function_witness hpExp
+    (lt_of_lt_of_le one_pos p.hγ) one_pos one_pos
+
+/-- L² unit-resolvent version of the zero-function branch of Lemma 2.5. -/
+theorem Lemma_2_5.zero_function_witness_unit_L2
+    (p : CMParams) :
+    ∃ C > 0, ∀ psi : ExponentialWeight,
+      Integrable (fun x : ℝ =>
+        ((fun _ : ℝ => (0 : ℝ)) x) ^ (p.γ * (2 : ℝ)) * psi.weight x) →
+        Integrable
+          (fun x =>
+            |deriv
+              (fun z => Psi
+                (fun y => ((fun _ : ℝ => (0 : ℝ)) y) ^ p.γ) 1 1 z) x| ^
+                (2 : ℝ) * psi.weight x) ∧
+          ∫ x : ℝ,
+              |deriv
+                (fun z => Psi
+                  (fun y => ((fun _ : ℝ => (0 : ℝ)) y) ^ p.γ) 1 1 z) x| ^
+                  (2 : ℝ) * psi.weight x
+            ≤ C * ∫ x : ℝ,
+              ((fun _ : ℝ => (0 : ℝ)) x) ^ (p.γ * (2 : ℝ)) * psi.weight x :=
+  Lemma_2_5.zero_function_witness_unit p
+    (by norm_num : (1 : ℝ) < 2)
+
 /-- A real constant-function branch of the weighted resolvent-gradient
 estimate.  If `u ≡ c`, then `Psi (u^γ)` is constant, so the derivative term in
 Lemma 2.5 vanishes identically. -/
@@ -1260,6 +1305,51 @@ theorem Lemma_2_5.constant_function_witness
     (Lemma_2_5_constant_function_branch
       (pExp := pExp) (gamma := gamma) (l := l) (mu := mu) (c := c) (C := 1)
       hpExp hgamma hl hc (by norm_num) psi hint)
+
+/-- CM-parameter unit-resolvent version of the constant-function branch of
+Lemma 2.5. -/
+theorem Lemma_2_5.constant_function_witness_unit
+    (p : CMParams) {pExp c : ℝ} (hpExp : 1 < pExp) (hc : 0 ≤ c) :
+    ∃ C > 0, ∀ psi : ExponentialWeight,
+      Integrable (fun x : ℝ =>
+        ((fun _ : ℝ => c) x) ^ (p.γ * pExp) * psi.weight x) →
+        Integrable
+          (fun x =>
+            |deriv
+              (fun z => Psi
+                (fun y => ((fun _ : ℝ => c) y) ^ p.γ) 1 1 z) x| ^
+                pExp * psi.weight x) ∧
+          ∫ x : ℝ,
+              |deriv
+                (fun z => Psi
+                  (fun y => ((fun _ : ℝ => c) y) ^ p.γ) 1 1 z) x| ^
+                  pExp * psi.weight x
+            ≤ C * ∫ x : ℝ,
+              ((fun _ : ℝ => c) x) ^ (p.γ * pExp) * psi.weight x :=
+  Lemma_2_5.constant_function_witness hpExp
+    (lt_of_lt_of_le one_pos p.hγ) one_pos one_pos hc
+
+/-- L² unit-resolvent version of the constant-function branch of Lemma 2.5. -/
+theorem Lemma_2_5.constant_function_witness_unit_L2
+    (p : CMParams) {c : ℝ} (hc : 0 ≤ c) :
+    ∃ C > 0, ∀ psi : ExponentialWeight,
+      Integrable (fun x : ℝ =>
+        ((fun _ : ℝ => c) x) ^ (p.γ * (2 : ℝ)) * psi.weight x) →
+        Integrable
+          (fun x =>
+            |deriv
+              (fun z => Psi
+                (fun y => ((fun _ : ℝ => c) y) ^ p.γ) 1 1 z) x| ^
+                (2 : ℝ) * psi.weight x) ∧
+          ∫ x : ℝ,
+              |deriv
+                (fun z => Psi
+                  (fun y => ((fun _ : ℝ => c) y) ^ p.γ) 1 1 z) x| ^
+                  (2 : ℝ) * psi.weight x
+            ≤ C * ∫ x : ℝ,
+              ((fun _ : ℝ => c) x) ^ (p.γ * (2 : ℝ)) * psi.weight x :=
+  Lemma_2_5.constant_function_witness_unit p
+    (by norm_num : (1 : ℝ) < 2) hc
 
 /-- A real constant-source branch of the weighted resolvent-gradient estimate.
 It only assumes that the elliptic source `u^γ` is pointwise constant, so `Psi`
