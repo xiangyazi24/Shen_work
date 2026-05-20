@@ -1346,6 +1346,46 @@ theorem Lemma_2_5.constant_source_witness
       (pExp := pExp) (gamma := gamma) (l := l) (mu := mu) (u := u) (a := a)
       (C := 1) hpExp hgamma hl hu_nonneg hsource (by norm_num) psi hint
 
+/-- CM-parameter unit-resolvent version of the constant-source branch of
+Lemma 2.5, without assuming the full Lemma 2.5 theorem. -/
+theorem Lemma_2_5.constant_source_witness_unit
+    (p : CMParams) {pExp : ℝ} (hpExp : 1 < pExp)
+    {u : ℝ → ℝ} (hu_nonneg : ∀ x, 0 ≤ u x)
+    {a : ℝ} (hsource : ∀ x, (u x) ^ p.γ = a) :
+    ∃ C > 0, ∀ psi : ExponentialWeight,
+      Integrable (fun x : ℝ => (u x) ^ (p.γ * pExp) * psi.weight x) →
+        Integrable
+          (fun x =>
+            |deriv
+              (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^
+                pExp * psi.weight x) ∧
+          ∫ x : ℝ,
+              |deriv
+                (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^
+                  pExp * psi.weight x
+            ≤ C * ∫ x : ℝ, (u x) ^ (p.γ * pExp) * psi.weight x :=
+  Lemma_2_5.constant_source_witness hpExp
+    (lt_of_lt_of_le one_pos p.hγ) one_pos one_pos hu_nonneg hsource
+
+/-- L² unit-resolvent version of the constant-source branch of Lemma 2.5. -/
+theorem Lemma_2_5.constant_source_witness_unit_L2
+    (p : CMParams) {u : ℝ → ℝ} (hu_nonneg : ∀ x, 0 ≤ u x)
+    {a : ℝ} (hsource : ∀ x, (u x) ^ p.γ = a) :
+    ∃ C > 0, ∀ psi : ExponentialWeight,
+      Integrable (fun x : ℝ => (u x) ^ (p.γ * (2 : ℝ)) * psi.weight x) →
+        Integrable
+          (fun x =>
+            |deriv
+              (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^
+                (2 : ℝ) * psi.weight x) ∧
+          ∫ x : ℝ,
+              |deriv
+                (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^
+                  (2 : ℝ) * psi.weight x
+            ≤ C * ∫ x : ℝ, (u x) ^ (p.γ * (2 : ℝ)) * psi.weight x :=
+  Lemma_2_5.constant_source_witness_unit p
+    (by norm_num : (1 : ℝ) < 2) hu_nonneg hsource
+
 theorem Lemma_2_5.weighted_resolvent_gradient
     (h : Lemma_2_5)
     {pExp gamma l mu : ℝ}
