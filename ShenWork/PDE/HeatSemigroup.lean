@@ -13,6 +13,7 @@
   3. L^p → L^q smoothing estimates (Lemma 2.1)
   4. Gradient estimates
 -/
+import Mathlib.Analysis.Calculus.ParametricIntegral
 import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
 import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 import Mathlib.Analysis.SpecialFunctions.MulExpNegMulSq
@@ -707,6 +708,99 @@ lemma heatKernel_mul_bounded_integrable {t : ℝ} (ht : 0 < t) (x : ℝ)
     MeasureTheory.Integrable (fun y => heatKernel t (x - y) * f y) :=
   (heatKernel_translated_integrable ht x).mul_bdd hf_meas
     (Filter.Eventually.of_forall fun y => by simpa [Real.norm_eq_abs] using hf y)
+
+/-- The translated heat kernel times an `L¹` input is integrable. -/
+lemma heatKernel_mul_integrable_of_integrable
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    MeasureTheory.Integrable (fun y : ℝ => heatKernel t (x - y) * f y) := by
+  have hkernel_meas :
+      MeasureTheory.AEStronglyMeasurable
+        (fun y : ℝ => heatKernel t (x - y)) MeasureTheory.volume :=
+    (heatKernel_translated_integrable ht x).aestronglyMeasurable
+  have hkernel_bound :
+      ∀ y : ℝ, ‖heatKernel t (x - y)‖ ≤ 1 / Real.sqrt (4 * Real.pi * t) := by
+    intro y
+    rw [Real.norm_eq_abs, abs_of_nonneg (heatKernel_nonneg ht (x - y))]
+    exact heatKernel_pointwise_bound ht (x - y)
+  simpa [mul_comm] using
+    hf_int.mul_bdd hkernel_meas
+      (Filter.Eventually.of_forall hkernel_bound)
+
+/-- Spatial derivative formula for the heat semigroup on `L¹` inputs. -/
+theorem heatSemigroup_hasDerivAt
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    HasDerivAt (fun z : ℝ => heatSemigroup t f z)
+      (∫ y : ℝ, deriv (fun z : ℝ => heatKernel t (z - y)) x * f y) x := by
+  let F : ℝ → ℝ → ℝ := fun z y => heatKernel t (z - y) * f y
+  let F' : ℝ → ℝ → ℝ :=
+    fun z y => deriv (fun w : ℝ => heatKernel t (w - y)) z * f y
+  let C : ℝ :=
+    ((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+      (Real.sqrt (1 / (4 * t)))⁻¹
+  let bound : ℝ → ℝ := fun y => C * |f y|
+  have hs : Set.univ ∈ 𝓝 x := by simp
+  have hF_meas :
+      ∀ᶠ z in 𝓝 x,
+        MeasureTheory.AEStronglyMeasurable (F z) MeasureTheory.volume := by
+    filter_upwards with z
+    exact (heatKernel_mul_integrable_of_integrable ht z hf_int).aestronglyMeasurable
+  have hF_int : MeasureTheory.Integrable (F x) MeasureTheory.volume := by
+    exact heatKernel_mul_integrable_of_integrable ht x hf_int
+  have hF'_meas :
+      MeasureTheory.AEStronglyMeasurable (F' x) MeasureTheory.volume := by
+    exact (heatKernel_deriv_mul_integrable_of_integrable ht x hf_int).aestronglyMeasurable
+  have h_bound : ∀ᵐ y ∂MeasureTheory.volume,
+      ∀ z ∈ (Set.univ : Set ℝ), ‖F' z y‖ ≤ bound y := by
+    filter_upwards with y z _hz
+    have hpoint := heatKernel_deriv_translated_pointwise_bound ht z y
+    change ‖deriv (fun w : ℝ => heatKernel t (w - y)) z * f y‖ ≤ C * |f y|
+    rw [norm_mul, Real.norm_eq_abs]
+    exact mul_le_mul_of_nonneg_right
+      (by simpa [Real.norm_eq_abs, C] using hpoint)
+      (abs_nonneg _)
+  have hbound_int : MeasureTheory.Integrable bound MeasureTheory.volume := by
+    dsimp [bound]
+    exact (hf_int.norm).const_mul C
+  have h_diff : ∀ᵐ y ∂MeasureTheory.volume,
+      ∀ z ∈ (Set.univ : Set ℝ), HasDerivAt (fun z' : ℝ => F z' y) (F' z y) z := by
+    filter_upwards with y z _hz
+    dsimp [F, F']
+    simpa [deriv_heatKernel_translated_left ht z y] using
+      (heatKernel_translated_hasDerivAt_left ht z y).mul_const (f y)
+  simpa [heatSemigroup, F, F'] using
+    (hasDerivAt_integral_of_dominated_loc_of_deriv_le
+      (μ := MeasureTheory.volume) (bound := bound) (F := F) (F' := F')
+      (x₀ := x) (s := Set.univ)
+      hs hF_meas hF_int hF'_meas h_bound hbound_int h_diff).2
+
+/-- Derivative formula for the heat semigroup on `L¹` inputs. -/
+theorem deriv_heatSemigroup
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    deriv (fun z : ℝ => heatSemigroup t f z) x =
+      ∫ y : ℝ, deriv (fun z : ℝ => heatKernel t (z - y)) x * f y :=
+  (heatSemigroup_hasDerivAt ht x hf_int).deriv
+
+/-- Spatial derivative formula for the modified heat semigroup on `L¹` inputs. -/
+theorem modifiedSemigroup_hasDerivAt
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    HasDerivAt (fun z : ℝ => modifiedSemigroup t f z)
+      (Real.exp (-t) *
+        ∫ y : ℝ, deriv (fun z : ℝ => heatKernel t (z - y)) x * f y) x := by
+  unfold modifiedSemigroup
+  exact (heatSemigroup_hasDerivAt ht x hf_int).const_mul (Real.exp (-t))
+
+/-- Derivative formula for the modified heat semigroup on `L¹` inputs. -/
+theorem deriv_modifiedSemigroup
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    deriv (fun z : ℝ => modifiedSemigroup t f z) x =
+      Real.exp (-t) *
+        ∫ y : ℝ, deriv (fun z : ℝ => heatKernel t (z - y)) x * f y :=
+  (modifiedSemigroup_hasDerivAt ht x hf_int).deriv
 
 /-! ## Semigroup estimates (Lemma 2.1 of the paper) -/
 

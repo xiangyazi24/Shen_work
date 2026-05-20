@@ -173,7 +173,8 @@ and stability proofs.  The next phase is:
   comparison principle.
 - `ShenWork/PDE/HeatSemigroup.lean`: heat-kernel positivity/mass, pointwise
   bounds, derivative-kernel bounds, linearity, `L∞` decay, `L¹ → L∞`
-  smoothing, derivative-kernel `L¹ → L∞` smoothing, and contraction estimates.
+  smoothing, derivative-kernel `L¹ → L∞` smoothing, heat/modified semigroup
+  derivative formulas, and contraction estimates.
 - `ShenWork/PDE/MildSolution.lean`: pointwise Duhamel/contraction estimates and
   `abstract_mild_fixed_point`.
 - `ShenWork/PDE/TravelingWaveConstruction.lean`: true logistic profile facts.
