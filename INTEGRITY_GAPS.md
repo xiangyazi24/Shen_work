@@ -672,6 +672,14 @@ projection theorem wrappers have been removed.
 - `Theorem_1_1.of_raw_frozen_stationary_speed_branches`: raw fixed-point bridge
   that derives the auxiliary `0 < c` input from `cStarLower p < c` in the
   negative branch and from `2 < c` in the positive branch
+- `NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_speed_bridge_data`,
+  `PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_speed_bridge_data`,
+  and `Theorem_1_1.of_fixed_point_construction_branches`: construction-level
+  bridges that use the actual fixed point, trap-set continuity, monotonicity,
+  tail bounds, and right-end limits from `FrozenWaveMapConstruction`.  They
+  keep stationarity, left-end convergence, the sharp paper upper bound, and
+  right-tail asymptotics as explicit fixed-point obligations, so they do not
+  count as a completed Theorem 1.1 proof.
 - `InWaveTrapSet.tendsto_atTop_zero`,
   `InWaveTrapSet.frozenElliptic_tendsto_atTop_zero`,
   `InMonotoneWaveTrapSet.tendsto_atTop_zero`,

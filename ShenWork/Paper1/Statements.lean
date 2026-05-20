@@ -8837,6 +8837,135 @@ theorem ShenUpperBoundPositive.inWaveTrapSet
     InWaveTrapSet (kappa c) (MChi p) U :=
   (ShenUpperBoundPositive.hasWaveUpperTailBound hχ_nonneg hχ_lt h).inWaveTrapSet hU
 
+/-- Fixed-point construction bridge for the negative-sensitivity branch.  The
+Schauder construction supplies the trap membership and right-end limits; the
+remaining facts here are the genuine fixed-point obligations not contained in
+`FrozenWaveMapConstruction` itself. -/
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_speed_bridge_data
+    {p : CMParams} {c κ₀ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₀ κtilde D)
+    (hstat :
+      ∀ U : ℝ → ℝ,
+        InMonotoneWaveTrapSet (kappa c) 1 U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) 1
+            (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U →
+            ∀ x, frozenWaveOperator p c U U x = 0)
+    (hlim_bot :
+      ∀ U : ℝ → ℝ,
+        InMonotoneWaveTrapSet (kappa c) 1 U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) 1
+            (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U →
+            Tendsto U atBot (𝓝 1))
+    (hVmono :
+      ∀ U : ℝ → ℝ,
+        InMonotoneWaveTrapSet (kappa c) 1 U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) 1
+            (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U →
+            ∀ x, deriv (frozenElliptic p U) x ≤ 0)
+    (hupper :
+      ∀ U : ℝ → ℝ,
+        InMonotoneWaveTrapSet (kappa c) 1 U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) 1
+            (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U →
+            ShenUpperBoundNegative c U)
+    (htail :
+      ∀ U : ℝ → ℝ,
+        InMonotoneWaveTrapSet (kappa c) 1 U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) 1
+            (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U →
+            ∀ κ₁, kappa c < κ₁ →
+              κ₁ <
+                min ((1 + p.α) * kappa c)
+                  (min (p.m * kappa c + 1 / 2) 1) →
+              HasWaveRightTailAsymptotic c κ₁ U) :
+    ∃ U : ℝ → ℝ,
+      HasWaveUpperTailBound p c U ∧
+        Continuous U ∧
+        (∀ x, frozenWaveOperator p c U U x = 0) ∧
+        Tendsto U atBot (𝓝 1) ∧
+        Tendsto U atTop (𝓝 0) ∧
+        (∀ x, deriv U x ≤ 0) ∧
+        (∀ x, deriv (frozenElliptic p U) x ≤ 0) ∧
+        ShenUpperBoundNegative c U ∧
+        ∀ κ₁, kappa c < κ₁ →
+          κ₁ <
+            min ((1 + p.α) * kappa c)
+              (min (p.m * kappa c + 1 / 2) 1) →
+          HasWaveRightTailAsymptotic c κ₁ U := by
+  rcases h.exists_fixed_limit_with_atTop_limits with
+    ⟨U, hU, haux, _hanti, hU_top, _hV_top⟩
+  have hupperU : ShenUpperBoundNegative c U := hupper U hU haux
+  have htrapM : InMonotoneWaveTrapSet (kappa c) (MChi p) U := by
+    simpa [h.MChi_eq_one] using hU
+  exact
+    ⟨U,
+      htrapM.hasWaveUpperTailBound_of_pos hupperU.pos,
+      hU.trap.cunif_bdd.1,
+      hstat U hU haux,
+      hlim_bot U hU haux,
+      hU_top,
+      hU.deriv_nonpos,
+      hVmono U hU haux,
+      hupperU,
+      htail U hU haux⟩
+
+/-- Fixed-point construction bridge for the positive-sensitivity branch.  The
+construction supplies trap membership and right-end limits; stationarity,
+left-end convergence, the sharp upper bound, and the right-tail asymptotics
+remain explicit fixed-point obligations. -/
+theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_speed_bridge_data
+    {p : CMParams} {c κ₀ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₀ κtilde D)
+    (hstat :
+      ∀ U : ℝ → ℝ,
+        InWaveTrapSet (kappa c) (MChi p) U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) (MChi p)
+            (fun u => InWaveTrapSet (kappa c) (MChi p) u) U U →
+            ∀ x, frozenWaveOperator p c U U x = 0)
+    (hlim_bot :
+      ∀ U : ℝ → ℝ,
+        InWaveTrapSet (kappa c) (MChi p) U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) (MChi p)
+            (fun u => InWaveTrapSet (kappa c) (MChi p) u) U U →
+            Tendsto U atBot (𝓝 1))
+    (hupper :
+      ∀ U : ℝ → ℝ,
+        InWaveTrapSet (kappa c) (MChi p) U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) (MChi p)
+            (fun u => InWaveTrapSet (kappa c) (MChi p) u) U U →
+            ShenUpperBoundPositive p c U)
+    (htail :
+      ∀ U : ℝ → ℝ,
+        InWaveTrapSet (kappa c) (MChi p) U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) (MChi p)
+            (fun u => InWaveTrapSet (kappa c) (MChi p) u) U U →
+            ∀ κ₁, kappa c < κ₁ →
+              κ₁ <
+                min ((1 + p.α) * kappa c)
+                  (min (p.m * kappa c + 1 / 2) 1) →
+              HasWaveRightTailAsymptotic c κ₁ U) :
+    ∃ U : ℝ → ℝ,
+      Continuous U ∧
+        (∀ x, frozenWaveOperator p c U U x = 0) ∧
+        Tendsto U atBot (𝓝 1) ∧
+        Tendsto U atTop (𝓝 0) ∧
+        ShenUpperBoundPositive p c U ∧
+        ∀ κ₁, kappa c < κ₁ →
+          κ₁ <
+            min ((1 + p.α) * kappa c)
+              (min (p.m * kappa c + 1 / 2) 1) →
+          HasWaveRightTailAsymptotic c κ₁ U := by
+  rcases h.exists_fixed_limit_with_atTop_limits with
+    ⟨U, hU, haux, hU_top, _hV_top⟩
+  exact
+    ⟨U,
+      hU.cunif_bdd.1,
+      hstat U hU haux,
+      hlim_bot U hU haux,
+      hU_top,
+      hupper U hU haux,
+      htail U hU haux⟩
+
 /-- The admissible extra right-tail decay rate in Paper1 Remark 4.3:
 `0 < η < min {ακ, (m-1)κ+1/2, 1-κ}`. -/
 def Remark43TailRateBound (p : CMParams) (c eta : ℝ) : Prop :=
@@ -11545,6 +11674,64 @@ theorem Theorem_1_1.of_raw_frozen_stationary_speed_branches
     have hc_pos : 0 < c := by linarith
     exact
       ⟨U, hc_pos, hU_cont, hstat, hlim_bot, hlim_top, hupper, htail⟩
+
+/-- Theorem 1.1 bridge from the Section 4 fixed-point construction.  This
+theorem deliberately keeps the fixed-point stationarity, left-end limit, upper
+bound, and right-tail asymptotic obligations explicit; the construction itself
+is used only for the fixed point, trap-set regularity, monotonicity, and
+right-end limits. -/
+theorem Theorem_1_1.of_fixed_point_construction_branches
+    (hneg :
+      ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
+        ∀ c : ℝ, cStarLower p < c →
+          ∃ κ₀ κtilde D : ℝ,
+            let trap := fun u => InMonotoneWaveTrapSet (kappa c) 1 u
+            let aux := fun U =>
+              FrozenAuxiliaryLimitOutput p c (kappa c) 1 trap U U
+            NegativeSensitivityWaveFixedPointConstruction p c κ₀ κtilde D ∧
+              (∀ U, trap U → aux U →
+                ∀ x, frozenWaveOperator p c U U x = 0) ∧
+              (∀ U, trap U → aux U → Tendsto U atBot (𝓝 1)) ∧
+              (∀ U, trap U → aux U →
+                ∀ x, deriv (frozenElliptic p U) x ≤ 0) ∧
+              (∀ U, trap U → aux U → ShenUpperBoundNegative c U) ∧
+              ∀ U, trap U → aux U →
+                ∀ κ₁, kappa c < κ₁ →
+                  κ₁ <
+                    min ((1 + p.α) * kappa c)
+                      (min (p.m * kappa c + 1 / 2) 1) →
+                  HasWaveRightTailAsymptotic c κ₁ U)
+    (hpos :
+      ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+        0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+        ∀ c : ℝ, 2 < c →
+          ∃ κ₀ κtilde D : ℝ,
+            let trap := fun u => InWaveTrapSet (kappa c) (MChi p) u
+            let aux := fun U =>
+              FrozenAuxiliaryLimitOutput p c (kappa c) (MChi p) trap U U
+            PositiveSensitivityWaveFixedPointConstruction p c κ₀ κtilde D ∧
+              (∀ U, trap U → aux U →
+                ∀ x, frozenWaveOperator p c U U x = 0) ∧
+              (∀ U, trap U → aux U → Tendsto U atBot (𝓝 1)) ∧
+              (∀ U, trap U → aux U → ShenUpperBoundPositive p c U) ∧
+              ∀ U, trap U → aux U →
+                ∀ κ₁, kappa c < κ₁ →
+                  κ₁ <
+                    min ((1 + p.α) * kappa c)
+                      (min (p.m * kappa c + 1 / 2) 1) →
+                  HasWaveRightTailAsymptotic c κ₁ U) :
+    Theorem_1_1 := by
+  refine Theorem_1_1.of_raw_frozen_stationary_speed_branches ?_ ?_
+  · intro p halpha hχ c hc
+    rcases hneg p halpha hχ c hc with
+      ⟨κ₀, κtilde, D, hconstruct, hstat, hlim_bot, hVmono, hupper, htail⟩
+    exact hconstruct.exists_fixed_limit_with_speed_bridge_data
+      hstat hlim_bot hVmono hupper htail
+  · intro p halpha hχ_nonneg hχ_small c hc
+    rcases hpos p halpha hχ_nonneg hχ_small c hc with
+      ⟨κ₀, κtilde, D, hconstruct, hstat, hlim_bot, hupper, htail⟩
+    exact hconstruct.exists_fixed_limit_with_speed_bridge_data
+      hstat hlim_bot hupper htail
 
 def StableWaveParameterRegime (p : CMParams) : Prop :=
   (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
