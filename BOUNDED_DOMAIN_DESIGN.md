@@ -380,3 +380,7 @@ The tiny interval-measure helper track is implemented in
 `constantModeProjection_preserves_mass`, `constantModeProjection_nonneg`, and
 `intervalAverage_const` from Mathlib primitives.  These are concrete helper
 facts, not Paper2 theorem wrappers and not semigroup estimate assumptions.
+The file also contains a zeroth-reflection heat-kernel helper,
+`neumannHeatKernel_zerothReflection`, with proved nonnegativity and evenness in
+the reflected variable.  This is not claimed to be the full interval Neumann
+heat semigroup.

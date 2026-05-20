@@ -109,7 +109,7 @@ For t > 0 and x, y ∈ [0,L]:
 where G is the Gaussian. The zeroth-order approximation uses just the
 first two terms (direct + one reflection), which already satisfies
 Neumann BC at x=0. -/
-def neumannHeatKernel_zerothReflection (L t x y : ℝ) : ℝ :=
+def neumannHeatKernel_zerothReflection (_L t x y : ℝ) : ℝ :=
   heatKernel t (x - y) + heatKernel t (x + y)
 
 /-- The zeroth-reflection Neumann kernel is nonneg. -/
