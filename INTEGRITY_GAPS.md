@@ -151,6 +151,14 @@ projection theorem wrappers have been removed.
   `e^{(Δ-I)t}`.  They use heat-kernel positivity, translated kernel mass one,
   and bounded measurable input data to prove pointwise `L∞` decay.
 - `Lemma_2_2_proved`, `Lemma_2_3_proved`, `Lemma_2_4_proved`
+- `Lemma_2_5_pointwise_bound`, `Lemma_2_5_attained_at_inv`,
+  `Lemma_2_5_sharp_bound`, and
+  `Lemma_2_5_pointwise_bound_le_larger_Psi_beta` (Paper2): direct
+  end-to-end bridges from the proved scalar Lemma 2.5 inequality to the
+  concrete `Psi_beta` equality case and monotonicity results.
+- `SupNormNonincreasingOn.of_forall_eq` (Paper2): an unconditional
+  constant-time branch of the Lemma 3.1 conclusion, separate from the false
+  arbitrary-API maximum-principle statement.
 - `Lemma_2_5_zero_function_branch`: a real zero-function branch of the
   weighted resolvent-gradient estimate, closing the integrability and integral
   inequality directly by `Psi_zero`
