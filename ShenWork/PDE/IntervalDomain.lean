@@ -10,6 +10,7 @@
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 import Mathlib.MeasureTheory.Integral.Bochner.Basic
+import ShenWork.PDE.HeatSemigroup
 
 open MeasureTheory Set
 
@@ -101,6 +102,34 @@ theorem intervalAverage_const {L c : ℝ} (hL : 0 < L) :
   unfold intervalAverage
   rw [intervalIntegral_const]
   field_simp [ne_of_gt hL]
+
+/-- The Neumann heat kernel on [0,L] via method of images (reflected kernel).
+For t > 0 and x, y ∈ [0,L]:
+  K_N(t, x, y) = G(t, x-y) + G(t, x+y) + G(t, 2L-x-y) + ...
+where G is the Gaussian. The zeroth-order approximation uses just the
+first two terms (direct + one reflection), which already satisfies
+Neumann BC at x=0. -/
+def neumannHeatKernel_zerothReflection (L t x y : ℝ) : ℝ :=
+  heatKernel t (x - y) + heatKernel t (x + y)
+
+/-- The zeroth-reflection Neumann kernel is nonneg. -/
+theorem neumannHeatKernel_zerothReflection_nonneg
+    {t : ℝ} (ht : 0 < t) (L x y : ℝ) :
+    0 ≤ neumannHeatKernel_zerothReflection L t x y := by
+  unfold neumannHeatKernel_zerothReflection
+  exact add_nonneg (heatKernel_nonneg ht _) (heatKernel_nonneg ht _)
+
+/-- The zeroth-reflection kernel is even in x: K(t, -x, y) = K(t, x, y).
+This symmetry implies the Neumann boundary condition ∂K/∂x|_{x=0} = 0. -/
+theorem neumannHeatKernel_zerothReflection_even
+    (L t x y : ℝ) :
+    neumannHeatKernel_zerothReflection L t (-x) y =
+      neumannHeatKernel_zerothReflection L t x y := by
+  unfold neumannHeatKernel_zerothReflection
+  rw [show -x - y = -(x + y) from by ring,
+    show -x + y = -(x - y) from by ring,
+    heatKernel_neg, heatKernel_neg]
+  ring
 
 end ShenWork.IntervalDomain
 
