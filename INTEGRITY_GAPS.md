@@ -335,6 +335,7 @@ projection theorem wrappers have been removed.
   through explicit Lemma 5.2
 - `remark51MPrime_nonneg_of_MChi_pos`,
   `remark52MTriplePrime_nonneg_of_MChi_pos`,
+  `Remark_5_2.nonincreasing_positive_profile_branch`,
   `Remark_5_2.nonincreasing_branch`,
   `Remark_5_2.monotoneTravelingWave_branch`, and
   `Remark_5_2_frozen_monotone_trap_proved`: real monotone-wave and frozen
@@ -342,6 +343,10 @@ projection theorem wrappers have been removed.
   speed-algebra route; it proves the displayed `M'''` denominator-normalized
   constant is nonnegative and then uses `U' ≤ 0` and `U > 0` to get
   `U'/U ≤ 0`.
+- `NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_remark52_log_derivative`:
+  applies the positive/nonincreasing profile branch to the constructed
+  negative-sensitivity fixed point without first packaging a full traveling
+  wave.
 - `Lemma_5_3_zero_difference_branch`, `Lemma_5_3_zero_source_branch`,
   `Lemma_5_3.self_difference_branch`, `Lemma_5_3.same_power_branch`, and the
   `Lemma_5_3.same_power_branch_*` CM/tail/stability specializations: the

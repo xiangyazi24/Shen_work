@@ -10966,12 +10966,11 @@ theorem Remark_5_2.log_derivative_bound
         remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) :=
   h p c sigma hsigma hχ hspeed U V hTW hbound
 
-theorem Remark_5_2.nonincreasing_branch
+theorem Remark_5_2.nonincreasing_positive_profile_branch
     {p : CMParams} {c sigma : ℝ}
     (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
-    (_hspeed : remark5SpeedCondition p c sigma)
-    {U V : ℝ → ℝ}
-    (hTW : IsTravelingWave p c U V)
+    {U : ℝ → ℝ}
+    (hU_pos : ∀ x, 0 < U x)
     (hbound : HasWaveUpperTailBound p c U)
     (hmono : ∀ x, deriv U x ≤ 0) :
     ∀ x : ℝ,
@@ -10989,8 +10988,22 @@ theorem Remark_5_2.nonincreasing_branch
     div_nonneg hnum hden.le
   intro x
   have hratio_nonpos : deriv U x / U x ≤ 0 :=
-    div_nonpos_of_nonpos_of_nonneg (hmono x) (hTW.U_pos x).le
+    div_nonpos_of_nonpos_of_nonneg (hmono x) (hU_pos x).le
   exact le_trans hratio_nonpos hrhs_nonneg
+
+theorem Remark_5_2.nonincreasing_branch
+    {p : CMParams} {c sigma : ℝ}
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (_hspeed : remark5SpeedCondition p c sigma)
+    {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hmono : ∀ x, deriv U x ≤ 0) :
+    ∀ x : ℝ,
+      deriv U x / U x ≤
+        remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) := by
+  exact Remark_5_2.nonincreasing_positive_profile_branch
+    hsigma hχ hTW.U_pos hbound hmono
 
 theorem Remark_5_2.monotoneTravelingWave_branch
     {p : CMParams} {c sigma : ℝ}
@@ -11024,6 +11037,35 @@ theorem Remark_5_2_frozen_monotone_trap_proved :
     hprofile.to_travelingWave
     (hprofile.hasWaveUpperTailBound_of_inMonotoneWaveTrapSet htrap)
     htrap.deriv_nonpos
+
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_remark52_log_derivative
+    {p : CMParams} {c κ₀ κtilde D sigma : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₀ κtilde D)
+    (hsigma : 0 < sigma)
+    (hupper :
+      ∀ U : ℝ → ℝ,
+        InMonotoneWaveTrapSet (kappa c) 1 U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) 1
+            (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U →
+            ShenUpperBoundNegative c U) :
+    ∃ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet (kappa c) 1 U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) 1
+          (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U ∧
+        ∀ x : ℝ,
+          deriv U x / U x ≤
+            remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) := by
+  rcases h.exists_fixed_limit with ⟨U, hU, haux⟩
+  have hupperU : ShenUpperBoundNegative c U := hupper U hU haux
+  have htrapM : InMonotoneWaveTrapSet (kappa c) (MChi p) U := by
+    simpa [h.MChi_eq_one] using hU
+  have hbound : HasWaveUpperTailBound p c U :=
+    htrapM.hasWaveUpperTailBound_of_pos hupperU.pos
+  have hχ_ne : p.χ ≠ 0 := ne_of_lt h.chi_neg
+  exact
+    ⟨U, hU, haux,
+      Remark_5_2.nonincreasing_positive_profile_branch
+        hsigma hχ_ne hupperU.pos hbound hU.deriv_nonpos⟩
 
 def Lemma_5_3 : Prop :=
   ∀ gamma M eta : ℝ,
