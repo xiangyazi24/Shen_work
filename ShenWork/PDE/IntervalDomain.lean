@@ -1631,6 +1631,114 @@ theorem intervalSemigroupOperator_L1_Linfty
         ∫ y, ‖f y‖ ∂ intervalMeasure L :=
         MeasureTheory.integral_const_mul _ _
 
+/-- The interval helper kernel times an `L¹` interval input is integrable. -/
+theorem intervalSemigroupOperator_mul_integrable_of_integrable
+    {L t : ℝ} (ht : 0 < t) (x : ℝ)
+    {f : ℝ → ℝ} (hf_int : Integrable f (intervalMeasure L)) :
+    Integrable
+      (fun y => normalizedZerothReflectionKernel L t x y * f y)
+      (intervalMeasure L) := by
+  have hkernel_int :
+      Integrable (fun y => normalizedZerothReflectionKernel L t x y)
+        (intervalMeasure L) := by
+    unfold intervalMeasure
+    exact (normalizedZerothReflectionKernel_integrable ht L x).mono_measure
+      Measure.restrict_le_self
+  have hkernel_bound :
+      ∀ y : ℝ, ‖normalizedZerothReflectionKernel L t x y‖ ≤
+        1 / Real.sqrt (4 * Real.pi * t) := by
+    intro y
+    rw [Real.norm_eq_abs,
+      abs_of_nonneg (normalizedZerothReflectionKernel_nonneg ht L x y)]
+    exact normalizedZerothReflectionKernel_pointwise_bound ht L x y
+  simpa [mul_comm] using
+    hf_int.mul_bdd hkernel_int.aestronglyMeasurable
+      (Filter.Eventually.of_forall hkernel_bound)
+
+/-- The interval helper operator sends the zero input to zero. -/
+theorem intervalSemigroupOperator_zero (L t x : ℝ) :
+    intervalSemigroupOperator L t (fun _ => 0) x = 0 := by
+  simp [intervalSemigroupOperator]
+
+/-- Additivity for the interval helper operator on `L¹` interval inputs. -/
+theorem intervalSemigroupOperator_add
+    {L t : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_int : Integrable f (intervalMeasure L))
+    (hg_int : Integrable g (intervalMeasure L)) (x : ℝ) :
+    intervalSemigroupOperator L t (fun y => f y + g y) x =
+      intervalSemigroupOperator L t f x + intervalSemigroupOperator L t g x := by
+  have hf_kernel :=
+    intervalSemigroupOperator_mul_integrable_of_integrable ht x hf_int
+  have hg_kernel :=
+    intervalSemigroupOperator_mul_integrable_of_integrable ht x hg_int
+  simpa [intervalSemigroupOperator, mul_add] using
+    MeasureTheory.integral_add hf_kernel hg_kernel
+
+/-- Scalar multiplication for the interval helper operator. -/
+theorem intervalSemigroupOperator_const_mul
+    (a : ℝ) (L t : ℝ) (f : ℝ → ℝ) (x : ℝ) :
+    intervalSemigroupOperator L t (fun y => a * f y) x =
+      a * intervalSemigroupOperator L t f x := by
+  unfold intervalSemigroupOperator
+  rw [show
+      (fun y : ℝ => normalizedZerothReflectionKernel L t x y * (a * f y)) =
+        (fun y : ℝ => a *
+          (normalizedZerothReflectionKernel L t x y * f y)) by
+      ext y
+      ring]
+  exact MeasureTheory.integral_const_mul _ _
+
+/-- Negation for the interval helper operator. -/
+theorem intervalSemigroupOperator_neg
+    (L t : ℝ) (f : ℝ → ℝ) (x : ℝ) :
+    intervalSemigroupOperator L t (fun y => -f y) x =
+      -intervalSemigroupOperator L t f x := by
+  simpa using intervalSemigroupOperator_const_mul (-1) L t f x
+
+/-- Subtraction for the interval helper operator on `L¹` interval inputs. -/
+theorem intervalSemigroupOperator_sub
+    {L t : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_int : Integrable f (intervalMeasure L))
+    (hg_int : Integrable g (intervalMeasure L)) (x : ℝ) :
+    intervalSemigroupOperator L t (fun y => f y - g y) x =
+      intervalSemigroupOperator L t f x - intervalSemigroupOperator L t g x := by
+  have hf_kernel :=
+    intervalSemigroupOperator_mul_integrable_of_integrable ht x hf_int
+  have hg_kernel :=
+    intervalSemigroupOperator_mul_integrable_of_integrable ht x hg_int
+  simpa [intervalSemigroupOperator, mul_sub] using
+    MeasureTheory.integral_sub hf_kernel hg_kernel
+
+/-- Difference `L¹ → L∞` smoothing for the interval helper operator. -/
+theorem intervalSemigroupOperator_diff_L1_Linfty
+    {L t : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_int : Integrable f (intervalMeasure L))
+    (hg_int : Integrable g (intervalMeasure L)) (x : ℝ) :
+    ‖intervalSemigroupOperator L t f x - intervalSemigroupOperator L t g x‖ ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) *
+        ∫ y, ‖f y - g y‖ ∂ intervalMeasure L := by
+  have hdiff_int : Integrable (fun y : ℝ => f y - g y) (intervalMeasure L) :=
+    hf_int.sub hg_int
+  have h :=
+    intervalSemigroupOperator_L1_Linfty
+      (L := L) (t := t) ht (f := fun y : ℝ => f y - g y) hdiff_int x
+  rwa [intervalSemigroupOperator_sub ht hf_int hg_int x] at h
+
+/-- Absolute-value form of interval helper difference smoothing. -/
+theorem intervalSemigroupOperator_diff_L1_Linfty_abs
+    {L t : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_int : Integrable f (intervalMeasure L))
+    (hg_int : Integrable g (intervalMeasure L)) (x : ℝ) :
+    |intervalSemigroupOperator L t f x - intervalSemigroupOperator L t g x| ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) *
+        ∫ y, |f y - g y| ∂ intervalMeasure L := by
+  simpa [Real.norm_eq_abs] using
+    intervalSemigroupOperator_diff_L1_Linfty ht hf_int hg_int x
+
 /-- `L∞` bound for the interval helper operator. -/
 theorem intervalSemigroupOperator_Linfty_bound
     {L t : ℝ} (ht : 0 < t)
