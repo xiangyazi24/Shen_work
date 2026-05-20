@@ -281,3 +281,57 @@ smoothing package, or Paper2/Paper3 theorem wrappers.
 
 No Lean theorem files were modified and no build was run during this proposal
 correction loop.
+
+## Direct Claude Three-Round Rewrite 2026-05-20
+
+Xiang again paused ordinary Lean theorem work and required the proposal review
+to be completed directly with Claude, not by asking Xiang to paste messages.
+Codex therefore sent three explicit messages to the active Claude-side agent
+and waited for each response before continuing.
+
+### Round 1: Obsolete v1
+
+Claude rechecked `.tmp/bounded-domain-proposal.md`.
+
+Changed files: none.
+
+Decision: v1 is already an obsolete pointer. It directs readers to
+`BOUNDED_DOMAIN_DESIGN.md` / `.tmp/bounded-domain-proposal-v4.md` and explicitly
+rejects the old `NeumannPDEOps` / theorem-sized-field route.
+
+### Round 2: Conditional Track
+
+Claude rechecked `.tmp/bounded-domain-proposal-v2.md`,
+`.tmp/bounded-domain-proposal-v3.md`, `.tmp/bounded-domain-proposal-v4.md`, and
+`BOUNDED_DOMAIN_DESIGN.md`.
+
+Changed files:
+
+- `.tmp/bounded-domain-proposal-v2.md`
+
+Decision: v2 still contained a migration-plan paragraph proposing
+`SmoothBoundedDomain` / `AssumedNeumannSemigroupEstimates` plus wrapper lemmas.
+Claude rewrote it so the default is no theorem-source conditional namespace:
+smooth-boundary and Neumann semigroup material remain documentation unless
+Xiang explicitly asks for an encoded assumption layer; any future encoded layer
+must use exact analytic hypotheses, unmistakable `from_assumed_*` names, never
+`_proved`, never paper-lemma-looking wrappers, and never be counted as theorem
+progress.
+
+### Round 3: Concrete Path
+
+Claude rechecked `.tmp/bounded-domain-proposal-v4.md` and
+`BOUNDED_DOMAIN_DESIGN.md`.
+
+Changed files: none.
+
+Decision: v4 / `BOUNDED_DOMAIN_DESIGN.md` already keep the concrete path
+narrow: definition-level `IntervalDomain` helper theorems with temporary axiom
+audits. They do not claim a full interval Neumann heat semigroup, a semigroup
+positivity/contraction/smoothing package, or Paper2/Paper3 theorem-wrapper
+progress. The `First Helper Status` wording in `BOUNDED_DOMAIN_DESIGN.md`
+already says those are only helper facts for named concrete kernels/operators
+and do not relax the v4 guardrails.
+
+No Lean theorem files were modified and no build was run during this proposal
+rewrite loop.

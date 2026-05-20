@@ -210,11 +210,15 @@ audit.
 
 ### Round 2: Conditional namespace
 
-- Introduce `SmoothBoundedDomain` and `AssumedNeumannSemigroupEstimates` in a new
-  namespace/file.
+- Do not introduce a theorem-source conditional namespace by default.
+- Keep smooth-boundary and Neumann semigroup material as documentation unless
+  Xiang explicitly asks for an encoded assumption layer.
+- If encoded later, use exact analytic hypotheses and unmistakable
+  `from_assumed_*` consequence names only.
 - Do not refactor Paper2/Paper3 yet.
-- Prove only wrapper lemmas that clearly preserve assumptions.
-- Add comments that this track is not audit-passing end-to-end.
+- Do not prove paper-lemma-looking wrappers from assumptions.
+- Add comments that this track is not theorem progress and is not audit-passing
+  end-to-end.
 
 ### Round 3: Concrete interval target and paper connection gate
 
