@@ -168,6 +168,14 @@ theorem modifiedSemigroup_Linfty_bound {f : ℝ → ℝ} {M : ℝ}
   rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
   exact mul_le_mul_of_nonneg_left (heatSemigroup_abs_bound hf ht hM hf_meas x) (Real.exp_nonneg _)
 
+theorem modifiedSemigroup_Linfty_decay {f : ℝ → ℝ} {M : ℝ}
+    (hf : ∀ x, |f x| ≤ M) {t : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)
+    (x : ℝ) :
+    |modifiedSemigroup t f x| ≤ M * Real.exp (-t) :=
+  (modifiedSemigroup_Linfty_bound hf ht hM hf_meas x).trans
+    (by rw [mul_comm])
+
 lemma heatKernel_zero (x : ℝ) : heatKernel 0 x = 0 := by
   unfold heatKernel
   simp [mul_zero, Real.sqrt_zero, div_zero]
