@@ -845,6 +845,90 @@ theorem deriv_modifiedSemigroup_L1_Linfty_smoothing_abs
   rw [← MeasureTheory.integral_const_mul]
   exact modifiedHeatKernel_deriv_convolution_L1_Linfty_smoothing_abs ht x hf_int
 
+/-- Difference gradient bound for the heat semigroup with bounded pointwise difference. -/
+theorem deriv_heatSemigroup_diff_bounded_abs_le {t M : ℝ}
+    (ht : 0 < t) (hM : 0 ≤ M) {f g : ℝ → ℝ}
+    (hfg : ∀ y, |f y - g y| ≤ M) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f)
+    (hg_int : MeasureTheory.Integrable g) :
+    |deriv (fun z : ℝ => heatSemigroup t f z) x -
+        deriv (fun z : ℝ => heatSemigroup t g z) x| ≤
+      (2 / Real.sqrt (4 * Real.pi * t)) * M := by
+  rw [deriv_heatSemigroup ht x hf_int, deriv_heatSemigroup ht x hg_int]
+  have hf_kernel :
+      MeasureTheory.Integrable
+        (fun y : ℝ => deriv (fun z : ℝ => heatKernel t (z - y)) x * f y) :=
+    heatKernel_deriv_mul_integrable_of_integrable ht x hf_int
+  have hg_kernel :
+      MeasureTheory.Integrable
+        (fun y : ℝ => deriv (fun z : ℝ => heatKernel t (z - y)) x * g y) :=
+    heatKernel_deriv_mul_integrable_of_integrable ht x hg_int
+  rw [← MeasureTheory.integral_sub hf_kernel hg_kernel]
+  simpa [mul_sub] using
+    heatKernel_deriv_convolution_diff_bounded_abs_le ht hM hfg x
+
+/-- Difference gradient bound for the modified heat semigroup with bounded pointwise difference. -/
+theorem deriv_modifiedSemigroup_diff_bounded_abs_le {t M : ℝ}
+    (ht : 0 < t) (hM : 0 ≤ M) {f g : ℝ → ℝ}
+    (hfg : ∀ y, |f y - g y| ≤ M) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f)
+    (hg_int : MeasureTheory.Integrable g) :
+    |deriv (fun z : ℝ => modifiedSemigroup t f z) x -
+        deriv (fun z : ℝ => modifiedSemigroup t g z) x| ≤
+      Real.exp (-t) * ((2 / Real.sqrt (4 * Real.pi * t)) * M) := by
+  rw [deriv_modifiedSemigroup ht x hf_int,
+    deriv_modifiedSemigroup ht x hg_int, ← mul_sub, abs_mul,
+    abs_of_nonneg (Real.exp_nonneg _)]
+  have hheat :=
+    deriv_heatSemigroup_diff_bounded_abs_le ht hM hfg x hf_int hg_int
+  rw [deriv_heatSemigroup ht x hf_int, deriv_heatSemigroup ht x hg_int] at hheat
+  exact mul_le_mul_of_nonneg_left hheat (Real.exp_nonneg _)
+
+/-- `L¹ → L∞` gradient-difference smoothing for the heat semigroup. -/
+theorem deriv_heatSemigroup_diff_L1_Linfty_smoothing_abs
+    {f g : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f)
+    (hg_int : MeasureTheory.Integrable g) :
+    |deriv (fun z : ℝ => heatSemigroup t f z) x -
+        deriv (fun z : ℝ => heatSemigroup t g z) x| ≤
+      (((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+        (Real.sqrt (1 / (4 * t)))⁻¹) *
+        ∫ y : ℝ, |f y - g y| := by
+  rw [deriv_heatSemigroup ht x hf_int, deriv_heatSemigroup ht x hg_int]
+  have hf_kernel :
+      MeasureTheory.Integrable
+        (fun y : ℝ => deriv (fun z : ℝ => heatKernel t (z - y)) x * f y) :=
+    heatKernel_deriv_mul_integrable_of_integrable ht x hf_int
+  have hg_kernel :
+      MeasureTheory.Integrable
+        (fun y : ℝ => deriv (fun z : ℝ => heatKernel t (z - y)) x * g y) :=
+    heatKernel_deriv_mul_integrable_of_integrable ht x hg_int
+  have hdiff_int : MeasureTheory.Integrable (fun y : ℝ => f y - g y) :=
+    hf_int.sub hg_int
+  rw [← MeasureTheory.integral_sub hf_kernel hg_kernel]
+  simpa [mul_sub] using
+    heatKernel_deriv_convolution_L1_Linfty_smoothing_abs
+      (f := fun y : ℝ => f y - g y) ht x hdiff_int
+
+/-- `L¹ → L∞` gradient-difference smoothing for the modified heat semigroup. -/
+theorem deriv_modifiedSemigroup_diff_L1_Linfty_smoothing_abs
+    {f g : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f)
+    (hg_int : MeasureTheory.Integrable g) :
+    |deriv (fun z : ℝ => modifiedSemigroup t f z) x -
+        deriv (fun z : ℝ => modifiedSemigroup t g z) x| ≤
+      Real.exp (-t) *
+        ((((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+          (Real.sqrt (1 / (4 * t)))⁻¹) *
+          ∫ y : ℝ, |f y - g y|) := by
+  rw [deriv_modifiedSemigroup ht x hf_int,
+    deriv_modifiedSemigroup ht x hg_int, ← mul_sub, abs_mul,
+    abs_of_nonneg (Real.exp_nonneg _)]
+  have hheat :=
+    deriv_heatSemigroup_diff_L1_Linfty_smoothing_abs ht x hf_int hg_int
+  rw [deriv_heatSemigroup ht x hf_int, deriv_heatSemigroup ht x hg_int] at hheat
+  exact mul_le_mul_of_nonneg_left hheat (Real.exp_nonneg _)
+
 /-! ## Semigroup estimates (Lemma 2.1 of the paper) -/
 
 /-- The comparison principle for the heat equation:
