@@ -388,5 +388,6 @@ and the bounded-input estimate `reflectedKernelIntegral_Linfty_bound`.
 It also defines the mass-normalized helper
 `normalizedZerothReflectionKernel` and proves its nonnegativity, evenness,
 whole-line mass-one identity, constant-input preservation, positivity
-preservation, bounded-input integrability, monotonicity, and `L∞` bound.  This
-is not claimed to be the full interval Neumann heat semigroup.
+preservation, bounded-input integrability, monotonicity, interval-bound
+preservation, and `L∞` bound.  This is not claimed to be the full interval
+Neumann heat semigroup.

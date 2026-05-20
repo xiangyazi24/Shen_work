@@ -308,6 +308,55 @@ theorem normalizedReflectedKernelIntegral_mono_bounded
     (normalizedZerothReflectionKernel_mul_bounded_integrable
       hg_bound hg_meas ht x)
 
+/-- Lower-bound preservation for the normalized reflected helper-kernel
+integral. -/
+theorem normalizedReflectedKernelIntegral_lower_bound
+    {f : ℝ → ℝ} {a M t : ℝ}
+    (ha : ∀ y, a ≤ f y)
+    (hf_bound : ∀ y, |f y| ≤ M)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (ht : 0 < t) (x : ℝ) :
+    a ≤ ∫ y, normalizedZerothReflectionKernel 0 t x y * f y := by
+  have hmono :
+      ∫ y, normalizedZerothReflectionKernel 0 t x y * (fun _ => a) y ≤
+        ∫ y, normalizedZerothReflectionKernel 0 t x y * f y := by
+    exact normalizedReflectedKernelIntegral_mono (fun y => ha y) ht x
+      ((normalizedZerothReflectionKernel_integrable ht 0 x).mul_const a)
+      (normalizedZerothReflectionKernel_mul_bounded_integrable
+        hf_bound hf_meas ht x)
+  simpa [normalizedZerothReflectionKernel_const_integral ht 0 x a] using hmono
+
+/-- Upper-bound preservation for the normalized reflected helper-kernel
+integral. -/
+theorem normalizedReflectedKernelIntegral_upper_bound
+    {f : ℝ → ℝ} {b M t : ℝ}
+    (hb : ∀ y, f y ≤ b)
+    (hf_bound : ∀ y, |f y| ≤ M)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (ht : 0 < t) (x : ℝ) :
+    ∫ y, normalizedZerothReflectionKernel 0 t x y * f y ≤ b := by
+  have hmono :
+      ∫ y, normalizedZerothReflectionKernel 0 t x y * f y ≤
+        ∫ y, normalizedZerothReflectionKernel 0 t x y * (fun _ => b) y := by
+    exact normalizedReflectedKernelIntegral_mono (fun y => hb y) ht x
+      (normalizedZerothReflectionKernel_mul_bounded_integrable
+        hf_bound hf_meas ht x)
+      ((normalizedZerothReflectionKernel_integrable ht 0 x).mul_const b)
+  simpa [normalizedZerothReflectionKernel_const_integral ht 0 x b] using hmono
+
+/-- Interval-bound preservation for the normalized reflected helper-kernel
+integral. -/
+theorem normalizedReflectedKernelIntegral_interval_bound
+    {f : ℝ → ℝ} {a b M t : ℝ}
+    (hlo : ∀ y, a ≤ f y) (hhi : ∀ y, f y ≤ b)
+    (hf_bound : ∀ y, |f y| ≤ M)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (ht : 0 < t) (x : ℝ) :
+    a ≤ ∫ y, normalizedZerothReflectionKernel 0 t x y * f y ∧
+      ∫ y, normalizedZerothReflectionKernel 0 t x y * f y ≤ b :=
+  ⟨normalizedReflectedKernelIntegral_lower_bound hlo hf_bound hf_meas ht x,
+    normalizedReflectedKernelIntegral_upper_bound hhi hf_bound hf_meas ht x⟩
+
 theorem normalizedReflectedKernelIntegral_Linfty_bound
     {f : ℝ → ℝ} {M : ℝ} (hf : ∀ y, |f y| ≤ M)
     {t : ℝ} (ht : 0 < t) (x : ℝ)
