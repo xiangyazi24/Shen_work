@@ -292,6 +292,10 @@ projection theorem wrappers have been removed.
   the weak Remark 1.6 threshold `(1.30c)`, including positivity, the
   min-half/sqrt smallness implication used by the linear Theorem 1.2 branch,
   and comparison with `2β - 1`.
+- `remark16StrongThreshold_sign_properties` (Paper2): direct sign algebra for
+  the strong Remark 1.6 thresholds `(1.30a)` and `(1.30b)`, with strict
+  positivity hypotheses for the first threshold and for the second threshold
+  when the exposed constant `K` is positive.
 - `Lemma_2_1_zero_output_branch`, `Lemma_2_2_zero_embedding_branch`,
   `Lemma_2_3_zero_divergence_branch`, and
   `Lemma_2_4_zero_fractional_divergence_branch` (Paper2): real

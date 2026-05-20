@@ -3290,6 +3290,74 @@ def remark16ChiStar2 (p : CM2Params) (C : Paper2Constants p) : ℝ :=
     (8 * p.b /
       (((p.N : ℝ) * p.γ - 2) * Theta_beta (2 * p.β - 1) * C.K))
 
+lemma remark16ChiStar1_pos
+    (p : CM2Params) (C : Paper2Constants p)
+    (hβ : 0 ≤ p.β) (hb : 0 < p.b)
+    (hdim : 2 < (p.N : ℝ) * p.γ) :
+    0 < remark16ChiStar1 p C := by
+  have hN_pos : 0 < (p.N : ℝ) := by
+    exact_mod_cast p.hN
+  have hnum_pos : 0 < (p.N : ℝ) * p.γ * p.b := by
+    nlinarith [hN_pos, p.hγ, hb]
+  have hpsi_nonneg : 0 ≤ Psi_beta p.β := Psi_beta_nonneg hβ
+  have hinner_pos : 0 < p.ν + Psi_beta p.β * C.K := by
+    have hmul_nonneg : 0 ≤ Psi_beta p.β * C.K :=
+      mul_nonneg hpsi_nonneg C.K_nonneg
+    linarith [p.hν, hmul_nonneg]
+  have hden_pos :
+      0 < ((p.N : ℝ) * p.γ - 2) *
+        (p.ν + Psi_beta p.β * C.K) :=
+    mul_pos (by linarith) hinner_pos
+  unfold remark16ChiStar1
+  exact div_pos hnum_pos hden_pos
+
+lemma remark16ChiStar2_nonneg
+    (p : CM2Params) (C : Paper2Constants p) :
+    0 ≤ remark16ChiStar2 p C := by
+  unfold remark16ChiStar2
+  exact Real.sqrt_nonneg _
+
+lemma remark16ChiStar2_pos_of_K_pos
+    (p : CM2Params) (C : Paper2Constants p)
+    (hβ : 1 ≤ p.β) (hb : 0 < p.b) (hK : 0 < C.K)
+    (hdim : 2 < (p.N : ℝ) * p.γ) :
+    0 < remark16ChiStar2 p C := by
+  have htheta_pos : 0 < Theta_beta (2 * p.β - 1) :=
+    Theta_beta_pos (by linarith)
+  have hden_pos :
+      0 <
+        (((p.N : ℝ) * p.γ - 2) *
+          Theta_beta (2 * p.β - 1) * C.K) := by
+    exact mul_pos (mul_pos (by linarith) htheta_pos) hK
+  have harg_pos :
+      0 <
+        8 * p.b /
+          (((p.N : ℝ) * p.γ - 2) *
+            Theta_beta (2 * p.β - 1) * C.K) := by
+    exact div_pos (by nlinarith) hden_pos
+  unfold remark16ChiStar2
+  exact Real.sqrt_pos.mpr harg_pos
+
+/-- Sign package for the two strong Remark 1.6 thresholds `(1.30a)` and
+`(1.30b)`.  The second threshold is nonnegative unconditionally because it is a
+square root; strict positivity additionally needs the exposed constant `K` to
+be positive. -/
+theorem remark16StrongThreshold_sign_properties :
+    (∀ p : CM2Params, ∀ C : Paper2Constants p,
+      0 ≤ p.β → 0 < p.b → 2 < (p.N : ℝ) * p.γ →
+        0 < remark16ChiStar1 p C) ∧
+    (∀ p : CM2Params, ∀ C : Paper2Constants p,
+      0 ≤ remark16ChiStar2 p C) ∧
+    (∀ p : CM2Params, ∀ C : Paper2Constants p,
+      1 ≤ p.β → 0 < p.b → 0 < C.K →
+        2 < (p.N : ℝ) * p.γ →
+          0 < remark16ChiStar2 p C) := by
+  exact ⟨
+    (fun p C hβ hb hdim => remark16ChiStar1_pos p C hβ hb hdim),
+    (fun p C => remark16ChiStar2_nonneg p C),
+    (fun p C hβ hb hK hdim =>
+      remark16ChiStar2_pos_of_K_pos p C hβ hb hK hdim)⟩
+
 /-- Paper2 Remark 1.6 threshold `(1.30c)`, identical to `χ_β`. -/
 def remark16ChiStarWeak (p : CM2Params) : ℝ :=
   2 * (2 * p.β - 1) / max 2 (p.γ * (p.N : ℝ))
