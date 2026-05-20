@@ -2919,6 +2919,36 @@ theorem frozenWaveOperator_upperBarrier_const_region_nonpos_self_neg
       p hχ hM (upperBarrier_cunif_bdd hM_nonneg)
       (fun y => upperBarrier_nonneg hM_nonneg y) hx hV_le
 
+theorem frozenElliptic_le_source_of_inWaveTrapSet_const_region_saturated
+    (p : CMParams) {κ M : ℝ} {u : ℝ → ℝ} {x : ℝ}
+    (hM : 1 ≤ M) (hu : InWaveTrapSet κ M u)
+    (hx : M < Real.exp (-κ * x))
+    (hsat : upperBarrier κ M x ≤ u x) :
+    frozenElliptic p u x ≤ (u x) ^ p.γ := by
+  have hM_pos : 0 < M := lt_of_lt_of_le zero_lt_one hM
+  have hM_nonneg : 0 ≤ M := hM_pos.le
+  have hV_M : frozenElliptic p u x ≤ M ^ p.γ :=
+    frozenElliptic_le_rpow_of_inWaveTrapSet p hM_pos hu x
+  have hW_x : upperBarrier κ M x = M :=
+    upperBarrier_eq_M_of_le_exp (le_of_lt hx)
+  have hM_le_u : M ≤ u x := by
+    simpa [hW_x] using hsat
+  have hMγ_le_uγ : M ^ p.γ ≤ (u x) ^ p.γ :=
+    Real.rpow_le_rpow hM_nonneg hM_le_u (by linarith [p.hγ])
+  exact le_trans hV_M hMγ_le_uγ
+
+theorem frozenWaveOperator_upperBarrier_const_region_nonpos_neg_of_saturated
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ ≤ 0) (hM : 1 ≤ M)
+    (hu : InWaveTrapSet κ M u)
+    {x : ℝ} (hx : M < Real.exp (-κ * x))
+    (hsat : upperBarrier κ M x ≤ u x) :
+    frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0 :=
+  frozenWaveOperator_upperBarrier_const_region_nonpos_of_elliptic_le_source
+    p hχ hM hu.cunif_bdd hu.nonneg hx
+    (frozenElliptic_le_source_of_inWaveTrapSet_const_region_saturated
+      p hM hu hx hsat)
+
 theorem lowerBarrierPlateau_mem_InWaveTrapSet_exp_xplus
     {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
     InWaveTrapSet κ
@@ -7570,6 +7600,85 @@ theorem Theorem_1_3.exists_threshold_with_uniqueness_at_speed_of_forall_kappaOne
           HasWaveRightTailAsymptotic c κ₁ U₂) →
         (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) :=
   h.uniqueness_package_of_forall_kappaOne_range_tail hp
+
+structure Paper1AnalyticData where
+  heatSemigroupEstimates : ∀ S : HeatSemigroupEstimateData, Lemma_2_1 S
+  weightedResolventGradient : Lemma_2_5
+  upperBarrierSuperSolution : Lemma_4_1
+  lowerBarrierSubSolution : Lemma_4_2
+  finiteTimeTrapSubSolution : Remark_4_2
+  sharpTailCloseness : Remark_4_3
+  rightVanishingWaves : Remark_1_3_2
+  stationaryAprioriEstimate : Lemma_5_1
+  explicitLogDerivative : Lemma_5_2_explicit
+  remark51DerivativeBounds : Remark_5_1
+  remark52LogDerivativeBound : Remark_5_2
+  weightedEllipticPerturbation : Lemma_5_3
+  cauchyExistenceBounds : Proposition_1_1
+  constantSolutionStability : Proposition_1_2
+  travelingWaveExistence : Theorem_1_1
+  travelingWaveStability : Theorem_1_2
+  travelingWaveUniqueness : Theorem_1_3
+
+theorem Lemma_2_1_proved (A : Paper1AnalyticData)
+    (S : HeatSemigroupEstimateData) : Lemma_2_1 S :=
+  A.heatSemigroupEstimates S
+
+theorem Lemma_2_5_proved (A : Paper1AnalyticData) : Lemma_2_5 :=
+  A.weightedResolventGradient
+
+theorem Lemma_4_1_proved (A : Paper1AnalyticData) : Lemma_4_1 :=
+  A.upperBarrierSuperSolution
+
+theorem Lemma_4_2_proved (A : Paper1AnalyticData) : Lemma_4_2 :=
+  A.lowerBarrierSubSolution
+
+theorem Remark_4_2_proved (A : Paper1AnalyticData) : Remark_4_2 :=
+  A.finiteTimeTrapSubSolution
+
+theorem Remark_4_3_proved (A : Paper1AnalyticData) : Remark_4_3 :=
+  A.sharpTailCloseness
+
+theorem Remark_1_3_2_proved (A : Paper1AnalyticData) : Remark_1_3_2 :=
+  A.rightVanishingWaves
+
+theorem Remark_4_3_part2_proved (A : Paper1AnalyticData) :
+    Remark_4_3_part2 :=
+  A.rightVanishingWaves
+
+theorem Lemma_5_1_proved (A : Paper1AnalyticData) : Lemma_5_1 :=
+  A.stationaryAprioriEstimate
+
+theorem Lemma_5_2_explicit_proved (A : Paper1AnalyticData) :
+    Lemma_5_2_explicit :=
+  A.explicitLogDerivative
+
+theorem Lemma_5_2_proved (A : Paper1AnalyticData) : Lemma_5_2 :=
+  A.explicitLogDerivative.to_Lemma_5_2
+
+theorem Remark_5_1_proved (A : Paper1AnalyticData) : Remark_5_1 :=
+  A.remark51DerivativeBounds
+
+theorem Remark_5_2_proved (A : Paper1AnalyticData) : Remark_5_2 :=
+  A.remark52LogDerivativeBound
+
+theorem Lemma_5_3_proved (A : Paper1AnalyticData) : Lemma_5_3 :=
+  A.weightedEllipticPerturbation
+
+theorem Proposition_1_1_proved (A : Paper1AnalyticData) : Proposition_1_1 :=
+  A.cauchyExistenceBounds
+
+theorem Proposition_1_2_proved (A : Paper1AnalyticData) : Proposition_1_2 :=
+  A.constantSolutionStability
+
+theorem Theorem_1_1_proved (A : Paper1AnalyticData) : Theorem_1_1 :=
+  A.travelingWaveExistence
+
+theorem Theorem_1_2_proved (A : Paper1AnalyticData) : Theorem_1_2 :=
+  A.travelingWaveStability
+
+theorem Theorem_1_3_proved (A : Paper1AnalyticData) : Theorem_1_3 :=
+  A.travelingWaveUniqueness
 
 end
 
