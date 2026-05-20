@@ -114,6 +114,18 @@ theorem heatSemigroup_mono {f g : ℝ → ℝ} (hfg : ∀ x, f x ≤ g x)
   exact MeasureTheory.integral_mono hf_int hg_int
     (fun y => mul_le_mul_of_nonneg_left (hfg y) (heatKernel_nonneg ht _))
 
+theorem heatSemigroup_mono_bounded {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hfg : ∀ x, f x ≤ g x)
+    (hf_bound : ∀ x, |f x| ≤ Mf) (hg_bound : ∀ x, |g x| ≤ Mg)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)
+    (hg_meas : MeasureTheory.AEStronglyMeasurable g MeasureTheory.volume)
+    (ht : 0 < t) :
+    ∀ x, heatSemigroup t f x ≤ heatSemigroup t g x := by
+  intro x
+  exact heatSemigroup_mono hfg ht
+    (heatKernel_mul_bounded_integrable ht x hf_bound hf_meas)
+    (heatKernel_mul_bounded_integrable ht x hg_bound hg_meas)
+
 theorem heatSemigroup_nonneg {f : ℝ → ℝ}
     (hf_nn : ∀ x, 0 ≤ f x) {t : ℝ} (ht : 0 < t) :
     ∀ x, 0 ≤ heatSemigroup t f x := by
@@ -240,6 +252,19 @@ theorem modifiedSemigroup_nonneg {f : ℝ → ℝ}
     ∀ x, 0 ≤ modifiedSemigroup t f x := by
   intro x; unfold modifiedSemigroup
   exact mul_nonneg (Real.exp_nonneg _) (heatSemigroup_nonneg hf_nn ht x)
+
+theorem modifiedSemigroup_mono_bounded {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hfg : ∀ x, f x ≤ g x)
+    (hf_bound : ∀ x, |f x| ≤ Mf) (hg_bound : ∀ x, |g x| ≤ Mg)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)
+    (hg_meas : MeasureTheory.AEStronglyMeasurable g MeasureTheory.volume)
+    (ht : 0 < t) :
+    ∀ x, modifiedSemigroup t f x ≤ modifiedSemigroup t g x := by
+  intro x
+  unfold modifiedSemigroup
+  exact mul_le_mul_of_nonneg_left
+    (heatSemigroup_mono_bounded hfg hf_bound hg_bound hf_meas hg_meas ht x)
+    (Real.exp_nonneg _)
 
 theorem modifiedSemigroup_Linfty_decay {f : ℝ → ℝ} {M : ℝ}
     (hf : ∀ x, |f x| ≤ M) {t : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
