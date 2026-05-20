@@ -176,6 +176,13 @@ theorem modifiedSemigroup_Linfty_bound {f : ℝ → ℝ} {M : ℝ}
   rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
   exact mul_le_mul_of_nonneg_left (heatSemigroup_abs_bound hf ht hM hf_meas x) (Real.exp_nonneg _)
 
+theorem heatSemigroup_const {c : ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    heatSemigroup t (fun _ => c) x = c := by
+  unfold heatSemigroup
+  rw [show (fun y => heatKernel t (x - y) * c) =
+      (fun y => c * heatKernel t (x - y)) from by ext y; ring]
+  rw [MeasureTheory.integral_const_mul, heatKernel_integral_translated ht x, mul_one]
+
 theorem modifiedSemigroup_nonneg {f : ℝ → ℝ}
     (hf_nn : ∀ x, 0 ≤ f x) {t : ℝ} (ht : 0 < t) :
     ∀ x, 0 ≤ modifiedSemigroup t f x := by
