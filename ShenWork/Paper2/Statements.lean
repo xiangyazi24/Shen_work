@@ -3298,6 +3298,90 @@ lemma remark16ChiStarWeak_eq_chiBeta (p : CM2Params) :
     remark16ChiStarWeak p = chiBeta p := by
   rfl
 
+lemma remark16ChiStarWeak_pos_of_one_le_beta
+    (p : CM2Params) (hβ : 1 ≤ p.β) :
+    0 < remark16ChiStarWeak p := by
+  simpa [remark16ChiStarWeak_eq_chiBeta] using
+    chiBeta_pos_of_one_le_beta p hβ
+
+lemma remark16ChiStarWeak_nonneg_of_half_le_beta
+    (p : CM2Params) (hβ : (1 / 2 : ℝ) ≤ p.β) :
+    0 ≤ remark16ChiStarWeak p := by
+  simpa [remark16ChiStarWeak_eq_chiBeta] using
+    chiBeta_nonneg_of_half_le_beta p hβ
+
+lemma remark16ChiStarWeak_min_half_sqrt_pos_of_one_le_beta
+    (p : CM2Params) (hβ : 1 ≤ p.β) :
+    0 < min (remark16ChiStarWeak p / 2)
+      (Real.sqrt (remark16ChiStarWeak p)) := by
+  simpa [remark16ChiStarWeak_eq_chiBeta] using
+    min_chiBeta_half_sqrt_pos_of_one_le_beta p hβ
+
+lemma lt_remark16ChiStarWeak_of_lt_min_half_sqrt
+    (p : CM2Params) {chi : ℝ} (hβ : 1 ≤ p.β)
+    (hchi :
+      chi < min (remark16ChiStarWeak p / 2)
+        (Real.sqrt (remark16ChiStarWeak p))) :
+    chi < remark16ChiStarWeak p := by
+  simpa [remark16ChiStarWeak_eq_chiBeta] using
+    lt_chiBeta_of_lt_min_half_sqrt p hβ
+      (by simpa [remark16ChiStarWeak_eq_chiBeta] using hchi)
+
+lemma remark16ChiStarWeak_le_two_beta_sub_one
+    (p : CM2Params) (hβ : (1 / 2 : ℝ) ≤ p.β) :
+    remark16ChiStarWeak p ≤ 2 * p.β - 1 := by
+  simpa [remark16ChiStarWeak_eq_chiBeta] using
+    chiBeta_le_two_beta_sub_one p hβ
+
+lemma remark16ChiStarWeak_eq_two_beta_sub_one_of_gamma_mul_N_le_two
+    (p : CM2Params) (hden : p.γ * (p.N : ℝ) ≤ 2) :
+    remark16ChiStarWeak p = 2 * p.β - 1 := by
+  simpa [remark16ChiStarWeak_eq_chiBeta] using
+    chiBeta_eq_two_beta_sub_one_of_gamma_mul_N_le_two p hden
+
+lemma remark16ChiStarWeak_lt_two_beta_sub_one_of_two_lt_gamma_mul_N
+    (p : CM2Params) (hβ : (1 / 2 : ℝ) < p.β)
+    (hden : (2 : ℝ) < p.γ * (p.N : ℝ)) :
+    remark16ChiStarWeak p < 2 * p.β - 1 := by
+  simpa [remark16ChiStarWeak_eq_chiBeta] using
+    chiBeta_lt_two_beta_sub_one_of_two_lt_gamma_mul_N p hβ hden
+
+/-- End-to-end scalar package for the weak Remark 1.6 threshold `(1.30c)`.
+It records positivity, the smallness implication used by Theorem 1.2, and the
+comparison with the elementary threshold `2β - 1`. -/
+theorem remark16ChiStarWeak_scalar_properties :
+    (∀ p : CM2Params, 1 ≤ p.β →
+      0 < remark16ChiStarWeak p ∧
+        0 < min (remark16ChiStarWeak p / 2)
+          (Real.sqrt (remark16ChiStarWeak p))) ∧
+    (∀ p : CM2Params, ∀ chi : ℝ, 1 ≤ p.β →
+      chi < min (remark16ChiStarWeak p / 2)
+        (Real.sqrt (remark16ChiStarWeak p)) →
+      chi < remark16ChiStarWeak p) ∧
+    (∀ p : CM2Params, (1 / 2 : ℝ) ≤ p.β →
+      0 ≤ remark16ChiStarWeak p ∧
+        remark16ChiStarWeak p ≤ 2 * p.β - 1) ∧
+    (∀ p : CM2Params, p.γ * (p.N : ℝ) ≤ 2 →
+      remark16ChiStarWeak p = 2 * p.β - 1) ∧
+    (∀ p : CM2Params, (1 / 2 : ℝ) < p.β →
+      (2 : ℝ) < p.γ * (p.N : ℝ) →
+        remark16ChiStarWeak p < 2 * p.β - 1) := by
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · intro p hβ
+    exact ⟨remark16ChiStarWeak_pos_of_one_le_beta p hβ,
+      remark16ChiStarWeak_min_half_sqrt_pos_of_one_le_beta p hβ⟩
+  · intro p chi hβ hchi
+    exact lt_remark16ChiStarWeak_of_lt_min_half_sqrt p hβ hchi
+  · intro p hβ
+    exact ⟨remark16ChiStarWeak_nonneg_of_half_le_beta p hβ,
+      remark16ChiStarWeak_le_two_beta_sub_one p hβ⟩
+  · intro p hden
+    exact remark16ChiStarWeak_eq_two_beta_sub_one_of_gamma_mul_N_le_two p hden
+  · intro p hβ hden
+    exact
+      remark16ChiStarWeak_lt_two_beta_sub_one_of_two_lt_gamma_mul_N
+        p hβ hden
+
 def StrongLogisticCondition (p : CM2Params) (C : Paper2Constants p) : Prop :=
   (p.β ≥ 0 ∧ p.α > p.m + p.γ - 1) ∨
     (p.β ≥ 1 / 2 ∧ p.α > 2 * p.m + p.γ - 2) ∨

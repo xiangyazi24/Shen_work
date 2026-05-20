@@ -288,6 +288,10 @@ projection theorem wrappers have been removed.
   `u2^gamma = u1^gamma` pointwise; the self-difference branch exposes the
   result in the same hypothesis shape as the full Lemma 5.3 target.
 - `Lemma_2_5_proved` (Paper2)
+- `remark16ChiStarWeak_scalar_properties` (Paper2): direct scalar algebra for
+  the weak Remark 1.6 threshold `(1.30c)`, including positivity, the
+  min-half/sqrt smallness implication used by the linear Theorem 1.2 branch,
+  and comparison with `2β - 1`.
 - `Lemma_2_1_zero_output_branch`, `Lemma_2_2_zero_embedding_branch`,
   `Lemma_2_3_zero_divergence_branch`, and
   `Lemma_2_4_zero_fractional_divergence_branch` (Paper2): real
