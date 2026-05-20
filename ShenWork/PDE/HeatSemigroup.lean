@@ -114,6 +114,14 @@ theorem heatSemigroup_mono {f g : ℝ → ℝ} (hfg : ∀ x, f x ≤ g x)
   exact MeasureTheory.integral_mono hf_int hg_int
     (fun y => mul_le_mul_of_nonneg_left (hfg y) (heatKernel_nonneg ht _))
 
+theorem heatSemigroup_nonneg {f : ℝ → ℝ}
+    (hf_nn : ∀ x, 0 ≤ f x) {t : ℝ} (ht : 0 < t) :
+    ∀ x, 0 ≤ heatSemigroup t f x := by
+  intro x
+  unfold heatSemigroup
+  exact MeasureTheory.integral_nonneg
+    (fun y => mul_nonneg (heatKernel_nonneg ht _) (hf_nn y))
+
 /-- If f ≥ 0 and f ≤ M, then e^{tΔ} f ≤ M (conservation + positivity). -/
 theorem heatSemigroup_upper_bound {f : ℝ → ℝ} {M : ℝ}
     (_hf_nn : ∀ x, 0 ≤ f x) (hf_le : ∀ x, f x ≤ M)
