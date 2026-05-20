@@ -131,6 +131,28 @@ theorem neumannHeatKernel_zerothReflection_even
     heatKernel_neg, heatKernel_neg]
   ring
 
+/-- ∫ G(t, x+y) dy = 1, by substitution z = x+y. -/
+theorem heatKernel_integral_add {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    ∫ y, heatKernel t (x + y) = 1 := by
+  have h : (fun y : ℝ => heatKernel t (x + y)) =
+      (fun y => heatKernel t (y + x)) := by ext y; ring_nf
+  rw [h, integral_add_right_eq_self, heatKernel_integral_eq_one ht]
+
+/-- The reflected kernel integrates to 2 over y:
+∫ [G(t,x-y) + G(t,x+y)] dy = 2. -/
+theorem neumannHeatKernel_zerothReflection_integral
+    {t : ℝ} (ht : 0 < t) (L x : ℝ) :
+    ∫ y, neumannHeatKernel_zerothReflection L t x y = 2 := by
+  unfold neumannHeatKernel_zerothReflection
+  rw [show (fun y => heatKernel t (x - y) + heatKernel t (x + y)) =
+      (fun y => heatKernel t (x - y)) + (fun y => heatKernel t (x + y)) from by
+    ext y; rfl]
+  rw [Pi.add_def, MeasureTheory.integral_add
+    (heatKernel_translated_integrable ht x)
+    ((heatKernel_integrable ht).comp_add_left x)]
+  rw [heatKernel_integral_translated ht x, heatKernel_integral_add ht x]
+  norm_num
+
 end ShenWork.IntervalDomain
 
 end
