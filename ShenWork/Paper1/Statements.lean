@@ -10666,6 +10666,18 @@ theorem Proposition_1_1_constant_one_negative_branch
     ⟨u, v, hsol, hmax, hlimsup, _hbounded⟩
   exact ⟨u, v, hsol, hmax, hlimsup⟩
 
+/-- Constant-initial-data negative-sensitivity branch of Proposition 1.1 with
+the eventual boundedness consequence kept. -/
+theorem Proposition_1_1_constant_one_negative_long_time_branch
+    (p : CMParams) (_hχ : p.χ ≤ 0) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
+      (∀ M, (∀ _x : ℝ, (1 : ℝ) ≤ M) →
+        ∀ t x, 0 ≤ t → u t x ≤ max 1 M) ∧
+      UniformLimsupLe u 1 ∧
+      UniformEventuallyBounded u := by
+  exact Proposition_1_1_constant_one_branch p
+
 theorem one_le_positive_branch_limsup_bound
     (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_lt : p.χ < 1) :
     1 ≤ (1 / (1 - p.χ)) ^ (1 / p.α) := by
@@ -10687,6 +10699,22 @@ theorem Proposition_1_1_constant_one_positive_branch
   rcases Proposition_1_1_constant_one_branch p with
     ⟨u, v, hsol, _hmax, hlimsup, hbounded⟩
   refine ⟨u, v, hsol, hbounded, ?_⟩
+  intro hχ_pos hχ_lt
+  exact hlimsup.mono (one_le_positive_branch_limsup_bound p hχ_pos hχ_lt)
+
+/-- Constant-initial-data positive-sensitivity branch of Proposition 1.1 with
+the sharper `limsup ≤ 1` consequence also exposed. -/
+theorem Proposition_1_1_constant_one_positive_long_time_branch
+    (p : CMParams) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
+      UniformEventuallyBounded u ∧
+      UniformLimsupLe u 1 ∧
+      (0 < p.χ → p.χ < 1 →
+        UniformLimsupLe u ((1 / (1 - p.χ)) ^ (1 / p.α))) := by
+  rcases Proposition_1_1_constant_one_branch p with
+    ⟨u, v, hsol, _hmax, hlimsup, hbounded⟩
+  refine ⟨u, v, hsol, hbounded, hlimsup, ?_⟩
   intro hχ_pos hχ_lt
   exact hlimsup.mono (one_le_positive_branch_limsup_bound p hχ_pos hχ_lt)
 

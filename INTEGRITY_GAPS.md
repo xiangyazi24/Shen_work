@@ -529,12 +529,14 @@ projection theorem wrappers have been removed.
   exposed minimal thresholds are constantly `1` and the exposed critical
   threshold is constantly `0`, admissible minimal-model parameters force the
   impossible inequality `1 ≤ 0`.
-- `Proposition_1_1_constant_one_branch` and
+- `Proposition_1_1_constant_one_branch`,
+  `Proposition_1_1_constant_one_negative_long_time_branch`,
+  `Proposition_1_1_constant_one_positive_long_time_branch`, and
   `Proposition_1_2_constant_one_branch`, plus
   `Proposition_1_2_constant_one_long_time_branch`: real Paper1 Cauchy/stability
   branches for the equilibrium initial datum `u₀ ≡ 1`, using the constant
-  global solution `u ≡ v ≡ 1`; the long-time branch exposes the boundedness and
-  limsup consequences directly from uniform convergence.
+  global solution `u ≡ v ≡ 1`; the long-time branches expose the boundedness
+  and limsup consequences directly.
 - `Proposition_1_1_constant_one_negative_branch`,
   `Proposition_1_1_constant_one_positive_branch`,
   `Proposition_1_2_constant_one_negative_branch`,
