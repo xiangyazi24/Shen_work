@@ -305,6 +305,32 @@ lemma heatKernel_deriv_abs_translated_integrable {t : ℝ} (ht : 0 < t)
   ext y
   rw [deriv_heatKernel_translated_left ht x y, deriv_heatKernel ht (x - y)]
 
+theorem heatKernel_deriv_mul_bounded_integral_abs_le {t M : ℝ}
+    (ht : 0 < t) (_hM : 0 ≤ M) {f : ℝ → ℝ}
+    (hf : ∀ y, |f y| ≤ M) (x : ℝ) :
+    ∫ y : ℝ, |deriv (fun z : ℝ => heatKernel t (z - y)) x * f y| ≤
+      (2 / Real.sqrt (4 * Real.pi * t)) * M := by
+  have hmajor_int :
+      MeasureTheory.Integrable
+        (fun y : ℝ =>
+          |deriv (fun z : ℝ => heatKernel t (z - y)) x| * M) :=
+    (heatKernel_deriv_abs_translated_integrable ht x).mul_const M
+  calc
+    ∫ y : ℝ, |deriv (fun z : ℝ => heatKernel t (z - y)) x * f y|
+        ≤ ∫ y : ℝ,
+            |deriv (fun z : ℝ => heatKernel t (z - y)) x| * M := by
+          apply MeasureTheory.integral_mono_of_nonneg
+          · exact Filter.Eventually.of_forall fun y => abs_nonneg _
+          · exact hmajor_int
+          · exact Filter.Eventually.of_forall fun y => by
+              simpa [abs_mul] using
+                mul_le_mul_of_nonneg_left (hf y)
+                  (abs_nonneg
+                    (deriv (fun z : ℝ => heatKernel t (z - y)) x))
+    _ = (2 / Real.sqrt (4 * Real.pi * t)) * M := by
+          rw [MeasureTheory.integral_mul_const,
+            heatKernel_deriv_abs_integral_translated ht x]
+
 /-- The translated heat kernel is integrable. -/
 lemma heatKernel_translated_integrable {t : ℝ} (ht : 0 < t) (x : ℝ) :
     MeasureTheory.Integrable (fun y => heatKernel t (x - y)) := by

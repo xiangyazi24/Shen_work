@@ -151,6 +151,7 @@ projection theorem wrappers have been removed.
   `deriv_heatKernel`, `integral_abs_mul_exp_neg_mul_sq`,
   `heatKernel_deriv_abs_integral`,
   `heatKernel_deriv_abs_integral_translated`,
+  `heatKernel_deriv_mul_bounded_integral_abs_le`,
   `heatKernel_translated_hasDerivAt_left`,
   `heatKernel_translated_hasDerivAt_right`, `heatSemigroup_mono_bounded`,
   `modifiedSemigroup_mono_bounded`,
