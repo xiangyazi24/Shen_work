@@ -277,6 +277,22 @@ theorem heatKernel_deriv_abs_integral_translated {t : ℝ} (ht : 0 < t)
     (fun w : ℝ => |deriv (fun z : ℝ => heatKernel t z) w|) (-x)]
   exact heatKernel_deriv_abs_integral ht
 
+theorem modifiedHeatKernel_deriv_abs_integral_translated {t : ℝ} (ht : 0 < t)
+    (x : ℝ) :
+    ∫ y : ℝ,
+        |Real.exp (-t) * deriv (fun z : ℝ => heatKernel t (z - y)) x| =
+      Real.exp (-t) * (2 / Real.sqrt (4 * Real.pi * t)) := by
+  have hfun :
+      (fun y : ℝ =>
+        |Real.exp (-t) * deriv (fun z : ℝ => heatKernel t (z - y)) x|) =
+        fun y : ℝ =>
+          Real.exp (-t) *
+            |deriv (fun z : ℝ => heatKernel t (z - y)) x| := by
+    ext y
+    rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+  rw [hfun, MeasureTheory.integral_const_mul,
+    heatKernel_deriv_abs_integral_translated ht x]
+
 lemma heatKernel_translated_hasDerivAt_right {t : ℝ} (ht : 0 < t)
     (x y : ℝ) :
     HasDerivAt (fun z : ℝ => heatKernel t (x - z))
