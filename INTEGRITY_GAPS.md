@@ -153,6 +153,12 @@ projection theorem wrappers have been removed.
 - `Lemma_2_5.zero_function_witness`: the same zero-function branch exposed
   with an explicit positive constant witness in the full Lemma 2.5 quantifier
   shape after fixing `u ≡ 0`
+- `Lemma_2_5_constant_function_branch` and
+  `Lemma_2_5.constant_function_witness`: real nonnegative constant-source
+  branches of the weighted resolvent-gradient estimate.  They use
+  `Psi_const_general` to identify `Psi (c^γ; l, μ)` as a constant, so the
+  derivative term vanishes and the weighted inequality follows from positivity
+  of the exponential weight.
 - `Remark_4_3.same_wave_branch` and
   `Remark_4_3.exists_same_wave_branch`: real same-wave branches of the
   Remark 4.3 weighted initial closeness conclusion, proved by reducing the
