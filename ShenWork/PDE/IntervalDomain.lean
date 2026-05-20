@@ -1614,6 +1614,15 @@ theorem normalizedZerothReflectionKernel_intervalIntegral_le_one
     (Filter.Eventually.of_forall fun y =>
       normalizedZerothReflectionKernel_nonneg ht L x y)
 
+/-- The normalized helper kernel is integrable against the interval measure. -/
+theorem normalizedZerothReflectionKernel_interval_integrable
+    {t : ℝ} (ht : 0 < t) (L x : ℝ) :
+    Integrable (fun y => normalizedZerothReflectionKernel L t x y)
+      (intervalMeasure L) := by
+  unfold intervalMeasure
+  exact (normalizedZerothReflectionKernel_integrable ht L x).mono_measure
+    Measure.restrict_le_self
+
 /-- Positivity preservation for the interval helper operator. -/
 theorem intervalSemigroupOperator_nonneg
     {L t : ℝ} (ht : 0 < t)
@@ -1673,10 +1682,8 @@ theorem intervalSemigroupOperator_mul_integrable_of_integrable
       (intervalMeasure L) := by
   have hkernel_int :
       Integrable (fun y => normalizedZerothReflectionKernel L t x y)
-        (intervalMeasure L) := by
-    unfold intervalMeasure
-    exact (normalizedZerothReflectionKernel_integrable ht L x).mono_measure
-      Measure.restrict_le_self
+        (intervalMeasure L) :=
+    normalizedZerothReflectionKernel_interval_integrable ht L x
   have hkernel_bound :
       ∀ y : ℝ, ‖normalizedZerothReflectionKernel L t x y‖ ≤
         1 / Real.sqrt (4 * Real.pi * t) := by
@@ -1687,6 +1694,18 @@ theorem intervalSemigroupOperator_mul_integrable_of_integrable
   simpa [mul_comm] using
     hf_int.mul_bdd hkernel_int.aestronglyMeasurable
       (Filter.Eventually.of_forall hkernel_bound)
+
+/-- The interval helper kernel times a bounded measurable input is integrable. -/
+theorem intervalSemigroupOperator_mul_integrable_of_abs_bound
+    {L t Mf : ℝ} (ht : 0 < t) (x : ℝ)
+    {f : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf) :
+    Integrable
+      (fun y => normalizedZerothReflectionKernel L t x y * f y)
+      (intervalMeasure L) :=
+  intervalSemigroupOperator_mul_integrable_of_integrable ht x
+    (intervalMeasure_integrable_of_abs_bound hf_meas hf_bound)
 
 /-- The interval helper operator sends the zero input to zero. -/
 theorem intervalSemigroupOperator_zero (L t x : ℝ) :
@@ -1912,6 +1931,29 @@ theorem intervalSemigroupOperator_abs_le_operator_abs
   intervalSemigroupOperator_abs_le_of_abs_le ht
     (fun _ => le_rfl) hf_int.norm x
 
+/-- Bounded-input domination principle for the interval helper operator. -/
+theorem intervalSemigroupOperator_abs_le_of_abs_le_bounded
+    {L t Mg : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ} (hfg : ∀ y, |f y| ≤ g y)
+    (hg_meas : AEStronglyMeasurable g (intervalMeasure L))
+    (hg_bound : ∀ y, |g y| ≤ Mg) (x : ℝ) :
+    |intervalSemigroupOperator L t f x| ≤
+      intervalSemigroupOperator L t g x :=
+  intervalSemigroupOperator_abs_le_of_abs_le ht hfg
+    (intervalMeasure_integrable_of_abs_bound hg_meas hg_bound) x
+
+/-- Bounded-input version of domination by applying the interval helper
+operator to `|f|`. -/
+theorem intervalSemigroupOperator_abs_le_operator_abs_bounded
+    {L t Mf : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf) (x : ℝ) :
+    |intervalSemigroupOperator L t f x| ≤
+      intervalSemigroupOperator L t (fun y => |f y|) x :=
+  intervalSemigroupOperator_abs_le_operator_abs ht
+    (intervalMeasure_integrable_of_abs_bound hf_meas hf_bound) x
+
 /-- `L∞` bound for the interval helper operator. -/
 theorem intervalSemigroupOperator_Linfty_bound
     {L t : ℝ} (ht : 0 < t)
@@ -1920,10 +1962,8 @@ theorem intervalSemigroupOperator_Linfty_bound
   unfold intervalSemigroupOperator
   have hkernel_int :
       Integrable (fun y => normalizedZerothReflectionKernel L t x y)
-        (intervalMeasure L) := by
-    unfold intervalMeasure
-    exact (normalizedZerothReflectionKernel_integrable ht L x).mono_measure
-      Measure.restrict_le_self
+        (intervalMeasure L) :=
+    normalizedZerothReflectionKernel_interval_integrable ht L x
   have hupper_int :
       Integrable (fun y => M * normalizedZerothReflectionKernel L t x y)
         (intervalMeasure L) :=
