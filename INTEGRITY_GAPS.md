@@ -664,6 +664,11 @@ projection theorem wrappers have been removed.
 - `Theorem_1_1.of_raw_frozen_stationary_tail_continuous_branches`: the same
   raw fixed-point bridge with the profile positivity and bounded-continuous
   inputs derived from upper-tail bounds plus continuity
+- `ShenUpperBoundPositive.hasWaveUpperTailBound_of_chi_lt_half_chiStar` and
+  `Theorem_1_1.of_raw_frozen_stationary_positive_upper_continuous_branches`:
+  positive-sensitivity bridge deriving the `HasWaveUpperTailBound` input from
+  the paper's `ShenUpperBoundPositive` upper barrier and
+  `χ < min(1/2,χ*)`
 - `InWaveTrapSet.tendsto_atTop_zero`,
   `InWaveTrapSet.frozenElliptic_tendsto_atTop_zero`,
   `InMonotoneWaveTrapSet.tendsto_atTop_zero`,

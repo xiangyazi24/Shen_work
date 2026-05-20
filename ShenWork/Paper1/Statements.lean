@@ -8819,6 +8819,17 @@ theorem ShenUpperBoundPositive.hasWaveUpperTailBound
     HasWaveUpperTailBound p c U :=
   (h.hasStrictWaveUpperTailBound hχ_nonneg hχ_lt).hasWaveUpperTailBound
 
+theorem ShenUpperBoundPositive.hasWaveUpperTailBound_of_chi_lt_half_chiStar
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hχ_nonneg : 0 ≤ p.χ)
+    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    (h : ShenUpperBoundPositive p c U) :
+    HasWaveUpperTailBound p c U := by
+  have hχ_lt_half : p.χ < (1 / 2 : ℝ) :=
+    lt_of_lt_of_le hχ_small (min_le_left _ _)
+  have hχ_lt_one : p.χ < 1 := by linarith
+  exact h.hasWaveUpperTailBound hχ_nonneg hχ_lt_one
+
 theorem ShenUpperBoundPositive.inWaveTrapSet
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (hχ_nonneg : 0 ≤ p.χ) (hχ_lt : p.χ < 1)
@@ -11436,6 +11447,51 @@ theorem Theorem_1_1.of_raw_frozen_stationary_tail_continuous_branches
         FrozenStationaryWaveProfile.mk_auto_limits_of_tail_continuous
           hc_pos hbound hU_cont hstat hlim_bot hlim_top,
         hupper, htail⟩
+
+theorem Theorem_1_1.of_raw_frozen_stationary_positive_upper_continuous_branches
+    (hneg :
+      ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
+        ∀ c : ℝ, cStarLower p < c →
+          ∃ U : ℝ → ℝ,
+            0 < c ∧
+              HasWaveUpperTailBound p c U ∧
+              Continuous U ∧
+              (∀ x, frozenWaveOperator p c U U x = 0) ∧
+              Tendsto U atBot (𝓝 1) ∧
+              Tendsto U atTop (𝓝 0) ∧
+              (∀ x, deriv U x ≤ 0) ∧
+              (∀ x, deriv (frozenElliptic p U) x ≤ 0) ∧
+              ShenUpperBoundNegative c U ∧
+              (∀ κ₁, kappa c < κ₁ →
+                κ₁ <
+                  min ((1 + p.α) * kappa c)
+                    (min (p.m * kappa c + 1 / 2) 1) →
+                HasWaveRightTailAsymptotic c κ₁ U))
+    (hpos :
+      ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+        0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+        ∀ c : ℝ, 2 < c →
+          ∃ U : ℝ → ℝ,
+            0 < c ∧
+              Continuous U ∧
+              (∀ x, frozenWaveOperator p c U U x = 0) ∧
+              Tendsto U atBot (𝓝 1) ∧
+              Tendsto U atTop (𝓝 0) ∧
+              ShenUpperBoundPositive p c U ∧
+              (∀ κ₁, kappa c < κ₁ →
+                κ₁ <
+                  min ((1 + p.α) * kappa c)
+                    (min (p.m * kappa c + 1 / 2) 1) →
+                HasWaveRightTailAsymptotic c κ₁ U)) :
+    Theorem_1_1 := by
+  refine Theorem_1_1.of_raw_frozen_stationary_tail_continuous_branches hneg ?_
+  intro p halpha hχ_nonneg hχ_small c hc
+  rcases hpos p halpha hχ_nonneg hχ_small c hc with
+    ⟨U, hc_pos, hU_cont, hstat, hlim_bot, hlim_top, hupper, htail⟩
+  exact
+    ⟨U, hc_pos,
+      hupper.hasWaveUpperTailBound_of_chi_lt_half_chiStar hχ_nonneg hχ_small,
+      hU_cont, hstat, hlim_bot, hlim_top, hupper, htail⟩
 
 def StableWaveParameterRegime (p : CMParams) : Prop :=
   (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
