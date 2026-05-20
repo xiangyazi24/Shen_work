@@ -10312,10 +10312,35 @@ theorem Lemma_5_3.self_difference_branch
     (∫ x : ℝ, |V x| ^ 2 ≤
         gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta) ^ 2 *
           ∫ x : ℝ, |U x| ^ 2) ∧
-      (∫ x : ℝ, |deriv V x| ^ 2 ≤
+    (∫ x : ℝ, |deriv V x| ^ 2 ≤
         gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta ^ 2) *
           ∫ x : ℝ, |U x| ^ 2) :=
   Lemma_5_3_zero_difference_branch gamma M eta u
+
+/-- The zero-source branch of Lemma 5.3 in the same hypothesis shape as the
+full statement.  The profiles may differ, but their `γ`-powers agree
+pointwise, so the elliptic perturbation source vanishes. -/
+theorem Lemma_5_3.same_power_branch
+    {gamma M eta : ℝ}
+    (hgamma : 1 ≤ gamma) (hM : 1 ≤ M)
+    (heta_pos : 0 < eta) (heta_one : eta < 1)
+    {u1 u2 : ℝ → ℝ}
+    (_hu1 : IsCUnifBdd u1) (_hu2 : IsCUnifBdd u2)
+    (_hu1_bound : ∀ x, 0 ≤ u1 x ∧ u1 x ≤ M)
+    (_hu2_bound : ∀ x, 0 ≤ u2 x ∧ u2 x ≤ M)
+    (_hclose : Integrable
+      (fun x => Real.exp (2 * eta * x) * |u2 x - u1 x| ^ 2))
+    (hsource : ∀ x, u2 x ^ gamma = u1 x ^ gamma) :
+    let v := Psi (fun x => u2 x ^ gamma - u1 x ^ gamma) 1 1
+    let U := fun x => Real.exp (eta * x) * (u2 x - u1 x)
+    let V := fun x => Real.exp (eta * x) * v x
+    (∫ x : ℝ, |V x| ^ 2 ≤
+        gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta) ^ 2 *
+          ∫ x : ℝ, |U x| ^ 2) ∧
+      (∫ x : ℝ, |deriv V x| ^ 2 ≤
+        gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta ^ 2) *
+          ∫ x : ℝ, |U x| ^ 2) :=
+  Lemma_5_3_zero_source_branch hgamma hM heta_pos heta_one hsource
 
 theorem Lemma_5_3.weighted_elliptic_perturbation
     (h : Lemma_5_3)
