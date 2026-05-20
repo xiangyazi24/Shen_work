@@ -143,6 +143,35 @@ theorem intervalAverage_nonneg {L : ℝ} (hL : 0 < L) {f : ℝ → ℝ}
   exact mul_nonneg (div_nonneg zero_le_one hL.le)
     (intervalIntegral_nonneg hL.le hf)
 
+/-- Monotonicity of the interval average. -/
+theorem intervalAverage_mono {L : ℝ} (hL : 0 < L) {f g : ℝ → ℝ}
+    (hf_int : IntervalIntegrable f volume 0 L)
+    (hg_int : IntervalIntegrable g volume 0 L)
+    (hfg : ∀ x ∈ Set.Icc 0 L, f x ≤ g x) :
+    intervalAverage L f ≤ intervalAverage L g := by
+  unfold intervalAverage
+  exact mul_le_mul_of_nonneg_left
+    (intervalIntegral_mono hL.le hfg hf_int hg_int)
+    (div_nonneg zero_le_one hL.le)
+
+/-- Negation commutes with the interval average. -/
+theorem intervalAverage_neg (L : ℝ) (f : ℝ → ℝ) :
+    intervalAverage L (fun x => -f x) = -intervalAverage L f := by
+  unfold intervalAverage
+  rw [intervalIntegral.integral_neg]
+  ring
+
+/-- Subtraction commutes with the interval average for interval-integrable
+inputs. -/
+theorem intervalAverage_sub {L : ℝ} {f g : ℝ → ℝ}
+    (hf_int : IntervalIntegrable f volume 0 L)
+    (hg_int : IntervalIntegrable g volume 0 L) :
+    intervalAverage L (fun x => f x - g x) =
+      intervalAverage L f - intervalAverage L g := by
+  unfold intervalAverage
+  rw [intervalIntegral.integral_sub hf_int hg_int]
+  ring
+
 /-- A function bounded above by `M` on `[0,L]` has interval average at most
 `M`. -/
 theorem intervalAverage_le_of_le {L M : ℝ} (hL : 0 < L) {f : ℝ → ℝ}
@@ -173,6 +202,21 @@ theorem intervalAverage_interval_bound {L M : ℝ} (hL : 0 < L) {f : ℝ → ℝ
   ⟨intervalAverage_nonneg hL hf_nonneg,
     intervalAverage_le_of_le hL hf_int hf_le⟩
 
+/-- If `|f| ≤ M` on `[0,L]`, then the interval average has absolute value at
+most `M`. -/
+theorem intervalAverage_abs_le {L M : ℝ} (hL : 0 < L) {f : ℝ → ℝ}
+    (hf_int : IntervalIntegrable f volume 0 L)
+    (hf_bound : ∀ x ∈ Set.Icc 0 L, |f x| ≤ M) :
+    |intervalAverage L f| ≤ M := by
+  have hupper : intervalAverage L f ≤ M :=
+    intervalAverage_le_of_le hL hf_int fun x hx =>
+      le_trans (le_abs_self (f x)) (hf_bound x hx)
+  have hneg : intervalAverage L (fun x => -f x) ≤ M :=
+    intervalAverage_le_of_le hL hf_int.neg fun x hx => by
+      exact le_trans (neg_le_abs (f x)) (hf_bound x hx)
+  rw [intervalAverage_neg] at hneg
+  exact abs_le.mpr ⟨by linarith, hupper⟩
+
 /-- The constant-mode projection fixes constants. -/
 theorem constantModeProjection_const {L c : ℝ} (hL : 0 < L) :
     constantModeProjection L (fun _ => c) = fun _ => c := by
@@ -195,6 +239,15 @@ theorem constantModeProjection_nonneg_of_nonneg {L : ℝ} (hL : 0 < L)
   intro x
   exact intervalAverage_nonneg hL hf
 
+/-- Monotonicity of the constant-mode projection. -/
+theorem constantModeProjection_mono {L : ℝ} (hL : 0 < L) {f g : ℝ → ℝ}
+    (hf_int : IntervalIntegrable f volume 0 L)
+    (hg_int : IntervalIntegrable g volume 0 L)
+    (hfg : ∀ x ∈ Set.Icc 0 L, f x ≤ g x) :
+    ∀ x, constantModeProjection L f x ≤ constantModeProjection L g x := by
+  intro x
+  exact intervalAverage_mono hL hf_int hg_int hfg
+
 /-- A function bounded between `0` and `M` on `[0,L]` is sent by the
 constant-mode projection to a constant function in the same interval. -/
 theorem constantModeProjection_interval_bound {L M : ℝ} (hL : 0 < L)
@@ -206,6 +259,18 @@ theorem constantModeProjection_interval_bound {L M : ℝ} (hL : 0 < L)
       constantModeProjection L f x ≤ M := by
   intro x
   exact intervalAverage_interval_bound hL hf_int hf_nonneg hf_le
+
+/-- `L∞` contraction of the constant-mode projection. -/
+theorem constantModeProjection_contraction {L M : ℝ} (hL : 0 < L)
+    {f g : ℝ → ℝ}
+    (hf_int : IntervalIntegrable f volume 0 L)
+    (hg_int : IntervalIntegrable g volume 0 L)
+    (hfg : ∀ x ∈ Set.Icc 0 L, |f x - g x| ≤ M) :
+    ∀ x, |constantModeProjection L f x - constantModeProjection L g x| ≤ M := by
+  intro x
+  change |intervalAverage L f - intervalAverage L g| ≤ M
+  rw [← intervalAverage_sub hf_int hg_int]
+  exact intervalAverage_abs_le hL (hf_int.sub hg_int) hfg
 
 /-- The Neumann heat kernel on [0,L] via method of images (reflected kernel).
 For t > 0 and x, y ∈ [0,L]:
