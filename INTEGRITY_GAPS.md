@@ -146,6 +146,10 @@ projection theorem wrappers have been removed.
   zero-output/all-zero-data branches of the Paper1 heat-semigroup estimate
   interface, closed under explicit nonnegativity of the input norm rather than
   by projecting from `Paper1AnalyticData`
+- `modifiedSemigroup_Linfty_bound` and `modifiedSemigroup_Linfty_decay`:
+  real whole-line heat-kernel estimates for the modified semigroup
+  `e^{(Δ-I)t}`.  They use heat-kernel positivity, translated kernel mass one,
+  and bounded measurable input data to prove pointwise `L∞` decay.
 - `Lemma_2_2_proved`, `Lemma_2_3_proved`, `Lemma_2_4_proved`
 - `Lemma_2_5_zero_function_branch`: a real zero-function branch of the
   weighted resolvent-gradient estimate, closing the integrability and integral
