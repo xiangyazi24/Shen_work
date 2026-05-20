@@ -58,6 +58,17 @@ theorem intervalVolume_pos {L : ℝ} (hL : 0 < L) :
   rw [intervalVolume_eq hL.le]
   exact hL
 
+/-- Constant integration against the concrete interval measure. -/
+theorem intervalMeasure_integral_const {L c : ℝ} (hL : 0 ≤ L) :
+    ∫ _ : ℝ, c ∂ intervalMeasure L = c * L := by
+  rw [MeasureTheory.integral_const]
+  have hreal : (intervalMeasure L).real Set.univ = L := by
+    unfold intervalMeasure intervalSet
+    rw [measureReal_restrict_apply_univ, measureReal_def, Real.volume_Icc]
+    simpa using ENNReal.toReal_ofReal hL
+  rw [hreal]
+  simp [smul_eq_mul, mul_comm]
+
 theorem intervalIntegral_const {L c : ℝ} :
     ∫ _ in (0 : ℝ)..L, c = c * L := by
   rw [intervalIntegral.integral_const]
@@ -1998,6 +2009,19 @@ theorem intervalSemigroupOperator_Linfty_bound
     _ ≤ M * 1 := by
         exact mul_le_mul_of_nonneg_left hmass hM
     _ = M := by ring
+
+/-- The interval helper operator preserves pointwise bounds `0 ≤ f ≤ M`. -/
+theorem intervalSemigroupOperator_interval_bound
+    {L t M : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    {f : ℝ → ℝ} (hf_nonneg : ∀ y, 0 ≤ f y)
+    (hf_le : ∀ y, f y ≤ M) (x : ℝ) :
+    0 ≤ intervalSemigroupOperator L t f x ∧
+      intervalSemigroupOperator L t f x ≤ M := by
+  refine ⟨intervalSemigroupOperator_nonneg ht hf_nonneg x, ?_⟩
+  have hf_abs : ∀ y, |f y| ≤ M := by
+    intro y
+    simpa [abs_of_nonneg (hf_nonneg y)] using hf_le y
+  exact le_trans (le_abs_self _) (intervalSemigroupOperator_Linfty_bound ht hM hf_abs x)
 
 /-- `L∞` contraction for the interval helper operator on `L¹` interval inputs. -/
 theorem intervalSemigroupOperator_contraction
