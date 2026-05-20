@@ -1575,6 +1575,109 @@ theorem normalizedReflectedKernelOperator_diff_L1_Linfty_smoothing_abs
   normalizedReflectedKernelIntegral_diff_L1_Linfty_smoothing_abs
     ht x hf_int hg_int
 
+/-- Interval semigroup helper operator obtained by restricting the normalized
+zeroth-reflection helper kernel to `[0,L]`.  This is still a concrete helper
+operator, not a packaged Neumann semigroup assumption. -/
+def intervalSemigroupOperator (L t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
+  ∫ y, normalizedZerothReflectionKernel L t x y * f y ∂ intervalMeasure L
+
+/-- The normalized helper kernel has restricted interval mass at most one. -/
+theorem normalizedZerothReflectionKernel_intervalIntegral_le_one
+    {t : ℝ} (ht : 0 < t) (L x : ℝ) :
+    ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L ≤ 1 := by
+  unfold intervalMeasure
+  change ∫ y in intervalSet L, normalizedZerothReflectionKernel L t x y ≤ 1
+  rw [← normalizedZerothReflectionKernel_integral ht L x]
+  exact MeasureTheory.setIntegral_le_integral
+    (normalizedZerothReflectionKernel_integrable ht L x)
+    (Filter.Eventually.of_forall fun y =>
+      normalizedZerothReflectionKernel_nonneg ht L x y)
+
+/-- Positivity preservation for the interval helper operator. -/
+theorem intervalSemigroupOperator_nonneg
+    {L t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf : ∀ y, 0 ≤ f y) (x : ℝ) :
+    0 ≤ intervalSemigroupOperator L t f x := by
+  unfold intervalSemigroupOperator
+  exact MeasureTheory.integral_nonneg fun y =>
+    mul_nonneg (normalizedZerothReflectionKernel_nonneg ht L x y) (hf y)
+
+/-- `L¹ → L∞` smoothing for the interval helper operator. -/
+theorem intervalSemigroupOperator_L1_Linfty
+    {L t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf_int : Integrable f (intervalMeasure L)) (x : ℝ) :
+    ‖intervalSemigroupOperator L t f x‖ ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) *
+        ∫ y, ‖f y‖ ∂ intervalMeasure L := by
+  unfold intervalSemigroupOperator
+  calc ‖∫ y, normalizedZerothReflectionKernel L t x y * f y ∂ intervalMeasure L‖
+      ≤ ∫ y, ‖normalizedZerothReflectionKernel L t x y * f y‖
+          ∂ intervalMeasure L :=
+        norm_integral_le_integral_norm _
+    _ ≤ ∫ y, (1 / Real.sqrt (4 * Real.pi * t)) * ‖f y‖
+          ∂ intervalMeasure L := by
+        apply MeasureTheory.integral_mono_of_nonneg
+        · exact Filter.Eventually.of_forall fun y => norm_nonneg _
+        · exact (hf_int.norm).smul (1 / Real.sqrt (4 * Real.pi * t))
+        · exact Filter.Eventually.of_forall fun y => by
+            change ‖normalizedZerothReflectionKernel L t x y * f y‖ ≤
+              (1 / Real.sqrt (4 * Real.pi * t)) * ‖f y‖
+            rw [norm_mul, Real.norm_eq_abs,
+              abs_of_nonneg (normalizedZerothReflectionKernel_nonneg ht L x y)]
+            exact mul_le_mul_of_nonneg_right
+              (normalizedZerothReflectionKernel_pointwise_bound ht L x y)
+              (norm_nonneg _)
+    _ = (1 / Real.sqrt (4 * Real.pi * t)) *
+        ∫ y, ‖f y‖ ∂ intervalMeasure L :=
+        MeasureTheory.integral_const_mul _ _
+
+/-- `L∞` bound for the interval helper operator. -/
+theorem intervalSemigroupOperator_Linfty_bound
+    {L t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} {M : ℝ} (hM : 0 ≤ M) (hf : ∀ y, |f y| ≤ M) (x : ℝ) :
+    |intervalSemigroupOperator L t f x| ≤ M := by
+  unfold intervalSemigroupOperator
+  have hkernel_int :
+      Integrable (fun y => normalizedZerothReflectionKernel L t x y)
+        (intervalMeasure L) := by
+    unfold intervalMeasure
+    exact (normalizedZerothReflectionKernel_integrable ht L x).mono_measure
+      Measure.restrict_le_self
+  have hupper_int :
+      Integrable (fun y => M * normalizedZerothReflectionKernel L t x y)
+        (intervalMeasure L) :=
+    hkernel_int.const_mul M
+  have hmass :=
+    normalizedZerothReflectionKernel_intervalIntegral_le_one ht L x
+  calc |∫ y, normalizedZerothReflectionKernel L t x y * f y ∂ intervalMeasure L|
+      = ‖∫ y, normalizedZerothReflectionKernel L t x y * f y
+          ∂ intervalMeasure L‖ := by
+        rw [Real.norm_eq_abs]
+    _ ≤ ∫ y, ‖normalizedZerothReflectionKernel L t x y * f y‖
+          ∂ intervalMeasure L :=
+        norm_integral_le_integral_norm _
+    _ ≤ ∫ y, M * normalizedZerothReflectionKernel L t x y
+          ∂ intervalMeasure L := by
+        apply MeasureTheory.integral_mono_of_nonneg
+        · exact Filter.Eventually.of_forall fun y => norm_nonneg _
+        · exact hupper_int
+        · exact Filter.Eventually.of_forall fun y => by
+            change ‖normalizedZerothReflectionKernel L t x y * f y‖ ≤
+              M * normalizedZerothReflectionKernel L t x y
+            rw [norm_mul, Real.norm_eq_abs,
+              abs_of_nonneg (normalizedZerothReflectionKernel_nonneg ht L x y)]
+            calc normalizedZerothReflectionKernel L t x y * ‖f y‖
+                ≤ normalizedZerothReflectionKernel L t x y * M :=
+                  mul_le_mul_of_nonneg_left
+                    (by simpa [Real.norm_eq_abs] using hf y)
+                    (normalizedZerothReflectionKernel_nonneg ht L x y)
+              _ = M * normalizedZerothReflectionKernel L t x y := by ring
+    _ = M * ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L :=
+        MeasureTheory.integral_const_mul _ _
+    _ ≤ M * 1 := by
+        exact mul_le_mul_of_nonneg_left hmass hM
+    _ = M := by ring
+
 end ShenWork.IntervalDomain
 
 end
