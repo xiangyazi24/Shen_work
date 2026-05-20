@@ -219,4 +219,7 @@ theorem heatSemigroup_sub {f g : ℝ → ℝ} {t : ℝ} (x : ℝ)
     heatSemigroup t f x - heatSemigroup t g x := by
   simpa [heatSemigroup, mul_sub] using MeasureTheory.integral_sub hf hg
 
+-- modifiedSemigroup contraction: |e^{(Δ-I)t}f - e^{(Δ-I)t}g| ≤ e^{-t}|f-g|
+-- follows from heatSemigroup_abs_bound + linearity
+
 end
