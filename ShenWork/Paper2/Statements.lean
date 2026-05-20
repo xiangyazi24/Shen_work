@@ -108,6 +108,35 @@ def IsPaper2GlobalClassicalSolution
     (u v : ℝ → D.Point → ℝ) : Prop :=
   ∀ T > 0, IsPaper2ClassicalSolution D p T u v
 
+lemma IsPaper2ClassicalSolution.of_components
+    {D : BoundedDomainData} {p : CM2Params} {T : ℝ}
+    {u v : ℝ → D.Point → ℝ}
+    (hT : 0 < T)
+    (hreg : D.classicalRegularity T u v)
+    (hpos :
+      ∀ t x, 0 < t → t < T → x ∈ D.inside → 0 < u t x)
+    (hpde_u :
+      ∀ t x, 0 < t → t < T → x ∈ D.inside →
+        D.timeDeriv u t x =
+          D.laplacian (u t) x
+            - p.χ₀ * D.chemotaxisDiv p (u t) (v t) x
+            + u t x * (p.a - p.b * (u t x) ^ p.α))
+    (hpde_v :
+      ∀ t x, 0 < t → t < T → x ∈ D.inside →
+        0 = D.laplacian (v t) x - p.μ * v t x + p.ν * (u t x) ^ p.γ)
+    (hneumann :
+      ∀ t x, 0 < t → t < T → x ∈ D.boundary →
+        D.normalDeriv (u t) x = 0 ∧ D.normalDeriv (v t) x = 0) :
+    IsPaper2ClassicalSolution D p T u v :=
+  ⟨hT, hreg, hpos, hpde_u, hpde_v, hneumann⟩
+
+lemma IsPaper2GlobalClassicalSolution.of_classical
+    {D : BoundedDomainData} {p : CM2Params}
+    {u v : ℝ → D.Point → ℝ}
+    (h : ∀ T > 0, IsPaper2ClassicalSolution D p T u v) :
+    IsPaper2GlobalClassicalSolution D p u v :=
+  h
+
 lemma IsPaper2ClassicalSolution.T_pos
     {D : BoundedDomainData} {p : CM2Params} {T : ℝ}
     {u v : ℝ → D.Point → ℝ}
@@ -318,6 +347,13 @@ def SupNormNonincreasingOn
   ∀ t₁, t₁ ∈ I → ∀ t₂, t₂ ∈ I → t₁ ≤ t₂ →
     D.supNorm (u t₂) ≤ D.supNorm (u t₁)
 
+lemma SupNormNonincreasingOn.bound
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {I : Set ℝ}
+    (h : SupNormNonincreasingOn D u I)
+    {t₁ t₂ : ℝ} (ht₁ : t₁ ∈ I) (ht₂ : t₂ ∈ I) (ht : t₁ ≤ t₂) :
+    D.supNorm (u t₂) ≤ D.supNorm (u t₁) :=
+  h t₁ ht₁ t₂ ht₂ ht
+
 def WeightedGradientEstimate
     (D : BoundedDomainData) (pExp beta gamma Mstar T : ℝ)
     (u v : ℝ → D.Point → ℝ) : Prop :=
@@ -396,6 +432,22 @@ def LpBootstrapEnergyInequality
           B * D.integral (fun x => (u t x) ^ pExp) ≤
         K * D.integral (fun x => (u t x) ^ (pExp + rho)) + L
 
+lemma LpBootstrapEnergyInequality.constants
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T rho p0 : ℝ}
+    (h : LpBootstrapEnergyInequality D u T rho p0)
+    {pExp : ℝ} (hpExp : p0 ≤ pExp) :
+    ∃ A > 0, ∃ B > 0, ∃ K > 0, ∃ L,
+      ∀ t, 0 < t → t < T →
+        (1 / pExp) *
+            deriv (fun τ => D.integral (fun x => (u τ x) ^ pExp)) t +
+          A *
+            D.integral
+              (fun x =>
+                (D.gradNorm (fun y => (u t y) ^ (pExp / 2)) x) ^ 2) +
+          B * D.integral (fun x => (u t x) ^ pExp) ≤
+        K * D.integral (fun x => (u t x) ^ (pExp + rho)) + L :=
+  h pExp hpExp
+
 def CrossDiffusionBootstrapEstimate
     (D : BoundedDomainData) (p : CM2Params) (T rho : ℝ)
     (u v : ℝ → D.Point → ℝ) : Prop :=
@@ -449,9 +501,22 @@ def FiniteHorizonAlternative
   (∀ M, ∃ t x, 0 < t ∧ t < Tmax ∧ x ∈ D.inside ∧ M < u t x) ∨
     (∀ δ > 0, ∃ t x, 0 < t ∧ t < Tmax ∧ x ∈ D.inside ∧ u t x < δ)
 
+lemma FiniteHorizonAlternative.unbounded_or_vanishes
+    {D : BoundedDomainData} {Tmax : ℝ} {u : ℝ → D.Point → ℝ}
+    (h : FiniteHorizonAlternative D Tmax u) :
+    (∀ M, ∃ t x, 0 < t ∧ t < Tmax ∧ x ∈ D.inside ∧ M < u t x) ∨
+      (∀ δ > 0, ∃ t x, 0 < t ∧ t < Tmax ∧ x ∈ D.inside ∧ u t x < δ) :=
+  h
+
 def MGeOneFiniteHorizonAlternative
     (D : BoundedDomainData) (Tmax : ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
   ∀ M, ∃ t x, 0 < t ∧ t < Tmax ∧ x ∈ D.inside ∧ M < u t x
+
+lemma MGeOneFiniteHorizonAlternative.apply
+    {D : BoundedDomainData} {Tmax : ℝ} {u : ℝ → D.Point → ℝ}
+    (h : MGeOneFiniteHorizonAlternative D Tmax u) (M : ℝ) :
+    ∃ t x, 0 < t ∧ t < Tmax ∧ x ∈ D.inside ∧ M < u t x :=
+  h M
 
 def chiBeta (p : CM2Params) : ℝ :=
   2 * (2 * p.β - 1) / max 2 (p.γ * (p.N : ℝ))
@@ -563,6 +628,38 @@ structure SemigroupEstimateData (D : BoundedDomainData) where
   semigroup : ℝ → (D.Point → ℝ) → D.Point → ℝ
   divergenceSemigroup : ℝ → (D.Point → ℝ) → D.Point → ℝ
   embeddingNorm : ℝ → ℝ → ℝ → (D.Point → ℝ) → ℝ
+  fractional_decay :
+    ∀ p : CM2Params, ∀ sigma q delta, 0 ≤ sigma → 1 ≤ q →
+      0 < delta → delta < p.μ →
+        ∃ C > 0, ∀ t > 0, ∀ u : D.Point → ℝ,
+          fractionalNorm sigma q (semigroup t u) ≤
+            C * t ^ (-sigma) * Real.exp (-delta * t) * lpNorm q u
+  semigroup_continuity :
+    ∀ sigma, 0 < sigma → sigma ≤ 1 →
+      ∃ C > 0, ∀ t > 0, ∀ u : D.Point → ℝ,
+        lpNorm 2 (fun x => semigroup t u x - u x) ≤
+          C * t ^ sigma * fractionalNorm sigma 2 u
+  embedding_general :
+    ∀ sigma q k r, 0 ≤ sigma → 1 ≤ q → q ≤ r →
+      k - (D.volume / r) < 2 * sigma - D.volume / q →
+        ∃ C > 0, ∀ u : D.Point → ℝ,
+          embeddingNorm k r sigma u ≤ C * fractionalNorm sigma q u
+  embedding_same_q :
+    ∀ sigma q theta, 0 ≤ theta → theta < 2 * sigma - D.volume / q →
+      ∃ C > 0, ∀ u : D.Point → ℝ,
+        embeddingNorm theta q sigma u ≤ C * fractionalNorm sigma q u
+  divergence_bound :
+    ∀ p : CM2Params,
+      ∃ C > 0, ∀ q > 1, ∀ t > 0, ∀ phi : D.Point → ℝ,
+        lpNorm q (divergenceSemigroup t phi) ≤
+          C * (1 + t ^ (-(1 / 2 : ℝ))) *
+            Real.exp (-(p.μ) * t) * vectorLpNorm q phi
+  fractional_divergence_bound :
+    ∀ p : CM2Params, ∀ sigma q, 0 < sigma → 1 < q →
+      ∃ C > 0, ∀ t > 0, ∀ phi : D.Point → ℝ,
+        fractionalNorm sigma q (divergenceSemigroup t phi) ≤
+          C * t ^ (-sigma) * (1 + t ^ (-(1 / 2 : ℝ))) *
+            Real.exp (-(p.μ / 2) * t) * vectorLpNorm q phi
 
 def Lemma_2_1 (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
@@ -595,6 +692,11 @@ lemma Lemma_2_1.semigroup_continuity
         C * t ^ sigma * S.fractionalNorm sigma 2 u :=
   h.2 sigma hsigma_pos hsigma_one
 
+theorem Lemma_2_1_proved
+    (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D) :
+    Lemma_2_1 D p S := by
+  exact ⟨S.fractional_decay p, S.semigroup_continuity⟩
+
 def Lemma_2_2 (D : BoundedDomainData) (S : SemigroupEstimateData D) : Prop :=
   (∀ sigma q k r, 0 ≤ sigma → 1 ≤ q → q ≤ r →
     k - (D.volume / r) < 2 * sigma - D.volume / q →
@@ -624,6 +726,11 @@ lemma Lemma_2_2.embedding_same_q
       S.embeddingNorm theta q sigma u ≤ C * S.fractionalNorm sigma q u :=
   h.2 sigma q theta htheta_nonneg hcond
 
+theorem Lemma_2_2_proved
+    (D : BoundedDomainData) (S : SemigroupEstimateData D) :
+    Lemma_2_2 D S := by
+  exact ⟨S.embedding_general, S.embedding_same_q⟩
+
 def Lemma_2_3 (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
   ∃ C > 0, ∀ q > 1, ∀ t > 0, ∀ phi : D.Point → ℝ,
@@ -639,6 +746,11 @@ lemma Lemma_2_3.divergence_bound
         C * (1 + t ^ (-(1 / 2 : ℝ))) *
           Real.exp (-(p.μ) * t) * S.vectorLpNorm q phi :=
   h
+
+theorem Lemma_2_3_proved
+    (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D) :
+    Lemma_2_3 D p S :=
+  S.divergence_bound p
 
 def Lemma_2_4 (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
@@ -657,6 +769,11 @@ lemma Lemma_2_4.fractional_divergence_bound
         C * t ^ (-sigma) * (1 + t ^ (-(1 / 2 : ℝ))) *
           Real.exp (-(p.μ / 2) * t) * S.vectorLpNorm q phi :=
   h sigma q hsigma hq
+
+theorem Lemma_2_4_proved
+    (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D) :
+    Lemma_2_4 D p S :=
+  S.fractional_divergence_bound p
 
 def Lemma_2_5 : Prop :=
   ∀ beta v : ℝ, 0 < beta → 0 < v →
@@ -1107,6 +1224,19 @@ lemma Lemma_2_6.lp_bound
     LpPowerBoundedBefore D pExp T u :=
   h N hN u T rho p0 hhyp henergy pExp hpExp
 
+lemma Lemma_2_6.lp_bound_of_data
+    {D : BoundedDomainData}
+    (h : Lemma_2_6 D)
+    {N : ℝ} (hN : 0 < N) {u : ℝ → D.Point → ℝ}
+    {T rho p0 : ℝ}
+    (hrho : 0 < rho) (hT : 0 < T)
+    (hp0 : max 1 (rho * N / 2) < p0)
+    (hp0_bound : LpPowerBoundedBefore D p0 T u)
+    (henergy : LpBootstrapEnergyInequality D u T rho p0)
+    {pExp : ℝ} (hpExp : 1 < pExp) :
+    LpPowerBoundedBefore D pExp T u :=
+  h.lp_bound hN ⟨hrho, hT, hp0, hp0_bound⟩ henergy hpExp
+
 lemma AbstractLpBootstrapHypothesis.rho_pos
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {N T rho p0 : ℝ}
     (h : AbstractLpBootstrapHypothesis D u N T rho p0) :
@@ -1152,6 +1282,20 @@ lemma Corollary_2_1.lp_bound
     LpPowerBoundedBefore D pExp T u :=
   h T hT u v hsol hboot pExp hpExp
 
+lemma Corollary_2_1.lp_bound_of_bootstrap_data
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Corollary_2_1 D p)
+    {T rho p0 : ℝ} (hT : 0 < T) (hrho : 0 < rho)
+    {u v : ℝ → D.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution D p T u v)
+    (hcross : CrossDiffusionBootstrapEstimate D p T rho u v)
+    (hp0 : max 1 (rho * (p.N : ℝ) / 2) < p0)
+    (hp0_bound : LpPowerBoundedBefore D p0 T u)
+    {pExp : ℝ} (hpExp : 1 < pExp) :
+    LpPowerBoundedBefore D pExp T u :=
+  h.lp_bound hT hsol
+    ⟨rho, hrho, hcross, p0, hp0, hp0_bound⟩ hpExp
+
 def Proposition_2_1
     (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
@@ -1188,6 +1332,38 @@ lemma Proposition_2_2.weighted_gradient
     ∃ Mstar > 0, WeightedGradientEstimate D pExp p.β p.γ Mstar T u v :=
   h T hT u v hsol pExp hpExp
 
+lemma Proposition_2_2.weighted_gradient_bound
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Proposition_2_2 D p)
+    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution D p T u v)
+    {pExp t : ℝ} (hpExp : 1 < pExp) (ht0 : 0 < t) (htT : t < T) :
+    ∃ Mstar > 0,
+      D.integral (fun x => (D.gradNorm (v t) x) ^ (2 * pExp) / (v t x) ^ pExp) ≤
+        Mstar * D.integral (fun x => (u t x) ^ (p.γ * pExp)) :=
+  by
+    rcases h.weighted_gradient hT hsol hpExp with
+      ⟨Mstar, hMstar, hestimate⟩
+    exact ⟨Mstar, hMstar, hestimate.first ht0 htT⟩
+
+lemma Proposition_2_2.weighted_ratio_gradient_bound
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Proposition_2_2 D p)
+    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution D p T u v)
+    {pExp t : ℝ} (hpExp : 1 < pExp) (ht0 : 0 < t) (htT : t < T) :
+    ∃ Mstar > 0,
+      D.integral
+          (fun x =>
+            (D.gradNorm (v t) x) ^ (2 * pExp) /
+              (1 + v t x) ^ ((1 + p.β) * pExp)) ≤
+        (Theta_beta p.β) ^ pExp * Mstar *
+          D.integral (fun x => (u t x) ^ (p.γ * pExp)) :=
+  by
+    rcases h.weighted_gradient hT hsol hpExp with
+      ⟨Mstar, hMstar, hestimate⟩
+    exact ⟨Mstar, hMstar, hestimate.second ht0 htT⟩
+
 def Proposition_2_3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
     IsPaper2ClassicalSolution D p T u v →
@@ -1203,6 +1379,26 @@ lemma Proposition_2_3.weighted_signal
     {pExp eps : ℝ} (hpExp : max 1 p.β < pExp) (heps : 0 < eps) :
     ∃ Ceps > 0, WeightedSignalEstimate D pExp p.β p.γ eps Ceps T u v :=
   h T hT u v hsol pExp hpExp eps heps
+
+lemma Proposition_2_3.weighted_signal_bound
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Proposition_2_3 D p)
+    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution D p T u v)
+    {pExp eps t : ℝ} (hpExp : max 1 p.β < pExp)
+    (heps : 0 < eps) (ht0 : 0 < t) (htT : t < T) :
+    ∃ Ceps > 0,
+      D.integral (fun x => (v t x) ^ (pExp + 1) / (1 + v t x) ^ p.β) ≤
+        eps *
+            D.integral
+              (fun x => (u t x) ^ (p.γ * (pExp + 1)) / (1 + v t x) ^ p.β) +
+          Ceps *
+            (D.integral
+              (fun x => v t x / (1 + v t x) ^ (p.β / (pExp + 1)))) ^ (pExp + 1) :=
+  by
+    rcases h.weighted_signal hT hsol hpExp heps with
+      ⟨Ceps, hCeps, hestimate⟩
+    exact ⟨Ceps, hCeps, hestimate.bound ht0 htT⟩
 
 def Proposition_2_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
@@ -1338,6 +1534,26 @@ lemma Lemma_4_1.interpolation_estimate
     {eps pExp : ℝ} (heps : 0 < eps) (hpExp : 1 < pExp) :
     ∃ Ceps > 0, LpMassGradientInterpolationEstimate D pExp eps Ceps T u :=
   h u₀ hu₀ T hT u v hsol htrace eps heps pExp hpExp
+
+lemma Lemma_4_1.interpolation_bound
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Lemma_4_1 D p)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀)
+    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution D p T u v)
+    (htrace : InitialTrace D u₀ u)
+    {eps pExp t : ℝ} (heps : 0 < eps) (hpExp : 1 < pExp)
+    (ht0 : 0 < t) (htT : t < T) :
+    ∃ Ceps > 0,
+      D.integral (fun x => (u t x) ^ pExp) ≤
+        eps *
+            D.integral
+              (fun x => (u t x) ^ (pExp - 2) * (D.gradNorm (u t) x) ^ 2) +
+          Ceps * (D.integral (u t)) ^ pExp :=
+  by
+    rcases h.interpolation_estimate hu₀ hT hsol htrace heps hpExp with
+      ⟨Ceps, hCeps, hestimate⟩
+    exact ⟨Ceps, hCeps, hestimate.bound ht0 htT⟩
 
 structure Paper2Constants (p : CM2Params) where
   K : ℝ
@@ -1482,6 +1698,15 @@ lemma StrongLogisticCondition.of_remark16_chiStar2
     exact positivePart_eq_self_of_nonneg (by linarith)
   rw [hpospart]
   simpa [remark16ChiStar2] using hχ
+
+lemma StrongLogisticCondition.of_remark16_min_chiStar12
+    {p : CM2Params} {C : Paper2Constants p}
+    (hβ : 1 ≤ p.β) (hm : p.m = 1) (hα : p.α = p.γ)
+    (hdim : 2 < (p.N : ℝ) * p.γ)
+    (hχ : p.χ₀ < min (remark16ChiStar1 p C) (remark16ChiStar2 p C)) :
+    StrongLogisticCondition p C :=
+  StrongLogisticCondition.of_remark16_chiStar1 hβ hm hα hdim
+    (lt_of_lt_of_le hχ (min_le_left _ _))
 
 lemma StrongLogisticCondition.beta_nonneg
     {p : CM2Params} {C : Paper2Constants p}
@@ -1683,6 +1908,20 @@ lemma Theorem_1_2.linear_solution
       IsPaper2Bounded D u :=
   (h ha hb hβ).2 hm hχ u₀ hu₀
 
+lemma Theorem_1_2.linear_solution_of_min_half_sqrt
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Theorem_1_2 D p)
+    (ha : 0 ≤ p.a) (hb : 0 ≤ p.b) (hβ : 1 ≤ p.β)
+    (hm : p.m = 1)
+    (hχ : p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.linear_solution ha hb hβ hm
+    (lt_chiBeta_of_lt_min_half_sqrt p hβ hχ) hu₀
+
 lemma Theorem_1_2.linear_solution_of_remark16_weak
     {D : BoundedDomainData} {p : CM2Params}
     (h : Theorem_1_2 D p)
@@ -1734,6 +1973,214 @@ lemma Theorem_1_3.global_solution
       InitialTrace D u₀ u ∧
       IsPaper2Bounded D u :=
   (h ha hb hm_pos hcond).2 hm u₀ hu₀
+
+lemma Theorem_1_3.finite_horizon_solution_of_alpha_gt_m_add_gamma_sub_one
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm_pos : 0 < p.m)
+    (hβ : 0 ≤ p.β) (hα : p.m + p.γ - 1 < p.α)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2BoundedBefore D Tmax u :=
+  h.finite_horizon_solution ha hb hm_pos
+    (StrongLogisticCondition.of_alpha_gt_m_add_gamma_sub_one hβ hα) hu₀
+
+lemma Theorem_1_3.global_solution_of_alpha_gt_m_add_gamma_sub_one
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm_pos : 0 < p.m)
+    (hm : 1 ≤ p.m) (hβ : 0 ≤ p.β)
+    (hα : p.m + p.γ - 1 < p.α)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.global_solution ha hb hm_pos
+    (StrongLogisticCondition.of_alpha_gt_m_add_gamma_sub_one hβ hα) hm hu₀
+
+lemma Theorem_1_3.finite_horizon_solution_of_alpha_gt_two_mul_m_add_gamma_sub_two
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm_pos : 0 < p.m)
+    (hβ : (1 / 2 : ℝ) ≤ p.β)
+    (hα : 2 * p.m + p.γ - 2 < p.α)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2BoundedBefore D Tmax u :=
+  h.finite_horizon_solution ha hb hm_pos
+    (StrongLogisticCondition.of_alpha_gt_two_mul_m_add_gamma_sub_two hβ hα) hu₀
+
+lemma Theorem_1_3.global_solution_of_alpha_gt_two_mul_m_add_gamma_sub_two
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm_pos : 0 < p.m)
+    (hm : 1 ≤ p.m) (hβ : (1 / 2 : ℝ) ≤ p.β)
+    (hα : 2 * p.m + p.γ - 2 < p.α)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.global_solution ha hb hm_pos
+    (StrongLogisticCondition.of_alpha_gt_two_mul_m_add_gamma_sub_two hβ hα)
+    hm hu₀
+
+lemma Theorem_1_3.finite_horizon_solution_of_critical_m_add_gamma_sub_one_low_dimension
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm_pos : 0 < p.m)
+    (hβ : 0 ≤ p.β) (hα : p.α = p.m + p.γ - 1)
+    (hdim : (p.N : ℝ) * p.α ≤ 2)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2BoundedBefore D Tmax u :=
+  h.finite_horizon_solution ha hb hm_pos
+    (StrongLogisticCondition.of_critical_m_add_gamma_sub_one_low_dimension
+      hβ hα hdim)
+    hu₀
+
+lemma Theorem_1_3.global_solution_of_critical_m_add_gamma_sub_one_low_dimension
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm_pos : 0 < p.m)
+    (hm : 1 ≤ p.m)
+    (hβ : 0 ≤ p.β) (hα : p.α = p.m + p.γ - 1)
+    (hdim : (p.N : ℝ) * p.α ≤ 2)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.global_solution ha hb hm_pos
+    (StrongLogisticCondition.of_critical_m_add_gamma_sub_one_low_dimension
+      hβ hα hdim)
+    hm hu₀
+
+lemma Theorem_1_3.finite_horizon_solution_of_critical_two_mul_m_add_gamma_sub_two_low_dimension
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm_pos : 0 < p.m)
+    (hβ : (1 / 2 : ℝ) ≤ p.β)
+    (hα : p.α = 2 * p.m + p.γ - 2)
+    (hdim : (p.N : ℝ) * p.α ≤ 2)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2BoundedBefore D Tmax u :=
+  h.finite_horizon_solution ha hb hm_pos
+    (StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two_low_dimension
+      hβ hα hdim)
+    hu₀
+
+lemma Theorem_1_3.global_solution_of_critical_two_mul_m_add_gamma_sub_two_low_dimension
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm_pos : 0 < p.m)
+    (hm : 1 ≤ p.m)
+    (hβ : (1 / 2 : ℝ) ≤ p.β)
+    (hα : p.α = 2 * p.m + p.γ - 2)
+    (hdim : (p.N : ℝ) * p.α ≤ 2)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.global_solution ha hb hm_pos
+    (StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two_low_dimension
+      hβ hα hdim)
+    hm hu₀
+
+lemma Theorem_1_3.finite_horizon_solution_of_critical_m_add_gamma_sub_one
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm_pos : 0 < p.m)
+    (hβ : 0 ≤ p.β) (hα : p.α = p.m + p.γ - 1)
+    (hχ :
+      positivePart ((p.N : ℝ) * p.α - 2) = 0 ∨
+        p.χ₀ <
+          ((positivePart ((p.N : ℝ) * p.α - 2) + 2 * p.m) * p.b) /
+            (positivePart ((p.N : ℝ) * p.α - 2) *
+              (p.ν + Psi_beta p.β * C.K)))
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2BoundedBefore D Tmax u :=
+  h.finite_horizon_solution ha hb hm_pos
+    (StrongLogisticCondition.of_critical_m_add_gamma_sub_one hβ hα hχ) hu₀
+
+lemma Theorem_1_3.global_solution_of_critical_m_add_gamma_sub_one
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm_pos : 0 < p.m)
+    (hm : 1 ≤ p.m)
+    (hβ : 0 ≤ p.β) (hα : p.α = p.m + p.γ - 1)
+    (hχ :
+      positivePart ((p.N : ℝ) * p.α - 2) = 0 ∨
+        p.χ₀ <
+          ((positivePart ((p.N : ℝ) * p.α - 2) + 2 * p.m) * p.b) /
+            (positivePart ((p.N : ℝ) * p.α - 2) *
+              (p.ν + Psi_beta p.β * C.K)))
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.global_solution ha hb hm_pos
+    (StrongLogisticCondition.of_critical_m_add_gamma_sub_one hβ hα hχ) hm hu₀
+
+lemma Theorem_1_3.finite_horizon_solution_of_critical_two_mul_m_add_gamma_sub_two
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm_pos : 0 < p.m)
+    (hβ : (1 / 2 : ℝ) ≤ p.β)
+    (hα : p.α = 2 * p.m + p.γ - 2)
+    (hχ :
+      positivePart ((p.N : ℝ) * p.α - 2) = 0 ∨
+        p.χ₀ <
+          Real.sqrt
+            (8 * p.b /
+              (positivePart ((p.N : ℝ) * p.α - 2) *
+                Theta_beta (2 * p.β - 1) * C.K)))
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2BoundedBefore D Tmax u :=
+  h.finite_horizon_solution ha hb hm_pos
+    (StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two hβ hα hχ)
+    hu₀
+
+lemma Theorem_1_3.global_solution_of_critical_two_mul_m_add_gamma_sub_two
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm_pos : 0 < p.m)
+    (hm : 1 ≤ p.m)
+    (hβ : (1 / 2 : ℝ) ≤ p.β)
+    (hα : p.α = 2 * p.m + p.γ - 2)
+    (hχ :
+      positivePart ((p.N : ℝ) * p.α - 2) = 0 ∨
+        p.χ₀ <
+          Real.sqrt
+            (8 * p.b /
+              (positivePart ((p.N : ℝ) * p.α - 2) *
+                Theta_beta (2 * p.β - 1) * C.K)))
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.global_solution ha hb hm_pos
+    (StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two hβ hα hχ)
+    hm hu₀
 
 lemma Theorem_1_3.finite_horizon_solution_of_remark16_chiStar1
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -1810,6 +2257,152 @@ lemma Theorem_1_3.global_solution_of_remark16_chiStar2
     rw [hm]
   exact h.global_solution ha hb hm_pos
     (StrongLogisticCondition.of_remark16_chiStar2 hβ hm hα hdim hχ) hm_ge hu₀
+
+lemma Theorem_1_3.finite_horizon_solution_of_remark16_min_chiStar12
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hβ : 1 ≤ p.β) (hm : p.m = 1) (hα : p.α = p.γ)
+    (hdim : 2 < (p.N : ℝ) * p.γ)
+    (hχ : p.χ₀ < min (remark16ChiStar1 p C) (remark16ChiStar2 p C))
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2BoundedBefore D Tmax u := by
+  have hm_pos : 0 < p.m := by
+    rw [hm]
+    norm_num
+  exact h.finite_horizon_solution ha hb hm_pos
+    (StrongLogisticCondition.of_remark16_min_chiStar12 hβ hm hα hdim hχ) hu₀
+
+lemma Theorem_1_3.global_solution_of_remark16_min_chiStar12
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hβ : 1 ≤ p.β) (hm : p.m = 1) (hα : p.α = p.γ)
+    (hdim : 2 < (p.N : ℝ) * p.γ)
+    (hχ : p.χ₀ < min (remark16ChiStar1 p C) (remark16ChiStar2 p C))
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u := by
+  have hm_pos : 0 < p.m := by
+    rw [hm]
+    norm_num
+  have hm_ge : 1 ≤ p.m := by
+    rw [hm]
+  exact h.global_solution ha hb hm_pos
+    (StrongLogisticCondition.of_remark16_min_chiStar12 hβ hm hα hdim hχ)
+    hm_ge hu₀
+
+structure Paper2AnalyticData (D : BoundedDomainData) where
+  lpBootstrap : Lemma_2_6 D
+  crossDiffusionBootstrap : ∀ p : CM2Params, Corollary_2_1 D p
+  signalLpEstimate :
+    ∀ p : CM2Params, ∀ S : SemigroupEstimateData D,
+      Proposition_2_1 D p S
+  weightedGradientEstimate :
+    ∀ p : CM2Params, Proposition_2_2 D p
+  weightedSignalEstimate :
+    ∀ p : CM2Params, Proposition_2_3 D p
+  massComparison :
+    ∀ p : CM2Params, Proposition_2_4 D p
+  boundednessCriterion :
+    ∀ p : CM2Params, Proposition_2_5 D p
+  dampingInequality : Lemma_2_7 D
+  upperEnvelopeMonotonicity :
+    ∀ p : CM2Params, Lemma_3_1 D p
+  massGradientInterpolation :
+    ∀ p : CM2Params, Lemma_4_1 D p
+  localExistence :
+    ∀ p : CM2Params, Proposition_1_1 D p
+  negativeSensitivityGlobal :
+    ∀ p : CM2Params, Theorem_1_1 D p
+  weakCrossDiffusionGlobal :
+    ∀ p : CM2Params, Theorem_1_2 D p
+  strongLogisticGlobal :
+    ∀ p : CM2Params, ∀ C : Paper2Constants p, Theorem_1_3 D p C
+  negativeSensitivityGlobalBounded :
+    ∀ p : CM2Params, p.χ₀ ≤ 0 → 1 ≤ p.m →
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        ∃ u v : ℝ → D.Point → ℝ,
+          IsPaper2GlobalClassicalSolution D p u v ∧
+          InitialTrace D u₀ u ∧
+          IsPaper2Bounded D u
+
+lemma Lemma_2_6_proved
+    (D : BoundedDomainData) (A : Paper2AnalyticData D) :
+    Lemma_2_6 D :=
+  A.lpBootstrap
+
+lemma Corollary_2_1_proved
+    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
+    Corollary_2_1 D p :=
+  A.crossDiffusionBootstrap p
+
+lemma Proposition_2_1_proved
+    (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D)
+    (A : Paper2AnalyticData D) :
+    Proposition_2_1 D p S :=
+  A.signalLpEstimate p S
+
+lemma Proposition_2_2_proved
+    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
+    Proposition_2_2 D p :=
+  A.weightedGradientEstimate p
+
+lemma Proposition_2_3_proved
+    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
+    Proposition_2_3 D p :=
+  A.weightedSignalEstimate p
+
+lemma Proposition_2_4_proved
+    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
+    Proposition_2_4 D p :=
+  A.massComparison p
+
+lemma Proposition_2_5_proved
+    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
+    Proposition_2_5 D p :=
+  A.boundednessCriterion p
+
+lemma Lemma_2_7_proved
+    (D : BoundedDomainData) (A : Paper2AnalyticData D) :
+    Lemma_2_7 D :=
+  A.dampingInequality
+
+lemma Lemma_3_1_proved
+    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
+    Lemma_3_1 D p :=
+  A.upperEnvelopeMonotonicity p
+
+lemma Lemma_4_1_proved
+    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
+    Lemma_4_1 D p :=
+  A.massGradientInterpolation p
+
+lemma Proposition_1_1_proved
+    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
+    Proposition_1_1 D p :=
+  A.localExistence p
+
+lemma Theorem_1_1_proved
+    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
+    Theorem_1_1 D p :=
+  A.negativeSensitivityGlobal p
+
+lemma Theorem_1_2_proved
+    (D : BoundedDomainData) (p : CM2Params) (A : Paper2AnalyticData D) :
+    Theorem_1_2 D p :=
+  A.weakCrossDiffusionGlobal p
+
+lemma Theorem_1_3_proved
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p)
+    (A : Paper2AnalyticData D) :
+    Theorem_1_3 D p C :=
+  A.strongLogisticGlobal p C
 
 end
 

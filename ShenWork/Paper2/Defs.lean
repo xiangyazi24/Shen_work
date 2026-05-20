@@ -34,21 +34,33 @@ def Psi_beta (β : ℝ) : ℝ := (β / (1 + β)) ^ (1 + β)
 def Theta_beta (β : ℝ) : ℝ := β ^ β * (1 + β) ^ (-(1 + β))
 
 /-!
-This is a toy placeholder, not the bounded-domain parabolic-elliptic PDE from
-the paper.  It is kept only to document why the old paper-level theorem shapes
+This is a toy model, not the bounded-domain parabolic-elliptic PDE from the
+paper.  It is kept only to document why the old paper-level theorem shapes
 were unsound under the current definitions.
 -/
 structure IsToyClassicalSolution2 (p : CM2Params) (T : ℝ) (u _v : ℝ → ℝ → ℝ) : Prop where
   hT : 0 < T
   u_pos : ∀ t x, 0 < t → t < T → 0 < u t x
-  pde_satisfied : True
+  u_time_continuous : ∀ x, Continuous (fun t => u t x)
 
 def IsToyGlobalClassicalSolution2 (p : CM2Params) (u v : ℝ → ℝ → ℝ) : Prop :=
   ∀ T > 0, IsToyClassicalSolution2 p T u v
 
+theorem IsToyGlobalClassicalSolution2.on_interval
+    {p : CM2Params} {u v : ℝ → ℝ → ℝ}
+    (h : IsToyGlobalClassicalSolution2 p u v)
+    {T : ℝ} (hT : 0 < T) :
+    IsToyClassicalSolution2 p T u v :=
+  h T hT
+
 def IsToyBounded2 (u : ℝ → ℝ → ℝ) : Prop := ∃ M : ℝ, ∀ t x, 0 ≤ t → |u t x| ≤ M
 
-theorem persistence_property_false_under_current_solution_def
+theorem IsToyBounded2.exists_bound
+    {u : ℝ → ℝ → ℝ} (h : IsToyBounded2 u) :
+    ∃ M : ℝ, ∀ t x, 0 ≤ t → |u t x| ≤ M :=
+  h
+
+example
     (p : CM2Params) :
     ¬ (∀ u v : ℝ → ℝ → ℝ,
       IsToyGlobalClassicalSolution2 p u v → IsToyBounded2 u →
@@ -58,10 +70,13 @@ theorem persistence_property_false_under_current_solution_def
   let v : ℝ → ℝ → ℝ := fun _t _x => 0
   have hglobal : IsToyGlobalClassicalSolution2 p u v := by
     intro T hT
-    refine ⟨hT, ?_, trivial⟩
-    intro t _x _ht0 _htT
-    dsimp [u]
-    positivity
+    refine ⟨hT, ?_, ?_⟩
+    · intro t _x _ht0 _htT
+      dsimp [u]
+      positivity
+    · intro _x
+      dsimp [u]
+      fun_prop
   have hbdd : IsToyBounded2 u := by
     refine ⟨1, ?_⟩
     intro t _x ht0
@@ -82,15 +97,17 @@ theorem persistence_property_false_under_current_solution_def
       _ = δ := Real.exp_log hδ_pos
   linarith
 
-/-- Under the current toy solution definition, the positive equilibrium is a global solution. -/
-theorem cm2_constant_solution_under_current_solution_def
+/-- Under the current toy solution definition, the positive equilibrium is a global solution.
+This is intentionally kept as an unnamed sanity check, not as a paper theorem. -/
+example
     (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) :
-    let c := (p.a / p.b) ^ (1 / p.α)
     ∃ u v : ℝ → ℝ → ℝ, IsToyGlobalClassicalSolution2 p u v ∧ IsToyBounded2 u := by
   refine ⟨fun _ _ => (p.a / p.b) ^ (1 / p.α),
          fun _ _ => p.ν / p.μ * ((p.a / p.b) ^ (1 / p.α)) ^ p.γ,
-         fun T hT => ⟨hT, fun _ _ _ _ => by positivity, trivial⟩,
+         fun T hT => ⟨hT, fun _ _ _ _ => by positivity, fun _ => continuous_const⟩,
          ⟨(p.a / p.b) ^ (1 / p.α), fun t x _ => by
-            simp only; rw [abs_of_nonneg (Real.rpow_nonneg (div_nonneg (le_of_lt ha) (le_of_lt hb)) _)]⟩⟩
+            simp only
+            rw [abs_of_nonneg
+              (Real.rpow_nonneg (div_nonneg (le_of_lt ha) (le_of_lt hb)) _)]⟩⟩
 
 end

@@ -17,14 +17,16 @@ def IsToyGloballyAsymptoticallyStable (p : CM2Params) (u_star v_star : ℝ) : Pr
     Tendsto (fun t => ⨆ x, |u t x - u_star|) atTop (𝓝 0) ∧
     Tendsto (fun t => ⨆ x, |v t x - v_star|) atTop (𝓝 0)
 
-theorem cm3_persistence_false_under_current_solution_def
-    (p : CM2Params) :
-    ¬ (∀ u v : ℝ → ℝ → ℝ,
-      IsToyGlobalClassicalSolution2 p u v → IsToyBounded2 u →
-      ∃ δ > 0, ∀ _ε > 0, ∃ T, ∀ t x, T ≤ t → δ ≤ u t x) :=
-  persistence_property_false_under_current_solution_def p
+theorem IsToyGloballyAsymptoticallyStable.convergence
+    {p : CM2Params} {u_star v_star : ℝ}
+    (h : IsToyGloballyAsymptoticallyStable p u_star v_star)
+    {u v : ℝ → ℝ → ℝ}
+    (hsol : IsToyGlobalClassicalSolution2 p u v) (hbd : IsToyBounded2 u) :
+    Tendsto (fun t => ⨆ x, |u t x - u_star|) atTop (𝓝 0) ∧
+    Tendsto (fun t => ⨆ x, |v t x - v_star|) atTop (𝓝 0) :=
+  h u v hsol hbd
 
-theorem cm3_global_stability_neg_false_under_current_solution_def
+example
     (p : CM2Params) (hab : 0 < p.a ∧ 0 < p.b) :
     let (u_star, v_star) := equilibrium p hab
     ¬ IsToyGloballyAsymptoticallyStable p u_star v_star := by
@@ -38,10 +40,13 @@ theorem cm3_global_stability_neg_false_under_current_solution_def
     exact Real.rpow_nonneg (div_nonneg hab.1.le hab.2.le) _
   have hglobal : IsToyGlobalClassicalSolution2 p u v := by
     intro T hT
-    refine ⟨hT, ?_, trivial⟩
-    intro _t _x _ht0 _htT
-    dsimp [u]
-    linarith
+    refine ⟨hT, ?_, ?_⟩
+    · intro _t _x _ht0 _htT
+      dsimp [u]
+      linarith
+    · intro _x
+      dsimp [u]
+      exact continuous_const
   have hbdd : IsToyBounded2 u := by
     refine ⟨uStar + 1, ?_⟩
     intro _t _x _ht0

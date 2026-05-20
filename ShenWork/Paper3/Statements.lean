@@ -369,6 +369,81 @@ lemma paperCriticalSensitivitySet_bddBelow
   exact (sigmaCriticalChiPaperFormula_pos p huStar hvStar
     (H.eigenvalue_pos_of_ne_zero n hn)).le
 
+lemma paperCriticalSensitivity_nonneg
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    {uStar vStar : ℝ} (huStar : 0 < uStar) (hvStar : 0 ≤ vStar) :
+    0 ≤ paperCriticalSensitivity S p uStar vStar := by
+  unfold paperCriticalSensitivity
+  refine le_csInf (paperCriticalSensitivitySet_nonempty S p uStar vStar) ?_
+  rintro χ ⟨n, hn, rfl⟩
+  exact (sigmaCriticalChiPaperFormula_pos p huStar hvStar
+    (H.eigenvalue_pos_of_ne_zero n hn)).le
+
+lemma sigmaCriticalChiPaperFormula_ge_firstNonzero_lower
+    (S : SpectralData) (p : CM2Params)
+    {uStar vStar : ℝ} (huStar : 0 < uStar) (hvStar : 0 ≤ vStar)
+    {lambdaN : ℝ} (hlambda : 0 < lambdaN)
+    (hfirst_le : S.firstNonzero ≤ lambdaN) :
+    ((1 + vStar) ^ p.β /
+        (p.ν * p.γ * uStar ^ (p.m + p.γ - 1))) *
+      (p.μ + S.firstNonzero) ≤
+        sigmaCriticalChiPaperFormula p uStar vStar lambdaN := by
+  unfold sigmaCriticalChiPaperFormula
+  let A :=
+    (1 + vStar) ^ p.β /
+      (p.ν * p.γ * uStar ^ (p.m + p.γ - 1))
+  have hA_pos : 0 < A := by
+    dsimp [A]
+    exact div_pos
+      (Real.rpow_pos_of_pos (by linarith : 0 < 1 + vStar) _)
+      (mul_pos (mul_pos p.hν p.hγ)
+        (Real.rpow_pos_of_pos huStar _))
+  have hquad :
+      p.μ + S.firstNonzero ≤
+        ((lambdaN + p.a * p.α) * (p.μ + lambdaN) / lambdaN) := by
+    rw [le_div_iff₀ hlambda]
+    have haα_nonneg : 0 ≤ p.a * p.α :=
+      mul_nonneg p.ha p.hα.le
+    have hmul_left_nonneg : 0 ≤ p.μ + lambdaN := by linarith [p.hμ, hlambda]
+    have hleft :
+        (p.μ + S.firstNonzero) * lambdaN ≤
+          (p.μ + lambdaN) * lambdaN := by
+      nlinarith [hfirst_le, hlambda]
+    have hright :
+        (p.μ + lambdaN) * lambdaN ≤
+          (p.μ + lambdaN) * (lambdaN + p.a * p.α) := by
+      exact mul_le_mul_of_nonneg_left (by nlinarith [haα_nonneg]) hmul_left_nonneg
+    nlinarith [hleft, hright]
+  change A * (p.μ + S.firstNonzero) ≤
+    A * ((lambdaN + p.a * p.α) * (p.μ + lambdaN) / lambdaN)
+  exact mul_le_mul_of_nonneg_left hquad hA_pos.le
+
+lemma paperCriticalSensitivity_pos
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    {uStar vStar : ℝ} (huStar : 0 < uStar) (hvStar : 0 ≤ vStar) :
+    0 < paperCriticalSensitivity S p uStar vStar := by
+  let lower :=
+    ((1 + vStar) ^ p.β /
+      (p.ν * p.γ * uStar ^ (p.m + p.γ - 1))) *
+      (p.μ + S.firstNonzero)
+  have hlower_pos : 0 < lower := by
+    dsimp [lower]
+    exact mul_pos
+      (div_pos
+        (Real.rpow_pos_of_pos (by linarith : 0 < 1 + vStar) _)
+        (mul_pos (mul_pos p.hν p.hγ)
+          (Real.rpow_pos_of_pos huStar _)))
+      (by linarith [p.hμ, H.firstNonzero_pos])
+  have hlower_le : lower ≤ paperCriticalSensitivity S p uStar vStar := by
+    unfold paperCriticalSensitivity
+    refine le_csInf (paperCriticalSensitivitySet_nonempty S p uStar vStar) ?_
+    rintro χ ⟨n, hn, rfl⟩
+    exact sigmaCriticalChiPaperFormula_ge_firstNonzero_lower
+      S p huStar hvStar
+      (H.eigenvalue_pos_of_ne_zero n hn)
+      (H.firstNonzero_le_eigenvalue n hn)
+  exact lt_of_lt_of_le hlower_pos hlower_le
+
 lemma sigma_eq_chi_sub_critical_mul_coeff
     (p : CM2Params) (uStar vStar lambdaN : ℝ)
     (hcoeff :
@@ -418,6 +493,33 @@ def AboveSomeLinearCriticalThreshold
     (S : SpectralData) (p : CM2Params) (uStar vStar : ℝ) : Prop :=
   ∃ n : ℕ, n ≠ 0 ∧
     sigmaCriticalChi p uStar vStar (S.eigenvalue n) < p.χ₀
+
+lemma LinearlyStable.at
+    {S : SpectralData} {p : CM2Params} {uStar vStar : ℝ}
+    (hstable : LinearlyStable S p uStar vStar)
+    {n : ℕ} (hn : n ≠ 0) :
+    sigma p uStar vStar (S.eigenvalue n) < 0 :=
+  hstable n hn
+
+lemma LinearlyUnstable.exists_mode
+    {S : SpectralData} {p : CM2Params} {uStar vStar : ℝ}
+    (hunstable : LinearlyUnstable S p uStar vStar) :
+    ∃ n : ℕ, n ≠ 0 ∧ 0 < sigma p uStar vStar (S.eigenvalue n) :=
+  hunstable
+
+lemma BelowAllLinearCriticalThresholds.at
+    {S : SpectralData} {p : CM2Params} {uStar vStar : ℝ}
+    (hbelow : BelowAllLinearCriticalThresholds S p uStar vStar)
+    {n : ℕ} (hn : n ≠ 0) :
+    p.χ₀ < sigmaCriticalChi p uStar vStar (S.eigenvalue n) :=
+  hbelow n hn
+
+lemma AboveSomeLinearCriticalThreshold.exists_mode
+    {S : SpectralData} {p : CM2Params} {uStar vStar : ℝ}
+    (habove : AboveSomeLinearCriticalThreshold S p uStar vStar) :
+    ∃ n : ℕ, n ≠ 0 ∧
+      sigmaCriticalChi p uStar vStar (S.eigenvalue n) < p.χ₀ :=
+  habove
 
 lemma LinearlyStable.not_linearlyUnstable
     {S : SpectralData} {p : CM2Params} {uStar vStar : ℝ}
@@ -511,13 +613,98 @@ lemma AboveSomeLinearCriticalThreshold_of_paperCriticalSensitivity_lt_chi
 structure StabilityNorms (D : BoundedDomainData) where
   c1Distance : (D.Point → ℝ) → (D.Point → ℝ) → ℝ
   xpSigmaDistance : ℝ → ℝ → (D.Point → ℝ) → (D.Point → ℝ) → ℝ
+  initialContinuity :
+    ∀ p : CM2Params, ∀ uConst > 0,
+      ∀ sigma pNorm eps, 1 / 2 < sigma → 1 < pNorm → 0 < eps →
+        ∃ delta > 0, ∃ T0 > 0, ∃ T > T0,
+          ∀ u₀ : D.Point → ℝ,
+          ∀ u v uConstSol vConstSol : ℝ → D.Point → ℝ,
+            PositiveInitialDatum D u₀ →
+            PositiveInitialDatum D (fun _ : D.Point => uConst) →
+            D.supNorm (fun x => u₀ x - uConst) ≤ delta →
+            IsPaper2ClassicalSolution D p T u v →
+            InitialTrace D u₀ u →
+            IsPaper2ClassicalSolution D p T uConstSol vConstSol →
+            InitialTrace D (fun _ : D.Point => uConst) uConstSol →
+              xpSigmaDistance sigma pNorm (u T0) (uConstSol T0) ≤ eps
+  sectorialLocalExponential :
+    ∀ p : CM2Params, ∀ S : SpectralData,
+      ∀ sigma pNorm uStar vStar,
+        1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+        LinearlyStable S p uStar vStar →
+          ∃ eps > 0, ∃ C > 0, ∃ rate > 0,
+            ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+              xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤ eps →
+                ∀ u v : ℝ → D.Point → ℝ,
+                  IsPaper2GlobalClassicalSolution D p u v →
+                  InitialTrace D u₀ u →
+                    ∀ t, 0 ≤ t →
+                      c1Distance (u t) (fun _ => uStar) +
+                        c1Distance (v t) (fun _ => vStar) ≤
+                          C * Real.exp (-rate * t)
+  negativeSensitivityGlobalStability :
+    ∀ p : CM2Params, p.χ₀ ≤ 0 → 1 ≤ p.m →
+      (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        (∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+            UniformConvergesInSup D u eq.1) ∧
+        ∃ A > 0, ∃ rate > 0,
+          ∀ u v : ℝ → D.Point → ℝ,
+            PositiveGlobalBoundedSolution D p u v →
+              ∀ t, 0 ≤ t →
+                c1Distance (u t) (fun _ => eq.1) +
+                  c1Distance (v t) (fun _ => eq.2) ≤
+                    A * Real.exp (-rate * t)) ∧
+      (p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          (∀ u v : ℝ → D.Point → ℝ,
+            PositiveGlobalBoundedSolution D p u v →
+            HasInitialMass D u uStar →
+              UniformConvergesInSup D u eq.1) ∧
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → D.Point → ℝ,
+              PositiveGlobalBoundedSolution D p u v →
+              HasInitialMass D u uStar →
+                ∀ t, 0 ≤ t →
+                  c1Distance (u t) (fun _ => eq.1) +
+                    c1Distance (v t) (fun _ => eq.2) ≤
+                      A * Real.exp (-rate * t))
 
 structure CompactnessData (D : BoundedDomainData) where
   locallyConverges :
     (ℕ → ℝ → D.Point → ℝ) → (ℝ → D.Point → ℝ) → Prop
   upperEnvelope : (D.Point → ℝ) → ℝ
+  timeTranslateCompactness :
+    ∀ p : CM2Params, 1 ≤ p.m → 0 < p.γ →
+      ∀ u v : ℝ → D.Point → ℝ,
+        PositiveGlobalBoundedSolution D p u v →
+          ∀ times : ℕ → ℝ, Tendsto times atTop atTop →
+            ∃ subseq : ℕ → ℕ, StrictMono subseq ∧
+            ∃ uInf vInf : ℝ → D.Point → ℝ,
+              locallyConverges (fun n t x => u (t + times (subseq n)) x) uInf ∧
+              locallyConverges (fun n t x => v (t + times (subseq n)) x) vInf ∧
+              ∀ T > 0, IsPaper2ClassicalSolution D p T
+                (fun t x => uInf (t - T / 2) x)
+                (fun t x => vInf (t - T / 2) x)
+  upperEnvelopeMonotonicity :
+    ∀ p : CM2Params, ∀ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v →
+        (p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
+          ∀ t₀, 0 < t₀ →
+            (p.a / p.b) ^ (1 / p.α) < upperEnvelope (u t₀) →
+            ∀ t₁ t₂, 0 < t₁ → t₁ ≤ t₂ → t₂ ≤ t₀ →
+              upperEnvelope (u t₂) ≤ upperEnvelope (u t₁)) ∧
+        (p.χ₀ ≤ 0 → p.a = 0 → p.b = 0 →
+          ∀ t₁ t₂, 0 < t₁ → t₁ ≤ t₂ →
+            upperEnvelope (u t₂) ≤ upperEnvelope (u t₁))
   neumannResolventGradientBound :
     (mu nu : ℝ) → (D.Point → ℝ) → ℝ → Prop
+  neumannResolventGradientBound_exists :
+    ∃ M0 > 0, ∀ mu nu : ℝ, ∀ f : D.Point → ℝ,
+      0 < mu → 0 < nu →
+        neumannResolventGradientBound mu nu f M0
 
 def EntireClassicalSolution
     (D : BoundedDomainData) (p : CM2Params)
@@ -531,6 +718,24 @@ def UniformRegularityConclusion
     (u v : ℝ → D.Point → ℝ) : Prop :=
   ∀ T > 0, D.classicalRegularity T u v
 
+lemma EntireClassicalSolution.on_window
+    {D : BoundedDomainData} {p : CM2Params}
+    {u v : ℝ → D.Point → ℝ}
+    (h : EntireClassicalSolution D p u v)
+    {T : ℝ} (hT : 0 < T) :
+    IsPaper2ClassicalSolution D p T
+      (fun t x => u (t - T / 2) x)
+      (fun t x => v (t - T / 2) x) :=
+  h T hT
+
+lemma UniformRegularityConclusion.regular
+    {D : BoundedDomainData} {p : CM2Params}
+    {u v : ℝ → D.Point → ℝ}
+    (h : UniformRegularityConclusion D p u v)
+    {T : ℝ} (hT : 0 < T) :
+    D.classicalRegularity T u v :=
+  h T hT
+
 def TimeTranslateCompactnessConclusion
     (D : BoundedDomainData) (p : CM2Params) (K : CompactnessData D)
     (u v : ℝ → D.Point → ℝ) : Prop :=
@@ -540,6 +745,31 @@ def TimeTranslateCompactnessConclusion
       K.locallyConverges (fun n t x => u (t + times (subseq n)) x) uInf ∧
       K.locallyConverges (fun n t x => v (t + times (subseq n)) x) vInf ∧
       EntireClassicalSolution D p uInf vInf
+
+lemma TimeTranslateCompactnessConclusion.subsequence
+    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
+    {u v : ℝ → D.Point → ℝ}
+    (h : TimeTranslateCompactnessConclusion D p K u v)
+    {times : ℕ → ℝ} (htimes : Tendsto times atTop atTop) :
+    ∃ subseq : ℕ → ℕ, StrictMono subseq ∧
+    ∃ uInf vInf : ℝ → D.Point → ℝ,
+      K.locallyConverges (fun n t x => u (t + times (subseq n)) x) uInf ∧
+      K.locallyConverges (fun n t x => v (t + times (subseq n)) x) vInf ∧
+      EntireClassicalSolution D p uInf vInf :=
+  h times htimes
+
+lemma TimeTranslateCompactnessConclusion.entire_limit
+    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
+    {u v : ℝ → D.Point → ℝ}
+    (h : TimeTranslateCompactnessConclusion D p K u v)
+    {times : ℕ → ℝ} (htimes : Tendsto times atTop atTop) :
+    ∃ subseq : ℕ → ℕ, StrictMono subseq ∧
+    ∃ uInf vInf : ℝ → D.Point → ℝ,
+      EntireClassicalSolution D p uInf vInf :=
+  by
+    rcases h.subsequence htimes with
+      ⟨subseq, hsubseq, uInf, vInf, _hu, _hv, hentire⟩
+    exact ⟨subseq, hsubseq, uInf, vInf, hentire⟩
 
 def InitialContinuityConclusion
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
@@ -556,6 +786,24 @@ def InitialContinuityConclusion
         IsPaper2ClassicalSolution D p T uConstSol vConstSol →
         InitialTrace D (fun _ : D.Point => uConst) uConstSol →
           N.xpSigmaDistance sigma pNorm (u T0) (uConstSol T0) ≤ eps
+
+lemma InitialContinuityConclusion.data
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {uConst sigma pNorm eps : ℝ}
+    (h : InitialContinuityConclusion D p N uConst)
+    (hsigma : 1 / 2 < sigma) (hpNorm : 1 < pNorm) (heps : 0 < eps) :
+    ∃ delta > 0, ∃ T0 > 0, ∃ T > T0,
+      ∀ u₀ : D.Point → ℝ,
+      ∀ u v uConstSol vConstSol : ℝ → D.Point → ℝ,
+        PositiveInitialDatum D u₀ →
+        PositiveInitialDatum D (fun _ : D.Point => uConst) →
+        D.supNorm (fun x => u₀ x - uConst) ≤ delta →
+        IsPaper2ClassicalSolution D p T u v →
+        InitialTrace D u₀ u →
+        IsPaper2ClassicalSolution D p T uConstSol vConstSol →
+        InitialTrace D (fun _ : D.Point => uConst) uConstSol →
+          N.xpSigmaDistance sigma pNorm (u T0) (uConstSol T0) ≤ eps :=
+  h sigma pNorm eps hsigma hpNorm heps
 
 def UpperEnvelopeMonotonicityConclusion
     (D : BoundedDomainData) (p : CM2Params) (K : CompactnessData D)
@@ -603,6 +851,15 @@ def ExponentialC1ConvergenceWith
   ∀ t, 0 ≤ t →
     N.c1Distance (u t) (fun _ => uStar) +
       N.c1Distance (v t) (fun _ => vStar) ≤ C * Real.exp (-rate * t)
+
+lemma ExponentialC1ConvergenceWith.bound_at
+    {D : BoundedDomainData} {N : StabilityNorms D}
+    {u v : ℝ → D.Point → ℝ} {uStar vStar C rate : ℝ}
+    (h : ExponentialC1ConvergenceWith D N u v uStar vStar C rate)
+    {t : ℝ} (ht : 0 ≤ t) :
+    N.c1Distance (u t) (fun _ => uStar) +
+      N.c1Distance (v t) (fun _ => vStar) ≤ C * Real.exp (-rate * t) :=
+  h t ht
 
 lemma ExponentialC1Convergence.bound
     {D : BoundedDomainData} {N : StabilityNorms D}
@@ -732,6 +989,23 @@ lemma Proposition_1_1.paper2
     Paper2.Proposition_1_1 D p :=
   h
 
+lemma Proposition_1_1.solution
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Proposition_1_1 D p)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p Tmax u v ∧
+      InitialTrace D u₀ u ∧
+      FiniteHorizonAlternative D Tmax u ∧
+      (1 ≤ p.m → MGeOneFiniteHorizonAlternative D Tmax u) :=
+  h.paper2.solution hu₀
+
+lemma Proposition_1_1_proved
+    (D : BoundedDomainData) (p : CM2Params)
+    (h : Paper2.Proposition_1_1 D p) :
+    Proposition_1_1 D p :=
+  h
+
 def Proposition_1_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   p.χ₀ ≤ 0 → 1 ≤ p.m →
     ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
@@ -762,6 +1036,34 @@ lemma Proposition_1_2.positive_global_solution
   rcases h.global_solution hχ hm hu₀ with ⟨u, v, hglobal, htrace, hbdd⟩
   exact ⟨u, v,
     PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
+
+lemma Proposition_1_2_proved
+    (D : BoundedDomainData) (p : CM2Params)
+    (A : Paper2AnalyticData D) :
+    Proposition_1_2 D p :=
+  A.negativeSensitivityGlobalBounded p
+
+lemma Proposition_1_2.nonminimal_global_bounded_before_solution_of_paper2_theorem_1_1
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Paper2.Theorem_1_1 D p)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b) (hm : 1 ≤ p.m)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2BoundedBefore D Tmax u :=
+  h.nonminimal_global_bounded_before_solution hχ ha hb hm hu₀
+
+lemma Proposition_1_2.minimal_global_bounded_before_solution_of_paper2_theorem_1_1
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Paper2.Theorem_1_1 D p)
+    (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (hb : p.b = 0) (hm : 1 ≤ p.m)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2BoundedBefore D Tmax u :=
+  h.minimal_global_bounded_before_solution hχ ha hb hm hu₀
 
 def Proposition_1_3
     (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p) : Prop :=
@@ -805,6 +1107,283 @@ lemma Proposition_1_3.of_paper2_theorem_1_3
   intro ha hb hm hcond u₀ hu₀
   exact h.global_solution ha hb p.hm hcond hm hu₀
 
+lemma Proposition_1_3_proved
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p)
+    (h : Paper2.Theorem_1_3 D p C) :
+    Proposition_1_3 D p C :=
+  Proposition_1_3.of_paper2_theorem_1_3 h
+
+lemma Proposition_1_3.global_solution_of_alpha_gt_m_add_gamma_sub_one
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm : 1 ≤ p.m)
+    (hβ : 0 ≤ p.β) (hα : p.m + p.γ - 1 < p.α)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.global_solution_of_alpha_gt_m_add_gamma_sub_one
+    ha hb p.hm hm hβ hα hu₀
+
+lemma Proposition_1_3.global_solution_of_alpha_gt_two_mul_m_add_gamma_sub_two
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm : 1 ≤ p.m)
+    (hβ : (1 / 2 : ℝ) ≤ p.β)
+    (hα : 2 * p.m + p.γ - 2 < p.α)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.global_solution_of_alpha_gt_two_mul_m_add_gamma_sub_two
+    ha hb p.hm hm hβ hα hu₀
+
+lemma Proposition_1_3.global_solution_of_critical_m_add_gamma_sub_one_low_dimension
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm : 1 ≤ p.m)
+    (hβ : 0 ≤ p.β) (hα : p.α = p.m + p.γ - 1)
+    (hdim : (p.N : ℝ) * p.α ≤ 2)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.global_solution_of_critical_m_add_gamma_sub_one_low_dimension
+    ha hb p.hm hm hβ hα hdim hu₀
+
+lemma Proposition_1_3.global_solution_of_critical_two_mul_m_add_gamma_sub_two_low_dimension
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm : 1 ≤ p.m)
+    (hβ : (1 / 2 : ℝ) ≤ p.β)
+    (hα : p.α = 2 * p.m + p.γ - 2)
+    (hdim : (p.N : ℝ) * p.α ≤ 2)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.global_solution_of_critical_two_mul_m_add_gamma_sub_two_low_dimension
+    ha hb p.hm hm hβ hα hdim hu₀
+
+lemma Proposition_1_3.global_solution_of_critical_m_add_gamma_sub_one
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm : 1 ≤ p.m)
+    (hβ : 0 ≤ p.β) (hα : p.α = p.m + p.γ - 1)
+    (hχ :
+      positivePart ((p.N : ℝ) * p.α - 2) = 0 ∨
+        p.χ₀ <
+          ((positivePart ((p.N : ℝ) * p.α - 2) + 2 * p.m) * p.b) /
+            (positivePart ((p.N : ℝ) * p.α - 2) *
+              (p.ν + Psi_beta p.β * C.K)))
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.global_solution_of_critical_m_add_gamma_sub_one
+    ha hb p.hm hm hβ hα hχ hu₀
+
+lemma Proposition_1_3.global_solution_of_critical_two_mul_m_add_gamma_sub_two
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm : 1 ≤ p.m)
+    (hβ : (1 / 2 : ℝ) ≤ p.β)
+    (hα : p.α = 2 * p.m + p.γ - 2)
+    (hχ :
+      positivePart ((p.N : ℝ) * p.α - 2) = 0 ∨
+        p.χ₀ <
+          Real.sqrt
+            (8 * p.b /
+              (positivePart ((p.N : ℝ) * p.α - 2) *
+                Theta_beta (2 * p.β - 1) * C.K)))
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.global_solution_of_critical_two_mul_m_add_gamma_sub_two
+    ha hb p.hm hm hβ hα hχ hu₀
+
+lemma Proposition_1_3.global_solution_of_remark16_chiStar1
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hβ : 1 ≤ p.β) (hm : p.m = 1) (hα : p.α = p.γ)
+    (hdim : 2 < (p.N : ℝ) * p.γ)
+    (hχ : p.χ₀ < remark16ChiStar1 p C)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.global_solution_of_remark16_chiStar1
+    ha hb hβ hm hα hdim hχ hu₀
+
+lemma Proposition_1_3.global_solution_of_remark16_chiStar2
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hβ : 1 ≤ p.β) (hm : p.m = 1) (hα : p.α = p.γ)
+    (hdim : 2 < (p.N : ℝ) * p.γ)
+    (hχ : p.χ₀ < remark16ChiStar2 p C)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.global_solution_of_remark16_chiStar2
+    ha hb hβ hm hα hdim hχ hu₀
+
+lemma Proposition_1_3.global_solution_of_remark16_min_chiStar12
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hβ : 1 ≤ p.β) (hm : p.m = 1) (hα : p.α = p.γ)
+    (hdim : 2 < (p.N : ℝ) * p.γ)
+    (hχ : p.χ₀ < min (remark16ChiStar1 p C) (remark16ChiStar2 p C))
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.global_solution_of_remark16_min_chiStar12
+    ha hb hβ hm hα hdim hχ hu₀
+
+lemma Proposition_1_3.positive_global_solution_of_paper2_theorem_1_3
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hm : 1 ≤ p.m)
+    (hcond : StrongLogisticCondition p C)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v ∧
+      InitialTrace D u₀ u :=
+  (Proposition_1_3.of_paper2_theorem_1_3 h).positive_global_solution
+    ha hb hm hcond hu₀
+
+lemma Proposition_1_3.positive_global_solution_of_alpha_gt_m_add_gamma_sub_one
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hβ : 0 ≤ p.β)
+    (hα : p.m + p.γ - 1 < p.α)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v ∧
+      InitialTrace D u₀ u :=
+  Proposition_1_3.positive_global_solution_of_paper2_theorem_1_3 h ha hb hm
+    (StrongLogisticCondition.of_alpha_gt_m_add_gamma_sub_one hβ hα) hu₀
+
+lemma Proposition_1_3.positive_global_solution_of_alpha_gt_two_mul_m_add_gamma_sub_two
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hβ : (1 / 2 : ℝ) ≤ p.β)
+    (hα : 2 * p.m + p.γ - 2 < p.α)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v ∧
+      InitialTrace D u₀ u :=
+  Proposition_1_3.positive_global_solution_of_paper2_theorem_1_3 h ha hb hm
+    (StrongLogisticCondition.of_alpha_gt_two_mul_m_add_gamma_sub_two hβ hα)
+    hu₀
+
+lemma Proposition_1_3.positive_global_solution_of_critical_m_add_gamma_sub_one_low_dimension
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m)
+    (hβ : 0 ≤ p.β) (hα : p.α = p.m + p.γ - 1)
+    (hdim : (p.N : ℝ) * p.α ≤ 2)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v ∧
+      InitialTrace D u₀ u :=
+  Proposition_1_3.positive_global_solution_of_paper2_theorem_1_3 h ha hb hm
+    (StrongLogisticCondition.of_critical_m_add_gamma_sub_one_low_dimension
+      hβ hα hdim)
+    hu₀
+
+lemma Proposition_1_3.positive_global_solution_of_critical_two_mul_m_add_gamma_sub_two_low_dimension
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m)
+    (hβ : (1 / 2 : ℝ) ≤ p.β)
+    (hα : p.α = 2 * p.m + p.γ - 2)
+    (hdim : (p.N : ℝ) * p.α ≤ 2)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v ∧
+      InitialTrace D u₀ u :=
+  Proposition_1_3.positive_global_solution_of_paper2_theorem_1_3 h ha hb hm
+    (StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two_low_dimension
+      hβ hα hdim)
+    hu₀
+
+lemma Proposition_1_3.positive_global_solution_of_critical_m_add_gamma_sub_one
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m)
+    (hβ : 0 ≤ p.β) (hα : p.α = p.m + p.γ - 1)
+    (hχ :
+      positivePart ((p.N : ℝ) * p.α - 2) = 0 ∨
+        p.χ₀ <
+          ((positivePart ((p.N : ℝ) * p.α - 2) + 2 * p.m) * p.b) /
+            (positivePart ((p.N : ℝ) * p.α - 2) *
+              (p.ν + Psi_beta p.β * C.K)))
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v ∧
+      InitialTrace D u₀ u :=
+  Proposition_1_3.positive_global_solution_of_paper2_theorem_1_3 h ha hb hm
+    (StrongLogisticCondition.of_critical_m_add_gamma_sub_one hβ hα hχ) hu₀
+
+lemma Proposition_1_3.positive_global_solution_of_critical_two_mul_m_add_gamma_sub_two
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m)
+    (hβ : (1 / 2 : ℝ) ≤ p.β)
+    (hα : p.α = 2 * p.m + p.γ - 2)
+    (hχ :
+      positivePart ((p.N : ℝ) * p.α - 2) = 0 ∨
+        p.χ₀ <
+          Real.sqrt
+            (8 * p.b /
+              (positivePart ((p.N : ℝ) * p.α - 2) *
+                Theta_beta (2 * p.β - 1) * C.K)))
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v ∧
+      InitialTrace D u₀ u :=
+  Proposition_1_3.positive_global_solution_of_paper2_theorem_1_3 h ha hb hm
+    (StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two hβ hα hχ)
+    hu₀
+
+lemma Proposition_1_3.positive_global_solution_of_remark16_min_chiStar12
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h : Paper2.Theorem_1_3 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hβ : 1 ≤ p.β) (hm : p.m = 1) (hα : p.α = p.γ)
+    (hdim : 2 < (p.N : ℝ) * p.γ)
+    (hχ : p.χ₀ < min (remark16ChiStar1 p C) (remark16ChiStar2 p C))
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v ∧
+      InitialTrace D u₀ u := by
+  have hm_ge : 1 ≤ p.m := by
+    rw [hm]
+  exact Proposition_1_3.positive_global_solution_of_paper2_theorem_1_3 h ha hb hm_ge
+    (StrongLogisticCondition.of_remark16_min_chiStar12 hβ hm hα hdim hχ)
+    hu₀
+
 def Proposition_1_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   p.m = 1 → 1 ≤ p.β →
     ((p.a = 0 ∧ p.b = 0) ∨ (0 ≤ p.a ∧ 0 < p.b)) →
@@ -843,12 +1422,120 @@ lemma Proposition_1_4.positive_global_solution
   exact ⟨u, v,
     PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
 
+lemma Proposition_1_4.global_solution_minimal
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Proposition_1_4 D p)
+    (ha : p.a = 0) (hb : p.b = 0)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < chiBeta p)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.global_solution hm hβ (Or.inl ⟨ha, hb⟩) hχ hu₀
+
+lemma Proposition_1_4.positive_global_solution_minimal
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Proposition_1_4 D p)
+    (ha : p.a = 0) (hb : p.b = 0)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < chiBeta p)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v ∧
+      InitialTrace D u₀ u :=
+  h.positive_global_solution hm hβ (Or.inl ⟨ha, hb⟩) hχ hu₀
+
+lemma Proposition_1_4.global_solution_nonminimal
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Proposition_1_4 D p)
+    (ha : 0 ≤ p.a) (hb : 0 < p.b)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < chiBeta p)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.global_solution hm hβ (Or.inr ⟨ha, hb⟩) hχ hu₀
+
+lemma Proposition_1_4.positive_global_solution_nonminimal
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Proposition_1_4 D p)
+    (ha : 0 ≤ p.a) (hb : 0 < p.b)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < chiBeta p)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v ∧
+      InitialTrace D u₀ u :=
+  h.positive_global_solution hm hβ (Or.inr ⟨ha, hb⟩) hχ hu₀
+
 lemma Proposition_1_4.of_paper2_theorem_1_2
     {D : BoundedDomainData} {p : CM2Params}
     (h : Paper2.Theorem_1_2 D p) :
     Proposition_1_4 D p := by
   intro hm hβ _hab hχ u₀ hu₀
   exact h.linear_solution p.ha p.hb hβ hm hχ hu₀
+
+lemma Proposition_1_4_proved
+    (D : BoundedDomainData) (p : CM2Params)
+    (h : Paper2.Theorem_1_2 D p) :
+    Proposition_1_4 D p :=
+  Proposition_1_4.of_paper2_theorem_1_2 h
+
+lemma Proposition_1_4.global_solution_of_min_half_sqrt
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Paper2.Theorem_1_2 D p)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.linear_solution_of_min_half_sqrt p.ha p.hb hβ hm hχ hu₀
+
+lemma Proposition_1_4.positive_global_solution_of_min_half_sqrt
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Paper2.Theorem_1_2 D p)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v ∧
+      InitialTrace D u₀ u := by
+  rcases h.linear_solution_of_min_half_sqrt p.ha p.hb hβ hm hχ hu₀ with
+    ⟨u, v, hglobal, htrace, hbdd⟩
+  exact ⟨u, v,
+    PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
+
+lemma Proposition_1_4.global_solution_of_remark16_weak
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Paper2.Theorem_1_2 D p)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < remark16ChiStarWeak p)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      IsPaper2GlobalClassicalSolution D p u v ∧
+      InitialTrace D u₀ u ∧
+      IsPaper2Bounded D u :=
+  h.linear_solution_of_remark16_weak p.ha p.hb hβ hm hχ hu₀
+
+lemma Proposition_1_4.positive_global_solution_of_remark16_weak
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Paper2.Theorem_1_2 D p)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < remark16ChiStarWeak p)
+    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
+    ∃ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v ∧
+      InitialTrace D u₀ u := by
+  rcases h.linear_solution_of_remark16_weak p.ha p.hb hβ hm hχ hu₀ with
+    ⟨u, v, hglobal, htrace, hbdd⟩
+  exact ⟨u, v,
+    PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
 
 lemma sigma_zero (p : CM2Params) (uStar vStar : ℝ) :
     sigma p uStar vStar 0 = -p.a * p.α := by
@@ -1340,6 +2027,164 @@ structure Paper3Constants (D : BoundedDomainData) (p : CM2Params) where
   eventualMinimalUBound : ℝ → ℝ
   gaussianLowerConst : ℝ
   gaussianLowerConst_pos : 0 < gaussianLowerConst
+  eventualMinimalUpperBound :
+    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      0 < p.χ₀ → p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) →
+        ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+            ∀ uStar > 0, HasInitialMass D u uStar →
+              ∀ᶠ t in atTop, D.supNorm (u t) ≤ eventualMinimalUBound uStar
+  uniformPersistencePart1 :
+    1 ≤ p.m →
+      ∀ u v : ℝ → D.Point → ℝ,
+        PositiveGlobalBoundedSolution D p u v →
+          ∃ δu > 0, EventuallyLowerBound D u δu ∧
+            EventuallyLowerBound D v (p.ν / p.μ * δu ^ p.γ)
+  uniformPersistencePart2 :
+    0 < p.a → 0 < p.b → 0 < p.χ₀ → p.m = 1 → 1 ≤ p.β →
+      p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)) →
+        ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+            let lowerU :=
+              ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^ (1 / p.α)
+            EventuallyLowerBound D u lowerU ∧
+              EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
+  uniformPersistencePart3 :
+    0 < p.a → 0 < p.b → 0 < p.χ₀ → 1 < p.m → 1 ≤ p.β →
+      ∀ u v : ℝ → D.Point → ℝ,
+        PositiveGlobalBoundedSolution D p u v →
+          let lowerU :=
+            min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
+              max (1 / (p.m - 1)) (1 / p.α)
+          EventuallyLowerBound D u lowerU ∧
+            EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
+  uniformPersistencePart4 :
+    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      0 < p.χ₀ → p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) →
+        ∀ uStar > 0, ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+          HasInitialMass D u uStar →
+            EventuallyLowerBound D v
+              (gaussianLowerConst *
+                if p.γ ≤ 1 then
+                  uStar * (eventualMinimalUBound uStar) ^ (p.γ - 1)
+                else
+                  uStar ^ p.γ)
+  convergenceToExponential :
+    ∀ N : StabilityNorms D, 1 ≤ p.m →
+      (∀ (uStar _vStar theta : ℝ), 0 < theta →
+        ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+          ThetaMomentConvergesToZero D u uStar theta →
+            UniformConvergesInSup D u uStar) ∧
+      (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        p.χ₀ < chiCritical eq.1 →
+          ∀ u v : ℝ → D.Point → ℝ,
+            PositiveGlobalBoundedSolution D p u v →
+            UniformConvergesInSup D u eq.1 →
+              ExponentialC1Convergence D N u v eq.1 eq.2) ∧
+      (p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          p.χ₀ < chiCritical uStar →
+            ∀ u v : ℝ → D.Point → ℝ,
+              PositiveGlobalBoundedSolution D p u v →
+              HasInitialMass D u uStar →
+              UniformConvergesInSup D u eq.1 →
+                ExponentialC1Convergence D N u v eq.1 eq.2)
+  nonminimalGlobalStability :
+    ∀ N : StabilityNorms D,
+      0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        ((1 ≤ p.m ∧ p.α + 1 ≥ 2 * p.γ ∧
+            0 < p.χ₀ ∧ p.χ₀ < chiStrong1 eq.1) ∨
+          (1 ≤ p.m ∧ 1 ≤ p.β ∧ p.α + 1 ≥ 2 * p.γ ∧
+            0 < p.χ₀ ∧ p.χ₀ < chiStrong2 eq.1) ∨
+          (1 ≤ p.m ∧ 1 ≤ p.γ ∧
+            p.α + 1 ≥ p.m + p.γ + (if p.β = 0 then 0 else p.γ) ∧
+            p.χ₀ < chiStrong3 eq.1) ∨
+          (1 ≤ p.m ∧ 1 ≤ p.β ∧ 1 ≤ p.γ ∧
+            p.α + 1 ≥ p.m + 2 * p.γ ∧
+            p.χ₀ < chiStrong4 eq.1)) →
+          (∀ u v : ℝ → D.Point → ℝ,
+            PositiveGlobalBoundedSolution D p u v →
+              UniformConvergesInSup D u eq.1) ∧
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → D.Point → ℝ,
+              PositiveGlobalBoundedSolution D p u v →
+                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate
+  minimalGlobalStability :
+    ∀ N : StabilityNorms D,
+      p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+        ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        ((0 < p.χ₀ ∧ p.χ₀ < chiMinimal1 uStar) ∨
+          (p.γ = 1 ∧ 0 < p.χ₀ ∧ p.χ₀ < chiMinimal2 uStar)) →
+          (∀ u v : ℝ → D.Point → ℝ,
+            PositiveGlobalBoundedSolution D p u v →
+            HasInitialMass D u uStar →
+              UniformConvergesInSup D u eq.1) ∧
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → D.Point → ℝ,
+              PositiveGlobalBoundedSolution D p u v →
+              HasInitialMass D u uStar →
+                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate
+  linearStabilityInstability :
+    ∀ S : SpectralData, ∀ N : StabilityNorms D,
+      (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        p.χ₀ < chiCritical eq.1 →
+          LinearlyStable S p eq.1 eq.2 ∧
+          LocallyExponentiallyStableFromSup D p N eq.1 eq.2) ∧
+      (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        chiCritical eq.1 < p.χ₀ →
+          LinearlyUnstable S p eq.1 eq.2) ∧
+      (p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          p.χ₀ < chiCritical uStar →
+            LinearlyStable S p eq.1 eq.2 ∧
+            MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2) ∧
+      (p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          chiCritical uStar < p.χ₀ →
+            LinearlyUnstable S p eq.1 eq.2)
+  chiStrong1_le_chiCritical :
+    0 ≤ p.β → 1 ≤ p.m →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        p.α + 1 ≥ 2 * p.γ →
+          chiStrong1 (positiveEquilibrium p ⟨ha, hb⟩).1 ≤
+            chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1
+  chiStrong2_le_chiCritical :
+    0 ≤ p.β → 1 ≤ p.m →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        1 ≤ p.β → p.α + 1 ≥ 2 * p.γ →
+          chiStrong2 (positiveEquilibrium p ⟨ha, hb⟩).1 ≤
+            chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1
+  chiStrong3_le_chiCritical :
+    0 ≤ p.β → 1 ≤ p.m →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        1 ≤ p.γ → p.α + 1 ≥ p.m + p.γ →
+          chiStrong3 (positiveEquilibrium p ⟨ha, hb⟩).1 ≤
+            chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1
+  chiStrong4_le_chiCritical :
+    0 ≤ p.β → 1 ≤ p.m →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        1 ≤ p.β → 1 ≤ p.γ → p.α + 1 ≥ p.m + 2 * p.γ →
+          chiStrong4 (positiveEquilibrium p ⟨ha, hb⟩).1 ≤
+            chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1
+  chiMinimal1_le_chiCritical :
+    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      ∀ uStar > 0,
+        0 < p.γ → chiMinimal1 uStar ≤ chiCritical uStar
+  chiMinimal2_le_chiCritical :
+    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      ∀ uStar > 0,
+        p.γ = 1 → chiMinimal2 uStar ≤ chiCritical uStar
 
 /-- The constants package uses the paper's concrete spectral formula `(2.10)`
 for the linear critical sensitivity. -/
@@ -1374,6 +2219,91 @@ lemma Paper3ConstantsUsesCriticalSpectrum.chiCritical_minimalEquilibrium
         (minimalEquilibrium p uStar).2 := by
   dsimp [minimalEquilibrium]
   exact hC uStar huStar
+
+lemma Paper3ConstantsUsesCriticalSpectrum.chiCritical_nonneg
+    {D : BoundedDomainData} {S : SpectralData} {p : CM2Params}
+    {C : Paper3Constants D p}
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (H : HasNeumannSpectrum S) {uStar : ℝ} (huStar : 0 < uStar) :
+    0 ≤ C.chiCritical uStar := by
+  rw [hC uStar huStar]
+  have hvStar : 0 ≤ p.ν / p.μ * uStar ^ p.γ := by
+    exact mul_nonneg (div_pos p.hν p.hμ).le
+      (Real.rpow_nonneg huStar.le _)
+  exact paperCriticalSensitivity_nonneg S p H huStar hvStar
+
+lemma Paper3ConstantsUsesCriticalSpectrum.chiCritical_pos
+    {D : BoundedDomainData} {S : SpectralData} {p : CM2Params}
+    {C : Paper3Constants D p}
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (H : HasNeumannSpectrum S) {uStar : ℝ} (huStar : 0 < uStar) :
+    0 < C.chiCritical uStar := by
+  rw [hC uStar huStar]
+  have hvStar : 0 ≤ p.ν / p.μ * uStar ^ p.γ := by
+    exact mul_nonneg (div_pos p.hν p.hμ).le
+      (Real.rpow_nonneg huStar.le _)
+  exact paperCriticalSensitivity_pos S p H huStar hvStar
+
+lemma Paper3ConstantsUsesCriticalSpectrum.chiCritical_positiveEquilibrium_nonneg
+    {D : BoundedDomainData} {S : SpectralData} {p : CM2Params}
+    {C : Paper3Constants D p}
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (H : HasNeumannSpectrum S) (ha : 0 < p.a) (hb : 0 < p.b) :
+    0 ≤ C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 := by
+  rw [hC.chiCritical_positiveEquilibrium ha hb]
+  exact paperCriticalSensitivity_nonneg S p H
+    (positiveEquilibrium_fst_pos p ⟨ha, hb⟩)
+    (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
+
+lemma Paper3ConstantsUsesCriticalSpectrum.chiCritical_positiveEquilibrium_pos
+    {D : BoundedDomainData} {S : SpectralData} {p : CM2Params}
+    {C : Paper3Constants D p}
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (H : HasNeumannSpectrum S) (ha : 0 < p.a) (hb : 0 < p.b) :
+    0 < C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 := by
+  rw [hC.chiCritical_positiveEquilibrium ha hb]
+  exact paperCriticalSensitivity_pos S p H
+    (positiveEquilibrium_fst_pos p ⟨ha, hb⟩)
+    (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
+
+lemma Paper3ConstantsUsesCriticalSpectrum.chiCritical_minimalEquilibrium_nonneg
+    {D : BoundedDomainData} {S : SpectralData} {p : CM2Params}
+    {C : Paper3Constants D p} {uStar : ℝ}
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (H : HasNeumannSpectrum S) (huStar : 0 < uStar) :
+    0 ≤ C.chiCritical uStar := by
+  rw [hC.chiCritical_minimalEquilibrium huStar]
+  exact paperCriticalSensitivity_nonneg S p H huStar
+    (minimalEquilibrium_snd_pos p huStar).le
+
+lemma Paper3ConstantsUsesCriticalSpectrum.chiCritical_minimalEquilibrium_pos
+    {D : BoundedDomainData} {S : SpectralData} {p : CM2Params}
+    {C : Paper3Constants D p} {uStar : ℝ}
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (H : HasNeumannSpectrum S) (huStar : 0 < uStar) :
+    0 < C.chiCritical uStar := by
+  rw [hC.chiCritical_minimalEquilibrium huStar]
+  exact paperCriticalSensitivity_pos S p H huStar
+    (minimalEquilibrium_snd_pos p huStar).le
+
+lemma Paper3ConstantsUsesCriticalSpectrum.chi_pos_of_chiCritical_lt
+    {D : BoundedDomainData} {S : SpectralData} {p : CM2Params}
+    {C : Paper3Constants D p}
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (H : HasNeumannSpectrum S) {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ : C.chiCritical uStar < p.χ₀) :
+    0 < p.χ₀ :=
+  lt_of_le_of_lt (hC.chiCritical_nonneg H huStar) hχ
+
+lemma Paper3ConstantsUsesCriticalSpectrum.chi_pos_of_positiveEquilibrium_chiCritical_lt
+    {D : BoundedDomainData} {S : SpectralData} {p : CM2Params}
+    {C : Paper3Constants D p}
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (H : HasNeumannSpectrum S) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ : C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 < p.χ₀) :
+    0 < p.χ₀ :=
+  lt_of_le_of_lt
+    (hC.chiCritical_positiveEquilibrium_nonneg H ha hb) hχ
 
 def betaTilde (beta : ℝ) : ℝ :=
   positivePart (min 1 (2 * beta - 1))
@@ -1946,7 +2876,6 @@ lemma power_difference_normalized_of_lt_alpha
         (sub_nonneg.mpr hγ_ge_one) (sub_nonneg.mpr hδ_ge_one)
       simpa [sq] using hmul
     exact hsq_le.trans hmid
-
   · have ht_le : t ≤ 1 := le_of_not_ge ht_ge
     have hγ_le_one : t ^ gamma ≤ 1 :=
       Real.rpow_le_one ht.le ht_le hgamma_nonneg
@@ -2368,6 +3297,15 @@ def EventuallyUpperBoundMinimalConclusion
   ∀ uStar > 0, HasInitialMass D u uStar →
     ∀ᶠ t in atTop, D.supNorm (u t) ≤ C.eventualMinimalUBound uStar
 
+lemma EventuallyUpperBoundMinimalConclusion.bound
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {u : ℝ → D.Point → ℝ}
+    (h : EventuallyUpperBoundMinimalConclusion D p C u)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hmass : HasInitialMass D u uStar) :
+    ∀ᶠ t in atTop, D.supNorm (u t) ≤ C.eventualMinimalUBound uStar :=
+  h uStar huStar hmass
+
 def NonminimalGlobalStabilityCondition
     (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p)
     (uStar : ℝ) : Prop :=
@@ -2381,6 +3319,22 @@ def NonminimalGlobalStabilityCondition
     (1 ≤ p.m ∧ 1 ≤ p.β ∧ 1 ≤ p.γ ∧
       p.α + 1 ≥ p.m + 2 * p.γ ∧
       p.χ₀ < C.chiStrong4 uStar)
+
+lemma NonminimalGlobalStabilityCondition.as_disjunction
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar : ℝ}
+    (h : NonminimalGlobalStabilityCondition D p C uStar) :
+    (1 ≤ p.m ∧ p.α + 1 ≥ 2 * p.γ ∧
+        0 < p.χ₀ ∧ p.χ₀ < C.chiStrong1 uStar) ∨
+      (1 ≤ p.m ∧ 1 ≤ p.β ∧ p.α + 1 ≥ 2 * p.γ ∧
+        0 < p.χ₀ ∧ p.χ₀ < C.chiStrong2 uStar) ∨
+      (1 ≤ p.m ∧ 1 ≤ p.γ ∧
+        p.α + 1 ≥ p.m + p.γ + (if p.β = 0 then 0 else p.γ) ∧
+        p.χ₀ < C.chiStrong3 uStar) ∨
+      (1 ≤ p.m ∧ 1 ≤ p.β ∧ 1 ≤ p.γ ∧
+        p.α + 1 ≥ p.m + 2 * p.γ ∧
+        p.χ₀ < C.chiStrong4 uStar) :=
+  h
 
 lemma NonminimalGlobalStabilityCondition.of_chiStrong1
     {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
@@ -2451,6 +3405,14 @@ def MinimalGlobalStabilityCondition
   (0 < p.χ₀ ∧ p.χ₀ < C.chiMinimal1 uStar) ∨
     (p.γ = 1 ∧ 0 < p.χ₀ ∧ p.χ₀ < C.chiMinimal2 uStar)
 
+lemma MinimalGlobalStabilityCondition.as_disjunction
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar : ℝ}
+    (h : MinimalGlobalStabilityCondition D p C uStar) :
+    (0 < p.χ₀ ∧ p.χ₀ < C.chiMinimal1 uStar) ∨
+      (p.γ = 1 ∧ 0 < p.χ₀ ∧ p.χ₀ < C.chiMinimal2 uStar) :=
+  h
+
 lemma MinimalGlobalStabilityCondition.of_chiMinimal1
     {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
     {uStar : ℝ}
@@ -2509,6 +3471,15 @@ def Theorem_2_1_part1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
         ∃ δu > 0, EventuallyLowerBound D u δu ∧
           EventuallyLowerBound D v (p.ν / p.μ * δu ^ p.γ)
 
+lemma Theorem_2_1_part1.persistence
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Theorem_2_1_part1 D p) (hm : 1 ≤ p.m)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    ∃ δu > 0, EventuallyLowerBound D u δu ∧
+      EventuallyLowerBound D v (p.ν / p.μ * δu ^ p.γ) :=
+  h hm u v huv
+
 def Theorem_2_1_part2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   0 < p.a → 0 < p.b → 0 < p.χ₀ → p.m = 1 → 1 ≤ p.β →
     p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)) →
@@ -2519,6 +3490,20 @@ def Theorem_2_1_part2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
           EventuallyLowerBound D u lowerU ∧
             EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
 
+lemma Theorem_2_1_part2.lower_bounds
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Theorem_2_1_part2 D p)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    let lowerU :=
+      ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^ (1 / p.α)
+    EventuallyLowerBound D u lowerU ∧
+      EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ) :=
+  h ha hb hχ0 hm hβ hχ u v huv
+
 def Theorem_2_1_part3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   0 < p.a → 0 < p.b → 0 < p.χ₀ → 1 < p.m → 1 ≤ p.β →
     ∀ u v : ℝ → D.Point → ℝ,
@@ -2528,6 +3513,20 @@ def Theorem_2_1_part3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
             max (1 / (p.m - 1)) (1 / p.α)
         EventuallyLowerBound D u lowerU ∧
           EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
+
+lemma Theorem_2_1_part3.lower_bounds
+    {D : BoundedDomainData} {p : CM2Params}
+    (h : Theorem_2_1_part3 D p)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : 1 < p.m) (hβ : 1 ≤ p.β)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    let lowerU :=
+      min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
+        max (1 / (p.m - 1)) (1 / p.α)
+    EventuallyLowerBound D u lowerU ∧
+      EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ) :=
+  h ha hb hχ0 hm hβ u v huv
 
 lemma theorem_2_1_part2_lowerU_pos
     (p : CM2Params)
@@ -2613,6 +3612,21 @@ def Theorem_2_1_part4
             (minimalVLowerFormula
               C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar))
 
+lemma Theorem_2_1_part4.minimal_v_lower_bound
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Theorem_2_1_part4 D p C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
+    {uStar : ℝ} (huStar : 0 < uStar)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar) :
+    EventuallyLowerBound D v
+      (minimalVLowerFormula
+        C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar)) :=
+  h ha hb hm hβ hχ0 hχ uStar huStar u v huv hmass
+
 /-- Paper3 Theorem 2.1: uniform persistence. -/
 def Theorem_2_1 (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) : Prop :=
   Theorem_2_1_part1 D p ∧
@@ -2653,6 +3667,109 @@ lemma Theorem_2_1.persistence
       EventuallyLowerBound D v (p.ν / p.μ * δu ^ p.γ) :=
   h.part1 hm u v huv
 
+lemma Theorem_2_1.part2_positive_lower_bounds
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Theorem_2_1 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    ∃ δu > 0, ∃ δv > 0,
+      EventuallyLowerBound D u δu ∧ EventuallyLowerBound D v δv := by
+  let lowerU :=
+    ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^ (1 / p.α)
+  have hbounds :
+      EventuallyLowerBound D u lowerU ∧
+        EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ) :=
+    h.part2 ha hb hχ0 hm hβ hχ u v huv
+  refine ⟨lowerU, ?_, p.ν / p.μ * lowerU ^ p.γ, ?_, hbounds⟩
+  · exact theorem_2_1_part2_lowerU_pos p ha hb hχ0 hm hβ hχ
+  · exact theorem_2_1_part2_lowerV_pos p ha hb hχ0 hm hβ hχ
+
+lemma Theorem_2_1.part3_positive_lower_bounds
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Theorem_2_1 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : 1 < p.m) (hβ : 1 ≤ p.β)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    ∃ δu > 0, ∃ δv > 0,
+      EventuallyLowerBound D u δu ∧ EventuallyLowerBound D v δv := by
+  let lowerU :=
+    min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
+      max (1 / (p.m - 1)) (1 / p.α)
+  have hbounds :
+      EventuallyLowerBound D u lowerU ∧
+        EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ) :=
+    h.part3 ha hb hχ0 hm hβ u v huv
+  refine ⟨lowerU, ?_, p.ν / p.μ * lowerU ^ p.γ, ?_, hbounds⟩
+  · exact theorem_2_1_part3_lowerU_pos p ha hb hχ0 hm hβ
+  · exact theorem_2_1_part3_lowerV_pos p ha hb hχ0 hm hβ
+
+lemma Theorem_2_1.part4_minimal_v_lower_bound
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Theorem_2_1 D p C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
+    {uStar : ℝ} (huStar : 0 < uStar)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar) :
+    EventuallyLowerBound D v
+      (minimalVLowerFormula
+        C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar)) :=
+  h.part4 ha hb hm hβ hχ0 hχ uStar huStar u v huv hmass
+
+lemma Theorem_2_1.part4_minimal_v_positive_lower_bound
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Theorem_2_1 D p C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hUpper : 0 < C.eventualMinimalUBound uStar)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar) :
+    ∃ δv > 0, EventuallyLowerBound D v δv := by
+  let δv :=
+    minimalVLowerFormula
+      C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar)
+  exact
+    ⟨δv, C.minimalVLower_pos huStar hUpper,
+      h.part4_minimal_v_lower_bound ha hb hm hβ hχ0 hχ huStar huv hmass⟩
+
+lemma Theorem_2_1_part1_proved
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) :
+    Theorem_2_1_part1 D p :=
+  C.uniformPersistencePart1
+
+lemma Theorem_2_1_part2_proved
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) :
+    Theorem_2_1_part2 D p :=
+  C.uniformPersistencePart2
+
+lemma Theorem_2_1_part3_proved
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) :
+    Theorem_2_1_part3 D p :=
+  C.uniformPersistencePart3
+
+lemma Theorem_2_1_part4_proved
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) :
+    Theorem_2_1_part4 D p C := by
+  simpa [Theorem_2_1_part4, minimalVLowerFormula]
+    using C.uniformPersistencePart4
+
+lemma Theorem_2_1_proved
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) :
+    Theorem_2_1 D p C :=
+  ⟨Theorem_2_1_part1_proved D p C,
+    Theorem_2_1_part2_proved D p C,
+    Theorem_2_1_part3_proved D p C,
+    Theorem_2_1_part4_proved D p C⟩
+
 /-- Paper3 Theorem 2.2: linear stability/instability and local exponential stability. -/
 def Theorem_2_2
     (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
@@ -2690,6 +3807,14 @@ def Theorem_2_2
       let eq := minimalEquilibrium p uStar
       C.chiCritical uStar < p.χ₀ →
         LinearlyUnstable S p eq.1 eq.2)
+
+lemma Theorem_2_2_proved
+    (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
+    (N : StabilityNorms D) (C : Paper3Constants D p) :
+    Theorem_2_2 D p S N C := by
+  simpa [Theorem_2_2, LocallyExponentiallyStableFromSup,
+    MassConstrainedLocallyExponentiallyStableFromSup]
+    using C.linearStabilityInstability S N
 
 lemma Theorem_2_2.nonminimal_stable
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
@@ -2966,6 +4091,14 @@ def Theorem_2_3
             HasInitialMass D u uStar →
               ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate)
 
+lemma Theorem_2_3_proved
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D) :
+    Theorem_2_3 D p N := by
+  intro hχ hm
+  simpa [Theorem_2_3, GloballyAsymptoticallyStableNonminimal,
+    GloballyAsymptoticallyStableMinimal, ExponentialC1ConvergenceWith]
+    using N.negativeSensitivityGlobalStability p hχ hm
+
 lemma Theorem_2_3.nonminimal_stability
     {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
     (h : Theorem_2_3 D p N)
@@ -3052,6 +4185,15 @@ def Theorem_2_4
         ∀ u v : ℝ → D.Point → ℝ,
           PositiveGlobalBoundedSolution D p u v →
             ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate
+
+lemma Theorem_2_4_proved
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (C : Paper3Constants D p) :
+    Theorem_2_4 D p N C := by
+  intro ha0 hb0 hβ hα hγ ha hb
+  dsimp
+  intro hcond
+  exact C.nonminimalGlobalStability N ha0 hb0 hβ hα hγ ha hb hcond
 
 lemma Theorem_2_4.stability
     {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
@@ -3311,6 +4453,15 @@ def Theorem_2_5
             HasInitialMass D u uStar →
               ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate
 
+lemma Theorem_2_5_proved
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (C : Paper3Constants D p) :
+    Theorem_2_5 D p N C := by
+  intro ha hb hm hβ uStar huStar
+  dsimp
+  intro hcond
+  exact C.minimalGlobalStability N ha hb hm hβ uStar huStar hcond
+
 lemma Theorem_2_5.stability
     {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
     {C : Paper3Constants D p}
@@ -3464,6 +4615,12 @@ lemma Lemma_3_1.regularity
     UniformRegularityConclusion D p u v :=
   h u v huv
 
+lemma Lemma_3_1_proved
+    (D : BoundedDomainData) (p : CM2Params) :
+    Lemma_3_1 D p := by
+  intro u v huv T hT
+  exact huv.regularity hT
+
 def Lemma_3_2
     (D : BoundedDomainData) (p : CM2Params) (K : CompactnessData D) : Prop :=
   1 ≤ p.m → 0 < p.γ →
@@ -3479,6 +4636,12 @@ lemma Lemma_3_2.compactness
     TimeTranslateCompactnessConclusion D p K u v :=
   h hm hγ u v huv
 
+lemma Lemma_3_2_proved
+    (D : BoundedDomainData) (p : CM2Params) (K : CompactnessData D) :
+    Lemma_3_2 D p K := by
+  intro hm hγ u v huv times htimes
+  exact K.timeTranslateCompactness p hm hγ u v huv times htimes
+
 def Lemma_3_3 (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D) : Prop :=
   ∀ uStar > 0, InitialContinuityConclusion D p N uStar
 
@@ -3487,6 +4650,12 @@ lemma Lemma_3_3.initial_continuity
     (h : Lemma_3_3 D p N) {uStar : ℝ} (huStar : 0 < uStar) :
     InitialContinuityConclusion D p N uStar :=
   h uStar huStar
+
+lemma Lemma_3_3_proved
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D) :
+    Lemma_3_3 D p N := by
+  intro uStar huStar
+  exact N.initialContinuity p uStar huStar
 
 def Lemma_3_4
     (D : BoundedDomainData) (p : CM2Params) (K : CompactnessData D) : Prop :=
@@ -3501,6 +4670,12 @@ lemma Lemma_3_4.upper_envelope
     (huv : PositiveGlobalBoundedSolution D p u v) :
     UpperEnvelopeMonotonicityConclusion D p K u :=
   h u v huv
+
+lemma Lemma_3_4_proved
+    (D : BoundedDomainData) (p : CM2Params) (K : CompactnessData D) :
+    Lemma_3_4 D p K := by
+  intro u v huv
+  exact K.upperEnvelopeMonotonicity p u v huv
 
 def Lemma_3_5
     (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) : Prop :=
@@ -3520,6 +4695,62 @@ lemma Lemma_3_5.eventual_upper_bound
     (huv : PositiveGlobalBoundedSolution D p u v) :
     EventuallyUpperBoundMinimalConclusion D p C u :=
   h ha hb hm hβ hχ_pos hχ_small u v huv
+
+lemma Lemma_3_5_proved
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) :
+    Lemma_3_5 D p C := by
+  intro ha hb hm hβ hχ_pos hχ_small u v huv uStar huStar hmass
+  exact C.eventualMinimalUpperBound
+    ha hb hm hβ hχ_pos hχ_small u v huv uStar huStar hmass
+
+lemma Lemma_3_1_2.regularity_and_compactness
+    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
+    (hreg : Lemma_3_1 D p) (hcompact : Lemma_3_2 D p K)
+    (hm : 1 ≤ p.m) (hγ : 0 < p.γ)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    UniformRegularityConclusion D p u v ∧
+      TimeTranslateCompactnessConclusion D p K u v :=
+  ⟨hreg.regularity huv, hcompact.compactness hm hγ huv⟩
+
+lemma Lemma_3_1_2_4.dynamical_compactness_package
+    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
+    (hreg : Lemma_3_1 D p) (hcompact : Lemma_3_2 D p K)
+    (henvelope : Lemma_3_4 D p K)
+    (hm : 1 ≤ p.m) (hγ : 0 < p.γ)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v) :
+    UniformRegularityConclusion D p u v ∧
+      TimeTranslateCompactnessConclusion D p K u v ∧
+      UpperEnvelopeMonotonicityConclusion D p K u :=
+  ⟨hreg.regularity huv, hcompact.compactness hm hγ huv,
+    henvelope.upper_envelope huv⟩
+
+lemma Lemma_3_1_2_4.eventual_entire_limit
+    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
+    (hcompact : Lemma_3_2 D p K)
+    (hm : 1 ≤ p.m) (hγ : 0 < p.γ)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    {times : ℕ → ℝ} (htimes : Tendsto times atTop atTop) :
+    ∃ subseq : ℕ → ℕ, StrictMono subseq ∧
+    ∃ uInf vInf : ℝ → D.Point → ℝ,
+      EntireClassicalSolution D p uInf vInf :=
+  (hcompact.compactness hm hγ huv).entire_limit htimes
+
+lemma Lemma_3_5.eventual_upper_bound_at_mass
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_3_5 D p C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ_pos : 0 < p.χ₀)
+    (hχ_small : p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
+    {uStar : ℝ} (huStar : 0 < uStar)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar) :
+    ∀ᶠ t in atTop, D.supNorm (u t) ≤ C.eventualMinimalUBound uStar :=
+  (h.eventual_upper_bound ha hb hm hβ hχ_pos hχ_small huv).bound
+    huStar hmass
 
 def Corollary_5_1
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
@@ -3588,6 +4819,13 @@ lemma Corollary_5_1.minimal_exponential
       (minimalEquilibrium p uStar).2 :=
   (h hm).2.2 ha hb uStar huStar hχ u v huv hmass hconv
 
+lemma Corollary_5_1_proved
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (C : Paper3Constants D p) :
+    Corollary_5_1 D p N C := by
+  intro hm
+  exact C.convergenceToExponential N hm
+
 def Lemma_7_1 (D : BoundedDomainData) (K : CompactnessData D) : Prop :=
   ∃ M0 > 0, ∀ mu nu : ℝ, ∀ f : D.Point → ℝ,
     0 < mu → 0 < nu →
@@ -3600,6 +4838,11 @@ lemma Lemma_7_1.bound
       0 < mu → 0 < nu →
         K.neumannResolventGradientBound mu nu f M0 :=
   h
+
+lemma Lemma_7_1_proved
+    (D : BoundedDomainData) (K : CompactnessData D) :
+    Lemma_7_1 D K :=
+  K.neumannResolventGradientBound_exists
 
 def Lemma_A_1
     (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
@@ -3638,6 +4881,14 @@ lemma Lemma_A_1.local_exponential_stability
                     C * Real.exp (-rate * t) :=
   h sigma pNorm uStar vStar hsigma_low hsigma_high hpNorm hstable
 
+lemma Lemma_A_1_proved
+    (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
+    (N : StabilityNorms D) :
+    Lemma_A_1 D p S N := by
+  intro sigma pNorm uStar vStar hsigma_low hsigma_high hpNorm hstable
+  exact N.sectorialLocalExponential
+    p S sigma pNorm uStar vStar hsigma_low hsigma_high hpNorm hstable
+
 def Lemma_A_2
     (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
@@ -3649,6 +4900,31 @@ lemma Lemma_A_2.paper2
     Paper2.Lemma_2_1 D p S :=
   h
 
+lemma Lemma_A_2.fractional_decay
+    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
+    (h : Lemma_A_2 D p S)
+    {sigma q delta : ℝ}
+    (hsigma : 0 ≤ sigma) (hq : 1 ≤ q)
+    (hdelta_pos : 0 < delta) (hdelta_mu : delta < p.μ) :
+    ∃ C > 0, ∀ t > 0, ∀ u : D.Point → ℝ,
+      S.fractionalNorm sigma q (S.semigroup t u) ≤
+        C * t ^ (-sigma) * Real.exp (-delta * t) * S.lpNorm q u :=
+  h.paper2.fractional_decay hsigma hq hdelta_pos hdelta_mu
+
+lemma Lemma_A_2.semigroup_continuity
+    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
+    (h : Lemma_A_2 D p S)
+    {sigma : ℝ} (hsigma_pos : 0 < sigma) (hsigma_one : sigma ≤ 1) :
+    ∃ C > 0, ∀ t > 0, ∀ u : D.Point → ℝ,
+      S.lpNorm 2 (fun x => S.semigroup t u x - u x) ≤
+        C * t ^ sigma * S.fractionalNorm sigma 2 u :=
+  h.paper2.semigroup_continuity hsigma_pos hsigma_one
+
+lemma Lemma_A_2_proved
+    (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D) :
+    Lemma_A_2 D p S := by
+  exact ⟨S.fractional_decay p, S.semigroup_continuity⟩
+
 def Lemma_A_3
     (D : BoundedDomainData) (S : SemigroupEstimateData D) : Prop :=
   Paper2.Lemma_2_2 D S
@@ -3658,6 +4934,31 @@ lemma Lemma_A_3.paper2
     (h : Lemma_A_3 D S) :
     Paper2.Lemma_2_2 D S :=
   h
+
+lemma Lemma_A_3.embedding_general
+    {D : BoundedDomainData} {S : SemigroupEstimateData D}
+    (h : Lemma_A_3 D S)
+    {sigma q k r : ℝ}
+    (hsigma : 0 ≤ sigma) (hq : 1 ≤ q) (hqr : q ≤ r)
+    (hcond : k - (D.volume / r) < 2 * sigma - D.volume / q) :
+    ∃ C > 0, ∀ u : D.Point → ℝ,
+      S.embeddingNorm k r sigma u ≤ C * S.fractionalNorm sigma q u :=
+  h.paper2.embedding_general hsigma hq hqr hcond
+
+lemma Lemma_A_3.embedding_same_q
+    {D : BoundedDomainData} {S : SemigroupEstimateData D}
+    (h : Lemma_A_3 D S)
+    {sigma q theta : ℝ}
+    (htheta_nonneg : 0 ≤ theta)
+    (hcond : theta < 2 * sigma - D.volume / q) :
+    ∃ C > 0, ∀ u : D.Point → ℝ,
+      S.embeddingNorm theta q sigma u ≤ C * S.fractionalNorm sigma q u :=
+  h.paper2.embedding_same_q htheta_nonneg hcond
+
+lemma Lemma_A_3_proved
+    (D : BoundedDomainData) (S : SemigroupEstimateData D) :
+    Lemma_A_3 D S := by
+  exact ⟨S.embedding_general, S.embedding_same_q⟩
 
 def Lemma_A_4
     (D : BoundedDomainData) (p : CM2Params)
@@ -3670,6 +4971,20 @@ lemma Lemma_A_4.paper2
     Paper2.Lemma_2_3 D p S :=
   h
 
+lemma Lemma_A_4.divergence_bound
+    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
+    (h : Lemma_A_4 D p S) :
+    ∃ C > 0, ∀ q > 1, ∀ t > 0, ∀ phi : D.Point → ℝ,
+      S.lpNorm q (S.divergenceSemigroup t phi) ≤
+        C * (1 + t ^ (-(1 / 2 : ℝ))) *
+          Real.exp (-(p.μ) * t) * S.vectorLpNorm q phi :=
+  h.paper2.divergence_bound
+
+lemma Lemma_A_4_proved
+    (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D) :
+    Lemma_A_4 D p S :=
+  S.divergence_bound p
+
 def Lemma_A_5
     (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
@@ -3680,6 +4995,21 @@ lemma Lemma_A_5.paper2
     (h : Lemma_A_5 D p S) :
     Paper2.Lemma_2_4 D p S :=
   h
+
+lemma Lemma_A_5.fractional_divergence_bound
+    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
+    (h : Lemma_A_5 D p S)
+    {sigma q : ℝ} (hsigma : 0 < sigma) (hq : 1 < q) :
+    ∃ C > 0, ∀ t > 0, ∀ phi : D.Point → ℝ,
+      S.fractionalNorm sigma q (S.divergenceSemigroup t phi) ≤
+        C * t ^ (-sigma) * (1 + t ^ (-(1 / 2 : ℝ))) *
+          Real.exp (-(p.μ / 2) * t) * S.vectorLpNorm q phi :=
+  h.paper2.fractional_divergence_bound hsigma hq
+
+lemma Lemma_A_5_proved
+    (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D) :
+    Lemma_A_5 D p S :=
+  S.fractional_divergence_bound p
 
 def PowerDifferenceInequality
     (C alpha gamma uStar : ℝ) : Prop :=
@@ -4107,6 +5437,17 @@ def Lemma_A_7
       (1 ≤ p.β → 1 ≤ p.γ → p.α + 1 ≥ p.m + 2 * p.γ →
         C.chiStrong4 eq.1 ≤ C.chiCritical eq.1)
 
+lemma Lemma_A_7_proved
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper3Constants D p) :
+    Lemma_A_7 D p C := by
+  intro hβ0 hm ha hb
+  exact
+    ⟨C.chiStrong1_le_chiCritical hβ0 hm ha hb,
+      ⟨C.chiStrong2_le_chiCritical hβ0 hm ha hb,
+        ⟨C.chiStrong3_le_chiCritical hβ0 hm ha hb,
+          C.chiStrong4_le_chiCritical hβ0 hm ha hb⟩⟩⟩
+
 lemma Lemma_A_7.chiStrong1_le
     {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
     (h : Lemma_A_7 D p C)
@@ -4155,6 +5496,15 @@ def Lemma_A_8
     ∀ uStar > 0,
       (0 < p.γ → C.chiMinimal1 uStar ≤ C.chiCritical uStar) ∧
       (p.γ = 1 → C.chiMinimal2 uStar ≤ C.chiCritical uStar)
+
+lemma Lemma_A_8_proved
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper3Constants D p) :
+    Lemma_A_8 D p C := by
+  intro ha hb hm hβ uStar huStar
+  exact
+    ⟨C.chiMinimal1_le_chiCritical ha hb hm hβ uStar huStar,
+      C.chiMinimal2_le_chiCritical ha hb hm hβ uStar huStar⟩
 
 lemma Lemma_A_8.chiMinimal1_le
     {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
@@ -4213,6 +5563,499 @@ lemma Lemma_A_8.minimal_condition_chi_lt_critical
       (h.chiMinimal1_le ha hb hm hβ huStar p.hγ)
   · exact lt_of_lt_of_le h2.2.2
       (h.chiMinimal2_le ha hb hm hβ huStar h2.1)
+
+lemma Theorem_2_2.nonminimal_stability_package_of_Lemma_A_7
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C) (hA7 : Lemma_A_7 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hcond :
+      NonminimalGlobalStabilityCondition D p C
+        (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    LinearlyStable S p
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 ∧
+    LocallyExponentiallyStableFromSup D p N
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+  exact h.nonminimal_stability_package ha hb
+    (hA7.nonminimal_condition_chi_lt_critical ha hb hcond)
+
+lemma Theorem_2_2.nonminimal_stability_package_of_chiStrong1_of_Lemma_A_7
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C) (hA7 : Lemma_A_7 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hαγ : 2 * p.γ ≤ p.α + 1)
+    (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < C.chiStrong1 (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    LinearlyStable S p
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 ∧
+    LocallyExponentiallyStableFromSup D p N
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.nonminimal_stability_package_of_Lemma_A_7 hA7 ha hb
+    (NonminimalGlobalStabilityCondition.of_chiStrong1 hm hαγ hχ0 hχ)
+
+lemma Theorem_2_2.nonminimal_stability_package_of_chiStrong2_of_Lemma_A_7
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C) (hA7 : Lemma_A_7 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hβ : 1 ≤ p.β)
+    (hαγ : 2 * p.γ ≤ p.α + 1)
+    (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < C.chiStrong2 (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    LinearlyStable S p
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 ∧
+    LocallyExponentiallyStableFromSup D p N
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.nonminimal_stability_package_of_Lemma_A_7 hA7 ha hb
+    (NonminimalGlobalStabilityCondition.of_chiStrong2 hm hβ hαγ hχ0 hχ)
+
+lemma Theorem_2_2.nonminimal_stability_package_of_chiStrong3_of_Lemma_A_7
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C) (hA7 : Lemma_A_7 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hγ : 1 ≤ p.γ)
+    (hαγ :
+      p.m + p.γ + (if p.β = 0 then 0 else p.γ) ≤ p.α + 1)
+    (hχ : p.χ₀ < C.chiStrong3 (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    LinearlyStable S p
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 ∧
+    LocallyExponentiallyStableFromSup D p N
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.nonminimal_stability_package_of_Lemma_A_7 hA7 ha hb
+    (NonminimalGlobalStabilityCondition.of_chiStrong3 hm hγ hαγ hχ)
+
+lemma Theorem_2_2.nonminimal_stability_package_of_chiStrong4_of_Lemma_A_7
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C) (hA7 : Lemma_A_7 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hβ : 1 ≤ p.β) (hγ : 1 ≤ p.γ)
+    (hαγ : p.m + 2 * p.γ ≤ p.α + 1)
+    (hχ : p.χ₀ < C.chiStrong4 (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    LinearlyStable S p
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 ∧
+    LocallyExponentiallyStableFromSup D p N
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.nonminimal_stability_package_of_Lemma_A_7 hA7 ha hb
+    (NonminimalGlobalStabilityCondition.of_chiStrong4 hm hβ hγ hαγ hχ)
+
+lemma Theorem_2_2.nonminimal_exponential_convergence_of_Lemma_A_7
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C) (hA7 : Lemma_A_7 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hcond :
+      NonminimalGlobalStabilityCondition D p C
+        (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ∃ δ > 0,
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        SupCloseToConstant D u₀ (positiveEquilibrium p ⟨ha, hb⟩).1 δ →
+          ∃ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            ExponentialC1Convergence D N u v
+              (positiveEquilibrium p ⟨ha, hb⟩).1
+              (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+  exact h.nonminimal_exponential_convergence ha hb
+    (hA7.nonminimal_condition_chi_lt_critical ha hb hcond)
+
+lemma Theorem_2_2.nonminimal_exponential_convergence_of_chiStrong1_of_Lemma_A_7
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C) (hA7 : Lemma_A_7 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hαγ : 2 * p.γ ≤ p.α + 1)
+    (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < C.chiStrong1 (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ∃ δ > 0,
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        SupCloseToConstant D u₀ (positiveEquilibrium p ⟨ha, hb⟩).1 δ →
+          ∃ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            ExponentialC1Convergence D N u v
+              (positiveEquilibrium p ⟨ha, hb⟩).1
+              (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.nonminimal_exponential_convergence_of_Lemma_A_7 hA7 ha hb
+    (NonminimalGlobalStabilityCondition.of_chiStrong1 hm hαγ hχ0 hχ)
+
+lemma Theorem_2_2.nonminimal_exponential_convergence_of_chiStrong2_of_Lemma_A_7
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C) (hA7 : Lemma_A_7 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hβ : 1 ≤ p.β)
+    (hαγ : 2 * p.γ ≤ p.α + 1)
+    (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < C.chiStrong2 (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ∃ δ > 0,
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        SupCloseToConstant D u₀ (positiveEquilibrium p ⟨ha, hb⟩).1 δ →
+          ∃ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            ExponentialC1Convergence D N u v
+              (positiveEquilibrium p ⟨ha, hb⟩).1
+              (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.nonminimal_exponential_convergence_of_Lemma_A_7 hA7 ha hb
+    (NonminimalGlobalStabilityCondition.of_chiStrong2 hm hβ hαγ hχ0 hχ)
+
+lemma Theorem_2_2.nonminimal_exponential_convergence_of_chiStrong3_of_Lemma_A_7
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C) (hA7 : Lemma_A_7 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hγ : 1 ≤ p.γ)
+    (hαγ :
+      p.m + p.γ + (if p.β = 0 then 0 else p.γ) ≤ p.α + 1)
+    (hχ : p.χ₀ < C.chiStrong3 (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ∃ δ > 0,
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        SupCloseToConstant D u₀ (positiveEquilibrium p ⟨ha, hb⟩).1 δ →
+          ∃ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            ExponentialC1Convergence D N u v
+              (positiveEquilibrium p ⟨ha, hb⟩).1
+              (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.nonminimal_exponential_convergence_of_Lemma_A_7 hA7 ha hb
+    (NonminimalGlobalStabilityCondition.of_chiStrong3 hm hγ hαγ hχ)
+
+lemma Theorem_2_2.nonminimal_exponential_convergence_of_chiStrong4_of_Lemma_A_7
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C) (hA7 : Lemma_A_7 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hβ : 1 ≤ p.β) (hγ : 1 ≤ p.γ)
+    (hαγ : p.m + 2 * p.γ ≤ p.α + 1)
+    (hχ : p.χ₀ < C.chiStrong4 (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ∃ δ > 0,
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        SupCloseToConstant D u₀ (positiveEquilibrium p ⟨ha, hb⟩).1 δ →
+          ∃ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            ExponentialC1Convergence D N u v
+              (positiveEquilibrium p ⟨ha, hb⟩).1
+              (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.nonminimal_exponential_convergence_of_Lemma_A_7 hA7 ha hb
+    (NonminimalGlobalStabilityCondition.of_chiStrong4 hm hβ hγ hαγ hχ)
+
+lemma Theorem_2_2.minimal_stability_package_of_Lemma_A_8
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C) (hA8 : Lemma_A_8 D p C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hcond : MinimalGlobalStabilityCondition D p C uStar) :
+    LinearlyStable S p
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 ∧
+    MassConstrainedLocallyExponentiallyStableFromSup D p N
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 := by
+  exact h.minimal_stability_package ha hb huStar
+    (hA8.minimal_condition_chi_lt_critical ha hb hm hβ huStar hcond)
+
+lemma Theorem_2_2.minimal_stability_package_of_chiMinimal1_of_Lemma_A_8
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C) (hA8 : Lemma_A_8 D p C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ0 : 0 < p.χ₀) (hχ : p.χ₀ < C.chiMinimal1 uStar) :
+    LinearlyStable S p
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 ∧
+    MassConstrainedLocallyExponentiallyStableFromSup D p N
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  h.minimal_stability_package_of_Lemma_A_8 hA8 ha hb hm hβ huStar
+    (MinimalGlobalStabilityCondition.of_chiMinimal1 hχ0 hχ)
+
+lemma Theorem_2_2.minimal_stability_package_of_chiMinimal2_of_Lemma_A_8
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C) (hA8 : Lemma_A_8 D p C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hγ : p.γ = 1) (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < C.chiMinimal2 uStar) :
+    LinearlyStable S p
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 ∧
+    MassConstrainedLocallyExponentiallyStableFromSup D p N
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  h.minimal_stability_package_of_Lemma_A_8 hA8 ha hb hm hβ huStar
+    (MinimalGlobalStabilityCondition.of_chiMinimal2 hγ hχ0 hχ)
+
+lemma Theorem_2_2.minimal_exponential_convergence_of_Lemma_A_8
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C) (hA8 : Lemma_A_8 D p C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hcond : MinimalGlobalStabilityCondition D p C uStar) :
+    ∃ δ > 0,
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        SupCloseToConstant D u₀ (minimalEquilibrium p uStar).1 δ →
+        D.integral u₀ = D.volume * uStar →
+          ∃ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            ExponentialC1Convergence D N u v
+              (minimalEquilibrium p uStar).1
+              (minimalEquilibrium p uStar).2 := by
+  exact h.minimal_exponential_convergence ha hb huStar
+    (hA8.minimal_condition_chi_lt_critical ha hb hm hβ huStar hcond)
+
+lemma Theorem_2_2.minimal_exponential_convergence_of_chiMinimal1_of_Lemma_A_8
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C) (hA8 : Lemma_A_8 D p C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ0 : 0 < p.χ₀) (hχ : p.χ₀ < C.chiMinimal1 uStar) :
+    ∃ δ > 0,
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        SupCloseToConstant D u₀ (minimalEquilibrium p uStar).1 δ →
+        D.integral u₀ = D.volume * uStar →
+          ∃ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            ExponentialC1Convergence D N u v
+              (minimalEquilibrium p uStar).1
+              (minimalEquilibrium p uStar).2 :=
+  h.minimal_exponential_convergence_of_Lemma_A_8 hA8 ha hb hm hβ huStar
+    (MinimalGlobalStabilityCondition.of_chiMinimal1 hχ0 hχ)
+
+lemma Theorem_2_2.minimal_exponential_convergence_of_chiMinimal2_of_Lemma_A_8
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Theorem_2_2 D p S N C) (hA8 : Lemma_A_8 D p C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hγ : p.γ = 1) (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < C.chiMinimal2 uStar) :
+    ∃ δ > 0,
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        SupCloseToConstant D u₀ (minimalEquilibrium p uStar).1 δ →
+        D.integral u₀ = D.volume * uStar →
+          ∃ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            ExponentialC1Convergence D N u v
+              (minimalEquilibrium p uStar).1
+              (minimalEquilibrium p uStar).2 :=
+  h.minimal_exponential_convergence_of_Lemma_A_8 hA8 ha hb hm hβ huStar
+    (MinimalGlobalStabilityCondition.of_chiMinimal2 hγ hχ0 hχ)
+
+lemma Corollary_5_1.nonminimal_exponential_of_chi_lt_paperCriticalSensitivity
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Corollary_5_1 D p N C)
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (hm : 1 ≤ p.m) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hconv : UniformConvergesInSup D u (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.nonminimal_exponential hm ha hb
+    (by
+      rwa [hC.chiCritical_positiveEquilibrium ha hb])
+    huv hconv
+
+lemma Corollary_5_1.minimal_exponential_of_chi_lt_paperCriticalSensitivity
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Corollary_5_1 D p N C)
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (hm : 1 ≤ p.m) (ha : p.a = 0) (hb : p.b = 0)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar)
+    (hconv : UniformConvergesInSup D u (minimalEquilibrium p uStar).1) :
+    ExponentialC1Convergence D N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  h.minimal_exponential hm ha hb huStar
+    (by
+      rwa [hC.chiCritical_minimalEquilibrium huStar])
+    huv hmass hconv
+
+lemma Corollary_5_1.nonminimal_exponential_of_Lemma_A_7
+    {D : BoundedDomainData} {p : CM2Params}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Corollary_5_1 D p N C) (hA7 : Lemma_A_7 D p C)
+    (hm : 1 ≤ p.m) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hcond :
+      NonminimalGlobalStabilityCondition D p C
+        (positiveEquilibrium p ⟨ha, hb⟩).1)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hconv : UniformConvergesInSup D u (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.nonminimal_exponential hm ha hb
+    (hA7.nonminimal_condition_chi_lt_critical ha hb hcond)
+    huv hconv
+
+lemma Corollary_5_1.minimal_exponential_of_Lemma_A_8
+    {D : BoundedDomainData} {p : CM2Params}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Corollary_5_1 D p N C) (hA8 : Lemma_A_8 D p C)
+    (hm_le : 1 ≤ p.m) (ha : p.a = 0) (hb : p.b = 0)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hcond : MinimalGlobalStabilityCondition D p C uStar)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar)
+    (hconv : UniformConvergesInSup D u (minimalEquilibrium p uStar).1) :
+    ExponentialC1Convergence D N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  h.minimal_exponential hm_le ha hb huStar
+    (hA8.minimal_condition_chi_lt_critical ha hb hm hβ huStar hcond)
+    huv hmass hconv
+
+lemma Corollary_5_1.nonminimal_exponential_of_chiStrong1_of_Lemma_A_7
+    {D : BoundedDomainData} {p : CM2Params}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Corollary_5_1 D p N C) (hA7 : Lemma_A_7 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hαγ : 2 * p.γ ≤ p.α + 1)
+    (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < C.chiStrong1 (positiveEquilibrium p ⟨ha, hb⟩).1)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hconv : UniformConvergesInSup D u (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.nonminimal_exponential_of_Lemma_A_7 hA7 hm ha hb
+    (NonminimalGlobalStabilityCondition.of_chiStrong1 hm hαγ hχ0 hχ)
+    huv hconv
+
+lemma Corollary_5_1.nonminimal_exponential_of_chiStrong2_of_Lemma_A_7
+    {D : BoundedDomainData} {p : CM2Params}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Corollary_5_1 D p N C) (hA7 : Lemma_A_7 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hβ : 1 ≤ p.β)
+    (hαγ : 2 * p.γ ≤ p.α + 1)
+    (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < C.chiStrong2 (positiveEquilibrium p ⟨ha, hb⟩).1)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hconv : UniformConvergesInSup D u (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.nonminimal_exponential_of_Lemma_A_7 hA7 hm ha hb
+    (NonminimalGlobalStabilityCondition.of_chiStrong2 hm hβ hαγ hχ0 hχ)
+    huv hconv
+
+lemma Corollary_5_1.nonminimal_exponential_of_chiStrong3_of_Lemma_A_7
+    {D : BoundedDomainData} {p : CM2Params}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Corollary_5_1 D p N C) (hA7 : Lemma_A_7 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hγ : 1 ≤ p.γ)
+    (hαγ :
+      p.m + p.γ + (if p.β = 0 then 0 else p.γ) ≤ p.α + 1)
+    (hχ : p.χ₀ < C.chiStrong3 (positiveEquilibrium p ⟨ha, hb⟩).1)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hconv : UniformConvergesInSup D u (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.nonminimal_exponential_of_Lemma_A_7 hA7 hm ha hb
+    (NonminimalGlobalStabilityCondition.of_chiStrong3 hm hγ hαγ hχ)
+    huv hconv
+
+lemma Corollary_5_1.nonminimal_exponential_of_chiStrong4_of_Lemma_A_7
+    {D : BoundedDomainData} {p : CM2Params}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Corollary_5_1 D p N C) (hA7 : Lemma_A_7 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hm : 1 ≤ p.m) (hβ : 1 ≤ p.β) (hγ : 1 ≤ p.γ)
+    (hαγ : p.m + 2 * p.γ ≤ p.α + 1)
+    (hχ : p.χ₀ < C.chiStrong4 (positiveEquilibrium p ⟨ha, hb⟩).1)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hconv : UniformConvergesInSup D u (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.nonminimal_exponential_of_Lemma_A_7 hA7 hm ha hb
+    (NonminimalGlobalStabilityCondition.of_chiStrong4 hm hβ hγ hαγ hχ)
+    huv hconv
+
+lemma Corollary_5_1.minimal_exponential_of_chiMinimal1_of_Lemma_A_8
+    {D : BoundedDomainData} {p : CM2Params}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Corollary_5_1 D p N C) (hA8 : Lemma_A_8 D p C)
+    (hm_le : 1 ≤ p.m) (ha : p.a = 0) (hb : p.b = 0)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ0 : 0 < p.χ₀) (hχ : p.χ₀ < C.chiMinimal1 uStar)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar)
+    (hconv : UniformConvergesInSup D u (minimalEquilibrium p uStar).1) :
+    ExponentialC1Convergence D N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  h.minimal_exponential_of_Lemma_A_8 hA8 hm_le ha hb hm hβ huStar
+    (MinimalGlobalStabilityCondition.of_chiMinimal1 hχ0 hχ) huv hmass hconv
+
+lemma Corollary_5_1.minimal_exponential_of_chiMinimal2_of_Lemma_A_8
+    {D : BoundedDomainData} {p : CM2Params}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Corollary_5_1 D p N C) (hA8 : Lemma_A_8 D p C)
+    (hm_le : 1 ≤ p.m) (ha : p.a = 0) (hb : p.b = 0)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hγ : p.γ = 1) (hχ0 : 0 < p.χ₀)
+    (hχ : p.χ₀ < C.chiMinimal2 uStar)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar)
+    (hconv : UniformConvergesInSup D u (minimalEquilibrium p uStar).1) :
+    ExponentialC1Convergence D N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  h.minimal_exponential_of_Lemma_A_8 hA8 hm_le ha hb hm hβ huStar
+    (MinimalGlobalStabilityCondition.of_chiMinimal2 hγ hχ0 hχ) huv hmass hconv
 
 end
 

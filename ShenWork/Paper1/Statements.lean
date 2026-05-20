@@ -1836,6 +1836,28 @@ theorem frozenWaveOperator_upperBarrier_const_region_eq
     upperBarrier_deriv_eq_zero_of_const_lt hx, hchem, hW_x]
   ring
 
+theorem frozenWaveOperator_upperBarrier_const_region_nonpos_of_elliptic_le_source
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hχ : p.χ ≤ 0) (hM : 1 ≤ M)
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x)
+    {x : ℝ} (hx : M < Real.exp (-κ * x))
+    (hle : frozenElliptic p u x ≤ (u x) ^ p.γ) :
+    frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0 := by
+  rw [frozenWaveOperator_upperBarrier_const_region_eq p hu hu_nonneg hx]
+  have hM_nonneg : 0 ≤ M := le_trans zero_le_one hM
+  have hMm_nonneg : 0 ≤ M ^ p.m := Real.rpow_nonneg hM_nonneg _
+  have hchem_core :
+      M ^ p.m * (frozenElliptic p u x - (u x) ^ p.γ) ≤ 0 :=
+    mul_nonpos_of_nonneg_of_nonpos hMm_nonneg (sub_nonpos.mpr hle)
+  have hchem :
+      -p.χ * (M ^ p.m * (frozenElliptic p u x - (u x) ^ p.γ)) ≤ 0 :=
+    mul_nonpos_of_nonneg_of_nonpos (neg_nonneg.mpr hχ) hchem_core
+  have hlog_core : 1 - M ^ p.α ≤ 0 := by
+    exact sub_nonpos.mpr (Real.one_le_rpow hM (by linarith [p.hα]))
+  have hlog : M * (1 - M ^ p.α) ≤ 0 :=
+    mul_nonpos_of_nonneg_of_nonpos hM_nonneg hlog_core
+  nlinarith
+
 theorem upperBarrier_nonneg {κ M : ℝ} (hM : 0 ≤ M) (x : ℝ) :
     0 ≤ upperBarrier κ M x :=
   le_min hM (Real.exp_pos _).le
@@ -2873,6 +2895,29 @@ theorem upperBarrier_mem_InWaveTrapSet {κ M : ℝ} (hM : 0 ≤ M) :
   refine ⟨upperBarrier_cunif_bdd hM, ?_⟩
   intro x
   exact ⟨upperBarrier_nonneg hM x, le_rfl⟩
+
+theorem frozenWaveOperator_upperBarrier_const_region_nonpos_self_neg
+    (p : CMParams) {c κ M x : ℝ}
+    (hχ : p.χ ≤ 0) (hM : 1 ≤ M)
+    (hx : M < Real.exp (-κ * x)) :
+    frozenWaveOperator p c (upperBarrier κ M) (upperBarrier κ M) x ≤ 0 := by
+  have hM_nonneg : 0 ≤ M := le_trans zero_le_one hM
+  have hM_pos : 0 < M := lt_of_lt_of_le zero_lt_one hM
+  have htrap : InWaveTrapSet κ M (upperBarrier κ M) :=
+    upperBarrier_mem_InWaveTrapSet hM_nonneg
+  have hV_le :
+      frozenElliptic p (upperBarrier κ M) x ≤
+        (upperBarrier κ M x) ^ p.γ := by
+    have hV_M :
+        frozenElliptic p (upperBarrier κ M) x ≤ M ^ p.γ :=
+      frozenElliptic_le_rpow_of_inWaveTrapSet p hM_pos htrap x
+    have hW_x : upperBarrier κ M x = M :=
+      upperBarrier_eq_M_of_le_exp (le_of_lt hx)
+    simpa [hW_x] using hV_M
+  exact
+    frozenWaveOperator_upperBarrier_const_region_nonpos_of_elliptic_le_source
+      p hχ hM (upperBarrier_cunif_bdd hM_nonneg)
+      (fun y => upperBarrier_nonneg hM_nonneg y) hx hV_le
 
 theorem lowerBarrierPlateau_mem_InWaveTrapSet_exp_xplus
     {κ κtilde D : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D) :
@@ -5593,13 +5638,6 @@ theorem HasWaveUpperTailBound.inWaveTrapSet
   refine ⟨hU, ?_⟩
   intro x
   exact ⟨(h.pos x).le, by simpa [upperBarrier] using (h x).2⟩
-
-theorem HasWaveUpperTailBound.frozenElliptic_le
-    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
-    (h : HasWaveUpperTailBound p c U) (hU : IsCUnifBdd U)
-    (hMChi_pos : 0 < MChi p) (x : ℝ) :
-    frozenElliptic p U x ≤ (MChi p) ^ p.γ :=
-  frozenElliptic_le_rpow_of_inWaveTrapSet p hMChi_pos (h.inWaveTrapSet hU) x
 
 theorem HasWaveUpperTailBound.inMonotoneWaveTrapSet
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}

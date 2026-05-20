@@ -40,6 +40,11 @@ def parabolicOp (u : ℝ → ℝ → ℝ) (t x : ℝ) : ℝ :=
 def BoundedOnStrip (T : ℝ) (u : ℝ → ℝ → ℝ) : Prop :=
   ∃ M : ℝ, 0 ≤ M ∧ ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x : ℝ, |u t x| ≤ M
 
+theorem BoundedOnStrip.exists_bound
+    {T : ℝ} {u : ℝ → ℝ → ℝ} (h : BoundedOnStrip T u) :
+    ∃ M : ℝ, 0 ≤ M ∧ ∀ t ∈ Set.Icc (0 : ℝ) T, ∀ x : ℝ, |u t x| ≤ M :=
+  h
+
 /--
 A convenient real-line local Lipschitz hypothesis.
 
@@ -54,6 +59,17 @@ def LocallyLipschitzReal (g : ℝ → ℝ) : Prop :=
             |a| ≤ R →
             |b| ≤ R →
             |g a - g b| ≤ L * |a - b|
+
+theorem LocallyLipschitzReal.on_ball
+    {g : ℝ → ℝ} (h : LocallyLipschitzReal g)
+    {R : ℝ} (hR : 0 < R) :
+    ∃ L : ℝ,
+      0 ≤ L ∧
+        ∀ a b : ℝ,
+          |a| ≤ R →
+          |b| ≤ R →
+          |g a - g b| ≤ L * |a - b| :=
+  h R hR
 
 /--
 Classical subsolution of

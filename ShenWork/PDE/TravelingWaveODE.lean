@@ -39,6 +39,10 @@ x 2 - (x 0) ^ p.gamma
 def IsEquilibrium (p : Params) (x : State) : Prop :=
 vectorField p x = 0
 
+theorem IsEquilibrium.eq_zero {p : Params} {x : State} (h : IsEquilibrium p x) :
+vectorField p x = 0 :=
+h
+
 @[simp]
 theorem vectorField_E1 (p : Params) :
     vectorField p E1 = 0 := by
@@ -189,13 +193,37 @@ targetJacobian := jacobianAtZero p
 def HasEigenpair (A : Matrix Idx Idx ℝ) (lam : ℝ) (v : State) : Prop :=
 matVec4 A v = lam • v ∧ v ≠ 0
 
+theorem HasEigenpair.eigen_eq
+    {A : Matrix Idx Idx ℝ} {lam : ℝ} {v : State}
+    (h : HasEigenpair A lam v) :
+matVec4 A v = lam • v :=
+h.1
+
+theorem HasEigenpair.ne_zero
+    {A : Matrix Idx Idx ℝ} {lam : ℝ} {v : State}
+    (h : HasEigenpair A lam v) :
+v ≠ 0 :=
+h.2
+
 def LinearUnstable (A : Matrix Idx Idx ℝ) : Prop :=
   ∃ lam : ℝ, 0 < lam ∧ ∃ v : State, HasEigenpair A lam v
+
+theorem LinearUnstable.exists_positive_eigenpair
+    {A : Matrix Idx Idx ℝ} (h : LinearUnstable A) :
+    ∃ lam : ℝ, 0 < lam ∧ ∃ v : State, HasEigenpair A lam v :=
+  h
 
 def characteristicAtOne (p : Params) (lam : ℝ) : Prop :=
 (lam ^ 2 + p.c * lam - (p.alpha : ℝ) + p.chi * (p.gamma : ℝ))
 * (lam ^ 2 - 1)
 + p.chi * (p.gamma : ℝ) = 0
+
+theorem characteristicAtOne.eq_zero
+    {p : Params} {lam : ℝ} (h : characteristicAtOne p lam) :
+    (lam ^ 2 + p.c * lam - (p.alpha : ℝ) + p.chi * (p.gamma : ℝ))
+    * (lam ^ 2 - 1)
+    + p.chi * (p.gamma : ℝ) = 0 :=
+  h
 
 def unstableVectorAtOne (p : Params) (lam : ℝ) : State :=
 ![
@@ -243,6 +271,11 @@ exact jacobianAtOne_eigenpair_of_characteristic p hchar
 def OneDimUnstableRoot (p : Params) : Prop :=
 ∃! lam : ℝ, 0 < lam ∧ characteristicAtOne p lam
 
+theorem OneDimUnstableRoot.exists_unique
+    {p : Params} (h : OneDimUnstableRoot p) :
+∃! lam : ℝ, 0 < lam ∧ characteristicAtOne p lam :=
+h
+
 theorem jacobianAtOne_linearUnstable_of_oneDimRoot
 (p : Params)
 (hroot : OneDimUnstableRoot p) :
@@ -269,6 +302,11 @@ theorem jacobianAtZero_stable_eigenpair (p : Params) :
 
 def SolvesTWODE (p : Params) (z : ℝ → State) : Prop :=
 ∀ t : ℝ, HasDerivAt z (vectorField p (z t)) t
+
+theorem SolvesTWODE.hasDerivAt
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) (t : ℝ) :
+    HasDerivAt z (vectorField p (z t)) t :=
+  h t
 
 structure TravelingWave (p : Params) where
 z : ℝ → State
@@ -321,6 +359,14 @@ def HasHeteroclinicE1E0 (p : Params) : Prop :=
     SolvesTWODE p z ∧
     Tendsto z atBot (nhds E1) ∧
     Tendsto z atTop (nhds E0)
+
+theorem HasHeteroclinicE1E0.exists_solution
+    {p : Params} (h : HasHeteroclinicE1E0 p) :
+    ∃ z : ℝ → State,
+      SolvesTWODE p z ∧
+      Tendsto z atBot (nhds E1) ∧
+      Tendsto z atTop (nhds E0) :=
+  h
 
 theorem travelingWave_of_heteroclinic
     (p : Params)
