@@ -45,6 +45,13 @@ lemma heatKernel_nonneg {t : ℝ} (ht : 0 < t) (x : ℝ) : 0 ≤ heatKernel t x 
     exact Real.sqrt_nonneg _
   · exact Real.exp_nonneg _
 
+/-- The heat kernel is strictly positive for positive time. -/
+lemma heatKernel_pos {t : ℝ} (ht : 0 < t) (x : ℝ) : 0 < heatKernel t x := by
+  unfold heatKernel
+  have hden : 0 < Real.sqrt (4 * Real.pi * t) := by
+    exact Real.sqrt_pos.2 (by positivity)
+  exact mul_pos (div_pos zero_lt_one hden) (Real.exp_pos _)
+
 /-- The heat kernel integrates to 1: ∫ G(t,x) dx = 1 for t > 0.
     This is the Gaussian integral. -/
 theorem heatKernel_integral_eq_one {t : ℝ} (ht : 0 < t) :

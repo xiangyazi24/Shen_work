@@ -119,6 +119,24 @@ theorem neumannHeatKernel_zerothReflection_nonneg
   unfold neumannHeatKernel_zerothReflection
   exact add_nonneg (heatKernel_nonneg ht _) (heatKernel_nonneg ht _)
 
+/-- The zeroth-reflection helper kernel is strictly positive for positive
+time. -/
+theorem neumannHeatKernel_zerothReflection_pos
+    {t : ℝ} (ht : 0 < t) (L x y : ℝ) :
+    0 < neumannHeatKernel_zerothReflection L t x y := by
+  unfold neumannHeatKernel_zerothReflection
+  have hleft : 0 < heatKernel t (x - y) := by
+    unfold heatKernel
+    have hden : 0 < Real.sqrt (4 * Real.pi * t) := by
+      exact Real.sqrt_pos.2 (by positivity)
+    exact mul_pos (div_pos zero_lt_one hden) (Real.exp_pos _)
+  have hright : 0 < heatKernel t (x + y) := by
+    unfold heatKernel
+    have hden : 0 < Real.sqrt (4 * Real.pi * t) := by
+      exact Real.sqrt_pos.2 (by positivity)
+    exact mul_pos (div_pos zero_lt_one hden) (Real.exp_pos _)
+  exact add_pos hleft hright
+
 /-- The zeroth-reflection kernel is even in x: K(t, -x, y) = K(t, x, y).
 This symmetry implies the Neumann boundary condition ∂K/∂x|_{x=0} = 0. -/
 theorem neumannHeatKernel_zerothReflection_even
@@ -253,6 +271,14 @@ theorem normalizedZerothReflectionKernel_nonneg
   unfold normalizedZerothReflectionKernel
   exact mul_nonneg (by norm_num)
     (neumannHeatKernel_zerothReflection_nonneg ht L x y)
+
+/-- The normalized zeroth-reflection helper kernel is strictly positive for
+positive time. -/
+theorem normalizedZerothReflectionKernel_pos
+    {t : ℝ} (ht : 0 < t) (L x y : ℝ) :
+    0 < normalizedZerothReflectionKernel L t x y := by
+  unfold normalizedZerothReflectionKernel
+  exact mul_pos (by norm_num) (neumannHeatKernel_zerothReflection_pos ht L x y)
 
 theorem normalizedZerothReflectionKernel_even
     (L t x y : ℝ) :

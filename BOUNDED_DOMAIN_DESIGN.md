@@ -386,10 +386,10 @@ the reflected variable, plus the whole-line integral identities
 `heatKernel_integral_add` and `neumannHeatKernel_zerothReflection_integral`,
 and the bounded-input estimate `reflectedKernelIntegral_Linfty_bound`.
 It also defines the mass-normalized helper
-`normalizedZerothReflectionKernel` and proves its nonnegativity, evenness,
-zero normal derivative at the left boundary, whole-line mass-one identity,
-constant-input preservation, positivity preservation, bounded-input
-integrability, monotonicity, interval-bound preservation, additivity, scalar
-multiplication, subtraction, domination by pointwise majorants, pointwise
-Gaussian bound, `L∞` bound, and `L∞` contraction.  This is not claimed to be
-the full interval Neumann heat semigroup.
+`normalizedZerothReflectionKernel` and proves its nonnegativity, strict
+positivity, evenness, zero normal derivative at the left boundary, whole-line
+mass-one identity, constant-input preservation, positivity preservation,
+bounded-input integrability, monotonicity, interval-bound preservation,
+additivity, scalar multiplication, subtraction, domination by pointwise
+majorants, pointwise Gaussian bound, `L∞` bound, and `L∞` contraction.  This is
+not claimed to be the full interval Neumann heat semigroup.
