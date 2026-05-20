@@ -1,5 +1,13 @@
 # Bounded-Domain API Design Proposal v2
 
+Historical note: v2 is an intermediate draft superseded by
+`.tmp/bounded-domain-proposal-v4.md` and `BOUNDED_DOMAIN_DESIGN.md`. The
+conditional-track examples below must be read under the stricter v4 rule:
+conditional bounded-domain material is documentation-only unless Xiang
+explicitly asks for Lean declarations, and any such declarations must use
+unmistakable `from_assumed_*` names, never `_proved` or paper-lemma-looking
+wrapper names.
+
 ## Purpose
 
 This proposal replaces the v1 plan with an audit-aware design. The main change is
@@ -42,9 +50,11 @@ estimates can faithfully record the standard PDE theorem being assumed. But if
 the estimates are fields of a structure, using them to prove Paper2 Lemmas 2.1--2.4
 does not make those lemmas fully formalized.
 
-Allowed theorem names should say this explicitly, e.g.
-`Lemma_2_1_of_neumannSemigroupEstimates` or
-`Paper2_globalExistence_conditional`. Avoid `_proved`.
+Allowed theorem names must say this explicitly, e.g.
+`Lemma_2_1_from_assumed_neumann_semigroup_estimates` or
+`global_existence_from_assumed_bounded_domain_theory`. Avoid `_proved`, avoid
+paper-lemma-looking names, and do not count these declarations as theorem
+progress.
 
 ### Concrete End-to-End Model
 
@@ -85,23 +95,12 @@ So an integrity-preserving bounded-domain API must include at least:
 This track is a clear assumption interface for standard PDE facts. It is useful
 for organizing the paper, but it is not an end-to-end proof.
 
-```lean
-structure SmoothBoundedDomain (N : ℕ) where
-  hN : 0 < N
-  Ω : Set (EuclideanSpace ℝ (Fin N))
-  isOpen_Ω : IsOpen Ω
-  isBounded_Ω : Bornology.IsBounded Ω
-  nonempty_Ω : Ω.Nonempty
-  connected_Ω : IsConnected Ω
-  boundarySmooth : Prop
-  boundarySmooth_witness : boundarySmooth
-  outwardNormal : {x // x ∈ frontier Ω} → EuclideanSpace ℝ (Fin N)
-  outwardNormal_unit : ∀ x, ‖outwardNormal x‖ = 1
-```
-
-The `boundarySmooth : Prop` placeholder is still conditional. It should not be
-used to fake calculus; it records the unformalized hypothesis needed by standard
-Neumann theory. If later Mathlib has a smooth-domain API, this can be replaced.
+Do not encode a `boundarySmooth : Prop` field plus witness in theorem files.
+That pattern is too easy to misuse as an assumption-structure escape. If a Lean
+geometric skeleton is introduced later, it should contain only defined
+geometric data; smooth boundary, trace, outward normal, and Neumann heat theory
+should remain documentation-only or be encoded as exact analytic hypotheses in
+a clearly conditional namespace.
 
 Spatial functions should use one of the following two designs.
 
@@ -175,20 +174,23 @@ structure AssumedNeumannSemigroupEstimates
     Prop
 ```
 
-This interface may support theorem names like:
+If such assumptions are encoded, theorem names must be visibly
+assumption-dependent:
 
 ```lean
-theorem paper2_lemma_2_1_conditional
+theorem Lemma_2_1_from_assumed_neumann_semigroup_estimates
     (hS : AssumedNeumannSemigroupEstimates D S p) : ...
 ```
 
-It should not support:
+Do not use names like:
 
 ```lean
+theorem paper2_lemma_2_1_conditional : ...
 theorem paper2_lemma_2_1_proved : ...
 ```
 
-unless the estimates are derived from concrete definitions.
+The first looks too much like a paper theorem wrapper; the second falsely
+suggests proof progress if the estimates are assumed.
 
 ## End-to-End Track: Concrete Next Target
 
@@ -234,7 +236,7 @@ specialized to the interval and marked `_proved`.
 - Keep `BoundedDomainData` unchanged.
 - Add this design document or a new namespace/file only.
 - Add naming rules:
-  - `*_conditional` for theorem chains using assumed PDE/semigroup estimates.
+  - `from_assumed_*` for theorem chains using assumed PDE/semigroup estimates.
   - `*_proved` only for theorem chains whose analytic estimates are proved from
     concrete definitions.
 

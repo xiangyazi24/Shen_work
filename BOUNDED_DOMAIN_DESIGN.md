@@ -383,6 +383,9 @@ facts, not Paper2 theorem wrappers and not semigroup estimate assumptions.
 This status note is descriptive only: it does not relax the v4 guardrails above,
 and any concrete theorem counted as accepted progress still requires a temporary
 `#print axioms` audit reported outside source.
+References below to positivity, contraction, or smoothing are helper facts for
+the named concrete kernels/operators only; they are not a proved full interval
+Neumann heat semigroup package and do not justify Paper2/Paper3 theorem wrappers.
 The file also contains a zeroth-reflection heat-kernel helper,
 `neumannHeatKernel_zerothReflection`, with proved nonnegativity and evenness in
 the reflected variable, plus the whole-line integral identities

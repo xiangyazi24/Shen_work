@@ -1,5 +1,12 @@
 # Bounded-Domain API Design Proposal v3
 
+Historical note: v3 is an intermediate draft superseded by
+`.tmp/bounded-domain-proposal-v4.md` and `BOUNDED_DOMAIN_DESIGN.md`. Its
+conditional-track policy is the v4 policy: documentation-only by default; if
+encoded later, declarations must use unmistakable `from_assumed_*` names, never
+`_proved` or paper-lemma-looking wrappers, and must not be counted as theorem
+progress.
+
 ## Executive Decision Point
 
 This proposal supports two choices:
@@ -116,27 +123,11 @@ boundarySmooth_witness : boundarySmooth
 ```
 
 Smooth boundary, traces, outward normals, Neumann heat theory, elliptic
-regularity, and semigroup estimates should be separate explicitly named
-assumptions, preferably documentation-only until there is a concrete use.
-
-If encoded in Lean, use names that cannot be confused with proved estimates:
-
-```lean
--- Documentation/assumption namespace only.
-structure AssumesSmoothBoundary (D : BoundedDomainSkeleton N) : Prop where
-  -- Details intentionally not used as computational data.
-  assumed : True
-
-structure AssumesNeumannHeatTheory
-    (D : BoundedDomainSkeleton N)
-    (p : CM2Params) : Prop where
-  -- This represents standard PDE theory not yet formalized.
-  assumed_standard_theory : True
-```
-
-These assumptions are not useful as theorem content by themselves. They are only
-labels for conditional statements. If this feels too easy to misuse, keep the
-conditional track entirely in documentation and add no Lean declarations.
+regularity, and semigroup estimates should be documentation-only by default.
+Do not encode trivially inhabited marker structures such as `assumed : True`.
+If conditional assumptions are encoded later, their fields must be the exact
+analytic hypotheses being assumed, and all consequences must be named
+`from_assumed_*`, never `_proved` or paper-lemma-looking wrappers.
 
 Module-level warning for any conditional file:
 

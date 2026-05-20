@@ -179,3 +179,57 @@ Claude confirmed that no further proposal edits were needed:
 
 Claude made no file changes in this reconfirmation round. No Lean proof files
 were modified.
+
+## Direct Three-Round Proposal Revision 2026-05-20
+
+Xiang paused ordinary Lean theorem work and asked Codex to complete the proposal
+revision loop with Claude directly, not through Xiang as a relay.
+
+Codex sent the review through the active Claude-side collaboration channel in
+three separate rounds.
+
+### Round 1: Obsolete v1
+
+Claude rechecked `.tmp/bounded-domain-proposal.md`.
+
+Changed files: none.
+
+Decision: the file already marks v1 obsolete, points to
+`BOUNDED_DOMAIN_DESIGN.md` / `.tmp/bounded-domain-proposal-v4.md`, and rejects
+the original `NeumannPDEOps` / theorem-sized-field route.
+
+### Round 2: Conditional Track
+
+Claude rechecked `.tmp/bounded-domain-proposal-v2.md`,
+`.tmp/bounded-domain-proposal-v3.md`, v4, and `BOUNDED_DOMAIN_DESIGN.md`.
+
+Changed files:
+
+- `.tmp/bounded-domain-proposal-v2.md`
+- `.tmp/bounded-domain-proposal-v3.md`
+
+Decision: v2/v3 still had wording that was too easy to misuse, including
+`*_conditional` / paper-lemma-looking examples and a trivial `assumed : True`
+marker sketch. Claude changed those drafts to say they are superseded by v4 and
+that conditional material is documentation-only by default; if encoded later,
+it must use unmistakable `from_assumed_*` names, never `_proved`, never
+paper-lemma-looking wrappers, and never count as theorem progress.
+
+### Round 3: Concrete Path
+
+Claude rechecked `.tmp/bounded-domain-proposal-v4.md` and
+`BOUNDED_DOMAIN_DESIGN.md`.
+
+Changed files:
+
+- `BOUNDED_DOMAIN_DESIGN.md`
+
+Decision: v4 already states the concrete path correctly. Claude added a
+guardrail sentence to the `First Helper Status` section of
+`BOUNDED_DOMAIN_DESIGN.md`: references to positivity, contraction, or smoothing
+are helper facts for named concrete kernels/operators only; they are not a
+proved full interval Neumann heat semigroup package and do not justify
+Paper2/Paper3 theorem wrappers.
+
+No Lean theorem files were modified and no build was run during this proposal
+revision loop.
