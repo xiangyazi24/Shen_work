@@ -331,6 +331,27 @@ theorem heatKernel_deriv_mul_bounded_integral_abs_le {t M : ℝ}
           rw [MeasureTheory.integral_mul_const,
             heatKernel_deriv_abs_integral_translated ht x]
 
+theorem modifiedHeatKernel_deriv_mul_bounded_integral_abs_le {t M : ℝ}
+    (ht : 0 < t) (hM : 0 ≤ M) {f : ℝ → ℝ}
+    (hf : ∀ y, |f y| ≤ M) (x : ℝ) :
+    ∫ y : ℝ,
+        |Real.exp (-t) *
+          (deriv (fun z : ℝ => heatKernel t (z - y)) x * f y)| ≤
+      Real.exp (-t) * ((2 / Real.sqrt (4 * Real.pi * t)) * M) := by
+  have hfun :
+      (fun y : ℝ =>
+        |Real.exp (-t) *
+          (deriv (fun z : ℝ => heatKernel t (z - y)) x * f y)|) =
+        fun y : ℝ =>
+          Real.exp (-t) *
+            |deriv (fun z : ℝ => heatKernel t (z - y)) x * f y| := by
+    ext y
+    rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+  rw [hfun, MeasureTheory.integral_const_mul]
+  exact mul_le_mul_of_nonneg_left
+    (heatKernel_deriv_mul_bounded_integral_abs_le ht hM hf x)
+    (Real.exp_nonneg _)
+
 /-- The translated heat kernel is integrable. -/
 lemma heatKernel_translated_integrable {t : ℝ} (ht : 0 < t) (x : ℝ) :
     MeasureTheory.Integrable (fun y => heatKernel t (x - y)) := by
