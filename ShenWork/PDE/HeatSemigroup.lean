@@ -448,6 +448,15 @@ theorem heatKernel_deriv_convolution_bounded_abs_le {t M : ℝ}
     _ ≤ (2 / Real.sqrt (4 * Real.pi * t)) * M :=
           heatKernel_deriv_mul_bounded_integral_abs_le ht hM hf x
 
+theorem heatKernel_deriv_convolution_diff_bounded_abs_le {t M : ℝ}
+    (ht : 0 < t) (hM : 0 ≤ M) {f g : ℝ → ℝ}
+    (hfg : ∀ y, |f y - g y| ≤ M) (x : ℝ) :
+    |∫ y : ℝ,
+        deriv (fun z : ℝ => heatKernel t (z - y)) x * (f y - g y)| ≤
+      (2 / Real.sqrt (4 * Real.pi * t)) * M :=
+  heatKernel_deriv_convolution_bounded_abs_le
+    (f := fun y => f y - g y) ht hM hfg x
+
 theorem modifiedHeatKernel_deriv_mul_bounded_integral_abs_le {t M : ℝ}
     (ht : 0 < t) (hM : 0 ≤ M) {f : ℝ → ℝ}
     (hf : ∀ y, |f y| ≤ M) (x : ℝ) :
@@ -491,6 +500,16 @@ theorem modifiedHeatKernel_deriv_convolution_bounded_abs_le {t M : ℝ}
           simp [Real.norm_eq_abs]
     _ ≤ Real.exp (-t) * ((2 / Real.sqrt (4 * Real.pi * t)) * M) :=
           modifiedHeatKernel_deriv_mul_bounded_integral_abs_le ht hM hf x
+
+theorem modifiedHeatKernel_deriv_convolution_diff_bounded_abs_le {t M : ℝ}
+    (ht : 0 < t) (hM : 0 ≤ M) {f g : ℝ → ℝ}
+    (hfg : ∀ y, |f y - g y| ≤ M) (x : ℝ) :
+    |∫ y : ℝ,
+        Real.exp (-t) *
+          (deriv (fun z : ℝ => heatKernel t (z - y)) x * (f y - g y))| ≤
+      Real.exp (-t) * ((2 / Real.sqrt (4 * Real.pi * t)) * M) :=
+  modifiedHeatKernel_deriv_convolution_bounded_abs_le
+    (f := fun y => f y - g y) ht hM hfg x
 
 /-- The translated heat kernel is integrable. -/
 lemma heatKernel_translated_integrable {t : ℝ} (ht : 0 < t) (x : ℝ) :
