@@ -131,6 +131,38 @@ theorem neumannHeatKernel_zerothReflection_even
     heatKernel_neg, heatKernel_neg]
   ring
 
+/-- The zeroth-reflection helper kernel has zero normal derivative at the
+left boundary `x = 0`. -/
+theorem neumannHeatKernel_zerothReflection_hasDerivAt_zero
+    {t : ℝ} (ht : 0 < t) (L y : ℝ) :
+    HasDerivAt (fun x : ℝ => neumannHeatKernel_zerothReflection L t x y)
+      0 0 := by
+  have hleft :
+      HasDerivAt (fun x : ℝ => heatKernel t (x - y))
+        ((y / (2 * t)) * heatKernel t y) 0 := by
+    convert heatKernel_translated_hasDerivAt_left ht 0 y using 1
+    rw [show 0 - y = -y by ring, heatKernel_neg]
+    ring
+  have hright :
+      HasDerivAt (fun x : ℝ => heatKernel t (x + y))
+        (-(y / (2 * t)) * heatKernel t y) 0 := by
+    have hinner : HasDerivAt (fun x : ℝ => x + y) 1 0 := by
+      simpa using (hasDerivAt_id 0).add_const y
+    have hk :
+        HasDerivAt (fun z : ℝ => heatKernel t z)
+          (-(y / (2 * t)) * heatKernel t y) (0 + y) := by
+      simpa using heatKernel_hasDerivAt ht y
+    have h := hk.comp 0 hinner
+    convert h using 1
+    ring
+  have hsum := hleft.add hright
+  have hder :
+      (y / (2 * t) * heatKernel t y + (-(y / (2 * t)) * heatKernel t y)) =
+        0 := by
+    ring
+  rw [hder] at hsum
+  simpa [neumannHeatKernel_zerothReflection] using hsum
+
 /-- ∫ G(t, x+y) dy = 1, by substitution z = x+y. -/
 theorem heatKernel_integral_add {t : ℝ} (ht : 0 < t) (x : ℝ) :
     ∫ y, heatKernel t (x + y) = 1 := by
@@ -228,6 +260,18 @@ theorem normalizedZerothReflectionKernel_even
       normalizedZerothReflectionKernel L t x y := by
   unfold normalizedZerothReflectionKernel
   rw [neumannHeatKernel_zerothReflection_even]
+
+/-- The normalized zeroth-reflection helper kernel has zero normal derivative
+at the left boundary `x = 0`. -/
+theorem normalizedZerothReflectionKernel_hasDerivAt_zero
+    {t : ℝ} (ht : 0 < t) (L y : ℝ) :
+    HasDerivAt (fun x : ℝ => normalizedZerothReflectionKernel L t x y)
+      0 0 := by
+  unfold normalizedZerothReflectionKernel
+  convert
+    (neumannHeatKernel_zerothReflection_hasDerivAt_zero ht L y).const_mul
+      (1 / 2) using 1
+  ring
 
 theorem normalizedZerothReflectionKernel_integral
     {t : ℝ} (ht : 0 < t) (L x : ℝ) :
@@ -545,6 +589,30 @@ theorem normalizedReflectedKernelIntegral_contraction
     normalizedReflectedKernelIntegral_Linfty_bound
       (f := fun y : ℝ => f y - g y) hfg ht x hsub_meas
   rwa [normalizedReflectedKernelIntegral_sub x hf_int hg_int] at hbound
+
+/-- The heat kernel pointwise bound: G(t,x) ≤ 1/√(4πt). -/
+theorem heatKernel_pointwise_bound {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    heatKernel t x ≤ 1 / Real.sqrt (4 * Real.pi * t) := by
+  unfold heatKernel
+  exact mul_le_of_le_one_right
+    (div_nonneg one_pos.le (Real.sqrt_nonneg _))
+    (Real.exp_le_one_iff.mpr (div_nonpos_of_nonpos_of_nonneg
+      (neg_nonpos.mpr (sq_nonneg x)) (by linarith)))
+
+/-- The normalized reflected kernel pointwise bound. -/
+theorem normalizedZerothReflectionKernel_pointwise_bound
+    {t : ℝ} (ht : 0 < t) (L x y : ℝ) :
+    normalizedZerothReflectionKernel L t x y ≤
+      1 / Real.sqrt (4 * Real.pi * t) := by
+  unfold normalizedZerothReflectionKernel neumannHeatKernel_zerothReflection
+  calc (1 / 2) * (heatKernel t (x - y) + heatKernel t (x + y))
+      ≤ (1 / 2) * (1 / Real.sqrt (4 * Real.pi * t) +
+          1 / Real.sqrt (4 * Real.pi * t)) :=
+        mul_le_mul_of_nonneg_left
+          (add_le_add (heatKernel_pointwise_bound ht _)
+            (heatKernel_pointwise_bound ht _))
+          (by norm_num)
+    _ = 1 / Real.sqrt (4 * Real.pi * t) := by ring
 
 end ShenWork.IntervalDomain
 
