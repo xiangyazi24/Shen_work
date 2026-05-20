@@ -135,6 +135,36 @@ theorem intervalAverage_const {L c : ℝ} (hL : 0 < L) :
   rw [intervalIntegral_const]
   field_simp [ne_of_gt hL]
 
+/-- A nonnegative function on `[0,L]` has nonnegative interval average. -/
+theorem intervalAverage_nonneg {L : ℝ} (hL : 0 < L) {f : ℝ → ℝ}
+    (hf : ∀ x ∈ Set.Icc 0 L, 0 ≤ f x) :
+    0 ≤ intervalAverage L f := by
+  unfold intervalAverage
+  exact mul_nonneg (div_nonneg zero_le_one hL.le)
+    (intervalIntegral_nonneg hL.le hf)
+
+/-- The constant-mode projection fixes constants. -/
+theorem constantModeProjection_const {L c : ℝ} (hL : 0 < L) :
+    constantModeProjection L (fun _ => c) = fun _ => c := by
+  funext x
+  simp [constantModeProjection, intervalAverage_const hL]
+
+/-- The constant-mode projection is idempotent. -/
+theorem constantModeProjection_idempotent {L : ℝ} (hL : 0 < L) (f : ℝ → ℝ) :
+    constantModeProjection L (constantModeProjection L f) =
+      constantModeProjection L f := by
+  funext x
+  change intervalAverage L (fun _ => intervalAverage L f) = intervalAverage L f
+  exact intervalAverage_const hL
+
+/-- A nonnegative function on `[0,L]` is sent by the constant-mode projection
+to a nonnegative constant function. -/
+theorem constantModeProjection_nonneg_of_nonneg {L : ℝ} (hL : 0 < L)
+    {f : ℝ → ℝ} (hf : ∀ x ∈ Set.Icc 0 L, 0 ≤ f x) :
+    ∀ x, 0 ≤ constantModeProjection L f x := by
+  intro x
+  exact intervalAverage_nonneg hL hf
+
 /-- The Neumann heat kernel on [0,L] via method of images (reflected kernel).
 For t > 0 and x, y ∈ [0,L]:
   K_N(t, x, y) = G(t, x-y) + G(t, x+y) + G(t, 2L-x-y) + ...
