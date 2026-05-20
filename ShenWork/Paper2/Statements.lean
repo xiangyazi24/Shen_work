@@ -1559,6 +1559,46 @@ theorem Lemma_2_5_pointwise_bound_self
     (Lemma_2_5_pointwise_bound hbeta hv)
     (Psi_beta_le_self hbeta.le)
 
+/-- A consolidated end-to-end scalar package for Paper2 Lemma 2.5.  It ties
+the Lemma 2.5 inequality to positivity, the sharp constant characterization,
+strict monotonicity of the sharp constants, and the two endpoint limits of
+`Psi_beta`. -/
+theorem Lemma_2_5_sharp_monotone_range_package :
+    Lemma_2_5 ∧
+    (∀ beta : ℝ, 0 < beta →
+      (0 < Psi_beta beta ∧ Psi_beta beta < Real.exp (-1)) ∧
+      (∀ C : ℝ,
+        ((∀ v > 0, beta * v / (1 + v) ^ (1 + beta) ≤ C) ↔
+          Psi_beta beta ≤ C)) ∧
+      ∃ v > 0, beta * v / (1 + v) ^ (1 + beta) = Psi_beta beta) ∧
+    StrictMonoOn Psi_beta (Set.Ioi (0 : ℝ)) ∧
+    MonotoneOn Psi_beta (Set.Ici (0 : ℝ)) ∧
+    Tendsto Psi_beta (𝓝[>] (0 : ℝ)) (𝓝 0) ∧
+    Tendsto Psi_beta atTop (𝓝 (Real.exp (-1))) := by
+  refine ⟨Lemma_2_5_proved, ?_, Psi_beta_strictMonoOn_Ioi,
+    Psi_beta_monotoneOn_Ici, Psi_beta_tendsto_atRight_zero,
+    Psi_beta_tendsto_atTop⟩
+  intro beta hbeta
+  refine ⟨⟨Psi_beta_pos hbeta, Psi_beta_lt_exp_neg_one hbeta⟩, ?_, ?_⟩
+  · intro C
+    exact Lemma_2_5_sharp_constant_iff hbeta
+  · exact (Lemma_2_5_sharp_bound hbeta).2
+
+/-- If the parameter is enlarged, the Lemma 2.5 expression is strictly below
+the larger sharp constant, and the sharp constants themselves are strictly
+ordered. -/
+theorem Lemma_2_5_strict_larger_parameter_package
+    {beta gamma : ℝ} (hbeta : 0 < beta) (hbg : beta < gamma) :
+    Psi_beta beta < Psi_beta gamma ∧
+      ∀ v > 0,
+        beta * v / (1 + v) ^ (1 + beta) ≤ Psi_beta beta ∧
+        beta * v / (1 + v) ^ (1 + beta) < Psi_beta gamma := by
+  have hgamma : 0 < gamma := lt_trans hbeta hbg
+  refine ⟨Psi_beta_strictMonoOn_Ioi hbeta hgamma hbg, ?_⟩
+  intro v hv
+  exact ⟨Lemma_2_5_pointwise_bound hbeta hv,
+    Lemma_2_5_pointwise_bound_lt_larger_Psi_beta hbeta hbg hv⟩
+
 def AbstractLpBootstrapHypothesis
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
     (N T rho p0 : ℝ) : Prop :=
@@ -2977,6 +3017,38 @@ theorem Lemma_3_1_minimal_constant_time_branch
     (hconst : ∀ t, t ∈ Set.Ioo (0 : ℝ) T → u t = w) :
     SupNormNonincreasingOn D u (Set.Ioo (0 : ℝ) T) :=
   SupNormNonincreasingOn.of_forall_eq hconst
+
+/-- Corrected end-to-end Lemma 3.1 branch: if every solution in the relevant
+time interval is explicitly constant in time, then both monotonicity conclusions
+of Lemma 3.1 follow.  This does not use the refuted abstract PDE implication. -/
+theorem Lemma_3_1_of_time_constant_solution_branches
+    {D : BoundedDomainData} {p : CM2Params}
+    (hnonminimal :
+      ∀ {T t₀ : ℝ} {u v : ℝ → D.Point → ℝ},
+        0 < p.a → 0 < p.b → 0 < T →
+        IsPaper2ClassicalSolution D p T u v →
+        0 < t₀ → t₀ < T →
+        (p.a / p.b) ^ (1 / p.α) < D.supNorm (u t₀) →
+          ∃ w : D.Point → ℝ,
+            ∀ t, t ∈ Set.Ioc (0 : ℝ) t₀ → u t = w)
+    (hminimal :
+      ∀ {T : ℝ} {u v : ℝ → D.Point → ℝ},
+        p.a = 0 → p.b = 0 → 0 < T →
+        IsPaper2ClassicalSolution D p T u v →
+          ∃ w : D.Point → ℝ,
+            ∀ t, t ∈ Set.Ioo (0 : ℝ) T → u t = w) :
+    Lemma_3_1 D p := by
+  intro hχ
+  constructor
+  · intro ha hb T hT u v hsol t₀ ht₀_pos ht₀_T hsup
+    obtain ⟨w, hw⟩ :=
+      hnonminimal ha hb hT hsol ht₀_pos ht₀_T hsup
+    exact Lemma_3_1_nonminimal_constant_time_branch
+      hχ ha hb hT hsol ht₀_pos ht₀_T hsup hw
+  · intro ha hb T hT u v hsol
+    obtain ⟨w, hw⟩ := hminimal ha hb hT hsol
+    exact Lemma_3_1_minimal_constant_time_branch
+      hχ ha hb hT hsol hw
 
 /-- A fake bounded-domain interface showing that Lemma 3.1 is not a consequence
 of the current abstract API alone.  The fake time derivative is identically
