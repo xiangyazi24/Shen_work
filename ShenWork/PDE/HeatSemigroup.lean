@@ -40,10 +40,8 @@ def modifiedSemigroup (t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
 /-- The heat kernel is nonneg for t > 0. -/
 lemma heatKernel_nonneg {t : ℝ} (ht : 0 < t) (x : ℝ) : 0 ≤ heatKernel t x := by
   unfold heatKernel
-  apply mul_nonneg
-  · apply div_nonneg one_pos.le
-    exact Real.sqrt_nonneg _
-  · exact Real.exp_nonneg _
+  have hcoeff : 0 ≤ 1 / Real.sqrt (4 * Real.pi * t) := by positivity
+  exact mul_nonneg hcoeff (Real.exp_nonneg _)
 
 /-- The heat kernel is strictly positive for positive time. -/
 lemma heatKernel_pos {t : ℝ} (ht : 0 < t) (x : ℝ) : 0 < heatKernel t x := by
@@ -51,6 +49,15 @@ lemma heatKernel_pos {t : ℝ} (ht : 0 < t) (x : ℝ) : 0 < heatKernel t x := by
   have hden : 0 < Real.sqrt (4 * Real.pi * t) := by
     exact Real.sqrt_pos.2 (by positivity)
   exact mul_pos (div_pos zero_lt_one hden) (Real.exp_pos _)
+
+/-- The heat kernel pointwise bound: `G(t,x) ≤ 1 / sqrt(4πt)`. -/
+theorem heatKernel_pointwise_bound {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    heatKernel t x ≤ 1 / Real.sqrt (4 * Real.pi * t) := by
+  unfold heatKernel
+  exact mul_le_of_le_one_right
+    (div_nonneg one_pos.le (Real.sqrt_nonneg _))
+    (Real.exp_le_one_iff.mpr (div_nonpos_of_nonpos_of_nonneg
+      (neg_nonpos.mpr (sq_nonneg x)) (by linarith)))
 
 /-- The heat kernel integrates to 1: ∫ G(t,x) dx = 1 for t > 0.
     This is the Gaussian integral. -/
@@ -736,6 +743,44 @@ theorem modifiedSemigroup_Linfty_bound {f : ℝ → ℝ} {M : ℝ}
   intro x; unfold modifiedSemigroup
   rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
   exact mul_le_mul_of_nonneg_left (heatSemigroup_abs_bound hf ht hM hf_meas x) (Real.exp_nonneg _)
+
+/-- Whole-line `L¹ → L∞` smoothing for the heat semigroup. -/
+theorem heatSemigroup_L1_Linfty_smoothing
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    ‖heatSemigroup t f x‖ ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) * ∫ y, ‖f y‖ := by
+  unfold heatSemigroup
+  calc ‖∫ y : ℝ, heatKernel t (x - y) * f y‖
+      ≤ ∫ y : ℝ, ‖heatKernel t (x - y) * f y‖ :=
+        norm_integral_le_integral_norm _
+    _ ≤ ∫ y : ℝ, (1 / Real.sqrt (4 * Real.pi * t)) * ‖f y‖ := by
+        apply MeasureTheory.integral_mono_of_nonneg
+        · exact Filter.Eventually.of_forall fun y => norm_nonneg _
+        · exact (hf_int.norm).smul (1 / Real.sqrt (4 * Real.pi * t))
+        · exact Filter.Eventually.of_forall fun y => by
+            change ‖heatKernel t (x - y) * f y‖ ≤
+              (1 / Real.sqrt (4 * Real.pi * t)) * ‖f y‖
+            rw [norm_mul, Real.norm_eq_abs,
+              abs_of_nonneg (heatKernel_nonneg ht (x - y))]
+            exact mul_le_mul_of_nonneg_right
+              (heatKernel_pointwise_bound ht (x - y))
+              (norm_nonneg _)
+    _ = (1 / Real.sqrt (4 * Real.pi * t)) * ∫ y : ℝ, ‖f y‖ :=
+        MeasureTheory.integral_const_mul _ _
+
+/-- Whole-line `L¹ → L∞` smoothing for the modified heat semigroup. -/
+theorem modifiedSemigroup_L1_Linfty_smoothing
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    ‖modifiedSemigroup t f x‖ ≤
+      Real.exp (-t) *
+        ((1 / Real.sqrt (4 * Real.pi * t)) * ∫ y, ‖f y‖) := by
+  unfold modifiedSemigroup
+  rw [norm_mul, Real.norm_eq_abs, abs_of_nonneg (Real.exp_nonneg _)]
+  exact mul_le_mul_of_nonneg_left
+    (heatSemigroup_L1_Linfty_smoothing ht x hf_int)
+    (Real.exp_nonneg _)
 
 theorem heatSemigroup_const {c : ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ) :
     heatSemigroup t (fun _ => c) x = c := by

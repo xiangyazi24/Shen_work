@@ -172,7 +172,8 @@ and stability proofs.  The next phase is:
 - `ShenWork/PDE/ParabolicMaxPrinciple.lean`: weak maximum principle and
   comparison principle.
 - `ShenWork/PDE/HeatSemigroup.lean`: heat-kernel positivity/mass, pointwise
-  bounds, linearity, `L∞` decay, and contraction estimates.
+  bounds, linearity, `L∞` decay, `L¹ → L∞` smoothing, and contraction
+  estimates.
 - `ShenWork/PDE/MildSolution.lean`: pointwise Duhamel/contraction estimates and
   `abstract_mild_fixed_point`.
 - `ShenWork/PDE/TravelingWaveConstruction.lean`: true logistic profile facts.
