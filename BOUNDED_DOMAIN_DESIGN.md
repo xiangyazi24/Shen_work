@@ -414,3 +414,6 @@ bounded inputs.
 The half-line operator now also has domination, bounded-input domination,
 `L∞` contraction, the two-term pointwise kernel bound, and an `L¹ → L∞`
 smoothing estimate on the right half-line.
+The half-line API includes both bounded-input and explicit-integrability
+versions of additivity, subtraction, and interval-bound preservation, plus zero
+and negation lemmas.

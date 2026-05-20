@@ -363,6 +363,23 @@ theorem halfLineReflectedKernelOperator_add_bounded
       (halfLineReflectedKernelOperator_integrableOn hf_bound hf_meas ht x)
       (halfLineReflectedKernelOperator_integrableOn hg_bound hg_meas ht x)
 
+/-- Additivity for the half-line reflected helper operator under explicit
+integrability of the two weighted inputs. -/
+theorem halfLineReflectedKernelOperator_add
+    {f g : ℝ → ℝ} {t : ℝ} (x : ℝ)
+    (hf : IntegrableOn
+      (fun y => neumannHeatKernel_zerothReflection 0 t x y * f y)
+      (Set.Ioi 0) volume)
+    (hg : IntegrableOn
+      (fun y => neumannHeatKernel_zerothReflection 0 t x y * g y)
+      (Set.Ioi 0) volume) :
+    halfLineReflectedKernelOperator t (fun y => f y + g y) x =
+      halfLineReflectedKernelOperator t f x +
+        halfLineReflectedKernelOperator t g x := by
+  unfold halfLineReflectedKernelOperator
+  simpa [mul_add] using
+    MeasureTheory.integral_add (μ := volume.restrict (Set.Ioi 0)) hf hg
+
 /-- Scalar multiplication for the half-line reflected helper operator. -/
 theorem halfLineReflectedKernelOperator_const_mul
     (a : ℝ) (f : ℝ → ℝ) (t x : ℝ) :
@@ -396,6 +413,35 @@ theorem halfLineReflectedKernelOperator_sub_bounded
       (halfLineReflectedKernelOperator_integrableOn hf_bound hf_meas ht x)
       (halfLineReflectedKernelOperator_integrableOn hg_bound hg_meas ht x)
 
+/-- Subtraction for the half-line reflected helper operator under explicit
+integrability of the two weighted inputs. -/
+theorem halfLineReflectedKernelOperator_sub
+    {f g : ℝ → ℝ} {t : ℝ} (x : ℝ)
+    (hf : IntegrableOn
+      (fun y => neumannHeatKernel_zerothReflection 0 t x y * f y)
+      (Set.Ioi 0) volume)
+    (hg : IntegrableOn
+      (fun y => neumannHeatKernel_zerothReflection 0 t x y * g y)
+      (Set.Ioi 0) volume) :
+    halfLineReflectedKernelOperator t (fun y => f y - g y) x =
+      halfLineReflectedKernelOperator t f x -
+        halfLineReflectedKernelOperator t g x := by
+  unfold halfLineReflectedKernelOperator
+  simpa [mul_sub] using
+    MeasureTheory.integral_sub (μ := volume.restrict (Set.Ioi 0)) hf hg
+
+/-- The half-line reflected helper operator sends zero to zero. -/
+theorem halfLineReflectedKernelOperator_zero_fun (t x : ℝ) :
+    halfLineReflectedKernelOperator t (fun _ => 0) x = 0 := by
+  simp [halfLineReflectedKernelOperator]
+
+/-- Negation for the half-line reflected helper operator. -/
+theorem halfLineReflectedKernelOperator_neg
+    (f : ℝ → ℝ) (t x : ℝ) :
+    halfLineReflectedKernelOperator t (fun y => -f y) x =
+      -halfLineReflectedKernelOperator t f x := by
+  simpa using halfLineReflectedKernelOperator_const_mul (-1) f t x
+
 /-- The half-line reflected helper operator preserves constant inputs. -/
 theorem halfLineReflectedKernelOperator_const
     {t : ℝ} (ht : 0 < t) (c x : ℝ) :
@@ -420,6 +466,35 @@ theorem halfLineReflectedKernelOperator_lower_bound
       aestronglyMeasurable_const hf_meas ht x
   simpa [halfLineReflectedKernelOperator_const ht a x] using hmono
 
+/-- Lower-bound preservation for the half-line reflected helper operator under
+explicit integrability of the weighted input. -/
+theorem halfLineReflectedKernelOperator_lower_bound_of_integrableOn
+    {f : ℝ → ℝ} {a t : ℝ}
+    (ha : ∀ y, a ≤ f y)
+    (x : ℝ)
+    (hf_int : IntegrableOn
+      (fun y => neumannHeatKernel_zerothReflection 0 t x y * f y)
+      (Set.Ioi 0) volume)
+    (ht : 0 < t) :
+    a ≤ halfLineReflectedKernelOperator t f x := by
+  have hconst_int :
+      IntegrableOn
+        (fun y => neumannHeatKernel_zerothReflection 0 t x y *
+          (fun _ : ℝ => a) y)
+        (Set.Ioi 0) volume :=
+    halfLineReflectedKernelOperator_integrableOn
+      (f := fun _ : ℝ => a) (M := |a|)
+      (fun _ => le_rfl) aestronglyMeasurable_const ht x
+  have hmono :
+      halfLineReflectedKernelOperator t (fun _ : ℝ => a) x ≤
+        halfLineReflectedKernelOperator t f x := by
+    unfold halfLineReflectedKernelOperator
+    exact MeasureTheory.setIntegral_mono_on hconst_int hf_int measurableSet_Ioi
+      (fun y _hy =>
+        mul_le_mul_of_nonneg_left (ha y)
+          (neumannHeatKernel_zerothReflection_nonneg ht 0 x y))
+  simpa [halfLineReflectedKernelOperator_const ht a x] using hmono
+
 /-- Upper-bound preservation for the half-line reflected helper operator. -/
 theorem halfLineReflectedKernelOperator_upper_bound
     {f : ℝ → ℝ} {b M t : ℝ}
@@ -435,6 +510,35 @@ theorem halfLineReflectedKernelOperator_upper_bound
       hf_meas aestronglyMeasurable_const ht x
   simpa [halfLineReflectedKernelOperator_const ht b x] using hmono
 
+/-- Upper-bound preservation for the half-line reflected helper operator under
+explicit integrability of the weighted input. -/
+theorem halfLineReflectedKernelOperator_upper_bound_of_integrableOn
+    {f : ℝ → ℝ} {b t : ℝ}
+    (hb : ∀ y, f y ≤ b)
+    (x : ℝ)
+    (hf_int : IntegrableOn
+      (fun y => neumannHeatKernel_zerothReflection 0 t x y * f y)
+      (Set.Ioi 0) volume)
+    (ht : 0 < t) :
+    halfLineReflectedKernelOperator t f x ≤ b := by
+  have hconst_int :
+      IntegrableOn
+        (fun y => neumannHeatKernel_zerothReflection 0 t x y *
+          (fun _ : ℝ => b) y)
+        (Set.Ioi 0) volume :=
+    halfLineReflectedKernelOperator_integrableOn
+      (f := fun _ : ℝ => b) (M := |b|)
+      (fun _ => le_rfl) aestronglyMeasurable_const ht x
+  have hmono :
+      halfLineReflectedKernelOperator t f x ≤
+        halfLineReflectedKernelOperator t (fun _ : ℝ => b) x := by
+    unfold halfLineReflectedKernelOperator
+    exact MeasureTheory.setIntegral_mono_on hf_int hconst_int measurableSet_Ioi
+      (fun y _hy =>
+        mul_le_mul_of_nonneg_left (hb y)
+          (neumannHeatKernel_zerothReflection_nonneg ht 0 x y))
+  simpa [halfLineReflectedKernelOperator_const ht b x] using hmono
+
 /-- Interval-bound preservation for the half-line reflected helper operator. -/
 theorem halfLineReflectedKernelOperator_interval_bound
     {f : ℝ → ℝ} {a b M t : ℝ}
@@ -446,6 +550,23 @@ theorem halfLineReflectedKernelOperator_interval_bound
       halfLineReflectedKernelOperator t f x ≤ b :=
   ⟨halfLineReflectedKernelOperator_lower_bound hlo hf_bound hf_meas ht x,
     halfLineReflectedKernelOperator_upper_bound hhi hf_bound hf_meas ht x⟩
+
+/-- Interval-bound preservation for the half-line reflected helper operator
+under explicit integrability of the weighted input. -/
+theorem halfLineReflectedKernelOperator_interval_bound_of_integrableOn
+    {f : ℝ → ℝ} {a b t : ℝ}
+    (hlo : ∀ y, a ≤ f y) (hhi : ∀ y, f y ≤ b)
+    (x : ℝ)
+    (hf_int : IntegrableOn
+      (fun y => neumannHeatKernel_zerothReflection 0 t x y * f y)
+      (Set.Ioi 0) volume)
+    (ht : 0 < t) :
+    a ≤ halfLineReflectedKernelOperator t f x ∧
+      halfLineReflectedKernelOperator t f x ≤ b :=
+  ⟨halfLineReflectedKernelOperator_lower_bound_of_integrableOn
+      hlo x hf_int ht,
+    halfLineReflectedKernelOperator_upper_bound_of_integrableOn
+      hhi x hf_int ht⟩
 
 /-- L^∞ bound for the reflected full-line kernel integral:
 if |f| ≤ M, then |∫ K_N f| ≤ 2M. -/
