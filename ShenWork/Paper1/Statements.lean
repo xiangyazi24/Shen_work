@@ -10765,12 +10765,32 @@ theorem Proposition_1_2_constant_one_branch (p : CMParams) :
   · intro ε hε
     exact ⟨0, fun _t _x _ht => by simpa using hε⟩
 
+/-- Constant-initial-data branch of Proposition 1.2 with the long-time
+boundedness and limsup consequences exposed directly. -/
+theorem Proposition_1_2_constant_one_long_time_branch (p : CMParams) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
+        UniformConvergesToConstant u 1 ∧
+        UniformEventuallyBounded u ∧
+        UniformLimsupLe u 1 := by
+  rcases Proposition_1_2_constant_one_branch p with ⟨u, v, hsol, hconv⟩
+  exact ⟨u, v, hsol, hconv, hconv.uniformEventuallyBounded, hconv.uniformLimsupLe⟩
+
 theorem Proposition_1_2_constant_one_negative_branch
     (p : CMParams) (_hχ : p.χ ≤ 0) :
     ∃ u v : ℝ → ℝ → ℝ,
       IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
         UniformConvergesToConstant u 1 :=
   Proposition_1_2_constant_one_branch p
+
+theorem Proposition_1_2_constant_one_negative_long_time_branch
+    (p : CMParams) (_hχ : p.χ ≤ 0) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
+        UniformConvergesToConstant u 1 ∧
+        UniformEventuallyBounded u ∧
+        UniformLimsupLe u 1 :=
+  Proposition_1_2_constant_one_long_time_branch p
 
 theorem Proposition_1_2_constant_one_positive_branch
     (p : CMParams) (_hχ_pos : 0 < p.χ) (_hχ_small : p.χ < (1 / 2 : ℝ))
@@ -10779,6 +10799,16 @@ theorem Proposition_1_2_constant_one_positive_branch
       IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
         UniformConvergesToConstant u 1 :=
   Proposition_1_2_constant_one_branch p
+
+theorem Proposition_1_2_constant_one_positive_long_time_branch
+    (p : CMParams) (_hχ_pos : 0 < p.χ) (_hχ_small : p.χ < (1 / 2 : ℝ))
+    (_halpha : p.m + p.γ - 1 ≤ p.α) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
+        UniformConvergesToConstant u 1 ∧
+        UniformEventuallyBounded u ∧
+        UniformLimsupLe u 1 :=
+  Proposition_1_2_constant_one_long_time_branch p
 
 /-- Paper1 Theorem 1.1: existence of traveling waves. -/
 def Theorem_1_1 : Prop :=

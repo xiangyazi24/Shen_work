@@ -530,16 +530,19 @@ projection theorem wrappers have been removed.
   threshold is constantly `0`, admissible minimal-model parameters force the
   impossible inequality `1 ≤ 0`.
 - `Proposition_1_1_constant_one_branch` and
-  `Proposition_1_2_constant_one_branch`: real Paper1 Cauchy/stability branches
-  for the equilibrium initial datum `u₀ ≡ 1`, using the constant global
-  solution `u ≡ v ≡ 1`
+  `Proposition_1_2_constant_one_branch`, plus
+  `Proposition_1_2_constant_one_long_time_branch`: real Paper1 Cauchy/stability
+  branches for the equilibrium initial datum `u₀ ≡ 1`, using the constant
+  global solution `u ≡ v ≡ 1`; the long-time branch exposes the boundedness and
+  limsup consequences directly from uniform convergence.
 - `Proposition_1_1_constant_one_negative_branch`,
   `Proposition_1_1_constant_one_positive_branch`,
-  `Proposition_1_2_constant_one_negative_branch`, and
-  `Proposition_1_2_constant_one_positive_branch`: the same equilibrium branch
+  `Proposition_1_2_constant_one_negative_branch`,
+  `Proposition_1_2_constant_one_positive_branch`, and the two corresponding
+  Proposition 1.2 long-time sign branches: the same equilibrium branch
   repackaged in the exact negative/positive branch shapes of Propositions 1.1
   and 1.2; the positive Proposition 1.1 branch uses
-  `one_le_positive_branch_limsup_bound`
+  `one_le_positive_branch_limsup_bound`.
 - `Theorem_1_2_self_initial_data_branch`: exact Paper1 Theorem 1.2
   self-initial-data branch, using the moving traveling wave as the Cauchy
   solution and proving both moving-frame convergence errors are zero
