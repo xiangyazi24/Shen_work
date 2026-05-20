@@ -393,3 +393,8 @@ bounded-input integrability, monotonicity, interval-bound preservation,
 additivity, scalar multiplication, subtraction, domination by pointwise
 majorants, pointwise Gaussian bound, `L∞` bound, and `L∞` contraction.  This is
 not claimed to be the full interval Neumann heat semigroup.
+The same file now also defines the concrete helper operator
+`normalizedReflectedKernelOperator` from that kernel and proves the corresponding
+constant-input, positivity, monotonicity, interval-bound, linearity,
+domination, `L∞`, contraction, and `L¹ → L∞` smoothing facts directly from the
+integral formula.

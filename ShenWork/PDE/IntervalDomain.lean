@@ -775,12 +775,6 @@ theorem normalizedReflectedKernelOperator_L1_Linfty_smoothing
       (1 / Real.sqrt (4 * Real.pi * t)) * ∫ y, ‖f y‖ :=
   normalizedReflectedKernelIntegral_L1_Linfty_smoothing ht x hf_int
 
-#print axioms normalizedReflectedKernelIntegral_L1_Linfty_smoothing
-#print axioms normalizedReflectedKernelOperator_const
-#print axioms normalizedReflectedKernelOperator_interval_bound
-#print axioms normalizedReflectedKernelOperator_contraction
-#print axioms normalizedReflectedKernelOperator_L1_Linfty_smoothing
-
 end ShenWork.IntervalDomain
 
 end
