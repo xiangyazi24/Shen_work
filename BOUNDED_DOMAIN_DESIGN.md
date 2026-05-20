@@ -404,3 +404,6 @@ without re-expanding the integral each time.
 For the half-line helper `halfLineReflectedKernelOperator`, the file now proves
 positivity preservation and a conservative `L∞` bound with constant `2`, using
 the already proved whole-line two-term kernel mass.
+The half-line API also has bounded-input integrability, monotonicity, addition,
+scalar multiplication, and subtraction lemmas proved directly from the concrete
+set-integral definition.
