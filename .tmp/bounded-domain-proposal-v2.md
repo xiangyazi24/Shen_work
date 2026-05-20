@@ -140,16 +140,11 @@ class HasFinitePositiveVolume (D : SmoothBoundedDomain N) : Prop where
 Parameter names must align with existing paper structures. In particular, `μ`
 belongs to `CM2Params`, not to PDE ops:
 
-```lean
-structure ConditionalNeumannSemigroup
-    (D : SmoothBoundedDomain N) where
-  heat : ℝ → ScalarField D → ScalarField D
-  mass_preserving :
-    ∀ t f, 0 < t →
-      integralOnSubtype D (heat t f) = integralOnSubtype D f
-  positivity_preserving :
-    ∀ t f, 0 < t → (∀ x, 0 ≤ f x) → ∀ x, 0 ≤ heat t f x
-```
+Do not implement a `ConditionalNeumannSemigroup` structure with theorem-sized
+fields such as `mass_preserving` or `positivity_preserving` and then count
+wrappers from those fields as progress. If this material is ever encoded, it
+belongs only in a visibly conditional namespace and its consequences must be
+named `from_assumed_*`.
 
 Here `integralOnSubtype` is a proposed helper for integrating fields
 `DomainPoint D → ℝ` against the measure induced by restricted Lebesgue measure
@@ -196,38 +191,33 @@ suggests proof progress if the estimates are assumed.
 
 Recommended next implementation target:
 
-**Neumann heat semigroup on a closed interval `[0,L]`, with `0 < L`, via cosine
-eigenfunction expansion or an equivalent already-supported kernel model.**
+**Interval measure and helper facts on `[0,L]`, with `0 < L`, before any
+full Neumann heat semigroup claim.**
 
 Reasons:
 
 - the domain is concrete and non-fake;
 - boundary points and Neumann condition are explicit;
 - measure is restricted Lebesgue measure on `[0,L]`;
-- eigenfunctions `cos (nπx/L)` have zero normal derivative at endpoints;
-- the heat semigroup has an explicit formula, so positivity/mass/smoothing can
-  in principle be proved rather than assumed;
-- it gives an audit-passing laboratory before returning to arbitrary smooth
-  bounded domains.
+- restricted Lebesgue measure and constant functions are concrete;
+- small integration facts can be proved from definitions and Mathlib;
+- helper kernels/operators may be explored later, but they do not constitute a
+  full interval Neumann heat semigroup package until the required estimates are
+  proved from definitions and audited.
 
-Initial target theorem should be modest:
+Initial target theorem should be tiny:
 
 ```lean
-theorem interval_neumann_heat_mass_preserving_proved
-    {L : ℝ} (hL : 0 < L) :
+theorem intervalVolume_eq
+    {L : ℝ} (hL : 0 ≤ L) :
     ...
 ```
 
-Then add:
-
-```lean
-theorem interval_neumann_heat_positivity_proved
-theorem interval_neumann_heat_L∞_bound_proved
-theorem interval_neumann_heat_Lp_Lq_smoothing_conditional_or_proved
-```
-
-Only after these are proved from definitions should Paper2-style lemmas be
-specialized to the interval and marked `_proved`.
+Do not claim full interval Neumann heat semigroup positivity, contraction,
+smoothing, or Paper2/Paper3 wrappers at this stage. References to positivity,
+contraction, or smoothing are acceptable only for named concrete helper
+kernels/operators after proof from definitions and temporary `#print axioms`
+audit.
 
 ## Additive Migration Plan
 
@@ -251,11 +241,11 @@ specialized to the interval and marked `_proved`.
 ### Round 3: Concrete interval target and paper connection gate
 
 - Define the interval domain and its restricted measure.
-- Define or import the concrete Neumann heat semigroup.
-- Prove mass preservation and positivity first.
-- Only then attempt smoothing estimates.
-- Add specialized Paper2/Paper3 theorem variants for the concrete interval model
-  only after the needed estimates are proved from definitions.
+- Define only interval measure/integration helpers first.
+- Prove tiny helper facts from definitions and Mathlib.
+- Explore named helper kernels/operators only after checking Mathlib support.
+- Do not add specialized Paper2/Paper3 theorem variants until a full concrete
+  analytic chain exists and has been audited.
 - Compare those variants with the current abstract statements.
 - Refactor the old `BoundedDomainData` layer only if the concrete theorem chain
   demonstrably replaces a fakeable assumption.
@@ -282,10 +272,11 @@ Allowed claim:
 
 Do not refactor all of Paper2 first. The next concrete task should be:
 
-1. Create a new interval/Neumann heat sandbox file.
+1. Create or use an interval helper file.
 2. Define interval measure from `volume.restrict`.
-3. Prove the first audit-passing theorem: mass preservation or `L∞` contraction
-   for the concrete heat semigroup.
+3. Prove the first audit-passing theorem: interval volume or constant integral
+   from definitions and Mathlib, with temporary `#print axioms` audit reported
+   outside source.
 
-This gives a real theorem that improves on the current abstraction without
-breaking the existing obstruction tests or paper statement layer.
+This gives a real helper theorem without claiming a full Neumann semigroup or
+paper theorem wrapper.

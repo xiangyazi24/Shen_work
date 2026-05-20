@@ -73,7 +73,8 @@ mistaken for progress. The latter two are false if they depend on assumptions.
 ### Concrete End-to-End Track
 
 Classification: **audit-passing only when every analytic estimate is proved from
-definitions and passes `#print axioms`**.
+definitions and has a clean temporary `#print axioms` audit reported outside
+source**.
 
 This track should start far below the full paper theorem: interval measure,
 constants, and simple integral facts. Full Neumann semigroup positivity and
@@ -290,7 +291,8 @@ Conditional assumption layer:
 Concrete end-to-end layer:
 
 - Use `_proved` only after the theorem is derived from definitions.
-- Run `#print axioms` before accepting the name.
+- Run `#print axioms` temporarily before accepting the name, report the output,
+  and do not leave the command in source.
 - Prefer narrow helper names first, e.g. `intervalVolume_eq`, not
   `boundedDomainTheory_proved`.
 
@@ -302,7 +304,8 @@ Before adding or accepting any Lean declaration:
 - No structure field may have the same type as a target theorem conclusion.
 - No free `integral`, `supNorm`, `volume`, or `laplacian` fields in an
   end-to-end namespace.
-- Every concrete theorem must get a `#print axioms` audit.
+- Every concrete theorem must get a temporary `#print axioms` audit, reported
+  outside source.
 - Documentation must label every result as conditional or proved-from-definitions.
 - Existing `not_forall_*` obstruction tests must remain meaningful.
 - Paper2/Paper3 wrappers are forbidden until the concrete analytic helper
@@ -312,7 +315,8 @@ Before adding or accepting any Lean declaration:
 
 ### Round 1: Documentation
 
-- Commit this proposal only.
+- Keep this proposal as a historical draft superseded by v4 /
+  `BOUNDED_DOMAIN_DESIGN.md`.
 - Keep `BoundedDomainData` unchanged.
 - Add no Lean theorem wrappers.
 
@@ -321,7 +325,8 @@ Before adding or accepting any Lean declaration:
 - Add a new interval-domain helper file.
 - Include definitions for interval set, restricted measure, and derived volume.
 - Add at most one tiny Mathlib-backed theorem such as `intervalVolume_eq`.
-- Run `#print axioms` for that theorem.
+- Run `#print axioms` temporarily for that theorem and report the result outside
+  source.
 
 ### Round 3: Optional finite-mode or kernel experiment
 
@@ -332,9 +337,10 @@ Before adding or accepting any Lean declaration:
 
 ## Recommended Next PR/Commit
 
-Preferred commit:
+Preferred next action:
 
-- Add only `.tmp/bounded-domain-proposal-v3.md`.
+- Do not commit v3 as the operative proposal. Use v4 /
+  `BOUNDED_DOMAIN_DESIGN.md`.
 
 Alternative first Lean commit:
 
@@ -342,7 +348,8 @@ Alternative first Lean commit:
 - Define interval restricted measure and derived volume.
 - Prove one tiny theorem from Mathlib, such as interval volume or integral of a
   constant over `[0,L]`.
-- Include `#print axioms` output in the commit message or PR description.
+- Include temporary `#print axioms` output in the commit message or PR
+  description; do not leave the command in source.
 
 Do not include:
 
