@@ -317,6 +317,49 @@ lemma heatSemigroup_zero (f : ℝ → ℝ) (x : ℝ) : heatSemigroup 0 f x = 0 :
   unfold heatSemigroup
   simp [heatKernel_zero, zero_mul]
 
+theorem heatSemigroup_add {f g : ℝ → ℝ} {t : ℝ} (x : ℝ)
+    (hf : MeasureTheory.Integrable (fun y => heatKernel t (x - y) * f y))
+    (hg : MeasureTheory.Integrable (fun y => heatKernel t (x - y) * g y)) :
+    heatSemigroup t (fun y => f y + g y) x =
+    heatSemigroup t f x + heatSemigroup t g x := by
+  simpa [heatSemigroup, mul_add] using MeasureTheory.integral_add hf hg
+
+theorem modifiedSemigroup_add {f g : ℝ → ℝ} {t : ℝ} (x : ℝ)
+    (hf : MeasureTheory.Integrable (fun y => heatKernel t (x - y) * f y))
+    (hg : MeasureTheory.Integrable (fun y => heatKernel t (x - y) * g y)) :
+    modifiedSemigroup t (fun y => f y + g y) x =
+    modifiedSemigroup t f x + modifiedSemigroup t g x := by
+  unfold modifiedSemigroup
+  rw [heatSemigroup_add x hf hg]
+  ring
+
+theorem heatSemigroup_neg (f : ℝ → ℝ) (t x : ℝ) :
+    heatSemigroup t (fun y => -f y) x = -heatSemigroup t f x := by
+  simpa [heatSemigroup] using
+    (MeasureTheory.integral_neg (fun y => heatKernel t (x - y) * f y))
+
+theorem modifiedSemigroup_neg (f : ℝ → ℝ) (t x : ℝ) :
+    modifiedSemigroup t (fun y => -f y) x = -modifiedSemigroup t f x := by
+  unfold modifiedSemigroup
+  rw [heatSemigroup_neg]
+  ring
+
+theorem heatSemigroup_const_mul (a : ℝ) (f : ℝ → ℝ) (t x : ℝ) :
+    heatSemigroup t (fun y => a * f y) x = a * heatSemigroup t f x := by
+  unfold heatSemigroup
+  rw [show (fun y => heatKernel t (x - y) * (a * f y)) =
+      (fun y => a * (heatKernel t (x - y) * f y)) from by
+        ext y
+        ring]
+  exact MeasureTheory.integral_const_mul _ _
+
+theorem modifiedSemigroup_const_mul (a : ℝ) (f : ℝ → ℝ) (t x : ℝ) :
+    modifiedSemigroup t (fun y => a * f y) x =
+    a * modifiedSemigroup t f x := by
+  unfold modifiedSemigroup
+  rw [heatSemigroup_const_mul]
+  ring
+
 theorem heatSemigroup_sub {f g : ℝ → ℝ} {t : ℝ} (x : ℝ)
     (hf : MeasureTheory.Integrable (fun y => heatKernel t (x - y) * f y))
     (hg : MeasureTheory.Integrable (fun y => heatKernel t (x - y) * g y)) :
