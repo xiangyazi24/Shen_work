@@ -206,6 +206,24 @@ theorem heatSemigroup_const {c : ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ) :
       (fun y => c * heatKernel t (x - y)) from by ext y; ring]
   rw [MeasureTheory.integral_const_mul, heatKernel_integral_translated ht x, mul_one]
 
+theorem heatSemigroup_upper_bound_of_bound {f : ℝ → ℝ} {M Mf : ℝ}
+    (hf_le : ∀ x, f x ≤ M) (hf_bound : ∀ x, |f x| ≤ Mf)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)
+    {t : ℝ} (ht : 0 < t) :
+    ∀ x, heatSemigroup t f x ≤ M := by
+  intro x
+  have hf_int :
+      MeasureTheory.Integrable (fun y => heatKernel t (x - y) * f y) :=
+    heatKernel_mul_bounded_integrable ht x hf_bound hf_meas
+  have hconst_int :
+      MeasureTheory.Integrable (fun y => heatKernel t (x - y) * M) :=
+    (heatKernel_translated_integrable ht x).mul_const M
+  have hmono :
+      heatSemigroup t f x ≤ heatSemigroup t (fun _ : ℝ => M) x :=
+    heatSemigroup_mono (f := f) (g := fun _ : ℝ => M)
+      hf_le ht hf_int hconst_int
+  simpa [heatSemigroup_const ht x] using hmono
+
 theorem modifiedSemigroup_nonneg {f : ℝ → ℝ}
     (hf_nn : ∀ x, 0 ≤ f x) {t : ℝ} (ht : 0 < t) :
     ∀ x, 0 ≤ modifiedSemigroup t f x := by
@@ -229,6 +247,17 @@ theorem modifiedSemigroup_lower_bound {f : ℝ → ℝ} {m Mf t : ℝ}
   unfold modifiedSemigroup
   exact mul_le_mul_of_nonneg_left
     (heatSemigroup_lower_bound hf_ge hf_bound hf_meas ht x)
+    (Real.exp_nonneg _)
+
+theorem modifiedSemigroup_upper_bound {f : ℝ → ℝ} {M Mf t : ℝ}
+    (hf_le : ∀ x, f x ≤ M) (hf_bound : ∀ x, |f x| ≤ Mf)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)
+    (ht : 0 < t) :
+    ∀ x, modifiedSemigroup t f x ≤ Real.exp (-t) * M := by
+  intro x
+  unfold modifiedSemigroup
+  exact mul_le_mul_of_nonneg_left
+    (heatSemigroup_upper_bound_of_bound hf_le hf_bound hf_meas ht x)
     (Real.exp_nonneg _)
 
 lemma heatKernel_zero (x : ℝ) : heatKernel 0 x = 0 := by
