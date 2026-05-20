@@ -650,12 +650,20 @@ projection theorem wrappers have been removed.
   Remark 4.3 tail-asymptotic hypotheses
 - `Lemma_A_6_proved` (Paper3)
 - `FrozenStationaryWaveProfile.mk_auto_limits`
+- `FrozenStationaryWaveProfile.mk_from_paper_stationarity_of_tail_continuous`
+  and `FrozenStationaryWaveProfile.mk_auto_limits_of_tail_continuous`: profile
+  constructors that derive positivity and `IsCUnifBdd` from
+  `HasWaveUpperTailBound` plus continuity instead of taking those profile facts
+  as separate inputs
 - `Theorem_1_1.of_raw_frozen_stationary_branches`: raw fixed-point data
   bridge for Paper1 Theorem 1.1.  Positivity, boundedness, stationarity,
   endpoint limits, monotonicity/tail data, and upper barriers are assembled
   into `FrozenStationaryWaveProfile`s internally, then converted to the paper
   traveling-wave existence conclusion without projecting from
   `Paper1AnalyticData.travelingWaveExistence`.
+- `Theorem_1_1.of_raw_frozen_stationary_tail_continuous_branches`: the same
+  raw fixed-point bridge with the profile positivity and bounded-continuous
+  inputs derived from upper-tail bounds plus continuity
 - `InWaveTrapSet.tendsto_atTop_zero`,
   `InWaveTrapSet.frozenElliptic_tendsto_atTop_zero`,
   `InMonotoneWaveTrapSet.tendsto_atTop_zero`,

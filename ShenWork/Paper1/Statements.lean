@@ -8620,6 +8620,37 @@ theorem HasStrictWaveUpperTailBound.nonnegativeInitialDatum_of_continuous
     NonnegativeInitialDatum U :=
   ⟨h.isCUnifBdd_of_continuous hU_cont, fun x => (h.pos x).le⟩
 
+theorem FrozenStationaryWaveProfile.mk_from_paper_stationarity_of_tail_continuous
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hc : 0 < c)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hU_cont : Continuous U)
+    (hU_diff : ∀ x, DifferentiableAt ℝ U x)
+    (hV_diff : ∀ x, DifferentiableAt ℝ (deriv (frozenElliptic p U)) x)
+    (hU_rpow_diff : ∀ x, DifferentiableAt ℝ (fun y => (U y) ^ p.m) x)
+    (hpaper_stat : ∀ x, paperWaveOperator p c U U x = 0)
+    (hU_lim_neg : Tendsto U atBot (𝓝 1))
+    (hU_lim_pos : Tendsto U atTop (𝓝 0)) :
+    FrozenStationaryWaveProfile p c U :=
+  FrozenStationaryWaveProfile.mk_from_paper_stationarity hc
+    (fun x => hbound.pos x)
+    (hbound.isCUnifBdd_of_continuous hU_cont)
+    hU_diff hV_diff hU_rpow_diff hpaper_stat hU_lim_neg hU_lim_pos
+
+theorem FrozenStationaryWaveProfile.mk_auto_limits_of_tail_continuous
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hc : 0 < c)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hU_cont : Continuous U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hU_lim_neg : Tendsto U atBot (𝓝 1))
+    (hU_lim_pos : Tendsto U atTop (𝓝 0)) :
+    FrozenStationaryWaveProfile p c U :=
+  FrozenStationaryWaveProfile.mk_auto_limits hc
+    (fun x => hbound.pos x)
+    (hbound.isCUnifBdd_of_continuous hU_cont)
+    hstat hU_lim_neg hU_lim_pos
+
 theorem HasWaveUpperTailBound.frozenElliptic_tendsto_atTop_zero_of_continuous
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (hκ : 0 < kappa c) (h : HasWaveUpperTailBound p c U)
@@ -11348,6 +11379,62 @@ theorem Theorem_1_1.of_raw_frozen_stationary_branches
       ⟨U,
         FrozenStationaryWaveProfile.mk_auto_limits
           hc_pos hU_pos hU_bdd hstat hlim_bot hlim_top,
+        hupper, htail⟩
+
+theorem Theorem_1_1.of_raw_frozen_stationary_tail_continuous_branches
+    (hneg :
+      ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
+        ∀ c : ℝ, cStarLower p < c →
+          ∃ U : ℝ → ℝ,
+            0 < c ∧
+              HasWaveUpperTailBound p c U ∧
+              Continuous U ∧
+              (∀ x, frozenWaveOperator p c U U x = 0) ∧
+              Tendsto U atBot (𝓝 1) ∧
+              Tendsto U atTop (𝓝 0) ∧
+              (∀ x, deriv U x ≤ 0) ∧
+              (∀ x, deriv (frozenElliptic p U) x ≤ 0) ∧
+              ShenUpperBoundNegative c U ∧
+              (∀ κ₁, kappa c < κ₁ →
+                κ₁ <
+                  min ((1 + p.α) * kappa c)
+                    (min (p.m * kappa c + 1 / 2) 1) →
+                HasWaveRightTailAsymptotic c κ₁ U))
+    (hpos :
+      ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+        0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+        ∀ c : ℝ, 2 < c →
+          ∃ U : ℝ → ℝ,
+            0 < c ∧
+              HasWaveUpperTailBound p c U ∧
+              Continuous U ∧
+              (∀ x, frozenWaveOperator p c U U x = 0) ∧
+              Tendsto U atBot (𝓝 1) ∧
+              Tendsto U atTop (𝓝 0) ∧
+              ShenUpperBoundPositive p c U ∧
+              (∀ κ₁, kappa c < κ₁ →
+                κ₁ <
+                  min ((1 + p.α) * kappa c)
+                    (min (p.m * kappa c + 1 / 2) 1) →
+                HasWaveRightTailAsymptotic c κ₁ U)) :
+    Theorem_1_1 := by
+  refine Theorem_1_1.of_frozenStationaryProfile_branches ?_ ?_
+  · intro p halpha hχ c hc
+    rcases hneg p halpha hχ c hc with
+      ⟨U, hc_pos, hbound, hU_cont, hstat, hlim_bot, hlim_top,
+        hUmono, hVmono, hupper, htail⟩
+    exact
+      ⟨U,
+        FrozenStationaryWaveProfile.mk_auto_limits_of_tail_continuous
+          hc_pos hbound hU_cont hstat hlim_bot hlim_top,
+        hUmono, hVmono, hupper, htail⟩
+  · intro p halpha hχ_nonneg hχ_small c hc
+    rcases hpos p halpha hχ_nonneg hχ_small c hc with
+      ⟨U, hc_pos, hbound, hU_cont, hstat, hlim_bot, hlim_top, hupper, htail⟩
+    exact
+      ⟨U,
+        FrozenStationaryWaveProfile.mk_auto_limits_of_tail_continuous
+          hc_pos hbound hU_cont hstat hlim_bot hlim_top,
         hupper, htail⟩
 
 def StableWaveParameterRegime (p : CMParams) : Prop :=
