@@ -147,14 +147,15 @@ projection theorem wrappers have been removed.
   interface, closed under explicit nonnegativity of the input norm rather than
   by projecting from `Paper1AnalyticData`
 - `heatSemigroup_lower_bound`, `heatSemigroup_upper_bound_of_bound`,
-  `modifiedSemigroup_lower_bound`, `modifiedSemigroup_upper_bound`,
+  `heatSemigroup_interval_bound`, `modifiedSemigroup_lower_bound`,
+  `modifiedSemigroup_upper_bound`, `modifiedSemigroup_interval_bound`,
   `modifiedSemigroup_Linfty_bound`, `modifiedSemigroup_Linfty_decay`,
   `modifiedSemigroup_sub`, and `modifiedSemigroup_contraction`: real
   whole-line heat-kernel estimates for the heat and modified semigroups.  They
   use heat-kernel positivity, translated kernel mass one, bounded measurable
-  input data, and Bochner integral linearity to prove pointwise lower- and
-  upper-bound preservation, modified-semigroup lower/upper bounds, `L∞`
-  decay, and pairwise `L∞` contraction.
+  input data, and Bochner integral linearity to prove pointwise lower-, upper-,
+  and interval-bound preservation, modified-semigroup lower/upper/interval
+  bounds, `L∞` decay, and pairwise `L∞` contraction.
 - `Lemma_2_2_proved`, `Lemma_2_3_proved`, `Lemma_2_4_proved`
 - `Lemma_2_5_pointwise_bound`, `Lemma_2_5_attained_at_inv`,
   `Lemma_2_5_sharp_bound`, and

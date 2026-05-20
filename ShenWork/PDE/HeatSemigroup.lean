@@ -224,6 +224,17 @@ theorem heatSemigroup_upper_bound_of_bound {f : ℝ → ℝ} {M Mf : ℝ}
       hf_le ht hf_int hconst_int
   simpa [heatSemigroup_const ht x] using hmono
 
+theorem heatSemigroup_interval_bound {f : ℝ → ℝ} {m M Mf : ℝ}
+    (hf_ge : ∀ x, m ≤ f x) (hf_le : ∀ x, f x ≤ M)
+    (hf_bound : ∀ x, |f x| ≤ Mf)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)
+    {t : ℝ} (ht : 0 < t) :
+    ∀ x, m ≤ heatSemigroup t f x ∧ heatSemigroup t f x ≤ M := by
+  intro x
+  exact
+    ⟨heatSemigroup_lower_bound hf_ge hf_bound hf_meas ht x,
+      heatSemigroup_upper_bound_of_bound hf_le hf_bound hf_meas ht x⟩
+
 theorem modifiedSemigroup_nonneg {f : ℝ → ℝ}
     (hf_nn : ∀ x, 0 ≤ f x) {t : ℝ} (ht : 0 < t) :
     ∀ x, 0 ≤ modifiedSemigroup t f x := by
@@ -259,6 +270,19 @@ theorem modifiedSemigroup_upper_bound {f : ℝ → ℝ} {M Mf t : ℝ}
   exact mul_le_mul_of_nonneg_left
     (heatSemigroup_upper_bound_of_bound hf_le hf_bound hf_meas ht x)
     (Real.exp_nonneg _)
+
+theorem modifiedSemigroup_interval_bound {f : ℝ → ℝ} {m M Mf t : ℝ}
+    (hf_ge : ∀ x, m ≤ f x) (hf_le : ∀ x, f x ≤ M)
+    (hf_bound : ∀ x, |f x| ≤ Mf)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)
+    (ht : 0 < t) :
+    ∀ x,
+      Real.exp (-t) * m ≤ modifiedSemigroup t f x ∧
+        modifiedSemigroup t f x ≤ Real.exp (-t) * M := by
+  intro x
+  exact
+    ⟨modifiedSemigroup_lower_bound hf_ge hf_bound hf_meas ht x,
+      modifiedSemigroup_upper_bound hf_le hf_bound hf_meas ht x⟩
 
 lemma heatKernel_zero (x : ℝ) : heatKernel 0 x = 0 := by
   unfold heatKernel
