@@ -373,6 +373,10 @@ approve the design doc, or implement only the tiny interval-measure helper.
 The tiny interval-measure helper track is implemented in
 `ShenWork/PDE/IntervalDomain.lean`.  It defines `intervalSet`,
 `intervalMeasure`, and `intervalVolume`, and proves `intervalVolume_eq`,
-`intervalVolume_pos`, and `intervalIntegral_const` from Mathlib primitives.
-These are concrete helper facts, not Paper2 theorem wrappers and not semigroup
-estimate assumptions.
+`intervalVolume_pos`, `intervalIntegral_const`, `intervalIntegral_nonneg`,
+`intervalIntegral_mono`, `intervalIntegral_add`,
+`identity_preserves_intervalIntegral`, `const_intervalIntegrable`,
+`intervalAverage`, `constantModeProjection`,
+`constantModeProjection_preserves_mass`, `constantModeProjection_nonneg`, and
+`intervalAverage_const` from Mathlib primitives.  These are concrete helper
+facts, not Paper2 theorem wrappers and not semigroup estimate assumptions.
