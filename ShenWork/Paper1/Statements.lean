@@ -10596,6 +10596,49 @@ theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_si
     ⟨d, hd_pos, hd_sub⟩
   exact ⟨U, hU, haux, ⟨d, hd_pos, hd_sub⟩, hsignal, hexpSignal⟩
 
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_const_sub_signal_and_log_derivative_B
+    {p : CMParams} {c κ₀ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₀ κtilde D)
+    (hc : 2 < c)
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹)
+        (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
+    (hupper :
+      ∀ U : ℝ → ℝ,
+        InMonotoneWaveTrapSet (kappa c) 1 U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) 1
+            (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U →
+            ShenUpperBoundNegative c U) :
+    ∃ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet (kappa c) 1 U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) 1
+          (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U ∧
+        (∃ d : ℝ, 0 < d ∧
+          IsPaperFrozenSubSolutionOn p c U (fun _ => d) Set.univ) ∧
+        (∀ x,
+          |frozenElliptic p U x| ≤ (MChi p) ^ p.γ ∧
+            |deriv (frozenElliptic p U) x| ≤ (MChi p) ^ p.γ) ∧
+        (p.γ + p.γ⁻¹ < c →
+          ∀ x,
+            |frozenElliptic p U x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x)) ∧
+            |deriv (frozenElliptic p U) x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x))) ∧
+        ∃ B > 0, ∀ x, deriv U x / U x ≤ B := by
+  rcases h.exists_fixed_limit_with_const_sub_signal_and_log_derivative
+      hc hspeed hupper with
+    ⟨U, hU, haux, hsub, hsignal, hexpSignal, hlog⟩
+  refine
+    ⟨U, hU, haux, hsub, hsignal, hexpSignal,
+      max (logDerivativeBoundFormula p c) 1, ?_, ?_⟩
+  · exact lt_of_lt_of_le zero_lt_one (le_max_right _ _)
+  · intro x
+    exact le_trans (hlog x) (le_max_left _ _)
+
 theorem Lemma_5_2_explicit.to_Lemma_5_2
     (h : Lemma_5_2_explicit) : Lemma_5_2 := by
   intro p c hspeed U V hTW hbound
