@@ -148,7 +148,8 @@ projection theorem wrappers have been removed.
   by projecting from `Paper1AnalyticData`
 - `heatKernel_integral_abs_eq_one`,
   `heatKernel_integral_abs_translated`, `heatKernel_hasDerivAt`,
-  `deriv_heatKernel`, `heatKernel_translated_hasDerivAt_left`,
+  `deriv_heatKernel`, `integral_abs_mul_exp_neg_mul_sq`,
+  `heatKernel_deriv_abs_integral`, `heatKernel_translated_hasDerivAt_left`,
   `heatKernel_translated_hasDerivAt_right`, `heatSemigroup_mono_bounded`,
   `modifiedSemigroup_mono_bounded`,
   `heatSemigroup_zero_fun`, `modifiedSemigroup_zero_fun`,

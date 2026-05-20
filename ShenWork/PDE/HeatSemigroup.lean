@@ -15,6 +15,7 @@
 -/
 import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
 import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+import Mathlib.MeasureTheory.Integral.Gamma
 import Mathlib.MeasureTheory.Integral.Bochner.Basic
 import Mathlib.MeasureTheory.Measure.Haar.OfBasis
 
@@ -145,6 +146,75 @@ lemma heatKernel_deriv_abs_integrable {t : ℝ} (ht : 0 < t) :
     MeasureTheory.Integrable
       (fun x : ℝ => |deriv (fun z : ℝ => heatKernel t z) x|) := by
   simpa [Real.norm_eq_abs] using (heatKernel_deriv_integrable ht).norm
+
+lemma integral_Ioi_mul_exp_neg_mul_sq {b : ℝ} (hb : 0 < b) :
+    ∫ x in Set.Ioi (0 : ℝ), x * Real.exp (-b * x ^ 2) =
+      1 / (2 * b) := by
+  have h :=
+    integral_rpow_mul_exp_neg_mul_rpow
+      (p := 2) (q := 1) (b := b)
+      (by norm_num : (0 : ℝ) < 2)
+      (by norm_num : (-1 : ℝ) < 1) hb
+  rw [show
+      ∫ x in Set.Ioi (0 : ℝ), x * Real.exp (-b * x ^ 2) =
+        ∫ x in Set.Ioi (0 : ℝ), x ^ (1 : ℝ) * Real.exp (-b * x ^ (2 : ℝ)) by
+        congr 1
+        ext x
+        rw [Real.rpow_one]
+        congr 1
+        rw [Real.rpow_two]]
+  rw [h]
+  have hpow : b ^ (-(1 + 1) / 2 : ℝ) = b⁻¹ := by
+    rw [show (-(1 + 1) / 2 : ℝ) = -1 by norm_num, Real.rpow_neg_one]
+  rw [hpow, show (((1 : ℝ) + 1) / 2) = 1 by norm_num, Real.Gamma_one]
+  field_simp [ne_of_gt hb]
+
+lemma integral_abs_mul_exp_neg_mul_sq {b : ℝ} (hb : 0 < b) :
+    ∫ x : ℝ, |x| * Real.exp (-b * x ^ 2) = 1 / b := by
+  have hcomp :=
+    integral_comp_abs
+      (f := fun x : ℝ => x * Real.exp (-b * x ^ 2))
+  have hfun :
+      (fun x : ℝ => |x| * Real.exp (-b * x ^ 2)) =
+        fun x : ℝ => (fun z : ℝ => z * Real.exp (-b * z ^ 2)) |x| := by
+    ext x
+    simp [sq_abs]
+  rw [hfun, hcomp, integral_Ioi_mul_exp_neg_mul_sq hb]
+  field_simp [ne_of_gt hb]
+
+theorem heatKernel_deriv_abs_integral {t : ℝ} (ht : 0 < t) :
+    ∫ x : ℝ, |deriv (fun z : ℝ => heatKernel t z) x| =
+      2 / Real.sqrt (4 * Real.pi * t) := by
+  have hsqrt_pos : 0 < Real.sqrt (4 * Real.pi * t) := by positivity
+  have ht_ne : t ≠ 0 := ne_of_gt ht
+  have hsqrt_ne : Real.sqrt (4 * Real.pi * t) ≠ 0 := ne_of_gt hsqrt_pos
+  have hcoeff :
+      0 < (1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t)) := by
+    positivity
+  have hfun :
+      (fun x : ℝ => |deriv (fun z : ℝ => heatKernel t z) x|) =
+        fun x : ℝ =>
+          ((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+            (|x| * Real.exp (-(1 / (4 * t)) * x ^ 2)) := by
+    ext x
+    rw [deriv_heatKernel ht]
+    unfold heatKernel
+    rw [show -x ^ 2 / (4 * t) = -(1 / (4 * t)) * x ^ 2 by ring]
+    rw [show
+        -(x / (2 * t)) *
+            (1 / Real.sqrt (4 * Real.pi * t) *
+              Real.exp (-(1 / (4 * t)) * x ^ 2)) =
+          -((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+            (x * Real.exp (-(1 / (4 * t)) * x ^ 2)) by
+          field_simp [ht_ne, hsqrt_ne]
+          ]
+    rw [abs_mul, abs_neg, abs_of_pos hcoeff, abs_mul,
+      abs_of_nonneg (Real.exp_nonneg _)]
+  rw [hfun]
+  rw [MeasureTheory.integral_const_mul]
+  rw [integral_abs_mul_exp_neg_mul_sq (by positivity : 0 < 1 / (4 * t))]
+  field_simp [ht_ne, hsqrt_ne]
+  ring
 
 lemma heatKernel_translated_hasDerivAt_left {t : ℝ} (ht : 0 < t)
     (x y : ℝ) :
