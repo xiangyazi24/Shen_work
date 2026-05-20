@@ -218,6 +218,70 @@ theorem modifiedSemigroup_abs_le_semigroup_abs {f : ℝ → ℝ}
   exact mul_le_mul_of_nonneg_left
     (heatSemigroup_abs_le_semigroup_abs ht x) (Real.exp_nonneg _)
 
+theorem heatSemigroup_abs_le_of_abs_le {f g : ℝ → ℝ} {t : ℝ} (x : ℝ)
+    (hfg : ∀ y, |f y| ≤ g y) (ht : 0 < t)
+    (hf_abs_int :
+      MeasureTheory.Integrable (fun y => heatKernel t (x - y) * |f y|))
+    (hg_int : MeasureTheory.Integrable (fun y => heatKernel t (x - y) * g y)) :
+    |heatSemigroup t f x| ≤ heatSemigroup t g x := by
+  exact le_trans (heatSemigroup_abs_le_semigroup_abs ht x)
+    (heatSemigroup_mono (f := fun y : ℝ => |f y|) (g := g)
+      hfg ht hf_abs_int hg_int)
+
+theorem modifiedSemigroup_abs_le_of_abs_le {f g : ℝ → ℝ} {t : ℝ} (x : ℝ)
+    (hfg : ∀ y, |f y| ≤ g y) (ht : 0 < t)
+    (hf_abs_int :
+      MeasureTheory.Integrable (fun y => heatKernel t (x - y) * |f y|))
+    (hg_int : MeasureTheory.Integrable (fun y => heatKernel t (x - y) * g y)) :
+    |modifiedSemigroup t f x| ≤ modifiedSemigroup t g x := by
+  unfold modifiedSemigroup
+  rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+  exact mul_le_mul_of_nonneg_left
+    (heatSemigroup_abs_le_of_abs_le x hfg ht hf_abs_int hg_int)
+    (Real.exp_nonneg _)
+
+theorem heatSemigroup_abs_le_of_abs_le_bounded
+    {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hfg : ∀ y, |f y| ≤ g y)
+    (hf_bound : ∀ y, |f y| ≤ Mf) (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)
+    (hg_meas : MeasureTheory.AEStronglyMeasurable g MeasureTheory.volume)
+    (ht : 0 < t) :
+    ∀ x, |heatSemigroup t f x| ≤ heatSemigroup t g x := by
+  intro x
+  have hf_abs_meas :
+      MeasureTheory.AEStronglyMeasurable
+        (fun y : ℝ => |f y|) MeasureTheory.volume := by
+    simpa [Real.norm_eq_abs] using hf_meas.norm
+  have hf_abs_bound :
+      ∀ y : ℝ, |(fun z : ℝ => |f z|) y| ≤ Mf := by
+    intro y
+    simpa [abs_abs] using hf_bound y
+  exact heatSemigroup_abs_le_of_abs_le x hfg ht
+    (heatKernel_mul_bounded_integrable ht x hf_abs_bound hf_abs_meas)
+    (heatKernel_mul_bounded_integrable ht x hg_bound hg_meas)
+
+theorem modifiedSemigroup_abs_le_of_abs_le_bounded
+    {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hfg : ∀ y, |f y| ≤ g y)
+    (hf_bound : ∀ y, |f y| ≤ Mf) (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)
+    (hg_meas : MeasureTheory.AEStronglyMeasurable g MeasureTheory.volume)
+    (ht : 0 < t) :
+    ∀ x, |modifiedSemigroup t f x| ≤ modifiedSemigroup t g x := by
+  intro x
+  have hf_abs_meas :
+      MeasureTheory.AEStronglyMeasurable
+        (fun y : ℝ => |f y|) MeasureTheory.volume := by
+    simpa [Real.norm_eq_abs] using hf_meas.norm
+  have hf_abs_bound :
+      ∀ y : ℝ, |(fun z : ℝ => |f z|) y| ≤ Mf := by
+    intro y
+    simpa [abs_abs] using hf_bound y
+  exact modifiedSemigroup_abs_le_of_abs_le x hfg ht
+    (heatKernel_mul_bounded_integrable ht x hf_abs_bound hf_abs_meas)
+    (heatKernel_mul_bounded_integrable ht x hg_bound hg_meas)
+
 /-- L^∞ bound: ‖e^{(Δ-I)t} f‖_∞ ≤ e^{-t} ‖f‖_∞. -/
 theorem heatSemigroup_abs_bound {f : ℝ → ℝ} {M : ℝ}
     (hf : ∀ x, |f x| ≤ M) {t : ℝ} (ht : 0 < t) (hM : 0 ≤ M)

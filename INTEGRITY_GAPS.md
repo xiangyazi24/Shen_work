@@ -156,6 +156,10 @@ projection theorem wrappers have been removed.
   `modifiedSemigroup_upper_bound`, `modifiedSemigroup_interval_bound`,
   `heatSemigroup_abs_le_semigroup_abs`,
   `modifiedSemigroup_abs_le_semigroup_abs`,
+  `heatSemigroup_abs_le_of_abs_le`,
+  `modifiedSemigroup_abs_le_of_abs_le`,
+  `heatSemigroup_abs_le_of_abs_le_bounded`,
+  `modifiedSemigroup_abs_le_of_abs_le_bounded`,
   `modifiedSemigroup_Linfty_bound`, `modifiedSemigroup_Linfty_decay`,
   `heatSemigroup_add`, `modifiedSemigroup_add`, `heatSemigroup_neg`,
   `modifiedSemigroup_neg`, `heatSemigroup_const_mul`,
@@ -167,8 +171,9 @@ projection theorem wrappers have been removed.
   use heat-kernel positivity, translated kernel mass one, bounded measurable
   input data, and Bochner integral linearity to prove monotonicity, pointwise
   lower-, upper-, and interval-bound preservation, modified-semigroup
-  lower/upper/interval bounds, heat/modified-semigroup linearity, `L∞` decay,
-  and heat/modified pairwise `L∞` contraction.
+  lower/upper/interval bounds, domination by a nonnegative majorant,
+  heat/modified-semigroup linearity, `L∞` decay, and heat/modified pairwise
+  `L∞` contraction.
 - `Lemma_2_2_proved`, `Lemma_2_3_proved`, `Lemma_2_4_proved`
 - `Lemma_2_5_pointwise_bound`, `Lemma_2_5_attained_at_inv`,
   `Lemma_2_5_sharp_bound`, and
