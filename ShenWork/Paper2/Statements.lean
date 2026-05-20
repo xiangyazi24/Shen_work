@@ -2977,6 +2977,101 @@ lemma not_forall_Lemma_3_1 :
   simp [lemma31CounterDomain, lemma31CounterU] at hbad
   norm_num at hbad
 
+/-- A separate fake interface refuting the first, `a,b > 0`, branch of
+Lemma 3.1.  The abstract `timeDeriv` field is chosen to match the logistic
+reaction of the increasing profile, so the stated PDE holds while the
+abstract sup norm increases. -/
+def lemma31NonminimalCounterDomain : BoundedDomainData where
+  Point := Unit
+  inside := Set.univ
+  boundary := ∅
+  volume := 1
+  supNorm := fun f => f ()
+  infValue := fun f => f ()
+  integral := fun _ => 0
+  gradNorm := fun _ _ => 0
+  timeDeriv := fun w t _ => (w t ()) * (1 - w t ())
+  laplacian := fun _ _ => 0
+  chemotaxisDiv := fun _ _ _ _ => 0
+  crossDiffusionEnergyTerm := fun _ _ _ _ => 0
+  normalDeriv := fun _ _ => 0
+  initialAdmissible := fun _ => True
+  classicalRegularity := fun _ _ _ => True
+
+def lemma31NonminimalCounterParams : CM2Params where
+  N := 1
+  hN := by norm_num
+  α := 1
+  γ := 1
+  m := 1
+  μ := 1
+  ν := 1
+  χ₀ := 0
+  a := 1
+  b := 1
+  β := 0
+  hα := by norm_num
+  hγ := by norm_num
+  hm := by norm_num
+  hμ := by norm_num
+  hν := by norm_num
+  ha := by norm_num
+  hb := by norm_num
+  hβ := by norm_num
+
+def lemma31NonminimalCounterU :
+    ℝ → lemma31NonminimalCounterDomain.Point → ℝ :=
+  fun t _ => t + 1
+
+def lemma31NonminimalCounterV :
+    ℝ → lemma31NonminimalCounterDomain.Point → ℝ :=
+  fun t _ => t + 1
+
+lemma lemma31NonminimalCounter_classical (T : ℝ) (hT : 0 < T) :
+    IsPaper2ClassicalSolution lemma31NonminimalCounterDomain
+      lemma31NonminimalCounterParams T
+      lemma31NonminimalCounterU lemma31NonminimalCounterV := by
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT hx
+    dsimp [lemma31NonminimalCounterU]
+    linarith
+  · intro t x ht0 htT hx
+    change (t + 1) * (1 - (t + 1)) =
+      0 - 0 * 0 + (t + 1) * (1 - 1 * (t + 1) ^ (1 : ℝ))
+    rw [Real.rpow_one]
+    ring
+  · intro t x ht0 htT hx
+    change (0 : ℝ) = 0 - 1 * (t + 1) + 1 * (t + 1) ^ (1 : ℝ)
+    rw [Real.rpow_one]
+    ring
+  · intro t x ht0 htT hx
+    cases hx
+
+lemma not_forall_Lemma_3_1_nonminimal_branch :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params,
+      p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
+        ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+          IsPaper2ClassicalSolution D p T u v →
+            ∀ t₀, 0 < t₀ → t₀ < T →
+              (p.a / p.b) ^ (1 / p.α) < D.supNorm (u t₀) →
+                SupNormNonincreasingOn D u (Set.Ioc (0 : ℝ) t₀)) := by
+  intro h
+  have hmono :=
+    h lemma31NonminimalCounterDomain lemma31NonminimalCounterParams
+      (by norm_num [lemma31NonminimalCounterParams])
+      (by norm_num [lemma31NonminimalCounterParams])
+      (by norm_num [lemma31NonminimalCounterParams])
+      1 (by norm_num) lemma31NonminimalCounterU lemma31NonminimalCounterV
+      (lemma31NonminimalCounter_classical 1 (by norm_num))
+      (1 / 2) (by norm_num) (by norm_num) ?_
+  · have hbad :=
+      hmono (1 / 4) (by norm_num) (1 / 2) (by norm_num) (by norm_num)
+    simp [lemma31NonminimalCounterDomain, lemma31NonminimalCounterU] at hbad
+    norm_num at hbad
+  · norm_num [lemma31NonminimalCounterParams]
+    dsimp [lemma31NonminimalCounterDomain, lemma31NonminimalCounterU]
+    norm_num
+
 def Lemma_4_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
   ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,

@@ -395,6 +395,10 @@ projection theorem wrappers have been removed.
   negative-sensitivity upper-envelope monotonicity cannot be derived from the
   current abstract API alone; a fake time derivative makes an increasing
   profile satisfy the PDE while `supNorm` records the increase
+- `not_forall_Lemma_3_1_nonminimal_branch` (Paper2): formal obstruction for
+  the first `a,b > 0` branch itself.  The fake `timeDeriv` field is chosen to
+  equal the logistic reaction of an increasing profile, so the abstract PDE is
+  satisfied while the `SupNormNonincreasingOn` conclusion fails
 - `not_forall_Lemma_4_1` (Paper2): formal obstruction showing that the
   mass-gradient interpolation estimate cannot be derived from the current
   abstract API alone; fake `integral` fields make the left `Lᵖ` term positive
