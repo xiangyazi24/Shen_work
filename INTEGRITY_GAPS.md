@@ -347,6 +347,11 @@ projection theorem wrappers have been removed.
   applies the positive/nonincreasing profile branch to the constructed
   negative-sensitivity fixed point without first packaging a full traveling
   wave.
+- `NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_and_remark52_log_derivative`
+  and
+  `NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_const_sub_signal_and_remark52_log_derivative`:
+  keep the Lemma 5.1 signal estimates, corrected constant subsolution, and
+  Remark 5.2 log-derivative branch on the same constructed fixed point.
 - `Lemma_5_3_zero_difference_branch`, `Lemma_5_3_zero_source_branch`,
   `Lemma_5_3.self_difference_branch`, `Lemma_5_3.same_power_branch`, and the
   `Lemma_5_3.same_power_branch_*` CM/tail/stability specializations: the

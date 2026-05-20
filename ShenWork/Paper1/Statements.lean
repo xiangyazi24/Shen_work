@@ -11067,6 +11067,91 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_re
       Remark_5_2.nonincreasing_positive_profile_branch
         hsigma hχ_ne hupperU.pos hbound hU.deriv_nonpos⟩
 
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_and_remark52_log_derivative
+    {p : CMParams} {c κ₀ κtilde D sigma : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₀ κtilde D)
+    (hc : 2 < c) (hsigma : 0 < sigma)
+    (hupper :
+      ∀ U : ℝ → ℝ,
+        InMonotoneWaveTrapSet (kappa c) 1 U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) 1
+            (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U →
+            ShenUpperBoundNegative c U) :
+    ∃ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet (kappa c) 1 U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) 1
+          (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U ∧
+        (∀ x,
+          |frozenElliptic p U x| ≤ (MChi p) ^ p.γ ∧
+            |deriv (frozenElliptic p U) x| ≤ (MChi p) ^ p.γ) ∧
+        (p.γ + p.γ⁻¹ < c →
+          ∀ x,
+            |frozenElliptic p U x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x)) ∧
+            |deriv (frozenElliptic p U) x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x))) ∧
+        ∀ x : ℝ,
+          deriv U x / U x ≤
+            remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) := by
+  rcases h.exists_fixed_limit_with_signal_package hc hupper with
+    ⟨U, hU, haux, hsignal, hexpSignal⟩
+  have hupperU : ShenUpperBoundNegative c U := hupper U hU haux
+  have htrapM : InMonotoneWaveTrapSet (kappa c) (MChi p) U := by
+    simpa [h.MChi_eq_one] using hU
+  have hbound : HasWaveUpperTailBound p c U :=
+    htrapM.hasWaveUpperTailBound_of_pos hupperU.pos
+  have hχ_ne : p.χ ≠ 0 := ne_of_lt h.chi_neg
+  have hlog :
+      ∀ x : ℝ,
+        deriv U x / U x ≤
+          remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) :=
+    Remark_5_2.nonincreasing_positive_profile_branch
+      hsigma hχ_ne hupperU.pos hbound hU.deriv_nonpos
+  exact ⟨U, hU, haux, hsignal, hexpSignal, hlog⟩
+
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_const_sub_signal_and_remark52_log_derivative
+    {p : CMParams} {c κ₀ κtilde D sigma : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₀ κtilde D)
+    (hc : 2 < c) (hsigma : 0 < sigma)
+    (hupper :
+      ∀ U : ℝ → ℝ,
+        InMonotoneWaveTrapSet (kappa c) 1 U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) 1
+            (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U →
+            ShenUpperBoundNegative c U) :
+    ∃ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet (kappa c) 1 U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) 1
+          (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U ∧
+        (∃ d : ℝ, 0 < d ∧
+          IsPaperFrozenSubSolutionOn p c U (fun _ => d) Set.univ) ∧
+        (∀ x,
+          |frozenElliptic p U x| ≤ (MChi p) ^ p.γ ∧
+            |deriv (frozenElliptic p U) x| ≤ (MChi p) ^ p.γ) ∧
+        (p.γ + p.γ⁻¹ < c →
+          ∀ x,
+            |frozenElliptic p U x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x)) ∧
+            |deriv (frozenElliptic p U) x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x))) ∧
+        ∀ x : ℝ,
+          deriv U x / U x ≤
+            remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) := by
+  rcases h.exists_fixed_limit_with_signal_and_remark52_log_derivative
+      hc hsigma hupper with
+    ⟨U, hU, haux, hsignal, hexpSignal, hlog⟩
+  rcases h.exists_paper_constant_subsolution hU with
+    ⟨d, hd_pos, hd_sub⟩
+  exact ⟨U, hU, haux, ⟨d, hd_pos, hd_sub⟩, hsignal, hexpSignal, hlog⟩
+
 def Lemma_5_3 : Prop :=
   ∀ gamma M eta : ℝ,
     1 ≤ gamma → 1 ≤ M → 0 < eta → eta < 1 →
