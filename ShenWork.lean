@@ -5,6 +5,7 @@ import ShenWork.TravelingWaves
 import ShenWork.StabilityUniqueness
 import ShenWork.ComparisonPrinciple
 import ShenWork.PDE.HeatSemigroup
+import ShenWork.PDE.IntervalDomain
 import ShenWork.PDE.MildSolution
 import ShenWork.PDE.SuperSolution
 import ShenWork.PDE.GlobalBound

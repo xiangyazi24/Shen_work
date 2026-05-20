@@ -367,3 +367,12 @@ Do not include:
 
 No Paper2 theorem wrappers or semigroup assumption structures now. Next action:
 approve the design doc, or implement only the tiny interval-measure helper.
+
+## First Helper Status
+
+The tiny interval-measure helper track is implemented in
+`ShenWork/PDE/IntervalDomain.lean`.  It defines `intervalSet`,
+`intervalMeasure`, and `intervalVolume`, and proves `intervalVolume_eq`,
+`intervalVolume_pos`, and `intervalIntegral_const` from Mathlib primitives.
+These are concrete helper facts, not Paper2 theorem wrappers and not semigroup
+estimate assumptions.
