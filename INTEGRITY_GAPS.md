@@ -246,11 +246,13 @@ projection theorem wrappers have been removed.
   speed-algebra route; it proves the displayed `M'''` denominator-normalized
   constant is nonnegative and then uses `U' ≤ 0` and `U > 0` to get
   `U'/U ≤ 0`.
-- `Lemma_5_3_zero_difference_branch` and
+- `Lemma_5_3_zero_difference_branch`, `Lemma_5_3_zero_source_branch`, and
   `Lemma_5_3.self_difference_branch`: the weighted elliptic perturbation
-  estimate in the zero-source case `u1 = u2`, proved directly from `Psi_zero`
-  and zero-function integrals; the latter exposes the result in the same
-  hypothesis shape as the full Lemma 5.3 target
+  estimate in zero-source cases, proved directly from `Psi_zero` and
+  positivity of the right-hand side.  The zero-difference case uses
+  `u1 = u2`; the stronger zero-source branch assumes only
+  `u2^gamma = u1^gamma` pointwise; the self-difference branch exposes the
+  result in the same hypothesis shape as the full Lemma 5.3 target.
 - `Lemma_2_5_proved` (Paper2)
 - `Lemma_2_1_zero_output_branch`, `Lemma_2_2_zero_embedding_branch`,
   `Lemma_2_3_zero_divergence_branch`, and
