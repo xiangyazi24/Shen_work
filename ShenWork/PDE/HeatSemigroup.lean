@@ -305,6 +305,41 @@ lemma heatKernel_deriv_abs_translated_integrable {t : ℝ} (ht : 0 < t)
   ext y
   rw [deriv_heatKernel_translated_left ht x y, deriv_heatKernel ht (x - y)]
 
+lemma heatKernel_deriv_translated_integrable {t : ℝ} (ht : 0 < t)
+    (x : ℝ) :
+    MeasureTheory.Integrable
+      (fun y : ℝ => deriv (fun z : ℝ => heatKernel t (z - y)) x) := by
+  have hshift :
+      MeasureTheory.Integrable
+        (fun y : ℝ => deriv (fun z : ℝ => heatKernel t z) (x - y)) := by
+    simpa [sub_eq_add_neg, add_comm] using
+      ((heatKernel_deriv_integrable ht).comp_neg.comp_add_right (-x))
+  convert hshift using 1
+  ext y
+  rw [deriv_heatKernel_translated_left ht x y, deriv_heatKernel ht (x - y)]
+
+lemma heatKernel_deriv_mul_bounded_integrable {t M : ℝ}
+    (ht : 0 < t) {f : ℝ → ℝ} (x : ℝ)
+    (hf : ∀ y, |f y| ≤ M)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume) :
+    MeasureTheory.Integrable
+      (fun y : ℝ => deriv (fun z : ℝ => heatKernel t (z - y)) x * f y) :=
+  (heatKernel_deriv_translated_integrable ht x).mul_bdd hf_meas
+    (Filter.Eventually.of_forall fun y => by
+      simpa [Real.norm_eq_abs] using hf y)
+
+lemma modifiedHeatKernel_deriv_mul_bounded_integrable {t M : ℝ}
+    (ht : 0 < t) {f : ℝ → ℝ} (x : ℝ)
+    (hf : ∀ y, |f y| ≤ M)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume) :
+    MeasureTheory.Integrable
+      (fun y : ℝ =>
+        Real.exp (-t) *
+          (deriv (fun z : ℝ => heatKernel t (z - y)) x * f y)) := by
+  simpa using
+    (heatKernel_deriv_mul_bounded_integrable ht x hf hf_meas).const_mul
+      (Real.exp (-t))
+
 theorem heatKernel_deriv_mul_bounded_integral_abs_le {t M : ℝ}
     (ht : 0 < t) (_hM : 0 ≤ M) {f : ℝ → ℝ}
     (hf : ∀ y, |f y| ≤ M) (x : ℝ) :
