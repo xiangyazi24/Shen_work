@@ -1739,6 +1739,76 @@ theorem intervalSemigroupOperator_diff_L1_Linfty_abs
   simpa [Real.norm_eq_abs] using
     intervalSemigroupOperator_diff_L1_Linfty ht hf_int hg_int x
 
+/-- Monotonicity for the interval helper operator on `L¹` interval inputs. -/
+theorem intervalSemigroupOperator_mono
+    {L t : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_int : Integrable f (intervalMeasure L))
+    (hg_int : Integrable g (intervalMeasure L))
+    (hfg : ∀ y, f y ≤ g y) (x : ℝ) :
+    intervalSemigroupOperator L t f x ≤ intervalSemigroupOperator L t g x := by
+  have hnonneg :
+      0 ≤ intervalSemigroupOperator L t (fun y => g y - f y) x :=
+    intervalSemigroupOperator_nonneg ht
+      (fun y => sub_nonneg.mpr (hfg y)) x
+  rw [intervalSemigroupOperator_sub ht hg_int hf_int x] at hnonneg
+  linarith
+
+/-- The interval helper operator is dominated by the integral of the pointwise
+absolute value. -/
+theorem intervalSemigroupOperator_abs_le_integral_abs
+    {L t : ℝ} (ht : 0 < t) (f : ℝ → ℝ) (x : ℝ) :
+    |intervalSemigroupOperator L t f x| ≤
+      ∫ y, normalizedZerothReflectionKernel L t x y * |f y|
+        ∂ intervalMeasure L := by
+  unfold intervalSemigroupOperator
+  calc
+    |∫ y, normalizedZerothReflectionKernel L t x y * f y ∂ intervalMeasure L|
+        ≤ ∫ y, ‖normalizedZerothReflectionKernel L t x y * f y‖
+            ∂ intervalMeasure L := by
+          rw [← Real.norm_eq_abs]
+          exact MeasureTheory.norm_integral_le_integral_norm _
+    _ = ∫ y, |normalizedZerothReflectionKernel L t x y * f y|
+          ∂ intervalMeasure L := by
+          simp [Real.norm_eq_abs]
+    _ = ∫ y, normalizedZerothReflectionKernel L t x y * |f y|
+          ∂ intervalMeasure L := by
+          congr 1
+          ext y
+          rw [abs_mul, abs_of_nonneg
+            (normalizedZerothReflectionKernel_nonneg ht L x y)]
+
+/-- Domination principle for the interval helper operator. -/
+theorem intervalSemigroupOperator_abs_le_of_abs_le
+    {L t : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ} (hfg : ∀ y, |f y| ≤ g y)
+    (hg_int : Integrable g (intervalMeasure L)) (x : ℝ) :
+    |intervalSemigroupOperator L t f x| ≤
+      intervalSemigroupOperator L t g x := by
+  exact le_trans
+    (intervalSemigroupOperator_abs_le_integral_abs ht f x)
+    (by
+      unfold intervalSemigroupOperator
+      apply MeasureTheory.integral_mono_of_nonneg
+      · exact Filter.Eventually.of_forall fun y =>
+          mul_nonneg
+            (normalizedZerothReflectionKernel_nonneg ht L x y)
+            (abs_nonneg (f y))
+      · exact intervalSemigroupOperator_mul_integrable_of_integrable
+          ht x hg_int
+      · exact Filter.Eventually.of_forall fun y =>
+          mul_le_mul_of_nonneg_left (hfg y)
+            (normalizedZerothReflectionKernel_nonneg ht L x y))
+
+/-- The interval helper operator is dominated by applying it to `|f|`. -/
+theorem intervalSemigroupOperator_abs_le_operator_abs
+    {L t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf_int : Integrable f (intervalMeasure L)) (x : ℝ) :
+    |intervalSemigroupOperator L t f x| ≤
+      intervalSemigroupOperator L t (fun y => |f y|) x :=
+  intervalSemigroupOperator_abs_le_of_abs_le ht
+    (fun _ => le_rfl) hf_int.norm x
+
 /-- `L∞` bound for the interval helper operator. -/
 theorem intervalSemigroupOperator_Linfty_bound
     {L t : ℝ} (ht : 0 < t)
@@ -1785,6 +1855,20 @@ theorem intervalSemigroupOperator_Linfty_bound
     _ ≤ M * 1 := by
         exact mul_le_mul_of_nonneg_left hmass hM
     _ = M := by ring
+
+/-- `L∞` contraction for the interval helper operator on `L¹` interval inputs. -/
+theorem intervalSemigroupOperator_contraction
+    {L t : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ} {M : ℝ} (hM : 0 ≤ M)
+    (hf_int : Integrable f (intervalMeasure L))
+    (hg_int : Integrable g (intervalMeasure L))
+    (hfg : ∀ y, |f y - g y| ≤ M) (x : ℝ) :
+    |intervalSemigroupOperator L t f x -
+      intervalSemigroupOperator L t g x| ≤ M := by
+  have hbound :=
+    intervalSemigroupOperator_Linfty_bound
+      (L := L) (t := t) ht hM (f := fun y => f y - g y) hfg x
+  rwa [intervalSemigroupOperator_sub ht hf_int hg_int x] at hbound
 
 end ShenWork.IntervalDomain
 
