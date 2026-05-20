@@ -195,6 +195,29 @@ theorem heatSemigroup_upper_bound {f : ℝ → ℝ} {M : ℝ}
     _ = M * 1 := by rw [heatKernel_integral_translated ht x]
     _ = M := by ring
 
+/-- Positivity of the heat kernel gives the pointwise lattice bound
+`|e^{tΔ} f| ≤ e^{tΔ} |f|`. -/
+theorem heatSemigroup_abs_le_semigroup_abs {f : ℝ → ℝ}
+    {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    |heatSemigroup t f x| ≤ heatSemigroup t (fun y => |f y|) x := by
+  unfold heatSemigroup
+  calc |∫ y, heatKernel t (x - y) * f y|
+      ≤ ∫ y, ‖heatKernel t (x - y) * f y‖ := by
+        rw [← Real.norm_eq_abs]
+        exact norm_integral_le_integral_norm _
+    _ = ∫ y, heatKernel t (x - y) * |f y| := by
+        congr 1
+        ext y
+        rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (heatKernel_nonneg ht _)]
+
+theorem modifiedSemigroup_abs_le_semigroup_abs {f : ℝ → ℝ}
+    {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    |modifiedSemigroup t f x| ≤ modifiedSemigroup t (fun y => |f y|) x := by
+  unfold modifiedSemigroup
+  rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+  exact mul_le_mul_of_nonneg_left
+    (heatSemigroup_abs_le_semigroup_abs ht x) (Real.exp_nonneg _)
+
 /-- L^∞ bound: ‖e^{(Δ-I)t} f‖_∞ ≤ e^{-t} ‖f‖_∞. -/
 theorem heatSemigroup_abs_bound {f : ℝ → ℝ} {M : ℝ}
     (hf : ∀ x, |f x| ≤ M) {t : ℝ} (ht : 0 < t) (hM : 0 ≤ M)

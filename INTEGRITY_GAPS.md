@@ -154,6 +154,8 @@ projection theorem wrappers have been removed.
   `heatSemigroup_lower_bound`, `heatSemigroup_upper_bound_of_bound`,
   `heatSemigroup_interval_bound`, `modifiedSemigroup_lower_bound`,
   `modifiedSemigroup_upper_bound`, `modifiedSemigroup_interval_bound`,
+  `heatSemigroup_abs_le_semigroup_abs`,
+  `modifiedSemigroup_abs_le_semigroup_abs`,
   `modifiedSemigroup_Linfty_bound`, `modifiedSemigroup_Linfty_decay`,
   `heatSemigroup_add`, `modifiedSemigroup_add`, `heatSemigroup_neg`,
   `modifiedSemigroup_neg`, `heatSemigroup_const_mul`,
