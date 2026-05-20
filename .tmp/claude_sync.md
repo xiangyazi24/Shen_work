@@ -233,3 +233,51 @@ Paper2/Paper3 theorem wrappers.
 
 No Lean theorem files were modified and no build was run during this proposal
 revision loop.
+
+## Direct Claude Three-Round Correction 2026-05-20
+
+Xiang noted that the proposal feedback had still not reached Claude directly.
+Codex therefore resent the full three-round review through the active
+Claude-side collaboration agent, with explicit instructions not to route through
+Xiang and not to touch Lean theorem files.
+
+### Round 1: Obsolete v1
+
+Claude rechecked `.tmp/bounded-domain-proposal.md`.
+
+Changed files: none.
+
+Decision: the file already marks v1 obsolete, points to
+`BOUNDED_DOMAIN_DESIGN.md` / `.tmp/bounded-domain-proposal-v4.md`, and rejects
+the `NeumannPDEOps` / theorem-sized-field route.
+
+### Round 2: Conditional Track
+
+Claude rechecked `.tmp/bounded-domain-proposal-v2.md`,
+`.tmp/bounded-domain-proposal-v3.md`, v4, and `BOUNDED_DOMAIN_DESIGN.md`.
+
+Changed files:
+
+- `.tmp/bounded-domain-proposal-v2.md`
+
+Decision: v2 still contained an `AssumedNeumannSemigroupEstimates` Lean sketch
+that looked too much like an implementable theorem-source interface. Claude
+removed that sketch and replaced it with documentation-only guidance: if Xiang
+later asks to encode exact analytic assumptions, consequences must be visibly
+assumption-dependent, named `from_assumed_*`, never `_proved`, never
+paper-lemma-looking wrappers, and never counted as theorem progress.
+
+### Round 3: Concrete Path
+
+Claude rechecked `.tmp/bounded-domain-proposal-v4.md` and
+`BOUNDED_DOMAIN_DESIGN.md`.
+
+Changed files: none.
+
+Decision: v4 / `BOUNDED_DOMAIN_DESIGN.md` already restrict the concrete path to
+definition-level `IntervalDomain` helper theorems with temporary axiom audits.
+They do not claim a full interval Neumann semigroup, positivity/contraction/
+smoothing package, or Paper2/Paper3 theorem wrappers.
+
+No Lean theorem files were modified and no build was run during this proposal
+correction loop.

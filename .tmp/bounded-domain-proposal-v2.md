@@ -146,35 +146,13 @@ wrappers from those fields as progress. If this material is ever encoded, it
 belongs only in a visibly conditional namespace and its consequences must be
 named `from_assumed_*`.
 
-Here `integralOnSubtype` is a proposed helper for integrating fields
-`DomainPoint D → ℝ` against the measure induced by restricted Lebesgue measure
-on `D.Ω`. The implementation should define this helper before adding the
-semigroup interface.
-
-Semigroup estimates should be assumptions explicitly named as such:
-
-```lean
-structure AssumedNeumannSemigroupEstimates
-    (D : SmoothBoundedDomain N)
-    (S : ConditionalNeumannSemigroup D)
-    (p : CM2Params) : Prop where
-  lp_lq_smoothing :
-    -- Paper2 Lemma 2.1 style estimate, using p.μ where needed.
-    Prop
-  gradient_smoothing :
-    -- Paper2 Lemma 2.2 style estimate.
-    Prop
-  divergence_smoothing :
-    -- Paper2 Lemma 2.3/2.4 style estimate.
-    Prop
-```
-
-If such assumptions are encoded, theorem names must be visibly
-assumption-dependent:
+The conditional semigroup/regularity material should remain documentation-only
+by default. If Xiang later asks to encode exact analytic assumptions, theorem
+names must be visibly assumption-dependent:
 
 ```lean
 theorem Lemma_2_1_from_assumed_neumann_semigroup_estimates
-    (hS : AssumedNeumannSemigroupEstimates D S p) : ...
+    (h_assumed : ExactAnalyticHypothesesBeingAssumed D p) : ...
 ```
 
 Do not use names like:
