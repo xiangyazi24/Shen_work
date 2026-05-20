@@ -405,6 +405,48 @@ theorem halfLineReflectedKernelOperator_const
   rw [neumannHeatKernel_zerothReflection_setIntegral_Ioi ht x]
   ring
 
+/-- Lower-bound preservation for the half-line reflected helper operator. -/
+theorem halfLineReflectedKernelOperator_lower_bound
+    {f : ℝ → ℝ} {a M t : ℝ}
+    (ha : ∀ y, a ≤ f y)
+    (hf_bound : ∀ y, |f y| ≤ M)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (ht : 0 < t) (x : ℝ) :
+    a ≤ halfLineReflectedKernelOperator t f x := by
+  have hmono :=
+    halfLineReflectedKernelOperator_mono_bounded
+      (f := fun _ : ℝ => a) (g := f) (Mf := |a|) (Mg := M)
+      (fun y => ha y) (fun _ => le_rfl) hf_bound
+      aestronglyMeasurable_const hf_meas ht x
+  simpa [halfLineReflectedKernelOperator_const ht a x] using hmono
+
+/-- Upper-bound preservation for the half-line reflected helper operator. -/
+theorem halfLineReflectedKernelOperator_upper_bound
+    {f : ℝ → ℝ} {b M t : ℝ}
+    (hb : ∀ y, f y ≤ b)
+    (hf_bound : ∀ y, |f y| ≤ M)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (ht : 0 < t) (x : ℝ) :
+    halfLineReflectedKernelOperator t f x ≤ b := by
+  have hmono :=
+    halfLineReflectedKernelOperator_mono_bounded
+      (f := f) (g := fun _ : ℝ => b) (Mf := M) (Mg := |b|)
+      (fun y => hb y) hf_bound (fun _ => le_rfl)
+      hf_meas aestronglyMeasurable_const ht x
+  simpa [halfLineReflectedKernelOperator_const ht b x] using hmono
+
+/-- Interval-bound preservation for the half-line reflected helper operator. -/
+theorem halfLineReflectedKernelOperator_interval_bound
+    {f : ℝ → ℝ} {a b M t : ℝ}
+    (hlo : ∀ y, a ≤ f y) (hhi : ∀ y, f y ≤ b)
+    (hf_bound : ∀ y, |f y| ≤ M)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (ht : 0 < t) (x : ℝ) :
+    a ≤ halfLineReflectedKernelOperator t f x ∧
+      halfLineReflectedKernelOperator t f x ≤ b :=
+  ⟨halfLineReflectedKernelOperator_lower_bound hlo hf_bound hf_meas ht x,
+    halfLineReflectedKernelOperator_upper_bound hhi hf_bound hf_meas ht x⟩
+
 /-- L^∞ bound for the reflected full-line kernel integral:
 if |f| ≤ M, then |∫ K_N f| ≤ 2M. -/
 theorem reflectedKernelIntegral_Linfty_bound
