@@ -1479,6 +1479,50 @@ theorem Lemma_2_5_pointwise_bound_exp_neg_one
     (Lemma_2_5_pointwise_bound hbeta hv)
     (Psi_beta_le_exp_neg_one hbeta)
 
+/-- The Lemma 2.5 expression is strictly positive for positive parameters. -/
+theorem Lemma_2_5_pointwise_pos
+    {beta v : ℝ} (hbeta : 0 < beta) (hv : 0 < v) :
+    0 < beta * v / (1 + v) ^ (1 + beta) := by
+  have hden_pos : 0 < (1 + v) ^ (1 + beta) :=
+    Real.rpow_pos_of_pos (by linarith : 0 < 1 + v) _
+  exact div_pos (mul_pos hbeta hv) hden_pos
+
+/-- The Lemma 2.5 expression is strictly below the universal constant
+`exp (-1)`. -/
+theorem Lemma_2_5_pointwise_bound_lt_exp_neg_one
+    {beta v : ℝ} (hbeta : 0 < beta) (hv : 0 < v) :
+    beta * v / (1 + v) ^ (1 + beta) < Real.exp (-1) := by
+  exact lt_of_le_of_lt
+    (Lemma_2_5_pointwise_bound hbeta hv)
+    (Psi_beta_lt_exp_neg_one hbeta)
+
+/-- Range form of the scalar Lemma 2.5 estimate. -/
+theorem Lemma_2_5_pointwise_mem_Ioo_zero_exp_neg_one
+    {beta v : ℝ} (hbeta : 0 < beta) (hv : 0 < v) :
+    beta * v / (1 + v) ^ (1 + beta) ∈
+      Set.Ioo (0 : ℝ) (Real.exp (-1)) :=
+  ⟨Lemma_2_5_pointwise_pos hbeta hv,
+    Lemma_2_5_pointwise_bound_lt_exp_neg_one hbeta hv⟩
+
+/-- Strict monotonicity of `Psi_beta` upgrades Lemma 2.5 to a strict bound by
+any larger sharp constant. -/
+theorem Lemma_2_5_pointwise_bound_lt_larger_Psi_beta
+    {beta gamma v : ℝ} (hbeta : 0 < beta) (hbg : beta < gamma)
+    (hv : 0 < v) :
+    beta * v / (1 + v) ^ (1 + beta) < Psi_beta gamma := by
+  have hgamma : 0 < gamma := lt_trans hbeta hbg
+  exact lt_of_le_of_lt
+    (Lemma_2_5_pointwise_bound hbeta hv)
+    (Psi_beta_strictMonoOn_Ioi hbeta hgamma hbg)
+
+/-- Any constant that bounds the Lemma 2.5 expression on `(0,∞)` is positive. -/
+theorem Lemma_2_5_sharp_constant_positive
+    {beta C : ℝ} (hbeta : 0 < beta)
+    (hC : ∀ v > 0, beta * v / (1 + v) ^ (1 + beta) ≤ C) :
+    0 < C := by
+  exact lt_of_lt_of_le (Psi_beta_pos hbeta)
+    (Lemma_2_5_sharp_constant_minimal hbeta hC)
+
 /-- Paper2 Lemma 2.5 with the coarse bound by `1`. -/
 theorem Lemma_2_5_pointwise_bound_one
     {beta v : ℝ} (hbeta : 0 < beta) (hv : 0 < v) :
