@@ -366,6 +366,23 @@ theorem heatKernel_deriv_mul_bounded_integral_abs_le {t M : ℝ}
           rw [MeasureTheory.integral_mul_const,
             heatKernel_deriv_abs_integral_translated ht x]
 
+theorem heatKernel_deriv_convolution_bounded_abs_le {t M : ℝ}
+    (ht : 0 < t) (hM : 0 ≤ M) {f : ℝ → ℝ}
+    (hf : ∀ y, |f y| ≤ M) (x : ℝ) :
+    |∫ y : ℝ, deriv (fun z : ℝ => heatKernel t (z - y)) x * f y| ≤
+      (2 / Real.sqrt (4 * Real.pi * t)) * M := by
+  calc
+    |∫ y : ℝ, deriv (fun z : ℝ => heatKernel t (z - y)) x * f y|
+        ≤ ∫ y : ℝ,
+            ‖deriv (fun z : ℝ => heatKernel t (z - y)) x * f y‖ := by
+          rw [← Real.norm_eq_abs]
+          exact norm_integral_le_integral_norm _
+    _ = ∫ y : ℝ,
+            |deriv (fun z : ℝ => heatKernel t (z - y)) x * f y| := by
+          simp [Real.norm_eq_abs]
+    _ ≤ (2 / Real.sqrt (4 * Real.pi * t)) * M :=
+          heatKernel_deriv_mul_bounded_integral_abs_le ht hM hf x
+
 theorem modifiedHeatKernel_deriv_mul_bounded_integral_abs_le {t M : ℝ}
     (ht : 0 < t) (hM : 0 ≤ M) {f : ℝ → ℝ}
     (hf : ∀ y, |f y| ≤ M) (x : ℝ) :
