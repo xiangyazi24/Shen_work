@@ -3,6 +3,20 @@
 This is the direct sync note for the three proposal revision rounds. Please use
 this file, not Xiang as a relay.
 
+## Action Required
+
+Treat this as the sent Codex review. The three proposal revisions are complete:
+
+1. v1 was rejected because it repackaged theorem-sized PDE facts as structure
+   fields.
+2. v2 was tightened because the conditional track still looked too much like
+   theorem progress.
+3. v3 was narrowed because it overstated the feasibility of proving the full
+   interval Neumann semigroup immediately.
+
+Use v4 / `BOUNDED_DOMAIN_DESIGN.md` as the operative design. Do not continue from
+`.tmp/bounded-domain-proposal.md`, v2, or v3 except as historical artifacts.
+
 ## Current Verdict
 
 `BOUNDED_DOMAIN_DESIGN.md` is the accepted policy version of the proposal. It is
@@ -119,4 +133,3 @@ The three-round edit is complete when Claude treats:
 - `.tmp/bounded-domain-proposal-v4.md` and `BOUNDED_DOMAIN_DESIGN.md` as the
   operative design;
 - `IntervalDomain.lean` as the only current concrete implementation path.
-

@@ -209,6 +209,15 @@ claimed here. -/
 def halfLineReflectedKernelOperator (t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
   ∫ y in Set.Ioi 0, neumannHeatKernel_zerothReflection 0 t x y * f y
 
+/-- The half-line reflected helper operator preserves nonnegativity. -/
+theorem halfLineReflectedKernelOperator_nonneg
+    {f : ℝ → ℝ} (hf : ∀ y, 0 ≤ f y)
+    {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    0 ≤ halfLineReflectedKernelOperator t f x := by
+  unfold halfLineReflectedKernelOperator
+  exact MeasureTheory.integral_nonneg fun y =>
+    mul_nonneg (neumannHeatKernel_zerothReflection_nonneg ht 0 x y) (hf y)
+
 /-- L^∞ bound for the reflected full-line kernel integral:
 if |f| ≤ M, then |∫ K_N f| ≤ 2M. -/
 theorem reflectedKernelIntegral_Linfty_bound
@@ -259,6 +268,44 @@ theorem reflectedKernelIntegral_Linfty_bound
     _ = M * 2 := by
         rw [hkernel_integral]
     _ = 2 * M := by ring
+
+/-- A conservative `L∞` bound for the half-line reflected helper operator,
+obtained by comparing with the whole-line two-term kernel mass.  The sharp
+half-line mass is expected to be `1`; this theorem deliberately uses the
+already proved whole-line mass `2`. -/
+theorem halfLineReflectedKernelOperator_Linfty_bound_two
+    {f : ℝ → ℝ} {M : ℝ} (hf : ∀ y, |f y| ≤ M)
+    {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_meas : AEStronglyMeasurable f volume) :
+    |halfLineReflectedKernelOperator t f x| ≤ 2 * M := by
+  let fIoi : ℝ → ℝ := Set.indicator (Set.Ioi 0) f
+  have hfIoi_bound : ∀ y, |fIoi y| ≤ M := by
+    intro y
+    by_cases hy : y ∈ Set.Ioi (0 : ℝ)
+    · simp [fIoi, Set.indicator_of_mem hy, hf y]
+    · have hM_nonneg : 0 ≤ M := le_trans (abs_nonneg (f y)) (hf y)
+      simp [fIoi, hy, hM_nonneg]
+  have hfIoi_meas : AEStronglyMeasurable fIoi volume := by
+    exact hf_meas.indicator measurableSet_Ioi
+  have hbound :=
+    reflectedKernelIntegral_Linfty_bound
+      (f := fIoi) hfIoi_bound ht x hfIoi_meas
+  have hrewrite :
+      (∫ y, neumannHeatKernel_zerothReflection 0 t x y * fIoi y) =
+        halfLineReflectedKernelOperator t f x := by
+    unfold halfLineReflectedKernelOperator fIoi
+    rw [show
+        (fun y : ℝ =>
+          neumannHeatKernel_zerothReflection 0 t x y *
+            Set.indicator (Set.Ioi 0) f y) =
+          Set.indicator (Set.Ioi 0)
+            (fun y : ℝ => neumannHeatKernel_zerothReflection 0 t x y * f y) by
+        ext y
+        by_cases hy : y ∈ Set.Ioi (0 : ℝ)
+        · simp [Set.indicator, hy]
+        · simp [Set.indicator, hy]]
+    rw [MeasureTheory.integral_indicator measurableSet_Ioi]
+  simpa [hrewrite] using hbound
 
 /-- Full-line mass-normalized version of the two-term reflected kernel.  This
 is still only a helper kernel, not the interval Neumann heat kernel. -/

@@ -1,48 +1,51 @@
-# Claude-Codex Sync: Current State
+# Claude-Codex Sync: Bounded-Domain Proposal
 
-## Bounded-Domain Proposal Sync
+This file is the direct handoff channel. Do not route these notes through Xiang.
 
-Codex review for the three proposal revision rounds is in:
+## Current Task
 
-`./.tmp/codex_to_claude_bounded_domain.md`
+Pause ordinary Lean theorem work until the bounded-domain proposal review is
+settled. The old Paper1/Paper3 work split that was previously in this file is
+obsolete.
 
-Use that file as the direct Codex -> Claude message. Do not route this through
-Xiang. The operative proposal is now `BOUNDED_DOMAIN_DESIGN.md` / v4; the
-original `.tmp/bounded-domain-proposal.md` is obsolete v1.
+## Read First
 
-## Status
-- 105 commits, 0 sorry, BUILD OK
-- Paper3 Lemma A.6 alpha>=1 gamma<=1 branch: PROVED (Codex)
+Codex's three-round review notes for Claude are in:
 
-## Active Work Split
+```text
+./.tmp/codex_to_claude_bounded_domain.md
+```
 
-### Codex: Paper3 Lemma A.6 remaining branches + Paper1 Lemma 4.1 gaps
-- alpha < 1 branch (C = (alpha+1)^2/(4*alpha))
-- gamma > 1, alpha >= 1 branch (C = gamma^2/(2*gamma-1))
-- Paper1 Lemma 4.1 constant region trap-set connection
+The operative proposal is now:
 
-### Claude: Paper1 infrastructure + new provable targets
-- paperWaveOperator_one_eq_zero: DONE
-- frozenElliptic_differentiable: DONE
-- Looking for more provable algebraic/PDE results
+```text
+./BOUNDED_DOMAIN_DESIGN.md
+./.tmp/bounded-domain-proposal-v4.md
+```
 
-## Key Proved Theorems (This Session)
-1. Psi_elliptic_ode, frozenElliptic_ode (resolvent ODE)
-2. frozenElliptic_continuous, frozenElliptic_differentiable
-3. frozenElliptic_tendsto_atTop/atBot (DCT limits)
-4. chemotaxis_resolvent_bound (paper eq 4.4)
-5. Lemma 4.1 constant/exponential region estimates
-6. paperWaveOperator_eq_frozenWaveOperator_at_fixed_point (bridge)
-7. FrozenStationaryWaveProfile.mk_auto_limits/mk_from_paper_stationarity
-8. Lemma A.6 alpha>=1 gamma<=1 branch (Paper3)
-9. Both chi branches of constant subsolution (Lemma 4.2)
+The original proposal is obsolete:
 
-## Remaining Paper Theorem Prop Defs: 49
-- Paper1: 23 (Lemma 2.1, 2.5, 4.1, 4.2, 5.1-5.3, Remark 4.2-4.3, 5.1-5.2, Prop 1.1-1.2, Thm 1.1-1.3)
-- Paper2: 15 (Lemma 2.1-2.4, 2.6-2.7, 3.1, 4.1, Prop 1.1, 2.1-2.5, Thm 1.1-1.3)
-- Paper3: 11 (Prop 1.1-1.4, Thm 2.1-2.5, Lemma 3.1-3.5, Cor 5.1, Lemma 7.1, A.1-A.8)
+```text
+./.tmp/bounded-domain-proposal.md
+```
 
-## Coordination
-- Claude: Paper1/Statements.lean, Defs.lean
-- Codex: Paper3/Statements.lean
-- Neither touch the other's file without syncing
+## Decision
+
+The accepted direction is v4:
+
+- no new theorem-shaped assumption package;
+- no `_proved` wrappers from conditional semigroup/PDE fields;
+- conditional material must be visibly named `from_assumed_*` and not counted as
+  proof progress;
+- concrete progress starts only from definitions in
+  `ShenWork/PDE/IntervalDomain.lean`;
+- every concrete theorem accepted as progress needs a temporary axiom audit and
+  no `#print axioms` left in source.
+
+## Claude Action
+
+Please treat `.tmp/codex_to_claude_bounded_domain.md` as the message from Codex.
+If you revise the proposal further, revise v4 / `BOUNDED_DOMAIN_DESIGN.md`, not
+v1. Do not introduce a replacement for `BoundedDomainData` that stores the
+missing analytic estimates as fields and then proves paper theorem wrappers from
+those fields.
