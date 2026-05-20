@@ -321,6 +321,23 @@ lemma heatKernel_deriv_abs_translated_integrable {t : ℝ} (ht : 0 < t)
   ext y
   rw [deriv_heatKernel_translated_left ht x y, deriv_heatKernel ht (x - y)]
 
+lemma modifiedHeatKernel_deriv_abs_translated_integrable {t : ℝ} (ht : 0 < t)
+    (x : ℝ) :
+    MeasureTheory.Integrable
+      (fun y : ℝ =>
+        |Real.exp (-t) * deriv (fun z : ℝ => heatKernel t (z - y)) x|) := by
+  have hfun :
+      (fun y : ℝ =>
+        |Real.exp (-t) * deriv (fun z : ℝ => heatKernel t (z - y)) x|) =
+        fun y : ℝ =>
+          Real.exp (-t) *
+            |deriv (fun z : ℝ => heatKernel t (z - y)) x| := by
+    ext y
+    rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+  rw [hfun]
+  exact (heatKernel_deriv_abs_translated_integrable ht x).const_mul
+    (Real.exp (-t))
+
 lemma heatKernel_deriv_translated_integrable {t : ℝ} (ht : 0 < t)
     (x : ℝ) :
     MeasureTheory.Integrable
@@ -333,6 +350,13 @@ lemma heatKernel_deriv_translated_integrable {t : ℝ} (ht : 0 < t)
   convert hshift using 1
   ext y
   rw [deriv_heatKernel_translated_left ht x y, deriv_heatKernel ht (x - y)]
+
+lemma modifiedHeatKernel_deriv_translated_integrable {t : ℝ} (ht : 0 < t)
+    (x : ℝ) :
+    MeasureTheory.Integrable
+      (fun y : ℝ =>
+        Real.exp (-t) * deriv (fun z : ℝ => heatKernel t (z - y)) x) :=
+  (heatKernel_deriv_translated_integrable ht x).const_mul (Real.exp (-t))
 
 lemma heatKernel_deriv_mul_bounded_integrable {t M : ℝ}
     (ht : 0 < t) {f : ℝ → ℝ} (x : ℝ)
