@@ -12350,6 +12350,32 @@ theorem Theorem_1_3_profile_eq_of_stability_cauchy_unique_and_resolvent
     Theorem_1_3_profile_eq_of_uniform_movingFrame_and_resolvent
       hconv hV₁ hV₂
 
+theorem Theorem_1_3_profile_eq_of_stability_second_tail_continuous
+    {p : CMParams} {c η : ℝ} {U₁ V₁ U₂ V₂ : ℝ → ℝ}
+    (hTW₂ : IsTravelingWave p c U₂ V₂)
+    (hU₂_cont : Continuous U₂)
+    (hbound₂ : HasWaveUpperTailBound p c U₂)
+    (hclose : WeightedL2InitialCloseness η U₂ U₁)
+    (hstable :
+      ∀ u₀ : ℝ → ℝ,
+        NonnegativeInitialDatum u₀ →
+        StrictlyPositiveAtLeft u₀ →
+        WeightedL2InitialCloseness η u₀ U₁ →
+          ∃ u v : ℝ → ℝ → ℝ,
+            IsGlobalCauchySolutionFrom p u₀ u v ∧
+              WeightedL2MovingFrameConvergence η c u U₁ ∧
+              UniformMovingFrameConvergence c u U₁)
+    (hcauchy_unique :
+      ∀ u v : ℝ → ℝ → ℝ,
+        IsGlobalCauchySolutionFrom p U₂ u v →
+          ∀ t x, u t x = U₂ (x - c * t))
+    (hV₁ : V₁ = frozenElliptic p U₁)
+    (hV₂ : V₂ = frozenElliptic p U₂) :
+    (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) :=
+  Theorem_1_3_profile_eq_of_stability_cauchy_unique_and_resolvent
+    hTW₂ (hbound₂.isCUnifBdd_of_continuous hU₂_cont)
+    hclose hstable hcauchy_unique hV₁ hV₂
+
 /-- The same uniqueness bridge with the weighted initial closeness supplied by
 the corrected regular Remark 4.3 tail theorem.  This replaces the explicit
 `WeightedL2InitialCloseness` input by the sharp right-tail asymptotics and the
@@ -12390,6 +12416,40 @@ theorem Theorem_1_3_profile_eq_of_remark43_stability_cauchy_unique_and_resolvent
   exact
     Theorem_1_3_profile_eq_of_stability_cauchy_unique_and_resolvent
       hTW₂ hU₂_bdd hclose hstable hcauchy_unique hV₁ hV₂
+
+theorem Theorem_1_3_profile_eq_of_remark43_second_tail_continuous
+    {p : CMParams} {c eta : ℝ} {U₁ V₁ U₂ V₂ : ℝ → ℝ}
+    (hremark43 : Remark_4_3_regular)
+    (hkappa : 0 < kappa c)
+    (hTW₁ : IsTravelingWave p c U₁ V₁)
+    (hTW₂ : IsTravelingWave p c U₂ V₂)
+    (hU₁_cont : Continuous U₁)
+    (hU₂_cont : Continuous U₂)
+    (hbound₁ : HasWaveUpperTailBound p c U₁)
+    (hbound₂ : HasWaveUpperTailBound p c U₂)
+    (htail₁ : HasRemark43TailAsymptotic p c U₁)
+    (htail₂ : HasRemark43TailAsymptotic p c U₂)
+    (heta : Remark43TailRateBound p c eta)
+    (hstable :
+      ∀ u₀ : ℝ → ℝ,
+        NonnegativeInitialDatum u₀ →
+        StrictlyPositiveAtLeft u₀ →
+        WeightedL2InitialCloseness (eta + kappa c) u₀ U₁ →
+          ∃ u v : ℝ → ℝ → ℝ,
+            IsGlobalCauchySolutionFrom p u₀ u v ∧
+              WeightedL2MovingFrameConvergence (eta + kappa c) c u U₁ ∧
+              UniformMovingFrameConvergence c u U₁)
+    (hcauchy_unique :
+      ∀ u v : ℝ → ℝ → ℝ,
+        IsGlobalCauchySolutionFrom p U₂ u v →
+          ∀ t x, u t x = U₂ (x - c * t))
+    (hV₁ : V₁ = frozenElliptic p U₁)
+    (hV₂ : V₂ = frozenElliptic p U₂) :
+    (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) :=
+  Theorem_1_3_profile_eq_of_remark43_stability_cauchy_unique_and_resolvent
+    hremark43 hkappa hTW₁ hTW₂ hU₁_cont hU₂_cont
+    (hbound₂.isCUnifBdd_of_continuous hU₂_cont)
+    hbound₁ hbound₂ htail₁ htail₂ heta hstable hcauchy_unique hV₁ hV₂
 
 /-- A threshold-level non-projection route toward Theorem 1.3 from the
 stability theorem.  It uses `Theorem_1_2` to supply the weighted stability

@@ -610,11 +610,17 @@ projection theorem wrappers have been removed.
   second wave as initial datum, uses an explicit Cauchy-uniqueness/solution
   identification hypothesis to replace the produced Cauchy solution by the
   moving second wave, and then invokes the moving-frame/resolvent bridge above
+- `Theorem_1_3_profile_eq_of_stability_second_tail_continuous`:
+  the same bridge with the second-profile `IsCUnifBdd` input derived internally
+  from the upper-tail bound and continuity
 - `Theorem_1_3_profile_eq_of_remark43_stability_cauchy_unique_and_resolvent`:
   the same uniqueness bridge with the weighted initial closeness supplied by
   the corrected regular Remark 4.3 tail theorem, so the bridge inputs are now
   sharp tail asymptotics, profile continuity, stability, Cauchy uniqueness,
   and resolvent identification
+- `Theorem_1_3_profile_eq_of_remark43_second_tail_continuous`:
+  the regular Remark 4.3 bridge with the second-profile `IsCUnifBdd` input
+  likewise derived from the second upper-tail bound and continuity
 - `Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent`:
   threshold-level bridge using the real `Theorem_1_2` stability package and
   `Remark_4_3_regular` tail-closeness theorem; the remaining assumptions are
