@@ -537,6 +537,13 @@ projection theorem wrappers have been removed.
   branches for the equilibrium initial datum `u₀ ≡ 1`, using the constant
   global solution `u ≡ v ≡ 1`; the long-time branches expose the boundedness
   and limsup consequences directly.
+- `constant_one_nonnegativeInitialDatum`, `constant_one_uniformlyPositive`,
+  `Proposition_1_1_constant_one_negative_admissible_branch`,
+  `Proposition_1_1_constant_one_positive_admissible_branch`,
+  `Proposition_1_2_constant_one_negative_admissible_branch`, and
+  `Proposition_1_2_constant_one_positive_admissible_branch`: the same
+  equilibrium branches with the original initial-data admissibility hypotheses
+  verified explicitly, still only for `u₀ ≡ 1`.
 - `Proposition_1_1_constant_one_negative_branch`,
   `Proposition_1_1_constant_one_positive_branch`,
   `Proposition_1_2_constant_one_negative_branch`,

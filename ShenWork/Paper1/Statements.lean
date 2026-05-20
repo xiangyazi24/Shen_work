@@ -24,6 +24,22 @@ def UniformlyPositive (u₀ : ℝ → ℝ) : Prop :=
 def StrictlyPositiveAtLeft (u₀ : ℝ → ℝ) : Prop :=
   ∃ δ > 0, ∀ᶠ x in atBot, δ ≤ u₀ x
 
+theorem isCUnifBdd_const (a : ℝ) :
+    IsCUnifBdd (fun _ : ℝ => a) := by
+  exact ⟨continuous_const, ⟨|a|, fun _ => by simp⟩⟩
+
+theorem constant_one_nonnegativeInitialDatum :
+    NonnegativeInitialDatum (fun _ : ℝ => (1 : ℝ)) := by
+  exact ⟨isCUnifBdd_const 1, fun _ => by norm_num⟩
+
+theorem constant_one_uniformlyPositive :
+    UniformlyPositive (fun _ : ℝ => (1 : ℝ)) := by
+  exact ⟨1, by norm_num, fun _ => by norm_num⟩
+
+theorem constant_one_strictlyPositiveAtLeft :
+    StrictlyPositiveAtLeft (fun _ : ℝ => (1 : ℝ)) := by
+  exact ⟨1, by norm_num, Eventually.of_forall fun _ => by norm_num⟩
+
 theorem UniformlyPositive.pos
     {u₀ : ℝ → ℝ} (h : UniformlyPositive u₀) :
     ∀ x, 0 < u₀ x := by
@@ -10718,6 +10734,30 @@ theorem Proposition_1_1_constant_one_positive_long_time_branch
   intro hχ_pos hχ_lt
   exact hlimsup.mono (one_le_positive_branch_limsup_bound p hχ_pos hχ_lt)
 
+theorem Proposition_1_1_constant_one_negative_admissible_branch
+    (p : CMParams) (hχ : p.χ ≤ 0) :
+    NonnegativeInitialDatum (fun _ : ℝ => (1 : ℝ)) ∧
+      ∃ u v : ℝ → ℝ → ℝ,
+        IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
+        (∀ M, (∀ _x : ℝ, (1 : ℝ) ≤ M) →
+          ∀ t x, 0 ≤ t → u t x ≤ max 1 M) ∧
+        UniformLimsupLe u 1 ∧
+        UniformEventuallyBounded u := by
+  exact ⟨constant_one_nonnegativeInitialDatum,
+    Proposition_1_1_constant_one_negative_long_time_branch p hχ⟩
+
+theorem Proposition_1_1_constant_one_positive_admissible_branch
+    (p : CMParams) :
+    NonnegativeInitialDatum (fun _ : ℝ => (1 : ℝ)) ∧
+      ∃ u v : ℝ → ℝ → ℝ,
+        IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
+        UniformEventuallyBounded u ∧
+        UniformLimsupLe u 1 ∧
+        (0 < p.χ → p.χ < 1 →
+          UniformLimsupLe u ((1 / (1 - p.χ)) ^ (1 / p.α))) := by
+  exact ⟨constant_one_nonnegativeInitialDatum,
+    Proposition_1_1_constant_one_positive_long_time_branch p⟩
+
 /-- Paper1 Proposition 1.2: stability of the positive constant solution. -/
 def Proposition_1_2 : Prop :=
   (∀ p : CMParams, p.χ ≤ 0 →
@@ -10837,6 +10877,34 @@ theorem Proposition_1_2_constant_one_positive_long_time_branch
         UniformEventuallyBounded u ∧
         UniformLimsupLe u 1 :=
   Proposition_1_2_constant_one_long_time_branch p
+
+theorem Proposition_1_2_constant_one_negative_admissible_branch
+    (p : CMParams) (hχ : p.χ ≤ 0) :
+    NonnegativeInitialDatum (fun _ : ℝ => (1 : ℝ)) ∧
+      UniformlyPositive (fun _ : ℝ => (1 : ℝ)) ∧
+      ∃ u v : ℝ → ℝ → ℝ,
+        IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
+        UniformConvergesToConstant u 1 ∧
+        UniformEventuallyBounded u ∧
+        UniformLimsupLe u 1 := by
+  exact ⟨constant_one_nonnegativeInitialDatum,
+    constant_one_uniformlyPositive,
+    Proposition_1_2_constant_one_negative_long_time_branch p hχ⟩
+
+theorem Proposition_1_2_constant_one_positive_admissible_branch
+    (p : CMParams) (hχ_pos : 0 < p.χ) (hχ_small : p.χ < (1 / 2 : ℝ))
+    (halpha : p.m + p.γ - 1 ≤ p.α) :
+    NonnegativeInitialDatum (fun _ : ℝ => (1 : ℝ)) ∧
+      UniformlyPositive (fun _ : ℝ => (1 : ℝ)) ∧
+      ∃ u v : ℝ → ℝ → ℝ,
+        IsGlobalCauchySolutionFrom p (fun _ : ℝ => (1 : ℝ)) u v ∧
+        UniformConvergesToConstant u 1 ∧
+        UniformEventuallyBounded u ∧
+        UniformLimsupLe u 1 := by
+  exact ⟨constant_one_nonnegativeInitialDatum,
+    constant_one_uniformlyPositive,
+    Proposition_1_2_constant_one_positive_long_time_branch p hχ_pos hχ_small
+      halpha⟩
 
 /-- Paper1 Theorem 1.1: existence of traveling waves. -/
 def Theorem_1_1 : Prop :=
