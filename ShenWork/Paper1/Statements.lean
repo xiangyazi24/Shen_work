@@ -11493,6 +11493,59 @@ theorem Theorem_1_1.of_raw_frozen_stationary_positive_upper_continuous_branches
       hupper.hasWaveUpperTailBound_of_chi_lt_half_chiStar hχ_nonneg hχ_small,
       hU_cont, hstat, hlim_bot, hlim_top, hupper, htail⟩
 
+theorem Theorem_1_1.of_raw_frozen_stationary_speed_branches
+    (hneg :
+      ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
+        ∀ c : ℝ, cStarLower p < c →
+          ∃ U : ℝ → ℝ,
+            HasWaveUpperTailBound p c U ∧
+              Continuous U ∧
+              (∀ x, frozenWaveOperator p c U U x = 0) ∧
+              Tendsto U atBot (𝓝 1) ∧
+              Tendsto U atTop (𝓝 0) ∧
+              (∀ x, deriv U x ≤ 0) ∧
+              (∀ x, deriv (frozenElliptic p U) x ≤ 0) ∧
+              ShenUpperBoundNegative c U ∧
+              (∀ κ₁, kappa c < κ₁ →
+                κ₁ <
+                  min ((1 + p.α) * kappa c)
+                    (min (p.m * kappa c + 1 / 2) 1) →
+                HasWaveRightTailAsymptotic c κ₁ U))
+    (hpos :
+      ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+        0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+        ∀ c : ℝ, 2 < c →
+          ∃ U : ℝ → ℝ,
+            Continuous U ∧
+              (∀ x, frozenWaveOperator p c U U x = 0) ∧
+              Tendsto U atBot (𝓝 1) ∧
+              Tendsto U atTop (𝓝 0) ∧
+              ShenUpperBoundPositive p c U ∧
+              (∀ κ₁, kappa c < κ₁ →
+                κ₁ <
+                  min ((1 + p.α) * kappa c)
+                    (min (p.m * kappa c + 1 / 2) 1) →
+                HasWaveRightTailAsymptotic c κ₁ U)) :
+    Theorem_1_1 := by
+  refine
+    Theorem_1_1.of_raw_frozen_stationary_positive_upper_continuous_branches ?_ ?_
+  · intro p halpha hχ c hc
+    rcases hneg p halpha hχ c hc with
+      ⟨U, hbound, hU_cont, hstat, hlim_bot, hlim_top,
+        hUmono, hVmono, hupper, htail⟩
+    have hc_pos : 0 < c := by
+      have hc2 : 2 < c := two_lt_of_cStarLower_lt hc
+      linarith
+    exact
+      ⟨U, hc_pos, hbound, hU_cont, hstat, hlim_bot, hlim_top,
+        hUmono, hVmono, hupper, htail⟩
+  · intro p halpha hχ_nonneg hχ_small c hc
+    rcases hpos p halpha hχ_nonneg hχ_small c hc with
+      ⟨U, hU_cont, hstat, hlim_bot, hlim_top, hupper, htail⟩
+    have hc_pos : 0 < c := by linarith
+    exact
+      ⟨U, hc_pos, hU_cont, hstat, hlim_bot, hlim_top, hupper, htail⟩
+
 def StableWaveParameterRegime (p : CMParams) : Prop :=
   (p.χ < 0 ∧ p.α ≤ p.m + p.γ - 1) ∨
     (0 ≤ p.χ ∧ p.χ < chiStar p ∧ p.α = p.m + p.γ - 1)

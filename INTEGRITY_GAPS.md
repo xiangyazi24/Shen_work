@@ -669,6 +669,9 @@ projection theorem wrappers have been removed.
   positive-sensitivity bridge deriving the `HasWaveUpperTailBound` input from
   the paper's `ShenUpperBoundPositive` upper barrier and
   `χ < min(1/2,χ*)`
+- `Theorem_1_1.of_raw_frozen_stationary_speed_branches`: raw fixed-point bridge
+  that derives the auxiliary `0 < c` input from `cStarLower p < c` in the
+  negative branch and from `2 < c` in the positive branch
 - `InWaveTrapSet.tendsto_atTop_zero`,
   `InWaveTrapSet.frozenElliptic_tendsto_atTop_zero`,
   `InMonotoneWaveTrapSet.tendsto_atTop_zero`,
