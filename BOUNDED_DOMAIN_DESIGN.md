@@ -398,3 +398,6 @@ The same file now also defines the concrete helper operator
 constant-input, positivity, monotonicity, interval-bound, linearity,
 domination, `L∞`, contraction, and `L¹ → L∞` smoothing facts directly from the
 integral formula.
+The operator API includes zero, negation, addition, scalar multiplication, and
+subtraction lemmas so downstream arguments can use the concrete operator
+without re-expanding the integral each time.

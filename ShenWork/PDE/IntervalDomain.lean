@@ -719,11 +719,32 @@ theorem normalizedReflectedKernelOperator_add_bounded
   normalizedReflectedKernelIntegral_add_bounded
     hf_bound hg_bound hf_meas hg_meas ht
 
+theorem normalizedReflectedKernelOperator_add
+    {f g : ℝ → ℝ} {t : ℝ} (x : ℝ)
+    (hf : Integrable
+      (fun y => normalizedZerothReflectionKernel 0 t x y * f y))
+    (hg : Integrable
+      (fun y => normalizedZerothReflectionKernel 0 t x y * g y)) :
+    normalizedReflectedKernelOperator t (fun y => f y + g y) x =
+      normalizedReflectedKernelOperator t f x +
+        normalizedReflectedKernelOperator t g x :=
+  normalizedReflectedKernelIntegral_add x hf hg
+
 theorem normalizedReflectedKernelOperator_const_mul
     (a : ℝ) (f : ℝ → ℝ) (t x : ℝ) :
     normalizedReflectedKernelOperator t (fun y => a * f y) x =
       a * normalizedReflectedKernelOperator t f x :=
   normalizedReflectedKernelIntegral_const_mul a f t x
+
+theorem normalizedReflectedKernelOperator_zero_fun (t x : ℝ) :
+    normalizedReflectedKernelOperator t (fun _ => 0) x = 0 := by
+  simp [normalizedReflectedKernelOperator]
+
+theorem normalizedReflectedKernelOperator_neg
+    (f : ℝ → ℝ) (t x : ℝ) :
+    normalizedReflectedKernelOperator t (fun y => -f y) x =
+      -normalizedReflectedKernelOperator t f x := by
+  simpa using normalizedReflectedKernelOperator_const_mul (-1) f t x
 
 theorem normalizedReflectedKernelOperator_sub_bounded
     {f g : ℝ → ℝ} {Mf Mg t : ℝ}
@@ -736,6 +757,17 @@ theorem normalizedReflectedKernelOperator_sub_bounded
         normalizedReflectedKernelOperator t g x :=
   normalizedReflectedKernelIntegral_sub_bounded
     hf_bound hg_bound hf_meas hg_meas ht
+
+theorem normalizedReflectedKernelOperator_sub
+    {f g : ℝ → ℝ} {t : ℝ} (x : ℝ)
+    (hf : Integrable
+      (fun y => normalizedZerothReflectionKernel 0 t x y * f y))
+    (hg : Integrable
+      (fun y => normalizedZerothReflectionKernel 0 t x y * g y)) :
+    normalizedReflectedKernelOperator t (fun y => f y - g y) x =
+      normalizedReflectedKernelOperator t f x -
+        normalizedReflectedKernelOperator t g x :=
+  normalizedReflectedKernelIntegral_sub x hf hg
 
 theorem normalizedReflectedKernelOperator_Linfty_bound
     {f : ℝ → ℝ} {M t : ℝ} (hf : ∀ y, |f y| ≤ M)
