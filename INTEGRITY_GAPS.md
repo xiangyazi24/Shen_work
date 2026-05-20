@@ -838,15 +838,18 @@ Per Playbook §1 Point 11 (honest reporting):
 
 ## Phase 4 Classification (v4 proposal)
 
-### Paper3 `_proved` theorems — actual classification:
+### Paper3 `_proved` / branch theorems — actual classification:
 
 | Theorem | Uses abstract structure? | Correct classification |
 |---------|--------------------------|------------------------|
 | `Lemma_A_6_proved` | No | genuinely proved |
 | `Lemma_3_1_from_global_solution_regular_components` | `PositiveGlobalBoundedSolution` regularity component | accessor, not counted as `_proved` |
-| `Theorem_2_2_linear_*_proved` | `BoundedDomainData` + `SpectralData` | from_assumed_bounded_domain |
-| `Theorem_2_4_linear_stability_branch_proved` | `BoundedDomainData` + `Paper3Constants` | from_assumed_bounded_domain |
-| `Theorem_2_5_linear_stability_branch_proved` | `BoundedDomainData` + `Paper3Constants` | from_assumed_bounded_domain |
+| `Theorem_2_2_linear_stability_chi_nonpos_branch_proved` | `SpectralData` + `HasNeumannSpectrum` | genuine relative spectral branch; does not prove PDE/local stability |
+| `Theorem_2_2_linear_threshold_branch_proved` | `SpectralData` + `HasNeumannSpectrum` | genuine relative spectral branch using the explicit `paperCriticalSensitivity` formula |
+| `Theorem_2_2_linear_critical_spectrum_branch_proved` | `SpectralData` + `Paper3ConstantsUsesCriticalSpectrum` | genuine bridge once `C.chiCritical` is identified with the explicit spectral threshold |
+| `Theorem_2_2_xpSigma_local_exponential_branch_proved` | `Lemma_A_1` + critical-spectrum bridge | bridge from explicit Lemma A.1 local-stability input; not a proof of Lemma A.1 |
+| `Theorem_2_4_linear_stability_branch_proved` | `Lemma_A_7` + critical-spectrum bridge | bridge from explicit A.7 threshold comparisons; not a proof of global stability |
+| `Theorem_2_5_linear_stability_branch_proved` | `Lemma_A_8` + critical-spectrum bridge | bridge from explicit A.8 threshold comparisons; not a proof of global stability |
 
 ### Paper2 `_proved` theorems:
 
@@ -864,6 +867,8 @@ Per Playbook §1 Point 11 (honest reporting):
 | All `_strengthened_proved` | No | genuinely proved |
 | All `not_*` counterexamples | No | genuinely proved |
 
-### Not renaming existing `_proved` per v4 additive policy
-Per v4 proposal "Do not refactor all of Paper2 first", existing
-theorem names are kept. Classification is recorded here only.
+### Naming policy after v4 proposal
+Full theorem-shaped accessors from assumption components should not be named
+`_proved`; `Lemma_3_1_proved` was renamed accordingly. Existing `_proved`
+branch names are kept only where the declaration name itself says it is a
+branch and the remaining inputs are explicit in the theorem type.
