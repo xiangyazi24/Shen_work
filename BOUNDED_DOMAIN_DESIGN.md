@@ -417,3 +417,5 @@ smoothing estimate on the right half-line.
 The half-line API includes both bounded-input and explicit-integrability
 versions of additivity, subtraction, and interval-bound preservation, plus zero
 and negation lemmas.
+The normalized full-line operator API also exposes direct operator-level
+domination wrappers in addition to the underlying integral-level results.

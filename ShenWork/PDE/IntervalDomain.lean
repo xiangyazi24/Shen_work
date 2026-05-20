@@ -1357,6 +1357,21 @@ theorem normalizedReflectedKernelOperator_Linfty_bound
     ∀ x, |normalizedReflectedKernelOperator t f x| ≤ M :=
   fun x => normalizedReflectedKernelIntegral_Linfty_bound hf ht x hf_meas
 
+theorem normalizedReflectedKernelOperator_abs_le_operator_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) :
+    ∀ x, |normalizedReflectedKernelOperator t f x| ≤
+      normalizedReflectedKernelOperator t (fun y => |f y|) x :=
+  fun x => normalizedReflectedKernelIntegral_abs_le_integral_abs ht x
+
+theorem normalizedReflectedKernelOperator_abs_le_of_abs_le
+    {f g : ℝ → ℝ} (hfg : ∀ y, |f y| ≤ g y)
+    {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hg_int : Integrable
+      (fun y => normalizedZerothReflectionKernel 0 t x y * g y)) :
+    |normalizedReflectedKernelOperator t f x| ≤
+      normalizedReflectedKernelOperator t g x :=
+  normalizedReflectedKernelIntegral_abs_le_of_abs_le hfg ht x hg_int
+
 theorem normalizedReflectedKernelOperator_abs_le_of_abs_le_bounded
     {f g : ℝ → ℝ} {Mg t : ℝ}
     (hfg : ∀ y, |f y| ≤ g y)
