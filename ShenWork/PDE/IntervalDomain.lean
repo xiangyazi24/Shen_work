@@ -357,6 +357,82 @@ theorem normalizedReflectedKernelIntegral_interval_bound
   ⟨normalizedReflectedKernelIntegral_lower_bound hlo hf_bound hf_meas ht x,
     normalizedReflectedKernelIntegral_upper_bound hhi hf_bound hf_meas ht x⟩
 
+/-- Additivity of the normalized reflected helper-kernel integral. -/
+theorem normalizedReflectedKernelIntegral_add
+    {f g : ℝ → ℝ} {t : ℝ} (x : ℝ)
+    (hf : Integrable
+      (fun y => normalizedZerothReflectionKernel 0 t x y * f y))
+    (hg : Integrable
+      (fun y => normalizedZerothReflectionKernel 0 t x y * g y)) :
+    ∫ y, normalizedZerothReflectionKernel 0 t x y * (f y + g y) =
+      (∫ y, normalizedZerothReflectionKernel 0 t x y * f y) +
+        ∫ y, normalizedZerothReflectionKernel 0 t x y * g y := by
+  simpa [mul_add] using MeasureTheory.integral_add hf hg
+
+/-- Bounded-input additivity of the normalized reflected helper-kernel
+integral. -/
+theorem normalizedReflectedKernelIntegral_add_bounded
+    {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hf_bound : ∀ y, |f y| ≤ Mf) (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (ht : 0 < t) :
+    ∀ x,
+      ∫ y, normalizedZerothReflectionKernel 0 t x y * (f y + g y) =
+        (∫ y, normalizedZerothReflectionKernel 0 t x y * f y) +
+          ∫ y, normalizedZerothReflectionKernel 0 t x y * g y := by
+  intro x
+  exact normalizedReflectedKernelIntegral_add x
+    (normalizedZerothReflectionKernel_mul_bounded_integrable
+      hf_bound hf_meas ht x)
+    (normalizedZerothReflectionKernel_mul_bounded_integrable
+      hg_bound hg_meas ht x)
+
+/-- Scalar multiplication for the normalized reflected helper-kernel
+integral. -/
+theorem normalizedReflectedKernelIntegral_const_mul
+    (a : ℝ) (f : ℝ → ℝ) (t x : ℝ) :
+    ∫ y, normalizedZerothReflectionKernel 0 t x y * (a * f y) =
+      a * ∫ y, normalizedZerothReflectionKernel 0 t x y * f y := by
+  rw [show
+      (fun y : ℝ => normalizedZerothReflectionKernel 0 t x y * (a * f y)) =
+        (fun y : ℝ => a *
+          (normalizedZerothReflectionKernel 0 t x y * f y)) by
+      ext y
+      ring]
+  exact MeasureTheory.integral_const_mul _ _
+
+/-- Subtraction for the normalized reflected helper-kernel integral. -/
+theorem normalizedReflectedKernelIntegral_sub
+    {f g : ℝ → ℝ} {t : ℝ} (x : ℝ)
+    (hf : Integrable
+      (fun y => normalizedZerothReflectionKernel 0 t x y * f y))
+    (hg : Integrable
+      (fun y => normalizedZerothReflectionKernel 0 t x y * g y)) :
+    ∫ y, normalizedZerothReflectionKernel 0 t x y * (f y - g y) =
+      (∫ y, normalizedZerothReflectionKernel 0 t x y * f y) -
+        ∫ y, normalizedZerothReflectionKernel 0 t x y * g y := by
+  simpa [mul_sub] using MeasureTheory.integral_sub hf hg
+
+/-- Bounded-input subtraction for the normalized reflected helper-kernel
+integral. -/
+theorem normalizedReflectedKernelIntegral_sub_bounded
+    {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hf_bound : ∀ y, |f y| ≤ Mf) (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (ht : 0 < t) :
+    ∀ x,
+      ∫ y, normalizedZerothReflectionKernel 0 t x y * (f y - g y) =
+        (∫ y, normalizedZerothReflectionKernel 0 t x y * f y) -
+          ∫ y, normalizedZerothReflectionKernel 0 t x y * g y := by
+  intro x
+  exact normalizedReflectedKernelIntegral_sub x
+    (normalizedZerothReflectionKernel_mul_bounded_integrable
+      hf_bound hf_meas ht x)
+    (normalizedZerothReflectionKernel_mul_bounded_integrable
+      hg_bound hg_meas ht x)
+
 theorem normalizedReflectedKernelIntegral_Linfty_bound
     {f : ℝ → ℝ} {M : ℝ} (hf : ∀ y, |f y| ≤ M)
     {t : ℝ} (ht : 0 < t) (x : ℝ)
@@ -383,6 +459,35 @@ theorem normalizedReflectedKernelIntegral_Linfty_bound
         ≤ (1 / 2) * (2 * M) := by
           exact mul_le_mul_of_nonneg_left hbound (by norm_num)
     _ = M := by ring
+
+/-- `L∞` contraction for the normalized reflected helper-kernel integral. -/
+theorem normalizedReflectedKernelIntegral_contraction
+    {f g : ℝ → ℝ} {M t : ℝ}
+    (hfg : ∀ y, |f y - g y| ≤ M)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    {Mf Mg : ℝ} (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hg_bound : ∀ y, |g y| ≤ Mg)
+    (ht : 0 < t) :
+    ∀ x,
+      |(∫ y, normalizedZerothReflectionKernel 0 t x y * f y) -
+        ∫ y, normalizedZerothReflectionKernel 0 t x y * g y| ≤ M := by
+  intro x
+  have hf_int :
+      Integrable (fun y => normalizedZerothReflectionKernel 0 t x y * f y) :=
+    normalizedZerothReflectionKernel_mul_bounded_integrable
+      hf_bound hf_meas ht x
+  have hg_int :
+      Integrable (fun y => normalizedZerothReflectionKernel 0 t x y * g y) :=
+    normalizedZerothReflectionKernel_mul_bounded_integrable
+      hg_bound hg_meas ht x
+  have hsub_meas :
+      AEStronglyMeasurable (fun y : ℝ => f y - g y) volume :=
+    hf_meas.sub hg_meas
+  have hbound :=
+    normalizedReflectedKernelIntegral_Linfty_bound
+      (f := fun y : ℝ => f y - g y) hfg ht x hsub_meas
+  rwa [normalizedReflectedKernelIntegral_sub x hf_int hg_int] at hbound
 
 end ShenWork.IntervalDomain
 
