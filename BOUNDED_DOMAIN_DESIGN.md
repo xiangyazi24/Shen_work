@@ -412,14 +412,15 @@ two-term kernel, constant preservation, and the sharp half-line `L∞` bound.
 Using those facts, it proves lower-, upper-, and interval-bound preservation for
 bounded inputs.
 The half-line operator now also has domination, bounded-input domination,
-`L∞` contraction, the two-term pointwise kernel bound, and an `L¹ → L∞`
-smoothing estimate on the right half-line.  It also has `L¹` half-line
-input weighted-kernel integrability and `L¹ → L∞` difference smoothing.
+`L∞` contraction, the two-term pointwise kernel bound, and `L¹ → L∞`
+smoothing estimates on the right half-line in norm and absolute-value forms.
+It also has `L¹` half-line input weighted-kernel integrability and `L¹ → L∞`
+difference smoothing.
 The half-line API includes both bounded-input and explicit-integrability
 versions of additivity, subtraction, and interval-bound preservation, plus zero
 and negation lemmas.
 The normalized full-line operator API also exposes direct operator-level
 domination wrappers in addition to the underlying integral-level results.  It
 now also proves `L¹` input weighted-kernel integrability and normalized
-full-line `L¹ → L∞` difference smoothing at both the integral and operator API
-levels.
+full-line `L¹ → L∞` smoothing in absolute-value form, plus difference
+smoothing at both the integral and operator API levels.

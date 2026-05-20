@@ -1235,6 +1235,17 @@ theorem halfLineReflectedKernelOperator_L1_Linfty_smoothing
         ∫ y in Set.Ioi (0 : ℝ), ‖f y‖ :=
         MeasureTheory.integral_const_mul _ _
 
+/-- Absolute-value form of the half-line reflected helper operator
+`L¹ → L∞` smoothing estimate. -/
+theorem halfLineReflectedKernelOperator_L1_Linfty_smoothing_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : IntegrableOn f (Set.Ioi 0) volume) :
+    |halfLineReflectedKernelOperator t f x| ≤
+      (2 / Real.sqrt (4 * Real.pi * t)) *
+        ∫ y in Set.Ioi (0 : ℝ), |f y| := by
+  simpa [Real.norm_eq_abs] using
+    halfLineReflectedKernelOperator_L1_Linfty_smoothing ht x hf_int
+
 /-- `L¹ → L∞` smoothing for differences of the half-line reflected helper
 operator. -/
 theorem halfLineReflectedKernelOperator_diff_L1_Linfty_smoothing
@@ -1339,6 +1350,16 @@ theorem normalizedReflectedKernelIntegral_L1_Linfty_smoothing
               (norm_nonneg _)
     _ = (1 / Real.sqrt (4 * Real.pi * t)) * ∫ y, ‖f y‖ :=
         MeasureTheory.integral_const_mul _ _
+
+/-- Absolute-value form of the normalized reflected helper-kernel
+`L¹ → L∞` smoothing estimate. -/
+theorem normalizedReflectedKernelIntegral_L1_Linfty_smoothing_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : Integrable f) :
+    |∫ y, normalizedZerothReflectionKernel 0 t x y * f y| ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) * ∫ y, |f y| := by
+  simpa [Real.norm_eq_abs] using
+    normalizedReflectedKernelIntegral_L1_Linfty_smoothing ht x hf_int
 
 /-- `L¹ → L∞` smoothing for differences of the normalized reflected helper
 kernel integral. -/
@@ -1528,6 +1549,13 @@ theorem normalizedReflectedKernelOperator_L1_Linfty_smoothing
     ‖normalizedReflectedKernelOperator t f x‖ ≤
       (1 / Real.sqrt (4 * Real.pi * t)) * ∫ y, ‖f y‖ :=
   normalizedReflectedKernelIntegral_L1_Linfty_smoothing ht x hf_int
+
+theorem normalizedReflectedKernelOperator_L1_Linfty_smoothing_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : Integrable f) :
+    |normalizedReflectedKernelOperator t f x| ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) * ∫ y, |f y| :=
+  normalizedReflectedKernelIntegral_L1_Linfty_smoothing_abs ht x hf_int
 
 theorem normalizedReflectedKernelOperator_diff_L1_Linfty_smoothing
     {f g : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)

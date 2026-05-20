@@ -178,8 +178,8 @@ and stability proofs.  The next phase is:
   estimates, and contraction estimates.
 - `ShenWork/PDE/IntervalDomain.lean`: concrete interval-measure facts,
   constant-mode projection, and reflected-kernel helper estimates, including
-  half-line and normalized full-line helper `L¹ → L∞` smoothing and difference
-  smoothing.
+  half-line and normalized full-line helper `L¹ → L∞` smoothing in norm and
+  absolute-value forms, plus difference smoothing.
 - `ShenWork/PDE/MildSolution.lean`: pointwise Duhamel/contraction estimates and
   `abstract_mild_fixed_point`.
 - `ShenWork/PDE/TravelingWaveConstruction.lean`: true logistic profile facts.
