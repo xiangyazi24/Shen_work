@@ -210,6 +210,60 @@ theorem reflectedKernelIntegral_Linfty_bound
         rw [hkernel_integral]
     _ = 2 * M := by ring
 
+/-- Full-line mass-normalized version of the two-term reflected kernel.  This
+is still only a helper kernel, not the interval Neumann heat kernel. -/
+def normalizedZerothReflectionKernel (L t x y : ℝ) : ℝ :=
+  (1 / 2) * neumannHeatKernel_zerothReflection L t x y
+
+theorem normalizedZerothReflectionKernel_nonneg
+    {t : ℝ} (ht : 0 < t) (L x y : ℝ) :
+    0 ≤ normalizedZerothReflectionKernel L t x y := by
+  unfold normalizedZerothReflectionKernel
+  exact mul_nonneg (by norm_num)
+    (neumannHeatKernel_zerothReflection_nonneg ht L x y)
+
+theorem normalizedZerothReflectionKernel_even
+    (L t x y : ℝ) :
+    normalizedZerothReflectionKernel L t (-x) y =
+      normalizedZerothReflectionKernel L t x y := by
+  unfold normalizedZerothReflectionKernel
+  rw [neumannHeatKernel_zerothReflection_even]
+
+theorem normalizedZerothReflectionKernel_integral
+    {t : ℝ} (ht : 0 < t) (L x : ℝ) :
+    ∫ y, normalizedZerothReflectionKernel L t x y = 1 := by
+  unfold normalizedZerothReflectionKernel
+  rw [MeasureTheory.integral_const_mul]
+  rw [neumannHeatKernel_zerothReflection_integral ht L x]
+  norm_num
+
+theorem normalizedReflectedKernelIntegral_Linfty_bound
+    {f : ℝ → ℝ} {M : ℝ} (hf : ∀ y, |f y| ≤ M)
+    {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_meas : AEStronglyMeasurable f volume) :
+    |∫ y, normalizedZerothReflectionKernel 0 t x y * f y| ≤ M := by
+  have hbound :=
+    reflectedKernelIntegral_Linfty_bound hf ht x hf_meas
+  have hrewrite :
+      (∫ y, normalizedZerothReflectionKernel 0 t x y * f y) =
+        (1 / 2) *
+          ∫ y, neumannHeatKernel_zerothReflection 0 t x y * f y := by
+    unfold normalizedZerothReflectionKernel
+    rw [show
+        (fun y : ℝ =>
+          ((1 / 2) * neumannHeatKernel_zerothReflection 0 t x y) * f y) =
+        (fun y : ℝ =>
+          (1 / 2) * (neumannHeatKernel_zerothReflection 0 t x y * f y)) by
+        ext y
+        ring]
+    exact MeasureTheory.integral_const_mul _ _
+  rw [hrewrite, abs_mul, abs_of_nonneg (by norm_num : 0 ≤ (1 / 2 : ℝ))]
+  calc
+    (1 / 2) * |∫ y, neumannHeatKernel_zerothReflection 0 t x y * f y|
+        ≤ (1 / 2) * (2 * M) := by
+          exact mul_le_mul_of_nonneg_left hbound (by norm_num)
+    _ = M := by ring
+
 end ShenWork.IntervalDomain
 
 end
