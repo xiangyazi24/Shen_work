@@ -640,6 +640,147 @@ theorem normalizedZerothReflectionKernel_pointwise_bound
           (by norm_num)
     _ = 1 / Real.sqrt (4 * Real.pi * t) := by ring
 
+/-- L¹→L∞ smoothing for the reflected Neumann kernel:
+    ‖Tf(x)‖ ≤ (1/√(4πt)) · ‖f‖₁. -/
+theorem normalizedReflectedKernelIntegral_L1_Linfty_smoothing
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : Integrable f) :
+    ‖∫ y, normalizedZerothReflectionKernel 0 t x y * f y‖ ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) * ∫ y, ‖f y‖ := by
+  calc ‖∫ y, normalizedZerothReflectionKernel 0 t x y * f y‖
+      ≤ ∫ y, ‖normalizedZerothReflectionKernel 0 t x y * f y‖ :=
+        norm_integral_le_integral_norm _
+    _ ≤ ∫ y, (1 / Real.sqrt (4 * Real.pi * t)) * ‖f y‖ := by
+        apply MeasureTheory.integral_mono_of_nonneg
+        · exact Filter.Eventually.of_forall fun y => norm_nonneg _
+        · exact (hf_int.norm).smul (1 / Real.sqrt (4 * Real.pi * t))
+        · exact Filter.Eventually.of_forall fun y => by
+            change ‖normalizedZerothReflectionKernel 0 t x y * f y‖ ≤
+              (1 / Real.sqrt (4 * Real.pi * t)) * ‖f y‖
+            rw [norm_mul, Real.norm_eq_abs,
+                abs_of_nonneg
+                  (normalizedZerothReflectionKernel_nonneg ht 0 x y)]
+            exact mul_le_mul_of_nonneg_right
+              (normalizedZerothReflectionKernel_pointwise_bound ht 0 x y)
+              (norm_nonneg _)
+    _ = (1 / Real.sqrt (4 * Real.pi * t)) * ∫ y, ‖f y‖ :=
+        MeasureTheory.integral_const_mul _ _
+
+/-- The concrete full-line operator induced by the normalized two-term
+reflected helper kernel.  This is still only a helper operator, not the full
+interval Neumann heat semigroup. -/
+def normalizedReflectedKernelOperator
+    (t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
+  ∫ y, normalizedZerothReflectionKernel 0 t x y * f y
+
+theorem normalizedReflectedKernelOperator_const
+    {t : ℝ} (ht : 0 < t) (c x : ℝ) :
+    normalizedReflectedKernelOperator t (fun _ => c) x = c := by
+  exact normalizedZerothReflectionKernel_const_integral ht 0 x c
+
+theorem normalizedReflectedKernelOperator_nonneg
+    {f : ℝ → ℝ} (hf : ∀ y, 0 ≤ f y)
+    {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    0 ≤ normalizedReflectedKernelOperator t f x :=
+  normalizedReflectedKernelIntegral_nonneg hf ht x
+
+theorem normalizedReflectedKernelOperator_mono_bounded
+    {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hfg : ∀ y, f y ≤ g y)
+    (hf_bound : ∀ y, |f y| ≤ Mf) (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (ht : 0 < t) :
+    ∀ x, normalizedReflectedKernelOperator t f x ≤
+      normalizedReflectedKernelOperator t g x :=
+  normalizedReflectedKernelIntegral_mono_bounded
+    hfg hf_bound hg_bound hf_meas hg_meas ht
+
+theorem normalizedReflectedKernelOperator_interval_bound
+    {f : ℝ → ℝ} {a b M t : ℝ}
+    (hlo : ∀ y, a ≤ f y) (hhi : ∀ y, f y ≤ b)
+    (hf_bound : ∀ y, |f y| ≤ M)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (ht : 0 < t) (x : ℝ) :
+    a ≤ normalizedReflectedKernelOperator t f x ∧
+      normalizedReflectedKernelOperator t f x ≤ b :=
+  normalizedReflectedKernelIntegral_interval_bound
+    hlo hhi hf_bound hf_meas ht x
+
+theorem normalizedReflectedKernelOperator_add_bounded
+    {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hf_bound : ∀ y, |f y| ≤ Mf) (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (ht : 0 < t) :
+    ∀ x, normalizedReflectedKernelOperator t (fun y => f y + g y) x =
+      normalizedReflectedKernelOperator t f x +
+        normalizedReflectedKernelOperator t g x :=
+  normalizedReflectedKernelIntegral_add_bounded
+    hf_bound hg_bound hf_meas hg_meas ht
+
+theorem normalizedReflectedKernelOperator_const_mul
+    (a : ℝ) (f : ℝ → ℝ) (t x : ℝ) :
+    normalizedReflectedKernelOperator t (fun y => a * f y) x =
+      a * normalizedReflectedKernelOperator t f x :=
+  normalizedReflectedKernelIntegral_const_mul a f t x
+
+theorem normalizedReflectedKernelOperator_sub_bounded
+    {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hf_bound : ∀ y, |f y| ≤ Mf) (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (ht : 0 < t) :
+    ∀ x, normalizedReflectedKernelOperator t (fun y => f y - g y) x =
+      normalizedReflectedKernelOperator t f x -
+        normalizedReflectedKernelOperator t g x :=
+  normalizedReflectedKernelIntegral_sub_bounded
+    hf_bound hg_bound hf_meas hg_meas ht
+
+theorem normalizedReflectedKernelOperator_Linfty_bound
+    {f : ℝ → ℝ} {M t : ℝ} (hf : ∀ y, |f y| ≤ M)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (ht : 0 < t) :
+    ∀ x, |normalizedReflectedKernelOperator t f x| ≤ M :=
+  fun x => normalizedReflectedKernelIntegral_Linfty_bound hf ht x hf_meas
+
+theorem normalizedReflectedKernelOperator_abs_le_of_abs_le_bounded
+    {f g : ℝ → ℝ} {Mg t : ℝ}
+    (hfg : ∀ y, |f y| ≤ g y)
+    (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (ht : 0 < t) :
+    ∀ x, |normalizedReflectedKernelOperator t f x| ≤
+      normalizedReflectedKernelOperator t g x :=
+  normalizedReflectedKernelIntegral_abs_le_of_abs_le_bounded
+    hfg hg_bound hg_meas ht
+
+theorem normalizedReflectedKernelOperator_contraction
+    {f g : ℝ → ℝ} {M t : ℝ}
+    (hfg : ∀ y, |f y - g y| ≤ M)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    {Mf Mg : ℝ} (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hg_bound : ∀ y, |g y| ≤ Mg)
+    (ht : 0 < t) :
+    ∀ x, |normalizedReflectedKernelOperator t f x -
+      normalizedReflectedKernelOperator t g x| ≤ M :=
+  normalizedReflectedKernelIntegral_contraction
+    hfg hf_meas hg_meas hf_bound hg_bound ht
+
+theorem normalizedReflectedKernelOperator_L1_Linfty_smoothing
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : Integrable f) :
+    ‖normalizedReflectedKernelOperator t f x‖ ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) * ∫ y, ‖f y‖ :=
+  normalizedReflectedKernelIntegral_L1_Linfty_smoothing ht x hf_int
+
+#print axioms normalizedReflectedKernelIntegral_L1_Linfty_smoothing
+#print axioms normalizedReflectedKernelOperator_const
+#print axioms normalizedReflectedKernelOperator_interval_bound
+#print axioms normalizedReflectedKernelOperator_contraction
+#print axioms normalizedReflectedKernelOperator_L1_Linfty_smoothing
+
 end ShenWork.IntervalDomain
 
 end
