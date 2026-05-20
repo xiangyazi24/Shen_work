@@ -153,15 +153,15 @@ theorem neumannHeatKernel_zerothReflection_integral
   rw [heatKernel_integral_translated ht x, heatKernel_integral_add ht x]
   norm_num
 
-/-- The half-line Neumann semigroup: integrate the reflected kernel
-against f on [0,∞) only. For nonneg integrable f supported on [0,∞),
-this gives the Neumann heat equation solution on [0,∞). -/
-def halfLineNeumannSemigroup (t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
+/-- Candidate half-line reflected-kernel operator: integrate the two-term
+reflected kernel against `f` on `(0,∞)`.  No PDE or semigroup property is
+claimed here. -/
+def halfLineReflectedKernelOperator (t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
   ∫ y in Set.Ioi 0, neumannHeatKernel_zerothReflection 0 t x y * f y
 
-/-- L^∞ bound for the reflected full-line semigroup:
+/-- L^∞ bound for the reflected full-line kernel integral:
 if |f| ≤ M, then |∫ K_N f| ≤ 2M. -/
-theorem reflectedSemigroup_Linfty_bound
+theorem reflectedKernelIntegral_Linfty_bound
     {f : ℝ → ℝ} {M : ℝ} (hf : ∀ y, |f y| ≤ M)
     {t : ℝ} (ht : 0 < t) (x : ℝ)
     (_hf_meas : AEStronglyMeasurable f volume) :

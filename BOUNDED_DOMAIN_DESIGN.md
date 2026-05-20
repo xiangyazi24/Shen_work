@@ -383,5 +383,6 @@ facts, not Paper2 theorem wrappers and not semigroup estimate assumptions.
 The file also contains a zeroth-reflection heat-kernel helper,
 `neumannHeatKernel_zerothReflection`, with proved nonnegativity and evenness in
 the reflected variable, plus the whole-line integral identities
-`heatKernel_integral_add` and `neumannHeatKernel_zerothReflection_integral`.
-This is not claimed to be the full interval Neumann heat semigroup.
+`heatKernel_integral_add` and `neumannHeatKernel_zerothReflection_integral`,
+and the bounded-input estimate `reflectedKernelIntegral_Linfty_bound`.  This is
+not claimed to be the full interval Neumann heat semigroup.
