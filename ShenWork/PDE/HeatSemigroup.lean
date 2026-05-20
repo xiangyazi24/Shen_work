@@ -86,6 +86,11 @@ theorem heatKernel_integral_abs_eq_one {t : ℝ} (ht : 0 < t) :
 lemma heatKernel_neg (t x : ℝ) : heatKernel t (-x) = heatKernel t x := by
   unfold heatKernel; congr 1; congr 1; ring
 
+/-- The heat kernel is symmetric: G(t, x-y) = G(t, y-x). -/
+lemma heatKernel_sub_comm (t x y : ℝ) :
+    heatKernel t (x - y) = heatKernel t (y - x) := by
+  rw [show y - x = -(x - y) from by ring, heatKernel_neg]
+
 /-- The heat kernel integrates to 1 after translation: ∫ G(t, x-y) dy = 1. -/
 theorem heatKernel_integral_translated {t : ℝ} (ht : 0 < t) (x : ℝ) :
     ∫ y : ℝ, heatKernel t (x - y) = 1 := by
@@ -1495,5 +1500,40 @@ theorem modifiedSemigroup_contraction {f g : ℝ → ℝ} {M t : ℝ}
     modifiedSemigroup_Linfty_bound
       (f := fun y : ℝ => f y - g y) (M := M) hfg ht hM hsub_meas x
   rwa [modifiedSemigroup_sub x hf_int hg_int] at hbound
+
+/-- The heat semigroup is symmetric in the sense that swapping x and y
+    in the kernel gives the same integrand. -/
+theorem heatSemigroup_kernel_symm (t x y : ℝ) :
+    heatKernel t (x - y) = heatKernel t (y - x) :=
+  heatKernel_sub_comm t x y
+
+/-- The heat kernel at translated argument satisfies the exponential
+    decay estimate: G(t, x) ≤ (1/√(4πt)) · exp(-x²/(4t)).
+    This is the definition itself, but stated as a bound. -/
+theorem heatKernel_exponential_decay {t : ℝ} (_ht : 0 < t) (x : ℝ) :
+    heatKernel t x ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) *
+        Real.exp (-(x ^ 2) / (4 * t)) := le_refl _
+
+/-- The heat kernel at distance R from origin decays as exp(-R²/(4t))/√(4πt). -/
+theorem heatKernel_at_distance {t R : ℝ} (_ht : 0 < t) (_hR : 0 ≤ R) :
+    heatKernel t R ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) *
+        Real.exp (-(R ^ 2) / (4 * t)) := le_refl _
+
+/-- The heat kernel decays monotonically away from the origin:
+    for |x| ≥ R ≥ 0, G(t,x) ≤ G(t,R). -/
+theorem heatKernel_mono_away {t x R : ℝ} (ht : 0 < t)
+    (hR : 0 ≤ R) (hxR : R ≤ |x|) :
+    heatKernel t x ≤ heatKernel t R := by
+  unfold heatKernel
+  apply mul_le_mul_of_nonneg_left _ (div_nonneg one_pos.le (Real.sqrt_nonneg _))
+  apply Real.exp_le_exp.mpr
+  have hsq : R ^ 2 ≤ x ^ 2 :=
+    calc R ^ 2 ≤ |x| ^ 2 :=
+          sq_le_sq' (by linarith [abs_nonneg x]) hxR
+      _ = x ^ 2 := sq_abs x
+  exact div_le_div_of_nonneg_right (neg_le_neg hsq)
+    (show (0 : ℝ) ≤ 4 * t by nlinarith [ht])
 
 end

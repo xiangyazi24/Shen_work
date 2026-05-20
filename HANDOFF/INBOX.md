@@ -1,72 +1,100 @@
-# Shen_work Lean 4 Formalization — Full Task List for Codex
+# Shen_work — Current Task for Codex
 
-## Project state
+## Build
 
-- **Repo**: `~/repos/shen_work`, Lean 4 + Mathlib
-- **Build**: `cd ~/repos/shen_work && ~/.openclaw/workspace/scripts/remote-build.sh shen_work` (DO NOT run local `lake build`)
-- **Single file**: `~/.openclaw/workspace/scripts/remote-build.sh shen_work --file ShenWork/Defs.lean`
-- **Current invariant**: 0 sorry, full build clean
-- **Papers**: `paper1.pdf` (traveling waves), `paper2.pdf` (boundedness), `paper3.pdf` (persistence)
-
-## What's wrong
-
-All paper theorems are defined as `def Foo : Prop := ...` (statement targets) with
-projection lemmas proved between them. **No actual PDE theorem is proved.** The 0-sorry
-invariant is fake — it just means nothing uses `sorry` because the hard theorems are
-encoded as Prop definitions, not as `theorem ... := sorry`.
-
-## What to do
-
-Convert statement targets into real theorems (with `sorry` initially) and then prove them.
-Introduce `sorry` honestly where real math is needed, then eliminate each one.
-
-## Priority 1: Psi elliptic ODE identity
-
-The resolvent `v(x) = Ψ(x; f, λ, μ) = (μ/(2√λ)) ∫ e^{-√λ|x-y|} f(y) dy` satisfies:
-
-```
-v''(x) - λ v(x) + μ f(x) = 0
+```bash
+~/.openclaw/workspace/scripts/remote-build.sh shen_work
+~/.openclaw/workspace/scripts/remote-build.sh shen_work --file ShenWork/PDE/IntervalDomain.lean
 ```
 
-This is in `ShenWork/PDE/LeibnizRule.lean` as `Psi_elliptic_ode` (currently `sorry`).
+NEVER run local `lake build`. Invariant: 0 sorry, BUILD OK.
 
-**Proof strategy**: 
-1. The first derivative `v'(x)` is already proved as `Psi_derivative_formula_general`
-2. v'(x) = -(μ/2) e^{-ax} L(x) + (μ/2) e^{ax} R(x) where a = √λ
-3. L(x) = ∫_{Iic x} e^{ay} f(y) dy, R(x) = ∫_{Ioi x} e^{-ay} f(y) dy
-4. Use FTC: L'(x) = e^{ax}f(x), R'(x) = -e^{-ax}f(x)
-5. Product rule → v''(x) = a²v(x) - μf(x) = λv(x) - μf(x)
+## Task: Interval Semigroup Operator (Phase 4 of bounded-domain proposal)
 
-FTC for half-line integrals: `hasDerivAt_setIntegral_Iic_of_continuous` is started (also in LeibnizRule.lean, currently `sorry`). Use `Set.Iic_union_Ioc_eq_Iic` to split, then `intervalIntegral.integral_hasDerivAt_right` for the interval part.
+File: `ShenWork/PDE/IntervalDomain.lean`
 
-## Priority 2: Lemma 4.1 — upper barrier supersolution
+### What exists
 
-`IsFrozenSuperSolution p c u (upperBarrier κ M)` — the upper barrier `min(M, exp(-κx))` 
-is a supersolution of the frozen wave equation when u is in the trap set.
+The file already has:
+- `intervalMeasure L := volume.restrict (Set.Icc 0 L)` — restricted Lebesgue measure
+- `normalizedZerothReflectionKernel L t x y` — the reflected heat kernel (nonneg, integral=1, pointwise bound ≤ 1/√(4πt))
+- `normalizedReflectedKernelIntegral_L1_Linfty_smoothing` — whole-line L1→L∞ bound
+- `normalizedReflectedKernelOperator` — whole-line kernel operator with full API (nonneg, const, mono, bound, add, sub, contraction, smoothing)
 
-Key facts already proved:
-- `expDecay_logistic_wave_nonpos_at_kappa`: exponential part satisfies logistic ≤ 0
-- `constant_logistic_nonpos`: constant M ≥ 1 satisfies logistic ≤ 0
-- Comparison principle proved in `ParabolicMaxPrinciple.lean`
+### What to add
 
-The chemotaxis term `χ·(W^m · V_x)_x` needs Psi ODE identity (Priority 1) to handle.
+Define the **interval semigroup operator** and prove its key properties. This connects the whole-line kernel to the bounded-domain setting needed for Paper2.
 
-## Priority 3: Lemma 4.2 — lower barrier subsolution  
+#### 1. Definition
 
-Similar structure but for `lowerBarrierPlateau` and constant subsolutions.
+```lean
+def intervalSemigroupOperator (L t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
+  ∫ y, normalizedZerothReflectionKernel L t x y * f y ∂ intervalMeasure L
+```
 
-## Priority 4: Paper1 Proposition 1.1 — global existence
+#### 2. Restricted kernel integral ≤ 1
 
-Schauder fixed point on the function space `E_T(u₀)`. Needs comparison principle + 
-compactness. Very involved.
+```lean
+theorem normalizedZerothReflectionKernel_intervalIntegral_le_one
+    {t : ℝ} (ht : 0 < t) (L x : ℝ) :
+    ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L ≤ 1
+```
 
-## Priority 5: Paper2/Paper3 theorems
+Proof sketch: `∫ K ∂ intervalMeasure = ∫ K in Icc 0 L ≤ ∫ K = 1` via `set_integral_le_integral` (K ≥ 0, K integrable) + `normalizedZerothReflectionKernel_integral`.
 
-Less urgent. Paper2 bounded-domain PDE predicates need genuine instantiation first.
+#### 3. Positivity preservation
 
-## Build rules
+```lean
+theorem intervalSemigroupOperator_nonneg
+    {L t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf : ∀ y, 0 ≤ f y) (x : ℝ) :
+    0 ≤ intervalSemigroupOperator L t f x
+```
 
-- **Remote only**: `~/.openclaw/workspace/scripts/remote-build.sh shen_work`
-- **Never** run `lake build` or `lake env lean` locally
-- Introduce `sorry` where needed — honest sorry is better than fake 0-sorry
-- Run `rg -n "\bsorry\b|axiom|admit" ShenWork --glob '*.lean'` to track progress
+Proof: `integral_nonneg` (K ≥ 0, f ≥ 0).
+
+#### 4. L1→L∞ smoothing
+
+```lean
+theorem intervalSemigroupOperator_L1_Linfty
+    {L t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf_int : Integrable f (intervalMeasure L)) (x : ℝ) :
+    ‖intervalSemigroupOperator L t f x‖ ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) *
+        ∫ y, ‖f y‖ ∂ intervalMeasure L
+```
+
+Proof: same calc chain as `normalizedReflectedKernelIntegral_L1_Linfty_smoothing` but with `intervalMeasure` — `norm_integral_le_integral_norm`, `integral_mono_of_nonneg` (using pointwise bound), `integral_const_mul`. All these Mathlib lemmas work for arbitrary measures.
+
+Key pattern for the pointwise bound step (needs beta-reduction):
+```lean
+· exact Filter.Eventually.of_forall fun y => by
+    change ‖normalizedZerothReflectionKernel L t x y * f y‖ ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) * ‖f y‖
+    rw [norm_mul, Real.norm_eq_abs,
+        abs_of_nonneg (normalizedZerothReflectionKernel_nonneg ht L x y)]
+    exact mul_le_mul_of_nonneg_right
+      (normalizedZerothReflectionKernel_pointwise_bound ht L x y)
+      (norm_nonneg _)
+```
+
+For integrability of the upper bound: `(hf_int.norm).smul (1 / Real.sqrt (4 * Real.pi * t))`.
+
+#### 5. L∞ contraction
+
+```lean
+theorem intervalSemigroupOperator_Linfty_bound
+    {L t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} {M : ℝ} (hM : 0 ≤ M) (hf : ∀ y, |f y| ≤ M) (x : ℝ) :
+    |intervalSemigroupOperator L t f x| ≤ M
+```
+
+Proof: |∫ K f| ≤ ∫ K |f| ≤ M ∫ K ≤ M · 1 = M. Uses `normalizedZerothReflectionKernel_intervalIntegral_le_one`.
+
+### Constraints
+
+- 0 sorry, BUILD OK
+- No axioms, no assumption structures
+- Follow the naming pattern of the existing `normalizedReflectedKernelOperator_*` theorems
+- Add theorems at the end of IntervalDomain.lean, before `end ShenWork.IntervalDomain`
+- Run `rg -n "\bsorry\b" ShenWork --glob '*.lean'` after every edit
