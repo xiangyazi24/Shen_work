@@ -112,17 +112,17 @@ Not acceptable as proof progress:
 - conditional declarations imported into `ShenWork.lean` as if they were part of
   the real proof chain.
 
-## Current Repository Warning
+## Current Repository Status
 
-There is currently an untracked `ShenWork/PDE/ConditionalBoundedDomain.lean` and
-a dirty import of it in `ShenWork.lean`. That is not part of the accepted v4
-implementation track. Before any commit/build handoff, either:
+`ShenWork/PDE/ConditionalBoundedDomain.lean` is tracked and contains a visible
+module warning that it records conditional consequences only. `ShenWork.lean`
+does not currently import it, so the conditional layer is not on the aggregate
+build path.
 
-1. remove that import and leave the conditional file untracked scratch, or
-2. explicitly mark the file as conditional documentation only and get Xiang's
-   approval before tracking/importing it.
-
-For now, do not build new work on that conditional file.
+Do not add that import or build new proof-progress work on the conditional file
+unless Xiang explicitly approves it. If it is used later, every exported theorem
+must remain clearly conditional and must not be counted as Paper2/Paper3
+end-to-end theorem progress.
 
 ## Final Proposal State
 
