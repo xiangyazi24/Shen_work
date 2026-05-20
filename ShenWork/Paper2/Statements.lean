@@ -275,6 +275,24 @@ lemma IsPaper2Bounded.eventually_bound
     ∃ M, ∀ᶠ t in atTop, D.supNorm (u t) ≤ M :=
   h
 
+lemma IsPaper2Bounded.of_eventually_supNorm_le
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {M : ℝ}
+    (h : ∀ᶠ t in atTop, D.supNorm (u t) ≤ M) :
+    IsPaper2Bounded D u :=
+  ⟨M, h⟩
+
+lemma IsPaper2Bounded.of_forall_ge_supNorm_le
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T M : ℝ}
+    (h : ∀ t, T ≤ t → D.supNorm (u t) ≤ M) :
+    IsPaper2Bounded D u := by
+  exact ⟨M, eventually_atTop.mpr ⟨T, h⟩⟩
+
+lemma IsPaper2Bounded.of_forall_nonneg_supNorm_le
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {M : ℝ}
+    (h : ∀ t, 0 ≤ t → D.supNorm (u t) ≤ M) :
+    IsPaper2Bounded D u :=
+  IsPaper2Bounded.of_forall_ge_supNorm_le (T := 0) h
+
 def IsPaper2BoundedBefore
     (D : BoundedDomainData) (Tmax : ℝ) (u : ℝ → D.Point → ℝ) : Prop :=
   ∃ M, ∀ t, 0 < t → t < Tmax → D.supNorm (u t) ≤ M

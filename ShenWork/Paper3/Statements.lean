@@ -1043,6 +1043,20 @@ lemma Proposition_1_2_proved
     Proposition_1_2 D p :=
   A.negativeSensitivityGlobalBounded p
 
+lemma Proposition_1_2_of_negativeSensitivityGlobalEventualBound
+    (D : BoundedDomainData) (p : CM2Params)
+    (h :
+      p.χ₀ ≤ 0 → 1 ≤ p.m →
+        ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+          ∃ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            ∃ M : ℝ, ∀ᶠ t in atTop, D.supNorm (u t) ≤ M) :
+    Proposition_1_2 D p := by
+  intro hχ hm u₀ hu₀
+  rcases h hχ hm u₀ hu₀ with ⟨u, v, hglobal, htrace, M, hM⟩
+  exact ⟨u, v, hglobal, htrace, ⟨M, hM⟩⟩
+
 lemma Proposition_1_2.nonminimal_global_bounded_before_solution_of_paper2_theorem_1_1
     {D : BoundedDomainData} {p : CM2Params}
     (h : Paper2.Theorem_1_1 D p)

@@ -639,6 +639,20 @@ theorem Lemma_2_1.divergence_linf
           Real.exp (-t) * S.lpNorm p u :=
   (h p q hp hpq).2.2
 
+theorem not_forall_Lemma_2_1 :
+    ¬ (∀ S : HeatSemigroupEstimateData, Lemma_2_1 S) := by
+  intro hall
+  let S : HeatSemigroupEstimateData :=
+    { lpNorm := fun _ _ => 0
+      lqNorm := fun _ _ => 1
+      linftyNorm := fun _ => 0
+      gradientNorm := fun _ _ => 0
+      semigroup := fun _ _ _ => 0
+      divergenceSemigroup := fun _ _ _ => 0 }
+  rcases (hall S 2 2 (by norm_num) le_rfl).1 with ⟨C, hC_pos, hC⟩
+  have hbad := hC 1 (by norm_num) (fun _ => 0)
+  norm_num [S] at hbad
+
 def PsiDerivativeFormula (u : ℝ → ℝ) (l mu : ℝ) : Prop :=
   ∀ x,
     deriv (fun z => Psi u l mu z) x =
@@ -4619,6 +4633,197 @@ theorem chemotaxis_resolvent_bound
   congr 1
   nlinarith [hcoeff]
 
+theorem frozenWaveOperator_exp_nonpos_of_chi_nonpos_of_resolvent_bound
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hc : 2 ≤ c) (hκ_eq : κ = kappa c)
+    (hκ : 0 < κ) (hγκ : p.γ * κ < 1) (hmκ : κ * p.m ≤ 1)
+    (hχ : p.χ ≤ 0) (hM : 1 ≤ M) (hu : InWaveTrapSet κ M u) (x : ℝ)
+    (hV_diff : DifferentiableAt ℝ (deriv (frozenElliptic p u)) x)
+    (hgap :
+      -p.χ * (expDecay κ x) ^ p.m *
+          (((1 + p.m * p.γ * κ ^ 2) / (1 - p.γ ^ 2 * κ ^ 2)) *
+            (expDecay κ x) ^ p.γ - (u x) ^ p.γ) ≤
+        expDecay κ x * (expDecay κ x) ^ p.α) :
+    frozenWaveOperator p c u (expDecay κ) x ≤ 0 := by
+  let E := expDecay κ x
+  let V := frozenElliptic p u x
+  let Vx := deriv (frozenElliptic p u) x
+  let C := (1 + p.m * p.γ * κ ^ 2) / (1 - p.γ ^ 2 * κ ^ 2)
+  have hE_pos : 0 < E := by
+    dsimp [E]
+    exact expDecay_pos κ x
+  have hE_nonneg : 0 ≤ E := hE_pos.le
+  have hEgamma :
+      Real.exp (-(p.γ * κ) * x) = E ^ p.γ := by
+    dsimp [E]
+    rw [expDecay_rpow_eq κ p.γ x]
+    unfold expDecay
+    congr 1
+    ring
+  have hres :
+      -(p.m * κ) * Vx + V ≤ C * E ^ p.γ := by
+    dsimp [V, Vx, C]
+    have h := chemotaxis_resolvent_bound p hκ hγκ hmκ hM hu x
+    rw [hEgamma] at h
+    convert h using 1 <;> ring
+  have hbracket :
+      -(p.m * κ) * Vx + V - (u x) ^ p.γ ≤ C * E ^ p.γ - (u x) ^ p.γ := by
+    linarith
+  have hcoef_nonneg : 0 ≤ -p.χ * E ^ p.m := by
+    exact mul_nonneg (neg_nonneg.mpr hχ)
+      (Real.rpow_nonneg hE_nonneg p.m)
+  have hchem_le :
+      -p.χ * E ^ p.m *
+          (-(p.m * κ) * Vx + V - (u x) ^ p.γ) ≤
+        -p.χ * E ^ p.m * (C * E ^ p.γ - (u x) ^ p.γ) :=
+    mul_le_mul_of_nonneg_left hbracket hcoef_nonneg
+  rw [frozenWaveOperator_exp_full_eq p hc hκ_eq hu.cunif_bdd hu.nonneg x hV_diff]
+  dsimp [E, V, Vx, C] at hchem_le hgap
+  linarith
+
+theorem frozenWaveOperator_exp_nonpos_of_chi_nonpos
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hc : 2 ≤ c) (hκ_eq : κ = kappa c)
+    (hχ : p.χ ≤ 0) (hα : p.α ≤ p.m + p.γ - 1)
+    (hκ : 0 < κ) (hγκ : p.γ * κ < 1) (hmκ : κ * p.m ≤ 1)
+    (hM : 1 ≤ M)
+    (hMbound :
+      |p.χ| * ((1 + p.m * p.γ * κ ^ 2) / (1 - p.γ ^ 2 * κ ^ 2)) *
+        M ^ (p.m + p.γ - p.α - 1) ≤ 1)
+    (hu : InWaveTrapSet κ M u) {x : ℝ}
+    (hx : expDecay κ x < M)
+    (hV_diff : DifferentiableAt ℝ (deriv (frozenElliptic p u)) x) :
+    frozenWaveOperator p c u (expDecay κ) x ≤ 0 := by
+  apply frozenWaveOperator_exp_nonpos_of_chi_nonpos_of_resolvent_bound
+    p hc hκ_eq hκ hγκ hmκ hχ hM hu x hV_diff
+  let E := expDecay κ x
+  let C := (1 + p.m * p.γ * κ ^ 2) / (1 - p.γ ^ 2 * κ ^ 2)
+  let δ := p.m + p.γ - p.α - 1
+  have hE_pos : 0 < E := expDecay_pos κ x
+  have hE_nonneg : 0 ≤ E := hE_pos.le
+  have hδ_nonneg : 0 ≤ δ := by
+    dsimp [δ]
+    linarith
+  have hEδ_le_Mδ : E ^ δ ≤ M ^ δ :=
+    Real.rpow_le_rpow hE_nonneg hx.le hδ_nonneg
+  have hden_pos : 0 < 1 - p.γ ^ 2 * κ ^ 2 := by
+    have hγ_pos : 0 < p.γ := by linarith [p.hγ]
+    have hγκ_pos : 0 < p.γ * κ := mul_pos hγ_pos hκ
+    have hsq : (p.γ * κ) ^ 2 < 1 := by
+      rw [sq_lt_one_iff_abs_lt_one]
+      rw [abs_of_pos hγκ_pos]
+      exact hγκ
+    nlinarith
+  have hC_nonneg : 0 ≤ C := by
+    dsimp [C]
+    exact div_nonneg
+      (by
+        have hm_nonneg : 0 ≤ p.m := by linarith [p.hm]
+        have hγ_nonneg : 0 ≤ p.γ := by linarith [p.hγ]
+        have hκsq_nonneg : 0 ≤ κ ^ 2 := sq_nonneg κ
+        have hterm : 0 ≤ p.m * p.γ * κ ^ 2 :=
+          mul_nonneg (mul_nonneg hm_nonneg hγ_nonneg) hκsq_nonneg
+        linarith)
+      hden_pos.le
+  have hcoef_nonneg : 0 ≤ |p.χ| * C := mul_nonneg (abs_nonneg p.χ) hC_nonneg
+  have hcoef_Eδ : |p.χ| * C * E ^ δ ≤ 1 := by
+    have hmul := mul_le_mul_of_nonneg_left hEδ_le_Mδ hcoef_nonneg
+    have hMbound' : |p.χ| * C * M ^ δ ≤ 1 := by
+      dsimp [C, δ]
+      exact hMbound
+    exact le_trans (by simpa [mul_assoc] using hmul) hMbound'
+  have hpow_split :
+      E ^ p.m * E ^ p.γ = E ^ (p.α + 1) * E ^ δ := by
+    dsimp [δ]
+    rw [← Real.rpow_add hE_pos, ← Real.rpow_add hE_pos]
+    congr 1
+    ring
+  have hE_pow :
+      E * E ^ p.α = E ^ (p.α + 1) := by
+    have : E = E ^ (1 : ℝ) := (Real.rpow_one E).symm
+    nth_rw 1 [this]
+    rw [← Real.rpow_add hE_pos]
+    congr 1
+    ring
+  have hminus_chi : -p.χ = |p.χ| := by
+    rw [abs_of_nonpos hχ]
+  have hright_nonneg : 0 ≤ E * E ^ p.α :=
+    mul_nonneg hE_nonneg (Real.rpow_nonneg hE_nonneg p.α)
+  calc
+    -p.χ * E ^ p.m * (C * E ^ p.γ - (u x) ^ p.γ)
+        ≤ -p.χ * E ^ p.m * (C * E ^ p.γ) := by
+          have hcoef : 0 ≤ -p.χ * E ^ p.m :=
+            mul_nonneg (neg_nonneg.mpr hχ)
+              (Real.rpow_nonneg hE_nonneg p.m)
+          have hsource_nonneg : 0 ≤ (u x) ^ p.γ :=
+            Real.rpow_nonneg (hu.nonneg x) p.γ
+          exact mul_le_mul_of_nonneg_left (by linarith) hcoef
+    _ = (|p.χ| * C * E ^ δ) * (E * E ^ p.α) := by
+          rw [hminus_chi, hE_pow]
+          calc
+            |p.χ| * E ^ p.m * (C * E ^ p.γ)
+                = |p.χ| * C * (E ^ p.m * E ^ p.γ) := by ring
+            _ = |p.χ| * C * (E ^ (p.α + 1) * E ^ δ) := by
+                rw [hpow_split]
+            _ = (|p.χ| * C * E ^ δ) * E ^ (p.α + 1) := by ring
+    _ ≤ 1 * (E * E ^ p.α) :=
+        mul_le_mul_of_nonneg_right hcoef_Eδ hright_nonneg
+    _ = E * E ^ p.α := by ring
+
+theorem frozenWaveOperator_upperBarrier_exp_region_eq
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    {x : ℝ} (hx : expDecay κ x < M) :
+    frozenWaveOperator p c u (upperBarrier κ M) x =
+      frozenWaveOperator p c u (expDecay κ) x := by
+  have hx' : Real.exp (-κ * x) < M := by
+    simpa [expDecay] using hx
+  have hW : upperBarrier κ M =ᶠ[𝓝 x] expDecay κ :=
+    upperBarrier_eventuallyEq_exp_of_lt hx'
+  have hW_deriv :
+      deriv (upperBarrier κ M) x = deriv (expDecay κ) x :=
+    Filter.EventuallyEq.deriv_eq hW
+  have hW_two :
+      iteratedDeriv 2 (upperBarrier κ M) x = iteratedDeriv 2 (expDecay κ) x := by
+    rw [upperBarrier_iteratedDeriv_two_eq_exp_of_lt hx']
+    exact (expDecay_iteratedDeriv_two κ x).symm
+  have hW_x : upperBarrier κ M x = expDecay κ x := by
+    rw [upperBarrier_eq_exp_of_exp_le (le_of_lt hx')]
+    simp [expDecay]
+  have hWpow :
+      (fun y => (upperBarrier κ M y) ^ p.m *
+          deriv (frozenElliptic p u) y) =ᶠ[𝓝 x]
+        fun y => (expDecay κ y) ^ p.m *
+          deriv (frozenElliptic p u) y := by
+    filter_upwards [hW] with y hy
+    rw [hy]
+  have hchem :
+      deriv
+          (fun y => (upperBarrier κ M y) ^ p.m *
+            deriv (frozenElliptic p u) y) x =
+        deriv
+          (fun y => (expDecay κ y) ^ p.m *
+            deriv (frozenElliptic p u) y) x :=
+    Filter.EventuallyEq.deriv_eq hWpow
+  unfold frozenWaveOperator
+  rw [hW_two, hW_deriv, hchem, hW_x]
+
+theorem frozenWaveOperator_upperBarrier_exp_region_nonpos_of_chi_nonpos
+    (p : CMParams) {c κ M : ℝ} {u : ℝ → ℝ}
+    (hc : 2 ≤ c) (hκ_eq : κ = kappa c)
+    (hχ : p.χ ≤ 0) (hα : p.α ≤ p.m + p.γ - 1)
+    (hκ : 0 < κ) (hγκ : p.γ * κ < 1) (hmκ : κ * p.m ≤ 1)
+    (hM : 1 ≤ M)
+    (hMbound :
+      |p.χ| * ((1 + p.m * p.γ * κ ^ 2) / (1 - p.γ ^ 2 * κ ^ 2)) *
+        M ^ (p.m + p.γ - p.α - 1) ≤ 1)
+    (hu : InWaveTrapSet κ M u) {x : ℝ}
+    (hx : expDecay κ x < M)
+    (hV_diff : DifferentiableAt ℝ (deriv (frozenElliptic p u)) x) :
+    frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0 := by
+  rw [frozenWaveOperator_upperBarrier_exp_region_eq p hx]
+  exact frozenWaveOperator_exp_nonpos_of_chi_nonpos p hc hκ_eq hχ hα hκ hγκ
+    hmκ hM hMbound hu hx hV_diff
+
 theorem paperWaveOperator_exp_region_hdom_of_resolvent_bound
     (p : CMParams) {κ M : ℝ} {u : ℝ → ℝ}
     (hκ : 0 < κ) (hγκ : p.γ * κ < 1) (hmκ : κ * p.m ≤ 1)
@@ -5044,6 +5249,44 @@ theorem Remark_4_2.exists_time_slice_subsolutions
             ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
               IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ :=
   h p κ κtilde M c T hκ0 hκ1 hgap hrange hM hT hc
+
+/-- The `M = 1` slice of Paper1 Remark 4.2.  In this case the finite-time
+barrier `min 1 (1 * exp(-κx))` is exactly the wave-trap upper barrier, so this
+part follows from Lemma 4.2 without an additional analytic assumption. -/
+def Remark_4_2_M_one : Prop :=
+  ∀ p : CMParams, ∀ κ κtilde c T : ℝ,
+    0 < κ → κ < 1 →
+      κ < κtilde →
+      κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
+      0 < T → c = κ + κ⁻¹ →
+        ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
+          ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ 1 T u →
+            (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+              IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
+                (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
+            ∀ d : ℝ, 0 < d →
+              d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+                ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+                  IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ
+
+theorem Remark_4_2_M_one_of_Lemma_4_2 (h42 : Lemma_4_2) :
+    Remark_4_2_M_one := by
+  intro p κ κtilde c T hκ0 hκ1 hgap hrange hT hc
+  refine ⟨subsolutionDThreshold p.χ 1 κ κtilde p.m p.γ c, ?_⟩
+  intro D hD u hu
+  constructor
+  · intro t ht
+    have htIcc : t ∈ Set.Icc (0 : ℝ) T :=
+      ⟨le_of_lt ht.1, le_of_lt ht.2⟩
+    exact
+      (h42.subsolutions hκ0 hκ1 hgap hrange le_rfl hc hD
+        (hu.slice_inWaveTrapSet_one htIcc)).1
+  · intro d hd_pos hd_le t ht
+    have htIcc : t ∈ Set.Icc (0 : ℝ) T :=
+      ⟨le_of_lt ht.1, le_of_lt ht.2⟩
+    exact
+      (h42.subsolutions hκ0 hκ1 hgap hrange le_rfl hc hD
+        (hu.slice_inWaveTrapSet_one htIcc)).2 d hd_pos hd_le
 
 def MChi (p : CMParams) : ℝ :=
   if p.χ ≤ 0 then 1 else (1 / (1 - p.χ)) ^ (1 / p.α)
@@ -6432,6 +6675,69 @@ def Remark_5_2 : Prop :=
             deriv U x / U x ≤
               remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma)
 
+def Remark52LogDerivativeAlgebra : Prop :=
+  ∀ p : CMParams, ∀ c sigma : ℝ,
+    0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      c > max (p.γ + p.γ⁻¹)
+        (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) ∧
+      logDerivativeBoundFormula p c ≤
+        remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma)
+
+def Remark52GammaSpeedAlgebra : Prop :=
+  ∀ p : CMParams, ∀ c sigma : ℝ,
+    0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      p.γ + p.γ⁻¹ < c
+
+theorem not_Remark52GammaSpeedAlgebra :
+    ¬ Remark52GammaSpeedAlgebra := by
+  intro h
+  let p : CMParams :=
+    { m := 1
+      α := 1
+      γ := 1
+      χ := (1 / 10000 : ℝ)
+      hm := le_rfl
+      hα := le_rfl
+      hγ := le_rfl }
+  have hsigma : 0 < (100 : ℝ) := by norm_num
+  have hχ : p.χ ≠ 0 := by norm_num [p]
+  have hspeed : remark5SpeedCondition p (3 / 2 : ℝ) 100 := by
+    unfold remark5SpeedCondition
+    apply max_lt
+    · norm_num [p]
+    · have hM : MChi p = (10000 / 9999 : ℝ) := by
+        simp [p, MChi]
+        norm_num
+      norm_num [p, hM]
+  have hbad := h p (3 / 2 : ℝ) 100 hsigma hχ hspeed
+  norm_num [p] at hbad
+
+def Remark52LogDerivativeConstantComparison : Prop :=
+  ∀ p : CMParams, ∀ c sigma : ℝ,
+    0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      logDerivativeBoundFormula p c ≤
+        remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma)
+
+theorem Remark52LogDerivativeAlgebra.of_gamma_speed_and_constant_comparison
+    (hgamma : Remark52GammaSpeedAlgebra)
+    (hconst : Remark52LogDerivativeConstantComparison) :
+    Remark52LogDerivativeAlgebra := by
+  intro p c sigma hsigma hχ hspeed
+  refine ⟨?_, hconst p c sigma hsigma hχ hspeed⟩
+  exact max_lt
+    (hgamma p c sigma hsigma hχ hspeed)
+    (remark5SpeedCondition.gt_waveDerivativeSpeed hspeed hsigma.le)
+
+theorem Remark_5_2.of_Lemma_5_2_explicit
+    (hlog : Lemma_5_2_explicit)
+    (halg : Remark52LogDerivativeAlgebra) :
+    Remark_5_2 := by
+  intro p c sigma hsigma hχ hspeed U V hTW hbound x
+  rcases halg p c sigma hsigma hχ hspeed with ⟨hspeed_log, hconst⟩
+  exact le_trans
+    (hlog.log_derivative_bound hspeed_log hTW hbound x)
+    hconst
+
 theorem Remark_5_2.log_derivative_bound
     (h : Remark_5_2) {p : CMParams} {c sigma : ℝ}
     (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
@@ -7602,7 +7908,8 @@ theorem Theorem_1_3.exists_threshold_with_uniqueness_at_speed_of_forall_kappaOne
   h.uniqueness_package_of_forall_kappaOne_range_tail hp
 
 structure Paper1AnalyticData where
-  heatSemigroupEstimates : ∀ S : HeatSemigroupEstimateData, Lemma_2_1 S
+  heatSemigroupData : HeatSemigroupEstimateData
+  heatSemigroupEstimates : Lemma_2_1 heatSemigroupData
   weightedResolventGradient : Lemma_2_5
   upperBarrierSuperSolution : Lemma_4_1
   lowerBarrierSubSolution : Lemma_4_2
@@ -7620,9 +7927,9 @@ structure Paper1AnalyticData where
   travelingWaveStability : Theorem_1_2
   travelingWaveUniqueness : Theorem_1_3
 
-theorem Lemma_2_1_proved (A : Paper1AnalyticData)
-    (S : HeatSemigroupEstimateData) : Lemma_2_1 S :=
-  A.heatSemigroupEstimates S
+theorem Lemma_2_1_proved (A : Paper1AnalyticData) :
+    Lemma_2_1 A.heatSemigroupData :=
+  A.heatSemigroupEstimates
 
 theorem Lemma_2_5_proved (A : Paper1AnalyticData) : Lemma_2_5 :=
   A.weightedResolventGradient
