@@ -802,6 +802,49 @@ theorem deriv_modifiedSemigroup
         ∫ y : ℝ, deriv (fun z : ℝ => heatKernel t (z - y)) x * f y :=
   (modifiedSemigroup_hasDerivAt ht x hf_int).deriv
 
+/-- Pointwise gradient bound for the heat semigroup with bounded input. -/
+theorem deriv_heatSemigroup_bounded_abs_le {t M : ℝ}
+    (ht : 0 < t) (hM : 0 ≤ M) {f : ℝ → ℝ}
+    (hf : ∀ y, |f y| ≤ M) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    |deriv (fun z : ℝ => heatSemigroup t f z) x| ≤
+      (2 / Real.sqrt (4 * Real.pi * t)) * M := by
+  rw [deriv_heatSemigroup ht x hf_int]
+  exact heatKernel_deriv_convolution_bounded_abs_le ht hM hf x
+
+/-- Pointwise gradient bound for the modified heat semigroup with bounded input. -/
+theorem deriv_modifiedSemigroup_bounded_abs_le {t M : ℝ}
+    (ht : 0 < t) (hM : 0 ≤ M) {f : ℝ → ℝ}
+    (hf : ∀ y, |f y| ≤ M) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    |deriv (fun z : ℝ => modifiedSemigroup t f z) x| ≤
+      Real.exp (-t) * ((2 / Real.sqrt (4 * Real.pi * t)) * M) := by
+  rw [deriv_modifiedSemigroup ht x hf_int]
+  rw [← MeasureTheory.integral_const_mul]
+  exact modifiedHeatKernel_deriv_convolution_bounded_abs_le ht hM hf x
+
+/-- `L¹ → L∞` gradient smoothing for the heat semigroup. -/
+theorem deriv_heatSemigroup_L1_Linfty_smoothing_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    |deriv (fun z : ℝ => heatSemigroup t f z) x| ≤
+      (((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+        (Real.sqrt (1 / (4 * t)))⁻¹) * ∫ y : ℝ, |f y| := by
+  rw [deriv_heatSemigroup ht x hf_int]
+  exact heatKernel_deriv_convolution_L1_Linfty_smoothing_abs ht x hf_int
+
+/-- `L¹ → L∞` gradient smoothing for the modified heat semigroup. -/
+theorem deriv_modifiedSemigroup_L1_Linfty_smoothing_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    |deriv (fun z : ℝ => modifiedSemigroup t f z) x| ≤
+      Real.exp (-t) *
+        ((((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+          (Real.sqrt (1 / (4 * t)))⁻¹) * ∫ y : ℝ, |f y|) := by
+  rw [deriv_modifiedSemigroup ht x hf_int]
+  rw [← MeasureTheory.integral_const_mul]
+  exact modifiedHeatKernel_deriv_convolution_L1_Linfty_smoothing_abs ht x hf_int
+
 /-! ## Semigroup estimates (Lemma 2.1 of the paper) -/
 
 /-- The comparison principle for the heat equation:
