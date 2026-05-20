@@ -307,7 +307,10 @@ projection theorem wrappers have been removed.
   from `Psi_zero` and positivity of the right-hand side.  The zero-difference
   case uses `u1 = u2`; the stronger zero-source branch assumes only
   `u2^gamma = u1^gamma` pointwise; the same-power branch family exposes these
-  results in the full Lemma 5.3 hypothesis shapes used later in Section 5.
+  results in the full Lemma 5.3 hypothesis shapes used later in Section 5.  The
+  continuous tail/stable-tail/strict-tail/stability variants also discharge the
+  previously exposed `IsCUnifBdd` inputs from the corresponding upper-tail
+  bounds plus continuity.
 - `Lemma_2_5_proved` (Paper2), together with the sharp `Psi_beta` package and
   normalized sharp `Theta_beta` form
 - `remark16ChiStarWeak_scalar_properties` (Paper2): direct scalar algebra for
