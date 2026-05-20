@@ -5899,6 +5899,50 @@ lemma Lemma_A_8.chiMinimal2_linearlyStable_of_critical_spectrum
   h.minimal_condition_linearlyStable_of_critical_spectrum H hC ha hb hm hβ
     huStar (MinimalGlobalStabilityCondition.of_chiMinimal2 hγ hχ0 hχ)
 
+/-- The linear-stability part of Paper3 Theorem 2.4, proved directly from the
+A.7 threshold comparison and the critical-spectrum identification.  The global
+stability and exponential convergence conclusions remain analytic package
+fields. -/
+def Theorem_2_4_linear_stability_branch : Prop :=
+  ∀ (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (C : Paper3Constants D p),
+    HasNeumannSpectrum S → Paper3ConstantsUsesCriticalSpectrum S p C →
+      Lemma_A_7 D p C →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          NonminimalGlobalStabilityCondition D p C eq.1 →
+            LinearlyStable S p eq.1 eq.2
+
+lemma Theorem_2_4_linear_stability_branch_proved :
+    Theorem_2_4_linear_stability_branch := by
+  intro D S p C H hC hA7 ha hb
+  dsimp
+  intro hcond
+  exact hA7.nonminimal_condition_linearlyStable_of_critical_spectrum
+    H hC ha hb hcond
+
+/-- The linear-stability part of Paper3 Theorem 2.5, proved directly from the
+A.8 threshold comparison and the critical-spectrum identification.  The global
+stability and exponential convergence conclusions remain analytic package
+fields. -/
+def Theorem_2_5_linear_stability_branch : Prop :=
+  ∀ (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (C : Paper3Constants D p),
+    HasNeumannSpectrum S → Paper3ConstantsUsesCriticalSpectrum S p C →
+      Lemma_A_8 D p C →
+        p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+          ∀ uStar > 0,
+            MinimalGlobalStabilityCondition D p C uStar →
+              LinearlyStable S p
+                (minimalEquilibrium p uStar).1
+                (minimalEquilibrium p uStar).2
+
+lemma Theorem_2_5_linear_stability_branch_proved :
+    Theorem_2_5_linear_stability_branch := by
+  intro D S p C H hC hA8 ha hb hm hβ uStar huStar hcond
+  exact hA8.minimal_condition_linearlyStable_of_critical_spectrum
+    H hC ha hb hm hβ huStar hcond
+
 lemma Theorem_2_2.nonminimal_stability_conclusion_of_Lemma_A_7
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
     {N : StabilityNorms D} {C : Paper3Constants D p}

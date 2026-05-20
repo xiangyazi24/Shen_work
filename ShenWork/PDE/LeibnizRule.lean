@@ -795,6 +795,26 @@ theorem Psi_derivative_formula_general {u : ℝ → ℝ} {l mu : ℝ}
             (∫ y in Set.Ioi x, Real.exp (-Real.sqrt l * y) * u y)) := by
           simp [L, R, a]
 
+/-! ## Psi differentiability and continuity -/
+
+theorem Psi_hasDerivAt_general {u : ℝ → ℝ} {l mu : ℝ}
+    (hl : 0 < l) (_hmu : 0 < mu) (hu : IsCUnifBdd u) (x : ℝ) :
+    ∃ f', HasDerivAt (fun z => Psi u l mu z) f' x := by
+  exact ⟨_, (hasDerivAt_integral_exp_neg_mul_abs_sub_general
+    (Real.sqrt_pos.mpr hl) hu x).const_mul (mu / (2 * Real.sqrt l))⟩
+
+theorem Psi_differentiable {u : ℝ → ℝ} {l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hu : IsCUnifBdd u) :
+    Differentiable ℝ (fun z => Psi u l mu z) := by
+  intro x
+  obtain ⟨f', hf'⟩ := Psi_hasDerivAt_general hl hmu hu x
+  exact hf'.differentiableAt
+
+theorem Psi_continuous {u : ℝ → ℝ} {l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hu : IsCUnifBdd u) :
+    Continuous (fun z => Psi u l mu z) :=
+  (Psi_differentiable hl hmu hu).continuous
+
 /-! ## Psi elliptic ODE identity
 
 The resolvent `v(x) = Ψ(x; f, λ, μ)` satisfies `v'' - λv + μf = 0`. -/
