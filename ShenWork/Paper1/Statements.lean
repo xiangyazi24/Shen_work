@@ -10520,6 +10520,82 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_si
   · intro x
     exact le_trans (hlog x) (le_max_left _ _)
 
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_const_sub_signal_and_log_derivative
+    {p : CMParams} {c κ₀ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₀ κtilde D)
+    (hc : 2 < c)
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹)
+        (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
+    (hupper :
+      ∀ U : ℝ → ℝ,
+        InMonotoneWaveTrapSet (kappa c) 1 U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) 1
+            (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U →
+            ShenUpperBoundNegative c U) :
+    ∃ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet (kappa c) 1 U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) 1
+          (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U ∧
+        (∃ d : ℝ, 0 < d ∧
+          IsPaperFrozenSubSolutionOn p c U (fun _ => d) Set.univ) ∧
+        (∀ x,
+          |frozenElliptic p U x| ≤ (MChi p) ^ p.γ ∧
+            |deriv (frozenElliptic p U) x| ≤ (MChi p) ^ p.γ) ∧
+        (p.γ + p.γ⁻¹ < c →
+          ∀ x,
+            |frozenElliptic p U x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x)) ∧
+            |deriv (frozenElliptic p U) x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x))) ∧
+        ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c := by
+  rcases h.exists_fixed_limit_with_signal_and_log_derivative
+      hc hspeed hupper with
+    ⟨U, hU, haux, hsignal, hexpSignal, hlog⟩
+  rcases h.exists_paper_constant_subsolution hU with
+    ⟨d, hd_pos, hd_sub⟩
+  exact ⟨U, hU, haux, ⟨d, hd_pos, hd_sub⟩, hsignal, hexpSignal, hlog⟩
+
+theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_and_paper_const_sub_chi_zero
+    {p : CMParams} {c κ₀ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₀ κtilde D)
+    (hc : 2 < c)
+    (hχ_zero : p.χ = 0)
+    (hupper :
+      ∀ U : ℝ → ℝ,
+        InWaveTrapSet (kappa c) (MChi p) U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) (MChi p)
+            (fun u => InWaveTrapSet (kappa c) (MChi p) u) U U →
+            ShenUpperBoundPositive p c U) :
+    ∃ U : ℝ → ℝ,
+      InWaveTrapSet (kappa c) (MChi p) U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) (MChi p)
+          (fun u => InWaveTrapSet (kappa c) (MChi p) u) U U ∧
+        (∃ d : ℝ, 0 < d ∧
+          IsPaperFrozenSubSolutionOn p c U (fun _ => d) Set.univ) ∧
+        (∀ x,
+          |frozenElliptic p U x| ≤ (MChi p) ^ p.γ ∧
+            |deriv (frozenElliptic p U) x| ≤ (MChi p) ^ p.γ) ∧
+        (p.γ + p.γ⁻¹ < c →
+          ∀ x,
+            |frozenElliptic p U x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x)) ∧
+            |deriv (frozenElliptic p U) x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x))) := by
+  rcases h.exists_fixed_limit_with_signal_package hc hupper with
+    ⟨U, hU, haux, hsignal, hexpSignal⟩
+  rcases h.exists_paper_constant_subsolution_of_chi_zero hχ_zero hU with
+    ⟨d, hd_pos, hd_sub⟩
+  exact ⟨U, hU, haux, ⟨d, hd_pos, hd_sub⟩, hsignal, hexpSignal⟩
+
 theorem Lemma_5_2_explicit.to_Lemma_5_2
     (h : Lemma_5_2_explicit) : Lemma_5_2 := by
   intro p c hspeed U V hTW hbound

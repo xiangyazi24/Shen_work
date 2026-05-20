@@ -321,6 +321,12 @@ projection theorem wrappers have been removed.
   Lemma 5.2 log-derivative estimate for one constructed negative-sensitivity
   fixed point, avoiding later existential splicing between two separately
   chosen fixed points.
+- `NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_const_sub_signal_and_log_derivative`
+  and
+  `PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_and_paper_const_sub_chi_zero`:
+  same-fixed-point bridges carrying the corrected constant paper-subsolution
+  branches together with the Section 5 signal estimates, and in the negative
+  branch also the Lemma 5.2 log-derivative estimate.
 - `not_Remark52GammaSpeedAlgebra`,
   `not_remark5SpeedCondition_implies_Lemma_5_2_speed`, and
   `not_Remark52LogDerivativeAlgebra`: formal obstructions showing that the
