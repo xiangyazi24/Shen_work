@@ -143,6 +143,36 @@ theorem intervalAverage_nonneg {L : ℝ} (hL : 0 < L) {f : ℝ → ℝ}
   exact mul_nonneg (div_nonneg zero_le_one hL.le)
     (intervalIntegral_nonneg hL.le hf)
 
+/-- A function bounded above by `M` on `[0,L]` has interval average at most
+`M`. -/
+theorem intervalAverage_le_of_le {L M : ℝ} (hL : 0 < L) {f : ℝ → ℝ}
+    (hf_int : IntervalIntegrable f volume 0 L)
+    (hf_le : ∀ x ∈ Set.Icc 0 L, f x ≤ M) :
+    intervalAverage L f ≤ M := by
+  unfold intervalAverage
+  have h_int_le :
+      ∫ x in (0 : ℝ)..L, f x ≤ M * L := by
+    calc
+      ∫ x in (0 : ℝ)..L, f x ≤ ∫ x in (0 : ℝ)..L, M :=
+        intervalIntegral_mono hL.le hf_le hf_int intervalIntegrable_const
+      _ = M * L := intervalIntegral_const
+  calc
+    (1 / L) * ∫ x in (0 : ℝ)..L, f x
+        ≤ (1 / L) * (M * L) :=
+          mul_le_mul_of_nonneg_left h_int_le
+            (div_nonneg zero_le_one hL.le)
+    _ = M := by field_simp [ne_of_gt hL]
+
+/-- A function bounded between `0` and `M` on `[0,L]` has interval average in
+the same interval. -/
+theorem intervalAverage_interval_bound {L M : ℝ} (hL : 0 < L) {f : ℝ → ℝ}
+    (hf_int : IntervalIntegrable f volume 0 L)
+    (hf_nonneg : ∀ x ∈ Set.Icc 0 L, 0 ≤ f x)
+    (hf_le : ∀ x ∈ Set.Icc 0 L, f x ≤ M) :
+    0 ≤ intervalAverage L f ∧ intervalAverage L f ≤ M :=
+  ⟨intervalAverage_nonneg hL hf_nonneg,
+    intervalAverage_le_of_le hL hf_int hf_le⟩
+
 /-- The constant-mode projection fixes constants. -/
 theorem constantModeProjection_const {L c : ℝ} (hL : 0 < L) :
     constantModeProjection L (fun _ => c) = fun _ => c := by
@@ -164,6 +194,18 @@ theorem constantModeProjection_nonneg_of_nonneg {L : ℝ} (hL : 0 < L)
     ∀ x, 0 ≤ constantModeProjection L f x := by
   intro x
   exact intervalAverage_nonneg hL hf
+
+/-- A function bounded between `0` and `M` on `[0,L]` is sent by the
+constant-mode projection to a constant function in the same interval. -/
+theorem constantModeProjection_interval_bound {L M : ℝ} (hL : 0 < L)
+    {f : ℝ → ℝ}
+    (hf_int : IntervalIntegrable f volume 0 L)
+    (hf_nonneg : ∀ x ∈ Set.Icc 0 L, 0 ≤ f x)
+    (hf_le : ∀ x ∈ Set.Icc 0 L, f x ≤ M) :
+    ∀ x, 0 ≤ constantModeProjection L f x ∧
+      constantModeProjection L f x ≤ M := by
+  intro x
+  exact intervalAverage_interval_bound hL hf_int hf_nonneg hf_le
 
 /-- The Neumann heat kernel on [0,L] via method of images (reflected kernel).
 For t > 0 and x, y ∈ [0,L]:
