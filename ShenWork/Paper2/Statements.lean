@@ -1421,6 +1421,31 @@ theorem Lemma_2_5_pointwise_bound_le_larger_Psi_beta
     (Lemma_2_5_pointwise_bound hbeta hv)
     (Psi_beta_monotoneOn_Ici hbeta.le hgamma hbg)
 
+/-- Paper2 Lemma 2.5 with the universal numerical bound
+`Psi_beta beta < exp (-1)`. -/
+theorem Lemma_2_5_pointwise_bound_exp_neg_one
+    {beta v : ℝ} (hbeta : 0 < beta) (hv : 0 < v) :
+    beta * v / (1 + v) ^ (1 + beta) ≤ Real.exp (-1) := by
+  exact le_trans
+    (Lemma_2_5_pointwise_bound hbeta hv)
+    (Psi_beta_le_exp_neg_one hbeta)
+
+/-- Paper2 Lemma 2.5 with the coarse bound by `1`. -/
+theorem Lemma_2_5_pointwise_bound_one
+    {beta v : ℝ} (hbeta : 0 < beta) (hv : 0 < v) :
+    beta * v / (1 + v) ^ (1 + beta) ≤ 1 := by
+  exact le_trans
+    (Lemma_2_5_pointwise_bound hbeta hv)
+    (Psi_beta_le_one hbeta.le)
+
+/-- Paper2 Lemma 2.5 with the coarse bound by the parameter `beta`. -/
+theorem Lemma_2_5_pointwise_bound_self
+    {beta v : ℝ} (hbeta : 0 < beta) (hv : 0 < v) :
+    beta * v / (1 + v) ^ (1 + beta) ≤ beta := by
+  exact le_trans
+    (Lemma_2_5_pointwise_bound hbeta hv)
+    (Psi_beta_le_self hbeta.le)
+
 def AbstractLpBootstrapHypothesis
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
     (N T rho p0 : ℝ) : Prop :=
@@ -2815,6 +2840,30 @@ lemma Lemma_3_1.minimal_sup_norm_monotone
     (hsol : IsPaper2ClassicalSolution D p T u v) :
     SupNormNonincreasingOn D u (Set.Ioo (0 : ℝ) T) :=
   (h hχ).2 ha hb T hT u v hsol
+
+/-- Direct constant-in-time branch of the first alternative in Paper2 Lemma 3.1.
+This proves the monotonicity conclusion from an explicit primitive constancy
+hypothesis, without using the fakeable abstract PDE fields. -/
+theorem Lemma_3_1_nonminimal_constant_time_branch
+    {D : BoundedDomainData} {p : CM2Params}
+    {T t₀ : ℝ} {u v : ℝ → D.Point → ℝ} {w : D.Point → ℝ}
+    (_hχ : p.χ₀ ≤ 0) (_ha : 0 < p.a) (_hb : 0 < p.b)
+    (_hT : 0 < T) (_hsol : IsPaper2ClassicalSolution D p T u v)
+    (_ht₀_pos : 0 < t₀) (_ht₀_T : t₀ < T)
+    (_hsup : (p.a / p.b) ^ (1 / p.α) < D.supNorm (u t₀))
+    (hconst : ∀ t, t ∈ Set.Ioc (0 : ℝ) t₀ → u t = w) :
+    SupNormNonincreasingOn D u (Set.Ioc (0 : ℝ) t₀) :=
+  SupNormNonincreasingOn.of_forall_eq hconst
+
+/-- Direct constant-in-time branch of the minimal case in Paper2 Lemma 3.1. -/
+theorem Lemma_3_1_minimal_constant_time_branch
+    {D : BoundedDomainData} {p : CM2Params}
+    {T : ℝ} {u v : ℝ → D.Point → ℝ} {w : D.Point → ℝ}
+    (_hχ : p.χ₀ ≤ 0) (_ha : p.a = 0) (_hb : p.b = 0)
+    (_hT : 0 < T) (_hsol : IsPaper2ClassicalSolution D p T u v)
+    (hconst : ∀ t, t ∈ Set.Ioo (0 : ℝ) T → u t = w) :
+    SupNormNonincreasingOn D u (Set.Ioo (0 : ℝ) T) :=
+  SupNormNonincreasingOn.of_forall_eq hconst
 
 /-- A fake bounded-domain interface showing that Lemma 3.1 is not a consequence
 of the current abstract API alone.  The fake time derivative is identically
