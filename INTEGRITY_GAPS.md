@@ -706,3 +706,35 @@ The assumption packages represent genuine open formalization challenges requirin
 Per Playbook §1 Point 11 (honest reporting):
 - Paper1: "unconditionally proved" for Lemma 2.2-2.4, Lemma 4.1/4.2 strengthened, chemotaxis resolvent, Psi ODE
 - Paper2/Paper3: "conditional on bounded-domain API instantiation" — the abstract domain interface is legitimate but the semigroup/stability estimate proofs require Mathlib infrastructure that doesn't exist
+
+## Phase 4 Classification (v4 proposal)
+
+### Paper3 `_proved` theorems — actual classification:
+
+| Theorem | Uses abstract structure? | Correct classification |
+|---------|--------------------------|------------------------|
+| `Lemma_A_6_proved` | No | genuinely proved |
+| `Lemma_3_1_proved` | `BoundedDomainData` | from_assumed_bounded_domain |
+| `Theorem_2_2_linear_*_proved` | `BoundedDomainData` + `SpectralData` | from_assumed_bounded_domain |
+| `Theorem_2_4_linear_stability_branch_proved` | `BoundedDomainData` + `Paper3Constants` | from_assumed_bounded_domain |
+| `Theorem_2_5_linear_stability_branch_proved` | `BoundedDomainData` + `Paper3Constants` | from_assumed_bounded_domain |
+
+### Paper2 `_proved` theorems:
+
+| Theorem | Uses abstract structure? | Correct classification |
+|---------|--------------------------|------------------------|
+| `Lemma_2_5_proved` | No | genuinely proved |
+
+### Paper1 `_proved` theorems:
+
+| Theorem | Uses abstract structure? | Correct classification |
+|---------|--------------------------|------------------------|
+| `Lemma_2_2_proved` | No | genuinely proved |
+| `Lemma_2_3_proved` | No | genuinely proved |
+| `Lemma_2_4_proved` | No | genuinely proved |
+| All `_strengthened_proved` | No | genuinely proved |
+| All `not_*` counterexamples | No | genuinely proved |
+
+### Not renaming existing `_proved` per v4 additive policy
+Per v4 proposal "Do not refactor all of Paper2 first", existing
+theorem names are kept. Classification is recorded here only.
