@@ -8602,6 +8602,24 @@ theorem HasWaveUpperTailBound.isCUnifBdd_of_continuous
     IsCUnifBdd U :=
   ⟨hU_cont, h.isBddFun⟩
 
+theorem HasStrictWaveUpperTailBound.isBddFun
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasStrictWaveUpperTailBound p c U) :
+    IsBddFun U :=
+  h.hasWaveUpperTailBound.isBddFun
+
+theorem HasStrictWaveUpperTailBound.isCUnifBdd_of_continuous
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasStrictWaveUpperTailBound p c U) (hU_cont : Continuous U) :
+    IsCUnifBdd U :=
+  h.hasWaveUpperTailBound.isCUnifBdd_of_continuous hU_cont
+
+theorem HasStrictWaveUpperTailBound.nonnegativeInitialDatum_of_continuous
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : HasStrictWaveUpperTailBound p c U) (hU_cont : Continuous U) :
+    NonnegativeInitialDatum U :=
+  ⟨h.isCUnifBdd_of_continuous hU_cont, fun x => (h.pos x).le⟩
+
 theorem HasWaveUpperTailBound.abs_sub_le_two_MChi
     {p : CMParams} {c : ℝ} {U₁ U₂ : ℝ → ℝ}
     (h₁ : HasWaveUpperTailBound p c U₁)
@@ -11598,6 +11616,22 @@ theorem Theorem_1_2_self_initial_data_admissible_branch
     WeightedL2InitialCloseness.refl η U,
     Theorem_1_2_self_initial_data_branch hTW hU_diff hV_diff⟩
 
+theorem Theorem_1_2_self_initial_data_admissible_branch_of_strict_tail
+    {p : CMParams} {c η : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasStrictWaveUpperTailBound p c U)
+    (hU_cont : Continuous U)
+    (hU_diff : ContDiff ℝ 2 U) (hV_diff : ContDiff ℝ 2 V) :
+    NonnegativeInitialDatum U ∧
+      StrictlyPositiveAtLeft U ∧
+      WeightedL2InitialCloseness η U U ∧
+      ∃ u v : ℝ → ℝ → ℝ,
+        IsGlobalCauchySolutionFrom p U u v ∧
+        WeightedL2MovingFrameConvergence η c u U ∧
+        UniformMovingFrameConvergence c u U := by
+  exact Theorem_1_2_self_initial_data_admissible_branch hTW
+    (hbound.isCUnifBdd_of_continuous hU_cont) hU_diff hV_diff
+
 /-- Self-initial-data branch of Theorem 1.2 specialized to a frozen stationary
 profile.  The moving-frame Cauchy solution is the frozen profile itself, so the
 weighted and uniform stability errors are identically zero. -/
@@ -11634,6 +11668,23 @@ theorem Theorem_1_2_frozen_profile_self_initial_data_admissible_branch
     IsTravelingWave.strictlyPositiveAtLeft hprofile.to_travelingWave,
     WeightedL2InitialCloseness.refl η U,
     Theorem_1_2_frozen_profile_self_initial_data_branch hprofile hU_diff hV_diff⟩
+
+theorem Theorem_1_2_frozen_profile_self_initial_data_admissible_branch_of_strict_tail
+    {p : CMParams} {c η : ℝ} {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (hbound : HasStrictWaveUpperTailBound p c U)
+    (hU_cont : Continuous U)
+    (hU_diff : ContDiff ℝ 2 U)
+    (hV_diff : ContDiff ℝ 2 (frozenElliptic p U)) :
+    NonnegativeInitialDatum U ∧
+      StrictlyPositiveAtLeft U ∧
+      WeightedL2InitialCloseness η U U ∧
+      ∃ u v : ℝ → ℝ → ℝ,
+        IsGlobalCauchySolutionFrom p U u v ∧
+        WeightedL2MovingFrameConvergence η c u U ∧
+        UniformMovingFrameConvergence c u U := by
+  exact Theorem_1_2_frozen_profile_self_initial_data_admissible_branch
+    hprofile (hbound.isCUnifBdd_of_continuous hU_cont) hU_diff hV_diff
 
 theorem Theorem_1_2.threshold_family
     (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :

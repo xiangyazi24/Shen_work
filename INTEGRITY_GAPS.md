@@ -558,6 +558,11 @@ projection theorem wrappers have been removed.
 - `Theorem_1_2_self_initial_data_admissible_branch`: the same branch with
   `NonnegativeInitialDatum`, `StrictlyPositiveAtLeft`, and reflexive
   `WeightedL2InitialCloseness` verified for the wave profile initial datum
+- `HasStrictWaveUpperTailBound.nonnegativeInitialDatum_of_continuous` and
+  `Theorem_1_2_self_initial_data_admissible_branch_of_strict_tail`: the
+  self-initial-data stability branch with bounded continuous admissibility
+  derived from the strict upper-tail hypothesis instead of supplied as a
+  separate `IsCUnifBdd` input
 - `FrozenStationaryWaveProfile.to_globalCauchySolutionFrom` and
   `Theorem_1_2_frozen_profile_self_initial_data_branch`: the same
   self-initial-data stability branch specialized to a frozen stationary
@@ -567,6 +572,9 @@ projection theorem wrappers have been removed.
 - `Theorem_1_2_frozen_profile_self_initial_data_admissible_branch`: the frozen
   profile version with the same initial-data admissibility and reflexive
   weighted-closeness hypotheses discharged
+- `Theorem_1_2_frozen_profile_self_initial_data_admissible_branch_of_strict_tail`:
+  the frozen-profile version with `IsCUnifBdd` likewise derived from the strict
+  upper-tail hypothesis plus continuity
 - `Theorem_1_3_same_wave_branch`: reflexive Paper1 Theorem 1.3 same-wave
   uniqueness branch, independent of the uniqueness package
 - `Theorem_1_3_profile_eq_of_uniform_movingFrame_and_resolvent`: a real
