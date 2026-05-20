@@ -1535,6 +1535,59 @@ lemma Proposition_1_3.positive_global_solution_of_remark16_min_chiStar12
     (StrongLogisticCondition.of_remark16_min_chiStar12 hβ hm hα hdim hχ)
     hu₀
 
+def proposition13NoRegularityParams : CM2Params :=
+  { N := 1
+    hN := by norm_num
+    α := 3
+    γ := 1
+    m := 1
+    μ := 1
+    ν := 1
+    χ₀ := 0
+    a := 1
+    b := 1
+    β := 0
+    hα := by norm_num
+    hγ := by norm_num
+    hm := by norm_num
+    hμ := by norm_num
+    hν := by norm_num
+    ha := by norm_num
+    hb := by norm_num
+    hβ := by norm_num }
+
+def proposition13NoRegularityConstants :
+    Paper2Constants proposition13NoRegularityParams :=
+  { K := 0
+    K_nonneg := by norm_num }
+
+lemma not_forall_Proposition_1_3 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params,
+        ∀ C : Paper2Constants p, Proposition_1_3 D p C) := by
+  intro h
+  let D := proposition11NoRegularityDomain
+  let p := proposition13NoRegularityParams
+  let C := proposition13NoRegularityConstants
+  let u₀ : D.Point → ℝ := fun _ => 1
+  have hu₀ : PositiveInitialDatum D u₀ := by
+    constructor
+    · trivial
+    · intro x hx
+      exact False.elim (by simpa [D, proposition11NoRegularityDomain] using hx)
+  have hcond : StrongLogisticCondition p C := by
+    exact StrongLogisticCondition.of_alpha_gt_m_add_gamma_sub_one
+      (by norm_num [p, proposition13NoRegularityParams])
+      (by norm_num [p, proposition13NoRegularityParams])
+  rcases h D p C
+      (by norm_num [p, proposition13NoRegularityParams])
+      (by norm_num [p, proposition13NoRegularityParams])
+      (by norm_num [p, proposition13NoRegularityParams])
+      hcond u₀ hu₀ with
+    ⟨u, v, hglobal, _htrace, _hbdd⟩
+  have hreg := (hglobal.classical (by norm_num : (0 : ℝ) < 1)).regularity
+  change False at hreg
+  exact hreg
+
 def Proposition_1_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   p.m = 1 → 1 ≤ p.β →
     ((p.a = 0 ∧ p.b = 0) ∨ (0 ≤ p.a ∧ 0 < p.b)) →
@@ -1681,6 +1734,52 @@ lemma Proposition_1_4.positive_global_solution_of_remark16_weak
     ⟨u, v, hglobal, htrace, hbdd⟩
   exact ⟨u, v,
     PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
+
+def proposition14NoRegularityParams : CM2Params :=
+  { N := 1
+    hN := by norm_num
+    α := 1
+    γ := 1
+    m := 1
+    μ := 1
+    ν := 1
+    χ₀ := 0
+    a := 0
+    b := 0
+    β := 1
+    hα := by norm_num
+    hγ := by norm_num
+    hm := by norm_num
+    hμ := by norm_num
+    hν := by norm_num
+    ha := by norm_num
+    hb := by norm_num
+    hβ := by norm_num }
+
+lemma not_forall_Proposition_1_4 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params, Proposition_1_4 D p) := by
+  intro h
+  let D := proposition11NoRegularityDomain
+  let p := proposition14NoRegularityParams
+  let u₀ : D.Point → ℝ := fun _ => 1
+  have hu₀ : PositiveInitialDatum D u₀ := by
+    constructor
+    · trivial
+    · intro x hx
+      exact False.elim (by simpa [D, proposition11NoRegularityDomain] using hx)
+  have hχ : p.χ₀ < chiBeta p := by
+    norm_num [p, proposition14NoRegularityParams, chiBeta]
+  rcases h D p
+      (by norm_num [p, proposition14NoRegularityParams])
+      (by norm_num [p, proposition14NoRegularityParams])
+      (Or.inl
+        ⟨by norm_num [p, proposition14NoRegularityParams],
+          by norm_num [p, proposition14NoRegularityParams]⟩)
+      hχ u₀ hu₀ with
+    ⟨u, v, hglobal, _htrace, _hbdd⟩
+  have hreg := (hglobal.classical (by norm_num : (0 : ℝ) < 1)).regularity
+  change False at hreg
+  exact hreg
 
 lemma sigma_zero (p : CM2Params) (uStar vStar : ℝ) :
     sigma p uStar vStar 0 = -p.a * p.α := by
@@ -3685,6 +3784,998 @@ lemma Theorem_2_1_part1.persistence
       EventuallyLowerBound D v (p.ν / p.μ * δu ^ p.γ) :=
   h hm u v huv
 
+/-- A degenerate bounded-domain API showing that Paper3 Theorem 2.1(1)
+cannot be proved from the current abstract `BoundedDomainData` interface alone.
+The PDE side admits the positive constant solution `u = v = 1`, but the
+abstract lower-envelope functional is identically zero. -/
+def theorem21Part1NoLowerEnvelopeDomain : BoundedDomainData where
+  Point := Unit
+  inside := Set.univ
+  boundary := ∅
+  volume := 1
+  supNorm := fun _ => 1
+  infValue := fun _ => 0
+  integral := fun _ => 1
+  gradNorm := fun _ _ => 0
+  timeDeriv := fun _ _ _ => 0
+  laplacian := fun _ _ => 0
+  chemotaxisDiv := fun _ _ _ _ => 0
+  crossDiffusionEnergyTerm := fun _ _ _ _ => 0
+  normalDeriv := fun _ _ => 0
+  initialAdmissible := fun _ => True
+  classicalRegularity := fun _ _ _ => True
+
+def theorem21Part1CounterParams : CM2Params :=
+  { N := 1
+    hN := by norm_num
+    α := 1
+    γ := 1
+    m := 1
+    μ := 1
+    ν := 1
+    χ₀ := 0
+    a := 1
+    b := 1
+    β := 1
+    hα := by norm_num
+    hγ := by norm_num
+    hm := by norm_num
+    hμ := by norm_num
+    hν := by norm_num
+    ha := by norm_num
+    hb := by norm_num
+    hβ := by norm_num }
+
+lemma theorem21Part1Counter_classical (T : ℝ) (hT : 0 < T) :
+    IsPaper2ClassicalSolution theorem21Part1NoLowerEnvelopeDomain
+      theorem21Part1CounterParams T
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT hx
+    norm_num
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - theorem21Part1CounterParams.χ₀ * 0 +
+        1 * (theorem21Part1CounterParams.a -
+          theorem21Part1CounterParams.b * (1 : ℝ) ^ theorem21Part1CounterParams.α)
+    norm_num [theorem21Part1CounterParams]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - theorem21Part1CounterParams.μ * 1 +
+        theorem21Part1CounterParams.ν * (1 : ℝ) ^ theorem21Part1CounterParams.γ
+    norm_num [theorem21Part1CounterParams]
+  · intro t x ht0 htT hx
+    cases hx
+
+lemma theorem21Part1Counter_positiveGlobalBounded :
+    PositiveGlobalBoundedSolution theorem21Part1NoLowerEnvelopeDomain
+      theorem21Part1CounterParams
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  refine ⟨?_, ?_, ?_⟩
+  · intro T hT
+    exact theorem21Part1Counter_classical T hT
+  · exact ⟨1, Eventually.of_forall fun _t => le_rfl⟩
+  · intro t x ht hx
+    norm_num
+
+/-- Raw version of the `StabilityNorms.initialContinuity` field, with the
+distance functional exposed rather than hidden inside a package. -/
+def InitialContinuityRaw
+    (D : BoundedDomainData) (p : CM2Params)
+    (xpSigmaDistance : ℝ → ℝ → (D.Point → ℝ) → (D.Point → ℝ) → ℝ)
+    (uConst : ℝ) : Prop :=
+  ∀ sigma pNorm eps, 1 / 2 < sigma → 1 < pNorm → 0 < eps →
+    ∃ delta > 0, ∃ T0 > 0, ∃ T > T0,
+      ∀ u₀ : D.Point → ℝ,
+      ∀ u v uConstSol vConstSol : ℝ → D.Point → ℝ,
+        PositiveInitialDatum D u₀ →
+        PositiveInitialDatum D (fun _ : D.Point => uConst) →
+        D.supNorm (fun x => u₀ x - uConst) ≤ delta →
+        IsPaper2ClassicalSolution D p T u v →
+        InitialTrace D u₀ u →
+        IsPaper2ClassicalSolution D p T uConstSol vConstSol →
+        InitialTrace D (fun _ : D.Point => uConst) uConstSol →
+          xpSigmaDistance sigma pNorm (u T0) (uConstSol T0) ≤ eps
+
+/-- A fake one-point domain whose `supNorm` is identically zero.  It makes every
+initial trace and every initial perturbation look arbitrarily small, so a
+completely unrelated `X^σ_p` distance cannot be controlled from this API. -/
+def initialContinuityNoDistanceControlDomain : BoundedDomainData where
+  Point := Unit
+  inside := Set.univ
+  boundary := ∅
+  volume := 1
+  supNorm := fun _ => 0
+  infValue := fun _ => 1
+  integral := fun _ => 1
+  gradNorm := fun _ _ => 0
+  timeDeriv := fun _ _ _ => 0
+  laplacian := fun _ _ => 0
+  chemotaxisDiv := fun _ _ _ _ => 0
+  crossDiffusionEnergyTerm := fun _ _ _ _ => 0
+  normalDeriv := fun _ _ => 0
+  initialAdmissible := fun _ => True
+  classicalRegularity := fun _ _ _ => True
+
+lemma initialContinuityNoDistanceControl_constant_one_classical
+    (T : ℝ) (hT : 0 < T) :
+    IsPaper2ClassicalSolution initialContinuityNoDistanceControlDomain
+      theorem21Part1CounterParams T
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT hx
+    norm_num
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - theorem21Part1CounterParams.χ₀ * 0 +
+        1 * (theorem21Part1CounterParams.a -
+          theorem21Part1CounterParams.b * (1 : ℝ) ^ theorem21Part1CounterParams.α)
+    norm_num [theorem21Part1CounterParams]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - theorem21Part1CounterParams.μ * 1 +
+        theorem21Part1CounterParams.ν * (1 : ℝ) ^ theorem21Part1CounterParams.γ
+    norm_num [theorem21Part1CounterParams]
+  · intro t x ht0 htT hx
+    cases hx
+
+lemma initialContinuityNoDistanceControl_trace_one :
+    InitialTrace initialContinuityNoDistanceControlDomain
+      (fun _ : Unit => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  intro ε hε
+  refine ⟨1, by norm_num, ?_⟩
+  intro t ht0 ht
+  simpa [initialContinuityNoDistanceControlDomain] using hε
+
+/-- Field-level obstruction for `StabilityNorms.initialContinuity`: without a
+real relation between the sup norm and `X^σ_p`, the raw statement is false.
+Here `supNorm ≡ 0`, while the exposed `xpSigmaDistance` is constantly `1`. -/
+lemma not_InitialContinuityRaw_constant_xpSigmaDistance :
+    ¬ InitialContinuityRaw initialContinuityNoDistanceControlDomain
+      theorem21Part1CounterParams
+      (fun _ _ _ _ => (1 : ℝ)) 1 := by
+  intro h
+  rcases h 1 2 (1 / 2)
+      (by norm_num) (by norm_num) (by norm_num) with
+    ⟨delta, hdelta_pos, T0, hT0_pos, T, hT_gt, hmain⟩
+  have hpos :
+      PositiveInitialDatum initialContinuityNoDistanceControlDomain
+        (fun _ : Unit => (1 : ℝ)) := by
+    constructor
+    · trivial
+    · intro x hx
+      norm_num
+  have hclose :
+      initialContinuityNoDistanceControlDomain.supNorm
+        (fun x : Unit => (fun _ : Unit => (1 : ℝ)) x - 1) ≤ delta := by
+    simpa [initialContinuityNoDistanceControlDomain] using hdelta_pos.le
+  have hT_pos : 0 < T := lt_trans hT0_pos hT_gt
+  have hclassical :
+      IsPaper2ClassicalSolution initialContinuityNoDistanceControlDomain
+        theorem21Part1CounterParams T
+        (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) :=
+    initialContinuityNoDistanceControl_constant_one_classical T hT_pos
+  have hle :=
+    hmain (fun _ : Unit => (1 : ℝ))
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
+      hpos hpos hclose hclassical initialContinuityNoDistanceControl_trace_one
+      hclassical initialContinuityNoDistanceControl_trace_one
+  norm_num at hle
+
+/-- Raw version of `StabilityNorms.sectorialLocalExponential`, with the two
+distance functionals exposed. -/
+def SectorialLocalExponentialRaw
+    (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
+    (c1Distance : (D.Point → ℝ) → (D.Point → ℝ) → ℝ)
+    (xpSigmaDistance : ℝ → ℝ → (D.Point → ℝ) → (D.Point → ℝ) → ℝ) : Prop :=
+  ∀ sigma pNorm uStar vStar,
+    1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+    LinearlyStable S p uStar vStar →
+      ∃ eps > 0, ∃ C > 0, ∃ rate > 0,
+        ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+          xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤ eps →
+            ∀ u v : ℝ → D.Point → ℝ,
+              IsPaper2GlobalClassicalSolution D p u v →
+              InitialTrace D u₀ u →
+                ∀ t, 0 ≤ t →
+                  c1Distance (u t) (fun _ => uStar) +
+                    c1Distance (v t) (fun _ => vStar) ≤
+                      C * Real.exp (-rate * t)
+
+def sectorialLocalExponentialCounterSpectralData : SpectralData where
+  eigenvalue := fun n => if n = 0 then 0 else 1
+  firstNonzero := 1
+
+lemma sectorialLocalExponentialCounter_linearlyStable :
+    LinearlyStable sectorialLocalExponentialCounterSpectralData
+      theorem21Part1CounterParams 1 1 := by
+  intro n hn
+  simp [sectorialLocalExponentialCounterSpectralData,
+    sigma, theorem21Part1CounterParams, hn]
+
+lemma initialContinuityNoDistanceControl_constant_one_global :
+    IsPaper2GlobalClassicalSolution initialContinuityNoDistanceControlDomain
+      theorem21Part1CounterParams
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  intro T hT
+  exact initialContinuityNoDistanceControl_constant_one_classical T hT
+
+lemma initialContinuityNoDistanceControl_constant_one_positiveGlobalBounded :
+    PositiveGlobalBoundedSolution initialContinuityNoDistanceControlDomain
+      theorem21Part1CounterParams
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  refine ⟨initialContinuityNoDistanceControl_constant_one_global, ?_, ?_⟩
+  · exact ⟨0, Eventually.of_forall fun _t => le_rfl⟩
+  · intro t x ht hx
+    norm_num
+
+/-- Raw obstruction for `StabilityNorms.sectorialLocalExponential`: if the
+`C¹` distance is unrelated to the dynamics and is constantly `1`, the claimed
+exponential decay forces `2 ≤ C exp(-rate t)` for all `t`, impossible as the
+right-hand side tends to `0`. -/
+lemma not_SectorialLocalExponentialRaw_constant_c1Distance :
+    ¬ SectorialLocalExponentialRaw initialContinuityNoDistanceControlDomain
+      theorem21Part1CounterParams sectorialLocalExponentialCounterSpectralData
+      (fun _ _ => (1 : ℝ)) (fun _ _ _ _ => (0 : ℝ)) := by
+  intro h
+  rcases h (3 / 4) 2 1 1
+      (by norm_num) (by norm_num) (by norm_num)
+      sectorialLocalExponentialCounter_linearlyStable with
+    ⟨eps, heps_pos, C, hC_pos, rate, hrate_pos, hmain⟩
+  have hpos :
+      PositiveInitialDatum initialContinuityNoDistanceControlDomain
+        (fun _ : Unit => (1 : ℝ)) := by
+    constructor
+    · trivial
+    · intro x hx
+      norm_num
+  have hsmall :
+      (fun _ _ _ _ => (0 : ℝ)) (3 / 4) 2
+        (fun _ : Unit => (1 : ℝ)) (fun _ : Unit => (1 : ℝ)) ≤ eps := by
+    simpa using heps_pos.le
+  have hbound :=
+    hmain (fun _ : Unit => (1 : ℝ)) hpos hsmall
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
+      initialContinuityNoDistanceControl_constant_one_global
+      initialContinuityNoDistanceControl_trace_one
+  have hmul : Tendsto (fun t : ℝ => rate * t) atTop atTop :=
+    (Filter.tendsto_id.atTop_mul_const hrate_pos).congr
+      (fun t => mul_comm t rate)
+  have hneg : Tendsto (fun t : ℝ => -(rate * t)) atTop atBot :=
+    tendsto_neg_atTop_atBot.comp hmul
+  have hexp : Tendsto (fun t : ℝ => Real.exp (-(rate * t))) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp hneg
+  have hlim :
+      Tendsto (fun t : ℝ => C * Real.exp (-rate * t)) atTop (𝓝 0) := by
+    convert tendsto_const_nhds.mul hexp using 1
+    · ext t
+      ring_nf
+    · simp
+  have hevent :
+      ∀ᶠ t : ℝ in atTop, C * Real.exp (-rate * t) < (2 : ℝ) :=
+    hlim.eventually (Iio_mem_nhds (by norm_num : (0 : ℝ) < 2))
+  rcases eventually_atTop.1 hevent with ⟨T, hT⟩
+  let t : ℝ := max T 0
+  have ht0 : 0 ≤ t := by
+    exact le_max_right T 0
+  have hTle : T ≤ t := by
+    exact le_max_left T 0
+  have hsmall_rhs : C * Real.exp (-rate * t) < (2 : ℝ) := hT t hTle
+  have hlarge_rhs : (2 : ℝ) ≤ C * Real.exp (-rate * t) := by
+    have htmp := hbound t ht0
+    norm_num at htmp
+    simpa [t] using htmp
+  linarith
+
+/-- Nonminimal exponential-upgrade branch of
+`Paper3Constants.convergenceToExponential`, with the `C¹` distance and critical
+threshold exposed. -/
+def ConvergenceToExponentialNonminimalRaw
+    (D : BoundedDomainData) (p : CM2Params)
+    (c1Distance : (D.Point → ℝ) → (D.Point → ℝ) → ℝ)
+    (chiCritical : ℝ → ℝ) : Prop :=
+  1 ≤ p.m →
+    ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      p.χ₀ < chiCritical eq.1 →
+        ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+          UniformConvergesInSup D u eq.1 →
+            ∃ C > 0, ∃ rate > 0, ∀ t, 0 ≤ t →
+              c1Distance (u t) (fun _ => eq.1) +
+                c1Distance (v t) (fun _ => eq.2) ≤
+                  C * Real.exp (-rate * t)
+
+/-- Raw obstruction for the convergence-to-exponential upgrade: uniform
+convergence in a fake `supNorm` does not imply exponential convergence in an
+unrelated `C¹` distance. -/
+lemma not_ConvergenceToExponentialNonminimalRaw_constant_c1Distance :
+    ¬ ConvergenceToExponentialNonminimalRaw initialContinuityNoDistanceControlDomain
+      theorem21Part1CounterParams (fun _ _ => (1 : ℝ)) (fun _ => (1 : ℝ)) := by
+  intro h
+  let D := initialContinuityNoDistanceControlDomain
+  let p := theorem21Part1CounterParams
+  have hm : 1 ≤ p.m := by
+    norm_num [p, theorem21Part1CounterParams]
+  have ha : 0 < p.a := by
+    norm_num [p, theorem21Part1CounterParams]
+  have hb : 0 < p.b := by
+    norm_num [p, theorem21Part1CounterParams]
+  have hχ : p.χ₀ < (fun _ => (1 : ℝ)) (positiveEquilibrium p ⟨ha, hb⟩).1 := by
+    norm_num [p, theorem21Part1CounterParams]
+  have hconv :
+      UniformConvergesInSup D (fun _ _ => (1 : ℝ))
+        (positiveEquilibrium p ⟨ha, hb⟩).1 := by
+    simp [UniformConvergesInSup, D, initialContinuityNoDistanceControlDomain]
+  rcases h hm ha hb hχ (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
+      initialContinuityNoDistanceControl_constant_one_positiveGlobalBounded
+      hconv with
+    ⟨C, hC_pos, rate, hrate_pos, hbound⟩
+  have hmul : Tendsto (fun t : ℝ => rate * t) atTop atTop :=
+    (Filter.tendsto_id.atTop_mul_const hrate_pos).congr
+      (fun t => mul_comm t rate)
+  have hneg : Tendsto (fun t : ℝ => -(rate * t)) atTop atBot :=
+    tendsto_neg_atTop_atBot.comp hmul
+  have hexp : Tendsto (fun t : ℝ => Real.exp (-(rate * t))) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp hneg
+  have hlim :
+      Tendsto (fun t : ℝ => C * Real.exp (-rate * t)) atTop (𝓝 0) := by
+    convert tendsto_const_nhds.mul hexp using 1
+    · ext t
+      ring_nf
+    · simp
+  have hevent :
+      ∀ᶠ t : ℝ in atTop, C * Real.exp (-rate * t) < (2 : ℝ) :=
+    hlim.eventually (Iio_mem_nhds (by norm_num : (0 : ℝ) < 2))
+  rcases eventually_atTop.1 hevent with ⟨T, hT⟩
+  let t : ℝ := max T 0
+  have ht0 : 0 ≤ t := by
+    exact le_max_right T 0
+  have hTle : T ≤ t := by
+    exact le_max_left T 0
+  have hsmall_rhs : C * Real.exp (-rate * t) < (2 : ℝ) := hT t hTle
+  have hlarge_rhs : (2 : ℝ) ≤ C * Real.exp (-rate * t) := by
+    have htmp := hbound t ht0
+    norm_num at htmp
+    simpa [t] using htmp
+  linarith
+
+def nonminimalGlobalStabilityCounterParams : CM2Params :=
+  { N := 1
+    hN := by norm_num
+    α := 1
+    γ := 1
+    m := 1
+    μ := 1
+    ν := 1
+    χ₀ := 0
+    a := 1
+    b := 1
+    β := 0
+    hα := by norm_num
+    hγ := by norm_num
+    hm := by norm_num
+    hμ := by norm_num
+    hν := by norm_num
+    ha := by norm_num
+    hb := by norm_num
+    hβ := by norm_num }
+
+lemma initialContinuityNoDistanceControl_nonminimalCounter_classical
+    (T : ℝ) (hT : 0 < T) :
+    IsPaper2ClassicalSolution initialContinuityNoDistanceControlDomain
+      nonminimalGlobalStabilityCounterParams T
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT hx
+    norm_num
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - nonminimalGlobalStabilityCounterParams.χ₀ * 0 +
+        1 * (nonminimalGlobalStabilityCounterParams.a -
+          nonminimalGlobalStabilityCounterParams.b *
+            (1 : ℝ) ^ nonminimalGlobalStabilityCounterParams.α)
+    norm_num [nonminimalGlobalStabilityCounterParams]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - nonminimalGlobalStabilityCounterParams.μ * 1 +
+        nonminimalGlobalStabilityCounterParams.ν *
+          (1 : ℝ) ^ nonminimalGlobalStabilityCounterParams.γ
+    norm_num [nonminimalGlobalStabilityCounterParams]
+  · intro t x ht0 htT hx
+    cases hx
+
+lemma initialContinuityNoDistanceControl_nonminimalCounter_global :
+    IsPaper2GlobalClassicalSolution initialContinuityNoDistanceControlDomain
+      nonminimalGlobalStabilityCounterParams
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  intro T hT
+  exact initialContinuityNoDistanceControl_nonminimalCounter_classical T hT
+
+lemma initialContinuityNoDistanceControl_nonminimalCounter_positiveGlobalBounded :
+    PositiveGlobalBoundedSolution initialContinuityNoDistanceControlDomain
+      nonminimalGlobalStabilityCounterParams
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  refine ⟨initialContinuityNoDistanceControl_nonminimalCounter_global, ?_, ?_⟩
+  · exact ⟨0, Eventually.of_forall fun _t => le_rfl⟩
+  · intro t x ht hx
+    norm_num
+
+/-- Raw nonminimal global-stability branch, exposing only the metric and the
+threshold needed for the third strong-logistic alternative. -/
+def NonminimalGlobalStabilityRaw
+    (D : BoundedDomainData) (p : CM2Params)
+    (c1Distance : (D.Point → ℝ) → (D.Point → ℝ) → ℝ)
+    (chiStrong3 : ℝ → ℝ) : Prop :=
+  0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+    ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      (1 ≤ p.m ∧ 1 ≤ p.γ ∧
+        p.α + 1 ≥ p.m + p.γ + (if p.β = 0 then 0 else p.γ) ∧
+        p.χ₀ < chiStrong3 eq.1) →
+        (∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+            UniformConvergesInSup D u eq.1) ∧
+        ∃ A > 0, ∃ rate > 0,
+          ∀ u v : ℝ → D.Point → ℝ,
+            PositiveGlobalBoundedSolution D p u v →
+              ∀ t, 0 ≤ t →
+                c1Distance (u t) (fun _ => eq.1) +
+                  c1Distance (v t) (fun _ => eq.2) ≤
+                    A * Real.exp (-rate * t)
+
+/-- Raw obstruction for the nonminimal global-stability package field.  The
+third strong-logistic branch can be satisfied algebraically, but an unrelated
+constant `C¹` distance cannot decay exponentially. -/
+lemma not_NonminimalGlobalStabilityRaw_constant_c1Distance :
+    ¬ NonminimalGlobalStabilityRaw initialContinuityNoDistanceControlDomain
+      nonminimalGlobalStabilityCounterParams
+      (fun _ _ => (1 : ℝ)) (fun _ => (1 : ℝ)) := by
+  intro h
+  let D := initialContinuityNoDistanceControlDomain
+  let p := nonminimalGlobalStabilityCounterParams
+  have ha : 0 < p.a := by
+    norm_num [p, nonminimalGlobalStabilityCounterParams]
+  have hb : 0 < p.b := by
+    norm_num [p, nonminimalGlobalStabilityCounterParams]
+  have hcond :
+      1 ≤ p.m ∧ 1 ≤ p.γ ∧
+        p.α + 1 ≥ p.m + p.γ + (if p.β = 0 then 0 else p.γ) ∧
+        p.χ₀ < (fun _ => (1 : ℝ)) (positiveEquilibrium p ⟨ha, hb⟩).1 := by
+    norm_num [p, nonminimalGlobalStabilityCounterParams]
+  rcases (h
+      (by norm_num [p, nonminimalGlobalStabilityCounterParams])
+      (by norm_num [p, nonminimalGlobalStabilityCounterParams])
+      (by norm_num [p, nonminimalGlobalStabilityCounterParams])
+      (by norm_num [p, nonminimalGlobalStabilityCounterParams])
+      (by norm_num [p, nonminimalGlobalStabilityCounterParams])
+      ha hb hcond).2 with
+    ⟨A, hA_pos, rate, hrate_pos, hbound⟩
+  have hmul : Tendsto (fun t : ℝ => rate * t) atTop atTop :=
+    (Filter.tendsto_id.atTop_mul_const hrate_pos).congr
+      (fun t => mul_comm t rate)
+  have hneg : Tendsto (fun t : ℝ => -(rate * t)) atTop atBot :=
+    tendsto_neg_atTop_atBot.comp hmul
+  have hexp : Tendsto (fun t : ℝ => Real.exp (-(rate * t))) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp hneg
+  have hlim :
+      Tendsto (fun t : ℝ => A * Real.exp (-rate * t)) atTop (𝓝 0) := by
+    convert tendsto_const_nhds.mul hexp using 1
+    · ext t
+      ring_nf
+    · simp
+  have hevent :
+      ∀ᶠ t : ℝ in atTop, A * Real.exp (-rate * t) < (2 : ℝ) :=
+    hlim.eventually (Iio_mem_nhds (by norm_num : (0 : ℝ) < 2))
+  rcases eventually_atTop.1 hevent with ⟨T, hT⟩
+  let t : ℝ := max T 0
+  have ht0 : 0 ≤ t := by
+    exact le_max_right T 0
+  have hTle : T ≤ t := by
+    exact le_max_left T 0
+  have hsmall_rhs : A * Real.exp (-rate * t) < (2 : ℝ) := hT t hTle
+  have hlarge_rhs : (2 : ℝ) ≤ A * Real.exp (-rate * t) := by
+    have htmp :=
+      hbound (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
+        initialContinuityNoDistanceControl_nonminimalCounter_positiveGlobalBounded
+        t ht0
+    norm_num at htmp
+    simpa [t] using htmp
+  linarith
+
+def minimalGlobalStabilityCounterParams : CM2Params :=
+  { N := 1
+    hN := by norm_num
+    α := 1
+    γ := 1
+    m := 1
+    μ := 1
+    ν := 1
+    χ₀ := 1 / 2
+    a := 0
+    b := 0
+    β := 1
+    hα := by norm_num
+    hγ := by norm_num
+    hm := by norm_num
+    hμ := by norm_num
+    hν := by norm_num
+    ha := by norm_num
+    hb := by norm_num
+    hβ := by norm_num }
+
+lemma initialContinuityNoDistanceControl_minimalCounter_classical
+    (T : ℝ) (hT : 0 < T) :
+    IsPaper2ClassicalSolution initialContinuityNoDistanceControlDomain
+      minimalGlobalStabilityCounterParams T
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT hx
+    norm_num
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - minimalGlobalStabilityCounterParams.χ₀ * 0 +
+        1 * (minimalGlobalStabilityCounterParams.a -
+          minimalGlobalStabilityCounterParams.b *
+            (1 : ℝ) ^ minimalGlobalStabilityCounterParams.α)
+    norm_num [minimalGlobalStabilityCounterParams]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - minimalGlobalStabilityCounterParams.μ * 1 +
+        minimalGlobalStabilityCounterParams.ν *
+          (1 : ℝ) ^ minimalGlobalStabilityCounterParams.γ
+    norm_num [minimalGlobalStabilityCounterParams]
+  · intro t x ht0 htT hx
+    cases hx
+
+lemma initialContinuityNoDistanceControl_minimalCounter_global :
+    IsPaper2GlobalClassicalSolution initialContinuityNoDistanceControlDomain
+      minimalGlobalStabilityCounterParams
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  intro T hT
+  exact initialContinuityNoDistanceControl_minimalCounter_classical T hT
+
+lemma initialContinuityNoDistanceControl_minimalCounter_positiveGlobalBounded :
+    PositiveGlobalBoundedSolution initialContinuityNoDistanceControlDomain
+      minimalGlobalStabilityCounterParams
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  refine ⟨initialContinuityNoDistanceControl_minimalCounter_global, ?_, ?_⟩
+  · exact ⟨0, Eventually.of_forall fun _t => le_rfl⟩
+  · intro t x ht hx
+    norm_num
+
+lemma initialContinuityNoDistanceControl_minimalCounter_mass_one :
+    HasInitialMass initialContinuityNoDistanceControlDomain
+      (fun _ _ => (1 : ℝ)) 1 := by
+  unfold HasInitialMass
+  dsimp [initialContinuityNoDistanceControlDomain]
+  norm_num
+
+/-- Raw minimal-model global-stability branch, exposing the metric and the two
+minimal thresholds instead of hiding them inside `Paper3Constants`. -/
+def MinimalGlobalStabilityRaw
+    (D : BoundedDomainData) (p : CM2Params)
+    (c1Distance : (D.Point → ℝ) → (D.Point → ℝ) → ℝ)
+    (chiMinimal1 chiMinimal2 : ℝ → ℝ) : Prop :=
+  p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+    ∀ uStar > 0,
+    let eq := minimalEquilibrium p uStar
+    ((0 < p.χ₀ ∧ p.χ₀ < chiMinimal1 uStar) ∨
+      (p.γ = 1 ∧ 0 < p.χ₀ ∧ p.χ₀ < chiMinimal2 uStar)) →
+      (∀ u v : ℝ → D.Point → ℝ,
+        PositiveGlobalBoundedSolution D p u v →
+        HasInitialMass D u uStar →
+          UniformConvergesInSup D u eq.1) ∧
+      ∃ A > 0, ∃ rate > 0,
+        ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+          HasInitialMass D u uStar →
+            ∀ t, 0 ≤ t →
+              c1Distance (u t) (fun _ => eq.1) +
+                c1Distance (v t) (fun _ => eq.2) ≤
+                  A * Real.exp (-rate * t)
+
+/-- Raw obstruction for the minimal global-stability package field.  Even with
+the mass constraint and the first minimal-threshold branch satisfied by
+concrete parameters, an unrelated constant `C¹` distance cannot decay
+exponentially. -/
+lemma not_MinimalGlobalStabilityRaw_constant_c1Distance :
+    ¬ MinimalGlobalStabilityRaw initialContinuityNoDistanceControlDomain
+      minimalGlobalStabilityCounterParams
+      (fun _ _ => (1 : ℝ)) (fun _ => (1 : ℝ)) (fun _ => (1 : ℝ)) := by
+  intro h
+  let D := initialContinuityNoDistanceControlDomain
+  let p := minimalGlobalStabilityCounterParams
+  have huStar : (0 : ℝ) < 1 := by norm_num
+  have hcond :
+      (0 < p.χ₀ ∧ p.χ₀ < (fun _ => (1 : ℝ)) 1) ∨
+        (p.γ = 1 ∧ 0 < p.χ₀ ∧ p.χ₀ < (fun _ => (1 : ℝ)) 1) := by
+    left
+    norm_num [p, minimalGlobalStabilityCounterParams]
+  rcases (h
+      (by norm_num [p, minimalGlobalStabilityCounterParams])
+      (by norm_num [p, minimalGlobalStabilityCounterParams])
+      (by norm_num [p, minimalGlobalStabilityCounterParams])
+      (by norm_num [p, minimalGlobalStabilityCounterParams])
+      1 huStar hcond).2 with
+    ⟨A, hA_pos, rate, hrate_pos, hbound⟩
+  have hmul : Tendsto (fun t : ℝ => rate * t) atTop atTop :=
+    (Filter.tendsto_id.atTop_mul_const hrate_pos).congr
+      (fun t => mul_comm t rate)
+  have hneg : Tendsto (fun t : ℝ => -(rate * t)) atTop atBot :=
+    tendsto_neg_atTop_atBot.comp hmul
+  have hexp : Tendsto (fun t : ℝ => Real.exp (-(rate * t))) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp hneg
+  have hlim :
+      Tendsto (fun t : ℝ => A * Real.exp (-rate * t)) atTop (𝓝 0) := by
+    convert tendsto_const_nhds.mul hexp using 1
+    · ext t
+      ring_nf
+    · simp
+  have hevent :
+      ∀ᶠ t : ℝ in atTop, A * Real.exp (-rate * t) < (2 : ℝ) :=
+    hlim.eventually (Iio_mem_nhds (by norm_num : (0 : ℝ) < 2))
+  rcases eventually_atTop.1 hevent with ⟨T, hT⟩
+  let t : ℝ := max T 0
+  have ht0 : 0 ≤ t := by
+    exact le_max_right T 0
+  have hTle : T ≤ t := by
+    exact le_max_left T 0
+  have hsmall_rhs : A * Real.exp (-rate * t) < (2 : ℝ) := hT t hTle
+  have hlarge_rhs : (2 : ℝ) ≤ A * Real.exp (-rate * t) := by
+    have htmp :=
+      hbound (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
+        initialContinuityNoDistanceControl_minimalCounter_positiveGlobalBounded
+        initialContinuityNoDistanceControl_minimalCounter_mass_one t ht0
+    norm_num at htmp
+    simpa [t] using htmp
+  linarith
+
+/-- Raw nonminimal local-stability branch of
+`Paper3Constants.linearStabilityInstability`, exposing the `C¹` distance. -/
+def LinearStabilityInstabilityNonminimalRaw
+    (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
+    (c1Distance : (D.Point → ℝ) → (D.Point → ℝ) → ℝ)
+    (chiCritical : ℝ → ℝ) : Prop :=
+  ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    p.χ₀ < chiCritical eq.1 →
+      LinearlyStable S p eq.1 eq.2 ∧
+      ∃ δ > 0, ∃ A > 0, ∃ rate > 0,
+        ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+          SupCloseToConstant D u₀ eq.1 δ →
+            ∃ u v : ℝ → D.Point → ℝ,
+              IsPaper2GlobalClassicalSolution D p u v ∧
+              InitialTrace D u₀ u ∧
+              ∀ t, 0 ≤ t →
+                c1Distance (u t) (fun _ => eq.1) +
+                  c1Distance (v t) (fun _ => eq.2) ≤
+                    A * Real.exp (-rate * t)
+
+/-- Raw obstruction for the local-stability part of
+`Paper3Constants.linearStabilityInstability`: fake sup-norm closeness can make
+the initial datum admissibly small, but an unrelated constant `C¹` distance
+prevents every asserted exponential convergence estimate. -/
+lemma not_LinearStabilityInstabilityNonminimalRaw_constant_c1Distance :
+    ¬ LinearStabilityInstabilityNonminimalRaw
+      initialContinuityNoDistanceControlDomain theorem21Part1CounterParams
+      sectorialLocalExponentialCounterSpectralData
+      (fun _ _ => (1 : ℝ)) (fun _ => (1 : ℝ)) := by
+  intro h
+  let D := initialContinuityNoDistanceControlDomain
+  let p := theorem21Part1CounterParams
+  have ha : 0 < p.a := by
+    norm_num [p, theorem21Part1CounterParams]
+  have hb : 0 < p.b := by
+    norm_num [p, theorem21Part1CounterParams]
+  have hχ :
+      p.χ₀ < (fun _ => (1 : ℝ)) (positiveEquilibrium p ⟨ha, hb⟩).1 := by
+    norm_num [p, theorem21Part1CounterParams]
+  rcases (h ha hb hχ).2 with
+    ⟨δ, hδ_pos, A, hA_pos, rate, hrate_pos, hloc⟩
+  have hpos :
+      PositiveInitialDatum D (fun _ : Unit => (1 : ℝ)) := by
+    constructor
+    · trivial
+    · intro x hx
+      norm_num
+  have hclose :
+      SupCloseToConstant D (fun _ : Unit => (1 : ℝ))
+        (positiveEquilibrium p ⟨ha, hb⟩).1 δ := by
+    simp [SupCloseToConstant, D, initialContinuityNoDistanceControlDomain,
+      hδ_pos]
+  rcases hloc (fun _ : Unit => (1 : ℝ)) hpos hclose with
+    ⟨u, v, _hglobal, _htrace, hbound⟩
+  have hmul : Tendsto (fun t : ℝ => rate * t) atTop atTop :=
+    (Filter.tendsto_id.atTop_mul_const hrate_pos).congr
+      (fun t => mul_comm t rate)
+  have hneg : Tendsto (fun t : ℝ => -(rate * t)) atTop atBot :=
+    tendsto_neg_atTop_atBot.comp hmul
+  have hexp : Tendsto (fun t : ℝ => Real.exp (-(rate * t))) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp hneg
+  have hlim :
+      Tendsto (fun t : ℝ => A * Real.exp (-rate * t)) atTop (𝓝 0) := by
+    convert tendsto_const_nhds.mul hexp using 1
+    · ext t
+      ring_nf
+    · simp
+  have hevent :
+      ∀ᶠ t : ℝ in atTop, A * Real.exp (-rate * t) < (2 : ℝ) :=
+    hlim.eventually (Iio_mem_nhds (by norm_num : (0 : ℝ) < 2))
+  rcases eventually_atTop.1 hevent with ⟨T, hT⟩
+  let t : ℝ := max T 0
+  have ht0 : 0 ≤ t := by
+    exact le_max_right T 0
+  have hTle : T ≤ t := by
+    exact le_max_left T 0
+  have hsmall_rhs : A * Real.exp (-rate * t) < (2 : ℝ) := hT t hTle
+  have hlarge_rhs : (2 : ℝ) ≤ A * Real.exp (-rate * t) := by
+    have htmp := hbound t ht0
+    norm_num at htmp
+    simpa [t] using htmp
+  linarith
+
+/-- Raw version of `CompactnessData.upperEnvelopeMonotonicity`, exposing the
+upper-envelope functional instead of hiding it inside a compactness package. -/
+def UpperEnvelopeMonotonicityRaw
+    (D : BoundedDomainData) (p : CM2Params)
+    (upperEnvelope : (D.Point → ℝ) → ℝ) : Prop :=
+  ∀ u v : ℝ → D.Point → ℝ,
+    PositiveGlobalBoundedSolution D p u v →
+      (p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
+        ∀ t₀, 0 < t₀ →
+          (p.a / p.b) ^ (1 / p.α) < upperEnvelope (u t₀) →
+          ∀ t₁ t₂, 0 < t₁ → t₁ ≤ t₂ → t₂ ≤ t₀ →
+            upperEnvelope (u t₂) ≤ upperEnvelope (u t₁)) ∧
+      (p.χ₀ ≤ 0 → p.a = 0 → p.b = 0 →
+        ∀ t₁ t₂, 0 < t₁ → t₁ ≤ t₂ →
+          upperEnvelope (u t₂) ≤ upperEnvelope (u t₁))
+
+lemma initialContinuityNoDistanceControl_increasing_minimal_classical
+    (T : ℝ) (hT : 0 < T) :
+    IsPaper2ClassicalSolution initialContinuityNoDistanceControlDomain
+      proposition14NoRegularityParams T
+      (fun t _ => t + 1) (fun t _ => t + 1) := by
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT hx
+    linarith
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - proposition14NoRegularityParams.χ₀ * 0 +
+        (t + 1) * (proposition14NoRegularityParams.a -
+          proposition14NoRegularityParams.b *
+            (t + 1) ^ proposition14NoRegularityParams.α)
+    norm_num [proposition14NoRegularityParams]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - proposition14NoRegularityParams.μ * (t + 1) +
+        proposition14NoRegularityParams.ν *
+          (t + 1) ^ proposition14NoRegularityParams.γ
+    norm_num [proposition14NoRegularityParams]
+  · intro t x ht0 htT hx
+    cases hx
+
+lemma initialContinuityNoDistanceControl_increasing_minimal_global :
+    IsPaper2GlobalClassicalSolution initialContinuityNoDistanceControlDomain
+      proposition14NoRegularityParams
+      (fun t _ => t + 1) (fun t _ => t + 1) := by
+  intro T hT
+  exact initialContinuityNoDistanceControl_increasing_minimal_classical T hT
+
+lemma initialContinuityNoDistanceControl_increasing_minimal_positiveGlobalBounded :
+    PositiveGlobalBoundedSolution initialContinuityNoDistanceControlDomain
+      proposition14NoRegularityParams
+      (fun t _ => t + 1) (fun t _ => t + 1) := by
+  refine ⟨initialContinuityNoDistanceControl_increasing_minimal_global, ?_, ?_⟩
+  · exact ⟨0, Eventually.of_forall fun _t => le_rfl⟩
+  · intro t x ht hx
+    linarith
+
+/-- Raw obstruction for `CompactnessData.upperEnvelopeMonotonicity`.  The
+current abstract PDE interface can declare the increasing profile `u(t)=t+1`
+to be a positive global bounded solution by making the time derivative and
+sup-norm fields fake; the point-value upper envelope then violates the claimed
+monotonicity. -/
+lemma not_UpperEnvelopeMonotonicityRaw_eval_increasing_solution :
+    ¬ UpperEnvelopeMonotonicityRaw initialContinuityNoDistanceControlDomain
+      proposition14NoRegularityParams (fun f => f ()) := by
+  intro h
+  let u : ℝ → Unit → ℝ := fun t _ => t + 1
+  have hmono :=
+    (h u u
+      initialContinuityNoDistanceControl_increasing_minimal_positiveGlobalBounded).2
+      (by norm_num [proposition14NoRegularityParams])
+      (by norm_num [proposition14NoRegularityParams])
+      (by norm_num [proposition14NoRegularityParams])
+      1 2 (by norm_num) (by norm_num)
+  norm_num [u] at hmono
+
+/-- Raw version of `CompactnessData.timeTranslateCompactness`, exposing the
+local convergence predicate instead of hiding it inside a compactness package. -/
+def TimeTranslateCompactnessRaw
+    (D : BoundedDomainData) (p : CM2Params)
+    (locallyConverges :
+      (ℕ → ℝ → D.Point → ℝ) → (ℝ → D.Point → ℝ) → Prop) : Prop :=
+  1 ≤ p.m → 0 < p.γ →
+    ∀ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v →
+        ∀ times : ℕ → ℝ, Tendsto times atTop atTop →
+          ∃ subseq : ℕ → ℕ, StrictMono subseq ∧
+          ∃ uInf vInf : ℝ → D.Point → ℝ,
+            locallyConverges (fun n t x => u (t + times (subseq n)) x) uInf ∧
+            locallyConverges (fun n t x => v (t + times (subseq n)) x) vInf ∧
+            ∀ T > 0, IsPaper2ClassicalSolution D p T
+              (fun t x => uInf (t - T / 2) x)
+              (fun t x => vInf (t - T / 2) x)
+
+/-- Raw obstruction for `CompactnessData.timeTranslateCompactness`: without a
+real local-convergence semantics, the compactness conclusion is just an
+assumption.  Taking `locallyConverges` to be identically false refutes the raw
+shape even for the positive constant solution. -/
+lemma not_TimeTranslateCompactnessRaw_false_locallyConverges :
+    ¬ TimeTranslateCompactnessRaw initialContinuityNoDistanceControlDomain
+      theorem21Part1CounterParams (fun _ _ => False) := by
+  intro h
+  have htimes : Tendsto (fun n : ℕ => (n : ℝ)) atTop atTop :=
+    tendsto_natCast_atTop_atTop
+  rcases h
+      (by norm_num [theorem21Part1CounterParams])
+      (by norm_num [theorem21Part1CounterParams])
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
+      initialContinuityNoDistanceControl_constant_one_positiveGlobalBounded
+      (fun n : ℕ => (n : ℝ)) htimes with
+    ⟨subseq, hsubseq, uInf, vInf, hloc_u, _hloc_v, _hclassical⟩
+  exact hloc_u
+
+/-- Raw version of `CompactnessData.neumannResolventGradientBound_exists`,
+with the bound predicate exposed. -/
+def NeumannResolventGradientBoundExistsRaw
+    (D : BoundedDomainData)
+    (neumannResolventGradientBound :
+      (mu nu : ℝ) → (D.Point → ℝ) → ℝ → Prop) : Prop :=
+  ∃ M0 > 0, ∀ mu nu : ℝ, ∀ f : D.Point → ℝ,
+    0 < mu → 0 < nu →
+      neumannResolventGradientBound mu nu f M0
+
+/-- Raw obstruction for `CompactnessData.neumannResolventGradientBound_exists`:
+if the exposed resolvent-gradient predicate is unrelated to analysis and is
+identically false, no uniform bound witness can exist. -/
+lemma not_NeumannResolventGradientBoundExistsRaw_false_bound :
+    ¬ NeumannResolventGradientBoundExistsRaw initialContinuityNoDistanceControlDomain
+      (fun _ _ _ _ => False) := by
+  rintro ⟨M0, hM0_pos, hbound⟩
+  exact hbound 1 1 (fun _ : Unit => (0 : ℝ)) (by norm_num) (by norm_num)
+
+/-- The abstract `StabilityNorms` package cannot be instantiated on an arbitrary
+`BoundedDomainData`.  On the fake lower-envelope domain the PDE admits the
+positive constant solution `u = v = 1`, but `supNorm` is identically `1`, so the
+negative-sensitivity global-stability field would force the constant function
+`1` to tend to `0`. -/
+lemma not_exists_StabilityNorms_no_supNorm_convergence :
+    ¬ Nonempty (StabilityNorms theorem21Part1NoLowerEnvelopeDomain) := by
+  rintro ⟨N⟩
+  let D := theorem21Part1NoLowerEnvelopeDomain
+  let p := theorem21Part1CounterParams
+  have ha : 0 < p.a := by
+    norm_num [p, theorem21Part1CounterParams]
+  have hb : 0 < p.b := by
+    norm_num [p, theorem21Part1CounterParams]
+  have hχ : p.χ₀ ≤ 0 := by
+    norm_num [p, theorem21Part1CounterParams]
+  have hm : 1 ≤ p.m := by
+    norm_num [p, theorem21Part1CounterParams]
+  have hbranch := (N.negativeSensitivityGlobalStability p hχ hm).1 ha hb
+  have hconv :
+      UniformConvergesInSup D (fun _ _ => (1 : ℝ))
+        (positiveEquilibrium p ⟨ha, hb⟩).1 :=
+    hbranch.1 (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
+      theorem21Part1Counter_positiveGlobalBounded
+  have hlim_zero : Tendsto (fun _t : ℝ => (1 : ℝ)) atTop (𝓝 (0 : ℝ)) := by
+    simp [UniformConvergesInSup, D, theorem21Part1NoLowerEnvelopeDomain] at hconv
+  have hlim_one : Tendsto (fun _t : ℝ => (1 : ℝ)) atTop (𝓝 (1 : ℝ)) :=
+    tendsto_const_nhds
+  have hone_eq_zero : (1 : ℝ) = 0 :=
+    tendsto_nhds_unique hlim_one hlim_zero
+  norm_num at hone_eq_zero
+
+/-- The same fake lower-envelope domain also rules out a `Paper3Constants`
+package for the Part (1) persistence parameters.  The
+`uniformPersistencePart1` field would give a positive eventual lower bound for
+`u = 1`, but `infValue` is identically zero. -/
+lemma not_exists_Paper3Constants_theorem21_part1_counterdomain :
+    ¬ Nonempty
+      (Paper3Constants theorem21Part1NoLowerEnvelopeDomain
+        theorem21Part1CounterParams) := by
+  rintro ⟨C⟩
+  let D := theorem21Part1NoLowerEnvelopeDomain
+  let p := theorem21Part1CounterParams
+  have hm : 1 ≤ p.m := by
+    norm_num [p, theorem21Part1CounterParams]
+  rcases C.uniformPersistencePart1 hm
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
+      theorem21Part1Counter_positiveGlobalBounded with
+    ⟨δu, hδu_pos, hlowerU, _hlowerV⟩
+  rcases hlowerU with ⟨_hδu_pos', hlower_eventually⟩
+  have heventually_nonpos :
+      ∀ᶠ t : ℝ in atTop, δu ≤ (0 : ℝ) := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlower_eventually
+  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
+  have hnonpos : δu ≤ 0 := hT T le_rfl
+  linarith
+
+lemma not_forall_Theorem_2_1_part1 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params, Theorem_2_1_part1 D p) := by
+  intro h
+  let D := theorem21Part1NoLowerEnvelopeDomain
+  let p := theorem21Part1CounterParams
+  have hpart := h D p
+  rcases hpart (by norm_num [p, theorem21Part1CounterParams])
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
+      theorem21Part1Counter_positiveGlobalBounded with
+    ⟨δu, hδu_pos, hδu_lower, _hv_lower⟩
+  rcases hδu_lower with ⟨_hδu_pos', hlower_eventually⟩
+  have heventually_nonpos :
+      ∀ᶠ t : ℝ in atTop, δu ≤ (0 : ℝ) := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlower_eventually
+  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
+  have hnonpos : δu ≤ 0 := hT T le_rfl
+  linarith
+
+lemma theorem21NoLowerEnvelope_constant_one_classical
+    (p : CM2Params) (ha : p.a = 1) (hb : p.b = 1)
+    (hmu : p.μ = 1) (hnu : p.ν = 1)
+    (T : ℝ) (hT : 0 < T) :
+    IsPaper2ClassicalSolution theorem21Part1NoLowerEnvelopeDomain p T
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT hx
+    norm_num
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - p.χ₀ * 0 + 1 * (p.a - p.b * (1 : ℝ) ^ p.α)
+    rw [Real.one_rpow, ha, hb]
+    ring
+  · intro t x ht0 htT hx
+    change (0 : ℝ) = 0 - p.μ * 1 + p.ν * (1 : ℝ) ^ p.γ
+    rw [Real.one_rpow, hmu, hnu]
+    ring
+  · intro t x ht0 htT hx
+    cases hx
+
+lemma theorem21NoLowerEnvelope_constant_one_positiveGlobalBounded
+    (p : CM2Params) (ha : p.a = 1) (hb : p.b = 1)
+    (hmu : p.μ = 1) (hnu : p.ν = 1) :
+    PositiveGlobalBoundedSolution theorem21Part1NoLowerEnvelopeDomain p
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  refine ⟨?_, ?_, ?_⟩
+  · intro T hT
+    exact theorem21NoLowerEnvelope_constant_one_classical p ha hb hmu hnu T hT
+  · exact ⟨1, Eventually.of_forall fun _t => le_rfl⟩
+  · intro t x ht hx
+    norm_num
+
+def theorem21Part2CounterParams : CM2Params :=
+  { N := 1
+    hN := by norm_num
+    α := 1
+    γ := 1
+    m := 1
+    μ := 1
+    ν := 1
+    χ₀ := 1 / 2
+    a := 1
+    b := 1
+    β := 1
+    hα := by norm_num
+    hγ := by norm_num
+    hm := by norm_num
+    hμ := by norm_num
+    hν := by norm_num
+    ha := by norm_num
+    hb := by norm_num
+    hβ := by norm_num }
+
 def Theorem_2_1_part2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   0 < p.a → 0 < p.b → 0 < p.χ₀ → p.m = 1 → 1 ≤ p.β →
     p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)) →
@@ -3709,6 +4800,84 @@ lemma Theorem_2_1_part2.lower_bounds
       EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ) :=
   h ha hb hχ0 hm hβ hχ u v huv
 
+lemma not_forall_Theorem_2_1_part2 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params, Theorem_2_1_part2 D p) := by
+  intro h
+  let D := theorem21Part1NoLowerEnvelopeDomain
+  let p := theorem21Part2CounterParams
+  have hpart := h D p
+  have hχ :
+      p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)) := by
+    norm_num [p, theorem21Part2CounterParams, Theta_beta_zero]
+  have huv :
+      PositiveGlobalBoundedSolution D p
+        (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+    exact theorem21NoLowerEnvelope_constant_one_positiveGlobalBounded p
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+  rcases hpart
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      hχ (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) huv with
+    ⟨hlowerU, _hlowerV⟩
+  rcases hlowerU with ⟨hlowerU_pos, hlowerU_eventually⟩
+  have heventually_nonpos :
+      ∀ᶠ t : ℝ in atTop,
+        ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
+            (1 / p.α) ≤ (0 : ℝ) := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlowerU_eventually
+  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
+  have hnonpos :
+      ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
+          (1 / p.α) ≤ (0 : ℝ) := hT T le_rfl
+  linarith
+
+/-- Package-level version of the Part (2) lower-envelope obstruction.  The
+`uniformPersistencePart2` field of `Paper3Constants` would force a positive
+eventual lower bound, contradicting `infValue ≡ 0` on the fake domain. -/
+lemma not_exists_Paper3Constants_theorem21_part2_counterdomain :
+    ¬ Nonempty
+      (Paper3Constants theorem21Part1NoLowerEnvelopeDomain
+        theorem21Part2CounterParams) := by
+  rintro ⟨C⟩
+  let D := theorem21Part1NoLowerEnvelopeDomain
+  let p := theorem21Part2CounterParams
+  have hχ :
+      p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)) := by
+    norm_num [p, theorem21Part2CounterParams, Theta_beta_zero]
+  have huv :
+      PositiveGlobalBoundedSolution D p
+        (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+    exact theorem21NoLowerEnvelope_constant_one_positiveGlobalBounded p
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+  rcases C.uniformPersistencePart2
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      hχ (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) huv with
+    ⟨hlowerU, _hlowerV⟩
+  rcases hlowerU with ⟨hlowerU_pos, hlowerU_eventually⟩
+  have heventually_nonpos :
+      ∀ᶠ t : ℝ in atTop,
+        ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
+            (1 / p.α) ≤ (0 : ℝ) := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlowerU_eventually
+  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
+  have hnonpos :
+      ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
+          (1 / p.α) ≤ (0 : ℝ) := hT T le_rfl
+  linarith
+
 def Theorem_2_1_part3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   0 < p.a → 0 < p.b → 0 < p.χ₀ → 1 < p.m → 1 ≤ p.β →
     ∀ u v : ℝ → D.Point → ℝ,
@@ -3732,6 +4901,258 @@ lemma Theorem_2_1_part3.lower_bounds
     EventuallyLowerBound D u lowerU ∧
       EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ) :=
   h ha hb hχ0 hm hβ u v huv
+
+def theorem21Part3CounterParams : CM2Params :=
+  { N := 1
+    hN := by norm_num
+    α := 1
+    γ := 1
+    m := 2
+    μ := 1
+    ν := 1
+    χ₀ := 1
+    a := 1
+    b := 1
+    β := 1
+    hα := by norm_num
+    hγ := by norm_num
+    hm := by norm_num
+    hμ := by norm_num
+    hν := by norm_num
+    ha := by norm_num
+    hb := by norm_num
+    hβ := by norm_num }
+
+lemma not_forall_Theorem_2_1_part3 :
+    ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params, Theorem_2_1_part3 D p) := by
+  intro h
+  let D := theorem21Part1NoLowerEnvelopeDomain
+  let p := theorem21Part3CounterParams
+  have hpart := h D p
+  have huv :
+      PositiveGlobalBoundedSolution D p
+        (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+    exact theorem21NoLowerEnvelope_constant_one_positiveGlobalBounded p
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+  rcases hpart
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) huv with
+    ⟨hlowerU, _hlowerV⟩
+  rcases hlowerU with ⟨hlowerU_pos, hlowerU_eventually⟩
+  have heventually_nonpos :
+      ∀ᶠ t : ℝ in atTop,
+        (min 1
+            (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
+          max (1 / (p.m - 1)) (1 / p.α)) ≤ (0 : ℝ) := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlowerU_eventually
+  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
+  have hnonpos :
+      (min 1
+          (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
+        max (1 / (p.m - 1)) (1 / p.α)) ≤ (0 : ℝ) := hT T le_rfl
+  linarith
+
+/-- Package-level version of the Part (3) lower-envelope obstruction. -/
+lemma not_exists_Paper3Constants_theorem21_part3_counterdomain :
+    ¬ Nonempty
+      (Paper3Constants theorem21Part1NoLowerEnvelopeDomain
+        theorem21Part3CounterParams) := by
+  rintro ⟨C⟩
+  let D := theorem21Part1NoLowerEnvelopeDomain
+  let p := theorem21Part3CounterParams
+  have huv :
+      PositiveGlobalBoundedSolution D p
+        (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+    exact theorem21NoLowerEnvelope_constant_one_positiveGlobalBounded p
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+  rcases C.uniformPersistencePart3
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) huv with
+    ⟨hlowerU, _hlowerV⟩
+  rcases hlowerU with ⟨hlowerU_pos, hlowerU_eventually⟩
+  have heventually_nonpos :
+      ∀ᶠ t : ℝ in atTop,
+        (min 1
+            (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
+          max (1 / (p.m - 1)) (1 / p.α)) ≤ (0 : ℝ) := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlowerU_eventually
+  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
+  have hnonpos :
+      (min 1
+          (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
+        max (1 / (p.m - 1)) (1 / p.α)) ≤ (0 : ℝ) := hT T le_rfl
+  linarith
+
+/-- Parameters for the minimal-model lower-bound obstruction in Theorem 2.1(4).
+The fake bounded-domain API still admits the positive constant solution
+`u = v = 1`, but its `infValue` functional is identically zero. -/
+def theorem21Part4CounterParams : CM2Params :=
+  { N := 1
+    hN := by norm_num
+    α := 1
+    γ := 1
+    m := 1
+    μ := 1
+    ν := 1
+    χ₀ := 1 / 4
+    a := 0
+    b := 0
+    β := 1
+    hα := by norm_num
+    hγ := by norm_num
+    hm := by norm_num
+    hμ := by norm_num
+    hν := by norm_num
+    ha := by norm_num
+    hb := by norm_num
+    hβ := by norm_num }
+
+lemma theorem21Part4Counter_classical (T : ℝ) (hT : 0 < T) :
+    IsPaper2ClassicalSolution theorem21Part1NoLowerEnvelopeDomain
+      theorem21Part4CounterParams T
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT hx
+    norm_num
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - theorem21Part4CounterParams.χ₀ * 0 +
+        1 * (theorem21Part4CounterParams.a -
+          theorem21Part4CounterParams.b * (1 : ℝ) ^ theorem21Part4CounterParams.α)
+    norm_num [theorem21Part4CounterParams]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - theorem21Part4CounterParams.μ * 1 +
+        theorem21Part4CounterParams.ν * (1 : ℝ) ^ theorem21Part4CounterParams.γ
+    norm_num [theorem21Part4CounterParams]
+  · intro t x ht0 htT hx
+    cases hx
+
+lemma theorem21Part4Counter_positiveGlobalBounded :
+    PositiveGlobalBoundedSolution theorem21Part1NoLowerEnvelopeDomain
+      theorem21Part4CounterParams
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  refine ⟨?_, ?_, ?_⟩
+  · intro T hT
+    exact theorem21Part4Counter_classical T hT
+  · exact ⟨1, Eventually.of_forall fun _t => le_rfl⟩
+  · intro t x ht hx
+    norm_num
+
+lemma theorem21Part4Counter_initialMass :
+    HasInitialMass theorem21Part1NoLowerEnvelopeDomain
+      (fun _ _ => (1 : ℝ)) 1 := by
+  unfold HasInitialMass
+  change (1 : ℝ) = 1 * 1
+  norm_num
+
+/-- Raw version of `Paper3Constants.eventualMinimalUpperBound`, with the
+eventual upper-bound function exposed. -/
+def EventualMinimalUpperBoundRaw
+    (D : BoundedDomainData) (p : CM2Params)
+    (eventualMinimalUBound : ℝ → ℝ) : Prop :=
+  p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+    0 < p.χ₀ → p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) →
+      ∀ u v : ℝ → D.Point → ℝ,
+        PositiveGlobalBoundedSolution D p u v →
+          ∀ uStar > 0, HasInitialMass D u uStar →
+            ∀ᶠ t in atTop, D.supNorm (u t) ≤ eventualMinimalUBound uStar
+
+/-- Raw obstruction for `Paper3Constants.eventualMinimalUpperBound`: if the
+exposed bound is unrelated to the fake `supNorm`, the claimed eventual upper
+bound can be false even for the positive constant solution. -/
+lemma not_EventualMinimalUpperBoundRaw_zero_bound :
+    ¬ EventualMinimalUpperBoundRaw theorem21Part1NoLowerEnvelopeDomain
+      theorem21Part4CounterParams (fun _ => (0 : ℝ)) := by
+  intro h
+  let D := theorem21Part1NoLowerEnvelopeDomain
+  let p := theorem21Part4CounterParams
+  have hχ :
+      p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) := by
+    norm_num [p, theorem21Part4CounterParams, chiBeta]
+  have hupper :
+      ∀ᶠ t : ℝ in atTop,
+        D.supNorm (((fun _ : ℝ => fun _ : Unit => (1 : ℝ)) t)) ≤
+          (fun _ => (0 : ℝ)) 1 := by
+    exact h
+      (by norm_num [p, theorem21Part4CounterParams])
+      (by norm_num [p, theorem21Part4CounterParams])
+      (by norm_num [p, theorem21Part4CounterParams])
+      (by norm_num [p, theorem21Part4CounterParams])
+      (by norm_num [p, theorem21Part4CounterParams])
+      hχ (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
+      theorem21Part4Counter_positiveGlobalBounded 1 (by norm_num)
+      theorem21Part4Counter_initialMass
+  have heventually_nonpos :
+      ∀ᶠ t : ℝ in atTop, (1 : ℝ) ≤ 0 := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hupper
+  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
+  have hbad : (1 : ℝ) ≤ 0 := hT T le_rfl
+  norm_num at hbad
+
+lemma not_exists_Paper3Constants_theorem21_part4_counterdomain :
+    ¬ Nonempty
+      (Paper3Constants theorem21Part1NoLowerEnvelopeDomain
+        theorem21Part4CounterParams) := by
+  rintro ⟨C⟩
+  let D := theorem21Part1NoLowerEnvelopeDomain
+  let p := theorem21Part4CounterParams
+  have huv :
+      PositiveGlobalBoundedSolution D p
+        (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+    simpa [D, p] using theorem21Part4Counter_positiveGlobalBounded
+  have hmass :
+      HasInitialMass D (fun _ _ => (1 : ℝ)) 1 := by
+    simpa [D] using theorem21Part4Counter_initialMass
+  have hχ :
+      p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) := by
+    norm_num [p, theorem21Part4CounterParams, chiBeta]
+  have hlower :
+      EventuallyLowerBound D (fun _ _ => (1 : ℝ))
+        (C.gaussianLowerConst *
+          if p.γ ≤ 1 then
+            (1 : ℝ) * (C.eventualMinimalUBound 1) ^ (p.γ - 1)
+          else
+            (1 : ℝ) ^ p.γ) := by
+    exact C.uniformPersistencePart4
+      (by norm_num [p, theorem21Part4CounterParams])
+      (by norm_num [p, theorem21Part4CounterParams])
+      (by norm_num [p, theorem21Part4CounterParams])
+      (by norm_num [p, theorem21Part4CounterParams])
+      (by norm_num [p, theorem21Part4CounterParams])
+      hχ 1 (by norm_num) (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
+      huv hmass
+  rcases hlower with ⟨hlower_pos, hlower_eventually⟩
+  have heventually_nonpos :
+      ∀ᶠ t : ℝ in atTop,
+        C.gaussianLowerConst *
+          (if p.γ ≤ 1 then
+            (1 : ℝ) * (C.eventualMinimalUBound 1) ^ (p.γ - 1)
+          else
+            (1 : ℝ) ^ p.γ) ≤ (0 : ℝ) := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlower_eventually
+  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
+  have hnonpos :
+      C.gaussianLowerConst *
+        (if p.γ ≤ 1 then
+          (1 : ℝ) * (C.eventualMinimalUBound 1) ^ (p.γ - 1)
+        else
+          (1 : ℝ) ^ p.γ) ≤ (0 : ℝ) := hT T le_rfl
+  linarith
 
 lemma theorem_2_1_part2_lowerU_pos
     (p : CM2Params)
@@ -5084,6 +6505,66 @@ lemma Lemma_A_1.local_exponential_stability
                   N.c1Distance (v t) (fun _ => vStar) ≤
                     C * Real.exp (-rate * t) :=
   h sigma pNorm uStar vStar hsigma_low hsigma_high hpNorm hstable
+
+/-- The `X^σ_p` local exponential-decay part of Paper3 Theorem 2.2.  This is
+weaker than `LocallyExponentiallyStableFromSup`: it assumes an existing global
+solution with the required initial trace and asks for smallness in the
+`xpSigmaDistance` norm directly.  Under those explicit inputs, the proof uses
+only the spectral critical-sensitivity bridge and Lemma A.1, not the
+`Paper3Constants.linearStabilityInstability` field. -/
+def Theorem_2_2_xpSigma_local_exponential_branch : Prop :=
+  ∀ (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D) (C : Paper3Constants D p),
+    HasNeumannSpectrum S → Paper3ConstantsUsesCriticalSpectrum S p C →
+      Lemma_A_1 D p S N →
+        (∀ sigma pNorm, 1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+          ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+            let eq := positiveEquilibrium p ⟨ha, hb⟩
+            p.χ₀ < C.chiCritical eq.1 →
+              ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+                ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+                  N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+                    ∀ u v : ℝ → D.Point → ℝ,
+                      IsPaper2GlobalClassicalSolution D p u v →
+                      InitialTrace D u₀ u →
+                        ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) ∧
+        (∀ sigma pNorm, 1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+          p.a = 0 → p.b = 0 →
+            ∀ uStar > 0,
+              let eq := minimalEquilibrium p uStar
+              p.χ₀ < C.chiCritical uStar →
+                ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+                  ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+                    N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+                      ∀ u v : ℝ → D.Point → ℝ,
+                        IsPaper2GlobalClassicalSolution D p u v →
+                        InitialTrace D u₀ u →
+                          ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate)
+
+lemma Theorem_2_2_xpSigma_local_exponential_branch_proved :
+    Theorem_2_2_xpSigma_local_exponential_branch := by
+  intro D S p N C H hC hA1
+  refine ⟨?_, ?_⟩
+  · intro sigma pNorm hsigma_low hsigma_high hpNorm ha hb
+    dsimp
+    intro hχ
+    have hstable :=
+      hC.positiveEquilibrium_linearlyStable H ha hb hχ
+    rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
+      ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
+    refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
+    intro u₀ hu₀ hsmall u v huv htrace t ht
+    exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
+  · intro sigma pNorm hsigma_low hsigma_high hpNorm ha hb uStar huStar
+    dsimp
+    intro hχ
+    have hstable :=
+      hC.minimalEquilibrium_linearlyStable H huStar hχ
+    rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
+      ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
+    refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
+    intro u₀ hu₀ hsmall u v huv htrace t ht
+    exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
 def Lemma_A_2
     (D : BoundedDomainData) (p : CM2Params)

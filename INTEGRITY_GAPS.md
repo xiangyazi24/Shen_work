@@ -80,6 +80,17 @@ projection theorem wrappers have been removed.
   non-projection fixed-point-construction bridge theorems replacing the former
   false `Lemma_4_1` package route; the negative branch keeps the necessary
   plateau comparison as an explicit hypothesis
+- `NegativeSensitivityWaveFixedPointConstruction.exists_paper_constant_subsolution`:
+  the negative-sensitivity fixed-point construction now produces an explicit
+  constant paper-operator subsolution directly from the corrected
+  `constant_subsolution_paperWaveOperator_nonneg_of_chi_nonpos` branch and the
+  internally chosen `d`, without using the refuted original Lemma 4.2
+- `NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_paper_constant_subsolution`
+  and
+  `PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_paper_const_sub_chi_zero`:
+  fixed-point construction bridges returning the fixed profile together with a
+  verified constant paper-operator subsolution; the positive branch is the
+  χ=0 slice where `MChi p = 1`
 - `not_differentiableAt_upperBarrier_of_interface`: formal interface
   obstruction showing that `upperBarrier κ M` is not differentiable at
   `exp(-κ*x) = M` when `κ,M > 0`; the original everywhere-classical
@@ -271,6 +282,19 @@ projection theorem wrappers have been removed.
   `paperCriticalSensitivity` spectral branch, without assuming
   `Theorem_2_2`.  This intentionally does not claim the local exponential
   stability part.
+- `Theorem_2_4_linear_stability_branch_proved` and
+  `Theorem_2_5_linear_stability_branch_proved` (Paper3): the linear-stability
+  portions of the strong-logistic and minimal global-stability theorems now
+  follow directly from the A.7/A.8 threshold comparisons plus the
+  critical-spectrum bridge.  The global stability and exponential convergence
+  conclusions remain explicit analytic package fields.
+- `Theorem_2_2_xpSigma_local_exponential_branch_proved` (Paper3): the
+  `X^σ_p` small-perturbation exponential-decay branch of Theorem 2.2 is proved
+  from the concrete spectral critical-sensitivity bridge and Lemma A.1, rather
+  than by assuming `Theorem_2_2` or
+  `Paper3Constants.linearStabilityInstability`.  This branch intentionally
+  assumes an existing global solution and `xpSigmaDistance` smallness; the
+  sup-norm local well-posedness/continuity upgrade remains open.
 - Paper3 recalled Proposition 1.1--1.4 bridge lemmas:
   `Proposition_1_1.paper2`,
   `Proposition_1_2_of_negativeSensitivityGlobalEventualBound`,
@@ -279,6 +303,12 @@ projection theorem wrappers have been removed.
   routes from Paper2 targets or the smaller eventual-bound hypothesis.  The
   former theorem-shaped `_proved` wrapper Props for these bridges have been
   removed, so they are not counted as source proofs.
+- `not_forall_Proposition_1_3` and `not_forall_Proposition_1_4` (Paper3):
+  formal obstructions showing that the recalled Part-I global-existence
+  propositions cannot be proved over arbitrary `BoundedDomainData`; the same
+  no-regularity abstract domain used for Paper2 local existence supplies a
+  positive initial datum but makes every required global classical solution
+  impossible.
 - `not_forall_Proposition_1_1` (Paper2): formal obstruction showing that
   Paper2 local existence cannot be proved for arbitrary `BoundedDomainData`;
   an abstract domain with `classicalRegularity := False` admits no classical
@@ -333,6 +363,71 @@ projection theorem wrappers have been removed.
   boundedness plus global-existence branch does not imply recalled Paper3
   Proposition 1.2's eventual-in-time boundedness under the current abstract
   bounded-domain API
+- `not_forall_Theorem_2_1_part1`, `not_forall_Theorem_2_1_part2`,
+  `not_forall_Theorem_2_1_part3`, and
+  `not_exists_Paper3Constants_theorem21_part1_counterdomain`--
+  `not_exists_Paper3Constants_theorem21_part4_counterdomain` (Paper3):
+  formal obstructions showing that the uniform-persistence lower-bound
+  conclusions cannot be derived from the current abstract `BoundedDomainData`
+  API alone; positive constant solutions can satisfy the abstract PDE while a
+  fake `infValue` functional is identically zero.  Lean also proves the sharper
+  package-level fact that no corresponding `Paper3Constants` package can exist
+  on the relevant fake lower-envelope APIs for any of parts (1)--(4).
+- `not_exists_StabilityNorms_no_supNorm_convergence` (Paper3): a field-level
+  obstruction for `StabilityNorms`.  The fake bounded-domain API admits the
+  positive constant solution `u = v = 1`, but its `supNorm` is identically
+  `1`; the `negativeSensitivityGlobalStability` field would force that
+  constant `1` signal to converge to `0`, so no `StabilityNorms` package exists
+  on this arbitrary `BoundedDomainData`.
+- `not_InitialContinuityRaw_constant_xpSigmaDistance` (Paper3): a raw
+  obstruction for the shape of `StabilityNorms.initialContinuity`.  On a fake
+  one-point domain with `supNorm ≡ 0`, every initial perturbation and trace is
+  arbitrarily small, while an exposed `xpSigmaDistance ≡ 1` cannot be forced
+  below `ε = 1/2`.  Thus initial continuity needs a real link between the
+  chosen `X^σ_p` metric and the sup-norm/PDE API.
+- `not_SectorialLocalExponentialRaw_constant_c1Distance` (Paper3): a raw
+  obstruction for the shape of `StabilityNorms.sectorialLocalExponential`.
+  With `xpSigmaDistance ≡ 0` and `c1Distance ≡ 1`, the smallness hypothesis is
+  automatic for the positive constant solution, but the conclusion would force
+  the constant left-hand side `2` to be bounded by `C exp(-rate t)` for all
+  `t ≥ 0`, impossible because the right-hand side tends to `0`.
+- `not_ConvergenceToExponentialNonminimalRaw_constant_c1Distance` (Paper3): a
+  raw obstruction for the nonminimal exponential-upgrade branch of
+  `Paper3Constants.convergenceToExponential`.  Fake `supNorm ≡ 0` gives
+  uniform convergence for the constant solution, but an unrelated
+  `c1Distance ≡ 1` prevents any exponential `C¹` convergence estimate.
+- `not_NonminimalGlobalStabilityRaw_constant_c1Distance` (Paper3): a raw
+  obstruction for the nonminimal global-stability field.  The third
+  strong-logistic alternative can be satisfied by concrete parameters, but an
+  unrelated constant `c1Distance ≡ 1` still makes the claimed exponential
+  convergence estimate impossible.
+- `not_MinimalGlobalStabilityRaw_constant_c1Distance` (Paper3): a raw
+  obstruction for the minimal global-stability field.  The mass-constrained
+  minimal model can satisfy the first threshold branch with concrete
+  parameters, but an unrelated constant `c1Distance ≡ 1` still makes the
+  claimed exponential convergence estimate impossible.
+- `not_LinearStabilityInstabilityNonminimalRaw_constant_c1Distance` (Paper3):
+  a raw obstruction for the nonminimal local-stability part of
+  `Paper3Constants.linearStabilityInstability`.  Fake sup-norm closeness makes
+  the initial datum admissibly small, but an unrelated constant
+  `c1Distance ≡ 1` prevents every asserted exponential convergence estimate.
+- `not_UpperEnvelopeMonotonicityRaw_eval_increasing_solution` (Paper3): a raw
+  obstruction for `CompactnessData.upperEnvelopeMonotonicity`.  With fake
+  `timeDeriv` and `supNorm`, the abstract PDE admits the increasing profile
+  `u(t)=t+1` as a positive global bounded solution, while the point-value upper
+  envelope violates the asserted monotonicity.
+- `not_TimeTranslateCompactnessRaw_false_locallyConverges` (Paper3): a raw
+  obstruction for `CompactnessData.timeTranslateCompactness`.  If the exposed
+  local-convergence predicate is identically false, no subsequential
+  compactness conclusion can be derived, even for a positive constant solution.
+- `not_NeumannResolventGradientBoundExistsRaw_false_bound` (Paper3): a raw
+  obstruction for `CompactnessData.neumannResolventGradientBound_exists`.
+  If the exposed resolvent-gradient predicate is identically false, no uniform
+  bound witness can exist.
+- `not_EventualMinimalUpperBoundRaw_zero_bound` (Paper3): a raw obstruction
+  for `Paper3Constants.eventualMinimalUpperBound`.  If the exposed eventual
+  upper-bound function is unrelated to the fake `supNorm`, the positive
+  constant solution can violate the asserted eventual upper bound.
 - `Proposition_1_1_constant_one_branch` and
   `Proposition_1_2_constant_one_branch`: real Paper1 Cauchy/stability branches
   for the equilibrium initial datum `u₀ ≡ 1`, using the constant global

@@ -7815,6 +7815,17 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_constant_subsolutio
     one_pos h.cStarLower_lt h.kappa_lt_kappaTilde h.kappaTilde_le_one
     h.D_gt_threshold
 
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_paper_constant_subsolution
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D)
+    {u : ℝ → ℝ} (hu : InMonotoneWaveTrapSet (kappa c) 1 u) :
+    ∃ d : ℝ, 0 < d ∧
+      IsPaperFrozenSubSolutionOn p c u (fun _ => d) Set.univ := by
+  rcases h.exists_constant_subsolution with ⟨d, hd_pos, hd_le⟩
+  refine ⟨d, hd_pos, ?_⟩
+  exact constant_subsolution_paperWaveOperator_nonneg_of_chi_nonpos
+    p (le_of_lt h.chi_neg) hd_pos hd_le hu.trap
+
 theorem NegativeSensitivityWaveFixedPointConstruction.MChi_eq_one
     {p : CMParams} {c κ₁ κtilde D : ℝ}
     (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
@@ -7986,6 +7997,22 @@ theorem PositiveSensitivityWaveFixedPointConstruction.exists_constant_subsolutio
   exists_d_pos_le_constantSubsolutionThreshold h.kappa_pos
     h.kappa_lt_kappaTilde h.D_pos
 
+theorem PositiveSensitivityWaveFixedPointConstruction.exists_paper_constant_subsolution_of_chi_zero
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D)
+    (hχ_zero : p.χ = 0)
+    {u : ℝ → ℝ} (hu : InWaveTrapSet (kappa c) (MChi p) u) :
+    ∃ d : ℝ, 0 < d ∧
+      IsPaperFrozenSubSolutionOn p c u (fun _ => d) Set.univ := by
+  rcases h.exists_constant_subsolution with ⟨d, hd_pos, hd_le⟩
+  have hM : MChi p = 1 := by
+    exact MChi_eq_one_of_chi_nonpos p (by linarith)
+  have hu_one : InWaveTrapSet (kappa c) 1 u := by
+    simpa [hM] using hu
+  refine ⟨d, hd_pos, ?_⟩
+  exact constant_subsolution_paperWaveOperator_nonneg_of_chi_nonneg
+    p h.chi_nonneg h.chi_lt_chiStar h.alpha_eq hd_pos hd_le hu_one
+
 theorem PositiveSensitivityWaveFixedPointConstruction.one_le_MChi
     {p : CMParams} {c κ₁ κtilde D : ℝ}
     (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
@@ -8020,6 +8047,20 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit
         FrozenAuxiliaryLimitOutput p c (kappa c) 1
           (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U := by
   exact FrozenWaveMapConstruction.exists_fixed_limit h.map_construction
+
+theorem
+    NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_paper_constant_subsolution
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₁ κtilde D) :
+    ∃ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet (kappa c) 1 U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) 1
+          (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U ∧
+        ∃ d : ℝ, 0 < d ∧
+          IsPaperFrozenSubSolutionOn p c U (fun _ => d) Set.univ := by
+  rcases h.exists_fixed_limit with ⟨U, hU, haux⟩
+  rcases h.exists_paper_constant_subsolution hU with ⟨d, hd_pos, hd_sub⟩
+  exact ⟨U, hU, haux, d, hd_pos, hd_sub⟩
 
 theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_bounds
     {p : CMParams} {c κ₁ κtilde D : ℝ}
@@ -8066,6 +8107,22 @@ theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit
         FrozenAuxiliaryLimitOutput p c (kappa c) (MChi p)
           (fun u => InWaveTrapSet (kappa c) (MChi p) u) U U := by
   exact FrozenWaveMapConstruction.exists_fixed_limit h.map_construction
+
+theorem
+    PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_paper_const_sub_chi_zero
+    {p : CMParams} {c κ₁ κtilde D : ℝ}
+    (h : PositiveSensitivityWaveFixedPointConstruction p c κ₁ κtilde D)
+    (hχ_zero : p.χ = 0) :
+    ∃ U : ℝ → ℝ,
+      InWaveTrapSet (kappa c) (MChi p) U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) (MChi p)
+          (fun u => InWaveTrapSet (kappa c) (MChi p) u) U U ∧
+        ∃ d : ℝ, 0 < d ∧
+          IsPaperFrozenSubSolutionOn p c U (fun _ => d) Set.univ := by
+  rcases h.exists_fixed_limit with ⟨U, hU, haux⟩
+  rcases h.exists_paper_constant_subsolution_of_chi_zero hχ_zero hU with
+    ⟨d, hd_pos, hd_sub⟩
+  exact ⟨U, hU, haux, d, hd_pos, hd_sub⟩
 
 theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_bounds
     {p : CMParams} {c κ₁ κtilde D : ℝ}
