@@ -286,18 +286,27 @@ projection theorem wrappers have been removed.
   the same fixed-point Lemma 5.1 signal estimates and explicit-`U'` conclusion
   specialized to a frozen stationary profile in the wave trap, avoiding the
   arbitrary-`IsTravelingWave` projection route
-- `Lemma_5_2_explicit.nonincreasing_branch`,
+- `Lemma_5_2_explicit.nonincreasing_profile_branch`,
+  `Lemma_5_2_explicit.nonincreasing_branch`,
   `Lemma_5_2_explicit.monotoneTravelingWave_branch`,
+  `Lemma_5_2.nonincreasing_profile_branch`,
   `Lemma_5_2.nonincreasing_branch`,
   `Lemma_5_2.monotoneTravelingWave_branch`,
   `Lemma_5_2_explicit_frozen_monotone_trap_proved`, and
-  `Lemma_5_2_frozen_monotone_trap_proved`: real monotone-wave and frozen
-  monotone-trap branches of Lemma 5.2.  The upper-tail bound gives
-  `0 ≤ MChi p`, the explicit log-derivative constant is nonnegative under the
-  Lemma 5.2 speed hypothesis, and `U' ≤ 0`, `U > 0` give `U'/U ≤ 0`.  In the
-  frozen trap branch, `FrozenStationaryWaveProfile` supplies the traveling
-  wave and `InMonotoneWaveTrapSet` supplies both the upper-tail bound and
-  `U' ≤ 0`.
+  `Lemma_5_2_frozen_monotone_trap_proved`: real nonincreasing-profile,
+  monotone-wave, and frozen monotone-trap branches of Lemma 5.2.  The minimal
+  profile branch uses only `0 ≤ MChi p`, `U > 0`, and `U' ≤ 0`; the explicit
+  log-derivative constant is nonnegative under the Lemma 5.2 speed hypothesis,
+  so `U'/U ≤ 0` closes the bound.  The monotone-wave and frozen trap branches
+  specialize this minimal profile result.
+- `NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_log_derivative_bound`
+  and
+  `NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_log_derivative_B`:
+  construction-level negative-sensitivity bridges that combine the constructed
+  monotone fixed point, the explicit sharp-upper-bound obligation giving
+  strict positivity, and the minimal nonincreasing-profile Lemma 5.2 branch to
+  produce the log-derivative estimate without first packaging a full traveling
+  wave.
 - `not_Remark52GammaSpeedAlgebra`,
   `not_remark5SpeedCondition_implies_Lemma_5_2_speed`, and
   `not_Remark52LogDerivativeAlgebra`: formal obstructions showing that the

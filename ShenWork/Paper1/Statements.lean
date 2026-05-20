@@ -10159,7 +10159,7 @@ theorem logDerivativeBoundFormula_nonneg_of_speed
       0 ≤
         c + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1) +
           Real.sqrt
-            ((c + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1)) ^ 2 +
+        ((c + |p.χ| * p.m * (MChi p) ^ (p.m + p.γ - 1)) ^ 2 +
               4 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
               4 * (MChi p) ^ p.α) := by
     have hleft :
@@ -10167,6 +10167,21 @@ theorem logDerivativeBoundFormula_nonneg_of_speed
       linarith
     exact add_nonneg hleft (Real.sqrt_nonneg _)
   exact mul_nonneg (by norm_num : (0 : ℝ) ≤ 1 / 2) hsum_nonneg
+
+theorem Lemma_5_2_explicit.nonincreasing_profile_branch
+    {p : CMParams} {c : ℝ}
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
+    {U : ℝ → ℝ}
+    (hMChi_nonneg : 0 ≤ MChi p)
+    (hpos : ∀ x, 0 < U x)
+    (hmono : ∀ x, deriv U x ≤ 0) :
+    ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c := by
+  intro x
+  have hratio_nonpos : deriv U x / U x ≤ 0 := by
+    exact div_nonpos_of_nonpos_of_nonneg (hmono x) (hpos x).le
+  exact le_trans hratio_nonpos
+    (logDerivativeBoundFormula_nonneg_of_speed p hMChi_nonneg hspeed)
 
 theorem Lemma_5_2_explicit.nonincreasing_branch
     {p : CMParams} {c : ℝ}
@@ -10179,11 +10194,8 @@ theorem Lemma_5_2_explicit.nonincreasing_branch
     ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c := by
   have hMChi_nonneg : 0 ≤ MChi p := by
     linarith [hbound.pos 0, hbound.le_MChi 0]
-  intro x
-  have hratio_nonpos : deriv U x / U x ≤ 0 := by
-    exact div_nonpos_of_nonpos_of_nonneg (hmono x) (hTW.U_pos x).le
-  exact le_trans hratio_nonpos
-    (logDerivativeBoundFormula_nonneg_of_speed p hMChi_nonneg hspeed)
+  exact Lemma_5_2_explicit.nonincreasing_profile_branch
+    hspeed hMChi_nonneg hTW.U_pos hmono
 
 theorem Lemma_5_2_explicit.monotoneTravelingWave_branch
     {p : CMParams} {c : ℝ}
@@ -10239,6 +10251,23 @@ theorem Lemma_5_2.monotoneTravelingWave_branch
     ∃ B > 0, ∀ x, deriv U x / U x ≤ B :=
   Lemma_5_2.nonincreasing_branch hspeed hTW.1 hbound hTW.2.1
 
+theorem Lemma_5_2.nonincreasing_profile_branch
+    {p : CMParams} {c : ℝ}
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
+    {U : ℝ → ℝ}
+    (hMChi_nonneg : 0 ≤ MChi p)
+    (hpos : ∀ x, 0 < U x)
+    (hmono : ∀ x, deriv U x ≤ 0) :
+    ∃ B > 0, ∀ x, deriv U x / U x ≤ B := by
+  refine ⟨max (logDerivativeBoundFormula p c) 1, ?_, ?_⟩
+  · exact lt_of_lt_of_le zero_lt_one (le_max_right _ _)
+  · intro x
+    exact le_trans
+      (Lemma_5_2_explicit.nonincreasing_profile_branch
+        hspeed hMChi_nonneg hpos hmono x)
+      (le_max_left _ _)
+
 /-- Fixed-point/trap version of the explicit Lemma 5.2 log-derivative
 estimate.  The profile is a frozen stationary wave in the monotone trap, so
 the traveling-wave and upper-tail hypotheses are supplied by the profile/trap
@@ -10277,6 +10306,58 @@ theorem Lemma_5_2_frozen_monotone_trap_proved :
     hprofile.to_travelingWave
     (hprofile.hasWaveUpperTailBound_of_inMonotoneWaveTrapSet htrap)
     htrap.deriv_nonpos
+
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_log_derivative_bound
+    {p : CMParams} {c κ₀ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₀ κtilde D)
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹)
+        (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
+    (hupper :
+      ∀ U : ℝ → ℝ,
+        InMonotoneWaveTrapSet (kappa c) 1 U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) 1
+            (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U →
+            ShenUpperBoundNegative c U) :
+    ∃ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet (kappa c) 1 U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) 1
+          (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U ∧
+        ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c := by
+  rcases h.exists_fixed_limit_with_atTop_limits with
+    ⟨U, hU, haux, _hanti, _hU_top, _hV_top⟩
+  have hMChi_nonneg : 0 ≤ MChi p := by
+    rw [h.MChi_eq_one]
+    norm_num
+  have hupperU : ShenUpperBoundNegative c U := hupper U hU haux
+  exact
+    ⟨U, hU, haux,
+      Lemma_5_2_explicit.nonincreasing_profile_branch
+        hspeed hMChi_nonneg hupperU.pos hU.deriv_nonpos⟩
+
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_log_derivative_B
+    {p : CMParams} {c κ₀ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₀ κtilde D)
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹)
+        (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
+    (hupper :
+      ∀ U : ℝ → ℝ,
+        InMonotoneWaveTrapSet (kappa c) 1 U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) 1
+            (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U →
+            ShenUpperBoundNegative c U) :
+    ∃ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet (kappa c) 1 U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) 1
+          (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U ∧
+        ∃ B > 0, ∀ x, deriv U x / U x ≤ B := by
+  rcases h.exists_fixed_limit_with_log_derivative_bound hspeed hupper with
+    ⟨U, hU, haux, hlog⟩
+  refine ⟨U, hU, haux, max (logDerivativeBoundFormula p c) 1, ?_, ?_⟩
+  · exact lt_of_lt_of_le zero_lt_one (le_max_right _ _)
+  · intro x
+    exact le_trans (hlog x) (le_max_left _ _)
 
 theorem Lemma_5_2_explicit.to_Lemma_5_2
     (h : Lemma_5_2_explicit) : Lemma_5_2 := by
