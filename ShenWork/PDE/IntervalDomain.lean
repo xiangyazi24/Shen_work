@@ -188,6 +188,45 @@ theorem heatKernel_integral_add {t : ℝ} (ht : 0 < t) (x : ℝ) :
       (fun y => heatKernel t (y + x)) := by ext y; ring_nf
   rw [h, integral_add_right_eq_self, heatKernel_integral_eq_one ht]
 
+/-- Translation changes the right half-line integral of `G(t,x+y)` to the
+tail integral of `G(t,z)` over `(x,∞)`. -/
+theorem heatKernel_setIntegral_Ioi_add {t : ℝ} (x : ℝ) :
+    ∫ y in Set.Ioi (0 : ℝ), heatKernel t (x + y) =
+      ∫ z in Set.Ioi x, heatKernel t z := by
+  have hmp : MeasurePreserving (fun y : ℝ => y + x) volume volume :=
+    measurePreserving_add_right volume x
+  have hemb : MeasurableEmbedding (fun y : ℝ => y + x) :=
+    (Homeomorph.addRight x).isClosedEmbedding.measurableEmbedding
+  have h := hmp.setIntegral_preimage_emb hemb
+    (fun z : ℝ => heatKernel t z) (Set.Ioi x)
+  rw [show (fun y : ℝ => y + x) ⁻¹' Set.Ioi x = Set.Ioi (0 : ℝ) by
+    ext y
+    simp [Set.mem_Ioi]]
+    at h
+  rw [show (fun y : ℝ => heatKernel t (y + x)) =
+      (fun y : ℝ => heatKernel t (x + y)) by
+    ext y
+    rw [add_comm]]
+    at h
+  exact h
+
+/-- Reflection and translation change the right half-line integral of
+`G(t,x-y)` to the left tail integral of `G(t,z)` over `(-∞,x)`. -/
+theorem heatKernel_setIntegral_Ioi_sub_left {t : ℝ} (x : ℝ) :
+    ∫ y in Set.Ioi (0 : ℝ), heatKernel t (x - y) =
+      ∫ z in Set.Iio x, heatKernel t z := by
+  have hmp : MeasurePreserving (fun y : ℝ => x - y) volume volume :=
+    volume.measurePreserving_sub_left x
+  have hemb : MeasurableEmbedding (fun y : ℝ => x - y) :=
+    (MeasurableEquiv.subLeft x).measurableEmbedding
+  have h := hmp.setIntegral_preimage_emb hemb
+    (fun z : ℝ => heatKernel t z) (Set.Iio x)
+  rw [show (fun y : ℝ => x - y) ⁻¹' Set.Iio x = Set.Ioi (0 : ℝ) by
+    ext y
+    simp]
+    at h
+  exact h
+
 /-- The reflected kernel integrates to 2 over y:
 ∫ [G(t,x-y) + G(t,x+y)] dy = 2. -/
 theorem neumannHeatKernel_zerothReflection_integral
@@ -202,6 +241,45 @@ theorem neumannHeatKernel_zerothReflection_integral
     ((heatKernel_integrable ht).comp_add_left x)]
   rw [heatKernel_integral_translated ht x, heatKernel_integral_add ht x]
   norm_num
+
+/-- The two-term reflected kernel has mass `1` on the right half-line.  This
+is the exact half-line mass identity for the helper kernel. -/
+theorem neumannHeatKernel_zerothReflection_setIntegral_Ioi
+    {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    ∫ y in Set.Ioi (0 : ℝ), neumannHeatKernel_zerothReflection 0 t x y = 1 := by
+  unfold neumannHeatKernel_zerothReflection
+  have hleft_int :
+      IntegrableOn (fun y : ℝ => heatKernel t (x - y)) (Set.Ioi 0) volume :=
+    (heatKernel_translated_integrable ht x).integrableOn
+  have hright_int :
+      IntegrableOn (fun y : ℝ => heatKernel t (x + y)) (Set.Ioi 0) volume :=
+    ((heatKernel_integrable ht).comp_add_left x).integrableOn
+  rw [show
+      (fun y : ℝ => heatKernel t (x - y) + heatKernel t (x + y)) =
+        (fun y : ℝ => heatKernel t (x - y)) +
+          (fun y : ℝ => heatKernel t (x + y)) from by
+      ext y
+      rfl]
+  rw [Pi.add_def, MeasureTheory.integral_add
+    (μ := volume.restrict (Set.Ioi 0)) hleft_int hright_int]
+  rw [heatKernel_setIntegral_Ioi_sub_left (t := t) x,
+    heatKernel_setIntegral_Ioi_add (t := t) x]
+  have hsplit :
+      (∫ z in Set.Iio x, heatKernel t z) +
+          ∫ z in Set.Ioi x, heatKernel t z =
+        ∫ z, heatKernel t z := by
+    have hcomp :=
+      MeasureTheory.integral_add_compl
+        (s := Set.Ioi x) measurableSet_Ioi (heatKernel_integrable ht)
+    have hIic :
+        (∫ z in Set.Iic x, heatKernel t z) =
+          ∫ z in Set.Iio x, heatKernel t z :=
+      MeasureTheory.integral_Iic_eq_integral_Iio
+    rw [show (Set.Ioi x)ᶜ = Set.Iic x by ext z; simp] at hcomp
+    rw [hIic] at hcomp
+    rw [add_comm] at hcomp
+    exact hcomp
+  rw [hsplit, heatKernel_integral_eq_one ht]
 
 /-- Candidate half-line reflected-kernel operator: integrate the two-term
 reflected kernel against `f` on `(0,∞)`.  No PDE or semigroup property is
@@ -318,6 +396,15 @@ theorem halfLineReflectedKernelOperator_sub_bounded
       (halfLineReflectedKernelOperator_integrableOn hf_bound hf_meas ht x)
       (halfLineReflectedKernelOperator_integrableOn hg_bound hg_meas ht x)
 
+/-- The half-line reflected helper operator preserves constant inputs. -/
+theorem halfLineReflectedKernelOperator_const
+    {t : ℝ} (ht : 0 < t) (c x : ℝ) :
+    halfLineReflectedKernelOperator t (fun _ => c) x = c := by
+  unfold halfLineReflectedKernelOperator
+  rw [MeasureTheory.integral_mul_const]
+  rw [neumannHeatKernel_zerothReflection_setIntegral_Ioi ht x]
+  ring
+
 /-- L^∞ bound for the reflected full-line kernel integral:
 if |f| ≤ M, then |∫ K_N f| ≤ 2M. -/
 theorem reflectedKernelIntegral_Linfty_bound
@@ -406,6 +493,63 @@ theorem halfLineReflectedKernelOperator_Linfty_bound_two
         · simp [Set.indicator, hy]]
     rw [MeasureTheory.integral_indicator measurableSet_Ioi]
   simpa [hrewrite] using hbound
+
+/-- Sharp `L∞` bound for the half-line reflected helper operator, using the
+exact half-line kernel mass `1`. -/
+theorem halfLineReflectedKernelOperator_Linfty_bound
+    {f : ℝ → ℝ} {M : ℝ} (hf : ∀ y, |f y| ≤ M)
+    {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    |halfLineReflectedKernelOperator t f x| ≤ M := by
+  unfold halfLineReflectedKernelOperator
+  have hmajor_int :
+      IntegrableOn
+        (fun y : ℝ => neumannHeatKernel_zerothReflection 0 t x y * M)
+        (Set.Ioi 0) volume := by
+    have hM_bound : ∀ y : ℝ, |(fun _ : ℝ => M) y| ≤ M := by
+      intro y
+      have hM_nonneg : 0 ≤ M := le_trans (abs_nonneg (f y)) (hf y)
+      simp [abs_of_nonneg hM_nonneg]
+    exact (neumannHeatKernel_zerothReflection_mul_bounded_integrable
+      hM_bound aestronglyMeasurable_const ht x).integrableOn
+  calc
+    |∫ y in Set.Ioi (0 : ℝ),
+        neumannHeatKernel_zerothReflection 0 t x y * f y|
+        ≤ ∫ y in Set.Ioi (0 : ℝ),
+            ‖neumannHeatKernel_zerothReflection 0 t x y * f y‖ := by
+          rw [← Real.norm_eq_abs]
+          exact MeasureTheory.norm_integral_le_integral_norm _
+    _ = ∫ y in Set.Ioi (0 : ℝ),
+          |neumannHeatKernel_zerothReflection 0 t x y * f y| := by
+        simp [Real.norm_eq_abs]
+    _ = ∫ y in Set.Ioi (0 : ℝ),
+          neumannHeatKernel_zerothReflection 0 t x y * |f y| := by
+        congr 1
+        ext y
+        rw [abs_mul, abs_of_nonneg
+          (neumannHeatKernel_zerothReflection_nonneg ht 0 x y)]
+    _ ≤ ∫ y in Set.Ioi (0 : ℝ),
+          neumannHeatKernel_zerothReflection 0 t x y * M := by
+        apply MeasureTheory.integral_mono_of_nonneg
+        · exact Filter.Eventually.of_forall fun y =>
+            mul_nonneg
+              (neumannHeatKernel_zerothReflection_nonneg ht 0 x y)
+              (abs_nonneg _)
+        · exact hmajor_int
+        · exact Filter.Eventually.of_forall fun y =>
+            mul_le_mul_of_nonneg_left (hf y)
+              (neumannHeatKernel_zerothReflection_nonneg ht 0 x y)
+    _ = M * ∫ y in Set.Ioi (0 : ℝ),
+          neumannHeatKernel_zerothReflection 0 t x y := by
+        rw [show
+            (fun y : ℝ => neumannHeatKernel_zerothReflection 0 t x y * M) =
+              (fun y : ℝ => M *
+                neumannHeatKernel_zerothReflection 0 t x y) from by
+            ext y
+            ring]
+        exact MeasureTheory.integral_const_mul _ _
+    _ = M := by
+        rw [neumannHeatKernel_zerothReflection_setIntegral_Ioi ht x]
+        ring
 
 /-- Full-line mass-normalized version of the two-term reflected kernel.  This
 is still only a helper kernel, not the interval Neumann heat kernel. -/

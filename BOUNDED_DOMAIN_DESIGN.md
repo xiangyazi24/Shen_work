@@ -407,3 +407,5 @@ the already proved whole-line two-term kernel mass.
 The half-line API also has bounded-input integrability, monotonicity, addition,
 scalar multiplication, and subtraction lemmas proved directly from the concrete
 set-integral definition.
+The helper now also proves the exact right-half-line mass identity for the
+two-term kernel, constant preservation, and the sharp half-line `L∞` bound.
