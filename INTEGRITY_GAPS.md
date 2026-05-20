@@ -843,7 +843,7 @@ Per Playbook §1 Point 11 (honest reporting):
 | Theorem | Uses abstract structure? | Correct classification |
 |---------|--------------------------|------------------------|
 | `Lemma_A_6_proved` | No | genuinely proved |
-| `Lemma_3_1_proved` | `BoundedDomainData` | from_assumed_bounded_domain |
+| `Lemma_3_1_from_global_solution_regular_components` | `PositiveGlobalBoundedSolution` regularity component | accessor, not counted as `_proved` |
 | `Theorem_2_2_linear_*_proved` | `BoundedDomainData` + `SpectralData` | from_assumed_bounded_domain |
 | `Theorem_2_4_linear_stability_branch_proved` | `BoundedDomainData` + `Paper3Constants` | from_assumed_bounded_domain |
 | `Theorem_2_5_linear_stability_branch_proved` | `BoundedDomainData` + `Paper3Constants` | from_assumed_bounded_domain |

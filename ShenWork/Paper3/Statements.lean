@@ -6339,7 +6339,10 @@ lemma Lemma_3_1.regularity
     UniformRegularityConclusion D p u v :=
   h u v huv
 
-lemma Lemma_3_1_proved
+/- This is an accessor from the regularity component already present in
+`PositiveGlobalBoundedSolution`, not an end-to-end proof of the analytic
+regularity estimate.  The name deliberately avoids `_proved`. -/
+lemma Lemma_3_1_from_global_solution_regular_components
     (D : BoundedDomainData) (p : CM2Params) :
     Lemma_3_1 D p := by
   intro u v huv T hT
