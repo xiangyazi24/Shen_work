@@ -1175,6 +1175,35 @@ theorem neumannHeatKernel_zerothReflection_pointwise_bound
           (heatKernel_pointwise_bound ht _)
     _ = 2 / Real.sqrt (4 * Real.pi * t) := by ring
 
+/-- The unnormalized two-term reflected kernel times an `L¹` half-line input
+is integrable on the half-line. -/
+theorem neumannHeatKernel_zerothReflection_mul_integrableOn_of_integrableOn
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : IntegrableOn f (Set.Ioi 0) volume) :
+    IntegrableOn
+      (fun y => neumannHeatKernel_zerothReflection 0 t x y * f y)
+      (Set.Ioi 0) volume := by
+  have hkernel :
+      Integrable (fun y => neumannHeatKernel_zerothReflection 0 t x y) := by
+    unfold neumannHeatKernel_zerothReflection
+    exact (heatKernel_translated_integrable ht x).add
+      ((heatKernel_integrable ht).comp_add_left x)
+  have hkernel_meas :
+      AEStronglyMeasurable
+        (fun y : ℝ => neumannHeatKernel_zerothReflection 0 t x y)
+        (volume.restrict (Set.Ioi 0)) :=
+    hkernel.aestronglyMeasurable.restrict
+  have hkernel_bound :
+      ∀ y : ℝ, ‖neumannHeatKernel_zerothReflection 0 t x y‖ ≤
+        2 / Real.sqrt (4 * Real.pi * t) := by
+    intro y
+    rw [Real.norm_eq_abs,
+      abs_of_nonneg (neumannHeatKernel_zerothReflection_nonneg ht 0 x y)]
+    exact neumannHeatKernel_zerothReflection_pointwise_bound ht 0 x y
+  simpa [mul_comm] using
+    hf_int.mul_bdd hkernel_meas
+      (Filter.Eventually.of_forall hkernel_bound)
+
 /-- `L¹ → L∞` smoothing for the half-line reflected helper operator. -/
 theorem halfLineReflectedKernelOperator_L1_Linfty_smoothing
     {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
@@ -1205,6 +1234,50 @@ theorem halfLineReflectedKernelOperator_L1_Linfty_smoothing
     _ = (2 / Real.sqrt (4 * Real.pi * t)) *
         ∫ y in Set.Ioi (0 : ℝ), ‖f y‖ :=
         MeasureTheory.integral_const_mul _ _
+
+/-- `L¹ → L∞` smoothing for differences of the half-line reflected helper
+operator. -/
+theorem halfLineReflectedKernelOperator_diff_L1_Linfty_smoothing
+    {f g : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : IntegrableOn f (Set.Ioi 0) volume)
+    (hg_int : IntegrableOn g (Set.Ioi 0) volume) :
+    ‖halfLineReflectedKernelOperator t f x -
+        halfLineReflectedKernelOperator t g x‖ ≤
+      (2 / Real.sqrt (4 * Real.pi * t)) *
+        ∫ y in Set.Ioi (0 : ℝ), ‖f y - g y‖ := by
+  have hf_kernel :
+      IntegrableOn
+        (fun y => neumannHeatKernel_zerothReflection 0 t x y * f y)
+        (Set.Ioi 0) volume :=
+    neumannHeatKernel_zerothReflection_mul_integrableOn_of_integrableOn
+      ht x hf_int
+  have hg_kernel :
+      IntegrableOn
+        (fun y => neumannHeatKernel_zerothReflection 0 t x y * g y)
+        (Set.Ioi 0) volume :=
+    neumannHeatKernel_zerothReflection_mul_integrableOn_of_integrableOn
+      ht x hg_int
+  have hdiff_int :
+      IntegrableOn (fun y : ℝ => f y - g y) (Set.Ioi 0) volume :=
+    hf_int.sub hg_int
+  have h :=
+    halfLineReflectedKernelOperator_L1_Linfty_smoothing
+      (f := fun y : ℝ => f y - g y) ht x hdiff_int
+  rwa [halfLineReflectedKernelOperator_sub x hf_kernel hg_kernel] at h
+
+/-- Absolute-value form of `L¹ → L∞` difference smoothing for the half-line
+reflected helper operator. -/
+theorem halfLineReflectedKernelOperator_diff_L1_Linfty_smoothing_abs
+    {f g : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : IntegrableOn f (Set.Ioi 0) volume)
+    (hg_int : IntegrableOn g (Set.Ioi 0) volume) :
+    |halfLineReflectedKernelOperator t f x -
+        halfLineReflectedKernelOperator t g x| ≤
+      (2 / Real.sqrt (4 * Real.pi * t)) *
+        ∫ y in Set.Ioi (0 : ℝ), |f y - g y| := by
+  simpa [Real.norm_eq_abs] using
+    halfLineReflectedKernelOperator_diff_L1_Linfty_smoothing
+      ht x hf_int hg_int
 
 /-- The normalized reflected kernel pointwise bound. -/
 theorem normalizedZerothReflectionKernel_pointwise_bound

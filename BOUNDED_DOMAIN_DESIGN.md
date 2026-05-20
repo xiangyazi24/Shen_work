@@ -413,7 +413,8 @@ Using those facts, it proves lower-, upper-, and interval-bound preservation for
 bounded inputs.
 The half-line operator now also has domination, bounded-input domination,
 `L∞` contraction, the two-term pointwise kernel bound, and an `L¹ → L∞`
-smoothing estimate on the right half-line.
+smoothing estimate on the right half-line.  It also has `L¹` half-line
+input weighted-kernel integrability and `L¹ → L∞` difference smoothing.
 The half-line API includes both bounded-input and explicit-integrability
 versions of additivity, subtraction, and interval-bound preservation, plus zero
 and negation lemmas.
