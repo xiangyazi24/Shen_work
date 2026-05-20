@@ -389,6 +389,6 @@ It also defines the mass-normalized helper
 `normalizedZerothReflectionKernel` and proves its nonnegativity, evenness,
 whole-line mass-one identity, constant-input preservation, positivity
 preservation, bounded-input integrability, monotonicity, interval-bound
-preservation, additivity, scalar multiplication, subtraction, `L∞` bound, and
-`L∞` contraction.  This is not claimed to be the full interval Neumann heat
-semigroup.
+preservation, additivity, scalar multiplication, subtraction, domination by
+pointwise majorants, `L∞` bound, and `L∞` contraction.  This is not claimed to
+be the full interval Neumann heat semigroup.

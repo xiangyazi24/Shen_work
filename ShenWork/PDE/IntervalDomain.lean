@@ -460,6 +460,63 @@ theorem normalizedReflectedKernelIntegral_Linfty_bound
           exact mul_le_mul_of_nonneg_left hbound (by norm_num)
     _ = M := by ring
 
+/-- The normalized reflected helper-kernel integral is dominated by the
+integral of the pointwise absolute value. -/
+theorem normalizedReflectedKernelIntegral_abs_le_integral_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    |∫ y, normalizedZerothReflectionKernel 0 t x y * f y| ≤
+      ∫ y, normalizedZerothReflectionKernel 0 t x y * |f y| := by
+  calc
+    |∫ y, normalizedZerothReflectionKernel 0 t x y * f y|
+        ≤ ∫ y, ‖normalizedZerothReflectionKernel 0 t x y * f y‖ := by
+          rw [← Real.norm_eq_abs]
+          exact MeasureTheory.norm_integral_le_integral_norm _
+    _ = ∫ y, |normalizedZerothReflectionKernel 0 t x y * f y| := by
+          simp [Real.norm_eq_abs]
+    _ = ∫ y, normalizedZerothReflectionKernel 0 t x y * |f y| := by
+          congr 1
+          ext y
+          rw [abs_mul, abs_of_nonneg
+            (normalizedZerothReflectionKernel_nonneg ht 0 x y)]
+
+/-- Domination principle for the normalized reflected helper-kernel integral:
+if `|f| ≤ g` pointwise, then `|Tf| ≤ Tg`. -/
+theorem normalizedReflectedKernelIntegral_abs_le_of_abs_le
+    {f g : ℝ → ℝ} (hfg : ∀ y, |f y| ≤ g y)
+    {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hg_int : Integrable
+      (fun y => normalizedZerothReflectionKernel 0 t x y * g y)) :
+    |∫ y, normalizedZerothReflectionKernel 0 t x y * f y| ≤
+      ∫ y, normalizedZerothReflectionKernel 0 t x y * g y := by
+  exact le_trans
+    (normalizedReflectedKernelIntegral_abs_le_integral_abs ht x)
+    (by
+      apply MeasureTheory.integral_mono_of_nonneg
+      · exact Filter.Eventually.of_forall fun y =>
+          mul_nonneg
+            (normalizedZerothReflectionKernel_nonneg ht 0 x y)
+            (abs_nonneg (f y))
+      · exact hg_int
+      · exact Filter.Eventually.of_forall fun y =>
+          mul_le_mul_of_nonneg_left (hfg y)
+            (normalizedZerothReflectionKernel_nonneg ht 0 x y))
+
+/-- Bounded-input domination for the normalized reflected helper-kernel
+integral. -/
+theorem normalizedReflectedKernelIntegral_abs_le_of_abs_le_bounded
+    {f g : ℝ → ℝ} {Mg t : ℝ}
+    (hfg : ∀ y, |f y| ≤ g y)
+    (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (ht : 0 < t) :
+    ∀ x,
+      |∫ y, normalizedZerothReflectionKernel 0 t x y * f y| ≤
+        ∫ y, normalizedZerothReflectionKernel 0 t x y * g y := by
+  intro x
+  exact normalizedReflectedKernelIntegral_abs_le_of_abs_le hfg ht x
+    (normalizedZerothReflectionKernel_mul_bounded_integrable
+      hg_bound hg_meas ht x)
+
 /-- `L∞` contraction for the normalized reflected helper-kernel integral. -/
 theorem normalizedReflectedKernelIntegral_contraction
     {f g : ℝ → ℝ} {M t : ℝ}
