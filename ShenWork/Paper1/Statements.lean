@@ -12004,6 +12004,30 @@ theorem Theorem_1_2.stability_from_wave_initial_conclusion
     (IsTravelingWave.strictlyPositiveAtLeft hTW)
     (WeightedL2InitialCloseness.refl η U)
 
+theorem Theorem_1_2.stability_from_wave_initial_conclusion_of_strict_tail_continuous
+    (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        Continuous U →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          ∃ u v : ℝ → ℝ → ℝ,
+            IsGlobalCauchySolutionFrom p U u v ∧
+            WeightedL2MovingFrameConvergence η c u U ∧
+            UniformMovingFrameConvergence c u U := by
+  rcases h.stability_from_wave_initial_conclusion hp with
+    ⟨cStarStar, hasymp, hlower, hstable⟩
+  refine ⟨cStarStar, hasymp, hlower, ?_⟩
+  intro c hc U V hTW hU_cont hbound htail η hketa heta
+  exact hstable c hc U V hTW
+    (hbound.isCUnifBdd_of_continuous hU_cont)
+    hbound htail η hketa heta
+
 theorem Theorem_1_2.stability_from_wave_initial_conclusion_of_remark43_tail
     (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
@@ -12028,6 +12052,30 @@ theorem Theorem_1_2.stability_from_wave_initial_conclusion_of_remark43_tail
     (IsTravelingWave.nonnegativeInitialDatum hTW hU)
     (IsTravelingWave.strictlyPositiveAtLeft hTW)
     (WeightedL2InitialCloseness.refl η U)
+
+theorem Theorem_1_2.stability_from_wave_initial_conclusion_of_remark43_tail_continuous
+    (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        Continuous U →
+        HasStrictWaveUpperTailBound p c U →
+        HasRemark43TailAsymptotic p c U →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          ∃ u v : ℝ → ℝ → ℝ,
+            IsGlobalCauchySolutionFrom p U u v ∧
+            WeightedL2MovingFrameConvergence η c u U ∧
+            UniformMovingFrameConvergence c u U := by
+  rcases h.stability_from_wave_initial_conclusion_of_remark43_tail hp with
+    ⟨cStarStar, hasymp, hlower, hstable⟩
+  refine ⟨cStarStar, hasymp, hlower, ?_⟩
+  intro c hc U V hTW hU_cont hbound htail η hketa heta
+  exact hstable c hc U V hTW
+    (hbound.isCUnifBdd_of_continuous hU_cont)
+    hbound htail η hketa heta
 
 theorem Theorem_1_2.stability_from_second_wave_initial_conclusion
     (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
@@ -12055,6 +12103,34 @@ theorem Theorem_1_2.stability_from_second_wave_initial_conclusion
     (IsTravelingWave.strictlyPositiveAtLeft hTW₂)
     hclose
 
+theorem Theorem_1_2.stability_from_second_wave_initial_conclusion_of_second_strict_tail_continuous
+    (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        Continuous U₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U₁) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          WeightedL2InitialCloseness η U₂ U₁ →
+          ∃ u v : ℝ → ℝ → ℝ,
+            IsGlobalCauchySolutionFrom p U₂ u v ∧
+            WeightedL2MovingFrameConvergence η c u U₁ ∧
+            UniformMovingFrameConvergence c u U₁ := by
+  rcases h.stability_from_second_wave_initial_conclusion hp with
+    ⟨cStarStar, hasymp, hlower, hstable⟩
+  refine ⟨cStarStar, hasymp, hlower, ?_⟩
+  intro c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hU₂_cont hbound₁ hbound₂ htail₁
+    η hketa heta hclose
+  exact hstable c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂
+    (hbound₂.isCUnifBdd_of_continuous hU₂_cont)
+    hbound₁ htail₁ η hketa heta hclose
+
 theorem Theorem_1_2.stability_from_second_wave_initial_conclusion_of_remark43_tail
     (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
@@ -12081,6 +12157,34 @@ theorem Theorem_1_2.stability_from_second_wave_initial_conclusion_of_remark43_ta
     (IsTravelingWave.nonnegativeInitialDatum hTW₂ hU₂)
     (IsTravelingWave.strictlyPositiveAtLeft hTW₂)
     hclose
+
+theorem Theorem_1_2.stability_from_second_wave_initial_conclusion_of_remark43_tail_continuous
+    (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
+    ∃ cStarStar : ℝ → ℝ,
+      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
+      stabilitySpeedBaseline p < cStarStar p.χ ∧
+      ∀ c : ℝ, cStarStar p.χ < c →
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        Continuous U₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        HasRemark43TailAsymptotic p c U₁ →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          WeightedL2InitialCloseness η U₂ U₁ →
+          ∃ u v : ℝ → ℝ → ℝ,
+            IsGlobalCauchySolutionFrom p U₂ u v ∧
+            WeightedL2MovingFrameConvergence η c u U₁ ∧
+            UniformMovingFrameConvergence c u U₁ := by
+  rcases h.stability_from_second_wave_initial_conclusion_of_remark43_tail hp with
+    ⟨cStarStar, hasymp, hlower, hstable⟩
+  refine ⟨cStarStar, hasymp, hlower, ?_⟩
+  intro c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hU₂_cont hbound₁ hbound₂ htail₁
+    η hketa heta hclose
+  exact hstable c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂
+    (hbound₂.isCUnifBdd_of_continuous hU₂_cont)
+    hbound₁ htail₁ η hketa heta hclose
 
 theorem Theorem_1_2.positive_existing_wave_stability_conclusion
     (hstability : Theorem_1_2) (hexistence : Theorem_1_1)

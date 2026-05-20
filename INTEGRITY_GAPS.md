@@ -590,6 +590,14 @@ projection theorem wrappers have been removed.
 - `Theorem_1_2_frozen_profile_self_initial_data_admissible_branch_of_strict_tail`:
   the frozen-profile version with `IsCUnifBdd` likewise derived from the strict
   upper-tail hypothesis plus continuity
+- `Theorem_1_2.stability_from_wave_initial_conclusion_of_strict_tail_continuous`,
+  `Theorem_1_2.stability_from_wave_initial_conclusion_of_remark43_tail_continuous`,
+  `Theorem_1_2.stability_from_second_wave_initial_conclusion_of_second_strict_tail_continuous`,
+  and
+  `Theorem_1_2.stability_from_second_wave_initial_conclusion_of_remark43_tail_continuous`:
+  accessor bridge variants that remove the separate `IsCUnifBdd` input for
+  self-initial and second-wave initial-data uses by deriving it from strict
+  upper-tail bounds plus continuity
 - `Theorem_1_3_same_wave_branch`: reflexive Paper1 Theorem 1.3 same-wave
   uniqueness branch, independent of the uniqueness package
 - `Theorem_1_3_profile_eq_of_uniform_movingFrame_and_resolvent`: a real
