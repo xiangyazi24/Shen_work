@@ -146,7 +146,9 @@ projection theorem wrappers have been removed.
   zero-output/all-zero-data branches of the Paper1 heat-semigroup estimate
   interface, closed under explicit nonnegativity of the input norm rather than
   by projecting from `Paper1AnalyticData`
-- `heatSemigroup_mono_bounded`, `modifiedSemigroup_mono_bounded`,
+- `heatKernel_integral_abs_eq_one`,
+  `heatKernel_integral_abs_translated`, `heatSemigroup_mono_bounded`,
+  `modifiedSemigroup_mono_bounded`,
   `heatSemigroup_zero_fun`, `modifiedSemigroup_zero_fun`,
   `modifiedSemigroup_const`,
   `heatSemigroup_lower_bound`, `heatSemigroup_upper_bound_of_bound`,

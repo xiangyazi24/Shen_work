@@ -57,6 +57,14 @@ theorem heatKernel_integral_eq_one {t : ℝ} (ht : 0 < t) :
   have hsqrt_ne : Real.sqrt (4 * Real.pi * t) ≠ 0 := Real.sqrt_ne_zero'.mpr h4pt
   field_simp [hsqrt_ne]
 
+theorem heatKernel_integral_abs_eq_one {t : ℝ} (ht : 0 < t) :
+    ∫ x : ℝ, |heatKernel t x| = 1 := by
+  rw [show (fun x : ℝ => |heatKernel t x|) =
+      (fun x : ℝ => heatKernel t x) from by
+        ext x
+        exact abs_of_nonneg (heatKernel_nonneg ht x)]
+  exact heatKernel_integral_eq_one ht
+
 /-- The heat kernel is even: G(t, -x) = G(t, x). -/
 lemma heatKernel_neg (t x : ℝ) : heatKernel t (-x) = heatKernel t x := by
   unfold heatKernel; congr 1; congr 1; ring
@@ -68,6 +76,14 @@ theorem heatKernel_integral_translated {t : ℝ} (ht : 0 < t) (x : ℝ) :
       (fun y => (fun z => heatKernel t z) (y + (-x))) := by
     ext y; simp only; rw [show x - y = -(y + (-x)) from by ring, heatKernel_neg]
   rw [key, integral_add_right_eq_self, heatKernel_integral_eq_one ht]
+
+theorem heatKernel_integral_abs_translated {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    ∫ y : ℝ, |heatKernel t (x - y)| = 1 := by
+  rw [show (fun y : ℝ => |heatKernel t (x - y)|) =
+      (fun y : ℝ => heatKernel t (x - y)) from by
+        ext y
+        exact abs_of_nonneg (heatKernel_nonneg ht (x - y))]
+  exact heatKernel_integral_translated ht x
 
 /-- The heat kernel is integrable. -/
 lemma heatKernel_integrable {t : ℝ} (ht : 0 < t) :
