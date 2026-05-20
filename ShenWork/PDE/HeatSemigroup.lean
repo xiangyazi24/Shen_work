@@ -129,6 +129,22 @@ theorem heatSemigroup_ge_const {m : ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ) :
       (fun y => m * heatKernel t (x - y)) from by ext y; ring]
   rw [MeasureTheory.integral_const_mul, heatKernel_integral_translated ht x, mul_one]
 
+theorem heatSemigroup_lower_bound {f : ℝ → ℝ} {m Mf : ℝ}
+    (hf_ge : ∀ x, m ≤ f x) (hf_bound : ∀ x, |f x| ≤ Mf)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)
+    {t : ℝ} (ht : 0 < t) :
+    ∀ x, m ≤ heatSemigroup t f x := by
+  intro x
+  have hconst_int :
+      MeasureTheory.Integrable (fun y => heatKernel t (x - y) * m) :=
+    (heatKernel_translated_integrable ht x).mul_const m
+  have hf_int :
+      MeasureTheory.Integrable (fun y => heatKernel t (x - y) * f y) :=
+    heatKernel_mul_bounded_integrable ht x hf_bound hf_meas
+  exact le_trans (heatSemigroup_ge_const ht x)
+    (heatSemigroup_mono (f := fun _ : ℝ => m) (g := f)
+      hf_ge ht hconst_int hf_int)
+
 /-- If f ≥ 0 and f ≤ M, then e^{tΔ} f ≤ M (conservation + positivity). -/
 theorem heatSemigroup_upper_bound {f : ℝ → ℝ} {M : ℝ}
     (_hf_nn : ∀ x, 0 ≤ f x) (hf_le : ∀ x, f x ≤ M)
@@ -203,6 +219,17 @@ theorem modifiedSemigroup_Linfty_decay {f : ℝ → ℝ} {M : ℝ}
     |modifiedSemigroup t f x| ≤ M * Real.exp (-t) :=
   (modifiedSemigroup_Linfty_bound hf ht hM hf_meas x).trans
     (by rw [mul_comm])
+
+theorem modifiedSemigroup_lower_bound {f : ℝ → ℝ} {m Mf t : ℝ}
+    (hf_ge : ∀ x, m ≤ f x) (hf_bound : ∀ x, |f x| ≤ Mf)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)
+    (ht : 0 < t) :
+    ∀ x, Real.exp (-t) * m ≤ modifiedSemigroup t f x := by
+  intro x
+  unfold modifiedSemigroup
+  exact mul_le_mul_of_nonneg_left
+    (heatSemigroup_lower_bound hf_ge hf_bound hf_meas ht x)
+    (Real.exp_nonneg _)
 
 lemma heatKernel_zero (x : ℝ) : heatKernel 0 x = 0 := by
   unfold heatKernel
