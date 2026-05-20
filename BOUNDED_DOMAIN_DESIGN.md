@@ -382,5 +382,6 @@ The tiny interval-measure helper track is implemented in
 facts, not Paper2 theorem wrappers and not semigroup estimate assumptions.
 The file also contains a zeroth-reflection heat-kernel helper,
 `neumannHeatKernel_zerothReflection`, with proved nonnegativity and evenness in
-the reflected variable.  This is not claimed to be the full interval Neumann
-heat semigroup.
+the reflected variable, plus the whole-line integral identities
+`heatKernel_integral_add` and `neumannHeatKernel_zerothReflection_integral`.
+This is not claimed to be the full interval Neumann heat semigroup.
