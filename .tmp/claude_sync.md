@@ -117,3 +117,35 @@ Claude replied that no further proposal edits were needed:
   import path and carries a non-progress warning.
 
 No Lean theorem work was resumed during this proposal sync.
+
+## Direct Claude Recheck 2026-05-20
+
+Codex resent the three-round review through the active Claude-side agent
+channel after Xiang noted that the proposal feedback must not be relayed through
+him.
+
+Claude confirmed again:
+
+- v4 / `BOUNDED_DOMAIN_DESIGN.md` is the accepted operative design.
+- v1/v2/v3 are historical artifacts only and should not drive later Lean theorem
+  work.
+- Conditional bounded-domain material remains non-progress unless it is
+  unmistakably named as assumption-dependent.
+- Concrete accepted progress still starts from definition-level
+  `IntervalDomain` helper theorems with temporary axiom audits.
+
+Claude changed only:
+
+- `BOUNDED_DOMAIN_DESIGN.md`: clarified that the `First Helper Status` section is
+  descriptive and does not relax the v4 guardrails.
+
+No Lean files were modified for this proposal sync.
+
+Claude then acknowledged the recorded sync state:
+
+- operative design remains `BOUNDED_DOMAIN_DESIGN.md` /
+  `.tmp/bounded-domain-proposal-v4.md`;
+- current proposal-sync diff is limited to `BOUNDED_DOMAIN_DESIGN.md` and this
+  sync file;
+- no Lean proof files are part of this proposal sync;
+- ordinary Lean theorem work remains paused until Xiang explicitly resumes it.
