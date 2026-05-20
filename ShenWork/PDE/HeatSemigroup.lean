@@ -333,6 +333,30 @@ theorem modifiedSemigroup_add {f g : ℝ → ℝ} {t : ℝ} (x : ℝ)
   rw [heatSemigroup_add x hf hg]
   ring
 
+theorem heatSemigroup_add_bounded {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hf_bound : ∀ x, |f x| ≤ Mf) (hg_bound : ∀ x, |g x| ≤ Mg)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)
+    (hg_meas : MeasureTheory.AEStronglyMeasurable g MeasureTheory.volume)
+    (ht : 0 < t) :
+    ∀ x, heatSemigroup t (fun y => f y + g y) x =
+      heatSemigroup t f x + heatSemigroup t g x := by
+  intro x
+  exact heatSemigroup_add x
+    (heatKernel_mul_bounded_integrable ht x hf_bound hf_meas)
+    (heatKernel_mul_bounded_integrable ht x hg_bound hg_meas)
+
+theorem modifiedSemigroup_add_bounded {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hf_bound : ∀ x, |f x| ≤ Mf) (hg_bound : ∀ x, |g x| ≤ Mg)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)
+    (hg_meas : MeasureTheory.AEStronglyMeasurable g MeasureTheory.volume)
+    (ht : 0 < t) :
+    ∀ x, modifiedSemigroup t (fun y => f y + g y) x =
+      modifiedSemigroup t f x + modifiedSemigroup t g x := by
+  intro x
+  exact modifiedSemigroup_add x
+    (heatKernel_mul_bounded_integrable ht x hf_bound hf_meas)
+    (heatKernel_mul_bounded_integrable ht x hg_bound hg_meas)
+
 theorem heatSemigroup_neg (f : ℝ → ℝ) (t x : ℝ) :
     heatSemigroup t (fun y => -f y) x = -heatSemigroup t f x := by
   simpa [heatSemigroup] using
@@ -375,6 +399,30 @@ theorem modifiedSemigroup_sub {f g : ℝ → ℝ} {t : ℝ} (x : ℝ)
   unfold modifiedSemigroup
   rw [heatSemigroup_sub x hf hg]
   ring
+
+theorem heatSemigroup_sub_bounded {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hf_bound : ∀ x, |f x| ≤ Mf) (hg_bound : ∀ x, |g x| ≤ Mg)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)
+    (hg_meas : MeasureTheory.AEStronglyMeasurable g MeasureTheory.volume)
+    (ht : 0 < t) :
+    ∀ x, heatSemigroup t (fun y => f y - g y) x =
+      heatSemigroup t f x - heatSemigroup t g x := by
+  intro x
+  exact heatSemigroup_sub x
+    (heatKernel_mul_bounded_integrable ht x hf_bound hf_meas)
+    (heatKernel_mul_bounded_integrable ht x hg_bound hg_meas)
+
+theorem modifiedSemigroup_sub_bounded {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hf_bound : ∀ x, |f x| ≤ Mf) (hg_bound : ∀ x, |g x| ≤ Mg)
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f MeasureTheory.volume)
+    (hg_meas : MeasureTheory.AEStronglyMeasurable g MeasureTheory.volume)
+    (ht : 0 < t) :
+    ∀ x, modifiedSemigroup t (fun y => f y - g y) x =
+      modifiedSemigroup t f x - modifiedSemigroup t g x := by
+  intro x
+  exact modifiedSemigroup_sub x
+    (heatKernel_mul_bounded_integrable ht x hf_bound hf_meas)
+    (heatKernel_mul_bounded_integrable ht x hg_bound hg_meas)
 
 theorem modifiedSemigroup_contraction {f g : ℝ → ℝ} {M t : ℝ}
     (hfg : ∀ x, |f x - g x| ≤ M) (ht : 0 < t) (hM : 0 ≤ M)

@@ -153,7 +153,9 @@ projection theorem wrappers have been removed.
   `modifiedSemigroup_Linfty_bound`, `modifiedSemigroup_Linfty_decay`,
   `heatSemigroup_add`, `modifiedSemigroup_add`, `heatSemigroup_neg`,
   `modifiedSemigroup_neg`, `heatSemigroup_const_mul`,
-  `modifiedSemigroup_const_mul`, `modifiedSemigroup_sub`, and
+  `modifiedSemigroup_const_mul`, `heatSemigroup_add_bounded`,
+  `modifiedSemigroup_add_bounded`, `modifiedSemigroup_sub`,
+  `heatSemigroup_sub_bounded`, `modifiedSemigroup_sub_bounded`, and
   `modifiedSemigroup_contraction`: real
   whole-line heat-kernel estimates for the heat and modified semigroups.  They
   use heat-kernel positivity, translated kernel mass one, bounded measurable
