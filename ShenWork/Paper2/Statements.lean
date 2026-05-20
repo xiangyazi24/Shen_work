@@ -1375,6 +1375,42 @@ theorem Lemma_2_5_proved : Lemma_2_5 := by
     Real.rpow_pos_of_pos hvden_pos _
   exact (div_le_iff₀ hden_rpow_pos).mpr hmain
 
+/-- Direct pointwise form of Paper2 Lemma 2.5, using the proved sharp
+constant `Psi_beta`. -/
+theorem Lemma_2_5_pointwise_bound
+    {beta v : ℝ} (hbeta : 0 < beta) (hv : 0 < v) :
+    beta * v / (1 + v) ^ (1 + beta) ≤ Psi_beta beta :=
+  Lemma_2_5_proved beta v hbeta hv
+
+/-- The Paper2 Lemma 2.5 bound is attained at `v = 1 / beta`. -/
+theorem Lemma_2_5_attained_at_inv
+    {beta : ℝ} (hbeta : 0 < beta) :
+    beta * (1 / beta) / (1 + 1 / beta) ^ (1 + beta) =
+      Psi_beta beta :=
+  Psi_beta_eq_at_inv hbeta
+
+/-- Paper2 Lemma 2.5 as a sharp bound: every positive `v` is bounded by
+`Psi_beta beta`, and equality is attained by the positive point `1 / beta`. -/
+theorem Lemma_2_5_sharp_bound
+    {beta : ℝ} (hbeta : 0 < beta) :
+    (∀ v > 0, beta * v / (1 + v) ^ (1 + beta) ≤ Psi_beta beta) ∧
+      ∃ v > 0, beta * v / (1 + v) ^ (1 + beta) = Psi_beta beta := by
+  refine ⟨?_, ?_⟩
+  · intro v hv
+    exact Lemma_2_5_pointwise_bound hbeta hv
+  · refine ⟨1 / beta, div_pos one_pos hbeta, ?_⟩
+    exact Lemma_2_5_attained_at_inv hbeta
+
+/-- If `beta ≤ gamma`, the Lemma 2.5 pointwise expression at `beta` is also
+bounded by the larger sharp constant `Psi_beta gamma`. -/
+theorem Lemma_2_5_pointwise_bound_le_larger_Psi_beta
+    {beta gamma v : ℝ} (hbeta : 0 < beta) (hgamma : 0 ≤ gamma)
+    (hbg : beta ≤ gamma) (hv : 0 < v) :
+    beta * v / (1 + v) ^ (1 + beta) ≤ Psi_beta gamma := by
+  exact le_trans
+    (Lemma_2_5_pointwise_bound hbeta hv)
+    (Psi_beta_monotoneOn_Ici hbeta.le hgamma hbg)
+
 def AbstractLpBootstrapHypothesis
     (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
     (N T rho p0 : ℝ) : Prop :=
