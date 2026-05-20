@@ -154,6 +154,24 @@ theorem intervalAverage_mono {L : ℝ} (hL : 0 < L) {f g : ℝ → ℝ}
     (intervalIntegral_mono hL.le hfg hf_int hg_int)
     (div_nonneg zero_le_one hL.le)
 
+/-- Addition commutes with the interval average for interval-integrable
+inputs. -/
+theorem intervalAverage_add {L : ℝ} {f g : ℝ → ℝ}
+    (hf_int : IntervalIntegrable f volume 0 L)
+    (hg_int : IntervalIntegrable g volume 0 L) :
+    intervalAverage L (fun x => f x + g x) =
+      intervalAverage L f + intervalAverage L g := by
+  unfold intervalAverage
+  rw [intervalIntegral.integral_add hf_int hg_int]
+  ring
+
+/-- Scalar multiplication commutes with the interval average. -/
+theorem intervalAverage_const_mul (a L : ℝ) (f : ℝ → ℝ) :
+    intervalAverage L (fun x => a * f x) = a * intervalAverage L f := by
+  unfold intervalAverage
+  rw [intervalIntegral.integral_const_mul]
+  ring
+
 /-- Negation commutes with the interval average. -/
 theorem intervalAverage_neg (L : ℝ) (f : ℝ → ℝ) :
     intervalAverage L (fun x => -f x) = -intervalAverage L f := by
@@ -238,6 +256,38 @@ theorem constantModeProjection_nonneg_of_nonneg {L : ℝ} (hL : 0 < L)
     ∀ x, 0 ≤ constantModeProjection L f x := by
   intro x
   exact intervalAverage_nonneg hL hf
+
+/-- Additivity of the constant-mode projection. -/
+theorem constantModeProjection_add {L : ℝ} {f g : ℝ → ℝ}
+    (hf_int : IntervalIntegrable f volume 0 L)
+    (hg_int : IntervalIntegrable g volume 0 L) :
+    constantModeProjection L (fun x => f x + g x) =
+      fun x => constantModeProjection L f x + constantModeProjection L g x := by
+  funext x
+  simp [constantModeProjection, intervalAverage_add hf_int hg_int]
+
+/-- Scalar multiplication for the constant-mode projection. -/
+theorem constantModeProjection_const_mul (a L : ℝ) (f : ℝ → ℝ) :
+    constantModeProjection L (fun x => a * f x) =
+      fun x => a * constantModeProjection L f x := by
+  funext x
+  simp [constantModeProjection, intervalAverage_const_mul]
+
+/-- Negation for the constant-mode projection. -/
+theorem constantModeProjection_neg (L : ℝ) (f : ℝ → ℝ) :
+    constantModeProjection L (fun x => -f x) =
+      fun x => -constantModeProjection L f x := by
+  funext x
+  simp [constantModeProjection, intervalAverage_neg]
+
+/-- Subtraction for the constant-mode projection. -/
+theorem constantModeProjection_sub {L : ℝ} {f g : ℝ → ℝ}
+    (hf_int : IntervalIntegrable f volume 0 L)
+    (hg_int : IntervalIntegrable g volume 0 L) :
+    constantModeProjection L (fun x => f x - g x) =
+      fun x => constantModeProjection L f x - constantModeProjection L g x := by
+  funext x
+  simp [constantModeProjection, intervalAverage_sub hf_int hg_int]
 
 /-- Monotonicity of the constant-mode projection. -/
 theorem constantModeProjection_mono {L : ℝ} (hL : 0 < L) {f g : ℝ → ℝ}
