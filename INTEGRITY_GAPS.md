@@ -176,10 +176,12 @@ projection theorem wrappers have been removed.
   `L∞` contraction.
 - `Lemma_2_2_proved`, `Lemma_2_3_proved`, `Lemma_2_4_proved`
 - `Lemma_2_5_pointwise_bound`, `Lemma_2_5_attained_at_inv`,
-  `Lemma_2_5_sharp_bound`, and
+  `Lemma_2_5_sharp_bound`, `Lemma_2_5_sharp_constant_minimal`,
+  `Lemma_2_5_sharp_constant_iff`, `Lemma_2_5_full_statement`, and
   `Lemma_2_5_pointwise_bound_le_larger_Psi_beta` (Paper2): direct
   end-to-end bridges from the proved scalar Lemma 2.5 inequality to the
-  concrete `Psi_beta` equality case and monotonicity results.
+  concrete `Psi_beta` equality case, sharp-constant minimality, endpoint
+  limits, and monotonicity results.
 - `SupNormNonincreasingOn.of_forall_eq` (Paper2): an unconditional
   constant-time branch of the Lemma 3.1 conclusion, separate from the false
   arbitrary-API maximum-principle statement.

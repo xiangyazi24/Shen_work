@@ -1198,6 +1198,18 @@ lemma Psi_beta_tendsto_atTop :
     rw [← Real.exp_neg]
   simpa [hinv_exp] using hlim.congr' heq.symm
 
+lemma Psi_beta_tendsto_atRight_zero :
+    Tendsto Psi_beta (𝓝[>] (0 : ℝ)) (𝓝 0) := by
+  refine squeeze_zero' (f := Psi_beta) (g := fun beta : ℝ => beta) ?_ ?_ ?_
+  · exact eventually_nhdsWithin_of_forall fun beta hbeta =>
+      Psi_beta_nonneg (le_of_lt hbeta)
+  · exact eventually_nhdsWithin_of_forall fun beta hbeta =>
+      Psi_beta_le_self (le_of_lt hbeta)
+  · exact
+      (tendsto_id :
+        Tendsto (fun beta : ℝ => beta) (𝓝 (0 : ℝ)) (𝓝 (0 : ℝ))).mono_left
+        nhdsWithin_le_nhds
+
 lemma Psi_beta_le_exp_neg_one {beta : ℝ} (hbeta : 0 < beta) :
     Psi_beta beta ≤ Real.exp (-1) := by
   have hden_pos : 0 < 1 + beta := by linarith
@@ -1410,6 +1422,43 @@ theorem Lemma_2_5_sharp_bound
     exact Lemma_2_5_pointwise_bound hbeta hv
   · refine ⟨1 / beta, div_pos one_pos hbeta, ?_⟩
     exact Lemma_2_5_attained_at_inv hbeta
+
+/-- The constant `Psi_beta beta` is the least constant that can bound the
+Lemma 2.5 expression for all positive `v`. -/
+theorem Lemma_2_5_sharp_constant_minimal
+    {beta C : ℝ} (hbeta : 0 < beta)
+    (hC : ∀ v > 0, beta * v / (1 + v) ^ (1 + beta) ≤ C) :
+    Psi_beta beta ≤ C := by
+  have hinv_pos : 0 < 1 / beta := div_pos one_pos hbeta
+  have h := hC (1 / beta) hinv_pos
+  rwa [Lemma_2_5_attained_at_inv hbeta] at h
+
+/-- A real constant bounds the Lemma 2.5 expression on `(0,∞)` exactly when
+it is at least the sharp constant `Psi_beta beta`. -/
+theorem Lemma_2_5_sharp_constant_iff
+    {beta C : ℝ} (hbeta : 0 < beta) :
+    (∀ v > 0, beta * v / (1 + v) ^ (1 + beta) ≤ C) ↔
+      Psi_beta beta ≤ C := by
+  constructor
+  · exact Lemma_2_5_sharp_constant_minimal hbeta
+  · intro hC v hv
+    exact le_trans (Lemma_2_5_pointwise_bound hbeta hv) hC
+
+/-- End-to-end form of the full scalar content of Paper2 Lemma 2.5: the
+pointwise inequality, equality at `1 / beta`, strict monotonicity of the sharp
+constant, and the two endpoint limits. -/
+theorem Lemma_2_5_full_statement :
+    (∀ beta v : ℝ, 0 < beta → 0 < v →
+      beta * v / (1 + v) ^ (1 + beta) ≤ Psi_beta beta) ∧
+    (∀ beta : ℝ, 0 < beta →
+      beta * (1 / beta) / (1 + 1 / beta) ^ (1 + beta) =
+        Psi_beta beta) ∧
+    StrictMonoOn Psi_beta (Set.Ioi (0 : ℝ)) ∧
+    Tendsto Psi_beta (𝓝[>] (0 : ℝ)) (𝓝 0) ∧
+    Tendsto Psi_beta atTop (𝓝 (Real.exp (-1))) := by
+  exact ⟨Lemma_2_5_proved, fun beta hbeta => Lemma_2_5_attained_at_inv hbeta,
+    Psi_beta_strictMonoOn_Ioi, Psi_beta_tendsto_atRight_zero,
+    Psi_beta_tendsto_atTop⟩
 
 /-- If `beta ≤ gamma`, the Lemma 2.5 pointwise expression at `beta` is also
 bounded by the larger sharp constant `Psi_beta gamma`. -/
