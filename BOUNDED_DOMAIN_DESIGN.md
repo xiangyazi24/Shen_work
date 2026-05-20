@@ -418,4 +418,7 @@ The half-line API includes both bounded-input and explicit-integrability
 versions of additivity, subtraction, and interval-bound preservation, plus zero
 and negation lemmas.
 The normalized full-line operator API also exposes direct operator-level
-domination wrappers in addition to the underlying integral-level results.
+domination wrappers in addition to the underlying integral-level results.  It
+now also proves `L¹` input weighted-kernel integrability and normalized
+full-line `L¹ → L∞` difference smoothing at both the integral and operator API
+levels.

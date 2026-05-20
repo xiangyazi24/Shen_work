@@ -176,6 +176,9 @@ and stability proofs.  The next phase is:
   smoothing, derivative-kernel `L¹ → L∞` smoothing, heat/modified semigroup
   derivative formulas, direct difference, gradient, and gradient-difference
   estimates, and contraction estimates.
+- `ShenWork/PDE/IntervalDomain.lean`: concrete interval-measure facts,
+  constant-mode projection, and reflected-kernel helper estimates, including
+  normalized full-line helper `L¹ → L∞` smoothing and difference smoothing.
 - `ShenWork/PDE/MildSolution.lean`: pointwise Duhamel/contraction estimates and
   `abstract_mild_fixed_point`.
 - `ShenWork/PDE/TravelingWaveConstruction.lean`: true logistic profile facts.
