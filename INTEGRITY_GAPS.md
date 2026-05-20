@@ -314,6 +314,13 @@ projection theorem wrappers have been removed.
   strict positivity, and the minimal nonincreasing-profile Lemma 5.2 branch to
   produce the log-derivative estimate without first packaging a full traveling
   wave.
+- `NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_and_log_derivative`
+  and
+  `NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_and_log_derivative_B`:
+  same-fixed-point bridges combining the Lemma 5.1 signal package and the
+  Lemma 5.2 log-derivative estimate for one constructed negative-sensitivity
+  fixed point, avoiding later existential splicing between two separately
+  chosen fixed points.
 - `not_Remark52GammaSpeedAlgebra`,
   `not_remark5SpeedCondition_implies_Lemma_5_2_speed`, and
   `not_Remark52LogDerivativeAlgebra`: formal obstructions showing that the

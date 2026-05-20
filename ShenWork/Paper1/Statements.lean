@@ -10431,6 +10431,95 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_lo
   · intro x
     exact le_trans (hlog x) (le_max_left _ _)
 
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_and_log_derivative
+    {p : CMParams} {c κ₀ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₀ κtilde D)
+    (hc : 2 < c)
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹)
+        (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
+    (hupper :
+      ∀ U : ℝ → ℝ,
+        InMonotoneWaveTrapSet (kappa c) 1 U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) 1
+            (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U →
+            ShenUpperBoundNegative c U) :
+    ∃ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet (kappa c) 1 U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) 1
+          (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U ∧
+        (∀ x,
+          |frozenElliptic p U x| ≤ (MChi p) ^ p.γ ∧
+            |deriv (frozenElliptic p U) x| ≤ (MChi p) ^ p.γ) ∧
+        (p.γ + p.γ⁻¹ < c →
+          ∀ x,
+            |frozenElliptic p U x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x)) ∧
+            |deriv (frozenElliptic p U) x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x))) ∧
+        ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c := by
+  rcases h.exists_fixed_limit_with_atTop_limits with
+    ⟨U, hU, haux, _hanti, _hU_top, _hV_top⟩
+  have hMChi_nonneg : 0 ≤ MChi p := by
+    rw [h.MChi_eq_one]
+    norm_num
+  have hupperU : ShenUpperBoundNegative c U := hupper U hU haux
+  have htrapM : InMonotoneWaveTrapSet (kappa c) (MChi p) U := by
+    simpa [h.MChi_eq_one] using hU
+  have hsignal :=
+    Lemma_5_1.fixed_point_signal_package p hc htrapM.trap.cunif_bdd
+      (htrapM.hasWaveUpperTailBound_of_pos hupperU.pos)
+  have hlog :
+      ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c :=
+    Lemma_5_2_explicit.nonincreasing_profile_branch
+      hspeed hMChi_nonneg hupperU.pos hU.deriv_nonpos
+  exact ⟨U, hU, haux, hsignal.1, hsignal.2, hlog⟩
+
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_and_log_derivative_B
+    {p : CMParams} {c κ₀ κtilde D : ℝ}
+    (h : NegativeSensitivityWaveFixedPointConstruction p c κ₀ κtilde D)
+    (hc : 2 < c)
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹)
+        (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
+    (hupper :
+      ∀ U : ℝ → ℝ,
+        InMonotoneWaveTrapSet (kappa c) 1 U →
+          FrozenAuxiliaryLimitOutput p c (kappa c) 1
+            (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U →
+            ShenUpperBoundNegative c U) :
+    ∃ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet (kappa c) 1 U ∧
+        FrozenAuxiliaryLimitOutput p c (kappa c) 1
+          (fun u => InMonotoneWaveTrapSet (kappa c) 1 u) U U ∧
+        (∀ x,
+          |frozenElliptic p U x| ≤ (MChi p) ^ p.γ ∧
+            |deriv (frozenElliptic p U) x| ≤ (MChi p) ^ p.γ) ∧
+        (p.γ + p.γ⁻¹ < c →
+          ∀ x,
+            |frozenElliptic p U x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x)) ∧
+            |deriv (frozenElliptic p U) x| ≤
+              min ((MChi p) ^ p.γ)
+                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+                  Real.exp (-(kappa c) * p.γ * x))) ∧
+        ∃ B > 0, ∀ x, deriv U x / U x ≤ B := by
+  rcases h.exists_fixed_limit_with_signal_and_log_derivative
+      hc hspeed hupper with
+    ⟨U, hU, haux, hsignal, hexpSignal, hlog⟩
+  refine
+    ⟨U, hU, haux, hsignal, hexpSignal,
+      max (logDerivativeBoundFormula p c) 1, ?_, ?_⟩
+  · exact lt_of_lt_of_le zero_lt_one (le_max_right _ _)
+  · intro x
+    exact le_trans (hlog x) (le_max_left _ _)
+
 theorem Lemma_5_2_explicit.to_Lemma_5_2
     (h : Lemma_5_2_explicit) : Lemma_5_2 := by
   intro p c hspeed U V hTW hbound
