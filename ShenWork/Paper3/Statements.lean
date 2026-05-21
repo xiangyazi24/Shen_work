@@ -8843,6 +8843,48 @@ lemma Corollary_5_1.minimal_exponential_of_chi_lt_paperCriticalSensitivity
       rwa [hC.chiCritical_minimalEquilibrium huStar])
     huv hmass hconv
 
+lemma Corollary_5_1.nonminimal_exponential_unitInterval
+    {D : BoundedDomainData} {p : CM2Params}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Corollary_5_1 D p N C)
+    (hC : Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p C)
+    (hm : 1 ≤ p.m) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hconv : UniformConvergesInSup D u (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  h.nonminimal_exponential_of_chi_lt_paperCriticalSensitivity hC
+    hm ha hb hχ huv hconv
+
+lemma Corollary_5_1.minimal_exponential_unitInterval
+    {D : BoundedDomainData} {p : CM2Params}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Corollary_5_1 D p N C)
+    (hC : Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p C)
+    (hm : 1 ≤ p.m) (ha : p.a = 0) (hb : p.b = 0)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar)
+    (hconv : UniformConvergesInSup D u (minimalEquilibrium p uStar).1) :
+    ExponentialC1Convergence D N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  h.minimal_exponential_of_chi_lt_paperCriticalSensitivity hC
+    hm ha hb huStar hχ huv hmass hconv
+
 lemma Corollary_5_1.nonminimal_exponential_of_Lemma_A_7
     {D : BoundedDomainData} {p : CM2Params}
     {N : StabilityNorms D} {C : Paper3Constants D p}
