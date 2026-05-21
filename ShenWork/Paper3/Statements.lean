@@ -5021,6 +5021,63 @@ lemma not_MinimalGlobalStabilityRaw_constant_c1Distance :
     simpa [t] using htmp
   linarith
 
+/-- Raw obstruction for the minimal convergence-to-exponential upgrade:
+uniform convergence in the fake `supNorm`, even with the mass constraint, does
+not imply exponential convergence in an unrelated constant `C¹` distance. -/
+lemma not_ConvergenceToExponentialMinimalRaw_constant_c1Distance :
+    ¬ ConvergenceToExponentialMinimalRaw initialContinuityNoDistanceControlDomain
+      minimalGlobalStabilityCounterParams (fun _ _ => (1 : ℝ))
+      (fun _ => (1 : ℝ)) := by
+  intro h
+  let D := initialContinuityNoDistanceControlDomain
+  let p := minimalGlobalStabilityCounterParams
+  have hm : 1 ≤ p.m := by
+    norm_num [p, minimalGlobalStabilityCounterParams]
+  have ha : p.a = 0 := by
+    norm_num [p, minimalGlobalStabilityCounterParams]
+  have hb : p.b = 0 := by
+    norm_num [p, minimalGlobalStabilityCounterParams]
+  have huStar : (0 : ℝ) < 1 := by norm_num
+  have hχ : p.χ₀ < (fun _ => (1 : ℝ)) 1 := by
+    norm_num [p, minimalGlobalStabilityCounterParams]
+  have hconv :
+      UniformConvergesInSup D (fun _ _ => (1 : ℝ))
+        (minimalEquilibrium p 1).1 := by
+    simp [UniformConvergesInSup, D, p, initialContinuityNoDistanceControlDomain,
+      minimalGlobalStabilityCounterParams, minimalEquilibrium]
+  rcases h hm ha hb 1 huStar hχ (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
+      initialContinuityNoDistanceControl_minimalCounter_positiveGlobalBounded
+      initialContinuityNoDistanceControl_minimalCounter_mass_one hconv with
+    ⟨A, hA_pos, rate, hrate_pos, hbound⟩
+  have hmul : Tendsto (fun t : ℝ => rate * t) atTop atTop :=
+    (Filter.tendsto_id.atTop_mul_const hrate_pos).congr
+      (fun t => mul_comm t rate)
+  have hneg : Tendsto (fun t : ℝ => -(rate * t)) atTop atBot :=
+    tendsto_neg_atTop_atBot.comp hmul
+  have hexp : Tendsto (fun t : ℝ => Real.exp (-(rate * t))) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp hneg
+  have hlim :
+      Tendsto (fun t : ℝ => A * Real.exp (-rate * t)) atTop (𝓝 0) := by
+    convert tendsto_const_nhds.mul hexp using 1
+    · ext t
+      ring_nf
+    · simp
+  have hevent :
+      ∀ᶠ t : ℝ in atTop, A * Real.exp (-rate * t) < (2 : ℝ) :=
+    hlim.eventually (Iio_mem_nhds (by norm_num : (0 : ℝ) < 2))
+  rcases eventually_atTop.1 hevent with ⟨T, hT⟩
+  let t : ℝ := max T 0
+  have ht0 : 0 ≤ t := by
+    exact le_max_right T 0
+  have hTle : T ≤ t := by
+    exact le_max_left T 0
+  have hsmall_rhs : A * Real.exp (-rate * t) < (2 : ℝ) := hT t hTle
+  have hlarge_rhs : (2 : ℝ) ≤ A * Real.exp (-rate * t) := by
+    have htmp := hbound t ht0
+    norm_num at htmp
+    simpa [t] using htmp
+  linarith
+
 /-- Raw nonminimal local-stability branch of
 `Paper3Constants.linearStabilityInstability`, exposing the `C¹` distance. -/
 def LinearStabilityInstabilityNonminimalRaw
