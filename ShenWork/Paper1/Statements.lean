@@ -6256,10 +6256,26 @@ def Lemma_4_2_chi_zero_strengthened : Prop :=
                 ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
                   IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ
 
+theorem Lemma_4_2_chi_zero_strengthened_direct
+    (p : CMParams) (hχ : p.χ = 0) {κ κtilde M c D : ℝ}
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
+    (hrange :
+      κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (hκtilde_twoκ : κtilde ≤ 2 * κ)
+    (hM : 1 ≤ M) (hc : c = κ + κ⁻¹)
+    (hD : subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D)
+    {u : ℝ → ℝ} (hu : InWaveTrapSet κ M u) :
+    IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+        (Set.Ioi (lowerBarrierXMinus κ κtilde D)) ∧
+      ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+        IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ := by
+  exact Lemma_4_2_chi_zero_subsolutions_of_kappaTilde_le_two_kappa
+    p hχ hκ hκ1 hgap hrange hκtilde_twoκ hM hc hD hu
+
 theorem Lemma_4_2_chi_zero_strengthened_proved :
     Lemma_4_2_chi_zero_strengthened := by
   intro p hχ κ κtilde M c hκ hκ1 hgap hrange hκtilde_twoκ hM hc D hD u hu
-  exact Lemma_4_2_chi_zero_subsolutions_of_kappaTilde_le_two_kappa
+  exact Lemma_4_2_chi_zero_strengthened_direct
     p hχ hκ hκ1 hgap hrange hκtilde_twoκ hM hc hD hu
 
 /-- A proved χ=0 version of Lemma 4.2 with the missing large-`D`
@@ -6281,11 +6297,26 @@ def Lemma_4_2_chi_zero_D_ge_one_strengthened : Prop :=
                 ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
                   IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ
 
+theorem Lemma_4_2_chi_zero_D_ge_one_strengthened_direct
+    (p : CMParams) (hχ : p.χ = 0) {κ κtilde M c D : ℝ}
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
+    (hrange :
+      κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (hM : 1 ≤ M) (hc : c = κ + κ⁻¹) (hD_ge_one : 1 ≤ D)
+    (hD : subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D)
+    {u : ℝ → ℝ} (hu : InWaveTrapSet κ M u) :
+    IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+        (Set.Ioi (lowerBarrierXMinus κ κtilde D)) ∧
+      ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+        IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ :=
+  Lemma_4_2_chi_zero_subsolutions_of_D_ge_one
+    p hχ hκ hκ1 hgap hrange hD_ge_one hM hc hD hu
+
 theorem Lemma_4_2_chi_zero_D_ge_one_strengthened_proved :
     Lemma_4_2_chi_zero_D_ge_one_strengthened := by
   intro p hχ κ κtilde M c hκ hκ1 hgap hrange hM hc D hD_ge_one hD u hu
-  exact Lemma_4_2_chi_zero_subsolutions_of_D_ge_one
-    p hχ hκ hκ1 hgap hrange hD_ge_one hM hc hD hu
+  exact Lemma_4_2_chi_zero_D_ge_one_strengthened_direct
+    p hχ hκ hκ1 hgap hrange hM hc hD_ge_one hD hu
 
 /-- A proved χ=0, α=1 version of Lemma 4.2. In this slice the paper range
 condition implies `κtilde ≤ 2κ`, so no separate geometric hypothesis is needed. -/
@@ -6304,10 +6335,25 @@ def Lemma_4_2_chi_zero_alpha_one_strengthened : Prop :=
                 ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
                   IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ
 
+theorem Lemma_4_2_chi_zero_alpha_one_strengthened_direct
+    (p : CMParams) (hχ : p.χ = 0) (hα : p.α = 1) {κ κtilde M c D : ℝ}
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
+    (hrange :
+      κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (hM : 1 ≤ M) (hc : c = κ + κ⁻¹)
+    (hD : subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D)
+    {u : ℝ → ℝ} (hu : InWaveTrapSet κ M u) :
+    IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+        (Set.Ioi (lowerBarrierXMinus κ κtilde D)) ∧
+      ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+        IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ :=
+  Lemma_4_2_chi_zero_alpha_one_subsolutions
+    p hχ hα hκ hκ1 hgap hrange hM hc hD hu
+
 theorem Lemma_4_2_chi_zero_alpha_one_strengthened_proved :
     Lemma_4_2_chi_zero_alpha_one_strengthened := by
   intro p hχ hα κ κtilde M c hκ hκ1 hgap hrange hM hc D hD u hu
-  exact Lemma_4_2_chi_zero_alpha_one_subsolutions
+  exact Lemma_4_2_chi_zero_alpha_one_strengthened_direct
     p hχ hα hκ hκ1 hgap hrange hM hc hD hu
 
 theorem not_Lemma_4_2_chi_zero_hypotheses_force_kappaTilde_le_two_kappa :
