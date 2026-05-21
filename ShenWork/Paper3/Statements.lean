@@ -1224,29 +1224,6 @@ def Proposition_1_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
         InitialTrace D u₀ u ∧
         IsPaper2Bounded D u
 
-lemma Proposition_1_2.global_solution
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_1_2 D p)
-    (hχ : p.χ₀ ≤ 0) (hm : 1 ≤ p.m)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
-    ∃ u v : ℝ → D.Point → ℝ,
-      IsPaper2GlobalClassicalSolution D p u v ∧
-      InitialTrace D u₀ u ∧
-      IsPaper2Bounded D u :=
-  h hχ hm u₀ hu₀
-
-lemma Proposition_1_2.positive_global_solution
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_1_2 D p)
-    (hχ : p.χ₀ ≤ 0) (hm : 1 ≤ p.m)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
-    ∃ u v : ℝ → D.Point → ℝ,
-      PositiveGlobalBoundedSolution D p u v ∧
-      InitialTrace D u₀ u := by
-  rcases h.global_solution hχ hm hu₀ with ⟨u, v, hglobal, htrace, hbdd⟩
-  exact ⟨u, v,
-    PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
-
 lemma Proposition_1_2_of_negativeSensitivityGlobalEventualBound
     (D : BoundedDomainData) (p : CM2Params)
     (h :
@@ -1269,33 +1246,6 @@ def NegativeSensitivityGlobalEventualBound
         IsPaper2GlobalClassicalSolution D p u v ∧
         InitialTrace D u₀ u ∧
         ∃ M : ℝ, ∀ᶠ t in atTop, D.supNorm (u t) ≤ M
-
-lemma Proposition_1_2.nonminimal_global_bounded_before_solution_of_paper2_theorem_1_1
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Paper2.Theorem_1_1 D p)
-    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b) (hm : 1 ≤ p.m)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
-    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
-      IsPaper2GlobalClassicalSolution D p u v ∧
-      InitialTrace D u₀ u ∧
-      IsPaper2BoundedBefore D Tmax u := by
-  rcases (h hχ).1 ha hb u₀ hu₀ with
-    ⟨Tmax, hTmax, u, v, _hsol, htrace, hbound, hglobal⟩
-  exact ⟨Tmax, hTmax, u, v, hglobal hm, htrace,
-    ⟨max (D.supNorm u₀) ((p.a / p.b) ^ (1 / p.α)), hbound⟩⟩
-
-lemma Proposition_1_2.minimal_global_bounded_before_solution_of_paper2_theorem_1_1
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Paper2.Theorem_1_1 D p)
-    (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (hb : p.b = 0) (hm : 1 ≤ p.m)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
-    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
-      IsPaper2GlobalClassicalSolution D p u v ∧
-      InitialTrace D u₀ u ∧
-      IsPaper2BoundedBefore D Tmax u := by
-  rcases (h hχ).2 ha hb u₀ hu₀ with
-    ⟨Tmax, hTmax, u, v, _hsol, htrace, hbound, hglobal⟩
-  exact ⟨Tmax, hTmax, u, v, hglobal hm, htrace, ⟨D.supNorm u₀, hbound⟩⟩
 
 /-- A one-point abstract domain used to show that Paper2 Theorem 1.1's
 finite-`Tmax` bound is not enough, under the current abstract API, to imply the
@@ -1451,32 +1401,6 @@ def Proposition_1_3
         IsPaper2GlobalClassicalSolution D p u v ∧
         InitialTrace D u₀ u ∧
         IsPaper2Bounded D u
-
-lemma Proposition_1_3.global_solution
-    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
-    (h : Proposition_1_3 D p C)
-    (ha : 0 < p.a) (hb : 0 < p.b) (hm : 1 ≤ p.m)
-    (hcond : StrongLogisticCondition p C)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
-    ∃ u v : ℝ → D.Point → ℝ,
-      IsPaper2GlobalClassicalSolution D p u v ∧
-      InitialTrace D u₀ u ∧
-      IsPaper2Bounded D u :=
-  h ha hb hm hcond u₀ hu₀
-
-lemma Proposition_1_3.positive_global_solution
-    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
-    (h : Proposition_1_3 D p C)
-    (ha : 0 < p.a) (hb : 0 < p.b) (hm : 1 ≤ p.m)
-    (hcond : StrongLogisticCondition p C)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
-    ∃ u v : ℝ → D.Point → ℝ,
-      PositiveGlobalBoundedSolution D p u v ∧
-      InitialTrace D u₀ u := by
-  rcases h.global_solution ha hb hm hcond hu₀ with
-    ⟨u, v, hglobal, htrace, hbdd⟩
-  exact ⟨u, v,
-    PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
 
 lemma Proposition_1_3.of_paper2_theorem_1_3
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -1642,18 +1566,6 @@ lemma Proposition_1_3.global_solution_of_remark16_min_chiStar12
         hβ hm hα hdim hχ)).2
     (by rw [hm]) u₀ hu₀
 
-lemma Proposition_1_3.positive_global_solution_of_paper2_theorem_1_3
-    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
-    (h : Paper2.Theorem_1_3 D p C)
-    (ha : 0 < p.a) (hb : 0 < p.b) (hm : 1 ≤ p.m)
-    (hcond : StrongLogisticCondition p C)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
-    ∃ u v : ℝ → D.Point → ℝ,
-      PositiveGlobalBoundedSolution D p u v ∧
-      InitialTrace D u₀ u :=
-  (Proposition_1_3.of_paper2_theorem_1_3 h).positive_global_solution
-    ha hb hm hcond hu₀
-
 lemma Proposition_1_3.positive_global_solution_of_alpha_gt_m_add_gamma_sub_one
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
     (h : Paper2.Theorem_1_3 D p C)
@@ -1664,8 +1576,13 @@ lemma Proposition_1_3.positive_global_solution_of_alpha_gt_m_add_gamma_sub_one
     ∃ u v : ℝ → D.Point → ℝ,
       PositiveGlobalBoundedSolution D p u v ∧
       InitialTrace D u₀ u :=
-  Proposition_1_3.positive_global_solution_of_paper2_theorem_1_3 h ha hb hm
-    (StrongLogisticCondition.of_alpha_gt_m_add_gamma_sub_one hβ hα) hu₀
+  by
+    rcases (h ha hb p.hm
+        (StrongLogisticCondition.of_alpha_gt_m_add_gamma_sub_one hβ hα)).2
+      hm u₀ hu₀ with
+      ⟨u, v, hglobal, htrace, hbdd⟩
+    exact ⟨u, v,
+      PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
 
 lemma Proposition_1_3.positive_global_solution_of_alpha_gt_two_mul_m_add_gamma_sub_two
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -1677,9 +1594,13 @@ lemma Proposition_1_3.positive_global_solution_of_alpha_gt_two_mul_m_add_gamma_s
     ∃ u v : ℝ → D.Point → ℝ,
       PositiveGlobalBoundedSolution D p u v ∧
       InitialTrace D u₀ u :=
-  Proposition_1_3.positive_global_solution_of_paper2_theorem_1_3 h ha hb hm
-    (StrongLogisticCondition.of_alpha_gt_two_mul_m_add_gamma_sub_two hβ hα)
-    hu₀
+  by
+    rcases (h ha hb p.hm
+        (StrongLogisticCondition.of_alpha_gt_two_mul_m_add_gamma_sub_two hβ hα)).2
+      hm u₀ hu₀ with
+      ⟨u, v, hglobal, htrace, hbdd⟩
+    exact ⟨u, v,
+      PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
 
 lemma Proposition_1_3.positive_global_solution_of_critical_m_add_gamma_sub_one_low_dimension
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -1692,10 +1613,14 @@ lemma Proposition_1_3.positive_global_solution_of_critical_m_add_gamma_sub_one_l
     ∃ u v : ℝ → D.Point → ℝ,
       PositiveGlobalBoundedSolution D p u v ∧
       InitialTrace D u₀ u :=
-  Proposition_1_3.positive_global_solution_of_paper2_theorem_1_3 h ha hb hm
-    (StrongLogisticCondition.of_critical_m_add_gamma_sub_one_low_dimension
-      hβ hα hdim)
-    hu₀
+  by
+    rcases (h ha hb p.hm
+        (StrongLogisticCondition.of_critical_m_add_gamma_sub_one_low_dimension
+          hβ hα hdim)).2
+      hm u₀ hu₀ with
+      ⟨u, v, hglobal, htrace, hbdd⟩
+    exact ⟨u, v,
+      PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
 
 lemma Proposition_1_3.positive_global_solution_of_critical_two_mul_m_add_gamma_sub_two_low_dimension
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -1709,10 +1634,14 @@ lemma Proposition_1_3.positive_global_solution_of_critical_two_mul_m_add_gamma_s
     ∃ u v : ℝ → D.Point → ℝ,
       PositiveGlobalBoundedSolution D p u v ∧
       InitialTrace D u₀ u :=
-  Proposition_1_3.positive_global_solution_of_paper2_theorem_1_3 h ha hb hm
-    (StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two_low_dimension
-      hβ hα hdim)
-    hu₀
+  by
+    rcases (h ha hb p.hm
+        (StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two_low_dimension
+          hβ hα hdim)).2
+      hm u₀ hu₀ with
+      ⟨u, v, hglobal, htrace, hbdd⟩
+    exact ⟨u, v,
+      PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
 
 lemma Proposition_1_3.positive_global_solution_of_critical_m_add_gamma_sub_one
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -1730,8 +1659,13 @@ lemma Proposition_1_3.positive_global_solution_of_critical_m_add_gamma_sub_one
     ∃ u v : ℝ → D.Point → ℝ,
       PositiveGlobalBoundedSolution D p u v ∧
       InitialTrace D u₀ u :=
-  Proposition_1_3.positive_global_solution_of_paper2_theorem_1_3 h ha hb hm
-    (StrongLogisticCondition.of_critical_m_add_gamma_sub_one hβ hα hχ) hu₀
+  by
+    rcases (h ha hb p.hm
+        (StrongLogisticCondition.of_critical_m_add_gamma_sub_one hβ hα hχ)).2
+      hm u₀ hu₀ with
+      ⟨u, v, hglobal, htrace, hbdd⟩
+    exact ⟨u, v,
+      PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
 
 lemma Proposition_1_3.positive_global_solution_of_critical_two_mul_m_add_gamma_sub_two
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -1751,9 +1685,14 @@ lemma Proposition_1_3.positive_global_solution_of_critical_two_mul_m_add_gamma_s
     ∃ u v : ℝ → D.Point → ℝ,
       PositiveGlobalBoundedSolution D p u v ∧
       InitialTrace D u₀ u :=
-  Proposition_1_3.positive_global_solution_of_paper2_theorem_1_3 h ha hb hm
-    (StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two hβ hα hχ)
-    hu₀
+  by
+    rcases (h ha hb p.hm
+        (StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two
+          hβ hα hχ)).2
+      hm u₀ hu₀ with
+      ⟨u, v, hglobal, htrace, hbdd⟩
+    exact ⟨u, v,
+      PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
 
 lemma Proposition_1_3.positive_global_solution_of_remark16_min_chiStar12
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -1768,9 +1707,12 @@ lemma Proposition_1_3.positive_global_solution_of_remark16_min_chiStar12
       InitialTrace D u₀ u := by
   have hm_ge : 1 ≤ p.m := by
     rw [hm]
-  exact Proposition_1_3.positive_global_solution_of_paper2_theorem_1_3 h ha hb hm_ge
-    (StrongLogisticCondition.of_remark16_min_chiStar12 hβ hm hα hdim hχ)
-    hu₀
+  rcases (h ha hb p.hm
+      (StrongLogisticCondition.of_remark16_min_chiStar12 hβ hm hα hdim hχ)).2
+    hm_ge u₀ hu₀ with
+    ⟨u, v, hglobal, htrace, hbdd⟩
+  exact ⟨u, v,
+    PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
 
 def proposition13NoRegularityParams : CM2Params :=
   { N := 1
@@ -1834,84 +1776,6 @@ def Proposition_1_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
             IsPaper2GlobalClassicalSolution D p u v ∧
             InitialTrace D u₀ u ∧
             IsPaper2Bounded D u
-
-lemma Proposition_1_4.global_solution
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_1_4 D p)
-    (hm : p.m = 1) (hβ : 1 ≤ p.β)
-    (hab : (p.a = 0 ∧ p.b = 0) ∨ (0 ≤ p.a ∧ 0 < p.b))
-    (hχ : p.χ₀ < chiBeta p)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
-    ∃ u v : ℝ → D.Point → ℝ,
-      IsPaper2GlobalClassicalSolution D p u v ∧
-      InitialTrace D u₀ u ∧
-      IsPaper2Bounded D u :=
-  h hm hβ hab hχ u₀ hu₀
-
-lemma Proposition_1_4.positive_global_solution
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_1_4 D p)
-    (hm : p.m = 1) (hβ : 1 ≤ p.β)
-    (hab : (p.a = 0 ∧ p.b = 0) ∨ (0 ≤ p.a ∧ 0 < p.b))
-    (hχ : p.χ₀ < chiBeta p)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
-    ∃ u v : ℝ → D.Point → ℝ,
-      PositiveGlobalBoundedSolution D p u v ∧
-      InitialTrace D u₀ u := by
-  rcases h.global_solution hm hβ hab hχ hu₀ with
-    ⟨u, v, hglobal, htrace, hbdd⟩
-  exact ⟨u, v,
-    PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
-
-lemma Proposition_1_4.global_solution_minimal
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_1_4 D p)
-    (ha : p.a = 0) (hb : p.b = 0)
-    (hm : p.m = 1) (hβ : 1 ≤ p.β)
-    (hχ : p.χ₀ < chiBeta p)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
-    ∃ u v : ℝ → D.Point → ℝ,
-      IsPaper2GlobalClassicalSolution D p u v ∧
-      InitialTrace D u₀ u ∧
-      IsPaper2Bounded D u :=
-  h.global_solution hm hβ (Or.inl ⟨ha, hb⟩) hχ hu₀
-
-lemma Proposition_1_4.positive_global_solution_minimal
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_1_4 D p)
-    (ha : p.a = 0) (hb : p.b = 0)
-    (hm : p.m = 1) (hβ : 1 ≤ p.β)
-    (hχ : p.χ₀ < chiBeta p)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
-    ∃ u v : ℝ → D.Point → ℝ,
-      PositiveGlobalBoundedSolution D p u v ∧
-      InitialTrace D u₀ u :=
-  h.positive_global_solution hm hβ (Or.inl ⟨ha, hb⟩) hχ hu₀
-
-lemma Proposition_1_4.global_solution_nonminimal
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_1_4 D p)
-    (ha : 0 ≤ p.a) (hb : 0 < p.b)
-    (hm : p.m = 1) (hβ : 1 ≤ p.β)
-    (hχ : p.χ₀ < chiBeta p)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
-    ∃ u v : ℝ → D.Point → ℝ,
-      IsPaper2GlobalClassicalSolution D p u v ∧
-      InitialTrace D u₀ u ∧
-      IsPaper2Bounded D u :=
-  h.global_solution hm hβ (Or.inr ⟨ha, hb⟩) hχ hu₀
-
-lemma Proposition_1_4.positive_global_solution_nonminimal
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_1_4 D p)
-    (ha : 0 ≤ p.a) (hb : 0 < p.b)
-    (hm : p.m = 1) (hβ : 1 ≤ p.β)
-    (hχ : p.χ₀ < chiBeta p)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
-    ∃ u v : ℝ → D.Point → ℝ,
-      PositiveGlobalBoundedSolution D p u v ∧
-      InitialTrace D u₀ u :=
-  h.positive_global_solution hm hβ (Or.inr ⟨ha, hb⟩) hχ hu₀
 
 lemma Proposition_1_4.of_paper2_theorem_1_2
     {D : BoundedDomainData} {p : CM2Params}
