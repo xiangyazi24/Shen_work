@@ -430,6 +430,49 @@ lemma paperCriticalSensitivitySet_bddBelow
   exact (sigmaCriticalChiPaperFormula_pos p huStar hvStar
     (H.eigenvalue_pos_of_ne_zero n hn)).le
 
+lemma sigmaCriticalChiPaperFormula_mode_one_mem
+    (S : SpectralData) (p : CM2Params) (uStar vStar : ℝ) :
+    sigmaCriticalChiPaperFormula p uStar vStar (S.eigenvalue 1) ∈
+      paperCriticalSensitivitySet S p uStar vStar :=
+  ⟨1, by norm_num, rfl⟩
+
+lemma paperCriticalSensitivity_le_mode_one
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    {uStar vStar : ℝ} (huStar : 0 < uStar) (hvStar : 0 ≤ vStar) :
+    paperCriticalSensitivity S p uStar vStar ≤
+      sigmaCriticalChiPaperFormula p uStar vStar (S.eigenvalue 1) := by
+  unfold paperCriticalSensitivity
+  exact csInf_le (paperCriticalSensitivitySet_bddBelow S p H huStar hvStar)
+    (sigmaCriticalChiPaperFormula_mode_one_mem S p uStar vStar)
+
+lemma paperCriticalSensitivity_positiveEquilibrium_le_mode_one
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    (ha : 0 < p.a) (hb : 0 < p.b) :
+    paperCriticalSensitivity S p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 ≤
+      sigmaCriticalChiPaperFormula p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2
+        (S.eigenvalue 1) :=
+  paperCriticalSensitivity_le_mode_one S p H
+    (positiveEquilibrium_fst_pos p ⟨ha, hb⟩)
+    (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
+
+lemma paperCriticalSensitivity_minimalEquilibrium_le_mode_one
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    {uStar : ℝ} (huStar : 0 < uStar) :
+    paperCriticalSensitivity S p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 ≤
+      sigmaCriticalChiPaperFormula p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2
+        (S.eigenvalue 1) :=
+  paperCriticalSensitivity_le_mode_one S p H
+    (by simpa [minimalEquilibrium_fst_eq] using huStar)
+    (minimalEquilibrium_snd_pos p huStar).le
+
 lemma paperCriticalSensitivity_nonneg
     (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
     {uStar vStar : ℝ} (huStar : 0 < uStar) (hvStar : 0 ≤ vStar) :
