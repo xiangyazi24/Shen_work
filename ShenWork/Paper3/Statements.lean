@@ -9889,6 +9889,185 @@ lemma Lemma_A_8.chiMinimal2_le
     C.chiMinimal2 uStar ≤ C.chiCritical uStar :=
   (h ha hb hm hβ uStar huStar).2 hγ
 
+/-- Convert raw A.7 threshold comparisons into the package-shaped Lemma A.7
+target.  This keeps the comparison proof outside the `Paper3Constants` fields. -/
+lemma Lemma_A_7_of_raw_threshold_comparisons
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hraw :
+      LemmaA7ThresholdComparisonsRaw p C.chiCritical
+        C.chiStrong1 C.chiStrong2 C.chiStrong3 C.chiStrong4) :
+    Lemma_A_7 D p C :=
+  hraw
+
+/-- Prove package-shaped Lemma A.7 from explicit strong-threshold formulas and
+one max-threshold domination hypothesis, rather than from the comparison
+fields of `Paper3Constants`. -/
+lemma Lemma_A_7_of_max_strong_formula_le_chiCritical
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (M0 : ℝ)
+    (hstrong1 :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        C.chiStrong1 eq.1 = chiStrong1Formula p eq.1 eq.2)
+    (hstrong2 :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        C.chiStrong2 eq.1 = chiStrong2Formula p eq.1)
+    (hstrong3 :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        C.chiStrong3 eq.1 = chiStrong3Formula p M0 eq.1 eq.2)
+    (hstrong4 :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        C.chiStrong4 eq.1 = chiStrong4Formula p M0 eq.1)
+    (hcritical :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        max
+            (max (chiStrong1Formula p eq.1 eq.2)
+              (chiStrong2Formula p eq.1))
+            (max (chiStrong3Formula p M0 eq.1 eq.2)
+              (chiStrong4Formula p M0 eq.1)) ≤
+          C.chiCritical eq.1) :
+    Lemma_A_7 D p C := by
+  have hraw :=
+    LemmaA7ThresholdComparisonsRaw_of_max_le_critical
+      p M0 C.chiCritical hcritical
+  intro hβ hm ha hb
+  specialize hraw hβ hm ha hb
+  dsimp at hraw
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro hαγ
+    rw [hstrong1 ha hb]
+    simpa [positiveEquilibrium] using hraw.1 hαγ
+  · intro hβ1 hαγ
+    rw [hstrong2 ha hb]
+    simpa [positiveEquilibrium] using hraw.2.1 hβ1 hαγ
+  · intro hγ hαγ
+    rw [hstrong3 ha hb]
+    simpa [positiveEquilibrium] using hraw.2.2.1 hγ hαγ
+  · intro hβ1 hγ hαγ
+    rw [hstrong4 ha hb]
+    simpa [positiveEquilibrium] using hraw.2.2.2 hβ1 hγ hαγ
+
+/-- Prove package-shaped Lemma A.7 from explicit strong-threshold formulas and
+the first-nonzero-eigenvalue lower bound for the paper critical sensitivity. -/
+lemma Lemma_A_7_of_firstNonzero_lower_and_formula_fields
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (S : SpectralData) (M0 : ℝ)
+    (H : HasNeumannSpectrum S)
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (hstrong1 :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        C.chiStrong1 eq.1 = chiStrong1Formula p eq.1 eq.2)
+    (hstrong2 :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        C.chiStrong2 eq.1 = chiStrong2Formula p eq.1)
+    (hstrong3 :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        C.chiStrong3 eq.1 = chiStrong3Formula p M0 eq.1 eq.2)
+    (hstrong4 :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        C.chiStrong4 eq.1 = chiStrong4Formula p M0 eq.1)
+    (hfirst :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        max
+            (max (chiStrong1Formula p eq.1 eq.2)
+              (chiStrong2Formula p eq.1))
+            (max (chiStrong3Formula p M0 eq.1 eq.2)
+              (chiStrong4Formula p M0 eq.1)) ≤
+          ((1 + eq.2) ^ p.β /
+              (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+            (p.μ + S.firstNonzero)) :
+    Lemma_A_7 D p C :=
+  Lemma_A_7_of_max_strong_formula_le_chiCritical
+    (D := D) (p := p) (C := C) M0
+    hstrong1 hstrong2 hstrong3 hstrong4
+    (by
+      intro ha hb
+      dsimp
+      rw [hC.chiCritical_positiveEquilibrium ha hb]
+      exact le_trans (hfirst ha hb) (by
+        simpa [positiveEquilibrium] using
+          paperCriticalSensitivity_positiveEquilibrium_ge_firstNonzero_lower
+            S p H ha hb))
+
+/-- Convert raw A.8 threshold comparisons into the package-shaped Lemma A.8
+target.  This keeps the comparison proof outside the `Paper3Constants` fields. -/
+lemma Lemma_A_8_of_raw_threshold_comparisons
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hraw :
+      LemmaA8ThresholdComparisonsRaw p C.chiCritical
+        C.chiMinimal1 C.chiMinimal2) :
+    Lemma_A_8 D p C :=
+  hraw
+
+/-- Prove package-shaped Lemma A.8 from explicit minimal-threshold formulas
+and a `chiBeta ≤ chiCritical` domination hypothesis. -/
+lemma Lemma_A_8_of_chiBeta_le_chiCritical_and_formula_fields
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (uBar vLower : ℝ)
+    (hminimal1 :
+      ∀ uStar > 0,
+        C.chiMinimal1 uStar =
+          chiMinimal1Formula p 1 uStar uBar vLower)
+    (hminimal2 :
+      ∀ uStar > 0,
+        C.chiMinimal2 uStar = chiMinimal2Formula p uBar vLower)
+    (hcritical : ∀ uStar > 0, chiBeta p ≤ C.chiCritical uStar) :
+    Lemma_A_8 D p C := by
+  have hraw :=
+    LemmaA8ThresholdComparisonsRaw_of_chiBeta_le_critical
+      p uBar vLower C.chiCritical hcritical
+  intro ha hb hm hβ uStar huStar
+  specialize hraw ha hb hm hβ uStar huStar
+  refine ⟨?_, ?_⟩
+  · intro hγ
+    rw [hminimal1 uStar huStar]
+    exact hraw.1 hγ
+  · intro hγ
+    rw [hminimal2 uStar huStar]
+    exact hraw.2 hγ
+
+/-- Prove package-shaped Lemma A.8 from explicit minimal-threshold formulas
+and the first-nonzero-eigenvalue lower bound for the paper critical
+sensitivity. -/
+lemma Lemma_A_8_of_firstNonzero_lower_and_formula_fields
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (S : SpectralData) (uBar vLower : ℝ)
+    (H : HasNeumannSpectrum S)
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (hminimal1 :
+      ∀ uStar > 0,
+        C.chiMinimal1 uStar =
+          chiMinimal1Formula p 1 uStar uBar vLower)
+    (hminimal2 :
+      ∀ uStar > 0,
+        C.chiMinimal2 uStar = chiMinimal2Formula p uBar vLower)
+    (hfirst :
+      ∀ uStar > 0,
+        chiBeta p ≤
+          ((1 + (minimalEquilibrium p uStar).2) ^ p.β /
+              (p.ν * p.γ *
+                (minimalEquilibrium p uStar).1 ^ (p.m + p.γ - 1))) *
+            (p.μ + S.firstNonzero)) :
+    Lemma_A_8 D p C :=
+  Lemma_A_8_of_chiBeta_le_chiCritical_and_formula_fields
+    (D := D) (p := p) (C := C) uBar vLower hminimal1 hminimal2
+    (by
+      intro uStar huStar
+      rw [hC uStar huStar]
+      exact le_trans (hfirst uStar huStar) (by
+        simpa [minimalEquilibrium] using
+          paperCriticalSensitivity_minimalEquilibrium_ge_firstNonzero_lower
+            S p H huStar))
+
 lemma Lemma_A_7.nonminimal_condition_chi_lt_critical
     {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
     (h : Lemma_A_7 D p C)
