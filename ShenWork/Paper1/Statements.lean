@@ -12344,338 +12344,6 @@ theorem Theorem_1_2_frozen_profile_self_initial_data_admissible_branch_of_strict
   exact Theorem_1_2_frozen_profile_self_initial_data_admissible_branch
     hprofile (hbound.isCUnifBdd_of_continuous hU_cont) hU_diff hV_diff
 
-theorem Theorem_1_2.stability_conclusion_of_remark43_tail
-    (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
-    ∃ cStarStar : ℝ → ℝ,
-      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
-      stabilitySpeedBaseline p < cStarStar p.χ ∧
-      ∀ c : ℝ, cStarStar p.χ < c →
-      ∀ U V : ℝ → ℝ,
-        IsTravelingWave p c U V →
-        HasStrictWaveUpperTailBound p c U →
-        HasRemark43TailAsymptotic p c U →
-        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
-          ∀ u₀ : ℝ → ℝ,
-            NonnegativeInitialDatum u₀ →
-            StrictlyPositiveAtLeft u₀ →
-            WeightedL2InitialCloseness η u₀ U →
-            ∃ u v : ℝ → ℝ → ℝ,
-              IsGlobalCauchySolutionFrom p u₀ u v ∧
-              WeightedL2MovingFrameConvergence η c u U ∧
-              UniformMovingFrameConvergence c u U := by
-  rcases h p hp with ⟨cStarStar, hasymp, hlower, hstable⟩
-  refine ⟨cStarStar, hasymp, hlower, ?_⟩
-  intro c hc U V hTW hbound htail η hketa heta u₀ hu₀ hleft hclose
-  have hkappa_pos : 0 < kappa c :=
-    kappa_pos_of_stabilitySpeedBaseline_lt hlower hc
-  have hkappa_lt_one : kappa c < 1 :=
-    kappa_lt_one_of_stabilitySpeedBaseline_lt hlower hc
-  exact hstable c hc U V hTW hbound
-    (htail.exists_waveRightTailAsymptotic hkappa_pos hkappa_lt_one)
-    η hketa heta u₀ hu₀ hleft hclose
-
-theorem Theorem_1_2.stability_from_wave_initial_conclusion
-    (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
-    ∃ cStarStar : ℝ → ℝ,
-      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
-      stabilitySpeedBaseline p < cStarStar p.χ ∧
-      ∀ c : ℝ, cStarStar p.χ < c →
-      ∀ U V : ℝ → ℝ,
-        IsTravelingWave p c U V →
-        IsCUnifBdd U →
-        HasStrictWaveUpperTailBound p c U →
-        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
-        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
-          ∃ u v : ℝ → ℝ → ℝ,
-            IsGlobalCauchySolutionFrom p U u v ∧
-            WeightedL2MovingFrameConvergence η c u U ∧
-            UniformMovingFrameConvergence c u U := by
-  rcases h p hp with ⟨cStarStar, hasymp, hlower, hstable⟩
-  refine ⟨cStarStar, hasymp, hlower, ?_⟩
-  intro c hc U V hTW hU hbound htail η hketa heta
-  exact hstable c hc U V hTW hbound htail η hketa heta U
-    (IsTravelingWave.nonnegativeInitialDatum hTW hU)
-    (IsTravelingWave.strictlyPositiveAtLeft hTW)
-    (WeightedL2InitialCloseness.refl η U)
-
-theorem Theorem_1_2.stability_from_wave_initial_conclusion_of_strict_tail_continuous
-    (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
-    ∃ cStarStar : ℝ → ℝ,
-      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
-      stabilitySpeedBaseline p < cStarStar p.χ ∧
-      ∀ c : ℝ, cStarStar p.χ < c →
-      ∀ U V : ℝ → ℝ,
-        IsTravelingWave p c U V →
-        Continuous U →
-        HasStrictWaveUpperTailBound p c U →
-        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
-        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
-          ∃ u v : ℝ → ℝ → ℝ,
-            IsGlobalCauchySolutionFrom p U u v ∧
-            WeightedL2MovingFrameConvergence η c u U ∧
-            UniformMovingFrameConvergence c u U := by
-  rcases h.stability_from_wave_initial_conclusion hp with
-    ⟨cStarStar, hasymp, hlower, hstable⟩
-  refine ⟨cStarStar, hasymp, hlower, ?_⟩
-  intro c hc U V hTW hU_cont hbound htail η hketa heta
-  exact hstable c hc U V hTW
-    (hbound.isCUnifBdd_of_continuous hU_cont)
-    hbound htail η hketa heta
-
-theorem Theorem_1_2.stability_from_wave_initial_conclusion_of_remark43_tail
-    (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
-    ∃ cStarStar : ℝ → ℝ,
-      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
-      stabilitySpeedBaseline p < cStarStar p.χ ∧
-      ∀ c : ℝ, cStarStar p.χ < c →
-      ∀ U V : ℝ → ℝ,
-        IsTravelingWave p c U V →
-        IsCUnifBdd U →
-        HasStrictWaveUpperTailBound p c U →
-        HasRemark43TailAsymptotic p c U →
-        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
-          ∃ u v : ℝ → ℝ → ℝ,
-            IsGlobalCauchySolutionFrom p U u v ∧
-            WeightedL2MovingFrameConvergence η c u U ∧
-            UniformMovingFrameConvergence c u U := by
-  rcases h.stability_conclusion_of_remark43_tail hp with
-    ⟨cStarStar, hasymp, hlower, hstable⟩
-  refine ⟨cStarStar, hasymp, hlower, ?_⟩
-  intro c hc U V hTW hU hbound htail η hketa heta
-  exact hstable c hc U V hTW hbound htail η hketa heta U
-    (IsTravelingWave.nonnegativeInitialDatum hTW hU)
-    (IsTravelingWave.strictlyPositiveAtLeft hTW)
-    (WeightedL2InitialCloseness.refl η U)
-
-theorem Theorem_1_2.stability_from_wave_initial_conclusion_of_remark43_tail_continuous
-    (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
-    ∃ cStarStar : ℝ → ℝ,
-      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
-      stabilitySpeedBaseline p < cStarStar p.χ ∧
-      ∀ c : ℝ, cStarStar p.χ < c →
-      ∀ U V : ℝ → ℝ,
-        IsTravelingWave p c U V →
-        Continuous U →
-        HasStrictWaveUpperTailBound p c U →
-        HasRemark43TailAsymptotic p c U →
-        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
-          ∃ u v : ℝ → ℝ → ℝ,
-            IsGlobalCauchySolutionFrom p U u v ∧
-            WeightedL2MovingFrameConvergence η c u U ∧
-            UniformMovingFrameConvergence c u U := by
-  rcases h.stability_from_wave_initial_conclusion_of_remark43_tail hp with
-    ⟨cStarStar, hasymp, hlower, hstable⟩
-  refine ⟨cStarStar, hasymp, hlower, ?_⟩
-  intro c hc U V hTW hU_cont hbound htail η hketa heta
-  exact hstable c hc U V hTW
-    (hbound.isCUnifBdd_of_continuous hU_cont)
-    hbound htail η hketa heta
-
-theorem Theorem_1_2.stability_from_second_wave_initial_conclusion
-    (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
-    ∃ cStarStar : ℝ → ℝ,
-      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
-      stabilitySpeedBaseline p < cStarStar p.χ ∧
-      ∀ c : ℝ, cStarStar p.χ < c →
-      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
-        IsTravelingWave p c U₁ V₁ →
-        IsTravelingWave p c U₂ V₂ →
-        IsCUnifBdd U₂ →
-        HasStrictWaveUpperTailBound p c U₁ →
-        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U₁) →
-        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
-          WeightedL2InitialCloseness η U₂ U₁ →
-          ∃ u v : ℝ → ℝ → ℝ,
-            IsGlobalCauchySolutionFrom p U₂ u v ∧
-            WeightedL2MovingFrameConvergence η c u U₁ ∧
-            UniformMovingFrameConvergence c u U₁ := by
-  rcases h p hp with ⟨cStarStar, hasymp, hlower, hstable⟩
-  refine ⟨cStarStar, hasymp, hlower, ?_⟩
-  intro c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hU₂ hbound₁ htail₁ η hketa heta hclose
-  exact hstable c hc U₁ V₁ hTW₁ hbound₁ htail₁ η hketa heta U₂
-    (IsTravelingWave.nonnegativeInitialDatum hTW₂ hU₂)
-    (IsTravelingWave.strictlyPositiveAtLeft hTW₂)
-    hclose
-
-theorem Theorem_1_2.stability_from_second_wave_initial_conclusion_of_second_strict_tail_continuous
-    (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
-    ∃ cStarStar : ℝ → ℝ,
-      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
-      stabilitySpeedBaseline p < cStarStar p.χ ∧
-      ∀ c : ℝ, cStarStar p.χ < c →
-      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
-        IsTravelingWave p c U₁ V₁ →
-        IsTravelingWave p c U₂ V₂ →
-        Continuous U₂ →
-        HasStrictWaveUpperTailBound p c U₁ →
-        HasStrictWaveUpperTailBound p c U₂ →
-        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U₁) →
-        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
-          WeightedL2InitialCloseness η U₂ U₁ →
-          ∃ u v : ℝ → ℝ → ℝ,
-            IsGlobalCauchySolutionFrom p U₂ u v ∧
-            WeightedL2MovingFrameConvergence η c u U₁ ∧
-            UniformMovingFrameConvergence c u U₁ := by
-  rcases h.stability_from_second_wave_initial_conclusion hp with
-    ⟨cStarStar, hasymp, hlower, hstable⟩
-  refine ⟨cStarStar, hasymp, hlower, ?_⟩
-  intro c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hU₂_cont hbound₁ hbound₂ htail₁
-    η hketa heta hclose
-  exact hstable c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂
-    (hbound₂.isCUnifBdd_of_continuous hU₂_cont)
-    hbound₁ htail₁ η hketa heta hclose
-
-theorem Theorem_1_2.stability_from_second_wave_initial_conclusion_of_remark43_tail
-    (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
-    ∃ cStarStar : ℝ → ℝ,
-      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
-      stabilitySpeedBaseline p < cStarStar p.χ ∧
-      ∀ c : ℝ, cStarStar p.χ < c →
-      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
-        IsTravelingWave p c U₁ V₁ →
-        IsTravelingWave p c U₂ V₂ →
-        IsCUnifBdd U₂ →
-        HasStrictWaveUpperTailBound p c U₁ →
-        HasRemark43TailAsymptotic p c U₁ →
-        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
-          WeightedL2InitialCloseness η U₂ U₁ →
-          ∃ u v : ℝ → ℝ → ℝ,
-            IsGlobalCauchySolutionFrom p U₂ u v ∧
-            WeightedL2MovingFrameConvergence η c u U₁ ∧
-            UniformMovingFrameConvergence c u U₁ := by
-  rcases h.stability_conclusion_of_remark43_tail hp with
-    ⟨cStarStar, hasymp, hlower, hstable⟩
-  refine ⟨cStarStar, hasymp, hlower, ?_⟩
-  intro c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hU₂ hbound₁ htail₁ η hketa heta hclose
-  exact hstable c hc U₁ V₁ hTW₁ hbound₁ htail₁ η hketa heta U₂
-    (IsTravelingWave.nonnegativeInitialDatum hTW₂ hU₂)
-    (IsTravelingWave.strictlyPositiveAtLeft hTW₂)
-    hclose
-
-theorem Theorem_1_2.stability_from_second_wave_initial_conclusion_of_remark43_tail_continuous
-    (h : Theorem_1_2) {p : CMParams} (hp : StableWaveParameterRegime p) :
-    ∃ cStarStar : ℝ → ℝ,
-      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
-      stabilitySpeedBaseline p < cStarStar p.χ ∧
-      ∀ c : ℝ, cStarStar p.χ < c →
-      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
-        IsTravelingWave p c U₁ V₁ →
-        IsTravelingWave p c U₂ V₂ →
-        Continuous U₂ →
-        HasStrictWaveUpperTailBound p c U₁ →
-        HasStrictWaveUpperTailBound p c U₂ →
-        HasRemark43TailAsymptotic p c U₁ →
-        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
-          WeightedL2InitialCloseness η U₂ U₁ →
-          ∃ u v : ℝ → ℝ → ℝ,
-            IsGlobalCauchySolutionFrom p U₂ u v ∧
-            WeightedL2MovingFrameConvergence η c u U₁ ∧
-            UniformMovingFrameConvergence c u U₁ := by
-  rcases h.stability_from_second_wave_initial_conclusion_of_remark43_tail hp with
-    ⟨cStarStar, hasymp, hlower, hstable⟩
-  refine ⟨cStarStar, hasymp, hlower, ?_⟩
-  intro c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hU₂_cont hbound₁ hbound₂ htail₁
-    η hketa heta hclose
-  exact hstable c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂
-    (hbound₂.isCUnifBdd_of_continuous hU₂_cont)
-    hbound₁ htail₁ η hketa heta hclose
-
-theorem Theorem_1_2.positive_existing_wave_stability_conclusion
-    (hstability : Theorem_1_2) (hexistence : Theorem_1_1)
-    {p : CMParams}
-    (halpha : p.α = p.m + p.γ - 1)
-    (hχ_nonneg : 0 ≤ p.χ)
-    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p)) :
-    ∃ cStarStar : ℝ → ℝ,
-      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
-      stabilitySpeedBaseline p < cStarStar p.χ ∧
-      ∀ c : ℝ, cStarStar p.χ < c →
-        ∃ U V : ℝ → ℝ,
-          IsTravelingWave p c U V ∧
-          HasStrictWaveUpperTailBound p c U ∧
-          (∀ η : ℝ, kappa c < η →
-            η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
-            ∀ u₀ : ℝ → ℝ,
-              NonnegativeInitialDatum u₀ →
-              StrictlyPositiveAtLeft u₀ →
-              WeightedL2InitialCloseness η u₀ U →
-              ∃ u v : ℝ → ℝ → ℝ,
-                IsGlobalCauchySolutionFrom p u₀ u v ∧
-                WeightedL2MovingFrameConvergence η c u U ∧
-                UniformMovingFrameConvergence c u U) := by
-  have hp : StableWaveParameterRegime p :=
-    StableWaveParameterRegime.of_positive hχ_nonneg
-      (lt_of_lt_of_le hχ_small (min_le_right _ _)) halpha
-  rcases hstability p hp with
-    ⟨cStarStar, hasymp, hlower, hstable⟩
-  refine ⟨cStarStar, hasymp, hlower, ?_⟩
-  intro c hc
-  have hc2 : 2 < c :=
-    two_lt_of_stabilitySpeedBaseline_lt hlower hc
-  rcases hexistence.2 p halpha hχ_nonneg hχ_small c hc2 with
-    ⟨U, V, hTW, hupper, htail_all⟩
-  have hχ_lt_one : p.χ < 1 := by
-    have hχ_lt_half : p.χ < (1 / 2 : ℝ) :=
-      lt_of_lt_of_le hχ_small (min_le_left _ _)
-    linarith
-  have hbound : HasStrictWaveUpperTailBound p c U :=
-    ShenUpperBoundPositive.hasStrictWaveUpperTailBound hupper hχ_nonneg hχ_lt_one
-  have htail :
-      ∃ κ₁ : ℝ, kappa c < κ₁ ∧ κ₁ < 1 ∧
-        HasWaveRightTailAsymptotic c κ₁ U :=
-    exists_waveRightTailAsymptotic_of_forall_kappaOne_range
-      htail_all (kappa_pos_of_two_lt hc2) (kappa_lt_one_of_two_lt hc2)
-  exact ⟨U, V, hTW, hbound, hstable c hc U V hTW hbound htail⟩
-
-theorem Theorem_1_2.positive_existing_wave_stability_conclusion_with_ratio_limit
-    (hstability : Theorem_1_2) (hexistence : Theorem_1_1)
-    {p : CMParams}
-    (halpha : p.α = p.m + p.γ - 1)
-    (hχ_nonneg : 0 ≤ p.χ)
-    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p)) :
-    ∃ cStarStar : ℝ → ℝ,
-      StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
-      stabilitySpeedBaseline p < cStarStar p.χ ∧
-      ∀ c : ℝ, cStarStar p.χ < c →
-        ∃ U V : ℝ → ℝ,
-          IsTravelingWave p c U V ∧
-          HasStrictWaveUpperTailBound p c U ∧
-          Tendsto (fun x => U x / Real.exp (-(kappa c) * x)) atTop (𝓝 1) ∧
-          (∀ η : ℝ, kappa c < η →
-            η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
-            ∀ u₀ : ℝ → ℝ,
-              NonnegativeInitialDatum u₀ →
-              StrictlyPositiveAtLeft u₀ →
-              WeightedL2InitialCloseness η u₀ U →
-              ∃ u v : ℝ → ℝ → ℝ,
-                IsGlobalCauchySolutionFrom p u₀ u v ∧
-                WeightedL2MovingFrameConvergence η c u U ∧
-                UniformMovingFrameConvergence c u U) := by
-  have hp : StableWaveParameterRegime p :=
-    StableWaveParameterRegime.of_positive hχ_nonneg
-      (lt_of_lt_of_le hχ_small (min_le_right _ _)) halpha
-  rcases hstability p hp with
-    ⟨cStarStar, hasymp, hlower, hstable⟩
-  refine ⟨cStarStar, hasymp, hlower, ?_⟩
-  intro c hc
-  have hc2 : 2 < c :=
-    two_lt_of_stabilitySpeedBaseline_lt hlower hc
-  rcases hexistence.2 p halpha hχ_nonneg hχ_small c hc2 with
-    ⟨U, V, hTW, hupper, htail_all⟩
-  have hχ_lt_one : p.χ < 1 := by
-    have hχ_lt_half : p.χ < (1 / 2 : ℝ) :=
-      lt_of_lt_of_le hχ_small (min_le_left _ _)
-    linarith
-  have hbound : HasStrictWaveUpperTailBound p c U :=
-    ShenUpperBoundPositive.hasStrictWaveUpperTailBound hupper hχ_nonneg hχ_lt_one
-  rcases exists_waveRightTailAsymptotic_of_forall_kappaOne_range
-      htail_all (kappa_pos_of_two_lt hc2) (kappa_lt_one_of_two_lt hc2) with
-    ⟨κ₁, hκ₁_gt, hκ₁_lt, htail⟩
-  exact
-    ⟨U, V, hTW, hbound, htail.ratio_tendsto_one hκ₁_gt,
-      hstable c hc U V hTW hbound
-        ⟨κ₁, hκ₁_gt, hκ₁_lt, htail⟩⟩
-
 /-- Paper1 Theorem 1.3: uniqueness of traveling waves with the prescribed right tail. -/
 def Theorem_1_3 : Prop :=
   ∀ p : CMParams, StableWaveParameterRegime p →
@@ -12883,13 +12551,15 @@ theorem Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent
           V₁ = frozenElliptic p U₁ →
           V₂ = frozenElliptic p U₂ →
           (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
-  rcases hstability.stability_conclusion_of_remark43_tail hp with
+  rcases hstability p hp with
     ⟨cStarStar, hasymp, hlower, hstable⟩
   refine ⟨cStarStar, hasymp, hlower, ?_⟩
   intro c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hU₁_cont hU₂_cont
     hbound₁ hbound₂ htail₁ htail₂ eta heta hweight hcauchy_unique hV₁ hV₂
   have hkappa_pos : 0 < kappa c :=
     kappa_pos_of_stabilitySpeedBaseline_lt hlower hc
+  have hkappa_lt_one : kappa c < 1 :=
+    kappa_lt_one_of_stabilitySpeedBaseline_lt hlower hc
   have hweight_lower : kappa c < eta + kappa c := by
     linarith [heta.pos]
   have hstable_at :
@@ -12901,7 +12571,8 @@ theorem Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent
             IsGlobalCauchySolutionFrom p u₀ u v ∧
               WeightedL2MovingFrameConvergence (eta + kappa c) c u U₁ ∧
               UniformMovingFrameConvergence c u U₁ :=
-    hstable c hc U₁ V₁ hTW₁ hbound₁ htail₁
+    hstable c hc U₁ V₁ hTW₁ hbound₁
+      (htail₁.exists_waveRightTailAsymptotic hkappa_pos hkappa_lt_one)
       (eta + kappa c) hweight_lower hweight
   exact
     Theorem_1_3_profile_eq_of_remark43_stability_cauchy_unique_and_resolvent
@@ -12938,7 +12609,7 @@ theorem Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent_of_k
         V₁ = frozenElliptic p U₁ →
         V₂ = frozenElliptic p U₂ →
         (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
-  rcases hstability.stability_conclusion_of_remark43_tail hp with
+  rcases hstability p hp with
     ⟨cStarStar, hasymp, hlower, hstable⟩
   refine ⟨cStarStar, hasymp, hlower, ?_⟩
   intro c hc hkappa_cap U₁ V₁ U₂ V₂ hTW₁ hTW₂ hU₁_cont hU₂_cont
@@ -12962,7 +12633,8 @@ theorem Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent_of_k
             IsGlobalCauchySolutionFrom p u₀ u v ∧
               WeightedL2MovingFrameConvergence (eta + kappa c) c u U₁ ∧
               UniformMovingFrameConvergence c u U₁ :=
-    hstable c hc U₁ V₁ hTW₁ hbound₁ htail₁
+    hstable c hc U₁ V₁ hTW₁ hbound₁
+      (htail₁.exists_waveRightTailAsymptotic hkappa_pos hkappa_lt_one)
       (eta + kappa c) hweight_lower hweight
   exact
     Theorem_1_3_profile_eq_of_remark43_stability_cauchy_unique_and_resolvent
