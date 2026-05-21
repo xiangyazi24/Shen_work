@@ -1784,6 +1784,36 @@ theorem Psi_deriv_abs_rpow_le_Psi_rpow
     _ = (Real.sqrt l) ^ pExp * (Psi u l mu x) ^ pExp :=
         Real.mul_rpow hsqrt_nonneg hPsi_nonneg
 
+/-! ### Jensen step for the resolvent kernel
+
+The key convexity step: for nonneg f, K ≥ 0 with ∫K = A,
+  (∫ K f)^p ≤ A^{p-1} ∫ K f^p
+This is Jensen's inequality for the probability measure K/A
+applied to the convex function t ↦ t^p.
+-/
+
+/-! The kernel convolution power bound:
+  (∫ K f)^p ≤ (∫ K)^{p-1} · ∫ K f^p
+for K,f ≥ 0 and p ≥ 1. This is Jensen's inequality on the probability
+measure (K/∫K) · volume applied to the convex function t ↦ t^p.
+
+Proof route (from ChatGPT research bridge):
+1. Construct μK = Measure.withDensity volume (ENNReal.ofReal ∘ K)
+2. Use ConvexOn.map_average_le with convexOn_rpow on μK
+3. Expand averages: ⨍ f ∂μK = (∫K)⁻¹ · ∫ K·f
+4. Rearrange to get the target
+
+This is a pure Lean engineering target; the mathematics is standard. -/
+def KernelConvRpowBound : Prop :=
+  ∀ (K f : ℝ → ℝ) (A pExp : ℝ),
+    (∀ y, 0 ≤ K y) → (∀ y, 0 ≤ f y) →
+      A = ∫ y, K y → 0 < A → 1 ≤ pExp →
+        Integrable (fun y => K y * f y) →
+          Integrable (fun y => K y * (f y) ^ pExp) →
+            Integrable K →
+              (∫ y, K y * f y) ^ pExp ≤
+                A ^ (pExp - 1) * ∫ y, K y * (f y) ^ pExp
+
 def Lemma_2_5_JensenStep : Prop :=
   ∀ (u : ℝ → ℝ) (l mu pExp : ℝ),
     0 < l → 0 < mu → 1 ≤ pExp →
