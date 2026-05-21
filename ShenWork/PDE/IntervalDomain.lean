@@ -2340,6 +2340,37 @@ theorem intervalSemigroupOperator_one_interval
       intervalSemigroupOperator L t (fun _ => 1) x ≤ 1 :=
   intervalSemigroupOperator_const_nonneg_le ht zero_le_one x
 
+/-- Sharp `L∞` contraction with the restricted kernel mass. -/
+theorem intervalSemigroupOperator_contraction_kernel_mass
+    {L t : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ} {M : ℝ}
+    (hf_int : Integrable f (intervalMeasure L))
+    (hg_int : Integrable g (intervalMeasure L))
+    (hfg : ∀ y, |f y - g y| ≤ M) (x : ℝ) :
+    |intervalSemigroupOperator L t f x -
+      intervalSemigroupOperator L t g x| ≤
+      M * ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L := by
+  have hbound :=
+    intervalSemigroupOperator_abs_le_const_mul_kernel_mass
+      (L := L) (t := t) ht (f := fun y => f y - g y) hfg x
+  rwa [intervalSemigroupOperator_sub ht hf_int hg_int x] at hbound
+
+/-- Bounded-input version of the sharp kernel-mass contraction. -/
+theorem intervalSemigroupOperator_contraction_kernel_mass_bounded
+    {L t Mf Mg M : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hg_meas : AEStronglyMeasurable g (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf) (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hfg : ∀ y, |f y - g y| ≤ M) (x : ℝ) :
+    |intervalSemigroupOperator L t f x -
+      intervalSemigroupOperator L t g x| ≤
+      M * ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L :=
+  intervalSemigroupOperator_contraction_kernel_mass ht
+    (intervalMeasure_integrable_of_abs_bound hf_meas hf_bound)
+    (intervalMeasure_integrable_of_abs_bound hg_meas hg_bound)
+    hfg x
+
 /-- `L∞` contraction for the interval helper operator on `L¹` interval inputs. -/
 theorem intervalSemigroupOperator_contraction
     {L t : ℝ} (ht : 0 < t)
