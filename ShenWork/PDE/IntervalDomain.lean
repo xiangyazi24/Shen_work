@@ -1953,6 +1953,37 @@ theorem intervalSemigroupOperator_L1_Linfty_abs_bounded
   intervalSemigroupOperator_L1_Linfty_abs ht
     (intervalMeasure_integrable_of_abs_bound hf_meas hf_bound) x
 
+/-- Explicit interval-length `L¹ → L∞` smoothing bound for a bounded input. -/
+theorem intervalSemigroupOperator_L1_Linfty_abs_le_length
+    {L t M : ℝ} (hL : 0 ≤ L) (ht : 0 < t)
+    {f : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ M) (x : ℝ) :
+    |intervalSemigroupOperator L t f x| ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) * (M * L) := by
+  have hf_int : Integrable f (intervalMeasure L) :=
+    intervalMeasure_integrable_of_abs_bound hf_meas hf_bound
+  have hint_abs_le :
+      ∫ y, |f y| ∂ intervalMeasure L ≤
+        ∫ _ : ℝ, M ∂ intervalMeasure L := by
+    apply MeasureTheory.integral_mono_of_nonneg
+    · exact Filter.Eventually.of_forall fun y => abs_nonneg (f y)
+    · exact integrable_const M
+    · exact Filter.Eventually.of_forall hf_bound
+  have hcoef_nonneg : 0 ≤ 1 / Real.sqrt (4 * Real.pi * t) :=
+    div_nonneg zero_le_one (Real.sqrt_nonneg _)
+  have hsmooth :=
+    intervalSemigroupOperator_L1_Linfty_abs ht hf_int x
+  calc
+    |intervalSemigroupOperator L t f x|
+        ≤ (1 / Real.sqrt (4 * Real.pi * t)) *
+            ∫ y, |f y| ∂ intervalMeasure L := hsmooth
+    _ ≤ (1 / Real.sqrt (4 * Real.pi * t)) *
+          ∫ _ : ℝ, M ∂ intervalMeasure L :=
+        mul_le_mul_of_nonneg_left hint_abs_le hcoef_nonneg
+    _ = (1 / Real.sqrt (4 * Real.pi * t)) * (M * L) := by
+        rw [intervalMeasure_integral_const hL]
+
 /-- The interval helper kernel times an `L¹` interval input is integrable. -/
 theorem intervalSemigroupOperator_mul_integrable_of_integrable
     {L t : ℝ} (ht : 0 < t) (x : ℝ)
