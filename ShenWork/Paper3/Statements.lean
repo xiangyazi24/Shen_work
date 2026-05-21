@@ -10082,6 +10082,32 @@ lemma Theorem_2_4_full_stability_formula_branch_proved :
     hcond.linearlyStable_of_max_threshold_le_critical S p H ha hb hcritical
   exact ⟨hstable, hsectorial hstable⟩
 
+/-- Direct theorem-shaped version of the formula-level Theorem 2.4
+full-stability bridge.  This is the same statement as
+`Theorem_2_4_full_stability_formula_branch`, but not routed through a
+theorem-shaped `Prop` wrapper. -/
+theorem Theorem_2_4_full_stability_formula_branch_direct
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D) (H : HasNeumannSpectrum S)
+    (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    max
+        (max (chiStrong1Formula p eq.1 eq.2)
+          (chiStrong2Formula p eq.1))
+        (max (chiStrong3Formula p M0 eq.1 eq.2)
+          (chiStrong4Formula p M0 eq.1)) ≤
+      paperCriticalSensitivity S p eq.1 eq.2 →
+      NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+        (LinearlyStable S p eq.1 eq.2 →
+          MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2) →
+          LinearlyStable S p eq.1 eq.2 ∧
+          MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2 := by
+  dsimp
+  intro hcritical hcond hsectorial
+  have hstable :=
+    hcond.linearlyStable_of_max_threshold_le_critical S p H ha hb hcritical
+  exact ⟨hstable, hsectorial hstable⟩
+
 /-- General first-mode sufficient version of the formula-level Theorem 2.4
 full-stability bridge.  This avoids `Paper3Constants`; the remaining local
 exponential step is the explicit sectorial consequence supplied as an input. -/
@@ -10189,6 +10215,35 @@ lemma Theorem_2_5_full_stability_formula_branch_proved :
     Theorem_2_5_full_stability_formula_branch := by
   intro D S p N H _ha _hb _hm hβ uStar huStar uBar vLower
     hcritical hcond hsectorial
+  have hstable :=
+    hcond.linearlyStable_of_chiBeta_le_critical S p H hβ huStar hcritical
+  exact ⟨hstable, hsectorial hstable⟩
+
+/-- Direct theorem-shaped version of the formula-level Theorem 2.5
+full-stability bridge, avoiding the theorem-shaped `Prop` wrapper. -/
+theorem Theorem_2_5_full_stability_formula_branch_direct
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D) (H : HasNeumannSpectrum S)
+    (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
+    chiBeta p ≤
+      paperCriticalSensitivity S p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 →
+      MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+        (LinearlyStable S p
+            (minimalEquilibrium p uStar).1
+            (minimalEquilibrium p uStar).2 →
+          MassConstrainedLocallyExponentiallyStableFromSup D p N
+            (minimalEquilibrium p uStar).1
+            (minimalEquilibrium p uStar).2) →
+          LinearlyStable S p
+            (minimalEquilibrium p uStar).1
+            (minimalEquilibrium p uStar).2 ∧
+          MassConstrainedLocallyExponentiallyStableFromSup D p N
+            (minimalEquilibrium p uStar).1
+            (minimalEquilibrium p uStar).2 := by
+  intro hcritical hcond hsectorial
   have hstable :=
     hcond.linearlyStable_of_chiBeta_le_critical S p H hβ huStar hcritical
   exact ⟨hstable, hsectorial hstable⟩
