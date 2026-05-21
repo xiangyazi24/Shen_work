@@ -7891,7 +7891,7 @@ lemma Lemma_A_8.chiMinimal2_linearlyStable_of_critical_spectrum
 /-- The linear-stability part of Paper3 Theorem 2.4, proved directly from the
 A.7 threshold comparison and the critical-spectrum identification.  This
 remains conditional on Lemma A.7. -/
-theorem Theorem_2_4_linear_stability_branch_direct
+theorem Theorem_2_4_linear_stability_branch_of_Lemma_A_7
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (C : Paper3Constants D p)
     (H : HasNeumannSpectrum S) (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
@@ -7908,7 +7908,7 @@ theorem Theorem_2_4_linear_stability_branch_direct
 /-- The linear-stability part of Paper3 Theorem 2.5, proved directly from the
 A.8 threshold comparison and the critical-spectrum identification.  This
 remains conditional on Lemma A.8. -/
-theorem Theorem_2_5_linear_stability_branch_direct
+theorem Theorem_2_5_linear_stability_branch_of_Lemma_A_8
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (C : Paper3Constants D p)
     (H : HasNeumannSpectrum S) (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
