@@ -847,6 +847,7 @@ end-to-end paper theorem proof.
 | `Theorem_2_2_linear_critical_spectrum_branch_direct` | `SpectralData` + `Paper3ConstantsUsesCriticalSpectrum` | genuine bridge once `C.chiCritical` is identified with the explicit spectral threshold |
 | `Theorem_2_2_xpSigma_local_exponential_branch_of_Lemma_A_1` | `Lemma_A_1` + critical-spectrum bridge | bridge from explicit Lemma A.1 local-stability input; not a proof of Lemma A.1 |
 | `Theorem_2_2_xpSigma_local_exponential_branch_of_raw` | `SectorialLocalExponentialRaw` + critical-spectrum bridge | bridge from exposed sectorial local-stability input; not a proof of the raw sectorial estimate |
+| `LinearStabilityInstabilityRaw_of_sectorial_paperCriticalSensitivity` | `SectorialLocalExponentialRaw` + explicit `paperCriticalSensitivity` + `X^σ_p ≤ supNorm` + small-data existence | proves the raw Paper3 Theorem 2.2 local-stability shapes from exposed analytic inputs; not a proof of the sectorial or Cauchy-existence inputs |
 | `Theorem_2_4_linear_stability_branch_of_Lemma_A_7` | `Lemma_A_7` + critical-spectrum bridge | bridge from explicit A.7 threshold comparisons; not a proof of global stability |
 | `Theorem_2_5_linear_stability_branch_of_Lemma_A_8` | `Lemma_A_8` + critical-spectrum bridge | bridge from explicit A.8 threshold comparisons; not a proof of global stability |
 | `SupControlsXpSigmaDistance.of_xpSigma_le_supNorm` | pointwise comparison `X^σ_p ≤ supNorm` | reduces the norm-control package to a primitive comparison against the exposed `supNorm` |
