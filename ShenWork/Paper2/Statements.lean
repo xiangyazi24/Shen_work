@@ -3168,23 +3168,6 @@ def Lemma_2_7 (D : BoundedDomainData) : Prop :=
                 C4 * D.integral (fun x => (u t x) ^ (pExp + alpha))) →
             LpPowerBoundedBefore D pExp T u
 
-lemma Lemma_2_7.lp_bound
-    {D : BoundedDomainData}
-    (h : Lemma_2_7 D)
-    {u : ℝ → D.Point → ℝ} {T pExp C1 C2 C3 C4 eps alpha : ℝ}
-    (hT : 0 < T) (hpExp : 1 < pExp)
-    (hC1 : 0 ≤ C1) (hC2 : 0 ≤ C2) (hC3 : 0 ≤ C3) (hC4 : 0 < C4)
-    (heps : 0 < eps) (heps_alpha : eps ≤ alpha)
-    (hdiff :
-      ∀ t, 0 < t → t < T →
-        deriv (fun τ => D.integral (fun x => (u τ x) ^ pExp)) t +
-            C3 * D.integral (fun x => (u t x) ^ (pExp + alpha - eps)) ≤
-          C1 + C2 * D.integral (fun x => (u t x) ^ pExp) -
-            C4 * D.integral (fun x => (u t x) ^ (pExp + alpha))) :
-    LpPowerBoundedBefore D pExp T u :=
-  h u T pExp C1 C2 C3 C4 eps alpha
-    hT hpExp hC1 hC2 hC3 hC4 heps heps_alpha hdiff
-
 def lemma27CounterIntegral (f : Bool → ℝ) : ℝ :=
   if 0 < f false ∧
       f true = Real.exp ((Real.log (f false)) ^ 2 / 3) then
@@ -3381,26 +3364,6 @@ def Lemma_3_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
       ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
         IsPaper2ClassicalSolution D p T u v →
           SupNormNonincreasingOn D u (Set.Ioo (0 : ℝ) T))
-
-lemma Lemma_3_1.nonminimal_sup_norm_monotone
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Lemma_3_1 D p)
-    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
-    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution D p T u v)
-    {t₀ : ℝ} (ht₀_pos : 0 < t₀) (ht₀_T : t₀ < T)
-    (hsup : (p.a / p.b) ^ (1 / p.α) < D.supNorm (u t₀)) :
-    SupNormNonincreasingOn D u (Set.Ioc (0 : ℝ) t₀) :=
-  (h hχ).1 ha hb T hT u v hsol t₀ ht₀_pos ht₀_T hsup
-
-lemma Lemma_3_1.minimal_sup_norm_monotone
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Lemma_3_1 D p)
-    (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (hb : p.b = 0)
-    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution D p T u v) :
-    SupNormNonincreasingOn D u (Set.Ioo (0 : ℝ) T) :=
-  (h hχ).2 ha hb T hT u v hsol
 
 /-- Direct constant-in-time branch of the first alternative in Paper2 Lemma 3.1.
 This proves the monotonicity conclusion from an explicit primitive constancy
@@ -3658,37 +3621,6 @@ def Lemma_4_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
       InitialTrace D u₀ u →
         ∀ eps > 0, ∀ pExp > 1, ∃ Ceps > 0,
           LpMassGradientInterpolationEstimate D pExp eps Ceps T u
-
-lemma Lemma_4_1.interpolation_estimate
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Lemma_4_1 D p)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀)
-    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution D p T u v)
-    (htrace : InitialTrace D u₀ u)
-    {eps pExp : ℝ} (heps : 0 < eps) (hpExp : 1 < pExp) :
-    ∃ Ceps > 0, LpMassGradientInterpolationEstimate D pExp eps Ceps T u :=
-  h u₀ hu₀ T hT u v hsol htrace eps heps pExp hpExp
-
-lemma Lemma_4_1.interpolation_bound
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Lemma_4_1 D p)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀)
-    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution D p T u v)
-    (htrace : InitialTrace D u₀ u)
-    {eps pExp t : ℝ} (heps : 0 < eps) (hpExp : 1 < pExp)
-    (ht0 : 0 < t) (htT : t < T) :
-    ∃ Ceps > 0,
-      D.integral (fun x => (u t x) ^ pExp) ≤
-        eps *
-            D.integral
-              (fun x => (u t x) ^ (pExp - 2) * (D.gradNorm (u t) x) ^ 2) +
-          Ceps * (D.integral (u t)) ^ pExp :=
-  by
-    rcases h.interpolation_estimate hu₀ hT hsol htrace heps hpExp with
-      ⟨Ceps, hCeps, hestimate⟩
-    exact ⟨Ceps, hCeps, hestimate.bound ht0 htT⟩
 
 /-- A fake bounded-domain interface showing that Lemma 4.1's interpolation
 estimate is not a consequence of the current abstract API alone.  The constant
