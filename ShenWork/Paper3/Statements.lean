@@ -6867,6 +6867,27 @@ lemma Theorem_2_2_linear_stability_chi_nonpos_branch_proved :
     exact minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero_neumann
       S p H hχ ha huStar
 
+/-- Direct theorem-shaped version of the nonpositive-sensitivity linear
+stability branch of Paper3 Theorem 2.2.  This avoids routing the result
+through a theorem-shaped `Prop` wrapper. -/
+theorem Theorem_2_2_linear_stability_chi_nonpos_branch_direct
+    (S : SpectralData) (p : CM2Params)
+    (H : HasNeumannSpectrum S) (hχ : p.χ₀ ≤ 0) :
+    (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      LinearlyStable S p eq.1 eq.2) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        LinearlyStable S p eq.1 eq.2) := by
+  refine ⟨?_, ?_⟩
+  · intro ha hb
+    exact positiveEquilibrium_linearlyStable_of_chi_nonpos_neumann
+      S p H hχ ha hb
+  · intro ha _hb uStar huStar
+    exact minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero_neumann
+      S p H hχ ha huStar
+
 lemma Theorem_2_2_linear_stability_chi_nonpos_unitInterval
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) :
     (∀ (ha : 0 < p.a) (hb : 0 < p.b),
@@ -10028,6 +10049,28 @@ def Theorem_2_3_negative_sensitivity_convergence_formula_branch : Prop :=
 lemma Theorem_2_3_negative_sensitivity_convergence_formula_branch_proved :
     Theorem_2_3_negative_sensitivity_convergence_formula_branch := by
   intro D S p N H hχ ha hb
+  dsimp
+  intro hsectorial
+  have hstable :
+      LinearlyStable S p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    positiveEquilibrium_linearlyStable_of_chi_nonpos_neumann S p H hχ ha hb
+  exact ⟨hstable, hsectorial hstable⟩
+
+/-- Direct theorem-shaped version of the negative-sensitivity convergence
+bridge for Paper3 Theorem 2.3.  The local exponential step remains the
+explicit supplied consequence of the proved linear stability. -/
+theorem Theorem_2_3_negative_sensitivity_convergence_formula_branch_direct
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D)
+    (H : HasNeumannSpectrum S) (hχ : p.χ₀ ≤ 0)
+    (ha : 0 < p.a) (hb : 0 < p.b) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    (LinearlyStable S p eq.1 eq.2 →
+      MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2) →
+      LinearlyStable S p eq.1 eq.2 ∧
+      MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2 := by
   dsimp
   intro hsectorial
   have hstable :
