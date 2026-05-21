@@ -4656,6 +4656,26 @@ def ConvergenceToExponentialNonminimalRaw
                 c1Distance (v t) (fun _ => eq.2) ≤
                   C * Real.exp (-rate * t)
 
+/-- Raw minimal exponential-upgrade branch of
+`Paper3Constants.convergenceToExponential`, with the `C¹` distance and
+critical threshold exposed. -/
+def ConvergenceToExponentialMinimalRaw
+    (D : BoundedDomainData) (p : CM2Params)
+    (c1Distance : (D.Point → ℝ) → (D.Point → ℝ) → ℝ)
+    (chiCritical : ℝ → ℝ) : Prop :=
+  1 ≤ p.m → p.a = 0 → p.b = 0 →
+    ∀ uStar > 0,
+      let eq := minimalEquilibrium p uStar
+      p.χ₀ < chiCritical uStar →
+        ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+          HasInitialMass D u uStar →
+          UniformConvergesInSup D u eq.1 →
+            ∃ C > 0, ∃ rate > 0, ∀ t, 0 ≤ t →
+              c1Distance (u t) (fun _ => eq.1) +
+                c1Distance (v t) (fun _ => eq.2) ≤
+                  C * Real.exp (-rate * t)
+
 /-- Raw obstruction for the convergence-to-exponential upgrade: uniform
 convergence in a fake `supNorm` does not imply exponential convergence in an
 unrelated `C¹` distance. -/
@@ -7242,6 +7262,64 @@ lemma Corollary_5_1_nonminimal_exponential_formula_unitInterval
       (positiveEquilibrium p ⟨ha, hb⟩).2 :=
   Corollary_5_1_nonminimal_exponential_formula_branch
     (S := unitIntervalNeumannSpectrum) hraw hm ha hb hχ huv hconv
+
+/-- Formula-level minimal exponential upgrade for Corollary 5.1. -/
+lemma Corollary_5_1_minimal_exponential_formula_branch
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D}
+    (hraw :
+      ConvergenceToExponentialMinimalRaw D p N.c1Distance
+        (fun uStar =>
+          paperCriticalSensitivity S p uStar
+            (p.ν / p.μ * uStar ^ p.γ)))
+    (hm : 1 ≤ p.m) (ha : p.a = 0) (hb : p.b = 0)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar)
+    (hconv : UniformConvergesInSup D u (minimalEquilibrium p uStar).1) :
+    ExponentialC1Convergence D N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 := by
+  have hχraw :
+      p.χ₀ <
+        (fun uStar =>
+          paperCriticalSensitivity S p uStar
+            (p.ν / p.μ * uStar ^ p.γ)) uStar := by
+    simpa [minimalEquilibrium] using hχ
+  rcases hraw hm ha hb uStar huStar hχraw u v huv hmass hconv with
+    ⟨A, hA, rate, hrate, hdecay⟩
+  exact ExponentialC1ConvergenceWith.exists hA hrate hdecay
+
+lemma Corollary_5_1_minimal_exponential_formula_unitInterval
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    (hraw :
+      ConvergenceToExponentialMinimalRaw D p N.c1Distance
+        (fun uStar =>
+          paperCriticalSensitivity unitIntervalNeumannSpectrum p uStar
+            (p.ν / p.μ * uStar ^ p.γ)))
+    (hm : 1 ≤ p.m) (ha : p.a = 0) (hb : p.b = 0)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar)
+    (hconv : UniformConvergesInSup D u (minimalEquilibrium p uStar).1) :
+    ExponentialC1Convergence D N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  Corollary_5_1_minimal_exponential_formula_branch
+    (S := unitIntervalNeumannSpectrum) hraw hm ha hb huStar hχ
+    huv hmass hconv
 
 def Lemma_7_1 (D : BoundedDomainData) (K : CompactnessData D) : Prop :=
   ∃ M0 > 0, ∀ mu nu : ℝ, ∀ f : D.Point → ℝ,
