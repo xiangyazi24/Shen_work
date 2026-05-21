@@ -7717,6 +7717,101 @@ lemma Theorem_2_5_linear_stability_branch_proved :
   exact hA8.minimal_condition_linearlyStable_of_critical_spectrum
     H hC ha hb hm hβ huStar hcond
 
+/-- Formula-level linear-stability part of Paper3 Theorem 2.4.  This version
+uses the explicit strong thresholds and the paper critical-sensitivity
+infimum directly, with no `Paper3Constants` and no Lemma A.7 package field. -/
+def Theorem_2_4_linear_stability_formula_branch : Prop :=
+  ∀ (S : SpectralData) (p : CM2Params),
+    HasNeumannSpectrum S →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        max
+            (max (chiStrong1Formula p eq.1 eq.2)
+              (chiStrong2Formula p eq.1))
+            (max (chiStrong3Formula p M0 eq.1 eq.2)
+              (chiStrong4Formula p M0 eq.1)) ≤
+          paperCriticalSensitivity S p eq.1 eq.2 →
+          NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+            LinearlyStable S p eq.1 eq.2
+
+lemma Theorem_2_4_linear_stability_formula_branch_proved :
+    Theorem_2_4_linear_stability_formula_branch := by
+  intro S p H ha hb M0
+  dsimp
+  intro hcritical hcond
+  exact hcond.linearlyStable_of_max_threshold_le_critical S p H ha hb
+    hcritical
+
+/-- First-mode sufficient version of the formula-level Theorem 2.4 linear
+stability branch. -/
+def Theorem_2_4_linear_stability_first_mode_branch : Prop :=
+  ∀ (S : SpectralData) (p : CM2Params),
+    HasNeumannSpectrum S →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        max
+            (max (chiStrong1Formula p eq.1 eq.2)
+              (chiStrong2Formula p eq.1))
+            (max (chiStrong3Formula p M0 eq.1 eq.2)
+              (chiStrong4Formula p M0 eq.1)) ≤
+          ((1 + eq.2) ^ p.β /
+              (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+            (p.μ + S.firstNonzero) →
+          NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+            LinearlyStable S p eq.1 eq.2
+
+lemma Theorem_2_4_linear_stability_first_mode_branch_proved :
+    Theorem_2_4_linear_stability_first_mode_branch := by
+  intro S p H ha hb M0
+  dsimp
+  intro hfirst hcond
+  exact hcond.linearlyStable_of_firstNonzero_lower S p H ha hb hfirst
+
+/-- Formula-level linear-stability part of Paper3 Theorem 2.5.  This version
+uses the explicit minimal thresholds and the paper critical-sensitivity
+infimum directly, with no `Paper3Constants` and no Lemma A.8 package field. -/
+def Theorem_2_5_linear_stability_formula_branch : Prop :=
+  ∀ (S : SpectralData) (p : CM2Params),
+    HasNeumannSpectrum S →
+      p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+        ∀ uStar > 0, ∀ uBar vLower : ℝ,
+          chiBeta p ≤
+            paperCriticalSensitivity S p
+              (minimalEquilibrium p uStar).1
+              (minimalEquilibrium p uStar).2 →
+            MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+              LinearlyStable S p
+                (minimalEquilibrium p uStar).1
+                (minimalEquilibrium p uStar).2
+
+lemma Theorem_2_5_linear_stability_formula_branch_proved :
+    Theorem_2_5_linear_stability_formula_branch := by
+  intro S p H _ha _hb _hm hβ uStar huStar uBar vLower hcritical hcond
+  exact hcond.linearlyStable_of_chiBeta_le_critical S p H hβ huStar
+    hcritical
+
+/-- First-mode sufficient version of the formula-level Theorem 2.5 linear
+stability branch. -/
+def Theorem_2_5_linear_stability_first_mode_branch : Prop :=
+  ∀ (S : SpectralData) (p : CM2Params),
+    HasNeumannSpectrum S →
+      p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+        ∀ uStar > 0, ∀ uBar vLower : ℝ,
+          chiBeta p ≤
+            ((1 + (minimalEquilibrium p uStar).2) ^ p.β /
+                (p.ν * p.γ *
+                  (minimalEquilibrium p uStar).1 ^ (p.m + p.γ - 1))) *
+              (p.μ + S.firstNonzero) →
+            MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+              LinearlyStable S p
+                (minimalEquilibrium p uStar).1
+                (minimalEquilibrium p uStar).2
+
+lemma Theorem_2_5_linear_stability_first_mode_branch_proved :
+    Theorem_2_5_linear_stability_first_mode_branch := by
+  intro S p H _ha _hb _hm hβ uStar huStar uBar vLower hfirst hcond
+  exact hcond.linearlyStable_of_firstNonzero_lower S p H hβ huStar hfirst
+
 lemma Theorem_2_2.nonminimal_stability_conclusion_of_Lemma_A_7
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
     {N : StabilityNorms D} {C : Paper3Constants D p}
