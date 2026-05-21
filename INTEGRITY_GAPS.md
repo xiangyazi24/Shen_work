@@ -71,7 +71,7 @@ projection theorem wrappers have been removed.
 - `Lemma_4_1_neg_frozen_holds_away_from_interface_of_plateau_source_bound`:
   frozen Lemma 4.1 away from the interface for χ≤0, conditional on the
   explicit plateau comparison `frozenElliptic p u x ≤ (u x)^γ`
-- `Lemma_4_1_strengthened_away_from_interface_proved`: the two frozen
+- `Lemma_4_1_strengthened_away_from_interface_direct`: the two frozen
   Lemma 4.1 away-from-interface branches assembled into one explicit,
   assumption-package-free strengthened statement
 - `NegativeSensitivityWaveFixedPointConstruction.upperBarrier_superSolution_away_from_interface`
@@ -112,17 +112,17 @@ projection theorem wrappers have been removed.
 - `not_Remark_4_2_M_one`: the same finite-time positive-sensitivity
   obstruction specialized to the `M = 1` slice of Remark 4.2, so that slice is
   also a refuted original target rather than an unproved theorem.
-- `Lemma_4_2_chi_zero_strengthened_proved`: χ=0 Lemma 4.2 raw-plus-constant
+- `Lemma_4_2_chi_zero_strengthened_direct`: χ=0 Lemma 4.2 raw-plus-constant
   subsolution construction with the needed `κtilde ≤ 2κ` hypothesis made
   explicit
-- `Lemma_4_2_chi_zero_D_ge_one_strengthened_proved`: χ=0 Lemma 4.2
+- `Lemma_4_2_chi_zero_D_ge_one_strengthened_direct`: χ=0 Lemma 4.2
   raw-plus-constant subsolution construction with the needed large-`D`
   hypothesis `1 ≤ D` made explicit
-- `Lemma_4_2_chi_zero_alpha_one_strengthened_proved`: χ=0, α=1 Lemma 4.2
+- `Lemma_4_2_chi_zero_alpha_one_strengthened_direct`: χ=0, α=1 Lemma 4.2
   slice, where the paper range condition implies `κtilde ≤ 2κ`
-- `Remark_4_2_M_one_chi_zero_strengthened_proved`: finite-time `M = 1`,
+- `Remark_4_2_M_one_chi_zero_strengthened_direct`: finite-time `M = 1`,
   χ=0 slice of Remark 4.2 under the explicit `κtilde ≤ 2κ` hypothesis
-- `Remark_4_2_chi_zero_strengthened_proved`: general-`M`, finite-time χ=0
+- `Remark_4_2_chi_zero_strengthened_direct`: general-`M`, finite-time χ=0
   slice of Remark 4.2, with the large-`D` condition absorbed into the
   existential threshold `D0`
 - `constant_subsolution_frozenWaveOperator_nonneg_of_small_d_time_trap`:
@@ -134,9 +134,9 @@ projection theorem wrappers have been removed.
   `constant_subsolution_frozenWaveOperator_nonneg_of_half_bound_time_trap`:
   ordinary and finite-time constant subsolution branches under the checkable
   sufficient conditions `|χ| M^γ ≤ 1/2` and `d ≤ 1/2`
-- `Remark_4_2_M_one_chi_zero_D_ge_one_strengthened_proved`: finite-time
+- `Remark_4_2_M_one_chi_zero_D_ge_one_strengthened_direct`: finite-time
   `M = 1`, χ=0 slice of Remark 4.2 under the explicit `1 ≤ D` hypothesis
-- `Remark_4_2_M_one_chi_zero_alpha_one_strengthened_proved`: finite-time
+- `Remark_4_2_M_one_chi_zero_alpha_one_strengthened_direct`: finite-time
   `M = 1`, χ=0, α=1 slice of Remark 4.2
 - `not_forall_InTimeWaveTrapSet_slice_inWaveTrapSet_general_M`: formal
   obstruction showing that finite-time trap-set slices with general `M` do not
@@ -194,7 +194,7 @@ projection theorem wrappers have been removed.
   modified-semigroup lower/upper/interval bounds, domination by a nonnegative
   majorant, heat/modified-semigroup linearity, `L∞` decay, and heat/modified
   pairwise `L∞` contraction.
-- `Lemma_2_2_proved`, `Lemma_2_3_proved`, `Lemma_2_4_proved`
+- `Lemma_2_2_direct`, `Lemma_2_3_direct`, `Lemma_2_4_direct`
 - `Lemma_2_5_pointwise_bound`, `Lemma_2_5_attained_at_inv`,
   `Lemma_2_5_sharp_bound`, `Lemma_2_5_sharp_constant_minimal`,
   `Lemma_2_5_sharp_constant_positive`, `Lemma_2_5_sharp_constant_iff`,
@@ -245,7 +245,7 @@ projection theorem wrappers have been removed.
   `Remark_4_3.distinct_wave_branch_of_continuous`: real tail-window,
   left/right domination, and strengthened distinct-wave weighted closeness
   bridges for Remark 4.3
-- `Remark_4_3_regular_proved`: full corrected regular Remark 4.3 theorem,
+- `Remark_4_3_regular_direct`: full corrected regular Remark 4.3 theorem,
   proved end-to-end from the explicit bridges above rather than from
   `Paper1AnalyticData`; the original `Remark_4_3` statement still lacks the
   measurability/continuity hypothesis needed for the `Integrable` conclusion
@@ -276,7 +276,7 @@ projection theorem wrappers have been removed.
 - `Lemma_5_1.fixed_point_conclusion_of_wave_derivative_bounds_of_continuous`:
   the same fixed-point full-conclusion branch with `IsCUnifBdd U` internalized
   from continuity plus the upper-tail bound
-- `Lemma_5_1_resolvent_identified_proved`: the same full Lemma 5.1 conclusion
+- `Lemma_5_1_resolvent_identified_direct`: the same full Lemma 5.1 conclusion
   in the arbitrary-traveling-wave shape, once the missing identity
   `V = frozenElliptic p U`, continuity of `U`, and the remaining `U'`
   estimates are supplied explicitly; boundedness of `U` follows from
@@ -299,8 +299,8 @@ projection theorem wrappers have been removed.
   `Lemma_5_2.nonincreasing_profile_branch`,
   `Lemma_5_2.nonincreasing_branch`,
   `Lemma_5_2.monotoneTravelingWave_branch`,
-  `Lemma_5_2_explicit_frozen_monotone_trap_proved`, and
-  `Lemma_5_2_frozen_monotone_trap_proved`: real nonincreasing-profile,
+  `Lemma_5_2_explicit_frozen_monotone_trap_direct`, and
+  `Lemma_5_2_frozen_monotone_trap_direct`: real nonincreasing-profile,
   monotone-wave, and frozen monotone-trap branches of Lemma 5.2.  The minimal
   profile branch uses only `0 ≤ MChi p`, `U > 0`, and `U' ≤ 0`; the explicit
   log-derivative constant is nonnegative under the Lemma 5.2 speed hypothesis,
@@ -338,7 +338,7 @@ projection theorem wrappers have been removed.
   `Remark_5_2.nonincreasing_positive_profile_branch`,
   `Remark_5_2.nonincreasing_branch`,
   `Remark_5_2.monotoneTravelingWave_branch`, and
-  `Remark_5_2_frozen_monotone_trap_proved`: real monotone-wave and frozen
+  `Remark_5_2_frozen_monotone_trap_direct`: real monotone-wave and frozen
   monotone-trap branches of Remark 5.2.  The proof does not use the invalid
   speed-algebra route; it proves the displayed `M'''` denominator-normalized
   constant is nonnegative and then uses `U' ≤ 0` and `U > 0` to get
@@ -363,7 +363,7 @@ projection theorem wrappers have been removed.
   continuous tail/stable-tail/strict-tail/stability variants also discharge the
   previously exposed `IsCUnifBdd` inputs from the corresponding upper-tail
   bounds plus continuity.
-- `Lemma_2_5_proved` (Paper2), together with the sharp `Psi_beta` package and
+- `Lemma_2_5_full_statement` (Paper2), together with the sharp `Psi_beta` package and
   normalized sharp `Theta_beta` form
 - `remark16ChiStarWeak_scalar_properties` (Paper2): direct scalar algebra for
   the weak Remark 1.6 threshold `(1.30c)`, including positivity, the
@@ -389,12 +389,12 @@ projection theorem wrappers have been removed.
   surface, reusing the proved Paper2 branch theorems rather than package
   projections.  `Lemma_A_2_zero_data`--`Lemma_A_5_zero_data` expose the same
   all-zero semigroup instance at the Appendix surface.
-- `Theorem_2_2_linear_stability_chi_nonpos_branch_proved` (Paper3): the
+- `Theorem_2_2_linear_stability_chi_nonpos_branch_direct` (Paper3): the
   nonpositive-sensitivity linear-stability branch of Paper3 Theorem 2.2,
   derived directly from the Neumann spectral positivity lemmas for the
   positive and minimal equilibria.  This intentionally does not claim the
   local exponential stability part of Theorem 2.2.
-- `Theorem_2_2_linear_threshold_branch_proved` (Paper3): the stable/unstable
+- `Theorem_2_2_linear_threshold_branch_direct` (Paper3): the stable/unstable
   linear spectral-threshold branch of Paper3 Theorem 2.2, proved directly from
   the explicit nonzero-mode infimum `paperCriticalSensitivity` and the Neumann
   spectrum lemmas rather than from `Paper3Constants.linearStabilityInstability`.
@@ -403,7 +403,7 @@ projection theorem wrappers have been removed.
   `Paper3ConstantsUsesCriticalSpectrum.positiveEquilibrium_linearlyUnstable`,
   `Paper3ConstantsUsesCriticalSpectrum.minimalEquilibrium_linearlyStable`,
   `Paper3ConstantsUsesCriticalSpectrum.minimalEquilibrium_linearlyUnstable`,
-  and `Theorem_2_2_linear_critical_spectrum_branch_proved` (Paper3): once
+  and `Theorem_2_2_linear_critical_spectrum_branch_direct` (Paper3): once
   the constants package's `chiCritical` field is identified with the concrete
   `paperCriticalSensitivity` infimum, the positive/minimal equilibrium linear
   stable and unstable branches follow directly from spectral lemmas, without
@@ -421,13 +421,13 @@ projection theorem wrappers have been removed.
   `paperCriticalSensitivity` spectral branch, without assuming
   `Theorem_2_2`.  This intentionally does not claim the local exponential
   stability part.
-- `Theorem_2_4_linear_stability_branch_proved` and
-  `Theorem_2_5_linear_stability_branch_proved` (Paper3): the linear-stability
+- `Theorem_2_4_linear_stability_branch_direct` and
+  `Theorem_2_5_linear_stability_branch_direct` (Paper3): the linear-stability
   portions of the strong-logistic and minimal global-stability theorems now
   follow directly from the A.7/A.8 threshold comparisons plus the
   critical-spectrum bridge.  The global stability and exponential convergence
   conclusions remain explicit analytic package fields.
-- `Theorem_2_2_xpSigma_local_exponential_branch_proved` (Paper3): the
+- `Theorem_2_2_xpSigma_local_exponential_branch_direct` (Paper3): the
   `X^σ_p` small-perturbation exponential-decay branch of Theorem 2.2 is proved
   from the concrete spectral critical-sensitivity bridge and Lemma A.1, rather
   than by assuming `Theorem_2_2` or
@@ -688,7 +688,7 @@ projection theorem wrappers have been removed.
   continuity field internally; the remaining explicit analytic input is Cauchy
   uniqueness/solution identification together with the strict upper-tail and
   Remark 4.3 tail-asymptotic hypotheses
-- `Lemma_A_6_proved` (Paper3)
+- `Lemma_A_6_direct` (Paper3)
 - `FrozenStationaryWaveProfile.mk_auto_limits`
 - `FrozenStationaryWaveProfile.mk_from_paper_stationarity_of_tail_continuous`
   and `FrozenStationaryWaveProfile.mk_auto_limits_of_tail_continuous`: profile
@@ -781,7 +781,7 @@ statement is not false before continuing.
      Lean also proves the current Lemma 4.1 hypotheses do **not** imply the
      needed `mκ ≤ 1` / `γκ < 1` bounds (`not_Lemma_4_1_*_force_*`). The
      corrected away-from-interface strengthened version is proved by
-     `Lemma_4_1_strengthened_away_from_interface_proved`; downstream Paper1
+     `Lemma_4_1_strengthened_away_from_interface_direct`; downstream Paper1
      statements now also have non-projection fixed-point-construction bridges
      through
      `NegativeSensitivityWaveFixedPointConstruction.upperBarrier_superSolution_away_from_interface`
@@ -794,9 +794,9 @@ statement is not false before continuing.
      and `Lemma_4_2_conditional` projection have been removed. The constant
      subsolution branch is proved only
      under explicit frozen smallness hypotheses, and the χ=0 raw-plus-constant
-     corrected slices are proved by `Lemma_4_2_chi_zero_strengthened_proved`,
-     `Lemma_4_2_chi_zero_D_ge_one_strengthened_proved`, and
-     `Lemma_4_2_chi_zero_alpha_one_strengthened_proved`. Downstream Paper1
+     corrected slices are proved by `Lemma_4_2_chi_zero_strengthened_direct`,
+     `Lemma_4_2_chi_zero_D_ge_one_strengthened_direct`, and
+     `Lemma_4_2_chi_zero_alpha_one_strengthened_direct`. Downstream Paper1
      statements should use a corrected Lemma 4.2 target, not a package
      projection of the false original statement.
    - Original Remark_4_2 — the current original finite-time statement is now
@@ -836,39 +836,42 @@ Per Playbook §1 Point 11 (honest reporting):
 - Paper1: "unconditionally proved" for Lemma 2.2-2.4, Lemma 4.1/4.2 strengthened, chemotaxis resolvent, Psi ODE
 - Paper2/Paper3: "conditional on bounded-domain API instantiation" — the abstract domain interface is legitimate but the semigroup/stability estimate proofs require Mathlib infrastructure that doesn't exist
 
-## Phase 4 Classification (v4 proposal)
+## Phase 4 Classification (current naming)
 
-### Paper3 `_proved` / branch theorems — actual classification:
+The Lean sources no longer contain theorem declarations with `_proved` in
+their names.  Former `_proved` wrappers were either removed or renamed to
+`_direct` / explicit branch names so the theorem name does not imply an
+end-to-end paper theorem proof.
+
+### Paper3 direct / branch theorems — actual classification:
 
 | Theorem | Uses abstract structure? | Correct classification |
 |---------|--------------------------|------------------------|
-| `Lemma_A_6_proved` | No | genuinely proved |
+| `Lemma_A_6_direct` | No | genuinely proved |
 | `Lemma_3_1_from_global_solution_regular_components` | Removed | deleted because it was only a regularity-field accessor, not an end-to-end proof |
-| `Theorem_2_2_linear_stability_chi_nonpos_branch_proved` | `SpectralData` + `HasNeumannSpectrum` | genuine relative spectral branch; does not prove PDE/local stability |
-| `Theorem_2_2_linear_threshold_branch_proved` | `SpectralData` + `HasNeumannSpectrum` | genuine relative spectral branch using the explicit `paperCriticalSensitivity` formula |
-| `Theorem_2_2_linear_critical_spectrum_branch_proved` | `SpectralData` + `Paper3ConstantsUsesCriticalSpectrum` | genuine bridge once `C.chiCritical` is identified with the explicit spectral threshold |
-| `Theorem_2_2_xpSigma_local_exponential_branch_proved` | `Lemma_A_1` + critical-spectrum bridge | bridge from explicit Lemma A.1 local-stability input; not a proof of Lemma A.1 |
-| `Theorem_2_4_linear_stability_branch_proved` | `Lemma_A_7` + critical-spectrum bridge | bridge from explicit A.7 threshold comparisons; not a proof of global stability |
-| `Theorem_2_5_linear_stability_branch_proved` | `Lemma_A_8` + critical-spectrum bridge | bridge from explicit A.8 threshold comparisons; not a proof of global stability |
+| `Theorem_2_2_linear_stability_chi_nonpos_branch_direct` | `SpectralData` + `HasNeumannSpectrum` | genuine relative spectral branch; does not prove PDE/local stability |
+| `Theorem_2_2_linear_threshold_branch_direct` | `SpectralData` + `HasNeumannSpectrum` | genuine relative spectral branch using the explicit `paperCriticalSensitivity` formula |
+| `Theorem_2_2_linear_critical_spectrum_branch_direct` | `SpectralData` + `Paper3ConstantsUsesCriticalSpectrum` | genuine bridge once `C.chiCritical` is identified with the explicit spectral threshold |
+| `Theorem_2_2_xpSigma_local_exponential_branch_direct` | `Lemma_A_1` + critical-spectrum bridge | bridge from explicit Lemma A.1 local-stability input; not a proof of Lemma A.1 |
+| `Theorem_2_4_linear_stability_branch_direct` | `Lemma_A_7` + critical-spectrum bridge | bridge from explicit A.7 threshold comparisons; not a proof of global stability |
+| `Theorem_2_5_linear_stability_branch_direct` | `Lemma_A_8` + critical-spectrum bridge | bridge from explicit A.8 threshold comparisons; not a proof of global stability |
 
-### Paper2 `_proved` theorems:
-
-| Theorem | Uses abstract structure? | Correct classification |
-|---------|--------------------------|------------------------|
-| `Lemma_2_5_proved` | No | genuinely proved |
-
-### Paper1 `_proved` theorems:
+### Paper2 direct / branch theorems:
 
 | Theorem | Uses abstract structure? | Correct classification |
 |---------|--------------------------|------------------------|
-| `Lemma_2_2_proved` | No | genuinely proved |
-| `Lemma_2_3_proved` | No | genuinely proved |
-| `Lemma_2_4_proved` | No | genuinely proved |
-| All `_strengthened_proved` | No | genuinely proved |
+| `Lemma_2_5_full_statement` and `Lemma_2_5_full_range_statement` | No | genuinely proved scalar `Psi_beta` results |
+
+### Paper1 direct / branch theorems:
+
+| Theorem | Uses abstract structure? | Correct classification |
+|---------|--------------------------|------------------------|
+| `Lemma_2_2_direct`, `Lemma_2_3_direct`, `Lemma_2_4_direct` | No | genuinely proved |
+| All `_strengthened_direct` / corrected-slice branches | No | genuinely proved |
 | All `not_*` counterexamples | No | genuinely proved |
 
 ### Naming policy after v4 proposal
 Full theorem-shaped accessors from assumption components should not be named
-`_proved`; `Lemma_3_1_proved` was renamed accordingly. Existing `_proved`
-branch names are kept only where the declaration name itself says it is a
-branch and the remaining inputs are explicit in the theorem type.
+`_proved`.  Direct theorem names should use `_direct`, and conditional results
+should say `branch`, `raw`, `of_...`, or otherwise expose their remaining
+inputs in the declaration name and theorem type.
