@@ -6801,55 +6801,6 @@ def Lemma_3_5
         PositiveGlobalBoundedSolution D p u v →
           EventuallyUpperBoundMinimalConclusion D p C u
 
-lemma Lemma_3_1_2.regularity_and_compactness
-    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
-    (hreg : Lemma_3_1 D p) (hcompact : Lemma_3_2 D p K)
-    (hm : 1 ≤ p.m) (hγ : 0 < p.γ)
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v) :
-    UniformRegularityConclusion D p u v ∧
-      TimeTranslateCompactnessConclusion D p K u v :=
-  ⟨hreg u v huv, hcompact hm hγ u v huv⟩
-
-lemma Lemma_3_1_2_4.dynamical_compactness_conclusion
-    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
-    (hreg : Lemma_3_1 D p) (hcompact : Lemma_3_2 D p K)
-    (henvelope : Lemma_3_4 D p K)
-    (hm : 1 ≤ p.m) (hγ : 0 < p.γ)
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v) :
-    UniformRegularityConclusion D p u v ∧
-      TimeTranslateCompactnessConclusion D p K u v ∧
-      UpperEnvelopeMonotonicityConclusion D p K u :=
-  ⟨hreg u v huv, hcompact hm hγ u v huv,
-    henvelope u v huv⟩
-
-lemma Lemma_3_1_2_4.eventual_entire_limit
-    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
-    (hcompact : Lemma_3_2 D p K)
-    (hm : 1 ≤ p.m) (hγ : 0 < p.γ)
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v)
-    {times : ℕ → ℝ} (htimes : Tendsto times atTop atTop) :
-    ∃ subseq : ℕ → ℕ, StrictMono subseq ∧
-    ∃ uInf vInf : ℝ → D.Point → ℝ,
-      EntireClassicalSolution D p uInf vInf :=
-  (hcompact hm hγ u v huv).entire_limit htimes
-
-lemma Lemma_3_5.eventual_upper_bound_at_mass
-    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
-    (h : Lemma_3_5 D p C)
-    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
-    (hχ_pos : 0 < p.χ₀)
-    (hχ_small : p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
-    {uStar : ℝ} (huStar : 0 < uStar)
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v)
-    (hmass : HasInitialMass D u uStar) :
-    ∀ᶠ t in atTop, D.supNorm (u t) ≤ C.eventualMinimalUBound uStar :=
-  (h ha hb hm hβ hχ_pos hχ_small u v huv).bound
-    huStar hmass
-
 def Corollary_5_1
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (C : Paper3Constants D p) : Prop :=

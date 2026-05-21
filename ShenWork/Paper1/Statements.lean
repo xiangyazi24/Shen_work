@@ -10319,16 +10319,6 @@ theorem Lemma_5_2_explicit.monotoneTravelingWave_branch
     ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c :=
   Lemma_5_2_explicit.nonincreasing_branch hspeed hTW.1 hbound hTW.2.1
 
-theorem Lemma_5_2_explicit.log_derivative_bound
-    (h : Lemma_5_2_explicit) {p : CMParams} {c : ℝ}
-    (hspeed :
-      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
-    {U V : ℝ → ℝ}
-    (hTW : IsTravelingWave p c U V)
-    (hbound : HasWaveUpperTailBound p c U) :
-    ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c :=
-  h p c hspeed U V hTW hbound
-
 def Lemma_5_2 : Prop :=
   ∀ p : CMParams, ∀ c : ℝ,
     c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
@@ -10673,18 +10663,8 @@ theorem Lemma_5_2_explicit.to_Lemma_5_2
   · exact lt_of_lt_of_le zero_lt_one (le_max_right _ _)
   · intro x
     exact le_trans
-      (h.log_derivative_bound hspeed hTW hbound x)
+      (h p c hspeed U V hTW hbound x)
       (le_max_left _ _)
-
-theorem Lemma_5_2.log_derivative_bound
-    (h : Lemma_5_2) {p : CMParams} {c : ℝ}
-    (hspeed :
-      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
-    {U V : ℝ → ℝ}
-    (hTW : IsTravelingWave p c U V)
-    (hbound : HasWaveUpperTailBound p c U) :
-    ∃ B > 0, ∀ x, deriv U x / U x ≤ B :=
-  h p c hspeed U V hTW hbound
 
 /-- The constant `M'_{\chi,m,\alpha,\gamma}` from Paper1 Remark 5.1. -/
 def remark51MPrime (p : CMParams) : ℝ :=
@@ -10745,29 +10725,6 @@ def Remark_5_1 : Prop :=
             |deriv U x| ≤
               remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
                 Real.exp (-(kappa c) * x)
-
-theorem Remark_5_1.derivative_bound
-    (h : Remark_5_1) {p : CMParams} {c sigma : ℝ}
-    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
-    (hspeed : remark5SpeedCondition p c sigma)
-    {U V : ℝ → ℝ}
-    (hTW : IsTravelingWave p c U V)
-    (hbound : HasWaveUpperTailBound p c U) :
-    ∀ x : ℝ, |deriv U x| ≤ remark51MPrime p / (|p.χ| * sigma) :=
-  (h p c sigma hsigma hχ hspeed U V hTW hbound).1
-
-theorem Remark_5_1.derivative_exp_bound
-    (h : Remark_5_1) {p : CMParams} {c sigma : ℝ}
-    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
-    (hspeed : remark5SpeedCondition p c sigma)
-    {U V : ℝ → ℝ}
-    (hTW : IsTravelingWave p c U V)
-    (hbound : HasWaveUpperTailBound p c U) :
-    ∀ x : ℝ, 0 ≤ x →
-      |deriv U x| ≤
-        remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
-          Real.exp (-(kappa c) * x) :=
-  (h p c sigma hsigma hχ hspeed U V hTW hbound).2
 
 /-- The piecewise constant `M'''_{\chi,m,\alpha,\gamma,\sigma}` from
 Paper1 Remark 5.2.  The branch at `c ≤ 5/2` comes from Lemma 5.2; the branch at
@@ -10978,20 +10935,8 @@ theorem Remark_5_2.of_Lemma_5_2_explicit
   intro p c sigma hsigma hχ hspeed U V hTW hbound x
   rcases halg p c sigma hsigma hχ hspeed with ⟨hspeed_log, hconst⟩
   exact le_trans
-    (hlog.log_derivative_bound hspeed_log hTW hbound x)
+    (hlog p c hspeed_log U V hTW hbound x)
     hconst
-
-theorem Remark_5_2.log_derivative_bound
-    (h : Remark_5_2) {p : CMParams} {c sigma : ℝ}
-    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
-    (hspeed : remark5SpeedCondition p c sigma)
-    {U V : ℝ → ℝ}
-    (hTW : IsTravelingWave p c U V)
-    (hbound : HasWaveUpperTailBound p c U) :
-    ∀ x : ℝ,
-      deriv U x / U x ≤
-        remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) :=
-  h p c sigma hsigma hχ hspeed U V hTW hbound
 
 theorem Remark_5_2.nonincreasing_positive_profile_branch
     {p : CMParams} {c sigma : ℝ}
