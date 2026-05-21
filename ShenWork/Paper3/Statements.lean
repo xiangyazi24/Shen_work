@@ -1216,26 +1216,6 @@ lemma MassConstrainedLocallyExponentiallyStableFromSup.exponential_convergence
   exact ⟨u, v, huv, htrace,
     ExponentialC1ConvergenceWith.exists hA hrate hexp⟩
 
-def Proposition_1_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
-  Paper2.Proposition_1_1 D p
-
-lemma Proposition_1_1.paper2
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_1_1 D p) :
-    Paper2.Proposition_1_1 D p :=
-  h
-
-lemma Proposition_1_1.solution
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_1_1 D p)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
-    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
-      IsPaper2ClassicalSolution D p Tmax u v ∧
-      InitialTrace D u₀ u ∧
-      FiniteHorizonAlternative D Tmax u ∧
-      (1 ≤ p.m → MGeOneFiniteHorizonAlternative D Tmax u) :=
-  h.paper2.solution hu₀
-
 def Proposition_1_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   p.χ₀ ≤ 0 → 1 ≤ p.m →
     ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
