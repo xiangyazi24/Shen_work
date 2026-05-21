@@ -7186,6 +7186,63 @@ lemma Corollary_5_1.minimal_exponential
       (minimalEquilibrium p uStar).2 :=
   (h hm).2.2 ha hb uStar huStar hχ u v huv hmass hconv
 
+/-- Formula-level nonminimal exponential upgrade for Corollary 5.1.  The
+critical threshold is the concrete spectral formula, and the analytic upgrade
+is supplied as the raw `ConvergenceToExponentialNonminimalRaw` hypothesis
+rather than through `Paper3Constants.convergenceToExponential`. -/
+lemma Corollary_5_1_nonminimal_exponential_formula_branch
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D}
+    (hraw :
+      ConvergenceToExponentialNonminimalRaw D p N.c1Distance
+        (fun uStar =>
+          paperCriticalSensitivity S p uStar
+            (p.ν / p.μ * uStar ^ p.γ)))
+    (hm : 1 ≤ p.m) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hconv : UniformConvergesInSup D u (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+  have hχraw :
+      p.χ₀ <
+        (fun uStar =>
+          paperCriticalSensitivity S p uStar
+            (p.ν / p.μ * uStar ^ p.γ))
+          (positiveEquilibrium p ⟨ha, hb⟩).1 := by
+    simpa [positiveEquilibrium] using hχ
+  rcases hraw hm ha hb hχraw u v huv hconv with
+    ⟨A, hA, rate, hrate, hdecay⟩
+  exact ExponentialC1ConvergenceWith.exists hA hrate hdecay
+
+lemma Corollary_5_1_nonminimal_exponential_formula_unitInterval
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    (hraw :
+      ConvergenceToExponentialNonminimalRaw D p N.c1Distance
+        (fun uStar =>
+          paperCriticalSensitivity unitIntervalNeumannSpectrum p uStar
+            (p.ν / p.μ * uStar ^ p.γ)))
+    (hm : 1 ≤ p.m) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hconv : UniformConvergesInSup D u (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  Corollary_5_1_nonminimal_exponential_formula_branch
+    (S := unitIntervalNeumannSpectrum) hraw hm ha hb hχ huv hconv
+
 def Lemma_7_1 (D : BoundedDomainData) (K : CompactnessData D) : Prop :=
   ∃ M0 > 0, ∀ mu nu : ℝ, ∀ f : D.Point → ℝ,
     0 < mu → 0 < nu →
