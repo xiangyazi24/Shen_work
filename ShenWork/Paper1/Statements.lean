@@ -881,12 +881,162 @@ theorem Lemma_2_1_zero_data :
     (by intro _ _ _; norm_num)
     (by intro _ _; norm_num)
 
-/-! ### Concrete whole-line modified heat semigroup bridges
+/-! ### Concrete whole-line heat semigroup bridges
 
 These estimates expose the proved kernel bounds from `PDE/HeatSemigroup.lean`
 at the Paper1 statement layer.  They are not projections from
 `HeatSemigroupEstimateData`.
 -/
+
+/-- Concrete `L∞` bound for the heat semigroup `e^{tΔ}`. -/
+theorem heatSemigroup_paper1_Linfty_bound
+    {f : ℝ → ℝ} {M t : ℝ}
+    (hf_abs : ∀ x, |f x| ≤ M) (ht : 0 < t) (hM : 0 ≤ M)
+    (hf_meas : AEStronglyMeasurable f volume) :
+    ∀ x : ℝ, |heatSemigroup t f x| ≤ M := by
+  intro x
+  exact heatSemigroup_abs_bound hf_abs ht hM hf_meas x
+
+/-- Concrete interval preservation for the heat semigroup. -/
+theorem heatSemigroup_paper1_interval_bound
+    {f : ℝ → ℝ} {m M Mf t : ℝ}
+    (hf_ge : ∀ x, m ≤ f x) (hf_le : ∀ x, f x ≤ M)
+    (hf_bound : ∀ x, |f x| ≤ Mf)
+    (hf_meas : AEStronglyMeasurable f volume) (ht : 0 < t) :
+    ∀ x : ℝ, m ≤ heatSemigroup t f x ∧ heatSemigroup t f x ≤ M := by
+  intro x
+  exact heatSemigroup_interval_bound
+    hf_ge hf_le hf_bound hf_meas ht x
+
+/-- Concrete positivity preservation for the heat semigroup. -/
+theorem heatSemigroup_paper1_nonneg
+    {f : ℝ → ℝ} {t : ℝ}
+    (hf_nonneg : ∀ x, 0 ≤ f x) (ht : 0 < t) :
+    ∀ x : ℝ, 0 ≤ heatSemigroup t f x := by
+  intro x
+  exact heatSemigroup_nonneg hf_nonneg ht x
+
+/-- Concrete zero-input identity for the heat semigroup. -/
+theorem heatSemigroup_paper1_zero_fun (t : ℝ) :
+    ∀ x : ℝ, heatSemigroup t (fun _ => 0) x = 0 := by
+  intro x
+  exact heatSemigroup_zero_fun t x
+
+/-- Concrete constant-input identity for the heat semigroup. -/
+theorem heatSemigroup_paper1_const
+    {c t : ℝ} (ht : 0 < t) :
+    ∀ x : ℝ, heatSemigroup t (fun _ => c) x = c := by
+  intro x
+  exact heatSemigroup_const ht x
+
+/-- Concrete monotonicity for bounded inputs under the heat semigroup. -/
+theorem heatSemigroup_paper1_mono_bounded
+    {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hfg : ∀ x, f x ≤ g x)
+    (hf_bound : ∀ x, |f x| ≤ Mf)
+    (hg_bound : ∀ x, |g x| ≤ Mg)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (ht : 0 < t) :
+    ∀ x : ℝ, heatSemigroup t f x ≤ heatSemigroup t g x := by
+  intro x
+  exact heatSemigroup_mono_bounded
+    hfg hf_bound hg_bound hf_meas hg_meas ht x
+
+/-- Concrete `L∞` contraction for the heat semigroup. -/
+theorem heatSemigroup_paper1_contraction
+    {f g : ℝ → ℝ} {M t Mf Mg : ℝ}
+    (hfg : ∀ x, |f x - g x| ≤ M) (ht : 0 < t) (hM : 0 ≤ M)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (hf_bound : ∀ x, |f x| ≤ Mf)
+    (hg_bound : ∀ x, |g x| ≤ Mg) :
+    ∀ x : ℝ, |heatSemigroup t f x - heatSemigroup t g x| ≤ M := by
+  intro x
+  exact heatSemigroup_contraction
+    hfg ht hM hf_meas hg_meas hf_bound hg_bound x
+
+/-- Concrete additivity for bounded inputs under the heat semigroup. -/
+theorem heatSemigroup_paper1_add_bounded
+    {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hf_bound : ∀ x, |f x| ≤ Mf)
+    (hg_bound : ∀ x, |g x| ≤ Mg)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (ht : 0 < t) :
+    ∀ x : ℝ,
+      heatSemigroup t (fun y => f y + g y) x =
+        heatSemigroup t f x + heatSemigroup t g x := by
+  intro x
+  exact heatSemigroup_add_bounded
+    hf_bound hg_bound hf_meas hg_meas ht x
+
+/-- Concrete subtraction for bounded inputs under the heat semigroup. -/
+theorem heatSemigroup_paper1_sub_bounded
+    {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hf_bound : ∀ x, |f x| ≤ Mf)
+    (hg_bound : ∀ x, |g x| ≤ Mg)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (ht : 0 < t) :
+    ∀ x : ℝ,
+      heatSemigroup t (fun y => f y - g y) x =
+        heatSemigroup t f x - heatSemigroup t g x := by
+  intro x
+  exact heatSemigroup_sub_bounded
+    hf_bound hg_bound hf_meas hg_meas ht x
+
+/-- Concrete scalar multiplication identity for the heat semigroup. -/
+theorem heatSemigroup_paper1_const_mul
+    (a : ℝ) (f : ℝ → ℝ) (t : ℝ) :
+    ∀ x : ℝ,
+      heatSemigroup t (fun y => a * f y) x =
+        a * heatSemigroup t f x := by
+  intro x
+  exact heatSemigroup_const_mul a f t x
+
+/-- Concrete lattice domination by applying the heat semigroup to `|f|`. -/
+theorem heatSemigroup_paper1_abs_le_semigroup_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) :
+    ∀ x : ℝ,
+      |heatSemigroup t f x| ≤ heatSemigroup t (fun y => |f y|) x := by
+  intro x
+  exact heatSemigroup_abs_le_semigroup_abs ht x
+
+/-- Concrete domination by a bounded nonnegative majorant. -/
+theorem heatSemigroup_paper1_abs_le_of_abs_le_bounded
+    {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hfg : ∀ y, |f y| ≤ g y)
+    (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (ht : 0 < t) :
+    ∀ x : ℝ, |heatSemigroup t f x| ≤ heatSemigroup t g x := by
+  intro x
+  exact heatSemigroup_abs_le_of_abs_le_bounded
+    hfg hf_bound hg_bound hf_meas hg_meas ht x
+
+/-- Concrete `L¹ → L∞` smoothing for the heat semigroup. -/
+theorem heatSemigroup_paper1_L1_Linfty_smoothing_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t)
+    (hf_int : Integrable f) :
+    ∀ x : ℝ,
+      |heatSemigroup t f x| ≤
+        (1 / Real.sqrt (4 * Real.pi * t)) * ∫ y : ℝ, |f y| := by
+  intro x
+  exact heatSemigroup_L1_Linfty_smoothing_abs ht x hf_int
+
+/-- Concrete difference `L¹ → L∞` smoothing for the heat semigroup. -/
+theorem heatSemigroup_paper1_diff_L1_Linfty_smoothing_abs
+    {f g : ℝ → ℝ} {t : ℝ} (ht : 0 < t)
+    (hf_int : Integrable f) (hg_int : Integrable g) :
+    ∀ x : ℝ,
+      |heatSemigroup t f x - heatSemigroup t g x| ≤
+        (1 / Real.sqrt (4 * Real.pi * t)) *
+          ∫ y : ℝ, |f y - g y| := by
+  intro x
+  exact heatSemigroup_diff_L1_Linfty_smoothing_abs ht x hf_int hg_int
 
 /-- Concrete `L∞` decay for the modified heat semigroup `e^{(Δ-I)t}`. -/
 theorem modifiedSemigroup_paper1_Linfty_decay
