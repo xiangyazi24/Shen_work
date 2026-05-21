@@ -434,14 +434,14 @@ projection theorem wrappers have been removed.
   `Paper3Constants.linearStabilityInstability`.  This branch intentionally
   assumes an existing global solution and `xpSigmaDistance` smallness; the
   sup-norm local well-posedness/continuity upgrade remains open.
-- Paper3 recalled Proposition 1.1--1.4 bridge lemmas:
-  `Proposition_1_1.paper2`,
-  `Proposition_1_2_of_negativeSensitivityGlobalEventualBound`,
+- Paper3 recalled Proposition 1.1--1.4 bridge status:
+  the former Paper2-theorem bridge lemmas (`Proposition_1_1.paper2`,
   `Proposition_1_3.of_paper2_theorem_1_3`, and
-  `Proposition_1_4.of_paper2_theorem_1_2` keep the useful conditional
-  routes from Paper2 targets or the smaller eventual-bound hypothesis.  The
-  former theorem-shaped `_proved` wrapper Props for these bridges have been
-  removed, so they are not counted as source proofs.
+  `Proposition_1_4.of_paper2_theorem_1_2`) are no longer present in Lean
+  sources.  The remaining positive bridge
+  `Proposition_1_2_of_negativeSensitivityGlobalEventualBound` is explicitly
+  conditional on the smaller eventual-bound hypothesis, so it is not counted
+  as a source proof of Paper3 Proposition 1.2.
 - `not_forall_Proposition_1_3` and `not_forall_Proposition_1_4` (Paper3):
   formal obstructions showing that the recalled Part-I global-existence
   propositions cannot be proved over arbitrary `BoundedDomainData`; the same
