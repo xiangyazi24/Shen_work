@@ -8030,6 +8030,42 @@ lemma Theorem_2_4_linear_stability_first_mode_branch_proved :
   intro hfirst hcond
   exact hcond.linearlyStable_of_firstNonzero_lower S p H ha hb hfirst
 
+lemma Theorem_2_4_linear_stability_formula_unitInterval
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    max
+        (max (chiStrong1Formula p eq.1 eq.2)
+          (chiStrong2Formula p eq.1))
+        (max (chiStrong3Formula p M0 eq.1 eq.2)
+          (chiStrong4Formula p M0 eq.1)) ≤
+      paperCriticalSensitivity unitIntervalNeumannSpectrum p eq.1 eq.2 →
+      NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+        LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 := by
+  dsimp
+  intro hcritical hcond
+  exact hcond.linearlyStable_of_max_threshold_le_critical
+    unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+    ha hb hcritical
+
+lemma Theorem_2_4_linear_stability_first_mode_unitInterval
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    max
+        (max (chiStrong1Formula p eq.1 eq.2)
+          (chiStrong2Formula p eq.1))
+        (max (chiStrong3Formula p M0 eq.1 eq.2)
+          (chiStrong4Formula p M0 eq.1)) ≤
+      ((1 + eq.2) ^ p.β /
+          (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+        (p.μ + Real.pi ^ 2) →
+      NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+        LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 := by
+  dsimp
+  intro hfirst hcond
+  exact hcond.linearlyStable_of_firstNonzero_lower
+    unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+    ha hb hfirst
+
 /-- Formula-level linear-stability part of Paper3 Theorem 2.5.  This version
 uses the explicit minimal thresholds and the paper critical-sensitivity
 infimum directly, with no `Paper3Constants` and no Lemma A.8 package field. -/
@@ -8074,6 +8110,41 @@ lemma Theorem_2_5_linear_stability_first_mode_branch_proved :
     Theorem_2_5_linear_stability_first_mode_branch := by
   intro S p H _ha _hb _hm hβ uStar huStar uBar vLower hfirst hcond
   exact hcond.linearlyStable_of_firstNonzero_lower S p H hβ huStar hfirst
+
+lemma Theorem_2_5_linear_stability_formula_unitInterval
+    (p : CM2Params)
+    (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
+    chiBeta p ≤
+      paperCriticalSensitivity unitIntervalNeumannSpectrum p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 →
+      MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+        LinearlyStable unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 := by
+  intro hcritical hcond
+  exact hcond.linearlyStable_of_chiBeta_le_critical
+    unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+    hβ huStar hcritical
+
+lemma Theorem_2_5_linear_stability_first_mode_unitInterval
+    (p : CM2Params)
+    (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
+    chiBeta p ≤
+      ((1 + (minimalEquilibrium p uStar).2) ^ p.β /
+          (p.ν * p.γ *
+            (minimalEquilibrium p uStar).1 ^ (p.m + p.γ - 1))) *
+        (p.μ + Real.pi ^ 2) →
+      MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+        LinearlyStable unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 := by
+  intro hfirst hcond
+  exact hcond.linearlyStable_of_firstNonzero_lower
+    unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+    hβ huStar hfirst
 
 /-- Formula-level negative-sensitivity bridge for Paper3 Theorem 2.3 at the
 positive equilibrium.  The spectral stability is direct from `χ₀ ≤ 0`; the
