@@ -7073,9 +7073,27 @@ def Theorem_2_2_linear_critical_spectrum_branch : Prop :=
           (C.chiCritical uStar < p.χ₀ →
             LinearlyUnstable S p eq.1 eq.2))
 
-lemma Theorem_2_2_linear_critical_spectrum_branch_proved :
-    Theorem_2_2_linear_critical_spectrum_branch := by
-  intro D S p C H hC
+/-- Direct theorem-shaped version of the constants-package critical-spectrum
+linear branch.  This is conditional on identifying the package threshold with
+the paper spectral infimum, but avoids a theorem-shaped `Prop` wrapper proof
+body. -/
+theorem Theorem_2_2_linear_critical_spectrum_branch_direct
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (C : Paper3Constants D p)
+    (H : HasNeumannSpectrum S) (hC : Paper3ConstantsUsesCriticalSpectrum S p C) :
+    (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      (p.χ₀ < C.chiCritical eq.1 →
+        LinearlyStable S p eq.1 eq.2) ∧
+      (C.chiCritical eq.1 < p.χ₀ →
+        LinearlyUnstable S p eq.1 eq.2)) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        (p.χ₀ < C.chiCritical uStar →
+          LinearlyStable S p eq.1 eq.2) ∧
+        (C.chiCritical uStar < p.χ₀ →
+          LinearlyUnstable S p eq.1 eq.2)) := by
   refine ⟨?_, ?_⟩
   · intro ha hb
     exact
@@ -7085,6 +7103,11 @@ lemma Theorem_2_2_linear_critical_spectrum_branch_proved :
     exact
       ⟨hC.minimalEquilibrium_linearlyStable H huStar,
         hC.minimalEquilibrium_linearlyUnstable H huStar⟩
+
+lemma Theorem_2_2_linear_critical_spectrum_branch_proved :
+    Theorem_2_2_linear_critical_spectrum_branch := by
+  intro D S p C H hC
+  exact Theorem_2_2_linear_critical_spectrum_branch_direct D S p C H hC
 
 lemma Theorem_2_2.nonminimal_stable
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
