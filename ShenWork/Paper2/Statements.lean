@@ -8,6 +8,7 @@
   predicates in `Paper2/Defs.lean`.
 -/
 import ShenWork.Paper2.Defs
+import ShenWork.PDE.IntervalDomain
 import Mathlib.Analysis.MeanInequalities
 import Mathlib.Analysis.Calculus.Deriv.Basic
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
@@ -381,6 +382,48 @@ lemma SupNormNonincreasingOn.of_forall_eq
     SupNormNonincreasingOn D u I := by
   intro t₁ ht₁ t₂ ht₂ _ht
   rw [hconst t₂ ht₂, hconst t₁ ht₁]
+
+/-! ### Concrete interval semigroup bridges
+
+These theorems expose the audit-passing interval operator from
+`PDE/IntervalDomain.lean` at the Paper2 statement layer.  They are not
+projections from `SemigroupEstimateData`; the proofs call the concrete kernel
+estimates for the restricted reflected heat operator on `[0,L]`.
+-/
+
+/-- Concrete interval semigroup trap invariance for bounded nonnegative
+inputs. -/
+theorem intervalSemigroupOperator_paper2_trap_bound
+    {L t Mf M : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    {f : ℝ → ℝ}
+    (hf_meas :
+      MeasureTheory.AEStronglyMeasurable f
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hf_nonneg : ∀ y, 0 ≤ f y)
+    (hf_le : ∀ y, f y ≤ M) :
+    ∀ x : ℝ,
+      0 ≤ ShenWork.IntervalDomain.intervalSemigroupOperator L t f x ∧
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t f x ≤ M := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_interval_bound_bounded
+    ht hM hf_meas hf_bound hf_nonneg hf_le x
+
+/-- Concrete interval semigroup `L¹ → L∞` smoothing with the interval length
+made explicit for bounded inputs. -/
+theorem intervalSemigroupOperator_paper2_length_smoothing
+    {L t M : ℝ} (hL : 0 ≤ L) (ht : 0 < t)
+    {f : ℝ → ℝ}
+    (hf_meas :
+      MeasureTheory.AEStronglyMeasurable f
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ M) :
+    ∀ x : ℝ,
+      |ShenWork.IntervalDomain.intervalSemigroupOperator L t f x| ≤
+        (1 / Real.sqrt (4 * Real.pi * t)) * (M * L) := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_L1_Linfty_abs_le_length
+    hL ht hf_meas hf_bound x
 
 def WeightedGradientEstimate
     (D : BoundedDomainData) (pExp beta gamma Mstar T : ℝ)
