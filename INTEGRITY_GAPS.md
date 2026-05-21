@@ -1,47 +1,51 @@
 # Proof Integrity Gaps — 11-Point Audit (2026-05-19)
 
-## Passing Points: 1, 2, 4, 9
+## Passing Points: 1, 2, 3, 4, 9
 
 - **Point 1 (0 sorry)**: PASS
 - **Point 2 (0 custom axiom)**: PASS
+- **Point 3 (0 assumption-structure theorem projection)**: PASS — the former
+  analytic-data structures whose fields were the paper theorem conclusions
+  have been removed; remaining abstract structures only carry raw operations,
+  predicates, threshold functions, or explicitly named spectrum facts.
 - **Point 4 (0 trivially true)**: PASS — the previous
   `Preliminary.lean` placeholder theorems with `True` conclusion have been
   removed from Lean sources.
 - **Point 9 (build passes)**: PASS
 
-## Failing Points: 3, 5, 6, 7, 8
+## Failing Points: 5, 6, 7, 8
 
 ### Point 3: 假设结构体逃避
 
-**Problem**: The main paper theorems are "proved" by projecting from assumption
-structures that bundle the conclusions as fields.
+**Current status**: The old theorem-shaped analytic-data structures have been
+removed.  The remaining structures are now mostly raw interfaces:
 
-| Structure | File | Fields that ARE the theorems being "proved" |
+| Structure | File | Current role |
 |-----------|------|---------------------------------------------|
-| `Paper3Constants` | Paper3/Statements.lean | Multiple fields for stability/threshold comparisons |
-| `StabilityNorms` | Paper3/Statements.lean | Norm continuity, compactness fields |
-| `CompactnessData` | Paper3/Statements.lean | Time-translate compactness fields |
-| `SemigroupEstimateData` | Paper2/Statements.lean | Semigroup L^p estimates |
-| `BoundedDomainData` | Paper2/Statements.lean | Abstract domain/boundary/integral |
-| `SpectralData` | Paper3/Statements.lean | Abstract Neumann spectrum |
+| `Paper3Constants` | Paper3/Statements.lean | Threshold functions plus `gaussianLowerConst_pos`; no stability theorem fields |
+| `StabilityNorms` | Paper3/Statements.lean | Two distance functionals; no continuity/compactness theorem fields |
+| `CompactnessData` | Paper3/Statements.lean | Abstract convergence/upper-envelope/resolvent-gradient relations, not theorem conclusions |
+| `SemigroupEstimateData` | Paper2/Statements.lean | Norms and semigroup operations only; no semigroup-estimate theorem fields |
+| `BoundedDomainData` | Paper2/Statements.lean | Abstract domain/PDE operators and admissibility/regularity predicates |
+| `SpectralData` | Paper3/Statements.lean | Eigenvalue sequence and first nonzero value; spectrum facts live in explicit `HasNeumannSpectrum` hypotheses |
 
 `Paper1AnalyticData`, `Paper2AnalyticData`, and their package-field
 `_conditional` projections have been removed from Lean sources.  Paper1 and
 Paper2 still have many open statement targets, but those targets are no longer
 inhabited by a single analytic-data projection package.
 
-**Fix**: For each field, either:
-(a) Prove it from lower-level lemmas and remove the field, or
-(b) Keep it as an explicit axiom and mark the theorem as "conditional"
+**Residual risk**: Do not count a theorem that merely assumes one of the
+abstract relation predicates as end-to-end.  Such theorems must be named
+conditional or must expose the relevant hypothesis in the declaration name.
 
 ### Point 5: Prop 假设逃避
 
 **Problem**: The former theorem-shaped package projections have been removed
-from Lean sources, but theorem-scale assumptions still exist as fields of
-`SemigroupEstimateData`, `StabilityNorms`, `CompactnessData`, and
-`Paper3Constants`.  Those fields make the analytic work explicit but do not
-prove it.  The remaining risk is to accidentally count a package field or an
-accessor from an assumed theorem as a source proof.
+from Lean sources, but theorem-scale assumptions still exist as explicit Prop
+inputs such as `Lemma_A_1`, `Lemma_A_7`, `Lemma_A_8`, `Corollary_5_1`, and
+sectorial/local-exponential stability hypotheses.  Those assumptions make the
+analytic work explicit but do not prove it.  The remaining risk is to
+accidentally count an accessor from an assumed theorem as a source proof.
 
 **Fix**: Prove each theorem from raw mathematical objects (CMParams, functions,
 etc.) without assumption structure parameters, or honestly label as conditional.
