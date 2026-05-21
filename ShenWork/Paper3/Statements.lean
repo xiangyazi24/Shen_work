@@ -418,6 +418,25 @@ lemma sigmaCriticalChiPaperFormula_ge_firstNonzero_lower
     A * ((lambdaN + p.a * p.α) * (p.μ + lambdaN) / lambdaN)
   exact mul_le_mul_of_nonneg_left hquad hA_pos.le
 
+/-- The paper critical sensitivity is bounded below by the first nonzero
+Neumann mode contribution.  This is the explicit estimate used to prove
+positivity of `χ*`, exposed as a reusable theorem rather than hidden inside a
+constants package field. -/
+lemma paperCriticalSensitivity_ge_firstNonzero_lower
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    {uStar vStar : ℝ} (huStar : 0 < uStar) (hvStar : 0 ≤ vStar) :
+    ((1 + vStar) ^ p.β /
+        (p.ν * p.γ * uStar ^ (p.m + p.γ - 1))) *
+      (p.μ + S.firstNonzero) ≤
+        paperCriticalSensitivity S p uStar vStar := by
+  unfold paperCriticalSensitivity
+  refine le_csInf (paperCriticalSensitivitySet_nonempty S p uStar vStar) ?_
+  rintro χ ⟨n, hn, rfl⟩
+  exact sigmaCriticalChiPaperFormula_ge_firstNonzero_lower
+    S p huStar hvStar
+    (H.eigenvalue_pos_of_ne_zero n hn)
+    (H.firstNonzero_le_eigenvalue n hn)
+
 lemma paperCriticalSensitivity_pos
     (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
     {uStar vStar : ℝ} (huStar : 0 < uStar) (hvStar : 0 ≤ vStar) :
@@ -435,13 +454,7 @@ lemma paperCriticalSensitivity_pos
           (Real.rpow_pos_of_pos huStar _)))
       (by linarith [p.hμ, H.firstNonzero_pos])
   have hlower_le : lower ≤ paperCriticalSensitivity S p uStar vStar := by
-    unfold paperCriticalSensitivity
-    refine le_csInf (paperCriticalSensitivitySet_nonempty S p uStar vStar) ?_
-    rintro χ ⟨n, hn, rfl⟩
-    exact sigmaCriticalChiPaperFormula_ge_firstNonzero_lower
-      S p huStar hvStar
-      (H.eigenvalue_pos_of_ne_zero n hn)
-      (H.firstNonzero_le_eigenvalue n hn)
+    exact paperCriticalSensitivity_ge_firstNonzero_lower S p H huStar hvStar
   exact lt_of_lt_of_le hlower_pos hlower_le
 
 lemma sigma_eq_chi_sub_critical_mul_coeff
