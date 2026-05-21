@@ -1980,6 +1980,16 @@ theorem intervalSemigroupOperator_const_eq_kernel_mass_mul
   rw [MeasureTheory.integral_mul_const]
   ring
 
+/-- Absolute value of a constant input is exactly the constant absolute value
+times the restricted kernel mass. -/
+theorem intervalSemigroupOperator_const_abs_eq_abs_mul_kernel_mass
+    {t : ℝ} (ht : 0 < t) (L c x : ℝ) :
+    |intervalSemigroupOperator L t (fun _ => c) x| =
+      |c| * ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L := by
+  rw [intervalSemigroupOperator_const_eq_kernel_mass_mul]
+  rw [abs_mul,
+    abs_of_nonneg (normalizedZerothReflectionKernel_intervalIntegral_nonneg ht L x)]
+
 /-- Applying the interval helper operator to `1` returns exactly the
 restricted kernel mass. -/
 theorem intervalSemigroupOperator_one_eq_kernel_mass
