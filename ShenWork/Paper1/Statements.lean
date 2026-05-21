@@ -7,6 +7,7 @@
   They are not proofs of the paper theorems.
 -/
 import ShenWork.PDE.LeibnizRule
+import ShenWork.PDE.HeatSemigroup
 import Mathlib.Analysis.Convex.Basic
 
 open Filter Topology MeasureTheory
@@ -879,6 +880,62 @@ theorem Lemma_2_1_zero_data :
     (by intro _ _ _; norm_num)
     (by intro _ _ _; norm_num)
     (by intro _ _; norm_num)
+
+/-! ### Concrete whole-line modified heat semigroup bridges
+
+These estimates expose the proved kernel bounds from `PDE/HeatSemigroup.lean`
+at the Paper1 statement layer.  They are not projections from
+`HeatSemigroupEstimateData`.
+-/
+
+/-- Concrete `L∞` decay for the modified heat semigroup `e^{(Δ-I)t}`. -/
+theorem modifiedSemigroup_paper1_Linfty_decay
+    {f : ℝ → ℝ} {M t : ℝ}
+    (hf_abs : ∀ x, |f x| ≤ M) (ht : 0 < t) (hM : 0 ≤ M)
+    (hf_meas : AEStronglyMeasurable f volume) :
+    ∀ x : ℝ, |modifiedSemigroup t f x| ≤ M * Real.exp (-t) := by
+  intro x
+  exact modifiedSemigroup_Linfty_decay hf_abs ht hM hf_meas x
+
+/-- Concrete interval preservation for the modified heat semigroup. -/
+theorem modifiedSemigroup_paper1_interval_bound
+    {f : ℝ → ℝ} {m M Mf t : ℝ}
+    (hf_ge : ∀ x, m ≤ f x) (hf_le : ∀ x, f x ≤ M)
+    (hf_bound : ∀ x, |f x| ≤ Mf)
+    (hf_meas : AEStronglyMeasurable f volume) (ht : 0 < t) :
+    ∀ x : ℝ,
+      Real.exp (-t) * m ≤ modifiedSemigroup t f x ∧
+        modifiedSemigroup t f x ≤ Real.exp (-t) * M := by
+  intro x
+  exact modifiedSemigroup_interval_bound
+    hf_ge hf_le hf_bound hf_meas ht x
+
+/-- Concrete `L∞` contraction for the modified heat semigroup. -/
+theorem modifiedSemigroup_paper1_contraction
+    {f g : ℝ → ℝ} {M t Mf Mg : ℝ}
+    (hfg : ∀ x, |f x - g x| ≤ M) (ht : 0 < t) (hM : 0 ≤ M)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (hf_bound : ∀ x, |f x| ≤ Mf)
+    (hg_bound : ∀ x, |g x| ≤ Mg) :
+    ∀ x : ℝ,
+      |modifiedSemigroup t f x - modifiedSemigroup t g x| ≤
+        Real.exp (-t) * M := by
+  intro x
+  exact modifiedSemigroup_contraction
+    hfg ht hM hf_meas hg_meas hf_bound hg_bound x
+
+/-- Concrete `L¹ → L∞` gradient smoothing for the modified heat semigroup. -/
+theorem deriv_modifiedSemigroup_paper1_L1_Linfty_smoothing_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t)
+    (hf_int : Integrable f) :
+    ∀ x : ℝ,
+      |deriv (fun z : ℝ => modifiedSemigroup t f z) x| ≤
+        Real.exp (-t) *
+          ((((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+            (Real.sqrt (1 / (4 * t)))⁻¹) * ∫ y : ℝ, |f y|) := by
+  intro x
+  exact deriv_modifiedSemigroup_L1_Linfty_smoothing_abs ht x hf_int
 
 def PsiDerivativeFormula (u : ℝ → ℝ) (l mu : ℝ) : Prop :=
   ∀ x,
