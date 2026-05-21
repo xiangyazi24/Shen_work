@@ -9891,12 +9891,28 @@ theorem Remark_4_3.distinct_wave_branch_of_continuous
 /-- End-to-end proof of the corrected regular Remark 4.3 statement.  This
 combines the explicit faster tail-rate selection, left trap domination,
 eventual right-tail domination, and weighted integrability bridge. -/
-theorem Remark_4_3_regular_proved : Remark_4_3_regular := by
-  intro p c hkappa U₁ V₁ U₂ V₂ _hTW₁ _hTW₂ hU₁_cont hU₂_cont
-    hbound₁ hbound₂ htail₁ htail₂ eta heta
+theorem Remark_4_3_regular_direct
+    {p : CMParams} {c eta : ℝ} {U₁ V₁ U₂ V₂ : ℝ → ℝ}
+    (hkappa : 0 < kappa c)
+    (_hTW₁ : IsTravelingWave p c U₁ V₁)
+    (_hTW₂ : IsTravelingWave p c U₂ V₂)
+    (hU₁_cont : Continuous U₁) (hU₂_cont : Continuous U₂)
+    (hbound₁ : HasWaveUpperTailBound p c U₁)
+    (hbound₂ : HasWaveUpperTailBound p c U₂)
+    (htail₁ : HasRemark43TailAsymptotic p c U₁)
+    (htail₂ : HasRemark43TailAsymptotic p c U₂)
+    (heta : Remark43TailRateBound p c eta) :
+    WeightedL2InitialCloseness (eta + kappa c) U₂ U₁ := by
   exact
     Remark_4_3.distinct_wave_branch_of_continuous
       hkappa hU₁_cont hU₂_cont hbound₁ hbound₂ htail₁ htail₂ heta
+
+theorem Remark_4_3_regular_proved : Remark_4_3_regular := by
+  intro p c hkappa U₁ V₁ U₂ V₂ hTW₁ hTW₂ hU₁_cont hU₂_cont
+    hbound₁ hbound₂ htail₁ htail₂ eta heta
+  exact
+    Remark_4_3_regular_direct hkappa hTW₁ hTW₂ hU₁_cont hU₂_cont
+      hbound₁ hbound₂ htail₁ htail₂ heta
 
 theorem HasRemark43TailAsymptotic.hasWaveRightTailAsymptotic
     {p : CMParams} {c κ₁ : ℝ} {U : ℝ → ℝ}
@@ -10433,13 +10449,56 @@ def Lemma_5_1_resolvent_identified : Prop :=
               B1 * Real.exp (-(kappa c) * x) +
                 B2 * Real.exp (-(kappa c) * p.γ * x))
 
-theorem Lemma_5_1_resolvent_identified_proved :
-    Lemma_5_1_resolvent_identified := by
-  intro p c hc U V _hTW hV hU_cont hbound hderiv_tends hderiv_bound hderiv_exp
+theorem Lemma_5_1_resolvent_identified_direct
+    {p : CMParams} {c : ℝ} (hc : 2 < c)
+    {U V : ℝ → ℝ}
+    (_hTW : IsTravelingWave p c U V)
+    (hV : V = frozenElliptic p U)
+    (hU_cont : Continuous U)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hderiv_tends : WaveDerivativeTendsZero U)
+    (hderiv_bound :
+      c > p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) →
+        ∃ B > 0, ∀ x, |deriv U x| ≤ B)
+    (hderiv_exp :
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+        ∃ B1 B2, ∀ x,
+          |deriv U x| ≤
+            B1 * Real.exp (-(kappa c) * x) +
+              B2 * Real.exp (-(kappa c) * p.γ * x)) :
+    (∀ x,
+      |V x| ≤ (MChi p) ^ p.γ ∧
+        |deriv V x| ≤ (MChi p) ^ p.γ) ∧
+    (p.γ + p.γ⁻¹ < c →
+      ∀ x,
+        |V x| ≤
+          min ((MChi p) ^ p.γ)
+            ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+              Real.exp (-(kappa c) * p.γ * x)) ∧
+        |deriv V x| ≤
+          min ((MChi p) ^ p.γ)
+            ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+              Real.exp (-(kappa c) * p.γ * x))) ∧
+    WaveDerivativeTendsZero U ∧
+    (c > p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) →
+      ∃ B > 0, ∀ x, |deriv U x| ≤ B) ∧
+    (c > max (p.γ + p.γ⁻¹)
+        (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+      ∃ B1 B2, ∀ x,
+        |deriv U x| ≤
+          B1 * Real.exp (-(kappa c) * x) +
+            B2 * Real.exp (-(kappa c) * p.γ * x)) := by
   have hU : IsCUnifBdd U := hbound.isCUnifBdd_of_continuous hU_cont
   subst V
   exact Lemma_5_1.fixed_point_conclusion_of_wave_derivative_bounds
     p hc hU hbound hderiv_tends hderiv_bound hderiv_exp
+
+theorem Lemma_5_1_resolvent_identified_proved :
+    Lemma_5_1_resolvent_identified := by
+  intro p c hc U V hTW hV hU_cont hbound hderiv_tends hderiv_bound hderiv_exp
+  exact
+    Lemma_5_1_resolvent_identified_direct hc hTW hV hU_cont hbound
+      hderiv_tends hderiv_bound hderiv_exp
 
 /-- Lemma 5.1's signal estimates for a frozen stationary profile already
 known to lie in the wave trap.  This avoids the arbitrary `IsTravelingWave`
@@ -10794,13 +10853,24 @@ def Lemma_5_2_explicit_frozen_monotone_trap : Prop :=
         InMonotoneWaveTrapSet (kappa c) (MChi p) U →
           ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c
 
-theorem Lemma_5_2_explicit_frozen_monotone_trap_proved :
-    Lemma_5_2_explicit_frozen_monotone_trap := by
-  intro p c hspeed U hprofile htrap
+theorem Lemma_5_2_explicit_frozen_monotone_trap_direct
+    {p : CMParams} {c : ℝ}
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
+    {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U) :
+    ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c := by
   exact Lemma_5_2_explicit.nonincreasing_branch hspeed
     hprofile.to_travelingWave
     (hprofile.hasWaveUpperTailBound_of_inMonotoneWaveTrapSet htrap)
     htrap.deriv_nonpos
+
+theorem Lemma_5_2_explicit_frozen_monotone_trap_proved :
+    Lemma_5_2_explicit_frozen_monotone_trap := by
+  intro p c hspeed U hprofile htrap
+  exact
+    Lemma_5_2_explicit_frozen_monotone_trap_direct hspeed hprofile htrap
 
 /-- Fixed-point/trap version of Lemma 5.2.  This packages the preceding
 explicit bound in the existential form of the paper lemma without projecting
@@ -10813,13 +10883,23 @@ def Lemma_5_2_frozen_monotone_trap : Prop :=
         InMonotoneWaveTrapSet (kappa c) (MChi p) U →
           ∃ B > 0, ∀ x, deriv U x / U x ≤ B
 
-theorem Lemma_5_2_frozen_monotone_trap_proved :
-    Lemma_5_2_frozen_monotone_trap := by
-  intro p c hspeed U hprofile htrap
+theorem Lemma_5_2_frozen_monotone_trap_direct
+    {p : CMParams} {c : ℝ}
+    (hspeed :
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)))
+    {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U) :
+    ∃ B > 0, ∀ x, deriv U x / U x ≤ B := by
   exact Lemma_5_2.nonincreasing_branch hspeed
     hprofile.to_travelingWave
     (hprofile.hasWaveUpperTailBound_of_inMonotoneWaveTrapSet htrap)
     htrap.deriv_nonpos
+
+theorem Lemma_5_2_frozen_monotone_trap_proved :
+    Lemma_5_2_frozen_monotone_trap := by
+  intro p c hspeed U hprofile htrap
+  exact Lemma_5_2_frozen_monotone_trap_direct hspeed hprofile htrap
 
 theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_log_derivative_bound
     {p : CMParams} {c κ₀ κtilde D : ℝ}
@@ -11472,13 +11552,26 @@ def Remark_5_2_frozen_monotone_trap : Prop :=
             deriv U x / U x ≤
               remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma)
 
-theorem Remark_5_2_frozen_monotone_trap_proved :
-    Remark_5_2_frozen_monotone_trap := by
-  intro p c sigma hsigma hχ hspeed U hprofile htrap
+theorem Remark_5_2_frozen_monotone_trap_direct
+    {p : CMParams} {c sigma : ℝ}
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    {U : ℝ → ℝ}
+    (hprofile : FrozenStationaryWaveProfile p c U)
+    (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U) :
+    ∀ x : ℝ,
+      deriv U x / U x ≤
+        remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) := by
   exact Remark_5_2.nonincreasing_branch hsigma hχ hspeed
     hprofile.to_travelingWave
     (hprofile.hasWaveUpperTailBound_of_inMonotoneWaveTrapSet htrap)
     htrap.deriv_nonpos
+
+theorem Remark_5_2_frozen_monotone_trap_proved :
+    Remark_5_2_frozen_monotone_trap := by
+  intro p c sigma hsigma hχ hspeed U hprofile htrap
+  exact
+    Remark_5_2_frozen_monotone_trap_direct hsigma hχ hspeed hprofile htrap
 
 theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_remark52_log_derivative
     {p : CMParams} {c κ₀ κtilde D sigma : ℝ}
