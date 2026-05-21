@@ -11495,7 +11495,7 @@ def Theorem_1_1 : Prop :=
           κ₁ < min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) →
           HasWaveRightTailAsymptotic c κ₁ U)
 
-theorem Theorem_1_1.of_frozenStationaryProfile_branches
+theorem Theorem_1_1.of_assumed_frozenStationaryProfile_branches
     (hneg :
       ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
         ∀ c : ℝ, cStarLower p < c →
@@ -11536,7 +11536,7 @@ theorem Theorem_1_1.of_frozenStationaryProfile_branches
       ⟨U, frozenElliptic p U,
         hprofile.to_travelingWave, hupper, htail⟩
 
-theorem Theorem_1_1.of_frozenStationaryProfile_trap_branches
+theorem Theorem_1_1.of_assumed_frozenStationaryProfile_trap_branches
     (hneg :
       ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
         ∀ c : ℝ, cStarLower p < c →
@@ -11563,7 +11563,7 @@ theorem Theorem_1_1.of_frozenStationaryProfile_trap_branches
                     (min (p.m * kappa c + 1 / 2) 1) →
                 HasWaveRightTailAsymptotic c κ₁ U) :
     Theorem_1_1 := by
-  refine Theorem_1_1.of_frozenStationaryProfile_branches ?_ hpos
+  refine Theorem_1_1.of_assumed_frozenStationaryProfile_branches ?_ hpos
   intro p halpha hχ c hc
   rcases hneg p halpha hχ c hc with
     ⟨U, htrap, hprofile, hVmono, hupper, htail⟩
@@ -11613,7 +11613,7 @@ theorem Theorem_1_1.of_raw_frozen_stationary_branches
                     (min (p.m * kappa c + 1 / 2) 1) →
                 HasWaveRightTailAsymptotic c κ₁ U)) :
     Theorem_1_1 := by
-  refine Theorem_1_1.of_frozenStationaryProfile_branches ?_ ?_
+  refine Theorem_1_1.of_assumed_frozenStationaryProfile_branches ?_ ?_
   · intro p halpha hχ c hc
     rcases hneg p halpha hχ c hc with
       ⟨U, hc_pos, hU_pos, hU_bdd, hstat, hlim_bot, hlim_top,
@@ -11669,7 +11669,7 @@ theorem Theorem_1_1.of_raw_frozen_stationary_tail_continuous_branches
                     (min (p.m * kappa c + 1 / 2) 1) →
                 HasWaveRightTailAsymptotic c κ₁ U)) :
     Theorem_1_1 := by
-  refine Theorem_1_1.of_frozenStationaryProfile_branches ?_ ?_
+  refine Theorem_1_1.of_assumed_frozenStationaryProfile_branches ?_ ?_
   · intro p halpha hχ c hc
     rcases hneg p halpha hχ c hc with
       ⟨U, hc_pos, hbound, hU_cont, hstat, hlim_bot, hlim_top,
@@ -11791,7 +11791,7 @@ theorem deliberately keeps the fixed-point stationarity, left-end limit, upper
 bound, and right-tail asymptotic obligations explicit; the construction itself
 is used only for the fixed point, trap-set regularity, monotonicity, and
 right-end limits. -/
-theorem Theorem_1_1.of_fixed_point_construction_branches
+theorem Theorem_1_1.of_assumed_fixed_point_construction_branches
     (hneg :
       ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
         ∀ c : ℝ, cStarLower p < c →

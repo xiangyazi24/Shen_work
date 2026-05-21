@@ -718,7 +718,7 @@ projection theorem wrappers have been removed.
   negative branch and from `2 < c` in the positive branch
 - `NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_speed_bridge_data`,
   `PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_speed_bridge_data`,
-  and `Theorem_1_1.of_fixed_point_construction_branches`: construction-level
+  and `Theorem_1_1.of_assumed_fixed_point_construction_branches`: construction-level
   bridges that use the actual fixed point, trap-set continuity, monotonicity,
   tail bounds, and right-end limits from `FrozenWaveMapConstruction`.  They
   keep stationarity, left-end convergence, the sharp paper upper bound, and
