@@ -10042,13 +10042,28 @@ def Theorem_2_4_linear_stability_branch : Prop :=
           NonminimalGlobalStabilityCondition D p C eq.1 →
             LinearlyStable S p eq.1 eq.2
 
-lemma Theorem_2_4_linear_stability_branch_proved :
-    Theorem_2_4_linear_stability_branch := by
-  intro D S p C H hC hA7 ha hb
+/-- Direct theorem-shaped version of the package-field Theorem 2.4
+linear-stability branch.  This remains conditional on Lemma A.7, but avoids
+putting the proof body inside a theorem-shaped `Prop` wrapper. -/
+theorem Theorem_2_4_linear_stability_branch_direct
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (C : Paper3Constants D p)
+    (H : HasNeumannSpectrum S) (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (hA7 : Lemma_A_7 D p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    NonminimalGlobalStabilityCondition D p C eq.1 →
+      LinearlyStable S p eq.1 eq.2 := by
   dsimp
   intro hcond
   exact hA7.nonminimal_condition_linearlyStable_of_critical_spectrum
     H hC ha hb hcond
+
+lemma Theorem_2_4_linear_stability_branch_proved :
+    Theorem_2_4_linear_stability_branch := by
+  intro D S p C H hC hA7 ha hb
+  exact Theorem_2_4_linear_stability_branch_direct
+    D S p C H hC hA7 ha hb
 
 /-- The linear-stability part of Paper3 Theorem 2.5, proved directly from the
 A.8 threshold comparison and the critical-spectrum identification.  The global
@@ -10066,11 +10081,29 @@ def Theorem_2_5_linear_stability_branch : Prop :=
                 (minimalEquilibrium p uStar).1
                 (minimalEquilibrium p uStar).2
 
-lemma Theorem_2_5_linear_stability_branch_proved :
-    Theorem_2_5_linear_stability_branch := by
-  intro D S p C H hC hA8 ha hb hm hβ uStar huStar hcond
+/-- Direct theorem-shaped version of the package-field Theorem 2.5
+linear-stability branch.  This remains conditional on Lemma A.8, but avoids
+putting the proof body inside a theorem-shaped `Prop` wrapper. -/
+theorem Theorem_2_5_linear_stability_branch_direct
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (C : Paper3Constants D p)
+    (H : HasNeumannSpectrum S) (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (hA8 : Lemma_A_8 D p C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) :
+    MinimalGlobalStabilityCondition D p C uStar →
+      LinearlyStable S p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 := by
+  intro hcond
   exact hA8.minimal_condition_linearlyStable_of_critical_spectrum
     H hC ha hb hm hβ huStar hcond
+
+lemma Theorem_2_5_linear_stability_branch_proved :
+    Theorem_2_5_linear_stability_branch := by
+  intro D S p C H hC hA8 ha hb hm hβ uStar huStar
+  exact Theorem_2_5_linear_stability_branch_direct
+    D S p C H hC hA8 ha hb hm hβ huStar
 
 /-- Formula-level linear-stability part of Paper3 Theorem 2.4.  This version
 uses the explicit strong thresholds and the paper critical-sensitivity
@@ -10088,14 +10121,6 @@ def Theorem_2_4_linear_stability_formula_branch : Prop :=
           paperCriticalSensitivity S p eq.1 eq.2 →
           NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
             LinearlyStable S p eq.1 eq.2
-
-lemma Theorem_2_4_linear_stability_formula_branch_proved :
-    Theorem_2_4_linear_stability_formula_branch := by
-  intro S p H ha hb M0
-  dsimp
-  intro hcritical hcond
-  exact hcond.linearlyStable_of_max_threshold_le_critical S p H ha hb
-    hcritical
 
 /-- Direct theorem-shaped version of the formula-level Paper3 Theorem 2.4
 linear-stability branch, avoiding the theorem-shaped `Prop` wrapper. -/
@@ -10116,6 +10141,11 @@ theorem Theorem_2_4_linear_stability_formula_branch_direct
   exact hcond.linearlyStable_of_max_threshold_le_critical S p H ha hb
     hcritical
 
+lemma Theorem_2_4_linear_stability_formula_branch_proved :
+    Theorem_2_4_linear_stability_formula_branch := by
+  intro S p H ha hb M0
+  exact Theorem_2_4_linear_stability_formula_branch_direct S p H ha hb M0
+
 /-- First-mode sufficient version of the formula-level Theorem 2.4 linear
 stability branch. -/
 def Theorem_2_4_linear_stability_first_mode_branch : Prop :=
@@ -10133,13 +10163,6 @@ def Theorem_2_4_linear_stability_first_mode_branch : Prop :=
             (p.μ + S.firstNonzero) →
           NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
             LinearlyStable S p eq.1 eq.2
-
-lemma Theorem_2_4_linear_stability_first_mode_branch_proved :
-    Theorem_2_4_linear_stability_first_mode_branch := by
-  intro S p H ha hb M0
-  dsimp
-  intro hfirst hcond
-  exact hcond.linearlyStable_of_firstNonzero_lower S p H ha hb hfirst
 
 /-- Direct theorem-shaped version of the first-mode sufficient Paper3
 Theorem 2.4 linear-stability branch. -/
@@ -10160,6 +10183,11 @@ theorem Theorem_2_4_linear_stability_first_mode_branch_direct
   dsimp
   intro hfirst hcond
   exact hcond.linearlyStable_of_firstNonzero_lower S p H ha hb hfirst
+
+lemma Theorem_2_4_linear_stability_first_mode_branch_proved :
+    Theorem_2_4_linear_stability_first_mode_branch := by
+  intro S p H ha hb M0
+  exact Theorem_2_4_linear_stability_first_mode_branch_direct S p H ha hb M0
 
 lemma Theorem_2_4_linear_stability_formula_unitInterval
     (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
@@ -10214,12 +10242,6 @@ def Theorem_2_5_linear_stability_formula_branch : Prop :=
                 (minimalEquilibrium p uStar).1
                 (minimalEquilibrium p uStar).2
 
-lemma Theorem_2_5_linear_stability_formula_branch_proved :
-    Theorem_2_5_linear_stability_formula_branch := by
-  intro S p H _ha _hb _hm hβ uStar huStar uBar vLower hcritical hcond
-  exact hcond.linearlyStable_of_chiBeta_le_critical S p H hβ huStar
-    hcritical
-
 /-- Direct theorem-shaped version of the formula-level Paper3 Theorem 2.5
 linear-stability branch, avoiding the theorem-shaped `Prop` wrapper. -/
 theorem Theorem_2_5_linear_stability_formula_branch_direct
@@ -10238,6 +10260,12 @@ theorem Theorem_2_5_linear_stability_formula_branch_direct
   exact hcond.linearlyStable_of_chiBeta_le_critical S p H hβ huStar
     hcritical
 
+lemma Theorem_2_5_linear_stability_formula_branch_proved :
+    Theorem_2_5_linear_stability_formula_branch := by
+  intro S p H ha hb hm hβ uStar huStar uBar vLower
+  exact Theorem_2_5_linear_stability_formula_branch_direct
+    S p H ha hb hm hβ huStar uBar vLower
+
 /-- First-mode sufficient version of the formula-level Theorem 2.5 linear
 stability branch. -/
 def Theorem_2_5_linear_stability_first_mode_branch : Prop :=
@@ -10254,11 +10282,6 @@ def Theorem_2_5_linear_stability_first_mode_branch : Prop :=
               LinearlyStable S p
                 (minimalEquilibrium p uStar).1
                 (minimalEquilibrium p uStar).2
-
-lemma Theorem_2_5_linear_stability_first_mode_branch_proved :
-    Theorem_2_5_linear_stability_first_mode_branch := by
-  intro S p H _ha _hb _hm hβ uStar huStar uBar vLower hfirst hcond
-  exact hcond.linearlyStable_of_firstNonzero_lower S p H hβ huStar hfirst
 
 /-- Direct theorem-shaped version of the first-mode sufficient Paper3
 Theorem 2.5 linear-stability branch. -/
@@ -10277,6 +10300,12 @@ theorem Theorem_2_5_linear_stability_first_mode_branch_direct
           (minimalEquilibrium p uStar).2 := by
   intro hfirst hcond
   exact hcond.linearlyStable_of_firstNonzero_lower S p H hβ huStar hfirst
+
+lemma Theorem_2_5_linear_stability_first_mode_branch_proved :
+    Theorem_2_5_linear_stability_first_mode_branch := by
+  intro S p H ha hb hm hβ uStar huStar uBar vLower
+  exact Theorem_2_5_linear_stability_first_mode_branch_direct
+    S p H ha hb hm hβ huStar uBar vLower
 
 lemma Theorem_2_5_linear_stability_formula_unitInterval
     (p : CM2Params)
@@ -10328,18 +10357,6 @@ def Theorem_2_3_negative_sensitivity_convergence_formula_branch : Prop :=
           LinearlyStable S p eq.1 eq.2 ∧
           MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2
 
-lemma Theorem_2_3_negative_sensitivity_convergence_formula_branch_proved :
-    Theorem_2_3_negative_sensitivity_convergence_formula_branch := by
-  intro D S p N H hχ ha hb
-  dsimp
-  intro hsectorial
-  have hstable :
-      LinearlyStable S p
-        (positiveEquilibrium p ⟨ha, hb⟩).1
-        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
-    positiveEquilibrium_linearlyStable_of_chi_nonpos_neumann S p H hχ ha hb
-  exact ⟨hstable, hsectorial hstable⟩
-
 /-- Direct theorem-shaped version of the negative-sensitivity convergence
 bridge for Paper3 Theorem 2.3.  The local exponential step remains the
 explicit supplied consequence of the proved linear stability. -/
@@ -10361,6 +10378,12 @@ theorem Theorem_2_3_negative_sensitivity_convergence_formula_branch_direct
         (positiveEquilibrium p ⟨ha, hb⟩).2 :=
     positiveEquilibrium_linearlyStable_of_chi_nonpos_neumann S p H hχ ha hb
   exact ⟨hstable, hsectorial hstable⟩
+
+lemma Theorem_2_3_negative_sensitivity_convergence_formula_branch_proved :
+    Theorem_2_3_negative_sensitivity_convergence_formula_branch := by
+  intro D S p N H hχ ha hb
+  exact Theorem_2_3_negative_sensitivity_convergence_formula_branch_direct
+    D S p N H hχ ha hb
 
 lemma Theorem_2_3_negative_sensitivity_convergence_unitInterval
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
@@ -10398,15 +10421,6 @@ def Theorem_2_4_full_stability_formula_branch : Prop :=
               LinearlyStable S p eq.1 eq.2 ∧
               MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2
 
-lemma Theorem_2_4_full_stability_formula_branch_proved :
-    Theorem_2_4_full_stability_formula_branch := by
-  intro D S p N H ha hb M0
-  dsimp
-  intro hcritical hcond hsectorial
-  have hstable :=
-    hcond.linearlyStable_of_max_threshold_le_critical S p H ha hb hcritical
-  exact ⟨hstable, hsectorial hstable⟩
-
 /-- Direct theorem-shaped version of the formula-level Theorem 2.4
 full-stability bridge.  This is the same statement as
 `Theorem_2_4_full_stability_formula_branch`, but not routed through a
@@ -10432,6 +10446,12 @@ theorem Theorem_2_4_full_stability_formula_branch_direct
   have hstable :=
     hcond.linearlyStable_of_max_threshold_le_critical S p H ha hb hcritical
   exact ⟨hstable, hsectorial hstable⟩
+
+lemma Theorem_2_4_full_stability_formula_branch_proved :
+    Theorem_2_4_full_stability_formula_branch := by
+  intro D S p N H ha hb M0
+  exact Theorem_2_4_full_stability_formula_branch_direct
+    D S p N H ha hb M0
 
 /-- General first-mode sufficient version of the formula-level Theorem 2.4
 full-stability bridge.  This avoids `Paper3Constants`; the remaining local
@@ -10536,14 +10556,6 @@ def Theorem_2_5_full_stability_formula_branch : Prop :=
                   (minimalEquilibrium p uStar).1
                   (minimalEquilibrium p uStar).2
 
-lemma Theorem_2_5_full_stability_formula_branch_proved :
-    Theorem_2_5_full_stability_formula_branch := by
-  intro D S p N H _ha _hb _hm hβ uStar huStar uBar vLower
-    hcritical hcond hsectorial
-  have hstable :=
-    hcond.linearlyStable_of_chiBeta_le_critical S p H hβ huStar hcritical
-  exact ⟨hstable, hsectorial hstable⟩
-
 /-- Direct theorem-shaped version of the formula-level Theorem 2.5
 full-stability bridge, avoiding the theorem-shaped `Prop` wrapper. -/
 theorem Theorem_2_5_full_stability_formula_branch_direct
@@ -10572,6 +10584,12 @@ theorem Theorem_2_5_full_stability_formula_branch_direct
   have hstable :=
     hcond.linearlyStable_of_chiBeta_le_critical S p H hβ huStar hcritical
   exact ⟨hstable, hsectorial hstable⟩
+
+lemma Theorem_2_5_full_stability_formula_branch_proved :
+    Theorem_2_5_full_stability_formula_branch := by
+  intro D S p N H ha hb hm hβ uStar huStar uBar vLower
+  exact Theorem_2_5_full_stability_formula_branch_direct
+    D S p N H ha hb hm hβ huStar uBar vLower
 
 /-- General first-mode sufficient version of the formula-level Theorem 2.5
 full-stability bridge.  It uses the explicit first-nonzero eigenvalue lower
