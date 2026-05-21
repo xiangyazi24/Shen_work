@@ -322,6 +322,30 @@ theorem constantModeProjection_contraction {L M : ℝ} (hL : 0 < L)
   rw [← intervalAverage_sub hf_int hg_int]
   exact intervalAverage_abs_le hL (hf_int.sub hg_int) hfg
 
+/-- The residual after subtracting the constant-mode projection has zero
+interval mass. -/
+theorem constantModeProjection_residual_intervalIntegral_eq_zero
+    {L : ℝ} (hL : 0 < L) {f : ℝ → ℝ}
+    (hf_int : IntervalIntegrable f volume 0 L) :
+    ∫ x in (0 : ℝ)..L, (f x - constantModeProjection L f x) = 0 := by
+  have hproj_int :
+      IntervalIntegrable (constantModeProjection L f) volume 0 L := by
+    unfold constantModeProjection
+    exact intervalIntegrable_const
+  rw [intervalIntegral.integral_sub hf_int hproj_int]
+  rw [constantModeProjection_preserves_mass hL f]
+  ring
+
+/-- The residual after subtracting the constant-mode projection has zero
+interval average. -/
+theorem constantModeProjection_residual_intervalAverage_eq_zero
+    {L : ℝ} (hL : 0 < L) {f : ℝ → ℝ}
+    (hf_int : IntervalIntegrable f volume 0 L) :
+    intervalAverage L (fun x => f x - constantModeProjection L f x) = 0 := by
+  unfold intervalAverage
+  rw [constantModeProjection_residual_intervalIntegral_eq_zero hL hf_int]
+  ring
+
 /-- The Neumann heat kernel on [0,L] via method of images (reflected kernel).
 For t > 0 and x, y ∈ [0,L]:
   K_N(t, x, y) = G(t, x-y) + G(t, x+y) + G(t, 2L-x-y) + ...
