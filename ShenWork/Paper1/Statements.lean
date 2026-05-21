@@ -1742,6 +1742,31 @@ theorem ExponentialWeight.weight_nonneg (psi : ExponentialWeight) (x : ℝ) :
     0 ≤ psi.weight x :=
   le_of_lt (psi.pos x)
 
+theorem ExponentialWeight.differentiableAt_weight
+    (psi : ExponentialWeight) (x : ℝ) :
+    DifferentiableAt ℝ psi.weight x :=
+  (psi.smooth.differentiable two_ne_zero).differentiableAt
+
+theorem ExponentialWeight.hasDerivAt_log_weight
+    (psi : ExponentialWeight) (x : ℝ) :
+    HasDerivAt (fun z => Real.log (psi.weight z))
+      (deriv psi.weight x / psi.weight x) x :=
+  (psi.differentiableAt_weight x).hasDerivAt.log (ne_of_gt (psi.pos x))
+
+theorem ExponentialWeight.deriv_log_weight_eq
+    (psi : ExponentialWeight) (x : ℝ) :
+    deriv (fun z => Real.log (psi.weight z)) x =
+      deriv psi.weight x / psi.weight x :=
+  (psi.hasDerivAt_log_weight x).deriv
+
+theorem ExponentialWeight.deriv_log_weight_abs_le
+    (psi : ExponentialWeight) {k : ℝ} (hk : 0 ≤ k)
+    (hk_bound : ∀ z, |deriv psi.weight z| ≤ k * psi.weight z)
+    (x : ℝ) :
+    |deriv (fun z => Real.log (psi.weight z)) x| ≤ k := by
+  rw [psi.deriv_log_weight_eq x, abs_div, abs_of_pos (psi.pos x)]
+  exact div_le_of_le_mul₀ (psi.pos x).le hk (hk_bound x)
+
 theorem Psi_deriv_abs_rpow_le_Psi_rpow
     {u : ℝ → ℝ} {l mu pExp : ℝ}
     (hl : 0 < l) (hmu : 0 < mu) (hpExp : 0 < pExp)
