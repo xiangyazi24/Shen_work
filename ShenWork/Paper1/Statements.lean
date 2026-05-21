@@ -9211,10 +9211,6 @@ def Remark_1_3_2 : Prop :=
       ∀ c : ℝ, 2 < c →
         ∃ U V : ℝ → ℝ, IsRightVanishingTravelingWave p c U V
 
-/-- Paper1 Remark 4.3(2) invokes the same extended positive-sensitivity
-right-vanishing wave conclusion as Remark 1.3(2). -/
-def Remark_4_3_part2 : Prop := Remark_1_3_2
-
 theorem Remark_1_3_2.rightVanishingWave
     (h : Remark_1_3_2) {p : CMParams}
     (halpha : p.α = p.m + p.γ - 1)
@@ -9224,16 +9220,6 @@ theorem Remark_1_3_2.rightVanishingWave
     {c : ℝ} (hc : 2 < c) :
     ∃ U V : ℝ → ℝ, IsRightVanishingTravelingWave p c U V :=
   h p halpha hthreshold hχ_half hχ_small c hc
-
-theorem Remark_4_3_part2.rightVanishingWave
-    (h : Remark_4_3_part2) {p : CMParams}
-    (halpha : p.α = p.m + p.γ - 1)
-    (hthreshold : (1 / 2 : ℝ) < positiveSensitivityExtendedThreshold p)
-    (hχ_half : (1 / 2 : ℝ) ≤ p.χ)
-    (hχ_small : p.χ < min (positiveSensitivityExtendedThreshold p) 1)
-    {c : ℝ} (hc : 2 < c) :
-    ∃ U V : ℝ → ℝ, IsRightVanishingTravelingWave p c U V :=
-  Remark_1_3_2.rightVanishingWave h halpha hthreshold hχ_half hχ_small hc
 
 theorem Remark43TailRateBound.pos
     {p : CMParams} {c eta : ℝ} (h : Remark43TailRateBound p c eta) :
