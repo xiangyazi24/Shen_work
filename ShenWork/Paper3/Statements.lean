@@ -3849,6 +3849,38 @@ lemma NonminimalGlobalStabilityFormulaCondition.linearlyStable_of_max_threshold_
     S p H ha hb
     (lt_of_lt_of_le (h.chi_lt_max_threshold) hcritical)
 
+lemma NonminimalGlobalStabilityFormulaCondition.linearlyStable_of_firstNonzero_lower
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    (ha : 0 < p.a) (hb : 0 < p.b) {M0 : ℝ}
+    (hfirst :
+      max
+          (max
+            (chiStrong1Formula p
+              (positiveEquilibrium p ⟨ha, hb⟩).1
+              (positiveEquilibrium p ⟨ha, hb⟩).2)
+            (chiStrong2Formula p
+              (positiveEquilibrium p ⟨ha, hb⟩).1))
+          (max
+            (chiStrong3Formula p M0
+              (positiveEquilibrium p ⟨ha, hb⟩).1
+              (positiveEquilibrium p ⟨ha, hb⟩).2)
+            (chiStrong4Formula p M0
+              (positiveEquilibrium p ⟨ha, hb⟩).1)) ≤
+        ((1 + (positiveEquilibrium p ⟨ha, hb⟩).2) ^ p.β /
+            (p.ν * p.γ *
+              (positiveEquilibrium p ⟨ha, hb⟩).1 ^ (p.m + p.γ - 1))) *
+          (p.μ + S.firstNonzero))
+    (h :
+      NonminimalGlobalStabilityFormulaCondition p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 M0) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyStable S p eq.1 eq.2 := by
+  exact h.linearlyStable_of_max_threshold_le_critical S p H ha hb
+    (le_trans hfirst
+      (paperCriticalSensitivity_positiveEquilibrium_ge_firstNonzero_lower
+        S p H ha hb))
+
 def MinimalGlobalStabilityCondition
     (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p)
     (uStar : ℝ) : Prop :=
