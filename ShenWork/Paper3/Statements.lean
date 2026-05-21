@@ -6863,260 +6863,6 @@ theorem Theorem_2_2_linear_critical_spectrum_branch_direct
       ⟨hC.minimalEquilibrium_linearlyStable H huStar,
         hC.minimalEquilibrium_linearlyUnstable H huStar⟩
 
-lemma Theorem_2_2.nonminimal_stable
-    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
-    {N : StabilityNorms D} {C : Paper3Constants D p}
-    (h : Theorem_2_2 D p S N C)
-    (ha : 0 < p.a) (hb : 0 < p.b)
-    (hχ : p.χ₀ < C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1) :
-    LinearlyStable S p
-      (positiveEquilibrium p ⟨ha, hb⟩).1
-      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
-  exact (h.1 ha hb hχ).1
-
-lemma Theorem_2_2.nonminimal_local_exponential
-    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
-    {N : StabilityNorms D} {C : Paper3Constants D p}
-    (h : Theorem_2_2 D p S N C)
-    (ha : 0 < p.a) (hb : 0 < p.b)
-    (hχ : p.χ₀ < C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1) :
-    LocallyExponentiallyStableFromSup D p N
-      (positiveEquilibrium p ⟨ha, hb⟩).1
-      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
-  exact (h.1 ha hb hχ).2
-
-lemma Theorem_2_2.nonminimal_stability_conclusion
-    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
-    {N : StabilityNorms D} {C : Paper3Constants D p}
-    (h : Theorem_2_2 D p S N C)
-    (ha : 0 < p.a) (hb : 0 < p.b)
-    (hχ : p.χ₀ < C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1) :
-    LinearlyStable S p
-      (positiveEquilibrium p ⟨ha, hb⟩).1
-      (positiveEquilibrium p ⟨ha, hb⟩).2 ∧
-    LocallyExponentiallyStableFromSup D p N
-      (positiveEquilibrium p ⟨ha, hb⟩).1
-      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
-  h.1 ha hb hχ
-
-lemma Theorem_2_2.nonminimal_stability_conclusion_of_chi_lt_paperCriticalSensitivity
-    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
-    {N : StabilityNorms D} {C : Paper3Constants D p}
-    (h : Theorem_2_2 D p S N C)
-    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
-    (ha : 0 < p.a) (hb : 0 < p.b)
-    (hχ :
-      p.χ₀ <
-        paperCriticalSensitivity S p
-          (positiveEquilibrium p ⟨ha, hb⟩).1
-          (positiveEquilibrium p ⟨ha, hb⟩).2) :
-    LinearlyStable S p
-      (positiveEquilibrium p ⟨ha, hb⟩).1
-      (positiveEquilibrium p ⟨ha, hb⟩).2 ∧
-    LocallyExponentiallyStableFromSup D p N
-      (positiveEquilibrium p ⟨ha, hb⟩).1
-      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
-  exact h.nonminimal_stability_conclusion ha hb
-    (by
-      rwa [hC.chiCritical_positiveEquilibrium ha hb])
-
-lemma Theorem_2_2.nonminimal_exponential_convergence
-    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
-    {N : StabilityNorms D} {C : Paper3Constants D p}
-    (h : Theorem_2_2 D p S N C)
-    (ha : 0 < p.a) (hb : 0 < p.b)
-    (hχ : p.χ₀ < C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1) :
-    ∃ δ > 0,
-      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
-        SupCloseToConstant D u₀ (positiveEquilibrium p ⟨ha, hb⟩).1 δ →
-          ∃ u v : ℝ → D.Point → ℝ,
-            IsPaper2GlobalClassicalSolution D p u v ∧
-            InitialTrace D u₀ u ∧
-            ExponentialC1Convergence D N u v
-              (positiveEquilibrium p ⟨ha, hb⟩).1
-              (positiveEquilibrium p ⟨ha, hb⟩).2 :=
-  (h.nonminimal_local_exponential ha hb hχ).exponential_convergence
-
-lemma Theorem_2_2.nonminimal_exponential_convergence_of_chi_lt_paperCriticalSensitivity
-    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
-    {N : StabilityNorms D} {C : Paper3Constants D p}
-    (h : Theorem_2_2 D p S N C)
-    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
-    (ha : 0 < p.a) (hb : 0 < p.b)
-    (hχ :
-      p.χ₀ <
-        paperCriticalSensitivity S p
-          (positiveEquilibrium p ⟨ha, hb⟩).1
-          (positiveEquilibrium p ⟨ha, hb⟩).2) :
-    ∃ δ > 0,
-      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
-        SupCloseToConstant D u₀ (positiveEquilibrium p ⟨ha, hb⟩).1 δ →
-          ∃ u v : ℝ → D.Point → ℝ,
-            IsPaper2GlobalClassicalSolution D p u v ∧
-            InitialTrace D u₀ u ∧
-            ExponentialC1Convergence D N u v
-              (positiveEquilibrium p ⟨ha, hb⟩).1
-              (positiveEquilibrium p ⟨ha, hb⟩).2 := by
-  exact h.nonminimal_exponential_convergence ha hb
-    (by
-      rwa [hC.chiCritical_positiveEquilibrium ha hb])
-
-lemma Theorem_2_2.nonminimal_unstable
-    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
-    {N : StabilityNorms D} {C : Paper3Constants D p}
-    (h : Theorem_2_2 D p S N C)
-    (ha : 0 < p.a) (hb : 0 < p.b)
-    (hχ : C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 < p.χ₀) :
-    LinearlyUnstable S p
-      (positiveEquilibrium p ⟨ha, hb⟩).1
-      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
-  exact h.2.1 ha hb hχ
-
-lemma Theorem_2_2.nonminimal_unstable_of_paperCriticalSensitivity_lt_chi
-    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
-    {N : StabilityNorms D} {C : Paper3Constants D p}
-    (h : Theorem_2_2 D p S N C)
-    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
-    (ha : 0 < p.a) (hb : 0 < p.b)
-    (hχ :
-      paperCriticalSensitivity S p
-        (positiveEquilibrium p ⟨ha, hb⟩).1
-        (positiveEquilibrium p ⟨ha, hb⟩).2 < p.χ₀) :
-    LinearlyUnstable S p
-      (positiveEquilibrium p ⟨ha, hb⟩).1
-      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
-  exact h.nonminimal_unstable ha hb
-    (by
-      rwa [hC.chiCritical_positiveEquilibrium ha hb])
-
-lemma Theorem_2_2.minimal_stable
-    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
-    {N : StabilityNorms D} {C : Paper3Constants D p}
-    (h : Theorem_2_2 D p S N C)
-    (ha : p.a = 0) (hb : p.b = 0) {uStar : ℝ} (huStar : 0 < uStar)
-    (hχ : p.χ₀ < C.chiCritical uStar) :
-    LinearlyStable S p
-      (minimalEquilibrium p uStar).1
-      (minimalEquilibrium p uStar).2 := by
-  exact (h.2.2.1 ha hb uStar huStar hχ).1
-
-lemma Theorem_2_2.minimal_local_exponential
-    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
-    {N : StabilityNorms D} {C : Paper3Constants D p}
-    (h : Theorem_2_2 D p S N C)
-    (ha : p.a = 0) (hb : p.b = 0) {uStar : ℝ} (huStar : 0 < uStar)
-    (hχ : p.χ₀ < C.chiCritical uStar) :
-    MassConstrainedLocallyExponentiallyStableFromSup D p N
-      (minimalEquilibrium p uStar).1
-      (minimalEquilibrium p uStar).2 := by
-  exact (h.2.2.1 ha hb uStar huStar hχ).2
-
-lemma Theorem_2_2.minimal_stability_conclusion
-    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
-    {N : StabilityNorms D} {C : Paper3Constants D p}
-    (h : Theorem_2_2 D p S N C)
-    (ha : p.a = 0) (hb : p.b = 0) {uStar : ℝ} (huStar : 0 < uStar)
-    (hχ : p.χ₀ < C.chiCritical uStar) :
-    LinearlyStable S p
-      (minimalEquilibrium p uStar).1
-      (minimalEquilibrium p uStar).2 ∧
-    MassConstrainedLocallyExponentiallyStableFromSup D p N
-      (minimalEquilibrium p uStar).1
-      (minimalEquilibrium p uStar).2 :=
-  h.2.2.1 ha hb uStar huStar hχ
-
-lemma Theorem_2_2.minimal_stability_conclusion_of_chi_lt_paperCriticalSensitivity
-    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
-    {N : StabilityNorms D} {C : Paper3Constants D p}
-    (h : Theorem_2_2 D p S N C)
-    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
-    (ha : p.a = 0) (hb : p.b = 0) {uStar : ℝ} (huStar : 0 < uStar)
-    (hχ :
-      p.χ₀ <
-        paperCriticalSensitivity S p
-          (minimalEquilibrium p uStar).1
-          (minimalEquilibrium p uStar).2) :
-    LinearlyStable S p
-      (minimalEquilibrium p uStar).1
-      (minimalEquilibrium p uStar).2 ∧
-    MassConstrainedLocallyExponentiallyStableFromSup D p N
-      (minimalEquilibrium p uStar).1
-      (minimalEquilibrium p uStar).2 := by
-  exact h.minimal_stability_conclusion ha hb huStar
-    (by
-      rwa [hC.chiCritical_minimalEquilibrium huStar])
-
-lemma Theorem_2_2.minimal_exponential_convergence
-    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
-    {N : StabilityNorms D} {C : Paper3Constants D p}
-    (h : Theorem_2_2 D p S N C)
-    (ha : p.a = 0) (hb : p.b = 0) {uStar : ℝ} (huStar : 0 < uStar)
-    (hχ : p.χ₀ < C.chiCritical uStar) :
-    ∃ δ > 0,
-      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
-        SupCloseToConstant D u₀ (minimalEquilibrium p uStar).1 δ →
-        D.integral u₀ = D.volume * uStar →
-          ∃ u v : ℝ → D.Point → ℝ,
-            IsPaper2GlobalClassicalSolution D p u v ∧
-            InitialTrace D u₀ u ∧
-            ExponentialC1Convergence D N u v
-              (minimalEquilibrium p uStar).1
-              (minimalEquilibrium p uStar).2 :=
-  (h.minimal_local_exponential ha hb huStar hχ).exponential_convergence
-
-lemma Theorem_2_2.minimal_exponential_convergence_of_chi_lt_paperCriticalSensitivity
-    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
-    {N : StabilityNorms D} {C : Paper3Constants D p}
-    (h : Theorem_2_2 D p S N C)
-    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
-    (ha : p.a = 0) (hb : p.b = 0) {uStar : ℝ} (huStar : 0 < uStar)
-    (hχ :
-      p.χ₀ <
-        paperCriticalSensitivity S p
-          (minimalEquilibrium p uStar).1
-          (minimalEquilibrium p uStar).2) :
-    ∃ δ > 0,
-      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
-        SupCloseToConstant D u₀ (minimalEquilibrium p uStar).1 δ →
-        D.integral u₀ = D.volume * uStar →
-          ∃ u v : ℝ → D.Point → ℝ,
-            IsPaper2GlobalClassicalSolution D p u v ∧
-            InitialTrace D u₀ u ∧
-            ExponentialC1Convergence D N u v
-              (minimalEquilibrium p uStar).1
-              (minimalEquilibrium p uStar).2 := by
-  exact h.minimal_exponential_convergence ha hb huStar
-    (by
-      rwa [hC.chiCritical_minimalEquilibrium huStar])
-
-lemma Theorem_2_2.minimal_unstable
-    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
-    {N : StabilityNorms D} {C : Paper3Constants D p}
-    (h : Theorem_2_2 D p S N C)
-    (ha : p.a = 0) (hb : p.b = 0) {uStar : ℝ} (huStar : 0 < uStar)
-    (hχ : C.chiCritical uStar < p.χ₀) :
-    LinearlyUnstable S p
-      (minimalEquilibrium p uStar).1
-      (minimalEquilibrium p uStar).2 := by
-  exact h.2.2.2 ha hb uStar huStar hχ
-
-lemma Theorem_2_2.minimal_unstable_of_paperCriticalSensitivity_lt_chi
-    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
-    {N : StabilityNorms D} {C : Paper3Constants D p}
-    (h : Theorem_2_2 D p S N C)
-    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
-    (ha : p.a = 0) (hb : p.b = 0) {uStar : ℝ} (huStar : 0 < uStar)
-    (hχ :
-      paperCriticalSensitivity S p
-        (minimalEquilibrium p uStar).1
-        (minimalEquilibrium p uStar).2 < p.χ₀) :
-    LinearlyUnstable S p
-      (minimalEquilibrium p uStar).1
-      (minimalEquilibrium p uStar).2 := by
-  exact h.minimal_unstable ha hb huStar
-    (by
-      rwa [hC.chiCritical_minimalEquilibrium huStar])
-
 /-- Paper3 Theorem 2.3: global stability for negative sensitivity. -/
 def Theorem_2_3
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D) : Prop :=
@@ -7320,47 +7066,6 @@ def Corollary_5_1
             HasInitialMass D u uStar →
             UniformConvergesInSup D u eq.1 →
               ExponentialC1Convergence D N u v eq.1 eq.2)
-
-lemma Corollary_5_1.uniform_convergence_of_theta
-    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
-    {C : Paper3Constants D p}
-    (h : Corollary_5_1 D p N C) (hm : 1 ≤ p.m)
-    {uStar vStar theta : ℝ} (htheta : 0 < theta)
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v)
-    (hthetaConv : ThetaMomentConvergesToZero D u uStar theta) :
-    UniformConvergesInSup D u uStar :=
-  (h hm).1 uStar vStar theta htheta u v huv hthetaConv
-
-lemma Corollary_5_1.nonminimal_exponential
-    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
-    {C : Paper3Constants D p}
-    (h : Corollary_5_1 D p N C) (hm : 1 ≤ p.m)
-    (ha : 0 < p.a) (hb : 0 < p.b)
-    (hχ : p.χ₀ < C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1)
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v)
-    (hconv : UniformConvergesInSup D u (positiveEquilibrium p ⟨ha, hb⟩).1) :
-    ExponentialC1Convergence D N u v
-      (positiveEquilibrium p ⟨ha, hb⟩).1
-      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
-  (h hm).2.1 ha hb hχ u v huv hconv
-
-lemma Corollary_5_1.minimal_exponential
-    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
-    {C : Paper3Constants D p}
-    (h : Corollary_5_1 D p N C) (hm : 1 ≤ p.m)
-    (ha : p.a = 0) (hb : p.b = 0)
-    {uStar : ℝ} (huStar : 0 < uStar)
-    (hχ : p.χ₀ < C.chiCritical uStar)
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v)
-    (hmass : HasInitialMass D u uStar)
-    (hconv : UniformConvergesInSup D u (minimalEquilibrium p uStar).1) :
-    ExponentialC1Convergence D N u v
-      (minimalEquilibrium p uStar).1
-      (minimalEquilibrium p uStar).2 :=
-  (h hm).2.2 ha hb uStar huStar hχ u v huv hmass hconv
 
 /-- Formula-level nonminimal exponential upgrade for Corollary 5.1.  The
 critical threshold is the concrete spectral formula, and the analytic upgrade
@@ -9701,7 +9406,7 @@ lemma Theorem_2_2.nonminimal_stability_conclusion_of_Lemma_A_7
     LocallyExponentiallyStableFromSup D p N
       (positiveEquilibrium p ⟨ha, hb⟩).1
       (positiveEquilibrium p ⟨ha, hb⟩).2 := by
-  exact h.nonminimal_stability_conclusion ha hb
+  exact h.1 ha hb
     (hA7.nonminimal_condition_chi_lt_critical ha hb hcond)
 
 lemma Theorem_2_2.nonminimal_stability_conclusion_of_chiStrong1_of_Lemma_A_7
@@ -9851,12 +9556,17 @@ lemma Theorem_2_2.nonminimal_stability_conclusion_of_formula_condition_firstNonz
     LocallyExponentiallyStableFromSup D p N
       (positiveEquilibrium p ⟨ha, hb⟩).1
       (positiveEquilibrium p ⟨ha, hb⟩).2 := by
-  exact h.nonminimal_stability_conclusion_of_chi_lt_paperCriticalSensitivity
-    hC ha hb
-    (lt_of_lt_of_le hcond.chi_lt_max_threshold
+  have hχcrit :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    lt_of_lt_of_le hcond.chi_lt_max_threshold
       (le_trans hfirst
         (paperCriticalSensitivity_positiveEquilibrium_ge_firstNonzero_lower
-          S p H ha hb)))
+          S p H ha hb))
+  exact h.1 ha hb
+    (by simpa [hC.chiCritical_positiveEquilibrium ha hb] using hχcrit)
 
 lemma Theorem_2_2.nonminimal_stability_conclusion_of_formula_condition_critical
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
@@ -9882,9 +9592,14 @@ lemma Theorem_2_2.nonminimal_stability_conclusion_of_formula_condition_critical
     LocallyExponentiallyStableFromSup D p N
       (positiveEquilibrium p ⟨ha, hb⟩).1
       (positiveEquilibrium p ⟨ha, hb⟩).2 := by
-  exact h.nonminimal_stability_conclusion_of_chi_lt_paperCriticalSensitivity
-    hC ha hb
-    (lt_of_lt_of_le hcond.chi_lt_max_threshold hcritical)
+  have hχcrit :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    lt_of_lt_of_le hcond.chi_lt_max_threshold hcritical
+  exact h.1 ha hb
+    (by simpa [hC.chiCritical_positiveEquilibrium ha hb] using hχcrit)
 
 lemma Theorem_2_2.nonminimal_exponential_convergence_of_Lemma_A_7
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
@@ -9903,8 +9618,13 @@ lemma Theorem_2_2.nonminimal_exponential_convergence_of_Lemma_A_7
             ExponentialC1Convergence D N u v
               (positiveEquilibrium p ⟨ha, hb⟩).1
               (positiveEquilibrium p ⟨ha, hb⟩).2 := by
-  exact h.nonminimal_exponential_convergence ha hb
-    (hA7.nonminimal_condition_chi_lt_critical ha hb hcond)
+  have hloc :
+      LocallyExponentiallyStableFromSup D p N
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    (h.1 ha hb
+      (hA7.nonminimal_condition_chi_lt_critical ha hb hcond)).2
+  exact hloc.exponential_convergence
 
 lemma Theorem_2_2.nonminimal_exponential_convergence_of_chiStrong1_of_Lemma_A_7
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
@@ -10071,12 +9791,22 @@ lemma Theorem_2_2.nonminimal_exponential_convergence_of_formula_condition_firstN
             ExponentialC1Convergence D N u v
               (positiveEquilibrium p ⟨ha, hb⟩).1
               (positiveEquilibrium p ⟨ha, hb⟩).2 := by
-  exact h.nonminimal_exponential_convergence_of_chi_lt_paperCriticalSensitivity
-    hC ha hb
-    (lt_of_lt_of_le hcond.chi_lt_max_threshold
+  have hχcrit :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    lt_of_lt_of_le hcond.chi_lt_max_threshold
       (le_trans hfirst
         (paperCriticalSensitivity_positiveEquilibrium_ge_firstNonzero_lower
-          S p H ha hb)))
+          S p H ha hb))
+  have hloc :
+      LocallyExponentiallyStableFromSup D p N
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    (h.1 ha hb
+      (by simpa [hC.chiCritical_positiveEquilibrium ha hb] using hχcrit)).2
+  exact hloc.exponential_convergence
 
 lemma Theorem_2_2.nonminimal_exponential_convergence_of_formula_condition_critical
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
@@ -10105,9 +9835,19 @@ lemma Theorem_2_2.nonminimal_exponential_convergence_of_formula_condition_critic
             ExponentialC1Convergence D N u v
               (positiveEquilibrium p ⟨ha, hb⟩).1
               (positiveEquilibrium p ⟨ha, hb⟩).2 := by
-  exact h.nonminimal_exponential_convergence_of_chi_lt_paperCriticalSensitivity
-    hC ha hb
-    (lt_of_lt_of_le hcond.chi_lt_max_threshold hcritical)
+  have hχcrit :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    lt_of_lt_of_le hcond.chi_lt_max_threshold hcritical
+  have hloc :
+      LocallyExponentiallyStableFromSup D p N
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    (h.1 ha hb
+      (by simpa [hC.chiCritical_positiveEquilibrium ha hb] using hχcrit)).2
+  exact hloc.exponential_convergence
 
 lemma Theorem_2_2.minimal_stability_conclusion_of_Lemma_A_8
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
@@ -10122,7 +9862,7 @@ lemma Theorem_2_2.minimal_stability_conclusion_of_Lemma_A_8
     MassConstrainedLocallyExponentiallyStableFromSup D p N
       (minimalEquilibrium p uStar).1
       (minimalEquilibrium p uStar).2 := by
-  exact h.minimal_stability_conclusion ha hb huStar
+  exact h.2.2.1 ha hb uStar huStar
     (hA8.minimal_condition_chi_lt_critical ha hb hm hβ huStar hcond)
 
 lemma Theorem_2_2.minimal_stability_conclusion_of_chiMinimal1_of_Lemma_A_8
@@ -10216,12 +9956,17 @@ lemma Theorem_2_2.minimal_stability_conclusion_of_formula_condition_firstNonzero
     MassConstrainedLocallyExponentiallyStableFromSup D p N
       (minimalEquilibrium p uStar).1
       (minimalEquilibrium p uStar).2 := by
-  exact h.minimal_stability_conclusion_of_chi_lt_paperCriticalSensitivity
-    hC ha hb huStar
-    (lt_of_lt_of_le (hcond.chi_lt_chiBeta hβ)
+  have hχcrit :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 :=
+    lt_of_lt_of_le (hcond.chi_lt_chiBeta hβ)
       (le_trans hfirst
         (paperCriticalSensitivity_minimalEquilibrium_ge_firstNonzero_lower
-          S p H huStar)))
+          S p H huStar))
+  exact h.2.2.1 ha hb uStar huStar
+    (by simpa [hC.chiCritical_minimalEquilibrium huStar] using hχcrit)
 
 lemma Theorem_2_2.minimal_stability_conclusion_of_formula_condition_critical
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
@@ -10242,9 +9987,14 @@ lemma Theorem_2_2.minimal_stability_conclusion_of_formula_condition_critical
     MassConstrainedLocallyExponentiallyStableFromSup D p N
       (minimalEquilibrium p uStar).1
       (minimalEquilibrium p uStar).2 := by
-  exact h.minimal_stability_conclusion_of_chi_lt_paperCriticalSensitivity
-    hC ha hb huStar
-    (lt_of_lt_of_le (hcond.chi_lt_chiBeta hβ) hcritical)
+  have hχcrit :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 :=
+    lt_of_lt_of_le (hcond.chi_lt_chiBeta hβ) hcritical
+  exact h.2.2.1 ha hb uStar huStar
+    (by simpa [hC.chiCritical_minimalEquilibrium huStar] using hχcrit)
 
 lemma Theorem_2_2.minimal_exponential_convergence_of_Lemma_A_8
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
@@ -10263,8 +10013,13 @@ lemma Theorem_2_2.minimal_exponential_convergence_of_Lemma_A_8
             ExponentialC1Convergence D N u v
               (minimalEquilibrium p uStar).1
               (minimalEquilibrium p uStar).2 := by
-  exact h.minimal_exponential_convergence ha hb huStar
-    (hA8.minimal_condition_chi_lt_critical ha hb hm hβ huStar hcond)
+  have hloc :
+      MassConstrainedLocallyExponentiallyStableFromSup D p N
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 :=
+    (h.2.2.1 ha hb uStar huStar
+      (hA8.minimal_condition_chi_lt_critical ha hb hm hβ huStar hcond)).2
+  exact hloc.exponential_convergence
 
 lemma Theorem_2_2.minimal_exponential_convergence_of_chiMinimal1_of_Lemma_A_8
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
@@ -10373,12 +10128,22 @@ lemma Theorem_2_2.minimal_exponential_convergence_of_formula_condition_firstNonz
             ExponentialC1Convergence D N u v
               (minimalEquilibrium p uStar).1
               (minimalEquilibrium p uStar).2 := by
-  exact h.minimal_exponential_convergence_of_chi_lt_paperCriticalSensitivity
-    hC ha hb huStar
-    (lt_of_lt_of_le (hcond.chi_lt_chiBeta hβ)
+  have hχcrit :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 :=
+    lt_of_lt_of_le (hcond.chi_lt_chiBeta hβ)
       (le_trans hfirst
         (paperCriticalSensitivity_minimalEquilibrium_ge_firstNonzero_lower
-          S p H huStar)))
+          S p H huStar))
+  have hloc :
+      MassConstrainedLocallyExponentiallyStableFromSup D p N
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 :=
+    (h.2.2.1 ha hb uStar huStar
+      (by simpa [hC.chiCritical_minimalEquilibrium huStar] using hχcrit)).2
+  exact hloc.exponential_convergence
 
 lemma Theorem_2_2.minimal_exponential_convergence_of_formula_condition_critical
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
@@ -10403,9 +10168,19 @@ lemma Theorem_2_2.minimal_exponential_convergence_of_formula_condition_critical
             ExponentialC1Convergence D N u v
               (minimalEquilibrium p uStar).1
               (minimalEquilibrium p uStar).2 := by
-  exact h.minimal_exponential_convergence_of_chi_lt_paperCriticalSensitivity
-    hC ha hb huStar
-    (lt_of_lt_of_le (hcond.chi_lt_chiBeta hβ) hcritical)
+  have hχcrit :
+      p.χ₀ <
+        paperCriticalSensitivity S p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 :=
+    lt_of_lt_of_le (hcond.chi_lt_chiBeta hβ) hcritical
+  have hloc :
+      MassConstrainedLocallyExponentiallyStableFromSup D p N
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 :=
+    (h.2.2.1 ha hb uStar huStar
+      (by simpa [hC.chiCritical_minimalEquilibrium huStar] using hχcrit)).2
+  exact hloc.exponential_convergence
 
 lemma Corollary_5_1.nonminimal_exponential_of_chi_lt_paperCriticalSensitivity
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
@@ -10424,10 +10199,10 @@ lemma Corollary_5_1.nonminimal_exponential_of_chi_lt_paperCriticalSensitivity
     ExponentialC1Convergence D N u v
       (positiveEquilibrium p ⟨ha, hb⟩).1
       (positiveEquilibrium p ⟨ha, hb⟩).2 :=
-  h.nonminimal_exponential hm ha hb
+  (h hm).2.1 ha hb
     (by
       rwa [hC.chiCritical_positiveEquilibrium ha hb])
-    huv hconv
+    u v huv hconv
 
 lemma Corollary_5_1.minimal_exponential_of_chi_lt_paperCriticalSensitivity
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
@@ -10448,10 +10223,10 @@ lemma Corollary_5_1.minimal_exponential_of_chi_lt_paperCriticalSensitivity
     ExponentialC1Convergence D N u v
       (minimalEquilibrium p uStar).1
       (minimalEquilibrium p uStar).2 :=
-  h.minimal_exponential hm ha hb huStar
+  (h hm).2.2 ha hb uStar huStar
     (by
       rwa [hC.chiCritical_minimalEquilibrium huStar])
-    huv hmass hconv
+    u v huv hmass hconv
 
 lemma Corollary_5_1.nonminimal_exponential_unitInterval
     {D : BoundedDomainData} {p : CM2Params}
@@ -10509,9 +10284,9 @@ lemma Corollary_5_1.nonminimal_exponential_of_Lemma_A_7
     ExponentialC1Convergence D N u v
       (positiveEquilibrium p ⟨ha, hb⟩).1
       (positiveEquilibrium p ⟨ha, hb⟩).2 :=
-  h.nonminimal_exponential hm ha hb
+  (h hm).2.1 ha hb
     (hA7.nonminimal_condition_chi_lt_critical ha hb hcond)
-    huv hconv
+    u v huv hconv
 
 lemma Corollary_5_1.minimal_exponential_of_Lemma_A_8
     {D : BoundedDomainData} {p : CM2Params}
@@ -10528,9 +10303,9 @@ lemma Corollary_5_1.minimal_exponential_of_Lemma_A_8
     ExponentialC1Convergence D N u v
       (minimalEquilibrium p uStar).1
       (minimalEquilibrium p uStar).2 :=
-  h.minimal_exponential hm_le ha hb huStar
+  (h hm_le).2.2 ha hb uStar huStar
     (hA8.minimal_condition_chi_lt_critical ha hb hm hβ huStar hcond)
-    huv hmass hconv
+    u v huv hmass hconv
 
 lemma Corollary_5_1.nonminimal_exponential_of_firstNonzero_formula_fields
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
