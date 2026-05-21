@@ -6160,6 +6160,25 @@ lemma Theorem_2_2_linear_mode_one_instability_branch_proved :
       minimalEquilibrium_linearlyUnstable_of_mode_one_paperFormula_lt_chi_neumann
         S p H huStar
 
+lemma Theorem_2_2_linear_mode_one_instability_unitInterval
+    (p : CM2Params) :
+    (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      sigmaCriticalChiPaperFormula p eq.1 eq.2 (Real.pi ^ 2) < p.χ₀ →
+        LinearlyUnstable unitIntervalNeumannSpectrum p eq.1 eq.2) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        sigmaCriticalChiPaperFormula p eq.1 eq.2 (Real.pi ^ 2) < p.χ₀ →
+          LinearlyUnstable unitIntervalNeumannSpectrum p eq.1 eq.2) := by
+  refine ⟨?_, ?_⟩
+  · intro ha hb
+    exact unitInterval_positiveEquilibrium_linearlyUnstable_of_first_mode_formula_lt_chi
+      p ha hb
+  · intro _ha _hb uStar huStar
+    exact unitInterval_minimalEquilibrium_linearlyUnstable_of_first_mode_formula_lt_chi
+      p huStar
+
 /-- Direct linear part of Paper3 Theorem 2.2 using the constants package's
 critical-sensitivity field, once that field is identified with the paper's
 spectral infimum.  This intentionally does not include local exponential
