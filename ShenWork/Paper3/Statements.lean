@@ -4532,6 +4532,88 @@ lemma not_InitialContinuityRaw_constant_xpSigmaDistance :
       hclassical initialContinuityNoDistanceControl_trace_one
   norm_num at hle
 
+/-- Raw version of `StabilityNorms.negativeSensitivityGlobalStability`,
+exposing only the `C¹` distance rather than a full norm package. -/
+def NegativeSensitivityGlobalStabilityRaw
+    (D : BoundedDomainData) (p : CM2Params)
+    (c1Distance : (D.Point → ℝ) → (D.Point → ℝ) → ℝ) : Prop :=
+  p.χ₀ ≤ 0 → 1 ≤ p.m →
+    (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      (∀ u v : ℝ → D.Point → ℝ,
+        PositiveGlobalBoundedSolution D p u v →
+          UniformConvergesInSup D u eq.1) ∧
+      ∃ A > 0, ∃ rate > 0,
+        ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+            ∀ t, 0 ≤ t →
+              c1Distance (u t) (fun _ => eq.1) +
+                c1Distance (v t) (fun _ => eq.2) ≤
+                  A * Real.exp (-rate * t)) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        (∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+          HasInitialMass D u uStar →
+            UniformConvergesInSup D u eq.1) ∧
+        ∃ A > 0, ∃ rate > 0,
+          ∀ u v : ℝ → D.Point → ℝ,
+            PositiveGlobalBoundedSolution D p u v →
+            HasInitialMass D u uStar →
+              ∀ t, 0 ≤ t →
+                c1Distance (u t) (fun _ => eq.1) +
+                  c1Distance (v t) (fun _ => eq.2) ≤
+                    A * Real.exp (-rate * t))
+
+/-- Raw obstruction for the negative-sensitivity global-stability package
+field: an unrelated constant `C¹` distance cannot satisfy the asserted
+exponential convergence estimate, even for the constant equilibrium solution. -/
+lemma not_NegativeSensitivityGlobalStabilityRaw_constant_c1Distance :
+    ¬ NegativeSensitivityGlobalStabilityRaw theorem21Part1NoLowerEnvelopeDomain
+      theorem21Part1CounterParams (fun _ _ => (1 : ℝ)) := by
+  intro h
+  let D := theorem21Part1NoLowerEnvelopeDomain
+  let p := theorem21Part1CounterParams
+  have hχ : p.χ₀ ≤ 0 := by
+    norm_num [p, theorem21Part1CounterParams]
+  have hm : 1 ≤ p.m := by
+    norm_num [p, theorem21Part1CounterParams]
+  have ha : 0 < p.a := by
+    norm_num [p, theorem21Part1CounterParams]
+  have hb : 0 < p.b := by
+    norm_num [p, theorem21Part1CounterParams]
+  rcases (h hχ hm).1 ha hb with
+    ⟨_hconv, A, hA_pos, rate, hrate_pos, hbound⟩
+  have hmul : Tendsto (fun t : ℝ => rate * t) atTop atTop :=
+    (Filter.tendsto_id.atTop_mul_const hrate_pos).congr
+      (fun t => mul_comm t rate)
+  have hneg : Tendsto (fun t : ℝ => -(rate * t)) atTop atBot :=
+    tendsto_neg_atTop_atBot.comp hmul
+  have hexp : Tendsto (fun t : ℝ => Real.exp (-(rate * t))) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp hneg
+  have hlim :
+      Tendsto (fun t : ℝ => A * Real.exp (-rate * t)) atTop (𝓝 0) := by
+    convert tendsto_const_nhds.mul hexp using 1
+    · ext t
+      ring_nf
+    · simp
+  have hevent :
+      ∀ᶠ t : ℝ in atTop, A * Real.exp (-rate * t) < (2 : ℝ) :=
+    hlim.eventually (Iio_mem_nhds (by norm_num : (0 : ℝ) < 2))
+  rcases eventually_atTop.1 hevent with ⟨T, hT⟩
+  let t : ℝ := max T 0
+  have ht0 : 0 ≤ t := le_max_right T 0
+  have hTle : T ≤ t := le_max_left T 0
+  have hsmall_rhs : A * Real.exp (-rate * t) < (2 : ℝ) := hT t hTle
+  have hlarge_rhs : (2 : ℝ) ≤ A * Real.exp (-rate * t) := by
+    have htmp :=
+      hbound (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
+        theorem21Part1Counter_positiveGlobalBounded t ht0
+    norm_num at htmp
+    simpa [t] using htmp
+  linarith
+
 /-- Raw version of `StabilityNorms.sectorialLocalExponential`, with the two
 distance functionals exposed. -/
 def SectorialLocalExponentialRaw
