@@ -861,8 +861,12 @@ end-to-end paper theorem proof.
 | `Theorem_2_4_local_stability_formula_branch_of_xpSigma_le_supNorm` | explicit strong-threshold formulas + raw sectorial bridge + pointwise `X^σ_p ≤ supNorm` | ordinary formula-level local-stability bridge with theorem-level primitive norm comparison; not a proof of the nonlinear global-stability estimate |
 | `Theorem_2_4_full_stability_formula_branch_of_raw` | explicit strong-threshold formulas + raw sectorial bridge | formula-level bridge; not a proof of the nonlinear global-stability estimate |
 | `Theorem_2_4_full_stability_formula_branch_of_xpSigma_le_supNorm` | explicit strong-threshold formulas + raw sectorial bridge + pointwise `X^σ_p ≤ supNorm` | mass-constrained formula-level bridge with theorem-level primitive norm comparison; not a proof of the nonlinear global-stability estimate |
+| `Theorem_2_4_full_stability_first_mode_branch_of_raw` | explicit first-mode strong-threshold bound + raw sectorial bridge | first-mode formula-level bridge; not a proof of the nonlinear global-stability estimate |
+| `Theorem_2_4_full_stability_first_mode_branch_of_xpSigma_le_supNorm` | explicit first-mode strong-threshold bound + raw sectorial bridge + pointwise `X^σ_p ≤ supNorm` | first-mode mass-constrained formula-level bridge with theorem-level primitive norm comparison; not a proof of the nonlinear global-stability estimate |
 | `Theorem_2_5_full_stability_formula_branch_of_raw` | explicit minimal threshold formulas + raw sectorial bridge | formula-level bridge; not a proof of the nonlinear minimal-model stability estimate |
 | `Theorem_2_5_full_stability_formula_branch_of_xpSigma_le_supNorm` | explicit minimal threshold formulas + raw sectorial bridge + pointwise `X^σ_p ≤ supNorm` | minimal-model formula-level bridge with theorem-level primitive norm comparison; not a proof of the nonlinear minimal-model stability estimate |
+| `Theorem_2_5_full_stability_first_mode_branch_of_raw` | explicit first-mode minimal threshold bound + raw sectorial bridge | first-mode minimal-model formula-level bridge; not a proof of the nonlinear minimal-model stability estimate |
+| `Theorem_2_5_full_stability_first_mode_branch_of_xpSigma_le_supNorm` | explicit first-mode minimal threshold bound + raw sectorial bridge + pointwise `X^σ_p ≤ supNorm` | first-mode minimal-model formula-level bridge with theorem-level primitive norm comparison; not a proof of the nonlinear minimal-model stability estimate |
 
 ### Paper2 direct / branch theorems:
 

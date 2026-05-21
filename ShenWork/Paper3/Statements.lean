@@ -8667,6 +8667,85 @@ theorem Theorem_2_4_full_stability_formula_branch_of_xpSigma_le_supNorm
     hcritical hcond (SupControlsXpSigmaDistance.of_xpSigma_le_supNorm hxp)
     hexist
 
+/-- Raw first-mode sufficient version of the Theorem 2.4 full-stability
+bridge.  This replaces the critical-sensitivity comparison by the explicit
+first-nonzero eigenvalue lower bound. -/
+theorem Theorem_2_4_full_stability_first_mode_branch_of_raw
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D) (H : HasNeumannSpectrum S)
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    max
+        (max (chiStrong1Formula p eq.1 eq.2)
+          (chiStrong2Formula p eq.1))
+        (max (chiStrong3Formula p M0 eq.1 eq.2)
+          (chiStrong4Formula p M0 eq.1)) ≤
+      ((1 + eq.2) ^ p.β /
+          (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+        (p.μ + S.firstNonzero) →
+      NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+      SupControlsXpSigmaDistance D N sigma pNorm eq.1 →
+      (∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence D p eq.1 delta) →
+        LinearlyStable S p eq.1 eq.2 ∧
+        MassConstrainedLocallyExponentiallyStableFromSup D p N
+          eq.1 eq.2 := by
+  dsimp
+  intro hfirst hcond hcontrol hexist
+  have hstable :
+      LinearlyStable S p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    hcond.linearlyStable_of_firstNonzero_lower S p H ha hb hfirst
+  have hmass :
+      MassConstrainedLocallyExponentiallyStableFromSup D p N
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    hraw.massConstrained_from_sup_control
+      hsigma_low hsigma_high hpNorm hstable hcontrol hexist
+  exact ⟨hstable, hmass⟩
+
+/-- Version of the first-mode Theorem 2.4 mass-constrained bridge with the
+norm-control input reduced to `X^σ_p ≤ supNorm`. -/
+theorem Theorem_2_4_full_stability_first_mode_branch_of_xpSigma_le_supNorm
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D) (H : HasNeumannSpectrum S)
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    max
+        (max (chiStrong1Formula p eq.1 eq.2)
+          (chiStrong2Formula p eq.1))
+        (max (chiStrong3Formula p M0 eq.1 eq.2)
+          (chiStrong4Formula p M0 eq.1)) ≤
+      ((1 + eq.2) ^ p.β /
+          (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+        (p.μ + S.firstNonzero) →
+      NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+      (∀ u₀ : D.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤
+          D.supNorm (fun x => u₀ x - eq.1)) →
+      (∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence D p eq.1 delta) →
+        LinearlyStable S p eq.1 eq.2 ∧
+        MassConstrainedLocallyExponentiallyStableFromSup D p N
+          eq.1 eq.2 := by
+  dsimp
+  intro hfirst hcond hxp hexist
+  exact Theorem_2_4_full_stability_first_mode_branch_of_raw
+    D S p N H hraw hsigma_low hsigma_high hpNorm ha hb M0
+    hfirst hcond (SupControlsXpSigmaDistance.of_xpSigma_le_supNorm hxp)
+    hexist
+
 /-- Raw formula-level ordinary local stability bridge for Paper3 Theorem 2.4.
 The threshold assumptions are the explicit strong formulas; the remaining
 nonlinear inputs are norm-control and small-data Cauchy existence. -/
@@ -8815,6 +8894,86 @@ theorem Theorem_2_5_full_stability_formula_branch_of_xpSigma_le_supNorm
   exact Theorem_2_5_full_stability_formula_branch_of_raw
     D S p N H hraw hsigma_low hsigma_high hpNorm _ha _hb _hm hβ
     huStar uBar vLower hcritical hcond
+    (SupControlsXpSigmaDistance.of_xpSigma_le_supNorm hxp) hexist
+
+/-- Raw first-mode sufficient version of the Theorem 2.5 full-stability
+bridge in the minimal model. -/
+theorem Theorem_2_5_full_stability_first_mode_branch_of_raw
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D) (H : HasNeumannSpectrum S)
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
+    chiBeta p ≤
+      ((1 + (minimalEquilibrium p uStar).2) ^ p.β /
+          (p.ν * p.γ *
+            (minimalEquilibrium p uStar).1 ^ (p.m + p.γ - 1))) *
+        (p.μ + S.firstNonzero) →
+      MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+      SupControlsXpSigmaDistance D N sigma pNorm
+        (minimalEquilibrium p uStar).1 →
+      (∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence D p
+          (minimalEquilibrium p uStar).1 delta) →
+        LinearlyStable S p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 ∧
+        MassConstrainedLocallyExponentiallyStableFromSup D p N
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 := by
+  intro hfirst hcond hcontrol hexist
+  have hstable :
+      LinearlyStable S p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 :=
+    hcond.linearlyStable_of_firstNonzero_lower S p H hβ huStar hfirst
+  have hmass :
+      MassConstrainedLocallyExponentiallyStableFromSup D p N
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 :=
+    hraw.massConstrained_from_sup_control
+      hsigma_low hsigma_high hpNorm hstable hcontrol hexist
+  exact ⟨hstable, hmass⟩
+
+/-- Version of the first-mode Theorem 2.5 bridge with the norm-control input
+reduced to `X^σ_p ≤ supNorm`. -/
+theorem Theorem_2_5_full_stability_first_mode_branch_of_xpSigma_le_supNorm
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D) (H : HasNeumannSpectrum S)
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
+    chiBeta p ≤
+      ((1 + (minimalEquilibrium p uStar).2) ^ p.β /
+          (p.ν * p.γ *
+            (minimalEquilibrium p uStar).1 ^ (p.m + p.γ - 1))) *
+        (p.μ + S.firstNonzero) →
+      MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+      (∀ u₀ : D.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀
+            (fun _ => (minimalEquilibrium p uStar).1) ≤
+          D.supNorm (fun x => u₀ x - (minimalEquilibrium p uStar).1)) →
+      (∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence D p
+          (minimalEquilibrium p uStar).1 delta) →
+        LinearlyStable S p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 ∧
+        MassConstrainedLocallyExponentiallyStableFromSup D p N
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 := by
+  intro hfirst hcond hxp hexist
+  exact Theorem_2_5_full_stability_first_mode_branch_of_raw
+    D S p N H hraw hsigma_low hsigma_high hpNorm _ha _hb _hm hβ
+    huStar uBar vLower hfirst hcond
     (SupControlsXpSigmaDistance.of_xpSigma_le_supNorm hxp) hexist
 
 lemma Corollary_5_1.nonminimal_exponential_of_chi_lt_paperCriticalSensitivity
