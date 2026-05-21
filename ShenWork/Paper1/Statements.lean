@@ -7515,8 +7515,27 @@ def Lemma_4_1_strengthened_away_from_interface : Prop :=
         ∀ x, Real.exp (-κ * x) ≠ M →
           frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0)
 
-theorem Lemma_4_1_strengthened_away_from_interface_proved :
-    Lemma_4_1_strengthened_away_from_interface := by
+theorem Lemma_4_1_strengthened_away_from_interface_direct :
+    (∀ p : CMParams, p.χ ≤ 0 → p.α ≤ p.m + p.γ - 1 →
+      ∀ κ M c : ℝ, 0 < κ → κ < 1 → p.γ * κ < 1 → κ * p.m ≤ 1 →
+        1 ≤ M →
+        |p.χ| * ((1 + p.m * p.γ * κ ^ 2) / (1 - p.γ ^ 2 * κ ^ 2)) *
+          M ^ (p.m + p.γ - p.α - 1) ≤ 1 →
+        c = κ + κ⁻¹ →
+        ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
+          (∀ x, M < Real.exp (-κ * x) →
+            frozenElliptic p u x ≤ (u x) ^ p.γ) →
+          ∀ x, Real.exp (-κ * x) ≠ M →
+            frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0) ∧
+    (∀ p : CMParams, 0 ≤ p.χ → p.χ < chiStar p →
+      p.α = p.m + p.γ - 1 →
+      ∀ κ M c : ℝ, 0 < κ → κ < 1 → p.m * κ ≤ 1 →
+        1 ≤ M →
+        (1 / (1 - p.χ)) ^ (1 / p.α) ≤ M →
+        c = κ + κ⁻¹ →
+        ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
+          ∀ x, Real.exp (-κ * x) ≠ M →
+            frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0) := by
   constructor
   · intro p hχ hα κ M c hκ hκ1 hγκ hmκ hM hMbound hc u hu hplateau
     exact Lemma_4_1_neg_frozen_holds_away_from_interface_of_plateau_source_bound
@@ -7524,6 +7543,10 @@ theorem Lemma_4_1_strengthened_away_from_interface_proved :
   · intro p hχ_nonneg hχ hα κ M c hκ hκ1 hmκ hM hMchi hc u hu
     exact Lemma_4_1_pos_frozen_holds_away_from_interface_at_kappa
       p hκ hκ1 hc hχ_nonneg hχ hα hmκ hM hMchi hu
+
+theorem Lemma_4_1_strengthened_away_from_interface_proved :
+    Lemma_4_1_strengthened_away_from_interface := by
+  exact Lemma_4_1_strengthened_away_from_interface_direct
 
 theorem paperWaveOperator_exp_nonpos_of_chi_nonpos_one_of_speed_bound
     (p : CMParams) {c κ : ℝ} {u : ℝ → ℝ}
