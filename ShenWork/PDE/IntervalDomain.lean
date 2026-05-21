@@ -2125,6 +2125,33 @@ theorem intervalSemigroupOperator_le_const_mul_kernel_mass
       (L := L) (t := t) ht hf_int hconst_int hf_le x
   rwa [intervalSemigroupOperator_const_eq_kernel_mass_mul] at hmono
 
+/-- Sharp sub-Markov lower bound: if `a ≤ f`, then the restricted interval
+helper output is bounded below by `a` times the restricted kernel mass. -/
+theorem intervalSemigroupOperator_const_mul_kernel_mass_le
+    {L t a : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf_int : Integrable f (intervalMeasure L))
+    (hf_ge : ∀ y, a ≤ f y) (x : ℝ) :
+    a * ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L ≤
+      intervalSemigroupOperator L t f x := by
+  have hconst_int : Integrable (fun _ : ℝ => a) (intervalMeasure L) :=
+    integrable_const a
+  have hmono :=
+    intervalSemigroupOperator_mono
+      (L := L) (t := t) ht hconst_int hf_int hf_ge x
+  rwa [intervalSemigroupOperator_const_eq_kernel_mass_mul] at hmono
+
+/-- Sharp interval bound with the restricted kernel mass. -/
+theorem intervalSemigroupOperator_kernel_mass_interval_bound
+    {L t a b : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf_int : Integrable f (intervalMeasure L))
+    (hf_ge : ∀ y, a ≤ f y) (hf_le : ∀ y, f y ≤ b) (x : ℝ) :
+    a * ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L ≤
+      intervalSemigroupOperator L t f x ∧
+    intervalSemigroupOperator L t f x ≤
+      b * ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L :=
+  ⟨intervalSemigroupOperator_const_mul_kernel_mass_le ht hf_int hf_ge x,
+    intervalSemigroupOperator_le_const_mul_kernel_mass ht hf_int hf_le x⟩
+
 /-- Sharp sub-Markov interval bound for nonnegative inputs bounded above by
 `M`. -/
 theorem intervalSemigroupOperator_submarkov_interval_bound
