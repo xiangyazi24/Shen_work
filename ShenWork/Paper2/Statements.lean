@@ -887,6 +887,93 @@ theorem intervalSemigroupOperator_paper2_submarkov
   exact ShenWork.IntervalDomain.intervalSemigroupOperator_submarkov_interval_bound_bounded
     ht hf_meas hf_bound hf_nonneg hf_le x
 
+/-- Consolidated concrete interval semigroup estimates for a bounded
+nonnegative input.  This is the statement-layer bridge that should be used
+instead of a `SemigroupEstimateData` projection when only the interval helper
+operator estimates are needed. -/
+theorem intervalSemigroupOperator_paper2_basic_bounds
+    {L t Mf M : ℝ} (hL : 0 ≤ L) (ht : 0 < t) (hM : 0 ≤ M)
+    {f : ℝ → ℝ}
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f
+      (ShenWork.IntervalDomain.intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hf_abs : ∀ y, |f y| ≤ M)
+    (hf_nonneg : ∀ y, 0 ≤ f y)
+    (hf_le : ∀ y, f y ≤ M) :
+    (∀ x : ℝ,
+      ∫ y, ShenWork.IntervalDomain.normalizedZerothReflectionKernel L t x y
+        ∂ ShenWork.IntervalDomain.intervalMeasure L ≤ 1) ∧
+    (∀ x : ℝ,
+      0 ≤
+        ∫ y, ShenWork.IntervalDomain.normalizedZerothReflectionKernel L t x y
+          ∂ ShenWork.IntervalDomain.intervalMeasure L) ∧
+    (∀ x : ℝ,
+      ‖ShenWork.IntervalDomain.intervalSemigroupOperator L t f x‖ ≤
+        (1 / Real.sqrt (4 * Real.pi * t)) *
+          ∫ y, ‖f y‖ ∂ ShenWork.IntervalDomain.intervalMeasure L) ∧
+    (∀ x : ℝ,
+      |ShenWork.IntervalDomain.intervalSemigroupOperator L t f x| ≤ M) ∧
+    (∀ x : ℝ,
+      0 ≤ ShenWork.IntervalDomain.intervalSemigroupOperator L t f x ∧
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t f x ≤ M) ∧
+    (∀ x : ℝ,
+      |ShenWork.IntervalDomain.intervalSemigroupOperator L t f x| ≤
+        (1 / Real.sqrt (4 * Real.pi * t)) * (M * L)) := by
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  · exact intervalSemigroupOperator_paper2_kernel_mass_le_one ht
+  · exact intervalSemigroupOperator_paper2_kernel_mass_nonneg ht
+  · exact intervalSemigroupOperator_paper2_L1_Linfty ht
+      (ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound
+        hf_meas hf_bound)
+  · exact intervalSemigroupOperator_paper2_Linfty_bound
+      ht hM hf_meas hf_bound hf_abs
+  · exact intervalSemigroupOperator_paper2_trap_bound
+      ht hM hf_meas hf_bound hf_nonneg hf_le
+  · exact intervalSemigroupOperator_paper2_length_smoothing
+      hL ht hf_meas hf_abs
+
+/-- Consolidated concrete interval semigroup estimates for a bounded input
+pair.  The conclusion packages linearity, `L∞` contraction, and the
+`L¹ → L∞` difference smoothing estimate without using `SemigroupEstimateData`.
+-/
+theorem intervalSemigroupOperator_paper2_pair_bounds
+    {L t Mf Mg M : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    {f g : ℝ → ℝ}
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f
+      (ShenWork.IntervalDomain.intervalMeasure L))
+    (hg_meas : MeasureTheory.AEStronglyMeasurable g
+      (ShenWork.IntervalDomain.intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hfg : ∀ y, |f y - g y| ≤ M) :
+    (∀ x : ℝ,
+      |ShenWork.IntervalDomain.intervalSemigroupOperator L t f x -
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t g x| ≤ M) ∧
+    (∀ x : ℝ,
+      |ShenWork.IntervalDomain.intervalSemigroupOperator L t f x -
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t g x| ≤
+        (1 / Real.sqrt (4 * Real.pi * t)) *
+          ∫ y, |f y - g y| ∂ ShenWork.IntervalDomain.intervalMeasure L) ∧
+    (∀ x : ℝ,
+      ShenWork.IntervalDomain.intervalSemigroupOperator L t
+          (fun y => f y + g y) x =
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t f x +
+          ShenWork.IntervalDomain.intervalSemigroupOperator L t g x) ∧
+    (∀ x : ℝ,
+      ShenWork.IntervalDomain.intervalSemigroupOperator L t
+          (fun y => f y - g y) x =
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t f x -
+          ShenWork.IntervalDomain.intervalSemigroupOperator L t g x) := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · exact intervalSemigroupOperator_paper2_contraction
+      ht hM hf_meas hg_meas hf_bound hg_bound hfg
+  · exact intervalSemigroupOperator_paper2_diff_L1_Linfty
+      ht hf_meas hg_meas hf_bound hg_bound
+  · exact intervalSemigroupOperator_paper2_add
+      ht hf_meas hg_meas hf_bound hg_bound
+  · exact intervalSemigroupOperator_paper2_sub
+      ht hf_meas hg_meas hf_bound hg_bound
+
 def WeightedGradientEstimate
     (D : BoundedDomainData) (pExp beta gamma Mstar T : ℝ)
     (u v : ℝ → D.Point → ℝ) : Prop :=
