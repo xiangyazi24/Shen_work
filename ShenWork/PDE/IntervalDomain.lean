@@ -2503,6 +2503,14 @@ theorem intervalSemigroupOperator_Linfty_bound
         exact mul_le_mul_of_nonneg_left hmass hM
     _ = M := by ring
 
+/-- Symmetric interval bound for inputs bounded in absolute value. -/
+theorem intervalSemigroupOperator_symmetric_interval_bound
+    {L t M : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    {f : ℝ → ℝ} (hf_abs : ∀ y, |f y| ≤ M) (x : ℝ) :
+    -M ≤ intervalSemigroupOperator L t f x ∧
+      intervalSemigroupOperator L t f x ≤ M := by
+  exact abs_le.mp (intervalSemigroupOperator_Linfty_bound ht hM hf_abs x)
+
 /-- The interval helper operator preserves pointwise bounds `0 ≤ f ≤ M`. -/
 theorem intervalSemigroupOperator_interval_bound
     {L t M : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
