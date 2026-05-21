@@ -7587,6 +7587,59 @@ lemma Theorem_2_2_xpSigma_minimal_first_mode_unitInterval
   intro u₀ hu₀ hsmall u v huv htrace t ht
   exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
+/-- `X^σ_p` local exponential branch for nonpositive sensitivity.  This
+uses the direct spectral stability theorem for `χ₀ ≤ 0` and Lemma A.1, with
+no critical-sensitivity package and no `Paper3Constants` field. -/
+lemma Theorem_2_2_xpSigma_chi_nonpos_branch
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D)
+    (H : HasNeumannSpectrum S) (hA1 : Lemma_A_1 D p S N)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm) (hχ : p.χ₀ ≤ 0) :
+    (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+        ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+          N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+            ∀ u v : ℝ → D.Point → ℝ,
+              IsPaper2GlobalClassicalSolution D p u v →
+              InitialTrace D u₀ u →
+                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                IsPaper2GlobalClassicalSolution D p u v →
+                InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) := by
+  refine ⟨?_, ?_⟩
+  · intro ha hb
+    dsimp
+    have hstable :=
+      positiveEquilibrium_linearlyStable_of_chi_nonpos_neumann
+        S p H hχ ha hb
+    rcases hA1.local_exponential_stability
+        hsigma_low hsigma_high hpNorm hstable with
+      ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
+    refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
+    intro u₀ hu₀ hsmall u v huv htrace t ht
+    exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
+  · intro ha _hb uStar huStar
+    dsimp
+    have hstable :=
+      minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero_neumann
+        S p H hχ ha huStar
+    rcases hA1.local_exponential_stability
+        hsigma_low hsigma_high hpNorm hstable with
+      ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
+    refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
+    intro u₀ hu₀ hsmall u v huv htrace t ht
+    exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
+
 /-- Unit-interval `X^σ_p` local exponential branch for nonpositive
 sensitivity.  The spectral part is proved from `χ₀ ≤ 0`; the sectorial
 local exponential estimate is exactly the explicit Lemma A.1 input, not a
