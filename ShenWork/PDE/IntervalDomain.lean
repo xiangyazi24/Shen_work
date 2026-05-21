@@ -2350,6 +2350,21 @@ theorem intervalSemigroupOperator_submarkov_interval_bound
   ⟨intervalSemigroupOperator_nonneg ht hf_nonneg x,
     intervalSemigroupOperator_le_const_mul_kernel_mass ht hf_int hf_le x⟩
 
+/-- Bounded-input version of the sharp sub-Markov interval bound for
+nonnegative inputs. -/
+theorem intervalSemigroupOperator_submarkov_interval_bound_bounded
+    {L t Mf M : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hf_nonneg : ∀ y, 0 ≤ f y) (hf_le : ∀ y, f y ≤ M) (x : ℝ) :
+    0 ≤ intervalSemigroupOperator L t f x ∧
+      intervalSemigroupOperator L t f x ≤
+        M * ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L :=
+  intervalSemigroupOperator_submarkov_interval_bound ht
+    (intervalMeasure_integrable_of_abs_bound hf_meas hf_bound)
+    hf_nonneg hf_le x
+
 /-- The interval helper operator is dominated by the integral of the pointwise
 absolute value. -/
 theorem intervalSemigroupOperator_abs_le_integral_abs
