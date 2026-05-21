@@ -473,6 +473,49 @@ lemma paperCriticalSensitivity_minimalEquilibrium_le_mode_one
     (by simpa [minimalEquilibrium_fst_eq] using huStar)
     (minimalEquilibrium_snd_pos p huStar).le
 
+lemma paperCriticalSensitivity_lt_chi_of_mode_one_lt_chi
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    {uStar vStar : ℝ} (huStar : 0 < uStar) (hvStar : 0 ≤ vStar)
+    (hχ :
+      sigmaCriticalChiPaperFormula p uStar vStar (S.eigenvalue 1) < p.χ₀) :
+    paperCriticalSensitivity S p uStar vStar < p.χ₀ :=
+  lt_of_le_of_lt
+    (paperCriticalSensitivity_le_mode_one S p H huStar hvStar) hχ
+
+lemma paperCriticalSensitivity_positiveEquilibrium_lt_chi_of_mode_one_lt_chi
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      sigmaCriticalChiPaperFormula p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2
+          (S.eigenvalue 1) <
+        p.χ₀) :
+    paperCriticalSensitivity S p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 <
+      p.χ₀ :=
+  paperCriticalSensitivity_lt_chi_of_mode_one_lt_chi S p H
+    (positiveEquilibrium_fst_pos p ⟨ha, hb⟩)
+    (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le hχ
+
+lemma paperCriticalSensitivity_minimalEquilibrium_lt_chi_of_mode_one_lt_chi
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ :
+      sigmaCriticalChiPaperFormula p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2
+          (S.eigenvalue 1) <
+        p.χ₀) :
+    paperCriticalSensitivity S p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 <
+      p.χ₀ :=
+  paperCriticalSensitivity_lt_chi_of_mode_one_lt_chi S p H
+    (by simpa [minimalEquilibrium_fst_eq] using huStar)
+    (minimalEquilibrium_snd_pos p huStar).le hχ
+
 lemma paperCriticalSensitivity_nonneg
     (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
     {uStar vStar : ℝ} (huStar : 0 < uStar) (hvStar : 0 ≤ vStar) :
