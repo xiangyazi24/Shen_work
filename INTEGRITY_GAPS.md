@@ -822,23 +822,43 @@ statement is not false before continuing.
 ## Structures Assessment (per Playbook §1 Point 3)
 
 ### Legitimate abstract interfaces (NOT escape hatches):
-- `BoundedDomainData`: abstract smooth bounded domain API (Point, boundary, norms, Laplacian, etc.) — any smooth bounded domain satisfies these. Mathlib doesn't have this.
-- `SpectralData` / `HasNeumannSpectrum`: Neumann eigenvalue API — any Neumann Laplacian provides this.
-- `HeatSemigroupEstimateData`: abstract semigroup norm API — any analytic semigroup provides this.
-- `Paper2Constants`: just a nonneg real constant K.
+- `BoundedDomainData`: abstract smooth bounded domain API (Point, boundary,
+  norms, Laplacian, admissibility, regularity predicates).  It is still an
+  interface, not a proof of any paper theorem.
+- `SpectralData` / `HasNeumannSpectrum`: Neumann eigenvalue API.  Spectrum
+  facts are explicit hypotheses, not hidden fields inside `SpectralData`.
+- `HeatSemigroupEstimateData` and `SemigroupEstimateData`: semigroup/norm
+  operation APIs only.  The semigroup estimates themselves are no longer fields
+  of these structures.
+- `StabilityNorms`: two distance functionals only.
+- `Paper2Constants`: just a nonnegative real constant `K`.
+- `Paper3Constants`: threshold functions and a positive Gaussian lower
+  constant; no linear-stability, compactness, persistence, or convergence
+  theorem fields remain.
 
-### Assumption packages that bundle unproved estimates:
-- `SemigroupEstimateData`: L^p semigroup estimates as fields (should be proved from heat kernel)
-- `StabilityNorms` / `CompactnessData`: norm continuity, compactness (should be proved from Sobolev)
-- `Paper3Constants`: threshold formulas + persistence/boundedness estimates as fields
+### Remaining explicit theorem-scale assumptions:
+- `Lemma_A_1`, `Lemma_A_7`, `Lemma_A_8`, and `Corollary_5_1` are still Prop
+  statements.  Accessor lemmas must keep those names visible.
+- `SectorialLocalExponentialRaw` and related raw convergence/local-stability
+  hypotheses are explicit Prop inputs.  Bridges depending on them are named
+  `*_of_raw` or `*_of_sectorial`.
+- `CompactnessData` contains abstract relation predicates such as
+  `locallyConverges` and `neumannResolventGradientBound`; a theorem assuming
+  those predicates is conditional on that analytic input.
 
 ### Assessment:
-The abstract interfaces are justified per standard mathematical practice.
-The assumption packages represent genuine open formalization challenges requiring bounded-domain PDE infrastructure not yet in Mathlib.
+The abstract interfaces are acceptable as interfaces, but any theorem that
+assumes one of the explicit theorem-scale Props or abstract analytic relation
+predicates is conditional and must not be counted as an end-to-end proof.
+The remaining open challenges require bounded-domain PDE, sectorial stability,
+compactness, and convergence infrastructure not yet formalized here.
 
 Per Playbook §1 Point 11 (honest reporting):
 - Paper1: "unconditionally proved" for Lemma 2.2-2.4, Lemma 4.1/4.2 strengthened, chemotaxis resolvent, Psi ODE
-- Paper2/Paper3: "conditional on bounded-domain API instantiation" — the abstract domain interface is legitimate but the semigroup/stability estimate proofs require Mathlib infrastructure that doesn't exist
+- Paper2/Paper3: the concrete branch theorems named `_direct`, `_of_raw`,
+  `_of_Lemma_*`, and `_of_sectorial` should be reported with exactly those
+  dependencies; the abstract domain interface is not itself a proof of the
+  needed semigroup/stability/compactness estimates.
 
 ## Phase 4 Classification (current naming)
 
