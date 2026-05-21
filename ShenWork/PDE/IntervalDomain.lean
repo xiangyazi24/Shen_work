@@ -1952,6 +1952,25 @@ theorem intervalSemigroupOperator_const_mul
       ring]
   exact MeasureTheory.integral_const_mul _ _
 
+/-- Constant inputs are exactly the constant times the restricted kernel
+mass.  The restricted interval mass is only known to be at most one, so this
+is not a constant-preservation statement. -/
+theorem intervalSemigroupOperator_const_eq_kernel_mass_mul
+    (L t c x : ℝ) :
+    intervalSemigroupOperator L t (fun _ => c) x =
+      c * ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L := by
+  unfold intervalSemigroupOperator
+  rw [MeasureTheory.integral_mul_const]
+  ring
+
+/-- Applying the interval helper operator to `1` returns exactly the
+restricted kernel mass. -/
+theorem intervalSemigroupOperator_one_eq_kernel_mass
+    (L t x : ℝ) :
+    intervalSemigroupOperator L t (fun _ => 1) x =
+      ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L := by
+  simpa using intervalSemigroupOperator_const_eq_kernel_mass_mul L t 1 x
+
 /-- Negation for the interval helper operator. -/
 theorem intervalSemigroupOperator_neg
     (L t : ℝ) (f : ℝ → ℝ) (x : ℝ) :
