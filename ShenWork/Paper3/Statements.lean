@@ -5567,6 +5567,19 @@ def Theorem_2_1_part2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
           EventuallyLowerBound D u lowerU ∧
             EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
 
+/-- Raw version of `Paper3Constants.uniformPersistencePart2`, with no
+constants package. -/
+def UniformPersistencePart2Raw
+    (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  0 < p.a → 0 < p.b → 0 < p.χ₀ → p.m = 1 → 1 ≤ p.β →
+    p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)) →
+      ∀ u v : ℝ → D.Point → ℝ,
+        PositiveGlobalBoundedSolution D p u v →
+          let lowerU :=
+            ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^ (1 / p.α)
+          EventuallyLowerBound D u lowerU ∧
+            EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
+
 lemma Theorem_2_1_part2.lower_bounds
     {D : BoundedDomainData} {p : CM2Params}
     (h : Theorem_2_1_part2 D p)
@@ -5607,6 +5620,46 @@ lemma not_forall_Theorem_2_1_part2 :
       hχ (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) huv with
     ⟨hlowerU, _hlowerV⟩
   rcases hlowerU with ⟨hlowerU_pos, hlowerU_eventually⟩
+  have heventually_nonpos :
+      ∀ᶠ t : ℝ in atTop,
+        ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
+            (1 / p.α) ≤ (0 : ℝ) := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlowerU_eventually
+  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
+  have hnonpos :
+      ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
+          (1 / p.α) ≤ (0 : ℝ) := hT T le_rfl
+  linarith
+
+/-- Raw obstruction for `uniformPersistencePart2`: on the fake lower-envelope
+domain the positive constant solution exists, but `infValue` is identically
+zero, contradicting the positive lower bound forced by the field. -/
+lemma not_UniformPersistencePart2Raw_no_lower_envelope :
+    ¬ UniformPersistencePart2Raw theorem21Part1NoLowerEnvelopeDomain
+      theorem21Part2CounterParams := by
+  intro h
+  let D := theorem21Part1NoLowerEnvelopeDomain
+  let p := theorem21Part2CounterParams
+  have hχ :
+      p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)) := by
+    norm_num [p, theorem21Part2CounterParams, Theta_beta_zero]
+  have huv :
+      PositiveGlobalBoundedSolution D p
+        (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+    exact theorem21NoLowerEnvelope_constant_one_positiveGlobalBounded p
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+  rcases h
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      (by norm_num [p, theorem21Part2CounterParams])
+      hχ (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) huv with
+    ⟨hlowerU, _hlowerV⟩
+  rcases hlowerU with ⟨_hlowerU_pos, hlowerU_eventually⟩
   have heventually_nonpos :
       ∀ᶠ t : ℝ in atTop,
         ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
@@ -5660,6 +5713,19 @@ lemma not_exists_Paper3Constants_theorem21_part2_counterdomain :
   linarith
 
 def Theorem_2_1_part3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  0 < p.a → 0 < p.b → 0 < p.χ₀ → 1 < p.m → 1 ≤ p.β →
+    ∀ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v →
+        let lowerU :=
+          min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
+            max (1 / (p.m - 1)) (1 / p.α)
+        EventuallyLowerBound D u lowerU ∧
+          EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
+
+/-- Raw version of `Paper3Constants.uniformPersistencePart3`, with no
+constants package. -/
+def UniformPersistencePart3Raw
+    (D : BoundedDomainData) (p : CM2Params) : Prop :=
   0 < p.a → 0 < p.b → 0 < p.χ₀ → 1 < p.m → 1 ≤ p.β →
     ∀ u v : ℝ → D.Point → ℝ,
       PositiveGlobalBoundedSolution D p u v →
@@ -5727,6 +5793,44 @@ lemma not_forall_Theorem_2_1_part3 :
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) huv with
     ⟨hlowerU, _hlowerV⟩
   rcases hlowerU with ⟨hlowerU_pos, hlowerU_eventually⟩
+  have heventually_nonpos :
+      ∀ᶠ t : ℝ in atTop,
+        (min 1
+            (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
+          max (1 / (p.m - 1)) (1 / p.α)) ≤ (0 : ℝ) := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlowerU_eventually
+  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
+  have hnonpos :
+      (min 1
+          (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
+        max (1 / (p.m - 1)) (1 / p.α)) ≤ (0 : ℝ) := hT T le_rfl
+  linarith
+
+/-- Raw obstruction for `uniformPersistencePart3`: the fake lower-envelope
+domain again refutes the asserted positive lower bound. -/
+lemma not_UniformPersistencePart3Raw_no_lower_envelope :
+    ¬ UniformPersistencePart3Raw theorem21Part1NoLowerEnvelopeDomain
+      theorem21Part3CounterParams := by
+  intro h
+  let D := theorem21Part1NoLowerEnvelopeDomain
+  let p := theorem21Part3CounterParams
+  have huv :
+      PositiveGlobalBoundedSolution D p
+        (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+    exact theorem21NoLowerEnvelope_constant_one_positiveGlobalBounded p
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+  rcases h
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (by norm_num [p, theorem21Part3CounterParams])
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) huv with
+    ⟨hlowerU, _hlowerV⟩
+  rcases hlowerU with ⟨_hlowerU_pos, hlowerU_eventually⟩
   have heventually_nonpos :
       ∀ᶠ t : ℝ in atTop,
         (min 1
