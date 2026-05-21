@@ -6232,6 +6232,40 @@ lemma Corollary_5_1_nonminimal_exponential_formula_unitInterval_of_raw
   Corollary_5_1_nonminimal_exponential_formula_branch_of_raw
     (S := unitIntervalNeumannSpectrum) hraw hm ha hb hχ huv hconv
 
+/-- Critical-threshold formula-condition version of the nonminimal exponential
+upgrade, using the raw convergence-to-exponential hypothesis directly. -/
+lemma Corollary_5_1_nonminimal_exponential_formula_condition_critical_of_raw
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D}
+    (hraw :
+      ConvergenceToExponentialNonminimalRaw D p N.c1Distance
+        (fun uStar =>
+          paperCriticalSensitivity S p uStar
+            (p.ν / p.μ * uStar ^ p.γ)))
+    (hm : 1 ≤ p.m) (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ)
+    (hcritical :
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      max
+          (max (chiStrong1Formula p eq.1 eq.2)
+            (chiStrong2Formula p eq.1))
+          (max (chiStrong3Formula p M0 eq.1 eq.2)
+            (chiStrong4Formula p M0 eq.1)) ≤
+        paperCriticalSensitivity S p eq.1 eq.2)
+    (hcond :
+      NonminimalGlobalStabilityFormulaCondition p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 M0)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hconv : UniformConvergesInSup D u (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  Corollary_5_1_nonminimal_exponential_formula_branch_of_raw
+    (S := S) hraw hm ha hb
+    (lt_of_lt_of_le hcond.chi_lt_max_threshold hcritical)
+    huv hconv
+
 /-- First-mode formula-condition version of the nonminimal exponential
 upgrade, using the raw convergence-to-exponential hypothesis directly rather
 than a `Corollary_5_1` package field. -/
@@ -6329,6 +6363,36 @@ lemma Corollary_5_1_minimal_exponential_formula_unitInterval_of_raw
       (minimalEquilibrium p uStar).2 :=
   Corollary_5_1_minimal_exponential_formula_branch_of_raw
     (S := unitIntervalNeumannSpectrum) hraw hm ha hb huStar hχ
+    huv hmass hconv
+
+/-- Critical-threshold formula-condition version of the minimal exponential
+upgrade, using the raw convergence-to-exponential hypothesis directly. -/
+lemma Corollary_5_1_minimal_exponential_formula_condition_critical_of_raw
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D}
+    (hraw :
+      ConvergenceToExponentialMinimalRaw D p N.c1Distance
+        (fun uStar =>
+          paperCriticalSensitivity S p uStar
+            (p.ν / p.μ * uStar ^ p.γ)))
+    (hm_le : 1 ≤ p.m) (ha : p.a = 0) (hb : p.b = 0) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ)
+    (hcritical :
+      chiBeta p ≤
+        paperCriticalSensitivity S p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2)
+    (hcond : MinimalGlobalStabilityFormulaCondition p uStar uBar vLower)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar)
+    (hconv : UniformConvergesInSup D u (minimalEquilibrium p uStar).1) :
+    ExponentialC1Convergence D N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  Corollary_5_1_minimal_exponential_formula_branch_of_raw
+    (S := S) hraw hm_le ha hb huStar
+    (lt_of_lt_of_le (hcond.chi_lt_chiBeta hβ) hcritical)
     huv hmass hconv
 
 /-- First-mode formula-condition version of the minimal exponential upgrade,
