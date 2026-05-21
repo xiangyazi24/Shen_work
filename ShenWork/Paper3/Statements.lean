@@ -4552,6 +4552,27 @@ def SectorialLocalExponentialRaw
                     c1Distance (v t) (fun _ => vStar) ≤
                       C * Real.exp (-rate * t)
 
+lemma SectorialLocalExponentialRaw.local_exponential_stability
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {c1Distance : (D.Point → ℝ) → (D.Point → ℝ) → ℝ}
+    {xpSigmaDistance : ℝ → ℝ → (D.Point → ℝ) → (D.Point → ℝ) → ℝ}
+    (h : SectorialLocalExponentialRaw D p S c1Distance xpSigmaDistance)
+    {sigma pNorm uStar vStar : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hstable : LinearlyStable S p uStar vStar) :
+    ∃ eps > 0, ∃ C > 0, ∃ rate > 0,
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤ eps →
+          ∀ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v →
+            InitialTrace D u₀ u →
+              ∀ t, 0 ≤ t →
+                c1Distance (u t) (fun _ => uStar) +
+                  c1Distance (v t) (fun _ => vStar) ≤
+                    C * Real.exp (-rate * t) :=
+  h sigma pNorm uStar vStar hsigma_low hsigma_high hpNorm hstable
+
 def sectorialLocalExponentialCounterSpectralData : SpectralData where
   eigenvalue := fun n => if n = 0 then 0 else 1
   firstNonzero := 1
@@ -7883,6 +7904,169 @@ lemma Theorem_2_2_xpSigma_chi_nonpos_unitInterval
     refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
     intro u₀ hu₀ hsmall u v huv htrace t ht
     exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
+
+/-- Raw `X^σ_p` local exponential branch for nonpositive sensitivity.  This
+version replaces the theorem-shaped `Lemma_A_1` hypothesis by the exposed
+sectorial estimate `SectorialLocalExponentialRaw`. -/
+lemma Theorem_2_2_xpSigma_chi_nonpos_raw_branch
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D)
+    (H : HasNeumannSpectrum S)
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm) (hχ : p.χ₀ ≤ 0) :
+    (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+        ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+          N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+            ∀ u v : ℝ → D.Point → ℝ,
+              IsPaper2GlobalClassicalSolution D p u v →
+              InitialTrace D u₀ u →
+                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                IsPaper2GlobalClassicalSolution D p u v →
+                InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) := by
+  refine ⟨?_, ?_⟩
+  · intro ha hb
+    dsimp
+    have hstable :=
+      positiveEquilibrium_linearlyStable_of_chi_nonpos_neumann
+        S p H hχ ha hb
+    rcases hraw.local_exponential_stability
+        hsigma_low hsigma_high hpNorm hstable with
+      ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
+    refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
+    intro u₀ hu₀ hsmall u v huv htrace t ht
+    exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
+  · intro ha _hb uStar huStar
+    dsimp
+    have hstable :=
+      minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero_neumann
+        S p H hχ ha huStar
+    rcases hraw.local_exponential_stability
+        hsigma_low hsigma_high hpNorm hstable with
+      ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
+    refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
+    intro u₀ hu₀ hsmall u v huv htrace t ht
+    exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
+
+/-- Unit-interval raw `X^σ_p` local exponential branch for nonpositive
+sensitivity. -/
+lemma Theorem_2_2_xpSigma_chi_nonpos_raw_unitInterval
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm) (hχ : p.χ₀ ≤ 0) :
+    (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+        ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+          N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+            ∀ u v : ℝ → D.Point → ℝ,
+              IsPaper2GlobalClassicalSolution D p u v →
+              InitialTrace D u₀ u →
+                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                IsPaper2GlobalClassicalSolution D p u v →
+                InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) :=
+  Theorem_2_2_xpSigma_chi_nonpos_raw_branch
+    D unitIntervalNeumannSpectrum p N
+    unitIntervalNeumannSpectrum_hasNeumannSpectrum hraw
+    hsigma_low hsigma_high hpNorm hχ
+
+/-- Raw formula-level nonminimal `X^σ_p` local exponential branch. -/
+lemma Theorem_2_2_xpSigma_nonminimal_formula_raw_branch
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D)
+    (H : HasNeumannSpectrum S)
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    max
+        (max (chiStrong1Formula p eq.1 eq.2)
+          (chiStrong2Formula p eq.1))
+        (max (chiStrong3Formula p M0 eq.1 eq.2)
+          (chiStrong4Formula p M0 eq.1)) ≤
+      paperCriticalSensitivity S p eq.1 eq.2 →
+      NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                IsPaper2GlobalClassicalSolution D p u v →
+                InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate := by
+  dsimp
+  intro hcritical hcond
+  have hstable :=
+    hcond.linearlyStable_of_max_threshold_le_critical S p H ha hb hcritical
+  rcases hraw.local_exponential_stability
+      hsigma_low hsigma_high hpNorm hstable with
+    ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
+  refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
+  intro u₀ hu₀ hsmall u v huv htrace t ht
+  exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
+
+/-- Raw formula-level minimal `X^σ_p` local exponential branch. -/
+lemma Theorem_2_2_xpSigma_minimal_formula_raw_branch
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D)
+    (H : HasNeumannSpectrum S)
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
+    chiBeta p ≤
+      paperCriticalSensitivity S p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 →
+      MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀
+                (fun _ => (minimalEquilibrium p uStar).1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                IsPaper2GlobalClassicalSolution D p u v →
+                InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v
+                    (minimalEquilibrium p uStar).1
+                    (minimalEquilibrium p uStar).2 A rate := by
+  intro hcritical hcond
+  have hstable :=
+    hcond.linearlyStable_of_chiBeta_le_critical S p H hβ huStar hcritical
+  rcases hraw.local_exponential_stability
+      hsigma_low hsigma_high hpNorm hstable with
+    ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
+  refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
+  intro u₀ hu₀ hsmall u v huv htrace t ht
+  exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
 def Lemma_A_2
     (D : BoundedDomainData) (p : CM2Params)
