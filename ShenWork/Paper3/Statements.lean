@@ -4906,6 +4906,62 @@ theorem LinearStabilityInstabilityRaw_of_sectorial_paperCriticalSensitivity
     rcases hloc with ⟨δ, hδ, A, hA, rate, hrate, hmain⟩
     exact ⟨hstable, δ, hδ, A, hA, rate, hrate, hmain⟩
 
+/-- Constants-package-threshold version of
+`LinearStabilityInstabilityRaw_of_sectorial_paperCriticalSensitivity`.  The
+only use of `Paper3Constants` is the audited identification of
+`C.chiCritical` with the explicit spectral critical sensitivity. -/
+theorem LinearStabilityInstabilityRaw_of_sectorial_critical_spectrum
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D) (C : Paper3Constants D p)
+    (H : HasNeumannSpectrum S) (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hxp :
+      ∀ uStar, ∀ u₀ : D.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤
+          D.supNorm (fun x => u₀ x - uStar))
+    (hexist :
+      ∀ uStar, ∀ delta > 0, SmallDataGlobalExistence D p uStar delta)
+    (hmexist :
+      ∀ uStar, ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence D p uStar delta) :
+    LinearStabilityInstabilityNonminimalRaw D p S N.c1Distance C.chiCritical ∧
+    LinearStabilityInstabilityMinimalRaw D p S N.c1Distance C.chiCritical := by
+  refine ⟨?_, ?_⟩
+  · intro ha hb
+    dsimp
+    intro hχ
+    have hstable :=
+      hC.positiveEquilibrium_linearlyStable H ha hb hχ
+    have hloc :
+        LocallyExponentiallyStableFromSup D p N
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+      hraw.locally_from_xpSigma_le_supNorm
+        hsigma_low hsigma_high hpNorm hstable
+        (hxp (positiveEquilibrium p ⟨ha, hb⟩).1)
+        (hexist (positiveEquilibrium p ⟨ha, hb⟩).1)
+    rcases hloc with ⟨δ, hδ, A, hA, rate, hrate, hmain⟩
+    exact ⟨hstable, δ, hδ, A, hA, rate, hrate, hmain⟩
+  · intro _ha _hb uStar huStar
+    dsimp
+    intro hχ
+    have hstable :=
+      hC.minimalEquilibrium_linearlyStable H huStar hχ
+    have hloc :
+        MassConstrainedLocallyExponentiallyStableFromSup D p N
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 :=
+      hraw.massConstrained_from_xpSigma_le_supNorm
+        hsigma_low hsigma_high hpNorm hstable
+        (hxp (minimalEquilibrium p uStar).1)
+        (hmexist (minimalEquilibrium p uStar).1)
+    rcases hloc with ⟨δ, hδ, A, hA, rate, hrate, hmain⟩
+    exact ⟨hstable, δ, hδ, A, hA, rate, hrate, hmain⟩
+
 /-- Raw nonminimal instability branch of
 `Paper3Constants.linearStabilityInstability`, with the critical threshold
 exposed instead of hidden inside a constants package. -/
