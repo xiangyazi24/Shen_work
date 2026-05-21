@@ -1729,6 +1729,34 @@ theorem Lemma_2_5.constant_source_witness_unit_L2
   Lemma_2_5.constant_source_witness_unit p
     (by norm_num : (1 : ℝ) < 2) hu_nonneg hsource
 
+/-! ### Weighted resolvent-gradient estimate: nontrivial direction
+
+The strategy for the general Lemma 2.5 is:
+1. `Psi_deriv_abs_le_general`: |Ψ'(u^γ)| ≤ √ℓ · Ψ(u^γ)  (proved)
+2. Raise to power p: |Ψ'|^p ≤ ℓ^(p/2) · Ψ^p
+3. Ψ^p ≤ C · K * |u|^(γp)  via Jensen on the kernel convolution
+4. Multiply by weight ψ, integrate, use weight ratio bound + Fubini
+-/
+
+theorem ExponentialWeight.weight_nonneg (psi : ExponentialWeight) (x : ℝ) :
+    0 ≤ psi.weight x :=
+  le_of_lt (psi.pos x)
+
+theorem Psi_deriv_abs_rpow_le_Psi_rpow
+    {u : ℝ → ℝ} {l mu pExp : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 0 < pExp)
+    (hu : IsCUnifBdd u) (hu_nonneg : ∀ y, 0 ≤ u y) (x : ℝ) :
+    |deriv (fun z => Psi u l mu z) x| ^ pExp ≤
+      (Real.sqrt l) ^ pExp * (Psi u l mu x) ^ pExp := by
+  have hbound := Psi_deriv_abs_le_general hl hmu hu hu_nonneg x
+  have hPsi_nonneg := Psi_nonneg hl hmu hu_nonneg x
+  have hsqrt_nonneg : 0 ≤ Real.sqrt l := Real.sqrt_nonneg l
+  calc |deriv (fun z => Psi u l mu z) x| ^ pExp
+      ≤ (Real.sqrt l * Psi u l mu x) ^ pExp :=
+        Real.rpow_le_rpow (abs_nonneg _) hbound hpExp.le
+    _ = (Real.sqrt l) ^ pExp * (Psi u l mu x) ^ pExp :=
+        Real.mul_rpow hsqrt_nonneg hPsi_nonneg
+
 def frozenElliptic (p : CMParams) (u : ℝ → ℝ) : ℝ → ℝ :=
   fun x => Psi (fun y => (u y) ^ p.γ) 1 1 x
 
