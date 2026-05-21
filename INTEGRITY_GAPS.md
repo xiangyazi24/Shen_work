@@ -263,10 +263,10 @@ projection theorem wrappers have been removed.
 - `Lemma_5_1_exponential_signal_bound_for_frozenElliptic_of_continuous`: the
   corresponding exponential signal bound with `IsCUnifBdd U` internalized from
   continuity plus the upper-tail bound
-- `Lemma_5_1.fixed_point_signal_package`: the uniform and exponential
-  fixed-point signal estimates packaged together in the same conjunctive shape
+- `Lemma_5_1.fixed_point_signal_statement`: the uniform and exponential
+  fixed-point signal estimates recorded together in the same conjunctive shape
   as the first two conclusions of Lemma 5.1
-- `Lemma_5_1.fixed_point_signal_package_of_continuous`: the same signal package
+- `Lemma_5_1.fixed_point_signal_statement_of_continuous`: the same signal statement
   with the boundedness/uniform-continuity input derived from continuity plus
   the upper-tail bound
 - `Lemma_5_1.fixed_point_conclusion_of_wave_derivative_bounds`: the full
@@ -281,17 +281,17 @@ projection theorem wrappers have been removed.
   `V = frozenElliptic p U`, continuity of `U`, and the remaining `U'`
   estimates are supplied explicitly; boundedness of `U` follows from
   `HasWaveUpperTailBound.isBddFun`
-- `FrozenStationaryWaveProfile.fixed_point_signal_package_of_inWaveTrapSet` and
+- `FrozenStationaryWaveProfile.fixed_point_signal_statement_of_inWaveTrapSet` and
   `FrozenStationaryWaveProfile.fixed_point_conclusion_of_wave_derivative_bounds`:
   the same fixed-point Lemma 5.1 signal estimates and explicit-`U'` conclusion
   specialized to a frozen stationary profile in the wave trap, avoiding the
   arbitrary-`IsTravelingWave` projection route
-- `NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_package`
+- `NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_statement`
   and
-  `PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_package`:
+  `PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_statement`:
   construction-level bridges that take the Schauder fixed point/trap output
   plus the explicit sharp-upper-bound obligation needed for strict positivity,
-  then derive Lemma 5.1's signal package for the constructed fixed point from
+  then derive Lemma 5.1's signal statement for the constructed fixed point from
   the `Psi` kernel estimates
 - `Lemma_5_2_explicit.nonincreasing_profile_branch`,
   `Lemma_5_2_explicit.nonincreasing_branch`,
@@ -317,7 +317,7 @@ projection theorem wrappers have been removed.
 - `NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_and_log_derivative`
   and
   `NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_and_log_derivative_B`:
-  same-fixed-point bridges combining the Lemma 5.1 signal package and the
+  same-fixed-point bridges combining the Lemma 5.1 signal statement and the
   Lemma 5.2 log-derivative estimate for one constructed negative-sensitivity
   fixed point, avoiding later existential splicing between two separately
   chosen fixed points.
@@ -363,7 +363,7 @@ projection theorem wrappers have been removed.
   continuous tail/stable-tail/strict-tail/stability variants also discharge the
   previously exposed `IsCUnifBdd` inputs from the corresponding upper-tail
   bounds plus continuity.
-- `Lemma_2_5_full_statement` (Paper2), together with the sharp `Psi_beta` package and
+- `Lemma_2_5_full_statement` (Paper2), together with the sharp `Psi_beta` statements and
   normalized sharp `Theta_beta` form
 - `remark16ChiStarWeak_scalar_properties` (Paper2): direct scalar algebra for
   the weak Remark 1.6 threshold `(1.30c)`, including positivity, the

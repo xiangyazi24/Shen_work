@@ -9862,9 +9862,9 @@ theorem Lemma_5_1_exponential_signal_bound_for_frozenElliptic_of_continuous
     p hc hspeed (hbound.isCUnifBdd_of_continuous hU_cont) hbound
 
 /-- The signal-estimate part of Lemma 5.1 in the fixed-point case
-`V = frozenElliptic p U`, packaged in the same conjunctive shape as the first
+`V = frozenElliptic p U`, recorded in the same conjunctive shape as the first
 two conclusions of the full lemma. -/
-theorem Lemma_5_1.fixed_point_signal_package
+theorem Lemma_5_1.fixed_point_signal_statement
     (p : CMParams) {c : ℝ} {U : ℝ → ℝ}
     (hc : 2 < c) (hU : IsCUnifBdd U)
     (hbound : HasWaveUpperTailBound p c U) :
@@ -9887,7 +9887,7 @@ theorem Lemma_5_1.fixed_point_signal_package
     exact Lemma_5_1_exponential_signal_bound_for_frozenElliptic
       p hc hspeed hU hbound
 
-theorem Lemma_5_1.fixed_point_signal_package_of_continuous
+theorem Lemma_5_1.fixed_point_signal_statement_of_continuous
     (p : CMParams) {c : ℝ} {U : ℝ → ℝ}
     (hc : 2 < c) (hU_cont : Continuous U)
     (hbound : HasWaveUpperTailBound p c U) :
@@ -9904,7 +9904,7 @@ theorem Lemma_5_1.fixed_point_signal_package_of_continuous
           min ((MChi p) ^ p.γ)
             ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
               Real.exp (-(kappa c) * p.γ * x))) :=
-  Lemma_5_1.fixed_point_signal_package p hc
+  Lemma_5_1.fixed_point_signal_statement p hc
     (hbound.isCUnifBdd_of_continuous hU_cont) hbound
 
 /-- Fixed-point version of the full Lemma 5.1 conclusion.  The two signal
@@ -9945,7 +9945,7 @@ theorem Lemma_5_1.fixed_point_conclusion_of_wave_derivative_bounds
         |deriv U x| ≤
           B1 * Real.exp (-(kappa c) * x) +
             B2 * Real.exp (-(kappa c) * p.γ * x)) := by
-  rcases Lemma_5_1.fixed_point_signal_package p hc hU hbound with
+  rcases Lemma_5_1.fixed_point_signal_statement p hc hU hbound with
     ⟨hsignal, hexpSignal⟩
   exact ⟨hsignal, hexpSignal, hderiv_tends, hderiv_bound, hderiv_exp⟩
 
@@ -10036,7 +10036,7 @@ theorem Lemma_5_1_resolvent_identified_direct
 known to lie in the wave trap.  This avoids the arbitrary `IsTravelingWave`
 projection route: the elliptic signal is definitionally `frozenElliptic p U`,
 and the estimates come from the `Psi` kernel bounds. -/
-theorem FrozenStationaryWaveProfile.fixed_point_signal_package_of_inWaveTrapSet
+theorem FrozenStationaryWaveProfile.fixed_point_signal_statement_of_inWaveTrapSet
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
     (hprofile : FrozenStationaryWaveProfile p c U)
     (hc : 2 < c) (htrap : InWaveTrapSet (kappa c) (MChi p) U) :
@@ -10053,7 +10053,7 @@ theorem FrozenStationaryWaveProfile.fixed_point_signal_package_of_inWaveTrapSet
           min ((MChi p) ^ p.γ)
             ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
               Real.exp (-(kappa c) * p.γ * x))) :=
-  Lemma_5_1.fixed_point_signal_package p hc htrap.cunif_bdd
+  Lemma_5_1.fixed_point_signal_statement p hc htrap.cunif_bdd
     (hprofile.hasWaveUpperTailBound_of_inWaveTrapSet htrap)
 
 /-- Full fixed-point/profile version of Lemma 5.1 with the `V` estimates
@@ -10099,7 +10099,7 @@ theorem FrozenStationaryWaveProfile.fixed_point_conclusion_of_wave_derivative_bo
     (hprofile.hasWaveUpperTailBound_of_inWaveTrapSet htrap)
     hderiv_tends hderiv_bound hderiv_exp
 
-theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_package
+theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_statement
     {p : CMParams} {c κ₀ κtilde D : ℝ}
     (h : NegativeSensitivityWaveFixedPointConstruction p c κ₀ κtilde D)
     (hc : 2 < c)
@@ -10133,10 +10133,10 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_si
     simpa [h.MChi_eq_one] using hU
   exact
     ⟨U, hU, haux,
-      Lemma_5_1.fixed_point_signal_package p hc htrapM.trap.cunif_bdd
+      Lemma_5_1.fixed_point_signal_statement p hc htrapM.trap.cunif_bdd
         (htrapM.hasWaveUpperTailBound_of_pos hupperU.pos)⟩
 
-theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_package
+theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_signal_statement
     {p : CMParams} {c κ₀ κtilde D : ℝ}
     (h : PositiveSensitivityWaveFixedPointConstruction p c κ₀ κtilde D)
     (hc : 2 < c)
@@ -10168,7 +10168,7 @@ theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_si
   have hupperU : ShenUpperBoundPositive p c U := hupper U hU haux
   exact
     ⟨U, hU, haux,
-      Lemma_5_1.fixed_point_signal_package p hc hU.cunif_bdd
+      Lemma_5_1.fixed_point_signal_statement p hc hU.cunif_bdd
         (hU.hasWaveUpperTailBound_of_pos hupperU.pos)⟩
 
 /-- The explicit log-derivative bound from Paper1 Lemma 5.2. -/
@@ -10426,7 +10426,7 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_si
   have htrapM : InMonotoneWaveTrapSet (kappa c) (MChi p) U := by
     simpa [h.MChi_eq_one] using hU
   have hsignal :=
-    Lemma_5_1.fixed_point_signal_package p hc htrapM.trap.cunif_bdd
+    Lemma_5_1.fixed_point_signal_statement p hc htrapM.trap.cunif_bdd
       (htrapM.hasWaveUpperTailBound_of_pos hupperU.pos)
   have hlog :
       ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c :=
@@ -10545,7 +10545,7 @@ theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_si
               min ((MChi p) ^ p.γ)
                 ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
                   Real.exp (-(kappa c) * p.γ * x))) := by
-  rcases h.exists_fixed_limit_with_signal_package hc hupper with
+  rcases h.exists_fixed_limit_with_signal_statement hc hupper with
     ⟨U, hU, haux, hsignal, hexpSignal⟩
   rcases h.exists_paper_constant_subsolution_of_chi_zero hχ_zero hU with
     ⟨d, hd_pos, hd_sub⟩
@@ -10981,7 +10981,7 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_si
         ∀ x : ℝ,
           deriv U x / U x ≤
             remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) := by
-  rcases h.exists_fixed_limit_with_signal_package hc hupper with
+  rcases h.exists_fixed_limit_with_signal_statement hc hupper with
     ⟨U, hU, haux, hsignal, hexpSignal⟩
   have hupperU : ShenUpperBoundNegative c U := hupper U hU haux
   have htrapM : InMonotoneWaveTrapSet (kappa c) (MChi p) U := by

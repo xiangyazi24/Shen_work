@@ -933,7 +933,7 @@ theorem intervalSemigroupOperator_paper2_basic_bounds
       hL ht hf_meas hf_abs
 
 /-- Consolidated concrete interval semigroup estimates for a bounded input
-pair.  The conclusion packages linearity, `L∞` contraction, and the
+pair.  The conclusion records linearity, `L∞` contraction, and the
 `L¹ → L∞` difference smoothing estimate without using `SemigroupEstimateData`.
 -/
 theorem intervalSemigroupOperator_paper2_pair_bounds
@@ -1995,7 +1995,7 @@ theorem Lemma_2_5_sharp_constant_positive
   exact lt_of_lt_of_le (Psi_beta_pos hbeta)
     (Lemma_2_5_sharp_constant_minimal hbeta hC)
 
-/-- End-to-end strengthened range package for Paper2 Lemma 2.5.  It records
+/-- End-to-end strengthened range statement for Paper2 Lemma 2.5.  It records
 the strict universal range, the strict larger-parameter bound coming from
 `Psi_beta` monotonicity, and positivity of every admissible sharp constant. -/
 theorem Lemma_2_5_full_range_statement :
@@ -2031,11 +2031,11 @@ theorem Lemma_2_5_pointwise_bound_self
     (Lemma_2_5_pointwise_bound hbeta hv)
     (Psi_beta_le_self hbeta.le)
 
-/-- A consolidated end-to-end scalar package for Paper2 Lemma 2.5.  It ties
+/-- A consolidated end-to-end scalar statement for Paper2 Lemma 2.5.  It ties
 the Lemma 2.5 inequality to positivity, the sharp constant characterization,
 strict monotonicity of the sharp constants, and the two endpoint limits of
 `Psi_beta`. -/
-theorem Lemma_2_5_sharp_monotone_range_package :
+theorem Lemma_2_5_sharp_monotone_range_statement :
     (∀ beta v : ℝ, 0 < beta → 0 < v →
       beta * v / (1 + v) ^ (1 + beta) ≤ Psi_beta beta) ∧
     (∀ beta : ℝ, 0 < beta →
@@ -2061,7 +2061,7 @@ theorem Lemma_2_5_sharp_monotone_range_package :
 /-- If the parameter is enlarged, the Lemma 2.5 expression is strictly below
 the larger sharp constant, and the sharp constants themselves are strictly
 ordered. -/
-theorem Lemma_2_5_strict_larger_parameter_package
+theorem Lemma_2_5_strict_larger_parameter_statement
     {beta gamma : ℝ} (hbeta : 0 < beta) (hbg : beta < gamma) :
     Psi_beta beta < Psi_beta gamma ∧
       ∀ v > 0,
@@ -3679,7 +3679,7 @@ lemma remark16ChiStar2_pos_of_K_pos
   unfold remark16ChiStar2
   exact Real.sqrt_pos.mpr harg_pos
 
-/-- Sign package for the two strong Remark 1.6 thresholds `(1.30a)` and
+/-- Sign statement for the two strong Remark 1.6 thresholds `(1.30a)` and
 `(1.30b)`.  The second threshold is nonnegative unconditionally because it is a
 square root; strict positivity additionally needs the exposed constant `K` to
 be positive. -/
@@ -3755,7 +3755,7 @@ lemma remark16ChiStarWeak_lt_two_beta_sub_one_of_two_lt_gamma_mul_N
   simpa [remark16ChiStarWeak_eq_chiBeta] using
     chiBeta_lt_two_beta_sub_one_of_two_lt_gamma_mul_N p hβ hden
 
-/-- End-to-end scalar package for the weak Remark 1.6 threshold `(1.30c)`.
+/-- End-to-end scalar statement for the weak Remark 1.6 threshold `(1.30c)`.
 It records positivity, the smallness implication used by Theorem 1.2, and the
 comparison with the elementary threshold `2β - 1`. -/
 theorem remark16ChiStarWeak_scalar_properties :
