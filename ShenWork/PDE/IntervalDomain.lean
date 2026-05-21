@@ -2541,6 +2541,36 @@ theorem intervalSemigroupOperator_Linfty_bound
         exact mul_le_mul_of_nonneg_left hmass hM
     _ = M := by ring
 
+/-- Short-name alias for the interval helper kernel mass bound. -/
+theorem intervalIntegral_le_one
+    {t : ℝ} (ht : 0 < t) (L x : ℝ) :
+    ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L ≤ 1 :=
+  intervalSemigroupOperator_intervalIntegral_le_one ht L x
+
+/-- Short-name alias for positivity preservation of the interval helper
+operator. -/
+theorem nonneg
+    {L t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf : ∀ y, 0 ≤ f y) (x : ℝ) :
+    0 ≤ intervalSemigroupOperator L t f x :=
+  intervalSemigroupOperator_nonneg ht hf x
+
+/-- Short-name alias for the interval helper `L¹ → L∞` smoothing estimate. -/
+theorem L1_Linfty
+    {L t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf_int : Integrable f (intervalMeasure L)) (x : ℝ) :
+    ‖intervalSemigroupOperator L t f x‖ ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) *
+        ∫ y, ‖f y‖ ∂ intervalMeasure L :=
+  intervalSemigroupOperator_L1_Linfty ht hf_int x
+
+/-- Short-name alias for the interval helper `L∞` bound. -/
+theorem Linfty_bound
+    {L t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} {M : ℝ} (hM : 0 ≤ M) (hf : ∀ y, |f y| ≤ M) (x : ℝ) :
+    |intervalSemigroupOperator L t f x| ≤ M :=
+  intervalSemigroupOperator_Linfty_bound ht hM hf x
+
 /-- Symmetric interval bound for inputs bounded in absolute value. -/
 theorem intervalSemigroupOperator_symmetric_interval_bound
     {L t M : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
