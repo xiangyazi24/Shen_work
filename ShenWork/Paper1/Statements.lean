@@ -770,36 +770,6 @@ def Lemma_2_1 (S : HeatSemigroupEstimateData) : Prop :=
         Cp * t ^ (-(1 / 2 : ℝ) - (1 / (2 * p))) *
           Real.exp (-t) * S.lpNorm p u)
 
-theorem Lemma_2_1.semigroup_lp_lq
-    {S : HeatSemigroupEstimateData}
-    (h : Lemma_2_1 S)
-    {p q : ℝ} (hp : 1 < p) (hpq : p ≤ q) :
-    ∃ Cpq > 0, ∀ t > 0, ∀ u : ℝ → ℝ,
-      S.lqNorm q (S.semigroup t u) ≤
-        Cpq * t ^ (-(1 / 2 : ℝ) * (1 / p - 1 / q)) *
-          Real.exp (-t) * S.lpNorm p u :=
-  (h p q hp hpq).1
-
-theorem Lemma_2_1.gradient_lp_lq
-    {S : HeatSemigroupEstimateData}
-    (h : Lemma_2_1 S)
-    {p q : ℝ} (hp : 1 < p) (hpq : p ≤ q) :
-    ∃ Cpq > 0, ∀ t > 0, ∀ u : ℝ → ℝ,
-      S.gradientNorm q (S.semigroup t u) ≤
-        Cpq * t ^ (-(1 / 2 : ℝ) - (1 / 2 : ℝ) * (1 / p - 1 / q)) *
-          Real.exp (-t) * S.lpNorm p u :=
-  (h p q hp hpq).2.1
-
-theorem Lemma_2_1.divergence_linf
-    {S : HeatSemigroupEstimateData}
-    (h : Lemma_2_1 S)
-    {p q : ℝ} (hp : 1 < p) (hpq : p ≤ q) :
-    ∃ Cp > 0, ∀ t > 0, ∀ u : ℝ → ℝ,
-      S.linftyNorm (S.divergenceSemigroup t u) ≤
-        Cp * t ^ (-(1 / 2 : ℝ) - (1 / (2 * p))) *
-          Real.exp (-t) * S.lpNorm p u :=
-  (h p q hp hpq).2.2
-
 theorem not_forall_Lemma_2_1 :
     ¬ (∀ S : HeatSemigroupEstimateData, Lemma_2_1 S) := by
   intro hall
@@ -1758,51 +1728,6 @@ theorem Lemma_2_5.constant_source_witness_unit_L2
             ≤ C * ∫ x : ℝ, (u x) ^ (p.γ * (2 : ℝ)) * psi.weight x :=
   Lemma_2_5.constant_source_witness_unit p
     (by norm_num : (1 : ℝ) < 2) hu_nonneg hsource
-
-theorem Lemma_2_5.weighted_resolvent_gradient
-    (h : Lemma_2_5)
-    {pExp gamma l mu : ℝ}
-    (hpExp : 1 < pExp) (hgamma : 0 < gamma) (hl : 0 < l) (hmu : 0 < mu) :
-    ∃ C > 0, ∀ u : ℝ → ℝ, ∀ psi : ExponentialWeight,
-      Integrable (fun x => (u x) ^ (gamma * pExp) * psi.weight x) →
-        Integrable
-          (fun x =>
-            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
-              psi.weight x) ∧
-        ∫ x : ℝ,
-            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
-              psi.weight x
-          ≤ C * ∫ x : ℝ, (u x) ^ (gamma * pExp) * psi.weight x :=
-  h pExp gamma l mu hpExp hgamma hl hmu
-
-theorem Lemma_2_5.weighted_resolvent_gradient_unit
-    (h : Lemma_2_5) (p : CMParams) {pExp : ℝ} (hpExp : 1 < pExp) :
-    ∃ C > 0, ∀ u : ℝ → ℝ, ∀ psi : ExponentialWeight,
-      Integrable (fun x => (u x) ^ (p.γ * pExp) * psi.weight x) →
-        Integrable
-          (fun x =>
-            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^ pExp *
-              psi.weight x) ∧
-        ∫ x : ℝ,
-            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^ pExp *
-              psi.weight x
-          ≤ C * ∫ x : ℝ, (u x) ^ (p.γ * pExp) * psi.weight x :=
-  h.weighted_resolvent_gradient hpExp
-    (lt_of_lt_of_le one_pos p.hγ) one_pos one_pos
-
-theorem Lemma_2_5.weighted_resolvent_gradient_unit_L2
-    (h : Lemma_2_5) (p : CMParams) :
-    ∃ C > 0, ∀ u : ℝ → ℝ, ∀ psi : ExponentialWeight,
-      Integrable (fun x => (u x) ^ (p.γ * (2 : ℝ)) * psi.weight x) →
-        Integrable
-          (fun x =>
-            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^ (2 : ℝ) *
-              psi.weight x) ∧
-        ∫ x : ℝ,
-            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^ (2 : ℝ) *
-              psi.weight x
-          ≤ C * ∫ x : ℝ, (u x) ^ (p.γ * (2 : ℝ)) * psi.weight x :=
-  h.weighted_resolvent_gradient_unit p (by norm_num : (1 : ℝ) < 2)
 
 def frozenElliptic (p : CMParams) (u : ℝ → ℝ) : ℝ → ℝ :=
   fun x => Psi (fun y => (u y) ^ p.γ) 1 1 x
