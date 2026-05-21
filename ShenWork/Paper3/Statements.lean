@@ -3851,6 +3851,56 @@ lemma MinimalGlobalStabilityCondition.chi_lt_chiBeta
   · exact chi_lt_chiBeta_of_lt_chiMinimal2Formula p hβ
       (by simpa [hC2] using h.2.2)
 
+/-- Minimal-model stability condition written directly with the explicit
+threshold formulas, instead of the `Paper3Constants` threshold fields. -/
+def MinimalGlobalStabilityFormulaCondition
+    (p : CM2Params) (uStar uBar vLower : ℝ) : Prop :=
+  (0 < p.χ₀ ∧
+      p.χ₀ < chiMinimal1Formula p 1 uStar uBar vLower) ∨
+    (p.γ = 1 ∧ 0 < p.χ₀ ∧
+      p.χ₀ < chiMinimal2Formula p uBar vLower)
+
+lemma MinimalGlobalStabilityFormulaCondition.chi_lt_chiBeta
+    {p : CM2Params} {uStar uBar vLower : ℝ}
+    (hβ : 1 ≤ p.β)
+    (h : MinimalGlobalStabilityFormulaCondition p uStar uBar vLower) :
+    p.χ₀ < chiBeta p := by
+  rcases h with h | h
+  · exact chi_lt_chiBeta_of_lt_chiMinimal1Formula p hβ h.2
+  · exact chi_lt_chiBeta_of_lt_chiMinimal2Formula p hβ h.2.2
+
+lemma MinimalGlobalStabilityFormulaCondition.linearlyStable_of_chiBeta_le_critical
+    (S : SpectralData) (p : CM2Params) {uStar uBar vLower : ℝ}
+    (H : HasNeumannSpectrum S) (hβ : 1 ≤ p.β) (huStar : 0 < uStar)
+    (hcritical :
+      chiBeta p ≤
+        paperCriticalSensitivity S p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2)
+    (h : MinimalGlobalStabilityFormulaCondition p uStar uBar vLower) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyStable S p eq.1 eq.2 := by
+  exact minimalEquilibrium_linearlyStable_of_chi_lt_paperCriticalSensitivity_neumann
+    S p H huStar
+    (lt_of_lt_of_le (h.chi_lt_chiBeta hβ) hcritical)
+
+lemma MinimalGlobalStabilityFormulaCondition.linearlyStable_of_firstNonzero_lower
+    (S : SpectralData) (p : CM2Params) {uStar uBar vLower : ℝ}
+    (H : HasNeumannSpectrum S) (hβ : 1 ≤ p.β) (huStar : 0 < uStar)
+    (hfirst :
+      chiBeta p ≤
+        ((1 + (minimalEquilibrium p uStar).2) ^ p.β /
+            (p.ν * p.γ *
+              (minimalEquilibrium p uStar).1 ^ (p.m + p.γ - 1))) *
+          (p.μ + S.firstNonzero))
+    (h : MinimalGlobalStabilityFormulaCondition p uStar uBar vLower) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyStable S p eq.1 eq.2 := by
+  exact h.linearlyStable_of_chiBeta_le_critical S p H hβ huStar
+    (le_trans hfirst
+      (paperCriticalSensitivity_minimalEquilibrium_ge_firstNonzero_lower
+        S p H huStar))
+
 def Theorem_2_1_part1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   1 ≤ p.m →
     ∀ u v : ℝ → D.Point → ℝ,
