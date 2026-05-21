@@ -1483,7 +1483,7 @@ lemma Proposition_1_3.of_paper2_theorem_1_3
     (h : Paper2.Theorem_1_3 D p C) :
     Proposition_1_3 D p C := by
   intro ha hb hm hcond u₀ hu₀
-  exact h.global_solution ha hb p.hm hcond hm hu₀
+  exact (h ha hb p.hm hcond).2 hm u₀ hu₀
 
 lemma Proposition_1_3.global_solution_of_alpha_gt_m_add_gamma_sub_one
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -1495,8 +1495,9 @@ lemma Proposition_1_3.global_solution_of_alpha_gt_m_add_gamma_sub_one
       IsPaper2GlobalClassicalSolution D p u v ∧
       InitialTrace D u₀ u ∧
       IsPaper2Bounded D u :=
-  h.global_solution_of_alpha_gt_m_add_gamma_sub_one
-    ha hb p.hm hm hβ hα hu₀
+  (h ha hb p.hm
+      (StrongLogisticCondition.of_alpha_gt_m_add_gamma_sub_one hβ hα)).2
+    hm u₀ hu₀
 
 lemma Proposition_1_3.global_solution_of_alpha_gt_two_mul_m_add_gamma_sub_two
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -1509,8 +1510,10 @@ lemma Proposition_1_3.global_solution_of_alpha_gt_two_mul_m_add_gamma_sub_two
       IsPaper2GlobalClassicalSolution D p u v ∧
       InitialTrace D u₀ u ∧
       IsPaper2Bounded D u :=
-  h.global_solution_of_alpha_gt_two_mul_m_add_gamma_sub_two
-    ha hb p.hm hm hβ hα hu₀
+  (h ha hb p.hm
+      (StrongLogisticCondition.of_alpha_gt_two_mul_m_add_gamma_sub_two
+        hβ hα)).2
+    hm u₀ hu₀
 
 lemma Proposition_1_3.global_solution_of_critical_m_add_gamma_sub_one_low_dimension
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -1523,8 +1526,10 @@ lemma Proposition_1_3.global_solution_of_critical_m_add_gamma_sub_one_low_dimens
       IsPaper2GlobalClassicalSolution D p u v ∧
       InitialTrace D u₀ u ∧
       IsPaper2Bounded D u :=
-  h.global_solution_of_critical_m_add_gamma_sub_one_low_dimension
-    ha hb p.hm hm hβ hα hdim hu₀
+  (h ha hb p.hm
+      (StrongLogisticCondition.of_critical_m_add_gamma_sub_one_low_dimension
+        hβ hα hdim)).2
+    hm u₀ hu₀
 
 lemma Proposition_1_3.global_solution_of_critical_two_mul_m_add_gamma_sub_two_low_dimension
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -1538,8 +1543,10 @@ lemma Proposition_1_3.global_solution_of_critical_two_mul_m_add_gamma_sub_two_lo
       IsPaper2GlobalClassicalSolution D p u v ∧
       InitialTrace D u₀ u ∧
       IsPaper2Bounded D u :=
-  h.global_solution_of_critical_two_mul_m_add_gamma_sub_two_low_dimension
-    ha hb p.hm hm hβ hα hdim hu₀
+  (h ha hb p.hm
+      (StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two_low_dimension
+        hβ hα hdim)).2
+    hm u₀ hu₀
 
 lemma Proposition_1_3.global_solution_of_critical_m_add_gamma_sub_one
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -1557,8 +1564,9 @@ lemma Proposition_1_3.global_solution_of_critical_m_add_gamma_sub_one
       IsPaper2GlobalClassicalSolution D p u v ∧
       InitialTrace D u₀ u ∧
       IsPaper2Bounded D u :=
-  h.global_solution_of_critical_m_add_gamma_sub_one
-    ha hb p.hm hm hβ hα hχ hu₀
+  (h ha hb p.hm
+      (StrongLogisticCondition.of_critical_m_add_gamma_sub_one hβ hα hχ)).2
+    hm u₀ hu₀
 
 lemma Proposition_1_3.global_solution_of_critical_two_mul_m_add_gamma_sub_two
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -1578,8 +1586,10 @@ lemma Proposition_1_3.global_solution_of_critical_two_mul_m_add_gamma_sub_two
       IsPaper2GlobalClassicalSolution D p u v ∧
       InitialTrace D u₀ u ∧
       IsPaper2Bounded D u :=
-  h.global_solution_of_critical_two_mul_m_add_gamma_sub_two
-    ha hb p.hm hm hβ hα hχ hu₀
+  (h ha hb p.hm
+      (StrongLogisticCondition.of_critical_two_mul_m_add_gamma_sub_two
+        hβ hα hχ)).2
+    hm u₀ hu₀
 
 lemma Proposition_1_3.global_solution_of_remark16_chiStar1
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -1593,8 +1603,10 @@ lemma Proposition_1_3.global_solution_of_remark16_chiStar1
       IsPaper2GlobalClassicalSolution D p u v ∧
       InitialTrace D u₀ u ∧
       IsPaper2Bounded D u :=
-  h.global_solution_of_remark16_chiStar1
-    ha hb hβ hm hα hdim hχ hu₀
+  (h ha hb p.hm
+      (StrongLogisticCondition.of_remark16_chiStar1
+        hβ hm hα hdim hχ)).2
+    (by rw [hm]) u₀ hu₀
 
 lemma Proposition_1_3.global_solution_of_remark16_chiStar2
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -1608,8 +1620,10 @@ lemma Proposition_1_3.global_solution_of_remark16_chiStar2
       IsPaper2GlobalClassicalSolution D p u v ∧
       InitialTrace D u₀ u ∧
       IsPaper2Bounded D u :=
-  h.global_solution_of_remark16_chiStar2
-    ha hb hβ hm hα hdim hχ hu₀
+  (h ha hb p.hm
+      (StrongLogisticCondition.of_remark16_chiStar2
+        hβ hm hα hdim hχ)).2
+    (by rw [hm]) u₀ hu₀
 
 lemma Proposition_1_3.global_solution_of_remark16_min_chiStar12
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
@@ -1623,8 +1637,10 @@ lemma Proposition_1_3.global_solution_of_remark16_min_chiStar12
       IsPaper2GlobalClassicalSolution D p u v ∧
       InitialTrace D u₀ u ∧
       IsPaper2Bounded D u :=
-  h.global_solution_of_remark16_min_chiStar12
-    ha hb hβ hm hα hdim hχ hu₀
+  (h ha hb p.hm
+      (StrongLogisticCondition.of_remark16_min_chiStar12
+        hβ hm hα hdim hχ)).2
+    (by rw [hm]) u₀ hu₀
 
 lemma Proposition_1_3.positive_global_solution_of_paper2_theorem_1_3
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
