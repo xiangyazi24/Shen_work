@@ -693,6 +693,101 @@ theorem intervalSemigroupOperator_paper2_diff_L1_Linfty
   exact ShenWork.IntervalDomain.intervalSemigroupOperator_diff_L1_Linfty_abs_bounded
     ht hf_meas hg_meas hf_bound hg_bound x
 
+/-- Concrete interval semigroup additivity for interval-integrable inputs. -/
+theorem intervalSemigroupOperator_paper2_add_integrable
+    {L t : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_int :
+      MeasureTheory.Integrable f
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hg_int :
+      MeasureTheory.Integrable g
+        (ShenWork.IntervalDomain.intervalMeasure L)) :
+    ∀ x : ℝ,
+      ShenWork.IntervalDomain.intervalSemigroupOperator L t
+          (fun y => f y + g y) x =
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t f x +
+          ShenWork.IntervalDomain.intervalSemigroupOperator L t g x := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_add ht
+    hf_int hg_int x
+
+/-- Concrete interval semigroup subtraction for interval-integrable inputs. -/
+theorem intervalSemigroupOperator_paper2_sub_integrable
+    {L t : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_int :
+      MeasureTheory.Integrable f
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hg_int :
+      MeasureTheory.Integrable g
+        (ShenWork.IntervalDomain.intervalMeasure L)) :
+    ∀ x : ℝ,
+      ShenWork.IntervalDomain.intervalSemigroupOperator L t
+          (fun y => f y - g y) x =
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t f x -
+          ShenWork.IntervalDomain.intervalSemigroupOperator L t g x := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_sub ht
+    hf_int hg_int x
+
+/-- Concrete interval semigroup monotonicity for interval-integrable inputs. -/
+theorem intervalSemigroupOperator_paper2_mono_integrable
+    {L t : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_int :
+      MeasureTheory.Integrable f
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hg_int :
+      MeasureTheory.Integrable g
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hfg : ∀ y, f y ≤ g y) :
+    ∀ x : ℝ,
+      ShenWork.IntervalDomain.intervalSemigroupOperator L t f x ≤
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t g x := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_mono ht
+    hf_int hg_int hfg x
+
+/-- Concrete interval semigroup `L∞` contraction for interval-integrable
+input pairs. -/
+theorem intervalSemigroupOperator_paper2_contraction_integrable
+    {L t M : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    {f g : ℝ → ℝ}
+    (hf_int :
+      MeasureTheory.Integrable f
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hg_int :
+      MeasureTheory.Integrable g
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hfg : ∀ y, |f y - g y| ≤ M) :
+    ∀ x : ℝ,
+      |ShenWork.IntervalDomain.intervalSemigroupOperator L t f x -
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t g x| ≤ M := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_contraction
+    ht hM hf_int hg_int hfg x
+
+/-- Concrete interval semigroup difference `L¹ → L∞` smoothing for
+interval-integrable input pairs. -/
+theorem intervalSemigroupOperator_paper2_diff_L1_Linfty_integrable
+    {L t : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_int :
+      MeasureTheory.Integrable f
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hg_int :
+      MeasureTheory.Integrable g
+        (ShenWork.IntervalDomain.intervalMeasure L)) :
+    ∀ x : ℝ,
+      |ShenWork.IntervalDomain.intervalSemigroupOperator L t f x -
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t g x| ≤
+        (1 / Real.sqrt (4 * Real.pi * t)) *
+          ∫ y, |f y - g y| ∂ ShenWork.IntervalDomain.intervalMeasure L := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_diff_L1_Linfty_abs
+    ht hf_int hg_int x
+
 /-- Concrete interval semigroup pairwise contraction with the restricted
 kernel mass kept explicit. -/
 theorem intervalSemigroupOperator_paper2_contraction_kernel_mass
