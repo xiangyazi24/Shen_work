@@ -4367,17 +4367,6 @@ def Proposition_1_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
       FiniteHorizonAlternative D Tmax u ∧
       (1 ≤ p.m → MGeOneFiniteHorizonAlternative D Tmax u)
 
-lemma Proposition_1_1.solution
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_1_1 D p)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀) :
-    ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
-      IsPaper2ClassicalSolution D p Tmax u v ∧
-      InitialTrace D u₀ u ∧
-      FiniteHorizonAlternative D Tmax u ∧
-      (1 ≤ p.m → MGeOneFiniteHorizonAlternative D Tmax u) :=
-  h u₀ hu₀
-
 /-- A deliberately degenerate bounded-domain API instance showing that the
 current abstract interface alone cannot prove Paper2 Proposition 1.1 for every
 `BoundedDomainData`.  The regularity field is `False`, so no classical solution
