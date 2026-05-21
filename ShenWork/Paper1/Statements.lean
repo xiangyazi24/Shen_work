@@ -10656,16 +10656,6 @@ theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_co
   · intro x
     exact le_trans (hlog x) (le_max_left _ _)
 
-theorem Lemma_5_2_explicit.to_Lemma_5_2
-    (h : Lemma_5_2_explicit) : Lemma_5_2 := by
-  intro p c hspeed U V hTW hbound
-  refine ⟨max (logDerivativeBoundFormula p c) 1, ?_, ?_⟩
-  · exact lt_of_lt_of_le zero_lt_one (le_max_right _ _)
-  · intro x
-    exact le_trans
-      (h p c hspeed U V hTW hbound x)
-      (le_max_left _ _)
-
 /-- The constant `M'_{\chi,m,\alpha,\gamma}` from Paper1 Remark 5.1. -/
 def remark51MPrime (p : CMParams) : ℝ :=
   |p.χ| * (MChi p) ^ (p.m + p.γ) + (MChi p) ^ (1 + p.α)
@@ -10927,16 +10917,6 @@ theorem Remark52LogDerivativeAlgebra.of_gamma_speed_and_constant_comparison
   exact max_lt
     (hgamma p c sigma hsigma hχ hspeed)
     (remark5SpeedCondition.gt_waveDerivativeSpeed hspeed hsigma.le)
-
-theorem Remark_5_2.of_Lemma_5_2_explicit
-    (hlog : Lemma_5_2_explicit)
-    (halg : Remark52LogDerivativeAlgebra) :
-    Remark_5_2 := by
-  intro p c sigma hsigma hχ hspeed U V hTW hbound x
-  rcases halg p c sigma hsigma hχ hspeed with ⟨hspeed_log, hconst⟩
-  exact le_trans
-    (hlog p c hspeed_log U V hTW hbound x)
-    hconst
 
 theorem Remark_5_2.nonincreasing_positive_profile_branch
     {p : CMParams} {c sigma : ℝ}
@@ -11424,33 +11404,6 @@ def Proposition_1_1 : Prop :=
         UniformEventuallyBounded u ∧
         (0 < p.χ → p.χ < 1 → UniformLimsupLe u ((1 / (1 - p.χ)) ^ (1 / p.α))))
 
-theorem Proposition_1_1.negative_solution
-    (h : Proposition_1_1) {p : CMParams}
-    (hχ : p.χ ≤ 0) {u₀ : ℝ → ℝ}
-    (hu₀ : NonnegativeInitialDatum u₀) :
-    ∃ u v : ℝ → ℝ → ℝ,
-      IsGlobalCauchySolutionFrom p u₀ u v ∧
-      (∀ M, (∀ x, u₀ x ≤ M) →
-        ∀ t x, 0 ≤ t → u t x ≤ max 1 M) ∧
-      UniformLimsupLe u 1 :=
-  h.1 p hχ u₀ hu₀
-
-theorem Proposition_1_1.positive_solution
-    (h : Proposition_1_1) {p : CMParams}
-    (hparam :
-      (0 < p.χ ∧ p.α > p.m + p.γ - 1) ∨
-        (0 < p.χ ∧
-          p.χ < min
-            ((p.m + p.γ - 1) / (2 * p.m - 1))
-            ((p.m + p.γ - 1) / (p.γ - 1)) ∧
-          p.α = p.m + p.γ - 1))
-    {u₀ : ℝ → ℝ} (hu₀ : NonnegativeInitialDatum u₀) :
-    ∃ u v : ℝ → ℝ → ℝ,
-      IsGlobalCauchySolutionFrom p u₀ u v ∧
-      UniformEventuallyBounded u ∧
-      (0 < p.χ → p.χ < 1 → UniformLimsupLe u ((1 / (1 - p.χ)) ^ (1 / p.α))) :=
-  h.2 p hparam u₀ hu₀
-
 /-- A real constant-initial-data branch of Proposition 1.1. -/
 theorem Proposition_1_1_constant_one_branch (p : CMParams) :
     ∃ u v : ℝ → ℝ → ℝ,
@@ -11568,16 +11521,6 @@ def Proposition_1_2 : Prop :=
         IsGlobalCauchySolutionFrom p u₀ u v ∧
         UniformConvergesToConstant u 1)
 
-theorem Proposition_1_2.negative_stability
-    (h : Proposition_1_2) {p : CMParams}
-    (hχ : p.χ ≤ 0) {u₀ : ℝ → ℝ}
-    (hu₀_nonneg : NonnegativeInitialDatum u₀)
-    (hu₀_pos : UniformlyPositive u₀) :
-    ∃ u v : ℝ → ℝ → ℝ,
-      IsGlobalCauchySolutionFrom p u₀ u v ∧
-      UniformConvergesToConstant u 1 :=
-  h.1 p hχ u₀ hu₀_nonneg hu₀_pos
-
 theorem Proposition_1_2.negative_stability_with_long_time_bounds
     (h : Proposition_1_2) {p : CMParams}
     (hχ : p.χ ≤ 0) {u₀ : ℝ → ℝ}
@@ -11588,20 +11531,8 @@ theorem Proposition_1_2.negative_stability_with_long_time_bounds
       UniformConvergesToConstant u 1 ∧
       UniformEventuallyBounded u ∧
       UniformLimsupLe u 1 := by
-  rcases h.negative_stability hχ hu₀_nonneg hu₀_pos with ⟨u, v, hsol, hconv⟩
+  rcases h.1 p hχ u₀ hu₀_nonneg hu₀_pos with ⟨u, v, hsol, hconv⟩
   exact ⟨u, v, hsol, hconv, hconv.uniformEventuallyBounded, hconv.uniformLimsupLe⟩
-
-theorem Proposition_1_2.positive_stability
-    (h : Proposition_1_2) {p : CMParams}
-    (hχ_pos : 0 < p.χ) (hχ_small : p.χ < (1 / 2 : ℝ))
-    (halpha : p.m + p.γ - 1 ≤ p.α)
-    {u₀ : ℝ → ℝ}
-    (hu₀_nonneg : NonnegativeInitialDatum u₀)
-    (hu₀_pos : UniformlyPositive u₀) :
-    ∃ u v : ℝ → ℝ → ℝ,
-      IsGlobalCauchySolutionFrom p u₀ u v ∧
-      UniformConvergesToConstant u 1 :=
-  h.2 p hχ_pos hχ_small halpha u₀ hu₀_nonneg hu₀_pos
 
 theorem Proposition_1_2.positive_stability_with_long_time_bounds
     (h : Proposition_1_2) {p : CMParams}
@@ -11615,7 +11546,7 @@ theorem Proposition_1_2.positive_stability_with_long_time_bounds
       UniformConvergesToConstant u 1 ∧
       UniformEventuallyBounded u ∧
       UniformLimsupLe u 1 := by
-  rcases h.positive_stability hχ_pos hχ_small halpha hu₀_nonneg hu₀_pos with
+  rcases h.2 p hχ_pos hχ_small halpha u₀ hu₀_nonneg hu₀_pos with
     ⟨u, v, hsol, hconv⟩
   exact ⟨u, v, hsol, hconv, hconv.uniformEventuallyBounded, hconv.uniformLimsupLe⟩
 
