@@ -1990,6 +1990,37 @@ theorem intervalSemigroupOperator_const_abs_eq_abs_mul_kernel_mass
   rw [abs_mul,
     abs_of_nonneg (normalizedZerothReflectionKernel_intervalIntegral_nonneg ht L x)]
 
+/-- Absolute difference of two constant inputs is exactly the constant
+difference times the restricted kernel mass. -/
+theorem intervalSemigroupOperator_const_diff_abs_eq_abs_mul_kernel_mass
+    {t : ℝ} (ht : 0 < t) (L c d x : ℝ) :
+    |intervalSemigroupOperator L t (fun _ => c) x -
+        intervalSemigroupOperator L t (fun _ => d) x| =
+      |c - d| *
+        ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L := by
+  rw [intervalSemigroupOperator_const_eq_kernel_mass_mul,
+    intervalSemigroupOperator_const_eq_kernel_mass_mul]
+  set m : ℝ :=
+    ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L
+  have hm : 0 ≤ m := by
+    simpa [m] using normalizedZerothReflectionKernel_intervalIntegral_nonneg ht L x
+  change |c * m - d * m| = |c - d| * m
+  rw [show c * m - d * m = (c - d) * m by ring]
+  rw [abs_mul, abs_of_nonneg hm]
+
+/-- Constants are contracted by the interval helper operator. -/
+theorem intervalSemigroupOperator_const_contraction
+    {t : ℝ} (ht : 0 < t) (L c d x : ℝ) :
+    |intervalSemigroupOperator L t (fun _ => c) x -
+        intervalSemigroupOperator L t (fun _ => d) x| ≤ |c - d| := by
+  rw [intervalSemigroupOperator_const_diff_abs_eq_abs_mul_kernel_mass ht L c d x]
+  have hmass := normalizedZerothReflectionKernel_intervalIntegral_le_one ht L x
+  calc
+    |c - d| *
+        ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L
+        ≤ |c - d| * 1 := mul_le_mul_of_nonneg_left hmass (abs_nonneg (c - d))
+    _ = |c - d| := by ring
+
 /-- Applying the interval helper operator to `1` returns exactly the
 restricted kernel mass. -/
 theorem intervalSemigroupOperator_one_eq_kernel_mass
