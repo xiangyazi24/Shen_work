@@ -6365,6 +6365,38 @@ def LemmaA7ThresholdComparisonsRaw
       (1 ≤ p.β → 1 ≤ p.γ → p.α + 1 ≥ p.m + 2 * p.γ →
         chiStrong4 eq.1 ≤ chiCritical eq.1)
 
+/-- Formula-level raw Lemma A.7 threshold comparison.  The only threshold
+input is the explicit domination of the maximum strong threshold by the chosen
+critical threshold. -/
+lemma LemmaA7ThresholdComparisonsRaw_of_max_le_critical
+    (p : CM2Params) (M0 : ℝ) (chiCritical : ℝ → ℝ)
+    (hcritical :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        max
+            (max (chiStrong1Formula p eq.1 eq.2)
+              (chiStrong2Formula p eq.1))
+            (max (chiStrong3Formula p M0 eq.1 eq.2)
+              (chiStrong4Formula p M0 eq.1)) ≤
+          chiCritical eq.1) :
+    LemmaA7ThresholdComparisonsRaw p chiCritical
+      (fun u => chiStrong1Formula p u (p.ν / p.μ * u ^ p.γ))
+      (fun u => chiStrong2Formula p u)
+      (fun u => chiStrong3Formula p M0 u (p.ν / p.μ * u ^ p.γ))
+      (fun u => chiStrong4Formula p M0 u) := by
+  intro _hβ _hm ha hb
+  dsimp
+  have hmax := hcritical ha hb
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro _hαγ
+    exact le_trans (le_trans (le_max_left _ _) (le_max_left _ _)) hmax
+  · intro _hβ1 _hαγ
+    exact le_trans (le_trans (le_max_right _ _) (le_max_left _ _)) hmax
+  · intro _hγ _hαγ
+    exact le_trans (le_trans (le_max_left _ _) (le_max_right _ _)) hmax
+  · intro _hβ1 _hγ _hαγ
+    exact le_trans (le_trans (le_max_right _ _) (le_max_right _ _)) hmax
+
 /-- Raw obstruction for Lemma A.7-style threshold comparisons: the comparison
 is not a consequence of the parameter hypotheses alone when the threshold
 functions are exposed as arbitrary data. -/
@@ -6391,6 +6423,53 @@ def LemmaA8ThresholdComparisonsRaw
     ∀ uStar > 0,
       (0 < p.γ → chiMinimal1 uStar ≤ chiCritical uStar) ∧
       (p.γ = 1 → chiMinimal2 uStar ≤ chiCritical uStar)
+
+/-- The first explicit minimal threshold is bounded by `chiBeta`. -/
+lemma chiMinimal1Formula_le_chiBeta_of_one_le_beta
+    (p : CM2Params) (hβ : 1 ≤ p.β)
+    (lambdaStar uStar uBar vLower : ℝ) :
+    chiMinimal1Formula p lambdaStar uStar uBar vLower ≤ chiBeta p := by
+  have hmin :
+      chiMinimal1Formula p lambdaStar uStar uBar vLower ≤
+        min (chiBeta p / 2) (Real.sqrt (chiBeta p)) :=
+    chiMinimal1Formula_le_min_half_sqrt p lambdaStar uStar uBar vLower
+  have hhalf : chiBeta p / 2 ≤ chiBeta p := by
+    have hpos : 0 < chiBeta p := chiBeta_pos_of_one_le_beta p hβ
+    linarith
+  exact le_trans hmin (le_trans (min_le_left _ _) hhalf)
+
+/-- The second explicit minimal threshold is bounded by `chiBeta`. -/
+lemma chiMinimal2Formula_le_chiBeta_of_one_le_beta
+    (p : CM2Params) (hβ : 1 ≤ p.β) (uBar vLower : ℝ) :
+    chiMinimal2Formula p uBar vLower ≤ chiBeta p := by
+  have hmin :
+      chiMinimal2Formula p uBar vLower ≤
+        min (chiBeta p / 2) (Real.sqrt (chiBeta p)) :=
+    chiMinimal2Formula_le_min_half_sqrt p uBar vLower
+  have hhalf : chiBeta p / 2 ≤ chiBeta p := by
+    have hpos : 0 < chiBeta p := chiBeta_pos_of_one_le_beta p hβ
+    linarith
+  exact le_trans hmin (le_trans (min_le_left _ _) hhalf)
+
+/-- Formula-level raw Lemma A.8 threshold comparison.  It replaces the
+`Paper3Constants` comparison fields by the explicit `chiBeta` domination
+condition. -/
+lemma LemmaA8ThresholdComparisonsRaw_of_chiBeta_le_critical
+    (p : CM2Params) (uBar vLower : ℝ) (chiCritical : ℝ → ℝ)
+    (hcritical : ∀ uStar > 0, chiBeta p ≤ chiCritical uStar) :
+    LemmaA8ThresholdComparisonsRaw p chiCritical
+      (fun uStar => chiMinimal1Formula p 1 uStar uBar vLower)
+      (fun _uStar => chiMinimal2Formula p uBar vLower) := by
+  intro _ha _hb _hm hβ uStar huStar
+  refine ⟨?_, ?_⟩
+  · intro _hγ
+    exact le_trans
+      (chiMinimal1Formula_le_chiBeta_of_one_le_beta p hβ 1 uStar uBar vLower)
+      (hcritical uStar huStar)
+  · intro _hγ
+    exact le_trans
+      (chiMinimal2Formula_le_chiBeta_of_one_le_beta p hβ uBar vLower)
+      (hcritical uStar huStar)
 
 /-- Raw obstruction for Lemma A.8-style threshold comparisons: without the
 exact threshold formulas, the minimal comparison fields are arbitrary data. -/
