@@ -1812,6 +1812,23 @@ theorem normalizedZerothReflectionKernel_intervalIntegral_le_one
     (Filter.Eventually.of_forall fun y =>
       normalizedZerothReflectionKernel_nonneg ht L x y)
 
+/-- The restricted interval mass of the normalized helper kernel is
+nonnegative. -/
+theorem normalizedZerothReflectionKernel_intervalIntegral_nonneg
+    {t : ℝ} (ht : 0 < t) (L x : ℝ) :
+    0 ≤ ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L := by
+  exact MeasureTheory.integral_nonneg fun y =>
+    normalizedZerothReflectionKernel_nonneg ht L x y
+
+/-- The restricted interval mass of the normalized helper kernel lies in
+`[0,1]`. -/
+theorem normalizedZerothReflectionKernel_intervalIntegral_mem_Icc
+    {t : ℝ} (ht : 0 < t) (L x : ℝ) :
+    (∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L) ∈
+      Set.Icc (0 : ℝ) 1 :=
+  ⟨normalizedZerothReflectionKernel_intervalIntegral_nonneg ht L x,
+    normalizedZerothReflectionKernel_intervalIntegral_le_one ht L x⟩
+
 /-- The normalized helper kernel is integrable against the interval measure. -/
 theorem normalizedZerothReflectionKernel_interval_integrable
     {t : ℝ} (ht : 0 < t) (L x : ℝ) :
@@ -2092,6 +2109,33 @@ theorem intervalSemigroupOperator_mono_bounded
     (intervalMeasure_integrable_of_abs_bound hf_meas hf_bound)
     (intervalMeasure_integrable_of_abs_bound hg_meas hg_bound)
     hfg x
+
+/-- Sharp sub-Markov upper bound: if `f ≤ M`, then the restricted interval
+helper output is bounded by `M` times the restricted kernel mass. -/
+theorem intervalSemigroupOperator_le_const_mul_kernel_mass
+    {L t M : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf_int : Integrable f (intervalMeasure L))
+    (hf_le : ∀ y, f y ≤ M) (x : ℝ) :
+    intervalSemigroupOperator L t f x ≤
+      M * ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L := by
+  have hconst_int : Integrable (fun _ : ℝ => M) (intervalMeasure L) :=
+    integrable_const M
+  have hmono :=
+    intervalSemigroupOperator_mono
+      (L := L) (t := t) ht hf_int hconst_int hf_le x
+  rwa [intervalSemigroupOperator_const_eq_kernel_mass_mul] at hmono
+
+/-- Sharp sub-Markov interval bound for nonnegative inputs bounded above by
+`M`. -/
+theorem intervalSemigroupOperator_submarkov_interval_bound
+    {L t M : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf_int : Integrable f (intervalMeasure L))
+    (hf_nonneg : ∀ y, 0 ≤ f y) (hf_le : ∀ y, f y ≤ M) (x : ℝ) :
+    0 ≤ intervalSemigroupOperator L t f x ∧
+      intervalSemigroupOperator L t f x ≤
+        M * ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L :=
+  ⟨intervalSemigroupOperator_nonneg ht hf_nonneg x,
+    intervalSemigroupOperator_le_const_mul_kernel_mass ht hf_int hf_le x⟩
 
 /-- The interval helper operator is dominated by the integral of the pointwise
 absolute value. -/
