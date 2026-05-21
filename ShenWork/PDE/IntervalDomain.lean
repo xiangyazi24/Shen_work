@@ -2258,6 +2258,32 @@ theorem intervalSemigroupOperator_kernel_mass_interval_bound
   ⟨intervalSemigroupOperator_const_mul_kernel_mass_le ht hf_int hf_ge x,
     intervalSemigroupOperator_le_const_mul_kernel_mass ht hf_int hf_le x⟩
 
+/-- Sub-Markov interval bound for inputs whose range is contained in an
+interval crossing zero. -/
+theorem intervalSemigroupOperator_signed_interval_bound
+    {L t a b : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf_int : Integrable f (intervalMeasure L))
+    (ha : a ≤ 0) (hb : 0 ≤ b)
+    (hf_ge : ∀ y, a ≤ f y) (hf_le : ∀ y, f y ≤ b) (x : ℝ) :
+    a ≤ intervalSemigroupOperator L t f x ∧
+      intervalSemigroupOperator L t f x ≤ b := by
+  have hmass_le := normalizedZerothReflectionKernel_intervalIntegral_le_one ht L x
+  have hbounds :=
+    intervalSemigroupOperator_kernel_mass_interval_bound
+      (L := L) (t := t) (a := a) (b := b) ht hf_int hf_ge hf_le x
+  constructor
+  · calc
+      a = a * 1 := by ring
+      _ ≤ a * ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L :=
+        mul_le_mul_of_nonpos_left hmass_le ha
+      _ ≤ intervalSemigroupOperator L t f x := hbounds.1
+  · calc
+      intervalSemigroupOperator L t f x
+          ≤ b * ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L :=
+        hbounds.2
+      _ ≤ b * 1 := mul_le_mul_of_nonneg_left hmass_le hb
+      _ = b := by ring
+
 /-- Sharp sub-Markov interval bound for nonnegative inputs bounded above by
 `M`. -/
 theorem intervalSemigroupOperator_submarkov_interval_bound
