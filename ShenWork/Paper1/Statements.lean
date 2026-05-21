@@ -8087,10 +8087,27 @@ def Remark_4_2_chi_zero_strengthened : Prop :=
                   ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
                     IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ
 
+theorem Remark_4_2_chi_zero_strengthened_direct
+    (p : CMParams) (hχ : p.χ = 0) {κ κtilde M c T : ℝ}
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
+    (hrange :
+      κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (hM : 1 ≤ M) (hT : 0 < T) (hc : c = κ + κ⁻¹) :
+    ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
+      ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ M T u →
+        (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+          IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
+            (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
+        ∀ d : ℝ, 0 < d →
+          d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+            ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+              IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ :=
+  Remark_4_2_chi_zero p hχ hκ hκ1 hgap hrange hM hT hc
+
 theorem Remark_4_2_chi_zero_strengthened_proved :
     Remark_4_2_chi_zero_strengthened := by
   intro p hχ κ κtilde M c T hκ hκ1 hgap hrange hM hT hc
-  exact Remark_4_2_chi_zero
+  exact Remark_4_2_chi_zero_strengthened_direct
     p hχ hκ hκ1 hgap hrange hM hT hc
 
 /-- The `M = 1` slice of Paper1 Remark 4.2.  In this case the finite-time
@@ -8335,10 +8352,29 @@ def Remark_4_2_M_one_chi_zero_strengthened : Prop :=
                   ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
                     IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ
 
+theorem Remark_4_2_M_one_chi_zero_strengthened_direct
+    (p : CMParams) (hχ : p.χ = 0) {κ κtilde c T : ℝ}
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
+    (hrange :
+      κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (hκtilde_twoκ : κtilde ≤ 2 * κ)
+    (hT : 0 < T) (hc : c = κ + κ⁻¹) :
+    ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
+      ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ 1 T u →
+        (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+          IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
+            (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
+        ∀ d : ℝ, 0 < d →
+          d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+            ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+              IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ :=
+  Remark_4_2_M_one_chi_zero_of_kappaTilde_le_two_kappa
+    p hχ hκ hκ1 hgap hrange hκtilde_twoκ hT hc
+
 theorem Remark_4_2_M_one_chi_zero_strengthened_proved :
     Remark_4_2_M_one_chi_zero_strengthened := by
   intro p hχ κ κtilde c T hκ hκ1 hgap hrange hκtilde_twoκ hT hc
-  exact Remark_4_2_M_one_chi_zero_of_kappaTilde_le_two_kappa
+  exact Remark_4_2_M_one_chi_zero_strengthened_direct
     p hχ hκ hκ1 hgap hrange hκtilde_twoκ hT hc
 
 /-- A proved finite-time `M = 1`, χ=0 slice of Remark 4.2 with the
@@ -8361,10 +8397,29 @@ def Remark_4_2_M_one_chi_zero_D_ge_one_strengthened : Prop :=
                   ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
                     IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ
 
+theorem Remark_4_2_M_one_chi_zero_D_ge_one_strengthened_direct
+    (p : CMParams) (hχ : p.χ = 0) {κ κtilde c T : ℝ}
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
+    (hrange :
+      κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (hT : 0 < T) (hc : c = κ + κ⁻¹) :
+    ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
+      1 ≤ D →
+      ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ 1 T u →
+        (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+          IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
+            (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
+        ∀ d : ℝ, 0 < d →
+          d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+            ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+              IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ :=
+  Remark_4_2_M_one_chi_zero_of_D_ge_one
+    p hχ hκ hκ1 hgap hrange hT hc
+
 theorem Remark_4_2_M_one_chi_zero_D_ge_one_strengthened_proved :
     Remark_4_2_M_one_chi_zero_D_ge_one_strengthened := by
   intro p hχ κ κtilde c T hκ hκ1 hgap hrange hT hc
-  exact Remark_4_2_M_one_chi_zero_of_D_ge_one
+  exact Remark_4_2_M_one_chi_zero_D_ge_one_strengthened_direct
     p hχ hκ hκ1 hgap hrange hT hc
 
 /-- A proved finite-time `M = 1`, χ=0, α=1 slice of Remark 4.2. -/
@@ -8385,10 +8440,28 @@ def Remark_4_2_M_one_chi_zero_alpha_one_strengthened : Prop :=
                   ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
                     IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ
 
+theorem Remark_4_2_M_one_chi_zero_alpha_one_strengthened_direct
+    (p : CMParams) (hχ : p.χ = 0) (hα : p.α = 1) {κ κtilde c T : ℝ}
+    (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
+    (hrange :
+      κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
+    (hT : 0 < T) (hc : c = κ + κ⁻¹) :
+    ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
+      ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ 1 T u →
+        (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+          IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
+            (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
+        ∀ d : ℝ, 0 < d →
+          d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
+            ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+              IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ :=
+  Remark_4_2_M_one_chi_zero_alpha_one
+    p hχ hα hκ hκ1 hgap hrange hT hc
+
 theorem Remark_4_2_M_one_chi_zero_alpha_one_strengthened_proved :
     Remark_4_2_M_one_chi_zero_alpha_one_strengthened := by
   intro p hχ hα κ κtilde c T hκ hκ1 hgap hrange hT hc
-  exact Remark_4_2_M_one_chi_zero_alpha_one
+  exact Remark_4_2_M_one_chi_zero_alpha_one_strengthened_direct
     p hχ hα hκ hκ1 hgap hrange hT hc
 
 def MChi (p : CMParams) : ℝ :=
