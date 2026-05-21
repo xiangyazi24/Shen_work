@@ -910,6 +910,28 @@ theorem modifiedSemigroup_paper1_interval_bound
   exact modifiedSemigroup_interval_bound
     hf_ge hf_le hf_bound hf_meas ht x
 
+/-- Concrete positivity preservation for the modified heat semigroup. -/
+theorem modifiedSemigroup_paper1_nonneg
+    {f : ℝ → ℝ} {t : ℝ}
+    (hf_nonneg : ∀ x, 0 ≤ f x) (ht : 0 < t) :
+    ∀ x : ℝ, 0 ≤ modifiedSemigroup t f x := by
+  intro x
+  exact modifiedSemigroup_nonneg hf_nonneg ht x
+
+/-- Concrete monotonicity for bounded inputs under the modified heat semigroup. -/
+theorem modifiedSemigroup_paper1_mono_bounded
+    {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hfg : ∀ x, f x ≤ g x)
+    (hf_bound : ∀ x, |f x| ≤ Mf)
+    (hg_bound : ∀ x, |g x| ≤ Mg)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (ht : 0 < t) :
+    ∀ x : ℝ, modifiedSemigroup t f x ≤ modifiedSemigroup t g x := by
+  intro x
+  exact modifiedSemigroup_mono_bounded
+    hfg hf_bound hg_bound hf_meas hg_meas ht x
+
 /-- Concrete `L∞` contraction for the modified heat semigroup. -/
 theorem modifiedSemigroup_paper1_contraction
     {f g : ℝ → ℝ} {M t Mf Mg : ℝ}
@@ -924,6 +946,59 @@ theorem modifiedSemigroup_paper1_contraction
   intro x
   exact modifiedSemigroup_contraction
     hfg ht hM hf_meas hg_meas hf_bound hg_bound x
+
+/-- Concrete additivity for bounded inputs under the modified heat semigroup. -/
+theorem modifiedSemigroup_paper1_add_bounded
+    {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hf_bound : ∀ x, |f x| ≤ Mf)
+    (hg_bound : ∀ x, |g x| ≤ Mg)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (ht : 0 < t) :
+    ∀ x : ℝ,
+      modifiedSemigroup t (fun y => f y + g y) x =
+        modifiedSemigroup t f x + modifiedSemigroup t g x := by
+  intro x
+  exact modifiedSemigroup_add_bounded
+    hf_bound hg_bound hf_meas hg_meas ht x
+
+/-- Concrete subtraction for bounded inputs under the modified heat semigroup. -/
+theorem modifiedSemigroup_paper1_sub_bounded
+    {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hf_bound : ∀ x, |f x| ≤ Mf)
+    (hg_bound : ∀ x, |g x| ≤ Mg)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (ht : 0 < t) :
+    ∀ x : ℝ,
+      modifiedSemigroup t (fun y => f y - g y) x =
+        modifiedSemigroup t f x - modifiedSemigroup t g x := by
+  intro x
+  exact modifiedSemigroup_sub_bounded
+    hf_bound hg_bound hf_meas hg_meas ht x
+
+/-- Concrete `L¹ → L∞` smoothing for the modified heat semigroup. -/
+theorem modifiedSemigroup_paper1_L1_Linfty_smoothing_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t)
+    (hf_int : Integrable f) :
+    ∀ x : ℝ,
+      |modifiedSemigroup t f x| ≤
+        Real.exp (-t) *
+          ((1 / Real.sqrt (4 * Real.pi * t)) * ∫ y : ℝ, |f y|) := by
+  intro x
+  exact modifiedSemigroup_L1_Linfty_smoothing_abs ht x hf_int
+
+/-- Concrete difference `L¹ → L∞` smoothing for the modified heat semigroup. -/
+theorem modifiedSemigroup_paper1_diff_L1_Linfty_smoothing_abs
+    {f g : ℝ → ℝ} {t : ℝ} (ht : 0 < t)
+    (hf_int : Integrable f) (hg_int : Integrable g) :
+    ∀ x : ℝ,
+      |modifiedSemigroup t f x - modifiedSemigroup t g x| ≤
+        Real.exp (-t) *
+          ((1 / Real.sqrt (4 * Real.pi * t)) *
+            ∫ y : ℝ, |f y - g y|) := by
+  intro x
+  exact modifiedSemigroup_diff_L1_Linfty_smoothing_abs ht x hf_int hg_int
 
 /-- Concrete `L¹ → L∞` gradient smoothing for the modified heat semigroup. -/
 theorem deriv_modifiedSemigroup_paper1_L1_Linfty_smoothing_abs
