@@ -6856,17 +6856,6 @@ def Theorem_2_2_linear_stability_chi_nonpos_branch : Prop :=
           let eq := minimalEquilibrium p uStar
           LinearlyStable S p eq.1 eq.2)
 
-lemma Theorem_2_2_linear_stability_chi_nonpos_branch_proved :
-    Theorem_2_2_linear_stability_chi_nonpos_branch := by
-  intro S p H hχ
-  refine ⟨?_, ?_⟩
-  · intro ha hb
-    exact positiveEquilibrium_linearlyStable_of_chi_nonpos_neumann
-      S p H hχ ha hb
-  · intro ha _hb uStar huStar
-    exact minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero_neumann
-      S p H hχ ha huStar
-
 /-- Direct theorem-shaped version of the nonpositive-sensitivity linear
 stability branch of Paper3 Theorem 2.2.  This avoids routing the result
 through a theorem-shaped `Prop` wrapper. -/
@@ -6887,6 +6876,11 @@ theorem Theorem_2_2_linear_stability_chi_nonpos_branch_direct
   · intro ha _hb uStar huStar
     exact minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero_neumann
       S p H hχ ha huStar
+
+lemma Theorem_2_2_linear_stability_chi_nonpos_branch_proved :
+    Theorem_2_2_linear_stability_chi_nonpos_branch := by
+  intro S p H hχ
+  exact Theorem_2_2_linear_stability_chi_nonpos_branch_direct S p H hχ
 
 lemma Theorem_2_2_linear_stability_chi_nonpos_unitInterval
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) :
@@ -6926,23 +6920,6 @@ def Theorem_2_2_linear_threshold_branch : Prop :=
           (paperCriticalSensitivity S p eq.1 eq.2 < p.χ₀ →
             LinearlyUnstable S p eq.1 eq.2))
 
-lemma Theorem_2_2_linear_threshold_branch_proved :
-    Theorem_2_2_linear_threshold_branch := by
-  intro S p H
-  refine ⟨?_, ?_⟩
-  · intro ha hb
-    exact
-      ⟨positiveEquilibrium_linearlyStable_of_chi_lt_paperCriticalSensitivity_neumann
-          S p H ha hb,
-        positiveEquilibrium_linearlyUnstable_of_paperCriticalSensitivity_lt_chi_neumann
-          S p H ha hb⟩
-  · intro _ha _hb uStar huStar
-    exact
-      ⟨minimalEquilibrium_linearlyStable_of_chi_lt_paperCriticalSensitivity_neumann
-          S p H huStar,
-        minimalEquilibrium_linearlyUnstable_of_paperCriticalSensitivity_lt_chi_neumann
-          S p H huStar⟩
-
 /-- Direct theorem-shaped version of the Paper3 Theorem 2.2 spectral
 threshold branch.  This avoids routing the already proved stable/unstable
 spectral alternatives through a theorem-shaped `Prop` wrapper. -/
@@ -6974,6 +6951,11 @@ theorem Theorem_2_2_linear_threshold_branch_direct
           S p H huStar,
         minimalEquilibrium_linearlyUnstable_of_paperCriticalSensitivity_lt_chi_neumann
           S p H huStar⟩
+
+lemma Theorem_2_2_linear_threshold_branch_proved :
+    Theorem_2_2_linear_threshold_branch := by
+  intro S p H
+  exact Theorem_2_2_linear_threshold_branch_direct S p H
 
 lemma Theorem_2_2_linear_threshold_unitInterval
     (p : CM2Params) :
@@ -7022,19 +7004,6 @@ def Theorem_2_2_linear_mode_one_instability_branch : Prop :=
           sigmaCriticalChiPaperFormula p eq.1 eq.2 (S.eigenvalue 1) < p.χ₀ →
             LinearlyUnstable S p eq.1 eq.2)
 
-lemma Theorem_2_2_linear_mode_one_instability_branch_proved :
-    Theorem_2_2_linear_mode_one_instability_branch := by
-  intro S p H
-  refine ⟨?_, ?_⟩
-  · intro ha hb
-    exact
-      positiveEquilibrium_linearlyUnstable_of_mode_one_paperFormula_lt_chi_neumann
-        S p H ha hb
-  · intro _ha _hb uStar huStar
-    exact
-      minimalEquilibrium_linearlyUnstable_of_mode_one_paperFormula_lt_chi_neumann
-        S p H huStar
-
 /-- Direct theorem-shaped version of the mode-one instability branch of
 Paper3 Theorem 2.2, avoiding the theorem-shaped `Prop` wrapper. -/
 theorem Theorem_2_2_linear_mode_one_instability_branch_direct
@@ -7057,6 +7026,11 @@ theorem Theorem_2_2_linear_mode_one_instability_branch_direct
     exact
       minimalEquilibrium_linearlyUnstable_of_mode_one_paperFormula_lt_chi_neumann
         S p H huStar
+
+lemma Theorem_2_2_linear_mode_one_instability_branch_proved :
+    Theorem_2_2_linear_mode_one_instability_branch := by
+  intro S p H
+  exact Theorem_2_2_linear_mode_one_instability_branch_direct S p H
 
 lemma Theorem_2_2_linear_mode_one_instability_unitInterval
     (p : CM2Params) :
