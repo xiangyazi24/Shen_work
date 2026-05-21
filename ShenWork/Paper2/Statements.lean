@@ -425,6 +425,66 @@ theorem intervalSemigroupOperator_paper2_length_smoothing
   exact ShenWork.IntervalDomain.intervalSemigroupOperator_L1_Linfty_abs_le_length
     hL ht hf_meas hf_bound x
 
+/-- Concrete interval semigroup `L∞` bound for bounded inputs. -/
+theorem intervalSemigroupOperator_paper2_Linfty_bound
+    {L t Mf M : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    {f : ℝ → ℝ}
+    (hf_meas :
+      MeasureTheory.AEStronglyMeasurable f
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hf_abs : ∀ y, |f y| ≤ M) :
+    ∀ x : ℝ,
+      |ShenWork.IntervalDomain.intervalSemigroupOperator L t f x| ≤ M := by
+  have _ : MeasureTheory.Integrable f
+      (ShenWork.IntervalDomain.intervalMeasure L) :=
+    ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound
+      hf_meas hf_bound
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_Linfty_bound
+    ht hM hf_abs x
+
+/-- Concrete interval semigroup `L∞` contraction for bounded input pairs. -/
+theorem intervalSemigroupOperator_paper2_contraction
+    {L t Mf Mg M : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    {f g : ℝ → ℝ}
+    (hf_meas :
+      MeasureTheory.AEStronglyMeasurable f
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hg_meas :
+      MeasureTheory.AEStronglyMeasurable g
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hfg : ∀ y, |f y - g y| ≤ M) :
+    ∀ x : ℝ,
+      |ShenWork.IntervalDomain.intervalSemigroupOperator L t f x -
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t g x| ≤ M := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_contraction_bounded
+    ht hM hf_meas hg_meas hf_bound hg_bound hfg x
+
+/-- Concrete interval semigroup additivity for bounded input pairs. -/
+theorem intervalSemigroupOperator_paper2_add
+    {L t Mf Mg : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_meas :
+      MeasureTheory.AEStronglyMeasurable f
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hg_meas :
+      MeasureTheory.AEStronglyMeasurable g
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hg_bound : ∀ y, |g y| ≤ Mg) :
+    ∀ x : ℝ,
+      ShenWork.IntervalDomain.intervalSemigroupOperator L t
+          (fun y => f y + g y) x =
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t f x +
+          ShenWork.IntervalDomain.intervalSemigroupOperator L t g x := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_add_bounded
+    ht hf_meas hg_meas hf_bound hg_bound x
+
 def WeightedGradientEstimate
     (D : BoundedDomainData) (pExp beta gamma Mstar T : ℝ)
     (u v : ℝ → D.Point → ℝ) : Prop :=
