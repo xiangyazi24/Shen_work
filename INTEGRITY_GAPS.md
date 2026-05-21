@@ -843,7 +843,7 @@ Per Playbook §1 Point 11 (honest reporting):
 | Theorem | Uses abstract structure? | Correct classification |
 |---------|--------------------------|------------------------|
 | `Lemma_A_6_proved` | No | genuinely proved |
-| `Lemma_3_1_from_global_solution_regular_components` | `PositiveGlobalBoundedSolution` regularity component | accessor, not counted as `_proved` |
+| `Lemma_3_1_from_global_solution_regular_components` | Removed | deleted because it was only a regularity-field accessor, not an end-to-end proof |
 | `Theorem_2_2_linear_stability_chi_nonpos_branch_proved` | `SpectralData` + `HasNeumannSpectrum` | genuine relative spectral branch; does not prove PDE/local stability |
 | `Theorem_2_2_linear_threshold_branch_proved` | `SpectralData` + `HasNeumannSpectrum` | genuine relative spectral branch using the explicit `paperCriticalSensitivity` formula |
 | `Theorem_2_2_linear_critical_spectrum_branch_proved` | `SpectralData` + `Paper3ConstantsUsesCriticalSpectrum` | genuine bridge once `C.chiCritical` is identified with the explicit spectral threshold |

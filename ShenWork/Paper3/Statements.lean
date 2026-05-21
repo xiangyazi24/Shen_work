@@ -5981,15 +5981,6 @@ def Lemma_3_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
     PositiveGlobalBoundedSolution D p u v →
       UniformRegularityConclusion D p u v
 
-/- This is an accessor from the regularity component already present in
-`PositiveGlobalBoundedSolution`, not an end-to-end proof of the analytic
-regularity estimate.  The name deliberately avoids `_proved`. -/
-lemma Lemma_3_1_from_global_solution_regular_components
-    (D : BoundedDomainData) (p : CM2Params) :
-    Lemma_3_1 D p := by
-  intro u v huv T hT
-  exact huv.regularity hT
-
 def Lemma_3_2
     (D : BoundedDomainData) (p : CM2Params) (K : CompactnessData D) : Prop :=
   1 ≤ p.m → 0 < p.γ →
