@@ -1854,6 +1854,13 @@ theorem normalizedZerothReflectionKernel_intervalIntegral_le_one
     (Filter.Eventually.of_forall fun y =>
       normalizedZerothReflectionKernel_nonneg ht L x y)
 
+/-- The restricted kernel mass entering the interval helper operator is at
+most one. -/
+theorem intervalSemigroupOperator_intervalIntegral_le_one
+    {t : ℝ} (ht : 0 < t) (L x : ℝ) :
+    ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L ≤ 1 :=
+  normalizedZerothReflectionKernel_intervalIntegral_le_one ht L x
+
 /-- The restricted interval mass of the normalized helper kernel is
 nonnegative. -/
 theorem normalizedZerothReflectionKernel_intervalIntegral_nonneg
