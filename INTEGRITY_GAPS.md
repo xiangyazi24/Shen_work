@@ -848,6 +848,10 @@ end-to-end paper theorem proof.
 | `Theorem_2_2_xpSigma_local_exponential_branch_of_Lemma_A_1` | `Lemma_A_1` + critical-spectrum bridge | bridge from explicit Lemma A.1 local-stability input; not a proof of Lemma A.1 |
 | `Theorem_2_4_linear_stability_branch_of_Lemma_A_7` | `Lemma_A_7` + critical-spectrum bridge | bridge from explicit A.7 threshold comparisons; not a proof of global stability |
 | `Theorem_2_5_linear_stability_branch_of_Lemma_A_8` | `Lemma_A_8` + critical-spectrum bridge | bridge from explicit A.8 threshold comparisons; not a proof of global stability |
+| `SectorialLocalExponentialRaw.massConstrained_from_sup_control` | `SectorialLocalExponentialRaw` + `SupControlsXpSigmaDistance` + `MassConstrainedSmallDataGlobalExistence` | bridge from exposed sectorial `X^σ_p` decay to mass-constrained sup-norm local stability; the norm-control and Cauchy-existence inputs remain explicit |
+| `Theorem_2_3_negative_sensitivity_mass_constrained_formula_branch_of_raw` | negative-sensitivity spectral sign + raw sectorial bridge | formula-level bridge; not a proof of negative-sensitivity global stability |
+| `Theorem_2_4_full_stability_formula_branch_of_raw` | explicit strong-threshold formulas + raw sectorial bridge | formula-level bridge; not a proof of the nonlinear global-stability estimate |
+| `Theorem_2_5_full_stability_formula_branch_of_raw` | explicit minimal threshold formulas + raw sectorial bridge | formula-level bridge; not a proof of the nonlinear minimal-model stability estimate |
 
 ### Paper2 direct / branch theorems:
 
