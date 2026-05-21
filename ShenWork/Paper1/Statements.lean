@@ -1347,11 +1347,20 @@ theorem Lemma_2_2_derivative_formula_proved :
   intro u l mu hl hmu hu
   exact Psi_derivative_formula_general hl hmu hu
 
+theorem Lemma_2_2_direct
+    {u : ℝ → ℝ} {l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hu : IsCUnifBdd u) :
+    (∀ x,
+      Psi u l mu x =
+        mu / (2 * Real.sqrt l) *
+          ∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * u y) ∧
+    PsiDerivativeFormula u l mu :=
+  ⟨Lemma_2_2_kernel_formula_proved u l mu hl hmu hu,
+    Lemma_2_2_derivative_formula_proved u l mu hl hmu hu⟩
+
 theorem Lemma_2_2_proved : Lemma_2_2 := by
   intro u l mu hl hmu hu
-  exact
-    ⟨Lemma_2_2_kernel_formula_proved u l mu hl hmu hu,
-      Lemma_2_2_derivative_formula_proved u l mu hl hmu hu⟩
+  exact Lemma_2_2_direct hl hmu hu
 
 def Lemma_2_3 : Prop :=
   ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
@@ -1366,9 +1375,17 @@ theorem Lemma_2_3.derivative_bound
     ∀ x, |deriv (fun z => Psi u l mu z) x| ≤ Real.sqrt l * Psi u l mu x :=
   h u l mu hl hmu hu hu_nonneg
 
-theorem Lemma_2_3_proved : Lemma_2_3 := by
-  intro u l mu hl hmu hu hu_nonneg x
+theorem Lemma_2_3_direct
+    {u : ℝ → ℝ} {l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hu : IsCUnifBdd u)
+    (hu_nonneg : ∀ x, 0 ≤ u x) :
+    ∀ x, |deriv (fun z => Psi u l mu z) x| ≤ Real.sqrt l * Psi u l mu x := by
+  intro x
   exact Psi_deriv_abs_le_general hl hmu hu hu_nonneg x
+
+theorem Lemma_2_3_proved : Lemma_2_3 := by
+  intro u l mu hl hmu hu hu_nonneg
+  exact Lemma_2_3_direct hl hmu hu hu_nonneg
 
 theorem Lemma_2_3_of_Lemma_2_2 (h22 : Lemma_2_2) : Lemma_2_3 := by
   intro u l mu hl hmu hu hu_nonneg x
@@ -1485,8 +1502,11 @@ def Lemma_2_3_unit : Prop :=
     (∀ x, 0 ≤ u x) →
       ∀ x, |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x
 
-theorem Lemma_2_3_unit_proved : Lemma_2_3_unit := by
-  intro u hu hu_nonneg x
+theorem Lemma_2_3_unit_direct
+    {u : ℝ → ℝ} (hu : IsCUnifBdd u)
+    (hu_nonneg : ∀ x, 0 ≤ u x) :
+    ∀ x, |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x := by
+  intro x
   rcases hu.2 with ⟨M, hM⟩
   have hM_nonneg : 0 ≤ M := le_trans (abs_nonneg (u 0)) (hM 0)
   have hint_raw :
@@ -1496,6 +1516,10 @@ theorem Lemma_2_3_unit_proved : Lemma_2_3_unit := by
       Integrable (fun y => Real.exp (-|x - y|) * u y) := by
     simpa using hint_raw
   exact Psi_deriv_abs_le' hu_nonneg x hint hu.1.aestronglyMeasurable
+
+theorem Lemma_2_3_unit_proved : Lemma_2_3_unit := by
+  intro u hu hu_nonneg
+  exact Lemma_2_3_unit_direct hu hu_nonneg
 
 theorem Psi_one_mu_eq (u : ℝ → ℝ) (mu x : ℝ) :
     Psi u 1 mu x = mu * Psi u 1 1 x := by
@@ -1525,8 +1549,13 @@ def Lemma_2_4 : Prop :=
       (∀ x, u x ≤ min M (Real.exp (-k * x))) →
         ∀ x, Psi u 1 1 x ≤ min M (1 / (1 - k ^ 2) * Real.exp (-k * x))
 
-theorem Lemma_2_4_proved : Lemma_2_4 := by
-  intro M k hM hk hk1 u hu hu_nonneg hu_bound x
+theorem Lemma_2_4_direct
+    {M k : ℝ} (hM : 1 ≤ M) (hk : 0 < k) (hk1 : k < 1)
+    {u : ℝ → ℝ} (hu : IsCUnifBdd u)
+    (hu_nonneg : ∀ x, 0 ≤ u x)
+    (hu_bound : ∀ x, u x ≤ min M (Real.exp (-k * x))) :
+    ∀ x, Psi u 1 1 x ≤ min M (1 / (1 - k ^ 2) * Real.exp (-k * x)) := by
+  intro x
   have hM_nonneg : 0 ≤ M := le_trans zero_le_one hM
   have huM : ∀ y, u y ≤ M := by
     intro y
@@ -1537,6 +1566,10 @@ theorem Lemma_2_4_proved : Lemma_2_4 := by
   exact
     Psi_le_min_const_exp_of_nonneg_le hM_nonneg hk hk1
       hu.1 hu_nonneg huM huexp x
+
+theorem Lemma_2_4_proved : Lemma_2_4 := by
+  intro M k hM hk hk1 u hu hu_nonneg hu_bound
+  exact Lemma_2_4_direct hM hk hk1 hu hu_nonneg hu_bound
 
 structure ExponentialWeight where
   weight : ℝ → ℝ
