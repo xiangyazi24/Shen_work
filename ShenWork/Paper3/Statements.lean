@@ -6510,6 +6510,62 @@ theorem Theorem_2_2_xpSigma_local_exponential_branch_of_Lemma_A_1
     intro u₀ hu₀ hsmall u v huv htrace t ht
     exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
+/-- Raw version of the `X^σ_p` local exponential-decay part of Paper3
+Theorem 2.2.  This replaces the theorem-shaped `Lemma_A_1` input by the
+exposed sectorial estimate `SectorialLocalExponentialRaw`. -/
+theorem Theorem_2_2_xpSigma_local_exponential_branch_of_raw
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D) (C : Paper3Constants D p)
+    (H : HasNeumannSpectrum S) (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance) :
+    (∀ sigma pNorm, 1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        p.χ₀ < C.chiCritical eq.1 →
+          ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+            ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+              N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+                ∀ u v : ℝ → D.Point → ℝ,
+                  IsPaper2GlobalClassicalSolution D p u v →
+                  InitialTrace D u₀ u →
+                    ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) ∧
+    (∀ sigma pNorm, 1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+      p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          p.χ₀ < C.chiCritical uStar →
+            ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+              ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+                N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+                  ∀ u v : ℝ → D.Point → ℝ,
+                    IsPaper2GlobalClassicalSolution D p u v →
+                    InitialTrace D u₀ u →
+                      ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) := by
+  refine ⟨?_, ?_⟩
+  · intro sigma pNorm hsigma_low hsigma_high hpNorm ha hb
+    dsimp
+    intro hχ
+    have hstable :=
+      hC.positiveEquilibrium_linearlyStable H ha hb hχ
+    rcases hraw.local_exponential_stability
+        hsigma_low hsigma_high hpNorm hstable with
+      ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
+    refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
+    intro u₀ hu₀ hsmall u v huv htrace t ht
+    exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
+  · intro sigma pNorm hsigma_low hsigma_high hpNorm ha hb uStar huStar
+    dsimp
+    intro hχ
+    have hstable :=
+      hC.minimalEquilibrium_linearlyStable H huStar hχ
+    rcases hraw.local_exponential_stability
+        hsigma_low hsigma_high hpNorm hstable with
+      ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
+    refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
+    intro u₀ hu₀ hsmall u v huv htrace t ht
+    exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
+
 /-- Formula-level nonminimal `X^σ_p` local exponential branch.  The spectral
 stability input is obtained from the explicit strong thresholds and the paper
 critical-sensitivity infimum, not from `Paper3Constants`. -/
