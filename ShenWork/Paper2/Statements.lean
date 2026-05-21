@@ -1854,8 +1854,11 @@ lemma beta_mul_Theta_beta_le_one {beta : ℝ} (hbeta : 0 < beta) :
     beta * Theta_beta beta ≤ 1 :=
   le_of_lt (beta_mul_Theta_beta_lt_one hbeta)
 
-theorem Lemma_2_5_proved : Lemma_2_5 := by
-  intro beta v hbeta hv
+/-- Direct scalar form of Paper2 Lemma 2.5, without going through the
+theorem-shaped `Prop` wrapper. -/
+theorem Lemma_2_5_direct
+    {beta v : ℝ} (hbeta : 0 < beta) (hv : 0 < v) :
+    beta * v / (1 + v) ^ (1 + beta) ≤ Psi_beta beta := by
   have hden_pos : 0 < 1 + beta := by linarith
   have hvden_pos : 0 < 1 + v := by linarith
   have hweights : 1 / (1 + beta) + beta / (1 + beta) = 1 := by
@@ -1902,12 +1905,16 @@ theorem Lemma_2_5_proved : Lemma_2_5 := by
     Real.rpow_pos_of_pos hvden_pos _
   exact (div_le_iff₀ hden_rpow_pos).mpr hmain
 
+theorem Lemma_2_5_proved : Lemma_2_5 := by
+  intro beta v hbeta hv
+  exact Lemma_2_5_direct hbeta hv
+
 /-- Direct pointwise form of Paper2 Lemma 2.5, using the proved sharp
 constant `Psi_beta`. -/
 theorem Lemma_2_5_pointwise_bound
     {beta v : ℝ} (hbeta : 0 < beta) (hv : 0 < v) :
     beta * v / (1 + v) ^ (1 + beta) ≤ Psi_beta beta :=
-  Lemma_2_5_proved beta v hbeta hv
+  Lemma_2_5_direct hbeta hv
 
 /-- The Paper2 Lemma 2.5 bound is attained at `v = 1 / beta`. -/
 theorem Lemma_2_5_attained_at_inv
