@@ -2511,6 +2511,20 @@ theorem intervalSemigroupOperator_symmetric_interval_bound
       intervalSemigroupOperator L t f x ≤ M := by
   exact abs_le.mp (intervalSemigroupOperator_Linfty_bound ht hM hf_abs x)
 
+/-- Bounded-input symmetric interval bound for inputs bounded in absolute
+value. -/
+theorem intervalSemigroupOperator_symmetric_interval_bound_bounded
+    {L t Mf M : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    {f : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hf_abs : ∀ y, |f y| ≤ M) (x : ℝ) :
+    -M ≤ intervalSemigroupOperator L t f x ∧
+      intervalSemigroupOperator L t f x ≤ M := by
+  have _ : Integrable f (intervalMeasure L) :=
+    intervalMeasure_integrable_of_abs_bound hf_meas hf_bound
+  exact intervalSemigroupOperator_symmetric_interval_bound ht hM hf_abs x
+
 /-- The interval helper operator preserves pointwise bounds `0 ≤ f ≤ M`. -/
 theorem intervalSemigroupOperator_interval_bound
     {L t M : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
