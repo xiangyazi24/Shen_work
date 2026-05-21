@@ -4779,6 +4779,101 @@ def ConvergenceToExponentialMinimalRaw
                 c1Distance (v t) (fun _ => eq.2) ≤
                   C * Real.exp (-rate * t)
 
+/-- Raw first branch of `Paper3Constants.convergenceToExponential`: theta
+moment convergence is exposed as an assumption and the sup convergence
+conclusion is not hidden inside the constants package. -/
+def MomentConvergenceToUniformRaw
+    (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  1 ≤ p.m →
+    ∀ (uStar _vStar theta : ℝ), 0 < theta →
+      ∀ u v : ℝ → D.Point → ℝ,
+        PositiveGlobalBoundedSolution D p u v →
+        ThetaMomentConvergesToZero D u uStar theta →
+          UniformConvergesInSup D u uStar
+
+/-- A fake domain where the moment functional is identically zero, but the
+sup-norm functional is identically one.  It separates the first convergence
+branch from any genuine compactness or norm-control argument. -/
+def momentConvergenceNoUniformDomain : BoundedDomainData where
+  Point := Unit
+  inside := Set.univ
+  boundary := ∅
+  volume := 1
+  supNorm := fun _ => 1
+  infValue := fun _ => 1
+  integral := fun _ => 0
+  gradNorm := fun _ _ => 0
+  timeDeriv := fun _ _ _ => 0
+  laplacian := fun _ _ => 0
+  chemotaxisDiv := fun _ _ _ _ => 0
+  crossDiffusionEnergyTerm := fun _ _ _ _ => 0
+  normalDeriv := fun _ _ => 0
+  initialAdmissible := fun _ => True
+  classicalRegularity := fun _ _ _ => True
+
+lemma momentConvergenceNoUniform_constant_one_classical
+    (T : ℝ) (hT : 0 < T) :
+    IsPaper2ClassicalSolution momentConvergenceNoUniformDomain
+      theorem21Part1CounterParams T
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT hx
+    norm_num
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - theorem21Part1CounterParams.χ₀ * 0 +
+        1 * (theorem21Part1CounterParams.a -
+          theorem21Part1CounterParams.b * (1 : ℝ) ^ theorem21Part1CounterParams.α)
+    norm_num [theorem21Part1CounterParams]
+  · intro t x ht0 htT hx
+    change (0 : ℝ) =
+      0 - theorem21Part1CounterParams.μ * 1 +
+        theorem21Part1CounterParams.ν * (1 : ℝ) ^ theorem21Part1CounterParams.γ
+    norm_num [theorem21Part1CounterParams]
+  · intro t x ht0 htT hx
+    cases hx
+
+lemma momentConvergenceNoUniform_constant_one_positiveGlobalBounded :
+    PositiveGlobalBoundedSolution momentConvergenceNoUniformDomain
+      theorem21Part1CounterParams
+      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+  refine ⟨?_, ?_, ?_⟩
+  · intro T hT
+    exact momentConvergenceNoUniform_constant_one_classical T hT
+  · exact ⟨1, Eventually.of_forall fun _t => le_rfl⟩
+  · intro t x ht hx
+    norm_num
+
+lemma momentConvergenceNoUniform_constant_one_thetaMoment :
+    ThetaMomentConvergesToZero momentConvergenceNoUniformDomain
+      (fun _ _ => (1 : ℝ)) 1 1 := by
+  simp [ThetaMomentConvergesToZero, momentConvergenceNoUniformDomain]
+
+/-- Raw obstruction for the moment-to-uniform convergence branch: the current
+abstract domain API permits a zero moment functional unrelated to the exposed
+sup norm. -/
+lemma not_MomentConvergenceToUniformRaw_no_norm_control :
+    ¬ MomentConvergenceToUniformRaw momentConvergenceNoUniformDomain
+      theorem21Part1CounterParams := by
+  intro h
+  let D := momentConvergenceNoUniformDomain
+  let p := theorem21Part1CounterParams
+  have hm : 1 ≤ p.m := by
+    norm_num [p, theorem21Part1CounterParams]
+  have hconv :
+      UniformConvergesInSup D (fun _ _ => (1 : ℝ)) 1 :=
+    h hm 1 1 1 (by norm_num) (fun _ _ => (1 : ℝ))
+      (fun _ _ => (1 : ℝ))
+      momentConvergenceNoUniform_constant_one_positiveGlobalBounded
+      momentConvergenceNoUniform_constant_one_thetaMoment
+  have hlim_zero : Tendsto (fun _t : ℝ => (1 : ℝ)) atTop (𝓝 (0 : ℝ)) := by
+    simp [UniformConvergesInSup, D, momentConvergenceNoUniformDomain] at hconv
+  have hlim_one : Tendsto (fun _t : ℝ => (1 : ℝ)) atTop (𝓝 (1 : ℝ)) :=
+    tendsto_const_nhds
+  have hone_eq_zero : (1 : ℝ) = 0 :=
+    tendsto_nhds_unique hlim_one hlim_zero
+  norm_num at hone_eq_zero
+
 /-- Raw obstruction for the convergence-to-exponential upgrade: uniform
 convergence in a fake `supNorm` does not imply exponential convergence in an
 unrelated `C¹` distance. -/
