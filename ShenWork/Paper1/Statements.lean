@@ -7569,23 +7569,6 @@ def Remark_4_2 : Prop :=
                 ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
                   IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ
 
-theorem Remark_4_2.exists_time_slice_subsolutions
-    (h : Remark_4_2) {p : CMParams} {κ κtilde M c T : ℝ}
-    (hκ0 : 0 < κ) (hκ1 : κ < 1)
-    (hgap : κ < κtilde)
-    (hrange : κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1))
-    (hM : 1 ≤ M) (hT : 0 < T) (hc : c = κ + κ⁻¹) :
-    ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
-      ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ M T u →
-        (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
-          IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
-            (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
-        ∀ d : ℝ, 0 < d →
-          d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
-            ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
-              IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ :=
-  h p κ κtilde M c T hκ0 hκ1 hgap hrange hM hT hc
-
 theorem not_Remark_4_2 : ¬ Remark_4_2 := by
   intro hR
   let u : ℝ → ℝ := lemma41CounterexampleProfile
@@ -9136,16 +9119,6 @@ def Remark_1_3_2 : Prop :=
       ∀ c : ℝ, 2 < c →
         ∃ U V : ℝ → ℝ, IsRightVanishingTravelingWave p c U V
 
-theorem Remark_1_3_2.rightVanishingWave
-    (h : Remark_1_3_2) {p : CMParams}
-    (halpha : p.α = p.m + p.γ - 1)
-    (hthreshold : (1 / 2 : ℝ) < positiveSensitivityExtendedThreshold p)
-    (hχ_half : (1 / 2 : ℝ) ≤ p.χ)
-    (hχ_small : p.χ < min (positiveSensitivityExtendedThreshold p) 1)
-    {c : ℝ} (hc : 2 < c) :
-    ∃ U V : ℝ → ℝ, IsRightVanishingTravelingWave p c U V :=
-  h p halpha hthreshold hχ_half hχ_small c hc
-
 theorem Remark43TailRateBound.pos
     {p : CMParams} {c eta : ℝ} (h : Remark43TailRateBound p c eta) :
     0 < eta :=
@@ -9681,41 +9654,6 @@ theorem HasRemark43TailAsymptotic.exists_common_waveRightTailAsymptotic
     ⟨κ₁, hκ₁_gt, hκ₁_lt_one,
       h₁.hasWaveRightTailAsymptotic hκ₁_gt hκ₁_range,
       h₂.hasWaveRightTailAsymptotic hκ₁_gt hκ₁_range⟩
-
-theorem Remark_4_3.weighted_initial_closeness
-    (h : Remark_4_3) {p : CMParams} {c eta : ℝ}
-    (hkappa : 0 < kappa c) (heta : Remark43TailRateBound p c eta)
-    {U₁ V₁ U₂ V₂ : ℝ → ℝ}
-    (hTW₁ : IsTravelingWave p c U₁ V₁)
-    (hTW₂ : IsTravelingWave p c U₂ V₂)
-    (hbound₁ : HasWaveUpperTailBound p c U₁)
-    (hbound₂ : HasWaveUpperTailBound p c U₂)
-    (htail₁ : HasRemark43TailAsymptotic p c U₁)
-    (htail₂ : HasRemark43TailAsymptotic p c U₂) :
-    WeightedL2InitialCloseness (eta + kappa c) U₂ U₁ :=
-  h p c hkappa U₁ V₁ U₂ V₂ hTW₁ hTW₂
-    hbound₁ hbound₂ htail₁ htail₂ eta heta
-
-theorem Remark_4_3.exists_weighted_initial_closeness
-    (h : Remark_4_3) {p : CMParams} {c : ℝ}
-    (hkappa_pos : 0 < kappa c) (hkappa_lt_one : kappa c < 1)
-    {U₁ V₁ U₂ V₂ : ℝ → ℝ}
-    (hTW₁ : IsTravelingWave p c U₁ V₁)
-    (hTW₂ : IsTravelingWave p c U₂ V₂)
-    (hbound₁ : HasWaveUpperTailBound p c U₁)
-    (hbound₂ : HasWaveUpperTailBound p c U₂)
-    (htail₁ : HasRemark43TailAsymptotic p c U₁)
-    (htail₂ : HasRemark43TailAsymptotic p c U₂) :
-    ∃ eta : ℝ, 0 < eta ∧
-      Remark43TailRateBound p c eta ∧
-        WeightedL2InitialCloseness (eta + kappa c) U₂ U₁ := by
-  rcases exists_remark43TailRateBound
-      (p := p) (c := c) hkappa_pos hkappa_lt_one with
-    ⟨eta, heta_pos, heta⟩
-  exact
-    ⟨eta, heta_pos, heta,
-      h.weighted_initial_closeness hkappa_pos heta
-        hTW₁ hTW₂ hbound₁ hbound₂ htail₁ htail₂⟩
 
 /-- A real same-wave branch of Remark 4.3.  When the two waves are identical,
 the weighted initial distance is exactly zero, so no analytic package is
@@ -11237,49 +11175,6 @@ theorem Lemma_5_3.same_power_branch
           ∫ x : ℝ, |U x| ^ 2) :=
   Lemma_5_3_zero_source_branch hgamma hM heta_pos heta_one hsource
 
-theorem Lemma_5_3.weighted_elliptic_perturbation
-    (h : Lemma_5_3)
-    {gamma M eta : ℝ}
-    (hgamma : 1 ≤ gamma) (hM : 1 ≤ M) (heta_pos : 0 < eta) (heta_one : eta < 1)
-    {u1 u2 : ℝ → ℝ}
-    (hu1 : IsCUnifBdd u1) (hu2 : IsCUnifBdd u2)
-    (hu1_bound : ∀ x, 0 ≤ u1 x ∧ u1 x ≤ M)
-    (hu2_bound : ∀ x, 0 ≤ u2 x ∧ u2 x ≤ M)
-    (hclose : Integrable
-      (fun x => Real.exp (2 * eta * x) * |u2 x - u1 x| ^ 2)) :
-    let v := Psi (fun x => u2 x ^ gamma - u1 x ^ gamma) 1 1
-    let U := fun x => Real.exp (eta * x) * (u2 x - u1 x)
-    let V := fun x => Real.exp (eta * x) * v x
-    (∫ x : ℝ, |V x| ^ 2 ≤
-        gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta) ^ 2 *
-          ∫ x : ℝ, |U x| ^ 2) ∧
-      (∫ x : ℝ, |deriv V x| ^ 2 ≤
-        gamma ^ 2 * M ^ (2 * (gamma - 1)) / (1 - eta ^ 2) *
-          ∫ x : ℝ, |U x| ^ 2) :=
-  h gamma M eta hgamma hM heta_pos heta_one
-    u1 u2 hu1 hu2 hu1_bound hu2_bound hclose
-
-theorem Lemma_5_3.weighted_elliptic_perturbation_CM
-    (h : Lemma_5_3) (p : CMParams) {eta : ℝ}
-    (hM : 1 ≤ MChi p) (heta_pos : 0 < eta) (heta_one : eta < 1)
-    {u1 u2 : ℝ → ℝ}
-    (hu1 : IsCUnifBdd u1) (hu2 : IsCUnifBdd u2)
-    (hu1_bound : ∀ x, 0 ≤ u1 x ∧ u1 x ≤ MChi p)
-    (hu2_bound : ∀ x, 0 ≤ u2 x ∧ u2 x ≤ MChi p)
-    (hclose : Integrable
-      (fun x => Real.exp (2 * eta * x) * |u2 x - u1 x| ^ 2)) :
-    let v := Psi (fun x => u2 x ^ p.γ - u1 x ^ p.γ) 1 1
-    let U := fun x => Real.exp (eta * x) * (u2 x - u1 x)
-    let V := fun x => Real.exp (eta * x) * v x
-    (∫ x : ℝ, |V x| ^ 2 ≤
-        p.γ ^ 2 * (MChi p) ^ (2 * (p.γ - 1)) / (1 - eta) ^ 2 *
-          ∫ x : ℝ, |U x| ^ 2) ∧
-      (∫ x : ℝ, |deriv V x| ^ 2 ≤
-        p.γ ^ 2 * (MChi p) ^ (2 * (p.γ - 1)) / (1 - eta ^ 2) *
-          ∫ x : ℝ, |U x| ^ 2) :=
-  h.weighted_elliptic_perturbation p.hγ hM heta_pos heta_one
-    hu1 hu2 hu1_bound hu2_bound hclose
-
 /-- CM-parameter form of the same-power zero-source branch of Lemma 5.3,
 without assuming the full Lemma 5.3 theorem. -/
 theorem Lemma_5_3.same_power_branch_CM
@@ -11303,30 +11198,6 @@ theorem Lemma_5_3.same_power_branch_CM
           ∫ x : ℝ, |U x| ^ 2) :=
   Lemma_5_3.same_power_branch p.hγ hM heta_pos heta_one
     hu1 hu2 hu1_bound hu2_bound hclose hsource
-
-theorem Lemma_5_3.weighted_elliptic_perturbation_of_tail_bounds
-    (h : Lemma_5_3) {p : CMParams} {c eta : ℝ}
-    (hM : 1 ≤ MChi p) (heta_pos : 0 < eta) (heta_one : eta < 1)
-    {u1 u2 : ℝ → ℝ}
-    (hu1 : IsCUnifBdd u1) (hu2 : IsCUnifBdd u2)
-    (hbound1 : HasWaveUpperTailBound p c u1)
-    (hbound2 : HasWaveUpperTailBound p c u2)
-    (hclose : Integrable
-      (fun x => Real.exp (2 * eta * x) * |u2 x - u1 x| ^ 2)) :
-    let v := Psi (fun x => u2 x ^ p.γ - u1 x ^ p.γ) 1 1
-    let U := fun x => Real.exp (eta * x) * (u2 x - u1 x)
-    let V := fun x => Real.exp (eta * x) * v x
-    (∫ x : ℝ, |V x| ^ 2 ≤
-        p.γ ^ 2 * (MChi p) ^ (2 * (p.γ - 1)) / (1 - eta) ^ 2 *
-          ∫ x : ℝ, |U x| ^ 2) ∧
-      (∫ x : ℝ, |deriv V x| ^ 2 ≤
-        p.γ ^ 2 * (MChi p) ^ (2 * (p.γ - 1)) / (1 - eta ^ 2) *
-          ∫ x : ℝ, |U x| ^ 2) :=
-  h.weighted_elliptic_perturbation_CM p hM heta_pos heta_one
-    hu1 hu2
-    (fun x => ⟨(hbound1.pos x).le, hbound1.le_MChi x⟩)
-    (fun x => ⟨(hbound2.pos x).le, hbound2.le_MChi x⟩)
-    hclose
 
 /-- Tail-bound form of the same-power zero-source branch of Lemma 5.3,
 without assuming the full Lemma 5.3 theorem. -/
@@ -12186,28 +12057,6 @@ theorem StableWaveParameterRegime.one_le_MChi
   · simp [MChi_eq_one_of_chi_nonpos p (le_of_lt hneg.1)]
   · exact one_le_MChi_of_chi_nonneg_lt_chiStar p hpos.1 hpos.2.1
 
-theorem Lemma_5_3.weighted_elliptic_perturbation_of_stable_tail_bounds
-    (h : Lemma_5_3) {p : CMParams} {c eta : ℝ}
-    (hregime : StableWaveParameterRegime p)
-    (heta_pos : 0 < eta) (heta_one : eta < 1)
-    {u1 u2 : ℝ → ℝ}
-    (hu1 : IsCUnifBdd u1) (hu2 : IsCUnifBdd u2)
-    (hbound1 : HasWaveUpperTailBound p c u1)
-    (hbound2 : HasWaveUpperTailBound p c u2)
-    (hclose : Integrable
-      (fun x => Real.exp (2 * eta * x) * |u2 x - u1 x| ^ 2)) :
-    let v := Psi (fun x => u2 x ^ p.γ - u1 x ^ p.γ) 1 1
-    let U := fun x => Real.exp (eta * x) * (u2 x - u1 x)
-    let V := fun x => Real.exp (eta * x) * v x
-    (∫ x : ℝ, |V x| ^ 2 ≤
-        p.γ ^ 2 * (MChi p) ^ (2 * (p.γ - 1)) / (1 - eta) ^ 2 *
-          ∫ x : ℝ, |U x| ^ 2) ∧
-      (∫ x : ℝ, |deriv V x| ^ 2 ≤
-        p.γ ^ 2 * (MChi p) ^ (2 * (p.γ - 1)) / (1 - eta ^ 2) *
-          ∫ x : ℝ, |U x| ^ 2) :=
-  h.weighted_elliptic_perturbation_of_tail_bounds
-    hregime.one_le_MChi heta_pos heta_one hu1 hu2 hbound1 hbound2 hclose
-
 /-- Stable-regime tail-bound form of the same-power zero-source branch of
 Lemma 5.3, without assuming the full Lemma 5.3 theorem. -/
 theorem Lemma_5_3.same_power_branch_of_stable_tail_bounds
@@ -12258,29 +12107,6 @@ theorem Lemma_5_3.same_power_branch_of_stable_tail_bounds_of_continuous
   Lemma_5_3.same_power_branch_of_tail_bounds_of_continuous
     hregime.one_le_MChi heta_pos heta_one hcont1 hcont2
     hbound1 hbound2 hclose hsource
-
-theorem Lemma_5_3.weighted_elliptic_perturbation_of_stable_strict_tail_bounds
-    (h : Lemma_5_3) {p : CMParams} {c eta : ℝ}
-    (hregime : StableWaveParameterRegime p)
-    (heta_pos : 0 < eta) (heta_one : eta < 1)
-    {u1 u2 : ℝ → ℝ}
-    (hu1 : IsCUnifBdd u1) (hu2 : IsCUnifBdd u2)
-    (hbound1 : HasStrictWaveUpperTailBound p c u1)
-    (hbound2 : HasStrictWaveUpperTailBound p c u2)
-    (hclose : Integrable
-      (fun x => Real.exp (2 * eta * x) * |u2 x - u1 x| ^ 2)) :
-    let v := Psi (fun x => u2 x ^ p.γ - u1 x ^ p.γ) 1 1
-    let U := fun x => Real.exp (eta * x) * (u2 x - u1 x)
-    let V := fun x => Real.exp (eta * x) * v x
-    (∫ x : ℝ, |V x| ^ 2 ≤
-        p.γ ^ 2 * (MChi p) ^ (2 * (p.γ - 1)) / (1 - eta) ^ 2 *
-          ∫ x : ℝ, |U x| ^ 2) ∧
-      (∫ x : ℝ, |deriv V x| ^ 2 ≤
-        p.γ ^ 2 * (MChi p) ^ (2 * (p.γ - 1)) / (1 - eta ^ 2) *
-          ∫ x : ℝ, |U x| ^ 2) :=
-  h.weighted_elliptic_perturbation_of_stable_tail_bounds hregime
-    heta_pos heta_one hu1 hu2
-    hbound1.hasWaveUpperTailBound hbound2.hasWaveUpperTailBound hclose
 
 /-- Strict-tail form of the stable same-power zero-source branch of Lemma 5.3,
 without assuming the full Lemma 5.3 theorem. -/
@@ -12333,32 +12159,6 @@ theorem Lemma_5_3.same_power_branch_of_stable_strict_tail_bounds_of_continuous
   Lemma_5_3.same_power_branch_of_stable_tail_bounds_of_continuous
     hregime heta_pos heta_one hcont1 hcont2
     hbound1.hasWaveUpperTailBound hbound2.hasWaveUpperTailBound hclose hsource
-
-theorem Lemma_5_3.weighted_elliptic_perturbation_of_stability_hypotheses
-    (h : Lemma_5_3) {p : CMParams} {threshold : ℝ → ℝ} {c eta : ℝ}
-    (hregime : StableWaveParameterRegime p)
-    (hlower : stabilitySpeedBaseline p < threshold p.χ)
-    (hc : threshold p.χ < c) (hketa : kappa c < eta)
-    (heta_upper : eta < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)))
-    {u1 u2 : ℝ → ℝ}
-    (hu1 : IsCUnifBdd u1) (hu2 : IsCUnifBdd u2)
-    (hbound1 : HasStrictWaveUpperTailBound p c u1)
-    (hbound2 : HasStrictWaveUpperTailBound p c u2)
-    (hclose : Integrable
-      (fun x => Real.exp (2 * eta * x) * |u2 x - u1 x| ^ 2)) :
-    let v := Psi (fun x => u2 x ^ p.γ - u1 x ^ p.γ) 1 1
-    let U := fun x => Real.exp (eta * x) * (u2 x - u1 x)
-    let V := fun x => Real.exp (eta * x) * v x
-    (∫ x : ℝ, |V x| ^ 2 ≤
-        p.γ ^ 2 * (MChi p) ^ (2 * (p.γ - 1)) / (1 - eta) ^ 2 *
-          ∫ x : ℝ, |U x| ^ 2) ∧
-      (∫ x : ℝ, |deriv V x| ^ 2 ≤
-        p.γ ^ 2 * (MChi p) ^ (2 * (p.γ - 1)) / (1 - eta ^ 2) *
-          ∫ x : ℝ, |U x| ^ 2) :=
-  h.weighted_elliptic_perturbation_of_stable_strict_tail_bounds hregime
-    (eta_pos_of_stability_weight_hypotheses hlower hc hketa)
-    (eta_lt_one_of_stability_weight_upper_bound p heta_upper)
-    hu1 hu2 hbound1 hbound2 hclose
 
 /-- Stability-hypothesis form of the same-power zero-source branch of Lemma
 5.3, without assuming the full Lemma 5.3 theorem. -/
