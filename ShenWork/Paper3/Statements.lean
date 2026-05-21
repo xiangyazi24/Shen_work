@@ -8075,7 +8075,7 @@ lemma Theorem_2_5_linear_stability_first_mode_unitInterval
 Theorem 2.3 at the positive equilibrium.  The spectral stability is direct
 from `χ₀ ≤ 0`; the local exponential step remains an explicit supplied
 consequence of the proved linear stability. -/
-theorem Theorem_2_3_negative_sensitivity_convergence_formula_branch_direct
+theorem Theorem_2_3_negative_sensitivity_convergence_formula_branch_of_sectorial
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (N : StabilityNorms D)
     (H : HasNeumannSpectrum S) (hχ : p.χ₀ ≤ 0)
@@ -8094,7 +8094,7 @@ theorem Theorem_2_3_negative_sensitivity_convergence_formula_branch_direct
     positiveEquilibrium_linearlyStable_of_chi_nonpos_neumann S p H hχ ha hb
   exact ⟨hstable, hsectorial hstable⟩
 
-lemma Theorem_2_3_negative_sensitivity_convergence_unitInterval
+lemma Theorem_2_3_negative_sensitivity_convergence_unitInterval_of_sectorial
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b) :
     let eq := positiveEquilibrium p ⟨ha, hb⟩
@@ -8112,7 +8112,7 @@ lemma Theorem_2_3_negative_sensitivity_convergence_unitInterval
 part uses the explicit strong thresholds and `paperCriticalSensitivity`; the
 local exponential part is supplied explicitly as a consequence of the
 resulting linear stability. -/
-theorem Theorem_2_4_full_stability_formula_branch_direct
+theorem Theorem_2_4_full_stability_formula_branch_of_sectorial
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (N : StabilityNorms D) (H : HasNeumannSpectrum S)
     (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
@@ -8137,7 +8137,7 @@ theorem Theorem_2_4_full_stability_formula_branch_direct
 /-- General first-mode sufficient version of the formula-level Theorem 2.4
 full-stability bridge.  This avoids `Paper3Constants`; the remaining local
 exponential step is the explicit sectorial consequence supplied as an input. -/
-lemma Theorem_2_4_full_stability_first_mode_branch
+lemma Theorem_2_4_full_stability_first_mode_branch_of_sectorial
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (N : StabilityNorms D) (H : HasNeumannSpectrum S)
     (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
@@ -8161,7 +8161,7 @@ lemma Theorem_2_4_full_stability_first_mode_branch
     hcond.linearlyStable_of_firstNonzero_lower S p H ha hb hfirst
   exact ⟨hstable, hsectorial hstable⟩
 
-lemma Theorem_2_4_full_stability_formula_unitInterval
+lemma Theorem_2_4_full_stability_formula_unitInterval_of_sectorial
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
     let eq := positiveEquilibrium p ⟨ha, hb⟩
@@ -8184,7 +8184,7 @@ lemma Theorem_2_4_full_stability_formula_unitInterval
       ha hb hcritical
   exact ⟨hstable, hsectorial hstable⟩
 
-lemma Theorem_2_4_full_stability_first_mode_unitInterval
+lemma Theorem_2_4_full_stability_first_mode_unitInterval_of_sectorial
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
     let eq := positiveEquilibrium p ⟨ha, hb⟩
@@ -8213,7 +8213,7 @@ lemma Theorem_2_4_full_stability_first_mode_unitInterval
 model version uses the explicit `chiBeta` threshold and
 `paperCriticalSensitivity`; the local exponential part is supplied explicitly
 as a consequence of linear stability. -/
-theorem Theorem_2_5_full_stability_formula_branch_direct
+theorem Theorem_2_5_full_stability_formula_branch_of_sectorial
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (N : StabilityNorms D) (H : HasNeumannSpectrum S)
     (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
@@ -8243,7 +8243,7 @@ theorem Theorem_2_5_full_stability_formula_branch_direct
 /-- General first-mode sufficient version of the formula-level Theorem 2.5
 full-stability bridge.  It uses the explicit first-nonzero eigenvalue lower
 bound instead of a `Paper3Constants` critical-threshold field. -/
-lemma Theorem_2_5_full_stability_first_mode_branch
+lemma Theorem_2_5_full_stability_first_mode_branch_of_sectorial
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (N : StabilityNorms D) (H : HasNeumannSpectrum S)
     (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
@@ -8271,7 +8271,7 @@ lemma Theorem_2_5_full_stability_first_mode_branch
     hcond.linearlyStable_of_firstNonzero_lower S p H hβ huStar hfirst
   exact ⟨hstable, hsectorial hstable⟩
 
-lemma Theorem_2_5_full_stability_formula_unitInterval
+lemma Theorem_2_5_full_stability_formula_unitInterval_of_sectorial
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
     {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
@@ -8299,7 +8299,7 @@ lemma Theorem_2_5_full_stability_formula_unitInterval
       hβ huStar hcritical
   exact ⟨hstable, hsectorial hstable⟩
 
-lemma Theorem_2_5_full_stability_first_mode_unitInterval
+lemma Theorem_2_5_full_stability_first_mode_unitInterval_of_sectorial
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
     {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
