@@ -5989,6 +5989,77 @@ lemma not_EventualMinimalUpperBoundRaw_zero_bound :
   have hbad : (1 : ℝ) ≤ 0 := hT T le_rfl
   norm_num at hbad
 
+/-- Raw version of `Paper3Constants.uniformPersistencePart4`, with the
+eventual upper-bound function and Gaussian lower constant exposed. -/
+def UniformPersistencePart4Raw
+    (D : BoundedDomainData) (p : CM2Params)
+    (eventualMinimalUBound : ℝ → ℝ) (gaussianLowerConst : ℝ) : Prop :=
+  0 < gaussianLowerConst →
+    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      0 < p.χ₀ → p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) →
+        ∀ uStar > 0, ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+          HasInitialMass D u uStar →
+            EventuallyLowerBound D v
+              (gaussianLowerConst *
+                if p.γ ≤ 1 then
+                  uStar * (eventualMinimalUBound uStar) ^ (p.γ - 1)
+                else
+                  uStar ^ p.γ)
+
+/-- Raw obstruction for `uniformPersistencePart4`: the fake lower-envelope
+domain refutes the positive eventual lower bound even for the positive
+constant minimal-model solution. -/
+lemma not_UniformPersistencePart4Raw_no_lower_envelope :
+    ¬ UniformPersistencePart4Raw theorem21Part1NoLowerEnvelopeDomain
+      theorem21Part4CounterParams (fun _ => (1 : ℝ)) 1 := by
+  intro h
+  let D := theorem21Part1NoLowerEnvelopeDomain
+  let p := theorem21Part4CounterParams
+  have huv :
+      PositiveGlobalBoundedSolution D p
+        (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
+    simpa [D, p] using theorem21Part4Counter_positiveGlobalBounded
+  have hmass :
+      HasInitialMass D (fun _ _ => (1 : ℝ)) 1 := by
+    simpa [D] using theorem21Part4Counter_initialMass
+  have hχ :
+      p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) := by
+    norm_num [p, theorem21Part4CounterParams, chiBeta]
+  have hlower :
+      EventuallyLowerBound D (fun _ _ => (1 : ℝ))
+        ((1 : ℝ) *
+          if p.γ ≤ 1 then
+            (1 : ℝ) * ((fun _ => (1 : ℝ)) 1) ^ (p.γ - 1)
+          else
+            (1 : ℝ) ^ p.γ) := by
+    exact h
+      (by norm_num)
+      (by norm_num [p, theorem21Part4CounterParams])
+      (by norm_num [p, theorem21Part4CounterParams])
+      (by norm_num [p, theorem21Part4CounterParams])
+      (by norm_num [p, theorem21Part4CounterParams])
+      (by norm_num [p, theorem21Part4CounterParams])
+      hχ 1 (by norm_num) (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
+      huv hmass
+  rcases hlower with ⟨hlower_pos, hlower_eventually⟩
+  have heventually_nonpos :
+      ∀ᶠ t : ℝ in atTop,
+        ((1 : ℝ) *
+          (if p.γ ≤ 1 then
+            (1 : ℝ) * ((fun _ => (1 : ℝ)) 1) ^ (p.γ - 1)
+          else
+            (1 : ℝ) ^ p.γ)) ≤ (0 : ℝ) := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlower_eventually
+  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
+  have hnonpos :
+      ((1 : ℝ) *
+        (if p.γ ≤ 1 then
+          (1 : ℝ) * ((fun _ => (1 : ℝ)) 1) ^ (p.γ - 1)
+        else
+          (1 : ℝ) ^ p.γ)) ≤ (0 : ℝ) := hT T le_rfl
+  linarith
+
 /-- Raw version of the Lemma A.7 threshold comparisons, with the four strong
 threshold functions and the critical threshold exposed instead of packaged as
 fields of `Paper3Constants`. -/
