@@ -849,35 +849,6 @@ lemma AboveSomeLinearCriticalThreshold_of_paperCriticalSensitivity_lt_chi
 structure StabilityNorms (D : BoundedDomainData) where
   c1Distance : (D.Point → ℝ) → (D.Point → ℝ) → ℝ
   xpSigmaDistance : ℝ → ℝ → (D.Point → ℝ) → (D.Point → ℝ) → ℝ
-  initialContinuity :
-    ∀ p : CM2Params, ∀ uConst > 0,
-      ∀ sigma pNorm eps, 1 / 2 < sigma → 1 < pNorm → 0 < eps →
-        ∃ delta > 0, ∃ T0 > 0, ∃ T > T0,
-          ∀ u₀ : D.Point → ℝ,
-          ∀ u v uConstSol vConstSol : ℝ → D.Point → ℝ,
-            PositiveInitialDatum D u₀ →
-            PositiveInitialDatum D (fun _ : D.Point => uConst) →
-            D.supNorm (fun x => u₀ x - uConst) ≤ delta →
-            IsPaper2ClassicalSolution D p T u v →
-            InitialTrace D u₀ u →
-            IsPaper2ClassicalSolution D p T uConstSol vConstSol →
-            InitialTrace D (fun _ : D.Point => uConst) uConstSol →
-              xpSigmaDistance sigma pNorm (u T0) (uConstSol T0) ≤ eps
-  sectorialLocalExponential :
-    ∀ p : CM2Params, ∀ S : SpectralData,
-      ∀ sigma pNorm uStar vStar,
-        1 / 2 < sigma → sigma < 1 → 1 < pNorm →
-        LinearlyStable S p uStar vStar →
-          ∃ eps > 0, ∃ C > 0, ∃ rate > 0,
-            ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
-              xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤ eps →
-                ∀ u v : ℝ → D.Point → ℝ,
-                  IsPaper2GlobalClassicalSolution D p u v →
-                  InitialTrace D u₀ u →
-                    ∀ t, 0 ≤ t →
-                      c1Distance (u t) (fun _ => uStar) +
-                        c1Distance (v t) (fun _ => vStar) ≤
-                          C * Real.exp (-rate * t)
   negativeSensitivityGlobalStability :
     ∀ p : CM2Params, p.χ₀ ≤ 0 → 1 ≤ p.m →
       (∀ (ha : 0 < p.a) (hb : 0 < p.b),
@@ -912,35 +883,8 @@ structure CompactnessData (D : BoundedDomainData) where
   locallyConverges :
     (ℕ → ℝ → D.Point → ℝ) → (ℝ → D.Point → ℝ) → Prop
   upperEnvelope : (D.Point → ℝ) → ℝ
-  timeTranslateCompactness :
-    ∀ p : CM2Params, 1 ≤ p.m → 0 < p.γ →
-      ∀ u v : ℝ → D.Point → ℝ,
-        PositiveGlobalBoundedSolution D p u v →
-          ∀ times : ℕ → ℝ, Tendsto times atTop atTop →
-            ∃ subseq : ℕ → ℕ, StrictMono subseq ∧
-            ∃ uInf vInf : ℝ → D.Point → ℝ,
-              locallyConverges (fun n t x => u (t + times (subseq n)) x) uInf ∧
-              locallyConverges (fun n t x => v (t + times (subseq n)) x) vInf ∧
-              ∀ T > 0, IsPaper2ClassicalSolution D p T
-                (fun t x => uInf (t - T / 2) x)
-                (fun t x => vInf (t - T / 2) x)
-  upperEnvelopeMonotonicity :
-    ∀ p : CM2Params, ∀ u v : ℝ → D.Point → ℝ,
-      PositiveGlobalBoundedSolution D p u v →
-        (p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
-          ∀ t₀, 0 < t₀ →
-            (p.a / p.b) ^ (1 / p.α) < upperEnvelope (u t₀) →
-            ∀ t₁ t₂, 0 < t₁ → t₁ ≤ t₂ → t₂ ≤ t₀ →
-              upperEnvelope (u t₂) ≤ upperEnvelope (u t₁)) ∧
-        (p.χ₀ ≤ 0 → p.a = 0 → p.b = 0 →
-          ∀ t₁ t₂, 0 < t₁ → t₁ ≤ t₂ →
-            upperEnvelope (u t₂) ≤ upperEnvelope (u t₁))
   neumannResolventGradientBound :
     (mu nu : ℝ) → (D.Point → ℝ) → ℝ → Prop
-  neumannResolventGradientBound_exists :
-    ∃ M0 > 0, ∀ mu nu : ℝ, ∀ f : D.Point → ℝ,
-      0 < mu → 0 < nu →
-        neumannResolventGradientBound mu nu f M0
 
 def EntireClassicalSolution
     (D : BoundedDomainData) (p : CM2Params)
@@ -2555,13 +2499,6 @@ structure Paper3Constants (D : BoundedDomainData) (p : CM2Params) where
   eventualMinimalUBound : ℝ → ℝ
   gaussianLowerConst : ℝ
   gaussianLowerConst_pos : 0 < gaussianLowerConst
-  eventualMinimalUpperBound :
-    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
-      0 < p.χ₀ → p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) →
-        ∀ u v : ℝ → D.Point → ℝ,
-          PositiveGlobalBoundedSolution D p u v →
-            ∀ uStar > 0, HasInitialMass D u uStar →
-              ∀ᶠ t in atTop, D.supNorm (u t) ≤ eventualMinimalUBound uStar
   uniformPersistencePart1 :
     1 ≤ p.m →
       ∀ u v : ℝ → D.Point → ℝ,
@@ -2598,121 +2535,6 @@ structure Paper3Constants (D : BoundedDomainData) (p : CM2Params) where
                   uStar * (eventualMinimalUBound uStar) ^ (p.γ - 1)
                 else
                   uStar ^ p.γ)
-  convergenceToExponential :
-    ∀ N : StabilityNorms D, 1 ≤ p.m →
-      (∀ (uStar _vStar theta : ℝ), 0 < theta →
-        ∀ u v : ℝ → D.Point → ℝ,
-          PositiveGlobalBoundedSolution D p u v →
-          ThetaMomentConvergesToZero D u uStar theta →
-            UniformConvergesInSup D u uStar) ∧
-      (∀ (ha : 0 < p.a) (hb : 0 < p.b),
-        let eq := positiveEquilibrium p ⟨ha, hb⟩
-        p.χ₀ < chiCritical eq.1 →
-          ∀ u v : ℝ → D.Point → ℝ,
-            PositiveGlobalBoundedSolution D p u v →
-            UniformConvergesInSup D u eq.1 →
-              ExponentialC1Convergence D N u v eq.1 eq.2) ∧
-      (p.a = 0 → p.b = 0 →
-        ∀ uStar > 0,
-          let eq := minimalEquilibrium p uStar
-          p.χ₀ < chiCritical uStar →
-            ∀ u v : ℝ → D.Point → ℝ,
-              PositiveGlobalBoundedSolution D p u v →
-              HasInitialMass D u uStar →
-              UniformConvergesInSup D u eq.1 →
-                ExponentialC1Convergence D N u v eq.1 eq.2)
-  nonminimalGlobalStability :
-    ∀ N : StabilityNorms D,
-      0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
-        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
-        let eq := positiveEquilibrium p ⟨ha, hb⟩
-        ((1 ≤ p.m ∧ p.α + 1 ≥ 2 * p.γ ∧
-            0 < p.χ₀ ∧ p.χ₀ < chiStrong1 eq.1) ∨
-          (1 ≤ p.m ∧ 1 ≤ p.β ∧ p.α + 1 ≥ 2 * p.γ ∧
-            0 < p.χ₀ ∧ p.χ₀ < chiStrong2 eq.1) ∨
-          (1 ≤ p.m ∧ 1 ≤ p.γ ∧
-            p.α + 1 ≥ p.m + p.γ + (if p.β = 0 then 0 else p.γ) ∧
-            p.χ₀ < chiStrong3 eq.1) ∨
-          (1 ≤ p.m ∧ 1 ≤ p.β ∧ 1 ≤ p.γ ∧
-            p.α + 1 ≥ p.m + 2 * p.γ ∧
-            p.χ₀ < chiStrong4 eq.1)) →
-          (∀ u v : ℝ → D.Point → ℝ,
-            PositiveGlobalBoundedSolution D p u v →
-              UniformConvergesInSup D u eq.1) ∧
-          ∃ A > 0, ∃ rate > 0,
-            ∀ u v : ℝ → D.Point → ℝ,
-              PositiveGlobalBoundedSolution D p u v →
-                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate
-  minimalGlobalStability :
-    ∀ N : StabilityNorms D,
-      p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
-        ∀ uStar > 0,
-        let eq := minimalEquilibrium p uStar
-        ((0 < p.χ₀ ∧ p.χ₀ < chiMinimal1 uStar) ∨
-          (p.γ = 1 ∧ 0 < p.χ₀ ∧ p.χ₀ < chiMinimal2 uStar)) →
-          (∀ u v : ℝ → D.Point → ℝ,
-            PositiveGlobalBoundedSolution D p u v →
-            HasInitialMass D u uStar →
-              UniformConvergesInSup D u eq.1) ∧
-          ∃ A > 0, ∃ rate > 0,
-            ∀ u v : ℝ → D.Point → ℝ,
-              PositiveGlobalBoundedSolution D p u v →
-              HasInitialMass D u uStar →
-                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate
-  linearStabilityInstability :
-    ∀ S : SpectralData, ∀ N : StabilityNorms D,
-      (∀ (ha : 0 < p.a) (hb : 0 < p.b),
-        let eq := positiveEquilibrium p ⟨ha, hb⟩
-        p.χ₀ < chiCritical eq.1 →
-          LinearlyStable S p eq.1 eq.2 ∧
-          LocallyExponentiallyStableFromSup D p N eq.1 eq.2) ∧
-      (∀ (ha : 0 < p.a) (hb : 0 < p.b),
-        let eq := positiveEquilibrium p ⟨ha, hb⟩
-        chiCritical eq.1 < p.χ₀ →
-          LinearlyUnstable S p eq.1 eq.2) ∧
-      (p.a = 0 → p.b = 0 →
-        ∀ uStar > 0,
-          let eq := minimalEquilibrium p uStar
-          p.χ₀ < chiCritical uStar →
-            LinearlyStable S p eq.1 eq.2 ∧
-            MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2) ∧
-      (p.a = 0 → p.b = 0 →
-        ∀ uStar > 0,
-          let eq := minimalEquilibrium p uStar
-          chiCritical uStar < p.χ₀ →
-            LinearlyUnstable S p eq.1 eq.2)
-  chiStrong1_le_chiCritical :
-    0 ≤ p.β → 1 ≤ p.m →
-      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
-        p.α + 1 ≥ 2 * p.γ →
-          chiStrong1 (positiveEquilibrium p ⟨ha, hb⟩).1 ≤
-            chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1
-  chiStrong2_le_chiCritical :
-    0 ≤ p.β → 1 ≤ p.m →
-      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
-        1 ≤ p.β → p.α + 1 ≥ 2 * p.γ →
-          chiStrong2 (positiveEquilibrium p ⟨ha, hb⟩).1 ≤
-            chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1
-  chiStrong3_le_chiCritical :
-    0 ≤ p.β → 1 ≤ p.m →
-      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
-        1 ≤ p.γ → p.α + 1 ≥ p.m + p.γ →
-          chiStrong3 (positiveEquilibrium p ⟨ha, hb⟩).1 ≤
-            chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1
-  chiStrong4_le_chiCritical :
-    0 ≤ p.β → 1 ≤ p.m →
-      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
-        1 ≤ p.β → 1 ≤ p.γ → p.α + 1 ≥ p.m + 2 * p.γ →
-          chiStrong4 (positiveEquilibrium p ⟨ha, hb⟩).1 ≤
-            chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1
-  chiMinimal1_le_chiCritical :
-    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
-      ∀ uStar > 0,
-        0 < p.γ → chiMinimal1 uStar ≤ chiCritical uStar
-  chiMinimal2_le_chiCritical :
-    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
-      ∀ uStar > 0,
-        p.γ = 1 → chiMinimal2 uStar ≤ chiCritical uStar
 
 /-- The constants package uses the paper's concrete spectral formula `(2.10)`
 for the linear critical sensitivity. -/

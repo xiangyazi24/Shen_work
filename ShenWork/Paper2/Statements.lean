@@ -1248,38 +1248,6 @@ structure SemigroupEstimateData (D : BoundedDomainData) where
   semigroup : ℝ → (D.Point → ℝ) → D.Point → ℝ
   divergenceSemigroup : ℝ → (D.Point → ℝ) → D.Point → ℝ
   embeddingNorm : ℝ → ℝ → ℝ → (D.Point → ℝ) → ℝ
-  fractional_decay :
-    ∀ p : CM2Params, ∀ sigma q delta, 0 ≤ sigma → 1 ≤ q →
-      0 < delta → delta < p.μ →
-        ∃ C > 0, ∀ t > 0, ∀ u : D.Point → ℝ,
-          fractionalNorm sigma q (semigroup t u) ≤
-            C * t ^ (-sigma) * Real.exp (-delta * t) * lpNorm q u
-  semigroup_continuity :
-    ∀ sigma, 0 < sigma → sigma ≤ 1 →
-      ∃ C > 0, ∀ t > 0, ∀ u : D.Point → ℝ,
-        lpNorm 2 (fun x => semigroup t u x - u x) ≤
-          C * t ^ sigma * fractionalNorm sigma 2 u
-  embedding_general :
-    ∀ sigma q k r, 0 ≤ sigma → 1 ≤ q → q ≤ r →
-      k - (D.volume / r) < 2 * sigma - D.volume / q →
-        ∃ C > 0, ∀ u : D.Point → ℝ,
-          embeddingNorm k r sigma u ≤ C * fractionalNorm sigma q u
-  embedding_same_q :
-    ∀ sigma q theta, 0 ≤ theta → theta < 2 * sigma - D.volume / q →
-      ∃ C > 0, ∀ u : D.Point → ℝ,
-        embeddingNorm theta q sigma u ≤ C * fractionalNorm sigma q u
-  divergence_bound :
-    ∀ p : CM2Params,
-      ∃ C > 0, ∀ q > 1, ∀ t > 0, ∀ phi : D.Point → ℝ,
-        lpNorm q (divergenceSemigroup t phi) ≤
-          C * (1 + t ^ (-(1 / 2 : ℝ))) *
-            Real.exp (-(p.μ) * t) * vectorLpNorm q phi
-  fractional_divergence_bound :
-    ∀ p : CM2Params, ∀ sigma q, 0 < sigma → 1 < q →
-      ∃ C > 0, ∀ t > 0, ∀ phi : D.Point → ℝ,
-        fractionalNorm sigma q (divergenceSemigroup t phi) ≤
-          C * t ^ (-sigma) * (1 + t ^ (-(1 / 2 : ℝ))) *
-            Real.exp (-(p.μ / 2) * t) * vectorLpNorm q phi
 
 def Lemma_2_1 (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
@@ -1425,36 +1393,6 @@ def zeroSemigroupEstimateData (D : BoundedDomainData) : SemigroupEstimateData D 
   semigroup := fun _ _ _ => 0
   divergenceSemigroup := fun _ _ _ => 0
   embeddingNorm := fun _ _ _ _ => 0
-  fractional_decay := by
-    intro p sigma q delta _hsigma _hq _hdelta_pos _hdelta_mu
-    refine ⟨1, zero_lt_one, ?_⟩
-    intro t ht u
-    norm_num
-  semigroup_continuity := by
-    intro sigma _hsigma_pos _hsigma_one
-    refine ⟨1, zero_lt_one, ?_⟩
-    intro t ht u
-    norm_num
-  embedding_general := by
-    intro sigma q k r _hsigma _hq _hqr _hcond
-    refine ⟨1, zero_lt_one, ?_⟩
-    intro u
-    norm_num
-  embedding_same_q := by
-    intro sigma q theta _htheta _hcond
-    refine ⟨1, zero_lt_one, ?_⟩
-    intro u
-    norm_num
-  divergence_bound := by
-    intro p
-    refine ⟨1, zero_lt_one, ?_⟩
-    intro q hq t ht phi
-    norm_num
-  fractional_divergence_bound := by
-    intro p sigma q _hsigma _hq
-    refine ⟨1, zero_lt_one, ?_⟩
-    intro t ht phi
-    norm_num
 
 theorem Lemma_2_1_zero_data (D : BoundedDomainData) (p : CM2Params) :
     Lemma_2_1 D p (zeroSemigroupEstimateData D) := by
@@ -2689,50 +2627,6 @@ def proposition21CounterSemigroupData :
   semigroup := fun _ u => u
   divergenceSemigroup := fun _ _ _ => 0
   embeddingNorm := fun _ _ _ _ => 0
-  fractional_decay := by
-    intro p sigma q delta hsigma hq hdelta_pos hdelta_mu
-    refine ⟨1, by norm_num, ?_⟩
-    intro t ht u
-    have hnorm_nonneg : 0 ≤ proposition21CounterLpNorm q u := by
-      unfold proposition21CounterLpNorm
-      split_ifs <;> norm_num
-    have hmain :
-        0 ≤ t ^ (-sigma) * Real.exp (-(delta * t)) *
-          proposition21CounterLpNorm q u :=
-      mul_nonneg
-        (mul_nonneg (Real.rpow_nonneg ht.le _) (Real.exp_pos _).le)
-        hnorm_nonneg
-    simpa [one_mul, neg_mul] using hmain
-  semigroup_continuity := by
-    intro sigma hsigma_pos hsigma_one
-    refine ⟨1, by norm_num, ?_⟩
-    intro t ht u
-    have hzero : (fun x : proposition21CounterDomain.Point => u x - u x) () ≠
-        (1 / 2 : ℝ) := by norm_num
-    simp [proposition21CounterLpNorm]
-  embedding_general := by
-    intro sigma q k r hsigma hq hqr hcond
-    refine ⟨1, by norm_num, ?_⟩
-    intro u
-    simp
-  embedding_same_q := by
-    intro sigma q theta htheta hcond
-    refine ⟨1, by norm_num, ?_⟩
-    intro u
-    simp
-  divergence_bound := by
-    intro p
-    refine ⟨1, by norm_num, ?_⟩
-    intro q hq t ht phi
-    have hzero :
-        (fun x : proposition21CounterDomain.Point =>
-          (fun _ _ _ => (0 : ℝ)) t phi x) () ≠ (1 / 2 : ℝ) := by norm_num
-    simp [proposition21CounterLpNorm]
-  fractional_divergence_bound := by
-    intro p sigma q hsigma hq
-    refine ⟨1, by norm_num, ?_⟩
-    intro t ht phi
-    simp
 
 lemma proposition21Counter_classical (T : ℝ) (hT : 0 < T) :
     IsPaper2ClassicalSolution proposition21CounterDomain
