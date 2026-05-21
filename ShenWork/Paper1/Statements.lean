@@ -11521,35 +11521,6 @@ def Proposition_1_2 : Prop :=
         IsGlobalCauchySolutionFrom p u₀ u v ∧
         UniformConvergesToConstant u 1)
 
-theorem Proposition_1_2.negative_stability_with_long_time_bounds
-    (h : Proposition_1_2) {p : CMParams}
-    (hχ : p.χ ≤ 0) {u₀ : ℝ → ℝ}
-    (hu₀_nonneg : NonnegativeInitialDatum u₀)
-    (hu₀_pos : UniformlyPositive u₀) :
-    ∃ u v : ℝ → ℝ → ℝ,
-      IsGlobalCauchySolutionFrom p u₀ u v ∧
-      UniformConvergesToConstant u 1 ∧
-      UniformEventuallyBounded u ∧
-      UniformLimsupLe u 1 := by
-  rcases h.1 p hχ u₀ hu₀_nonneg hu₀_pos with ⟨u, v, hsol, hconv⟩
-  exact ⟨u, v, hsol, hconv, hconv.uniformEventuallyBounded, hconv.uniformLimsupLe⟩
-
-theorem Proposition_1_2.positive_stability_with_long_time_bounds
-    (h : Proposition_1_2) {p : CMParams}
-    (hχ_pos : 0 < p.χ) (hχ_small : p.χ < (1 / 2 : ℝ))
-    (halpha : p.m + p.γ - 1 ≤ p.α)
-    {u₀ : ℝ → ℝ}
-    (hu₀_nonneg : NonnegativeInitialDatum u₀)
-    (hu₀_pos : UniformlyPositive u₀) :
-    ∃ u v : ℝ → ℝ → ℝ,
-      IsGlobalCauchySolutionFrom p u₀ u v ∧
-      UniformConvergesToConstant u 1 ∧
-      UniformEventuallyBounded u ∧
-      UniformLimsupLe u 1 := by
-  rcases h.2 p hχ_pos hχ_small halpha u₀ hu₀_nonneg hu₀_pos with
-    ⟨u, v, hsol, hconv⟩
-  exact ⟨u, v, hsol, hconv, hconv.uniformEventuallyBounded, hconv.uniformLimsupLe⟩
-
 /-- A real constant-initial-data branch of Proposition 1.2. -/
 theorem Proposition_1_2_constant_one_branch (p : CMParams) :
     ∃ u v : ℝ → ℝ → ℝ,
@@ -11652,122 +11623,6 @@ def Theorem_1_1 : Prop :=
         ∀ κ₁, kappa c < κ₁ →
           κ₁ < min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) →
           HasWaveRightTailAsymptotic c κ₁ U)
-
-theorem Theorem_1_1.negative_wave
-    (h : Theorem_1_1) {p : CMParams}
-    (halpha : p.α ≤ p.m + p.γ - 1) (hχ : p.χ ≤ 0)
-    {c : ℝ} (hc : cStarLower p < c) :
-    ∃ U V : ℝ → ℝ,
-      IsMonotoneTravelingWave p c U V ∧
-      ShenUpperBoundNegative c U ∧
-      ∀ κ₁, kappa c < κ₁ →
-        κ₁ < min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) →
-        HasWaveRightTailAsymptotic c κ₁ U :=
-  h.1 p halpha hχ c hc
-
-theorem Theorem_1_1.positive_wave
-    (h : Theorem_1_1) {p : CMParams}
-    (halpha : p.α = p.m + p.γ - 1)
-    (hχ_nonneg : 0 ≤ p.χ) (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
-    {c : ℝ} (hc : 2 < c) :
-    ∃ U V : ℝ → ℝ,
-      IsTravelingWave p c U V ∧
-      ShenUpperBoundPositive p c U ∧
-      ∀ κ₁, kappa c < κ₁ →
-        κ₁ < min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) →
-        HasWaveRightTailAsymptotic c κ₁ U :=
-  h.2 p halpha hχ_nonneg hχ_small c hc
-
-theorem Theorem_1_1.positive_rightVanishingWave
-    (h : Theorem_1_1) {p : CMParams}
-    (halpha : p.α = p.m + p.γ - 1)
-    (hχ_nonneg : 0 ≤ p.χ) (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
-    {c : ℝ} (hc : 2 < c) :
-    ∃ U V : ℝ → ℝ, IsRightVanishingTravelingWave p c U V := by
-  rcases h.positive_wave halpha hχ_nonneg hχ_small hc with
-    ⟨U, V, hTW, _hupper, _htail⟩
-  exact ⟨U, V, IsTravelingWave.to_rightVanishingTravelingWave hTW⟩
-
-theorem Theorem_1_1.positive_wave_with_strict_tail_bound
-    (h : Theorem_1_1) {p : CMParams}
-    (halpha : p.α = p.m + p.γ - 1)
-    (hχ_nonneg : 0 ≤ p.χ) (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
-    {c : ℝ} (hc : 2 < c) :
-    ∃ U V : ℝ → ℝ,
-      IsTravelingWave p c U V ∧
-      HasStrictWaveUpperTailBound p c U ∧
-      ∀ κ₁, kappa c < κ₁ →
-        κ₁ < min ((1 + p.α) * kappa c) (min (p.m * kappa c + 1 / 2) 1) →
-        HasWaveRightTailAsymptotic c κ₁ U := by
-  rcases h.positive_wave halpha hχ_nonneg hχ_small hc with
-    ⟨U, V, hTW, hupper, htail⟩
-  have hχ_lt_one : p.χ < 1 := by
-    have hχ_lt_half : p.χ < (1 / 2 : ℝ) :=
-      lt_of_lt_of_le hχ_small (min_le_left _ _)
-    linarith
-  exact
-    ⟨U, V, hTW,
-      ShenUpperBoundPositive.hasStrictWaveUpperTailBound hupper hχ_nonneg hχ_lt_one,
-      htail⟩
-
-theorem Theorem_1_1.negative_wave_with_tail_witness
-    (h : Theorem_1_1) {p : CMParams}
-    (halpha : p.α ≤ p.m + p.γ - 1) (hχ : p.χ ≤ 0)
-    {c : ℝ} (hc : cStarLower p < c) :
-    ∃ U V : ℝ → ℝ,
-      IsMonotoneTravelingWave p c U V ∧
-      ShenUpperBoundNegative c U ∧
-      ∃ κ₁ : ℝ,
-        kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U := by
-  rcases h.negative_wave halpha hχ hc with ⟨U, V, hTW, hupper, htail⟩
-  exact
-    ⟨U, V, hTW, hupper,
-      exists_waveRightTailAsymptotic_of_forall_kappaOne_range
-        htail (kappa_pos_of_cStarLower_lt hc) (kappa_lt_one_of_cStarLower_lt hc)⟩
-
-theorem Theorem_1_1.positive_wave_with_stability_tail_data
-    (h : Theorem_1_1) {p : CMParams}
-    (halpha : p.α = p.m + p.γ - 1)
-    (hχ_nonneg : 0 ≤ p.χ) (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
-    {c : ℝ} (hc : 2 < c) :
-    ∃ U V : ℝ → ℝ,
-      IsTravelingWave p c U V ∧
-      HasStrictWaveUpperTailBound p c U ∧
-      ∃ κ₁ : ℝ,
-        kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U := by
-  rcases h.positive_wave_with_strict_tail_bound
-      halpha hχ_nonneg hχ_small hc with
-    ⟨U, V, hTW, hbound, htail⟩
-  exact
-    ⟨U, V, hTW, hbound,
-      exists_waveRightTailAsymptotic_of_forall_kappaOne_range
-        htail (kappa_pos_of_two_lt hc) (kappa_lt_one_of_two_lt hc)⟩
-
-theorem Theorem_1_1.negative_wave_with_ratio_limit
-    (h : Theorem_1_1) {p : CMParams}
-    (halpha : p.α ≤ p.m + p.γ - 1) (hχ : p.χ ≤ 0)
-    {c : ℝ} (hc : cStarLower p < c) :
-    ∃ U V : ℝ → ℝ,
-      IsMonotoneTravelingWave p c U V ∧
-      ShenUpperBoundNegative c U ∧
-      Tendsto (fun x => U x / Real.exp (-(kappa c) * x)) atTop (𝓝 1) := by
-  rcases h.negative_wave_with_tail_witness halpha hχ hc with
-    ⟨U, V, hTW, hupper, κ₁, hκ₁_gt, _hκ₁_lt, htail⟩
-  exact ⟨U, V, hTW, hupper, htail.ratio_tendsto_one hκ₁_gt⟩
-
-theorem Theorem_1_1.positive_wave_with_ratio_limit
-    (h : Theorem_1_1) {p : CMParams}
-    (halpha : p.α = p.m + p.γ - 1)
-    (hχ_nonneg : 0 ≤ p.χ) (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
-    {c : ℝ} (hc : 2 < c) :
-    ∃ U V : ℝ → ℝ,
-      IsTravelingWave p c U V ∧
-      HasStrictWaveUpperTailBound p c U ∧
-      Tendsto (fun x => U x / Real.exp (-(kappa c) * x)) atTop (𝓝 1) := by
-  rcases h.positive_wave_with_stability_tail_data
-      halpha hχ_nonneg hχ_small hc with
-    ⟨U, V, hTW, hbound, κ₁, hκ₁_gt, _hκ₁_lt, htail⟩
-  exact ⟨U, V, hTW, hbound, htail.ratio_tendsto_one hκ₁_gt⟩
 
 theorem Theorem_1_1.of_frozenStationaryProfile_branches
     (hneg :
@@ -12957,9 +12812,19 @@ theorem Theorem_1_2.positive_existing_wave_stability_conclusion
   intro c hc
   have hc2 : 2 < c :=
     two_lt_of_stabilitySpeedBaseline_lt hlower hc
-  rcases hexistence.positive_wave_with_stability_tail_data
-      halpha hχ_nonneg hχ_small hc2 with
-    ⟨U, V, hTW, hbound, htail⟩
+  rcases hexistence.2 p halpha hχ_nonneg hχ_small c hc2 with
+    ⟨U, V, hTW, hupper, htail_all⟩
+  have hχ_lt_one : p.χ < 1 := by
+    have hχ_lt_half : p.χ < (1 / 2 : ℝ) :=
+      lt_of_lt_of_le hχ_small (min_le_left _ _)
+    linarith
+  have hbound : HasStrictWaveUpperTailBound p c U :=
+    ShenUpperBoundPositive.hasStrictWaveUpperTailBound hupper hχ_nonneg hχ_lt_one
+  have htail :
+      ∃ κ₁ : ℝ, kappa c < κ₁ ∧ κ₁ < 1 ∧
+        HasWaveRightTailAsymptotic c κ₁ U :=
+    exists_waveRightTailAsymptotic_of_forall_kappaOne_range
+      htail_all (kappa_pos_of_two_lt hc2) (kappa_lt_one_of_two_lt hc2)
   exact ⟨U, V, hTW, hbound, hstable c hc U V hTW hbound htail⟩
 
 theorem Theorem_1_2.positive_existing_wave_stability_conclusion_with_ratio_limit
@@ -12995,13 +12860,21 @@ theorem Theorem_1_2.positive_existing_wave_stability_conclusion_with_ratio_limit
   intro c hc
   have hc2 : 2 < c :=
     two_lt_of_stabilitySpeedBaseline_lt hlower hc
-  rcases hexistence.positive_wave_with_stability_tail_data
-      halpha hχ_nonneg hχ_small hc2 with
-    ⟨U, V, hTW, hbound, κ₁, hκ₁_gt, _hκ₁_lt, htail⟩
+  rcases hexistence.2 p halpha hχ_nonneg hχ_small c hc2 with
+    ⟨U, V, hTW, hupper, htail_all⟩
+  have hχ_lt_one : p.χ < 1 := by
+    have hχ_lt_half : p.χ < (1 / 2 : ℝ) :=
+      lt_of_lt_of_le hχ_small (min_le_left _ _)
+    linarith
+  have hbound : HasStrictWaveUpperTailBound p c U :=
+    ShenUpperBoundPositive.hasStrictWaveUpperTailBound hupper hχ_nonneg hχ_lt_one
+  rcases exists_waveRightTailAsymptotic_of_forall_kappaOne_range
+      htail_all (kappa_pos_of_two_lt hc2) (kappa_lt_one_of_two_lt hc2) with
+    ⟨κ₁, hκ₁_gt, hκ₁_lt, htail⟩
   exact
     ⟨U, V, hTW, hbound, htail.ratio_tendsto_one hκ₁_gt,
       hstable c hc U V hTW hbound
-        ⟨κ₁, hκ₁_gt, _hκ₁_lt, htail⟩⟩
+        ⟨κ₁, hκ₁_gt, hκ₁_lt, htail⟩⟩
 
 /-- Paper1 Theorem 1.3: uniqueness of traveling waves with the prescribed right tail. -/
 def Theorem_1_3 : Prop :=
@@ -13019,13 +12892,6 @@ def Theorem_1_3 : Prop :=
           HasWaveRightTailAsymptotic c κ₁ U₁ ∧
           HasWaveRightTailAsymptotic c κ₁ U₂) →
         (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x)
-
-/-- A real reflexive branch of Paper1 Theorem 1.3: a wave is unique relative
-to itself, without using the uniqueness package. -/
-theorem Theorem_1_3_same_wave_branch
-    {U V : ℝ → ℝ} :
-    (∀ x, U x = U x) ∧ (∀ x, V x = V x) :=
-  ⟨fun _ => rfl, fun _ => rfl⟩
 
 /-- A non-projection uniqueness bridge: once stability (or another argument)
 has shown that the moving frame generated by `U₂` converges uniformly to `U₁`,
