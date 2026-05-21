@@ -8241,31 +8241,6 @@ def Theorem_2_2_xpSigma_local_exponential_branch : Prop :=
                         InitialTrace D u₀ u →
                           ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate)
 
-lemma Theorem_2_2_xpSigma_local_exponential_branch_proved :
-    Theorem_2_2_xpSigma_local_exponential_branch := by
-  intro D S p N C H hC hA1
-  refine ⟨?_, ?_⟩
-  · intro sigma pNorm hsigma_low hsigma_high hpNorm ha hb
-    dsimp
-    intro hχ
-    have hstable :=
-      hC.positiveEquilibrium_linearlyStable H ha hb hχ
-    rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
-      ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
-    refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
-    intro u₀ hu₀ hsmall u v huv htrace t ht
-    exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
-  · intro sigma pNorm hsigma_low hsigma_high hpNorm ha hb uStar huStar
-    dsimp
-    intro hχ
-    have hstable :=
-      hC.minimalEquilibrium_linearlyStable H huStar hχ
-    rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
-      ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
-    refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
-    intro u₀ hu₀ hsmall u v huv htrace t ht
-    exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
-
 /-- Direct theorem-shaped version of the `X^σ_p` local exponential branch,
 avoiding the theorem-shaped `Prop` wrapper.  This still keeps the critical
 spectrum identification and Lemma A.1 as explicit inputs. -/
@@ -8321,6 +8296,13 @@ theorem Theorem_2_2_xpSigma_local_exponential_branch_direct
     intro u₀ hu₀ hsmall u v huv htrace t ht
     exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
+lemma Theorem_2_2_xpSigma_local_exponential_branch_proved :
+    Theorem_2_2_xpSigma_local_exponential_branch := by
+  intro D S p N C H hC hA1
+  exact
+    Theorem_2_2_xpSigma_local_exponential_branch_direct
+      D S p N C H hC hA1
+
 /-- Formula-level nonminimal `X^σ_p` local exponential branch.  The spectral
 stability input is obtained from the explicit strong thresholds and the paper
 critical-sensitivity infimum, not from `Paper3Constants`. -/
@@ -8345,19 +8327,6 @@ def Theorem_2_2_xpSigma_nonminimal_formula_branch : Prop :=
                       IsPaper2GlobalClassicalSolution D p u v →
                       InitialTrace D u₀ u →
                         ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate
-
-lemma Theorem_2_2_xpSigma_nonminimal_formula_branch_proved :
-    Theorem_2_2_xpSigma_nonminimal_formula_branch := by
-  intro D S p N H hA1 sigma pNorm hsigma_low hsigma_high hpNorm ha hb M0
-  dsimp
-  intro hcritical hcond
-  have hstable :=
-    hcond.linearlyStable_of_max_threshold_le_critical S p H ha hb hcritical
-  rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
-    ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
-  refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
-  intro u₀ hu₀ hsmall u v huv htrace t ht
-  exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
 /-- Direct theorem-shaped version of the formula-level nonminimal
 `X^σ_p` local exponential branch, avoiding the theorem-shaped `Prop`
@@ -8396,6 +8365,14 @@ theorem Theorem_2_2_xpSigma_nonminimal_formula_branch_direct
   intro u₀ hu₀ hsmall u v huv htrace t ht
   exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
+lemma Theorem_2_2_xpSigma_nonminimal_formula_branch_proved :
+    Theorem_2_2_xpSigma_nonminimal_formula_branch := by
+  intro D S p N H hA1 sigma pNorm hsigma_low hsigma_high hpNorm ha hb M0
+  exact
+    Theorem_2_2_xpSigma_nonminimal_formula_branch_direct
+      D S p N H hA1 (sigma := sigma) (pNorm := pNorm)
+      hsigma_low hsigma_high hpNorm ha hb M0
+
 /-- Formula-level minimal `X^σ_p` local exponential branch.  The spectral
 stability input is obtained from the explicit minimal thresholds and the paper
 critical-sensitivity infimum, not from `Paper3Constants`. -/
@@ -8421,18 +8398,6 @@ def Theorem_2_2_xpSigma_minimal_formula_branch : Prop :=
                           ExponentialC1ConvergenceWith D N u v
                             (minimalEquilibrium p uStar).1
                             (minimalEquilibrium p uStar).2 A rate
-
-lemma Theorem_2_2_xpSigma_minimal_formula_branch_proved :
-    Theorem_2_2_xpSigma_minimal_formula_branch := by
-  intro D S p N H hA1 sigma pNorm hsigma_low hsigma_high hpNorm
-    _ha _hb _hm hβ uStar huStar uBar vLower hcritical hcond
-  have hstable :=
-    hcond.linearlyStable_of_chiBeta_le_critical S p H hβ huStar hcritical
-  rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
-    ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
-  refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
-  intro u₀ hu₀ hsmall u v huv htrace t ht
-  exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
 /-- Direct theorem-shaped version of the formula-level minimal `X^σ_p`
 local exponential branch, avoiding the theorem-shaped `Prop` wrapper. -/
@@ -8470,6 +8435,15 @@ theorem Theorem_2_2_xpSigma_minimal_formula_branch_direct
   intro u₀ hu₀ hsmall u v huv htrace t ht
   exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
+lemma Theorem_2_2_xpSigma_minimal_formula_branch_proved :
+    Theorem_2_2_xpSigma_minimal_formula_branch := by
+  intro D S p N H hA1 sigma pNorm hsigma_low hsigma_high hpNorm
+    ha hb hm hβ uStar huStar uBar vLower
+  exact
+    Theorem_2_2_xpSigma_minimal_formula_branch_direct
+      D S p N H hA1 (sigma := sigma) (pNorm := pNorm)
+      hsigma_low hsigma_high hpNorm ha hb hm hβ huStar uBar vLower
+
 /-- First-mode sufficient version of the formula-level nonminimal `X^σ_p`
 local exponential branch. -/
 def Theorem_2_2_xpSigma_nonminimal_first_mode_branch : Prop :=
@@ -8495,18 +8469,6 @@ def Theorem_2_2_xpSigma_nonminimal_first_mode_branch : Prop :=
                       IsPaper2GlobalClassicalSolution D p u v →
                       InitialTrace D u₀ u →
                         ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate
-
-lemma Theorem_2_2_xpSigma_nonminimal_first_mode_branch_proved :
-    Theorem_2_2_xpSigma_nonminimal_first_mode_branch := by
-  intro D S p N H hA1 sigma pNorm hsigma_low hsigma_high hpNorm ha hb M0
-  dsimp
-  intro hfirst hcond
-  have hstable := hcond.linearlyStable_of_firstNonzero_lower S p H ha hb hfirst
-  rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
-    ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
-  refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
-  intro u₀ hu₀ hsmall u v huv htrace t ht
-  exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
 /-- Direct theorem-shaped version of the first-mode sufficient nonminimal
 `X^σ_p` local exponential branch. -/
@@ -8545,6 +8507,14 @@ theorem Theorem_2_2_xpSigma_nonminimal_first_mode_branch_direct
   intro u₀ hu₀ hsmall u v huv htrace t ht
   exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
+lemma Theorem_2_2_xpSigma_nonminimal_first_mode_branch_proved :
+    Theorem_2_2_xpSigma_nonminimal_first_mode_branch := by
+  intro D S p N H hA1 sigma pNorm hsigma_low hsigma_high hpNorm ha hb M0
+  exact
+    Theorem_2_2_xpSigma_nonminimal_first_mode_branch_direct
+      D S p N H hA1 (sigma := sigma) (pNorm := pNorm)
+      hsigma_low hsigma_high hpNorm ha hb M0
+
 /-- First-mode sufficient version of the formula-level minimal `X^σ_p`
 local exponential branch. -/
 def Theorem_2_2_xpSigma_minimal_first_mode_branch : Prop :=
@@ -8570,18 +8540,6 @@ def Theorem_2_2_xpSigma_minimal_first_mode_branch : Prop :=
                           ExponentialC1ConvergenceWith D N u v
                             (minimalEquilibrium p uStar).1
                             (minimalEquilibrium p uStar).2 A rate
-
-lemma Theorem_2_2_xpSigma_minimal_first_mode_branch_proved :
-    Theorem_2_2_xpSigma_minimal_first_mode_branch := by
-  intro D S p N H hA1 sigma pNorm hsigma_low hsigma_high hpNorm
-    _ha _hb _hm hβ uStar huStar uBar vLower hfirst hcond
-  have hstable :=
-    hcond.linearlyStable_of_firstNonzero_lower S p H hβ huStar hfirst
-  rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
-    ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
-  refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
-  intro u₀ hu₀ hsmall u v huv htrace t ht
-  exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
 /-- Direct theorem-shaped version of the first-mode sufficient minimal
 `X^σ_p` local exponential branch. -/
@@ -8619,6 +8577,15 @@ theorem Theorem_2_2_xpSigma_minimal_first_mode_branch_direct
   refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
   intro u₀ hu₀ hsmall u v huv htrace t ht
   exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
+
+lemma Theorem_2_2_xpSigma_minimal_first_mode_branch_proved :
+    Theorem_2_2_xpSigma_minimal_first_mode_branch := by
+  intro D S p N H hA1 sigma pNorm hsigma_low hsigma_high hpNorm
+    ha hb hm hβ uStar huStar uBar vLower
+  exact
+    Theorem_2_2_xpSigma_minimal_first_mode_branch_direct
+      D S p N H hA1 (sigma := sigma) (pNorm := pNorm)
+      hsigma_low hsigma_high hpNorm ha hb hm hβ huStar uBar vLower
 
 lemma Theorem_2_2_xpSigma_nonminimal_formula_unitInterval
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
