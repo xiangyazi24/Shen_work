@@ -489,6 +489,50 @@ lemma paperCriticalSensitivity_pos
     exact paperCriticalSensitivity_ge_firstNonzero_lower S p H huStar hvStar
   exact lt_of_lt_of_le hlower_pos hlower_le
 
+/-- Positivity of the paper critical sensitivity at the positive constant
+equilibrium, proved from the explicit spectral formula. -/
+lemma paperCriticalSensitivity_positiveEquilibrium_pos
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    (ha : 0 < p.a) (hb : 0 < p.b) :
+    0 < paperCriticalSensitivity S p
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  paperCriticalSensitivity_pos S p H
+    (positiveEquilibrium_fst_pos p ⟨ha, hb⟩)
+    (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
+
+/-- Nonnegativity of the paper critical sensitivity at the positive constant
+equilibrium. -/
+lemma paperCriticalSensitivity_positiveEquilibrium_nonneg
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    (ha : 0 < p.a) (hb : 0 < p.b) :
+    0 ≤ paperCriticalSensitivity S p
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  (paperCriticalSensitivity_positiveEquilibrium_pos S p H ha hb).le
+
+/-- Positivity of the paper critical sensitivity at the minimal constant
+equilibrium, proved from the explicit spectral formula. -/
+lemma paperCriticalSensitivity_minimalEquilibrium_pos
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    {uStar : ℝ} (huStar : 0 < uStar) :
+    0 < paperCriticalSensitivity S p
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  paperCriticalSensitivity_pos S p H
+    (by simpa [minimalEquilibrium_fst_eq] using huStar)
+    (minimalEquilibrium_snd_pos p huStar).le
+
+/-- Nonnegativity of the paper critical sensitivity at the minimal constant
+equilibrium. -/
+lemma paperCriticalSensitivity_minimalEquilibrium_nonneg
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    {uStar : ℝ} (huStar : 0 < uStar) :
+    0 ≤ paperCriticalSensitivity S p
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  (paperCriticalSensitivity_minimalEquilibrium_pos S p H huStar).le
+
 lemma sigma_eq_chi_sub_critical_mul_coeff
     (p : CM2Params) (uStar vStar lambdaN : ℝ)
     (hcoeff :
@@ -2540,9 +2584,7 @@ lemma Paper3ConstantsUsesCriticalSpectrum.chiCritical_positiveEquilibrium_nonneg
     (H : HasNeumannSpectrum S) (ha : 0 < p.a) (hb : 0 < p.b) :
     0 ≤ C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 := by
   rw [hC.chiCritical_positiveEquilibrium ha hb]
-  exact paperCriticalSensitivity_nonneg S p H
-    (positiveEquilibrium_fst_pos p ⟨ha, hb⟩)
-    (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
+  exact paperCriticalSensitivity_positiveEquilibrium_nonneg S p H ha hb
 
 lemma Paper3ConstantsUsesCriticalSpectrum.chiCritical_positiveEquilibrium_pos
     {D : BoundedDomainData} {S : SpectralData} {p : CM2Params}
@@ -2551,9 +2593,7 @@ lemma Paper3ConstantsUsesCriticalSpectrum.chiCritical_positiveEquilibrium_pos
     (H : HasNeumannSpectrum S) (ha : 0 < p.a) (hb : 0 < p.b) :
     0 < C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 := by
   rw [hC.chiCritical_positiveEquilibrium ha hb]
-  exact paperCriticalSensitivity_pos S p H
-    (positiveEquilibrium_fst_pos p ⟨ha, hb⟩)
-    (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
+  exact paperCriticalSensitivity_positiveEquilibrium_pos S p H ha hb
 
 lemma Paper3ConstantsUsesCriticalSpectrum.chiCritical_minimalEquilibrium_nonneg
     {D : BoundedDomainData} {S : SpectralData} {p : CM2Params}
@@ -2562,8 +2602,7 @@ lemma Paper3ConstantsUsesCriticalSpectrum.chiCritical_minimalEquilibrium_nonneg
     (H : HasNeumannSpectrum S) (huStar : 0 < uStar) :
     0 ≤ C.chiCritical uStar := by
   rw [hC.chiCritical_minimalEquilibrium huStar]
-  exact paperCriticalSensitivity_nonneg S p H huStar
-    (minimalEquilibrium_snd_pos p huStar).le
+  exact paperCriticalSensitivity_minimalEquilibrium_nonneg S p H huStar
 
 lemma Paper3ConstantsUsesCriticalSpectrum.chiCritical_minimalEquilibrium_pos
     {D : BoundedDomainData} {S : SpectralData} {p : CM2Params}
@@ -2572,8 +2611,7 @@ lemma Paper3ConstantsUsesCriticalSpectrum.chiCritical_minimalEquilibrium_pos
     (H : HasNeumannSpectrum S) (huStar : 0 < uStar) :
     0 < C.chiCritical uStar := by
   rw [hC.chiCritical_minimalEquilibrium huStar]
-  exact paperCriticalSensitivity_pos S p H huStar
-    (minimalEquilibrium_snd_pos p huStar).le
+  exact paperCriticalSensitivity_minimalEquilibrium_pos S p H huStar
 
 lemma Paper3ConstantsUsesCriticalSpectrum.positiveEquilibrium_linearlyStable
     {D : BoundedDomainData} {S : SpectralData} {p : CM2Params}
