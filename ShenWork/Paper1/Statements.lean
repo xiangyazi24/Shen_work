@@ -1526,11 +1526,11 @@ theorem Psi_one_mu_eq (u : ℝ → ℝ) (mu x : ℝ) :
   simp [Psi]
   ring
 
-theorem Lemma_2_3_unit_mu_proved :
-    ∀ u : ℝ → ℝ, ∀ mu : ℝ, 0 < mu → IsCUnifBdd u →
-      (∀ x, 0 ≤ u x) →
-        ∀ x, |deriv (Psi u 1 mu) x| ≤ Psi u 1 mu x := by
-  intro u mu hmu hu hu_nonneg x
+theorem Lemma_2_3_unit_mu_direct
+    {u : ℝ → ℝ} {mu : ℝ} (hmu : 0 < mu) (hu : IsCUnifBdd u)
+    (hu_nonneg : ∀ x, 0 ≤ u x) :
+    ∀ x, |deriv (Psi u 1 mu) x| ≤ Psi u 1 mu x := by
+  intro x
   have hderiv :
       deriv (Psi u 1 mu) x = mu * deriv (Psi u 1 1) x := by
     rw [show Psi u 1 mu = fun z => mu * Psi u 1 1 z from by
@@ -1540,7 +1540,14 @@ theorem Lemma_2_3_unit_mu_proved :
   rw [hderiv, Psi_one_mu_eq u mu x]
   rw [abs_mul, abs_of_pos hmu]
   exact mul_le_mul_of_nonneg_left
-    (Lemma_2_3_unit_proved u hu hu_nonneg x) hmu.le
+    (Lemma_2_3_unit_direct hu hu_nonneg x) hmu.le
+
+theorem Lemma_2_3_unit_mu_proved :
+    ∀ u : ℝ → ℝ, ∀ mu : ℝ, 0 < mu → IsCUnifBdd u →
+      (∀ x, 0 ≤ u x) →
+        ∀ x, |deriv (Psi u 1 mu) x| ≤ Psi u 1 mu x := by
+  intro u mu hmu hu hu_nonneg
+  exact Lemma_2_3_unit_mu_direct hmu hu hu_nonneg
 
 def Lemma_2_4 : Prop :=
   ∀ M k : ℝ, 1 ≤ M → 0 < k → k < 1 →
