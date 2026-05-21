@@ -2594,6 +2594,21 @@ theorem intervalSemigroupOperator_contraction
       (L := L) (t := t) ht hM (f := fun y => f y - g y) hfg x
   rwa [intervalSemigroupOperator_sub ht hf_int hg_int x] at hbound
 
+/-- Symmetric `L∞` contraction interval for the difference of two interval
+helper outputs. -/
+theorem intervalSemigroupOperator_contraction_symmetric_interval_bound
+    {L t : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ} {M : ℝ} (hM : 0 ≤ M)
+    (hf_int : Integrable f (intervalMeasure L))
+    (hg_int : Integrable g (intervalMeasure L))
+    (hfg : ∀ y, |f y - g y| ≤ M) (x : ℝ) :
+    -M ≤ intervalSemigroupOperator L t f x -
+        intervalSemigroupOperator L t g x ∧
+      intervalSemigroupOperator L t f x -
+        intervalSemigroupOperator L t g x ≤ M := by
+  exact abs_le.mp
+    (intervalSemigroupOperator_contraction ht hM hf_int hg_int hfg x)
+
 /-- Bounded-input `L∞` contraction for the interval helper operator. -/
 theorem intervalSemigroupOperator_contraction_bounded
     {L t Mf Mg M : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
