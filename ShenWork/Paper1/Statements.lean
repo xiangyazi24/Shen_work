@@ -1769,11 +1769,33 @@ theorem ExponentialWeight.deriv_log_weight_abs_le
   rw [psi.deriv_log_weight_eq x, abs_div, abs_of_pos (psi.pos x)]
   exact div_le_of_le_mul₀ (psi.pos x).le hk (hk_bound x)
 
-def ExponentialWeight.WeightRatioBound : Prop :=
-  ∀ (psi : ExponentialWeight) (k : ℝ), 0 ≤ k →
-    (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
-      ∀ x y : ℝ,
-        psi.weight x ≤ psi.weight y * Real.exp (k * |x - y|)
+theorem ExponentialWeight.weight_ratio_le
+    (psi : ExponentialWeight) {k : ℝ} (hk : 0 ≤ k)
+    (hk_bound : ∀ z, |deriv psi.weight z| ≤ k * psi.weight z)
+    (x y : ℝ) :
+    psi.weight x ≤ psi.weight y * Real.exp (k * |x - y|) := by
+  have hlog_diff : Differentiable ℝ (fun z => Real.log (psi.weight z)) :=
+    (psi.smooth.differentiable two_ne_zero).log (fun z => ne_of_gt (psi.pos z))
+  have hlog_bound : ∀ z, ‖deriv (fun w => Real.log (psi.weight w)) z‖ ≤ k := by
+    intro z
+    rw [Real.norm_eq_abs]
+    exact psi.deriv_log_weight_abs_le hk hk_bound z
+  have hmvt : ‖Real.log (psi.weight x) - Real.log (psi.weight y)‖ ≤
+      k * ‖x - y‖ :=
+    Convex.norm_image_sub_le_of_norm_hasDerivWithin_le
+      (fun z _ => (hlog_diff z).hasDerivAt.hasDerivWithinAt)
+      (fun z _ => by rw [Real.norm_eq_abs]; exact hlog_bound z)
+      convex_univ (Set.mem_univ x) (Set.mem_univ y)
+  rw [Real.norm_eq_abs, Real.norm_eq_abs] at hmvt
+  have hx_pos := psi.pos x
+  have hy_pos := psi.pos y
+  have hlog_sub : Real.log (psi.weight x) - Real.log (psi.weight y) ≤
+      k * |x - y| :=
+    le_trans (le_abs_self _) hmvt
+  rw [← Real.log_div (ne_of_gt hx_pos) (ne_of_gt hy_pos)] at hlog_sub
+  have hdiv_le := (Real.log_le_iff_le_exp (div_pos hx_pos hy_pos)).mp hlog_sub
+  rw [div_le_iff₀ hy_pos] at hdiv_le
+  linarith
 
 theorem Psi_deriv_abs_rpow_le_Psi_rpow
     {u : ℝ → ℝ} {l mu pExp : ℝ}
