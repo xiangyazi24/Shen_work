@@ -6061,26 +6061,6 @@ theorem Lemma_4_2_chi_zero_subsolutions_of_kappaTilde_le_two_kappa
     exact constant_subsolution_frozenWaveOperator_nonneg_of_chem_nonneg
       p hd_pos hd_le hu (fun x => by simp [hχ])
 
-/-- A proved χ=0 version of Lemma 4.2 with the extra geometric condition
-`κtilde ≤ 2κ` made explicit. This records the actual hypotheses needed by the
-raw lower-barrier proof without reintroducing the former all-in-one analytic
-assumption package. -/
-def Lemma_4_2_chi_zero_strengthened : Prop :=
-  ∀ p : CMParams, p.χ = 0 →
-    ∀ κ κtilde M c : ℝ,
-      0 < κ → κ < 1 →
-        κ < κtilde →
-        κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
-        κtilde ≤ 2 * κ →
-        1 ≤ M → c = κ + κ⁻¹ →
-          ∀ D : ℝ,
-            subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D →
-              ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
-                IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
-                  (Set.Ioi (lowerBarrierXMinus κ κtilde D)) ∧
-                ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
-                  IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ
-
 theorem Lemma_4_2_chi_zero_strengthened_direct
     (p : CMParams) (hχ : p.χ = 0) {κ κtilde M c D : ℝ}
     (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
@@ -6097,31 +6077,6 @@ theorem Lemma_4_2_chi_zero_strengthened_direct
   exact Lemma_4_2_chi_zero_subsolutions_of_kappaTilde_le_two_kappa
     p hχ hκ hκ1 hgap hrange hκtilde_twoκ hM hc hD hu
 
-theorem Lemma_4_2_chi_zero_strengthened_proved :
-    Lemma_4_2_chi_zero_strengthened := by
-  intro p hχ κ κtilde M c hκ hκ1 hgap hrange hκtilde_twoκ hM hc D hD u hu
-  exact Lemma_4_2_chi_zero_strengthened_direct
-    p hχ hκ hκ1 hgap hrange hκtilde_twoκ hM hc hD hu
-
-/-- A proved χ=0 version of Lemma 4.2 with the missing large-`D`
-condition made explicit.  This is the direct assembly of the raw lower-barrier
-`D ≥ 1` estimate and the constant subsolution branch. -/
-def Lemma_4_2_chi_zero_D_ge_one_strengthened : Prop :=
-  ∀ p : CMParams, p.χ = 0 →
-    ∀ κ κtilde M c : ℝ,
-      0 < κ → κ < 1 →
-        κ < κtilde →
-        κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
-        1 ≤ M → c = κ + κ⁻¹ →
-          ∀ D : ℝ,
-            1 ≤ D →
-            subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D →
-              ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
-                IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
-                  (Set.Ioi (lowerBarrierXMinus κ κtilde D)) ∧
-                ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
-                  IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ
-
 theorem Lemma_4_2_chi_zero_D_ge_one_strengthened_direct
     (p : CMParams) (hχ : p.χ = 0) {κ κtilde M c D : ℝ}
     (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
@@ -6137,29 +6092,6 @@ theorem Lemma_4_2_chi_zero_D_ge_one_strengthened_direct
   Lemma_4_2_chi_zero_subsolutions_of_D_ge_one
     p hχ hκ hκ1 hgap hrange hD_ge_one hM hc hD hu
 
-theorem Lemma_4_2_chi_zero_D_ge_one_strengthened_proved :
-    Lemma_4_2_chi_zero_D_ge_one_strengthened := by
-  intro p hχ κ κtilde M c hκ hκ1 hgap hrange hM hc D hD_ge_one hD u hu
-  exact Lemma_4_2_chi_zero_D_ge_one_strengthened_direct
-    p hχ hκ hκ1 hgap hrange hM hc hD_ge_one hD hu
-
-/-- A proved χ=0, α=1 version of Lemma 4.2. In this slice the paper range
-condition implies `κtilde ≤ 2κ`, so no separate geometric hypothesis is needed. -/
-def Lemma_4_2_chi_zero_alpha_one_strengthened : Prop :=
-  ∀ p : CMParams, p.χ = 0 → p.α = 1 →
-    ∀ κ κtilde M c : ℝ,
-      0 < κ → κ < 1 →
-        κ < κtilde →
-        κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
-        1 ≤ M → c = κ + κ⁻¹ →
-          ∀ D : ℝ,
-            subsolutionDThreshold p.χ M κ κtilde p.m p.γ c < D →
-              ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
-                IsFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
-                  (Set.Ioi (lowerBarrierXMinus κ κtilde D)) ∧
-                ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
-                  IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ
-
 theorem Lemma_4_2_chi_zero_alpha_one_strengthened_direct
     (p : CMParams) (hχ : p.χ = 0) (hα : p.α = 1) {κ κtilde M c D : ℝ}
     (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
@@ -6173,12 +6105,6 @@ theorem Lemma_4_2_chi_zero_alpha_one_strengthened_direct
       ∀ d : ℝ, 0 < d → d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
         IsFrozenSubSolutionOn p c u (fun _ => d) Set.univ :=
   Lemma_4_2_chi_zero_alpha_one_subsolutions
-    p hχ hα hκ hκ1 hgap hrange hM hc hD hu
-
-theorem Lemma_4_2_chi_zero_alpha_one_strengthened_proved :
-    Lemma_4_2_chi_zero_alpha_one_strengthened := by
-  intro p hχ hα κ κtilde M c hκ hκ1 hgap hrange hM hc D hD u hu
-  exact Lemma_4_2_chi_zero_alpha_one_strengthened_direct
     p hχ hα hκ hκ1 hgap hrange hM hc hD hu
 
 theorem not_Lemma_4_2_chi_zero_hypotheses_force_kappaTilde_le_two_kappa :
@@ -7310,36 +7236,6 @@ theorem Lemma_4_1_neg_frozen_holds_away_from_interface_of_plateau_source_bound
   · exact frozenWaveOperator_upperBarrier_const_region_nonpos_of_elliptic_le_source
       p hχ hM hu.cunif_bdd hu.nonneg hgt (hplateau x hgt)
 
-/-- A proved, explicit version of the upper-barrier supersolution estimate away
-from the free interface `exp (-κ*x) = M`.
-
-The original paper statement `Lemma_4_1` currently omits hypotheses needed by
-the frozen operator proof: speed bounds in both sign cases, and in the `χ ≤ 0`
-case an explicit plateau-region comparison between the elliptic resolvent and
-the source. This formulation records the proved branch statement directly,
-without an analytic-data package projection. -/
-def Lemma_4_1_strengthened_away_from_interface : Prop :=
-  (∀ p : CMParams, p.χ ≤ 0 → p.α ≤ p.m + p.γ - 1 →
-    ∀ κ M c : ℝ, 0 < κ → κ < 1 → p.γ * κ < 1 → κ * p.m ≤ 1 →
-      1 ≤ M →
-      |p.χ| * ((1 + p.m * p.γ * κ ^ 2) / (1 - p.γ ^ 2 * κ ^ 2)) *
-        M ^ (p.m + p.γ - p.α - 1) ≤ 1 →
-      c = κ + κ⁻¹ →
-      ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
-        (∀ x, M < Real.exp (-κ * x) →
-          frozenElliptic p u x ≤ (u x) ^ p.γ) →
-        ∀ x, Real.exp (-κ * x) ≠ M →
-          frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0) ∧
-  (∀ p : CMParams, 0 ≤ p.χ → p.χ < chiStar p →
-    p.α = p.m + p.γ - 1 →
-    ∀ κ M c : ℝ, 0 < κ → κ < 1 → p.m * κ ≤ 1 →
-      1 ≤ M →
-      (1 / (1 - p.χ)) ^ (1 / p.α) ≤ M →
-      c = κ + κ⁻¹ →
-      ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
-        ∀ x, Real.exp (-κ * x) ≠ M →
-          frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0)
-
 theorem Lemma_4_1_strengthened_away_from_interface_direct :
     (∀ p : CMParams, p.χ ≤ 0 → p.α ≤ p.m + p.γ - 1 →
       ∀ κ M c : ℝ, 0 < κ → κ < 1 → p.γ * κ < 1 → κ * p.m ≤ 1 →
@@ -7368,10 +7264,6 @@ theorem Lemma_4_1_strengthened_away_from_interface_direct :
   · intro p hχ_nonneg hχ hα κ M c hκ hκ1 hmκ hM hMchi hc u hu
     exact Lemma_4_1_pos_frozen_holds_away_from_interface_at_kappa
       p hκ hκ1 hc hχ_nonneg hχ hα hmκ hM hMchi hu
-
-theorem Lemma_4_1_strengthened_away_from_interface_proved :
-    Lemma_4_1_strengthened_away_from_interface := by
-  exact Lemma_4_1_strengthened_away_from_interface_direct
 
 theorem paperWaveOperator_exp_nonpos_of_chi_nonpos_one_of_speed_bound
     (p : CMParams) {c κ : ℝ} {u : ℝ → ℝ}
@@ -7916,25 +7808,6 @@ theorem Remark_4_2_chi_zero
       p hχ hd_pos hd_le (hu.slice_cunif htIcc)
       (fun x => hu.nonneg htIcc x)
 
-/-- A proved general-`M`, finite-time χ=0 slice of Remark 4.2.  The
-large-`D` condition is absorbed into the existential threshold `D0`. -/
-def Remark_4_2_chi_zero_strengthened : Prop :=
-  ∀ p : CMParams, p.χ = 0 →
-    ∀ κ κtilde M c T : ℝ,
-      0 < κ → κ < 1 →
-        κ < κtilde →
-        κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
-        1 ≤ M → 0 < T → c = κ + κ⁻¹ →
-          ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
-            ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ M T u →
-              (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
-                IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
-                  (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
-              ∀ d : ℝ, 0 < d →
-                d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
-                  ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
-                    IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ
-
 theorem Remark_4_2_chi_zero_strengthened_direct
     (p : CMParams) (hχ : p.χ = 0) {κ κtilde M c T : ℝ}
     (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
@@ -7951,12 +7824,6 @@ theorem Remark_4_2_chi_zero_strengthened_direct
             ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
               IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ :=
   Remark_4_2_chi_zero p hχ hκ hκ1 hgap hrange hM hT hc
-
-theorem Remark_4_2_chi_zero_strengthened_proved :
-    Remark_4_2_chi_zero_strengthened := by
-  intro p hχ κ κtilde M c T hκ hκ1 hgap hrange hM hT hc
-  exact Remark_4_2_chi_zero_strengthened_direct
-    p hχ hκ hκ1 hgap hrange hM hT hc
 
 /-- The `M = 1` slice of Paper1 Remark 4.2.  In this case the finite-time
 barrier `min 1 (1 * exp(-κx))` is exactly the wave-trap upper barrier, so this
@@ -8180,26 +8047,6 @@ theorem Remark_4_2_M_one_chi_zero_of_D_ge_one
         p hχ hκ0 hκ1 hgap hrange hD_ge_one le_rfl hc hD
         (hu.slice_inWaveTrapSet_one htIcc)).2 d hd_pos hd_le
 
-/-- A proved finite-time `M = 1`, χ=0 slice of Remark 4.2 with the extra
-geometric condition `κtilde ≤ 2κ` made explicit. -/
-def Remark_4_2_M_one_chi_zero_strengthened : Prop :=
-  ∀ p : CMParams, p.χ = 0 →
-    ∀ κ κtilde c T : ℝ,
-      0 < κ → κ < 1 →
-        κ < κtilde →
-        κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
-        κtilde ≤ 2 * κ →
-        0 < T → c = κ + κ⁻¹ →
-          ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
-            ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ 1 T u →
-              (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
-                IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
-                  (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
-              ∀ d : ℝ, 0 < d →
-                d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
-                  ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
-                    IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ
-
 theorem Remark_4_2_M_one_chi_zero_strengthened_direct
     (p : CMParams) (hχ : p.χ = 0) {κ κtilde c T : ℝ}
     (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
@@ -8218,32 +8065,6 @@ theorem Remark_4_2_M_one_chi_zero_strengthened_direct
               IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ :=
   Remark_4_2_M_one_chi_zero_of_kappaTilde_le_two_kappa
     p hχ hκ hκ1 hgap hrange hκtilde_twoκ hT hc
-
-theorem Remark_4_2_M_one_chi_zero_strengthened_proved :
-    Remark_4_2_M_one_chi_zero_strengthened := by
-  intro p hχ κ κtilde c T hκ hκ1 hgap hrange hκtilde_twoκ hT hc
-  exact Remark_4_2_M_one_chi_zero_strengthened_direct
-    p hχ hκ hκ1 hgap hrange hκtilde_twoκ hT hc
-
-/-- A proved finite-time `M = 1`, χ=0 slice of Remark 4.2 with the
-large-`D` condition `1 ≤ D` made explicit. -/
-def Remark_4_2_M_one_chi_zero_D_ge_one_strengthened : Prop :=
-  ∀ p : CMParams, p.χ = 0 →
-    ∀ κ κtilde c T : ℝ,
-      0 < κ → κ < 1 →
-        κ < κtilde →
-        κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
-        0 < T → c = κ + κ⁻¹ →
-          ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
-            1 ≤ D →
-            ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ 1 T u →
-              (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
-                IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
-                  (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
-              ∀ d : ℝ, 0 < d →
-                d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
-                  ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
-                    IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ
 
 theorem Remark_4_2_M_one_chi_zero_D_ge_one_strengthened_direct
     (p : CMParams) (hχ : p.χ = 0) {κ κtilde c T : ℝ}
@@ -8264,30 +8085,6 @@ theorem Remark_4_2_M_one_chi_zero_D_ge_one_strengthened_direct
   Remark_4_2_M_one_chi_zero_of_D_ge_one
     p hχ hκ hκ1 hgap hrange hT hc
 
-theorem Remark_4_2_M_one_chi_zero_D_ge_one_strengthened_proved :
-    Remark_4_2_M_one_chi_zero_D_ge_one_strengthened := by
-  intro p hχ κ κtilde c T hκ hκ1 hgap hrange hT hc
-  exact Remark_4_2_M_one_chi_zero_D_ge_one_strengthened_direct
-    p hχ hκ hκ1 hgap hrange hT hc
-
-/-- A proved finite-time `M = 1`, χ=0, α=1 slice of Remark 4.2. -/
-def Remark_4_2_M_one_chi_zero_alpha_one_strengthened : Prop :=
-  ∀ p : CMParams, p.χ = 0 → p.α = 1 →
-    ∀ κ κtilde c T : ℝ,
-      0 < κ → κ < 1 →
-        κ < κtilde →
-        κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1) →
-        0 < T → c = κ + κ⁻¹ →
-          ∃ D0 : ℝ, ∀ D : ℝ, D0 < D →
-            ∀ u : ℝ → ℝ → ℝ, InTimeWaveTrapSet κ 1 T u →
-              (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
-                IsFrozenSubSolutionOn p c (u t) (lowerBarrierRaw κ κtilde D)
-                  (Set.Ioi (lowerBarrierXMinus κ κtilde D))) ∧
-              ∀ d : ℝ, 0 < d →
-                d ≤ constantSubsolutionThreshold p.χ κ κtilde D →
-                  ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
-                    IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ
-
 theorem Remark_4_2_M_one_chi_zero_alpha_one_strengthened_direct
     (p : CMParams) (hχ : p.χ = 0) (hα : p.α = 1) {κ κtilde c T : ℝ}
     (hκ : 0 < κ) (hκ1 : κ < 1) (hgap : κ < κtilde)
@@ -8304,12 +8101,6 @@ theorem Remark_4_2_M_one_chi_zero_alpha_one_strengthened_direct
             ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
               IsFrozenSubSolutionOn p c (u t) (fun _ => d) Set.univ :=
   Remark_4_2_M_one_chi_zero_alpha_one
-    p hχ hα hκ hκ1 hgap hrange hT hc
-
-theorem Remark_4_2_M_one_chi_zero_alpha_one_strengthened_proved :
-    Remark_4_2_M_one_chi_zero_alpha_one_strengthened := by
-  intro p hχ hα κ κtilde c T hκ hκ1 hgap hrange hT hc
-  exact Remark_4_2_M_one_chi_zero_alpha_one_strengthened_direct
     p hχ hα hκ hκ1 hgap hrange hT hc
 
 def MChi (p : CMParams) : ℝ :=
@@ -9407,25 +9198,6 @@ def Remark_4_3 : Prop :=
       ∀ eta : ℝ, Remark43TailRateBound p c eta →
         WeightedL2InitialCloseness (eta + kappa c) U₂ U₁
 
-/-- Corrected regular version of Paper1 Remark 4.3.  The original formal
-statement does not include any measurability/continuity hypothesis on the two
-profiles, although the conclusion is an `Integrable` statement.  This version
-keeps the paper hypotheses and exposes the missing profile regularity
-explicitly. -/
-def Remark_4_3_regular : Prop :=
-  ∀ p : CMParams, ∀ c : ℝ, 0 < kappa c →
-    ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
-      IsTravelingWave p c U₁ V₁ →
-      IsTravelingWave p c U₂ V₂ →
-      Continuous U₁ →
-      Continuous U₂ →
-      HasWaveUpperTailBound p c U₁ →
-      HasWaveUpperTailBound p c U₂ →
-      HasRemark43TailAsymptotic p c U₁ →
-      HasRemark43TailAsymptotic p c U₂ →
-      ∀ eta : ℝ, Remark43TailRateBound p c eta →
-        WeightedL2InitialCloseness (eta + kappa c) U₂ U₁
-
 /-- Paper1 Remark 1.3(2), repeated in Remark 4.3(2): in the extended
 positive-sensitivity range, the construction yields a wave whose right end is
 `(0,0)` and whose left end stays uniformly positive, without claiming
@@ -9873,13 +9645,6 @@ theorem Remark_4_3_regular_direct
   exact
     Remark_4_3.distinct_wave_branch_of_continuous
       hkappa hU₁_cont hU₂_cont hbound₁ hbound₂ htail₁ htail₂ heta
-
-theorem Remark_4_3_regular_proved : Remark_4_3_regular := by
-  intro p c hkappa U₁ V₁ U₂ V₂ hTW₁ hTW₂ hU₁_cont hU₂_cont
-    hbound₁ hbound₂ htail₁ htail₂ eta heta
-  exact
-    Remark_4_3_regular_direct hkappa hTW₁ hTW₂ hU₁_cont hU₂_cont
-      hbound₁ hbound₂ htail₁ htail₂ heta
 
 theorem HasRemark43TailAsymptotic.hasWaveRightTailAsymptotic
     {p : CMParams} {c κ₁ : ℝ} {U : ℝ → ℝ}
@@ -10374,48 +10139,6 @@ theorem Lemma_5_1.fixed_point_conclusion_of_wave_derivative_bounds_of_continuous
     (hbound.isCUnifBdd_of_continuous hU_cont)
     hbound hderiv_tends hderiv_bound hderiv_exp
 
-/-- Strengthened Lemma 5.1 target with the missing resolvent identification
-and the remaining `U'` estimates exposed as explicit hypotheses.  This is the
-full conclusion shape of Lemma 5.1, with the remaining analytic inputs made
-explicit. -/
-def Lemma_5_1_resolvent_identified : Prop :=
-  ∀ p : CMParams, ∀ c : ℝ, 2 < c →
-    ∀ U V : ℝ → ℝ,
-      IsTravelingWave p c U V →
-      V = frozenElliptic p U →
-      Continuous U →
-      HasWaveUpperTailBound p c U →
-      WaveDerivativeTendsZero U →
-      (c > p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) →
-        ∃ B > 0, ∀ x, |deriv U x| ≤ B) →
-      (c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
-        ∃ B1 B2, ∀ x,
-          |deriv U x| ≤
-            B1 * Real.exp (-(kappa c) * x) +
-              B2 * Real.exp (-(kappa c) * p.γ * x)) →
-        (∀ x,
-          |V x| ≤ (MChi p) ^ p.γ ∧
-            |deriv V x| ≤ (MChi p) ^ p.γ) ∧
-        (p.γ + p.γ⁻¹ < c →
-          ∀ x,
-            |V x| ≤
-              min ((MChi p) ^ p.γ)
-                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
-                  Real.exp (-(kappa c) * p.γ * x)) ∧
-            |deriv V x| ≤
-              min ((MChi p) ^ p.γ)
-                ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
-                  Real.exp (-(kappa c) * p.γ * x))) ∧
-        WaveDerivativeTendsZero U ∧
-        (c > p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) →
-          ∃ B > 0, ∀ x, |deriv U x| ≤ B) ∧
-        (c > max (p.γ + p.γ⁻¹)
-            (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
-          ∃ B1 B2, ∀ x,
-            |deriv U x| ≤
-              B1 * Real.exp (-(kappa c) * x) +
-                B2 * Real.exp (-(kappa c) * p.γ * x))
-
 theorem Lemma_5_1_resolvent_identified_direct
     {p : CMParams} {c : ℝ} (hc : 2 < c)
     {U V : ℝ → ℝ}
@@ -10459,13 +10182,6 @@ theorem Lemma_5_1_resolvent_identified_direct
   subst V
   exact Lemma_5_1.fixed_point_conclusion_of_wave_derivative_bounds
     p hc hU hbound hderiv_tends hderiv_bound hderiv_exp
-
-theorem Lemma_5_1_resolvent_identified_proved :
-    Lemma_5_1_resolvent_identified := by
-  intro p c hc U V hTW hV hU_cont hbound hderiv_tends hderiv_bound hderiv_exp
-  exact
-    Lemma_5_1_resolvent_identified_direct hc hTW hV hU_cont hbound
-      hderiv_tends hderiv_bound hderiv_exp
 
 /-- Lemma 5.1's signal estimates for a frozen stationary profile already
 known to lie in the wave trap.  This avoids the arbitrary `IsTravelingWave`
@@ -10808,18 +10524,6 @@ theorem Lemma_5_2.nonincreasing_profile_branch
         hspeed hMChi_nonneg hpos hmono x)
       (le_max_left _ _)
 
-/-- Fixed-point/trap version of the explicit Lemma 5.2 log-derivative
-estimate.  The profile is a frozen stationary wave in the monotone trap, so
-the traveling-wave and upper-tail hypotheses are supplied by the profile/trap
-structure. -/
-def Lemma_5_2_explicit_frozen_monotone_trap : Prop :=
-  ∀ p : CMParams, ∀ c : ℝ,
-    c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
-      ∀ U : ℝ → ℝ,
-        FrozenStationaryWaveProfile p c U →
-        InMonotoneWaveTrapSet (kappa c) (MChi p) U →
-          ∀ x, deriv U x / U x ≤ logDerivativeBoundFormula p c
-
 theorem Lemma_5_2_explicit_frozen_monotone_trap_direct
     {p : CMParams} {c : ℝ}
     (hspeed :
@@ -10833,23 +10537,6 @@ theorem Lemma_5_2_explicit_frozen_monotone_trap_direct
     (hprofile.hasWaveUpperTailBound_of_inMonotoneWaveTrapSet htrap)
     htrap.deriv_nonpos
 
-theorem Lemma_5_2_explicit_frozen_monotone_trap_proved :
-    Lemma_5_2_explicit_frozen_monotone_trap := by
-  intro p c hspeed U hprofile htrap
-  exact
-    Lemma_5_2_explicit_frozen_monotone_trap_direct hspeed hprofile htrap
-
-/-- Fixed-point/trap version of Lemma 5.2.  This packages the preceding
-explicit bound in the existential form of the paper lemma without projecting
-from the analytic package. -/
-def Lemma_5_2_frozen_monotone_trap : Prop :=
-  ∀ p : CMParams, ∀ c : ℝ,
-    c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
-      ∀ U : ℝ → ℝ,
-        FrozenStationaryWaveProfile p c U →
-        InMonotoneWaveTrapSet (kappa c) (MChi p) U →
-          ∃ B > 0, ∀ x, deriv U x / U x ≤ B
-
 theorem Lemma_5_2_frozen_monotone_trap_direct
     {p : CMParams} {c : ℝ}
     (hspeed :
@@ -10862,11 +10549,6 @@ theorem Lemma_5_2_frozen_monotone_trap_direct
     hprofile.to_travelingWave
     (hprofile.hasWaveUpperTailBound_of_inMonotoneWaveTrapSet htrap)
     htrap.deriv_nonpos
-
-theorem Lemma_5_2_frozen_monotone_trap_proved :
-    Lemma_5_2_frozen_monotone_trap := by
-  intro p c hspeed U hprofile htrap
-  exact Lemma_5_2_frozen_monotone_trap_direct hspeed hprofile htrap
 
 theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_log_derivative_bound
     {p : CMParams} {c κ₀ κtilde D : ℝ}
@@ -11506,19 +11188,6 @@ theorem Remark_5_2.monotoneTravelingWave_branch
         remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) :=
   Remark_5_2.nonincreasing_branch hsigma hχ hspeed hTW.1 hbound hTW.2.1
 
-/-- Fixed-point/trap version of Remark 5.2.  The monotone trap supplies
-`U' ≤ 0`, and the right-hand constant is nonnegative, so this branch is proved
-without a package-field projection. -/
-def Remark_5_2_frozen_monotone_trap : Prop :=
-  ∀ p : CMParams, ∀ c sigma : ℝ,
-    0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
-      ∀ U : ℝ → ℝ,
-        FrozenStationaryWaveProfile p c U →
-        InMonotoneWaveTrapSet (kappa c) (MChi p) U →
-          ∀ x : ℝ,
-            deriv U x / U x ≤
-              remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma)
-
 theorem Remark_5_2_frozen_monotone_trap_direct
     {p : CMParams} {c sigma : ℝ}
     (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
@@ -11533,12 +11202,6 @@ theorem Remark_5_2_frozen_monotone_trap_direct
     hprofile.to_travelingWave
     (hprofile.hasWaveUpperTailBound_of_inMonotoneWaveTrapSet htrap)
     htrap.deriv_nonpos
-
-theorem Remark_5_2_frozen_monotone_trap_proved :
-    Remark_5_2_frozen_monotone_trap := by
-  intro p c sigma hsigma hχ hspeed U hprofile htrap
-  exact
-    Remark_5_2_frozen_monotone_trap_direct hsigma hχ hspeed hprofile htrap
 
 theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_remark52_log_derivative
     {p : CMParams} {c κ₀ κtilde D sigma : ℝ}
@@ -13755,7 +13418,6 @@ the corrected regular Remark 4.3 tail theorem.  This replaces the explicit
 profile regularity needed for the weighted integral. -/
 theorem Theorem_1_3_profile_eq_of_remark43_stability_cauchy_unique_and_resolvent
     {p : CMParams} {c eta : ℝ} {U₁ V₁ U₂ V₂ : ℝ → ℝ}
-    (hremark43 : Remark_4_3_regular)
     (hkappa : 0 < kappa c)
     (hTW₁ : IsTravelingWave p c U₁ V₁)
     (hTW₂ : IsTravelingWave p c U₂ V₂)
@@ -13784,15 +13446,14 @@ theorem Theorem_1_3_profile_eq_of_remark43_stability_cauchy_unique_and_resolvent
     (hV₂ : V₂ = frozenElliptic p U₂) :
     (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
   have hclose : WeightedL2InitialCloseness (eta + kappa c) U₂ U₁ :=
-    hremark43 p c hkappa U₁ V₁ U₂ V₂ hTW₁ hTW₂ hU₁_cont hU₂_cont
-      hbound₁ hbound₂ htail₁ htail₂ eta heta
+    Remark_4_3_regular_direct hkappa hTW₁ hTW₂ hU₁_cont hU₂_cont
+      hbound₁ hbound₂ htail₁ htail₂ heta
   exact
     Theorem_1_3_profile_eq_of_stability_cauchy_unique_and_resolvent
       hTW₂ hU₂_bdd hclose hstable hcauchy_unique hV₁ hV₂
 
 theorem Theorem_1_3_profile_eq_of_remark43_second_tail_continuous
     {p : CMParams} {c eta : ℝ} {U₁ V₁ U₂ V₂ : ℝ → ℝ}
-    (hremark43 : Remark_4_3_regular)
     (hkappa : 0 < kappa c)
     (hTW₁ : IsTravelingWave p c U₁ V₁)
     (hTW₂ : IsTravelingWave p c U₂ V₂)
@@ -13820,17 +13481,17 @@ theorem Theorem_1_3_profile_eq_of_remark43_second_tail_continuous
     (hV₂ : V₂ = frozenElliptic p U₂) :
     (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) :=
   Theorem_1_3_profile_eq_of_remark43_stability_cauchy_unique_and_resolvent
-    hremark43 hkappa hTW₁ hTW₂ hU₁_cont hU₂_cont
+    hkappa hTW₁ hTW₂ hU₁_cont hU₂_cont
     (hbound₂.isCUnifBdd_of_continuous hU₂_cont)
     hbound₁ hbound₂ htail₁ htail₂ heta hstable hcauchy_unique hV₁ hV₂
 
 /-- A threshold-level non-projection route toward Theorem 1.3 from the
 stability theorem.  It uses `Theorem_1_2` to supply the weighted stability
-package, `Remark_4_3_regular` to supply the weighted closeness from sharp tail
+package, `Remark_4_3_regular_direct` to supply the weighted closeness from sharp tail
 data, and leaves only Cauchy uniqueness plus elliptic resolvent identification
 as explicit analytic inputs. -/
 theorem Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent
-    (hstability : Theorem_1_2) (hremark43 : Remark_4_3_regular)
+    (hstability : Theorem_1_2)
     {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
@@ -13875,7 +13536,7 @@ theorem Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent
       (eta + kappa c) hweight_lower hweight
   exact
     Theorem_1_3_profile_eq_of_remark43_stability_cauchy_unique_and_resolvent
-      hremark43 hkappa_pos hTW₁ hTW₂ hU₁_cont hU₂_cont
+      hkappa_pos hTW₁ hTW₂ hU₁_cont hU₂_cont
       (hbound₂.hasWaveUpperTailBound.isCUnifBdd_of_continuous hU₂_cont)
       hbound₁.hasWaveUpperTailBound hbound₂.hasWaveUpperTailBound
       htail₁ htail₂ heta hstable_at hcauchy_unique hV₁ hV₂
@@ -13886,7 +13547,7 @@ stability-weight input is the open gap `kappa c < 1/(1+|χ|^(1/6))`, which
 ensures that a small positive tail rate can be added to `kappa c` without
 leaving the weight range of Theorem 1.2. -/
 theorem Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent_of_kappa_cap
-    (hstability : Theorem_1_2) (hremark43 : Remark_4_3_regular)
+    (hstability : Theorem_1_2)
     {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
@@ -13936,7 +13597,7 @@ theorem Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent_of_k
       (eta + kappa c) hweight_lower hweight
   exact
     Theorem_1_3_profile_eq_of_remark43_stability_cauchy_unique_and_resolvent
-      hremark43 hkappa_pos hTW₁ hTW₂ hU₁_cont hU₂_cont
+      hkappa_pos hTW₁ hTW₂ hU₁_cont hU₂_cont
       (hbound₂.hasWaveUpperTailBound.isCUnifBdd_of_continuous hU₂_cont)
       hbound₁.hasWaveUpperTailBound hbound₂.hasWaveUpperTailBound
       htail₁ htail₂ heta hstable_at hcauchy_unique hV₁ hV₂
@@ -13946,7 +13607,7 @@ bridge.  The stability speed lower bound itself gives
 `kappa c < 1/(1+|χ|^(1/6))`, so the Remark 4.3 tail rate is chosen
 internally. -/
 theorem Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent_of_speed
-    (hstability : Theorem_1_2) (hremark43 : Remark_4_3_regular)
+    (hstability : Theorem_1_2)
     {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
@@ -13969,7 +13630,7 @@ theorem Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent_of_s
         (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
   rcases
       Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent_of_kappa_cap
-        hstability hremark43 hp with
+        hstability hp with
     ⟨cStarStar, hasymp, hlower, huniq⟩
   refine ⟨cStarStar, hasymp, hlower, ?_⟩
   intro c hc
@@ -13981,7 +13642,7 @@ bridge.  For waves produced as `FrozenStationaryWaveProfile`s, the elliptic
 signal is definitionally `frozenElliptic p U`; thus the bridge no longer needs
 external resolvent-identification hypotheses. -/
 theorem Theorem_1_3.frozen_profile_uniqueness_bridge_from_stability_remark43
-    (hstability : Theorem_1_2) (hremark43 : Remark_4_3_regular)
+    (hstability : Theorem_1_2)
     {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
@@ -14003,7 +13664,7 @@ theorem Theorem_1_3.frozen_profile_uniqueness_bridge_from_stability_remark43
           (∀ x, frozenElliptic p U₁ x = frozenElliptic p U₂ x) := by
   rcases
       Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent_of_speed
-        hstability hremark43 hp with
+        hstability hp with
     ⟨cStarStar, hasymp, hlower, huniq⟩
   refine ⟨cStarStar, hasymp, hlower, ?_⟩
   intro c hc U₁ U₂ hprofile₁ hprofile₂ hU₁_cont hU₂_cont
@@ -14018,7 +13679,7 @@ trap-set membership supplies the profile continuity needed by the corrected
 Remark 4.3 theorem, and the signal is still definitionally the frozen elliptic
 resolvent. -/
 theorem Theorem_1_3.frozen_trap_profile_uniqueness_bridge_from_stability_remark43
-    (hstability : Theorem_1_2) (hremark43 : Remark_4_3_regular)
+    (hstability : Theorem_1_2)
     {p : CMParams} (hp : StableWaveParameterRegime p) :
     ∃ cStarStar : ℝ → ℝ,
       StabilitySpeedThresholdFamilyAsymptotic p cStarStar ∧
@@ -14040,7 +13701,7 @@ theorem Theorem_1_3.frozen_trap_profile_uniqueness_bridge_from_stability_remark4
           (∀ x, frozenElliptic p U₁ x = frozenElliptic p U₂ x) := by
   rcases
       Theorem_1_3.frozen_profile_uniqueness_bridge_from_stability_remark43
-        hstability hremark43 hp with
+        hstability hp with
     ⟨cStarStar, hasymp, hlower, huniq⟩
   refine ⟨cStarStar, hasymp, hlower, ?_⟩
   intro c hc U₁ U₂ hprofile₁ hprofile₂ htrap₁ htrap₂
