@@ -634,16 +634,12 @@ projection theorem wrappers have been removed.
 - `Theorem_1_2_frozen_profile_self_initial_data_admissible_branch_of_strict_tail`:
   the frozen-profile version with `IsCUnifBdd` likewise derived from the strict
   upper-tail hypothesis plus continuity
-- `Theorem_1_2.stability_from_wave_initial_conclusion_of_strict_tail_continuous`,
-  `Theorem_1_2.stability_from_wave_initial_conclusion_of_remark43_tail_continuous`,
-  `Theorem_1_2.stability_from_second_wave_initial_conclusion_of_second_strict_tail_continuous`,
-  and
-  `Theorem_1_2.stability_from_second_wave_initial_conclusion_of_remark43_tail_continuous`:
-  accessor bridge variants that remove the separate `IsCUnifBdd` input for
-  self-initial and second-wave initial-data uses by deriving it from strict
-  upper-tail bounds plus continuity
-- `Theorem_1_3_same_wave_branch`: reflexive Paper1 Theorem 1.3 same-wave
-  uniqueness branch, independent of the uniqueness package
+- The former namespace-style Theorem 1.2/1.3 bridge names
+  `Theorem_1_2.stability_from_*`, `Theorem_1_3.uniqueness_bridge_*`,
+  `Theorem_1_3.frozen_profile_uniqueness_bridge_*`, and
+  `Theorem_1_3.frozen_trap_profile_uniqueness_bridge_*` are no longer present
+  in Lean sources.  The current theorem list uses the flat branch names below;
+  this audit should track those names directly.
 - `Theorem_1_3_profile_eq_of_uniform_movingFrame_and_resolvent`: a real
   uniqueness bridge showing that uniform moving-frame convergence of the
   second profile to the first profile, plus resolvent identification
@@ -665,33 +661,6 @@ projection theorem wrappers have been removed.
 - `Theorem_1_3_profile_eq_of_remark43_second_tail_continuous`:
   the regular Remark 4.3 bridge with the second-profile `IsCUnifBdd` input
   likewise derived from the second upper-tail bound and continuity
-- `Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent`:
-  threshold-level bridge using the real `Theorem_1_2` stability package and
-  `Remark_4_3_regular` tail-closeness theorem; the remaining assumptions are
-  the admissible Remark 4.3 tail rate, Cauchy uniqueness/solution
-  identification for the second wave, and elliptic resolvent identification
-- `exists_remark43TailRateBound_with_weight_below` and
-  `Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent_of_kappa_cap`:
-  the Remark 4.3 tail rate is now selected internally once
-  `kappa c < 1/(1+|χ|^(1/6))` is supplied; the remaining Theorem 1.3 bridge
-  assumptions are the kappa/cap gap, Cauchy uniqueness, and elliptic resolvent
-  identification
-- `kappa_lt_stability_weight_cap_of_stabilitySpeedBaseline_lt` and
-  `Theorem_1_3.uniqueness_bridge_from_stability_remark43_and_resolvent_of_speed`:
-  the stability speed lower bound itself supplies the kappa/cap gap, so the
-  Theorem 1.3 bridge no longer exposes any manual Remark 4.3 rate or weight
-  admissibility assumption; the remaining explicit analytic inputs are Cauchy
-  uniqueness and elliptic resolvent identification
-- `Theorem_1_3.frozen_profile_uniqueness_bridge_from_stability_remark43`:
-  specializes the speed-level bridge to `FrozenStationaryWaveProfile`, where
-  the elliptic resolvent identities are definitional; the remaining explicit
-  analytic input is Cauchy uniqueness/solution identification, plus the stated
-  tail/continuity hypotheses
-- `Theorem_1_3.frozen_trap_profile_uniqueness_bridge_from_stability_remark43`:
-  further specializes to frozen profiles in `InWaveTrapSet`, using the trap-set
-  continuity field internally; the remaining explicit analytic input is Cauchy
-  uniqueness/solution identification together with the strict upper-tail and
-  Remark 4.3 tail-asymptotic hypotheses
 - `Lemma_A_6_direct` (Paper3)
 - `FrozenStationaryWaveProfile.mk_auto_limits`
 - `FrozenStationaryWaveProfile.mk_from_paper_stationarity_of_tail_continuous`
