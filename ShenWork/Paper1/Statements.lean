@@ -918,6 +918,19 @@ theorem modifiedSemigroup_paper1_nonneg
   intro x
   exact modifiedSemigroup_nonneg hf_nonneg ht x
 
+/-- Concrete zero-input identity for the modified heat semigroup. -/
+theorem modifiedSemigroup_paper1_zero_fun (t : ℝ) :
+    ∀ x : ℝ, modifiedSemigroup t (fun _ => 0) x = 0 := by
+  intro x
+  exact modifiedSemigroup_zero_fun t x
+
+/-- Concrete constant-input identity for the modified heat semigroup. -/
+theorem modifiedSemigroup_paper1_const
+    {c t : ℝ} (ht : 0 < t) :
+    ∀ x : ℝ, modifiedSemigroup t (fun _ => c) x = Real.exp (-t) * c := by
+  intro x
+  exact modifiedSemigroup_const ht x
+
 /-- Concrete monotonicity for bounded inputs under the modified heat semigroup. -/
 theorem modifiedSemigroup_paper1_mono_bounded
     {f g : ℝ → ℝ} {Mf Mg t : ℝ}
@@ -977,6 +990,38 @@ theorem modifiedSemigroup_paper1_sub_bounded
   exact modifiedSemigroup_sub_bounded
     hf_bound hg_bound hf_meas hg_meas ht x
 
+/-- Concrete scalar multiplication identity for the modified heat semigroup. -/
+theorem modifiedSemigroup_paper1_const_mul
+    (a : ℝ) (f : ℝ → ℝ) (t : ℝ) :
+    ∀ x : ℝ,
+      modifiedSemigroup t (fun y => a * f y) x =
+        a * modifiedSemigroup t f x := by
+  intro x
+  exact modifiedSemigroup_const_mul a f t x
+
+/-- Concrete lattice domination by applying the modified semigroup to `|f|`. -/
+theorem modifiedSemigroup_paper1_abs_le_semigroup_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) :
+    ∀ x : ℝ,
+      |modifiedSemigroup t f x| ≤
+        modifiedSemigroup t (fun y => |f y|) x := by
+  intro x
+  exact modifiedSemigroup_abs_le_semigroup_abs ht x
+
+/-- Concrete domination by a bounded nonnegative majorant. -/
+theorem modifiedSemigroup_paper1_abs_le_of_abs_le_bounded
+    {f g : ℝ → ℝ} {Mf Mg t : ℝ}
+    (hfg : ∀ y, |f y| ≤ g y)
+    (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hf_meas : AEStronglyMeasurable f volume)
+    (hg_meas : AEStronglyMeasurable g volume)
+    (ht : 0 < t) :
+    ∀ x : ℝ, |modifiedSemigroup t f x| ≤ modifiedSemigroup t g x := by
+  intro x
+  exact modifiedSemigroup_abs_le_of_abs_le_bounded
+    hfg hf_bound hg_bound hf_meas hg_meas ht x
+
 /-- Concrete `L¹ → L∞` smoothing for the modified heat semigroup. -/
 theorem modifiedSemigroup_paper1_L1_Linfty_smoothing_abs
     {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t)
@@ -1011,6 +1056,20 @@ theorem deriv_modifiedSemigroup_paper1_L1_Linfty_smoothing_abs
             (Real.sqrt (1 / (4 * t)))⁻¹) * ∫ y : ℝ, |f y|) := by
   intro x
   exact deriv_modifiedSemigroup_L1_Linfty_smoothing_abs ht x hf_int
+
+/-- Concrete `L¹ → L∞` gradient-difference smoothing for the modified heat semigroup. -/
+theorem deriv_modifiedSemigroup_paper1_diff_L1_Linfty_smoothing_abs
+    {f g : ℝ → ℝ} {t : ℝ} (ht : 0 < t)
+    (hf_int : Integrable f) (hg_int : Integrable g) :
+    ∀ x : ℝ,
+      |deriv (fun z : ℝ => modifiedSemigroup t f z) x -
+          deriv (fun z : ℝ => modifiedSemigroup t g z) x| ≤
+        Real.exp (-t) *
+          ((((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+            (Real.sqrt (1 / (4 * t)))⁻¹) *
+            ∫ y : ℝ, |f y - g y|) := by
+  intro x
+  exact deriv_modifiedSemigroup_diff_L1_Linfty_smoothing_abs ht x hf_int hg_int
 
 def PsiDerivativeFormula (u : ℝ → ℝ) (l mu : ℝ) : Prop :=
   ∀ x,
