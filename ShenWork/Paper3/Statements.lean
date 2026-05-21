@@ -253,6 +253,46 @@ lemma HasNeumannSpectrum.eigenvalue_nonneg_of_ne_zero
     0 ≤ S.eigenvalue n :=
   H.eigenvalue_nonneg n
 
+/-- The one-dimensional Neumann spectrum on the unit interval:
+`λ_n = n^2 π^2`, with first nonzero mode `π^2`. -/
+def unitIntervalNeumannSpectrum : SpectralData where
+  eigenvalue := fun n => (n : ℝ) ^ 2 * Real.pi ^ 2
+  firstNonzero := Real.pi ^ 2
+
+/-- The concrete unit-interval spectrum satisfies the spectral positivity and
+first-mode lower-bound interface used by the Paper3 linear theory. -/
+lemma unitIntervalNeumannSpectrum_hasNeumannSpectrum :
+    HasNeumannSpectrum unitIntervalNeumannSpectrum := by
+  refine
+    { zero_eigenvalue := ?_
+      eigenvalue_nonneg := ?_
+      eigenvalue_pos_of_ne_zero := ?_
+      firstNonzero_pos := ?_
+      firstNonzero_le_eigenvalue := ?_ }
+  · simp [unitIntervalNeumannSpectrum]
+  · intro n
+    exact mul_nonneg (sq_nonneg (n : ℝ)) (sq_nonneg Real.pi)
+  · intro n hn
+    have hn_real_ne : (n : ℝ) ≠ 0 := by
+      exact_mod_cast hn
+    exact mul_pos (sq_pos_of_ne_zero hn_real_ne)
+      (sq_pos_of_ne_zero (ne_of_gt Real.pi_pos))
+  · exact sq_pos_of_ne_zero (ne_of_gt Real.pi_pos)
+  · intro n hn
+    have hn_nat : 1 ≤ n := Nat.succ_le_of_lt (Nat.pos_of_ne_zero hn)
+    have hn_real : (1 : ℝ) ≤ n := by
+      exact_mod_cast hn_nat
+    have hn_sq : (1 : ℝ) ≤ (n : ℝ) ^ 2 := by
+      nlinarith [sq_nonneg ((n : ℝ) - 1)]
+    calc
+      unitIntervalNeumannSpectrum.firstNonzero
+          = (1 : ℝ) * Real.pi ^ 2 := by
+            simp [unitIntervalNeumannSpectrum]
+      _ ≤ (n : ℝ) ^ 2 * Real.pi ^ 2 :=
+            mul_le_mul_of_nonneg_right hn_sq (sq_nonneg Real.pi)
+      _ = unitIntervalNeumannSpectrum.eigenvalue n := by
+            simp [unitIntervalNeumannSpectrum]
+
 def sigma
     (p : CM2Params) (uStar vStar lambdaN : ℝ) : ℝ :=
   -lambdaN +
@@ -2339,6 +2379,56 @@ lemma minimalEquilibrium_linearlyUnstable_of_paperCriticalSensitivity_lt_chi_neu
       (minimalEquilibrium_snd_pos p huStar).le
   exact minimalEquilibrium_linearlyUnstable_of_aboveSome_neumann
     S p H huStar habove
+
+/-! ### Concrete unit-interval spectral branches
+
+These branches instantiate the abstract Neumann spectrum with the actual
+one-dimensional unit-interval eigenvalues `n^2 π^2`, removing the fakeable
+`SpectralData` parameter from the linear-stability hypotheses.
+-/
+
+lemma unitInterval_positiveEquilibrium_linearlyStable_of_chi_nonpos
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 := by
+  exact positiveEquilibrium_linearlyStable_of_chi_nonpos_neumann
+    unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+    hχ ha hb
+
+lemma unitInterval_positiveEquilibrium_linearlyStable_of_chi_lt_critical
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 := by
+  exact positiveEquilibrium_linearlyStable_of_chi_lt_paperCriticalSensitivity_neumann
+    unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+    ha hb hχ
+
+lemma unitInterval_minimalEquilibrium_linearlyStable_of_chi_nonpos
+    (p : CM2Params) {uStar : ℝ}
+    (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (huStar : 0 < uStar) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 := by
+  exact minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero_neumann
+    unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+    hχ ha huStar
+
+lemma unitInterval_minimalEquilibrium_linearlyStable_of_chi_lt_critical
+    (p : CM2Params) {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 := by
+  exact minimalEquilibrium_linearlyStable_of_chi_lt_paperCriticalSensitivity_neumann
+    unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+    huStar hχ
 
 def GloballyAsymptoticallyStableNonminimal
     (D : BoundedDomainData) (p : CM2Params) (uStar _vStar : ℝ) : Prop :=
