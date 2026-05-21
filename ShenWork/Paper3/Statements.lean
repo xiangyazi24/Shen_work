@@ -3786,6 +3786,69 @@ lemma NonminimalGlobalStabilityCondition.chi_lt_max_threshold
   · exact lt_of_lt_of_le h.2.2.2.2
       (le_trans (le_max_right _ _) (le_max_right _ _))
 
+/-- Nonminimal stability condition written directly with the explicit strong
+threshold formulas, instead of the `Paper3Constants` threshold fields. -/
+def NonminimalGlobalStabilityFormulaCondition
+    (p : CM2Params) (uStar vStar M0 : ℝ) : Prop :=
+  (1 ≤ p.m ∧ p.α + 1 ≥ 2 * p.γ ∧
+      0 < p.χ₀ ∧ p.χ₀ < chiStrong1Formula p uStar vStar) ∨
+    (1 ≤ p.m ∧ 1 ≤ p.β ∧ p.α + 1 ≥ 2 * p.γ ∧
+      0 < p.χ₀ ∧ p.χ₀ < chiStrong2Formula p uStar) ∨
+    (1 ≤ p.m ∧ 1 ≤ p.γ ∧
+      p.α + 1 ≥ p.m + p.γ + (if p.β = 0 then 0 else p.γ) ∧
+      p.χ₀ < chiStrong3Formula p M0 uStar vStar) ∨
+    (1 ≤ p.m ∧ 1 ≤ p.β ∧ 1 ≤ p.γ ∧
+      p.α + 1 ≥ p.m + 2 * p.γ ∧
+      p.χ₀ < chiStrong4Formula p M0 uStar)
+
+lemma NonminimalGlobalStabilityFormulaCondition.chi_lt_max_threshold
+    {p : CM2Params} {uStar vStar M0 : ℝ}
+    (h : NonminimalGlobalStabilityFormulaCondition p uStar vStar M0) :
+    p.χ₀ <
+      max (max (chiStrong1Formula p uStar vStar)
+          (chiStrong2Formula p uStar))
+        (max (chiStrong3Formula p M0 uStar vStar)
+          (chiStrong4Formula p M0 uStar)) := by
+  rcases h with h | h | h | h
+  · exact lt_of_lt_of_le h.2.2.2
+      (le_trans (le_max_left _ _) (le_max_left _ _))
+  · exact lt_of_lt_of_le h.2.2.2.2
+      (le_trans (le_max_right _ _) (le_max_left _ _))
+  · exact lt_of_lt_of_le h.2.2.2
+      (le_trans (le_max_left _ _) (le_max_right _ _))
+  · exact lt_of_lt_of_le h.2.2.2.2
+      (le_trans (le_max_right _ _) (le_max_right _ _))
+
+lemma NonminimalGlobalStabilityFormulaCondition.linearlyStable_of_max_threshold_le_critical
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    (ha : 0 < p.a) (hb : 0 < p.b) {M0 : ℝ}
+    (hcritical :
+      max
+          (max
+            (chiStrong1Formula p
+              (positiveEquilibrium p ⟨ha, hb⟩).1
+              (positiveEquilibrium p ⟨ha, hb⟩).2)
+            (chiStrong2Formula p
+              (positiveEquilibrium p ⟨ha, hb⟩).1))
+          (max
+            (chiStrong3Formula p M0
+              (positiveEquilibrium p ⟨ha, hb⟩).1
+              (positiveEquilibrium p ⟨ha, hb⟩).2)
+            (chiStrong4Formula p M0
+              (positiveEquilibrium p ⟨ha, hb⟩).1)) ≤
+        paperCriticalSensitivity S p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2)
+    (h :
+      NonminimalGlobalStabilityFormulaCondition p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 M0) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyStable S p eq.1 eq.2 := by
+  exact positiveEquilibrium_linearlyStable_of_chi_lt_paperCriticalSensitivity_neumann
+    S p H ha hb
+    (lt_of_lt_of_le (h.chi_lt_max_threshold) hcritical)
+
 def MinimalGlobalStabilityCondition
     (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p)
     (uStar : ℝ) : Prop :=
