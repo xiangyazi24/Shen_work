@@ -1402,13 +1402,6 @@ def Proposition_1_3
         InitialTrace D u₀ u ∧
         IsPaper2Bounded D u
 
-lemma Proposition_1_3.of_paper2_theorem_1_3
-    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
-    (h : Paper2.Theorem_1_3 D p C) :
-    Proposition_1_3 D p C := by
-  intro ha hb hm hcond u₀ hu₀
-  exact (h ha hb p.hm hcond).2 hm u₀ hu₀
-
 lemma Proposition_1_3.global_solution_of_alpha_gt_m_add_gamma_sub_one
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
     (h : Paper2.Theorem_1_3 D p C)
@@ -1776,13 +1769,6 @@ def Proposition_1_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
             IsPaper2GlobalClassicalSolution D p u v ∧
             InitialTrace D u₀ u ∧
             IsPaper2Bounded D u
-
-lemma Proposition_1_4.of_paper2_theorem_1_2
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Paper2.Theorem_1_2 D p) :
-    Proposition_1_4 D p := by
-  intro hm hβ _hab hχ u₀ hu₀
-  exact (h p.ha p.hb hβ).2 hm hχ u₀ hu₀
 
 lemma Proposition_1_4.global_solution_of_min_half_sqrt
     {D : BoundedDomainData} {p : CM2Params}
@@ -6782,14 +6768,6 @@ def Lemma_3_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
     PositiveGlobalBoundedSolution D p u v →
       UniformRegularityConclusion D p u v
 
-lemma Lemma_3_1.regularity
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Lemma_3_1 D p)
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v) :
-    UniformRegularityConclusion D p u v :=
-  h u v huv
-
 /- This is an accessor from the regularity component already present in
 `PositiveGlobalBoundedSolution`, not an end-to-end proof of the analytic
 regularity estimate.  The name deliberately avoids `_proved`. -/
@@ -6806,36 +6784,14 @@ def Lemma_3_2
       PositiveGlobalBoundedSolution D p u v →
         TimeTranslateCompactnessConclusion D p K u v
 
-lemma Lemma_3_2.compactness
-    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
-    (h : Lemma_3_2 D p K) (hm : 1 ≤ p.m) (hγ : 0 < p.γ)
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v) :
-    TimeTranslateCompactnessConclusion D p K u v :=
-  h hm hγ u v huv
-
 def Lemma_3_3 (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D) : Prop :=
   ∀ uStar > 0, InitialContinuityConclusion D p N uStar
-
-lemma Lemma_3_3.initial_continuity
-    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
-    (h : Lemma_3_3 D p N) {uStar : ℝ} (huStar : 0 < uStar) :
-    InitialContinuityConclusion D p N uStar :=
-  h uStar huStar
 
 def Lemma_3_4
     (D : BoundedDomainData) (p : CM2Params) (K : CompactnessData D) : Prop :=
   ∀ u v : ℝ → D.Point → ℝ,
     PositiveGlobalBoundedSolution D p u v →
       UpperEnvelopeMonotonicityConclusion D p K u
-
-lemma Lemma_3_4.upper_envelope
-    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
-    (h : Lemma_3_4 D p K)
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v) :
-    UpperEnvelopeMonotonicityConclusion D p K u :=
-  h u v huv
 
 def Lemma_3_5
     (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) : Prop :=
@@ -6845,17 +6801,6 @@ def Lemma_3_5
         PositiveGlobalBoundedSolution D p u v →
           EventuallyUpperBoundMinimalConclusion D p C u
 
-lemma Lemma_3_5.eventual_upper_bound
-    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
-    (h : Lemma_3_5 D p C)
-    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
-    (hχ_pos : 0 < p.χ₀)
-    (hχ_small : p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v) :
-    EventuallyUpperBoundMinimalConclusion D p C u :=
-  h ha hb hm hβ hχ_pos hχ_small u v huv
-
 lemma Lemma_3_1_2.regularity_and_compactness
     {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
     (hreg : Lemma_3_1 D p) (hcompact : Lemma_3_2 D p K)
@@ -6864,7 +6809,7 @@ lemma Lemma_3_1_2.regularity_and_compactness
     (huv : PositiveGlobalBoundedSolution D p u v) :
     UniformRegularityConclusion D p u v ∧
       TimeTranslateCompactnessConclusion D p K u v :=
-  ⟨hreg.regularity huv, hcompact.compactness hm hγ huv⟩
+  ⟨hreg u v huv, hcompact hm hγ u v huv⟩
 
 lemma Lemma_3_1_2_4.dynamical_compactness_conclusion
     {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
@@ -6876,8 +6821,8 @@ lemma Lemma_3_1_2_4.dynamical_compactness_conclusion
     UniformRegularityConclusion D p u v ∧
       TimeTranslateCompactnessConclusion D p K u v ∧
       UpperEnvelopeMonotonicityConclusion D p K u :=
-  ⟨hreg.regularity huv, hcompact.compactness hm hγ huv,
-    henvelope.upper_envelope huv⟩
+  ⟨hreg u v huv, hcompact hm hγ u v huv,
+    henvelope u v huv⟩
 
 lemma Lemma_3_1_2_4.eventual_entire_limit
     {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
@@ -6889,7 +6834,7 @@ lemma Lemma_3_1_2_4.eventual_entire_limit
     ∃ subseq : ℕ → ℕ, StrictMono subseq ∧
     ∃ uInf vInf : ℝ → D.Point → ℝ,
       EntireClassicalSolution D p uInf vInf :=
-  (hcompact.compactness hm hγ huv).entire_limit htimes
+  (hcompact hm hγ u v huv).entire_limit htimes
 
 lemma Lemma_3_5.eventual_upper_bound_at_mass
     {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
@@ -6902,7 +6847,7 @@ lemma Lemma_3_5.eventual_upper_bound_at_mass
     (huv : PositiveGlobalBoundedSolution D p u v)
     (hmass : HasInitialMass D u uStar) :
     ∀ᶠ t in atTop, D.supNorm (u t) ≤ C.eventualMinimalUBound uStar :=
-  (h.eventual_upper_bound ha hb hm hβ hχ_pos hχ_small huv).bound
+  (h ha hb hm hβ hχ_pos hχ_small u v huv).bound
     huStar hmass
 
 def Corollary_5_1
@@ -7051,14 +6996,6 @@ def Lemma_7_1 (D : BoundedDomainData) (K : CompactnessData D) : Prop :=
     0 < mu → 0 < nu →
       K.neumannResolventGradientBound mu nu f M0
 
-lemma Lemma_7_1.bound
-    {D : BoundedDomainData} {K : CompactnessData D}
-    (h : Lemma_7_1 D K) :
-    ∃ M0 > 0, ∀ mu nu : ℝ, ∀ f : D.Point → ℝ,
-      0 < mu → 0 < nu →
-        K.neumannResolventGradientBound mu nu f M0 :=
-  h
-
 def Lemma_A_1
     (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
     (N : StabilityNorms D) : Prop :=
@@ -7075,26 +7012,6 @@ def Lemma_A_1
                   N.c1Distance (u t) (fun _ => uStar) +
                     N.c1Distance (v t) (fun _ => vStar) ≤
                       C * Real.exp (-rate * t)
-
-lemma Lemma_A_1.local_exponential_stability
-    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
-    {N : StabilityNorms D}
-    (h : Lemma_A_1 D p S N)
-    {sigma pNorm uStar vStar : ℝ}
-    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
-    (hpNorm : 1 < pNorm)
-    (hstable : LinearlyStable S p uStar vStar) :
-    ∃ eps > 0, ∃ C > 0, ∃ rate > 0,
-      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
-        N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤ eps →
-          ∀ u v : ℝ → D.Point → ℝ,
-            IsPaper2GlobalClassicalSolution D p u v →
-            InitialTrace D u₀ u →
-              ∀ t, 0 ≤ t →
-                N.c1Distance (u t) (fun _ => uStar) +
-                  N.c1Distance (v t) (fun _ => vStar) ≤
-                    C * Real.exp (-rate * t) :=
-  h sigma pNorm uStar vStar hsigma_low hsigma_high hpNorm hstable
 
 /-- The `X^σ_p` local exponential-decay part of Paper3 Theorem 2.2.  This is
 weaker than `LocallyExponentiallyStableFromSup`: it assumes an existing global
@@ -7136,7 +7053,7 @@ theorem Theorem_2_2_xpSigma_local_exponential_branch_direct
     intro hχ
     have hstable :=
       hC.positiveEquilibrium_linearlyStable H ha hb hχ
-    rcases hA1.local_exponential_stability
+    rcases hA1 _ _ _ _
         hsigma_low hsigma_high hpNorm hstable with
       ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
     refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
@@ -7147,7 +7064,7 @@ theorem Theorem_2_2_xpSigma_local_exponential_branch_direct
     intro hχ
     have hstable :=
       hC.minimalEquilibrium_linearlyStable H huStar hχ
-    rcases hA1.local_exponential_stability
+    rcases hA1 _ _ _ _
         hsigma_low hsigma_high hpNorm hstable with
       ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
     refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
@@ -7184,7 +7101,7 @@ theorem Theorem_2_2_xpSigma_nonminimal_formula_branch_direct
   intro hcritical hcond
   have hstable :=
     hcond.linearlyStable_of_max_threshold_le_critical S p H ha hb hcritical
-  rcases hA1.local_exponential_stability
+  rcases hA1 _ _ _ _
       hsigma_low hsigma_high hpNorm hstable with
     ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
   refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
@@ -7221,7 +7138,7 @@ theorem Theorem_2_2_xpSigma_minimal_formula_branch_direct
   intro hcritical hcond
   have hstable :=
     hcond.linearlyStable_of_chiBeta_le_critical S p H hβ huStar hcritical
-  rcases hA1.local_exponential_stability
+  rcases hA1 _ _ _ _
       hsigma_low hsigma_high hpNorm hstable with
     ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
   refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
@@ -7258,7 +7175,7 @@ theorem Theorem_2_2_xpSigma_nonminimal_first_mode_branch_direct
   dsimp
   intro hfirst hcond
   have hstable := hcond.linearlyStable_of_firstNonzero_lower S p H ha hb hfirst
-  rcases hA1.local_exponential_stability
+  rcases hA1 _ _ _ _
       hsigma_low hsigma_high hpNorm hstable with
     ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
   refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
@@ -7295,7 +7212,7 @@ theorem Theorem_2_2_xpSigma_minimal_first_mode_branch_direct
   intro hfirst hcond
   have hstable :=
     hcond.linearlyStable_of_firstNonzero_lower S p H hβ huStar hfirst
-  rcases hA1.local_exponential_stability
+  rcases hA1 _ _ _ _
       hsigma_low hsigma_high hpNorm hstable with
     ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
   refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
@@ -7330,7 +7247,7 @@ lemma Theorem_2_2_xpSigma_nonminimal_formula_unitInterval
     hcond.linearlyStable_of_max_threshold_le_critical
       unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
       ha hb hcritical
-  rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
+  rcases hA1 _ _ _ _ hsigma_low hsigma_high hpNorm hstable with
     ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
   refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
   intro u₀ hu₀ hsmall u v huv htrace t ht
@@ -7366,7 +7283,7 @@ lemma Theorem_2_2_xpSigma_nonminimal_first_mode_unitInterval
     hcond.linearlyStable_of_firstNonzero_lower
       unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
       ha hb hfirst
-  rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
+  rcases hA1 _ _ _ _ hsigma_low hsigma_high hpNorm hstable with
     ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
   refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
   intro u₀ hu₀ hsmall u v huv htrace t ht
@@ -7400,7 +7317,7 @@ lemma Theorem_2_2_xpSigma_minimal_formula_unitInterval
     hcond.linearlyStable_of_chiBeta_le_critical
       unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
       hβ huStar hcritical
-  rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
+  rcases hA1 _ _ _ _ hsigma_low hsigma_high hpNorm hstable with
     ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
   refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
   intro u₀ hu₀ hsmall u v huv htrace t ht
@@ -7435,7 +7352,7 @@ lemma Theorem_2_2_xpSigma_minimal_first_mode_unitInterval
     hcond.linearlyStable_of_firstNonzero_lower
       unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
       hβ huStar hfirst
-  rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
+  rcases hA1 _ _ _ _ hsigma_low hsigma_high hpNorm hstable with
     ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
   refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
   intro u₀ hu₀ hsmall u v huv htrace t ht
@@ -7476,7 +7393,7 @@ lemma Theorem_2_2_xpSigma_chi_nonpos_branch
     have hstable :=
       positiveEquilibrium_linearlyStable_of_chi_nonpos_neumann
         S p H hχ ha hb
-    rcases hA1.local_exponential_stability
+    rcases hA1 _ _ _ _
         hsigma_low hsigma_high hpNorm hstable with
       ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
     refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
@@ -7487,7 +7404,7 @@ lemma Theorem_2_2_xpSigma_chi_nonpos_branch
     have hstable :=
       minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero_neumann
         S p H hχ ha huStar
-    rcases hA1.local_exponential_stability
+    rcases hA1 _ _ _ _
         hsigma_low hsigma_high hpNorm hstable with
       ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
     refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
@@ -7528,7 +7445,7 @@ lemma Theorem_2_2_xpSigma_chi_nonpos_unitInterval
     dsimp
     have hstable :=
       unitInterval_positiveEquilibrium_linearlyStable_of_chi_nonpos p hχ ha hb
-    rcases hA1.local_exponential_stability
+    rcases hA1 _ _ _ _
         hsigma_low hsigma_high hpNorm hstable with
       ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
     refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
@@ -7539,7 +7456,7 @@ lemma Theorem_2_2_xpSigma_chi_nonpos_unitInterval
     have hstable :=
       unitInterval_minimalEquilibrium_linearlyStable_of_chi_nonpos
         p hχ ha huStar
-    rcases hA1.local_exponential_stability
+    rcases hA1 _ _ _ _
         hsigma_low hsigma_high hpNorm hstable with
       ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
     refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
