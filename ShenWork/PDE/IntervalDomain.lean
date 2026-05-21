@@ -346,6 +346,24 @@ theorem constantModeProjection_residual_intervalAverage_eq_zero
   rw [constantModeProjection_residual_intervalIntegral_eq_zero hL hf_int]
   ring
 
+/-- The constant-mode projection of the residual is the zero function. -/
+theorem constantModeProjection_residual_eq_zero
+    {L : ℝ} (hL : 0 < L) {f : ℝ → ℝ}
+    (hf_int : IntervalIntegrable f volume 0 L) :
+    constantModeProjection L (fun x => f x - constantModeProjection L f x) =
+      fun _ => 0 := by
+  funext x
+  change intervalAverage L (fun x => f x - constantModeProjection L f x) = 0
+  exact constantModeProjection_residual_intervalAverage_eq_zero hL hf_int
+
+/-- Pointwise decomposition into constant mode plus zero-mean residual. -/
+theorem constantModeProjection_add_residual
+    (L : ℝ) (f : ℝ → ℝ) :
+    (fun x => constantModeProjection L f x +
+      (f x - constantModeProjection L f x)) = f := by
+  funext x
+  ring
+
 /-- The Neumann heat kernel on [0,L] via method of images (reflected kernel).
 For t > 0 and x, y ∈ [0,L]:
   K_N(t, x, y) = G(t, x-y) + G(t, x+y) + G(t, 2L-x-y) + ...
