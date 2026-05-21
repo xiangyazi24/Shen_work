@@ -2258,6 +2258,22 @@ theorem intervalSemigroupOperator_kernel_mass_interval_bound
   ⟨intervalSemigroupOperator_const_mul_kernel_mass_le ht hf_int hf_ge x,
     intervalSemigroupOperator_le_const_mul_kernel_mass ht hf_int hf_le x⟩
 
+/-- Bounded-input version of the sharp interval bound with the restricted
+kernel mass. -/
+theorem intervalSemigroupOperator_kernel_mass_interval_bound_bounded
+    {L t Mf a b : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hf_ge : ∀ y, a ≤ f y) (hf_le : ∀ y, f y ≤ b) (x : ℝ) :
+    a * ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L ≤
+      intervalSemigroupOperator L t f x ∧
+    intervalSemigroupOperator L t f x ≤
+      b * ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L :=
+  intervalSemigroupOperator_kernel_mass_interval_bound ht
+    (intervalMeasure_integrable_of_abs_bound hf_meas hf_bound)
+    hf_ge hf_le x
+
 /-- Sub-Markov interval bound for inputs whose range is contained in an
 interval crossing zero. -/
 theorem intervalSemigroupOperator_signed_interval_bound
