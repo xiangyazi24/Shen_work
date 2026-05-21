@@ -5460,6 +5460,19 @@ def LinearInstabilityNonminimalRaw
     chiCritical eq.1 < p.χ₀ →
       LinearlyUnstable S p eq.1 eq.2
 
+/-- Formula-level proof of the nonminimal raw instability branch when the
+critical threshold is the actual spectral infimum. -/
+lemma LinearInstabilityNonminimalRaw_paperCriticalSensitivity
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S) :
+    LinearInstabilityNonminimalRaw p S
+      (fun u => paperCriticalSensitivity S p u (p.ν / p.μ * u ^ p.γ)) := by
+  intro ha hb
+  dsimp
+  intro hχ
+  exact positiveEquilibrium_linearlyUnstable_of_paperCriticalSensitivity_lt_chi_neumann
+    S p H ha hb (by
+      simpa [positiveEquilibrium] using hχ)
+
 /-- Raw nonminimal instability obstruction: an arbitrary critical-threshold
 function can make the threshold hypothesis true even when the chosen spectral
 data are linearly stable in every nonzero mode. -/
@@ -5496,6 +5509,19 @@ def LinearInstabilityMinimalRaw
       let eq := minimalEquilibrium p uStar
       chiCritical uStar < p.χ₀ →
         LinearlyUnstable S p eq.1 eq.2
+
+/-- Formula-level proof of the minimal raw instability branch when the critical
+threshold is the actual spectral infimum. -/
+lemma LinearInstabilityMinimalRaw_paperCriticalSensitivity
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S) :
+    LinearInstabilityMinimalRaw p S
+      (fun u => paperCriticalSensitivity S p u (p.ν / p.μ * u ^ p.γ)) := by
+  intro _ha _hb uStar huStar
+  dsimp
+  intro hχ
+  exact minimalEquilibrium_linearlyUnstable_of_paperCriticalSensitivity_lt_chi_neumann
+    S p H huStar (by
+      simpa [minimalEquilibrium] using hχ)
 
 /-- Raw minimal instability obstruction: an arbitrary critical-threshold
 function can make the threshold hypothesis true even though the concrete
