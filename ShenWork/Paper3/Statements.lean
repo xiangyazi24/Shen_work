@@ -5396,6 +5396,38 @@ lemma not_NeumannResolventGradientBoundExistsRaw_false_bound :
   rintro ⟨M0, hM0_pos, hbound⟩
   exact hbound 1 1 (fun _ : Unit => (0 : ℝ)) (by norm_num) (by norm_num)
 
+/-- Raw version of `Paper3Constants.uniformPersistencePart1`, with no
+constants package. -/
+def UniformPersistencePart1Raw
+    (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  1 ≤ p.m →
+    ∀ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v →
+        ∃ δu > 0, EventuallyLowerBound D u δu ∧
+          EventuallyLowerBound D v (p.ν / p.μ * δu ^ p.γ)
+
+/-- Raw obstruction for `uniformPersistencePart1`: on the fake lower-envelope
+domain the positive constant solution exists, but `infValue` is identically
+zero, so no positive eventual lower bound can hold. -/
+lemma not_UniformPersistencePart1Raw_no_lower_envelope :
+    ¬ UniformPersistencePart1Raw theorem21Part1NoLowerEnvelopeDomain
+      theorem21Part1CounterParams := by
+  intro h
+  let D := theorem21Part1NoLowerEnvelopeDomain
+  let p := theorem21Part1CounterParams
+  have hm : 1 ≤ p.m := by
+    norm_num [p, theorem21Part1CounterParams]
+  rcases h hm (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
+      theorem21Part1Counter_positiveGlobalBounded with
+    ⟨δu, hδu_pos, hlowerU, _hlowerV⟩
+  rcases hlowerU with ⟨_hδu_pos', hlower_eventually⟩
+  have heventually_nonpos :
+      ∀ᶠ t : ℝ in atTop, δu ≤ (0 : ℝ) := by
+    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlower_eventually
+  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
+  have hnonpos : δu ≤ 0 := hT T le_rfl
+  linarith
+
 /-- The abstract `StabilityNorms` package cannot be instantiated on an arbitrary
 `BoundedDomainData`.  On the fake lower-envelope domain the PDE admits the
 positive constant solution `u = v = 1`, but `supNorm` is identically `1`, so the
