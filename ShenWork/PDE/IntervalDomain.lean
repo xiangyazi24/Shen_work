@@ -2284,6 +2284,20 @@ theorem intervalSemigroupOperator_signed_interval_bound
       _ ≤ b * 1 := mul_le_mul_of_nonneg_left hmass_le hb
       _ = b := by ring
 
+/-- Bounded-input version of the signed sub-Markov interval bound. -/
+theorem intervalSemigroupOperator_signed_interval_bound_bounded
+    {L t Mf a b : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf)
+    (ha : a ≤ 0) (hb : 0 ≤ b)
+    (hf_ge : ∀ y, a ≤ f y) (hf_le : ∀ y, f y ≤ b) (x : ℝ) :
+    a ≤ intervalSemigroupOperator L t f x ∧
+      intervalSemigroupOperator L t f x ≤ b :=
+  intervalSemigroupOperator_signed_interval_bound ht
+    (intervalMeasure_integrable_of_abs_bound hf_meas hf_bound)
+    ha hb hf_ge hf_le x
+
 /-- Sharp sub-Markov interval bound for nonnegative inputs bounded above by
 `M`. -/
 theorem intervalSemigroupOperator_submarkov_interval_bound
