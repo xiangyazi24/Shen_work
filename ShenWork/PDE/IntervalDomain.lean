@@ -2538,6 +2538,21 @@ theorem intervalSemigroupOperator_interval_bound
     simpa [abs_of_nonneg (hf_nonneg y)] using hf_le y
   exact le_trans (le_abs_self _) (intervalSemigroupOperator_Linfty_bound ht hM hf_abs x)
 
+/-- Bounded-input version of the interval helper operator preserving
+pointwise bounds `0 ≤ f ≤ M`. -/
+theorem intervalSemigroupOperator_interval_bound_bounded
+    {L t Mf M : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    {f : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hf_nonneg : ∀ y, 0 ≤ f y)
+    (hf_le : ∀ y, f y ≤ M) (x : ℝ) :
+    0 ≤ intervalSemigroupOperator L t f x ∧
+      intervalSemigroupOperator L t f x ≤ M := by
+  have _ : Integrable f (intervalMeasure L) :=
+    intervalMeasure_integrable_of_abs_bound hf_meas hf_bound
+  exact intervalSemigroupOperator_interval_bound ht hM hf_nonneg hf_le x
+
 /-- Constant inputs are bounded by the same nonnegative constant under the
 interval helper operator. -/
 theorem intervalSemigroupOperator_const_nonneg_le
