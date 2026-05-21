@@ -2624,6 +2624,23 @@ theorem intervalSemigroupOperator_contraction_bounded
     (intervalMeasure_integrable_of_abs_bound hg_meas hg_bound)
     hfg x
 
+/-- Bounded-input symmetric `L∞` contraction interval for the difference of
+two interval helper outputs. -/
+theorem intervalSemigroupOperator_contraction_symmetric_interval_bound_bounded
+    {L t Mf Mg M : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    {f g : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hg_meas : AEStronglyMeasurable g (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf) (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hfg : ∀ y, |f y - g y| ≤ M) (x : ℝ) :
+    -M ≤ intervalSemigroupOperator L t f x -
+        intervalSemigroupOperator L t g x ∧
+      intervalSemigroupOperator L t f x -
+        intervalSemigroupOperator L t g x ≤ M :=
+  abs_le.mp
+    (intervalSemigroupOperator_contraction_bounded
+      ht hM hf_meas hg_meas hf_bound hg_bound hfg x)
+
 end ShenWork.IntervalDomain
 
 end
