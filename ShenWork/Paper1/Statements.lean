@@ -1769,6 +1769,12 @@ theorem ExponentialWeight.deriv_log_weight_abs_le
   rw [psi.deriv_log_weight_eq x, abs_div, abs_of_pos (psi.pos x)]
   exact div_le_of_le_mul₀ (psi.pos x).le hk (hk_bound x)
 
+def ExponentialWeight.WeightRatioBound : Prop :=
+  ∀ (psi : ExponentialWeight) (k : ℝ), 0 ≤ k →
+    (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+      ∀ x y : ℝ,
+        psi.weight x ≤ psi.weight y * Real.exp (k * |x - y|)
+
 theorem Psi_deriv_abs_rpow_le_Psi_rpow
     {u : ℝ → ℝ} {l mu pExp : ℝ}
     (hl : 0 < l) (hmu : 0 < mu) (hpExp : 0 < pExp)
