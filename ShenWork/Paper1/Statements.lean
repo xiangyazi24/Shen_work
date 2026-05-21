@@ -9,6 +9,8 @@
 import ShenWork.PDE.LeibnizRule
 import ShenWork.PDE.HeatSemigroup
 import Mathlib.Analysis.Convex.Basic
+import Mathlib.Analysis.Convex.Integral
+import Mathlib.Analysis.Convex.SpecificFunctions.Basic
 
 open Filter Topology MeasureTheory
 
@@ -1781,6 +1783,17 @@ theorem Psi_deriv_abs_rpow_le_Psi_rpow
         Real.rpow_le_rpow (abs_nonneg _) hbound hpExp.le
     _ = (Real.sqrt l) ^ pExp * (Psi u l mu x) ^ pExp :=
         Real.mul_rpow hsqrt_nonneg hPsi_nonneg
+
+def Lemma_2_5_JensenStep : Prop :=
+  ∀ (u : ℝ → ℝ) (l mu pExp : ℝ),
+    0 < l → 0 < mu → 1 ≤ pExp →
+      IsCUnifBdd u → (∀ y, 0 ≤ u y) →
+        ∀ x : ℝ,
+          (Psi u l mu x) ^ pExp ≤
+            (mu / (2 * Real.sqrt l)) ^ pExp *
+              (2 / Real.sqrt l) ^ (pExp - 1) *
+                ∫ y : ℝ,
+                  Real.exp (-Real.sqrt l * |x - y|) * (u y) ^ pExp
 
 def frozenElliptic (p : CMParams) (u : ℝ → ℝ) : ℝ → ℝ :=
   fun x => Psi (fun y => (u y) ^ p.γ) 1 1 x
