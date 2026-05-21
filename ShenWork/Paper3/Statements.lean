@@ -6062,6 +6062,23 @@ lemma Theorem_2_2_linear_stability_chi_nonpos_branch_proved :
     exact minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero_neumann
       S p H hχ ha huStar
 
+lemma Theorem_2_2_linear_stability_chi_nonpos_unitInterval
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) :
+    (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2) := by
+  refine ⟨?_, ?_⟩
+  · intro ha hb
+    exact unitInterval_positiveEquilibrium_linearlyStable_of_chi_nonpos
+      p hχ ha hb
+  · intro ha _hb uStar huStar
+    exact unitInterval_minimalEquilibrium_linearlyStable_of_chi_nonpos
+      p hχ ha huStar
+
 /-- Direct spectral-threshold branch of Paper3 Theorem 2.2.  The threshold is
 the paper's explicit nonzero-mode infimum `paperCriticalSensitivity`; this
 closes the linear stable/unstable part without using
