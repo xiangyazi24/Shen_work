@@ -50,6 +50,21 @@ lemma positiveEquilibrium_fst_rpow_alpha
   field_simp [hα_ne]
   rw [Real.rpow_one]
 
+lemma positiveEquilibrium_fst_eq_one
+    (p : CM2Params) (hab : 0 < p.a ∧ 0 < p.b) (hab_eq : p.a = p.b) :
+    (positiveEquilibrium p hab).1 = 1 := by
+  change (p.a / p.b) ^ (1 / p.α) = 1
+  rw [hab_eq, div_self (ne_of_gt hab.2)]
+  exact Real.one_rpow _
+
+lemma positiveEquilibrium_snd_eq_nu_div_mu
+    (p : CM2Params) (hab : 0 < p.a ∧ 0 < p.b)
+    (hab_eq : p.a = p.b) (hγ : p.γ = 1) :
+    (positiveEquilibrium p hab).2 = p.ν / p.μ := by
+  change p.ν / p.μ * ((p.a / p.b) ^ (1 / p.α)) ^ p.γ = p.ν / p.μ
+  rw [hab_eq, div_self (ne_of_gt hab.2), hγ]
+  simp
+
 lemma positiveEquilibrium_logistic_zero
     (p : CM2Params) (hab : 0 < p.a ∧ 0 < p.b) :
     p.a - p.b * (positiveEquilibrium p hab).1 ^ p.α = 0 := by
@@ -75,6 +90,12 @@ lemma positiveEquilibrium_elliptic_relation
 lemma minimalEquilibrium_fst_eq (p : CM2Params) (uStar : ℝ) :
     (minimalEquilibrium p uStar).1 = uStar := by
   rfl
+
+lemma minimalEquilibrium_snd_eq_nu_div_mu_mul_uStar
+    (p : CM2Params) (uStar : ℝ) (hγ : p.γ = 1) :
+    (minimalEquilibrium p uStar).2 = p.ν / p.μ * uStar := by
+  change p.ν / p.μ * uStar ^ p.γ = p.ν / p.μ * uStar
+  rw [hγ, Real.rpow_one]
 
 lemma minimalEquilibrium_snd_pos
     (p : CM2Params) {uStar : ℝ} (huStar : 0 < uStar) :
@@ -7963,6 +7984,100 @@ lemma Theorem_2_5_linear_stability_first_mode_branch_proved :
     Theorem_2_5_linear_stability_first_mode_branch := by
   intro S p H _ha _hb _hm hβ uStar huStar uBar vLower hfirst hcond
   exact hcond.linearlyStable_of_firstNonzero_lower S p H hβ huStar hfirst
+
+/-- Formula-level negative-sensitivity bridge for Paper3 Theorem 2.3 at the
+positive equilibrium.  The spectral stability is direct from `χ₀ ≤ 0`; the
+mass-constrained local exponential conclusion is an explicit sectorial-style
+input, rather than a `Paper3Constants` package field. -/
+def Theorem_2_3_negative_sensitivity_convergence_formula_branch : Prop :=
+  ∀ (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D),
+    HasNeumannSpectrum S → p.χ₀ ≤ 0 →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        (LinearlyStable S p eq.1 eq.2 →
+          MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2) →
+          LinearlyStable S p eq.1 eq.2 ∧
+          MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2
+
+lemma Theorem_2_3_negative_sensitivity_convergence_formula_branch_proved :
+    Theorem_2_3_negative_sensitivity_convergence_formula_branch := by
+  intro D S p N H hχ ha hb
+  dsimp
+  intro hsectorial
+  have hstable :
+      LinearlyStable S p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    positiveEquilibrium_linearlyStable_of_chi_nonpos_neumann S p H hχ ha hb
+  exact ⟨hstable, hsectorial hstable⟩
+
+/-- Formula-level full stability bridge for Paper3 Theorem 2.4.  The linear
+part uses the explicit strong thresholds and `paperCriticalSensitivity`; the
+local exponential part is supplied explicitly as a sectorial-style consequence
+of the resulting linear stability. -/
+def Theorem_2_4_full_stability_formula_branch : Prop :=
+  ∀ (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D),
+    HasNeumannSpectrum S →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        max
+            (max (chiStrong1Formula p eq.1 eq.2)
+              (chiStrong2Formula p eq.1))
+            (max (chiStrong3Formula p M0 eq.1 eq.2)
+              (chiStrong4Formula p M0 eq.1)) ≤
+          paperCriticalSensitivity S p eq.1 eq.2 →
+          NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+            (LinearlyStable S p eq.1 eq.2 →
+              MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2) →
+              LinearlyStable S p eq.1 eq.2 ∧
+              MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2
+
+lemma Theorem_2_4_full_stability_formula_branch_proved :
+    Theorem_2_4_full_stability_formula_branch := by
+  intro D S p N H ha hb M0
+  dsimp
+  intro hcritical hcond hsectorial
+  have hstable :=
+    hcond.linearlyStable_of_max_threshold_le_critical S p H ha hb hcritical
+  exact ⟨hstable, hsectorial hstable⟩
+
+/-- Formula-level full stability bridge for Paper3 Theorem 2.5.  This minimal
+model version uses the explicit `chiBeta` threshold and
+`paperCriticalSensitivity`; the local exponential part is supplied explicitly
+as a sectorial-style consequence of linear stability. -/
+def Theorem_2_5_full_stability_formula_branch : Prop :=
+  ∀ (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D),
+    HasNeumannSpectrum S →
+      p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+        ∀ uStar > 0, ∀ uBar vLower : ℝ,
+          chiBeta p ≤
+            paperCriticalSensitivity S p
+              (minimalEquilibrium p uStar).1
+              (minimalEquilibrium p uStar).2 →
+            MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+              (LinearlyStable S p
+                  (minimalEquilibrium p uStar).1
+                  (minimalEquilibrium p uStar).2 →
+                MassConstrainedLocallyExponentiallyStableFromSup D p N
+                  (minimalEquilibrium p uStar).1
+                  (minimalEquilibrium p uStar).2) →
+                LinearlyStable S p
+                  (minimalEquilibrium p uStar).1
+                  (minimalEquilibrium p uStar).2 ∧
+                MassConstrainedLocallyExponentiallyStableFromSup D p N
+                  (minimalEquilibrium p uStar).1
+                  (minimalEquilibrium p uStar).2
+
+lemma Theorem_2_5_full_stability_formula_branch_proved :
+    Theorem_2_5_full_stability_formula_branch := by
+  intro D S p N H _ha _hb _hm hβ uStar huStar uBar vLower
+    hcritical hcond hsectorial
+  have hstable :=
+    hcond.linearlyStable_of_chiBeta_le_critical S p H hβ huStar hcritical
+  exact ⟨hstable, hsectorial hstable⟩
 
 lemma Theorem_2_2.nonminimal_stability_conclusion_of_Lemma_A_7
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
