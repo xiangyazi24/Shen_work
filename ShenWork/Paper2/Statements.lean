@@ -391,6 +391,59 @@ projections from `SemigroupEstimateData`; the proofs call the concrete kernel
 estimates for the restricted reflected heat operator on `[0,L]`.
 -/
 
+/-- The restricted interval helper kernel has mass at most one. -/
+theorem intervalSemigroupOperator_paper2_kernel_mass_le_one
+    {L t : ℝ} (ht : 0 < t) :
+    ∀ x : ℝ,
+      ∫ y, ShenWork.IntervalDomain.normalizedZerothReflectionKernel L t x y
+        ∂ ShenWork.IntervalDomain.intervalMeasure L ≤ 1 := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_intervalIntegral_le_one
+    ht L x
+
+/-- The restricted interval helper kernel has nonnegative mass. -/
+theorem intervalSemigroupOperator_paper2_kernel_mass_nonneg
+    {L t : ℝ} (ht : 0 < t) :
+    ∀ x : ℝ,
+      0 ≤
+        ∫ y, ShenWork.IntervalDomain.normalizedZerothReflectionKernel L t x y
+          ∂ ShenWork.IntervalDomain.intervalMeasure L := by
+  intro x
+  exact ShenWork.IntervalDomain.normalizedZerothReflectionKernel_intervalIntegral_nonneg
+    ht L x
+
+/-- Concrete interval semigroup `L¹ → L∞` smoothing for interval-integrable
+inputs. -/
+theorem intervalSemigroupOperator_paper2_L1_Linfty
+    {L t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ}
+    (hf_int :
+      MeasureTheory.Integrable f
+        (ShenWork.IntervalDomain.intervalMeasure L)) :
+    ∀ x : ℝ,
+      ‖ShenWork.IntervalDomain.intervalSemigroupOperator L t f x‖ ≤
+        (1 / Real.sqrt (4 * Real.pi * t)) *
+          ∫ y, ‖f y‖ ∂ ShenWork.IntervalDomain.intervalMeasure L := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_L1_Linfty
+    ht hf_int x
+
+/-- Absolute-value form of the concrete interval semigroup `L¹ → L∞`
+smoothing estimate. -/
+theorem intervalSemigroupOperator_paper2_L1_Linfty_abs
+    {L t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ}
+    (hf_int :
+      MeasureTheory.Integrable f
+        (ShenWork.IntervalDomain.intervalMeasure L)) :
+    ∀ x : ℝ,
+      |ShenWork.IntervalDomain.intervalSemigroupOperator L t f x| ≤
+        (1 / Real.sqrt (4 * Real.pi * t)) *
+          ∫ y, |f y| ∂ ShenWork.IntervalDomain.intervalMeasure L := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_L1_Linfty_abs
+    ht hf_int x
+
 /-- Concrete interval semigroup trap invariance for bounded nonnegative
 inputs. -/
 theorem intervalSemigroupOperator_paper2_trap_bound
