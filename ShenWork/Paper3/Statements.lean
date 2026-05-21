@@ -3909,6 +3909,21 @@ def SupControlsXpSigmaDistance
       SupCloseToConstant D u₀ uStar delta →
         N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤ eps
 
+/-- A pointwise comparison with the exposed `supNorm` is enough to supply the
+sup-to-`X^σ_p` bridge. -/
+theorem SupControlsXpSigmaDistance.of_xpSigma_le_supNorm
+    {D : BoundedDomainData} {N : StabilityNorms D}
+    {sigma pNorm uStar : ℝ}
+    (hxp :
+      ∀ u₀ : D.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤
+          D.supNorm (fun x => u₀ x - uStar)) :
+    SupControlsXpSigmaDistance D N sigma pNorm uStar := by
+  intro eps heps
+  refine ⟨eps, heps, ?_⟩
+  intro u₀ hclose
+  exact le_trans (hxp u₀) (le_of_lt hclose)
+
 /-- Explicit small-data Cauchy existence input in the mass-constrained
 neighborhood used by the local stability statement. -/
 def MassConstrainedSmallDataGlobalExistence
@@ -3947,6 +3962,29 @@ theorem SectorialLocalExponentialRaw.massConstrained_from_sup_control
     ⟨u, v, hglobal, htrace⟩
   refine ⟨u, v, hglobal, htrace, ?_⟩
   exact hdecay u₀ hu₀ (hdist u₀ hclose) u v hglobal htrace
+
+/-- Variant of `massConstrained_from_sup_control` where the norm-control input
+is the more primitive comparison `X^σ_p ≤ supNorm`. -/
+theorem SectorialLocalExponentialRaw.massConstrained_from_xpSigma_le_supNorm
+    {D : BoundedDomainData} {S : SpectralData} {p : CM2Params}
+    {N : StabilityNorms D} {sigma pNorm uStar vStar : ℝ}
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hstable : LinearlyStable S p uStar vStar)
+    (hxp :
+      ∀ u₀ : D.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤
+          D.supNorm (fun x => u₀ x - uStar))
+    (hexist :
+      ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence D p uStar delta) :
+    MassConstrainedLocallyExponentiallyStableFromSup D p N uStar vStar :=
+  hraw.massConstrained_from_sup_control
+    hsigma_low hsigma_high hpNorm hstable
+    (SupControlsXpSigmaDistance.of_xpSigma_le_supNorm hxp)
+    hexist
 
 def sectorialLocalExponentialCounterSpectralData : SpectralData where
   eigenvalue := fun n => if n = 0 then 0 else 1
