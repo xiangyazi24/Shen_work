@@ -1297,31 +1297,6 @@ def PsiDerivativeFormula (u : ℝ → ℝ) (l mu : ℝ) : Prop :=
         + ((mu / 2) * Real.exp (Real.sqrt l * x) *
           (∫ y in Set.Ioi x, Real.exp (-Real.sqrt l * y) * u y))
 
-def Lemma_2_2 : Prop :=
-  ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
-    (∀ x,
-      Psi u l mu x =
-        mu / (2 * Real.sqrt l) *
-          ∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * u y) ∧
-    PsiDerivativeFormula u l mu
-
-theorem Lemma_2_2.kernel_formula
-    (h : Lemma_2_2)
-    {u : ℝ → ℝ} {l mu : ℝ}
-    (hl : 0 < l) (hmu : 0 < mu) (hu : IsCUnifBdd u) :
-    ∀ x,
-      Psi u l mu x =
-        mu / (2 * Real.sqrt l) *
-          ∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * u y :=
-  (h u l mu hl hmu hu).1
-
-theorem Lemma_2_2.derivative_formula
-    (h : Lemma_2_2)
-    {u : ℝ → ℝ} {l mu : ℝ}
-    (hl : 0 < l) (hmu : 0 < mu) (hu : IsCUnifBdd u) :
-    PsiDerivativeFormula u l mu :=
-  (h u l mu hl hmu hu).2
-
 theorem Psi_kernel_integrable_of_isCUnifBdd
     {u : ℝ → ℝ} {l : ℝ}
     (hl : 0 < l) (hu : IsCUnifBdd u) (x : ℝ) :
@@ -1342,26 +1317,11 @@ theorem Lemma_2_2_kernel_formula_direct
   intro x
   rfl
 
-theorem Lemma_2_2_kernel_formula_proved :
-    ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
-      ∀ x,
-        Psi u l mu x =
-          mu / (2 * Real.sqrt l) *
-            ∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * u y := by
-  intro u l mu hl hmu hu
-  exact Lemma_2_2_kernel_formula_direct hl hmu hu
-
 theorem Lemma_2_2_derivative_formula_direct
     {u : ℝ → ℝ} {l mu : ℝ} (hl : 0 < l) (hmu : 0 < mu)
     (hu : IsCUnifBdd u) :
     PsiDerivativeFormula u l mu := by
   exact Psi_derivative_formula_general hl hmu hu
-
-theorem Lemma_2_2_derivative_formula_proved :
-    ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
-      PsiDerivativeFormula u l mu := by
-  intro u l mu hl hmu hu
-  exact Lemma_2_2_derivative_formula_direct hl hmu hu
 
 theorem Lemma_2_2_direct
     {u : ℝ → ℝ} {l mu : ℝ}
@@ -1374,23 +1334,6 @@ theorem Lemma_2_2_direct
   ⟨Lemma_2_2_kernel_formula_direct hl hmu hu,
     Lemma_2_2_derivative_formula_direct hl hmu hu⟩
 
-theorem Lemma_2_2_proved : Lemma_2_2 := by
-  intro u l mu hl hmu hu
-  exact Lemma_2_2_direct hl hmu hu
-
-def Lemma_2_3 : Prop :=
-  ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
-    (∀ x, 0 ≤ u x) →
-      ∀ x, |deriv (fun z => Psi u l mu z) x| ≤ Real.sqrt l * Psi u l mu x
-
-theorem Lemma_2_3.derivative_bound
-    (h : Lemma_2_3)
-    {u : ℝ → ℝ} {l mu : ℝ}
-    (hl : 0 < l) (hmu : 0 < mu) (hu : IsCUnifBdd u)
-    (hu_nonneg : ∀ x, 0 ≤ u x) :
-    ∀ x, |deriv (fun z => Psi u l mu z) x| ≤ Real.sqrt l * Psi u l mu x :=
-  h u l mu hl hmu hu hu_nonneg
-
 theorem Lemma_2_3_direct
     {u : ℝ → ℝ} {l mu : ℝ}
     (hl : 0 < l) (hmu : 0 < mu) (hu : IsCUnifBdd u)
@@ -1398,125 +1341,6 @@ theorem Lemma_2_3_direct
     ∀ x, |deriv (fun z => Psi u l mu z) x| ≤ Real.sqrt l * Psi u l mu x := by
   intro x
   exact Psi_deriv_abs_le_general hl hmu hu hu_nonneg x
-
-theorem Lemma_2_3_proved : Lemma_2_3 := by
-  intro u l mu hl hmu hu hu_nonneg
-  exact Lemma_2_3_direct hl hmu hu hu_nonneg
-
-theorem Lemma_2_3_of_Lemma_2_2 (h22 : Lemma_2_2) : Lemma_2_3 := by
-  intro u l mu hl hmu hu hu_nonneg x
-  let a : ℝ := Real.sqrt l
-  have ha : 0 < a := by
-    dsimp [a]
-    exact Real.sqrt_pos.mpr hl
-  let A : ℝ :=
-    Real.exp (-a * x) * ∫ y in Set.Iic x, Real.exp (a * y) * u y
-  let B : ℝ :=
-    Real.exp (a * x) * ∫ y in Set.Ioi x, Real.exp (-a * y) * u y
-  have hA_nonneg : 0 ≤ A := by
-    dsimp [A]
-    exact mul_nonneg (Real.exp_nonneg _)
-      (MeasureTheory.integral_nonneg
-        (fun y => mul_nonneg (Real.exp_nonneg _) (hu_nonneg y)))
-  have hB_nonneg : 0 ≤ B := by
-    dsimp [B]
-    exact mul_nonneg (Real.exp_nonneg _)
-      (MeasureTheory.integral_nonneg
-        (fun y => mul_nonneg (Real.exp_nonneg _) (hu_nonneg y)))
-  have hder :
-      deriv (fun z => Psi u l mu z) x =
-        -(mu / 2) * A + (mu / 2) * B := by
-    have h := (h22.derivative_formula hl hmu hu) x
-    simpa [A, B, a, mul_assoc, mul_left_comm, mul_comm] using h
-  have habs :
-      |deriv (fun z => Psi u l mu z) x| ≤ (mu / 2) * (A + B) := by
-    rw [hder]
-    have hmu2_nonneg : 0 ≤ mu / 2 := by positivity
-    have htermA : |-(mu / 2) * A| = (mu / 2) * A := by
-      rw [show -(mu / 2) * A = -((mu / 2) * A) by ring]
-      rw [abs_neg, abs_of_nonneg (mul_nonneg hmu2_nonneg hA_nonneg)]
-    have htermB : |(mu / 2) * B| = (mu / 2) * B := by
-      rw [abs_of_nonneg (mul_nonneg hmu2_nonneg hB_nonneg)]
-    calc
-      |-(mu / 2) * A + (mu / 2) * B|
-          ≤ |-(mu / 2) * A| + |(mu / 2) * B| := abs_add_le _ _
-      _ = (mu / 2) * A + (mu / 2) * B := by
-            rw [htermA, htermB]
-      _ = (mu / 2) * (A + B) := by ring
-  have hiu :
-      Integrable
-        (fun y : ℝ => Real.exp (-a * |x - y|) * u y) := by
-    dsimp [a]
-    simpa using Psi_kernel_integrable_of_isCUnifBdd hl hu x
-  have hkernel_split :
-      (∫ y : ℝ, Real.exp (-a * |x - y|) * u y) = A + B := by
-    have hsplit :=
-      MeasureTheory.integral_add_compl (s := Set.Iic x) measurableSet_Iic hiu
-    simp only [Set.compl_Iic] at hsplit
-    have hleft :
-        ∫ y in Set.Iic x, Real.exp (-a * |x - y|) * u y = A := by
-      have hleft_eq :
-          Set.EqOn
-            (fun y : ℝ => Real.exp (-a * |x - y|) * u y)
-            (fun y : ℝ => Real.exp (-a * x) * (Real.exp (a * y) * u y))
-            (Set.Iic x) := by
-        intro y hy
-        have hyx : y ≤ x := by simpa using hy
-        change
-          Real.exp (-a * |x - y|) * u y =
-            Real.exp (-a * x) * (Real.exp (a * y) * u y)
-        rw [abs_of_nonneg (sub_nonneg.mpr hyx)]
-        rw [show -a * (x - y) = -a * x + a * y by ring, Real.exp_add]
-        ring_nf
-      calc
-        ∫ y in Set.Iic x, Real.exp (-a * |x - y|) * u y
-            = ∫ y in Set.Iic x,
-                Real.exp (-a * x) * (Real.exp (a * y) * u y) := by
-              exact MeasureTheory.setIntegral_congr_fun measurableSet_Iic hleft_eq
-        _ = Real.exp (-a * x) * ∫ y in Set.Iic x, Real.exp (a * y) * u y := by
-              exact MeasureTheory.integral_const_mul _ _
-        _ = A := by rfl
-    have hright :
-        ∫ y in Set.Ioi x, Real.exp (-a * |x - y|) * u y = B := by
-      have hright_eq :
-          Set.EqOn
-            (fun y : ℝ => Real.exp (-a * |x - y|) * u y)
-            (fun y : ℝ => Real.exp (a * x) * (Real.exp (-a * y) * u y))
-            (Set.Ioi x) := by
-        intro y hy
-        have hxy : x < y := by simpa using hy
-        change
-          Real.exp (-a * |x - y|) * u y =
-            Real.exp (a * x) * (Real.exp (-a * y) * u y)
-        rw [abs_of_nonpos (sub_nonpos.mpr (le_of_lt hxy))]
-        rw [show -a * -(x - y) = a * x + -a * y by ring, Real.exp_add]
-        ring_nf
-      calc
-        ∫ y in Set.Ioi x, Real.exp (-a * |x - y|) * u y
-            = ∫ y in Set.Ioi x,
-                Real.exp (a * x) * (Real.exp (-a * y) * u y) := by
-              exact MeasureTheory.setIntegral_congr_fun measurableSet_Ioi hright_eq
-        _ = Real.exp (a * x) * ∫ y in Set.Ioi x, Real.exp (-a * y) * u y := by
-              exact MeasureTheory.integral_const_mul _ _
-        _ = B := by rfl
-    calc
-      ∫ y : ℝ, Real.exp (-a * |x - y|) * u y
-          = (∫ y in Set.Iic x, Real.exp (-a * |x - y|) * u y) +
-              (∫ y in Set.Ioi x, Real.exp (-a * |x - y|) * u y) := hsplit.symm
-      _ = A + B := by rw [hleft, hright]
-  have hpsi :
-      Real.sqrt l * Psi u l mu x = (mu / 2) * (A + B) := by
-    dsimp [a] at hkernel_split
-    unfold Psi
-    rw [hkernel_split]
-    have hsqrt_pos : 0 < Real.sqrt l := Real.sqrt_pos.mpr hl
-    field_simp [ne_of_gt hsqrt_pos]
-  exact le_trans habs (le_of_eq hpsi.symm)
-
-def Lemma_2_3_unit : Prop :=
-  ∀ u : ℝ → ℝ, IsCUnifBdd u →
-    (∀ x, 0 ≤ u x) →
-      ∀ x, |deriv (Psi u 1 1) x| ≤ Psi u 1 1 x
 
 theorem Lemma_2_3_unit_direct
     {u : ℝ → ℝ} (hu : IsCUnifBdd u)
@@ -1532,10 +1356,6 @@ theorem Lemma_2_3_unit_direct
       Integrable (fun y => Real.exp (-|x - y|) * u y) := by
     simpa using hint_raw
   exact Psi_deriv_abs_le' hu_nonneg x hint hu.1.aestronglyMeasurable
-
-theorem Lemma_2_3_unit_proved : Lemma_2_3_unit := by
-  intro u hu hu_nonneg
-  exact Lemma_2_3_unit_direct hu hu_nonneg
 
 theorem Psi_one_mu_eq (u : ℝ → ℝ) (mu x : ℝ) :
     Psi u 1 mu x = mu * Psi u 1 1 x := by
@@ -1558,20 +1378,6 @@ theorem Lemma_2_3_unit_mu_direct
   exact mul_le_mul_of_nonneg_left
     (Lemma_2_3_unit_direct hu hu_nonneg x) hmu.le
 
-theorem Lemma_2_3_unit_mu_proved :
-    ∀ u : ℝ → ℝ, ∀ mu : ℝ, 0 < mu → IsCUnifBdd u →
-      (∀ x, 0 ≤ u x) →
-        ∀ x, |deriv (Psi u 1 mu) x| ≤ Psi u 1 mu x := by
-  intro u mu hmu hu hu_nonneg
-  exact Lemma_2_3_unit_mu_direct hmu hu hu_nonneg
-
-def Lemma_2_4 : Prop :=
-  ∀ M k : ℝ, 1 ≤ M → 0 < k → k < 1 →
-    ∀ u : ℝ → ℝ, IsCUnifBdd u →
-      (∀ x, 0 ≤ u x) →
-      (∀ x, u x ≤ min M (Real.exp (-k * x))) →
-        ∀ x, Psi u 1 1 x ≤ min M (1 / (1 - k ^ 2) * Real.exp (-k * x))
-
 theorem Lemma_2_4_direct
     {M k : ℝ} (hM : 1 ≤ M) (hk : 0 < k) (hk1 : k < 1)
     {u : ℝ → ℝ} (hu : IsCUnifBdd u)
@@ -1589,10 +1395,6 @@ theorem Lemma_2_4_direct
   exact
     Psi_le_min_const_exp_of_nonneg_le hM_nonneg hk hk1
       hu.1 hu_nonneg huM huexp x
-
-theorem Lemma_2_4_proved : Lemma_2_4 := by
-  intro M k hM hk hk1 u hu hu_nonneg hu_bound
-  exact Lemma_2_4_direct hM hk hk1 hu hu_nonneg hu_bound
 
 structure ExponentialWeight where
   weight : ℝ → ℝ

@@ -1553,10 +1553,6 @@ theorem Lemma_2_4_zero_data (D : BoundedDomainData) (p : CM2Params) :
   · intro sigma q t phi
     norm_num [zeroSemigroupEstimateData]
 
-def Lemma_2_5 : Prop :=
-  ∀ beta v : ℝ, 0 < beta → 0 < v →
-    beta * v / (1 + v) ^ (1 + beta) ≤ Psi_beta beta
-
 lemma Psi_beta_pos {beta : ℝ} (hbeta : 0 < beta) :
     0 < Psi_beta beta := by
   unfold Psi_beta
@@ -1992,10 +1988,6 @@ theorem Lemma_2_5_direct
     Real.rpow_pos_of_pos hvden_pos _
   exact (div_le_iff₀ hden_rpow_pos).mpr hmain
 
-theorem Lemma_2_5_proved : Lemma_2_5 := by
-  intro beta v hbeta hv
-  exact Lemma_2_5_direct hbeta hv
-
 /-- Direct pointwise form of Paper2 Lemma 2.5, using the proved sharp
 constant `Psi_beta`. -/
 theorem Lemma_2_5_pointwise_bound
@@ -2055,7 +2047,9 @@ theorem Lemma_2_5_full_statement :
     StrictMonoOn Psi_beta (Set.Ioi (0 : ℝ)) ∧
     Tendsto Psi_beta (𝓝[>] (0 : ℝ)) (𝓝 0) ∧
     Tendsto Psi_beta atTop (𝓝 (Real.exp (-1))) := by
-  exact ⟨Lemma_2_5_proved, fun beta hbeta => Lemma_2_5_attained_at_inv hbeta,
+  exact ⟨
+    (fun beta v hbeta hv => Lemma_2_5_direct hbeta hv),
+    fun beta hbeta => Lemma_2_5_attained_at_inv hbeta,
     Psi_beta_strictMonoOn_Ioi, Psi_beta_tendsto_atRight_zero,
     Psi_beta_tendsto_atTop⟩
 
@@ -2163,7 +2157,8 @@ the Lemma 2.5 inequality to positivity, the sharp constant characterization,
 strict monotonicity of the sharp constants, and the two endpoint limits of
 `Psi_beta`. -/
 theorem Lemma_2_5_sharp_monotone_range_package :
-    Lemma_2_5 ∧
+    (∀ beta v : ℝ, 0 < beta → 0 < v →
+      beta * v / (1 + v) ^ (1 + beta) ≤ Psi_beta beta) ∧
     (∀ beta : ℝ, 0 < beta →
       (0 < Psi_beta beta ∧ Psi_beta beta < Real.exp (-1)) ∧
       (∀ C : ℝ,
@@ -2174,7 +2169,8 @@ theorem Lemma_2_5_sharp_monotone_range_package :
     MonotoneOn Psi_beta (Set.Ici (0 : ℝ)) ∧
     Tendsto Psi_beta (𝓝[>] (0 : ℝ)) (𝓝 0) ∧
     Tendsto Psi_beta atTop (𝓝 (Real.exp (-1))) := by
-  refine ⟨Lemma_2_5_proved, ?_, Psi_beta_strictMonoOn_Ioi,
+  refine ⟨(fun beta v hbeta hv => Lemma_2_5_direct hbeta hv), ?_,
+    Psi_beta_strictMonoOn_Ioi,
     Psi_beta_monotoneOn_Ici, Psi_beta_tendsto_atRight_zero,
     Psi_beta_tendsto_atTop⟩
   intro beta hbeta
