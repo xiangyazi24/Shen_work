@@ -1292,26 +1292,6 @@ def Lemma_2_1 (D : BoundedDomainData) (p : CM2Params)
       S.lpNorm 2 (fun x => S.semigroup t u x - u x) ≤
         C * t ^ sigma * S.fractionalNorm sigma 2 u)
 
-lemma Lemma_2_1.fractional_decay
-    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
-    (h : Lemma_2_1 D p S)
-    {sigma q delta : ℝ}
-    (hsigma : 0 ≤ sigma) (hq : 1 ≤ q)
-    (hdelta_pos : 0 < delta) (hdelta_mu : delta < p.μ) :
-    ∃ C > 0, ∀ t > 0, ∀ u : D.Point → ℝ,
-      S.fractionalNorm sigma q (S.semigroup t u) ≤
-        C * t ^ (-sigma) * Real.exp (-delta * t) * S.lpNorm q u :=
-  h.1 sigma q delta hsigma hq hdelta_pos hdelta_mu
-
-lemma Lemma_2_1.semigroup_continuity
-    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
-    (h : Lemma_2_1 D p S)
-    {sigma : ℝ} (hsigma_pos : 0 < sigma) (hsigma_one : sigma ≤ 1) :
-    ∃ C > 0, ∀ t > 0, ∀ u : D.Point → ℝ,
-      S.lpNorm 2 (fun x => S.semigroup t u x - u x) ≤
-        C * t ^ sigma * S.fractionalNorm sigma 2 u :=
-  h.2 sigma hsigma_pos hsigma_one
-
 theorem Lemma_2_1_zero_output_branch
     (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D)
     (hlp_nonneg : ∀ q u, 0 ≤ S.lpNorm q u)
@@ -1353,26 +1333,6 @@ def Lemma_2_2 (D : BoundedDomainData) (S : SemigroupEstimateData D) : Prop :=
       ∃ C > 0, ∀ u : D.Point → ℝ,
         S.embeddingNorm theta q sigma u ≤ C * S.fractionalNorm sigma q u)
 
-lemma Lemma_2_2.embedding_general
-    {D : BoundedDomainData} {S : SemigroupEstimateData D}
-    (h : Lemma_2_2 D S)
-    {sigma q k r : ℝ}
-    (hsigma : 0 ≤ sigma) (hq : 1 ≤ q) (hqr : q ≤ r)
-    (hcond : k - (D.volume / r) < 2 * sigma - D.volume / q) :
-    ∃ C > 0, ∀ u : D.Point → ℝ,
-      S.embeddingNorm k r sigma u ≤ C * S.fractionalNorm sigma q u :=
-  h.1 sigma q k r hsigma hq hqr hcond
-
-lemma Lemma_2_2.embedding_same_q
-    {D : BoundedDomainData} {S : SemigroupEstimateData D}
-    (h : Lemma_2_2 D S)
-    {sigma q theta : ℝ}
-    (htheta_nonneg : 0 ≤ theta)
-    (hcond : theta < 2 * sigma - D.volume / q) :
-    ∃ C > 0, ∀ u : D.Point → ℝ,
-      S.embeddingNorm theta q sigma u ≤ C * S.fractionalNorm sigma q u :=
-  h.2 sigma q theta htheta_nonneg hcond
-
 theorem Lemma_2_2_zero_embedding_branch
     (D : BoundedDomainData) (S : SemigroupEstimateData D)
     (hfrac_nonneg : ∀ sigma q u, 0 ≤ S.fractionalNorm sigma q u)
@@ -1399,15 +1359,6 @@ def Lemma_2_3 (D : BoundedDomainData) (p : CM2Params)
     S.lpNorm q (S.divergenceSemigroup t phi) ≤
       C * (1 + t ^ (-(1 / 2 : ℝ))) *
         Real.exp (-(p.μ) * t) * S.vectorLpNorm q phi
-
-lemma Lemma_2_3.divergence_bound
-    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
-    (h : Lemma_2_3 D p S) :
-    ∃ C > 0, ∀ q > 1, ∀ t > 0, ∀ phi : D.Point → ℝ,
-      S.lpNorm q (S.divergenceSemigroup t phi) ≤
-        C * (1 + t ^ (-(1 / 2 : ℝ))) *
-          Real.exp (-(p.μ) * t) * S.vectorLpNorm q phi :=
-  h
 
 theorem Lemma_2_3_zero_divergence_branch
     (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D)
@@ -1437,16 +1388,6 @@ def Lemma_2_4 (D : BoundedDomainData) (p : CM2Params)
       S.fractionalNorm sigma q (S.divergenceSemigroup t phi) ≤
         C * t ^ (-sigma) * (1 + t ^ (-(1 / 2 : ℝ))) *
           Real.exp (-(p.μ / 2) * t) * S.vectorLpNorm q phi
-
-lemma Lemma_2_4.fractional_divergence_bound
-    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
-    (h : Lemma_2_4 D p S)
-    {sigma q : ℝ} (hsigma : 0 < sigma) (hq : 1 < q) :
-    ∃ C > 0, ∀ t > 0, ∀ phi : D.Point → ℝ,
-      S.fractionalNorm sigma q (S.divergenceSemigroup t phi) ≤
-        C * t ^ (-sigma) * (1 + t ^ (-(1 / 2 : ℝ))) *
-          Real.exp (-(p.μ / 2) * t) * S.vectorLpNorm q phi :=
-  h sigma q hsigma hq
 
 theorem Lemma_2_4_zero_fractional_divergence_branch
     (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D)
@@ -2248,30 +2189,6 @@ def Lemma_2_6 (D : BoundedDomainData) : Prop :=
       LpBootstrapEnergyInequality D u T rho p0 →
         ∀ pExp > 1, LpPowerBoundedBefore D pExp T u
 
-lemma Lemma_2_6.lp_bound
-    {D : BoundedDomainData}
-    (h : Lemma_2_6 D)
-    {N : ℝ} (hN : 0 < N) {u : ℝ → D.Point → ℝ}
-    {T rho p0 : ℝ}
-    (hhyp : AbstractLpBootstrapHypothesis D u N T rho p0)
-    (henergy : LpBootstrapEnergyInequality D u T rho p0)
-    {pExp : ℝ} (hpExp : 1 < pExp) :
-    LpPowerBoundedBefore D pExp T u :=
-  h N hN u T rho p0 hhyp henergy pExp hpExp
-
-lemma Lemma_2_6.lp_bound_of_data
-    {D : BoundedDomainData}
-    (h : Lemma_2_6 D)
-    {N : ℝ} (hN : 0 < N) {u : ℝ → D.Point → ℝ}
-    {T rho p0 : ℝ}
-    (hrho : 0 < rho) (hT : 0 < T)
-    (hp0 : max 1 (rho * N / 2) < p0)
-    (hp0_bound : LpPowerBoundedBefore D p0 T u)
-    (henergy : LpBootstrapEnergyInequality D u T rho p0)
-    {pExp : ℝ} (hpExp : 1 < pExp) :
-    LpPowerBoundedBefore D pExp T u :=
-  h.lp_bound hN ⟨hrho, hT, hp0, hp0_bound⟩ henergy hpExp
-
 lemma AbstractLpBootstrapHypothesis.rho_pos
     {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {N T rho p0 : ℝ}
     (h : AbstractLpBootstrapHypothesis D u N T rho p0) :
@@ -2303,33 +2220,6 @@ def Corollary_2_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
         ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
           LpPowerBoundedBefore D p0 T u) →
       ∀ pExp > 1, LpPowerBoundedBefore D pExp T u
-
-lemma Corollary_2_1.lp_bound
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Corollary_2_1 D p)
-    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution D p T u v)
-    (hboot :
-      ∃ rho > 0, CrossDiffusionBootstrapEstimate D p T rho u v ∧
-        ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
-          LpPowerBoundedBefore D p0 T u)
-    {pExp : ℝ} (hpExp : 1 < pExp) :
-    LpPowerBoundedBefore D pExp T u :=
-  h T hT u v hsol hboot pExp hpExp
-
-lemma Corollary_2_1.lp_bound_of_bootstrap_data
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Corollary_2_1 D p)
-    {T rho p0 : ℝ} (hT : 0 < T) (hrho : 0 < rho)
-    {u v : ℝ → D.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution D p T u v)
-    (hcross : CrossDiffusionBootstrapEstimate D p T rho u v)
-    (hp0 : max 1 (rho * (p.N : ℝ) / 2) < p0)
-    (hp0_bound : LpPowerBoundedBefore D p0 T u)
-    {pExp : ℝ} (hpExp : 1 < pExp) :
-    LpPowerBoundedBefore D pExp T u :=
-  h.lp_bound hT hsol
-    ⟨rho, hrho, hcross, p0, hp0, hp0_bound⟩ hpExp
 
 /-- Time scale used in the fake cross-diffusion bootstrap counterexample. -/
 def corollary21CounterR (t : ℝ) : ℝ := (1 - t)⁻¹
@@ -2739,17 +2629,6 @@ def Proposition_2_1
           S.lpNorm pExp (v t) ≤
             (p.ν / p.μ) * S.lpNorm pExp (fun x => (u t x) ^ p.γ)
 
-lemma Proposition_2_1.signal_lp_bound
-    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
-    (h : Proposition_2_1 D p S)
-    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution D p T u v)
-    {pExp : ℝ} (hpExp : 1 ≤ pExp)
-    {t : ℝ} (ht0 : 0 < t) (htT : t < T) :
-    S.lpNorm pExp (v t) ≤
-      (p.ν / p.μ) * S.lpNorm pExp (fun x => (u t x) ^ p.γ) :=
-  h T hT u v hsol pExp hpExp t ht0 htT
-
 /-- A deliberately degenerate bounded-domain instance for showing that
 `Proposition_2_1` cannot be derived from the current abstract semigroup API
 alone.  The PDE side admits the constant solution `u = 1`, `v = 1/2`, but the
@@ -2896,47 +2775,6 @@ def Proposition_2_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
       ∀ pExp > 1, ∃ Mstar > 0,
         WeightedGradientEstimate D pExp p.β p.γ Mstar T u v
 
-lemma Proposition_2_2.weighted_gradient
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_2_2 D p)
-    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution D p T u v)
-    {pExp : ℝ} (hpExp : 1 < pExp) :
-    ∃ Mstar > 0, WeightedGradientEstimate D pExp p.β p.γ Mstar T u v :=
-  h T hT u v hsol pExp hpExp
-
-lemma Proposition_2_2.weighted_gradient_bound
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_2_2 D p)
-    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution D p T u v)
-    {pExp t : ℝ} (hpExp : 1 < pExp) (ht0 : 0 < t) (htT : t < T) :
-    ∃ Mstar > 0,
-      D.integral (fun x => (D.gradNorm (v t) x) ^ (2 * pExp) / (v t x) ^ pExp) ≤
-        Mstar * D.integral (fun x => (u t x) ^ (p.γ * pExp)) :=
-  by
-    rcases h.weighted_gradient hT hsol hpExp with
-      ⟨Mstar, hMstar, hestimate⟩
-    exact ⟨Mstar, hMstar, hestimate.first ht0 htT⟩
-
-lemma Proposition_2_2.weighted_ratio_gradient_bound
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_2_2 D p)
-    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution D p T u v)
-    {pExp t : ℝ} (hpExp : 1 < pExp) (ht0 : 0 < t) (htT : t < T) :
-    ∃ Mstar > 0,
-      D.integral
-          (fun x =>
-            (D.gradNorm (v t) x) ^ (2 * pExp) /
-              (1 + v t x) ^ ((1 + p.β) * pExp)) ≤
-        (Theta_beta p.β) ^ pExp * Mstar *
-          D.integral (fun x => (u t x) ^ (p.γ * pExp)) :=
-  by
-    rcases h.weighted_gradient hT hsol hpExp with
-      ⟨Mstar, hMstar, hestimate⟩
-    exact ⟨Mstar, hMstar, hestimate.second ht0 htT⟩
-
 /-- A fake domain showing that the weighted gradient estimate is not a
 consequence of the current abstract bounded-domain API.  The PDE equations are
 the same harmless constant solution as above, but the abstract integral detects
@@ -3005,35 +2843,6 @@ def Proposition_2_3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
       ∀ pExp, max 1 p.β < pExp →
         ∀ eps > 0, ∃ Ceps > 0,
           WeightedSignalEstimate D pExp p.β p.γ eps Ceps T u v
-
-lemma Proposition_2_3.weighted_signal
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_2_3 D p)
-    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution D p T u v)
-    {pExp eps : ℝ} (hpExp : max 1 p.β < pExp) (heps : 0 < eps) :
-    ∃ Ceps > 0, WeightedSignalEstimate D pExp p.β p.γ eps Ceps T u v :=
-  h T hT u v hsol pExp hpExp eps heps
-
-lemma Proposition_2_3.weighted_signal_bound
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_2_3 D p)
-    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution D p T u v)
-    {pExp eps t : ℝ} (hpExp : max 1 p.β < pExp)
-    (heps : 0 < eps) (ht0 : 0 < t) (htT : t < T) :
-    ∃ Ceps > 0,
-      D.integral (fun x => (v t x) ^ (pExp + 1) / (1 + v t x) ^ p.β) ≤
-        eps *
-            D.integral
-              (fun x => (u t x) ^ (p.γ * (pExp + 1)) / (1 + v t x) ^ p.β) +
-          Ceps *
-            (D.integral
-              (fun x => v t x / (1 + v t x) ^ (p.β / (pExp + 1)))) ^ (pExp + 1) :=
-  by
-    rcases h.weighted_signal hT hsol hpExp heps with
-      ⟨Ceps, hCeps, hestimate⟩
-    exact ⟨Ceps, hCeps, hestimate.bound ht0 htT⟩
 
 /-- A fake domain showing that the weighted signal estimate is not a consequence
 of the current abstract bounded-domain API.  The PDE side is again the constant
@@ -3104,28 +2913,6 @@ def Proposition_2_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
       InitialTrace D u₀ u →
         (p.a = 0 → p.b = 0 → MassConservedBefore D T u₀ u) ∧
           (0 < p.a → 0 < p.b → LogisticMassUpperBoundBefore D p T u₀ u)
-
-lemma Proposition_2_4.mass_conserved
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_2_4 D p)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀)
-    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution D p T u v)
-    (htrace : InitialTrace D u₀ u)
-    (ha : p.a = 0) (hb : p.b = 0) :
-    MassConservedBefore D T u₀ u :=
-  (h u₀ hu₀ T hT u v hsol htrace).1 ha hb
-
-lemma Proposition_2_4.logistic_mass_upper
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_2_4 D p)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀)
-    {T : ℝ} (hT : 0 < T) {u v : ℝ → D.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution D p T u v)
-    (htrace : InitialTrace D u₀ u)
-    (ha : 0 < p.a) (hb : 0 < p.b) :
-    LogisticMassUpperBoundBefore D p T u₀ u :=
-  (h u₀ hu₀ T hT u v hsol htrace).2 ha hb
 
 /-- A fake bounded-domain interface showing that Proposition 2.4 is not a
 consequence of the abstract API alone.  The PDE admits the constant solution
@@ -3236,20 +3023,6 @@ def Proposition_2_5 (D : BoundedDomainData) (p : CM2Params) : Prop :=
           max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
             LpPowerBoundedBefore D pExp Tmax u →
               IsPaper2BoundedBefore D Tmax u
-
-lemma Proposition_2_5.bounded_before
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Proposition_2_5 D p)
-    {u₀ : D.Point → ℝ} (hu₀ : PositiveInitialDatum D u₀)
-    {Tmax : ℝ} (hTmax : 0 < Tmax) {u v : ℝ → D.Point → ℝ}
-    (hsol : IsPaper2ClassicalSolution D p Tmax u v)
-    (htrace : InitialTrace D u₀ u)
-    {pExp : ℝ}
-    (hpExp :
-      max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp)
-    (hLp : LpPowerBoundedBefore D pExp Tmax u) :
-    IsPaper2BoundedBefore D Tmax u :=
-  h u₀ hu₀ Tmax hTmax u v hsol htrace pExp hpExp hLp
 
 /-- A fake bounded-domain interface showing that Proposition 2.5 is not a
 consequence of the current abstract API alone.  The fake operators make
