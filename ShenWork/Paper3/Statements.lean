@@ -5360,6 +5360,96 @@ lemma not_LinearStabilityInstabilityNonminimalRaw_constant_c1Distance :
     simpa [t] using htmp
   linarith
 
+/-- Raw minimal local-stability branch of
+`Paper3Constants.linearStabilityInstability`, exposing the `C¹` distance and
+mass constraint. -/
+def LinearStabilityInstabilityMinimalRaw
+    (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
+    (c1Distance : (D.Point → ℝ) → (D.Point → ℝ) → ℝ)
+    (chiCritical : ℝ → ℝ) : Prop :=
+  p.a = 0 → p.b = 0 →
+    ∀ uStar > 0,
+      let eq := minimalEquilibrium p uStar
+      p.χ₀ < chiCritical uStar →
+        LinearlyStable S p eq.1 eq.2 ∧
+        ∃ δ > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+            SupCloseToConstant D u₀ eq.1 δ →
+            D.integral u₀ = D.volume * uStar →
+              ∃ u v : ℝ → D.Point → ℝ,
+                IsPaper2GlobalClassicalSolution D p u v ∧
+                InitialTrace D u₀ u ∧
+                ∀ t, 0 ≤ t →
+                  c1Distance (u t) (fun _ => eq.1) +
+                    c1Distance (v t) (fun _ => eq.2) ≤
+                      A * Real.exp (-rate * t)
+
+/-- Raw obstruction for the minimal local-stability part of
+`Paper3Constants.linearStabilityInstability`: fake sup-norm closeness and the
+fake mass functional can both be satisfied, while an unrelated constant `C¹`
+distance prevents the asserted exponential estimate. -/
+lemma not_LinearStabilityInstabilityMinimalRaw_constant_c1Distance :
+    ¬ LinearStabilityInstabilityMinimalRaw
+      initialContinuityNoDistanceControlDomain minimalGlobalStabilityCounterParams
+      sectorialLocalExponentialCounterSpectralData
+      (fun _ _ => (1 : ℝ)) (fun _ => (1 : ℝ)) := by
+  intro h
+  let D := initialContinuityNoDistanceControlDomain
+  let p := minimalGlobalStabilityCounterParams
+  have ha : p.a = 0 := by
+    norm_num [p, minimalGlobalStabilityCounterParams]
+  have hb : p.b = 0 := by
+    norm_num [p, minimalGlobalStabilityCounterParams]
+  have huStar : (0 : ℝ) < 1 := by norm_num
+  have hχ : p.χ₀ < (fun _ => (1 : ℝ)) 1 := by
+    norm_num [p, minimalGlobalStabilityCounterParams]
+  rcases (h ha hb 1 huStar hχ).2 with
+    ⟨δ, hδ_pos, A, hA_pos, rate, hrate_pos, hloc⟩
+  have hpos :
+      PositiveInitialDatum D (fun _ : Unit => (1 : ℝ)) := by
+    constructor
+    · trivial
+    · intro x hx
+      norm_num
+  have hclose :
+      SupCloseToConstant D (fun _ : Unit => (1 : ℝ))
+        (minimalEquilibrium p 1).1 δ := by
+    simp [SupCloseToConstant, D, p, initialContinuityNoDistanceControlDomain,
+      minimalGlobalStabilityCounterParams, minimalEquilibrium, hδ_pos]
+  have hmass :
+      D.integral (fun _ : Unit => (1 : ℝ)) = D.volume * 1 := by
+    simp [D, initialContinuityNoDistanceControlDomain]
+  rcases hloc (fun _ : Unit => (1 : ℝ)) hpos hclose hmass with
+    ⟨u, v, _hglobal, _htrace, hbound⟩
+  have hmul : Tendsto (fun t : ℝ => rate * t) atTop atTop :=
+    (Filter.tendsto_id.atTop_mul_const hrate_pos).congr
+      (fun t => mul_comm t rate)
+  have hneg : Tendsto (fun t : ℝ => -(rate * t)) atTop atBot :=
+    tendsto_neg_atTop_atBot.comp hmul
+  have hexp : Tendsto (fun t : ℝ => Real.exp (-(rate * t))) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp hneg
+  have hlim :
+      Tendsto (fun t : ℝ => A * Real.exp (-rate * t)) atTop (𝓝 0) := by
+    convert tendsto_const_nhds.mul hexp using 1
+    · ext t
+      ring_nf
+    · simp
+  have hevent :
+      ∀ᶠ t : ℝ in atTop, A * Real.exp (-rate * t) < (2 : ℝ) :=
+    hlim.eventually (Iio_mem_nhds (by norm_num : (0 : ℝ) < 2))
+  rcases eventually_atTop.1 hevent with ⟨T, hT⟩
+  let t : ℝ := max T 0
+  have ht0 : 0 ≤ t := by
+    exact le_max_right T 0
+  have hTle : T ≤ t := by
+    exact le_max_left T 0
+  have hsmall_rhs : A * Real.exp (-rate * t) < (2 : ℝ) := hT t hTle
+  have hlarge_rhs : (2 : ℝ) ≤ A * Real.exp (-rate * t) := by
+    have htmp := hbound t ht0
+    norm_num at htmp
+    simpa [t] using htmp
+  linarith
+
 /-- Raw version of `CompactnessData.upperEnvelopeMonotonicity`, exposing the
 upper-envelope functional instead of hiding it inside a compactness package. -/
 def UpperEnvelopeMonotonicityRaw
