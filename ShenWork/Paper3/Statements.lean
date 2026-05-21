@@ -4348,15 +4348,6 @@ def Theorem_2_1_part1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
         ∃ δu > 0, EventuallyLowerBound D u δu ∧
           EventuallyLowerBound D v (p.ν / p.μ * δu ^ p.γ)
 
-lemma Theorem_2_1_part1.persistence
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Theorem_2_1_part1 D p) (hm : 1 ≤ p.m)
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v) :
-    ∃ δu > 0, EventuallyLowerBound D u δu ∧
-      EventuallyLowerBound D v (p.ν / p.μ * δu ^ p.γ) :=
-  h hm u v huv
-
 /-- A degenerate bounded-domain API showing that Paper3 Theorem 2.1(1)
 cannot be proved from the current abstract `BoundedDomainData` interface alone.
 The PDE side admits the positive constant solution `u = v = 1`, but the
@@ -5870,20 +5861,6 @@ def UniformPersistencePart2Raw
           EventuallyLowerBound D u lowerU ∧
             EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
 
-lemma Theorem_2_1_part2.lower_bounds
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Theorem_2_1_part2 D p)
-    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
-    (hm : p.m = 1) (hβ : 1 ≤ p.β)
-    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v) :
-    let lowerU :=
-      ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^ (1 / p.α)
-    EventuallyLowerBound D u lowerU ∧
-      EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ) :=
-  h ha hb hχ0 hm hβ hχ u v huv
-
 lemma not_forall_Theorem_2_1_part2 :
     ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params, Theorem_2_1_part2 D p) := by
   intro h
@@ -6024,20 +6001,6 @@ def UniformPersistencePart3Raw
             max (1 / (p.m - 1)) (1 / p.α)
         EventuallyLowerBound D u lowerU ∧
           EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
-
-lemma Theorem_2_1_part3.lower_bounds
-    {D : BoundedDomainData} {p : CM2Params}
-    (h : Theorem_2_1_part3 D p)
-    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
-    (hm : 1 < p.m) (hβ : 1 ≤ p.β)
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v) :
-    let lowerU :=
-      min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
-        max (1 / (p.m - 1)) (1 / p.α)
-    EventuallyLowerBound D u lowerU ∧
-      EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ) :=
-  h ha hb hχ0 hm hβ u v huv
 
 def theorem21Part3CounterParams : CM2Params :=
   { N := 1
@@ -6678,134 +6641,12 @@ def Theorem_2_1_part4
             (minimalVLowerFormula
               C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar))
 
-lemma Theorem_2_1_part4.minimal_v_lower_bound
-    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
-    (h : Theorem_2_1_part4 D p C)
-    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
-    (hχ0 : 0 < p.χ₀)
-    (hχ : p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
-    {uStar : ℝ} (huStar : 0 < uStar)
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v)
-    (hmass : HasInitialMass D u uStar) :
-    EventuallyLowerBound D v
-      (minimalVLowerFormula
-        C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar)) :=
-  h ha hb hm hβ hχ0 hχ uStar huStar u v huv hmass
-
 /-- Paper3 Theorem 2.1: uniform persistence. -/
 def Theorem_2_1 (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) : Prop :=
   Theorem_2_1_part1 D p ∧
     Theorem_2_1_part2 D p ∧
     Theorem_2_1_part3 D p ∧
     Theorem_2_1_part4 D p C
-
-lemma Theorem_2_1.part1
-    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
-    (h : Theorem_2_1 D p C) :
-    Theorem_2_1_part1 D p :=
-  h.1
-
-lemma Theorem_2_1.part2
-    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
-    (h : Theorem_2_1 D p C) :
-    Theorem_2_1_part2 D p :=
-  h.2.1
-
-lemma Theorem_2_1.part3
-    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
-    (h : Theorem_2_1 D p C) :
-    Theorem_2_1_part3 D p :=
-  h.2.2.1
-
-lemma Theorem_2_1.part4
-    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
-    (h : Theorem_2_1 D p C) :
-    Theorem_2_1_part4 D p C :=
-  h.2.2.2
-
-lemma Theorem_2_1.persistence
-    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
-    (h : Theorem_2_1 D p C) (hm : 1 ≤ p.m)
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v) :
-    ∃ δu > 0, EventuallyLowerBound D u δu ∧
-      EventuallyLowerBound D v (p.ν / p.μ * δu ^ p.γ) :=
-  h.part1 hm u v huv
-
-lemma Theorem_2_1.part2_positive_lower_bounds
-    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
-    (h : Theorem_2_1 D p C)
-    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
-    (hm : p.m = 1) (hβ : 1 ≤ p.β)
-    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v) :
-    ∃ δu > 0, ∃ δv > 0,
-      EventuallyLowerBound D u δu ∧ EventuallyLowerBound D v δv := by
-  let lowerU :=
-    ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^ (1 / p.α)
-  have hbounds :
-      EventuallyLowerBound D u lowerU ∧
-        EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ) :=
-    h.part2 ha hb hχ0 hm hβ hχ u v huv
-  refine ⟨lowerU, ?_, p.ν / p.μ * lowerU ^ p.γ, ?_, hbounds⟩
-  · exact theorem_2_1_part2_lowerU_pos p ha hb hχ0 hm hβ hχ
-  · exact theorem_2_1_part2_lowerV_pos p ha hb hχ0 hm hβ hχ
-
-lemma Theorem_2_1.part3_positive_lower_bounds
-    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
-    (h : Theorem_2_1 D p C)
-    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
-    (hm : 1 < p.m) (hβ : 1 ≤ p.β)
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v) :
-    ∃ δu > 0, ∃ δv > 0,
-      EventuallyLowerBound D u δu ∧ EventuallyLowerBound D v δv := by
-  let lowerU :=
-    min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
-      max (1 / (p.m - 1)) (1 / p.α)
-  have hbounds :
-      EventuallyLowerBound D u lowerU ∧
-        EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ) :=
-    h.part3 ha hb hχ0 hm hβ u v huv
-  refine ⟨lowerU, ?_, p.ν / p.μ * lowerU ^ p.γ, ?_, hbounds⟩
-  · exact theorem_2_1_part3_lowerU_pos p ha hb hχ0 hm hβ
-  · exact theorem_2_1_part3_lowerV_pos p ha hb hχ0 hm hβ
-
-lemma Theorem_2_1.part4_minimal_v_lower_bound
-    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
-    (h : Theorem_2_1 D p C)
-    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
-    (hχ0 : 0 < p.χ₀)
-    (hχ : p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
-    {uStar : ℝ} (huStar : 0 < uStar)
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v)
-    (hmass : HasInitialMass D u uStar) :
-    EventuallyLowerBound D v
-      (minimalVLowerFormula
-        C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar)) :=
-  h.part4 ha hb hm hβ hχ0 hχ uStar huStar u v huv hmass
-
-lemma Theorem_2_1.part4_minimal_v_positive_lower_bound
-    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
-    (h : Theorem_2_1 D p C)
-    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1) (hβ : 1 ≤ p.β)
-    (hχ0 : 0 < p.χ₀)
-    (hχ : p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
-    {uStar : ℝ} (huStar : 0 < uStar)
-    (hUpper : 0 < C.eventualMinimalUBound uStar)
-    {u v : ℝ → D.Point → ℝ}
-    (huv : PositiveGlobalBoundedSolution D p u v)
-    (hmass : HasInitialMass D u uStar) :
-    ∃ δv > 0, EventuallyLowerBound D v δv := by
-  let δv :=
-    minimalVLowerFormula
-      C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar)
-  exact
-    ⟨δv, C.minimalVLower_pos huStar hUpper,
-      h.part4_minimal_v_lower_bound ha hb hm hβ hχ0 hχ huStar huv hmass⟩
 
 /-- Paper3 Theorem 2.2: linear stability/instability and local exponential stability. -/
 def Theorem_2_2
