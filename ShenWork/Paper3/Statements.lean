@@ -7122,6 +7122,145 @@ lemma Theorem_2_2_xpSigma_minimal_first_mode_branch_proved :
   intro u₀ hu₀ hsmall u v huv htrace t ht
   exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
+lemma Theorem_2_2_xpSigma_nonminimal_formula_unitInterval
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hA1 : Lemma_A_1 D p unitIntervalNeumannSpectrum N)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    max
+        (max (chiStrong1Formula p eq.1 eq.2)
+          (chiStrong2Formula p eq.1))
+        (max (chiStrong3Formula p M0 eq.1 eq.2)
+          (chiStrong4Formula p M0 eq.1)) ≤
+      paperCriticalSensitivity unitIntervalNeumannSpectrum p eq.1 eq.2 →
+      NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                IsPaper2GlobalClassicalSolution D p u v →
+                InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate := by
+  dsimp
+  intro hcritical hcond
+  have hstable :=
+    hcond.linearlyStable_of_max_threshold_le_critical
+      unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+      ha hb hcritical
+  rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
+    ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
+  refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
+  intro u₀ hu₀ hsmall u v huv htrace t ht
+  exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
+
+lemma Theorem_2_2_xpSigma_nonminimal_first_mode_unitInterval
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hA1 : Lemma_A_1 D p unitIntervalNeumannSpectrum N)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    max
+        (max (chiStrong1Formula p eq.1 eq.2)
+          (chiStrong2Formula p eq.1))
+        (max (chiStrong3Formula p M0 eq.1 eq.2)
+          (chiStrong4Formula p M0 eq.1)) ≤
+      ((1 + eq.2) ^ p.β /
+          (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+        (p.μ + Real.pi ^ 2) →
+      NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                IsPaper2GlobalClassicalSolution D p u v →
+                InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate := by
+  dsimp
+  intro hfirst hcond
+  have hstable :=
+    hcond.linearlyStable_of_firstNonzero_lower
+      unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+      ha hb hfirst
+  rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
+    ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
+  refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
+  intro u₀ hu₀ hsmall u v huv htrace t ht
+  exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
+
+lemma Theorem_2_2_xpSigma_minimal_formula_unitInterval
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hA1 : Lemma_A_1 D p unitIntervalNeumannSpectrum N)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
+    chiBeta p ≤
+      paperCriticalSensitivity unitIntervalNeumannSpectrum p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 →
+      MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀
+                (fun _ => (minimalEquilibrium p uStar).1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                IsPaper2GlobalClassicalSolution D p u v →
+                InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v
+                    (minimalEquilibrium p uStar).1
+                    (minimalEquilibrium p uStar).2 A rate := by
+  intro hcritical hcond
+  have hstable :=
+    hcond.linearlyStable_of_chiBeta_le_critical
+      unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+      hβ huStar hcritical
+  rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
+    ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
+  refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
+  intro u₀ hu₀ hsmall u v huv htrace t ht
+  exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
+
+lemma Theorem_2_2_xpSigma_minimal_first_mode_unitInterval
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hA1 : Lemma_A_1 D p unitIntervalNeumannSpectrum N)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
+    chiBeta p ≤
+      ((1 + (minimalEquilibrium p uStar).2) ^ p.β /
+          (p.ν * p.γ *
+            (minimalEquilibrium p uStar).1 ^ (p.m + p.γ - 1))) *
+        (p.μ + Real.pi ^ 2) →
+      MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀
+                (fun _ => (minimalEquilibrium p uStar).1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                IsPaper2GlobalClassicalSolution D p u v →
+                InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v
+                    (minimalEquilibrium p uStar).1
+                    (minimalEquilibrium p uStar).2 A rate := by
+  intro hfirst hcond
+  have hstable :=
+    hcond.linearlyStable_of_firstNonzero_lower
+      unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+      hβ huStar hfirst
+  rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
+    ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
+  refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
+  intro u₀ hu₀ hsmall u v huv htrace t ht
+  exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
+
 def Lemma_A_2
     (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
