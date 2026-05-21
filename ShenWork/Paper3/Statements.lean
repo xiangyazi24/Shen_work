@@ -2421,6 +2421,32 @@ lemma unitInterval_positiveEquilibrium_linearlyUnstable_of_critical_lt_chi
     unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
     ha hb hχ
 
+lemma unitInterval_positiveEquilibrium_linearlyUnstable_of_first_mode_formula_lt_chi
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      sigmaCriticalChiPaperFormula p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2
+          (Real.pi ^ 2) <
+        p.χ₀) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyUnstable unitIntervalNeumannSpectrum p eq.1 eq.2 := by
+  have hχ' :
+      sigmaCriticalChi p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2
+          (unitIntervalNeumannSpectrum.eigenvalue 1) <
+        p.χ₀ := by
+    rw [sigmaCriticalChi_eq_paperFormula p
+      (positiveEquilibrium_fst_pos p ⟨ha, hb⟩)
+      (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
+      (unitIntervalNeumannSpectrum_hasNeumannSpectrum.eigenvalue_pos_of_ne_zero
+        1 (by norm_num))]
+    simpa [unitIntervalNeumannSpectrum] using hχ
+  exact positiveEquilibrium_linearlyUnstable_of_sigmaCriticalChi_lt_chi_neumann
+    unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+    ha hb (n := 1) (by norm_num) hχ'
+
 lemma unitInterval_minimalEquilibrium_linearlyStable_of_chi_nonpos
     (p : CM2Params) {uStar : ℝ}
     (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (huStar : 0 < uStar) :
@@ -2455,6 +2481,40 @@ lemma unitInterval_minimalEquilibrium_linearlyUnstable_of_critical_lt_chi
   exact minimalEquilibrium_linearlyUnstable_of_paperCriticalSensitivity_lt_chi_neumann
     unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
     huStar hχ
+
+lemma unitInterval_minimalEquilibrium_linearlyUnstable_of_first_mode_formula_lt_chi
+    (p : CM2Params) {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ :
+      sigmaCriticalChiPaperFormula p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2
+          (Real.pi ^ 2) <
+        p.χ₀) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyUnstable unitIntervalNeumannSpectrum p eq.1 eq.2 := by
+  have hχ' :
+      sigmaCriticalChi p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2
+          (unitIntervalNeumannSpectrum.eigenvalue 1) <
+        p.χ₀ := by
+    change
+      sigmaCriticalChi p uStar (p.ν / p.μ * uStar ^ p.γ)
+          (unitIntervalNeumannSpectrum.eigenvalue 1) <
+        p.χ₀
+    rw [sigmaCriticalChi_eq_paperFormula (p := p) (uStar := uStar)
+      (vStar := p.ν / p.μ * uStar ^ p.γ)
+      (lambdaN := unitIntervalNeumannSpectrum.eigenvalue 1)
+      huStar
+      (by
+        exact (mul_pos (div_pos p.hν p.hμ)
+          (Real.rpow_pos_of_pos huStar _)).le)
+      (unitIntervalNeumannSpectrum_hasNeumannSpectrum.eigenvalue_pos_of_ne_zero
+        1 (by norm_num))]
+    simpa [unitIntervalNeumannSpectrum, minimalEquilibrium] using hχ
+  exact minimalEquilibrium_linearlyUnstable_of_sigmaCriticalChi_lt_chi_neumann
+    unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+    huStar (n := 1) (by norm_num) hχ'
 
 def GloballyAsymptoticallyStableNonminimal
     (D : BoundedDomainData) (p : CM2Params) (uStar _vStar : ℝ) : Prop :=
