@@ -6397,6 +6397,36 @@ lemma LemmaA7ThresholdComparisonsRaw_of_max_le_critical
   · intro _hβ1 _hγ _hαγ
     exact le_trans (le_trans (le_max_right _ _) (le_max_right _ _)) hmax
 
+/-- Formula-level raw Lemma A.7 threshold comparison from the first nonzero
+Neumann eigenvalue lower bound. -/
+lemma LemmaA7ThresholdComparisonsRaw_of_firstNonzero_lower
+    (S : SpectralData) (p : CM2Params) (M0 : ℝ)
+    (H : HasNeumannSpectrum S)
+    (hfirst :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        max
+            (max (chiStrong1Formula p eq.1 eq.2)
+              (chiStrong2Formula p eq.1))
+            (max (chiStrong3Formula p M0 eq.1 eq.2)
+              (chiStrong4Formula p M0 eq.1)) ≤
+          ((1 + eq.2) ^ p.β /
+              (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+            (p.μ + S.firstNonzero)) :
+    LemmaA7ThresholdComparisonsRaw p
+      (fun u => paperCriticalSensitivity S p u (p.ν / p.μ * u ^ p.γ))
+      (fun u => chiStrong1Formula p u (p.ν / p.μ * u ^ p.γ))
+      (fun u => chiStrong2Formula p u)
+      (fun u => chiStrong3Formula p M0 u (p.ν / p.μ * u ^ p.γ))
+      (fun u => chiStrong4Formula p M0 u) := by
+  apply LemmaA7ThresholdComparisonsRaw_of_max_le_critical
+  intro ha hb
+  dsimp
+  exact le_trans (hfirst ha hb) (by
+    simpa [positiveEquilibrium] using
+      paperCriticalSensitivity_positiveEquilibrium_ge_firstNonzero_lower
+        S p H ha hb)
+
 /-- Raw obstruction for Lemma A.7-style threshold comparisons: the comparison
 is not a consequence of the parameter hypotheses alone when the threshold
 functions are exposed as arbitrary data. -/
@@ -6470,6 +6500,29 @@ lemma LemmaA8ThresholdComparisonsRaw_of_chiBeta_le_critical
     exact le_trans
       (chiMinimal2Formula_le_chiBeta_of_one_le_beta p hβ uBar vLower)
       (hcritical uStar huStar)
+
+/-- Formula-level raw Lemma A.8 threshold comparison from the first nonzero
+Neumann eigenvalue lower bound. -/
+lemma LemmaA8ThresholdComparisonsRaw_of_firstNonzero_lower
+    (S : SpectralData) (p : CM2Params) (uBar vLower : ℝ)
+    (H : HasNeumannSpectrum S)
+    (hfirst :
+      ∀ uStar > 0,
+        chiBeta p ≤
+          ((1 + (minimalEquilibrium p uStar).2) ^ p.β /
+              (p.ν * p.γ *
+                (minimalEquilibrium p uStar).1 ^ (p.m + p.γ - 1))) *
+            (p.μ + S.firstNonzero)) :
+    LemmaA8ThresholdComparisonsRaw p
+      (fun u => paperCriticalSensitivity S p u (p.ν / p.μ * u ^ p.γ))
+      (fun uStar => chiMinimal1Formula p 1 uStar uBar vLower)
+      (fun _uStar => chiMinimal2Formula p uBar vLower) := by
+  apply LemmaA8ThresholdComparisonsRaw_of_chiBeta_le_critical
+  intro uStar huStar
+  exact le_trans (hfirst uStar huStar) (by
+    simpa [minimalEquilibrium] using
+      paperCriticalSensitivity_minimalEquilibrium_ge_firstNonzero_lower
+        S p H huStar)
 
 /-- Raw obstruction for Lemma A.8-style threshold comparisons: without the
 exact threshold formulas, the minimal comparison fields are arbitrary data. -/
