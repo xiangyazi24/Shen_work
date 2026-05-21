@@ -1790,6 +1790,35 @@ theorem Psi_deriv_abs_rpow_le_Psi_rpow
     _ = (Real.sqrt l) ^ pExp * (Psi u l mu x) ^ pExp :=
         Real.mul_rpow hsqrt_nonneg hPsi_nonneg
 
+theorem Lemma_2_5_bounded_branch
+    {pExp gamma l mu : ℝ} (hpExp : 0 < pExp) (hgamma : 0 < gamma)
+    (hl : 0 < l) (hmu : 0 < mu)
+    {u : ℝ → ℝ} (hu : IsCUnifBdd u) (hu_nonneg : ∀ x, 0 ≤ u x)
+    {M : ℝ} (hM : 0 ≤ M) (hu_le : ∀ x, u x ≤ M) (x : ℝ) :
+    |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp ≤
+      (Real.sqrt l) ^ pExp * (mu / l * M ^ gamma) ^ pExp := by
+  have hu_gnn : ∀ y, 0 ≤ (u y) ^ gamma :=
+    fun y => Real.rpow_nonneg (hu_nonneg y) gamma
+  have hu_gbdd : IsCUnifBdd (fun y => (u y) ^ gamma) := by
+    rcases hu.2 with ⟨Mu, hMu⟩
+    exact ⟨hu.1.rpow_const (fun y => Or.inr hgamma.le),
+      ⟨Mu ^ gamma, fun y => by
+        rw [abs_of_nonneg (hu_gnn y)]
+        exact Real.rpow_le_rpow (hu_nonneg y)
+          (by simpa [abs_of_nonneg (hu_nonneg y)] using hMu y) hgamma.le⟩⟩
+  have hPsi_le := Psi_le_const_general_of_nonneg_le hl hmu
+    (Real.rpow_nonneg hM gamma)
+    (hu.1.rpow_const (fun y => Or.inr hgamma.le))
+    hu_gnn (fun y => Real.rpow_le_rpow (hu_nonneg y) (hu_le y) hgamma.le) x
+  have hPsi_nn := Psi_nonneg hl hmu hu_gnn x
+  calc |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp
+      ≤ (Real.sqrt l) ^ pExp * (Psi (fun y => (u y) ^ gamma) l mu x) ^ pExp :=
+        Psi_deriv_abs_rpow_le_Psi_rpow hl hmu hpExp hu_gbdd hu_gnn x
+    _ ≤ (Real.sqrt l) ^ pExp * (mu / l * M ^ gamma) ^ pExp :=
+        mul_le_mul_of_nonneg_left
+          (Real.rpow_le_rpow hPsi_nn hPsi_le hpExp.le)
+          (Real.rpow_nonneg (Real.sqrt_nonneg l) pExp)
+
 /-! ### Jensen step for the resolvent kernel
 
 The key convexity step: for nonneg f, K ≥ 0 with ∫K = A,
