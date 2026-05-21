@@ -6621,7 +6621,7 @@ lemma Theorem_2_2_xpSigma_chi_nonpos_unitInterval_of_Lemma_A_1
 /-- Raw `X^σ_p` local exponential branch for nonpositive sensitivity.  This
 version replaces the theorem-shaped `Lemma_A_1` hypothesis by the exposed
 sectorial estimate `SectorialLocalExponentialRaw`. -/
-lemma Theorem_2_2_xpSigma_chi_nonpos_raw_branch
+lemma Theorem_2_2_xpSigma_chi_nonpos_branch_of_raw
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (N : StabilityNorms D)
     (H : HasNeumannSpectrum S)
@@ -6675,7 +6675,7 @@ lemma Theorem_2_2_xpSigma_chi_nonpos_raw_branch
 
 /-- Unit-interval raw `X^σ_p` local exponential branch for nonpositive
 sensitivity. -/
-lemma Theorem_2_2_xpSigma_chi_nonpos_raw_unitInterval
+lemma Theorem_2_2_xpSigma_chi_nonpos_unitInterval_of_raw
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (hraw :
       SectorialLocalExponentialRaw D p unitIntervalNeumannSpectrum
@@ -6702,13 +6702,13 @@ lemma Theorem_2_2_xpSigma_chi_nonpos_raw_unitInterval
                 IsPaper2GlobalClassicalSolution D p u v →
                 InitialTrace D u₀ u →
                   ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) :=
-  Theorem_2_2_xpSigma_chi_nonpos_raw_branch
+  Theorem_2_2_xpSigma_chi_nonpos_branch_of_raw
     D unitIntervalNeumannSpectrum p N
     unitIntervalNeumannSpectrum_hasNeumannSpectrum hraw
     hsigma_low hsigma_high hpNorm hχ
 
 /-- Raw formula-level nonminimal `X^σ_p` local exponential branch. -/
-lemma Theorem_2_2_xpSigma_nonminimal_formula_raw_branch
+lemma Theorem_2_2_xpSigma_nonminimal_formula_branch_of_raw
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (N : StabilityNorms D)
     (H : HasNeumannSpectrum S)
@@ -6745,7 +6745,7 @@ lemma Theorem_2_2_xpSigma_nonminimal_formula_raw_branch
   exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
 /-- Raw formula-level minimal `X^σ_p` local exponential branch. -/
-lemma Theorem_2_2_xpSigma_minimal_formula_raw_branch
+lemma Theorem_2_2_xpSigma_minimal_formula_branch_of_raw
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (N : StabilityNorms D)
     (H : HasNeumannSpectrum S)
@@ -6783,7 +6783,7 @@ lemma Theorem_2_2_xpSigma_minimal_formula_raw_branch
 
 /-- Raw first-mode sufficient version of the nonminimal `X^σ_p` local
 exponential branch. -/
-lemma Theorem_2_2_xpSigma_nonminimal_first_mode_raw_branch
+lemma Theorem_2_2_xpSigma_nonminimal_first_mode_branch_of_raw
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (N : StabilityNorms D)
     (H : HasNeumannSpectrum S)
@@ -6822,7 +6822,7 @@ lemma Theorem_2_2_xpSigma_nonminimal_first_mode_raw_branch
 
 /-- Raw first-mode sufficient version of the minimal `X^σ_p` local exponential
 branch. -/
-lemma Theorem_2_2_xpSigma_minimal_first_mode_raw_branch
+lemma Theorem_2_2_xpSigma_minimal_first_mode_branch_of_raw
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (N : StabilityNorms D)
     (H : HasNeumannSpectrum S)
@@ -6861,7 +6861,7 @@ lemma Theorem_2_2_xpSigma_minimal_first_mode_raw_branch
 
 /-- Unit-interval raw formula-level nonminimal `X^σ_p` local exponential
 branch. -/
-lemma Theorem_2_2_xpSigma_nonminimal_formula_raw_unitInterval
+lemma Theorem_2_2_xpSigma_nonminimal_formula_unitInterval_of_raw
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (hraw :
       SectorialLocalExponentialRaw D p unitIntervalNeumannSpectrum
@@ -6885,14 +6885,14 @@ lemma Theorem_2_2_xpSigma_nonminimal_formula_raw_unitInterval
                 IsPaper2GlobalClassicalSolution D p u v →
                 InitialTrace D u₀ u →
                   ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate :=
-  Theorem_2_2_xpSigma_nonminimal_formula_raw_branch
+  Theorem_2_2_xpSigma_nonminimal_formula_branch_of_raw
     D unitIntervalNeumannSpectrum p N
     unitIntervalNeumannSpectrum_hasNeumannSpectrum hraw
     hsigma_low hsigma_high hpNorm ha hb M0
 
 /-- Unit-interval raw formula-level minimal `X^σ_p` local exponential
 branch. -/
-lemma Theorem_2_2_xpSigma_minimal_formula_raw_unitInterval
+lemma Theorem_2_2_xpSigma_minimal_formula_unitInterval_of_raw
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (hraw :
       SectorialLocalExponentialRaw D p unitIntervalNeumannSpectrum
@@ -6917,13 +6917,13 @@ lemma Theorem_2_2_xpSigma_minimal_formula_raw_unitInterval
                   ExponentialC1ConvergenceWith D N u v
                     (minimalEquilibrium p uStar).1
                     (minimalEquilibrium p uStar).2 A rate :=
-  Theorem_2_2_xpSigma_minimal_formula_raw_branch
+  Theorem_2_2_xpSigma_minimal_formula_branch_of_raw
     D unitIntervalNeumannSpectrum p N
     unitIntervalNeumannSpectrum_hasNeumannSpectrum hraw
     hsigma_low hsigma_high hpNorm _ha _hb _hm hβ huStar uBar vLower
 
 /-- Unit-interval raw first-mode nonminimal `X^σ_p` local exponential branch. -/
-lemma Theorem_2_2_xpSigma_nonminimal_first_mode_raw_unitInterval
+lemma Theorem_2_2_xpSigma_nonminimal_first_mode_unitInterval_of_raw
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (hraw :
       SectorialLocalExponentialRaw D p unitIntervalNeumannSpectrum
@@ -6952,13 +6952,13 @@ lemma Theorem_2_2_xpSigma_nonminimal_first_mode_raw_unitInterval
   dsimp
   intro hfirst hcond
   exact
-    Theorem_2_2_xpSigma_nonminimal_first_mode_raw_branch
+    Theorem_2_2_xpSigma_nonminimal_first_mode_branch_of_raw
       D unitIntervalNeumannSpectrum p N
       unitIntervalNeumannSpectrum_hasNeumannSpectrum hraw
       hsigma_low hsigma_high hpNorm ha hb M0 hfirst hcond
 
 /-- Unit-interval raw first-mode minimal `X^σ_p` local exponential branch. -/
-lemma Theorem_2_2_xpSigma_minimal_first_mode_raw_unitInterval
+lemma Theorem_2_2_xpSigma_minimal_first_mode_unitInterval_of_raw
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (hraw :
       SectorialLocalExponentialRaw D p unitIntervalNeumannSpectrum
@@ -6986,7 +6986,7 @@ lemma Theorem_2_2_xpSigma_minimal_first_mode_raw_unitInterval
                     (minimalEquilibrium p uStar).2 A rate := by
   intro hfirst hcond
   exact
-    Theorem_2_2_xpSigma_minimal_first_mode_raw_branch
+    Theorem_2_2_xpSigma_minimal_first_mode_branch_of_raw
       D unitIntervalNeumannSpectrum p N
       unitIntervalNeumannSpectrum_hasNeumannSpectrum hraw
       hsigma_low hsigma_high hpNorm _ha _hb _hm hβ huStar uBar vLower
