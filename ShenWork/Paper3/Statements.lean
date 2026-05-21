@@ -9796,18 +9796,6 @@ def Lemma_A_6 : Prop :=
         ∀ uStar > 0,
           PowerDifferenceInequality (CAlphaGamma alpha gamma) alpha gamma uStar
 
-lemma Lemma_A_6_proved : Lemma_A_6 := by
-  intro alpha gamma halpha hgamma hrel uStar huStar
-  by_cases halpha_lt : alpha < 1
-  · exact PowerDifferenceInequality.CAlphaGamma_of_alpha_lt_one
-      halpha halpha_lt hgamma hrel huStar
-  · have halpha_ge : 1 ≤ alpha := le_of_not_gt halpha_lt
-    by_cases hgamma_le : gamma ≤ 1
-    · exact PowerDifferenceInequality.CAlphaGamma_of_one_le_alpha_of_gamma_le_one
-        halpha_ge hgamma hgamma_le huStar
-    · exact PowerDifferenceInequality.CAlphaGamma_of_one_le_alpha_of_one_lt_gamma
-        halpha_ge (lt_of_not_ge hgamma_le) hrel huStar
-
 /-- Direct theorem-shaped version of Paper3 Lemma A.6, avoiding the
 theorem-shaped `Prop` wrapper. -/
 theorem Lemma_A_6_direct
@@ -9824,6 +9812,10 @@ theorem Lemma_A_6_direct
         halpha_ge hgamma hgamma_le huStar
     · exact PowerDifferenceInequality.CAlphaGamma_of_one_le_alpha_of_one_lt_gamma
         halpha_ge (lt_of_not_ge hgamma_le) hrel huStar
+
+lemma Lemma_A_6_proved : Lemma_A_6 := by
+  intro alpha gamma halpha hgamma hrel uStar huStar
+  exact Lemma_A_6_direct halpha hgamma hrel huStar
 
 lemma Lemma_A_6.alpha_lt_one_branch
     {alpha gamma uStar : ℝ}
