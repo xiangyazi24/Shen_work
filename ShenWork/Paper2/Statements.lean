@@ -698,6 +698,47 @@ theorem intervalSemigroupOperator_paper2_const_abs_le
   intro x
   exact ShenWork.IntervalDomain.intervalSemigroupOperator_const_abs_le ht x
 
+theorem intervalSemigroupOperator_paper2_nonneg
+    {L t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf : ∀ y, 0 ≤ f y) :
+    ∀ x : ℝ,
+      0 ≤ ShenWork.IntervalDomain.intervalSemigroupOperator L t f x := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_nonneg ht hf x
+
+theorem intervalSemigroupOperator_paper2_const
+    (L t c : ℝ) :
+    ∀ x : ℝ,
+      ShenWork.IntervalDomain.intervalSemigroupOperator L t (fun _ => c) x =
+        c * ∫ y, ShenWork.IntervalDomain.normalizedZerothReflectionKernel L t x y
+            ∂ ShenWork.IntervalDomain.intervalMeasure L := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_const_eq_kernel_mass_mul L t c x
+
+theorem intervalSemigroupOperator_paper2_one_interval
+    {L t : ℝ} (ht : 0 < t) :
+    ∀ x : ℝ,
+      0 ≤ ShenWork.IntervalDomain.intervalSemigroupOperator L t (fun _ => 1) x ∧
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t (fun _ => 1) x ≤ 1 := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_one_interval ht x
+
+theorem intervalSemigroupOperator_paper2_submarkov
+    {L t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} {M Mf : ℝ}
+    (hf_meas : MeasureTheory.AEStronglyMeasurable f
+      (ShenWork.IntervalDomain.intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hf_nonneg : ∀ y, 0 ≤ f y) (hf_le : ∀ y, f y ≤ M) :
+    ∀ x : ℝ,
+      0 ≤ ShenWork.IntervalDomain.intervalSemigroupOperator L t f x ∧
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t f x ≤
+          M * ∫ y, ShenWork.IntervalDomain.normalizedZerothReflectionKernel L t x y
+              ∂ ShenWork.IntervalDomain.intervalMeasure L := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_submarkov_interval_bound_bounded
+    ht hf_meas hf_bound hf_nonneg hf_le x
+
 def WeightedGradientEstimate
     (D : BoundedDomainData) (pExp beta gamma Mstar T : ℝ)
     (u v : ℝ → D.Point → ℝ) : Prop :=
