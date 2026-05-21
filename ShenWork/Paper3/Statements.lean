@@ -6859,6 +6859,82 @@ lemma Theorem_2_2_xpSigma_local_exponential_branch_proved :
     intro u₀ hu₀ hsmall u v huv htrace t ht
     exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
+/-- Formula-level nonminimal `X^σ_p` local exponential branch.  The spectral
+stability input is obtained from the explicit strong thresholds and the paper
+critical-sensitivity infimum, not from `Paper3Constants`. -/
+def Theorem_2_2_xpSigma_nonminimal_formula_branch : Prop :=
+  ∀ (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D),
+    HasNeumannSpectrum S → Lemma_A_1 D p S N →
+      ∀ sigma pNorm, 1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          max
+              (max (chiStrong1Formula p eq.1 eq.2)
+                (chiStrong2Formula p eq.1))
+              (max (chiStrong3Formula p M0 eq.1 eq.2)
+                (chiStrong4Formula p M0 eq.1)) ≤
+            paperCriticalSensitivity S p eq.1 eq.2 →
+            NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+              ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+                ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+                  N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+                    ∀ u v : ℝ → D.Point → ℝ,
+                      IsPaper2GlobalClassicalSolution D p u v →
+                      InitialTrace D u₀ u →
+                        ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate
+
+lemma Theorem_2_2_xpSigma_nonminimal_formula_branch_proved :
+    Theorem_2_2_xpSigma_nonminimal_formula_branch := by
+  intro D S p N H hA1 sigma pNorm hsigma_low hsigma_high hpNorm ha hb M0
+  dsimp
+  intro hcritical hcond
+  have hstable :=
+    hcond.linearlyStable_of_max_threshold_le_critical S p H ha hb hcritical
+  rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
+    ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
+  refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
+  intro u₀ hu₀ hsmall u v huv htrace t ht
+  exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
+
+/-- Formula-level minimal `X^σ_p` local exponential branch.  The spectral
+stability input is obtained from the explicit minimal thresholds and the paper
+critical-sensitivity infimum, not from `Paper3Constants`. -/
+def Theorem_2_2_xpSigma_minimal_formula_branch : Prop :=
+  ∀ (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D),
+    HasNeumannSpectrum S → Lemma_A_1 D p S N →
+      ∀ sigma pNorm, 1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+        p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+          ∀ uStar > 0, ∀ uBar vLower : ℝ,
+            chiBeta p ≤
+              paperCriticalSensitivity S p
+                (minimalEquilibrium p uStar).1
+                (minimalEquilibrium p uStar).2 →
+              MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+                ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+                  ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+                    N.xpSigmaDistance sigma pNorm u₀
+                        (fun _ => (minimalEquilibrium p uStar).1) ≤ eps →
+                      ∀ u v : ℝ → D.Point → ℝ,
+                        IsPaper2GlobalClassicalSolution D p u v →
+                        InitialTrace D u₀ u →
+                          ExponentialC1ConvergenceWith D N u v
+                            (minimalEquilibrium p uStar).1
+                            (minimalEquilibrium p uStar).2 A rate
+
+lemma Theorem_2_2_xpSigma_minimal_formula_branch_proved :
+    Theorem_2_2_xpSigma_minimal_formula_branch := by
+  intro D S p N H hA1 sigma pNorm hsigma_low hsigma_high hpNorm
+    _ha _hb _hm hβ uStar huStar uBar vLower hcritical hcond
+  have hstable :=
+    hcond.linearlyStable_of_chiBeta_le_critical S p H hβ huStar hcritical
+  rcases hA1.local_exponential_stability hsigma_low hsigma_high hpNorm hstable with
+    ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
+  refine ⟨eps, heps, A, hA, rate, hrate, ?_⟩
+  intro u₀ hu₀ hsmall u v huv htrace t ht
+  exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
+
 def Lemma_A_2
     (D : BoundedDomainData) (p : CM2Params)
     (S : SemigroupEstimateData D) : Prop :=
