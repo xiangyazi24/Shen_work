@@ -1332,20 +1332,36 @@ theorem Psi_kernel_integrable_of_isCUnifBdd
   exact _root_.psi_kernel_mul_bounded_integrable hl hM_nonneg hM x
     hu.1.aestronglyMeasurable
 
+theorem Lemma_2_2_kernel_formula_direct
+    {u : ℝ → ℝ} {l mu : ℝ} (_hl : 0 < l) (_hmu : 0 < mu)
+    (_hu : IsCUnifBdd u) :
+    ∀ x,
+      Psi u l mu x =
+        mu / (2 * Real.sqrt l) *
+          ∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * u y := by
+  intro x
+  rfl
+
 theorem Lemma_2_2_kernel_formula_proved :
     ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
       ∀ x,
         Psi u l mu x =
           mu / (2 * Real.sqrt l) *
             ∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * u y := by
-  intro u l mu _hl _hmu _hu x
-  rfl
+  intro u l mu hl hmu hu
+  exact Lemma_2_2_kernel_formula_direct hl hmu hu
+
+theorem Lemma_2_2_derivative_formula_direct
+    {u : ℝ → ℝ} {l mu : ℝ} (hl : 0 < l) (hmu : 0 < mu)
+    (hu : IsCUnifBdd u) :
+    PsiDerivativeFormula u l mu := by
+  exact Psi_derivative_formula_general hl hmu hu
 
 theorem Lemma_2_2_derivative_formula_proved :
     ∀ u : ℝ → ℝ, ∀ l mu : ℝ, 0 < l → 0 < mu → IsCUnifBdd u →
       PsiDerivativeFormula u l mu := by
   intro u l mu hl hmu hu
-  exact Psi_derivative_formula_general hl hmu hu
+  exact Lemma_2_2_derivative_formula_direct hl hmu hu
 
 theorem Lemma_2_2_direct
     {u : ℝ → ℝ} {l mu : ℝ}
@@ -1355,8 +1371,8 @@ theorem Lemma_2_2_direct
         mu / (2 * Real.sqrt l) *
           ∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * u y) ∧
     PsiDerivativeFormula u l mu :=
-  ⟨Lemma_2_2_kernel_formula_proved u l mu hl hmu hu,
-    Lemma_2_2_derivative_formula_proved u l mu hl hmu hu⟩
+  ⟨Lemma_2_2_kernel_formula_direct hl hmu hu,
+    Lemma_2_2_derivative_formula_direct hl hmu hu⟩
 
 theorem Lemma_2_2_proved : Lemma_2_2 := by
   intro u l mu hl hmu hu
