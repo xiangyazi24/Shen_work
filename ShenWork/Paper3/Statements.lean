@@ -6035,7 +6035,7 @@ def Corollary_5_1
 critical threshold is the concrete spectral formula, and the analytic upgrade
 is supplied as the raw `ConvergenceToExponentialNonminimalRaw` hypothesis
 rather than through `Paper3Constants.convergenceToExponential`. -/
-lemma Corollary_5_1_nonminimal_exponential_formula_branch
+lemma Corollary_5_1_nonminimal_exponential_formula_branch_of_raw
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
     {N : StabilityNorms D}
     (hraw :
@@ -6066,7 +6066,7 @@ lemma Corollary_5_1_nonminimal_exponential_formula_branch
     ⟨A, hA, rate, hrate, hdecay⟩
   exact ExponentialC1ConvergenceWith.exists hA hrate hdecay
 
-lemma Corollary_5_1_nonminimal_exponential_formula_unitInterval
+lemma Corollary_5_1_nonminimal_exponential_formula_unitInterval_of_raw
     {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
     (hraw :
       ConvergenceToExponentialNonminimalRaw D p N.c1Distance
@@ -6085,11 +6085,11 @@ lemma Corollary_5_1_nonminimal_exponential_formula_unitInterval
     ExponentialC1Convergence D N u v
       (positiveEquilibrium p ⟨ha, hb⟩).1
       (positiveEquilibrium p ⟨ha, hb⟩).2 :=
-  Corollary_5_1_nonminimal_exponential_formula_branch
+  Corollary_5_1_nonminimal_exponential_formula_branch_of_raw
     (S := unitIntervalNeumannSpectrum) hraw hm ha hb hχ huv hconv
 
 /-- Formula-level minimal exponential upgrade for Corollary 5.1. -/
-lemma Corollary_5_1_minimal_exponential_formula_branch
+lemma Corollary_5_1_minimal_exponential_formula_branch_of_raw
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
     {N : StabilityNorms D}
     (hraw :
@@ -6121,7 +6121,7 @@ lemma Corollary_5_1_minimal_exponential_formula_branch
     ⟨A, hA, rate, hrate, hdecay⟩
   exact ExponentialC1ConvergenceWith.exists hA hrate hdecay
 
-lemma Corollary_5_1_minimal_exponential_formula_unitInterval
+lemma Corollary_5_1_minimal_exponential_formula_unitInterval_of_raw
     {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
     (hraw :
       ConvergenceToExponentialMinimalRaw D p N.c1Distance
@@ -6142,7 +6142,7 @@ lemma Corollary_5_1_minimal_exponential_formula_unitInterval
     ExponentialC1Convergence D N u v
       (minimalEquilibrium p uStar).1
       (minimalEquilibrium p uStar).2 :=
-  Corollary_5_1_minimal_exponential_formula_branch
+  Corollary_5_1_minimal_exponential_formula_branch_of_raw
     (S := unitIntervalNeumannSpectrum) hraw hm ha hb huStar hχ
     huv hmass hconv
 
