@@ -1918,6 +1918,16 @@ theorem intervalSemigroupOperator_L1_Linfty
         ∫ y, ‖f y‖ ∂ intervalMeasure L :=
         MeasureTheory.integral_const_mul _ _
 
+/-- Absolute-value form of interval helper `L¹ → L∞` smoothing. -/
+theorem intervalSemigroupOperator_L1_Linfty_abs
+    {L t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf_int : Integrable f (intervalMeasure L)) (x : ℝ) :
+    |intervalSemigroupOperator L t f x| ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) *
+        ∫ y, |f y| ∂ intervalMeasure L := by
+  simpa [Real.norm_eq_abs] using
+    intervalSemigroupOperator_L1_Linfty ht hf_int x
+
 /-- Bounded-input `L¹ → L∞` smoothing for the interval helper operator. -/
 theorem intervalSemigroupOperator_L1_Linfty_bounded
     {L t Mf : ℝ} (ht : 0 < t)
@@ -1928,6 +1938,19 @@ theorem intervalSemigroupOperator_L1_Linfty_bounded
       (1 / Real.sqrt (4 * Real.pi * t)) *
         ∫ y, ‖f y‖ ∂ intervalMeasure L :=
   intervalSemigroupOperator_L1_Linfty ht
+    (intervalMeasure_integrable_of_abs_bound hf_meas hf_bound) x
+
+/-- Absolute-value bounded-input `L¹ → L∞` smoothing for the interval helper
+operator. -/
+theorem intervalSemigroupOperator_L1_Linfty_abs_bounded
+    {L t Mf : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf) (x : ℝ) :
+    |intervalSemigroupOperator L t f x| ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) *
+        ∫ y, |f y| ∂ intervalMeasure L :=
+  intervalSemigroupOperator_L1_Linfty_abs ht
     (intervalMeasure_integrable_of_abs_bound hf_meas hf_bound) x
 
 /-- The interval helper kernel times an `L¹` interval input is integrable. -/
