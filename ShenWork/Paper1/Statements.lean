@@ -10233,61 +10233,6 @@ theorem PositiveSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_si
       Lemma_5_1.fixed_point_signal_package p hc hU.cunif_bdd
         (hU.hasWaveUpperTailBound_of_pos hupperU.pos)⟩
 
-theorem Lemma_5_1.signal_bound
-    (h : Lemma_5_1) {p : CMParams} {c : ℝ} (hc : 2 < c)
-    {U V : ℝ → ℝ}
-    (hTW : IsTravelingWave p c U V)
-    (hbound : HasWaveUpperTailBound p c U) :
-    ∀ x, |V x| ≤ (MChi p) ^ p.γ ∧ |deriv V x| ≤ (MChi p) ^ p.γ :=
-  (h p c hc U V hTW hbound).1
-
-theorem Lemma_5_1.exponential_signal_bound
-    (h : Lemma_5_1) {p : CMParams} {c : ℝ} (hc : 2 < c)
-    {U V : ℝ → ℝ}
-    (hTW : IsTravelingWave p c U V)
-    (hbound : HasWaveUpperTailBound p c U)
-    (hspeed : p.γ + p.γ⁻¹ < c) :
-    ∀ x,
-      |V x| ≤
-        min ((MChi p) ^ p.γ)
-          ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
-            Real.exp (-(kappa c) * p.γ * x)) ∧
-      |deriv V x| ≤
-        min ((MChi p) ^ p.γ)
-          ((1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
-            Real.exp (-(kappa c) * p.γ * x)) :=
-  (h p c hc U V hTW hbound).2.1 hspeed
-
-theorem Lemma_5_1.wave_derivative_tends_zero
-    (h : Lemma_5_1) {p : CMParams} {c : ℝ} (hc : 2 < c)
-    {U V : ℝ → ℝ}
-    (hTW : IsTravelingWave p c U V)
-    (hbound : HasWaveUpperTailBound p c U) :
-    WaveDerivativeTendsZero U :=
-  (h p c hc U V hTW hbound).2.2.1
-
-theorem Lemma_5_1.wave_derivative_bounded
-    (h : Lemma_5_1) {p : CMParams} {c : ℝ} (hc : 2 < c)
-    {U V : ℝ → ℝ}
-    (hTW : IsTravelingWave p c U V)
-    (hbound : HasWaveUpperTailBound p c U)
-    (hspeed : c > p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) :
-    ∃ B > 0, ∀ x, |deriv U x| ≤ B :=
-  (h p c hc U V hTW hbound).2.2.2.1 hspeed
-
-theorem Lemma_5_1.wave_derivative_exp_bound
-    (h : Lemma_5_1) {p : CMParams} {c : ℝ} (hc : 2 < c)
-    {U V : ℝ → ℝ}
-    (hTW : IsTravelingWave p c U V)
-    (hbound : HasWaveUpperTailBound p c U)
-    (hspeed :
-      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1))) :
-    ∃ B1 B2, ∀ x,
-      |deriv U x| ≤
-        B1 * Real.exp (-(kappa c) * x) +
-          B2 * Real.exp (-(kappa c) * p.γ * x) :=
-  (h p c hc U V hTW hbound).2.2.2.2 hspeed
-
 /-- The explicit log-derivative bound from Paper1 Lemma 5.2. -/
 def logDerivativeBoundFormula (p : CMParams) (c : ℝ) : ℝ :=
   (1 / 2 : ℝ) *
