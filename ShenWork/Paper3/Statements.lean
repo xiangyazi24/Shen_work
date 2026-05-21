@@ -2408,6 +2408,19 @@ lemma unitInterval_positiveEquilibrium_linearlyStable_of_chi_lt_critical
     unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
     ha hb hχ
 
+lemma unitInterval_positiveEquilibrium_linearlyUnstable_of_critical_lt_chi
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2 <
+        p.χ₀) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyUnstable unitIntervalNeumannSpectrum p eq.1 eq.2 := by
+  exact positiveEquilibrium_linearlyUnstable_of_paperCriticalSensitivity_lt_chi_neumann
+    unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+    ha hb hχ
+
 lemma unitInterval_minimalEquilibrium_linearlyStable_of_chi_nonpos
     (p : CM2Params) {uStar : ℝ}
     (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (huStar : 0 < uStar) :
@@ -2427,6 +2440,19 @@ lemma unitInterval_minimalEquilibrium_linearlyStable_of_chi_lt_critical
     let eq := minimalEquilibrium p uStar
     LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 := by
   exact minimalEquilibrium_linearlyStable_of_chi_lt_paperCriticalSensitivity_neumann
+    unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+    huStar hχ
+
+lemma unitInterval_minimalEquilibrium_linearlyUnstable_of_critical_lt_chi
+    (p : CM2Params) {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ :
+      paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 <
+        p.χ₀) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyUnstable unitIntervalNeumannSpectrum p eq.1 eq.2 := by
+  exact minimalEquilibrium_linearlyUnstable_of_paperCriticalSensitivity_lt_chi_neumann
     unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
     huStar hχ
 
@@ -5869,6 +5895,37 @@ lemma Theorem_2_2_linear_threshold_branch_proved :
           S p H huStar,
         minimalEquilibrium_linearlyUnstable_of_paperCriticalSensitivity_lt_chi_neumann
           S p H huStar⟩
+
+lemma Theorem_2_2_linear_threshold_unitInterval
+    (p : CM2Params) :
+    (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      (p.χ₀ < paperCriticalSensitivity unitIntervalNeumannSpectrum p eq.1 eq.2 →
+        LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2) ∧
+      (paperCriticalSensitivity unitIntervalNeumannSpectrum p eq.1 eq.2 < p.χ₀ →
+        LinearlyUnstable unitIntervalNeumannSpectrum p eq.1 eq.2)) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        (p.χ₀ <
+            paperCriticalSensitivity unitIntervalNeumannSpectrum p eq.1 eq.2 →
+          LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2) ∧
+        (paperCriticalSensitivity unitIntervalNeumannSpectrum p eq.1 eq.2 <
+            p.χ₀ →
+          LinearlyUnstable unitIntervalNeumannSpectrum p eq.1 eq.2)) := by
+  refine ⟨?_, ?_⟩
+  · intro ha hb
+    exact
+      ⟨unitInterval_positiveEquilibrium_linearlyStable_of_chi_lt_critical
+          p ha hb,
+        unitInterval_positiveEquilibrium_linearlyUnstable_of_critical_lt_chi
+          p ha hb⟩
+  · intro _ha _hb uStar huStar
+    exact
+      ⟨unitInterval_minimalEquilibrium_linearlyStable_of_chi_lt_critical
+          p huStar,
+        unitInterval_minimalEquilibrium_linearlyUnstable_of_critical_lt_chi
+          p huStar⟩
 
 /-- Direct linear part of Paper3 Theorem 2.2 using the constants package's
 critical-sensitivity field, once that field is identified with the paper's
