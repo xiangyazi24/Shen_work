@@ -849,35 +849,6 @@ lemma AboveSomeLinearCriticalThreshold_of_paperCriticalSensitivity_lt_chi
 structure StabilityNorms (D : BoundedDomainData) where
   c1Distance : (D.Point → ℝ) → (D.Point → ℝ) → ℝ
   xpSigmaDistance : ℝ → ℝ → (D.Point → ℝ) → (D.Point → ℝ) → ℝ
-  negativeSensitivityGlobalStability :
-    ∀ p : CM2Params, p.χ₀ ≤ 0 → 1 ≤ p.m →
-      (∀ (ha : 0 < p.a) (hb : 0 < p.b),
-        let eq := positiveEquilibrium p ⟨ha, hb⟩
-        (∀ u v : ℝ → D.Point → ℝ,
-          PositiveGlobalBoundedSolution D p u v →
-            UniformConvergesInSup D u eq.1) ∧
-        ∃ A > 0, ∃ rate > 0,
-          ∀ u v : ℝ → D.Point → ℝ,
-            PositiveGlobalBoundedSolution D p u v →
-              ∀ t, 0 ≤ t →
-                c1Distance (u t) (fun _ => eq.1) +
-                  c1Distance (v t) (fun _ => eq.2) ≤
-                    A * Real.exp (-rate * t)) ∧
-      (p.a = 0 → p.b = 0 →
-        ∀ uStar > 0,
-          let eq := minimalEquilibrium p uStar
-          (∀ u v : ℝ → D.Point → ℝ,
-            PositiveGlobalBoundedSolution D p u v →
-            HasInitialMass D u uStar →
-              UniformConvergesInSup D u eq.1) ∧
-          ∃ A > 0, ∃ rate > 0,
-            ∀ u v : ℝ → D.Point → ℝ,
-              PositiveGlobalBoundedSolution D p u v →
-              HasInitialMass D u uStar →
-                ∀ t, 0 ≤ t →
-                  c1Distance (u t) (fun _ => eq.1) +
-                    c1Distance (v t) (fun _ => eq.2) ≤
-                      A * Real.exp (-rate * t))
 
 structure CompactnessData (D : BoundedDomainData) where
   locallyConverges :
@@ -2499,42 +2470,6 @@ structure Paper3Constants (D : BoundedDomainData) (p : CM2Params) where
   eventualMinimalUBound : ℝ → ℝ
   gaussianLowerConst : ℝ
   gaussianLowerConst_pos : 0 < gaussianLowerConst
-  uniformPersistencePart1 :
-    1 ≤ p.m →
-      ∀ u v : ℝ → D.Point → ℝ,
-        PositiveGlobalBoundedSolution D p u v →
-          ∃ δu > 0, EventuallyLowerBound D u δu ∧
-            EventuallyLowerBound D v (p.ν / p.μ * δu ^ p.γ)
-  uniformPersistencePart2 :
-    0 < p.a → 0 < p.b → 0 < p.χ₀ → p.m = 1 → 1 ≤ p.β →
-      p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)) →
-        ∀ u v : ℝ → D.Point → ℝ,
-          PositiveGlobalBoundedSolution D p u v →
-            let lowerU :=
-              ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^ (1 / p.α)
-            EventuallyLowerBound D u lowerU ∧
-              EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
-  uniformPersistencePart3 :
-    0 < p.a → 0 < p.b → 0 < p.χ₀ → 1 < p.m → 1 ≤ p.β →
-      ∀ u v : ℝ → D.Point → ℝ,
-        PositiveGlobalBoundedSolution D p u v →
-          let lowerU :=
-            min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
-              max (1 / (p.m - 1)) (1 / p.α)
-          EventuallyLowerBound D u lowerU ∧
-            EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
-  uniformPersistencePart4 :
-    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
-      0 < p.χ₀ → p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) →
-        ∀ uStar > 0, ∀ u v : ℝ → D.Point → ℝ,
-          PositiveGlobalBoundedSolution D p u v →
-          HasInitialMass D u uStar →
-            EventuallyLowerBound D v
-              (gaussianLowerConst *
-                if p.γ ≤ 1 then
-                  uStar * (eventualMinimalUBound uStar) ^ (p.γ - 1)
-                else
-                  uStar ^ p.γ)
 
 /-- The constants package uses the paper's concrete spectral formula `(2.10)`
 for the linear critical sensitivity. -/
@@ -4199,7 +4134,7 @@ lemma not_InitialContinuityRaw_constant_xpSigmaDistance :
       hclassical initialContinuityNoDistanceControl_trace_one
   norm_num at hle
 
-/-- Raw version of `StabilityNorms.negativeSensitivityGlobalStability`,
+/-- Raw version of the former `StabilityNorms.negativeSensitivityGlobalStability`,
 exposing only the `C¹` distance rather than a full norm package. -/
 def NegativeSensitivityGlobalStabilityRaw
     (D : BoundedDomainData) (p : CM2Params)
@@ -4281,8 +4216,8 @@ lemma not_NegativeSensitivityGlobalStabilityRaw_constant_c1Distance :
     simpa [t] using htmp
   linarith
 
-/-- Raw version of `StabilityNorms.sectorialLocalExponential`, with the two
-distance functionals exposed. -/
+/-- Raw version of the former `StabilityNorms.sectorialLocalExponential`, with
+the two distance functionals exposed. -/
 def SectorialLocalExponentialRaw
     (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
     (c1Distance : (D.Point → ℝ) → (D.Point → ℝ) → ℝ)
@@ -5218,8 +5153,9 @@ lemma not_LinearInstabilityMinimalRaw_arbitrary_threshold :
   have hneg := hstable n hn
   linarith
 
-/-- Raw version of `CompactnessData.upperEnvelopeMonotonicity`, exposing the
-upper-envelope functional instead of hiding it inside a compactness package. -/
+/-- Raw version of the former `CompactnessData.upperEnvelopeMonotonicity`,
+exposing the upper-envelope functional instead of hiding it inside a compactness
+package. -/
 def UpperEnvelopeMonotonicityRaw
     (D : BoundedDomainData) (p : CM2Params)
     (upperEnvelope : (D.Point → ℝ) → ℝ) : Prop :=
@@ -5293,8 +5229,9 @@ lemma not_UpperEnvelopeMonotonicityRaw_eval_increasing_solution :
       1 2 (by norm_num) (by norm_num)
   norm_num [u] at hmono
 
-/-- Raw version of `CompactnessData.timeTranslateCompactness`, exposing the
-local convergence predicate instead of hiding it inside a compactness package. -/
+/-- Raw version of the former `CompactnessData.timeTranslateCompactness`,
+exposing the local convergence predicate instead of hiding it inside a
+compactness package. -/
 def TimeTranslateCompactnessRaw
     (D : BoundedDomainData) (p : CM2Params)
     (locallyConverges :
@@ -5330,7 +5267,7 @@ lemma not_TimeTranslateCompactnessRaw_false_locallyConverges :
     ⟨subseq, hsubseq, uInf, vInf, hloc_u, _hloc_v, _hclassical⟩
   exact hloc_u
 
-/-- Raw version of `CompactnessData.neumannResolventGradientBound_exists`,
+/-- Raw version of the former `CompactnessData.neumannResolventGradientBound_exists`,
 with the bound predicate exposed. -/
 def NeumannResolventGradientBoundExistsRaw
     (D : BoundedDomainData)
@@ -5349,7 +5286,7 @@ lemma not_NeumannResolventGradientBoundExistsRaw_false_bound :
   rintro ⟨M0, hM0_pos, hbound⟩
   exact hbound 1 1 (fun _ : Unit => (0 : ℝ)) (by norm_num) (by norm_num)
 
-/-- Raw version of `Paper3Constants.uniformPersistencePart1`, with no
+/-- Raw version of the former `Paper3Constants.uniformPersistencePart1`, with no
 constants package. -/
 def UniformPersistencePart1Raw
     (D : BoundedDomainData) (p : CM2Params) : Prop :=
@@ -5371,63 +5308,6 @@ lemma not_UniformPersistencePart1Raw_no_lower_envelope :
   have hm : 1 ≤ p.m := by
     norm_num [p, theorem21Part1CounterParams]
   rcases h hm (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
-      theorem21Part1Counter_positiveGlobalBounded with
-    ⟨δu, hδu_pos, hlowerU, _hlowerV⟩
-  rcases hlowerU with ⟨_hδu_pos', hlower_eventually⟩
-  have heventually_nonpos :
-      ∀ᶠ t : ℝ in atTop, δu ≤ (0 : ℝ) := by
-    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlower_eventually
-  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
-  have hnonpos : δu ≤ 0 := hT T le_rfl
-  linarith
-
-/-- The abstract `StabilityNorms` package cannot be instantiated on an arbitrary
-`BoundedDomainData`.  On the fake lower-envelope domain the PDE admits the
-positive constant solution `u = v = 1`, but `supNorm` is identically `1`, so the
-negative-sensitivity global-stability field would force the constant function
-`1` to tend to `0`. -/
-lemma not_exists_StabilityNorms_no_supNorm_convergence :
-    ¬ Nonempty (StabilityNorms theorem21Part1NoLowerEnvelopeDomain) := by
-  rintro ⟨N⟩
-  let D := theorem21Part1NoLowerEnvelopeDomain
-  let p := theorem21Part1CounterParams
-  have ha : 0 < p.a := by
-    norm_num [p, theorem21Part1CounterParams]
-  have hb : 0 < p.b := by
-    norm_num [p, theorem21Part1CounterParams]
-  have hχ : p.χ₀ ≤ 0 := by
-    norm_num [p, theorem21Part1CounterParams]
-  have hm : 1 ≤ p.m := by
-    norm_num [p, theorem21Part1CounterParams]
-  have hbranch := (N.negativeSensitivityGlobalStability p hχ hm).1 ha hb
-  have hconv :
-      UniformConvergesInSup D (fun _ _ => (1 : ℝ))
-        (positiveEquilibrium p ⟨ha, hb⟩).1 :=
-    hbranch.1 (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
-      theorem21Part1Counter_positiveGlobalBounded
-  have hlim_zero : Tendsto (fun _t : ℝ => (1 : ℝ)) atTop (𝓝 (0 : ℝ)) := by
-    simp [UniformConvergesInSup, D, theorem21Part1NoLowerEnvelopeDomain] at hconv
-  have hlim_one : Tendsto (fun _t : ℝ => (1 : ℝ)) atTop (𝓝 (1 : ℝ)) :=
-    tendsto_const_nhds
-  have hone_eq_zero : (1 : ℝ) = 0 :=
-    tendsto_nhds_unique hlim_one hlim_zero
-  norm_num at hone_eq_zero
-
-/-- The same fake lower-envelope domain also rules out a `Paper3Constants`
-package for the Part (1) persistence parameters.  The
-`uniformPersistencePart1` field would give a positive eventual lower bound for
-`u = 1`, but `infValue` is identically zero. -/
-lemma not_exists_Paper3Constants_theorem21_part1_counterdomain :
-    ¬ Nonempty
-      (Paper3Constants theorem21Part1NoLowerEnvelopeDomain
-        theorem21Part1CounterParams) := by
-  rintro ⟨C⟩
-  let D := theorem21Part1NoLowerEnvelopeDomain
-  let p := theorem21Part1CounterParams
-  have hm : 1 ≤ p.m := by
-    norm_num [p, theorem21Part1CounterParams]
-  rcases C.uniformPersistencePart1 hm
-      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
       theorem21Part1Counter_positiveGlobalBounded with
     ⟨δu, hδu_pos, hlowerU, _hlowerV⟩
   rcases hlowerU with ⟨_hδu_pos', hlower_eventually⟩
@@ -5520,7 +5400,7 @@ def Theorem_2_1_part2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
           EventuallyLowerBound D u lowerU ∧
             EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
 
-/-- Raw version of `Paper3Constants.uniformPersistencePart2`, with no
+/-- Raw version of the former `Paper3Constants.uniformPersistencePart2`, with no
 constants package. -/
 def UniformPersistencePart2Raw
     (D : BoundedDomainData) (p : CM2Params) : Prop :=
@@ -5610,47 +5490,6 @@ lemma not_UniformPersistencePart2Raw_no_lower_envelope :
           (1 / p.α) ≤ (0 : ℝ) := hT T le_rfl
   linarith
 
-/-- Package-level version of the Part (2) lower-envelope obstruction.  The
-`uniformPersistencePart2` field of `Paper3Constants` would force a positive
-eventual lower bound, contradicting `infValue ≡ 0` on the fake domain. -/
-lemma not_exists_Paper3Constants_theorem21_part2_counterdomain :
-    ¬ Nonempty
-      (Paper3Constants theorem21Part1NoLowerEnvelopeDomain
-        theorem21Part2CounterParams) := by
-  rintro ⟨C⟩
-  let D := theorem21Part1NoLowerEnvelopeDomain
-  let p := theorem21Part2CounterParams
-  have hχ :
-      p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)) := by
-    norm_num [p, theorem21Part2CounterParams, Theta_beta_zero]
-  have huv :
-      PositiveGlobalBoundedSolution D p
-        (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
-    exact theorem21NoLowerEnvelope_constant_one_positiveGlobalBounded p
-      (by norm_num [p, theorem21Part2CounterParams])
-      (by norm_num [p, theorem21Part2CounterParams])
-      (by norm_num [p, theorem21Part2CounterParams])
-      (by norm_num [p, theorem21Part2CounterParams])
-  rcases C.uniformPersistencePart2
-      (by norm_num [p, theorem21Part2CounterParams])
-      (by norm_num [p, theorem21Part2CounterParams])
-      (by norm_num [p, theorem21Part2CounterParams])
-      (by norm_num [p, theorem21Part2CounterParams])
-      (by norm_num [p, theorem21Part2CounterParams])
-      hχ (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) huv with
-    ⟨hlowerU, _hlowerV⟩
-  rcases hlowerU with ⟨hlowerU_pos, hlowerU_eventually⟩
-  have heventually_nonpos :
-      ∀ᶠ t : ℝ in atTop,
-        ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
-            (1 / p.α) ≤ (0 : ℝ) := by
-    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlowerU_eventually
-  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
-  have hnonpos :
-      ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
-          (1 / p.α) ≤ (0 : ℝ) := hT T le_rfl
-  linarith
-
 def Theorem_2_1_part3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   0 < p.a → 0 < p.b → 0 < p.χ₀ → 1 < p.m → 1 ≤ p.β →
     ∀ u v : ℝ → D.Point → ℝ,
@@ -5661,7 +5500,7 @@ def Theorem_2_1_part3 (D : BoundedDomainData) (p : CM2Params) : Prop :=
         EventuallyLowerBound D u lowerU ∧
           EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)
 
-/-- Raw version of `Paper3Constants.uniformPersistencePart3`, with no
+/-- Raw version of the former `Paper3Constants.uniformPersistencePart3`, with no
 constants package. -/
 def UniformPersistencePart3Raw
     (D : BoundedDomainData) (p : CM2Params) : Prop :=
@@ -5769,44 +5608,6 @@ lemma not_UniformPersistencePart3Raw_no_lower_envelope :
         max (1 / (p.m - 1)) (1 / p.α)) ≤ (0 : ℝ) := hT T le_rfl
   linarith
 
-/-- Package-level version of the Part (3) lower-envelope obstruction. -/
-lemma not_exists_Paper3Constants_theorem21_part3_counterdomain :
-    ¬ Nonempty
-      (Paper3Constants theorem21Part1NoLowerEnvelopeDomain
-        theorem21Part3CounterParams) := by
-  rintro ⟨C⟩
-  let D := theorem21Part1NoLowerEnvelopeDomain
-  let p := theorem21Part3CounterParams
-  have huv :
-      PositiveGlobalBoundedSolution D p
-        (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
-    exact theorem21NoLowerEnvelope_constant_one_positiveGlobalBounded p
-      (by norm_num [p, theorem21Part3CounterParams])
-      (by norm_num [p, theorem21Part3CounterParams])
-      (by norm_num [p, theorem21Part3CounterParams])
-      (by norm_num [p, theorem21Part3CounterParams])
-  rcases C.uniformPersistencePart3
-      (by norm_num [p, theorem21Part3CounterParams])
-      (by norm_num [p, theorem21Part3CounterParams])
-      (by norm_num [p, theorem21Part3CounterParams])
-      (by norm_num [p, theorem21Part3CounterParams])
-      (by norm_num [p, theorem21Part3CounterParams])
-      (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) huv with
-    ⟨hlowerU, _hlowerV⟩
-  rcases hlowerU with ⟨hlowerU_pos, hlowerU_eventually⟩
-  have heventually_nonpos :
-      ∀ᶠ t : ℝ in atTop,
-        (min 1
-            (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
-          max (1 / (p.m - 1)) (1 / p.α)) ≤ (0 : ℝ) := by
-    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlowerU_eventually
-  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
-  have hnonpos :
-      (min 1
-          (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
-        max (1 / (p.m - 1)) (1 / p.α)) ≤ (0 : ℝ) := hT T le_rfl
-  linarith
-
 /-- Parameters for the minimal-model lower-bound obstruction in Theorem 2.1(4).
 The fake bounded-domain API still admits the positive constant solution
 `u = v = 1`, but its `infValue` functional is identically zero. -/
@@ -5870,8 +5671,8 @@ lemma theorem21Part4Counter_initialMass :
   change (1 : ℝ) = 1 * 1
   norm_num
 
-/-- Raw version of `Paper3Constants.eventualMinimalUpperBound`, with the
-eventual upper-bound function exposed. -/
+/-- Raw version of the former `Paper3Constants.eventualMinimalUpperBound`, with
+the eventual upper-bound function exposed. -/
 def EventualMinimalUpperBoundRaw
     (D : BoundedDomainData) (p : CM2Params)
     (eventualMinimalUBound : ℝ → ℝ) : Prop :=
@@ -5914,8 +5715,8 @@ lemma not_EventualMinimalUpperBoundRaw_zero_bound :
   have hbad : (1 : ℝ) ≤ 0 := hT T le_rfl
   norm_num at hbad
 
-/-- Raw version of `Paper3Constants.uniformPersistencePart4`, with the
-eventual upper-bound function and Gaussian lower constant exposed. -/
+/-- Raw version of the former `Paper3Constants.uniformPersistencePart4`, with
+the eventual upper-bound function and Gaussian lower constant exposed. -/
 def UniformPersistencePart4Raw
     (D : BoundedDomainData) (p : CM2Params)
     (eventualMinimalUBound : ℝ → ℝ) (gaussianLowerConst : ℝ) : Prop :=
@@ -6178,56 +5979,6 @@ lemma not_LemmaA8ThresholdComparisonsRaw_arbitrary_thresholds :
           1 (by norm_num)).1
         (by norm_num [theorem21Part4CounterParams]))
   norm_num at hle
-
-lemma not_exists_Paper3Constants_theorem21_part4_counterdomain :
-    ¬ Nonempty
-      (Paper3Constants theorem21Part1NoLowerEnvelopeDomain
-        theorem21Part4CounterParams) := by
-  rintro ⟨C⟩
-  let D := theorem21Part1NoLowerEnvelopeDomain
-  let p := theorem21Part4CounterParams
-  have huv :
-      PositiveGlobalBoundedSolution D p
-        (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
-    simpa [D, p] using theorem21Part4Counter_positiveGlobalBounded
-  have hmass :
-      HasInitialMass D (fun _ _ => (1 : ℝ)) 1 := by
-    simpa [D] using theorem21Part4Counter_initialMass
-  have hχ :
-      p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) := by
-    norm_num [p, theorem21Part4CounterParams, chiBeta]
-  have hlower :
-      EventuallyLowerBound D (fun _ _ => (1 : ℝ))
-        (C.gaussianLowerConst *
-          if p.γ ≤ 1 then
-            (1 : ℝ) * (C.eventualMinimalUBound 1) ^ (p.γ - 1)
-          else
-            (1 : ℝ) ^ p.γ) := by
-    exact C.uniformPersistencePart4
-      (by norm_num [p, theorem21Part4CounterParams])
-      (by norm_num [p, theorem21Part4CounterParams])
-      (by norm_num [p, theorem21Part4CounterParams])
-      (by norm_num [p, theorem21Part4CounterParams])
-      (by norm_num [p, theorem21Part4CounterParams])
-      hχ 1 (by norm_num) (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ))
-      huv hmass
-  rcases hlower with ⟨hlower_pos, hlower_eventually⟩
-  have heventually_nonpos :
-      ∀ᶠ t : ℝ in atTop,
-        C.gaussianLowerConst *
-          (if p.γ ≤ 1 then
-            (1 : ℝ) * (C.eventualMinimalUBound 1) ^ (p.γ - 1)
-          else
-            (1 : ℝ) ^ p.γ) ≤ (0 : ℝ) := by
-    simpa [D, theorem21Part1NoLowerEnvelopeDomain] using hlower_eventually
-  rcases eventually_atTop.1 heventually_nonpos with ⟨T, hT⟩
-  have hnonpos :
-      C.gaussianLowerConst *
-        (if p.γ ≤ 1 then
-          (1 : ℝ) * (C.eventualMinimalUBound 1) ^ (p.γ - 1)
-        else
-          (1 : ℝ) ^ p.γ) ≤ (0 : ℝ) := hT T le_rfl
-  linarith
 
 lemma theorem_2_1_part2_lowerU_pos
     (p : CM2Params)
