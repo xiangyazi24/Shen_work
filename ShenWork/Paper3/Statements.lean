@@ -2188,6 +2188,31 @@ lemma positiveEquilibrium_linearlyUnstable_of_sigmaCriticalChi_lt_chi_neumann
     (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
     hn hχ
 
+lemma positiveEquilibrium_linearlyUnstable_of_mode_one_paperFormula_lt_chi_neumann
+    (S : SpectralData) (p : CM2Params)
+    (H : HasNeumannSpectrum S) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      sigmaCriticalChiPaperFormula p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2
+          (S.eigenvalue 1) <
+        p.χ₀) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyUnstable S p eq.1 eq.2 := by
+  have hχ' :
+      sigmaCriticalChi p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2
+          (S.eigenvalue 1) <
+        p.χ₀ := by
+    rw [sigmaCriticalChi_eq_paperFormula p
+      (positiveEquilibrium_fst_pos p ⟨ha, hb⟩)
+      (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
+      (H.eigenvalue_pos_of_ne_zero 1 (by norm_num))]
+    exact hχ
+  exact positiveEquilibrium_linearlyUnstable_of_sigmaCriticalChi_lt_chi_neumann
+    S p H ha hb (n := 1) (by norm_num) hχ'
+
 lemma positiveEquilibrium_linearlyUnstable_of_aboveSome_neumann
     (S : SpectralData) (p : CM2Params)
     (H : HasNeumannSpectrum S) (ha : 0 < p.a) (hb : 0 < p.b)
@@ -2347,6 +2372,39 @@ lemma minimalEquilibrium_linearlyUnstable_of_sigmaCriticalChi_lt_chi_neumann
     huStar
     (minimalEquilibrium_snd_pos p huStar).le
     hn hχ
+
+lemma minimalEquilibrium_linearlyUnstable_of_mode_one_paperFormula_lt_chi_neumann
+    (S : SpectralData) (p : CM2Params) {uStar : ℝ}
+    (H : HasNeumannSpectrum S) (huStar : 0 < uStar)
+    (hχ :
+      sigmaCriticalChiPaperFormula p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2
+          (S.eigenvalue 1) <
+        p.χ₀) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyUnstable S p eq.1 eq.2 := by
+  have hχ' :
+      sigmaCriticalChi p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2
+          (S.eigenvalue 1) <
+        p.χ₀ := by
+    change
+      sigmaCriticalChi p uStar (p.ν / p.μ * uStar ^ p.γ)
+          (S.eigenvalue 1) <
+        p.χ₀
+    rw [sigmaCriticalChi_eq_paperFormula (p := p) (uStar := uStar)
+      (vStar := p.ν / p.μ * uStar ^ p.γ)
+      (lambdaN := S.eigenvalue 1)
+      huStar
+      (by
+        exact (mul_pos (div_pos p.hν p.hμ)
+          (Real.rpow_pos_of_pos huStar _)).le)
+      (H.eigenvalue_pos_of_ne_zero 1 (by norm_num))]
+    simpa [minimalEquilibrium] using hχ
+  exact minimalEquilibrium_linearlyUnstable_of_sigmaCriticalChi_lt_chi_neumann
+    S p H huStar (n := 1) (by norm_num) hχ'
 
 lemma minimalEquilibrium_linearlyUnstable_of_aboveSome_neumann
     (S : SpectralData) (p : CM2Params) {uStar : ℝ}
@@ -5986,6 +6044,35 @@ lemma Theorem_2_2_linear_threshold_unitInterval
           p huStar,
         unitInterval_minimalEquilibrium_linearlyUnstable_of_critical_lt_chi
           p huStar⟩
+
+/-- Direct mode-one instability branch of Paper3 Theorem 2.2.  This is weaker
+than the full `paperCriticalSensitivity < χ₀` branch, but it uses one explicit
+paper formula value and does not touch `Paper3Constants`. -/
+def Theorem_2_2_linear_mode_one_instability_branch : Prop :=
+  ∀ S : SpectralData, ∀ p : CM2Params,
+    HasNeumannSpectrum S →
+      (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        sigmaCriticalChiPaperFormula p eq.1 eq.2 (S.eigenvalue 1) < p.χ₀ →
+          LinearlyUnstable S p eq.1 eq.2) ∧
+      (p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          sigmaCriticalChiPaperFormula p eq.1 eq.2 (S.eigenvalue 1) < p.χ₀ →
+            LinearlyUnstable S p eq.1 eq.2)
+
+lemma Theorem_2_2_linear_mode_one_instability_branch_proved :
+    Theorem_2_2_linear_mode_one_instability_branch := by
+  intro S p H
+  refine ⟨?_, ?_⟩
+  · intro ha hb
+    exact
+      positiveEquilibrium_linearlyUnstable_of_mode_one_paperFormula_lt_chi_neumann
+        S p H ha hb
+  · intro _ha _hb uStar huStar
+    exact
+      minimalEquilibrium_linearlyUnstable_of_mode_one_paperFormula_lt_chi_neumann
+        S p H huStar
 
 /-- Direct linear part of Paper3 Theorem 2.2 using the constants package's
 critical-sensitivity field, once that field is identified with the paper's
