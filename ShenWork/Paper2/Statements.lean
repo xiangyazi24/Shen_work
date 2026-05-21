@@ -618,6 +618,86 @@ theorem intervalSemigroupOperator_paper2_const_contraction
   exact ShenWork.IntervalDomain.intervalSemigroupOperator_const_contraction
     ht L c d x
 
+/-- Concrete interval semigroup difference `L¹ → L∞` smoothing for bounded
+input pairs. -/
+theorem intervalSemigroupOperator_paper2_diff_L1_Linfty
+    {L t Mf Mg : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_meas :
+      MeasureTheory.AEStronglyMeasurable f
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hg_meas :
+      MeasureTheory.AEStronglyMeasurable g
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hg_bound : ∀ y, |g y| ≤ Mg) :
+    ∀ x : ℝ,
+      |ShenWork.IntervalDomain.intervalSemigroupOperator L t f x -
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t g x| ≤
+        (1 / Real.sqrt (4 * Real.pi * t)) *
+          ∫ y, |f y - g y| ∂ ShenWork.IntervalDomain.intervalMeasure L := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_diff_L1_Linfty_abs_bounded
+    ht hf_meas hg_meas hf_bound hg_bound x
+
+/-- Concrete interval semigroup pairwise contraction with the restricted
+kernel mass kept explicit. -/
+theorem intervalSemigroupOperator_paper2_contraction_kernel_mass
+    {L t Mf Mg M : ℝ} (ht : 0 < t)
+    {f g : ℝ → ℝ}
+    (hf_meas :
+      MeasureTheory.AEStronglyMeasurable f
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hg_meas :
+      MeasureTheory.AEStronglyMeasurable g
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hfg : ∀ y, |f y - g y| ≤ M) :
+    ∀ x : ℝ,
+      |ShenWork.IntervalDomain.intervalSemigroupOperator L t f x -
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t g x| ≤
+        M *
+          ∫ y, ShenWork.IntervalDomain.normalizedZerothReflectionKernel L t x y
+            ∂ ShenWork.IntervalDomain.intervalMeasure L := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_contraction_kernel_mass_bounded
+    ht hf_meas hg_meas hf_bound hg_bound hfg x
+
+/-- Concrete interval semigroup symmetric contraction interval for bounded
+input pairs. -/
+theorem intervalSemigroupOperator_paper2_contraction_symmetric_interval_bound
+    {L t Mf Mg M : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    {f g : ℝ → ℝ}
+    (hf_meas :
+      MeasureTheory.AEStronglyMeasurable f
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hg_meas :
+      MeasureTheory.AEStronglyMeasurable g
+        (ShenWork.IntervalDomain.intervalMeasure L))
+    (hf_bound : ∀ y, |f y| ≤ Mf)
+    (hg_bound : ∀ y, |g y| ≤ Mg)
+    (hfg : ∀ y, |f y - g y| ≤ M) :
+    ∀ x : ℝ,
+      -M ≤
+          ShenWork.IntervalDomain.intervalSemigroupOperator L t f x -
+            ShenWork.IntervalDomain.intervalSemigroupOperator L t g x ∧
+        ShenWork.IntervalDomain.intervalSemigroupOperator L t f x -
+            ShenWork.IntervalDomain.intervalSemigroupOperator L t g x ≤ M := by
+  intro x
+  exact
+    ShenWork.IntervalDomain.intervalSemigroupOperator_contraction_symmetric_interval_bound_bounded
+      ht hM hf_meas hg_meas hf_bound hg_bound hfg x
+
+/-- Concrete interval semigroup absolute bound for constant inputs. -/
+theorem intervalSemigroupOperator_paper2_const_abs_le
+    {t : ℝ} (ht : 0 < t) (L c : ℝ) :
+    ∀ x : ℝ,
+      |ShenWork.IntervalDomain.intervalSemigroupOperator L t (fun _ => c) x| ≤
+        |c| := by
+  intro x
+  exact ShenWork.IntervalDomain.intervalSemigroupOperator_const_abs_le ht x
+
 def WeightedGradientEstimate
     (D : BoundedDomainData) (pExp beta gamma Mstar T : ℝ)
     (u v : ℝ → D.Point → ℝ) : Prop :=
