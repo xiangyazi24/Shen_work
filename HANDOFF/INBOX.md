@@ -4,97 +4,60 @@
 
 ```bash
 ~/.openclaw/workspace/scripts/remote-build.sh shen_work
-~/.openclaw/workspace/scripts/remote-build.sh shen_work --file ShenWork/PDE/IntervalDomain.lean
+~/.openclaw/workspace/scripts/remote-build.sh shen_work --file ShenWork/Paper3/Statements.lean
 ```
 
 NEVER run local `lake build`. Invariant: 0 sorry, BUILD OK.
 
-## Task: Interval Semigroup Operator (Phase 4 of bounded-domain proposal)
+## Task: Paper3 Theorem 2.3/2.4/2.5 global stability convergence bridges
 
-File: `ShenWork/PDE/IntervalDomain.lean`
+File: `ShenWork/Paper3/Statements.lean`
 
-### What exists
+### Context
 
-The file already has:
-- `intervalMeasure L := volume.restrict (Set.Icc 0 L)` — restricted Lebesgue measure
-- `normalizedZerothReflectionKernel L t x y` — the reflected heat kernel (nonneg, integral=1, pointwise bound ≤ 1/√(4πt))
-- `normalizedReflectedKernelIntegral_L1_Linfty_smoothing` — whole-line L1→L∞ bound
-- `normalizedReflectedKernelOperator` — whole-line kernel operator with full API (nonneg, const, mono, bound, add, sub, contraction, smoothing)
+Paper3 Theorems 2.3--2.5 each have two components:
+1. **Linear stability** — proved for 2.4 and 2.5 (see `Theorem_2_4_linear_stability_formula_branch_proved`, `Theorem_2_5_linear_stability_formula_branch_proved`, and their first-mode variants)
+2. **Global/exponential convergence** — still externalized in package fields
+
+The exponential convergence conclusions route through `MassConstrainedLocallyExponentiallyStableFromSup` and `ExponentialC1Convergence`. These are already assembled for some branches (see e.g. `Theorem_2_2.nonminimal_stability_conclusion_of_Lemma_A_7`, `Theorem_2_2.minimal_exponential_convergence_of_Lemma_A_8`).
 
 ### What to add
 
-Define the **interval semigroup operator** and prove its key properties. This connects the whole-line kernel to the bounded-domain setting needed for Paper2.
+Build more **formula-level** bridges that bypass the `Paper3Constants` package and state conclusions directly using the explicit threshold formulas and `paperCriticalSensitivity`. These should follow the pattern of the existing `Theorem_2_4_linear_stability_formula_branch` and `Theorem_2_5_linear_stability_formula_branch` but extend to the full stability + convergence conclusions.
 
-#### 1. Definition
+#### 1. Theorem 2.3 negative-sensitivity convergence formula bridge
 
-```lean
-def intervalSemigroupOperator (L t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
-  ∫ y, normalizedZerothReflectionKernel L t x y * f y ∂ intervalMeasure L
-```
+For the negative-sensitivity case (`χ₀ ≤ 0`), the linear stability is trivially satisfied (already proved by `Theorem_2_2_linear_stability_chi_nonpos_branch_proved`). Build a bridge that:
+- Takes `χ₀ ≤ 0`, `a > 0`, `b > 0`, Neumann spectrum, and the sectorial local exponential stability conclusion as explicit hypotheses
+- Gives both `LinearlyStable` and `MassConstrainedLocallyExponentiallyStableFromSup` for the positive equilibrium
 
-#### 2. Restricted kernel integral ≤ 1
+The sectorial stability should be an explicit hypothesis (not from a package) since the analytic proof is still open.
 
-```lean
-theorem normalizedZerothReflectionKernel_intervalIntegral_le_one
-    {t : ℝ} (ht : 0 < t) (L x : ℝ) :
-    ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L ≤ 1
-```
+#### 2. Theorem 2.4 full stability formula bridge
 
-Proof sketch: `∫ K ∂ intervalMeasure = ∫ K in Icc 0 L ≤ ∫ K = 1` via `set_integral_le_integral` (K ≥ 0, K integrable) + `normalizedZerothReflectionKernel_integral`.
+Extend `Theorem_2_4_linear_stability_formula_branch` to also conclude `MassConstrainedLocallyExponentiallyStableFromSup`. This should:
+- Keep the existing explicit formula threshold hypotheses
+- Add an explicit `SectorialLocalExponentialRaw`-style hypothesis for the local exponential part
+- Give both linear stability and exponential stability as conclusions
 
-#### 3. Positivity preservation
+#### 3. Theorem 2.5 full stability formula bridge
 
-```lean
-theorem intervalSemigroupOperator_nonneg
-    {L t : ℝ} (ht : 0 < t)
-    {f : ℝ → ℝ} (hf : ∀ y, 0 ≤ f y) (x : ℝ) :
-    0 ≤ intervalSemigroupOperator L t f x
-```
+Same pattern as (2) but for the minimal model with `a = 0, b = 0, m = 1`.
 
-Proof: `integral_nonneg` (K ≥ 0, f ≥ 0).
+#### 4. Explicit equilibrium formula simplifications
 
-#### 4. L1→L∞ smoothing
+Add bridge lemmas that simplify the equilibrium formulas for special parameter cases that appear in the paper's examples:
+- `positiveEquilibrium_fst_eq_one` when `a = b` (so `(a/b)^(1/α) = 1`)
+- `positiveEquilibrium_snd_eq_nu_div_mu` when `a = b` and `γ = 1`
+- `minimalEquilibrium_snd_eq_nu_div_mu_mul_uStar` when `γ = 1`
 
-```lean
-theorem intervalSemigroupOperator_L1_Linfty
-    {L t : ℝ} (ht : 0 < t)
-    {f : ℝ → ℝ} (hf_int : Integrable f (intervalMeasure L)) (x : ℝ) :
-    ‖intervalSemigroupOperator L t f x‖ ≤
-      (1 / Real.sqrt (4 * Real.pi * t)) *
-        ∫ y, ‖f y‖ ∂ intervalMeasure L
-```
-
-Proof: same calc chain as `normalizedReflectedKernelIntegral_L1_Linfty_smoothing` but with `intervalMeasure` — `norm_integral_le_integral_norm`, `integral_mono_of_nonneg` (using pointwise bound), `integral_const_mul`. All these Mathlib lemmas work for arbitrary measures.
-
-Key pattern for the pointwise bound step (needs beta-reduction):
-```lean
-· exact Filter.Eventually.of_forall fun y => by
-    change ‖normalizedZerothReflectionKernel L t x y * f y‖ ≤
-      (1 / Real.sqrt (4 * Real.pi * t)) * ‖f y‖
-    rw [norm_mul, Real.norm_eq_abs,
-        abs_of_nonneg (normalizedZerothReflectionKernel_nonneg ht L x y)]
-    exact mul_le_mul_of_nonneg_right
-      (normalizedZerothReflectionKernel_pointwise_bound ht L x y)
-      (norm_nonneg _)
-```
-
-For integrability of the upper bound: `(hf_int.norm).smul (1 / Real.sqrt (4 * Real.pi * t))`.
-
-#### 5. L∞ contraction
-
-```lean
-theorem intervalSemigroupOperator_Linfty_bound
-    {L t : ℝ} (ht : 0 < t)
-    {f : ℝ → ℝ} {M : ℝ} (hM : 0 ≤ M) (hf : ∀ y, |f y| ≤ M) (x : ℝ) :
-    |intervalSemigroupOperator L t f x| ≤ M
-```
-
-Proof: |∫ K f| ≤ ∫ K |f| ≤ M ∫ K ≤ M · 1 = M. Uses `normalizedZerothReflectionKernel_intervalIntegral_le_one`.
+These are algebraic simplifications from the existing definitions that make the threshold formulas more concrete.
 
 ### Constraints
 
 - 0 sorry, BUILD OK
 - No axioms, no assumption structures
-- Follow the naming pattern of the existing `normalizedReflectedKernelOperator_*` theorems
-- Add theorems at the end of IntervalDomain.lean, before `end ShenWork.IntervalDomain`
+- Follow the naming pattern of existing `_formula_branch` and `_first_mode_branch` theorems
+- Add theorems after the existing `Theorem_2_5_linear_stability_first_mode_branch_proved` and before `Theorem_2_2.nonminimal_stability_conclusion_of_Lemma_A_7`
+- Keep `#print axioms` checks for any new `_proved` theorems
 - Run `rg -n "\bsorry\b" ShenWork --glob '*.lean'` after every edit
