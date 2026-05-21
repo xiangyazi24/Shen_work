@@ -2215,6 +2215,21 @@ theorem intervalSemigroupOperator_abs_le_operator_abs_bounded
   intervalSemigroupOperator_abs_le_operator_abs ht
     (intervalMeasure_integrable_of_abs_bound hf_meas hf_bound) x
 
+/-- Sharp absolute-value sub-Markov bound: if `|f| ≤ M`, then the restricted
+interval helper output is bounded by `M` times the restricted kernel mass. -/
+theorem intervalSemigroupOperator_abs_le_const_mul_kernel_mass
+    {L t M : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf_abs : ∀ y, |f y| ≤ M) (x : ℝ) :
+    |intervalSemigroupOperator L t f x| ≤
+      M * ∫ y, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L := by
+  have hdom :
+      |intervalSemigroupOperator L t f x| ≤
+        intervalSemigroupOperator L t (fun _ : ℝ => M) x :=
+    intervalSemigroupOperator_abs_le_of_abs_le
+      (L := L) (t := t) ht (f := f) (g := fun _ : ℝ => M)
+      hf_abs (integrable_const M) x
+  rwa [intervalSemigroupOperator_const_eq_kernel_mass_mul] at hdom
+
 /-- `L∞` bound for the interval helper operator. -/
 theorem intervalSemigroupOperator_Linfty_bound
     {L t : ℝ} (ht : 0 < t)
