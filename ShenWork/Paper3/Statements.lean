@@ -5450,6 +5450,81 @@ lemma not_LinearStabilityInstabilityMinimalRaw_constant_c1Distance :
     simpa [t] using htmp
   linarith
 
+/-- Raw nonminimal instability branch of
+`Paper3Constants.linearStabilityInstability`, with the critical threshold
+exposed instead of hidden inside a constants package. -/
+def LinearInstabilityNonminimalRaw
+    (p : CM2Params) (S : SpectralData) (chiCritical : ℝ → ℝ) : Prop :=
+  ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    chiCritical eq.1 < p.χ₀ →
+      LinearlyUnstable S p eq.1 eq.2
+
+/-- Raw nonminimal instability obstruction: an arbitrary critical-threshold
+function can make the threshold hypothesis true even when the chosen spectral
+data are linearly stable in every nonzero mode. -/
+lemma not_LinearInstabilityNonminimalRaw_arbitrary_threshold :
+    ¬ LinearInstabilityNonminimalRaw theorem21Part1CounterParams
+      sectorialLocalExponentialCounterSpectralData (fun _ => (-1 : ℝ)) := by
+  intro h
+  let p := theorem21Part1CounterParams
+  let S := sectorialLocalExponentialCounterSpectralData
+  have ha : 0 < p.a := by
+    norm_num [p, theorem21Part1CounterParams]
+  have hb : 0 < p.b := by
+    norm_num [p, theorem21Part1CounterParams]
+  have hχ :
+      (fun _ => (-1 : ℝ)) (positiveEquilibrium p ⟨ha, hb⟩).1 < p.χ₀ := by
+    norm_num [p, theorem21Part1CounterParams]
+  have hstable :
+      LinearlyStable S p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+    simpa [S, p, theorem21Part1CounterParams, positiveEquilibrium] using
+      sectorialLocalExponentialCounter_linearlyStable
+  rcases h ha hb hχ with ⟨n, hn, hpos⟩
+  have hneg := hstable n hn
+  linarith
+
+/-- Raw minimal instability branch of
+`Paper3Constants.linearStabilityInstability`, with the critical threshold
+exposed instead of hidden inside a constants package. -/
+def LinearInstabilityMinimalRaw
+    (p : CM2Params) (S : SpectralData) (chiCritical : ℝ → ℝ) : Prop :=
+  p.a = 0 → p.b = 0 →
+    ∀ uStar > 0,
+      let eq := minimalEquilibrium p uStar
+      chiCritical uStar < p.χ₀ →
+        LinearlyUnstable S p eq.1 eq.2
+
+/-- Raw minimal instability obstruction: an arbitrary critical-threshold
+function can make the threshold hypothesis true even though the concrete
+minimal counter-parameters are linearly stable for the helper spectrum at
+`uStar = 1`. -/
+lemma not_LinearInstabilityMinimalRaw_arbitrary_threshold :
+    ¬ LinearInstabilityMinimalRaw minimalGlobalStabilityCounterParams
+      sectorialLocalExponentialCounterSpectralData (fun _ => (0 : ℝ)) := by
+  intro h
+  let p := minimalGlobalStabilityCounterParams
+  let S := sectorialLocalExponentialCounterSpectralData
+  have ha : p.a = 0 := by
+    norm_num [p, minimalGlobalStabilityCounterParams]
+  have hb : p.b = 0 := by
+    norm_num [p, minimalGlobalStabilityCounterParams]
+  have huStar : (0 : ℝ) < 1 := by norm_num
+  have hχ : (fun _ => (0 : ℝ)) 1 < p.χ₀ := by
+    norm_num [p, minimalGlobalStabilityCounterParams]
+  have hstable :
+      LinearlyStable S p (minimalEquilibrium p 1).1
+        (minimalEquilibrium p 1).2 := by
+    intro n hn
+    simp [S, p, sectorialLocalExponentialCounterSpectralData,
+      minimalGlobalStabilityCounterParams, minimalEquilibrium, sigma, hn]
+    norm_num
+  rcases h ha hb 1 huStar hχ with ⟨n, hn, hpos⟩
+  have hneg := hstable n hn
+  linarith
+
 /-- Raw version of `CompactnessData.upperEnvelopeMonotonicity`, exposing the
 upper-envelope functional instead of hiding it inside a compactness package. -/
 def UpperEnvelopeMonotonicityRaw
