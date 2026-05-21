@@ -1195,6 +1195,74 @@ theorem modifiedSemigroup_paper1_diff_L1_Linfty_smoothing_abs
   intro x
   exact modifiedSemigroup_diff_L1_Linfty_smoothing_abs ht x hf_int hg_int
 
+/-- Concrete gradient bound for bounded inputs under the heat semigroup. -/
+theorem deriv_heatSemigroup_paper1_bounded_abs_le
+    {f : ℝ → ℝ} {M t : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    (hf : ∀ y, |f y| ≤ M) (hf_int : Integrable f) :
+    ∀ x : ℝ,
+      |deriv (fun z : ℝ => heatSemigroup t f z) x| ≤
+        (2 / Real.sqrt (4 * Real.pi * t)) * M := by
+  intro x
+  exact deriv_heatSemigroup_bounded_abs_le ht hM hf x hf_int
+
+/-- Concrete `L¹ → L∞` gradient smoothing for the heat semigroup. -/
+theorem deriv_heatSemigroup_paper1_L1_Linfty_smoothing_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t)
+    (hf_int : Integrable f) :
+    ∀ x : ℝ,
+      |deriv (fun z : ℝ => heatSemigroup t f z) x| ≤
+        (((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+          (Real.sqrt (1 / (4 * t)))⁻¹) * ∫ y : ℝ, |f y| := by
+  intro x
+  exact deriv_heatSemigroup_L1_Linfty_smoothing_abs ht x hf_int
+
+/-- Concrete gradient-difference bound for bounded inputs under the heat semigroup. -/
+theorem deriv_heatSemigroup_paper1_diff_bounded_abs_le
+    {f g : ℝ → ℝ} {M t : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    (hfg : ∀ y, |f y - g y| ≤ M)
+    (hf_int : Integrable f) (hg_int : Integrable g) :
+    ∀ x : ℝ,
+      |deriv (fun z : ℝ => heatSemigroup t f z) x -
+          deriv (fun z : ℝ => heatSemigroup t g z) x| ≤
+        (2 / Real.sqrt (4 * Real.pi * t)) * M := by
+  intro x
+  exact deriv_heatSemigroup_diff_bounded_abs_le ht hM hfg x hf_int hg_int
+
+/-- Concrete `L¹ → L∞` gradient-difference smoothing for the heat semigroup. -/
+theorem deriv_heatSemigroup_paper1_diff_L1_Linfty_smoothing_abs
+    {f g : ℝ → ℝ} {t : ℝ} (ht : 0 < t)
+    (hf_int : Integrable f) (hg_int : Integrable g) :
+    ∀ x : ℝ,
+      |deriv (fun z : ℝ => heatSemigroup t f z) x -
+          deriv (fun z : ℝ => heatSemigroup t g z) x| ≤
+        (((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+          (Real.sqrt (1 / (4 * t)))⁻¹) *
+          ∫ y : ℝ, |f y - g y| := by
+  intro x
+  exact deriv_heatSemigroup_diff_L1_Linfty_smoothing_abs ht x hf_int hg_int
+
+/-- Concrete gradient bound for bounded inputs under the modified heat semigroup. -/
+theorem deriv_modifiedSemigroup_paper1_bounded_abs_le
+    {f : ℝ → ℝ} {M t : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    (hf : ∀ y, |f y| ≤ M) (hf_int : Integrable f) :
+    ∀ x : ℝ,
+      |deriv (fun z : ℝ => modifiedSemigroup t f z) x| ≤
+        Real.exp (-t) * ((2 / Real.sqrt (4 * Real.pi * t)) * M) := by
+  intro x
+  exact deriv_modifiedSemigroup_bounded_abs_le ht hM hf x hf_int
+
+/-- Concrete gradient-difference bound for bounded inputs under the modified heat semigroup. -/
+theorem deriv_modifiedSemigroup_paper1_diff_bounded_abs_le
+    {f g : ℝ → ℝ} {M t : ℝ} (ht : 0 < t) (hM : 0 ≤ M)
+    (hfg : ∀ y, |f y - g y| ≤ M)
+    (hf_int : Integrable f) (hg_int : Integrable g) :
+    ∀ x : ℝ,
+      |deriv (fun z : ℝ => modifiedSemigroup t f z) x -
+          deriv (fun z : ℝ => modifiedSemigroup t g z) x| ≤
+        Real.exp (-t) * ((2 / Real.sqrt (4 * Real.pi * t)) * M) := by
+  intro x
+  exact deriv_modifiedSemigroup_diff_bounded_abs_le ht hM hfg x hf_int hg_int
+
 /-- Concrete `L¹ → L∞` gradient smoothing for the modified heat semigroup. -/
 theorem deriv_modifiedSemigroup_paper1_L1_Linfty_smoothing_abs
     {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t)
