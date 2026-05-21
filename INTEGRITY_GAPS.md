@@ -427,7 +427,7 @@ projection theorem wrappers have been removed.
   follow directly from the A.7/A.8 threshold comparisons plus the
   critical-spectrum bridge.  The global stability and exponential convergence
   conclusions remain explicit analytic package fields.
-- `Theorem_2_2_xpSigma_local_exponential_branch_direct` (Paper3): the
+- `Theorem_2_2_xpSigma_local_exponential_branch_of_Lemma_A_1` (Paper3): the
   `X^σ_p` small-perturbation exponential-decay branch of Theorem 2.2 is proved
   from the concrete spectral critical-sensitivity bridge and Lemma A.1, rather
   than by assuming `Theorem_2_2` or
@@ -852,7 +852,7 @@ end-to-end paper theorem proof.
 | `Theorem_2_2_linear_stability_chi_nonpos_branch_direct` | `SpectralData` + `HasNeumannSpectrum` | genuine relative spectral branch; does not prove PDE/local stability |
 | `Theorem_2_2_linear_threshold_branch_direct` | `SpectralData` + `HasNeumannSpectrum` | genuine relative spectral branch using the explicit `paperCriticalSensitivity` formula |
 | `Theorem_2_2_linear_critical_spectrum_branch_direct` | `SpectralData` + `Paper3ConstantsUsesCriticalSpectrum` | genuine bridge once `C.chiCritical` is identified with the explicit spectral threshold |
-| `Theorem_2_2_xpSigma_local_exponential_branch_direct` | `Lemma_A_1` + critical-spectrum bridge | bridge from explicit Lemma A.1 local-stability input; not a proof of Lemma A.1 |
+| `Theorem_2_2_xpSigma_local_exponential_branch_of_Lemma_A_1` | `Lemma_A_1` + critical-spectrum bridge | bridge from explicit Lemma A.1 local-stability input; not a proof of Lemma A.1 |
 | `Theorem_2_4_linear_stability_branch_direct` | `Lemma_A_7` + critical-spectrum bridge | bridge from explicit A.7 threshold comparisons; not a proof of global stability |
 | `Theorem_2_5_linear_stability_branch_direct` | `Lemma_A_8` + critical-spectrum bridge | bridge from explicit A.8 threshold comparisons; not a proof of global stability |
 

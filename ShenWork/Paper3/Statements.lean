@@ -6174,7 +6174,7 @@ solution with the required initial trace and asks for smallness in the
 `xpSigmaDistance` norm directly.  Under those explicit inputs, the proof uses
 only the spectral critical-sensitivity bridge and Lemma A.1, not the
 `Paper3Constants.linearStabilityInstability` field. -/
-theorem Theorem_2_2_xpSigma_local_exponential_branch_direct
+theorem Theorem_2_2_xpSigma_local_exponential_branch_of_Lemma_A_1
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (N : StabilityNorms D) (C : Paper3Constants D p)
     (H : HasNeumannSpectrum S) (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
@@ -6229,7 +6229,7 @@ theorem Theorem_2_2_xpSigma_local_exponential_branch_direct
 /-- Formula-level nonminimal `X^σ_p` local exponential branch.  The spectral
 stability input is obtained from the explicit strong thresholds and the paper
 critical-sensitivity infimum, not from `Paper3Constants`. -/
-theorem Theorem_2_2_xpSigma_nonminimal_formula_branch_direct
+theorem Theorem_2_2_xpSigma_nonminimal_formula_branch_of_Lemma_A_1
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (N : StabilityNorms D)
     (H : HasNeumannSpectrum S) (hA1 : Lemma_A_1 D p S N)
@@ -6266,7 +6266,7 @@ theorem Theorem_2_2_xpSigma_nonminimal_formula_branch_direct
 /-- Formula-level minimal `X^σ_p` local exponential branch.  The spectral
 stability input is obtained from the explicit minimal thresholds and the paper
 critical-sensitivity infimum, not from `Paper3Constants`. -/
-theorem Theorem_2_2_xpSigma_minimal_formula_branch_direct
+theorem Theorem_2_2_xpSigma_minimal_formula_branch_of_Lemma_A_1
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (N : StabilityNorms D)
     (H : HasNeumannSpectrum S) (hA1 : Lemma_A_1 D p S N)
@@ -6302,7 +6302,7 @@ theorem Theorem_2_2_xpSigma_minimal_formula_branch_direct
 
 /-- First-mode sufficient version of the formula-level nonminimal `X^σ_p`
 local exponential branch. -/
-theorem Theorem_2_2_xpSigma_nonminimal_first_mode_branch_direct
+theorem Theorem_2_2_xpSigma_nonminimal_first_mode_branch_of_Lemma_A_1
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (N : StabilityNorms D)
     (H : HasNeumannSpectrum S) (hA1 : Lemma_A_1 D p S N)
@@ -6339,7 +6339,7 @@ theorem Theorem_2_2_xpSigma_nonminimal_first_mode_branch_direct
 
 /-- First-mode sufficient version of the formula-level minimal `X^σ_p`
 local exponential branch. -/
-theorem Theorem_2_2_xpSigma_minimal_first_mode_branch_direct
+theorem Theorem_2_2_xpSigma_minimal_first_mode_branch_of_Lemma_A_1
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (N : StabilityNorms D)
     (H : HasNeumannSpectrum S) (hA1 : Lemma_A_1 D p S N)
@@ -6374,7 +6374,7 @@ theorem Theorem_2_2_xpSigma_minimal_first_mode_branch_direct
   intro u₀ hu₀ hsmall u v huv htrace t ht
   exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
-lemma Theorem_2_2_xpSigma_nonminimal_formula_unitInterval
+lemma Theorem_2_2_xpSigma_nonminimal_formula_unitInterval_of_Lemma_A_1
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (hA1 : Lemma_A_1 D p unitIntervalNeumannSpectrum N)
     {sigma pNorm : ℝ}
@@ -6408,7 +6408,7 @@ lemma Theorem_2_2_xpSigma_nonminimal_formula_unitInterval
   intro u₀ hu₀ hsmall u v huv htrace t ht
   exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
-lemma Theorem_2_2_xpSigma_nonminimal_first_mode_unitInterval
+lemma Theorem_2_2_xpSigma_nonminimal_first_mode_unitInterval_of_Lemma_A_1
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (hA1 : Lemma_A_1 D p unitIntervalNeumannSpectrum N)
     {sigma pNorm : ℝ}
@@ -6444,7 +6444,7 @@ lemma Theorem_2_2_xpSigma_nonminimal_first_mode_unitInterval
   intro u₀ hu₀ hsmall u v huv htrace t ht
   exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
-lemma Theorem_2_2_xpSigma_minimal_formula_unitInterval
+lemma Theorem_2_2_xpSigma_minimal_formula_unitInterval_of_Lemma_A_1
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (hA1 : Lemma_A_1 D p unitIntervalNeumannSpectrum N)
     {sigma pNorm : ℝ}
@@ -6478,7 +6478,7 @@ lemma Theorem_2_2_xpSigma_minimal_formula_unitInterval
   intro u₀ hu₀ hsmall u v huv htrace t ht
   exact hdecay u₀ hu₀ hsmall u v huv htrace t ht
 
-lemma Theorem_2_2_xpSigma_minimal_first_mode_unitInterval
+lemma Theorem_2_2_xpSigma_minimal_first_mode_unitInterval_of_Lemma_A_1
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (hA1 : Lemma_A_1 D p unitIntervalNeumannSpectrum N)
     {sigma pNorm : ℝ}
@@ -6516,7 +6516,7 @@ lemma Theorem_2_2_xpSigma_minimal_first_mode_unitInterval
 /-- `X^σ_p` local exponential branch for nonpositive sensitivity.  This
 uses the direct spectral stability theorem for `χ₀ ≤ 0` and Lemma A.1, with
 no critical-sensitivity package and no `Paper3Constants` field. -/
-lemma Theorem_2_2_xpSigma_chi_nonpos_branch
+lemma Theorem_2_2_xpSigma_chi_nonpos_branch_of_Lemma_A_1
     (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
     (N : StabilityNorms D)
     (H : HasNeumannSpectrum S) (hA1 : Lemma_A_1 D p S N)
@@ -6570,7 +6570,7 @@ lemma Theorem_2_2_xpSigma_chi_nonpos_branch
 sensitivity.  The spectral part is proved from `χ₀ ≤ 0`; the sectorial
 local exponential estimate is exactly the explicit Lemma A.1 input, not a
 `Paper3Constants` package field. -/
-lemma Theorem_2_2_xpSigma_chi_nonpos_unitInterval
+lemma Theorem_2_2_xpSigma_chi_nonpos_unitInterval_of_Lemma_A_1
     (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
     (hA1 : Lemma_A_1 D p unitIntervalNeumannSpectrum N)
     {sigma pNorm : ℝ}
