@@ -3924,6 +3924,15 @@ theorem SupControlsXpSigmaDistance.of_xpSigma_le_supNorm
   intro u₀ hclose
   exact le_trans (hxp u₀) (le_of_lt hclose)
 
+/-- Explicit small-data Cauchy existence input in a sup-norm neighborhood. -/
+def SmallDataGlobalExistence
+    (D : BoundedDomainData) (p : CM2Params) (uStar delta : ℝ) : Prop :=
+  ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+    SupCloseToConstant D u₀ uStar delta →
+      ∃ u v : ℝ → D.Point → ℝ,
+        IsPaper2GlobalClassicalSolution D p u v ∧
+        InitialTrace D u₀ u
+
 /-- Explicit small-data Cauchy existence input in the mass-constrained
 neighborhood used by the local stability statement. -/
 def MassConstrainedSmallDataGlobalExistence
@@ -3934,6 +3943,52 @@ def MassConstrainedSmallDataGlobalExistence
       ∃ u v : ℝ → D.Point → ℝ,
         IsPaper2GlobalClassicalSolution D p u v ∧
         InitialTrace D u₀ u
+
+/-- Convert the raw sectorial `X^σ_p` estimate into ordinary sup-norm local
+exponential stability, with the missing norm-control and Cauchy-existence
+inputs exposed explicitly. -/
+theorem SectorialLocalExponentialRaw.locally_from_sup_control
+    {D : BoundedDomainData} {S : SpectralData} {p : CM2Params}
+    {N : StabilityNorms D} {sigma pNorm uStar vStar : ℝ}
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hstable : LinearlyStable S p uStar vStar)
+    (hcontrol : SupControlsXpSigmaDistance D N sigma pNorm uStar)
+    (hexist : ∀ delta > 0, SmallDataGlobalExistence D p uStar delta) :
+    LocallyExponentiallyStableFromSup D p N uStar vStar := by
+  rcases hraw.local_exponential_stability
+      hsigma_low hsigma_high hpNorm hstable with
+    ⟨eps, heps, A, hA, rate, hrate, hdecay⟩
+  rcases hcontrol eps heps with ⟨delta, hdelta, hdist⟩
+  refine ⟨delta, hdelta, A, hA, rate, hrate, ?_⟩
+  intro u₀ hu₀ hclose
+  rcases hexist delta hdelta u₀ hu₀ hclose with
+    ⟨u, v, hglobal, htrace⟩
+  refine ⟨u, v, hglobal, htrace, ?_⟩
+  exact hdecay u₀ hu₀ (hdist u₀ hclose) u v hglobal htrace
+
+/-- Variant of `locally_from_sup_control` with the norm-control input reduced
+to the primitive comparison `X^σ_p ≤ supNorm`. -/
+theorem SectorialLocalExponentialRaw.locally_from_xpSigma_le_supNorm
+    {D : BoundedDomainData} {S : SpectralData} {p : CM2Params}
+    {N : StabilityNorms D} {sigma pNorm uStar vStar : ℝ}
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hstable : LinearlyStable S p uStar vStar)
+    (hxp :
+      ∀ u₀ : D.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤
+          D.supNorm (fun x => u₀ x - uStar))
+    (hexist : ∀ delta > 0, SmallDataGlobalExistence D p uStar delta) :
+    LocallyExponentiallyStableFromSup D p N uStar vStar :=
+  hraw.locally_from_sup_control
+    hsigma_low hsigma_high hpNorm hstable
+    (SupControlsXpSigmaDistance.of_xpSigma_le_supNorm hxp)
+    hexist
 
 /-- Convert the raw sectorial `X^σ_p` estimate into the paper's
 mass-constrained local exponential stability conclusion, with the two missing
@@ -8452,6 +8507,39 @@ theorem Theorem_2_3_negative_sensitivity_mass_constrained_formula_branch_of_raw
       hsigma_low hsigma_high hpNorm hstable hcontrol hexist
   exact ⟨hstable, hmass⟩
 
+/-- Raw formula-level ordinary local stability bridge for Paper3 Theorem 2.3
+at the positive equilibrium.  This is the non-mass-constrained counterpart of
+the mass-constrained bridge above. -/
+theorem Theorem_2_3_negative_sensitivity_local_formula_branch_of_raw
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D)
+    (H : HasNeumannSpectrum S)
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    SupControlsXpSigmaDistance D N sigma pNorm eq.1 →
+      (∀ delta > 0, SmallDataGlobalExistence D p eq.1 delta) →
+      LinearlyStable S p eq.1 eq.2 ∧
+      LocallyExponentiallyStableFromSup D p N eq.1 eq.2 := by
+  dsimp
+  intro hcontrol hexist
+  have hstable :
+      LinearlyStable S p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    positiveEquilibrium_linearlyStable_of_chi_nonpos_neumann S p H hχ ha hb
+  have hlocal :
+      LocallyExponentiallyStableFromSup D p N
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    hraw.locally_from_sup_control
+      hsigma_low hsigma_high hpNorm hstable hcontrol hexist
+  exact ⟨hstable, hlocal⟩
+
 /-- Raw formula-level full stability bridge for Paper3 Theorem 2.4.  The
 linear part is formula-level; the nonlinear local exponential conclusion is
 derived from `SectorialLocalExponentialRaw` plus explicit norm-control and
@@ -8493,6 +8581,45 @@ theorem Theorem_2_4_full_stability_formula_branch_of_raw
     hraw.massConstrained_from_sup_control
       hsigma_low hsigma_high hpNorm hstable hcontrol hexist
   exact ⟨hstable, hmass⟩
+
+/-- Raw formula-level ordinary local stability bridge for Paper3 Theorem 2.4.
+The threshold assumptions are the explicit strong formulas; the remaining
+nonlinear inputs are norm-control and small-data Cauchy existence. -/
+theorem Theorem_2_4_local_stability_formula_branch_of_raw
+    (D : BoundedDomainData) (S : SpectralData) (p : CM2Params)
+    (N : StabilityNorms D) (H : HasNeumannSpectrum S)
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    max
+        (max (chiStrong1Formula p eq.1 eq.2)
+          (chiStrong2Formula p eq.1))
+        (max (chiStrong3Formula p M0 eq.1 eq.2)
+          (chiStrong4Formula p M0 eq.1)) ≤
+      paperCriticalSensitivity S p eq.1 eq.2 →
+      NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+      SupControlsXpSigmaDistance D N sigma pNorm eq.1 →
+      (∀ delta > 0, SmallDataGlobalExistence D p eq.1 delta) →
+        LinearlyStable S p eq.1 eq.2 ∧
+        LocallyExponentiallyStableFromSup D p N eq.1 eq.2 := by
+  dsimp
+  intro hcritical hcond hcontrol hexist
+  have hstable :
+      LinearlyStable S p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    hcond.linearlyStable_of_max_threshold_le_critical S p H ha hb hcritical
+  have hlocal :
+      LocallyExponentiallyStableFromSup D p N
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    hraw.locally_from_sup_control
+      hsigma_low hsigma_high hpNorm hstable hcontrol hexist
+  exact ⟨hstable, hlocal⟩
 
 /-- Raw formula-level full stability bridge for Paper3 Theorem 2.5 in the
 minimal model.  It uses the explicit `chiBeta`/`paperCriticalSensitivity`
