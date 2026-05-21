@@ -1278,8 +1278,11 @@ lemma Proposition_1_2.nonminimal_global_bounded_before_solution_of_paper2_theore
     ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
       IsPaper2GlobalClassicalSolution D p u v ∧
       InitialTrace D u₀ u ∧
-      IsPaper2BoundedBefore D Tmax u :=
-  h.nonminimal_global_bounded_before_solution hχ ha hb hm hu₀
+      IsPaper2BoundedBefore D Tmax u := by
+  rcases (h hχ).1 ha hb u₀ hu₀ with
+    ⟨Tmax, hTmax, u, v, _hsol, htrace, hbound, hglobal⟩
+  exact ⟨Tmax, hTmax, u, v, hglobal hm, htrace,
+    ⟨max (D.supNorm u₀) ((p.a / p.b) ^ (1 / p.α)), hbound⟩⟩
 
 lemma Proposition_1_2.minimal_global_bounded_before_solution_of_paper2_theorem_1_1
     {D : BoundedDomainData} {p : CM2Params}
@@ -1289,8 +1292,10 @@ lemma Proposition_1_2.minimal_global_bounded_before_solution_of_paper2_theorem_1
     ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
       IsPaper2GlobalClassicalSolution D p u v ∧
       InitialTrace D u₀ u ∧
-      IsPaper2BoundedBefore D Tmax u :=
-  h.minimal_global_bounded_before_solution hχ ha hb hm hu₀
+      IsPaper2BoundedBefore D Tmax u := by
+  rcases (h hχ).2 ha hb u₀ hu₀ with
+    ⟨Tmax, hTmax, u, v, _hsol, htrace, hbound, hglobal⟩
+  exact ⟨Tmax, hTmax, u, v, hglobal hm, htrace, ⟨D.supNorm u₀, hbound⟩⟩
 
 /-- A one-point abstract domain used to show that Paper2 Theorem 1.1's
 finite-`Tmax` bound is not enough, under the current abstract API, to imply the
@@ -1897,7 +1902,7 @@ lemma Proposition_1_4.of_paper2_theorem_1_2
     (h : Paper2.Theorem_1_2 D p) :
     Proposition_1_4 D p := by
   intro hm hβ _hab hχ u₀ hu₀
-  exact h.linear_solution p.ha p.hb hβ hm hχ hu₀
+  exact (h p.ha p.hb hβ).2 hm hχ u₀ hu₀
 
 lemma Proposition_1_4.global_solution_of_min_half_sqrt
     {D : BoundedDomainData} {p : CM2Params}
@@ -1909,7 +1914,7 @@ lemma Proposition_1_4.global_solution_of_min_half_sqrt
       IsPaper2GlobalClassicalSolution D p u v ∧
       InitialTrace D u₀ u ∧
       IsPaper2Bounded D u :=
-  h.linear_solution_of_min_half_sqrt p.ha p.hb hβ hm hχ hu₀
+  (h p.ha p.hb hβ).2 hm (lt_chiBeta_of_lt_min_half_sqrt p hβ hχ) u₀ hu₀
 
 lemma Proposition_1_4.positive_global_solution_of_min_half_sqrt
     {D : BoundedDomainData} {p : CM2Params}
@@ -1920,7 +1925,8 @@ lemma Proposition_1_4.positive_global_solution_of_min_half_sqrt
     ∃ u v : ℝ → D.Point → ℝ,
       PositiveGlobalBoundedSolution D p u v ∧
       InitialTrace D u₀ u := by
-  rcases h.linear_solution_of_min_half_sqrt p.ha p.hb hβ hm hχ hu₀ with
+  rcases (h p.ha p.hb hβ).2 hm
+      (lt_chiBeta_of_lt_min_half_sqrt p hβ hχ) u₀ hu₀ with
     ⟨u, v, hglobal, htrace, hbdd⟩
   exact ⟨u, v,
     PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
@@ -1935,7 +1941,8 @@ lemma Proposition_1_4.global_solution_of_remark16_weak
       IsPaper2GlobalClassicalSolution D p u v ∧
       InitialTrace D u₀ u ∧
       IsPaper2Bounded D u :=
-  h.linear_solution_of_remark16_weak p.ha p.hb hβ hm hχ hu₀
+  (h p.ha p.hb hβ).2 hm
+    (by simpa [remark16ChiStarWeak_eq_chiBeta] using hχ) u₀ hu₀
 
 lemma Proposition_1_4.positive_global_solution_of_remark16_weak
     {D : BoundedDomainData} {p : CM2Params}
@@ -1946,7 +1953,8 @@ lemma Proposition_1_4.positive_global_solution_of_remark16_weak
     ∃ u v : ℝ → D.Point → ℝ,
       PositiveGlobalBoundedSolution D p u v ∧
       InitialTrace D u₀ u := by
-  rcases h.linear_solution_of_remark16_weak p.ha p.hb hβ hm hχ hu₀ with
+  rcases (h p.ha p.hb hβ).2 hm
+      (by simpa [remark16ChiStarWeak_eq_chiBeta] using hχ) u₀ hu₀ with
     ⟨u, v, hglobal, htrace, hbdd⟩
   exact ⟨u, v,
     PositiveGlobalBoundedSolution.of_global_bounded hglobal hbdd, htrace⟩
