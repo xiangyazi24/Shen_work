@@ -1529,6 +1529,31 @@ lemma real_mul_exp_neg_le_one {x : ℝ} (_hx : 0 ≤ x) :
     _ = 1 := by
       rw [← Real.exp_add, add_neg_cancel, Real.exp_zero]
 
+/-- Pointwise spectral multiplier bound for the interval cosine heat flow. -/
+lemma unitIntervalCosineHeatGradientMultiplier_le {t : ℝ} (ht : 0 < t) (n : ℕ) :
+    unitIntervalCosineHeatGradientMultiplier t n ≤ 1 / (2 * t) := by
+  let lambda := unitIntervalCosineEigenvalue n
+  have hlambda : 0 ≤ lambda := by
+    dsimp [lambda, unitIntervalCosineEigenvalue]
+    positivity
+  have ht2 : 0 < 2 * t := by positivity
+  have hx : 0 ≤ 2 * t * lambda := by positivity
+  have hbasic :
+      (2 * t * lambda) * Real.exp (-(2 * t * lambda)) ≤ 1 :=
+    real_mul_exp_neg_le_one hx
+  have hscaled :
+      (1 / (2 * t)) * ((2 * t * lambda) * Real.exp (-(2 * t * lambda))) ≤
+        (1 / (2 * t)) * 1 := by
+    exact mul_le_mul_of_nonneg_left hbasic (by positivity)
+  calc
+    unitIntervalCosineHeatGradientMultiplier t n
+        = (1 / (2 * t)) *
+            ((2 * t * lambda) * Real.exp (-(2 * t * lambda))) := by
+          dsimp [unitIntervalCosineHeatGradientMultiplier, lambda]
+          field_simp [ne_of_gt ht2]
+    _ ≤ (1 / (2 * t)) * 1 := hscaled
+    _ = 1 / (2 * t) := by ring
+
 /-- The heat semigroup is symmetric in the sense that swapping x and y
     in the kernel gives the same integrand. -/
 theorem heatSemigroup_kernel_symm (t x y : ℝ) :
