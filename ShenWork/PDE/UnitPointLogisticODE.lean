@@ -191,4 +191,14 @@ lemma bernoulliLogisticForward_hasDerivAt
   (bernoulliLogisticForward_hasDerivAt_raw p ha hb hu₀ ht).congr_deriv
     (bernoulliLogisticForward_raw_derivative_eq_vectorField p ha hb hu₀ ht)
 
+@[simp] lemma bernoulliLogisticForward_zero
+    (p : CM2Params) {u₀ : ℝ} (hu₀ : 0 < u₀) :
+    bernoulliLogisticForward p u₀ 0 = u₀ := by
+  have hα_ne : p.α ≠ 0 := ne_of_gt p.hα
+  rw [bernoulliLogisticForward, bernoulliLogisticDenominator_zero]
+  rw [← Real.rpow_mul hu₀.le]
+  have hmul : (-p.α) * (-1 / p.α) = 1 := by
+    field_simp [hα_ne]
+  rw [hmul, Real.rpow_one]
+
 end ShenWork.Paper2
