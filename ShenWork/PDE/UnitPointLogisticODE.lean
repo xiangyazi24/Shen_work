@@ -427,4 +427,46 @@ lemma bernoulliLogisticSolution_le_max_of_nonneg_time
       _ = u₀ := hc_back
       _ ≤ max u₀ K := le_max_left _ _
 
+lemma unitPointLogistic_classicalSolution
+    (p : CM2Params) {u₀ : unitPointDomain.Point → ℝ}
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hu₀ : PositiveInitialDatum unitPointDomain u₀)
+    {T : ℝ} (hT : 0 < T) :
+    IsPaper2ClassicalSolution unitPointDomain p T
+      (fun t _ => bernoulliLogisticSolution p (u₀ ()) t)
+      (fun t _ => (p.ν / p.μ) *
+        (bernoulliLogisticSolution p (u₀ ()) t) ^ p.γ) := by
+  have hu₀_pos : 0 < u₀ () := hu₀.pos trivial
+  have hsol_diff :
+      Differentiable ℝ (fun t : ℝ => bernoulliLogisticSolution p (u₀ ()) t) :=
+    bernoulliLogisticSolution_differentiable p ha hb hu₀_pos
+  have hsol_pos_all :
+      ∀ t : ℝ, 0 < bernoulliLogisticSolution p (u₀ ()) t := fun t =>
+    bernoulliLogisticSolution_pos p ha hb hu₀_pos
+  have hv_cont :
+      Continuous (fun t : ℝ => (p.ν / p.μ) *
+        (bernoulliLogisticSolution p (u₀ ()) t) ^ p.γ) := by
+    exact continuous_const.mul
+      (hsol_diff.continuous.rpow_const fun t =>
+        Or.inl (ne_of_gt (hsol_pos_all t)))
+  refine ⟨hT, ⟨hsol_diff, hv_cont⟩, ?_, ?_, ?_, ?_⟩
+  · intro t x _ht_pos _ht_lt _hx
+    cases x
+    exact hsol_pos_all t
+  · intro t x ht_pos _ht_lt _hx
+    cases x
+    have hderiv :=
+      (bernoulliLogisticSolution_hasDerivAt_of_pos_time p ha hb hu₀_pos ht_pos).deriv
+    simpa [unitPointDomain] using hderiv
+  · intro t x _ht_pos _ht_lt _hx
+    cases x
+    show (0 : ℝ) =
+      0 - p.μ * ((p.ν / p.μ) *
+        (bernoulliLogisticSolution p (u₀ ()) t) ^ p.γ) +
+        p.ν * (bernoulliLogisticSolution p (u₀ ()) t) ^ p.γ
+    field_simp [ne_of_gt p.hμ]
+    ring
+  · intro t x _ht_pos _ht_lt hx
+    exact absurd hx (by intro h; exact h)
+
 end ShenWork.Paper2
