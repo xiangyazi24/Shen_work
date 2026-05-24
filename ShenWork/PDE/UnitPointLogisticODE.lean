@@ -544,4 +544,12 @@ theorem unitPointDomain.Theorem_1_1_nonminimal_branch
     simpa [u, v] using
       unitPointLogistic_classicalSolution p ha hb hu₀ (T := T) hT
 
+theorem unitPointDomain.Theorem_1_1
+    (p : CM2Params) :
+    Theorem_1_1 unitPointDomain p := by
+  refine Theorem_1_1.of_assumed_solutions_branch ?_ ?_
+  · exact unitPointDomain.Theorem_1_1_nonminimal_branch p
+  · intro hχ ha hb u₀ hu₀
+    exact ((unitPointDomain.Theorem_1_1_minimal_only p ha hb) hχ).2 ha hb u₀ hu₀
+
 end ShenWork.Paper2
