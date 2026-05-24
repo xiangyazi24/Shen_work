@@ -81,4 +81,16 @@ lemma bernoulliLogisticDenominator_pos_of_nonneg_time
   exact add_pos_of_pos_of_nonneg (mul_pos hc_pos hw_pos)
     (mul_nonneg hq_pos.le (sub_nonneg.mpr hw_le_one))
 
+lemma bernoulliLogisticSolution_pos
+    (p : CM2Params) {u₀ t : ℝ} (ha : 0 < p.a) (hb : 0 < p.b)
+    (hu₀ : 0 < u₀) :
+    0 < bernoulliLogisticSolution p u₀ t := by
+  by_cases ht : 0 ≤ t
+  · rw [bernoulliLogisticSolution_of_nonneg p u₀ t ht]
+    exact Real.rpow_pos_of_pos
+      (bernoulliLogisticDenominator_pos_of_nonneg_time p ha hb hu₀ ht) _
+  · have ht_neg : t < 0 := not_le.mp ht
+    rw [bernoulliLogisticSolution_of_neg p u₀ t ht_neg]
+    exact mul_pos hu₀ (Real.exp_pos _)
+
 end ShenWork.Paper2
