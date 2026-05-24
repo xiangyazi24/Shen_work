@@ -9,7 +9,7 @@
 -/
 import ShenWork.Paper2.Defs
 import ShenWork.PDE.BoundedDomainData
-import ShenWork.PDE.IntervalDomain
+import ShenWork.PDE.IntervalDomainMaxPrinciple
 import Mathlib.Analysis.MeanInequalities
 import Mathlib.Analysis.Calculus.Deriv.Basic
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
@@ -3293,6 +3293,71 @@ theorem Lemma_3_1_of_time_constant_solution_branches
     obtain ⟨w, hw⟩ := hminimal ha hb hT hsol
     exact Lemma_3_1_minimal_constant_time_branch
       hχ ha hb hT hsol hw
+
+/-- Paper2 Lemma 3.1 on the certified unit interval domain.  The interval
+regularity component supplies the nonpositive derivative certificate for the
+sup-norm profile, and `ParabolicMaxPrincipleData` turns that certificate into
+monotonicity. -/
+theorem Lemma_3_1_intervalDomain (p : CM2Params) :
+    Lemma_3_1 ShenWork.IntervalDomain.intervalDomain p := by
+  intro hχ
+  constructor
+  · intro ha hb T hT u v hsol t₀ ht₀_pos ht₀_T hsup
+    have hreg :
+        ShenWork.IntervalDomain.intervalDomainClassicalRegularity T u v := by
+      simpa [ShenWork.IntervalDomain.intervalDomain] using hsol.2.1
+    have hcert :=
+      hreg.1 p hχ ha hb t₀ ht₀_pos ht₀_T (by
+        simpa [ShenWork.IntervalDomain.intervalDomain] using hsup)
+    have hcont :
+        ContinuousOn
+          (fun t => ShenWork.IntervalDomain.intervalDomain.supNorm (u t))
+          (Set.Ioc (0 : ℝ) t₀) := by
+      simpa [ShenWork.IntervalDomain.intervalDomain] using hcert.continuousOn
+    have hdiff :
+        DifferentiableOn ℝ
+          (fun t => ShenWork.IntervalDomain.intervalDomain.supNorm (u t))
+          (interior (Set.Ioc (0 : ℝ) t₀)) := by
+      simpa [ShenWork.IntervalDomain.intervalDomain] using hcert.differentiableOn
+    have hderiv :
+        ∀ t, t ∈ interior (Set.Ioc (0 : ℝ) t₀) →
+          deriv
+            (fun s => ShenWork.IntervalDomain.intervalDomain.supNorm (u s)) t ≤
+            0 := by
+      intro t ht
+      simpa [ShenWork.IntervalDomain.intervalDomain] using hcert.deriv_nonpos t ht
+    exact
+      ParabolicMaxPrincipleData.supNorm_nonincreasing_of_deriv_nonpos
+        (D := ShenWork.IntervalDomain.intervalDomain)
+        (u := u) (I := Set.Ioc (0 : ℝ) t₀)
+        (convex_Ioc (0 : ℝ) t₀) hcont hdiff hderiv
+  · intro ha hb T hT u v hsol
+    have hreg :
+        ShenWork.IntervalDomain.intervalDomainClassicalRegularity T u v := by
+      simpa [ShenWork.IntervalDomain.intervalDomain] using hsol.2.1
+    have hcert := hreg.2 p hχ ha hb
+    have hcont :
+        ContinuousOn
+          (fun t => ShenWork.IntervalDomain.intervalDomain.supNorm (u t))
+          (Set.Ioo (0 : ℝ) T) := by
+      simpa [ShenWork.IntervalDomain.intervalDomain] using hcert.continuousOn
+    have hdiff :
+        DifferentiableOn ℝ
+          (fun t => ShenWork.IntervalDomain.intervalDomain.supNorm (u t))
+          (interior (Set.Ioo (0 : ℝ) T)) := by
+      simpa [ShenWork.IntervalDomain.intervalDomain] using hcert.differentiableOn
+    have hderiv :
+        ∀ t, t ∈ interior (Set.Ioo (0 : ℝ) T) →
+          deriv
+            (fun s => ShenWork.IntervalDomain.intervalDomain.supNorm (u s)) t ≤
+            0 := by
+      intro t ht
+      simpa [ShenWork.IntervalDomain.intervalDomain] using hcert.deriv_nonpos t ht
+    exact
+      ParabolicMaxPrincipleData.supNorm_nonincreasing_of_deriv_nonpos
+        (D := ShenWork.IntervalDomain.intervalDomain)
+        (u := u) (I := Set.Ioo (0 : ℝ) T)
+        (convex_Ioo (0 : ℝ) T) hcont hdiff hderiv
 
 /-- A fake bounded-domain interface showing that Lemma 3.1 is not a consequence
 of the current abstract API alone.  The fake time derivative is identically
