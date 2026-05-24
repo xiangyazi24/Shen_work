@@ -635,6 +635,306 @@ lemma paper3Cosine_Corollary_5_1_minimal_exponential_formula_of_raw
       (D := D) (p := p) (N := N) hraw hm ha hb huStar hχ
       huv hmass hconv
 
+lemma paper3Cosine_Theorem_2_2_xpSigma_nonminimal_formula_of_Lemma_A_1
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hA1 : Lemma_A_1 D p paper3CosineSpectralData N)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    max
+        (max (chiStrong1Formula p eq.1 eq.2)
+          (chiStrong2Formula p eq.1))
+        (max (chiStrong3Formula p M0 eq.1 eq.2)
+          (chiStrong4Formula p M0 eq.1)) ≤
+      paperCriticalSensitivity paper3CosineSpectralData p eq.1 eq.2 →
+      NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, _root_.ShenWork.Paper2.PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                _root_.ShenWork.Paper2.IsPaper2GlobalClassicalSolution D p u v →
+                _root_.ShenWork.Paper2.InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate :=
+  Theorem_2_2_xpSigma_nonminimal_formula_branch_of_Lemma_A_1
+    D paper3CosineSpectralData p N paper3Cosine_hasNeumannSpectrum hA1
+    hsigma_low hsigma_high hpNorm ha hb M0
+
+lemma paper3Cosine_Theorem_2_2_xpSigma_nonminimal_first_mode_of_Lemma_A_1
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hA1 : Lemma_A_1 D p paper3CosineSpectralData N)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    max
+        (max (chiStrong1Formula p eq.1 eq.2)
+          (chiStrong2Formula p eq.1))
+        (max (chiStrong3Formula p M0 eq.1 eq.2)
+          (chiStrong4Formula p M0 eq.1)) ≤
+      ((1 + eq.2) ^ p.β /
+          (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+        (p.μ + Real.pi ^ 2) →
+      NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, _root_.ShenWork.Paper2.PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                _root_.ShenWork.Paper2.IsPaper2GlobalClassicalSolution D p u v →
+                _root_.ShenWork.Paper2.InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate := by
+  dsimp
+  intro hfirst hcond
+  exact
+    Theorem_2_2_xpSigma_nonminimal_first_mode_branch_of_Lemma_A_1
+      D paper3CosineSpectralData p N paper3Cosine_hasNeumannSpectrum hA1
+      hsigma_low hsigma_high hpNorm ha hb M0
+      (by simpa [paper3CosineSpectralData] using hfirst) hcond
+
+lemma paper3Cosine_Theorem_2_2_xpSigma_minimal_formula_of_Lemma_A_1
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hA1 : Lemma_A_1 D p paper3CosineSpectralData N)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
+    _root_.ShenWork.Paper2.chiBeta p ≤
+      paperCriticalSensitivity paper3CosineSpectralData p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 →
+      MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, _root_.ShenWork.Paper2.PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀
+                (fun _ => (minimalEquilibrium p uStar).1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                _root_.ShenWork.Paper2.IsPaper2GlobalClassicalSolution D p u v →
+                _root_.ShenWork.Paper2.InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v
+                    (minimalEquilibrium p uStar).1
+                    (minimalEquilibrium p uStar).2 A rate :=
+  Theorem_2_2_xpSigma_minimal_formula_branch_of_Lemma_A_1
+    D paper3CosineSpectralData p N paper3Cosine_hasNeumannSpectrum hA1
+    hsigma_low hsigma_high hpNorm _ha _hb _hm hβ huStar uBar vLower
+
+lemma paper3Cosine_Theorem_2_2_xpSigma_minimal_first_mode_of_Lemma_A_1
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hA1 : Lemma_A_1 D p paper3CosineSpectralData N)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
+    _root_.ShenWork.Paper2.chiBeta p ≤
+      ((1 + (minimalEquilibrium p uStar).2) ^ p.β /
+          (p.ν * p.γ *
+            (minimalEquilibrium p uStar).1 ^ (p.m + p.γ - 1))) *
+        (p.μ + Real.pi ^ 2) →
+      MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, _root_.ShenWork.Paper2.PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀
+                (fun _ => (minimalEquilibrium p uStar).1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                _root_.ShenWork.Paper2.IsPaper2GlobalClassicalSolution D p u v →
+                _root_.ShenWork.Paper2.InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v
+                    (minimalEquilibrium p uStar).1
+                    (minimalEquilibrium p uStar).2 A rate := by
+  intro hfirst hcond
+  exact
+    Theorem_2_2_xpSigma_minimal_first_mode_branch_of_Lemma_A_1
+      D paper3CosineSpectralData p N paper3Cosine_hasNeumannSpectrum hA1
+      hsigma_low hsigma_high hpNorm _ha _hb _hm hβ huStar uBar vLower
+      (by simpa [paper3CosineSpectralData] using hfirst) hcond
+
+lemma paper3Cosine_Theorem_2_2_xpSigma_chi_nonpos_of_Lemma_A_1
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hA1 : Lemma_A_1 D p paper3CosineSpectralData N)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm) (hχ : p.χ₀ ≤ 0) :
+    (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+        ∀ u₀ : D.Point → ℝ, _root_.ShenWork.Paper2.PositiveInitialDatum D u₀ →
+          N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+            ∀ u v : ℝ → D.Point → ℝ,
+              _root_.ShenWork.Paper2.IsPaper2GlobalClassicalSolution D p u v →
+              _root_.ShenWork.Paper2.InitialTrace D u₀ u →
+                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, _root_.ShenWork.Paper2.PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                _root_.ShenWork.Paper2.IsPaper2GlobalClassicalSolution D p u v →
+                _root_.ShenWork.Paper2.InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) :=
+  Theorem_2_2_xpSigma_chi_nonpos_branch_of_Lemma_A_1
+    D paper3CosineSpectralData p N paper3Cosine_hasNeumannSpectrum hA1
+    hsigma_low hsigma_high hpNorm hχ
+
+lemma paper3Cosine_Theorem_2_2_xpSigma_chi_nonpos_of_raw
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm) (hχ : p.χ₀ ≤ 0) :
+    (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+        ∀ u₀ : D.Point → ℝ, _root_.ShenWork.Paper2.PositiveInitialDatum D u₀ →
+          N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+            ∀ u v : ℝ → D.Point → ℝ,
+              _root_.ShenWork.Paper2.IsPaper2GlobalClassicalSolution D p u v →
+              _root_.ShenWork.Paper2.InitialTrace D u₀ u →
+                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, _root_.ShenWork.Paper2.PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                _root_.ShenWork.Paper2.IsPaper2GlobalClassicalSolution D p u v →
+                _root_.ShenWork.Paper2.InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) :=
+  Theorem_2_2_xpSigma_chi_nonpos_branch_of_raw
+    D paper3CosineSpectralData p N paper3Cosine_hasNeumannSpectrum hraw
+    hsigma_low hsigma_high hpNorm hχ
+
+lemma paper3Cosine_Theorem_2_2_xpSigma_nonminimal_formula_of_raw
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    max
+        (max (chiStrong1Formula p eq.1 eq.2)
+          (chiStrong2Formula p eq.1))
+        (max (chiStrong3Formula p M0 eq.1 eq.2)
+          (chiStrong4Formula p M0 eq.1)) ≤
+      paperCriticalSensitivity paper3CosineSpectralData p eq.1 eq.2 →
+      NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, _root_.ShenWork.Paper2.PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                _root_.ShenWork.Paper2.IsPaper2GlobalClassicalSolution D p u v →
+                _root_.ShenWork.Paper2.InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate :=
+  Theorem_2_2_xpSigma_nonminimal_formula_branch_of_raw
+    D paper3CosineSpectralData p N paper3Cosine_hasNeumannSpectrum hraw
+    hsigma_low hsigma_high hpNorm ha hb M0
+
+lemma paper3Cosine_Theorem_2_2_xpSigma_minimal_formula_of_raw
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
+    _root_.ShenWork.Paper2.chiBeta p ≤
+      paperCriticalSensitivity paper3CosineSpectralData p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 →
+      MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, _root_.ShenWork.Paper2.PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀
+                (fun _ => (minimalEquilibrium p uStar).1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                _root_.ShenWork.Paper2.IsPaper2GlobalClassicalSolution D p u v →
+                _root_.ShenWork.Paper2.InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v
+                    (minimalEquilibrium p uStar).1
+                    (minimalEquilibrium p uStar).2 A rate :=
+  Theorem_2_2_xpSigma_minimal_formula_branch_of_raw
+    D paper3CosineSpectralData p N paper3Cosine_hasNeumannSpectrum hraw
+    hsigma_low hsigma_high hpNorm _ha _hb _hm hβ huStar uBar vLower
+
+lemma paper3Cosine_Theorem_2_2_xpSigma_nonminimal_first_mode_of_raw
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    max
+        (max (chiStrong1Formula p eq.1 eq.2)
+          (chiStrong2Formula p eq.1))
+        (max (chiStrong3Formula p M0 eq.1 eq.2)
+          (chiStrong4Formula p M0 eq.1)) ≤
+      ((1 + eq.2) ^ p.β /
+          (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+        (p.μ + Real.pi ^ 2) →
+      NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, _root_.ShenWork.Paper2.PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                _root_.ShenWork.Paper2.IsPaper2GlobalClassicalSolution D p u v →
+                _root_.ShenWork.Paper2.InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate := by
+  dsimp
+  intro hfirst hcond
+  exact
+    Theorem_2_2_xpSigma_nonminimal_first_mode_branch_of_raw
+      D paper3CosineSpectralData p N paper3Cosine_hasNeumannSpectrum hraw
+      hsigma_low hsigma_high hpNorm ha hb M0
+      (by simpa [paper3CosineSpectralData] using hfirst) hcond
+
+lemma paper3Cosine_Theorem_2_2_xpSigma_minimal_first_mode_of_raw
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
+    _root_.ShenWork.Paper2.chiBeta p ≤
+      ((1 + (minimalEquilibrium p uStar).2) ^ p.β /
+          (p.ν * p.γ *
+            (minimalEquilibrium p uStar).1 ^ (p.m + p.γ - 1))) *
+        (p.μ + Real.pi ^ 2) →
+      MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+        ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, _root_.ShenWork.Paper2.PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀
+                (fun _ => (minimalEquilibrium p uStar).1) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                _root_.ShenWork.Paper2.IsPaper2GlobalClassicalSolution D p u v →
+                _root_.ShenWork.Paper2.InitialTrace D u₀ u →
+                  ExponentialC1ConvergenceWith D N u v
+                    (minimalEquilibrium p uStar).1
+                    (minimalEquilibrium p uStar).2 A rate := by
+  intro hfirst hcond
+  exact
+    Theorem_2_2_xpSigma_minimal_first_mode_branch_of_raw
+      D paper3CosineSpectralData p N paper3Cosine_hasNeumannSpectrum hraw
+      hsigma_low hsigma_high hpNorm _ha _hb _hm hβ huStar uBar vLower
+      (by simpa [paper3CosineSpectralData] using hfirst) hcond
+
 end ShenWork.CosineSpectrum
 
 end
