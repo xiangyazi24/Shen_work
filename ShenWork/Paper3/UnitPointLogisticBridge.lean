@@ -591,6 +591,18 @@ theorem unitPointDomain.Theorem_2_1_part1_when_a_pos_b_zero
   simp only [ShenWork.Paper2.unitPointDomain] at hbdd_contra
   linarith [le_abs_self (u t_star ())]
 
+/-- Theorem 2.1 full composite for (a > 0, b = 0) — NO restriction on m, β, χ.
+All parts are vacuous: parts 2-3 via b=0, part 4 via a≠0, part 1 via
+nonexistence of PGBS (exponential growth). -/
+theorem unitPointDomain.Theorem_2_1_when_a_pos_b_zero
+    (p : CM2Params) (ha : 0 < p.a) (hb : p.b = 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_when_a_pos_b_zero p ha hb,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_b_zero p hb,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_b_zero p hb,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero p (ne_of_gt ha) C⟩
+
 end ShenWork.Paper3
 
 end
