@@ -227,3 +227,47 @@ Rules:
   when StrongLogisticCondition fails (use a specific param); etc.
 - Output: 2-4 commits ~10 LOC each.
 - Status: open.  Claimed: ___
+
+---
+
+## Closed-out unconditional unit-point theorems (as of 0c14ee7)
+
+* `unitPointDomain.Theorem_1_1` (Slot F module, codex-3)
+* `unitPointDomain.Theorem_1_3_holds` (Paper2 bridge, shen-codex)
+* `unitPointDomain.Theorem_1_2_when_a_b_split` (Paper2 bridge, shen-codex)
+  — handles (a=b=0) and (a>0, b>0); (a=0, b>0) and (a>0, b=0) open
+* `unitPointDomain.Proposition_1_3_holds` (Paper3 bridge, shen-codex)
+* `unitPointDomain.Proposition_1_2_when_a_pos_b_pos` (Paper3 bridge)
+* `unitPointDomain.Proposition_1_4_when_a_b_split` (Paper3 bridge)
+  — handles (a=b=0) and (a>0, b>0); (a=0, b>0) open
+
+## Open big-target work
+
+* Paper2 `Theorem_1_2` full: needs (a=0, b>0) and (a>0, b=0) ODE bridges
+* Paper3 `Proposition_1_2` full: needs (a=0, b>0) and (a>0, b=0) bridges
+* Paper3 `Proposition_1_4` full: needs (a=0, b>0) bridge
+* Paper3 `Theorem_2_1` full unconditional: needs uniqueness + Slot F integration
+* Paper3 `Theorem_2_2` full unconditional: needs SectorialLocalExponentialRaw witness
+* Paper1 `Lemma_2_5` full: requires UniformKBound or ψ-class restriction (see Slot A status)
+* intervalDomain.* mirror: needs real Gagliardo-Nirenberg-Poincaré
+
+## Next slots for parallel windows
+
+### Slot R — Paper 2/3 ODE bridge for (a=0, b>0): u' = -bu^(α+1)
+- Owner files: NEW file `ShenWork/PDE/UnitPointDecayODE.lean`.
+- Define `decayODESolution p u₀ t := (u₀^(-α) + α·b·max(t,0))^(-1/α)`.
+- Prove HasDerivAt, positivity, monotonic decrease to 0.
+- Bridge to `unitPointDomain.Theorem_1_2_when_a_zero_b_pos` etc.
+- Output: 1 new file, ~150 LOC.
+
+### Slot S — Paper 2 Theorem_1_2_holds (full unconditional via case split)
+- After Slot R lands, combine minimal + (a>0,b>0) + (a=0,b>0) + (a>0,b=0) cases
+  using disjunctive case analysis.  The (a>0,b=0) critical branch fails on
+  IsPaper2Bounded; either restrict via hypothesis or accept partial closure.
+
+### Slot T — Paper 3 Theorem_2_1_part1 from Slot F + uniqueness
+- Use Slot F's `unitPointLogistic_globalExistence_with_attractor` plus a
+  uniqueness argument (Bernoulli ODE has unique solutions on the interior)
+  to conclude that any PGBS (u, v) on unit-point with a, b > 0 IS the
+  Bernoulli solution, then derive eventual lower bound from
+  `bernoulliLogisticSolution_tendsto_atTop`.
