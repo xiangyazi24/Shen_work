@@ -1,5 +1,6 @@
 import ShenWork.PDE.HeatKernelLpEstimates
 import ShenWork.PDE.CosineParsevalBridge
+import Mathlib.Analysis.PSeries
 
 open MeasureTheory
 open scoped ENNReal
@@ -192,6 +193,31 @@ theorem unitIntervalCosineHeatGradientValue_L2_Linfty_lpNorm_smoothing
           (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
             unitIntervalCosineL2TsumNorm a := rfl
 
+/-- The nonzero Neumann reciprocal eigenvalue trace on the unit interval is
+summable. -/
+theorem unitIntervalCosineReciprocalEigenvalueTerm_summable :
+    Summable unitIntervalCosineReciprocalEigenvalueTerm := by
+  have hterm :
+      ∀ n : ℕ,
+        unitIntervalCosineReciprocalEigenvalueTerm n =
+          (1 / Real.pi ^ 2) * (1 / (n : ℝ) ^ 2) := by
+    intro n
+    by_cases hn : n = 0
+    · subst n
+      simp [unitIntervalCosineReciprocalEigenvalueTerm]
+    · have hnR : (n : ℝ) ≠ 0 := by
+        exact_mod_cast hn
+      have hpi : Real.pi ≠ 0 := ne_of_gt Real.pi_pos
+      simp [unitIntervalCosineReciprocalEigenvalueTerm, hn,
+        unitIntervalCosineEigenvalue]
+      field_simp [hnR, hpi]
+  have hs :
+      Summable
+        (fun n : ℕ => (1 / Real.pi ^ 2) * (1 / (n : ℝ) ^ 2)) :=
+    (Real.summable_one_div_nat_pow.mpr (by norm_num : 1 < 2)).mul_left
+      (1 / Real.pi ^ 2)
+  exact hs.congr fun n => (hterm n).symm
+
 /-- Unit-interval spectral Neumann heat-gradient estimate from interval `L²`
 mass to `L∞`, stated for the derivative coefficient series.  This is the
 Parseval-connected version of the coefficient-space estimate. -/
@@ -281,5 +307,49 @@ theorem unitIntervalNeumannSpectralHeat_deriv_L2_Linfty_bound
   rw [hderiv]
   exact unitIntervalNeumannSpectralHeatGradient_L2_Linfty_bound
     (t := t) ht hrecip (f := f) hf hL2 hf_sq
+
+/-- Unit-interval spectral Neumann heat-gradient estimate with the reciprocal
+eigenvalue summability discharged by the p-series theorem. -/
+theorem unitIntervalNeumannSpectralHeatGradient_L2_Linfty_bound'
+    {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℂ}
+    (hf : IntervalIntegrable f volume 0 1)
+    (hL2 :
+      MemLp (unitIntervalEvenReflection f) 2
+        (volume.restrict (Set.Ioc (-1 : ℝ) 1)))
+    (hf_sq : IntervalIntegrable (fun x : ℝ => ‖f x‖ ^ 2) volume 0 1) :
+    lpNorm
+        (fun x =>
+          unitIntervalCosineHeatGradientValue t
+            (unitIntervalNeumannCosineCoeff f) x)
+        ∞ (intervalMeasure 1) ≤
+      2 * (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+        Real.sqrt (∫ x in (0 : ℝ)..1, ‖f x‖ ^ 2) :=
+  unitIntervalNeumannSpectralHeatGradient_L2_Linfty_bound
+    (t := t) ht unitIntervalCosineReciprocalEigenvalueTerm_summable
+    (f := f) hf hL2 hf_sq
+
+/-- Unit-interval spectral Neumann heat semigroup derivative estimate with the
+reciprocal eigenvalue summability discharged by the p-series theorem. -/
+theorem unitIntervalNeumannSpectralHeat_deriv_L2_Linfty_bound'
+    {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℂ}
+    (hf : IntervalIntegrable f volume 0 1)
+    (hL2 :
+      MemLp (unitIntervalEvenReflection f) 2
+        (volume.restrict (Set.Ioc (-1 : ℝ) 1)))
+    (hf_sq : IntervalIntegrable (fun x : ℝ => ‖f x‖ ^ 2) volume 0 1) :
+    lpNorm
+        (fun x =>
+          deriv
+            (fun z =>
+              unitIntervalCosineHeatValue t
+                (unitIntervalNeumannCosineCoeff f) z) x)
+        ∞ (intervalMeasure 1) ≤
+      2 * (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+        Real.sqrt (∫ x in (0 : ℝ)..1, ‖f x‖ ^ 2) :=
+  unitIntervalNeumannSpectralHeat_deriv_L2_Linfty_bound
+    (t := t) ht unitIntervalCosineReciprocalEigenvalueTerm_summable
+    (f := f) hf hL2 hf_sq
 
 end ShenWork.HeatKernelGradientEstimates
