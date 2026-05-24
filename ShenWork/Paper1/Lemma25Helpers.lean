@@ -802,6 +802,53 @@ theorem Lemma_2_5_with_explicit_k_unit
     one_pos one_pos hpExp (lt_of_lt_of_le one_pos p.hγ) hk_nn hk_lt_sqrt
     hk_bound hu hu_nn hint_hyp
 
+/-! ### Existential Lemma 2.5 for ψ-class with k < √l -/
+
+/-- Existential Lemma 2.5 for the restricted exponential-weight class
+satisfying `|ψ'| ≤ k · ψ` for some `k < √l`: for every fixed
+`(pExp, γ, l, μ)` there is a single positive constant `C(pExp, γ, l, μ, k)`
+that bounds the weighted resolvent gradient.
+
+This is the natural strong form of `Lemma_2_5`: the full statement
+quantifies over arbitrary `ExponentialWeight`, but on the unrestricted
+class `C` cannot be uniform in `ψ` (the bound `2/(√l - k)` blows up).
+By packaging `k` explicitly, the constant becomes uniform in the
+restricted class. -/
+theorem Lemma_2_5_existential_for_small_k_psi
+    {pExp gamma l mu k : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 1 ≤ pExp) (hgamma : 0 < gamma)
+    (hk_nn : 0 ≤ k) (hk_lt : k < Real.sqrt l) :
+    ∃ C > 0, ∀ (psi : ExponentialWeight),
+      (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+      ∀ {u : ℝ → ℝ}, IsCUnifBdd u → (∀ y, 0 ≤ u y) →
+      Integrable (fun x : ℝ => ((u x) ^ gamma) ^ pExp * psi.weight x) →
+        Integrable
+          (fun x : ℝ =>
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+              psi.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+              psi.weight x ≤
+          C * ∫ x : ℝ, ((u x) ^ gamma) ^ pExp * psi.weight x := by
+  refine ⟨(Real.sqrt l) ^ pExp *
+        ((mu / (2 * Real.sqrt l)) ^ pExp *
+          (2 / Real.sqrt l) ^ (pExp - 1) *
+          (2 / (Real.sqrt l - k))), ?_, ?_⟩
+  · -- Positivity of C
+    have hsqrt_pos : 0 < Real.sqrt l := Real.sqrt_pos.mpr hl
+    have hsqrt_sub_pos : 0 < Real.sqrt l - k := by linarith
+    have hCouter_pos : 0 < (Real.sqrt l) ^ pExp :=
+      Real.rpow_pos_of_pos hsqrt_pos _
+    have hC1_pos : 0 < (mu / (2 * Real.sqrt l)) ^ pExp :=
+      Real.rpow_pos_of_pos (by positivity) _
+    have hC2_pos : 0 < (2 / Real.sqrt l) ^ (pExp - 1) :=
+      Real.rpow_pos_of_pos (by positivity) _
+    have hC3_pos : 0 < 2 / (Real.sqrt l - k) := by positivity
+    positivity
+  · intro psi hk_bound u hu hu_nn hint
+    exact Lemma_2_5_with_explicit_k psi hl hmu hpExp hgamma hk_nn hk_lt
+      hk_bound hu hu_nn hint
+
 end ShenWork.Paper1
 
 end
