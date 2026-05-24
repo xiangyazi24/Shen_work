@@ -10423,6 +10423,36 @@ theorem Theorem_2_2_minimal_full_chi_nonneg_of_raw
     intro hχcrit
     exact hC.minimalEquilibrium_linearlyUnstable H huStar hχcrit
 
+/-- Full Theorem 2.2 composite on the `χ₀ ≥ 0`, `a = 0` slice.  If
+`b = 0`, this is the minimal-full branch; if `b ≠ 0`, all remaining branches
+are vacuous. -/
+theorem Theorem_2_2_chi_nonneg_a_zero_branch
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (H : HasNeumannSpectrum S)
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hcontrol : ∀ uStar, SupControlsXpSigmaDistance D N sigma pNorm uStar)
+    (hmexist :
+      ∀ uStar, ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence D p uStar delta)
+    (hχ : 0 ≤ p.χ₀) (ha0 : p.a = 0) :
+    Theorem_2_2 D p S N C := by
+  by_cases hb0 : p.b = 0
+  · exact
+      Theorem_2_2_minimal_full_chi_nonneg_of_raw
+        H hC hraw hsigma_low hsigma_high hpNorm hcontrol hmexist hχ
+        ha0 hb0
+  · refine Theorem_2_2_minimal_only_vacuous_when_a_zero ha0 ?_ ?_
+    · intro _ha hb
+      exact False.elim (hb0 hb)
+    · intro _ha hb
+      exact False.elim (hb0 hb)
+
 /-- **TAUTOLOGY (no math content)**: body is `:= hstab`, definitionally
 equal to `Theorem_2_3 D p N`.  Target signature only. -/
 theorem Theorem_2_3.of_assumed_stability_branch
