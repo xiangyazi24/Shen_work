@@ -37,11 +37,10 @@
 - **产出**: `sobolev_H1_Linfty_interval`
 - **下游**: H0.3, Lemma 4.1
 
-### H0.5 — ODE uniqueness for locally Lipschitz vector fields
-- **内容**: Picard-Lindelöf uniqueness: if f is locally Lipschitz, the IVP has unique solution
-- **现状**: Mathlib has `ODE.exists_forall_hasDerivAt_closedBall_of_uniqueDiffOn` but specific forms needed
-- **前置**: Mathlib ODE
-- **目标文件**: `ShenWork/PDE/ODEUniqueness.lean` (new)
+### H0.5 — ODE uniqueness for locally Lipschitz vector fields ✅ DONE
+- **内容**: Picard-Lindelöf uniqueness for Bernoulli logistic and decay ODEs
+- **完成**: commits 5124e6c, f3a4f6e (2026-05-24)
+- **文件**: `ShenWork/PDE/ODEUniqueness.lean` (0 sorry, 6 lemmas/theorems)
 - **产出**: `bernoulliLogistic_unique`, `bernoulliDecay_unique`
 - **下游**: Paper3 Theorem 2.1 (part1 nonminimal on interval), Theorem 2.3
 
