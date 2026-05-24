@@ -32,4 +32,6 @@ import ShenWork.PDE.HeatKernelLpEstimates
 import ShenWork.PDE.ParabolicMaxPrinciple
 import ShenWork.Paper1.Lemma25Helpers
 import ShenWork.Paper2.UnitPointLogisticBridge
+import ShenWork.Paper2.IntervalDomainLemma41
+import ShenWork.Paper2.IntervalDomainBootstrap
 import ShenWork.Paper3.UnitPointLogisticBridge
