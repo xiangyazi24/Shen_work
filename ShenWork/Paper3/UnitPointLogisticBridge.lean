@@ -733,6 +733,87 @@ theorem unitPointDomain.not_Theorem_2_1_part1_when_a_zero_b_pos :
   change δu ≤ u t_star () at hcontra
   linarith
 
+/-! ### Theorem_2_1 part1 covering ALL b when a > 0 -/
+
+/-- Theorem 2.1 part 1 for the unit-point domain when `0 < p.a`,
+covering ALL `b ≥ 0` by case-splitting:
+- `b = 0`: vacuous (no PGBS exists -- exponential growth)
+- `b > 0`: inverse-power substitution argument
+This eliminates ALL restrictions on `b`, `m`, `β`, `χ` from part 1. -/
+theorem unitPointDomain.Theorem_2_1_part1_when_a_pos
+    (p : CM2Params) (ha : 0 < p.a) :
+    Theorem_2_1_part1 ShenWork.Paper2.unitPointDomain p := by
+  intro hm u v hsol
+  by_cases hb : 0 < p.b
+  · exact unitPointDomain.Theorem_2_1_part1_when_a_pos_b_pos p ha hb hm u v hsol
+  · have hb0 : p.b = 0 := le_antisymm (not_lt.mp hb) p.hb
+    exact unitPointDomain.Theorem_2_1_part1_when_a_pos_b_zero p ha hb0 hm u v hsol
+
+/-! ### Theorem_2_1 full composites for a > 0 (all b) -/
+
+/-- Paper 3 Theorem 2.1 full composite when `0 < p.a ∧ p.χ₀ ≤ 0`.
+**Broadest** a > 0 composite: covers ALL `b ≥ 0` without any
+restriction on `m` or `β`.
+Part 1 fires via case split on b (b=0 vacuous, b>0 inverse-power);
+parts 2-3 vacuous via `chi_nonpos`;
+part 4 vacuous via `a_nonzero`.
+Strictly generalises `Theorem_2_1_when_a_pos_b_pos_chi_nonpos`
+(drops `0 < b`) and `Theorem_2_1_when_a_pos_b_zero` (adds chi condition
+but keeps b unrestricted). -/
+theorem unitPointDomain.Theorem_2_1_when_a_pos_chi_nonpos
+    (p : CM2Params) (ha : 0 < p.a) (hχ : p.χ₀ ≤ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_when_a_pos p ha,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_chi_nonpos p hχ,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_chi_nonpos p hχ,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero p (ne_of_gt ha) C⟩
+
+/-- Paper 3 Theorem 2.1 full composite when `0 < p.a ∧ p.β < 1`.
+Covers ALL `b ≥ 0` without any restriction on `m` or `χ₀`.
+Part 1 fires via case split on b; parts 2-3 vacuous via `beta_lt_one`;
+part 4 vacuous via `a_nonzero`.
+Strictly generalises `Theorem_2_1_when_a_pos_b_pos_beta_lt_one`
+(drops `0 < b`). -/
+theorem unitPointDomain.Theorem_2_1_when_a_pos_beta_lt_one
+    (p : CM2Params) (ha : 0 < p.a) (hβ : p.β < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_when_a_pos p ha,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_beta_lt_one p hβ,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_beta_lt_one p hβ,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero p (ne_of_gt ha) C⟩
+
+/-- Paper 3 Theorem 2.1 full composite when `0 < p.a ∧ p.m ≠ 1 ∧ p.χ₀ ≤ 0`.
+Covers ALL `b ≥ 0` without any restriction on `β`.
+Part 1 fires via case split on b; part 2 vacuous via `m_ne_one`;
+part 3 vacuous via `chi_nonpos`; part 4 vacuous via `a_nonzero`.
+Strictly generalises `Theorem_2_1_when_a_pos_b_pos_m_ne_one_chi_nonpos`
+(drops `0 < b`). -/
+theorem unitPointDomain.Theorem_2_1_when_a_pos_m_ne_one_chi_nonpos
+    (p : CM2Params) (ha : 0 < p.a) (hm : p.m ≠ 1) (hχ : p.χ₀ ≤ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_when_a_pos p ha,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_m_ne_one p hm,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_chi_nonpos p hχ,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero p (ne_of_gt ha) C⟩
+
+/-- Paper 3 Theorem 2.1 full composite when `0 < p.a ∧ p.m ≤ 1 ∧ p.χ₀ ≤ 0`.
+Covers ALL `b ≥ 0` without any restriction on `β`.
+Part 1 fires via case split on b; part 2 vacuous via `chi_nonpos`;
+part 3 vacuous via `m_le_one`; part 4 vacuous via `a_nonzero`.
+Strictly generalises `Theorem_2_1_when_a_pos_b_pos_m_le_one_chi_nonpos`
+(drops `0 < b`). -/
+theorem unitPointDomain.Theorem_2_1_when_a_pos_m_le_one_chi_nonpos
+    (p : CM2Params) (ha : 0 < p.a) (hm : p.m ≤ 1) (hχ : p.χ₀ ≤ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_when_a_pos p ha,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_chi_nonpos p hχ,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_m_le_one p hm,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero p (ne_of_gt ha) C⟩
+
 end ShenWork.Paper3
 
 end
