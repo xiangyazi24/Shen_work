@@ -1137,6 +1137,182 @@ lemma paper3Cosine_Theorem_2_5_full_stability_first_mode_of_sectorial
       _ha _hb _hm hβ huStar uBar vLower
       (by simpa [paper3CosineSpectralData] using hfirst) hcond hsectorial
 
+abbrev paper3Cosine_Theorem_2_3_negative_sensitivity_mass_constrained_formula_of_raw
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    Theorem_2_3_negative_sensitivity_mass_constrained_formula_branch_of_raw
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hraw
+
+abbrev paper3Cosine_Theorem_2_3_negative_sensitivity_mass_constrained_formula_of_xpSigma_le_supNorm
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    Theorem_2_3_negative_sensitivity_mass_constrained_formula_branch_of_xpSigma_le_supNorm
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hraw
+
+abbrev paper3Cosine_Theorem_2_3_negative_sensitivity_local_formula_of_raw
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    Theorem_2_3_negative_sensitivity_local_formula_branch_of_raw
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hraw
+
+abbrev paper3Cosine_Theorem_2_3_negative_sensitivity_local_formula_of_xpSigma_le_supNorm
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    Theorem_2_3_negative_sensitivity_local_formula_branch_of_xpSigma_le_supNorm
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hraw
+
+abbrev paper3Cosine_Theorem_2_4_full_stability_formula_of_raw
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    Theorem_2_4_full_stability_formula_branch_of_raw
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hraw
+
+abbrev paper3Cosine_Theorem_2_4_full_stability_formula_of_xpSigma_le_supNorm
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    Theorem_2_4_full_stability_formula_branch_of_xpSigma_le_supNorm
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hraw
+
+abbrev paper3Cosine_Theorem_2_4_full_stability_first_mode_of_raw
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    Theorem_2_4_full_stability_first_mode_branch_of_raw
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hraw
+
+abbrev paper3Cosine_Theorem_2_4_full_stability_first_mode_of_xpSigma_le_supNorm
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    Theorem_2_4_full_stability_first_mode_branch_of_xpSigma_le_supNorm
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hraw
+
+abbrev paper3Cosine_Theorem_2_4_local_stability_formula_of_raw
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    Theorem_2_4_local_stability_formula_branch_of_raw
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hraw
+
+abbrev paper3Cosine_Theorem_2_4_local_stability_formula_of_xpSigma_le_supNorm
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    Theorem_2_4_local_stability_formula_branch_of_xpSigma_le_supNorm
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hraw
+
+abbrev paper3Cosine_Theorem_2_4_local_stability_first_mode_of_raw
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    Theorem_2_4_local_stability_first_mode_branch_of_raw
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hraw
+
+abbrev paper3Cosine_Theorem_2_4_local_stability_first_mode_of_xpSigma_le_supNorm
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    Theorem_2_4_local_stability_first_mode_branch_of_xpSigma_le_supNorm
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hraw
+
+abbrev paper3Cosine_Theorem_2_5_full_stability_formula_of_raw
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    Theorem_2_5_full_stability_formula_branch_of_raw
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hraw
+
+abbrev paper3Cosine_Theorem_2_5_full_stability_formula_of_xpSigma_le_supNorm
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    Theorem_2_5_full_stability_formula_branch_of_xpSigma_le_supNorm
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hraw
+
+abbrev paper3Cosine_Theorem_2_5_full_stability_first_mode_of_raw
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    Theorem_2_5_full_stability_first_mode_branch_of_raw
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hraw
+
+abbrev paper3Cosine_Theorem_2_5_full_stability_first_mode_of_xpSigma_le_supNorm
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    Theorem_2_5_full_stability_first_mode_branch_of_xpSigma_le_supNorm
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hraw
+
 lemma paper3Cosine_Corollary_5_1_nonminimal_exponential
     {D : BoundedDomainData} {p : CM2Params}
     {N : StabilityNorms D} {C : Paper3Constants D p}
