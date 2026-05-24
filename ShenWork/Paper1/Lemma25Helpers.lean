@@ -914,6 +914,41 @@ theorem Lemma_2_5_explicit_epsilon_CMParams
   Lemma_2_5_explicit_epsilon (gamma := p.γ) hl hmu hpExp
     (lt_of_lt_of_le one_pos p.hγ) hε_pos hε_lt
 
+/-! ### CMParams + (l, μ) = (1, 1) ε form -/
+
+/-- CMParams + unit-resolvent ε form: takes (p, ε) with ε ∈ (0, 1),
+specializes to (l, μ) = (1, 1).  Useful for downstream Paper 4
+applications that consume the unit resolvent directly. -/
+theorem Lemma_2_5_explicit_epsilon_CMParams_unit
+    (p : CMParams) {pExp epsilon : ℝ}
+    (hpExp : 1 ≤ pExp)
+    (hε_pos : 0 < epsilon) (hε_lt : epsilon < 1) :
+    ∃ C > 0, ∀ (psi : ExponentialWeight),
+      (∀ z, |deriv psi.weight z| ≤ (1 - epsilon) * psi.weight z) →
+      ∀ {u : ℝ → ℝ}, IsCUnifBdd u → (∀ y, 0 ≤ u y) →
+      Integrable (fun x : ℝ => ((u x) ^ p.γ) ^ pExp * psi.weight x) →
+        Integrable
+          (fun x : ℝ =>
+            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^ pExp *
+              psi.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^ pExp *
+              psi.weight x ≤
+          C * ∫ x : ℝ, ((u x) ^ p.γ) ^ pExp * psi.weight x := by
+  have hε_lt_sqrt : epsilon < Real.sqrt 1 := by
+    rw [Real.sqrt_one]; exact hε_lt
+  have h_bound_eq : (1 : ℝ) - epsilon = Real.sqrt 1 - epsilon := by
+    rw [Real.sqrt_one]
+  obtain ⟨C, hC_pos, hC⟩ :=
+    Lemma_2_5_explicit_epsilon_CMParams p (l := 1) (mu := 1)
+      one_pos one_pos hpExp hε_pos hε_lt_sqrt
+  refine ⟨C, hC_pos, ?_⟩
+  intro psi hk_bound u hu hu_nn hint
+  refine hC psi ?_ hu hu_nn hint
+  intro z
+  rw [← h_bound_eq]
+  exact hk_bound z
+
 end ShenWork.Paper1
 
 end
