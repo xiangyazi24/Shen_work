@@ -1554,6 +1554,27 @@ lemma unitIntervalCosineHeatGradientMultiplier_le {t : ℝ} (ht : 0 < t) (n : �
     _ ≤ (1 / (2 * t)) * 1 := hscaled
     _ = 1 / (2 * t) := by ring
 
+/-- Finite cosine-coefficient `L²` energy on the unit interval. -/
+def unitIntervalCosineL2Energy (s : Finset ℕ) (a : ℕ → ℝ) : ℝ :=
+  ∑ n ∈ s, (a n) ^ 2
+
+/-- Finite cosine-coefficient gradient energy after heat flow on the unit interval. -/
+def unitIntervalCosineHeatGradientEnergy
+    (t : ℝ) (s : Finset ℕ) (a : ℕ → ℝ) : ℝ :=
+  ∑ n ∈ s, unitIntervalCosineHeatGradientMultiplier t n * (a n) ^ 2
+
+/-- Finite-expansion `L²` gradient smoothing for the interval cosine heat flow. -/
+lemma unitIntervalCosineHeatGradientEnergy_le {t : ℝ} (ht : 0 < t)
+    (s : Finset ℕ) (a : ℕ → ℝ) :
+    unitIntervalCosineHeatGradientEnergy t s a ≤
+      (1 / (2 * t)) * unitIntervalCosineL2Energy s a := by
+  unfold unitIntervalCosineHeatGradientEnergy unitIntervalCosineL2Energy
+  rw [Finset.mul_sum]
+  apply Finset.sum_le_sum
+  intro n _hn
+  exact mul_le_mul_of_nonneg_right
+    (unitIntervalCosineHeatGradientMultiplier_le ht n) (sq_nonneg (a n))
+
 /-- The heat semigroup is symmetric in the sense that swapping x and y
     in the kernel gives the same integrand. -/
 theorem heatSemigroup_kernel_symm (t x y : ℝ) :
