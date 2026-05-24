@@ -923,6 +923,40 @@ theorem unitIntervalEvenReflection_memLp_two
     exact hmap.comp_of_map continuous_abs.aemeasurable
   simpa [unitIntervalEvenReflection, Function.comp_def, μ] using hcomp
 
+/-! ## L² cosine totality on the unit interval -/
+
+/-- Each raw unit-interval cosine mode belongs to the concrete interval
+`L²` space. -/
+theorem unitIntervalCosine_memLp_two (n : ℕ) :
+    MemLp
+      (fun x : ℝ => (Real.cos ((n : ℝ) * Real.pi * x) : ℂ))
+      (2 : ℝ≥0∞) (intervalMeasure 1) := by
+  refine MemLp.of_bound ?_ (1 : ℝ) ?_
+  · have hcont :
+        Continuous
+          (fun x : ℝ => (Real.cos ((n : ℝ) * Real.pi * x) : ℂ)) := by
+      fun_prop
+    exact hcont.aestronglyMeasurable
+  · exact Filter.Eventually.of_forall fun x => by
+      rw [Complex.norm_real]
+      simpa [Real.norm_eq_abs] using
+        Real.abs_cos_le_one ((n : ℝ) * Real.pi * x)
+
+/-- The raw cosine mode as an element of interval `L²`. -/
+def unitIntervalCosineLp (n : ℕ) :
+    Lp ℂ 2 (intervalMeasure 1) :=
+  MemLp.toLp
+    (fun x : ℝ => (Real.cos ((n : ℝ) * Real.pi * x) : ℂ))
+    (unitIntervalCosine_memLp_two n)
+
+/-- The `Lp` representative of the raw cosine mode is the pointwise cosine
+mode almost everywhere. -/
+theorem unitIntervalCosineLp_coeFn (n : ℕ) :
+    unitIntervalCosineLp n
+      =ᵐ[intervalMeasure 1]
+        fun x : ℝ => (Real.cos ((n : ℝ) * Real.pi * x) : ℂ) := by
+  exact MemLp.coeFn_toLp (unitIntervalCosine_memLp_two n)
+
 /-- Unit-interval spectral Neumann heat-gradient estimate in Mathlib
 `LpSeminorm` form, from interval `L²` to `L∞`. -/
 theorem unitIntervalNeumannSpectralHeatGradient_L2_Linfty_lpNorm_bound
