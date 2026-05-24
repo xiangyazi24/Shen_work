@@ -1687,6 +1687,50 @@ lemma unitIntervalCosineHeatGradientTsumL2Norm_le_inv_sqrt {t : ℝ} (ht : 0 < t
   exact hbase.trans
     (mul_le_mul_of_nonneg_right hconst (Real.sqrt_nonneg _))
 
+/-- Neumann cosine mode on the unit interval. -/
+def unitIntervalCosineMode (n : ℕ) (x : ℝ) : ℝ :=
+  Real.cos ((n : ℝ) * Real.pi * x)
+
+/-- Pointwise coefficient multiplying the `n`-th cosine coefficient after heat flow. -/
+def unitIntervalCosineHeatPointWeight (t x : ℝ) (n : ℕ) : ℝ :=
+  Real.exp (-t * unitIntervalCosineEigenvalue n) *
+    unitIntervalCosineMode n x
+
+/-- Cosine-coefficient model for the interval heat semigroup value at `x`. -/
+def unitIntervalCosineHeatValue (t : ℝ) (a : ℕ → ℝ) (x : ℝ) : ℝ :=
+  ∑' n, unitIntervalCosineHeatPointWeight t x n * a n
+
+/-- Pointwise heat trace controlling evaluation at `x`. -/
+def unitIntervalCosineHeatPointEnergy (t x : ℝ) : ℝ :=
+  ∑' n, (unitIntervalCosineHeatPointWeight t x n) ^ 2
+
+/-- The cosine heat trace without the pointwise cosine factor. -/
+def unitIntervalCosineHeatTrace (t : ℝ) : ℝ :=
+  ∑' n, Real.exp (-2 * t * unitIntervalCosineEigenvalue n)
+
+/-- The squared point-evaluation weight is bounded by the heat-trace summand. -/
+lemma unitIntervalCosineHeatPointWeight_sq_le_traceTerm (t x : ℝ) (n : ℕ) :
+    (unitIntervalCosineHeatPointWeight t x n) ^ 2 ≤
+      Real.exp (-2 * t * unitIntervalCosineEigenvalue n) := by
+  have hcos : (unitIntervalCosineMode n x) ^ 2 ≤ 1 := by
+    rw [sq_le_one_iff_abs_le_one]
+    exact abs_cos_le_one _
+  have hexp_sq_nonneg :
+      0 ≤ (Real.exp (-t * unitIntervalCosineEigenvalue n)) ^ 2 :=
+    sq_nonneg _
+  calc
+    (unitIntervalCosineHeatPointWeight t x n) ^ 2
+        = (Real.exp (-t * unitIntervalCosineEigenvalue n)) ^ 2 *
+            (unitIntervalCosineMode n x) ^ 2 := by
+          dsimp [unitIntervalCosineHeatPointWeight]
+          ring
+    _ ≤ (Real.exp (-t * unitIntervalCosineEigenvalue n)) ^ 2 * 1 := by
+          exact mul_le_mul_of_nonneg_left hcos hexp_sq_nonneg
+    _ = Real.exp (-2 * t * unitIntervalCosineEigenvalue n) := by
+          rw [mul_one, sq, ← Real.exp_add]
+          congr 1
+          ring
+
 /-- The heat semigroup is symmetric in the sense that swapping x and y
     in the kernel gives the same integrand. -/
 theorem heatSemigroup_kernel_symm (t x y : ℝ) :
