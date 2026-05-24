@@ -302,4 +302,23 @@ lemma bernoulliLogisticSolution_hasDerivAt_zero
     simpa [hunion] using hboth
   simpa [hderiv_def] using hAt
 
+lemma bernoulliLogisticSolution_hasDerivAt
+    (p : CM2Params) {u₀ t : ℝ} (ha : 0 < p.a) (hb : 0 < p.b)
+    (hu₀ : 0 < u₀) :
+    HasDerivAt (fun s : ℝ => bernoulliLogisticSolution p u₀ s)
+      (bernoulliLogisticSolutionDerivative p u₀ t) t := by
+  by_cases ht_pos : 0 < t
+  · have hsol_t :
+        bernoulliLogisticSolution p u₀ t =
+          bernoulliLogisticForward p u₀ t :=
+      bernoulliLogisticSolution_of_nonneg p u₀ t ht_pos.le
+    simpa [bernoulliLogisticSolutionDerivative, ht_pos.le, hsol_t] using
+      bernoulliLogisticSolution_hasDerivAt_of_pos_time p ha hb hu₀ ht_pos
+  · have ht_le : t ≤ 0 := le_of_not_gt ht_pos
+    by_cases ht_zero : t = 0
+    · subst t
+      exact bernoulliLogisticSolution_hasDerivAt_zero p ha hb hu₀
+    · have ht_neg : t < 0 := lt_of_le_of_ne ht_le ht_zero
+      exact bernoulliLogisticSolution_hasDerivAt_of_neg_time p ht_neg
+
 end ShenWork.Paper2
