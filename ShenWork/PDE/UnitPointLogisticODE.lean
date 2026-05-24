@@ -93,4 +93,11 @@ lemma bernoulliLogisticSolution_pos
     rw [bernoulliLogisticSolution_of_neg p u₀ t ht_neg]
     exact mul_pos hu₀ (Real.exp_pos _)
 
+lemma bernoulliLogisticWeight_hasDerivAt (p : CM2Params) (t : ℝ) :
+    HasDerivAt (fun s : ℝ => bernoulliLogisticWeight p s)
+      (-(p.α * p.a) * bernoulliLogisticWeight p t) t := by
+  have h :=
+    (((hasDerivAt_id t).const_mul (-(p.α * p.a))).exp)
+  simpa [bernoulliLogisticWeight, mul_comm, mul_left_comm, mul_assoc] using h
+
 end ShenWork.Paper2
