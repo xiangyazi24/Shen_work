@@ -122,6 +122,20 @@ theorem psi_pExp_weighted_le_kernel_weighted
   have hψ_nn : 0 ≤ psi.weight x := (psi.pos x).le
   exact mul_le_mul_of_nonneg_right hJensen hψ_nn
 
+/-! ### Pointwise gradient bound times weight -/
+
+theorem psi_deriv_pExp_weighted_le
+    (psi : ExponentialWeight) {pExp l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 0 < pExp)
+    {u : ℝ → ℝ} (hu : IsCUnifBdd u) (hu_nn : ∀ y, 0 ≤ u y) :
+    ∀ x : ℝ,
+      |deriv (fun z => Psi u l mu z) x| ^ pExp * psi.weight x ≤
+        (Real.sqrt l) ^ pExp * (Psi u l mu x) ^ pExp * psi.weight x := by
+  intro x
+  have hdrv_le := Psi_deriv_abs_rpow_le_Psi_rpow hl hmu hpExp hu hu_nn x
+  have hψ_nn : 0 ≤ psi.weight x := (psi.pos x).le
+  exact mul_le_mul_of_nonneg_right hdrv_le hψ_nn
+
 end ShenWork.Paper1
 
 end
