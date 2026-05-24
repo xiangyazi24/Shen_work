@@ -189,6 +189,51 @@ lemma intervalSemigroupOperator_aestronglyMeasurable
     fun_prop
   exact hk_cont.aestronglyMeasurable.mul hf.comp_snd
 
+set_option maxHeartbeats 0 in
+-- The `LpSeminorm` simplifications expand `intervalSemigroupOperator` and `lpNorm`.
+/-- Interval Neumann heat-helper endpoint smoothing in `LpSeminorm` notation:
+`L¹([0,L]) → L∞([0,L])`.  This is the `p = 1`, `q = ∞` endpoint of
+the interval heat-semigroup smoothing chain. -/
+theorem intervalHeatSemigroup_Lp_Lq_bound
+    {L t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf_int : Integrable f (intervalMeasure L)) :
+    lpNorm (fun x => intervalSemigroupOperator L t f x) ∞ (intervalMeasure L) ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) *
+        lpNorm f (1 : ℝ≥0∞) (intervalMeasure L) := by
+  let C : ℝ :=
+    (1 / Real.sqrt (4 * Real.pi * t)) *
+      lpNorm f (1 : ℝ≥0∞) (intervalMeasure L)
+  have hT_meas :
+      AEStronglyMeasurable (fun x => intervalSemigroupOperator L t f x)
+        (intervalMeasure L) :=
+    intervalSemigroupOperator_aestronglyMeasurable hf_int.aestronglyMeasurable
+  have hpoint : ∀ x, ‖intervalSemigroupOperator L t f x‖ ≤ C := by
+    intro x
+    have h := intervalSemigroupOperator_L1_Linfty
+      (L := L) (t := t) ht hf_int x
+    simpa [C, lpNorm_one_eq_integral_norm hf_int.aestronglyMeasurable] using h
+  have hC_nonneg : 0 ≤ C := by
+    dsimp [C]
+    exact mul_nonneg (by positivity) lpNorm_nonneg
+  have hess :
+      eLpNormEssSup (fun x => intervalSemigroupOperator L t f x)
+          (intervalMeasure L) ≤
+        ENNReal.ofReal C :=
+    eLpNormEssSup_le_of_ae_bound (Filter.Eventually.of_forall hpoint)
+  calc
+    lpNorm (fun x => intervalSemigroupOperator L t f x) ∞ (intervalMeasure L)
+        = (eLpNorm (fun x => intervalSemigroupOperator L t f x) ∞
+            (intervalMeasure L)).toReal := by
+          exact (toReal_eLpNorm hT_meas).symm
+    _ = (eLpNormEssSup (fun x => intervalSemigroupOperator L t f x)
+          (intervalMeasure L)).toReal := by
+          rw [eLpNorm_exponent_top]
+    _ ≤ (ENNReal.ofReal C).toReal :=
+          ENNReal.toReal_mono ENNReal.ofReal_ne_top hess
+    _ = C := ENNReal.toReal_ofReal hC_nonneg
+    _ = (1 / Real.sqrt (4 * Real.pi * t)) *
+        lpNorm f (1 : ℝ≥0∞) (intervalMeasure L) := rfl
+
 /-- Hölder endpoint of the heat-semigroup smoothing estimate. -/
 theorem heatSemigroup_Lp_Linfty_smoothing_abs
     {f : ℝ → ℝ} {t p r : ℝ} (ht : 0 < t)
