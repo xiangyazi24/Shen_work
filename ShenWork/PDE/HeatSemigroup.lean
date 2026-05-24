@@ -1501,6 +1501,34 @@ theorem modifiedSemigroup_contraction {f g : ℝ → ℝ} {M t : ℝ}
       (f := fun y : ℝ => f y - g y) (M := M) hfg ht hM hsub_meas x
   rwa [modifiedSemigroup_sub x hf_int hg_int] at hbound
 
+/-! ## Cosine-basis interval smoothing constants -/
+
+/-- Neumann cosine eigenvalues on the unit interval, `λ_n = (nπ)^2`. -/
+def unitIntervalCosineEigenvalue (n : ℕ) : ℝ :=
+  ((n : ℝ) * Real.pi) ^ 2
+
+/-- Spectral multiplier for the squared `L²` norm of the gradient after heat flow. -/
+def unitIntervalCosineHeatGradientMultiplier (t : ℝ) (n : ℕ) : ℝ :=
+  unitIntervalCosineEigenvalue n *
+    Real.exp (-2 * t * unitIntervalCosineEigenvalue n)
+
+/-- The explicit interval cosine heat-gradient `L²` smoothing constant. -/
+def unitIntervalCosineHeatGradientL2Constant (t : ℝ) : ℝ :=
+  Real.sqrt (1 / (2 * t))
+
+/-- Elementary exponential bound used for the spectral heat multiplier. -/
+lemma real_mul_exp_neg_le_one {x : ℝ} (_hx : 0 ≤ x) :
+    x * Real.exp (-x) ≤ 1 := by
+  have hx_le_exp : x ≤ Real.exp x := by
+    calc
+      x ≤ x + 1 := by linarith
+      _ ≤ Real.exp x := Real.add_one_le_exp x
+  calc
+    x * Real.exp (-x) ≤ Real.exp x * Real.exp (-x) := by
+      exact mul_le_mul_of_nonneg_right hx_le_exp (Real.exp_nonneg _)
+    _ = 1 := by
+      rw [← Real.exp_add, add_neg_cancel, Real.exp_zero]
+
 /-- The heat semigroup is symmetric in the sense that swapping x and y
     in the kernel gives the same integrand. -/
 theorem heatSemigroup_kernel_symm (t x y : ℝ) :
