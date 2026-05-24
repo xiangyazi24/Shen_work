@@ -427,6 +427,61 @@ lemma bernoulliLogisticSolution_le_max_of_nonneg_time
       _ = u₀ := hc_back
       _ ≤ max u₀ K := le_max_left _ _
 
+lemma bernoulliLogisticWeight_tendsto_atTop
+    (p : CM2Params) (ha : 0 < p.a) :
+    Tendsto (fun t : ℝ => bernoulliLogisticWeight p t) atTop (𝓝 0) := by
+  have hcoef : -(p.α * p.a) < 0 := by
+    linarith [mul_pos p.hα ha]
+  have hlin : Tendsto (fun t : ℝ => -(p.α * p.a) * t) atTop atBot :=
+    tendsto_id.const_mul_atTop_of_neg hcoef
+  change Tendsto (fun t : ℝ => Real.exp (-(p.α * p.a) * t)) atTop (𝓝 0)
+  exact Real.tendsto_exp_atBot.comp hlin
+
+lemma bernoulliLogisticDenominator_tendsto_atTop
+    (p : CM2Params) (u₀ : ℝ) (ha : 0 < p.a) :
+    Tendsto (fun t : ℝ => bernoulliLogisticDenominator p u₀ t)
+      atTop (𝓝 (p.b / p.a)) := by
+  have hweight := bernoulliLogisticWeight_tendsto_atTop p ha
+  have hterm :
+      Tendsto (fun t : ℝ =>
+        (u₀ ^ (-p.α) - p.b / p.a) * bernoulliLogisticWeight p t)
+        atTop (𝓝 0) := by
+    simpa using hweight.const_mul (u₀ ^ (-p.α) - p.b / p.a)
+  simpa [bernoulliLogisticDenominator] using hterm.const_add (p.b / p.a)
+
+lemma logisticEquilibrium_rpow_inv
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) :
+    (p.b / p.a) ^ (-1 / p.α) =
+      (p.a / p.b) ^ (1 / p.α) := by
+  rw [show -1 / p.α = -(1 / p.α) by ring]
+  rw [Real.rpow_neg_eq_inv_rpow]
+  congr 1
+  field_simp [ne_of_gt ha, ne_of_gt hb]
+
+lemma bernoulliLogisticForward_tendsto_atTop
+    (p : CM2Params) (u₀ : ℝ) (ha : 0 < p.a) (hb : 0 < p.b) :
+    Tendsto (fun t : ℝ => bernoulliLogisticForward p u₀ t)
+      atTop (𝓝 ((p.a / p.b) ^ (1 / p.α))) := by
+  have hden := bernoulliLogisticDenominator_tendsto_atTop p u₀ ha
+  have hq_ne : p.b / p.a ≠ 0 := ne_of_gt (div_pos hb ha)
+  have hrpow :
+      Tendsto (fun t : ℝ => (bernoulliLogisticDenominator p u₀ t) ^ (-1 / p.α))
+        atTop (𝓝 ((p.b / p.a) ^ (-1 / p.α))) :=
+    hden.rpow_const (Or.inl hq_ne)
+  simpa [bernoulliLogisticForward, logisticEquilibrium_rpow_inv p ha hb] using hrpow
+
+theorem bernoulliLogisticSolution_tendsto_atTop
+    (p : CM2Params) {u₀ : ℝ} (ha : 0 < p.a) (hb : 0 < p.b)
+    (_hu₀ : 0 < u₀) :
+    Tendsto (fun t : ℝ => bernoulliLogisticSolution p u₀ t)
+      atTop (𝓝 ((p.a / p.b) ^ (1 / p.α))) := by
+  have hbranch :
+      (fun t : ℝ => bernoulliLogisticSolution p u₀ t) =ᶠ[atTop]
+        (fun t : ℝ => bernoulliLogisticForward p u₀ t) := by
+    filter_upwards [eventually_ge_atTop (0 : ℝ)] with t ht
+    exact bernoulliLogisticSolution_of_nonneg p u₀ t ht
+  exact (bernoulliLogisticForward_tendsto_atTop p u₀ ha hb).congr' hbranch.symm
+
 lemma unitPointLogistic_classicalSolution
     (p : CM2Params) {u₀ : unitPointDomain.Point → ℝ}
     (ha : 0 < p.a) (hb : 0 < p.b)
