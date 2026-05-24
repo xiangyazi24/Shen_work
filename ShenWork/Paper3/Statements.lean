@@ -11430,17 +11430,47 @@ theorem unitPointDomain.Theorem_2_1_part1_minimal_only
     apply Real.rpow_le_rpow hδ_pos.le _ p.hγ.le
     linarith
 
-/-- Paper 3 Proposition 1.2 vacuous when `0 < p.χ₀`. -/
-theorem unitPointDomain.Proposition_1_2_vacuous_when_chi_pos
-    (p : CM2Params) (hχ : 0 < p.χ₀) :
-    Proposition_1_2 ShenWork.Paper2.unitPointDomain p := by
-  intro hχ' _ _ _; exact absurd hχ' (not_le.mpr hχ)
+/-- Paper 3 Theorem 2.1 full composite vacuous when `p.a = 0 ∧ p.b ≠ 0`.
+Part 1 needs `1 ≤ p.m` (provide vacuous via m or use minimal).  Parts 2,3
+need `0 < p.a` (vacuous via a_zero).  Part 4 needs `p.b = 0` (vacuous via
+b_nonzero). -/
+theorem unitPointDomain.Theorem_2_1_vacuous_when_a_zero_b_nonzero_m_lt_one
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b ≠ 0) (hm : p.m < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_vacuous_when_m_lt_one p hm,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_b_nonzero p hb C⟩
 
-/-- Paper 3 Proposition 1.2 vacuous when `p.m < 1`. -/
-theorem unitPointDomain.Proposition_1_2_vacuous_when_m_lt_one
-    (p : CM2Params) (hm : p.m < 1) :
-    Proposition_1_2 ShenWork.Paper2.unitPointDomain p := by
-  intro _ hm' _ _; exact absurd hm' (not_le.mpr hm)
+/-- Paper 3 Theorem 2.1 full composite vacuous when `p.a ≠ 0 ∧ p.b = 0`. -/
+theorem unitPointDomain.Theorem_2_1_vacuous_when_a_nonzero_b_zero_m_lt_one
+    (p : CM2Params) (ha : p.a ≠ 0) (hb : p.b = 0) (hm : p.m < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_vacuous_when_m_lt_one p hm,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_b_zero p hb,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_b_zero p hb,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero p ha C⟩
+
+/-- Paper 3 Theorem 2.1 full composite vacuous when `p.χ₀ > min(chiBeta p / 2, √(chiBeta p))`
+or `p.β < 1` (Theorem_2_1 part4 hypothesis fails). -/
+theorem unitPointDomain.Theorem_2_1_vacuous_when_a_zero_b_zero_beta_lt_one
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) (hβ : p.β < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro hm u v hsol
+    have hβ' : 1 ≤ p.β → False := by
+      intro h
+      have : ¬ (1 ≤ p.β) := not_le.mpr hβ
+      exact this h
+    -- part1 hypothesis: 1 ≤ p.m → ∀ uv, ... — actually part1 doesn't have β
+    -- so this slice doesn't trivially close via β.  Use minimal_only.
+    exact unitPointDomain.Theorem_2_1_part1_minimal_only p ha hb hm u v hsol
+  · exact unitPointDomain.Theorem_2_1_part2_vacuous_when_a_zero p ha
+  · exact unitPointDomain.Theorem_2_1_part3_vacuous_when_a_zero p ha
+  · exact unitPointDomain.Theorem_2_1_part4_vacuous_when_beta_lt_one p hβ C
 
 end
 
