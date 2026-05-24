@@ -11616,6 +11616,24 @@ theorem unitPointDomain.Theorem_2_5_holds
   · have : p.χ₀ < (0 : ℝ) := by simpa [paper3UnitPointConstants] using h2
     linarith
 
+/-- Paper 3 Theorem 2.4 vacuous when `p.a = 0`.  The leading hypothesis
+`0 < p.a` is contradicted by `ha`. -/
+theorem unitPointDomain.Theorem_2_4_vacuous_when_a_zero
+    (p : CM2Params) (ha : p.a = 0)
+    (N : StabilityNorms ShenWork.Paper2.unitPointDomain)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_4 ShenWork.Paper2.unitPointDomain p N C := by
+  intro ha' _; exact absurd ha' (by rw [ha]; exact lt_irrefl 0)
+
+/-- Paper 3 Theorem 2.4 vacuous when `p.b = 0`.  The second hypothesis
+`0 < p.b` is contradicted by `hb`. -/
+theorem unitPointDomain.Theorem_2_4_vacuous_when_b_zero
+    (p : CM2Params) (hb : p.b = 0)
+    (N : StabilityNorms ShenWork.Paper2.unitPointDomain)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_4 ShenWork.Paper2.unitPointDomain p N C := by
+  intro _ hb'; exact absurd hb' (by rw [hb]; exact lt_irrefl 0)
+
 end
 
 end ShenWork.Paper3
