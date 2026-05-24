@@ -389,6 +389,87 @@ def intervalDuhamelOperator (p : CM2Params)
       intervalSemigroupOperator 1 (t - s)
         (intervalDomainLift (intervalLogisticSource p (u s))) x.1
 
+/-- The logistic source F(u) = u(a - bu^α) is Lipschitz on bounded sets.
+For |u₁|, |u₂| ≤ M: |F(u₁) - F(u₂)| ≤ L · |u₁ - u₂| where
+L depends on a, b, α, M. -/
+theorem intervalLogisticSource_lipschitz (p : CM2Params) {M : ℝ} (hM : 0 < M) :
+    ∃ L > 0, ∀ u₁ u₂ : ℝ, |u₁| ≤ M → |u₂| ≤ M →
+    |u₁ * (p.a - p.b * u₁ ^ p.α) - u₂ * (p.a - p.b * u₂ ^ p.α)| ≤
+      L * |u₁ - u₂| := by
+  -- F(u) = a·u - b·u^{α+1}, F'(u) = a - b(α+1)u^α
+  -- |F'(u)| ≤ a + b(α+1)M^α + 1 =: L on [-M, M]
+  have hα_pos : 0 < p.α := p.hα
+  have hα0 : 0 ≤ p.α := hα_pos.le
+  have hα1 : 1 ≤ p.α + 1 := by linarith
+  have hM0 : 0 ≤ M := le_of_lt hM
+  have hMpow_pos : 0 < M ^ p.α := Real.rpow_pos_of_pos hM p.α
+  set C := p.a + p.b * (p.α + 1) * M ^ p.α + 1 with hC_def
+  have hC_pos : 0 < C := by
+    have : 0 ≤ p.b * (p.α + 1) * M ^ p.α :=
+      mul_nonneg (mul_nonneg p.hb (by linarith : 0 ≤ p.α + 1)) hMpow_pos.le
+    linarith [p.ha]
+  refine ⟨C, hC_pos, ?_⟩
+  intro u₁ u₂ hu₁ hu₂
+  -- Define f and its pointwise derivative
+  let f : ℝ → ℝ := fun x => p.a * x - p.b * x ^ (p.α + 1)
+  let fp : ℝ → ℝ := fun x => p.a - p.b * ((p.α + 1) * x ^ p.α)
+  have hu₁s : u₁ ∈ Set.Icc (-M) M := abs_le.mp hu₁
+  have hu₂s : u₂ ∈ Set.Icc (-M) M := abs_le.mp hu₂
+  -- f agrees with u * (a - b * u^α) for all u
+  have hf_eq : ∀ u : ℝ, f u = u * (p.a - p.b * u ^ p.α) := by
+    intro u
+    simp only [f]
+    by_cases hu : u = 0
+    · subst hu; simp [Real.zero_rpow (ne_of_gt (by linarith : (0 : ℝ) < p.α + 1))]
+    · have : u ^ (p.α + 1) = u * u ^ p.α := by
+        rw [Real.rpow_add_one hu]; ring
+      rw [this]; ring
+  -- HasDerivWithinAt for f
+  have hder : ∀ x ∈ Set.Icc (-M) M,
+      HasDerivWithinAt f (fp x) (Set.Icc (-M) M) x := by
+    intro x _hx
+    have hp : HasDerivAt (fun y : ℝ => y ^ (p.α + 1)) ((p.α + 1) * x ^ p.α) x := by
+      have h := Real.hasDerivAt_rpow_const (x := x) (p := p.α + 1) (Or.inr hα1)
+      simp only [show p.α + 1 - 1 = p.α from by ring] at h
+      exact h
+    have hF : HasDerivAt f (fp x) x := by
+      have h1 := hasDerivAt_id x |>.const_mul p.a
+      have h2 := hp.const_mul p.b
+      have := h1.sub h2
+      convert this using 1; simp [fp]
+    exact hF.hasDerivWithinAt
+  -- Bound |fp(x)| ≤ C on [-M, M]
+  have hbound : ∀ x ∈ Set.Icc (-M) M, ‖fp x‖ ≤ C := by
+    intro x hx
+    have hxabs : |x| ≤ M := abs_le.mpr hx
+    have hxpow : |x ^ p.α| ≤ M ^ p.α := by
+      calc |x ^ p.α| ≤ |x| ^ p.α := Real.abs_rpow_le_abs_rpow x p.α
+        _ ≤ M ^ p.α := Real.rpow_le_rpow (abs_nonneg x) hxabs hα0
+    have hcoeff_nn : 0 ≤ p.b * ((p.α + 1) * |x ^ p.α|) :=
+      mul_nonneg p.hb (mul_nonneg (by linarith : 0 ≤ p.α + 1) (abs_nonneg _))
+    simp only [fp, C, Real.norm_eq_abs]
+    calc |p.a - p.b * ((p.α + 1) * x ^ p.α)|
+        ≤ |p.a| + |p.b * ((p.α + 1) * x ^ p.α)| := by
+          calc |p.a - p.b * ((p.α + 1) * x ^ p.α)|
+              = |p.a + (-(p.b * ((p.α + 1) * x ^ p.α)))| := by ring_nf
+            _ ≤ |p.a| + |-(p.b * ((p.α + 1) * x ^ p.α))| := abs_add_le _ _
+            _ = |p.a| + |p.b * ((p.α + 1) * x ^ p.α)| := by rw [abs_neg]
+      _ = p.a + p.b * ((p.α + 1) * |x ^ p.α|) := by
+          rw [abs_of_nonneg p.ha, abs_mul, abs_mul,
+              abs_of_nonneg p.hb, abs_of_nonneg (by linarith : 0 ≤ p.α + 1)]
+      _ ≤ p.a + p.b * ((p.α + 1) * M ^ p.α) := by
+          have : p.b * ((p.α + 1) * |x ^ p.α|) ≤ p.b * ((p.α + 1) * M ^ p.α) :=
+            mul_le_mul_of_nonneg_left
+              (mul_le_mul_of_nonneg_left hxpow (by linarith : 0 ≤ p.α + 1)) p.hb
+          linarith
+      _ ≤ C := by simp [hC_def]; ring_nf; linarith
+  -- Apply mean value theorem
+  have hmv : ‖f u₁ - f u₂‖ ≤ C * ‖u₁ - u₂‖ :=
+    Convex.norm_image_sub_le_of_norm_hasDerivWithin_le
+      hder hbound (convex_Icc (-M) M) hu₂s hu₁s
+  rw [hf_eq u₁, hf_eq u₂] at hmv
+  simpa [Real.norm_eq_abs] using hmv
+
 end ShenWork.IntervalDomainExistence
 
 end
