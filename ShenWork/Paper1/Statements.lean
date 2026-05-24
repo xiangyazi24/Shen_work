@@ -1568,6 +1568,114 @@ theorem Lemma_2_1_concrete_heatSemigroupEstimateData :
     simpa [paper1ConcreteHeatSemigroupEstimateData] using
       paper1ConcreteDivergence_point_estimate hp ht u
 
+/-! ### Bounded-measurable Lemma 2.1 data -/
+
+def paper1BoundedMeasurableInput (u : ℝ → ℝ) : Prop :=
+  AEStronglyMeasurable u volume ∧ IsBddFun u
+
+def paper1BoundedMeasurableBound (u : ℝ → ℝ) : ℝ := by
+  classical
+  exact if hu : IsBddFun u then Classical.choose hu else 1
+
+def paper1BoundedMeasurableNorm (_p : ℝ) (u : ℝ → ℝ) : ℝ :=
+  paper1BoundedMeasurableBound u
+
+def paper1BoundedMeasurableSemigroup
+    (t : ℝ) (u : ℝ → ℝ) (x : ℝ) : ℝ := by
+  classical
+  exact if _hu : paper1BoundedMeasurableInput u then
+    Real.exp (-t) * modifiedSemigroup t u x
+  else 0
+
+private lemma paper1BoundedMeasurableBound_nonneg (u : ℝ → ℝ) :
+    0 ≤ paper1BoundedMeasurableBound u := by
+  classical
+  by_cases hu : IsBddFun u
+  · unfold paper1BoundedMeasurableBound
+    rw [dif_pos hu]
+    exact le_trans (abs_nonneg (u 0)) ((Classical.choose_spec hu) 0)
+  · unfold paper1BoundedMeasurableBound
+    rw [dif_neg hu]
+    norm_num
+
+private lemma paper1BoundedMeasurableBound_abs_le
+    {u : ℝ → ℝ} (hu : IsBddFun u) :
+    ∀ x : ℝ, |u x| ≤ paper1BoundedMeasurableBound u := by
+  classical
+  intro x
+  unfold paper1BoundedMeasurableBound
+  rw [dif_pos hu]
+  exact (Classical.choose_spec hu) x
+
+private lemma paper1BoundedMeasurableNorm_nonneg
+    (p : ℝ) (u : ℝ → ℝ) :
+    0 ≤ paper1BoundedMeasurableNorm p u := by
+  exact paper1BoundedMeasurableBound_nonneg u
+
+theorem paper1BoundedMeasurableSemigroup_point_estimate
+    {p q t : ℝ} (hp : 1 < p) (hpq : p ≤ q) (ht : 0 < t)
+    (u : ℝ → ℝ) :
+    paper1PointNorm q (paper1BoundedMeasurableSemigroup t u) ≤
+      t ^ (-(1 / 2 : ℝ) * (1 / p - 1 / q)) *
+        Real.exp (-t) * paper1BoundedMeasurableNorm p u := by
+  classical
+  by_cases hu : paper1BoundedMeasurableInput u
+  · have hM_nonneg : 0 ≤ paper1BoundedMeasurableBound u :=
+      paper1BoundedMeasurableBound_nonneg u
+    have hM_bound : ∀ x : ℝ, |u x| ≤ paper1BoundedMeasurableBound u :=
+      paper1BoundedMeasurableBound_abs_le hu.2
+    have hbase :=
+      modifiedSemigroup_paper1_Linfty_decay
+        (f := u) (M := paper1BoundedMeasurableBound u)
+        hM_bound ht hM_nonneg hu.1 0
+    have hscaled :
+        |Real.exp (-t) * modifiedSemigroup t u 0| ≤
+          Real.exp (-t) *
+            (Real.exp (-t) * paper1BoundedMeasurableBound u) := by
+      have hscaled' :
+          |Real.exp (-t) * modifiedSemigroup t u 0| ≤
+            Real.exp (-t) *
+              (paper1BoundedMeasurableBound u * Real.exp (-t)) := by
+        rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+        exact mul_le_mul_of_nonneg_left hbase (Real.exp_nonneg _)
+      calc
+        |Real.exp (-t) * modifiedSemigroup t u 0|
+            ≤ Real.exp (-t) *
+              (paper1BoundedMeasurableBound u * Real.exp (-t)) := hscaled'
+        _ = Real.exp (-t) *
+              (Real.exp (-t) * paper1BoundedMeasurableBound u) := by
+            ring_nf
+    have hpow :
+        Real.exp (-t) *
+            (Real.exp (-t) * paper1BoundedMeasurableBound u) ≤
+          t ^ (-((1 / 2 : ℝ) * (1 / p - 1 / q))) *
+            Real.exp (-t) * paper1BoundedMeasurableBound u :=
+      paper1_exp_sq_mul_le_rpow_neg_exp_mul ht
+        (paper1_lq_exponent_nonneg hp hpq)
+        (paper1_lq_exponent_le_one hp hpq)
+        hM_nonneg
+    calc
+      paper1PointNorm q (paper1BoundedMeasurableSemigroup t u)
+          = |Real.exp (-t) * modifiedSemigroup t u 0| := by
+            simp [paper1PointNorm, paper1BoundedMeasurableSemigroup, hu]
+      _ ≤ Real.exp (-t) *
+            (Real.exp (-t) * paper1BoundedMeasurableBound u) :=
+            hscaled
+      _ ≤ t ^ (-((1 / 2 : ℝ) * (1 / p - 1 / q))) *
+            Real.exp (-t) * paper1BoundedMeasurableBound u :=
+            hpow
+      _ = t ^ (-(1 / 2 : ℝ) * (1 / p - 1 / q)) *
+            Real.exp (-t) * paper1BoundedMeasurableNorm p u := by
+            simp [paper1BoundedMeasurableNorm]
+  · have hright_nonneg :
+        0 ≤ t ^ (-(1 / 2 : ℝ) * (1 / p - 1 / q)) *
+          Real.exp (-t) * paper1BoundedMeasurableNorm p u := by
+      exact mul_nonneg
+        (mul_nonneg (Real.rpow_nonneg ht.le _) (Real.exp_nonneg _))
+        (paper1BoundedMeasurableNorm_nonneg p u)
+    simpa [paper1PointNorm, paper1BoundedMeasurableSemigroup, hu] using
+      hright_nonneg
+
 def PsiDerivativeFormula (u : ℝ → ℝ) (l mu : ℝ) : Prop :=
   ∀ x,
     deriv (fun z => Psi u l mu z) x =
