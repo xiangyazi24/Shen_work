@@ -1575,6 +1575,34 @@ lemma unitIntervalCosineHeatGradientEnergy_le {t : ℝ} (ht : 0 < t)
   exact mul_le_mul_of_nonneg_right
     (unitIntervalCosineHeatGradientMultiplier_le ht n) (sq_nonneg (a n))
 
+/-- Finite cosine-coefficient `L²` norm on the unit interval. -/
+def unitIntervalCosineL2Norm (s : Finset ℕ) (a : ℕ → ℝ) : ℝ :=
+  Real.sqrt (unitIntervalCosineL2Energy s a)
+
+/-- Finite cosine-coefficient gradient `L²` norm after heat flow. -/
+def unitIntervalCosineHeatGradientL2Norm
+    (t : ℝ) (s : Finset ℕ) (a : ℕ → ℝ) : ℝ :=
+  Real.sqrt (unitIntervalCosineHeatGradientEnergy t s a)
+
+/-- Finite-expansion `L²` heat-gradient smoothing with explicit constant `sqrt(1/(2t))`. -/
+lemma unitIntervalCosineHeatGradientL2Norm_le {t : ℝ} (ht : 0 < t)
+    (s : Finset ℕ) (a : ℕ → ℝ) :
+    unitIntervalCosineHeatGradientL2Norm t s a ≤
+      unitIntervalCosineHeatGradientL2Constant t *
+        unitIntervalCosineL2Norm s a := by
+  have henergy := unitIntervalCosineHeatGradientEnergy_le ht s a
+  have hconst : 0 ≤ 1 / (2 * t) := by positivity
+  calc
+    unitIntervalCosineHeatGradientL2Norm t s a
+        = Real.sqrt (unitIntervalCosineHeatGradientEnergy t s a) := rfl
+    _ ≤ Real.sqrt ((1 / (2 * t)) * unitIntervalCosineL2Energy s a) :=
+        Real.sqrt_le_sqrt henergy
+    _ = Real.sqrt (1 / (2 * t)) *
+          Real.sqrt (unitIntervalCosineL2Energy s a) := by
+        rw [Real.sqrt_mul hconst]
+    _ = unitIntervalCosineHeatGradientL2Constant t *
+          unitIntervalCosineL2Norm s a := rfl
+
 /-- The heat semigroup is symmetric in the sense that swapping x and y
     in the kernel gives the same integrand. -/
 theorem heatSemigroup_kernel_symm (t x y : ℝ) :
