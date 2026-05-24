@@ -60,6 +60,17 @@ theorem unitPointDomain.Theorem_1_2_when_a_pos_b_pos
     refine Filter.eventually_atTop.mpr ⟨0, fun t ht => ?_⟩
     exact hbound t ht
 
+/-- Paper 2 Theorem 1.2 for the disjunction `(a = 0, b = 0) ∨ (0 < a, 0 < b)`.
+Combines `Theorem_1_2_minimal_only` (in Statements.lean) with the
+Bernoulli-logistic bridge. -/
+theorem unitPointDomain.Theorem_1_2_when_a_b_split
+    (p : CM2Params)
+    (hsplit : (p.a = 0 ∧ p.b = 0) ∨ (0 < p.a ∧ 0 < p.b)) :
+    Theorem_1_2 unitPointDomain p := by
+  rcases hsplit with ⟨ha, hb⟩ | ⟨ha, hb⟩
+  · exact unitPointDomain.Theorem_1_2_minimal_only p ha hb
+  · exact unitPointDomain.Theorem_1_2_when_a_pos_b_pos p ha hb
+
 end ShenWork.Paper2
 
 end
