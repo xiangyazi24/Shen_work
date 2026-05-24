@@ -41,8 +41,9 @@
   (4) 从 L² coefficient estimates 到一般 `L^p→L^q` 的插值或梯度核 Young/Schur 估计。
 - **下游**: Paper2 Lemma 2.1 (derivative part)
 
-### H0.3 — Gagliardo-Nirenberg interpolation on [0,L]
-- **内容**: `‖f‖_{L^r} ≤ C ‖∇f‖_{L^p}^θ ‖f‖_{L^q}^{1-θ}` with N=1
+### H0.3 — Gagliardo-Nirenberg interpolation on [0,L] ✅ DONE
+- **内容**: Moser iteration endpoint `‖f‖_{L^4}^2 ≤ (C_L ‖f‖_{L^2} + C_L ‖f'‖_{L^2}) ‖f‖_{L^2}` (the `r=4`, `p=q=2`, `θ=1/2` case with lower-order interval term)
+- **完成**: `ShenWork/PDE/GagliardoNirenberg.lean` (2026-05-24; 0 sorry; axioms `[propext, Classical.choice, Quot.sound]`)
 - **现状**: Mathlib 没有 (checked 2026-05)
 - **前置**: Sobolev embedding 1D (H0.4), fundamental theorem of calculus
 - **目标文件**: `ShenWork/PDE/GagliardoNirenberg.lean` (new)
