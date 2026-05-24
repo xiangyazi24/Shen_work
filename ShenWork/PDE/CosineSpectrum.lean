@@ -170,6 +170,54 @@ theorem cosineMode_orthogonal {m n : ℕ} (hmn : m ≠ n) :
             intervalIntegral_cos_int_mul_pi_eq_zero hsum_ne]
           ring
 
+theorem cosineMode_self_integral_zero :
+    ∫ x in (0 : ℝ)..1, cosineMode 0 x * cosineMode 0 x = 1 := by
+  simp [cosineMode]
+
+theorem cosineMode_self_integral_of_ne_zero {n : ℕ} (hn : n ≠ 0) :
+    ∫ x in (0 : ℝ)..1, cosineMode n x * cosineMode n x = 1 / 2 := by
+  have hsum_ne : ((n : ℤ) + (n : ℤ) : ℤ) ≠ 0 := by
+    have hsum_nat : n + n ≠ 0 := by
+      intro hzero
+      exact hn (Nat.eq_zero_of_add_eq_zero_right hzero)
+    exact_mod_cast hsum_nat
+  have hone_int :
+      IntervalIntegrable (fun _x : ℝ => (1 : ℝ)) volume (0 : ℝ) 1 := by
+    apply Continuous.intervalIntegrable
+    fun_prop
+  have hsum_int :
+      IntervalIntegrable
+        (fun x : ℝ =>
+          Real.cos ((((n : ℤ) + (n : ℤ) : ℤ) : ℝ) * Real.pi * x))
+        volume (0 : ℝ) 1 := by
+    apply Continuous.intervalIntegrable
+    fun_prop
+  calc
+    ∫ x in (0 : ℝ)..1, cosineMode n x * cosineMode n x
+        = ∫ x in (0 : ℝ)..1,
+            (1 / 2 : ℝ) *
+              (Real.cos (((((n : ℤ) - (n : ℤ) : ℤ) : ℝ) * Real.pi) * x) +
+                Real.cos ((((n : ℤ) + (n : ℤ) : ℤ) : ℝ) * Real.pi * x)) := by
+          apply intervalIntegral.integral_congr
+          intro x _hx
+          convert cosine_product_eq_half_sum n n x using 2
+    _ = ∫ x in (0 : ℝ)..1,
+            (1 / 2 : ℝ) *
+              ((1 : ℝ) +
+                Real.cos ((((n : ℤ) + (n : ℤ) : ℤ) : ℝ) * Real.pi * x)) := by
+          apply intervalIntegral.integral_congr
+          intro x _hx
+          simp
+    _ = (1 / 2 : ℝ) *
+          ((∫ x in (0 : ℝ)..1, (1 : ℝ)) +
+            (∫ x in (0 : ℝ)..1,
+              Real.cos ((((n : ℤ) + (n : ℤ) : ℤ) : ℝ) * Real.pi * x))) := by
+          rw [intervalIntegral.integral_const_mul,
+            intervalIntegral.integral_add hone_int hsum_int]
+    _ = 1 / 2 := by
+          rw [intervalIntegral_cos_int_mul_pi_eq_zero hsum_ne]
+          norm_num
+
 /-- Orthogonality of distinct cosine basis vectors on `[0,1]`, using interval integrals. -/
 theorem ortho_basis {m n : ℕ} (hmn : m ≠ n) :
     ∫ x in (0 : ℝ)..1, cosineBasisLift m x * cosineBasisLift n x = 0 := by
