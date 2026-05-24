@@ -586,6 +586,30 @@ lemma paper3Cosine_chi_pos_of_positiveEquilibrium_chiCritical_lt
   hC.chi_pos_of_positiveEquilibrium_chiCritical_lt
     paper3Cosine_hasNeumannSpectrum ha hb hχ
 
+abbrev paper3Cosine_Theorem_2_2_linear_critical_spectrum
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C) :=
+  Theorem_2_2_linear_critical_spectrum_branch_direct
+    D paper3CosineSpectralData p C paper3Cosine_hasNeumannSpectrum hC
+
+abbrev paper3Cosine_Theorem_2_2_xpSigma_local_exponential_of_Lemma_A_1
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (C : Paper3Constants D p)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (hA1 : Lemma_A_1 D p paper3CosineSpectralData N) :=
+  Theorem_2_2_xpSigma_local_exponential_branch_of_Lemma_A_1
+    D paper3CosineSpectralData p N C paper3Cosine_hasNeumannSpectrum hC hA1
+
+abbrev paper3Cosine_Theorem_2_2_xpSigma_local_exponential_of_raw
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (C : Paper3Constants D p)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  Theorem_2_2_xpSigma_local_exponential_branch_of_raw
+    D paper3CosineSpectralData p N C paper3Cosine_hasNeumannSpectrum hC hraw
+
 lemma paper3Cosine_Corollary_5_1_nonminimal_exponential_formula_of_raw
     {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
     (hraw :
