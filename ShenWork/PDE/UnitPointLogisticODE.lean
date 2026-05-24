@@ -721,7 +721,6 @@ theorem unitPointDomain.Theorem_1_1
     Theorem_1_1 unitPointDomain p := by
   refine Theorem_1_1.of_assumed_solutions_branch ?_ ?_
   · exact unitPointDomain.Theorem_1_1_nonminimal_branch p
-  · intro hχ ha hb u₀ hu₀
-    exact ((unitPointDomain.Theorem_1_1_minimal_only p ha hb) hχ).2 ha hb u₀ hu₀
+  · exact unitPointDomain.Theorem_1_1_minimal_branch p
 
 end ShenWork.Paper2
