@@ -182,4 +182,13 @@ lemma bernoulliLogisticForward_raw_derivative_eq_vectorField
         simp [bernoulliLogisticForward, D]]
       rw [hpow_alpha]
 
+lemma bernoulliLogisticForward_hasDerivAt
+    (p : CM2Params) {u₀ t : ℝ} (ha : 0 < p.a) (hb : 0 < p.b)
+    (hu₀ : 0 < u₀) (ht : 0 ≤ t) :
+    HasDerivAt (fun s : ℝ => bernoulliLogisticForward p u₀ s)
+      (bernoulliLogisticForward p u₀ t *
+        (p.a - p.b * (bernoulliLogisticForward p u₀ t) ^ p.α)) t :=
+  (bernoulliLogisticForward_hasDerivAt_raw p ha hb hu₀ ht).congr_deriv
+    (bernoulliLogisticForward_raw_derivative_eq_vectorField p ha hb hu₀ ht)
+
 end ShenWork.Paper2
