@@ -25,7 +25,15 @@ commit; one slot at a time per session.
   `ψ(y) · 2/(√l − k)`.  Needs `∫ exp(-c|x|) dx = 2/c` (write a small lemma
   if Mathlib doesn’t expose it directly).
 - Output: `Lemma_2_5` instance (full quantifier shape) + supporting lemmas.
-- Status: open.  Claimed: opus-4.7-pts-? (assigned at 2026-05-23 22:59 by mac dm)
+- Status: in progress.  Claimed: opus-4.7-pts-? (assigned at 2026-05-23 22:59 by mac dm).
+  Helpers landed in `ShenWork/Paper1/Lemma25Helpers.lean` (separate file
+  to avoid `Statements.lean` races); chain pieces committed so far:
+  `kernel_weight_integral_le_psi`, `psi_pExp_weighted_le_kernel_weighted`,
+  `psi_deriv_pExp_weighted_le`, `psi_deriv_pExp_weighted_le_kernel_weighted`,
+  `psi_deriv_pExp_integral_le_kernel_weighted_integral` (integral_mono lift
+  with explicit integrability hypotheses).  Remaining: discharge the
+  joint integrability via Fubini + `kernel_weight_integral_le_psi`, then
+  reduce to ε-uniform `k`-restricted Lemma_2_5.
 
 ### Slot B — Paper 2 IntervalDomain unitPointDomain-style instances
 - Owner files: `ShenWork/Paper2/Statements.lean` only.
