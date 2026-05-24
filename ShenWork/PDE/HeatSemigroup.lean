@@ -2083,6 +2083,19 @@ theorem unitIntervalCosineHeatValue_L2_Linfty_smoothing_shortTime
   exact hbase.trans
     (mul_le_mul_of_nonneg_right hsqrt (Real.sqrt_nonneg _))
 
+/-- Short-time `L² → L∞([0,1])` smoothing for the interval cosine heat model. -/
+theorem unitIntervalCosineHeatValue_interval_L2_Linfty_smoothing_shortTime
+    {t : ℝ} (ht : 0 < t) (htle : t ≤ 1)
+    (hrecip : Summable unitIntervalCosineReciprocalEigenvalueTerm)
+    {a : ℕ → ℝ} (ha : Summable fun n => (a n) ^ 2) :
+    ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |unitIntervalCosineHeatValue t a x| ≤
+        (unitIntervalCosineHeatL2LinftyConstant / Real.sqrt t) *
+          unitIntervalCosineL2TsumNorm a := by
+  intro x _hx
+  exact unitIntervalCosineHeatValue_L2_Linfty_smoothing_shortTime
+    ht htle hrecip ha x
+
 /-- The heat semigroup is symmetric in the sense that swapping x and y
     in the kernel gives the same integrand. -/
 theorem heatSemigroup_kernel_symm (t x y : ℝ) :
