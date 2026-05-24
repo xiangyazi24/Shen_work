@@ -100,4 +100,15 @@ lemma bernoulliLogisticWeight_hasDerivAt (p : CM2Params) (t : ℝ) :
     (((hasDerivAt_id t).const_mul (-(p.α * p.a))).exp)
   simpa [bernoulliLogisticWeight, mul_comm, mul_left_comm, mul_assoc] using h
 
+lemma bernoulliLogisticDenominator_hasDerivAt
+    (p : CM2Params) (u₀ t : ℝ) :
+    HasDerivAt (fun s : ℝ => bernoulliLogisticDenominator p u₀ s)
+      ((u₀ ^ (-p.α) - p.b / p.a) *
+        (-(p.α * p.a) * bernoulliLogisticWeight p t)) t := by
+  have hweight := bernoulliLogisticWeight_hasDerivAt p t
+  have hmul :=
+    hweight.const_mul (u₀ ^ (-p.α) - p.b / p.a)
+  simpa [bernoulliLogisticDenominator, mul_comm, mul_left_comm, mul_assoc] using
+    hmul.const_add (p.b / p.a)
+
 end ShenWork.Paper2
