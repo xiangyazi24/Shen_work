@@ -890,6 +890,167 @@ theorem Lemma_2_5_explicit_epsilon
   intro psi hk_bound u hu hu_nn hint
   exact hC psi hk_bound hu hu_nn hint
 
+/-! ### CMParams-flavored existential ε form -/
+
+/-- CMParams-flavored version of `Lemma_2_5_explicit_epsilon` with `γ`
+specialized to `p.γ`.  Generalizes `Lemma_2_5_with_explicit_k_unit` to
+arbitrary `(l, μ)` parameters (not just `l = μ = 1`). -/
+theorem Lemma_2_5_explicit_epsilon_CMParams
+    (p : CMParams) {pExp l mu epsilon : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 1 ≤ pExp)
+    (hε_pos : 0 < epsilon) (hε_lt : epsilon < Real.sqrt l) :
+    ∃ C > 0, ∀ (psi : ExponentialWeight),
+      (∀ z, |deriv psi.weight z| ≤ (Real.sqrt l - epsilon) * psi.weight z) →
+      ∀ {u : ℝ → ℝ}, IsCUnifBdd u → (∀ y, 0 ≤ u y) →
+      Integrable (fun x : ℝ => ((u x) ^ p.γ) ^ pExp * psi.weight x) →
+        Integrable
+          (fun x : ℝ =>
+            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) l mu z) x| ^ pExp *
+              psi.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) l mu z) x| ^ pExp *
+              psi.weight x ≤
+          C * ∫ x : ℝ, ((u x) ^ p.γ) ^ pExp * psi.weight x :=
+  Lemma_2_5_explicit_epsilon (gamma := p.γ) hl hmu hpExp
+    (lt_of_lt_of_le one_pos p.hγ) hε_pos hε_lt
+
+/-! ### CMParams + (l, μ) = (1, 1) ε form -/
+
+/-- CMParams + unit-resolvent ε form: takes (p, ε) with ε ∈ (0, 1),
+specializes to (l, μ) = (1, 1).  Useful for downstream Paper 4
+applications that consume the unit resolvent directly. -/
+theorem Lemma_2_5_explicit_epsilon_CMParams_unit
+    (p : CMParams) {pExp epsilon : ℝ}
+    (hpExp : 1 ≤ pExp)
+    (hε_pos : 0 < epsilon) (hε_lt : epsilon < 1) :
+    ∃ C > 0, ∀ (psi : ExponentialWeight),
+      (∀ z, |deriv psi.weight z| ≤ (1 - epsilon) * psi.weight z) →
+      ∀ {u : ℝ → ℝ}, IsCUnifBdd u → (∀ y, 0 ≤ u y) →
+      Integrable (fun x : ℝ => ((u x) ^ p.γ) ^ pExp * psi.weight x) →
+        Integrable
+          (fun x : ℝ =>
+            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^ pExp *
+              psi.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^ pExp *
+              psi.weight x ≤
+          C * ∫ x : ℝ, ((u x) ^ p.γ) ^ pExp * psi.weight x := by
+  have hε_lt_sqrt : epsilon < Real.sqrt 1 := by
+    rw [Real.sqrt_one]; exact hε_lt
+  have h_bound_eq : (1 : ℝ) - epsilon = Real.sqrt 1 - epsilon := by
+    rw [Real.sqrt_one]
+  obtain ⟨C, hC_pos, hC⟩ :=
+    Lemma_2_5_explicit_epsilon_CMParams p (l := 1) (mu := 1)
+      one_pos one_pos hpExp hε_pos hε_lt_sqrt
+  refine ⟨C, hC_pos, ?_⟩
+  intro psi hk_bound u hu hu_nn hint
+  refine hC psi ?_ hu hu_nn hint
+  intro z
+  rw [← h_bound_eq]
+  exact hk_bound z
+
+/-! ### Lemma_2_5 from a ψ-extracted-k witness -/
+
+/-- Lemma 2.5 follows from a ψ-extracted k-witness that is `< √l`.  The
+witness packs the choice of `k_ψ` into the `ψ`-input alongside the
+existing `deriv_abs_le` field; downstream code that provides `ψ` with
+such a witness can directly invoke this lemma.
+
+This is the sharpest closure of `Lemma_2_5` that doesn't require
+restricting the `ExponentialWeight` class:  for each ψ supplied with a
+`k_ψ < √l` witness, the bound holds with the explicit constant. -/
+theorem Lemma_2_5_from_extracted_psi_k_witness
+    {pExp gamma l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 1 ≤ pExp) (hgamma : 0 < gamma)
+    (psi : ExponentialWeight) {k : ℝ}
+    (hk_nn : 0 ≤ k) (hk_lt : k < Real.sqrt l)
+    (hk_witness : ∀ z, |deriv psi.weight z| ≤ k * psi.weight z)
+    {u : ℝ → ℝ} (hu : IsCUnifBdd u) (hu_nn : ∀ y, 0 ≤ u y)
+    (hint_hyp :
+      Integrable (fun x : ℝ => ((u x) ^ gamma) ^ pExp * psi.weight x)) :
+    Integrable
+      (fun x : ℝ =>
+        |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+          psi.weight x) ∧
+    ∫ x : ℝ,
+        |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+          psi.weight x ≤
+      ((Real.sqrt l) ^ pExp *
+          ((mu / (2 * Real.sqrt l)) ^ pExp *
+            (2 / Real.sqrt l) ^ (pExp - 1) *
+            (2 / (Real.sqrt l - k)))) *
+        ∫ x : ℝ, ((u x) ^ gamma) ^ pExp * psi.weight x :=
+  Lemma_2_5_with_explicit_k psi hl hmu hpExp hgamma hk_nn hk_lt
+    hk_witness hu hu_nn hint_hyp
+
+/-! ### Lemma 2.5 restricted to the small-k ψ-class -/
+
+/-- Lemma 2.5 restricted Prop: identical statement as `Lemma_2_5` but the
+inner quantifier over `psi : ExponentialWeight` is replaced by a
+quantifier over `ψ` with an explicit `k < √l` deriv_abs_le witness.
+This is provable from the explicit-k assembly above. -/
+def Lemma_2_5_restricted_psi_class : Prop :=
+  ∀ pExp gamma l mu : ℝ, 1 < pExp → 0 < gamma → 0 < l → 0 < mu →
+    ∀ k : ℝ, 0 ≤ k → k < Real.sqrt l →
+    ∃ C > 0, ∀ u : ℝ → ℝ, ∀ psi : ExponentialWeight,
+      IsCUnifBdd u → (∀ y, 0 ≤ u y) →
+      (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+      Integrable (fun x => ((u x) ^ gamma) ^ pExp * psi.weight x) →
+        Integrable
+          (fun x =>
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+              psi.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+              psi.weight x
+          ≤ C * ∫ x : ℝ, ((u x) ^ gamma) ^ pExp * psi.weight x
+
+theorem Lemma_2_5_restricted_psi_class_holds : Lemma_2_5_restricted_psi_class := by
+  intro pExp gamma l mu hpExp hgamma hl hmu k hk_nn hk_lt
+  obtain ⟨C, hC_pos, hC⟩ :=
+    Lemma_2_5_existential_for_small_k_psi (pExp := pExp) (gamma := gamma)
+      (l := l) (mu := mu) (k := k) hl hmu (le_of_lt hpExp) hgamma hk_nn hk_lt
+  refine ⟨C, hC_pos, ?_⟩
+  intro u psi hu hu_nn hk_bound hint
+  exact hC psi hk_bound hu hu_nn hint
+
+/-! ### Uniform-k ψ-class assumption for full Lemma 2.5
+
+The full `Lemma_2_5` Prop in `Statements.lean` requires `∃ C > 0` uniform
+over all `psi : ExponentialWeight`, which the class-wide `deriv_abs_le`
+existential does not guarantee.  We expose a `UniformKBound` predicate
+that packages a single ψ-uniform k bound; on this restricted class, the
+ε-explicit closure becomes the full `∃C > 0, ∀ψ` shape. -/
+
+/-- A `ψ-uniform-k` bound on a family of `ExponentialWeight`s:
+all weights in the family share a common `k < √l` bound on
+`|deriv ψ| / ψ`. -/
+def UniformKBound (l : ℝ) (k : ℝ) : Set ExponentialWeight :=
+  {psi | ∀ z, |deriv psi.weight z| ≤ k * psi.weight z}
+
+theorem Lemma_2_5_from_uniform_k_class
+    {pExp gamma l mu k : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 1 ≤ pExp) (hgamma : 0 < gamma)
+    (hk_nn : 0 ≤ k) (hk_lt : k < Real.sqrt l) :
+    ∃ C > 0, ∀ u : ℝ → ℝ, ∀ psi : ExponentialWeight,
+      psi ∈ UniformKBound l k →
+      IsCUnifBdd u → (∀ y, 0 ≤ u y) →
+      Integrable (fun x => ((u x) ^ gamma) ^ pExp * psi.weight x) →
+        Integrable
+          (fun x =>
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+              psi.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+              psi.weight x
+          ≤ C * ∫ x : ℝ, ((u x) ^ gamma) ^ pExp * psi.weight x := by
+  obtain ⟨C, hC_pos, hC⟩ :=
+    Lemma_2_5_existential_for_small_k_psi (pExp := pExp) (gamma := gamma)
+      (l := l) (mu := mu) (k := k) hl hmu hpExp hgamma hk_nn hk_lt
+  refine ⟨C, hC_pos, ?_⟩
+  intro u psi hpsi_class hu hu_nn hint
+  exact hC psi hpsi_class hu hu_nn hint
+
 end ShenWork.Paper1
 
 end

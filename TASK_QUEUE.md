@@ -25,15 +25,29 @@ commit; one slot at a time per session.
   `ψ(y) · 2/(√l − k)`.  Needs `∫ exp(-c|x|) dx = 2/c` (write a small lemma
   if Mathlib doesn’t expose it directly).
 - Output: `Lemma_2_5` instance (full quantifier shape) + supporting lemmas.
-- Status: in progress.  Claimed: opus-4.7-pts-? (assigned at 2026-05-23 22:59 by mac dm).
-  Helpers landed in `ShenWork/Paper1/Lemma25Helpers.lean` (separate file
-  to avoid `Statements.lean` races); chain pieces committed so far:
+- Status: **substantially done** as `Lemma_2_5_restricted_psi_class_holds`
+  (commit bcf2b3f), plus full chain in `ShenWork/Paper1/Lemma25Helpers.lean`:
   `kernel_weight_integral_le_psi`, `psi_pExp_weighted_le_kernel_weighted`,
   `psi_deriv_pExp_weighted_le`, `psi_deriv_pExp_weighted_le_kernel_weighted`,
-  `psi_deriv_pExp_integral_le_kernel_weighted_integral` (integral_mono lift
-  with explicit integrability hypotheses).  Remaining: discharge the
-  joint integrability via Fubini + `kernel_weight_integral_le_psi`, then
-  reduce to ε-uniform `k`-restricted Lemma_2_5.
+  `psi_deriv_pExp_integral_le_kernel_weighted_integral`, `joint_integrand_le`,
+  `ExponentialWeight.integrable`, `.kernel_integrable`,
+  `joint_kernel_weight_v_integrable`, `kernel_v_psi_double_integral_le`,
+  `psi_kernel_v_integral_integrable`,
+  `Lemma_2_5_with_explicit_k_via_Fubini_hypothesis`,
+  `Lemma_2_5_with_explicit_k` (full Fubini-discharged, `k < √l`),
+  `Lemma_2_5_with_explicit_k_unit`, `Lemma_2_5_existential_for_small_k_psi`,
+  `Lemma_2_5_explicit_epsilon`, `Lemma_2_5_explicit_epsilon_CMParams`,
+  `Lemma_2_5_explicit_epsilon_CMParams_unit`,
+  `Lemma_2_5_from_extracted_psi_k_witness`,
+  `Lemma_2_5_restricted_psi_class_holds`.
+
+  **Blocker for closing the original `Lemma_2_5` Prop**: the unrestricted
+  `ExponentialWeight` admits ψ with arbitrarily large `k_dab` (e.g.,
+  smoothed `exp(-α|x|)` with `α` large), so our weight-transfer constant
+  `2/(√l − k_ψ)` cannot be uniform in ψ.  Recommend amending the def to
+  use `Lemma_2_5_restricted_psi_class` (which adds an explicit `k < √l`
+  quantifier and is closed), or extending `ExponentialWeight` with a
+  uniform-k field.
 
 ### Slot B — Paper 2 IntervalDomain unitPointDomain-style instances
 - Owner files: `ShenWork/Paper2/Statements.lean` only.
@@ -82,6 +96,108 @@ commit; one slot at a time per session.
   `bernoulliLogisticSolution p u₀ t : ℝ` and prove HasDerivAt at every t,
   positivity, boundedness by max(u₀, (a/b)^(1/α)).  Once available, use it
   to lift `unitPointDomain.Theorem_1_1` to the **non-minimal** branch.
+- Status: done by codex-3 (commits cf7a43f, b64fa91, 5f68900, 85865d0 merged).
+
+---
+
+## Window assignments (coordinator: shen-codex / Opus 4.7)
+
+Updated 2026-05-24. Each window picks the slot pre-assigned below; if
+the slot is already complete, take the next unclaimed one in the pool.
+Owner files are disjoint so no file races.
+
+| Window      | Slot | Owner file                         | Pre-claim status |
+| ----------- | ---- | ---------------------------------- | ---------------- |
+| shen-codex  | G    | `ShenWork/Paper2/Statements.lean`  | claimed          |
+| shen-codex-2| H    | `ShenWork/Paper3/Statements.lean`  | claimed          |
+| shen-codex-3| L    | `ShenWork/Paper2/Statements.lean` (no overlap with G — different theorem) | claimed |
+| shen-codex-?| I    | `ShenWork/Paper2/Statements.lean` (small, only Lemma_3_1_nonminimal) | next-up |
+| shen-codex-?| J    | `ShenWork/Paper1/Statements.lean`  | next-up          |
+| shen-codex-?| K    | `ShenWork/Paper3/Statements.lean` (different region from H) | next-up |
+
+Rules:
+1. Edit only your slot's owner file. If a file is shared, edit DIFFERENT
+   theorems (grep before editing).
+2. After each commit: `lake build ShenWork`, `rg '\bsorry\b' ShenWork/`.
+3. Local push fails (no GitHub credential) — that's expected, mac-side dm
+   pulls and syncs.
+4. When your slot closes (or you finish all assigned work), take the next
+   unclaimed slot.
+5. Mark `Status:` lines done as you go; coordinator (this comment block)
+   adds new slots when pool runs low.
+
+## Next-round slot pool (fresh tasks for windows 11/12/13)
+
+### Slot G — Paper 2 `intervalDomain` mirror of unit-point closures
+- Owner files: `ShenWork/Paper2/Statements.lean` only (do NOT touch
+  `PDE/IntervalDomain.lean` or `IntervalDomainMaxPrinciple.lean`).
+- Prerequisites in place: `ShenWork.IntervalDomain.intervalDomain` is a
+  `BoundedDomainData` instance; `Lemma_3_1_intervalDomain` is proved
+  (line ~3558).  `SupNormAntitoneData` is the renamed interval-side
+  parabolic max-principle data.
+- Goal: provide `intervalDomain` analogs of `unitPointDomain.{Lemma_4_1,
+  Proposition_2_2, Proposition_2_3, Proposition_2_4, Proposition_2_5}`,
+  mirroring the unitPoint proofs.  Names like
+  `intervalDomain_Lemma_4_1` (avoid project-name collision with Paper3’s
+  `unitPointDomain.Lemma_4_1`).
+- Output: one commit per theorem, each ≤ ~100 LOC.
+- Status: open.  Claimed: ___
+
+### Slot H — Paper 3 `Theorem_2_2` full-composite closures on unit-point
+- Owner files: `ShenWork/Paper3/Statements.lean` only.
+- Current state (commit dbeaa63): `Theorem_2_2_vacuous_when_a_zero_b_nonzero`
+  and `_b_zero` exist plus a minimal-only chi-nonpos composite.
+- Goal: add full-composite closures for each remaining `(a, b, χ₀, m)`
+  slice where the four branches can be discharged via
+  `Theorem_2_2_linear_stability_chi_nonpos_branch_direct` and
+  `Theorem_2_2_linear_threshold_branch_direct`, e.g.
+  `Theorem_2_2_minimal_only_b_zero`, `Theorem_2_2_when_chi_nonpos_a_zero`,
+  etc.
+- Output: 3–6 new full-composite closures.
+- Status: open.  Claimed: ___
+
+### Slot I — Paper 2 `Lemma_3_1_nonminimal_branch` honest refutation polish
+- Owner files: `ShenWork/Paper2/Statements.lean`.
+- Already refuted by `not_forall_Lemma_3_1_nonminimal_branch`.  Goal:
+  add a `Lemma_3_1_nonminimal_branch_when_a_zero` vacuous closure and any
+  parameter-slice provable variants (mirror the `Theorem_2_1_partN_*`
+  pattern).  Useful for downstream Paper3 stability composites.
+- Output: 2–4 closure lemmas.
+- Status: open.  Claimed: ___
+
+### Slot J — Paper 1 `Lemma_2_1` (heat-semigroup `L^p → L^q`) zero-data
+  branches and a real bounded-input chain
+- Owner files: `ShenWork/Paper1/Statements.lean`.
+- Current state: `Lemma_2_1_zero_output_branch`,
+  `Lemma_2_1_zero_data` exist; full bound externalized in
+  `HeatSemigroupEstimateData`.
+- Goal: prove `Lemma_2_1` for the bounded-measurable inputs subclass
+  using the existing whole-line heat-kernel `L^1 → L^∞` smoothing and
+  derivative-kernel chain in `ShenWork/PDE/HeatSemigroup.lean` plus
+  `Defs.lean`.  Should not need new measure-theoretic primitives.
+- Output: 1–3 new branch theorems closer to `Lemma_2_1` full statement.
+- Status: open.  Claimed: ___
+
+### Slot K — Paper 3 `Lemma_A_6` constants/transport rewrite
+- Owner files: `ShenWork/Paper3/Statements.lean`.
+- `Lemma_A_6_direct` is closed; the remaining `Lemma_A_2/3/4/5.paper2`
+  bridges to Paper 2 semigroup targets can be tightened (e.g., remove
+  redundant hypotheses, replace projection accessors by direct
+  computations where the Paper 2 zero-output branches already give
+  enough).
+- Output: 2–4 cleanup commits.
+- Status: open.  Claimed: ___
+
+### Slot L — Paper 2 `Theorem_1_1` nonminimal branch via Slot F output
+- Owner files: `ShenWork/Paper2/Statements.lean` (Slot F's
+  `ShenWork/PDE/UnitPointLogisticODE.lean` is read-only here).
+- Slot F's `bernoulliLogisticSolution` and lift theorems give the
+  classical solution for `0 < p.a, 0 < p.b` on `unitPointDomain`.
+- Goal: drop `_minimal_only` from `unitPointDomain.Theorem_1_1` and
+  prove the full theorem on `unitPointDomain` by routing the
+  nonminimal branch through Slot F's machinery.  Similar work for
+  `Theorem_1_2` and `Theorem_1_3` once F is wired in.
+- Output: 1–3 commits closing each `unitPointDomain.Theorem_1_X` fully.
 - Status: open.  Claimed: ___
 
 ---
