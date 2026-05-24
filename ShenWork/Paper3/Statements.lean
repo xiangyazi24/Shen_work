@@ -7526,6 +7526,35 @@ theorem Lemma_A_2_intervalSemigroupOperator_pair_bounds
   ShenWork.Paper2.intervalSemigroupOperator_paper2_pair_bounds
     ht hM hf_meas hg_meas hf_bound hg_bound hfg
 
+/-- Appendix A.2 raw semigroup estimates, carried over from the Paper2
+semigroup-estimate interface. -/
+def Lemma_A_2 (D : BoundedDomainData) (p : CM2Params)
+    (S : SemigroupEstimateData D) : Prop :=
+  ShenWork.Paper2.Lemma_2_1 D p S
+
+theorem Lemma_A_2.paper2
+    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
+    (h : ShenWork.Paper2.Lemma_2_1 D p S) :
+    Lemma_A_2 D p S := by
+  simpa [Lemma_A_2] using h
+
+theorem Lemma_A_2_zero_output_branch
+    (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D)
+    (hlp_nonneg : ∀ q u, 0 ≤ S.lpNorm q u)
+    (hfrac_nonneg : ∀ sigma q u, 0 ≤ S.fractionalNorm sigma q u)
+    (hfrac_semigroup_zero :
+      ∀ sigma q t u, S.fractionalNorm sigma q (S.semigroup t u) = 0)
+    (hlp_difference_zero :
+      ∀ t u, S.lpNorm 2 (fun x => S.semigroup t u x - u x) = 0) :
+    Lemma_A_2 D p S :=
+  Lemma_A_2.paper2
+    (ShenWork.Paper2.Lemma_2_1_zero_output_branch D p S
+      hlp_nonneg hfrac_nonneg hfrac_semigroup_zero hlp_difference_zero)
+
+theorem Lemma_A_2_zero_data (D : BoundedDomainData) (p : CM2Params) :
+    Lemma_A_2 D p (ShenWork.Paper2.zeroSemigroupEstimateData D) :=
+  Lemma_A_2.paper2 (ShenWork.Paper2.Lemma_2_1_zero_data D p)
+
 def PowerDifferenceInequality
     (C alpha gamma uStar : ℝ) : Prop :=
   ∀ u > 0,
