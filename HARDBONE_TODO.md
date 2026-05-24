@@ -81,6 +81,12 @@
 - **目标文件**: `ShenWork/Paper2/Statements.lean`
 - **产出**: `Lemma_2_6_intervalDomain`
 - **NOTE**: 这是整个 global existence 链条的核心 — Lp bootstrap
+- **进展** (2026-05-24): `ShenWork/Paper2/IntervalDomainChain.lean`
+  proves the single-step/chain Moser algebra; `ShenWork/Paper2/IntervalDomainMoserClosure.lean`
+  proves the Archimedean exponent closure: bounds on `p₀+nρ` plus downward
+  Lp monotonicity imply bounds for every `p>1`.  Not marked done until the
+  interval-domain single-step estimates and finite-measure Lp monotonicity are
+  connected to `Lemma_2_6 intervalDomain`.
 
 ### H1.3 — Paper2 Lemma 4.1 on intervalDomain (L^p → L^∞)
 - **内容**: from L^p bounds for all p, conclude L^∞ bound
