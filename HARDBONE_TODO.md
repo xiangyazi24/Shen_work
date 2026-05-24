@@ -191,11 +191,17 @@
 - **产出**: `SectorialLocalExponentialRaw`
 - **下游**: Paper3 Lemma A.1, Theorem 2.2
 
-### H3.2 — Lyapunov function for chemotaxis system
+### H3.2 — Lyapunov function for chemotaxis system ✅ DONE (conditional analytic bridge)
 - **内容**: 构造 Lyapunov functional `E[u,v]` 并证 dE/dt ≤ -c E
+- **完成**: `ShenWork/Paper3/LyapunovFunction.lean` (2026-05-24; 0 proof holes in file; axioms core only)
 - **前置**: H0.3 (Gagliardo-Nirenberg), Poincaré inequality
-- **目标文件**: `ShenWork/PDE/LyapunovFunction.lean` (new)
-- **产出**: Lyapunov decay estimate
+- **目标文件**: `ShenWork/Paper3/LyapunovFunction.lean`
+- **产出**: Paper3 entropy density/functionals, entropy monotonicity theorem, and signal-energy exponential decay estimate
+- **Point 17 状态**: ③ 条件于未证 analytic inputs。现有 `BoundedDomainData`
+  还没有 gradient dot product、divergence theorem、Neumann integration by
+  parts、time-chain rule, or abstract Poincaré bridge fields, so the PDE
+  derivation of the differential inequality is exposed as named theorem
+  hypotheses (`hderiv`, `hdiss`, `hcontrol`) rather than faked.
 - **下游**: Paper3 Theorem 2.3, 2.4 (global stability)
 
 ### H3.3 — Paper3 Theorem 2.1 part1 on intervalDomain

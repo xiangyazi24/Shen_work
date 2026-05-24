@@ -22,6 +22,7 @@ import ShenWork.Paper2.Defs
 import ShenWork.Paper2.Statements
 import ShenWork.Paper3.Defs
 import ShenWork.Paper3.Statements
+import ShenWork.Paper3.LyapunovFunction
 import ShenWork.PDE.CosineSpectrum
 import ShenWork.PDE.UnitPointLogisticODE
 import ShenWork.PDE.UnitPointDecayODE
