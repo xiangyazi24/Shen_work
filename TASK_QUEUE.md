@@ -100,6 +100,32 @@ commit; one slot at a time per session.
 
 ---
 
+## Window assignments (coordinator: shen-codex / Opus 4.7)
+
+Updated 2026-05-24. Each window picks the slot pre-assigned below; if
+the slot is already complete, take the next unclaimed one in the pool.
+Owner files are disjoint so no file races.
+
+| Window      | Slot | Owner file                         | Pre-claim status |
+| ----------- | ---- | ---------------------------------- | ---------------- |
+| shen-codex  | G    | `ShenWork/Paper2/Statements.lean`  | claimed          |
+| shen-codex-2| H    | `ShenWork/Paper3/Statements.lean`  | claimed          |
+| shen-codex-3| L    | `ShenWork/Paper2/Statements.lean` (no overlap with G — different theorem) | claimed |
+| shen-codex-?| I    | `ShenWork/Paper2/Statements.lean` (small, only Lemma_3_1_nonminimal) | next-up |
+| shen-codex-?| J    | `ShenWork/Paper1/Statements.lean`  | next-up          |
+| shen-codex-?| K    | `ShenWork/Paper3/Statements.lean` (different region from H) | next-up |
+
+Rules:
+1. Edit only your slot's owner file. If a file is shared, edit DIFFERENT
+   theorems (grep before editing).
+2. After each commit: `lake build ShenWork`, `rg '\bsorry\b' ShenWork/`.
+3. Local push fails (no GitHub credential) — that's expected, mac-side dm
+   pulls and syncs.
+4. When your slot closes (or you finish all assigned work), take the next
+   unclaimed slot.
+5. Mark `Status:` lines done as you go; coordinator (this comment block)
+   adds new slots when pool runs low.
+
 ## Next-round slot pool (fresh tasks for windows 11/12/13)
 
 ### Slot G — Paper 2 `intervalDomain` mirror of unit-point closures
