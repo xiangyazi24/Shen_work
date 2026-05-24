@@ -769,6 +769,39 @@ theorem Lemma_2_5_with_explicit_k
   rw [hC_full_eq] at hassemble
   exact ⟨hLHS_int, hassemble⟩
 
+/-! ### Unit-resolvent specialization of Lemma_2_5_with_explicit_k -/
+
+/-- Unit-resolvent (`l = μ = 1`) specialization of
+`Lemma_2_5_with_explicit_k`.  Constant simplifies to
+`C := 1 · (1/2)^p · 2^(p-1) · 2/(1 - k) = (1/2) · 2/(1 - k) = 1/(1 - k)`
+on the convex hull of standard simplifications, though the literal value
+emitted preserves the explicit factors. -/
+theorem Lemma_2_5_with_explicit_k_unit
+    (p : CMParams) (psi : ExponentialWeight) {pExp k : ℝ}
+    (hpExp : 1 ≤ pExp) (hk_nn : 0 ≤ k) (hk_lt : k < 1)
+    (hk_bound : ∀ z, |deriv psi.weight z| ≤ k * psi.weight z)
+    {u : ℝ → ℝ} (hu : IsCUnifBdd u) (hu_nn : ∀ y, 0 ≤ u y)
+    (hint_hyp :
+      Integrable
+        (fun x : ℝ => ((u x) ^ p.γ) ^ pExp * psi.weight x)) :
+    Integrable
+      (fun x : ℝ =>
+        |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^ pExp *
+          psi.weight x) ∧
+    ∫ x : ℝ,
+        |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^ pExp *
+          psi.weight x ≤
+      ((Real.sqrt 1) ^ pExp *
+          ((1 / (2 * Real.sqrt 1)) ^ pExp *
+            (2 / Real.sqrt 1) ^ (pExp - 1) *
+            (2 / (Real.sqrt 1 - k)))) *
+        ∫ x : ℝ, ((u x) ^ p.γ) ^ pExp * psi.weight x := by
+  have hk_lt_sqrt : k < Real.sqrt 1 := by
+    rw [Real.sqrt_one]; exact hk_lt
+  exact Lemma_2_5_with_explicit_k psi (l := 1) (mu := 1) (k := k)
+    one_pos one_pos hpExp (lt_of_lt_of_le one_pos p.hγ) hk_nn hk_lt_sqrt
+    hk_bound hu hu_nn hint_hyp
+
 end ShenWork.Paper1
 
 end
