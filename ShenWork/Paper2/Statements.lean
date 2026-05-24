@@ -5267,6 +5267,50 @@ theorem unitPointDomain.Theorem_X_X_long_time_attractor
   intro ha hb u₀ hu₀
   exact hexplicit ha hb u₀ hu₀
 
+/-- Paper 2 unit-point exponential convergence bridge.
+
+The concrete rate package is proved for the explicit Bernoulli-logistic
+solution in `ShenWork.PDE.UnitPointLogisticODE`.  The rate is stated in the
+Bernoulli coordinate `u^{-α}`, where the decay is exactly exponential with
+rate `αa`. -/
+theorem unitPointDomain.Theorem_X_X_exponential_convergence
+    (p : CM2Params)
+    (hexplicit :
+      0 < p.a → 0 < p.b →
+        ∀ u₀ : unitPointDomain.Point → ℝ,
+          PositiveInitialDatum unitPointDomain u₀ →
+            ∃ u v : ℝ → unitPointDomain.Point → ℝ,
+              IsPaper2GlobalClassicalSolution unitPointDomain p u v ∧
+              InitialTrace unitPointDomain u₀ u ∧
+              (∀ t, 0 ≤ t →
+                unitPointDomain.supNorm (u t) ≤
+                  max (unitPointDomain.supNorm u₀)
+                    ((p.a / p.b) ^ (1 / p.α))) ∧
+              Tendsto (fun t : ℝ => u t ())
+                atTop (𝓝 ((p.a / p.b) ^ (1 / p.α))) ∧
+              (∀ t, 0 ≤ t →
+                |(u t ()) ^ (-p.α) - p.b / p.a| =
+                  |(u₀ ()) ^ (-p.α) - p.b / p.a| *
+                    Real.exp (-(p.α * p.a) * t))) :
+    0 < p.a → 0 < p.b →
+      ∀ u₀ : unitPointDomain.Point → ℝ,
+        PositiveInitialDatum unitPointDomain u₀ →
+          ∃ u v : ℝ → unitPointDomain.Point → ℝ,
+            IsPaper2GlobalClassicalSolution unitPointDomain p u v ∧
+            InitialTrace unitPointDomain u₀ u ∧
+            (∀ t, 0 ≤ t →
+              unitPointDomain.supNorm (u t) ≤
+                max (unitPointDomain.supNorm u₀)
+                  ((p.a / p.b) ^ (1 / p.α))) ∧
+            Tendsto (fun t : ℝ => u t ())
+              atTop (𝓝 ((p.a / p.b) ^ (1 / p.α))) ∧
+            (∀ t, 0 ≤ t →
+              |(u t ()) ^ (-p.α) - p.b / p.a| =
+                |(u₀ ()) ^ (-p.α) - p.b / p.a| *
+                  Real.exp (-(p.α * p.a) * t)) := by
+  intro ha hb u₀ hu₀
+  exact hexplicit ha hb u₀ hu₀
+
 /-- Paper 2 Corollary 2.1 holds for the unit-point domain.  The classical
 solution forces `u t () > 0` (from `u_pos`), so the abstract `Lᵖ` bound at
 `p0` (which for the unit-point reduces to `(u t ())^p0 ≤ C₀`) implies a
