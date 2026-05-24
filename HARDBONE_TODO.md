@@ -180,6 +180,12 @@
 ### H3.1 — Sectorial operator / analytic semigroup framework
 - **内容**: linearized operator -Δ + lower-order 是 sectorial 的 → 生成解析半群
 - **现状**: 完全未做; Mathlib 没有 sectorial operator 理论
+- **当前前沿** (2026-05-24): `ShenWork/Paper3/Statements.lean`
+  已有诚实 raw 接口 `SectorialLocalExponentialRaw`，以及把该 raw
+  假设接到 `LocallyExponentiallyStableFromSup` /
+  `MassConstrainedLocallyExponentiallyStableFromSup` 的桥接定理。尚未证明
+  intervalDomain 上线性化 Neumann operator 的 sectoriality、解析半群生成、
+  resolvent/谱界到指数衰减的完整链条。
 - **前置**: spectral theory on bounded domain, resolvent estimates
 - **目标文件**: `ShenWork/PDE/SectorialOperator.lean` (new)
 - **产出**: `SectorialLocalExponentialRaw`
@@ -196,6 +202,18 @@
 - **内容**: eventual lower bound for PGBS on a real domain
 - **前置**: H0.5 (ODE uniqueness) or Harnack inequality
 - **NOTE**: unitPoint 版本用了 ODE 直接算; intervalDomain 需要 Harnack 或 strong maximum principle
+- **进展** (2026-05-24): `ShenWork/Paper3/IntervalDomainTheorem21Part1.lean`
+  已组装条件版
+  `Theorem_2_1_part1_intervalDomain_of_pointwise_persistence`。该定理把
+  Paper3 Section 4.1 的两个真实缺口显式暴露为命名假设：
+  (1) time-translate compactness + Neumann strong maximum principle + ODE
+  subsolution 给出 `u` 的 eventual pointwise lower bound；
+  (2) elliptic Neumann comparison 把 `u` 的 lower bound 转成 `v` 的 lower
+  bound。另证明 helper
+  `intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower`，把
+  intervalDomain 上的 pointwise lower bound 转为 statement 层的
+  `EventuallyLowerBound`。按 17-point standard 属于状态③：条件于未证但明确
+  命名的分析前沿；不是无条件完成。
 
 ---
 

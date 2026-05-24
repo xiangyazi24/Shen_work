@@ -42,3 +42,4 @@ import ShenWork.Paper2.IntervalDomainCorollary21
 import ShenWork.Paper2.IntervalDomainTheorem12
 import ShenWork.Paper2.IntervalDomainTheorem13
 import ShenWork.Paper3.UnitPointLogisticBridge
+import ShenWork.Paper3.IntervalDomainTheorem21Part1
