@@ -849,6 +849,47 @@ theorem Lemma_2_5_existential_for_small_k_psi
     exact Lemma_2_5_with_explicit_k psi hl hmu hpExp hgamma hk_nn hk_lt
       hk_bound hu hu_nn hint
 
+/-! ### Lemma 2.5 with explicit ε margin -/
+
+/-- **Lemma 2.5 with explicit ε margin**: for every `(pExp, γ, l, μ, ε)`
+with `ε ∈ (0, √l)`, there is a single positive constant
+`C(pExp, γ, l, μ, ε)` that bounds the weighted resolvent gradient for
+every weight ψ whose log-derivative is bounded by `√l − ε`.
+
+The constant `C := √l^p · (μ/(2√l))^p · (2/√l)^(p-1) · 2/ε`. -/
+theorem Lemma_2_5_explicit_epsilon
+    {pExp gamma l mu epsilon : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 1 ≤ pExp) (hgamma : 0 < gamma)
+    (hε_pos : 0 < epsilon) (hε_lt : epsilon < Real.sqrt l) :
+    ∃ C > 0, ∀ (psi : ExponentialWeight),
+      (∀ z, |deriv psi.weight z| ≤ (Real.sqrt l - epsilon) * psi.weight z) →
+      ∀ {u : ℝ → ℝ}, IsCUnifBdd u → (∀ y, 0 ≤ u y) →
+      Integrable (fun x : ℝ => ((u x) ^ gamma) ^ pExp * psi.weight x) →
+        Integrable
+          (fun x : ℝ =>
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+              psi.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+              psi.weight x ≤
+          C * ∫ x : ℝ, ((u x) ^ gamma) ^ pExp * psi.weight x := by
+  set k := Real.sqrt l - epsilon
+  have hk_nn : 0 ≤ k := by
+    have hsqrt_pos : 0 < Real.sqrt l := Real.sqrt_pos.mpr hl
+    have hk_pos_or : Real.sqrt l - epsilon ≥ 0 := by linarith
+    exact hk_pos_or
+  have hk_lt : k < Real.sqrt l := by
+    show Real.sqrt l - epsilon < Real.sqrt l
+    linarith
+  have hε_eq : Real.sqrt l - k = epsilon := by simp [k]
+  obtain ⟨C, hC_pos, hC⟩ :=
+    Lemma_2_5_existential_for_small_k_psi
+      (pExp := pExp) (gamma := gamma) (l := l) (mu := mu) (k := k)
+      hl hmu hpExp hgamma hk_nn hk_lt
+  refine ⟨C, hC_pos, ?_⟩
+  intro psi hk_bound u hu hu_nn hint
+  exact hC psi hk_bound hu hu_nn hint
+
 end ShenWork.Paper1
 
 end
