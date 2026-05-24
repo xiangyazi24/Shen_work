@@ -111,4 +111,21 @@ lemma bernoulliLogisticDenominator_hasDerivAt
   simpa [bernoulliLogisticDenominator, mul_comm, mul_left_comm, mul_assoc] using
     hmul.const_add (p.b / p.a)
 
+lemma bernoulliLogisticForward_hasDerivAt_raw
+    (p : CM2Params) {u₀ t : ℝ} (ha : 0 < p.a) (hb : 0 < p.b)
+    (hu₀ : 0 < u₀) (ht : 0 ≤ t) :
+    HasDerivAt (fun s : ℝ => bernoulliLogisticForward p u₀ s)
+      (((u₀ ^ (-p.α) - p.b / p.a) *
+          (-(p.α * p.a) * bernoulliLogisticWeight p t)) *
+        (-1 / p.α) *
+        (bernoulliLogisticDenominator p u₀ t) ^ (-1 / p.α - 1)) t := by
+  have hden_pos :
+      0 < bernoulliLogisticDenominator p u₀ t :=
+    bernoulliLogisticDenominator_pos_of_nonneg_time p ha hb hu₀ ht
+  have hden_ne : bernoulliLogisticDenominator p u₀ t ≠ 0 :=
+    ne_of_gt hden_pos
+  have hden := bernoulliLogisticDenominator_hasDerivAt p u₀ t
+  simpa [bernoulliLogisticForward] using
+    (hden.rpow_const (Or.inl hden_ne) (p := -1 / p.α))
+
 end ShenWork.Paper2
