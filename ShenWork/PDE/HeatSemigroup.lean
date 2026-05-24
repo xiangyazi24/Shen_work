@@ -1748,6 +1748,64 @@ lemma unitIntervalCosineHeatPointEnergy_le_trace {t x : ℝ}
           (fun n => unitIntervalCosineHeatPointWeight_sq_le_traceTerm t x n) htrace
     _ = unitIntervalCosineHeatTrace t := rfl
 
+/-- Cauchy-Schwarz for real `tsum`s, in square-root `L²` form. -/
+lemma real_abs_tsum_mul_le_sqrt_tsum_sq_mul_sqrt_tsum_sq
+    {u v : ℕ → ℝ} (hu : Summable fun n => (u n) ^ 2)
+    (hv : Summable fun n => (v n) ^ 2) :
+    |∑' n, u n * v n| ≤
+      Real.sqrt (∑' n, (u n) ^ 2) *
+        Real.sqrt (∑' n, (v n) ^ 2) := by
+  have hprod :
+      Summable fun n => |u n * v n| := by
+    have hdom :
+        ∀ n, |u n * v n| ≤
+          (1 / 2) * (u n) ^ 2 + (1 / 2) * (v n) ^ 2 := by
+      intro n
+      rw [abs_mul]
+      have hsq := sq_nonneg (|u n| - |v n|)
+      nlinarith [sq_abs (u n), sq_abs (v n), hsq]
+    exact Summable.of_nonneg_of_le (fun n => abs_nonneg _)
+      hdom ((hu.mul_left (1 / 2)).add (hv.mul_left (1 / 2)))
+  have hprod_norm :
+      Summable fun n => ‖u n * v n‖ := by
+    simpa [Real.norm_eq_abs] using hprod
+  have habs_tsum :
+      (∑' n, |u n * v n|) ≤
+        Real.sqrt (∑' n, (u n) ^ 2) *
+          Real.sqrt (∑' n, (v n) ^ 2) := by
+    apply Real.tsum_le_of_sum_le (fun n => abs_nonneg _)
+    intro s
+    have hu_sum :
+        ∑ n ∈ s, (u n) ^ 2 ≤ ∑' n, (u n) ^ 2 :=
+      hu.sum_le_tsum s (fun n _hn => sq_nonneg (u n))
+    have hv_sum :
+        ∑ n ∈ s, (v n) ^ 2 ≤ ∑' n, (v n) ^ 2 :=
+      hv.sum_le_tsum s (fun n _hn => sq_nonneg (v n))
+    calc
+      ∑ n ∈ s, |u n * v n|
+          = ∑ n ∈ s, |u n| * |v n| := by
+            apply Finset.sum_congr rfl
+            intro n _hn
+            rw [abs_mul]
+      _ ≤ Real.sqrt (∑ n ∈ s, |u n| ^ 2) *
+            Real.sqrt (∑ n ∈ s, |v n| ^ 2) :=
+          Real.sum_mul_le_sqrt_mul_sqrt s (fun n => |u n|) (fun n => |v n|)
+      _ = Real.sqrt (∑ n ∈ s, (u n) ^ 2) *
+            Real.sqrt (∑ n ∈ s, (v n) ^ 2) := by
+          simp [sq_abs]
+      _ ≤ Real.sqrt (∑' n, (u n) ^ 2) *
+            Real.sqrt (∑' n, (v n) ^ 2) := by
+          exact mul_le_mul (Real.sqrt_le_sqrt hu_sum)
+            (Real.sqrt_le_sqrt hv_sum) (Real.sqrt_nonneg _)
+            (Real.sqrt_nonneg _)
+  calc
+    |∑' n, u n * v n| = ‖∑' n, u n * v n‖ := by
+      rw [Real.norm_eq_abs]
+    _ ≤ ∑' n, ‖u n * v n‖ := norm_tsum_le_tsum_norm hprod_norm
+    _ = ∑' n, |u n * v n| := by simp [Real.norm_eq_abs]
+    _ ≤ Real.sqrt (∑' n, (u n) ^ 2) *
+          Real.sqrt (∑' n, (v n) ^ 2) := habs_tsum
+
 /-- The heat semigroup is symmetric in the sense that swapping x and y
     in the kernel gives the same integrand. -/
 theorem heatSemigroup_kernel_symm (t x y : ℝ) :
