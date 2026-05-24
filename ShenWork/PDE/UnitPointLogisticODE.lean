@@ -327,4 +327,104 @@ lemma bernoulliLogisticSolution_differentiable
     Differentiable ℝ (fun t : ℝ => bernoulliLogisticSolution p u₀ t) :=
   fun t => (bernoulliLogisticSolution_hasDerivAt p ha hb hu₀ (t := t)).differentiableAt
 
+lemma bernoulliLogisticSolution_le_max_of_nonneg_time
+    (p : CM2Params) {u₀ t : ℝ} (ha : 0 < p.a) (hb : 0 < p.b)
+    (hu₀ : 0 < u₀) (ht : 0 ≤ t) :
+    bernoulliLogisticSolution p u₀ t ≤
+      max u₀ ((p.a / p.b) ^ (1 / p.α)) := by
+  set K : ℝ := (p.a / p.b) ^ (1 / p.α)
+  set D : ℝ := bernoulliLogisticDenominator p u₀ t
+  set c : ℝ := u₀ ^ (-p.α)
+  set q : ℝ := p.b / p.a
+  set w : ℝ := bernoulliLogisticWeight p t
+  have hα_ne : p.α ≠ 0 := ne_of_gt p.hα
+  have hD_pos : 0 < D := by
+    simpa [D] using
+      bernoulliLogisticDenominator_pos_of_nonneg_time p ha hb hu₀ ht
+  have hc_pos : 0 < c := by
+    simpa [c] using Real.rpow_pos_of_pos hu₀ (-p.α)
+  have hq_pos : 0 < q := by
+    simpa [q] using div_pos hb ha
+  have hK_pos : 0 < K := by
+    simpa [K] using Real.rpow_pos_of_pos (div_pos ha hb) (1 / p.α)
+  have hw_pos : 0 < w := by
+    simpa [w, bernoulliLogisticWeight, mul_assoc] using
+      (Real.exp_pos (-(p.α * p.a) * t))
+  have harg_nonpos : -(p.α * p.a) * t ≤ 0 := by
+    have hprod : 0 ≤ (p.α * p.a) * t :=
+      mul_nonneg (mul_nonneg p.hα.le ha.le) ht
+    linarith
+  have hw_le_one : w ≤ 1 := by
+    simpa [w, bernoulliLogisticWeight] using Real.exp_le_one_iff.mpr harg_nonpos
+  have hD_eq : D = c * w + q * (1 - w) := by
+    simp [D, c, q, w, bernoulliLogisticDenominator]
+    ring
+  have hK_pow_neg :
+      K ^ (-p.α) = q := by
+    change ((p.a / p.b) ^ (1 / p.α)) ^ (-p.α) = q
+    rw [← Real.rpow_mul (div_pos ha hb).le]
+    have hmul : (1 / p.α) * (-p.α) = -1 := by
+      field_simp [hα_ne]
+    rw [hmul, Real.rpow_neg_one]
+    change (p.a / p.b)⁻¹ = p.b / p.a
+    field_simp [ne_of_gt ha, ne_of_gt hb]
+  have hq_back :
+      q ^ (-1 / p.α) = K := by
+    rw [← hK_pow_neg]
+    rw [← Real.rpow_mul hK_pos.le]
+    have hmul : (-p.α) * (-1 / p.α) = 1 := by
+      field_simp [hα_ne]
+    rw [hmul, Real.rpow_one]
+  have hc_back :
+      c ^ (-1 / p.α) = u₀ := by
+    change (u₀ ^ (-p.α)) ^ (-1 / p.α) = u₀
+    rw [← Real.rpow_mul hu₀.le]
+    have hmul : (-p.α) * (-1 / p.α) = 1 := by
+      field_simp [hα_ne]
+    rw [hmul, Real.rpow_one]
+  have hneg_alpha : -p.α ≤ 0 := by linarith [p.hα]
+  have hneg_inv_alpha : -1 / p.α ≤ 0 := by
+    have hnonneg : 0 ≤ 1 / p.α := (div_pos zero_lt_one p.hα).le
+    rw [show -1 / p.α = -(1 / p.α) by ring]
+    exact neg_nonpos.mpr hnonneg
+  have hsolution_eq :
+      bernoulliLogisticSolution p u₀ t = D ^ (-1 / p.α) := by
+    rw [bernoulliLogisticSolution_of_nonneg p u₀ t ht]
+    simp [bernoulliLogisticForward, D]
+  by_cases huK : u₀ ≤ K
+  · have hq_le_c : q ≤ c := by
+      have hpow := Real.rpow_le_rpow_of_nonpos hu₀ huK hneg_alpha
+      simpa [hK_pow_neg, c] using hpow
+    have hD_ge_q : q ≤ D := by
+      rw [hD_eq]
+      calc
+        q = q * w + q * (1 - w) := by ring
+        _ ≤ c * w + q * (1 - w) := by
+          exact add_le_add (mul_le_mul_of_nonneg_right hq_le_c hw_pos.le) (le_refl _)
+    have hmain : D ^ (-1 / p.α) ≤ q ^ (-1 / p.α) :=
+      Real.rpow_le_rpow_of_nonpos hq_pos hD_ge_q hneg_inv_alpha
+    calc
+      bernoulliLogisticSolution p u₀ t = D ^ (-1 / p.α) := hsolution_eq
+      _ ≤ q ^ (-1 / p.α) := hmain
+      _ = K := hq_back
+      _ ≤ max u₀ K := le_max_right _ _
+  · have hK_le_u : K ≤ u₀ := le_of_not_ge huK
+    have hc_le_q : c ≤ q := by
+      have hpow := Real.rpow_le_rpow_of_nonpos hK_pos hK_le_u hneg_alpha
+      simpa [hK_pow_neg, c] using hpow
+    have hD_ge_c : c ≤ D := by
+      rw [hD_eq]
+      calc
+        c = c * w + c * (1 - w) := by ring
+        _ ≤ c * w + q * (1 - w) := by
+          exact add_le_add (le_refl _)
+            (mul_le_mul_of_nonneg_right hc_le_q (sub_nonneg.mpr hw_le_one))
+    have hmain : D ^ (-1 / p.α) ≤ c ^ (-1 / p.α) :=
+      Real.rpow_le_rpow_of_nonpos hc_pos hD_ge_c hneg_inv_alpha
+    calc
+      bernoulliLogisticSolution p u₀ t = D ^ (-1 / p.α) := hsolution_eq
+      _ ≤ c ^ (-1 / p.α) := hmain
+      _ = u₀ := hc_back
+      _ ≤ max u₀ K := le_max_left _ _
+
 end ShenWork.Paper2
