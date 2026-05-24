@@ -11556,6 +11556,19 @@ theorem unitPointDomain.Theorem_2_2_vacuous_when_a_nonzero_b_zero
   · intro ha' _; exact absurd ha' ha
   · intro ha' _; exact absurd ha' ha
 
+/-- Paper 3 Theorem 2.1 full composite vacuous when
+`0 < p.a, 0 < p.b, p.χ₀ ≤ 0, p.m < 1`. All parts vacuous via the
+parameter hypotheses. -/
+theorem unitPointDomain.Theorem_2_1_vacuous_when_a_pos_b_pos_chi_nonpos_m_lt_one
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) (hχ : p.χ₀ ≤ 0)
+    (hm : p.m < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_vacuous_when_m_lt_one p hm,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_chi_nonpos p hχ,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_chi_nonpos p hχ,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero p (ne_of_gt ha) C⟩
+
 end
 
 end ShenWork.Paper3
