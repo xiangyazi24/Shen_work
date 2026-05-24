@@ -352,4 +352,69 @@ theorem unitIntervalNeumannSpectralHeat_deriv_L2_Linfty_bound'
     (t := t) ht unitIntervalCosineReciprocalEigenvalueTerm_summable
     (f := f) hf hL2 hf_sq
 
+/-- The half-open unit-interval Lebesgue restriction used by interval
+integrals agrees with `intervalMeasure 1`; endpoints are null. -/
+theorem unitIntervalIocMeasure_eq_intervalMeasure :
+    volume.restrict (Set.Ioc (0 : ℝ) 1) = intervalMeasure 1 := by
+  unfold intervalMeasure intervalSet
+  exact restrict_Ioc_eq_restrict_Icc
+
+/-- The interval-integral `L²` mass on `[0,1]` is the square of the Mathlib
+`lpNorm` at exponent `2`, stated in square-root form. -/
+theorem unitInterval_sqrt_integral_norm_sq_eq_lpNorm_two
+    {f : ℝ → ℂ} (hf : IntervalIntegrable f volume 0 1) :
+    Real.sqrt (∫ x in (0 : ℝ)..1, ‖f x‖ ^ 2) =
+      lpNorm f (2 : ℝ≥0∞) (intervalMeasure 1) := by
+  rw [← unitIntervalIocMeasure_eq_intervalMeasure]
+  rw [lpNorm_eq_integral_norm_rpow_toReal]
+  · rw [intervalIntegral.integral_of_le (show (0 : ℝ) ≤ 1 by norm_num)]
+    simp [Real.sqrt_eq_rpow]
+  · norm_num
+  · simp
+  · simpa using hf.aestronglyMeasurable
+
+/-- Unit-interval spectral Neumann heat-gradient estimate in Mathlib
+`LpSeminorm` form, from interval `L²` to `L∞`. -/
+theorem unitIntervalNeumannSpectralHeatGradient_L2_Linfty_lpNorm_bound
+    {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℂ}
+    (hf : IntervalIntegrable f volume 0 1)
+    (hL2 :
+      MemLp (unitIntervalEvenReflection f) 2
+        (volume.restrict (Set.Ioc (-1 : ℝ) 1)))
+    (hf_sq : IntervalIntegrable (fun x : ℝ => ‖f x‖ ^ 2) volume 0 1) :
+    lpNorm
+        (fun x =>
+          unitIntervalCosineHeatGradientValue t
+            (unitIntervalNeumannCosineCoeff f) x)
+        ∞ (intervalMeasure 1) ≤
+      2 * (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+        lpNorm f (2 : ℝ≥0∞) (intervalMeasure 1) := by
+  simpa [unitInterval_sqrt_integral_norm_sq_eq_lpNorm_two hf] using
+    unitIntervalNeumannSpectralHeatGradient_L2_Linfty_bound'
+      (t := t) ht (f := f) hf hL2 hf_sq
+
+/-- Unit-interval spectral Neumann heat semigroup derivative estimate in
+Mathlib `LpSeminorm` form, from interval `L²` to `L∞`. -/
+theorem unitIntervalNeumannSpectralHeat_deriv_L2_Linfty_lpNorm_bound
+    {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℂ}
+    (hf : IntervalIntegrable f volume 0 1)
+    (hL2 :
+      MemLp (unitIntervalEvenReflection f) 2
+        (volume.restrict (Set.Ioc (-1 : ℝ) 1)))
+    (hf_sq : IntervalIntegrable (fun x : ℝ => ‖f x‖ ^ 2) volume 0 1) :
+    lpNorm
+        (fun x =>
+          deriv
+            (fun z =>
+              unitIntervalCosineHeatValue t
+                (unitIntervalNeumannCosineCoeff f) z) x)
+        ∞ (intervalMeasure 1) ≤
+      2 * (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+        lpNorm f (2 : ℝ≥0∞) (intervalMeasure 1) := by
+  simpa [unitInterval_sqrt_integral_norm_sq_eq_lpNorm_two hf] using
+    unitIntervalNeumannSpectralHeat_deriv_L2_Linfty_bound'
+      (t := t) ht (f := f) hf hL2 hf_sq
+
 end ShenWork.HeatKernelGradientEstimates
