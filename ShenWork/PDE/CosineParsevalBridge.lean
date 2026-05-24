@@ -435,4 +435,39 @@ theorem unitIntervalCosine_int_total_ae_zero
     nlinarith [sq_nonneg (‖f x‖)]
   exact norm_eq_zero.mp hnorm
 
+/-- Completeness of the usual natural-number-indexed cosine system on the
+unit interval, in totality form.  Negative integer frequencies reduce to
+positive ones by evenness of cosine. -/
+theorem unitIntervalCosine_nat_total_ae_zero
+    {f : ℝ → ℂ}
+    (hf : IntervalIntegrable f volume 0 1)
+    (hL2 :
+      MemLp (unitIntervalEvenReflection f) 2
+        (volume.restrict (Set.Ioc (-1 : ℝ) 1)))
+    (hf_sq : IntervalIntegrable (fun x : ℝ => ‖f x‖ ^ 2) volume 0 1)
+    (hcoeff :
+      ∀ n : ℕ,
+        ∫ x in (0 : ℝ)..1,
+          (Real.cos ((n : ℝ) * Real.pi * x) : ℂ) * f x = 0) :
+    f =ᵐ[volume.restrict (Set.Ioc (0 : ℝ) 1)] 0 := by
+  refine unitIntervalCosine_int_total_ae_zero hf hL2 hf_sq ?_
+  intro k
+  obtain ⟨n, rfl | rfl⟩ := k.eq_nat_or_neg
+  · exact hcoeff n
+  · calc
+      ∫ x in (0 : ℝ)..1,
+          (Real.cos (((-(n : ℤ) : ℤ) : ℝ) * Real.pi * x) : ℂ) * f x
+          =
+          ∫ x in (0 : ℝ)..1,
+            (Real.cos ((n : ℝ) * Real.pi * x) : ℂ) * f x := by
+            apply intervalIntegral.integral_congr
+            intro x _hx
+            change
+              (Real.cos (((-(n : ℤ) : ℤ) : ℝ) * Real.pi * x) : ℂ) * f x =
+                (Real.cos ((n : ℝ) * Real.pi * x) : ℂ) * f x
+            rw [show (((-(n : ℤ) : ℤ) : ℝ) * Real.pi * x)
+                = -((n : ℝ) * Real.pi * x) by norm_num,
+              Real.cos_neg]
+      _ = 0 := hcoeff n
+
 end ShenWork.CosineParsevalBridge
