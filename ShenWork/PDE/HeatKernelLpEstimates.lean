@@ -4,9 +4,12 @@
   Whole-line L^p estimates for the one-dimensional heat kernel.
 -/
 import ShenWork.PDE.HeatSemigroup
+import ShenWork.PDE.IntervalDomain
 import Mathlib.MeasureTheory.Function.L1Space.Integrable
+import Mathlib.MeasureTheory.Function.LpSeminorm.LpNorm
 
 open MeasureTheory Filter Topology Real
+open scoped ENNReal
 
 noncomputable section
 
@@ -158,6 +161,33 @@ theorem heatSemigroup_Lp_Lq_smoothing_constant {t p q r : ℝ}
     heatKernelLpNormClosedForm t r =
       heatSemigroupLpLqSmoothingConstant t p q := by
   simp [heatSemigroupLpLqSmoothingConstant, hr]
+
+/-! ## Interval Neumann helper smoothing -/
+
+open ShenWork.IntervalDomain
+
+set_option maxHeartbeats 0 in
+-- `fun_prop` expands the concrete heat-kernel expression under a product measure.
+/-- The concrete interval heat helper is a.e.-strongly measurable whenever
+the input is. -/
+lemma intervalSemigroupOperator_aestronglyMeasurable
+    {L t : ℝ} {f : ℝ → ℝ}
+    (hf : AEStronglyMeasurable f (intervalMeasure L)) :
+    AEStronglyMeasurable (fun x => intervalSemigroupOperator L t f x)
+      (intervalMeasure L) := by
+  unfold intervalSemigroupOperator
+  let F : ℝ × ℝ → ℝ :=
+    fun z => normalizedZerothReflectionKernel L t z.1 z.2 * f z.2
+  change AEStronglyMeasurable (fun x => ∫ y, F (x, y) ∂ intervalMeasure L)
+    (intervalMeasure L)
+  apply MeasureTheory.AEStronglyMeasurable.integral_prod_right' (f := F)
+  dsimp [F]
+  have hk_cont :
+      Continuous
+        (fun z : ℝ × ℝ => normalizedZerothReflectionKernel L t z.1 z.2) := by
+    unfold normalizedZerothReflectionKernel neumannHeatKernel_zerothReflection heatKernel
+    fun_prop
+  exact hk_cont.aestronglyMeasurable.mul hf.comp_snd
 
 /-- Hölder endpoint of the heat-semigroup smoothing estimate. -/
 theorem heatSemigroup_Lp_Linfty_smoothing_abs
