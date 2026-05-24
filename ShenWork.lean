@@ -39,4 +39,6 @@ import ShenWork.Paper2.IntervalDomainMoserClosure
 import ShenWork.Paper2.IntervalDomainLpMonotonicity
 import ShenWork.Paper2.IntervalDomainEnergyStep
 import ShenWork.Paper2.IntervalDomainCorollary21
+import ShenWork.Paper2.IntervalDomainTheorem12
+import ShenWork.Paper2.IntervalDomainTheorem13
 import ShenWork.Paper3.UnitPointLogisticBridge

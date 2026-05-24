@@ -151,10 +151,27 @@
 ### H2.2 — Paper2 Theorem 1.2 on intervalDomain
 - **前置**: H2.1 基本相同的链
 - **产出**: `Theorem_1_2_intervalDomain`
+- **进展** (2026-05-24): `ShenWork/Paper2/IntervalDomainTheorem12.lean`
+  已加入 full statement-layer conditional assembly
+  `Theorem_1_2_intervalDomain`。证明从显式 Tier-1/H0 前沿
+  (`Lemma_2_1`, `Lemma_2_6`, `Lemma_4_1`, `Corollary_2_1`)、当前
+  `Proposition_2_5` Lp→bounded bridge、interval Cauchy/global-extension
+  bridge、weak/critical branch bootstrap seeds 和 long-time boundedness bridge
+  推出完整 `Theorem_1_2 intervalDomain p`；另有
+  `Theorem_1_2_intervalDomain_vacuous_when_beta_lt_one`。仍未标 DONE：
+  H0.2/H1.x、branch bootstrap seeds、全局最终有界性 bridge 还未无条件闭合。
 
 ### H2.3 — Paper2 Theorem 1.3 on intervalDomain
 - **前置**: H2.1 + strong logistic condition
 - **产出**: `Theorem_1_3_intervalDomain`
+- **进展** (2026-05-24): `ShenWork/Paper2/IntervalDomainTheorem13.lean`
+  已加入 full statement-layer conditional assembly
+  `Theorem_1_3_intervalDomain`。证明从显式 Tier-1/H0 前沿、当前
+  `Proposition_2_5` Lp→bounded bridge、interval Cauchy/global-extension
+  bridge、strong-logistic branch bootstrap seed 和 long-time boundedness bridge
+  推出完整 `Theorem_1_3 intervalDomain p C`；另有 `a=0`、`b=0`、
+  `m≤0` 三个 vacuous interval-domain lemmas。仍未标 DONE：H0.2/H1.x、
+  strong-logistic bootstrap seed、全局最终有界性 bridge 还未无条件闭合。
 
 ---
 
