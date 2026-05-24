@@ -983,6 +983,37 @@ theorem Lemma_2_5_from_extracted_psi_k_witness
   Lemma_2_5_with_explicit_k psi hl hmu hpExp hgamma hk_nn hk_lt
     hk_witness hu hu_nn hint_hyp
 
+/-! ### Lemma 2.5 restricted to the small-k ψ-class -/
+
+/-- Lemma 2.5 restricted Prop: identical statement as `Lemma_2_5` but the
+inner quantifier over `psi : ExponentialWeight` is replaced by a
+quantifier over `ψ` with an explicit `k < √l` deriv_abs_le witness.
+This is provable from the explicit-k assembly above. -/
+def Lemma_2_5_restricted_psi_class : Prop :=
+  ∀ pExp gamma l mu : ℝ, 1 < pExp → 0 < gamma → 0 < l → 0 < mu →
+    ∀ k : ℝ, 0 ≤ k → k < Real.sqrt l →
+    ∃ C > 0, ∀ u : ℝ → ℝ, ∀ psi : ExponentialWeight,
+      IsCUnifBdd u → (∀ y, 0 ≤ u y) →
+      (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+      Integrable (fun x => ((u x) ^ gamma) ^ pExp * psi.weight x) →
+        Integrable
+          (fun x =>
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+              psi.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+              psi.weight x
+          ≤ C * ∫ x : ℝ, ((u x) ^ gamma) ^ pExp * psi.weight x
+
+theorem Lemma_2_5_restricted_psi_class_holds : Lemma_2_5_restricted_psi_class := by
+  intro pExp gamma l mu hpExp hgamma hl hmu k hk_nn hk_lt
+  obtain ⟨C, hC_pos, hC⟩ :=
+    Lemma_2_5_existential_for_small_k_psi (pExp := pExp) (gamma := gamma)
+      (l := l) (mu := mu) (k := k) hl hmu (le_of_lt hpExp) hgamma hk_nn hk_lt
+  refine ⟨C, hC_pos, ?_⟩
+  intro u psi hu hu_nn hk_bound hint
+  exact hC psi hk_bound hu hu_nn hint
+
 end ShenWork.Paper1
 
 end
