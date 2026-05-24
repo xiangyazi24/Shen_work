@@ -1603,6 +1603,44 @@ lemma unitIntervalCosineHeatGradientL2Norm_le {t : ℝ} (ht : 0 < t)
     _ = unitIntervalCosineHeatGradientL2Constant t *
           unitIntervalCosineL2Norm s a := rfl
 
+/-- Infinite cosine-coefficient `L²` energy on the unit interval. -/
+def unitIntervalCosineL2TsumEnergy (a : ℕ → ℝ) : ℝ :=
+  ∑' n, (a n) ^ 2
+
+/-- Infinite cosine-coefficient gradient energy after heat flow on the unit interval. -/
+def unitIntervalCosineHeatGradientTsumEnergy (t : ℝ) (a : ℕ → ℝ) : ℝ :=
+  ∑' n, unitIntervalCosineHeatGradientMultiplier t n * (a n) ^ 2
+
+/-- `tsum` cosine-coefficient `L²` gradient smoothing on the unit interval. -/
+lemma unitIntervalCosineHeatGradientTsumEnergy_le {t : ℝ} (ht : 0 < t)
+    {a : ℕ → ℝ} (ha : Summable fun n => (a n) ^ 2) :
+    unitIntervalCosineHeatGradientTsumEnergy t a ≤
+      (1 / (2 * t)) * unitIntervalCosineL2TsumEnergy a := by
+  have hnonneg :
+      ∀ n, 0 ≤ unitIntervalCosineHeatGradientMultiplier t n * (a n) ^ 2 := by
+    intro n
+    exact mul_nonneg (by
+      dsimp [unitIntervalCosineHeatGradientMultiplier,
+        unitIntervalCosineEigenvalue]
+      positivity) (sq_nonneg (a n))
+  have hdom :
+      ∀ n, unitIntervalCosineHeatGradientMultiplier t n * (a n) ^ 2 ≤
+        (1 / (2 * t)) * (a n) ^ 2 := by
+    intro n
+    exact mul_le_mul_of_nonneg_right
+      (unitIntervalCosineHeatGradientMultiplier_le ht n) (sq_nonneg (a n))
+  have hweighted :
+      Summable fun n => unitIntervalCosineHeatGradientMultiplier t n * (a n) ^ 2 :=
+    Summable.of_nonneg_of_le hnonneg hdom (ha.mul_left (1 / (2 * t)))
+  calc
+    unitIntervalCosineHeatGradientTsumEnergy t a
+        = ∑' n, unitIntervalCosineHeatGradientMultiplier t n * (a n) ^ 2 := rfl
+    _ ≤ ∑' n, (1 / (2 * t)) * (a n) ^ 2 :=
+        hweighted.tsum_le_tsum hdom (ha.mul_left (1 / (2 * t)))
+    _ = (1 / (2 * t)) * ∑' n, (a n) ^ 2 :=
+        Summable.tsum_mul_left (1 / (2 * t)) ha
+    _ = (1 / (2 * t)) * unitIntervalCosineL2TsumEnergy a := rfl
+
 /-- The heat semigroup is symmetric in the sense that swapping x and y
     in the kernel gives the same integrand. -/
 theorem heatSemigroup_kernel_symm (t x y : ℝ) :
