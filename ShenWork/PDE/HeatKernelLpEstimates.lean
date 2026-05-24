@@ -283,6 +283,262 @@ lemma intervalSemigroupOperator_L1_contraction
           _ = ‖f y‖ := by ring
   exact hfirst.trans (hswap.trans_le hsecond)
 
+/-- Nonnegative `L¹` contraction, without absolute values in the displayed
+integrals. -/
+lemma intervalSemigroupOperator_L1_contraction_nonneg
+    {L t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf_int : Integrable f (intervalMeasure L)) (hf_nonneg : ∀ y, 0 ≤ f y) :
+    ∫ x, intervalSemigroupOperator L t f x ∂ intervalMeasure L ≤
+      ∫ y, f y ∂ intervalMeasure L := by
+  have hleft :
+      (∫ x, ‖intervalSemigroupOperator L t f x‖ ∂ intervalMeasure L) =
+        ∫ x, intervalSemigroupOperator L t f x ∂ intervalMeasure L := by
+    apply MeasureTheory.integral_congr_ae
+    exact Filter.Eventually.of_forall fun x => by
+      simp [Real.norm_eq_abs,
+        abs_of_nonneg (intervalSemigroupOperator_nonneg ht hf_nonneg x)]
+  have hright :
+      (∫ y, ‖f y‖ ∂ intervalMeasure L) =
+        ∫ y, f y ∂ intervalMeasure L := by
+    apply MeasureTheory.integral_congr_ae
+    exact Filter.Eventually.of_forall fun y => by
+      simp [Real.norm_eq_abs, abs_of_nonneg (hf_nonneg y)]
+  have h :=
+    intervalSemigroupOperator_L1_contraction
+      (L := L) (t := t) ht hf_int
+  rw [hleft, hright] at h
+  exact h
+
+set_option maxHeartbeats 0 in
+-- Pointwise Hölder expands several concrete real-power kernel factors.
+/-- Pointwise Jensen-type estimate for the interval helper:
+`|T f|^p ≤ T(|f|^p)` for `1 < p < ∞`. -/
+lemma intervalSemigroupOperator_norm_rpow_le_operator_norm_rpow
+    {L t p r : ℝ} (ht : 0 < t) (hrp : r.HolderConjugate p)
+    {f : ℝ → ℝ} (hf_mem : MemLp f (ENNReal.ofReal p) (intervalMeasure L))
+    (x : ℝ) :
+    ‖intervalSemigroupOperator L t f x‖ ^ p ≤
+      intervalSemigroupOperator L t (fun y => ‖f y‖ ^ p) x := by
+  let μ := intervalMeasure L
+  let K : ℝ → ℝ := fun y => normalizedZerothReflectionKernel L t x y
+  let a : ℝ → ℝ := fun y => (K y) ^ (1 / r)
+  let b : ℝ → ℝ := fun y => (K y) ^ (1 / p) * ‖f y‖
+  let B : ℝ := ∫ y, K y * ‖f y‖ ^ p ∂ μ
+  have hK_nonneg : ∀ y, 0 ≤ K y := by
+    intro y
+    exact normalizedZerothReflectionKernel_nonneg ht L x y
+  have hK_pos : ∀ y, K y ≠ 0 := by
+    intro y
+    exact (normalizedZerothReflectionKernel_pos ht L x y).ne'
+  have hK_bound : ∀ y, K y ≤ 1 / Real.sqrt (4 * Real.pi * t) := by
+    intro y
+    exact normalizedZerothReflectionKernel_pointwise_bound ht L x y
+  have hA_nonneg : 0 ≤ 1 / Real.sqrt (4 * Real.pi * t) := by
+    positivity
+  have hK_cont : Continuous K := by
+    dsimp [K]
+    unfold normalizedZerothReflectionKernel neumannHeatKernel_zerothReflection heatKernel
+    fun_prop
+  have ha_meas : AEStronglyMeasurable a μ :=
+    (hK_cont.rpow_const (p := 1 / r)
+      (fun y => Or.inl (hK_pos y))).aestronglyMeasurable
+  have hb_meas : AEStronglyMeasurable b μ := by
+    have hKp_meas :
+        AEStronglyMeasurable (fun y => (K y) ^ (1 / p)) μ :=
+      (hK_cont.rpow_const (p := 1 / p)
+        (fun y => Or.inl (hK_pos y))).aestronglyMeasurable
+    exact hKp_meas.mul hf_mem.aestronglyMeasurable.norm
+  have ha_mem : MemLp a (ENNReal.ofReal r) μ := by
+    apply MemLp.of_bound ha_meas
+      ((1 / Real.sqrt (4 * Real.pi * t)) ^ (1 / r))
+    exact Filter.Eventually.of_forall fun y => by
+      dsimp [a]
+      rw [abs_of_nonneg (Real.rpow_nonneg (hK_nonneg y) (1 / r))]
+      exact Real.rpow_le_rpow (hK_nonneg y) (hK_bound y) hrp.one_div_nonneg
+  have hb_mem : MemLp b (ENNReal.ofReal p) μ := by
+    apply MemLp.of_le_mul (g := f)
+      (c := (1 / Real.sqrt (4 * Real.pi * t)) ^ (1 / p)) hf_mem hb_meas
+    exact Filter.Eventually.of_forall fun y => by
+      dsimp [b]
+      rw [abs_of_nonneg
+        (mul_nonneg (Real.rpow_nonneg (hK_nonneg y) (1 / p)) (abs_nonneg _))]
+      exact mul_le_mul_of_nonneg_right
+        (Real.rpow_le_rpow (hK_nonneg y) (hK_bound y)
+          hrp.symm.one_div_nonneg)
+        (abs_nonneg _)
+  have ha_nonneg : 0 ≤ᵐ[μ] a :=
+    Filter.Eventually.of_forall fun y =>
+      Real.rpow_nonneg (hK_nonneg y) (1 / r)
+  have hb_nonneg : 0 ≤ᵐ[μ] b :=
+    Filter.Eventually.of_forall fun y =>
+      mul_nonneg (Real.rpow_nonneg (hK_nonneg y) (1 / p)) (norm_nonneg _)
+  have hholder :
+      ∫ y, a y * b y ∂ μ ≤
+        (∫ y, a y ^ r ∂ μ) ^ (1 / r) *
+          (∫ y, b y ^ p ∂ μ) ^ (1 / p) :=
+    MeasureTheory.integral_mul_le_Lp_mul_Lq_of_nonneg
+      (μ := μ) (p := r) (q := p) hrp ha_nonneg hb_nonneg ha_mem hb_mem
+  have hsum : 1 / r + 1 / p = 1 := by
+    simpa [one_div] using hrp.inv_add_inv_eq_one
+  have hab_integral :
+      (∫ y, a y * b y ∂ μ) =
+        ∫ y, K y * ‖f y‖ ∂ μ := by
+    apply MeasureTheory.integral_congr_ae
+    exact Filter.Eventually.of_forall fun y => by
+      dsimp [a, b]
+      calc
+        K y ^ (1 / r) * (K y ^ (1 / p) * ‖f y‖)
+            = (K y ^ (1 / r) * K y ^ (1 / p)) * ‖f y‖ := by ring
+        _ = K y ^ (1 / r + 1 / p) * ‖f y‖ := by
+            rw [Real.rpow_add_of_nonneg (hK_nonneg y)
+              hrp.one_div_nonneg hrp.symm.one_div_nonneg]
+        _ = K y * ‖f y‖ := by rw [hsum, Real.rpow_one]
+  have ha_pow_integral :
+      (∫ y, a y ^ r ∂ μ) = ∫ y, K y ∂ μ := by
+    apply MeasureTheory.integral_congr_ae
+    exact Filter.Eventually.of_forall fun y => by
+      dsimp [a]
+      rw [one_div, Real.rpow_inv_rpow (hK_nonneg y) hrp.ne_zero]
+  have hb_pow_integral :
+      (∫ y, b y ^ p ∂ μ) = B := by
+    dsimp [B]
+    apply MeasureTheory.integral_congr_ae
+    exact Filter.Eventually.of_forall fun y => by
+      dsimp [b]
+      rw [Real.mul_rpow
+        (Real.rpow_nonneg (hK_nonneg y) (1 / p)) (abs_nonneg (f y))]
+      rw [one_div, Real.rpow_inv_rpow (hK_nonneg y) hrp.symm.ne_zero]
+  rw [hab_integral, ha_pow_integral, hb_pow_integral] at hholder
+  have hmass_nonneg : 0 ≤ ∫ y, K y ∂ μ :=
+    normalizedZerothReflectionKernel_intervalIntegral_nonneg ht L x
+  have hmass_le : ∫ y, K y ∂ μ ≤ 1 :=
+    normalizedZerothReflectionKernel_intervalIntegral_le_one ht L x
+  have hmass_root_le : (∫ y, K y ∂ μ) ^ (1 / r) ≤ 1 := by
+    calc
+      (∫ y, K y ∂ μ) ^ (1 / r)
+          ≤ (1 : ℝ) ^ (1 / r) :=
+            Real.rpow_le_rpow hmass_nonneg hmass_le hrp.one_div_nonneg
+      _ = 1 := Real.one_rpow _
+  have hB_nonneg : 0 ≤ B := by
+    dsimp [B]
+    exact integral_nonneg fun y =>
+      mul_nonneg (hK_nonneg y) (Real.rpow_nonneg (abs_nonneg (f y)) p)
+  have hkernel_norm_le :
+      ∫ y, K y * ‖f y‖ ∂ μ ≤ B ^ (1 / p) := by
+    calc
+      ∫ y, K y * ‖f y‖ ∂ μ
+          ≤ (∫ y, K y ∂ μ) ^ (1 / r) * B ^ (1 / p) := hholder
+      _ ≤ 1 * B ^ (1 / p) :=
+            mul_le_mul_of_nonneg_right hmass_root_le
+              (Real.rpow_nonneg hB_nonneg (1 / p))
+      _ = B ^ (1 / p) := by ring
+  have hkernel_norm_nonneg :
+      0 ≤ ∫ y, K y * ‖f y‖ ∂ μ := by
+    exact integral_nonneg fun y =>
+      mul_nonneg (hK_nonneg y) (norm_nonneg _)
+  have hTf_le :
+      ‖intervalSemigroupOperator L t f x‖ ≤
+        ∫ y, K y * ‖f y‖ ∂ μ := by
+    simpa [K, μ, Real.norm_eq_abs] using
+      intervalSemigroupOperator_abs_le_integral_abs
+        (L := L) (t := t) ht f x
+  calc
+    ‖intervalSemigroupOperator L t f x‖ ^ p
+        ≤ (∫ y, K y * ‖f y‖ ∂ μ) ^ p :=
+          Real.rpow_le_rpow (norm_nonneg _) hTf_le hrp.symm.nonneg
+    _ ≤ (B ^ (1 / p)) ^ p :=
+          Real.rpow_le_rpow hkernel_norm_nonneg hkernel_norm_le
+            hrp.symm.nonneg
+    _ = B := by
+          rw [one_div, Real.rpow_inv_rpow hB_nonneg hrp.symm.ne_zero]
+    _ = intervalSemigroupOperator L t (fun y => ‖f y‖ ^ p) x := by
+          rfl
+
+/-- Integral `L^p` contraction for the restricted interval heat helper. -/
+lemma intervalSemigroupOperator_Lp_contraction_integral
+    {L t p r : ℝ} (ht : 0 < t) (hrp : r.HolderConjugate p)
+    {f : ℝ → ℝ} (hf_mem : MemLp f (ENNReal.ofReal p) (intervalMeasure L)) :
+    ∫ x, ‖intervalSemigroupOperator L t f x‖ ^ p ∂ intervalMeasure L ≤
+      ∫ y, ‖f y‖ ^ p ∂ intervalMeasure L := by
+  let g : ℝ → ℝ := fun y => ‖f y‖ ^ p
+  have hp_ne_zero : ENNReal.ofReal p ≠ 0 := by
+    rw [ne_eq, ENNReal.ofReal_eq_zero]
+    exact not_le_of_gt hrp.symm.pos
+  have hp_ne_top : ENNReal.ofReal p ≠ ⊤ := by
+    simp
+  have hg_int : Integrable g (intervalMeasure L) := by
+    simpa [g, ENNReal.toReal_ofReal hrp.symm.nonneg] using
+      hf_mem.integrable_norm_rpow hp_ne_zero hp_ne_top
+  have hg_nonneg : ∀ y, 0 ≤ g y := by
+    intro y
+    exact Real.rpow_nonneg (norm_nonneg _) p
+  have hTg_int :
+      Integrable (fun x => intervalSemigroupOperator L t g x)
+        (intervalMeasure L) := by
+    have hTg_meas :
+        AEStronglyMeasurable (fun x => intervalSemigroupOperator L t g x)
+          (intervalMeasure L) :=
+      intervalSemigroupOperator_aestronglyMeasurable hg_int.aestronglyMeasurable
+    have hbound : ∀ x, ‖intervalSemigroupOperator L t g x‖ ≤
+        (1 / Real.sqrt (4 * Real.pi * t)) *
+          ∫ y, ‖g y‖ ∂ intervalMeasure L := by
+      intro x
+      exact intervalSemigroupOperator_L1_Linfty ht hg_int x
+    exact Integrable.of_bound hTg_meas
+      ((1 / Real.sqrt (4 * Real.pi * t)) *
+        ∫ y, ‖g y‖ ∂ intervalMeasure L)
+      (Filter.Eventually.of_forall hbound)
+  have hpoint : ∀ x,
+      ‖intervalSemigroupOperator L t f x‖ ^ p ≤
+        intervalSemigroupOperator L t g x := by
+    intro x
+    simpa [g] using
+      intervalSemigroupOperator_norm_rpow_le_operator_norm_rpow
+        (L := L) (t := t) (p := p) (r := r) ht hrp hf_mem x
+  have hfirst :
+      ∫ x, ‖intervalSemigroupOperator L t f x‖ ^ p ∂ intervalMeasure L ≤
+        ∫ x, intervalSemigroupOperator L t g x ∂ intervalMeasure L := by
+    apply MeasureTheory.integral_mono_of_nonneg
+    · exact Filter.Eventually.of_forall fun x =>
+        Real.rpow_nonneg (norm_nonneg _) p
+    · exact hTg_int
+    · exact Filter.Eventually.of_forall hpoint
+  have hcontract :=
+    intervalSemigroupOperator_L1_contraction_nonneg
+      (L := L) (t := t) ht hg_int hg_nonneg
+  calc
+    ∫ x, ‖intervalSemigroupOperator L t f x‖ ^ p ∂ intervalMeasure L
+        ≤ ∫ x, intervalSemigroupOperator L t g x ∂ intervalMeasure L := hfirst
+    _ ≤ ∫ y, g y ∂ intervalMeasure L := hcontract
+    _ = ∫ y, ‖f y‖ ^ p ∂ intervalMeasure L := rfl
+
+/-- `L^p` contraction for the restricted interval heat helper, in
+`LpSeminorm` notation. -/
+lemma intervalHeatSemigroup_Lp_contraction
+    {L t p r : ℝ} (ht : 0 < t) (hrp : r.HolderConjugate p)
+    {f : ℝ → ℝ} (hf_mem : MemLp f (ENNReal.ofReal p) (intervalMeasure L)) :
+    lpNorm (fun x => intervalSemigroupOperator L t f x)
+        (ENNReal.ofReal p) (intervalMeasure L) ≤
+      lpNorm f (ENNReal.ofReal p) (intervalMeasure L) := by
+  have hT_meas :
+      AEStronglyMeasurable (fun x => intervalSemigroupOperator L t f x)
+        (intervalMeasure L) :=
+    intervalSemigroupOperator_aestronglyMeasurable hf_mem.aestronglyMeasurable
+  have hp_ne_zero : ENNReal.ofReal p ≠ 0 := by
+    rw [ne_eq, ENNReal.ofReal_eq_zero]
+    exact not_le_of_gt hrp.symm.pos
+  have hp_ne_top : ENNReal.ofReal p ≠ ⊤ := by
+    simp
+  rw [lpNorm_eq_integral_norm_rpow_toReal hp_ne_zero hp_ne_top hT_meas]
+  rw [lpNorm_eq_integral_norm_rpow_toReal
+    hp_ne_zero hp_ne_top hf_mem.aestronglyMeasurable]
+  rw [ENNReal.toReal_ofReal hrp.symm.nonneg]
+  exact Real.rpow_le_rpow
+    (integral_nonneg fun x => Real.rpow_nonneg (norm_nonneg _) p)
+    (intervalSemigroupOperator_Lp_contraction_integral
+      (L := L) (t := t) (p := p) (r := r) ht hrp hf_mem)
+    hrp.symm.inv_nonneg
+
 /-- Uniform `L^r` bound for the restricted reflected interval heat kernel.
 If `r` is Hölder-conjugate to `p`, the bound has the expected
 `t^{-1/(2p)}` singularity. -/
