@@ -143,4 +143,73 @@ theorem heatKernel_translated_Lp_norm_eq {t p : ℝ} (ht : 0 < t)
   rw [hshift]
   exact heatKernel_Lp_norm_eq_norm ht hp
 
+/-! ## Heat-semigroup smoothing constants -/
+
+/-- Young exponent for the one-dimensional heat semigroup `L^p → L^q` estimate. -/
+def heatSemigroupYoungExponent (p q : ℝ) : ℝ :=
+  (1 + 1 / q - 1 / p)⁻¹
+
+/-- The kernel-norm constant in the whole-line heat-semigroup `L^p → L^q` estimate. -/
+def heatSemigroupLpLqSmoothingConstant (t p q : ℝ) : ℝ :=
+  heatKernelLpNormClosedForm t (heatSemigroupYoungExponent p q)
+
+theorem heatSemigroup_Lp_Lq_smoothing_constant {t p q r : ℝ}
+    (hr : r = heatSemigroupYoungExponent p q) :
+    heatKernelLpNormClosedForm t r =
+      heatSemigroupLpLqSmoothingConstant t p q := by
+  simp [heatSemigroupLpLqSmoothingConstant, hr]
+
+/-- Hölder endpoint of the heat-semigroup smoothing estimate. -/
+theorem heatSemigroup_Lp_Linfty_smoothing_abs
+    {f : ℝ → ℝ} {t p r : ℝ} (ht : 0 < t)
+    (hrp : r.HolderConjugate p) (x : ℝ)
+    (hf_mem : MeasureTheory.MemLp f (ENNReal.ofReal p) MeasureTheory.volume) :
+    |heatSemigroup t f x| ≤
+      heatKernelLpNormClosedForm t r *
+        (∫ y : ℝ, ‖f y‖ ^ p) ^ (1 / p) := by
+  have hkernel_mem :
+      MeasureTheory.MemLp (fun y : ℝ => heatKernel t (x - y))
+        (ENNReal.ofReal r) MeasureTheory.volume :=
+    heatKernel_translated_memLp ht hrp.pos x
+  have hholder :
+      ∫ y : ℝ, ‖heatKernel t (x - y)‖ * ‖f y‖ ≤
+        (∫ y : ℝ, ‖heatKernel t (x - y)‖ ^ r) ^ (1 / r) *
+          (∫ y : ℝ, ‖f y‖ ^ p) ^ (1 / p) :=
+    MeasureTheory.integral_mul_norm_le_Lp_mul_Lq
+      (μ := MeasureTheory.volume)
+      (f := fun y : ℝ => heatKernel t (x - y)) (g := f)
+      hrp hkernel_mem hf_mem
+  unfold heatSemigroup
+  calc
+    |∫ y : ℝ, heatKernel t (x - y) * f y|
+        = ‖∫ y : ℝ, heatKernel t (x - y) * f y‖ := by
+          rw [Real.norm_eq_abs]
+    _ ≤ ∫ y : ℝ, ‖heatKernel t (x - y) * f y‖ :=
+        norm_integral_le_integral_norm _
+    _ = ∫ y : ℝ, ‖heatKernel t (x - y)‖ * ‖f y‖ := by
+        congr 1
+        ext y
+        rw [norm_mul]
+    _ ≤ (∫ y : ℝ, ‖heatKernel t (x - y)‖ ^ r) ^ (1 / r) *
+          (∫ y : ℝ, ‖f y‖ ^ p) ^ (1 / p) :=
+        hholder
+    _ = heatKernelLpNormClosedForm t r *
+          (∫ y : ℝ, ‖f y‖ ^ p) ^ (1 / p) := by
+        rw [heatKernel_translated_Lp_norm_eq ht hrp.pos x]
+
+/-- Hölder endpoint of the modified heat-semigroup smoothing estimate. -/
+theorem modifiedSemigroup_Lp_Linfty_smoothing_abs
+    {f : ℝ → ℝ} {t p r : ℝ} (ht : 0 < t)
+    (hrp : r.HolderConjugate p) (x : ℝ)
+    (hf_mem : MeasureTheory.MemLp f (ENNReal.ofReal p) MeasureTheory.volume) :
+    |modifiedSemigroup t f x| ≤
+      Real.exp (-t) *
+        (heatKernelLpNormClosedForm t r *
+          (∫ y : ℝ, ‖f y‖ ^ p) ^ (1 / p)) := by
+  unfold modifiedSemigroup
+  rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+  exact mul_le_mul_of_nonneg_left
+    (heatSemigroup_Lp_Linfty_smoothing_abs ht hrp x hf_mem)
+    (Real.exp_nonneg _)
+
 end
