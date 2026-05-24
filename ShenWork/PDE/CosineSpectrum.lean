@@ -586,6 +586,55 @@ lemma paper3Cosine_chi_pos_of_positiveEquilibrium_chiCritical_lt
   hC.chi_pos_of_positiveEquilibrium_chiCritical_lt
     paper3Cosine_hasNeumannSpectrum ha hb hχ
 
+lemma paper3Cosine_Corollary_5_1_nonminimal_exponential_formula_of_raw
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    (hraw :
+      ConvergenceToExponentialNonminimalRaw D p N.c1Distance
+        (fun uStar =>
+          paperCriticalSensitivity paper3CosineSpectralData p uStar
+            (p.ν / p.μ * uStar ^ p.γ)))
+    (hm : 1 ≤ p.m) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity paper3CosineSpectralData p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hconv : UniformConvergesInSup D u (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+  simpa [paper3CosineSpectralData_eq_unitInterval] using
+    Corollary_5_1_nonminimal_exponential_formula_unitInterval_of_raw
+      (D := D) (p := p) (N := N) hraw hm ha hb hχ huv hconv
+
+lemma paper3Cosine_Corollary_5_1_minimal_exponential_formula_of_raw
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    (hraw :
+      ConvergenceToExponentialMinimalRaw D p N.c1Distance
+        (fun uStar =>
+          paperCriticalSensitivity paper3CosineSpectralData p uStar
+            (p.ν / p.μ * uStar ^ p.γ)))
+    (hm : 1 ≤ p.m) (ha : p.a = 0) (hb : p.b = 0)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity paper3CosineSpectralData p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar)
+    (hconv : UniformConvergesInSup D u (minimalEquilibrium p uStar).1) :
+    ExponentialC1Convergence D N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 := by
+  simpa [paper3CosineSpectralData_eq_unitInterval] using
+    Corollary_5_1_minimal_exponential_formula_unitInterval_of_raw
+      (D := D) (p := p) (N := N) hraw hm ha hb huStar hχ
+      huv hmass hconv
+
 end ShenWork.CosineSpectrum
 
 end
