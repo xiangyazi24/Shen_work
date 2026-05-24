@@ -25,15 +25,29 @@ commit; one slot at a time per session.
   `ψ(y) · 2/(√l − k)`.  Needs `∫ exp(-c|x|) dx = 2/c` (write a small lemma
   if Mathlib doesn’t expose it directly).
 - Output: `Lemma_2_5` instance (full quantifier shape) + supporting lemmas.
-- Status: in progress.  Claimed: opus-4.7-pts-? (assigned at 2026-05-23 22:59 by mac dm).
-  Helpers landed in `ShenWork/Paper1/Lemma25Helpers.lean` (separate file
-  to avoid `Statements.lean` races); chain pieces committed so far:
+- Status: **substantially done** as `Lemma_2_5_restricted_psi_class_holds`
+  (commit bcf2b3f), plus full chain in `ShenWork/Paper1/Lemma25Helpers.lean`:
   `kernel_weight_integral_le_psi`, `psi_pExp_weighted_le_kernel_weighted`,
   `psi_deriv_pExp_weighted_le`, `psi_deriv_pExp_weighted_le_kernel_weighted`,
-  `psi_deriv_pExp_integral_le_kernel_weighted_integral` (integral_mono lift
-  with explicit integrability hypotheses).  Remaining: discharge the
-  joint integrability via Fubini + `kernel_weight_integral_le_psi`, then
-  reduce to ε-uniform `k`-restricted Lemma_2_5.
+  `psi_deriv_pExp_integral_le_kernel_weighted_integral`, `joint_integrand_le`,
+  `ExponentialWeight.integrable`, `.kernel_integrable`,
+  `joint_kernel_weight_v_integrable`, `kernel_v_psi_double_integral_le`,
+  `psi_kernel_v_integral_integrable`,
+  `Lemma_2_5_with_explicit_k_via_Fubini_hypothesis`,
+  `Lemma_2_5_with_explicit_k` (full Fubini-discharged, `k < √l`),
+  `Lemma_2_5_with_explicit_k_unit`, `Lemma_2_5_existential_for_small_k_psi`,
+  `Lemma_2_5_explicit_epsilon`, `Lemma_2_5_explicit_epsilon_CMParams`,
+  `Lemma_2_5_explicit_epsilon_CMParams_unit`,
+  `Lemma_2_5_from_extracted_psi_k_witness`,
+  `Lemma_2_5_restricted_psi_class_holds`.
+
+  **Blocker for closing the original `Lemma_2_5` Prop**: the unrestricted
+  `ExponentialWeight` admits ψ with arbitrarily large `k_dab` (e.g.,
+  smoothed `exp(-α|x|)` with `α` large), so our weight-transfer constant
+  `2/(√l − k_ψ)` cannot be uniform in ψ.  Recommend amending the def to
+  use `Lemma_2_5_restricted_psi_class` (which adds an explicit `k < √l`
+  quantifier and is closed), or extending `ExponentialWeight` with a
+  uniform-k field.
 
 ### Slot B — Paper 2 IntervalDomain unitPointDomain-style instances
 - Owner files: `ShenWork/Paper2/Statements.lean` only.
