@@ -557,6 +557,218 @@ theorem psi_kernel_v_integral_integrable
   rw [h_eq]
   exact hjoint.integral_prod_left
 
+/-! ### Final Lemma 2.5 with explicit k -/
+
+/-- **Lemma 2.5 with explicit `k < √l`**: full weighted resolvent-gradient
+estimate, assembled from the step 2c pointwise bound, step 7a RHS
+integrability, step 6 Fubini swap + weight transfer, and step 4 le_trans
+wrapper.  Constant `C := √l^p · (μ/(2√l))^p · (2/√l)^(p-1) · 2/(√l - k)`. -/
+theorem Lemma_2_5_with_explicit_k
+    (psi : ExponentialWeight) {pExp gamma l mu k : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 1 ≤ pExp)
+    (hgamma : 0 < gamma) (hk_nn : 0 ≤ k)
+    (hk_lt : k < Real.sqrt l)
+    (hk_bound : ∀ z, |deriv psi.weight z| ≤ k * psi.weight z)
+    {u : ℝ → ℝ} (hu : IsCUnifBdd u) (hu_nn : ∀ y, 0 ≤ u y)
+    (hint_hyp :
+      Integrable
+        (fun x : ℝ => ((u x) ^ gamma) ^ pExp * psi.weight x)) :
+    Integrable
+      (fun x : ℝ =>
+        |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+          psi.weight x) ∧
+    ∫ x : ℝ,
+        |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+          psi.weight x ≤
+      ((Real.sqrt l) ^ pExp *
+          ((mu / (2 * Real.sqrt l)) ^ pExp *
+            (2 / Real.sqrt l) ^ (pExp - 1) *
+            (2 / (Real.sqrt l - k)))) *
+        ∫ x : ℝ, ((u x) ^ gamma) ^ pExp * psi.weight x := by
+  set c : ℝ := Real.sqrt l with hc_def
+  have hc_pos : 0 < c := Real.sqrt_pos.mpr hl
+  have hpExp_pos : 0 < pExp := lt_of_lt_of_le zero_lt_one hpExp
+  have hu_gamma_nn : ∀ y, 0 ≤ (u y) ^ gamma := fun y =>
+    Real.rpow_nonneg (hu_nn y) gamma
+  have hu_gamma_bdd : IsCUnifBdd (fun y => (u y) ^ gamma) := by
+    rcases hu.2 with ⟨M, hM⟩
+    exact ⟨hu.1.rpow_const (fun y => Or.inr hgamma.le),
+      ⟨M ^ gamma, fun y => by
+        rw [abs_of_nonneg (hu_gamma_nn y)]
+        have hM_nn : 0 ≤ M := le_trans (abs_nonneg (u 0)) (hM 0)
+        exact Real.rpow_le_rpow (hu_nn y)
+          (by simpa [abs_of_nonneg (hu_nn y)] using hM y) hgamma.le⟩⟩
+  set v : ℝ → ℝ := fun y => ((u y) ^ gamma) ^ pExp with hv_def
+  have hv_nn : ∀ y, 0 ≤ v y := fun y => Real.rpow_nonneg (hu_gamma_nn y) pExp
+  have h_u_gamma_cont : Continuous (fun y => (u y) ^ gamma) :=
+    hu.1.rpow_const (fun y => Or.inr hgamma.le)
+  have h_v_cont : Continuous v := by
+    rw [hv_def]
+    exact h_u_gamma_cont.rpow_const (fun y => Or.inr hpExp_pos.le)
+  have hv_meas : Measurable v := h_v_cont.measurable
+  have hv_int :
+      Integrable (fun y : ℝ => psi.weight y * v y) := by
+    have h_eq : (fun x : ℝ => ((u x) ^ gamma) ^ pExp * psi.weight x) =
+        (fun y : ℝ => psi.weight y * v y) := by
+      funext y
+      show ((u y) ^ gamma) ^ pExp * psi.weight y = psi.weight y * v y
+      rw [hv_def]; ring
+    rw [h_eq] at hint_hyp
+    exact hint_hyp
+  have hRHS_int_bare :
+      Integrable
+        (fun x : ℝ => psi.weight x *
+          (∫ y : ℝ, Real.exp (-c * |x - y|) * v y)) :=
+    psi_kernel_v_integral_integrable psi hc_pos hk_nn hk_lt hk_bound hv_nn hv_meas hv_int
+  set Cinner : ℝ :=
+    (mu / (2 * Real.sqrt l)) ^ pExp *
+      (2 / Real.sqrt l) ^ (pExp - 1) with hCinner_def
+  set Couter : ℝ := (Real.sqrt l) ^ pExp with hCouter_def
+  have hRHS_int_full :
+      Integrable
+        (fun x : ℝ =>
+          Couter *
+            (Cinner *
+              (∫ y : ℝ,
+                Real.exp (-Real.sqrt l * |x - y|) * ((u y) ^ gamma) ^ pExp)) *
+            psi.weight x) := by
+    have h_eq :
+        (fun x : ℝ =>
+            Couter *
+              (Cinner *
+                (∫ y : ℝ,
+                  Real.exp (-Real.sqrt l * |x - y|) * ((u y) ^ gamma) ^ pExp)) *
+              psi.weight x) =
+          (fun x : ℝ =>
+            (Couter * Cinner) *
+              (psi.weight x *
+                (∫ y : ℝ,
+                  Real.exp (-c * |x - y|) * v y))) := by
+      funext x
+      show Couter *
+            (Cinner *
+              (∫ y : ℝ,
+                Real.exp (-Real.sqrt l * |x - y|) * ((u y) ^ gamma) ^ pExp)) *
+            psi.weight x =
+          (Couter * Cinner) *
+            (psi.weight x *
+              (∫ y : ℝ,
+                Real.exp (-c * |x - y|) * v y))
+      rw [hc_def, hv_def]
+      ring
+    rw [h_eq]
+    exact hRHS_int_bare.const_mul (Couter * Cinner)
+  have h_deriv_meas :
+      Measurable (deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z)) :=
+    measurable_deriv _
+  have h_psi_meas : Measurable psi.weight :=
+    (psi.smooth.differentiable two_ne_zero).continuous.measurable
+  have h_abs_meas : Measurable
+      (fun x : ℝ => |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x|) := by
+    have := h_deriv_meas.norm
+    simpa [Real.norm_eq_abs] using this
+  have h_abs_pow_meas : Measurable
+      (fun x : ℝ =>
+        |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp) :=
+    h_abs_meas.pow_const pExp
+  have hLHS_meas :
+      Measurable
+        (fun x : ℝ =>
+          |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+            psi.weight x) :=
+    h_abs_pow_meas.mul h_psi_meas
+  have hLHS_int :
+      Integrable
+        (fun x : ℝ =>
+          |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+            psi.weight x) := by
+    refine hRHS_int_full.mono' hLHS_meas.aestronglyMeasurable ?_
+    refine Filter.Eventually.of_forall fun x => ?_
+    have hbd := psi_deriv_pExp_weighted_le_kernel_weighted psi (u := fun y => (u y)^gamma)
+      hl hmu hpExp hu_gamma_bdd hu_gamma_nn x
+    have hψ_nn : 0 ≤ psi.weight x := (psi.pos x).le
+    have h_LHS_nn :
+        0 ≤ |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+            psi.weight x :=
+      mul_nonneg (Real.rpow_nonneg (abs_nonneg _) pExp) hψ_nn
+    rw [Real.norm_eq_abs, abs_of_nonneg h_LHS_nn]
+    show |deriv _ x| ^ pExp * psi.weight x ≤
+        Couter *
+          (Cinner *
+            (∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * ((u y) ^ gamma) ^ pExp)) *
+          psi.weight x
+    rw [hCouter_def, hCinner_def]
+    exact hbd
+  have hFub := kernel_v_psi_double_integral_le psi hc_pos hk_nn hk_lt hk_bound
+    hv_nn hv_meas hv_int
+  set C : ℝ := Couter * Cinner * (2 / (c - k)) with hC_def
+  have hCinner_nn : 0 ≤ Cinner := by
+    rw [hCinner_def]
+    exact mul_nonneg (Real.rpow_nonneg (by positivity) _)
+      (Real.rpow_nonneg (by positivity) _)
+  have hCouter_nn : 0 ≤ Couter := by
+    rw [hCouter_def]
+    exact Real.rpow_nonneg (Real.sqrt_nonneg l) _
+  have hC_outer_inner_nn : 0 ≤ Couter * Cinner := mul_nonneg hCouter_nn hCinner_nn
+  have hFub_scaled :
+      (Couter * Cinner) *
+        (∫ x : ℝ, psi.weight x *
+          (∫ y : ℝ, Real.exp (-c * |x - y|) * v y)) ≤
+      C * ∫ y : ℝ, psi.weight y * v y := by
+    rw [hC_def]
+    have := mul_le_mul_of_nonneg_left hFub hC_outer_inner_nn
+    linarith
+  have hRHS_int_eq :
+      ∫ x : ℝ,
+          Couter *
+            (Cinner *
+              (∫ y : ℝ,
+                Real.exp (-Real.sqrt l * |x - y|) * ((u y) ^ gamma) ^ pExp)) *
+            psi.weight x =
+        (Couter * Cinner) *
+          ∫ x : ℝ, psi.weight x *
+            (∫ y : ℝ, Real.exp (-c * |x - y|) * v y) := by
+    rw [← MeasureTheory.integral_const_mul]
+    congr 1
+    funext x
+    rw [hc_def, hv_def]
+    ring
+  have hFub_le :
+      (∫ x : ℝ,
+        Couter *
+          (Cinner *
+            (∫ y : ℝ,
+              Real.exp (-Real.sqrt l * |x - y|) * ((u y) ^ gamma) ^ pExp)) *
+          psi.weight x) ≤
+      C * ∫ y : ℝ, psi.weight y * v y := by
+    rw [hRHS_int_eq]
+    exact hFub_scaled
+  have h_target_RHS_eq :
+      C * ∫ y : ℝ, psi.weight y * v y =
+        C * ∫ x : ℝ, ((u x) ^ gamma) ^ pExp * psi.weight x := by
+    congr 1
+    rw [hv_def]
+    have h_eq :
+        (fun y : ℝ => psi.weight y * ((u y) ^ gamma) ^ pExp) =
+          (fun x : ℝ => ((u x) ^ gamma) ^ pExp * psi.weight x) := by
+      funext y; ring
+    rw [h_eq]
+  rw [h_target_RHS_eq] at hFub_le
+  have hassemble :=
+    Lemma_2_5_with_explicit_k_via_Fubini_hypothesis (psi := psi)
+      (pExp := pExp) (gamma := gamma) (l := l) (mu := mu) (C := C)
+      hl hmu hpExp hu_gamma_bdd hu_gamma_nn hLHS_int hRHS_int_full hFub_le
+  have hC_full_eq :
+      C =
+        (Real.sqrt l) ^ pExp *
+          ((mu / (2 * Real.sqrt l)) ^ pExp *
+            (2 / Real.sqrt l) ^ (pExp - 1) *
+            (2 / (Real.sqrt l - k))) := by
+    rw [hC_def, hCouter_def, hCinner_def, hc_def]
+    ring
+  rw [hC_full_eq] at hassemble
+  exact ⟨hLHS_int, hassemble⟩
+
 end ShenWork.Paper1
 
 end
