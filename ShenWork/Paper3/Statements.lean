@@ -11569,6 +11569,30 @@ theorem unitPointDomain.Theorem_2_1_vacuous_when_a_pos_b_pos_chi_nonpos_m_lt_one
     unitPointDomain.Theorem_2_1_part3_vacuous_when_chi_nonpos p hχ,
     unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero p (ne_of_gt ha) C⟩
 
+/-- Paper 3 Theorem 2.3 vacuous when `0 < p.a ∧ p.b = 0`. Both conjunct
+branches fail their first hypothesis (`0 < b` resp. `a = 0`). -/
+theorem unitPointDomain.Theorem_2_3_vacuous_when_a_pos_b_zero
+    (p : CM2Params) (ha : 0 < p.a) (hb : p.b = 0) :
+    Theorem_2_3 ShenWork.Paper2.unitPointDomain p
+      unitPointStabilityNorms := by
+  intro _hχ _hm
+  refine ⟨?_, ?_⟩
+  · intro _ hb'
+    exact absurd hb' (by rw [hb]; exact lt_irrefl 0)
+  · intro ha' _ _ _; exact absurd ha' (ne_of_gt ha)
+
+/-- Paper 3 Theorem 2.3 vacuous when `p.a = 0 ∧ 0 < p.b`. Both conjunct
+branches fail their first hypothesis. -/
+theorem unitPointDomain.Theorem_2_3_vacuous_when_a_zero_b_pos
+    (p : CM2Params) (ha : p.a = 0) (hb : 0 < p.b) :
+    Theorem_2_3 ShenWork.Paper2.unitPointDomain p
+      unitPointStabilityNorms := by
+  intro _hχ _hm
+  refine ⟨?_, ?_⟩
+  · intro ha' _
+    exact absurd ha' (by rw [ha]; exact lt_irrefl 0)
+  · intro _ hb' _ _; exact absurd hb' (ne_of_gt hb)
+
 /-- Paper 3 Theorem 2.5 holds **unconditionally** on the unit-point
 domain with `paper3UnitPointConstants` and `unitPointStabilityNorms`.
 
