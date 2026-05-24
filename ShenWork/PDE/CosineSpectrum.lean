@@ -610,6 +610,173 @@ abbrev paper3Cosine_Theorem_2_2_xpSigma_local_exponential_of_raw
   Theorem_2_2_xpSigma_local_exponential_branch_of_raw
     D paper3CosineSpectralData p N C paper3Cosine_hasNeumannSpectrum hC hraw
 
+abbrev paper3Cosine_LinearStabilityInstabilityRaw_of_sectorial_paperCriticalSensitivity
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    LinearStabilityInstabilityRaw_of_sectorial_paperCriticalSensitivity
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hraw
+
+abbrev paper3Cosine_LinearStabilityInstabilityRaw_of_sectorial_critical_spectrum
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (C : Paper3Constants D p)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (hraw :
+      SectorialLocalExponentialRaw D p paper3CosineSpectralData
+        N.c1Distance N.xpSigmaDistance) :=
+  fun {sigma pNorm : ℝ} =>
+    LinearStabilityInstabilityRaw_of_sectorial_critical_spectrum
+      (D := D) (S := paper3CosineSpectralData) (p := p) (N := N)
+      (C := C) (sigma := sigma) (pNorm := pNorm)
+      paper3Cosine_hasNeumannSpectrum hC hraw
+
+abbrev paper3Cosine_LinearInstabilityNonminimalRaw_paperCriticalSensitivity
+    (p : CM2Params) :=
+  LinearInstabilityNonminimalRaw_paperCriticalSensitivity
+    paper3CosineSpectralData p paper3Cosine_hasNeumannSpectrum
+
+abbrev paper3Cosine_LinearInstabilityMinimalRaw_paperCriticalSensitivity
+    (p : CM2Params) :=
+  LinearInstabilityMinimalRaw_paperCriticalSensitivity
+    paper3CosineSpectralData p paper3Cosine_hasNeumannSpectrum
+
+lemma paper3Cosine_Lemma_A_7_of_firstNonzero_lower_and_formula_fields
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (M0 : ℝ)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (hstrong1 :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        C.chiStrong1 eq.1 = chiStrong1Formula p eq.1 eq.2)
+    (hstrong2 :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        C.chiStrong2 eq.1 = chiStrong2Formula p eq.1)
+    (hstrong3 :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        C.chiStrong3 eq.1 = chiStrong3Formula p M0 eq.1 eq.2)
+    (hstrong4 :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        C.chiStrong4 eq.1 = chiStrong4Formula p M0 eq.1)
+    (hfirst :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        max
+            (max (chiStrong1Formula p eq.1 eq.2)
+              (chiStrong2Formula p eq.1))
+            (max (chiStrong3Formula p M0 eq.1 eq.2)
+              (chiStrong4Formula p M0 eq.1)) ≤
+          ((1 + eq.2) ^ p.β /
+              (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+            (p.μ + Real.pi ^ 2)) :
+    Lemma_A_7 D p C := by
+  refine Lemma_A_7_of_firstNonzero_lower_and_formula_fields
+    paper3CosineSpectralData M0 paper3Cosine_hasNeumannSpectrum hC
+    hstrong1 hstrong2 hstrong3 hstrong4 ?_
+  intro ha hb
+  simpa [paper3CosineSpectralData] using hfirst ha hb
+
+lemma paper3Cosine_Lemma_A_8_of_firstNonzero_lower_and_formula_fields
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (uBar vLower : ℝ)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (hminimal1 :
+      ∀ uStar > 0,
+        C.chiMinimal1 uStar =
+          chiMinimal1Formula p 1 uStar uBar vLower)
+    (hminimal2 :
+      ∀ uStar > 0,
+        C.chiMinimal2 uStar = chiMinimal2Formula p uBar vLower)
+    (hfirst :
+      ∀ uStar > 0,
+        _root_.ShenWork.Paper2.chiBeta p ≤
+          ((1 + (minimalEquilibrium p uStar).2) ^ p.β /
+              (p.ν * p.γ *
+                (minimalEquilibrium p uStar).1 ^ (p.m + p.γ - 1))) *
+            (p.μ + Real.pi ^ 2)) :
+    Lemma_A_8 D p C := by
+  refine Lemma_A_8_of_firstNonzero_lower_and_formula_fields
+    paper3CosineSpectralData uBar vLower paper3Cosine_hasNeumannSpectrum hC
+    hminimal1 hminimal2 ?_
+  intro uStar huStar
+  simpa [paper3CosineSpectralData] using hfirst uStar huStar
+
+abbrev paper3Cosine_Lemma_A_7_nonminimal_condition_linearlyStable_of_critical_spectrum
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_A_7 D p C)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C) :=
+  h.nonminimal_condition_linearlyStable_of_critical_spectrum
+    paper3Cosine_hasNeumannSpectrum hC
+
+abbrev paper3Cosine_Lemma_A_8_minimal_condition_linearlyStable_of_critical_spectrum
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_A_8 D p C)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C) :=
+  h.minimal_condition_linearlyStable_of_critical_spectrum
+    paper3Cosine_hasNeumannSpectrum hC
+
+abbrev paper3Cosine_Lemma_A_7_chiStrong1_linearlyStable_of_critical_spectrum
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_A_7 D p C)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C) :=
+  h.chiStrong1_linearlyStable_of_critical_spectrum
+    paper3Cosine_hasNeumannSpectrum hC
+
+abbrev paper3Cosine_Lemma_A_7_chiStrong2_linearlyStable_of_critical_spectrum
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_A_7 D p C)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C) :=
+  h.chiStrong2_linearlyStable_of_critical_spectrum
+    paper3Cosine_hasNeumannSpectrum hC
+
+abbrev paper3Cosine_Lemma_A_7_chiStrong3_linearlyStable_of_critical_spectrum
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_A_7 D p C)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C) :=
+  h.chiStrong3_linearlyStable_of_critical_spectrum
+    paper3Cosine_hasNeumannSpectrum hC
+
+abbrev paper3Cosine_Lemma_A_7_chiStrong4_linearlyStable_of_critical_spectrum
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_A_7 D p C)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C) :=
+  h.chiStrong4_linearlyStable_of_critical_spectrum
+    paper3Cosine_hasNeumannSpectrum hC
+
+abbrev paper3Cosine_Lemma_A_8_chiMinimal1_linearlyStable_of_critical_spectrum
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_A_8 D p C)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C) :=
+  h.chiMinimal1_linearlyStable_of_critical_spectrum
+    paper3Cosine_hasNeumannSpectrum hC
+
+abbrev paper3Cosine_Lemma_A_8_chiMinimal2_linearlyStable_of_critical_spectrum
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h : Lemma_A_8 D p C)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C) :=
+  h.chiMinimal2_linearlyStable_of_critical_spectrum
+    paper3Cosine_hasNeumannSpectrum hC
+
+abbrev paper3Cosine_Theorem_2_4_linear_stability_of_Lemma_A_7
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (hA7 : Lemma_A_7 D p C) :=
+  Theorem_2_4_linear_stability_branch_of_Lemma_A_7
+    D paper3CosineSpectralData p C paper3Cosine_hasNeumannSpectrum hC hA7
+
+abbrev paper3Cosine_Theorem_2_5_linear_stability_of_Lemma_A_8
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (hA8 : Lemma_A_8 D p C) :=
+  Theorem_2_5_linear_stability_branch_of_Lemma_A_8
+    D paper3CosineSpectralData p C paper3Cosine_hasNeumannSpectrum hC hA8
+
 lemma paper3Cosine_Corollary_5_1_nonminimal_exponential_formula_of_raw
     {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
     (hraw :
