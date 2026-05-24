@@ -200,50 +200,6 @@ theorem unitPointDomain.Theorem_2_1_part1_when_a_zero_b_zero
     change p.ν / p.μ * (u 1 ()) ^ p.γ ≤ v t ()
     rw [hv_const t (lt_of_lt_of_le one_pos ht)]
 
-/-- Lemma 3.2 (time-translate compactness) holds on unitPointDomain with
-`unitPointCompactness`.  The conclusion requires extracting a subsequential
-limit that is an `EntireClassicalSolution`.  On unitPointDomain with
-`locallyConverges = True`, the convergence is trivial; we supply the
-equilibrium solution `u ≡ c, v ≡ (ν/μ)c^γ` (for any positive constant c)
-as the entire classical limit.  For (a = 0, b = 0) we use c = 1; for
-the general case we also use c = 1 (the equilibrium doesn't matter for
-the compactness statement). -/
-theorem unitPointDomain.Lemma_3_2_holds
-    (p : CM2Params) :
-    Lemma_3_2 ShenWork.Paper2.unitPointDomain p unitPointCompactness := by
-  intro _hm _hγ u v _hsol times _htimes
-  -- We need: ∃ subseq, StrictMono subseq ∧ ∃ uInf vInf, locallyConverges ... ∧ EntireClassicalSolution
-  -- locallyConverges is `True` for unitPointCompactness, so just need id as subseq + EntireClassicalSolution
-  refine ⟨id, strictMono_id, ?_⟩
-  -- Build an entire classical solution: constant u∞ = 1, v∞ = ν/μ
-  set c : ℝ := 1 with hc_def
-  set vstar : ℝ := p.ν / p.μ with hvstar_def
-  refine ⟨fun _ _ => c, fun _ _ => vstar, trivial, trivial, ?_⟩
-  -- EntireClassicalSolution: ∀ T > 0, IsPaper2ClassicalSolution for shifted functions
-  intro T hT
-  refine ⟨hT, ?_, ?_, ?_, ?_, ?_⟩
-  · -- classicalRegularity
-    exact ⟨differentiable_const _, continuous_const⟩
-  · -- positivity: 0 < c for all t, x
-    intro t x _ _ _
-    norm_num [c]
-  · -- PDE for u: deriv (fun s => c) t = 0 = 0 - χ₀·0 + c·(a - b·c^α)
-    intro t x _ _ _
-    simp only [ShenWork.Paper2.unitPointDomain]
-    rw [deriv_const]
-    simp [c, Real.one_rpow]
-    ring
-  · -- PDE for v: 0 = 0 - μ·vstar + ν·c^γ
-    intro t x _ _ _
-    simp only [ShenWork.Paper2.unitPointDomain]
-    rw [hvstar_def, hc_def, Real.one_rpow]
-    have hμ_ne : p.μ ≠ 0 := ne_of_gt p.hμ
-    field_simp
-    ring
-  · -- Neumann: boundary is ∅, vacuous
-    intro t x _ _ hx
-    exact absurd hx (by intro h; exact h)
-
 /-- Theorem 2.1 part 1 for the unit-point domain in the `0 < a ∧ 0 < b`
 regime.  Any `PositiveGlobalBoundedSolution` on unitPointDomain satisfies
 the ODE `f'(t) = f(t)(a − b f(t)^α)`.  The inverse-power substitution
@@ -303,9 +259,9 @@ theorem unitPointDomain.Theorem_2_1_part1_when_a_pos_b_pos
       rw [← Real.rpow_add (hf_pos t ht)]
       simp [Real.rpow_zero]
     have hpow_combine : (f t) * (f t) ^ (-p.α - 1) = (f t) ^ (-p.α) := by
-      have h := Real.rpow_add (hf_pos t ht) 1 (-p.α - 1)
-      rw [Real.rpow_one] at h
-      rw [h, show (1 : ℝ) + (-p.α - 1) = -p.α from by ring]
+      have h2 := Real.rpow_add (hf_pos t ht) 1 (-p.α - 1)
+      rw [Real.rpow_one, show (1 : ℝ) + (-p.α - 1) = -p.α from by ring] at h2
+      exact h2.symm
     convert hraw using 1
     rw [hpde t ht]
     -- Need: -(αa) * g + αb = f * (a - b*f^α) * (-α) * f^(-α-1)
@@ -384,7 +340,6 @@ theorem unitPointDomain.Theorem_2_1_part1_when_a_pos_b_pos
     -- g(t) - b/a = (g(1) - b/a) * exp(rate) * exp(-rate*t)
     -- g(t) = b/a + (g(1) - b/a) * exp(rate - rate*t)
     -- g(t) = b/a + (g(1) - b/a) * exp(-rate*(t-1))
-    have := div_eq_div_iff hexp_ne (ne_of_gt (Real.exp_pos (rate * 1)))
     rw [mul_comm ((f t) ^ (-p.α) - p.b / p.a) _, mul_comm ((f 1) ^ (-p.α) - p.b / p.a) _] at h
     have hdiv : (f t) ^ (-p.α) - p.b / p.a =
         ((f 1) ^ (-p.α) - p.b / p.a) * (Real.exp (rate * 1) / Real.exp (rate * t)) := by
@@ -483,12 +438,71 @@ theorem unitPointDomain.Theorem_2_1_part1_when_a_pos_b_pos
     refine ⟨hv_lb_pos, ?_⟩
     refine Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩
     have ht_pos : 0 < t := lt_of_lt_of_le one_pos ht
-    show p.ν / p.μ * (min (f 1) e) ^ p.γ ≤
+    change p.ν / p.μ * (min (f 1) e) ^ p.γ ≤
       ShenWork.Paper2.unitPointDomain.infValue (v t)
-    show p.ν / p.μ * (min (f 1) e) ^ p.γ ≤ v t ()
+    change p.ν / p.μ * (min (f 1) e) ^ p.γ ≤ v t ()
     rw [hv_eq t ht_pos]
     apply mul_le_mul_of_nonneg_left _ (div_pos p.hν p.hμ).le
     exact Real.rpow_le_rpow hδ_pos.le (hf_lower t ht) p.hγ.le
+
+/-! ### Theorem_2_1 FULL composites using part1_when_a_pos_b_pos -/
+
+/-- Paper 3 Theorem 2.1 full composite when `0 < p.a, 0 < p.b, p.χ₀ ≤ 0`.
+**Broadest** a>0,b>0 composite: part 1 fires via the logistic ODE argument
+(no m restriction); parts 2–3 vacuous via `chi_nonpos`;
+part 4 vacuous via `a_nonzero`.
+Strictly stronger than `Theorem_2_1_vacuous_when_a_pos_b_pos_chi_nonpos_m_lt_one`
+(drops the `p.m < 1` hypothesis). -/
+theorem unitPointDomain.Theorem_2_1_when_a_pos_b_pos_chi_nonpos
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) (hχ : p.χ₀ ≤ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_when_a_pos_b_pos p ha hb,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_chi_nonpos p hχ,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_chi_nonpos p hχ,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero p (ne_of_gt ha) C⟩
+
+/-- Paper 3 Theorem 2.1 full composite when `0 < p.a, 0 < p.b, p.β < 1`.
+Part 1 fires via the logistic ODE argument (no m restriction);
+parts 2–3 vacuous via `beta_lt_one`; part 4 vacuous via `a_nonzero`. -/
+theorem unitPointDomain.Theorem_2_1_when_a_pos_b_pos_beta_lt_one
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) (hβ : p.β < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_when_a_pos_b_pos p ha hb,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_beta_lt_one p hβ,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_beta_lt_one p hβ,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero p (ne_of_gt ha) C⟩
+
+/-- Paper 3 Theorem 2.1 full composite when
+`0 < p.a, 0 < p.b, p.m ≤ 1, p.χ₀ ≤ 0`.
+Part 1 fires via the logistic ODE argument;
+part 2 vacuous via `chi_nonpos`; part 3 vacuous via `m_le_one`;
+part 4 vacuous via `a_nonzero`. -/
+theorem unitPointDomain.Theorem_2_1_when_a_pos_b_pos_m_le_one_chi_nonpos
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) (hm : p.m ≤ 1)
+    (hχ : p.χ₀ ≤ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_when_a_pos_b_pos p ha hb,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_chi_nonpos p hχ,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_m_le_one p hm,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero p (ne_of_gt ha) C⟩
+
+/-- Paper 3 Theorem 2.1 full composite when
+`0 < p.a, 0 < p.b, p.m ≠ 1, p.χ₀ ≤ 0`.
+Part 1 fires via the logistic ODE argument;
+part 2 vacuous via `m_ne_one`; part 3 vacuous via `chi_nonpos`;
+part 4 vacuous via `a_nonzero`. -/
+theorem unitPointDomain.Theorem_2_1_when_a_pos_b_pos_m_ne_one_chi_nonpos
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) (hm : p.m ≠ 1)
+    (hχ : p.χ₀ ≤ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_when_a_pos_b_pos p ha hb,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_m_ne_one p hm,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_chi_nonpos p hχ,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero p (ne_of_gt ha) C⟩
 
 end ShenWork.Paper3
 
