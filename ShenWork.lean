@@ -36,5 +36,6 @@ import ShenWork.Paper2.IntervalDomainLemma41
 import ShenWork.Paper2.IntervalDomainBootstrap
 import ShenWork.Paper2.IntervalDomainChain
 import ShenWork.Paper2.IntervalDomainMoserClosure
+import ShenWork.Paper2.IntervalDomainLpMonotonicity
 import ShenWork.Paper2.IntervalDomainCorollary21
 import ShenWork.Paper3.UnitPointLogisticBridge
