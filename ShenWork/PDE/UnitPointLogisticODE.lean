@@ -56,4 +56,29 @@ def bernoulliLogisticSolution (p : CM2Params) (u₀ t : ℝ) : ℝ :=
       u₀ * Real.exp ((p.a - p.b * u₀ ^ p.α) * t) := by
   simp [bernoulliLogisticSolution, not_le.mpr ht]
 
+lemma bernoulliLogisticDenominator_pos_of_nonneg_time
+    (p : CM2Params) {u₀ t : ℝ} (ha : 0 < p.a) (hb : 0 < p.b)
+    (hu₀ : 0 < u₀) (ht : 0 ≤ t) :
+    0 < bernoulliLogisticDenominator p u₀ t := by
+  set w := bernoulliLogisticWeight p t
+  have hw_pos : 0 < w := by
+    simpa [w, bernoulliLogisticWeight, mul_assoc] using
+      (Real.exp_pos (-(p.α * p.a) * t))
+  have harg_nonpos : -(p.α * p.a) * t ≤ 0 := by
+    have hprod : 0 ≤ (p.α * p.a) * t :=
+      mul_nonneg (mul_nonneg p.hα.le ha.le) ht
+    linarith
+  have hw_le_one : w ≤ 1 := by
+    simpa [w, bernoulliLogisticWeight] using Real.exp_le_one_iff.mpr harg_nonpos
+  have hc_pos : 0 < u₀ ^ (-p.α) := Real.rpow_pos_of_pos hu₀ _
+  have hq_pos : 0 < p.b / p.a := div_pos hb ha
+  have hden_eq :
+      bernoulliLogisticDenominator p u₀ t =
+        u₀ ^ (-p.α) * w + (p.b / p.a) * (1 - w) := by
+    simp [bernoulliLogisticDenominator, w]
+    ring
+  rw [hden_eq]
+  exact add_pos_of_pos_of_nonneg (mul_pos hc_pos hw_pos)
+    (mul_nonneg hq_pos.le (sub_nonneg.mpr hw_le_one))
+
 end ShenWork.Paper2
