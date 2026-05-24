@@ -351,6 +351,44 @@ theorem constantSolution_localExistence_with_trace
     · exact (zeroReaction_isPaper2ClassicalSolution p ha hb 1 one_pos) 1 one_pos
     · exact constantSolution_initialTrace 1
 
+/-! ### Mild solution operator on intervalDomain
+
+The Duhamel integral formulation for u on [0,1]:
+  u(t,x) = (e^{tΔ_N} u₀)(x) + ∫₀ᵗ (e^{(t-s)Δ_N} F(u(s)))(x) ds
+
+where e^{tΔ_N} is the Neumann heat semigroup (intervalSemigroupOperator)
+and F(u)(x) = u(x)(a - b·u(x)^α) is the logistic source.
+
+For the local existence to work on intervalDomain, we need:
+1. Semigroup L^∞ contractivity: ‖e^{tΔ} f‖_∞ ≤ ‖f‖_∞ (DONE)
+2. Lipschitz bound on F (DONE in MildSolution.lean for the whole line)
+3. Contraction of the Duhamel map for small T
+4. Fixed point → mild solution
+5. Regularity bootstrap: mild → classical (OPEN — genuine PDE content)
+
+Current status: steps 1-2 are done, step 3 is provable from existing tools,
+step 5 is the honest analytical frontier. -/
+
+/-- The logistic reaction source F(u)(x) = u(x)(a - b·u(x)^α) on
+intervalDomainPoint. -/
+def intervalLogisticSource (p : CM2Params) (u : intervalDomainPoint → ℝ)
+    (x : intervalDomainPoint) : ℝ :=
+  u x * (p.a - p.b * (u x) ^ p.α)
+
+/-- The Duhamel mild solution operator on intervalDomain:
+Φ(u)(t)(x) = (e^{tΔ_N} u₀)(x) + ∫₀ᵗ (e^{(t-s)Δ_N} F(u(s)))(x) ds
+
+This defines a map from trajectories u : ℝ → (intervalDomainPoint → ℝ)
+to trajectories, whose fixed point is a mild solution. -/
+def intervalDuhamelOperator (p : CM2Params)
+    (u₀ : intervalDomainPoint → ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ)
+    (t : ℝ) (x : intervalDomainPoint) : ℝ :=
+  intervalSemigroupOperator 1 t (intervalDomainLift u₀) x.1 +
+    ∫ s in Set.Icc 0 t,
+      intervalSemigroupOperator 1 (t - s)
+        (intervalDomainLift (intervalLogisticSource p (u s))) x.1
+
 end ShenWork.IntervalDomainExistence
 
 end
