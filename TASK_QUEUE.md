@@ -25,7 +25,7 @@ commit; one slot at a time per session.
   `ψ(y) · 2/(√l − k)`.  Needs `∫ exp(-c|x|) dx = 2/c` (write a small lemma
   if Mathlib doesn’t expose it directly).
 - Output: `Lemma_2_5` instance (full quantifier shape) + supporting lemmas.
-- Status: open.  Claimed: ___
+- Status: open.  Claimed: opus-4.7-pts-? (assigned at 2026-05-23 22:59 by mac dm)
 
 ### Slot B — Paper 2 IntervalDomain unitPointDomain-style instances
 - Owner files: `ShenWork/Paper2/Statements.lean` only.
