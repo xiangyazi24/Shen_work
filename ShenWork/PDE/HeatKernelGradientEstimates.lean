@@ -379,6 +379,29 @@ theorem unitInterval_sqrt_integral_norm_sq_eq_lpNorm_two
   · simp
   · simpa using hf.aestronglyMeasurable
 
+/-- Unit-interval `L²` membership gives interval integrability of the input. -/
+theorem unitInterval_memLp_two_intervalIntegrable
+    {f : ℝ → ℂ}
+    (hf_mem : MemLp f (2 : ℝ≥0∞) (intervalMeasure 1)) :
+    IntervalIntegrable f volume 0 1 := by
+  rw [intervalIntegrable_iff_integrableOn_Ioc_of_le
+    (show (0 : ℝ) ≤ 1 by norm_num)]
+  change Integrable f (volume.restrict (Set.Ioc (0 : ℝ) 1))
+  rw [unitIntervalIocMeasure_eq_intervalMeasure]
+  exact hf_mem.integrable (show (1 : ℝ≥0∞) ≤ 2 by norm_num)
+
+/-- Unit-interval `L²` membership gives interval integrability of `‖f‖²`. -/
+theorem unitInterval_memLp_two_norm_sq_intervalIntegrable
+    {f : ℝ → ℂ}
+    (hf_mem : MemLp f (2 : ℝ≥0∞) (intervalMeasure 1)) :
+    IntervalIntegrable (fun x : ℝ => ‖f x‖ ^ 2) volume 0 1 := by
+  rw [intervalIntegrable_iff_integrableOn_Ioc_of_le
+    (show (0 : ℝ) ≤ 1 by norm_num)]
+  change Integrable (fun x : ℝ => ‖f x‖ ^ 2)
+    (volume.restrict (Set.Ioc (0 : ℝ) 1))
+  rw [unitIntervalIocMeasure_eq_intervalMeasure]
+  exact hf_mem.integrable_norm_pow (by norm_num : (2 : ℕ) ≠ 0)
+
 /-- Unit-interval spectral Neumann heat-gradient estimate in Mathlib
 `LpSeminorm` form, from interval `L²` to `L∞`. -/
 theorem unitIntervalNeumannSpectralHeatGradient_L2_Linfty_lpNorm_bound
