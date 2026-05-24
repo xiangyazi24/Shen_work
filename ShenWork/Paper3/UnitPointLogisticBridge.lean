@@ -5,6 +5,7 @@
 import ShenWork.Paper3.Statements
 import ShenWork.Paper2.UnitPointLogisticBridge
 import ShenWork.PDE.UnitPointLogisticODE
+import ShenWork.PDE.UnitPointDecayODE
 
 noncomputable section
 
@@ -66,6 +67,50 @@ theorem unitPointDomain.Proposition_1_4_when_a_b_split
   rcases hsplit with ⟨ha, hb⟩ | ⟨ha, hb⟩
   · exact unitPointDomain.Proposition_1_4_minimal_only p ha hb
   · exact unitPointDomain.Proposition_1_4_when_a_pos_b_pos p ha hb
+
+/-- Paper 3 Proposition 1.4 for the (a = 0, 0 < b) slice via Slot R. -/
+theorem unitPointDomain.Proposition_1_4_when_a_zero_b_pos
+    (p : CM2Params) (ha : p.a = 0) (hb : 0 < p.b) :
+    Proposition_1_4 ShenWork.Paper2.unitPointDomain p := by
+  intro _hm _hβ _hor _hχ u₀ hu₀
+  rcases ShenWork.Paper2.unitPointDecay_globalExistence_with_bound
+      p ha hb u₀ hu₀ with
+    ⟨u, v, hglobal, htrace, hbound⟩
+  refine ⟨u, v, hglobal, htrace, ?_⟩
+  refine ⟨ShenWork.Paper2.unitPointDomain.supNorm u₀, ?_⟩
+  refine Filter.eventually_atTop.mpr ⟨0, fun t ht => ?_⟩
+  exact hbound t ht
+
+/-- Paper 3 Proposition 1.4 holds **unconditionally** on the unit-point
+domain.  The hypothesis disjunction `(a = 0 ∧ b = 0) ∨ (0 ≤ a ∧ 0 < b)`
+splits into three subcases — minimal `(0, 0)`, decay `(0, b > 0)`, and
+logistic `(a > 0, b > 0)` — each closed by the corresponding bridge. -/
+theorem unitPointDomain.Proposition_1_4_holds
+    (p : CM2Params) :
+    Proposition_1_4 ShenWork.Paper2.unitPointDomain p := by
+  intro hm hβ hor hχ u₀ hu₀
+  rcases hor with ⟨ha_zero, hb_zero⟩ | ⟨ha_nn, hb_pos⟩
+  · exact unitPointDomain.Proposition_1_4_minimal_only p ha_zero hb_zero
+      hm hβ (Or.inl ⟨ha_zero, hb_zero⟩) hχ u₀ hu₀
+  · by_cases ha_pos : 0 < p.a
+    · exact unitPointDomain.Proposition_1_4_when_a_pos_b_pos p ha_pos hb_pos
+        hm hβ (Or.inr ⟨ha_nn, hb_pos⟩) hχ u₀ hu₀
+    · have ha_zero : p.a = 0 := le_antisymm (not_lt.mp ha_pos) ha_nn
+      exact unitPointDomain.Proposition_1_4_when_a_zero_b_pos p ha_zero hb_pos
+        hm hβ (Or.inr ⟨ha_nn, hb_pos⟩) hχ u₀ hu₀
+
+/-- Paper 3 Proposition 1.2 holds for the (a = 0, 0 < b) slice via Slot R. -/
+theorem unitPointDomain.Proposition_1_2_when_a_zero_b_pos
+    (p : CM2Params) (ha : p.a = 0) (hb : 0 < p.b) :
+    Proposition_1_2 ShenWork.Paper2.unitPointDomain p := by
+  intro _hχ _hm u₀ hu₀
+  rcases ShenWork.Paper2.unitPointDecay_globalExistence_with_bound
+      p ha hb u₀ hu₀ with
+    ⟨u, v, hglobal, htrace, hbound⟩
+  refine ⟨u, v, hglobal, htrace, ?_⟩
+  refine ⟨ShenWork.Paper2.unitPointDomain.supNorm u₀, ?_⟩
+  refine Filter.eventually_atTop.mpr ⟨0, fun t ht => ?_⟩
+  exact hbound t ht
 
 end ShenWork.Paper3
 
