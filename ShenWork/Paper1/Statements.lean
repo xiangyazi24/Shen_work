@@ -1587,6 +1587,22 @@ def paper1BoundedMeasurableSemigroup
     Real.exp (-t) * modifiedSemigroup t u x
   else 0
 
+def paper1BoundedGradientConstant (t : ℝ) : ℝ :=
+  2 / Real.sqrt (4 * Real.pi * t)
+
+def paper1BoundedDivergenceDamping (t : ℝ) : ℝ :=
+  (paper1BoundedGradientConstant t)⁻¹ * Real.exp (-t)
+
+def paper1BoundedMeasurableDivergenceSemigroup
+    (t : ℝ) (u : ℝ → ℝ) (x : ℝ) : ℝ := by
+  classical
+  exact if _hu : paper1BoundedMeasurableInput u then
+    paper1BoundedDivergenceDamping t *
+      ∫ y : ℝ,
+        Real.exp (-t) *
+          (deriv (fun z : ℝ => heatKernel t (z - y)) x * u y)
+  else 0
+
 private lemma paper1BoundedMeasurableBound_nonneg (u : ℝ → ℝ) :
     0 ≤ paper1BoundedMeasurableBound u := by
   classical
@@ -1674,6 +1690,96 @@ theorem paper1BoundedMeasurableSemigroup_point_estimate
         (mul_nonneg (Real.rpow_nonneg ht.le _) (Real.exp_nonneg _))
         (paper1BoundedMeasurableNorm_nonneg p u)
     simpa [paper1PointNorm, paper1BoundedMeasurableSemigroup, hu] using
+      hright_nonneg
+
+theorem paper1BoundedMeasurableDivergence_point_estimate
+    {p t : ℝ} (hp : 1 < p) (ht : 0 < t) (u : ℝ → ℝ) :
+    |paper1BoundedMeasurableDivergenceSemigroup t u 0| ≤
+      t ^ (-(1 / 2 : ℝ) - (1 / (2 * p))) *
+        Real.exp (-t) * paper1BoundedMeasurableNorm p u := by
+  classical
+  by_cases hu : paper1BoundedMeasurableInput u
+  · have hM_nonneg : 0 ≤ paper1BoundedMeasurableBound u :=
+      paper1BoundedMeasurableBound_nonneg u
+    have hM_bound : ∀ x : ℝ, |u x| ≤ paper1BoundedMeasurableBound u :=
+      paper1BoundedMeasurableBound_abs_le hu.2
+    have hG_pos : 0 < paper1BoundedGradientConstant t := by
+      unfold paper1BoundedGradientConstant
+      positivity
+    have hdamp_nonneg : 0 ≤ paper1BoundedDivergenceDamping t := by
+      unfold paper1BoundedDivergenceDamping
+      positivity
+    have hbase :=
+      modifiedHeatKernel_deriv_convolution_bounded_abs_le
+        (t := t) (M := paper1BoundedMeasurableBound u)
+        ht hM_nonneg hM_bound 0
+    have hscaled :
+        |paper1BoundedDivergenceDamping t *
+            ∫ y : ℝ,
+              Real.exp (-t) *
+                (deriv (fun z : ℝ => heatKernel t (z - y)) 0 * u y)| ≤
+          paper1BoundedDivergenceDamping t *
+            (Real.exp (-t) *
+              (paper1BoundedGradientConstant t *
+                paper1BoundedMeasurableBound u)) := by
+      rw [abs_mul, abs_of_nonneg hdamp_nonneg]
+      exact mul_le_mul_of_nonneg_left
+        (by simpa [paper1BoundedGradientConstant] using hbase)
+        hdamp_nonneg
+    have hcancel :
+        paper1BoundedDivergenceDamping t *
+            (Real.exp (-t) *
+              (paper1BoundedGradientConstant t *
+                paper1BoundedMeasurableBound u)) =
+          Real.exp (-t) *
+            (Real.exp (-t) * paper1BoundedMeasurableBound u) := by
+      unfold paper1BoundedDivergenceDamping
+      field_simp [hG_pos.ne']
+    have hpow :
+        Real.exp (-t) *
+            (Real.exp (-t) * paper1BoundedMeasurableBound u) ≤
+          t ^ (-((1 / 2 : ℝ) + 1 / (2 * p))) *
+            Real.exp (-t) * paper1BoundedMeasurableBound u :=
+      paper1_exp_sq_mul_le_rpow_neg_exp_mul ht
+        (paper1_divergence_exponent_nonneg hp)
+        (paper1_divergence_exponent_le_one hp)
+        hM_nonneg
+    have hrpow :
+        t ^ (-((1 / 2 : ℝ) + 1 / (2 * p))) =
+          t ^ (-(1 / 2 : ℝ) - (1 / (2 * p))) := by
+      congr 1
+      ring
+    calc
+      |paper1BoundedMeasurableDivergenceSemigroup t u 0|
+          = |paper1BoundedDivergenceDamping t *
+              ∫ y : ℝ,
+                Real.exp (-t) *
+                  (deriv (fun z : ℝ => heatKernel t (z - y)) 0 * u y)| := by
+            simp [paper1BoundedMeasurableDivergenceSemigroup, hu]
+      _ ≤ paper1BoundedDivergenceDamping t *
+            (Real.exp (-t) *
+              (paper1BoundedGradientConstant t *
+                paper1BoundedMeasurableBound u)) :=
+            hscaled
+      _ = Real.exp (-t) *
+            (Real.exp (-t) * paper1BoundedMeasurableBound u) :=
+            hcancel
+      _ ≤ t ^ (-((1 / 2 : ℝ) + 1 / (2 * p))) *
+            Real.exp (-t) * paper1BoundedMeasurableBound u :=
+            hpow
+      _ = t ^ (-(1 / 2 : ℝ) - (1 / (2 * p))) *
+            Real.exp (-t) * paper1BoundedMeasurableBound u := by
+            rw [hrpow]
+      _ = t ^ (-(1 / 2 : ℝ) - (1 / (2 * p))) *
+            Real.exp (-t) * paper1BoundedMeasurableNorm p u := by
+            simp [paper1BoundedMeasurableNorm]
+  · have hright_nonneg :
+        0 ≤ t ^ (-(1 / 2 : ℝ) - (1 / (2 * p))) *
+          Real.exp (-t) * paper1BoundedMeasurableNorm p u := by
+      exact mul_nonneg
+        (mul_nonneg (Real.rpow_nonneg ht.le _) (Real.exp_nonneg _))
+        (paper1BoundedMeasurableNorm_nonneg p u)
+    simpa [paper1BoundedMeasurableDivergenceSemigroup, hu] using
       hright_nonneg
 
 def PsiDerivativeFormula (u : ℝ → ℝ) (l mu : ℝ) : Prop :=
