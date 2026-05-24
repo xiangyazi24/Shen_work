@@ -890,6 +890,30 @@ theorem Lemma_2_5_explicit_epsilon
   intro psi hk_bound u hu hu_nn hint
   exact hC psi hk_bound hu hu_nn hint
 
+/-! ### CMParams-flavored existential ε form -/
+
+/-- CMParams-flavored version of `Lemma_2_5_explicit_epsilon` with `γ`
+specialized to `p.γ`.  Generalizes `Lemma_2_5_with_explicit_k_unit` to
+arbitrary `(l, μ)` parameters (not just `l = μ = 1`). -/
+theorem Lemma_2_5_explicit_epsilon_CMParams
+    (p : CMParams) {pExp l mu epsilon : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 1 ≤ pExp)
+    (hε_pos : 0 < epsilon) (hε_lt : epsilon < Real.sqrt l) :
+    ∃ C > 0, ∀ (psi : ExponentialWeight),
+      (∀ z, |deriv psi.weight z| ≤ (Real.sqrt l - epsilon) * psi.weight z) →
+      ∀ {u : ℝ → ℝ}, IsCUnifBdd u → (∀ y, 0 ≤ u y) →
+      Integrable (fun x : ℝ => ((u x) ^ p.γ) ^ pExp * psi.weight x) →
+        Integrable
+          (fun x : ℝ =>
+            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) l mu z) x| ^ pExp *
+              psi.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) l mu z) x| ^ pExp *
+              psi.weight x ≤
+          C * ∫ x : ℝ, ((u x) ^ p.γ) ^ pExp * psi.weight x :=
+  Lemma_2_5_explicit_epsilon (gamma := p.γ) hl hmu hpExp
+    (lt_of_lt_of_le one_pos p.hγ) hε_pos hε_lt
+
 end ShenWork.Paper1
 
 end
