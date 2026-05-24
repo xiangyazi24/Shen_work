@@ -112,6 +112,25 @@ theorem unitPointDomain.Proposition_1_2_when_a_zero_b_pos
   refine Filter.eventually_atTop.mpr ⟨0, fun t ht => ?_⟩
   exact hbound t ht
 
+/-- Paper 3 Proposition 1.2 on the unit-point domain, **excluding** the
+slice `a > 0 ∧ b = 0`.  In that slice the unit-point ODE `u' = au` is
+unbounded so the proposition's IsPaper2Bounded conclusion genuinely
+fails — a real restriction inherent to the unit-point instance.
+Covers `(a = 0, b ≥ 0)` and `(0 < a, 0 < b)`. -/
+theorem unitPointDomain.Proposition_1_2_when_not_a_pos_b_zero
+    (p : CM2Params)
+    (hnot : ¬ (0 < p.a ∧ p.b = 0)) :
+    Proposition_1_2 ShenWork.Paper2.unitPointDomain p := by
+  by_cases ha_pos : 0 < p.a
+  · have hb_ne : p.b ≠ 0 := fun hb0 => hnot ⟨ha_pos, hb0⟩
+    have hb_pos : 0 < p.b := lt_of_le_of_ne p.hb (Ne.symm hb_ne)
+    exact unitPointDomain.Proposition_1_2_when_a_pos_b_pos p ha_pos hb_pos
+  · have ha_zero : p.a = 0 := le_antisymm (not_lt.mp ha_pos) p.ha
+    by_cases hb_pos : 0 < p.b
+    · exact unitPointDomain.Proposition_1_2_when_a_zero_b_pos p ha_zero hb_pos
+    · have hb_zero : p.b = 0 := le_antisymm (not_lt.mp hb_pos) p.hb
+      exact unitPointDomain.Proposition_1_2_minimal_only p ha_zero hb_zero
+
 end ShenWork.Paper3
 
 end
