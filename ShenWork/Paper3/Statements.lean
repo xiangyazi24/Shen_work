@@ -11301,4 +11301,96 @@ theorem unitPointDomain.Theorem_2_1_part1_minimal_only
 
 end
 
+/-- Paper 3 Theorem 2.1 part 4 is vacuous on the unit-point domain when
+`p.a ≠ 0`. -/
+theorem unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero
+    (p : CM2Params) (ha : p.a ≠ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1_part4 ShenWork.Paper2.unitPointDomain p C := by
+  intro ha'; exact absurd ha' ha
+
+/-- Paper 3 Theorem 2.1 part 4 is vacuous on the unit-point domain when
+`p.b ≠ 0`. -/
+theorem unitPointDomain.Theorem_2_1_part4_vacuous_when_b_nonzero
+    (p : CM2Params) (hb : p.b ≠ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1_part4 ShenWork.Paper2.unitPointDomain p C := by
+  intro _ hb'; exact absurd hb' hb
+
+/-- Paper 3 Theorem 2.1 part 4 is vacuous on the unit-point domain when
+`p.m ≠ 1`. -/
+theorem unitPointDomain.Theorem_2_1_part4_vacuous_when_m_ne_one
+    (p : CM2Params) (hm : p.m ≠ 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1_part4 ShenWork.Paper2.unitPointDomain p C := by
+  intro _ _ hm'; exact absurd hm' hm
+
+/-- Paper 3 Theorem 2.1 part 4 is vacuous on the unit-point domain when
+`p.β < 1`. -/
+theorem unitPointDomain.Theorem_2_1_part4_vacuous_when_beta_lt_one
+    (p : CM2Params) (hβ : p.β < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1_part4 ShenWork.Paper2.unitPointDomain p C := by
+  intro _ _ _ hβ'; exact absurd hβ' (not_le.mpr hβ)
+
+/-- Paper 3 Theorem 2.1 part 4 is vacuous on the unit-point domain when
+`p.χ₀ ≤ 0`. -/
+theorem unitPointDomain.Theorem_2_1_part4_vacuous_when_chi_nonpos
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1_part4 ShenWork.Paper2.unitPointDomain p C := by
+  intro _ _ _ _ hχ'; exact absurd hχ' (not_lt.mpr hχ)
+
+/-- Paper 3 Theorem 2.1 (full composite) holds on the unit-point domain
+when `p.a = 0, p.b = 0, p.m < 1`.  All four conjuncts are vacuous. -/
+theorem unitPointDomain.Theorem_2_1_vacuous_when_a_zero_b_zero_m_lt_one
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) (hm : p.m < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_vacuous_when_m_lt_one p hm,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_m_ne_one p (ne_of_lt hm) C⟩
+
+/-- Paper 3 Theorem 2.1 (full composite) on the unit-point domain when
+`p.a = 0, p.b = 0, 1 ≤ p.m, p.χ₀ ≤ 0`.  Part 1 fires via
+`Theorem_2_1_part1_minimal_only`; parts 2-4 are vacuous. -/
+theorem unitPointDomain.Theorem_2_1_when_a_zero_b_zero_chi_nonpos
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) (hχ : p.χ₀ ≤ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_minimal_only p ha hb,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_chi_nonpos p hχ C⟩
+
+/-- Paper 3 Theorem 2.2 (full composite) holds vacuously on the unit-point
+domain when `p.a = 0 ∧ p.b ≠ 0`.  Branches 1/2 need `0 < p.a`; branches
+3/4 need `p.b = 0`. -/
+theorem unitPointDomain.Theorem_2_2_vacuous_when_a_zero_b_nonzero
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b ≠ 0)
+    (S : SpectralData)
+    (N : StabilityNorms ShenWork.Paper2.unitPointDomain)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_2 ShenWork.Paper2.unitPointDomain p S N C := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro ha' _; exact absurd ha' (by rw [ha]; exact lt_irrefl 0)
+  · intro ha' _; exact absurd ha' (by rw [ha]; exact lt_irrefl 0)
+  · intro _ hb'; exact absurd hb' hb
+  · intro _ hb'; exact absurd hb' hb
+
+/-- Paper 3 Theorem 2.2 (full composite) holds vacuously on the unit-point
+domain when `p.a ≠ 0 ∧ p.b = 0`. -/
+theorem unitPointDomain.Theorem_2_2_vacuous_when_a_nonzero_b_zero
+    (p : CM2Params) (ha : p.a ≠ 0) (hb : p.b = 0)
+    (S : SpectralData)
+    (N : StabilityNorms ShenWork.Paper2.unitPointDomain)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_2 ShenWork.Paper2.unitPointDomain p S N C := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro _ hb'; exact absurd hb' (by rw [hb]; exact lt_irrefl 0)
+  · intro _ hb'; exact absurd hb' (by rw [hb]; exact lt_irrefl 0)
+  · intro ha' _; exact absurd ha' ha
+  · intro ha' _; exact absurd ha' ha
+
 end ShenWork.Paper3
