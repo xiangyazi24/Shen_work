@@ -64,6 +64,82 @@ theorem unitIntervalCosineRawCoeff_tsum_sq_le_integral
       _ = ∫ x in (0 : ℝ)..1, ‖f x‖ ^ 2 :=
         unitIntervalEvenReflection_fourier_parseval_unit_mass hL2 hf_sq
 
+/-- Neumann cosine coefficients normalized for the unnormalized basis
+`1, cos(πx), cos(2πx), ...`.  The zeroth mode is unscaled and all positive
+cosine modes carry the usual factor `2`. -/
+def unitIntervalNeumannCosineCoeff (f : ℝ → ℂ) (n : ℕ) : ℝ :=
+  if n = 0 then (unitIntervalCosineRawCoeff f 0).re
+  else 2 * (unitIntervalCosineRawCoeff f n).re
+
+/-- The normalized Neumann cosine coefficient map is bounded from interval
+`L²` mass to coefficient `ℓ²`, with a nonsharp factor `2`. -/
+theorem unitIntervalNeumannCosineCoeff_l2_bound
+    {f : ℝ → ℂ}
+    (hf : IntervalIntegrable f volume 0 1)
+    (hL2 :
+      MemLp (unitIntervalEvenReflection f) 2
+        (volume.restrict (Set.Ioc (-1 : ℝ) 1)))
+    (hf_sq : IntervalIntegrable (fun x : ℝ => ‖f x‖ ^ 2) volume 0 1) :
+    Summable (fun n : ℕ => (unitIntervalNeumannCosineCoeff f n) ^ 2) ∧
+      unitIntervalCosineL2TsumNorm (unitIntervalNeumannCosineCoeff f) ≤
+        2 * Real.sqrt (∫ x in (0 : ℝ)..1, ‖f x‖ ^ 2) := by
+  obtain ⟨hraw_sum, hraw_le⟩ :=
+    unitIntervalCosineRawCoeff_tsum_sq_le_integral
+      (f := f) hf hL2 hf_sq
+  let I : ℝ := ∫ x in (0 : ℝ)..1, ‖f x‖ ^ 2
+  have hI_nonneg : 0 ≤ I := by
+    dsimp [I]
+    exact intervalIntegral.integral_nonneg
+      (show (0 : ℝ) ≤ 1 by norm_num)
+      (fun x _hx => sq_nonneg _)
+  have hre_sq_le_norm_sq :
+      ∀ z : ℂ, z.re ^ 2 ≤ ‖z‖ ^ 2 := by
+    intro z
+    simpa [sq] using
+      (Complex.re_sq_le_normSq z).trans_eq (Complex.normSq_eq_norm_sq z)
+  have hcoeff_sq_le :
+      ∀ n : ℕ,
+        (unitIntervalNeumannCosineCoeff f n) ^ 2 ≤
+          4 * ‖unitIntervalCosineRawCoeff f n‖ ^ 2 := by
+    intro n
+    by_cases hn : n = 0
+    · subst n
+      have hle := hre_sq_le_norm_sq (unitIntervalCosineRawCoeff f 0)
+      have hnonneg : 0 ≤ ‖unitIntervalCosineRawCoeff f 0‖ ^ 2 := sq_nonneg _
+      simp [unitIntervalNeumannCosineCoeff]
+      nlinarith
+    · have hle := hre_sq_le_norm_sq (unitIntervalCosineRawCoeff f n)
+      simp [unitIntervalNeumannCosineCoeff, hn]
+      nlinarith
+  have hcoeff_sum :
+      Summable fun n : ℕ => (unitIntervalNeumannCosineCoeff f n) ^ 2 :=
+    Summable.of_nonneg_of_le
+      (fun n => sq_nonneg (unitIntervalNeumannCosineCoeff f n))
+      hcoeff_sq_le
+      (hraw_sum.mul_left 4)
+  have henergy_le :
+      unitIntervalCosineL2TsumEnergy (unitIntervalNeumannCosineCoeff f) ≤
+        4 * I := by
+    calc
+      unitIntervalCosineL2TsumEnergy (unitIntervalNeumannCosineCoeff f)
+          = ∑' n : ℕ, (unitIntervalNeumannCosineCoeff f n) ^ 2 := rfl
+      _ ≤ ∑' n : ℕ, 4 * ‖unitIntervalCosineRawCoeff f n‖ ^ 2 :=
+          hcoeff_sum.tsum_le_tsum hcoeff_sq_le (hraw_sum.mul_left 4)
+      _ = 4 * (∑' n : ℕ, ‖unitIntervalCosineRawCoeff f n‖ ^ 2) :=
+          Summable.tsum_mul_left 4 hraw_sum
+      _ ≤ 4 * I :=
+          mul_le_mul_of_nonneg_left (by simpa [I] using hraw_le) (by norm_num)
+  refine ⟨hcoeff_sum, ?_⟩
+  calc
+    unitIntervalCosineL2TsumNorm (unitIntervalNeumannCosineCoeff f)
+        = Real.sqrt
+            (unitIntervalCosineL2TsumEnergy (unitIntervalNeumannCosineCoeff f)) := rfl
+    _ ≤ Real.sqrt (4 * I) := Real.sqrt_le_sqrt henergy_le
+    _ = 2 * Real.sqrt I := by
+          rw [Real.sqrt_mul (show 0 ≤ (4 : ℝ) by norm_num)]
+          norm_num
+    _ = 2 * Real.sqrt (∫ x in (0 : ℝ)..1, ‖f x‖ ^ 2) := rfl
+
 /-- The pointwise cosine heat-gradient `L² → L∞` estimate as an `LpSeminorm`
 bound on the unit interval. -/
 theorem unitIntervalCosineHeatGradientValue_L2_Linfty_lpNorm_smoothing
