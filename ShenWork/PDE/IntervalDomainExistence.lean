@@ -315,6 +315,42 @@ theorem constantSolution_globalExistence
   · exact ⟨_, _, equilibrium_isPaper2ClassicalSolution p ha hb⟩
   · exact ⟨_, _, zeroReaction_isPaper2ClassicalSolution p ha hb 1 one_pos⟩
 
+/-- InitialTrace for the constant solution u(t,x) = c with u₀ = constOnInterval c.
+Since u(t) - u₀ = 0, the sup norm is 0 < ε for any ε > 0. -/
+theorem constantSolution_initialTrace (c : ℝ) :
+    InitialTrace intervalDomain (constOnInterval c)
+      (fun _ _ => c) := by
+  intro ε hε
+  refine ⟨1, one_pos, fun t _ht0 _htδ => ?_⟩
+  change intervalDomainSupNorm (fun x => c - c) < ε
+  have hzero : (fun _ : intervalDomainPoint => c - c) = fun _ => 0 := by
+    ext; ring
+  rw [hzero, intervalDomainSupNorm_const, abs_zero]
+  exact hε
+
+/-- Partial `IntervalDomainExistence` for constant initial data when
+(a > 0, b > 0) or (a = 0, b = 0). Produces the equilibrium / constant
+solution as a classical solution with InitialTrace. -/
+theorem constantSolution_localExistence_with_trace
+    (p : CM2Params)
+    (h : (0 < p.a ∧ 0 < p.b) ∨ (p.a = 0 ∧ p.b = 0)) :
+    ∃ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ ∧
+      ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+        InitialTrace intervalDomain u₀ u := by
+  rcases h with ⟨ha, hb⟩ | ⟨ha, hb⟩
+  · set c := (p.a / p.b) ^ (1 / p.α)
+    have hc : 0 < c := Real.rpow_pos_of_pos (div_pos ha hb) _
+    refine ⟨constOnInterval c, constOnInterval_pos hc, 1, one_pos,
+      fun _ _ => c, fun _ _ => ellipticV p c, ?_, ?_⟩
+    · exact (equilibrium_isPaper2ClassicalSolution p ha hb) 1 one_pos
+    · exact constantSolution_initialTrace c
+  · refine ⟨constOnInterval 1, constOnInterval_pos one_pos, 1, one_pos,
+      fun _ _ => 1, fun _ _ => ellipticV p 1, ?_, ?_⟩
+    · exact (zeroReaction_isPaper2ClassicalSolution p ha hb 1 one_pos) 1 one_pos
+    · exact constantSolution_initialTrace 1
+
 end ShenWork.IntervalDomainExistence
 
 end
