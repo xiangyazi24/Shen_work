@@ -1668,6 +1668,25 @@ lemma unitIntervalCosineHeatGradientTsumL2Norm_le {t : ℝ} (ht : 0 < t)
     _ = unitIntervalCosineHeatGradientL2Constant t *
           unitIntervalCosineL2TsumNorm a := rfl
 
+/-- `tsum` interval cosine heat-gradient smoothing in the standard `1 / sqrt(t)` form. -/
+lemma unitIntervalCosineHeatGradientTsumL2Norm_le_inv_sqrt {t : ℝ} (ht : 0 < t)
+    {a : ℕ → ℝ} (ha : Summable fun n => (a n) ^ 2) :
+    unitIntervalCosineHeatGradientTsumL2Norm t a ≤
+      (1 / Real.sqrt t) * unitIntervalCosineL2TsumNorm a := by
+  have hbase := unitIntervalCosineHeatGradientTsumL2Norm_le ht ha
+  have hden : t ≤ 2 * t := by nlinarith [ht]
+  have hfrac : 1 / (2 * t) ≤ 1 / t := by
+    simpa using one_div_le_one_div_of_le ht hden
+  have hconst :
+      unitIntervalCosineHeatGradientL2Constant t ≤ 1 / Real.sqrt t := by
+    calc
+      unitIntervalCosineHeatGradientL2Constant t = Real.sqrt (1 / (2 * t)) := rfl
+      _ ≤ Real.sqrt (1 / t) := Real.sqrt_le_sqrt hfrac
+      _ = 1 / Real.sqrt t := by
+        rw [Real.sqrt_div (zero_le_one : (0 : ℝ) ≤ 1), Real.sqrt_one]
+  exact hbase.trans
+    (mul_le_mul_of_nonneg_right hconst (Real.sqrt_nonneg _))
+
 /-- The heat semigroup is symmetric in the sense that swapping x and y
     in the kernel gives the same integrand. -/
 theorem heatSemigroup_kernel_symm (t x y : ℝ) :
