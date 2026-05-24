@@ -131,6 +131,75 @@ theorem unitPointDomain.Proposition_1_2_when_not_a_pos_b_zero
     · have hb_zero : p.b = 0 := le_antisymm (not_lt.mp hb_pos) p.hb
       exact unitPointDomain.Proposition_1_2_minimal_only p ha_zero hb_zero
 
+/-- On unitPointDomain with a = 0, b = 0, any PGBS has u constant in time
+(since u' = u(a - bu^α) = 0) and positive, so eventual lower bounds hold.
+This proves Theorem_2_1_part1 in the minimal regime without ODE uniqueness. -/
+theorem unitPointDomain.Theorem_2_1_part1_when_a_zero_b_zero
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) :
+    Theorem_2_1_part1 ShenWork.Paper2.unitPointDomain p := by
+  intro _hm u v hsol
+  -- Extract components of PGBS
+  have hglobal := hsol.1
+  -- Get regularity: Differentiable ℝ (fun t => u t ())
+  have hreg : Differentiable ℝ (fun t : ℝ => u t ()) := by
+    have h2 := hglobal 2 (by norm_num : (0 : ℝ) < 2)
+    exact h2.2.1.1
+  -- Get PDE: deriv (fun s => u s ()) t = 0 for all t > 0
+  have hderiv_zero : ∀ t : ℝ, 0 < t → deriv (fun s : ℝ => u s ()) t = 0 := by
+    intro t ht
+    have hT := hglobal (t + 1) (by linarith)
+    have hpde := hT.pde_u (t := t) (x := ()) ht (by linarith) (Set.mem_univ _)
+    simp only [ShenWork.Paper2.unitPointDomain] at hpde
+    rw [ha, hb] at hpde
+    linarith
+  -- u is constant on (0, ∞): use IsOpen.is_const_of_deriv_eq_zero
+  have hconst : ∀ t₁ t₂ : ℝ, 0 < t₁ → 0 < t₂ →
+      u t₁ () = u t₂ () := by
+    intro t₁ t₂ ht₁ ht₂
+    have hIoi_open : IsOpen (Set.Ioi (0 : ℝ)) := isOpen_Ioi
+    have hIoi_preconn : IsPreconnected (Set.Ioi (0 : ℝ)) :=
+      convex_Ioi (0 : ℝ) |>.isPreconnected
+    have hDiffOn : DifferentiableOn ℝ (fun t : ℝ => u t ()) (Set.Ioi 0) :=
+      hreg.differentiableOn
+    have hEqOn : Set.EqOn (deriv (fun t : ℝ => u t ())) 0 (Set.Ioi 0) :=
+      fun t ht => hderiv_zero t ht
+    exact hIoi_open.is_const_of_deriv_eq_zero hIoi_preconn hDiffOn hEqOn ht₁ ht₂
+  -- u(t)() = u(1)() for all t > 0
+  have hval : ∀ t : ℝ, 0 < t → u t () = u 1 () :=
+    fun t ht => hconst t 1 ht one_pos
+  -- u(1)() > 0 from PGBS positivity
+  have hpos : 0 < u 1 () := hsol.2.2 1 () one_pos (Set.mem_univ _)
+  -- Set δu = u(1)()
+  refine ⟨u 1 (), hpos, ?_, ?_⟩
+  · -- EventuallyLowerBound D u (u 1 ())
+    refine ⟨hpos, Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩⟩
+    change u 1 () ≤ ShenWork.Paper2.unitPointDomain.infValue (u t)
+    change u 1 () ≤ u t ()
+    rw [hval t (lt_of_lt_of_le one_pos ht)]
+  · -- EventuallyLowerBound D v (ν/μ * (u 1 ())^γ)
+    have hv_eq : ∀ t : ℝ, 0 < t →
+        v t () = (p.ν / p.μ) * (u t ()) ^ p.γ := by
+      intro t ht
+      have hT := hglobal (t + 1) (by linarith)
+      have hpde_v := hT.pde_v (t := t) (x := ()) ht (by linarith) (Set.mem_univ _)
+      simp only [ShenWork.Paper2.unitPointDomain] at hpde_v
+      have hμ_ne : p.μ ≠ 0 := ne_of_gt p.hμ
+      have h : p.μ * v t () = p.ν * (u t ()) ^ p.γ := by linarith
+      field_simp at h ⊢
+      linarith
+    have hv_const : ∀ t : ℝ, 0 < t →
+        v t () = (p.ν / p.μ) * (u 1 ()) ^ p.γ := by
+      intro t ht
+      rw [hv_eq t ht, hval t ht]
+    have hv_pos : 0 < (p.ν / p.μ) * (u 1 ()) ^ p.γ := by
+      apply mul_pos (div_pos p.hν p.hμ)
+      exact Real.rpow_pos_of_pos hpos _
+    refine ⟨hv_pos, Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩⟩
+    change p.ν / p.μ * (u 1 ()) ^ p.γ ≤
+      ShenWork.Paper2.unitPointDomain.infValue (v t)
+    change p.ν / p.μ * (u 1 ()) ^ p.γ ≤ v t ()
+    rw [hv_const t (lt_of_lt_of_le one_pos ht)]
+
 end ShenWork.Paper3
 
 end
