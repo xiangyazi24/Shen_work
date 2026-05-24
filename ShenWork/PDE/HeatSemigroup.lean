@@ -1731,6 +1731,23 @@ lemma unitIntervalCosineHeatPointWeight_sq_le_traceTerm (t x : ℝ) (n : ℕ) :
           congr 1
           ring
 
+/-- Pointwise evaluation energy is bounded by the cosine heat trace. -/
+lemma unitIntervalCosineHeatPointEnergy_le_trace {t x : ℝ}
+    (htrace : Summable fun n =>
+      Real.exp (-2 * t * unitIntervalCosineEigenvalue n)) :
+    unitIntervalCosineHeatPointEnergy t x ≤ unitIntervalCosineHeatTrace t := by
+  have hpoint :
+      Summable fun n => (unitIntervalCosineHeatPointWeight t x n) ^ 2 :=
+    Summable.of_nonneg_of_le (fun n => sq_nonneg _)
+      (fun n => unitIntervalCosineHeatPointWeight_sq_le_traceTerm t x n) htrace
+  calc
+    unitIntervalCosineHeatPointEnergy t x
+        = ∑' n, (unitIntervalCosineHeatPointWeight t x n) ^ 2 := rfl
+    _ ≤ ∑' n, Real.exp (-2 * t * unitIntervalCosineEigenvalue n) :=
+        hpoint.tsum_le_tsum
+          (fun n => unitIntervalCosineHeatPointWeight_sq_le_traceTerm t x n) htrace
+    _ = unitIntervalCosineHeatTrace t := rfl
+
 /-- The heat semigroup is symmetric in the sense that swapping x and y
     in the kernel gives the same integrand. -/
 theorem heatSemigroup_kernel_symm (t x y : ℝ) :
