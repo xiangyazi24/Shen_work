@@ -7581,6 +7581,31 @@ theorem Lemma_A_3_zero_data (D : BoundedDomainData) :
     Lemma_A_3 D (ShenWork.Paper2.zeroSemigroupEstimateData D) :=
   Lemma_A_3.paper2 (ShenWork.Paper2.Lemma_2_2_zero_data D)
 
+/-- Appendix A.4 raw divergence semigroup estimate, carried over from the
+Paper2 semigroup-estimate interface. -/
+def Lemma_A_4 (D : BoundedDomainData) (p : CM2Params)
+    (S : SemigroupEstimateData D) : Prop :=
+  ShenWork.Paper2.Lemma_2_3 D p S
+
+theorem Lemma_A_4.paper2
+    {D : BoundedDomainData} {p : CM2Params} {S : SemigroupEstimateData D}
+    (h : ShenWork.Paper2.Lemma_2_3 D p S) :
+    Lemma_A_4 D p S := by
+  simpa [Lemma_A_4] using h
+
+theorem Lemma_A_4_zero_divergence_branch
+    (D : BoundedDomainData) (p : CM2Params) (S : SemigroupEstimateData D)
+    (hvector_nonneg : ∀ q phi, 0 ≤ S.vectorLpNorm q phi)
+    (hlp_div_zero : ∀ q t phi, S.lpNorm q (S.divergenceSemigroup t phi) = 0) :
+    Lemma_A_4 D p S :=
+  Lemma_A_4.paper2
+    (ShenWork.Paper2.Lemma_2_3_zero_divergence_branch D p S
+      hvector_nonneg hlp_div_zero)
+
+theorem Lemma_A_4_zero_data (D : BoundedDomainData) (p : CM2Params) :
+    Lemma_A_4 D p (ShenWork.Paper2.zeroSemigroupEstimateData D) :=
+  Lemma_A_4.paper2 (ShenWork.Paper2.Lemma_2_3_zero_data D p)
+
 def PowerDifferenceInequality
     (C alpha gamma uStar : ℝ) : Prop :=
   ∀ u > 0,
