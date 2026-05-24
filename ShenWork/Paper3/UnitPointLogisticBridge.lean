@@ -502,6 +502,95 @@ theorem unitPointDomain.Theorem_2_1_when_a_pos_b_pos_m_ne_one_chi_nonpos
     unitPointDomain.Theorem_2_1_part3_vacuous_when_chi_nonpos p hχ,
     unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero p (ne_of_gt ha) C⟩
 
+/-- On unitPointDomain with a > 0 and b = 0, no PositiveGlobalBoundedSolution
+exists: the PDE forces u' = au with a > 0, giving exponential growth that
+contradicts IsPaper2Bounded. Hence Theorem_2_1_part1 is vacuously true. -/
+theorem unitPointDomain.Theorem_2_1_part1_when_a_pos_b_zero
+    (p : CM2Params) (ha : 0 < p.a) (hb : p.b = 0) :
+    Theorem_2_1_part1 ShenWork.Paper2.unitPointDomain p := by
+  intro _hm u v hsol
+  exfalso
+  obtain ⟨hglobal, hbdd, hupos⟩ := hsol
+  -- From IsPaper2Bounded: ∃ M, eventually |u t ()| ≤ M
+  obtain ⟨M, hM⟩ := hbdd
+  rw [Filter.eventually_atTop] at hM
+  obtain ⟨T₀, hT₀⟩ := hM
+  -- PDE: deriv (fun s => u s ()) t = u t () * a for all t > 0
+  have hpde : ∀ t : ℝ, 0 < t →
+      deriv (fun s : ℝ => u s ()) t = u t () * p.a := by
+    intro t ht
+    have hT := hglobal (t + 1) (by linarith)
+    have h := hT.pde_u (t := t) (x := ()) ht (by linarith) (Set.mem_univ _)
+    simp only [ShenWork.Paper2.unitPointDomain] at h
+    rw [hb] at h; simp at h; linarith
+  -- Differentiable
+  have hdiff : Differentiable ℝ (fun t : ℝ => u t ()) :=
+    (hglobal 2 (by norm_num : (0:ℝ) < 2)).regularity.1
+  -- u(1)() > 0
+  have hu1_pos : 0 < u 1 () := hupos 1 () one_pos (Set.mem_univ _)
+  -- From PDE: u' = au > 0, so u is increasing on (0,∞)
+  -- By monotoneOn_of_deriv_nonneg: u increasing on [1, ∞)
+  -- u(t) ≥ u(1) for t ≥ 1, so deriv ≥ a·u(1) > 0
+  -- Linear growth: u(t) ≥ u(1) + a·u(1)·(t-1) → ∞
+  -- Eventually exceeds M, contradicting bounded
+  have hderiv_pos : ∀ t : ℝ, 1 ≤ t → 0 ≤ deriv (fun s => u s ()) t := by
+    intro t ht
+    rw [hpde t (lt_of_lt_of_le one_pos ht)]
+    exact mul_nonneg (le_of_lt (hupos t () (lt_of_lt_of_le one_pos ht) (Set.mem_univ _))) ha.le
+  have hmono : MonotoneOn (fun t : ℝ => u t ()) (Set.Ici 1) :=
+    monotoneOn_of_deriv_nonneg (convex_Ici 1)
+      (hdiff.continuous.continuousOn)
+      (fun t _ht => (hdiff t).differentiableWithinAt)
+      (fun t ht => by rw [interior_Ici] at ht; exact hderiv_pos t (Set.mem_Ioi.mp ht).le)
+  have hderiv_lb : ∀ t : ℝ, 1 ≤ t →
+      p.a * u 1 () ≤ deriv (fun s => u s ()) t := by
+    intro t ht
+    rw [hpde t (lt_of_lt_of_le one_pos ht)]
+    rw [mul_comm p.a (u 1 ())]
+    exact mul_le_mul_of_nonneg_right
+      (hmono (Set.mem_Ici.mpr le_rfl) (Set.mem_Ici.mpr ht) ht) ha.le
+  -- Use Convex.mul_sub_le_image_sub_of_le_deriv for linear lower bound
+  set f : ℝ → ℝ := fun s => u s () with hf_def
+  have hlinear : ∀ t : ℝ, 1 ≤ t →
+      f 1 + p.a * f 1 * (t - 1) ≤ f t := by
+    intro t ht
+    have hcont_on : ContinuousOn f (Set.Ici 1) :=
+      hdiff.continuous.continuousOn.mono (Set.Ici_subset_Ici.mpr le_rfl)
+    have hdiff_on : DifferentiableOn ℝ f (interior (Set.Ici 1)) := by
+      rw [interior_Ici]
+      exact hdiff.differentiableOn.mono Set.Ioi_subset_Ici_self
+    have hbound : ∀ x ∈ interior (Set.Ici (1 : ℝ)),
+        p.a * f 1 ≤ deriv f x := by
+      intro x hx; rw [interior_Ici] at hx
+      exact hderiv_lb x (Set.mem_Ioi.mp hx).le
+    have h := Convex.mul_sub_le_image_sub_of_le_deriv (convex_Ici 1)
+      hcont_on hdiff_on hbound
+      1 (Set.mem_Ici.mpr le_rfl) t (Set.mem_Ici.mpr ht) ht
+    linarith
+  -- Choose t large enough to exceed M
+  have hau_pos : 0 < p.a * u 1 () := mul_pos ha hu1_pos
+  set t_star := max T₀ 1 + (|M| + 1) / (p.a * u 1 ()) + 1
+  have hdiv_nonneg : 0 ≤ (|M| + 1) / (p.a * u 1 ()) :=
+    div_nonneg (by linarith [abs_nonneg M]) hau_pos.le
+  have ht_ge_1 : 1 ≤ t_star := by
+    simp only [t_star]; linarith [le_max_right T₀ 1]
+  have ht_ge_T₀ : T₀ ≤ t_star := by
+    simp only [t_star]; linarith [le_max_left T₀ (1 : ℝ)]
+  have hu_large : |M| + 1 < u t_star () - u 1 () := by
+    have h := hlinear t_star ht_ge_1
+    have ht_diff : t_star - 1 > (|M| + 1) / (p.a * u 1 ()) := by
+      simp only [t_star]
+      linarith [le_max_right T₀ 1]
+    have := mul_lt_mul_of_pos_left ht_diff hau_pos
+    rw [mul_div_cancel₀ _ (ne_of_gt hau_pos)] at this
+    linarith
+  have hu_exceeds : M < u t_star () := by
+    have : u 1 () ≥ 0 := hu1_pos.le
+    linarith [le_abs_self M]
+  have hbdd_contra := hT₀ t_star ht_ge_T₀
+  simp only [ShenWork.Paper2.unitPointDomain] at hbdd_contra
+  linarith [le_abs_self (u t_star ())]
+
 end ShenWork.Paper3
 
 end
