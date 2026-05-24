@@ -5519,6 +5519,13 @@ theorem unitPointDomain.Theorem_1_2_vacuous_when_beta_lt_one
     Theorem_1_2 unitPointDomain p := by
   intro _ _ hβ'; exact absurd hβ' (not_le.mpr hβ)
 
+/-- Paper 2 Theorem 1.1 is vacuous on the unit-point domain when
+`0 < p.χ₀` (the hypothesis is `p.χ₀ ≤ 0`). -/
+theorem unitPointDomain.Theorem_1_1_vacuous_when_chi_pos
+    (p : CM2Params) (hχ : 0 < p.χ₀) :
+    Theorem_1_1 unitPointDomain p := by
+  intro hχ'; exact absurd hχ' (not_le.mpr hχ)
+
 end
 
 end ShenWork.Paper2
