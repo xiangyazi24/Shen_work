@@ -41,6 +41,21 @@ theorem unitPointDomain.Proposition_1_2_when_a_pos_b_pos
   refine Filter.eventually_atTop.mpr ⟨0, fun t ht => ?_⟩
   exact hbound t ht
 
+/-- Paper 3 Proposition 1.4 for the `0 < p.a ∧ 0 < p.b` slice (a subcase
+of the `(0 ≤ a ∧ 0 < b)` disjunctive branch).  Routes through Slot F. -/
+theorem unitPointDomain.Proposition_1_4_when_a_pos_b_pos
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) :
+    Proposition_1_4 ShenWork.Paper2.unitPointDomain p := by
+  intro _hm _hβ _hor _hχ u₀ hu₀
+  rcases ShenWork.Paper2.unitPointLogistic_globalExistence_with_attractor
+      p ha hb u₀ hu₀ with
+    ⟨u, v, hglobal, htrace, hbound, _hlim⟩
+  refine ⟨u, v, hglobal, htrace, ?_⟩
+  refine ⟨max (ShenWork.Paper2.unitPointDomain.supNorm u₀)
+    ((p.a / p.b) ^ (1 / p.α)), ?_⟩
+  refine Filter.eventually_atTop.mpr ⟨0, fun t ht => ?_⟩
+  exact hbound t ht
+
 end ShenWork.Paper3
 
 end
