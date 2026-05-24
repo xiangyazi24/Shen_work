@@ -7,6 +7,7 @@ import ShenWork.PDE.HeatSemigroup
 import ShenWork.PDE.IntervalDomain
 import Mathlib.MeasureTheory.Function.L1Space.Integrable
 import Mathlib.MeasureTheory.Function.LpSeminorm.LpNorm
+import Mathlib.MeasureTheory.Integral.Prod
 
 open MeasureTheory Filter Topology Real
 open scoped ENNReal
@@ -188,6 +189,99 @@ lemma intervalSemigroupOperator_aestronglyMeasurable
     unfold normalizedZerothReflectionKernel neumannHeatKernel_zerothReflection heatKernel
     fun_prop
   exact hk_cont.aestronglyMeasurable.mul hf.comp_snd
+
+/-- Symmetry of the normalized zeroth-reflection interval helper kernel. -/
+lemma normalizedZerothReflectionKernel_symm (L t x y : ℝ) :
+    normalizedZerothReflectionKernel L t x y =
+      normalizedZerothReflectionKernel L t y x := by
+  unfold normalizedZerothReflectionKernel neumannHeatKernel_zerothReflection
+  rw [heatKernel_sub_comm t x y]
+  congr 1
+  ring_nf
+
+/-- The restricted interval mass is also at most one when integrating in the
+first spatial variable. -/
+lemma normalizedZerothReflectionKernel_intervalIntegral_left_le_one
+    {t : ℝ} (ht : 0 < t) (L y : ℝ) :
+    ∫ x, normalizedZerothReflectionKernel L t x y ∂ intervalMeasure L ≤ 1 := by
+  have h :=
+    normalizedZerothReflectionKernel_intervalIntegral_le_one
+      (L := L) (t := t) ht y
+  simpa [normalizedZerothReflectionKernel_symm] using h
+
+/-- `L¹` contraction for the restricted interval heat helper. -/
+lemma intervalSemigroupOperator_L1_contraction
+    {L t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf_int : Integrable f (intervalMeasure L)) :
+    ∫ x, ‖intervalSemigroupOperator L t f x‖ ∂ intervalMeasure L ≤
+      ∫ y, ‖f y‖ ∂ intervalMeasure L := by
+  let μ := intervalMeasure L
+  let K : ℝ → ℝ → ℝ := fun x y =>
+    normalizedZerothReflectionKernel L t x y
+  let F : ℝ × ℝ → ℝ := fun z => K z.1 z.2 * ‖f z.2‖
+  have hK_cont : Continuous (fun z : ℝ × ℝ => K z.1 z.2) := by
+    dsimp [K]
+    unfold normalizedZerothReflectionKernel neumannHeatKernel_zerothReflection heatKernel
+    fun_prop
+  have hF_int : Integrable F (μ.prod μ) := by
+    have hf_prod : Integrable (fun z : ℝ × ℝ => ‖f z.2‖) (μ.prod μ) := by
+      exact hf_int.norm.comp_snd μ
+    have hK_bound :
+        ∀ z : ℝ × ℝ, ‖K z.1 z.2‖ ≤
+          1 / Real.sqrt (4 * Real.pi * t) := by
+      intro z
+      dsimp [K]
+      rw [abs_of_nonneg (normalizedZerothReflectionKernel_nonneg ht L z.1 z.2)]
+      exact normalizedZerothReflectionKernel_pointwise_bound ht L z.1 z.2
+    simpa [F, mul_comm] using
+      hf_prod.mul_bdd hK_cont.aestronglyMeasurable
+        (Filter.Eventually.of_forall hK_bound)
+  have hright_int :
+      Integrable (fun x => ∫ y, F (x, y) ∂ μ) μ :=
+    hF_int.integral_prod_left
+  have hfirst :
+      ∫ x, ‖intervalSemigroupOperator L t f x‖ ∂ μ ≤
+        ∫ x, ∫ y, F (x, y) ∂ μ ∂ μ := by
+    apply MeasureTheory.integral_mono_of_nonneg
+    · exact Filter.Eventually.of_forall fun x => norm_nonneg _
+    · exact hright_int
+    · exact Filter.Eventually.of_forall fun x => by
+        dsimp [F, K]
+        simpa [Real.norm_eq_abs] using
+          intervalSemigroupOperator_abs_le_integral_abs
+            (L := L) (t := t) ht f x
+  have hswap :
+      ∫ x, ∫ y, F (x, y) ∂ μ ∂ μ =
+        ∫ y, ∫ x, F (x, y) ∂ μ ∂ μ :=
+    MeasureTheory.integral_integral_swap (μ := μ) (ν := μ)
+      (f := fun x y => F (x, y)) hF_int
+  have hsecond :
+      ∫ y, ∫ x, F (x, y) ∂ μ ∂ μ ≤
+        ∫ y, ‖f y‖ ∂ μ := by
+    have hleft_int :
+        Integrable (fun y => ∫ x, F (x, y) ∂ μ) μ :=
+      hF_int.integral_prod_right
+    apply MeasureTheory.integral_mono_of_nonneg
+    · exact Filter.Eventually.of_forall fun y =>
+        integral_nonneg fun x => by
+          exact mul_nonneg
+            (normalizedZerothReflectionKernel_nonneg ht L x y)
+            (norm_nonneg _)
+    · exact hf_int.norm
+    · exact Filter.Eventually.of_forall fun y => by
+        have hmass :=
+          normalizedZerothReflectionKernel_intervalIntegral_left_le_one
+            (L := L) (t := t) ht y
+        calc
+          ∫ x, F (x, y) ∂ μ
+              = ‖f y‖ * ∫ x, K x y ∂ μ := by
+                dsimp [F, K]
+                rw [MeasureTheory.integral_mul_const]
+                ring
+          _ ≤ ‖f y‖ * 1 :=
+                mul_le_mul_of_nonneg_left hmass (norm_nonneg _)
+          _ = ‖f y‖ := by ring
+  exact hfirst.trans (hswap.trans_le hsecond)
 
 /-- Uniform `L^r` bound for the restricted reflected interval heat kernel.
 If `r` is Hölder-conjugate to `p`, the bound has the expected
