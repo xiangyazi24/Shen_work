@@ -211,3 +211,19 @@ Rules:
   are still authoritative.
 - If you finish a slot, mark it `Status: done.  Closed by <hash>.` and
   add a new slot at the bottom describing the next reasonable extension.
+
+### Slot P — Paper 2 `Theorem_1_2` slow-diffusion branch trivial-case closures
+- Owner files: `ShenWork/Paper2/Statements.lean`.
+- `Theorem_1_2` first branch needs `0 < p.m < 1`.  Add a `_minimal_only`
+  variant for `(p.a = 0, p.b = 0, 0 < p.m < 1)` using the constant
+  solution `u ≡ u₀, v ≡ (ν/μ) u₀^γ` (mirrors Theorem_1_1 pattern).
+- Output: 1 commit ~50 LOC.
+- Status: open.  Claimed: ___
+
+### Slot Q — Paper 3 `Proposition_1_2/1_3/1_4` more vacuous slices
+- Owner files: `ShenWork/Paper3/Statements.lean`.
+- Existing: chi_pos, a_zero, b_zero, m_lt_one closures for some.  Add
+  remaining: Proposition_1_2 vacuous when m < 1; Proposition_1_3 vacuous
+  when StrongLogisticCondition fails (use a specific param); etc.
+- Output: 2-4 commits ~10 LOC each.
+- Status: open.  Claimed: ___
