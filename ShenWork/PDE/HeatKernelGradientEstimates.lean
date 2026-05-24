@@ -359,6 +359,12 @@ theorem unitIntervalIocMeasure_eq_intervalMeasure :
   unfold intervalMeasure intervalSet
   exact restrict_Ioc_eq_restrict_Icc
 
+/-- The concrete unit interval has total restricted measure one. -/
+theorem unitIntervalMeasure_univ :
+    intervalMeasure 1 Set.univ = (1 : ℝ≥0∞) := by
+  unfold intervalMeasure intervalSet
+  simp [Real.volume_Icc]
+
 /-- The interval-integral `L²` mass on `[0,1]` is the square of the Mathlib
 `lpNorm` at exponent `2`, stated in square-root form. -/
 theorem unitInterval_sqrt_integral_norm_sq_eq_lpNorm_two
@@ -416,5 +422,127 @@ theorem unitIntervalNeumannSpectralHeat_deriv_L2_Linfty_lpNorm_bound
   simpa [unitInterval_sqrt_integral_norm_sq_eq_lpNorm_two hf] using
     unitIntervalNeumannSpectralHeat_deriv_L2_Linfty_bound'
       (t := t) ht (f := f) hf hL2 hf_sq
+
+/-- On the unit interval, a pointwise norm bound controls every finite
+Mathlib `lpNorm`. -/
+theorem unitInterval_lpNorm_le_of_forall_norm_le
+    {g : ℝ → ℝ} {q C : ℝ} (hq : 0 < q) (hC : 0 ≤ C)
+    (hbound : ∀ x, ‖g x‖ ≤ C) :
+    lpNorm g (ENNReal.ofReal q) (intervalMeasure 1) ≤ C := by
+  by_cases hg : AEStronglyMeasurable g (intervalMeasure 1)
+  · have hELp :
+        eLpNorm g (ENNReal.ofReal q) (intervalMeasure 1) ≤ ENNReal.ofReal C := by
+      have hbase :=
+        eLpNorm_le_of_ae_bound
+          (p := ENNReal.ofReal q) (μ := intervalMeasure 1)
+          (f := g) (Filter.Eventually.of_forall hbound)
+      simpa [unitIntervalMeasure_univ, ENNReal.toReal_ofReal hq.le] using hbase
+    calc
+      lpNorm g (ENNReal.ofReal q) (intervalMeasure 1)
+          = (eLpNorm g (ENNReal.ofReal q) (intervalMeasure 1)).toReal := by
+            exact (toReal_eLpNorm hg).symm
+      _ ≤ (ENNReal.ofReal C).toReal :=
+            ENNReal.toReal_mono ENNReal.ofReal_ne_top hELp
+      _ = C := ENNReal.toReal_ofReal hC
+  · simp [lpNorm, hg, hC]
+
+/-- Unit-interval spectral Neumann heat-gradient estimate in Mathlib
+`LpSeminorm` form, from interval `L²` to finite `L^q`. -/
+theorem unitIntervalNeumannSpectralHeatGradient_L2_Lq_lpNorm_bound
+    {t q : ℝ} (ht : 0 < t) (hq : 0 < q)
+    {f : ℝ → ℂ}
+    (hf : IntervalIntegrable f volume 0 1)
+    (hL2 :
+      MemLp (unitIntervalEvenReflection f) 2
+        (volume.restrict (Set.Ioc (-1 : ℝ) 1)))
+    (hf_sq : IntervalIntegrable (fun x : ℝ => ‖f x‖ ^ 2) volume 0 1) :
+    lpNorm
+        (fun x =>
+          unitIntervalCosineHeatGradientValue t
+            (unitIntervalNeumannCosineCoeff f) x)
+        (ENNReal.ofReal q) (intervalMeasure 1) ≤
+      2 * (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+        lpNorm f (2 : ℝ≥0∞) (intervalMeasure 1) := by
+  let C : ℝ :=
+    2 * (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+      lpNorm f (2 : ℝ≥0∞) (intervalMeasure 1)
+  obtain ⟨hcoeff_sum, hcoeff_norm⟩ :=
+    unitIntervalNeumannCosineCoeff_l2_bound (f := f) hf hL2 hf_sq
+  have hcoeff_norm_lp :
+      unitIntervalCosineL2TsumNorm (unitIntervalNeumannCosineCoeff f) ≤
+        2 * lpNorm f (2 : ℝ≥0∞) (intervalMeasure 1) := by
+    simpa [unitInterval_sqrt_integral_norm_sq_eq_lpNorm_two hf] using hcoeff_norm
+  have hfactor_nonneg :
+      0 ≤ unitIntervalCosineHeatGradientL2LinftyConstant / t := by
+    exact div_nonneg (Real.sqrt_nonneg _) ht.le
+  have hC_nonneg : 0 ≤ C := by
+    dsimp [C]
+    exact mul_nonneg (mul_nonneg (by norm_num) hfactor_nonneg) lpNorm_nonneg
+  have hpoint :
+      ∀ x,
+        ‖unitIntervalCosineHeatGradientValue t
+          (unitIntervalNeumannCosineCoeff f) x‖ ≤ C := by
+    intro x
+    have hbase_abs :=
+      unitIntervalCosineHeatGradientValue_L2_Linfty_smoothing
+        (t := t) ht unitIntervalCosineReciprocalEigenvalueTerm_summable
+        (a := unitIntervalNeumannCosineCoeff f) hcoeff_sum x
+    have hbase_norm :
+        ‖unitIntervalCosineHeatGradientValue t
+          (unitIntervalNeumannCosineCoeff f) x‖ ≤
+          (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+            unitIntervalCosineL2TsumNorm
+              (unitIntervalNeumannCosineCoeff f) := by
+      simpa [Real.norm_eq_abs] using hbase_abs
+    have hstep :
+        (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+            unitIntervalCosineL2TsumNorm
+              (unitIntervalNeumannCosineCoeff f) ≤
+          (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+            (2 * lpNorm f (2 : ℝ≥0∞) (intervalMeasure 1)) :=
+      mul_le_mul_of_nonneg_left hcoeff_norm_lp hfactor_nonneg
+    exact hbase_norm.trans (hstep.trans_eq (by
+      dsimp [C]
+      ring))
+  exact unitInterval_lpNorm_le_of_forall_norm_le hq hC_nonneg hpoint
+
+/-- Unit-interval spectral Neumann heat semigroup derivative estimate in
+Mathlib `LpSeminorm` form, from interval `L²` to finite `L^q`. -/
+theorem unitIntervalNeumannSpectralHeat_deriv_L2_Lq_lpNorm_bound
+    {t q : ℝ} (ht : 0 < t) (hq : 0 < q)
+    {f : ℝ → ℂ}
+    (hf : IntervalIntegrable f volume 0 1)
+    (hL2 :
+      MemLp (unitIntervalEvenReflection f) 2
+        (volume.restrict (Set.Ioc (-1 : ℝ) 1)))
+    (hf_sq : IntervalIntegrable (fun x : ℝ => ‖f x‖ ^ 2) volume 0 1) :
+    lpNorm
+        (fun x =>
+          deriv
+            (fun z =>
+              unitIntervalCosineHeatValue t
+                (unitIntervalNeumannCosineCoeff f) z) x)
+        (ENNReal.ofReal q) (intervalMeasure 1) ≤
+      2 * (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+        lpNorm f (2 : ℝ≥0∞) (intervalMeasure 1) := by
+  obtain ⟨hcoeff_sum, _hcoeff_norm⟩ :=
+    unitIntervalNeumannCosineCoeff_l2_bound (f := f) hf hL2 hf_sq
+  have hderiv :
+      (fun x =>
+          deriv
+            (fun z =>
+              unitIntervalCosineHeatValue t
+                (unitIntervalNeumannCosineCoeff f) z) x)
+        =
+        fun x =>
+          unitIntervalCosineHeatGradientValue t
+            (unitIntervalNeumannCosineCoeff f) x := by
+    funext x
+    exact unitIntervalCosineHeatValue_deriv_of_l2
+      (t := t) (x := x) ht unitIntervalCosineReciprocalEigenvalueTerm_summable
+      (a := unitIntervalNeumannCosineCoeff f) hcoeff_sum
+  rw [hderiv]
+  exact unitIntervalNeumannSpectralHeatGradient_L2_Lq_lpNorm_bound
+    (t := t) (q := q) ht hq (f := f) hf hL2 hf_sq
 
 end ShenWork.HeatKernelGradientEstimates
