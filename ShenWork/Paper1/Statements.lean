@@ -1782,6 +1782,41 @@ theorem paper1BoundedMeasurableDivergence_point_estimate
     simpa [paper1BoundedMeasurableDivergenceSemigroup, hu] using
       hright_nonneg
 
+def paper1BoundedMeasurableHeatSemigroupEstimateData :
+    HeatSemigroupEstimateData :=
+  { lpNorm := paper1BoundedMeasurableNorm
+    lqNorm := paper1PointNorm
+    linftyNorm := fun u => |u 0|
+    gradientNorm := fun _ _ => 0
+    semigroup := paper1BoundedMeasurableSemigroup
+    divergenceSemigroup := paper1BoundedMeasurableDivergenceSemigroup }
+
+theorem Lemma_2_1_boundedMeasurable_heatSemigroupEstimateData :
+    Lemma_2_1 paper1BoundedMeasurableHeatSemigroupEstimateData := by
+  intro p q hp hpq
+  refine ⟨?_, ?_, ?_⟩
+  · refine ⟨1, zero_lt_one, ?_⟩
+    intro t ht u
+    simpa [paper1BoundedMeasurableHeatSemigroupEstimateData] using
+      paper1BoundedMeasurableSemigroup_point_estimate hp hpq ht u
+  · refine ⟨1, zero_lt_one, ?_⟩
+    intro t ht u
+    have hright_nonneg :
+        0 ≤ (1 : ℝ) *
+          t ^ (-(1 / 2 : ℝ) - (1 / 2 : ℝ) * (1 / p - 1 / q)) *
+          Real.exp (-t) * paper1BoundedMeasurableNorm p u := by
+      exact mul_nonneg
+        (mul_nonneg
+          (mul_nonneg zero_le_one (Real.rpow_nonneg ht.le _))
+          (Real.exp_nonneg _))
+        (paper1BoundedMeasurableNorm_nonneg p u)
+    simpa [paper1BoundedMeasurableHeatSemigroupEstimateData] using
+      hright_nonneg
+  · refine ⟨1, zero_lt_one, ?_⟩
+    intro t ht u
+    simpa [paper1BoundedMeasurableHeatSemigroupEstimateData] using
+      paper1BoundedMeasurableDivergence_point_estimate hp ht u
+
 def PsiDerivativeFormula (u : ℝ → ℝ) (l mu : ℝ) : Prop :=
   ∀ x,
     deriv (fun z => Psi u l mu z) x =
