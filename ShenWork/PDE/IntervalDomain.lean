@@ -8,9 +8,11 @@
   No abstract structure fields. No assumed estimates.
 -/
 import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+import Mathlib.Analysis.Calculus.Deriv.Basic
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 import Mathlib.MeasureTheory.Integral.Bochner.Basic
 import ShenWork.PDE.HeatSemigroup
+import ShenWork.PDE.BoundedDomainData
 
 open MeasureTheory Set
 
@@ -2737,6 +2739,70 @@ theorem intervalSemigroupOperator_contraction_symmetric_interval_bound_bounded
   abs_le.mp
     (intervalSemigroupOperator_contraction_bounded
       ht hM hf_meas hg_meas hf_bound hg_bound hfg x)
+
+-- Unit interval domain point space used by the concrete bounded-domain API.
+def intervalDomainPoint : Type := Subtype (Set.Icc (0 : ℝ) 1)
+
+-- Extend a function on the unit interval to ℝ by zero outside
+-- `[0,1]`, so that `intervalIntegral` and `deriv` can be applied directly.
+def intervalDomainLift (f : intervalDomainPoint → ℝ) : ℝ → ℝ :=
+  fun x => if hx : x ∈ Set.Icc (0 : ℝ) 1 then f ⟨x, hx⟩ else 0
+
+def intervalDomainIntegral (f : intervalDomainPoint → ℝ) : ℝ :=
+  ∫ x in (0 : ℝ)..1, intervalDomainLift f x
+
+def intervalDomainGradNorm (f : intervalDomainPoint → ℝ)
+    (x : intervalDomainPoint) : ℝ :=
+  |deriv (intervalDomainLift f) x.1|
+
+def intervalDomainLaplacian (f : intervalDomainPoint → ℝ)
+    (x : intervalDomainPoint) : ℝ :=
+  deriv (fun y : ℝ => deriv (intervalDomainLift f) y) x.1
+
+def intervalDomainChemotaxisDiv (p : CM2Params)
+    (u v : intervalDomainPoint → ℝ) (x : intervalDomainPoint) : ℝ :=
+  deriv
+    (fun y : ℝ =>
+      intervalDomainLift u y * deriv (intervalDomainLift v) y /
+        (1 + intervalDomainLift v y) ^ p.β)
+    x.1
+
+def intervalDomainCrossDiffusionEnergyTerm (p : CM2Params)
+    (pExp : ℝ) (u v : intervalDomainPoint → ℝ) : ℝ :=
+  ∫ x in (0 : ℝ)..1,
+    (intervalDomainLift u x) ^ (pExp - 1) *
+      |deriv (intervalDomainLift u) x| * |deriv (intervalDomainLift v) x| /
+        (1 + intervalDomainLift v x) ^ p.β
+
+def intervalDomainNormalDeriv (f : intervalDomainPoint → ℝ)
+    (x : intervalDomainPoint) : ℝ :=
+  if _h : x.1 = 0 ∨ x.1 = 1 then 0 else deriv (intervalDomainLift f) x.1
+
+theorem intervalDomainNormalDeriv_endpoint
+    (f : intervalDomainPoint → ℝ) {x : intervalDomainPoint}
+    (hx : x.1 = 0 ∨ x.1 = 1) :
+    intervalDomainNormalDeriv f x = 0 := by
+  unfold intervalDomainNormalDeriv
+  exact if_pos hx
+
+/-- Concrete bounded-domain data for the unit interval [0,1] with Neumann endpoint
+conditions (normal derivative is explicitly `0` on `{0,1}`). -/
+def intervalDomain : ShenWork.Paper2.BoundedDomainData where
+  Point := intervalDomainPoint
+  inside := {x : intervalDomainPoint | (x.1 : ℝ) ∈ Set.Ioo 0 1}
+  boundary := {x : intervalDomainPoint | x.1 = 0 ∨ x.1 = 1}
+  volume := 1
+  supNorm := fun f => sSup (Set.range (fun x : intervalDomainPoint => |f x|))
+  infValue := fun f => sInf (Set.range f)
+  integral := intervalDomainIntegral
+  gradNorm := intervalDomainGradNorm
+  timeDeriv := fun u t x => deriv (fun s : ℝ => u s x) t
+  laplacian := intervalDomainLaplacian
+  chemotaxisDiv := intervalDomainChemotaxisDiv
+  crossDiffusionEnergyTerm := intervalDomainCrossDiffusionEnergyTerm
+  normalDeriv := intervalDomainNormalDeriv
+  initialAdmissible := fun _ => True
+  classicalRegularity := fun _ _ _ => True
 
 end ShenWork.IntervalDomain
 
