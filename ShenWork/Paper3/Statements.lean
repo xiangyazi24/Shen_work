@@ -11634,6 +11634,162 @@ theorem unitPointDomain.Theorem_2_4_vacuous_when_b_zero
     Theorem_2_4 ShenWork.Paper2.unitPointDomain p N C := by
   intro _ hb'; exact absurd hb' (by rw [hb]; exact lt_irrefl 0)
 
+/-! ### Theorem_2_1 part 2/3 additional vacuous building blocks -/
+
+/-- Paper 3 Theorem 2.1 part 2 is vacuous when `p.m ≠ 1`
+(the hypothesis chain includes `p.m = 1`). -/
+theorem unitPointDomain.Theorem_2_1_part2_vacuous_when_m_ne_one
+    (p : CM2Params) (hm : p.m ≠ 1) :
+    Theorem_2_1_part2 ShenWork.Paper2.unitPointDomain p := by
+  intro _ _ _ hm'; exact absurd hm' hm
+
+/-- Paper 3 Theorem 2.1 part 2 is vacuous when `p.β < 1`
+(the hypothesis chain includes `1 ≤ p.β`). -/
+theorem unitPointDomain.Theorem_2_1_part2_vacuous_when_beta_lt_one
+    (p : CM2Params) (hβ : p.β < 1) :
+    Theorem_2_1_part2 ShenWork.Paper2.unitPointDomain p := by
+  intro _ _ _ _ hβ'; exact absurd hβ' (not_le.mpr hβ)
+
+/-- Paper 3 Theorem 2.1 part 3 is vacuous when `p.β < 1`
+(the hypothesis chain includes `1 ≤ p.β`). -/
+theorem unitPointDomain.Theorem_2_1_part3_vacuous_when_beta_lt_one
+    (p : CM2Params) (hβ : p.β < 1) :
+    Theorem_2_1_part3 ShenWork.Paper2.unitPointDomain p := by
+  intro _ _ _ _ hβ'; exact absurd hβ' (not_le.mpr hβ)
+
+/-! ### Theorem_2_1 new composites -/
+
+/-- Paper 3 Theorem 2.1 full composite when `p.a = 0, p.b = 0, p.m ≠ 1`.
+Part 1 fires via `minimal_only`; parts 2–3 vacuous via `a_zero`;
+part 4 vacuous via `m_ne_one`. -/
+theorem unitPointDomain.Theorem_2_1_when_a_zero_b_zero_m_ne_one
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) (hm : p.m ≠ 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_minimal_only p ha hb,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_m_ne_one p hm C⟩
+
+/-- Paper 3 Theorem 2.1 fully vacuous when `p.m < 1`.
+Part 1 vacuous via `m_lt_one`; part 2 vacuous via `m_ne_one`;
+part 3 vacuous via `m_le_one`; part 4 vacuous via `m_ne_one`. -/
+theorem unitPointDomain.Theorem_2_1_vacuous_when_m_lt_one
+    (p : CM2Params) (hm : p.m < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_vacuous_when_m_lt_one p hm,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_m_ne_one p (ne_of_lt hm),
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_m_le_one p (le_of_lt hm),
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_m_ne_one p (ne_of_lt hm) C⟩
+
+/-- Paper 3 Theorem 2.1 fully vacuous when `p.m < 1 ∧ p.χ₀ ≤ 0`.
+Part 1 vacuous via `m_lt_one`; parts 2–3 vacuous via `chi_nonpos`;
+part 4 vacuous via `chi_nonpos`.  Generalises
+`Theorem_2_1_vacuous_when_a_pos_b_pos_chi_nonpos_m_lt_one`. -/
+theorem unitPointDomain.Theorem_2_1_vacuous_when_m_lt_one_chi_nonpos
+    (p : CM2Params) (hm : p.m < 1) (hχ : p.χ₀ ≤ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_vacuous_when_m_lt_one p hm,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_chi_nonpos p hχ,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_chi_nonpos p hχ,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_chi_nonpos p hχ C⟩
+
+/-- Paper 3 Theorem 2.1 fully vacuous when `p.m < 1 ∧ p.β < 1`.
+Part 1 vacuous via `m_lt_one`; parts 2–3 vacuous via `beta_lt_one`;
+part 4 vacuous via `beta_lt_one`. -/
+theorem unitPointDomain.Theorem_2_1_vacuous_when_m_lt_one_beta_lt_one
+    (p : CM2Params) (hm : p.m < 1) (hβ : p.β < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_vacuous_when_m_lt_one p hm,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_beta_lt_one p hβ,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_beta_lt_one p hβ,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_beta_lt_one p hβ C⟩
+
+/-- Paper 3 Theorem 2.1 fully vacuous when `p.a ≠ 0 ∧ p.m < 1`.
+Part 1 vacuous via `m_lt_one`; part 2 vacuous via `m_ne_one`;
+part 3 vacuous via `m_le_one`; part 4 vacuous via `a_nonzero`.
+Generalises `Theorem_2_1_vacuous_when_a_nonzero_b_zero_m_lt_one`. -/
+theorem unitPointDomain.Theorem_2_1_vacuous_when_a_nonzero_m_lt_one
+    (p : CM2Params) (ha : p.a ≠ 0) (hm : p.m < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_vacuous_when_m_lt_one p hm,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_m_ne_one p (ne_of_lt hm),
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_m_le_one p (le_of_lt hm),
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero p ha C⟩
+
+/-- Paper 3 Theorem 2.1 fully vacuous when `p.b ≠ 0 ∧ p.m < 1`.
+Part 1 vacuous via `m_lt_one`; part 2 vacuous via `m_ne_one`;
+part 3 vacuous via `m_le_one`; part 4 vacuous via `b_nonzero`.
+Generalises `Theorem_2_1_vacuous_when_a_zero_b_nonzero_m_lt_one`. -/
+theorem unitPointDomain.Theorem_2_1_vacuous_when_b_nonzero_m_lt_one
+    (p : CM2Params) (hb : p.b ≠ 0) (hm : p.m < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_vacuous_when_m_lt_one p hm,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_m_ne_one p (ne_of_lt hm),
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_m_le_one p (le_of_lt hm),
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_b_nonzero p hb C⟩
+
+/-! ### Theorem_2_3 additional vacuous closures -/
+
+/-- Paper 3 Theorem 2.3 vacuous when `0 < p.χ₀`.
+The leading hypothesis `p.χ₀ ≤ 0` is contradicted. -/
+theorem unitPointDomain.Theorem_2_3_vacuous_when_chi_pos
+    (p : CM2Params) (hχ : 0 < p.χ₀) :
+    Theorem_2_3 ShenWork.Paper2.unitPointDomain p
+      unitPointStabilityNorms := by
+  intro hχ'; exact absurd hχ' (not_le.mpr hχ)
+
+/-- Paper 3 Theorem 2.3 vacuous when `p.m < 1`.
+The second leading hypothesis `1 ≤ p.m` is contradicted. -/
+theorem unitPointDomain.Theorem_2_3_vacuous_when_m_lt_one
+    (p : CM2Params) (hm : p.m < 1) :
+    Theorem_2_3 ShenWork.Paper2.unitPointDomain p
+      unitPointStabilityNorms := by
+  intro _ hm'; exact absurd hm' (not_le.mpr hm)
+
+/-! ### Theorem_2_5 vacuous closures (general constants) -/
+
+/-- Paper 3 Theorem 2.5 vacuous when `p.a ≠ 0`.
+The leading hypothesis `p.a = 0` is contradicted. -/
+theorem unitPointDomain.Theorem_2_5_vacuous_when_a_nonzero
+    (p : CM2Params) (ha : p.a ≠ 0)
+    (N : StabilityNorms ShenWork.Paper2.unitPointDomain)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_5 ShenWork.Paper2.unitPointDomain p N C := by
+  intro ha'; exact absurd ha' ha
+
+/-- Paper 3 Theorem 2.5 vacuous when `p.b ≠ 0`.
+The second hypothesis `p.b = 0` is contradicted. -/
+theorem unitPointDomain.Theorem_2_5_vacuous_when_b_nonzero
+    (p : CM2Params) (hb : p.b ≠ 0)
+    (N : StabilityNorms ShenWork.Paper2.unitPointDomain)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_5 ShenWork.Paper2.unitPointDomain p N C := by
+  intro _ hb'; exact absurd hb' hb
+
+/-- Paper 3 Theorem 2.5 vacuous when `p.m ≠ 1`.
+The third hypothesis `p.m = 1` is contradicted. -/
+theorem unitPointDomain.Theorem_2_5_vacuous_when_m_ne_one
+    (p : CM2Params) (hm : p.m ≠ 1)
+    (N : StabilityNorms ShenWork.Paper2.unitPointDomain)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_5 ShenWork.Paper2.unitPointDomain p N C := by
+  intro _ _ hm'; exact absurd hm' hm
+
+/-- Paper 3 Theorem 2.5 vacuous when `p.β < 1`.
+The fourth hypothesis `1 ≤ p.β` is contradicted. -/
+theorem unitPointDomain.Theorem_2_5_vacuous_when_beta_lt_one
+    (p : CM2Params) (hβ : p.β < 1)
+    (N : StabilityNorms ShenWork.Paper2.unitPointDomain)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_5 ShenWork.Paper2.unitPointDomain p N C := by
+  intro _ _ _ hβ'; exact absurd hβ' (not_le.mpr hβ)
+
 end
 
 end ShenWork.Paper3
