@@ -93,6 +93,12 @@
 - **前置**: H1.2
 - **目标文件**: `ShenWork/Paper2/Statements.lean`
 - **产出**: `Corollary_2_1_intervalDomain`
+- **进展** (2026-05-24): `ShenWork/Paper2/IntervalDomainCorollary21.lean`
+  proves the honest conditional bridge
+  `Corollary_2_1_intervalDomain_of_Lemma_2_6_and_energy`:
+  `Lemma_2_6 intervalDomain` plus the PDE energy derivation from
+  `CrossDiffusionBootstrapEstimate` implies `Corollary_2_1 intervalDomain p`.
+  Not marked done until H1.2 and the energy derivation are closed.
 
 ---
 
