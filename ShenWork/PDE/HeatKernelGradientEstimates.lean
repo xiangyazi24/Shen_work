@@ -192,4 +192,94 @@ theorem unitIntervalCosineHeatGradientValue_L2_Linfty_lpNorm_smoothing
           (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
             unitIntervalCosineL2TsumNorm a := rfl
 
+/-- Unit-interval spectral Neumann heat-gradient estimate from interval `L²`
+mass to `L∞`, stated for the derivative coefficient series.  This is the
+Parseval-connected version of the coefficient-space estimate. -/
+theorem unitIntervalNeumannSpectralHeatGradient_L2_Linfty_bound
+    {t : ℝ} (ht : 0 < t)
+    (hrecip : Summable unitIntervalCosineReciprocalEigenvalueTerm)
+    {f : ℝ → ℂ}
+    (hf : IntervalIntegrable f volume 0 1)
+    (hL2 :
+      MemLp (unitIntervalEvenReflection f) 2
+        (volume.restrict (Set.Ioc (-1 : ℝ) 1)))
+    (hf_sq : IntervalIntegrable (fun x : ℝ => ‖f x‖ ^ 2) volume 0 1) :
+    lpNorm
+        (fun x =>
+          unitIntervalCosineHeatGradientValue t
+            (unitIntervalNeumannCosineCoeff f) x)
+        ∞ (intervalMeasure 1) ≤
+      2 * (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+        Real.sqrt (∫ x in (0 : ℝ)..1, ‖f x‖ ^ 2) := by
+  obtain ⟨hcoeff_sum, hcoeff_norm⟩ :=
+    unitIntervalNeumannCosineCoeff_l2_bound
+      (f := f) hf hL2 hf_sq
+  have hbase :=
+    unitIntervalCosineHeatGradientValue_L2_Linfty_lpNorm_smoothing
+      (t := t) ht hrecip
+      (a := unitIntervalNeumannCosineCoeff f) hcoeff_sum
+  have hfactor_nonneg :
+      0 ≤ unitIntervalCosineHeatGradientL2LinftyConstant / t := by
+    exact div_nonneg (Real.sqrt_nonneg _) ht.le
+  calc
+    lpNorm
+        (fun x =>
+          unitIntervalCosineHeatGradientValue t
+            (unitIntervalNeumannCosineCoeff f) x)
+        ∞ (intervalMeasure 1)
+        ≤
+          (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+            unitIntervalCosineL2TsumNorm (unitIntervalNeumannCosineCoeff f) :=
+          hbase
+    _ ≤
+          (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+            (2 * Real.sqrt (∫ x in (0 : ℝ)..1, ‖f x‖ ^ 2)) :=
+          mul_le_mul_of_nonneg_left hcoeff_norm hfactor_nonneg
+    _ =
+          2 * (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+            Real.sqrt (∫ x in (0 : ℝ)..1, ‖f x‖ ^ 2) := by
+          ring
+
+/-- Unit-interval spectral Neumann heat semigroup derivative estimate,
+with the derivative identified by term-by-term differentiation of the cosine
+series. -/
+theorem unitIntervalNeumannSpectralHeat_deriv_L2_Linfty_bound
+    {t : ℝ} (ht : 0 < t)
+    (hrecip : Summable unitIntervalCosineReciprocalEigenvalueTerm)
+    {f : ℝ → ℂ}
+    (hf : IntervalIntegrable f volume 0 1)
+    (hL2 :
+      MemLp (unitIntervalEvenReflection f) 2
+        (volume.restrict (Set.Ioc (-1 : ℝ) 1)))
+    (hf_sq : IntervalIntegrable (fun x : ℝ => ‖f x‖ ^ 2) volume 0 1) :
+    lpNorm
+        (fun x =>
+          deriv
+            (fun z =>
+              unitIntervalCosineHeatValue t
+                (unitIntervalNeumannCosineCoeff f) z) x)
+        ∞ (intervalMeasure 1) ≤
+      2 * (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+        Real.sqrt (∫ x in (0 : ℝ)..1, ‖f x‖ ^ 2) := by
+  obtain ⟨hcoeff_sum, _hcoeff_norm⟩ :=
+    unitIntervalNeumannCosineCoeff_l2_bound
+      (f := f) hf hL2 hf_sq
+  have hderiv :
+      (fun x =>
+          deriv
+            (fun z =>
+              unitIntervalCosineHeatValue t
+                (unitIntervalNeumannCosineCoeff f) z) x)
+        =
+        fun x =>
+          unitIntervalCosineHeatGradientValue t
+            (unitIntervalNeumannCosineCoeff f) x := by
+    funext x
+    exact unitIntervalCosineHeatValue_deriv_of_l2
+      (t := t) (x := x) ht hrecip
+      (a := unitIntervalNeumannCosineCoeff f) hcoeff_sum
+  rw [hderiv]
+  exact unitIntervalNeumannSpectralHeatGradient_L2_Linfty_bound
+    (t := t) ht hrecip (f := f) hf hL2 hf_sq
+
 end ShenWork.HeatKernelGradientEstimates
