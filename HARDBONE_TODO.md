@@ -56,6 +56,15 @@
   (4) 确认/替换 H0.1 当前 `intervalSemigroupOperator`：该 operator 在
   `IntervalDomain.lean` 明确标注为 zeroth-reflection helper，不是完整
   Neumann heat kernel。
+- **Focused close attempt** (2026-05-24): 搜索 `intervalHeatSemigroup`,
+  `NeumannHeatSemigroup`, `SemigroupEstimateData`, `intervalSemigroupOperator`
+  后确认仓库中没有独立的 abstract interval Neumann heat semigroup 定义；
+  H0.1 的 `intervalHeatSemigroup_Lp_Lq_bound` 展开后仍是
+  `intervalSemigroupOperator`。`Paper2/Statements.lean` 也明确说明当前
+  interval bridges 不是 `SemigroupEstimateData` projections，而是 restricted
+  reflected helper estimates。因而 Parseval/HilbertBasis bridge 不能单独闭合
+  H0.2；还需先引入完整 Neumann interval heat semigroup（spectral 或全
+  image-sum kernel）并把 H0.1/H0.2 的最终 theorem target rebased 到该对象。
 - **下游**: Paper2 Lemma 2.1 (derivative part)
 
 ### H0.3 — Gagliardo-Nirenberg interpolation on [0,L] ✅ DONE
