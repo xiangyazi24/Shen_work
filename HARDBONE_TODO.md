@@ -88,7 +88,9 @@
   proves the `[0,1]` finite-interval Lp monotonicity bridge under nonnegativity
   and time-slice power integrability; `ShenWork/Paper2/IntervalDomainEnergyStep.lean`
   converts `LpBootstrapEnergyInequality` into the Moser step under explicit
-  dissipation and interpolation hypotheses.  Not marked done until those
+  dissipation and interpolation hypotheses, and converts
+  `LpMassGradientInterpolationEstimate` plus chain-rule/mass-control bridges
+  into the `ε·G + Cε` interpolation interface.  Not marked done until those
   hypotheses are proved from the interval PDE data.
 
 ### H1.3 — Paper2 Lemma 4.1 on intervalDomain (L^p → L^∞)

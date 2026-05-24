@@ -92,6 +92,68 @@ theorem moser_step_family_of_energy_dissipation_interpolation
   have hdrop_t := hdiss p hp A B K L_const hfull t ht0 htT
   linarith
 
+/-- Convert the Paper 2 mass-gradient interpolation estimate into the
+`Z <= eps * G + Ceps` interpolation interface used by the Moser step.
+
+The extra hypotheses are the two analytic bridges not present in
+`LpMassGradientInterpolationEstimate` itself:
+* the chain-rule comparison from the weighted `|∇u|²` term to
+  `|∇(u^(p/2))|²`;
+* a uniform bound on the lower-order mass term. -/
+theorem moser_interpolation_of_mass_gradient_estimate
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T p rho cGrad : ℝ}
+    (hcGrad : 0 < cGrad)
+    (hMG : ∀ eta > 0, ∃ Ceta,
+      LpMassGradientInterpolationEstimate D (p + rho) eta Ceta T u)
+    (hgrad : ∀ t, 0 < t → t < T →
+      D.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (D.gradNorm (u t) x) ^ 2) ≤
+        cGrad * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmass : ∀ Ceta, ∃ Cmass, ∀ t, 0 < t → t < T →
+      Ceta * (D.integral (u t)) ^ (p + rho) ≤ Cmass) :
+    ∀ eps > 0, ∃ Ceps, ∀ t, 0 < t → t < T →
+      D.integral (fun x => (u t x) ^ (p + rho)) ≤
+        eps * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+        Ceps := by
+  intro eps heps
+  have heta_pos : 0 < eps / cGrad := div_pos heps hcGrad
+  obtain ⟨Ceta, hCeta⟩ := hMG (eps / cGrad) heta_pos
+  obtain ⟨Cmass, hCmass⟩ := hmass Ceta
+  refine ⟨Cmass, ?_⟩
+  intro t ht0 htT
+  have hbound := LpMassGradientInterpolationEstimate.bound hCeta ht0 htT
+  have hgrad_t := hgrad t ht0 htT
+  have hmass_t := hCmass t ht0 htT
+  have hcoef_nonneg : 0 ≤ eps / cGrad := div_nonneg heps.le hcGrad.le
+  have hgrad_scaled :
+      (eps / cGrad) *
+          D.integral (fun x =>
+            (u t x) ^ (p + rho - 2) * (D.gradNorm (u t) x) ^ 2) ≤
+        (eps / cGrad) *
+          (cGrad * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2)) :=
+    mul_le_mul_of_nonneg_left hgrad_t hcoef_nonneg
+  calc
+    D.integral (fun x => (u t x) ^ (p + rho))
+        ≤
+          (eps / cGrad) *
+              D.integral (fun x =>
+                (u t x) ^ (p + rho - 2) * (D.gradNorm (u t) x) ^ 2) +
+            Ceta * (D.integral (u t)) ^ (p + rho) := hbound
+    _ ≤
+          (eps / cGrad) *
+              (cGrad * D.integral (fun x =>
+                (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2)) +
+            Cmass := by
+          linarith
+    _ =
+          eps * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+            Cmass := by
+          field_simp [ne_of_gt hcGrad]
+
 /-- Moser closure from the full bootstrap energy inequality, after supplying
 the two analytic facts not present in the abstract `BoundedDomainData` API:
 dissipation and interpolation.  Downward Lp monotonicity is kept abstract here. -/
