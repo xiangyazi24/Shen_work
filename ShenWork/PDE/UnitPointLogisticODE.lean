@@ -504,6 +504,77 @@ lemma unitPointLogistic_initialTrace
   rw [hfun]
   simpa [unitPointDomain, Real.dist_eq] using hclose
 
+lemma minimalLogisticConstant_hasDerivAt
+    (p : CM2Params) {u₀ t : ℝ} (ha : p.a = 0) (hb : p.b = 0) :
+    HasDerivAt (fun _ : ℝ => u₀)
+      (u₀ * (p.a - p.b * u₀ ^ p.α)) t := by
+  have hvec : u₀ * (p.a - p.b * u₀ ^ p.α) = 0 := by
+    rw [ha, hb]
+    ring
+  simpa [hvec] using (hasDerivAt_const t u₀)
+
+lemma unitPointMinimal_classicalSolution
+    (p : CM2Params) {u₀ : unitPointDomain.Point → ℝ}
+    (ha : p.a = 0) (hb : p.b = 0)
+    (hu₀ : PositiveInitialDatum unitPointDomain u₀)
+    {T : ℝ} (hT : 0 < T) :
+    IsPaper2ClassicalSolution unitPointDomain p T
+      (fun _ => u₀)
+      (fun _ _ => (p.ν / p.μ) * (u₀ ()) ^ p.γ) := by
+  set vstar : ℝ := (p.ν / p.μ) * (u₀ ()) ^ p.γ with hvstar_def
+  refine ⟨hT, ⟨differentiable_const _, continuous_const⟩, ?_, ?_, ?_, ?_⟩
+  · intro t x _ht_pos _ht_lt _hx
+    exact hu₀.pos trivial
+  · intro t x _ht_pos _ht_lt _hx
+    show deriv (fun _ : ℝ => u₀ x) t =
+      0 - p.χ₀ * 0 + u₀ x * (p.a - p.b * (u₀ x) ^ p.α)
+    rw [deriv_const, ha, hb]
+    ring
+  · intro t x _ht_pos _ht_lt _hx
+    cases x
+    show (0 : ℝ) = 0 - p.μ * vstar + p.ν * (u₀ ()) ^ p.γ
+    rw [hvstar_def]
+    field_simp [ne_of_gt p.hμ]
+    ring
+  · intro t x _ht_pos _ht_lt hx
+    exact absurd hx (by intro h; exact h)
+
+lemma unitPointMinimal_initialTrace
+    (u₀ : unitPointDomain.Point → ℝ) :
+    InitialTrace unitPointDomain u₀ (fun _ => u₀) := by
+  intro ε hε
+  refine ⟨1, by norm_num, ?_⟩
+  intro t _ht_pos _htδ
+  show unitPointDomain.supNorm (fun x => u₀ x - u₀ x) < ε
+  have hzero : (fun x : unitPointDomain.Point => u₀ x - u₀ x) = fun _ => 0 := by
+    funext x
+    ring
+  rw [hzero]
+  simpa [unitPointDomain] using hε
+
+theorem unitPointDomain.Theorem_1_1_minimal_branch
+    (p : CM2Params) :
+    p.χ₀ ≤ 0 → p.a = 0 → p.b = 0 →
+      ∀ u₀ : unitPointDomain.Point → ℝ,
+        PositiveInitialDatum unitPointDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → unitPointDomain.Point → ℝ,
+            IsPaper2ClassicalSolution unitPointDomain p Tmax u v ∧
+            InitialTrace unitPointDomain u₀ u ∧
+            (∀ t, 0 < t → t < Tmax →
+              unitPointDomain.supNorm (u t) ≤ unitPointDomain.supNorm u₀) ∧
+            (1 ≤ p.m → IsPaper2GlobalClassicalSolution unitPointDomain p u v) := by
+  intro _hχ ha hb u₀ hu₀
+  let vstar : ℝ := (p.ν / p.μ) * (u₀ ()) ^ p.γ
+  refine ⟨1, by norm_num, fun _ => u₀, fun _ _ => vstar, ?_, ?_, ?_, ?_⟩
+  · simpa [vstar] using
+      unitPointMinimal_classicalSolution p ha hb hu₀ (T := 1) (by norm_num)
+  · exact unitPointMinimal_initialTrace u₀
+  · intro t _ht_pos _ht_lt
+    exact le_refl _
+  · intro _hm T hT
+    simpa [vstar] using
+      unitPointMinimal_classicalSolution p ha hb hu₀ (T := T) hT
+
 theorem unitPointDomain.Theorem_1_1_nonminimal_branch
     (p : CM2Params) :
     p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
