@@ -1355,6 +1355,92 @@ lemma paper3Cosine_Corollary_5_1_minimal_exponential
   h.minimal_exponential_of_chi_lt_paperCriticalSensitivity
     hC hm ha hb huStar hχ huv hmass hconv
 
+lemma paper3Cosine_Corollary_5_1_nonminimal_exponential_of_firstNonzero_formula_fields
+    {D : BoundedDomainData} {p : CM2Params}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Corollary_5_1 D p N C)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (M0 : ℝ)
+    (hstrong1 :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        C.chiStrong1 eq.1 = chiStrong1Formula p eq.1 eq.2)
+    (hstrong2 :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        C.chiStrong2 eq.1 = chiStrong2Formula p eq.1)
+    (hstrong3 :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        C.chiStrong3 eq.1 = chiStrong3Formula p M0 eq.1 eq.2)
+    (hstrong4 :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        C.chiStrong4 eq.1 = chiStrong4Formula p M0 eq.1)
+    (hfirst :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        max
+            (max (chiStrong1Formula p eq.1 eq.2)
+              (chiStrong2Formula p eq.1))
+            (max (chiStrong3Formula p M0 eq.1 eq.2)
+              (chiStrong4Formula p M0 eq.1)) ≤
+          ((1 + eq.2) ^ p.β /
+              (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+            (p.μ + Real.pi ^ 2))
+    (hm : 1 ≤ p.m) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hcond :
+      NonminimalGlobalStabilityCondition D p C
+        (positiveEquilibrium p ⟨ha, hb⟩).1)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hconv : UniformConvergesInSup D u (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ExponentialC1Convergence D N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+  refine h.nonminimal_exponential_of_firstNonzero_formula_fields
+    paper3Cosine_hasNeumannSpectrum hC M0 hstrong1 hstrong2 hstrong3
+    hstrong4 ?_ hm ha hb hcond huv hconv
+  intro ha' hb'
+  simpa [paper3CosineSpectralData] using hfirst ha' hb'
+
+lemma paper3Cosine_Corollary_5_1_minimal_exponential_of_firstNonzero_formula_fields
+    {D : BoundedDomainData} {p : CM2Params}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (h : Corollary_5_1 D p N C)
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (uBar vLower : ℝ)
+    (hminimal1 :
+      ∀ uStar > 0,
+        C.chiMinimal1 uStar =
+          chiMinimal1Formula p 1 uStar uBar vLower)
+    (hminimal2 :
+      ∀ uStar > 0,
+        C.chiMinimal2 uStar = chiMinimal2Formula p uBar vLower)
+    (hfirst :
+      ∀ uStar > 0,
+        _root_.ShenWork.Paper2.chiBeta p ≤
+          ((1 + (minimalEquilibrium p uStar).2) ^ p.β /
+              (p.ν * p.γ *
+                (minimalEquilibrium p uStar).1 ^ (p.m + p.γ - 1))) *
+            (p.μ + Real.pi ^ 2))
+    (hm_le : 1 ≤ p.m) (ha : p.a = 0) (hb : p.b = 0)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hcond : MinimalGlobalStabilityCondition D p C uStar)
+    {u v : ℝ → D.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution D p u v)
+    (hmass : HasInitialMass D u uStar)
+    (hconv : UniformConvergesInSup D u (minimalEquilibrium p uStar).1) :
+    ExponentialC1Convergence D N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 := by
+  refine h.minimal_exponential_of_firstNonzero_formula_fields
+    paper3Cosine_hasNeumannSpectrum hC uBar vLower hminimal1 hminimal2
+    ?_ hm_le ha hb hm hβ huStar hcond huv hmass hconv
+  intro uStar' huStar'
+  simpa [paper3CosineSpectralData] using hfirst uStar' huStar'
+
 lemma paper3Cosine_Corollary_5_1_nonminimal_exponential_formula_condition_critical
     {D : BoundedDomainData} {p : CM2Params}
     {N : StabilityNorms D} {C : Paper3Constants D p}
