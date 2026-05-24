@@ -469,4 +469,39 @@ lemma unitPointLogistic_classicalSolution
   · intro t x _ht_pos _ht_lt hx
     exact absurd hx (by intro h; exact h)
 
+lemma unitPointLogistic_initialTrace
+    (p : CM2Params) {u₀ : unitPointDomain.Point → ℝ}
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hu₀ : PositiveInitialDatum unitPointDomain u₀) :
+    InitialTrace unitPointDomain u₀
+      (fun t _ => bernoulliLogisticSolution p (u₀ ()) t) := by
+  have hu₀_pos : 0 < u₀ () := hu₀.pos trivial
+  have hzero :
+      bernoulliLogisticSolution p (u₀ ()) 0 = u₀ () := by
+    rw [bernoulliLogisticSolution_of_nonneg p (u₀ ()) 0 le_rfl]
+    exact bernoulliLogisticForward_zero p hu₀_pos
+  have hcont :
+      ContinuousAt (fun t : ℝ => bernoulliLogisticSolution p (u₀ ()) t) 0 :=
+    (bernoulliLogisticSolution_hasDerivAt_zero p ha hb hu₀_pos).continuousAt
+  intro ε hε
+  rcases (Metric.continuousAt_iff.mp hcont ε hε) with ⟨δ, hδ_pos, hδ⟩
+  refine ⟨δ, hδ_pos, ?_⟩
+  intro t ht_pos htδ
+  have htdist : dist t 0 < δ := by
+    rw [Real.dist_eq]
+    simpa [abs_of_pos ht_pos] using htδ
+  have hclose := hδ htdist
+  rw [hzero] at hclose
+  show unitPointDomain.supNorm
+      (fun x => bernoulliLogisticSolution p (u₀ ()) t - u₀ x) < ε
+  have hfun :
+      (fun x : unitPointDomain.Point =>
+        bernoulliLogisticSolution p (u₀ ()) t - u₀ x) =
+        fun _ => bernoulliLogisticSolution p (u₀ ()) t - u₀ () := by
+    funext x
+    cases x
+    rfl
+  rw [hfun]
+  simpa [unitPointDomain, Real.dist_eq] using hclose
+
 end ShenWork.Paper2
