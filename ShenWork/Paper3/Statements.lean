@@ -10516,6 +10516,85 @@ theorem Theorem_2_2_full_chi_nonneg_of_raw
         Theorem_2_2_chi_nonneg_a_ne_zero_branch
           H hC hraw hsigma_low hsigma_high hpNorm hcontrol hexist hχ ha0
 
+/-- Full raw Paper3 Theorem 2.2 composite from the audited critical-spectrum
+identity.  The linear stable/unstable parts are supplied by
+`Theorem_2_2_linear_threshold_branch_direct`; the local exponential parts use
+the exposed raw sectorial package plus explicit small-data existence. -/
+theorem Theorem_2_2_full_critical_spectrum_of_raw
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (H : HasNeumannSpectrum S)
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hcontrol : ∀ uStar, SupControlsXpSigmaDistance D N sigma pNorm uStar)
+    (hexist : ∀ uStar, ∀ delta > 0, SmallDataGlobalExistence D p uStar delta)
+    (hmexist :
+      ∀ uStar, ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence D p uStar delta) :
+    Theorem_2_2 D p S N C := by
+  have hthreshold := Theorem_2_2_linear_threshold_branch_direct S p H
+  refine Theorem_2_2.of_parts ?_ ?_ ?_ ?_
+  · intro ha hb
+    dsimp
+    intro hχcrit
+    have hstable :
+        LinearlyStable S p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+      (hthreshold.1 ha hb).1
+        (by
+          simpa [hC.chiCritical_positiveEquilibrium ha hb] using hχcrit)
+    have hlocal :
+        LocallyExponentiallyStableFromSup D p N
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+      hraw.locally_from_sup_control
+        hsigma_low hsigma_high hpNorm hstable
+        (hcontrol (positiveEquilibrium p ⟨ha, hb⟩).1)
+        (hexist (positiveEquilibrium p ⟨ha, hb⟩).1)
+    rcases hlocal with ⟨δ, hδ, A, hA, rate, hrate, hmain⟩
+    exact ⟨hstable, δ, hδ, A, hA, rate, hrate, hmain⟩
+  · intro ha hb
+    dsimp
+    intro hχcrit
+    exact
+      (hthreshold.1 ha hb).2
+        (by
+          simpa [hC.chiCritical_positiveEquilibrium ha hb] using hχcrit)
+  · intro ha hb uStar huStar
+    dsimp
+    intro hχcrit
+    have hstable :
+        LinearlyStable S p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 :=
+      (hthreshold.2 ha hb uStar huStar).1
+        (by
+          simpa [hC.chiCritical_minimalEquilibrium huStar,
+            minimalEquilibrium] using hχcrit)
+    have hlocal :
+        MassConstrainedLocallyExponentiallyStableFromSup D p N
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 :=
+      hraw.massConstrained_from_sup_control
+        hsigma_low hsigma_high hpNorm hstable
+        (hcontrol (minimalEquilibrium p uStar).1)
+        (hmexist (minimalEquilibrium p uStar).1)
+    rcases hlocal with ⟨δ, hδ, A, hA, rate, hrate, hmain⟩
+    exact ⟨hstable, δ, hδ, A, hA, rate, hrate, hmain⟩
+  · intro ha hb uStar huStar
+    dsimp
+    intro hχcrit
+    exact
+      (hthreshold.2 ha hb uStar huStar).2
+        (by
+          simpa [hC.chiCritical_minimalEquilibrium huStar,
+            minimalEquilibrium] using hχcrit)
+
 /-- **TAUTOLOGY (no math content)**: body is `:= hstab`, definitionally
 equal to `Theorem_2_3 D p N`.  Target signature only. -/
 theorem Theorem_2_3.of_assumed_stability_branch
