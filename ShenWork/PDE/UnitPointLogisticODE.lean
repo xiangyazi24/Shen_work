@@ -559,6 +559,52 @@ lemma unitPointLogistic_initialTrace
   rw [hfun]
   simpa [unitPointDomain, Real.dist_eq] using hclose
 
+theorem unitPointLogistic_globalClassicalSolution
+    (p : CM2Params) {u₀ : unitPointDomain.Point → ℝ}
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hu₀ : PositiveInitialDatum unitPointDomain u₀) :
+    IsPaper2GlobalClassicalSolution unitPointDomain p
+      (fun t _ => bernoulliLogisticSolution p (u₀ ()) t)
+      (fun t _ => (p.ν / p.μ) *
+        (bernoulliLogisticSolution p (u₀ ()) t) ^ p.γ) := by
+  intro T hT
+  exact unitPointLogistic_classicalSolution p ha hb hu₀ hT
+
+theorem unitPointLogistic_globalExistence_with_attractor
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b)
+    (u₀ : unitPointDomain.Point → ℝ)
+    (hu₀ : PositiveInitialDatum unitPointDomain u₀) :
+    ∃ u v : ℝ → unitPointDomain.Point → ℝ,
+      IsPaper2GlobalClassicalSolution unitPointDomain p u v ∧
+      InitialTrace unitPointDomain u₀ u ∧
+      (∀ t, 0 ≤ t →
+        unitPointDomain.supNorm (u t) ≤
+          max (unitPointDomain.supNorm u₀) ((p.a / p.b) ^ (1 / p.α))) ∧
+      Tendsto (fun t : ℝ => u t ())
+        atTop (𝓝 ((p.a / p.b) ^ (1 / p.α))) := by
+  let u : ℝ → unitPointDomain.Point → ℝ :=
+    fun t _ => bernoulliLogisticSolution p (u₀ ()) t
+  let v : ℝ → unitPointDomain.Point → ℝ :=
+    fun t _ => (p.ν / p.μ) *
+      (bernoulliLogisticSolution p (u₀ ()) t) ^ p.γ
+  have hu₀_pos : 0 < u₀ () := hu₀.pos trivial
+  refine ⟨u, v, ?_, ?_, ?_, ?_⟩
+  · simpa [u, v] using unitPointLogistic_globalClassicalSolution p ha hb hu₀
+  · simpa [u] using unitPointLogistic_initialTrace p ha hb hu₀
+  · intro t ht
+    have hsol_pos :
+        0 < bernoulliLogisticSolution p (u₀ ()) t :=
+      bernoulliLogisticSolution_pos p ha hb hu₀_pos
+    have hbound :
+        bernoulliLogisticSolution p (u₀ ()) t ≤
+          max (u₀ ()) ((p.a / p.b) ^ (1 / p.α)) :=
+      bernoulliLogisticSolution_le_max_of_nonneg_time p ha hb hu₀_pos ht
+    show |bernoulliLogisticSolution p (u₀ ()) t| ≤
+      max |u₀ ()| ((p.a / p.b) ^ (1 / p.α))
+    rw [abs_of_pos hsol_pos, abs_of_pos hu₀_pos]
+    exact hbound
+  · simpa [u] using bernoulliLogisticSolution_tendsto_atTop p ha hb hu₀_pos
+
 lemma minimalLogisticConstant_hasDerivAt
     (p : CM2Params) {u₀ t : ℝ} (ha : p.a = 0) (hb : p.b = 0) :
     HasDerivAt (fun _ : ℝ => u₀)
