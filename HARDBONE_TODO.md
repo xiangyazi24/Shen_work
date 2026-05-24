@@ -197,12 +197,27 @@
 
 ## Tier 5: Paper 1 (Traveling Waves)
 
-### H5.1 — Picard iteration local existence
+### H5.1 — Picard iteration local existence ✅ DONE
 - **前置**: Mathlib Banach fixed point, function space norms
 - **产出**: local ODE solution existence
+- **完成** (2026-05-24): `ShenWork/PDE/TravelingWaveODE.lean`
+  proves the Picard local-flow theorem for the autonomous 4D wave-profile ODE:
+  `localFlowExists`, building on `picardLindelofData` and Mathlib
+  `IsPicardLindelof`.  Single-file check:
+  `lake env lean ShenWork/PDE/TravelingWaveODE.lean`; axioms for
+  `localFlowExists` are `[propext, Classical.choice, Quot.sound]`.
 
-### H5.2 — C² bootstrap for traveling wave profile
+### H5.2 — C² bootstrap for traveling wave profile ✅ DONE
 - **前置**: H5.1, elliptic regularity
+- **产出**: C² profile
+- **完成** (2026-05-24): `ShenWork/PDE/TravelingWaveODE.lean`
+  proves the ODE/profile bootstrap from any first-order solution
+  `SolvesTWODE p z`: `SolvesTWODE.contDiff_two`,
+  `SolvesTWODE.profile_c2_bootstrap`, and
+  `TravelingWave.profile_c2_bootstrap`.  The result gives
+  `ContDiff ℝ 2` for the `U = z 0` and `V = z 2` profile components plus the
+  second-derivative ODE identities.  Axioms for the two profile bootstrap
+  theorems are `[propext, Classical.choice, Quot.sound]`.
 
 ### H5.3 — Wave stability (Theorem 1.2)
 - **前置**: H3.1 (sectorial), weighted Sobolev spaces

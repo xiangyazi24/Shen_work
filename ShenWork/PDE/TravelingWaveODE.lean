@@ -152,6 +152,11 @@ theorem vectorField_contDiffAt (p : Params) (x : State) :
   · exact h3
   · exact h2.sub (h0.pow p.gamma)
 
+theorem vectorField_contDiff (p : Params) :
+    ContDiff ℝ 1 (vectorField p) := by
+  rw [contDiff_iff_contDiffAt]
+  exact vectorField_contDiffAt p
+
 theorem picardLindelofData (p : Params) (x₀ : State) :
 ∃ (eps : ℝ) (heps : 0 < eps) (a r L K : NNReal) (_ : 0 < r),
 ∀ t₀ : ℝ,
@@ -172,6 +177,21 @@ theorem localSolutionExists (p : Params) (x₀ : State) (t₀ : ℝ) :
   obtain ⟨α, hα⟩ := (hPL t₀).exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt
   refine ⟨α x, (hα x hx).1, fun t ht => ?_⟩
   exact ((hα x hx).2 t (Ioo_subset_Icc_self ht)).hasDerivAt
+    (Icc_mem_nhds (by linarith [ht.1]) (by linarith [ht.2]))
+
+theorem localFlowExists (p : Params) (x₀ : State) (t₀ : ℝ) :
+    ∃ r > 0, ∃ eps > 0, ∃ flow : State → ℝ → State,
+    ∀ x ∈ Metric.closedBall x₀ r,
+      flow x t₀ = x ∧
+      ∀ t ∈ Ioo (t₀ - eps) (t₀ + eps),
+        HasDerivAt (flow x) (vectorField p (flow x t)) t := by
+  obtain ⟨eps, heps, a, r, L, K, hr, hPL⟩ := picardLindelofData p x₀
+  refine ⟨r, by exact_mod_cast hr, eps, heps, ?_⟩
+  obtain ⟨flow, hflow⟩ :=
+    (hPL t₀).exists_forall_mem_closedBall_eq_forall_mem_Icc_hasDerivWithinAt
+  refine ⟨flow, fun x hx => ?_⟩
+  refine ⟨(hflow x hx).1, fun t ht => ?_⟩
+  exact ((hflow x hx).2 t (Ioo_subset_Icc_self ht)).hasDerivAt
     (Icc_mem_nhds (by linarith [ht.1]) (by linarith [ht.2]))
 
 structure PhasePortrait (p : Params) where
@@ -308,11 +328,120 @@ theorem SolvesTWODE.hasDerivAt
     HasDerivAt z (vectorField p (z t)) t :=
   h t
 
+theorem SolvesTWODE.differentiable
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) :
+    Differentiable ℝ z :=
+  fun t => (h.hasDerivAt t).differentiableAt
+
+theorem SolvesTWODE.deriv_eq_vectorField
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) :
+    deriv z = fun t => vectorField p (z t) := by
+  funext t
+  exact (h.hasDerivAt t).deriv
+
+theorem SolvesTWODE.contDiff_one
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) :
+    ContDiff ℝ 1 z := by
+  rw [contDiff_one_iff_deriv]
+  refine ⟨h.differentiable, ?_⟩
+  rw [h.deriv_eq_vectorField]
+  exact (vectorField_contDiff p).continuous.comp h.differentiable.continuous
+
+theorem SolvesTWODE.contDiff_two
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) :
+    ContDiff ℝ 2 z := by
+  rw [show (2 : WithTop ℕ∞) = (1 : WithTop ℕ∞) + 1 by norm_num,
+    contDiff_succ_iff_deriv]
+  refine ⟨h.differentiable, by simp, ?_⟩
+  rw [h.deriv_eq_vectorField]
+  simpa [Function.comp_def] using (vectorField_contDiff p).comp h.contDiff_one
+
+theorem SolvesTWODE.component_contDiff_two
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) (i : Idx) :
+    ContDiff ℝ 2 (fun t => z t i) :=
+  contDiff_pi.mp h.contDiff_two i
+
+theorem SolvesTWODE.hasDerivAt_component
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) (i : Idx) (t : ℝ) :
+    HasDerivAt (fun s => z s i) ((vectorField p (z t)) i) t := by
+  simpa only [ContinuousLinearMap.proj_apply] using
+    ((ContinuousLinearMap.proj i : State →L[ℝ] ℝ).hasFDerivAt.comp_hasDerivAt t
+      (h.hasDerivAt t))
+
+theorem SolvesTWODE.deriv_component
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) (i : Idx) (t : ℝ) :
+    deriv (fun s => z s i) t = (vectorField p (z t)) i :=
+  (h.hasDerivAt_component i t).deriv
+
+theorem SolvesTWODE.hasDerivAt_U
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) (t : ℝ) :
+    HasDerivAt (fun s => z s 0) (z t 1) t := by
+  simpa [vectorField] using h.hasDerivAt_component (0 : Idx) t
+
+theorem SolvesTWODE.hasDerivAt_V
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) (t : ℝ) :
+    HasDerivAt (fun s => z s 2) (z t 3) t := by
+  simpa [vectorField] using h.hasDerivAt_component (2 : Idx) t
+
+theorem SolvesTWODE.hasDerivAt_deriv_U
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) (t : ℝ) :
+    HasDerivAt (deriv (fun s => z s 0))
+      (-p.c * z t 1
+        + p.chi *
+          ((p.m : ℝ) * (z t 0) ^ (p.m - 1) * z t 1 * z t 3
+            + (z t 0) ^ p.m * (z t 2 - (z t 0) ^ p.gamma))
+        - z t 0 * (1 - (z t 0) ^ p.alpha)) t := by
+  have hderiv : deriv (fun s => z s 0) = fun s => z s 1 := by
+    funext s
+    exact (h.hasDerivAt_U s).deriv
+  rw [hderiv]
+  simpa [vectorField] using h.hasDerivAt_component (1 : Idx) t
+
+theorem SolvesTWODE.hasDerivAt_deriv_V
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) (t : ℝ) :
+    HasDerivAt (deriv (fun s => z s 2)) (z t 2 - (z t 0) ^ p.gamma) t := by
+  have hderiv : deriv (fun s => z s 2) = fun s => z s 3 := by
+    funext s
+    exact (h.hasDerivAt_V s).deriv
+  rw [hderiv]
+  simpa [vectorField] using h.hasDerivAt_component (3 : Idx) t
+
+theorem SolvesTWODE.profile_c2_bootstrap
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) :
+    ContDiff ℝ 2 (fun t => z t 0) ∧
+    ContDiff ℝ 2 (fun t => z t 2) ∧
+    (∀ t : ℝ,
+      HasDerivAt (deriv (fun s => z s 0))
+        (-p.c * z t 1
+          + p.chi *
+            ((p.m : ℝ) * (z t 0) ^ (p.m - 1) * z t 1 * z t 3
+              + (z t 0) ^ p.m * (z t 2 - (z t 0) ^ p.gamma))
+          - z t 0 * (1 - (z t 0) ^ p.alpha)) t) ∧
+    (∀ t : ℝ, HasDerivAt (deriv (fun s => z s 2))
+      (z t 2 - (z t 0) ^ p.gamma) t) := by
+  exact ⟨h.component_contDiff_two 0, h.component_contDiff_two 2,
+    h.hasDerivAt_deriv_U, h.hasDerivAt_deriv_V⟩
+
 structure TravelingWave (p : Params) where
 z : ℝ → State
 ode : SolvesTWODE p z
 leftLimit : Tendsto z atBot (nhds E1)
 rightLimit : Tendsto z atTop (nhds E0)
+
+theorem TravelingWave.profile_c2_bootstrap
+    {p : Params} (w : TravelingWave p) :
+    ContDiff ℝ 2 (fun t => w.z t 0) ∧
+    ContDiff ℝ 2 (fun t => w.z t 2) ∧
+    (∀ t : ℝ,
+      HasDerivAt (deriv (fun s => w.z s 0))
+        (-p.c * w.z t 1
+          + p.chi *
+            ((p.m : ℝ) * (w.z t 0) ^ (p.m - 1) * w.z t 1 * w.z t 3
+              + (w.z t 0) ^ p.m * (w.z t 2 - (w.z t 0) ^ p.gamma))
+          - w.z t 0 * (1 - (w.z t 0) ^ p.alpha)) t) ∧
+    (∀ t : ℝ, HasDerivAt (deriv (fun s => w.z s 2))
+      (w.z t 2 - (w.z t 0) ^ p.gamma) t) :=
+  w.ode.profile_c2_bootstrap
 
 theorem local_shooting_segment_from_E1_positive_eigenpair
     (p : Params) {lam δ t₀ : ℝ}
