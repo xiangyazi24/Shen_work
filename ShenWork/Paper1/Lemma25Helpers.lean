@@ -174,6 +174,40 @@ theorem psi_deriv_pExp_weighted_le_kernel_weighted
         have hmul := mul_le_mul_of_nonneg_left h2 hsqrt_nn
         exact mul_le_mul_of_nonneg_right hmul hψ_nn
 
+/-! ### Integrated form of step 2c (with explicit integrability hypotheses) -/
+
+/-- Integrated combined estimate, given integrability on both sides.  Once
+the integrability hypotheses are discharged from Fubini + the
+hypothesis `Integrable (u^p · ψ)`, this completes the chain. -/
+theorem psi_deriv_pExp_integral_le_kernel_weighted_integral
+    (psi : ExponentialWeight) {pExp l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 1 ≤ pExp)
+    {u : ℝ → ℝ} (hu : IsCUnifBdd u) (hu_nn : ∀ y, 0 ≤ u y)
+    (hLHS_int :
+      Integrable
+        (fun x : ℝ =>
+          |deriv (fun z => Psi u l mu z) x| ^ pExp * psi.weight x))
+    (hRHS_int :
+      Integrable
+        (fun x : ℝ =>
+          (Real.sqrt l) ^ pExp *
+            ((mu / (2 * Real.sqrt l)) ^ pExp *
+                (2 / Real.sqrt l) ^ (pExp - 1) *
+                (∫ y : ℝ,
+                  Real.exp (-Real.sqrt l * |x - y|) * (u y) ^ pExp)) *
+            psi.weight x)) :
+    ∫ x : ℝ, |deriv (fun z => Psi u l mu z) x| ^ pExp * psi.weight x ≤
+      ∫ x : ℝ,
+        (Real.sqrt l) ^ pExp *
+          ((mu / (2 * Real.sqrt l)) ^ pExp *
+              (2 / Real.sqrt l) ^ (pExp - 1) *
+              (∫ y : ℝ,
+                Real.exp (-Real.sqrt l * |x - y|) * (u y) ^ pExp)) *
+          psi.weight x := by
+  refine MeasureTheory.integral_mono hLHS_int hRHS_int ?_
+  intro x
+  exact psi_deriv_pExp_weighted_le_kernel_weighted psi hl hmu hpExp hu hu_nn x
+
 end ShenWork.Paper1
 
 end
