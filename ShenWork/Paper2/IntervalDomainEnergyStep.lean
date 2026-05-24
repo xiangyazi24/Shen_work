@@ -187,6 +187,44 @@ theorem all_exponents_of_energy_dissipation_interpolation_lpmono
     (moser_step_family_of_energy_dissipation_interpolation henergy hdiss hinterp)
     hLpMono
 
+/-- Same closure as `all_exponents_of_energy_dissipation_interpolation_lpmono`,
+but with the interpolation input supplied in the Paper 2 mass-gradient form. -/
+theorem all_exponents_of_energy_dissipation_mass_gradient_lpmono
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {N T rho p0 : ℝ}
+    (cGrad : ℝ → ℝ)
+    (hboot : AbstractLpBootstrapHypothesis D u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality D u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+          A * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * D.integral (fun x => (u t x) ^ p) ≤
+        K * D.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+            B * D.integral (fun x => (u t x) ^ p))
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hMG : ∀ p, p0 ≤ p → ∀ eta > 0, ∃ Ceta,
+      LpMassGradientInterpolationEstimate D (p + rho) eta Ceta T u)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      D.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (D.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmass : ∀ p, p0 ≤ p → ∀ Ceta, ∃ Cmass, ∀ t, 0 < t → t < T →
+      Ceta * (D.integral (u t)) ^ (p + rho) ≤ Cmass)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore D q T u → LpPowerBoundedBefore D p T u) :
+    ∀ pExp > 1, LpPowerBoundedBefore D pExp T u := by
+  refine all_exponents_of_energy_dissipation_interpolation_lpmono
+    hboot henergy hdiss ?_ hLpMono
+  intro p hp
+  exact moser_interpolation_of_mass_gradient_estimate
+    (hcGrad p hp) (hMG p hp) (hgrad p hp) (hmass p hp)
+
 /-- Interval-domain version of the preceding closure, using the concrete
 finite-interval Lp monotonicity proved in `IntervalDomainLpMonotonicity`. -/
 theorem intervalDomain_all_exponents_of_energy_dissipation_interpolation
@@ -224,6 +262,52 @@ theorem intervalDomain_all_exponents_of_energy_dissipation_interpolation
     (AbstractLpBootstrapHypothesis.initial_lp_bound hboot)
     (moser_step_family_of_energy_dissipation_interpolation henergy hdiss hinterp)
     hu_nonneg hpow_int
+
+/-- Interval-domain closure with interpolation supplied in the Paper 2
+mass-gradient form.  This is the current honest H1.2 front line: the remaining
+work is to prove the dissipation, chain-rule gradient comparison, and mass
+control hypotheses from the actual interval PDE data. -/
+theorem intervalDomain_all_exponents_of_energy_dissipation_mass_gradient
+    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    (cGrad : ℝ → ℝ)
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv
+            (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+          A * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * intervalDomain.integral (fun x => (u t x) ^ p) ≤
+        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv
+              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+            B * intervalDomain.integral (fun x => (u t x) ^ p))
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hMG : ∀ p, p0 ≤ p → ∀ eta > 0, ∃ Ceta,
+      LpMassGradientInterpolationEstimate intervalDomain (p + rho) eta Ceta T u)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmass : ∀ p, p0 ≤ p → ∀ Ceta, ∃ Cmass, ∀ t, 0 < t → t < T →
+      Ceta * (intervalDomain.integral (u t)) ^ (p + rho) ≤ Cmass)
+    (hu_nonneg :
+      ∀ t, 0 < t → t < T → ∀ x : intervalDomain.Point, 0 ≤ u t x)
+    (hpow_int :
+      ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
+        IntervalIntegrable
+          (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
+          MeasureTheory.volume 0 1) :
+    ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u := by
+  refine intervalDomain_all_exponents_of_energy_dissipation_interpolation
+    hboot henergy hdiss ?_ hu_nonneg hpow_int
+  intro p hp
+  exact moser_interpolation_of_mass_gradient_estimate
+    (hcGrad p hp) (hMG p hp) (hgrad p hp) (hmass p hp)
 
 end ShenWork.Paper2.IntervalDomainEnergyStep
 
