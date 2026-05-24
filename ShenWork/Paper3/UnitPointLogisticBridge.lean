@@ -200,6 +200,296 @@ theorem unitPointDomain.Theorem_2_1_part1_when_a_zero_b_zero
     change p.ν / p.μ * (u 1 ()) ^ p.γ ≤ v t ()
     rw [hv_const t (lt_of_lt_of_le one_pos ht)]
 
+/-- Lemma 3.2 (time-translate compactness) holds on unitPointDomain with
+`unitPointCompactness`.  The conclusion requires extracting a subsequential
+limit that is an `EntireClassicalSolution`.  On unitPointDomain with
+`locallyConverges = True`, the convergence is trivial; we supply the
+equilibrium solution `u ≡ c, v ≡ (ν/μ)c^γ` (for any positive constant c)
+as the entire classical limit.  For (a = 0, b = 0) we use c = 1; for
+the general case we also use c = 1 (the equilibrium doesn't matter for
+the compactness statement). -/
+theorem unitPointDomain.Lemma_3_2_holds
+    (p : CM2Params) :
+    Lemma_3_2 ShenWork.Paper2.unitPointDomain p unitPointCompactness := by
+  intro _hm _hγ u v _hsol times _htimes
+  -- We need: ∃ subseq, StrictMono subseq ∧ ∃ uInf vInf, locallyConverges ... ∧ EntireClassicalSolution
+  -- locallyConverges is `True` for unitPointCompactness, so just need id as subseq + EntireClassicalSolution
+  refine ⟨id, strictMono_id, ?_⟩
+  -- Build an entire classical solution: constant u∞ = 1, v∞ = ν/μ
+  set c : ℝ := 1 with hc_def
+  set vstar : ℝ := p.ν / p.μ with hvstar_def
+  refine ⟨fun _ _ => c, fun _ _ => vstar, trivial, trivial, ?_⟩
+  -- EntireClassicalSolution: ∀ T > 0, IsPaper2ClassicalSolution for shifted functions
+  intro T hT
+  refine ⟨hT, ?_, ?_, ?_, ?_, ?_⟩
+  · -- classicalRegularity
+    exact ⟨differentiable_const _, continuous_const⟩
+  · -- positivity: 0 < c for all t, x
+    intro t x _ _ _
+    norm_num [c]
+  · -- PDE for u: deriv (fun s => c) t = 0 = 0 - χ₀·0 + c·(a - b·c^α)
+    intro t x _ _ _
+    simp only [ShenWork.Paper2.unitPointDomain]
+    rw [deriv_const]
+    simp [c, Real.one_rpow]
+    ring
+  · -- PDE for v: 0 = 0 - μ·vstar + ν·c^γ
+    intro t x _ _ _
+    simp only [ShenWork.Paper2.unitPointDomain]
+    rw [hvstar_def, hc_def, Real.one_rpow]
+    have hμ_ne : p.μ ≠ 0 := ne_of_gt p.hμ
+    field_simp
+    ring
+  · -- Neumann: boundary is ∅, vacuous
+    intro t x _ _ hx
+    exact absurd hx (by intro h; exact h)
+
+/-- Theorem 2.1 part 1 for the unit-point domain in the `0 < a ∧ 0 < b`
+regime.  Any `PositiveGlobalBoundedSolution` on unitPointDomain satisfies
+the ODE `f'(t) = f(t)(a − b f(t)^α)`.  The inverse-power substitution
+`h(t) = f(t)^(−α)` reduces to the linear ODE `h' = −αa h + αb`, whose
+solutions satisfy `h(t) ≤ max(h(1), b/a)` for `t ≥ 1`.  Since
+`f(t) = h(t)^(−1/α)` is decreasing in `h`, we get
+`f(t) ≥ min(f(1), (a/b)^(1/α))` for all `t ≥ 1`. -/
+theorem unitPointDomain.Theorem_2_1_part1_when_a_pos_b_pos
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) :
+    Theorem_2_1_part1 ShenWork.Paper2.unitPointDomain p := by
+  intro _hm u v hsol
+  obtain ⟨hglobal, _hbdd, hupos⟩ := hsol
+  -- Setup: f(t) = u t (), e = (a/b)^(1/α)
+  set f : ℝ → ℝ := fun t => u t () with hf_def
+  set e : ℝ := (p.a / p.b) ^ (1 / p.α) with he_def
+  -- f is differentiable
+  have hf_diff : Differentiable ℝ f := by
+    have h := hglobal.regularity (T := 1) (by norm_num : (0 : ℝ) < 1)
+    exact h.1
+  -- f(t) > 0 for t > 0
+  have hf_pos : ∀ t, 0 < t → 0 < f t := by
+    intro t ht
+    exact hupos t () ht (Set.mem_univ _)
+  -- PDE: deriv f t = f t * (a - b * (f t)^α) for all t > 0
+  have hpde : ∀ t, 0 < t →
+      deriv f t = f t * (p.a - p.b * (f t) ^ p.α) := by
+    intro t ht
+    have h := hglobal.pde_u (t := t) ht (Set.mem_univ ())
+    simpa [ShenWork.Paper2.unitPointDomain] using h
+  -- Key constants
+  have hα_pos : 0 < p.α := p.hα
+  have hα_ne : p.α ≠ 0 := ne_of_gt hα_pos
+  have he_pos : 0 < e := Real.rpow_pos_of_pos (div_pos ha hb) _
+  -- f(1) > 0
+  have hf1_pos : 0 < f 1 := hf_pos 1 one_pos
+  -- v t () = (ν/μ) * (f t)^γ for t > 0
+  have hv_eq : ∀ t, 0 < t → v t () = (p.ν / p.μ) * (f t) ^ p.γ := by
+    intro t ht
+    have h := hglobal.pde_v (t := t) ht (Set.mem_univ ())
+    simp only [ShenWork.Paper2.unitPointDomain] at h
+    have hμ_ne : p.μ ≠ 0 := ne_of_gt p.hμ
+    field_simp at h ⊢
+    linarith
+  -- === Inverse-power substitution ===
+  -- Define g(t) = f(t)^(-α) for t > 0.  We'll show g satisfies a linear ODE.
+  -- HasDerivAt for g: g'(t) = -αa g(t) + αb  for t > 0
+  have hg_linear_ode : ∀ t, 0 < t →
+      HasDerivAt (fun s => (f s) ^ (-p.α))
+        (-(p.α * p.a) * (f t) ^ (-p.α) + p.α * p.b) t := by
+    intro t ht
+    have hf_ne : f t ≠ 0 := ne_of_gt (hf_pos t ht)
+    -- Raw derivative from chain rule
+    have hraw := (hf_diff t).hasDerivAt.rpow_const (Or.inl hf_ne) (p := -p.α)
+    -- hraw : HasDerivAt (fun y => f y ^ (-α)) (deriv f t * (-α) * f(t)^(-α-1)) t
+    -- Substitute deriv f t = f(t) * (a - b * f(t)^α) and simplify
+    have hpow_cancel : (f t) ^ (-p.α) * (f t) ^ p.α = 1 := by
+      rw [← Real.rpow_add (hf_pos t ht)]
+      simp [Real.rpow_zero]
+    have hpow_combine : (f t) * (f t) ^ (-p.α - 1) = (f t) ^ (-p.α) := by
+      have h := Real.rpow_add (hf_pos t ht) 1 (-p.α - 1)
+      rw [Real.rpow_one] at h
+      rw [h, show (1 : ℝ) + (-p.α - 1) = -p.α from by ring]
+    convert hraw using 1
+    rw [hpde t ht]
+    -- Need: -(αa) * g + αb = f * (a - b*f^α) * (-α) * f^(-α-1)
+    -- RHS = (-α) * (f * f^(-α-1)) * (a - b*f^α) = (-α) * f^(-α) * (a - b*f^α)
+    -- = -α*a*f^(-α) + α*b*f^(-α)*f^α = -α*a*g + α*b*1 = -αa*g + αb
+    have hstep : f t * (p.a - p.b * (f t) ^ p.α) * (-p.α) * (f t) ^ (-p.α - 1) =
+        (-p.α) * (f t) ^ (-p.α) * (p.a - p.b * (f t) ^ p.α) := by
+      rw [← hpow_combine]; ring
+    rw [hstep]
+    have hexpand : (-p.α) * (f t) ^ (-p.α) * (p.a - p.b * (f t) ^ p.α) =
+        -(p.α * p.a) * (f t) ^ (-p.α) + p.α * p.b * ((f t) ^ (-p.α) * (f t) ^ p.α) := by
+      ring
+    rw [hexpand, hpow_cancel]; ring
+  -- Define the integrating factor: ψ(t) = (g(t) - b/a) * exp(αa*t)
+  set rate : ℝ := p.α * p.a with hrate_def
+  have hrate_pos : 0 < rate := mul_pos hα_pos ha
+  have ha_ne : p.a ≠ 0 := ne_of_gt ha
+  -- Show ψ'(t) = 0 for t > 0, hence ψ is constant on (0,∞)
+  have hpsi_deriv_zero : ∀ s ∈ Set.Ioi (0 : ℝ),
+      deriv (fun t => ((f t) ^ (-p.α) - p.b / p.a) * Real.exp (rate * t)) s = 0 := by
+    intro s hs
+    have hs_pos : 0 < s := hs
+    -- HasDerivAt for the two factors
+    have hg_hd := hg_linear_ode s hs_pos
+    have hconst_hd : HasDerivAt (fun _ : ℝ => p.b / p.a) 0 s := hasDerivAt_const s _
+    have hsub_hd := hg_hd.sub hconst_hd
+    -- hsub_hd : HasDerivAt (fun t => f(t)^(-α) - b/a) (-rate * f(s)^(-α) + αb - 0) s
+    have hexp_hd : HasDerivAt (fun t => Real.exp (rate * t))
+        (rate * Real.exp (rate * s)) s := by
+      have := ((hasDerivAt_id s).const_mul rate).exp
+      simpa [mul_comm, mul_left_comm, mul_assoc] using this
+    have hsub_hd' : HasDerivAt (fun t => (f t) ^ (-p.α) - p.b / p.a)
+        (-(rate) * (f s) ^ (-p.α) + p.α * p.b) s := by
+      convert hsub_hd using 1; ring
+    have hprod := hsub_hd'.mul hexp_hd
+    have hfun_eq : (fun t => (f t) ^ (-p.α) - p.b / p.a) * (fun t => Real.exp (rate * t)) =
+        fun t => ((f t) ^ (-p.α) - p.b / p.a) * Real.exp (rate * t) := rfl
+    rw [show deriv (fun t => ((f t) ^ (-p.α) - p.b / p.a) * Real.exp (rate * t)) s =
+        deriv ((fun t => (f t) ^ (-p.α) - p.b / p.a) * (fun t => Real.exp (rate * t))) s from rfl]
+    rw [hprod.deriv]
+    rw [hrate_def]; field_simp; ring
+  -- ψ is differentiable on (0, ∞)
+  have hpsi_diffOn :
+      DifferentiableOn ℝ
+        (fun t => ((f t) ^ (-p.α) - p.b / p.a) * Real.exp (rate * t))
+        (Set.Ioi 0) := by
+    intro t ht
+    have ht_pos : 0 < t := ht
+    have hg_da := (hg_linear_ode t ht_pos).sub (hasDerivAt_const t (p.b / p.a))
+    have hexp_da : HasDerivAt (fun s => Real.exp (rate * s))
+        (rate * Real.exp (rate * t)) t := by
+      have := ((hasDerivAt_id t).const_mul rate).exp
+      simpa [mul_comm, mul_assoc] using this
+    exact (hg_da.mul hexp_da).differentiableAt.differentiableWithinAt
+  -- ψ is constant on (0, ∞): use is_const_of_deriv_eq_zero
+  have hpsi_const : ∀ t₁, 0 < t₁ → ∀ t₂, 0 < t₂ →
+      ((f t₁) ^ (-p.α) - p.b / p.a) * Real.exp (rate * t₁) =
+      ((f t₂) ^ (-p.α) - p.b / p.a) * Real.exp (rate * t₂) := by
+    intro t₁ ht₁ t₂ ht₂
+    exact isOpen_Ioi.is_const_of_deriv_eq_zero isPreconnected_Ioi
+      hpsi_diffOn hpsi_deriv_zero ht₁ ht₂
+  -- Specialize: ψ(t) = ψ(1) for all t > 0
+  have hpsi_eq : ∀ t, 0 < t →
+      ((f t) ^ (-p.α) - p.b / p.a) * Real.exp (rate * t) =
+      ((f 1) ^ (-p.α) - p.b / p.a) * Real.exp (rate * 1) :=
+    fun t ht => hpsi_const t ht 1 one_pos
+  -- Therefore: f(t)^(-α) = b/a + (f(1)^(-α) - b/a) * exp(-rate*(t-1))
+  have hg_formula : ∀ t, 0 < t →
+      (f t) ^ (-p.α) = p.b / p.a +
+        ((f 1) ^ (-p.α) - p.b / p.a) * Real.exp (-rate * (t - 1)) := by
+    intro t ht
+    have hexp_pos : 0 < Real.exp (rate * t) := Real.exp_pos _
+    have hexp_ne : Real.exp (rate * t) ≠ 0 := ne_of_gt hexp_pos
+    have h := hpsi_eq t ht
+    -- (g(t) - b/a) * exp(rate*t) = (g(1) - b/a) * exp(rate)
+    -- g(t) - b/a = (g(1) - b/a) * exp(rate) * exp(-rate*t)
+    -- g(t) = b/a + (g(1) - b/a) * exp(rate - rate*t)
+    -- g(t) = b/a + (g(1) - b/a) * exp(-rate*(t-1))
+    have := div_eq_div_iff hexp_ne (ne_of_gt (Real.exp_pos (rate * 1)))
+    rw [mul_comm ((f t) ^ (-p.α) - p.b / p.a) _, mul_comm ((f 1) ^ (-p.α) - p.b / p.a) _] at h
+    have hdiv : (f t) ^ (-p.α) - p.b / p.a =
+        ((f 1) ^ (-p.α) - p.b / p.a) * (Real.exp (rate * 1) / Real.exp (rate * t)) := by
+      field_simp at h ⊢
+      linarith
+    rw [show Real.exp (rate * 1) / Real.exp (rate * t) = Real.exp (-rate * (t - 1)) by
+      rw [← Real.exp_sub]
+      congr 1; ring] at hdiv
+    linarith
+  -- Upper bound on g(t) for t ≥ 1:  g(t) ≤ max(g(1), b/a)
+  have hg_upper : ∀ t, 1 ≤ t →
+      (f t) ^ (-p.α) ≤ max ((f 1) ^ (-p.α)) (p.b / p.a) := by
+    intro t ht
+    have ht_pos : 0 < t := lt_of_lt_of_le one_pos ht
+    rw [hg_formula t ht_pos]
+    -- g(t) = b/a + (g(1) - b/a) * exp(-rate*(t-1))
+    -- For t ≥ 1: exp(-rate*(t-1)) ∈ [0, 1] (since rate > 0 and t-1 ≥ 0)
+    have hexp_le_one : Real.exp (-rate * (t - 1)) ≤ 1 := by
+      apply Real.exp_le_one_iff.mpr
+      nlinarith
+    have hexp_nn : 0 ≤ Real.exp (-rate * (t - 1)) := (Real.exp_pos _).le
+    by_cases hcase : (f 1) ^ (-p.α) ≤ p.b / p.a
+    · -- g(1) ≤ b/a: coefficient ≤ 0, so convex combination ≤ b/a
+      have hcoef : (f 1) ^ (-p.α) - p.b / p.a ≤ 0 := by linarith
+      calc p.b / p.a + ((f 1) ^ (-p.α) - p.b / p.a) * Real.exp (-rate * (t - 1))
+          ≤ p.b / p.a + 0 := by nlinarith
+        _ = p.b / p.a := by ring
+        _ ≤ max ((f 1) ^ (-p.α)) (p.b / p.a) := le_max_right _ _
+    · -- g(1) > b/a: coefficient > 0, exp ≤ 1, so g(t) ≤ g(1)
+      push Not at hcase
+      have hcoef : 0 < (f 1) ^ (-p.α) - p.b / p.a := by linarith
+      calc p.b / p.a + ((f 1) ^ (-p.α) - p.b / p.a) * Real.exp (-rate * (t - 1))
+          ≤ p.b / p.a + ((f 1) ^ (-p.α) - p.b / p.a) * 1 := by nlinarith
+        _ = (f 1) ^ (-p.α) := by ring
+        _ ≤ max ((f 1) ^ (-p.α)) (p.b / p.a) := le_max_left _ _
+  -- Lower bound on f(t): f(t) ≥ min(f(1), e) for t ≥ 1
+  -- Since f(t) = g(t)^(-1/α) and g ↦ g^(-1/α) is anti-monotone for g > 0,
+  -- g(t) ≤ max(g(1), b/a) ⟹ f(t) ≥ min(f(1), e)
+  have hf_lower : ∀ t, 1 ≤ t → min (f 1) e ≤ f t := by
+    intro t ht
+    have ht_pos : 0 < t := lt_of_lt_of_le one_pos ht
+    have hft_pos : 0 < f t := hf_pos t ht_pos
+    have hg1_pos : 0 < (f 1) ^ (-p.α) := Real.rpow_pos_of_pos hf1_pos _
+    have hgt_pos : 0 < (f t) ^ (-p.α) := Real.rpow_pos_of_pos hft_pos _
+    have hq_pos : 0 < p.b / p.a := div_pos hb ha
+    -- f(t) = g(t)^(-1/α), f(1) = g(1)^(-1/α)
+    have hf_recover : ∀ s, 0 < f s → f s = ((f s) ^ (-p.α)) ^ (-1 / p.α) := by
+      intro s hs
+      rw [← Real.rpow_mul hs.le]
+      have : (-p.α) * (-1 / p.α) = 1 := by field_simp [hα_ne]
+      rw [this, Real.rpow_one]
+    -- e = (b/a)^(-1/α)
+    have he_recover : e = (p.b / p.a) ^ (-1 / p.α) := by
+      rw [he_def, show -1 / p.α = -(1 / p.α) by ring]
+      rw [Real.rpow_neg_eq_inv_rpow]
+      congr 1
+      field_simp [ne_of_gt ha, ne_of_gt hb]
+    -- -1/α < 0
+    have hneg_inv : -1 / p.α < 0 := div_neg_of_neg_of_pos (by norm_num) hα_pos
+    have hneg_inv_le : -1 / p.α ≤ 0 := hneg_inv.le
+    -- Anti-monotonicity: if g(t) ≤ max(g(1), b/a), then
+    -- f(t) = g(t)^(-1/α) ≥ max(g(1), b/a)^(-1/α) = min(g(1)^(-1/α), (b/a)^(-1/α))
+    --      = min(f(1), e)
+    have hgupper := hg_upper t ht
+    -- max(g(1), b/a) > 0
+    have hmax_pos : 0 < max ((f 1) ^ (-p.α)) (p.b / p.a) :=
+      lt_max_of_lt_left hg1_pos
+    -- rpow is antitone for negative exponent on positives
+    have hanti := Real.rpow_le_rpow_of_nonpos hgt_pos hgupper hneg_inv_le
+    rw [hf_recover t hft_pos]
+    -- Need: max(g1, b/a)^(-1/α) ≤ f(t)^(-α)^(-1/α), and
+    -- max(g1, b/a)^(-1/α) = min(g1^(-1/α), (b/a)^(-1/α)) = min(f1, e)
+    suffices hsuff :
+        min (f 1) e ≤ (max ((f 1) ^ (-p.α)) (p.b / p.a)) ^ (-1 / p.α) from
+      le_trans hsuff hanti
+    -- Case split on which is the max
+    rcases le_or_gt ((f 1) ^ (-p.α)) (p.b / p.a) with hle | hgt_case
+    · -- g(1) ≤ b/a, so max = b/a, and max^(-1/α) = e
+      rw [max_eq_right hle, ← he_recover]
+      exact min_le_right _ _
+    · -- g(1) > b/a, so max = g(1), and max^(-1/α) = f(1)
+      rw [max_eq_left hgt_case.le, ← hf_recover 1 hf1_pos]
+      exact min_le_left _ _
+  -- Set δu = min(f(1), e)
+  have hδ_pos : 0 < min (f 1) e := lt_min hf1_pos he_pos
+  refine ⟨min (f 1) e, hδ_pos, ?_, ?_⟩
+  · -- EventuallyLowerBound D u (min (f 1) e)
+    refine ⟨hδ_pos, ?_⟩
+    refine Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩
+    show min (f 1) e ≤ ShenWork.Paper2.unitPointDomain.infValue (u t)
+    show min (f 1) e ≤ f t
+    exact hf_lower t ht
+  · -- EventuallyLowerBound D v (ν/μ * (min (f 1) e)^γ)
+    have hv_lb_pos : 0 < p.ν / p.μ * (min (f 1) e) ^ p.γ :=
+      mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos hδ_pos _)
+    refine ⟨hv_lb_pos, ?_⟩
+    refine Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩
+    have ht_pos : 0 < t := lt_of_lt_of_le one_pos ht
+    show p.ν / p.μ * (min (f 1) e) ^ p.γ ≤
+      ShenWork.Paper2.unitPointDomain.infValue (v t)
+    show p.ν / p.μ * (min (f 1) e) ^ p.γ ≤ v t ()
+    rw [hv_eq t ht_pos]
+    apply mul_le_mul_of_nonneg_left _ (div_pos p.hν p.hμ).le
+    exact Real.rpow_le_rpow hδ_pos.le (hf_lower t ht) p.hγ.le
+
 end ShenWork.Paper3
 
 end
