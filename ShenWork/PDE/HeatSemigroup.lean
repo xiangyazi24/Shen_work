@@ -1953,6 +1953,65 @@ lemma unitIntervalCosineHeatTrace_le_reciprocalTrace {t : ℝ} (ht : 0 < t)
     _ ≤ 1 + (1 / (2 * t)) * unitIntervalCosineReciprocalEigenvalueTrace :=
           add_le_add hzero hscale
 
+/-- The interval cosine heat trace is summable when the reciprocal spectrum is summable. -/
+lemma unitIntervalCosineHeatTrace_summable {t : ℝ} (ht : 0 < t)
+    (hrecip : Summable unitIntervalCosineReciprocalEigenvalueTerm) :
+    Summable fun n => Real.exp (-2 * t * unitIntervalCosineEigenvalue n) := by
+  have hrecip_nonneg :
+      ∀ n, 0 ≤ unitIntervalCosineReciprocalEigenvalueTerm n := by
+    intro n
+    by_cases hn : n = 0
+    · simp [unitIntervalCosineReciprocalEigenvalueTerm, hn]
+    · have hnpos_real : 0 < (n : ℝ) := by
+        exact_mod_cast Nat.pos_of_ne_zero hn
+      have hlambda_pos : 0 < unitIntervalCosineEigenvalue n := by
+        dsimp [unitIntervalCosineEigenvalue]
+        exact sq_pos_of_pos (mul_pos hnpos_real Real.pi_pos)
+      rw [unitIntervalCosineReciprocalEigenvalueTerm, if_neg hn]
+      exact div_nonneg zero_le_one hlambda_pos.le
+  apply summable_of_sum_le (fun n => Real.exp_nonneg _)
+  intro s
+  have hzero :
+      (∑ n ∈ s, if n = 0 then (1 : ℝ) else 0) ≤ 1 := by
+    by_cases h0 : 0 ∈ s
+    · rw [Finset.sum_eq_single 0]
+      · simp
+      · intro n _hn hn0
+        simp [hn0]
+      · intro h0not
+        exact False.elim (h0not h0)
+    · have hsum_zero :
+          (∑ n ∈ s, if n = 0 then (1 : ℝ) else 0) = 0 := by
+        apply Finset.sum_eq_zero
+        intro n hn
+        have hn0 : n ≠ 0 := by
+          intro hn_eq
+          exact h0 (hn_eq ▸ hn)
+        simp [hn0]
+      rw [hsum_zero]
+      norm_num
+  have hrecip_sum :
+      ∑ n ∈ s, unitIntervalCosineReciprocalEigenvalueTerm n ≤
+        unitIntervalCosineReciprocalEigenvalueTrace :=
+    hrecip.sum_le_tsum s (fun n _hn => hrecip_nonneg n)
+  have hscale :
+      (∑ n ∈ s,
+          (1 / (2 * t)) * unitIntervalCosineReciprocalEigenvalueTerm n) ≤
+        (1 / (2 * t)) * unitIntervalCosineReciprocalEigenvalueTrace := by
+    rw [← Finset.mul_sum]
+    exact mul_le_mul_of_nonneg_left hrecip_sum (by positivity)
+  calc
+    ∑ n ∈ s, Real.exp (-2 * t * unitIntervalCosineEigenvalue n)
+        ≤ ∑ n ∈ s, unitIntervalCosineHeatTraceMajorant t n := by
+          exact Finset.sum_le_sum fun n _hn =>
+            unitIntervalCosineHeatTraceTerm_le_majorant ht n
+    _ = (∑ n ∈ s, if n = 0 then (1 : ℝ) else 0) +
+          ∑ n ∈ s,
+            (1 / (2 * t)) * unitIntervalCosineReciprocalEigenvalueTerm n := by
+          simp [unitIntervalCosineHeatTraceMajorant, Finset.sum_add_distrib]
+    _ ≤ 1 + (1 / (2 * t)) * unitIntervalCosineReciprocalEigenvalueTrace :=
+          add_le_add hzero hscale
+
 /-- Short-time `L² → L∞` constant for the interval cosine heat model. -/
 def unitIntervalCosineHeatL2LinftyConstant : ℝ :=
   Real.sqrt (1 + (1 / 2) * unitIntervalCosineReciprocalEigenvalueTrace)
