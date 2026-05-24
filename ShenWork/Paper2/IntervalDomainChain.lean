@@ -208,7 +208,7 @@ private theorem supNorm_le_initial_of_nonincreasing_and_approach
       intervalDomain.supNorm (u s) ≤ intervalDomain.supNorm u₀ + ε) :
     intervalDomain.supNorm (u t) ≤ intervalDomain.supNorm u₀ := by
   by_contra h_gt
-  push_neg at h_gt
+  push Not at h_gt
   -- The gap between supNorm(u t) and supNorm u₀
   set gap := intervalDomain.supNorm (u t) - intervalDomain.supNorm u₀ with hgap_def
   have hgap_pos : 0 < gap := by linarith
@@ -239,7 +239,7 @@ private theorem supNorm_le_initial_of_nonincreasing_Ioo_and_approach
     {t : ℝ} (ht_pos : 0 < t) (ht_lt : t < T) :
     intervalDomain.supNorm (u t) ≤ intervalDomain.supNorm u₀ := by
   by_contra h_gt
-  push_neg at h_gt
+  push Not at h_gt
   set gap := intervalDomain.supNorm (u t) - intervalDomain.supNorm u₀ with hgap_def
   have hgap_pos : 0 < gap := by linarith
   obtain ⟨δ, hδ_pos, _hδ_le_T, hδ_bound⟩ :=
@@ -284,7 +284,7 @@ theorem Theorem_1_1_intervalDomain_conditional
       · -- Case 1: already below the carrying capacity
         exact le_trans h_below (le_max_right _ _)
       · -- Case 2: above the carrying capacity → use Lemma 3.1
-        push_neg at h_below
+        push Not at h_below
         -- Lemma 3.1 gives nonincreasing on (0, t]
         have hL31 := Lemma_3_1_intervalDomain p
         have hmono := (hL31 hχ).1 ha hb Tmax hTmax u v hsol t ht_pos ht_lt h_below
@@ -306,7 +306,7 @@ theorem Theorem_1_1_intervalDomain_conditional
         by_cases h_below :
             intervalDomain.supNorm (u t) ≤ (p.a / p.b) ^ (1 / p.α)
         · exact le_trans h_below (le_max_right _ _)
-        · push_neg at h_below
+        · push Not at h_below
           have hL31 := Lemma_3_1_intervalDomain p
           have hmono :=
             (hL31 hχ).1 ha hb Tmax hTmax u v hsol t ht_pos ht_lt h_below
