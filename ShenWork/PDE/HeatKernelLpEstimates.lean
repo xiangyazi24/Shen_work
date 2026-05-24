@@ -1202,6 +1202,284 @@ theorem intervalCosineHeatGradient_L2_L2_coeff_bound
       (1 / Real.sqrt t) * unitIntervalCosineL2TsumNorm a :=
   unitIntervalCosineHeatGradientTsumL2Norm_le_inv_sqrt ht ha
 
+/-- Pointwise energy of the derivative evaluation functional. -/
+def unitIntervalCosineHeatGradientPointEnergy (t x : ℝ) : ℝ :=
+  ∑' n, (unitIntervalCosineHeatGradientPointWeight t x n) ^ 2
+
+/-- Heat-gradient trace for the unit-interval cosine model. -/
+def unitIntervalCosineHeatGradientTrace (t : ℝ) : ℝ :=
+  ∑' n, unitIntervalCosineHeatGradientMultiplier t n
+
+/-- The squared pointwise derivative weight is bounded by the spectral
+gradient multiplier. -/
+lemma unitIntervalCosineHeatGradientPointWeight_sq_le_multiplier
+    (t x : ℝ) (n : ℕ) :
+    (unitIntervalCosineHeatGradientPointWeight t x n) ^ 2 ≤
+      unitIntervalCosineHeatGradientMultiplier t n := by
+  let lambda := unitIntervalCosineEigenvalue n
+  let s := Real.sin ((n : ℝ) * Real.pi * x)
+  have hsin : s ^ 2 ≤ 1 := by
+    dsimp [s]
+    rw [sq_le_one_iff_abs_le_one]
+    exact abs_sin_le_one _
+  have hcoeff_nonneg : 0 ≤ (Real.exp (-t * lambda)) ^ 2 * lambda := by
+    dsimp [lambda, unitIntervalCosineEigenvalue]
+    positivity
+  calc
+    (unitIntervalCosineHeatGradientPointWeight t x n) ^ 2
+        = (Real.exp (-t * lambda)) ^ 2 * lambda * s ^ 2 := by
+          dsimp [unitIntervalCosineHeatGradientPointWeight, lambda,
+            unitIntervalCosineEigenvalue, s]
+          ring
+    _ ≤ (Real.exp (-t * lambda)) ^ 2 * lambda * 1 := by
+          exact mul_le_mul_of_nonneg_left hsin hcoeff_nonneg
+    _ = unitIntervalCosineHeatGradientMultiplier t n := by
+          dsimp [unitIntervalCosineHeatGradientMultiplier, lambda]
+          rw [mul_one, sq, ← Real.exp_add]
+          ring
+
+/-- Pointwise derivative evaluation energy is bounded by the heat-gradient trace. -/
+lemma unitIntervalCosineHeatGradientPointEnergy_le_trace {t x : ℝ}
+    (htrace : Summable fun n => unitIntervalCosineHeatGradientMultiplier t n) :
+    unitIntervalCosineHeatGradientPointEnergy t x ≤
+      unitIntervalCosineHeatGradientTrace t := by
+  have hpoint :
+      Summable fun n =>
+        (unitIntervalCosineHeatGradientPointWeight t x n) ^ 2 :=
+    Summable.of_nonneg_of_le (fun n => sq_nonneg _)
+      (fun n => unitIntervalCosineHeatGradientPointWeight_sq_le_multiplier t x n)
+      htrace
+  calc
+    unitIntervalCosineHeatGradientPointEnergy t x
+        = ∑' n, (unitIntervalCosineHeatGradientPointWeight t x n) ^ 2 := rfl
+    _ ≤ ∑' n, unitIntervalCosineHeatGradientMultiplier t n :=
+        hpoint.tsum_le_tsum
+          (fun n =>
+            unitIntervalCosineHeatGradientPointWeight_sq_le_multiplier t x n)
+          htrace
+    _ = unitIntervalCosineHeatGradientTrace t := rfl
+
+/-- The nonzero spectral multiplier is controlled by the reciprocal spectrum. -/
+lemma unitIntervalCosineHeatGradientMultiplier_le_reciprocal
+    {t : ℝ} (ht : 0 < t) {n : ℕ} (hn : n ≠ 0) :
+    unitIntervalCosineHeatGradientMultiplier t n ≤
+      (1 / t ^ 2) * (1 / unitIntervalCosineEigenvalue n) := by
+  let lambda := unitIntervalCosineEigenvalue n
+  have hnpos_real : 0 < (n : ℝ) := by
+    exact_mod_cast Nat.pos_of_ne_zero hn
+  have hlambda_pos : 0 < lambda := by
+    dsimp [lambda, unitIntervalCosineEigenvalue]
+    exact sq_pos_of_pos (mul_pos hnpos_real Real.pi_pos)
+  let z := (t * lambda) * Real.exp (-(t * lambda))
+  have hz_nonneg : 0 ≤ z := by
+    dsimp [z]
+    positivity
+  have hz_le_one : z ≤ 1 := by
+    dsimp [z]
+    exact real_mul_exp_neg_le_one (by positivity)
+  have hz_sq : z ^ 2 ≤ 1 := by
+    rw [sq_le_one_iff_abs_le_one]
+    rw [abs_of_nonneg hz_nonneg]
+    exact hz_le_one
+  have hscale_nonneg : 0 ≤ 1 / (t ^ 2 * lambda) := by
+    positivity
+  calc
+    unitIntervalCosineHeatGradientMultiplier t n
+        = (1 / (t ^ 2 * lambda)) * z ^ 2 := by
+          dsimp [unitIntervalCosineHeatGradientMultiplier, z, lambda]
+          have hexp_sq :
+              (Real.exp (-(t * unitIntervalCosineEigenvalue n))) ^ 2 =
+                Real.exp (-2 * t * unitIntervalCosineEigenvalue n) := by
+            rw [sq, ← Real.exp_add]
+            congr 1
+            ring
+          rw [show
+              (t * unitIntervalCosineEigenvalue n *
+                  Real.exp (-(t * unitIntervalCosineEigenvalue n))) ^ 2 =
+                t ^ 2 * (unitIntervalCosineEigenvalue n) ^ 2 *
+                  Real.exp (-2 * t * unitIntervalCosineEigenvalue n) by
+            rw [mul_pow, mul_pow, hexp_sq]]
+          field_simp [ne_of_gt ht, ne_of_gt hlambda_pos]
+    _ ≤ (1 / (t ^ 2 * lambda)) * 1 := by
+          exact mul_le_mul_of_nonneg_left hz_sq hscale_nonneg
+    _ = (1 / t ^ 2) * (1 / unitIntervalCosineEigenvalue n) := by
+          dsimp [lambda]
+          field_simp [ne_of_gt ht, ne_of_gt hlambda_pos]
+
+/-- A summable majorant for the heat-gradient trace. -/
+def unitIntervalCosineHeatGradientTraceMajorant (t : ℝ) (n : ℕ) : ℝ :=
+  (1 / t ^ 2) * unitIntervalCosineReciprocalEigenvalueTerm n
+
+/-- Each heat-gradient trace summand is controlled by the reciprocal-spectrum
+majorant. -/
+lemma unitIntervalCosineHeatGradientMultiplier_le_majorant
+    {t : ℝ} (ht : 0 < t) (n : ℕ) :
+    unitIntervalCosineHeatGradientMultiplier t n ≤
+      unitIntervalCosineHeatGradientTraceMajorant t n := by
+  by_cases hn : n = 0
+  · subst n
+    simp [unitIntervalCosineHeatGradientTraceMajorant,
+      unitIntervalCosineHeatGradientMultiplier,
+      unitIntervalCosineReciprocalEigenvalueTerm, unitIntervalCosineEigenvalue]
+  · have hrecip :=
+      unitIntervalCosineHeatGradientMultiplier_le_reciprocal
+        (t := t) ht (n := n) hn
+    simpa [unitIntervalCosineHeatGradientTraceMajorant,
+      unitIntervalCosineReciprocalEigenvalueTerm, hn] using hrecip
+
+/-- The heat-gradient trace is summable when the nonzero reciprocal spectrum
+is summable. -/
+lemma unitIntervalCosineHeatGradientTrace_summable
+    {t : ℝ} (ht : 0 < t)
+    (hrecip : Summable unitIntervalCosineReciprocalEigenvalueTerm) :
+    Summable fun n => unitIntervalCosineHeatGradientMultiplier t n := by
+  have hnonneg :
+      ∀ n, 0 ≤ unitIntervalCosineHeatGradientMultiplier t n := by
+    intro n
+    dsimp [unitIntervalCosineHeatGradientMultiplier,
+      unitIntervalCosineEigenvalue]
+    positivity
+  have hdom :
+      ∀ n,
+        unitIntervalCosineHeatGradientMultiplier t n ≤
+          unitIntervalCosineHeatGradientTraceMajorant t n :=
+    unitIntervalCosineHeatGradientMultiplier_le_majorant ht
+  exact Summable.of_nonneg_of_le hnonneg hdom
+    (by
+      simpa [unitIntervalCosineHeatGradientTraceMajorant] using
+        hrecip.mul_left (1 / t ^ 2))
+
+/-- Heat-gradient trace bound by the reciprocal-spectrum trace. -/
+lemma unitIntervalCosineHeatGradientTrace_le_reciprocalTrace
+    {t : ℝ} (ht : 0 < t)
+    (hrecip : Summable unitIntervalCosineReciprocalEigenvalueTerm) :
+    unitIntervalCosineHeatGradientTrace t ≤
+      (1 / t ^ 2) * unitIntervalCosineReciprocalEigenvalueTrace := by
+  have htrace := unitIntervalCosineHeatGradientTrace_summable ht hrecip
+  have hdom :
+      ∀ n,
+        unitIntervalCosineHeatGradientMultiplier t n ≤
+          unitIntervalCosineHeatGradientTraceMajorant t n :=
+    unitIntervalCosineHeatGradientMultiplier_le_majorant ht
+  calc
+    unitIntervalCosineHeatGradientTrace t
+        = ∑' n, unitIntervalCosineHeatGradientMultiplier t n := rfl
+    _ ≤ ∑' n, unitIntervalCosineHeatGradientTraceMajorant t n :=
+        htrace.tsum_le_tsum hdom
+          (by
+            simpa [unitIntervalCosineHeatGradientTraceMajorant] using
+              hrecip.mul_left (1 / t ^ 2))
+    _ = (1 / t ^ 2) * unitIntervalCosineReciprocalEigenvalueTrace := by
+        dsimp [unitIntervalCosineHeatGradientTraceMajorant,
+          unitIntervalCosineReciprocalEigenvalueTrace]
+        exact Summable.tsum_mul_left (1 / t ^ 2) hrecip
+
+/-- Short-time-independent constant for coefficient `L² → L∞` heat-gradient
+smoothing. -/
+def unitIntervalCosineHeatGradientL2LinftyConstant : ℝ :=
+  Real.sqrt unitIntervalCosineReciprocalEigenvalueTrace
+
+/-- Square-root form of the heat-gradient trace bound. -/
+lemma unitIntervalCosineHeatGradientTrace_sqrt_le_inv
+    {t : ℝ} (ht : 0 < t)
+    (hrecip : Summable unitIntervalCosineReciprocalEigenvalueTerm) :
+    Real.sqrt (unitIntervalCosineHeatGradientTrace t) ≤
+      unitIntervalCosineHeatGradientL2LinftyConstant / t := by
+  have hrecip_nonneg :
+      ∀ n, 0 ≤ unitIntervalCosineReciprocalEigenvalueTerm n := by
+    intro n
+    by_cases hn : n = 0
+    · simp [unitIntervalCosineReciprocalEigenvalueTerm, hn]
+    · have hnpos_real : 0 < (n : ℝ) := by
+        exact_mod_cast Nat.pos_of_ne_zero hn
+      have hlambda_pos : 0 < unitIntervalCosineEigenvalue n := by
+        dsimp [unitIntervalCosineEigenvalue]
+        exact sq_pos_of_pos (mul_pos hnpos_real Real.pi_pos)
+      rw [unitIntervalCosineReciprocalEigenvalueTerm, if_neg hn]
+      exact div_nonneg zero_le_one hlambda_pos.le
+  have htrace :=
+    unitIntervalCosineHeatGradientTrace_le_reciprocalTrace ht hrecip
+  have hfactor_nonneg : 0 ≤ 1 / t ^ 2 := by
+    positivity
+  have hsqrt_factor : Real.sqrt (1 / t ^ 2) = 1 / t := by
+    have hsq : 1 / t ^ 2 = (1 / t) ^ 2 := by
+      field_simp [ne_of_gt ht]
+    rw [hsq, Real.sqrt_sq (by positivity)]
+  calc
+    Real.sqrt (unitIntervalCosineHeatGradientTrace t)
+        ≤ Real.sqrt
+            ((1 / t ^ 2) * unitIntervalCosineReciprocalEigenvalueTrace) :=
+          Real.sqrt_le_sqrt htrace
+    _ = Real.sqrt (1 / t ^ 2) *
+          Real.sqrt unitIntervalCosineReciprocalEigenvalueTrace := by
+          rw [Real.sqrt_mul hfactor_nonneg]
+    _ = unitIntervalCosineHeatGradientL2LinftyConstant / t := by
+          rw [hsqrt_factor]
+          dsimp [unitIntervalCosineHeatGradientL2LinftyConstant]
+          ring
+
+/-- Pointwise derivative series controlled by derivative-evaluation energy
+and the coefficient `L²` norm. -/
+lemma unitIntervalCosineHeatGradientValue_abs_le_pointEnergy
+    {t x : ℝ} {a : ℕ → ℝ}
+    (hpoint :
+      Summable fun n =>
+        (unitIntervalCosineHeatGradientPointWeight t x n) ^ 2)
+    (ha : Summable fun n => (a n) ^ 2) :
+    |unitIntervalCosineHeatGradientValue t a x| ≤
+      Real.sqrt (unitIntervalCosineHeatGradientPointEnergy t x) *
+        unitIntervalCosineL2TsumNorm a := by
+  simpa [unitIntervalCosineHeatGradientValue,
+    unitIntervalCosineHeatGradientPointEnergy, unitIntervalCosineL2TsumNorm]
+    using
+      real_abs_tsum_mul_le_sqrt_tsum_sq_mul_sqrt_tsum_sq
+        (u := fun n => unitIntervalCosineHeatGradientPointWeight t x n)
+        (v := a) hpoint ha
+
+/-- Pointwise derivative series controlled by the heat-gradient trace and
+the coefficient `L²` norm. -/
+lemma unitIntervalCosineHeatGradientValue_abs_le_trace
+    {t x : ℝ} {a : ℕ → ℝ}
+    (htrace : Summable fun n => unitIntervalCosineHeatGradientMultiplier t n)
+    (ha : Summable fun n => (a n) ^ 2) :
+    |unitIntervalCosineHeatGradientValue t a x| ≤
+      Real.sqrt (unitIntervalCosineHeatGradientTrace t) *
+        unitIntervalCosineL2TsumNorm a := by
+  have hpoint :
+      Summable fun n =>
+        (unitIntervalCosineHeatGradientPointWeight t x n) ^ 2 :=
+    Summable.of_nonneg_of_le (fun n => sq_nonneg _)
+      (fun n => unitIntervalCosineHeatGradientPointWeight_sq_le_multiplier t x n)
+      htrace
+  have hbase :=
+    unitIntervalCosineHeatGradientValue_abs_le_pointEnergy
+      (t := t) (x := x) (a := a) hpoint ha
+  have henergy :=
+    unitIntervalCosineHeatGradientPointEnergy_le_trace
+      (t := t) (x := x) htrace
+  exact hbase.trans
+    (mul_le_mul_of_nonneg_right
+      (Real.sqrt_le_sqrt henergy) (Real.sqrt_nonneg _))
+
+/-- Coefficient-space pointwise `L² → L∞` smoothing for the spatial
+derivative of the interval cosine heat model. -/
+theorem unitIntervalCosineHeatGradientValue_L2_Linfty_smoothing
+    {t : ℝ} (ht : 0 < t)
+    (hrecip : Summable unitIntervalCosineReciprocalEigenvalueTerm)
+    {a : ℕ → ℝ} (ha : Summable fun n => (a n) ^ 2) :
+    ∀ x : ℝ,
+      |unitIntervalCosineHeatGradientValue t a x| ≤
+        (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+          unitIntervalCosineL2TsumNorm a := by
+  intro x
+  have htrace := unitIntervalCosineHeatGradientTrace_summable ht hrecip
+  have hbase :=
+    unitIntervalCosineHeatGradientValue_abs_le_trace
+      (t := t) (x := x) (a := a) htrace ha
+  have hsqrt := unitIntervalCosineHeatGradientTrace_sqrt_le_inv ht hrecip
+  exact hbase.trans
+    (mul_le_mul_of_nonneg_right hsqrt (Real.sqrt_nonneg _))
+
 /-! ## Gradient smoothing -/
 
 /-- Pointwise kernel-derivative constant for the `L¹ → L∞` gradient estimate. -/
