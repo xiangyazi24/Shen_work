@@ -124,6 +124,10 @@
 - **前置**: H0.4 (Sobolev), H1.2
 - **目标文件**: `ShenWork/Paper2/Statements.lean`
 - **产出**: `Lemma_4_1_intervalDomain`
+- **进展** (2026-05-24): `ShenWork/Paper2/IntervalDomainTheorem11.lean`
+  exposes `Lemma_4_1_intervalDomain_of_GN_frontier`, composing the existing
+  `IntervalDomainInterpolation` frontier into `Lemma_4_1 intervalDomain p`.
+  Not marked done until the interval interpolation frontier is proved.
 
 ### H1.4 — Paper2 Corollary 2.1 on intervalDomain
 - **内容**: cross-diffusion bootstrap → L^p for all p
@@ -135,7 +139,10 @@
   `Corollary_2_1_intervalDomain_of_Lemma_2_6_and_energy`:
   `Lemma_2_6 intervalDomain` plus the PDE energy derivation from
   `CrossDiffusionBootstrapEstimate` implies `Corollary_2_1 intervalDomain p`.
-  Not marked done until H1.2 and the energy derivation are closed.
+  `ShenWork/Paper2/IntervalDomainTheorem11.lean` additionally composes the
+  mass-gradient Moser frontier into
+  `Corollary_2_1_intervalDomain_of_mass_gradient_frontier`.  Not marked done
+  until H1.2 and the energy derivation are closed.
 
 ---
 
@@ -147,6 +154,15 @@
 - **证明链**: Lemma 3.1 (sup norm monotonicity) → energy estimate → Lemma 2.6 (Lp bootstrap) → Lemma 4.1 (L∞) → global existence
 - **目标文件**: `ShenWork/Paper2/IntervalDomainBridge.lean` (new)
 - **产出**: `Theorem_1_1_intervalDomain`
+- **进展** (2026-05-24): `ShenWork/Paper2/IntervalDomainTheorem11.lean`
+  proves `Theorem_1_1_intervalDomain_of_corollary21_and_proposition25`:
+  conditional on interval existence/initial approach/global extension,
+  `Corollary_2_1`, `Proposition_2_5`, and the bootstrap seed, the full
+  `Theorem_1_1 intervalDomain p` follows.  The same file also proves
+  `Theorem_1_1_intervalDomain_of_mass_gradient_frontier_and_proposition25`,
+  replacing the `Corollary_2_1` input by the explicit mass-gradient Moser
+  frontier and cross-diffusion energy derivation.  Not marked done until those
+  named frontier hypotheses are proved.
 
 ### H2.2 — Paper2 Theorem 1.2 on intervalDomain
 - **前置**: H2.1 基本相同的链
