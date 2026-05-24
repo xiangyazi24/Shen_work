@@ -10253,6 +10253,40 @@ theorem Theorem_2_2_minimal_only_vacuous_when_chi_nonpos_of_raw
       hC.chiCritical_minimalEquilibrium_nonneg H huStar
     exact False.elim ((not_lt_of_ge hcrit_nonneg) (lt_of_lt_of_le hχcrit hχ))
 
+/-- Full raw Paper3 Theorem 2.2 composite for nonpositive sensitivity.
+The proof assembles the parameter slices by cases on `a = 0` and `b = 0`:
+the nonminimal slices use direct `χ₀ ≤ 0` spectral stability plus raw local
+existence, while the `a = b = 0` slice uses the mass-constrained raw package. -/
+theorem Theorem_2_2_full_chi_nonpos_of_raw
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (H : HasNeumannSpectrum S)
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hcontrol : ∀ uStar, SupControlsXpSigmaDistance D N sigma pNorm uStar)
+    (hexist : ∀ uStar, ∀ delta > 0, SmallDataGlobalExistence D p uStar delta)
+    (hmexist :
+      ∀ uStar, ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence D p uStar delta)
+    (hχ : p.χ₀ ≤ 0) :
+    Theorem_2_2 D p S N C := by
+  by_cases ha0 : p.a = 0
+  · by_cases hb0 : p.b = 0
+    · exact
+        Theorem_2_2_minimal_only_vacuous_when_chi_nonpos_of_raw
+          H hC hraw hsigma_low hsigma_high hpNorm hcontrol hmexist hχ
+          ha0 hb0
+    · exact
+        Theorem_2_2_vacuous_when_chi_nonpos_and_b_ne_zero_of_raw
+          H hC hraw hsigma_low hsigma_high hpNorm hcontrol hexist hχ hb0
+  · exact
+      Theorem_2_2_vacuous_when_chi_nonpos_and_a_ne_zero_of_raw
+        H hC hraw hsigma_low hsigma_high hpNorm hcontrol hexist hχ ha0
+
 /-- **TAUTOLOGY (no math content)**: body is `:= hstab`, definitionally
 equal to `Theorem_2_3 D p N`.  Target signature only. -/
 theorem Theorem_2_3.of_assumed_stability_branch
