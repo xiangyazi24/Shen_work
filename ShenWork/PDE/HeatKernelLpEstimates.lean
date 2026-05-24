@@ -1480,6 +1480,96 @@ theorem unitIntervalCosineHeatGradientValue_L2_Linfty_smoothing
   exact hbase.trans
     (mul_le_mul_of_nonneg_right hsqrt (Real.sqrt_nonneg _))
 
+/-- Absolute summability of products from square summability, the summability
+part of the real Cauchy-Schwarz estimate. -/
+lemma real_summable_abs_mul_of_summable_sq
+    {u v : ℕ → ℝ} (hu : Summable fun n => (u n) ^ 2)
+    (hv : Summable fun n => (v n) ^ 2) :
+    Summable fun n => |u n * v n| := by
+  have hdom :
+      ∀ n, |u n * v n| ≤
+        (1 / 2) * (u n) ^ 2 + (1 / 2) * (v n) ^ 2 := by
+    intro n
+    rw [abs_mul]
+    have hsq := sq_nonneg (|u n| - |v n|)
+    nlinarith [sq_abs (u n), sq_abs (v n), hsq]
+  exact Summable.of_nonneg_of_le (fun n => abs_nonneg _)
+    hdom ((hu.mul_left (1 / 2)).add (hv.mul_left (1 / 2)))
+
+/-- Summability of products from square summability. -/
+lemma real_summable_mul_of_summable_sq
+    {u v : ℕ → ℝ} (hu : Summable fun n => (u n) ^ 2)
+    (hv : Summable fun n => (v n) ^ 2) :
+    Summable fun n => u n * v n :=
+  Summable.of_abs (real_summable_abs_mul_of_summable_sq hu hv)
+
+/-- Term-by-term differentiation of the cosine heat series for `L²`
+coefficient data.  The derivative majorant is discharged from the
+heat-gradient trace and the coefficient `L²` norm. -/
+theorem unitIntervalCosineHeatValue_hasDerivAt_of_l2
+    {t x : ℝ} (ht : 0 < t)
+    (hrecip : Summable unitIntervalCosineReciprocalEigenvalueTerm)
+    {a : ℕ → ℝ} (ha : Summable fun n => (a n) ^ 2) :
+    HasDerivAt (fun z : ℝ => unitIntervalCosineHeatValue t a z)
+      (unitIntervalCosineHeatGradientValue t a x) x := by
+  let m : ℕ → ℝ := fun n => unitIntervalCosineHeatGradientMultiplier t n
+  let u : ℕ → ℝ := fun n => Real.sqrt (m n) * |a n|
+  have hm_nonneg : ∀ n, 0 ≤ m n := by
+    intro n
+    dsimp [m, unitIntervalCosineHeatGradientMultiplier,
+      unitIntervalCosineEigenvalue]
+    positivity
+  have hm : Summable m := by
+    simpa [m] using unitIntervalCosineHeatGradientTrace_summable ht hrecip
+  have hsqrt_sq : Summable fun n => (Real.sqrt (m n)) ^ 2 := by
+    refine hm.congr ?_
+    intro n
+    exact (Real.sq_sqrt (hm_nonneg n)).symm
+  have hu_abs :
+      Summable fun n => |Real.sqrt (m n) * a n| :=
+    real_summable_abs_mul_of_summable_sq hsqrt_sq ha
+  have hu : Summable u := by
+    simpa [u, abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)] using hu_abs
+  have hbound :
+      ∀ n y,
+        ‖unitIntervalCosineHeatGradientPointWeight t y n * a n‖ ≤ u n := by
+    intro n y
+    have hsq :=
+      unitIntervalCosineHeatGradientPointWeight_sq_le_multiplier t y n
+    have hw_abs :
+        |unitIntervalCosineHeatGradientPointWeight t y n| ≤
+          Real.sqrt (m n) := by
+      simpa [m] using Real.abs_le_sqrt hsq
+    calc
+      ‖unitIntervalCosineHeatGradientPointWeight t y n * a n‖
+          = |unitIntervalCosineHeatGradientPointWeight t y n| * |a n| := by
+            rw [Real.norm_eq_abs, abs_mul]
+      _ ≤ Real.sqrt (m n) * |a n| :=
+            mul_le_mul_of_nonneg_right hw_abs (abs_nonneg _)
+      _ = u n := rfl
+  have htrace :=
+    unitIntervalCosineHeatTrace_summable ht hrecip
+  have hpoint₀ :
+      Summable fun n => (unitIntervalCosineHeatPointWeight t 0 n) ^ 2 :=
+    Summable.of_nonneg_of_le (fun n => sq_nonneg _)
+      (fun n => unitIntervalCosineHeatPointWeight_sq_le_traceTerm t 0 n)
+      htrace
+  have h₀ :
+      Summable fun n => unitIntervalCosineHeatPointWeight t 0 n * a n :=
+    real_summable_mul_of_summable_sq hpoint₀ ha
+  exact unitIntervalCosineHeatValue_hasDerivAt_of_summable_bound
+    (t := t) (x := x) (x₀ := 0) hu hbound h₀
+
+/-- Derivative identity for the cosine heat series with `L²` coefficient data. -/
+theorem unitIntervalCosineHeatValue_deriv_of_l2
+    {t x : ℝ} (ht : 0 < t)
+    (hrecip : Summable unitIntervalCosineReciprocalEigenvalueTerm)
+    {a : ℕ → ℝ} (ha : Summable fun n => (a n) ^ 2) :
+    deriv (fun z : ℝ => unitIntervalCosineHeatValue t a z) x =
+      unitIntervalCosineHeatGradientValue t a x :=
+  (unitIntervalCosineHeatValue_hasDerivAt_of_l2
+    (t := t) (x := x) ht hrecip ha).deriv
+
 /-! ## Gradient smoothing -/
 
 /-- Pointwise kernel-derivative constant for the `L¹ → L∞` gradient estimate. -/
