@@ -9817,6 +9817,924 @@ lemma Corollary_5_1.minimal_exponential_of_chiMinimal2_of_Lemma_A_8
   h.minimal_exponential_of_Lemma_A_8 hA8 hm_le ha hb hm hβ huStar
     (MinimalGlobalStabilityCondition.of_chiMinimal2 hγ hχ0 hχ) huv hmass hconv
 
+/-- **TAUTOLOGY (no math content)**: body is `:= hexist`, definitionally
+equal to `Proposition_1_3 D p C`.  Target signature only. -/
+theorem Proposition_1_3.of_assumed_existence_branch
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hexist : 0 < p.a → 0 < p.b → 1 ≤ p.m → StrongLogisticCondition p C →
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        ∃ u v : ℝ → D.Point → ℝ,
+          IsPaper2GlobalClassicalSolution D p u v ∧
+          InitialTrace D u₀ u ∧
+          IsPaper2Bounded D u) :
+    Proposition_1_3 D p C :=
+  hexist
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hexist`, definitionally
+equal to `Proposition_1_4 D p`.  Target signature only. -/
+theorem Proposition_1_4.of_assumed_existence_branch
+    {D : BoundedDomainData} {p : CM2Params}
+    (hexist : p.m = 1 → 1 ≤ p.β →
+      ((p.a = 0 ∧ p.b = 0) ∨ (0 ≤ p.a ∧ 0 < p.b)) →
+        p.χ₀ < chiBeta p →
+          ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+            ∃ u v : ℝ → D.Point → ℝ,
+              IsPaper2GlobalClassicalSolution D p u v ∧
+              InitialTrace D u₀ u ∧
+              IsPaper2Bounded D u) :
+    Proposition_1_4 D p :=
+  hexist
+
+/-- Generic closure: Paper3 Theorem 2.1 (full composite) from the four parts. -/
+theorem Theorem_2_1.of_parts
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h1 : Theorem_2_1_part1 D p)
+    (h2 : Theorem_2_1_part2 D p)
+    (h3 : Theorem_2_1_part3 D p)
+    (h4 : Theorem_2_1_part4 D p C) :
+    Theorem_2_1 D p C :=
+  ⟨h1, h2, h3, h4⟩
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hbound`, definitionally
+equal to `Theorem_2_1_part1 D p`.  Target signature only. -/
+theorem Theorem_2_1_part1.of_assumed_bound_branch
+    {D : BoundedDomainData} {p : CM2Params}
+    (hbound : 1 ≤ p.m →
+      ∀ u v : ℝ → D.Point → ℝ,
+        PositiveGlobalBoundedSolution D p u v →
+          ∃ δu > 0, EventuallyLowerBound D u δu ∧
+            EventuallyLowerBound D v (p.ν / p.μ * δu ^ p.γ)) :
+    Theorem_2_1_part1 D p :=
+  hbound
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hbound`, definitionally
+equal to `Theorem_2_1_part2 D p`.  Target signature only. -/
+theorem Theorem_2_1_part2.of_assumed_bound_branch
+    {D : BoundedDomainData} {p : CM2Params}
+    (hbound : 0 < p.a → 0 < p.b → 0 < p.χ₀ → p.m = 1 → 1 ≤ p.β →
+      p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)) →
+        ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+            let lowerU :=
+              ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^ (1 / p.α)
+            EventuallyLowerBound D u lowerU ∧
+              EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)) :
+    Theorem_2_1_part2 D p :=
+  hbound
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hbound`, definitionally
+equal to `Theorem_2_1_part3 D p`.  Target signature only. -/
+theorem Theorem_2_1_part3.of_assumed_bound_branch
+    {D : BoundedDomainData} {p : CM2Params}
+    (hbound : 0 < p.a → 0 < p.b → 0 < p.χ₀ → 1 < p.m → 1 ≤ p.β →
+      ∀ u v : ℝ → D.Point → ℝ,
+        PositiveGlobalBoundedSolution D p u v →
+          let lowerU :=
+            min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
+              max (1 / (p.m - 1)) (1 / p.α)
+          EventuallyLowerBound D u lowerU ∧
+            EventuallyLowerBound D v (p.ν / p.μ * lowerU ^ p.γ)) :
+    Theorem_2_1_part3 D p :=
+  hbound
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hbound`, definitionally
+equal to `Theorem_2_1_part4 D p C`.  Target signature only. -/
+theorem Theorem_2_1_part4.of_assumed_bound_branch
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hbound : p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      0 < p.χ₀ → p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) →
+        ∀ uStar > 0, ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+          HasInitialMass D u uStar →
+            EventuallyLowerBound D v
+              (minimalVLowerFormula
+                C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar))) :
+    Theorem_2_1_part4 D p C :=
+  hbound
+
+/-- Generic closure: Paper3 Theorem 2.2 from the four branches. -/
+theorem Theorem_2_2.of_parts
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (hpos_stable : ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      p.χ₀ < C.chiCritical eq.1 →
+        LinearlyStable S p eq.1 eq.2 ∧
+        ∃ δ > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+            SupCloseToConstant D u₀ eq.1 δ →
+              ∃ u v : ℝ → D.Point → ℝ,
+                IsPaper2GlobalClassicalSolution D p u v ∧
+                InitialTrace D u₀ u ∧
+                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate)
+    (hpos_unstable : ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      C.chiCritical eq.1 < p.χ₀ →
+        LinearlyUnstable S p eq.1 eq.2)
+    (hmin_stable : p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        p.χ₀ < C.chiCritical uStar →
+          LinearlyStable S p eq.1 eq.2 ∧
+          ∃ δ > 0, ∃ A > 0, ∃ rate > 0,
+            ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+              SupCloseToConstant D u₀ eq.1 δ →
+              D.integral u₀ = D.volume * uStar →
+                ∃ u v : ℝ → D.Point → ℝ,
+                  IsPaper2GlobalClassicalSolution D p u v ∧
+                  InitialTrace D u₀ u ∧
+                  ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate)
+    (hmin_unstable : p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        C.chiCritical uStar < p.χ₀ →
+          LinearlyUnstable S p eq.1 eq.2) :
+    Theorem_2_2 D p S N C :=
+  ⟨hpos_stable, hpos_unstable, hmin_stable, hmin_unstable⟩
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hstab`, definitionally
+equal to `Theorem_2_3 D p N`.  Target signature only. -/
+theorem Theorem_2_3.of_assumed_stability_branch
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    (hstab : p.χ₀ ≤ 0 → 1 ≤ p.m →
+      (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        GloballyAsymptoticallyStableNonminimal D p eq.1 eq.2 ∧
+        ∃ A > 0, ∃ rate > 0,
+          ∀ u v : ℝ → D.Point → ℝ,
+            PositiveGlobalBoundedSolution D p u v →
+              ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) ∧
+      (p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          GloballyAsymptoticallyStableMinimal D p eq.1 eq.2 ∧
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → D.Point → ℝ,
+              PositiveGlobalBoundedSolution D p u v →
+              HasInitialMass D u uStar →
+                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate)) :
+    Theorem_2_3 D p N :=
+  hstab
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hstab`, definitionally
+equal to `Theorem_2_4 D p N C`.  Target signature only. -/
+theorem Theorem_2_4.of_assumed_stability_branch
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (hstab : 0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      NonminimalGlobalStabilityCondition D p C eq.1 →
+        GloballyAsymptoticallyStableNonminimal D p eq.1 eq.2 ∧
+        ∃ A > 0, ∃ rate > 0,
+          ∀ u v : ℝ → D.Point → ℝ,
+            PositiveGlobalBoundedSolution D p u v →
+              ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) :
+    Theorem_2_4 D p N C :=
+  hstab
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hstab`, definitionally
+equal to `Theorem_2_5 D p N C`.  Target signature only. -/
+theorem Theorem_2_5.of_assumed_stability_branch
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (hstab : p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        MinimalGlobalStabilityCondition D p C uStar →
+          GloballyAsymptoticallyStableMinimal D p eq.1 eq.2 ∧
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → D.Point → ℝ,
+              PositiveGlobalBoundedSolution D p u v →
+              HasInitialMass D u uStar →
+                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) :
+    Theorem_2_5 D p N C :=
+  hstab
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hreg`, definitionally equal
+to `Lemma_3_1 D p`.  Target signature only. -/
+theorem Lemma_3_1.of_assumed_regularity_branch
+    {D : BoundedDomainData} {p : CM2Params}
+    (hreg : ∀ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v →
+        UniformRegularityConclusion D p u v) :
+    Lemma_3_1 D p :=
+  hreg
+
+/-- Paper3 Lemma 3.1 (uniform regularity of positive bounded solutions).
+The Lean encoding bundles `classicalRegularity` directly into the
+`IsPaper2ClassicalSolution` predicate, so the lemma is a direct consequence
+of unpacking `PositiveGlobalBoundedSolution` and using the per-`T` regularity
+field of the global classical solution. -/
+theorem Lemma_3_1_proved (D : BoundedDomainData) (p : CM2Params) :
+    Lemma_3_1 D p := by
+  intro u v hsol T hT
+  exact (hsol.1.classical hT).regularity
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hcompact`, definitionally
+equal to `Lemma_3_2 D p K`.  Target signature only. -/
+theorem Lemma_3_2.of_assumed_compactness_branch
+    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
+    (hcompact : 1 ≤ p.m → 0 < p.γ →
+      ∀ u v : ℝ → D.Point → ℝ,
+        PositiveGlobalBoundedSolution D p u v →
+          TimeTranslateCompactnessConclusion D p K u v) :
+    Lemma_3_2 D p K :=
+  hcompact
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hcont`, definitionally
+equal to `Lemma_3_3 D p N`.  Target signature only. -/
+theorem Lemma_3_3.of_assumed_continuity_branch
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    (hcont : ∀ uStar > 0, InitialContinuityConclusion D p N uStar) :
+    Lemma_3_3 D p N :=
+  hcont
+
+/-- **TAUTOLOGY (no math content)**: body is `:= henv`, definitionally equal
+to `Lemma_3_4 D p K`.  Target signature only. -/
+theorem Lemma_3_4.of_assumed_envelope_branch
+    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
+    (henv : ∀ u v : ℝ → D.Point → ℝ,
+      PositiveGlobalBoundedSolution D p u v →
+        UpperEnvelopeMonotonicityConclusion D p K u) :
+    Lemma_3_4 D p K :=
+  henv
+
+/-- Primitive analytic axioms for the parabolic max principle of
+`K.upperEnvelope`.  Parallel to `ParabolicMaxPrincipleData` for `D.supNorm`,
+applicable to Lemma 3.4. -/
+structure UpperEnvelopeMaxPrincipleData
+    (D : BoundedDomainData) (p : CM2Params) (K : CompactnessData D) where
+  /-- `t ↦ K.upperEnvelope (u t)` is continuous on `Ioi 0` for any solution. -/
+  upperEnvelope_continuous_in_time :
+    ∀ u v : ℝ → D.Point → ℝ, PositiveGlobalBoundedSolution D p u v →
+      ContinuousOn (fun t : ℝ => K.upperEnvelope (u t)) (Set.Ioi 0)
+  /-- Non-minimal branch (`a, b > 0` and `χ₀ ≤ 0`): pointwise nonpositive
+  derivative above the carrying capacity threshold `(a/b)^{1/α}`. -/
+  nonminimal_upperEnvelope_hasDerivAt_nonpos :
+    p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
+    ∀ u v : ℝ → D.Point → ℝ, PositiveGlobalBoundedSolution D p u v →
+      ∀ t : ℝ, 0 < t →
+        (p.a / p.b) ^ (1 / p.α) < K.upperEnvelope (u t) →
+          ∃ d : ℝ, d ≤ 0 ∧
+            HasDerivAt (fun s : ℝ => K.upperEnvelope (u s)) d t
+  /-- Minimal branch (`a = b = 0` and `χ₀ ≤ 0`): pointwise nonpositive
+  derivative everywhere on `Ioi 0`. -/
+  minimal_upperEnvelope_hasDerivAt_nonpos :
+    p.χ₀ ≤ 0 → p.a = 0 → p.b = 0 →
+    ∀ u v : ℝ → D.Point → ℝ, PositiveGlobalBoundedSolution D p u v →
+      ∀ t : ℝ, 0 < t →
+        ∃ d : ℝ, d ≤ 0 ∧
+          HasDerivAt (fun s : ℝ => K.upperEnvelope (u s)) d t
+
+/-- **Real proof of Paper3 Lemma 3.4, conditional on `UpperEnvelopeMaxPrincipleData`.**
+Uses the same `threshold_persists_below_of_hasDerivAt_nonpos` helper from
+Paper 2 plus Mathlib's `antitoneOn_of_deriv_nonpos`. -/
+theorem Lemma_3_4_of_upperEnvelopeMaxPrinciple
+    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
+    (h : UpperEnvelopeMaxPrincipleData D p K) :
+    Lemma_3_4 D p K := by
+  intro u v hsol
+  refine ⟨?_, ?_⟩
+  · -- Non-minimal branch
+    intro hχ ha hb t₀ ht₀ hsup t₁ t₂ ht₁ h12 h2₀
+    set M := fun t : ℝ => K.upperEnvelope (u t) with hM_def
+    set threshold := (p.a / p.b) ^ (1 / p.α) with hthr_def
+    have hM_cont_Ioi : ContinuousOn M (Set.Ioi 0) :=
+      h.upperEnvelope_continuous_in_time u v hsol
+    have ht₀_lt : t₀ < t₀ + 1 := by linarith
+    have hM_cont : ContinuousOn M (Set.Ioo 0 (t₀ + 1)) :=
+      hM_cont_Ioi.mono (fun s ⟨h1, _⟩ => h1)
+    have hM_deriv :
+        ∀ t ∈ Set.Ioo (0 : ℝ) (t₀ + 1), threshold < M t →
+          ∃ d : ℝ, d ≤ 0 ∧ HasDerivAt M d t := by
+      intro t ht_in_Ioo ht_gt
+      exact h.nonminimal_upperEnvelope_hasDerivAt_nonpos
+        hχ ha hb u v hsol t ht_in_Ioo.1 ht_gt
+    have hAbove :=
+      ShenWork.Paper2.threshold_persists_below_of_hasDerivAt_nonpos
+        ht₀ ht₀_lt hM_cont hM_deriv hsup
+    -- Apply antitoneOn on Icc t₁ t₂ ⊆ (0, t₀ + 1)
+    have ht₁_pos : 0 < t₁ := ht₁
+    have hIcc_sub_Ioo : Set.Icc t₁ t₂ ⊆ Set.Ioo (0 : ℝ) (t₀ + 1) :=
+      fun s ⟨h1, h2⟩ =>
+        ⟨lt_of_lt_of_le ht₁_pos h1, lt_of_le_of_lt (le_trans h2 h2₀) ht₀_lt⟩
+    have hIcc_sub_Ioc : Set.Icc t₁ t₂ ⊆ Set.Ioc (0 : ℝ) t₀ :=
+      fun s ⟨h1, h2⟩ =>
+        ⟨lt_of_lt_of_le ht₁_pos h1, le_trans h2 h2₀⟩
+    have hM_cont_Icc : ContinuousOn M (Set.Icc t₁ t₂) :=
+      hM_cont.mono hIcc_sub_Ioo
+    have hM_deriv_Ioo :
+        ∀ t ∈ Set.Ioo t₁ t₂,
+          DifferentiableAt ℝ M t ∧ deriv M t ≤ 0 := by
+      intro t ht
+      have ht_in_Ioc : t ∈ Set.Ioc (0 : ℝ) t₀ :=
+        hIcc_sub_Ioc ⟨ht.1.le, ht.2.le⟩
+      have ht_gt : threshold < M t := hAbove t ht_in_Ioc
+      have ht_pos : 0 < t := lt_of_lt_of_le ht₁_pos ht.1.le
+      obtain ⟨d, hd_nonpos, hd⟩ :=
+        h.nonminimal_upperEnvelope_hasDerivAt_nonpos
+          hχ ha hb u v hsol t ht_pos ht_gt
+      refine ⟨hd.differentiableAt, ?_⟩
+      rw [hd.deriv]
+      exact hd_nonpos
+    have hDiff_Ioo : DifferentiableOn ℝ M (Set.Ioo t₁ t₂) := fun t' ht' =>
+      (hM_deriv_Ioo t' ht').1.differentiableWithinAt
+    have hDeriv_nonpos :
+        ∀ t' ∈ interior (Set.Icc t₁ t₂), deriv M t' ≤ 0 := by
+      intro t' ht'
+      rw [interior_Icc] at ht'
+      exact (hM_deriv_Ioo t' ht').2
+    have hAntitone : AntitoneOn M (Set.Icc t₁ t₂) := by
+      apply antitoneOn_of_deriv_nonpos (convex_Icc _ _) hM_cont_Icc
+      · rw [interior_Icc]
+        exact hDiff_Ioo
+      · exact hDeriv_nonpos
+    exact hAntitone
+      (Set.left_mem_Icc.mpr h12)
+      (Set.right_mem_Icc.mpr h12)
+      h12
+  · -- Minimal branch
+    intro hχ ha hb t₁ t₂ ht₁ h12
+    set M := fun t : ℝ => K.upperEnvelope (u t) with hM_def
+    have hM_cont_Ioi : ContinuousOn M (Set.Ioi 0) :=
+      h.upperEnvelope_continuous_in_time u v hsol
+    have ht₁_pos : 0 < t₁ := ht₁
+    have ht₂_pos : 0 < t₂ := lt_of_lt_of_le ht₁_pos h12
+    have hIcc_sub_Ioi : Set.Icc t₁ t₂ ⊆ Set.Ioi (0 : ℝ) :=
+      fun s ⟨h1, _⟩ => lt_of_lt_of_le ht₁_pos h1
+    have hM_cont_Icc : ContinuousOn M (Set.Icc t₁ t₂) :=
+      hM_cont_Ioi.mono hIcc_sub_Ioi
+    have hM_deriv_Ioo :
+        ∀ t ∈ Set.Ioo t₁ t₂,
+          DifferentiableAt ℝ M t ∧ deriv M t ≤ 0 := by
+      intro t ht
+      have ht_pos : 0 < t := lt_of_lt_of_le ht₁_pos ht.1.le
+      obtain ⟨d, hd_nonpos, hd⟩ :=
+        h.minimal_upperEnvelope_hasDerivAt_nonpos hχ ha hb u v hsol t ht_pos
+      refine ⟨hd.differentiableAt, ?_⟩
+      rw [hd.deriv]
+      exact hd_nonpos
+    have hDiff_Ioo : DifferentiableOn ℝ M (Set.Ioo t₁ t₂) := fun t' ht' =>
+      (hM_deriv_Ioo t' ht').1.differentiableWithinAt
+    have hDeriv_nonpos :
+        ∀ t' ∈ interior (Set.Icc t₁ t₂), deriv M t' ≤ 0 := by
+      intro t' ht'
+      rw [interior_Icc] at ht'
+      exact (hM_deriv_Ioo t' ht').2
+    have hAntitone : AntitoneOn M (Set.Icc t₁ t₂) := by
+      apply antitoneOn_of_deriv_nonpos (convex_Icc _ _) hM_cont_Icc
+      · rw [interior_Icc]
+        exact hDiff_Ioo
+      · exact hDeriv_nonpos
+    exact hAntitone
+      (Set.left_mem_Icc.mpr h12)
+      (Set.right_mem_Icc.mpr h12)
+      h12
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hbound`, definitionally
+equal to `Lemma_3_5 D p C`.  Target signature only. -/
+theorem Lemma_3_5.of_assumed_bound_branch
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hbound : p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      0 < p.χ₀ → p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) →
+        ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+            EventuallyUpperBoundMinimalConclusion D p C u) :
+    Lemma_3_5 D p C :=
+  hbound
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hconv`, definitionally
+equal to `Corollary_5_1 D p N C`.  Target signature only. -/
+theorem Corollary_5_1.of_assumed_convergence_branch
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (hconv : 1 ≤ p.m →
+      (∀ (uStar _vStar theta : ℝ), 0 < theta →
+        ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+          ThetaMomentConvergesToZero D u uStar theta →
+            UniformConvergesInSup D u uStar) ∧
+      (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        p.χ₀ < C.chiCritical eq.1 →
+          ∀ u v : ℝ → D.Point → ℝ,
+            PositiveGlobalBoundedSolution D p u v →
+            UniformConvergesInSup D u eq.1 →
+              ExponentialC1Convergence D N u v eq.1 eq.2) ∧
+      (p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          p.χ₀ < C.chiCritical uStar →
+            ∀ u v : ℝ → D.Point → ℝ,
+              PositiveGlobalBoundedSolution D p u v →
+              HasInitialMass D u uStar →
+              UniformConvergesInSup D u eq.1 →
+                ExponentialC1Convergence D N u v eq.1 eq.2)) :
+    Corollary_5_1 D p N C :=
+  hconv
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hbound`, definitionally
+equal to `Lemma_7_1 D K`.  Target signature only. -/
+theorem Lemma_7_1.of_assumed_bound_branch
+    {D : BoundedDomainData} {K : CompactnessData D}
+    (hbound : ∃ M0 > 0, ∀ mu nu : ℝ, ∀ f : D.Point → ℝ,
+      0 < mu → 0 < nu →
+        K.neumannResolventGradientBound mu nu f M0) :
+    Lemma_7_1 D K :=
+  hbound
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hdecay`, definitionally
+equal to `Lemma_A_1 D p S N`.  Target signature only. -/
+theorem Lemma_A_1.of_assumed_decay_branch
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D}
+    (hdecay : ∀ sigma pNorm uStar vStar,
+      1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+      LinearlyStable S p uStar vStar →
+        ∃ eps > 0, ∃ C > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+            N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤ eps →
+              ∀ u v : ℝ → D.Point → ℝ,
+                IsPaper2GlobalClassicalSolution D p u v →
+                InitialTrace D u₀ u →
+                  ∀ t, 0 ≤ t →
+                    N.c1Distance (u t) (fun _ => uStar) +
+                      N.c1Distance (v t) (fun _ => vStar) ≤
+                        C * Real.exp (-rate * t)) :
+    Lemma_A_1 D p S N :=
+  hdecay
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hthr`, definitionally equal
+to `Lemma_A_7 D p C`.  Target signature only. -/
+theorem Lemma_A_7.of_assumed_threshold_branch
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hthr : 0 ≤ p.β → 1 ≤ p.m →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        (p.α + 1 ≥ 2 * p.γ →
+          C.chiStrong1 eq.1 ≤ C.chiCritical eq.1) ∧
+        (1 ≤ p.β → p.α + 1 ≥ 2 * p.γ →
+          C.chiStrong2 eq.1 ≤ C.chiCritical eq.1) ∧
+        (1 ≤ p.γ → p.α + 1 ≥ p.m + p.γ →
+          C.chiStrong3 eq.1 ≤ C.chiCritical eq.1) ∧
+        (1 ≤ p.β → 1 ≤ p.γ → p.α + 1 ≥ p.m + 2 * p.γ →
+          C.chiStrong4 eq.1 ≤ C.chiCritical eq.1)) :
+    Lemma_A_7 D p C :=
+  hthr
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hthr`, definitionally equal
+to `Lemma_A_8 D p C`.  Target signature only. -/
+theorem Lemma_A_8.of_assumed_threshold_branch
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hthr : p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      ∀ uStar > 0,
+        (0 < p.γ → C.chiMinimal1 uStar ≤ C.chiCritical uStar) ∧
+        (p.γ = 1 → C.chiMinimal2 uStar ≤ C.chiCritical uStar)) :
+    Lemma_A_8 D p C :=
+  hthr
+
+/-! ### Unit-point compactness data and unconditional Lemma 3.4 -/
+
+/-- Trivial `CompactnessData` on the unit-point domain.  `upperEnvelope` is
+the same as `supNorm` (i.e. `|f ()|`); the other fields are trivial. -/
+def unitPointCompactness :
+    CompactnessData ShenWork.Paper2.unitPointDomain where
+  locallyConverges := fun _ _ => True
+  upperEnvelope := fun f => |f ()|
+  neumannResolventGradientBound := fun _ _ _ _ => True
+
+/-- For the unit-point domain with `unitPointCompactness`, the upper-envelope
+max-principle structure is witnessed by the same logistic ODE argument as for
+the supremum norm. -/
+theorem unitPointDomain.upperEnvelopeMaxPrincipleData
+    (p : CM2Params) :
+    UpperEnvelopeMaxPrincipleData ShenWork.Paper2.unitPointDomain p
+      unitPointCompactness where
+  upperEnvelope_continuous_in_time := by
+    intro u v hsol
+    obtain ⟨hglobal, _, _⟩ := hsol
+    have hsol1 := hglobal.classical (T := 1) (by norm_num)
+    obtain ⟨_, ⟨hu_diff, _⟩, _, _, _, _⟩ := hsol1
+    have hcont : Continuous (fun t : ℝ => |u t ()|) := hu_diff.continuous.abs
+    -- `upperEnvelope ∘ u t` is `fun t => |u t ()|`
+    exact hcont.continuousOn
+  nonminimal_upperEnvelope_hasDerivAt_nonpos := by
+    intro _hχ ha hb u v hsol t ht_pos hgt
+    obtain ⟨hglobal, _, hpospts⟩ := hsol
+    have hsol1 := hglobal.classical (T := t + 1) (by linarith)
+    obtain ⟨_, ⟨hu_diff, _⟩, _, hpde_u, _, _⟩ := hsol1
+    have hu_pos : 0 < u t () := hpospts t () ht_pos trivial
+    have hu_cont : Continuous (fun s : ℝ => u s ()) := hu_diff.continuous
+    have h_pos_nbhd : ∀ᶠ s in 𝓝 t, 0 < u s () :=
+      continuousAt_const.eventually_lt hu_cont.continuousAt hu_pos
+    have h_eq_nbhd :
+        (fun s : ℝ => |u s ()|) =ᶠ[𝓝 t] (fun s : ℝ => u s ()) := by
+      filter_upwards [h_pos_nbhd] with s hs using abs_of_pos hs
+    have hu_hasDerivAt :
+        HasDerivAt (fun s : ℝ => u s ())
+          (deriv (fun s : ℝ => u s ()) t) t :=
+      (hu_diff t).hasDerivAt
+    have habs_hasDerivAt :
+        HasDerivAt (fun s : ℝ => |u s ()|)
+          (deriv (fun s : ℝ => u s ()) t) t :=
+      h_eq_nbhd.hasDerivAt_iff.mpr hu_hasDerivAt
+    have hpde := hpde_u t () ht_pos (by linarith) trivial
+    have hpde' :
+        deriv (fun s : ℝ => u s ()) t =
+          u t () * (p.a - p.b * (u t ()) ^ p.α) := by
+      simpa [ShenWork.Paper2.unitPointDomain] using hpde
+    refine ⟨deriv (fun s : ℝ => u s ()) t, ?_, habs_hasDerivAt⟩
+    rw [hpde']
+    -- upperEnvelope here equals |u t ()| = u t () (since u > 0)
+    have hgt' : (p.a / p.b) ^ (1 / p.α) < u t () := by
+      have : (p.a / p.b) ^ (1 / p.α) < |u t ()| := hgt
+      rwa [abs_of_pos hu_pos] at this
+    have hα_pos : 0 < p.α := p.hα
+    have hα_ne : p.α ≠ 0 := ne_of_gt hα_pos
+    have hab_nn : 0 ≤ p.a / p.b := div_nonneg ha.le hb.le
+    have h_lhs : ((p.a / p.b) ^ (1 / p.α)) ^ p.α = p.a / p.b := by
+      rw [← Real.rpow_mul hab_nn, one_div_mul_cancel hα_ne, Real.rpow_one]
+    have h_uα : p.a / p.b < (u t ()) ^ p.α := by
+      have hraw :=
+        Real.rpow_lt_rpow (Real.rpow_nonneg hab_nn _) hgt' hα_pos
+      rwa [h_lhs] at hraw
+    have h_b_uα : p.a < p.b * (u t ()) ^ p.α := by
+      have := mul_lt_mul_of_pos_left h_uα hb
+      rwa [mul_div_cancel₀ _ (ne_of_gt hb)] at this
+    have h_reaction_neg : p.a - p.b * (u t ()) ^ p.α < 0 := by linarith
+    exact le_of_lt (mul_neg_of_pos_of_neg hu_pos h_reaction_neg)
+  minimal_upperEnvelope_hasDerivAt_nonpos := by
+    intro _hχ ha hb u v hsol t ht_pos
+    obtain ⟨hglobal, _, hpospts⟩ := hsol
+    have hsol1 := hglobal.classical (T := t + 1) (by linarith)
+    obtain ⟨_, ⟨hu_diff, _⟩, _, hpde_u, _, _⟩ := hsol1
+    have hu_pos : 0 < u t () := hpospts t () ht_pos trivial
+    have hu_cont : Continuous (fun s : ℝ => u s ()) := hu_diff.continuous
+    have h_pos_nbhd : ∀ᶠ s in 𝓝 t, 0 < u s () :=
+      continuousAt_const.eventually_lt hu_cont.continuousAt hu_pos
+    have h_eq_nbhd :
+        (fun s : ℝ => |u s ()|) =ᶠ[𝓝 t] (fun s : ℝ => u s ()) := by
+      filter_upwards [h_pos_nbhd] with s hs using abs_of_pos hs
+    have hu_hasDerivAt :
+        HasDerivAt (fun s : ℝ => u s ())
+          (deriv (fun s : ℝ => u s ()) t) t :=
+      (hu_diff t).hasDerivAt
+    have habs_hasDerivAt :
+        HasDerivAt (fun s : ℝ => |u s ()|)
+          (deriv (fun s : ℝ => u s ()) t) t :=
+      h_eq_nbhd.hasDerivAt_iff.mpr hu_hasDerivAt
+    have hpde := hpde_u t () ht_pos (by linarith) trivial
+    have hpde' :
+        deriv (fun s : ℝ => u s ()) t =
+          u t () * (p.a - p.b * (u t ()) ^ p.α) := by
+      simpa [ShenWork.Paper2.unitPointDomain] using hpde
+    refine ⟨deriv (fun s : ℝ => u s ()) t, ?_, habs_hasDerivAt⟩
+    rw [hpde', ha, hb]
+    ring_nf
+    rfl
+
+/-- **Paper 3 Lemma 3.4 holds unconditionally for the unit-point domain**
+with `unitPointCompactness`. -/
+theorem unitPointDomain.Lemma_3_4 (p : CM2Params) :
+    Lemma_3_4 ShenWork.Paper2.unitPointDomain p unitPointCompactness :=
+  Lemma_3_4_of_upperEnvelopeMaxPrinciple
+    (unitPointDomain.upperEnvelopeMaxPrincipleData p)
+
+/-- Paper3 constants instance for the unit-point domain.  Each chi value
+is chosen so the Lemma A.7/A.8 inequalities trivially hold; the
+`eventualMinimalUBound` is `uStar + 1` so Lemma 3.5's bound is `uStar ≤
+uStar + 1`. -/
+def paper3UnitPointConstants
+    (p : CM2Params) :
+    Paper3Constants ShenWork.Paper2.unitPointDomain p where
+  chiCritical := fun _ => 1
+  chiStrong1 := fun _ => 0
+  chiStrong2 := fun _ => 0
+  chiStrong3 := fun _ => 0
+  chiStrong4 := fun _ => 0
+  chiMinimal1 := fun _ => 0
+  chiMinimal2 := fun _ => 0
+  eventualMinimalUBound := fun uStar => uStar + 1
+  gaussianLowerConst := 1
+  gaussianLowerConst_pos := by norm_num
+
+/-- **Paper 3 Lemma 3.5 holds unconditionally for the unit-point domain**
+with `paper3UnitPointConstants`.  In the `a = b = 0` minimal branch, the
+PDE `u' = u(a - b u^α) = 0` forces `u t () = uStar` for `t > 0`
+(via `IsOpen.is_const_of_deriv_eq_zero` plus `HasInitialMass` and the
+abstract initial trace), so `D.supNorm (u t) = uStar ≤ uStar + 1`. -/
+theorem unitPointDomain.Lemma_3_5 (p : CM2Params) :
+    Lemma_3_5 ShenWork.Paper2.unitPointDomain p
+      (paper3UnitPointConstants p) := by
+  intro ha hb _hm _hβ _hχ_pos _hχ_lt u v hsol uStar huStar hmass
+  obtain ⟨hglobal, _, hu_pos⟩ := hsol
+  have hsol1 := hglobal.classical (T := 1) (by norm_num)
+  obtain ⟨_, ⟨hu_diff, _⟩, _, _, _, _⟩ := hsol1
+  -- u'(s) = 0 on Set.Ioi 0
+  have h_deriv_zero :
+      ∀ s ∈ Set.Ioi (0 : ℝ), deriv (fun r : ℝ => u r ()) s = 0 := by
+    intro s hs
+    have hs_pos : 0 < s := hs
+    have hsol_s :=
+      hglobal.classical (T := s + 1) (by linarith)
+    obtain ⟨_, _, _, hpde_u_s, _, _⟩ := hsol_s
+    have hpde := hpde_u_s s () hs_pos (by linarith) trivial
+    simpa [ShenWork.Paper2.unitPointDomain, ha, hb] using hpde
+  -- u constant on (0, ∞)
+  have h_const :
+      ∀ s ∈ Set.Ioi (0 : ℝ), ∀ s' ∈ Set.Ioi (0 : ℝ),
+        u s () = u s' () :=
+    fun s hs s' hs' =>
+      isOpen_Ioi.is_const_of_deriv_eq_zero isPreconnected_Ioi
+        hu_diff.differentiableOn h_deriv_zero hs hs'
+  -- u 0 () = uStar from HasInitialMass
+  have hmass' : u 0 () = uStar := by
+    have h := hmass
+    -- h : D.integral (u 0) = D.volume * uStar, simplifies to u 0 () = 1 * uStar
+    simp [HasInitialMass, ShenWork.Paper2.unitPointDomain] at h
+    linarith
+  -- For any t > 0, u t () = uStar via continuity
+  have hu_eq_uStar : ∀ t, 0 < t → u t () = uStar := by
+    intro t ht_pos
+    have hu_cont : Continuous (fun s : ℝ => u s ()) := hu_diff.continuous
+    have h_tendsto : Filter.Tendsto (fun s : ℝ => u s ()) (𝓝 0) (𝓝 (u 0 ())) :=
+      hu_cont.tendsto 0
+    have h_tendsto_pos :
+        Filter.Tendsto (fun s : ℝ => u s ()) (𝓝[>] 0) (𝓝 (u 0 ())) :=
+      h_tendsto.mono_left nhdsWithin_le_nhds
+    have h_eq_t : (fun s : ℝ => u s ()) =ᶠ[𝓝[>] 0] (fun _ : ℝ => u t ()) := by
+      have hmem : Set.Ioi (0 : ℝ) ∈ 𝓝[>] (0 : ℝ) := self_mem_nhdsWithin
+      filter_upwards [hmem] with s hs using h_const s hs t ht_pos
+    have h_const_tendsto :
+        Filter.Tendsto (fun _ : ℝ => u t ()) (𝓝[>] 0) (𝓝 (u t ())) :=
+      tendsto_const_nhds
+    have h_target :
+        Filter.Tendsto (fun _ : ℝ => u t ()) (𝓝[>] 0) (𝓝 (u 0 ())) :=
+      h_tendsto_pos.congr' h_eq_t
+    haveI h_nontriv : (𝓝[>] (0 : ℝ)).NeBot :=
+      nhdsWithin_Ioi_neBot (le_refl (0 : ℝ))
+    have := tendsto_nhds_unique h_target h_const_tendsto
+    rw [← this, hmass']
+  -- Conclusion: ∀ᶠ t in atTop, D.supNorm (u t) ≤ eventualMinimalUBound uStar
+  refine Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩
+  have ht_pos : 0 < t := lt_of_lt_of_le (by norm_num) ht
+  have hu_t : u t () = uStar := hu_eq_uStar t ht_pos
+  -- D.supNorm (u t) = |u t ()| = |uStar| = uStar (positive)
+  show |u t ()| ≤ uStar + 1
+  rw [hu_t, abs_of_pos huStar]
+  linarith
+
+/-- Paper 3 (recalled) Proposition 1.3 holds vacuously on the unit-point
+domain when `p.a = 0`.  The full statement is conditional on
+`0 < p.a → 0 < p.b → …`, so `p.a = 0` kills the implication. -/
+theorem unitPointDomain.Proposition_1_3_vacuous_when_a_zero
+    (p : CM2Params) (ha : p.a = 0)
+    (C : Paper2Constants p) :
+    Proposition_1_3 ShenWork.Paper2.unitPointDomain p C := by
+  intro ha' _ _ _
+  exact absurd ha' (by rw [ha]; exact lt_irrefl 0)
+
+/-- Paper 3 (recalled) Proposition 1.3 holds vacuously on the unit-point
+domain when `p.b = 0`. -/
+theorem unitPointDomain.Proposition_1_3_vacuous_when_b_zero
+    (p : CM2Params) (hb : p.b = 0)
+    (C : Paper2Constants p) :
+    Proposition_1_3 ShenWork.Paper2.unitPointDomain p C := by
+  intro _ hb' _ _
+  exact absurd hb' (by rw [hb]; exact lt_irrefl 0)
+
+/-- Paper 3 (recalled) Proposition 1.4 holds on the unit-point domain in
+the *minimal* parameter regime `p.a = 0 ∧ p.b = 0`.  The hypothesis
+`((p.a = 0 ∧ p.b = 0) ∨ (0 ≤ p.a ∧ 0 < p.b))` is taken as a parameter; the
+construction works either way because `p.b = 0` rules out the `Or.inr`
+case and `Or.inl` gives directly what is needed.  The witness solution is
+the constant pair `u(t) ≡ u₀, v(t) ≡ (ν/μ) u₀()^γ`. -/
+theorem unitPointDomain.Proposition_1_4_minimal_only
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) :
+    Proposition_1_4 ShenWork.Paper2.unitPointDomain p := by
+  intro _hm _hβ _hor _hχ u₀ hu₀
+  set ustar : ℝ := (p.ν / p.μ) * (u₀ ()) ^ p.γ with hustar_def
+  refine ⟨fun _ => u₀, fun _ _ => ustar, ?_, ?_, ?_⟩
+  · -- IsPaper2GlobalClassicalSolution
+    intro T hT
+    refine ⟨hT, ⟨differentiable_const _, continuous_const⟩,
+      ?_, ?_, ?_, ?_⟩
+    · intro t x _ _ _; exact hu₀.pos trivial
+    · intro t x _ _ _
+      show deriv (fun s : ℝ => u₀ ()) t =
+        0 - p.χ₀ * 0 + u₀ x * (p.a - p.b * (u₀ x) ^ p.α)
+      rw [deriv_const, ha, hb]; ring
+    · intro t x _ _ _
+      show (0 : ℝ) = 0 - p.μ * ustar + p.ν * (u₀ x) ^ p.γ
+      have hxeq : x = () := rfl
+      rw [hxeq, hustar_def]
+      have hμ_ne : p.μ ≠ 0 := ne_of_gt p.hμ
+      field_simp; ring
+    · intro t x _ _ hx
+      exact absurd hx (by intro h; exact h)
+  · -- InitialTrace
+    intro ε hε
+    refine ⟨1, by norm_num, ?_⟩
+    intro t _ _
+    show ShenWork.Paper2.unitPointDomain.supNorm (fun x => u₀ x - u₀ x) < ε
+    have hzero :
+        (fun x : ShenWork.Paper2.unitPointDomain.Point => u₀ x - u₀ x) =
+          fun _ => 0 := by
+      funext x; ring
+    rw [hzero]
+    show |(0 : ℝ)| < ε
+    rw [abs_zero]; exact hε
+  · -- IsPaper2Bounded
+    refine ⟨ShenWork.Paper2.unitPointDomain.supNorm u₀, ?_⟩
+    exact Filter.Eventually.of_forall fun _ => le_refl _
+
+/-- Paper 3 (recalled) Proposition 1.2 on the unit-point domain in the
+*minimal* parameter regime `p.a = 0 ∧ p.b = 0`.  Constant solution
+witnesses global classical solvability, the trivial initial trace, and
+asymptotic boundedness by `supNorm u₀`. -/
+theorem unitPointDomain.Proposition_1_2_minimal_only
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) :
+    Proposition_1_2 ShenWork.Paper2.unitPointDomain p := by
+  intro _hχ _hm u₀ hu₀
+  set ustar : ℝ := (p.ν / p.μ) * (u₀ ()) ^ p.γ with hustar_def
+  refine ⟨fun _ => u₀, fun _ _ => ustar, ?_, ?_, ?_⟩
+  · -- IsPaper2GlobalClassicalSolution
+    intro T hT
+    refine ⟨hT, ⟨differentiable_const _, continuous_const⟩,
+      ?_, ?_, ?_, ?_⟩
+    · intro t x _ _ _; exact hu₀.pos trivial
+    · intro t x _ _ _
+      show deriv (fun s : ℝ => u₀ ()) t =
+        0 - p.χ₀ * 0 + u₀ x * (p.a - p.b * (u₀ x) ^ p.α)
+      rw [deriv_const, ha, hb]; ring
+    · intro t x _ _ _
+      show (0 : ℝ) = 0 - p.μ * ustar + p.ν * (u₀ x) ^ p.γ
+      have hxeq : x = () := rfl
+      rw [hxeq, hustar_def]
+      have hμ_ne : p.μ ≠ 0 := ne_of_gt p.hμ
+      field_simp; ring
+    · intro t x _ _ hx
+      exact absurd hx (by intro h; exact h)
+  · -- InitialTrace
+    intro ε hε
+    refine ⟨1, by norm_num, ?_⟩
+    intro t _ _
+    show ShenWork.Paper2.unitPointDomain.supNorm (fun x => u₀ x - u₀ x) < ε
+    have hzero :
+        (fun x : ShenWork.Paper2.unitPointDomain.Point => u₀ x - u₀ x) =
+          fun _ => 0 := by
+      funext x; ring
+    rw [hzero]
+    show |(0 : ℝ)| < ε
+    rw [abs_zero]; exact hε
+  · -- IsPaper2Bounded
+    refine ⟨ShenWork.Paper2.unitPointDomain.supNorm u₀, ?_⟩
+    exact Filter.Eventually.of_forall fun _ => le_refl _
+
+/-- Trivial `StabilityNorms` for the unit-point domain.  The C¹ and
+weighted-Lp distances both reduce to `|f () - g ()|` at the unique point. -/
+def unitPointStabilityNorms :
+    StabilityNorms ShenWork.Paper2.unitPointDomain where
+  c1Distance := fun f g => |f () - g ()|
+  xpSigmaDistance := fun _ _ f g => |f () - g ()|
+
+/-- Paper 3 Theorem 2.1 part 1 is vacuous on the unit-point domain when
+`p.m < 1` (the hypothesis is `1 ≤ p.m`). -/
+theorem unitPointDomain.Theorem_2_1_part1_vacuous_when_m_lt_one
+    (p : CM2Params) (hm : p.m < 1) :
+    Theorem_2_1_part1 ShenWork.Paper2.unitPointDomain p := by
+  intro hm'
+  exact absurd hm' (not_le.mpr hm)
+
+/-- Paper 3 Theorem 2.1 part 2 is vacuous on the unit-point domain when
+`p.a = 0`. -/
+theorem unitPointDomain.Theorem_2_1_part2_vacuous_when_a_zero
+    (p : CM2Params) (ha : p.a = 0) :
+    Theorem_2_1_part2 ShenWork.Paper2.unitPointDomain p := by
+  intro ha' _ _ _ _ _ _ _ _
+  exact absurd ha' (by rw [ha]; exact lt_irrefl 0)
+
+/-- Paper 3 Theorem 2.1 part 2 is vacuous on the unit-point domain when
+`p.b = 0`. -/
+theorem unitPointDomain.Theorem_2_1_part2_vacuous_when_b_zero
+    (p : CM2Params) (hb : p.b = 0) :
+    Theorem_2_1_part2 ShenWork.Paper2.unitPointDomain p := by
+  intro _ hb' _ _ _ _ _ _ _
+  exact absurd hb' (by rw [hb]; exact lt_irrefl 0)
+
+/-- Paper 3 Theorem 2.1 part 2 is vacuous on the unit-point domain when
+`p.χ₀ ≤ 0`. -/
+theorem unitPointDomain.Theorem_2_1_part2_vacuous_when_chi_nonpos
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) :
+    Theorem_2_1_part2 ShenWork.Paper2.unitPointDomain p := by
+  intro _ _ hχ' _ _ _ _ _ _
+  exact absurd hχ' (not_lt.mpr hχ)
+
+/-- Paper 3 Theorem 2.1 part 3 is vacuous on the unit-point domain when
+`p.a = 0`. -/
+theorem unitPointDomain.Theorem_2_1_part3_vacuous_when_a_zero
+    (p : CM2Params) (ha : p.a = 0) :
+    Theorem_2_1_part3 ShenWork.Paper2.unitPointDomain p := by
+  intro ha' _ _ _ _ _ _ _
+  exact absurd ha' (by rw [ha]; exact lt_irrefl 0)
+
+/-- Paper 3 Theorem 2.1 part 3 is vacuous on the unit-point domain when
+`p.b = 0`. -/
+theorem unitPointDomain.Theorem_2_1_part3_vacuous_when_b_zero
+    (p : CM2Params) (hb : p.b = 0) :
+    Theorem_2_1_part3 ShenWork.Paper2.unitPointDomain p := by
+  intro _ hb' _ _ _ _ _ _
+  exact absurd hb' (by rw [hb]; exact lt_irrefl 0)
+
+/-- Paper 3 Theorem 2.1 part 3 is vacuous on the unit-point domain when
+`p.χ₀ ≤ 0`. -/
+theorem unitPointDomain.Theorem_2_1_part3_vacuous_when_chi_nonpos
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) :
+    Theorem_2_1_part3 ShenWork.Paper2.unitPointDomain p := by
+  intro _ _ hχ' _ _ _ _ _
+  exact absurd hχ' (not_lt.mpr hχ)
+
+/-- Paper 3 Theorem 2.1 part 3 is vacuous on the unit-point domain when
+`p.m ≤ 1` (the hypothesis is `1 < p.m`). -/
+theorem unitPointDomain.Theorem_2_1_part3_vacuous_when_m_le_one
+    (p : CM2Params) (hm : p.m ≤ 1) :
+    Theorem_2_1_part3 ShenWork.Paper2.unitPointDomain p := by
+  intro _ _ _ hm' _ _ _ _
+  exact absurd hm' (not_lt.mpr hm)
+
+/-- Paper 3 Theorem 2.1 part 1 holds for the unit-point domain in the
+*minimal* parameter regime `p.a = 0 ∧ p.b = 0`.  Any
+`PositiveGlobalBoundedSolution` is forced to be constant `u(t) = c > 0`
+on `(0, ∞)` by `u'(t) = 0` plus `IsOpen.is_const_of_deriv_eq_zero` on the
+preconnected ray `(0, ∞)`; choosing `δu := u(1) / 2` gives the required
+lower bound for both `u` and `v = (ν/μ) u^γ`. -/
+theorem unitPointDomain.Theorem_2_1_part1_minimal_only
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) :
+    Theorem_2_1_part1 ShenWork.Paper2.unitPointDomain p := by
+  intro _hm u v hsol
+  obtain ⟨hglobal, _hbdd, hupos⟩ := hsol
+  have hsol1 := hglobal.classical (T := 1) (by norm_num)
+  obtain ⟨_, ⟨hu_diff, _⟩, _, _, _, _⟩ := hsol1
+  have h_deriv_zero :
+      ∀ s ∈ Set.Ioi (0 : ℝ), deriv (fun r : ℝ => u r ()) s = 0 := by
+    intro s hs
+    have hs_pos : 0 < s := hs
+    have hsol_s := hglobal.classical (T := s + 1) (by linarith)
+    obtain ⟨_, _, _, hpde_u_s, _, _⟩ := hsol_s
+    have hpde := hpde_u_s s () hs_pos (by linarith) trivial
+    simpa [ShenWork.Paper2.unitPointDomain, ha, hb] using hpde
+  have h_const :
+      ∀ s₁ ∈ Set.Ioi (0 : ℝ), ∀ s₂ ∈ Set.Ioi (0 : ℝ),
+        u s₁ () = u s₂ () :=
+    fun s₁ hs₁ s₂ hs₂ =>
+      isOpen_Ioi.is_const_of_deriv_eq_zero isPreconnected_Ioi
+        hu_diff.differentiableOn h_deriv_zero hs₁ hs₂
+  have hu1_pos : 0 < u 1 () := hupos 1 () one_pos trivial
+  have hδ_pos : 0 < u 1 () / 2 := by linarith
+  -- v t () = (ν/μ) (u t ())^γ at any t > 0
+  have hv_eq : ∀ t, 0 < t → v t () = (p.ν / p.μ) * (u t ()) ^ p.γ := by
+    intro t ht_pos
+    have hsol_t := hglobal.classical (T := t + 1) (by linarith)
+    obtain ⟨_, _, _, _, hpde_v_t, _⟩ := hsol_t
+    have hpde := hpde_v_t t () ht_pos (by linarith) trivial
+    have h0 : (0 : ℝ) = 0 - p.μ * v t () + p.ν * (u t ()) ^ p.γ := by
+      simpa [ShenWork.Paper2.unitPointDomain] using hpde
+    have hμ_ne : p.μ ≠ 0 := ne_of_gt p.hμ
+    field_simp
+    linarith
+  refine ⟨u 1 () / 2, hδ_pos, ?_, ?_⟩
+  · -- EventuallyLowerBound u (u 1 () / 2)
+    refine ⟨hδ_pos, ?_⟩
+    refine Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩
+    have ht_pos : 0 < t := lt_of_lt_of_le one_pos ht
+    have h1_mem : (1 : ℝ) ∈ Set.Ioi (0 : ℝ) := by
+      show (0 : ℝ) < 1; norm_num
+    have ht_mem : t ∈ Set.Ioi (0 : ℝ) := ht_pos
+    have h_eq : u 1 () = u t () := h_const 1 h1_mem t ht_mem
+    show u 1 () / 2 ≤ ShenWork.Paper2.unitPointDomain.infValue (u t)
+    show u 1 () / 2 ≤ u t ()
+    rw [← h_eq]; linarith
+  · -- EventuallyLowerBound v (ν/μ * (u 1 () / 2)^γ)
+    have hν_pos : 0 < p.ν := p.hν
+    have hμ_pos : 0 < p.μ := p.hμ
+    have hδγ_pos : 0 < (u 1 () / 2) ^ p.γ :=
+      Real.rpow_pos_of_pos hδ_pos _
+    refine ⟨mul_pos (div_pos hν_pos hμ_pos) hδγ_pos, ?_⟩
+    refine Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩
+    have ht_pos : 0 < t := lt_of_lt_of_le one_pos ht
+    have h1_mem : (1 : ℝ) ∈ Set.Ioi (0 : ℝ) := by
+      show (0 : ℝ) < 1; norm_num
+    have ht_mem : t ∈ Set.Ioi (0 : ℝ) := ht_pos
+    have h_eq : u 1 () = u t () := h_const 1 h1_mem t ht_mem
+    show (p.ν / p.μ) * (u 1 () / 2) ^ p.γ ≤
+      ShenWork.Paper2.unitPointDomain.infValue (v t)
+    show (p.ν / p.μ) * (u 1 () / 2) ^ p.γ ≤ v t ()
+    rw [hv_eq t ht_pos, ← h_eq]
+    apply mul_le_mul_of_nonneg_left _ (div_pos hν_pos hμ_pos).le
+    apply Real.rpow_le_rpow hδ_pos.le _ p.hγ.le
+    linarith
+
 end
 
 end ShenWork.Paper3

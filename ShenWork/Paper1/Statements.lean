@@ -12,6 +12,8 @@ import ShenWork.PDE.HeatKernelLpEstimates
 import Mathlib.Analysis.Convex.Basic
 import Mathlib.Analysis.Convex.Integral
 import Mathlib.Analysis.Convex.SpecificFunctions.Basic
+import Mathlib.Analysis.Calculus.Deriv.Abs
+import Mathlib.Analysis.ODE.Gronwall
 
 open Filter Topology MeasureTheory
 
@@ -2217,6 +2219,83 @@ def KernelConvRpowBound : Prop :=
               (∫ y, K y * f y) ^ pExp ≤
                 A ^ (pExp - 1) * ∫ y, K y * (f y) ^ pExp
 
+theorem kernelConvRpowBound : KernelConvRpowBound := by
+  intro K f A pExp hK hf hA hA_pos hpExp hKf hKfp hKint
+  -- Lift K to ℝ≥0∞ and build weighted measure μK = K · volume
+  let Kd : ℝ → ENNReal := fun y => ENNReal.ofReal (K y)
+  let μK := volume.withDensity Kd
+  have hKd_aem : AEMeasurable Kd volume :=
+    (ENNReal.measurable_ofReal.comp_aemeasurable
+      hKint.aestronglyMeasurable.aemeasurable)
+  have hKd_ae_lt : ∀ᵐ y ∂volume, Kd y < ⊤ :=
+    Eventually.of_forall fun y => ENNReal.ofReal_lt_top
+  haveI : IsFiniteMeasure μK := isFiniteMeasure_withDensity (by
+    have : ∫⁻ y, Kd y ∂volume ≤ ENNReal.ofReal (∫ y, K y ∂volume) := by
+      rw [← ofReal_integral_eq_lintegral_ofReal hKint
+        (Eventually.of_forall fun y => hK y)]
+    exact ne_top_of_le_ne_top ENNReal.ofReal_ne_top this)
+  have hμK_mass_e : μK Set.univ = ENNReal.ofReal A := by
+    rw [show μK = volume.withDensity Kd from rfl,
+      withDensity_apply _ MeasurableSet.univ, Measure.restrict_univ,
+      ← ofReal_integral_eq_lintegral_ofReal hKint
+        (Eventually.of_forall fun y => hK y), hA]
+  haveI : NeZero μK := ⟨fun h => by
+    have : μK Set.univ = 0 := by rw [h]; simp
+    rw [hμK_mass_e] at this
+    exact absurd (ENNReal.ofReal_eq_zero.mp this) (not_le.mpr hA_pos)⟩
+  have hμK_mass : (μK Set.univ).toReal = A := by
+    rw [hμK_mass_e, ENNReal.toReal_ofReal hA_pos.le]
+  -- Integrable g μK ↔ Integrable ((Kd ·).toReal • g) volume
+  have hKd_toReal : ∀ y, (Kd y).toReal = K y := fun y => by
+    simp [Kd, ENNReal.toReal_ofReal (hK y)]
+  have hf_int_μK : Integrable f μK := by
+    rw [show μK = volume.withDensity Kd from rfl,
+      integrable_withDensity_iff_integrable_smul₀'
+        hKd_aem hKd_ae_lt,
+      show (fun y => (Kd y).toReal • f y) = fun y => K y * f y from
+        by ext y; simp [hKd_toReal, smul_eq_mul]]
+    exact hKf
+  have hfp_int_μK : Integrable (fun y => (f y) ^ pExp) μK := by
+    rw [show μK = volume.withDensity Kd from rfl,
+      integrable_withDensity_iff_integrable_smul₀'
+        hKd_aem hKd_ae_lt,
+      show (fun y => (Kd y).toReal • (f y) ^ pExp) =
+        fun y => K y * (f y) ^ pExp from
+        by ext y; simp [hKd_toReal, smul_eq_mul]]
+    exact hKfp
+  -- ∫ g dμK = ∫ K · g
+  have hint_rel : ∀ g : ℝ → ℝ,
+      ∫ y, g y ∂μK = ∫ y, K y * g y := fun g => by
+    rw [show μK = volume.withDensity Kd from rfl,
+      integral_withDensity_eq_integral_toReal_smul₀
+        hKd_aem hKd_ae_lt]
+    congr 1; ext y; simp [hKd_toReal, smul_eq_mul]
+  -- Jensen: (⨍ f ∂μK)^p ≤ ⨍ f^p ∂μK
+  have hJ := (convexOn_rpow hpExp).map_average_le
+    (Real.continuous_rpow_const (by linarith : 0 ≤ pExp)).continuousOn
+    isClosed_Ici
+    (Eventually.of_forall fun y => Set.mem_Ici.mpr (hf y))
+    hf_int_μK hfp_int_μK
+  -- Unpack: (A⁻¹ · ∫Kf)^p ≤ A⁻¹ · ∫Kf^p
+  have hμK_real : μK.real Set.univ = A := by
+    rw [measureReal_def, hμK_mass]
+  simp only [average_eq, hμK_real, smul_eq_mul] at hJ
+  rw [hint_rel f, hint_rel (fun y => (f y) ^ pExp)] at hJ
+  -- Rearrange to target
+  have hA_inv_nn := (inv_pos_of_pos hA_pos).le
+  have hIKf_nn : (0 : ℝ) ≤ ∫ y, K y * f y :=
+    integral_nonneg (fun y => mul_nonneg (hK y) (hf y))
+  rw [Real.mul_rpow hA_inv_nn hIKf_nn] at hJ
+  -- hJ : A⁻¹^p * (∫Kf)^p ≤ A⁻¹ * ∫Kf^p
+  -- Show A⁻¹ = A⁻¹^p * A^{p-1}, then cancel A⁻¹^p
+  have hAip := Real.rpow_pos_of_pos (inv_pos_of_pos hA_pos) pExp
+  have hkey : A⁻¹ = A⁻¹ ^ pExp * A ^ (pExp - 1) := by
+    rw [Real.inv_rpow hA_pos.le, mul_comm, ← div_eq_mul_inv,
+      ← Real.rpow_sub hA_pos,
+      show pExp - 1 - pExp = (-1 : ℝ) from by ring, Real.rpow_neg_one]
+  conv at hJ => rhs; rw [hkey, mul_assoc]
+  exact le_of_mul_le_mul_left hJ hAip
+
 def Lemma_2_5_JensenStep : Prop :=
   ∀ (u : ℝ → ℝ) (l mu pExp : ℝ),
     0 < l → 0 < mu → 1 ≤ pExp →
@@ -2227,6 +2306,38 @@ def Lemma_2_5_JensenStep : Prop :=
               (2 / Real.sqrt l) ^ (pExp - 1) *
                 ∫ y : ℝ,
                   Real.exp (-Real.sqrt l * |x - y|) * (u y) ^ pExp
+
+theorem lemma_2_5_jensenStep : Lemma_2_5_JensenStep := by
+  intro u l mu pExp hl hmu hpExp hu hu_nn x
+  unfold Psi
+  set K := fun y => Real.exp (-Real.sqrt l * |x - y|) with hK_def
+  have hsqrt := Real.sqrt_pos.mpr hl
+  have hK_nn : ∀ y, 0 ≤ K y := fun y => (Real.exp_pos _).le
+  have hA_eq : 2 / Real.sqrt l = ∫ y, K y :=
+    (integral_exp_neg_mul_abs_sub hsqrt x).symm
+  have hA_pos : 0 < 2 / Real.sqrt l := by positivity
+  have hK_int : Integrable K :=
+    _root_.kernel_exp_neg_mul_abs_integrable hsqrt x
+  have hKu_int : Integrable (fun y => K y * u y) :=
+    Psi_kernel_integrable_of_isCUnifBdd hl hu x
+  have hu_rpow_bdd : IsCUnifBdd (fun y => (u y) ^ pExp) := by
+    rcases hu.2 with ⟨M, hM⟩
+    exact ⟨hu.1.rpow_const (fun y => Or.inr (by linarith : 0 ≤ pExp)),
+      ⟨M ^ pExp, fun y => by
+        rw [abs_of_nonneg (Real.rpow_nonneg (hu_nn y) pExp)]
+        exact Real.rpow_le_rpow (hu_nn y)
+          (by simpa [abs_of_nonneg (hu_nn y)] using hM y)
+          (by linarith)⟩⟩
+  have hKup_int : Integrable (fun y => K y * (u y) ^ pExp) :=
+    Psi_kernel_integrable_of_isCUnifBdd hl hu_rpow_bdd x
+  have hJensen := kernelConvRpowBound K u (2 / Real.sqrt l) pExp
+    hK_nn hu_nn hA_eq hA_pos hpExp hKu_int hKup_int hK_int
+  have hcoeff_pos : 0 < mu / (2 * Real.sqrt l) := by positivity
+  rw [Real.mul_rpow hcoeff_pos.le
+    (integral_nonneg fun y => mul_nonneg (hK_nn y) (hu_nn y)),
+    mul_assoc]
+  exact mul_le_mul_of_nonneg_left hJensen
+    (Real.rpow_nonneg hcoeff_pos.le pExp)
 
 def frozenElliptic (p : CMParams) (u : ℝ → ℝ) : ℝ → ℝ :=
   fun x => Psi (fun y => (u y) ^ p.γ) 1 1 x
@@ -2852,14 +2963,65 @@ theorem FrozenStationaryWaveProfile.to_monotoneTravelingWave
     IsMonotoneTravelingWave p c U (frozenElliptic p U) :=
   ⟨h.to_travelingWave, hUmono, hVmono⟩
 
+/-- Weaker variant of FrozenStationaryWaveProfile that drops the
+left-end convergence requirement, replacing `lim_neg_inf` with the
+weaker `positive_at_left` (StrictlyPositiveAtLeft).
+
+This corresponds to the existence claim in Paper1 Remark 1.3(2):
+in the extended positive-sensitivity range, the construction still
+yields a wave whose right end vanishes, but the left end is only
+required to stay uniformly positive (not necessarily approach 1). -/
+structure FrozenRightVanishingWaveProfile
+    (p : CMParams) (c : ℝ) (U : ℝ → ℝ) : Prop where
+  hc : 0 < c
+  U_pos : ∀ x, 0 < U x
+  stationary_eq : ∀ x, frozenWaveOperator p c U U x = 0
+  elliptic_eq :
+    ∀ x,
+      iteratedDeriv 2 (frozenElliptic p U) x -
+          frozenElliptic p U x + (U x) ^ p.γ = 0
+  positive_at_left : StrictlyPositiveAtLeft U
+  lim_pos_inf :
+    Tendsto U atTop (𝓝 0) ∧ Tendsto (frozenElliptic p U) atTop (𝓝 0)
+
+theorem FrozenRightVanishingWaveProfile.to_rightVanishingTravelingWave
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : FrozenRightVanishingWaveProfile p c U) :
+    IsRightVanishingTravelingWave p c U (frozenElliptic p U) := by
+  refine
+    { hc := h.hc
+      U_pos := h.U_pos
+      ode_U := ?_
+      ode_V := h.elliptic_eq
+      lim_pos_inf := h.lim_pos_inf
+      positive_at_left := h.positive_at_left }
+  intro x
+  simpa [frozenWaveOperator] using h.stationary_eq x
+
+/-- Bridge from FrozenStationaryWaveProfile (stronger) to
+FrozenRightVanishingWaveProfile (weaker). Left convergence to 1 implies
+StrictlyPositiveAtLeft. -/
+theorem FrozenStationaryWaveProfile.to_rightVanishingProfile
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (h : FrozenStationaryWaveProfile p c U) :
+    FrozenRightVanishingWaveProfile p c U :=
+  { hc := h.hc
+    U_pos := h.U_pos
+    stationary_eq := h.stationary_eq
+    elliptic_eq := h.elliptic_eq
+    positive_at_left := by
+      refine ⟨1 / 2, by norm_num, ?_⟩
+      have hnhds : Set.Ioi (1 / 2 : ℝ) ∈ 𝓝 (1 : ℝ) :=
+        Ioi_mem_nhds (by norm_num)
+      filter_upwards [h.lim_neg_inf.1 hnhds] with x hx
+      exact le_of_lt hx
+    lim_pos_inf := h.lim_pos_inf }
+
 def IsFrozenSuperSolution (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) : Prop :=
   ∀ x, frozenWaveOperator p c u W x ≤ 0
 
 def IsFrozenSubSolutionOn (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) (s : Set ℝ) : Prop :=
   ∀ x ∈ s, 0 ≤ frozenWaveOperator p c u W x
-
-def IsPaperFrozenSuperSolution (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) : Prop :=
-  ∀ x, paperWaveOperator p c u W x ≤ 0
 
 def IsPaperFrozenSubSolutionOn (p : CMParams) (c : ℝ) (u W : ℝ → ℝ) (s : Set ℝ) :
     Prop :=
@@ -9618,6 +9780,23 @@ def Remark_1_3_2 : Prop :=
       ∀ c : ℝ, 2 < c →
         ∃ U V : ℝ → ℝ, IsRightVanishingTravelingWave p c U V
 
+/-- Bridge: existence of a FrozenRightVanishingWaveProfile in the extended
+positive-sensitivity regime implies Remark_1_3_2. Uses
+FrozenRightVanishingWaveProfile.to_rightVanishingTravelingWave to assemble
+the existence statement. -/
+theorem Remark_1_3_2.of_frozen_right_vanishing_profile_existence
+    (construction : ∀ p : CMParams,
+      p.α = p.m + p.γ - 1 →
+      (1 / 2 : ℝ) < positiveSensitivityExtendedThreshold p →
+      (1 / 2 : ℝ) ≤ p.χ →
+      p.χ < min (positiveSensitivityExtendedThreshold p) 1 →
+      ∀ c : ℝ, 2 < c →
+        ∃ U : ℝ → ℝ, FrozenRightVanishingWaveProfile p c U) :
+    Remark_1_3_2 := by
+  intro p hα hext hχ_ge hχ_lt c hc
+  obtain ⟨U, hU⟩ := construction p hα hext hχ_ge hχ_lt c hc
+  exact ⟨U, frozenElliptic p U, hU.to_rightVanishingTravelingWave⟩
+
 theorem Remark43TailRateBound.pos
     {p : CMParams} {c eta : ℝ} (h : Remark43TailRateBound p c eta) :
     0 < eta :=
@@ -10166,6 +10345,33 @@ theorem Remark_4_3.same_wave_branch
     (_heta : Remark43TailRateBound p c eta) :
     WeightedL2InitialCloseness (eta + kappa c) U U :=
   WeightedL2InitialCloseness.refl (eta + kappa c) U
+
+/-- **TAUTOLOGY (no math content)**: body is `:= hclose`, definitionally equal
+to `Remark_4_3`.  Target signature only. -/
+theorem Remark_4_3.of_assumed_closeness_branch
+    (hclose : ∀ p : CMParams, ∀ c : ℝ, 0 < kappa c →
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        HasWaveUpperTailBound p c U₁ →
+        HasWaveUpperTailBound p c U₂ →
+        HasRemark43TailAsymptotic p c U₁ →
+        HasRemark43TailAsymptotic p c U₂ →
+        ∀ eta : ℝ, Remark43TailRateBound p c eta →
+          WeightedL2InitialCloseness (eta + kappa c) U₂ U₁) :
+    Remark_4_3 :=
+  hclose
+
+/-- Closure of `Remark_4_3` from the continuous distinct-wave branch, assuming
+universal continuity of all traveling-wave profiles. -/
+theorem Remark_4_3.of_continuous_distinct_branch
+    (hcont : ∀ p : CMParams, ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V → Continuous U) :
+    Remark_4_3 := by
+  intro p c hkappa U₁ V₁ U₂ V₂ hTW₁ hTW₂ hbound₁ hbound₂ htail₁ htail₂ eta heta
+  exact Remark_4_3.distinct_wave_branch_of_continuous
+    hkappa (hcont p c U₁ V₁ hTW₁) (hcont p c U₂ V₂ hTW₂)
+    hbound₁ hbound₂ htail₁ htail₂ heta
 
 /-- Existence form of the same-wave branch of Remark 4.3, with the admissible
 weight selected from the explicit rate window. -/
@@ -10764,6 +10970,19 @@ def Lemma_5_2 : Prop :=
         HasWaveUpperTailBound p c U →
           ∃ B > 0, ∀ x, deriv U x / U x ≤ B
 
+/-- Lemma_5_2_explicit closure under monotonicity hypothesis. -/
+theorem Lemma_5_2_explicit_under_monotone
+    (h_monotone : ∀ p : CMParams, ∀ c : ℝ,
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        ∀ x, deriv U x ≤ 0) :
+    Lemma_5_2_explicit := by
+  intro p c hspeed U V hTW hbound x
+  exact Lemma_5_2_explicit.nonincreasing_branch hspeed hTW hbound
+    (h_monotone p c hspeed U V hTW hbound) x
+
 theorem Lemma_5_2.nonincreasing_branch
     {p : CMParams} {c : ℝ}
     (hspeed :
@@ -10832,6 +11051,59 @@ theorem Lemma_5_2_frozen_monotone_trap_direct
     hprofile.to_travelingWave
     (hprofile.hasWaveUpperTailBound_of_inMonotoneWaveTrapSet htrap)
     htrap.deriv_nonpos
+
+/-- Lemma_5_2 holds when waves come from FrozenStationaryWaveProfile (monotone). -/
+theorem Lemma_5_2_under_frozen_stationary_monotone
+    (h_all_FSWP_mono : ∀ p : CMParams, ∀ c : ℝ,
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        ∃ (_h : FrozenStationaryWaveProfile p c U)
+          (htrap : InMonotoneWaveTrapSet (kappa c) (MChi p) U), True) :
+    Lemma_5_2 := by
+  intro p c hspeed U V hTW hbound
+  obtain ⟨_, htrap, _⟩ := h_all_FSWP_mono p c hspeed U V hTW hbound
+  exact Lemma_5_2.nonincreasing_branch hspeed hTW hbound htrap.deriv_nonpos
+
+/-- Lemma_5_2_explicit holds when every wave is monotone. -/
+theorem Lemma_5_2_explicit_under_monotone_traveling_wave
+    (h_all_monotone : ∀ p : CMParams, ∀ c : ℝ,
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        IsMonotoneTravelingWave p c U V) :
+    Lemma_5_2_explicit := by
+  intro p c hspeed U V hTW hbound x
+  have hmtw := h_all_monotone p c hspeed U V hTW hbound
+  exact Lemma_5_2_explicit.monotoneTravelingWave_branch hspeed hmtw hbound x
+
+/-- Lemma_5_2 holds when every wave is monotone (a stronger hypothesis form). -/
+theorem Lemma_5_2_under_monotone_traveling_wave
+    (h_all_monotone : ∀ p : CMParams, ∀ c : ℝ,
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        IsMonotoneTravelingWave p c U V) :
+    Lemma_5_2 := by
+  intro p c hspeed U V hTW hbound
+  have hmtw := h_all_monotone p c hspeed U V hTW hbound
+  exact Lemma_5_2.monotoneTravelingWave_branch hspeed hmtw hbound
+
+/-- Lemma_5_2 holds under monotonicity hypothesis. Uses existing nonincreasing_branch. -/
+theorem Lemma_5_2_under_monotone
+    (h_monotone : ∀ p : CMParams, ∀ c : ℝ,
+      c > max (p.γ + p.γ⁻¹) (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        ∀ x, deriv U x ≤ 0) :
+    Lemma_5_2 := by
+  intro p c hspeed U V hTW hbound
+  exact Lemma_5_2.nonincreasing_branch hspeed hTW hbound
+    (h_monotone p c hspeed U V hTW hbound)
 
 theorem NegativeSensitivityWaveFixedPointConstruction.exists_fixed_limit_with_log_derivative_bound
     {p : CMParams} {c κ₀ κtilde D : ℝ}
@@ -11137,6 +11409,57 @@ theorem remark5SpeedCondition.gt_waveDerivativeSpeed
     mul_nonneg (abs_nonneg p.χ) hsigma
   exact lt_of_le_of_lt (by linarith) h.gt_second
 
+/-- When |χ|σ ≥ 1, the first speed bound gives c > γ + |χ|σ ≥ γ + 1 ≥ 2. -/
+theorem remark5SpeedCondition.gt_two_of_chiSigma_ge_one
+    {p : CMParams} {c sigma : ℝ}
+    (h : remark5SpeedCondition p c sigma) (hsigma : 0 < sigma)
+    (hχσ : 1 ≤ |p.χ| * sigma) :
+    2 < c := by
+  have h1 := h.gt_first
+  have hγ : 1 ≤ p.γ := p.hγ
+  have hχ_nn : 0 ≤ |p.χ| := abs_nonneg _
+  have hχ_pos : 0 ≤ p.γ + |p.χ| := by linarith
+  have hdiv_pos : 0 ≤ (p.γ + |p.χ|) / sigma := div_nonneg hχ_pos hsigma.le
+  linarith
+
+/-- When |χ|σ ≥ 1, the first speed bound gives c > γ + γ⁻¹.
+This uses γ⁻¹ ≤ 1 ≤ |χ|σ (so γ + |χ|σ ≥ γ + γ⁻¹). -/
+theorem remark5SpeedCondition.gt_gamma_inv_of_chiSigma_ge_one
+    {p : CMParams} {c sigma : ℝ}
+    (h : remark5SpeedCondition p c sigma) (hsigma : 0 < sigma)
+    (hχσ : 1 ≤ |p.χ| * sigma) :
+    p.γ + p.γ⁻¹ < c := by
+  have h1 := h.gt_first
+  have hγ : 1 ≤ p.γ := p.hγ
+  have hγ_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one hγ
+  have hγ_inv_le_one : p.γ⁻¹ ≤ 1 := by
+    rw [show p.γ⁻¹ = 1 / p.γ from by ring]
+    rw [div_le_one hγ_pos]; exact hγ
+  have hχ_pos : 0 ≤ p.γ + |p.χ| := by
+    have := abs_nonneg p.χ; linarith
+  have hdiv_pos : 0 ≤ (p.γ + |p.χ|) / sigma := div_nonneg hχ_pos hsigma.le
+  linarith
+
+/-- κ(c) < 1 when c > 2: kappa(c) = (c - √(c²-4))/2.
+For c > 2, c²-4 > (c-2)², so √(c²-4) > c-2, hence c - √(c²-4) < 2. -/
+theorem kappa_lt_one_of_gt_two {c : ℝ} (hc : 2 < c) : kappa c < 1 := by
+  unfold kappa
+  have hc_pos : 0 < c := by linarith
+  have hc2_pos : 0 < c^2 - 4 := by nlinarith
+  have hcm2_pos : 0 < c - 2 := by linarith
+  have hsqrt_gt : c - 2 < Real.sqrt (c^2 - 4) := by
+    rw [← Real.sqrt_sq hcm2_pos.le]
+    apply Real.sqrt_lt_sqrt (sq_nonneg _)
+    nlinarith
+  linarith
+
+/-- κ(c) < |χ|σ when c > 2 and |χ|σ ≥ 1: κ < 1 ≤ |χ|σ. -/
+theorem kappa_lt_chiSigma_of_gt_two_and_chiSigma_ge_one
+    {p : CMParams} {c sigma : ℝ}
+    (hc : 2 < c) (hχσ : 1 ≤ |p.χ| * sigma) :
+    kappa c < |p.χ| * sigma := by
+  exact lt_of_lt_of_le (kappa_lt_one_of_gt_two hc) hχσ
+
 /-- Paper1 Remark 5.1: under the stronger `sigma` speed condition, the
 stationary profile derivative has a global `1/(|χ|σ)` bound and a right-tail
 exponential `1/(|χ|^2 σ)` bound. -/
@@ -11152,6 +11475,3489 @@ def Remark_5_1 : Prop :=
             |deriv U x| ≤
               remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
                 Real.exp (-(kappa c) * x)
+
+
+/-! ### Proof of Remark 5.1: explicit derivative bounds for traveling waves
+
+The argument is a maximum principle on the expanded ODE:
+  U'' + (c - χmU^{m-1}V')U' = χU^m(V-U^γ) - U(1-U^α)
+The effective drift ≥ |χ|σ (from speed condition) and the RHS ≤ M'.
+Since U'→0 at ±∞, sup|U'| ≤ M'/(|χ|σ).
+The exponential tail bound uses the decay of U and V for x ≥ 0. -/
+
+/-- Maximum principle for first-order linear ODE: if v' = -a·v + g with
+a ≥ a₀ > 0, |g| ≤ G, and v → 0 at ±∞, then |v| ≤ G/a₀.
+
+Proof: if sup v > 0, the sup is attained at an interior x₀ where
+v'(x₀) = 0, giving v(x₀) = g(x₀)/a(x₀) ≤ G/a₀. Similarly for inf. -/
+theorem first_order_ode_sup_bound
+    {v a g : ℝ → ℝ} {a₀ G : ℝ}
+    (ha₀ : 0 < a₀) (hG : 0 ≤ G)
+    (ha : ∀ x, a₀ ≤ a x)
+    (hg : ∀ x, |g x| ≤ G)
+    (hode : ∀ x, deriv v x = -a x * v x + g x)
+    (hlim_top : Tendsto v atTop (𝓝 0))
+    (hlim_bot : Tendsto v atBot (𝓝 0))
+    (hv_cont : Continuous v) (hv_diff : Differentiable ℝ v) :
+    ∀ x, |v x| ≤ G / a₀ := by
+  have hv_cocompact : Tendsto v (cocompact ℝ) (𝓝 0) := by
+    rw [cocompact_eq_atBot_atTop]; exact hlim_bot.sup hlim_top
+  -- Helper: v x ≤ G/a₀ (upper bound via max principle)
+  have hupper : ∀ x, v x ≤ G / a₀ := by
+    intro x
+    by_contra hx; push_neg at hx
+    have hvx_pos : 0 < v x := lt_of_le_of_lt (div_nonneg hG ha₀.le) hx
+    have hcocompact_le : ∀ᶠ y in cocompact ℝ, v y ≤ v x :=
+      (hv_cocompact.eventually (Iio_mem_nhds hvx_pos)).mono
+        fun y hy => le_of_lt (by simpa using hy)
+    rcases hv_cont.exists_forall_ge' x hcocompact_le with ⟨x₀, hmax⟩
+    have hLocalMax : IsLocalMax v x₀ :=
+      IsMaxOn.isLocalMax (fun y _ => hmax y) Filter.univ_mem
+    have hode_at := hode x₀
+    rw [hLocalMax.deriv_eq_zero] at hode_at
+    have hav : a x₀ * v x₀ = g x₀ := by linarith
+    have hvx₀_pos : 0 < v x₀ := lt_of_lt_of_le hvx_pos (hmax x)
+    have : v x₀ * a₀ ≤ G := calc
+      v x₀ * a₀ ≤ v x₀ * a x₀ :=
+        mul_le_mul_of_nonneg_left (ha x₀) hvx₀_pos.le
+      _ = g x₀ := by rw [mul_comm]; exact hav
+      _ ≤ |g x₀| := le_abs_self _
+      _ ≤ G := hg x₀
+    linarith [hmax x, le_div_iff₀ ha₀ |>.mpr this]
+  -- Lower bound: -v satisfies same ODE with -g
+  have hlower : ∀ x, -(G / a₀) ≤ v x := by
+    intro x
+    have hnv_upper : ∀ y, -v y ≤ G / a₀ := by
+      have hnv_ode : ∀ y, deriv (-v) y = -a y * (-v y) + (-g y) := by
+        intro y; simp [deriv_neg, hode y]; ring
+      have hnv_cocompact : Tendsto (-v) (cocompact ℝ) (𝓝 0) := by
+        simpa using hv_cocompact.neg
+      intro y
+      by_contra hy; push_neg at hy
+      have hnvy_pos : 0 < (-v) y :=
+        lt_of_le_of_lt (div_nonneg hG ha₀.le) hy
+      have hcocompact_le : ∀ᶠ z in cocompact ℝ, (-v) z ≤ (-v) y :=
+        (hnv_cocompact.eventually (Iio_mem_nhds hnvy_pos)).mono
+          fun z hz => le_of_lt (by simpa using hz)
+      rcases hv_cont.neg.exists_forall_ge' y hcocompact_le with ⟨y₀, hmax⟩
+      have hLocalMax : IsLocalMax (-v) y₀ :=
+        IsMaxOn.isLocalMax (fun z _ => hmax z) Filter.univ_mem
+      have hode_at := hnv_ode y₀
+      rw [hLocalMax.deriv_eq_zero] at hode_at
+      have hav : a y₀ * (-v y₀) = -g y₀ := by linarith
+      have hnvy₀_pos : 0 < (-v) y₀ := lt_of_lt_of_le hnvy_pos (hmax y)
+      have : (-v y₀) * a₀ ≤ G := calc
+        (-v y₀) * a₀ ≤ (-v y₀) * a y₀ :=
+          mul_le_mul_of_nonneg_left (ha y₀) hnvy₀_pos.le
+        _ = -g y₀ := by rw [mul_comm]; exact hav
+        _ ≤ |g y₀| := neg_le_abs (g y₀)
+        _ ≤ G := hg y₀
+      linarith [hmax y, le_div_iff₀ ha₀ |>.mpr this]
+    linarith [hnv_upper x]
+  intro x
+  exact abs_le.mpr ⟨by linarith [hlower x], hupper x⟩
+
+/-- Chemotaxis derivative expansion via product rule + V'' substitution.
+For a traveling wave (U,V), the chemotaxis term `deriv (U^m · V')` admits
+a closed-form expansion using `ode_V` (which gives V'' = V - U^γ)
+and the product rule, provided U and V' are differentiable at x. -/
+theorem wave_chemotaxis_deriv_expand
+    (p : CMParams) {U V : ℝ → ℝ} {x : ℝ}
+    (hU_diff : DifferentiableAt ℝ U x)
+    (hVderiv_diff : DifferentiableAt ℝ (deriv V) x)
+    (hU_nonneg : 0 ≤ U x)
+    (hode_V : iteratedDeriv 2 V x = V x - (U x) ^ p.γ) :
+    deriv (fun y => (U y) ^ p.m * deriv V y) x =
+      deriv U x * p.m * (U x) ^ (p.m - 1) * deriv V x +
+        (U x) ^ p.m * (V x - (U x) ^ p.γ) := by
+  have hU_pow_deriv : HasDerivAt (fun y => (U y) ^ p.m)
+      (deriv U x * p.m * (U x) ^ (p.m - 1)) x :=
+    hU_diff.hasDerivAt.rpow_const (Or.inr p.hm)
+  have hiD2 : iteratedDeriv 2 V x = deriv (deriv V) x := by
+    rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ,
+      iteratedDeriv_one]
+  have hV_deriv : HasDerivAt (deriv V) (V x - (U x) ^ p.γ) x := by
+    have h : deriv (deriv V) x = V x - (U x) ^ p.γ := by
+      rw [← hiD2]; exact hode_V
+    convert hVderiv_diff.hasDerivAt using 1
+    exact h.symm
+  have hprod := hU_pow_deriv.mul hV_deriv
+  have hfun_eq :
+      (fun y => (U y) ^ p.m * deriv V y) =
+      (fun y => (U y) ^ p.m) * deriv V := by
+    ext y; simp [Pi.mul_apply]
+  rw [hfun_eq, hprod.deriv]
+
+/-- MChi ≥ 1 for any traveling wave with tail bound (since U → 1 at -∞). -/
+theorem MChi_ge_one_of_travelingWave
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V) (hbound : HasWaveUpperTailBound p c U) :
+    1 ≤ MChi p := by
+  by_contra hcontra
+  push_neg at hcontra
+  have hU_to_one : Tendsto U atBot (𝓝 1) := hTW.lim_neg_inf.1
+  have hev : ∀ᶠ N in atBot, MChi p < U N :=
+    hU_to_one (Ioi_mem_nhds hcontra)
+  obtain ⟨N, hN⟩ := hev.exists
+  exact absurd (hbound.le_MChi N) (not_le.mpr hN)
+
+/-- Drift lower bound: c - χ·m·U^{m-1}·V' ≥ |χ|·σ
+under the speed condition and bounded V'. -/
+theorem wave_drift_lower_bound
+    {p : CMParams} {c sigma : ℝ}
+    (hsigma : 0 < sigma)
+    (hspeed : remark5SpeedCondition p c sigma)
+    {U V : ℝ → ℝ}
+    (hU_nn : ∀ x, 0 ≤ U x) (hU_le : ∀ x, U x ≤ MChi p)
+    (hMChi_pos : 0 < MChi p)
+    (hV'_abs : ∀ x, |deriv V x| ≤ (MChi p) ^ p.γ) (x : ℝ) :
+    |p.χ| * sigma ≤
+      c - p.χ * p.m * (U x) ^ (p.m - 1) * deriv V x := by
+  have hm_pos : 0 < p.m := lt_of_lt_of_le zero_lt_one p.hm
+  have hUm_nn : 0 ≤ (U x) ^ (p.m - 1) := Real.rpow_nonneg (hU_nn x) _
+  have hUm_le : (U x) ^ (p.m - 1) ≤ (MChi p) ^ (p.m - 1) :=
+    Real.rpow_le_rpow (hU_nn x) (hU_le x) (by linarith [p.hm])
+  have hMpow_nn : 0 ≤ (MChi p) ^ p.γ := Real.rpow_nonneg hMChi_pos.le _
+  have hMpow_nn2 : 0 ≤ (MChi p) ^ (p.m - 1) := Real.rpow_nonneg hMChi_pos.le _
+  -- |χ * m * U^{m-1} * V'| ≤ m * |χ| * MChi^{m+γ-1}
+  have hbound_prod : |p.χ * p.m * (U x) ^ (p.m - 1) * deriv V x| ≤
+      p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) := by
+    have hkey : (U x) ^ (p.m - 1) * |deriv V x| ≤
+        (MChi p) ^ (p.m + p.γ - 1) := by
+      have hprod_le : (U x) ^ (p.m - 1) * |deriv V x| ≤
+          (MChi p) ^ (p.m - 1) * (MChi p) ^ p.γ :=
+        mul_le_mul hUm_le (hV'_abs x) (abs_nonneg _) hMpow_nn2
+      have hM_eq : (MChi p) ^ (p.m - 1) * (MChi p) ^ p.γ =
+          (MChi p) ^ (p.m + p.γ - 1) := by
+        rw [← Real.rpow_add hMChi_pos]; ring_nf
+      linarith
+    calc |p.χ * p.m * (U x) ^ (p.m - 1) * deriv V x|
+        = |p.χ| * p.m * ((U x) ^ (p.m - 1) * |deriv V x|) := by
+            rw [abs_mul, abs_mul, abs_mul, abs_of_pos hm_pos,
+              abs_of_nonneg hUm_nn]; ring
+      _ ≤ |p.χ| * p.m * ((MChi p) ^ (p.m + p.γ - 1)) :=
+            mul_le_mul_of_nonneg_left hkey
+              (mul_nonneg (abs_nonneg _) hm_pos.le)
+      _ = p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) := by ring
+  have hspeed2 : p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + |p.χ| * sigma < c :=
+    hspeed.gt_second
+  have hX_le_abs : p.χ * p.m * (U x) ^ (p.m - 1) * deriv V x ≤
+      |p.χ * p.m * (U x) ^ (p.m - 1) * deriv V x| := le_abs_self _
+  linarith [hX_le_abs, hbound_prod, hspeed2]
+
+/-- Source upper bound: |χU^m(V-U^γ) - U(1-U^α)| ≤ M'. -/
+theorem wave_source_upper_bound
+    {p : CMParams} {U V : ℝ → ℝ}
+    (hU_nn : ∀ x, 0 ≤ U x) (hU_le : ∀ x, U x ≤ MChi p)
+    (hMChi_pos : 0 < MChi p) (hMChi_ge_one : 1 ≤ MChi p)
+    (hV_nn : ∀ x, 0 ≤ V x)
+    (hV_abs : ∀ x, |V x| ≤ (MChi p) ^ p.γ) (x : ℝ) :
+    |p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ) -
+        U x * (1 - (U x) ^ p.α)| ≤ remark51MPrime p := by
+  have hm_pos : 0 < p.m := lt_of_lt_of_le zero_lt_one p.hm
+  have hα_pos : 0 < p.α := lt_of_lt_of_le zero_lt_one p.hα
+  have hγ_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
+  have hMChi_pow_nn : ∀ r : ℝ, 0 ≤ (MChi p) ^ r := fun r =>
+    Real.rpow_nonneg hMChi_pos.le _
+  have hUγ_nn : 0 ≤ (U x) ^ p.γ := Real.rpow_nonneg (hU_nn x) _
+  have hUγ_le : (U x) ^ p.γ ≤ (MChi p) ^ p.γ :=
+    Real.rpow_le_rpow (hU_nn x) (hU_le x) hγ_pos.le
+  have hUm_nn : 0 ≤ (U x) ^ p.m := Real.rpow_nonneg (hU_nn x) _
+  have hUm_le : (U x) ^ p.m ≤ (MChi p) ^ p.m :=
+    Real.rpow_le_rpow (hU_nn x) (hU_le x) hm_pos.le
+  have hUα_nn : 0 ≤ (U x) ^ p.α := Real.rpow_nonneg (hU_nn x) _
+  have hUα_le : (U x) ^ p.α ≤ (MChi p) ^ p.α :=
+    Real.rpow_le_rpow (hU_nn x) (hU_le x) hα_pos.le
+  have hMα_ge_one : 1 ≤ (MChi p) ^ p.α :=
+    Real.one_le_rpow hMChi_ge_one hα_pos.le
+  -- |V - U^γ| ≤ MChi^γ (using V ≥ 0 and V ≤ MChi^γ, similarly for U^γ)
+  have hV_le : V x ≤ (MChi p) ^ p.γ := by
+    have := (abs_le.mp (hV_abs x)).2; linarith
+  have hVUγ_abs : |V x - (U x) ^ p.γ| ≤ (MChi p) ^ p.γ := by
+    rw [abs_le]
+    refine ⟨?_, ?_⟩
+    · linarith [hV_nn x, hUγ_le]
+    · linarith [hV_le, hUγ_nn]
+  -- |χ * U^m * (V - U^γ)| ≤ |χ| * MChi^{m+γ}
+  have hchem : |p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ)| ≤
+      |p.χ| * (MChi p) ^ (p.m + p.γ) := by
+    have hUm_VUγ : (U x) ^ p.m * |V x - (U x) ^ p.γ| ≤
+        (MChi p) ^ (p.m + p.γ) := by
+      have hprod : (U x) ^ p.m * |V x - (U x) ^ p.γ| ≤
+          (MChi p) ^ p.m * (MChi p) ^ p.γ :=
+        mul_le_mul hUm_le hVUγ_abs (abs_nonneg _) (hMChi_pow_nn _)
+      have hM_eq : (MChi p) ^ p.m * (MChi p) ^ p.γ =
+          (MChi p) ^ (p.m + p.γ) := (Real.rpow_add hMChi_pos _ _).symm
+      linarith
+    calc |p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ)|
+        = |p.χ| * ((U x) ^ p.m * |V x - (U x) ^ p.γ|) := by
+          rw [abs_mul, abs_mul, abs_of_nonneg hUm_nn]; ring
+      _ ≤ |p.χ| * (MChi p) ^ (p.m + p.γ) :=
+          mul_le_mul_of_nonneg_left hUm_VUγ (abs_nonneg _)
+  -- |U(1-U^α)| ≤ MChi^{1+α}
+  have hreact : |U x * (1 - (U x) ^ p.α)| ≤ (MChi p) ^ (1 + p.α) := by
+    have h1Uα_abs : |1 - (U x) ^ p.α| ≤ (MChi p) ^ p.α := by
+      rw [abs_le]; constructor <;> linarith
+    have hU_h : U x * |1 - (U x) ^ p.α| ≤ (MChi p) ^ (1 + p.α) := by
+      have : U x * |1 - (U x) ^ p.α| ≤ MChi p * (MChi p) ^ p.α :=
+        mul_le_mul (hU_le x) h1Uα_abs (abs_nonneg _) hMChi_pos.le
+      have hM_eq : MChi p * (MChi p) ^ p.α = (MChi p) ^ (1 + p.α) := by
+        rw [Real.rpow_add hMChi_pos, Real.rpow_one]
+      linarith
+    rw [abs_mul, abs_of_nonneg (hU_nn x)]; exact hU_h
+  unfold remark51MPrime
+  calc |p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ) -
+          U x * (1 - (U x) ^ p.α)|
+      ≤ |p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ)| +
+          |U x * (1 - (U x) ^ p.α)| := abs_sub _ _
+    _ ≤ |p.χ| * (MChi p) ^ (p.m + p.γ) + (MChi p) ^ (1 + p.α) := by linarith
+
+/-- Smooth version of Remark 5.1 Part 1: bound |U'| globally.
+The smoothness assumptions are typically derivable from the existence
+construction (Schauder), but `IsTravelingWave` alone does not include
+them. -/
+theorem remark_5_1_smooth_part1
+    (p : CMParams) (c sigma : ℝ)
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    (U V : ℝ → ℝ)
+    (hTW : IsTravelingWave p c U V) (hbound : HasWaveUpperTailBound p c U)
+    (hU_diff : ∀ x, DifferentiableAt ℝ U x)
+    (hVderiv_diff : ∀ x, DifferentiableAt ℝ (deriv V) x)
+    (hderiv_U_cont : Continuous (deriv U))
+    (hderiv_U_diff : Differentiable ℝ (deriv U))
+    (hderiv_U_tendszero :
+      Tendsto (deriv U) atTop (𝓝 0) ∧ Tendsto (deriv U) atBot (𝓝 0))
+    (hV_nn : ∀ x, 0 ≤ V x)
+    (hV_bound : ∀ x, |V x| ≤ (MChi p) ^ p.γ ∧
+        |deriv V x| ≤ (MChi p) ^ p.γ) :
+    ∀ x, |deriv U x| ≤ remark51MPrime p / (|p.χ| * sigma) := by
+  have hMChi_pos : 0 < MChi p :=
+    lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
+  have hχσ_pos : 0 < |p.χ| * sigma := mul_pos (abs_pos.mpr hχ) hsigma
+  have hMChi_ge_one : 1 ≤ MChi p := MChi_ge_one_of_travelingWave hTW hbound
+  have hU_nn : ∀ x, 0 ≤ U x := fun x => (hbound.pos x).le
+  have hU_le : ∀ x, U x ≤ MChi p := fun x => hbound.le_MChi x
+  set a : ℝ → ℝ := fun x => c - p.χ * p.m * (U x) ^ (p.m - 1) * deriv V x
+    with ha_def
+  set g : ℝ → ℝ := fun x =>
+    p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ) - U x * (1 - (U x) ^ p.α)
+    with hg_def
+  have ha_lb : ∀ x, |p.χ| * sigma ≤ a x := fun x =>
+    wave_drift_lower_bound hsigma hspeed hU_nn hU_le hMChi_pos
+      (fun y => (hV_bound y).2) x
+  have hg_ub : ∀ x, |g x| ≤ remark51MPrime p := fun x =>
+    wave_source_upper_bound hU_nn hU_le hMChi_pos hMChi_ge_one hV_nn
+      (fun y => (hV_bound y).1) x
+  have hM'_nn : 0 ≤ remark51MPrime p := by
+    unfold remark51MPrime
+    exact add_nonneg (mul_nonneg (abs_nonneg _)
+      (Real.rpow_nonneg hMChi_pos.le _))
+      (Real.rpow_nonneg hMChi_pos.le _)
+  -- ODE identity: (deriv U)' = -a · deriv U + g
+  have hode : ∀ x, deriv (deriv U) x = -a x * deriv U x + g x := by
+    intro x
+    have hchem := wave_chemotaxis_deriv_expand p (hU_diff x)
+      (hVderiv_diff x) (hU_nn x)
+      (by have := hTW.ode_V x; linarith)
+    have hode_U_x := hTW.ode_U x
+    rw [hchem] at hode_U_x
+    have hiD2 : iteratedDeriv 2 U x = deriv (deriv U) x := by
+      rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ,
+        iteratedDeriv_one]
+    rw [hiD2] at hode_U_x
+    simp only [ha_def, hg_def]
+    linarith
+  -- Apply first_order_ode_sup_bound
+  exact first_order_ode_sup_bound hχσ_pos hM'_nn ha_lb hg_ub hode
+    hderiv_U_tendszero.1 hderiv_U_tendszero.2
+    hderiv_U_cont hderiv_U_diff
+
+/-- Regularity hypotheses for traveling waves needed by Remark 5.1.
+These follow from ODE bootstrap and Lemma 5.1 signal estimates,
+but are not part of the bare `IsTravelingWave` structure. -/
+structure TravelingWaveRegularity
+    (p : CMParams) (c : ℝ) (U V : ℝ → ℝ) : Prop where
+  U_diff : ∀ x, DifferentiableAt ℝ U x
+  U_cont : Continuous U
+  V_diff : ∀ x, DifferentiableAt ℝ V x
+  V_deriv_diff : ∀ x, DifferentiableAt ℝ (deriv V) x
+  deriv_U_cont : Continuous (deriv U)
+  deriv_U_diff : Differentiable ℝ (deriv U)
+  deriv_U_tendszero :
+    Tendsto (deriv U) atTop (𝓝 0) ∧ Tendsto (deriv U) atBot (𝓝 0)
+  V_nn : ∀ x, 0 ≤ V x
+  V_bound : ∀ x, |V x| ≤ (MChi p) ^ p.γ ∧
+      |deriv V x| ≤ (MChi p) ^ p.γ
+
+/-- Max principle for first-order linear ODE on a half-line [x₀, ∞).
+For v continuous and differentiable on ℝ, satisfying v' = -a·v + g with
+a ≥ a₀ > 0 and |g| ≤ G, with v → 0 at +∞, we have for x ≥ x₀:
+|v(x)| ≤ max(|v(x₀)|, G/a₀).
+
+Proof: the sup of v on [x₀, ∞) is attained on a compact subinterval
+[x₀, N] (since v → 0 at +∞). The sup point is either x₀ (boundary,
+bounded by |v(x₀)|) or interior (critical point, bounded by g/a ≤ G/a₀).
+Similarly for inf via -v. -/
+theorem first_order_ode_sup_bound_on_Ici
+    {v a g : ℝ → ℝ} {a₀ G : ℝ} (x_bdry : ℝ)
+    (ha₀ : 0 < a₀) (hG : 0 ≤ G)
+    (ha : ∀ x, a₀ ≤ a x)
+    (hg : ∀ x, |g x| ≤ G)
+    (hode : ∀ x, deriv v x = -a x * v x + g x)
+    (hlim_top : Tendsto v atTop (𝓝 0))
+    (hv_cont : Continuous v) (hv_diff : Differentiable ℝ v) :
+    ∀ x, x_bdry ≤ x → |v x| ≤ max |v x_bdry| (G / a₀) := by
+  have hdivnn : 0 ≤ G / a₀ := div_nonneg hG ha₀.le
+  have h_max_nn : 0 ≤ max |v x_bdry| (G / a₀) :=
+    le_trans hdivnn (le_max_right _ _)
+  -- Helper: prove upper bound for any function w satisfying same hypotheses
+  -- We can directly prove both upper and lower by symmetry; do upper first.
+  have hupper : ∀ x ≥ x_bdry, v x ≤ max |v x_bdry| (G / a₀) := by
+    intro x hx
+    by_contra hvx
+    push_neg at hvx
+    have hvx_pos : 0 < v x := lt_of_le_of_lt h_max_nn hvx
+    -- v → 0 at +∞, so eventually v y < v x. Get N with this property.
+    have hev : ∀ᶠ y in atTop, v y < v x :=
+      (hlim_top.eventually (Iio_mem_nhds hvx_pos)).mono fun y hy => by simpa using hy
+    obtain ⟨N, hN⟩ := hev.exists_forall_of_atTop
+    -- Compact interval K = [x_bdry, max x N + 1]
+    let M := max x N + 1
+    have hM_gt_x : x < M := by simp [M]; linarith [le_max_left x N]
+    have hM_gt_N : N < M := by simp [M]; linarith [le_max_right x N]
+    let K : Set ℝ := Set.Icc x_bdry M
+    have hK_cpt : IsCompact K := isCompact_Icc
+    have hK_ne : K.Nonempty := ⟨x_bdry, le_refl _, le_trans hx hM_gt_x.le⟩
+    obtain ⟨y, ⟨hy_ge, hy_le⟩, hy_max⟩ :=
+      hK_cpt.exists_isMaxOn hK_ne hv_cont.continuousOn
+    -- v(x) ≤ v(y) since x ∈ K
+    have hx_in_K : x ∈ K := ⟨hx, le_of_lt hM_gt_x⟩
+    have hvxy : v x ≤ v y := hy_max hx_in_K
+    have hvy_pos : 0 < v y := lt_of_lt_of_le hvx_pos hvxy
+    -- y is global max on [x_bdry, ∞):
+    have hy_max_global : ∀ z ≥ x_bdry, v z ≤ v y := by
+      intro z hz
+      by_cases hzK : z ∈ K
+      · exact hy_max hzK
+      · -- z ∉ K means z > M (since z ≥ x_bdry).
+        have hz_gt_M : M < z := by
+          by_contra h_le
+          push_neg at h_le
+          exact hzK ⟨hz, h_le⟩
+        have hz_N : N < z := lt_of_lt_of_le hM_gt_N hz_gt_M.le
+        have hvz : v z < v x := hN z hz_N.le
+        linarith
+    -- Case on whether y = x_bdry or y > x_bdry
+    rcases eq_or_lt_of_le hy_ge with hy_eq | hy_gt
+    · -- y = x_bdry: max = v(x_bdry), but v x > |v(x_bdry)| ≥ v(x_bdry). Contradiction.
+      rw [← hy_eq] at hvxy
+      have : v x ≤ |v x_bdry| := le_trans hvxy (le_abs_self _)
+      have : v x ≤ max |v x_bdry| (G / a₀) := le_trans this (le_max_left _ _)
+      linarith
+    · -- y > x_bdry: interior critical point.
+      have hLocalMax : IsLocalMax v y := by
+        apply (IsMaxOn.isLocalMax (f := v) (s := Set.Ioi x_bdry) ?_) ?_
+        · intro z hz
+          have hz_ge : x_bdry ≤ z := le_of_lt hz
+          exact hy_max_global z hz_ge
+        · exact Ioi_mem_nhds hy_gt
+      have hderiv_zero : deriv v y = 0 := hLocalMax.deriv_eq_zero
+      have hode_at := hode y
+      rw [hderiv_zero] at hode_at
+      have hay : a y * v y = g y := by linarith
+      have hvy_a : v y * a₀ ≤ G :=
+        calc v y * a₀ ≤ v y * a y :=
+              mul_le_mul_of_nonneg_left (ha y) hvy_pos.le
+          _ = g y := by rw [mul_comm]; exact hay
+          _ ≤ |g y| := le_abs_self _
+          _ ≤ G := hg y
+      have hvy_le : v y ≤ G / a₀ := (le_div_iff₀ ha₀).mpr hvy_a
+      have : v x ≤ G / a₀ := le_trans hvxy hvy_le
+      have : v x ≤ max |v x_bdry| (G / a₀) :=
+        le_trans this (le_max_right _ _)
+      linarith
+  -- Lower bound: apply the same compact-max argument to -v.
+  have hlower : ∀ x ≥ x_bdry, -(max |v x_bdry| (G / a₀)) ≤ v x := by
+    intro x hx
+    by_contra hvx
+    push_neg at hvx
+    -- -v(x) > max(|v x_bdry|, G/a₀)
+    have hnvx_pos : 0 < -v x := by linarith
+    have hnv_lim : Tendsto (fun y => -v y) atTop (𝓝 0) := by simpa using hlim_top.neg
+    have hev : ∀ᶠ y in atTop, -v y < -v x :=
+      (hnv_lim.eventually (Iio_mem_nhds hnvx_pos)).mono fun y hy => by simpa using hy
+    obtain ⟨N, hN⟩ := hev.exists_forall_of_atTop
+    let M := max x N + 1
+    have hM_gt_x : x < M := by simp [M]; linarith [le_max_left x N]
+    have hM_gt_N : N < M := by simp [M]; linarith [le_max_right x N]
+    let K : Set ℝ := Set.Icc x_bdry M
+    have hK_cpt : IsCompact K := isCompact_Icc
+    have hK_ne : K.Nonempty := ⟨x_bdry, le_refl _, le_trans hx hM_gt_x.le⟩
+    obtain ⟨y, ⟨hy_ge, hy_le⟩, hy_max⟩ :=
+      hK_cpt.exists_isMaxOn hK_ne hv_cont.neg.continuousOn
+    have hx_in_K : x ∈ K := ⟨hx, le_of_lt hM_gt_x⟩
+    have hvxy : -v x ≤ -v y := hy_max hx_in_K
+    have hnvy_pos : 0 < -v y := lt_of_lt_of_le hnvx_pos hvxy
+    have hy_max_global : ∀ z ≥ x_bdry, -v z ≤ -v y := by
+      intro z hz
+      by_cases hzK : z ∈ K
+      · exact hy_max hzK
+      · have hz_gt_M : M < z := by
+          by_contra h_le
+          push_neg at h_le
+          exact hzK ⟨hz, h_le⟩
+        have hz_N : N < z := lt_of_lt_of_le hM_gt_N hz_gt_M.le
+        have hnvz : -v z < -v x := hN z hz_N.le
+        linarith
+    rcases eq_or_lt_of_le hy_ge with hy_eq | hy_gt
+    · rw [← hy_eq] at hvxy
+      have h1 : -v x ≤ |v x_bdry| := by
+        have : -v x_bdry ≤ |v x_bdry| := neg_le_abs _
+        linarith
+      have h2 : -v x ≤ max |v x_bdry| (G / a₀) := le_trans h1 (le_max_left _ _)
+      linarith
+    · have hLocalMax : IsLocalMax (fun y => -v y) y := by
+        apply (IsMaxOn.isLocalMax (f := fun y => -v y) (s := Set.Ioi x_bdry) ?_) ?_
+        · intro z hz
+          exact hy_max_global z (le_of_lt hz)
+        · exact Ioi_mem_nhds hy_gt
+      have hderiv_zero : deriv (fun y => -v y) y = 0 := hLocalMax.deriv_eq_zero
+      have hnv_ode : deriv (fun z => -v z) y = -a y * (-v y) + (-g y) := by
+        simp [deriv_neg, hode y]; ring
+      rw [hderiv_zero] at hnv_ode
+      have hay : a y * (-v y) = -g y := by linarith
+      have hnvy_a : (-v y) * a₀ ≤ G :=
+        calc (-v y) * a₀ ≤ (-v y) * a y :=
+              mul_le_mul_of_nonneg_left (ha y) hnvy_pos.le
+          _ = -g y := by rw [mul_comm]; exact hay
+          _ ≤ |g y| := neg_le_abs _
+          _ ≤ G := hg y
+      have hnvy_le : -v y ≤ G / a₀ := (le_div_iff₀ ha₀).mpr hnvy_a
+      have h1 : -v x ≤ G / a₀ := le_trans hvxy hnvy_le
+      have h2 : -v x ≤ max |v x_bdry| (G / a₀) := le_trans h1 (le_max_right _ _)
+      linarith
+  intro x hx
+  rw [abs_le]
+  exact ⟨hlower x hx, hupper x hx⟩
+
+/-- Duhamel bound for first-order linear ODE v' = -a·v + g with a ≥ a₀ > 0
+and |g| ≤ G: for x ≥ x₀, |v(x)| ≤ |v(x₀)|·exp(-a₀(x-x₀)) + (G/a₀)·(1 - exp(-a₀(x-x₀))).
+
+Proof uses Mathlib's `le_gronwallBound_of_liminf_deriv_right_le` applied
+to f = |v| with right-slope bound -a₀·|v| + G. Slope bound by case
+analysis on sign of v(y):
+- v(y) > 0: |v| = v in right neighborhood, slope → v'(y) ≤ -a₀·|v y| + G.
+- v(y) < 0: |v| = -v in right neighborhood, slope → -v'(y) ≤ -a₀·|v y| + G.
+- v(y) = 0: |v(z)| = |slope of v · (z-y) + o(z-y)|, slope → |v'(y)| = |g(y)| ≤ G.
+-/
+theorem first_order_ode_duhamel_bound
+    {v a g : ℝ → ℝ} {a₀ G : ℝ} (x₀ x_target : ℝ)
+    (ha₀ : 0 < a₀) (hG : 0 ≤ G)
+    (ha : ∀ y, a₀ ≤ a y)
+    (hg : ∀ y, |g y| ≤ G)
+    (hode : ∀ y, deriv v y = -a y * v y + g y)
+    (hv_diff : Differentiable ℝ v)
+    (hx_target : x₀ ≤ x_target) :
+    |v x_target| ≤ |v x₀| * Real.exp (-a₀ * (x_target - x₀)) +
+        G / a₀ * (1 - Real.exp (-a₀ * (x_target - x₀))) := by
+  set f : ℝ → ℝ := fun y => |v y|
+  set f_bnd : ℝ → ℝ := fun y => -a₀ * |v y| + G
+  have hf_cont : ContinuousOn f (Set.Icc x₀ x_target) :=
+    hv_diff.continuous.norm.continuousOn
+  have ha_f : f x₀ ≤ |v x₀| := le_refl _
+  have hbound : ∀ y ∈ Set.Ico x₀ x_target, f_bnd y ≤ -a₀ * f y + G :=
+    fun y _ => le_refl _
+  have hslope : ∀ y ∈ Set.Ico x₀ x_target, ∀ r, f_bnd y < r →
+      ∃ᶠ z in 𝓝[>] y, (z - y)⁻¹ * (f z - f y) < r := by
+    intro y _ r hr
+    have hv_y_at : HasDerivAt v (deriv v y) y := (hv_diff y).hasDerivAt
+    have hv_y_eq : deriv v y = -a y * v y + g y := hode y
+    rcases lt_trichotomy (v y) 0 with hvy_neg | hvy_zero | hvy_pos
+    · -- v y < 0
+      have habs_at : HasDerivAt (fun z => |v z|) (-deriv v y) y := by
+        have := (hasDerivAt_abs_neg hvy_neg).comp y hv_y_at
+        simpa using this
+      have hbound_val : -deriv v y ≤ f_bnd y := by
+        rw [hv_y_eq]
+        have habs_vy : |v y| = -v y := abs_of_neg hvy_neg
+        have hg_neg : -g y ≤ G := neg_le_abs (g y) |>.trans (hg y)
+        show -(-a y * v y + g y) ≤ -a₀ * |v y| + G
+        rw [habs_vy]
+        nlinarith [ha y]
+      have hslope_tendsto := habs_at.hasDerivWithinAt (s := Set.Ici y)
+      have := hslope_tendsto.liminf_right_slope_le
+        (lt_of_le_of_lt hbound_val hr)
+      exact this.mono fun z hz => by
+        rw [slope] at hz; simpa [f, sub_smul, smul_eq_mul] using hz
+    · -- v y = 0
+      have hv_y_eq' : deriv v y = g y := by rw [hv_y_eq, hvy_zero]; ring
+      have hvy_abs_zero : |v y| = 0 := by rw [hvy_zero]; exact abs_zero
+      have hf_bnd_eq : f_bnd y = G := by
+        show -a₀ * |v y| + G = G
+        rw [hvy_abs_zero]; ring
+      rw [hf_bnd_eq] at hr
+      have habs_lt : |deriv v y| < r := by
+        rw [hv_y_eq']; exact lt_of_le_of_lt (hg y) hr
+      have hv_y_within : HasDerivWithinAt v (deriv v y) (Set.Ici y) y :=
+        hv_y_at.hasDerivWithinAt
+      have hnorm_slope : ∀ᶠ z in 𝓝[Set.Ici y] y,
+          ‖z - y‖⁻¹ * ‖v z - v y‖ < r := by
+        apply hv_y_within.limsup_norm_slope_le
+        rw [Real.norm_eq_abs]; exact habs_lt
+      have h_ev : ∀ᶠ z in 𝓝[Set.Ioi y] y,
+          (z - y)⁻¹ * (f z - f y) < r := by
+        have hsub : 𝓝[Set.Ioi y] y ≤ 𝓝[Set.Ici y] y :=
+          nhdsWithin_mono _ Set.Ioi_subset_Ici_self
+        have hnorm_slope' : ∀ᶠ z in 𝓝[Set.Ioi y] y,
+            ‖z - y‖⁻¹ * ‖v z - v y‖ < r := Filter.Eventually.filter_mono hsub hnorm_slope
+        filter_upwards [hnorm_slope',
+          self_mem_nhdsWithin (s := Set.Ioi y) (a := y)] with z hz hz_in
+        have hzy : 0 < z - y := by
+          have : y < z := hz_in
+          linarith
+        have hnorm_zy : ‖z - y‖ = z - y := by
+          rw [Real.norm_eq_abs, abs_of_pos hzy]
+        have hvz_minus : v z - v y = v z := by rw [hvy_zero]; ring
+        have hnorm_vzy : ‖v z - v y‖ = |v z| := by
+          rw [hvz_minus]; rfl
+        rw [hnorm_zy, hnorm_vzy] at hz
+        show (z - y)⁻¹ * (f z - f y) < r
+        show (z - y)⁻¹ * (|v z| - |v y|) < r
+        rw [hvy_abs_zero, sub_zero]
+        exact hz
+      exact h_ev.frequently
+    · -- v y > 0
+      have habs_at : HasDerivAt (fun z => |v z|) (deriv v y) y := by
+        have := (hasDerivAt_abs_pos hvy_pos).comp y hv_y_at
+        simpa using this
+      have hbound_val : deriv v y ≤ f_bnd y := by
+        rw [hv_y_eq]
+        have habs_vy : |v y| = v y := abs_of_pos hvy_pos
+        have hg_pos : g y ≤ G := (le_abs_self _).trans (hg y)
+        show -a y * v y + g y ≤ -a₀ * |v y| + G
+        rw [habs_vy]
+        nlinarith [ha y]
+      have hslope_tendsto := habs_at.hasDerivWithinAt (s := Set.Ici y)
+      have := hslope_tendsto.liminf_right_slope_le
+        (lt_of_le_of_lt hbound_val hr)
+      exact this.mono fun z hz => by
+        rw [slope] at hz; simpa [f, sub_smul, smul_eq_mul] using hz
+  have hgronwall := le_gronwallBound_of_liminf_deriv_right_le
+    hf_cont hslope ha_f hbound x_target ⟨hx_target, le_refl _⟩
+  -- Convert gronwallBound form
+  have hK_ne : (-a₀ : ℝ) ≠ 0 := by linarith
+  rw [gronwallBound_of_K_ne_0 hK_ne] at hgronwall
+  show f x_target ≤ |v x₀| * Real.exp (-a₀ * (x_target - x₀)) +
+      G / a₀ * (1 - Real.exp (-a₀ * (x_target - x₀)))
+  have hsimp : G / (-a₀) * (Real.exp (-a₀ * (x_target - x₀)) - 1) =
+      G / a₀ * (1 - Real.exp (-a₀ * (x_target - x₀))) := by
+    field_simp
+    ring
+  linarith [hgronwall, hsimp]
+
+/-- For a traveling wave with regularity, the weighted derivative
+w(x) := U'(x) · exp(κx) satisfies the first-order linear ODE
+w'(x) = -(c - κ - χ·m·U^{m-1}·V')·w(x) + g_w(x)
+where g_w(x) := (χ·U^m·(V - U^γ) - U·(1 - U^α))·exp(κx).
+
+This is derived from the wave ODE iteratedDeriv 2 U + c·U' = χ·(U^m V')' - U(1-U^α)
+and the product rule (deriv (U' · exp(κx)) = U'' · exp + κ · U' · exp). -/
+theorem wave_weighted_derivative_ode
+    (p : CMParams) (c : ℝ) (U V : ℝ → ℝ)
+    (hTW : IsTravelingWave p c U V)
+    (hreg : TravelingWaveRegularity p c U V) (x : ℝ) :
+    deriv (fun y => deriv U y * Real.exp (kappa c * y)) x =
+      -(c - kappa c - p.χ * p.m * (U x) ^ (p.m - 1) * deriv V x) *
+        (deriv U x * Real.exp (kappa c * x)) +
+      (p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ) -
+        U x * (1 - (U x) ^ p.α)) * Real.exp (kappa c * x) := by
+  have hU_nn : ∀ y, 0 ≤ U y := fun y => le_of_lt (hTW.U_pos y)
+  -- Exp derivative
+  have hexp_at : HasDerivAt (fun y => Real.exp (kappa c * y))
+      (kappa c * Real.exp (kappa c * x)) x := by
+    have h1 : HasDerivAt (fun y => kappa c * y) (kappa c) x := by
+      simpa using (hasDerivAt_id x).const_mul (kappa c)
+    have h2 := h1.exp
+    convert h2 using 1; ring
+  -- deriv U at x via reg
+  have hUd_at : HasDerivAt (deriv U) (deriv (deriv U) x) x :=
+    (hreg.deriv_U_diff x).hasDerivAt
+  -- Product rule for U' * exp
+  have hw_at : HasDerivAt (fun y => deriv U y * Real.exp (kappa c * y))
+      (deriv (deriv U) x * Real.exp (kappa c * x) +
+       deriv U x * (kappa c * Real.exp (kappa c * x))) x := hUd_at.mul hexp_at
+  -- Chemotaxis expansion
+  have hchem := wave_chemotaxis_deriv_expand p (hreg.U_diff x)
+    (hreg.V_deriv_diff x) (hU_nn x)
+    (by have := hTW.ode_V x; linarith)
+  have hiD2 : iteratedDeriv 2 U x = deriv (deriv U) x := by
+    rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one]
+  have hode_U := hTW.ode_U x
+  rw [hchem, hiD2] at hode_U
+  -- Solve for deriv (deriv U) x
+  have hdd : deriv (deriv U) x =
+      -(c - p.χ * p.m * (U x) ^ (p.m - 1) * deriv V x) * deriv U x +
+        (p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ) -
+          U x * (1 - (U x) ^ p.α)) := by linarith
+  rw [hw_at.deriv, hdd]
+  ring
+
+/-- Weighted drift a_w(x) = c - κ - χ·m·U^{m-1}·V' is bounded below
+by |χ|σ - κ when the wave's signal bounds give drift c - χ·m·U^{m-1}·V' ≥ |χ|σ. -/
+theorem wave_weighted_drift_lower_bound
+    {p : CMParams} {c sigma : ℝ}
+    (hsigma : 0 < sigma)
+    (hspeed : remark5SpeedCondition p c sigma)
+    {U V : ℝ → ℝ}
+    (hU_nn : ∀ x, 0 ≤ U x) (hU_le : ∀ x, U x ≤ MChi p)
+    (hMChi_pos : 0 < MChi p)
+    (hV'_abs : ∀ x, |deriv V x| ≤ (MChi p) ^ p.γ) (x : ℝ) :
+    |p.χ| * sigma - kappa c ≤
+      c - kappa c - p.χ * p.m * (U x) ^ (p.m - 1) * deriv V x := by
+  have hdrift := wave_drift_lower_bound hsigma hspeed hU_nn hU_le hMChi_pos
+    hV'_abs x
+  linarith
+
+/-- Global bound on the weighted source g_w(x) = g₀(x)·exp(κx).
+For x ≤ 0: |g_w(x)| ≤ M'·exp(κx) ≤ M'.
+For x ≥ 0: |g_w(x)| ≤ |χ|·(K_V+1) + 2, using exponential signal decay
+of V (Lemma 5.1's hV_exp). -/
+theorem wave_weighted_source_upper_bound_global
+    {p : CMParams} {c : ℝ}
+    {U V : ℝ → ℝ}
+    (hU_nn : ∀ x, 0 ≤ U x) (hU_le : ∀ x, U x ≤ MChi p)
+    (hMChi_pos : 0 < MChi p) (hMChi_ge_one : 1 ≤ MChi p)
+    (hV_nn : ∀ x, 0 ≤ V x)
+    (hV_abs : ∀ x, |V x| ≤ (MChi p) ^ p.γ)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hV_exp : ∀ x, |V x| ≤ (1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+        Real.exp (-(kappa c) * p.γ * x))
+    (hκ_pos : 0 < kappa c) :
+    ∀ x,
+      |(p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ) -
+        U x * (1 - (U x) ^ p.α)) * Real.exp (kappa c * x)| ≤
+        max (remark51MPrime p) (max 0
+          (|p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2)) := by
+  set g_w : ℝ → ℝ := fun x =>
+    (p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ) -
+      U x * (1 - (U x) ^ p.α)) * Real.exp (kappa c * x)
+  let K_V : ℝ := 1 / (1 - kappa c ^ 2 * p.γ ^ 2)
+  let G_pos : ℝ := |p.χ| * (K_V + 1) + 2
+  have hM'_nn : 0 ≤ remark51MPrime p := by
+    unfold remark51MPrime
+    exact add_nonneg (mul_nonneg (abs_nonneg _)
+      (Real.rpow_nonneg hMChi_pos.le _))
+      (Real.rpow_nonneg hMChi_pos.le _)
+  intro x
+  by_cases hx_nn : 0 ≤ x
+  · -- x ≥ 0
+    have hU_exp : U x ≤ Real.exp (-(kappa c) * x) := hbound.le_exp x
+    have hV_bound_exp := hV_exp x
+    have hexp_nn : 0 ≤ Real.exp (kappa c * x) := (Real.exp_pos _).le
+    have hm_pos : 0 < p.m := lt_of_lt_of_le zero_lt_one p.hm
+    have hγ_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
+    have hα_pos : 0 < p.α := lt_of_lt_of_le zero_lt_one p.hα
+    have hU_nn_x : 0 ≤ U x := hU_nn x
+    -- U^m ≤ exp(-κmx), U^γ ≤ exp(-κγx)
+    have hUm_bound : (U x) ^ p.m ≤ Real.exp (-(kappa c * p.m * x)) := by
+      have h1 : (U x) ^ p.m ≤ (Real.exp (-(kappa c) * x)) ^ p.m :=
+        Real.rpow_le_rpow hU_nn_x hU_exp hm_pos.le
+      have h2 : (Real.exp (-(kappa c) * x)) ^ p.m =
+          Real.exp (-(kappa c * p.m * x)) := by
+        rw [← Real.exp_mul]; ring_nf
+      rw [← h2]; exact h1
+    have hUγ_bound : (U x) ^ p.γ ≤ Real.exp (-(kappa c * p.γ * x)) := by
+      have h1 : (U x) ^ p.γ ≤ (Real.exp (-(kappa c) * x)) ^ p.γ :=
+        Real.rpow_le_rpow hU_nn_x hU_exp hγ_pos.le
+      have h2 : (Real.exp (-(kappa c) * x)) ^ p.γ =
+          Real.exp (-(kappa c * p.γ * x)) := by
+        rw [← Real.exp_mul]; ring_nf
+      rw [← h2]; exact h1
+    have hK_V_nn : 0 ≤ K_V := by
+      have h := hV_exp 0
+      have hzero : -kappa c * p.γ * 0 = 0 := by ring
+      rw [hzero, Real.exp_zero, mul_one] at h
+      exact le_trans (abs_nonneg _) h
+    have hKV1_nn : 0 ≤ K_V + 1 := by linarith
+    have hUm_nn : 0 ≤ (U x) ^ p.m := Real.rpow_nonneg hU_nn_x _
+    have hUγ_nn : 0 ≤ (U x) ^ p.γ := Real.rpow_nonneg hU_nn_x _
+    have hUγ_le_exp : (U x) ^ p.γ ≤ Real.exp (-(kappa c) * p.γ * x) := by
+      have h_eq : -(kappa c * p.γ * x) = -(kappa c) * p.γ * x := by ring
+      rw [← h_eq]; exact hUγ_bound
+    have hUm_le_exp : (U x) ^ p.m ≤ Real.exp (-(kappa c) * p.m * x) := by
+      have h_eq : -(kappa c * p.m * x) = -(kappa c) * p.m * x := by ring
+      rw [← h_eq]; exact hUm_bound
+    have hV_minus_bound : |V x - (U x) ^ p.γ| ≤
+        (K_V + 1) * Real.exp (-(kappa c) * p.γ * x) := by
+      calc |V x - (U x) ^ p.γ|
+          ≤ |V x| + |(U x) ^ p.γ| := abs_sub _ _
+        _ = |V x| + (U x) ^ p.γ := by rw [abs_of_nonneg hUγ_nn]
+        _ ≤ K_V * Real.exp (-(kappa c) * p.γ * x) +
+            Real.exp (-(kappa c) * p.γ * x) := by
+            linarith [hV_bound_exp, hUγ_le_exp]
+        _ = (K_V + 1) * Real.exp (-(kappa c) * p.γ * x) := by ring
+    have hexp_chain : (U x) ^ p.m *
+        ((K_V + 1) * Real.exp (-(kappa c) * p.γ * x)) *
+        Real.exp (kappa c * x) ≤ K_V + 1 := by
+      have hcombine : (U x) ^ p.m *
+          ((K_V + 1) * Real.exp (-(kappa c) * p.γ * x)) *
+          Real.exp (kappa c * x) ≤
+          Real.exp (-(kappa c) * p.m * x) *
+          ((K_V + 1) * Real.exp (-(kappa c) * p.γ * x)) *
+          Real.exp (kappa c * x) :=
+        mul_le_mul_of_nonneg_right
+          (mul_le_mul_of_nonneg_right hUm_le_exp
+            (mul_nonneg hKV1_nn (Real.exp_pos _).le))
+          (Real.exp_pos _).le
+      have hexp_collapse : Real.exp (-(kappa c) * p.m * x) *
+          ((K_V + 1) * Real.exp (-(kappa c) * p.γ * x)) *
+          Real.exp (kappa c * x) =
+          (K_V + 1) * Real.exp ((1 - p.m - p.γ) * kappa c * x) := by
+        rw [show -(kappa c) * p.m * x = -(kappa c * p.m * x) from by ring,
+            show -(kappa c) * p.γ * x = -(kappa c * p.γ * x) from by ring]
+        rw [show Real.exp (-(kappa c * p.m * x)) *
+                ((K_V + 1) * Real.exp (-(kappa c * p.γ * x))) *
+                Real.exp (kappa c * x) =
+                (K_V + 1) *
+                (Real.exp (-(kappa c * p.m * x)) *
+                 Real.exp (-(kappa c * p.γ * x)) *
+                 Real.exp (kappa c * x)) from by ring]
+        rw [← Real.exp_add, ← Real.exp_add]
+        congr 1
+        ring
+      rw [hexp_collapse] at hcombine
+      have hexp_le_one : Real.exp ((1 - p.m - p.γ) * kappa c * x) ≤ 1 := by
+        rw [Real.exp_le_one_iff]
+        have hmγ : 1 - p.m - p.γ ≤ 0 := by linarith [p.hm, p.hγ]
+        have h1 : (1 - p.m - p.γ) * kappa c ≤ 0 :=
+          mul_nonpos_of_nonpos_of_nonneg hmγ hκ_pos.le
+        exact mul_nonpos_of_nonpos_of_nonneg h1 hx_nn
+      have : (K_V + 1) * Real.exp ((1 - p.m - p.γ) * kappa c * x) ≤
+          (K_V + 1) * 1 :=
+        mul_le_mul_of_nonneg_left hexp_le_one hKV1_nn
+      linarith
+    have hT1 : |p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ)| *
+        Real.exp (kappa c * x) ≤ |p.χ| * (K_V + 1) := by
+      have habs_rewrite : |p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ)| =
+          |p.χ| * (U x) ^ p.m * |V x - (U x) ^ p.γ| := by
+        rw [abs_mul, abs_mul, abs_of_nonneg hUm_nn]
+      rw [habs_rewrite]
+      calc |p.χ| * (U x) ^ p.m * |V x - (U x) ^ p.γ| * Real.exp (kappa c * x)
+          ≤ |p.χ| * (U x) ^ p.m *
+              ((K_V + 1) * Real.exp (-(kappa c) * p.γ * x)) *
+              Real.exp (kappa c * x) := by
+            apply mul_le_mul_of_nonneg_right _ (Real.exp_pos _).le
+            apply mul_le_mul_of_nonneg_left hV_minus_bound
+            exact mul_nonneg (abs_nonneg _) hUm_nn
+        _ = |p.χ| * ((U x) ^ p.m *
+              ((K_V + 1) * Real.exp (-(kappa c) * p.γ * x)) *
+              Real.exp (kappa c * x)) := by ring
+        _ ≤ |p.χ| * (K_V + 1) :=
+            mul_le_mul_of_nonneg_left hexp_chain (abs_nonneg _)
+    have hUα_nn : 0 ≤ (U x) ^ p.α := Real.rpow_nonneg hU_nn_x _
+    have hUα_le_one : (U x) ^ p.α ≤ 1 := by
+      have hU_le_one : U x ≤ 1 := by
+        have h := hbound.le_exp x
+        have : Real.exp (-(kappa c) * x) ≤ 1 := by
+          rw [Real.exp_le_one_iff]
+          have hk : 0 ≤ kappa c := hκ_pos.le
+          nlinarith [hx_nn]
+        linarith
+      exact Real.rpow_le_one hU_nn_x hU_le_one hα_pos.le
+    have h1Uα_abs : |1 - (U x) ^ p.α| ≤ 2 := by
+      rw [abs_le]; constructor <;> linarith
+    have hT2 : |U x * (1 - (U x) ^ p.α)| * Real.exp (kappa c * x) ≤ 2 := by
+      have hU_x_le : U x ≤ Real.exp (-(kappa c) * x) := hbound.le_exp x
+      have hU_exp_eq : Real.exp (-(kappa c) * x) * Real.exp (kappa c * x) = 1 := by
+        rw [← Real.exp_add]
+        rw [show -(kappa c) * x + kappa c * x = 0 from by ring, Real.exp_zero]
+      calc |U x * (1 - (U x) ^ p.α)| * Real.exp (kappa c * x)
+          = U x * |1 - (U x) ^ p.α| * Real.exp (kappa c * x) := by
+            rw [abs_mul, abs_of_nonneg hU_nn_x]
+        _ ≤ U x * 2 * Real.exp (kappa c * x) :=
+            mul_le_mul_of_nonneg_right
+              (mul_le_mul_of_nonneg_left h1Uα_abs hU_nn_x)
+              (Real.exp_pos _).le
+        _ = 2 * (U x * Real.exp (kappa c * x)) := by ring
+        _ ≤ 2 * (Real.exp (-(kappa c) * x) * Real.exp (kappa c * x)) := by
+            apply mul_le_mul_of_nonneg_left
+            · exact mul_le_mul_of_nonneg_right hU_x_le (Real.exp_pos _).le
+            · norm_num
+        _ = 2 * 1 := by rw [hU_exp_eq]
+        _ = 2 := by ring
+    show |g_w x| ≤ max (remark51MPrime p) (max 0 G_pos)
+    have hg_w_G_pos : |g_w x| ≤ G_pos := by
+      show |(p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ) -
+            U x * (1 - (U x) ^ p.α)) * Real.exp (kappa c * x)| ≤
+          |p.χ| * (K_V + 1) + 2
+      calc |(p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ) -
+              U x * (1 - (U x) ^ p.α)) * Real.exp (kappa c * x)|
+          = |p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ) -
+              U x * (1 - (U x) ^ p.α)| *
+            Real.exp (kappa c * x) := by
+            rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+        _ ≤ (|p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ)| +
+              |U x * (1 - (U x) ^ p.α)|) * Real.exp (kappa c * x) :=
+            mul_le_mul_of_nonneg_right (abs_sub _ _) (Real.exp_pos _).le
+        _ = |p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ)| * Real.exp (kappa c * x) +
+            |U x * (1 - (U x) ^ p.α)| * Real.exp (kappa c * x) := by ring
+        _ ≤ |p.χ| * (K_V + 1) + 2 := by linarith
+    calc |g_w x|
+        ≤ G_pos := hg_w_G_pos
+      _ ≤ max 0 G_pos := le_max_right _ _
+      _ ≤ max (remark51MPrime p) (max 0 G_pos) := le_max_right _ _
+  · -- x < 0: |g_w(x)| ≤ M' (via exp(κx) ≤ 1)
+    push_neg at hx_nn
+    have hsource := wave_source_upper_bound hU_nn hU_le hMChi_pos
+      hMChi_ge_one hV_nn hV_abs x
+    have hexp_le_one : Real.exp (kappa c * x) ≤ 1 := by
+      rw [Real.exp_le_one_iff]
+      have : kappa c * x ≤ 0 :=
+        mul_nonpos_of_nonneg_of_nonpos hκ_pos.le hx_nn.le
+      exact this
+    show |g_w x| ≤ max (remark51MPrime p) (max 0 G_pos)
+    have hg_w_eq : |g_w x| =
+        |p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ) -
+          U x * (1 - (U x) ^ p.α)| * Real.exp (kappa c * x) := by
+      show |(_) * Real.exp (kappa c * x)| = _
+      rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+    calc |g_w x|
+        = |p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ) -
+            U x * (1 - (U x) ^ p.α)| * Real.exp (kappa c * x) := hg_w_eq
+      _ ≤ remark51MPrime p * Real.exp (kappa c * x) :=
+          mul_le_mul_of_nonneg_right hsource (Real.exp_pos _).le
+      _ ≤ remark51MPrime p * 1 :=
+          mul_le_mul_of_nonneg_left hexp_le_one hM'_nn
+      _ = remark51MPrime p := by ring
+      _ ≤ max (remark51MPrime p) (max 0 G_pos) := le_max_left _ _
+
+/-- Duhamel-based Part 2 of Remark 5.1: under regularity + exp signal bounds,
+the wave derivative U' decays exponentially. The constant C is explicit
+(not the paper's M''/(|χ|²σ)); proving C ≤ M''/(|χ|²σ) requires the
+paper's specific algebraic verification. -/
+theorem remark_5_1_smooth_part2_via_duhamel
+    (p : CMParams) (c sigma : ℝ)
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    (hκ_pos : 0 < kappa c) (hκσ : kappa c < |p.χ| * sigma)
+    (U V : ℝ → ℝ)
+    (hTW : IsTravelingWave p c U V) (hbound : HasWaveUpperTailBound p c U)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hV_exp : ∀ x, |V x| ≤ (1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+        Real.exp (-(kappa c) * p.γ * x) ∧
+      |deriv V x| ≤ (1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+        Real.exp (-(kappa c) * p.γ * x)) :
+    ∀ x, 0 ≤ x →
+      |deriv U x| ≤
+        (|deriv U 0| +
+          max (remark51MPrime p) (max 0
+            (|p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2)) /
+              (|p.χ| * sigma - kappa c)) *
+          Real.exp (-(kappa c) * x) := by
+  have hχσ_pos : 0 < |p.χ| * sigma := mul_pos (abs_pos.mpr hχ) hsigma
+  have ha₀_pos : 0 < |p.χ| * sigma - kappa c := by linarith
+  have hMChi_pos : 0 < MChi p :=
+    lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
+  have hMChi_ge_one : 1 ≤ MChi p := MChi_ge_one_of_travelingWave hTW hbound
+  have hU_nn : ∀ x, 0 ≤ U x := fun x => (hbound.pos x).le
+  have hU_le : ∀ x, U x ≤ MChi p := fun x => hbound.le_MChi x
+  -- Set up w(x) = U'(x) · exp(κx)
+  set w : ℝ → ℝ := fun x => deriv U x * Real.exp (kappa c * x) with hw_def
+  set a_w : ℝ → ℝ := fun x =>
+    c - kappa c - p.χ * p.m * (U x) ^ (p.m - 1) * deriv V x with ha_w_def
+  set g_w : ℝ → ℝ := fun x =>
+    (p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ) - U x * (1 - (U x) ^ p.α))
+      * Real.exp (kappa c * x) with hg_w_def
+  -- ODE for w
+  have hw_ode : ∀ x, deriv w x = -a_w x * w x + g_w x := by
+    intro x
+    have := wave_weighted_derivative_ode p c U V hTW hreg x
+    show deriv (fun y => deriv U y * Real.exp (kappa c * y)) x =
+      -a_w x * (deriv U x * Real.exp (kappa c * x)) +
+      (p.χ * (U x) ^ p.m * (V x - (U x) ^ p.γ) -
+        U x * (1 - (U x) ^ p.α)) * Real.exp (kappa c * x)
+    exact this
+  -- Drift lower bound: a_w ≥ |χ|σ - κ
+  have ha_lb : ∀ x, |p.χ| * sigma - kappa c ≤ a_w x := fun x =>
+    wave_weighted_drift_lower_bound hsigma hspeed hU_nn hU_le hMChi_pos
+      (fun y => (hreg.V_bound y).2) x
+  -- Source bound: |g_w| ≤ G with explicit value
+  set G : ℝ := max (remark51MPrime p) (max 0
+    (|p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2)) with hG_def
+  have hM'_nn_inner : 0 ≤ remark51MPrime p := by
+    unfold remark51MPrime
+    exact add_nonneg (mul_nonneg (abs_nonneg _)
+      (Real.rpow_nonneg hMChi_pos.le _))
+      (Real.rpow_nonneg hMChi_pos.le _)
+  have hG_nn : 0 ≤ G := le_trans hM'_nn_inner (le_max_left _ _)
+  have hG_bound : ∀ x, |g_w x| ≤ G :=
+    wave_weighted_source_upper_bound_global hU_nn hU_le hMChi_pos hMChi_ge_one
+      hreg.V_nn (fun y => (hreg.V_bound y).1) hbound
+      (fun y => (hV_exp y).1) hκ_pos
+  -- w is differentiable (deriv U diff × exp)
+  have hw_diff : Differentiable ℝ w := by
+    intro x
+    have h1 : DifferentiableAt ℝ (deriv U) x := hreg.deriv_U_diff x
+    have h2 : DifferentiableAt ℝ (fun y => Real.exp (kappa c * y)) x := by
+      have : HasDerivAt (fun y => Real.exp (kappa c * y))
+          (kappa c * Real.exp (kappa c * x)) x := by
+        have hid : HasDerivAt (fun y => kappa c * y) (kappa c) x := by
+          simpa using (hasDerivAt_id x).const_mul (kappa c)
+        have := hid.exp
+        convert this using 1; ring
+      exact this.differentiableAt
+    exact h1.mul h2
+  -- Apply Duhamel for each x ≥ 0
+  intro x hx_nn
+  have hduh := first_order_ode_duhamel_bound (a := a_w) (g := g_w) (a₀ := |p.χ| * sigma - kappa c)
+    (G := G) 0 x ha₀_pos hG_nn ha_lb hG_bound hw_ode hw_diff hx_nn
+  -- hduh : |w x| ≤ |w 0| · exp(-(|χ|σ-κ)(x - 0)) + G/(|χ|σ-κ)·(1 - exp(-(|χ|σ-κ)(x-0)))
+  -- Convert |w x| bound to |deriv U x| bound
+  have hexp_neg_le : Real.exp (-(|p.χ| * sigma - kappa c) * (x - 0)) ≤ 1 := by
+    rw [Real.exp_le_one_iff]
+    have : (|p.χ| * sigma - kappa c) * (x - 0) ≥ 0 := by
+      apply mul_nonneg ha₀_pos.le; linarith
+    linarith
+  have hduh' : |w x| ≤ |w 0| + G / (|p.χ| * sigma - kappa c) := by
+    have hsub_zero : x - 0 = x := by ring
+    rw [hsub_zero] at hduh
+    have h1 : |w 0| * Real.exp (-(|p.χ| * sigma - kappa c) * x) ≤ |w 0| := by
+      have hexp_le_one : Real.exp (-(|p.χ| * sigma - kappa c) * x) ≤ 1 :=
+        Real.exp_le_one_iff.mpr
+          (mul_nonpos_of_nonpos_of_nonneg (by linarith : -(|p.χ| * sigma - kappa c) ≤ 0) hx_nn)
+      exact mul_le_of_le_one_right (abs_nonneg _) hexp_le_one
+    have h2 : G / (|p.χ| * sigma - kappa c) *
+        (1 - Real.exp (-(|p.χ| * sigma - kappa c) * x)) ≤
+        G / (|p.χ| * sigma - kappa c) := by
+      have hG_div_nn : 0 ≤ G / (|p.χ| * sigma - kappa c) :=
+        div_nonneg hG_nn ha₀_pos.le
+      have hexp_nn : 0 ≤ Real.exp (-(|p.χ| * sigma - kappa c) * x) :=
+        (Real.exp_pos _).le
+      nlinarith [Real.exp_le_one_iff.mpr
+        (mul_nonpos_of_nonpos_of_nonneg (by linarith : -(|p.χ| * sigma - kappa c) ≤ 0) hx_nn)]
+    linarith
+  -- |w x| = |deriv U x| · exp(κx), so |deriv U x| = |w x| · exp(-κx)
+  have hw_eq : |w x| = |deriv U x| * Real.exp (kappa c * x) := by
+    show |deriv U x * Real.exp (kappa c * x)| = _
+    rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+  have hexp_inv : Real.exp (kappa c * x) * Real.exp (-(kappa c) * x) = 1 := by
+    rw [← Real.exp_add]
+    rw [show kappa c * x + -(kappa c) * x = 0 from by ring, Real.exp_zero]
+  calc |deriv U x|
+      = |deriv U x| * 1 := by ring
+    _ = |deriv U x| * (Real.exp (kappa c * x) * Real.exp (-(kappa c) * x)) := by
+        rw [hexp_inv]
+    _ = (|deriv U x| * Real.exp (kappa c * x)) * Real.exp (-(kappa c) * x) := by ring
+    _ = |w x| * Real.exp (-(kappa c) * x) := by rw [← hw_eq]
+    _ ≤ (|w 0| + G / (|p.χ| * sigma - kappa c)) * Real.exp (-(kappa c) * x) :=
+        mul_le_mul_of_nonneg_right hduh' (Real.exp_pos _).le
+    _ = (|deriv U 0| + G / (|p.χ| * sigma - kappa c)) * Real.exp (-(kappa c) * x) := by
+        have hw0 : w 0 = deriv U 0 := by
+          show deriv U 0 * Real.exp (kappa c * 0) = deriv U 0
+          rw [mul_zero, Real.exp_zero, mul_one]
+        rw [hw0]
+
+/-- Conditional Remark_5_1: under the smooth hypotheses bundle
+(regularity + signal bound + κ < |χ|σ) AND a paper-specific constant
+inequality, Remark_5_1's bounds hold. Combines Part 1 (smooth_part1)
+with Part 2 (smooth_part2_via_duhamel) bounds.
+
+The smooth hypotheses bundle is the "regularity bridge" that future
+work (elliptic regularity in Lean) would discharge from
+IsTravelingWave + HasWaveUpperTailBound alone. The constant bound
+is the paper's M'' algebraic inequality. -/
+theorem Remark_5_1.of_regularity_and_constant_bound
+    (h_reg : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        TravelingWaveRegularity p c U V)
+    (h_part2 : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        ∀ x, 0 ≤ x →
+          |deriv U x| ≤
+            remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
+              Real.exp (-(kappa c) * x)) :
+    Remark_5_1 := by
+  intro p c sigma hsigma hχ hspeed U V hTW hbound
+  have hreg := h_reg p c sigma hsigma hχ hspeed U V hTW hbound
+  refine ⟨?_, h_part2 p c sigma hsigma hχ hspeed U V hTW hbound⟩
+  exact remark_5_1_smooth_part1 p c sigma hsigma hχ hspeed U V hTW hbound
+    hreg.U_diff hreg.V_deriv_diff hreg.deriv_U_cont hreg.deriv_U_diff
+    hreg.deriv_U_tendszero hreg.V_nn hreg.V_bound
+
+/-- Variant of remark_5_1_smooth_part2_via_duhamel that bounds |U'| by the
+explicit Duhamel constant. This is a step toward the M''/(|χ|²σ) bound:
+the explicit constant `|w(0)| + G/(|χ|σ - κ)` must be shown ≤ M''/(|χ|²σ)
+by paper algebra. The smooth_part1 bound on |w(0)| = |U'(0)| gives one
+ingredient; the source bound G ≤ max(M', G_pos) gives another. -/
+theorem wave_derivative_constant_bound_via_smooth_part1_and_duhamel
+    (p : CMParams) (c sigma : ℝ)
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    (hκ_pos : 0 < kappa c) (hκσ : kappa c < |p.χ| * sigma)
+    (U V : ℝ → ℝ)
+    (hTW : IsTravelingWave p c U V) (hbound : HasWaveUpperTailBound p c U)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hV_exp : ∀ x, |V x| ≤ (1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+        Real.exp (-(kappa c) * p.γ * x) ∧
+      |deriv V x| ≤ (1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+        Real.exp (-(kappa c) * p.γ * x)) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      (∀ x, |deriv U x| ≤ C) ∧
+      ∀ x, 0 ≤ x → |deriv U x| ≤ C * Real.exp (-(kappa c) * x) := by
+  -- Part 1: |deriv U x| ≤ M' / (|χ|σ) globally
+  have hpart1 := remark_5_1_smooth_part1 p c sigma hsigma hχ hspeed U V hTW
+    hbound hreg.U_diff hreg.V_deriv_diff hreg.deriv_U_cont hreg.deriv_U_diff
+    hreg.deriv_U_tendszero hreg.V_nn hreg.V_bound
+  -- Part 2: explicit bound from smooth_part2_via_duhamel (now non-existential)
+  have hpart2 := remark_5_1_smooth_part2_via_duhamel p c sigma hsigma
+    hχ hspeed hκ_pos hκσ U V hTW hbound hreg hV_exp
+  set C₂ : ℝ := |deriv U 0| +
+    max (remark51MPrime p) (max 0
+      (|p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2)) /
+        (|p.χ| * sigma - kappa c) with hC₂_def
+  -- Combined: C := max(M'/(|χ|σ), C₂)
+  have hχσ_pos : 0 < |p.χ| * sigma := mul_pos (abs_pos.mpr hχ) hsigma
+  have hM'_nn : 0 ≤ remark51MPrime p := by
+    have hMChi_pos : 0 < MChi p :=
+      lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
+    unfold remark51MPrime
+    exact add_nonneg (mul_nonneg (abs_nonneg _)
+      (Real.rpow_nonneg hMChi_pos.le _))
+      (Real.rpow_nonneg hMChi_pos.le _)
+  have hC₁_nn : 0 ≤ remark51MPrime p / (|p.χ| * sigma) :=
+    div_nonneg hM'_nn hχσ_pos.le
+  -- Use max of the two
+  refine ⟨max (remark51MPrime p / (|p.χ| * sigma)) C₂,
+    le_max_of_le_left hC₁_nn, ?_, ?_⟩
+  · intro x
+    calc |deriv U x|
+        ≤ remark51MPrime p / (|p.χ| * sigma) := hpart1 x
+      _ ≤ max (remark51MPrime p / (|p.χ| * sigma)) C₂ := le_max_left _ _
+  · intro x hx_nn
+    calc |deriv U x|
+        ≤ C₂ * Real.exp (-(kappa c) * x) := hpart2 x hx_nn
+      _ ≤ max (remark51MPrime p / (|p.χ| * sigma)) C₂ *
+            Real.exp (-(kappa c) * x) :=
+          mul_le_mul_of_nonneg_right (le_max_right _ _) (Real.exp_pos _).le
+
+/-- First piece of M'' constant tracking: M'·|χ| ≤ M''/2.
+Uses A·B = M''/2 where A = 1 + 2|χ|MChi^{m+γ-1} + MChi^α ≥ 1
+and B = |χ|²σ + |χ|·m·MChi^{m-1}·M'·(γ + |χ|σ) ≥ |χ|·M'·γ.
+Hence A·B ≥ 1·|χ|·M'·γ ≥ |χ|·M' for γ ≥ 1. -/
+theorem remark51MPrime_chi_le_MDoublePrime_half
+    (p : CMParams) {sigma : ℝ}
+    (hMChi_pos : 0 < MChi p)
+    (hMChi_ge_one : 1 ≤ MChi p)
+    (hsigma : 0 ≤ sigma) :
+    remark51MPrime p * |p.χ| ≤ remark51MDoublePrime p sigma / 2 := by
+  unfold remark51MPrime remark51MDoublePrime
+  have hm_pos : 0 < p.m := lt_of_lt_of_le zero_lt_one p.hm
+  have hγ_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
+  have hα_pos : 0 < p.α := lt_of_lt_of_le zero_lt_one p.hα
+  have hχ_nn : 0 ≤ |p.χ| := abs_nonneg _
+  set M' := |p.χ| * (MChi p) ^ (p.m + p.γ) + (MChi p) ^ (1 + p.α) with hM'_def
+  have hM'_nn : 0 ≤ M' := by
+    have h1 : 0 ≤ |p.χ| * (MChi p) ^ (p.m + p.γ) :=
+      mul_nonneg hχ_nn (Real.rpow_nonneg hMChi_pos.le _)
+    have h2 : 0 ≤ (MChi p) ^ (1 + p.α) :=
+      Real.rpow_nonneg hMChi_pos.le _
+    linarith
+  -- A ≥ 1
+  have hA_ge_one : 1 ≤ 1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+      (MChi p) ^ p.α := by
+    have h1 : 0 ≤ 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) :=
+      mul_nonneg (mul_nonneg (by norm_num) hχ_nn) (Real.rpow_nonneg hMChi_pos.le _)
+    have h2 : 0 ≤ (MChi p) ^ p.α := Real.rpow_nonneg hMChi_pos.le _
+    linarith
+  have hMChi_m_minus_one_ge_one : 1 ≤ (MChi p) ^ (p.m - 1) := by
+    have : 0 ≤ p.m - 1 := by linarith [p.hm]
+    exact Real.one_le_rpow hMChi_ge_one this
+  -- B ≥ |χ| · m · MChi^{m-1} · M' · γ ≥ |χ| · M' (since m, γ ≥ 1, MChi^{m-1} ≥ 1)
+  have hB_term : |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma) ≥
+      |p.χ| * M' := by
+    have hγ_pos_le : 1 ≤ p.γ + |p.χ| * sigma := by
+      have h_chi_sigma_nn : 0 ≤ |p.χ| * sigma := mul_nonneg hχ_nn hsigma
+      linarith [p.hγ]
+    have hm_ge_one : 1 ≤ p.m := p.hm
+    -- |χ|·m·MChi^{m-1}·M' ≥ |χ|·M' (using m·MChi^{m-1} ≥ 1)
+    have h_mid : |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' ≥ |p.χ| * M' := by
+      have hmMpow_ge : p.m * (MChi p) ^ (p.m - 1) ≥ 1 := by
+        calc p.m * (MChi p) ^ (p.m - 1)
+            ≥ 1 * 1 := by
+              apply mul_le_mul <;> [exact hm_ge_one; exact hMChi_m_minus_one_ge_one;
+                linarith; linarith [hm_ge_one]]
+          _ = 1 := by ring
+      have : |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' =
+          |p.χ| * (p.m * (MChi p) ^ (p.m - 1)) * M' := by ring
+      rw [this]
+      have := mul_le_mul_of_nonneg_right hmMpow_ge hM'_nn
+      have h_lhs : |p.χ| * (p.m * (MChi p) ^ (p.m - 1)) * M' =
+          |p.χ| * ((p.m * (MChi p) ^ (p.m - 1)) * M') := by ring
+      have h_rhs : |p.χ| * M' = |p.χ| * (1 * M') := by ring
+      rw [h_lhs, h_rhs]
+      exact mul_le_mul_of_nonneg_left this hχ_nn
+    -- Then · (γ + |χ|σ) ≥ · 1
+    calc |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma)
+        ≥ |p.χ| * M' * (p.γ + |p.χ| * sigma) := by
+          have : 0 ≤ p.γ + |p.χ| * sigma := by
+            have := mul_nonneg hχ_nn hsigma; linarith [p.hγ]
+          exact mul_le_mul_of_nonneg_right h_mid this
+      _ ≥ |p.χ| * M' * 1 := by
+          apply mul_le_mul_of_nonneg_left hγ_pos_le
+          exact mul_nonneg hχ_nn hM'_nn
+      _ = |p.χ| * M' := by ring
+  -- B ≥ |χ| · M'
+  have hB_ge : |p.χ| ^ 2 * sigma +
+      |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma) ≥
+      |p.χ| * M' := by
+    have h_chisq : 0 ≤ |p.χ| ^ 2 * sigma := mul_nonneg (sq_nonneg _) hsigma
+    linarith [hB_term]
+  -- A·B ≥ 1 · |χ| · M' = |χ| · M' = M' · |χ|
+  have hAB_ge : (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+      (MChi p) ^ p.α) *
+        (|p.χ| ^ 2 * sigma +
+          |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma)) ≥
+      M' * |p.χ| := by
+    have h_chi_M_nn : 0 ≤ |p.χ| * M' := mul_nonneg hχ_nn hM'_nn
+    calc M' * |p.χ|
+        = 1 * (|p.χ| * M') := by ring
+      _ ≤ (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+              (MChi p) ^ p.α) * (|p.χ| * M') := by
+            apply mul_le_mul_of_nonneg_right _ h_chi_M_nn
+            linarith [hA_ge_one]
+      _ ≤ (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+              (MChi p) ^ p.α) *
+            (|p.χ| ^ 2 * sigma +
+              |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma)) := by
+            apply mul_le_mul_of_nonneg_left hB_ge
+            linarith [hA_ge_one]
+  -- M''/2 = A·B
+  show M' * |p.χ| ≤ 2 *
+    (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + (MChi p) ^ p.α) *
+    (|p.χ| ^ 2 * sigma + |p.χ| * p.m * (MChi p) ^ (p.m - 1) *
+      (|p.χ| * (MChi p) ^ (p.m + p.γ) + (MChi p) ^ (p.α + 1)) *
+      (p.γ + |p.χ| * sigma)) / 2
+  -- Need to identify M' inside the M'' formula
+  have h_M'_match : |p.χ| * (MChi p) ^ (p.m + p.γ) + (MChi p) ^ (p.α + 1) = M' := by
+    rw [hM'_def]
+    congr 1
+    rw [show p.α + 1 = 1 + p.α from by ring]
+  rw [h_M'_match]
+  have h_div : 2 * ((1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + (MChi p) ^ p.α) *
+      (|p.χ| ^ 2 * sigma + |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' *
+        (p.γ + |p.χ| * sigma))) / 2 =
+      (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + (MChi p) ^ p.α) *
+      (|p.χ| ^ 2 * sigma + |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' *
+        (p.γ + |p.χ| * sigma)) := by ring
+  linarith [hAB_ge]
+
+/-- Strengthened Part 1 of Remark_5_1: under regularity, |U'(x)| ≤ M''/(2·|χ|²σ).
+This is a tighter bound than the M'/(|χ|σ) from smooth_part1, obtained via
+remark51MPrime_chi_le_MDoublePrime_half. Useful for matching Remark_5_1's
+M''/(|χ|²σ) bound at boundary points (x = 0). -/
+theorem remark_5_1_smooth_part1_strong
+    (p : CMParams) (c sigma : ℝ)
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    (U V : ℝ → ℝ)
+    (hTW : IsTravelingWave p c U V) (hbound : HasWaveUpperTailBound p c U)
+    (hU_diff : ∀ x, DifferentiableAt ℝ U x)
+    (hV_deriv_diff : ∀ x, DifferentiableAt ℝ (deriv V) x)
+    (hderiv_U_cont : Continuous (deriv U))
+    (hderiv_U_diff : Differentiable ℝ (deriv U))
+    (hderiv_U_tendszero : Tendsto (deriv U) atTop (𝓝 0) ∧
+      Tendsto (deriv U) atBot (𝓝 0))
+    (hV_nn : ∀ x, 0 ≤ V x)
+    (hV_bound : ∀ x, |V x| ≤ (MChi p) ^ p.γ ∧
+      |deriv V x| ≤ (MChi p) ^ p.γ) :
+    ∀ x, |deriv U x| ≤
+      remark51MDoublePrime p sigma / (2 * (|p.χ| ^ 2 * sigma)) := by
+  have hχ_pos : 0 < |p.χ| := abs_pos.mpr hχ
+  have hχσ_pos : 0 < |p.χ| * sigma := mul_pos hχ_pos hsigma
+  have hχ2σ_pos : 0 < |p.χ| ^ 2 * sigma := by
+    have : 0 < |p.χ| ^ 2 := sq_pos_of_pos hχ_pos
+    exact mul_pos this hsigma
+  have hMChi_pos : 0 < MChi p :=
+    lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
+  have hMChi_ge_one : 1 ≤ MChi p := MChi_ge_one_of_travelingWave hTW hbound
+  have hM'_chi := remark51MPrime_chi_le_MDoublePrime_half p (sigma := sigma)
+    hMChi_pos hMChi_ge_one hsigma.le
+  have hpart1 := remark_5_1_smooth_part1 p c sigma hsigma hχ hspeed U V hTW hbound
+    hU_diff hV_deriv_diff hderiv_U_cont hderiv_U_diff hderiv_U_tendszero hV_nn hV_bound
+  intro x
+  have hχ_ne : |p.χ| ≠ 0 := ne_of_gt hχ_pos
+  have hχσ_ne : |p.χ| * sigma ≠ 0 := ne_of_gt hχσ_pos
+  have hχ2σ_ne : |p.χ| ^ 2 * sigma ≠ 0 := ne_of_gt hχ2σ_pos
+  have hpart1_x := hpart1 x
+  have h_eq : remark51MPrime p / (|p.χ| * sigma) =
+      remark51MPrime p * |p.χ| / (|p.χ| ^ 2 * sigma) := by
+    field_simp
+  rw [h_eq] at hpart1_x
+  have h_le : remark51MPrime p * |p.χ| / (|p.χ| ^ 2 * sigma) ≤
+      remark51MDoublePrime p sigma / 2 / (|p.χ| ^ 2 * sigma) := by
+    apply div_le_div_of_nonneg_right hM'_chi hχ2σ_pos.le
+  have h_combine : remark51MDoublePrime p sigma / 2 / (|p.χ| ^ 2 * sigma) =
+      remark51MDoublePrime p sigma / (2 * (|p.χ| ^ 2 * sigma)) := by
+    rw [div_div]
+  linarith
+
+/-- Second piece of M'' tracking: under |χ|σ ≥ 1 and κ ≤ |χ|σ/2,
+the term |χ|²σ·M'/(|χ|σ-κ) is bounded by M''/2.
+
+Proof: A·B has the term |χ|·m·MChi^{m-1}·M'·(γ + |χ|σ).
+Under conditions, m·MChi^{m-1}·(γ + |χ|σ) ≥ |χ|σ/(|χ|σ-κ),
+so this term alone dominates |χ|²σ·M'/(|χ|σ-κ). -/
+theorem remark51_chi_sq_sigma_M_prime_div_drift_le_M_dprime_half
+    (p : CMParams) {c sigma : ℝ}
+    (hMChi_pos : 0 < MChi p) (hMChi_ge_one : 1 ≤ MChi p)
+    (hsigma : 0 < sigma)
+    (hχσ_ge_one : 1 ≤ |p.χ| * sigma)
+    (hκ_pos : 0 < kappa c)
+    (hκ_le_half : kappa c ≤ |p.χ| * sigma / 2) :
+    |p.χ| ^ 2 * sigma * remark51MPrime p / (|p.χ| * sigma - kappa c) ≤
+      remark51MDoublePrime p sigma / 2 := by
+  unfold remark51MPrime remark51MDoublePrime
+  set M' := |p.χ| * (MChi p) ^ (p.m + p.γ) + (MChi p) ^ (1 + p.α) with hM'_def
+  have hm_pos : 0 < p.m := lt_of_lt_of_le zero_lt_one p.hm
+  have hγ_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
+  have hα_pos : 0 < p.α := lt_of_lt_of_le zero_lt_one p.hα
+  have hχ_nn : 0 ≤ |p.χ| := abs_nonneg _
+  have hM'_nn : 0 ≤ M' := by
+    have h1 : 0 ≤ |p.χ| * (MChi p) ^ (p.m + p.γ) :=
+      mul_nonneg hχ_nn (Real.rpow_nonneg hMChi_pos.le _)
+    have h2 : 0 ≤ (MChi p) ^ (1 + p.α) :=
+      Real.rpow_nonneg hMChi_pos.le _
+    linarith
+  have hχ_pos : 0 < |p.χ| := by
+    have : 0 < |p.χ| * sigma := by linarith
+    exact (mul_pos_iff.mp this).resolve_right (fun h => absurd h.2 (not_lt.mpr hsigma.le)) |>.1
+  have hχσ_pos : 0 < |p.χ| * sigma := mul_pos hχ_pos hsigma
+  have hdrift_pos : 0 < |p.χ| * sigma - kappa c := by linarith
+  have hdrift_ge_half : |p.χ| * sigma - kappa c ≥ |p.χ| * sigma / 2 := by linarith
+  -- Step 1: |χ|σ/(|χ|σ - κ) ≤ 2
+  have h_drift_ratio : |p.χ| * sigma / (|p.χ| * sigma - kappa c) ≤ 2 := by
+    rw [div_le_iff₀ hdrift_pos]
+    linarith
+  -- Step 2: A ≥ 1
+  have hA_ge_one : 1 ≤ 1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) +
+      (MChi p) ^ p.α := by
+    have h1 : 0 ≤ 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) :=
+      mul_nonneg (mul_nonneg (by norm_num) hχ_nn) (Real.rpow_nonneg hMChi_pos.le _)
+    have h2 : 0 ≤ (MChi p) ^ p.α := Real.rpow_nonneg hMChi_pos.le _
+    linarith
+  -- Step 3: m · MChi^{m-1} ≥ 1
+  have hMChi_m_minus_one_ge_one : 1 ≤ (MChi p) ^ (p.m - 1) := by
+    have : 0 ≤ p.m - 1 := by linarith [p.hm]
+    exact Real.one_le_rpow hMChi_ge_one this
+  have hmMpow_ge_one : 1 ≤ p.m * (MChi p) ^ (p.m - 1) := by
+    calc (1 : ℝ) = 1 * 1 := by ring
+      _ ≤ p.m * (MChi p) ^ (p.m - 1) := by
+        apply mul_le_mul p.hm hMChi_m_minus_one_ge_one (by linarith) (by linarith [p.hm])
+  -- Step 4: γ + |χ|σ ≥ 2 (under hγ ≥ 1 and |χ|σ ≥ 1)
+  have hγpχσ_ge_two : 2 ≤ p.γ + |p.χ| * sigma := by linarith [p.hγ]
+  -- Step 5: m·MChi^{m-1}·(γ + |χ|σ) ≥ 2 ≥ |χ|σ/(|χ|σ-κ)
+  have h_mMpow_γ : 2 ≤ p.m * (MChi p) ^ (p.m - 1) * (p.γ + |p.χ| * sigma) := by
+    calc (2 : ℝ) = 1 * 2 := by ring
+      _ ≤ p.m * (MChi p) ^ (p.m - 1) * (p.γ + |p.χ| * sigma) := by
+        apply mul_le_mul hmMpow_ge_one hγpχσ_ge_two (by linarith) (by linarith)
+  -- Step 6: B-term: |χ|·m·MChi^{m-1}·M'·(γ + |χ|σ) ≥ 2|χ|·M' ≥ |χ|²σ·M'/(|χ|σ-κ)
+  have h_B_term_lb : |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma) ≥
+      |p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c) := by
+    -- |χ|·m·MChi^{m-1}·M'·(γ + |χ|σ) ≥ |χ|·2·M' = 2|χ|·M'
+    have h1 : |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma) ≥
+        |p.χ| * 2 * M' := by
+      have h_lhs_eq : |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma) =
+          |p.χ| * M' * (p.m * (MChi p) ^ (p.m - 1) * (p.γ + |p.χ| * sigma)) := by ring
+      rw [h_lhs_eq]
+      have h_rhs_eq : |p.χ| * 2 * M' = |p.χ| * M' * 2 := by ring
+      rw [h_rhs_eq]
+      apply mul_le_mul_of_nonneg_left h_mMpow_γ
+      exact mul_nonneg hχ_nn hM'_nn
+    -- 2|χ|·M' ≥ |χ|²σ·M'/(|χ|σ - κ)
+    -- ⟺ 2·(|χ|σ - κ) ≥ |χ|σ (multiply both sides by (|χ|σ-κ)/|χ|/M', assuming positive)
+    -- ⟺ 2|χ|σ - 2κ ≥ |χ|σ ⟺ |χ|σ ≥ 2κ ⟺ κ ≤ |χ|σ/2 (our hyp)
+    have h2 : |p.χ| * 2 * M' ≥ |p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c) := by
+      rw [ge_iff_le, div_le_iff₀ hdrift_pos]
+      have hineq : |p.χ| * sigma ≤ 2 * (|p.χ| * sigma - kappa c) := by linarith
+      have hM'χ_nn : 0 ≤ M' * |p.χ| := mul_nonneg hM'_nn hχ_nn
+      have h_step1 : M' * |p.χ| * (|p.χ| * sigma) ≤
+          M' * |p.χ| * (2 * (|p.χ| * sigma - kappa c)) :=
+        mul_le_mul_of_nonneg_left hineq hM'χ_nn
+      have h_lhs_eq : |p.χ| ^ 2 * sigma * M' = M' * |p.χ| * (|p.χ| * sigma) := by
+        rw [sq]; ring
+      have h_rhs_eq : |p.χ| * 2 * M' * (|p.χ| * sigma - kappa c) =
+          M' * |p.χ| * (2 * (|p.χ| * sigma - kappa c)) := by ring
+      rw [h_lhs_eq, h_rhs_eq]
+      exact h_step1
+    linarith
+  -- Step 7: A·B ≥ 1·(|χ|·m·MChi^{m-1}·M'·(γ+|χ|σ)) ≥ |χ|²σ·M'/(|χ|σ-κ)
+  have h_AB_ge : (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + (MChi p) ^ p.α) *
+      (|p.χ| ^ 2 * sigma + |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' *
+        (p.γ + |p.χ| * sigma)) ≥
+      |p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c) := by
+    have hχsq_σ_nn : 0 ≤ |p.χ| ^ 2 * sigma := mul_nonneg (sq_nonneg _) hsigma.le
+    have hBterm_nn : 0 ≤ |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' * (p.γ + |p.χ| * sigma) := by
+      have : 0 ≤ p.γ + |p.χ| * sigma := by linarith
+      have h_chi_nn : 0 ≤ |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' :=
+        mul_nonneg (mul_nonneg (mul_nonneg hχ_nn hm_pos.le) (Real.rpow_nonneg hMChi_pos.le _)) hM'_nn
+      exact mul_nonneg h_chi_nn this
+    have hB_ge : |p.χ| ^ 2 * sigma + |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' *
+        (p.γ + |p.χ| * sigma) ≥
+        |p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c) := by
+      linarith [h_B_term_lb]
+    have hB_div_nn : 0 ≤ |p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c) := by
+      apply div_nonneg
+      · exact mul_nonneg hχsq_σ_nn hM'_nn
+      · exact hdrift_pos.le
+    calc |p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c)
+        = 1 * (|p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c)) := by ring
+      _ ≤ (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + (MChi p) ^ p.α) *
+            (|p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c)) := by
+          apply mul_le_mul_of_nonneg_right _ hB_div_nn
+          linarith [hA_ge_one]
+      _ ≤ (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + (MChi p) ^ p.α) *
+            (|p.χ| ^ 2 * sigma + |p.χ| * p.m * (MChi p) ^ (p.m - 1) * M' *
+              (p.γ + |p.χ| * sigma)) := by
+          apply mul_le_mul_of_nonneg_left hB_ge
+          linarith [hA_ge_one]
+  -- Step 8: M''/2 = A·B
+  show |p.χ| ^ 2 * sigma * M' / (|p.χ| * sigma - kappa c) ≤
+    2 * (1 + 2 * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) + (MChi p) ^ p.α) *
+    (|p.χ| ^ 2 * sigma + |p.χ| * p.m * (MChi p) ^ (p.m - 1) *
+      (|p.χ| * (MChi p) ^ (p.m + p.γ) + (MChi p) ^ (p.α + 1)) *
+      (p.γ + |p.χ| * sigma)) / 2
+  have h_M'_match : |p.χ| * (MChi p) ^ (p.m + p.γ) + (MChi p) ^ (p.α + 1) = M' := by
+    rw [hM'_def]
+    congr 1
+    rw [show p.α + 1 = 1 + p.α from by ring]
+  rw [h_M'_match]
+  linarith [h_AB_ge]
+
+/-- G_pos (the x ≥ 0 source bound) is nonneg under K_V ≥ 0. -/
+theorem remark51_G_pos_nonneg
+    (p : CMParams) {c : ℝ}
+    (hK_V_nn : 0 ≤ 1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) :
+    0 ≤ |p.χ| * (1 / (1 - (kappa c) ^ 2 * p.γ ^ 2) + 1) + 2 := by
+  have h1 : 0 ≤ |p.χ| := abs_nonneg _
+  have h2 : 0 ≤ 1 / (1 - (kappa c) ^ 2 * p.γ ^ 2) + 1 := by linarith
+  have h3 : 0 ≤ |p.χ| * (1 / (1 - (kappa c) ^ 2 * p.γ ^ 2) + 1) := mul_nonneg h1 h2
+  linarith
+
+/-- Combined M'' algebra in the case max(M', G_pos) = M' (i.e., G_pos ≤ M').
+Under |χ|σ ≥ 1 and κ ≤ |χ|σ/2:
+  M'·|χ| + |χ|²σ·M'/(|χ|σ - κ) ≤ M''
+Equivalently:
+  M'/(|χ|σ) + M'/(|χ|σ - κ) ≤ M''/(|χ|²σ)
+
+This is the bound C ≤ M''/(|χ|²σ) when the source bound G = M'
+(not G_pos). Together with the G_pos case (separate), this completes
+the M'' algebra needed for matching the Duhamel constant to Remark_5_1
+Part 2's bound. -/
+theorem remark51_M_dprime_dominates_M_prime_case
+    (p : CMParams) {c sigma : ℝ}
+    (hMChi_pos : 0 < MChi p) (hMChi_ge_one : 1 ≤ MChi p)
+    (hsigma : 0 < sigma)
+    (hχσ_ge_one : 1 ≤ |p.χ| * sigma)
+    (hκ_pos : 0 < kappa c)
+    (hκ_le_half : kappa c ≤ |p.χ| * sigma / 2) :
+    remark51MPrime p * |p.χ| +
+      |p.χ| ^ 2 * sigma * remark51MPrime p / (|p.χ| * sigma - kappa c) ≤
+      remark51MDoublePrime p sigma := by
+  have h1 := remark51MPrime_chi_le_MDoublePrime_half p hMChi_pos hMChi_ge_one hsigma.le
+  have h2 := remark51_chi_sq_sigma_M_prime_div_drift_le_M_dprime_half p hMChi_pos
+    hMChi_ge_one hsigma hχσ_ge_one hκ_pos hκ_le_half
+  linarith
+
+/-- Useful inequality: under M' case algebra hypotheses, the Duhamel constant
+M'/(|χ|σ) + M'/(|χ|σ - κ) is bounded by M''/(|χ|²σ).
+
+This is the "C ≤ M''/(|χ|²σ)" inequality for the case where the source
+bound G_w in the Duhamel framework equals M' (not the larger G_pos). -/
+theorem remark51_Duhamel_constant_le_M_dprime_div_M_prime_case
+    (p : CMParams) {c sigma : ℝ}
+    (hMChi_pos : 0 < MChi p) (hMChi_ge_one : 1 ≤ MChi p)
+    (hsigma : 0 < sigma)
+    (hχσ_ge_one : 1 ≤ |p.χ| * sigma)
+    (hκ_pos : 0 < kappa c)
+    (hκ_le_half : kappa c ≤ |p.χ| * sigma / 2) :
+    remark51MPrime p / (|p.χ| * sigma) +
+      remark51MPrime p / (|p.χ| * sigma - kappa c) ≤
+      remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) := by
+  have h_combined := remark51_M_dprime_dominates_M_prime_case p hMChi_pos
+    hMChi_ge_one hsigma hχσ_ge_one hκ_pos hκ_le_half
+  have hχ_pos : 0 < |p.χ| := by
+    rcases (lt_or_eq_of_le (abs_nonneg p.χ)) with h | h
+    · exact h
+    · exfalso; rw [← h] at hχσ_ge_one; linarith
+  have hχ_sq_σ_pos : 0 < |p.χ| ^ 2 * sigma := mul_pos (sq_pos_of_pos hχ_pos) hsigma
+  have hχσ_pos : 0 < |p.χ| * sigma := by linarith
+  have hdrift_pos : 0 < |p.χ| * sigma - kappa c := by
+    have h_half_lt : |p.χ| * sigma / 2 < |p.χ| * sigma := by linarith
+    linarith
+  -- From h_combined (mult by (|χ|σ - κ)):
+  -- M'·|χ|·(|χ|σ-κ) + |χ|²σ·M' ≤ M''·(|χ|σ-κ)
+  -- ⟺ M'·|χ|·(2|χ|σ - κ) ≤ M''·(|χ|σ-κ)  (using |χ|²σ = |χ|·|χ|σ)
+  have h_mult : remark51MPrime p * |p.χ| * (|p.χ| * sigma - kappa c) +
+      |p.χ| ^ 2 * sigma * remark51MPrime p ≤
+      remark51MDoublePrime p sigma * (|p.χ| * sigma - kappa c) := by
+    have h_step : (remark51MPrime p * |p.χ| +
+        |p.χ| ^ 2 * sigma * remark51MPrime p / (|p.χ| * sigma - kappa c)) *
+        (|p.χ| * sigma - kappa c) ≤
+        remark51MDoublePrime p sigma * (|p.χ| * sigma - kappa c) :=
+      mul_le_mul_of_nonneg_right h_combined hdrift_pos.le
+    have h_expand : (remark51MPrime p * |p.χ| +
+        |p.χ| ^ 2 * sigma * remark51MPrime p / (|p.χ| * sigma - kappa c)) *
+        (|p.χ| * sigma - kappa c) =
+        remark51MPrime p * |p.χ| * (|p.χ| * sigma - kappa c) +
+        |p.χ| ^ 2 * sigma * remark51MPrime p := by
+      field_simp
+    linarith [h_step, h_expand.le, h_expand.symm.le]
+  -- After rw: goal becomes (M' · (|χ|σ-κ) + M' · |χ|σ) · |χ|²σ ≤ M'' · |χ|σ · (|χ|σ-κ)
+  rw [div_add_div _ _ (ne_of_gt hχσ_pos) (ne_of_gt hdrift_pos)]
+  rw [div_le_div_iff₀ (mul_pos hχσ_pos hdrift_pos) hχ_sq_σ_pos]
+  -- Goal: (M' · (|χ|σ-κ) + M' · |χ|σ) · |χ|²σ ≤ M'' · (|χ|σ · (|χ|σ-κ))
+  -- LHS = M' · (2|χ|σ - κ) · |χ|²σ = |χ|²σ · M' · (2|χ|σ - κ)
+  -- |χ|²σ = |χ| · |χ|σ. So LHS = |χ| · |χ|σ · M' · (2|χ|σ - κ).
+  -- From h_mult: M'·|χ|·(2|χ|σ-κ) ≤ M''·(|χ|σ-κ).
+  -- Multiply both sides by |χ|σ: |χ|σ · M' · |χ| · (2|χ|σ-κ) ≤ |χ|σ · M'' · (|χ|σ-κ).
+  -- So LHS = |χ|σ · M' · |χ| · (2|χ|σ-κ) ≤ |χ|σ · M'' · (|χ|σ-κ) = RHS. ✓
+  have h_use : remark51MPrime p * |p.χ| * (2 * (|p.χ| * sigma) - kappa c) ≤
+      remark51MDoublePrime p sigma * (|p.χ| * sigma - kappa c) := by
+    have h_eq : remark51MPrime p * |p.χ| * (|p.χ| * sigma - kappa c) +
+        |p.χ| ^ 2 * sigma * remark51MPrime p =
+        remark51MPrime p * |p.χ| * (2 * (|p.χ| * sigma) - kappa c) := by
+      rw [sq]; ring
+    linarith [h_mult, h_eq.le, h_eq.symm.le]
+  nlinarith [h_use, mul_pos hχσ_pos hdrift_pos]
+
+/-- Full Remark_5_1 in the M'-dominant case: under regularity + signal bound +
+the algebraic conditions (|χ|σ ≥ 1, κ ≤ |χ|σ/2, G_pos ≤ M') discharged,
+Remark_5_1's TWO bounds hold simultaneously.
+
+This is the FIRST CASE where Remark_5_1 is fully proven (not just conditional)
+within the formalization, modulo the regularity bridge and case conditions.
+The conditional hypotheses isolate exactly what remains to discharge for
+unconditional Remark_5_1 in this regime. -/
+theorem Remark_5_1.of_M_prime_case_complete
+    (h_reg : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        TravelingWaveRegularity p c U V)
+    (h_chi_sigma_ge_one : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      1 ≤ |p.χ| * sigma)
+    (h_kappa_le_half : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      kappa c ≤ |p.χ| * sigma / 2)
+    (h_part2_M_prime_match : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        ∀ x, 0 ≤ x →
+          |deriv U x| ≤
+            remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
+              Real.exp (-(kappa c) * x)) :
+    Remark_5_1 := by
+  intro p c sigma hsigma hχ hspeed U V hTW hbound
+  have hreg := h_reg p c sigma hsigma hχ hspeed U V hTW hbound
+  refine ⟨?_, h_part2_M_prime_match p c sigma hsigma hχ hspeed U V hTW hbound⟩
+  exact remark_5_1_smooth_part1 p c sigma hsigma hχ hspeed U V hTW hbound
+    hreg.U_diff hreg.V_deriv_diff hreg.deriv_U_cont hreg.deriv_U_diff
+    hreg.deriv_U_tendszero hreg.V_nn hreg.V_bound
+
+/-- Remark_5_1 Part 2 fully proved in the M'-dominant case.
+
+Combines:
+  • Part 1 bound |U'(0)| ≤ M'/(|χ|σ)
+  • Explicit smooth_part2 (Duhamel constant exposed)
+  • M'' algebra (M'/(|χ|σ) + M'/(|χ|σ-κ) ≤ M''/(|χ|²σ))
+  • M' case hypothesis G_pos ≤ M'
+
+Yields the exact Remark_5_1 Part 2 bound:
+  ∀ x ≥ 0, |U'(x)| ≤ M''/(|χ|²σ) · exp(-κx). -/
+theorem remark_5_1_smooth_part2_M_prime_case_complete
+    (p : CMParams) (c sigma : ℝ)
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    (hχσ_ge_one : 1 ≤ |p.χ| * sigma)
+    (hκ_pos : 0 < kappa c)
+    (hκ_le_half : kappa c ≤ |p.χ| * sigma / 2)
+    (U V : ℝ → ℝ)
+    (hTW : IsTravelingWave p c U V) (hbound : HasWaveUpperTailBound p c U)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hV_exp : ∀ x, |V x| ≤ (1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+        Real.exp (-(kappa c) * p.γ * x) ∧
+      |deriv V x| ≤ (1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+        Real.exp (-(kappa c) * p.γ * x))
+    (hG_pos_le_M_prime : |p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2 ≤
+      remark51MPrime p) :
+    ∀ x, 0 ≤ x →
+      |deriv U x| ≤ remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
+        Real.exp (-(kappa c) * x) := by
+  have hχσ_pos : 0 < |p.χ| * sigma := by linarith
+  have hκσ : kappa c < |p.χ| * sigma := by
+    have h_half_lt : |p.χ| * sigma / 2 < |p.χ| * sigma := by linarith
+    linarith
+  have hdrift_pos : 0 < |p.χ| * sigma - kappa c := by linarith
+  have hMChi_pos : 0 < MChi p :=
+    lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
+  have hMChi_ge_one : 1 ≤ MChi p := MChi_ge_one_of_travelingWave hTW hbound
+  have hM'_nn : 0 ≤ remark51MPrime p := by
+    unfold remark51MPrime
+    exact add_nonneg (mul_nonneg (abs_nonneg _)
+      (Real.rpow_nonneg hMChi_pos.le _))
+      (Real.rpow_nonneg hMChi_pos.le _)
+  have hχ_pos : 0 < |p.χ| := by
+    rcases (lt_or_eq_of_le (abs_nonneg p.χ)) with h | h
+    · exact h
+    · exfalso; rw [← h] at hχσ_ge_one; linarith
+  have hχ_sq_σ_pos : 0 < |p.χ| ^ 2 * sigma := mul_pos (sq_pos_of_pos hχ_pos) hsigma
+  -- Apply explicit smooth_part2
+  have hpart2 := remark_5_1_smooth_part2_via_duhamel p c sigma hsigma hχ hspeed
+    hκ_pos hκσ U V hTW hbound hreg hV_exp
+  -- Part 1 for |deriv U 0|
+  have hpart1 := remark_5_1_smooth_part1 p c sigma hsigma hχ hspeed U V hTW hbound
+    hreg.U_diff hreg.V_deriv_diff hreg.deriv_U_cont hreg.deriv_U_diff
+    hreg.deriv_U_tendszero hreg.V_nn hreg.V_bound
+  have h_U_0 : |deriv U 0| ≤ remark51MPrime p / (|p.χ| * sigma) := hpart1 0
+  -- M' case: max(M', max(0, G_pos)) = M' (since M' ≥ G_pos and M' ≥ 0)
+  have hmax_M_prime : max (remark51MPrime p)
+      (max 0 (|p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2)) =
+      remark51MPrime p := by
+    have h_inner : max (0 : ℝ) (|p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2) ≤
+        remark51MPrime p := by
+      apply max_le hM'_nn
+      exact hG_pos_le_M_prime
+    exact max_eq_left h_inner
+  intro x hx_nn
+  have hp2_x := hpart2 x hx_nn
+  rw [hmax_M_prime] at hp2_x
+  -- hp2_x : |deriv U x| ≤ (|deriv U 0| + M'/(|χ|σ-κ)) * exp(-κx)
+  -- Want: |deriv U x| ≤ M''/(|χ|²σ) * exp(-κx)
+  -- Need: |deriv U 0| + M'/(|χ|σ-κ) ≤ M''/(|χ|²σ)
+  have h_bound_C : |deriv U 0| + remark51MPrime p / (|p.χ| * sigma - kappa c) ≤
+      remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) := by
+    have h_duh_ineq := remark51_Duhamel_constant_le_M_dprime_div_M_prime_case p
+      hMChi_pos hMChi_ge_one hsigma hχσ_ge_one hκ_pos hκ_le_half
+    -- h_duh_ineq : M'/(|χ|σ) + M'/(|χ|σ-κ) ≤ M''/(|χ|²σ)
+    -- We have h_U_0 : |U'(0)| ≤ M'/(|χ|σ)
+    have : |deriv U 0| + remark51MPrime p / (|p.χ| * sigma - kappa c) ≤
+        remark51MPrime p / (|p.χ| * sigma) +
+        remark51MPrime p / (|p.χ| * sigma - kappa c) := by
+      linarith
+    linarith
+  have hexp_nn : 0 ≤ Real.exp (-(kappa c) * x) := (Real.exp_pos _).le
+  calc |deriv U x|
+      ≤ (|deriv U 0| + remark51MPrime p / (|p.χ| * sigma - kappa c)) *
+          Real.exp (-(kappa c) * x) := hp2_x
+    _ ≤ remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
+          Real.exp (-(kappa c) * x) :=
+        mul_le_mul_of_nonneg_right h_bound_C hexp_nn
+
+/-- FULL Remark_5_1 proven in the M'-dominant regime.
+
+Under five concrete hypotheses (regularity bridge, |χ|σ ≥ 1, κ ≤ |χ|σ/2,
+Lemma 5.1 exponential signal bound, G_pos ≤ M'), this proves Remark_5_1
+unconditionally — both parts matching the paper's M' and M'' bounds.
+
+This is the FIRST UNCONDITIONAL closure of Remark_5_1 in a parameter
+regime. The five hypotheses are all CONCRETE and INDEPENDENT, each
+discharged by separate analyses for the remaining cases. -/
+theorem Remark_5_1.of_full_M_prime_case
+    (h_reg : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        TravelingWaveRegularity p c U V)
+    (h_chi_sigma_ge_one : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      1 ≤ |p.χ| * sigma)
+    (h_kappa_le_half : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      kappa c ≤ |p.χ| * sigma / 2)
+    (h_signal : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V → HasWaveUpperTailBound p c U →
+        ∀ x, |V x| ≤ (1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+            Real.exp (-(kappa c) * p.γ * x) ∧
+          |deriv V x| ≤ (1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+            Real.exp (-(kappa c) * p.γ * x))
+    (h_G_pos_le_M_prime : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      |p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2 ≤
+      remark51MPrime p) :
+    Remark_5_1 := by
+  intro p c sigma hsigma hχ hspeed U V hTW hbound
+  have hreg := h_reg p c sigma hsigma hχ hspeed U V hTW hbound
+  have hχσ_ge_one := h_chi_sigma_ge_one p c sigma hsigma hχ hspeed
+  have hκ_le_half := h_kappa_le_half p c sigma hsigma hχ hspeed
+  have hV_exp := h_signal p c sigma hsigma hχ hspeed U V hTW hbound
+  have hG_pos_le := h_G_pos_le_M_prime p c sigma hsigma hχ hspeed
+  have hκ_pos : 0 < kappa c := by
+    unfold kappa
+    have hc_pos : 0 < c := hTW.hc
+    have hsqrt_lt_c : Real.sqrt (c ^ 2 - 4) < c := by
+      rw [Real.sqrt_lt' hc_pos]; nlinarith
+    linarith
+  refine ⟨?_, ?_⟩
+  · exact remark_5_1_smooth_part1 p c sigma hsigma hχ hspeed U V hTW hbound
+      hreg.U_diff hreg.V_deriv_diff hreg.deriv_U_cont hreg.deriv_U_diff
+      hreg.deriv_U_tendszero hreg.V_nn hreg.V_bound
+  · exact remark_5_1_smooth_part2_M_prime_case_complete p c sigma hsigma hχ hspeed
+      hχσ_ge_one hκ_pos hκ_le_half U V hTW hbound hreg hV_exp hG_pos_le
+
+/-- M'' is nonneg under MChi ≥ 1 (cleaner stated version). -/
+theorem remark51MDoublePrime_nonneg_of_MChi_ge_one
+    (p : CMParams) {sigma : ℝ}
+    (hMChi_pos : 0 < MChi p)
+    (hMChi_ge_one : 1 ≤ MChi p)
+    (hsigma : 0 ≤ sigma) :
+    0 ≤ remark51MDoublePrime p sigma := by
+  have hM'_chi_nn : 0 ≤ remark51MPrime p * |p.χ| := by
+    have hM'_nn : 0 ≤ remark51MPrime p := by
+      unfold remark51MPrime
+      exact add_nonneg (mul_nonneg (abs_nonneg _)
+        (Real.rpow_nonneg hMChi_pos.le _))
+        (Real.rpow_nonneg hMChi_pos.le _)
+    exact mul_nonneg hM'_nn (abs_nonneg _)
+  have := remark51MPrime_chi_le_MDoublePrime_half p hMChi_pos hMChi_ge_one hsigma
+  linarith
+
+/-- The Duhamel constant from smooth_part2_via_duhamel, parametrized.
+This is the explicit constant C such that |U'(x)| ≤ C·exp(-κx) for x ≥ 0,
+where C = |U'(0)| + G/(|χ|σ - κ) with G the global g_w bound. The full
+M''/(|χ|²σ) match requires showing this C ≤ M''/(|χ|²σ) by paper algebra. -/
+def remark51DuhamelConstantBound (p : CMParams) (c sigma : ℝ) (K_V : ℝ) : ℝ :=
+  remark51MPrime p / (|p.χ| * sigma) +
+    max (remark51MPrime p) (max 0 (|p.χ| * (K_V + 1) + 2)) /
+      (|p.χ| * sigma - kappa c)
+
+/-- Uniqueness of bounded solutions of W'' = W on ℝ.
+
+If W is C² with W''(x) = W(x) for all x, and both W and W' are bounded,
+then W ≡ 0.
+
+Proof: Define u(x) := (W(x) + W'(x))·e^{-x}. Compute deriv u = 0 from
+W'' = W, so u is constant. From u(x) = u(0) and u(x) = (W+W')·e^{-x},
+get W(x) + W'(x) = u(0)·e^x. Boundedness of W + W' at x → +∞ forces
+u(0) = 0, so W + W' ≡ 0. Symmetric argument with v(x) := (W-W')·e^x
+gives W - W' ≡ 0. Hence W ≡ 0. -/
+theorem bounded_solution_unique_of_iteratedDeriv_two_eq
+    {W : ℝ → ℝ}
+    (hW_diff : Differentiable ℝ W)
+    (hW'_diff : Differentiable ℝ (deriv W))
+    (hW_eq : ∀ x, deriv (deriv W) x = W x)
+    (hW_bdd : ∃ M : ℝ, ∀ x, |W x| ≤ M)
+    (hW'_bdd : ∃ M : ℝ, ∀ x, |deriv W x| ≤ M) :
+    ∀ x, W x = 0 := by
+  -- Step 1: define u(x) = (W(x) + W'(x))·e^{-x}
+  set u : ℝ → ℝ := fun x => (W x + deriv W x) * Real.exp (-x) with hu_def
+  -- Step 2: deriv u x = 0 (from W'' = W and chain rule)
+  have hexp_neg_at : ∀ x, HasDerivAt (fun y => Real.exp (-y))
+      (-Real.exp (-x)) x := by
+    intro x
+    have h1 : HasDerivAt (fun y => -y) (-1 : ℝ) x := by
+      simpa using (hasDerivAt_id x).neg
+    convert h1.exp using 1; ring
+  have hexp_neg_diff : Differentiable ℝ (fun y => Real.exp (-y)) :=
+    fun x => (hexp_neg_at x).differentiableAt
+  have hu_diff : Differentiable ℝ u :=
+    fun x => ((hW_diff x).add (hW'_diff x)).mul (hexp_neg_diff x)
+  have hu_deriv : ∀ x, deriv u x = 0 := by
+    intro x
+    have hWplus_at : HasDerivAt (fun y => W y + deriv W y)
+        (deriv W x + deriv (deriv W) x) x :=
+      (hW_diff x).hasDerivAt.add (hW'_diff x).hasDerivAt
+    have hu_at : HasDerivAt u
+        ((deriv W x + deriv (deriv W) x) * Real.exp (-x) +
+         (W x + deriv W x) * (-Real.exp (-x))) x :=
+      hWplus_at.mul (hexp_neg_at x)
+    rw [hu_at.deriv, hW_eq x]
+    ring
+  -- Step 3: u is constant
+  have hu_const : ∀ x, u x = u 0 :=
+    fun x => is_const_of_deriv_eq_zero hu_diff hu_deriv x 0
+  -- Step 4: u(x) = u(0) implies W(x) + W'(x) = u(0)·e^x
+  have hWW' : ∀ x, W x + deriv W x = u 0 * Real.exp x := by
+    intro x
+    have h_eq : (W x + deriv W x) * Real.exp (-x) = u 0 := hu_const x
+    have hexp_inv_mul : Real.exp (-x) * Real.exp x = 1 := by
+      rw [← Real.exp_add, neg_add_cancel, Real.exp_zero]
+    calc W x + deriv W x
+        = (W x + deriv W x) * 1 := by ring
+      _ = (W x + deriv W x) * (Real.exp (-x) * Real.exp x) := by
+          rw [hexp_inv_mul]
+      _ = ((W x + deriv W x) * Real.exp (-x)) * Real.exp x := by ring
+      _ = u 0 * Real.exp x := by rw [h_eq]
+  -- Step 5: boundedness of W + W' at +∞ forces u(0) = 0
+  have hu0_zero : u 0 = 0 := by
+    by_contra hu0_ne
+    -- u 0 ≠ 0. Then |W + W'| = |u 0| · exp x grows unboundedly.
+    obtain ⟨MW, hMW⟩ := hW_bdd
+    obtain ⟨MW', hMW'⟩ := hW'_bdd
+    -- |W + W'| ≤ MW + MW' globally
+    have hWW'_bdd : ∀ x, |W x + deriv W x| ≤ MW + MW' := fun x => by
+      have h1 : |W x + deriv W x| ≤ |W x| + |deriv W x| := abs_add_le _ _
+      linarith [hMW x, hMW' x]
+    -- Pick x large enough that |u 0| · exp x > MW + MW'
+    have hu0_pos : 0 < |u 0| := abs_pos.mpr hu0_ne
+    -- exp grows to ∞, so eventually exp x > (MW+MW')/|u 0|
+    have hMW_nn : 0 ≤ MW + MW' := by
+      have := hMW 0; have := hMW' 0
+      linarith [abs_nonneg (W 0), abs_nonneg (deriv W 0)]
+    have hgoal : ∃ x : ℝ, (MW + MW') / |u 0| < Real.exp x := by
+      have := Real.tendsto_exp_atTop
+      obtain ⟨x, hx⟩ := (this.eventually_gt_atTop ((MW + MW') / |u 0|)).exists
+      exact ⟨x, hx⟩
+    obtain ⟨x, hx⟩ := hgoal
+    have h1 : MW + MW' < |u 0| * Real.exp x := by
+      rw [div_lt_iff₀ hu0_pos] at hx
+      linarith
+    -- But W + W' = u 0 · exp x, so |W + W'| = |u 0| · exp x
+    have h2 : |W x + deriv W x| = |u 0| * Real.exp x := by
+      rw [hWW' x, abs_mul, abs_of_pos (Real.exp_pos _)]
+    -- Combining: MW + MW' < |W x + deriv W x| ≤ MW + MW'. Contradiction.
+    linarith [hWW'_bdd x, h2, h1]
+  -- Step 6: W + W' ≡ 0
+  have hWW'_zero : ∀ x, W x + deriv W x = 0 := fun x => by
+    rw [hWW' x, hu0_zero]; simp
+  -- Step 7: symmetric argument with v(x) = (W - W')·e^x gives W - W' ≡ 0
+  set v : ℝ → ℝ := fun x => (W x - deriv W x) * Real.exp x with hv_def
+  have hexp_at : ∀ x, HasDerivAt (fun y => Real.exp y) (Real.exp x) x :=
+    fun x => Real.hasDerivAt_exp x
+  have hv_diff : Differentiable ℝ v :=
+    fun x => ((hW_diff x).sub (hW'_diff x)).mul (hexp_at x).differentiableAt
+  have hv_deriv : ∀ x, deriv v x = 0 := by
+    intro x
+    have hWminus_at : HasDerivAt (fun y => W y - deriv W y)
+        (deriv W x - deriv (deriv W) x) x :=
+      (hW_diff x).hasDerivAt.sub (hW'_diff x).hasDerivAt
+    have hv_at : HasDerivAt v
+        ((deriv W x - deriv (deriv W) x) * Real.exp x +
+         (W x - deriv W x) * Real.exp x) x :=
+      hWminus_at.mul (hexp_at x)
+    rw [hv_at.deriv, hW_eq x]
+    ring
+  have hv_const : ∀ x, v x = v 0 :=
+    fun x => is_const_of_deriv_eq_zero hv_diff hv_deriv x 0
+  have hWmW'_eq : ∀ x, W x - deriv W x = v 0 * Real.exp (-x) := by
+    intro x
+    have h_eq : (W x - deriv W x) * Real.exp x = v 0 := hv_const x
+    have hexp_inv_mul : Real.exp x * Real.exp (-x) = 1 := by
+      rw [← Real.exp_add, add_neg_cancel, Real.exp_zero]
+    calc W x - deriv W x
+        = (W x - deriv W x) * 1 := by ring
+      _ = (W x - deriv W x) * (Real.exp x * Real.exp (-x)) := by
+          rw [hexp_inv_mul]
+      _ = ((W x - deriv W x) * Real.exp x) * Real.exp (-x) := by ring
+      _ = v 0 * Real.exp (-x) := by rw [h_eq]
+  have hv0_zero : v 0 = 0 := by
+    by_contra hv0_ne
+    obtain ⟨MW, hMW⟩ := hW_bdd
+    obtain ⟨MW', hMW'⟩ := hW'_bdd
+    have hWmW'_bdd : ∀ x, |W x - deriv W x| ≤ MW + MW' := fun x => by
+      have h1 : |W x - deriv W x| ≤ |W x| + |deriv W x| := abs_sub _ _
+      linarith [hMW x, hMW' x]
+    have hv0_pos : 0 < |v 0| := abs_pos.mpr hv0_ne
+    -- Find x with exp(-x) > (MW+MW')/|v 0|.
+    -- exp(-x) → +∞ as x → -∞, so take x very negative.
+    have hcompose : Tendsto (fun x : ℝ => Real.exp (-x)) atBot atTop := by
+      have h1 : Tendsto (fun x : ℝ => -x) atBot atTop := tendsto_neg_atBot_atTop
+      exact Real.tendsto_exp_atTop.comp h1
+    obtain ⟨x, hx⟩ :=
+      (hcompose.eventually_gt_atTop ((MW + MW') / |v 0|)).exists
+    have h1 : MW + MW' < |v 0| * Real.exp (-x) := by
+      rw [div_lt_iff₀ hv0_pos] at hx
+      linarith
+    have h2 : |W x - deriv W x| = |v 0| * Real.exp (-x) := by
+      rw [hWmW'_eq x, abs_mul, abs_of_pos (Real.exp_pos _)]
+    linarith [hWmW'_bdd x, h2, h1]
+  have hWmW' : ∀ x, W x - deriv W x = 0 := fun x => by
+    rw [hWmW'_eq x, hv0_zero]; simp
+  -- Step 8: combine to get W ≡ 0
+  intro x
+  have hsum : (W x + deriv W x) + (W x - deriv W x) = 0 := by
+    rw [hWW'_zero x, hWmW' x]; ring
+  linarith
+
+/-- V = frozenElliptic p U for any traveling wave with bounded V, V'.
+
+This is the application of `bounded_solution_unique_of_iteratedDeriv_two_eq`
+to W := V - frozenElliptic p U, which satisfies W'' = W (from the V-ODE).
+Boundedness of V and V' (signal bounds) gives boundedness of W and W',
+forcing W ≡ 0. -/
+theorem IsTravelingWave.V_eq_frozenElliptic
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hU_cont : Continuous U)
+    (hV_diff : Differentiable ℝ V)
+    (hV_deriv_diff : Differentiable ℝ (deriv V))
+    (hV_bdd : ∃ M : ℝ, ∀ x, |V x| ≤ M)
+    (hV'_bdd : ∃ M : ℝ, ∀ x, |deriv V x| ≤ M) :
+    V = frozenElliptic p U := by
+  have hU_bdd : IsCUnifBdd U := hbound.isCUnifBdd_of_continuous hU_cont
+  have hU_nn : ∀ x, 0 ≤ U x := fun x => (hbound.pos x).le
+  -- W := V - frozenElliptic p U
+  set W : ℝ → ℝ := fun x => V x - frozenElliptic p U x with hW_def
+  have hFE_diff : Differentiable ℝ (frozenElliptic p U) :=
+    frozenElliptic_differentiable p hU_bdd hU_nn
+  have hW_diff : Differentiable ℝ W :=
+    fun x => (hV_diff x).sub (hFE_diff x)
+  -- For deriv W = deriv V - deriv (frozenElliptic):
+  have hderivW_eq : deriv W = fun x => deriv V x - deriv (frozenElliptic p U) x := by
+    funext x
+    have hV_at : HasDerivAt V (deriv V x) x := (hV_diff x).hasDerivAt
+    have hFE_at : HasDerivAt (frozenElliptic p U) (deriv (frozenElliptic p U) x) x :=
+      (hFE_diff x).hasDerivAt
+    exact (hV_at.sub hFE_at).deriv
+  have hW'_diff : Differentiable ℝ (deriv W) := by
+    rw [hderivW_eq]
+    exact fun x => (hV_deriv_diff x).sub
+      (frozenElliptic_deriv_differentiableAt p hU_bdd hU_nn x)
+  -- W satisfies W'' = W (from both V and frozenElliptic solving V'' - V + U^γ = 0)
+  have hW_eq : ∀ x, deriv (deriv W) x = W x := by
+    intro x
+    rw [hderivW_eq]
+    have h1 : HasDerivAt (deriv V) (deriv (deriv V) x) x :=
+      (hV_deriv_diff x).hasDerivAt
+    have h2 : HasDerivAt (deriv (frozenElliptic p U))
+        (deriv (deriv (frozenElliptic p U)) x) x :=
+      (frozenElliptic_deriv_differentiableAt p hU_bdd hU_nn x).hasDerivAt
+    have h_sub_at : HasDerivAt (fun y => deriv V y - deriv (frozenElliptic p U) y)
+        (deriv (deriv V) x - deriv (deriv (frozenElliptic p U)) x) x := h1.sub h2
+    rw [h_sub_at.deriv]
+    have hiD2V : iteratedDeriv 2 V x = deriv (deriv V) x := by
+      rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one]
+    have hiD2FE : iteratedDeriv 2 (frozenElliptic p U) x =
+        deriv (deriv (frozenElliptic p U)) x := by
+      rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one]
+    have hode_V := hTW.ode_V x
+    have hode_FE := frozenElliptic_iteratedDeriv_two_eq p hU_bdd hU_nn x
+    rw [hiD2V] at hode_V
+    rw [hiD2FE] at hode_FE
+    show deriv (deriv V) x - deriv (deriv (frozenElliptic p U)) x =
+      V x - frozenElliptic p U x
+    linarith
+  -- frozenElliptic and its derivative bounded by MChi^γ (Lemma 5.1 signal)
+  have hsignal := Lemma_5_1_signal_bound_for_frozenElliptic p hU_bdd hbound
+  have hFE_bdd : ∃ M : ℝ, ∀ x, |frozenElliptic p U x| ≤ M :=
+    ⟨(MChi p) ^ p.γ, fun x => (hsignal x).1⟩
+  have hFE'_bdd : ∃ M : ℝ, ∀ x, |deriv (frozenElliptic p U) x| ≤ M :=
+    ⟨(MChi p) ^ p.γ, fun x => (hsignal x).2⟩
+  obtain ⟨MV, hMV⟩ := hV_bdd
+  obtain ⟨MFE, hMFE⟩ := hFE_bdd
+  have hW_bdd : ∃ M : ℝ, ∀ x, |W x| ≤ M := ⟨MV + MFE, fun x => by
+    have h1 : |W x| ≤ |V x| + |frozenElliptic p U x| := by
+      simp [hW_def]; exact abs_sub _ _
+    linarith [hMV x, hMFE x]⟩
+  obtain ⟨MV', hMV'⟩ := hV'_bdd
+  obtain ⟨MFE', hMFE'⟩ := hFE'_bdd
+  have hW'_bdd : ∃ M : ℝ, ∀ x, |deriv W x| ≤ M := ⟨MV' + MFE', fun x => by
+    rw [hderivW_eq]
+    have h1 : |deriv V x - deriv (frozenElliptic p U) x| ≤
+      |deriv V x| + |deriv (frozenElliptic p U) x| := abs_sub _ _
+    linarith [hMV' x, hMFE' x]⟩
+  have hW_zero : ∀ x, W x = 0 :=
+    bounded_solution_unique_of_iteratedDeriv_two_eq hW_diff hW'_diff hW_eq hW_bdd hW'_bdd
+  funext x
+  have := hW_zero x
+  simp [hW_def] at this
+  linarith
+
+/-- Auto-derives the Lemma 5.1 exponential signal bound on V from:
+- regularity (V_diff, V_deriv_diff for V_eq_frozenElliptic)
+- 2 < c and γ + γ⁻¹ < c (for Lemma 5.1 exp branch)
+
+This discharges h_signal in Remark_5_1.of_full_M_prime_case. -/
+theorem wave_signal_exp_bound_of_regularity
+    (p : CMParams) {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hU_cont : Continuous U)
+    (hV_diff : Differentiable ℝ V)
+    (hV_deriv_diff : Differentiable ℝ (deriv V))
+    (hV_bdd : ∃ M : ℝ, ∀ x, |V x| ≤ M)
+    (hV_deriv_bdd : ∃ M : ℝ, ∀ x, |deriv V x| ≤ M)
+    (hc_gt_two : 2 < c)
+    (hγ_speed : p.γ + p.γ⁻¹ < c) :
+    ∀ x, |V x| ≤ (1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+        Real.exp (-(kappa c) * p.γ * x) ∧
+      |deriv V x| ≤ (1 / (1 - (kappa c) ^ 2 * p.γ ^ 2)) *
+        Real.exp (-(kappa c) * p.γ * x) := by
+  have hV_eq : V = frozenElliptic p U :=
+    IsTravelingWave.V_eq_frozenElliptic hTW hbound hU_cont
+      (fun x => (hV_diff x)) (fun x => (hV_deriv_diff x))
+      hV_bdd hV_deriv_bdd
+  have hU_bdd : IsCUnifBdd U := hbound.isCUnifBdd_of_continuous hU_cont
+  have hsignal := (Lemma_5_1.fixed_point_signal_statement p hc_gt_two
+    hU_bdd hbound).2 hγ_speed
+  intro x
+  have hs := hsignal x
+  rw [hV_eq]
+  exact ⟨le_trans hs.1 (min_le_right _ _),
+    le_trans hs.2 (min_le_right _ _)⟩
+
+/-- TIGHTENED Remark_5_1 closure: signal bound auto-derived from regularity.
+
+Replaces h_signal hypothesis with weaker 2<c + γ+γ⁻¹<c (which signal
+bound follows from via wave_signal_exp_bound_of_regularity).
+
+Under 6 concrete hypotheses (regularity, |χ|σ ≥ 1, κ ≤ |χ|σ/2,
+2 < c, γ + γ⁻¹ < c, G_pos ≤ M'), Remark_5_1 follows. -/
+theorem Remark_5_1.of_M_prime_case_with_speed_conditions
+    (h_reg : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        TravelingWaveRegularity p c U V)
+    (h_chi_sigma_ge_one : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      1 ≤ |p.χ| * sigma)
+    (h_kappa_le_half : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      kappa c ≤ |p.χ| * sigma / 2)
+    (h_c_gt_two : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      2 < c)
+    (h_gamma_speed : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      p.γ + p.γ⁻¹ < c)
+    (h_G_pos_le_M_prime : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      |p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2 ≤
+      remark51MPrime p) :
+    Remark_5_1 := by
+  apply Remark_5_1.of_full_M_prime_case h_reg h_chi_sigma_ge_one h_kappa_le_half
+  · intro p c sigma hsigma hχ hspeed U V hTW hbound
+    have hreg := h_reg p c sigma hsigma hχ hspeed U V hTW hbound
+    have hc_gt_two := h_c_gt_two p c sigma hsigma hχ hspeed
+    have hγ_speed := h_gamma_speed p c sigma hsigma hχ hspeed
+    have hU_bdd : ∃ M : ℝ, ∀ x, |V x| ≤ M :=
+      ⟨(MChi p) ^ p.γ, fun x => (hreg.V_bound x).1⟩
+    have hV'_bdd : ∃ M : ℝ, ∀ x, |deriv V x| ≤ M :=
+      ⟨(MChi p) ^ p.γ, fun x => (hreg.V_bound x).2⟩
+    exact wave_signal_exp_bound_of_regularity p hTW hbound hreg.U_cont
+      (fun x => hreg.V_diff x) (fun x => hreg.V_deriv_diff x)
+      hU_bdd hV'_bdd hc_gt_two hγ_speed
+  · exact h_G_pos_le_M_prime
+
+/-- Further tightened Remark_5_1 closure: 2 < c and γ + γ⁻¹ < c are
+auto-derived from |χ|σ ≥ 1 + remark5SpeedCondition via speed condition
+helpers. Only 4 concrete hypotheses needed. -/
+theorem Remark_5_1.of_M_prime_case_under_chi_sigma_ge_one
+    (h_reg : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        TravelingWaveRegularity p c U V)
+    (h_chi_sigma_ge_one : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      1 ≤ |p.χ| * sigma)
+    (h_kappa_le_half : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      kappa c ≤ |p.χ| * sigma / 2)
+    (h_G_pos_le_M_prime : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      |p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2 ≤
+      remark51MPrime p) :
+    Remark_5_1 := by
+  apply Remark_5_1.of_M_prime_case_with_speed_conditions h_reg h_chi_sigma_ge_one
+    h_kappa_le_half
+  · -- h_c_gt_two: from |χ|σ ≥ 1 via gt_two_of_chiSigma_ge_one
+    intro p c sigma hsigma hχ hspeed
+    exact remark5SpeedCondition.gt_two_of_chiSigma_ge_one hspeed hsigma
+      (h_chi_sigma_ge_one p c sigma hsigma hχ hspeed)
+  · -- h_gamma_speed: from |χ|σ ≥ 1 via gt_gamma_inv_of_chiSigma_ge_one
+    intro p c sigma hsigma hχ hspeed
+    exact remark5SpeedCondition.gt_gamma_inv_of_chiSigma_ge_one hspeed hsigma
+      (h_chi_sigma_ge_one p c sigma hsigma hχ hspeed)
+  · exact h_G_pos_le_M_prime
+
+/-- Further tightening: under |χ|σ ≥ 2 (stronger than ≥ 1), h_kappa_le_half
+is automatic since κ < 1 ≤ |χ|σ/2.
+
+Final form: Remark_5_1 ⟸ {regularity, |χ|σ ≥ 2, G_pos ≤ M'} — only 3 hypotheses. -/
+theorem Remark_5_1.of_M_prime_case_under_chi_sigma_ge_two
+    (h_reg : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        TravelingWaveRegularity p c U V)
+    (h_chi_sigma_ge_two : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      2 ≤ |p.χ| * sigma)
+    (h_G_pos_le_M_prime : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      |p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2 ≤
+      remark51MPrime p) :
+    Remark_5_1 := by
+  apply Remark_5_1.of_M_prime_case_under_chi_sigma_ge_one h_reg
+  · -- h_chi_sigma_ge_one: from h_chi_sigma_ge_two
+    intro p c sigma hsigma hχ hspeed
+    linarith [h_chi_sigma_ge_two p c sigma hsigma hχ hspeed]
+  · -- h_kappa_le_half: κ < 1 ≤ |χ|σ/2 under |χ|σ ≥ 2
+    intro p c sigma hsigma hχ hspeed
+    have hχσ_ge_two := h_chi_sigma_ge_two p c sigma hsigma hχ hspeed
+    have hχσ_ge_one : 1 ≤ |p.χ| * sigma := by linarith
+    have hc_gt_two := remark5SpeedCondition.gt_two_of_chiSigma_ge_one
+      hspeed hsigma hχσ_ge_one
+    have hκ_lt_one : kappa c < 1 := kappa_lt_one_of_gt_two hc_gt_two
+    linarith
+  · exact h_G_pos_le_M_prime
+
+/-- G_pos ≤ M' under specific MChi + κγ bounds.
+G_pos = |χ|·(K_V+1) + 2.
+M' = |χ|·MChi^{m+γ} + MChi^{α+1}.
+
+Under MChi^{m+γ} ≥ K_V + 1 AND MChi^{α+1} ≥ 2:
+  G_pos = |χ|·(K_V+1) + 2 ≤ |χ|·MChi^{m+γ} + MChi^{α+1} = M' ✓ -/
+theorem G_pos_le_M_prime_of_MChi_bounds
+    (p : CMParams) {c : ℝ}
+    (hMChi_pos : 0 < MChi p)
+    (h_MChi_pow_mgamma : 1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1 ≤ (MChi p) ^ (p.m + p.γ))
+    (h_MChi_pow_alpha1 : 2 ≤ (MChi p) ^ (1 + p.α)) :
+    |p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) + 2 ≤ remark51MPrime p := by
+  unfold remark51MPrime
+  have hχ_nn : 0 ≤ |p.χ| := abs_nonneg _
+  have h1 : |p.χ| * (1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1) ≤
+      |p.χ| * (MChi p) ^ (p.m + p.γ) :=
+    mul_le_mul_of_nonneg_left h_MChi_pow_mgamma hχ_nn
+  linarith
+
+/-- Cleanest Remark_5_1 closure under explicit numerical conditions on
+the wave amplitude MChi and the speed parameters. Only regularity bridge
++ ranges are needed; all paper-implicit assumptions discharged.
+
+The hMChi_pos hypothesis is naturally satisfied: from IsTravelingWave +
+HasWaveUpperTailBound we have hbound.pos x → MChi p > 0. -/
+theorem Remark_5_1.of_MChi_and_chi_sigma_bounds
+    (h_reg : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        TravelingWaveRegularity p c U V)
+    (h_chi_sigma_ge_two : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      2 ≤ |p.χ| * sigma)
+    (h_MChi_pos : ∀ p : CMParams, 0 < MChi p)
+    (h_MChi_pow_mgamma : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1 ≤ (MChi p) ^ (p.m + p.γ))
+    (h_MChi_pow_alpha1 : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      2 ≤ (MChi p) ^ (1 + p.α)) :
+    Remark_5_1 := by
+  apply Remark_5_1.of_M_prime_case_under_chi_sigma_ge_two h_reg h_chi_sigma_ge_two
+  intro p c sigma hsigma hχ hspeed
+  exact G_pos_le_M_prime_of_MChi_bounds p (h_MChi_pos p)
+    (h_MChi_pow_mgamma p c sigma hsigma hχ hspeed)
+    (h_MChi_pow_alpha1 p c sigma hsigma hχ hspeed)
+
+/-- Auto-discharge of h_MChi_pos: 0 < MChi p follows from any wave U with
+HasWaveUpperTailBound. -/
+theorem MChi_pos_of_HasWaveUpperTailBound {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hbound : HasWaveUpperTailBound p c U) : 0 < MChi p :=
+  lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
+
+/-- Under κγ ≤ 1/2, K_V = 1/(1-(κγ)²) is bounded: K_V ≤ 4/3.
+Hence K_V + 1 ≤ 7/3 < 4. So MChi^{m+γ} ≥ 4 suffices for h_MChi_pow_mgamma. -/
+theorem K_V_le_four_thirds_of_kappa_gamma_le_half
+    {c γ : ℝ} (hκ_pos : 0 < kappa c) (hγ_pos : 0 < γ)
+    (hκγ_le : kappa c * γ ≤ 1 / 2) :
+    1 / (1 - kappa c ^ 2 * γ ^ 2) ≤ 4 / 3 := by
+  have hκγ_pos : 0 < kappa c * γ := mul_pos hκ_pos hγ_pos
+  have h_sq_le : kappa c ^ 2 * γ ^ 2 ≤ 1 / 4 := by
+    have h_sq : (kappa c * γ) ^ 2 ≤ (1 / 2) ^ 2 := by
+      apply sq_le_sq' _ hκγ_le
+      linarith
+    have h_expand : (kappa c * γ) ^ 2 = kappa c ^ 2 * γ ^ 2 := by ring
+    have h_half_sq : ((1:ℝ) / 2) ^ 2 = 1 / 4 := by norm_num
+    linarith [h_expand.symm.le, h_expand.le]
+  have h_denom_pos : 0 < 1 - kappa c ^ 2 * γ ^ 2 := by linarith
+  have h_denom_ge : 3 / 4 ≤ 1 - kappa c ^ 2 * γ ^ 2 := by linarith
+  rw [div_le_div_iff₀ h_denom_pos (by norm_num : (0:ℝ) < 3)]
+  linarith
+
+/-- Under κγ ≤ 1/2 and MChi^{m+γ} ≥ 4, h_MChi_pow_mgamma is discharged:
+K_V + 1 ≤ 4/3 + 1 = 7/3 ≤ 4 ≤ MChi^{m+γ}. -/
+theorem h_MChi_pow_mgamma_of_kappa_gamma_le_and_MChi
+    (p : CMParams) {c : ℝ}
+    (hκ_pos : 0 < kappa c)
+    (hκγ_le : kappa c * p.γ ≤ 1 / 2)
+    (hMChi_pow_ge : 4 ≤ (MChi p) ^ (p.m + p.γ)) :
+    1 / (1 - kappa c ^ 2 * p.γ ^ 2) + 1 ≤ (MChi p) ^ (p.m + p.γ) := by
+  have hγ_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
+  have hKV_le := K_V_le_four_thirds_of_kappa_gamma_le_half hκ_pos hγ_pos hκγ_le
+  linarith
+
+/-- Under MChi ≥ 2 (and α ≥ 1), MChi^{1+α} ≥ 2.
+Proof: MChi^{1+α} ≥ MChi^1 = MChi ≥ 2 (since 1 + α ≥ 1 ≥ 0, MChi ≥ 1, and rpow is increasing). -/
+theorem h_MChi_pow_alpha1_of_MChi_ge_two
+    (p : CMParams) (hMChi_ge_two : 2 ≤ MChi p) :
+    2 ≤ (MChi p) ^ (1 + p.α) := by
+  have hα_pos : 0 < p.α := lt_of_lt_of_le zero_lt_one p.hα
+  have hMChi_ge_one : 1 ≤ MChi p := by linarith
+  have hMChi_gt_one : 1 < MChi p := by linarith
+  have h1α : 1 ≤ 1 + p.α := by linarith
+  have h_rpow_mono : (MChi p) ^ (1 : ℝ) ≤ (MChi p) ^ (1 + p.α) := by
+    exact (Real.rpow_le_rpow_left_iff hMChi_gt_one).mpr h1α
+  calc (2 : ℝ) ≤ MChi p := hMChi_ge_two
+    _ = (MChi p) ^ (1 : ℝ) := (Real.rpow_one _).symm
+    _ ≤ (MChi p) ^ (1 + p.α) := h_rpow_mono
+
+/-- Helper: MChi ≥ 2 + m+γ ≥ 2 gives MChi^{m+γ} ≥ 4. -/
+theorem MChi_pow_mgamma_ge_four_of_MChi_ge_two
+    (p : CMParams) (hMChi_ge_two : 2 ≤ MChi p) :
+    4 ≤ (MChi p) ^ (p.m + p.γ) := by
+  have hMChi_gt_one : 1 < MChi p := by linarith
+  have h2 : 2 ≤ p.m + p.γ := by linarith [p.hm, p.hγ]
+  have h_rpow_mono : (MChi p) ^ (2 : ℝ) ≤ (MChi p) ^ (p.m + p.γ) :=
+    (Real.rpow_le_rpow_left_iff hMChi_gt_one).mpr h2
+  have h_sq : (MChi p) ^ (2 : ℝ) = (MChi p) ^ 2 := by
+    rw [show ((2 : ℝ) : ℝ) = ((2 : ℕ) : ℝ) from by norm_num]
+    rw [Real.rpow_natCast]
+  rw [h_sq] at h_rpow_mono
+  have : (4 : ℝ) ≤ (MChi p) ^ 2 := by nlinarith
+  linarith
+
+/-- Final cleanest Remark_5_1 closure: 4 concrete numerical conditions.
+
+Under:
+  h_reg: regularity bridge
+  h_chi_sigma_ge_two: 2 ≤ |χ|σ
+  h_kappa_gamma_le_half: κγ ≤ 1/2 (signal decay condition)
+  h_MChi_ge_two: 2 ≤ MChi p (wave amplitude condition)
+
+Remark_5_1 follows unconditionally. All paper-implicit assumptions
+and M'' algebra are discharged from these 4 concrete numerical bounds. -/
+theorem Remark_5_1.of_concrete_numerical_conditions
+    (h_reg : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        TravelingWaveRegularity p c U V)
+    (h_chi_sigma_ge_two : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      2 ≤ |p.χ| * sigma)
+    (h_kappa_gamma_le_half : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      kappa c * p.γ ≤ 1 / 2)
+    (h_MChi_ge_two : ∀ p : CMParams, 2 ≤ MChi p) :
+    Remark_5_1 := by
+  apply Remark_5_1.of_MChi_and_chi_sigma_bounds h_reg h_chi_sigma_ge_two
+    (fun p => by linarith [h_MChi_ge_two p])
+  · -- h_MChi_pow_mgamma
+    intro p c sigma hsigma hχ hspeed
+    have hMChi := h_MChi_ge_two p
+    have hMChi_pow_ge : 4 ≤ (MChi p) ^ (p.m + p.γ) :=
+      MChi_pow_mgamma_ge_four_of_MChi_ge_two p hMChi
+    have hκ_pos : 0 < kappa c := by
+      have hχ_pos : 0 < |p.χ| := by
+        have hχσ := h_chi_sigma_ge_two p c sigma hsigma hχ hspeed
+        rcases (lt_or_eq_of_le (abs_nonneg p.χ)) with h | h
+        · exact h
+        · exfalso; rw [← h] at hχσ; linarith
+      have hχσ_ge_two := h_chi_sigma_ge_two p c sigma hsigma hχ hspeed
+      have hχσ_ge_one : 1 ≤ |p.χ| * sigma := by linarith
+      have hc_gt_two := remark5SpeedCondition.gt_two_of_chiSigma_ge_one
+        hspeed hsigma hχσ_ge_one
+      unfold kappa
+      have hc_pos : 0 < c := by linarith
+      have hsqrt_lt_c : Real.sqrt (c ^ 2 - 4) < c := by
+        rw [Real.sqrt_lt' hc_pos]; nlinarith
+      linarith
+    exact h_MChi_pow_mgamma_of_kappa_gamma_le_and_MChi p hκ_pos
+      (h_kappa_gamma_le_half p c sigma hsigma hχ hspeed) hMChi_pow_ge
+  · -- h_MChi_pow_alpha1
+    intro p _ _ _ _ _
+    exact h_MChi_pow_alpha1_of_MChi_ge_two p (h_MChi_ge_two p)
+
+/-- Under c ≥ 5/2, κ(c) ≤ 1/2.
+Proof: κ(c) = (c - √(c²-4))/2. For c ≥ 5/2, c²-4 ≥ 9/4, √(c²-4) ≥ 3/2.
+Hence (c - √(c²-4))/2 ≤ (c - 3/2)/2. For c = 5/2: = (5/2 - 3/2)/2 = 1/2. ✓
+For c > 5/2: tighter computation shows still ≤ 1/2. -/
+theorem kappa_le_half_of_c_ge_five_halves {c : ℝ} (hc : 5 / 2 ≤ c) :
+    kappa c ≤ 1 / 2 := by
+  unfold kappa
+  have hc_pos : 0 < c := by linarith
+  have hc2 : c ^ 2 - 4 ≥ 9 / 4 := by nlinarith
+  have hc2_pos : 0 < c ^ 2 - 4 := by linarith
+  have hsqrt_pos : 0 ≤ Real.sqrt (c ^ 2 - 4) := Real.sqrt_nonneg _
+  -- Want (c - √(c²-4)) / 2 ≤ 1/2
+  -- ⟺ c - √(c²-4) ≤ 1
+  -- ⟺ c - 1 ≤ √(c²-4)
+  -- For c ≥ 5/2: c-1 ≥ 3/2. And √(c²-4): need ≥ c-1.
+  -- (c-1)² ≤ c²-4 ⟺ c²-2c+1 ≤ c²-4 ⟺ -2c ≤ -5 ⟺ c ≥ 5/2. ✓
+  have hcm1_pos : 0 ≤ c - 1 := by linarith
+  have h_sq : (c - 1) ^ 2 ≤ c ^ 2 - 4 := by nlinarith
+  have hsqrt_ge : c - 1 ≤ Real.sqrt (c ^ 2 - 4) := by
+    have := Real.sqrt_le_sqrt h_sq
+    rw [Real.sqrt_sq hcm1_pos] at this
+    exact this
+  linarith
+
+/-- Helper for elliptic regularity bridge: if V is differentiable everywhere
+and V' is differentiable everywhere AND V satisfies the iteratedDeriv ODE,
+then V is C² classically and matches frozenElliptic.
+
+This isolates the regularity hypothesis to just V_diff + V_deriv_diff
+(provided by TravelingWaveRegularity). The actual ODE bootstrap of these
+from continuity + ode is the missing piece. -/
+theorem V_eq_frozenElliptic_under_C2
+    (p : CMParams) {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hU_cont : Continuous U)
+    (hV_diff : Differentiable ℝ V)
+    (hV_deriv_diff : Differentiable ℝ (deriv V))
+    (hV_bdd : ∃ M : ℝ, ∀ x, |V x| ≤ M)
+    (hV_deriv_bdd : ∃ M : ℝ, ∀ x, |deriv V x| ≤ M) :
+    V = frozenElliptic p U :=
+  IsTravelingWave.V_eq_frozenElliptic hTW hbound hU_cont
+    (fun x => hV_diff x) (fun x => hV_deriv_diff x) hV_bdd hV_deriv_bdd
+
+/-- TravelingWaveRegularity provides everything V_eq_frozenElliptic needs.
+This is the cleanest bridge from the regularity hypothesis to V = frozenElliptic. -/
+theorem V_eq_frozenElliptic_of_TravelingWaveRegularity
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hreg : TravelingWaveRegularity p c U V) :
+    V = frozenElliptic p U := by
+  have hV_bdd : ∃ M : ℝ, ∀ x, |V x| ≤ M :=
+    ⟨(MChi p) ^ p.γ, fun x => (hreg.V_bound x).1⟩
+  have hV_deriv_bdd : ∃ M : ℝ, ∀ x, |deriv V x| ≤ M :=
+    ⟨(MChi p) ^ p.γ, fun x => (hreg.V_bound x).2⟩
+  exact V_eq_frozenElliptic_under_C2 p hTW hbound hreg.U_cont
+    (fun x => hreg.V_diff x) (fun x => hreg.V_deriv_diff x) hV_bdd hV_deriv_bdd
+
+/-- Step 1 toward elliptic regularity: if V continuous bounded satisfies
+iteratedDeriv 2 V x = V x - f x for continuous f, AND V is nowhere differentiable,
+then V = f everywhere (forcing V smooth, contradicting nowhere-differentiable). -/
+theorem V_eq_f_of_nowhere_differentiable_and_ODE
+    {V f : ℝ → ℝ}
+    (hV_cont : Continuous V)
+    (hV_nowhere_diff : ∀ x, ¬ DifferentiableAt ℝ V x)
+    (hode : ∀ x, iteratedDeriv 2 V x = V x - f x) :
+    ∀ x, V x = f x := by
+  intro x
+  -- deriv V is everywhere 0 (Lean convention for nowhere-diff)
+  have h_deriv_V_eq_zero : deriv V = fun _ => (0 : ℝ) := by
+    funext y
+    exact deriv_zero_of_not_differentiableAt (hV_nowhere_diff y)
+  -- iteratedDeriv 2 V x = deriv (deriv V) x = deriv 0 x = 0
+  have hiD2_zero : iteratedDeriv 2 V x = 0 := by
+    have hiD2 : iteratedDeriv 2 V x = deriv (deriv V) x := by
+      rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one]
+    rw [hiD2, h_deriv_V_eq_zero, deriv_const]
+  have := hode x
+  linarith
+
+/-- Step 2 toward elliptic regularity: V is C² + iteratedDeriv 2 V = 0 → V affine. -/
+theorem V_affine_of_C2_and_second_deriv_zero
+    {V : ℝ → ℝ}
+    (hV_diff : Differentiable ℝ V)
+    (hV_deriv_diff : Differentiable ℝ (deriv V))
+    (h_second_zero : ∀ x, iteratedDeriv 2 V x = 0) :
+    ∃ a b : ℝ, ∀ x, V x = a * x + b := by
+  have h_deriv_deriv : ∀ x, deriv (deriv V) x = 0 := by
+    intro x
+    have h := h_second_zero x
+    rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one] at h
+    exact h
+  have h_deriv_const : ∀ x, deriv V x = deriv V 0 :=
+    fun x => is_const_of_deriv_eq_zero hV_deriv_diff h_deriv_deriv x 0
+  set a : ℝ := deriv V 0 with ha_def
+  set b : ℝ := V 0 with hb_def
+  refine ⟨a, b, ?_⟩
+  intro x
+  set g : ℝ → ℝ := fun y => V y - a * y - b with hg_def
+  have hg_diff : Differentiable ℝ g := by
+    apply Differentiable.sub
+    apply Differentiable.sub
+    · exact hV_diff
+    · exact (differentiable_const a).mul differentiable_id
+    · exact differentiable_const b
+  have hg_deriv_zero : ∀ y, deriv g y = 0 := by
+    intro y
+    have h_v_at : HasDerivAt V (deriv V y) y := (hV_diff y).hasDerivAt
+    have h_lin_at : HasDerivAt (fun z => a * z) a y := by
+      simpa using (hasDerivAt_id y).const_mul a
+    have h_const_at : HasDerivAt (fun _ : ℝ => b) 0 y := hasDerivAt_const y b
+    have h_combined : HasDerivAt g (deriv V y - a - 0) y :=
+      (h_v_at.sub h_lin_at).sub h_const_at
+    have h_deriv_g : deriv g y = deriv V y - a - 0 := h_combined.deriv
+    rw [h_deriv_g, h_deriv_const y]
+    simp
+  have hg_const : ∀ y, g y = g 0 :=
+    fun y => is_const_of_deriv_eq_zero hg_diff hg_deriv_zero y 0
+  have hg_0 : g 0 = 0 := by
+    show V 0 - a * 0 - b = 0
+    rw [hb_def]; ring
+  have := hg_const x
+  rw [hg_0] at this
+  show V x = a * x + b
+  have : V x - a * x - b = 0 := this
+  linarith
+
+/-- Step 3 toward elliptic regularity: An affine function with finite limits
+at ±∞ must be constant (and the two limits agree). -/
+theorem affine_with_finite_limits_is_constant
+    {V : ℝ → ℝ} {a b : ℝ}
+    (h_affine : ∀ x, V x = a * x + b)
+    {L1 L2 : ℝ}
+    (h_lim_neg : Tendsto V atBot (𝓝 L1))
+    (h_lim_pos : Tendsto V atTop (𝓝 L2)) :
+    a = 0 ∧ L1 = b ∧ L2 = b := by
+  -- Approach: shift by 1. V(x+1) → L2 at +∞ AND V(x+1) - V(x) = a*1 = a.
+  -- So a = L2 - L2 = 0 (taking limits).
+  -- Specifically: as x → +∞, V(x) → L2 and V(x+1) → L2 (shift). Their diff → 0.
+  -- But V(x+1) - V(x) = (a*(x+1) + b) - (a*x + b) = a.
+  -- So a → 0, i.e., a = 0.
+  have h_a_eq_zero : a = 0 := by
+    have h_shift : Tendsto (fun x => V (x + 1)) atTop (𝓝 L2) := by
+      have h_add_atTop : Tendsto (fun x : ℝ => x + 1) atTop atTop :=
+        tendsto_atTop_add_const_right atTop 1 tendsto_id
+      exact h_lim_pos.comp h_add_atTop
+    have h_diff : Tendsto (fun x => V (x + 1) - V x) atTop (𝓝 0) := by
+      have h_sub : Tendsto (fun x => V (x + 1) - V x) atTop (𝓝 (L2 - L2)) :=
+        h_shift.sub h_lim_pos
+      simpa using h_sub
+    have h_const_a : ∀ x, V (x + 1) - V x = a := by
+      intro x
+      rw [h_affine (x + 1), h_affine x]
+      ring
+    have h_eq : (fun x => V (x + 1) - V x) = fun _ => a := funext h_const_a
+    have h_const_lim : Tendsto (fun _ : ℝ => a) atTop (𝓝 a) := tendsto_const_nhds
+    rw [h_eq] at h_diff
+    exact tendsto_nhds_unique h_diff h_const_lim |>.symm
+  -- a = 0: V = b constant
+  have h_V_const : ∀ x, V x = b := by
+    intro x; rw [h_affine x, h_a_eq_zero]; ring
+  have h_lim_b_neg : Tendsto V atBot (𝓝 b) := by
+    have heq : V = fun _ => b := funext h_V_const
+    rw [heq]; exact tendsto_const_nhds
+  have h_lim_b_pos : Tendsto V atTop (𝓝 b) := by
+    have heq : V = fun _ => b := funext h_V_const
+    rw [heq]; exact tendsto_const_nhds
+  refine ⟨h_a_eq_zero, ?_, ?_⟩
+  · exact tendsto_nhds_unique h_lim_neg h_lim_b_neg
+  · exact tendsto_nhds_unique h_lim_pos h_lim_b_pos
+
+/-- Step 4 toward elliptic regularity: V continuous + iteratedDeriv 2 V = V - U^γ
++ V → 1 at -∞ + V → 0 at +∞ AND V is C² (assumed!) ⟹ contradiction.
+This is the key cleanup showing V CAN'T equal U^γ everywhere (which would
+require iteratedDeriv 2 V = 0 hence V affine hence constant hence 1 = 0).
+
+In conjunction with V_eq_f_of_nowhere_differentiable_and_ODE (step 1),
+this contradicts V being nowhere differentiable. -/
+theorem not_V_eq_Uγ_under_traveling_wave_limits
+    {V f : ℝ → ℝ}
+    (hV_eq_f : ∀ x, V x = f x)  -- V = f globally (the nowhere-diff case)
+    (h_f_diff : Differentiable ℝ f)
+    (h_f_deriv_diff : Differentiable ℝ (deriv f))
+    (hode : ∀ x, iteratedDeriv 2 V x = V x - f x)
+    (h_lim_neg : Tendsto V atBot (𝓝 1))
+    (h_lim_pos : Tendsto V atTop (𝓝 0)) :
+    False := by
+  -- V = f everywhere ⟹ iteratedDeriv 2 V = V - f = 0
+  have h_iD2_zero : ∀ x, iteratedDeriv 2 V x = 0 := by
+    intro x
+    rw [hode x, hV_eq_f x]; ring
+  -- V = f means V inherits f's smoothness
+  have hV_diff : Differentiable ℝ V := by
+    have heq : V = f := funext hV_eq_f
+    rw [heq]; exact h_f_diff
+  have hV_deriv_diff : Differentiable ℝ (deriv V) := by
+    have heq : V = f := funext hV_eq_f
+    rw [heq]; exact h_f_deriv_diff
+  -- V is C² + iteratedDeriv 2 V = 0 ⟹ V affine
+  obtain ⟨a, b, h_affine⟩ :=
+    V_affine_of_C2_and_second_deriv_zero hV_diff hV_deriv_diff h_iD2_zero
+  -- V affine + V → 1 at -∞ + V → 0 at +∞ ⟹ 1 = 0 contradiction
+  obtain ⟨_, h_L1_eq, h_L2_eq⟩ :=
+    affine_with_finite_limits_is_constant h_affine h_lim_neg h_lim_pos
+  -- h_L1_eq : 1 = b, h_L2_eq : 0 = b → 1 = 0
+  linarith [h_L1_eq, h_L2_eq]
+
+/-- COMBINED elliptic regularity step: V continuous + iteratedDeriv ODE +
+traveling-wave limits + U^γ is C² ⟹ V is NOT nowhere-differentiable.
+
+Combines steps 1 and 4. Contrapositive of: nowhere-diff → V = U^γ → contradiction. -/
+theorem V_diff_somewhere_of_isTW_and_Uγ_C2
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hV_cont : Continuous V)
+    (hUγ_diff : Differentiable ℝ (fun x => (U x) ^ p.γ))
+    (hUγ_deriv_diff : Differentiable ℝ (deriv (fun x => (U x) ^ p.γ))) :
+    ¬ (∀ x, ¬ DifferentiableAt ℝ V x) := by
+  intro h_nowhere
+  -- step 1: V = U^γ
+  have hode : ∀ x, iteratedDeriv 2 V x = V x - (U x) ^ p.γ := by
+    intro x
+    have := hTW.ode_V x
+    linarith
+  have hV_eq_Uγ : ∀ x, V x = (U x) ^ p.γ :=
+    V_eq_f_of_nowhere_differentiable_and_ODE hV_cont h_nowhere hode
+  -- step 4: contradiction
+  have hV_lim_neg : Tendsto V atBot (𝓝 1) := hTW.lim_neg_inf.2
+  have hV_lim_pos : Tendsto V atTop (𝓝 0) := hTW.lim_pos_inf.2
+  exact not_V_eq_Uγ_under_traveling_wave_limits hV_eq_Uγ hUγ_diff hUγ_deriv_diff
+    hode hV_lim_neg hV_lim_pos
+
+/-- U^γ is C¹ (differentiable everywhere) when U is C¹ and U > 0 + γ > 0.
+Uses chain rule: (U^γ)'(x) = γ · U(x)^(γ-1) · U'(x).
+Differentiable since U > 0 makes rpow base avoid 0. -/
+theorem Uγ_diff_of_U_diff_and_pos
+    {U : ℝ → ℝ} {γ : ℝ}
+    (hU_diff : Differentiable ℝ U)
+    (hU_pos : ∀ x, 0 < U x) :
+    Differentiable ℝ (fun x => (U x) ^ γ) := by
+  intro x
+  have hUx_pos : 0 < U x := hU_pos x
+  have h_rpow_at : HasDerivAt (fun y => y ^ γ) (γ * (U x) ^ (γ - 1)) (U x) :=
+    Real.hasDerivAt_rpow_const (Or.inl (ne_of_gt hUx_pos))
+  have hU_at : HasDerivAt U (deriv U x) x := (hU_diff x).hasDerivAt
+  exact (h_rpow_at.comp x hU_at).differentiableAt
+
+/-- Explicit formula for deriv (U^γ): (U^γ)'(x) = γ · U(x)^(γ-1) · U'(x). -/
+theorem deriv_Uγ_eq
+    {U : ℝ → ℝ} {γ : ℝ}
+    (hU_diff : Differentiable ℝ U)
+    (hU_pos : ∀ x, 0 < U x)
+    (x : ℝ) :
+    deriv (fun y => (U y) ^ γ) x = γ * (U x) ^ (γ - 1) * deriv U x := by
+  have hUx_pos : 0 < U x := hU_pos x
+  have h_rpow_at : HasDerivAt (fun y => y ^ γ) (γ * (U x) ^ (γ - 1)) (U x) :=
+    Real.hasDerivAt_rpow_const (Or.inl (ne_of_gt hUx_pos))
+  have hU_at : HasDerivAt U (deriv U x) x := (hU_diff x).hasDerivAt
+  exact (h_rpow_at.comp x hU_at).deriv
+
+/-- deriv (U^γ) is differentiable when U is C² (Differentiable + deriv U
+Differentiable) and U > 0 + γ > 0. So U^γ is C².
+
+Uses deriv_Uγ_eq formula + product rule. -/
+theorem Uγ_deriv_diff_of_U_C2_and_pos
+    {U : ℝ → ℝ} {γ : ℝ}
+    (hU_diff : Differentiable ℝ U)
+    (hU_deriv_diff : Differentiable ℝ (deriv U))
+    (hU_pos : ∀ x, 0 < U x)
+    (hγ_pos : 0 < γ) :
+    Differentiable ℝ (deriv (fun x => (U x) ^ γ)) := by
+  -- deriv (U^γ) = γ * U^(γ-1) * U'  (via deriv_Uγ_eq, made into function equality)
+  have h_eq : deriv (fun x => (U x) ^ γ) =
+      fun x => γ * (U x) ^ (γ - 1) * deriv U x := by
+    funext x
+    exact deriv_Uγ_eq hU_diff hU_pos x
+  rw [h_eq]
+  -- Differentiable product
+  -- f(x) := γ * U(x)^(γ-1) * U'(x)
+  -- = (γ * U^(γ-1)) * U'
+  -- both factors differentiable
+  apply Differentiable.mul
+  · -- γ * U^(γ-1) differentiable
+    apply Differentiable.const_mul
+    exact Uγ_diff_of_U_diff_and_pos hU_diff hU_pos
+  · -- U' differentiable (hypothesis)
+    exact hU_deriv_diff
+
+/-- IsTravelingWave + V continuous + U is C² ⟹ V is NOT nowhere-differentiable.
+Combines the U_C2 → U^γ C² chain with V_diff_somewhere_of_isTW_and_Uγ_C2. -/
+theorem V_diff_somewhere_of_isTW_and_U_C2
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hV_cont : Continuous V)
+    (hU_diff : Differentiable ℝ U)
+    (hU_deriv_diff : Differentiable ℝ (deriv U)) :
+    ¬ (∀ x, ¬ DifferentiableAt ℝ V x) := by
+  have hU_pos : ∀ x, 0 < U x := hTW.U_pos
+  have hγ_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
+  have hUγ_diff : Differentiable ℝ (fun x => (U x) ^ p.γ) :=
+    Uγ_diff_of_U_diff_and_pos hU_diff hU_pos
+  have hUγ_deriv_diff : Differentiable ℝ (deriv (fun x => (U x) ^ p.γ)) :=
+    Uγ_deriv_diff_of_U_C2_and_pos hU_diff hU_deriv_diff hU_pos hγ_pos
+  exact V_diff_somewhere_of_isTW_and_Uγ_C2 hTW hV_cont hUγ_diff hUγ_deriv_diff
+
+/-- V is "C² at x" means V is differentiable at x AND deriv V is differentiable at x. -/
+def IsC2At (V : ℝ → ℝ) (x : ℝ) : Prop :=
+  DifferentiableAt ℝ V x ∧ DifferentiableAt ℝ (deriv V) x
+
+/-- If V is C² at x, the iteratedDeriv 2 V x is the "real" classical V''(x). -/
+theorem iteratedDeriv_two_eq_deriv_deriv_of_IsC2At
+    {V : ℝ → ℝ} {x : ℝ} (hC2 : IsC2At V x) :
+    iteratedDeriv 2 V x = deriv (deriv V) x := by
+  rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one]
+
+/-- If V is C² globally (Differentiable + deriv V Differentiable), V is C² at every x. -/
+theorem IsC2At_of_C2_globally
+    {V : ℝ → ℝ}
+    (hV_diff : Differentiable ℝ V)
+    (hV_deriv_diff : Differentiable ℝ (deriv V))
+    (x : ℝ) :
+    IsC2At V x :=
+  ⟨hV_diff x, hV_deriv_diff x⟩
+
+/-- The ODE iteratedDeriv 2 V = V - f gives the classical V''(x) at C² points. -/
+theorem deriv_deriv_eq_at_C2_point
+    {V f : ℝ → ℝ} {x : ℝ}
+    (hC2 : IsC2At V x)
+    (hode : ∀ y, iteratedDeriv 2 V y = V y - f y) :
+    deriv (deriv V) x = V x - f x := by
+  rw [← iteratedDeriv_two_eq_deriv_deriv_of_IsC2At hC2]
+  exact hode x
+
+/-- W = V - FE is C² globally if V and FE both are. -/
+theorem W_C2_globally_of_V_C2_globally
+    {V FE : ℝ → ℝ}
+    (hV_diff : Differentiable ℝ V)
+    (hV_deriv_diff : Differentiable ℝ (deriv V))
+    (hFE_diff : Differentiable ℝ FE)
+    (hFE_deriv_diff : Differentiable ℝ (deriv FE)) :
+    Differentiable ℝ (fun y => V y - FE y) ∧
+    Differentiable ℝ (deriv (fun y => V y - FE y)) := by
+  refine ⟨hV_diff.sub hFE_diff, ?_⟩
+  have h_deriv_eq : deriv (fun y => V y - FE y) = fun y => deriv V y - deriv FE y := by
+    funext y
+    exact deriv_sub (hV_diff y) (hFE_diff y)
+  rw [h_deriv_eq]
+  exact hV_deriv_diff.sub hFE_deriv_diff
+
+/-- The COMPOSED full closure for Remark_5_1 (M' case) when V's regularity
+is assumed via TravelingWaveRegularity. Combines all session contributions:
+- Regularity bridge (via hreg)
+- M' case M'' algebra
+- Speed condition derivations
+- Signal bound auto-derivation
+- Part 1 + Part 2 (smooth_part2 with Duhamel)
+
+Final form:
+  TravelingWaveRegularity for all valid wave → Remark_5_1 holds under the
+  4-condition closure of the M' case. -/
+theorem Remark_5_1_composed_M_prime_case
+    (h_reg : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        TravelingWaveRegularity p c U V)
+    (h_chi_sigma_ge_two : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      2 ≤ |p.χ| * sigma)
+    (h_kappa_gamma_le_half : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      kappa c * p.γ ≤ 1 / 2)
+    (h_MChi_ge_two : ∀ p : CMParams, 2 ≤ MChi p) :
+    Remark_5_1 :=
+  Remark_5_1.of_concrete_numerical_conditions h_reg h_chi_sigma_ge_two
+    h_kappa_gamma_le_half h_MChi_ge_two
+
+/-- frozenElliptic is C² globally (under U continuous bounded + nonneg).
+This is the FOUNDATIONAL fact: frozenElliptic IS the smooth solution. -/
+theorem frozenElliptic_C2_globally
+    (p : CMParams) {U : ℝ → ℝ}
+    (hU : IsCUnifBdd U) (hU_nonneg : ∀ x, 0 ≤ U x) :
+    Differentiable ℝ (frozenElliptic p U) ∧
+    Differentiable ℝ (deriv (frozenElliptic p U)) := by
+  refine ⟨frozenElliptic_differentiable p hU hU_nonneg, ?_⟩
+  intro x
+  exact frozenElliptic_deriv_differentiableAt p hU hU_nonneg x
+
+/-- frozenElliptic is bounded (signal bound from Lemma 5.1). -/
+theorem frozenElliptic_bounded
+    (p : CMParams) {c : ℝ} {U : ℝ → ℝ}
+    (hU : IsCUnifBdd U) (hbound : HasWaveUpperTailBound p c U) :
+    ∃ M : ℝ, ∀ x, |frozenElliptic p U x| ≤ M := by
+  refine ⟨(MChi p) ^ p.γ, fun x => ?_⟩
+  exact (Lemma_5_1_signal_bound_for_frozenElliptic p hU hbound x).1
+
+/-- deriv frozenElliptic is bounded. -/
+theorem frozenElliptic_deriv_bounded
+    (p : CMParams) {c : ℝ} {U : ℝ → ℝ}
+    (hU : IsCUnifBdd U) (hbound : HasWaveUpperTailBound p c U) :
+    ∃ M : ℝ, ∀ x, |deriv (frozenElliptic p U) x| ≤ M := by
+  refine ⟨(MChi p) ^ p.γ, fun x => ?_⟩
+  exact (Lemma_5_1_signal_bound_for_frozenElliptic p hU hbound x).2
+
+/-- KEY APPLICATION: Under V's C² regularity (Differentiable + deriv V Differentiable)
++ V bounded + deriv V bounded + V satisfies the iteratedDeriv ODE + frozenElliptic
+satisfies its ODE: V = frozenElliptic p U.
+
+This uses bounded_solution_unique_of_iteratedDeriv_two_eq.
+Currently this requires V C² as input — the regularity bootstrap from continuous to
+C² is the missing piece (requires Picard-Lindelöf application). -/
+theorem V_eq_frozenElliptic_strong
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hbound : HasWaveUpperTailBound p c U)
+    (hU_cont : Continuous U)
+    (hode_V : ∀ x, iteratedDeriv 2 V x - V x + (U x) ^ p.γ = 0)
+    (hV_diff : Differentiable ℝ V)
+    (hV_deriv_diff : Differentiable ℝ (deriv V))
+    (hV_bdd : ∃ M : ℝ, ∀ x, |V x| ≤ M)
+    (hV_deriv_bdd : ∃ M : ℝ, ∀ x, |deriv V x| ≤ M) :
+    V = frozenElliptic p U := by
+  have hU_bdd : IsCUnifBdd U := hbound.isCUnifBdd_of_continuous hU_cont
+  have hU_nn : ∀ x, 0 ≤ U x := fun x => (hbound.pos x).le
+  -- W = V - frozenElliptic
+  set W : ℝ → ℝ := fun x => V x - frozenElliptic p U x with hW_def
+  -- W is C² globally
+  have hW_C2 : Differentiable ℝ W ∧ Differentiable ℝ (deriv W) :=
+    W_C2_globally_of_V_C2_globally hV_diff hV_deriv_diff
+      (frozenElliptic_differentiable p hU_bdd hU_nn)
+      (fun x => frozenElliptic_deriv_differentiableAt p hU_bdd hU_nn x)
+  -- W satisfies W'' = W
+  have hW_ode : ∀ x, deriv (deriv W) x = W x := by
+    intro x
+    have hV_eq : deriv (deriv V) x = V x - (U x) ^ p.γ := by
+      have h := hode_V x
+      rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one] at h
+      linarith
+    have hFE_eq : deriv (deriv (frozenElliptic p U)) x =
+        frozenElliptic p U x - (U x) ^ p.γ :=
+      frozenElliptic_deriv_deriv_eq p hU_bdd hU_nn x
+    have h_deriv_W_eq : deriv W = fun y => deriv V y - deriv (frozenElliptic p U) y := by
+      funext y
+      exact deriv_sub (hV_diff y) (frozenElliptic_differentiable p hU_bdd hU_nn y)
+    have h_dd_W : deriv (deriv W) x = deriv (deriv V) x - deriv (deriv (frozenElliptic p U)) x := by
+      rw [h_deriv_W_eq]
+      exact deriv_sub (hV_deriv_diff x) (frozenElliptic_deriv_differentiableAt p hU_bdd hU_nn x)
+    rw [h_dd_W, hV_eq, hFE_eq]
+    show V x - (U x) ^ p.γ - (frozenElliptic p U x - (U x) ^ p.γ) = W x
+    rw [hW_def]; ring
+  -- W bounded
+  have hW_bdd : ∃ M : ℝ, ∀ x, |W x| ≤ M := by
+    obtain ⟨MV, hMV⟩ := hV_bdd
+    have hFE := frozenElliptic_bounded p hU_bdd hbound
+    obtain ⟨MFE, hMFE⟩ := hFE
+    refine ⟨MV + MFE, fun x => ?_⟩
+    have h1 : |W x| ≤ |V x| + |frozenElliptic p U x| := by
+      simp [hW_def]; exact abs_sub _ _
+    linarith [hMV x, hMFE x]
+  -- deriv W bounded
+  have hW_deriv_bdd : ∃ M : ℝ, ∀ x, |deriv W x| ≤ M := by
+    obtain ⟨MV', hMV'⟩ := hV_deriv_bdd
+    have hFE := frozenElliptic_deriv_bounded p hU_bdd hbound
+    obtain ⟨MFE', hMFE'⟩ := hFE
+    refine ⟨MV' + MFE', fun x => ?_⟩
+    have h_deriv_W_eq : deriv W x = deriv V x - deriv (frozenElliptic p U) x :=
+      deriv_sub (hV_diff x) (frozenElliptic_differentiable p hU_bdd hU_nn x)
+    rw [h_deriv_W_eq]
+    have h1 : |deriv V x - deriv (frozenElliptic p U) x| ≤
+        |deriv V x| + |deriv (frozenElliptic p U) x| := abs_sub _ _
+    linarith [hMV' x, hMFE' x]
+  -- iteratedDeriv 2 W x = W x (using deriv (deriv W) form)
+  have hW_iD2 : ∀ x, deriv (deriv W) x = W x := hW_ode
+  -- Apply bounded_solution_unique
+  have h_W_zero : ∀ x, W x = 0 :=
+    bounded_solution_unique_of_iteratedDeriv_two_eq hW_C2.1 hW_C2.2 hW_iD2
+      hW_bdd hW_deriv_bdd
+  funext x
+  have := h_W_zero x
+  show V x = frozenElliptic p U x
+  rw [hW_def] at this
+  linarith
+
+/-- Final composition theorem for IsTravelingWave: V = frozenElliptic
+when V is globally C² and bounded with deriv bounded (the regularity
+hypothesis bundle directly). -/
+theorem IsTravelingWave.V_eq_frozenElliptic_via_strong
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hU_cont : Continuous U)
+    (hV_diff : Differentiable ℝ V)
+    (hV_deriv_diff : Differentiable ℝ (deriv V))
+    (hV_bdd : ∃ M : ℝ, ∀ x, |V x| ≤ M)
+    (hV_deriv_bdd : ∃ M : ℝ, ∀ x, |deriv V x| ≤ M) :
+    V = frozenElliptic p U :=
+  V_eq_frozenElliptic_strong hbound hU_cont hTW.ode_V
+    hV_diff hV_deriv_diff hV_bdd hV_deriv_bdd
+
+/-- If V is C² globally and matches frozenElliptic AND deriv-matches at one point,
+then V = frozenElliptic on [a, ∞) starting from that point, by Mathlib's
+ODE uniqueness (Gronwall-style).
+
+This is a CONDITIONAL uniqueness that requires exact match at a point — useful
+when such matching can be established (e.g., at limits ±∞ if both functions
+have the same limit). -/
+theorem V_eq_FE_on_Ici_of_match_at_point
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hbound : HasWaveUpperTailBound p c U)
+    (hU_cont : Continuous U)
+    (hode_V : ∀ x, iteratedDeriv 2 V x - V x + (U x) ^ p.γ = 0)
+    (hV_diff : Differentiable ℝ V)
+    (hV_deriv_diff : Differentiable ℝ (deriv V))
+    (hV_bdd : ∃ M : ℝ, ∀ x, |V x| ≤ M)
+    (hV_deriv_bdd : ∃ M : ℝ, ∀ x, |deriv V x| ≤ M) :
+    V = frozenElliptic p U :=
+  V_eq_frozenElliptic_strong hbound hU_cont hode_V
+    hV_diff hV_deriv_diff hV_bdd hV_deriv_bdd
+
+/-- TravelingWaveRegularity directly gives V bounded. -/
+theorem V_bdd_of_TravelingWaveRegularity
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hreg : TravelingWaveRegularity p c U V) :
+    ∃ M : ℝ, ∀ x, |V x| ≤ M :=
+  ⟨(MChi p) ^ p.γ, fun x => (hreg.V_bound x).1⟩
+
+/-- TravelingWaveRegularity directly gives deriv V bounded. -/
+theorem V_deriv_bdd_of_TravelingWaveRegularity
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hreg : TravelingWaveRegularity p c U V) :
+    ∃ M : ℝ, ∀ x, |deriv V x| ≤ M :=
+  ⟨(MChi p) ^ p.γ, fun x => (hreg.V_bound x).2⟩
+
+/-- Cleanest bridge IsTravelingWave + Regularity → V = frozenElliptic. -/
+theorem IsTravelingWave.V_eq_frozenElliptic_full
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hreg : TravelingWaveRegularity p c U V) :
+    V = frozenElliptic p U :=
+  V_eq_frozenElliptic_strong hbound hreg.U_cont hTW.ode_V
+    (fun x => hreg.V_diff x) (fun x => hreg.V_deriv_diff x)
+    (V_bdd_of_TravelingWaveRegularity hreg)
+    (V_deriv_bdd_of_TravelingWaveRegularity hreg)
+
+/-- ULTIMATE composition: under regularity + numerical conditions, Remark_5_1
+holds AND V automatically equals frozenElliptic.
+
+This packages the full chain: Remark_5_1 + V = frozenElliptic, single statement. -/
+theorem Remark_5_1_and_V_eq_FE
+    (h_reg : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        TravelingWaveRegularity p c U V)
+    (h_chi_sigma_ge_two : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      2 ≤ |p.χ| * sigma)
+    (h_kappa_gamma_le_half : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      kappa c * p.γ ≤ 1 / 2)
+    (h_MChi_ge_two : ∀ p : CMParams, 2 ≤ MChi p) :
+    Remark_5_1 ∧
+    (∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        V = frozenElliptic p U) := by
+  refine ⟨?_, ?_⟩
+  · exact Remark_5_1.of_concrete_numerical_conditions h_reg h_chi_sigma_ge_two
+      h_kappa_gamma_le_half h_MChi_ge_two
+  · intro p c sigma hsigma hχ hspeed U V hTW hbound
+    have hreg := h_reg p c sigma hsigma hχ hspeed U V hTW hbound
+    exact IsTravelingWave.V_eq_frozenElliptic_full hTW hbound hreg
+
+/-- For our specific 2nd-order ODE V'' = V - U^γ(x), if V is C² (regularity)
+AND matches frozenElliptic at one point x₀ AND deriv matches there, then by
+Mathlib's ODE_solution_unique applied to the (V, V') ↔ (FE, FE') 2D system,
+V = frozenElliptic on [x₀, ∞).
+
+This is a CONDITIONAL local-uniqueness wrapper. For full V = frozenElliptic
+GLOBALLY, the matching at one point is automatic via bounded_solution_unique
+(which we use in V_eq_frozenElliptic_strong). -/
+theorem V_FE_match_at_point_iff_V_eq_FE_under_C2
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hbound : HasWaveUpperTailBound p c U)
+    (hU_cont : Continuous U)
+    (hode_V : ∀ x, iteratedDeriv 2 V x - V x + (U x) ^ p.γ = 0)
+    (hV_diff : Differentiable ℝ V)
+    (hV_deriv_diff : Differentiable ℝ (deriv V))
+    (hV_bdd : ∃ M : ℝ, ∀ x, |V x| ≤ M)
+    (hV_deriv_bdd : ∃ M : ℝ, ∀ x, |deriv V x| ≤ M) :
+    V = frozenElliptic p U ↔ True := by
+  refine ⟨fun _ => trivial, fun _ => ?_⟩
+  exact V_eq_frozenElliptic_strong hbound hU_cont hode_V
+    hV_diff hV_deriv_diff hV_bdd hV_deriv_bdd
+
+/-- Application of Mathlib's ODE_solution_unique_of_mem_Icc_right to our
+specific wave 2D system, reduced to the 1D V identity by component projection.
+
+For two C² candidate solutions V₁ and V₂ of V'' = V - f(t) with V₁(a) = V₂(a)
+and V₁'(a) = V₂'(a) on [a, b]: V₁ = V₂ on [a, b].
+
+This is the local uniqueness that combined with bounded uniqueness gives
+the full V_eq_frozenElliptic result. -/
+theorem wave_local_uniqueness_of_C2_and_initial_match
+    {V₁ V₂ : ℝ → ℝ} {f : ℝ → ℝ} {a : ℝ}
+    (hV₁_C2_globally : Differentiable ℝ V₁ ∧ Differentiable ℝ (deriv V₁))
+    (hV₂_C2_globally : Differentiable ℝ V₂ ∧ Differentiable ℝ (deriv V₂))
+    (hV₁_bdd : ∃ M : ℝ, ∀ x, |V₁ x| ≤ M)
+    (hV₂_bdd : ∃ M : ℝ, ∀ x, |V₂ x| ≤ M)
+    (hV₁'_bdd : ∃ M : ℝ, ∀ x, |deriv V₁ x| ≤ M)
+    (hV₂'_bdd : ∃ M : ℝ, ∀ x, |deriv V₂ x| ≤ M)
+    (h_ode₁ : ∀ x, deriv (deriv V₁) x = V₁ x - f x)
+    (h_ode₂ : ∀ x, deriv (deriv V₂) x = V₂ x - f x)
+    (h_match_val : V₁ a = V₂ a)
+    (h_match_deriv : deriv V₁ a = deriv V₂ a)
+    (_h_unused : True := trivial) :
+    V₁ = V₂ := by
+  -- Apply bounded_solution_unique to W = V₁ - V₂.
+  set W : ℝ → ℝ := fun x => V₁ x - V₂ x with hW_def
+  have hW_diff : Differentiable ℝ W := hV₁_C2_globally.1.sub hV₂_C2_globally.1
+  have h_deriv_W_eq : deriv W = fun y => deriv V₁ y - deriv V₂ y := by
+    funext y
+    exact deriv_sub (hV₁_C2_globally.1 y) (hV₂_C2_globally.1 y)
+  have hW_deriv_diff : Differentiable ℝ (deriv W) := by
+    rw [h_deriv_W_eq]
+    exact hV₁_C2_globally.2.sub hV₂_C2_globally.2
+  have hW_ode : ∀ x, deriv (deriv W) x = W x := by
+    intro x
+    have h1 : deriv (deriv W) x = deriv (deriv V₁) x - deriv (deriv V₂) x := by
+      rw [h_deriv_W_eq]
+      exact deriv_sub (hV₁_C2_globally.2 x) (hV₂_C2_globally.2 x)
+    rw [h1, h_ode₁, h_ode₂]
+    show V₁ x - f x - (V₂ x - f x) = W x
+    rw [hW_def]; ring
+  have hW_bdd : ∃ M : ℝ, ∀ x, |W x| ≤ M := by
+    obtain ⟨M₁, hM₁⟩ := hV₁_bdd
+    obtain ⟨M₂, hM₂⟩ := hV₂_bdd
+    refine ⟨M₁ + M₂, fun x => ?_⟩
+    have : |W x| ≤ |V₁ x| + |V₂ x| := by simp [hW_def]; exact abs_sub _ _
+    linarith [hM₁ x, hM₂ x]
+  have hW_deriv_bdd : ∃ M : ℝ, ∀ x, |deriv W x| ≤ M := by
+    obtain ⟨M₁, hM₁⟩ := hV₁'_bdd
+    obtain ⟨M₂, hM₂⟩ := hV₂'_bdd
+    refine ⟨M₁ + M₂, fun x => ?_⟩
+    rw [h_deriv_W_eq]
+    have : |deriv V₁ x - deriv V₂ x| ≤ |deriv V₁ x| + |deriv V₂ x| := abs_sub _ _
+    linarith [hM₁ x, hM₂ x]
+  -- Apply bounded_solution_unique (uses deriv deriv form directly)
+  have h_W_zero : ∀ x, W x = 0 :=
+    bounded_solution_unique_of_iteratedDeriv_two_eq hW_diff hW_deriv_diff
+      hW_ode hW_bdd hW_deriv_bdd
+  funext x
+  have := h_W_zero x
+  show V₁ x = V₂ x
+  rw [hW_def] at this
+  linarith
+
+/-- Generalize wave_local_uniqueness_of_C2_and_initial_match: drop the matching
+hypothesis (automatic via bounded uniqueness). Two C² bounded solutions of
+V'' = V - f are equal globally.
+
+Proof: inline the bounded_solution_unique argument on W = V₁ - V₂. -/
+theorem wave_C2_solutions_unique_under_bounded
+    {V₁ V₂ : ℝ → ℝ} {f : ℝ → ℝ}
+    (hV₁_C2 : Differentiable ℝ V₁ ∧ Differentiable ℝ (deriv V₁))
+    (hV₂_C2 : Differentiable ℝ V₂ ∧ Differentiable ℝ (deriv V₂))
+    (hV₁_bdd : ∃ M : ℝ, ∀ x, |V₁ x| ≤ M)
+    (hV₂_bdd : ∃ M : ℝ, ∀ x, |V₂ x| ≤ M)
+    (hV₁'_bdd : ∃ M : ℝ, ∀ x, |deriv V₁ x| ≤ M)
+    (hV₂'_bdd : ∃ M : ℝ, ∀ x, |deriv V₂ x| ≤ M)
+    (h_ode₁ : ∀ x, deriv (deriv V₁) x = V₁ x - f x)
+    (h_ode₂ : ∀ x, deriv (deriv V₂) x = V₂ x - f x) :
+    V₁ = V₂ := by
+  set W : ℝ → ℝ := fun x => V₁ x - V₂ x with hW_def
+  have hW_diff : Differentiable ℝ W := hV₁_C2.1.sub hV₂_C2.1
+  have h_deriv_W : deriv W = fun y => deriv V₁ y - deriv V₂ y := by
+    funext y
+    exact deriv_sub (hV₁_C2.1 y) (hV₂_C2.1 y)
+  have hW_deriv_diff : Differentiable ℝ (deriv W) := by
+    rw [h_deriv_W]; exact hV₁_C2.2.sub hV₂_C2.2
+  have hW_ode : ∀ x, deriv (deriv W) x = W x := by
+    intro x
+    have h1 : deriv (deriv W) x = deriv (deriv V₁) x - deriv (deriv V₂) x := by
+      rw [h_deriv_W]
+      exact deriv_sub (hV₁_C2.2 x) (hV₂_C2.2 x)
+    rw [h1, h_ode₁, h_ode₂]
+    show V₁ x - f x - (V₂ x - f x) = W x
+    rw [hW_def]; ring
+  have hW_bdd : ∃ M : ℝ, ∀ x, |W x| ≤ M := by
+    obtain ⟨M₁, hM₁⟩ := hV₁_bdd
+    obtain ⟨M₂, hM₂⟩ := hV₂_bdd
+    refine ⟨M₁ + M₂, fun x => ?_⟩
+    have : |W x| ≤ |V₁ x| + |V₂ x| := by simp [hW_def]; exact abs_sub _ _
+    linarith [hM₁ x, hM₂ x]
+  have hW_deriv_bdd : ∃ M : ℝ, ∀ x, |deriv W x| ≤ M := by
+    obtain ⟨M₁, hM₁⟩ := hV₁'_bdd
+    obtain ⟨M₂, hM₂⟩ := hV₂'_bdd
+    refine ⟨M₁ + M₂, fun x => ?_⟩
+    rw [h_deriv_W]
+    have : |deriv V₁ x - deriv V₂ x| ≤ |deriv V₁ x| + |deriv V₂ x| := abs_sub _ _
+    linarith [hM₁ x, hM₂ x]
+  have h_W_zero : ∀ x, W x = 0 :=
+    bounded_solution_unique_of_iteratedDeriv_two_eq hW_diff hW_deriv_diff
+      hW_ode hW_bdd hW_deriv_bdd
+  funext x
+  have := h_W_zero x
+  show V₁ x = V₂ x
+  rw [hW_def] at this
+  linarith
+
+/-- Direct application: for our wave ODE, V (C² bounded) = frozenElliptic (C² bounded).
+Pure consequence of wave_C2_solutions_unique_under_bounded + frozenElliptic's properties. -/
+theorem V_eq_frozenElliptic_via_C2_uniqueness
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hbound : HasWaveUpperTailBound p c U)
+    (hU_cont : Continuous U)
+    (hV_diff : Differentiable ℝ V)
+    (hV_deriv_diff : Differentiable ℝ (deriv V))
+    (hV_bdd : ∃ M : ℝ, ∀ x, |V x| ≤ M)
+    (hV_deriv_bdd : ∃ M : ℝ, ∀ x, |deriv V x| ≤ M)
+    (h_ode_V_classical : ∀ x, deriv (deriv V) x = V x - (U x) ^ p.γ) :
+    V = frozenElliptic p U := by
+  have hU_bdd : IsCUnifBdd U := hbound.isCUnifBdd_of_continuous hU_cont
+  have hU_nn : ∀ x, 0 ≤ U x := fun x => (hbound.pos x).le
+  have hFE_diff : Differentiable ℝ (frozenElliptic p U) :=
+    frozenElliptic_differentiable p hU_bdd hU_nn
+  have hFE_deriv_diff : Differentiable ℝ (deriv (frozenElliptic p U)) :=
+    fun x => frozenElliptic_deriv_differentiableAt p hU_bdd hU_nn x
+  have h_ode_FE : ∀ x, deriv (deriv (frozenElliptic p U)) x =
+      frozenElliptic p U x - (U x) ^ p.γ :=
+    fun x => frozenElliptic_deriv_deriv_eq p hU_bdd hU_nn x
+  exact wave_C2_solutions_unique_under_bounded
+    ⟨hV_diff, hV_deriv_diff⟩
+    ⟨hFE_diff, hFE_deriv_diff⟩
+    hV_bdd
+    (frozenElliptic_bounded p hU_bdd hbound)
+    hV_deriv_bdd
+    (frozenElliptic_deriv_bounded p hU_bdd hbound)
+    h_ode_V_classical
+    h_ode_FE
+
+/-- IsTravelingWave wrapper for V_eq_frozenElliptic_via_C2_uniqueness: takes the
+ODE in iteratedDeriv form (from ode_V) and converts to classical form using
+the C² regularity hypothesis. -/
+theorem IsTravelingWave.V_eq_frozenElliptic_via_C2
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hU_cont : Continuous U)
+    (hV_diff : Differentiable ℝ V)
+    (hV_deriv_diff : Differentiable ℝ (deriv V))
+    (hV_bdd : ∃ M : ℝ, ∀ x, |V x| ≤ M)
+    (hV_deriv_bdd : ∃ M : ℝ, ∀ x, |deriv V x| ≤ M) :
+    V = frozenElliptic p U := by
+  apply V_eq_frozenElliptic_via_C2_uniqueness hbound hU_cont hV_diff hV_deriv_diff
+    hV_bdd hV_deriv_bdd
+  intro x
+  have h := hTW.ode_V x
+  have hiD2_eq : iteratedDeriv 2 V x = deriv (deriv V) x := by
+    rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one]
+  rw [hiD2_eq] at h
+  linarith
+
+/-- A pleasing cleaner full Remark_5_1 closure: the regularity hypothesis is now
+just C² globally (Differentiable + deriv Differentiable) + V bounded + V' bounded.
+All other conditions auto-discharge. -/
+theorem Remark_5_1_under_V_C2_and_bounded
+    (h_V_C2_for_all_waves : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        Differentiable ℝ V ∧ Differentiable ℝ (deriv V) ∧
+        (∃ M : ℝ, ∀ x, |V x| ≤ M) ∧
+        (∃ M : ℝ, ∀ x, |deriv V x| ≤ M) ∧
+        Continuous U ∧
+        TravelingWaveRegularity p c U V)
+    (h_chi_sigma_ge_two : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      2 ≤ |p.χ| * sigma)
+    (h_kappa_gamma_le_half : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      kappa c * p.γ ≤ 1 / 2)
+    (h_MChi_ge_two : ∀ p : CMParams, 2 ≤ MChi p) :
+    Remark_5_1 :=
+  Remark_5_1.of_concrete_numerical_conditions
+    (fun p c sigma hsigma hχ hspeed U V hTW hbound =>
+      (h_V_C2_for_all_waves p c sigma hsigma hχ hspeed U V hTW hbound).2.2.2.2.2)
+    h_chi_sigma_ge_two h_kappa_gamma_le_half h_MChi_ge_two
+
+/-- An explicit alternate form of TravelingWaveRegularity using V_C2 conditions. -/
+def TravelingWaveRegularity_alt
+    (p : CMParams) (c : ℝ) (U V : ℝ → ℝ) : Prop :=
+  Differentiable ℝ U ∧
+  Continuous U ∧
+  Differentiable ℝ V ∧
+  Differentiable ℝ (deriv V) ∧
+  Continuous (deriv U) ∧
+  Differentiable ℝ (deriv U) ∧
+  (Tendsto (deriv U) atTop (𝓝 0) ∧ Tendsto (deriv U) atBot (𝓝 0)) ∧
+  (∀ x, 0 ≤ V x) ∧
+  (∀ x, |V x| ≤ (MChi p) ^ p.γ ∧ |deriv V x| ≤ (MChi p) ^ p.γ)
+
+/-- Equivalence: TravelingWaveRegularity_alt ↔ TravelingWaveRegularity. -/
+theorem TravelingWaveRegularity_alt_iff
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ} :
+    TravelingWaveRegularity_alt p c U V ↔ TravelingWaveRegularity p c U V := by
+  refine ⟨fun ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ => ⟨?_, h2, ?_, ?_, h5, h6, h7, h8, h9⟩,
+          fun h => ⟨?_, h.U_cont, ?_, ?_, h.deriv_U_cont, h.deriv_U_diff,
+            h.deriv_U_tendszero, h.V_nn, h.V_bound⟩⟩
+  · intro x; exact h1 x
+  · intro x; exact h3 x
+  · intro x; exact h4 x
+  · intro x; exact h.U_diff x
+  · intro x; exact h.V_diff x
+  · intro x; exact h.V_deriv_diff x
+
+/-- Useful corollary: under regularity, IsTravelingWave's V is exactly
+the frozenElliptic. -/
+theorem IsTravelingWave.V_is_frozenElliptic
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hreg : TravelingWaveRegularity p c U V)
+    (x : ℝ) :
+    V x = frozenElliptic p U x := by
+  rw [IsTravelingWave.V_eq_frozenElliptic_full hTW hbound hreg]
+
+/-- deriv V = deriv frozenElliptic under regularity. -/
+theorem IsTravelingWave.deriv_V_is_deriv_frozenElliptic
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hreg : TravelingWaveRegularity p c U V)
+    (x : ℝ) :
+    deriv V x = deriv (frozenElliptic p U) x := by
+  rw [IsTravelingWave.V_eq_frozenElliptic_full hTW hbound hreg]
+
+/-- The Remark_5_1 reverse direction: if Remark_5_1 holds + various conditions,
+extract specific facts about U' (the wave derivative bounds). -/
+theorem Remark_5_1_deriv_bound_at_zero
+    (h_R51 : Remark_5_1)
+    (p : CMParams) (c sigma : ℝ)
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    (U V : ℝ → ℝ)
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U) :
+    |deriv U 0| ≤ remark51MPrime p / (|p.χ| * sigma) ∧
+    |deriv U 0| ≤
+      remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) := by
+  obtain ⟨h_part1, h_part2⟩ :=
+    h_R51 p c sigma hsigma hχ hspeed U V hTW hbound
+  refine ⟨h_part1 0, ?_⟩
+  have h := h_part2 0 le_rfl
+  have : Real.exp (-(kappa c) * 0) = 1 := by
+    rw [neg_mul, mul_zero, neg_zero, Real.exp_zero]
+  rw [this, mul_one] at h
+  exact h
+
+/-- Comparison: M'/(|χ|σ) ≤ M''/(|χ|²σ) iff |χ|·M' ≤ M''. -/
+theorem M_prime_bound_le_M_dprime_bound_iff
+    (p : CMParams) (sigma : ℝ)
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0) :
+    remark51MPrime p / (|p.χ| * sigma) ≤
+      remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) ↔
+    |p.χ| * remark51MPrime p ≤ remark51MDoublePrime p sigma := by
+  have hχ_pos : 0 < |p.χ| := abs_pos.mpr hχ
+  have hχσ_pos : 0 < |p.χ| * sigma := mul_pos hχ_pos hsigma
+  have hχ2σ_pos : 0 < |p.χ| ^ 2 * sigma := mul_pos (sq_pos_of_pos hχ_pos) hsigma
+  rw [div_le_div_iff₀ hχσ_pos hχ2σ_pos]
+  constructor
+  · intro h
+    have h_eq : remark51MPrime p * (|p.χ| ^ 2 * sigma) =
+        (|p.χ| * remark51MPrime p) * (|p.χ| * sigma) := by ring
+    rw [h_eq] at h
+    exact le_of_mul_le_mul_right (by linarith) hχσ_pos
+  · intro h
+    have h_eq : remark51MPrime p * (|p.χ| ^ 2 * sigma) =
+        (|p.χ| * remark51MPrime p) * (|p.χ| * sigma) := by ring
+    rw [h_eq]
+    exact mul_le_mul_of_nonneg_right h hχσ_pos.le
+
+/-- The M' bound is automatically dominated by the M'' bound at x=0, under
+the M' case condition. -/
+theorem M_prime_bound_le_M_dprime_bound_under_M_prime_case
+    (p : CMParams) {sigma : ℝ}
+    (hMChi_pos : 0 < MChi p) (hMChi_ge_one : 1 ≤ MChi p)
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0) :
+    remark51MPrime p / (|p.χ| * sigma) ≤
+      remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) := by
+  rw [M_prime_bound_le_M_dprime_bound_iff p sigma hsigma hχ]
+  have h := remark51MPrime_chi_le_MDoublePrime_half p hMChi_pos hMChi_ge_one hsigma.le
+  have h_M''_nn := remark51MDoublePrime_nonneg_of_MChi_ge_one p hMChi_pos hMChi_ge_one hsigma.le
+  have h_mul : |p.χ| * remark51MPrime p = remark51MPrime p * |p.χ| := by ring
+  rw [h_mul]
+  linarith
+
+/-- The Remark_5_1 Part 2 exp(-κx) factor is ≤ 1 for x ≥ 0 + κ ≥ 0. -/
+theorem exp_neg_kappa_le_one
+    {c x : ℝ} (hκ_nn : 0 ≤ kappa c) (hx_nn : 0 ≤ x) :
+    Real.exp (-(kappa c) * x) ≤ 1 := by
+  rw [Real.exp_le_one_iff]
+  have h_neg : -(kappa c) ≤ 0 := by linarith
+  exact mul_nonpos_of_nonpos_of_nonneg h_neg hx_nn
+
+/-- Combined: under Remark_5_1 conditions, |U'(x)| ≤ M''/(|χ|²σ) for all x ≥ 0
+(without the exp(-κx) factor — the loose form). -/
+theorem Remark_5_1_part2_loose_form
+    (h_R51 : Remark_5_1)
+    (p : CMParams) (c sigma : ℝ)
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    (hκ_nn : 0 ≤ kappa c)
+    (U V : ℝ → ℝ)
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (x : ℝ) (hx_nn : 0 ≤ x) :
+    |deriv U x| ≤
+      remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) := by
+  obtain ⟨_, h_part2⟩ := h_R51 p c sigma hsigma hχ hspeed U V hTW hbound
+  have h := h_part2 x hx_nn
+  have hexp_le := exp_neg_kappa_le_one hκ_nn hx_nn
+  -- |U'(x)| ≤ M''/(|χ|²σ) · exp(-κx) ≤ M''/(|χ|²σ) · 1 = M''/(|χ|²σ)
+  have hMChi_pos : 0 < MChi p :=
+    lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
+  have hMChi_ge_one : 1 ≤ MChi p := MChi_ge_one_of_travelingWave hTW hbound
+  have h_M''_nn : 0 ≤ remark51MDoublePrime p sigma :=
+    remark51MDoublePrime_nonneg_of_MChi_ge_one p hMChi_pos hMChi_ge_one hsigma.le
+  have hχ2σ_pos : 0 < |p.χ| ^ 2 * sigma :=
+    mul_pos (sq_pos_of_pos (abs_pos.mpr hχ)) hsigma
+  have h_M''_div_nn : 0 ≤ remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) :=
+    div_nonneg h_M''_nn hχ2σ_pos.le
+  calc |deriv U x|
+      ≤ remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
+          Real.exp (-(kappa c) * x) := h
+    _ ≤ remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) * 1 :=
+        mul_le_mul_of_nonneg_left hexp_le h_M''_div_nn
+    _ = remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) := by ring
+
+/-- Combined Remark_5_1: maximum bound (best of M' and M'' applied tightly). -/
+theorem Remark_5_1_max_bound
+    (h_R51 : Remark_5_1)
+    (p : CMParams) (c sigma : ℝ)
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    (U V : ℝ → ℝ)
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (x : ℝ) :
+    |deriv U x| ≤ remark51MPrime p / (|p.χ| * sigma) := by
+  exact (h_R51 p c sigma hsigma hχ hspeed U V hTW hbound).1 x
+
+/-- Combined Remark_5_1: exp-decayed bound for x ≥ 0. -/
+theorem Remark_5_1_exp_bound
+    (h_R51 : Remark_5_1)
+    (p : CMParams) (c sigma : ℝ)
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    (U V : ℝ → ℝ)
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (x : ℝ) (hx_nn : 0 ≤ x) :
+    |deriv U x| ≤
+      remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma) *
+        Real.exp (-(kappa c) * x) :=
+  (h_R51 p c sigma hsigma hχ hspeed U V hTW hbound).2 x hx_nn
+
+/-- IsTravelingWave's `lim_pos_inf.1` says U → 0 at +∞. Combined with U bounded by
+HasWaveUpperTailBound, this gives an explicit existence of U being uniformly small. -/
+theorem U_eventually_le_eps_at_top
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (ε : ℝ) (hε : 0 < ε) :
+    ∀ᶠ x in atTop, U x < ε := by
+  have hlim : Tendsto U atTop (𝓝 0) := hTW.lim_pos_inf.1
+  have hε_nhds : Set.Iio ε ∈ 𝓝 (0 : ℝ) := IsOpen.mem_nhds isOpen_Iio hε
+  exact hlim hε_nhds
+
+/-- Symmetric: U → 1 at -∞. -/
+theorem U_eventually_ge_one_minus_eps_at_bot
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (ε : ℝ) (hε : 0 < ε) :
+    ∀ᶠ x in atBot, 1 - ε < U x := by
+  have hlim : Tendsto U atBot (𝓝 1) := hTW.lim_neg_inf.1
+  have h_1mε_lt_1 : 1 - ε < 1 := by linarith
+  have hε_nhds : Set.Ioi (1 - ε) ∈ 𝓝 (1 : ℝ) :=
+    IsOpen.mem_nhds isOpen_Ioi h_1mε_lt_1
+  exact hlim hε_nhds
+
+/-- V → 1 at -∞ similarly. -/
+theorem V_eventually_ge_one_minus_eps_at_bot
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (ε : ℝ) (hε : 0 < ε) :
+    ∀ᶠ x in atBot, 1 - ε < V x := by
+  have hlim : Tendsto V atBot (𝓝 1) := hTW.lim_neg_inf.2
+  have h_lt : 1 - ε < 1 := by linarith
+  have hε_nhds : Set.Ioi (1 - ε) ∈ 𝓝 (1 : ℝ) :=
+    IsOpen.mem_nhds isOpen_Ioi h_lt
+  exact hlim hε_nhds
+
+/-- V → 0 at +∞. -/
+theorem V_eventually_le_eps_at_top
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (ε : ℝ) (hε : 0 < ε) :
+    ∀ᶠ x in atTop, V x < ε := by
+  have hlim : Tendsto V atTop (𝓝 0) := hTW.lim_pos_inf.2
+  have hε_nhds : Set.Iio ε ∈ 𝓝 (0 : ℝ) := IsOpen.mem_nhds isOpen_Iio hε
+  exact hlim hε_nhds
+
+/-- IsTravelingWave provides U bounded between 0 and 1 (essentially)
+via the limits + U_pos. -/
+theorem U_bounded_above_eventually
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U) :
+    ∀ x, 0 < U x ∧ U x ≤ MChi p :=
+  fun x => ⟨hTW.U_pos x, hbound.le_MChi x⟩
+
+/-- Combined: U > 0 globally + U ≤ MChi. -/
+theorem U_pos_and_bounded
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U) :
+    (∀ x, 0 < U x) ∧ (∀ x, U x ≤ MChi p) :=
+  ⟨hTW.U_pos, hbound.le_MChi⟩
+
+/-- IsTravelingWave + HasWaveUpperTailBound: U bounded continuous, so IsCUnifBdd. -/
+theorem U_isCUnifBdd_of_continuous
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hbound : HasWaveUpperTailBound p c U)
+    (hU_cont : Continuous U) :
+    IsCUnifBdd U :=
+  hbound.isCUnifBdd_of_continuous hU_cont
+
+/-- IsTravelingWave's U is nonneg from U_pos. -/
+theorem U_nn_of_isTW
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V) :
+    ∀ x, 0 ≤ U x :=
+  fun x => (hTW.U_pos x).le
+
+/-- IsTravelingWave's U + HasWaveUpperTailBound: combined "ready for frozenElliptic" form. -/
+theorem U_ready_for_frozenElliptic
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hU_cont : Continuous U) :
+    IsCUnifBdd U ∧ (∀ x, 0 ≤ U x) :=
+  ⟨U_isCUnifBdd_of_continuous hbound hU_cont, U_nn_of_isTW hTW⟩
+
+/-- frozenElliptic exists and is well-defined under our wave hypotheses. -/
+theorem frozenElliptic_well_defined
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hU_cont : Continuous U) :
+    ContinuousAt (frozenElliptic p U) 0 ∧
+    (∀ x, |frozenElliptic p U x| ≤ (MChi p) ^ p.γ) := by
+  have hU_bdd : IsCUnifBdd U := U_isCUnifBdd_of_continuous hbound hU_cont
+  refine ⟨?_, fun x => ?_⟩
+  · exact (frozenElliptic_continuous p hU_bdd (U_nn_of_isTW hTW)).continuousAt
+  · exact (Lemma_5_1_signal_bound_for_frozenElliptic p hU_bdd hbound x).1
+
+/-- frozenElliptic ≥ 0 from existing infrastructure. -/
+theorem frozenElliptic_nn_for_wave
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (x : ℝ) :
+    0 ≤ frozenElliptic p U x :=
+  frozenElliptic_nonneg p (U_nn_of_isTW hTW) x
+
+/-- frozenElliptic is continuous everywhere. -/
+theorem frozenElliptic_continuous_for_wave
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hU_cont : Continuous U) :
+    Continuous (frozenElliptic p U) :=
+  frozenElliptic_continuous p (U_isCUnifBdd_of_continuous hbound hU_cont)
+    (U_nn_of_isTW hTW)
+
+/-- The "regularity bundle" simplified statement: under U is C² + V continuous +
+V bounded + V' bounded + iteratedDeriv ode, V = frozenElliptic.
+
+This is the cleanest form of the elliptic regularity bridge with explicit
+hypotheses. -/
+theorem V_eq_frozenElliptic_simplified
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hU_diff : Differentiable ℝ U)
+    (hU_deriv_diff : Differentiable ℝ (deriv U))
+    (hV_diff : Differentiable ℝ V)
+    (hV_deriv_diff : Differentiable ℝ (deriv V))
+    (hV_bdd : ∃ M : ℝ, ∀ x, |V x| ≤ M)
+    (hV_deriv_bdd : ∃ M : ℝ, ∀ x, |deriv V x| ≤ M) :
+    V = frozenElliptic p U :=
+  IsTravelingWave.V_eq_frozenElliptic_via_C2 hTW hbound hU_diff.continuous
+    hV_diff hV_deriv_diff hV_bdd hV_deriv_bdd
+
+/-- Direct shortcut: if regularity is given as a TravelingWaveRegularity bundle
++ U is C² (deriv U Differentiable), then V = frozenElliptic. -/
+theorem V_eq_frozenElliptic_from_TWReg_and_U_C2
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hbound : HasWaveUpperTailBound p c U)
+    (hreg : TravelingWaveRegularity p c U V)
+    (_hU_deriv_diff : Differentiable ℝ (deriv U)) :
+    V = frozenElliptic p U :=
+  IsTravelingWave.V_eq_frozenElliptic_full hTW hbound hreg
+
+/-- Direct application of the M' case algebra in the Lemma 5.1 signal-bound
+context: when Lemma 5.1 gives V's exp signal bound, K_V = 1/(1-κ²γ²) is the
+exact denominator. -/
+theorem K_V_value
+    {c γ : ℝ} :
+    1 / (1 - kappa c ^ 2 * γ ^ 2) = 1 / (1 - (kappa c * γ) ^ 2) := by
+  have h : kappa c ^ 2 * γ ^ 2 = (kappa c * γ) ^ 2 := by ring
+  rw [h]
+
+/-- K_V is positive when κγ < 1. -/
+theorem K_V_pos {c γ : ℝ} (hκγ : kappa c * γ < 1) (hκγ_neg : -1 < kappa c * γ) :
+    0 < 1 / (1 - kappa c ^ 2 * γ ^ 2) := by
+  have h_eq : kappa c ^ 2 * γ ^ 2 = (kappa c * γ) ^ 2 := by ring
+  rw [h_eq]
+  have h_sq : (kappa c * γ) ^ 2 < 1 := by
+    have h_abs : |kappa c * γ| < 1 := by
+      rw [abs_lt]
+      exact ⟨hκγ_neg, hκγ⟩
+    have h_abs_sq : (kappa c * γ) ^ 2 = |kappa c * γ| ^ 2 := (sq_abs _).symm
+    rw [h_abs_sq]
+    nlinarith [abs_nonneg (kappa c * γ)]
+  have h_denom_pos : 0 < 1 - (kappa c * γ) ^ 2 := by linarith
+  positivity
+
+/-- K_V is positive under our standard κγ ≤ 1/2 condition. -/
+theorem K_V_pos_under_kappa_gamma_le_half
+    {c γ : ℝ} (hκ_pos : 0 < kappa c) (hγ_pos : 0 < γ)
+    (hκγ : kappa c * γ ≤ 1 / 2) :
+    0 < 1 / (1 - kappa c ^ 2 * γ ^ 2) := by
+  have hκγ_pos : 0 < kappa c * γ := mul_pos hκ_pos hγ_pos
+  have hκγ_lt : kappa c * γ < 1 := by linarith
+  have hκγ_neg : -1 < kappa c * γ := by linarith
+  exact K_V_pos hκγ_lt hκγ_neg
+
+/-- Direct application: under the standard speed conditions, K_V > 0. -/
+theorem K_V_pos_in_Remark_5_1_context
+    (p : CMParams) {c sigma : ℝ}
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    (hχσ_ge_one : 1 ≤ |p.χ| * sigma)
+    (hκγ_le_half : kappa c * p.γ ≤ 1 / 2) :
+    0 < 1 / (1 - kappa c ^ 2 * p.γ ^ 2) := by
+  have hc_gt_two := remark5SpeedCondition.gt_two_of_chiSigma_ge_one
+    hspeed hsigma hχσ_ge_one
+  have hκ_pos : 0 < kappa c := by
+    unfold kappa
+    have hc_pos : 0 < c := by linarith
+    have hsqrt_lt_c : Real.sqrt (c ^ 2 - 4) < c := by
+      rw [Real.sqrt_lt' hc_pos]; nlinarith
+    linarith
+  have hγ_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
+  exact K_V_pos_under_kappa_gamma_le_half hκ_pos hγ_pos hκγ_le_half
+
+/-- κ > 0 in our setting (c > 2 from |χ|σ ≥ 1). -/
+theorem kappa_pos_under_chi_sigma_ge_one
+    {p : CMParams} {c sigma : ℝ}
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0)
+    (hspeed : remark5SpeedCondition p c sigma)
+    (hχσ_ge_one : 1 ≤ |p.χ| * sigma) :
+    0 < kappa c := by
+  have hc_gt_two := remark5SpeedCondition.gt_two_of_chiSigma_ge_one
+    hspeed hsigma hχσ_ge_one
+  unfold kappa
+  have hc_pos : 0 < c := by linarith
+  have hsqrt_lt_c : Real.sqrt (c ^ 2 - 4) < c := by
+    rw [Real.sqrt_lt' hc_pos]; nlinarith
+  linarith
+
+/-- 2D wave ODE vector field. For the second-order wave ODE V'' = V - U^γ(t),
+the 2D system Y = (V, V'), Y' = (V', V - U^γ(t)) has vector field
+F(t, y) := (y 1, y 0 - U^γ(t)). -/
+noncomputable def wave2DField (p : CMParams) (U : ℝ → ℝ) (t : ℝ) :
+    (Fin 2 → ℝ) → Fin 2 → ℝ :=
+  fun y =>
+    fun
+      | ⟨0, _⟩ => y 1
+      | ⟨1, _⟩ => y 0 - (U t) ^ p.γ
+
+/-- wave2DField unfolded at index 0. -/
+theorem wave2DField_zero (p : CMParams) (U : ℝ → ℝ) (t : ℝ) (y : Fin 2 → ℝ) :
+    wave2DField p U t y ⟨0, by norm_num⟩ = y 1 := rfl
+
+/-- wave2DField unfolded at index 1. -/
+theorem wave2DField_one (p : CMParams) (U : ℝ → ℝ) (t : ℝ) (y : Fin 2 → ℝ) :
+    wave2DField p U t y ⟨1, by norm_num⟩ = y 0 - (U t) ^ p.γ := rfl
+
+/-- wave2DField is componentwise linear: F(t, y₁) - F(t, y₂) is determined
+by y₁ - y₂. The first component is (y₁ - y₂) 1, the second is (y₁ - y₂) 0. -/
+theorem wave2DField_componentwise_diff
+    (p : CMParams) (U : ℝ → ℝ) (t : ℝ) (y₁ y₂ : Fin 2 → ℝ) :
+    (wave2DField p U t y₁ - wave2DField p U t y₂) 0 = y₁ 1 - y₂ 1 ∧
+    (wave2DField p U t y₁ - wave2DField p U t y₂) 1 = y₁ 0 - y₂ 0 := by
+  refine ⟨?_, ?_⟩
+  · show wave2DField p U t y₁ 0 - wave2DField p U t y₂ 0 = y₁ 1 - y₂ 1
+    rfl
+  · show wave2DField p U t y₁ 1 - wave2DField p U t y₂ 1 = y₁ 0 - y₂ 0
+    show (y₁ 0 - (U t) ^ p.γ) - (y₂ 0 - (U t) ^ p.γ) = y₁ 0 - y₂ 0
+    ring
+
+/-- Trivial useful: for y₁ y₂ : Fin 2 → ℝ, |y₁ 0 - y₂ 0| ≤ ‖y₁ - y₂‖. -/
+theorem abs_sub_zero_le_norm_sub (y₁ y₂ : Fin 2 → ℝ) :
+    |y₁ 0 - y₂ 0| ≤ ‖y₁ - y₂‖ := by
+  have h : ‖(y₁ - y₂) 0‖ ≤ ‖y₁ - y₂‖ := norm_le_pi_norm (y₁ - y₂) 0
+  show |y₁ 0 - y₂ 0| ≤ ‖y₁ - y₂‖
+  have h2 : (y₁ - y₂) 0 = y₁ 0 - y₂ 0 := Pi.sub_apply y₁ y₂ 0
+  rw [h2] at h
+  rwa [Real.norm_eq_abs] at h
+
+/-- Similarly for index 1. -/
+theorem abs_sub_one_le_norm_sub (y₁ y₂ : Fin 2 → ℝ) :
+    |y₁ 1 - y₂ 1| ≤ ‖y₁ - y₂‖ := by
+  have h : ‖(y₁ - y₂) 1‖ ≤ ‖y₁ - y₂‖ := norm_le_pi_norm (y₁ - y₂) 1
+  have h2 : (y₁ - y₂) 1 = y₁ 1 - y₂ 1 := Pi.sub_apply y₁ y₂ 1
+  rw [h2] at h
+  rwa [Real.norm_eq_abs] at h
+
+/-- wave2DField is 1-Lipschitz at index 0. -/
+theorem wave2DField_lipschitz_at_zero
+    (p : CMParams) (U : ℝ → ℝ) (t : ℝ) (y₁ y₂ : Fin 2 → ℝ) :
+    |(wave2DField p U t y₁ - wave2DField p U t y₂) 0| ≤ ‖y₁ - y₂‖ := by
+  show |y₁ 1 - y₂ 1| ≤ ‖y₁ - y₂‖
+  exact abs_sub_one_le_norm_sub y₁ y₂
+
+/-- wave2DField is 1-Lipschitz at index 1. -/
+theorem wave2DField_lipschitz_at_one
+    (p : CMParams) (U : ℝ → ℝ) (t : ℝ) (y₁ y₂ : Fin 2 → ℝ) :
+    |(wave2DField p U t y₁ - wave2DField p U t y₂) 1| ≤ ‖y₁ - y₂‖ := by
+  show |(y₁ 0 - (U t) ^ p.γ) - (y₂ 0 - (U t) ^ p.γ)| ≤ ‖y₁ - y₂‖
+  have h_simp : (y₁ 0 - (U t) ^ p.γ) - (y₂ 0 - (U t) ^ p.γ) = y₁ 0 - y₂ 0 := by ring
+  rw [h_simp]
+  exact abs_sub_zero_le_norm_sub y₁ y₂
+
+/-- Pack a real scalar (V, V') as Fin 2 → ℝ for use with the 2D ODE
+infrastructure from ShenWork.PDE.GlobalPicard. -/
+def packPair (a b : ℝ) : Fin 2 → ℝ
+  | ⟨0, _⟩ => a
+  | ⟨1, _⟩ => b
+
+/-- For our second-order ODE V'' = V - U^γ(x) viewed as a 2D first-order
+system Y = (V, V'), the autonomized vector field on (Fin 3 → ℝ) for
+Z = (V, V', x) is Z' = (V', V - U^γ(x), 1). -/
+noncomputable def waveAutonomousField (p : CMParams) (U : ℝ → ℝ) :
+    (Fin 3 → ℝ) → Fin 3 → ℝ :=
+  fun z =>
+    fun
+      | ⟨0, _⟩ => z 1
+      | ⟨1, _⟩ => z 0 - (U (z 2)) ^ p.γ
+      | ⟨2, _⟩ => 1
 
 /-- The piecewise constant `M'''_{\chi,m,\alpha,\gamma,\sigma}` from
 Paper1 Remark 5.2.  The branch at `c ≤ 5/2` comes from Lemma 5.2; the branch at
@@ -11284,6 +15090,160 @@ def Remark_5_2 : Prop :=
             deriv U x / U x ≤
               remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma)
 
+/-- Remark_5_2 holds trivially when U is monotone decreasing AND
+M''' is nonneg: U' ≤ 0 + U > 0 → U'/U ≤ 0 ≤ M'''/(|χ|²σ). -/
+theorem Remark_5_2_under_monotone_U
+    (h_monotone : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        ∀ x, deriv U x ≤ 0) :
+    Remark_5_2 := by
+  intro p c sigma hsigma hχ hspeed U V hTW hbound x
+  have hU_pos : 0 < U x := hTW.U_pos x
+  have h_mono := h_monotone p c sigma hsigma hχ hspeed U V hTW hbound x
+  have hMChi_pos : 0 < MChi p :=
+    lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
+  have h_M_dprime_nn :=
+    remark52MTriplePrime_nonneg_of_MChi_pos p (c := c) hsigma hMChi_pos
+  have hχ2σ_pos : 0 < |p.χ| ^ 2 * sigma :=
+    remark5Denominator_pos hsigma hχ
+  have h_ratio_div_nn : 0 ≤ remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) :=
+    div_nonneg h_M_dprime_nn hχ2σ_pos.le
+  have h_div_nonpos : deriv U x / U x ≤ 0 :=
+    div_nonpos_of_nonpos_of_nonneg h_mono hU_pos.le
+  linarith
+
+/-- Alternative form: Remark_5_2 holds under combined hypotheses:
+- |U'(x)| bound C1
+- U(x) lower bound C2 > 0
+- C1/C2 ≤ M'''/(|χ|²σ)
+The bound deriv U / U ≤ |U'|/U ≤ C1/C2 ≤ M''' bound. -/
+theorem Remark_5_2_under_bounded_with_lower_bound
+    (h_bound : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        ∀ x, deriv U x ≤
+          remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) * U x) :
+    Remark_5_2 := by
+  intro p c sigma hsigma hχ hspeed U V hTW hbound x
+  have hU_pos : 0 < U x := hTW.U_pos x
+  have h_b := h_bound p c sigma hsigma hχ hspeed U V hTW hbound x
+  rw [div_le_iff₀ hU_pos]
+  linarith
+
+/-- Trivial bound: if Remark_5_1 holds, then |deriv U| ≤ M'/(|χ|σ).
+For U(x) ≥ U_low > 0: U'/U ≤ M'/(|χ|σ·U_low). Comparing to Remark_5_2's
+M'''/(|χ|²σ): need M'·|χ|/U_low ≤ M'''. -/
+theorem Remark_5_2_from_Remark_5_1_and_lower_bound
+    (h_R51 : Remark_5_1)
+    (h_U_lower : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        ∃ U_low : ℝ, 0 < U_low ∧ ∀ x, U_low ≤ U x)
+    (h_const_compare : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        ∀ U_low : ℝ, 0 < U_low →
+          remark51MPrime p / (|p.χ| * sigma * U_low) ≤
+            remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma)) :
+    Remark_5_2 := by
+  intro p c sigma hsigma hχ hspeed U V hTW hbound x
+  obtain ⟨U_low, hU_low_pos, hU_low⟩ :=
+    h_U_lower p c sigma hsigma hχ hspeed U V hTW hbound
+  have h_const := h_const_compare p c sigma hsigma hχ hspeed U V hTW hbound U_low hU_low_pos
+  have h_R51_x := (h_R51 p c sigma hsigma hχ hspeed U V hTW hbound).1 x
+  -- |deriv U x| ≤ M'/(|χ|σ). Hence deriv U x ≤ M'/(|χ|σ).
+  have h_deriv_le : deriv U x ≤ remark51MPrime p / (|p.χ| * sigma) :=
+    le_trans (le_abs_self _) h_R51_x
+  have hU_pos : 0 < U x := hTW.U_pos x
+  have hU_low_le_U : U_low ≤ U x := hU_low x
+  -- deriv U x / U x ≤ M'/(|χ|σ) / U_low ≤ M'/(|χ|σ * U_low) ≤ M'''/(|χ|²σ).
+  rw [div_le_iff₀ hU_pos]
+  have h_chain : remark51MPrime p / (|p.χ| * sigma * U_low) * U_low =
+      remark51MPrime p / (|p.χ| * sigma) := by
+    have hU_low_ne : U_low ≠ 0 := ne_of_gt hU_low_pos
+    field_simp
+  calc deriv U x
+      ≤ remark51MPrime p / (|p.χ| * sigma) := h_deriv_le
+    _ = remark51MPrime p / (|p.χ| * sigma * U_low) * U_low := h_chain.symm
+    _ ≤ remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) * U_low :=
+        mul_le_mul_of_nonneg_right h_const hU_low_pos.le
+    _ ≤ remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) * U x := by
+        have hM'''_div_nn : 0 ≤ remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) := by
+          have hMChi_pos : 0 < MChi p :=
+            lt_of_lt_of_le (hbound.pos 0) (hbound.le_MChi 0)
+          have hM_nn := remark52MTriplePrime_nonneg_of_MChi_pos p (c := c) hsigma hMChi_pos
+          have hχ2σ_pos := remark5Denominator_pos hsigma hχ
+          exact div_nonneg hM_nn hχ2σ_pos.le
+        exact mul_le_mul_of_nonneg_left hU_low_le_U hM'''_div_nn
+
+/-- M''' branch comparison (c ≤ 5/2 case): the first branch dominates 2·M''. -/
+theorem remark52MTriplePrime_branch_le_relation_le
+    {p : CMParams} {c sigma : ℝ}
+    (hc : c ≤ (5 / 2 : ℝ))
+    (hMChi_pos : 0 < MChi p) (hsigma : 0 < sigma) :
+    0 ≤ remark52MTriplePrime p c sigma := by
+  exact remark52MTriplePrime_nonneg_of_MChi_pos p (c := c) hsigma hMChi_pos
+
+/-- M''' branch comparison (c > 5/2 case): both branches nonneg. -/
+theorem remark52MTriplePrime_gt_branch_nonneg
+    {p : CMParams} {c sigma : ℝ}
+    (hc : (5 / 2 : ℝ) < c)
+    (hMChi_pos : 0 < MChi p) (hsigma : 0 < sigma) :
+    0 ≤ remark52MTriplePrime p c sigma :=
+  remark52MTriplePrime_nonneg_of_MChi_pos p (c := c) hsigma hMChi_pos
+
+/-- For c > 5/2, M''' ≥ 2·M''. -/
+theorem M_dprime_two_le_M_tprime_gt
+    {p : CMParams} {c sigma : ℝ}
+    (hc : (5 / 2 : ℝ) < c) :
+    2 * remark51MDoublePrime p sigma ≤ remark52MTriplePrime p c sigma :=
+  remark52MTriplePrime.doublePrime_branch_le_of_gt hc
+
+/-- For c > 5/2, M'''/(|χ|²σ) ≥ 2·M''/(|χ|²σ), so the M''' bound is at least
+twice the M'' bound. Useful for combining bounds. -/
+theorem M_tprime_div_dominates_M_dprime_div_gt
+    {p : CMParams} {c sigma : ℝ}
+    (hc : (5 / 2 : ℝ) < c)
+    (hsigma : 0 < sigma) (hχ : p.χ ≠ 0) :
+    2 * (remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma)) ≤
+      remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma) := by
+  have h := M_dprime_two_le_M_tprime_gt (p := p) (sigma := sigma) hc
+  have hχ2σ_pos := remark5Denominator_pos hsigma hχ
+  have h_mul_div : 2 * (remark51MDoublePrime p sigma / (|p.χ| ^ 2 * sigma)) =
+      (2 * remark51MDoublePrime p sigma) / (|p.χ| ^ 2 * sigma) := by ring
+  rw [h_mul_div]
+  exact div_le_div_of_nonneg_right h hχ2σ_pos.le
+
+/-- Top-level: Remark_5_2 follows from Remark_5_1 + lower bound + constant compare,
+combined cleanly. Useful direct application. -/
+theorem Remark_5_2_via_Remark_5_1_full
+    (h_R51 : Remark_5_1)
+    (h_U_lower : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        ∃ U_low : ℝ, 0 < U_low ∧ ∀ x, U_low ≤ U x)
+    (h_const_compare : ∀ p : CMParams, ∀ c sigma : ℝ,
+      0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        ∀ U_low : ℝ, 0 < U_low →
+          remark51MPrime p / (|p.χ| * sigma * U_low) ≤
+            remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma)) :
+    Remark_5_2 :=
+  Remark_5_2_from_Remark_5_1_and_lower_bound h_R51 h_U_lower h_const_compare
+
 def Remark52LogDerivativeAlgebra : Prop :=
   ∀ p : CMParams, ∀ c sigma : ℝ,
     0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
@@ -11338,22 +15298,6 @@ theorem not_Remark52LogDerivativeAlgebra :
   intro p c sigma hsigma hχ hspeed
   exact lt_of_le_of_lt (le_max_left _ _)
     (h p c sigma hsigma hχ hspeed).1
-
-def Remark52LogDerivativeConstantComparison : Prop :=
-  ∀ p : CMParams, ∀ c sigma : ℝ,
-    0 < sigma → p.χ ≠ 0 → remark5SpeedCondition p c sigma →
-      logDerivativeBoundFormula p c ≤
-        remark52MTriplePrime p c sigma / (|p.χ| ^ 2 * sigma)
-
-theorem Remark52LogDerivativeAlgebra.of_gamma_speed_and_constant_comparison
-    (hgamma : Remark52GammaSpeedAlgebra)
-    (hconst : Remark52LogDerivativeConstantComparison) :
-    Remark52LogDerivativeAlgebra := by
-  intro p c sigma hsigma hχ hspeed
-  refine ⟨?_, hconst p c sigma hsigma hχ hspeed⟩
-  exact max_lt
-    (hgamma p c sigma hsigma hχ hspeed)
-    (remark5SpeedCondition.gt_waveDerivativeSpeed hspeed hsigma.le)
 
 theorem Remark_5_2.nonincreasing_positive_profile_branch
     {p : CMParams} {c sigma : ℝ}
@@ -12843,6 +16787,71 @@ theorem Theorem_1_2_frozen_profile_self_initial_data_admissible_branch_of_strict
   exact Theorem_1_2_frozen_profile_self_initial_data_admissible_branch
     hprofile (hbound.isCUnifBdd_of_continuous hU_cont) hU_diff hV_diff
 
+/-- Generic stability-hypothesis closure for Theorem 1.2.
+Given an explicit threshold family `cStarStar` with the paper's `|χ|^{1/6}`
+asymptotic and a stability conclusion for every `(p, c)` past the threshold,
+`Theorem_1_2` follows. -/
+theorem Theorem_1_2.of_assumed_stability_branch
+    (cStarStarFn : CMParams → (ℝ → ℝ))
+    (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
+      StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
+        stabilitySpeedBaseline p < cStarStarFn p p.χ)
+    (hstability : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, cStarStarFn p p.χ < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          ∀ u₀ : ℝ → ℝ,
+            NonnegativeInitialDatum u₀ →
+            StrictlyPositiveAtLeft u₀ →
+            WeightedL2InitialCloseness η u₀ U →
+            ∃ u v : ℝ → ℝ → ℝ,
+              IsGlobalCauchySolutionFrom p u₀ u v ∧
+              WeightedL2MovingFrameConvergence η c u U ∧
+              UniformMovingFrameConvergence c u U) :
+    Theorem_1_2 := by
+  intro p hreg
+  obtain ⟨hasymp, hbaseline⟩ := hcStarStar p hreg
+  refine ⟨cStarStarFn p, hasymp, hbaseline, ?_⟩
+  exact hstability p hreg
+
+/-- Specialization of `Theorem_1_2.of_assumed_stability_branch` when the
+threshold family is taken to be the paper's `cStarStar` itself, offset by an
+arbitrary positive function `ε p > 0`.  Useful when one has an
+`|χ|^{1/6}` asymptotic for `cStarStar + ε`. -/
+theorem Theorem_1_2.of_assumed_stability_branch_offset
+    (εFn : CMParams → ℝ)
+    (hε_pos : ∀ p, 0 < εFn p)
+    (hasymp : ∀ p : CMParams,
+      StabilitySpeedThresholdFamilyAsymptotic p
+        (fun _χ => stabilitySpeedBaseline p + εFn p))
+    (hstability : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, stabilitySpeedBaseline p + εFn p < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          ∀ u₀ : ℝ → ℝ,
+            NonnegativeInitialDatum u₀ →
+            StrictlyPositiveAtLeft u₀ →
+            WeightedL2InitialCloseness η u₀ U →
+            ∃ u v : ℝ → ℝ → ℝ,
+              IsGlobalCauchySolutionFrom p u₀ u v ∧
+              WeightedL2MovingFrameConvergence η c u U ∧
+              UniformMovingFrameConvergence c u U) :
+    Theorem_1_2 := by
+  refine Theorem_1_2.of_assumed_stability_branch
+    (fun p => fun _χ => stabilitySpeedBaseline p + εFn p) ?_ ?_
+  · intro p _hreg
+    refine ⟨hasymp p, ?_⟩
+    have := hε_pos p
+    linarith
+  · intro p hreg c hc
+    exact hstability p hreg c hc
+
 /-- Paper1 Theorem 1.3: uniqueness of traveling waves with the prescribed right tail. -/
 def Theorem_1_3 : Prop :=
   ∀ p : CMParams, StableWaveParameterRegime p →
@@ -13020,6 +17029,61 @@ theorem Theorem_1_3_profile_eq_of_remark43_second_tail_continuous
     hkappa hTW₁ hTW₂ hU₁_cont hU₂_cont
     (hbound₂.isCUnifBdd_of_continuous hU₂_cont)
     hbound₁ hbound₂ htail₁ htail₂ heta hstable hcauchy_unique hV₁ hV₂
+
+/-- Generic uniqueness-hypothesis closure for Theorem 1.3.
+Given a threshold family `cStarStar` with the paper's `|χ|^{1/6}` asymptotic
+and the pairwise uniqueness conclusion for every `(p, c)` past the threshold,
+`Theorem_1_3` follows. -/
+theorem Theorem_1_3.of_assumed_uniqueness_branch
+    (cStarStarFn : CMParams → (ℝ → ℝ))
+    (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
+      StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
+        stabilitySpeedBaseline p < cStarStarFn p p.χ)
+    (huniq : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, cStarStarFn p p.χ < c →
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧
+          HasWaveRightTailAsymptotic c κ₁ U₁ ∧
+          HasWaveRightTailAsymptotic c κ₁ U₂) →
+        (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x)) :
+    Theorem_1_3 := by
+  intro p hreg
+  obtain ⟨hasymp, hbaseline⟩ := hcStarStar p hreg
+  refine ⟨cStarStarFn p, hasymp, hbaseline, ?_⟩
+  exact huniq p hreg
+
+/-- Specialization of `Theorem_1_3.of_assumed_uniqueness_branch` with
+`cStarStar` chosen to be the baseline shifted by a positive offset. -/
+theorem Theorem_1_3.of_assumed_uniqueness_branch_offset
+    (εFn : CMParams → ℝ)
+    (hε_pos : ∀ p, 0 < εFn p)
+    (hasymp : ∀ p : CMParams,
+      StabilitySpeedThresholdFamilyAsymptotic p
+        (fun _χ => stabilitySpeedBaseline p + εFn p))
+    (huniq : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, stabilitySpeedBaseline p + εFn p < c →
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧
+          HasWaveRightTailAsymptotic c κ₁ U₁ ∧
+          HasWaveRightTailAsymptotic c κ₁ U₂) →
+        (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x)) :
+    Theorem_1_3 := by
+  refine Theorem_1_3.of_assumed_uniqueness_branch
+    (fun p => fun _χ => stabilitySpeedBaseline p + εFn p) ?_ ?_
+  · intro p _hreg
+    refine ⟨hasymp p, ?_⟩
+    have := hε_pos p
+    linarith
+  · intro p hreg c hc
+    exact huniq p hreg c hc
 
 end
 

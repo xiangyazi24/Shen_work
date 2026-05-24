@@ -5,7 +5,7 @@ noncomputable section
 
 namespace ShenWork.Paper2
 
-class ParabolicMaxPrincipleData (D : BoundedDomainData) where
+class SupNormAntitoneData (D : BoundedDomainData) where
   supNorm_nonincreasing_of_deriv_nonpos :
     ∀ {u : ℝ → D.Point → ℝ} {I : Set ℝ},
       Convex ℝ I →
@@ -21,7 +21,7 @@ end ShenWork.Paper2
 namespace ShenWork.IntervalDomain
 
 instance intervalDomain_parabolicMaxPrincipleData :
-    ShenWork.Paper2.ParabolicMaxPrincipleData intervalDomain where
+    ShenWork.Paper2.SupNormAntitoneData intervalDomain where
   supNorm_nonincreasing_of_deriv_nonpos := by
     intro u I hI hcont hdiff hderiv
     exact antitoneOn_of_deriv_nonpos hI hcont hdiff hderiv
