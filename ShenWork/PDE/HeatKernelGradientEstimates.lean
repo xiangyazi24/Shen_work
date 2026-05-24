@@ -992,6 +992,47 @@ theorem unitIntervalCosineLp_inner_eq_coeff
           rw [intervalIntegral.integral_of_le
             (show (0 : ℝ) ≤ 1 by norm_num)]
 
+/-- The raw cosine modes are total in interval `L²`: their closed linear span
+has trivial orthogonal complement. -/
+theorem unitIntervalCosineLp_span_orthogonal_eq_bot :
+    (Submodule.span ℂ
+      (Set.range unitIntervalCosineLp :
+        Set (Lp ℂ 2 (intervalMeasure 1))))ᗮ = ⊥ := by
+  rw [Submodule.eq_bot_iff]
+  intro g hg
+  have hg_mem : MemLp (fun x : ℝ => g x) (2 : ℝ≥0∞) (intervalMeasure 1) :=
+    Lp.memLp g
+  have hcoeff :
+      ∀ n : ℕ,
+        ∫ x in (0 : ℝ)..1,
+          (Real.cos ((n : ℝ) * Real.pi * x) : ℂ) * g x = 0 := by
+    intro n
+    have hcos_mem :
+        unitIntervalCosineLp n ∈
+          Submodule.span ℂ
+            (Set.range unitIntervalCosineLp :
+              Set (Lp ℂ 2 (intervalMeasure 1))) :=
+      Submodule.subset_span (Set.mem_range_self n)
+    have hinner :
+        inner ℂ (unitIntervalCosineLp n) g = 0 :=
+      Submodule.inner_right_of_mem_orthogonal
+        (K := Submodule.span ℂ
+          (Set.range unitIntervalCosineLp :
+            Set (Lp ℂ 2 (intervalMeasure 1))))
+        hcos_mem hg
+    simpa [unitIntervalCosineLp_inner_eq_coeff n g] using hinner
+  have hae :
+      (fun x : ℝ => g x)
+        =ᵐ[volume.restrict (Set.Ioc (0 : ℝ) 1)] 0 :=
+    unitIntervalCosine_nat_total_ae_zero
+      (f := fun x : ℝ => g x)
+      (unitInterval_memLp_two_intervalIntegrable hg_mem)
+      (unitIntervalEvenReflection_memLp_two hg_mem)
+      (unitInterval_memLp_two_norm_sq_intervalIntegrable hg_mem)
+      hcoeff
+  rw [unitIntervalIocMeasure_eq_intervalMeasure] at hae
+  exact (Lp.eq_zero_iff_ae_eq_zero).mpr hae
+
 /-- Unit-interval spectral Neumann heat-gradient estimate in Mathlib
 `LpSeminorm` form, from interval `L²` to `L∞`. -/
 theorem unitIntervalNeumannSpectralHeatGradient_L2_Linfty_lpNorm_bound
