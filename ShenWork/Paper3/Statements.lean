@@ -11430,6 +11430,43 @@ theorem unitPointDomain.Theorem_2_1_part1_minimal_only
     apply Real.rpow_le_rpow hδ_pos.le _ p.hγ.le
     linarith
 
+/-! ### Theorem_2_1 part 4 vacuous (unit-point) -/
+
+/-- Paper 3 Theorem 2.1 part 4 vacuous when `p.a ≠ 0`. -/
+theorem unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero
+    (p : CM2Params) (ha : p.a ≠ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1_part4 ShenWork.Paper2.unitPointDomain p C := by
+  intro ha'; exact absurd ha' ha
+
+/-- Paper 3 Theorem 2.1 part 4 vacuous when `p.b ≠ 0`. -/
+theorem unitPointDomain.Theorem_2_1_part4_vacuous_when_b_nonzero
+    (p : CM2Params) (hb : p.b ≠ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1_part4 ShenWork.Paper2.unitPointDomain p C := by
+  intro _ hb'; exact absurd hb' hb
+
+/-- Paper 3 Theorem 2.1 part 4 vacuous when `p.m ≠ 1`. -/
+theorem unitPointDomain.Theorem_2_1_part4_vacuous_when_m_ne_one
+    (p : CM2Params) (hm : p.m ≠ 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1_part4 ShenWork.Paper2.unitPointDomain p C := by
+  intro _ _ hm'; exact absurd hm' hm
+
+/-- Paper 3 Theorem 2.1 part 4 vacuous when `p.β < 1`. -/
+theorem unitPointDomain.Theorem_2_1_part4_vacuous_when_beta_lt_one
+    (p : CM2Params) (hβ : p.β < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1_part4 ShenWork.Paper2.unitPointDomain p C := by
+  intro _ _ _ hβ'; exact absurd hβ' (not_le.mpr hβ)
+
+/-- Paper 3 Theorem 2.1 part 4 vacuous when `p.χ₀ ≤ 0`. -/
+theorem unitPointDomain.Theorem_2_1_part4_vacuous_when_chi_nonpos
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1_part4 ShenWork.Paper2.unitPointDomain p C := by
+  intro _ _ _ _ hχ'; exact absurd hχ' (not_lt.mpr hχ)
+
 /-- Paper 3 Theorem 2.1 full composite vacuous when `p.a = 0 ∧ p.b ≠ 0`.
 Part 1 needs `1 ≤ p.m` (provide vacuous via m or use minimal).  Parts 2,3
 need `0 < p.a` (vacuous via a_zero).  Part 4 needs `p.b = 0` (vacuous via
