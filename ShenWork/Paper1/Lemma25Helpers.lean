@@ -330,10 +330,8 @@ theorem ExponentialWeight.kernel_integrable
   have hLHS_nn : 0 ≤ psi.weight x * Real.exp (-c * |x - y|) :=
     mul_nonneg hψ_nn hexp_nn
   rw [Real.norm_eq_abs, abs_of_nonneg hLHS_nn]
-  have hbd : psi.weight x * Real.exp (-c * |x - y|) ≤ psi.weight x := by
-    have h1 := mul_le_mul_of_nonneg_left hexp_le_one hψ_nn
-    linarith
-  exact le_trans hbd (le_abs_self _)
+  have h1 := mul_le_mul_of_nonneg_left hexp_le_one hψ_nn
+  linarith
 
 /-! ### Joint integrability of `ψ(x) · K_{x-y} · v(y)` -/
 
@@ -419,24 +417,17 @@ theorem joint_kernel_weight_v_integrable
         exact h_kw_raw
       exact mul_le_mul_of_nonneg_left h_kw (hv_nn y)
     -- Now show Integrable (fun y => ∫ x, ‖...‖)
-    refine MeasureTheory.Integrable.mono'
-      ((hv_int.const_mul (2 / (c - k))).congr ?_) ?_ ?_
-    · -- (2/(c-k)) * (ψ y * v y) =ᵃᵉ v y * (ψ y * 2/(c-k))
-      refine Filter.Eventually.of_forall fun y => ?_
-      ring
+    set g : ℝ → ℝ := fun y => 2 / (c - k) * (psi.weight y * v y) with hg_def
+    have hg_int : Integrable g := hv_int.const_mul (2 / (c - k))
+    refine MeasureTheory.Integrable.mono' hg_int ?_ ?_
     · -- AEStronglyMeasurable of (fun y => ∫ x, ‖...‖ ∂volume)
-      have h_meas : Measurable
-          (fun y : ℝ => ∫ x : ℝ, ‖Function.uncurry
-            (fun x y : ℝ => psi.weight x * Real.exp (-c * |x - y|) * v y)
-            (x, y)‖) := by
-        have h_unc_norm : Measurable
-            (Function.uncurry
-              (fun x y : ℝ => ‖psi.weight x * Real.exp (-c * |x - y|) * v y‖)) := by
-          have := h_meas_uncurry
-          exact this.norm
-        exact h_unc_norm.integral_prod_right'
-      exact h_meas.aestronglyMeasurable
-    · -- ∀ᵐ y, |∫ x, ‖...‖| ≤ v y * (ψ y * 2/(c-k))
+      have h_unc_norm_strong : StronglyMeasurable
+          (Function.uncurry
+            (fun x y : ℝ => ‖psi.weight x * Real.exp (-c * |x - y|) * v y‖)) :=
+        h_meas_uncurry.norm.stronglyMeasurable
+      exact (MeasureTheory.StronglyMeasurable.integral_prod_left
+        h_unc_norm_strong).aestronglyMeasurable
+    · -- ∀ᵐ y, ‖∫ x, ‖f‖‖ ≤ g y
       refine Filter.Eventually.of_forall fun y => ?_
       rw [Real.norm_eq_abs]
       have h_int_nn : 0 ≤ ∫ x, ‖Function.uncurry
@@ -444,6 +435,11 @@ theorem joint_kernel_weight_v_integrable
           (x, y)‖ :=
         MeasureTheory.integral_nonneg (fun x => norm_nonneg _)
       rw [abs_of_nonneg h_int_nn]
+      have h_g_eq : g y = v y * (psi.weight y * (2 / (c - k))) := by
+        show 2 / (c - k) * (psi.weight y * v y) =
+          v y * (psi.weight y * (2 / (c - k)))
+        ring
+      rw [h_g_eq]
       exact h_bound y
 
 /-! ### Fubini swap + weight transfer (the Step 6 reduction) -/
@@ -506,7 +502,7 @@ theorem kernel_v_psi_double_integral_le
       exact h_kw_raw
     exact mul_le_mul_of_nonneg_left h_kw (hv_nn y)
   have hint_LHS : Integrable (fun y : ℝ => ∫ x : ℝ, f x y) :=
-    hjoint.integral_prod_left
+    hjoint.integral_prod_right
   have hint_RHS : Integrable
       (fun y : ℝ => v y * (psi.weight y * (2 / (c - k)))) := by
     have : (fun y : ℝ => v y * (psi.weight y * (2 / (c - k)))) =
