@@ -327,11 +327,13 @@ theorem ExponentialWeight.kernel_integrable
     have habs_nn : 0 ≤ |x - y| := abs_nonneg _
     have hc_nn : 0 ≤ c := _hc.le
     nlinarith
-  rw [Real.norm_eq_abs, abs_of_nonneg (mul_nonneg hψ_nn hexp_nn)]
-  calc psi.weight x * Real.exp (-c * |x - y|)
-      ≤ psi.weight x * 1 := mul_le_mul_of_nonneg_left hexp_le_one hψ_nn
-    _ = psi.weight x := by ring
-    _ ≤ |psi.weight x| := le_abs_self _
+  have hLHS_nn : 0 ≤ psi.weight x * Real.exp (-c * |x - y|) :=
+    mul_nonneg hψ_nn hexp_nn
+  rw [Real.norm_eq_abs, abs_of_nonneg hLHS_nn]
+  have hbd : psi.weight x * Real.exp (-c * |x - y|) ≤ psi.weight x := by
+    have h1 := mul_le_mul_of_nonneg_left hexp_le_one hψ_nn
+    linarith
+  exact le_trans hbd (le_abs_self _)
 
 /-! ### Joint integrability of `ψ(x) · K_{x-y} · v(y)` -/
 
@@ -403,7 +405,18 @@ theorem joint_kernel_weight_v_integrable
         ring
       rw [h_norm_eq]
       rw [MeasureTheory.integral_const_mul]
-      have h_kw := kernel_weight_integral_le_psi psi hc hk_nn hk_lt hk_bound y
+      have h_kw_raw :=
+        kernel_weight_integral_le_psi psi hc hk_nn hk_lt hk_bound y
+      -- h_kw_raw integrand is `exp(-c|x-y|) * ψ(x)`; flip to `ψ(x) * exp(-c|x-y|)`
+      have h_kw :
+          ∫ x : ℝ, psi.weight x * Real.exp (-c * |x - y|) ≤
+            psi.weight y * (2 / (c - k)) := by
+        have h_eq :
+            (fun x : ℝ => psi.weight x * Real.exp (-c * |x - y|)) =
+              (fun x : ℝ => Real.exp (-c * |x - y|) * psi.weight x) := by
+          funext x; ring
+        rw [h_eq]
+        exact h_kw_raw
       exact mul_le_mul_of_nonneg_left h_kw (hv_nn y)
     -- Now show Integrable (fun y => ∫ x, ‖...‖)
     refine MeasureTheory.Integrable.mono'
