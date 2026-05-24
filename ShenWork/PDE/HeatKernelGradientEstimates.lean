@@ -1519,4 +1519,402 @@ theorem unitIntervalNeumannHeatSemigroup_grad_Lp_Linfty_bound
   simpa [unitIntervalNeumannHeatSemigroup,
     unitInterval_lpNorm_complex_ofReal_eq hf_mem] using hbase
 
+/-! ## Zeroth-reflection helper-operator gradient bounds -/
+
+/-- Full-line `L¹ → L∞` heat-gradient factor used by the helper-operator
+bound below. -/
+def heatGradientL1LinftyFactor (t : ℝ) : ℝ :=
+  ((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+    (Real.sqrt (1 / (4 * t)))⁻¹
+
+theorem heatGradientL1LinftyFactor_nonneg {t : ℝ} (ht : 0 < t) :
+    0 ≤ heatGradientL1LinftyFactor t := by
+  dsimp [heatGradientL1LinftyFactor]
+  positivity
+
+/-- A translated heat-kernel term times an interval-integrable input is
+integrable against the interval measure. -/
+lemma interval_heatKernel_sub_mul_integrable
+    {L t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf_int : Integrable f (intervalMeasure L)) (x : ℝ) :
+    Integrable (fun y => heatKernel t (x - y) * f y)
+      (intervalMeasure L) := by
+  have hkernel_meas :
+      AEStronglyMeasurable (fun y : ℝ => heatKernel t (x - y))
+        (intervalMeasure L) := by
+    have hcont : Continuous (fun y : ℝ => heatKernel t (x - y)) := by
+      unfold heatKernel
+      fun_prop
+    exact hcont.aestronglyMeasurable
+  have hkernel_bound :
+      ∀ y : ℝ, ‖heatKernel t (x - y)‖ ≤
+        1 / Real.sqrt (4 * Real.pi * t) := by
+    intro y
+    rw [Real.norm_eq_abs, abs_of_nonneg (heatKernel_nonneg ht (x - y))]
+    exact _root_.heatKernel_pointwise_bound ht (x - y)
+  simpa [mul_comm] using
+    hf_int.mul_bdd hkernel_meas
+      (Filter.Eventually.of_forall hkernel_bound)
+
+/-- A reflected translated heat-kernel term times an interval-integrable input
+is integrable against the interval measure. -/
+lemma interval_heatKernel_add_mul_integrable
+    {L t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf_int : Integrable f (intervalMeasure L)) (x : ℝ) :
+    Integrable (fun y => heatKernel t (x + y) * f y)
+      (intervalMeasure L) := by
+  have hkernel_meas :
+      AEStronglyMeasurable (fun y : ℝ => heatKernel t (x + y))
+        (intervalMeasure L) := by
+    have hcont : Continuous (fun y : ℝ => heatKernel t (x + y)) := by
+      unfold heatKernel
+      fun_prop
+    exact hcont.aestronglyMeasurable
+  have hkernel_bound :
+      ∀ y : ℝ, ‖heatKernel t (x + y)‖ ≤
+        1 / Real.sqrt (4 * Real.pi * t) := by
+    intro y
+    rw [Real.norm_eq_abs, abs_of_nonneg (heatKernel_nonneg ht (x + y))]
+    exact _root_.heatKernel_pointwise_bound ht (x + y)
+  simpa [mul_comm] using
+    hf_int.mul_bdd hkernel_meas
+      (Filter.Eventually.of_forall hkernel_bound)
+
+/-- Zero extension from `[0,L]` is integrable on the line when the original
+function is integrable against `intervalMeasure L`. -/
+lemma interval_indicator_integrable_of_integrable
+    {L : ℝ} {f : ℝ → ℝ}
+    (hf_int : Integrable f (intervalMeasure L)) :
+    Integrable (Set.indicator (intervalSet L) f) volume := by
+  have hf_on : IntegrableOn f (intervalSet L) volume := by
+    simpa [IntegrableOn, intervalMeasure] using hf_int
+  exact hf_on.integrable_indicator
+    (show MeasurableSet (intervalSet L) by simp [intervalSet])
+
+/-- The `L¹` mass of the zero extension is the interval `L¹` mass. -/
+theorem interval_indicator_abs_integral_eq
+    (L : ℝ) (f : ℝ → ℝ) :
+    (∫ y : ℝ, |Set.indicator (intervalSet L) f y|) =
+      ∫ y, |f y| ∂ intervalMeasure L := by
+  rw [intervalMeasure]
+  have hfun :
+      (fun y : ℝ => |Set.indicator (intervalSet L) f y|) =
+        Set.indicator (intervalSet L) (fun y : ℝ => |f y|) := by
+    funext y
+    by_cases hy : y ∈ intervalSet L
+    · simp [Set.indicator_of_mem hy]
+    · rw [Set.indicator_of_notMem hy, Set.indicator_of_notMem hy]
+      simp
+  rw [hfun]
+  rw [MeasureTheory.integral_indicator
+    (show MeasurableSet (intervalSet L) by simp [intervalSet])]
+
+/-- The restricted zeroth-reflection helper operator is the average of two
+full-line heat semigroups applied to the zero extension. -/
+theorem intervalSemigroupOperator_eq_half_heatSemigroup_add_reflected
+    {L t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf_int : Integrable f (intervalMeasure L)) (x : ℝ) :
+    intervalSemigroupOperator L t f x =
+      (1 / 2) * heatSemigroup t (Set.indicator (intervalSet L) f) x +
+        (1 / 2) * heatSemigroup t (Set.indicator (intervalSet L) f) (-x) := by
+  have hleft_int :=
+    interval_heatKernel_sub_mul_integrable
+      (L := L) (t := t) ht hf_int x
+  have hright_int :=
+    interval_heatKernel_add_mul_integrable
+      (L := L) (t := t) ht hf_int x
+  have hleft_rhs :
+      (∫ y : ℝ,
+          heatKernel t (x - y) * Set.indicator (intervalSet L) f y) =
+        ∫ y, heatKernel t (x - y) * f y ∂ intervalMeasure L := by
+    rw [intervalMeasure]
+    have hfun :
+        (fun y : ℝ =>
+            heatKernel t (x - y) * Set.indicator (intervalSet L) f y) =
+          Set.indicator (intervalSet L)
+            (fun y : ℝ => heatKernel t (x - y) * f y) := by
+      funext y
+      by_cases hy : y ∈ intervalSet L
+      · simp [Set.indicator_of_mem hy]
+      · rw [Set.indicator_of_notMem hy, Set.indicator_of_notMem hy]
+        ring
+    rw [hfun]
+    rw [MeasureTheory.integral_indicator
+      (show MeasurableSet (intervalSet L) by simp [intervalSet])]
+  have hright_rhs :
+      (∫ y : ℝ,
+          heatKernel t (-x - y) * Set.indicator (intervalSet L) f y) =
+        ∫ y, heatKernel t (x + y) * f y ∂ intervalMeasure L := by
+    rw [intervalMeasure]
+    have hfun :
+        (fun y : ℝ =>
+            heatKernel t (-x - y) * Set.indicator (intervalSet L) f y) =
+          Set.indicator (intervalSet L)
+            (fun y : ℝ => heatKernel t (x + y) * f y) := by
+      funext y
+      by_cases hy : y ∈ intervalSet L
+      · rw [Set.indicator_of_mem hy, Set.indicator_of_mem hy]
+        rw [show -x - y = -(x + y) by ring, heatKernel_neg]
+      · rw [Set.indicator_of_notMem hy, Set.indicator_of_notMem hy]
+        ring
+    rw [hfun]
+    rw [MeasureTheory.integral_indicator
+      (show MeasurableSet (intervalSet L) by simp [intervalSet])]
+  unfold intervalSemigroupOperator normalizedZerothReflectionKernel
+    neumannHeatKernel_zerothReflection heatSemigroup
+  rw [hleft_rhs, hright_rhs]
+  calc
+    ∫ y,
+        1 / 2 * (heatKernel t (x - y) + heatKernel t (x + y)) * f y
+        ∂ intervalMeasure L
+        =
+          ∫ y,
+            ((1 / 2) * (heatKernel t (x - y) * f y) +
+              (1 / 2) * (heatKernel t (x + y) * f y))
+            ∂ intervalMeasure L := by
+          congr 1
+          ext y
+          ring
+    _ =
+          ∫ y, (1 / 2) * (heatKernel t (x - y) * f y)
+            ∂ intervalMeasure L +
+          ∫ y, (1 / 2) * (heatKernel t (x + y) * f y)
+            ∂ intervalMeasure L := by
+          rw [MeasureTheory.integral_add
+            (hleft_int.const_mul (1 / 2))
+            (hright_int.const_mul (1 / 2))]
+    _ =
+          (1 / 2) *
+            ∫ y, heatKernel t (x - y) * f y ∂ intervalMeasure L +
+          (1 / 2) *
+            ∫ y, heatKernel t (x + y) * f y ∂ intervalMeasure L := by
+          rw [MeasureTheory.integral_const_mul,
+            MeasureTheory.integral_const_mul]
+
+/-- Derivative algebra for the averaged full-line representation. -/
+lemma deriv_half_heatSemigroup_add_reflected
+    {t x : ℝ} (ht : 0 < t) {g : ℝ → ℝ} (hg : Integrable g) :
+    deriv
+        (fun z : ℝ =>
+          (1 / 2 : ℝ) * heatSemigroup t g z +
+            (1 / 2 : ℝ) * heatSemigroup t g (-z)) x =
+      (1 / 2 : ℝ) * deriv (fun z : ℝ => heatSemigroup t g z) x -
+        (1 / 2 : ℝ) * deriv (fun z : ℝ => heatSemigroup t g z) (-x) := by
+  have h1 := (heatSemigroup_hasDerivAt (f := g) ht x hg).const_mul
+    (1 / 2 : ℝ)
+  have h2 :=
+    ((heatSemigroup_hasDerivAt (f := g) ht (-x) hg).comp x
+      (hasDerivAt_neg x)).const_mul (1 / 2 : ℝ)
+  have h := (h1.add h2).deriv
+  rw [deriv_heatSemigroup (f := g) ht x hg,
+    deriv_heatSemigroup (f := g) ht (-x) hg]
+  simpa [sub_eq_add_neg, mul_neg] using h
+
+/-- Pointwise `L¹ → L∞` gradient smoothing for the restricted
+zeroth-reflection helper operator. -/
+theorem intervalSemigroupOperator_deriv_L1_Linfty_pointwise
+    {L t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf_int : Integrable f (intervalMeasure L)) (x : ℝ) :
+    |deriv (fun z : ℝ => intervalSemigroupOperator L t f z) x| ≤
+      heatGradientL1LinftyFactor t *
+        ∫ y, |f y| ∂ intervalMeasure L := by
+  let g : ℝ → ℝ := Set.indicator (intervalSet L) f
+  have hg_int : Integrable g volume :=
+    interval_indicator_integrable_of_integrable (L := L) (f := f) hf_int
+  have hrepr :
+      (fun z : ℝ => intervalSemigroupOperator L t f z) =
+        fun z : ℝ =>
+          (1 / 2 : ℝ) * heatSemigroup t g z +
+            (1 / 2 : ℝ) * heatSemigroup t g (-z) := by
+    funext z
+    exact intervalSemigroupOperator_eq_half_heatSemigroup_add_reflected
+      (L := L) (t := t) ht (f := f) hf_int z
+  have hderiv :
+      deriv (fun z : ℝ => intervalSemigroupOperator L t f z) x =
+        (1 / 2 : ℝ) * deriv (fun z : ℝ => heatSemigroup t g z) x -
+          (1 / 2 : ℝ) * deriv (fun z : ℝ => heatSemigroup t g z) (-x) := by
+    rw [hrepr]
+    exact deriv_half_heatSemigroup_add_reflected (t := t) (x := x) ht hg_int
+  have hD1 :=
+    deriv_heatSemigroup_L1_Linfty_smoothing_abs
+      (f := g) (t := t) ht x hg_int
+  have hD2 :=
+    deriv_heatSemigroup_L1_Linfty_smoothing_abs
+      (f := g) (t := t) ht (-x) hg_int
+  let Ig : ℝ := ∫ y : ℝ, |g y|
+  have hIg_nonneg : 0 ≤ Ig := by
+    dsimp [Ig]
+    exact integral_nonneg fun y => abs_nonneg (g y)
+  have hC_nonneg : 0 ≤ heatGradientL1LinftyFactor t :=
+    heatGradientL1LinftyFactor_nonneg ht
+  have hD1' :
+      |deriv (fun z : ℝ => heatSemigroup t g z) x| ≤
+        heatGradientL1LinftyFactor t * Ig := by
+    simpa [heatGradientL1LinftyFactor, Ig] using hD1
+  have hD2' :
+      |deriv (fun z : ℝ => heatSemigroup t g z) (-x)| ≤
+        heatGradientL1LinftyFactor t * Ig := by
+    simpa [heatGradientL1LinftyFactor, Ig] using hD2
+  have hIg_eq :
+      Ig = ∫ y, |f y| ∂ intervalMeasure L := by
+    dsimp [Ig, g]
+    exact interval_indicator_abs_integral_eq L f
+  have hhalf_nonneg : 0 ≤ (1 / 2 : ℝ) := by norm_num
+  calc
+    |deriv (fun z : ℝ => intervalSemigroupOperator L t f z) x|
+        =
+          |(1 / 2 : ℝ) * deriv (fun z : ℝ => heatSemigroup t g z) x -
+            (1 / 2 : ℝ) * deriv (fun z : ℝ => heatSemigroup t g z) (-x)| := by
+          rw [hderiv]
+    _ ≤
+          |(1 / 2 : ℝ) * deriv (fun z : ℝ => heatSemigroup t g z) x| +
+            |(1 / 2 : ℝ) *
+              deriv (fun z : ℝ => heatSemigroup t g z) (-x)| :=
+          abs_sub _ _
+    _ =
+          (1 / 2 : ℝ) * |deriv (fun z : ℝ => heatSemigroup t g z) x| +
+            (1 / 2 : ℝ) *
+              |deriv (fun z : ℝ => heatSemigroup t g z) (-x)| := by
+          rw [abs_mul, abs_mul, abs_of_nonneg hhalf_nonneg]
+    _ ≤
+          (1 / 2 : ℝ) * (heatGradientL1LinftyFactor t * Ig) +
+            (1 / 2 : ℝ) * (heatGradientL1LinftyFactor t * Ig) := by
+          exact add_le_add
+            (mul_le_mul_of_nonneg_left hD1' hhalf_nonneg)
+            (mul_le_mul_of_nonneg_left hD2' hhalf_nonneg)
+    _ =
+          heatGradientL1LinftyFactor t * Ig := by ring
+    _ =
+          heatGradientL1LinftyFactor t *
+            ∫ y, |f y| ∂ intervalMeasure L := by
+          rw [hIg_eq]
+
+/-- On the unit interval, real `L^p` controls real `L¹` for `1 ≤ p < ∞`. -/
+theorem unitInterval_lpNorm_one_le_lpNorm_of_one_le_real
+    {p : ℝ} (hp : 1 ≤ p) {f : ℝ → ℝ}
+    (hf_mem : MemLp f (ENNReal.ofReal p) (intervalMeasure 1)) :
+    lpNorm f (1 : ℝ≥0∞) (intervalMeasure 1) ≤
+      lpNorm f (ENNReal.ofReal p) (intervalMeasure 1) := by
+  have hp1 : (1 : ℝ≥0∞) ≤ ENNReal.ofReal p := by
+    simpa using ENNReal.ofReal_le_ofReal hp
+  have hle :
+      eLpNorm f (1 : ℝ≥0∞) (intervalMeasure 1) ≤
+        eLpNorm f (ENNReal.ofReal p) (intervalMeasure 1) := by
+    have hbase :=
+      eLpNorm_le_eLpNorm_mul_rpow_measure_univ
+        (μ := intervalMeasure 1) (f := f) hp1
+        hf_mem.aestronglyMeasurable
+    simpa [unitIntervalMeasure_univ] using hbase
+  have hreal := ENNReal.toReal_mono hf_mem.eLpNorm_ne_top hle
+  simpa [toReal_eLpNorm hf_mem.aestronglyMeasurable] using hreal
+
+/-- Unit-interval `LpSeminorm` form of the helper-operator
+`L¹ → L∞` gradient smoothing estimate. -/
+theorem unitIntervalSemigroupOperator_grad_L1_Linfty_lpNorm_bound
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf_int : Integrable f (intervalMeasure 1)) :
+    lpNorm
+        (fun x =>
+          deriv (fun z : ℝ => intervalSemigroupOperator 1 t f z) x)
+        ∞ (intervalMeasure 1) ≤
+      heatGradientL1LinftyFactor t *
+        lpNorm f (1 : ℝ≥0∞) (intervalMeasure 1) := by
+  let C : ℝ :=
+    heatGradientL1LinftyFactor t *
+      lpNorm f (1 : ℝ≥0∞) (intervalMeasure 1)
+  have hC_nonneg : 0 ≤ C := by
+    dsimp [C]
+    exact mul_nonneg (heatGradientL1LinftyFactor_nonneg ht) lpNorm_nonneg
+  have hpoint :
+      ∀ x,
+        ‖deriv (fun z : ℝ => intervalSemigroupOperator 1 t f z) x‖ ≤ C := by
+    intro x
+    have h :=
+      intervalSemigroupOperator_deriv_L1_Linfty_pointwise
+        (L := 1) (t := t) ht (f := f) hf_int x
+    simpa [C, Real.norm_eq_abs,
+      lpNorm_one_eq_integral_norm hf_int.aestronglyMeasurable] using h
+  exact unitInterval_lpNorm_top_le_of_forall_norm_le hC_nonneg hpoint
+
+/-- Unit-interval `LpSeminorm` form of the helper-operator
+`L¹ → L^q` gradient smoothing estimate for finite `q`. -/
+theorem unitIntervalSemigroupOperator_grad_L1_Lq_lpNorm_bound
+    {t q : ℝ} (ht : 0 < t) (hq : 0 < q) {f : ℝ → ℝ}
+    (hf_int : Integrable f (intervalMeasure 1)) :
+    lpNorm
+        (fun x =>
+          deriv (fun z : ℝ => intervalSemigroupOperator 1 t f z) x)
+        (ENNReal.ofReal q) (intervalMeasure 1) ≤
+      heatGradientL1LinftyFactor t *
+        lpNorm f (1 : ℝ≥0∞) (intervalMeasure 1) := by
+  let C : ℝ :=
+    heatGradientL1LinftyFactor t *
+      lpNorm f (1 : ℝ≥0∞) (intervalMeasure 1)
+  have hC_nonneg : 0 ≤ C := by
+    dsimp [C]
+    exact mul_nonneg (heatGradientL1LinftyFactor_nonneg ht) lpNorm_nonneg
+  have hpoint :
+      ∀ x,
+        ‖deriv (fun z : ℝ => intervalSemigroupOperator 1 t f z) x‖ ≤ C := by
+    intro x
+    have h :=
+      intervalSemigroupOperator_deriv_L1_Linfty_pointwise
+        (L := 1) (t := t) ht (f := f) hf_int x
+    simpa [C, Real.norm_eq_abs,
+      lpNorm_one_eq_integral_norm hf_int.aestronglyMeasurable] using h
+  exact unitInterval_lpNorm_le_of_forall_norm_le hq hC_nonneg hpoint
+
+/-- Unit-interval helper-operator gradient estimate from finite `L^p`,
+`1 ≤ p`, to finite `L^q`.  This is for the zeroth-reflection helper operator,
+not the spectral Neumann semigroup. -/
+theorem unitIntervalSemigroupOperator_grad_Lp_Lq_lpNorm_bound
+    {t p q : ℝ} (ht : 0 < t) (hp : 1 ≤ p) (hq : 0 < q)
+    {f : ℝ → ℝ}
+    (hf_mem : MemLp f (ENNReal.ofReal p) (intervalMeasure 1)) :
+    lpNorm
+        (fun x =>
+          deriv (fun z : ℝ => intervalSemigroupOperator 1 t f z) x)
+        (ENNReal.ofReal q) (intervalMeasure 1) ≤
+      heatGradientL1LinftyFactor t *
+        lpNorm f (ENNReal.ofReal p) (intervalMeasure 1) := by
+  have hp1 : (1 : ℝ≥0∞) ≤ ENNReal.ofReal p := by
+    simpa using ENNReal.ofReal_le_ofReal hp
+  have hf_int : Integrable f (intervalMeasure 1) :=
+    hf_mem.integrable hp1
+  have hbase :=
+    unitIntervalSemigroupOperator_grad_L1_Lq_lpNorm_bound
+      (t := t) (q := q) ht hq (f := f) hf_int
+  have hLp :=
+    unitInterval_lpNorm_one_le_lpNorm_of_one_le_real
+      (p := p) hp (f := f) hf_mem
+  exact hbase.trans
+    (mul_le_mul_of_nonneg_left hLp
+      (heatGradientL1LinftyFactor_nonneg ht))
+
+/-- Unit-interval helper-operator gradient estimate from finite `L^p`,
+`1 ≤ p`, to `L∞`. -/
+theorem unitIntervalSemigroupOperator_grad_Lp_Linfty_lpNorm_bound
+    {t p : ℝ} (ht : 0 < t) (hp : 1 ≤ p)
+    {f : ℝ → ℝ}
+    (hf_mem : MemLp f (ENNReal.ofReal p) (intervalMeasure 1)) :
+    lpNorm
+        (fun x =>
+          deriv (fun z : ℝ => intervalSemigroupOperator 1 t f z) x)
+        ∞ (intervalMeasure 1) ≤
+      heatGradientL1LinftyFactor t *
+        lpNorm f (ENNReal.ofReal p) (intervalMeasure 1) := by
+  have hp1 : (1 : ℝ≥0∞) ≤ ENNReal.ofReal p := by
+    simpa using ENNReal.ofReal_le_ofReal hp
+  have hf_int : Integrable f (intervalMeasure 1) :=
+    hf_mem.integrable hp1
+  have hbase :=
+    unitIntervalSemigroupOperator_grad_L1_Linfty_lpNorm_bound
+      (t := t) ht (f := f) hf_int
+  have hLp :=
+    unitInterval_lpNorm_one_le_lpNorm_of_one_le_real
+      (p := p) hp (f := f) hf_mem
+  exact hbase.trans
+    (mul_le_mul_of_nonneg_left hLp
+      (heatGradientL1LinftyFactor_nonneg ht))
+
 end ShenWork.HeatKernelGradientEstimates
