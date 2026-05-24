@@ -256,6 +256,35 @@ theorem Lemma_2_5_with_explicit_k_via_Fubini_hypothesis
       hl hmu hpExp hu hu_nn hLHS_int hRHS_int
   exact le_trans hstep3 hFubini_le
 
+/-! ### Domination integrand for joint Fubini -/
+
+/-- The pointwise bound for the joint integrand `ψ(x) · K_{x-y} · v(y)`
+where `v = (u^γ)^p`.  When ψ has log-derivative bounded by `k < c`,
+the joint integrand is dominated by `ψ(y) · exp((k-c)|x-y|) · v(y)`,
+whose double integral collapses via Fubini to a finite multiple of
+`∫_y ψ(y) v(y) dy`. -/
+lemma joint_integrand_le
+    (psi : ExponentialWeight) {c k : ℝ} (hc : 0 < c) (hk_nn : 0 ≤ k)
+    (hk_bound : ∀ z, |deriv psi.weight z| ≤ k * psi.weight z)
+    {v : ℝ → ℝ} (hv_nn : ∀ y, 0 ≤ v y) (x y : ℝ) :
+    psi.weight x * Real.exp (-c * |x - y|) * v y ≤
+      psi.weight y * Real.exp ((k - c) * |x - y|) * v y := by
+  have hψ_le := psi.weight_ratio_le hk_nn hk_bound x y
+  have hexp_nonneg : 0 ≤ Real.exp (-c * |x - y|) := (Real.exp_pos _).le
+  have hv_nonneg : 0 ≤ v y := hv_nn y
+  have h1 : psi.weight x * Real.exp (-c * |x - y|) ≤
+      psi.weight y * Real.exp (k * |x - y|) * Real.exp (-c * |x - y|) := by
+    have := mul_le_mul_of_nonneg_right hψ_le hexp_nonneg
+    linarith
+  have h2 :
+      psi.weight y * Real.exp (k * |x - y|) * Real.exp (-c * |x - y|) =
+        psi.weight y * Real.exp ((k - c) * |x - y|) := by
+    rw [mul_assoc, ← Real.exp_add]
+    congr 2
+    ring
+  rw [h2] at h1
+  exact mul_le_mul_of_nonneg_right h1 hv_nonneg
+
 end ShenWork.Paper1
 
 end
