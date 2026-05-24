@@ -18,3 +18,4 @@ import ShenWork.Paper2.Defs
 import ShenWork.Paper2.Statements
 import ShenWork.Paper3.Defs
 import ShenWork.Paper3.Statements
+import ShenWork.PDE.CosineSpectrum
