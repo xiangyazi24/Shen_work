@@ -246,4 +246,60 @@ lemma bernoulliLogisticSolution_hasDerivAt_of_neg_time
   simpa [bernoulliLogisticSolutionDerivative, not_le.mpr ht, c, mul_comm, mul_left_comm,
     mul_assoc] using hneg.congr_of_eventuallyEq hbranch
 
+lemma bernoulliLogisticSolution_hasDerivAt_zero
+    (p : CM2Params) {u₀ : ℝ} (ha : 0 < p.a) (hb : 0 < p.b)
+    (hu₀ : 0 < u₀) :
+    HasDerivAt (fun s : ℝ => bernoulliLogisticSolution p u₀ s)
+      (bernoulliLogisticSolutionDerivative p u₀ 0) 0 := by
+  let d : ℝ := bernoulliLogisticInitialDerivative p u₀
+  let c : ℝ := p.a - p.b * u₀ ^ p.α
+  have hforward0 : bernoulliLogisticForward p u₀ 0 = u₀ :=
+    bernoulliLogisticForward_zero p hu₀
+  have hderiv_def : bernoulliLogisticSolutionDerivative p u₀ 0 = d := by
+    simp [bernoulliLogisticSolutionDerivative, bernoulliLogisticInitialDerivative,
+      hforward0, d]
+  have hforward_deriv :
+      HasDerivAt (fun s : ℝ => bernoulliLogisticForward p u₀ s) d 0 := by
+    simpa [bernoulliLogisticInitialDerivative, hforward0, d] using
+      (bernoulliLogisticForward_hasDerivAt p ha hb hu₀ (le_rfl : 0 ≤ (0 : ℝ)))
+  have hright :
+      HasDerivWithinAt (fun s : ℝ => bernoulliLogisticSolution p u₀ s) d
+        (Ici (0 : ℝ)) 0 := by
+    refine hforward_deriv.hasDerivWithinAt.congr ?_ ?_
+    · intro s hs
+      exact bernoulliLogisticSolution_of_nonneg p u₀ s hs
+    · exact bernoulliLogisticSolution_of_nonneg p u₀ 0 le_rfl
+  have hnegative_deriv :
+      HasDerivAt (fun s : ℝ => u₀ * Real.exp (c * s)) d 0 := by
+    have h := (((hasDerivAt_id (0 : ℝ)).const_mul c).exp).const_mul u₀
+    simpa [bernoulliLogisticInitialDerivative, c, d, mul_comm, mul_left_comm, mul_assoc] using h
+  have hleft :
+      HasDerivWithinAt (fun s : ℝ => bernoulliLogisticSolution p u₀ s) d
+        (Iic (0 : ℝ)) 0 := by
+    refine hnegative_deriv.hasDerivWithinAt.congr ?_ ?_
+    · intro s hs
+      by_cases hs0 : s = 0
+      · subst s
+        simp [bernoulliLogisticSolution, hforward0, c]
+      · have hsneg : s < 0 := lt_of_le_of_ne hs hs0
+        simp [bernoulliLogisticSolution_of_neg p u₀ s hsneg, c]
+    · simp [bernoulliLogisticSolution, hforward0, c]
+  have hunion : Iic (0 : ℝ) ∪ Ici (0 : ℝ) = univ := by
+    ext x
+    constructor
+    · intro _; trivial
+    · intro _
+      by_cases hx : x ≤ 0
+      · exact Or.inl hx
+      · exact Or.inr (le_of_lt (not_le.mp hx))
+  have hboth :
+      HasDerivWithinAt (fun s : ℝ => bernoulliLogisticSolution p u₀ s) d
+        (Iic (0 : ℝ) ∪ Ici (0 : ℝ)) 0 :=
+    hleft.union hright
+  have hAt :
+      HasDerivAt (fun s : ℝ => bernoulliLogisticSolution p u₀ s) d 0 := by
+    rw [← hasDerivWithinAt_univ]
+    simpa [hunion] using hboth
+  simpa [hderiv_def] using hAt
+
 end ShenWork.Paper2
