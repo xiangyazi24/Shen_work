@@ -949,6 +949,40 @@ theorem Lemma_2_5_explicit_epsilon_CMParams_unit
   rw [← h_bound_eq]
   exact hk_bound z
 
+/-! ### Lemma_2_5 from a ψ-extracted-k witness -/
+
+/-- Lemma 2.5 follows from a ψ-extracted k-witness that is `< √l`.  The
+witness packs the choice of `k_ψ` into the `ψ`-input alongside the
+existing `deriv_abs_le` field; downstream code that provides `ψ` with
+such a witness can directly invoke this lemma.
+
+This is the sharpest closure of `Lemma_2_5` that doesn't require
+restricting the `ExponentialWeight` class:  for each ψ supplied with a
+`k_ψ < √l` witness, the bound holds with the explicit constant. -/
+theorem Lemma_2_5_from_extracted_psi_k_witness
+    {pExp gamma l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 1 ≤ pExp) (hgamma : 0 < gamma)
+    (psi : ExponentialWeight) {k : ℝ}
+    (hk_nn : 0 ≤ k) (hk_lt : k < Real.sqrt l)
+    (hk_witness : ∀ z, |deriv psi.weight z| ≤ k * psi.weight z)
+    {u : ℝ → ℝ} (hu : IsCUnifBdd u) (hu_nn : ∀ y, 0 ≤ u y)
+    (hint_hyp :
+      Integrable (fun x : ℝ => ((u x) ^ gamma) ^ pExp * psi.weight x)) :
+    Integrable
+      (fun x : ℝ =>
+        |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+          psi.weight x) ∧
+    ∫ x : ℝ,
+        |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+          psi.weight x ≤
+      ((Real.sqrt l) ^ pExp *
+          ((mu / (2 * Real.sqrt l)) ^ pExp *
+            (2 / Real.sqrt l) ^ (pExp - 1) *
+            (2 / (Real.sqrt l - k)))) *
+        ∫ x : ℝ, ((u x) ^ gamma) ^ pExp * psi.weight x :=
+  Lemma_2_5_with_explicit_k psi hl hmu hpExp hgamma hk_nn hk_lt
+    hk_witness hu hu_nn hint_hyp
+
 end ShenWork.Paper1
 
 end
