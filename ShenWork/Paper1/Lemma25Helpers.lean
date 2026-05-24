@@ -285,6 +285,27 @@ lemma joint_integrand_le
   rw [h2] at h1
   exact mul_le_mul_of_nonneg_right h1 hv_nonneg
 
+/-! ### Integrability of ExponentialWeight on the line -/
+
+/-- An `ExponentialWeight` ψ is integrable on `ℝ` (Lebesgue measure): the
+`decay` field gives `ψ(x) ≤ exp(-k|x|)` for some `k > 0`, and the
+exponential bound is integrable. -/
+theorem ExponentialWeight.integrable (psi : ExponentialWeight) :
+    Integrable psi.weight := by
+  obtain ⟨k, hk_pos, hψ_le⟩ := psi.decay
+  have h_meas : Measurable psi.weight :=
+    (psi.smooth.differentiable two_ne_zero).continuous.measurable
+  have h_exp_int : Integrable (fun x : ℝ => Real.exp (-k * |x|)) := by
+    have : (fun x : ℝ => Real.exp (-k * |x|)) =
+        (fun x : ℝ => Real.exp (-k * |0 - x|)) := by
+      funext x; rw [zero_sub, abs_neg]
+    rw [this]
+    exact _root_.kernel_exp_neg_mul_abs_integrable hk_pos 0
+  refine h_exp_int.mono' h_meas.aestronglyMeasurable ?_
+  refine Filter.Eventually.of_forall fun x => ?_
+  rw [Real.norm_eq_abs, abs_of_nonneg (psi.pos x).le]
+  exact hψ_le x
+
 end ShenWork.Paper1
 
 end
