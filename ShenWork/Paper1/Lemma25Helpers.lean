@@ -446,6 +446,88 @@ theorem joint_kernel_weight_v_integrable
       rw [abs_of_nonneg h_int_nn]
       exact h_bound y
 
+/-! ### Fubini swap + weight transfer (the Step 6 reduction) -/
+
+/-- The Fubini + weight-transfer step:
+`∫_x ψ(x) · (∫_y K_{x-y} · v(y) dy) dx ≤ ψ(y)-weighted ∫ v · 2/(c-k)`.
+Joint integrability comes from `joint_kernel_weight_v_integrable`;
+the inner ∫ y bound comes from `kernel_weight_integral_le_psi`. -/
+theorem kernel_v_psi_double_integral_le
+    (psi : ExponentialWeight) {c k : ℝ} (hc : 0 < c) (hk_nn : 0 ≤ k)
+    (hk_lt : k < c)
+    (hk_bound : ∀ z, |deriv psi.weight z| ≤ k * psi.weight z)
+    {v : ℝ → ℝ} (hv_nn : ∀ y, 0 ≤ v y) (hv_meas : Measurable v)
+    (hv_int : Integrable (fun y : ℝ => psi.weight y * v y)) :
+    (∫ x : ℝ, psi.weight x *
+        (∫ y : ℝ, Real.exp (-c * |x - y|) * v y)) ≤
+      2 / (c - k) * ∫ y : ℝ, psi.weight y * v y := by
+  set f : ℝ → ℝ → ℝ :=
+    fun x y => psi.weight x * Real.exp (-c * |x - y|) * v y
+  have hjoint :=
+    joint_kernel_weight_v_integrable psi hc hk_nn hk_lt hk_bound hv_nn hv_meas hv_int
+  -- LHS: ψ(x) · ∫_y K(x,y) · v(y) dy = ∫_y f(x,y) dy
+  have hLHS_eq :
+      (fun x : ℝ => psi.weight x *
+        (∫ y : ℝ, Real.exp (-c * |x - y|) * v y)) =
+        (fun x : ℝ => ∫ y : ℝ, f x y) := by
+    funext x
+    rw [← MeasureTheory.integral_const_mul]
+    congr 1
+    funext y
+    show psi.weight x * (Real.exp (-c * |x - y|) * v y) =
+      psi.weight x * Real.exp (-c * |x - y|) * v y
+    ring
+  rw [hLHS_eq]
+  -- Apply Fubini swap
+  rw [MeasureTheory.integral_integral_swap hjoint]
+  -- Now: ∫_y ∫_x f(x,y) dx dy ≤ ∫_y ψ(y) · v(y) · 2/(c-k) dy
+  -- Inner: ∫_x f(x,y) = ∫_x ψ(x) K(x,y) v(y) dx = v(y) · ∫_x ψ(x) K(x,y) dx ≤ v(y) · ψ(y) · 2/(c-k)
+  have h_inner_bound : ∀ y : ℝ,
+      ∫ x : ℝ, f x y ≤ v y * (psi.weight y * (2 / (c - k))) := by
+    intro y
+    have h_eq :
+        (fun x : ℝ => f x y) =
+          (fun x : ℝ => v y * (psi.weight x * Real.exp (-c * |x - y|))) := by
+      funext x
+      show psi.weight x * Real.exp (-c * |x - y|) * v y =
+        v y * (psi.weight x * Real.exp (-c * |x - y|))
+      ring
+    rw [h_eq, MeasureTheory.integral_const_mul]
+    have h_kw_raw :=
+      kernel_weight_integral_le_psi psi hc hk_nn hk_lt hk_bound y
+    have h_kw :
+        ∫ x : ℝ, psi.weight x * Real.exp (-c * |x - y|) ≤
+          psi.weight y * (2 / (c - k)) := by
+      have h_flip :
+          (fun x : ℝ => psi.weight x * Real.exp (-c * |x - y|)) =
+            (fun x : ℝ => Real.exp (-c * |x - y|) * psi.weight x) := by
+        funext x; ring
+      rw [h_flip]
+      exact h_kw_raw
+    exact mul_le_mul_of_nonneg_left h_kw (hv_nn y)
+  have hint_LHS : Integrable (fun y : ℝ => ∫ x : ℝ, f x y) :=
+    hjoint.integral_prod_left
+  have hint_RHS : Integrable
+      (fun y : ℝ => v y * (psi.weight y * (2 / (c - k)))) := by
+    have : (fun y : ℝ => v y * (psi.weight y * (2 / (c - k)))) =
+        (fun y : ℝ => (2 / (c - k)) * (psi.weight y * v y)) := by
+      funext y; ring
+    rw [this]
+    exact hv_int.const_mul _
+  have hbound :
+      ∫ y : ℝ, ∫ x : ℝ, f x y ≤
+        ∫ y : ℝ, v y * (psi.weight y * (2 / (c - k))) :=
+    MeasureTheory.integral_mono hint_LHS hint_RHS h_inner_bound
+  -- Simplify RHS to 2/(c-k) · ∫ψv
+  have hRHS_eq :
+      ∫ y : ℝ, v y * (psi.weight y * (2 / (c - k))) =
+        2 / (c - k) * ∫ y : ℝ, psi.weight y * v y := by
+    rw [← MeasureTheory.integral_const_mul]
+    congr 1
+    funext y; ring
+  rw [hRHS_eq] at hbound
+  exact hbound
+
 end ShenWork.Paper1
 
 end
