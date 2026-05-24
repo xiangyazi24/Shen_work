@@ -1839,6 +1839,33 @@ lemma unitIntervalCosineHeatValue_abs_le_trace {t x : ℝ} {a : ℕ → ℝ}
   exact hbase.trans
     (mul_le_mul_of_nonneg_right (Real.sqrt_le_sqrt henergy) (Real.sqrt_nonneg _))
 
+/-- Nonzero heat-trace summands are controlled by reciprocal eigenvalues. -/
+lemma unitIntervalCosineHeatTraceTerm_le_recipEigen {t : ℝ} (ht : 0 < t)
+    {n : ℕ} (hn : n ≠ 0) :
+    Real.exp (-2 * t * unitIntervalCosineEigenvalue n) ≤
+      (1 / (2 * t)) * (1 / unitIntervalCosineEigenvalue n) := by
+  let lambda := unitIntervalCosineEigenvalue n
+  have hnpos_real : 0 < (n : ℝ) := by
+    exact_mod_cast Nat.pos_of_ne_zero hn
+  have hlambda_pos : 0 < lambda := by
+    dsimp [lambda, unitIntervalCosineEigenvalue]
+    exact sq_pos_of_pos (mul_pos hnpos_real Real.pi_pos)
+  have hmult :
+      lambda * Real.exp (-2 * t * lambda) ≤ 1 / (2 * t) := by
+    simpa [unitIntervalCosineHeatGradientMultiplier, lambda]
+      using unitIntervalCosineHeatGradientMultiplier_le ht n
+  calc
+    Real.exp (-2 * t * unitIntervalCosineEigenvalue n)
+        = (1 / lambda) * (lambda * Real.exp (-2 * t * lambda)) := by
+          change Real.exp (-2 * t * lambda) =
+            (1 / lambda) * (lambda * Real.exp (-2 * t * lambda))
+          field_simp [ne_of_gt hlambda_pos]
+    _ ≤ (1 / lambda) * (1 / (2 * t)) := by
+          exact mul_le_mul_of_nonneg_left hmult (by positivity)
+    _ = (1 / (2 * t)) * (1 / unitIntervalCosineEigenvalue n) := by
+          dsimp [lambda]
+          ring
+
 /-- The heat semigroup is symmetric in the sense that swapping x and y
     in the kernel gives the same integrand. -/
 theorem heatSemigroup_kernel_symm (t x y : ℝ) :
