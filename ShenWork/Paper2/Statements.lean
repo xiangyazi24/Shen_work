@@ -5559,6 +5559,65 @@ theorem unitPointDomain.Lemma_2_7_from_continuous_bound
   change (fun t => (u t ()) ^ pExp) t ≤ (fun t => (u t ()) ^ pExp) t₀
   exact hmax ht_mem
 
+/-- Paper 2 Proposition 1.1 is **not provable** on the unit-point domain.
+
+On a zero-dimensional domain the PDE collapses to the logistic ODE.  For
+`a = 0`, `b = 0` the unique classical solution is constant `u ≡ u₀`.  A
+constant positive function is neither unbounded nor vanishing on any finite
+time horizon, so `FiniteHorizonAlternative` is unsatisfiable. -/
+theorem unitPointDomain.not_Proposition_1_1 :
+    ¬ Proposition_1_1 unitPointDomain proposition11CounterParams := by
+  intro h
+  -- Use initial datum u₀ ≡ 1
+  let u₀ : unitPointDomain.Point → ℝ := fun _ => 1
+  have hu₀ : PositiveInitialDatum unitPointDomain u₀ :=
+    ⟨trivial, fun _ _ => one_pos⟩
+  rcases h u₀ hu₀ with ⟨Tmax, hTmax, u, v, hsol, htrace, halt, _⟩
+  -- The PDE forces u'(t) = 0 on (0, Tmax)
+  have hpde_zero : ∀ t, t ∈ Set.Ioo (0 : ℝ) Tmax →
+      deriv (fun τ => u τ ()) t = 0 := by
+    intro t ⟨ht0, htT⟩
+    have := hsol.pde_u ht0 htT (Set.mem_univ ())
+    simp only [unitPointDomain, proposition11CounterParams] at this
+    linarith
+  -- u is differentiable on ℝ (from classicalRegularity)
+  have hu_diff : Differentiable ℝ (fun t : ℝ => u t ()) := hsol.regularity.1
+  -- On (0, Tmax), deriv = 0, so u is constant there
+  have hconst : ∀ s₁ s₂, s₁ ∈ Set.Ioo (0 : ℝ) Tmax → s₂ ∈ Set.Ioo (0 : ℝ) Tmax →
+      u s₁ () = u s₂ () := by
+    intro s₁ s₂ hs₁ hs₂
+    exact IsOpen.is_const_of_deriv_eq_zero isOpen_Ioo isPreconnected_Ioo
+      hu_diff.differentiableOn (fun x hx => hpde_zero x hx) hs₁ hs₂
+  -- From InitialTrace, u → u₀ = 1 as t → 0+, so the constant equals 1
+  have hone : ∀ t, 0 < t → t < Tmax → u t () = 1 := by
+    intro t ht0 htT
+    by_contra hne
+    have hgap : 0 < |u t () - 1| := abs_pos.mpr (sub_ne_zero.mpr hne)
+    rcases htrace.eventually_small hgap with ⟨δ, hδ, hsmall⟩
+    set s := min (δ / 2) (Tmax / 2) with hs_def
+    have hs_pos : 0 < s := lt_min (by linarith) (by linarith)
+    have hs_lt_δ : s < δ := lt_of_le_of_lt (min_le_left _ _) (by linarith)
+    have hs_lt_T : s < Tmax := lt_of_le_of_lt (min_le_right _ _) (by linarith)
+    have hsup := hsmall s hs_pos hs_lt_δ
+    simp only [unitPointDomain, u₀] at hsup
+    -- hsup : |u s () - 1| < |u t () - 1|
+    -- But u s () = u t () (constant on (0, Tmax))
+    have heq := hconst s t ⟨hs_pos, hs_lt_T⟩ ⟨ht0, htT⟩
+    rw [heq] at hsup
+    exact lt_irrefl _ hsup
+  -- FiniteHorizonAlternative fails for u ≡ 1
+  rcases halt with hunb | hvan
+  · -- First disjunct: u unbounded
+    rcases hunb 1 with ⟨t, x, ht0, htT, _, hM⟩
+    have hx : x = () := rfl
+    rw [hx] at hM
+    linarith [hone t ht0 htT]
+  · -- Second disjunct: u vanishes
+    rcases hvan (1 / 2) (by norm_num) with ⟨t, x, ht0, htT, _, hδ⟩
+    have hx : x = () := rfl
+    rw [hx] at hδ
+    linarith [hone t ht0 htT]
+
 end
 
 end ShenWork.Paper2
