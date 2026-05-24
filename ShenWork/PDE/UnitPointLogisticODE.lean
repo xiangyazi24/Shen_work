@@ -201,4 +201,22 @@ lemma bernoulliLogisticForward_hasDerivAt
     field_simp [hα_ne]
   rw [hmul, Real.rpow_one]
 
+lemma bernoulliLogisticSolution_hasDerivAt_of_pos_time
+    (p : CM2Params) {u₀ t : ℝ} (ha : 0 < p.a) (hb : 0 < p.b)
+    (hu₀ : 0 < u₀) (ht : 0 < t) :
+    HasDerivAt (fun s : ℝ => bernoulliLogisticSolution p u₀ s)
+      (bernoulliLogisticSolution p u₀ t *
+        (p.a - p.b * (bernoulliLogisticSolution p u₀ t) ^ p.α)) t := by
+  have hbranch :
+      (fun s : ℝ => bernoulliLogisticSolution p u₀ s) =ᶠ[𝓝 t]
+        (fun s : ℝ => bernoulliLogisticForward p u₀ s) := by
+    filter_upwards [eventually_ge_nhds ht] with s hs
+    exact bernoulliLogisticSolution_of_nonneg p u₀ s hs
+  have hsol_t :
+      bernoulliLogisticSolution p u₀ t =
+        bernoulliLogisticForward p u₀ t :=
+    bernoulliLogisticSolution_of_nonneg p u₀ t ht.le
+  simpa [hsol_t] using
+    (bernoulliLogisticForward_hasDerivAt p ha hb hu₀ ht.le).congr_of_eventuallyEq hbranch
+
 end ShenWork.Paper2
