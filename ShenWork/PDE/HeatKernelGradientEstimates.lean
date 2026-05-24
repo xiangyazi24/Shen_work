@@ -402,6 +402,91 @@ theorem unitInterval_memLp_two_norm_sq_intervalIntegrable
   rw [unitIntervalIocMeasure_eq_intervalMeasure]
   exact hf_mem.integrable_norm_pow (by norm_num : (2 : ℕ) ≠ 0)
 
+/-- The absolute-value map sends Lebesgue measure on `(-1,1]` to a measure
+dominated by twice the unit-interval measure.  This is the measure-theoretic
+input for transporting `L²` membership through the even reflection. -/
+theorem unitInterval_abs_map_restrict_le_two_intervalMeasure :
+    Measure.map (fun x : ℝ => |x|)
+        (volume.restrict (Set.Ioc (-1 : ℝ) 1)) ≤
+      (2 : ℝ≥0∞) • intervalMeasure 1 := by
+  refine Measure.le_iff.2 ?_
+  intro s hs
+  rw [Measure.map_apply continuous_abs.measurable hs]
+  rw [Measure.restrict_apply (continuous_abs.measurable hs)]
+  let A : Set ℝ := (fun x : ℝ => |x|) ⁻¹' s ∩ Set.Ioc (-1 : ℝ) 1
+  let P : Set ℝ := s ∩ Set.Icc (0 : ℝ) 1
+  let B : Set ℝ := s ∩ Set.Ioo (0 : ℝ) 1
+  let N : Set ℝ := (fun x : ℝ => -x) ⁻¹' B
+  change volume A ≤ ((2 : ℝ≥0∞) • intervalMeasure 1) s
+  have hsubset : A ⊆ P ∪ N := by
+    intro x hx
+    rcases hx with ⟨hxs, hxI⟩
+    by_cases hx0 : 0 ≤ x
+    · left
+      refine ⟨?_, ?_⟩
+      · simpa [abs_of_nonneg hx0] using hxs
+      · exact ⟨hx0, hxI.2⟩
+    · right
+      have hxlt : x < 0 := lt_of_not_ge hx0
+      have hnegpos : 0 < -x := neg_pos.mpr hxlt
+      have hneglt : -x < 1 := by linarith [hxI.1]
+      refine ⟨?_, ?_⟩
+      · simpa [abs_of_neg hxlt] using hxs
+      · exact ⟨hnegpos, hneglt⟩
+  have hA_le_union : volume A ≤ volume (P ∪ N) :=
+    measure_mono hsubset
+  have hB_meas : MeasurableSet B := by
+    exact hs.inter (measurableSet_Ioo : MeasurableSet (Set.Ioo (0 : ℝ) 1))
+  have hN_eq_B : volume N = volume B := by
+    have hmap :=
+      Measure.map_apply (μ := (volume : Measure ℝ))
+        (f := fun x : ℝ => -x) continuous_neg.measurable
+        (s := B) hB_meas
+    rw [Measure.map_neg_eq_self (volume : Measure ℝ)] at hmap
+    change volume ((fun x : ℝ => -x) ⁻¹' B) = volume B
+    exact hmap.symm
+  have hP_le : volume P ≤ intervalMeasure 1 s := by
+    unfold intervalMeasure intervalSet P
+    rw [Measure.restrict_apply hs]
+  have hB_le : volume B ≤ intervalMeasure 1 s := by
+    have hB_subset : B ⊆ s ∩ Set.Icc (0 : ℝ) 1 := by
+      intro x hx
+      exact ⟨hx.1, ⟨hx.2.1.le, hx.2.2.le⟩⟩
+    calc
+      volume B ≤ volume (s ∩ Set.Icc (0 : ℝ) 1) :=
+        measure_mono hB_subset
+      _ = intervalMeasure 1 s := by
+        unfold intervalMeasure intervalSet
+        rw [Measure.restrict_apply hs]
+  calc
+    volume A ≤ volume (P ∪ N) := hA_le_union
+    _ ≤ volume P + volume N := measure_union_le P N
+    _ = volume P + volume B := by rw [hN_eq_B]
+    _ ≤ intervalMeasure 1 s + intervalMeasure 1 s :=
+      add_le_add hP_le hB_le
+    _ = ((2 : ℝ≥0∞) • intervalMeasure 1) s := by
+      rw [Measure.smul_apply]
+      simp [two_mul]
+
+/-- Unit-interval `L²` membership is stable under even reflection to
+`(-1,1]`. -/
+theorem unitIntervalEvenReflection_memLp_two
+    {f : ℝ → ℂ}
+    (hf_mem : MemLp f (2 : ℝ≥0∞) (intervalMeasure 1)) :
+    MemLp (unitIntervalEvenReflection f) 2
+      (volume.restrict (Set.Ioc (-1 : ℝ) 1)) := by
+  let μ : Measure ℝ := volume.restrict (Set.Ioc (-1 : ℝ) 1)
+  have hmap :
+      MemLp f (2 : ℝ≥0∞) (Measure.map (fun x : ℝ => |x|) μ) := by
+    exact hf_mem.of_measure_le_smul
+      (by norm_num : (2 : ℝ≥0∞) ≠ ∞)
+      (by
+        simpa [μ] using unitInterval_abs_map_restrict_le_two_intervalMeasure)
+  have hcomp :
+      MemLp (f ∘ fun x : ℝ => |x|) (2 : ℝ≥0∞) μ := by
+    exact hmap.comp_of_map continuous_abs.aemeasurable
+  simpa [unitIntervalEvenReflection, Function.comp_def, μ] using hcomp
+
 /-- Unit-interval spectral Neumann heat-gradient estimate in Mathlib
 `LpSeminorm` form, from interval `L²` to `L∞`. -/
 theorem unitIntervalNeumannSpectralHeatGradient_L2_Linfty_lpNorm_bound
@@ -567,5 +652,93 @@ theorem unitIntervalNeumannSpectralHeat_deriv_L2_Lq_lpNorm_bound
   rw [hderiv]
   exact unitIntervalNeumannSpectralHeatGradient_L2_Lq_lpNorm_bound
     (t := t) (q := q) ht hq (f := f) hf hL2 hf_sq
+
+/-- Unit-interval spectral Neumann heat-gradient estimate from `L²` to `L∞`,
+with all interval/even-reflection side conditions derived from the single
+Mathlib `MemLp` hypothesis. -/
+theorem unitIntervalNeumannSpectralHeatGradient_L2_Linfty_lpNorm_bound_from_memLp
+    {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℂ}
+    (hf_mem : MemLp f (2 : ℝ≥0∞) (intervalMeasure 1)) :
+    lpNorm
+        (fun x =>
+          unitIntervalCosineHeatGradientValue t
+            (unitIntervalNeumannCosineCoeff f) x)
+        ∞ (intervalMeasure 1) ≤
+      2 * (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+        lpNorm f (2 : ℝ≥0∞) (intervalMeasure 1) :=
+  unitIntervalNeumannSpectralHeatGradient_L2_Linfty_lpNorm_bound
+    (t := t) ht
+    (f := f)
+    (unitInterval_memLp_two_intervalIntegrable hf_mem)
+    (unitIntervalEvenReflection_memLp_two hf_mem)
+    (unitInterval_memLp_two_norm_sq_intervalIntegrable hf_mem)
+
+/-- Unit-interval spectral Neumann heat semigroup derivative estimate from
+`L²` to `L∞`, with all interval/even-reflection side conditions derived from
+the single Mathlib `MemLp` hypothesis. -/
+theorem unitIntervalNeumannSpectralHeat_deriv_L2_Linfty_lpNorm_bound_from_memLp
+    {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℂ}
+    (hf_mem : MemLp f (2 : ℝ≥0∞) (intervalMeasure 1)) :
+    lpNorm
+        (fun x =>
+          deriv
+            (fun z =>
+              unitIntervalCosineHeatValue t
+                (unitIntervalNeumannCosineCoeff f) z) x)
+        ∞ (intervalMeasure 1) ≤
+      2 * (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+        lpNorm f (2 : ℝ≥0∞) (intervalMeasure 1) :=
+  unitIntervalNeumannSpectralHeat_deriv_L2_Linfty_lpNorm_bound
+    (t := t) ht
+    (f := f)
+    (unitInterval_memLp_two_intervalIntegrable hf_mem)
+    (unitIntervalEvenReflection_memLp_two hf_mem)
+    (unitInterval_memLp_two_norm_sq_intervalIntegrable hf_mem)
+
+/-- Unit-interval spectral Neumann heat-gradient estimate from `L²` to finite
+`L^q`, with all interval/even-reflection side conditions derived from the
+single Mathlib `MemLp` hypothesis. -/
+theorem unitIntervalNeumannSpectralHeatGradient_L2_Lq_lpNorm_bound_from_memLp
+    {t q : ℝ} (ht : 0 < t) (hq : 0 < q)
+    {f : ℝ → ℂ}
+    (hf_mem : MemLp f (2 : ℝ≥0∞) (intervalMeasure 1)) :
+    lpNorm
+        (fun x =>
+          unitIntervalCosineHeatGradientValue t
+            (unitIntervalNeumannCosineCoeff f) x)
+        (ENNReal.ofReal q) (intervalMeasure 1) ≤
+      2 * (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+        lpNorm f (2 : ℝ≥0∞) (intervalMeasure 1) :=
+  unitIntervalNeumannSpectralHeatGradient_L2_Lq_lpNorm_bound
+    (t := t) (q := q) ht hq
+    (f := f)
+    (unitInterval_memLp_two_intervalIntegrable hf_mem)
+    (unitIntervalEvenReflection_memLp_two hf_mem)
+    (unitInterval_memLp_two_norm_sq_intervalIntegrable hf_mem)
+
+/-- Unit-interval spectral Neumann heat semigroup derivative estimate from
+`L²` to finite `L^q`, with all interval/even-reflection side conditions
+derived from the single Mathlib `MemLp` hypothesis. -/
+theorem unitIntervalNeumannSpectralHeat_deriv_L2_Lq_lpNorm_bound_from_memLp
+    {t q : ℝ} (ht : 0 < t) (hq : 0 < q)
+    {f : ℝ → ℂ}
+    (hf_mem : MemLp f (2 : ℝ≥0∞) (intervalMeasure 1)) :
+    lpNorm
+        (fun x =>
+          deriv
+            (fun z =>
+              unitIntervalCosineHeatValue t
+                (unitIntervalNeumannCosineCoeff f) z) x)
+        (ENNReal.ofReal q) (intervalMeasure 1) ≤
+      2 * (unitIntervalCosineHeatGradientL2LinftyConstant / t) *
+        lpNorm f (2 : ℝ≥0∞) (intervalMeasure 1) :=
+  unitIntervalNeumannSpectralHeat_deriv_L2_Lq_lpNorm_bound
+    (t := t) (q := q) ht hq
+    (f := f)
+    (unitInterval_memLp_two_intervalIntegrable hf_mem)
+    (unitIntervalEvenReflection_memLp_two hf_mem)
+    (unitInterval_memLp_two_norm_sq_intervalIntegrable hf_mem)
 
 end ShenWork.HeatKernelGradientEstimates
