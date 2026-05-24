@@ -5,6 +5,8 @@
 -/
 import ShenWork.PDE.HeatSemigroup
 import ShenWork.PDE.IntervalDomain
+import ShenWork.PDE.CosineSpectrum
+import Mathlib.Analysis.Calculus.SmoothSeries
 import Mathlib.MeasureTheory.Function.L1Space.Integrable
 import Mathlib.MeasureTheory.Function.LpSeminorm.LpNorm
 import Mathlib.MeasureTheory.Integral.Prod
@@ -1085,6 +1087,120 @@ theorem modifiedSemigroup_Lp_Linfty_smoothing_abs
   exact mul_le_mul_of_nonneg_left
     (heatSemigroup_Lp_Linfty_smoothing_abs ht hrp x hf_mem)
     (Real.exp_nonneg _)
+
+/-! ## Cosine-series gradient model -/
+
+/-- The `unitIntervalCosineMode` used by the heat semigroup is the same
+cosine mode as the spectral API in `CosineSpectrum`. -/
+theorem unitIntervalCosineMode_eq_cosineMode (n : ℕ) (x : ℝ) :
+    unitIntervalCosineMode n x =
+      ShenWork.CosineSpectrum.cosineMode n x := by
+  rfl
+
+/-- Derivative of the unit-interval cosine mode, imported from the spectral API. -/
+theorem unitIntervalCosineMode_hasDerivAt (n : ℕ) (x : ℝ) :
+    HasDerivAt (unitIntervalCosineMode n)
+      (-((n : ℝ) * Real.pi) *
+        Real.sin ((n : ℝ) * Real.pi * x)) x := by
+  simpa [unitIntervalCosineMode_eq_cosineMode] using
+    ShenWork.CosineSpectrum.cosineMode_hasDerivAt n x
+
+/-- Pointwise derivative formula for the unit-interval cosine mode. -/
+theorem unitIntervalCosineMode_deriv (n : ℕ) (x : ℝ) :
+    deriv (unitIntervalCosineMode n) x =
+      -((n : ℝ) * Real.pi) *
+        Real.sin ((n : ℝ) * Real.pi * x) :=
+  (unitIntervalCosineMode_hasDerivAt n x).deriv
+
+/-- Pointwise coefficient multiplying the `n`-th cosine coefficient in the
+spatial derivative of the interval heat flow. -/
+def unitIntervalCosineHeatGradientPointWeight (t x : ℝ) (n : ℕ) : ℝ :=
+  Real.exp (-t * unitIntervalCosineEigenvalue n) *
+    (-((n : ℝ) * Real.pi) * Real.sin ((n : ℝ) * Real.pi * x))
+
+/-- Cosine-coefficient model for the spatial derivative of the interval heat
+semigroup value at `x`. -/
+def unitIntervalCosineHeatGradientValue (t : ℝ) (a : ℕ → ℝ) (x : ℝ) : ℝ :=
+  ∑' n, unitIntervalCosineHeatGradientPointWeight t x n * a n
+
+/-- Derivative of a single heat-weighted cosine mode. -/
+theorem unitIntervalCosineHeatPointWeight_hasDerivAt
+    (t : ℝ) (n : ℕ) (x : ℝ) :
+    HasDerivAt (fun y : ℝ => unitIntervalCosineHeatPointWeight t y n)
+      (unitIntervalCosineHeatGradientPointWeight t x n) x := by
+  have hmode := unitIntervalCosineMode_hasDerivAt n x
+  simpa [unitIntervalCosineHeatPointWeight,
+    unitIntervalCosineHeatGradientPointWeight, mul_assoc] using
+    hmode.const_mul (Real.exp (-t * unitIntervalCosineEigenvalue n))
+
+/-- Derivative formula for one heat-weighted cosine coefficient. -/
+theorem unitIntervalCosineHeatPointWeight_deriv
+    (t : ℝ) (n : ℕ) (x : ℝ) :
+    deriv (fun y : ℝ => unitIntervalCosineHeatPointWeight t y n) x =
+      unitIntervalCosineHeatGradientPointWeight t x n :=
+  (unitIntervalCosineHeatPointWeight_hasDerivAt t n x).deriv
+
+/-- Derivative of one heat-weighted cosine term with a fixed coefficient. -/
+theorem unitIntervalCosineHeatTerm_hasDerivAt
+    (t : ℝ) (a : ℕ → ℝ) (n : ℕ) (x : ℝ) :
+    HasDerivAt
+      (fun y : ℝ => unitIntervalCosineHeatPointWeight t y n * a n)
+      (unitIntervalCosineHeatGradientPointWeight t x n * a n) x := by
+  simpa [mul_assoc] using
+    (unitIntervalCosineHeatPointWeight_hasDerivAt t n x).mul_const (a n)
+
+/-- Term-by-term differentiation of the cosine heat series, stated with an
+explicit summable majorant for the derivative series.  This is the analytic
+bridge needed before turning the spectral gradient estimate into an interval
+`LpSeminorm` estimate. -/
+theorem unitIntervalCosineHeatValue_hasDerivAt_of_summable_bound
+    {t x x₀ : ℝ} {a : ℕ → ℝ} {u : ℕ → ℝ}
+    (hu : Summable u)
+    (hbound :
+      ∀ n y,
+        ‖unitIntervalCosineHeatGradientPointWeight t y n * a n‖ ≤ u n)
+    (h₀ :
+      Summable fun n => unitIntervalCosineHeatPointWeight t x₀ n * a n) :
+    HasDerivAt (fun z : ℝ => unitIntervalCosineHeatValue t a z)
+      (unitIntervalCosineHeatGradientValue t a x) x := by
+  simpa [unitIntervalCosineHeatValue, unitIntervalCosineHeatGradientValue] using
+    (hasDerivAt_tsum
+      (𝕜 := ℝ) (F := ℝ)
+      (u := u)
+      (g := fun n z =>
+        unitIntervalCosineHeatPointWeight t z n * a n)
+      (g' := fun n z =>
+        unitIntervalCosineHeatGradientPointWeight t z n * a n)
+      hu
+      (fun n y => by
+        simpa using unitIntervalCosineHeatTerm_hasDerivAt t a n y)
+      (fun n y => by
+        simpa using hbound n y)
+      (by simpa using h₀)
+      x)
+
+/-- Derivative form of `unitIntervalCosineHeatValue_hasDerivAt_of_summable_bound`. -/
+theorem unitIntervalCosineHeatValue_deriv_of_summable_bound
+    {t x x₀ : ℝ} {a : ℕ → ℝ} {u : ℕ → ℝ}
+    (hu : Summable u)
+    (hbound :
+      ∀ n y,
+        ‖unitIntervalCosineHeatGradientPointWeight t y n * a n‖ ≤ u n)
+    (h₀ :
+      Summable fun n => unitIntervalCosineHeatPointWeight t x₀ n * a n) :
+    deriv (fun z : ℝ => unitIntervalCosineHeatValue t a z) x =
+      unitIntervalCosineHeatGradientValue t a x :=
+  (unitIntervalCosineHeatValue_hasDerivAt_of_summable_bound
+    (t := t) (x := x) (x₀ := x₀) hu hbound h₀).deriv
+
+/-- Existing spectral coefficient `L² → L²` gradient smoothing, exposed from
+`HeatKernelLpEstimates` for the interval heat-kernel layer. -/
+theorem intervalCosineHeatGradient_L2_L2_coeff_bound
+    {t : ℝ} (ht : 0 < t) {a : ℕ → ℝ}
+    (ha : Summable fun n => (a n) ^ 2) :
+    unitIntervalCosineHeatGradientTsumL2Norm t a ≤
+      (1 / Real.sqrt t) * unitIntervalCosineL2TsumNorm a :=
+  unitIntervalCosineHeatGradientTsumL2Norm_le_inv_sqrt ht ha
 
 /-! ## Gradient smoothing -/
 
