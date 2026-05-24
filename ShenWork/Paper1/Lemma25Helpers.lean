@@ -528,6 +528,39 @@ theorem kernel_v_psi_double_integral_le
   rw [hRHS_eq] at hbound
   exact hbound
 
+/-! ### RHS integrability discharge for Step 4 -/
+
+/-- The RHS function `(√l)^p · C_J · (∫_y K v) · ψ(x)` is integrable in x.
+Reduces via `Integrable.integral_prod_left` on the joint integrability
+from `joint_kernel_weight_v_integrable`. -/
+theorem psi_kernel_v_integral_integrable
+    (psi : ExponentialWeight) {c k : ℝ} (hc : 0 < c) (hk_nn : 0 ≤ k)
+    (hk_lt : k < c)
+    (hk_bound : ∀ z, |deriv psi.weight z| ≤ k * psi.weight z)
+    {v : ℝ → ℝ} (hv_nn : ∀ y, 0 ≤ v y) (hv_meas : Measurable v)
+    (hv_int : Integrable (fun y : ℝ => psi.weight y * v y)) :
+    Integrable
+      (fun x : ℝ => psi.weight x *
+        (∫ y : ℝ, Real.exp (-c * |x - y|) * v y)) := by
+  set f : ℝ → ℝ → ℝ :=
+    fun x y => psi.weight x * Real.exp (-c * |x - y|) * v y
+  have hjoint :=
+    joint_kernel_weight_v_integrable psi hc hk_nn hk_lt hk_bound hv_nn hv_meas hv_int
+  -- Show the function in x equals (fun x => ∫ y, f x y)
+  have h_eq :
+      (fun x : ℝ => psi.weight x *
+        (∫ y : ℝ, Real.exp (-c * |x - y|) * v y)) =
+        (fun x : ℝ => ∫ y : ℝ, f x y) := by
+    funext x
+    rw [← MeasureTheory.integral_const_mul]
+    congr 1
+    funext y
+    show psi.weight x * (Real.exp (-c * |x - y|) * v y) =
+      psi.weight x * Real.exp (-c * |x - y|) * v y
+    ring
+  rw [h_eq]
+  exact hjoint.integral_prod_left
+
 end ShenWork.Paper1
 
 end
