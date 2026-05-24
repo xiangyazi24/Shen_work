@@ -95,6 +95,25 @@ theorem unitPointDomain.Theorem_1_2_when_a_zero_b_pos
     refine Filter.eventually_atTop.mpr ⟨0, fun t ht => ?_⟩
     exact hbound t ht
 
+/-- The Slot F logistic package realises `UnitPointLogisticNonminimalPackage`
+unconditionally on the unit-point domain. -/
+theorem unitPointDomain.UnitPointLogisticNonminimalPackage_holds
+    (p : CM2Params) : UnitPointLogisticNonminimalPackage p := by
+  intro ha hb u₀ hu₀
+  exact unitPointLogistic_globalExistence_with_attractor p ha hb u₀ hu₀
+
+/-- Paper 2 Theorem 1.1 holds **unconditionally** on the unit-point domain.
+The two disjoint slices of the hypothesis split into:
+- `(0 < a, 0 < b)`: Slot F Bernoulli-logistic bridge
+- `(a = 0, b = 0)`: `Theorem_1_1_minimal_only`
+The negation-of-hypothesis slices `(0 < a, b = 0)` and `(a = 0, 0 < b)`
+are vacuous via the disjunct hypotheses. -/
+theorem Theorem_1_1_unitPointDomain_holds
+    (p : CM2Params) :
+    Theorem_1_1 unitPointDomain p :=
+  unitPointDomain.Theorem_1_1_from_logistic_nonminimal p
+    (unitPointDomain.UnitPointLogisticNonminimalPackage_holds p)
+
 /-- Paper 2 Theorem 1.2 unconditional on the unit-point domain
 **excluding** the slice `a > 0 ∧ b = 0` (which makes the unit-point ODE
 `u' = au` unbounded — a genuine restriction on the unit-point instance).
