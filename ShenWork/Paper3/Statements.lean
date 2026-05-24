@@ -10066,6 +10066,40 @@ theorem Theorem_2_2_minimal_only_vacuous_when_a_zero
     rw [ha0] at ha
     exact False.elim ((lt_irrefl (0 : ℝ)) ha)
 
+/-- Full Theorem 2.2 composite on the `b = 0` slice.  The two
+positive-equilibrium branches are vacuous; the minimal branches remain as
+the explicit inputs. -/
+theorem Theorem_2_2_minimal_only_vacuous_when_b_zero
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (hb0 : p.b = 0)
+    (hmin_stable : p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        p.χ₀ < C.chiCritical uStar →
+          LinearlyStable S p eq.1 eq.2 ∧
+          ∃ δ > 0, ∃ A > 0, ∃ rate > 0,
+            ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+              SupCloseToConstant D u₀ eq.1 δ →
+              D.integral u₀ = D.volume * uStar →
+                ∃ u v : ℝ → D.Point → ℝ,
+                  IsPaper2GlobalClassicalSolution D p u v ∧
+                  InitialTrace D u₀ u ∧
+                  ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate)
+    (hmin_unstable : p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        C.chiCritical uStar < p.χ₀ →
+          LinearlyUnstable S p eq.1 eq.2) :
+    Theorem_2_2 D p S N C := by
+  refine Theorem_2_2.of_parts ?_ ?_ hmin_stable hmin_unstable
+  · intro _ha hb
+    rw [hb0] at hb
+    exact False.elim ((lt_irrefl (0 : ℝ)) hb)
+  · intro _ha hb
+    rw [hb0] at hb
+    exact False.elim ((lt_irrefl (0 : ℝ)) hb)
+
 /-- **TAUTOLOGY (no math content)**: body is `:= hstab`, definitionally
 equal to `Theorem_2_3 D p N`.  Target signature only. -/
 theorem Theorem_2_3.of_assumed_stability_branch
