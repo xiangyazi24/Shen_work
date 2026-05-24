@@ -1820,6 +1820,25 @@ lemma unitIntervalCosineHeatValue_abs_le_pointEnergy {t x : ℝ} {a : ℕ → �
         (u := fun n => unitIntervalCosineHeatPointWeight t x n)
         (v := a) hpoint ha
 
+/-- Pointwise interval heat value controlled by the cosine heat trace and coefficient `L²`. -/
+lemma unitIntervalCosineHeatValue_abs_le_trace {t x : ℝ} {a : ℕ → ℝ}
+    (htrace : Summable fun n =>
+      Real.exp (-2 * t * unitIntervalCosineEigenvalue n))
+    (ha : Summable fun n => (a n) ^ 2) :
+    |unitIntervalCosineHeatValue t a x| ≤
+      Real.sqrt (unitIntervalCosineHeatTrace t) *
+        unitIntervalCosineL2TsumNorm a := by
+  have hpoint :
+      Summable fun n => (unitIntervalCosineHeatPointWeight t x n) ^ 2 :=
+    Summable.of_nonneg_of_le (fun n => sq_nonneg _)
+      (fun n => unitIntervalCosineHeatPointWeight_sq_le_traceTerm t x n) htrace
+  have hbase :=
+    unitIntervalCosineHeatValue_abs_le_pointEnergy (t := t) (x := x)
+      (a := a) hpoint ha
+  have henergy := unitIntervalCosineHeatPointEnergy_le_trace (t := t) (x := x) htrace
+  exact hbase.trans
+    (mul_le_mul_of_nonneg_right (Real.sqrt_le_sqrt henergy) (Real.sqrt_nonneg _))
+
 /-- The heat semigroup is symmetric in the sense that swapping x and y
     in the kernel gives the same integrand. -/
 theorem heatSemigroup_kernel_symm (t x y : ℝ) :
