@@ -20,3 +20,13 @@ import ShenWork.Paper2.Statements
 import ShenWork.Paper3.Defs
 import ShenWork.Paper3.Statements
 import ShenWork.PDE.CosineSpectrum
+import ShenWork.PDE.UnitPointLogisticODE
+import ShenWork.PDE.UnitPointDecayODE
+import ShenWork.PDE.TravelingWaveODE
+import ShenWork.PDE.TravelingWaveConstruction
+import ShenWork.PDE.ConditionalBoundedDomain
+import ShenWork.PDE.HeatKernelLpEstimates
+import ShenWork.PDE.ParabolicMaxPrinciple
+import ShenWork.Paper1.Lemma25Helpers
+import ShenWork.Paper2.UnitPointLogisticBridge
+import ShenWork.Paper3.UnitPointLogisticBridge
