@@ -136,6 +136,44 @@ theorem psi_deriv_pExp_weighted_le
   have hψ_nn : 0 ≤ psi.weight x := (psi.pos x).le
   exact mul_le_mul_of_nonneg_right hdrv_le hψ_nn
 
+/-! ### Pointwise combined estimate (Jensen ∘ deriv-bound) -/
+
+/-- Pointwise combined estimate: at each x,
+`|Ψ'(u)(x)|^p · ψ(x) ≤ √l^p · const_J · ψ(x) · ∫_y K_{x-y} u(y)^p dy`. -/
+theorem psi_deriv_pExp_weighted_le_kernel_weighted
+    (psi : ExponentialWeight) {pExp l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 1 ≤ pExp)
+    {u : ℝ → ℝ} (hu : IsCUnifBdd u) (hu_nn : ∀ y, 0 ≤ u y) :
+    ∀ x : ℝ,
+      |deriv (fun z => Psi u l mu z) x| ^ pExp * psi.weight x ≤
+        (Real.sqrt l) ^ pExp *
+          ((mu / (2 * Real.sqrt l)) ^ pExp *
+              (2 / Real.sqrt l) ^ (pExp - 1) *
+              (∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * (u y) ^ pExp)) *
+          psi.weight x := by
+  intro x
+  have hpExp_pos : 0 < pExp := lt_of_lt_of_le zero_lt_one hpExp
+  have hψ_nn : 0 ≤ psi.weight x := (psi.pos x).le
+  have hsqrt_nn : 0 ≤ (Real.sqrt l) ^ pExp :=
+    Real.rpow_nonneg (Real.sqrt_nonneg l) pExp
+  have hPsi_nn : 0 ≤ (Psi u l mu x) ^ pExp :=
+    Real.rpow_nonneg (Psi_nonneg hl hmu hu_nn x) pExp
+  have h1 := psi_deriv_pExp_weighted_le psi hl hmu hpExp_pos hu hu_nn x
+  have h2 : (Psi u l mu x) ^ pExp ≤
+      (mu / (2 * Real.sqrt l)) ^ pExp *
+          (2 / Real.sqrt l) ^ (pExp - 1) *
+          ∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * (u y) ^ pExp :=
+    lemma_2_5_jensenStep u l mu pExp hl hmu hpExp hu hu_nn x
+  calc |deriv (fun z => Psi u l mu z) x| ^ pExp * psi.weight x
+      ≤ (Real.sqrt l) ^ pExp * (Psi u l mu x) ^ pExp * psi.weight x := h1
+    _ ≤ (Real.sqrt l) ^ pExp *
+          ((mu / (2 * Real.sqrt l)) ^ pExp *
+              (2 / Real.sqrt l) ^ (pExp - 1) *
+              ∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * (u y) ^ pExp) *
+          psi.weight x := by
+        have hmul := mul_le_mul_of_nonneg_left h2 hsqrt_nn
+        exact mul_le_mul_of_nonneg_right hmul hψ_nn
+
 end ShenWork.Paper1
 
 end
