@@ -1866,6 +1866,31 @@ lemma unitIntervalCosineHeatTraceTerm_le_recipEigen {t : ℝ} (ht : 0 < t)
           dsimp [lambda]
           ring
 
+/-- Reciprocal eigenvalue summand, omitting the zero Neumann mode. -/
+def unitIntervalCosineReciprocalEigenvalueTerm (n : ℕ) : ℝ :=
+  if n = 0 then 0 else 1 / unitIntervalCosineEigenvalue n
+
+/-- Reciprocal eigenvalue trace for nonzero cosine modes. -/
+def unitIntervalCosineReciprocalEigenvalueTrace : ℝ :=
+  ∑' n, unitIntervalCosineReciprocalEigenvalueTerm n
+
+/-- A summable majorant for heat-trace summands: zero mode plus reciprocal spectrum. -/
+def unitIntervalCosineHeatTraceMajorant (t : ℝ) (n : ℕ) : ℝ :=
+  (if n = 0 then 1 else 0) +
+    (1 / (2 * t)) * unitIntervalCosineReciprocalEigenvalueTerm n
+
+/-- Each heat-trace summand is bounded by the zero-mode-plus-reciprocal majorant. -/
+lemma unitIntervalCosineHeatTraceTerm_le_majorant {t : ℝ} (ht : 0 < t) (n : ℕ) :
+    Real.exp (-2 * t * unitIntervalCosineEigenvalue n) ≤
+      unitIntervalCosineHeatTraceMajorant t n := by
+  by_cases hn : n = 0
+  · subst n
+    simp [unitIntervalCosineHeatTraceMajorant,
+      unitIntervalCosineReciprocalEigenvalueTerm, unitIntervalCosineEigenvalue]
+  · have hrecip := unitIntervalCosineHeatTraceTerm_le_recipEigen ht hn
+    simpa [unitIntervalCosineHeatTraceMajorant,
+      unitIntervalCosineReciprocalEigenvalueTerm, hn] using hrecip
+
 /-- The heat semigroup is symmetric in the sense that swapping x and y
     in the kernel gives the same integrand. -/
 theorem heatSemigroup_kernel_symm (t x y : ℝ) :
