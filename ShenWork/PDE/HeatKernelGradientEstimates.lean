@@ -957,6 +957,41 @@ theorem unitIntervalCosineLp_coeFn (n : ℕ) :
         fun x : ℝ => (Real.cos ((n : ℝ) * Real.pi * x) : ℂ) := by
   exact MemLp.coeFn_toLp (unitIntervalCosine_memLp_two n)
 
+/-- Inner products against the raw `L²` cosine modes are exactly the raw
+cosine coefficients used in the Fourier-to-cosine Parseval bridge. -/
+theorem unitIntervalCosineLp_inner_eq_coeff
+    (n : ℕ) (g : Lp ℂ 2 (intervalMeasure 1)) :
+    inner ℂ (unitIntervalCosineLp n) g =
+      ∫ x in (0 : ℝ)..1,
+        (Real.cos ((n : ℝ) * Real.pi * x) : ℂ) * g x := by
+  calc
+    inner ℂ (unitIntervalCosineLp n) g
+        = ∫ x : ℝ, inner ℂ (unitIntervalCosineLp n x) (g x)
+            ∂ intervalMeasure 1 := by
+          simpa using (L2.inner_def (unitIntervalCosineLp n) g)
+    _ = ∫ x : ℝ,
+          (Real.cos ((n : ℝ) * Real.pi * x) : ℂ) * g x
+            ∂ intervalMeasure 1 := by
+          apply integral_congr_ae
+          filter_upwards [unitIntervalCosineLp_coeFn n] with x hx
+          rw [hx]
+          rw [RCLike.inner_apply']
+          have hstar :
+              (starRingEnd ℂ)
+                  ((Real.cos ((n : ℝ) * Real.pi * x) : ℂ)) =
+                (Real.cos ((n : ℝ) * Real.pi * x) : ℂ) := by
+            simpa using
+              Complex.conj_ofReal ((Real.cos ((n : ℝ) * Real.pi * x)))
+          rw [hstar]
+    _ = ∫ x : ℝ,
+          (Real.cos ((n : ℝ) * Real.pi * x) : ℂ) * g x
+            ∂ volume.restrict (Set.Ioc (0 : ℝ) 1) := by
+          rw [unitIntervalIocMeasure_eq_intervalMeasure]
+    _ = ∫ x in (0 : ℝ)..1,
+          (Real.cos ((n : ℝ) * Real.pi * x) : ℂ) * g x := by
+          rw [intervalIntegral.integral_of_le
+            (show (0 : ℝ) ≤ 1 by norm_num)]
+
 /-- Unit-interval spectral Neumann heat-gradient estimate in Mathlib
 `LpSeminorm` form, from interval `L²` to `L∞`. -/
 theorem unitIntervalNeumannSpectralHeatGradient_L2_Linfty_lpNorm_bound
