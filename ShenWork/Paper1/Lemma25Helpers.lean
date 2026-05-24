@@ -208,6 +208,54 @@ theorem psi_deriv_pExp_integral_le_kernel_weighted_integral
   intro x
   exact psi_deriv_pExp_weighted_le_kernel_weighted psi hl hmu hpExp hu hu_nn x
 
+/-! ### Fubini-conditional final assembly -/
+
+/-- Conditional Lemma 2.5 with explicit k < √l:  given that the
+double-integral form on the right is already known to equal the expected
+ψ-weighted form (via Fubini + `kernel_weight_integral_le_psi`), the
+combined integral inequality lifts step 2c to its weighted target.
+The conditional hypothesis `hFubini_le` packages the Fubini and
+weight-transfer reductions in a single inequality so this lemma can be
+used while the Fubini bookkeeping is built up. -/
+theorem Lemma_2_5_with_explicit_k_via_Fubini_hypothesis
+    (psi : ExponentialWeight) {pExp gamma l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 1 ≤ pExp)
+    {u : ℝ → ℝ} (hu : IsCUnifBdd (fun y => (u y) ^ gamma))
+    (hu_nn : ∀ y, 0 ≤ (u y) ^ gamma)
+    (hLHS_int :
+      Integrable
+        (fun x : ℝ =>
+          |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+            psi.weight x))
+    (hRHS_int :
+      Integrable
+        (fun x : ℝ =>
+          (Real.sqrt l) ^ pExp *
+            ((mu / (2 * Real.sqrt l)) ^ pExp *
+                (2 / Real.sqrt l) ^ (pExp - 1) *
+                (∫ y : ℝ,
+                  Real.exp (-Real.sqrt l * |x - y|) * ((u y) ^ gamma) ^ pExp)) *
+            psi.weight x))
+    {C : ℝ}
+    (hFubini_le :
+      (∫ x : ℝ,
+        (Real.sqrt l) ^ pExp *
+          ((mu / (2 * Real.sqrt l)) ^ pExp *
+              (2 / Real.sqrt l) ^ (pExp - 1) *
+              (∫ y : ℝ,
+                Real.exp (-Real.sqrt l * |x - y|) * ((u y) ^ gamma) ^ pExp)) *
+          psi.weight x) ≤
+        C * ∫ x : ℝ, ((u x) ^ gamma) ^ pExp * psi.weight x) :
+    ∫ x : ℝ,
+        |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+          psi.weight x ≤
+      C * ∫ x : ℝ, ((u x) ^ gamma) ^ pExp * psi.weight x := by
+  have hstep3 :=
+    psi_deriv_pExp_integral_le_kernel_weighted_integral
+      (psi := psi) (pExp := pExp) (l := l) (mu := mu)
+      hl hmu hpExp hu hu_nn hLHS_int hRHS_int
+  exact le_trans hstep3 hFubini_le
+
 end ShenWork.Paper1
 
 end
