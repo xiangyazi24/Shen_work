@@ -1953,6 +1953,59 @@ lemma unitIntervalCosineHeatTrace_le_reciprocalTrace {t : ℝ} (ht : 0 < t)
     _ ≤ 1 + (1 / (2 * t)) * unitIntervalCosineReciprocalEigenvalueTrace :=
           add_le_add hzero hscale
 
+/-- Short-time `L² → L∞` constant for the interval cosine heat model. -/
+def unitIntervalCosineHeatL2LinftyConstant : ℝ :=
+  Real.sqrt (1 + (1 / 2) * unitIntervalCosineReciprocalEigenvalueTrace)
+
+/-- Short-time inverse-square-root bound for the cosine heat trace. -/
+lemma unitIntervalCosineHeatTrace_sqrt_le_inv_sqrt {t : ℝ} (ht : 0 < t)
+    (htle : t ≤ 1)
+    (hrecip : Summable unitIntervalCosineReciprocalEigenvalueTerm) :
+    Real.sqrt (unitIntervalCosineHeatTrace t) ≤
+      unitIntervalCosineHeatL2LinftyConstant / Real.sqrt t := by
+  have hrecip_nonneg :
+      ∀ n, 0 ≤ unitIntervalCosineReciprocalEigenvalueTerm n := by
+    intro n
+    by_cases hn : n = 0
+    · simp [unitIntervalCosineReciprocalEigenvalueTerm, hn]
+    · have hnpos_real : 0 < (n : ℝ) := by
+        exact_mod_cast Nat.pos_of_ne_zero hn
+      have hlambda_pos : 0 < unitIntervalCosineEigenvalue n := by
+        dsimp [unitIntervalCosineEigenvalue]
+        exact sq_pos_of_pos (mul_pos hnpos_real Real.pi_pos)
+      rw [unitIntervalCosineReciprocalEigenvalueTerm, if_neg hn]
+      exact div_nonneg zero_le_one hlambda_pos.le
+  have hR_nonneg : 0 ≤ unitIntervalCosineReciprocalEigenvalueTrace := by
+    exact tsum_nonneg hrecip_nonneg
+  have htrace :=
+    unitIntervalCosineHeatTrace_le_reciprocalTrace ht hrecip
+  have hshort :
+      1 + (1 / (2 * t)) * unitIntervalCosineReciprocalEigenvalueTrace ≤
+        (1 + (1 / 2) * unitIntervalCosineReciprocalEigenvalueTrace) / t := by
+    have hone : 1 ≤ 1 / t := one_le_one_div ht htle
+    calc
+      1 + (1 / (2 * t)) * unitIntervalCosineReciprocalEigenvalueTrace
+          ≤ 1 / t +
+              (1 / (2 * t)) * unitIntervalCosineReciprocalEigenvalueTrace := by
+            simpa [add_comm, add_left_comm, add_assoc] using
+              add_le_add_right hone
+                ((1 / (2 * t)) * unitIntervalCosineReciprocalEigenvalueTrace)
+      _ = (1 + (1 / 2) * unitIntervalCosineReciprocalEigenvalueTrace) / t := by
+            ring
+  have hnum_nonneg :
+      0 ≤ 1 + (1 / 2) * unitIntervalCosineReciprocalEigenvalueTrace := by
+    positivity
+  calc
+    Real.sqrt (unitIntervalCosineHeatTrace t)
+        ≤ Real.sqrt
+            ((1 + (1 / 2) * unitIntervalCosineReciprocalEigenvalueTrace) / t) :=
+          Real.sqrt_le_sqrt (htrace.trans hshort)
+    _ = Real.sqrt
+          (1 + (1 / 2) * unitIntervalCosineReciprocalEigenvalueTrace) /
+            Real.sqrt t := by
+          rw [Real.sqrt_div hnum_nonneg]
+    _ = unitIntervalCosineHeatL2LinftyConstant / Real.sqrt t := rfl
+
 /-- The heat semigroup is symmetric in the sense that swapping x and y
     in the kernel gives the same integrand. -/
 theorem heatSemigroup_kernel_symm (t x y : ℝ) :
