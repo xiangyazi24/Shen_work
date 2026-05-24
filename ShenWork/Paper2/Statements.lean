@@ -5505,6 +5505,34 @@ theorem unitPointDomain.Theorem_1_2_minimal_only
       refine ⟨unitPointDomain.supNorm u₀, ?_⟩
       exact Filter.Eventually.of_forall fun _ => le_refl _
 
+/-- Statement-layer closure of Paper 2 Theorem 1.2 on the unit-point domain
+for the minimal branch `a = b = 0` and the strict logistic branch
+`0 < a, 0 < b`.  The mixed degenerate cases are not routed through the
+Bernoulli-logistic package. -/
+theorem unitPointDomain.Theorem_1_2_from_logistic_nonminimal
+    (p : CM2Params)
+    (hlogistic : UnitPointLogisticNonminimalPackage p)
+    (hbranch : (p.a = 0 ∧ p.b = 0) ∨ (0 < p.a ∧ 0 < p.b)) :
+    Theorem_1_2 unitPointDomain p := by
+  rcases hbranch with hminimal | hnonminimal
+  · exact unitPointDomain.Theorem_1_2_minimal_only p hminimal.1 hminimal.2
+  · intro _ha_nn _hb_nn _hβ
+    refine ⟨?_, ?_⟩
+    · intro _hm_pos _hm_lt u₀ hu₀
+      rcases hlogistic hnonminimal.1 hnonminimal.2 u₀ hu₀ with
+        ⟨u, v, hglobal, htrace, hbound, _hlim⟩
+      refine ⟨1, by norm_num, u, v, ?_, htrace, ?_⟩
+      · exact hglobal.classical (T := 1) (by norm_num)
+      · refine ⟨max (unitPointDomain.supNorm u₀)
+          ((p.a / p.b) ^ (1 / p.α)), ?_⟩
+        intro t ht_pos _ht_lt
+        exact hbound t ht_pos.le
+    · intro _hm_eq _hχ u₀ hu₀
+      rcases hlogistic hnonminimal.1 hnonminimal.2 u₀ hu₀ with
+        ⟨u, v, hglobal, htrace, hbound, _hlim⟩
+      refine ⟨u, v, hglobal, htrace, ?_⟩
+      exact IsPaper2Bounded.of_forall_nonneg_supNorm_le hbound
+
 end
 
 end ShenWork.Paper2
