@@ -14,12 +14,12 @@
 - **产出**: `intervalHeatSemigroup_Lp_Lq_bound`
 - **下游**: Paper2 Lemma 2.1, Lemma 4.1
 
-### H0.2 — Neumann heat semigroup gradient estimate (partial — coefficient estimate done, blocked on cosine Parseval bridge)
+### H0.2 — Neumann heat semigroup gradient estimate (partial — spectral/helper bounds done; semigroup equivalence still open)
 - **内容**: `‖∇ e^{tΔ} f‖_{L^q} ≤ C t^{-1/2-N/2(1/p-1/q)} ‖f‖_{L^p}`
 - **前置**: H0.1 + cosine series term-by-term differentiation
-- **目标文件**: `ShenWork/PDE/HeatKernelLpEstimates.lean`
+- **目标文件**: `ShenWork/PDE/HeatKernelGradientEstimates.lean`
 - **产出**: `intervalHeatSemigroup_grad_Lp_Lq_bound`
-- **当前前沿** (2026-05-24): 已在 `HeatKernelLpEstimates.lean` 形式化 cosine heat 系数模型的梯度层：
+- **当前前沿** (2026-05-24): 已在 `HeatKernelGradientEstimates.lean` 形式化 cosine heat 系数模型的梯度层：
   `unitIntervalCosineHeatValue_deriv_of_l2`（L² 系数下逐项求导）、
   `intervalCosineHeatGradient_L2_L2_coeff_bound`（系数空间 L²→L²）、
   `unitIntervalCosineHeatGradientValue_L2_Linfty_smoothing`（系数空间点值 L²→L∞）。
@@ -29,16 +29,33 @@
   `unitIntervalEvenReflection_fourier_parseval_raw`（`[-1,1]` Fourier Parseval）、
   `unitIntervalEvenReflection_fourier_parseval_unit_mass`（偶延拓质量回到 `[0,1]`）、
   `unitIntervalCosine_eq_fourier_pair`（`(e^{inπx}+e^{-inπx})/2 = cos(nπx)`）。
-- **精确 blocker**: Mathlib 没有现成的 AddCircle 偶延拓传输层。仍需证明最小桥接 lemma
-  `unitIntervalEvenReflection_fourierCoeffOn_eq_cosineCoeff`，形如
-  `fourierCoeffOn (-1<1) (fun x => f |x|) (n : ℤ)
-   = ∫ x in 0..1, (Real.cos ((n : ℝ) * Real.pi * x) : ℂ) * f x`
-  （先对足够 integrable/continuous 的 `f`；再升级到 L² a.e. 版本）。之后还需把 `ℤ` 上的 Fourier Parseval 折叠成 `ℕ` 上的 Neumann cosine Parseval/Bessel，注意 zeroth mode 与 `n>0` mode 的归一化常数。
-- **仍未完成缺口**: 还不能把上述系数空间估计诚实改写成 `intervalHeatSemigroup_grad_Lp_Lq_bound`。缺少：
-  (1) 区间函数 `f` 的 normalized cosine coefficient map；
-  (2) Parseval/Bessel/完备性，把 coefficient `ℓ²` 范数接到 Mathlib `lpNorm f 2 (intervalMeasure L)`；
-  (3) `unitIntervalCosineHeatValue` 与 H0.1 使用的 `intervalSemigroupOperator`/真正 Neumann spectral semigroup 的等价桥；
-  (4) 从 L² coefficient estimates 到一般 `L^p→L^q` 的插值或梯度核 Young/Schur 估计。
+- **Parseval bridge 已落地** (2026-05-24): 已证明
+  `unitIntervalEvenReflection_fourierCoeffOn_eq_cosineCoeff`，并在
+  `HeatKernelGradientEstimates.lean` 中得到
+  `unitIntervalCosineRawCoeff_tsum_sq_le_integral`、
+  `unitIntervalNeumannCosineCoeff_l2_bound`，把 cosine coefficient `ℓ²`
+  控到 interval `L²` mass。
+- **新增已证明端点** (2026-05-24): `HeatKernelGradientEstimates.lean`
+  已证明 unit-interval spectral cosine semigroup 的实值梯度估计
+  `unitIntervalNeumannHeatSemigroup_grad_Lp_Lq_bound` 和
+  `unitIntervalNeumannHeatSemigroup_grad_Lp_Linfty_bound`，目前是
+  absolute-convergence 端点，时间奇性为非 sharp `t⁻²`。同文件还证明了
+  H0.1 当前 helper operator `intervalSemigroupOperator` 的 unit-interval
+  梯度配套估计：
+  `unitIntervalSemigroupOperator_grad_Lp_Lq_lpNorm_bound`、
+  `unitIntervalSemigroupOperator_grad_Lp_Linfty_lpNorm_bound`。
+- **仍未完成缺口**: 还不能把上述结果诚实改写成最终
+  `intervalHeatSemigroup_grad_Lp_Lq_bound`。缺少：
+  (1) `unitIntervalNeumannHeatSemigroup` 与 repository 中真正要用的
+  intervalDomain Neumann semigroup 的等价定理；
+  (2) 从 unit interval 推到 `[0,L]` 的 scaling bridge，包括 cosine
+  coefficients、`intervalMeasure L` 下的 `lpNorm` scaling、梯度 scaling；
+  (3) sharp 指数 `t^{-1/2-N/2(1/p-1/q)}` 的插值/Young/Schur 链。Mathlib
+  未找到现成 Riesz-Thorin/Young convolution API；若坚持 sharp 指数，需要
+  先自建最小插值或梯度核 `L^r` norm lemma；
+  (4) 确认/替换 H0.1 当前 `intervalSemigroupOperator`：该 operator 在
+  `IntervalDomain.lean` 明确标注为 zeroth-reflection helper，不是完整
+  Neumann heat kernel。
 - **下游**: Paper2 Lemma 2.1 (derivative part)
 
 ### H0.3 — Gagliardo-Nirenberg interpolation on [0,L] ✅ DONE
