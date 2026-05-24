@@ -19,6 +19,15 @@
 - **前置**: H0.1 + cosine series term-by-term differentiation
 - **目标文件**: `ShenWork/PDE/HeatKernelLpEstimates.lean`
 - **产出**: `intervalHeatSemigroup_grad_Lp_Lq_bound`
+- **当前前沿** (2026-05-24): 已在 `HeatKernelLpEstimates.lean` 形式化 cosine heat 系数模型的梯度层：
+  `unitIntervalCosineHeatValue_deriv_of_l2`（L² 系数下逐项求导）、
+  `intervalCosineHeatGradient_L2_L2_coeff_bound`（系数空间 L²→L²）、
+  `unitIntervalCosineHeatGradientValue_L2_Linfty_smoothing`（系数空间点值 L²→L∞）。
+- **未完成缺口**: 还不能把上述系数空间估计诚实改写成 `intervalHeatSemigroup_grad_Lp_Lq_bound`。缺少：
+  (1) 区间函数 `f` 的 cosine coefficient map；
+  (2) Parseval/Bessel/完备性，把 coefficient `ℓ²` 范数接到 Mathlib `lpNorm f 2 (intervalMeasure L)`；
+  (3) `unitIntervalCosineHeatValue` 与 H0.1 使用的 `intervalSemigroupOperator`/真正 Neumann spectral semigroup 的等价桥；
+  (4) 从 L² coefficient estimates 到一般 `L^p→L^q` 的插值或梯度核 Young/Schur 估计。
 - **下游**: Paper2 Lemma 2.1 (derivative part)
 
 ### H0.3 — Gagliardo-Nirenberg interpolation on [0,L]
