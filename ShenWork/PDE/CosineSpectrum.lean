@@ -405,6 +405,52 @@ lemma paper3Cosine_minimalEquilibrium_linearlyUnstable_of_first_mode_formula_lt_
     unitInterval_minimalEquilibrium_linearlyUnstable_of_first_mode_formula_lt_chi
       p huStar hχ
 
+lemma paper3Cosine_Theorem_2_2_linear_stability_chi_nonpos
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) :
+    (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      LinearlyStable paper3CosineSpectralData p eq.1 eq.2) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        LinearlyStable paper3CosineSpectralData p eq.1 eq.2) := by
+  simpa [paper3CosineSpectralData_eq_unitInterval] using
+    Theorem_2_2_linear_stability_chi_nonpos_unitInterval p hχ
+
+lemma paper3Cosine_Theorem_2_2_linear_threshold
+    (p : CM2Params) :
+    (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      (p.χ₀ < paperCriticalSensitivity paper3CosineSpectralData p eq.1 eq.2 →
+        LinearlyStable paper3CosineSpectralData p eq.1 eq.2) ∧
+      (paperCriticalSensitivity paper3CosineSpectralData p eq.1 eq.2 < p.χ₀ →
+        LinearlyUnstable paper3CosineSpectralData p eq.1 eq.2)) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        (p.χ₀ <
+            paperCriticalSensitivity paper3CosineSpectralData p eq.1 eq.2 →
+          LinearlyStable paper3CosineSpectralData p eq.1 eq.2) ∧
+        (paperCriticalSensitivity paper3CosineSpectralData p eq.1 eq.2 <
+            p.χ₀ →
+          LinearlyUnstable paper3CosineSpectralData p eq.1 eq.2)) := by
+  simpa [paper3CosineSpectralData_eq_unitInterval] using
+    Theorem_2_2_linear_threshold_unitInterval p
+
+lemma paper3Cosine_Theorem_2_2_linear_mode_one_instability
+    (p : CM2Params) :
+    (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      sigmaCriticalChiPaperFormula p eq.1 eq.2 (Real.pi ^ 2) < p.χ₀ →
+        LinearlyUnstable paper3CosineSpectralData p eq.1 eq.2) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        sigmaCriticalChiPaperFormula p eq.1 eq.2 (Real.pi ^ 2) < p.χ₀ →
+          LinearlyUnstable paper3CosineSpectralData p eq.1 eq.2) := by
+  simpa [paper3CosineSpectralData_eq_unitInterval] using
+    Theorem_2_2_linear_mode_one_instability_unitInterval p
+
 end ShenWork.CosineSpectrum
 
 end
