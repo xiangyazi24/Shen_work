@@ -482,6 +482,40 @@ theorem bernoulliLogisticSolution_tendsto_atTop
     exact bernoulliLogisticSolution_of_nonneg p u₀ t ht
   exact (bernoulliLogisticForward_tendsto_atTop p u₀ ha hb).congr' hbranch.symm
 
+theorem bernoulliLogisticSolution_inversePower_exp_decay
+    (p : CM2Params) {u₀ t : ℝ} (ha : 0 < p.a) (hb : 0 < p.b)
+    (hu₀ : 0 < u₀) (ht : 0 ≤ t) :
+    |(bernoulliLogisticSolution p u₀ t) ^ (-p.α) - p.b / p.a| =
+      |u₀ ^ (-p.α) - p.b / p.a| * Real.exp (-(p.α * p.a) * t) := by
+  set D : ℝ := bernoulliLogisticDenominator p u₀ t
+  have hα_ne : p.α ≠ 0 := ne_of_gt p.hα
+  have hD_pos : 0 < D := by
+    simpa [D] using
+      bernoulliLogisticDenominator_pos_of_nonneg_time p ha hb hu₀ ht
+  have hsolution_eq :
+      bernoulliLogisticSolution p u₀ t = D ^ (-1 / p.α) := by
+    rw [bernoulliLogisticSolution_of_nonneg p u₀ t ht]
+    simp [bernoulliLogisticForward, D]
+  have hpow_solution :
+      (bernoulliLogisticSolution p u₀ t) ^ (-p.α) = D := by
+    rw [hsolution_eq, ← Real.rpow_mul hD_pos.le]
+    have hmul : (-1 / p.α) * (-p.α) = 1 := by
+      field_simp [hα_ne]
+    rw [hmul, Real.rpow_one]
+  have hD_sub :
+      D - p.b / p.a =
+        (u₀ ^ (-p.α) - p.b / p.a) *
+          Real.exp (-(p.α * p.a) * t) := by
+    simp [D, bernoulliLogisticDenominator, bernoulliLogisticWeight]
+  calc
+    |(bernoulliLogisticSolution p u₀ t) ^ (-p.α) - p.b / p.a|
+        = |D - p.b / p.a| := by rw [hpow_solution]
+    _ = |(u₀ ^ (-p.α) - p.b / p.a) *
+          Real.exp (-(p.α * p.a) * t)| := by rw [hD_sub]
+    _ = |u₀ ^ (-p.α) - p.b / p.a| *
+          Real.exp (-(p.α * p.a) * t) := by
+      rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+
 lemma unitPointLogistic_classicalSolution
     (p : CM2Params) {u₀ : unitPointDomain.Point → ℝ}
     (ha : 0 < p.a) (hb : 0 < p.b)
