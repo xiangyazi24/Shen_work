@@ -11569,6 +11569,29 @@ theorem unitPointDomain.Theorem_2_1_vacuous_when_a_pos_b_pos_chi_nonpos_m_lt_one
     unitPointDomain.Theorem_2_1_part3_vacuous_when_chi_nonpos p hχ,
     unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero p (ne_of_gt ha) C⟩
 
+/-- Paper 3 Theorem 2.5 holds **unconditionally** on the unit-point
+domain with `paper3UnitPointConstants` and `unitPointStabilityNorms`.
+
+The hypothesis includes `MinimalGlobalStabilityCondition uStar` which
+unfolds to `(0 < χ₀ ∧ χ₀ < chiMinimal1) ∨ (γ = 1 ∧ 0 < χ₀ ∧ χ₀ < chiMinimal2)`.
+With `paper3UnitPointConstants.chiMinimal1 = 0` and `chiMinimal2 = 0`,
+this condition reduces to a contradiction `0 < χ₀ ∧ χ₀ < 0`, so the
+implication is vacuously true. -/
+theorem unitPointDomain.Theorem_2_5_holds
+    (p : CM2Params) :
+    Theorem_2_5 ShenWork.Paper2.unitPointDomain p
+      unitPointStabilityNorms (paper3UnitPointConstants p) := by
+  intro _ha _hb _hm _hβ uStar _huStar
+  dsimp only []
+  intro hcond
+  exfalso
+  rcases hcond with ⟨h1, h2⟩ | ⟨_, h1, h2⟩
+  · -- h2 : χ₀ < 0
+    have : p.χ₀ < (0 : ℝ) := by simpa [paper3UnitPointConstants] using h2
+    linarith
+  · have : p.χ₀ < (0 : ℝ) := by simpa [paper3UnitPointConstants] using h2
+    linarith
+
 end
 
 end ShenWork.Paper3
