@@ -651,12 +651,7 @@ theorem unitPointDomain.not_Theorem_2_1_part1_when_a_zero_b_pos :
   -- The decay ODE u' = -u^{α+1} with α=1 gives u' = -u².
   -- Via 1/u trick: (1/u)' = 1, so 1/u(t) = 1/u(1) + (t-1).
   -- Hence u(t) → 0, contradicting the eventual lower bound.
-  -- But we need u t () < δu for large t, which contradicts hT₀.
-  -- Key: from the supNorm bound, |u t ()| ≤ |u₀ ()| = 1 for t ≥ 0
-  -- From the PDE: deriv (fun s => u s ()) t = u t () * (0 - 1 * (u t ())^1) = -u(t)()²
-  -- So u' = -(u)² for t > 0, with u positive and bounded.
-  -- For any t > 0: u(t) > 0 and u'(t) = -(u(t))² < 0
-  -- Get differentiability and PDE
+  -- Extract differentiability, positivity, and the PDE u' = -u²
   have hdiff : Differentiable ℝ (fun s : ℝ => u s ()) := by
     have h2 := hglobal 2 (by norm_num : (0 : ℝ) < 2)
     exact h2.2.1.1
@@ -667,30 +662,13 @@ theorem unitPointDomain.not_Theorem_2_1_part1_when_a_zero_b_pos :
     intro t ht
     have h := hglobal.pde_u (t := t) ht (Set.mem_univ ())
     simp only [ShenWork.Paper2.unitPointDomain] at h
-    -- h : deriv (fun s => u s ()) t = u t () * (p.a - p.b * (u t ()) ^ p.α)
-    -- With a=0, b=1, α=1: = u t () * (0 - 1 * (u t ())^1) = -u(t)()²
     have hpa : p.a = 0 := rfl
     have hpb : p.b = 1 := rfl
     have hpα : p.α = 1 := rfl
     rw [hpa, hpb, hpα, Real.rpow_one] at h
     linarith
-  -- u is decreasing: deriv < 0 for t > 0
-  -- u is bounded below by 0
-  -- From PDE: u' = -u², and u > 0, so u is strictly decreasing
-  -- u(1) > 0, and for t > 1: u(t) ≤ u(1) (monotone decreasing)
-  -- Also u' = -u² ≤ -(u(1))² when u ≥ u(1)... no, opposite.
-  -- Better: u' = -u² and u ≤ 1 (from bound). So for u > 0:
-  -- u' ≤ -u² ≤ -u·0 = 0 (doesn't help directly)
-  -- Use integral: from u' = -u², we get 1/u(t) - 1/u(s) = t - s for 0 < s < t
-  -- So 1/u(t) = 1/u(1) + (t - 1) for t ≥ 1
-  -- Hence u(t) = u(1) / (1 + u(1)(t-1))
-  -- As t → ∞, u(t) → 0
-  -- The 1/u trick: define g(t) = 1/u(t) for t > 0
-  -- g'(t) = -u'(t)/u(t)² = u(t)²/u(t)² = 1
-  -- So g(t) - g(1) = t - 1, i.e., g(t) = g(1) + (t - 1) for t ≥ 1
-  -- Therefore u(t) = 1/g(t) = 1/(g(1) + (t-1))
-  -- For t large enough, this is < δu
-  -- Formally prove g(t) = 1/u(t) and g' = 1
+  -- 1/u trick: g(t) := (u t ())⁻¹ satisfies g' = 1, so
+  -- g(t) = g(1) + (t - 1), hence u(t) → 0 as t → ∞.
   have hg_deriv : ∀ t : ℝ, 0 < t →
       HasDerivAt (fun s => (u s ())⁻¹) 1 t := by
     intro t ht
@@ -699,36 +677,30 @@ theorem unitPointDomain.not_Theorem_2_1_part1_when_a_zero_b_pos :
     have hderiv_u : HasDerivAt (fun s => u s ()) (deriv (fun s => u s ()) t) t :=
       (hdiff t).hasDerivAt
     have hinv := hderiv_u.inv hut_ne
-    -- hinv : HasDerivAt (fun s => (u s ())⁻¹) (-(deriv (fun s => u s ()) t) / (u t ())²) t
     convert hinv using 1
     rw [hpde t ht]
     rw [show -(-(u t () ^ 2)) = u t () ^ 2 by ring]
     rw [div_self hut_sq_ne]
-  -- g is differentiable on (0, ∞) with deriv = 1
-  -- So g is constant + t, i.e., g(t) - g(s) = t - s for s, t > 0
-  -- Use Convex.inner_smul... or is_const_of_deriv_eq_zero for g - id
+  -- g - id has zero derivative on (0,∞), so is constant
   have hg_linear : ∀ t : ℝ, 0 < t →
       (u t ())⁻¹ = (u 1 ())⁻¹ + (t - 1) := by
     intro t ht
-    -- (g - id) has derivative 0 on (0, ∞)
     have hg_minus_id_deriv : ∀ s ∈ Set.Ioi (0 : ℝ),
         deriv (fun r => (u r ())⁻¹ - r) s = 0 := by
       intro s hs
       have hsub_hd := (hg_deriv s hs).sub (hasDerivAt_id s)
-      -- hsub_hd : HasDerivAt ((fun s => (u s ())⁻¹) - id) (1 - 1) s
-      have : (fun r => (u r ())⁻¹ - r) = (fun s => (u s ())⁻¹) - id := by ext; simp
+      have : (fun r => (u r ())⁻¹ - r) =
+          (fun s => (u s ())⁻¹) - id := by ext; simp
       rw [this, hsub_hd.deriv]
       ring
     have hg_minus_id_diff : DifferentiableOn ℝ (fun r => (u r ())⁻¹ - r) (Set.Ioi 0) := by
       intro s hs
       exact ((hg_deriv s hs).differentiableAt.sub differentiableAt_id).differentiableWithinAt
-    have hconst := isOpen_Ioi.is_const_of_deriv_eq_zero isPreconnected_Ioi
-      hg_minus_id_diff hg_minus_id_deriv (Set.mem_Ioi.mpr ht) (Set.mem_Ioi.mpr one_pos)
-    -- hconst : (u t ())⁻¹ - t = (u 1 ())⁻¹ - 1
+    have hconst := isOpen_Ioi.is_const_of_deriv_eq_zero
+      isPreconnected_Ioi hg_minus_id_diff hg_minus_id_deriv
+      (Set.mem_Ioi.mpr ht) (Set.mem_Ioi.mpr one_pos)
     linarith
-  -- Now: u(t) = 1 / ((u 1 ())⁻¹ + (t - 1)) for t > 0
-  -- For large enough t: u(t) < δu
-  -- Since (u 1 ())⁻¹ + (t - 1) > 1/δu for t large enough
+  -- Choose t_star large enough so u(t_star) < δu
   have hu1_pos : 0 < u 1 () := hupos 1 one_pos
   have hu1_inv_pos : 0 < (u 1 ())⁻¹ := inv_pos.mpr hu1_pos
   -- Choose t_star large enough
