@@ -2751,6 +2751,28 @@ def intervalDomainLift (f : intervalDomainPoint → ℝ) : ℝ → ℝ :=
 def intervalDomainIntegral (f : intervalDomainPoint → ℝ) : ℝ :=
   ∫ x in (0 : ℝ)..1, intervalDomainLift f x
 
+def intervalDomainSupNorm (f : intervalDomainPoint → ℝ) : ℝ :=
+  sSup (Set.range (fun x : intervalDomainPoint => |f x|))
+
+structure IntervalDomainSupNormDerivativeNonposOn
+    (u : ℝ → intervalDomainPoint → ℝ) (I : Set ℝ) : Prop where
+  continuousOn : ContinuousOn (fun t => intervalDomainSupNorm (u t)) I
+  differentiableOn :
+    DifferentiableOn ℝ (fun t => intervalDomainSupNorm (u t)) (interior I)
+  deriv_nonpos :
+    ∀ t, t ∈ interior I →
+      deriv (fun s => intervalDomainSupNorm (u s)) t ≤ 0
+
+def intervalDomainClassicalRegularity
+    (T : ℝ) (u : ℝ → intervalDomainPoint → ℝ)
+    (_v : ℝ → intervalDomainPoint → ℝ) : Prop :=
+  (∀ p : CM2Params, p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
+    ∀ t₀, 0 < t₀ → t₀ < T →
+      (p.a / p.b) ^ (1 / p.α) < intervalDomainSupNorm (u t₀) →
+        IntervalDomainSupNormDerivativeNonposOn u (Set.Ioc (0 : ℝ) t₀)) ∧
+  (∀ p : CM2Params, p.χ₀ ≤ 0 → p.a = 0 → p.b = 0 →
+    IntervalDomainSupNormDerivativeNonposOn u (Set.Ioo (0 : ℝ) T))
+
 def intervalDomainGradNorm (f : intervalDomainPoint → ℝ)
     (x : intervalDomainPoint) : ℝ :=
   |deriv (intervalDomainLift f) x.1|
@@ -2792,7 +2814,7 @@ def intervalDomain : ShenWork.Paper2.BoundedDomainData where
   inside := {x : intervalDomainPoint | (x.1 : ℝ) ∈ Set.Ioo 0 1}
   boundary := {x : intervalDomainPoint | x.1 = 0 ∨ x.1 = 1}
   volume := 1
-  supNorm := fun f => sSup (Set.range (fun x : intervalDomainPoint => |f x|))
+  supNorm := intervalDomainSupNorm
   infValue := fun f => sInf (Set.range f)
   integral := intervalDomainIntegral
   gradNorm := intervalDomainGradNorm
@@ -2802,7 +2824,7 @@ def intervalDomain : ShenWork.Paper2.BoundedDomainData where
   crossDiffusionEnergyTerm := intervalDomainCrossDiffusionEnergyTerm
   normalDeriv := intervalDomainNormalDeriv
   initialAdmissible := fun _ => True
-  classicalRegularity := fun _ _ _ => True
+  classicalRegularity := intervalDomainClassicalRegularity
 
 end ShenWork.IntervalDomain
 

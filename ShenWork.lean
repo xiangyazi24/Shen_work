@@ -7,6 +7,7 @@ import ShenWork.ComparisonPrinciple
 import ShenWork.PDE.HeatSemigroup
 import ShenWork.PDE.BoundedDomainData
 import ShenWork.PDE.IntervalDomain
+import ShenWork.PDE.IntervalDomainMaxPrinciple
 import ShenWork.PDE.MildSolution
 import ShenWork.PDE.SuperSolution
 import ShenWork.PDE.GlobalBound
