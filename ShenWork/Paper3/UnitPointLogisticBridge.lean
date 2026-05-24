@@ -429,8 +429,6 @@ theorem unitPointDomain.Theorem_2_1_part1_when_a_pos_b_pos
   · -- EventuallyLowerBound D u (min (f 1) e)
     refine ⟨hδ_pos, ?_⟩
     refine Filter.eventually_atTop.mpr ⟨1, fun t ht => ?_⟩
-    show min (f 1) e ≤ ShenWork.Paper2.unitPointDomain.infValue (u t)
-    show min (f 1) e ≤ f t
     exact hf_lower t ht
   · -- EventuallyLowerBound D v (ν/μ * (min (f 1) e)^γ)
     have hv_lb_pos : 0 < p.ν / p.μ * (min (f 1) e) ^ p.γ :=
