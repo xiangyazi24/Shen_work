@@ -98,6 +98,30 @@ theorem kernel_weight_integral_le_psi
   rw [MeasureTheory.integral_const_mul, integral_exp_combine_eq hk_lt y] at hint
   exact hint
 
+/-! ### Combined Jensen + weight-transfer step
+
+Convolves Jensen on `Ψ^p` with `kernel_weight_integral_le_psi` to bound
+the ψ-weighted L^p norm of `Ψ(u^γ)` by a multiple of the ψ-weighted L^p
+norm of `u^γ`.  Constant depends on `(l, μ, p, k)` where `k < √l`
+controls the ψ log-derivative. -/
+
+theorem psi_pExp_weighted_le_kernel_weighted
+    (psi : ExponentialWeight) {pExp gamma l mu k : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 1 ≤ pExp) (hk_nn : 0 ≤ k)
+    (hk_lt : k < Real.sqrt l)
+    (hk_bound : ∀ z, |deriv psi.weight z| ≤ k * psi.weight z)
+    {u : ℝ → ℝ} (hu : IsCUnifBdd u) (hu_nn : ∀ y, 0 ≤ u y) :
+    ∀ x : ℝ,
+      (Psi u l mu x) ^ pExp * psi.weight x ≤
+        (mu / (2 * Real.sqrt l)) ^ pExp *
+          (2 / Real.sqrt l) ^ (pExp - 1) *
+          (∫ y : ℝ, Real.exp (-Real.sqrt l * |x - y|) * (u y) ^ pExp) *
+            psi.weight x := by
+  intro x
+  have hJensen := lemma_2_5_jensenStep u l mu pExp hl hmu hpExp hu hu_nn x
+  have hψ_nn : 0 ≤ psi.weight x := (psi.pos x).le
+  exact mul_le_mul_of_nonneg_right hJensen hψ_nn
+
 end ShenWork.Paper1
 
 end
