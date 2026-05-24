@@ -504,4 +504,44 @@ lemma unitPointLogistic_initialTrace
   rw [hfun]
   simpa [unitPointDomain, Real.dist_eq] using hclose
 
+theorem unitPointDomain.Theorem_1_1_nonminimal_branch
+    (p : CM2Params) :
+    p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
+      ∀ u₀ : unitPointDomain.Point → ℝ,
+        PositiveInitialDatum unitPointDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → unitPointDomain.Point → ℝ,
+            IsPaper2ClassicalSolution unitPointDomain p Tmax u v ∧
+            InitialTrace unitPointDomain u₀ u ∧
+            (∀ t, 0 < t → t < Tmax →
+              unitPointDomain.supNorm (u t) ≤
+                max (unitPointDomain.supNorm u₀)
+                  ((p.a / p.b) ^ (1 / p.α))) ∧
+            (1 ≤ p.m → IsPaper2GlobalClassicalSolution unitPointDomain p u v) := by
+  intro _hχ ha hb u₀ hu₀
+  let u : ℝ → unitPointDomain.Point → ℝ :=
+    fun t _ => bernoulliLogisticSolution p (u₀ ()) t
+  let v : ℝ → unitPointDomain.Point → ℝ :=
+    fun t _ => (p.ν / p.μ) *
+      (bernoulliLogisticSolution p (u₀ ()) t) ^ p.γ
+  refine ⟨1, by norm_num, u, v, ?_, ?_, ?_, ?_⟩
+  · simpa [u, v] using
+      unitPointLogistic_classicalSolution p ha hb hu₀ (T := 1) (by norm_num)
+  · simpa [u] using unitPointLogistic_initialTrace p ha hb hu₀
+  · intro t ht_pos _ht_lt
+    have hu₀_pos : 0 < u₀ () := hu₀.pos trivial
+    have hsol_pos :
+        0 < bernoulliLogisticSolution p (u₀ ()) t :=
+      bernoulliLogisticSolution_pos p ha hb hu₀_pos
+    have hbound :
+        bernoulliLogisticSolution p (u₀ ()) t ≤
+          max (u₀ ()) ((p.a / p.b) ^ (1 / p.α)) :=
+      bernoulliLogisticSolution_le_max_of_nonneg_time p ha hb hu₀_pos ht_pos.le
+    show |bernoulliLogisticSolution p (u₀ ()) t| ≤
+      max |u₀ ()| ((p.a / p.b) ^ (1 / p.α))
+    rw [abs_of_pos hsol_pos, abs_of_pos hu₀_pos]
+    exact hbound
+  · intro _hm T hT
+    simpa [u, v] using
+      unitPointLogistic_classicalSolution p ha hb hu₀ (T := T) hT
+
 end ShenWork.Paper2
