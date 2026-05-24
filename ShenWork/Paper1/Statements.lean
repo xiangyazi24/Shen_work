@@ -1611,6 +1611,47 @@ theorem Lemma_2_2_direct
   ⟨Lemma_2_2_kernel_formula_direct hl hmu hu,
     Lemma_2_2_derivative_formula_direct hl hmu hu⟩
 
+theorem Lemma_2_2_embedding_estimate_direct
+    {u : ℝ → ℝ} {l mu M : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hM : 0 ≤ M)
+    (hu : IsCUnifBdd u) (hu_bound : ∀ y, |u y| ≤ M) :
+    ∀ x, |Psi u l mu x| ≤ (mu / l) * M := by
+  intro x
+  have hiu :
+      Integrable (fun y : ℝ => Real.exp (-Real.sqrt l * |x - y|) * u y) :=
+    psi_kernel_mul_bounded_integrable hl hM hu_bound x
+      hu.1.aestronglyMeasurable
+  have hu_le : ∀ y, u y ≤ M := by
+    intro y
+    exact (le_abs_self (u y)).trans (hu_bound y)
+  have hupper : Psi u l mu x ≤ (mu / l) * M :=
+    Psi_le_const_general_of_le hl hmu hM hu_le x hiu
+  have hneg_bound : ∀ y, |(-u y)| ≤ M := by
+    intro y
+    simpa using hu_bound y
+  have hneg_le : ∀ y, -u y ≤ M := by
+    intro y
+    exact (le_abs_self (-u y)).trans (hneg_bound y)
+  have hineg :
+      Integrable
+        (fun y : ℝ => Real.exp (-Real.sqrt l * |x - y|) * (-u y)) :=
+    psi_kernel_mul_bounded_integrable hl hM hneg_bound x
+      hu.1.neg.aestronglyMeasurable
+  have hneg_upper : Psi (fun y : ℝ => -u y) l mu x ≤ (mu / l) * M :=
+    Psi_le_const_general_of_le hl hmu hM hneg_le x hineg
+  rw [Psi_neg] at hneg_upper
+  exact abs_le.mpr ⟨by linarith, hupper⟩
+
+theorem Lemma_2_2_embedding_estimate
+    {u : ℝ → ℝ} {l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hu : IsCUnifBdd u) :
+    ∃ C, 0 ≤ C ∧ ∀ x, |Psi u l mu x| ≤ C := by
+  rcases hu.2 with ⟨M, hM⟩
+  have hM_nonneg : 0 ≤ M := le_trans (abs_nonneg (u 0)) (hM 0)
+  refine ⟨(mu / l) * M, ?_, ?_⟩
+  · exact mul_nonneg (div_nonneg hmu.le hl.le) hM_nonneg
+  · exact Lemma_2_2_embedding_estimate_direct hl hmu hM_nonneg hu hM
+
 theorem Lemma_2_3_direct
     {u : ℝ → ℝ} {l mu : ℝ}
     (hl : 0 < l) (hmu : 0 < mu) (hu : IsCUnifBdd u)
