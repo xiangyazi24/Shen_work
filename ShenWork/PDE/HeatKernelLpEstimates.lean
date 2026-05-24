@@ -212,4 +212,51 @@ theorem modifiedSemigroup_Lp_Linfty_smoothing_abs
     (heatSemigroup_Lp_Linfty_smoothing_abs ht hrp x hf_mem)
     (Real.exp_nonneg _)
 
+/-! ## Gradient smoothing -/
+
+/-- Pointwise kernel-derivative constant for the `L¹ → L∞` gradient estimate. -/
+def heatSemigroupGradientL1LinftyConstant (t : ℝ) : ℝ :=
+  ((1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))) *
+    (Real.sqrt (1 / (4 * t)))⁻¹
+
+theorem heatSemigroup_gradient_L1_Linfty_smoothing_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    |deriv (fun z : ℝ => heatSemigroup t f z) x| ≤
+      heatSemigroupGradientL1LinftyConstant t * ∫ y : ℝ, |f y| := by
+  simpa [heatSemigroupGradientL1LinftyConstant] using
+    deriv_heatSemigroup_L1_Linfty_smoothing_abs ht x hf_int
+
+theorem modifiedSemigroup_gradient_L1_Linfty_smoothing_abs
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    |deriv (fun z : ℝ => modifiedSemigroup t f z) x| ≤
+      Real.exp (-t) *
+        (heatSemigroupGradientL1LinftyConstant t * ∫ y : ℝ, |f y|) := by
+  simpa [heatSemigroupGradientL1LinftyConstant] using
+    deriv_modifiedSemigroup_L1_Linfty_smoothing_abs ht x hf_int
+
+theorem heatSemigroup_gradient_diff_L1_Linfty_smoothing_abs
+    {f g : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f)
+    (hg_int : MeasureTheory.Integrable g) :
+    |deriv (fun z : ℝ => heatSemigroup t f z) x -
+        deriv (fun z : ℝ => heatSemigroup t g z) x| ≤
+      heatSemigroupGradientL1LinftyConstant t *
+        ∫ y : ℝ, |f y - g y| := by
+  simpa [heatSemigroupGradientL1LinftyConstant] using
+    deriv_heatSemigroup_diff_L1_Linfty_smoothing_abs ht x hf_int hg_int
+
+theorem modifiedSemigroup_gradient_diff_L1_Linfty_smoothing_abs
+    {f g : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f)
+    (hg_int : MeasureTheory.Integrable g) :
+    |deriv (fun z : ℝ => modifiedSemigroup t f z) x -
+        deriv (fun z : ℝ => modifiedSemigroup t g z) x| ≤
+      Real.exp (-t) *
+        (heatSemigroupGradientL1LinftyConstant t *
+          ∫ y : ℝ, |f y - g y|) := by
+  simpa [heatSemigroupGradientL1LinftyConstant] using
+    deriv_modifiedSemigroup_diff_L1_Linfty_smoothing_abs ht x hf_int hg_int
+
 end
