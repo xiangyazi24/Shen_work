@@ -10595,6 +10595,34 @@ theorem Theorem_2_2_full_critical_spectrum_of_raw
           simpa [hC.chiCritical_minimalEquilibrium huStar,
             minimalEquilibrium] using hχcrit)
 
+/-- Full raw Paper3 Theorem 2.2 composite by splitting on the sign of
+`χ₀`.  The nonpositive branch uses
+`Theorem_2_2_linear_stability_chi_nonpos_branch_direct`; the complementary
+branch falls back to the critical-spectrum threshold composite. -/
+theorem Theorem_2_2_full_by_chi_sign_of_raw
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (H : HasNeumannSpectrum S)
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hcontrol : ∀ uStar, SupControlsXpSigmaDistance D N sigma pNorm uStar)
+    (hexist : ∀ uStar, ∀ delta > 0, SmallDataGlobalExistence D p uStar delta)
+    (hmexist :
+      ∀ uStar, ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence D p uStar delta) :
+    Theorem_2_2 D p S N C := by
+  by_cases hχ : p.χ₀ ≤ 0
+  · exact
+      Theorem_2_2_full_chi_nonpos_of_raw
+        H hC hraw hsigma_low hsigma_high hpNorm hcontrol hexist hmexist hχ
+  · exact
+      Theorem_2_2_full_critical_spectrum_of_raw
+        H hC hraw hsigma_low hsigma_high hpNorm hcontrol hexist hmexist
+
 /-- **TAUTOLOGY (no math content)**: body is `:= hstab`, definitionally
 equal to `Theorem_2_3 D p N`.  Target signature only. -/
 theorem Theorem_2_3.of_assumed_stability_branch
@@ -11378,36 +11406,90 @@ theorem unitPointDomain.Theorem_2_1_part1_minimal_only
     apply Real.rpow_le_rpow hδ_pos.le _ p.hγ.le
     linarith
 
+/-! ### Theorem_2_1 part 4 + composites + Theorem_2_2 vacuous on unit-point -/
+
+/-- Paper 3 Theorem 2.1 part 4 vacuous when `p.a ≠ 0`. -/
+theorem unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero
+    (p : CM2Params) (ha : p.a ≠ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1_part4 ShenWork.Paper2.unitPointDomain p C := by
+  intro ha'; exact absurd ha' ha
+
+/-- Paper 3 Theorem 2.1 part 4 vacuous when `p.b ≠ 0`. -/
+theorem unitPointDomain.Theorem_2_1_part4_vacuous_when_b_nonzero
+    (p : CM2Params) (hb : p.b ≠ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1_part4 ShenWork.Paper2.unitPointDomain p C := by
+  intro _ hb'; exact absurd hb' hb
+
+/-- Paper 3 Theorem 2.1 part 4 vacuous when `p.m ≠ 1`. -/
+theorem unitPointDomain.Theorem_2_1_part4_vacuous_when_m_ne_one
+    (p : CM2Params) (hm : p.m ≠ 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1_part4 ShenWork.Paper2.unitPointDomain p C := by
+  intro _ _ hm'; exact absurd hm' hm
+
+/-- Paper 3 Theorem 2.1 part 4 vacuous when `p.β < 1`. -/
+theorem unitPointDomain.Theorem_2_1_part4_vacuous_when_beta_lt_one
+    (p : CM2Params) (hβ : p.β < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1_part4 ShenWork.Paper2.unitPointDomain p C := by
+  intro _ _ _ hβ'; exact absurd hβ' (not_le.mpr hβ)
+
+/-- Paper 3 Theorem 2.1 part 4 vacuous when `p.χ₀ ≤ 0`. -/
+theorem unitPointDomain.Theorem_2_1_part4_vacuous_when_chi_nonpos
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1_part4 ShenWork.Paper2.unitPointDomain p C := by
+  intro _ _ _ _ hχ'; exact absurd hχ' (not_lt.mpr hχ)
+
+/-- Paper 3 Theorem 2.1 full composite when `p.a = 0, p.b = 0, p.m < 1`. -/
+theorem unitPointDomain.Theorem_2_1_vacuous_when_a_zero_b_zero_m_lt_one
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) (hm : p.m < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_vacuous_when_m_lt_one p hm,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_m_ne_one p (ne_of_lt hm) C⟩
+
+/-- Paper 3 Theorem 2.1 full composite when
+`p.a = 0, p.b = 0, 1 ≤ p.m, p.χ₀ ≤ 0` (part 1 fires, parts 2-4 vacuous). -/
+theorem unitPointDomain.Theorem_2_1_when_a_zero_b_zero_chi_nonpos
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) (hχ : p.χ₀ ≤ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_minimal_only p ha hb,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_chi_nonpos p hχ C⟩
+
+/-- Paper 3 Theorem 2.2 full vacuous when `p.a = 0 ∧ p.b ≠ 0`. -/
+theorem unitPointDomain.Theorem_2_2_vacuous_when_a_zero_b_nonzero
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b ≠ 0)
+    (S : SpectralData)
+    (N : StabilityNorms ShenWork.Paper2.unitPointDomain)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_2 ShenWork.Paper2.unitPointDomain p S N C := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro ha' _; exact absurd ha' (by rw [ha]; exact lt_irrefl 0)
+  · intro ha' _; exact absurd ha' (by rw [ha]; exact lt_irrefl 0)
+  · intro _ hb'; exact absurd hb' hb
+  · intro _ hb'; exact absurd hb' hb
+
+/-- Paper 3 Theorem 2.2 full vacuous when `p.a ≠ 0 ∧ p.b = 0`. -/
+theorem unitPointDomain.Theorem_2_2_vacuous_when_a_nonzero_b_zero
+    (p : CM2Params) (ha : p.a ≠ 0) (hb : p.b = 0)
+    (S : SpectralData)
+    (N : StabilityNorms ShenWork.Paper2.unitPointDomain)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_2 ShenWork.Paper2.unitPointDomain p S N C := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro _ hb'; exact absurd hb' (by rw [hb]; exact lt_irrefl 0)
+  · intro _ hb'; exact absurd hb' (by rw [hb]; exact lt_irrefl 0)
+  · intro ha' _; exact absurd ha' ha
+  · intro ha' _; exact absurd ha' ha
+
 end
-
-/-- Paper 3 Proposition 1.3 is vacuous on the unit-point domain when
-`p.m < 1`. -/
-theorem unitPointDomain.Proposition_1_3_vacuous_when_m_lt_one
-    (p : CM2Params) (hm : p.m < 1)
-    (C : Paper2Constants p) :
-    Proposition_1_3 ShenWork.Paper2.unitPointDomain p C := by
-  intro _ _ hm' _ _ _; exact absurd hm' (not_le.mpr hm)
-
-/-- Paper 3 Proposition 1.4 is vacuous on the unit-point domain when
-`p.m ≠ 1`. -/
-theorem unitPointDomain.Proposition_1_4_vacuous_when_m_ne_one
-    (p : CM2Params) (hm : p.m ≠ 1) :
-    Proposition_1_4 ShenWork.Paper2.unitPointDomain p := by
-  intro hm' _ _ _ _ _; exact absurd hm' hm
-
-/-- Paper 3 Proposition 1.4 is vacuous on the unit-point domain when
-`p.β < 1`. -/
-theorem unitPointDomain.Proposition_1_4_vacuous_when_beta_lt_one
-    (p : CM2Params) (hβ : p.β < 1) :
-    Proposition_1_4 ShenWork.Paper2.unitPointDomain p := by
-  intro _ hβ' _ _ _ _; exact absurd hβ' (not_le.mpr hβ)
-
-/-- Paper 3 Proposition 1.4 is vacuous on the unit-point domain when
-`0 < p.χ₀` fails through `chiBeta` upper bound — i.e., when
-`chiBeta p ≤ p.χ₀`. -/
-theorem unitPointDomain.Proposition_1_4_vacuous_when_chi_ge_chiBeta
-    (p : CM2Params) (hχ : chiBeta p ≤ p.χ₀) :
-    Proposition_1_4 ShenWork.Paper2.unitPointDomain p := by
-  intro _ _ _ hχ' _ _; exact absurd hχ' (not_lt.mpr hχ)
 
 end ShenWork.Paper3
