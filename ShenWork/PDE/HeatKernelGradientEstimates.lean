@@ -1222,6 +1222,26 @@ theorem unitInterval_lpNorm_one_le_lpNorm_of_one_le
   have hreal := ENNReal.toReal_mono hf_mem.eLpNorm_ne_top hle
   simpa [toReal_eLpNorm hf_mem.aestronglyMeasurable] using hreal
 
+/-- Complexifying a real function preserves its Mathlib `LpSeminorm`, under
+the corresponding `MemLp` hypothesis. -/
+theorem unitInterval_lpNorm_complex_ofReal_eq
+    {p : ℝ≥0∞} {f : ℝ → ℝ}
+    (hf_mem : MemLp f p (intervalMeasure 1)) :
+    lpNorm (fun x => (f x : ℂ)) p (intervalMeasure 1) =
+      lpNorm f p (intervalMeasure 1) := by
+  have hfc_mem : MemLp (fun x => (f x : ℂ)) p (intervalMeasure 1) :=
+    hf_mem.ofReal
+  calc
+    lpNorm (fun x => (f x : ℂ)) p (intervalMeasure 1)
+        = (eLpNorm (fun x => (f x : ℂ)) p (intervalMeasure 1)).toReal := by
+          exact (toReal_eLpNorm hfc_mem.aestronglyMeasurable).symm
+    _ = (eLpNorm f p (intervalMeasure 1)).toReal := by
+          congr 1
+          exact eLpNorm_congr_norm_ae
+            (Filter.Eventually.of_forall fun x => by simp)
+    _ = lpNorm f p (intervalMeasure 1) :=
+          toReal_eLpNorm hf_mem.aestronglyMeasurable
+
 /-- On the unit interval, a pointwise norm bound controls the Mathlib
 `L∞` seminorm. -/
 theorem unitInterval_lpNorm_top_le_of_forall_norm_le
@@ -1436,5 +1456,67 @@ theorem unitIntervalNeumannSpectralHeat_deriv_Lp_Linfty_lpNorm_bound_from_memLp
       (sq_nonneg t)
   exact hbase.trans
     (mul_le_mul_of_nonneg_left hLp hfactor_nonneg)
+
+/-! ## Real-valued spectral Neumann heat semigroup wrappers -/
+
+/-- The unit-interval Neumann heat semigroup defined by the cosine spectral
+series.  This is the spectral semigroup model, not the zeroth-reflection
+helper operator from `IntervalDomain.lean`. -/
+def unitIntervalNeumannHeatSemigroup
+    (t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
+  unitIntervalCosineHeatValue t
+    (unitIntervalNeumannCosineCoeff (fun y => (f y : ℂ))) x
+
+/-- Real-valued unit-interval spectral Neumann heat-gradient estimate from
+finite `L^p`, `1 ≤ p`, to finite `L^q`.  This is the current proved spectral
+endpoint with nonsharp `t⁻²` singularity. -/
+theorem unitIntervalNeumannHeatSemigroup_grad_Lp_Lq_bound
+    {t p q : ℝ} (ht : 0 < t) (hp : 1 ≤ p) (hq : 0 < q)
+    {f : ℝ → ℝ}
+    (hf_mem : MemLp f (ENNReal.ofReal p) (intervalMeasure 1)) :
+    lpNorm
+        (fun x =>
+          deriv
+            (fun z =>
+              unitIntervalNeumannHeatSemigroup t f z) x)
+        (ENNReal.ofReal q) (intervalMeasure 1) ≤
+      (unitIntervalCosineGradientL1LinftyConstant / t ^ 2) *
+        lpNorm f (ENNReal.ofReal p) (intervalMeasure 1) := by
+  have hfc_mem :
+      MemLp (fun x => (f x : ℂ)) (ENNReal.ofReal p)
+        (intervalMeasure 1) :=
+    hf_mem.ofReal
+  have hbase :=
+    unitIntervalNeumannSpectralHeat_deriv_Lp_Lq_lpNorm_bound_from_memLp
+      (t := t) (p := p) (q := q) ht hp hq
+      (f := fun x => (f x : ℂ)) hfc_mem
+  simpa [unitIntervalNeumannHeatSemigroup,
+    unitInterval_lpNorm_complex_ofReal_eq hf_mem] using hbase
+
+/-- Real-valued unit-interval spectral Neumann heat-gradient estimate from
+finite `L^p`, `1 ≤ p`, to `L∞`.  This is the `q = ∞` companion to
+`unitIntervalNeumannHeatSemigroup_grad_Lp_Lq_bound`. -/
+theorem unitIntervalNeumannHeatSemigroup_grad_Lp_Linfty_bound
+    {t p : ℝ} (ht : 0 < t) (hp : 1 ≤ p)
+    {f : ℝ → ℝ}
+    (hf_mem : MemLp f (ENNReal.ofReal p) (intervalMeasure 1)) :
+    lpNorm
+        (fun x =>
+          deriv
+            (fun z =>
+              unitIntervalNeumannHeatSemigroup t f z) x)
+        ∞ (intervalMeasure 1) ≤
+      (unitIntervalCosineGradientL1LinftyConstant / t ^ 2) *
+        lpNorm f (ENNReal.ofReal p) (intervalMeasure 1) := by
+  have hfc_mem :
+      MemLp (fun x => (f x : ℂ)) (ENNReal.ofReal p)
+        (intervalMeasure 1) :=
+    hf_mem.ofReal
+  have hbase :=
+    unitIntervalNeumannSpectralHeat_deriv_Lp_Linfty_lpNorm_bound_from_memLp
+      (t := t) (p := p) ht hp
+      (f := fun x => (f x : ℂ)) hfc_mem
+  simpa [unitIntervalNeumannHeatSemigroup,
+    unitInterval_lpNorm_complex_ofReal_eq hf_mem] using hbase
 
 end ShenWork.HeatKernelGradientEstimates
