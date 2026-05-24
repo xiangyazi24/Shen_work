@@ -2065,6 +2065,24 @@ lemma unitIntervalCosineHeatTrace_sqrt_le_inv_sqrt {t : ℝ} (ht : 0 < t)
           rw [Real.sqrt_div hnum_nonneg]
     _ = unitIntervalCosineHeatL2LinftyConstant / Real.sqrt t := rfl
 
+/-- Short-time pointwise `L² → L∞` smoothing for the interval cosine heat model. -/
+theorem unitIntervalCosineHeatValue_L2_Linfty_smoothing_shortTime
+    {t : ℝ} (ht : 0 < t) (htle : t ≤ 1)
+    (hrecip : Summable unitIntervalCosineReciprocalEigenvalueTerm)
+    {a : ℕ → ℝ} (ha : Summable fun n => (a n) ^ 2) :
+    ∀ x : ℝ,
+      |unitIntervalCosineHeatValue t a x| ≤
+        (unitIntervalCosineHeatL2LinftyConstant / Real.sqrt t) *
+          unitIntervalCosineL2TsumNorm a := by
+  intro x
+  have htrace := unitIntervalCosineHeatTrace_summable ht hrecip
+  have hbase :=
+    unitIntervalCosineHeatValue_abs_le_trace (t := t) (x := x)
+      (a := a) htrace ha
+  have hsqrt := unitIntervalCosineHeatTrace_sqrt_le_inv_sqrt ht htle hrecip
+  exact hbase.trans
+    (mul_le_mul_of_nonneg_right hsqrt (Real.sqrt_nonneg _))
+
 /-- The heat semigroup is symmetric in the sense that swapping x and y
     in the kernel gives the same integrand. -/
 theorem heatSemigroup_kernel_symm (t x y : ℝ) :
