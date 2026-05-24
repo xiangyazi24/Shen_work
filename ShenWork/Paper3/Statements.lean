@@ -11734,6 +11734,44 @@ theorem unitPointDomain.Theorem_2_1_vacuous_when_b_nonzero_m_lt_one
     unitPointDomain.Theorem_2_1_part3_vacuous_when_m_le_one p (le_of_lt hm),
     unitPointDomain.Theorem_2_1_part4_vacuous_when_b_nonzero p hb C⟩
 
+/-! ### Proposition-level vacuous closures -/
+
+/-- Paper 3 Proposition 1.2 vacuous when `0 < p.χ₀`.  The first
+hypothesis `p.χ₀ ≤ 0` is contradicted. -/
+theorem unitPointDomain.Proposition_1_2_vacuous_when_chi_pos
+    (p : CM2Params) (hχ : 0 < p.χ₀) :
+    Proposition_1_2 ShenWork.Paper2.unitPointDomain p := by
+  intro hχ'; exact absurd hχ (not_lt.mpr hχ')
+
+/-- Paper 3 Proposition 1.2 vacuous when `p.m < 1`.  The second
+hypothesis `1 ≤ p.m` is contradicted. -/
+theorem unitPointDomain.Proposition_1_2_vacuous_when_m_lt_one
+    (p : CM2Params) (hm : p.m < 1) :
+    Proposition_1_2 ShenWork.Paper2.unitPointDomain p := by
+  intro _ hm'; exact absurd hm (not_lt.mpr hm')
+
+/-- Paper 3 Proposition 1.3 vacuous when `p.m < 1`.  The third
+hypothesis `1 ≤ p.m` is contradicted. -/
+theorem unitPointDomain.Proposition_1_3_vacuous_when_m_lt_one
+    (p : CM2Params) (hm : p.m < 1)
+    (C : Paper2Constants p) :
+    Proposition_1_3 ShenWork.Paper2.unitPointDomain p C := by
+  intro _ _ hm' _; exact absurd hm (not_lt.mpr hm')
+
+/-- Paper 3 Proposition 1.4 vacuous when `p.m ≠ 1`.  The first
+hypothesis `p.m = 1` is contradicted. -/
+theorem unitPointDomain.Proposition_1_4_vacuous_when_m_ne_one
+    (p : CM2Params) (hm : p.m ≠ 1) :
+    Proposition_1_4 ShenWork.Paper2.unitPointDomain p := by
+  intro hm'; exact absurd hm' hm
+
+/-- Paper 3 Proposition 1.4 vacuous when `p.β < 1`.  The second
+hypothesis `1 ≤ p.β` is contradicted. -/
+theorem unitPointDomain.Proposition_1_4_vacuous_when_beta_lt_one
+    (p : CM2Params) (hβ : p.β < 1) :
+    Proposition_1_4 ShenWork.Paper2.unitPointDomain p := by
+  intro _ hβ'; exact absurd hβ (not_lt.mpr hβ')
+
 /-! ### Theorem_2_3 additional vacuous closures -/
 
 /-- Paper 3 Theorem 2.3 vacuous when `0 < p.χ₀`.
