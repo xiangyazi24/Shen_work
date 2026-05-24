@@ -306,6 +306,33 @@ theorem ExponentialWeight.integrable (psi : ExponentialWeight) :
   rw [Real.norm_eq_abs, abs_of_nonneg (psi.pos x).le]
   exact hψ_le x
 
+/-! ### Integrability of `ψ(x) · K_{x-y}` for each `y` -/
+
+/-- For each `y ∈ ℝ`, the function `x ↦ ψ(x) · exp(-c|x-y|)` is
+integrable on `ℝ` (dominated by `ψ` × bounded factor `exp ≤ 1`). -/
+theorem ExponentialWeight.kernel_integrable
+    (psi : ExponentialWeight) {c : ℝ} (_hc : 0 < c) (y : ℝ) :
+    Integrable (fun x : ℝ => psi.weight x * Real.exp (-c * |x - y|)) := by
+  have hψ_int : Integrable psi.weight := psi.integrable
+  have h_meas_psi : Measurable psi.weight :=
+    (psi.smooth.differentiable two_ne_zero).continuous.measurable
+  have h_meas_exp : Measurable (fun x : ℝ => Real.exp (-c * |x - y|)) := by
+    fun_prop
+  refine hψ_int.mono' (h_meas_psi.mul h_meas_exp).aestronglyMeasurable ?_
+  refine Filter.Eventually.of_forall fun x => ?_
+  have hψ_nn : 0 ≤ psi.weight x := (psi.pos x).le
+  have hexp_nn : 0 ≤ Real.exp (-c * |x - y|) := (Real.exp_pos _).le
+  have hexp_le_one : Real.exp (-c * |x - y|) ≤ 1 := by
+    refine Real.exp_le_one_iff.mpr ?_
+    have habs_nn : 0 ≤ |x - y| := abs_nonneg _
+    have hc_nn : 0 ≤ c := _hc.le
+    nlinarith
+  rw [Real.norm_eq_abs, abs_of_nonneg (mul_nonneg hψ_nn hexp_nn)]
+  calc psi.weight x * Real.exp (-c * |x - y|)
+      ≤ psi.weight x * 1 := mul_le_mul_of_nonneg_left hexp_le_one hψ_nn
+    _ = psi.weight x := by ring
+    _ ≤ |psi.weight x| := le_abs_self _
+
 end ShenWork.Paper1
 
 end
