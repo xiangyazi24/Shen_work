@@ -935,6 +935,184 @@ lemma paper3Cosine_Theorem_2_2_xpSigma_minimal_first_mode_of_raw
       hsigma_low hsigma_high hpNorm _ha _hb _hm hβ huStar uBar vLower
       (by simpa [paper3CosineSpectralData] using hfirst) hcond
 
+lemma paper3Cosine_Theorem_2_4_linear_stability_formula
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    max
+        (max (chiStrong1Formula p eq.1 eq.2)
+          (chiStrong2Formula p eq.1))
+        (max (chiStrong3Formula p M0 eq.1 eq.2)
+          (chiStrong4Formula p M0 eq.1)) ≤
+      paperCriticalSensitivity paper3CosineSpectralData p eq.1 eq.2 →
+      NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+        LinearlyStable paper3CosineSpectralData p eq.1 eq.2 :=
+  Theorem_2_4_linear_stability_formula_branch_direct
+    paper3CosineSpectralData p paper3Cosine_hasNeumannSpectrum ha hb M0
+
+lemma paper3Cosine_Theorem_2_4_linear_stability_first_mode
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    max
+        (max (chiStrong1Formula p eq.1 eq.2)
+          (chiStrong2Formula p eq.1))
+        (max (chiStrong3Formula p M0 eq.1 eq.2)
+          (chiStrong4Formula p M0 eq.1)) ≤
+      ((1 + eq.2) ^ p.β /
+          (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+        (p.μ + Real.pi ^ 2) →
+      NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+        LinearlyStable paper3CosineSpectralData p eq.1 eq.2 := by
+  dsimp
+  intro hfirst hcond
+  exact
+    Theorem_2_4_linear_stability_first_mode_branch_direct
+      paper3CosineSpectralData p paper3Cosine_hasNeumannSpectrum
+      ha hb M0 (by simpa [paper3CosineSpectralData] using hfirst) hcond
+
+lemma paper3Cosine_Theorem_2_5_linear_stability_formula
+    (p : CM2Params)
+    (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
+    _root_.ShenWork.Paper2.chiBeta p ≤
+      paperCriticalSensitivity paper3CosineSpectralData p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 →
+      MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+        LinearlyStable paper3CosineSpectralData p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 :=
+  Theorem_2_5_linear_stability_formula_branch_direct
+    paper3CosineSpectralData p paper3Cosine_hasNeumannSpectrum
+    _ha _hb _hm hβ huStar uBar vLower
+
+lemma paper3Cosine_Theorem_2_5_linear_stability_first_mode
+    (p : CM2Params)
+    (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
+    _root_.ShenWork.Paper2.chiBeta p ≤
+      ((1 + (minimalEquilibrium p uStar).2) ^ p.β /
+          (p.ν * p.γ *
+            (minimalEquilibrium p uStar).1 ^ (p.m + p.γ - 1))) *
+        (p.μ + Real.pi ^ 2) →
+      MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+        LinearlyStable paper3CosineSpectralData p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 := by
+  intro hfirst hcond
+  exact
+    Theorem_2_5_linear_stability_first_mode_branch_direct
+      paper3CosineSpectralData p paper3Cosine_hasNeumannSpectrum
+      _ha _hb _hm hβ huStar uBar vLower
+      (by simpa [paper3CosineSpectralData] using hfirst) hcond
+
+lemma paper3Cosine_Theorem_2_3_negative_sensitivity_convergence_of_sectorial
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    (LinearlyStable paper3CosineSpectralData p eq.1 eq.2 →
+      MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2) →
+      LinearlyStable paper3CosineSpectralData p eq.1 eq.2 ∧
+      MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2 :=
+  Theorem_2_3_negative_sensitivity_convergence_formula_branch_of_sectorial
+    D paper3CosineSpectralData p N paper3Cosine_hasNeumannSpectrum hχ ha hb
+
+lemma paper3Cosine_Theorem_2_4_full_stability_formula_of_sectorial
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    max
+        (max (chiStrong1Formula p eq.1 eq.2)
+          (chiStrong2Formula p eq.1))
+        (max (chiStrong3Formula p M0 eq.1 eq.2)
+          (chiStrong4Formula p M0 eq.1)) ≤
+      paperCriticalSensitivity paper3CosineSpectralData p eq.1 eq.2 →
+      NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+        (LinearlyStable paper3CosineSpectralData p eq.1 eq.2 →
+          MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2) →
+          LinearlyStable paper3CosineSpectralData p eq.1 eq.2 ∧
+          MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2 :=
+  Theorem_2_4_full_stability_formula_branch_of_sectorial
+    D paper3CosineSpectralData p N paper3Cosine_hasNeumannSpectrum ha hb M0
+
+lemma paper3Cosine_Theorem_2_4_full_stability_first_mode_of_sectorial
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (ha : 0 < p.a) (hb : 0 < p.b) (M0 : ℝ) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    max
+        (max (chiStrong1Formula p eq.1 eq.2)
+          (chiStrong2Formula p eq.1))
+        (max (chiStrong3Formula p M0 eq.1 eq.2)
+          (chiStrong4Formula p M0 eq.1)) ≤
+      ((1 + eq.2) ^ p.β /
+          (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+        (p.μ + Real.pi ^ 2) →
+      NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+        (LinearlyStable paper3CosineSpectralData p eq.1 eq.2 →
+          MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2) →
+          LinearlyStable paper3CosineSpectralData p eq.1 eq.2 ∧
+          MassConstrainedLocallyExponentiallyStableFromSup D p N eq.1 eq.2 := by
+  dsimp
+  intro hfirst hcond hsectorial
+  exact
+    Theorem_2_4_full_stability_first_mode_branch_of_sectorial
+      D paper3CosineSpectralData p N paper3Cosine_hasNeumannSpectrum
+      ha hb M0 (by simpa [paper3CosineSpectralData] using hfirst)
+      hcond hsectorial
+
+lemma paper3Cosine_Theorem_2_5_full_stability_formula_of_sectorial
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
+    _root_.ShenWork.Paper2.chiBeta p ≤
+      paperCriticalSensitivity paper3CosineSpectralData p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 →
+      MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+        (LinearlyStable paper3CosineSpectralData p
+            (minimalEquilibrium p uStar).1
+            (minimalEquilibrium p uStar).2 →
+          MassConstrainedLocallyExponentiallyStableFromSup D p N
+            (minimalEquilibrium p uStar).1
+            (minimalEquilibrium p uStar).2) →
+          LinearlyStable paper3CosineSpectralData p
+            (minimalEquilibrium p uStar).1
+            (minimalEquilibrium p uStar).2 ∧
+          MassConstrainedLocallyExponentiallyStableFromSup D p N
+            (minimalEquilibrium p uStar).1
+            (minimalEquilibrium p uStar).2 :=
+  Theorem_2_5_full_stability_formula_branch_of_sectorial
+    D paper3CosineSpectralData p N paper3Cosine_hasNeumannSpectrum
+    _ha _hb _hm hβ huStar uBar vLower
+
+lemma paper3Cosine_Theorem_2_5_full_stability_first_mode_of_sectorial
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (_ha : p.a = 0) (_hb : p.b = 0) (_hm : p.m = 1) (hβ : 1 ≤ p.β)
+    {uStar : ℝ} (huStar : 0 < uStar) (uBar vLower : ℝ) :
+    _root_.ShenWork.Paper2.chiBeta p ≤
+      ((1 + (minimalEquilibrium p uStar).2) ^ p.β /
+          (p.ν * p.γ *
+            (minimalEquilibrium p uStar).1 ^ (p.m + p.γ - 1))) *
+        (p.μ + Real.pi ^ 2) →
+      MinimalGlobalStabilityFormulaCondition p uStar uBar vLower →
+        (LinearlyStable paper3CosineSpectralData p
+            (minimalEquilibrium p uStar).1
+            (minimalEquilibrium p uStar).2 →
+          MassConstrainedLocallyExponentiallyStableFromSup D p N
+            (minimalEquilibrium p uStar).1
+            (minimalEquilibrium p uStar).2) →
+          LinearlyStable paper3CosineSpectralData p
+            (minimalEquilibrium p uStar).1
+            (minimalEquilibrium p uStar).2 ∧
+          MassConstrainedLocallyExponentiallyStableFromSup D p N
+            (minimalEquilibrium p uStar).1
+            (minimalEquilibrium p uStar).2 := by
+  intro hfirst hcond hsectorial
+  exact
+    Theorem_2_5_full_stability_first_mode_branch_of_sectorial
+      D paper3CosineSpectralData p N paper3Cosine_hasNeumannSpectrum
+      _ha _hb _hm hβ huStar uBar vLower
+      (by simpa [paper3CosineSpectralData] using hfirst) hcond hsectorial
+
 end ShenWork.CosineSpectrum
 
 end
