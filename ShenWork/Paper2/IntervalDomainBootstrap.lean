@@ -146,6 +146,43 @@ lemma sublinear_algebraic_bound
         _ ≤ (4 * c / A + 1) ^ (1 / (1 - θ)) + 2 * e / A + d := by
             linarith [div_nonneg (mul_nonneg (by norm_num : (0:ℝ) ≤ 2) he) hA.le]
 
+/-! ### Absorption lemma: substitute interpolation into energy inequality -/
+
+/-- **Absorption lemma**. Given an energy inequality `A * G ≤ K * Z + rest`
+and an interpolation inequality `Z ≤ ε * G + C_ε` with `K * ε < A`
+(so the `ε * G` term can be absorbed into the left-hand side),
+we obtain explicit bounds on both `G` and `Z`.
+
+This is the "choose ε small enough to absorb" trick used in Moser iteration:
+substituting the interpolation into the energy inequality gives
+`(A - K * ε) * G ≤ K * C_ε + rest`, hence `G ≤ (K * C_ε + rest) / (A - K * ε)`,
+and feeding back into the interpolation gives the bound on `Z`. -/
+theorem absorption
+    {A K ε G Z C_ε rest : ℝ}
+    (hK : 0 ≤ K) (hε : 0 ≤ ε)
+    (habs : K * ε < A)
+    (henergy : A * G ≤ K * Z + rest)
+    (hinterp : Z ≤ ε * G + C_ε) :
+    G ≤ (K * C_ε + rest) / (A - K * ε) ∧
+    Z ≤ ε * ((K * C_ε + rest) / (A - K * ε)) + C_ε := by
+  have hAKε : 0 < A - K * ε := by linarith
+  -- Substitute interpolation into energy inequality:
+  -- A * G ≤ K * (ε * G + C_ε) + rest = K * ε * G + K * C_ε + rest
+  have hcombined : A * G ≤ K * ε * G + (K * C_ε + rest) := by
+    calc A * G ≤ K * Z + rest := henergy
+      _ ≤ K * (ε * G + C_ε) + rest := by linarith [mul_le_mul_of_nonneg_left hinterp hK]
+      _ = K * ε * G + (K * C_ε + rest) := by ring
+  -- Rearrange: (A - K * ε) * G ≤ K * C_ε + rest
+  have hrearr : (A - K * ε) * G ≤ K * C_ε + rest := by nlinarith
+  -- Divide: G ≤ (K * C_ε + rest) / (A - K * ε)
+  have hG_bound : G ≤ (K * C_ε + rest) / (A - K * ε) := by
+    rwa [le_div_iff₀ hAKε, mul_comm]
+  constructor
+  · exact hG_bound
+  · calc Z ≤ ε * G + C_ε := hinterp
+      _ ≤ ε * ((K * C_ε + rest) / (A - K * ε)) + C_ε := by
+          linarith [mul_le_mul_of_nonneg_left hG_bound hε]
+
 end ShenWork.Paper2.IntervalDomainBootstrap
 
 end
