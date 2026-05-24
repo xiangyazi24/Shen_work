@@ -5231,6 +5231,42 @@ theorem unitPointDomain.Theorem_1_1_minimal_only
       · intro t x _ _ hx
         exact absurd hx (by intro h; exact h)
 
+/-- Paper 2 unit-point long-time attractor bridge.
+
+`ShenWork.PDE.UnitPointLogisticODE` constructs the concrete Bernoulli-logistic
+global solution and proves this exact package.  Since that file imports the
+statement layer, this bridge is stated with the explicit package as an input
+rather than importing the ODE file back here. -/
+theorem unitPointDomain.Theorem_X_X_long_time_attractor
+    (p : CM2Params)
+    (hexplicit :
+      0 < p.a → 0 < p.b →
+        ∀ u₀ : unitPointDomain.Point → ℝ,
+          PositiveInitialDatum unitPointDomain u₀ →
+            ∃ u v : ℝ → unitPointDomain.Point → ℝ,
+              IsPaper2GlobalClassicalSolution unitPointDomain p u v ∧
+              InitialTrace unitPointDomain u₀ u ∧
+              (∀ t, 0 ≤ t →
+                unitPointDomain.supNorm (u t) ≤
+                  max (unitPointDomain.supNorm u₀)
+                    ((p.a / p.b) ^ (1 / p.α))) ∧
+              Tendsto (fun t : ℝ => u t ())
+                atTop (𝓝 ((p.a / p.b) ^ (1 / p.α)))) :
+    0 < p.a → 0 < p.b →
+      ∀ u₀ : unitPointDomain.Point → ℝ,
+        PositiveInitialDatum unitPointDomain u₀ →
+          ∃ u v : ℝ → unitPointDomain.Point → ℝ,
+            IsPaper2GlobalClassicalSolution unitPointDomain p u v ∧
+            InitialTrace unitPointDomain u₀ u ∧
+            (∀ t, 0 ≤ t →
+              unitPointDomain.supNorm (u t) ≤
+                max (unitPointDomain.supNorm u₀)
+                  ((p.a / p.b) ^ (1 / p.α))) ∧
+            Tendsto (fun t : ℝ => u t ())
+              atTop (𝓝 ((p.a / p.b) ^ (1 / p.α))) := by
+  intro ha hb u₀ hu₀
+  exact hexplicit ha hb u₀ hu₀
+
 /-- Paper 2 Corollary 2.1 holds for the unit-point domain.  The classical
 solution forces `u t () > 0` (from `u_pos`), so the abstract `Lᵖ` bound at
 `p0` (which for the unit-point reduces to `(u t ())^p0 ≤ C₀`) implies a
