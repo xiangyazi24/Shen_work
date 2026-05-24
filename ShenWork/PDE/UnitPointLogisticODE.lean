@@ -36,6 +36,15 @@ def bernoulliLogisticSolution (p : CM2Params) (u₀ t : ℝ) : ℝ :=
   else
     u₀ * Real.exp ((p.a - p.b * u₀ ^ p.α) * t)
 
+/-- Derivative of the globally extended Bernoulli-logistic solution. -/
+def bernoulliLogisticSolutionDerivative (p : CM2Params) (u₀ t : ℝ) : ℝ :=
+  if 0 ≤ t then
+    bernoulliLogisticForward p u₀ t *
+      (p.a - p.b * (bernoulliLogisticForward p u₀ t) ^ p.α)
+  else
+    u₀ * Real.exp ((p.a - p.b * u₀ ^ p.α) * t) *
+      (p.a - p.b * u₀ ^ p.α)
+
 @[simp] lemma bernoulliLogisticWeight_zero (p : CM2Params) :
     bernoulliLogisticWeight p 0 = 1 := by
   simp [bernoulliLogisticWeight]
@@ -218,5 +227,23 @@ lemma bernoulliLogisticSolution_hasDerivAt_of_pos_time
     bernoulliLogisticSolution_of_nonneg p u₀ t ht.le
   simpa [hsol_t] using
     (bernoulliLogisticForward_hasDerivAt p ha hb hu₀ ht.le).congr_of_eventuallyEq hbranch
+
+lemma bernoulliLogisticSolution_hasDerivAt_of_neg_time
+    (p : CM2Params) {u₀ t : ℝ} (ht : t < 0) :
+    HasDerivAt (fun s : ℝ => bernoulliLogisticSolution p u₀ s)
+      (bernoulliLogisticSolutionDerivative p u₀ t) t := by
+  let c : ℝ := p.a - p.b * u₀ ^ p.α
+  have hbranch :
+      (fun s : ℝ => bernoulliLogisticSolution p u₀ s) =ᶠ[𝓝 t]
+        (fun s : ℝ => u₀ * Real.exp (c * s)) := by
+    filter_upwards [eventually_lt_nhds ht] with s hs
+    simp [bernoulliLogisticSolution_of_neg p u₀ s hs, c]
+  have hneg :
+      HasDerivAt (fun s : ℝ => u₀ * Real.exp (c * s))
+        (u₀ * Real.exp (c * t) * c) t := by
+    have h := (((hasDerivAt_id t).const_mul c).exp).const_mul u₀
+    simpa [mul_comm, mul_left_comm, mul_assoc] using h
+  simpa [bernoulliLogisticSolutionDerivative, not_le.mpr ht, c, mul_comm, mul_left_comm,
+    mul_assoc] using hneg.congr_of_eventuallyEq hbranch
 
 end ShenWork.Paper2
