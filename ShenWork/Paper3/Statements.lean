@@ -10595,6 +10595,34 @@ theorem Theorem_2_2_full_critical_spectrum_of_raw
           simpa [hC.chiCritical_minimalEquilibrium huStar,
             minimalEquilibrium] using hχcrit)
 
+/-- Full raw Paper3 Theorem 2.2 composite by splitting on the sign of
+`χ₀`.  The nonpositive branch uses
+`Theorem_2_2_linear_stability_chi_nonpos_branch_direct`; the complementary
+branch falls back to the critical-spectrum threshold composite. -/
+theorem Theorem_2_2_full_by_chi_sign_of_raw
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (H : HasNeumannSpectrum S)
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hcontrol : ∀ uStar, SupControlsXpSigmaDistance D N sigma pNorm uStar)
+    (hexist : ∀ uStar, ∀ delta > 0, SmallDataGlobalExistence D p uStar delta)
+    (hmexist :
+      ∀ uStar, ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence D p uStar delta) :
+    Theorem_2_2 D p S N C := by
+  by_cases hχ : p.χ₀ ≤ 0
+  · exact
+      Theorem_2_2_full_chi_nonpos_of_raw
+        H hC hraw hsigma_low hsigma_high hpNorm hcontrol hexist hmexist hχ
+  · exact
+      Theorem_2_2_full_critical_spectrum_of_raw
+        H hC hraw hsigma_low hsigma_high hpNorm hcontrol hexist hmexist
+
 /-- **TAUTOLOGY (no math content)**: body is `:= hstab`, definitionally
 equal to `Theorem_2_3 D p N`.  Target signature only. -/
 theorem Theorem_2_3.of_assumed_stability_branch
