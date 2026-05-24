@@ -5426,6 +5426,31 @@ theorem unitPointDomain.Theorem_1_3_vacuous_when_b_zero
   intro _ hb' _ _
   exact absurd hb' (by rw [hb]; exact lt_irrefl 0)
 
+/-- Statement-layer closure of Paper 2 Theorem 1.3 on the unit-point domain.
+The theorem's hypotheses already include the strict logistic branch
+`0 < a, 0 < b`, so the explicit Bernoulli-logistic package supplies both
+local boundedness and the `m ≥ 1` global boundedness conclusion. -/
+theorem unitPointDomain.Theorem_1_3_from_logistic_nonminimal
+    (p : CM2Params) (C : Paper2Constants p)
+    (hlogistic : UnitPointLogisticNonminimalPackage p) :
+    Theorem_1_3 unitPointDomain p C := by
+  intro ha hb _hm _hcond
+  refine ⟨?_, ?_⟩
+  · intro u₀ hu₀
+    rcases hlogistic ha hb u₀ hu₀ with
+      ⟨u, v, hglobal, htrace, hbound, _hlim⟩
+    refine ⟨1, by norm_num, u, v, ?_, htrace, ?_⟩
+    · exact hglobal.classical (T := 1) (by norm_num)
+    · refine ⟨max (unitPointDomain.supNorm u₀)
+        ((p.a / p.b) ^ (1 / p.α)), ?_⟩
+      intro t ht_pos _ht_lt
+      exact hbound t ht_pos.le
+  · intro _hm_one u₀ hu₀
+    rcases hlogistic ha hb u₀ hu₀ with
+      ⟨u, v, hglobal, htrace, hbound, _hlim⟩
+    refine ⟨u, v, hglobal, htrace, ?_⟩
+    exact IsPaper2Bounded.of_forall_nonneg_supNorm_le hbound
+
 /-- Paper 2 Theorem 1.2 holds for the unit-point domain in the *minimal*
 parameter regime `p.a = 0 ∧ p.b = 0`.  In both branches (slow-diffusion
 `0 < p.m < 1` and critical `p.m = 1`) the constant solution
