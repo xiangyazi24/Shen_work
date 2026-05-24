@@ -1014,6 +1014,43 @@ theorem Lemma_2_5_restricted_psi_class_holds : Lemma_2_5_restricted_psi_class :=
   intro u psi hu hu_nn hk_bound hint
   exact hC psi hk_bound hu hu_nn hint
 
+/-! ### Uniform-k ψ-class assumption for full Lemma 2.5
+
+The full `Lemma_2_5` Prop in `Statements.lean` requires `∃ C > 0` uniform
+over all `psi : ExponentialWeight`, which the class-wide `deriv_abs_le`
+existential does not guarantee.  We expose a `UniformKBound` predicate
+that packages a single ψ-uniform k bound; on this restricted class, the
+ε-explicit closure becomes the full `∃C > 0, ∀ψ` shape. -/
+
+/-- A `ψ-uniform-k` bound on a family of `ExponentialWeight`s:
+all weights in the family share a common `k < √l` bound on
+`|deriv ψ| / ψ`. -/
+def UniformKBound (l : ℝ) (k : ℝ) : Set ExponentialWeight :=
+  {psi | ∀ z, |deriv psi.weight z| ≤ k * psi.weight z}
+
+theorem Lemma_2_5_from_uniform_k_class
+    {pExp gamma l mu k : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 1 ≤ pExp) (hgamma : 0 < gamma)
+    (hk_nn : 0 ≤ k) (hk_lt : k < Real.sqrt l) :
+    ∃ C > 0, ∀ u : ℝ → ℝ, ∀ psi : ExponentialWeight,
+      psi ∈ UniformKBound l k →
+      IsCUnifBdd u → (∀ y, 0 ≤ u y) →
+      Integrable (fun x => ((u x) ^ gamma) ^ pExp * psi.weight x) →
+        Integrable
+          (fun x =>
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+              psi.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+              psi.weight x
+          ≤ C * ∫ x : ℝ, ((u x) ^ gamma) ^ pExp * psi.weight x := by
+  obtain ⟨C, hC_pos, hC⟩ :=
+    Lemma_2_5_existential_for_small_k_psi (pExp := pExp) (gamma := gamma)
+      (l := l) (mu := mu) (k := k) hl hmu hpExp hgamma hk_nn hk_lt
+  refine ⟨C, hC_pos, ?_⟩
+  intro u psi hpsi_class hu hu_nn hint
+  exact hC psi hpsi_class hu hu_nn hint
+
 end ShenWork.Paper1
 
 end
