@@ -386,4 +386,53 @@ theorem unitIntervalEvenReflection_fourierCoeffOn_eq_cosineCoeff
         rw [← mul_assoc]
         rw [hcos]
 
+/-- Completeness of the integer-indexed cosine system on the unit interval,
+in the totality form needed for the cosine Hilbert-basis transport: if all
+cosine coefficients vanish, then the function is zero a.e. on `(0,1]`.
+
+This is the core Parseval/completeness bridge: the even reflection has all
+Fourier coefficients zero, hence its Fourier `L²` mass is zero, and the
+mass identity transfers that back to the interval. -/
+theorem unitIntervalCosine_int_total_ae_zero
+    {f : ℝ → ℂ}
+    (hf : IntervalIntegrable f volume 0 1)
+    (hL2 :
+      MemLp (unitIntervalEvenReflection f) 2
+        (volume.restrict (Set.Ioc (-1 : ℝ) 1)))
+    (hf_sq : IntervalIntegrable (fun x : ℝ => ‖f x‖ ^ 2) volume 0 1)
+    (hcoeff :
+      ∀ n : ℤ,
+        ∫ x in (0 : ℝ)..1,
+          (Real.cos ((n : ℝ) * Real.pi * x) : ℂ) * f x = 0) :
+    f =ᵐ[volume.restrict (Set.Ioc (0 : ℝ) 1)] 0 := by
+  have hfourier_zero :
+      ∀ n : ℤ,
+        fourierCoeffOn (show (-1 : ℝ) < 1 by norm_num)
+          (unitIntervalEvenReflection f) n = 0 := by
+    intro n
+    rw [unitIntervalEvenReflection_fourierCoeffOn_eq_cosineCoeff
+      (f := f) hf n, hcoeff n]
+  have hmass_zero :
+      ∫ x in (0 : ℝ)..1, ‖f x‖ ^ 2 = 0 := by
+    rw [← unitIntervalEvenReflection_fourier_parseval_unit_mass hL2 hf_sq]
+    simp [hfourier_zero]
+  have hnorm_sq_zero :
+      (fun x : ℝ => ‖f x‖ ^ 2)
+        =ᵐ[volume.restrict (Set.Ioc (0 : ℝ) 1)]
+          (fun _ : ℝ => (0 : ℝ)) := by
+    have hnonneg :
+        0 ≤ᵐ[volume.restrict (Set.Ioc (0 : ℝ) 1)]
+          (fun x : ℝ => ‖f x‖ ^ 2) :=
+      Filter.Eventually.of_forall fun x => sq_nonneg _
+    exact
+      (intervalIntegral.integral_eq_zero_iff_of_le_of_nonneg_ae
+        (μ := volume) (a := (0 : ℝ)) (b := 1)
+        (show (0 : ℝ) ≤ 1 by norm_num) hnonneg hf_sq).mp hmass_zero
+  filter_upwards [hnorm_sq_zero] with x hx
+  have hx' : ‖f x‖ ^ 2 = 0 := by
+    simpa using hx
+  have hnorm : ‖f x‖ = 0 := by
+    nlinarith [sq_nonneg (‖f x‖)]
+  exact norm_eq_zero.mp hnorm
+
 end ShenWork.CosineParsevalBridge
