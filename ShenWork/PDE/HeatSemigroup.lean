@@ -1806,6 +1806,20 @@ lemma real_abs_tsum_mul_le_sqrt_tsum_sq_mul_sqrt_tsum_sq
     _ ≤ Real.sqrt (∑' n, (u n) ^ 2) *
           Real.sqrt (∑' n, (v n) ^ 2) := habs_tsum
 
+/-- Pointwise cosine heat value controlled by point-evaluation energy and coefficient `L²`. -/
+lemma unitIntervalCosineHeatValue_abs_le_pointEnergy {t x : ℝ} {a : ℕ → ℝ}
+    (hpoint : Summable fun n => (unitIntervalCosineHeatPointWeight t x n) ^ 2)
+    (ha : Summable fun n => (a n) ^ 2) :
+    |unitIntervalCosineHeatValue t a x| ≤
+      Real.sqrt (unitIntervalCosineHeatPointEnergy t x) *
+        unitIntervalCosineL2TsumNorm a := by
+  simpa [unitIntervalCosineHeatValue, unitIntervalCosineHeatPointEnergy,
+    unitIntervalCosineL2TsumNorm]
+    using
+      real_abs_tsum_mul_le_sqrt_tsum_sq_mul_sqrt_tsum_sq
+        (u := fun n => unitIntervalCosineHeatPointWeight t x n)
+        (v := a) hpoint ha
+
 /-- The heat semigroup is symmetric in the sense that swapping x and y
     in the kernel gives the same integrand. -/
 theorem heatSemigroup_kernel_symm (t x y : ℝ) :
