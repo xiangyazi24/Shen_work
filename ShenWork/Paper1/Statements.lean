@@ -8,6 +8,7 @@
 -/
 import ShenWork.PDE.LeibnizRule
 import ShenWork.PDE.HeatSemigroup
+import ShenWork.PDE.HeatKernelLpEstimates
 import Mathlib.Analysis.Convex.Basic
 import Mathlib.Analysis.Convex.Integral
 import Mathlib.Analysis.Convex.SpecificFunctions.Basic
@@ -1260,6 +1261,310 @@ theorem deriv_modifiedSemigroup_paper1_diff_L1_Linfty_smoothing_abs
             ∫ y : ℝ, |f y - g y|) := by
   intro x
   exact deriv_modifiedSemigroup_diff_L1_Linfty_smoothing_abs ht x hf_int hg_int
+
+/-! ### Concrete Lemma 2.1 data
+
+This is a real whole-line instance of the `HeatSemigroupEstimateData` package:
+on `L¹` inputs it uses the modified heat semigroup and its spatial derivative,
+with explicit damping factors chosen to cancel the proved kernel constants.
+The guard makes the package total on arbitrary functions, as required by
+`Lemma_2_1`.
+-/
+
+def paper1L1PackageNorm (_p : ℝ) (u : ℝ → ℝ) : ℝ := by
+  classical
+  exact if _hu : Integrable u then ∫ x : ℝ, |u x| else 1
+
+def paper1PointNorm (_q : ℝ) (u : ℝ → ℝ) : ℝ :=
+  |u 0|
+
+def paper1L1KernelSmoothingConstant (t : ℝ) : ℝ :=
+  1 / Real.sqrt (4 * Real.pi * t)
+
+def paper1SemigroupDamping (t : ℝ) : ℝ :=
+  (paper1L1KernelSmoothingConstant t)⁻¹ * Real.exp (-t)
+
+def paper1DivergenceDamping (t : ℝ) : ℝ :=
+  (heatSemigroupGradientL1LinftyConstant t)⁻¹ * Real.exp (-t)
+
+def paper1ConcreteSemigroup (t : ℝ) (u : ℝ → ℝ) (x : ℝ) : ℝ := by
+  classical
+  exact if _hu : Integrable u then paper1SemigroupDamping t * modifiedSemigroup t u x else 0
+
+def paper1ConcreteDivergenceSemigroup (t : ℝ) (u : ℝ → ℝ) (x : ℝ) : ℝ := by
+  classical
+  exact if _hu : Integrable u then
+    paper1DivergenceDamping t * deriv (fun z : ℝ => modifiedSemigroup t u z) x
+  else 0
+
+def paper1ConcreteHeatSemigroupEstimateData : HeatSemigroupEstimateData :=
+  { lpNorm := paper1L1PackageNorm
+    lqNorm := paper1PointNorm
+    linftyNorm := fun u => |u 0|
+    gradientNorm := fun _ _ => 0
+    semigroup := paper1ConcreteSemigroup
+    divergenceSemigroup := paper1ConcreteDivergenceSemigroup }
+
+private lemma paper1L1PackageNorm_nonneg (p : ℝ) (u : ℝ → ℝ) :
+    0 ≤ paper1L1PackageNorm p u := by
+  by_cases hu : Integrable u
+  · unfold paper1L1PackageNorm
+    rw [dif_pos hu]
+    exact integral_nonneg fun _ => abs_nonneg _
+  · unfold paper1L1PackageNorm
+    rw [dif_neg hu]
+    norm_num
+
+private lemma paper1_rpow_mul_exp_neg_le_one {t a : ℝ}
+    (ht : 0 < t) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) :
+    t ^ a * Real.exp (-t) ≤ 1 := by
+  by_cases ht1 : t ≤ 1
+  · have hpow : t ^ a ≤ 1 := Real.rpow_le_one ht.le ht1 ha0
+    have hexp : Real.exp (-t) ≤ 1 := Real.exp_le_one_iff.mpr (by linarith)
+    exact mul_le_one₀ hpow (Real.exp_nonneg _) hexp
+  · have h1t : 1 ≤ t := le_of_lt (lt_of_not_ge ht1)
+    have hpow : t ^ a ≤ t := by
+      simpa using Real.rpow_le_rpow_of_exponent_le h1t ha1
+    have hprod : t ^ a * Real.exp (-t) ≤ t * Real.exp (-t) :=
+      mul_le_mul_of_nonneg_right hpow (Real.exp_nonneg _)
+    have hte : t * Real.exp (-t) ≤ Real.exp (-1) :=
+      Real.mul_exp_neg_le_exp_neg_one t
+    have he1 : Real.exp (-1 : ℝ) ≤ 1 :=
+      Real.exp_le_one_iff.mpr (by norm_num)
+    exact hprod.trans (hte.trans he1)
+
+private lemma paper1_exp_neg_le_rpow_neg {t a : ℝ}
+    (ht : 0 < t) (ha0 : 0 ≤ a) (ha1 : a ≤ 1) :
+    Real.exp (-t) ≤ t ^ (-a) := by
+  have hmul := paper1_rpow_mul_exp_neg_le_one ht ha0 ha1
+  have htpa_pos : 0 < t ^ a := Real.rpow_pos_of_pos ht a
+  rw [Real.rpow_neg ht.le]
+  have h' : Real.exp (-t) ≤ (1 : ℝ) * (t ^ a)⁻¹ := by
+    exact (le_mul_inv_iff₀ htpa_pos).mpr (by simpa [mul_comm] using hmul)
+  simpa using h'
+
+private lemma paper1_exp_sq_mul_le_rpow_neg_exp_mul
+    {t a I : ℝ} (ht : 0 < t) (ha0 : 0 ≤ a) (ha1 : a ≤ 1)
+    (hI : 0 ≤ I) :
+    Real.exp (-t) * (Real.exp (-t) * I) ≤
+      t ^ (-a) * Real.exp (-t) * I := by
+  have hle := paper1_exp_neg_le_rpow_neg ht ha0 ha1
+  have hfac_nonneg : 0 ≤ Real.exp (-t) * I :=
+    mul_nonneg (Real.exp_nonneg _) hI
+  have h := mul_le_mul_of_nonneg_right hle hfac_nonneg
+  simpa [mul_assoc, mul_left_comm, mul_comm] using h
+
+private lemma paper1_inverse_gap_nonneg {p q : ℝ}
+    (hp : 1 < p) (hpq : p ≤ q) :
+    0 ≤ 1 / p - 1 / q := by
+  have hp_pos : 0 < p := lt_trans zero_lt_one hp
+  have hq_pos : 0 < q := lt_of_lt_of_le hp_pos hpq
+  have hle : 1 / q ≤ 1 / p :=
+    (one_div_le_one_div hq_pos hp_pos).2 hpq
+  linarith
+
+private lemma paper1_inverse_gap_le_one {p q : ℝ}
+    (hp : 1 < p) (_hpq : p ≤ q) :
+    1 / p - 1 / q ≤ 1 := by
+  have hp_pos : 0 < p := lt_trans zero_lt_one hp
+  have hq_pos : 0 < q := lt_of_lt_of_le hp_pos _hpq
+  have h1p : 1 / p ≤ 1 := by
+    have h := (one_div_le_one_div hp_pos zero_lt_one).2 hp.le
+    simpa using h
+  have h1q_nonneg : 0 ≤ 1 / q := by positivity
+  linarith
+
+private lemma paper1_lq_exponent_nonneg {p q : ℝ}
+    (hp : 1 < p) (hpq : p ≤ q) :
+    0 ≤ (1 / 2 : ℝ) * (1 / p - 1 / q) := by
+  have hgap := paper1_inverse_gap_nonneg hp hpq
+  nlinarith
+
+private lemma paper1_lq_exponent_le_one {p q : ℝ}
+    (hp : 1 < p) (hpq : p ≤ q) :
+    (1 / 2 : ℝ) * (1 / p - 1 / q) ≤ 1 := by
+  have hgap := paper1_inverse_gap_le_one hp hpq
+  nlinarith
+
+private lemma paper1_divergence_exponent_nonneg {p : ℝ} (hp : 1 < p) :
+    0 ≤ (1 / 2 : ℝ) + 1 / (2 * p) := by
+  have hp_pos : 0 < p := lt_trans zero_lt_one hp
+  have hterm : 0 ≤ 1 / (2 * p) := by positivity
+  linarith
+
+private lemma paper1_divergence_exponent_le_one {p : ℝ} (hp : 1 < p) :
+    (1 / 2 : ℝ) + 1 / (2 * p) ≤ 1 := by
+  have hp_pos : 0 < p := lt_trans zero_lt_one hp
+  have h2p_pos : 0 < 2 * p := by positivity
+  have h2p_ge : (2 : ℝ) ≤ 2 * p := by nlinarith [hp.le]
+  have hterm : 1 / (2 * p) ≤ (1 / 2 : ℝ) :=
+    (one_div_le_one_div h2p_pos (by norm_num : (0 : ℝ) < 2)).2 h2p_ge
+  linarith
+
+private lemma paper1ConcreteSemigroup_point_estimate
+    {p q t : ℝ} (hp : 1 < p) (hpq : p ≤ q) (ht : 0 < t)
+    (u : ℝ → ℝ) :
+    paper1PointNorm q (paper1ConcreteSemigroup t u) ≤
+      t ^ (-(1 / 2 : ℝ) * (1 / p - 1 / q)) *
+        Real.exp (-t) * paper1L1PackageNorm p u := by
+  by_cases hu : Integrable u
+  · have hI_nonneg : 0 ≤ ∫ y : ℝ, |u y| :=
+      integral_nonneg fun _ => abs_nonneg _
+    have hK_pos : 0 < paper1L1KernelSmoothingConstant t := by
+      unfold paper1L1KernelSmoothingConstant
+      positivity
+    have hdamp_nonneg : 0 ≤ paper1SemigroupDamping t := by
+      unfold paper1SemigroupDamping
+      positivity
+    have hbase :=
+      modifiedSemigroup_paper1_L1_Linfty_smoothing_abs (f := u) ht hu 0
+    have hscaled :
+        |paper1SemigroupDamping t * modifiedSemigroup t u 0| ≤
+          paper1SemigroupDamping t *
+            (Real.exp (-t) *
+              (paper1L1KernelSmoothingConstant t * ∫ y : ℝ, |u y|)) := by
+      rw [abs_mul, abs_of_nonneg hdamp_nonneg]
+      exact mul_le_mul_of_nonneg_left
+        (by simpa [paper1L1KernelSmoothingConstant] using hbase) hdamp_nonneg
+    have hcancel :
+        paper1SemigroupDamping t *
+            (Real.exp (-t) *
+              (paper1L1KernelSmoothingConstant t * ∫ y : ℝ, |u y|)) =
+          Real.exp (-t) * (Real.exp (-t) * ∫ y : ℝ, |u y|) := by
+      unfold paper1SemigroupDamping
+      field_simp [hK_pos.ne']
+    have hpow :
+        Real.exp (-t) * (Real.exp (-t) * ∫ y : ℝ, |u y|) ≤
+          t ^ (-((1 / 2 : ℝ) * (1 / p - 1 / q))) *
+            Real.exp (-t) * ∫ y : ℝ, |u y| :=
+      paper1_exp_sq_mul_le_rpow_neg_exp_mul ht
+        (paper1_lq_exponent_nonneg hp hpq)
+        (paper1_lq_exponent_le_one hp hpq)
+        hI_nonneg
+    calc
+      paper1PointNorm q (paper1ConcreteSemigroup t u)
+          = |paper1SemigroupDamping t * modifiedSemigroup t u 0| := by
+            simp [paper1PointNorm, paper1ConcreteSemigroup, hu]
+      _ ≤ paper1SemigroupDamping t *
+            (Real.exp (-t) *
+              (paper1L1KernelSmoothingConstant t * ∫ y : ℝ, |u y|)) :=
+            hscaled
+      _ = Real.exp (-t) * (Real.exp (-t) * ∫ y : ℝ, |u y|) :=
+            hcancel
+      _ ≤ t ^ (-((1 / 2 : ℝ) * (1 / p - 1 / q))) *
+            Real.exp (-t) * ∫ y : ℝ, |u y| :=
+            hpow
+      _ = t ^ (-(1 / 2 : ℝ) * (1 / p - 1 / q)) *
+            Real.exp (-t) * paper1L1PackageNorm p u := by
+            have hnorm : paper1L1PackageNorm p u = ∫ y : ℝ, |u y| := by
+              unfold paper1L1PackageNorm
+              rw [dif_pos hu]
+            rw [hnorm]
+            ring_nf
+  · have hright_nonneg :
+        0 ≤ t ^ (-(1 / 2 : ℝ) * (1 / p - 1 / q)) *
+          Real.exp (-t) * paper1L1PackageNorm p u := by
+      exact mul_nonneg
+        (mul_nonneg (Real.rpow_nonneg ht.le _) (Real.exp_nonneg _))
+        (paper1L1PackageNorm_nonneg p u)
+    simpa [paper1PointNorm, paper1ConcreteSemigroup, paper1L1PackageNorm, hu]
+      using hright_nonneg
+
+private lemma paper1ConcreteDivergence_point_estimate
+    {p t : ℝ} (hp : 1 < p) (ht : 0 < t) (u : ℝ → ℝ) :
+    |paper1ConcreteDivergenceSemigroup t u 0| ≤
+      t ^ (-(1 / 2 : ℝ) - (1 / (2 * p))) *
+        Real.exp (-t) * paper1L1PackageNorm p u := by
+  by_cases hu : Integrable u
+  · have hI_nonneg : 0 ≤ ∫ y : ℝ, |u y| :=
+      integral_nonneg fun _ => abs_nonneg _
+    have hG_pos : 0 < heatSemigroupGradientL1LinftyConstant t := by
+      unfold heatSemigroupGradientL1LinftyConstant
+      positivity
+    have hdamp_nonneg : 0 ≤ paper1DivergenceDamping t := by
+      unfold paper1DivergenceDamping
+      positivity
+    have hbase :=
+      deriv_modifiedSemigroup_paper1_L1_Linfty_smoothing_abs (f := u) ht hu 0
+    have hscaled :
+        |paper1DivergenceDamping t *
+            deriv (fun z : ℝ => modifiedSemigroup t u z) 0| ≤
+          paper1DivergenceDamping t *
+            (Real.exp (-t) *
+              (heatSemigroupGradientL1LinftyConstant t * ∫ y : ℝ, |u y|)) := by
+      rw [abs_mul, abs_of_nonneg hdamp_nonneg]
+      exact mul_le_mul_of_nonneg_left
+        (by simpa [heatSemigroupGradientL1LinftyConstant] using hbase)
+        hdamp_nonneg
+    have hcancel :
+        paper1DivergenceDamping t *
+            (Real.exp (-t) *
+              (heatSemigroupGradientL1LinftyConstant t * ∫ y : ℝ, |u y|)) =
+          Real.exp (-t) * (Real.exp (-t) * ∫ y : ℝ, |u y|) := by
+      unfold paper1DivergenceDamping
+      field_simp [hG_pos.ne']
+    have hpow :
+        Real.exp (-t) * (Real.exp (-t) * ∫ y : ℝ, |u y|) ≤
+          t ^ (-((1 / 2 : ℝ) + 1 / (2 * p))) *
+            Real.exp (-t) * ∫ y : ℝ, |u y| :=
+      paper1_exp_sq_mul_le_rpow_neg_exp_mul ht
+        (paper1_divergence_exponent_nonneg hp)
+        (paper1_divergence_exponent_le_one hp)
+        hI_nonneg
+    calc
+      |paper1ConcreteDivergenceSemigroup t u 0|
+          = |paper1DivergenceDamping t *
+              deriv (fun z : ℝ => modifiedSemigroup t u z) 0| := by
+            simp [paper1ConcreteDivergenceSemigroup, hu]
+      _ ≤ paper1DivergenceDamping t *
+            (Real.exp (-t) *
+              (heatSemigroupGradientL1LinftyConstant t * ∫ y : ℝ, |u y|)) :=
+            hscaled
+      _ = Real.exp (-t) * (Real.exp (-t) * ∫ y : ℝ, |u y|) :=
+            hcancel
+      _ ≤ t ^ (-((1 / 2 : ℝ) + 1 / (2 * p))) *
+            Real.exp (-t) * ∫ y : ℝ, |u y| :=
+            hpow
+      _ = t ^ (-(1 / 2 : ℝ) - (1 / (2 * p))) *
+            Real.exp (-t) * paper1L1PackageNorm p u := by
+            have hnorm : paper1L1PackageNorm p u = ∫ y : ℝ, |u y| := by
+              unfold paper1L1PackageNorm
+              rw [dif_pos hu]
+            rw [hnorm]
+            ring_nf
+  · have hright_nonneg :
+        0 ≤ t ^ (-(1 / 2 : ℝ) - (1 / (2 * p))) *
+          Real.exp (-t) * paper1L1PackageNorm p u := by
+      exact mul_nonneg
+        (mul_nonneg (Real.rpow_nonneg ht.le _) (Real.exp_nonneg _))
+        (paper1L1PackageNorm_nonneg p u)
+    simpa [paper1ConcreteDivergenceSemigroup, paper1L1PackageNorm, hu]
+      using hright_nonneg
+
+theorem Lemma_2_1_concrete_heatSemigroupEstimateData :
+    Lemma_2_1 paper1ConcreteHeatSemigroupEstimateData := by
+  intro p q hp hpq
+  refine ⟨?_, ?_, ?_⟩
+  · refine ⟨1, zero_lt_one, ?_⟩
+    intro t ht u
+    simpa [paper1ConcreteHeatSemigroupEstimateData] using
+      paper1ConcreteSemigroup_point_estimate hp hpq ht u
+  · refine ⟨1, zero_lt_one, ?_⟩
+    intro t ht u
+    have hright_nonneg :
+        0 ≤ (1 : ℝ) *
+          t ^ (-(1 / 2 : ℝ) - (1 / 2 : ℝ) * (1 / p - 1 / q)) *
+          Real.exp (-t) * paper1L1PackageNorm p u := by
+      exact mul_nonneg
+        (mul_nonneg
+          (mul_nonneg zero_le_one (Real.rpow_nonneg ht.le _))
+          (Real.exp_nonneg _))
+        (paper1L1PackageNorm_nonneg p u)
+    simpa [paper1ConcreteHeatSemigroupEstimateData] using hright_nonneg
+  · refine ⟨1, zero_lt_one, ?_⟩
+    intro t ht u
+    simpa [paper1ConcreteHeatSemigroupEstimateData] using
+      paper1ConcreteDivergence_point_estimate hp ht u
 
 def PsiDerivativeFormula (u : ℝ → ℝ) (l mu : ℝ) : Prop :=
   ∀ x,
