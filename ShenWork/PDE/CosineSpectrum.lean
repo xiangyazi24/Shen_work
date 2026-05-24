@@ -451,6 +451,141 @@ lemma paper3Cosine_Theorem_2_2_linear_mode_one_instability
   simpa [paper3CosineSpectralData_eq_unitInterval] using
     Theorem_2_2_linear_mode_one_instability_unitInterval p
 
+abbrev Paper3ConstantsUsesCosineCriticalSpectrum
+    (p : CM2Params) {D : BoundedDomainData} (C : Paper3Constants D p) :
+    Prop :=
+  Paper3ConstantsUsesCriticalSpectrum paper3CosineSpectralData p C
+
+lemma paper3Cosine_chiCritical_positiveEquilibrium
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) :
+    C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 =
+      paperCriticalSensitivity paper3CosineSpectralData p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  hC.chiCritical_positiveEquilibrium ha hb
+
+lemma paper3Cosine_chiCritical_minimalEquilibrium
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar : ℝ}
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (huStar : 0 < uStar) :
+    C.chiCritical uStar =
+      paperCriticalSensitivity paper3CosineSpectralData p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 :=
+  hC.chiCritical_minimalEquilibrium huStar
+
+lemma paper3Cosine_chiCritical_nonneg
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    {uStar : ℝ} (huStar : 0 < uStar) :
+    0 ≤ C.chiCritical uStar :=
+  hC.chiCritical_nonneg paper3Cosine_hasNeumannSpectrum huStar
+
+lemma paper3Cosine_chiCritical_pos
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    {uStar : ℝ} (huStar : 0 < uStar) :
+    0 < C.chiCritical uStar :=
+  hC.chiCritical_pos paper3Cosine_hasNeumannSpectrum huStar
+
+lemma paper3Cosine_chiCritical_positiveEquilibrium_nonneg
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) :
+    0 ≤ C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 :=
+  hC.chiCritical_positiveEquilibrium_nonneg
+    paper3Cosine_hasNeumannSpectrum ha hb
+
+lemma paper3Cosine_chiCritical_positiveEquilibrium_pos
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) :
+    0 < C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 :=
+  hC.chiCritical_positiveEquilibrium_pos
+    paper3Cosine_hasNeumannSpectrum ha hb
+
+lemma paper3Cosine_chiCritical_minimalEquilibrium_nonneg
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar : ℝ}
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (huStar : 0 < uStar) :
+    0 ≤ C.chiCritical uStar :=
+  hC.chiCritical_minimalEquilibrium_nonneg
+    paper3Cosine_hasNeumannSpectrum huStar
+
+lemma paper3Cosine_chiCritical_minimalEquilibrium_pos
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar : ℝ}
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (huStar : 0 < uStar) :
+    0 < C.chiCritical uStar :=
+  hC.chiCritical_minimalEquilibrium_pos
+    paper3Cosine_hasNeumannSpectrum huStar
+
+lemma paper3Cosine_positiveEquilibrium_linearlyStable_of_chiCritical
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ : p.χ₀ < C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    LinearlyStable paper3CosineSpectralData p
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  hC.positiveEquilibrium_linearlyStable
+    paper3Cosine_hasNeumannSpectrum ha hb hχ
+
+lemma paper3Cosine_positiveEquilibrium_linearlyUnstable_of_chiCritical
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ : C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 < p.χ₀) :
+    LinearlyUnstable paper3CosineSpectralData p
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  hC.positiveEquilibrium_linearlyUnstable
+    paper3Cosine_hasNeumannSpectrum ha hb hχ
+
+lemma paper3Cosine_minimalEquilibrium_linearlyStable_of_chiCritical
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar : ℝ}
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (huStar : 0 < uStar) (hχ : p.χ₀ < C.chiCritical uStar) :
+    LinearlyStable paper3CosineSpectralData p
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  hC.minimalEquilibrium_linearlyStable
+    paper3Cosine_hasNeumannSpectrum huStar hχ
+
+lemma paper3Cosine_minimalEquilibrium_linearlyUnstable_of_chiCritical
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    {uStar : ℝ}
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (huStar : 0 < uStar) (hχ : C.chiCritical uStar < p.χ₀) :
+    LinearlyUnstable paper3CosineSpectralData p
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  hC.minimalEquilibrium_linearlyUnstable
+    paper3Cosine_hasNeumannSpectrum huStar hχ
+
+lemma paper3Cosine_chi_pos_of_chiCritical_lt
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ : C.chiCritical uStar < p.χ₀) :
+    0 < p.χ₀ :=
+  hC.chi_pos_of_chiCritical_lt paper3Cosine_hasNeumannSpectrum huStar hχ
+
+lemma paper3Cosine_chi_pos_of_positiveEquilibrium_chiCritical_lt
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hC : Paper3ConstantsUsesCosineCriticalSpectrum p C)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ : C.chiCritical (positiveEquilibrium p ⟨ha, hb⟩).1 < p.χ₀) :
+    0 < p.χ₀ :=
+  hC.chi_pos_of_positiveEquilibrium_chiCritical_lt
+    paper3Cosine_hasNeumannSpectrum ha hb hχ
+
 end ShenWork.CosineSpectrum
 
 end
