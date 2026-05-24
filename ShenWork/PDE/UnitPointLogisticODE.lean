@@ -321,4 +321,10 @@ lemma bernoulliLogisticSolution_hasDerivAt
     · have ht_neg : t < 0 := lt_of_le_of_ne ht_le ht_zero
       exact bernoulliLogisticSolution_hasDerivAt_of_neg_time p ht_neg
 
+lemma bernoulliLogisticSolution_differentiable
+    (p : CM2Params) {u₀ : ℝ} (ha : 0 < p.a) (hb : 0 < p.b)
+    (hu₀ : 0 < u₀) :
+    Differentiable ℝ (fun t : ℝ => bernoulliLogisticSolution p u₀ t) :=
+  fun t => (bernoulliLogisticSolution_hasDerivAt p ha hb hu₀ (t := t)).differentiableAt
+
 end ShenWork.Paper2
