@@ -1,14 +1,7 @@
 /-
   ShenWork/PDE/SobolevEmbedding.lean
 
-  Sobolev embedding H^1([0,L]) -> L^∞([0,L]) in one spatial dimension.
-  For f continuous on [0,L] with HasDerivAt on [0,L]:
-
-    |f(x)| ≤ (1/L) ∫₀ᴸ |f(y)| dy + ∫₀ᴸ |f'(y)| dy
-
-  and hence, for f and f' in L²(0,L),
-
-    |f(x)| ≤ (1/L) L^(1/2) ‖f‖₂ + L^(1/2) ‖f'‖₂.
+  One-dimensional Sobolev embedding on an interval.
 -/
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
@@ -86,6 +79,7 @@ theorem interval_integral_abs_le_length_rpow_mul_lpNorm_two
     rfl
   simpa [hint, μ] using hLpL
 
+/-- A one-dimensional FTC estimate in `W^{1,1}` form. -/
 theorem sobolev_pointwise_bound
     {L : ℝ} (hL : 0 < L)
     {f f' : ℝ → ℝ}
@@ -95,13 +89,10 @@ theorem sobolev_pointwise_bound
     {x : ℝ} (hx : x ∈ Icc 0 L) :
     |f x| ≤ (1 / L) * (∫ y in (0 : ℝ)..L, |f y|) +
       (∫ y in (0 : ℝ)..L, |f' y|) := by
-  -- Step 1: find y₀ ∈ [0,L] minimizing |f|
   have hne : (Icc (0 : ℝ) L).Nonempty := ⟨0, left_mem_Icc.mpr hL.le⟩
   have habs_cont : ContinuousOn (fun y => |f y|) (Icc 0 L) :=
     continuous_abs.comp_continuousOn hf_cont
   obtain ⟨y₀, hy₀, hmin⟩ := IsCompact.exists_isMinOn isCompact_Icc hne habs_cont
-  -- hmin : IsMinOn (|f ·|) (Icc 0 L) y₀, i.e. ∀ y ∈ Icc 0 L, |f y₀| ≤ |f y|
-  -- Step 2: |f y₀| * L ≤ ∫|f|
   have hfy₀_mul_L : |f y₀| * L ≤ ∫ y in (0 : ℝ)..L, |f y| := by
     have habs_int : IntervalIntegrable (fun y : ℝ => |f y|) volume 0 L :=
       habs_cont.intervalIntegrable_of_Icc hL.le
@@ -113,7 +104,6 @@ theorem sobolev_pointwise_bound
   have hfy₀_le : |f y₀| ≤ (1 / L) * (∫ y in (0 : ℝ)..L, |f y|) := by
     rw [one_div, le_inv_mul_iff₀ hL]
     simpa [mul_comm] using hfy₀_mul_L
-  -- Step 3: FTC gives f(x) - f(y₀) = ∫_{y₀}^x f'
   have huIcc_sub : Set.uIcc y₀ x ⊆ Icc 0 L :=
     Set.uIcc_subset_Icc hy₀ hx
   have hy₀_mem_uIcc : y₀ ∈ Set.uIcc (0 : ℝ) L := Set.Icc_subset_uIcc hy₀
@@ -123,7 +113,6 @@ theorem sobolev_pointwise_bound
     · exact fun s hs => hf_deriv s (huIcc_sub hs)
     · exact hf'_int.mono
         (Set.uIcc_subset_uIcc hy₀_mem_uIcc hx_mem_uIcc) le_rfl
-  -- Step 4: |∫_{y₀}^x f'| ≤ ∫₀ᴸ |f'|
   have hdiff : |f x - f y₀| ≤ ∫ s in (0 : ℝ)..L, |f' s| := by
     rw [← hftc]
     rcases le_or_gt y₀ x with hle | hgt
@@ -140,7 +129,6 @@ theorem sobolev_pointwise_bound
             integral_mono_interval hx.1 hgt.le hy₀.2
               (Filter.Eventually.of_forall fun _ => abs_nonneg _)
               hf'_int.norm
-  -- Step 5: combine via triangle inequality
   have htri : |f x| ≤ |f y₀| + |f x - f y₀| := by
     calc |f x| = |f y₀ + (f x - f y₀)| := by
           congr 1
@@ -157,103 +145,44 @@ theorem sobolev_pointwise_bound
         (∫ s in (0 : ℝ)..L, |f' s|)
     exact hsum)
 
-/-! ### Cauchy-Schwarz step: ∫|f| ≤ √L · √(∫f²) -/
+/-- One-dimensional Sobolev embedding on `[0,L]` in pointwise form.
 
-/-- Squared version: (∫₀ᴸ |f|)² ≤ L · ∫₀ᴸ f². This is the algebraic core of
-    the interval Cauchy-Schwarz inequality, proved via the variance trick. -/
-private lemma sq_integral_abs_le
-    {L : ℝ} (hL : 0 < L) {f : ℝ → ℝ}
-    (hf_int : IntervalIntegrable f volume 0 L)
-    (hf_sq_int : IntervalIntegrable (fun y => f y ^ 2) volume 0 L) :
-    (∫ y in (0 : ℝ)..L, |f y|) ^ 2 ≤ L * ∫ y in (0 : ℝ)..L, f y ^ 2 := by
-  set A := ∫ y in (0 : ℝ)..L, |f y|
-  set I := ∫ y in (0 : ℝ)..L, f y ^ 2
-  set c := A / L
-  -- Integrability facts
-  have habs_int : IntervalIntegrable (fun y => |f y|) volume 0 L := hf_int.norm
-  -- Variance is nonneg: 0 ≤ ∫₀ᴸ (|f y| - c)²
-  have hvar : 0 ≤ ∫ y in (0 : ℝ)..L, (|f y| - c) ^ 2 :=
-    integral_nonneg_of_forall hL.le (fun y => sq_nonneg _)
-  -- Expand (|f y| - c)² = |f y|² - 2c|f y| + c²
-  -- Then use integral linearity:
-  -- ∫(|f|-c)² = ∫|f|² - 2c·∫|f| + c²·L = I - 2c·A + c²·L
-  -- Expand ∫(|f|-c)² using linearity of the interval integral
-  -- We rewrite (|f|-c)² = f² - 2c|f| + c² and use integral linearity
-  have h2c_int : IntervalIntegrable (fun y => 2 * c * |f y|) volume 0 L :=
-    habs_int.const_mul (2 * c)
-  have hexpand : ∫ y in (0 : ℝ)..L, (|f y| - c) ^ 2 = I - 2 * c * A + c ^ 2 * L := by
-    -- Split: (|f y| - c)² = f y² - 2c|f y| + c²
-    have hrew : ∀ y, (|f y| - c) ^ 2 = f y ^ 2 - 2 * c * |f y| + c ^ 2 := by
-      intro y; rw [← sq_abs (f y)]; ring
-    simp_rw [hrew]
-    -- ∫(a - b + c) = ∫a - ∫b + ∫c  by linearity
-    rw [show (fun y => f y ^ 2 - 2 * c * |f y| + c ^ 2) =
-        (fun y => (f y ^ 2 - 2 * c * |f y|) + c ^ 2) from by ext y; ring]
-    rw [integral_add (hf_sq_int.sub h2c_int) intervalIntegrable_const]
-    rw [integral_sub hf_sq_int h2c_int]
-    rw [intervalIntegral.integral_const_mul, intervalIntegral.integral_const]
-    simp only [sub_zero, smul_eq_mul]; ring
-  rw [hexpand] at hvar
-  -- hvar : 0 ≤ I - 2 * c * A + c² * L where c = A/L
-  -- Algebraically: I - 2*(A/L)*A + (A/L)²*L = I - A²/L ≥ 0
-  -- Hence A² ≤ L * I
-  have hcL : c * L = A := div_mul_cancel₀ A hL.ne'
-  nlinarith [sq_nonneg c, mul_self_nonneg (c * L)]
-
-private lemma integral_abs_le_sqrt_mul_L2
-    {L : ℝ} (hL : 0 < L) {f : ℝ → ℝ}
-    (hf_int : IntervalIntegrable f volume 0 L)
-    (hf_sq_int : IntervalIntegrable (fun y => f y ^ 2) volume 0 L) :
-    ∫ y in (0 : ℝ)..L, |f y| ≤
-      Real.sqrt L * Real.sqrt (∫ y in (0 : ℝ)..L, f y ^ 2) := by
-  have hA_nn : 0 ≤ ∫ y in (0 : ℝ)..L, |f y| :=
-    integral_nonneg_of_forall hL.le (fun y => abs_nonneg _)
-  have hI_nn : 0 ≤ ∫ y in (0 : ℝ)..L, f y ^ 2 :=
-    integral_nonneg_of_forall hL.le (fun y => sq_nonneg _)
-  rw [← Real.sqrt_mul hL.le]
-  rw [Real.le_sqrt hA_nn (mul_nonneg hL.le hI_nn)]
-  exact sq_integral_abs_le hL hf_int hf_sq_int
-
-/-! ### Main L² Sobolev embedding -/
-
+The interval `L²` norms are Mathlib `lpNorm`s for the restricted measure
+`volume.restrict (Ioc 0 L)`. Since the representative is continuous, a pointwise
+bound on every `x ∈ [0,L]` is the intended `L∞` control. -/
 theorem sobolev_H1_Linfty_interval
     {L : ℝ} (hL : 0 < L)
     {f f' : ℝ → ℝ}
     (hf_cont : ContinuousOn f (Icc 0 L))
     (hf_deriv : ∀ x ∈ Icc 0 L, HasDerivAt f (f' x) x)
-    (hf'_int : IntervalIntegrable f' volume 0 L)
-    (hf'_sq_int : IntervalIntegrable (fun y => f' y ^ 2) volume 0 L)
+    (hf_mem : MemLp f (2 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L)))
+    (hf'_mem : MemLp f' (2 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L)))
     {x : ℝ} (hx : x ∈ Icc 0 L) :
-    |f x| ≤ (1 / Real.sqrt L) * Real.sqrt (∫ y in (0 : ℝ)..L, f y ^ 2) +
-      Real.sqrt L * Real.sqrt (∫ y in (0 : ℝ)..L, f' y ^ 2) := by
-  -- Step 1: apply sobolev_pointwise_bound
-  have hpw := sobolev_pointwise_bound hL hf_cont hf_deriv hf'_int hx
-  -- Step 2: integrability of f and f² from continuity
-  have hf_int : IntervalIntegrable f volume 0 L :=
-    hf_cont.intervalIntegrable_of_Icc hL.le
-  have hf_sq_int : IntervalIntegrable (fun y => f y ^ 2) volume 0 L :=
-    (hf_cont.pow 2).intervalIntegrable_of_Icc hL.le
-  -- Step 3: apply Cauchy-Schwarz
-  have hCS_f := integral_abs_le_sqrt_mul_L2 hL hf_int hf_sq_int
-  have hCS_f' := integral_abs_le_sqrt_mul_L2 hL hf'_int hf'_sq_int
-  -- Step 4: combine
-  -- hpw: |f x| ≤ (1/L) * ∫|f| + ∫|f'|
-  -- hCS_f: ∫|f| ≤ √L * √(∫f²)
-  -- hCS_f': ∫|f'| ≤ √L * √(∫f'²)
-  -- So: |f x| ≤ (1/L) * √L * √(∫f²) + √L * √(∫f'²)
-  -- And (1/L) * √L = 1/√L
-  have h1 : (1 / L) * (∫ y in (0 : ℝ)..L, |f y|) ≤
-      (1 / Real.sqrt L) * Real.sqrt (∫ y in (0 : ℝ)..L, f y ^ 2) := by
-    calc (1 / L) * (∫ y in (0 : ℝ)..L, |f y|)
-        ≤ (1 / L) * (Real.sqrt L * Real.sqrt (∫ y in (0 : ℝ)..L, f y ^ 2)) :=
-          mul_le_mul_of_nonneg_left hCS_f (by positivity)
-      _ = (1 / Real.sqrt L) * Real.sqrt (∫ y in (0 : ℝ)..L, f y ^ 2) := by
-          rw [div_mul_eq_mul_div, one_mul, div_mul_eq_mul_div, one_mul]
-          rw [show Real.sqrt L * Real.sqrt (∫ y in (0 : ℝ)..L, f y ^ 2) / L =
-              Real.sqrt (∫ y in (0 : ℝ)..L, f y ^ 2) * (Real.sqrt L / L) from by ring]
-          rw [show Real.sqrt L / L = 1 / Real.sqrt L from Real.sqrt_div_self']
-          ring
-  linarith
+    |f x| ≤
+      (1 / L) *
+          ((L ^ (1 / 2 : ℝ)) *
+            lpNorm f (2 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L))) +
+        (L ^ (1 / 2 : ℝ)) *
+          lpNorm f' (2 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L)) := by
+  have hf'_int : IntervalIntegrable f' volume (0 : ℝ) L := by
+    rw [intervalIntegrable_iff_integrableOn_Ioc_of_le hL.le]
+    exact hf'_mem.integrable (show (1 : ℝ≥0∞) ≤ 2 by norm_num)
+  have hpoint := sobolev_pointwise_bound hL hf_cont hf_deriv hf'_int hx
+  have hf_l1 :
+      (∫ y in (0 : ℝ)..L, |f y|) ≤
+        (L ^ (1 / 2 : ℝ)) *
+          lpNorm f (2 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L)) :=
+    interval_integral_abs_le_length_rpow_mul_lpNorm_two hL
+      hf_mem.aestronglyMeasurable hf_mem
+  have hf'_l1 :
+      (∫ y in (0 : ℝ)..L, |f' y|) ≤
+        (L ^ (1 / 2 : ℝ)) *
+          lpNorm f' (2 : ℝ≥0∞) (volume.restrict (Ioc (0 : ℝ) L)) :=
+    interval_integral_abs_le_length_rpow_mul_lpNorm_two hL
+      hf'_mem.aestronglyMeasurable hf'_mem
+  have hcoef_nonneg : 0 ≤ (1 / L : ℝ) := by positivity
+  exact hpoint.trans <|
+    add_le_add (mul_le_mul_of_nonneg_left hf_l1 hcoef_nonneg) hf'_l1
 
 end ShenWork.Sobolev
 

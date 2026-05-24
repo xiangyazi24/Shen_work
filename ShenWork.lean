@@ -14,6 +14,7 @@ import ShenWork.PDE.GlobalBound
 import ShenWork.PDE.LeibnizRule
 import ShenWork.PDE.ODEExistence
 import ShenWork.PDE.ODEUniqueness
+import ShenWork.PDE.SobolevEmbedding
 import ShenWork.PDE.SpecialCases
 import ShenWork.Paper1.Statements
 import ShenWork.Paper2.Defs

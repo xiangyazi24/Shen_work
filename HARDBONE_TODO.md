@@ -29,9 +29,9 @@
 - **产出**: `gagliardoNirenberg_interval`
 - **下游**: Paper2 Lemma 2.6 (Moser iteration), Lemma 4.1
 
-### H0.4 — Sobolev embedding H^1([0,L]) → L^∞([0,L])
+### H0.4 — Sobolev embedding H^1([0,L]) → L^∞([0,L]) ✅ DONE
 - **内容**: 1D Sobolev: `‖f‖_{L^∞} ≤ C(‖f‖_{L^2} + ‖f'‖_{L^2})`
-- **现状**: Mathlib 没有显式 1D bounded-domain 版本
+- **完成**: `ShenWork/PDE/SobolevEmbedding.lean` (2026-05-24; 0 sorry; axioms `[propext, Classical.choice, Quot.sound]`)
 - **前置**: Fundamental theorem of calculus on [0,L], Cauchy-Schwarz
 - **目标文件**: `ShenWork/PDE/SobolevEmbedding.lean` (new)
 - **产出**: `sobolev_H1_Linfty_interval`
