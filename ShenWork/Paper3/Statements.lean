@@ -10333,6 +10333,52 @@ theorem Theorem_2_2_chi_nonneg_a_ne_zero_branch
   · intro ha0 _hb0
     exact False.elim (ha_ne ha0)
 
+/-- Full Theorem 2.2 composite on the `χ₀ ≥ 0`, `b ≠ 0` slice.  The
+positive-equilibrium branches use the critical-spectrum package plus the raw
+local-stability input; the minimal branches are vacuous because `b = 0` is
+impossible. -/
+theorem Theorem_2_2_chi_nonneg_b_ne_zero_branch
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (H : HasNeumannSpectrum S)
+    (hC : Paper3ConstantsUsesCriticalSpectrum S p C)
+    (hraw :
+      SectorialLocalExponentialRaw D p S N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hcontrol : ∀ uStar, SupControlsXpSigmaDistance D N sigma pNorm uStar)
+    (hexist : ∀ uStar, ∀ delta > 0, SmallDataGlobalExistence D p uStar delta)
+    (_hχ : 0 ≤ p.χ₀) (hb_ne : p.b ≠ 0) :
+    Theorem_2_2 D p S N C := by
+  refine Theorem_2_2.of_parts ?_ ?_ ?_ ?_
+  · intro ha hb
+    dsimp
+    intro hχcrit
+    have hstable :
+        LinearlyStable S p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+      hC.positiveEquilibrium_linearlyStable H ha hb hχcrit
+    have hlocal :
+        LocallyExponentiallyStableFromSup D p N
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+      hraw.locally_from_sup_control
+        hsigma_low hsigma_high hpNorm hstable
+        (hcontrol (positiveEquilibrium p ⟨ha, hb⟩).1)
+        (hexist (positiveEquilibrium p ⟨ha, hb⟩).1)
+    rcases hlocal with ⟨δ, hδ, A, hA, rate, hrate, hmain⟩
+    exact ⟨hstable, δ, hδ, A, hA, rate, hrate, hmain⟩
+  · intro ha hb
+    dsimp
+    intro hχcrit
+    exact hC.positiveEquilibrium_linearlyUnstable H ha hb hχcrit
+  · intro _ha0 hb0
+    exact False.elim (hb_ne hb0)
+  · intro _ha0 hb0
+    exact False.elim (hb_ne hb0)
+
 /-- **TAUTOLOGY (no math content)**: body is `:= hstab`, definitionally
 equal to `Theorem_2_3 D p N`.  Target signature only. -/
 theorem Theorem_2_3.of_assumed_stability_branch
