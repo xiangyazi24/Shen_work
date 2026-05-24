@@ -5558,6 +5558,119 @@ theorem unitPointDomain.Theorem_1_2_from_logistic_nonminimal
       refine ⟨u, v, hglobal, htrace, ?_⟩
       exact IsPaper2Bounded.of_forall_nonneg_supNorm_le hbound
 
+/-- Paper 2 Theorem 1.3 is vacuous on the unit-point domain when
+`p.m ≤ 0` (the hypothesis is `0 < p.m`). -/
+theorem unitPointDomain.Theorem_1_3_vacuous_when_m_le_zero
+    (p : CM2Params) (hm : p.m ≤ 0) (C : Paper2Constants p) :
+    Theorem_1_3 unitPointDomain p C := by
+  intro _ _ hm' _; exact absurd hm' (not_lt.mpr hm)
+
+/-- Paper 2 Theorem 1.2 is vacuous on the unit-point domain when
+`p.β < 1` (the hypothesis is `1 ≤ p.β`). -/
+theorem unitPointDomain.Theorem_1_2_vacuous_when_beta_lt_one
+    (p : CM2Params) (hβ : p.β < 1) :
+    Theorem_1_2 unitPointDomain p := by
+  intro _ _ hβ'; exact absurd hβ' (not_le.mpr hβ)
+
+/-- Paper 2 Theorem 1.1 is vacuous on the unit-point domain when
+`0 < p.χ₀` (the hypothesis is `p.χ₀ ≤ 0`). -/
+theorem unitPointDomain.Theorem_1_1_vacuous_when_chi_pos
+    (p : CM2Params) (hχ : 0 < p.χ₀) :
+    Theorem_1_1 unitPointDomain p := by
+  intro hχ'; exact absurd hχ' (not_le.mpr hχ)
+
+/-- Paper 2 Lemma 2.7 does NOT hold unconditionally on `unitPointDomain`:
+the differential inequality alone cannot prevent the Lp-power from blowing
+up near `t = 0`.  For example, `u(t,()) = t⁻¹` with `pExp = 2`,
+`C₁ = C₂ = C₃ = 0`, `C₄ = 1`, `α = ε = 1`, `T = 1` satisfies the
+differential inequality on `(0,1)` yet `(u t ())² = t⁻²` is unbounded.
+
+The corrected version adds continuity of the Lp-power map on the compact
+interval `[0, T]`, from which the extreme value theorem gives a uniform
+bound. -/
+theorem unitPointDomain.Lemma_2_7_from_continuous_bound
+    (u : ℝ → unitPointDomain.Point → ℝ) (T pExp C1 C2 C3 C4 eps alpha : ℝ)
+    (hT : 0 < T) (_hpExp : 1 < pExp)
+    (_hC1 : 0 ≤ C1) (_hC2 : 0 ≤ C2) (_hC3 : 0 ≤ C3) (_hC4 : 0 < C4)
+    (_heps : 0 < eps) (_heps_le : eps ≤ alpha)
+    (hcont : ContinuousOn (fun t => (u t ()) ^ pExp) (Set.Icc 0 T))
+    (_hineq : ∀ t, 0 < t → t < T →
+      deriv (fun τ => unitPointDomain.integral (fun x => (u τ x) ^ pExp)) t +
+          C3 * unitPointDomain.integral (fun x => (u t x) ^ (pExp + alpha - eps)) ≤
+        C1 + C2 * unitPointDomain.integral (fun x => (u t x) ^ pExp) -
+          C4 * unitPointDomain.integral (fun x => (u t x) ^ (pExp + alpha))) :
+    LpPowerBoundedBefore unitPointDomain pExp T u := by
+  -- On unitPointDomain, integral f = f (), so the conclusion asks for
+  -- ∃ C, ∀ t ∈ (0,T), (u t ()) ^ pExp ≤ C.
+  -- ContinuousOn on compact [0, T] gives the bound via the extreme value theorem.
+  have hne : (Set.Icc (0 : ℝ) T).Nonempty := ⟨0, Set.left_mem_Icc.mpr hT.le⟩
+  obtain ⟨t₀, ht₀, hmax⟩ := isCompact_Icc.exists_isMaxOn hne hcont
+  refine ⟨(u t₀ ()) ^ pExp, ?_⟩
+  intro t ht_pos ht_lt
+  have ht_mem : t ∈ Set.Icc (0 : ℝ) T := ⟨ht_pos.le, ht_lt.le⟩
+  change unitPointDomain.integral (fun x => (u t x) ^ pExp) ≤ (u t₀ ()) ^ pExp
+  change (fun t => (u t ()) ^ pExp) t ≤ (fun t => (u t ()) ^ pExp) t₀
+  exact hmax ht_mem
+
+/-- Paper 2 Proposition 1.1 is **not provable** on the unit-point domain.
+
+On a zero-dimensional domain the PDE collapses to the logistic ODE.  For
+`a = 0`, `b = 0` the unique classical solution is constant `u ≡ u₀`.  A
+constant positive function is neither unbounded nor vanishing on any finite
+time horizon, so `FiniteHorizonAlternative` is unsatisfiable. -/
+theorem unitPointDomain.not_Proposition_1_1 :
+    ¬ Proposition_1_1 unitPointDomain proposition11CounterParams := by
+  intro h
+  -- Use initial datum u₀ ≡ 1
+  let u₀ : unitPointDomain.Point → ℝ := fun _ => 1
+  have hu₀ : PositiveInitialDatum unitPointDomain u₀ :=
+    ⟨trivial, fun _ _ => one_pos⟩
+  rcases h u₀ hu₀ with ⟨Tmax, hTmax, u, v, hsol, htrace, halt, _⟩
+  -- The PDE forces u'(t) = 0 on (0, Tmax)
+  have hpde_zero : ∀ t, t ∈ Set.Ioo (0 : ℝ) Tmax →
+      deriv (fun τ => u τ ()) t = 0 := by
+    intro t ⟨ht0, htT⟩
+    have := hsol.pde_u ht0 htT (Set.mem_univ ())
+    simp only [unitPointDomain, proposition11CounterParams] at this
+    linarith
+  -- u is differentiable on ℝ (from classicalRegularity)
+  have hu_diff : Differentiable ℝ (fun t : ℝ => u t ()) := hsol.regularity.1
+  -- On (0, Tmax), deriv = 0, so u is constant there
+  have hconst : ∀ s₁ s₂, s₁ ∈ Set.Ioo (0 : ℝ) Tmax → s₂ ∈ Set.Ioo (0 : ℝ) Tmax →
+      u s₁ () = u s₂ () := by
+    intro s₁ s₂ hs₁ hs₂
+    exact IsOpen.is_const_of_deriv_eq_zero isOpen_Ioo isPreconnected_Ioo
+      hu_diff.differentiableOn (fun x hx => hpde_zero x hx) hs₁ hs₂
+  -- From InitialTrace, u → u₀ = 1 as t → 0+, so the constant equals 1
+  have hone : ∀ t, 0 < t → t < Tmax → u t () = 1 := by
+    intro t ht0 htT
+    by_contra hne
+    have hgap : 0 < |u t () - 1| := abs_pos.mpr (sub_ne_zero.mpr hne)
+    rcases htrace.eventually_small hgap with ⟨δ, hδ, hsmall⟩
+    set s := min (δ / 2) (Tmax / 2) with hs_def
+    have hs_pos : 0 < s := lt_min (by linarith) (by linarith)
+    have hs_lt_δ : s < δ := lt_of_le_of_lt (min_le_left _ _) (by linarith)
+    have hs_lt_T : s < Tmax := lt_of_le_of_lt (min_le_right _ _) (by linarith)
+    have hsup := hsmall s hs_pos hs_lt_δ
+    simp only [unitPointDomain, u₀] at hsup
+    -- hsup : |u s () - 1| < |u t () - 1|
+    -- But u s () = u t () (constant on (0, Tmax))
+    have heq := hconst s t ⟨hs_pos, hs_lt_T⟩ ⟨ht0, htT⟩
+    rw [heq] at hsup
+    exact lt_irrefl _ hsup
+  -- FiniteHorizonAlternative fails for u ≡ 1
+  rcases halt with hunb | hvan
+  · -- First disjunct: u unbounded
+    rcases hunb 1 with ⟨t, x, ht0, htT, _, hM⟩
+    have hx : x = () := rfl
+    rw [hx] at hM
+    linarith [hone t ht0 htT]
+  · -- Second disjunct: u vanishes
+    rcases hvan (1 / 2) (by norm_num) with ⟨t, x, ht0, htT, _, hδ⟩
+    have hx : x = () := rfl
+    rw [hx] at hδ
+    linarith [hone t ht0 htT]
+
 end
 
 end ShenWork.Paper2
