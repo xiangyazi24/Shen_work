@@ -5311,6 +5311,48 @@ theorem unitPointDomain.Theorem_X_X_exponential_convergence
   intro ha hb u₀ hu₀
   exact hexplicit ha hb u₀ hu₀
 
+/-- Nonminimal unit-point logistic package exposed at the statement layer.
+
+The concrete witness is `unitPointLogistic_globalExistence_with_attractor` in
+`ShenWork.PDE.UnitPointLogisticODE`; this file cannot import it because that
+ODE file imports the statement layer. -/
+def UnitPointLogisticNonminimalPackage (p : CM2Params) : Prop :=
+  0 < p.a → 0 < p.b →
+    ∀ u₀ : unitPointDomain.Point → ℝ,
+      PositiveInitialDatum unitPointDomain u₀ →
+        ∃ u v : ℝ → unitPointDomain.Point → ℝ,
+          IsPaper2GlobalClassicalSolution unitPointDomain p u v ∧
+          InitialTrace unitPointDomain u₀ u ∧
+          (∀ t, 0 ≤ t →
+            unitPointDomain.supNorm (u t) ≤
+              max (unitPointDomain.supNorm u₀)
+                ((p.a / p.b) ^ (1 / p.α))) ∧
+          Tendsto (fun t : ℝ => u t ())
+            atTop (𝓝 ((p.a / p.b) ^ (1 / p.α)))
+
+/-- Statement-layer closure of Paper 2 Theorem 1.1 on the unit-point domain.
+The minimal branch is closed in this file; the nonminimal branch is routed
+through the explicit Bernoulli-logistic package from
+`ShenWork.PDE.UnitPointLogisticODE`. -/
+theorem unitPointDomain.Theorem_1_1_from_logistic_nonminimal
+    (p : CM2Params)
+    (hlogistic : UnitPointLogisticNonminimalPackage p) :
+    Theorem_1_1 unitPointDomain p := by
+  intro hχ
+  refine ⟨?_, ?_⟩
+  · intro ha hb u₀ hu₀
+    rcases hlogistic ha hb u₀ hu₀ with
+      ⟨u, v, hglobal, htrace, hbound, _hlim⟩
+    refine ⟨1, by norm_num, u, v, ?_, htrace, ?_, ?_⟩
+    · exact hglobal.classical (T := 1) (by norm_num)
+    · intro t ht_pos _ht_lt
+      exact hbound t ht_pos.le
+    · intro _hm
+      exact hglobal
+  · intro ha hb u₀ hu₀
+    exact ((unitPointDomain.Theorem_1_1_minimal_only p ha hb) hχ).2
+      ha hb u₀ hu₀
+
 /-- Paper 2 Corollary 2.1 holds for the unit-point domain.  The classical
 solution forces `u t () > 0` (from `u_pos`), so the abstract `Lᵖ` bound at
 `p0` (which for the unit-point reduces to `(u t ())^p0 ≤ C₀`) implies a
