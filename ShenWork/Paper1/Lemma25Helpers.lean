@@ -333,6 +333,106 @@ theorem ExponentialWeight.kernel_integrable
     _ = psi.weight x := by ring
     _ ≤ |psi.weight x| := le_abs_self _
 
+/-! ### Joint integrability of `ψ(x) · K_{x-y} · v(y)` -/
+
+/-- The joint function `(x, y) ↦ ψ(x) · exp(-c|x-y|) · v(y)` is integrable
+on `volume.prod volume`, provided `ψ` has log-derivative bounded by `k < c`
+and `ψ · v` is integrable.  Proven via `integrable_prod_iff'` with
+domination by `kernel_weight_integral_le_psi`. -/
+theorem joint_kernel_weight_v_integrable
+    (psi : ExponentialWeight) {c k : ℝ} (hc : 0 < c) (hk_nn : 0 ≤ k)
+    (hk_lt : k < c)
+    (hk_bound : ∀ z, |deriv psi.weight z| ≤ k * psi.weight z)
+    {v : ℝ → ℝ} (hv_nn : ∀ y, 0 ≤ v y) (hv_meas : Measurable v)
+    (hv_int : Integrable (fun y : ℝ => psi.weight y * v y)) :
+    Integrable
+      (Function.uncurry
+        (fun x y : ℝ => psi.weight x * Real.exp (-c * |x - y|) * v y))
+      (MeasureTheory.Measure.prod MeasureTheory.volume MeasureTheory.volume) := by
+  have h_meas_psi : Measurable psi.weight :=
+    (psi.smooth.differentiable two_ne_zero).continuous.measurable
+  have h_meas_uncurry :
+      Measurable
+        (Function.uncurry
+          (fun x y : ℝ => psi.weight x * Real.exp (-c * |x - y|) * v y)) := by
+    unfold Function.uncurry
+    have hf : Measurable (fun p : ℝ × ℝ => psi.weight p.1) :=
+      h_meas_psi.comp measurable_fst
+    have hg : Measurable (fun p : ℝ × ℝ => Real.exp (-c * |p.1 - p.2|)) := by
+      fun_prop
+    have hh : Measurable (fun p : ℝ × ℝ => v p.2) :=
+      hv_meas.comp measurable_snd
+    exact (hf.mul hg).mul hh
+  refine (MeasureTheory.integrable_prod_iff' h_meas_uncurry.aestronglyMeasurable).mpr
+    ⟨?_, ?_⟩
+  · -- ∀ᵐ y, Integrable (fun x => f(x, y))
+    refine Filter.Eventually.of_forall fun y => ?_
+    -- f(x, y) = ψ(x) · exp(-c|x-y|) · v(y) = (ψ(x) · exp(-c|x-y|)) · v(y)
+    have h_eq :
+        (fun x : ℝ =>
+          Function.uncurry
+            (fun x y : ℝ => psi.weight x * Real.exp (-c * |x - y|) * v y)
+            (x, y)) =
+          (fun x : ℝ => v y * (psi.weight x * Real.exp (-c * |x - y|))) := by
+      funext x
+      unfold Function.uncurry
+      ring
+    rw [h_eq]
+    exact (psi.kernel_integrable hc y).const_mul (v y)
+  · -- Integrable (fun y => ∫ x, ‖f(x, y)‖)
+    -- Bound by v(y) · ψ(y) · 2/(c-k)
+    have h_bound : ∀ y, ∫ x, ‖Function.uncurry
+        (fun x y : ℝ => psi.weight x * Real.exp (-c * |x - y|) * v y) (x, y)‖ ≤
+          v y * (psi.weight y * (2 / (c - k))) := by
+      intro y
+      have h_nonneg : ∀ x : ℝ,
+          0 ≤ Function.uncurry
+            (fun x y : ℝ => psi.weight x * Real.exp (-c * |x - y|) * v y)
+            (x, y) := by
+        intro x
+        unfold Function.uncurry
+        exact mul_nonneg (mul_nonneg (psi.pos x).le (Real.exp_pos _).le) (hv_nn y)
+      have h_norm_eq :
+          (fun x : ℝ => ‖Function.uncurry
+            (fun x y : ℝ => psi.weight x * Real.exp (-c * |x - y|) * v y)
+            (x, y)‖) =
+            (fun x : ℝ => v y * (psi.weight x * Real.exp (-c * |x - y|))) := by
+        funext x
+        rw [Real.norm_eq_abs, abs_of_nonneg (h_nonneg x)]
+        unfold Function.uncurry
+        ring
+      rw [h_norm_eq]
+      rw [MeasureTheory.integral_const_mul]
+      have h_kw := kernel_weight_integral_le_psi psi hc hk_nn hk_lt hk_bound y
+      exact mul_le_mul_of_nonneg_left h_kw (hv_nn y)
+    -- Now show Integrable (fun y => ∫ x, ‖...‖)
+    refine MeasureTheory.Integrable.mono'
+      ((hv_int.const_mul (2 / (c - k))).congr ?_) ?_ ?_
+    · -- (2/(c-k)) * (ψ y * v y) =ᵃᵉ v y * (ψ y * 2/(c-k))
+      refine Filter.Eventually.of_forall fun y => ?_
+      ring
+    · -- AEStronglyMeasurable of (fun y => ∫ x, ‖...‖ ∂volume)
+      have h_meas : Measurable
+          (fun y : ℝ => ∫ x : ℝ, ‖Function.uncurry
+            (fun x y : ℝ => psi.weight x * Real.exp (-c * |x - y|) * v y)
+            (x, y)‖) := by
+        have h_unc_norm : Measurable
+            (Function.uncurry
+              (fun x y : ℝ => ‖psi.weight x * Real.exp (-c * |x - y|) * v y‖)) := by
+          have := h_meas_uncurry
+          exact this.norm
+        exact h_unc_norm.integral_prod_right'
+      exact h_meas.aestronglyMeasurable
+    · -- ∀ᵐ y, |∫ x, ‖...‖| ≤ v y * (ψ y * 2/(c-k))
+      refine Filter.Eventually.of_forall fun y => ?_
+      rw [Real.norm_eq_abs]
+      have h_int_nn : 0 ≤ ∫ x, ‖Function.uncurry
+          (fun x y : ℝ => psi.weight x * Real.exp (-c * |x - y|) * v y)
+          (x, y)‖ :=
+        MeasureTheory.integral_nonneg (fun x => norm_nonneg _)
+      rw [abs_of_nonneg h_int_nn]
+      exact h_bound y
+
 end ShenWork.Paper1
 
 end
