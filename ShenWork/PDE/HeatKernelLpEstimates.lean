@@ -1,0 +1,146 @@
+/-
+  ShenWork/PDE/HeatKernelLpEstimates.lean
+
+  Whole-line L^p estimates for the one-dimensional heat kernel.
+-/
+import ShenWork.PDE.HeatSemigroup
+import Mathlib.MeasureTheory.Function.L1Space.Integrable
+
+open MeasureTheory Filter Topology Real
+
+noncomputable section
+
+/-! ## Heat-kernel `L^p` norms -/
+
+/-- Closed-form expression for the finite `L^p` norm of the heat kernel on `ℝ`. -/
+def heatKernelLpNormClosedForm (t p : ℝ) : ℝ :=
+  (((1 / Real.sqrt (4 * Real.pi * t)) ^ p) *
+      Real.sqrt (Real.pi / (p / (4 * t)))) ^ (1 / p)
+
+/-- Power-integral form of the heat-kernel `L^p` norm. -/
+theorem heatKernel_Lp_power_integral_eq {t p : ℝ} (ht : 0 < t) (hp : 0 < p) :
+    ∫ x : ℝ, |heatKernel t x| ^ p =
+      (1 / Real.sqrt (4 * Real.pi * t)) ^ p *
+        Real.sqrt (Real.pi / (p / (4 * t))) := by
+  have hcoeff_nonneg : 0 ≤ 1 / Real.sqrt (4 * Real.pi * t) := by
+    positivity
+  have hb : 0 < p / (4 * t) := by
+    positivity
+  unfold heatKernel
+  rw [show
+      (fun x : ℝ =>
+          |1 / Real.sqrt (4 * Real.pi * t) *
+              Real.exp (-x ^ 2 / (4 * t))| ^ p) =
+        fun x : ℝ =>
+          (1 / Real.sqrt (4 * Real.pi * t)) ^ p *
+            Real.exp (-(p / (4 * t)) * x ^ 2) by
+      ext x
+      rw [abs_mul, abs_of_nonneg hcoeff_nonneg,
+        abs_of_nonneg (Real.exp_nonneg _)]
+      rw [Real.mul_rpow hcoeff_nonneg (Real.exp_nonneg _)]
+      rw [Real.rpow_def_of_pos (Real.exp_pos _), Real.log_exp]
+      congr 1
+      field_simp [ne_of_gt ht]]
+  rw [MeasureTheory.integral_const_mul, integral_gaussian (p / (4 * t))]
+
+/-- Closed-form finite `L^p` norm of the heat kernel on `ℝ`. -/
+theorem heatKernel_Lp_norm_eq {t p : ℝ} (ht : 0 < t) (hp : 0 < p) :
+    (∫ x : ℝ, |heatKernel t x| ^ p) ^ (1 / p) =
+      heatKernelLpNormClosedForm t p := by
+  rw [heatKernel_Lp_power_integral_eq ht hp]
+  rfl
+
+lemma heatKernel_norm_rpow_integrable {t p : ℝ} (ht : 0 < t) (hp : 0 < p) :
+    MeasureTheory.Integrable (fun x : ℝ => ‖heatKernel t x‖ ^ p) := by
+  have hcoeff_nonneg : 0 ≤ 1 / Real.sqrt (4 * Real.pi * t) := by
+    positivity
+  have hb : 0 < p / (4 * t) := by
+    positivity
+  unfold heatKernel
+  rw [show
+      (fun x : ℝ =>
+          ‖1 / Real.sqrt (4 * Real.pi * t) *
+              Real.exp (-x ^ 2 / (4 * t))‖ ^ p) =
+        fun x : ℝ =>
+          (1 / Real.sqrt (4 * Real.pi * t)) ^ p *
+            Real.exp (-(p / (4 * t)) * x ^ 2) by
+      ext x
+      rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg hcoeff_nonneg,
+        abs_of_nonneg (Real.exp_nonneg _)]
+      rw [Real.mul_rpow hcoeff_nonneg (Real.exp_nonneg _)]
+      rw [Real.rpow_def_of_pos (Real.exp_pos _), Real.log_exp]
+      congr 1
+      field_simp [ne_of_gt ht]]
+  exact (integrable_exp_neg_mul_sq hb).const_mul _
+
+/-- The heat kernel belongs to every finite `L^p`, `0 < p < ∞`. -/
+lemma heatKernel_memLp {t p : ℝ} (ht : 0 < t) (hp : 0 < p) :
+    MeasureTheory.MemLp (fun x : ℝ => heatKernel t x)
+      (ENNReal.ofReal p) MeasureTheory.volume := by
+  have hp_ne_zero : ENNReal.ofReal p ≠ 0 := by
+    rw [ne_eq, ENNReal.ofReal_eq_zero]
+    exact not_le_of_gt hp
+  have hp_ne_top : ENNReal.ofReal p ≠ ⊤ := by
+    simp
+  have hpow :
+      MeasureTheory.Integrable
+        (fun x : ℝ => ‖heatKernel t x‖ ^ (ENNReal.ofReal p).toReal) := by
+    simpa [ENNReal.toReal_ofReal (le_of_lt hp)] using
+      heatKernel_norm_rpow_integrable ht hp
+  exact (MeasureTheory.integrable_norm_rpow_iff
+    (heatKernel_integrable ht).aestronglyMeasurable hp_ne_zero hp_ne_top).mp hpow
+
+theorem heatKernel_Lp_norm_eq_norm {t p : ℝ} (ht : 0 < t) (hp : 0 < p) :
+    (∫ x : ℝ, ‖heatKernel t x‖ ^ p) ^ (1 / p) =
+      heatKernelLpNormClosedForm t p := by
+  simpa [Real.norm_eq_abs] using heatKernel_Lp_norm_eq ht hp
+
+lemma heatKernel_translated_norm_rpow_integrable {t p : ℝ} (ht : 0 < t)
+    (hp : 0 < p) (x : ℝ) :
+    MeasureTheory.Integrable (fun y : ℝ => ‖heatKernel t (x - y)‖ ^ p) := by
+  have hkey :
+      (fun y : ℝ => ‖heatKernel t (x - y)‖ ^ p) =
+        fun y : ℝ => (fun z : ℝ => ‖heatKernel t z‖ ^ p) (y + (-x)) := by
+    ext y
+    rw [show x - y = -(y + (-x)) by ring, heatKernel_neg]
+  rw [hkey]
+  exact (heatKernel_norm_rpow_integrable ht hp).comp_add_right (-x)
+
+lemma heatKernel_translated_memLp {t p : ℝ} (ht : 0 < t) (hp : 0 < p)
+    (x : ℝ) :
+    MeasureTheory.MemLp (fun y : ℝ => heatKernel t (x - y))
+      (ENNReal.ofReal p) MeasureTheory.volume := by
+  have hp_ne_zero : ENNReal.ofReal p ≠ 0 := by
+    rw [ne_eq, ENNReal.ofReal_eq_zero]
+    exact not_le_of_gt hp
+  have hp_ne_top : ENNReal.ofReal p ≠ ⊤ := by
+    simp
+  have hpow :
+      MeasureTheory.Integrable
+        (fun y : ℝ => ‖heatKernel t (x - y)‖ ^ (ENNReal.ofReal p).toReal) := by
+    simpa [ENNReal.toReal_ofReal (le_of_lt hp)] using
+      heatKernel_translated_norm_rpow_integrable ht hp x
+  exact (MeasureTheory.integrable_norm_rpow_iff
+    (heatKernel_translated_integrable ht x).aestronglyMeasurable
+      hp_ne_zero hp_ne_top).mp hpow
+
+theorem heatKernel_translated_Lp_norm_eq {t p : ℝ} (ht : 0 < t)
+    (hp : 0 < p) (x : ℝ) :
+    (∫ y : ℝ, ‖heatKernel t (x - y)‖ ^ p) ^ (1 / p) =
+      heatKernelLpNormClosedForm t p := by
+  have hkey :
+      (fun y : ℝ => ‖heatKernel t (x - y)‖ ^ p) =
+        fun y : ℝ => (fun z : ℝ => ‖heatKernel t z‖ ^ p) (y + (-x)) := by
+    ext y
+    rw [show x - y = -(y + (-x)) by ring, heatKernel_neg]
+  rw [hkey]
+  have hshift :
+      ∫ y : ℝ, (fun z : ℝ => ‖heatKernel t z‖ ^ p) (y + (-x)) =
+        ∫ z : ℝ, ‖heatKernel t z‖ ^ p := by
+    simpa using
+      (integral_add_right_eq_self
+        (fun z : ℝ => ‖heatKernel t z‖ ^ p) (-x))
+  rw [hshift]
+  exact heatKernel_Lp_norm_eq_norm ht hp
+
+end
