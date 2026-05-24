@@ -5526,6 +5526,39 @@ theorem unitPointDomain.Theorem_1_1_vacuous_when_chi_pos
     Theorem_1_1 unitPointDomain p := by
   intro hχ'; exact absurd hχ' (not_le.mpr hχ)
 
+/-- Paper 2 Lemma 2.7 does NOT hold unconditionally on `unitPointDomain`:
+the differential inequality alone cannot prevent the Lp-power from blowing
+up near `t = 0`.  For example, `u(t,()) = t⁻¹` with `pExp = 2`,
+`C₁ = C₂ = C₃ = 0`, `C₄ = 1`, `α = ε = 1`, `T = 1` satisfies the
+differential inequality on `(0,1)` yet `(u t ())² = t⁻²` is unbounded.
+
+The corrected version adds continuity of the Lp-power map on the compact
+interval `[0, T]`, from which the extreme value theorem gives a uniform
+bound. -/
+theorem unitPointDomain.Lemma_2_7_from_continuous_bound
+    (u : ℝ → unitPointDomain.Point → ℝ) (T pExp C1 C2 C3 C4 eps alpha : ℝ)
+    (hT : 0 < T) (_hpExp : 1 < pExp)
+    (_hC1 : 0 ≤ C1) (_hC2 : 0 ≤ C2) (_hC3 : 0 ≤ C3) (_hC4 : 0 < C4)
+    (_heps : 0 < eps) (_heps_le : eps ≤ alpha)
+    (hcont : ContinuousOn (fun t => (u t ()) ^ pExp) (Set.Icc 0 T))
+    (_hineq : ∀ t, 0 < t → t < T →
+      deriv (fun τ => unitPointDomain.integral (fun x => (u τ x) ^ pExp)) t +
+          C3 * unitPointDomain.integral (fun x => (u t x) ^ (pExp + alpha - eps)) ≤
+        C1 + C2 * unitPointDomain.integral (fun x => (u t x) ^ pExp) -
+          C4 * unitPointDomain.integral (fun x => (u t x) ^ (pExp + alpha))) :
+    LpPowerBoundedBefore unitPointDomain pExp T u := by
+  -- On unitPointDomain, integral f = f (), so the conclusion asks for
+  -- ∃ C, ∀ t ∈ (0,T), (u t ()) ^ pExp ≤ C.
+  -- ContinuousOn on compact [0, T] gives the bound via the extreme value theorem.
+  have hne : (Set.Icc (0 : ℝ) T).Nonempty := ⟨0, Set.left_mem_Icc.mpr hT.le⟩
+  obtain ⟨t₀, ht₀, hmax⟩ := isCompact_Icc.exists_isMaxOn hne hcont
+  refine ⟨(u t₀ ()) ^ pExp, ?_⟩
+  intro t ht_pos ht_lt
+  have ht_mem : t ∈ Set.Icc (0 : ℝ) T := ⟨ht_pos.le, ht_lt.le⟩
+  change unitPointDomain.integral (fun x => (u t x) ^ pExp) ≤ (u t₀ ()) ^ pExp
+  change (fun t => (u t ()) ^ pExp) t ≤ (fun t => (u t ()) ^ pExp) t₀
+  exact hmax ht_mem
+
 end
 
 end ShenWork.Paper2
