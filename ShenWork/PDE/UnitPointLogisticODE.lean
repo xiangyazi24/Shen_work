@@ -128,4 +128,58 @@ lemma bernoulliLogisticForward_hasDerivAt_raw
   simpa [bernoulliLogisticForward] using
     (hden.rpow_const (Or.inl hden_ne) (p := -1 / p.α))
 
+lemma bernoulliLogisticForward_raw_derivative_eq_vectorField
+    (p : CM2Params) {u₀ t : ℝ} (ha : 0 < p.a) (hb : 0 < p.b)
+    (hu₀ : 0 < u₀) (ht : 0 ≤ t) :
+    (((u₀ ^ (-p.α) - p.b / p.a) *
+          (-(p.α * p.a) * bernoulliLogisticWeight p t)) *
+        (-1 / p.α) *
+        (bernoulliLogisticDenominator p u₀ t) ^ (-1 / p.α - 1)) =
+      bernoulliLogisticForward p u₀ t *
+        (p.a - p.b * (bernoulliLogisticForward p u₀ t) ^ p.α) := by
+  set D := bernoulliLogisticDenominator p u₀ t
+  have hD_pos : 0 < D := by
+    simpa [D] using
+      bernoulliLogisticDenominator_pos_of_nonneg_time p ha hb hu₀ ht
+  have hD_ne : D ≠ 0 := ne_of_gt hD_pos
+  have hα_ne : p.α ≠ 0 := ne_of_gt p.hα
+  have ha_ne : p.a ≠ 0 := ne_of_gt ha
+  have hD_sub :
+      D - p.b / p.a =
+        (u₀ ^ (-p.α) - p.b / p.a) * bernoulliLogisticWeight p t := by
+    simp [D, bernoulliLogisticDenominator]
+  have hfactor :
+      (u₀ ^ (-p.α) - p.b / p.a) *
+          (-(p.α * p.a) * bernoulliLogisticWeight p t) =
+        -(p.α * p.a) * (D - p.b / p.a) := by
+    rw [hD_sub]
+    ring
+  have hpow_add :
+      D ^ (-1 / p.α - 1) = D ^ (-1 / p.α) * D⁻¹ := by
+    rw [show -1 / p.α - 1 = -1 / p.α + (-1 : ℝ) by ring]
+    rw [Real.rpow_add hD_pos]
+    rw [Real.rpow_neg_one]
+  have hpow_alpha :
+      (D ^ (-1 / p.α)) ^ p.α = D⁻¹ := by
+    rw [← Real.rpow_mul hD_pos.le]
+    have hmul : (-1 / p.α) * p.α = -1 := by
+      field_simp [hα_ne]
+    rw [hmul, Real.rpow_neg_one]
+  calc
+    (((u₀ ^ (-p.α) - p.b / p.a) *
+          (-(p.α * p.a) * bernoulliLogisticWeight p t)) *
+        (-1 / p.α) * D ^ (-1 / p.α - 1))
+        = (-(p.α * p.a) * (D - p.b / p.a)) *
+            (-1 / p.α) * D ^ (-1 / p.α - 1) := by rw [hfactor]
+    _ = p.a * (D - p.b / p.a) * (D ^ (-1 / p.α) * D⁻¹) := by
+      rw [hpow_add]
+      field_simp [hα_ne]
+    _ = D ^ (-1 / p.α) * (p.a - p.b * D⁻¹) := by
+      field_simp [hD_ne, ha_ne]
+    _ = bernoulliLogisticForward p u₀ t *
+        (p.a - p.b * (bernoulliLogisticForward p u₀ t) ^ p.α) := by
+      rw [show bernoulliLogisticForward p u₀ t = D ^ (-1 / p.α) by
+        simp [bernoulliLogisticForward, D]]
+      rw [hpow_alpha]
+
 end ShenWork.Paper2
