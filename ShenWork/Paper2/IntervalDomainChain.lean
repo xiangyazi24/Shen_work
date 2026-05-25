@@ -11,7 +11,7 @@
   choose ε = A/(2K) so that K·ε = A/2 < A absorbs the gradient term,
   yielding an explicit bound on the L^{p+ρ} integral.
 
-  Status: 0 sorry, 0 axiom.
+  Status: no proof holes, no axioms.
   Part 1 (Moser iteration): the hypotheses (energy inequality, interpolation)
   are genuine analytical content for the PDE, not disguised conclusions.
   Part 2 (Theorem 1.1): conditional on classical existence; sup-norm bound

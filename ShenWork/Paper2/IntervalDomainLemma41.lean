@@ -21,7 +21,7 @@
 
   Status: conditional on `IntervalDomainInterpolation` ⟹ Lemma_4_1 intervalDomain.
   The analytical hypotheses are stated; the bridge is proved.
-  0 sorry, 0 axiom.
+  No proof holes, no axioms.
 -/
 import ShenWork.Paper2.Statements
 

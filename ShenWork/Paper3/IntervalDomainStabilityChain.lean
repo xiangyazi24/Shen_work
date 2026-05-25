@@ -131,6 +131,36 @@ theorem intervalDomain_thetaMomentConvergesToZero_of_chemotaxisThetaDissipation
     ThetaMomentConvergesToZero intervalDomain u uStar theta := by
   simpa [ThetaMomentConvergesToZero, chemotaxisThetaDissipation] using h
 
+/-- Direct differential decay of the interval-domain theta dissipation gives
+the `Tendsto` form used by the stability composites.  This discharges the
+post-processing from the analytic estimate
+`D'(t) ≤ -rate * D(t)`; the PDE derivation of that estimate remains an explicit
+frontier in the callers. -/
+theorem intervalDomain_thetaDissipation_tendsto_zero_of_hasDerivAt_le_neg_mul
+    {u : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta rate s : ℝ} {momentSlope : ℝ → ℝ}
+    (hrate : 0 < rate) (hs : 0 < s)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (hu_nonneg : ∀ t, s ≤ t → ∀ x, 0 ≤ u t x)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau =>
+            chemotaxisThetaDissipation intervalDomain uStar theta (u tau))
+          (momentSlope t) t)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    Tendsto
+      (fun t => chemotaxisThetaDissipation intervalDomain uStar theta (u t))
+      atTop (𝓝 0) := by
+  have htheta :
+      ThetaMomentConvergesToZero intervalDomain u uStar theta :=
+    intervalDomain_thetaMomentConvergesToZero_of_hasDerivAt_le_neg_mul
+      hrate hs huStar htheta hu_nonneg hderiv hle
+  simpa [ThetaMomentConvergesToZero, chemotaxisThetaDissipation] using htheta
+
 /-- Conditional interval-domain Paper3 Theorem 2.2.
 
 This is the H4.1 statement-level composite.  The remaining frontiers are the
@@ -373,6 +403,112 @@ theorem intervalDomain_Theorem_2_3_of_lyapunov_moment_and_exponential_frontiers
     intro u v huv hmass
     exact hdecay u v huv hmass (hglobal u v huv hmass)
 
+/-- Interval-domain Paper3 Theorem 2.3 with the Lyapunov moment-decay
+frontier reduced to direct theta-dissipation differential decay estimates.
+
+This keeps the analytic PDE work visible: callers must still prove the
+HasDerivAt identities, the differential inequalities, eventual nonnegativity
+of solution slices, moment-to-uniform convergence, and the uniform C¹
+exponential upgrade. -/
+theorem intervalDomain_Theorem_2_3_of_theta_derivative_frontiers
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (hmomentToUniform : MomentConvergenceToUniformRaw intervalDomain p)
+    (hExpNonminimal :
+      1 ≤ p.m →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          p.χ₀ <
+              paperCriticalSensitivity unitIntervalNeumannSpectrum p
+                eq.1 eq.2 →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                  UniformConvergesInSup intervalDomain u eq.1 →
+                    ExponentialC1ConvergenceWith intervalDomain N u v
+                      eq.1 eq.2 A rate)
+    (hExpMinimal :
+      1 ≤ p.m → p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          p.χ₀ <
+              paperCriticalSensitivity unitIntervalNeumannSpectrum p
+                eq.1 eq.2 →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                  HasInitialMass intervalDomain u uStar →
+                    UniformConvergesInSup intervalDomain u eq.1 →
+                      ExponentialC1ConvergenceWith intervalDomain N u v
+                        eq.1 eq.2 A rate)
+    (hLyapNonminimalDeriv :
+      p.χ₀ ≤ 0 → 1 ≤ p.m →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          ∀ u v : ℝ → intervalDomain.Point → ℝ,
+            PositiveGlobalBoundedSolution intervalDomain p u v →
+              ∃ rate > 0, ∃ s > 0, ∃ momentSlope : ℝ → ℝ,
+                (∀ t, s ≤ t → ∀ x, 0 ≤ u t x) ∧
+                (∀ t, 0 < t →
+                  HasDerivAt
+                    (fun tau =>
+                      chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                        (u tau))
+                    (momentSlope t) t) ∧
+                (∀ t, 0 < t →
+                  momentSlope t ≤
+                    -rate *
+                      chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                        (u t)))
+    (hLyapMinimalDeriv :
+      p.χ₀ ≤ 0 → 1 ≤ p.m → p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          ∀ u v : ℝ → intervalDomain.Point → ℝ,
+            PositiveGlobalBoundedSolution intervalDomain p u v →
+              HasInitialMass intervalDomain u uStar →
+                ∃ rate > 0, ∃ s > 0, ∃ momentSlope : ℝ → ℝ,
+                  (∀ t, s ≤ t → ∀ x, 0 ≤ u t x) ∧
+                  (∀ t, 0 < t →
+                    HasDerivAt
+                      (fun tau =>
+                        chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                          (u tau))
+                      (momentSlope t) t) ∧
+                  (∀ t, 0 < t →
+                    momentSlope t ≤
+                      -rate *
+                        chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                          (u t))) :
+    Theorem_2_3 intervalDomain p N :=
+  intervalDomain_Theorem_2_3_of_lyapunov_moment_and_exponential_frontiers
+    p N hmomentToUniform hExpNonminimal hExpMinimal
+    (by
+      intro hχ hm ha hb
+      dsimp
+      intro u v huv
+      rcases hLyapNonminimalDeriv hχ hm ha hb u v huv with
+        ⟨rate, hrate, s, hs, momentSlope, hu_nonneg, hderiv, hle⟩
+      exact
+        intervalDomain_thetaDissipation_tendsto_zero_of_hasDerivAt_le_neg_mul
+          (uStar := (positiveEquilibrium p ⟨ha, hb⟩).1)
+          (theta := p.α) (rate := rate) (s := s)
+          (momentSlope := momentSlope) hrate hs
+          (positiveEquilibrium_fst_pos p ⟨ha, hb⟩).le p.hα.le
+          hu_nonneg hderiv hle)
+    (by
+      intro hχ hm ha hb uStar huStar
+      dsimp
+      intro u v huv hmass
+      rcases hLyapMinimalDeriv hχ hm ha hb uStar huStar u v huv hmass with
+        ⟨rate, hrate, s, hs, momentSlope, hu_nonneg, hderiv, hle⟩
+      exact
+        intervalDomain_thetaDissipation_tendsto_zero_of_hasDerivAt_le_neg_mul
+          (uStar := (minimalEquilibrium p uStar).1) (theta := p.α)
+          (rate := rate) (s := s) (momentSlope := momentSlope)
+          hrate hs (by simpa [minimalEquilibrium] using huStar.le) p.hα.le
+          hu_nonneg hderiv hle)
+
 /-- Conditional interval-domain Paper3 Theorem 2.4.
 
 The global-attractor part is obtained from the Lyapunov moment-decay frontier
@@ -549,6 +685,79 @@ theorem intervalDomain_Theorem_2_4_of_concrete_constants_firstMode_formula_front
         (intervalDomain_concrete_positiveEquilibrium_formulaCondition_of_condition
           p M0 uBar vLower (ha := ha) (hb := hb) hcond)
         u v huv)
+
+/-- Concrete-constants/first-mode Theorem 2.4 with the formula-level Lyapunov
+frontier reduced to a direct theta-dissipation differential decay estimate.
+The remaining assumptions are still honest frontiers: first-mode threshold
+domination, moment-to-uniform convergence, uniform exponential upgrade, and the
+PDE derivation of the direct differential decay estimate. -/
+theorem intervalDomain_Theorem_2_4_of_concrete_constants_firstMode_formula_derivative_frontiers
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (M0 uBar vLower : ℝ)
+    (hfirst :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        max
+            (max (chiStrong1Formula p eq.1 eq.2)
+              (chiStrong2Formula p eq.1))
+            (max (chiStrong3Formula p M0 eq.1 eq.2)
+              (chiStrong4Formula p M0 eq.1)) ≤
+          ((1 + eq.2) ^ p.β /
+              (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+            (p.μ + Real.pi ^ 2))
+    (hmomentToUniform : MomentConvergenceToUniformRaw intervalDomain p)
+    (hExpNonminimal :
+      1 ≤ p.m →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          p.χ₀ <
+              paperCriticalSensitivity unitIntervalNeumannSpectrum p
+                eq.1 eq.2 →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                  UniformConvergesInSup intervalDomain u eq.1 →
+                    ExponentialC1ConvergenceWith intervalDomain N u v
+                      eq.1 eq.2 A rate)
+    (hLyapStrongFormulaDeriv :
+      0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              PositiveGlobalBoundedSolution intervalDomain p u v →
+                ∃ rate > 0, ∃ s > 0, ∃ momentSlope : ℝ → ℝ,
+                  (∀ t, s ≤ t → ∀ x, 0 ≤ u t x) ∧
+                  (∀ t, 0 < t →
+                    HasDerivAt
+                      (fun tau =>
+                        chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                          (u tau))
+                      (momentSlope t) t) ∧
+                  (∀ t, 0 < t →
+                    momentSlope t ≤
+                      -rate *
+                        chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                          (u t))) :
+    Theorem_2_4 intervalDomain p N
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_4_of_concrete_constants_firstMode_formula_frontiers
+    p N M0 uBar vLower hfirst hmomentToUniform hExpNonminimal
+    (by
+      intro ha_pos hb_pos hβ_nonneg hα_pos hγ_pos ha hb
+      dsimp
+      intro hcond u v huv
+      rcases hLyapStrongFormulaDeriv ha_pos hb_pos hβ_nonneg hα_pos hγ_pos
+          ha hb hcond u v huv with
+        ⟨rate, hrate, s, hs, momentSlope, hu_nonneg, hderiv, hle⟩
+      exact
+        intervalDomain_thetaDissipation_tendsto_zero_of_hasDerivAt_le_neg_mul
+          (uStar := (positiveEquilibrium p ⟨ha, hb⟩).1)
+          (theta := p.α) (rate := rate) (s := s)
+          (momentSlope := momentSlope) hrate hs
+          (positiveEquilibrium_fst_pos p ⟨ha, hb⟩).le hα_pos.le
+          hu_nonneg hderiv hle)
 
 end
 

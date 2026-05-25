@@ -299,7 +299,13 @@
   derives the theorem's uniform C¹ exponential branch from explicit
   critical-threshold uniform exponential-upgrade frontiers.  This is state③:
   the moment-decay, moment-to-uniform, and uniform exponential-upgrade
-  frontiers are still analytic gaps.
+  frontiers are still analytic gaps.  The same file now also proves
+  `intervalDomain_thetaDissipation_tendsto_zero_of_hasDerivAt_le_neg_mul` and
+  `intervalDomain_Theorem_2_3_of_theta_derivative_frontiers`, reducing the
+  theta moment-decay input to a direct differential estimate
+  `D'(t) ≤ -rate * D(t)` plus eventual slice nonnegativity.  Still state③:
+  deriving that differential estimate from the PDE, moment-to-uniform, and
+  uniform C¹ exponential upgrade remain open analytic frontiers.
 
 ### H4.3 — Theorem 2.4 on intervalDomain (global stability strong logistic)
 - **前置**: H3.2 (Lyapunov), H2.1 (global existence)
@@ -317,7 +323,12 @@
   and the package-shaped strong-logistic condition down to the explicit
   first-mode/formula frontiers.  This is state③, not DONE: H2.1/global
   existence, moment-to-uniform, Lyapunov formula decay, and uniform exponential
-  upgrade remain explicit frontiers.
+  upgrade remain explicit frontiers.  The same file now proves
+  `intervalDomain_Theorem_2_4_of_concrete_constants_firstMode_formula_derivative_frontiers`,
+  further reducing the Lyapunov formula-decay frontier to the direct
+  theta-dissipation differential estimate plus eventual slice nonnegativity.
+  This does not close H4.3: the PDE derivation of that estimate, global
+  existence, moment-to-uniform, and uniform exponential upgrade remain open.
 
 ---
 
