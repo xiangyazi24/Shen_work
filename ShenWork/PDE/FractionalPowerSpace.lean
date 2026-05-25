@@ -71,6 +71,11 @@ theorem fractionalPowerWeight_pos (L sigma : ℝ) (n : ℕ) :
   dsimp [fractionalPowerWeight]
   exact Real.rpow_pos_of_pos (one_add_neumannEigenvalue_pos L n) _
 
+theorem fractionalPowerEnergyTerm_nonneg
+    (L sigma : ℝ) (a : ℕ → ℂ) (n : ℕ) :
+    0 ≤ fractionalPowerEnergyTerm L sigma a n := by
+  exact mul_nonneg (fractionalPowerWeight_pos L sigma n).le (sq_nonneg _)
+
 theorem reciprocalFractionalPowerWeight_nonneg (L sigma : ℝ) (n : ℕ) :
     0 ≤ reciprocalFractionalPowerWeight L sigma n := by
   dsimp [reciprocalFractionalPowerWeight]
@@ -198,6 +203,59 @@ theorem coeff_norm_summable_of_reciprocal_trace
   dsimp [majorant, fractionalPowerEnergyTerm, reciprocalFractionalPowerWeight]
   nlinarith
 
+theorem sqrt_fractionalPowerEnergy_mul_sqrt_reciprocal_eq_norm
+    (L sigma : ℝ) (a : ℕ → ℂ) (n : ℕ) :
+    Real.sqrt (fractionalPowerEnergyTerm L sigma a n) *
+        Real.sqrt (reciprocalFractionalPowerWeight L sigma n) = ‖a n‖ := by
+  have hwpos : 0 < fractionalPowerWeight L sigma n :=
+    fractionalPowerWeight_pos L sigma n
+  have henergy_nonneg :
+      0 ≤ fractionalPowerEnergyTerm L sigma a n :=
+    fractionalPowerEnergyTerm_nonneg L sigma a n
+  rw [← Real.sqrt_mul henergy_nonneg]
+  have hprod :
+      fractionalPowerEnergyTerm L sigma a n *
+          reciprocalFractionalPowerWeight L sigma n = ‖a n‖ ^ 2 := by
+    dsimp [fractionalPowerEnergyTerm, reciprocalFractionalPowerWeight]
+    field_simp [hwpos.ne']
+  rw [hprod, Real.sqrt_sq (norm_nonneg (a n))]
+
+/-- Quantitative Cauchy-Schwarz form of the one-dimensional spectral
+embedding: weighted `ℓ²` coefficients and the reciprocal trace control the
+plain `ℓ¹` coefficient norm. -/
+theorem tsum_coeff_norm_le_fractionalPowerEnergy_mul_trace
+    {L sigma : ℝ} (a : ℕ → ℂ)
+    (henergy : Summable fun n : ℕ => fractionalPowerEnergyTerm L sigma a n)
+    (htrace : Summable fun n : ℕ => reciprocalFractionalPowerWeight L sigma n) :
+    (∑' n : ℕ, ‖a n‖) ≤
+      (∑' n : ℕ, fractionalPowerEnergyTerm L sigma a n) ^ (1 / (2 : ℝ)) *
+        (∑' n : ℕ, reciprocalFractionalPowerWeight L sigma n) ^ (1 / (2 : ℝ)) := by
+  let f : ℕ → ℝ := fun n =>
+    Real.sqrt (fractionalPowerEnergyTerm L sigma a n)
+  let g : ℕ → ℝ := fun n =>
+    Real.sqrt (reciprocalFractionalPowerWeight L sigma n)
+  have hf_nonneg : ∀ n, 0 ≤ f n := fun n => Real.sqrt_nonneg _
+  have hg_nonneg : ∀ n, 0 ≤ g n := fun n => Real.sqrt_nonneg _
+  have hf_sum : Summable fun n : ℕ => f n ^ (2 : ℝ) := by
+    dsimp [f]
+    convert henergy using 1
+    ext n
+    rw [Real.rpow_two,
+      Real.sq_sqrt (fractionalPowerEnergyTerm_nonneg L sigma a n)]
+  have hg_sum : Summable fun n : ℕ => g n ^ (2 : ℝ) := by
+    dsimp [g]
+    convert htrace using 1
+    ext n
+    rw [Real.rpow_two,
+      Real.sq_sqrt (reciprocalFractionalPowerWeight_nonneg L sigma n)]
+  have hholder := Real.inner_le_Lp_mul_Lq_tsum_of_nonneg
+    (p := (2 : ℝ)) (q := (2 : ℝ))
+    Real.HolderConjugate.two_two hf_nonneg hg_nonneg hf_sum hg_sum
+  dsimp [f, g] at hholder
+  simpa [sqrt_fractionalPowerEnergy_mul_sqrt_reciprocal_eq_norm,
+    Real.rpow_two, Real.sq_sqrt, fractionalPowerEnergyTerm_nonneg,
+    reciprocalFractionalPowerWeight_nonneg] using hholder
+
 /-- Coefficients of an element of `X^σ` are absolutely summable under the
 reciprocal-trace input. -/
 theorem FractionalPowerSpace.coeff_norm_summable_of_reciprocal_trace
@@ -216,6 +274,17 @@ theorem FractionalPowerSpace.coeff_norm_summable_of_sigma_gt_quarter
   u.coeff_norm_summable_of_reciprocal_trace
     (reciprocalFractionalPowerWeight_summable_of_sigma_gt_quarter
       (L := L) (sigma := sigma) hL hsigma)
+
+theorem FractionalPowerSpace.tsum_coeff_norm_le_fractionalPowerEnergy_mul_trace
+    {L sigma : ℝ} (u : FractionalPowerSpace L sigma)
+    (htrace : Summable fun n : ℕ => reciprocalFractionalPowerWeight L sigma n) :
+    (∑' n : ℕ, ‖(u : ℕ → ℂ) n‖) ≤
+      (∑' n : ℕ,
+          fractionalPowerEnergyTerm L sigma (u : ℕ → ℂ) n) ^ (1 / (2 : ℝ)) *
+        (∑' n : ℕ, reciprocalFractionalPowerWeight L sigma n) ^
+          (1 / (2 : ℝ)) :=
+  _root_.ShenWork.PDE.FractionalPower.tsum_coeff_norm_le_fractionalPowerEnergy_mul_trace
+    (L := L) (sigma := sigma) (u : ℕ → ℂ) u.property htrace
 
 /-- The `n`-th cosine summand with coefficient `a n`. -/
 def cosineSeriesTerm (L : ℝ) (a : ℕ → ℂ) (n : ℕ) (x : ℝ) : ℂ :=
@@ -290,6 +359,22 @@ theorem FractionalPowerSpace.norm_cosineSeries_le_tsum_coeff_norm
   exact norm_cosineSeries_le_tsum_coeff_norm_of_coeff_norm_summable
     (FractionalPowerSpace.coeff_norm_summable_of_reciprocal_trace u htrace) x
 
+/-- Quantitative pointwise form of `X^σ ↪ C⁰`: the cosine-series representative
+is controlled by the weighted coefficient energy and the reciprocal spectral
+trace. -/
+theorem FractionalPowerSpace.norm_cosineSeries_le_fractionalPowerEnergy_mul_trace
+    {L sigma : ℝ} (u : FractionalPowerSpace L sigma)
+    (htrace : Summable fun n : ℕ => reciprocalFractionalPowerWeight L sigma n)
+    (x : ℝ) :
+    ‖cosineSeries L (u : ℕ → ℂ) x‖ ≤
+      (∑' n : ℕ,
+          fractionalPowerEnergyTerm L sigma (u : ℕ → ℂ) n) ^ (1 / (2 : ℝ)) *
+        (∑' n : ℕ, reciprocalFractionalPowerWeight L sigma n) ^
+          (1 / (2 : ℝ)) :=
+  (FractionalPowerSpace.norm_cosineSeries_le_tsum_coeff_norm u htrace x).trans
+    (FractionalPowerSpace.tsum_coeff_norm_le_fractionalPowerEnergy_mul_trace
+      u htrace)
+
 /-- Fractional-power embedding `X^σ ↪ C⁰` on `(0,L)` for `σ > 1/4`.
 
 The representative is the cosine series with spectral coefficients in
@@ -310,5 +395,20 @@ theorem FractionalPowerSpace.norm_cosineSeries_le_tsum_coeff_norm_of_sigma_gt_qu
       ∑' n : ℕ, ‖(u : ℕ → ℂ) n‖ := by
   exact norm_cosineSeries_le_tsum_coeff_norm_of_coeff_norm_summable
     (u.coeff_norm_summable_of_sigma_gt_quarter hL hsigma) x
+
+/-- Quantitative pointwise `X^σ ↪ C⁰` estimate for `σ > 1/4`. -/
+theorem FractionalPowerSpace.norm_cosineSeries_le_energy_trace_of_sigma_gt_quarter
+    {L sigma : ℝ} (u : FractionalPowerSpace L sigma)
+    (hL : 0 < L) (hsigma : 1 / 4 < sigma) (x : ℝ) :
+    ‖cosineSeries L (u : ℕ → ℂ) x‖ ≤
+      (∑' n : ℕ,
+          fractionalPowerEnergyTerm L sigma (u : ℕ → ℂ) n) ^ (1 / (2 : ℝ)) *
+        (∑' n : ℕ, reciprocalFractionalPowerWeight L sigma n) ^
+          (1 / (2 : ℝ)) :=
+  FractionalPowerSpace.norm_cosineSeries_le_fractionalPowerEnergy_mul_trace
+    u
+    (reciprocalFractionalPowerWeight_summable_of_sigma_gt_quarter
+      (L := L) (sigma := sigma) hL hsigma)
+    x
 
 end ShenWork.PDE.FractionalPower
