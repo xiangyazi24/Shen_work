@@ -419,6 +419,29 @@ theorem Theorem_1_3_intervalDomain_vacuous_when_m_le_zero
   intro _ha _hb hm' _hstrong
   exact absurd hm' (not_lt.mpr hm)
 
+/-- Vacuous interval-domain Theorem 1.3 branch when the strict `a > 0`
+hypothesis is unavailable. -/
+theorem Theorem_1_3_intervalDomain_vacuous_when_not_a_pos
+    (p : CM2Params) (ha : ¬ 0 < p.a) (C : Paper2Constants p) :
+    Theorem_1_3 intervalDomain p C := by
+  have ha_zero : p.a = 0 := le_antisymm (not_lt.mp ha) p.ha
+  exact Theorem_1_3_intervalDomain_vacuous_when_a_zero p ha_zero C
+
+/-- Vacuous interval-domain Theorem 1.3 branch when the strict `b > 0`
+hypothesis is unavailable. -/
+theorem Theorem_1_3_intervalDomain_vacuous_when_not_b_pos
+    (p : CM2Params) (hb : ¬ 0 < p.b) (C : Paper2Constants p) :
+    Theorem_1_3 intervalDomain p C := by
+  have hb_zero : p.b = 0 := le_antisymm (not_lt.mp hb) p.hb
+  exact Theorem_1_3_intervalDomain_vacuous_when_b_zero p hb_zero C
+
+/-- Vacuous interval-domain Theorem 1.3 branch when the strict `m > 0`
+hypothesis is unavailable. -/
+theorem Theorem_1_3_intervalDomain_vacuous_when_not_m_pos
+    (p : CM2Params) (hm : ¬ 0 < p.m) (C : Paper2Constants p) :
+    Theorem_1_3 intervalDomain p C :=
+  Theorem_1_3_intervalDomain_vacuous_when_m_le_zero p (not_lt.mp hm) C
+
 /-- Vacuous interval-domain Theorem 1.3 branch when the strong-logistic
 condition itself is unavailable. -/
 theorem Theorem_1_3_intervalDomain_vacuous_when_not_strong_logistic
