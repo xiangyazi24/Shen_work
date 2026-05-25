@@ -481,6 +481,86 @@ theorem intervalDomain_linearStabilityInstabilityRaw_of_branch_frontiers
     rcases hlocal with ⟨δ, hδ, A, hA, rate, hrate, hmain⟩
     exact ⟨hstable, δ, hδ, A, hA, rate, hrate, hmain⟩
 
+/-- Constants-package version of the branch-specific interval raw
+local-stability interfaces.  The only constants-package input is the audited
+identification of `C.chiCritical` with the concrete unit-interval critical
+spectrum; the sectorial, norm-comparison, and small-data frontiers remain
+branch-specific. -/
+theorem intervalDomain_linearStabilityInstabilityRaw_of_branch_frontiers_criticalSpectrum
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hC : Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p C)
+    (hsectorial :
+      SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hxpPositive :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          N.xpSigmaDistance sigma pNorm u₀
+              (fun _ => (positiveEquilibrium p ⟨ha, hb⟩).1) ≤
+            intervalDomain.supNorm
+              (fun x => u₀ x - (positiveEquilibrium p ⟨ha, hb⟩).1))
+    (hexistPositive :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b), ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p
+          (positiveEquilibrium p ⟨ha, hb⟩).1 delta)
+    (hxpMinimal :
+      ∀ uStar, 0 < uStar →
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          N.xpSigmaDistance sigma pNorm u₀
+              (fun _ => (minimalEquilibrium p uStar).1) ≤
+            intervalDomain.supNorm
+              (fun x => u₀ x - (minimalEquilibrium p uStar).1))
+    (hmexistMinimal :
+      ∀ uStar, 0 < uStar → ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p
+          (minimalEquilibrium p uStar).1 delta) :
+    LinearStabilityInstabilityNonminimalRaw intervalDomain p
+        unitIntervalNeumannSpectrum N.c1Distance C.chiCritical ∧
+    LinearStabilityInstabilityMinimalRaw intervalDomain p
+        unitIntervalNeumannSpectrum N.c1Distance C.chiCritical := by
+  refine ⟨?_, ?_⟩
+  · intro ha hb
+    dsimp
+    intro hχ
+    have hstable :
+        LinearlyStable unitIntervalNeumannSpectrum p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+      hC.positiveEquilibrium_linearlyStable
+        unitIntervalNeumannSpectrum_hasNeumannSpectrum ha hb hχ
+    have hlocal :
+        LocallyExponentiallyStableFromSup intervalDomain p N
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+      hsectorial.locally_from_xpSigma_le_supNorm
+        hsigma_low hsigma_high hpNorm hstable
+        (hxpPositive ha hb) (hexistPositive ha hb)
+    rcases hlocal with ⟨δ, hδ, A, hA, rate, hrate, hmain⟩
+    exact ⟨hstable, δ, hδ, A, hA, rate, hrate, hmain⟩
+  · intro _ha _hb uStar huStar
+    dsimp
+    intro hχ
+    have hstable :
+        LinearlyStable unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 :=
+      hC.minimalEquilibrium_linearlyStable
+        unitIntervalNeumannSpectrum_hasNeumannSpectrum huStar hχ
+    have hlocal :
+        MassConstrainedLocallyExponentiallyStableFromSup intervalDomain p N
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 :=
+      hsectorial.massConstrained_from_xpSigma_le_supNorm
+        hsigma_low hsigma_high hpNorm hstable
+        (hxpMinimal uStar huStar) (hmexistMinimal uStar huStar)
+    rcases hlocal with ⟨δ, hδ, A, hA, rate, hrate, hmain⟩
+    exact ⟨hstable, δ, hδ, A, hA, rate, hrate, hmain⟩
+
 end
 
 end ShenWork.Paper3
