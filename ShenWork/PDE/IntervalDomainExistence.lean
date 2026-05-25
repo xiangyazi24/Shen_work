@@ -17,6 +17,7 @@
   In both cases we verify every field of IsPaper2ClassicalSolution.
 -/
 import ShenWork.Paper2.Statements
+import ShenWork.Paper2.IntervalDomainChain
 import ShenWork.PDE.IntervalDomain
 import ShenWork.PDE.ODEExistence
 import ShenWork.PDE.ODEUniqueness
@@ -2559,7 +2560,7 @@ private lemma intervalDomainSupNorm_eq_zero_of_not_bddAbove
     intervalDomainSupNorm f = 0 := by
   unfold intervalDomainSupNorm
   rw [Real.sSup_def]
-  simp only [Set.range_nonempty, h, and_false, ↓reduceDIte]
+  simp only [h, and_false, ↓reduceDIte]
 
 /-- If BddAbove holds for `range |f|` and `range |g|`, then BddAbove
 holds for `range |f - g|`. -/
@@ -2600,7 +2601,7 @@ theorem initialSupNormApproach_intervalDomain (p : CM2Params)
   have ht_lt_δ₁ : t < δ₁ := lt_of_lt_of_le htδ (min_le_left _ _)
   have hsup_diff : intervalDomainSupNorm (fun x => u t x - u₀ x) < ε :=
     hδ₁_bound t ht0 ht_lt_δ₁
-  show intervalDomainSupNorm (u t) ≤ intervalDomainSupNorm u₀ + ε
+  change intervalDomainSupNorm (u t) ≤ intervalDomainSupNorm u₀ + ε
   by_cases hbdd_ut : BddAbove (Set.range (fun x : intervalDomainPoint => |u t x|))
   · -- BddAbove case: triangle inequality
     have hbdd_diff : BddAbove
@@ -2625,6 +2626,225 @@ theorem initialSupNormApproach_intervalDomain (p : CM2Params)
   · -- ¬BddAbove: supNorm(u t) = 0
     rw [intervalDomainSupNorm_eq_zero_of_not_bddAbove hbdd_ut]
     linarith [intervalDomainSupNorm_nonneg u₀]
+
+/-! ### Theorem 1.1 existence-package bridge
+
+The Theorem 1.1 bridge consumes
+`Paper2.IntervalDomainTheorem11.IntervalDomainExistence p`.  That package has
+three fields: local existence, initial sup-norm approach, and a global-extension
+criterion.  The concrete `InitialTrace` theorem above discharges the initial
+approach field once admissible initial data are known to be sup-norm bounded.
+
+The global-extension field is stronger than a usual maximal-continuation
+statement: it requires the same already-given functions `u, v` to be global,
+not merely the existence of a continued/glued global solution.  The diagnostic
+below records this semantic frontier. -/
+
+/-- Assemble the Theorem 1.1 interval-domain existence package from local
+existence, bounded admissible initial data, and the global-extension criterion.
+
+This is the concrete version of the bridge needed by Theorem 1.1: the
+`initialSupNormApproach` field is proved in this file from `InitialTrace`; the
+remaining two inputs are the genuine Cauchy/maximal-continuation fields. -/
+theorem intervalDomainTheorem11Existence_of_local_global_bounded_initial
+    (p : CM2Params)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hboundedInitial :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+    (hglobal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+        ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+          InitialTrace intervalDomain u₀ u →
+            IsPaper2BoundedBefore intervalDomain Tmax u →
+              1 ≤ p.m →
+                IsPaper2GlobalClassicalSolution intervalDomain p u v) :
+    Paper2.IntervalDomainTheorem11.IntervalDomainExistence p := by
+  refine
+    { localExistence := hlocal
+      initialSupNormApproach := ?_
+      globalExtension := hglobal }
+  intro u₀ hu₀ T hT u v hsol htrace ε hε
+  exact initialSupNormApproach_intervalDomain p u₀ hu₀
+    (hboundedInitial u₀ hu₀) hT hsol htrace hε
+
+/-- The concrete Duhamel/Picard local-existence branch supplies the
+`localExistence` field of the Theorem 1.1 package.  The remaining inputs are
+exactly the two fields not provided by the local fixed-point construction:
+bounded admissible initial data and the global-extension criterion. -/
+theorem intervalDomainTheorem11Existence_of_intervalDuhamel_contraction_regularization
+    (p : CM2Params)
+    (hmild :
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ L > 0, ∃ D₀ ≥ 0, ∃ T > 0,
+            L * T < 1 ∧
+            (∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+              0 ≤ D →
+              (∀ s y, 0 ≤ s → s ≤ T →
+                |u₁ s y - u₂ s y| ≤ D) →
+              ∀ t x, 0 ≤ t → t ≤ T →
+                |intervalDuhamelOperator p u₀ u₁ t x -
+                  intervalDuhamelOperator p u₀ u₂ t x| ≤ L * T * D) ∧
+            (∀ t x, 0 ≤ t → t ≤ T →
+              |intervalDuhamelOperator p u₀ (fun _ _ => 0) t x| ≤ D₀) ∧
+            (∀ u : ℝ → intervalDomainPoint → ℝ,
+              (∀ t x, 0 ≤ t → t ≤ T →
+                u t x = intervalDuhamelOperator p u₀ u t x) →
+                RegularityBootstrap p T u₀ u))
+    (hboundedInitial :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+    (hglobal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+        ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+          InitialTrace intervalDomain u₀ u →
+            IsPaper2BoundedBefore intervalDomain Tmax u →
+              1 ≤ p.m →
+                IsPaper2GlobalClassicalSolution intervalDomain p u v) :
+    Paper2.IntervalDomainTheorem11.IntervalDomainExistence p := by
+  exact intervalDomainTheorem11Existence_of_local_global_bounded_initial p
+    (intervalDomain_localExistence_of_intervalDuhamel_contraction_regularization
+      p hmild)
+    hboundedInitial hglobal
+
+/-- The current Theorem 1.1 `globalExtension` field cannot be proved as stated
+for positive equilibrium parameters with `1 ≤ m`.
+
+Reason: the field quantifies over every pair of functions `u, v` that solves on
+the finite horizon and then concludes that the same functions are global.  A
+solution can be changed after the finite horizon without affecting the finite
+horizon hypotheses.  Here `u` is the positive equilibrium for all time, while
+`v` is the correct elliptic value before `t = 1` and zero afterwards.  It solves
+on `(0,1)`, has the correct initial trace and boundedness, but cannot be a
+global classical solution. -/
+theorem not_intervalDomainTheorem11_globalExtension_equilibrium_bad_tail
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) (hm : 1 ≤ p.m) :
+    ¬ (∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+        ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+          InitialTrace intervalDomain u₀ u →
+            IsPaper2BoundedBefore intervalDomain Tmax u →
+              1 ≤ p.m →
+                IsPaper2GlobalClassicalSolution intervalDomain p u v) := by
+  intro hglobal
+  let c : ℝ := (p.a / p.b) ^ (1 / p.α)
+  let u : ℝ → intervalDomain.Point → ℝ := fun _ _ => c
+  let v : ℝ → intervalDomain.Point → ℝ :=
+    fun t _ => if t < 1 then ellipticV p c else 0
+  have hc : 0 < c := by
+    dsimp [c]
+    exact equilibrium_pos p ha hb
+  have hu₀ : PositiveInitialDatum intervalDomain (constOnInterval c) :=
+    constOnInterval_pos hc
+  have htrace : InitialTrace intervalDomain (constOnInterval c) u := by
+    dsimp [u]
+    exact constantSolution_initialTrace c
+  have hbounded : IsPaper2BoundedBefore intervalDomain (1 : ℝ) u := by
+    refine ⟨c, ?_⟩
+    intro t _ht0 _htT
+    dsimp [u]
+    change intervalDomainSupNorm (fun _ : intervalDomainPoint => c) ≤ c
+    rw [intervalDomainSupNorm_const, abs_of_pos hc]
+  have hsol : IsPaper2ClassicalSolution intervalDomain p 1 u v := by
+    refine IsPaper2ClassicalSolution.of_components one_pos ?_ ?_ ?_ ?_ ?_
+    · dsimp [u]
+      exact constantInTime_classicalRegularity hc one_pos p
+    · intro _t _x _ht0 _htT _hx
+      exact hc
+    · intro t x _ht0 htT hx
+      have hv_t : v t = fun _ : intervalDomain.Point => ellipticV p c := by
+        ext y
+        simp [v, htT]
+      change deriv (fun _s : ℝ => c) t =
+        intervalDomainLaplacian (fun _ => c) x
+          - p.χ₀ * intervalDomainChemotaxisDiv p (fun _ => c) (v t) x
+          + c * (p.a - p.b * c ^ p.α)
+      rw [hv_t, deriv_const, intervalDomainLaplacian_const_zero c hx]
+      change (0 : ℝ) =
+        0 - p.χ₀ * intervalDomainChemotaxisDiv p
+          (fun _ : intervalDomainPoint => c)
+          (fun _ : intervalDomainPoint => ellipticV p c) x
+          + c * (p.a - p.b * c ^ p.α)
+      have hchem :
+          intervalDomainChemotaxisDiv p (fun _ : intervalDomainPoint => c)
+            (fun _ : intervalDomainPoint => ellipticV p c) x = 0 :=
+        intervalDomainChemotaxisDiv_const_zero p c (ellipticV p c) hx
+      have hchem_mul :
+          p.χ₀ * intervalDomainChemotaxisDiv p
+            (fun _ : intervalDomainPoint => c)
+            (fun _ : intervalDomainPoint => ellipticV p c) x = 0 := by
+        rw [hchem, mul_zero]
+      have hreact : p.a - p.b * c ^ p.α = 0 := by
+        exact equilibrium_reaction_zero p ha hb
+      have hreact_mul : c * (p.a - p.b * c ^ p.α) = 0 := by
+        rw [hreact, mul_zero]
+      nlinarith [hchem_mul, hreact_mul]
+    · intro t x _ht0 htT hx
+      have hv_t : v t = fun _ : intervalDomain.Point => ellipticV p c := by
+        ext y
+        simp [v, htT]
+      change (0 : ℝ) =
+        intervalDomainLaplacian (v t) x
+          - p.μ * v t x + p.ν * c ^ p.γ
+      rw [hv_t]
+      exact ellipticV_pde p c hc hx
+    · intro t x _ht0 htT hx
+      have hv_t : v t = fun _ : intervalDomain.Point => ellipticV p c := by
+        ext y
+        simp [v, htT]
+      change intervalDomainNormalDeriv (fun _ => c) x = 0 ∧
+        intervalDomainNormalDeriv (v t) x = 0
+      rw [hv_t]
+      exact ⟨intervalDomainNormalDeriv_const_zero c hx,
+        intervalDomainNormalDeriv_const_zero (ellipticV p c) hx⟩
+  have hglob :
+      IsPaper2GlobalClassicalSolution intervalDomain p u v :=
+    hglobal (constOnInterval c) hu₀ 1 one_pos u v hsol htrace hbounded hm
+  let xmid : intervalDomain.Point :=
+    ⟨(1 / 2 : ℝ), by constructor <;> norm_num⟩
+  have hxmid : xmid ∈ intervalDomain.inside := by
+    change ((1 / 2 : ℝ) ∈ Set.Ioo (0 : ℝ) 1)
+    constructor <;> norm_num
+  have hpde_v :=
+    (hglob 2 (by norm_num : (0 : ℝ) < 2)).pde_v
+      (t := (3 / 2 : ℝ)) (x := xmid)
+      (by norm_num) (by norm_num) hxmid
+  have hnot_lt : ¬ (3 / 2 : ℝ) < 1 := by norm_num
+  change (0 : ℝ) =
+    intervalDomainLaplacian (v (3 / 2 : ℝ)) xmid
+      - p.μ * v (3 / 2 : ℝ) xmid + p.ν * (u (3 / 2 : ℝ) xmid) ^ p.γ at hpde_v
+  simp only [u, v, hnot_lt, if_false] at hpde_v
+  have hlap_zero :
+      intervalDomainLaplacian (fun _ : intervalDomain.Point => (0 : ℝ)) xmid = 0 :=
+    intervalDomainLaplacian_const_zero (0 : ℝ) hxmid
+  have hsource_pos : 0 < p.ν * c ^ p.γ :=
+    mul_pos p.hν (Real.rpow_pos_of_pos hc _)
+  nlinarith
+
+/-- Consequently the full Theorem 1.1 existence package is false for such
+parameters with the current `globalExtension` field.  A standard
+maximal-continuation theorem can provide a continued/glued global solution, or
+a global/finite alternative, but not global regularity of arbitrary functions
+after an unrelated finite horizon. -/
+theorem not_intervalDomainTheorem11Existence_equilibrium_bad_tail
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) (hm : 1 ≤ p.m) :
+    ¬ Paper2.IntervalDomainTheorem11.IntervalDomainExistence p := by
+  intro hexist
+  exact not_intervalDomainTheorem11_globalExtension_equilibrium_bad_tail
+    p ha hb hm hexist.globalExtension
 
 /-- Local existence for spatially-constant initial data above equilibrium,
 via the RegularityBootstrap chain.
