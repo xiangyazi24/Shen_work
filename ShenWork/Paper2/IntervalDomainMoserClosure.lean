@@ -13,6 +13,36 @@
   monotonicity is kept as an explicit hypothesis because the abstract
   `BoundedDomainData` interface does not include measure-theoretic fields
   strong enough to derive it internally.
+
+  Coverage audit for `Theorem_1_1 intervalDomain`:
+
+    Parameter row                 Status
+    `χ₀ > 0`                      Vacuous by the outer implication
+                                   `χ₀ <= 0 -> ...`; no existence or
+                                   boundedness input is needed.
+    `χ₀ <= 0`, `0 < a`, `0 < b`   Active nonminimal branch.  The only
+                                   remaining input is
+                                   `IntervalDomainExistence p`; finite-time
+                                   boundedness is discharged by
+                                   `intervalDomain_boundedBefore_nonminimal_`
+                                   `of_negative_sensitivity`.
+    `χ₀ <= 0`, `a = 0`, `b = 0`   Active minimal branch.  The only remaining
+                                   input is `IntervalDomainExistence p`;
+                                   finite-time boundedness is discharged by
+                                   `intervalDomain_boundedBefore_minimal_`
+                                   `of_negative_sensitivity`.
+    mixed or other `a/b` cases     No active branch in the statement unless
+                                   one of the exact displayed hypotheses is
+                                   supplied.  The branch implications are then
+                                   vacuous; they do not need Moser endpoint,
+                                   GN/Agmon, or energy-frontier hypotheses.
+
+  The total `globalExtension` field assembled below has a fallback using its
+  input `hbounded`, but `Theorem_1_1_intervalDomain_conditional` reaches that
+  field only inside the two active theorem branches.  In those calls the
+  nonminimal/minimal boundedness lemmas above replace `hbounded`, so the final
+  exported theorem `Theorem_1_1_intervalDomain_reduces_to_existence` has no
+  hidden branch hypothesis beyond `IntervalDomainExistence p`.
 -/
 import ShenWork.Paper2.IntervalDomainChain
 
@@ -647,6 +677,30 @@ theorem Theorem_1_1_intervalDomain_reduces_to_existence
     (hexist : IntervalDomainTheorem11.IntervalDomainExistence p) :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_of_structured_relative_moser_endpoint p hexist
+
+/-- Positive sensitivity is outside the active statement of Theorem 1.1:
+`Theorem_1_1` is an implication from `χ₀ <= 0`, so `χ₀ > 0` closes
+vacuously and needs no existence package. -/
+theorem Theorem_1_1_intervalDomain_vacuous_when_chi_pos
+    (p : CM2Params) (hχ_pos : 0 < p.χ₀) :
+    Theorem_1_1 intervalDomain p := by
+  intro hχ_nonpos
+  exact False.elim ((not_le_of_gt hχ_pos) hχ_nonpos)
+
+/-- If neither displayed `a/b` branch of Theorem 1.1 is active, the two branch
+implications are vacuous.  This records that mixed or otherwise off-statement
+`a/b` cases carry no extra Moser or energy-frontier obligation. -/
+theorem Theorem_1_1_intervalDomain_vacuous_when_no_active_ab_branch
+    (p : CM2Params)
+    (hnonminimal : ¬ (0 < p.a ∧ 0 < p.b))
+    (hminimal : ¬ (p.a = 0 ∧ p.b = 0)) :
+    Theorem_1_1 intervalDomain p := by
+  intro _hχ
+  constructor
+  · intro ha hb
+    exact False.elim (hnonminimal ⟨ha, hb⟩)
+  · intro ha hb
+    exact False.elim (hminimal ⟨ha, hb⟩)
 
 /-- Explicit relative-energy component package for one solution branch.  This
 is intentionally lower-level than `IntervalDomainStructuredMoserBootstrapData`:
