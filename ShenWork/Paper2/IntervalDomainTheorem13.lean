@@ -256,7 +256,21 @@ theorem Theorem_1_3_intervalDomain
     (_hLemma41 : Lemma_4_1 intervalDomain p)
     (hCor21 : Corollary_2_1 intervalDomain p)
     (hProp25 : Proposition_2_5 intervalDomain p)
-    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hglobalExtension :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v)
     (hstrongBootstrap :
       0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
       ∀ u₀ : intervalDomain.Point → ℝ,
@@ -284,8 +298,8 @@ theorem Theorem_1_3_intervalDomain
           IsPaper2Bounded intervalDomain u) :
     Theorem_1_3 intervalDomain p C := by
   exact Theorem_1_3_intervalDomain_of_corollary21_and_proposition25
-    p C hCor21 hProp25 hexist.localExistence hexist.globalExtension
-    hstrongBootstrap hstrongGlobalBound
+    p C hCor21 hProp25 hlocal hglobalExtension hstrongBootstrap
+    hstrongGlobalBound
 
 /-- Variant of `Theorem_1_3_intervalDomain` that derives Corollary 2.1 from
 `Lemma_2_6 intervalDomain` and the explicit PDE energy derivation before
@@ -491,7 +505,21 @@ theorem Theorem_1_3_intervalDomain_of_mass_gradient_frontier
         AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
           LpBootstrapEnergyInequality intervalDomain u T rho p0)
     (hProp25 : Proposition_2_5 intervalDomain p)
-    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hglobalExtension :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v)
     (hstrongBootstrap :
       0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
       ∀ u₀ : intervalDomain.Point → ℝ,
@@ -528,7 +556,7 @@ theorem Theorem_1_3_intervalDomain_of_mass_gradient_frontier
       p cGrad hdiss hcGrad hMG hgrad hmass hu_nonneg hpow_int
       hEnergyFromCrossDiffusion
   exact Theorem_1_3_intervalDomain
-    p C S hLemma21 hLemma26 hLemma41 hCor21 hProp25 hexist
+    p C S hLemma21 hLemma26 hLemma41 hCor21 hProp25 hlocal hglobalExtension
     hstrongBootstrap hstrongGlobalBound
 
 /-- Full interval-domain Theorem 1.3 assembly from the mass-gradient Moser

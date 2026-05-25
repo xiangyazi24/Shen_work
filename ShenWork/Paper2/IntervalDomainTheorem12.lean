@@ -340,8 +340,8 @@ Inputs classified by the playbook:
   proof depends on them upstream.
 * `hProp25` is the current repo endpoint turning a high-enough Lp bound into
   finite-horizon sup boundedness.
-* `hexist` is local existence plus bounded-solution global extension, the same
-  honest Cauchy-theory gap used by the interval-domain Theorem 1.1 bridge.
+* `hlocal` and `hglobalExtension` are the exact Cauchy-theory fields used here:
+  local existence plus bounded-solution global extension.
 * `hslowBootstrap` and `hcriticalBootstrap` are the branch-specific PDE
   bootstrap seeds.
 * `hcriticalGlobalBound` is the remaining long-time uniformity step needed to
@@ -358,7 +358,21 @@ theorem Theorem_1_2_intervalDomain
     (_hLemma41 : Lemma_4_1 intervalDomain p)
     (hCor21 : Corollary_2_1 intervalDomain p)
     (hProp25 : Proposition_2_5 intervalDomain p)
-    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hglobalExtension :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v)
     (hslowBootstrap :
       0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
       0 < p.m → p.m < 1 →
@@ -399,7 +413,7 @@ theorem Theorem_1_2_intervalDomain
           IsPaper2Bounded intervalDomain u) :
     Theorem_1_2 intervalDomain p := by
   exact Theorem_1_2_intervalDomain_of_corollary21_and_proposition25
-    p hCor21 hProp25 hexist.localExistence hexist.globalExtension
+    p hCor21 hProp25 hlocal hglobalExtension
     hslowBootstrap hcriticalBootstrap
     hcriticalGlobalBound
 
@@ -638,7 +652,21 @@ theorem Theorem_1_2_intervalDomain_of_mass_gradient_frontier
         AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
           LpBootstrapEnergyInequality intervalDomain u T rho p0)
     (hProp25 : Proposition_2_5 intervalDomain p)
-    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hglobalExtension :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v)
     (hslowBootstrap :
       0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
       0 < p.m → p.m < 1 →
@@ -688,7 +716,7 @@ theorem Theorem_1_2_intervalDomain_of_mass_gradient_frontier
       p cGrad hdiss hcGrad hMG hgrad hmass hu_nonneg hpow_int
       hEnergyFromCrossDiffusion
   exact Theorem_1_2_intervalDomain
-    p S hLemma21 hLemma26 hLemma41 hCor21 hProp25 hexist
+    p S hLemma21 hLemma26 hLemma41 hCor21 hProp25 hlocal hglobalExtension
     hslowBootstrap hcriticalBootstrap hcriticalGlobalBound
 
 /-- Full interval-domain Theorem 1.2 assembly from the mass-gradient Moser
