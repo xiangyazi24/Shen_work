@@ -1,4 +1,5 @@
 import Mathlib
+import ShenWork.Paper3.Statements
 
 /-!
   Spectral fractional-power coefficient spaces for the one-dimensional
@@ -13,12 +14,16 @@ import Mathlib
   Scope note: this is the Hilbert/coefficient form of the H3.1 side input.
   It does not identify this concrete coefficient space with the abstract
   `Paper3.StabilityNorms.xpSigmaDistance` field; that bridge belongs to the
-  Paper3 norm package rather than this standalone spectral block.
+  Paper3 norm package rather than this standalone spectral block.  The Paper3
+  bridge at the end of this file therefore keeps the remaining norm-comparison
+  and small-data inputs explicit.
 -/
 
 noncomputable section
 
 namespace ShenWork.PDE.FractionalPower
+
+open _root_.ShenWork.Paper3
 
 /-- Neumann eigenvalue `λₙ = (nπ/L)^2` for the interval of length `L`. -/
 def neumannEigenvalue (L : ℝ) (n : ℕ) : ℝ :=
@@ -527,5 +532,88 @@ theorem FractionalPowerSpace.norm_cosineSeries_le_energy_trace_of_sigma_gt_quart
     (reciprocalFractionalPowerWeight_summable_of_sigma_gt_quarter
       (L := L) (sigma := sigma) hL hsigma)
     x
+
+/-! ### Paper3 target bridge -/
+
+/-- In the Paper3 H3.1 range `1/2 < σ`, the unit-interval coefficient
+fractional-power embedding `X^σ -> C⁰` is unconditional. -/
+theorem unitInterval_continuous_cosineSeries_of_h31_sigma
+    {sigma : ℝ} (hsigma_low : 1 / 2 < sigma)
+    (u : FractionalPowerSpace 1 sigma) :
+    Continuous fun x : ℝ => cosineSeries 1 (u : ℕ → ℂ) x := by
+  exact FractionalPowerSpace.continuous_cosineSeries_of_sigma_gt_quarter
+    u (by norm_num) (by nlinarith [hsigma_low])
+
+/-- Paper3 Theorem 2.2 target bridge with the coefficient fractional-power
+embedding discharged for the unit-interval Neumann spectrum.
+
+This theorem is intentionally honest about the remaining H3.1 frontier:
+the coefficient result proves the standard direction `X^σ -> C⁰`. The existing
+Paper3 sup-norm theorem still needs the opposite neighborhood bridge
+`SupControlsXpSigmaDistance` (`sup -> X^σ_p`) plus small-data existence, so
+those inputs remain explicit here. -/
+theorem paper3_unitInterval_T22_with_fractionalPowerEmbedding
+    {D : BoundedDomainData} {p : _root_.CM2Params}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (hC :
+      Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p C)
+    (hraw :
+      SectorialLocalExponentialRaw D p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hcontrol :
+      ∀ uStar, SupControlsXpSigmaDistance D N sigma pNorm uStar)
+    (hexist :
+      ∀ uStar, ∀ delta > 0, SmallDataGlobalExistence D p uStar delta)
+    (hmexist :
+      ∀ uStar, ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence D p uStar delta) :
+    (∀ u : FractionalPowerSpace 1 sigma,
+      Continuous fun x : ℝ => cosineSeries 1 (u : ℕ → ℂ) x) ∧
+      Theorem_2_2 D p unitIntervalNeumannSpectrum N C := by
+  refine ⟨?_, ?_⟩
+  · intro u
+    exact unitInterval_continuous_cosineSeries_of_h31_sigma hsigma_low u
+  · exact
+      Theorem_2_2_full_by_chi_sign_of_raw
+        unitIntervalNeumannSpectrum_hasNeumannSpectrum hC hraw
+        hsigma_low hsigma_high hpNorm hcontrol hexist hmexist
+
+/-- Same Paper3 Theorem 2.2 bridge with the remaining neighborhood frontier
+spelled in the primitive pointwise form `X^σ_p ≤ supNorm`. The coefficient
+embedding is still discharged unconditionally from `1/2 < σ`; the primitive
+reverse comparison is not a consequence of `X^σ -> C⁰` and remains explicit. -/
+theorem paper3_unitInterval_T22_with_fractionalPowerEmbedding_of_xp_le_sup
+    {D : BoundedDomainData} {p : _root_.CM2Params}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (hC :
+      Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p C)
+    (hraw :
+      SectorialLocalExponentialRaw D p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hxp :
+      ∀ uStar, ∀ u₀ : D.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤
+          D.supNorm (fun x => u₀ x - uStar))
+    (hexist :
+      ∀ uStar, ∀ delta > 0, SmallDataGlobalExistence D p uStar delta)
+    (hmexist :
+      ∀ uStar, ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence D p uStar delta) :
+    (∀ u : FractionalPowerSpace 1 sigma,
+      Continuous fun x : ℝ => cosineSeries 1 (u : ℕ → ℂ) x) ∧
+      Theorem_2_2 D p unitIntervalNeumannSpectrum N C :=
+  paper3_unitInterval_T22_with_fractionalPowerEmbedding
+    hC hraw hsigma_low hsigma_high hpNorm
+    (fun uStar =>
+      SupControlsXpSigmaDistance.of_xpSigma_le_supNorm
+        (D := D) (N := N) (sigma := sigma) (pNorm := pNorm)
+        (uStar := uStar) (hxp uStar))
+    hexist hmexist
 
 end ShenWork.PDE.FractionalPower
