@@ -942,6 +942,48 @@ theorem intervalDomain_thetaDissipation_two_time_bound_of_positiveGlobalBoundedS
     (fun t ht x hx => (huv.pos (t := t) (x := x) ht hx).le)
     hderiv hle
 
+/-- A direct theta-production differential decay estimate makes the weighted
+theta production decreasing on `(0,∞)`. -/
+theorem thetaDissipation_weighted_antitoneOn_of_hasDerivAt_le_neg_mul
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {uStar theta rate : ℝ} {momentSlope : ℝ → ℝ}
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisThetaDissipation D uStar theta (u tau))
+          (momentSlope t) t)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation D uStar theta (u t)) :
+    AntitoneOn
+      (fun t =>
+        Real.exp (rate * t) *
+          chemotaxisThetaDissipation D uStar theta (u t))
+      (Ioi (0 : ℝ)) :=
+  weighted_energy_antitoneOn_Ioi_of_hasDerivAt_le_neg_mul hderiv hle
+
+/-- Concrete interval-domain weighted theta-production monotonicity. -/
+theorem intervalDomain_thetaDissipation_weighted_antitoneOn_of_hasDerivAt_le_neg_mul
+    {u : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta rate : ℝ} {momentSlope : ℝ → ℝ}
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau =>
+            chemotaxisThetaDissipation intervalDomain uStar theta (u tau))
+          (momentSlope t) t)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    AntitoneOn
+      (fun t =>
+        Real.exp (rate * t) *
+          chemotaxisThetaDissipation intervalDomain uStar theta (u t))
+      (Ioi (0 : ℝ)) :=
+  thetaDissipation_weighted_antitoneOn_of_hasDerivAt_le_neg_mul hderiv hle
+
 /-- A direct theta-moment differential decay estimate gives the statement-layer
 `ThetaMomentConvergesToZero` conclusion.
 
@@ -1150,6 +1192,51 @@ theorem intervalDomain_thetaDissipation_lyapunovPackage_of_positiveGlobalBounded
   · exact
       intervalDomain_thetaMomentConvergesToZero_of_derivative_positiveGlobalBoundedSolution
         hrate hs huStar htheta huv hderiv hle
+
+/-- Full interval-domain theta-production Lyapunov package including the
+weighted monotonicity form of the dissipation estimate.
+
+Point 17 status: conditional theorem, state ③.  This adds no new analytic
+assumption beyond `hderiv`/`hle`; it only exposes the standard weighted-energy
+monotonicity consequence alongside nonnegativity, two-time decay, and
+`ThetaMomentConvergesToZero`. -/
+theorem
+    intervalDomain_thetaDissipation_fullLyapunovPackage_of_positiveGlobalBoundedSolution
+    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta rate s : ℝ} {momentSlope : ℝ → ℝ}
+    (hrate : 0 < rate) (hs : 0 < s)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau =>
+            chemotaxisThetaDissipation intervalDomain uStar theta (u tau))
+          (momentSlope t) t)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    (∀ t, 0 < t →
+        0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta (u t)) ∧
+      AntitoneOn
+        (fun t =>
+          Real.exp (rate * t) *
+            chemotaxisThetaDissipation intervalDomain uStar theta (u t))
+        (Ioi (0 : ℝ)) ∧
+      (∀ a b, 0 < a → a ≤ b →
+        0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta (u b) ∧
+          chemotaxisThetaDissipation intervalDomain uStar theta (u b) ≤
+            chemotaxisThetaDissipation intervalDomain uStar theta (u a) *
+              Real.exp (-rate * (b - a))) ∧
+      ThetaMomentConvergesToZero intervalDomain u uStar theta := by
+  have hpack :=
+    intervalDomain_thetaDissipation_lyapunovPackage_of_positiveGlobalBoundedSolution
+      hrate hs huStar htheta huv hderiv hle
+  refine ⟨hpack.1, ?_, hpack.2.1, hpack.2.2⟩
+  exact
+    intervalDomain_thetaDissipation_weighted_antitoneOn_of_hasDerivAt_le_neg_mul
+      hderiv hle
 
 /-- Entropy dissipation makes the Paper3 entropy functional decrease.
 
