@@ -1012,6 +1012,35 @@ theorem intervalDomain_chemotaxisEntropyFunctional_antitoneOn_of_dissipation
   chemotaxisEntropyFunctional_antitoneOn_of_dissipation_and_integral_nonneg
     hc intervalDomain_integral_nonneg huStar htheta hu_nonneg hderiv hdiss
 
+/-- Concrete interval-domain entropy monotonicity with theta-production
+nonnegativity discharged from interior nonnegativity.  Endpoint values are not
+needed for the interval integral. -/
+theorem
+    intervalDomain_chemotaxisEntropyFunctional_antitoneOn_of_dissipation_and_inside_nonneg
+    {m uStar theta c : ℝ}
+    {u : ℝ → intervalDomain.Point → ℝ} {entropySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (hu_nonneg :
+      ∀ t, 0 < t → ∀ x, x ∈ intervalDomain.inside → 0 ≤ u t x)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisEntropyFunctional intervalDomain m uStar u tau)
+          (entropySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        entropySlope t ≤
+          -c * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    AntitoneOn
+      (fun t => chemotaxisEntropyFunctional intervalDomain m uStar u t)
+      (Ioi (0 : ℝ)) :=
+  chemotaxisEntropyFunctional_antitoneOn_of_dissipation
+    hc hderiv hdiss
+    (fun t ht =>
+      intervalDomain_chemotaxisThetaDissipation_nonneg_of_inside_nonneg
+        huStar htheta (hu_nonneg t ht))
+
 /-- Nonnegative free energy and entropy monotonicity from the conditional
 Paper3 entropy-production estimate.
 
@@ -1139,6 +1168,41 @@ theorem intervalDomain_chemotaxisEntropyFunctional_two_time_bound_of_dissipation
   chemotaxisEntropyFunctional_two_time_bound_of_dissipation_and_integral_nonneg
     hc intervalDomain_integral_nonneg hm huStar htheta hu_pos hderiv hdiss
 
+/-- Concrete unit-interval two-time Lyapunov estimate requiring positivity only
+on the interior. -/
+theorem
+    intervalDomain_chemotaxisEntropyFunctional_two_time_bound_of_dissipation_and_inside_pos
+    {m uStar theta c : ℝ}
+    {u : ℝ → intervalDomain.Point → ℝ} {entropySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (hm : (1 / 2 : ℝ) ≤ m) (huStar : 0 < uStar)
+    (htheta : 0 ≤ theta)
+    (hu_pos :
+      ∀ t, 0 < t → ∀ x, x ∈ intervalDomain.inside → 0 < u t x)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisEntropyFunctional intervalDomain m uStar u tau)
+          (entropySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        entropySlope t ≤
+          -c * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    ∀ s t, 0 < s → s ≤ t →
+      0 ≤ chemotaxisEntropyFunctional intervalDomain m uStar u t ∧
+        chemotaxisEntropyFunctional intervalDomain m uStar u t ≤
+          chemotaxisEntropyFunctional intervalDomain m uStar u s := by
+  intro s t hs hst
+  have ht : 0 < t := lt_of_lt_of_le hs hst
+  refine ⟨?_, ?_⟩
+  · exact intervalDomain_chemotaxisEntropyFunctional_nonneg_of_inside_pos
+      hm huStar (hu_pos t ht)
+  · exact
+      (intervalDomain_chemotaxisEntropyFunctional_antitoneOn_of_dissipation_and_inside_nonneg
+        hc huStar.le htheta
+        (fun r hr x hx => (hu_pos r hr x hx).le) hderiv hdiss)
+        hs ht hst
+
 /-- Interval-domain entropy two-time estimate with positivity discharged from
 `PositiveGlobalBoundedSolution` on the interior and an explicit endpoint
 positivity frontier.
@@ -1176,6 +1240,34 @@ theorem
     (intervalDomain_positiveGlobalBoundedSolution_pos_of_boundary_pos
       huv hboundary_pos)
     hderiv hdiss
+
+/-- Interval-domain entropy two-time estimate with positivity discharged
+directly from `PositiveGlobalBoundedSolution`.  No endpoint positivity
+hypothesis is needed because the interval integral ignores endpoints. -/
+theorem
+    intervalDomain_chemotaxisEntropyFunctional_two_time_bound_of_positiveGlobalBoundedSolution
+    {p : CM2Params} {m uStar theta c : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ} {entropySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (hm : (1 / 2 : ℝ) ≤ m) (huStar : 0 < uStar)
+    (htheta : 0 ≤ theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisEntropyFunctional intervalDomain m uStar u tau)
+          (entropySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        entropySlope t ≤
+          -c * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    ∀ s t, 0 < s → s ≤ t →
+      0 ≤ chemotaxisEntropyFunctional intervalDomain m uStar u t ∧
+        chemotaxisEntropyFunctional intervalDomain m uStar u t ≤
+          chemotaxisEntropyFunctional intervalDomain m uStar u s :=
+  intervalDomain_chemotaxisEntropyFunctional_two_time_bound_of_dissipation_and_inside_pos
+    hc hm huStar htheta
+    (fun t ht x hx => huv.pos (t := t) (x := x) ht hx) hderiv hdiss
 
 /-- Signal-energy exponential decay for the Paper3 minimal-model Lyapunov
 functional `∫ (mu (v-v*)^2 + |∇(v-v*)|^2)`.
