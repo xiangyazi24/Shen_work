@@ -477,106 +477,106 @@ requires constructing a mild solution (Duhamel fixed point) and then
 bootstrapping its regularity to a classical solution.  We factor this
 into a **conditional** result:
 
-1. `MildSolutionData` bundles the genuine PDE hypotheses:
-   - `u` is a fixed point of the Duhamel operator
-   - the PDE holds pointwise (regularity bootstrap)
-   - positivity, Neumann BC, classical regularity, initial trace
+1. `IsMildSolutionData` is a Prop-valued predicate bundling the genuine
+   PDE hypotheses on `(u, v)`: Duhamel fixed point, pointwise PDE,
+   positivity, Neumann BC, classical regularity, initial trace.
 
-2. `localExistence_of_mildSolutionData` assembles these into
+2. `localExistence_of_isMildSolutionData` assembles these into
    `IsPaper2ClassicalSolution ∧ InitialTrace`.
 
 3. `localExistence_conditional` states:
-   if one can always produce `MildSolutionData` from positive initial data,
-   then the full local existence holds.
+   if one can always produce `IsMildSolutionData` from positive initial
+   data, then the full local existence holds.
 
-The honest gap is the construction of `MildSolutionData`: this requires
-Banach contraction (fixed point), regularity bootstrap (mild → classical),
-maximum principle (sup-norm decay), and positivity (comparison/strong
-maximum principle).  Each of these is real PDE analysis. -/
+The honest gap is the hypothesis `hmild`: constructing `(u, v)` satisfying
+`IsMildSolutionData` requires Banach contraction (fixed point), regularity
+bootstrap (mild to classical), maximum principle (sup-norm decay), and
+positivity (comparison/strong maximum principle).  Each of these is real
+PDE analysis. -/
 
-/-- Data needed to turn a Duhamel fixed point into a classical solution.
-Each field corresponds to a genuine PDE result:
-- `duhamel_fixed`: the function is a fixed point of the Duhamel operator
-- `pde_u`, `pde_v`: the PDE holds pointwise (regularity bootstrap result)
+/-- Predicate asserting that `(u, v)` form a mild solution on `[0, T]`
+with initial datum `u₀`.  Each conjunct is a genuine PDE result:
+- `duhamel_fixed`: `u` is a fixed point of the Duhamel operator
+- `pde_u`, `pde_v`: the PDE holds pointwise (regularity bootstrap)
 - `pos`: solution is strictly positive in the interior (maximum principle)
-- `neumann`: Neumann boundary conditions are satisfied
+- `neumann`: Neumann boundary conditions
 - `regularity`: sup-norm derivative condition for the max principle chain
-- `trace`: initial data is attained continuously -/
-structure MildSolutionData (p : CM2Params) (T : ℝ)
-    (u₀ : intervalDomainPoint → ℝ) where
-  /-- The mild solution u satisfying the Duhamel equation -/
-  u : ℝ → intervalDomainPoint → ℝ
-  /-- The chemotactic signal v -/
-  v : ℝ → intervalDomainPoint → ℝ
-  /-- u is a fixed point of the Duhamel operator -/
-  duhamel_fixed : ∀ t x, 0 ≤ t → t ≤ T →
-    u t x = intervalDuhamelOperator p u₀ u t x
-  /-- Positivity of u in the interior -/
-  pos : ∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside → 0 < u t x
-  /-- The u-equation holds pointwise (regularity bootstrap) -/
-  pde_u : ∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
+- `trace`: initial data is attained continuously in sup-norm -/
+def IsMildSolutionData (p : CM2Params) (T : ℝ)
+    (u₀ : intervalDomainPoint → ℝ)
+    (u v : ℝ → intervalDomainPoint → ℝ) : Prop :=
+  -- u is a fixed point of the Duhamel operator
+  (∀ t x, 0 ≤ t → t ≤ T →
+    u t x = intervalDuhamelOperator p u₀ u t x) ∧
+  -- Positivity of u in the interior
+  (∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside → 0 < u t x) ∧
+  -- The u-equation holds pointwise (regularity bootstrap)
+  (∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
     intervalDomain.timeDeriv u t x =
       intervalDomain.laplacian (u t) x
         - p.χ₀ * intervalDomain.chemotaxisDiv p (u t) (v t) x
-        + u t x * (p.a - p.b * (u t x) ^ p.α)
-  /-- The v-equation holds pointwise -/
-  pde_v : ∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
-    0 = intervalDomain.laplacian (v t) x - p.μ * v t x + p.ν * (u t x) ^ p.γ
-  /-- Neumann boundary conditions -/
-  neumann : ∀ t x, 0 < t → t < T → x ∈ intervalDomain.boundary →
+        + u t x * (p.a - p.b * (u t x) ^ p.α)) ∧
+  -- The v-equation holds pointwise
+  (∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
+    0 = intervalDomain.laplacian (v t) x
+      - p.μ * v t x + p.ν * (u t x) ^ p.γ) ∧
+  -- Neumann boundary conditions
+  (∀ t x, 0 < t → t < T → x ∈ intervalDomain.boundary →
     intervalDomain.normalDeriv (u t) x = 0 ∧
-    intervalDomain.normalDeriv (v t) x = 0
-  /-- Classical regularity (sup-norm derivative condition) -/
-  regularity : intervalDomainClassicalRegularity T u v
-  /-- Initial trace: u(t) → u₀ as t → 0⁺ in sup-norm -/
-  trace : InitialTrace intervalDomain u₀ u
+    intervalDomain.normalDeriv (v t) x = 0) ∧
+  -- Classical regularity (sup-norm derivative condition)
+  intervalDomainClassicalRegularity T u v ∧
+  -- Initial trace: u(t) → u₀ as t → 0⁺ in sup-norm
+  InitialTrace intervalDomain u₀ u
 
-/-- Assembly: `MildSolutionData` directly yields
+/-- Assembly: `IsMildSolutionData` directly yields
 `IsPaper2ClassicalSolution ∧ InitialTrace`.
 
-The fields of `MildSolutionData` are exactly the conjuncts needed for
+The conjuncts of `IsMildSolutionData` are exactly what is needed for
 `IsPaper2ClassicalSolution.of_components` plus `InitialTrace`. -/
-theorem localExistence_of_mildSolutionData
+theorem localExistence_of_isMildSolutionData
     (p : CM2Params)
     (u₀ : intervalDomainPoint → ℝ)
     (_hu₀ : PositiveInitialDatum intervalDomain u₀)
     {T : ℝ} (hT : 0 < T)
-    (data : MildSolutionData p T u₀) :
-    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
-      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
-      InitialTrace intervalDomain u₀ u :=
-  ⟨T, hT, data.u, data.v,
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hdata : IsMildSolutionData p T u₀ u v) :
+    ∃ Tmax > 0, ∃ u' v' : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u' v' ∧
+      InitialTrace intervalDomain u₀ u' :=
+  ⟨T, hT, u, v,
     IsPaper2ClassicalSolution.of_components hT
-      data.regularity data.pos data.pde_u data.pde_v data.neumann,
-    data.trace⟩
+      hdata.2.2.2.2.2.1 hdata.2.1 hdata.2.2.1 hdata.2.2.2.1 hdata.2.2.2.2.1,
+    hdata.2.2.2.2.2.2⟩
 
 /-- Conditional local existence for intervalDomain.
 
-If for every positive initial datum one can construct `MildSolutionData`
+If for every positive initial datum one can construct a mild solution
 (i.e., produce a Duhamel fixed point with the required regularity,
 positivity, PDE, boundary conditions, and initial trace), then the full
 local existence theorem holds.
 
-The honest gap is the hypothesis `hmild`: constructing `MildSolutionData`
+The honest gap is the hypothesis `hmild`: constructing a mild solution
 from the Duhamel fixed point requires:
-  (1) Banach contraction → fixed point of the Duhamel operator
-  (2) Regularity bootstrap → fixed point satisfies the PDE pointwise
-  (3) Maximum principle → classical regularity (sup-norm control)
-  (4) Comparison / strong maximum principle → positivity
+  (1) Banach contraction on a complete metric space of trajectories
+  (2) Regularity bootstrap: mild solution satisfies the PDE pointwise
+  (3) Maximum principle: sup-norm derivative control
+  (4) Comparison / strong maximum principle: strict positivity
 Each of these is a genuine PDE result. -/
 theorem localExistence_conditional
     (p : CM2Params)
     (hmild : ∀ u₀ : intervalDomainPoint → ℝ,
       PositiveInitialDatum intervalDomain u₀ →
-        ∃ T > 0, ∃ data : MildSolutionData p T u₀, True) :
+        ∃ T > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+          IsMildSolutionData p T u₀ u v) :
     ∀ u₀ : intervalDomainPoint → ℝ,
       PositiveInitialDatum intervalDomain u₀ →
         ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
           IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
           InitialTrace intervalDomain u₀ u := by
   intro u₀ hu₀
-  obtain ⟨T, hT, data, _⟩ := hmild u₀ hu₀
-  exact localExistence_of_mildSolutionData p u₀ hu₀ hT data
+  obtain ⟨T, hT, u, v, hdata⟩ := hmild u₀ hu₀
+  exact localExistence_of_isMildSolutionData p u₀ hu₀ hT hdata
 
 end ShenWork.IntervalDomainExistence
 
