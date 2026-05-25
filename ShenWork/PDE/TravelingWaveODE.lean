@@ -987,6 +987,19 @@ def HasHeteroclinicE1E0 (p : Params) : Prop :=
     Tendsto z atBot (nhds E1) ∧
     Tendsto z atTop (nhds E0)
 
+def HasPositiveHeteroclinicE1E0 (p : Params) : Prop :=
+  ∃ z : ℝ → State,
+    SolvesTWODE p z ∧
+    Tendsto z atBot (nhds E1) ∧
+    Tendsto z atTop (nhds E0) ∧
+    (∀ t : ℝ, 0 < z t 0)
+
+theorem HasPositiveHeteroclinicE1E0.to_hasHeteroclinic
+    {p : Params} (h : HasPositiveHeteroclinicE1E0 p) :
+    HasHeteroclinicE1E0 p := by
+  rcases h with ⟨z, hzode, hleft, hright, _hpos⟩
+  exact ⟨z, hzode, hleft, hright⟩
+
 theorem HasHeteroclinicE1E0.shift
     {p : Params} (h : HasHeteroclinicE1E0 p) (a : ℝ) :
     HasHeteroclinicE1E0 p := by
@@ -994,6 +1007,15 @@ theorem HasHeteroclinicE1E0.shift
   exact ⟨fun t => z (t + a), hzode.shift a,
     hleft.comp (tendsto_atBot_add_const_right atBot a tendsto_id),
     hright.comp (tendsto_atTop_add_const_right atTop a tendsto_id)⟩
+
+theorem HasPositiveHeteroclinicE1E0.shift
+    {p : Params} (h : HasPositiveHeteroclinicE1E0 p) (a : ℝ) :
+    HasPositiveHeteroclinicE1E0 p := by
+  rcases h with ⟨z, hzode, hleft, hright, hpos⟩
+  exact ⟨fun t => z (t + a), hzode.shift a,
+    hleft.comp (tendsto_atBot_add_const_right atBot a tendsto_id),
+    hright.comp (tendsto_atTop_add_const_right atTop a tendsto_id),
+    fun t => hpos (t + a)⟩
 
 theorem HasHeteroclinicE1E0.exists_solution
     {p : Params} (h : HasHeteroclinicE1E0 p) :
@@ -1064,6 +1086,13 @@ theorem HasHeteroclinicE1E0.exists_profileData
     ∃ U V : ℝ → ℝ, WaveProfileData p U V := by
   rcases travelingWave_of_heteroclinic p h with ⟨w⟩
   exact ⟨fun t => w.z t 0, fun t => w.z t 2, w.to_profileData⟩
+
+theorem HasPositiveHeteroclinicE1E0.exists_isTravelingWave
+    {p : Params} (h : HasPositiveHeteroclinicE1E0 p) (hc : 0 < p.c) :
+    ∃ U V : ℝ → ℝ, IsTravelingWave p.toCMParams p.c U V := by
+  rcases h with ⟨z, hzode, hleft, hright, hpos⟩
+  let w : TravelingWave p := ⟨z, hzode, hleft, hright⟩
+  exact ⟨fun t => z t 0, fun t => z t 2, w.to_isTravelingWave hc hpos⟩
 
 end TravelingWaveODE
 end PDE
