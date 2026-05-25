@@ -1765,6 +1765,376 @@ theorem intervalDomain_C51_minimalFormulaExponential_of_raw
     hraw unitIntervalNeumannSpectrum_hasNeumannSpectrum
     hm_le ha hb hβ huStar uBar vLower hfirst hcond huv hmass hconv
 
+/-- Positive-equilibrium stable branch of Paper3 Theorem 2.2 with the full
+local-exponential conclusion, not just the intermediate stability package.
+
+The raw sectorial input is discharged by the concrete spectral decay plus the
+named nonlinear orbit-comparison frontier. -/
+theorem intervalDomain_T22_positiveComplete_of_spectralSemigroupOrbitBound
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hC : Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p C)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (horbit : IntervalDomainSpectralSemigroupOrbitBoundRaw p N)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hcontrol :
+      SupControlsXpSigmaDistance intervalDomain N sigma pNorm
+        (positiveEquilibrium p ⟨ha, hb⟩).1)
+    (hexist :
+      ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p
+          (positiveEquilibrium p ⟨ha, hb⟩).1 delta) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    p.χ₀ < C.chiCritical eq.1 →
+      LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 ∧
+      ∃ δ > 0, ∃ A > 0, ∃ rate > 0,
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          PositiveInitialDatum intervalDomain u₀ →
+          SupCloseToConstant intervalDomain u₀ eq.1 δ →
+            ∃ u v : ℝ → intervalDomain.Point → ℝ,
+              IsPaper2GlobalClassicalSolution intervalDomain p u v ∧
+              InitialTrace intervalDomain u₀ u ∧
+              ExponentialC1ConvergenceWith intervalDomain N u v
+                eq.1 eq.2 A rate := by
+  dsimp
+  intro hχ
+  have hstable :
+      LinearlyStable unitIntervalNeumannSpectrum p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    hC.positiveEquilibrium_linearlyStable
+      unitIntervalNeumannSpectrum_hasNeumannSpectrum ha hb hχ
+  have hlocal :
+      LocallyExponentiallyStableFromSup intervalDomain p N
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    (intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBound
+      p N horbit).locally_from_sup_control
+        hsigma_low hsigma_high hpNorm hstable hcontrol hexist
+  exact ⟨hstable, hlocal⟩
+
+/-- Minimal-equilibrium stable branch of Paper3 Theorem 2.2 with the full
+mass-constrained local-exponential conclusion. -/
+theorem intervalDomain_T22_minimalComplete_of_spectralSemigroupOrbitBound
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hC : Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p C)
+    {sigma pNorm uStar : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (horbit : IntervalDomainSpectralSemigroupOrbitBoundRaw p N)
+    (_ha : p.a = 0) (_hb : p.b = 0) (huStar : 0 < uStar)
+    (hcontrol :
+      SupControlsXpSigmaDistance intervalDomain N sigma pNorm
+        (minimalEquilibrium p uStar).1)
+    (hexist :
+      ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p
+          (minimalEquilibrium p uStar).1 delta) :
+    let eq := minimalEquilibrium p uStar
+    p.χ₀ < C.chiCritical uStar →
+      LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 ∧
+      ∃ δ > 0, ∃ A > 0, ∃ rate > 0,
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          PositiveInitialDatum intervalDomain u₀ →
+          SupCloseToConstant intervalDomain u₀ eq.1 δ →
+          intervalDomain.integral u₀ = intervalDomain.volume * uStar →
+            ∃ u v : ℝ → intervalDomain.Point → ℝ,
+              IsPaper2GlobalClassicalSolution intervalDomain p u v ∧
+              InitialTrace intervalDomain u₀ u ∧
+              ExponentialC1ConvergenceWith intervalDomain N u v
+                eq.1 eq.2 A rate := by
+  dsimp
+  intro hχ
+  have hstable :
+      LinearlyStable unitIntervalNeumannSpectrum p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 :=
+    hC.minimalEquilibrium_linearlyStable
+      unitIntervalNeumannSpectrum_hasNeumannSpectrum huStar hχ
+  have hlocal :
+      MassConstrainedLocallyExponentiallyStableFromSup intervalDomain p N
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 :=
+    (intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBound
+      p N horbit).massConstrained_from_sup_control
+        hsigma_low hsigma_high hpNorm hstable hcontrol hexist
+  exact ⟨hstable, hlocal⟩
+
+/-- Full interval-domain Paper3 Theorem 2.2 from the audited
+critical-spectrum constants and the spectral-orbit frontier. -/
+theorem
+intervalDomain_Theorem_2_2_criticalSpectrum_of_spectralSemigroupOrbitBound
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hC : Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p C)
+    (horbit : IntervalDomainSpectralSemigroupOrbitBoundRaw p N)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hcontrol :
+      ∀ uStar, SupControlsXpSigmaDistance intervalDomain N sigma pNorm uStar)
+    (hexist :
+      ∀ uStar, ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p uStar delta)
+    (hmexist :
+      ∀ uStar, ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p uStar delta) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum N C :=
+  Theorem_2_2_full_critical_spectrum_of_raw
+    unitIntervalNeumannSpectrum_hasNeumannSpectrum hC
+    (intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBound
+      p N horbit)
+    hsigma_low hsigma_high hpNorm hcontrol hexist hmexist
+
+/-- `m = 1` slice of the full interval-domain Theorem 2.2 conclusion with
+the sectorial raw input discharged by the spectral-orbit frontier. -/
+theorem intervalDomain_Theorem_2_2_m_eq_one_of_spectralSemigroupOrbitBound
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hC : Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p C)
+    (horbit : IntervalDomainSpectralSemigroupOrbitBoundRaw p N)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hcontrol :
+      ∀ uStar, SupControlsXpSigmaDistance intervalDomain N sigma pNorm uStar)
+    (hexist :
+      ∀ uStar, ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p uStar delta)
+    (hmexist :
+      ∀ uStar, ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p uStar delta)
+    (hm : p.m = 1) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum N C :=
+  Theorem_2_2_full_m_eq_one_of_raw
+    unitIntervalNeumannSpectrum_hasNeumannSpectrum hC
+    (intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBound
+      p N horbit)
+    hsigma_low hsigma_high hpNorm hcontrol hexist hmexist hm
+
+/-- Persistence plus the raw nonminimal exponential-upgrade frontier gives
+the per-solution exponential conclusion of Corollary 5.1.
+
+This deliberately does not claim the uniform constants required by
+`Theorem_2_3`; `ConvergenceToExponentialNonminimalRaw` exposes constants
+after a particular solution and its uniform convergence have been supplied. -/
+theorem intervalDomain_C51_nonminimal_of_persistence_raw
+    {p : CM2Params}
+    {N : StabilityNorms intervalDomain}
+    {ha : 0 < p.a} {hb : 0 < p.b}
+    (hglobal :
+      GloballyAsymptoticallyStableNonminimal intervalDomain p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2)
+    (hraw :
+      ConvergenceToExponentialNonminimalRaw intervalDomain p N.c1Distance
+        (fun uStar =>
+          paperCriticalSensitivity unitIntervalNeumannSpectrum p uStar
+            (p.ν / p.μ * uStar ^ p.γ)))
+    (hm : 1 ≤ p.m)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v) :
+    ExponentialC1Convergence intervalDomain N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  intervalDomain_C51_nonminimalExponential_of_raw
+    hraw hm ha hb hχ huv (hglobal u v huv)
+
+/-- Minimal-model persistence plus the raw exponential-upgrade frontier gives
+the per-solution exponential conclusion of Corollary 5.1. -/
+theorem intervalDomain_C51_minimal_of_persistence_raw
+    {p : CM2Params}
+    {N : StabilityNorms intervalDomain}
+    {uStar : ℝ}
+    (hglobal :
+      GloballyAsymptoticallyStableMinimal intervalDomain p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2)
+    (hraw :
+      ConvergenceToExponentialMinimalRaw intervalDomain p N.c1Distance
+        (fun uStar =>
+          paperCriticalSensitivity unitIntervalNeumannSpectrum p uStar
+            (p.ν / p.μ * uStar ^ p.γ)))
+    (hm : 1 ≤ p.m) (ha : p.a = 0) (hb : p.b = 0)
+    (huStar : 0 < uStar)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hmass : HasInitialMass intervalDomain u uStar) :
+    ExponentialC1Convergence intervalDomain N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  intervalDomain_C51_minimalExponential_of_raw hraw hm ha hb huStar hχ huv
+    hmass
+    (hglobal u v huv (by
+      simpa [minimalEquilibrium_fst_eq] using hmass))
+
+/-- Theorem 2.3 from explicit persistence and uniform exponential-upgrade
+frontiers on the interval.
+
+The uniform `A, rate` frontier is stronger than the raw Corollary 5.1 upgrade;
+it is kept explicit because raw convergence-to-exponential gives constants
+only after a particular solution is supplied. -/
+theorem intervalDomain_Theorem_2_3_of_persistence_exp_frontiers
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (hglobalNonminimal :
+      p.χ₀ ≤ 0 → 1 ≤ p.m →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          GloballyAsymptoticallyStableNonminimal intervalDomain p
+            eq.1 eq.2)
+    (hglobalMinimal :
+      p.χ₀ ≤ 0 → 1 ≤ p.m → p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          GloballyAsymptoticallyStableMinimal intervalDomain p
+            eq.1 eq.2)
+    (hExpNonminimal :
+      p.χ₀ ≤ 0 → 1 ≤ p.m →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              PositiveGlobalBoundedSolution intervalDomain p u v →
+              UniformConvergesInSup intervalDomain u eq.1 →
+                ExponentialC1ConvergenceWith intervalDomain N u v
+                  eq.1 eq.2 A rate)
+    (hExpMinimal :
+      p.χ₀ ≤ 0 → 1 ≤ p.m → p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              PositiveGlobalBoundedSolution intervalDomain p u v →
+              HasInitialMass intervalDomain u uStar →
+              UniformConvergesInSup intervalDomain u eq.1 →
+                ExponentialC1ConvergenceWith intervalDomain N u v
+                  eq.1 eq.2 A rate) :
+    Theorem_2_3 intervalDomain p N := by
+  intro hχ hm
+  refine ⟨?_, ?_⟩
+  · intro ha hb
+    dsimp
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    have hglobal :
+        GloballyAsymptoticallyStableNonminimal intervalDomain p
+          eq.1 eq.2 := by
+      simpa [eq] using hglobalNonminimal hχ hm ha hb
+    rcases hExpNonminimal hχ hm ha hb with
+      ⟨A, hA, rate, hrate, hdecay⟩
+    refine ⟨hglobal, A, hA, rate, hrate, ?_⟩
+    intro u v huv
+    exact hdecay u v huv (hglobal u v huv)
+  · intro ha hb uStar huStar
+    dsimp
+    let eq := minimalEquilibrium p uStar
+    have hglobal :
+        GloballyAsymptoticallyStableMinimal intervalDomain p
+          eq.1 eq.2 := by
+      simpa [eq] using hglobalMinimal hχ hm ha hb uStar huStar
+    rcases hExpMinimal hχ hm ha hb uStar huStar with
+      ⟨A, hA, rate, hrate, hdecay⟩
+    refine ⟨hglobal, A, hA, rate, hrate, ?_⟩
+    intro u v huv hmass
+    exact hdecay u v huv hmass (hglobal u v huv hmass)
+
+/-- Theorem 2.4 from explicit persistence and uniform exponential-upgrade
+frontiers. -/
+theorem intervalDomain_Theorem_2_4_of_persistence_exp_frontiers
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hglobal :
+      0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          NonminimalGlobalStabilityCondition intervalDomain p C eq.1 →
+            GloballyAsymptoticallyStableNonminimal intervalDomain p
+              eq.1 eq.2)
+    (hExp :
+      0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          NonminimalGlobalStabilityCondition intervalDomain p C eq.1 →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                UniformConvergesInSup intervalDomain u eq.1 →
+                  ExponentialC1ConvergenceWith intervalDomain N u v
+                    eq.1 eq.2 A rate) :
+    Theorem_2_4 intervalDomain p N C := by
+  intro ha_pos hb_pos hβ_nonneg hα_pos hγ_pos ha hb
+  dsimp
+  intro hcond
+  let eq := positiveEquilibrium p ⟨ha, hb⟩
+  have hglobalBranch :
+      GloballyAsymptoticallyStableNonminimal intervalDomain p
+        eq.1 eq.2 := by
+    simpa [eq] using
+      hglobal ha_pos hb_pos hβ_nonneg hα_pos hγ_pos ha hb hcond
+  rcases hExp ha_pos hb_pos hβ_nonneg hα_pos hγ_pos ha hb hcond with
+    ⟨A, hA, rate, hrate, hdecay⟩
+  refine ⟨hglobalBranch, A, hA, rate, hrate, ?_⟩
+  intro u v huv
+  exact hdecay u v huv (hglobalBranch u v huv)
+
+/-- Theorem 2.5 from explicit minimal-model persistence and uniform
+exponential-upgrade frontiers. -/
+theorem intervalDomain_Theorem_2_5_of_persistence_exp_frontiers
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hglobal :
+      p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          MinimalGlobalStabilityCondition intervalDomain p C uStar →
+            GloballyAsymptoticallyStableMinimal intervalDomain p
+              eq.1 eq.2)
+    (hExp :
+      p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          MinimalGlobalStabilityCondition intervalDomain p C uStar →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                HasInitialMass intervalDomain u uStar →
+                UniformConvergesInSup intervalDomain u eq.1 →
+                  ExponentialC1ConvergenceWith intervalDomain N u v
+                    eq.1 eq.2 A rate) :
+    Theorem_2_5 intervalDomain p N C := by
+  intro ha hb hm hβ uStar huStar
+  dsimp
+  intro hcond
+  let eq := minimalEquilibrium p uStar
+  have hglobalBranch :
+      GloballyAsymptoticallyStableMinimal intervalDomain p
+        eq.1 eq.2 := by
+    simpa [eq] using hglobal ha hb hm hβ uStar huStar hcond
+  rcases hExp ha hb hm hβ uStar huStar hcond with
+    ⟨A, hA, rate, hrate, hdecay⟩
+  refine ⟨hglobalBranch, A, hA, rate, hrate, ?_⟩
+  intro u v huv hmass
+  exact hdecay u v huv hmass (hglobalBranch u v huv hmass)
+
 end
 
 end ShenWork.Paper3
