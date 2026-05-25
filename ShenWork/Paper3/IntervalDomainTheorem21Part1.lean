@@ -170,6 +170,36 @@ theorem Theorem_2_1_part1_intervalDomain_pointwise_of_pointwise_persistence
     ⟨deltaU, hdeltaU, hpointU,
       hEllipticLowerComparison hsol hdeltaU hpointU⟩
 
+/-- Statement-layer assembly from the exact intended pointwise persistence
+formulation.  This isolates the purely formal lower-envelope conversion from
+the analytic Section 4.1 frontiers. -/
+theorem Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds
+    (p : CM2Params)
+    (hpointwise :
+      1 ≤ p.m →
+        ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+            ∃ deltaU > 0,
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  deltaU ≤ u t x) ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  p.ν / p.μ * deltaU ^ p.γ ≤ v t x)) :
+    Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p := by
+  intro hm u v hsol
+  rcases hpointwise hm u v hsol with
+    ⟨deltaU, hdeltaU, hpointU, hpointV⟩
+  have hdeltaV : 0 < p.ν / p.μ * deltaU ^ p.γ := by
+    exact mul_pos (div_pos p.hν p.hμ)
+      (Real.rpow_pos_of_pos hdeltaU _)
+  exact
+    ⟨deltaU, hdeltaU,
+      intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
+        hdeltaU hpointU,
+      intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
+        hdeltaV hpointV⟩
+
 /-- Semantic read-back of `Theorem_2_1_part1 intervalDomain p`: under the
 explicit lower-bounded-range regularity of the interval time slices, the
 statement-layer formulation is exactly the expected pointwise eventual
@@ -201,6 +231,35 @@ theorem Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope
         hbddU huLower,
       intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound
         hbddV hvLower⟩
+
+/-- Exact semantic equivalence between the intervalDomain statement-layer
+Theorem 2.1(1) and its intended pointwise eventual-persistence formulation.
+
+The reverse direction needs the explicit `BddBelow` regularity input because
+`BoundedDomainData.infValue` is only an abstract lower-envelope field. -/
+theorem Theorem_2_1_part1_intervalDomain_iff_pointwise_lower_bounds
+    (p : CM2Params)
+    (hbdd :
+      ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+        PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+          (∀ᶠ t in atTop, BddBelow (Set.range (u t))) ∧
+          (∀ᶠ t in atTop, BddBelow (Set.range (v t)))) :
+    Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p ↔
+      1 ≤ p.m →
+        ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+            ∃ deltaU > 0,
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  deltaU ≤ u t x) ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  p.ν / p.μ * deltaU ^ p.γ ≤ v t x) := by
+  constructor
+  · intro h21
+    exact Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope h21 hbdd
+  · intro hpointwise
+    exact Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds p hpointwise
 
 end
 

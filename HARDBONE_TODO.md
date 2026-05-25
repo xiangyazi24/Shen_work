@@ -266,8 +266,14 @@
   读回 pointwise persistence。新增
   `Theorem_2_1_part1_intervalDomain_pointwise_of_pointwise_persistence`，从同
   两个 Section 4.1 前沿直接给出 intended pointwise persistence，避免把
-  语义读回依赖混入 statement-layer 组装。按 17-point standard 属于状态③：
-  条件于未证但明确命名的分析前沿；不是无条件完成。
+  语义读回依赖混入 statement-layer 组装。新增
+  `Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds` 和
+  `Theorem_2_1_part1_intervalDomain_iff_pointwise_lower_bounds`，把
+  statement-layer `Theorem_2_1_part1` 与 intended pointwise persistence
+  精确对齐；反向仍显式要求 time-slice `BddBelow`，因为 abstract
+  `BoundedDomainData.infValue` 本身不携带 lower-envelope correctness。
+  按 17-point standard 属于状态③：条件于未证但明确命名的分析前沿；不是
+  无条件完成。
 
 ---
 
