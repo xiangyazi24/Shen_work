@@ -50,6 +50,7 @@ import ShenWork.Paper2.IntervalDomainTheorem11
 import ShenWork.Paper2.IntervalDomainTierChain
 import ShenWork.Paper2.IntervalDomainTheorem12
 import ShenWork.Paper2.IntervalDomainTheorem13
+import ShenWork.Paper2.IntervalDomainGlobalWellposed
 import ShenWork.Paper3.UnitPointLogisticBridge
 import ShenWork.Paper3.IntervalDomainTheorem21Part1
 import ShenWork.Paper3.IntervalDomainSectorial
