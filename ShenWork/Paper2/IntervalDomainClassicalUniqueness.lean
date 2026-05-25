@@ -126,6 +126,68 @@ theorem intervalDomain_classicalSolution_overlap_unique_of_energyCertificate
   · exact sub_eq_zero.mp (abs_eq_zero.mp hu_abs_zero)
   · exact sub_eq_zero.mp (abs_eq_zero.mp hv_abs_zero)
 
+/-- The concrete L2 difference energy for two interval-domain solution pairs.
+
+It is intentionally only a definition: the analytic work in an application is
+to prove that this quantity satisfies the positive-time Gronwall estimate
+below. -/
+def intervalDomainClassicalL2DifferenceEnergy
+    (u v U V : ℝ → intervalDomain.Point → ℝ) (t : ℝ) : ℝ :=
+  intervalDomain.integral fun x =>
+    (u t x - U t x) ^ 2 + (v t x - V t x) ^ 2
+
+/-- L2-energy uniqueness certificate for two interval-domain classical
+solutions on a common horizon.
+
+Point 17 status: the Gronwall-to-zero part is proved below.  The remaining
+upstream PDE obligations are exactly the displayed hypotheses: nonnegativity
+of the L2 energy, the L2 Gronwall estimate for the difference equation, the
+vanishing of the positive-time initial L2 error, and the standard
+zero-L2-to-pointwise step under the needed spatial regularity. -/
+structure IntervalDomainClassicalOverlapL2EnergyCertificate
+    (p : CM2Params) (T : ℝ)
+    (u v U V : ℝ → intervalDomain.Point → ℝ) where
+  left_solution : IsPaper2ClassicalSolution intervalDomain p T u v
+  right_solution : IsPaper2ClassicalSolution intervalDomain p T U V
+  l2_energy_nonneg :
+    ∀ t, 0 < t → t < T →
+      0 ≤ intervalDomainClassicalL2DifferenceEnergy u v U V t
+  l2_gronwall_from_positive_times :
+    ∃ K : ℝ, 0 ≤ K ∧
+      ∀ s t, 0 < s → s ≤ t → t < T →
+        intervalDomainClassicalL2DifferenceEnergy u v U V t ≤
+          intervalDomainClassicalL2DifferenceEnergy u v U V s *
+            Real.exp (K * (t - s))
+  l2_initial_error_vanishes :
+    ∀ ε > 0, ∃ δ > 0, ∀ s, 0 < s → s < δ → s < T →
+      intervalDomainClassicalL2DifferenceEnergy u v U V s < ε
+  l2_zero_controls_pointwise :
+    ∀ t, 0 < t → t < T →
+      intervalDomainClassicalL2DifferenceEnergy u v U V t = 0 →
+        ∀ x : intervalDomain.Point, u t x = U t x ∧ v t x = V t x
+
+/-- L2-energy-certificate uniqueness on the overlap of two interval-domain
+classical solutions.
+
+This is the handoff theorem for gluing: once the actual PDE energy estimate has
+been supplied, the overlap equality follows by a genuine Gronwall argument. -/
+theorem intervalDomain_classicalSolution_overlap_unique_of_l2EnergyCertificate
+    {p : CM2Params} {T : ℝ}
+    {u v U V : ℝ → intervalDomain.Point → ℝ}
+    (hcert :
+      IntervalDomainClassicalOverlapL2EnergyCertificate p T u v U V) :
+    ∀ t, 0 < t → t < T →
+      ∀ x : intervalDomain.Point, u t x = U t x ∧ v t x = V t x := by
+  have hE_zero :
+      ∀ t, 0 < t → t < T →
+        intervalDomainClassicalL2DifferenceEnergy u v U V t = 0 :=
+    intervalDomain_energy_eq_zero_of_gronwall
+      hcert.l2_energy_nonneg hcert.l2_gronwall_from_positive_times
+      hcert.l2_initial_error_vanishes
+  intro t ht0 htT x
+  exact hcert.l2_zero_controls_pointwise t ht0 htT
+    (hE_zero t ht0 htT) x
+
 /-- Energy-method frontier for overlap uniqueness of interval-domain classical
 solutions with the same initial `u` trace.
 
@@ -163,6 +225,41 @@ theorem intervalDomain_classicalSolution_overlap_unique_of_energyMethod
     ∀ t, 0 < t → t < min T₁ T₂ →
       ∀ x : intervalDomain.Point, u₁ t x = u₂ t x ∧ v₁ t x = v₂ t x :=
   intervalDomain_classicalSolution_overlap_unique_of_energyCertificate
+    (hmethod.certificate hsol₁ hsol₂ htrace₁ htrace₂)
+
+/-- L2-energy-method frontier for overlap uniqueness of interval-domain
+classical solutions with the same initial `u` trace.
+
+Compared with `IntervalDomainClassicalUniquenessEnergyMethod`, this pins the
+energy to the actual interval integral of the squared `u` and `v` differences.
+It is the intended interface for a PDE proof based on the usual L2 energy
+identity plus Gronwall. -/
+structure IntervalDomainClassicalUniquenessL2EnergyMethod
+    (p : CM2Params) where
+  certificate :
+    ∀ {u₀ : intervalDomain.Point → ℝ} {T₁ T₂ : ℝ}
+      {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+      InitialTrace intervalDomain u₀ u₁ →
+      InitialTrace intervalDomain u₀ u₂ →
+        IntervalDomainClassicalOverlapL2EnergyCertificate
+          p (min T₁ T₂) u₁ v₁ u₂ v₂
+
+/-- User-facing overlap uniqueness from the concrete L2 energy-method
+certificate builder. -/
+theorem intervalDomain_classicalSolution_overlap_unique_of_l2EnergyMethod
+    {p : CM2Params}
+    (hmethod : IntervalDomainClassicalUniquenessL2EnergyMethod p)
+    {u₀ : intervalDomain.Point → ℝ} {T₁ T₂ : ℝ}
+    {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ}
+    (hsol₁ : IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁)
+    (hsol₂ : IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂)
+    (htrace₁ : InitialTrace intervalDomain u₀ u₁)
+    (htrace₂ : InitialTrace intervalDomain u₀ u₂) :
+    ∀ t, 0 < t → t < min T₁ T₂ →
+      ∀ x : intervalDomain.Point, u₁ t x = u₂ t x ∧ v₁ t x = v₂ t x :=
+  intervalDomain_classicalSolution_overlap_unique_of_l2EnergyCertificate
     (hmethod.certificate hsol₁ hsol₂ htrace₁ htrace₂)
 
 end
