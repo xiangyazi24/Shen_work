@@ -10,6 +10,7 @@ import ShenWork.Paper2.IntervalDomainChain
 import ShenWork.Paper2.IntervalDomainEnergyStep
 import ShenWork.Paper2.IntervalDomainLemma41
 import ShenWork.Paper2.IntervalDomainCorollary21
+import ShenWork.PDE.IntervalDomainExistence
 
 open ShenWork.Paper2
 open ShenWork.Paper2.IntervalDomainEnergyStep
@@ -19,6 +20,42 @@ open ShenWork.IntervalDomain
 noncomputable section
 
 namespace ShenWork.Paper2.IntervalDomainTheorem11Composite
+
+/-- Build the Paper 2 Theorem 1.1 interval existence package while discharging
+the `initialSupNormApproach` field from the concrete interval-domain
+`InitialTrace` theorem.
+
+The remaining inputs are genuine Cauchy-theory frontiers: local existence,
+boundedness of admissible initial data, and the global-extension criterion. -/
+theorem IntervalDomainExistence_of_local_global_bounded_initial
+    (p : CM2Params)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hboundedInitial :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+    (hglobal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+        ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+          InitialTrace intervalDomain u₀ u →
+            IsPaper2BoundedBefore intervalDomain Tmax u →
+              1 ≤ p.m →
+                IsPaper2GlobalClassicalSolution intervalDomain p u v) :
+    IntervalDomainTheorem11.IntervalDomainExistence p := by
+  refine
+    { localExistence := hlocal
+      initialSupNormApproach := ?_
+      globalExtension := hglobal }
+  intro u₀ hu₀ T hT u v hsol htrace ε hε
+  exact ShenWork.IntervalDomainExistence.initialSupNormApproach_intervalDomain
+    p u₀ hu₀ (hboundedInitial u₀ hu₀) hT hsol htrace hε
 
 /-! ### H1.2/H1.3/H1.4 conditional closures -/
 
@@ -534,6 +571,66 @@ theorem Theorem_1_1_intervalDomain_of_branch_bootstrap_and_proposition25
               hbounded hm }
   exact (IntervalDomainTheorem11.Theorem_1_1_intervalDomain_conditional
     p hexist') hχ
+
+/-- Branch-sharp Theorem 1.1 assembly with the interval initial-approach field
+discharged from the concrete `InitialTrace` theorem.
+
+Compared with `Theorem_1_1_intervalDomain_of_branch_bootstrap_and_proposition25`,
+this no longer takes the full `IntervalDomainExistence` package.  It asks only
+for local existence, bounded admissible initial data, and global extension; the
+initial sup-norm approach field is built by
+`IntervalDomainExistence_of_local_global_bounded_initial`. -/
+theorem Theorem_1_1_intervalDomain_of_corollary21_proposition25_bounded_initial
+    (p : CM2Params)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hboundedInitial :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+    (hglobal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+        ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+          InitialTrace intervalDomain u₀ u →
+            IsPaper2BoundedBefore intervalDomain Tmax u →
+              1 ≤ p.m →
+                IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hnonminimalBootstrap :
+      p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          PositiveInitialDatum intervalDomain u₀ →
+        ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p T u v →
+          InitialTrace intervalDomain u₀ u →
+            ∃ rho > 0,
+              CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+                ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                  LpPowerBoundedBefore intervalDomain p0 T u)
+    (hminimalBootstrap :
+      p.χ₀ ≤ 0 → p.a = 0 → p.b = 0 →
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          PositiveInitialDatum intervalDomain u₀ →
+        ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p T u v →
+          InitialTrace intervalDomain u₀ u →
+            ∃ rho > 0,
+              CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+                ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                  LpPowerBoundedBefore intervalDomain p0 T u) :
+    Theorem_1_1 intervalDomain p := by
+  exact Theorem_1_1_intervalDomain_of_branch_bootstrap_and_proposition25
+    p hCor21 hProp25
+    (IntervalDomainExistence_of_local_global_bounded_initial
+      p hlocal hboundedInitial hglobal)
+    hnonminimalBootstrap hminimalBootstrap
 
 /-- Direct H1/H2 composition for Paper 2 Theorem 1.1 on `intervalDomain`.
 
