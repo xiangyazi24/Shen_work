@@ -147,6 +147,26 @@ lemma logisticProfile_lt_exp (κ x : ℝ) :
     simpa using (Real.exp_neg (κ * x)).symm
   simpa [logisticProfile, Real.sigmoid_def, hexp_inv] using hinv
 
+lemma logisticProfile_div_exp_eq_sigmoid (κ x : ℝ) :
+    logisticProfile κ x / Real.exp (-(κ * x)) = Real.sigmoid (κ * x) := by
+  have hmul :
+      Real.sigmoid (-(κ * x)) * Real.exp (κ * x) =
+        Real.sigmoid (κ * x) := by
+    simpa using Real.sigmoid_mul_rexp_neg (-(κ * x))
+  calc
+    logisticProfile κ x / Real.exp (-(κ * x)) =
+        Real.sigmoid (-(κ * x)) * Real.exp (κ * x) := by
+      simp [logisticProfile, div_eq_mul_inv, Real.exp_neg]
+    _ = Real.sigmoid (κ * x) := hmul
+
+lemma logisticProfile_div_exp_sub_one_eq_neg (κ x : ℝ) :
+    logisticProfile κ x / Real.exp (-(κ * x)) - 1 =
+      -logisticProfile κ x := by
+  rw [logisticProfile_div_exp_eq_sigmoid]
+  have hsig := Real.sigmoid_neg (κ * x)
+  rw [logisticProfile]
+  linarith
+
 lemma logisticProfile_le_cappedExp {κ : ℝ} (hκ : 0 < κ) (x : ℝ) :
     logisticProfile κ x ≤ cappedExp κ x := by
   by_cases hx : 0 ≤ x
@@ -383,5 +403,72 @@ theorem logisticProfile_tail_bounds
     ShenWork.Paper1.ShenUpperBoundPositive.hasStrictWaveUpperTailBound
       hupper hχ_nonneg hχ_lt
   exact ⟨hupper, hstrict, hstrict.hasWaveUpperTailBound⟩
+
+lemma tendsto_exp_mul_logisticProfile_atTop_zero {κ r : ℝ} (hr : r < κ) :
+    Tendsto (fun x : ℝ => Real.exp (r * x) * logisticProfile κ x)
+      atTop (𝓝 0) := by
+  have hcoef : r - κ < 0 := sub_neg.mpr hr
+  have hlin : Tendsto (fun x : ℝ => (r - κ) * x) atTop atBot :=
+    (tendsto_const_mul_atBot_of_neg hcoef).2 tendsto_id
+  have hexp : Tendsto (fun x : ℝ => Real.exp ((r - κ) * x)) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp hlin
+  refine squeeze_zero
+    (fun x => mul_nonneg (Real.exp_nonneg _) (logisticProfile_pos κ x).le)
+    ?_ hexp
+  intro x
+  calc
+    Real.exp (r * x) * logisticProfile κ x
+        ≤ Real.exp (r * x) * Real.exp (-(κ * x)) := by
+      exact mul_le_mul_of_nonneg_left (logisticProfile_le_exp κ x)
+        (Real.exp_nonneg _)
+    _ = Real.exp ((r - κ) * x) := by
+      rw [← Real.exp_add]
+      ring_nf
+
+theorem logisticProfile_hasWaveRightTailAsymptotic
+    {c κ₁ : ℝ}
+    (_hκ₁_gt : kappa c < κ₁) (hκ₁_lt : κ₁ < 2 * kappa c) :
+    ShenWork.Paper1.HasWaveRightTailAsymptotic c κ₁
+      (logisticProfile (kappa c)) := by
+  unfold ShenWork.Paper1.HasWaveRightTailAsymptotic
+  have hr : κ₁ - kappa c < kappa c := by linarith
+  have hprod :=
+    tendsto_exp_mul_logisticProfile_atTop_zero
+      (κ := kappa c) (r := κ₁ - kappa c) hr
+  have hneg :
+      Tendsto
+        (fun x : ℝ =>
+          -(Real.exp ((κ₁ - kappa c) * x) * logisticProfile (kappa c) x))
+        atTop (𝓝 0) := by
+    simpa using hprod.neg
+  refine hneg.congr' ?_
+  filter_upwards with x
+  have hratio :
+      logisticProfile (kappa c) x / Real.exp (-kappa c * x) - 1 =
+        -logisticProfile (kappa c) x := by
+    simpa [neg_mul] using
+      logisticProfile_div_exp_sub_one_eq_neg (kappa c) x
+  rw [hratio]
+  ring
+
+theorem logisticProfile_exists_waveRightTailAsymptotic
+    {c : ℝ}
+    (hκ_pos : 0 < kappa c) (hκ_lt_half : kappa c < 1 / 2) :
+    ∃ κ₁ : ℝ,
+      kappa c < κ₁ ∧ κ₁ < 1 ∧
+      ShenWork.Paper1.HasWaveRightTailAsymptotic c κ₁
+        (logisticProfile (kappa c)) := by
+  let κ₁ : ℝ := (3 / 2) * kappa c
+  have hκ₁_gt : kappa c < κ₁ := by
+    dsimp [κ₁]
+    nlinarith
+  have hκ₁_lt_two : κ₁ < 2 * kappa c := by
+    dsimp [κ₁]
+    nlinarith
+  have hκ₁_lt_one : κ₁ < 1 := by
+    dsimp [κ₁]
+    nlinarith
+  exact ⟨κ₁, hκ₁_gt, hκ₁_lt_one,
+    logisticProfile_hasWaveRightTailAsymptotic hκ₁_gt hκ₁_lt_two⟩
 
 end
