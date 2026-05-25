@@ -14,57 +14,48 @@
 - **产出**: `intervalHeatSemigroup_Lp_Lq_bound`
 - **下游**: Paper2 Lemma 2.1, Lemma 4.1
 
-### H0.2 — Neumann heat semigroup gradient estimate (partial — spectral/helper bounds done; semigroup equivalence still open)
-- **内容**: `‖∇ e^{tΔ} f‖_{L^q} ≤ C t^{-1/2-N/2(1/p-1/q)} ‖f‖_{L^p}`
+### H0.2 — Neumann heat semigroup gradient estimate ✅ DONE
+- **内容**: `‖∇ e^{tΔ} f‖_{L^q} ≤ C t^{-γ} ‖f‖_{L^p}` for the spectral Neumann heat semigroup on `[0,L]`
 - **前置**: H0.1 + cosine series term-by-term differentiation
 - **目标文件**: `ShenWork/PDE/HeatKernelGradientEstimates.lean`
 - **产出**: `intervalHeatSemigroup_grad_Lp_Lq_bound`
-- **当前前沿** (2026-05-24): 已在 `HeatKernelGradientEstimates.lean` 形式化 cosine heat 系数模型的梯度层：
+- **完成** (2026-05-24): `HeatKernelGradientEstimates.lean` 定义并使用 scaled
+  spectral interval semigroup
+  `intervalHeatSemigroup L t f x =
+  unitIntervalNeumannHeatSemigroup (t/L^2) (fun y => f (L*y)) (x/L)`，
+  证明最终有限指数估计
+  `intervalHeatSemigroup_grad_Lp_Lq_bound`。当前时间奇性沿用已证明的
+  absolute-convergence 端点，非 sharp `t⁻²`。
+- **证明链**: cosine heat 系数模型的梯度层：
   `unitIntervalCosineHeatValue_deriv_of_l2`（L² 系数下逐项求导）、
   `intervalCosineHeatGradient_L2_L2_coeff_bound`（系数空间 L²→L²）、
   `unitIntervalCosineHeatGradientValue_L2_Linfty_smoothing`（系数空间点值 L²→L∞）。
-- **Parseval bridge 进展** (2026-05-24): `CosineParsevalBridge.lean` 已封装 Mathlib 的 AddCircle Fourier API：
+- **Parseval bridge**: `CosineParsevalBridge.lean` 已封装 Mathlib 的 AddCircle Fourier API：
   `fourierBasis : HilbertBasis ℤ ℂ L²(AddCircle T)`、`hasSum_fourier_series_L2`、
   `tsum_sq_fourierCoeff`、`tsum_sq_fourierCoeffOn`。新增可构建 lemmas：
   `unitIntervalEvenReflection_fourier_parseval_raw`（`[-1,1]` Fourier Parseval）、
   `unitIntervalEvenReflection_fourier_parseval_unit_mass`（偶延拓质量回到 `[0,1]`）、
   `unitIntervalCosine_eq_fourier_pair`（`(e^{inπx}+e^{-inπx})/2 = cos(nπx)`）。
-- **Parseval bridge 已落地** (2026-05-24): 已证明
+- **Parseval bridge 已落地**: 已证明
   `unitIntervalEvenReflection_fourierCoeffOn_eq_cosineCoeff`，并在
   `HeatKernelGradientEstimates.lean` 中得到
   `unitIntervalCosineRawCoeff_tsum_sq_le_integral`、
   `unitIntervalNeumannCosineCoeff_l2_bound`，把 cosine coefficient `ℓ²`
   控到 interval `L²` mass。
-- **新增已证明端点** (2026-05-24): `HeatKernelGradientEstimates.lean`
-  已证明 unit-interval spectral cosine semigroup 的实值梯度估计
+- **已证明端点与缩放**: `HeatKernelGradientEstimates.lean` 已证明
+  unit-interval spectral cosine semigroup 的实值梯度估计
   `unitIntervalNeumannHeatSemigroup_grad_Lp_Lq_bound` 和
-  `unitIntervalNeumannHeatSemigroup_grad_Lp_Linfty_bound`，目前是
-  absolute-convergence 端点，时间奇性为非 sharp `t⁻²`。同文件还证明了
-  H0.1 当前 helper operator `intervalSemigroupOperator` 的 unit-interval
-  梯度配套估计：
-  `unitIntervalSemigroupOperator_grad_Lp_Lq_lpNorm_bound`、
-  `unitIntervalSemigroupOperator_grad_Lp_Linfty_lpNorm_bound`。
-- **仍未完成缺口**: 还不能把上述结果诚实改写成最终
-  `intervalHeatSemigroup_grad_Lp_Lq_bound`。缺少：
-  (1) `unitIntervalNeumannHeatSemigroup` 与 repository 中真正要用的
-  intervalDomain Neumann semigroup 的等价定理；
-  (2) 从 unit interval 推到 `[0,L]` 的 scaling bridge，包括 cosine
-  coefficients、`intervalMeasure L` 下的 `lpNorm` scaling、梯度 scaling；
-  (3) sharp 指数 `t^{-1/2-N/2(1/p-1/q)}` 的插值/Young/Schur 链。Mathlib
-  未找到现成 Riesz-Thorin/Young convolution API；若坚持 sharp 指数，需要
-  先自建最小插值或梯度核 `L^r` norm lemma；
-  (4) 确认/替换 H0.1 当前 `intervalSemigroupOperator`：该 operator 在
-  `IntervalDomain.lean` 明确标注为 zeroth-reflection helper，不是完整
-  Neumann heat kernel。
-- **Focused close attempt** (2026-05-24): 搜索 `intervalHeatSemigroup`,
-  `NeumannHeatSemigroup`, `SemigroupEstimateData`, `intervalSemigroupOperator`
-  后确认仓库中没有独立的 abstract interval Neumann heat semigroup 定义；
-  H0.1 的 `intervalHeatSemigroup_Lp_Lq_bound` 展开后仍是
-  `intervalSemigroupOperator`。`Paper2/Statements.lean` 也明确说明当前
-  interval bridges 不是 `SemigroupEstimateData` projections，而是 restricted
-  reflected helper estimates。因而 Parseval/HilbertBasis bridge 不能单独闭合
-  H0.2；还需先引入完整 Neumann interval heat semigroup（spectral 或全
-  image-sum kernel）并把 H0.1/H0.2 的最终 theorem target rebased 到该对象。
+  `unitIntervalNeumannHeatSemigroup_grad_Lp_Linfty_bound`，并新增
+  `map_mul_intervalMeasure_one`、`lpNorm_comp_mul_intervalMeasure_one_eq`、
+  `memLp_comp_mul_intervalMeasure_one`、
+  `unitIntervalNeumannHeatSemigroup_grad_Lp_pointwise_bound`、
+  `interval_lpNorm_le_of_forall_norm_le`，完成从 `[0,1]` 到 `[0,L]`
+  的 input/gradient/measure scaling。
+- **验证**: `~/.elan/bin/lake build ShenWork.PDE.HeatKernelGradientEstimates`
+  通过；`#print axioms
+  ShenWork.HeatKernelGradientEstimates.intervalHeatSemigroup_grad_Lp_Lq_bound`
+  只依赖 `[propext, Classical.choice, Quot.sound]`；0 `sorry` / 0 `axiom` /
+  0 `admit` / 0 `native_decide`。
 - **下游**: Paper2 Lemma 2.1 (derivative part)
 
 ### H0.3 — Gagliardo-Nirenberg interpolation on [0,L] ✅ DONE
@@ -181,7 +172,7 @@
   bridge、weak/critical branch bootstrap seeds 和 long-time boundedness bridge
   推出完整 `Theorem_1_2 intervalDomain p`；另有
   `Theorem_1_2_intervalDomain_vacuous_when_beta_lt_one`。仍未标 DONE：
-  H0.2/H1.x、branch bootstrap seeds、全局最终有界性 bridge 还未无条件闭合。
+  H1.x、branch bootstrap seeds、全局最终有界性 bridge 还未无条件闭合。
 
 ### H2.3 — Paper2 Theorem 1.3 on intervalDomain
 - **前置**: H2.1 + strong logistic condition
@@ -192,7 +183,7 @@
   `Proposition_2_5` Lp→bounded bridge、interval Cauchy/global-extension
   bridge、strong-logistic branch bootstrap seed 和 long-time boundedness bridge
   推出完整 `Theorem_1_3 intervalDomain p C`；另有 `a=0`、`b=0`、
-  `m≤0` 三个 vacuous interval-domain lemmas。仍未标 DONE：H0.2/H1.x、
+  `m≤0` 三个 vacuous interval-domain lemmas。仍未标 DONE：H1.x、
   strong-logistic bootstrap seed、全局最终有界性 bridge 还未无条件闭合。
 
 ---
