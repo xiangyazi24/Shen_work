@@ -7,8 +7,9 @@ import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 
 This file closes the concrete diagonal H3.1 subblock supplied by
 `ResolventEstimate`: for the unit-interval Neumann spectrum and shift `ω ≥ 0`,
-the same coefficient model that satisfies the sector resolvent estimate also
-has the bounded analytic heat semigroup and the parabolic smoothing estimate
+the sector resolvent estimate and nonnegative diagonal spectrum form a
+certificate that generates the bounded analytic heat semigroup and the
+parabolic smoothing estimate
 
 `‖A e^{-tA} a‖₂ ≤ (1 / t) ‖a‖₂`.
 
@@ -287,6 +288,31 @@ theorem shiftedNeumannGeneratorHeatCoeff_l2_norm_le
 
 /-! ### One theorem-shaped package for the concrete H3.1 subblock -/
 
+/-- Nonnegativity of the shifted diagonal spectrum forces the shift itself to
+be nonnegative, since the Neumann spectrum has zero as its first eigenvalue. -/
+lemma shiftedNeumannShift_nonneg_of_spectrum_nonneg
+    {ω : ℝ} (hspectrum : ∀ n : ℕ, 0 ≤ shiftedNeumannEigenvalue ω n) :
+    0 ≤ ω := by
+  have h0 := hspectrum 0
+  unfold shiftedNeumannEigenvalue at h0
+  rw [unitIntervalNeumannSpectrum_hasNeumannSpectrum.zero_eigenvalue] at h0
+  simpa using h0
+
+/-- The concrete diagonal sectorial-resolvent certificate used in this file.
+
+For the coefficient model, the missing abstract Mathlib bridge is isolated to
+this package: it records the right-half-plane resolvent estimate and the
+accretive diagonal spectrum needed by the heat multiplier proofs below.
+-/
+structure ShiftedNeumannSectorialResolventCertificate (ω : ℝ) where
+  eigenvalue_nonneg :
+    ∀ n : ℕ, 0 ≤ shiftedNeumannEigenvalue ω n
+  resolvent_norm_estimate :
+    ∀ z : ℂ, z ≠ 0 → 0 ≤ z.re →
+      ∀ a : ℕ → ℂ, Summable (fun n : ℕ => ‖a n‖ ^ 2) →
+        coeffL2Norm (shiftedNeumannResolventCoeff ω z a) ≤
+          ((1 : ℝ) / ‖z‖) * coeffL2Norm a
+
 /-- Concrete coefficient version of the sectorial-generation subblock.
 
 It includes the previously proved sector resolvent estimate, the complex-time
@@ -322,21 +348,45 @@ structure ShiftedNeumannCoefficientAnalyticSemigroup (ω : ℝ) where
         coeffL2Norm (shiftedNeumannGeneratorHeatCoeff ω t a) ≤
           ((1 : ℝ) / t) * coeffL2Norm a
 
-/-- Unit-interval Neumann coefficient sectorial generation package for
-`A = -Δ_N + ω`, with shift `ω ≥ 0`. -/
-theorem unitInterval_shiftedNeumann_coefficient_analyticSemigroup
-    {ω : ℝ} (hω : 0 ≤ ω) :
+/-- The diagonal sectorial-resolvent certificate generates the concrete
+coefficient analytic semigroup package.
+
+This is the explicit H3.1 chain proved here: the sector resolvent estimate is
+threaded through the generation certificate, and the unit-interval spectral
+nonnegativity supplies the multiplier bounds for `e^{-zA}` and `A e^{-tA}`.
+-/
+theorem ShiftedNeumannSectorialResolventCertificate.generates
+    {ω : ℝ} (cert : ShiftedNeumannSectorialResolventCertificate ω) :
     ShiftedNeumannCoefficientAnalyticSemigroup ω where
-  resolvent_norm_estimate :=
-    intervalDomain_shiftedNeumannResolvent_l2_norm_estimate hω
+  resolvent_norm_estimate := cert.resolvent_norm_estimate
   zero := shiftedNeumannAnalyticHeatCoeff_zero ω
   add := shiftedNeumannAnalyticHeatCoeff_add ω
   analytic_coeff := shiftedNeumannAnalyticHeatCoeff_analyticAt ω
   rightHalfPlane_l2_bound := by
     intro z hz a ha
+    have hω : 0 ≤ ω :=
+      shiftedNeumannShift_nonneg_of_spectrum_nonneg cert.eigenvalue_nonneg
     exact shiftedNeumannAnalyticHeatCoeff_l2_norm_le hω hz ha
   generator_l2_bound := by
     intro t ht a ha
+    have hω : 0 ≤ ω :=
+      shiftedNeumannShift_nonneg_of_spectrum_nonneg cert.eigenvalue_nonneg
     exact shiftedNeumannGeneratorHeatCoeff_l2_norm_le hω ht ha
+
+/-- The unit-interval Neumann spectrum supplies the diagonal sectorial
+resolvent certificate for `A = -Δ_N + ω`. -/
+theorem unitInterval_shiftedNeumann_sectorialResolventCertificate
+    {ω : ℝ} (hω : 0 ≤ ω) :
+    ShiftedNeumannSectorialResolventCertificate ω where
+  eigenvalue_nonneg := shiftedNeumannEigenvalue_nonneg hω
+  resolvent_norm_estimate :=
+    intervalDomain_shiftedNeumannResolvent_l2_norm_estimate hω
+
+/-- Unit-interval Neumann coefficient sectorial generation package for
+`A = -Δ_N + ω`, with shift `ω ≥ 0`. -/
+theorem unitInterval_shiftedNeumann_coefficient_analyticSemigroup
+    {ω : ℝ} (hω : 0 ≤ ω) :
+    ShiftedNeumannCoefficientAnalyticSemigroup ω :=
+  (unitInterval_shiftedNeumann_sectorialResolventCertificate hω).generates
 
 end ShenWork.PDE.AnalyticSemigroupGen
