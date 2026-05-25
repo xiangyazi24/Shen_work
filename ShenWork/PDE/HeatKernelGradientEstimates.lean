@@ -1851,6 +1851,37 @@ theorem unitIntervalNeumannHeatSemigroup_grad_Lp_Linfty_bound
   simpa [unitIntervalNeumannHeatSemigroup,
     unitInterval_lpNorm_complex_ofReal_eq hf_mem] using hbase
 
+/-- The interval Neumann heat semigroup on `[0,L]` obtained by scaling the
+unit-interval spectral Neumann semigroup.  For `L > 0`, this is the cosine
+spectral model with eigenvalues `(nπ/L)^2`. -/
+def intervalHeatSemigroup
+    (L t : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
+  unitIntervalNeumannHeatSemigroup (t / L ^ 2) (fun y => f (L * y))
+    ((1 / L) * x)
+
+theorem intervalHeatSemigroup_one (t : ℝ) (f : ℝ → ℝ) (x : ℝ) :
+    intervalHeatSemigroup 1 t f x =
+      unitIntervalNeumannHeatSemigroup t f x := by
+  simp [intervalHeatSemigroup]
+
+/-- Derivatives of the scaled interval spectral semigroup reduce to the
+unit-interval derivative with the expected `1/L` factor. -/
+theorem intervalHeatSemigroup_deriv_eq_scaled_unit
+    (L t : ℝ) (f : ℝ → ℝ) (x : ℝ) :
+    deriv (fun z : ℝ => intervalHeatSemigroup L t f z) x =
+      (1 / L) *
+        deriv
+          (fun y : ℝ =>
+            unitIntervalNeumannHeatSemigroup (t / L ^ 2)
+              (fun u => f (L * u)) y)
+          ((1 / L) * x) := by
+  simpa [intervalHeatSemigroup, smul_eq_mul] using
+    (deriv_comp_mul_left (c := 1 / L)
+      (f := fun y : ℝ =>
+        unitIntervalNeumannHeatSemigroup (t / L ^ 2)
+          (fun u => f (L * u)) y)
+      (x := x))
+
 /-! ## Zeroth-reflection helper-operator gradient bounds -/
 
 /-- Full-line `L¹ → L∞` heat-gradient factor used by the helper-operator
