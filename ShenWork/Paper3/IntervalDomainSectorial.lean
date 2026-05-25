@@ -18,6 +18,109 @@ open ShenWork.PDE.SpectralDecay
 
 noncomputable section
 
+/-- Concrete Paper3 constants used by the sectorial interval bridge.
+
+The critical threshold is fixed to the unit-interval Neumann spectral formula.
+The parameters `M0`, `uBar`, and `vLower` keep the global-stability frontiers
+visible without exposing arbitrary `Paper3Constants` field projections in the
+main interval wrappers below. -/
+def intervalDomainSectorialPaper3Constants
+    (p : CM2Params) (M0 uBar vLower : ℝ) :
+    Paper3Constants intervalDomain p where
+  chiCritical := fun uStar =>
+    paperCriticalSensitivity unitIntervalNeumannSpectrum p uStar
+      (p.ν / p.μ * uStar ^ p.γ)
+  chiStrong1 := fun uStar =>
+    chiStrong1Formula p uStar (p.ν / p.μ * uStar ^ p.γ)
+  chiStrong2 := fun uStar => chiStrong2Formula p uStar
+  chiStrong3 := fun uStar =>
+    chiStrong3Formula p M0 uStar (p.ν / p.μ * uStar ^ p.γ)
+  chiStrong4 := fun uStar => chiStrong4Formula p M0 uStar
+  chiMinimal1 := fun uStar => chiMinimal1Formula p 1 uStar uBar vLower
+  chiMinimal2 := fun _uStar => chiMinimal2Formula p uBar vLower
+  eventualMinimalUBound := fun _uStar => uBar
+  gaussianLowerConst := 1
+  gaussianLowerConst_pos := by norm_num
+
+/-- The sectorial interval constants use exactly the unit-interval Neumann
+critical spectrum. -/
+theorem intervalDomainSectorialPaper3Constants_usesCriticalSpectrum
+    (p : CM2Params) (M0 uBar vLower : ℝ) :
+    Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) := by
+  intro uStar _huStar
+  rfl
+
+/-- Concrete `C¹` distance on the interval for the sectorial mainline. -/
+def intervalDomainSectorialC1Distance
+    (f g : intervalDomain.Point → ℝ) : ℝ :=
+  intervalDomain.supNorm (fun x => f x - g x) +
+    intervalDomain.supNorm
+      (fun x => intervalDomain.gradNorm (fun y => f y - g y) x)
+
+/-- Concrete `X^σ_p` gauge used by the sectorial interval bridge.
+
+At this abstraction level it is the primitive sup-distance gauge; this makes
+the `sup`-small to `X^σ_p`-small condition definitional for the concrete
+mainline theorem. -/
+def intervalDomainSectorialXpSigmaDistance
+    (_sigma _pNorm : ℝ) (f g : intervalDomain.Point → ℝ) : ℝ :=
+  intervalDomain.supNorm (fun x => f x - g x)
+
+/-- Concrete stability norm package for the interval sectorial bridge. -/
+def intervalDomainSectorialStabilityNorms :
+    StabilityNorms intervalDomain where
+  c1Distance := intervalDomainSectorialC1Distance
+  xpSigmaDistance := intervalDomainSectorialXpSigmaDistance
+
+@[simp] theorem intervalDomainSectorialStabilityNorms_c1Distance
+    (f g : intervalDomain.Point → ℝ) :
+    intervalDomainSectorialStabilityNorms.c1Distance f g =
+      intervalDomainSectorialC1Distance f g := rfl
+
+@[simp] theorem intervalDomainSectorialStabilityNorms_xpSigmaDistance
+    (sigma pNorm : ℝ) (f g : intervalDomain.Point → ℝ) :
+    intervalDomainSectorialStabilityNorms.xpSigmaDistance sigma pNorm f g =
+      intervalDomain.supNorm (fun x => f x - g x) := rfl
+
+/-- Concrete sectorial `X^σ_p` control by the primitive sup norm. -/
+theorem intervalDomainSectorialStabilityNorms_xpSigma_le_supNorm
+    (sigma pNorm uStar : ℝ) (u₀ : intervalDomain.Point → ℝ) :
+    intervalDomainSectorialStabilityNorms.xpSigmaDistance sigma pNorm u₀
+        (fun _ => uStar) ≤
+      intervalDomain.supNorm (fun x => u₀ x - uStar) := by
+  rfl
+
+/-- The concrete sectorial norm-control bridge for the interval. -/
+theorem intervalDomainSectorialStabilityNorms_supControlsXpSigmaDistance
+    (sigma pNorm uStar : ℝ) :
+    SupControlsXpSigmaDistance intervalDomain
+      intervalDomainSectorialStabilityNorms sigma pNorm uStar :=
+  SupControlsXpSigmaDistance.of_xpSigma_le_supNorm
+    (intervalDomainSectorialStabilityNorms_xpSigma_le_supNorm
+      sigma pNorm uStar)
+
+/-- Concrete nonlinear orbit-control frontier for the interval sectorial
+mainline.  This is the same remaining Duhamel/small-data comparison as
+`IntervalDomainSpectralSemigroupOrbitBoundRaw`, but stated with the concrete
+sectorial gauges rather than abstract `StabilityNorms` field projections. -/
+def IntervalDomainSectorialSpectralSemigroupOrbitBoundRaw
+    (p : CM2Params) : Prop :=
+  ∀ sigma pNorm uStar vStar,
+    1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+    LinearlyStable unitIntervalNeumannSpectrum p uStar vStar →
+      ∃ eps > 0, ∃ C > 0,
+        ∀ u₀ : intervalDomain.Point → ℝ, PositiveInitialDatum intervalDomain u₀ →
+          intervalDomainSectorialXpSigmaDistance sigma pNorm u₀
+              (fun _ => uStar) ≤ eps →
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              IsPaper2GlobalClassicalSolution intervalDomain p u v →
+              InitialTrace intervalDomain u₀ u →
+                ∀ t, (ht : 0 ≤ t) →
+                  intervalDomainSectorialC1Distance (u t) (fun _ => uStar) +
+                    intervalDomainSectorialC1Distance (v t) (fun _ => vStar) ≤
+                      C * ‖unitIntervalNeumannHeatSemigroupP0Compl t ht‖
+
 /-- The remaining nonlinear orbit-control input after the concrete
 unit-interval analytic-semigroup spectral decay has been separated out.
 
@@ -45,6 +148,20 @@ def IntervalDomainSpectralSemigroupOrbitBoundRaw
                   N.c1Distance (u t) (fun _ => uStar) +
                     N.c1Distance (v t) (fun _ => vStar) ≤
                       C * ‖unitIntervalNeumannHeatSemigroupP0Compl t ht‖
+
+/-- Convert the concrete sectorial orbit frontier to the generic raw frontier
+used by the existing Paper3 API. -/
+theorem intervalDomain_spectralSemigroupOrbitBoundRaw_of_sectorialConcrete
+    (p : CM2Params)
+    (h : IntervalDomainSectorialSpectralSemigroupOrbitBoundRaw p) :
+    IntervalDomainSpectralSemigroupOrbitBoundRaw p
+      intervalDomainSectorialStabilityNorms := by
+  intro sigma pNorm uStar vStar hsigma_low hsigma_high hpNorm hstable
+  rcases h sigma pNorm uStar vStar hsigma_low hsigma_high hpNorm hstable with
+    ⟨eps, heps, C, hC, hbound⟩
+  refine ⟨eps, heps, C, hC, ?_⟩
+  intro u₀ hu₀ hsmall u v hglobal htrace t ht
+  exact hbound u₀ hu₀ hsmall u v hglobal htrace t ht
 
 /-- The concrete analytic-semigroup spectral decay discharges the exponential
 part of `SectorialLocalExponentialRaw` on `intervalDomain`.
@@ -1940,6 +2057,23 @@ def IntervalDomainTheorem22LocalFrontiers
     (∀ uStar, ∀ delta > 0,
       MassConstrainedSmallDataGlobalExistence intervalDomain p uStar delta)
 
+/-- Concrete interval local frontiers for Theorem 2.2.
+
+Compared with `IntervalDomainTheorem22LocalFrontiers`, the `StabilityNorms`
+package and the `sup`-to-`X^σ_p` field projection are no longer exposed: the
+sectorial interval `X^σ_p` gauge is the concrete sup-distance gauge, so that
+control is discharged by
+`intervalDomainSectorialStabilityNorms_supControlsXpSigmaDistance`. -/
+def IntervalDomainSectorialTheorem22LocalFrontiers
+    (p : CM2Params) : Prop :=
+  ∃ sigma pNorm : ℝ,
+    1 / 2 < sigma ∧ sigma < 1 ∧ 1 < pNorm ∧
+    IntervalDomainSectorialSpectralSemigroupOrbitBoundRaw p ∧
+    (∀ uStar, ∀ delta > 0,
+      SmallDataGlobalExistence intervalDomain p uStar delta) ∧
+    (∀ uStar, ∀ delta > 0,
+      MassConstrainedSmallDataGlobalExistence intervalDomain p uStar delta)
+
 /-- Full interval-domain Theorem 2.2 from the precise named local frontiers.
 
 This is the strongest theorem available in this file without importing a
@@ -1959,6 +2093,36 @@ theorem intervalDomain_Theorem_2_2_of_localFrontiers
   exact
     intervalDomain_Theorem_2_2_criticalSpectrum_of_spectralSemigroupOrbitBound
       p N C hC horbit hsigma_low hsigma_high hpNorm hcontrol hexist hmexist
+
+/-- Concrete interval-domain Theorem 2.2 from the named sectorial local
+frontiers.
+
+This is the mainline local-exponential statement in this file: it uses the
+unit-interval spectral constants and concrete sectorial stability gauges, and
+therefore has no abstract `StabilityNorms` or `Paper3Constants` field
+projection in its interface. -/
+theorem intervalDomain_Theorem_2_2_sectorialMainline_of_localFrontiers
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hfront : IntervalDomainSectorialTheorem22LocalFrontiers p) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) := by
+  rcases hfront with
+    ⟨sigma, pNorm, hsigma_low, hsigma_high, hpNorm, horbit,
+      hexist, hmexist⟩
+  exact
+    intervalDomain_Theorem_2_2_criticalSpectrum_of_spectralSemigroupOrbitBound
+      p intervalDomainSectorialStabilityNorms
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower)
+      (intervalDomainSectorialPaper3Constants_usesCriticalSpectrum
+        p M0 uBar vLower)
+      (intervalDomain_spectralSemigroupOrbitBoundRaw_of_sectorialConcrete
+        p horbit)
+      hsigma_low hsigma_high hpNorm
+      (fun uStar =>
+        intervalDomainSectorialStabilityNorms_supControlsXpSigmaDistance
+          sigma pNorm uStar)
+      hexist hmexist
 
 /-- Persistence plus the raw nonminimal exponential-upgrade frontier gives
 the per-solution exponential conclusion of Corollary 5.1.
@@ -2204,6 +2368,222 @@ theorem intervalDomain_C51_minimal_of_T21_part4_raw
         (uStar := uStar) hglobal hraw hm_le ha hb huStar hχcritical huv
         hmass
 
+/-- Concrete nonminimal convergence-to-exponential frontier for the sectorial
+interval mainline. -/
+def IntervalDomainSectorialConvergenceToExponentialNonminimalRaw
+    (p : CM2Params) : Prop :=
+  ConvergenceToExponentialNonminimalRaw intervalDomain p
+    intervalDomainSectorialC1Distance
+    (fun uStar =>
+      paperCriticalSensitivity unitIntervalNeumannSpectrum p uStar
+        (p.ν / p.μ * uStar ^ p.γ))
+
+/-- Concrete minimal convergence-to-exponential frontier for the sectorial
+interval mainline. -/
+def IntervalDomainSectorialConvergenceToExponentialMinimalRaw
+    (p : CM2Params) : Prop :=
+  ConvergenceToExponentialMinimalRaw intervalDomain p
+    intervalDomainSectorialC1Distance
+    (fun uStar =>
+      paperCriticalSensitivity unitIntervalNeumannSpectrum p uStar
+        (p.ν / p.μ * uStar ^ p.γ))
+
+/-- Theorem 2.1(1) on the concrete sectorial interval constants. -/
+theorem intervalDomain_Theorem_2_1_part1_sectorialMainline
+    {p : CM2Params} {M0 uBar vLower : ℝ}
+    (h21 :
+      Theorem_2_1 intervalDomain p
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower))
+    (hm : 1 ≤ p.m)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v) :
+    ∃ δu > 0, EventuallyLowerBound intervalDomain u δu ∧
+      EventuallyLowerBound intervalDomain v (p.ν / p.μ * δu ^ p.γ) :=
+  intervalDomain_Theorem_2_1_part1_persistence h21 hm huv
+
+/-- Theorem 2.1(4) on the concrete sectorial interval constants, with the
+minimal lower-bound formula no longer projected from a `Paper3Constants`
+field. -/
+theorem intervalDomain_Theorem_2_1_part4_sectorialMainline
+    {p : CM2Params} {M0 uBar vLower : ℝ}
+    (h21 :
+      Theorem_2_1 intervalDomain p
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower))
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1)
+    (hβ : 1 ≤ p.β) (hχ0 : 0 < p.χ₀)
+    (hχ :
+      p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
+    {uStar : ℝ} (huStar : 0 < uStar)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hmass : HasInitialMass intervalDomain u uStar) :
+    EventuallyLowerBound intervalDomain v
+      (minimalVLowerFormula 1 p.γ uStar uBar) := by
+  simpa [intervalDomainSectorialPaper3Constants] using
+    intervalDomain_Theorem_2_1_part4_persistence
+      (C := intervalDomainSectorialPaper3Constants p M0 uBar vLower)
+      h21 ha hb hm hβ hχ0 hχ huStar huv hmass
+
+/-- Concrete C5.1 nonminimal exponential upgrade with no abstract
+`StabilityNorms.c1Distance` projection in the hypothesis. -/
+theorem intervalDomain_C51_nonminimalExponential_of_sectorialRaw
+    {p : CM2Params}
+    (hraw : IntervalDomainSectorialConvergenceToExponentialNonminimalRaw p)
+    (hm : 1 ≤ p.m) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hconv :
+      UniformConvergesInSup intervalDomain u
+        (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ExponentialC1Convergence intervalDomain
+      intervalDomainSectorialStabilityNorms u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  intervalDomain_C51_nonminimalExponential_of_raw
+    (N := intervalDomainSectorialStabilityNorms)
+    hraw hm ha hb hχ huv hconv
+
+/-- Concrete C5.1 minimal exponential upgrade with no abstract
+`StabilityNorms.c1Distance` projection in the hypothesis. -/
+theorem intervalDomain_C51_minimalExponential_of_sectorialRaw
+    {p : CM2Params}
+    (hraw : IntervalDomainSectorialConvergenceToExponentialMinimalRaw p)
+    (hm : 1 ≤ p.m) (ha : p.a = 0) (hb : p.b = 0)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hmass : HasInitialMass intervalDomain u uStar)
+    (hconv :
+      UniformConvergesInSup intervalDomain u
+        (minimalEquilibrium p uStar).1) :
+    ExponentialC1Convergence intervalDomain
+      intervalDomainSectorialStabilityNorms u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  intervalDomain_C51_minimalExponential_of_raw
+    (N := intervalDomainSectorialStabilityNorms)
+    hraw hm ha hb huStar hχ huv hmass hconv
+
+/-- Concrete sectorial mainline: Theorem 2.1 persistence, nonminimal global
+convergence, and the concrete raw C5.1 frontier give persistence plus
+exponential convergence for the same solution. -/
+theorem intervalDomain_C51_nonminimal_of_T21_sectorialMainline
+    {p : CM2Params} {M0 uBar vLower : ℝ}
+    {ha : 0 < p.a} {hb : 0 < p.b}
+    (h21 :
+      Theorem_2_1 intervalDomain p
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower))
+    (hglobal :
+      GloballyAsymptoticallyStableNonminimal intervalDomain p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2)
+    (hraw : IntervalDomainSectorialConvergenceToExponentialNonminimalRaw p)
+    (hm : 1 ≤ p.m)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v) :
+    (∃ δu > 0, EventuallyLowerBound intervalDomain u δu ∧
+      EventuallyLowerBound intervalDomain v (p.ν / p.μ * δu ^ p.γ)) ∧
+    ExponentialC1Convergence intervalDomain
+      intervalDomainSectorialStabilityNorms u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+  refine ⟨?_, ?_⟩
+  · exact intervalDomain_Theorem_2_1_part1_sectorialMainline h21 hm huv
+  · exact intervalDomain_C51_nonminimalExponential_of_sectorialRaw
+      hraw hm ha hb hχ huv (hglobal u v huv)
+
+/-- Concrete sectorial mainline for the minimal mass-constrained branch:
+Theorem 2.1 persistence, minimal global convergence, and the concrete raw
+C5.1 frontier give persistence plus exponential convergence. -/
+theorem intervalDomain_C51_minimal_of_T21_sectorialMainline
+    {p : CM2Params} {M0 uBar vLower uStar : ℝ}
+    (h21 :
+      Theorem_2_1 intervalDomain p
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower))
+    (hglobal :
+      GloballyAsymptoticallyStableMinimal intervalDomain p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2)
+    (hraw : IntervalDomainSectorialConvergenceToExponentialMinimalRaw p)
+    (hm : 1 ≤ p.m) (ha : p.a = 0) (hb : p.b = 0)
+    (huStar : 0 < uStar)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hmass : HasInitialMass intervalDomain u uStar) :
+    (∃ δu > 0, EventuallyLowerBound intervalDomain u δu ∧
+      EventuallyLowerBound intervalDomain v (p.ν / p.μ * δu ^ p.γ)) ∧
+    ExponentialC1Convergence intervalDomain
+      intervalDomainSectorialStabilityNorms u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 := by
+  refine ⟨?_, ?_⟩
+  · exact intervalDomain_Theorem_2_1_part1_sectorialMainline h21 hm huv
+  · exact intervalDomain_C51_minimalExponential_of_sectorialRaw
+      hraw hm ha hb huStar hχ huv hmass
+      (hglobal u v huv (by
+        simpa [minimalEquilibrium_fst_eq] using hmass))
+
+/-- Concrete minimal Theorem 2.1(4) persistence paired with concrete C5.1
+exponential convergence. -/
+theorem intervalDomain_C51_minimal_of_T21_part4_sectorialMainline
+    {p : CM2Params} {M0 uBar vLower uStar : ℝ}
+    (h21 :
+      Theorem_2_1 intervalDomain p
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower))
+    (hglobal :
+      GloballyAsymptoticallyStableMinimal intervalDomain p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2)
+    (hraw : IntervalDomainSectorialConvergenceToExponentialMinimalRaw p)
+    (hm_le : 1 ≤ p.m)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1)
+    (hβ : 1 ≤ p.β) (hχ0 : 0 < p.χ₀)
+    (hχsmall :
+      p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
+    (huStar : 0 < uStar)
+    (hχcritical :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hmass : HasInitialMass intervalDomain u uStar) :
+    EventuallyLowerBound intervalDomain v
+      (minimalVLowerFormula 1 p.γ uStar uBar) ∧
+    ExponentialC1Convergence intervalDomain
+      intervalDomainSectorialStabilityNorms u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 := by
+  refine ⟨?_, ?_⟩
+  · exact
+      intervalDomain_Theorem_2_1_part4_sectorialMainline h21 ha hb hm hβ
+        hχ0 hχsmall huStar huv hmass
+  · exact intervalDomain_C51_minimalExponential_of_sectorialRaw
+      hraw hm_le ha hb huStar hχcritical huv hmass
+      (hglobal u v huv (by
+        simpa [minimalEquilibrium_fst_eq] using hmass))
+
 /-- Theorem 2.3 from explicit persistence and uniform exponential-upgrade
 frontiers on the interval.
 
@@ -2353,6 +2733,121 @@ theorem intervalDomain_Theorem_2_5_of_persistence_exp_frontiers
   refine ⟨hglobalBranch, A, hA, rate, hrate, ?_⟩
   intro u v huv hmass
   exact hdecay u v huv hmass (hglobalBranch u v huv hmass)
+
+/-- Concrete sectorial Theorem 2.3 from explicit persistence/global
+convergence and uniform exponential-upgrade frontiers. -/
+theorem intervalDomain_Theorem_2_3_sectorialMainline_of_persistence_exp_frontiers
+    (p : CM2Params)
+    (hglobalNonminimal :
+      p.χ₀ ≤ 0 → 1 ≤ p.m →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          GloballyAsymptoticallyStableNonminimal intervalDomain p
+            eq.1 eq.2)
+    (hglobalMinimal :
+      p.χ₀ ≤ 0 → 1 ≤ p.m → p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          GloballyAsymptoticallyStableMinimal intervalDomain p
+            eq.1 eq.2)
+    (hExpNonminimal :
+      p.χ₀ ≤ 0 → 1 ≤ p.m →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              PositiveGlobalBoundedSolution intervalDomain p u v →
+              UniformConvergesInSup intervalDomain u eq.1 →
+                ExponentialC1ConvergenceWith intervalDomain
+                  intervalDomainSectorialStabilityNorms u v
+                  eq.1 eq.2 A rate)
+    (hExpMinimal :
+      p.χ₀ ≤ 0 → 1 ≤ p.m → p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              PositiveGlobalBoundedSolution intervalDomain p u v →
+              HasInitialMass intervalDomain u uStar →
+              UniformConvergesInSup intervalDomain u eq.1 →
+                ExponentialC1ConvergenceWith intervalDomain
+                  intervalDomainSectorialStabilityNorms u v
+                  eq.1 eq.2 A rate) :
+    Theorem_2_3 intervalDomain p intervalDomainSectorialStabilityNorms :=
+  intervalDomain_Theorem_2_3_of_persistence_exp_frontiers
+    p intervalDomainSectorialStabilityNorms
+    hglobalNonminimal hglobalMinimal hExpNonminimal hExpMinimal
+
+/-- Concrete sectorial Theorem 2.4 from explicit persistence and uniform
+exponential-upgrade frontiers, with the constants fixed to the interval
+mainline package. -/
+theorem intervalDomain_Theorem_2_4_sectorialMainline_of_persistence_exp_frontiers
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hglobal :
+      0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          NonminimalGlobalStabilityCondition intervalDomain p
+            (intervalDomainSectorialPaper3Constants p M0 uBar vLower)
+            eq.1 →
+            GloballyAsymptoticallyStableNonminimal intervalDomain p
+              eq.1 eq.2)
+    (hExp :
+      0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          NonminimalGlobalStabilityCondition intervalDomain p
+            (intervalDomainSectorialPaper3Constants p M0 uBar vLower)
+            eq.1 →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                UniformConvergesInSup intervalDomain u eq.1 →
+                  ExponentialC1ConvergenceWith intervalDomain
+                    intervalDomainSectorialStabilityNorms u v
+                    eq.1 eq.2 A rate) :
+    Theorem_2_4 intervalDomain p intervalDomainSectorialStabilityNorms
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_4_of_persistence_exp_frontiers
+    p intervalDomainSectorialStabilityNorms
+    (intervalDomainSectorialPaper3Constants p M0 uBar vLower)
+    hglobal hExp
+
+/-- Concrete sectorial Theorem 2.5 from explicit minimal-model persistence and
+uniform exponential-upgrade frontiers, with the constants fixed to the
+interval mainline package. -/
+theorem intervalDomain_Theorem_2_5_sectorialMainline_of_persistence_exp_frontiers
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hglobal :
+      p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          MinimalGlobalStabilityCondition intervalDomain p
+            (intervalDomainSectorialPaper3Constants p M0 uBar vLower)
+            uStar →
+            GloballyAsymptoticallyStableMinimal intervalDomain p
+              eq.1 eq.2)
+    (hExp :
+      p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          MinimalGlobalStabilityCondition intervalDomain p
+            (intervalDomainSectorialPaper3Constants p M0 uBar vLower)
+            uStar →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                HasInitialMass intervalDomain u uStar →
+                UniformConvergesInSup intervalDomain u eq.1 →
+                  ExponentialC1ConvergenceWith intervalDomain
+                    intervalDomainSectorialStabilityNorms u v
+                    eq.1 eq.2 A rate) :
+    Theorem_2_5 intervalDomain p intervalDomainSectorialStabilityNorms
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_5_of_persistence_exp_frontiers
+    p intervalDomainSectorialStabilityNorms
+    (intervalDomainSectorialPaper3Constants p M0 uBar vLower)
+    hglobal hExp
 
 end
 
