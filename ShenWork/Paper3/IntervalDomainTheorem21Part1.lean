@@ -87,6 +87,30 @@ theorem intervalDomain_eventually_pointwise_lower_of_inside_boundary_lower
   exact intervalDomain_pointwise_lower_of_inside_boundary_lower
     ht_inside ht_boundary x
 
+/-- Eventual pointwise lower bounds on the concrete interval are equivalent
+to eventual lower bounds on the open interior and on the two endpoints. -/
+theorem intervalDomain_eventually_pointwise_lower_iff_inside_boundary_lower
+    {u : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ} {delta : ℝ} :
+    (∀ᶠ t in atTop,
+      ∀ x : ShenWork.IntervalDomain.intervalDomain.Point, delta ≤ u t x) ↔
+      (∀ᶠ t in atTop,
+        ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+          x ∈ ShenWork.IntervalDomain.intervalDomain.inside → delta ≤ u t x) ∧
+      (∀ᶠ t in atTop,
+        ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+          x ∈ ShenWork.IntervalDomain.intervalDomain.boundary →
+            delta ≤ u t x) := by
+  constructor
+  · intro hpoint
+    constructor
+    · filter_upwards [hpoint] with t ht x _hx
+      exact ht x
+    · filter_upwards [hpoint] with t ht x _hx
+      exact ht x
+  · rintro ⟨hinside, hboundary⟩
+    exact intervalDomain_eventually_pointwise_lower_of_inside_boundary_lower
+      hinside hboundary
+
 /-- Lower bounds on the open interval plus the boundary endpoints imply the
 statement-layer lower-envelope bound.  This is only a domain-covering bridge;
 the analytic work is still proving the two eventual lower-bound hypotheses. -/
@@ -139,6 +163,27 @@ theorem intervalDomain_eventuallyLowerBound_iff_eventually_pointwise_lower
   constructor
   · exact intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound hbdd
   · exact intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower hdelta
+
+/-- Lower-envelope persistence is equivalent to the interior-plus-boundary
+formulation, under the same lower-bounded-range regularity needed for reading
+`sInf` back pointwise. -/
+theorem intervalDomain_eventuallyLowerBound_iff_inside_boundary_lower
+    {u : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ} {delta : ℝ}
+    (hdelta : 0 < delta)
+    (hbdd :
+      ∀ᶠ t in atTop,
+        BddBelow (Set.range (u t))) :
+    EventuallyLowerBound ShenWork.IntervalDomain.intervalDomain u delta ↔
+      (∀ᶠ t in atTop,
+        ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+          x ∈ ShenWork.IntervalDomain.intervalDomain.inside → delta ≤ u t x) ∧
+      (∀ᶠ t in atTop,
+        ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+          x ∈ ShenWork.IntervalDomain.intervalDomain.boundary →
+            delta ≤ u t x) := by
+  rw [intervalDomain_eventuallyLowerBound_iff_eventually_pointwise_lower
+    hdelta hbdd]
+  exact intervalDomain_eventually_pointwise_lower_iff_inside_boundary_lower
 
 /-- Conditional intervalDomain version of Paper3 Theorem 2.1(1).
 
