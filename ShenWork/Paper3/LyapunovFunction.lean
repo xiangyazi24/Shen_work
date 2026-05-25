@@ -597,6 +597,22 @@ theorem energy_tendsto_zero_of_hasDerivAt_le_neg_mul
   · exact eventually_atTop.mpr
       ⟨s, fun t ht => hdecay s t hs ht⟩
 
+/-- If a nonnegative energy satisfies `E'(t) ≤ -rate E(t)` with
+`rate ≥ 0`, then the unweighted energy is antitone on `(0,∞)`. -/
+theorem energy_antitoneOn_Ioi_of_hasDerivAt_le_neg_mul_nonneg
+    {E E' : ℝ → ℝ} {rate : ℝ}
+    (hrate : 0 ≤ rate)
+    (hderiv : ∀ t, 0 < t → HasDerivAt E (E' t) t)
+    (hle : ∀ t, 0 < t → E' t ≤ -rate * E t)
+    (hnonneg : ∀ t, 0 < t → 0 ≤ E t) :
+    AntitoneOn E (Ioi (0 : ℝ)) := by
+  refine energy_antitoneOn_Ioi_of_hasDerivAt_nonpos hderiv ?_
+  intro t ht
+  have hright : -rate * E t ≤ 0 := by
+    simpa [neg_mul] using
+      neg_nonpos.mpr (mul_nonneg hrate (hnonneg t ht))
+  exact le_trans (hle t ht) hright
+
 /-- Differential dissipation plus a Poincare-type control implies the weighted
 energy is decreasing.
 
@@ -983,6 +999,57 @@ theorem intervalDomain_thetaDissipation_weighted_antitoneOn_of_hasDerivAt_le_neg
           chemotaxisThetaDissipation intervalDomain uStar theta (u t))
       (Ioi (0 : ℝ)) :=
   thetaDissipation_weighted_antitoneOn_of_hasDerivAt_le_neg_mul hderiv hle
+
+/-- A nonnegative theta production satisfying direct differential decay is
+itself decreasing on `(0,∞)`. -/
+theorem thetaDissipation_antitoneOn_of_hasDerivAt_le_neg_mul_and_nonneg
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {uStar theta rate : ℝ} {momentSlope : ℝ → ℝ}
+    (hrate : 0 ≤ rate)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisThetaDissipation D uStar theta (u tau))
+          (momentSlope t) t)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation D uStar theta (u t))
+    (hnonneg :
+      ∀ t, 0 < t →
+        0 ≤ chemotaxisThetaDissipation D uStar theta (u t)) :
+    AntitoneOn
+      (fun t => chemotaxisThetaDissipation D uStar theta (u t))
+      (Ioi (0 : ℝ)) :=
+  energy_antitoneOn_Ioi_of_hasDerivAt_le_neg_mul_nonneg
+    hrate hderiv hle hnonneg
+
+/-- Concrete interval-domain theta-production monotonicity with nonnegativity
+discharged from `PositiveGlobalBoundedSolution`. -/
+theorem intervalDomain_thetaDissipation_antitoneOn_of_positiveGlobalBoundedSolution
+    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta rate : ℝ} {momentSlope : ℝ → ℝ}
+    (hrate : 0 ≤ rate)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau =>
+            chemotaxisThetaDissipation intervalDomain uStar theta (u tau))
+          (momentSlope t) t)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    AntitoneOn
+      (fun t => chemotaxisThetaDissipation intervalDomain uStar theta (u t))
+      (Ioi (0 : ℝ)) :=
+  thetaDissipation_antitoneOn_of_hasDerivAt_le_neg_mul_and_nonneg
+    hrate hderiv hle
+    (fun t ht =>
+      intervalDomain_chemotaxisThetaDissipation_nonneg_of_positiveGlobalBoundedSolution
+        (t := t) huStar htheta huv ht)
 
 /-- A direct theta-moment differential decay estimate gives the statement-layer
 `ThetaMomentConvergesToZero` conclusion.
