@@ -9,9 +9,11 @@
   interval heat terms are spatially differentiable and their gradients satisfy
   the already established H0.2 `Lp` bounds.
 
-  The remaining classical upgrade needs differentiating the Duhamel time
-  integral once in time and once more in space.  That is exposed as an explicit
-  frontier certificate at the end, not hidden as an axiom or a theorem field.
+  This file also records the spectral heat-flow `C²` in space / `C¹` in time
+  certificate for cosine coefficients.  The remaining nonlinear frontier is
+  the upper-endpoint differentiation of the Duhamel time integral and the
+  maximum-principle/positivity part of `RegularityBootstrap`; neither is hidden
+  as an axiom or a theorem field.
 -/
 import ShenWork.PDE.HeatKernelGradientEstimates
 import ShenWork.PDE.GagliardoNirenberg
@@ -138,6 +140,552 @@ theorem intervalDuhamelIntegrand_hasDerivAt_deriv
   exact intervalSemigroupOperator_hasDerivAt_deriv
     (L := 1) (t := t - s) (x := x)
     (by linarith) (f := intervalDomainLift (F s)) hF_int
+
+/-! ## Spectral heat-flow `C²`/`C¹` certificates -/
+
+/-- Pointwise coefficient for the spatial Laplacian/time derivative of the
+unit-interval cosine heat flow. -/
+def unitIntervalCosineHeatLaplacianPointWeight (t x : ℝ) (n : ℕ) : ℝ :=
+  -unitIntervalCosineEigenvalue n *
+    unitIntervalCosineHeatPointWeight t x n
+
+/-- Cosine-coefficient model for the spatial Laplacian/time derivative of the
+unit-interval heat semigroup value at `x`. -/
+def unitIntervalCosineHeatLaplacianValue
+    (t : ℝ) (a : ℕ → ℝ) (x : ℝ) : ℝ :=
+  ∑' n, unitIntervalCosineHeatLaplacianPointWeight t x n * a n
+
+/-- Squared coefficient controlling point evaluation of the heat-flow
+Laplacian. -/
+def unitIntervalCosineHeatLaplacianMultiplier (t : ℝ) (n : ℕ) : ℝ :=
+  (unitIntervalCosineEigenvalue n) ^ 2 *
+    Real.exp (-2 * t * unitIntervalCosineEigenvalue n)
+
+/-- Heat-flow Laplacian trace for the unit-interval cosine model. -/
+def unitIntervalCosineHeatLaplacianTrace (t : ℝ) : ℝ :=
+  ∑' n, unitIntervalCosineHeatLaplacianMultiplier t n
+
+/-- The squared pointwise Laplacian weight is bounded by the spectral
+Laplacian multiplier. -/
+lemma unitIntervalCosineHeatLaplacianPointWeight_sq_le_multiplier
+    (t x : ℝ) (n : ℕ) :
+    (unitIntervalCosineHeatLaplacianPointWeight t x n) ^ 2 ≤
+      unitIntervalCosineHeatLaplacianMultiplier t n := by
+  let lambda : ℝ := unitIntervalCosineEigenvalue n
+  have hcos : (unitIntervalCosineMode n x) ^ 2 ≤ 1 := by
+    rw [sq_le_one_iff_abs_le_one]
+    exact Real.abs_cos_le_one _
+  have hcoeff_nonneg :
+      0 ≤ lambda ^ 2 * Real.exp (-2 * t * lambda) := by
+    positivity
+  calc
+    (unitIntervalCosineHeatLaplacianPointWeight t x n) ^ 2
+        = lambda ^ 2 * Real.exp (-2 * t * lambda) *
+            (unitIntervalCosineMode n x) ^ 2 := by
+          dsimp [unitIntervalCosineHeatLaplacianPointWeight,
+            unitIntervalCosineHeatPointWeight, lambda]
+          have hexp :
+              Real.exp (-t * unitIntervalCosineEigenvalue n) ^ 2 =
+                Real.exp (-2 * t * unitIntervalCosineEigenvalue n) := by
+            rw [sq, ← Real.exp_add]
+            congr 1
+            ring
+          rw [show
+              (-unitIntervalCosineEigenvalue n *
+                  (Real.exp (-t * unitIntervalCosineEigenvalue n) *
+                    unitIntervalCosineMode n x)) ^ 2 =
+                unitIntervalCosineEigenvalue n ^ 2 *
+                  Real.exp (-t * unitIntervalCosineEigenvalue n) ^ 2 *
+                    unitIntervalCosineMode n x ^ 2 by
+              ring]
+          rw [hexp]
+    _ ≤ lambda ^ 2 * Real.exp (-2 * t * lambda) * 1 :=
+          mul_le_mul_of_nonneg_left hcos hcoeff_nonneg
+    _ = unitIntervalCosineHeatLaplacianMultiplier t n := by
+          dsimp [unitIntervalCosineHeatLaplacianMultiplier, lambda]
+          ring
+
+/-- Positive-time Laplacian multipliers are dominated by a single-exponential
+trace, hence summable. -/
+lemma unitIntervalCosineHeatLaplacianMultiplier_le_single_exp_majorant
+    {t : ℝ} (ht : 0 < t) (n : ℕ) :
+    unitIntervalCosineHeatLaplacianMultiplier t n ≤
+      (4 / t ^ 2) * Real.exp (-t * unitIntervalCosineEigenvalue n) := by
+  let lambda : ℝ := unitIntervalCosineEigenvalue n
+  have hlambda : 0 ≤ lambda := by
+    dsimp [lambda, unitIntervalCosineEigenvalue]
+    positivity
+  have hz : 0 ≤ t * lambda := by positivity
+  have hgauss : (t * lambda) ^ 2 * Real.exp (-(t * lambda)) ≤ 4 :=
+    real_sq_mul_exp_neg_le_four hz
+  have hscale_nonneg :
+      0 ≤ (1 / t ^ 2) * Real.exp (-(t * lambda)) := by
+    positivity
+  calc
+    unitIntervalCosineHeatLaplacianMultiplier t n
+        =
+          ((1 / t ^ 2) * Real.exp (-(t * lambda))) *
+            ((t * lambda) ^ 2 * Real.exp (-(t * lambda))) := by
+          dsimp [unitIntervalCosineHeatLaplacianMultiplier, lambda]
+          rw [show
+            Real.exp (-2 * t * unitIntervalCosineEigenvalue n) =
+              Real.exp (-(t * unitIntervalCosineEigenvalue n)) *
+                Real.exp (-(t * unitIntervalCosineEigenvalue n)) by
+            rw [← Real.exp_add]
+            congr 1
+            ring]
+          field_simp [ne_of_gt ht]
+    _ ≤ ((1 / t ^ 2) * Real.exp (-(t * lambda))) * 4 :=
+          mul_le_mul_of_nonneg_left hgauss hscale_nonneg
+    _ = (4 / t ^ 2) * Real.exp (-t * unitIntervalCosineEigenvalue n) := by
+          dsimp [lambda]
+          ring_nf
+
+/-- Summability of the heat-flow Laplacian trace at positive time. -/
+lemma unitIntervalCosineHeatLaplacianMultiplier_summable
+    {t : ℝ} (ht : 0 < t) :
+    Summable fun n => unitIntervalCosineHeatLaplacianMultiplier t n := by
+  have hnonneg :
+      ∀ n, 0 ≤ unitIntervalCosineHeatLaplacianMultiplier t n := by
+    intro n
+    dsimp [unitIntervalCosineHeatLaplacianMultiplier,
+      unitIntervalCosineEigenvalue]
+    positivity
+  have hdom :
+      ∀ n,
+        unitIntervalCosineHeatLaplacianMultiplier t n ≤
+          (4 / t ^ 2) * Real.exp (-t * unitIntervalCosineEigenvalue n) :=
+    unitIntervalCosineHeatLaplacianMultiplier_le_single_exp_majorant ht
+  exact Summable.of_nonneg_of_le hnonneg hdom
+    ((unitIntervalCosineHeatTrace_single_exp_summable (t := t) ht).mul_left
+      (4 / t ^ 2))
+
+/-- Laplacian multipliers decrease as heat time increases. -/
+lemma unitIntervalCosineHeatLaplacianMultiplier_anti_mono_time
+    {r τ : ℝ} (hrτ : r ≤ τ) (n : ℕ) :
+    unitIntervalCosineHeatLaplacianMultiplier τ n ≤
+      unitIntervalCosineHeatLaplacianMultiplier r n := by
+  let lambda : ℝ := unitIntervalCosineEigenvalue n
+  have hlambda : 0 ≤ lambda := by
+    dsimp [lambda, unitIntervalCosineEigenvalue]
+    positivity
+  have hexp :
+      Real.exp (-2 * τ * lambda) ≤ Real.exp (-2 * r * lambda) := by
+    apply Real.exp_le_exp.mpr
+    nlinarith
+  exact mul_le_mul_of_nonneg_left hexp (sq_nonneg lambda)
+
+/-- Differentiating the first spatial derivative of one heat-weighted cosine
+mode gives the Laplacian weight. -/
+theorem unitIntervalCosineHeatGradientPointWeight_hasDerivAt_laplacian
+    (t : ℝ) (n : ℕ) (x : ℝ) :
+    HasDerivAt
+      (fun y : ℝ => unitIntervalCosineHeatGradientPointWeight t y n)
+      (unitIntervalCosineHeatLaplacianPointWeight t x n) x := by
+  let a : ℝ := (n : ℝ) * Real.pi
+  have hsin :
+      HasDerivAt (fun y : ℝ => Real.sin (a * y))
+        (a * Real.cos (a * x)) x := by
+    have h :=
+      (Real.hasDerivAt_sin (a * x)).comp x
+        ((hasDerivAt_id x).const_mul a)
+    convert h using 1
+    ring
+  have h :=
+    hsin.const_mul (Real.exp (-t * unitIntervalCosineEigenvalue n) * (-a))
+  convert h using 1
+  · ext y
+    simp [unitIntervalCosineHeatGradientPointWeight, a]
+    ring
+  · simp [unitIntervalCosineHeatLaplacianPointWeight,
+      unitIntervalCosineHeatPointWeight, unitIntervalCosineMode,
+      unitIntervalCosineEigenvalue, a]
+    ring
+
+/-- Second-spatial derivative formula for one heat-weighted cosine coefficient. -/
+theorem unitIntervalCosineHeatGradientTerm_hasDerivAt_laplacian
+    (t : ℝ) (a : ℕ → ℝ) (n : ℕ) (x : ℝ) :
+    HasDerivAt
+      (fun y : ℝ => unitIntervalCosineHeatGradientPointWeight t y n * a n)
+      (unitIntervalCosineHeatLaplacianPointWeight t x n * a n) x := by
+  simpa [mul_assoc] using
+    (unitIntervalCosineHeatGradientPointWeight_hasDerivAt_laplacian
+      t n x).mul_const (a n)
+
+/-- Time derivative of one heat-weighted cosine mode equals its Laplacian
+weight. -/
+theorem unitIntervalCosineHeatPointWeight_hasTimeDerivAt_laplacian
+    (t x : ℝ) (n : ℕ) :
+    HasDerivAt (fun τ : ℝ => unitIntervalCosineHeatPointWeight τ x n)
+      (unitIntervalCosineHeatLaplacianPointWeight t x n) t := by
+  let lambda : ℝ := unitIntervalCosineEigenvalue n
+  have hlin : HasDerivAt (fun τ : ℝ => -(τ * lambda)) (-lambda) t := by
+    have hmul : HasDerivAt (fun τ : ℝ => τ * lambda) lambda t :=
+      by simpa [id, one_mul] using (hasDerivAt_id t).mul_const lambda
+    simpa using hmul.neg
+  have hexp := hlin.exp
+  have h := hexp.mul_const (unitIntervalCosineMode n x)
+  convert h using 1
+  · ext τ
+    simp [unitIntervalCosineHeatPointWeight, lambda]
+  · simp [unitIntervalCosineHeatLaplacianPointWeight,
+      unitIntervalCosineHeatPointWeight, unitIntervalCosineMode, lambda]
+    ring
+
+/-- Time derivative formula for one heat-weighted cosine coefficient. -/
+theorem unitIntervalCosineHeatTerm_hasTimeDerivAt_laplacian
+    (t x : ℝ) (a : ℕ → ℝ) (n : ℕ) :
+    HasDerivAt
+      (fun τ : ℝ => unitIntervalCosineHeatPointWeight τ x n * a n)
+      (unitIntervalCosineHeatLaplacianPointWeight t x n * a n) t := by
+  simpa [mul_assoc] using
+    (unitIntervalCosineHeatPointWeight_hasTimeDerivAt_laplacian
+      t x n).mul_const (a n)
+
+/-- Term-by-term differentiation of the gradient cosine series.  This is the
+second spatial derivative of the heat-flow cosine model, with an explicit
+summable majorant for the Laplacian series. -/
+theorem unitIntervalCosineHeatGradientValue_hasDerivAt_of_summable_bound
+    {t x x₀ : ℝ} {a : ℕ → ℝ} {u : ℕ → ℝ}
+    (hu : Summable u)
+    (hbound :
+      ∀ n y,
+        ‖unitIntervalCosineHeatLaplacianPointWeight t y n * a n‖ ≤ u n)
+    (h₀ :
+      Summable fun n => unitIntervalCosineHeatGradientPointWeight t x₀ n * a n) :
+    HasDerivAt (fun z : ℝ => unitIntervalCosineHeatGradientValue t a z)
+      (unitIntervalCosineHeatLaplacianValue t a x) x := by
+  simpa [unitIntervalCosineHeatGradientValue,
+    unitIntervalCosineHeatLaplacianValue] using
+    (hasDerivAt_tsum
+      (𝕜 := ℝ) (F := ℝ)
+      (u := u)
+      (g := fun n z =>
+        unitIntervalCosineHeatGradientPointWeight t z n * a n)
+      (g' := fun n z =>
+        unitIntervalCosineHeatLaplacianPointWeight t z n * a n)
+      hu
+      (fun n y => by
+        simpa using
+          unitIntervalCosineHeatGradientTerm_hasDerivAt_laplacian t a n y)
+      (fun n y => by
+        simpa using hbound n y)
+      (by simpa using h₀)
+      x)
+
+/-- Derivative form of
+`unitIntervalCosineHeatGradientValue_hasDerivAt_of_summable_bound`. -/
+theorem unitIntervalCosineHeatGradientValue_deriv_of_summable_bound
+    {t x x₀ : ℝ} {a : ℕ → ℝ} {u : ℕ → ℝ}
+    (hu : Summable u)
+    (hbound :
+      ∀ n y,
+        ‖unitIntervalCosineHeatLaplacianPointWeight t y n * a n‖ ≤ u n)
+    (h₀ :
+      Summable fun n => unitIntervalCosineHeatGradientPointWeight t x₀ n * a n) :
+    deriv (fun z : ℝ => unitIntervalCosineHeatGradientValue t a z) x =
+      unitIntervalCosineHeatLaplacianValue t a x :=
+  (unitIntervalCosineHeatGradientValue_hasDerivAt_of_summable_bound
+    (t := t) (x := x) (x₀ := x₀) hu hbound h₀).deriv
+
+/-- Term-by-term time differentiation of the cosine heat series. -/
+theorem unitIntervalCosineHeatValue_hasTimeDerivAt_of_summable_bound
+    {t x t₀ : ℝ} {a : ℕ → ℝ} {u : ℕ → ℝ}
+    (hu : Summable u)
+    (hbound :
+      ∀ n τ,
+        ‖unitIntervalCosineHeatLaplacianPointWeight τ x n * a n‖ ≤ u n)
+    (h₀ :
+      Summable fun n => unitIntervalCosineHeatPointWeight t₀ x n * a n) :
+    HasDerivAt (fun τ : ℝ => unitIntervalCosineHeatValue τ a x)
+      (unitIntervalCosineHeatLaplacianValue t a x) t := by
+  simpa [unitIntervalCosineHeatValue,
+    unitIntervalCosineHeatLaplacianValue] using
+    (hasDerivAt_tsum
+      (𝕜 := ℝ) (F := ℝ)
+      (u := u)
+      (g := fun n τ =>
+        unitIntervalCosineHeatPointWeight τ x n * a n)
+      (g' := fun n τ =>
+        unitIntervalCosineHeatLaplacianPointWeight τ x n * a n)
+      hu
+      (fun n τ => by
+        simpa using
+          unitIntervalCosineHeatTerm_hasTimeDerivAt_laplacian τ x a n)
+      (fun n τ => by
+        simpa using hbound n τ)
+      (by simpa using h₀)
+      t)
+
+/-- Local version of term-by-term time differentiation.  The summable
+majorant only has to hold on the open positive-time side `Ioi r`, which is the
+usable form for heat regularization at `t > 0`. -/
+theorem unitIntervalCosineHeatValue_hasTimeDerivAt_of_summable_bound_on_Ioi
+    {r t x t₀ : ℝ} {a : ℕ → ℝ} {u : ℕ → ℝ}
+    (hrt : r < t) (hr₀ : r < t₀)
+    (hu : Summable u)
+    (hbound :
+      ∀ n τ, τ ∈ Set.Ioi r →
+        ‖unitIntervalCosineHeatLaplacianPointWeight τ x n * a n‖ ≤ u n)
+    (h₀ :
+      Summable fun n => unitIntervalCosineHeatPointWeight t₀ x n * a n) :
+    HasDerivAt (fun τ : ℝ => unitIntervalCosineHeatValue τ a x)
+      (unitIntervalCosineHeatLaplacianValue t a x) t := by
+  simpa [unitIntervalCosineHeatValue,
+    unitIntervalCosineHeatLaplacianValue] using
+    (hasDerivAt_tsum_of_isPreconnected
+      (𝕜 := ℝ) (F := ℝ)
+      (u := u)
+      (t := Set.Ioi r)
+      (g := fun n τ =>
+        unitIntervalCosineHeatPointWeight τ x n * a n)
+      (g' := fun n τ =>
+        unitIntervalCosineHeatLaplacianPointWeight τ x n * a n)
+      hu isOpen_Ioi isPreconnected_Ioi
+      (fun n τ _hτ => by
+        simpa using
+          unitIntervalCosineHeatTerm_hasTimeDerivAt_laplacian τ x a n)
+      (fun n τ hτ => by
+        simpa using hbound n τ hτ)
+      (by simpa using hr₀)
+      (by simpa using h₀)
+      (by simpa using hrt))
+
+/-- `L²` coefficient data gives a summable majorant for the heat-Laplacian
+point weights at any positive heat time. -/
+lemma unitIntervalCosineHeatLaplacianPointWeight_l2_majorant
+    {t : ℝ} (ht : 0 < t) {a : ℕ → ℝ}
+    (ha : Summable fun n => (a n) ^ 2) :
+    Summable
+        (fun n =>
+          Real.sqrt (unitIntervalCosineHeatLaplacianMultiplier t n) *
+            |a n|) ∧
+      ∀ n x,
+        ‖unitIntervalCosineHeatLaplacianPointWeight t x n * a n‖ ≤
+          Real.sqrt (unitIntervalCosineHeatLaplacianMultiplier t n) *
+            |a n| := by
+  let m : ℕ → ℝ := fun n => unitIntervalCosineHeatLaplacianMultiplier t n
+  have hm_nonneg : ∀ n, 0 ≤ m n := by
+    intro n
+    dsimp [m, unitIntervalCosineHeatLaplacianMultiplier]
+    positivity
+  have hm : Summable m := by
+    simpa [m] using unitIntervalCosineHeatLaplacianMultiplier_summable ht
+  have hsqrt_sq : Summable fun n => (Real.sqrt (m n)) ^ 2 := by
+    refine hm.congr ?_
+    intro n
+    exact (Real.sq_sqrt (hm_nonneg n)).symm
+  have hu_abs :
+      Summable fun n => |Real.sqrt (m n) * a n| :=
+    real_summable_abs_mul_of_summable_sq hsqrt_sq ha
+  have hu :
+      Summable fun n => Real.sqrt (m n) * |a n| := by
+    simpa [abs_mul, abs_of_nonneg (Real.sqrt_nonneg _)] using hu_abs
+  refine ⟨by simpa [m] using hu, ?_⟩
+  intro n x
+  have hsq :=
+    unitIntervalCosineHeatLaplacianPointWeight_sq_le_multiplier t x n
+  have hw_abs :
+      |unitIntervalCosineHeatLaplacianPointWeight t x n| ≤
+        Real.sqrt (unitIntervalCosineHeatLaplacianMultiplier t n) :=
+    Real.abs_le_sqrt hsq
+  calc
+    ‖unitIntervalCosineHeatLaplacianPointWeight t x n * a n‖
+        =
+          |unitIntervalCosineHeatLaplacianPointWeight t x n| *
+            |a n| := by
+          rw [Real.norm_eq_abs, abs_mul]
+    _ ≤
+          Real.sqrt (unitIntervalCosineHeatLaplacianMultiplier t n) *
+            |a n| :=
+          mul_le_mul_of_nonneg_right hw_abs (abs_nonneg _)
+
+/-- Positive-time `L²` coefficient data gives `C¹` time differentiability of
+the cosine heat model. -/
+theorem unitIntervalCosineHeatValue_hasTimeDerivAt_of_l2
+    {t x : ℝ} (ht : 0 < t) {a : ℕ → ℝ}
+    (ha : Summable fun n => (a n) ^ 2) :
+    HasDerivAt (fun τ : ℝ => unitIntervalCosineHeatValue τ a x)
+      (unitIntervalCosineHeatLaplacianValue t a x) t := by
+  let r : ℝ := t / 2
+  have hr_pos : 0 < r := by
+    dsimp [r]
+    positivity
+  obtain ⟨hu, _hmajor_at_r⟩ :=
+    unitIntervalCosineHeatLaplacianPointWeight_l2_majorant
+      (t := r) hr_pos (a := a) ha
+  have hbound :
+      ∀ n τ, τ ∈ Set.Ioi r →
+        ‖unitIntervalCosineHeatLaplacianPointWeight τ x n * a n‖ ≤
+          Real.sqrt (unitIntervalCosineHeatLaplacianMultiplier r n) *
+            |a n| := by
+    intro n τ hτ
+    have hsq₁ :=
+      unitIntervalCosineHeatLaplacianPointWeight_sq_le_multiplier τ x n
+    have hmono :
+        unitIntervalCosineHeatLaplacianMultiplier τ n ≤
+          unitIntervalCosineHeatLaplacianMultiplier r n :=
+      unitIntervalCosineHeatLaplacianMultiplier_anti_mono_time
+        (r := r) (τ := τ) (le_of_lt hτ) n
+    have hsq₂ :
+        (unitIntervalCosineHeatLaplacianPointWeight τ x n) ^ 2 ≤
+          unitIntervalCosineHeatLaplacianMultiplier r n :=
+      hsq₁.trans hmono
+    have hw_abs :
+        |unitIntervalCosineHeatLaplacianPointWeight τ x n| ≤
+          Real.sqrt (unitIntervalCosineHeatLaplacianMultiplier r n) :=
+      Real.abs_le_sqrt hsq₂
+    calc
+      ‖unitIntervalCosineHeatLaplacianPointWeight τ x n * a n‖
+          =
+            |unitIntervalCosineHeatLaplacianPointWeight τ x n| *
+              |a n| := by
+            rw [Real.norm_eq_abs, abs_mul]
+      _ ≤
+            Real.sqrt (unitIntervalCosineHeatLaplacianMultiplier r n) *
+              |a n| :=
+            mul_le_mul_of_nonneg_right hw_abs (abs_nonneg _)
+  have htrace :=
+    unitIntervalCosineHeatTrace_summable ht
+      unitIntervalCosineReciprocalEigenvalueTerm_summable
+  have hpoint :
+      Summable fun n => (unitIntervalCosineHeatPointWeight t x n) ^ 2 :=
+    Summable.of_nonneg_of_le (fun n => sq_nonneg _)
+      (fun n => unitIntervalCosineHeatPointWeight_sq_le_traceTerm t x n)
+      htrace
+  have h₀ :
+      Summable fun n => unitIntervalCosineHeatPointWeight t x n * a n :=
+    real_summable_mul_of_summable_sq hpoint ha
+  exact
+    unitIntervalCosineHeatValue_hasTimeDerivAt_of_summable_bound_on_Ioi
+      (r := r) (t := t) (x := x) (t₀ := t) (a := a)
+      (u := fun n =>
+        Real.sqrt (unitIntervalCosineHeatLaplacianMultiplier r n) * |a n|)
+      (by dsimp [r]; linarith) (by dsimp [r]; linarith)
+      hu hbound h₀
+
+/-- Positive-time `L²` coefficient data gives the second spatial derivative of
+the cosine heat model. -/
+theorem unitIntervalCosineHeatValue_hasSecondSpatialDerivAt_of_l2
+    {t x : ℝ} (ht : 0 < t) {a : ℕ → ℝ}
+    (ha : Summable fun n => (a n) ^ 2) :
+    HasDerivAt
+      (fun z : ℝ => deriv (fun y : ℝ => unitIntervalCosineHeatValue t a y) z)
+      (unitIntervalCosineHeatLaplacianValue t a x) x := by
+  have hderiv :
+      (fun z : ℝ =>
+          deriv (fun y : ℝ => unitIntervalCosineHeatValue t a y) z) =
+        fun z : ℝ => unitIntervalCosineHeatGradientValue t a z := by
+    funext z
+    exact unitIntervalCosineHeatValue_deriv_of_l2
+      (t := t) (x := z) ht
+      unitIntervalCosineReciprocalEigenvalueTerm_summable ha
+  rw [hderiv]
+  obtain ⟨hu, hbound⟩ :=
+    unitIntervalCosineHeatLaplacianPointWeight_l2_majorant
+      (t := t) ht (a := a) ha
+  have hgrad_trace :=
+    unitIntervalCosineHeatGradientTrace_summable ht
+      unitIntervalCosineReciprocalEigenvalueTerm_summable
+  have hgrad_point :
+      Summable fun n =>
+        (unitIntervalCosineHeatGradientPointWeight t 0 n) ^ 2 :=
+    Summable.of_nonneg_of_le (fun n => sq_nonneg _)
+      (fun n => unitIntervalCosineHeatGradientPointWeight_sq_le_multiplier t 0 n)
+      hgrad_trace
+  have hgrad₀ :
+      Summable fun n =>
+        unitIntervalCosineHeatGradientPointWeight t 0 n * a n :=
+    real_summable_mul_of_summable_sq hgrad_point ha
+  exact
+    unitIntervalCosineHeatGradientValue_hasDerivAt_of_summable_bound
+      (t := t) (x := x) (x₀ := 0) hu
+      (by simpa using hbound) hgrad₀
+
+/-- Direct positive-time `L²` coefficient certificate: the cosine heat model is
+`C¹` in time and `C²` in space, with both derivatives represented by the
+Laplacian cosine series. -/
+theorem unitIntervalCosineHeatValue_c1_time_c2_space_of_l2
+    {t x : ℝ} (ht : 0 < t) {a : ℕ → ℝ}
+    (ha : Summable fun n => (a n) ^ 2) :
+    HasDerivAt (fun τ : ℝ => unitIntervalCosineHeatValue τ a x)
+        (unitIntervalCosineHeatLaplacianValue t a x) t ∧
+      HasDerivAt
+        (fun z : ℝ =>
+          deriv (fun y : ℝ => unitIntervalCosineHeatValue t a y) z)
+        (unitIntervalCosineHeatLaplacianValue t a x) x := by
+  exact
+    ⟨unitIntervalCosineHeatValue_hasTimeDerivAt_of_l2
+        (t := t) (x := x) ht ha,
+      unitIntervalCosineHeatValue_hasSecondSpatialDerivAt_of_l2
+        (t := t) (x := x) ht ha⟩
+
+/-- The cosine heat series is twice spatially differentiable when both the
+first- and second-derivative series have summable majorants. -/
+theorem unitIntervalCosineHeatValue_hasSecondSpatialDerivAt_of_summable_bound
+    {t x x₀ x₁ : ℝ} {a : ℕ → ℝ} {u₁ u₂ : ℕ → ℝ}
+    (hu₁ : Summable u₁)
+    (hgrad_bound :
+      ∀ n y,
+        ‖unitIntervalCosineHeatGradientPointWeight t y n * a n‖ ≤ u₁ n)
+    (hpoint₀ :
+      Summable fun n => unitIntervalCosineHeatPointWeight t x₀ n * a n)
+    (hu₂ : Summable u₂)
+    (hlap_bound :
+      ∀ n y,
+        ‖unitIntervalCosineHeatLaplacianPointWeight t y n * a n‖ ≤ u₂ n)
+    (hgrad₀ :
+      Summable fun n => unitIntervalCosineHeatGradientPointWeight t x₁ n * a n) :
+    HasDerivAt
+      (fun z : ℝ => deriv (fun y : ℝ => unitIntervalCosineHeatValue t a y) z)
+      (unitIntervalCosineHeatLaplacianValue t a x) x := by
+  have hderiv :
+      (fun z : ℝ =>
+          deriv (fun y : ℝ => unitIntervalCosineHeatValue t a y) z) =
+        fun z : ℝ => unitIntervalCosineHeatGradientValue t a z := by
+    funext z
+    exact unitIntervalCosineHeatValue_deriv_of_summable_bound
+      (t := t) (x := z) (x₀ := x₀) hu₁ hgrad_bound hpoint₀
+  rw [hderiv]
+  exact unitIntervalCosineHeatGradientValue_hasDerivAt_of_summable_bound
+    (t := t) (x := x) (x₀ := x₁) hu₂ hlap_bound hgrad₀
+
+/-- Pointwise heat-equation regularity certificate for the unit-interval cosine
+model: `C¹` in time and `C²` in space, with both derivatives equal to the same
+Laplacian cosine series. -/
+theorem unitIntervalCosineHeatValue_c1_time_c2_space_certificate
+    {t x x₀ x₁ t₀ : ℝ} {a : ℕ → ℝ}
+    {u₁ u₂ uT : ℕ → ℝ}
+    (hu₁ : Summable u₁)
+    (hgrad_bound :
+      ∀ n y,
+        ‖unitIntervalCosineHeatGradientPointWeight t y n * a n‖ ≤ u₁ n)
+    (hpoint₀ :
+      Summable fun n => unitIntervalCosineHeatPointWeight t x₀ n * a n)
+    (hu₂ : Summable u₂)
+    (hlap_space_bound :
+      ∀ n y,
+        ‖unitIntervalCosineHeatLaplacianPointWeight t y n * a n‖ ≤ u₂ n)
+    (hgrad₀ :
+      Summable fun n => unitIntervalCosineHeatGradientPointWeight t x₁ n * a n)
+    (huT : Summable uT)
+    (hlap_time_bound :
+      ∀ n τ,
+        ‖unitIntervalCosineHeatLaplacianPointWeight τ x n * a n‖ ≤ uT n)
+    (htime₀ :
+      Summable fun n => unitIntervalCosineHeatPointWeight t₀ x n * a n) :
+    HasDerivAt (fun τ : ℝ => unitIntervalCosineHeatValue τ a x)
+        (unitIntervalCosineHeatLaplacianValue t a x) t ∧
+      HasDerivAt
+        (fun z : ℝ =>
+          deriv (fun y : ℝ => unitIntervalCosineHeatValue t a y) z)
+        (unitIntervalCosineHeatLaplacianValue t a x) x := by
+  exact
+    ⟨unitIntervalCosineHeatValue_hasTimeDerivAt_of_summable_bound
+        (t := t) (x := x) (t₀ := t₀) huT hlap_time_bound htime₀,
+      unitIntervalCosineHeatValue_hasSecondSpatialDerivAt_of_summable_bound
+        (t := t) (x := x) (x₀ := x₀) (x₁ := x₁)
+        hu₁ hgrad_bound hpoint₀ hu₂ hlap_space_bound hgrad₀⟩
 
 /-! ## Sobolev/Gagliardo--Nirenberg bootstrap interfaces -/
 
