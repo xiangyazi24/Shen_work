@@ -472,6 +472,14 @@ theorem SolvesTWODE.hasDerivAt
     HasDerivAt z (vectorField p (z t)) t :=
   h t
 
+theorem SolvesTWODE.shift
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) (a : ℝ) :
+    SolvesTWODE p (fun t => z (t + a)) := by
+  intro t
+  have hz : HasDerivAt z (vectorField p (z (t + a))) (id t + a) := by
+    simpa using h.hasDerivAt (t + a)
+  simpa using hz.scomp t ((hasDerivAt_id t).add_const a)
+
 theorem SolvesTWODE.differentiable
     {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) :
     Differentiable ℝ z :=
@@ -628,6 +636,13 @@ z : ℝ → State
 ode : SolvesTWODE p z
 leftLimit : Tendsto z atBot (nhds E1)
 rightLimit : Tendsto z atTop (nhds E0)
+
+def TravelingWave.shift {p : Params} (w : TravelingWave p) (a : ℝ) :
+    TravelingWave p :=
+  { z := fun t => w.z (t + a)
+    ode := w.ode.shift a
+    leftLimit := w.leftLimit.comp (tendsto_atBot_add_const_right atBot a tendsto_id)
+    rightLimit := w.rightLimit.comp (tendsto_atTop_add_const_right atTop a tendsto_id) }
 
 theorem TravelingWave.profile_c2_bootstrap
     {p : Params} (w : TravelingWave p) :
@@ -794,6 +809,82 @@ theorem TravelingWave.to_profileData
       deriv_lim_pos_inf := ⟨w.deriv_U_tendsto_atTop, w.deriv_V_tendsto_atTop⟩
       U_strictlyPositiveAtLeft := w.U_strictlyPositiveAtLeft }
 
+theorem WaveProfileData.shift
+    {p : Params} {U V : ℝ → ℝ} (h : WaveProfileData p U V) (a : ℝ) :
+    WaveProfileData p (fun x => U (x + a)) (fun x => V (x + a)) := by
+  have hUderiv : deriv (fun x => U (x + a)) = fun x => deriv U (x + a) := by
+    funext x
+    exact deriv_comp_add_const U a x
+  have hVderiv : deriv (fun x => V (x + a)) = fun x => deriv V (x + a) := by
+    funext x
+    exact deriv_comp_add_const V a x
+  refine
+    { U_c2 := h.U_c2.comp (by fun_prop : ContDiff ℝ 2 (fun x : ℝ => x + a))
+      V_c2 := h.V_c2.comp (by fun_prop : ContDiff ℝ 2 (fun x : ℝ => x + a))
+      ode_U := ?_
+      ode_V := ?_
+      lim_neg_inf := ?_
+      lim_pos_inf := ?_
+      deriv_lim_neg_inf := ?_
+      deriv_lim_pos_inf := ?_
+      U_strictlyPositiveAtLeft := ?_ }
+  · intro x
+    have hU2 := congr_fun (iteratedDeriv_comp_add_const 2 U a) x
+    have hU1 := deriv_comp_add_const U a x
+    have hV1 : ∀ y,
+        deriv (fun z => V (z + a)) y = deriv V (y + a) := by
+      intro y
+      exact deriv_comp_add_const V a y
+    have hChem :
+        deriv
+          (fun y => (U (y + a)) ^ p.m *
+            deriv (fun z => V (z + a)) y) x =
+        deriv (fun ξ => (U ξ) ^ p.m * deriv V ξ) (x + a) := by
+      have hfun :
+          (fun y => (U (y + a)) ^ p.m *
+            deriv (fun z => V (z + a)) y) =
+          (fun y => (U (y + a)) ^ p.m * deriv V (y + a)) := by
+        ext y
+        rw [hV1 y]
+      rw [hfun]
+      have := congr_fun
+        (iteratedDeriv_comp_add_const 1
+          (fun ξ => (U ξ) ^ p.m * deriv V ξ) a) x
+      simpa [iteratedDeriv_one] using this
+    rw [hU2, hU1, hChem]
+    exact h.ode_U (x + a)
+  · intro x
+    have hV2 := congr_fun (iteratedDeriv_comp_add_const 2 V a) x
+    rw [hV2]
+    exact h.ode_V (x + a)
+  · exact
+      ⟨h.lim_neg_inf.1.comp
+          (tendsto_atBot_add_const_right atBot a tendsto_id),
+        h.lim_neg_inf.2.comp
+          (tendsto_atBot_add_const_right atBot a tendsto_id)⟩
+  · exact
+      ⟨h.lim_pos_inf.1.comp
+          (tendsto_atTop_add_const_right atTop a tendsto_id),
+        h.lim_pos_inf.2.comp
+          (tendsto_atTop_add_const_right atTop a tendsto_id)⟩
+  · exact
+      ⟨by simpa [hUderiv, Function.comp_def] using
+          h.deriv_lim_neg_inf.1.comp
+            (tendsto_atBot_add_const_right atBot a tendsto_id),
+        by simpa [hVderiv, Function.comp_def] using
+          h.deriv_lim_neg_inf.2.comp
+            (tendsto_atBot_add_const_right atBot a tendsto_id)⟩
+  · exact
+      ⟨by simpa [hUderiv, Function.comp_def] using
+          h.deriv_lim_pos_inf.1.comp
+            (tendsto_atTop_add_const_right atTop a tendsto_id),
+        by simpa [hVderiv, Function.comp_def] using
+          h.deriv_lim_pos_inf.2.comp
+            (tendsto_atTop_add_const_right atTop a tendsto_id)⟩
+  · rcases h.U_strictlyPositiveAtLeft with ⟨δ, hδ, hδle⟩
+    exact ⟨δ, hδ,
+      (tendsto_atBot_add_const_right atBot a tendsto_id).eventually hδle⟩
+
 theorem local_shooting_segment_from_E1_positive_eigenpair
     (p : Params) {lam δ t₀ : ℝ}
     (hpos : 0 < lam)
@@ -858,6 +949,14 @@ def HasHeteroclinicE1E0 (p : Params) : Prop :=
     SolvesTWODE p z ∧
     Tendsto z atBot (nhds E1) ∧
     Tendsto z atTop (nhds E0)
+
+theorem HasHeteroclinicE1E0.shift
+    {p : Params} (h : HasHeteroclinicE1E0 p) (a : ℝ) :
+    HasHeteroclinicE1E0 p := by
+  rcases h with ⟨z, hzode, hleft, hright⟩
+  exact ⟨fun t => z (t + a), hzode.shift a,
+    hleft.comp (tendsto_atBot_add_const_right atBot a tendsto_id),
+    hright.comp (tendsto_atTop_add_const_right atTop a tendsto_id)⟩
 
 theorem HasHeteroclinicE1E0.exists_solution
     {p : Params} (h : HasHeteroclinicE1E0 p) :
