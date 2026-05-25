@@ -113,6 +113,43 @@ lemma logisticProfile_pos (κ x : ℝ) : 0 < logisticProfile κ x := by
 lemma logisticProfile_lt_one (κ x : ℝ) : logisticProfile κ x < 1 := by
   simpa [logisticProfile] using Real.sigmoid_lt_one (-(κ * x))
 
+lemma logisticProfile_le_exp (κ x : ℝ) :
+    logisticProfile κ x ≤ Real.exp (-(κ * x)) := by
+  have hmul :
+      Real.sigmoid (-(κ * x)) * Real.exp (κ * x) =
+        Real.sigmoid (κ * x) := by
+    simpa using Real.sigmoid_mul_rexp_neg (-(κ * x))
+  have hcancel : Real.exp (κ * x) * Real.exp (-(κ * x)) = 1 := by
+    rw [← Real.exp_add]
+    ring_nf
+    simp
+  calc
+    logisticProfile κ x =
+        (Real.sigmoid (-(κ * x)) * Real.exp (κ * x)) *
+          Real.exp (-(κ * x)) := by
+          simp [logisticProfile, mul_assoc, hcancel]
+    _ = Real.sigmoid (κ * x) * Real.exp (-(κ * x)) := by
+      rw [hmul]
+    _ ≤ 1 * Real.exp (-(κ * x)) := by
+      exact mul_le_mul_of_nonneg_right (Real.sigmoid_le_one (κ * x))
+        (Real.exp_nonneg _)
+    _ = Real.exp (-(κ * x)) := by simp
+
+lemma logisticProfile_le_cappedExp {κ : ℝ} (hκ : 0 < κ) (x : ℝ) :
+    logisticProfile κ x ≤ cappedExp κ x := by
+  by_cases hx : 0 ≤ x
+  · have hexp_le_one : Real.exp (-(κ * x)) ≤ 1 := by
+      simpa [Real.exp_zero] using
+        Real.exp_le_exp.mpr (neg_nonpos.mpr (mul_nonneg hκ.le hx))
+    rw [cappedExp, min_eq_right hexp_le_one]
+    exact logisticProfile_le_exp κ x
+  · have hxle : x ≤ 0 := le_of_lt (lt_of_not_ge hx)
+    have hone_le_exp : 1 ≤ Real.exp (-(κ * x)) := by
+      exact Real.one_le_exp (neg_nonneg.mpr
+        (mul_nonpos_of_nonneg_of_nonpos hκ.le hxle))
+    rw [cappedExp, min_eq_left hone_le_exp]
+    exact (logisticProfile_lt_one κ x).le
+
 lemma logisticProfile_tendsto_atTop {κ : ℝ} (hκ : 0 < κ) :
     Tendsto (logisticProfile κ) atTop (𝓝 0) := by
   have hmul : Tendsto (fun x : ℝ => κ * x) atTop atTop :=
@@ -263,6 +300,19 @@ theorem logisticProfile_facts_with_contDiff_exp_bound_and_strict_deriv
   · exact LogisticProfileFacts.U_contDiff_two (logisticProfile_facts hκ)
   · exact fun x => logisticProfile_pos κ x
   · exact fun x => logisticProfile_strict_exp_bound κ x
+  · exact fun x => logisticProfile_deriv_neg hκ x
+
+theorem logisticProfile_facts_with_cappedExp_bound {κ : ℝ} (hκ : 0 < κ) :
+    ∃ F : LogisticProfileFacts κ,
+      F.U = logisticProfile κ ∧
+      IsCUnifBdd F.U ∧
+      (∀ x, 0 < F.U x) ∧
+      (∀ x, F.U x ≤ cappedExp κ x) ∧
+      (∀ x, deriv F.U x < 0) := by
+  refine ⟨logisticProfile_facts hκ, rfl, ?_, ?_, ?_, ?_⟩
+  · exact LogisticProfileFacts.U_isCUnifBdd (logisticProfile_facts hκ)
+  · exact fun x => logisticProfile_pos κ x
+  · exact fun x => logisticProfile_le_cappedExp hκ x
   · exact fun x => logisticProfile_deriv_neg hκ x
 
 end
