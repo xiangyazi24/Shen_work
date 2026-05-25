@@ -991,11 +991,40 @@ theorem WaveProfileData.to_isTravelingWave
   · intro x
     simpa [Params.toCMParams, Real.rpow_natCast] using h.ode_V x
 
+theorem WaveProfileData.to_movingFrame_global_classical_solution
+    {p : Params} {U V : ℝ → ℝ} (h : WaveProfileData p U V)
+    (hc : 0 < p.c) (hpos : ∀ x, 0 < U x) :
+    IsGlobalClassicalSolution p.toCMParams
+      (fun t x => U (x - p.c * t)) (fun t x => V (x - p.c * t)) :=
+  _root_.IsTravelingWave.to_movingFrame_global_classical_solution
+    p.toCMParams (h.to_isTravelingWave hc hpos) h.U_c2 h.V_c2
+
+theorem WaveProfileData.exists_global_classical_solution
+    {p : Params} {U V : ℝ → ℝ} (h : WaveProfileData p U V)
+    (hc : 0 < p.c) (hpos : ∀ x, 0 < U x) :
+    ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution p.toCMParams u v :=
+  _root_.IsTravelingWave.to_global_classical_solution
+    p.toCMParams (h.to_isTravelingWave hc hpos) h.U_c2 h.V_c2
+
 theorem TravelingWave.to_isTravelingWave
     {p : Params} (w : TravelingWave p)
     (hc : 0 < p.c) (hpos : ∀ x, 0 < w.z x 0) :
     IsTravelingWave p.toCMParams p.c (fun x => w.z x 0) (fun x => w.z x 2) :=
   w.to_profileData.to_isTravelingWave hc hpos
+
+theorem TravelingWave.to_movingFrame_global_classical_solution
+    {p : Params} (w : TravelingWave p)
+    (hc : 0 < p.c) (hpos : ∀ x, 0 < w.z x 0) :
+    IsGlobalClassicalSolution p.toCMParams
+      (fun t x => w.z (x - p.c * t) 0)
+      (fun t x => w.z (x - p.c * t) 2) :=
+  w.to_profileData.to_movingFrame_global_classical_solution hc hpos
+
+theorem TravelingWave.exists_global_classical_solution
+    {p : Params} (w : TravelingWave p)
+    (hc : 0 < p.c) (hpos : ∀ x, 0 < w.z x 0) :
+    ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution p.toCMParams u v :=
+  w.to_profileData.exists_global_classical_solution hc hpos
 
 theorem local_shooting_segment_from_E1_positive_eigenpair
     (p : Params) {lam δ t₀ : ℝ}
@@ -1180,6 +1209,21 @@ theorem HasPositiveHeteroclinicE1E0.exists_profileData_isCUnifBdd_isTravelingWav
     w.to_profileData
   exact ⟨fun t => z t 0, fun t => z t 2, hp, hp.U_isCUnifBdd,
     hp.to_isTravelingWave hc hpos⟩
+
+theorem HasPositiveHeteroclinicE1E0.exists_profileData_isCUnifBdd_isTravelingWave_global
+    {p : Params} (h : HasPositiveHeteroclinicE1E0 p) (hc : 0 < p.c) :
+    ∃ U V : ℝ → ℝ, ∃ u v : ℝ → ℝ → ℝ,
+      WaveProfileData p U V ∧ IsCUnifBdd U ∧
+      IsTravelingWave p.toCMParams p.c U V ∧
+      IsGlobalClassicalSolution p.toCMParams u v := by
+  rcases h with ⟨z, hzode, hleft, hright, hpos⟩
+  let w : TravelingWave p := ⟨z, hzode, hleft, hright⟩
+  let U : ℝ → ℝ := fun t => z t 0
+  let V : ℝ → ℝ := fun t => z t 2
+  let hp : WaveProfileData p U V := w.to_profileData
+  exact ⟨U, V, fun t x => U (x - p.c * t), fun t x => V (x - p.c * t),
+    hp, hp.U_isCUnifBdd, hp.to_isTravelingWave hc hpos,
+    hp.to_movingFrame_global_classical_solution hc hpos⟩
 
 end TravelingWaveODE
 end PDE

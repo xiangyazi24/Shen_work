@@ -510,7 +510,12 @@
   `WaveProfileData.U_isCUnifBdd`, `WaveProfileData.V_isCUnifBdd`) and packages
   a positive heteroclinic into profile data, bounded-continuous initial profile,
   and root traveling wave
-  (`HasPositiveHeteroclinicE1E0.exists_profileData_isCUnifBdd_isTravelingWave`).
+  (`HasPositiveHeteroclinicE1E0.exists_profileData_isCUnifBdd_isTravelingWave`);
+  from the same data it derives the moving-frame global classical solution
+  branch (`WaveProfileData.to_movingFrame_global_classical_solution`,
+  `WaveProfileData.exists_global_classical_solution`,
+  `TravelingWave.to_movingFrame_global_classical_solution`,
+  `HasPositiveHeteroclinicE1E0.exists_profileData_isCUnifBdd_isTravelingWave_global`).
   The ODE layer also has E1/E0 linearized eigenmodes with decay
   (`unstableLinearModeAtOne_solves_and_decays`,
   `stableLinearModeAtZero_solves_and_decays`), the E0 stable local shooting
