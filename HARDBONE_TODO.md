@@ -523,6 +523,8 @@
   regularity/closure facts (`SolvesLinearized.contDiff_two`,
   `SolvesLinearized.add`, `SolvesLinearized.const_smul`), and logistic C² plus
   strict-derivative facts (`logisticProfile_contDiff_two`,
+  `logisticProfile_isCUnifBdd`,
+  `logisticProfile_facts_with_isCUnifBdd`,
   `logisticProfile_deriv_neg`,
   `logisticProfile_facts_with_contDiff_exp_bound_and_strict_deriv`) in
   `ShenWork/PDE/TravelingWaveConstruction.lean`.

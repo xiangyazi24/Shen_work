@@ -135,6 +135,17 @@ lemma logisticProfile_contDiff_two (κ : ℝ) :
     ContDiff ℝ 2 (logisticProfile κ) :=
   logisticProfile_contDiff κ
 
+lemma logisticProfile_isBddFun (κ : ℝ) :
+    IsBddFun (logisticProfile κ) := by
+  refine ⟨1, fun x => ?_⟩
+  have hnonneg : 0 ≤ logisticProfile κ x := (logisticProfile_pos κ x).le
+  have hle : logisticProfile κ x ≤ 1 := (logisticProfile_lt_one κ x).le
+  simpa [abs_of_nonneg hnonneg] using hle
+
+lemma logisticProfile_isCUnifBdd (κ : ℝ) :
+    IsCUnifBdd (logisticProfile κ) :=
+  ⟨(logisticProfile_contDiff_two κ).continuous, logisticProfile_isBddFun κ⟩
+
 structure LogisticProfileFacts (κ : ℝ) where
   U : ℝ → ℝ
   U_def : U = logisticProfile κ
@@ -160,6 +171,10 @@ lemma LogisticProfileFacts.U_contDiff_two {κ : ℝ} (F : LogisticProfileFacts �
     ContDiff ℝ 2 F.U := by
   simpa [F.U_def] using logisticProfile_contDiff_two κ
 
+lemma LogisticProfileFacts.U_isCUnifBdd {κ : ℝ} (F : LogisticProfileFacts κ) :
+    IsCUnifBdd F.U := by
+  simpa [F.U_def] using logisticProfile_isCUnifBdd κ
+
 lemma logisticProfile_strict_exp_bound (κ x : ℝ) :
     logisticProfile κ x < max 1 (Real.exp (-κ * x)) := by
   exact (logisticProfile_lt_one κ x).trans_le (le_max_left _ _)
@@ -182,6 +197,19 @@ theorem logisticProfile_facts_with_contDiff {κ : ℝ} (hκ : 0 < κ) :
       (∀ x, deriv F.U x ≤ 0) := by
   refine ⟨logisticProfile_facts hκ, rfl, ?_, ?_, ?_, ?_⟩
   · exact LogisticProfileFacts.U_contDiff_two (logisticProfile_facts hκ)
+  · exact fun x => logisticProfile_pos κ x
+  · exact fun x => logisticProfile_lt_one κ x
+  · exact fun x => logisticProfile_deriv_nonpos hκ x
+
+theorem logisticProfile_facts_with_isCUnifBdd {κ : ℝ} (hκ : 0 < κ) :
+    ∃ F : LogisticProfileFacts κ,
+      F.U = logisticProfile κ ∧
+      IsCUnifBdd F.U ∧
+      (∀ x, 0 < F.U x) ∧
+      (∀ x, F.U x < 1) ∧
+      (∀ x, deriv F.U x ≤ 0) := by
+  refine ⟨logisticProfile_facts hκ, rfl, ?_, ?_, ?_, ?_⟩
+  · exact LogisticProfileFacts.U_isCUnifBdd (logisticProfile_facts hκ)
   · exact fun x => logisticProfile_pos κ x
   · exact fun x => logisticProfile_lt_one κ x
   · exact fun x => logisticProfile_deriv_nonpos hκ x
