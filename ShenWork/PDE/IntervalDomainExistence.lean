@@ -1968,7 +1968,7 @@ theorem initialSupNormApproach_intervalDomain (p : CM2Params)
       exact ⟨M1 + M2, fun _ ⟨x, hx⟩ => hx ▸
         (abs_sub (u t x) (u₀ x)).trans (add_le_add (hM1 ⟨x, rfl⟩) (hM2 ⟨x, rfl⟩))⟩
     unfold intervalDomainSupNorm
-    have : Nonempty intervalDomainPoint :=
+    haveI : Nonempty intervalDomainPoint :=
       ⟨⟨0, le_refl _, zero_le_one⟩⟩
     have hne : (Set.range (fun x : intervalDomainPoint => |u t x|)).Nonempty :=
       Set.range_nonempty _
