@@ -326,17 +326,18 @@
   intervalDomain 上的 pointwise lower bound 转为 statement 层的
   `EventuallyLowerBound`，并新增反向语义桥
   `intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound` 与
-  `Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope`，在显式
-  `BddBelow (Set.range (u t))` time-slice 条件下把 lower-envelope statement
-  读回 pointwise persistence。新增
+  `Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope`，把
+  lower-envelope statement 读回 pointwise persistence；这里不再需要
+  `BddBelow` 前沿，因为 `EventuallyLowerBound` 自带 `δ > 0`，而 Real 的
+  unbounded-below `sInf` fallback 是 `0`。新增
   `Theorem_2_1_part1_intervalDomain_pointwise_of_pointwise_persistence`，从同
   两个 Section 4.1 前沿直接给出 intended pointwise persistence，避免把
   语义读回依赖混入 statement-layer 组装。新增
   `Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds` 和
   `Theorem_2_1_part1_intervalDomain_iff_pointwise_lower_bounds`，把
   statement-layer `Theorem_2_1_part1` 与 intended pointwise persistence
-  精确对齐；反向仍显式要求 time-slice `BddBelow`，因为 abstract
-  `BoundedDomainData.infValue` 本身不携带 lower-envelope correctness。
+  精确对齐，且 intervalDomain 上不再有 lower-envelope semantic side
+  condition。
   新增 `intervalDomain_pointwise_lower_of_inside_boundary_lower`,
   `intervalDomain_eventually_pointwise_lower_of_inside_boundary_lower`,
   `intervalDomain_eventuallyLowerBound_of_inside_boundary_lower`, and
@@ -350,16 +351,10 @@
   `Theorem_2_1_part1_intervalDomain_pointwise_of_inside_boundary_lower_bounds`,
   and
   `Theorem_2_1_part1_intervalDomain_iff_inside_boundary_lower_bounds`，把
-  statement-layer、全 pointwise、open-interior+endpoint 三种 H3.3 表述对齐；
-  反向读回仍需要显式 `BddBelow`。新增
-  `intervalDomain_eventually_bddBelow_u_of_positiveGlobalBoundedSolution`,
-  `Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope_and_v_bddBelow`,
-  `Theorem_2_1_part1_intervalDomain_iff_pointwise_lower_bounds_v_bddBelow`,
-  and
-  `Theorem_2_1_part1_intervalDomain_iff_inside_boundary_lower_bounds_v_bddBelow`:
-  interval positivity and the two endpoint values discharge the `u` time-slice
-  `BddBelow` condition; the analogous `v` lower-boundedness remains an honest
-  elliptic comparison/max-principle frontier.
+  statement-layer、全 pointwise、open-interior+endpoint 三种 H3.3 表述对齐。
+  另有 `intervalDomain_eventually_bddBelow_u_of_positiveGlobalBoundedSolution`
+  记录 positive global solution 的 `u` time-slice 下有界性；但主 read-back
+  已经不依赖它。
   按 17-point standard 属于状态③：条件于未证但明确命名的分析前沿；不是
   无条件完成。
 
