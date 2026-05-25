@@ -4,14 +4,18 @@
   Paper 2 Lemma 2.1 on intervalDomain: concrete heat-semigroup bridge.
 
   This file connects the already proved unit-interval heat estimates to the
-  Paper2 interval-domain function interface.  It does not claim the full
-  `Lemma_2_1 intervalDomain` package yet: the remaining missing analytic input
-  is the fractional-domain graph norm / semigroup-difference estimate
+  Paper2 interval-domain function interface.  The concrete
+  `intervalDomainSemigroupEstimateData` below uses the real interval `Lp`
+  seminorm, the restricted interval heat helper, and its spatial derivative.
 
-    ‖S(t)u - u‖₂ ≤ C t^σ ‖u‖_{X^σ_2}
-
-  for the actual Neumann heat semigroup on `[0,1]`, with a real-valued total
-  `fractionalNorm` compatible with the statement layer.
+  The field-level H0.1/H0.2 estimates are unconditional.  The exact abstract
+  `Lemma_2_1`--`Lemma_2_4` statements still contain extra statement-layer
+  requirements not supplied by H0.1/H0.2 alone: exponential damping in
+  `Lemma_2_1`, a fractional graph norm compatible with `S(t)-I`, and the
+  `t^{-1/2}` divergence singularity in `Lemma_2_3`/`Lemma_2_4` whereas the
+  current H0.2 endpoint is the already proved nonsharp absolute-convergence
+  bound.  Those are kept as the precise frontier rather than hidden in the
+  structure fields.
 -/
 import ShenWork.Paper2.Statements
 import ShenWork.PDE.HeatKernelGradientEstimates
@@ -135,6 +139,96 @@ theorem intervalDomainHeat_grad_Lp_Linfty_bound_from_memLp
   exact unitIntervalSemigroupOperator_grad_Lp_Linfty_lpNorm_bound
     (t := t) (p := p) ht hp
     (f := intervalDomainLift u) hu_mem
+
+/-! ### Concrete `SemigroupEstimateData` for the interval heat helper -/
+
+/-- The one-dimensional divergence semigroup field represented by the spatial
+derivative of the concrete interval heat helper. -/
+def intervalDomainHeatDivergenceSemigroup
+    (t : ℝ) (u : intervalDomain.Point → ℝ) :
+    intervalDomain.Point → ℝ :=
+  fun x =>
+    deriv
+      (fun z : ℝ =>
+        intervalSemigroupOperator 1 t (intervalDomainLift u) z) x.1
+
+/-- On the restricted unit interval measure, lifting the point-function
+divergence output agrees almost everywhere with the real-line derivative of
+the helper heat operator. -/
+theorem intervalDomainHeatDivergenceSemigroup_lift_ae_eq
+    (t : ℝ) (u : intervalDomain.Point → ℝ) :
+    intervalDomainLift (intervalDomainHeatDivergenceSemigroup t u)
+      =ᵐ[intervalMeasure 1]
+        fun x : ℝ =>
+          deriv
+            (fun z : ℝ =>
+              intervalSemigroupOperator 1 t (intervalDomainLift u) z) x := by
+  unfold intervalMeasure intervalSet
+  filter_upwards
+    [MeasureTheory.self_mem_ae_restrict
+      (show MeasurableSet (Set.Icc (0 : ℝ) 1) by simp)] with x hx
+  simp [intervalDomainLift, intervalDomainHeatDivergenceSemigroup, hx]
+
+/-- The divergence point-function output has the same `LpSeminorm` as the
+real-line derivative of the helper heat operator on `[0,1]`. -/
+theorem intervalDomainHeatDivergenceSemigroup_lpNorm_eq
+    (q t : ℝ) (u : intervalDomain.Point → ℝ) :
+    intervalDomainLpNorm q (intervalDomainHeatDivergenceSemigroup t u) =
+      lpNorm
+        (fun x : ℝ =>
+          deriv
+            (fun z : ℝ =>
+              intervalSemigroupOperator 1 t (intervalDomainLift u) z) x)
+        (ENNReal.ofReal q) (intervalMeasure 1) := by
+  exact lpNorm_congr_ae_real
+    (intervalDomainHeatDivergenceSemigroup_lift_ae_eq t u)
+
+/-- Concrete interval-domain semigroup estimate data backed by the proved
+heat-kernel operators.  The remaining abstract Paper2 lemma fields are not
+assumed here; they must be proved from the displayed operators. -/
+def intervalDomainSemigroupEstimateData :
+    SemigroupEstimateData intervalDomain where
+  lpNorm := intervalDomainLpNorm
+  vectorLpNorm := intervalDomainLpNorm
+  fractionalNorm := fun _ q u => intervalDomainLpNorm q u
+  semigroup := intervalDomainHeatSemigroup
+  divergenceSemigroup := intervalDomainHeatDivergenceSemigroup
+  embeddingNorm := fun _ r _ u => intervalDomainLpNorm r u
+
+/-- H0.1 routed through the concrete `SemigroupEstimateData` object. -/
+theorem intervalDomainSemigroupEstimateData_Lp_Lq_bound_from_memLp
+    {t p q r : ℝ} (ht : 0 < t) (hrp : r.HolderConjugate p)
+    (hpq : p ≤ q)
+    {u : intervalDomain.Point → ℝ}
+    (hu_mem :
+      MemLp (intervalDomainLift u) (ENNReal.ofReal p) (intervalMeasure 1)) :
+    intervalDomainSemigroupEstimateData.lpNorm q
+        (intervalDomainSemigroupEstimateData.semigroup t u) ≤
+      (1 / Real.sqrt (4 * Real.pi * t)) ^ (1 / p - 1 / q) *
+        intervalDomainSemigroupEstimateData.lpNorm p u := by
+  simpa [intervalDomainSemigroupEstimateData] using
+    intervalDomainHeat_Lp_Lq_bound_from_memLp
+      (t := t) (p := p) (q := q) (r := r) ht hrp hpq
+      (u := u) hu_mem
+
+/-- H0.2 routed through the concrete `SemigroupEstimateData` object, in the
+currently proved nonsharp derivative endpoint. -/
+theorem intervalDomainSemigroupEstimateData_divergence_Lp_Lq_bound_from_memLp
+    {t p q : ℝ} (ht : 0 < t) (hp : 1 ≤ p) (hq : 0 < q)
+    {u : intervalDomain.Point → ℝ}
+    (hu_mem :
+      MemLp (intervalDomainLift u) (ENNReal.ofReal p) (intervalMeasure 1)) :
+    intervalDomainSemigroupEstimateData.lpNorm q
+        (intervalDomainSemigroupEstimateData.divergenceSemigroup t u) ≤
+      heatGradientL1LinftyFactor t *
+        intervalDomainSemigroupEstimateData.vectorLpNorm p u := by
+  rw [intervalDomainSemigroupEstimateData]
+  change intervalDomainLpNorm q
+      (intervalDomainHeatDivergenceSemigroup t u) ≤
+    heatGradientL1LinftyFactor t * intervalDomainLpNorm p u
+  rw [intervalDomainHeatDivergenceSemigroup_lpNorm_eq]
+  exact intervalDomainHeat_grad_Lp_Lq_bound_from_memLp
+    (t := t) (p := p) (q := q) ht hp hq (u := u) hu_mem
 
 /-! ### Fractional semigroup multiplier estimates -/
 
