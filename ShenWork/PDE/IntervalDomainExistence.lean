@@ -470,6 +470,114 @@ theorem intervalLogisticSource_lipschitz (p : CM2Params) {M : ℝ} (hM : 0 < M) 
   rw [hf_eq u₁, hf_eq u₂] at hmv
   simpa [Real.norm_eq_abs] using hmv
 
+/-! ### Mild solution data and conditional local existence
+
+The full local existence theorem for arbitrary positive initial data
+requires constructing a mild solution (Duhamel fixed point) and then
+bootstrapping its regularity to a classical solution.  We factor this
+into a **conditional** result:
+
+1. `MildSolutionData` bundles the genuine PDE hypotheses:
+   - `u` is a fixed point of the Duhamel operator
+   - the PDE holds pointwise (regularity bootstrap)
+   - positivity, Neumann BC, classical regularity, initial trace
+
+2. `localExistence_of_mildSolutionData` assembles these into
+   `IsPaper2ClassicalSolution ∧ InitialTrace`.
+
+3. `localExistence_conditional` states:
+   if one can always produce `MildSolutionData` from positive initial data,
+   then the full local existence holds.
+
+The honest gap is the construction of `MildSolutionData`: this requires
+Banach contraction (fixed point), regularity bootstrap (mild → classical),
+maximum principle (sup-norm decay), and positivity (comparison/strong
+maximum principle).  Each of these is real PDE analysis. -/
+
+/-- Data needed to turn a Duhamel fixed point into a classical solution.
+Each field corresponds to a genuine PDE result:
+- `duhamel_fixed`: the function is a fixed point of the Duhamel operator
+- `pde_u`, `pde_v`: the PDE holds pointwise (regularity bootstrap result)
+- `pos`: solution is strictly positive in the interior (maximum principle)
+- `neumann`: Neumann boundary conditions are satisfied
+- `regularity`: sup-norm derivative condition for the max principle chain
+- `trace`: initial data is attained continuously -/
+structure MildSolutionData (p : CM2Params) (T : ℝ)
+    (u₀ : intervalDomainPoint → ℝ) where
+  /-- The mild solution u satisfying the Duhamel equation -/
+  u : ℝ → intervalDomainPoint → ℝ
+  /-- The chemotactic signal v -/
+  v : ℝ → intervalDomainPoint → ℝ
+  /-- u is a fixed point of the Duhamel operator -/
+  duhamel_fixed : ∀ t x, 0 ≤ t → t ≤ T →
+    u t x = intervalDuhamelOperator p u₀ u t x
+  /-- Positivity of u in the interior -/
+  pos : ∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside → 0 < u t x
+  /-- The u-equation holds pointwise (regularity bootstrap) -/
+  pde_u : ∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
+    intervalDomain.timeDeriv u t x =
+      intervalDomain.laplacian (u t) x
+        - p.χ₀ * intervalDomain.chemotaxisDiv p (u t) (v t) x
+        + u t x * (p.a - p.b * (u t x) ^ p.α)
+  /-- The v-equation holds pointwise -/
+  pde_v : ∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
+    0 = intervalDomain.laplacian (v t) x - p.μ * v t x + p.ν * (u t x) ^ p.γ
+  /-- Neumann boundary conditions -/
+  neumann : ∀ t x, 0 < t → t < T → x ∈ intervalDomain.boundary →
+    intervalDomain.normalDeriv (u t) x = 0 ∧
+    intervalDomain.normalDeriv (v t) x = 0
+  /-- Classical regularity (sup-norm derivative condition) -/
+  regularity : intervalDomainClassicalRegularity T u v
+  /-- Initial trace: u(t) → u₀ as t → 0⁺ in sup-norm -/
+  trace : InitialTrace intervalDomain u₀ u
+
+/-- Assembly: `MildSolutionData` directly yields
+`IsPaper2ClassicalSolution ∧ InitialTrace`.
+
+The fields of `MildSolutionData` are exactly the conjuncts needed for
+`IsPaper2ClassicalSolution.of_components` plus `InitialTrace`. -/
+theorem localExistence_of_mildSolutionData
+    (p : CM2Params)
+    (u₀ : intervalDomainPoint → ℝ)
+    (_hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {T : ℝ} (hT : 0 < T)
+    (data : MildSolutionData p T u₀) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u₀ u :=
+  ⟨T, hT, data.u, data.v,
+    IsPaper2ClassicalSolution.of_components hT
+      data.regularity data.pos data.pde_u data.pde_v data.neumann,
+    data.trace⟩
+
+/-- Conditional local existence for intervalDomain.
+
+If for every positive initial datum one can construct `MildSolutionData`
+(i.e., produce a Duhamel fixed point with the required regularity,
+positivity, PDE, boundary conditions, and initial trace), then the full
+local existence theorem holds.
+
+The honest gap is the hypothesis `hmild`: constructing `MildSolutionData`
+from the Duhamel fixed point requires:
+  (1) Banach contraction → fixed point of the Duhamel operator
+  (2) Regularity bootstrap → fixed point satisfies the PDE pointwise
+  (3) Maximum principle → classical regularity (sup-norm control)
+  (4) Comparison / strong maximum principle → positivity
+Each of these is a genuine PDE result. -/
+theorem localExistence_conditional
+    (p : CM2Params)
+    (hmild : ∀ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ T > 0, ∃ data : MildSolutionData p T u₀, True) :
+    ∀ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨T, hT, data, _⟩ := hmild u₀ hu₀
+  exact localExistence_of_mildSolutionData p u₀ hu₀ hT data
+
 end ShenWork.IntervalDomainExistence
 
 end
