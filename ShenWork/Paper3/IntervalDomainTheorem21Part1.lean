@@ -43,6 +43,40 @@ theorem intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
     rcases hy with ⟨x, rfl⟩
     exact ht x
 
+/-- Conversely, on intervalDomain the abstract `EventuallyLowerBound` gives a
+pointwise eventual lower bound once the time slices have genuine lower-bounded
+ranges.  The `BddBelow` assumption is necessary for using `sInf` in a
+conditionally complete order; it is a semantic domain regularity input, not a
+persistence conclusion. -/
+theorem intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound
+    {u : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ} {delta : ℝ}
+    (hbdd :
+      ∀ᶠ t in atTop,
+        BddBelow (Set.range (u t)))
+    (hlower :
+      EventuallyLowerBound ShenWork.IntervalDomain.intervalDomain u delta) :
+    ∀ᶠ t in atTop,
+      ∀ x : ShenWork.IntervalDomain.intervalDomain.Point, delta ≤ u t x := by
+  filter_upwards [hbdd, hlower.eventually] with t ht_bdd ht_lower x
+  exact le_trans ht_lower
+    (csInf_le ht_bdd ⟨x, rfl⟩)
+
+/-- Equivalence between the statement-layer lower envelope and the pointwise
+lower-bound formulation on intervalDomain, under the explicit lower-bounded
+range condition needed for the reverse implication. -/
+theorem intervalDomain_eventuallyLowerBound_iff_eventually_pointwise_lower
+    {u : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ} {delta : ℝ}
+    (hdelta : 0 < delta)
+    (hbdd :
+      ∀ᶠ t in atTop,
+        BddBelow (Set.range (u t))) :
+    EventuallyLowerBound ShenWork.IntervalDomain.intervalDomain u delta ↔
+      ∀ᶠ t in atTop,
+        ∀ x : ShenWork.IntervalDomain.intervalDomain.Point, delta ≤ u t x := by
+  constructor
+  · exact intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound hbdd
+  · exact intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower hdelta
+
 /-- Conditional intervalDomain version of Paper3 Theorem 2.1(1).
 
 The two assumptions are intentionally not hidden inside a constants package:
@@ -94,6 +128,38 @@ theorem Theorem_2_1_part1_intervalDomain_of_pointwise_persistence
     intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
       hdeltaV hpointV
   exact ⟨deltaU, hdeltaU, huLower, hvLower⟩
+
+/-- Semantic read-back of `Theorem_2_1_part1 intervalDomain p`: under the
+explicit lower-bounded-range regularity of the interval time slices, the
+statement-layer formulation is exactly the expected pointwise eventual
+persistence statement for both `u` and `v`. -/
+theorem Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope
+    {p : CM2Params}
+    (h21 : Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p)
+    (hbdd :
+      ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+        PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+          (∀ᶠ t in atTop, BddBelow (Set.range (u t))) ∧
+          (∀ᶠ t in atTop, BddBelow (Set.range (v t)))) :
+    1 ≤ p.m →
+      ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+        PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+          ∃ deltaU > 0,
+            (∀ᶠ t in atTop,
+              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                deltaU ≤ u t x) ∧
+            (∀ᶠ t in atTop,
+              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                p.ν / p.μ * deltaU ^ p.γ ≤ v t x) := by
+  intro hm u v hsol
+  rcases h21 hm u v hsol with ⟨deltaU, hdeltaU, huLower, hvLower⟩
+  rcases hbdd u v hsol with ⟨hbddU, hbddV⟩
+  exact
+    ⟨deltaU, hdeltaU,
+      intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound
+        hbddU huLower,
+      intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound
+        hbddV hvLower⟩
 
 end
 

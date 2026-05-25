@@ -234,8 +234,12 @@
   bound。另证明 helper
   `intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower`，把
   intervalDomain 上的 pointwise lower bound 转为 statement 层的
-  `EventuallyLowerBound`。按 17-point standard 属于状态③：条件于未证但明确
-  命名的分析前沿；不是无条件完成。
+  `EventuallyLowerBound`，并新增反向语义桥
+  `intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound` 与
+  `Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope`，在显式
+  `BddBelow (Set.range (u t))` time-slice 条件下把 lower-envelope statement
+  读回 pointwise persistence。按 17-point standard 属于状态③：条件于未证但
+  明确命名的分析前沿；不是无条件完成。
 
 ---
 
