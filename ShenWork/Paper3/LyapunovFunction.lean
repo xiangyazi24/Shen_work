@@ -342,6 +342,49 @@ theorem intervalDomain_integral_nonneg
   unfold intervalDomainLift
   simpa [hx] using hf ⟨x, hx⟩
 
+/-- Every point of the concrete unit interval is either an interior point or a
+boundary point for `intervalDomain`. -/
+theorem intervalDomain_mem_inside_or_boundary
+    (x : intervalDomain.Point) :
+    x ∈ intervalDomain.inside ∨ x ∈ intervalDomain.boundary := by
+  rcases x with ⟨x, hx⟩
+  rcases hx with ⟨h0, h1⟩
+  by_cases hx0 : x = 0
+  · right
+    change x = 0 ∨ x = 1
+    exact Or.inl hx0
+  by_cases hx1 : x = 1
+  · right
+    change x = 0 ∨ x = 1
+    exact Or.inr hx1
+  · left
+    change x ∈ Set.Ioo (0 : ℝ) 1
+    have hx_pos : 0 < x := by
+      rcases lt_or_eq_of_le h0 with hlt | heq
+      · exact hlt
+      · exact False.elim (hx0 heq.symm)
+    have hx_lt_one : x < 1 := by
+      rcases lt_or_eq_of_le h1 with hlt | heq
+      · exact hlt
+      · exact False.elim (hx1 heq)
+    exact ⟨hx_pos, hx_lt_one⟩
+
+/-- `PositiveGlobalBoundedSolution` gives positivity on `inside`; for the
+current pointwise interval-integral interface, endpoint positivity is the
+remaining explicit boundary frontier. -/
+theorem intervalDomain_positiveGlobalBoundedSolution_pos_of_boundary_pos
+    {p : CM2Params}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hboundary_pos :
+      ∀ t, 0 < t → ∀ x : intervalDomain.Point,
+        x ∈ intervalDomain.boundary → 0 < u t x) :
+    ∀ t, 0 < t → ∀ x : intervalDomain.Point, 0 < u t x := by
+  intro t ht x
+  rcases intervalDomain_mem_inside_or_boundary x with hx_inside | hx_boundary
+  · exact huv.pos ht hx_inside
+  · exact hboundary_pos t ht x hx_boundary
+
 /-- Concrete interval-domain entropy-functional nonnegativity. -/
 theorem intervalDomain_chemotaxisEntropyFunctional_nonneg
     {m uStar : ℝ} {u : ℝ → intervalDomain.Point → ℝ} {t : ℝ}
@@ -975,6 +1018,44 @@ theorem intervalDomain_chemotaxisEntropyFunctional_two_time_bound_of_dissipation
           chemotaxisEntropyFunctional intervalDomain m uStar u s :=
   chemotaxisEntropyFunctional_two_time_bound_of_dissipation_and_integral_nonneg
     hc intervalDomain_integral_nonneg hm huStar htheta hu_pos hderiv hdiss
+
+/-- Interval-domain entropy two-time estimate with positivity discharged from
+`PositiveGlobalBoundedSolution` on the interior and an explicit endpoint
+positivity frontier.
+
+Point 17 status: conditional theorem, state ③.  The current statement-layer
+solution structure gives `u > 0` only on `D.inside`; since
+`intervalDomain_integral_nonneg` is pointwise rather than a.e., endpoint
+positivity is kept as the named boundary hypothesis `hboundary_pos`. -/
+theorem
+    intervalDomain_chemotaxisEntropyFunctional_two_time_bound_of_solution_positivity
+    {p : CM2Params} {m uStar theta c : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ} {entropySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (hm : (1 / 2 : ℝ) ≤ m) (huStar : 0 < uStar)
+    (htheta : 0 ≤ theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hboundary_pos :
+      ∀ t, 0 < t → ∀ x : intervalDomain.Point,
+        x ∈ intervalDomain.boundary → 0 < u t x)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisEntropyFunctional intervalDomain m uStar u tau)
+          (entropySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        entropySlope t ≤
+          -c * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    ∀ s t, 0 < s → s ≤ t →
+      0 ≤ chemotaxisEntropyFunctional intervalDomain m uStar u t ∧
+        chemotaxisEntropyFunctional intervalDomain m uStar u t ≤
+          chemotaxisEntropyFunctional intervalDomain m uStar u s :=
+  intervalDomain_chemotaxisEntropyFunctional_two_time_bound_of_dissipation
+    hc hm huStar htheta
+    (intervalDomain_positiveGlobalBoundedSolution_pos_of_boundary_pos
+      huv hboundary_pos)
+    hderiv hdiss
 
 /-- Signal-energy exponential decay for the Paper3 minimal-model Lyapunov
 functional `∫ (mu (v-v*)^2 + |∇(v-v*)|^2)`.
