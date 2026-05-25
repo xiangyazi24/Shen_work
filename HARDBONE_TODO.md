@@ -339,9 +339,17 @@
   `intervalDomain_thetaDissipation_tendsto_zero_of_hasDerivAt_le_neg_mul` and
   `intervalDomain_Theorem_2_3_of_theta_derivative_frontiers`, reducing the
   theta moment-decay input to a direct differential estimate
-  `D'(t) ≤ -rate * D(t)` plus eventual slice nonnegativity.  Still state③:
-  deriving that differential estimate from the PDE, moment-to-uniform, and
-  uniform C¹ exponential upgrade remain open analytic frontiers.
+  `D'(t) ≤ -rate * D(t)` plus eventual slice nonnegativity.  New increment:
+  `intervalDomain_integral_nonneg_of_inside_nonneg`,
+  `intervalDomain_chemotaxisThetaDissipation_nonneg_of_positiveGlobalBoundedSolution`,
+  `intervalDomain_thetaDissipation_tendsto_zero_of_hasDerivAt_le_neg_mul_of_solution`,
+  and
+  `intervalDomain_Theorem_2_3_of_theta_derivative_frontiers_from_solution_positivity`
+  discharge that nonnegativity side condition from the statement-level
+  `PositiveGlobalBoundedSolution` interior positivity and the zero measure of
+  the interval endpoints.  Still state③: deriving the direct differential
+  estimate from the PDE, moment-to-uniform, and uniform C¹ exponential upgrade
+  remain open analytic frontiers.
 
 ### H4.3 — Theorem 2.4 on intervalDomain (global stability strong logistic)
 - **前置**: H3.2 (Lyapunov), H2.1 (global existence)
@@ -363,8 +371,12 @@
   `intervalDomain_Theorem_2_4_of_concrete_constants_firstMode_formula_derivative_frontiers`,
   further reducing the Lyapunov formula-decay frontier to the direct
   theta-dissipation differential estimate plus eventual slice nonnegativity.
-  This does not close H4.3: the PDE derivation of that estimate, global
-  existence, moment-to-uniform, and uniform exponential upgrade remain open.
+  New increment:
+  `intervalDomain_Theorem_2_4_formula_derivative_frontiers_from_solution_positivity`
+  removes that nonnegativity side condition using `PositiveGlobalBoundedSolution`.
+  This does not close H4.3: the PDE derivation of the direct differential
+  estimate, H2.1/global existence, moment-to-uniform, and uniform exponential
+  upgrade remain open.
 
 ---
 
