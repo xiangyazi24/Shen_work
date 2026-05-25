@@ -538,6 +538,63 @@ theorem Theorem_1_3_intervalDomain_of_local_global_and_eventual_sup_bound
         (D := intervalDomain) (u := u) (T := T₀) (M := M) hM
     exact ⟨u, v, hglobal, htrace, hbounded⟩
 
+/-- Eventual-sup variant of Theorem 1.3 with the `m > 0` guard removed from
+the strong-logistic frontiers.
+
+This is the local/global version: it uses only the two Cauchy-theory fields
+needed by H2.3, not the full `IntervalDomainExistence` package. -/
+theorem Theorem_1_3_intervalDomain_of_parameter_m_pos_and_eventual_sup_bound
+    (p : CM2Params) (C : Paper2Constants p)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hglobalExtension :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hstrongBootstrap :
+      0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hstrongEventualSupBound :
+      0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+      1 ≤ p.m →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2GlobalClassicalSolution intervalDomain p u v →
+        InitialTrace intervalDomain u₀ u →
+        (∀ T > 0,
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) →
+          ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M) :
+    Theorem_1_3 intervalDomain p C :=
+  Theorem_1_3_intervalDomain_of_local_global_and_eventual_sup_bound
+    p C hCor21 hProp25 hlocal hglobalExtension
+    (fun ha hb _hm_pos hstrong =>
+      hstrongBootstrap ha hb hstrong)
+    (fun ha hb _hm_pos hstrong hm_ge =>
+      hstrongEventualSupBound ha hb hstrong hm_ge)
+
 /-- Paper 2 Theorem 1.3 on `intervalDomain`, conditional on the honest open
 frontier.
 
