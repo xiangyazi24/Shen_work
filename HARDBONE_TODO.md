@@ -201,7 +201,11 @@
   假设接到 `LocallyExponentiallyStableFromSup` /
   `MassConstrainedLocallyExponentiallyStableFromSup` 的桥接定理。尚未证明
   intervalDomain 上线性化 Neumann operator 的 sectoriality、解析半群生成、
-  resolvent/谱界到指数衰减的完整链条。
+  resolvent/谱界到指数衰减的完整链条。`ShenWork/Paper3/IntervalDomainSectorial.lean`
+  已把该 raw hypothesis 专门化到 `intervalDomain` +
+  `unitIntervalNeumannSpectrum`，并暴露 `X^σ_p ≤ supNorm` 与 small-data
+  existence 作为独立前沿；非正敏感度正平衡的 linear 部分已从 unit-interval
+  Neumann spectrum 直接接上。
 - **前置**: spectral theory on bounded domain, resolvent estimates
 - **目标文件**: `ShenWork/PDE/SectorialOperator.lean` (new)
 - **产出**: `SectorialLocalExponentialRaw`
