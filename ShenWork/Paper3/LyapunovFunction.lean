@@ -621,6 +621,65 @@ theorem intervalDomain_thetaMomentConvergesToZero_of_energy_tendsto_zero_and_bou
   thetaMomentConvergesToZero_of_energy_tendsto_zero_and_integral_nonneg_bound
     hE intervalDomain_integral_nonneg huStar htheta hu_nonneg hbound
 
+/-- Two-time estimate for theta dissipation from a direct differential decay
+inequality, with nonnegativity discharged by the domain integral.
+
+Point 17 status: conditional theorem, state ③.  The only remaining analytic
+frontier is the named differential estimate `hderiv`/`hle`; the positivity of
+the production integrand and the integral lifting are proved here. -/
+theorem thetaDissipation_two_time_bound_of_hasDerivAt_le_neg_mul_and_integral_nonneg
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {uStar theta rate : ℝ} {momentSlope : ℝ → ℝ}
+    (hintegral_nonneg :
+      ∀ f : D.Point → ℝ, (∀ x, 0 ≤ f x) → 0 ≤ D.integral f)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (hu_nonneg : ∀ t, 0 < t → ∀ x, 0 ≤ u t x)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisThetaDissipation D uStar theta (u tau))
+          (momentSlope t) t)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation D uStar theta (u t)) :
+    ∀ s t, 0 < s → s ≤ t →
+      0 ≤ chemotaxisThetaDissipation D uStar theta (u t) ∧
+        chemotaxisThetaDissipation D uStar theta (u t) ≤
+          chemotaxisThetaDissipation D uStar theta (u s) *
+            Real.exp (-rate * (t - s)) := by
+  intro s t hs hst
+  have ht : 0 < t := lt_of_lt_of_le hs hst
+  have hdecay := energy_decay_estimate_of_hasDerivAt_le_neg_mul hderiv hle
+  exact
+    ⟨chemotaxisThetaDissipation_nonneg_of_integral_nonneg
+        hintegral_nonneg huStar htheta (hu_nonneg t ht),
+      hdecay s t hs hst⟩
+
+/-- Concrete unit-interval theta-dissipation two-time estimate. -/
+theorem intervalDomain_thetaDissipation_two_time_bound_of_hasDerivAt_le_neg_mul
+    {u : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta rate : ℝ} {momentSlope : ℝ → ℝ}
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (hu_nonneg : ∀ t, 0 < t → ∀ x, 0 ≤ u t x)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau =>
+            chemotaxisThetaDissipation intervalDomain uStar theta (u tau))
+          (momentSlope t) t)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    ∀ s t, 0 < s → s ≤ t →
+      0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta (u t) ∧
+        chemotaxisThetaDissipation intervalDomain uStar theta (u t) ≤
+          chemotaxisThetaDissipation intervalDomain uStar theta (u s) *
+            Real.exp (-rate * (t - s)) :=
+  thetaDissipation_two_time_bound_of_hasDerivAt_le_neg_mul_and_integral_nonneg
+    intervalDomain_integral_nonneg huStar htheta hu_nonneg hderiv hle
+
 /-- A direct theta-moment differential decay estimate gives the statement-layer
 `ThetaMomentConvergesToZero` conclusion.
 
