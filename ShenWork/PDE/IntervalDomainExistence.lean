@@ -2016,6 +2016,36 @@ theorem aboveEquilibrium_localExistence
     (aboveEquilibrium_regularityBootstrap p ha hb hT c₀ hc₀
       hφ_pos hφ_cont hφ_diff hφ_deriv_nonpos hφ_ode hφ_init hφ_cont_at_zero)
 
+/-! ### Honest status of localExistence on intervalDomain
+
+The full `IntervalDomainExistence.localExistence` requires `∀ u₀, PID u₀ →
+∃ Tmax u v, IsPaper2ClassicalSolution ∧ InitialTrace`.
+
+**What IS proved** (constant-in-space initial data):
+- `constantSolution_localExistence_with_trace`: (a>0,b>0) or (a=0,b=0)
+- `aboveEquilibrium_localExistence`: a>0, b>0, c₀ ≥ (a/b)^{1/α}
+
+**What IS proved** (abstract chain):
+- `localExistence_from_banach_and_regularity`: reduces to RegularityBootstrap
+- `localExistence_conditional`: reduces to IsMildSolutionData
+- Banach FP (`duhamel_mild_solution_exists`) + contraction estimates
+
+**What is BLOCKED**:
+1. Below-equilibrium constant data (0 < c < (a/b)^{1/α}):
+   `intervalDomainClassicalRegularity` quantifies `∀ p : CM2Params`,
+   requiring sup-norm nonincreasing for ALL parameter sets, not just the
+   given p. An increasing ODE solution violates this for small thresholds.
+   This is a design issue in IntervalDomain.lean (the paper's Lemma 3.1
+   only uses the GIVEN p), not a mathematical limitation.
+
+2. Non-constant initial data:
+   Requires RegularityBootstrap for the Duhamel fixed point, which needs
+   parabolic regularity theory (mild → classical) + comparison principle
+   (positivity) + strong maximum principle (sup norm control).
+
+**The gap is precisely identified**: either fix the `∀ p` quantification
+in `classicalRegularity`, or prove RegularityBootstrap for Duhamel FP. -/
+
 end ShenWork.IntervalDomainExistence
 
 end
