@@ -235,7 +235,16 @@
   `intervalDomain_minimalEquilibrium_localStability_chi_nonpos_of_sectorialHypothesis`
   与
   `intervalDomain_minimalEquilibrium_massStability_chi_nonpos_of_sectorialHypothesis`
-  接到同一 H3.1 raw sectorial/small-data/norm-comparison 前沿。
+  接到同一 H3.1 raw sectorial/small-data/norm-comparison 前沿。新增
+  critical-threshold wrappers
+  `intervalDomain_positiveEquilibrium_localStability_of_chi_lt_critical_of_sectorialHypothesis`,
+  `intervalDomain_positiveEquilibrium_massStability_of_chi_lt_critical_of_sectorialHypothesis`,
+  `intervalDomain_minimalEquilibrium_localStability_of_chi_lt_critical_of_sectorialHypothesis`,
+  and
+  `intervalDomain_minimalEquilibrium_massStability_of_chi_lt_critical_of_sectorialHypothesis`:
+  the unit-interval linear threshold is discharged, while raw sectoriality,
+  branch norm-comparison, and branch small-data existence remain honest
+  frontiers.
 - **前置**: spectral theory on bounded domain, resolvent estimates
 - **目标文件**: `ShenWork/PDE/SectorialOperator.lean` (new)
 - **产出**: `SectorialLocalExponentialRaw`

@@ -140,6 +140,92 @@ theorem intervalDomain_positiveEquilibrium_massStability_chi_nonpos_of_sectorial
       intervalDomain_massConstrainedLocallyExponentiallyStableFromSup_of_sectorialHypothesis
         p N hsigma_low hsigma_high hpNorm hsectorial hstable hxp hexist⟩
 
+/-- Critical-threshold positive-equilibrium interval branch: the linear part is
+proved from the concrete unit-interval Neumann spectrum; H3.1 remains exactly
+the raw sectorial estimate plus norm-comparison and small-data existence. -/
+theorem intervalDomain_positiveEquilibrium_localStability_of_chi_lt_critical_of_sectorialHypothesis
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hsectorial :
+      SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2)
+    (hxp :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀
+            (fun _ => (positiveEquilibrium p ⟨ha, hb⟩).1) ≤
+          intervalDomain.supNorm
+            (fun x => u₀ x - (positiveEquilibrium p ⟨ha, hb⟩).1))
+    (hexist :
+      ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p
+          (positiveEquilibrium p ⟨ha, hb⟩).1 delta) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 ∧
+      LocallyExponentiallyStableFromSup intervalDomain p N eq.1 eq.2 := by
+  dsimp
+  have hstable :
+      LinearlyStable unitIntervalNeumannSpectrum p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    unitInterval_positiveEquilibrium_linearlyStable_of_chi_lt_critical
+      p ha hb hχ
+  exact
+    ⟨hstable,
+      intervalDomain_locallyExponentiallyStableFromSup_of_sectorialHypothesis
+        p N hsigma_low hsigma_high hpNorm hsectorial hstable hxp hexist⟩
+
+/-- Mass-constrained version of the critical-threshold
+positive-equilibrium interval branch. -/
+theorem intervalDomain_positiveEquilibrium_massStability_of_chi_lt_critical_of_sectorialHypothesis
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hsectorial :
+      SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2)
+    (hxp :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀
+            (fun _ => (positiveEquilibrium p ⟨ha, hb⟩).1) ≤
+          intervalDomain.supNorm
+            (fun x => u₀ x - (positiveEquilibrium p ⟨ha, hb⟩).1))
+    (hexist :
+      ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p
+          (positiveEquilibrium p ⟨ha, hb⟩).1 delta) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 ∧
+      MassConstrainedLocallyExponentiallyStableFromSup intervalDomain p N
+        eq.1 eq.2 := by
+  dsimp
+  have hstable :
+      LinearlyStable unitIntervalNeumannSpectrum p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+    unitInterval_positiveEquilibrium_linearlyStable_of_chi_lt_critical
+      p ha hb hχ
+  exact
+    ⟨hstable,
+      intervalDomain_massConstrainedLocallyExponentiallyStableFromSup_of_sectorialHypothesis
+        p N hsigma_low hsigma_high hpNorm hsectorial hstable hxp hexist⟩
+
 /-- Nonpositive-sensitivity minimal-equilibrium interval branch: the linear
 part is proved from the unit-interval Neumann spectrum, while the nonlinear
 local exponential conclusion remains conditional on H3.1 and the explicit
@@ -216,6 +302,95 @@ theorem intervalDomain_minimalEquilibrium_massStability_chi_nonpos_of_sectorialH
     minimalEquilibrium_linearlyStable_of_chi_nonpos_a_eq_zero_neumann
       unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
       hχ ha huStar
+  exact
+    ⟨hstable,
+      intervalDomain_massConstrainedLocallyExponentiallyStableFromSup_of_sectorialHypothesis
+        p N hsigma_low hsigma_high hpNorm hsectorial hstable hxp hexist⟩
+
+/-- Critical-threshold minimal-equilibrium interval branch.  The assumptions
+`p.a = 0` and `p.b = 0` identify the branch used in Paper3, while the linear
+stability proof itself is supplied by the concrete unit-interval critical
+sensitivity. -/
+theorem intervalDomain_minimalEquilibrium_localStability_of_chi_lt_critical_of_sectorialHypothesis
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    {sigma pNorm uStar : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hsectorial :
+      SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    (_ha : p.a = 0) (_hb : p.b = 0)
+    (huStar : 0 < uStar)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2)
+    (hxp :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀
+            (fun _ => (minimalEquilibrium p uStar).1) ≤
+          intervalDomain.supNorm
+            (fun x => u₀ x - (minimalEquilibrium p uStar).1))
+    (hexist :
+      ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p
+          (minimalEquilibrium p uStar).1 delta) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 ∧
+      LocallyExponentiallyStableFromSup intervalDomain p N eq.1 eq.2 := by
+  dsimp
+  have hstable :
+      LinearlyStable unitIntervalNeumannSpectrum p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 :=
+    unitInterval_minimalEquilibrium_linearlyStable_of_chi_lt_critical
+      p huStar hχ
+  exact
+    ⟨hstable,
+      intervalDomain_locallyExponentiallyStableFromSup_of_sectorialHypothesis
+        p N hsigma_low hsigma_high hpNorm hsectorial hstable hxp hexist⟩
+
+/-- Mass-constrained version of the critical-threshold minimal-equilibrium
+interval branch. -/
+theorem intervalDomain_minimalEquilibrium_massStability_of_chi_lt_critical_of_sectorialHypothesis
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    {sigma pNorm uStar : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hsectorial :
+      SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    (_ha : p.a = 0) (_hb : p.b = 0)
+    (huStar : 0 < uStar)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2)
+    (hxp :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀
+            (fun _ => (minimalEquilibrium p uStar).1) ≤
+          intervalDomain.supNorm
+            (fun x => u₀ x - (minimalEquilibrium p uStar).1))
+    (hexist :
+      ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p
+          (minimalEquilibrium p uStar).1 delta) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 ∧
+      MassConstrainedLocallyExponentiallyStableFromSup intervalDomain p N
+        eq.1 eq.2 := by
+  dsimp
+  have hstable :
+      LinearlyStable unitIntervalNeumannSpectrum p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 :=
+    unitInterval_minimalEquilibrium_linearlyStable_of_chi_lt_critical
+      p huStar hχ
   exact
     ⟨hstable,
       intervalDomain_massConstrainedLocallyExponentiallyStableFromSup_of_sectorialHypothesis
