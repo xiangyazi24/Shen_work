@@ -170,4 +170,90 @@ theorem FractionalPowerSpace.tsum_derivativeCoeffNorm_le_energy_trace_of_sigma_g
     (derivativeReciprocalFractionalPowerWeight_summable_of_sigma_gt_three_quarters
       (L := L) (sigma := sigma) hL hsigma)
 
+/-- Formal derivative of the `n`-th cosine-series term. -/
+def cosineSeriesDerivativeTerm
+    (L : ℝ) (a : ℕ → ℂ) (n : ℕ) (x : ℝ) : ℂ :=
+  a n *
+    (((-(neumannFrequency L n * Real.sin (neumannFrequency L n * x))) : ℝ) : ℂ)
+
+/-- Candidate derivative series for a cosine-series representative. -/
+def cosineSeriesDerivative (L : ℝ) (a : ℕ → ℂ) (x : ℝ) : ℂ :=
+  ∑' n : ℕ, cosineSeriesDerivativeTerm L a n x
+
+theorem norm_cosineSeriesDerivativeTerm_le_derivativeCoeffNorm
+    (L : ℝ) (a : ℕ → ℂ) (n : ℕ) (x : ℝ) :
+    ‖cosineSeriesDerivativeTerm L a n x‖ ≤ derivativeCoeffNorm L a n := by
+  let k : ℝ := neumannFrequency L n
+  calc
+    ‖cosineSeriesDerivativeTerm L a n x‖
+        = ‖a n‖ * (|k| * |Real.sin (k * x)|) := by
+          dsimp [cosineSeriesDerivativeTerm, k]
+          rw [norm_mul, Complex.norm_real, Real.norm_eq_abs, abs_neg, abs_mul]
+    _ ≤ ‖a n‖ * (|k| * 1) := by
+          exact mul_le_mul_of_nonneg_left
+            (mul_le_mul_of_nonneg_left (Real.abs_sin_le_one (k * x))
+              (abs_nonneg k))
+            (norm_nonneg (a n))
+    _ = derivativeCoeffNorm L a n := by
+          dsimp [derivativeCoeffNorm, k]
+          ring
+
+theorem cosineSeriesDerivativeTerm_summable_of_derivativeCoeffNorm_summable
+    {L : ℝ} {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => derivativeCoeffNorm L a n) (x : ℝ) :
+    Summable fun n : ℕ => cosineSeriesDerivativeTerm L a n x :=
+  Summable.of_norm_bounded ha fun n =>
+    norm_cosineSeriesDerivativeTerm_le_derivativeCoeffNorm L a n x
+
+theorem norm_cosineSeriesDerivative_le_tsum_derivativeCoeffNorm_of_summable
+    {L : ℝ} {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => derivativeCoeffNorm L a n) (x : ℝ) :
+    ‖cosineSeriesDerivative L a x‖ ≤
+      ∑' n : ℕ, derivativeCoeffNorm L a n := by
+  have hsum := cosineSeriesDerivativeTerm_summable_of_derivativeCoeffNorm_summable
+    (L := L) (a := a) ha x
+  exact hsum.hasSum.norm_le_of_bounded ha.hasSum
+    (fun n => norm_cosineSeriesDerivativeTerm_le_derivativeCoeffNorm L a n x)
+
+theorem continuous_cosineSeriesDerivativeTerm
+    (L : ℝ) (a : ℕ → ℂ) (n : ℕ) :
+    Continuous fun x : ℝ => cosineSeriesDerivativeTerm L a n x := by
+  unfold cosineSeriesDerivativeTerm
+  fun_prop
+
+theorem cosineSeriesDerivative_continuous_of_derivativeCoeffNorm_summable
+    {L : ℝ} {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => derivativeCoeffNorm L a n) :
+    Continuous fun x : ℝ => cosineSeriesDerivative L a x := by
+  unfold cosineSeriesDerivative
+  exact continuous_tsum
+    (fun n => continuous_cosineSeriesDerivativeTerm L a n)
+    ha
+    (fun n x => norm_cosineSeriesDerivativeTerm_le_derivativeCoeffNorm L a n x)
+
+theorem FractionalPowerSpace.continuous_cosineSeriesDerivative_of_sigma_gt_three_quarters
+    {L sigma : ℝ} (u : FractionalPowerSpace L sigma)
+    (hL : 0 < L) (hsigma : 3 / 4 < sigma) :
+    Continuous fun x : ℝ => cosineSeriesDerivative L (u : ℕ → ℂ) x :=
+  cosineSeriesDerivative_continuous_of_derivativeCoeffNorm_summable
+    (u.derivativeCoeffNorm_summable_of_sigma_gt_three_quarters hL hsigma)
+
+theorem FractionalPowerSpace.norm_cosineSeriesDerivative_le_energy_trace_of_sigma_gt_three_quarters
+    {L sigma : ℝ} (u : FractionalPowerSpace L sigma)
+    (hL : 0 < L) (hsigma : 3 / 4 < sigma) (x : ℝ) :
+    ‖cosineSeriesDerivative L (u : ℕ → ℂ) x‖ ≤
+      (∑' n : ℕ,
+          fractionalPowerEnergyTerm L sigma (u : ℕ → ℂ) n) ^
+          (1 / (2 : ℝ)) *
+        (∑' n : ℕ,
+            derivativeReciprocalFractionalPowerWeight L sigma n) ^
+          (1 / (2 : ℝ)) := by
+  have htrace :=
+    derivativeReciprocalFractionalPowerWeight_summable_of_sigma_gt_three_quarters
+      (L := L) (sigma := sigma) hL hsigma
+  exact
+    (norm_cosineSeriesDerivative_le_tsum_derivativeCoeffNorm_of_summable
+      (u.derivativeCoeffNorm_summable_of_derivative_trace htrace) x).trans
+      (u.tsum_derivativeCoeffNorm_le_energy_derivativeTrace htrace)
+
 end ShenWork.PDE.FractionalPower
