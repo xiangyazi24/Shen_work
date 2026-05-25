@@ -1043,6 +1043,114 @@ theorem lemma_2_5 : Lemma_2_5 := by
         (psi.weight_nonneg x)
     exact mul_le_mul_of_nonneg_right hconst_le hRHS_nonneg
 
+/-! ### Section 5 arbitrary-wave signal-derivative estimates -/
+
+/-- Section 5 two-wave bridge: once both wave signals are identified with the
+elliptic resolvent, Lemma 2.5 supplies one small-weight window and one weighted
+signal-derivative constant that work for both arbitrary profiles. -/
+theorem Lemma_5_3_pair_weighted_signal_derivative_from_Lemma_2_5
+    (p : CMParams) {pExp : ℝ} (hpExp : 1 < pExp)
+    {U₁ U₂ V₁ V₂ : ℝ → ℝ}
+    (hV₁ : V₁ = frozenElliptic p U₁)
+    (hV₂ : V₂ = frozenElliptic p U₂)
+    (hU₁ : IsCUnifBdd U₁) (hU₂ : IsCUnifBdd U₂)
+    (hU₁_nonneg : ∀ x, 0 ≤ U₁ x)
+    (hU₂_nonneg : ∀ x, 0 ≤ U₂ x) :
+    ∃ kMax > 0, ∃ C > 0,
+      ∀ k : ℝ, 0 ≤ k → k < kMax →
+      ∀ psi : ExponentialWeight,
+        (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+        (∀ z, |iteratedDeriv 2 psi.weight z| ≤ k * psi.weight z) →
+        Integrable (fun x : ℝ => (U₁ x) ^ (p.γ * pExp) * psi.weight x) →
+        Integrable (fun x : ℝ => (U₂ x) ^ (p.γ * pExp) * psi.weight x) →
+          (Integrable
+              (fun x : ℝ => |deriv V₁ x| ^ pExp * psi.weight x) ∧
+            ∫ x : ℝ, |deriv V₁ x| ^ pExp * psi.weight x ≤
+              C * ∫ x : ℝ, (U₁ x) ^ (p.γ * pExp) * psi.weight x) ∧
+          (Integrable
+              (fun x : ℝ => |deriv V₂ x| ^ pExp * psi.weight x) ∧
+            ∫ x : ℝ, |deriv V₂ x| ^ pExp * psi.weight x ≤
+              C * ∫ x : ℝ, (U₂ x) ^ (p.γ * pExp) * psi.weight x) := by
+  have hgamma_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
+  obtain ⟨kMax, hkMax_pos, C, hC_pos, hC⟩ :=
+    lemma_2_5 pExp p.γ 1 1 hpExp hgamma_pos one_pos one_pos
+  refine ⟨kMax, hkMax_pos, C, hC_pos, ?_⟩
+  intro k hk_nonneg hk_small psi hk_deriv hk_second hint₁ hint₂
+  subst V₁
+  subst V₂
+  constructor
+  · simpa [frozenElliptic] using
+      hC k hk_nonneg hk_small U₁ psi hU₁ hU₁_nonneg hk_deriv hk_second hint₁
+  · simpa [frozenElliptic] using
+      hC k hk_nonneg hk_small U₂ psi hU₂ hU₂_nonneg hk_deriv hk_second hint₂
+
+/-- Tail-bound specialization of the two-wave Section 5 bridge.  The
+`IsCUnifBdd` and nonnegativity inputs required by Lemma 2.5 are discharged from
+the upper-tail bounds and continuity. -/
+theorem Lemma_5_3_pair_weighted_signal_derivative_of_tail_bounds
+    (p : CMParams) {c pExp : ℝ} (hpExp : 1 < pExp)
+    {U₁ U₂ V₁ V₂ : ℝ → ℝ}
+    (_hTW₁ : IsTravelingWave p c U₁ V₁)
+    (_hTW₂ : IsTravelingWave p c U₂ V₂)
+    (hV₁ : V₁ = frozenElliptic p U₁)
+    (hV₂ : V₂ = frozenElliptic p U₂)
+    (hU₁_cont : Continuous U₁) (hU₂_cont : Continuous U₂)
+    (hbound₁ : HasWaveUpperTailBound p c U₁)
+    (hbound₂ : HasWaveUpperTailBound p c U₂) :
+    ∃ kMax > 0, ∃ C > 0,
+      ∀ k : ℝ, 0 ≤ k → k < kMax →
+      ∀ psi : ExponentialWeight,
+        (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+        (∀ z, |iteratedDeriv 2 psi.weight z| ≤ k * psi.weight z) →
+        Integrable (fun x : ℝ => (U₁ x) ^ (p.γ * pExp) * psi.weight x) →
+        Integrable (fun x : ℝ => (U₂ x) ^ (p.γ * pExp) * psi.weight x) →
+          (Integrable
+              (fun x : ℝ => |deriv V₁ x| ^ pExp * psi.weight x) ∧
+            ∫ x : ℝ, |deriv V₁ x| ^ pExp * psi.weight x ≤
+              C * ∫ x : ℝ, (U₁ x) ^ (p.γ * pExp) * psi.weight x) ∧
+          (Integrable
+              (fun x : ℝ => |deriv V₂ x| ^ pExp * psi.weight x) ∧
+            ∫ x : ℝ, |deriv V₂ x| ^ pExp * psi.weight x ≤
+              C * ∫ x : ℝ, (U₂ x) ^ (p.γ * pExp) * psi.weight x) :=
+  Lemma_5_3_pair_weighted_signal_derivative_from_Lemma_2_5 p hpExp
+    hV₁ hV₂
+    (hbound₁.isCUnifBdd_of_continuous hU₁_cont)
+    (hbound₂.isCUnifBdd_of_continuous hU₂_cont)
+    (fun x => (hbound₁.pos x).le)
+    (fun x => (hbound₂.pos x).le)
+
+/-- Regular arbitrary-wave specialization: the elliptic-resolvent
+identification of both signals is discharged from the regularity bundles. -/
+theorem Lemma_5_3_pair_weighted_signal_derivative_of_regular_waves
+    (p : CMParams) {c pExp : ℝ} (hpExp : 1 < pExp)
+    {U₁ U₂ V₁ V₂ : ℝ → ℝ}
+    (hTW₁ : IsTravelingWave p c U₁ V₁)
+    (hTW₂ : IsTravelingWave p c U₂ V₂)
+    (hreg₁ : TravelingWaveRegularity p c U₁ V₁)
+    (hreg₂ : TravelingWaveRegularity p c U₂ V₂)
+    (hbound₁ : HasWaveUpperTailBound p c U₁)
+    (hbound₂ : HasWaveUpperTailBound p c U₂) :
+    ∃ kMax > 0, ∃ C > 0,
+      ∀ k : ℝ, 0 ≤ k → k < kMax →
+      ∀ psi : ExponentialWeight,
+        (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+        (∀ z, |iteratedDeriv 2 psi.weight z| ≤ k * psi.weight z) →
+        Integrable (fun x : ℝ => (U₁ x) ^ (p.γ * pExp) * psi.weight x) →
+        Integrable (fun x : ℝ => (U₂ x) ^ (p.γ * pExp) * psi.weight x) →
+          (Integrable
+              (fun x : ℝ => |deriv V₁ x| ^ pExp * psi.weight x) ∧
+            ∫ x : ℝ, |deriv V₁ x| ^ pExp * psi.weight x ≤
+              C * ∫ x : ℝ, (U₁ x) ^ (p.γ * pExp) * psi.weight x) ∧
+          (Integrable
+              (fun x : ℝ => |deriv V₂ x| ^ pExp * psi.weight x) ∧
+            ∫ x : ℝ, |deriv V₂ x| ^ pExp * psi.weight x ≤
+              C * ∫ x : ℝ, (U₂ x) ^ (p.γ * pExp) * psi.weight x) :=
+  Lemma_5_3_pair_weighted_signal_derivative_of_tail_bounds p hpExp
+    hTW₁ hTW₂
+    (IsTravelingWave.V_eq_frozenElliptic_full hTW₁ hbound₁ hreg₁)
+    (IsTravelingWave.V_eq_frozenElliptic_full hTW₂ hbound₂ hreg₂)
+    hreg₁.U_cont hreg₂.U_cont hbound₁ hbound₂
+
 /-! ### Unit-resolvent specialization of Lemma_2_5_with_explicit_k -/
 
 /-- Unit-resolvent (`l = μ = 1`) specialization of
