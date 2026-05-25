@@ -357,6 +357,14 @@
   only to discharge `LinearlyStable`; nonlinear sectoriality,
   `X^σ_p`/`C¹` norm comparison, and branch small-data existence remain state③
   frontiers.
+  New coefficient analytic-semigroup increment:
+  `ShenWork/PDE/AnalyticSemigroupGen.lean` packages the shifted unit-interval
+  Neumann diagonal model with right-half-plane complex-time semigroup law,
+  coefficientwise analyticity, sector resolvent norm estimate, closed
+  right-half-plane `ℓ²` boundedness, and the smoothing estimate
+  `‖A e^{-tA} a‖₂ ≤ t⁻¹ ‖a‖₂`.  This proves the concrete diagonal
+  sectorial-generation subblock; the abstract closed-operator generation
+  theorem and nonlinear `SectorialLocalExponentialRaw` upgrade remain frontiers.
 - **前置**: spectral theory on bounded domain, resolvent estimates
 - **目标文件**: `ShenWork/PDE/SectorialOperator.lean` (new)
 - **产出**: `SectorialLocalExponentialRaw`
@@ -422,6 +430,14 @@
   已经不依赖它。新增
   `Theorem_2_1_part1_intervalDomain_vacuous_when_m_lt_one`，关闭
   theorem-statement 自身的 `m < 1` vacuous regime。
+  新增
+  `Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds_with_v_margin`
+  与
+  `Theorem_2_1_part1_intervalDomain_pointwise_of_pointwise_lower_bounds_with_v_margin`，
+  允许 Section 4.1 的 elliptic comparison 前沿给出任意更强的 `v`
+  lower bound `deltaV`；Lean 侧只要求
+  `p.ν / p.μ * deltaU ^ p.γ ≤ deltaV` 并负责弱化回 theorem statement
+  的精确 lower-envelope 常数。
   按 17-point standard 属于状态③：条件于未证但明确命名的分析前沿；不是
   无条件完成。
 

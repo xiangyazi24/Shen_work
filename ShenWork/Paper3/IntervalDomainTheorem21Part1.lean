@@ -353,6 +353,81 @@ theorem Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds
       intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
         hdeltaV hpointV⟩
 
+/-- Statement-layer assembly from pointwise persistence when the analytic
+frontier gives a possibly stronger `v` lower bound.  The formal work here is
+only to weaken that bound to the paper's required
+`ν / μ * deltaU ^ γ` lower envelope. -/
+theorem Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds_with_v_margin
+    (p : CM2Params)
+    (hpointwise :
+      1 ≤ p.m →
+        ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+            ∃ deltaU > 0, ∃ deltaV > 0,
+              p.ν / p.μ * deltaU ^ p.γ ≤ deltaV ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  deltaU ≤ u t x) ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  deltaV ≤ v t x)) :
+    Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p := by
+  intro hm u v hsol
+  rcases hpointwise hm u v hsol with
+    ⟨deltaU, hdeltaU, deltaV, _hdeltaV, htarget_le, hpointU, hpointV⟩
+  have htarget_pos : 0 < p.ν / p.μ * deltaU ^ p.γ := by
+    exact mul_pos (div_pos p.hν p.hμ)
+      (Real.rpow_pos_of_pos hdeltaU _)
+  have htargetV :
+      ∀ᶠ t in atTop,
+        ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+          p.ν / p.μ * deltaU ^ p.γ ≤ v t x := by
+    filter_upwards [hpointV] with t ht x
+    exact le_trans htarget_le (ht x)
+  exact
+    ⟨deltaU, hdeltaU,
+      intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
+        hdeltaU hpointU,
+      intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
+        htarget_pos htargetV⟩
+
+/-- Direct pointwise persistence from a stronger `v` lower-bound frontier. -/
+theorem
+Theorem_2_1_part1_intervalDomain_pointwise_of_pointwise_lower_bounds_with_v_margin
+    (p : CM2Params)
+    (hpointwise :
+      1 ≤ p.m →
+        ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+            ∃ deltaU > 0, ∃ deltaV > 0,
+              p.ν / p.μ * deltaU ^ p.γ ≤ deltaV ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  deltaU ≤ u t x) ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  deltaV ≤ v t x)) :
+    1 ≤ p.m →
+      ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+        PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+          ∃ deltaU > 0,
+            (∀ᶠ t in atTop,
+              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                deltaU ≤ u t x) ∧
+            (∀ᶠ t in atTop,
+              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                p.ν / p.μ * deltaU ^ p.γ ≤ v t x) := by
+  intro hm u v hsol
+  rcases hpointwise hm u v hsol with
+    ⟨deltaU, hdeltaU, deltaV, _hdeltaV, htarget_le, hpointU, hpointV⟩
+  have htargetV :
+      ∀ᶠ t in atTop,
+        ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+          p.ν / p.μ * deltaU ^ p.γ ≤ v t x := by
+    filter_upwards [hpointV] with t ht x
+    exact le_trans htarget_le (ht x)
+  exact ⟨deltaU, hdeltaU, hpointU, htargetV⟩
+
 /-- Statement-layer assembly when the analytic persistence frontiers are
 available separately on the open interval and on the two Neumann endpoints.
 This discharges only the concrete interval-domain covering step. -/
