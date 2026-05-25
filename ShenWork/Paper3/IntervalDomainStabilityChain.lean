@@ -248,21 +248,18 @@ specialized to the concrete sup norm, and Theorem 2.1 is assembled from the
 four exposed persistence frontiers. -/
 theorem intervalDomain_norm_upperEnvelope_persistence_mainline
     (p : CM2Params) (M0 uBar vLower : ℝ)
-    (K : CompactnessData intervalDomain)
     (hcont : IntervalDomainInitialContinuityRaw p)
-    (hupper : ∀ f : intervalDomain.Point → ℝ,
-      K.upperEnvelope f = intervalDomain.supNorm f)
     (h1 : UniformPersistencePart1Raw intervalDomain p)
     (h2 : UniformPersistencePart2Raw intervalDomain p)
     (h3 : UniformPersistencePart3Raw intervalDomain p)
     (h4 : UniformPersistencePart4Raw intervalDomain p (fun _ => uBar) 1) :
     Lemma_3_3 intervalDomain p intervalDomainStabilityNorms ∧
-      Lemma_3_4 intervalDomain p K ∧
+      UpperEnvelopeMonotonicityRaw intervalDomain p intervalDomain.supNorm ∧
       Theorem_2_1 intervalDomain p
         (intervalDomainPaper3Constants p M0 uBar vLower) :=
   ⟨intervalDomain_Lemma_3_3_for_concreteStabilityNorms_of_initialContinuityRaw
       p hcont,
-    intervalDomain_Lemma_3_4_of_upperEnvelope_eq_supNorm p K hupper,
+    intervalDomain_upperEnvelopeMonotonicityRaw_supNorm p,
     intervalDomain_Theorem_2_1_for_concrete_constants_of_uniformPersistence_frontiers
       p M0 uBar vLower h1 h2 h3 h4⟩
 
@@ -285,11 +282,8 @@ theorem intervalDomain_Theorem_2_1_for_concreteStabilityNorms_mainline
       UpperEnvelopeMonotonicityRaw intervalDomain p intervalDomain.supNorm ∧
       Theorem_2_1 intervalDomain p
         (intervalDomainPaper3Constants p M0 uBar vLower) :=
-  ⟨intervalDomain_Lemma_3_3_for_concreteStabilityNorms_of_initialContinuityRaw
-      p hcont,
-    intervalDomain_upperEnvelopeMonotonicityRaw_supNorm p,
-    intervalDomain_Theorem_2_1_for_concrete_constants_of_uniformPersistence_frontiers
-      p M0 uBar vLower h1 h2 h3 h4⟩
+  intervalDomain_norm_upperEnvelope_persistence_mainline
+    p M0 uBar vLower hcont h1 h2 h3 h4
 
 /-- `Lemma_A_7` for the concrete interval constants, reduced to the explicit
 first-mode domination of the maximum strong threshold. -/
