@@ -975,6 +975,74 @@ theorem Lemma_2_5_resolventAdmissibleWeight_CMParams_unit
   Lemma_2_5_with_k_dab_CMParams_unit_exists_constant p psi.1 hpExp
     (by simpa [Real.sqrt_one] using psi.2)
 
+/-! ### Paper Lemma 2.5 closure -/
+
+/-- Paper1 Lemma 2.5 in the corrected statement shape from `Statements.lean`.
+The paper's `κ₁ << 1` is witnessed here by `κ₁ < √l / 2`, which makes the
+constant uniform over all admissible weights with that derivative envelope. -/
+theorem lemma_2_5 : Lemma_2_5 := by
+  intro pExp gamma l mu hpExp hgamma hl hmu
+  set s : ℝ := Real.sqrt l with hs_def
+  have hs_pos : 0 < s := by
+    rw [hs_def]
+    exact Real.sqrt_pos.mpr hl
+  refine ⟨s / 2, by positivity, ?_⟩
+  set C : ℝ :=
+    s ^ pExp *
+      ((mu / (2 * s)) ^ pExp *
+        (2 / s) ^ (pExp - 1) *
+        (4 / s)) with hC_def
+  refine ⟨C, ?_, ?_⟩
+  · have hCouter_pos : 0 < s ^ pExp :=
+      Real.rpow_pos_of_pos hs_pos _
+    have hC1_pos : 0 < (mu / (2 * s)) ^ pExp :=
+      Real.rpow_pos_of_pos (by positivity) _
+    have hC2_pos : 0 < (2 / s) ^ (pExp - 1) :=
+      Real.rpow_pos_of_pos (by positivity) _
+    have hC3_pos : 0 < 4 / s := by positivity
+    positivity
+  · intro k hk_nn hk_small u psi hu hu_nn hk_bound _hk_second hint
+    have hk_lt_sqrt : k < Real.sqrt l := by
+      rw [← hs_def]
+      nlinarith
+    obtain ⟨hLHS_int, hmain⟩ :=
+      Lemma_2_5_with_explicit_k_original_power psi hl hmu (le_of_lt hpExp)
+        hgamma hk_nn hk_lt_sqrt hk_bound hu hu_nn hint
+    refine ⟨hLHS_int, le_trans hmain ?_⟩
+    have hden_pos : 0 < s - k := by nlinarith
+    have hkernel_le : 2 / (s - k) ≤ 4 / s := by
+      rw [div_le_div_iff₀ hden_pos hs_pos]
+      nlinarith
+    set A : ℝ :=
+      s ^ pExp * ((mu / (2 * s)) ^ pExp * (2 / s) ^ (pExp - 1)) with hA_def
+    have hA_nn : 0 ≤ A := by
+      positivity
+    have hconst_le :
+        (Real.sqrt l) ^ pExp *
+            ((mu / (2 * Real.sqrt l)) ^ pExp *
+              (2 / Real.sqrt l) ^ (pExp - 1) *
+              (2 / (Real.sqrt l - k))) ≤
+          C := by
+      rw [← hs_def]
+      calc
+        s ^ pExp *
+            ((mu / (2 * s)) ^ pExp *
+              (2 / s) ^ (pExp - 1) * (2 / (s - k)))
+            = A * (2 / (s - k)) := by
+              rw [hA_def]
+              ring
+        _ ≤ A * (4 / s) := mul_le_mul_of_nonneg_left hkernel_le hA_nn
+        _ = C := by
+              rw [hA_def, hC_def]
+              ring
+    have hRHS_nonneg :
+        0 ≤ ∫ x : ℝ, (u x) ^ (gamma * pExp) * psi.weight x := by
+      refine integral_nonneg (fun x => ?_)
+      exact mul_nonneg
+        (Real.rpow_nonneg (hu_nn x) (gamma * pExp))
+        (psi.weight_nonneg x)
+    exact mul_le_mul_of_nonneg_right hconst_le hRHS_nonneg
+
 /-! ### Unit-resolvent specialization of Lemma_2_5_with_explicit_k -/
 
 /-- Unit-resolvent (`l = μ = 1`) specialization of
@@ -1189,12 +1257,11 @@ theorem Lemma_2_5_from_extracted_psi_k_witness
   Lemma_2_5_with_explicit_k psi hl hmu hpExp hgamma hk_nn hk_lt
     hk_witness hu hu_nn hint_hyp
 
-/-! ### Lemma 2.5 restricted to the small-k ψ-class -/
+/-! ### Legacy restricted small-k ψ-class wrapper -/
 
-/-- Lemma 2.5 restricted Prop: identical statement as `Lemma_2_5` but the
-inner quantifier over `psi : ExponentialWeight` is replaced by a
-quantifier over `ψ` with an explicit `k < √l` deriv_abs_le witness.
-This is provable from the explicit-k assembly above. -/
+/-- Older restricted Prop used while the statement layer still had an
+unrestricted weight quantifier.  It remains as a convenient explicit-k wrapper
+around the same assembled estimate. -/
 def Lemma_2_5_restricted_psi_class : Prop :=
   ∀ pExp gamma l mu : ℝ, 1 < pExp → 0 < gamma → 0 < l → 0 < mu →
     ∀ k : ℝ, 0 ≤ k → k < Real.sqrt l →

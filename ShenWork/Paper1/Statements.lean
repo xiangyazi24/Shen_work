@@ -1973,9 +1973,18 @@ structure ExponentialWeight where
   deriv_abs_le : ∃ k > 0, ∀ x, |deriv weight x| ≤ k * weight x
   second_deriv_abs_le : ∃ k > 0, ∀ x, |iteratedDeriv 2 weight x| ≤ k * weight x
 
+/-- Paper1 Lemma 2.5, with the paper's "for any sufficiently small
+`κ₁`" made explicit as an existential smallness threshold.  The hypotheses
+`IsCUnifBdd u`, `0 ≤ u`, and the first/second derivative controls on the
+weight are the formal version of the paper's ambient `u ∈ C_b^unif(R)`,
+nonnegative density, and the weight condition (2.9). -/
 def Lemma_2_5 : Prop :=
   ∀ pExp gamma l mu : ℝ, 1 < pExp → 0 < gamma → 0 < l → 0 < mu →
-    ∃ C > 0, ∀ u : ℝ → ℝ, ∀ psi : ExponentialWeight,
+    ∃ kMax > 0, ∃ C > 0, ∀ k : ℝ, 0 ≤ k → k < kMax →
+    ∀ u : ℝ → ℝ, ∀ psi : ExponentialWeight,
+      IsCUnifBdd u → (∀ y, 0 ≤ u y) →
+      (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+      (∀ z, |iteratedDeriv 2 psi.weight z| ≤ k * psi.weight z) →
       Integrable (fun x => (u x) ^ (gamma * pExp) * psi.weight x) →
         Integrable
           (fun x =>
