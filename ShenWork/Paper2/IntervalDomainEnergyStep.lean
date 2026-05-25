@@ -595,6 +595,185 @@ theorem intervalDomain_lp_energy_closed_derivative_bound_of_frontiers
   refine ⟨Ceps, ?_⟩
   linarith
 
+/-- Pointwise Gronwall-ready derivative bound with an explicit cross-diffusion
+constant.
+
+This is the last algebraic step after absorption: once the GN/Young estimate
+has supplied the displayed `Ccross` and the remaining lower-order terms are
+bounded by the constant `C`, the actual derivative of `∫ |u|^p` is bounded by
+`C`.  The hypotheses named `hCrossGNYoungAt` and `hRhsConstant` are the honest
+analytic frontiers for this final closure. -/
+theorem intervalDomain_lp_energy_derivative_le_constant_of_explicit_cross_bound
+    {params : CM2Params} {T rho pExp eps A chiBound B L_const Ccross C t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hpExp : 1 < pExp) (hchiBound : 0 ≤ chiBound)
+    (ht0 : 0 < t) (htT : t < T)
+    (hLpTime : ∀ s, 0 < s → s < T →
+      deriv (fun τ => intervalDomainLpEnergy pExp u τ) s =
+        pExp * intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u s))
+    (hPDEIntegral :
+      intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u t) =
+        intervalDomainLpDiffusionIntegral pExp u t -
+          params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t +
+          intervalDomainLpLogisticIntegral params pExp u t)
+    (hIBP :
+      intervalDomainLpDiffusionIntegral pExp u t =
+        intervalDomainNeumannBoundaryTerm
+            (intervalDomainLpDiffusionTest pExp u t) (u t) -
+          intervalDomainLpDiffusionDissipation pExp u t)
+    (hDiffusionCoercive :
+      A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
+        intervalDomainLpDiffusionDissipation pExp u t)
+    (hCrossControl :
+      -params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t ≤
+        chiBound *
+          intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t))
+    (hCrossGNYoungAt :
+      intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t) ≤
+        eps * intervalDomainLpWeightedGradientDissipation pExp u t +
+          Ccross *
+            intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)))
+    (hLogisticUpper :
+      intervalDomainLpLogisticIntegral params pExp u t ≤
+        B * intervalDomainLpEnergy pExp u t + L_const)
+    (hDissNonneg :
+      0 ≤
+        (A - chiBound * eps) *
+          intervalDomainLpWeightedGradientDissipation pExp u t)
+    (hRhsConstant :
+      pExp *
+          (chiBound * Ccross *
+              intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) +
+            B * intervalDomainLpEnergy pExp u t + L_const) ≤ C) :
+    deriv (fun τ => intervalDomainLpEnergy pExp u τ) t ≤ C := by
+  have hpExp_ne : pExp ≠ 0 := by linarith
+  have hpExp_nonneg : 0 ≤ pExp := by linarith
+  have hbasic :=
+    intervalDomain_lp_energy_gradient_inequality_of_frontiers
+      (params := params) (T := T) (pExp := pExp) (A := A)
+      (chiBound := chiBound) (t := t) (u := u) (v := v)
+      hpExp_ne ht0 htT hLpTime hPDEIntegral hIBP
+      hDiffusionCoercive hCrossControl
+  have hscaled :=
+    mul_le_mul_of_nonneg_left hCrossGNYoungAt hchiBound
+  set Y :=
+    (1 / pExp) *
+      deriv (fun τ => intervalDomainLpEnergy pExp u τ) t
+  set G := intervalDomainLpWeightedGradientDissipation pExp u t
+  set Z := intervalDomain.integral (fun x => (u t x) ^ (pExp + rho))
+  set E := intervalDomainLpEnergy pExp u t
+  set R := intervalDomainLpLogisticIntegral params pExp u t
+  have hpre :
+      Y + A * G ≤ chiBound * (eps * G + Ccross * Z) + R := by
+    change
+      Y + A * G ≤
+        chiBound *
+          intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t) +
+          R at hbasic
+    change
+      chiBound *
+          intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t) ≤
+        chiBound * (eps * G + Ccross * Z) at hscaled
+    linarith
+  have habsorbed :
+      Y + (A - chiBound * eps) * G ≤ chiBound * Ccross * Z + R := by
+    calc
+      Y + (A - chiBound * eps) * G
+          = Y + A * G - chiBound * (eps * G) := by ring
+      _ ≤ chiBound * (eps * G + Ccross * Z) + R -
+            chiBound * (eps * G) := by
+          linarith
+      _ = chiBound * Ccross * Z + R := by ring
+  have hLogisticUpper' : R ≤ B * E + L_const := by
+    simpa [E, R] using hLogisticUpper
+  have hclosed :
+      Y ≤ chiBound * Ccross * Z + B * E + L_const := by
+    linarith
+  have hmul := mul_le_mul_of_nonneg_left hclosed hpExp_nonneg
+  calc
+    deriv (fun τ => intervalDomainLpEnergy pExp u τ) t
+        = pExp * Y := by
+          dsimp [Y]
+          field_simp [hpExp_ne]
+    _ ≤
+        pExp * (chiBound * Ccross * Z + B * E + L_const) := hmul
+    _ ≤ C := by
+      simpa [Z, E] using hRhsConstant
+
+/-- Time-family version of
+`intervalDomain_lp_energy_derivative_le_constant_of_explicit_cross_bound`.
+
+The conclusion is the exact Gronwall input for the absolute Lp energy:
+`d/dt ∫ |u|^p <= C` on `(0,T)`. -/
+theorem intervalDomain_lp_abs_energy_derivative_le_constant_family_of_frontiers
+    {params : CM2Params} {T rho pExp eps A chiBound B L_const Ccross C : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hpExp : 1 < pExp) (hchiBound : 0 ≤ chiBound)
+    (hLpTime : ∀ s, 0 < s → s < T →
+      deriv (fun τ => intervalDomainLpEnergy pExp u τ) s =
+        pExp * intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u s))
+    (hPDEIntegral :
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral
+            (intervalDomainLpEnergyWeightedTimeTerm pExp u t) =
+          intervalDomainLpDiffusionIntegral pExp u t -
+            params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t +
+            intervalDomainLpLogisticIntegral params pExp u t)
+    (hIBP :
+      ∀ t, 0 < t → t < T →
+        intervalDomainLpDiffusionIntegral pExp u t =
+          intervalDomainNeumannBoundaryTerm
+              (intervalDomainLpDiffusionTest pExp u t) (u t) -
+            intervalDomainLpDiffusionDissipation pExp u t)
+    (hDiffusionCoercive :
+      ∀ t, 0 < t → t < T →
+        A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
+          intervalDomainLpDiffusionDissipation pExp u t)
+    (hCrossControl :
+      ∀ t, 0 < t → t < T →
+        -params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t ≤
+          chiBound *
+            intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t))
+    (hCrossGNYoungAt :
+      ∀ t, 0 < t → t < T →
+        intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t) ≤
+          eps * intervalDomainLpWeightedGradientDissipation pExp u t +
+            Ccross *
+              intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)))
+    (hLogisticUpper :
+      ∀ t, 0 < t → t < T →
+        intervalDomainLpLogisticIntegral params pExp u t ≤
+          B * intervalDomainLpEnergy pExp u t + L_const)
+    (hDissNonneg :
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (A - chiBound * eps) *
+            intervalDomainLpWeightedGradientDissipation pExp u t)
+    (hRhsConstant :
+      ∀ t, 0 < t → t < T →
+        pExp *
+            (chiBound * Ccross *
+                intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) +
+              B * intervalDomainLpEnergy pExp u t + L_const) ≤ C) :
+    ∀ t, 0 < t → t < T →
+      deriv (fun τ => intervalDomainLpAbsEnergy pExp u τ) t ≤ C := by
+  intro t ht0 htT
+  have hpoint :=
+    intervalDomain_lp_energy_derivative_le_constant_of_explicit_cross_bound
+      (params := params) (T := T) (rho := rho) (pExp := pExp)
+      (eps := eps) (A := A) (chiBound := chiBound) (B := B)
+      (L_const := L_const) (Ccross := Ccross) (C := C) (t := t)
+      (u := u) (v := v) hpExp hchiBound ht0 htT hLpTime
+      (hPDEIntegral t ht0 htT) (hIBP t ht0 htT)
+      (hDiffusionCoercive t ht0 htT) (hCrossControl t ht0 htT)
+      (hCrossGNYoungAt t ht0 htT)
+      (hLogisticUpper t ht0 htT) (hDissNonneg t ht0 htT)
+      (hRhsConstant t ht0 htT)
+  simpa [intervalDomainLpAbsEnergy, intervalDomainLpEnergy] using hpoint
+
 /-- Half of the L2 energy.  This form avoids any convention about `0^0` in
 `|u|^(p-2)` when specializing the Lp identity at `p = 2`. -/
 def intervalDomainL2HalfEnergy
