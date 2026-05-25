@@ -949,6 +949,45 @@ theorem chemotaxisSignalEnergy_exponential_decay
           Real.exp (-(2 * c / K) * (t - s)) :=
   energy_exponential_decay_of_dissipation_control hc hK hderiv hdiss hcontrol
 
+/-- Nonnegative signal energy together with the Paper3 exponential two-time
+decay estimate.
+
+Point 17 status: conditional theorem, state ③.  The pointwise positivity and
+abstract integral lifting are proved here.  The remaining named frontiers are
+the signal-energy derivative identity, PDE dissipation estimate, and Poincare
+control packaged as `hderiv`, `hdiss`, and `hcontrol`. -/
+theorem chemotaxisSignalEnergy_nonneg_and_exponential_decay
+    {D : BoundedDomainData} {mu vStar c K : ℝ}
+    {v : ℝ → D.Point → ℝ} {energySlope : ℝ → ℝ}
+    (hc : 0 < c) (hK : 0 < K)
+    (hintegral_nonneg :
+      ∀ f : D.Point → ℝ, (∀ x, 0 ≤ f x) → 0 ≤ D.integral f)
+    (hmu : 0 ≤ mu)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisSignalEnergy D mu vStar v tau)
+          (energySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        (1 / 2 : ℝ) * energySlope t +
+          c * chemotaxisSignalGradientDissipation D vStar v t ≤ 0)
+    (hcontrol :
+      ∀ t, 0 < t →
+        chemotaxisSignalEnergy D mu vStar v t ≤
+          K * chemotaxisSignalGradientDissipation D vStar v t) :
+    (∀ t, 0 ≤ chemotaxisSignalEnergy D mu vStar v t) ∧
+      ∀ s t, 0 < s → s ≤ t →
+        chemotaxisSignalEnergy D mu vStar v t ≤
+          chemotaxisSignalEnergy D mu vStar v s *
+            Real.exp (-(2 * c / K) * (t - s)) := by
+  refine ⟨?_, ?_⟩
+  · intro t
+    exact chemotaxisSignalEnergy_nonneg_of_integral_nonneg
+      hintegral_nonneg hmu
+  · exact chemotaxisSignalEnergy_exponential_decay
+      hc hK hderiv hdiss hcontrol
+
 /-- Signal-energy convergence to zero from the Paper3 dissipation-control
 estimate, with nonnegativity discharged by the domain-integral positivity
 frontier. -/
@@ -1006,6 +1045,34 @@ theorem intervalDomain_chemotaxisSignalEnergy_tendsto_zero
       atTop (𝓝 0) :=
   chemotaxisSignalEnergy_tendsto_zero
     hc hK hs intervalDomain_integral_nonneg hmu hderiv hdiss hcontrol
+
+/-- Concrete interval-domain nonnegative signal energy and exponential two-time
+decay estimate. -/
+theorem intervalDomain_chemotaxisSignalEnergy_nonneg_and_exponential_decay
+    {mu vStar c K : ℝ}
+    {v : ℝ → intervalDomain.Point → ℝ} {energySlope : ℝ → ℝ}
+    (hc : 0 < c) (hK : 0 < K)
+    (hmu : 0 ≤ mu)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisSignalEnergy intervalDomain mu vStar v tau)
+          (energySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        (1 / 2 : ℝ) * energySlope t +
+          c * chemotaxisSignalGradientDissipation intervalDomain vStar v t ≤ 0)
+    (hcontrol :
+      ∀ t, 0 < t →
+        chemotaxisSignalEnergy intervalDomain mu vStar v t ≤
+          K * chemotaxisSignalGradientDissipation intervalDomain vStar v t) :
+    (∀ t, 0 ≤ chemotaxisSignalEnergy intervalDomain mu vStar v t) ∧
+      ∀ s t, 0 < s → s ≤ t →
+        chemotaxisSignalEnergy intervalDomain mu vStar v t ≤
+          chemotaxisSignalEnergy intervalDomain mu vStar v s *
+            Real.exp (-(2 * c / K) * (t - s)) :=
+  chemotaxisSignalEnergy_nonneg_and_exponential_decay
+    hc hK intervalDomain_integral_nonneg hmu hderiv hdiss hcontrol
 
 end
 
