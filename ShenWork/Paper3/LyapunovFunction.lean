@@ -1311,6 +1311,25 @@ Point 17 status: conditional theorem, state ③.  The missing upstream analytic
 input is the PDE derivation of `hderiv` and `hdiss` from the chemotaxis-logistic
 system.  The theorem does not assume the conclusion; it turns the genuine
 differential entropy-production estimate into Lyapunov monotonicity. -/
+theorem chemotaxisEntropySlope_nonpos_of_dissipation
+    {D : BoundedDomainData} {uStar theta c : ℝ}
+    {u : ℝ → D.Point → ℝ} {entropySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (hdiss :
+      ∀ t, 0 < t →
+        entropySlope t ≤
+          -c * chemotaxisThetaDissipation D uStar theta (u t))
+    (hprod_nonneg :
+      ∀ t, 0 < t →
+        0 ≤ chemotaxisThetaDissipation D uStar theta (u t)) :
+    ∀ t, 0 < t → entropySlope t ≤ 0 := by
+  intro t ht
+  have hnonpos :
+      -c * chemotaxisThetaDissipation D uStar theta (u t) ≤ 0 := by
+    simpa [neg_mul] using
+      neg_nonpos.mpr (mul_nonneg hc (hprod_nonneg t ht))
+  exact le_trans (hdiss t ht) hnonpos
+
 theorem chemotaxisEntropyFunctional_antitoneOn_of_dissipation
     {D : BoundedDomainData} {m uStar theta c : ℝ}
     {u : ℝ → D.Point → ℝ} {entropySlope : ℝ → ℝ}
@@ -1330,13 +1349,8 @@ theorem chemotaxisEntropyFunctional_antitoneOn_of_dissipation
     AntitoneOn
       (fun t => chemotaxisEntropyFunctional D m uStar u t)
       (Ioi (0 : ℝ)) := by
-  refine energy_antitoneOn_Ioi_of_hasDerivAt_nonpos hderiv ?_
-  intro t ht
-  have hnonpos :
-      -c * chemotaxisThetaDissipation D uStar theta (u t) ≤ 0 := by
-    simpa [neg_mul] using
-      neg_nonpos.mpr (mul_nonneg hc (hprod_nonneg t ht))
-  exact le_trans (hdiss t ht) hnonpos
+  exact energy_antitoneOn_Ioi_of_hasDerivAt_nonpos hderiv
+    (chemotaxisEntropySlope_nonpos_of_dissipation hc hdiss hprod_nonneg)
 
 /-- Entropy monotonicity with the theta-production nonnegativity discharged from
 pointwise positivity and positivity of the abstract integral.
@@ -1449,6 +1463,25 @@ theorem
       (Ioi (0 : ℝ)) :=
   chemotaxisEntropyFunctional_antitoneOn_of_dissipation
     hc hderiv hdiss
+    (fun t ht =>
+      intervalDomain_chemotaxisThetaDissipation_nonneg_of_positiveGlobalBoundedSolution
+        (t := t) huStar htheta huv ht)
+
+/-- Concrete interval-domain entropy slope nonpositivity with theta-production
+nonnegativity discharged directly from `PositiveGlobalBoundedSolution`. -/
+theorem intervalDomain_entropySlope_nonpos_of_positiveGlobalBoundedSolution
+    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta c : ℝ} {entropySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hdiss :
+      ∀ t, 0 < t →
+        entropySlope t ≤
+          -c * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    ∀ t, 0 < t → entropySlope t ≤ 0 :=
+  chemotaxisEntropySlope_nonpos_of_dissipation
+    hc hdiss
     (fun t ht =>
       intervalDomain_chemotaxisThetaDissipation_nonneg_of_positiveGlobalBoundedSolution
         (t := t) huStar htheta huv ht)
@@ -1818,6 +1851,57 @@ theorem chemotaxisSignalEnergy_exponential_decay
           Real.exp (-(2 * c / K) * (t - s)) :=
   energy_exponential_decay_of_dissipation_control hc hK hderiv hdiss hcontrol
 
+/-- Signal-energy dissipation makes the energy slope nonpositive once the
+gradient-dissipation term is nonnegative. -/
+theorem chemotaxisSignalEnergySlope_nonpos_of_dissipation
+    {D : BoundedDomainData} {vStar c : ℝ}
+    {v : ℝ → D.Point → ℝ} {energySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (hdiss :
+      ∀ t, 0 < t →
+        (1 / 2 : ℝ) * energySlope t +
+          c * chemotaxisSignalGradientDissipation D vStar v t ≤ 0)
+    (hgrad_nonneg :
+      ∀ t, 0 < t →
+        0 ≤ chemotaxisSignalGradientDissipation D vStar v t) :
+    ∀ t, 0 < t → energySlope t ≤ 0 := by
+  intro t ht
+  have hcg_nonneg :
+      0 ≤ c * chemotaxisSignalGradientDissipation D vStar v t :=
+    mul_nonneg hc (hgrad_nonneg t ht)
+  have hhalf : (1 / 2 : ℝ) * energySlope t ≤ 0 := by
+    linarith [hdiss t ht]
+  nlinarith
+
+/-- Signal-energy dissipation alone gives unweighted Lyapunov monotonicity.
+
+Point 17 status: conditional theorem, state ③.  The gradient-dissipation
+nonnegativity is a separate domain side condition; the PDE identity is the
+named hypothesis `hdiss`.  No Poincare control is needed for this unweighted
+monotonicity result. -/
+theorem chemotaxisSignalEnergy_antitoneOn_of_dissipation
+    {D : BoundedDomainData} {mu vStar c : ℝ}
+    {v : ℝ → D.Point → ℝ} {energySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisSignalEnergy D mu vStar v tau)
+          (energySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        (1 / 2 : ℝ) * energySlope t +
+          c * chemotaxisSignalGradientDissipation D vStar v t ≤ 0)
+    (hgrad_nonneg :
+      ∀ t, 0 < t →
+        0 ≤ chemotaxisSignalGradientDissipation D vStar v t) :
+    AntitoneOn
+      (fun t => chemotaxisSignalEnergy D mu vStar v t)
+      (Ioi (0 : ℝ)) :=
+  energy_antitoneOn_Ioi_of_hasDerivAt_nonpos hderiv
+    (chemotaxisSignalEnergySlope_nonpos_of_dissipation
+      hc hdiss hgrad_nonneg)
+
 /-- Concrete interval-domain weighted Lyapunov monotonicity for signal energy.
 
 Point 17 status: conditional theorem, state ③.  The remaining named frontiers
@@ -1847,6 +1931,30 @@ theorem intervalDomain_chemotaxisSignalEnergy_weighted_antitoneOn
       (Ioi (0 : ℝ)) :=
   chemotaxisSignalEnergy_weighted_antitoneOn
     hc hK hderiv hdiss hcontrol
+
+/-- Concrete interval-domain signal-energy monotonicity.  The gradient
+dissipation nonnegativity is discharged by the concrete interval integral
+positivity theorem; Poincare control is not used. -/
+theorem intervalDomain_chemotaxisSignalEnergy_antitoneOn_of_dissipation
+    {mu vStar c : ℝ}
+    {v : ℝ → intervalDomain.Point → ℝ} {energySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisSignalEnergy intervalDomain mu vStar v tau)
+          (energySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        (1 / 2 : ℝ) * energySlope t +
+          c * chemotaxisSignalGradientDissipation intervalDomain vStar v t ≤ 0) :
+    AntitoneOn
+      (fun t => chemotaxisSignalEnergy intervalDomain mu vStar v t)
+      (Ioi (0 : ℝ)) :=
+  chemotaxisSignalEnergy_antitoneOn_of_dissipation
+    hc hderiv hdiss
+    (fun t _ht =>
+      intervalDomain_chemotaxisSignalGradientDissipation_nonneg (t := t))
 
 /-- Nonnegative signal energy together with the Paper3 exponential two-time
 decay estimate.
