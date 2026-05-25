@@ -1999,6 +1999,132 @@ theorem lpNorm_comp_mul_intervalMeasure_one_eq
           rw [NNReal.coe_rpow, ENNReal.toReal_ofReal hp.le, hc_real,
             one_div p]
 
+/-- Pulling a finite-`p` interval function back by `y ↦ L*y` preserves
+membership in the corresponding unit-interval `L^p` space. -/
+theorem memLp_comp_mul_intervalMeasure_one
+    {L : ℝ} (hL : 0 < L) {p : ℝ≥0∞}
+    {f : ℝ → ℝ}
+    (hf_mem : MemLp f p (intervalMeasure L)) :
+    MemLp (fun y : ℝ => f (L * y)) p (intervalMeasure 1) := by
+  let c : NNReal := Real.toNNReal (1 / L)
+  let scale : ℝ → ℝ := fun y => L * y
+  have hmap : Measure.map scale (intervalMeasure 1) =
+      c • intervalMeasure L := by
+    have hbase := map_mul_intervalMeasure_one (L := L) hL
+    have hc_enn : ENNReal.ofReal L⁻¹ = (c : ENNReal) := by
+      simpa [c, one_div] using (ENNReal.ofNNReal_toNNReal (1 / L)).symm
+    simpa [scale, hc_enn] using hbase
+  have hf_map : MemLp f p (Measure.map scale (intervalMeasure 1)) := by
+    rw [hmap]
+    exact hf_mem.smul_measure (by simp)
+  have hscale_ae : AEMeasurable scale (intervalMeasure 1) := by
+    exact (measurable_const_mul L).aemeasurable
+  simpa [scale, Function.comp_def] using hf_map.comp_of_map hscale_ae
+
+/-- Total mass of the concrete interval measure. -/
+theorem intervalMeasure_univ_eq_ofReal (L : ℝ) :
+    intervalMeasure L Set.univ = ENNReal.ofReal L := by
+  unfold intervalMeasure intervalSet
+  simp [Real.volume_Icc]
+
+/-- On `[0,L]`, a pointwise norm bound controls every finite Mathlib
+`lpNorm`, with the explicit interval-volume factor. -/
+theorem interval_lpNorm_le_of_forall_norm_le
+    {L q C : ℝ} (hL : 0 ≤ L) (hq : 0 < q) (hC : 0 ≤ C)
+    {g : ℝ → ℝ} (hbound : ∀ x, ‖g x‖ ≤ C) :
+    lpNorm g (ENNReal.ofReal q) (intervalMeasure L) ≤
+      L ^ (1 / q) * C := by
+  by_cases hg : AEStronglyMeasurable g (intervalMeasure L)
+  · have hELp :
+        eLpNorm g (ENNReal.ofReal q) (intervalMeasure L) ≤
+          (intervalMeasure L Set.univ) ^
+              (ENNReal.ofReal q).toReal⁻¹ * ENNReal.ofReal C := by
+      exact eLpNorm_le_of_ae_bound
+        (p := ENNReal.ofReal q) (μ := intervalMeasure L)
+        (f := g) (Filter.Eventually.of_forall hbound)
+    have hexp_nonneg : 0 ≤ (ENNReal.ofReal q).toReal⁻¹ := by
+      exact inv_nonneg.mpr ENNReal.toReal_nonneg
+    have hRHS_ne_top :
+        (intervalMeasure L Set.univ) ^
+            (ENNReal.ofReal q).toReal⁻¹ * ENNReal.ofReal C ≠ ∞ := by
+      exact ENNReal.mul_ne_top
+        (ENNReal.rpow_ne_top_of_nonneg hexp_nonneg
+          (ne_of_lt (intervalMeasure_univ_lt_top L)))
+        ENNReal.ofReal_ne_top
+    calc
+      lpNorm g (ENNReal.ofReal q) (intervalMeasure L)
+          = (eLpNorm g (ENNReal.ofReal q) (intervalMeasure L)).toReal := by
+            exact (toReal_eLpNorm hg).symm
+      _ ≤ ((intervalMeasure L Set.univ) ^
+              (ENNReal.ofReal q).toReal⁻¹ * ENNReal.ofReal C).toReal :=
+            ENNReal.toReal_mono hRHS_ne_top hELp
+      _ = L ^ (1 / q) * C := by
+            rw [ENNReal.toReal_mul, ← ENNReal.toReal_rpow,
+              intervalMeasure_univ_eq_ofReal L,
+              ENNReal.toReal_ofReal hL, ENNReal.toReal_ofReal hC,
+              ENNReal.toReal_ofReal hq.le, one_div q]
+  · have hnonneg : 0 ≤ L ^ (1 / q) * C := by
+      exact mul_nonneg (Real.rpow_nonneg hL _) hC
+    simpa [lpNorm, hg] using hnonneg
+
+/-- Unit-interval real-valued spectral Neumann heat-gradient pointwise
+estimate from finite `L^p`, `1 ≤ p`, to `L∞`. -/
+theorem unitIntervalNeumannHeatSemigroup_grad_Lp_pointwise_bound
+    {t p : ℝ} (ht : 0 < t) (hp : 1 ≤ p)
+    {f : ℝ → ℝ}
+    (hf_mem : MemLp f (ENNReal.ofReal p) (intervalMeasure 1)) (x : ℝ) :
+    ‖deriv (fun z => unitIntervalNeumannHeatSemigroup t f z) x‖ ≤
+      (unitIntervalCosineGradientL1LinftyConstant / t ^ 2) *
+        lpNorm f (ENNReal.ofReal p) (intervalMeasure 1) := by
+  have hfc_mem :
+      MemLp (fun y : ℝ => (f y : ℂ)) (ENNReal.ofReal p)
+        (intervalMeasure 1) :=
+    hf_mem.ofReal
+  have hf_int :=
+    unitInterval_memLp_ofReal_intervalIntegrable
+      (p := p) hp (f := fun y : ℝ => (f y : ℂ)) hfc_mem
+  have hderiv :
+      deriv (fun z => unitIntervalNeumannHeatSemigroup t f z) x =
+        unitIntervalCosineHeatGradientValue t
+          (unitIntervalNeumannCosineCoeff (fun y : ℝ => (f y : ℂ))) x := by
+    simpa [unitIntervalNeumannHeatSemigroup] using
+      unitIntervalNeumannSpectralHeat_deriv_eq_gradient_of_L1
+        (t := t) (x := x) ht
+        (f := fun y : ℝ => (f y : ℂ)) hf_int
+  have hpoint :=
+    unitIntervalNeumannSpectralHeatGradient_L1_Linfty_pointwise_bound
+      (t := t) ht (f := fun y : ℝ => (f y : ℂ)) hf_int x
+  have hLp :=
+    unitInterval_lpNorm_one_le_lpNorm_of_one_le
+      (p := p) hp (f := fun y : ℝ => (f y : ℂ)) hfc_mem
+  have hfactor_nonneg :
+      0 ≤ unitIntervalCosineGradientL1LinftyConstant / t ^ 2 := by
+    exact div_nonneg unitIntervalCosineGradientL1LinftyConstant_nonneg
+      (sq_nonneg t)
+  calc
+    ‖deriv (fun z => unitIntervalNeumannHeatSemigroup t f z) x‖
+        = |unitIntervalCosineHeatGradientValue t
+            (unitIntervalNeumannCosineCoeff (fun y : ℝ => (f y : ℂ))) x| := by
+          rw [hderiv, Real.norm_eq_abs]
+    _ ≤ (unitIntervalCosineGradientL1LinftyConstant / t ^ 2) *
+          lpNorm (fun y : ℝ => (f y : ℂ)) (1 : ℝ≥0∞)
+            (intervalMeasure 1) := by
+          have hint :
+              (∫ y in (0 : ℝ)..1, |f y|) =
+                lpNorm (fun y : ℝ => (f y : ℂ)) (1 : ℝ≥0∞)
+                  (intervalMeasure 1) := by
+            simpa using
+              unitInterval_integral_norm_eq_lpNorm_one
+                (f := fun y : ℝ => (f y : ℂ)) hf_int
+          simpa [hint] using hpoint
+    _ ≤ (unitIntervalCosineGradientL1LinftyConstant / t ^ 2) *
+          lpNorm (fun y : ℝ => (f y : ℂ)) (ENNReal.ofReal p)
+            (intervalMeasure 1) := by
+          exact mul_le_mul_of_nonneg_left hLp hfactor_nonneg
+    _ = (unitIntervalCosineGradientL1LinftyConstant / t ^ 2) *
+          lpNorm f (ENNReal.ofReal p) (intervalMeasure 1) := by
+          rw [unitInterval_lpNorm_complex_ofReal_eq hf_mem]
+
 /-- The scaled interval spectral semigroup has the already-proved unit
 gradient estimate when `L = 1`. -/
 theorem intervalHeatSemigroup_unit_grad_Lp_Lq_bound
