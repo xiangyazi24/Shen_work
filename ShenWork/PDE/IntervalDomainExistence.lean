@@ -1158,6 +1158,94 @@ theorem duhamel_ball_invariance_logistic
   · exact ht0
   · exact htT
 
+/-! ### Picard base step for bounded initial data
+
+The concrete Picard construction below needs a bound on the first increment
+`Φ(0) - 0`.  For the interval Duhamel operator this follows directly from
+the `L∞` contraction of the interval heat helper: the logistic source of the
+zero trajectory is identically zero, so the first Picard step is just the
+semigroup applied to the initial datum. -/
+
+@[simp] theorem neumannHeatKernel_zerothReflection_zero_time
+    (L x y : ℝ) :
+    neumannHeatKernel_zerothReflection L 0 x y = 0 := by
+  simp [neumannHeatKernel_zerothReflection, heatKernel_zero]
+
+@[simp] theorem normalizedZerothReflectionKernel_zero_time
+    (L x y : ℝ) :
+    normalizedZerothReflectionKernel L 0 x y = 0 := by
+  simp [normalizedZerothReflectionKernel]
+
+@[simp] theorem intervalSemigroupOperator_zero_time
+    (L : ℝ) (f : ℝ → ℝ) (x : ℝ) :
+    intervalSemigroupOperator L 0 f x = 0 := by
+  simp [intervalSemigroupOperator]
+
+@[simp] theorem intervalLogisticSource_zero
+    (p : CM2Params) (x : intervalDomainPoint) :
+    intervalLogisticSource p (fun _ : intervalDomainPoint => 0) x = 0 := by
+  simp [intervalLogisticSource]
+
+@[simp] theorem intervalDomainLift_zero :
+    intervalDomainLift (fun _ : intervalDomainPoint => 0) = fun _ : ℝ => 0 := by
+  ext x
+  simp [intervalDomainLift]
+
+/-- The interval Duhamel operator applied to the zero trajectory has no
+Duhamel source term. -/
+theorem intervalDuhamelOperator_zero_trajectory
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (t : ℝ) (x : intervalDomainPoint) :
+    intervalDuhamelOperator p u₀ (fun _ _ => 0) t x =
+      intervalSemigroupOperator 1 t (intervalDomainLift u₀) x.1 := by
+  unfold intervalDuhamelOperator
+  have hsource :
+      (fun s : ℝ =>
+        intervalSemigroupOperator 1 (t - s)
+          (intervalDomainLift (intervalLogisticSource p (fun _ => 0))) x.1)
+        = fun _ : ℝ => 0 := by
+    funext s
+    have hsrc :
+        intervalDomainLift (intervalLogisticSource p (fun _ => 0)) =
+          fun _ : ℝ => 0 := by
+      ext y
+      simp [intervalDomainLift]
+    rw [hsrc]
+    exact intervalSemigroupOperator_zero 1 (t - s) x.1
+  rw [hsource]
+  simp
+
+/-- Bounded initial data bounds the first Picard step `Φ(0)` on `[0,T]`.
+
+This discharges the concrete `hbase` input of
+`intervalDuhamel_fixed_point_exists_of_contraction`; the remaining contraction
+input still has to be supplied on a bounded trajectory ball, not on arbitrary
+trajectories. -/
+theorem intervalDuhamel_zero_trajectory_bound_of_lift_bound
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    {H T : ℝ} (hH : 0 ≤ H)
+    (hu₀ : ∀ y : ℝ, |intervalDomainLift u₀ y| ≤ H) :
+    ∀ t x, 0 ≤ t → t ≤ T →
+      |intervalDuhamelOperator p u₀ (fun _ _ => 0) t x| ≤ H := by
+  intro t x ht0 _htT
+  rw [intervalDuhamelOperator_zero_trajectory]
+  by_cases ht : t = 0
+  · subst ht
+    simp [hH]
+  · have ht_pos : 0 < t := lt_of_le_of_ne ht0 (Ne.symm ht)
+    exact intervalSemigroupOperator_Linfty_bound ht_pos hH hu₀ x.1
+
+/-- Pointwise bounded initial data on the interval gives the Picard base-step
+bound used by the local Duhamel fixed-point construction. -/
+theorem intervalDuhamel_zero_trajectory_bound_of_initial_bound
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    {H T : ℝ} (hH : 0 ≤ H)
+    (hu₀ : ∀ y : intervalDomainPoint, |u₀ y| ≤ H) :
+    ∀ t x, 0 ≤ t → t ≤ T →
+      |intervalDuhamelOperator p u₀ (fun _ _ => 0) t x| ≤ H :=
+  intervalDuhamel_zero_trajectory_bound_of_lift_bound p u₀ hH
+    (intervalDomainLift_abs_le hH hu₀)
+
 /-! ### Picard iteration and the Banach fixed-point theorem
 
 We construct the Picard iteration sequence for a general operator `Φ`,
@@ -3000,6 +3088,390 @@ def GlobalSolutionGluingFromReachability (p : CM2Params) : Prop :=
     PositiveInitialDatum intervalDomain u₀ →
       ReachableArbitrarilyLong p u₀ →
         IntervalDomainGlobalSolutionFor p u₀
+
+/-! #### Gluing from overlap uniqueness
+
+The order skeleton above gives one finite classical solution on every positive
+horizon.  To turn those unrelated witnesses into one global solution, the first
+real PDE input is overlap uniqueness: two interval-domain classical solutions
+with the same initial trace must agree on the common time interval.  The lemmas
+below prove the non-PDE part of the gluing argument from that uniqueness
+frontier.
+-/
+
+/-- A packaged finite reachable classical solution on one horizon. -/
+structure ReachableClassicalSolutionData
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (T : ℝ) where
+  T_pos : 0 < T
+  u : ℝ → intervalDomainPoint → ℝ
+  v : ℝ → intervalDomainPoint → ℝ
+  sol : IsPaper2ClassicalSolution intervalDomain p T u v
+  trace : InitialTrace intervalDomain u₀ u
+
+/-- Repackage the existing reachability predicate as structured data. -/
+noncomputable def reachableClassicalSolutionDataOfReach
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {T : ℝ}
+    (hreach : ReachableClassicalHorizon p u₀ T) :
+    ReachableClassicalSolutionData p u₀ T :=
+  { T_pos := hreach.1
+    u := Classical.choose hreach.2
+    v := Classical.choose (Classical.choose_spec hreach.2)
+    sol := (Classical.choose_spec (Classical.choose_spec hreach.2)).1
+    trace := (Classical.choose_spec (Classical.choose_spec hreach.2)).2 }
+
+/-- PDE uniqueness frontier needed for gluing: two finite interval solutions
+with the same initial datum agree on the overlap of their horizons. -/
+def IntervalClassicalSolutionOverlapUnique (p : CM2Params) : Prop :=
+  ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+    (d₁ : ReachableClassicalSolutionData p u₀ T₁)
+    (d₂ : ReachableClassicalSolutionData p u₀ T₂),
+      ∀ t, 0 < t → t < min T₁ T₂ →
+        ∀ x : intervalDomainPoint, d₁.u t x = d₂.u t x ∧ d₁.v t x = d₂.v t x
+
+/-- Locality frontier for the formal `IsPaper2ClassicalSolution` predicate:
+if a candidate agrees pointwise with a known classical solution throughout
+`(0,T)`, then it is itself a classical solution on `T`.
+
+For the concrete interval domain this should follow from local equality and
+`Filter.EventuallyEq` transport of time/spatial derivatives, plus transport of
+the sup-norm regularity field.  It is kept explicit because it is a separate
+calculus/locality layer from PDE uniqueness. -/
+def ClassicalSolutionLocalityUnderIooAgreement (p : CM2Params) : Prop :=
+  ∀ {T : ℝ} {u v U V : ℝ → intervalDomainPoint → ℝ},
+    0 < T →
+      IsPaper2ClassicalSolution intervalDomain p T U V →
+      (∀ t, 0 < t → t < T →
+        ∀ x : intervalDomainPoint, u t x = U t x ∧ v t x = V t x) →
+        IsPaper2ClassicalSolution intervalDomain p T u v
+
+private lemma intervalDomainSupNormDerivativeNonposOn_congr_of_eqOn
+    {u U : ℝ → intervalDomainPoint → ℝ} {I : Set ℝ}
+    (hreg : IntervalDomainSupNormDerivativeNonposOn U I)
+    (hEq : ∀ t ∈ I, u t = U t) :
+    IntervalDomainSupNormDerivativeNonposOn u I := by
+  have hsup_eq : Set.EqOn
+      (fun t => intervalDomainSupNorm (u t))
+      (fun t => intervalDomainSupNorm (U t)) I := by
+    intro t ht
+    change intervalDomainSupNorm (u t) = intervalDomainSupNorm (U t)
+    exact congrArg intervalDomainSupNorm (hEq t ht)
+  refine ⟨hreg.continuousOn.congr hsup_eq, ?_, ?_⟩
+  · exact hreg.differentiableOn.congr
+      (fun t ht => hsup_eq (x := t) (interior_subset ht))
+  · intro t ht
+    have hsup_eventually :
+        (fun s => intervalDomainSupNorm (u s)) =ᶠ[nhds t]
+          (fun s => intervalDomainSupNorm (U s)) :=
+      Set.EqOn.eventuallyEq_of_mem
+        (fun s hs => hsup_eq (x := s) (interior_subset hs))
+        (isOpen_interior.mem_nhds ht)
+    rw [Filter.EventuallyEq.deriv_eq hsup_eventually]
+    exact hreg.deriv_nonpos t ht
+
+private lemma intervalDomainClassicalRegularity_congr_Ioo
+    {T : ℝ} {u v U V : ℝ → intervalDomainPoint → ℝ}
+    (hreg : intervalDomainClassicalRegularity T U V)
+    (hEq : ∀ t, 0 < t → t < T → u t = U t) :
+    intervalDomainClassicalRegularity T u v := by
+  constructor
+  · intro q hqχ hqa hqb t₀ ht₀ ht₀T hsup
+    have hreg₀ := hreg.1 q hqχ hqa hqb t₀ ht₀ ht₀T ?_
+    · exact intervalDomainSupNormDerivativeNonposOn_congr_of_eqOn hreg₀
+        (fun s hs => hEq s hs.1 (lt_of_le_of_lt hs.2 ht₀T))
+    · rw [hEq t₀ ht₀ ht₀T] at hsup
+      exact hsup
+  · intro q hqχ hqa hqb
+    have hreg₀ := hreg.2 q hqχ hqa hqb
+    exact intervalDomainSupNormDerivativeNonposOn_congr_of_eqOn hreg₀
+      (fun s hs => hEq s hs.1 hs.2)
+
+private lemma intervalDomainLift_eventuallyEq_of_pointwise_eq
+    {f g : intervalDomainPoint → ℝ}
+    (hfg : ∀ x : intervalDomainPoint, f x = g x)
+    {x : intervalDomainPoint} (hx : x ∈ intervalDomain.inside) :
+    intervalDomainLift f =ᶠ[nhds x.1] intervalDomainLift g := by
+  have hEqOn : Set.EqOn (intervalDomainLift f) (intervalDomainLift g)
+      (Set.Ioo (0 : ℝ) 1) := by
+    intro y hy
+    have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := ⟨le_of_lt hy.1, le_of_lt hy.2⟩
+    unfold intervalDomainLift
+    simp [hyIcc, hfg ⟨y, hyIcc⟩]
+  exact Set.EqOn.eventuallyEq_of_mem hEqOn (isOpen_Ioo.mem_nhds hx)
+
+private lemma intervalDomainLift_deriv_eventuallyEq_of_pointwise_eq
+    {f g : intervalDomainPoint → ℝ}
+    (hfg : ∀ x : intervalDomainPoint, f x = g x)
+    {x : intervalDomainPoint} (hx : x ∈ intervalDomain.inside) :
+    (fun y => deriv (intervalDomainLift f) y) =ᶠ[nhds x.1]
+      (fun y => deriv (intervalDomainLift g) y) := by
+  have hEqOn : Set.EqOn
+      (fun y => deriv (intervalDomainLift f) y)
+      (fun y => deriv (intervalDomainLift g) y)
+      (Set.Ioo (0 : ℝ) 1) := by
+    intro y hy
+    have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := ⟨le_of_lt hy.1, le_of_lt hy.2⟩
+    have hy_inside : (⟨y, hyIcc⟩ : intervalDomainPoint) ∈ intervalDomain.inside := hy
+    exact Filter.EventuallyEq.deriv_eq
+      (intervalDomainLift_eventuallyEq_of_pointwise_eq hfg hy_inside)
+  exact Set.EqOn.eventuallyEq_of_mem hEqOn (isOpen_Ioo.mem_nhds hx)
+
+private lemma intervalDomainTimeDeriv_eq_of_Ioo_eq
+    {T t : ℝ} {u U : ℝ → intervalDomainPoint → ℝ}
+    (hEq : ∀ s, 0 < s → s < T → u s = U s)
+    (ht0 : 0 < t) (htT : t < T) (x : intervalDomainPoint) :
+    intervalDomain.timeDeriv u t x = intervalDomain.timeDeriv U t x := by
+  have hEqOn : Set.EqOn (fun s => u s x) (fun s => U s x) (Set.Ioo (0 : ℝ) T) := by
+    intro s hs
+    exact congrFun (hEq s hs.1 hs.2) x
+  have heventually :
+      (fun s => u s x) =ᶠ[nhds t] (fun s => U s x) :=
+    Set.EqOn.eventuallyEq_of_mem hEqOn
+      (isOpen_Ioo.mem_nhds ⟨ht0, htT⟩)
+  change deriv (fun s : ℝ => u s x) t = deriv (fun s : ℝ => U s x) t
+  exact Filter.EventuallyEq.deriv_eq heventually
+
+private lemma intervalDomainLaplacian_eq_of_pointwise_eq
+    {f g : intervalDomainPoint → ℝ}
+    (hfg : ∀ x : intervalDomainPoint, f x = g x)
+    {x : intervalDomainPoint} (hx : x ∈ intervalDomain.inside) :
+    intervalDomainLaplacian f x = intervalDomainLaplacian g x := by
+  change deriv (fun y : ℝ => deriv (intervalDomainLift f) y) x.1 =
+    deriv (fun y : ℝ => deriv (intervalDomainLift g) y) x.1
+  exact Filter.EventuallyEq.deriv_eq
+    (intervalDomainLift_deriv_eventuallyEq_of_pointwise_eq hfg hx)
+
+private lemma intervalDomainChemotaxisDiv_eq_of_pointwise_eq
+    (p : CM2Params)
+    {u U v V : intervalDomainPoint → ℝ}
+    (hu : ∀ x : intervalDomainPoint, u x = U x)
+    (hv : ∀ x : intervalDomainPoint, v x = V x)
+    {x : intervalDomainPoint} (hx : x ∈ intervalDomain.inside) :
+    intervalDomainChemotaxisDiv p u v x =
+      intervalDomainChemotaxisDiv p U V x := by
+  change deriv
+      (fun y : ℝ =>
+        intervalDomainLift u y * deriv (intervalDomainLift v) y /
+          (1 + intervalDomainLift v y) ^ p.β) x.1 =
+    deriv
+      (fun y : ℝ =>
+        intervalDomainLift U y * deriv (intervalDomainLift V) y /
+          (1 + intervalDomainLift V y) ^ p.β) x.1
+  have hEqOn : Set.EqOn
+      (fun y : ℝ =>
+        intervalDomainLift u y * deriv (intervalDomainLift v) y /
+          (1 + intervalDomainLift v y) ^ p.β)
+      (fun y : ℝ =>
+        intervalDomainLift U y * deriv (intervalDomainLift V) y /
+          (1 + intervalDomainLift V y) ^ p.β)
+      (Set.Ioo (0 : ℝ) 1) := by
+    intro y hy
+    have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := ⟨le_of_lt hy.1, le_of_lt hy.2⟩
+    have hy_inside : (⟨y, hyIcc⟩ : intervalDomainPoint) ∈ intervalDomain.inside := hy
+    have hlu :
+        intervalDomainLift u y = intervalDomainLift U y := by
+      have heq := intervalDomainLift_eventuallyEq_of_pointwise_eq hu hy_inside
+      exact (Filter.EventuallyEq.eq_of_nhds heq)
+    have hlv :
+        intervalDomainLift v y = intervalDomainLift V y := by
+      have heq := intervalDomainLift_eventuallyEq_of_pointwise_eq hv hy_inside
+      exact (Filter.EventuallyEq.eq_of_nhds heq)
+    have hdv :
+        deriv (intervalDomainLift v) y = deriv (intervalDomainLift V) y :=
+      Filter.EventuallyEq.deriv_eq
+        (intervalDomainLift_eventuallyEq_of_pointwise_eq hv hy_inside)
+    change intervalDomainLift u y * deriv (intervalDomainLift v) y /
+        (1 + intervalDomainLift v y) ^ p.β =
+      intervalDomainLift U y * deriv (intervalDomainLift V) y /
+        (1 + intervalDomainLift V y) ^ p.β
+    rw [hlu, hlv, hdv]
+  exact Filter.EventuallyEq.deriv_eq
+    (Set.EqOn.eventuallyEq_of_mem hEqOn (isOpen_Ioo.mem_nhds hx))
+
+/-- The formal interval-domain classical-solution predicate is local under
+pointwise agreement on `(0,T)`.  This closes the non-PDE locality layer of
+the gluing argument. -/
+theorem classicalSolutionLocalityUnderIooAgreement_intervalDomain
+    (p : CM2Params) :
+    ClassicalSolutionLocalityUnderIooAgreement p := by
+  intro T u v U V hT hsol hEq
+  have huEq : ∀ t, 0 < t → t < T → u t = U t := by
+    intro t ht0 htT
+    funext x
+    exact (hEq t ht0 htT x).1
+  have hvEq : ∀ t, 0 < t → t < T → v t = V t := by
+    intro t ht0 htT
+    funext x
+    exact (hEq t ht0 htT x).2
+  refine IsPaper2ClassicalSolution.of_components hT ?_ ?_ ?_ ?_ ?_
+  · exact intervalDomainClassicalRegularity_congr_Ioo
+      (u := u) (v := v) (U := U) (V := V) hsol.regularity huEq
+  · intro t x ht0 htT hx
+    rw [huEq t ht0 htT]
+    exact hsol.u_pos ht0 htT hx
+  · intro t x ht0 htT hx
+    have htime := intervalDomainTimeDeriv_eq_of_Ioo_eq huEq ht0 htT x
+    have hlap :=
+      intervalDomainLaplacian_eq_of_pointwise_eq
+        (fun y => congrFun (huEq t ht0 htT) y) hx
+    have hchem :=
+      intervalDomainChemotaxisDiv_eq_of_pointwise_eq p
+        (fun y => congrFun (huEq t ht0 htT) y)
+        (fun y => congrFun (hvEq t ht0 htT) y) hx
+    have hpde := hsol.pde_u ht0 htT hx
+    have hlap' :
+        intervalDomain.laplacian (u t) x = intervalDomain.laplacian (U t) x := by
+      simpa [intervalDomain] using hlap
+    have hchem' :
+        intervalDomain.chemotaxisDiv p (u t) (v t) x =
+          intervalDomain.chemotaxisDiv p (U t) (V t) x := by
+      simpa [intervalDomain] using hchem
+    have huval : u t x = U t x := congrFun (huEq t ht0 htT) x
+    rw [htime, hlap', hchem', huval]
+    exact hpde
+  · intro t x ht0 htT hx
+    have hlap :=
+      intervalDomainLaplacian_eq_of_pointwise_eq
+        (fun y => congrFun (hvEq t ht0 htT) y) hx
+    have hpde := hsol.pde_v ht0 htT hx
+    have hlap' :
+        intervalDomain.laplacian (v t) x = intervalDomain.laplacian (V t) x := by
+      simpa [intervalDomain] using hlap
+    have huval : u t x = U t x := congrFun (huEq t ht0 htT) x
+    have hvval : v t x = V t x := congrFun (hvEq t ht0 htT) x
+    rw [hlap', hvval, huval]
+    exact hpde
+  · intro t x _ht0 _htT hx
+    change intervalDomainNormalDeriv (u t) x = 0 ∧
+      intervalDomainNormalDeriv (v t) x = 0
+    exact ⟨intervalDomainNormalDeriv_endpoint (u t) hx,
+      intervalDomainNormalDeriv_endpoint (v t) hx⟩
+
+/-- Canonical pointwise glued `u`: at each positive time `t`, choose the
+finite reachable witness on horizon `t + 1`.  Nonpositive times are irrelevant
+to the Paper 2 classical/global predicates and are filled with zero. -/
+noncomputable def reachableArbitrarilyLongGluedU
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hreach : ReachableArbitrarilyLong p u₀) :
+    ℝ → intervalDomainPoint → ℝ :=
+  fun t x =>
+    if ht : 0 < t then
+      (reachableClassicalSolutionDataOfReach
+        (hreach (t + 1) (by linarith))).u t x
+    else 0
+
+/-- Canonical pointwise glued `v`, using the same horizon choice as
+`reachableArbitrarilyLongGluedU`. -/
+noncomputable def reachableArbitrarilyLongGluedV
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hreach : ReachableArbitrarilyLong p u₀) :
+    ℝ → intervalDomainPoint → ℝ :=
+  fun t x =>
+    if ht : 0 < t then
+      (reachableClassicalSolutionDataOfReach
+        (hreach (t + 1) (by linarith))).v t x
+    else 0
+
+/-- Under overlap uniqueness, the canonical glued branch agrees on `(0,T)`
+with any chosen reachable witness on horizon `T`. -/
+theorem reachableArbitrarilyLongGlued_eq_reachableData_of_overlapUnique
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hreach : ReachableArbitrarilyLong p u₀)
+    {T : ℝ} (d : ReachableClassicalSolutionData p u₀ T) :
+    ∀ t, 0 < t → t < T → ∀ x : intervalDomainPoint,
+      reachableArbitrarilyLongGluedU hreach t x = d.u t x ∧
+      reachableArbitrarilyLongGluedV hreach t x = d.v t x := by
+  intro t ht0 htT x
+  let dshort : ReachableClassicalSolutionData p u₀ (t + 1) :=
+    reachableClassicalSolutionDataOfReach (hreach (t + 1) (by linarith))
+  have ht_overlap : t < min (t + 1) T := by
+    exact lt_min (by linarith) htT
+  have hsame := huniq dshort d t ht0 ht_overlap x
+  constructor
+  · simpa [reachableArbitrarilyLongGluedU, ht0, dshort] using hsame.1
+  · simpa [reachableArbitrarilyLongGluedV, ht0, dshort] using hsame.2
+
+/-- The glued branch inherits the initial trace from any reachable unit-horizon
+witness, using overlap uniqueness for small positive times. -/
+theorem reachableArbitrarilyLongGlued_initialTrace_of_overlapUnique
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hreach : ReachableArbitrarilyLong p u₀) :
+    InitialTrace intervalDomain u₀ (reachableArbitrarilyLongGluedU hreach) := by
+  let d₁ : ReachableClassicalSolutionData p u₀ 1 :=
+    reachableClassicalSolutionDataOfReach (hreach 1 one_pos)
+  intro ε hε
+  obtain ⟨δ, hδ_pos, hδ_bound⟩ := d₁.trace ε hε
+  refine ⟨min δ 1, lt_min hδ_pos one_pos, ?_⟩
+  intro t ht0 ht_lt
+  have htδ : t < δ := lt_of_lt_of_le ht_lt (min_le_left _ _)
+  have ht1 : t < (1 : ℝ) := lt_of_lt_of_le ht_lt (min_le_right _ _)
+  have hsame :=
+    reachableArbitrarilyLongGlued_eq_reachableData_of_overlapUnique
+      huniq hreach d₁ t ht0 ht1
+  have hfun :
+      (fun x : intervalDomainPoint => reachableArbitrarilyLongGluedU hreach t x - u₀ x) =
+        (fun x : intervalDomainPoint => d₁.u t x - u₀ x) := by
+    funext x
+    rw [(hsame x).1]
+  change intervalDomainSupNorm
+      (fun x : intervalDomainPoint => reachableArbitrarilyLongGluedU hreach t x - u₀ x) < ε
+  rw [hfun]
+  simpa [intervalDomain] using hδ_bound t ht0 htδ
+
+/-- Gluing theorem with the exact remaining frontiers exposed.  Overlap
+uniqueness gives pointwise compatibility of all finite witnesses; the locality
+frontier upgrades that pointwise glued branch back into the formal classical
+solution predicate on every finite horizon. -/
+theorem GlobalSolutionGluingFromReachability_of_overlapUnique_and_locality
+    {p : CM2Params}
+    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hlocality : ClassicalSolutionLocalityUnderIooAgreement p) :
+    GlobalSolutionGluingFromReachability p := by
+  intro u₀ _hu₀ hreach
+  let u : ℝ → intervalDomainPoint → ℝ :=
+    reachableArbitrarilyLongGluedU hreach
+  let v : ℝ → intervalDomainPoint → ℝ :=
+    reachableArbitrarilyLongGluedV hreach
+  refine ⟨u, v, ?_, ?_⟩
+  · intro T hT
+    let dT : ReachableClassicalSolutionData p u₀ T :=
+      reachableClassicalSolutionDataOfReach (hreach T hT)
+    refine hlocality hT dT.sol ?_
+    intro t ht0 htT x
+    exact reachableArbitrarilyLongGlued_eq_reachableData_of_overlapUnique
+      huniq hreach dT t ht0 htT x
+  · exact reachableArbitrarilyLongGlued_initialTrace_of_overlapUnique
+      huniq hreach
+
+/-- The remaining gluing frontier is exactly overlap uniqueness.  The
+calculus/locality layer for the concrete interval-domain classical predicate
+is discharged by `classicalSolutionLocalityUnderIooAgreement_intervalDomain`. -/
+theorem GlobalSolutionGluingFromReachability_of_overlapUnique
+    {p : CM2Params}
+    (huniq : IntervalClassicalSolutionOverlapUnique p) :
+    GlobalSolutionGluingFromReachability p :=
+  GlobalSolutionGluingFromReachability_of_overlapUnique_and_locality
+    huniq (classicalSolutionLocalityUnderIooAgreement_intervalDomain p)
+
+/-!
+Status of the uniqueness/gluing frontier:
+
+* Closed here: the purely formal gluing step.  Overlap uniqueness of finite
+  interval classical solutions implies `GlobalSolutionGluingFromReachability`.
+  The pointwise glued branch is shown to agree with every finite witness on
+  the relevant overlap, inherits the initial trace, and is transported back
+  into `IsPaper2ClassicalSolution` on each finite horizon by local
+  `EventuallyEq` derivative transport.
+* First remaining genuine PDE gap: prove
+  `IntervalClassicalSolutionOverlapUnique p`.  The available
+  `intervalDuhamel_fixed_point_unique_of_contraction` only gives uniqueness
+  for two bounded Duhamel fixed points on a single contraction interval; the
+  file does not yet prove that an arbitrary `IsPaper2ClassicalSolution`
+  satisfies the Duhamel fixed-point formula on overlaps.  The existing
+  `comparison_principle` is scalar (`u_t - u_xx = g(u)`) and does not cover
+  the coupled chemotaxis/elliptic difference terms needed for PDE uniqueness.
+-/
 
 /-! #### Blow-up exclusion from an a priori bound
 
