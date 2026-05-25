@@ -143,7 +143,9 @@
   `unitIntervalCosineFractionalHeatLpFromCoeffs_norm_le` now state the same
   bounds with square-root coefficient norms.  `unitIntervalCosineLpFromRepr_eq`
   closes the Hilbert-basis round trip from any interval `Lp ℂ 2` vector to its
-  cosine coefficients and back.
+  cosine coefficients and back; `unitIntervalCosineHilbertBasis_repr_energy_eq_norm_sq`
+  and `intervalDomainCosineHilbertCoeff_l2_energy_eq_lpNorm_sq` give the
+  corresponding Parseval energy identity for interval-domain real inputs.
 - **BLOCKER / Point 17**: the full `Lemma_2_1 intervalDomain` statement is
   still not discharged.  The missing piece is not H0.1/H0.2 smoothing; it is
   the fractional-domain part of the abstract `SemigroupEstimateData` package:
@@ -285,6 +287,11 @@
   `LinearStabilityInstabilityNonminimalRaw` /
   `LinearStabilityInstabilityMinimalRaw` 的 intervalDomain 版本接到同样的
   branch-specific H3.1 前沿，避免 generic `∀ uStar` norm/small-data 假设。
+  新增 `intervalDomain_linearStabilityInstabilityRaw_of_branch_frontiers_criticalSpectrum`，
+  用 `Paper3ConstantsUsesCriticalSpectrum` 把 concrete constants 的
+  `C.chiCritical` 接到同一 branch-specific raw package；这只 discharge
+  constants/critical-spectrum identification，sectoriality、branch norm-comparison
+  与 branch small-data existence 仍是 H3.1 state③ 前沿。
 - **前置**: spectral theory on bounded domain, resolvent estimates
 - **目标文件**: `ShenWork/PDE/SectorialOperator.lean` (new)
 - **产出**: `SectorialLocalExponentialRaw`
@@ -371,7 +378,15 @@
   the branches used in Theorem 2.2: positive equilibria and minimal
   equilibria with `0 < uStar`.  This is state③, not DONE: the sectorial,
   primitive branch norm-comparison, and branch local-existence frontiers are
-  still unproved.
+  still unproved.  New increment:
+  `intervalDomain_Theorem_2_2_of_linearStabilityInstabilityRaw` composes the
+  raw stable local-exponential branches with the unit-interval critical
+  spectrum to recover the full `Theorem_2_2` unstable branches, and
+  `intervalDomain_Theorem_2_2_for_concrete_constants_branch_frontiers_via_linearRaw`
+  routes the concrete branch frontiers through
+  `intervalDomain_linearStabilityInstabilityRaw_of_branch_frontiers`.  This
+  closes the H3.1 raw-package-to-H4.1 statement bridge, while the same analytic
+  H3.1 frontiers remain open.
 
 ### H4.2 — Theorem 2.3 on intervalDomain (global stability χ≤0)
 - **前置**: H3.2 (Lyapunov), H3.3 (persistence)

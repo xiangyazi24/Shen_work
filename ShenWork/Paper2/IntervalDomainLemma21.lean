@@ -688,6 +688,50 @@ theorem unitIntervalCosineLpFromRepr_eq
       (unitIntervalCosineHilbertBasis_repr_l2_summable v) = v := by
   simp [unitIntervalCosineLpFromCoeffs, cosineCoeffLp2]
 
+/-- Parseval identity for the complete unit-interval cosine Hilbert basis, in
+the coefficient-energy notation used by this file. -/
+theorem unitIntervalCosineHilbertBasis_repr_energy_eq_norm_sq
+    (v : Lp ℂ 2 (intervalMeasure 1)) :
+    spectralCoeffL2Energy
+        (fun n : ℕ => unitIntervalCosineHilbertBasis.repr v n) =
+      ‖v‖ ^ 2 := by
+  have h :=
+    unitIntervalCosineLpFromCoeffs_norm_sq
+      (fun n : ℕ => unitIntervalCosineHilbertBasis.repr v n)
+      (unitIntervalCosineHilbertBasis_repr_l2_summable v)
+  rw [unitIntervalCosineLpFromRepr_eq] at h
+  exact h.symm
+
+/-- Parseval identity for an interval-domain real input after lifting it into
+the complex unit-interval `L²` space. -/
+theorem intervalDomainCosineHilbertCoeff_l2_energy_eq_lpNorm_sq
+    (u : intervalDomain.Point → ℝ)
+    (hu : MemLp (intervalDomainLift u) (2 : ℝ≥0∞) (intervalMeasure 1)) :
+    spectralCoeffL2Energy
+        (fun n : ℕ => unitIntervalCosineHilbertBasis.repr
+          (intervalDomainLiftComplexLp2 u hu) n) =
+      intervalDomainLpNorm 2 u ^ 2 := by
+  have henergy :=
+    unitIntervalCosineHilbertBasis_repr_energy_eq_norm_sq
+      (intervalDomainLiftComplexLp2 u hu)
+  have hnorm :
+      ‖intervalDomainLiftComplexLp2 u hu‖ =
+        intervalDomainLpNorm 2 u := by
+    calc
+      ‖intervalDomainLiftComplexLp2 u hu‖
+          =
+            lpNorm (fun x : ℝ => (intervalDomainLift u x : ℂ))
+              (2 : ℝ≥0∞) (intervalMeasure 1) := by
+              rw [intervalDomainLiftComplexLp2, Lp.norm_toLp,
+                toReal_eLpNorm (hu.ofReal).aestronglyMeasurable]
+      _ =
+            lpNorm (intervalDomainLift u)
+              (2 : ℝ≥0∞) (intervalMeasure 1) :=
+              unitInterval_lpNorm_complex_ofReal_eq hu
+      _ = intervalDomainLpNorm 2 u := by
+              simp [intervalDomainLpNorm]
+  rwa [hnorm] at henergy
+
 /-- The Hilbert-basis reconstruction has the prescribed normalized cosine
 coefficients. -/
 theorem unitIntervalCosineLpFromCoeffs_repr
