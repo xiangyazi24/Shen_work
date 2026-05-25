@@ -129,6 +129,47 @@ theorem Theorem_2_1_part1_intervalDomain_of_pointwise_persistence
       hdeltaV hpointV
   exact ⟨deltaU, hdeltaU, huLower, hvLower⟩
 
+/-- Direct pointwise intervalDomain persistence theorem from the two Section
+4.1 analytic frontiers.  This records the intended pointwise meaning without
+going through the statement-layer lower envelope. -/
+theorem Theorem_2_1_part1_intervalDomain_pointwise_of_pointwise_persistence
+    (p : CM2Params)
+    (hStrongMaximumPersistence :
+      1 ≤ p.m →
+        ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+            ∃ deltaU > 0,
+              ∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  deltaU ≤ u t x)
+    (hEllipticLowerComparison :
+      ∀ {u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ}
+          {deltaU : ℝ},
+        PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+          0 < deltaU →
+            (∀ᶠ t in atTop,
+              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                deltaU ≤ u t x) →
+              ∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  p.ν / p.μ * deltaU ^ p.γ ≤ v t x) :
+    1 ≤ p.m →
+      ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+        PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+          ∃ deltaU > 0,
+            (∀ᶠ t in atTop,
+              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                deltaU ≤ u t x) ∧
+            (∀ᶠ t in atTop,
+              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                p.ν / p.μ * deltaU ^ p.γ ≤ v t x) := by
+  intro hm u v hsol
+  rcases hStrongMaximumPersistence hm u v hsol with
+    ⟨deltaU, hdeltaU, hpointU⟩
+  exact
+    ⟨deltaU, hdeltaU, hpointU,
+      hEllipticLowerComparison hsol hdeltaU hpointU⟩
+
 /-- Semantic read-back of `Theorem_2_1_part1 intervalDomain p`: under the
 explicit lower-bounded-range regularity of the interval time slices, the
 statement-layer formulation is exactly the expected pointwise eventual

@@ -259,8 +259,11 @@
   `intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound` 与
   `Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope`，在显式
   `BddBelow (Set.range (u t))` time-slice 条件下把 lower-envelope statement
-  读回 pointwise persistence。按 17-point standard 属于状态③：条件于未证但
-  明确命名的分析前沿；不是无条件完成。
+  读回 pointwise persistence。新增
+  `Theorem_2_1_part1_intervalDomain_pointwise_of_pointwise_persistence`，从同
+  两个 Section 4.1 前沿直接给出 intended pointwise persistence，避免把
+  语义读回依赖混入 statement-layer 组装。按 17-point standard 属于状态③：
+  条件于未证但明确命名的分析前沿；不是无条件完成。
 
 ---
 
