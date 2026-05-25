@@ -292,6 +292,98 @@ theorem intervalDomainSemigroupEstimateData_fractional_divergence_nonsharp_bound
     intervalDomainSemigroupEstimateData_divergence_Lq_nonsharp_bound
       (t := t) (q := q) ht hq (phi := phi) hphi_mem
 
+/-- The concrete same-exponent embedding field is exactly the chosen
+`fractionalNorm`; this discharges the `Lemma_2_2` same-exponent branch for the
+current interval route without projecting an abstract hypothesis. -/
+theorem intervalDomainSemigroupEstimateData_embedding_same_exponent_bound
+    {theta sigma q : ℝ} (u : intervalDomain.Point → ℝ) :
+    intervalDomainSemigroupEstimateData.embeddingNorm theta q sigma u ≤
+      intervalDomainSemigroupEstimateData.fractionalNorm sigma q u := by
+  simp [intervalDomainSemigroupEstimateData]
+
+/-- Nonsharp `Lemma_2_1` first-branch route currently available from H0.1:
+the concrete semigroup is an `L^q` contraction, stated in the same
+constant-witness style as the paper lemma but without the extra exponential
+and `t^{-sigma}` factors. -/
+theorem intervalDomainSemigroupEstimateData_Lemma_2_1_nonsharp_semigroup_branch :
+    ∀ sigma q r : ℝ, 0 ≤ sigma → 1 ≤ q → r.HolderConjugate q →
+      ∃ C > 0, ∀ t > 0, ∀ u : intervalDomain.Point → ℝ,
+        MemLp (intervalDomainLift u) (ENNReal.ofReal q) (intervalMeasure 1) →
+          intervalDomainSemigroupEstimateData.fractionalNorm sigma q
+              (intervalDomainSemigroupEstimateData.semigroup t u) ≤
+            C * intervalDomainSemigroupEstimateData.lpNorm q u := by
+  intro sigma q r _hsigma _hq hrq
+  refine ⟨1, zero_lt_one, ?_⟩
+  intro t ht u hu
+  simpa using
+    intervalDomainSemigroupEstimateData_fractional_semigroup_Lq_contraction
+      (sigma := sigma) (t := t) (q := q) (r := r) ht hrq
+      (u := u) hu
+
+/-- Same-exponent embedding route for the second branch of `Lemma_2_2`, in
+the paper's existential-constant shape. -/
+theorem intervalDomainSemigroupEstimateData_Lemma_2_2_nonsharp_same_branch :
+    ∀ sigma q theta, 0 ≤ theta →
+      theta < 2 * sigma - intervalDomain.volume / q →
+        ∃ C > 0, ∀ u : intervalDomain.Point → ℝ,
+          intervalDomainSemigroupEstimateData.embeddingNorm theta q sigma u ≤
+            C * intervalDomainSemigroupEstimateData.fractionalNorm sigma q u := by
+  intro sigma q theta _htheta _hcond
+  refine ⟨1, zero_lt_one, ?_⟩
+  intro u
+  simpa using
+    intervalDomainSemigroupEstimateData_embedding_same_exponent_bound
+      (theta := theta) (sigma := sigma) (q := q) u
+
+/-- Diagonal instance of the first branch of `Lemma_2_2`: the current
+nonsharp route proves the embedding field when the target exponent is the
+same as the source exponent. -/
+theorem intervalDomainSemigroupEstimateData_Lemma_2_2_nonsharp_diagonal_branch :
+    ∀ sigma q k, 0 ≤ sigma → 1 ≤ q →
+      k - intervalDomain.volume / q < 2 * sigma - intervalDomain.volume / q →
+        ∃ C > 0, ∀ u : intervalDomain.Point → ℝ,
+          intervalDomainSemigroupEstimateData.embeddingNorm k q sigma u ≤
+            C * intervalDomainSemigroupEstimateData.fractionalNorm sigma q u := by
+  intro sigma q k _hsigma _hq _hcond
+  refine ⟨1, zero_lt_one, ?_⟩
+  intro u
+  simpa using
+    intervalDomainSemigroupEstimateData_embedding_same_exponent_bound
+      (theta := k) (sigma := sigma) (q := q) u
+
+/-- Nonsharp `Lemma_2_3` route from H0.2, in existential-constant form.
+The factor is the currently proved heat-gradient endpoint. -/
+theorem intervalDomainSemigroupEstimateData_Lemma_2_3_nonsharp :
+    ∃ C > 0, ∀ q > 1, ∀ t > 0, ∀ phi : intervalDomain.Point → ℝ,
+      MemLp (intervalDomainLift phi) (ENNReal.ofReal q) (intervalMeasure 1) →
+        intervalDomainSemigroupEstimateData.lpNorm q
+            (intervalDomainSemigroupEstimateData.divergenceSemigroup t phi) ≤
+          C * heatGradientL1LinftyFactor t *
+            intervalDomainSemigroupEstimateData.vectorLpNorm q phi := by
+  refine ⟨1, zero_lt_one, ?_⟩
+  intro q hq t ht phi hphi
+  simpa [mul_assoc] using
+    intervalDomainSemigroupEstimateData_divergence_Lq_nonsharp_bound
+      (t := t) (q := q) ht hq (phi := phi) hphi
+
+/-- Nonsharp `Lemma_2_4` route from H0.2.  Since the concrete
+`fractionalNorm` is the underlying `L^q` norm, this is the same derivative
+estimate in the fractional field. -/
+theorem intervalDomainSemigroupEstimateData_Lemma_2_4_nonsharp :
+    ∀ sigma q, 0 < sigma → 1 < q →
+      ∃ C > 0, ∀ t > 0, ∀ phi : intervalDomain.Point → ℝ,
+        MemLp (intervalDomainLift phi) (ENNReal.ofReal q) (intervalMeasure 1) →
+          intervalDomainSemigroupEstimateData.fractionalNorm sigma q
+              (intervalDomainSemigroupEstimateData.divergenceSemigroup t phi) ≤
+            C * heatGradientL1LinftyFactor t *
+              intervalDomainSemigroupEstimateData.vectorLpNorm q phi := by
+  intro sigma q _hsigma hq
+  refine ⟨1, zero_lt_one, ?_⟩
+  intro t ht phi hphi
+  simpa [mul_assoc] using
+    intervalDomainSemigroupEstimateData_fractional_divergence_nonsharp_bound
+      (sigma := sigma) (t := t) (q := q) ht hq (phi := phi) hphi
+
 /-- Bundled nonsharp interval semigroup route available from H0.1/H0.2.  The
 current interval bootstrap chain only needs this qualitative route; the sharp
 `1 + t^{-1/2}` divergence factor remains an optional exact-statement
@@ -328,6 +420,40 @@ theorem intervalDomainSemigroupEstimateData_current_downstream_nonsharp_route :
   · intro sigma t q ht hq phi hphi
     exact intervalDomainSemigroupEstimateData_fractional_divergence_nonsharp_bound
       (sigma := sigma) (t := t) (q := q) ht hq (phi := phi) hphi
+
+/-- Complete concrete nonsharp route for the current `SemigroupEstimateData`
+fields corresponding to `Lemma_2_1`--`Lemma_2_4`.  This theorem packages the
+available field estimates without using any abstract `Lemma_2_i` hypothesis. -/
+theorem intervalDomainSemigroupEstimateData_Lemma_2_1_to_2_4_nonsharp_route :
+    (∀ sigma q r : ℝ, 0 ≤ sigma → 1 ≤ q → r.HolderConjugate q →
+      ∃ C > 0, ∀ t > 0, ∀ u : intervalDomain.Point → ℝ,
+        MemLp (intervalDomainLift u) (ENNReal.ofReal q) (intervalMeasure 1) →
+          intervalDomainSemigroupEstimateData.fractionalNorm sigma q
+              (intervalDomainSemigroupEstimateData.semigroup t u) ≤
+            C * intervalDomainSemigroupEstimateData.lpNorm q u) ∧
+    (∀ sigma q theta, 0 ≤ theta →
+      theta < 2 * sigma - intervalDomain.volume / q →
+        ∃ C > 0, ∀ u : intervalDomain.Point → ℝ,
+          intervalDomainSemigroupEstimateData.embeddingNorm theta q sigma u ≤
+            C * intervalDomainSemigroupEstimateData.fractionalNorm sigma q u) ∧
+    (∃ C > 0, ∀ q > 1, ∀ t > 0, ∀ phi : intervalDomain.Point → ℝ,
+      MemLp (intervalDomainLift phi) (ENNReal.ofReal q) (intervalMeasure 1) →
+        intervalDomainSemigroupEstimateData.lpNorm q
+            (intervalDomainSemigroupEstimateData.divergenceSemigroup t phi) ≤
+          C * heatGradientL1LinftyFactor t *
+            intervalDomainSemigroupEstimateData.vectorLpNorm q phi) ∧
+    (∀ sigma q, 0 < sigma → 1 < q →
+      ∃ C > 0, ∀ t > 0, ∀ phi : intervalDomain.Point → ℝ,
+        MemLp (intervalDomainLift phi) (ENNReal.ofReal q) (intervalMeasure 1) →
+          intervalDomainSemigroupEstimateData.fractionalNorm sigma q
+              (intervalDomainSemigroupEstimateData.divergenceSemigroup t phi) ≤
+            C * heatGradientL1LinftyFactor t *
+              intervalDomainSemigroupEstimateData.vectorLpNorm q phi) := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · exact intervalDomainSemigroupEstimateData_Lemma_2_1_nonsharp_semigroup_branch
+  · exact intervalDomainSemigroupEstimateData_Lemma_2_2_nonsharp_same_branch
+  · exact intervalDomainSemigroupEstimateData_Lemma_2_3_nonsharp
+  · exact intervalDomainSemigroupEstimateData_Lemma_2_4_nonsharp
 
 /-! ### Exact Paper2 route obstructions for the current data -/
 
