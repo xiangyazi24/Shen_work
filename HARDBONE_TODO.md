@@ -386,7 +386,12 @@
   routes the concrete branch frontiers through
   `intervalDomain_linearStabilityInstabilityRaw_of_branch_frontiers`.  This
   closes the H3.1 raw-package-to-H4.1 statement bridge, while the same analytic
-  H3.1 frontiers remain open.
+  H3.1 frontiers remain open.  New increment:
+  `intervalDomain_Theorem_2_2_of_branch_frontiers_criticalSpectrum` removes the
+  concrete constants restriction from that composition: any constants package
+  whose `chiCritical` field is identified with the unit-interval spectral
+  threshold now composes from the branch-specific H3.1 frontiers to the full
+  `Theorem_2_2`.
 
 ### H4.2 — Theorem 2.3 on intervalDomain (global stability χ≤0)
 - **前置**: H3.2 (Lyapunov), H3.3 (persistence)

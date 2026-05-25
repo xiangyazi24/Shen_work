@@ -509,6 +509,54 @@ theorem intervalDomain_Theorem_2_2_of_linearStabilityInstabilityRaw
     exact hC.minimalEquilibrium_linearlyUnstable
       unitIntervalNeumannSpectrum_hasNeumannSpectrum huStar hχcrit
 
+/-- Constants-package interval-domain Paper3 Theorem 2.2 assembled through
+branch-specific H3.1 frontiers.
+
+This version is more general than the concrete-constants wrapper: it works for
+any `Paper3Constants` package whose `chiCritical` field is identified with the
+unit-interval spectral critical sensitivity. -/
+theorem intervalDomain_Theorem_2_2_of_branch_frontiers_criticalSpectrum
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hC : Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p C)
+    (hraw :
+      SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hxpPositive :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          N.xpSigmaDistance sigma pNorm u₀
+              (fun _ => (positiveEquilibrium p ⟨ha, hb⟩).1) ≤
+            intervalDomain.supNorm
+              (fun x => u₀ x - (positiveEquilibrium p ⟨ha, hb⟩).1))
+    (hexistPositive :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b), ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p
+          (positiveEquilibrium p ⟨ha, hb⟩).1 delta)
+    (hxpMinimal :
+      ∀ uStar, 0 < uStar →
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          N.xpSigmaDistance sigma pNorm u₀
+              (fun _ => (minimalEquilibrium p uStar).1) ≤
+            intervalDomain.supNorm
+              (fun x => u₀ x - (minimalEquilibrium p uStar).1))
+    (hmexistMinimal :
+      ∀ uStar, 0 < uStar → ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p
+          (minimalEquilibrium p uStar).1 delta) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum N C := by
+  have hbranches :=
+    intervalDomain_linearStabilityInstabilityRaw_of_branch_frontiers_criticalSpectrum
+      p N C hC hraw hsigma_low hsigma_high hpNorm
+      hxpPositive hexistPositive hxpMinimal hmexistMinimal
+  exact
+    intervalDomain_Theorem_2_2_of_linearStabilityInstabilityRaw
+      p N C hC hbranches.1 hbranches.2
+
 /-- Concrete-constants interval-domain Paper3 Theorem 2.2 assembled through
 the branch-specific `LinearStabilityInstabilityRaw` interface.
 
