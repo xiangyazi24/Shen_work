@@ -348,6 +348,51 @@ theorem Theorem_2_1_part1_intervalDomain_of_inside_boundary_lower_bounds
       intervalDomain_eventuallyLowerBound_of_inside_boundary_lower
         hdeltaV hvInside hvBoundary⟩
 
+/-- Direct intended pointwise persistence when the analytic frontiers are
+available separately on the open interval and on the two Neumann endpoints. -/
+theorem Theorem_2_1_part1_intervalDomain_pointwise_of_inside_boundary_lower_bounds
+    (p : CM2Params)
+    (hbounds :
+      1 ≤ p.m →
+        ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+            ∃ deltaU > 0,
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  x ∈ ShenWork.IntervalDomain.intervalDomain.inside →
+                    deltaU ≤ u t x) ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  x ∈ ShenWork.IntervalDomain.intervalDomain.boundary →
+                    deltaU ≤ u t x) ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  x ∈ ShenWork.IntervalDomain.intervalDomain.inside →
+                    p.ν / p.μ * deltaU ^ p.γ ≤ v t x) ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  x ∈ ShenWork.IntervalDomain.intervalDomain.boundary →
+                    p.ν / p.μ * deltaU ^ p.γ ≤ v t x)) :
+    1 ≤ p.m →
+      ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+        PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+          ∃ deltaU > 0,
+            (∀ᶠ t in atTop,
+              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                deltaU ≤ u t x) ∧
+            (∀ᶠ t in atTop,
+              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                p.ν / p.μ * deltaU ^ p.γ ≤ v t x) := by
+  intro hm u v hsol
+  rcases hbounds hm u v hsol with
+    ⟨deltaU, hdeltaU, huInside, huBoundary, hvInside, hvBoundary⟩
+  exact
+    ⟨deltaU, hdeltaU,
+      intervalDomain_eventually_pointwise_lower_of_inside_boundary_lower
+        huInside huBoundary,
+      intervalDomain_eventually_pointwise_lower_of_inside_boundary_lower
+        hvInside hvBoundary⟩
+
 /-- Semantic read-back of `Theorem_2_1_part1 intervalDomain p`: under the
 explicit lower-bounded-range regularity of the interval time slices, the
 statement-layer formulation is exactly the expected pointwise eventual
@@ -408,6 +453,72 @@ theorem Theorem_2_1_part1_intervalDomain_iff_pointwise_lower_bounds
     exact Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope h21 hbdd
   · intro hpointwise
     exact Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds p hpointwise
+
+/-- Exact semantic equivalence between the intervalDomain statement-layer
+Theorem 2.1(1) and the formulation with separate open-interior and boundary
+eventual lower bounds.
+
+As in the pointwise read-back theorem, the reverse direction from
+`EventuallyLowerBound` needs explicit `BddBelow` regularity of the time-slice
+ranges. -/
+theorem Theorem_2_1_part1_intervalDomain_iff_inside_boundary_lower_bounds
+    (p : CM2Params)
+    (hbdd :
+      ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+        PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+          (∀ᶠ t in atTop, BddBelow (Set.range (u t))) ∧
+          (∀ᶠ t in atTop, BddBelow (Set.range (v t)))) :
+    Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p ↔
+      1 ≤ p.m →
+        ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+            ∃ deltaU > 0,
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  x ∈ ShenWork.IntervalDomain.intervalDomain.inside →
+                    deltaU ≤ u t x) ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  x ∈ ShenWork.IntervalDomain.intervalDomain.boundary →
+                    deltaU ≤ u t x) ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  x ∈ ShenWork.IntervalDomain.intervalDomain.inside →
+                    p.ν / p.μ * deltaU ^ p.γ ≤ v t x) ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  x ∈ ShenWork.IntervalDomain.intervalDomain.boundary →
+                    p.ν / p.μ * deltaU ^ p.γ ≤ v t x) := by
+  constructor
+  · intro h21 hm u v hsol
+    rcases h21 hm u v hsol with ⟨deltaU, hdeltaU, huLower, hvLower⟩
+    rcases hbdd u v hsol with ⟨hbddU, hbddV⟩
+    have huPoint :
+        ∀ᶠ t in atTop,
+          ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+            deltaU ≤ u t x :=
+      intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound
+        hbddU huLower
+    have hvPoint :
+        ∀ᶠ t in atTop,
+          ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+            p.ν / p.μ * deltaU ^ p.γ ≤ v t x :=
+      intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound
+        hbddV hvLower
+    rcases
+        (intervalDomain_eventually_pointwise_lower_iff_inside_boundary_lower.mp
+          huPoint) with
+      ⟨huInside, huBoundary⟩
+    rcases
+        (intervalDomain_eventually_pointwise_lower_iff_inside_boundary_lower.mp
+          hvPoint) with
+      ⟨hvInside, hvBoundary⟩
+    exact
+      ⟨deltaU, hdeltaU, huInside, huBoundary, hvInside, hvBoundary⟩
+  · intro hbounds
+    exact
+      Theorem_2_1_part1_intervalDomain_of_inside_boundary_lower_bounds
+        p hbounds
 
 end
 

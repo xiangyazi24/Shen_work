@@ -335,7 +335,14 @@
   open-interior lower bounds 和 endpoint lower bounds 机械组合为全
   intervalDomain lower-envelope persistence；这只 discharge `[0,1]` 的
   interior/boundary 覆盖步骤，interior persistence 和 boundary lower-bound
-  仍是分析前沿。
+  仍是分析前沿。新增
+  `intervalDomain_eventually_pointwise_lower_iff_inside_boundary_lower`,
+  `intervalDomain_eventuallyLowerBound_iff_inside_boundary_lower`,
+  `Theorem_2_1_part1_intervalDomain_pointwise_of_inside_boundary_lower_bounds`,
+  and
+  `Theorem_2_1_part1_intervalDomain_iff_inside_boundary_lower_bounds`，把
+  statement-layer、全 pointwise、open-interior+endpoint 三种 H3.3 表述对齐；
+  反向读回仍需要显式 `BddBelow`。
   按 17-point standard 属于状态③：条件于未证但明确命名的分析前沿；不是
   无条件完成。
 
