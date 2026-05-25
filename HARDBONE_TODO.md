@@ -438,6 +438,14 @@
   lower bound `deltaV`；Lean 侧只要求
   `p.ν / p.μ * deltaU ^ p.γ ≤ deltaV` 并负责弱化回 theorem statement
   的精确 lower-envelope 常数。
+  新增
+  `Theorem_2_1_part1_intervalDomain_iff_pointwise_lower_bounds_with_v_margin`,
+  `Theorem_2_1_part1_intervalDomain_of_inside_boundary_lower_bounds_with_v_margin`,
+  `Theorem_2_1_part1_intervalDomain_pointwise_of_inside_boundary_lower_bounds_with_v_margin`,
+  and
+  `Theorem_2_1_part1_intervalDomain_iff_inside_boundary_lower_bounds_with_v_margin`，
+  把同一 stronger-`v` lower-bound margin 也接到
+  open-interior+endpoint 版本，并证明它与 statement-layer theorem 等价。
   按 17-point standard 属于状态③：条件于未证但明确命名的分析前沿；不是
   无条件完成。
 
