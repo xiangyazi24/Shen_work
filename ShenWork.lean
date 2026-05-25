@@ -33,6 +33,7 @@ import ShenWork.PDE.HeatKernelLpEstimates
 import ShenWork.PDE.SectorialOperator
 import ShenWork.PDE.AnalyticSemigroupGen
 import ShenWork.PDE.AnalyticSemigroupDecay
+import ShenWork.PDE.IntervalDomainEllipticResolver
 import ShenWork.PDE.AnalyticSemigroupPhysical
 import ShenWork.PDE.FractionalPowerDerivative
 import ShenWork.PDE.ParabolicMaxPrinciple
