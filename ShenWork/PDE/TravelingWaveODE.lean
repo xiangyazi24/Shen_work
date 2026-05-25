@@ -120,6 +120,24 @@ ext i <;> fin_cases i <;>
 simp [matVec4, jacobianAtZero, jacobianAtZeroLin] <;>
 ring
 
+@[simp]
+theorem matVec4_zero (A : Matrix Idx Idx ℝ) :
+    matVec4 A (0 : State) = 0 := by
+  ext i
+  simp [matVec4]
+
+theorem matVec4_add (A : Matrix Idx Idx ℝ) (x y : State) :
+    matVec4 A (x + y) = matVec4 A x + matVec4 A y := by
+  ext i
+  simp [matVec4]
+  ring
+
+theorem matVec4_smul (A : Matrix Idx Idx ℝ) (a : ℝ) (x : State) :
+    matVec4 A (a • x) = a • matVec4 A x := by
+  ext i
+  simp [matVec4, Pi.smul_apply, smul_eq_mul]
+  ring
+
 theorem vectorField_contDiffAt (p : Params) (x : State) :
     ContDiffAt ℝ 1 (vectorField p) x := by
   apply ContDiffAt.of_le _ le_top
@@ -225,6 +243,59 @@ theorem HasEigenpair.ne_zero
 v ≠ 0 :=
 h.2
 
+def SolvesLinearized (A : Matrix Idx Idx ℝ) (y : ℝ → State) : Prop :=
+  ∀ t : ℝ, HasDerivAt y (matVec4 A (y t)) t
+
+def linearMode (lam : ℝ) (v : State) : ℝ → State :=
+  fun t => Real.exp (lam * t) • v
+
+theorem linearMode_contDiff (lam : ℝ) (v : State) {n : WithTop ℕ∞} :
+    ContDiff ℝ n (linearMode lam v) := by
+  have hscalar : ContDiff ℝ n (fun t : ℝ => Real.exp (lam * t)) := by
+    fun_prop
+  simpa [linearMode] using hscalar.smul_const v
+
+theorem linearMode_hasDerivAt
+    {A : Matrix Idx Idx ℝ} {lam : ℝ} {v : State}
+    (h : HasEigenpair A lam v) (t : ℝ) :
+    HasDerivAt (linearMode lam v) (matVec4 A (linearMode lam v t)) t := by
+  have hscalar : HasDerivAt (fun s : ℝ => Real.exp (lam * s))
+      (Real.exp (lam * t) * lam) t := by
+    simpa [mul_comm, mul_left_comm, mul_assoc] using
+      (Real.hasDerivAt_exp (lam * t)).comp t ((hasDerivAt_id t).const_mul lam)
+  have hderiv : HasDerivAt (linearMode lam v)
+      ((Real.exp (lam * t) * lam) • v) t := by
+    simpa [linearMode] using hscalar.smul_const v
+  have hA : matVec4 A (linearMode lam v t) = (Real.exp (lam * t) * lam) • v := by
+    rw [linearMode, matVec4_smul, h.eigen_eq]
+    ext i
+    simp [Pi.smul_apply, smul_eq_mul, mul_comm, mul_left_comm, mul_assoc]
+  simpa [hA] using hderiv
+
+theorem HasEigenpair.linearMode_solves_linearized
+    {A : Matrix Idx Idx ℝ} {lam : ℝ} {v : State}
+    (h : HasEigenpair A lam v) :
+    SolvesLinearized A (linearMode lam v) :=
+  fun t => linearMode_hasDerivAt h t
+
+theorem linearMode_tendsto_zero_atBot_of_pos
+    {lam : ℝ} (hpos : 0 < lam) (v : State) :
+    Tendsto (linearMode lam v) atBot (nhds 0) := by
+  have hlin : Tendsto (fun t : ℝ => lam * t) atBot atBot :=
+    tendsto_id.const_mul_atBot hpos
+  have hscalar : Tendsto (fun t : ℝ => Real.exp (lam * t)) atBot (nhds 0) :=
+    Real.tendsto_exp_atBot.comp hlin
+  simpa [linearMode, zero_smul] using hscalar.smul_const v
+
+theorem linearMode_tendsto_zero_atTop_of_neg
+    {lam : ℝ} (hneg : lam < 0) (v : State) :
+    Tendsto (linearMode lam v) atTop (nhds 0) := by
+  have hlin : Tendsto (fun t : ℝ => lam * t) atTop atBot :=
+    tendsto_id.const_mul_atTop_of_neg hneg
+  have hscalar : Tendsto (fun t : ℝ => Real.exp (lam * t)) atTop (nhds 0) :=
+    Real.tendsto_exp_atBot.comp hlin
+  simpa [linearMode, zero_smul] using hscalar.smul_const v
+
 def LinearUnstable (A : Matrix Idx Idx ℝ) : Prop :=
   ∃ lam : ℝ, 0 < lam ∧ ∃ v : State, HasEigenpair A lam v
 
@@ -319,6 +390,25 @@ theorem jacobianAtZero_stable_eigenpair (p : Params) :
   ext i; fin_cases i <;>
     simp [matVec4, jacobianAtZero, stableVectorAtZero, powSlopeAtZero,
       Pi.smul_apply, smul_eq_mul]
+
+theorem unstableLinearModeAtOne_solves_and_decays
+    (p : Params) {lam : ℝ}
+    (hpos : 0 < lam)
+    (hchar : characteristicAtOne p lam) :
+    SolvesLinearized (jacobianAtOne p) (linearMode lam (unstableVectorAtOne p lam)) ∧
+    Tendsto (linearMode lam (unstableVectorAtOne p lam)) atBot (nhds 0) := by
+  have heig : HasEigenpair (jacobianAtOne p) lam (unstableVectorAtOne p lam) :=
+    jacobianAtOne_eigenpair_of_characteristic p hchar
+  exact ⟨heig.linearMode_solves_linearized, linearMode_tendsto_zero_atBot_of_pos hpos _⟩
+
+theorem stableLinearModeAtZero_solves_and_decays
+    (p : Params) :
+    SolvesLinearized (jacobianAtZero p) (linearMode (-1) stableVectorAtZero) ∧
+    Tendsto (linearMode (-1) stableVectorAtZero) atTop (nhds 0) := by
+  have heig : HasEigenpair (jacobianAtZero p) (-1) stableVectorAtZero :=
+    jacobianAtZero_stable_eigenpair p
+  exact ⟨heig.linearMode_solves_linearized,
+    linearMode_tendsto_zero_atTop_of_neg (by norm_num) _⟩
 
 def SolvesTWODE (p : Params) (z : ℝ → State) : Prop :=
 ∀ t : ℝ, HasDerivAt z (vectorField p (z t)) t
@@ -607,6 +697,55 @@ theorem travelingWave_of_heteroclinic
     Nonempty (TravelingWave p) := by
   rcases h with ⟨z, hzode, hleft, hright⟩
   exact ⟨⟨z, hzode, hleft, hright⟩⟩
+
+theorem HasHeteroclinicE1E0.exists_travelingWave
+    {p : Params} (h : HasHeteroclinicE1E0 p) :
+    ∃ w : TravelingWave p,
+      SolvesTWODE p w.z ∧
+      Tendsto w.z atBot (nhds E1) ∧
+      Tendsto w.z atTop (nhds E0) := by
+  rcases h with ⟨z, hzode, hleft, hright⟩
+  exact ⟨⟨z, hzode, hleft, hright⟩, hzode, hleft, hright⟩
+
+theorem HasHeteroclinicE1E0.exists_profile_c2_bootstrap
+    {p : Params} (h : HasHeteroclinicE1E0 p) :
+    ∃ z : ℝ → State,
+      SolvesTWODE p z ∧
+      Tendsto z atBot (nhds E1) ∧
+      Tendsto z atTop (nhds E0) ∧
+      ContDiff ℝ 2 (fun t => z t 0) ∧
+      ContDiff ℝ 2 (fun t => z t 2) ∧
+      (∀ t : ℝ,
+        HasDerivAt (deriv (fun s => z s 0))
+          (-p.c * z t 1
+            + p.chi *
+              ((p.m : ℝ) * (z t 0) ^ (p.m - 1) * z t 1 * z t 3
+                + (z t 0) ^ p.m * (z t 2 - (z t 0) ^ p.gamma))
+            - z t 0 * (1 - (z t 0) ^ p.alpha)) t) ∧
+      (∀ t : ℝ, HasDerivAt (deriv (fun s => z s 2))
+        (z t 2 - (z t 0) ^ p.gamma) t) := by
+  rcases h with ⟨z, hzode, hleft, hright⟩
+  rcases hzode.profile_c2_bootstrap with ⟨hU, hV, hUeq, hVeq⟩
+  exact ⟨z, hzode, hleft, hright, hU, hV, hUeq, hVeq⟩
+
+theorem HasHeteroclinicE1E0.exists_profile_equations
+    {p : Params} (h : HasHeteroclinicE1E0 p) :
+    ∃ z : ℝ → State,
+      SolvesTWODE p z ∧
+      Tendsto z atBot (nhds E1) ∧
+      Tendsto z atTop (nhds E0) ∧
+      (∀ t : ℝ,
+        iteratedDeriv 2 (fun s => z s 0) t
+          + p.c * deriv (fun s => z s 0) t
+          - p.chi * deriv
+              (fun y => (z y 0) ^ p.m * deriv (fun s => z s 2) y) t
+          + z t 0 * (1 - (z t 0) ^ p.alpha) = 0) ∧
+      (∀ t : ℝ,
+        iteratedDeriv 2 (fun s => z s 2) t - z t 2
+          + (z t 0) ^ p.gamma = 0) := by
+  rcases h with ⟨z, hzode, hleft, hright⟩
+  rcases hzode.profile_equations with ⟨hUeq, hVeq⟩
+  exact ⟨z, hzode, hleft, hright, hUeq, hVeq⟩
 
 end TravelingWaveODE
 end PDE
