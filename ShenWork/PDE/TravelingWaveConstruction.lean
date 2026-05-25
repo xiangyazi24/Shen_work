@@ -471,4 +471,48 @@ theorem logisticProfile_exists_waveRightTailAsymptotic
   exact ⟨κ₁, hκ₁_gt, hκ₁_lt_one,
     logisticProfile_hasWaveRightTailAsymptotic hκ₁_gt hκ₁_lt_two⟩
 
+theorem logisticProfile_exists_waveRightTailAsymptotic_of_kappa_lt_one
+    {c : ℝ}
+    (hκ_pos : 0 < kappa c) (hκ_lt_one : kappa c < 1) :
+    ∃ κ₁ : ℝ,
+      kappa c < κ₁ ∧ κ₁ < 1 ∧
+      ShenWork.Paper1.HasWaveRightTailAsymptotic c κ₁
+        (logisticProfile (kappa c)) := by
+  let η : ℝ := min (kappa c) (1 - kappa c) / 2
+  let κ₁ : ℝ := kappa c + η
+  have hone_sub_pos : 0 < 1 - kappa c := sub_pos.mpr hκ_lt_one
+  have hη_pos : 0 < η := by
+    dsimp [η]
+    nlinarith [lt_min hκ_pos hone_sub_pos]
+  have hη_lt_kappa : η < kappa c := by
+    have hmin_le : min (kappa c) (1 - kappa c) ≤ kappa c :=
+      min_le_left _ _
+    dsimp [η]
+    nlinarith
+  have hη_lt_one_sub : η < 1 - kappa c := by
+    have hmin_le : min (kappa c) (1 - kappa c) ≤ 1 - kappa c :=
+      min_le_right _ _
+    dsimp [η]
+    nlinarith
+  have hκ₁_gt : kappa c < κ₁ := by
+    dsimp [κ₁]
+    linarith
+  have hκ₁_lt_two : κ₁ < 2 * kappa c := by
+    dsimp [κ₁]
+    linarith
+  have hκ₁_lt_one : κ₁ < 1 := by
+    dsimp [κ₁]
+    linarith
+  exact ⟨κ₁, hκ₁_gt, hκ₁_lt_one,
+    logisticProfile_hasWaveRightTailAsymptotic hκ₁_gt hκ₁_lt_two⟩
+
+theorem logisticProfile_exists_waveRightTailAsymptotic_of_two_lt
+    {c : ℝ} (hc : 2 < c) :
+    ∃ κ₁ : ℝ,
+      kappa c < κ₁ ∧ κ₁ < 1 ∧
+      ShenWork.Paper1.HasWaveRightTailAsymptotic c κ₁
+        (logisticProfile (kappa c)) :=
+  logisticProfile_exists_waveRightTailAsymptotic_of_kappa_lt_one
+    (kappa_pos_of_two_lt hc) (kappa_lt_one_of_two_lt hc)
+
 end
