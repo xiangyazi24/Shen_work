@@ -1521,6 +1521,90 @@ theorem Theorem_1_2_weightedL2_branch_of_signal_energy_dissipation
       WeightedL2MovingFrameConvergence.of_energy_dissipation
         hlam hcontrol hcont hderiv hdiss⟩
 
+/-- Near-neighbor Theorem 1.2 branch with the weighted-`L²` part discharged
+from a scalar energy dissipation package.  Compared with
+`Theorem_1_2_nearby_initial_data_branch_of_signal_to_movingFrame`, the
+nonlinear input no longer has to prove weighted moving-frame convergence
+directly: it provides the energy control/dissipation inequality and the
+uniform moving-frame convergence for the same Cauchy solution.
+
+Remaining deep analysis fact: derive this common solution, weighted energy
+package, and uniform moving-frame convergence from the whole-line perturbation
+PDE.  This theorem proves that, once those inputs are available, Lemma 2.5,
+the Section 5 signal estimates, scalar Grönwall, and the weighted-`L²`
+component of Theorem 1.2 close without further assumptions. -/
+theorem Theorem_1_2_nearby_initial_data_branch_of_signal_energy_dissipation
+    (p : CMParams) {c η pExp : ℝ} (hpExp : 1 < pExp)
+    {U V u₀ : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hstrict : HasStrictWaveUpperTailBound p c U)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hu₀ : NonnegativeInitialDatum u₀)
+    (hleft : StrictlyPositiveAtLeft u₀)
+    (hclose : WeightedL2InitialCloseness η u₀ U)
+    (henergy :
+      NonnegativeInitialDatum u₀ →
+      StrictlyPositiveAtLeft u₀ →
+      WeightedL2InitialCloseness η u₀ U →
+      (∃ kMax > 0, ∃ C > 0,
+        ∀ k : ℝ, 0 ≤ k → k < kMax →
+        ∀ psi : ExponentialWeight,
+          (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+          (∀ z, |iteratedDeriv 2 psi.weight z| ≤ k * psi.weight z) →
+          Integrable (fun x : ℝ => (U x) ^ (p.γ * pExp) * psi.weight x) →
+          Integrable (fun x : ℝ => (u₀ x) ^ (p.γ * pExp) * psi.weight x) →
+            (Integrable
+                (fun x : ℝ => |deriv V x| ^ pExp * psi.weight x) ∧
+              ∫ x : ℝ, |deriv V x| ^ pExp * psi.weight x ≤
+                C * ∫ x : ℝ, (U x) ^ (p.γ * pExp) * psi.weight x) ∧
+            (Integrable
+                (fun x : ℝ =>
+                  |deriv (frozenElliptic p u₀) x| ^ pExp * psi.weight x) ∧
+              ∫ x : ℝ, |deriv (frozenElliptic p u₀) x| ^ pExp *
+                  psi.weight x ≤
+                C * ∫ x : ℝ, (u₀ x) ^ (p.γ * pExp) * psi.weight x)) →
+      ∃ u v : ℝ → ℝ → ℝ, ∃ E : ℝ → ℝ, ∃ lam > 0,
+        IsGlobalCauchySolutionFrom p u₀ u v ∧
+        (∀ᶠ t in atTop,
+          ∫ x : ℝ, Real.exp (2 * η * x) * |u t x - U (x - c * t)| ^ 2 ≤
+            E t) ∧
+        (∀ T : ℝ, 0 ≤ T → ContinuousOn E (Set.Icc 0 T)) ∧
+        (∀ T : ℝ, 0 ≤ T → ∀ t ∈ Set.Ico 0 T,
+          HasDerivWithinAt E (deriv E t) (Set.Ici t) t) ∧
+        (∀ t : ℝ, 0 ≤ t → deriv E t ≤ -lam * E t) ∧
+        UniformMovingFrameConvergence c u U) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p u₀ u v ∧
+      WeightedL2MovingFrameConvergence η c u U ∧
+      UniformMovingFrameConvergence c u U := by
+  have hsignal :
+      ∃ kMax > 0, ∃ C > 0,
+        ∀ k : ℝ, 0 ≤ k → k < kMax →
+        ∀ psi : ExponentialWeight,
+          (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+          (∀ z, |iteratedDeriv 2 psi.weight z| ≤ k * psi.weight z) →
+          Integrable (fun x : ℝ => (U x) ^ (p.γ * pExp) * psi.weight x) →
+          Integrable (fun x : ℝ => (u₀ x) ^ (p.γ * pExp) * psi.weight x) →
+            (Integrable
+                (fun x : ℝ => |deriv V x| ^ pExp * psi.weight x) ∧
+              ∫ x : ℝ, |deriv V x| ^ pExp * psi.weight x ≤
+                C * ∫ x : ℝ, (U x) ^ (p.γ * pExp) * psi.weight x) ∧
+            (Integrable
+                (fun x : ℝ =>
+                  |deriv (frozenElliptic p u₀) x| ^ pExp * psi.weight x) ∧
+              ∫ x : ℝ, |deriv (frozenElliptic p u₀) x| ^ pExp *
+                  psi.weight x ≤
+                C * ∫ x : ℝ, (u₀ x) ^ (p.γ * pExp) * psi.weight x) :=
+    Lemma_5_3_profile_initial_signal_derivative_from_Lemma_2_5 p hpExp
+      hTW hreg hstrict.hasWaveUpperTailBound hu₀
+  rcases henergy hu₀ hleft hclose hsignal with
+    ⟨u, v, E, lam, hlam, hsol, hcontrol, hcont, hderiv, hdiss, huniform⟩
+  exact
+    ⟨u, v, hsol,
+      WeightedL2MovingFrameConvergence.of_energy_dissipation
+        hlam hcontrol hcont hderiv hdiss,
+      huniform⟩
+
 /-- Theorem 1.2 closure through the Lemma 2.5 / Section 5 signal estimates.
 This isolates the remaining nonlinear stability step: once a stability
 criterion consumes the signal estimates produced below, the full paper-level
@@ -1583,6 +1667,91 @@ theorem Theorem_1_2.of_signal_derivative_stability_branch
     hregularity p hregime c hc U V hTW hstrict htail η hketa heta
   exact
     Theorem_1_2_nearby_initial_data_branch_of_signal_to_movingFrame
+      (p := p) (c := c) (η := η) (pExp := pExp) hpExp
+      hTW hstrict hreg hu₀ hleft hclose
+      (fun hu₀' hleft' hclose' hsignal =>
+        hstability p hregime c hc U V u₀ hTW hstrict htail η
+          hketa heta hu₀' hleft' hclose' hsignal)
+
+/-- Theorem 1.2 closure with the weighted-`L²` stability component reduced to
+a scalar energy dissipation package.
+
+This is the main-theorem version of
+`Theorem_1_2_nearby_initial_data_branch_of_signal_energy_dissipation`: the
+Section 5 signal estimates and Lemma 2.5 are supplied internally, scalar
+Grönwall proves weighted moving-frame `L²` convergence, and the only remaining
+nonlinear stability input is a common Cauchy solution carrying both the
+weighted energy dissipation inequality and uniform moving-frame convergence.
+
+Remaining frontier: prove the `hstability` package from the whole-line
+perturbation PDE.  In particular, the repository still lacks the weighted
+energy identity/dissipation estimate and the separate uniform convergence
+argument for arbitrary nearby Cauchy data. -/
+theorem Theorem_1_2.of_signal_energy_dissipation_uniform_branch
+    {pExp : ℝ} (hpExp : 1 < pExp)
+    (cStarStarFn : CMParams → (ℝ → ℝ))
+    (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
+      StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
+        stabilitySpeedBaseline p < cStarStarFn p p.χ)
+    (hregularity : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, cStarStarFn p p.χ < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η →
+          η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          TravelingWaveRegularity p c U V)
+    (hstability : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, cStarStarFn p p.χ < c →
+      ∀ U V u₀ : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η →
+          η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          NonnegativeInitialDatum u₀ →
+          StrictlyPositiveAtLeft u₀ →
+          WeightedL2InitialCloseness η u₀ U →
+          (∃ kMax > 0, ∃ C > 0,
+            ∀ k : ℝ, 0 ≤ k → k < kMax →
+            ∀ psi : ExponentialWeight,
+              (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+              (∀ z, |iteratedDeriv 2 psi.weight z| ≤ k * psi.weight z) →
+              Integrable
+                (fun x : ℝ => (U x) ^ (p.γ * pExp) * psi.weight x) →
+              Integrable
+                (fun x : ℝ => (u₀ x) ^ (p.γ * pExp) * psi.weight x) →
+                (Integrable
+                    (fun x : ℝ => |deriv V x| ^ pExp * psi.weight x) ∧
+                  ∫ x : ℝ, |deriv V x| ^ pExp * psi.weight x ≤
+                    C * ∫ x : ℝ, (U x) ^ (p.γ * pExp) * psi.weight x) ∧
+                (Integrable
+                    (fun x : ℝ =>
+                      |deriv (frozenElliptic p u₀) x| ^ pExp *
+                        psi.weight x) ∧
+                  ∫ x : ℝ, |deriv (frozenElliptic p u₀) x| ^ pExp *
+                      psi.weight x ≤
+                    C * ∫ x : ℝ, (u₀ x) ^ (p.γ * pExp) *
+                      psi.weight x)) →
+          ∃ u v : ℝ → ℝ → ℝ, ∃ E : ℝ → ℝ, ∃ lam > 0,
+            IsGlobalCauchySolutionFrom p u₀ u v ∧
+            (∀ᶠ t in atTop,
+              ∫ x : ℝ,
+                Real.exp (2 * η * x) * |u t x - U (x - c * t)| ^ 2 ≤
+                  E t) ∧
+            (∀ T : ℝ, 0 ≤ T → ContinuousOn E (Set.Icc 0 T)) ∧
+            (∀ T : ℝ, 0 ≤ T → ∀ t ∈ Set.Ico 0 T,
+              HasDerivWithinAt E (deriv E t) (Set.Ici t) t) ∧
+            (∀ t : ℝ, 0 ≤ t → deriv E t ≤ -lam * E t) ∧
+            UniformMovingFrameConvergence c u U) :
+    Theorem_1_2 := by
+  refine Theorem_1_2.of_assumed_stability_branch cStarStarFn hcStarStar ?_
+  intro p hregime c hc U V hTW hstrict htail η hketa heta u₀ hu₀ hleft hclose
+  have hreg : TravelingWaveRegularity p c U V :=
+    hregularity p hregime c hc U V hTW hstrict htail η hketa heta
+  exact
+    Theorem_1_2_nearby_initial_data_branch_of_signal_energy_dissipation
       (p := p) (c := c) (η := η) (pExp := pExp) hpExp
       hTW hstrict hreg hu₀ hleft hclose
       (fun hu₀' hleft' hclose' hsignal =>
