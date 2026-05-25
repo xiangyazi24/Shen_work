@@ -422,6 +422,63 @@ theorem SolvesTWODE.profile_c2_bootstrap
   exact ⟨h.component_contDiff_two 0, h.component_contDiff_two 2,
     h.hasDerivAt_deriv_U, h.hasDerivAt_deriv_V⟩
 
+theorem SolvesTWODE.chemotaxis_deriv
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) (t : ℝ) :
+    deriv (fun y => (z y 0) ^ p.m * deriv (fun s => z s 2) y) t =
+      (p.m : ℝ) * (z t 0) ^ (p.m - 1) * z t 1 * z t 3
+        + (z t 0) ^ p.m * (z t 2 - (z t 0) ^ p.gamma) := by
+  have hpow :
+      HasDerivAt (fun y => (z y 0) ^ p.m)
+        ((p.m : ℝ) * (z t 0) ^ (p.m - 1) * z t 1) t := by
+    simpa [mul_assoc, mul_left_comm, mul_comm] using
+      (h.hasDerivAt_U t).pow p.m
+  have hV' : deriv (fun s => z s 2) t = z t 3 :=
+    (h.hasDerivAt_V t).deriv
+  simpa [hV', mul_assoc, mul_left_comm, mul_comm] using
+    (hpow.mul (h.hasDerivAt_deriv_V t)).deriv
+
+theorem SolvesTWODE.profile_U_equation
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) (t : ℝ) :
+    iteratedDeriv 2 (fun s => z s 0) t
+      + p.c * deriv (fun s => z s 0) t
+      - p.chi * deriv (fun y => (z y 0) ^ p.m * deriv (fun s => z s 2) y) t
+      + z t 0 * (1 - (z t 0) ^ p.alpha) = 0 := by
+  have hU' : deriv (fun s => z s 0) t = z t 1 :=
+    (h.hasDerivAt_U t).deriv
+  have hU'' :
+      iteratedDeriv 2 (fun s => z s 0) t =
+        -p.c * z t 1
+          + p.chi *
+            ((p.m : ℝ) * (z t 0) ^ (p.m - 1) * z t 1 * z t 3
+              + (z t 0) ^ p.m * (z t 2 - (z t 0) ^ p.gamma))
+          - z t 0 * (1 - (z t 0) ^ p.alpha) := by
+    rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one]
+    exact (h.hasDerivAt_deriv_U t).deriv
+  rw [hU'', hU', h.chemotaxis_deriv t]
+  ring
+
+theorem SolvesTWODE.profile_V_equation
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) (t : ℝ) :
+    iteratedDeriv 2 (fun s => z s 2) t - z t 2 + (z t 0) ^ p.gamma = 0 := by
+  have hV'' :
+      iteratedDeriv 2 (fun s => z s 2) t =
+        z t 2 - (z t 0) ^ p.gamma := by
+    rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one]
+    exact (h.hasDerivAt_deriv_V t).deriv
+  rw [hV'']
+  ring
+
+theorem SolvesTWODE.profile_equations
+    {p : Params} {z : ℝ → State} (h : SolvesTWODE p z) :
+    (∀ t : ℝ,
+      iteratedDeriv 2 (fun s => z s 0) t
+        + p.c * deriv (fun s => z s 0) t
+        - p.chi * deriv (fun y => (z y 0) ^ p.m * deriv (fun s => z s 2) y) t
+        + z t 0 * (1 - (z t 0) ^ p.alpha) = 0) ∧
+    (∀ t : ℝ,
+      iteratedDeriv 2 (fun s => z s 2) t - z t 2 + (z t 0) ^ p.gamma = 0) :=
+  ⟨h.profile_U_equation, h.profile_V_equation⟩
+
 structure TravelingWave (p : Params) where
 z : ℝ → State
 ode : SolvesTWODE p z
@@ -442,6 +499,34 @@ theorem TravelingWave.profile_c2_bootstrap
     (∀ t : ℝ, HasDerivAt (deriv (fun s => w.z s 2))
       (w.z t 2 - (w.z t 0) ^ p.gamma) t) :=
   w.ode.profile_c2_bootstrap
+
+theorem TravelingWave.profile_equations
+    {p : Params} (w : TravelingWave p) :
+    (∀ t : ℝ,
+      iteratedDeriv 2 (fun s => w.z s 0) t
+        + p.c * deriv (fun s => w.z s 0) t
+        - p.chi * deriv
+            (fun y => (w.z y 0) ^ p.m * deriv (fun s => w.z s 2) y) t
+        + w.z t 0 * (1 - (w.z t 0) ^ p.alpha) = 0) ∧
+    (∀ t : ℝ,
+      iteratedDeriv 2 (fun s => w.z s 2) t - w.z t 2
+        + (w.z t 0) ^ p.gamma = 0) :=
+  w.ode.profile_equations
+
+theorem TravelingWave.profile_U_equation
+    {p : Params} (w : TravelingWave p) (t : ℝ) :
+    iteratedDeriv 2 (fun s => w.z s 0) t
+      + p.c * deriv (fun s => w.z s 0) t
+      - p.chi * deriv
+          (fun y => (w.z y 0) ^ p.m * deriv (fun s => w.z s 2) y) t
+      + w.z t 0 * (1 - (w.z t 0) ^ p.alpha) = 0 :=
+  w.ode.profile_U_equation t
+
+theorem TravelingWave.profile_V_equation
+    {p : Params} (w : TravelingWave p) (t : ℝ) :
+    iteratedDeriv 2 (fun s => w.z s 2) t - w.z t 2
+      + (w.z t 0) ^ p.gamma = 0 :=
+  w.ode.profile_V_equation t
 
 theorem local_shooting_segment_from_E1_positive_eigenpair
     (p : Params) {lam δ t₀ : ℝ}
