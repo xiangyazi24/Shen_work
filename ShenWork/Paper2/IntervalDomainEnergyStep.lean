@@ -19,7 +19,9 @@
   still require a differentiability/integrability layer for `intervalDomainLift`
   and differentiation under the parameter integral.  They are therefore kept
   below as explicitly named theorem hypotheses (`hIBP`, `hLpTime`), not as
-  axioms or hidden `Prop` aliases.
+  axioms or hidden `Prop` aliases.  The same applies to moving the pointwise
+  PDE, stated on `inside`, into an interval integral: that is recorded below as
+  `hPDEIntegral`.
 -/
 import ShenWork.Paper2.IntervalDomainLpMonotonicity
 
@@ -187,6 +189,429 @@ theorem intervalDomain_solution_lp_weighted_timeDeriv_eq_pde
           + u t x * (params.a - params.b * (u t x) ^ params.α)) := by
   unfold intervalDomainLpEnergyWeightedTimeTerm
   rw [hsol.pde_u ht0 htT hx]
+
+/-- Test function used after multiplying the `u` equation by
+`|u|^(p-2) u`. -/
+def intervalDomainLpDiffusionTest
+    (pExp : ℝ) (u : ℝ → intervalDomain.Point → ℝ)
+    (t : ℝ) (x : intervalDomain.Point) : ℝ :=
+  |u t x| ^ (pExp - 2) * u t x
+
+/-- The diffusion integral before integration by parts. -/
+def intervalDomainLpDiffusionIntegral
+    (pExp : ℝ) (u : ℝ → intervalDomain.Point → ℝ) (t : ℝ) : ℝ :=
+  intervalDomain.integral
+    (fun x =>
+      intervalDomainLpDiffusionTest pExp u t x *
+        intervalDomain.laplacian (u t) x)
+
+/-- The derivative-pair dissipation after interval integration by parts. -/
+def intervalDomainLpDiffusionDissipation
+    (pExp : ℝ) (u : ℝ → intervalDomain.Point → ℝ) (t : ℝ) : ℝ :=
+  intervalDomainDerivativePairIntegral
+    (intervalDomainLpDiffusionTest pExp u t) (u t)
+
+/-- The weighted gradient term controlled by the cross-diffusion bootstrap
+estimate.  Turning the derivative-pair dissipation into this expression is a
+separate spatial chain-rule/coercivity input. -/
+def intervalDomainLpWeightedGradientDissipation
+    (pExp : ℝ) (u : ℝ → intervalDomain.Point → ℝ) (t : ℝ) : ℝ :=
+  intervalDomain.integral
+    (fun x => (u t x) ^ (pExp - 2) * (intervalDomain.gradNorm (u t) x) ^ 2)
+
+/-- Chemotaxis contribution in the weighted Lp energy identity. -/
+def intervalDomainLpChemotaxisIntegral
+    (params : CM2Params) (pExp : ℝ)
+    (u v : ℝ → intervalDomain.Point → ℝ) (t : ℝ) : ℝ :=
+  intervalDomain.integral
+    (fun x =>
+      intervalDomainLpDiffusionTest pExp u t x *
+        intervalDomain.chemotaxisDiv params (u t) (v t) x)
+
+/-- Logistic contribution in the weighted Lp energy identity. -/
+def intervalDomainLpLogisticIntegral
+    (params : CM2Params) (pExp : ℝ)
+    (u : ℝ → intervalDomain.Point → ℝ) (t : ℝ) : ℝ :=
+  intervalDomain.integral
+    (fun x =>
+      intervalDomainLpDiffusionTest pExp u t x *
+        (u t x * (params.a - params.b * (u t x) ^ params.α)))
+
+/-- Exact conditional Lp energy balance after the Neumann boundary term has
+been removed.
+
+The three analytic frontiers are explicit:
+* `hLpTime`: time chain rule and differentiation under the interval integral;
+* `hPDEIntegral`: inserting the PDE into the weighted interval integral;
+* `hIBP`: spatial integration by parts for the lifted interval functions. -/
+theorem intervalDomain_lp_energy_balance_of_frontiers
+    {params : CM2Params} {T pExp t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hpExp : pExp ≠ 0) (ht0 : 0 < t) (htT : t < T)
+    (hLpTime : ∀ s, 0 < s → s < T →
+      deriv (fun τ => intervalDomainLpEnergy pExp u τ) s =
+        pExp * intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u s))
+    (hPDEIntegral :
+      intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u t) =
+        intervalDomainLpDiffusionIntegral pExp u t -
+          params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t +
+          intervalDomainLpLogisticIntegral params pExp u t)
+    (hIBP :
+      intervalDomainLpDiffusionIntegral pExp u t =
+        intervalDomainNeumannBoundaryTerm
+            (intervalDomainLpDiffusionTest pExp u t) (u t) -
+          intervalDomainLpDiffusionDissipation pExp u t) :
+    (1 / pExp) *
+        deriv (fun τ => intervalDomainLpEnergy pExp u τ) t +
+      intervalDomainLpDiffusionDissipation pExp u t =
+        -params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t +
+          intervalDomainLpLogisticIntegral params pExp u t := by
+  have htime :=
+    intervalDomain_lp_energy_identity_scaled_of_time_frontier
+      (pExp := pExp) (T := T) (u := u) hpExp hLpTime t ht0 htT
+  have hIBP' :
+      intervalDomain.integral
+          (fun x =>
+            intervalDomainLpDiffusionTest pExp u t x *
+              intervalDomain.laplacian (u t) x) =
+        intervalDomainNeumannBoundaryTerm
+            (intervalDomainLpDiffusionTest pExp u t) (u t) -
+          intervalDomainDerivativePairIntegral
+            (intervalDomainLpDiffusionTest pExp u t) (u t) := by
+    simpa [intervalDomainLpDiffusionIntegral,
+      intervalDomainLpDiffusionDissipation] using hIBP
+  have hdiff :=
+    intervalDomain_integrationByParts_neumann_of_boundary_identity
+      (intervalDomainLpDiffusionTest pExp u t) (u t) hIBP'
+  have hdiff_named :
+      intervalDomainLpDiffusionIntegral pExp u t =
+        -intervalDomainLpDiffusionDissipation pExp u t := by
+    simpa [intervalDomainLpDiffusionIntegral,
+      intervalDomainLpDiffusionDissipation] using hdiff
+  calc
+    (1 / pExp) *
+          deriv (fun τ => intervalDomainLpEnergy pExp u τ) t +
+        intervalDomainLpDiffusionDissipation pExp u t
+        = intervalDomain.integral
+            (intervalDomainLpEnergyWeightedTimeTerm pExp u t) +
+          intervalDomainLpDiffusionDissipation pExp u t := by
+            rw [htime]
+    _ =
+        (intervalDomainLpDiffusionIntegral pExp u t -
+            params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t +
+            intervalDomainLpLogisticIntegral params pExp u t) +
+          intervalDomainLpDiffusionDissipation pExp u t := by
+            rw [hPDEIntegral]
+    _ =
+        -params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t +
+          intervalDomainLpLogisticIntegral params pExp u t := by
+            rw [hdiff_named]
+            ring
+
+/-- Conditional Lp energy inequality with chemotaxis controlled by the
+cross-diffusion energy term.  `hDiffusionCoercive` is the remaining spatial
+chain-rule/coercivity bridge from the derivative-pair dissipation to the
+weighted gradient dissipation. -/
+theorem intervalDomain_lp_energy_gradient_inequality_of_frontiers
+    {params : CM2Params} {T pExp A chiBound t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hpExp : pExp ≠ 0) (ht0 : 0 < t) (htT : t < T)
+    (hLpTime : ∀ s, 0 < s → s < T →
+      deriv (fun τ => intervalDomainLpEnergy pExp u τ) s =
+        pExp * intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u s))
+    (hPDEIntegral :
+      intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u t) =
+        intervalDomainLpDiffusionIntegral pExp u t -
+          params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t +
+          intervalDomainLpLogisticIntegral params pExp u t)
+    (hIBP :
+      intervalDomainLpDiffusionIntegral pExp u t =
+        intervalDomainNeumannBoundaryTerm
+            (intervalDomainLpDiffusionTest pExp u t) (u t) -
+          intervalDomainLpDiffusionDissipation pExp u t)
+    (hDiffusionCoercive :
+      A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
+        intervalDomainLpDiffusionDissipation pExp u t)
+    (hCrossControl :
+      -params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t ≤
+        chiBound *
+          intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t)) :
+    (1 / pExp) *
+        deriv (fun τ => intervalDomainLpEnergy pExp u τ) t +
+      A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
+        chiBound *
+          intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t) +
+          intervalDomainLpLogisticIntegral params pExp u t := by
+  have hbalance :=
+    intervalDomain_lp_energy_balance_of_frontiers
+      (params := params) (T := T) (pExp := pExp) (t := t)
+      (u := u) (v := v) hpExp ht0 htT hLpTime hPDEIntegral hIBP
+  calc
+    (1 / pExp) *
+          deriv (fun τ => intervalDomainLpEnergy pExp u τ) t +
+        A * intervalDomainLpWeightedGradientDissipation pExp u t
+        ≤
+          (1 / pExp) *
+              deriv (fun τ => intervalDomainLpEnergy pExp u τ) t +
+            intervalDomainLpDiffusionDissipation pExp u t := by
+            linarith
+    _ =
+        -params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t +
+          intervalDomainLpLogisticIntegral params pExp u t := hbalance
+    _ ≤
+        chiBound *
+          intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t) +
+          intervalDomainLpLogisticIntegral params pExp u t := by
+          linarith
+
+/-- Conditional Lp energy inequality after applying the existing
+`CrossDiffusionBootstrapEstimate` to the controlled chemotaxis term. -/
+theorem intervalDomain_lp_energy_cross_bootstrap_inequality_of_frontiers
+    {params : CM2Params} {T rho pExp eps A chiBound t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hpExp : 1 < pExp) (heps : 0 < eps) (hchiBound : 0 ≤ chiBound)
+    (ht0 : 0 < t) (htT : t < T)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hLpTime : ∀ s, 0 < s → s < T →
+      deriv (fun τ => intervalDomainLpEnergy pExp u τ) s =
+        pExp * intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u s))
+    (hPDEIntegral :
+      intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u t) =
+        intervalDomainLpDiffusionIntegral pExp u t -
+          params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t +
+          intervalDomainLpLogisticIntegral params pExp u t)
+    (hIBP :
+      intervalDomainLpDiffusionIntegral pExp u t =
+        intervalDomainNeumannBoundaryTerm
+            (intervalDomainLpDiffusionTest pExp u t) (u t) -
+          intervalDomainLpDiffusionDissipation pExp u t)
+    (hDiffusionCoercive :
+      A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
+        intervalDomainLpDiffusionDissipation pExp u t)
+    (hCrossControl :
+      -params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t ≤
+        chiBound *
+          intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t)) :
+    ∃ Ceps,
+      (1 / pExp) *
+          deriv (fun τ => intervalDomainLpEnergy pExp u τ) t +
+        A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
+          chiBound *
+              (eps * intervalDomainLpWeightedGradientDissipation pExp u t +
+                Ceps *
+                  intervalDomain.integral
+                    (fun x => (u t x) ^ (pExp + rho))) +
+            intervalDomainLpLogisticIntegral params pExp u t := by
+  obtain ⟨Ceps, hCeps⟩ :=
+    CrossDiffusionBootstrapEstimate.bound hcross heps hpExp ht0 htT
+  refine ⟨Ceps, ?_⟩
+  have hpExp_ne : pExp ≠ 0 := by linarith
+  have hbasic :=
+    intervalDomain_lp_energy_gradient_inequality_of_frontiers
+      (params := params) (T := T) (pExp := pExp) (A := A)
+      (chiBound := chiBound) (t := t) (u := u) (v := v)
+      hpExp_ne ht0 htT hLpTime hPDEIntegral hIBP
+      hDiffusionCoercive hCrossControl
+  have hCeps' :
+      intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t) ≤
+        eps * intervalDomainLpWeightedGradientDissipation pExp u t +
+          Ceps *
+            intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) := by
+    simpa [intervalDomainLpWeightedGradientDissipation] using hCeps
+  have hscaled :=
+    mul_le_mul_of_nonneg_left hCeps' hchiBound
+  linarith
+
+/-- Half of the L2 energy.  This form avoids any convention about `0^0` in
+`|u|^(p-2)` when specializing the Lp identity at `p = 2`. -/
+def intervalDomainL2HalfEnergy
+    (u : ℝ → intervalDomain.Point → ℝ) (t : ℝ) : ℝ :=
+  (1 / 2) * intervalDomain.integral (fun x => (u t x) ^ 2)
+
+/-- Time term for the `d/dt (1/2 ∫ u^2)` identity. -/
+def intervalDomainL2TimeTerm
+    (u : ℝ → intervalDomain.Point → ℝ) (t : ℝ)
+    (x : intervalDomain.Point) : ℝ :=
+  u t x * intervalDomain.timeDeriv u t x
+
+def intervalDomainL2DiffusionIntegral
+    (u : ℝ → intervalDomain.Point → ℝ) (t : ℝ) : ℝ :=
+  intervalDomain.integral
+    (fun x => u t x * intervalDomain.laplacian (u t) x)
+
+def intervalDomainL2DiffusionDissipation
+    (u : ℝ → intervalDomain.Point → ℝ) (t : ℝ) : ℝ :=
+  intervalDomainDerivativePairIntegral (u t) (u t)
+
+def intervalDomainL2ChemotaxisIntegral
+    (params : CM2Params) (u v : ℝ → intervalDomain.Point → ℝ)
+    (t : ℝ) : ℝ :=
+  intervalDomain.integral
+    (fun x => u t x * intervalDomain.chemotaxisDiv params (u t) (v t) x)
+
+def intervalDomainL2LogisticIntegral
+    (params : CM2Params) (u : ℝ → intervalDomain.Point → ℝ)
+    (t : ℝ) : ℝ :=
+  intervalDomain.integral
+    (fun x => (u t x) ^ 2 * (params.a - params.b * (u t x) ^ params.α))
+
+/-- Pointwise L2-weighted form of the classical `u` PDE on the interior. -/
+theorem intervalDomain_solution_l2_weighted_timeDeriv_eq_pde
+    {params : CM2Params} {T t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) {x : intervalDomain.Point}
+    (hx : x ∈ intervalDomain.inside) :
+    intervalDomainL2TimeTerm u t x =
+      u t x *
+        (intervalDomain.laplacian (u t) x
+          - params.χ₀ * intervalDomain.chemotaxisDiv params (u t) (v t) x
+          + u t x * (params.a - params.b * (u t x) ^ params.α)) := by
+  unfold intervalDomainL2TimeTerm
+  rw [hsol.pde_u ht0 htT hx]
+
+/-- Exact conditional `d/dt (1/2 ∫ u^2)` balance after Neumann integration by
+parts. -/
+theorem intervalDomain_l2_half_energy_balance_of_frontiers
+    {params : CM2Params} {t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hL2Time :
+      deriv (fun τ => intervalDomainL2HalfEnergy u τ) t =
+        intervalDomain.integral (intervalDomainL2TimeTerm u t))
+    (hPDEIntegral :
+      intervalDomain.integral (intervalDomainL2TimeTerm u t) =
+        intervalDomainL2DiffusionIntegral u t -
+          params.χ₀ * intervalDomainL2ChemotaxisIntegral params u v t +
+          intervalDomainL2LogisticIntegral params u t)
+    (hIBP :
+      intervalDomainL2DiffusionIntegral u t =
+        intervalDomainNeumannBoundaryTerm (u t) (u t) -
+          intervalDomainL2DiffusionDissipation u t) :
+    deriv (fun τ => intervalDomainL2HalfEnergy u τ) t +
+      intervalDomainL2DiffusionDissipation u t =
+        -params.χ₀ * intervalDomainL2ChemotaxisIntegral params u v t +
+          intervalDomainL2LogisticIntegral params u t := by
+  have hIBP' :
+      intervalDomain.integral
+          (fun x => u t x * intervalDomain.laplacian (u t) x) =
+        intervalDomainNeumannBoundaryTerm (u t) (u t) -
+          intervalDomainDerivativePairIntegral (u t) (u t) := by
+    simpa [intervalDomainL2DiffusionIntegral,
+      intervalDomainL2DiffusionDissipation] using hIBP
+  have hdiff :=
+    intervalDomain_integrationByParts_neumann_of_boundary_identity
+      (u t) (u t) hIBP'
+  have hdiff_named :
+      intervalDomainL2DiffusionIntegral u t =
+        -intervalDomainL2DiffusionDissipation u t := by
+    simpa [intervalDomainL2DiffusionIntegral,
+      intervalDomainL2DiffusionDissipation] using hdiff
+  calc
+    deriv (fun τ => intervalDomainL2HalfEnergy u τ) t +
+        intervalDomainL2DiffusionDissipation u t
+        = intervalDomain.integral (intervalDomainL2TimeTerm u t) +
+          intervalDomainL2DiffusionDissipation u t := by
+            rw [hL2Time]
+    _ =
+        (intervalDomainL2DiffusionIntegral u t -
+            params.χ₀ * intervalDomainL2ChemotaxisIntegral params u v t +
+            intervalDomainL2LogisticIntegral params u t) +
+          intervalDomainL2DiffusionDissipation u t := by
+            rw [hPDEIntegral]
+    _ =
+        -params.χ₀ * intervalDomainL2ChemotaxisIntegral params u v t +
+          intervalDomainL2LogisticIntegral params u t := by
+            rw [hdiff_named]
+            ring
+
+/-- Conditional L2 energy inequality with the chemotaxis term controlled by the
+cross-diffusion energy term at exponent `2`. -/
+theorem intervalDomain_l2_half_energy_inequality_of_cross_control
+    {params : CM2Params} {t chiBound : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hL2Time :
+      deriv (fun τ => intervalDomainL2HalfEnergy u τ) t =
+        intervalDomain.integral (intervalDomainL2TimeTerm u t))
+    (hPDEIntegral :
+      intervalDomain.integral (intervalDomainL2TimeTerm u t) =
+        intervalDomainL2DiffusionIntegral u t -
+          params.χ₀ * intervalDomainL2ChemotaxisIntegral params u v t +
+          intervalDomainL2LogisticIntegral params u t)
+    (hIBP :
+      intervalDomainL2DiffusionIntegral u t =
+        intervalDomainNeumannBoundaryTerm (u t) (u t) -
+          intervalDomainL2DiffusionDissipation u t)
+    (hCrossControl :
+      -params.χ₀ * intervalDomainL2ChemotaxisIntegral params u v t ≤
+        chiBound *
+          intervalDomain.crossDiffusionEnergyTerm params 2 (u t) (v t)) :
+    deriv (fun τ => intervalDomainL2HalfEnergy u τ) t +
+      intervalDomainL2DiffusionDissipation u t ≤
+        chiBound *
+          intervalDomain.crossDiffusionEnergyTerm params 2 (u t) (v t) +
+          intervalDomainL2LogisticIntegral params u t := by
+  have hbalance :=
+    intervalDomain_l2_half_energy_balance_of_frontiers
+      (params := params) (t := t) (u := u) (v := v)
+      hL2Time hPDEIntegral hIBP
+  rw [hbalance]
+  linarith
+
+/-- L2 energy inequality after applying the cross-diffusion bootstrap estimate
+at exponent `2`. -/
+theorem intervalDomain_l2_half_energy_cross_bootstrap_inequality_of_frontiers
+    {params : CM2Params} {T rho eps chiBound t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (heps : 0 < eps) (hchiBound : 0 ≤ chiBound)
+    (ht0 : 0 < t) (htT : t < T)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hL2Time :
+      deriv (fun τ => intervalDomainL2HalfEnergy u τ) t =
+        intervalDomain.integral (intervalDomainL2TimeTerm u t))
+    (hPDEIntegral :
+      intervalDomain.integral (intervalDomainL2TimeTerm u t) =
+        intervalDomainL2DiffusionIntegral u t -
+          params.χ₀ * intervalDomainL2ChemotaxisIntegral params u v t +
+          intervalDomainL2LogisticIntegral params u t)
+    (hIBP :
+      intervalDomainL2DiffusionIntegral u t =
+        intervalDomainNeumannBoundaryTerm (u t) (u t) -
+          intervalDomainL2DiffusionDissipation u t)
+    (hCrossControl :
+      -params.χ₀ * intervalDomainL2ChemotaxisIntegral params u v t ≤
+        chiBound *
+          intervalDomain.crossDiffusionEnergyTerm params 2 (u t) (v t)) :
+    ∃ Ceps,
+      deriv (fun τ => intervalDomainL2HalfEnergy u τ) t +
+        intervalDomainL2DiffusionDissipation u t ≤
+          chiBound *
+              (eps * intervalDomainLpWeightedGradientDissipation 2 u t +
+                Ceps *
+                  intervalDomain.integral (fun x => (u t x) ^ (2 + rho))) +
+            intervalDomainL2LogisticIntegral params u t := by
+  have htwo : (1 : ℝ) < 2 := by norm_num
+  obtain ⟨Ceps, hCeps⟩ :=
+    CrossDiffusionBootstrapEstimate.bound
+      hcross heps htwo ht0 htT
+  refine ⟨Ceps, ?_⟩
+  have hbasic :=
+    intervalDomain_l2_half_energy_inequality_of_cross_control
+      (params := params) (t := t) (chiBound := chiBound)
+      (u := u) (v := v) hL2Time hPDEIntegral hIBP hCrossControl
+  have hCeps' :
+      intervalDomain.crossDiffusionEnergyTerm params 2 (u t) (v t) ≤
+        eps * intervalDomainLpWeightedGradientDissipation 2 u t +
+          Ceps * intervalDomain.integral (fun x => (u t x) ^ (2 + rho)) := by
+    simpa [intervalDomainLpWeightedGradientDissipation] using hCeps
+  have hscaled :=
+    mul_le_mul_of_nonneg_left hCeps' hchiBound
+  linarith
 
 /-- A full Paper 2 energy inequality gives the reduced Moser step once the
 time-derivative plus lower-order contribution is nonnegative.
