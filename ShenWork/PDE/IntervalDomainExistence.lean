@@ -3001,6 +3001,100 @@ def GlobalSolutionGluingFromReachability (p : CM2Params) : Prop :=
       ReachableArbitrarilyLong p u₀ →
         IntervalDomainGlobalSolutionFor p u₀
 
+/-! #### Blow-up exclusion from an a priori bound
+
+The standard continuation theorem produces a finite branch only if the
+`m ≥ 1` blow-up alternative can occur.  The lemmas in this block isolate the
+exact formal input needed to turn the Theorem 1.2-style a priori bound into
+the negation of that branch.  Because the concrete `intervalDomainSupNorm` is
+defined as `sSup (range |f|)`, pointwise control from a sup-norm bound also
+requires the usual spatial boundedness of each time slice; this is not encoded
+in the current `intervalDomainClassicalRegularity` field. -/
+
+/-- A finite-horizon solution is pointwise bounded from above before `T`. -/
+def PointwiseBoundedBefore
+    (T : ℝ) (u : ℝ → intervalDomain.Point → ℝ) : Prop :=
+  ∃ M, ∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside → u t x ≤ M
+
+/-- On a finite horizon, the concrete sup norm controls point values of the
+solution.  For the current interval-domain formal interface this is a separate
+spatial-regularity input: `intervalDomainClassicalRegularity` only controls the
+time trace of the sup norm, not spatial continuity/boundedness of `u t`. -/
+def SupNormControlsPointwiseBefore
+    (T : ℝ) (u : ℝ → intervalDomain.Point → ℝ) : Prop :=
+  ∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
+    u t x ≤ intervalDomain.supNorm (u t)
+
+/-- If every relevant time slice has bounded `range |u t|`, then the concrete
+`intervalDomain.supNorm` controls point values on the open interval. -/
+theorem supNormControlsPointwiseBefore_of_bddAbove_abs
+    {T : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hbdd :
+      ∀ t, 0 < t → t < T →
+        BddAbove (Set.range (fun x : intervalDomain.Point => |u t x|))) :
+    SupNormControlsPointwiseBefore T u := by
+  intro t x ht0 htT _hx
+  have habs_le :
+      |u t x| ≤ intervalDomain.supNorm (u t) := by
+    change |u t x| ≤ intervalDomainSupNorm (u t)
+    unfold intervalDomainSupNorm
+    exact le_csSup (hbdd t ht0 htT) ⟨x, rfl⟩
+  exact le_trans (le_abs_self (u t x)) habs_le
+
+/-- A finite-horizon sup-norm bound becomes a pointwise upper bound once the
+sup norm is known to control point values. -/
+theorem pointwiseBoundedBefore_of_boundedBefore_and_supNormControls
+    {T : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : IsPaper2BoundedBefore intervalDomain T u)
+    (hcontrols : SupNormControlsPointwiseBefore T u) :
+    PointwiseBoundedBefore T u := by
+  rcases hbounded with ⟨M, hM⟩
+  exact ⟨M, fun t x ht0 htT hx =>
+    le_trans (hcontrols t x ht0 htT hx) (hM t ht0 htT)⟩
+
+/-- A pointwise upper bound rules out the `m ≥ 1` finite-time blow-up
+alternative. -/
+theorem not_mgeOneFiniteHorizonAlternative_of_pointwiseBoundedBefore
+    {T : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hbounded : PointwiseBoundedBefore T u) :
+    ¬ MGeOneFiniteHorizonAlternative intervalDomain T u := by
+  intro hblow
+  rcases hbounded with ⟨M, hM⟩
+  rcases hblow M with ⟨t, x, ht0, htT, hx, hlt⟩
+  exact not_lt_of_ge (hM t x ht0 htT hx) hlt
+
+/-- The Theorem 1.2-style a priori finite-horizon bound, together with the
+spatial fact that `supNorm` controls point values, rules out the finite branch
+of the maximal-continuation alternative when `1 ≤ m`. -/
+theorem not_finiteContinuationAlternativeBranch_of_boundedBefore_and_supNormControl
+    {p : CM2Params} {u₀ : intervalDomain.Point → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hm : 1 ≤ p.m)
+    (hboundedBefore :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain T u)
+    (hsupControls :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          SupNormControlsPointwiseBefore T u) :
+    ¬ FiniteContinuationAlternativeBranch p u₀ := by
+  intro hfinite
+  rcases hfinite with ⟨T, hT, u, v, hsol, htrace, _halt, hmge⟩
+  have hpw :
+      PointwiseBoundedBefore T u :=
+    pointwiseBoundedBefore_of_boundedBefore_and_supNormControls
+      (hboundedBefore u₀ hu₀ T hT u v hsol htrace)
+      (hsupControls u₀ hu₀ T hT u v hsol htrace)
+  exact not_mgeOneFiniteHorizonAlternative_of_pointwiseBoundedBefore hpw
+    (hmge hm)
+
 /-- If the standard continuation alternative holds, the finite branch is ruled
 out for `1 ≤ m`, and arbitrarily long reachable horizons can be glued, then the
 corrected existential-global package follows. -/
@@ -3094,6 +3188,153 @@ theorem intervalDomainGlobalSolutionExists_of_finiteSup_continuation_and_gluing
     (hrealize u₀ hu₀)
     (hextend_of_not_finiteAlternative u₀ hu₀)
     (hextend_of_not_mgeAlternative u₀ hu₀)
+
+/-- Maximal continuation plus an a priori finite-horizon bound gives the
+corrected existential-global package.
+
+This is the bridge needed after the Theorem 1.2-style boundedness theorem:
+`hboundedBefore` is the finite-horizon sup-norm bound for every classical
+branch, `hsupControls` is the spatial regularity fact converting that concrete
+sup norm into pointwise control, and `hglue` is the uniqueness/gluing theorem
+turning arbitrarily long compatible finite horizons into one global solution.
+The old false same-tail `globalExtension` field is not used. -/
+theorem intervalDomainGlobalSolutionExists_of_boundedContinuation_and_gluing
+    (p : CM2Params)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hboundedInitial :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+    (hrealize :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ _hbdd : BddAbove (reachableClassicalHorizonSet p u₀),
+        ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p
+            (finiteMaximalReachableHorizon p u₀) u v ∧
+          InitialTrace intervalDomain u₀ u)
+    (hextend_of_not_finiteAlternative :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ (_hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomain.Point → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (finiteMaximalReachableHorizon p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          ¬ FiniteHorizonAlternative intervalDomain
+            (finiteMaximalReachableHorizon p u₀) u →
+          ReachablePast p u₀ (finiteMaximalReachableHorizon p u₀))
+    (hextend_of_not_mgeAlternative :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ (_hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomain.Point → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (finiteMaximalReachableHorizon p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          1 ≤ p.m →
+          ¬ MGeOneFiniteHorizonAlternative intervalDomain
+            (finiteMaximalReachableHorizon p u₀) u →
+          ReachablePast p u₀ (finiteMaximalReachableHorizon p u₀))
+    (hboundedBefore :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain T u)
+    (hsupControls :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          SupNormControlsPointwiseBefore T u)
+    (hglue : GlobalSolutionGluingFromReachability p) :
+    IntervalDomainGlobalSolutionExists p := by
+  refine intervalDomainGlobalSolutionExists_of_finiteSup_continuation_and_gluing
+    p hlocal hboundedInitial hrealize
+    hextend_of_not_finiteAlternative hextend_of_not_mgeAlternative ?_ hglue
+  intro u₀ hu₀ hm
+  exact
+    not_finiteContinuationAlternativeBranch_of_boundedBefore_and_supNormControl
+      hu₀ hm hboundedBefore hsupControls
+
+/-- Variant of the previous bridge where the spatial `supNorm` control is
+obtained from boundedness of the absolute-value range of every time slice. -/
+theorem intervalDomainGlobalSolutionExists_of_boundedContinuation_rangeBounded_and_gluing
+    (p : CM2Params)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hboundedInitial :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+    (hrealize :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ _hbdd : BddAbove (reachableClassicalHorizonSet p u₀),
+        ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p
+            (finiteMaximalReachableHorizon p u₀) u v ∧
+          InitialTrace intervalDomain u₀ u)
+    (hextend_of_not_finiteAlternative :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ (_hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomain.Point → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (finiteMaximalReachableHorizon p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          ¬ FiniteHorizonAlternative intervalDomain
+            (finiteMaximalReachableHorizon p u₀) u →
+          ReachablePast p u₀ (finiteMaximalReachableHorizon p u₀))
+    (hextend_of_not_mgeAlternative :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ (_hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomain.Point → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (finiteMaximalReachableHorizon p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          1 ≤ p.m →
+          ¬ MGeOneFiniteHorizonAlternative intervalDomain
+            (finiteMaximalReachableHorizon p u₀) u →
+          ReachablePast p u₀ (finiteMaximalReachableHorizon p u₀))
+    (hboundedBefore :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain T u)
+    (hrangeBounded :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∀ t, 0 < t → t < T →
+            BddAbove (Set.range (fun x : intervalDomain.Point => |u t x|)))
+    (hglue : GlobalSolutionGluingFromReachability p) :
+    IntervalDomainGlobalSolutionExists p := by
+  refine
+    intervalDomainGlobalSolutionExists_of_boundedContinuation_and_gluing
+      p hlocal hboundedInitial hrealize
+      hextend_of_not_finiteAlternative hextend_of_not_mgeAlternative
+      hboundedBefore ?_ hglue
+  intro u₀ hu₀ T hT u v hsol htrace
+  exact supNormControlsPointwiseBefore_of_bddAbove_abs
+    (hrangeBounded u₀ hu₀ T hT u v hsol htrace)
 
 /-- Concrete Picard/Duhamel local existence plus the corrected existential
 global-continuation theorem gives the corrected package. -/
