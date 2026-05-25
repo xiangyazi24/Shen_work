@@ -387,6 +387,56 @@ theorem finiteSpectralCoeff_heat_smoothing_energy_le
       (sigma := sigma) (a := a n)
       hlambda_pos ht hsigma_nonneg hsigma_le
 
+/-! ### Hilbert-basis coefficient bridge for finite sums -/
+
+/-- The complex `L²` representative of an interval-domain real function,
+through the existing zero-extension to the unit interval. -/
+def intervalDomainLiftComplexLp2
+    (u : intervalDomain.Point → ℝ)
+    (hu : MemLp (intervalDomainLift u) (2 : ℝ≥0∞) (intervalMeasure 1)) :
+    Lp ℂ 2 (intervalMeasure 1) :=
+  (hu.ofReal).toLp (fun x : ℝ => (intervalDomainLift u x : ℂ))
+
+/-- Finite Bessel inequality for the complete Neumann cosine Hilbert basis. -/
+theorem unitIntervalCosineHilbertCoeff_finite_sq_le_norm_sq
+    (s : Finset ℕ) (v : Lp ℂ 2 (intervalMeasure 1)) :
+    (∑ n ∈ s, ‖unitIntervalCosineHilbertBasis.repr v n‖ ^ 2) ≤
+      ‖v‖ ^ 2 := by
+  have h :=
+    (unitIntervalCosineHilbertBasis.orthonormal).sum_inner_products_le
+      (x := v) (s := s)
+  simpa [HilbertBasis.repr_apply_apply] using h
+
+/-- The finite cosine-coefficient square sum of an interval-domain input is
+controlled by its concrete `L²` seminorm. -/
+theorem intervalDomainCosineHilbertCoeff_finite_sq_le_lpNorm_sq
+    (s : Finset ℕ) (u : intervalDomain.Point → ℝ)
+    (hu : MemLp (intervalDomainLift u) (2 : ℝ≥0∞) (intervalMeasure 1)) :
+    (∑ n ∈ s,
+        ‖unitIntervalCosineHilbertBasis.repr
+          (intervalDomainLiftComplexLp2 u hu) n‖ ^ 2) ≤
+      intervalDomainLpNorm 2 u ^ 2 := by
+  have hbase :=
+    unitIntervalCosineHilbertCoeff_finite_sq_le_norm_sq
+      s (intervalDomainLiftComplexLp2 u hu)
+  have hnorm :
+      ‖intervalDomainLiftComplexLp2 u hu‖ =
+        intervalDomainLpNorm 2 u := by
+    calc
+      ‖intervalDomainLiftComplexLp2 u hu‖
+          =
+            lpNorm (fun x : ℝ => (intervalDomainLift u x : ℂ))
+              (2 : ℝ≥0∞) (intervalMeasure 1) := by
+              rw [intervalDomainLiftComplexLp2, Lp.norm_toLp,
+                toReal_eLpNorm (hu.ofReal).aestronglyMeasurable]
+      _ =
+            lpNorm (intervalDomainLift u)
+              (2 : ℝ≥0∞) (intervalMeasure 1) :=
+              unitInterval_lpNorm_complex_ofReal_eq hu
+      _ = intervalDomainLpNorm 2 u := by
+              simp [intervalDomainLpNorm]
+  rwa [hnorm] at hbase
+
 end ShenWork.Paper2.IntervalDomainLemma21
 
 end

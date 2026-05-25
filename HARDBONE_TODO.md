@@ -108,6 +108,13 @@
   `finiteSpectralCoeff_heat_smoothing_energy_le`.  These are real
   coefficient-level fractional estimates; the remaining work is the
   `tsum`/Hilbert-basis transport to the statement-layer total norm below.
+- **Hilbert-basis bridge increment** (2026-05-24):
+  `unitIntervalCosineHilbertCoeff_finite_sq_le_norm_sq` proves the finite
+  Bessel inequality for the complete normalized cosine Hilbert basis, and
+  `intervalDomainCosineHilbertCoeff_finite_sq_le_lpNorm_sq` transports it to
+  interval-domain point functions through `intervalDomainLiftComplexLp2`.
+  This fixes the finite-mode Parseval side needed before passing to infinite
+  spectral fractional norms.
 - **BLOCKER / Point 17**: the full `Lemma_2_1 intervalDomain` statement is
   still not discharged.  The missing piece is not H0.1/H0.2 smoothing; it is
   the fractional-domain part of the abstract `SemigroupEstimateData` package:
