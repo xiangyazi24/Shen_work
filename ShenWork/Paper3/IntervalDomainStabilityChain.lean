@@ -474,6 +474,96 @@ theorem intervalDomain_Theorem_2_2_for_concrete_constants_branch_frontiers
     exact hC.minimalEquilibrium_linearlyUnstable
       unitIntervalNeumannSpectrum_hasNeumannSpectrum huStar hχcrit
 
+/-- Full interval-domain Paper3 Theorem 2.2 from the two raw local-stability
+branches plus the audited unit-interval critical-spectrum identity.
+
+The raw branches supply exactly the stable/local-exponential halves.  The
+unstable halves are discharged from the concrete Neumann spectrum through
+`Paper3ConstantsUsesCriticalSpectrum`, so this theorem is a genuine
+statement-layer composition rather than a restatement of `Theorem_2_2`. -/
+theorem intervalDomain_Theorem_2_2_of_linearStabilityInstabilityRaw
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hC : Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p C)
+    (hNonminimal :
+      LinearStabilityInstabilityNonminimalRaw intervalDomain p
+        unitIntervalNeumannSpectrum N.c1Distance C.chiCritical)
+    (hMinimal :
+      LinearStabilityInstabilityMinimalRaw intervalDomain p
+        unitIntervalNeumannSpectrum N.c1Distance C.chiCritical) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum N C := by
+  refine Theorem_2_2.of_parts ?_ ?_ ?_ ?_
+  · intro ha hb
+    exact hNonminimal ha hb
+  · intro ha hb
+    dsimp
+    intro hχcrit
+    exact hC.positiveEquilibrium_linearlyUnstable
+      unitIntervalNeumannSpectrum_hasNeumannSpectrum ha hb hχcrit
+  · intro ha hb uStar huStar
+    exact hMinimal ha hb uStar huStar
+  · intro _ha _hb uStar huStar
+    dsimp
+    intro hχcrit
+    exact hC.minimalEquilibrium_linearlyUnstable
+      unitIntervalNeumannSpectrum_hasNeumannSpectrum huStar hχcrit
+
+/-- Concrete-constants interval-domain Paper3 Theorem 2.2 assembled through
+the branch-specific `LinearStabilityInstabilityRaw` interface.
+
+Compared with the direct branch theorem above, this records the H3.1/H4.1
+boundary explicitly: `intervalDomain_linearStabilityInstabilityRaw_of_branch_frontiers`
+provides the two stable local-exponential raw branches, and
+`intervalDomain_Theorem_2_2_of_linearStabilityInstabilityRaw` supplies the
+full Theorem 2.2 unstable branches from the unit-interval spectral formula. -/
+theorem intervalDomain_Theorem_2_2_for_concrete_constants_branch_frontiers_via_linearRaw
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (M0 uBar vLower : ℝ)
+    (hraw :
+      SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hxpPositive :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          N.xpSigmaDistance sigma pNorm u₀
+              (fun _ => (positiveEquilibrium p ⟨ha, hb⟩).1) ≤
+            intervalDomain.supNorm
+              (fun x => u₀ x - (positiveEquilibrium p ⟨ha, hb⟩).1))
+    (hexistPositive :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b), ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p
+          (positiveEquilibrium p ⟨ha, hb⟩).1 delta)
+    (hxpMinimal :
+      ∀ uStar, 0 < uStar →
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          N.xpSigmaDistance sigma pNorm u₀
+              (fun _ => (minimalEquilibrium p uStar).1) ≤
+            intervalDomain.supNorm
+              (fun x => u₀ x - (minimalEquilibrium p uStar).1))
+    (hmexistMinimal :
+      ∀ uStar, 0 < uStar → ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p
+          (minimalEquilibrium p uStar).1 delta) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum N
+      (intervalDomainPaper3Constants p M0 uBar vLower) := by
+  have hbranches :=
+    intervalDomain_linearStabilityInstabilityRaw_of_branch_frontiers
+      p N hraw hsigma_low hsigma_high hpNorm hxpPositive hexistPositive
+      hxpMinimal hmexistMinimal
+  exact
+    intervalDomain_Theorem_2_2_of_linearStabilityInstabilityRaw
+      p N (intervalDomainPaper3Constants p M0 uBar vLower)
+      (intervalDomainPaper3Constants_usesCriticalSpectrum p M0 uBar vLower)
+      (by
+        simpa [intervalDomainPaper3Constants] using hbranches.1)
+      (by
+        simpa [intervalDomainPaper3Constants] using hbranches.2)
+
 /-- Conditional interval-domain Paper3 Theorem 2.3.
 
 The Lyapunov inputs are only moment-decay frontiers; uniform convergence is

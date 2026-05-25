@@ -1703,6 +1703,233 @@ theorem constantData_localExistence_via_regularity
   · exact equilibrium_localExistence_via_regularity p ha hb
   · exact zeroReaction_localExistence_via_regularity p ha hb
 
+/-! ### Classical regularity for spatially-constant time-decreasing solutions
+
+For u(t,x) = φ(t) with φ positive, continuous, differentiable on (0,T),
+and φ'(t) ≤ 0 for all t ∈ (0,T), the sup-norm function
+`fun t => intervalDomainSupNorm (fun _ => φ t) = fun t => φ t`
+is nonincreasing, so `intervalDomainClassicalRegularity` holds.
+
+This covers spatially-constant ODE solutions starting ABOVE the equilibrium:
+when φ(0) > (a/b)^{1/α}, the logistic ODE φ' = φ(a - bφ^α) gives φ' ≤ 0
+since a - bφ^α ≤ 0 for φ ≥ (a/b)^{1/α}. -/
+
+/-- The sup-norm function of a spatially-constant positive function
+equals the function itself: `fun t => intervalDomainSupNorm (fun _ => φ t) = φ`. -/
+lemma supNormFun_eq_of_spatially_constant_pos
+    {φ : ℝ → ℝ} (hφ_pos : ∀ t, 0 < φ t) :
+    (fun t => intervalDomainSupNorm (fun _ : intervalDomainPoint => φ t)) = φ := by
+  ext t
+  rw [intervalDomainSupNorm_const, abs_of_pos (hφ_pos t)]
+
+/-- The sup-norm derivative condition on `Set.Ioc 0 t₀` for a positive
+decreasing spatially-constant function. -/
+lemma supNormDerivNonposOn_Ioc_of_decreasing
+    {φ : ℝ → ℝ} {t₀ : ℝ} (_ht₀ : 0 < t₀)
+    (hφ_pos : ∀ t, 0 < φ t)
+    (hφ_cont : ContinuousOn φ (Set.Ioc 0 t₀))
+    (hφ_diff : DifferentiableOn ℝ φ (Set.Ioo 0 t₀))
+    (hφ_deriv : ∀ t, t ∈ Set.Ioo 0 t₀ → deriv φ t ≤ 0) :
+    IntervalDomainSupNormDerivativeNonposOn
+      (fun t (_ : intervalDomainPoint) => φ t) (Set.Ioc 0 t₀) := by
+  have hsup_eq := supNormFun_eq_of_spatially_constant_pos hφ_pos
+  constructor
+  · -- ContinuousOn on Ioc 0 t₀
+    show ContinuousOn (fun t => intervalDomainSupNorm
+      (fun _ : intervalDomainPoint => φ t)) (Set.Ioc 0 t₀)
+    rw [hsup_eq]
+    exact hφ_cont
+  · -- DifferentiableOn on interior (Ioc 0 t₀) = Ioo 0 t₀
+    show DifferentiableOn ℝ (fun t => intervalDomainSupNorm
+      (fun _ : intervalDomainPoint => φ t)) (interior (Set.Ioc 0 t₀))
+    rw [interior_Ioc, hsup_eq]
+    exact hφ_diff
+  · -- deriv ≤ 0 on interior (Ioc 0 t₀) = Ioo 0 t₀
+    intro t ht
+    rw [interior_Ioc] at ht
+    show deriv (fun s => intervalDomainSupNorm
+      (fun _ : intervalDomainPoint => φ s)) t ≤ 0
+    have : (fun s => intervalDomainSupNorm
+      (fun _ : intervalDomainPoint => φ s)) = φ := hsup_eq
+    rw [this]
+    exact hφ_deriv t ht
+
+/-- The sup-norm derivative condition on `Set.Ioo 0 T` for a positive
+decreasing spatially-constant function. -/
+lemma supNormDerivNonposOn_Ioo_of_decreasing
+    {φ : ℝ → ℝ} {T : ℝ} (_hT : 0 < T)
+    (hφ_pos : ∀ t, 0 < φ t)
+    (hφ_cont : ContinuousOn φ (Set.Ioo 0 T))
+    (hφ_diff : DifferentiableOn ℝ φ (Set.Ioo 0 T))
+    (hφ_deriv : ∀ t, t ∈ Set.Ioo 0 T → deriv φ t ≤ 0) :
+    IntervalDomainSupNormDerivativeNonposOn
+      (fun t (_ : intervalDomainPoint) => φ t) (Set.Ioo 0 T) := by
+  have hsup_eq := supNormFun_eq_of_spatially_constant_pos hφ_pos
+  constructor
+  · show ContinuousOn (fun t => intervalDomainSupNorm
+      (fun _ : intervalDomainPoint => φ t)) (Set.Ioo 0 T)
+    rw [hsup_eq]; exact hφ_cont
+  · show DifferentiableOn ℝ (fun t => intervalDomainSupNorm
+      (fun _ : intervalDomainPoint => φ t)) (interior (Set.Ioo 0 T))
+    rw [interior_Ioo, hsup_eq]; exact hφ_diff
+  · intro t ht
+    rw [interior_Ioo] at ht
+    show deriv (fun s => intervalDomainSupNorm
+      (fun _ : intervalDomainPoint => φ s)) t ≤ 0
+    rw [hsup_eq]; exact hφ_deriv t ht
+
+/-- A spatially-constant function with positive and non-increasing values
+satisfies `intervalDomainClassicalRegularity` for any v.
+
+The key point: the sup-norm function `t ↦ intervalDomainSupNorm (fun _ => φ t)`
+equals `t ↦ φ t` (since φ > 0), and its derivative is nonpositive. The
+condition `supNorm > equilibrium` in the first conjunct is vacuously or
+non-vacuously satisfied — either way, the derivative condition holds. -/
+theorem classicalRegularity_of_spatially_constant_decreasing
+    {φ : ℝ → ℝ} {T : ℝ} (hT : 0 < T)
+    (hφ_pos : ∀ t, 0 < φ t)
+    (hφ_cont : ContinuousOn φ (Set.Icc 0 T))
+    (hφ_diff : DifferentiableOn ℝ φ (Set.Ioo 0 T))
+    (hφ_deriv_nonpos : ∀ t, t ∈ Set.Ioo 0 T → deriv φ t ≤ 0)
+    (v : ℝ → intervalDomainPoint → ℝ) :
+    intervalDomainClassicalRegularity T
+      (fun t (_ : intervalDomainPoint) => φ t) v := by
+  unfold intervalDomainClassicalRegularity
+  refine ⟨?_, ?_⟩
+  · -- First conjunct: for any p' with a > 0, b > 0, if supNorm > equilibrium,
+    -- the sup-norm is nonincreasing on Ioc 0 t₀.
+    intro _p' _hχ _ha _hb t₀ ht₀ ht₀T _hsup_gt
+    apply supNormDerivNonposOn_Ioc_of_decreasing ht₀ hφ_pos
+    · exact hφ_cont.mono (Set.Ioc_subset_Icc_self.trans
+        (Set.Icc_subset_Icc_right (le_of_lt ht₀T)))
+    · exact hφ_diff.mono (fun t ht => ⟨ht.1, lt_of_lt_of_le ht.2 (le_of_lt ht₀T)⟩)
+    · exact fun t ht => hφ_deriv_nonpos t ⟨ht.1, lt_of_lt_of_le ht.2 (le_of_lt ht₀T)⟩
+  · -- Second conjunct: for any p' with a = 0, b = 0,
+    -- the sup-norm is nonincreasing on Ioo 0 T.
+    intro _p' _hχ _ha _hb
+    apply supNormDerivNonposOn_Ioo_of_decreasing hT hφ_pos
+    · exact hφ_cont.mono Set.Ioo_subset_Icc_self
+    · exact hφ_diff
+    · exact hφ_deriv_nonpos
+
+/-! ### RegularityBootstrap for above-equilibrium ODE solutions
+
+For a spatially-constant ODE solution u(t,x) = φ(t) where φ solves
+φ' = φ(a - bφ^α) with φ(0) = c₀ > (a/b)^{1/α}, we can prove
+`RegularityBootstrap` from the following hypotheses on φ:
+
+1. φ is positive on [0,T]
+2. φ is continuous on [0,T], differentiable on (0,T)
+3. φ'(t) ≤ 0 on (0,T) (decreasing)
+4. φ satisfies the ODE: φ'(t) = φ(t)(a - bφ(t)^α)
+5. φ(0) = c₀ (initial value)
+
+These are genuine ODE results. The bootstrap then follows by combining:
+- PDE reduction: all spatial terms vanish for constant-in-space functions
+- Classical regularity: from the decreasing property
+- Initial trace: from φ(t) → c₀ as t → 0⁺ -/
+
+/-- RegularityBootstrap for a spatially-constant ODE solution φ that is
+positive, continuous, differentiable, decreasing, and solves the logistic ODE.
+
+This is the bridge between ODE analysis (properties of φ) and the PDE
+regularity structure needed for `IsPaper2ClassicalSolution`. -/
+theorem aboveEquilibrium_regularityBootstrap
+    (p : CM2Params) (_ha : 0 < p.a) (_hb : 0 < p.b)
+    {T : ℝ} (hT : 0 < T)
+    {φ : ℝ → ℝ} (c₀ : ℝ) (_hc₀ : (p.a / p.b) ^ (1 / p.α) ≤ c₀)
+    -- ODE solution properties
+    (hφ_pos : ∀ t, 0 < φ t)
+    (hφ_cont : ContinuousOn φ (Set.Icc 0 T))
+    (hφ_diff : DifferentiableOn ℝ φ (Set.Ioo 0 T))
+    (hφ_deriv_nonpos : ∀ t, t ∈ Set.Ioo 0 T → deriv φ t ≤ 0)
+    -- The ODE equation: φ'(t) = φ(t)(a - bφ(t)^α) at interior points
+    (hφ_ode : ∀ t, t ∈ Set.Ioo 0 T →
+      deriv φ t = φ t * (p.a - p.b * (φ t) ^ p.α))
+    -- Initial value: φ(0) = c₀
+    (hφ_init : φ 0 = c₀)
+    -- Continuity at 0 (for the initial trace)
+    (hφ_cont_at_zero : ContinuousAt φ 0) :
+    RegularityBootstrap p T
+      (constOnInterval c₀)
+      (fun t (_ : intervalDomainPoint) => φ t) := by
+  refine ⟨fun t _ => ellipticV p (φ t), ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · -- Positivity
+    exact fun _t _x _ht0 _htT _hx => hφ_pos _
+  · -- u-PDE: timeDeriv u = Δu - χ₀·chemDiv + u(a - bu^α)
+    intro t x _ht0 _htT hx
+    -- u(t,x) = φ(t), so timeDeriv u t x = φ'(t)
+    -- Laplacian of constant = 0, chemtaxis div of constant = 0
+    change deriv (fun s : ℝ => φ s) t =
+      intervalDomainLaplacian (fun _ => φ t) x
+        - p.χ₀ * intervalDomainChemotaxisDiv p (fun _ => φ t)
+            (fun _ => ellipticV p (φ t)) x
+        + φ t * (p.a - p.b * (φ t) ^ p.α)
+    rw [intervalDomainLaplacian_const_zero (φ t) hx,
+      intervalDomainChemotaxisDiv_const_zero p (φ t) (ellipticV p (φ t)) hx]
+    have ht_mem : t ∈ Set.Ioo 0 T := ⟨‹0 < t›, ‹t < T›⟩
+    rw [hφ_ode t ht_mem]; ring
+  · -- v-PDE: 0 = Δv - μv + νu^γ
+    intro t x _ht0 _htT hx
+    change (0 : ℝ) =
+      intervalDomainLaplacian (fun _ => ellipticV p (φ t)) x
+        - p.μ * ellipticV p (φ t) + p.ν * (φ t) ^ p.γ
+    exact ellipticV_pde p (φ t) (hφ_pos t) hx
+  · -- Neumann BC
+    intro t x _ht0 _htT hx
+    exact ⟨intervalDomainNormalDeriv_const_zero (φ t) hx,
+           intervalDomainNormalDeriv_const_zero (ellipticV p (φ t)) hx⟩
+  · -- Classical regularity
+    exact classicalRegularity_of_spatially_constant_decreasing hT hφ_pos
+      hφ_cont hφ_diff hφ_deriv_nonpos _
+  · -- Initial trace: φ(t) → c₀ = φ(0) as t → 0⁺
+    intro ε hε
+    -- Since φ is continuous at 0, ∃ δ > 0 with |φ(t) - φ(0)| < ε for t ∈ (0,δ)
+    rw [Metric.continuousAt_iff] at hφ_cont_at_zero
+    obtain ⟨δ, hδ, hball⟩ := hφ_cont_at_zero ε hε
+    refine ⟨δ, hδ, fun t ht0 htδ => ?_⟩
+    change intervalDomainSupNorm (fun x => φ t - constOnInterval c₀ x) < ε
+    have hconst : (fun _ : intervalDomainPoint => φ t - c₀) =
+        fun x => φ t - constOnInterval c₀ x := by
+      ext; simp [constOnInterval]
+    rw [← hconst, intervalDomainSupNorm_const]
+    rw [abs_sub_comm]
+    have : |c₀ - φ t| = |φ 0 - φ t| := by rw [hφ_init]
+    rw [this]
+    rw [← Real.dist_eq, dist_comm]
+    exact hball (by rwa [Real.dist_eq, sub_zero, abs_of_pos ht0])
+
+/-- Local existence for spatially-constant initial data above equilibrium,
+via the RegularityBootstrap chain.
+
+Given a CM2Params p with a > 0, b > 0, and a function φ solving the
+logistic ODE with initial value c₀ ≥ (a/b)^{1/α}, this produces a
+classical solution on intervalDomain. -/
+theorem aboveEquilibrium_localExistence
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b)
+    {T : ℝ} (hT : 0 < T)
+    {φ : ℝ → ℝ} (c₀ : ℝ) (hc₀ : (p.a / p.b) ^ (1 / p.α) ≤ c₀)
+    (hφ_pos : ∀ t, 0 < φ t)
+    (hφ_cont : ContinuousOn φ (Set.Icc 0 T))
+    (hφ_diff : DifferentiableOn ℝ φ (Set.Ioo 0 T))
+    (hφ_deriv_nonpos : ∀ t, t ∈ Set.Ioo 0 T → deriv φ t ≤ 0)
+    (hφ_ode : ∀ t, t ∈ Set.Ioo 0 T →
+      deriv φ t = φ t * (p.a - p.b * (φ t) ^ p.α))
+    (hφ_init : φ 0 = c₀)
+    (hφ_cont_at_zero : ContinuousAt φ 0) :
+    ∃ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ ∧
+      ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+        InitialTrace intervalDomain u₀ u := by
+  have hc₀_pos : 0 < c₀ :=
+    lt_of_lt_of_le (equilibrium_pos p ha hb) hc₀
+  refine ⟨constOnInterval c₀, constOnInterval_pos hc₀_pos, ?_⟩
+  exact localExistence_of_regularityBootstrap p
+    (constOnInterval c₀) (constOnInterval_pos hc₀_pos) hT
+    (aboveEquilibrium_regularityBootstrap p ha hb hT c₀ hc₀
+      hφ_pos hφ_cont hφ_diff hφ_deriv_nonpos hφ_ode hφ_init hφ_cont_at_zero)
+
 end ShenWork.IntervalDomainExistence
 
 end
