@@ -2518,6 +2518,16 @@ theorem intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_coreExistence
   intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_existence
     p M0 uBar vLower hcore.to_mainlineExistence
 
+/-- The literal no-hidden-field target from the canonical core existence
+kernel. -/
+theorem intervalDomain_sectorialMainline_unconditionalTarget_of_coreExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    IntervalDomainSectorialTheorem21And22UnconditionalTarget
+      p M0 uBar vLower :=
+  intervalDomain_sectorialMainline_unconditionalTarget_of_existence
+    p M0 uBar vLower hcore.to_mainlineExistence
+
 /-- Instance-facing endpoint: once the canonical core existence kernel is
 registered, the interval-domain Theorem 2.1/2.2 sectorial mainline has no
 explicit frontier argument. -/
@@ -2531,6 +2541,90 @@ theorem intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_coreExistenceFac
         (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
   intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_coreExistence
     p M0 uBar vLower hcore.out
+
+/-- Instance-facing Theorem 2.2 component from the canonical core existence
+kernel. -/
+theorem intervalDomain_Theorem_2_2_sectorialMainline_of_coreExistenceFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hcore : Fact (IntervalDomainSectorialMainlineCoreExistence p uBar)] :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_2_sectorialMainline_of_coreExistence
+    p M0 uBar vLower hcore.out
+
+/-- Instance-facing Theorem 2.1 component from the canonical core existence
+kernel. -/
+theorem intervalDomain_Theorem_2_1_sectorialMainline_of_coreExistenceFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hcore : Fact (IntervalDomainSectorialMainlineCoreExistence p uBar)] :
+    Theorem_2_1 intervalDomain p
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_1_sectorialMainline_of_coreExistence
+    p M0 uBar vLower hcore.out
+
+/-- Instance-facing literal target from the canonical core existence kernel.
+This is the clean handoff point for a future sb-ode/existence import: once it
+registers the core existence fact, this endpoint has no explicit frontier
+argument and all norms/constants are concrete. -/
+theorem intervalDomain_sectorialMainline_unconditionalTarget_of_coreExistenceFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hcore : Fact (IntervalDomainSectorialMainlineCoreExistence p uBar)] :
+    IntervalDomainSectorialTheorem21And22UnconditionalTarget
+      p M0 uBar vLower :=
+  intervalDomain_sectorialMainline_unconditionalTarget_of_coreExistence
+    p M0 uBar vLower hcore.out
+
+/-- Clean B4 coverage record at the canonical core-existence level.
+
+The theorem fields below have no abstract `StabilityNorms`,
+`CompactnessData`, or `Paper3Constants` arguments.  They expose only the core
+existence kernel as the remaining premise. -/
+structure IntervalDomainSectorialCoreReductionCoverage
+    (p : CM2Params) (M0 uBar vLower : ℝ) : Prop where
+  theorem22 :
+    ∀ _hcore : IntervalDomainSectorialMainlineCoreExistence p uBar,
+      Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+        intervalDomainSectorialStabilityNorms
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower)
+  theorem21 :
+    ∀ _hcore : IntervalDomainSectorialMainlineCoreExistence p uBar,
+      Theorem_2_1 intervalDomain p
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower)
+  combined :
+    ∀ _hcore : IntervalDomainSectorialMainlineCoreExistence p uBar,
+      Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+          intervalDomainSectorialStabilityNorms
+          (intervalDomainSectorialPaper3Constants p M0 uBar vLower) ∧
+        Theorem_2_1 intervalDomain p
+          (intervalDomainSectorialPaper3Constants p M0 uBar vLower)
+  literalTarget :
+    ∀ _hcore : IntervalDomainSectorialMainlineCoreExistence p uBar,
+      IntervalDomainSectorialTheorem21And22UnconditionalTarget
+        p M0 uBar vLower
+
+/-- Proof that the interval-domain Theorem 2.1/2.2 sectorial endpoint is cleanly
+reduced to canonical core existence. -/
+theorem intervalDomain_sectorialMainline_coreReduction_coverage
+    (p : CM2Params) (M0 uBar vLower : ℝ) :
+    IntervalDomainSectorialCoreReductionCoverage p M0 uBar vLower := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro hcore
+    exact
+      intervalDomain_Theorem_2_2_sectorialMainline_of_coreExistence
+        p M0 uBar vLower hcore
+  · intro hcore
+    exact
+      intervalDomain_Theorem_2_1_sectorialMainline_of_coreExistence
+        p M0 uBar vLower hcore
+  · intro hcore
+    exact
+      intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_coreExistence
+        p M0 uBar vLower hcore
+  · intro hcore
+    exact
+      intervalDomain_sectorialMainline_unconditionalTarget_of_coreExistence
+        p M0 uBar vLower hcore
 
 /-- Persistence plus the raw nonminimal exponential-upgrade frontier gives
 the per-solution exponential conclusion of Corollary 5.1.
