@@ -36,6 +36,14 @@
   current `intervalDomain.chemotaxisDiv` contains the Paper 2 `u * grad v`
   structure, while the requested `∇·(u^m ∇v)` term is not yet a separate
   interval-domain operator.
+
+  B3 Moser frontier note: the abstract all-finite-Lp envelope is not a valid
+  endpoint route to `L∞` on `intervalDomain`; endpoint spikes are invisible to
+  the interval integral.  The usable Moser interface below therefore keeps the
+  solution energy step per exponent: the relative GN/Young absorption
+      `∫ u^(p+ρ) ≤ eps * ∫ |∇(u^(p/2))|^2 + Ceps * ∫ u^p`
+  is combined with the already-known `p`-level bound at that induction stage,
+  not with a standalone abstract Lp envelope.
 -/
 import ShenWork.Paper2.IntervalDomainLpMonotonicity
 
@@ -1797,6 +1805,166 @@ theorem moser_step_family_of_energy_dissipation_interpolation
   have hdrop_t := hdiss p hp A B K L_const hfull t ht0 htT
   linarith
 
+/-- Turn the relative GN/Young interpolation used in a genuine Moser
+iteration into the constant interpolation expected by the existing single-step
+interface, using the already-established bound at the current exponent `p`.
+
+This is the key non-endpoint bridge: the constant depends on the current
+`LpPowerBoundedBefore D p T u` datum, so it is valid inside the induction
+chain but is not an abstract `Lp -> L∞` envelope principle. -/
+theorem moser_interpolation_of_relative_interpolation_and_lp_bound
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T p rho : ℝ}
+    (hLp : LpPowerBoundedBefore D p T u)
+    (hrel : ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧ ∀ t, 0 < t → t < T →
+      D.integral (fun x => (u t x) ^ (p + rho)) ≤
+        eps * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+        Ceps * D.integral (fun x => (u t x) ^ p)) :
+    ∀ eps > 0, ∃ Cconst, ∀ t, 0 < t → t < T →
+      D.integral (fun x => (u t x) ^ (p + rho)) ≤
+        eps * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+        Cconst := by
+  rcases hLp with ⟨Cp, hCp⟩
+  intro eps heps
+  rcases hrel eps heps with ⟨Ceps, hCeps_nonneg, hCeps⟩
+  refine ⟨Ceps * Cp, ?_⟩
+  intro t ht0 htT
+  have hmain := hCeps t ht0 htT
+  have hY := hCp t ht0 htT
+  have hscaled :
+      Ceps * D.integral (fun x => (u t x) ^ p) ≤ Ceps * Cp :=
+    mul_le_mul_of_nonneg_left hY hCeps_nonneg
+  linarith
+
+/-- Per-exponent `hstep` for `all_exponents_of_moser_iteration_chain` from
+the solution energy inequality and relative GN/Young absorption.
+
+The current `p`-level Lp bound is an explicit input because relative
+absorption controls `∫u^(p+ρ)` by a gradient term plus `Ceps * ∫u^p`. -/
+theorem moser_step_of_energy_dissipation_relative_interpolation
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T rho p0 p : ℝ}
+    (henergy : LpBootstrapEnergyInequality D u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+          A * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * D.integral (fun x => (u t x) ^ p) ≤
+        K * D.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+            B * D.integral (fun x => (u t x) ^ p))
+    (hrel : ∀ p, p0 ≤ p → ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧
+      ∀ t, 0 < t → t < T →
+        D.integral (fun x => (u t x) ^ (p + rho)) ≤
+          eps * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          Ceps * D.integral (fun x => (u t x) ^ p))
+    (hp : p0 ≤ p)
+    (hLp : LpPowerBoundedBefore D p T u) :
+    ∃ A > 0, ∃ K > 0, ∃ L_const,
+      (∀ t, 0 < t → t < T →
+        A * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) ≤
+        K * D.integral (fun x => (u t x) ^ (p + rho)) + L_const) ∧
+      (∀ eps > 0, ∃ Ceps, ∀ t, 0 < t → t < T →
+        D.integral (fun x => (u t x) ^ (p + rho)) ≤
+          eps * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          Ceps) := by
+  rcases henergy p hp with ⟨A, hA, B, _hB, K, hK, L_const, hfull⟩
+  refine ⟨A, hA, K, hK, L_const, ?_, ?_⟩
+  · intro t ht0 htT
+    have hfull_t := hfull t ht0 htT
+    have hdrop_t := hdiss p hp A B K L_const hfull t ht0 htT
+    linarith
+  · exact moser_interpolation_of_relative_interpolation_and_lp_bound
+      hLp (hrel p hp)
+
+/-- Moser exponent chain driven by the per-exponent solution energy step and
+relative GN/Young absorption.
+
+Unlike the invalid abstract endpoint envelope route, this theorem consumes the
+current `LpPowerBoundedBefore` bound at each induction level and then produces
+the next exponent. -/
+theorem moser_iteration_chain_of_energy_dissipation_relative_interpolation
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T p0 rho : ℝ}
+    (hrho : 0 < rho)
+    (hbase : LpPowerBoundedBefore D p0 T u)
+    (henergy : LpBootstrapEnergyInequality D u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+          A * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * D.integral (fun x => (u t x) ^ p) ≤
+        K * D.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+            B * D.integral (fun x => (u t x) ^ p))
+    (hrel : ∀ p, p0 ≤ p → ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧
+      ∀ t, 0 < t → t < T →
+        D.integral (fun x => (u t x) ^ (p + rho)) ≤
+          eps * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          Ceps * D.integral (fun x => (u t x) ^ p)) :
+    ∀ n : ℕ, LpPowerBoundedBefore D (p0 + n * rho) T u := by
+  intro n
+  induction n with
+  | zero =>
+    simp only [CharP.cast_eq_zero, zero_mul, add_zero]
+    exact hbase
+  | succ n ih =>
+    have hexp_eq : p0 + (↑(n + 1) : ℝ) * rho = (p0 + ↑n * rho) + rho := by
+      push_cast
+      ring
+    rw [hexp_eq]
+    have hp_ge : p0 ≤ p0 + ↑n * rho :=
+      le_add_of_nonneg_right (mul_nonneg (Nat.cast_nonneg n) hrho.le)
+    obtain ⟨A, hA, K, hK, L_const, hstep_energy, hstep_interp⟩ :=
+      moser_step_of_energy_dissipation_relative_interpolation
+        henergy hdiss hrel hp_ge ih
+    exact IntervalDomainChain.lp_bootstrap_single_step_abstract
+      (L_const := L_const) hA hK hstep_energy hstep_interp
+
+/-- All finite exponents from the solution-level relative Moser step, with
+downward Lp monotonicity supplied separately. -/
+theorem all_exponents_of_energy_dissipation_relative_interpolation_lpmono
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {N T rho p0 : ℝ}
+    (hboot : AbstractLpBootstrapHypothesis D u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality D u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+          A * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * D.integral (fun x => (u t x) ^ p) ≤
+        K * D.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+            B * D.integral (fun x => (u t x) ^ p))
+    (hrel : ∀ p, p0 ≤ p → ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧
+      ∀ t, 0 < t → t < T →
+        D.integral (fun x => (u t x) ^ (p + rho)) ≤
+          eps * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          Ceps * D.integral (fun x => (u t x) ^ p))
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore D q T u → LpPowerBoundedBefore D p T u) :
+    ∀ pExp > 1, LpPowerBoundedBefore D pExp T u := by
+  exact IntervalDomainMoserClosure.all_exponents_of_chain_and_lp_mono
+    (AbstractLpBootstrapHypothesis.rho_pos hboot)
+    (moser_iteration_chain_of_energy_dissipation_relative_interpolation
+      (AbstractLpBootstrapHypothesis.rho_pos hboot)
+      (AbstractLpBootstrapHypothesis.initial_lp_bound hboot)
+      henergy hdiss hrel)
+    hLpMono
+
 /-- Convert the Paper 2 mass-gradient interpolation estimate into the
 `Z <= eps * G + Ceps` interpolation interface used by the Moser step.
 
@@ -2014,6 +2182,51 @@ theorem intervalDomain_all_exponents_of_energy_dissipation_mass_gradient
   exact moser_interpolation_of_mass_gradient_estimate
     (hcGrad p hp) (hMG p hp) (hgrad p hp) (hmass p hp)
 
+/-- Interval-domain all-exponents Moser closure from the solution energy
+inequality and the relative GN/Young absorption
+`∫u^(p+ρ) <= eps * ∫|∇(u^(p/2))|^2 + Ceps * ∫u^p`.
+
+This is the EnergyStep-side interface intended for the Theorem 1.1 Moser
+iteration; it does not invoke the false abstract GN/Agmon endpoint envelope. -/
+theorem intervalDomain_all_exponents_of_energy_dissipation_relative_interpolation
+    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv
+            (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+          A * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * intervalDomain.integral (fun x => (u t x) ^ p) ≤
+        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv
+              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+            B * intervalDomain.integral (fun x => (u t x) ^ p))
+    (hrel : ∀ p, p0 ≤ p → ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral (fun x => (u t x) ^ (p + rho)) ≤
+          eps * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          Ceps * intervalDomain.integral (fun x => (u t x) ^ p))
+    (hu_nonneg :
+      ∀ t, 0 < t → t < T → ∀ x : intervalDomain.Point, 0 ≤ u t x)
+    (hpow_int :
+      ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
+        IntervalIntegrable
+          (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
+          MeasureTheory.volume 0 1) :
+    ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u := by
+  exact IntervalDomainLpMonotonicity.intervalDomain_all_exponents_of_LpPowerBoundedBefore_chain
+    (AbstractLpBootstrapHypothesis.rho_pos hboot)
+    (moser_iteration_chain_of_energy_dissipation_relative_interpolation
+      (AbstractLpBootstrapHypothesis.rho_pos hboot)
+      (AbstractLpBootstrapHypothesis.initial_lp_bound hboot)
+      henergy hdiss hrel)
+    hu_nonneg hpow_int
+
 /-- Interior-nonnegative version of
 `intervalDomain_all_exponents_of_energy_dissipation_interpolation`.  This is
 the form supplied directly by classical interval solutions, whose positivity is
@@ -2101,54 +2314,30 @@ theorem intervalDomain_all_exponents_of_energy_dissipation_mass_gradient_inside_
   exact moser_interpolation_of_mass_gradient_estimate
     (hcGrad p hp) (hMG p hp) (hgrad p hp) (hmass p hp)
 
-/-- Interface to the GN/Agmon endpoint frontier: all finite Lp bounds above
-`1` imply finite-horizon boundedness once the endpoint frontier is supplied.
-
-This is the handoff point to the `Lp -> L∞` side; no endpoint estimate is
-proved here. -/
-theorem intervalDomain_boundedBefore_of_all_exponents_and_GN_Agmon_frontier
-    {u : ℝ → intervalDomain.Point → ℝ} {T pMin : ℝ}
-    (hpMin : 1 < pMin)
-    (hAll : ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u)
-    (hFrontier :
-      IntervalDomainMoserClosure.GagliardoNirenbergAgmonLpToLinftyFrontier
-        intervalDomain u T pMin) :
-    IsPaper2BoundedBefore intervalDomain T u := by
-  exact
-    IntervalDomainMoserClosure.boundedBefore_of_all_LpPowerBoundedBefore_and_GN_Agmon_frontier
-      (D := intervalDomain) (u := u) (T := T) (pMin := pMin)
-      (fun pExp hp => hAll pExp (lt_of_lt_of_le hpMin hp)) hFrontier
-
-/-- Arithmetic Lp chain plus finite-interval Lp monotonicity, handed off to
-the GN/Agmon endpoint frontier. -/
-theorem intervalDomain_boundedBefore_of_LpPowerBoundedBefore_chain_and_GN_Agmon_frontier
-    {u : ℝ → intervalDomain.Point → ℝ} {T rho p0 pMin : ℝ}
-    (hpMin : 1 < pMin) (hrho : 0 < rho)
-    (hchain : ∀ n : ℕ, LpPowerBoundedBefore intervalDomain (p0 + n * rho) T u)
-    (hu_nonneg :
-      ∀ t, 0 < t → t < T → ∀ x : intervalDomain.Point, 0 ≤ u t x)
-    (hpow_int :
-      ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
-        IntervalIntegrable
-          (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
-          MeasureTheory.volume 0 1)
-    (hFrontier :
-      IntervalDomainMoserClosure.GagliardoNirenbergAgmonLpToLinftyFrontier
-        intervalDomain u T pMin) :
-    IsPaper2BoundedBefore intervalDomain T u := by
-  have hAll : ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u :=
-    IntervalDomainLpMonotonicity.intervalDomain_all_exponents_of_LpPowerBoundedBefore_chain
-      hrho hchain hu_nonneg hpow_int
-  exact intervalDomain_boundedBefore_of_all_exponents_and_GN_Agmon_frontier
-    hpMin hAll hFrontier
-
-/-- Interior-nonnegative arithmetic Lp chain handed off to the GN/Agmon
-endpoint frontier. -/
-theorem
-intervalDomain_boundedBefore_of_LpPowerBoundedBefore_chain_inside_nonneg_and_GN_Agmon_frontier
-    {u : ℝ → intervalDomain.Point → ℝ} {T rho p0 pMin : ℝ}
-    (hpMin : 1 < pMin) (hrho : 0 < rho)
-    (hchain : ∀ n : ℕ, LpPowerBoundedBefore intervalDomain (p0 + n * rho) T u)
+/-- Interior-nonnegative version of the relative-interpolation Moser closure. -/
+theorem intervalDomain_all_exponents_of_energy_dissipation_relative_interpolation_inside_nonneg
+    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv
+            (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+          A * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * intervalDomain.integral (fun x => (u t x) ^ p) ≤
+        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv
+              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+            B * intervalDomain.integral (fun x => (u t x) ^ p))
+    (hrel : ∀ p, p0 ≤ p → ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral (fun x => (u t x) ^ (p + rho)) ≤
+          eps * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          Ceps * intervalDomain.integral (fun x => (u t x) ^ p))
     (hu_nonneg :
       ∀ t, 0 < t → t < T →
         ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside → 0 ≤ u t x)
@@ -2156,197 +2345,15 @@ intervalDomain_boundedBefore_of_LpPowerBoundedBefore_chain_inside_nonneg_and_GN_
       ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
         IntervalIntegrable
           (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
-          MeasureTheory.volume 0 1)
-    (hFrontier :
-      IntervalDomainMoserClosure.GagliardoNirenbergAgmonLpToLinftyFrontier
-        intervalDomain u T pMin) :
-    IsPaper2BoundedBefore intervalDomain T u := by
-  have hAll : ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u :=
-    intervalDomain_all_exponents_of_LpPowerBoundedBefore_chain_inside_nonneg
-      hrho hchain hu_nonneg hpow_int
-  exact intervalDomain_boundedBefore_of_all_exponents_and_GN_Agmon_frontier
-    hpMin hAll hFrontier
-
-/-- Energy/interpolation Moser closure handed off to the GN/Agmon endpoint
-frontier. -/
-theorem intervalDomain_boundedBefore_of_energy_dissipation_interpolation_and_GN_Agmon_frontier
-    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 pMin : ℝ}
-    (hpMin : 1 < pMin)
-    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
-    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
-    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
-      (∀ t, 0 < t → t < T →
-        (1 / p) * deriv
-            (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
-          A * intervalDomain.integral (fun x =>
-            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
-          B * intervalDomain.integral (fun x => (u t x) ^ p) ≤
-        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
-      ∀ t, 0 < t → t < T →
-        0 ≤
-          (1 / p) * deriv
-              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
-            B * intervalDomain.integral (fun x => (u t x) ^ p))
-    (hinterp : ∀ p, p0 ≤ p → ∀ eps > 0, ∃ Ceps, ∀ t, 0 < t → t < T →
-      intervalDomain.integral (fun x => (u t x) ^ (p + rho)) ≤
-        eps * intervalDomain.integral (fun x =>
-          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
-        Ceps)
-    (hu_nonneg :
-      ∀ t, 0 < t → t < T → ∀ x : intervalDomain.Point, 0 ≤ u t x)
-    (hpow_int :
-      ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
-        IntervalIntegrable
-          (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
-          MeasureTheory.volume 0 1)
-    (hFrontier :
-      IntervalDomainMoserClosure.GagliardoNirenbergAgmonLpToLinftyFrontier
-        intervalDomain u T pMin) :
-    IsPaper2BoundedBefore intervalDomain T u := by
-  have hAll : ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u :=
-    intervalDomain_all_exponents_of_energy_dissipation_interpolation
-      hboot henergy hdiss hinterp hu_nonneg hpow_int
-  exact intervalDomain_boundedBefore_of_all_exponents_and_GN_Agmon_frontier
-    hpMin hAll hFrontier
-
-/-- Interior-nonnegative energy/interpolation Moser closure handed off to the
-GN/Agmon endpoint frontier. -/
-theorem
-intervalDomain_boundedBefore_of_energy_dissipation_interpolation_inside_nonneg_and_GN_Agmon_frontier
-    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 pMin : ℝ}
-    (hpMin : 1 < pMin)
-    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
-    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
-    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
-      (∀ t, 0 < t → t < T →
-        (1 / p) * deriv
-            (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
-          A * intervalDomain.integral (fun x =>
-            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
-          B * intervalDomain.integral (fun x => (u t x) ^ p) ≤
-        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
-      ∀ t, 0 < t → t < T →
-        0 ≤
-          (1 / p) * deriv
-              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
-            B * intervalDomain.integral (fun x => (u t x) ^ p))
-    (hinterp : ∀ p, p0 ≤ p → ∀ eps > 0, ∃ Ceps, ∀ t, 0 < t → t < T →
-      intervalDomain.integral (fun x => (u t x) ^ (p + rho)) ≤
-        eps * intervalDomain.integral (fun x =>
-          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
-        Ceps)
-    (hu_nonneg :
-      ∀ t, 0 < t → t < T →
-        ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside → 0 ≤ u t x)
-    (hpow_int :
-      ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
-        IntervalIntegrable
-          (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
-          MeasureTheory.volume 0 1)
-    (hFrontier :
-      IntervalDomainMoserClosure.GagliardoNirenbergAgmonLpToLinftyFrontier
-        intervalDomain u T pMin) :
-    IsPaper2BoundedBefore intervalDomain T u := by
-  have hAll : ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u :=
-    intervalDomain_all_exponents_of_energy_dissipation_interpolation_inside_nonneg
-      hboot henergy hdiss hinterp hu_nonneg hpow_int
-  exact intervalDomain_boundedBefore_of_all_exponents_and_GN_Agmon_frontier
-    hpMin hAll hFrontier
-
-/-- Mass-gradient energy closure handed off to the GN/Agmon endpoint frontier. -/
-theorem intervalDomain_boundedBefore_of_energy_dissipation_mass_gradient_and_GN_Agmon_frontier
-    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 pMin : ℝ}
-    (cGrad : ℝ → ℝ) (hpMin : 1 < pMin)
-    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
-    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
-    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
-      (∀ t, 0 < t → t < T →
-        (1 / p) * deriv
-            (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
-          A * intervalDomain.integral (fun x =>
-            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
-          B * intervalDomain.integral (fun x => (u t x) ^ p) ≤
-        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
-      ∀ t, 0 < t → t < T →
-        0 ≤
-          (1 / p) * deriv
-              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
-            B * intervalDomain.integral (fun x => (u t x) ^ p))
-    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
-    (hMG : ∀ p, p0 ≤ p → ∀ eta > 0, ∃ Ceta,
-      LpMassGradientInterpolationEstimate intervalDomain (p + rho) eta Ceta T u)
-    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
-      intervalDomain.integral (fun x =>
-          (u t x) ^ (p + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
-        cGrad p * intervalDomain.integral (fun x =>
-          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
-    (hmass : ∀ p, p0 ≤ p → ∀ Ceta, ∃ Cmass, ∀ t, 0 < t → t < T →
-      Ceta * (intervalDomain.integral (u t)) ^ (p + rho) ≤ Cmass)
-    (hu_nonneg :
-      ∀ t, 0 < t → t < T → ∀ x : intervalDomain.Point, 0 ≤ u t x)
-    (hpow_int :
-      ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
-        IntervalIntegrable
-          (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
-          MeasureTheory.volume 0 1)
-    (hFrontier :
-      IntervalDomainMoserClosure.GagliardoNirenbergAgmonLpToLinftyFrontier
-        intervalDomain u T pMin) :
-    IsPaper2BoundedBefore intervalDomain T u := by
-  have hAll : ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u :=
-    intervalDomain_all_exponents_of_energy_dissipation_mass_gradient
-      cGrad hboot henergy hdiss hcGrad hMG hgrad hmass hu_nonneg hpow_int
-  exact intervalDomain_boundedBefore_of_all_exponents_and_GN_Agmon_frontier
-    hpMin hAll hFrontier
-
-/-- Interior-nonnegative mass-gradient energy closure handed off to the
-GN/Agmon endpoint frontier. -/
-theorem
-intervalDomain_boundedBefore_of_energy_dissipation_mass_gradient_inside_nonneg_and_GN_Agmon_frontier
-    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 pMin : ℝ}
-    (cGrad : ℝ → ℝ) (hpMin : 1 < pMin)
-    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
-    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
-    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
-      (∀ t, 0 < t → t < T →
-        (1 / p) * deriv
-            (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
-          A * intervalDomain.integral (fun x =>
-            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
-          B * intervalDomain.integral (fun x => (u t x) ^ p) ≤
-        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
-      ∀ t, 0 < t → t < T →
-        0 ≤
-          (1 / p) * deriv
-              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
-            B * intervalDomain.integral (fun x => (u t x) ^ p))
-    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
-    (hMG : ∀ p, p0 ≤ p → ∀ eta > 0, ∃ Ceta,
-      LpMassGradientInterpolationEstimate intervalDomain (p + rho) eta Ceta T u)
-    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
-      intervalDomain.integral (fun x =>
-          (u t x) ^ (p + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
-        cGrad p * intervalDomain.integral (fun x =>
-          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
-    (hmass : ∀ p, p0 ≤ p → ∀ Ceta, ∃ Cmass, ∀ t, 0 < t → t < T →
-      Ceta * (intervalDomain.integral (u t)) ^ (p + rho) ≤ Cmass)
-    (hu_nonneg :
-      ∀ t, 0 < t → t < T →
-        ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside → 0 ≤ u t x)
-    (hpow_int :
-      ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
-        IntervalIntegrable
-          (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
-          MeasureTheory.volume 0 1)
-    (hFrontier :
-      IntervalDomainMoserClosure.GagliardoNirenbergAgmonLpToLinftyFrontier
-        intervalDomain u T pMin) :
-    IsPaper2BoundedBefore intervalDomain T u := by
-  have hAll : ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u :=
-    intervalDomain_all_exponents_of_energy_dissipation_mass_gradient_inside_nonneg
-      cGrad hboot henergy hdiss hcGrad hMG hgrad hmass hu_nonneg hpow_int
-  exact intervalDomain_boundedBefore_of_all_exponents_and_GN_Agmon_frontier
-    hpMin hAll hFrontier
+          MeasureTheory.volume 0 1) :
+    ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u := by
+  exact intervalDomain_all_exponents_of_LpPowerBoundedBefore_chain_inside_nonneg
+    (AbstractLpBootstrapHypothesis.rho_pos hboot)
+    (moser_iteration_chain_of_energy_dissipation_relative_interpolation
+      (AbstractLpBootstrapHypothesis.rho_pos hboot)
+      (AbstractLpBootstrapHypothesis.initial_lp_bound hboot)
+      henergy hdiss hrel)
+    hu_nonneg hpow_int
 
 end ShenWork.Paper2.IntervalDomainEnergyStep
 
