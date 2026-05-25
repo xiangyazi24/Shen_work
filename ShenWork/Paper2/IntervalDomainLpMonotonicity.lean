@@ -9,13 +9,175 @@
   the arithmetic Moser exponent chain into all exponents p > 1.
 -/
 import ShenWork.Paper2.IntervalDomainMoserClosure
+import ShenWork.PDE.LeibnizRule
 
 open ShenWork.Paper2
 open ShenWork.IntervalDomain
+open Filter
+open Topology
 
 noncomputable section
 
 namespace ShenWork.Paper2.IntervalDomainLpMonotonicity
+
+/-- Lebesgue measure restricted to the open interval that carries the
+`intervalDomain` interval integral. -/
+abbrev intervalDomainInteriorMeasure : MeasureTheory.Measure ℝ :=
+  MeasureTheory.volume.restrict (Set.Ioo (0 : ℝ) 1)
+
+lemma hasDerivAt_abs_rpow_of_hasDerivAt_pos
+    {f : ℝ → ℝ} {f' t p : ℝ}
+    (hf : HasDerivAt f f' t) (hpos : 0 < f t) :
+    HasDerivAt (fun s => |f s| ^ p) (f' * p * (f t) ^ (p - 1)) t := by
+  have hpos_eventually : ∀ᶠ s in 𝓝 t, 0 < f s :=
+    continuousAt_const.eventually_lt hf.continuousAt hpos
+  have habs :
+      (fun s => |f s| ^ p) =ᶠ[𝓝 t] fun s => (f s) ^ p := by
+    filter_upwards [hpos_eventually] with s hs
+    rw [abs_of_pos hs]
+  exact habs.hasDerivAt_iff.mpr
+    (hf.rpow_const (Or.inl (ne_of_gt hpos)))
+
+/-- Dominated differentiation under the `[0,1]` interval integral.
+
+This is the finite-interval form of the parametric-integral theorem used in
+the `Psi_deriv` Leibniz-rule family: local pointwise derivatives, dominated
+uniformly on a time neighborhood, pass through the interval integral. -/
+theorem intervalDomain_intervalIntegral_hasDerivAt_of_dominated_deriv_le
+    {F F' : ℝ → ℝ → ℝ} {bound : ℝ → ℝ} {t : ℝ}
+    (hF_meas :
+      ∀ᶠ s in 𝓝 t,
+        MeasureTheory.AEStronglyMeasurable (F s)
+          intervalDomainInteriorMeasure)
+    (hF_int : IntervalIntegrable (F t) MeasureTheory.volume 0 1)
+    (hF'_meas :
+      MeasureTheory.AEStronglyMeasurable (F' t)
+        intervalDomainInteriorMeasure)
+    (h_bound :
+      ∀ᵐ y ∂intervalDomainInteriorMeasure,
+        ∀ s ∈ Metric.ball t 1, ‖F' s y‖ ≤ bound y)
+    (hbound_int : MeasureTheory.Integrable bound intervalDomainInteriorMeasure)
+    (h_diff :
+      ∀ᵐ y ∂intervalDomainInteriorMeasure,
+        ∀ s ∈ Metric.ball t 1, HasDerivAt (fun τ => F τ y) (F' s y) s) :
+    HasDerivAt
+      (fun s => ∫ y in (0 : ℝ)..1, F s y)
+      (∫ y in (0 : ℝ)..1, F' t y) t := by
+  have hF_int_restrict :
+      MeasureTheory.Integrable (F t) intervalDomainInteriorMeasure := by
+    have hIoc : MeasureTheory.Integrable
+        (F t) (MeasureTheory.volume.restrict (Set.Ioc (0 : ℝ) 1)) :=
+      ((intervalIntegrable_iff_integrableOn_Ioc_of_le
+      (show (0 : ℝ) ≤ 1 by norm_num)).mp hF_int).integrable
+    simpa [intervalDomainInteriorMeasure,
+      MeasureTheory.restrict_Ioo_eq_restrict_Ioc] using hIoc
+  have hmain :
+      HasDerivAt
+        (fun s => ∫ y, F s y ∂intervalDomainInteriorMeasure)
+        (∫ y, F' t y ∂intervalDomainInteriorMeasure) t :=
+    (hasDerivAt_integral_of_dominated_loc_of_deriv_le
+      (μ := intervalDomainInteriorMeasure)
+      (bound := bound)
+      (F := F)
+      (F' := F')
+      (x₀ := t)
+      (s := Metric.ball t 1)
+      (Metric.ball_mem_nhds t zero_lt_one)
+      hF_meas hF_int_restrict hF'_meas h_bound hbound_int h_diff).2
+  simpa [intervalDomainInteriorMeasure,
+    intervalIntegral.integral_of_le (show (0 : ℝ) ≤ 1 by norm_num),
+    MeasureTheory.restrict_Ioo_eq_restrict_Ioc] using hmain
+
+/-- The concrete interval-domain power-energy derivative:
+`d/dt ∫ |u|^p = ∫ u_t * p * u^(p-1)`, conditional on the standard
+dominated-convergence hypotheses for the time derivative.
+
+The positivity hypothesis is only needed on `intervalDomain.inside`; endpoints
+do not affect the interval integral. -/
+theorem intervalDomain_integral_abs_rpow_hasDerivAt_of_dominated_deriv_le
+    {u ut : ℝ → intervalDomain.Point → ℝ} {p t : ℝ} {bound : ℝ → ℝ}
+    (hpow_meas :
+      ∀ᶠ s in 𝓝 t,
+        MeasureTheory.AEStronglyMeasurable
+          (intervalDomainLift (fun x : intervalDomain.Point => |u s x| ^ p))
+          intervalDomainInteriorMeasure)
+    (hpow_int :
+      IntervalIntegrable
+        (intervalDomainLift (fun x : intervalDomain.Point => |u t x| ^ p))
+        MeasureTheory.volume 0 1)
+    (hderiv_meas :
+      MeasureTheory.AEStronglyMeasurable
+        (intervalDomainLift
+          (fun x : intervalDomain.Point => ut t x * p * (u t x) ^ (p - 1)))
+        intervalDomainInteriorMeasure)
+    (hderiv_bound :
+      ∀ᵐ y ∂intervalDomainInteriorMeasure,
+        ∀ s ∈ Metric.ball t 1,
+          ‖intervalDomainLift
+            (fun x : intervalDomain.Point => ut s x * p * (u s x) ^ (p - 1)) y‖ ≤
+            bound y)
+    (hbound_int : MeasureTheory.Integrable bound intervalDomainInteriorMeasure)
+    (hu_hasDeriv :
+      ∀ s ∈ Metric.ball t 1,
+        ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside →
+          HasDerivAt (fun τ => u τ x) (ut s x) s)
+    (hu_pos :
+      ∀ s ∈ Metric.ball t 1,
+        ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside → 0 < u s x) :
+    HasDerivAt
+      (fun s => intervalDomain.integral
+        (fun x : intervalDomain.Point => |u s x| ^ p))
+      (intervalDomain.integral
+        (fun x : intervalDomain.Point => ut t x * p * (u t x) ^ (p - 1))) t := by
+  let F : ℝ → ℝ → ℝ :=
+    fun s y => intervalDomainLift
+      (fun x : intervalDomain.Point => |u s x| ^ p) y
+  let F' : ℝ → ℝ → ℝ :=
+    fun s y => intervalDomainLift
+      (fun x : intervalDomain.Point => ut s x * p * (u s x) ^ (p - 1)) y
+  have hmem :
+      ∀ᵐ y ∂intervalDomainInteriorMeasure, y ∈ Set.Ioo (0 : ℝ) 1 :=
+    MeasureTheory.ae_restrict_mem measurableSet_Ioo
+  have hdiff :
+      ∀ᵐ y ∂intervalDomainInteriorMeasure,
+        ∀ s ∈ Metric.ball t 1, HasDerivAt (fun τ => F τ y) (F' s y) s := by
+    filter_upwards [hmem] with y hy s hs
+    have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := ⟨le_of_lt hy.1, le_of_lt hy.2⟩
+    let x : intervalDomain.Point := ⟨y, hyIcc⟩
+    have hx_inside : x ∈ intervalDomain.inside := by
+      simpa [intervalDomain, x] using hy
+    have hbase : HasDerivAt (fun τ => u τ x) (ut s x) s :=
+      hu_hasDeriv s hs x hx_inside
+    have hpos : 0 < u s x := hu_pos s hs x hx_inside
+    have hpow :=
+      hasDerivAt_abs_rpow_of_hasDerivAt_pos
+        (p := p) hbase hpos
+    have hF_eq :
+        (fun τ => F τ y) = fun τ => |u τ x| ^ p := by
+      funext τ
+      by_cases h : y ∈ Set.Icc (0 : ℝ) 1
+      · have hx_eq : (⟨y, h⟩ : intervalDomain.Point) = x := Subtype.ext rfl
+        dsimp [F, intervalDomainLift]
+        rw [dif_pos h, hx_eq]
+      · exact False.elim (h hyIcc)
+    have hF'_eq :
+        F' s y = ut s x * p * (u s x) ^ (p - 1) := by
+      by_cases h : y ∈ Set.Icc (0 : ℝ) 1
+      · have hx_eq : (⟨y, h⟩ : intervalDomain.Point) = x := Subtype.ext rfl
+        dsimp [F', intervalDomainLift]
+        rw [dif_pos h, hx_eq]
+      · exact False.elim (h hyIcc)
+    rwa [hF_eq, hF'_eq]
+  have hmain :=
+    intervalDomain_intervalIntegral_hasDerivAt_of_dominated_deriv_le
+      (F := F) (F' := F') (bound := bound) (t := t)
+      (by simpa [F] using hpow_meas)
+      (by simpa [F] using hpow_int)
+      (by simpa [F'] using hderiv_meas)
+      (by simpa [F'] using hderiv_bound)
+      hbound_int
+      hdiff
+  simpa [intervalDomain, intervalDomainIntegral, F, F'] using hmain
 
 lemma rpow_le_one_add_rpow_of_nonneg_of_le
     {a p q : ℝ} (ha : 0 ≤ a) (hp : 0 ≤ p) (hpq : p ≤ q) :
