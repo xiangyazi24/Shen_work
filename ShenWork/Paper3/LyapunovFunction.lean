@@ -41,6 +41,51 @@ def chemotaxisThetaDissipation
     (uSlice : D.Point → ℝ) : ℝ :=
   D.integral fun x => (uSlice x - uStar) * (uSlice x ^ theta - uStar ^ theta)
 
+/-- Pointwise algebra behind the theta-dissipation nonnegativity:
+`s ↦ s^theta` is monotone on `[0,∞)` when `theta ≥ 0`. -/
+theorem thetaDissipationIntegrand_nonneg
+    {uStar theta s : ℝ}
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta) (hs : 0 ≤ s) :
+    0 ≤ (s - uStar) * (s ^ theta - uStar ^ theta) := by
+  by_cases hle : s ≤ uStar
+  · have hpow : s ^ theta ≤ uStar ^ theta :=
+      Real.rpow_le_rpow hs hle htheta
+    exact mul_nonneg_of_nonpos_of_nonpos
+      (sub_nonpos.mpr hle) (sub_nonpos.mpr hpow)
+  · have hlt : uStar < s := lt_of_not_ge hle
+    have hpow : uStar ^ theta ≤ s ^ theta :=
+      Real.rpow_le_rpow huStar hlt.le htheta
+    exact mul_nonneg
+      (sub_nonneg.mpr hlt.le) (sub_nonneg.mpr hpow)
+
+/-- Theta dissipation is nonnegative once the domain integral preserves
+nonnegative functions.
+
+Point 17 status: conditional theorem, state ③.  The algebraic positivity is
+proved here; positivity of the abstract `BoundedDomainData.integral` is an
+honest domain-interface frontier because the current structure does not expose
+measure-theoretic positivity fields. -/
+theorem chemotaxisThetaDissipation_nonneg_of_integral_nonneg
+    {D : BoundedDomainData} {uStar theta : ℝ} {uSlice : D.Point → ℝ}
+    (hintegral_nonneg :
+      ∀ f : D.Point → ℝ, (∀ x, 0 ≤ f x) → 0 ≤ D.integral f)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (huSlice : ∀ x, 0 ≤ uSlice x) :
+    0 ≤ chemotaxisThetaDissipation D uStar theta uSlice := by
+  exact hintegral_nonneg _
+    (fun x => thetaDissipationIntegrand_nonneg huStar htheta (huSlice x))
+
+/-- The Lyapunov theta-dissipation functional is exactly the moment functional
+used in the statement layer. -/
+theorem thetaMomentConvergesToZero_of_chemotaxisThetaDissipation
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {uStar theta : ℝ}
+    (h :
+      Tendsto
+        (fun t => chemotaxisThetaDissipation D uStar theta (u t))
+        atTop (𝓝 0)) :
+    ThetaMomentConvergesToZero D u uStar theta := by
+  simpa [ThetaMomentConvergesToZero, chemotaxisThetaDissipation] using h
+
 /-- Signal energy for the `w = v-v*` Lyapunov functional from the minimal-model
 argument:
 `∫ (mu w^2 + |∇w|^2)`.
@@ -60,6 +105,29 @@ def chemotaxisSignalGradientDissipation
     (D : BoundedDomainData) (vStar : ℝ)
     (v : ℝ → D.Point → ℝ) (t : ℝ) : ℝ :=
   D.integral fun x => (D.gradNorm (fun y => v t y - vStar) x) ^ 2
+
+/-- Pointwise nonnegativity of the signal-energy integrand. -/
+theorem signalEnergyIntegrand_nonneg
+    {mu w grad : ℝ} (hmu : 0 ≤ mu) :
+    0 ≤ mu * w ^ 2 + grad ^ 2 := by
+  nlinarith [mul_nonneg hmu (sq_nonneg w), sq_nonneg grad]
+
+/-- The signal energy is nonnegative once the domain integral preserves
+nonnegative functions.
+
+Point 17 status: conditional theorem, state ③, for the same abstract-domain
+reason as `chemotaxisThetaDissipation_nonneg_of_integral_nonneg`. -/
+theorem chemotaxisSignalEnergy_nonneg_of_integral_nonneg
+    {D : BoundedDomainData} {mu vStar : ℝ}
+    {v : ℝ → D.Point → ℝ} {t : ℝ}
+    (hintegral_nonneg :
+      ∀ f : D.Point → ℝ, (∀ x, 0 ≤ f x) → 0 ≤ D.integral f)
+    (hmu : 0 ≤ mu) :
+    0 ≤ chemotaxisSignalEnergy D mu vStar v t := by
+  exact hintegral_nonneg _ (fun x =>
+    signalEnergyIntegrand_nonneg (mu := mu)
+      (w := v t x - vStar)
+      (grad := D.gradNorm (fun y => v t y - vStar) x) hmu)
 
 /-- If a differentiable energy has nonpositive time derivative on `(0,∞)`,
 then it is antitone there. -/
@@ -247,6 +315,64 @@ theorem energy_tendsto_zero_of_dissipation_control
       simpa [hright] using hcontrol'
     linarith
 
+/-- A direct theta-moment differential decay estimate gives the statement-layer
+`ThetaMomentConvergesToZero` conclusion.
+
+Point 17 status: conditional theorem, state ③.  The theorem does not derive the
+PDE differential inequality; it packages the exact post-processing from that
+analytic estimate to the Paper3 moment-convergence statement. -/
+theorem thetaMomentConvergesToZero_of_hasDerivAt_le_neg_mul
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {uStar theta rate s : ℝ} {momentSlope : ℝ → ℝ}
+    (hrate : 0 < rate) (hs : 0 < s)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisThetaDissipation D uStar theta (u tau))
+          (momentSlope t) t)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation D uStar theta (u t))
+    (hnonneg :
+      ∀ t, s ≤ t →
+        0 ≤ chemotaxisThetaDissipation D uStar theta (u t)) :
+    ThetaMomentConvergesToZero D u uStar theta :=
+  thetaMomentConvergesToZero_of_chemotaxisThetaDissipation
+    (energy_tendsto_zero_of_hasDerivAt_le_neg_mul
+      hrate hs hderiv hle hnonneg)
+
+/-- Same theta-moment convergence bridge, with the eventual nonnegativity
+condition discharged from pointwise positivity and positivity of the domain
+integral.
+
+Point 17 status: conditional theorem, state ③.  The remaining hypotheses are
+named frontiers: the PDE differential decay estimate and positivity of the
+abstract domain integral. -/
+theorem thetaMomentConvergesToZero_of_hasDerivAt_le_neg_mul_and_integral_nonneg
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {uStar theta rate s : ℝ} {momentSlope : ℝ → ℝ}
+    (hrate : 0 < rate) (hs : 0 < s)
+    (hintegral_nonneg :
+      ∀ f : D.Point → ℝ, (∀ x, 0 ≤ f x) → 0 ≤ D.integral f)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (hu_nonneg : ∀ t, s ≤ t → ∀ x, 0 ≤ u t x)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisThetaDissipation D uStar theta (u tau))
+          (momentSlope t) t)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation D uStar theta (u t)) :
+    ThetaMomentConvergesToZero D u uStar theta := by
+  refine thetaMomentConvergesToZero_of_hasDerivAt_le_neg_mul
+    hrate hs hderiv hle ?_
+  intro t ht
+  exact chemotaxisThetaDissipation_nonneg_of_integral_nonneg
+    hintegral_nonneg huStar htheta (hu_nonneg t ht)
+
 /-- Entropy dissipation makes the Paper3 entropy functional decrease.
 
 Point 17 status: conditional theorem, state ③.  The missing upstream analytic
@@ -280,6 +406,38 @@ theorem chemotaxisEntropyFunctional_antitoneOn_of_dissipation
       neg_nonpos.mpr (mul_nonneg hc (hprod_nonneg t ht))
   exact le_trans (hdiss t ht) hnonpos
 
+/-- Entropy monotonicity with the theta-production nonnegativity discharged from
+pointwise positivity and positivity of the abstract integral.
+
+Point 17 status: conditional theorem, state ③.  This removes the algebraic
+`hprod_nonneg` burden from the caller; the remaining analytic frontier is the
+PDE derivation of `hderiv`/`hdiss` and the domain-integral positivity field. -/
+theorem chemotaxisEntropyFunctional_antitoneOn_of_dissipation_and_integral_nonneg
+    {D : BoundedDomainData} {m uStar theta c : ℝ}
+    {u : ℝ → D.Point → ℝ} {entropySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (hintegral_nonneg :
+      ∀ f : D.Point → ℝ, (∀ x, 0 ≤ f x) → 0 ≤ D.integral f)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (hu_nonneg : ∀ t, 0 < t → ∀ x, 0 ≤ u t x)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisEntropyFunctional D m uStar u tau)
+          (entropySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        entropySlope t ≤
+          -c * chemotaxisThetaDissipation D uStar theta (u t)) :
+    AntitoneOn
+      (fun t => chemotaxisEntropyFunctional D m uStar u t)
+      (Ioi (0 : ℝ)) :=
+  chemotaxisEntropyFunctional_antitoneOn_of_dissipation
+    hc hderiv hdiss
+    (fun t ht =>
+      chemotaxisThetaDissipation_nonneg_of_integral_nonneg
+        hintegral_nonneg huStar htheta (hu_nonneg t ht))
+
 /-- Signal-energy exponential decay for the Paper3 minimal-model Lyapunov
 functional `∫ (mu (v-v*)^2 + |∇(v-v*)|^2)`.
 
@@ -311,6 +469,38 @@ theorem chemotaxisSignalEnergy_exponential_decay
         chemotaxisSignalEnergy D mu vStar v s *
           Real.exp (-(2 * c / K) * (t - s)) :=
   energy_exponential_decay_of_dissipation_control hc hK hderiv hdiss hcontrol
+
+/-- Signal-energy convergence to zero from the Paper3 dissipation-control
+estimate, with nonnegativity discharged by the domain-integral positivity
+frontier. -/
+theorem chemotaxisSignalEnergy_tendsto_zero
+    {D : BoundedDomainData} {mu vStar c K s : ℝ}
+    {v : ℝ → D.Point → ℝ} {energySlope : ℝ → ℝ}
+    (hc : 0 < c) (hK : 0 < K) (hs : 0 < s)
+    (hintegral_nonneg :
+      ∀ f : D.Point → ℝ, (∀ x, 0 ≤ f x) → 0 ≤ D.integral f)
+    (hmu : 0 ≤ mu)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisSignalEnergy D mu vStar v tau)
+          (energySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        (1 / 2 : ℝ) * energySlope t +
+          c * chemotaxisSignalGradientDissipation D vStar v t ≤ 0)
+    (hcontrol :
+      ∀ t, 0 < t →
+        chemotaxisSignalEnergy D mu vStar v t ≤
+          K * chemotaxisSignalGradientDissipation D vStar v t) :
+    Tendsto
+      (fun t => chemotaxisSignalEnergy D mu vStar v t)
+      atTop (𝓝 0) := by
+  refine energy_tendsto_zero_of_dissipation_control
+    hc hK hs hderiv hdiss hcontrol ?_
+  intro t _ht
+  exact chemotaxisSignalEnergy_nonneg_of_integral_nonneg
+    hintegral_nonneg hmu
 
 end
 
