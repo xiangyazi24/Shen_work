@@ -578,6 +578,36 @@ theorem localExistence_conditional
   obtain ⟨T, hT, u, v, hdata⟩ := hmild u₀ hu₀
   exact localExistence_of_isMildSolutionData p u₀ hu₀ hT hdata
 
+/-! ### Duhamel contraction: abstract integral bound
+
+The key estimate for Banach contraction: if the source difference
+is pointwise bounded by C, then the Duhamel integral difference is
+bounded by C · T (via the sub-Markov property of the heat semigroup
+and the integral mean value bound).
+
+This is stated abstractly, without reference to the specific semigroup,
+as a bound on integrals of bounded functions. -/
+
+/-- If a real-valued function is bounded by C on [0,t], its integral
+is bounded by C·t. This is the elementary version of the Duhamel
+contraction estimate. -/
+theorem integral_Icc_bound_of_pointwise_bound
+    {h : ℝ → ℝ} {C t : ℝ} (ht : 0 ≤ t) (hC : 0 ≤ C)
+    (hbound : ∀ s, s ∈ Set.Icc 0 t → |h s| ≤ C)
+    (hint : MeasureTheory.IntegrableOn h (Set.Icc 0 t) MeasureTheory.volume) :
+    |∫ s in Set.Icc 0 t, h s| ≤ C * t := by
+  have hvol : MeasureTheory.volume (Set.Icc (0 : ℝ) t) < ⊤ := by
+    simp [Real.volume_Icc]
+  have hnorm_bound : ∀ s ∈ Set.Icc (0 : ℝ) t, ‖h s‖ ≤ C :=
+    fun s hs => by rw [Real.norm_eq_abs]; exact hbound s hs
+  calc |∫ s in Set.Icc 0 t, h s|
+      = ‖∫ s in Set.Icc 0 t, h s‖ := (Real.norm_eq_abs _).symm
+    _ ≤ C * MeasureTheory.volume.real (Set.Icc (0 : ℝ) t) :=
+        MeasureTheory.norm_setIntegral_le_of_norm_le_const hvol hnorm_bound
+    _ = C * t := by
+        congr 1
+        simp [MeasureTheory.Measure.real, Real.volume_Icc, ht]
+
 end ShenWork.IntervalDomainExistence
 
 end
