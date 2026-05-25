@@ -13,9 +13,9 @@
   requirements not supplied by H0.1/H0.2 alone: exponential damping in
   `Lemma_2_1`, a fractional graph norm compatible with `S(t)-I`, and the
   `t^{-1/2}` divergence singularity in `Lemma_2_3`/`Lemma_2_4` whereas the
-  current H0.2 endpoint is the already proved nonsharp absolute-convergence
-  bound.  Those are kept as the precise frontier rather than hidden in the
-  structure fields.
+  current H0.2 endpoint gives a stronger small-time singularity.  The
+  comparison obstructions below make those frontiers formal rather than hiding
+  them in the structure fields.
 -/
 import ShenWork.Paper2.Statements
 import ShenWork.PDE.HeatKernelGradientEstimates
@@ -229,6 +229,108 @@ theorem intervalDomainSemigroupEstimateData_divergence_Lp_Lq_bound_from_memLp
   rw [intervalDomainHeatDivergenceSemigroup_lpNorm_eq]
   exact intervalDomainHeat_grad_Lp_Lq_bound_from_memLp
     (t := t) (p := p) (q := q) ht hp hq (u := u) hu_mem
+
+/-! ### Exact Paper2 route obstructions for the current data -/
+
+/-- A semigroup estimate without a real damping factor cannot be upgraded to
+an arbitrary positive exponential decay by changing only the constant.  This is
+the scalar obstruction behind the `exp (-δ t)` factor in `Lemma_2_1` for the
+undamped interval heat-helper data. -/
+theorem one_not_bounded_by_exp_decay
+    {delta : ℝ} (hdelta : 0 < delta) :
+    ¬ ∃ C : ℝ, ∀ t > 0, 1 ≤ C * Real.exp (-(delta * t)) := by
+  rintro ⟨C, hC⟩
+  let A : ℝ := max C 1
+  have hA_ge_one : 1 ≤ A := le_max_right _ _
+  have hC_le_A : C ≤ A := le_max_left _ _
+  have hA_pos : 0 < A := lt_of_lt_of_le zero_lt_one hA_ge_one
+  let t : ℝ := (Real.log A + 1) / delta
+  have ht : 0 < t := by
+    dsimp [t]
+    apply div_pos
+    · have hlog_nonneg : 0 ≤ Real.log A := Real.log_nonneg hA_ge_one
+      linarith
+    · exact hdelta
+  have harg : delta * t = Real.log A + 1 := by
+    dsimp [t]
+    field_simp [ne_of_gt hdelta]
+  have hbound := hC t ht
+  rw [harg] at hbound
+  have hExp :
+      Real.exp (-(Real.log A + 1)) = Real.exp (-1) / A := by
+    rw [neg_add, Real.exp_add, Real.exp_neg, Real.exp_log hA_pos]
+    field_simp [ne_of_gt hA_pos]
+  rw [hExp] at hbound
+  cases le_or_gt C 0 with
+  | inl hC_nonpos =>
+      have hexp_pos : 0 < Real.exp (-1) / A :=
+        div_pos (Real.exp_pos _) hA_pos
+      have hright_nonpos : C * (Real.exp (-1) / A) ≤ 0 :=
+        mul_nonpos_of_nonpos_of_nonneg hC_nonpos hexp_pos.le
+      linarith
+  | inr _hC_pos =>
+      have hC_div_le_one : C / A ≤ 1 :=
+        (div_le_one hA_pos).mpr hC_le_A
+      have hexp_lt_one : Real.exp (-1) < 1 :=
+        Real.exp_lt_one_iff.mpr (by norm_num)
+      have hright_lt_one : C * (Real.exp (-1) / A) < 1 := by
+        have hrewrite :
+            C * (Real.exp (-1) / A) = (C / A) * Real.exp (-1) := by
+          ring
+        rw [hrewrite]
+        calc
+          (C / A) * Real.exp (-1) ≤ 1 * Real.exp (-1) := by
+            exact mul_le_mul_of_nonneg_right hC_div_le_one
+              (Real.exp_pos _).le
+          _ < 1 := by simpa only [one_mul] using hexp_lt_one
+      linarith
+
+/-- The paper's `1 + t^{-1/2}` gradient factor cannot absorb a `t^{-1}`
+small-time endpoint with a uniform constant.  This is the scalar obstruction
+behind routing the current nonsharp H0.2 divergence estimate directly into
+`Lemma_2_3`/`Lemma_2_4`. -/
+theorem inv_not_dominated_by_one_add_inv_sqrt :
+    ¬ ∃ C : ℝ, ∀ t > 0,
+      1 / t ≤ C * (1 + t ^ (-(1 / 2 : ℝ))) := by
+  rintro ⟨C, hC⟩
+  let A : ℝ := max (2 * C) 1 + 1
+  have hmax1 : (1 : ℝ) ≤ max (2 * C) 1 := le_max_right _ _
+  have hmaxC : 2 * C ≤ max (2 * C) 1 := le_max_left _ _
+  have hA_gt_one : 1 < A := by
+    dsimp [A]
+    linarith
+  have hA_pos : 0 < A := lt_trans zero_lt_one hA_gt_one
+  have hC_le : C ≤ A / 2 := by
+    dsimp [A] at hmaxC ⊢
+    linarith
+  let t : ℝ := (A ^ 2)⁻¹
+  have ht : 0 < t := by
+    dsimp [t]
+    exact inv_pos.mpr (sq_pos_of_pos hA_pos)
+  have hinv : 1 / t = A ^ 2 := by
+    dsimp [t]
+    field_simp [ne_of_gt (sq_pos_of_pos hA_pos)]
+  have hrpow : t ^ (-(1 / 2 : ℝ)) = A := by
+    dsimp [t]
+    have hA2_pos : 0 < A ^ 2 := sq_pos_of_pos hA_pos
+    have ht_pos : 0 < (A ^ 2)⁻¹ := inv_pos.mpr hA2_pos
+    rw [Real.rpow_neg ht_pos.le]
+    have hhalf : ((A ^ 2)⁻¹) ^ (1 / 2 : ℝ) = A⁻¹ := by
+      rw [← Real.sqrt_eq_rpow]
+      rw [Real.sqrt_inv]
+      rw [Real.sqrt_sq_eq_abs]
+      rw [abs_of_pos hA_pos]
+    rw [hhalf]
+    field_simp [ne_of_gt hA_pos]
+  have hbound := hC t ht
+  rw [hinv, hrpow] at hbound
+  have hright_le : C * (1 + A) ≤ (A / 2) * (1 + A) :=
+    mul_le_mul_of_nonneg_right hC_le (by linarith [hA_pos])
+  have hhalf_lt : (A / 2) * (1 + A) < A ^ 2 := by
+    nlinarith [hA_gt_one]
+  have hcontr : A ^ 2 < A ^ 2 :=
+    lt_of_le_of_lt hbound (lt_of_le_of_lt hright_le hhalf_lt)
+  exact (lt_irrefl _) hcontr
 
 /-! ### Fractional semigroup multiplier estimates -/
 
