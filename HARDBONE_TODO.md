@@ -443,6 +443,13 @@
   `p.ν / p.μ * deltaU ^ p.γ ≤ deltaV` 并负责弱化回 theorem statement
   的精确 lower-envelope 常数。
   新增
+  `Theorem_2_1_part1_intervalDomain_of_pointwise_persistence_with_v_margin`
+  and
+  `Theorem_2_1_part1_intervalDomain_pointwise_of_pointwise_persistence_with_v_margin`，
+  把这个 stronger-`v` 版本直接接回 Section 4.1 的两个原始前沿：
+  strong-maximum persistence for `u` 与返回独立 `deltaV` 的 elliptic lower
+  comparison。
+  新增
   `Theorem_2_1_part1_intervalDomain_iff_pointwise_lower_bounds_with_v_margin`,
   `Theorem_2_1_part1_intervalDomain_of_inside_boundary_lower_bounds_with_v_margin`,
   `Theorem_2_1_part1_intervalDomain_pointwise_of_inside_boundary_lower_bounds_with_v_margin`,

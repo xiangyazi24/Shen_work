@@ -508,6 +508,94 @@ Theorem_2_1_part1_intervalDomain_pointwise_of_pointwise_lower_bounds_with_v_marg
     exact le_trans htarget_le (ht x)
   exact ⟨deltaU, hdeltaU, hpointU, htargetV⟩
 
+/-- Statement-layer assembly directly from the Section 4.1 persistence
+frontiers when the elliptic comparison gives an independent, possibly
+stronger, `v` lower constant. -/
+theorem
+Theorem_2_1_part1_intervalDomain_of_pointwise_persistence_with_v_margin
+    (p : CM2Params)
+    (hStrongMaximumPersistence :
+      1 ≤ p.m →
+        ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+            ∃ deltaU > 0,
+              ∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  deltaU ≤ u t x)
+    (hEllipticLowerComparison :
+      ∀ {u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ}
+          {deltaU : ℝ},
+        PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+          0 < deltaU →
+            (∀ᶠ t in atTop,
+              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                deltaU ≤ u t x) →
+              ∃ deltaV > 0,
+                p.ν / p.μ * deltaU ^ p.γ ≤ deltaV ∧
+                ∀ᶠ t in atTop,
+                  ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                    deltaV ≤ v t x) :
+    Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p := by
+  refine
+    Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds_with_v_margin
+      p ?_
+  intro hm u v hsol
+  rcases hStrongMaximumPersistence hm u v hsol with
+    ⟨deltaU, hdeltaU, hpointU⟩
+  rcases hEllipticLowerComparison hsol hdeltaU hpointU with
+    ⟨deltaV, hdeltaV, htarget_le, hpointV⟩
+  exact
+    ⟨deltaU, hdeltaU, deltaV, hdeltaV, htarget_le, hpointU,
+      hpointV⟩
+
+/-- Direct pointwise persistence from the Section 4.1 persistence frontiers
+when the elliptic comparison returns a stronger `v` lower constant. -/
+theorem
+Theorem_2_1_part1_intervalDomain_pointwise_of_pointwise_persistence_with_v_margin
+    (p : CM2Params)
+    (hStrongMaximumPersistence :
+      1 ≤ p.m →
+        ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+            ∃ deltaU > 0,
+              ∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  deltaU ≤ u t x)
+    (hEllipticLowerComparison :
+      ∀ {u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ}
+          {deltaU : ℝ},
+        PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+          0 < deltaU →
+            (∀ᶠ t in atTop,
+              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                deltaU ≤ u t x) →
+              ∃ deltaV > 0,
+                p.ν / p.μ * deltaU ^ p.γ ≤ deltaV ∧
+                ∀ᶠ t in atTop,
+                  ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                    deltaV ≤ v t x) :
+    1 ≤ p.m →
+      ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+        PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+          ∃ deltaU > 0,
+            (∀ᶠ t in atTop,
+              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                deltaU ≤ u t x) ∧
+            (∀ᶠ t in atTop,
+              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                p.ν / p.μ * deltaU ^ p.γ ≤ v t x) := by
+  refine
+    Theorem_2_1_part1_intervalDomain_pointwise_of_pointwise_lower_bounds_with_v_margin
+      p ?_
+  intro hm u v hsol
+  rcases hStrongMaximumPersistence hm u v hsol with
+    ⟨deltaU, hdeltaU, hpointU⟩
+  rcases hEllipticLowerComparison hsol hdeltaU hpointU with
+    ⟨deltaV, hdeltaV, htarget_le, hpointV⟩
+  exact
+    ⟨deltaU, hdeltaU, deltaV, hdeltaV, htarget_le, hpointU,
+      hpointV⟩
+
 /-- Statement-layer assembly when the analytic persistence frontiers are
 available separately on the open interval and on the two Neumann endpoints.
 This discharges only the concrete interval-domain covering step. -/
