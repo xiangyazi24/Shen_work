@@ -632,6 +632,22 @@ theorem Theorem_1_1_intervalDomain_of_structured_relative_moser_endpoint
   exact (IntervalDomainTheorem11.Theorem_1_1_intervalDomain_conditional
     p hexist') hχ
 
+/-- Branch-coverage audit for Paper 2 Theorem 1.1 on `intervalDomain`.
+
+The original statement has exactly two non-vacuous branches under the outer
+assumption `χ₀ <= 0`: the nonminimal branch `0 < a, 0 < b` and the minimal
+branch `a = 0, b = 0`.  There is no `χ₀ > 0` branch and no mixed `a/b` branch
+in `Theorem_1_1`.  The two boundedness inputs needed by global extension are
+therefore fully covered by
+`intervalDomain_boundedBefore_nonminimal_of_negative_sensitivity` and
+`intervalDomain_boundedBefore_minimal_of_negative_sensitivity`, so the theorem
+now reduces to the interval-domain existence package. -/
+theorem Theorem_1_1_intervalDomain_reduces_to_existence
+    (p : CM2Params)
+    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p) :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_of_structured_relative_moser_endpoint p hexist
+
 /-- Explicit relative-energy component package for one solution branch.  This
 is intentionally lower-level than `IntervalDomainStructuredMoserBootstrapData`:
 it names the bootstrap seed, energy inequality, relative eps-absorption, Lp
