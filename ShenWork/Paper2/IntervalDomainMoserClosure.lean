@@ -17,6 +17,9 @@
 import ShenWork.Paper2.IntervalDomainChain
 
 open ShenWork.Paper2
+open ShenWork.IntervalDomain
+open MeasureTheory Set intervalIntegral
+open scoped Interval
 
 noncomputable section
 
@@ -172,6 +175,124 @@ theorem boundedBefore_of_moser_iteration_chain_and_GN_Agmon_frontier
     hpMin hrho
     (IntervalDomainChain.moser_iteration_chain hrho hbase hstep)
     hLpMono hFrontier
+
+/-! ### Concrete interval-domain endpoint audit
+
+The abstract frontier above cannot be discharged from an Lp envelope alone,
+even for `intervalDomain`.  The real one-dimensional GN/Agmon theorems require
+space regularity and gradient/integrability hypotheses.  Those hypotheses are
+not present in `GagliardoNirenbergAgmonLpToLinftyFrontier`, whose input only
+records upper bounds for the interval integrals of powers.
+
+The endpoint spike below is invisible to the interval integral, but visible to
+the pointwise `supNorm`.  It is the concrete obstruction to treating the
+frontier as an unconditional interval-domain theorem. -/
+
+/-- Endpoint spike on `[0,1]`: a value at `x=0` blowing up as `t → 1`. -/
+def intervalDomainEndpointSpike (t : ℝ) (x : intervalDomain.Point) : ℝ :=
+  if x.1 = 0 then (1 - t)⁻¹ else 0
+
+def intervalDomainZeroPoint : intervalDomain.Point :=
+  ⟨0, by exact ⟨by norm_num, by norm_num⟩⟩
+
+lemma intervalDomainEndpointSpike_integral_pow_eq_zero
+    {pExp : ℝ} (hpExp : 0 < pExp) (t : ℝ) :
+    intervalDomain.integral
+      (fun x : intervalDomain.Point => (intervalDomainEndpointSpike t x) ^ pExp) = 0 := by
+  change ∫ y in (0 : ℝ)..1,
+      intervalDomainLift
+        (fun x : intervalDomain.Point => (intervalDomainEndpointSpike t x) ^ pExp) y = 0
+  apply intervalIntegral.integral_zero_ae
+  filter_upwards with y hy
+  have hy_ne_zero : y ≠ 0 := by
+    intro hy0
+    rw [hy0] at hy
+    simp at hy
+  by_cases hyIcc : y ∈ Set.Icc (0 : ℝ) 1
+  · have hp_ne : pExp ≠ 0 := ne_of_gt hpExp
+    simp [intervalDomainLift, hyIcc, intervalDomainEndpointSpike, hy_ne_zero,
+      Real.zero_rpow hp_ne]
+  · simp [intervalDomainLift, hyIcc]
+
+theorem intervalDomainEndpointSpike_LpPowerBoundEnvelopeBefore :
+    LpPowerBoundEnvelopeBefore intervalDomain intervalDomainEndpointSpike 1 2
+      (fun _ => 0) := by
+  intro pExp hp t _ht0 _htT
+  have hp_pos : 0 < pExp := lt_of_lt_of_le (by norm_num : (0 : ℝ) < 2) hp
+  rw [intervalDomainEndpointSpike_integral_pow_eq_zero hp_pos t]
+
+lemma intervalDomainEndpointSpike_le_supNorm {t : ℝ}
+    (hpos : 0 ≤ (1 - t)⁻¹) :
+    (1 - t)⁻¹ ≤ intervalDomain.supNorm (intervalDomainEndpointSpike t) := by
+  let x0 : intervalDomain.Point := intervalDomainZeroPoint
+  have hmem : |intervalDomainEndpointSpike t x0| ∈
+      Set.range (fun x : intervalDomain.Point => |intervalDomainEndpointSpike t x|) :=
+    ⟨x0, rfl⟩
+  have hbdd : BddAbove
+      (Set.range (fun x : intervalDomain.Point => |intervalDomainEndpointSpike t x|)) := by
+    refine ⟨|(1 - t)⁻¹|, ?_⟩
+    rintro y ⟨x, rfl⟩
+    by_cases hx : x.1 = 0
+    · simp [intervalDomainEndpointSpike, hx]
+    · simp [intervalDomainEndpointSpike, hx]
+  have hx0 : intervalDomainEndpointSpike t x0 = (1 - t)⁻¹ := by
+    simp [x0, intervalDomainZeroPoint, intervalDomainEndpointSpike]
+  have hle_abs : (1 - t)⁻¹ ≤ |intervalDomainEndpointSpike t x0| := by
+    rw [hx0, abs_of_nonneg hpos]
+  have habs_le_sup :
+      |intervalDomainEndpointSpike t x0| ≤
+        intervalDomain.supNorm (intervalDomainEndpointSpike t) := by
+    simpa [intervalDomain, intervalDomainSupNorm] using le_csSup hbdd hmem
+  exact hle_abs.trans habs_le_sup
+
+/-- The current GN/Agmon endpoint frontier is false as an unconditional
+`intervalDomain` theorem.  The missing input is not the already-proved interval
+GN/Agmon inequality itself, but the regularity/gradient control needed to apply
+it and to exclude point spikes invisible to the interval integral. -/
+theorem not_intervalDomain_GagliardoNirenbergAgmonLpToLinftyFrontier_endpoint_spike :
+    ¬ GagliardoNirenbergAgmonLpToLinftyFrontier
+      intervalDomain intervalDomainEndpointSpike 1 2 := by
+  intro hFrontier
+  rcases hFrontier (fun _ => 0)
+      intervalDomainEndpointSpike_LpPowerBoundEnvelopeBefore with
+    ⟨M, hM⟩
+  let C : ℝ := max M 0 + 2
+  let t : ℝ := 1 - C⁻¹
+  have hC_pos : 0 < C := by
+    dsimp [C]
+    have hmax_nonneg : 0 ≤ max M 0 := le_max_right M 0
+    linarith
+  have hC_gt_one : 1 < C := by
+    dsimp [C]
+    have hmax_nonneg : 0 ≤ max M 0 := le_max_right M 0
+    linarith
+  have ht0 : 0 < t := by
+    dsimp [t]
+    have h_inv_lt_one : C⁻¹ < 1 := inv_lt_one_of_one_lt₀ hC_gt_one
+    linarith
+  have ht1 : t < 1 := by
+    dsimp [t]
+    have h_inv_pos : 0 < C⁻¹ := inv_pos.mpr hC_pos
+    linarith
+  have hval : (1 - t)⁻¹ = C := by
+    have hden : 1 - t = C⁻¹ := by
+      dsimp [t]
+      ring
+    rw [hden, inv_inv]
+  have hC_le_sup : C ≤ intervalDomain.supNorm (intervalDomainEndpointSpike t) := by
+    have hpos : 0 ≤ (1 - t)⁻¹ := by
+      rw [hval]
+      exact hC_pos.le
+    simpa [hval] using
+      intervalDomainEndpointSpike_le_supNorm (t := t) hpos
+  have hsup_le :
+      intervalDomain.supNorm (intervalDomainEndpointSpike t) ≤ M :=
+    hM t ht0 ht1
+  have hM_lt_C : M < C := by
+    dsimp [C]
+    have hM_le_max : M ≤ max M 0 := le_max_left M 0
+    linarith
+  linarith
 
 end ShenWork.Paper2.IntervalDomainMoserClosure
 
