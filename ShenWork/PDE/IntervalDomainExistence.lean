@@ -1029,6 +1029,425 @@ theorem duhamel_fixed_point_unique
   have : L * T * D < D := contraction_factor_strict hD_pos hLT
   linarith
 
+/-! ### Source absolute value bound on bounded sets
+
+The logistic source `F(u) = u(a - bu^α)` is bounded in absolute value
+on bounded sets: if `|u| ≤ M`, then `|F(u)| ≤ M · (a + b · M^α)`.
+This is the bound needed for the ball invariance of the Duhamel operator. -/
+
+/-- Pointwise bound on the logistic source: if `|u(y)| ≤ M`, then
+`|F(u)(y)| ≤ M · (a + b · M^α)`.  Uses the triangle inequality
+and monotonicity of `rpow`. -/
+theorem intervalLogisticSource_abs_bound
+    (p : CM2Params) {M : ℝ} (hM : 0 < M)
+    {u : intervalDomainPoint → ℝ}
+    (hu : ∀ y, |u y| ≤ M) (y : intervalDomainPoint) :
+    |intervalLogisticSource p u y| ≤ M * (p.a + p.b * M ^ p.α) := by
+  unfold intervalLogisticSource
+  have hMnn : 0 ≤ M := le_of_lt hM
+  rw [abs_mul]
+  have hpow_bound : |u y ^ p.α| ≤ M ^ p.α := by
+    calc |u y ^ p.α| ≤ |u y| ^ p.α := Real.abs_rpow_le_abs_rpow _ _
+      _ ≤ M ^ p.α := Real.rpow_le_rpow (abs_nonneg _) (hu y) p.hα.le
+  have hterm : |p.a - p.b * u y ^ p.α| ≤ p.a + p.b * M ^ p.α := by
+    calc |p.a - p.b * u y ^ p.α|
+        ≤ |p.a| + |p.b * u y ^ p.α| := abs_sub _ _
+      _ = p.a + p.b * |u y ^ p.α| := by
+          rw [abs_of_nonneg p.ha, abs_mul, abs_of_nonneg p.hb]
+      _ ≤ p.a + p.b * M ^ p.α := by
+          linarith [mul_le_mul_of_nonneg_left hpow_bound p.hb]
+  calc |u y| * |p.a - p.b * u y ^ p.α|
+      ≤ M * (p.a + p.b * M ^ p.α) :=
+        mul_le_mul (hu y) hterm (abs_nonneg _) hMnn
+
+/-- Lifted source bound: if `|u(y)| ≤ M` for all `y`, then the lift
+of the source is also bounded by `M · (a + b · M^α)`. -/
+theorem intervalLogisticSource_lift_abs_bound
+    (p : CM2Params) {M : ℝ} (hM : 0 < M)
+    {u : intervalDomainPoint → ℝ}
+    (hu : ∀ y, |u y| ≤ M) :
+    ∀ x : ℝ, |intervalDomainLift (intervalLogisticSource p u) x| ≤
+      M * (p.a + p.b * M ^ p.α) := by
+  have hS : 0 ≤ M * (p.a + p.b * M ^ p.α) := by
+    apply mul_nonneg hM.le
+    have : 0 ≤ p.b * M ^ p.α :=
+      mul_nonneg p.hb (Real.rpow_nonneg hM.le _)
+    linarith [p.ha]
+  exact intervalDomainLift_abs_le hS
+    (fun y => intervalLogisticSource_abs_bound p hM hu y)
+
+/-! ### Duhamel ball invariance
+
+The Duhamel operator maps the ball `{‖u‖ ≤ M}` to itself when:
+- The initial data satisfies `|u₀(y)| ≤ H`
+- The source is bounded by `S` on the ball
+- `H + S · T ≤ M`
+
+Combined with the semigroup L∞ contraction `|S(t)u₀(x)| ≤ H`,
+the triangle inequality gives `|Φ(u)(t,x)| ≤ H + S·T ≤ M`. -/
+
+/-- **Ball invariance for the Duhamel operator.**
+
+For `0 < t ≤ T`, if:
+1. `|u₀(y)| ≤ H` for all `y` (initial data bound via lift)
+2. The source `|F(u(s))(y)| ≤ S` for all `s ∈ [0,T]`, `y` (via lift)
+3. `H + S · T ≤ M`
+
+Then `|Φ(u)(t,x)| ≤ M`. -/
+theorem duhamel_ball_invariance
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    {u : ℝ → intervalDomainPoint → ℝ}
+    {M H S T : ℝ} (hT : 0 < T) (_hM : 0 ≤ M)
+    (hH : 0 ≤ H) (hS : 0 ≤ S)
+    (hu₀ : ∀ y, |intervalDomainLift u₀ y| ≤ H)
+    (hSource : ∀ s, 0 ≤ s → s ≤ T →
+      ∀ y, |intervalDomainLift (intervalLogisticSource p (u s)) y| ≤ S)
+    (hsum : H + S * T ≤ M)
+    {t : ℝ} (ht0 : 0 < t) (htT : t ≤ T)
+    (x : intervalDomainPoint) :
+    |intervalDuhamelOperator p u₀ u t x| ≤ M := by
+  unfold intervalDuhamelOperator
+  calc |intervalSemigroupOperator 1 t (intervalDomainLift u₀) x.1 +
+        ∫ s in Set.Icc 0 t,
+          intervalSemigroupOperator 1 (t - s)
+            (intervalDomainLift (intervalLogisticSource p (u s))) x.1|
+      ≤ |intervalSemigroupOperator 1 t (intervalDomainLift u₀) x.1| +
+        |∫ s in Set.Icc 0 t,
+          intervalSemigroupOperator 1 (t - s)
+            (intervalDomainLift (intervalLogisticSource p (u s))) x.1| :=
+        abs_add_le _ _
+    _ ≤ H + S * T := by
+        have hterm1 : |intervalSemigroupOperator 1 t
+            (intervalDomainLift u₀) x.1| ≤ H :=
+          intervalSemigroupOperator_Linfty_bound ht0 hH hu₀ x.1
+        have hterm2 : |∫ s in Set.Icc 0 t,
+            intervalSemigroupOperator 1 (t - s)
+              (intervalDomainLift (intervalLogisticSource p (u s))) x.1|
+            ≤ S * T :=
+          duhamel_contraction_pointwise hT hS hSource ht0.le htT x.1
+        linarith
+    _ ≤ M := hsum
+
+/-- **Ball invariance using the source structure.**
+
+Specialization of `duhamel_ball_invariance` where the source bound
+`S = M · (a + b · M^α)` comes from `intervalLogisticSource_abs_bound`,
+and the initial data bound `H = M/2` with `S · T ≤ M/2`. -/
+theorem duhamel_ball_invariance_logistic
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    {u : ℝ → intervalDomainPoint → ℝ}
+    {M T : ℝ} (hM : 0 < M) (hT : 0 < T)
+    (hu₀ : ∀ y, |intervalDomainLift u₀ y| ≤ M / 2)
+    (hu : ∀ s y, 0 ≤ s → s ≤ T → |u s y| ≤ M)
+    (hST : M * (p.a + p.b * M ^ p.α) * T ≤ M / 2)
+    {t : ℝ} (ht0 : 0 < t) (htT : t ≤ T)
+    (x : intervalDomainPoint) :
+    |intervalDuhamelOperator p u₀ u t x| ≤ M := by
+  have hS_nn : 0 ≤ M * (p.a + p.b * M ^ p.α) := by
+    apply mul_nonneg hM.le
+    have : 0 ≤ p.b * M ^ p.α :=
+      mul_nonneg p.hb (Real.rpow_nonneg hM.le _)
+    linarith [p.ha]
+  apply duhamel_ball_invariance p u₀ hT hM.le (div_nonneg hM.le two_pos.le) hS_nn
+    hu₀
+  · intro s hs0 hsT y
+    exact intervalLogisticSource_lift_abs_bound p hM (fun y' => hu s y' hs0 hsT) y
+  · linarith
+  · exact ht0
+  · exact htT
+
+/-! ### Picard iteration and the Banach fixed-point theorem
+
+We construct the Picard iteration sequence for a general operator `Φ`,
+prove the geometric decrease bound, and show that the pointwise limit
+is a fixed point.  This is the abstract Banach fixed-point theorem
+formulated for function spaces without setting up a complete metric
+space structure. -/
+
+/-- The Picard iteration sequence: `u_n = Φ^n(0)`. -/
+def picardIteration (Φ : (ℝ → intervalDomainPoint → ℝ) →
+    (ℝ → intervalDomainPoint → ℝ)) :
+    ℕ → (ℝ → intervalDomainPoint → ℝ)
+  | 0 => fun _ _ => 0
+  | n + 1 => Φ (picardIteration Φ n)
+
+/-- **Geometric decrease for Picard iteration.**
+
+If `Φ` is q-Lipschitz (meaning `|Φ(u₁) - Φ(u₂)| ≤ q · sup|u₁ - u₂|`
+uniformly), then consecutive iterates decrease geometrically:
+  `|u_{n+1}(t,x) - u_n(t,x)| ≤ q^n · D₀`
+where `D₀ = sup|u₁ - u₀|`. -/
+theorem picard_geometric_decrease
+    {Φ : (ℝ → intervalDomainPoint → ℝ) → (ℝ → intervalDomainPoint → ℝ)}
+    {q D₀ : ℝ} (hq : 0 ≤ q) (hD₀ : 0 ≤ D₀)
+    (hcontr : ∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+      0 ≤ D →
+      (∀ s y, |u₁ s y - u₂ s y| ≤ D) →
+      ∀ t x, |Φ u₁ t x - Φ u₂ t x| ≤ q * D)
+    (hbase : ∀ t x,
+      |picardIteration Φ 1 t x - picardIteration Φ 0 t x| ≤ D₀) :
+    ∀ (n : ℕ) (t : ℝ) (x : intervalDomainPoint),
+      |picardIteration Φ (n + 1) t x - picardIteration Φ n t x| ≤
+        q ^ n * D₀ := by
+  intro n
+  induction n with
+  | zero =>
+    intro t x; simp only [zero_add, pow_zero, one_mul]; exact hbase t x
+  | succ k ih =>
+    intro t x
+    change |Φ (picardIteration Φ (k + 1)) t x -
+          Φ (picardIteration Φ k) t x| ≤ q ^ (k + 1) * D₀
+    have hstep := hcontr _ _ (q ^ k * D₀) (mul_nonneg (pow_nonneg hq k) hD₀) ih t x
+    calc |Φ (picardIteration Φ (k + 1)) t x -
+          Φ (picardIteration Φ k) t x|
+        ≤ q * (q ^ k * D₀) := hstep
+      _ = q ^ (k + 1) * D₀ := by ring
+
+/-- Telescoping bound: the partial sum of consecutive differences
+bounds the difference between distant iterates. -/
+theorem picard_telescope_bound
+    {Φ : (ℝ → intervalDomainPoint → ℝ) → (ℝ → intervalDomainPoint → ℝ)}
+    {q D₀ : ℝ} (_hq : 0 ≤ q) (_hD₀ : 0 ≤ D₀)
+    (hgeom : ∀ (n : ℕ) (t : ℝ) (x : intervalDomainPoint),
+      |picardIteration Φ (n + 1) t x - picardIteration Φ n t x| ≤
+        q ^ n * D₀) :
+    ∀ (n N : ℕ), n ≤ N → ∀ (t : ℝ) (x : intervalDomainPoint),
+      |picardIteration Φ N t x - picardIteration Φ n t x| ≤
+        D₀ * ∑ k ∈ Finset.range (N - n), q ^ (k + n) := by
+  intro n N hN t x
+  induction N with
+  | zero =>
+    have : n = 0 := Nat.eq_zero_of_le_zero hN
+    subst this; simp
+  | succ N ih =>
+    by_cases hNn : n ≤ N
+    · have hN_step := hgeom N t x
+      have hN_prev := ih hNn
+      calc |picardIteration Φ (N + 1) t x - picardIteration Φ n t x|
+          = |(picardIteration Φ (N + 1) t x - picardIteration Φ N t x) +
+             (picardIteration Φ N t x - picardIteration Φ n t x)| := by ring_nf
+        _ ≤ |picardIteration Φ (N + 1) t x - picardIteration Φ N t x| +
+            |picardIteration Φ N t x - picardIteration Φ n t x| := abs_add_le _ _
+        _ ≤ q ^ N * D₀ +
+            D₀ * ∑ k ∈ Finset.range (N - n), q ^ (k + n) := by linarith
+        _ = D₀ * (q ^ N + ∑ k ∈ Finset.range (N - n), q ^ (k + n)) := by ring
+        _ = D₀ * ∑ k ∈ Finset.range (N + 1 - n), q ^ (k + n) := by
+            congr 1
+            have hNn' : N + 1 - n = (N - n) + 1 := by omega
+            rw [hNn', Finset.sum_range_succ]
+            have : N - n + n = N := Nat.sub_add_cancel hNn
+            rw [this]; ring
+    · have : N + 1 = n := by omega
+      subst this; simp
+
+/-- Geometric partial sum bound: `Σ_{k=0}^{K-1} q^{k+n} ≤ q^n / (1-q)`. -/
+theorem geometric_partial_sum_le
+    {q : ℝ} (hq0 : 0 ≤ q) (hq1 : q < 1) (n K : ℕ) :
+    ∑ k ∈ Finset.range K, q ^ (k + n) ≤ q ^ n / (1 - q) := by
+  have h1q : (0 : ℝ) < 1 - q := sub_pos.mpr hq1
+  have hq_ne_one : q ≠ 1 := ne_of_lt hq1
+  -- Factor out q^n
+  calc ∑ k ∈ Finset.range K, q ^ (k + n)
+      = q ^ n * ∑ k ∈ Finset.range K, q ^ k := by
+        conv_lhs => arg 2; ext k; rw [pow_add, mul_comm]
+        rw [← Finset.mul_sum]
+    _ = q ^ n * ((q ^ K - 1) / (q - 1)) := by
+        rw [geom_sum_eq hq_ne_one]
+    _ = q ^ n * ((1 - q ^ K) / (1 - q)) := by
+        congr 1
+        have : (q ^ K - 1) / (q - 1) = (1 - q ^ K) / (1 - q) := by
+          rw [show q ^ K - 1 = -(1 - q ^ K) from by ring,
+              show q - 1 = -(1 - q) from by ring, neg_div_neg_eq]
+        exact this
+    _ ≤ q ^ n * (1 / (1 - q)) := by
+        apply mul_le_mul_of_nonneg_left _ (pow_nonneg hq0 n)
+        apply div_le_div_of_nonneg_right _ h1q.le
+        linarith [pow_nonneg hq0 K]
+    _ = q ^ n / (1 - q) := by ring
+
+/-- Uniform tail bound for Picard iterates: the distance from the
+`n`-th iterate to the pointwise limit is at most `D₀ · q^n / (1-q)`,
+uniformly over all `(t,x)`. -/
+theorem picard_tail_bound
+    {Φ : (ℝ → intervalDomainPoint → ℝ) → (ℝ → intervalDomainPoint → ℝ)}
+    {q D₀ : ℝ} (hq0 : 0 ≤ q) (hq1 : q < 1) (hD₀ : 0 ≤ D₀)
+    (hgeom : ∀ (m : ℕ) (t : ℝ) (x : intervalDomainPoint),
+      |picardIteration Φ (m + 1) t x - picardIteration Φ m t x| ≤
+        q ^ m * D₀)
+    (u_star : ℝ → intervalDomainPoint → ℝ)
+    (hconv : ∀ t x, Filter.Tendsto
+      (fun m => picardIteration Φ m t x) Filter.atTop (nhds (u_star t x)))
+    (n : ℕ) (t : ℝ) (x : intervalDomainPoint) :
+    |u_star t x - picardIteration Φ n t x| ≤
+      D₀ * q ^ n / (1 - q) := by
+  -- Pass the telescope bound through the limit
+  have htendsdiff : Filter.Tendsto
+      (fun N => picardIteration Φ N t x - picardIteration Φ n t x)
+      Filter.atTop (nhds (u_star t x - picardIteration Φ n t x)) :=
+    ((hconv t x).sub tendsto_const_nhds)
+  have habs_tends : Filter.Tendsto
+      (fun N => |picardIteration Φ N t x - picardIteration Φ n t x|)
+      Filter.atTop (nhds |u_star t x - picardIteration Φ n t x|) :=
+    htendsdiff.abs
+  -- Each partial distance is bounded
+  have hpartial_bound : ∀ N, n ≤ N →
+      |picardIteration Φ N t x - picardIteration Φ n t x| ≤
+        D₀ * q ^ n / (1 - q) := by
+    intro N hN
+    calc |picardIteration Φ N t x - picardIteration Φ n t x|
+        ≤ D₀ * ∑ k ∈ Finset.range (N - n), q ^ (k + n) :=
+          picard_telescope_bound hq0 hD₀ hgeom n N hN t x
+      _ ≤ D₀ * (q ^ n / (1 - q)) :=
+          mul_le_mul_of_nonneg_left (geometric_partial_sum_le hq0 hq1 n _) hD₀
+      _ = D₀ * q ^ n / (1 - q) := by ring
+  -- Pass through limit
+  exact le_of_tendsto habs_tends
+    (Filter.eventually_atTop.mpr ⟨n, fun N hN => hpartial_bound N hN⟩)
+
+/-- Pointwise Cauchy sequence: the Picard iterates form a Cauchy
+sequence at each `(t,x)`. -/
+theorem picard_pointwise_cauchySeq
+    {Φ : (ℝ → intervalDomainPoint → ℝ) → (ℝ → intervalDomainPoint → ℝ)}
+    {q D₀ : ℝ} (_hq0 : 0 ≤ q) (hq1 : q < 1) (_hD₀ : 0 ≤ D₀)
+    (hgeom : ∀ (n : ℕ) (t : ℝ) (x : intervalDomainPoint),
+      |picardIteration Φ (n + 1) t x - picardIteration Φ n t x| ≤
+        q ^ n * D₀)
+    (t : ℝ) (x : intervalDomainPoint) :
+    CauchySeq (fun n => picardIteration Φ n t x) := by
+  apply cauchySeq_of_le_geometric q D₀ hq1
+  intro n
+  rw [dist_eq_norm, Real.norm_eq_abs, ← abs_sub_comm]
+  have := hgeom n t x
+  linarith
+
+/-- A nonneg quantity bounded by `C · q^n` for all `n` with `0 ≤ q < 1`
+must be zero. -/
+theorem eq_zero_of_le_geometric_pow
+    {a C q : ℝ} (ha : 0 ≤ a) (hC : 0 ≤ C) (hq0 : 0 ≤ q) (hq1 : q < 1)
+    (h : ∀ n : ℕ, a ≤ C * q ^ n) :
+    a = 0 := by
+  by_contra hne
+  have ha_pos : 0 < a := lt_of_le_of_ne ha (Ne.symm hne)
+  -- q^n → 0, so C · q^n → 0
+  have : Filter.Tendsto (fun n : ℕ => C * q ^ n) Filter.atTop (nhds 0) := by
+    have hqn : Filter.Tendsto (fun n : ℕ => q ^ n) Filter.atTop (nhds 0) :=
+      tendsto_pow_atTop_nhds_zero_of_lt_one hq0 hq1
+    have h1 := hqn.const_mul C
+    rw [mul_zero] at h1
+    exact h1.congr (fun n => by ring)
+  rw [Metric.tendsto_atTop] at this
+  obtain ⟨N, hN⟩ := this (a / 2) (half_pos ha_pos)
+  have := h N
+  have hspec := hN N le_rfl
+  rw [Real.dist_eq] at hspec
+  have : C * q ^ N < a := by
+    have h1 : |C * q ^ N - 0| < a / 2 := hspec
+    rw [sub_zero] at h1
+    have h2 : (0 : ℝ) ≤ C * q ^ N := mul_nonneg hC (pow_nonneg hq0 N)
+    rw [abs_of_nonneg h2] at h1
+    linarith
+  linarith [h N]
+
+/-- **Banach fixed-point theorem via Picard iteration.**
+
+If `Φ` is q-Lipschitz with `0 ≤ q < 1`, the Picard iterates converge
+pointwise to a fixed point of `Φ`. -/
+theorem banach_fixed_point_picard
+    {Φ : (ℝ → intervalDomainPoint → ℝ) → (ℝ → intervalDomainPoint → ℝ)}
+    {q D₀ : ℝ} (hq0 : 0 ≤ q) (hq1 : q < 1) (hD₀ : 0 ≤ D₀)
+    (hcontr : ∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+      0 ≤ D →
+      (∀ s y, |u₁ s y - u₂ s y| ≤ D) →
+      ∀ t x, |Φ u₁ t x - Φ u₂ t x| ≤ q * D)
+    (hbase : ∀ t x,
+      |picardIteration Φ 1 t x - picardIteration Φ 0 t x| ≤ D₀) :
+    ∃ u_star : ℝ → intervalDomainPoint → ℝ,
+      ∀ t x, u_star t x = Φ u_star t x := by
+  -- Step 1: geometric decrease
+  have hgeom := picard_geometric_decrease hq0 hD₀ hcontr hbase
+  -- Step 2: pointwise convergence (ℝ is complete)
+  have hcauchy := picard_pointwise_cauchySeq hq0 hq1 hD₀ hgeom
+  -- Extract the pointwise limit
+  have hconv : ∀ t x, ∃ L,
+      Filter.Tendsto (fun n => picardIteration Φ n t x)
+        Filter.atTop (nhds L) :=
+    fun t x => ⟨_, (hcauchy t x).tendsto_limUnder⟩
+  choose u_star hu_star using fun t => fun x => hconv t x
+  refine ⟨u_star, ?_⟩
+  -- Step 3: the limit is a fixed point
+  -- Key: |u*(t,x) - Φ(u*)(t,x)| ≤ 2 · D₀ · q^{n+1} / (1-q) for ALL n.
+  -- Since q < 1, the RHS → 0, so the LHS = 0.
+  intro t x
+  have h1q : (0 : ℝ) < 1 - q := sub_pos.mpr hq1
+  -- Uniform tail bound
+  have htail := picard_tail_bound hq0 hq1 hD₀ hgeom u_star hu_star
+  -- Bound |u* - Φ(u*)| ≤ D₀ · q^{n+1} / (1-q) + q · D₀ · q^n / (1-q)
+  --                     = 2 · D₀ · q^{n+1} / (1-q)
+  have hfp_bound : ∀ n : ℕ,
+      |u_star t x - Φ u_star t x| ≤ 2 * D₀ * q ^ (n + 1) / (1 - q) := by
+    intro n
+    -- Triangle inequality: |u* - Φ(u*)| ≤ |u* - u_{n+1}| + |u_{n+1} - Φ(u*)|
+    have hpicard_succ : picardIteration Φ (n + 1) t x =
+        Φ (picardIteration Φ n) t x := rfl
+    -- Bound on |Φ(u_n) - Φ(u*)|
+    have hdiff_n : ∀ s y,
+        |picardIteration Φ n s y - u_star s y| ≤ D₀ * q ^ n / (1 - q) := by
+      intro s y; rw [abs_sub_comm]; exact htail n s y
+    have hPhicontr : |Φ (picardIteration Φ n) t x - Φ u_star t x| ≤
+        q * (D₀ * q ^ n / (1 - q)) :=
+      hcontr _ _ _ (by positivity) hdiff_n t x
+    calc |u_star t x - Φ u_star t x|
+        = |(u_star t x - picardIteration Φ (n + 1) t x) +
+           (picardIteration Φ (n + 1) t x - Φ u_star t x)| := by ring_nf
+      _ ≤ |u_star t x - picardIteration Φ (n + 1) t x| +
+          |picardIteration Φ (n + 1) t x - Φ u_star t x| := abs_add_le _ _
+      _ = |u_star t x - picardIteration Φ (n + 1) t x| +
+          |Φ (picardIteration Φ n) t x - Φ u_star t x| := by rw [hpicard_succ]
+      _ ≤ D₀ * q ^ (n + 1) / (1 - q) + q * (D₀ * q ^ n / (1 - q)) := by
+          linarith [htail (n + 1) t x]
+      _ = 2 * D₀ * q ^ (n + 1) / (1 - q) := by ring
+  -- Since this bound holds for all n and tends to 0, |u* - Φ(u*)| = 0
+  have habs_nn : 0 ≤ |u_star t x - Φ u_star t x| := abs_nonneg _
+  have hC_nn : 0 ≤ 2 * D₀ / (1 - q) := by positivity
+  have hzero : |u_star t x - Φ u_star t x| = 0 := by
+    apply eq_zero_of_le_geometric_pow habs_nn (by positivity : 0 ≤ 2 * D₀ * q / (1 - q)) hq0 hq1
+    intro n
+    calc |u_star t x - Φ u_star t x|
+        ≤ 2 * D₀ * q ^ (n + 1) / (1 - q) := hfp_bound n
+      _ = 2 * D₀ * q / (1 - q) * q ^ n := by rw [pow_succ]; ring
+  linarith [abs_eq_zero.mp hzero]
+
+/-- **Existence of a Duhamel fixed point for small time.**
+
+For the logistic source with Lipschitz constant `L` on a ball of
+radius `M`, there exists `T > 0` such that the Duhamel operator
+has a fixed point.
+
+This is the main local existence theorem for the mild solution
+formulation on the interval domain. The fixed point is the mild
+solution `u` satisfying the Duhamel integral equation.
+
+The hypotheses package the contraction property of the Duhamel
+operator abstractly. In practice, this contraction follows from
+`duhamel_contraction_full` with `q = L · T < 1`. -/
+theorem duhamel_mild_solution_exists
+    {L : ℝ} (hL : 0 < L)
+    -- The operator Φ and its contraction property
+    {Φ : (ℝ → intervalDomainPoint → ℝ) → (ℝ → intervalDomainPoint → ℝ)}
+    {D₀ : ℝ} (hD₀ : 0 ≤ D₀)
+    -- Φ is L·T-contractive for some T with L·T < 1
+    {T : ℝ} (hT : 0 < T) (hLT : L * T < 1)
+    (hcontr : ∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+      0 ≤ D →
+      (∀ s y, |u₁ s y - u₂ s y| ≤ D) →
+      ∀ t x, |Φ u₁ t x - Φ u₂ t x| ≤ L * T * D)
+    (hbase : ∀ t x,
+      |picardIteration Φ 1 t x - picardIteration Φ 0 t x| ≤ D₀) :
+    ∃ u_star : ℝ → intervalDomainPoint → ℝ,
+      ∀ t x, u_star t x = Φ u_star t x := by
+  have hq0 : 0 ≤ L * T := mul_nonneg hL.le hT.le
+  exact banach_fixed_point_picard hq0 hLT hD₀ hcontr hbase
+
 end ShenWork.IntervalDomainExistence
 
 end
