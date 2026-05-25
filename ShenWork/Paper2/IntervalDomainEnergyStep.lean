@@ -1183,6 +1183,361 @@ intervalDomain_lp_abs_energy_derivative_le_energy_plus_next_power_family_of_fron
     _ ≤ Cgr * Z + Cgr * E + Cgr * 1 := by linarith
     _ = Cgr * (E + (Z + 1)) := by ring
 
+/-- Scalar Gronwall source form after a uniform bound on the next-power
+lower-order term.
+
+This is the exact open-interval inequality
+`E_p'(t) <= (p*B) E_p(t) + p*(chi*Ccross*Zbound + L)`, where
+`Zbound` bounds `∫ u^(p+rho)`.  The displayed source constant is the only
+remaining lower-order contribution. -/
+theorem intervalDomain_lp_abs_energy_derivative_le_linear_source_family_of_frontiers
+    {params : CM2Params} {T rho pExp eps A chiBound B L_const Ccross Zbound : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hpExp : 1 < pExp) (hchiBound : 0 ≤ chiBound)
+    (hCcross_nonneg : 0 ≤ Ccross)
+    (hLpTime : ∀ s, 0 < s → s < T →
+      deriv (fun τ => intervalDomainLpEnergy pExp u τ) s =
+        pExp * intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u s))
+    (hPDEIntegral :
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral
+            (intervalDomainLpEnergyWeightedTimeTerm pExp u t) =
+          intervalDomainLpDiffusionIntegral pExp u t -
+            params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t +
+            intervalDomainLpLogisticIntegral params pExp u t)
+    (hIBP :
+      ∀ t, 0 < t → t < T →
+        intervalDomainLpDiffusionIntegral pExp u t =
+          intervalDomainNeumannBoundaryTerm
+              (intervalDomainLpDiffusionTest pExp u t) (u t) -
+            intervalDomainLpDiffusionDissipation pExp u t)
+    (hDiffusionCoercive :
+      ∀ t, 0 < t → t < T →
+        A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
+          intervalDomainLpDiffusionDissipation pExp u t)
+    (hCrossControl :
+      ∀ t, 0 < t → t < T →
+        -params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t ≤
+          chiBound *
+            intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t))
+    (hCrossGNYoungAt :
+      ∀ t, 0 < t → t < T →
+        intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t) ≤
+          eps * intervalDomainLpWeightedGradientDissipation pExp u t +
+            Ccross *
+              intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)))
+    (hLogisticUpper :
+      ∀ t, 0 < t → t < T →
+        intervalDomainLpLogisticIntegral params pExp u t ≤
+          B * intervalDomainLpEnergy pExp u t + L_const)
+    (hDissNonneg :
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (A - chiBound * eps) *
+            intervalDomainLpWeightedGradientDissipation pExp u t)
+    (hNextPowerBound :
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) ≤ Zbound) :
+    ∀ t, 0 < t → t < T →
+      deriv (fun τ => intervalDomainLpAbsEnergy pExp u τ) t ≤
+        (pExp * B) * intervalDomainLpAbsEnergy pExp u t +
+          pExp * (chiBound * Ccross * Zbound + L_const) := by
+  intro t ht0 htT
+  have hpoint :=
+    intervalDomain_lp_abs_energy_derivative_le_explicit_lower_terms_family_of_frontiers
+      (params := params) (T := T) (rho := rho) (pExp := pExp)
+      (eps := eps) (A := A) (chiBound := chiBound) (B := B)
+      (L_const := L_const) (Ccross := Ccross) (u := u) (v := v)
+      hpExp hchiBound hLpTime hPDEIntegral hIBP hDiffusionCoercive
+      hCrossControl hCrossGNYoungAt hLogisticUpper hDissNonneg t ht0 htT
+  set E := intervalDomainLpAbsEnergy pExp u t
+  set Z := intervalDomain.integral (fun x => (u t x) ^ (pExp + rho))
+  have hZ_le : Z ≤ Zbound := by
+    simpa [Z] using hNextPowerBound t ht0 htT
+  have hp_nonneg : 0 ≤ pExp := by linarith
+  have hcoef_nonneg : 0 ≤ pExp * (chiBound * Ccross) :=
+    mul_nonneg hp_nonneg (mul_nonneg hchiBound hCcross_nonneg)
+  have hcross_bound :
+      pExp * (chiBound * Ccross * Z) ≤
+        pExp * (chiBound * Ccross * Zbound) := by
+    calc
+      pExp * (chiBound * Ccross * Z)
+          = (pExp * (chiBound * Ccross)) * Z := by ring
+      _ ≤ (pExp * (chiBound * Ccross)) * Zbound :=
+          mul_le_mul_of_nonneg_left hZ_le hcoef_nonneg
+      _ = pExp * (chiBound * Ccross * Zbound) := by ring
+  have hsource_bound :
+      pExp * (chiBound * Ccross * Z + B * E + L_const) ≤
+        (pExp * B) * E +
+          pExp * (chiBound * Ccross * Zbound + L_const) := by
+    calc
+      pExp * (chiBound * Ccross * Z + B * E + L_const)
+          = pExp * (chiBound * Ccross * Z) +
+              pExp * (B * E) + pExp * L_const := by ring
+      _ ≤ pExp * (chiBound * Ccross * Zbound) +
+              pExp * (B * E) + pExp * L_const := by
+            linarith
+      _ =
+          (pExp * B) * E +
+            pExp * (chiBound * Ccross * Zbound + L_const) := by ring
+  change
+    deriv (fun τ => intervalDomainLpAbsEnergy pExp u τ) t ≤
+      pExp * (chiBound * Ccross * Z + B * E + L_const) at hpoint
+  exact hpoint.trans hsource_bound
+
+/-- Dominated scalar Gronwall form with user-supplied nonnegative-friendly
+constants `c` and `d`.
+
+The two coefficient hypotheses are explicit:
+`p*B <= c` controls the energy term and
+`p*(chi*Ccross*Zbound + L) <= d` controls all lower-order terms. -/
+theorem intervalDomain_lp_abs_energy_derivative_le_gronwall_source_family_of_frontiers
+    {params : CM2Params}
+    {T rho pExp eps A chiBound B L_const Ccross Zbound c d : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hpExp : 1 < pExp) (hchiBound : 0 ≤ chiBound)
+    (hCcross_nonneg : 0 ≤ Ccross)
+    (hLpTime : ∀ s, 0 < s → s < T →
+      deriv (fun τ => intervalDomainLpEnergy pExp u τ) s =
+        pExp * intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u s))
+    (hPDEIntegral :
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral
+            (intervalDomainLpEnergyWeightedTimeTerm pExp u t) =
+          intervalDomainLpDiffusionIntegral pExp u t -
+            params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t +
+            intervalDomainLpLogisticIntegral params pExp u t)
+    (hIBP :
+      ∀ t, 0 < t → t < T →
+        intervalDomainLpDiffusionIntegral pExp u t =
+          intervalDomainNeumannBoundaryTerm
+              (intervalDomainLpDiffusionTest pExp u t) (u t) -
+            intervalDomainLpDiffusionDissipation pExp u t)
+    (hDiffusionCoercive :
+      ∀ t, 0 < t → t < T →
+        A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
+          intervalDomainLpDiffusionDissipation pExp u t)
+    (hCrossControl :
+      ∀ t, 0 < t → t < T →
+        -params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t ≤
+          chiBound *
+            intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t))
+    (hCrossGNYoungAt :
+      ∀ t, 0 < t → t < T →
+        intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t) ≤
+          eps * intervalDomainLpWeightedGradientDissipation pExp u t +
+            Ccross *
+              intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)))
+    (hLogisticUpper :
+      ∀ t, 0 < t → t < T →
+        intervalDomainLpLogisticIntegral params pExp u t ≤
+          B * intervalDomainLpEnergy pExp u t + L_const)
+    (hDissNonneg :
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (A - chiBound * eps) *
+            intervalDomainLpWeightedGradientDissipation pExp u t)
+    (hNextPowerBound :
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) ≤ Zbound)
+    (hEnergyNonneg :
+      ∀ t, 0 < t → t < T → 0 ≤ intervalDomainLpAbsEnergy pExp u t)
+    (hEnergyCoeff : pExp * B ≤ c)
+    (hSourceCoeff : pExp * (chiBound * Ccross * Zbound + L_const) ≤ d) :
+    ∀ t, 0 < t → t < T →
+      deriv (fun τ => intervalDomainLpAbsEnergy pExp u τ) t ≤
+        c * intervalDomainLpAbsEnergy pExp u t + d := by
+  have hlinear :=
+    intervalDomain_lp_abs_energy_derivative_le_linear_source_family_of_frontiers
+      (params := params) (T := T) (rho := rho) (pExp := pExp)
+      (eps := eps) (A := A) (chiBound := chiBound) (B := B)
+      (L_const := L_const) (Ccross := Ccross) (Zbound := Zbound)
+      (u := u) (v := v) hpExp hchiBound hCcross_nonneg
+      hLpTime hPDEIntegral hIBP hDiffusionCoercive hCrossControl
+      hCrossGNYoungAt hLogisticUpper hDissNonneg hNextPowerBound
+  intro t ht0 htT
+  set E := intervalDomainLpAbsEnergy pExp u t
+  have hE_nonneg : 0 ≤ E := by
+    simpa [E] using hEnergyNonneg t ht0 htT
+  have henergy_term : (pExp * B) * E ≤ c * E :=
+    mul_le_mul_of_nonneg_right hEnergyCoeff hE_nonneg
+  have hlinear_t := hlinear t ht0 htT
+  linarith
+
+/-- `Set.Ico 0 T` version of the dominated scalar Gronwall inequality.
+
+The open-interval PDE derivation supplies every `0 < t < T`; the single
+additional hypothesis `hDerivZero` is the endpoint right-derivative frontier
+needed by the repository's Gronwall wrapper. -/
+theorem intervalDomain_lp_abs_energy_derivative_le_gronwall_ico_of_frontiers
+    {params : CM2Params}
+    {T rho pExp eps A chiBound B L_const Ccross Zbound c d : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hpExp : 1 < pExp) (hchiBound : 0 ≤ chiBound)
+    (hCcross_nonneg : 0 ≤ Ccross)
+    (hDerivZero :
+      deriv (fun τ => intervalDomainLpAbsEnergy pExp u τ) 0 ≤
+        c * intervalDomainLpAbsEnergy pExp u 0 + d)
+    (hLpTime : ∀ s, 0 < s → s < T →
+      deriv (fun τ => intervalDomainLpEnergy pExp u τ) s =
+        pExp * intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u s))
+    (hPDEIntegral :
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral
+            (intervalDomainLpEnergyWeightedTimeTerm pExp u t) =
+          intervalDomainLpDiffusionIntegral pExp u t -
+            params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t +
+            intervalDomainLpLogisticIntegral params pExp u t)
+    (hIBP :
+      ∀ t, 0 < t → t < T →
+        intervalDomainLpDiffusionIntegral pExp u t =
+          intervalDomainNeumannBoundaryTerm
+              (intervalDomainLpDiffusionTest pExp u t) (u t) -
+            intervalDomainLpDiffusionDissipation pExp u t)
+    (hDiffusionCoercive :
+      ∀ t, 0 < t → t < T →
+        A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
+          intervalDomainLpDiffusionDissipation pExp u t)
+    (hCrossControl :
+      ∀ t, 0 < t → t < T →
+        -params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t ≤
+          chiBound *
+            intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t))
+    (hCrossGNYoungAt :
+      ∀ t, 0 < t → t < T →
+        intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t) ≤
+          eps * intervalDomainLpWeightedGradientDissipation pExp u t +
+            Ccross *
+              intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)))
+    (hLogisticUpper :
+      ∀ t, 0 < t → t < T →
+        intervalDomainLpLogisticIntegral params pExp u t ≤
+          B * intervalDomainLpEnergy pExp u t + L_const)
+    (hDissNonneg :
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (A - chiBound * eps) *
+            intervalDomainLpWeightedGradientDissipation pExp u t)
+    (hNextPowerBound :
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) ≤ Zbound)
+    (hEnergyNonneg :
+      ∀ t, 0 < t → t < T → 0 ≤ intervalDomainLpAbsEnergy pExp u t)
+    (hEnergyCoeff : pExp * B ≤ c)
+    (hSourceCoeff : pExp * (chiBound * Ccross * Zbound + L_const) ≤ d) :
+    ∀ t ∈ Set.Ico (0 : ℝ) T,
+      deriv (fun τ => intervalDomainLpAbsEnergy pExp u τ) t ≤
+        c * intervalDomainLpAbsEnergy pExp u t + d := by
+  have hopen :=
+    intervalDomain_lp_abs_energy_derivative_le_gronwall_source_family_of_frontiers
+      (params := params) (T := T) (rho := rho) (pExp := pExp)
+      (eps := eps) (A := A) (chiBound := chiBound) (B := B)
+      (L_const := L_const) (Ccross := Ccross) (Zbound := Zbound)
+      (c := c) (d := d) (u := u) (v := v)
+      hpExp hchiBound hCcross_nonneg hLpTime hPDEIntegral hIBP
+      hDiffusionCoercive hCrossControl hCrossGNYoungAt hLogisticUpper
+      hDissNonneg hNextPowerBound hEnergyNonneg hEnergyCoeff hSourceCoeff
+  intro t ht
+  by_cases ht_zero : t = 0
+  · subst t
+    exact hDerivZero
+  · have ht0 : 0 < t := lt_of_le_of_ne ht.1 (Ne.symm ht_zero)
+    exact hopen t ht0 ht.2
+
+/-- Full scalar Gronwall bridge from the interval PDE frontiers plus an
+explicit next-power bound.
+
+This theorem packages the exact source constant into the repository's existing
+`intervalDomain_LpPowerBoundedBefore_of_abs_energy_gronwall` interface. -/
+theorem intervalDomain_LpPowerBoundedBefore_of_energy_frontiers_next_power_bound
+    {params : CM2Params}
+    {T rho pExp eps A chiBound B L_const Ccross Zbound c d δ : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hpExp : 1 < pExp) (hchiBound : 0 ≤ chiBound)
+    (hCcross_nonneg : 0 ≤ Ccross)
+    (hδ_nonneg : 0 ≤ δ) (hc_nonneg : 0 ≤ c) (hd_nonneg : 0 ≤ d)
+    (hu_nonneg :
+      ∀ t, 0 < t → t < T → ∀ x : intervalDomain.Point, 0 ≤ u t x)
+    (hcont :
+      ContinuousOn (fun t => intervalDomainLpAbsEnergy pExp u t)
+        (Set.Icc (0 : ℝ) T))
+    (hderiv_within :
+      ∀ t ∈ Set.Ico (0 : ℝ) T,
+        HasDerivWithinAt
+          (fun τ => intervalDomainLpAbsEnergy pExp u τ)
+          (deriv (fun τ => intervalDomainLpAbsEnergy pExp u τ) t)
+          (Set.Ici t) t)
+    (hinit : intervalDomainLpAbsEnergy pExp u 0 ≤ δ)
+    (hDerivZero :
+      deriv (fun τ => intervalDomainLpAbsEnergy pExp u τ) 0 ≤
+        c * intervalDomainLpAbsEnergy pExp u 0 + d)
+    (hLpTime : ∀ s, 0 < s → s < T →
+      deriv (fun τ => intervalDomainLpEnergy pExp u τ) s =
+        pExp * intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u s))
+    (hPDEIntegral :
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral
+            (intervalDomainLpEnergyWeightedTimeTerm pExp u t) =
+          intervalDomainLpDiffusionIntegral pExp u t -
+            params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t +
+            intervalDomainLpLogisticIntegral params pExp u t)
+    (hIBP :
+      ∀ t, 0 < t → t < T →
+        intervalDomainLpDiffusionIntegral pExp u t =
+          intervalDomainNeumannBoundaryTerm
+              (intervalDomainLpDiffusionTest pExp u t) (u t) -
+            intervalDomainLpDiffusionDissipation pExp u t)
+    (hDiffusionCoercive :
+      ∀ t, 0 < t → t < T →
+        A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
+          intervalDomainLpDiffusionDissipation pExp u t)
+    (hCrossControl :
+      ∀ t, 0 < t → t < T →
+        -params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t ≤
+          chiBound *
+            intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t))
+    (hCrossGNYoungAt :
+      ∀ t, 0 < t → t < T →
+        intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t) ≤
+          eps * intervalDomainLpWeightedGradientDissipation pExp u t +
+            Ccross *
+              intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)))
+    (hLogisticUpper :
+      ∀ t, 0 < t → t < T →
+        intervalDomainLpLogisticIntegral params pExp u t ≤
+          B * intervalDomainLpEnergy pExp u t + L_const)
+    (hDissNonneg :
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (A - chiBound * eps) *
+            intervalDomainLpWeightedGradientDissipation pExp u t)
+    (hNextPowerBound :
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) ≤ Zbound)
+    (hEnergyNonneg :
+      ∀ t, 0 < t → t < T → 0 ≤ intervalDomainLpAbsEnergy pExp u t)
+    (hEnergyCoeff : pExp * B ≤ c)
+    (hSourceCoeff : pExp * (chiBound * Ccross * Zbound + L_const) ≤ d) :
+    LpPowerBoundedBefore intervalDomain pExp T u := by
+  have hderiv_le :=
+    intervalDomain_lp_abs_energy_derivative_le_gronwall_ico_of_frontiers
+      (params := params) (T := T) (rho := rho) (pExp := pExp)
+      (eps := eps) (A := A) (chiBound := chiBound) (B := B)
+      (L_const := L_const) (Ccross := Ccross) (Zbound := Zbound)
+      (c := c) (d := d) (u := u) (v := v)
+      hpExp hchiBound hCcross_nonneg hDerivZero hLpTime hPDEIntegral hIBP
+      hDiffusionCoercive hCrossControl hCrossGNYoungAt hLogisticUpper
+      hDissNonneg hNextPowerBound hEnergyNonneg hEnergyCoeff hSourceCoeff
+  exact
+    intervalDomain_LpPowerBoundedBefore_of_abs_energy_gronwall
+      (u := u) (T := T) (p := pExp) (δ := δ) (c := c) (d := d)
+      hδ_nonneg hc_nonneg hd_nonneg hu_nonneg hcont hderiv_within hinit
+      hderiv_le
+
 /-- Half of the L2 energy.  This form avoids any convention about `0^0` in
 `|u|^(p-2)` when specializing the Lp identity at `p = 2`. -/
 def intervalDomainL2HalfEnergy
