@@ -618,6 +618,87 @@ theorem TravelingWave.profile_V_equation
       + (w.z t 0) ^ p.gamma = 0 :=
   w.ode.profile_V_equation t
 
+theorem TravelingWave.component_tendsto_atBot
+    {p : Params} (w : TravelingWave p) (i : Idx) :
+    Tendsto (fun t => w.z t i) atBot (nhds (E1 i)) := by
+  simpa using
+    ((ContinuousLinearMap.proj i : State →L[ℝ] ℝ).continuous.tendsto E1).comp
+      w.leftLimit
+
+theorem TravelingWave.component_tendsto_atTop
+    {p : Params} (w : TravelingWave p) (i : Idx) :
+    Tendsto (fun t => w.z t i) atTop (nhds (E0 i)) := by
+  simpa using
+    ((ContinuousLinearMap.proj i : State →L[ℝ] ℝ).continuous.tendsto E0).comp
+      w.rightLimit
+
+theorem TravelingWave.U_tendsto_atBot
+    {p : Params} (w : TravelingWave p) :
+    Tendsto (fun t => w.z t 0) atBot (nhds 1) := by
+  simpa [E1] using w.component_tendsto_atBot (0 : Idx)
+
+theorem TravelingWave.U_tendsto_atTop
+    {p : Params} (w : TravelingWave p) :
+    Tendsto (fun t => w.z t 0) atTop (nhds 0) := by
+  simpa [E0] using w.component_tendsto_atTop (0 : Idx)
+
+theorem TravelingWave.V_tendsto_atBot
+    {p : Params} (w : TravelingWave p) :
+    Tendsto (fun t => w.z t 2) atBot (nhds 1) := by
+  simpa [E1] using w.component_tendsto_atBot (2 : Idx)
+
+theorem TravelingWave.V_tendsto_atTop
+    {p : Params} (w : TravelingWave p) :
+    Tendsto (fun t => w.z t 2) atTop (nhds 0) := by
+  simpa [E0] using w.component_tendsto_atTop (2 : Idx)
+
+theorem TravelingWave.deriv_U_tendsto_atBot
+    {p : Params} (w : TravelingWave p) :
+    Tendsto (deriv (fun t => w.z t 0)) atBot (nhds 0) := by
+  have hderiv : deriv (fun t => w.z t 0) = fun t => w.z t 1 := by
+    funext t
+    exact (w.ode.hasDerivAt_U t).deriv
+  simpa [hderiv, E1] using w.component_tendsto_atBot (1 : Idx)
+
+theorem TravelingWave.deriv_U_tendsto_atTop
+    {p : Params} (w : TravelingWave p) :
+    Tendsto (deriv (fun t => w.z t 0)) atTop (nhds 0) := by
+  have hderiv : deriv (fun t => w.z t 0) = fun t => w.z t 1 := by
+    funext t
+    exact (w.ode.hasDerivAt_U t).deriv
+  simpa [hderiv, E0] using w.component_tendsto_atTop (1 : Idx)
+
+theorem TravelingWave.deriv_V_tendsto_atBot
+    {p : Params} (w : TravelingWave p) :
+    Tendsto (deriv (fun t => w.z t 2)) atBot (nhds 0) := by
+  have hderiv : deriv (fun t => w.z t 2) = fun t => w.z t 3 := by
+    funext t
+    exact (w.ode.hasDerivAt_V t).deriv
+  simpa [hderiv, E1] using w.component_tendsto_atBot (3 : Idx)
+
+theorem TravelingWave.deriv_V_tendsto_atTop
+    {p : Params} (w : TravelingWave p) :
+    Tendsto (deriv (fun t => w.z t 2)) atTop (nhds 0) := by
+  have hderiv : deriv (fun t => w.z t 2) = fun t => w.z t 3 := by
+    funext t
+    exact (w.ode.hasDerivAt_V t).deriv
+  simpa [hderiv, E0] using w.component_tendsto_atTop (3 : Idx)
+
+theorem TravelingWave.profile_boundary_limits
+    {p : Params} (w : TravelingWave p) :
+    Tendsto (fun t => w.z t 0) atBot (nhds 1) ∧
+    Tendsto (fun t => w.z t 0) atTop (nhds 0) ∧
+    Tendsto (fun t => w.z t 2) atBot (nhds 1) ∧
+    Tendsto (fun t => w.z t 2) atTop (nhds 0) ∧
+    Tendsto (deriv (fun t => w.z t 0)) atBot (nhds 0) ∧
+    Tendsto (deriv (fun t => w.z t 0)) atTop (nhds 0) ∧
+    Tendsto (deriv (fun t => w.z t 2)) atBot (nhds 0) ∧
+    Tendsto (deriv (fun t => w.z t 2)) atTop (nhds 0) :=
+  ⟨w.U_tendsto_atBot, w.U_tendsto_atTop,
+    w.V_tendsto_atBot, w.V_tendsto_atTop,
+    w.deriv_U_tendsto_atBot, w.deriv_U_tendsto_atTop,
+    w.deriv_V_tendsto_atBot, w.deriv_V_tendsto_atTop⟩
+
 theorem local_shooting_segment_from_E1_positive_eigenpair
     (p : Params) {lam δ t₀ : ℝ}
     (hpos : 0 < lam)
