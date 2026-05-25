@@ -353,4 +353,25 @@ private theorem abstract_mild_fixed_point
       rw [hz.eq]
     _ = Φ (eval z) t x := hcomm z t x
 
+/-- Banach fixed-point extraction for the whole-line mild operator.
+
+This is the concrete bridge from a complete metric-space realization of the
+Duhamel map to a mild solution of `mildSolutionOperator`.  The contraction
+estimate `mild_solution_operator_contracting` supplies the analytic Lipschitz
+bound; this theorem records the final Banach fixed-point step without adding
+any domain-level regularity assumption. -/
+theorem mild_solution_fixed_point_of_contracting_realization
+    (p : CMParams) (u₀ : ℝ → ℝ)
+    {X : Type*} [MetricSpace X] [CompleteSpace X] [Nonempty X]
+    {K : NNReal}
+    (F : X → X)
+    (hF : ContractingWith K F)
+    (eval : X → ℝ → ℝ → ℝ)
+    (hcomm :
+      ∀ z t x, eval (F z) t x =
+        mildSolutionOperator p u₀ (eval z) t x) :
+    ∃ u : ℝ → ℝ → ℝ,
+      ∀ t x, u t x = mildSolutionOperator p u₀ u t x :=
+  abstract_mild_fixed_point F hF eval (mildSolutionOperator p u₀) hcomm
+
 end

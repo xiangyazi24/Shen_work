@@ -1448,6 +1448,60 @@ theorem duhamel_mild_solution_exists
   have hq0 : 0 ≤ L * T := mul_nonneg hL.le hT.le
   exact banach_fixed_point_picard hq0 hLT hD₀ hcontr hbase
 
+/-- Local Picard/Banach fixed-point extraction specialized to the concrete
+interval Duhamel operator.
+
+This is the local-in-time mild-solution construction step: once the concrete
+operator `intervalDuhamelOperator p u₀` is contractive on `[0,T]` with factor
+`L * T < 1` and its first Picard step is bounded there by `D₀`, the Picard
+construction yields a trajectory fixed point on `[0,T]`.  The proof feeds a
+time-truncated operator to the existing Picard/Banach theorem, so no global
+in-time contraction is assumed.  No arbitrary-domain regularity API is used
+here. -/
+theorem intervalDuhamel_fixed_point_exists_of_contraction
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    {L D₀ T : ℝ} (hL : 0 < L) (hD₀ : 0 ≤ D₀)
+    (hT : 0 < T) (hLT : L * T < 1)
+    (hcontr :
+      ∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+        0 ≤ D →
+        (∀ s y, 0 ≤ s → s ≤ T → |u₁ s y - u₂ s y| ≤ D) →
+        ∀ t x, 0 ≤ t → t ≤ T →
+          |intervalDuhamelOperator p u₀ u₁ t x -
+            intervalDuhamelOperator p u₀ u₂ t x| ≤ L * T * D)
+    (hbase :
+      ∀ t x, 0 ≤ t → t ≤ T →
+        |intervalDuhamelOperator p u₀ (fun _ _ => 0) t x| ≤ D₀) :
+    ∃ u : ℝ → intervalDomainPoint → ℝ,
+      ∀ t x, 0 ≤ t → t ≤ T →
+        u t x = intervalDuhamelOperator p u₀ u t x := by
+  let Φ : (ℝ → intervalDomainPoint → ℝ) →
+      (ℝ → intervalDomainPoint → ℝ) :=
+    fun u t x =>
+      if 0 ≤ t ∧ t ≤ T then intervalDuhamelOperator p u₀ u t x else 0
+  have hcontr' :
+      ∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+        0 ≤ D →
+        (∀ s y, |u₁ s y - u₂ s y| ≤ D) →
+        ∀ t x, |Φ u₁ t x - Φ u₂ t x| ≤ L * T * D := by
+    intro u₁ u₂ D hD hdiff t x
+    by_cases ht : 0 ≤ t ∧ t ≤ T
+    · simpa [Φ, ht] using
+        hcontr u₁ u₂ D hD (fun s y _hs0 _hsT => hdiff s y) t x ht.1 ht.2
+    · simp [Φ, ht, mul_nonneg (mul_nonneg hL.le hT.le) hD]
+  have hbase' :
+      ∀ t x, |picardIteration Φ 1 t x - picardIteration Φ 0 t x| ≤ D₀ := by
+    intro t x
+    by_cases ht : 0 ≤ t ∧ t ≤ T
+    · simpa [picardIteration, Φ, ht] using hbase t x ht.1 ht.2
+    · simp [picardIteration, Φ, ht, hD₀]
+  obtain ⟨u, hfp⟩ :=
+    duhamel_mild_solution_exists hL hD₀ hT hLT hcontr' hbase'
+  refine ⟨u, ?_⟩
+  intro t x ht0 htT
+  have ht : 0 ≤ t ∧ t ≤ T := ⟨ht0, htT⟩
+  simpa [Φ, ht] using hfp t x
+
 /-! ### Wiring: Banach FP + RegularityBootstrap → localExistence
 
 The `RegularityBootstrap` predicate captures the genuine PDE properties
@@ -1528,6 +1582,89 @@ theorem localExistence_from_banach_and_regularity
   intro u₀ hu₀
   obtain ⟨T, hT, u, hfp, hreg⟩ := hmild u₀ hu₀
   exact localExistence_of_fp_and_regularity p u₀ hu₀ hT hfp hreg
+
+/-- Concrete interval-Duhamel Banach fixed point plus concrete Duhamel
+regularization gives local classical existence.
+
+The only regularity input is `hregularize`: it must upgrade the fixed point of
+the concrete Picard/Duhamel operator to `RegularityBootstrap`.  This avoids the
+invalid arbitrary-domain regularity shortcut exposed by the `not_forall`
+counterexamples. -/
+theorem localExistence_of_intervalDuhamel_contraction_and_regularization
+    (p : CM2Params)
+    (u₀ : intervalDomainPoint → ℝ)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {L D₀ T : ℝ} (hL : 0 < L) (hD₀ : 0 ≤ D₀)
+    (hT : 0 < T) (hLT : L * T < 1)
+    (hcontr :
+      ∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+        0 ≤ D →
+        (∀ s y, 0 ≤ s → s ≤ T → |u₁ s y - u₂ s y| ≤ D) →
+        ∀ t x, 0 ≤ t → t ≤ T →
+          |intervalDuhamelOperator p u₀ u₁ t x -
+            intervalDuhamelOperator p u₀ u₂ t x| ≤ L * T * D)
+    (hbase :
+      ∀ t x, 0 ≤ t → t ≤ T →
+        |intervalDuhamelOperator p u₀ (fun _ _ => 0) t x| ≤ D₀)
+    (hregularize :
+      ∀ u : ℝ → intervalDomainPoint → ℝ,
+        (∀ t x, 0 ≤ t → t ≤ T →
+          u t x = intervalDuhamelOperator p u₀ u t x) →
+          RegularityBootstrap p T u₀ u) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u₀ u := by
+  obtain ⟨u, hfp⟩ :=
+    intervalDuhamel_fixed_point_exists_of_contraction p u₀
+      hL hD₀ hT hLT hcontr hbase
+  exact localExistence_of_fp_and_regularity p u₀ hu₀ hT hfp
+    (hregularize u hfp)
+
+/-- Conditional `Proposition_1_1` assembly from the concrete interval-Duhamel
+Banach construction.
+
+The short-time fixed point and classical local solution are produced by
+`intervalDuhamel_fixed_point_exists_of_contraction` plus the concrete
+Duhamel-regularization frontier.  The remaining hypothesis `hmaximal` is the
+honest maximal-continuation/blow-up alternative frontier: it is not a
+consequence of a local Banach fixed point on a fixed short time interval. -/
+theorem Proposition_1_1_intervalDomain_of_intervalDuhamel_contraction_regularization
+    (p : CM2Params)
+    (hmild :
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ L > 0, ∃ D₀ ≥ 0, ∃ T > 0,
+            L * T < 1 ∧
+            (∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+              0 ≤ D →
+              (∀ s y, 0 ≤ s → s ≤ T →
+                |u₁ s y - u₂ s y| ≤ D) →
+              ∀ t x, 0 ≤ t → t ≤ T →
+                |intervalDuhamelOperator p u₀ u₁ t x -
+                  intervalDuhamelOperator p u₀ u₂ t x| ≤ L * T * D) ∧
+            (∀ t x, 0 ≤ t → t ≤ T →
+              |intervalDuhamelOperator p u₀ (fun _ _ => 0) t x| ≤ D₀) ∧
+            (∀ u : ℝ → intervalDomainPoint → ℝ,
+              (∀ t x, 0 ≤ t → t ≤ T →
+                u t x = intervalDuhamelOperator p u₀ u t x) →
+                RegularityBootstrap p T u₀ u))
+    (hmaximal :
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          FiniteHorizonAlternative intervalDomain Tmax u ∧
+          (1 ≤ p.m → MGeOneFiniteHorizonAlternative intervalDomain Tmax u)) :
+    Proposition_1_1 intervalDomain p := by
+  intro u₀ hu₀
+  obtain ⟨L, hL, D₀, hD₀, T, hT, hLT, hcontr, hbase, hregularize⟩ :=
+    hmild u₀ hu₀
+  obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ :=
+    localExistence_of_intervalDuhamel_contraction_and_regularization p u₀ hu₀
+      hL hD₀ hT hLT hcontr hbase hregularize
+  obtain ⟨halt, hmge⟩ := hmaximal u₀ hu₀ Tmax hTmax u v hsol htrace
+  exact ⟨Tmax, hTmax, u, v, hsol, htrace, halt, hmge⟩
 
 /-! ### RegularityBootstrap for spatially-constant solutions
 
@@ -2029,6 +2166,14 @@ The full `IntervalDomainExistence.localExistence` requires `∀ u₀, PID u₀ �
 - `localExistence_from_banach_and_regularity`: reduces to RegularityBootstrap
 - `localExistence_conditional`: reduces to IsMildSolutionData
 - Banach FP (`duhamel_mild_solution_exists`) + contraction estimates
+- B2 interval-Duhamel wiring:
+  `intervalDuhamel_fixed_point_exists_of_contraction` constructs the concrete
+  mild fixed point from the Picard/Banach contraction;
+  `localExistence_of_intervalDuhamel_contraction_and_regularization` turns it
+  into local classical existence once concrete Duhamel regularization is proved;
+  `Proposition_1_1_intervalDomain_of_intervalDuhamel_contraction_regularization`
+  closes `Proposition_1_1 intervalDomain p` conditional on the same concrete
+  regularization plus the genuine maximal-continuation/blow-up alternative.
 
 **What is BLOCKED**:
 1. Below-equilibrium constant data (0 < c < (a/b)^{1/α}):
@@ -2042,6 +2187,11 @@ The full `IntervalDomainExistence.localExistence` requires `∀ u₀, PID u₀ �
    Requires RegularityBootstrap for the Duhamel fixed point, which needs
    parabolic regularity theory (mild → classical) + comparison principle
    (positivity) + strong maximum principle (sup norm control).
+
+3. Full `Proposition_1_1 intervalDomain p` also requires a maximal-time
+   continuation/blow-up alternative.  A short-time Banach fixed point on a
+   fixed interval only gives local existence; it does not imply the stated
+   finite-horizon alternative at `Tmax`.
 
 **The gap is precisely identified**: either fix the `∀ p` quantification
 in `classicalRegularity`, or prove RegularityBootstrap for Duhamel FP. -/
