@@ -16,6 +16,127 @@ noncomputable section
 
 namespace ShenWork.Paper2.IntervalDomainTheorem13
 
+/-- Local branch of Paper 2 Theorem 1.3 on `intervalDomain`, conditional on
+Corollary 2.1, Proposition 2.5, local existence, and the strong-logistic
+bootstrap seed. -/
+theorem Theorem_1_3_intervalDomain_local_branch_of_corollary21_and_proposition25
+    (p : CM2Params) (C : Paper2Constants p)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hstrongBootstrap :
+      0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) :
+      0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+              InitialTrace intervalDomain u₀ u ∧
+              IsPaper2BoundedBefore intervalDomain Tmax u := by
+  intro ha hb hm_pos hstrong u₀ hu₀
+  obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ := hlocal u₀ hu₀
+  have hbootstrap :=
+    hstrongBootstrap ha hb hm_pos hstrong
+      u₀ hu₀ Tmax hTmax u v hsol htrace
+  have hbounded :=
+    IntervalDomainTheorem12.boundedBefore_of_corollary21_and_proposition25
+      p hCor21 hProp25 hu₀ hTmax hsol htrace hbootstrap
+  exact ⟨Tmax, hTmax, u, v, hsol, htrace, hbounded⟩
+
+/-- Global branch of Paper 2 Theorem 1.3 on `intervalDomain`, conditional on
+Corollary 2.1, Proposition 2.5, local/global extension, the strong-logistic
+bootstrap seed, and the long-time boundedness bridge. -/
+theorem Theorem_1_3_intervalDomain_global_branch_of_corollary21_and_proposition25
+    (p : CM2Params) (C : Paper2Constants p)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hglobalExtension :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hstrongBootstrap :
+      0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hstrongGlobalBound :
+      0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
+      1 ≤ p.m →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2GlobalClassicalSolution intervalDomain p u v →
+        InitialTrace intervalDomain u₀ u →
+        (∀ T > 0,
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) →
+          IsPaper2Bounded intervalDomain u) :
+      0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
+      1 ≤ p.m →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2GlobalClassicalSolution intervalDomain p u v ∧
+              InitialTrace intervalDomain u₀ u ∧
+              IsPaper2Bounded intervalDomain u := by
+  intro ha hb hm_pos hstrong hm_ge u₀ hu₀
+  obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ := hlocal u₀ hu₀
+  have hbootstrap :=
+    hstrongBootstrap ha hb hm_pos hstrong
+      u₀ hu₀ Tmax hTmax u v hsol htrace
+  have hboundedBefore :=
+    IntervalDomainTheorem12.boundedBefore_of_corollary21_and_proposition25
+      p hCor21 hProp25 hu₀ hTmax hsol htrace hbootstrap
+  have hglobal :=
+    hglobalExtension u₀ hu₀ Tmax hTmax u v hsol htrace
+      hboundedBefore hm_ge
+  have hbootstrapAll :
+      ∀ T > 0,
+        ∃ rho > 0,
+          CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+            ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+              LpPowerBoundedBefore intervalDomain p0 T u := by
+    intro T hT
+    exact hstrongBootstrap ha hb hm_pos hstrong
+      u₀ hu₀ T hT u v (hglobal.classical hT) htrace
+  have hbounded :=
+    hstrongGlobalBound ha hb hm_pos hstrong hm_ge
+      u₀ hu₀ u v hglobal htrace hbootstrapAll
+  exact ⟨u, v, hglobal, htrace, hbounded⟩
+
 /-- Paper 2 Theorem 1.3 on `intervalDomain`, with the already-composed
 `Corollary_2_1` as the Tier-1 input.
 
@@ -68,41 +189,13 @@ theorem Theorem_1_3_intervalDomain_of_corollary21_and_proposition25
                 LpPowerBoundedBefore intervalDomain p0 T u) →
           IsPaper2Bounded intervalDomain u) :
     Theorem_1_3 intervalDomain p C := by
-  intro ha hb hm_pos hstrong
-  constructor
-  · intro u₀ hu₀
-    obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ := hlocal u₀ hu₀
-    have hbootstrap :=
-      hstrongBootstrap ha hb hm_pos hstrong
-        u₀ hu₀ Tmax hTmax u v hsol htrace
-    have hbounded :=
-      IntervalDomainTheorem12.boundedBefore_of_corollary21_and_proposition25
-        p hCor21 hProp25 hu₀ hTmax hsol htrace hbootstrap
-    exact ⟨Tmax, hTmax, u, v, hsol, htrace, hbounded⟩
-  · intro hm_ge u₀ hu₀
-    obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ := hlocal u₀ hu₀
-    have hbootstrap :=
-      hstrongBootstrap ha hb hm_pos hstrong
-        u₀ hu₀ Tmax hTmax u v hsol htrace
-    have hboundedBefore :=
-      IntervalDomainTheorem12.boundedBefore_of_corollary21_and_proposition25
-        p hCor21 hProp25 hu₀ hTmax hsol htrace hbootstrap
-    have hglobal :=
-      hglobalExtension u₀ hu₀ Tmax hTmax u v hsol htrace
-        hboundedBefore hm_ge
-    have hbootstrapAll :
-        ∀ T > 0,
-          ∃ rho > 0,
-            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
-              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
-                LpPowerBoundedBefore intervalDomain p0 T u := by
-      intro T hT
-      exact hstrongBootstrap ha hb hm_pos hstrong
-        u₀ hu₀ T hT u v (hglobal.classical hT) htrace
-    have hbounded :=
-      hstrongGlobalBound ha hb hm_pos hstrong hm_ge
-        u₀ hu₀ u v hglobal htrace hbootstrapAll
-    exact ⟨u, v, hglobal, htrace, hbounded⟩
+  exact Theorem_1_3.of_assumed_solutions_branch
+    (D := intervalDomain) (p := p) (C := C)
+    (Theorem_1_3_intervalDomain_local_branch_of_corollary21_and_proposition25
+      p C hCor21 hProp25 hlocal hstrongBootstrap)
+    (Theorem_1_3_intervalDomain_global_branch_of_corollary21_and_proposition25
+      p C hCor21 hProp25 hlocal hglobalExtension hstrongBootstrap
+      hstrongGlobalBound)
 
 /-- Corollary-level Theorem 1.3 assembly from the existing interval
 `IntervalDomainExistence` package.
