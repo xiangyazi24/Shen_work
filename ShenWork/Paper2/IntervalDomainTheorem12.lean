@@ -901,6 +901,56 @@ theorem Theorem_1_2_intervalDomain_of_parameter_fields_and_eventual_sup_bound
     (fun _ha _hb hβ hm_eq hχ =>
       hcriticalEventualSupBound hβ hm_eq hχ)
 
+/-- Existence-package variant of
+`Theorem_1_2_intervalDomain_of_parameter_fields_and_eventual_sup_bound`.
+
+The proof uses only `localExistence` and `globalExtension`; the remaining
+existence-package fields are not part of the H2.2 assembly. -/
+theorem Theorem_1_2_intervalDomain_of_parameter_fields_eventual_sup_bound_and_existence
+    (p : CM2Params)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
+    (hslowBootstrap :
+      1 ≤ p.β → p.m < 1 →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hcriticalBootstrap :
+      1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hcriticalEventualSupBound :
+      1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2GlobalClassicalSolution intervalDomain p u v →
+        InitialTrace intervalDomain u₀ u →
+        (∀ T > 0,
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) →
+          ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M) :
+    Theorem_1_2 intervalDomain p :=
+  Theorem_1_2_intervalDomain_of_parameter_fields_and_eventual_sup_bound
+    p hCor21 hProp25 hexist.localExistence hexist.globalExtension
+    hslowBootstrap hcriticalBootstrap hcriticalEventualSupBound
+
 /-- Theorem 1.2 assembly from `Lemma_2_6` plus the PDE energy derivation,
 with parameter-side branch guards discharged and long-time boundedness supplied
 as an eventual sup-norm estimate.
