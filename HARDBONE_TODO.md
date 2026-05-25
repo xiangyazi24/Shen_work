@@ -286,8 +286,13 @@
   pointwise comparison `X^σ_p ≤ supNorm`, and
   `intervalDomain_Theorem_2_2_for_concrete_constants`, discharging the
   constants package and critical-spectrum identity through
-  `intervalDomainPaper3Constants`.  This is state③, not DONE: the sectorial,
-  primitive norm-comparison, and local-existence frontiers are still unproved.
+  `intervalDomainPaper3Constants`.  It further proves
+  `intervalDomain_Theorem_2_2_for_concrete_constants_branch_frontiers`,
+  replacing the over-strong `∀ uStar : ℝ` norm/small-data frontiers by exactly
+  the branches used in Theorem 2.2: positive equilibria and minimal
+  equilibria with `0 < uStar`.  This is state③, not DONE: the sectorial,
+  primitive branch norm-comparison, and branch local-existence frontiers are
+  still unproved.
 
 ### H4.2 — Theorem 2.3 on intervalDomain (global stability χ≤0)
 - **前置**: H3.2 (Lyapunov), H3.3 (persistence)

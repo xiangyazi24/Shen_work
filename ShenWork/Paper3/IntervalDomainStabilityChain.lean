@@ -282,6 +282,102 @@ theorem intervalDomain_Theorem_2_2_for_concrete_constants
     (intervalDomainPaper3Constants_usesCriticalSpectrum p M0 uBar vLower)
     hraw hsigma_low hsigma_high hpNorm hxp hexist hmexist
 
+/-- Concrete-constants interval-domain Paper3 Theorem 2.2 with
+branch-specific analytic frontiers.  This avoids requiring small-data
+existence and `X^σ_p ≤ supNorm` for arbitrary real constants: the theorem only
+uses positive equilibria and minimal equilibria with `uStar > 0`. -/
+theorem intervalDomain_Theorem_2_2_for_concrete_constants_branch_frontiers
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (M0 uBar vLower : ℝ)
+    (hraw :
+      SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hxpPositive :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          N.xpSigmaDistance sigma pNorm u₀
+              (fun _ => (positiveEquilibrium p ⟨ha, hb⟩).1) ≤
+            intervalDomain.supNorm
+              (fun x => u₀ x - (positiveEquilibrium p ⟨ha, hb⟩).1))
+    (hexistPositive :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b), ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p
+          (positiveEquilibrium p ⟨ha, hb⟩).1 delta)
+    (hxpMinimal :
+      ∀ uStar, 0 < uStar →
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          N.xpSigmaDistance sigma pNorm u₀
+              (fun _ => (minimalEquilibrium p uStar).1) ≤
+            intervalDomain.supNorm
+              (fun x => u₀ x - (minimalEquilibrium p uStar).1))
+    (hmexistMinimal :
+      ∀ uStar, 0 < uStar → ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p
+          (minimalEquilibrium p uStar).1 delta) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum N
+      (intervalDomainPaper3Constants p M0 uBar vLower) := by
+  have hC :
+      Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p
+        (intervalDomainPaper3Constants p M0 uBar vLower) :=
+    intervalDomainPaper3Constants_usesCriticalSpectrum p M0 uBar vLower
+  have hthreshold :=
+    Theorem_2_2_linear_threshold_branch_direct
+      unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+  refine Theorem_2_2.of_parts ?_ ?_ ?_ ?_
+  · intro ha hb
+    dsimp
+    intro hχcrit
+    have hstable :
+        LinearlyStable unitIntervalNeumannSpectrum p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+      (hthreshold.1 ha hb).1
+        (by
+          simpa [hC.chiCritical_positiveEquilibrium ha hb] using hχcrit)
+    have hlocal :
+        LocallyExponentiallyStableFromSup intervalDomain p N
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+      hraw.locally_from_xpSigma_le_supNorm
+        hsigma_low hsigma_high hpNorm hstable
+        (hxpPositive ha hb) (hexistPositive ha hb)
+    rcases hlocal with ⟨δ, hδ, A, hA, rate, hrate, hmain⟩
+    exact ⟨hstable, δ, hδ, A, hA, rate, hrate, hmain⟩
+  · intro ha hb
+    dsimp
+    intro hχcrit
+    exact hC.positiveEquilibrium_linearlyUnstable
+      unitIntervalNeumannSpectrum_hasNeumannSpectrum ha hb hχcrit
+  · intro ha hb uStar huStar
+    dsimp
+    intro hχcrit
+    have hstable :
+        LinearlyStable unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 :=
+      (hthreshold.2 ha hb uStar huStar).1
+        (by
+          simpa [hC.chiCritical_minimalEquilibrium huStar,
+            minimalEquilibrium] using hχcrit)
+    have hlocal :
+        MassConstrainedLocallyExponentiallyStableFromSup intervalDomain p N
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 :=
+      hraw.massConstrained_from_xpSigma_le_supNorm
+        hsigma_low hsigma_high hpNorm hstable
+        (hxpMinimal uStar huStar) (hmexistMinimal uStar huStar)
+    rcases hlocal with ⟨δ, hδ, A, hA, rate, hrate, hmain⟩
+    exact ⟨hstable, δ, hδ, A, hA, rate, hrate, hmain⟩
+  · intro ha hb uStar huStar
+    dsimp
+    intro hχcrit
+    exact hC.minimalEquilibrium_linearlyUnstable
+      unitIntervalNeumannSpectrum_hasNeumannSpectrum huStar hχcrit
+
 /-- Conditional interval-domain Paper3 Theorem 2.3.
 
 The Lyapunov inputs are only moment-decay frontiers; uniform convergence is
