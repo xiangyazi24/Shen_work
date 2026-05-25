@@ -383,6 +383,36 @@ theorem removeZeroModeCoeffCLM_opNorm_le :
   simpa [removeZeroModeCoeffCLM] using
     removeZeroModeCoeffLinearMap_norm_le u
 
+/-- Removing the zero mode twice is the same as removing it once. -/
+theorem removeZeroMode_idem (a : ℕ → ℂ) :
+    removeZeroMode (removeZeroMode a) = removeZeroMode a := by
+  funext n
+  by_cases hn : n = 0
+  · simp [removeZeroMode, hn]
+  · simp [removeZeroMode, hn]
+
+/-- The coefficient projection complement is idempotent. -/
+theorem removeZeroModeCoeffCLM_idempotent :
+    removeZeroModeCoeffCLM.comp removeZeroModeCoeffCLM =
+      removeZeroModeCoeffCLM := by
+  ext u n
+  by_cases hn : n = 0
+  · simp [removeZeroModeCoeffCLM_apply, removeZeroMode, hn]
+  · simp [removeZeroModeCoeffCLM_apply, removeZeroMode, hn]
+
+/-- The coefficient Neumann heat semigroup commutes with removing the zero
+mode. -/
+theorem neumannHeatCoeffCLM_commute_removeZeroCoeffCLM
+    (S : SpectralData) (H : HasNeumannSpectrum S) {t : ℝ} (ht : 0 ≤ t) :
+    (neumannHeatCoeffCLM S H t ht).comp removeZeroModeCoeffCLM =
+      removeZeroModeCoeffCLM.comp (neumannHeatCoeffCLM S H t ht) := by
+  ext u n
+  by_cases hn : n = 0
+  · simp [neumannHeatCoeffCLM_apply, removeZeroModeCoeffCLM_apply,
+      neumannSemigroupCoeff, removeZeroMode, hn]
+  · simp [neumannHeatCoeffCLM_apply, removeZeroModeCoeffCLM_apply,
+      neumannSemigroupCoeff, removeZeroMode, hn]
+
 /-- Pointwise squared multiplier estimate on the zero-mean subspace. -/
 theorem neumannSemigroupCoeff_removeZero_sq_le
     {S : SpectralData} (H : HasNeumannSpectrum S) {t : ℝ} (ht : 0 ≤ t)
@@ -580,6 +610,43 @@ theorem neumannHeatP0ComplCoeffCLM_opNorm_le
   simpa [neumannHeatP0ComplCoeffCLM] using
     neumannHeatP0ComplCoeffLinearMap_norm_le S H t ht u
 
+/-- The continuous coefficient operator `e^{tA} (I - P₀)` is the heat
+semigroup followed by the projection complement. -/
+theorem neumannHeatP0ComplCoeffCLM_eq_heat_comp_removeZero
+    (S : SpectralData) (H : HasNeumannSpectrum S) {t : ℝ} (ht : 0 ≤ t) :
+    neumannHeatP0ComplCoeffCLM S H t ht =
+      (neumannHeatCoeffCLM S H t ht).comp removeZeroModeCoeffCLM := by
+  ext u n
+  simp [neumannHeatP0ComplCoeffCLM_apply, neumannHeatCoeffCLM_apply,
+    removeZeroModeCoeffCLM_apply]
+
+/-- The coefficient operator `e^{tA} (I - P₀)` can equally be written with
+the projection complement after the heat semigroup. -/
+theorem neumannHeatP0ComplCoeffCLM_eq_removeZero_comp_heat
+    (S : SpectralData) (H : HasNeumannSpectrum S) {t : ℝ} (ht : 0 ≤ t) :
+    neumannHeatP0ComplCoeffCLM S H t ht =
+      removeZeroModeCoeffCLM.comp (neumannHeatCoeffCLM S H t ht) := by
+  rw [neumannHeatP0ComplCoeffCLM_eq_heat_comp_removeZero S H ht,
+    neumannHeatCoeffCLM_commute_removeZeroCoeffCLM S H ht]
+
+/-- Explicit composed coefficient operator-norm bound for
+`e^{tA} ∘ (I - P₀)`. -/
+theorem neumannHeatCoeffCLM_comp_removeZeroCoeffCLM_opNorm_le
+    (S : SpectralData) (H : HasNeumannSpectrum S) {t : ℝ} (ht : 0 ≤ t) :
+    ‖(neumannHeatCoeffCLM S H t ht).comp removeZeroModeCoeffCLM‖ ≤
+      Real.exp (-S.firstNonzero * t) := by
+  simpa [← neumannHeatP0ComplCoeffCLM_eq_heat_comp_removeZero S H ht] using
+    neumannHeatP0ComplCoeffCLM_opNorm_le S H ht
+
+/-- Explicit composed coefficient operator-norm bound for
+`(I - P₀) ∘ e^{tA}`. -/
+theorem removeZeroCoeffCLM_comp_neumannHeatCoeffCLM_opNorm_le
+    (S : SpectralData) (H : HasNeumannSpectrum S) {t : ℝ} (ht : 0 ≤ t) :
+    ‖removeZeroModeCoeffCLM.comp (neumannHeatCoeffCLM S H t ht)‖ ≤
+      Real.exp (-S.firstNonzero * t) := by
+  simpa [← neumannHeatP0ComplCoeffCLM_eq_removeZero_comp_heat S H ht] using
+    neumannHeatP0ComplCoeffCLM_opNorm_le S H ht
+
 /-! ### Concrete unit-interval `L²` heat semigroup by cosine diagonalization -/
 
 /-- Physical `L²(0,1)` space with the interval measure used by the heat-kernel
@@ -675,6 +742,18 @@ theorem unitIntervalNeumannP0Compl_opNorm_le :
     removeZeroModeCoeffLinearMap_norm_le (unitIntervalCosineHilbertBasis.repr f)
   simpa [unitIntervalNeumannP0Compl, removeZeroModeCoeffCLM] using hcoeff
 
+/-- The physical projection complement `I - P₀` is idempotent. -/
+theorem unitIntervalNeumannP0Compl_idempotent :
+    unitIntervalNeumannP0Compl.comp unitIntervalNeumannP0Compl =
+      unitIntervalNeumannP0Compl := by
+  apply ContinuousLinearMap.ext
+  intro f
+  apply unitIntervalCosineHilbertBasis.repr.injective
+  ext n
+  by_cases hn : n = 0
+  · simp [unitIntervalNeumannP0Compl_diagonal, removeZeroMode, hn]
+  · simp [unitIntervalNeumannP0Compl_diagonal, removeZeroMode, hn]
+
 /-- Concrete unit-interval operator `e^{tA} (I - P₀)` on physical `L²`. -/
 def unitIntervalNeumannHeatSemigroupP0Compl (t : ℝ) (ht : 0 ≤ t) :
     unitIntervalL2 →L[ℂ] unitIntervalL2 :=
@@ -709,6 +788,32 @@ theorem unitIntervalNeumannHeatSemigroupP0Compl_eq_comp
     unitIntervalNeumannHeatSemigroup_diagonal,
     unitIntervalNeumannP0Compl_diagonal]
 
+/-- The concrete unit-interval Neumann heat semigroup commutes with the
+projection complement `I - P₀`. -/
+theorem unitIntervalNeumannHeatSemigroup_commute_P0Compl
+    {t : ℝ} (ht : 0 ≤ t) :
+    (unitIntervalNeumannHeatSemigroup t ht).comp unitIntervalNeumannP0Compl =
+      unitIntervalNeumannP0Compl.comp (unitIntervalNeumannHeatSemigroup t ht) := by
+  apply ContinuousLinearMap.ext
+  intro f
+  apply unitIntervalCosineHilbertBasis.repr.injective
+  ext n
+  by_cases hn : n = 0
+  · simp [unitIntervalNeumannHeatSemigroup_diagonal,
+      unitIntervalNeumannP0Compl_diagonal, removeZeroMode, hn]
+  · simp [unitIntervalNeumannHeatSemigroup_diagonal,
+      unitIntervalNeumannP0Compl_diagonal, removeZeroMode, hn]
+
+/-- The bundled `e^{tA} (I - P₀)` operator can equally be written as
+`(I - P₀) e^{tA}`. -/
+theorem unitIntervalNeumannHeatSemigroupP0Compl_eq_P0Compl_comp
+    {t : ℝ} (ht : 0 ≤ t) :
+    unitIntervalNeumannHeatSemigroupP0Compl t ht =
+      unitIntervalNeumannP0Compl.comp
+        (unitIntervalNeumannHeatSemigroup t ht) := by
+  rw [unitIntervalNeumannHeatSemigroupP0Compl_eq_comp ht,
+    unitIntervalNeumannHeatSemigroup_commute_P0Compl ht]
+
 /-- Physical operator norm bound
 `‖e^{tA} (I - P₀)‖ ≤ exp (-π² t)` on `L²(0,1)`. -/
 theorem unitIntervalNeumannHeatSemigroupP0Compl_opNorm_le
@@ -734,6 +839,16 @@ theorem unitIntervalNeumannHeatSemigroup_comp_P0Compl_opNorm_le
         unitIntervalNeumannP0Compl‖ ≤
       Real.exp (-(Real.pi ^ 2) * t) := by
   simpa [unitIntervalNeumannHeatSemigroupP0Compl_eq_comp ht] using
+    unitIntervalNeumannHeatSemigroupP0Compl_opNorm_le ht
+
+/-- Physical operator norm bound in the reverse composed form:
+`‖(I - P₀) ∘ e^{tA}‖ ≤ exp (-π² t)` on `L²(0,1)`. -/
+theorem unitIntervalNeumannP0Compl_comp_heatSemigroup_opNorm_le
+    {t : ℝ} (ht : 0 ≤ t) :
+    ‖unitIntervalNeumannP0Compl.comp
+        (unitIntervalNeumannHeatSemigroup t ht)‖ ≤
+      Real.exp (-(Real.pi ^ 2) * t) := by
+  simpa [unitIntervalNeumannHeatSemigroupP0Compl_eq_P0Compl_comp ht] using
     unitIntervalNeumannHeatSemigroupP0Compl_opNorm_le ht
 
 /-- Same physical bound with any sectorial prefactor `C ≥ 1`. -/
@@ -803,6 +918,41 @@ theorem intervalNeumannHeatP0ComplCoeffCLM_opNorm_le
   simpa [intervalNeumannHeatP0ComplCoeffCLM, intervalNeumannSpectrum,
     intervalNeumannFirstNonzero] using
     neumannHeatP0ComplCoeffCLM_opNorm_le
+      (S := intervalNeumannSpectrum L)
+      (intervalNeumannSpectrum_hasNeumannSpectrum hL) ht
+
+/-- Interval-length coefficient heat semigroup commutes with the coefficient
+projection complement `I - P₀`. -/
+theorem intervalNeumannHeatCoeffCLM_commute_removeZeroCoeffCLM
+    {L t : ℝ} (hL : 0 < L) (ht : 0 ≤ t) :
+    (intervalNeumannHeatCoeffCLM L hL t ht).comp removeZeroModeCoeffCLM =
+      removeZeroModeCoeffCLM.comp (intervalNeumannHeatCoeffCLM L hL t ht) := by
+  simpa [intervalNeumannHeatCoeffCLM] using
+    neumannHeatCoeffCLM_commute_removeZeroCoeffCLM
+      (intervalNeumannSpectrum L)
+      (intervalNeumannSpectrum_hasNeumannSpectrum hL) ht
+
+/-- Explicit composed interval-length coefficient bound for
+`e^{tA} ∘ (I - P₀)`. -/
+theorem intervalNeumannHeatCoeffCLM_comp_removeZeroCoeffCLM_opNorm_le
+    {L t : ℝ} (hL : 0 < L) (ht : 0 ≤ t) :
+    ‖(intervalNeumannHeatCoeffCLM L hL t ht).comp removeZeroModeCoeffCLM‖ ≤
+      Real.exp (-((Real.pi / L) ^ 2) * t) := by
+  simpa [intervalNeumannHeatCoeffCLM, intervalNeumannSpectrum,
+    intervalNeumannFirstNonzero] using
+    neumannHeatCoeffCLM_comp_removeZeroCoeffCLM_opNorm_le
+      (S := intervalNeumannSpectrum L)
+      (intervalNeumannSpectrum_hasNeumannSpectrum hL) ht
+
+/-- Explicit composed interval-length coefficient bound for
+`(I - P₀) ∘ e^{tA}`. -/
+theorem removeZeroCoeffCLM_comp_intervalNeumannHeatCoeffCLM_opNorm_le
+    {L t : ℝ} (hL : 0 < L) (ht : 0 ≤ t) :
+    ‖removeZeroModeCoeffCLM.comp (intervalNeumannHeatCoeffCLM L hL t ht)‖ ≤
+      Real.exp (-((Real.pi / L) ^ 2) * t) := by
+  simpa [intervalNeumannHeatCoeffCLM, intervalNeumannSpectrum,
+    intervalNeumannFirstNonzero] using
+    removeZeroCoeffCLM_comp_neumannHeatCoeffCLM_opNorm_le
       (S := intervalNeumannSpectrum L)
       (intervalNeumannSpectrum_hasNeumannSpectrum hL) ht
 
