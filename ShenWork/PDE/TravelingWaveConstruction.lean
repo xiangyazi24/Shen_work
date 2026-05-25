@@ -545,4 +545,18 @@ theorem logisticProfile_stability_tail_data_of_stable_regime
   ⟨logisticProfile_hasStrictWaveUpperTailBound_of_stable_regime hregime,
     logisticProfile_exists_waveRightTailAsymptotic_of_two_lt hc⟩
 
+theorem logisticProfile_stability_tail_data_of_threshold
+    {p : CMParams} {threshold : ℝ → ℝ} {c : ℝ}
+    (hregime : ShenWork.Paper1.StableWaveParameterRegime p)
+    (hlower : ShenWork.Paper1.stabilitySpeedBaseline p < threshold p.χ)
+    (hc : threshold p.χ < c) :
+    ShenWork.Paper1.HasStrictWaveUpperTailBound p c
+        (logisticProfile (kappa c)) ∧
+      ∃ κ₁ : ℝ,
+        kappa c < κ₁ ∧ κ₁ < 1 ∧
+        ShenWork.Paper1.HasWaveRightTailAsymptotic c κ₁
+          (logisticProfile (kappa c)) :=
+  logisticProfile_stability_tail_data_of_stable_regime hregime
+    (ShenWork.Paper1.two_lt_of_stabilitySpeedBaseline_lt hlower hc)
+
 end
