@@ -130,6 +130,14 @@
   `unitIntervalCosineHilbertBasis.repr.symm`; the repr lemmas prove the
   coefficients are exactly recovered, and `spectralHeatCoeff_l2_summable`
   proves the heat multiplier preserves `ℓ²`.
+- **L² vectorized fractional increment** (2026-05-24):
+  `cosineCoeffLp2_norm_sq`, `unitIntervalCosineLpFromCoeffs_norm_sq`, and
+  `unitIntervalCosineHeatLpFromCoeffs_norm_sq` identify Hilbert-basis
+  reconstructed `Lp ℂ 2` norms with coefficient energies.  The same file now
+  also proves actual interval `L²` squared-norm estimates for the spectral
+  `S(t)-I` and `A^σS(t)` vectors:
+  `unitIntervalCosineHeatDifferenceLpFromCoeffs_norm_sq_le` and
+  `unitIntervalCosineFractionalHeatLpFromCoeffs_norm_sq_le`.
 - **BLOCKER / Point 17**: the full `Lemma_2_1 intervalDomain` statement is
   still not discharged.  The missing piece is not H0.1/H0.2 smoothing; it is
   the fractional-domain part of the abstract `SemigroupEstimateData` package:
@@ -266,7 +274,11 @@
   `intervalDomain_minimalEquilibrium_massStability_of_chi_lt_critical_of_sectorialHypothesis`:
   the unit-interval linear threshold is discharged, while raw sectoriality,
   branch norm-comparison, and branch small-data existence remain honest
-  frontiers.
+  frontiers.  新增
+  `intervalDomain_linearStabilityInstabilityRaw_of_branch_frontiers`，把
+  `LinearStabilityInstabilityNonminimalRaw` /
+  `LinearStabilityInstabilityMinimalRaw` 的 intervalDomain 版本接到同样的
+  branch-specific H3.1 前沿，避免 generic `∀ uStar` norm/small-data 假设。
 - **前置**: spectral theory on bounded domain, resolvent estimates
 - **目标文件**: `ShenWork/PDE/SectorialOperator.lean` (new)
 - **产出**: `SectorialLocalExponentialRaw`

@@ -627,12 +627,29 @@ def cosineCoeffLp2 (a : ℕ → ℂ)
   change Memℓp (a : PreLp (fun _ : ℕ => ℂ)) (2 : ℝ≥0∞)
   simpa [Memℓp] using ha
 
+/-- The `ℓ²` norm of packaged coefficients is the coefficient energy. -/
+theorem cosineCoeffLp2_norm_sq
+    (a : ℕ → ℂ) (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    ‖cosineCoeffLp2 a ha‖ ^ 2 = spectralCoeffL2Energy a := by
+  have hp : 0 < (2 : ℝ≥0∞).toReal := by norm_num
+  have h :=
+    lp.norm_rpow_eq_tsum (E := fun _ : ℕ => ℂ)
+      (p := (2 : ℝ≥0∞)) hp (cosineCoeffLp2 a ha)
+  simpa [spectralCoeffL2Energy] using h
+
 /-- Reconstruct an interval `L²` vector from square-summable normalized cosine
 coefficients. -/
 def unitIntervalCosineLpFromCoeffs
     (a : ℕ → ℂ) (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) :
     Lp ℂ 2 (intervalMeasure 1) :=
   unitIntervalCosineHilbertBasis.repr.symm (cosineCoeffLp2 a ha)
+
+/-- The Hilbert-basis reconstruction preserves the coefficient `ℓ²` energy. -/
+theorem unitIntervalCosineLpFromCoeffs_norm_sq
+    (a : ℕ → ℂ) (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    ‖unitIntervalCosineLpFromCoeffs a ha‖ ^ 2 =
+      spectralCoeffL2Energy a := by
+  simp [unitIntervalCosineLpFromCoeffs, cosineCoeffLp2_norm_sq]
 
 /-- The Hilbert-basis reconstruction has the prescribed normalized cosine
 coefficients. -/
@@ -645,6 +662,16 @@ theorem unitIntervalCosineLpFromCoeffs_repr
 /-- Spectral heat multiplier on normalized cosine coefficients. -/
 def spectralHeatCoeff (t : ℝ) (a : ℕ → ℂ) (n : ℕ) : ℂ :=
   (Real.exp (-(t * unitIntervalCosineEigenvalue n)) : ℂ) * a n
+
+/-- Spectral heat multiplier difference on normalized cosine coefficients. -/
+def spectralHeatDifferenceCoeff (t : ℝ) (a : ℕ → ℂ) (n : ℕ) : ℂ :=
+  ((Real.exp (-(t * unitIntervalCosineEigenvalue n)) - 1 : ℝ) : ℂ) * a n
+
+/-- Fractional heat multiplier on normalized cosine coefficients. -/
+def spectralFractionalHeatCoeff
+    (sigma t : ℝ) (a : ℕ → ℂ) (n : ℕ) : ℂ :=
+  (((unitIntervalCosineEigenvalue n ^ sigma) *
+      Real.exp (-(t * unitIntervalCosineEigenvalue n)) : ℝ) : ℂ) * a n
 
 /-- The spectral heat multiplier is an `ℓ²` contraction at the coefficient
 level. -/
@@ -694,6 +721,15 @@ def unitIntervalCosineHeatLpFromCoeffs
     (spectralHeatCoeff t a)
     (spectralHeatCoeff_l2_summable ht a ha)
 
+/-- The reconstructed heat vector has exactly the damped coefficient energy. -/
+theorem unitIntervalCosineHeatLpFromCoeffs_norm_sq
+    {t : ℝ} (ht : 0 ≤ t) (a : ℕ → ℂ)
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    ‖unitIntervalCosineHeatLpFromCoeffs ht a ha‖ ^ 2 =
+      spectralCoeffL2Energy (spectralHeatCoeff t a) := by
+  simp [unitIntervalCosineHeatLpFromCoeffs,
+    unitIntervalCosineLpFromCoeffs_norm_sq]
+
 /-- Coefficients of the reconstructed interval `L²` spectral heat vector are
 exactly the damped coefficients. -/
 theorem unitIntervalCosineHeatLpFromCoeffs_repr
@@ -705,6 +741,122 @@ theorem unitIntervalCosineHeatLpFromCoeffs_repr
   exact unitIntervalCosineLpFromCoeffs_repr
     (spectralHeatCoeff t a)
     (spectralHeatCoeff_l2_summable ht a ha) n
+
+/-! ### L² spectral fractional estimates as actual interval `Lp` vectors -/
+
+/-- The heat-difference coefficient sequence is square-summable under finite
+fractional coefficient energy. -/
+theorem spectralHeatDifferenceCoeff_l2_summable
+    {t sigma : ℝ} (a : ℕ → ℂ)
+    (ht : 0 < t) (hsigma_pos : 0 < sigma) (hsigma_le : sigma ≤ 1)
+    (henergy :
+      Summable fun n : ℕ =>
+        (unitIntervalCosineEigenvalue n ^ sigma) ^ 2 * ‖a n‖ ^ 2) :
+    Summable fun n : ℕ => ‖spectralHeatDifferenceCoeff t a n‖ ^ 2 := by
+  simpa [spectralHeatDifferenceCoeff] using
+    spectralCoeff_heat_difference_sq_summable
+      (a := a) ht hsigma_pos hsigma_le henergy
+
+/-- Reconstructed interval `L²` vector for the spectral difference
+`S(t) - I`. -/
+def unitIntervalCosineHeatDifferenceLpFromCoeffs
+    {t sigma : ℝ} (a : ℕ → ℂ)
+    (ht : 0 < t) (hsigma_pos : 0 < sigma) (hsigma_le : sigma ≤ 1)
+    (henergy :
+      Summable fun n : ℕ =>
+        (unitIntervalCosineEigenvalue n ^ sigma) ^ 2 * ‖a n‖ ^ 2) :
+    Lp ℂ 2 (intervalMeasure 1) :=
+  unitIntervalCosineLpFromCoeffs (spectralHeatDifferenceCoeff t a)
+    (spectralHeatDifferenceCoeff_l2_summable
+      a ht hsigma_pos hsigma_le henergy)
+
+/-- The actual interval `L²` spectral difference satisfies the fractional
+`S(t)-I` estimate, in squared norm form. -/
+theorem unitIntervalCosineHeatDifferenceLpFromCoeffs_norm_sq_le
+    {t sigma : ℝ} (a : ℕ → ℂ)
+    (ht : 0 < t) (hsigma_pos : 0 < sigma) (hsigma_le : sigma ≤ 1)
+    (henergy :
+      Summable fun n : ℕ =>
+        (unitIntervalCosineEigenvalue n ^ sigma) ^ 2 * ‖a n‖ ^ 2) :
+    ‖unitIntervalCosineHeatDifferenceLpFromCoeffs
+        a ht hsigma_pos hsigma_le henergy‖ ^ 2 ≤
+      (t ^ sigma) ^ 2 * spectralCoeffFractionalEnergy sigma a := by
+  rw [unitIntervalCosineHeatDifferenceLpFromCoeffs,
+    unitIntervalCosineLpFromCoeffs_norm_sq]
+  simpa [spectralCoeffL2Energy, spectralHeatDifferenceCoeff] using
+    spectralCoeff_heat_difference_tsum_le
+      (a := a) ht hsigma_pos hsigma_le henergy
+
+/-- The fractional heat coefficient sequence is square-summable for
+square-summable input coefficients. -/
+theorem spectralFractionalHeatCoeff_l2_summable
+    {t sigma : ℝ} (a : ℕ → ℂ)
+    (ht : 0 < t) (hsigma_pos : 0 < sigma) (hsigma_le : sigma ≤ 1)
+    (hcoeff : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    Summable fun n : ℕ => ‖spectralFractionalHeatCoeff sigma t a n‖ ^ 2 := by
+  have hs :=
+    spectralCoeff_heat_smoothing_sq_summable
+      (a := a) ht hsigma_pos hsigma_le hcoeff
+  convert hs using 1
+  ext n
+  have hlambda : 0 ≤ unitIntervalCosineEigenvalue n := by
+    dsimp [unitIntervalCosineEigenvalue]
+    positivity
+  have hlambda_pow_nonneg :
+      0 ≤ unitIntervalCosineEigenvalue n ^ sigma :=
+    Real.rpow_nonneg hlambda _
+  simp only [spectralFractionalHeatCoeff, Complex.ofReal_mul,
+    Complex.norm_mul, Complex.norm_real, Real.norm_eq_abs]
+  rw [abs_of_nonneg hlambda_pow_nonneg]
+  ring
+
+/-- The energy of the fractional heat coefficients is the smoothing series
+already estimated above. -/
+theorem spectralFractionalHeatCoeff_energy_eq
+    (sigma t : ℝ) (a : ℕ → ℂ) :
+    spectralCoeffL2Energy (spectralFractionalHeatCoeff sigma t a) =
+      ∑' n : ℕ,
+        (unitIntervalCosineEigenvalue n ^ sigma) ^ 2 *
+          ‖(((Real.exp (-(t * unitIntervalCosineEigenvalue n)) : ℝ) : ℂ) *
+            a n)‖ ^ 2 := by
+  unfold spectralCoeffL2Energy
+  apply tsum_congr
+  intro n
+  have hlambda : 0 ≤ unitIntervalCosineEigenvalue n := by
+    dsimp [unitIntervalCosineEigenvalue]
+    positivity
+  have hlambda_pow_nonneg :
+      0 ≤ unitIntervalCosineEigenvalue n ^ sigma :=
+    Real.rpow_nonneg hlambda _
+  simp [spectralFractionalHeatCoeff, Complex.norm_real, Real.norm_eq_abs,
+    abs_of_nonneg hlambda_pow_nonneg]
+  ring
+
+/-- Reconstructed interval `L²` vector for the fractional heat output
+`A^σ S(t)`. -/
+def unitIntervalCosineFractionalHeatLpFromCoeffs
+    {t sigma : ℝ} (a : ℕ → ℂ)
+    (ht : 0 < t) (hsigma_pos : 0 < sigma) (hsigma_le : sigma ≤ 1)
+    (hcoeff : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    Lp ℂ 2 (intervalMeasure 1) :=
+  unitIntervalCosineLpFromCoeffs (spectralFractionalHeatCoeff sigma t a)
+    (spectralFractionalHeatCoeff_l2_summable
+      a ht hsigma_pos hsigma_le hcoeff)
+
+/-- The actual interval `L²` fractional heat output satisfies the spectral
+smoothing estimate, in squared norm form. -/
+theorem unitIntervalCosineFractionalHeatLpFromCoeffs_norm_sq_le
+    {t sigma : ℝ} (a : ℕ → ℂ)
+    (ht : 0 < t) (hsigma_pos : 0 < sigma) (hsigma_le : sigma ≤ 1)
+    (hcoeff : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    ‖unitIntervalCosineFractionalHeatLpFromCoeffs
+        a ht hsigma_pos hsigma_le hcoeff‖ ^ 2 ≤
+      (t ^ (-sigma)) ^ 2 * spectralCoeffL2Energy a := by
+  rw [unitIntervalCosineFractionalHeatLpFromCoeffs,
+    unitIntervalCosineLpFromCoeffs_norm_sq,
+    spectralFractionalHeatCoeff_energy_eq]
+  exact spectralCoeff_heat_smoothing_tsum_le
+    (a := a) ht hsigma_pos hsigma_le hcoeff
 
 end ShenWork.Paper2.IntervalDomainLemma21
 
