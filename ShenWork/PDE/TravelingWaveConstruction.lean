@@ -388,6 +388,24 @@ theorem logisticProfile_hasStrictWaveUpperTailBound
     (logisticProfile_shenUpperBoundPositive hχ_nonneg hχ_lt)
     hχ_nonneg hχ_lt
 
+theorem logisticProfile_hasStrictWaveUpperTailBound_of_one_le_MChi
+    {p : CMParams} {c : ℝ} (hM : 1 ≤ ShenWork.Paper1.MChi p) :
+    ShenWork.Paper1.HasStrictWaveUpperTailBound p c
+      (logisticProfile (kappa c)) := by
+  intro x
+  refine ⟨logisticProfile_pos (kappa c) x, ?_⟩
+  apply lt_min
+  · exact (logisticProfile_lt_one (kappa c) x).trans_le hM
+  · simpa [neg_mul] using logisticProfile_lt_exp (kappa c) x
+
+theorem logisticProfile_hasStrictWaveUpperTailBound_of_stable_regime
+    {p : CMParams} {c : ℝ}
+    (hregime : ShenWork.Paper1.StableWaveParameterRegime p) :
+    ShenWork.Paper1.HasStrictWaveUpperTailBound p c
+      (logisticProfile (kappa c)) :=
+  logisticProfile_hasStrictWaveUpperTailBound_of_one_le_MChi
+    (ShenWork.Paper1.StableWaveParameterRegime.one_le_MChi hregime)
+
 theorem logisticProfile_tail_bounds
     {p : CMParams} {c : ℝ}
     (hχ_nonneg : 0 ≤ p.χ) (hχ_lt : p.χ < 1) :
@@ -514,5 +532,17 @@ theorem logisticProfile_exists_waveRightTailAsymptotic_of_two_lt
         (logisticProfile (kappa c)) :=
   logisticProfile_exists_waveRightTailAsymptotic_of_kappa_lt_one
     (kappa_pos_of_two_lt hc) (kappa_lt_one_of_two_lt hc)
+
+theorem logisticProfile_stability_tail_data_of_stable_regime
+    {p : CMParams} {c : ℝ}
+    (hregime : ShenWork.Paper1.StableWaveParameterRegime p) (hc : 2 < c) :
+    ShenWork.Paper1.HasStrictWaveUpperTailBound p c
+        (logisticProfile (kappa c)) ∧
+      ∃ κ₁ : ℝ,
+        kappa c < κ₁ ∧ κ₁ < 1 ∧
+        ShenWork.Paper1.HasWaveRightTailAsymptotic c κ₁
+          (logisticProfile (kappa c)) :=
+  ⟨logisticProfile_hasStrictWaveUpperTailBound_of_stable_regime hregime,
+    logisticProfile_exists_waveRightTailAsymptotic_of_two_lt hc⟩
 
 end
