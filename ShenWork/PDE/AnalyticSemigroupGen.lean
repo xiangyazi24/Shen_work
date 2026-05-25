@@ -1,5 +1,6 @@
 import ShenWork.PDE.ResolventEstimate
 import Mathlib.Analysis.Analytic.Constructions
+import Mathlib.Analysis.InnerProductSpace.l2Space
 import Mathlib.Analysis.SpecialFunctions.ExpDeriv
 
 /-!
@@ -28,6 +29,7 @@ namespace ShenWork.PDE.AnalyticSemigroupGen
 
 open ShenWork.Paper3
 open ShenWork.PDE.ResolventEstimate
+open scoped ENNReal
 
 /-! ### Diagonal complex-time semigroup -/
 
@@ -45,6 +47,29 @@ def shiftedNeumannGeneratorHeatCoeff (ω t : ℝ)
     (a : ℕ → ℂ) (n : ℕ) : ℂ :=
   (shiftedNeumannEigenvalue ω n : ℂ) *
     shiftedNeumannHeatCoeff ω t a n
+
+/-! ### Packaging coefficient sequences as `ℓ²` vectors -/
+
+/-- Package a square-summable coefficient sequence as an element of `ℓ²`. -/
+def coeffLp2 (a : ℕ → ℂ)
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) : ℓ²(ℕ, ℂ) := by
+  refine ⟨a, ?_⟩
+  change Memℓp (a : PreLp (fun _ : ℕ => ℂ)) (2 : ℝ≥0∞)
+  simpa [Memℓp] using ha
+
+/-- The defining square summability of an `ℓ²` vector. -/
+theorem lp2_summable (u : ℓ²(ℕ, ℂ)) :
+    Summable fun n : ℕ => ‖u n‖ ^ 2 := by
+  have hu : Memℓp (u : PreLp (fun _ : ℕ => ℂ)) (2 : ℝ≥0∞) := u.2
+  simpa [Memℓp] using hu
+
+/-- The `ℓ²` norm squared is the coefficient energy. -/
+theorem lp2_norm_sq (u : ℓ²(ℕ, ℂ)) :
+    ‖u‖ ^ 2 = coeffL2Energy (fun n : ℕ => u n) := by
+  have hp : 0 < (2 : ℝ≥0∞).toReal := by norm_num
+  have h := lp.norm_rpow_eq_tsum (E := fun _ : ℕ => ℂ)
+    (p := (2 : ℝ≥0∞)) hp u
+  simpa [coeffL2Energy] using h
 
 theorem shiftedNeumannAnalyticHeatCoeff_zero
     (ω : ℝ) (a : ℕ → ℂ) :
@@ -195,6 +220,84 @@ theorem shiftedNeumannAnalyticHeatCoeff_l2_norm_le
     shiftedNeumannAnalyticHeatCoeff_l2_energy_le hω hz ha
   exact Real.sqrt_le_sqrt henergy
 
+/-! ### Complex-time heat multiplier as a bounded `ℓ²` operator -/
+
+/-- The complex-time heat multiplier as a linear map on coefficient `ℓ²`. -/
+def shiftedNeumannAnalyticHeatCoeffLinearMap
+    (ω : ℝ) (hω : 0 ≤ ω) (z : ℂ) (hz : 0 ≤ z.re) :
+    ℓ²(ℕ, ℂ) →ₗ[ℂ] ℓ²(ℕ, ℂ) where
+  toFun u := coeffLp2
+    (shiftedNeumannAnalyticHeatCoeff ω z (fun n : ℕ => u n))
+    (shiftedNeumannAnalyticHeatCoeff_l2_summable hω hz (lp2_summable u))
+  map_add' u v := by
+    ext n
+    change shiftedNeumannAnalyticHeatCoeff ω z
+        (fun n : ℕ => (u + v) n) n =
+      shiftedNeumannAnalyticHeatCoeff ω z (fun n : ℕ => u n) n +
+        shiftedNeumannAnalyticHeatCoeff ω z (fun n : ℕ => v n) n
+    unfold shiftedNeumannAnalyticHeatCoeff
+    change Complex.exp (-((shiftedNeumannEigenvalue ω n : ℂ) * z)) *
+        (((u : ℕ → ℂ) + (v : ℕ → ℂ)) n) =
+      Complex.exp (-((shiftedNeumannEigenvalue ω n : ℂ) * z)) *
+        (u : ℕ → ℂ) n +
+      Complex.exp (-((shiftedNeumannEigenvalue ω n : ℂ) * z)) *
+        (v : ℕ → ℂ) n
+    rw [Pi.add_apply, mul_add]
+  map_smul' c u := by
+    ext n
+    change shiftedNeumannAnalyticHeatCoeff ω z
+        (fun n : ℕ => (c • u) n) n =
+      c * shiftedNeumannAnalyticHeatCoeff ω z (fun n : ℕ => u n) n
+    unfold shiftedNeumannAnalyticHeatCoeff
+    change Complex.exp (-((shiftedNeumannEigenvalue ω n : ℂ) * z)) *
+        ((c • (u : ℕ → ℂ)) n) =
+      c * (Complex.exp (-((shiftedNeumannEigenvalue ω n : ℂ) * z)) *
+        (u : ℕ → ℂ) n)
+    rw [Pi.smul_apply]
+    simp [smul_eq_mul]
+    ring
+
+/-- The complex-time heat multiplier is a contraction on the closed
+right-half-plane sector. -/
+theorem shiftedNeumannAnalyticHeatCoeffLinearMap_norm_le
+    (ω : ℝ) (hω : 0 ≤ ω) (z : ℂ) (hz : 0 ≤ z.re)
+    (u : ℓ²(ℕ, ℂ)) :
+    ‖shiftedNeumannAnalyticHeatCoeffLinearMap ω hω z hz u‖ ≤ ‖u‖ := by
+  have henergy :=
+    shiftedNeumannAnalyticHeatCoeff_l2_energy_le
+      (ω := ω) hω (z := z) hz (lp2_summable u)
+  have hp : 0 < (2 : ℝ≥0∞).toReal := by norm_num
+  refine lp.norm_le_of_tsum_le (E := fun _ : ℕ => ℂ)
+    (p := (2 : ℝ≥0∞)) hp (norm_nonneg u) ?_
+  have hsq := lp2_norm_sq u
+  simpa [shiftedNeumannAnalyticHeatCoeffLinearMap, coeffLp2,
+    coeffL2Energy, hsq] using henergy
+
+/-- The complex-time heat multiplier as a continuous linear map on `ℓ²`. -/
+def shiftedNeumannAnalyticHeatCoeffCLM
+    (ω : ℝ) (hω : 0 ≤ ω) (z : ℂ) (hz : 0 ≤ z.re) :
+    ℓ²(ℕ, ℂ) →L[ℂ] ℓ²(ℕ, ℂ) :=
+  (shiftedNeumannAnalyticHeatCoeffLinearMap ω hω z hz).mkContinuous 1 (by
+    intro u
+    simpa using shiftedNeumannAnalyticHeatCoeffLinearMap_norm_le ω hω z hz u)
+
+theorem shiftedNeumannAnalyticHeatCoeffCLM_apply
+    (ω : ℝ) (hω : 0 ≤ ω) {z : ℂ} (hz : 0 ≤ z.re)
+    (u : ℓ²(ℕ, ℂ)) (n : ℕ) :
+    shiftedNeumannAnalyticHeatCoeffCLM ω hω z hz u n =
+      shiftedNeumannAnalyticHeatCoeff ω z (fun n : ℕ => u n) n := by
+  simp [shiftedNeumannAnalyticHeatCoeffCLM,
+    shiftedNeumannAnalyticHeatCoeffLinearMap, coeffLp2]
+
+/-- Operator norm form of right-half-plane boundedness for `e^{-zA}`. -/
+theorem shiftedNeumannAnalyticHeatCoeffCLM_opNorm_le
+    (ω : ℝ) (hω : 0 ≤ ω) {z : ℂ} (hz : 0 ≤ z.re) :
+    ‖shiftedNeumannAnalyticHeatCoeffCLM ω hω z hz‖ ≤ 1 := by
+  refine ContinuousLinearMap.opNorm_le_bound _ zero_le_one ?_
+  intro u
+  simpa [shiftedNeumannAnalyticHeatCoeffCLM] using
+    shiftedNeumannAnalyticHeatCoeffLinearMap_norm_le ω hω z hz u
+
 /-! ### The `A e^{-tA}` bound -/
 
 lemma real_mul_exp_neg_le_one (y : ℝ) :
@@ -317,6 +420,106 @@ theorem shiftedNeumannGeneratorHeatCoeff_l2_norm_le
           rw [Real.sqrt_sq hfactor_nonneg]
           rfl
 
+/-! ### `A e^{-tA}` as a bounded `ℓ²` operator -/
+
+/-- The generator-smoothed heat multiplier as a linear map on coefficient `ℓ²`. -/
+def shiftedNeumannGeneratorHeatCoeffLinearMap
+    (ω t : ℝ) (hω : 0 ≤ ω) (ht : 0 < t) :
+    ℓ²(ℕ, ℂ) →ₗ[ℂ] ℓ²(ℕ, ℂ) where
+  toFun u := coeffLp2
+    (shiftedNeumannGeneratorHeatCoeff ω t (fun n : ℕ => u n))
+    (shiftedNeumannGeneratorHeatCoeff_l2_summable hω ht (lp2_summable u))
+  map_add' u v := by
+    ext n
+    change shiftedNeumannGeneratorHeatCoeff ω t
+        (fun n : ℕ => (u + v) n) n =
+      shiftedNeumannGeneratorHeatCoeff ω t (fun n : ℕ => u n) n +
+        shiftedNeumannGeneratorHeatCoeff ω t (fun n : ℕ => v n) n
+    unfold shiftedNeumannGeneratorHeatCoeff shiftedNeumannHeatCoeff
+    change (shiftedNeumannEigenvalue ω n : ℂ) *
+        ((Real.exp (-(shiftedNeumannEigenvalue ω n * t)) : ℂ) *
+          (((u : ℕ → ℂ) + (v : ℕ → ℂ)) n)) =
+      (shiftedNeumannEigenvalue ω n : ℂ) *
+        ((Real.exp (-(shiftedNeumannEigenvalue ω n * t)) : ℂ) *
+          (u : ℕ → ℂ) n) +
+      (shiftedNeumannEigenvalue ω n : ℂ) *
+        ((Real.exp (-(shiftedNeumannEigenvalue ω n * t)) : ℂ) *
+          (v : ℕ → ℂ) n)
+    rw [Pi.add_apply, mul_add]
+    ring
+  map_smul' c u := by
+    ext n
+    change shiftedNeumannGeneratorHeatCoeff ω t
+        (fun n : ℕ => (c • u) n) n =
+      c * shiftedNeumannGeneratorHeatCoeff ω t (fun n : ℕ => u n) n
+    unfold shiftedNeumannGeneratorHeatCoeff shiftedNeumannHeatCoeff
+    change (shiftedNeumannEigenvalue ω n : ℂ) *
+        ((Real.exp (-(shiftedNeumannEigenvalue ω n * t)) : ℂ) *
+          ((c • (u : ℕ → ℂ)) n)) =
+      c * ((shiftedNeumannEigenvalue ω n : ℂ) *
+        ((Real.exp (-(shiftedNeumannEigenvalue ω n * t)) : ℂ) *
+          (u : ℕ → ℂ) n))
+    rw [Pi.smul_apply]
+    simp [smul_eq_mul]
+    ring
+
+/-- Operator-vector form of `‖A e^{-tA}‖ ≤ 1 / t`. -/
+theorem shiftedNeumannGeneratorHeatCoeffLinearMap_norm_le
+    (ω t : ℝ) (hω : 0 ≤ ω) (ht : 0 < t) (u : ℓ²(ℕ, ℂ)) :
+    ‖shiftedNeumannGeneratorHeatCoeffLinearMap ω t hω ht u‖ ≤
+      ((1 : ℝ) / t) * ‖u‖ := by
+  have henergy :=
+    shiftedNeumannGeneratorHeatCoeff_l2_energy_le
+      (ω := ω) (t := t) hω ht (lp2_summable u)
+  have hfactor_nonneg : 0 ≤ (1 : ℝ) / t :=
+    div_nonneg zero_le_one ht.le
+  have hp : 0 < (2 : ℝ≥0∞).toReal := by norm_num
+  refine lp.norm_le_of_tsum_le (E := fun _ : ℕ => ℂ)
+    (p := (2 : ℝ≥0∞)) hp
+    (mul_nonneg hfactor_nonneg (norm_nonneg u)) ?_
+  have hsq := lp2_norm_sq u
+  have htarget :
+      coeffL2Energy
+          (shiftedNeumannGeneratorHeatCoeff ω t (fun n : ℕ => u n)) ≤
+        (((1 : ℝ) / t) * ‖u‖) ^ 2 := by
+    calc
+      coeffL2Energy
+          (shiftedNeumannGeneratorHeatCoeff ω t (fun n : ℕ => u n))
+          ≤ ((1 : ℝ) / t) ^ 2 *
+              coeffL2Energy (fun n : ℕ => u n) := henergy
+      _ = (((1 : ℝ) / t) * ‖u‖) ^ 2 := by
+            rw [← hsq]
+            ring
+  simpa [shiftedNeumannGeneratorHeatCoeffLinearMap, coeffLp2,
+    coeffL2Energy] using htarget
+
+/-- The generator-smoothed heat multiplier as a continuous linear map on `ℓ²`. -/
+def shiftedNeumannGeneratorHeatCoeffCLM
+    (ω t : ℝ) (hω : 0 ≤ ω) (ht : 0 < t) :
+    ℓ²(ℕ, ℂ) →L[ℂ] ℓ²(ℕ, ℂ) :=
+  (shiftedNeumannGeneratorHeatCoeffLinearMap ω t hω ht).mkContinuous
+    ((1 : ℝ) / t) (by
+      intro u
+      exact shiftedNeumannGeneratorHeatCoeffLinearMap_norm_le ω t hω ht u)
+
+theorem shiftedNeumannGeneratorHeatCoeffCLM_apply
+    (ω t : ℝ) (hω : 0 ≤ ω) (ht : 0 < t)
+    (u : ℓ²(ℕ, ℂ)) (n : ℕ) :
+    shiftedNeumannGeneratorHeatCoeffCLM ω t hω ht u n =
+      shiftedNeumannGeneratorHeatCoeff ω t (fun n : ℕ => u n) n := by
+  simp [shiftedNeumannGeneratorHeatCoeffCLM,
+    shiftedNeumannGeneratorHeatCoeffLinearMap, coeffLp2]
+
+/-- Operator norm form of `‖A e^{-tA}‖ ≤ 1 / t`. -/
+theorem shiftedNeumannGeneratorHeatCoeffCLM_opNorm_le
+    (ω t : ℝ) (hω : 0 ≤ ω) (ht : 0 < t) :
+    ‖shiftedNeumannGeneratorHeatCoeffCLM ω t hω ht‖ ≤ (1 : ℝ) / t := by
+  refine ContinuousLinearMap.opNorm_le_bound _
+    (div_nonneg zero_le_one ht.le) ?_
+  intro u
+  simpa [shiftedNeumannGeneratorHeatCoeffCLM] using
+    shiftedNeumannGeneratorHeatCoeffLinearMap_norm_le ω t hω ht u
+
 theorem shiftedNeumannHeatCoeff_hasDerivAt
     (ω : ℝ) (a : ℕ → ℂ) (n : ℕ) (t : ℝ) :
     HasDerivAt (fun s : ℝ => shiftedNeumannHeatCoeff ω s a n)
@@ -435,6 +638,95 @@ theorem shiftedNeumannHeatCoeff_l2_norm_decay
           rw [Real.sqrt_mul (sq_nonneg (Real.exp (-(ω * t))))]
           rw [Real.sqrt_sq hfactor_nonneg]
           rfl
+
+/-! ### Real-time heat multiplier as a bounded `ℓ²` operator -/
+
+/-- The real-time shifted heat multiplier as a linear map on coefficient `ℓ²`. -/
+def shiftedNeumannHeatCoeffLinearMap
+    (ω t : ℝ) (ht : 0 ≤ t) :
+    ℓ²(ℕ, ℂ) →ₗ[ℂ] ℓ²(ℕ, ℂ) where
+  toFun u := coeffLp2
+    (shiftedNeumannHeatCoeff ω t (fun n : ℕ => u n))
+    (shiftedNeumannHeatCoeff_l2_summable_of_exp_shift
+      (ω := ω) (t := t) ht (lp2_summable u))
+  map_add' u v := by
+    ext n
+    change shiftedNeumannHeatCoeff ω t
+        (fun n : ℕ => (u + v) n) n =
+      shiftedNeumannHeatCoeff ω t (fun n : ℕ => u n) n +
+        shiftedNeumannHeatCoeff ω t (fun n : ℕ => v n) n
+    unfold shiftedNeumannHeatCoeff
+    change (Real.exp (-(shiftedNeumannEigenvalue ω n * t)) : ℂ) *
+        (((u : ℕ → ℂ) + (v : ℕ → ℂ)) n) =
+      (Real.exp (-(shiftedNeumannEigenvalue ω n * t)) : ℂ) *
+        (u : ℕ → ℂ) n +
+      (Real.exp (-(shiftedNeumannEigenvalue ω n * t)) : ℂ) *
+        (v : ℕ → ℂ) n
+    rw [Pi.add_apply, mul_add]
+  map_smul' c u := by
+    ext n
+    change shiftedNeumannHeatCoeff ω t
+        (fun n : ℕ => (c • u) n) n =
+      c * shiftedNeumannHeatCoeff ω t (fun n : ℕ => u n) n
+    unfold shiftedNeumannHeatCoeff
+    change (Real.exp (-(shiftedNeumannEigenvalue ω n * t)) : ℂ) *
+        ((c • (u : ℕ → ℂ)) n) =
+      c * ((Real.exp (-(shiftedNeumannEigenvalue ω n * t)) : ℂ) *
+        (u : ℕ → ℂ) n)
+    rw [Pi.smul_apply]
+    simp [smul_eq_mul]
+    ring
+
+/-- Operator-vector form of the spectral-bound decay
+`‖e^{-tA}‖ ≤ exp (-ω t)`. -/
+theorem shiftedNeumannHeatCoeffLinearMap_norm_decay
+    (ω t : ℝ) (ht : 0 ≤ t) (u : ℓ²(ℕ, ℂ)) :
+    ‖shiftedNeumannHeatCoeffLinearMap ω t ht u‖ ≤
+      Real.exp (-(ω * t)) * ‖u‖ := by
+  have henergy :=
+    shiftedNeumannHeatCoeff_l2_energy_decay
+      (ω := ω) (t := t) ht (lp2_summable u)
+  have hp : 0 < (2 : ℝ≥0∞).toReal := by norm_num
+  refine lp.norm_le_of_tsum_le (E := fun _ : ℕ => ℂ)
+    (p := (2 : ℝ≥0∞)) hp
+    (mul_nonneg (Real.exp_nonneg _) (norm_nonneg u)) ?_
+  have hsq := lp2_norm_sq u
+  have htarget :
+      coeffL2Energy (shiftedNeumannHeatCoeff ω t (fun n : ℕ => u n)) ≤
+        (Real.exp (-(ω * t)) * ‖u‖) ^ 2 := by
+    calc
+      coeffL2Energy (shiftedNeumannHeatCoeff ω t (fun n : ℕ => u n))
+          ≤ (Real.exp (-(ω * t))) ^ 2 *
+              coeffL2Energy (fun n : ℕ => u n) := henergy
+      _ = (Real.exp (-(ω * t)) * ‖u‖) ^ 2 := by
+            rw [← hsq]
+            ring
+  simpa [shiftedNeumannHeatCoeffLinearMap, coeffLp2, coeffL2Energy] using htarget
+
+/-- The real-time shifted heat multiplier as a continuous linear map on `ℓ²`. -/
+def shiftedNeumannHeatCoeffCLM
+    (ω t : ℝ) (ht : 0 ≤ t) :
+    ℓ²(ℕ, ℂ) →L[ℂ] ℓ²(ℕ, ℂ) :=
+  (shiftedNeumannHeatCoeffLinearMap ω t ht).mkContinuous
+    (Real.exp (-(ω * t))) (by
+      intro u
+      exact shiftedNeumannHeatCoeffLinearMap_norm_decay ω t ht u)
+
+theorem shiftedNeumannHeatCoeffCLM_apply
+    (ω t : ℝ) (ht : 0 ≤ t) (u : ℓ²(ℕ, ℂ)) (n : ℕ) :
+    shiftedNeumannHeatCoeffCLM ω t ht u n =
+      shiftedNeumannHeatCoeff ω t (fun n : ℕ => u n) n := by
+  simp [shiftedNeumannHeatCoeffCLM, shiftedNeumannHeatCoeffLinearMap, coeffLp2]
+
+/-- Operator norm form of the spectral-bound decay
+`‖e^{-tA}‖ ≤ exp (-ω t)`. -/
+theorem shiftedNeumannHeatCoeffCLM_opNorm_decay
+    (ω t : ℝ) (ht : 0 ≤ t) :
+    ‖shiftedNeumannHeatCoeffCLM ω t ht‖ ≤ Real.exp (-(ω * t)) := by
+  refine ContinuousLinearMap.opNorm_le_bound _ (Real.exp_nonneg _) ?_
+  intro u
+  simpa [shiftedNeumannHeatCoeffCLM] using
+    shiftedNeumannHeatCoeffLinearMap_norm_decay ω t ht u
 
 /-- Pointwise first-mode decay for zero-mode-free coefficients under the
 unshifted Neumann heat semigroup. -/
