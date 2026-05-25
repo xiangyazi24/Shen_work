@@ -1882,6 +1882,24 @@ theorem intervalHeatSemigroup_deriv_eq_scaled_unit
           (fun u => f (L * u)) y)
       (x := x))
 
+/-- The scaled interval spectral semigroup has the already-proved unit
+gradient estimate when `L = 1`. -/
+theorem intervalHeatSemigroup_unit_grad_Lp_Lq_bound
+    {t p q : ℝ} (ht : 0 < t) (hp : 1 ≤ p) (hq : 0 < q)
+    {f : ℝ → ℝ}
+    (hf_mem : MemLp f (ENNReal.ofReal p) (intervalMeasure 1)) :
+    lpNorm
+        (fun x =>
+          deriv
+            (fun z =>
+              intervalHeatSemigroup 1 t f z) x)
+        (ENNReal.ofReal q) (intervalMeasure 1) ≤
+      (unitIntervalCosineGradientL1LinftyConstant / t ^ 2) *
+        lpNorm f (ENNReal.ofReal p) (intervalMeasure 1) := by
+  simpa [intervalHeatSemigroup_one] using
+    unitIntervalNeumannHeatSemigroup_grad_Lp_Lq_bound
+      (t := t) (p := p) (q := q) ht hp hq (f := f) hf_mem
+
 /-! ## Zeroth-reflection helper-operator gradient bounds -/
 
 /-- Full-line `L¹ → L∞` heat-gradient factor used by the helper-operator
