@@ -273,8 +273,12 @@
   intervalDomain `Theorem_2_2` statement from the concrete unit-interval
   Neumann spectrum plus explicit H3.1 frontiers: raw sectorial local
   exponential estimate, `X^σ_p`/sup-norm comparison, ordinary small-data
-  existence, and mass-constrained small-data existence.  This is state③, not
-  DONE: the sectorial/local-existence frontiers are still unproved.
+  existence, and mass-constrained small-data existence.  It also proves
+  `intervalDomain_Theorem_2_2_of_xpSigma_le_supNorm_frontiers`, discharging
+  the abstract `SupControlsXpSigmaDistance` condition from the primitive
+  pointwise comparison `X^σ_p ≤ supNorm`.  This is state③, not DONE: the
+  sectorial, primitive norm-comparison, and local-existence frontiers are still
+  unproved.
 
 ### H4.2 — Theorem 2.3 on intervalDomain (global stability χ≤0)
 - **前置**: H3.2 (Lyapunov), H3.3 (persistence)

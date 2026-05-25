@@ -58,6 +58,38 @@ theorem intervalDomain_Theorem_2_2_of_sectorial_frontiers
     unitIntervalNeumannSpectrum_hasNeumannSpectrum hC hraw
     hsigma_low hsigma_high hpNorm hcontrol hexist hmexist
 
+/-- Conditional interval-domain Paper3 Theorem 2.2 with the norm-control
+frontier reduced to the primitive comparison `X^σ_p ≤ supNorm`. -/
+theorem intervalDomain_Theorem_2_2_of_xpSigma_le_supNorm_frontiers
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hC : Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p C)
+    (hraw :
+      SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hxp :
+      ∀ uStar, ∀ u₀ : intervalDomain.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤
+          intervalDomain.supNorm (fun x => u₀ x - uStar))
+    (hexist :
+      ∀ uStar, ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p uStar delta)
+    (hmexist :
+      ∀ uStar, ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p uStar delta) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum N C :=
+  intervalDomain_Theorem_2_2_of_sectorial_frontiers
+    p N C hC hraw hsigma_low hsigma_high hpNorm
+    (fun uStar =>
+      SupControlsXpSigmaDistance.of_xpSigma_le_supNorm
+        (D := intervalDomain) (N := N) (sigma := sigma) (pNorm := pNorm)
+        (uStar := uStar) (hxp uStar))
+    hexist hmexist
+
 /-- Conditional interval-domain Paper3 Theorem 2.3.
 
 The Lyapunov inputs are only moment-decay frontiers; uniform convergence is
