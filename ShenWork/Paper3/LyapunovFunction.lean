@@ -330,6 +330,17 @@ theorem chemotaxisSignalEnergy_nonneg_of_integral_nonneg
       (w := v t x - vStar)
       (grad := D.gradNorm (fun y => v t y - vStar) x) hmu)
 
+/-- Signal-gradient dissipation is nonnegative once the domain integral
+preserves nonnegative functions. -/
+theorem chemotaxisSignalGradientDissipation_nonneg_of_integral_nonneg
+    {D : BoundedDomainData} {vStar : ℝ}
+    {v : ℝ → D.Point → ℝ} {t : ℝ}
+    (hintegral_nonneg :
+      ∀ f : D.Point → ℝ, (∀ x, 0 ≤ f x) → 0 ≤ D.integral f) :
+    0 ≤ chemotaxisSignalGradientDissipation D vStar v t := by
+  exact hintegral_nonneg _ (fun x =>
+    sq_nonneg (D.gradNorm (fun y => v t y - vStar) x))
+
 /-- The concrete unit interval integral preserves nonnegative functions. -/
 theorem intervalDomain_integral_nonneg
     (f : intervalDomain.Point → ℝ)
@@ -410,6 +421,13 @@ theorem intervalDomain_chemotaxisSignalEnergy_nonneg
     0 ≤ chemotaxisSignalEnergy intervalDomain mu vStar v t :=
   chemotaxisSignalEnergy_nonneg_of_integral_nonneg
     intervalDomain_integral_nonneg hmu
+
+/-- Concrete interval-domain signal-gradient dissipation nonnegativity. -/
+theorem intervalDomain_chemotaxisSignalGradientDissipation_nonneg
+    {vStar : ℝ} {v : ℝ → intervalDomain.Point → ℝ} {t : ℝ} :
+    0 ≤ chemotaxisSignalGradientDissipation intervalDomain vStar v t :=
+  chemotaxisSignalGradientDissipation_nonneg_of_integral_nonneg
+    intervalDomain_integral_nonneg
 
 /-- If a differentiable energy has nonpositive time derivative on `(0,∞)`,
 then it is antitone there. -/
