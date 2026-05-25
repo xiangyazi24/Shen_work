@@ -10,6 +10,7 @@
 -/
 import ShenWork.Paper2.IntervalDomainMoserClosure
 import ShenWork.PDE.LeibnizRule
+import Mathlib.Analysis.ODE.Gronwall
 
 open ShenWork.Paper2
 open ShenWork.IntervalDomain
@@ -427,6 +428,211 @@ theorem intervalDomain_Lp_abs_energy_gronwall_family_of_neumann_by_parts_bound
     (hu_pos t ht0 htT)
     (hneumann_by_parts_bound t ht0 htT)
 
+/-- Scalar Gronwall bound for the absolute Lp energy on `[0,T]`.
+
+The right-derivative hypothesis is the analytic frontier needed by Mathlib's
+Gronwall theorem. -/
+theorem intervalDomain_Lp_abs_energy_le_gronwallBound
+    {u : ℝ → intervalDomain.Point → ℝ} {T p δ c d : ℝ}
+    (hcont :
+      ContinuousOn (fun t => intervalDomainLpAbsEnergy p u t)
+        (Set.Icc (0 : ℝ) T))
+    (hderiv_within :
+      ∀ t ∈ Set.Ico (0 : ℝ) T,
+        HasDerivWithinAt
+          (fun τ => intervalDomainLpAbsEnergy p u τ)
+          (deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t)
+          (Set.Ici t) t)
+    (hinit : intervalDomainLpAbsEnergy p u 0 ≤ δ)
+    (hderiv_le :
+      ∀ t ∈ Set.Ico (0 : ℝ) T,
+        deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t ≤
+          c * intervalDomainLpAbsEnergy p u t + d) :
+    ∀ t ∈ Set.Icc (0 : ℝ) T,
+      intervalDomainLpAbsEnergy p u t ≤ gronwallBound δ c d (t - 0) := by
+  exact le_gronwallBound_of_liminf_deriv_right_le
+    (f := fun t => intervalDomainLpAbsEnergy p u t)
+    (f' := fun t => deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t)
+    (δ := δ) (K := c) (ε := d) (a := 0) (b := T)
+    hcont
+    (fun t ht r hr => (hderiv_within t ht).liminf_right_slope_le hr)
+    hinit
+    hderiv_le
+
+/-- A Gronwall estimate on `[0,T]` gives a uniform absolute Lp bound on
+`(0,T)`. -/
+theorem intervalDomain_Lp_abs_energy_bounded_before_of_gronwall
+    {u : ℝ → intervalDomain.Point → ℝ} {T p δ c d : ℝ}
+    (hδ_nonneg : 0 ≤ δ) (hc_nonneg : 0 ≤ c) (hd_nonneg : 0 ≤ d)
+    (hcont :
+      ContinuousOn (fun t => intervalDomainLpAbsEnergy p u t)
+        (Set.Icc (0 : ℝ) T))
+    (hderiv_within :
+      ∀ t ∈ Set.Ico (0 : ℝ) T,
+        HasDerivWithinAt
+          (fun τ => intervalDomainLpAbsEnergy p u τ)
+          (deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t)
+          (Set.Ici t) t)
+    (hinit : intervalDomainLpAbsEnergy p u 0 ≤ δ)
+    (hderiv_le :
+      ∀ t ∈ Set.Ico (0 : ℝ) T,
+        deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t ≤
+          c * intervalDomainLpAbsEnergy p u t + d) :
+    ∃ C, ∀ t, 0 < t → t < T →
+      intervalDomainLpAbsEnergy p u t ≤ C := by
+  refine ⟨gronwallBound δ c d T, ?_⟩
+  intro t ht0 htT
+  have htIcc : t ∈ Set.Icc (0 : ℝ) T := ⟨le_of_lt ht0, le_of_lt htT⟩
+  have hpoint :=
+    intervalDomain_Lp_abs_energy_le_gronwallBound
+      (u := u) (T := T) (p := p) (δ := δ) (c := c) (d := d)
+      hcont hderiv_within hinit hderiv_le t htIcc
+  have hmono := gronwallBound_mono hδ_nonneg hd_nonneg hc_nonneg
+  have hleT : t - 0 ≤ T := by linarith
+  exact hpoint.trans (hmono hleT)
+
+/-- Convert a uniform absolute Lp-energy bound into the repository's
+`LpPowerBoundedBefore` statement, under nonnegativity of the solution. -/
+theorem intervalDomain_LpPowerBoundedBefore_of_abs_energy_bound
+    {u : ℝ → intervalDomain.Point → ℝ} {T p C : ℝ}
+    (hu_nonneg :
+      ∀ t, 0 < t → t < T → ∀ x : intervalDomain.Point, 0 ≤ u t x)
+    (habs_bound :
+      ∀ t, 0 < t → t < T → intervalDomainLpAbsEnergy p u t ≤ C) :
+    LpPowerBoundedBefore intervalDomain p T u := by
+  refine ⟨C, ?_⟩
+  intro t ht0 htT
+  have hfun :
+      (fun x : intervalDomain.Point => (u t x) ^ p) =
+        fun x : intervalDomain.Point => |u t x| ^ p := by
+    funext x
+    rw [abs_of_nonneg (hu_nonneg t ht0 htT x)]
+  have henergy_eq :
+      intervalDomain.integral (fun x : intervalDomain.Point => (u t x) ^ p) =
+        intervalDomainLpAbsEnergy p u t := by
+    simp [intervalDomainLpAbsEnergy, hfun]
+  rw [henergy_eq]
+  exact habs_bound t ht0 htT
+
+/-- Gronwall plus nonnegativity gives the standard uniform Lp bound
+`LpPowerBoundedBefore`. -/
+theorem intervalDomain_LpPowerBoundedBefore_of_abs_energy_gronwall
+    {u : ℝ → intervalDomain.Point → ℝ} {T p δ c d : ℝ}
+    (hδ_nonneg : 0 ≤ δ) (hc_nonneg : 0 ≤ c) (hd_nonneg : 0 ≤ d)
+    (hu_nonneg :
+      ∀ t, 0 < t → t < T → ∀ x : intervalDomain.Point, 0 ≤ u t x)
+    (hcont :
+      ContinuousOn (fun t => intervalDomainLpAbsEnergy p u t)
+        (Set.Icc (0 : ℝ) T))
+    (hderiv_within :
+      ∀ t ∈ Set.Ico (0 : ℝ) T,
+        HasDerivWithinAt
+          (fun τ => intervalDomainLpAbsEnergy p u τ)
+          (deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t)
+          (Set.Ici t) t)
+    (hinit : intervalDomainLpAbsEnergy p u 0 ≤ δ)
+    (hderiv_le :
+      ∀ t ∈ Set.Ico (0 : ℝ) T,
+        deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t ≤
+          c * intervalDomainLpAbsEnergy p u t + d) :
+    LpPowerBoundedBefore intervalDomain p T u := by
+  rcases intervalDomain_Lp_abs_energy_bounded_before_of_gronwall
+      (u := u) (T := T) (p := p) (δ := δ) (c := c) (d := d)
+      hδ_nonneg hc_nonneg hd_nonneg hcont hderiv_within hinit hderiv_le with
+    ⟨C, hC⟩
+  exact intervalDomain_LpPowerBoundedBefore_of_abs_energy_bound
+    (u := u) (T := T) (p := p) (C := C) hu_nonneg hC
+
+/-- Drop nonnegative terms and a uniformly bounded right-hand side from the
+assembled Lp Gronwall differential inequality, yielding the scalar derivative
+bound used by `intervalDomain_LpPowerBoundedBefore_of_abs_energy_gronwall`. -/
+theorem intervalDomain_Lp_abs_energy_deriv_le_of_energy_source_bound
+    {u : ℝ → intervalDomain.Point → ℝ}
+    {T p rho A B K L_const R : ℝ}
+    (hp : 0 < p)
+    (henergy :
+      ∀ t ∈ Set.Ico (0 : ℝ) T,
+        (1 / p) * deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t +
+            A * intervalDomainLpGradientEnergy p u t +
+            B * intervalDomainLpAbsEnergy p u t ≤
+          K * intervalDomainLpAbsEnergy (p + rho) u t + L_const)
+    (hdrop :
+      ∀ t ∈ Set.Ico (0 : ℝ) T,
+        0 ≤ A * intervalDomainLpGradientEnergy p u t +
+          B * intervalDomainLpAbsEnergy p u t)
+    (hsource :
+      ∀ t ∈ Set.Ico (0 : ℝ) T,
+        K * intervalDomainLpAbsEnergy (p + rho) u t + L_const ≤ R) :
+    ∀ t ∈ Set.Ico (0 : ℝ) T,
+      deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t ≤
+        0 * intervalDomainLpAbsEnergy p u t + p * R := by
+  intro t ht
+  have hscaled :
+      (1 / p) * deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t ≤ R := by
+    have hfull := henergy t ht
+    have hdrop_t := hdrop t ht
+    have hsource_t := hsource t ht
+    linarith
+  have hmul := mul_le_mul_of_nonneg_left hscaled hp.le
+  have hident :
+      p * ((1 / p) * deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t) =
+        deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t := by
+    field_simp [ne_of_gt hp]
+  calc
+    deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t =
+        p * ((1 / p) * deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t) :=
+          hident.symm
+    _ ≤ p * R := hmul
+    _ = 0 * intervalDomainLpAbsEnergy p u t + p * R := by ring
+
+/-- From the assembled Lp Gronwall inequality plus a uniform source bound,
+derive `LpPowerBoundedBefore` for the current exponent.
+
+The hypotheses at `t = 0` are kept explicit: they are the initial trace and
+right-derivative regularity needed by Mathlib's Gronwall theorem. -/
+theorem intervalDomain_LpPowerBoundedBefore_of_energy_gronwall_source_bound
+    {u : ℝ → intervalDomain.Point → ℝ}
+    {T p rho A B K L_const R δ : ℝ}
+    (hp : 0 < p) (hδ_nonneg : 0 ≤ δ) (hR_nonneg : 0 ≤ R)
+    (hu_nonneg :
+      ∀ t, 0 < t → t < T → ∀ x : intervalDomain.Point, 0 ≤ u t x)
+    (hcont :
+      ContinuousOn (fun t => intervalDomainLpAbsEnergy p u t)
+        (Set.Icc (0 : ℝ) T))
+    (hderiv_within :
+      ∀ t ∈ Set.Ico (0 : ℝ) T,
+        HasDerivWithinAt
+          (fun τ => intervalDomainLpAbsEnergy p u τ)
+          (deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t)
+          (Set.Ici t) t)
+    (hinit : intervalDomainLpAbsEnergy p u 0 ≤ δ)
+    (henergy :
+      ∀ t ∈ Set.Ico (0 : ℝ) T,
+        (1 / p) * deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t +
+            A * intervalDomainLpGradientEnergy p u t +
+            B * intervalDomainLpAbsEnergy p u t ≤
+          K * intervalDomainLpAbsEnergy (p + rho) u t + L_const)
+    (hdrop :
+      ∀ t ∈ Set.Ico (0 : ℝ) T,
+        0 ≤ A * intervalDomainLpGradientEnergy p u t +
+          B * intervalDomainLpAbsEnergy p u t)
+    (hsource :
+      ∀ t ∈ Set.Ico (0 : ℝ) T,
+        K * intervalDomainLpAbsEnergy (p + rho) u t + L_const ≤ R) :
+    LpPowerBoundedBefore intervalDomain p T u := by
+  have hderiv_le :
+      ∀ t ∈ Set.Ico (0 : ℝ) T,
+        deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t ≤
+          0 * intervalDomainLpAbsEnergy p u t + p * R :=
+    intervalDomain_Lp_abs_energy_deriv_le_of_energy_source_bound
+      (u := u) (T := T) (p := p) (rho := rho)
+      (A := A) (B := B) (K := K) (L_const := L_const) (R := R)
+      hp henergy hdrop hsource
+  exact intervalDomain_LpPowerBoundedBefore_of_abs_energy_gronwall
+    (u := u) (T := T) (p := p) (δ := δ) (c := 0) (d := p * R)
+    hδ_nonneg (by norm_num) (mul_nonneg hp.le hR_nonneg)
+    hu_nonneg hcont hderiv_within hinit hderiv_le
+
 lemma rpow_le_one_add_rpow_of_nonneg_of_le
     {a p q : ℝ} (ha : 0 ≤ a) (hp : 0 ≤ p) (hpq : p ≤ q) :
     a ^ p ≤ a ^ q + 1 := by
@@ -579,6 +785,51 @@ theorem intervalDomain_LpPowerBoundedBefore_mono_of_integrable_inside_nonneg
     (∫ x in (0 : ℝ)..1,
         intervalDomainLift (fun y : intervalDomain.Point => (u t y) ^ p) x) ≤ Cq + 1
   exact le_trans hmono htarget
+
+/-- Feed an arithmetic chain of Gronwall-produced Lp bounds into the concrete
+finite-interval Moser closure. -/
+theorem intervalDomain_all_exponents_of_LpPowerBoundedBefore_chain
+    {u : ℝ → intervalDomain.Point → ℝ} {T p0 rho : ℝ}
+    (hrho : 0 < rho)
+    (hchain : ∀ n : ℕ, LpPowerBoundedBefore intervalDomain (p0 + n * rho) T u)
+    (hu_nonneg :
+      ∀ t, 0 < t → t < T → ∀ x : intervalDomain.Point, 0 ≤ u t x)
+    (hpow_int :
+      ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
+        IntervalIntegrable
+          (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
+          MeasureTheory.volume 0 1) :
+    ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u := by
+  exact IntervalDomainMoserClosure.all_exponents_of_chain_and_lp_mono
+    hrho hchain (fun {p q} hp hpq hq_bound =>
+      intervalDomain_LpPowerBoundedBefore_mono_of_integrable_nonneg
+        (p := p) (q := q) hp hpq hu_nonneg
+        (hpow_int p hp)
+        (hpow_int q (lt_of_lt_of_le hp hpq))
+        hq_bound)
+
+/-- Same Moser closure from a Gronwall-produced exponent chain, with
+nonnegativity required only on the open interval carrying the integral. -/
+theorem intervalDomain_all_exponents_of_LpPowerBoundedBefore_chain_inside_nonneg
+    {u : ℝ → intervalDomain.Point → ℝ} {T p0 rho : ℝ}
+    (hrho : 0 < rho)
+    (hchain : ∀ n : ℕ, LpPowerBoundedBefore intervalDomain (p0 + n * rho) T u)
+    (hu_nonneg :
+      ∀ t, 0 < t → t < T →
+        ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside → 0 ≤ u t x)
+    (hpow_int :
+      ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
+        IntervalIntegrable
+          (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
+          MeasureTheory.volume 0 1) :
+    ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u := by
+  exact IntervalDomainMoserClosure.all_exponents_of_chain_and_lp_mono
+    hrho hchain (fun {p q} hp hpq hq_bound =>
+      intervalDomain_LpPowerBoundedBefore_mono_of_integrable_inside_nonneg
+        (p := p) (q := q) hp hpq hu_nonneg
+        (hpow_int p hp)
+        (hpow_int q (lt_of_lt_of_le hp hpq))
+        hq_bound)
 
 /-- Interval-domain Moser chain closure with the concrete finite-interval Lp
 monotonicity lemma above.  The remaining hypotheses are the standard PDE
