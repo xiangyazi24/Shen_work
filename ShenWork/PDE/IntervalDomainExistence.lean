@@ -2680,6 +2680,15 @@ The full `IntervalDomainExistence.localExistence` requires `∀ u₀, PID u₀ �
   those same concrete Picard/Duhamel hypotheses;
   `intervalDuhamel_fixed_point_unique_of_contraction` gives uniqueness for
   bounded local fixed points in the contraction ball;
+  `reachableClassicalHorizon_mono` proves that reachable classical horizons are
+  downward closed;
+  `reachableArbitrarilyLong_of_not_bddAbove` proves the global branch when the
+  reachable-horizon set is unbounded;
+  `standardContinuationAlternative_of_finiteSup_realization_and_extension`
+  proves the standard maximal-continuation dichotomy from finite-sup
+  realization plus endpoint continuation past any failed alternative;
+  `equilibrium_reachableClassicalHorizonSet_not_bddAbove` formally records
+  that positive equilibrium data lies in the unbounded/global branch;
   `Proposition_1_1_intervalDomain_of_localExistence_and_finiteHorizonAlternative`
   isolates the exact remaining proposition-level frontier;
   `Proposition_1_1_intervalDomain_of_intervalDuhamel_contraction_regularization`
@@ -2699,12 +2708,26 @@ The full `IntervalDomainExistence.localExistence` requires `∀ u₀, PID u₀ �
    parabolic regularity theory (mild → classical) + comparison principle
    (positivity) + strong maximum principle (sup norm control).
 
-3. Full `Proposition_1_1 intervalDomain p` also requires a maximal-time
-   continuation/blow-up alternative.  A short-time Banach fixed point on a
-   fixed interval only gives local existence; it does not imply the stated
-   finite-horizon alternative at `Tmax`.
+3. The order-theoretic part of maximal continuation is proved, but the analytic
+   finite-sup branch still needs:
+   (a) realization of the finite `sSup` by a classical solution on `(0,Tmax)`,
+   via compactness/gluing of reachable-horizon solutions;
+   (b) endpoint trace/compactness strong enough to restart local existence at
+   times approaching `Tmax`;
+   (c) uniqueness strong enough to paste the restarted solution to the
+   pre-existing branch.  The scalar `ODEUniqueness.lean` lemmas handle only
+   Bernoulli/logistic profiles; the file does not yet contain PDE uniqueness
+   for arbitrary interval classical solutions.
 
-4. The current concrete `intervalDuhamelOperator` contains the logistic source
+4. The current formal `Proposition_1_1 intervalDomain p` has only a finite
+   `Tmax` branch.  The standard maximal-continuation theorem has a global
+   alternative, and the positive equilibrium theorem proves this global branch
+   is not vacuous.  Therefore the current proposition cannot be obtained from
+   standard continuation without either adding a global branch to the statement
+   or proving an additional hypothesis that excludes global solutions, which is
+   false for positive equilibrium data.
+
+5. The current concrete `intervalDuhamelOperator` contains the logistic source
    transported by the Neumann heat semigroup.  The full
    `IsPaper2ClassicalSolution` still contains the chemotaxis term and elliptic
    signal equation, so `RegularityBootstrap` must come from a concrete
