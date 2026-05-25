@@ -837,6 +837,37 @@ theorem intervalDomain_thetaMomentConvergesToZero_of_hasDerivAt_le_neg_mul
     hrate hs intervalDomain_integral_nonneg huStar htheta hu_nonneg
     hderiv hle
 
+/-- Concrete interval-domain theta-moment convergence with pointwise
+nonnegativity discharged from solution positivity plus the explicit endpoint
+frontier. -/
+theorem
+    intervalDomain_thetaMomentConvergesToZero_of_hasDerivAt_le_neg_mul_of_solution_positivity
+    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta rate s : ℝ} {momentSlope : ℝ → ℝ}
+    (hrate : 0 < rate) (hs : 0 < s)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hboundary_pos :
+      ∀ t, 0 < t → ∀ x : intervalDomain.Point,
+        x ∈ intervalDomain.boundary → 0 < u t x)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau =>
+            chemotaxisThetaDissipation intervalDomain uStar theta (u tau))
+          (momentSlope t) t)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    ThetaMomentConvergesToZero intervalDomain u uStar theta :=
+  intervalDomain_thetaMomentConvergesToZero_of_hasDerivAt_le_neg_mul
+    hrate hs huStar htheta
+    (fun t ht x =>
+      (intervalDomain_positiveGlobalBoundedSolution_pos_of_boundary_pos
+        huv hboundary_pos t (lt_of_lt_of_le hs ht) x).le)
+    hderiv hle
+
 /-- Entropy dissipation makes the Paper3 entropy functional decrease.
 
 Point 17 status: conditional theorem, state ③.  The missing upstream analytic
