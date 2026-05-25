@@ -14,8 +14,9 @@
   Consequently the route below exposes the nonsharp estimates that are
   currently available from H0.1/H0.2 and keeps the exact statement-layer
   frontiers separate: exponential damping in `Lemma_2_1`, a fractional graph
-  norm compatible with `S(t)-I`, and the sharp `t^{-1/2}` divergence
-  singularity in `Lemma_2_3`/`Lemma_2_4`.
+  norm compatible with `S(t)-I`, a genuine Sobolev embedding norm for the
+  first branch of `Lemma_2_2`, and the sharp `t^{-1/2}` divergence singularity
+  in `Lemma_2_3`/`Lemma_2_4`.
 -/
 import ShenWork.Paper2.Statements
 import ShenWork.PDE.HeatKernelGradientEstimates
@@ -556,6 +557,21 @@ theorem inv_not_dominated_by_one_add_inv_sqrt :
   have hcontr : A ^ 2 < A ^ 2 :=
     lt_of_le_of_lt hbound (lt_of_le_of_lt hright_le hhalf_lt)
   exact (lt_irrefl _) hcontr
+
+/-- Bundled exact-route frontier for the current concrete interval data.
+
+The nonsharp H0.1/H0.2 route above is available and used downstream.  The
+original Paper2 statement-layer constants additionally require a damping
+factor and a sharp small-time divergence factor.  These two scalar facts record
+that neither can be recovered by merely increasing a constant in the present
+undamped/nonsharp data. -/
+theorem intervalDomainSemigroupEstimateData_exact_route_scalar_frontier :
+    (¬ ∃ C : ℝ, ∀ t > 0, 1 ≤ C * Real.exp (-(1 * t))) ∧
+      (¬ ∃ C : ℝ, ∀ t > 0,
+        1 / t ≤ C * (1 + t ^ (-(1 / 2 : ℝ)))) := by
+  exact
+    ⟨one_not_bounded_by_exp_decay (by norm_num),
+      inv_not_dominated_by_one_add_inv_sqrt⟩
 
 /-! ### Fractional semigroup multiplier estimates -/
 
