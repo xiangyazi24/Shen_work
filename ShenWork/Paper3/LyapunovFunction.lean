@@ -346,6 +346,73 @@ theorem energy_tendsto_zero_of_dissipation_control
       simpa [hright] using hcontrol'
     linarith
 
+/-- If a nonnegative production term is eventually bounded by a decaying energy,
+then the production term also tends to zero. -/
+theorem tendsto_zero_of_eventually_nonneg_le_const_mul
+    {E G : ℝ → ℝ} {K : ℝ}
+    (hE : Tendsto E atTop (𝓝 0))
+    (hG_nonneg : ∀ᶠ t in atTop, 0 ≤ G t)
+    (hbound : ∀ᶠ t in atTop, G t ≤ K * E t) :
+    Tendsto G atTop (𝓝 0) := by
+  have hupper : Tendsto (fun t => K * E t) atTop (𝓝 0) := by
+    simpa using (tendsto_const_nhds.mul hE)
+  exact squeeze_zero' hG_nonneg hbound hupper
+
+/-- Theta moment convergence from a decaying Lyapunov energy plus an eventual
+comparison of theta production by that energy.
+
+Point 17 status: conditional theorem, state ③.  This proves the post-processing
+only; the comparison estimate is the named analytic input `hbound`. -/
+theorem thetaMomentConvergesToZero_of_energy_tendsto_zero_and_eventual_bound
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {uStar theta : ℝ} {E : ℝ → ℝ} {K : ℝ}
+    (hE : Tendsto E atTop (𝓝 0))
+    (hnonneg :
+      ∀ᶠ t in atTop,
+        0 ≤ chemotaxisThetaDissipation D uStar theta (u t))
+    (hbound :
+      ∀ᶠ t in atTop,
+        chemotaxisThetaDissipation D uStar theta (u t) ≤ K * E t) :
+    ThetaMomentConvergesToZero D u uStar theta :=
+  thetaMomentConvergesToZero_of_chemotaxisThetaDissipation
+    (tendsto_zero_of_eventually_nonneg_le_const_mul hE hnonneg hbound)
+
+/-- Same energy-comparison bridge, with theta-production nonnegativity
+discharged from pointwise positivity and positivity of the abstract integral. -/
+theorem thetaMomentConvergesToZero_of_energy_tendsto_zero_and_integral_nonneg_bound
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {uStar theta : ℝ} {E : ℝ → ℝ} {K : ℝ}
+    (hE : Tendsto E atTop (𝓝 0))
+    (hintegral_nonneg :
+      ∀ f : D.Point → ℝ, (∀ x, 0 ≤ f x) → 0 ≤ D.integral f)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (hu_nonneg : ∀ᶠ t in atTop, ∀ x, 0 ≤ u t x)
+    (hbound :
+      ∀ᶠ t in atTop,
+        chemotaxisThetaDissipation D uStar theta (u t) ≤ K * E t) :
+    ThetaMomentConvergesToZero D u uStar theta := by
+  refine thetaMomentConvergesToZero_of_energy_tendsto_zero_and_eventual_bound
+    hE ?_ hbound
+  exact hu_nonneg.mono fun t ht =>
+    chemotaxisThetaDissipation_nonneg_of_integral_nonneg
+      hintegral_nonneg huStar htheta ht
+
+/-- Concrete interval-domain version of the energy-comparison bridge for theta
+moment convergence. -/
+theorem intervalDomain_thetaMomentConvergesToZero_of_energy_tendsto_zero_and_bound
+    {u : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta : ℝ} {E : ℝ → ℝ} {K : ℝ}
+    (hE : Tendsto E atTop (𝓝 0))
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (hu_nonneg : ∀ᶠ t in atTop, ∀ x, 0 ≤ u t x)
+    (hbound :
+      ∀ᶠ t in atTop,
+        chemotaxisThetaDissipation intervalDomain uStar theta (u t) ≤
+          K * E t) :
+    ThetaMomentConvergesToZero intervalDomain u uStar theta :=
+  thetaMomentConvergesToZero_of_energy_tendsto_zero_and_integral_nonneg_bound
+    hE intervalDomain_integral_nonneg huStar htheta hu_nonneg hbound
+
 /-- A direct theta-moment differential decay estimate gives the statement-layer
 `ThetaMomentConvergesToZero` conclusion.
 
