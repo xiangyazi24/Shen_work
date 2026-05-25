@@ -306,7 +306,15 @@
   的线性 Hilbert-space spectral/semigroup 核心；仍未把它升级成
   `SectorialLocalExponentialRaw`，因为该 raw statement 量化 nonlinear
   global classical solutions and requires a Duhamel/fixed-point small-data
-  theory plus `X^σ_p`/`C¹` smoothing estimates.
+  theory plus `X^σ_p`/`C¹` smoothing estimates.  后续增量在同文件补上
+  coefficient generator / shifted resolvent 左右逆、逐模时间导数，以及
+  nonpositive-sensitivity positive-equilibrium branch 的 explicit uniform gap:
+  `diagonalSemigroupCoeff_hasDerivAt`,
+  `diagonalShiftMinusGeneratorCoeff_resolvent`,
+  `diagonalResolventCoeff_shiftMinusGenerator`,
+  `sigma_le_neg_logisticDamping_of_chi_nonpos`,
+  `UnitIntervalLinearSpectralGap.of_chi_nonpos_a_pos`, and
+  `positiveEquilibrium_UnitIntervalLinearSpectralGap_of_chi_nonpos`.
 - **前置**: spectral theory on bounded domain, resolvent estimates
 - **目标文件**: `ShenWork/PDE/SectorialOperator.lean` (new)
 - **产出**: `SectorialLocalExponentialRaw`

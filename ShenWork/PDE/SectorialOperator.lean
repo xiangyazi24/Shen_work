@@ -17,6 +17,7 @@
 import ShenWork.PDE.CosineSpectrum
 import ShenWork.PDE.HeatKernelGradientEstimates
 import ShenWork.Paper3.Statements
+import Mathlib.Analysis.Complex.RealDeriv
 
 open MeasureTheory
 open scoped ENNReal
@@ -53,6 +54,14 @@ def cosineLpFromCoeffs
     Lp ℂ 2 (intervalMeasure 1) :=
   unitIntervalCosineHilbertBasis.repr.symm (coeffLp2 a ha)
 
+/-- The reconstructed interval `L²` vector has the prescribed normalized
+cosine coefficients. -/
+theorem cosineLpFromCoeffs_repr
+    (a : ℕ → ℂ) (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) (n : ℕ) :
+    unitIntervalCosineHilbertBasis.repr
+        (cosineLpFromCoeffs a ha) n = a n := by
+  simp [cosineLpFromCoeffs, coeffLp2]
+
 /-- The reconstructed interval `L²` norm is exactly the coefficient energy. -/
 theorem cosineLpFromCoeffs_norm_sq
     (a : ℕ → ℂ) (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) :
@@ -64,6 +73,16 @@ theorem cosineLpFromCoeffs_norm_sq
   simpa [cosineLpFromCoeffs, coeffL2Energy] using h
 
 /-! ### Diagonal semigroup and resolvent on coefficients -/
+
+/-- Diagonal generator multiplier on coefficients. -/
+def diagonalGeneratorCoeff
+    (growth : ℕ → ℝ) (a : ℕ → ℂ) (n : ℕ) : ℂ :=
+  (growth n : ℂ) * a n
+
+/-- Coefficient form of `(z - A) a` for the diagonal generator `A`. -/
+def diagonalShiftMinusGeneratorCoeff
+    (growth : ℕ → ℝ) (z : ℝ) (a : ℕ → ℂ) (n : ℕ) : ℂ :=
+  ((z - growth n : ℝ) : ℂ) * a n
 
 /-- Diagonal semigroup multiplier `exp(t g_n)` on coefficients. -/
 def diagonalSemigroupCoeff
@@ -94,6 +113,24 @@ theorem diagonalSemigroupCoeff_zero
     diagonalSemigroupCoeff growth 0 a = a := by
   funext n
   simp [diagonalSemigroupCoeff]
+
+/-- Coefficientwise derivative of the diagonal semigroup orbit. -/
+theorem diagonalSemigroupCoeff_hasDerivAt
+    (growth : ℕ → ℝ) (a : ℕ → ℂ) (n : ℕ) (t : ℝ) :
+    HasDerivAt (fun s : ℝ => diagonalSemigroupCoeff growth s a n)
+      (diagonalGeneratorCoeff growth
+        (diagonalSemigroupCoeff growth t a) n) t := by
+  unfold diagonalSemigroupCoeff diagonalGeneratorCoeff
+  have hreal : HasDerivAt (fun s : ℝ => Real.exp (s * growth n))
+      (Real.exp (t * growth n) * growth n) t := by
+    simpa [mul_comm, mul_left_comm, mul_assoc] using
+      (((hasDerivAt_id t).mul_const (growth n)).exp)
+  have hc : HasDerivAt
+      (fun s : ℝ => ((Real.exp (s * growth n) : ℝ) : ℂ))
+      ((Real.exp (t * growth n) * growth n : ℝ) : ℂ) t :=
+    hreal.ofReal_comp
+  simpa [Complex.ofReal_mul, mul_comm, mul_left_comm, mul_assoc] using
+    hc.const_mul (a n)
 
 /-- Pointwise coefficient bound from a spectral upper bound `growth_n ≤ ω`. -/
 theorem diagonalSemigroupCoeff_sq_le_of_growth_le
@@ -244,6 +281,70 @@ theorem diagonalResolventCoeff_l2_energy_le_of_growth_le
   have htsum := hs.tsum_le_tsum hle hmajor
   simpa [coeffL2Energy, ha.tsum_mul_left] using htsum
 
+/-- `(z - A) R(z,A) = I` at the coefficient level, outside the real spectral
+half-line. -/
+theorem diagonalShiftMinusGeneratorCoeff_resolvent
+    {growth : ℕ → ℝ} {omega z : ℝ}
+    (hz : omega < z) (hgrowth : ∀ n, growth n ≤ omega)
+    (a : ℕ → ℂ) :
+    diagonalShiftMinusGeneratorCoeff growth z
+        (diagonalResolventCoeff growth z a) = a := by
+  funext n
+  have hzg : z ≠ growth n := by
+    linarith [hgrowth n, hz]
+  have hden_ne : (z - growth n : ℝ) ≠ 0 :=
+    sub_ne_zero.mpr hzg
+  have hprod :
+      ((z - growth n : ℝ) : ℂ) *
+          (((z - growth n)⁻¹ : ℝ) : ℂ) = 1 := by
+    have hprod_real : (z - growth n : ℝ) * (z - growth n)⁻¹ = 1 :=
+      mul_inv_cancel₀ hden_ne
+    exact_mod_cast hprod_real
+  calc
+    diagonalShiftMinusGeneratorCoeff growth z
+        (diagonalResolventCoeff growth z a) n
+        =
+          ((z - growth n : ℝ) : ℂ) *
+            ((((z - growth n)⁻¹ : ℝ) : ℂ) * a n) := by
+            rfl
+    _ = (((z - growth n : ℝ) : ℂ) *
+          (((z - growth n)⁻¹ : ℝ) : ℂ)) * a n := by
+            ring
+    _ = a n := by
+            simpa using congrArg (fun c : ℂ => c * a n) hprod
+
+/-- `R(z,A) (z - A) = I` at the coefficient level, outside the real spectral
+half-line. -/
+theorem diagonalResolventCoeff_shiftMinusGenerator
+    {growth : ℕ → ℝ} {omega z : ℝ}
+    (hz : omega < z) (hgrowth : ∀ n, growth n ≤ omega)
+    (a : ℕ → ℂ) :
+    diagonalResolventCoeff growth z
+        (diagonalShiftMinusGeneratorCoeff growth z a) = a := by
+  funext n
+  have hzg : z ≠ growth n := by
+    linarith [hgrowth n, hz]
+  have hden_ne : (z - growth n : ℝ) ≠ 0 :=
+    sub_ne_zero.mpr hzg
+  have hprod :
+      (((z - growth n)⁻¹ : ℝ) : ℂ) *
+          ((z - growth n : ℝ) : ℂ) = 1 := by
+    have hprod_real : (z - growth n)⁻¹ * (z - growth n : ℝ) = 1 :=
+      inv_mul_cancel₀ hden_ne
+    exact_mod_cast hprod_real
+  calc
+    diagonalResolventCoeff growth z
+        (diagonalShiftMinusGeneratorCoeff growth z a) n
+        =
+          (((z - growth n)⁻¹ : ℝ) : ℂ) *
+            (((z - growth n : ℝ) : ℂ) * a n) := by
+            rfl
+    _ = ((((z - growth n)⁻¹ : ℝ) : ℂ) *
+          ((z - growth n : ℝ) : ℂ)) * a n := by
+            ring
+    _ = a n := by
+            simpa using congrArg (fun c : ℂ => c * a n) hprod
+
 /-! ### Unit-interval Paper3 linearized growth rates -/
 
 /-- The scalar growth rate of the Paper3 linearized Neumann mode. -/
@@ -273,6 +374,75 @@ theorem UnitIntervalLinearSpectralGap.linearlyStable
         -rate :=
     hgap.2 n
   exact lt_of_le_of_lt hmode (by linarith [hgap.1])
+
+/-- For nonpositive sensitivity, the linearized Paper3 growth rate is bounded
+above by the logistic damping rate. -/
+theorem sigma_le_neg_logisticDamping_of_chi_nonpos
+    (p : CM2Params) {uStar vStar lambdaN : ℝ}
+    (hχ : p.χ₀ ≤ 0) (huStar : 0 ≤ uStar) (hvStar : 0 ≤ vStar)
+    (hlambda : 0 ≤ lambdaN) :
+    sigma p uStar vStar lambdaN ≤ -p.a * p.α := by
+  have hden_pos :
+      0 < (1 + vStar) ^ p.β * (p.μ + lambdaN) := by
+    exact mul_pos
+      (Real.rpow_pos_of_pos (by linarith : 0 < 1 + vStar) _)
+      (by linarith [p.hμ])
+  have hfrac_nonneg :
+      0 ≤
+        (uStar ^ (p.m + p.γ - 1) * lambdaN) /
+          ((1 + vStar) ^ p.β * (p.μ + lambdaN)) := by
+    exact div_nonneg
+      (mul_nonneg (Real.rpow_nonneg huStar _) hlambda)
+      hden_pos.le
+  have hchem_nonpos :
+      p.χ₀ * p.ν * p.γ *
+        ((uStar ^ (p.m + p.γ - 1) * lambdaN) /
+          ((1 + vStar) ^ p.β * (p.μ + lambdaN))) ≤ 0 := by
+    have hcoef_nonneg :
+        0 ≤ p.ν * p.γ *
+          ((uStar ^ (p.m + p.γ - 1) * lambdaN) /
+            ((1 + vStar) ^ p.β * (p.μ + lambdaN))) := by
+      exact mul_nonneg (mul_pos p.hν p.hγ).le hfrac_nonneg
+    nlinarith [mul_nonpos_of_nonpos_of_nonneg hχ hcoef_nonneg]
+  have hchem_nonpos' :
+      p.χ₀ * p.ν * p.γ * (uStar ^ (p.m + p.γ - 1) * lambdaN) /
+          ((1 + vStar) ^ p.β * (p.μ + lambdaN)) ≤ 0 := by
+    convert hchem_nonpos using 1
+    ring
+  unfold sigma
+  nlinarith [hlambda, hchem_nonpos']
+
+/-- Nonpositive sensitivity with positive logistic damping gives a uniform
+spectral gap for all unit-interval Neumann modes. -/
+theorem UnitIntervalLinearSpectralGap.of_chi_nonpos_a_pos
+    (p : CM2Params) {uStar vStar : ℝ}
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a)
+    (huStar : 0 ≤ uStar) (hvStar : 0 ≤ vStar) :
+    UnitIntervalLinearSpectralGap p uStar vStar (p.a * p.α) := by
+  refine ⟨mul_pos ha p.hα, ?_⟩
+  intro n
+  calc
+    unitIntervalLinearizedGrowth p uStar vStar n
+        =
+          sigma p uStar vStar
+            (unitIntervalNeumannSpectrum.eigenvalue n) := rfl
+    _ ≤ -p.a * p.α :=
+          sigma_le_neg_logisticDamping_of_chi_nonpos
+            p hχ huStar hvStar
+            (unitIntervalNeumannSpectrum_hasNeumannSpectrum.eigenvalue_nonneg n)
+    _ = -(p.a * p.α) := by ring
+
+/-- Positive-equilibrium nonpositive-sensitivity branch: the uniform spectral
+gap is the logistic damping rate. -/
+theorem positiveEquilibrium_UnitIntervalLinearSpectralGap_of_chi_nonpos
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    UnitIntervalLinearSpectralGap p eq.1 eq.2 (p.a * p.α) := by
+  dsimp
+  exact UnitIntervalLinearSpectralGap.of_chi_nonpos_a_pos
+    p hχ ha
+    (positiveEquilibrium_fst_pos p ⟨ha, hb⟩).le
+    (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
 
 /-- A spectral gap gives coefficient-energy exponential decay. -/
 theorem unitIntervalLinearizedSemigroup_l2_energy_decay
