@@ -9,6 +9,7 @@ import Mathlib.Analysis.Calculus.Deriv.MeanValue
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
+import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
 
 open Filter Topology
 open Set
@@ -19,6 +20,11 @@ namespace ShenWork.Paper3
 
 noncomputable section
 
+/-- The scalar integrand in Paper3's entropy density
+`h_m(s) = ∫_{u*}^{s} (1 - (u*/tau)^(2m-1)) d tau`. -/
+def chemotaxisEntropyIntegrand (m uStar tau : ℝ) : ℝ :=
+  1 - (uStar / tau) ^ (2 * m - 1)
+
 /-- Paper3's entropy density for the nonminimal Lyapunov functional:
 `h_m(s) = ∫_{u*}^{s} (1 - (u*/tau)^(2m-1)) d tau`.
 
@@ -26,7 +32,101 @@ The paper uses this on positive solution values.  The definition is total
 because Lean functions are total, but the mathematically intended region is
 `0 < uStar` and `0 < s`. -/
 def chemotaxisEntropyDensity (m uStar s : ℝ) : ℝ :=
-  ∫ tau in uStar..s, 1 - (uStar / tau) ^ (2 * m - 1)
+  ∫ tau in uStar..s, chemotaxisEntropyIntegrand m uStar tau
+
+/-- The entropy integrand vanishes at the equilibrium density. -/
+theorem chemotaxisEntropyIntegrand_self
+    {m uStar : ℝ} (huStar : uStar ≠ 0) :
+    chemotaxisEntropyIntegrand m uStar uStar = 0 := by
+  simp [chemotaxisEntropyIntegrand, div_self huStar]
+
+/-- The entropy density is normalized to vanish at the equilibrium density. -/
+theorem chemotaxisEntropyDensity_self (m uStar : ℝ) :
+    chemotaxisEntropyDensity m uStar uStar = 0 := by
+  simp [chemotaxisEntropyDensity]
+
+/-- Away from `tau = 0`, the Paper3 entropy integrand is continuous. -/
+theorem chemotaxisEntropyIntegrand_continuousAt_of_ne
+    {m uStar tau : ℝ} (huStar : uStar ≠ 0) (htau : tau ≠ 0) :
+    ContinuousAt (chemotaxisEntropyIntegrand m uStar) tau := by
+  unfold chemotaxisEntropyIntegrand
+  exact continuousAt_const.sub
+    ((continuousAt_const.div continuousAt_id htau).rpow_const
+      (Or.inl (div_ne_zero huStar htau)))
+
+/-- The Paper3 entropy integrand is locally strongly measurable away from
+`tau = 0`. -/
+theorem chemotaxisEntropyIntegrand_stronglyMeasurableAtFilter_of_ne
+    {m uStar tau : ℝ} (huStar : uStar ≠ 0) (htau : tau ≠ 0) :
+    StronglyMeasurableAtFilter
+      (chemotaxisEntropyIntegrand m uStar) (𝓝 tau) MeasureTheory.volume := by
+  have hcont :
+      ContinuousOn (chemotaxisEntropyIntegrand m uStar) ({0}ᶜ : Set ℝ) := by
+    intro x hx
+    exact (chemotaxisEntropyIntegrand_continuousAt_of_ne
+      (m := m) (uStar := uStar) huStar (by simpa using hx)).continuousWithinAt
+  exact hcont.stronglyMeasurableAtFilter isOpen_compl_singleton tau (by simpa using htau)
+
+/-- On a positive interval, the Paper3 entropy integrand is interval
+integrable. -/
+theorem chemotaxisEntropyIntegrand_intervalIntegrable_of_pos
+    {m uStar s : ℝ} (huStar : 0 < uStar) (hs : 0 < s) :
+    IntervalIntegrable
+      (chemotaxisEntropyIntegrand m uStar) MeasureTheory.volume uStar s := by
+  refine ContinuousOn.intervalIntegrable ?_
+  intro x hx
+  have hxne : x ≠ 0 := by
+    rw [Set.mem_uIcc] at hx
+    rcases hx with hx | hx
+    · exact ne_of_gt (lt_of_lt_of_le huStar hx.1)
+    · exact ne_of_gt (lt_of_lt_of_le hs hx.1)
+  exact (chemotaxisEntropyIntegrand_continuousAt_of_ne
+    (m := m) (uStar := uStar) huStar.ne' hxne).continuousWithinAt
+
+/-- Fundamental theorem of calculus for the Paper3 entropy density.  This is
+the one-dimensional derivative of `h_m`; it does not use any PDE input. -/
+theorem chemotaxisEntropyDensity_hasDerivAt
+    {m uStar s : ℝ} (huStar : 0 < uStar) (hs : 0 < s) :
+    HasDerivAt
+      (fun r => chemotaxisEntropyDensity m uStar r)
+      (chemotaxisEntropyIntegrand m uStar s) s := by
+  simpa [chemotaxisEntropyDensity] using
+    intervalIntegral.integral_hasDerivAt_right
+      (chemotaxisEntropyIntegrand_intervalIntegrable_of_pos
+        (m := m) huStar hs)
+      (chemotaxisEntropyIntegrand_stronglyMeasurableAtFilter_of_ne
+        (m := m) huStar.ne' hs.ne')
+      (chemotaxisEntropyIntegrand_continuousAt_of_ne
+        (m := m) huStar.ne' hs.ne')
+
+/-- Derivative form of the entropy-density FTC formula. -/
+theorem deriv_chemotaxisEntropyDensity
+    {m uStar s : ℝ} (huStar : 0 < uStar) (hs : 0 < s) :
+    deriv (fun r => chemotaxisEntropyDensity m uStar r) s =
+      chemotaxisEntropyIntegrand m uStar s :=
+  (chemotaxisEntropyDensity_hasDerivAt
+    (m := m) (uStar := uStar) (s := s) huStar hs).deriv
+
+/-- The entropy density has zero first derivative at the equilibrium density. -/
+theorem chemotaxisEntropyDensity_hasDerivAt_self
+    {m uStar : ℝ} (huStar : 0 < uStar) :
+    HasDerivAt (fun r => chemotaxisEntropyDensity m uStar r) 0 uStar := by
+  simpa [chemotaxisEntropyIntegrand_self huStar.ne'] using
+    chemotaxisEntropyDensity_hasDerivAt
+      (m := m) (uStar := uStar) (s := uStar) huStar huStar
+
+/-- Chain rule for the scalar entropy density along a positive scalar path.
+This discharges the pointwise scalar chain-rule part of the entropy estimate;
+the spatial integral/time-interchange step remains a separate analytic input. -/
+theorem chemotaxisEntropyDensity_comp_hasDerivAt
+    {m uStar : ℝ} {y : ℝ → ℝ} {ySlope t : ℝ}
+    (huStar : 0 < uStar) (hy_pos : 0 < y t)
+    (hy : HasDerivAt y ySlope t) :
+    HasDerivAt
+      (fun tau => chemotaxisEntropyDensity m uStar (y tau))
+      (chemotaxisEntropyIntegrand m uStar (y t) * ySlope) t :=
+  (chemotaxisEntropyDensity_hasDerivAt
+    (m := m) (uStar := uStar) (s := y t) huStar hy_pos).comp t hy
 
 /-- The Paper3 entropy functional `F(t)=∫ h_m(u(t,x)) dx`, expressed through
 the bounded-domain integral interface already used in Paper2/Paper3. -/
