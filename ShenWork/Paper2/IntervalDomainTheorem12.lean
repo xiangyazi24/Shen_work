@@ -858,6 +858,83 @@ theorem Theorem_1_2_intervalDomain_of_parameter_fields_and_eventual_sup_bound
     (fun _ha _hb hβ hm_eq hχ =>
       hcriticalEventualSupBound hβ hm_eq hχ)
 
+/-- Theorem 1.2 assembly from `Lemma_2_6` plus the PDE energy derivation,
+with parameter-side branch guards discharged and long-time boundedness supplied
+as an eventual sup-norm estimate.
+
+This removes `Corollary_2_1 intervalDomain p` as an input while keeping the
+genuine H1/Tier-2 frontiers explicit. -/
+theorem Theorem_1_2_intervalDomain_of_Lemma_2_6_energy_parameter_fields_and_eventual_sup_bound
+    (p : CM2Params)
+    (S : SemigroupEstimateData intervalDomain)
+    (_hLemma21 : Lemma_2_1 intervalDomain p S)
+    (hLemma26 : Lemma_2_6 intervalDomain)
+    (_hLemma41 : Lemma_4_1 intervalDomain p)
+    (hEnergyFromCrossDiffusion :
+      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+        AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
+          LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hglobalExtension :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hslowBootstrap :
+      1 ≤ p.β → p.m < 1 →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hcriticalBootstrap :
+      1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hcriticalEventualSupBound :
+      1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2GlobalClassicalSolution intervalDomain p u v →
+        InitialTrace intervalDomain u₀ u →
+        (∀ T > 0,
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) →
+          ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M) :
+    Theorem_1_2 intervalDomain p := by
+  have hCor21 : Corollary_2_1 intervalDomain p :=
+    ShenWork.Paper2.IntervalDomainCorollary21.Corollary_2_1_intervalDomain_of_Lemma_2_6_and_energy
+      p hLemma26 hEnergyFromCrossDiffusion
+  exact Theorem_1_2_intervalDomain_of_parameter_fields_and_eventual_sup_bound
+    p hCor21 hProp25 hlocal hglobalExtension hslowBootstrap
+    hcriticalBootstrap hcriticalEventualSupBound
+
 /-- Paper 2 Theorem 1.2 on `intervalDomain`, conditional on the honest open
 frontier.
 
