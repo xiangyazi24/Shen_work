@@ -102,6 +102,16 @@ lemma logisticProfile_deriv_nonpos {κ : ℝ} (hκ : 0 < κ) (x : ℝ) :
     deriv (logisticProfile κ) x ≤ 0 :=
   (logisticProfile_antitone hκ).deriv_nonpos
 
+lemma logisticProfile_contDiff (κ : ℝ) {n : WithTop ℕ∞} :
+    ContDiff ℝ n (logisticProfile κ) := by
+  have hlin : ContDiff ℝ n (fun x : ℝ => -(κ * x)) := by
+    fun_prop
+  simpa [logisticProfile, Function.comp_def] using (contDiff_sigmoid.of_le le_top).comp hlin
+
+lemma logisticProfile_contDiff_two (κ : ℝ) :
+    ContDiff ℝ 2 (logisticProfile κ) :=
+  logisticProfile_contDiff κ
+
 structure LogisticProfileFacts (κ : ℝ) where
   U : ℝ → ℝ
   U_def : U = logisticProfile κ
@@ -123,6 +133,10 @@ def logisticProfile_facts {κ : ℝ} (hκ : 0 < κ) :
     U_deriv_nonpos := fun x => logisticProfile_deriv_nonpos hκ x
   }
 
+lemma LogisticProfileFacts.U_contDiff_two {κ : ℝ} (F : LogisticProfileFacts κ) :
+    ContDiff ℝ 2 F.U := by
+  simpa [F.U_def] using logisticProfile_contDiff_two κ
+
 lemma logisticProfile_strict_exp_bound (κ x : ℝ) :
     logisticProfile κ x < max 1 (Real.exp (-κ * x)) := by
   exact (logisticProfile_lt_one κ x).trans_le (le_max_left _ _)
@@ -135,5 +149,18 @@ theorem logisticProfile_facts_with_exp_bound {κ : ℝ} (hκ : 0 < κ) :
   refine ⟨logisticProfile_facts hκ, rfl, ?_, ?_⟩
   · exact fun x => logisticProfile_pos κ x
   · exact fun x => logisticProfile_strict_exp_bound κ x
+
+theorem logisticProfile_facts_with_contDiff {κ : ℝ} (hκ : 0 < κ) :
+    ∃ F : LogisticProfileFacts κ,
+      F.U = logisticProfile κ ∧
+      ContDiff ℝ 2 F.U ∧
+      (∀ x, 0 < F.U x) ∧
+      (∀ x, F.U x < 1) ∧
+      (∀ x, deriv F.U x ≤ 0) := by
+  refine ⟨logisticProfile_facts hκ, rfl, ?_, ?_, ?_, ?_⟩
+  · exact LogisticProfileFacts.U_contDiff_two (logisticProfile_facts hκ)
+  · exact fun x => logisticProfile_pos κ x
+  · exact fun x => logisticProfile_lt_one κ x
+  · exact fun x => logisticProfile_deriv_nonpos hκ x
 
 end
