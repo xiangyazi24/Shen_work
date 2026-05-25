@@ -15,7 +15,7 @@
 -/
 import ShenWork.Paper3.IntervalDomainStabilityChain
 
-open Filter Topology
+open Filter Topology Set
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
 
@@ -76,6 +76,116 @@ theorem IntervalDomainThetaDissipationDerivativeDecayData.thetaMoment
     ThetaMomentConvergesToZero intervalDomain u uStar theta :=
   intervalDomain_thetaMomentConvergesToZero_of_chemotaxisThetaDissipation
     (h.tendsto_zero huv huStar htheta)
+
+/-- Expose fixed-solution theta-dissipation data in the raw frontier shape
+expected by the interval-domain stability chain. -/
+theorem IntervalDomainThetaDissipationDerivativeDecayData.raw_frontier
+    {u : ℝ → intervalDomain.Point → ℝ} {uStar theta : ℝ}
+    (h : IntervalDomainThetaDissipationDerivativeDecayData u uStar theta) :
+    ∃ rate > 0, ∃ s : ℝ, 0 < s ∧ ∃ momentSlope : ℝ → ℝ,
+      (∀ t, 0 < t →
+        HasDerivAt
+          (fun tau =>
+            chemotaxisThetaDissipation intervalDomain uStar theta (u tau))
+          (momentSlope t) t) ∧
+      (∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation intervalDomain uStar theta
+            (u t)) :=
+  ⟨h.rate, h.rate_pos, h.start, h.start_pos,
+    h.slope, h.deriv, h.dissipative⟩
+
+/-- Fixed-solution theta-dissipation data gives the full Lyapunov package:
+slope nonpositivity, nonnegativity, unweighted and weighted monotonicity,
+two-time exponential decay, and theta-moment convergence.
+
+Point 17 status: complete theorem relative to the explicit derivative/decay
+data, state ① for this interface layer.  No PDE identity is invented here; the
+only analytic input is exactly the data stored in
+`IntervalDomainThetaDissipationDerivativeDecayData`. -/
+theorem IntervalDomainThetaDissipationDerivativeDecayData.completeLyapunovPackage
+    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta : ℝ}
+    (h : IntervalDomainThetaDissipationDerivativeDecayData u uStar theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta) :
+    (∀ t, 0 < t → h.slope t ≤ 0) ∧
+      (∀ t, 0 < t →
+        0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta (u t)) ∧
+      AntitoneOn
+        (fun t => chemotaxisThetaDissipation intervalDomain uStar theta (u t))
+        (Ioi (0 : ℝ)) ∧
+      AntitoneOn
+        (fun t =>
+          Real.exp (h.rate * t) *
+            chemotaxisThetaDissipation intervalDomain uStar theta (u t))
+        (Ioi (0 : ℝ)) ∧
+      (∀ a b, 0 < a → a ≤ b →
+        0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta (u b) ∧
+          chemotaxisThetaDissipation intervalDomain uStar theta (u b) ≤
+            chemotaxisThetaDissipation intervalDomain uStar theta (u a) *
+              Real.exp (-h.rate * (b - a))) ∧
+      ThetaMomentConvergesToZero intervalDomain u uStar theta :=
+  intervalDomain_thetaDissipation_completeLyapunovPackage_of_positiveGlobalBoundedSolution
+    (p := p) (u := u) (v := v)
+    (uStar := uStar) (theta := theta) (rate := h.rate)
+    (s := h.start) (momentSlope := h.slope)
+    h.rate_pos h.start_pos huStar htheta huv h.deriv h.dissipative
+
+/-- Fixed-solution theta-dissipation data gives pointwise nonnegativity of the
+theta dissipation along a positive global bounded solution. -/
+theorem IntervalDomainThetaDissipationDerivativeDecayData.thetaDissipation_nonneg
+    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta : ℝ}
+    (h : IntervalDomainThetaDissipationDerivativeDecayData u uStar theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta) :
+    ∀ t, 0 < t →
+      0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta (u t) :=
+  (h.completeLyapunovPackage huv huStar htheta).2.1
+
+/-- Fixed-solution theta-dissipation data gives unweighted monotonicity of the
+theta dissipation. -/
+theorem IntervalDomainThetaDissipationDerivativeDecayData.antitoneOn
+    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta : ℝ}
+    (h : IntervalDomainThetaDissipationDerivativeDecayData u uStar theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta) :
+    AntitoneOn
+      (fun t => chemotaxisThetaDissipation intervalDomain uStar theta (u t))
+      (Ioi (0 : ℝ)) :=
+  (h.completeLyapunovPackage huv huStar htheta).2.2.1
+
+/-- Fixed-solution theta-dissipation data gives the weighted monotonicity form
+used in exponential decay arguments. -/
+theorem IntervalDomainThetaDissipationDerivativeDecayData.weightedAntitoneOn
+    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta : ℝ}
+    (h : IntervalDomainThetaDissipationDerivativeDecayData u uStar theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta) :
+    AntitoneOn
+      (fun t =>
+        Real.exp (h.rate * t) *
+          chemotaxisThetaDissipation intervalDomain uStar theta (u t))
+      (Ioi (0 : ℝ)) :=
+  (h.completeLyapunovPackage huv huStar htheta).2.2.2.1
+
+/-- Fixed-solution theta-dissipation data gives the two-time exponential decay
+estimate for the theta dissipation. -/
+theorem IntervalDomainThetaDissipationDerivativeDecayData.two_time_bound
+    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta : ℝ}
+    (h : IntervalDomainThetaDissipationDerivativeDecayData u uStar theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta) :
+    ∀ a b, 0 < a → a ≤ b →
+      0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta (u b) ∧
+        chemotaxisThetaDissipation intervalDomain uStar theta (u b) ≤
+          chemotaxisThetaDissipation intervalDomain uStar theta (u a) *
+            Real.exp (-h.rate * (b - a)) :=
+  (h.completeLyapunovPackage huv huStar htheta).2.2.2.2.1
 
 /-- Complete fixed-solution theta-dissipation derivative/decay data for the
 constant reference profile `u(t,x) ≡ u*`.
@@ -232,6 +342,98 @@ theorem IntervalDomainTheorem23ThetaDerivativeInterfaces.minimal_frontier
     ⟨data.rate, data.rate_pos, data.start, data.start_pos,
       data.slope, data.deriv, data.dissipative⟩
 
+/-- Extract the full nonminimal theta-dissipation Lyapunov package supplied by
+the structured branch interface. -/
+theorem
+    IntervalDomainTheorem23ThetaDerivativeInterfaces.nonminimal_completeLyapunov_frontier
+    {p : CM2Params}
+    (h : IntervalDomainTheorem23ThetaDerivativeInterfaces p) :
+    p.χ₀ ≤ 0 → 1 ≤ p.m →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution intervalDomain p u v →
+            ∃ rate > 0, ∃ s : ℝ, 0 < s ∧ ∃ momentSlope : ℝ → ℝ,
+              (∀ t, 0 < t → momentSlope t ≤ 0) ∧
+              (∀ t, 0 < t →
+                0 ≤ chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                  (u t)) ∧
+              AntitoneOn
+                (fun t =>
+                  chemotaxisThetaDissipation intervalDomain eq.1 p.α (u t))
+                (Ioi (0 : ℝ)) ∧
+              AntitoneOn
+                (fun t =>
+                  Real.exp (rate * t) *
+                    chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                      (u t))
+                (Ioi (0 : ℝ)) ∧
+              (∀ a b, 0 < a → a ≤ b →
+                0 ≤ chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                  (u b) ∧
+                  chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                    (u b) ≤
+                    chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                      (u a) * Real.exp (-rate * (b - a))) ∧
+              ThetaMomentConvergesToZero intervalDomain u eq.1 p.α := by
+  intro hχ hm ha hb
+  dsimp
+  intro u v huv
+  let data := h.nonminimal hχ hm ha hb u v huv
+  refine
+    ⟨data.rate, data.rate_pos, data.start, data.start_pos,
+      data.slope, ?_⟩
+  exact
+    data.completeLyapunovPackage huv
+      (positiveEquilibrium_fst_pos p ⟨ha, hb⟩).le p.hα.le
+
+/-- Extract the full minimal theta-dissipation Lyapunov package supplied by
+the structured branch interface. -/
+theorem
+    IntervalDomainTheorem23ThetaDerivativeInterfaces.minimal_completeLyapunov_frontier
+    {p : CM2Params}
+    (h : IntervalDomainTheorem23ThetaDerivativeInterfaces p) :
+    p.χ₀ ≤ 0 → 1 ≤ p.m → p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution intervalDomain p u v →
+            HasInitialMass intervalDomain u uStar →
+              ∃ rate > 0, ∃ s : ℝ, 0 < s ∧ ∃ momentSlope : ℝ → ℝ,
+                (∀ t, 0 < t → momentSlope t ≤ 0) ∧
+                (∀ t, 0 < t →
+                  0 ≤ chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                    (u t)) ∧
+                AntitoneOn
+                  (fun t =>
+                    chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                      (u t))
+                  (Ioi (0 : ℝ)) ∧
+                AntitoneOn
+                  (fun t =>
+                    Real.exp (rate * t) *
+                      chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                        (u t))
+                  (Ioi (0 : ℝ)) ∧
+                (∀ a b, 0 < a → a ≤ b →
+                  0 ≤ chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                    (u b) ∧
+                    chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                      (u b) ≤
+                      chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                        (u a) * Real.exp (-rate * (b - a))) ∧
+                ThetaMomentConvergesToZero intervalDomain u eq.1 p.α := by
+  intro hχ hm ha hb uStar huStar
+  dsimp
+  intro u v huv hmass
+  let data := h.minimal hχ hm ha hb uStar huStar u v huv hmass
+  refine
+    ⟨data.rate, data.rate_pos, data.start, data.start_pos,
+      data.slope, ?_⟩
+  exact
+    data.completeLyapunovPackage huv
+      (by simpa [minimalEquilibrium] using huStar.le) p.hα.le
+
 /-- Paper 3 Theorem 2.3 from Corollary 5.1 plus the structured
 energy/dissipation interfaces. -/
 theorem intervalDomain_Theorem_2_3_of_corollary51_thetaDerivativeInterfaces
@@ -319,6 +521,53 @@ theorem IntervalDomainTheorem24ThetaDerivativeInterfaces.strong_frontier
   exact
     ⟨data.rate, data.rate_pos, data.start, data.start_pos,
       data.slope, data.deriv, data.dissipative⟩
+
+/-- Extract the full formula-branch theta-dissipation Lyapunov package supplied
+by the structured branch interface. -/
+theorem
+    IntervalDomainTheorem24ThetaDerivativeInterfaces.strong_completeLyapunov_frontier
+    {p : CM2Params} {M0 : ℝ}
+    (h : IntervalDomainTheorem24ThetaDerivativeInterfaces p M0) :
+    0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+          ∀ u v : ℝ → intervalDomain.Point → ℝ,
+            PositiveGlobalBoundedSolution intervalDomain p u v →
+              ∃ rate > 0, ∃ s : ℝ, 0 < s ∧ ∃ momentSlope : ℝ → ℝ,
+                (∀ t, 0 < t → momentSlope t ≤ 0) ∧
+                (∀ t, 0 < t →
+                  0 ≤ chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                    (u t)) ∧
+                AntitoneOn
+                  (fun t =>
+                    chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                      (u t))
+                  (Ioi (0 : ℝ)) ∧
+                AntitoneOn
+                  (fun t =>
+                    Real.exp (rate * t) *
+                      chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                        (u t))
+                  (Ioi (0 : ℝ)) ∧
+                (∀ a b, 0 < a → a ≤ b →
+                  0 ≤ chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                    (u b) ∧
+                    chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                      (u b) ≤
+                      chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                        (u a) * Real.exp (-rate * (b - a))) ∧
+                ThetaMomentConvergesToZero intervalDomain u eq.1 p.α := by
+  intro ha_pos hb_pos hβ hα hγ ha hb
+  dsimp
+  intro hcond u v huv
+  let data := h.strong ha_pos hb_pos hβ hα hγ ha hb hcond u v huv
+  refine
+    ⟨data.rate, data.rate_pos, data.start, data.start_pos,
+      data.slope, ?_⟩
+  exact
+    data.completeLyapunovPackage huv
+      (positiveEquilibrium_fst_pos p ⟨ha, hb⟩).le hα.le
 
 /-- Paper 3 Theorem 2.4 from Corollary 5.1 plus the structured
 formula-branch energy/dissipation interface. -/
