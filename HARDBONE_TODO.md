@@ -259,7 +259,14 @@
 
 ### H3.1 — Sectorial operator / analytic semigroup framework
 - **内容**: linearized operator -Δ + lower-order 是 sectorial 的 → 生成解析半群
-- **现状**: 完全未做; Mathlib 没有 sectorial operator 理论
+- **现状**: state③ partial.  Unit-interval cosine-basis linear spectral
+  semigroup/resolvent estimates, full-mode and zero-mode-free mass-mode
+  exponential decay, and explicit nonpositive-sensitivity spectral gaps are
+  proved.  The remaining frontiers are the nonlinear
+  `SectorialLocalExponentialRaw` upgrade: Duhamel/fixed-point small-data
+  global classical solution theory, `X^σ_p`/`C¹` norm comparison/smoothing, and
+  packaging the physical interval Neumann linearized operator as the abstract
+  sectorial generator used by Paper3.
 - **当前前沿** (2026-05-24): `ShenWork/Paper3/Statements.lean`
   已有诚实 raw 接口 `SectorialLocalExponentialRaw`，以及把该 raw
   假设接到 `LocallyExponentiallyStableFromSup` /
