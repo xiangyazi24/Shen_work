@@ -921,6 +921,13 @@ theorem Theorem_1_2_intervalDomain_vacuous_when_beta_lt_one
   exact absurd hβ' (not_le.mpr hβ)
 
 /-- Vacuous interval-domain Theorem 1.2 branch when the top-level
+`1 ≤ β` hypothesis is negated. -/
+theorem Theorem_1_2_intervalDomain_vacuous_when_not_beta_ge_one
+    (p : CM2Params) (hβ : ¬ 1 ≤ p.β) :
+    Theorem_1_2 intervalDomain p :=
+  Theorem_1_2_intervalDomain_vacuous_when_beta_lt_one p (not_le.mp hβ)
+
+/-- Vacuous interval-domain Theorem 1.2 branch when the top-level
 `0 ≤ a` hypothesis fails. -/
 theorem Theorem_1_2_intervalDomain_vacuous_when_not_a_nonneg
     (p : CM2Params) (ha : ¬ 0 ≤ p.a) :
@@ -951,6 +958,13 @@ theorem Theorem_1_2_intervalDomain_vacuous_when_one_lt_m
     rw [hm_eq] at hm
     exact (lt_irrefl (1 : ℝ)) hm
 
+/-- Vacuous interval-domain Theorem 1.2 when `m ≤ 1`, the union of the slow
+and critical cases, is negated. -/
+theorem Theorem_1_2_intervalDomain_vacuous_when_not_m_le_one
+    (p : CM2Params) (hm : ¬ p.m ≤ 1) :
+    Theorem_1_2 intervalDomain p :=
+  Theorem_1_2_intervalDomain_vacuous_when_one_lt_m p (not_le.mp hm)
+
 /-- Vacuous interval-domain Theorem 1.2 critical branch when `m = 1` but the
 critical sensitivity strict inequality fails. -/
 theorem Theorem_1_2_intervalDomain_vacuous_when_m_eq_one_and_chiBeta_le_chi
@@ -965,6 +979,14 @@ theorem Theorem_1_2_intervalDomain_vacuous_when_m_eq_one_and_chiBeta_le_chi
   · intro _hm_eq hχ_lt _u₀ _hu₀
     exfalso
     exact (not_lt.mpr hχ) hχ_lt
+
+/-- Vacuous interval-domain Theorem 1.2 critical branch when `m = 1` and the
+critical sensitivity strict inequality is negated. -/
+theorem Theorem_1_2_intervalDomain_vacuous_when_m_eq_one_and_not_chi_lt_chiBeta
+    (p : CM2Params) (hm : p.m = 1) (hχ : ¬ p.χ₀ < chiBeta p) :
+    Theorem_1_2 intervalDomain p :=
+  Theorem_1_2_intervalDomain_vacuous_when_m_eq_one_and_chiBeta_le_chi
+    p hm (not_lt.mp hχ)
 
 end ShenWork.Paper2.IntervalDomainTheorem12
 
