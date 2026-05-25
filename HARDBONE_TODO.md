@@ -91,6 +91,26 @@
 - **前置**: H0.1, H0.2
 - **目标文件**: `ShenWork/Paper2/Statements.lean` (or new bridge file)
 - **产出**: `Lemma_2_1_intervalDomain`
+- **进展** (2026-05-24): `ShenWork/Paper2/IntervalDomainLemma21.lean`
+  now connects the H0.1/H0.2 estimates to the concrete `intervalDomain`
+  function interface.  It defines the lifted interval-domain `LpSeminorm`,
+  the unit-interval helper heat operator on point functions, proves the
+  lift/operator `lpNorm` bridge, and proves:
+  `intervalDomainHeat_Lp_Lq_bound_from_memLp`,
+  `intervalDomainHeat_grad_Lp_Lq_bound_from_memLp`, and
+  `intervalDomainHeat_grad_Lp_Linfty_bound_from_memLp`.
+- **BLOCKER / Point 17**: the full `Lemma_2_1 intervalDomain` statement is
+  still not discharged.  The missing piece is not H0.1/H0.2 smoothing; it is
+  the fractional-domain part of the abstract `SemigroupEstimateData` package:
+  a concrete Neumann-generator norm `X^σ_q` plus
+  `‖S(t)u - u‖₂ ≤ C t^σ ‖u‖_{X^σ_2}` for all interval inputs, and the
+  matching analytic-semigroup smoothing
+  `‖S(t)u‖_{X^σ_q} ≤ C t^{-σ} e^{-δt} ‖u‖_q`.  The current statement encodes
+  `fractionalNorm : ℝ → ℝ → (D.Point → ℝ) → ℝ` as a total real-valued field,
+  with no domain predicate or `∞`; a genuine interval proof therefore needs a
+  spectral fractional-power construction for the Neumann Laplacian (or a
+  statement-layer change to an extended/domain-restricted norm).  H0.1/H0.2
+  alone do not imply the required `S(t)-I` rate.
 
 ### H1.2 — Paper2 Lemma 2.6 on intervalDomain (Moser iteration)
 - **内容**: from `AbstractLpBootstrapHypothesis` + energy inequality, conclude L^p bound for all p
