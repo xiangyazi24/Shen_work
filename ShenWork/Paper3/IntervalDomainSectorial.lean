@@ -110,6 +110,87 @@ intervalDomain_massConstrainedLocallyExponentiallyStableFromSup_of_spectralGap_s
   intervalDomain_massConstrainedLocallyExponentiallyStableFromSup_of_sectorialHypothesis
     p N hsigma_low hsigma_high hpNorm hsectorial hgap.linearlyStable hxp hexist
 
+/-- Stronger nonpositive-sensitivity positive-equilibrium bridge: the linear
+input is not merely `LinearlyStable`; it is the explicit unit-interval
+spectral gap `p.a * p.α`.  The nonlinear sectorial/norm/small-data inputs
+remain the honest H3.1 frontiers. -/
+theorem
+intervalDomain_positiveEquilibrium_localStability_chi_nonpos_of_spectralGap_sectorialHypothesis
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hsectorial :
+      SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hxp :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀
+            (fun _ => (positiveEquilibrium p ⟨ha, hb⟩).1) ≤
+          intervalDomain.supNorm
+            (fun x => u₀ x - (positiveEquilibrium p ⟨ha, hb⟩).1))
+    (hexist :
+      ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p
+          (positiveEquilibrium p ⟨ha, hb⟩).1 delta) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    UnitIntervalLinearSpectralGap p eq.1 eq.2 (p.a * p.α) ∧
+      LocallyExponentiallyStableFromSup intervalDomain p N eq.1 eq.2 := by
+  dsimp
+  have hgap :
+      UnitIntervalLinearSpectralGap p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 (p.a * p.α) := by
+    simpa using
+      positiveEquilibrium_UnitIntervalLinearSpectralGap_of_chi_nonpos
+        p hχ ha hb
+  exact
+    ⟨hgap,
+      intervalDomain_locallyExponentiallyStableFromSup_of_spectralGap_sectorialHypothesis
+        p N hsigma_low hsigma_high hpNorm hsectorial hgap hxp hexist⟩
+
+/-- Mass-constrained version of the explicit spectral-gap nonpositive branch. -/
+theorem
+intervalDomain_positiveEquilibrium_massStability_chi_nonpos_of_spectralGap_sectorialHypothesis
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hsectorial :
+      SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hxp :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀
+            (fun _ => (positiveEquilibrium p ⟨ha, hb⟩).1) ≤
+          intervalDomain.supNorm
+            (fun x => u₀ x - (positiveEquilibrium p ⟨ha, hb⟩).1))
+    (hexist :
+      ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p
+          (positiveEquilibrium p ⟨ha, hb⟩).1 delta) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    UnitIntervalLinearSpectralGap p eq.1 eq.2 (p.a * p.α) ∧
+      MassConstrainedLocallyExponentiallyStableFromSup intervalDomain p N
+        eq.1 eq.2 := by
+  dsimp
+  have hgap :
+      UnitIntervalLinearSpectralGap p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 (p.a * p.α) := by
+    simpa using
+      positiveEquilibrium_UnitIntervalLinearSpectralGap_of_chi_nonpos
+        p hχ ha hb
+  exact
+    ⟨hgap,
+      intervalDomain_massConstrainedLocallyExponentiallyStableFromSup_of_sectorialHypothesis
+        p N hsigma_low hsigma_high hpNorm hsectorial hgap.linearlyStable
+        hxp hexist⟩
+
 /-- Nonpositive-sensitivity positive-equilibrium interval branch: the linear
 part is proved from the unit-interval Neumann spectrum; the nonlinear local
 exponential conclusion remains conditional exactly on H3.1 and small-data

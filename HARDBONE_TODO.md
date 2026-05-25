@@ -322,7 +322,12 @@
   bridge this spectral-gap package to the existing raw interval-domain
   sectorial frontier by discharging only the `LinearlyStable` input; nonlinear
   sectoriality, `X^σ_p`/`C¹` norm comparison, and small-data existence remain
-  state③ frontiers.
+  state③ frontiers.  Follow-up branch wrappers
+  `intervalDomain_positiveEquilibrium_localStability_chi_nonpos_of_spectralGap_sectorialHypothesis`
+  and
+  `intervalDomain_positiveEquilibrium_massStability_chi_nonpos_of_spectralGap_sectorialHypothesis`
+  now expose the explicit nonpositive-sensitivity gap `p.a * p.α` for the
+  positive-equilibrium interval branch before applying the same H3.1 frontiers.
 - **前置**: spectral theory on bounded domain, resolvent estimates
 - **目标文件**: `ShenWork/PDE/SectorialOperator.lean` (new)
 - **产出**: `SectorialLocalExponentialRaw`
