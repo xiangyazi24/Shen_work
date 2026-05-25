@@ -92,6 +92,48 @@ theorem Theorem_1_3_intervalDomain_of_corollary21_and_proposition25
         u₀ hu₀ u v hglobal htrace hbootstrapAll
     exact ⟨u, v, hglobal, htrace, hbounded⟩
 
+/-- Corollary-level Theorem 1.3 assembly where the long-time frontier is an
+eventual scalar sup-norm estimate rather than `IsPaper2Bounded` itself. -/
+theorem Theorem_1_3_intervalDomain_of_eventual_sup_bound
+    (p : CM2Params) (C : Paper2Constants p)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
+    (hstrongBootstrap :
+      0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hstrongEventualSupBound :
+      0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
+      1 ≤ p.m →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2GlobalClassicalSolution intervalDomain p u v →
+        InitialTrace intervalDomain u₀ u →
+        (∀ T > 0,
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) →
+          ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M) :
+    Theorem_1_3 intervalDomain p C := by
+  refine Theorem_1_3_intervalDomain_of_corollary21_and_proposition25
+    p C hCor21 hProp25 hexist hstrongBootstrap ?_
+  intro ha hb hm hstrong hm_ge u₀ hu₀ u v hglobal htrace hbootstrapAll
+  obtain ⟨T₀, M, hM⟩ :=
+    hstrongEventualSupBound ha hb hm hstrong hm_ge u₀ hu₀ u v hglobal htrace
+      hbootstrapAll
+  exact IsPaper2Bounded.of_forall_ge_supNorm_le
+    (D := intervalDomain) (u := u) (T := T₀) (M := M) hM
+
 /-- Paper 2 Theorem 1.3 on `intervalDomain`, conditional on the honest open
 frontier.
 
