@@ -163,6 +163,52 @@ theorem diagonalSemigroupCoeff_sq_le_of_growth_le
     _ = (Real.exp (t * omega)) ^ 2 * ‖a n‖ ^ 2 := by
             ring
 
+/-- Pointwise coefficient bound from a single-mode spectral upper bound. -/
+theorem diagonalSemigroupCoeff_sq_le_of_growth_le_at
+    {growth : ℕ → ℝ} {omega t : ℝ} (ht : 0 ≤ t)
+    {a : ℕ → ℂ} {n : ℕ} (hgrowth : growth n ≤ omega) :
+    ‖diagonalSemigroupCoeff growth t a n‖ ^ 2 ≤
+      (Real.exp (t * omega)) ^ 2 * ‖a n‖ ^ 2 := by
+  have hmul : t * growth n ≤ t * omega :=
+    mul_le_mul_of_nonneg_left hgrowth ht
+  have hexp_le : Real.exp (t * growth n) ≤ Real.exp (t * omega) :=
+    Real.exp_le_exp.mpr hmul
+  have hexp_nonneg : 0 ≤ Real.exp (t * growth n) := Real.exp_nonneg _
+  have homega_nonneg : 0 ≤ Real.exp (t * omega) := Real.exp_nonneg _
+  have hnorm_nonneg : 0 ≤ ‖a n‖ := norm_nonneg _
+  have hle :
+      Real.exp (t * growth n) * ‖a n‖ ≤
+        Real.exp (t * omega) * ‖a n‖ :=
+    mul_le_mul_of_nonneg_right hexp_le hnorm_nonneg
+  calc
+    ‖diagonalSemigroupCoeff growth t a n‖ ^ 2
+        =
+          (Real.exp (t * growth n) * ‖a n‖) ^ 2 := by
+            rw [diagonalSemigroupCoeff, norm_mul, Complex.norm_real,
+              Real.norm_eq_abs, abs_of_nonneg hexp_nonneg]
+    _ ≤ (Real.exp (t * omega) * ‖a n‖) ^ 2 := by
+            exact
+              (sq_le_sq₀
+                (mul_nonneg hexp_nonneg hnorm_nonneg)
+                (mul_nonneg homega_nonneg hnorm_nonneg)).mpr hle
+    _ = (Real.exp (t * omega)) ^ 2 * ‖a n‖ ^ 2 := by
+            ring
+
+/-- Pointwise semigroup bound from a nonzero-mode spectral upper bound and a
+vanishing zero coefficient. -/
+theorem diagonalSemigroupCoeff_sq_le_of_growth_le_on_nonzero
+    {growth : ℕ → ℝ} {omega t : ℝ} (ht : 0 ≤ t)
+    (hgrowth : ∀ n, n ≠ 0 → growth n ≤ omega)
+    {a : ℕ → ℂ} (ha0 : a 0 = 0) (n : ℕ) :
+    ‖diagonalSemigroupCoeff growth t a n‖ ^ 2 ≤
+      (Real.exp (t * omega)) ^ 2 * ‖a n‖ ^ 2 := by
+  by_cases hn : n = 0
+  · subst n
+    simp [diagonalSemigroupCoeff, ha0]
+  · exact diagonalSemigroupCoeff_sq_le_of_growth_le_at
+      (growth := growth) (omega := omega) ht (a := a)
+      (n := n) (hgrowth n hn)
+
 /-- The diagonal semigroup preserves `ℓ²` under a spectral upper bound. -/
 theorem diagonalSemigroupCoeff_l2_summable_of_growth_le
     {growth : ℕ → ℝ} {omega t : ℝ} (ht : 0 ≤ t)
@@ -176,6 +222,22 @@ theorem diagonalSemigroupCoeff_l2_summable_of_growth_le
     (ha.mul_left ((Real.exp (t * omega)) ^ 2))
   intro n
   exact diagonalSemigroupCoeff_sq_le_of_growth_le ht hgrowth a n
+
+/-- The diagonal semigroup preserves `ℓ²` under a nonzero-mode spectral upper
+bound, provided the zero coefficient vanishes. -/
+theorem diagonalSemigroupCoeff_l2_summable_of_growth_le_on_nonzero
+    {growth : ℕ → ℝ} {omega t : ℝ} (ht : 0 ≤ t)
+    (hgrowth : ∀ n, n ≠ 0 → growth n ≤ omega) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) (ha0 : a 0 = 0) :
+    Summable fun n : ℕ =>
+      ‖diagonalSemigroupCoeff growth t a n‖ ^ 2 := by
+  apply Summable.of_nonneg_of_le
+    (fun n => sq_nonneg _)
+    ?_
+    (ha.mul_left ((Real.exp (t * omega)) ^ 2))
+  intro n
+  exact diagonalSemigroupCoeff_sq_le_of_growth_le_on_nonzero
+    ht hgrowth ha0 n
 
 /-- `L²` coefficient-energy semigroup bound from a spectral upper bound. -/
 theorem diagonalSemigroupCoeff_l2_energy_le_of_growth_le
@@ -199,6 +261,30 @@ theorem diagonalSemigroupCoeff_l2_energy_le_of_growth_le
   have htsum := hs.tsum_le_tsum hle hmajor
   simpa [coeffL2Energy, ha.tsum_mul_left] using htsum
 
+/-- `L²` coefficient-energy semigroup bound from a nonzero-mode spectral upper
+bound and a vanishing zero coefficient. -/
+theorem diagonalSemigroupCoeff_l2_energy_le_of_growth_le_on_nonzero
+    {growth : ℕ → ℝ} {omega t : ℝ} (ht : 0 ≤ t)
+    (hgrowth : ∀ n, n ≠ 0 → growth n ≤ omega) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) (ha0 : a 0 = 0) :
+    coeffL2Energy (diagonalSemigroupCoeff growth t a) ≤
+      (Real.exp (t * omega)) ^ 2 * coeffL2Energy a := by
+  have hs :=
+    diagonalSemigroupCoeff_l2_summable_of_growth_le_on_nonzero
+      (growth := growth) (omega := omega) ht hgrowth ha ha0
+  have hmajor :
+      Summable fun n : ℕ =>
+        (Real.exp (t * omega)) ^ 2 * ‖a n‖ ^ 2 :=
+    ha.mul_left ((Real.exp (t * omega)) ^ 2)
+  have hle :
+      ∀ n : ℕ,
+        ‖diagonalSemigroupCoeff growth t a n‖ ^ 2 ≤
+          (Real.exp (t * omega)) ^ 2 * ‖a n‖ ^ 2 :=
+    diagonalSemigroupCoeff_sq_le_of_growth_le_on_nonzero
+      ht hgrowth ha0
+  have htsum := hs.tsum_le_tsum hle hmajor
+  simpa [coeffL2Energy, ha.tsum_mul_left] using htsum
+
 /-- Reconstructed interval `L²` semigroup bound from a spectral upper bound. -/
 theorem diagonalSemigroupLp_norm_sq_le_of_growth_le
     {growth : ℕ → ℝ} {omega t : ℝ} (ht : 0 ≤ t)
@@ -212,6 +298,21 @@ theorem diagonalSemigroupLp_norm_sq_le_of_growth_le
   rw [cosineLpFromCoeffs_norm_sq]
   exact diagonalSemigroupCoeff_l2_energy_le_of_growth_le
     (growth := growth) (omega := omega) ht hgrowth ha
+
+/-- Reconstructed interval `L²` semigroup bound from a nonzero-mode spectral
+upper bound and a vanishing zero coefficient. -/
+theorem diagonalSemigroupLp_norm_sq_le_of_growth_le_on_nonzero
+    {growth : ℕ → ℝ} {omega t : ℝ} (ht : 0 ≤ t)
+    (hgrowth : ∀ n, n ≠ 0 → growth n ≤ omega) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) (ha0 : a 0 = 0) :
+    ‖cosineLpFromCoeffs
+        (diagonalSemigroupCoeff growth t a)
+        (diagonalSemigroupCoeff_l2_summable_of_growth_le_on_nonzero
+          (growth := growth) (omega := omega) ht hgrowth ha ha0)‖ ^ 2 ≤
+      (Real.exp (t * omega)) ^ 2 * coeffL2Energy a := by
+  rw [cosineLpFromCoeffs_norm_sq]
+  exact diagonalSemigroupCoeff_l2_energy_le_of_growth_le_on_nonzero
+    (growth := growth) (omega := omega) ht hgrowth ha ha0
 
 /-- Pointwise real resolvent coefficient bound outside the spectral half-line. -/
 theorem diagonalResolventCoeff_sq_le_of_growth_le
@@ -246,6 +347,55 @@ theorem diagonalResolventCoeff_sq_le_of_growth_le
     _ = ((z - omega)⁻¹) ^ 2 * ‖a n‖ ^ 2 := by
             ring
 
+/-- Pointwise real resolvent coefficient bound from a single-mode spectral
+upper bound. -/
+theorem diagonalResolventCoeff_sq_le_of_growth_le_at
+    {growth : ℕ → ℝ} {omega z : ℝ} (hz : omega < z)
+    {a : ℕ → ℂ} {n : ℕ} (hgrowth : growth n ≤ omega) :
+    ‖diagonalResolventCoeff growth z a n‖ ^ 2 ≤
+      ((z - omega)⁻¹) ^ 2 * ‖a n‖ ^ 2 := by
+  have hden_pos : 0 < z - growth n := by linarith [hgrowth]
+  have homega_pos : 0 < z - omega := by linarith
+  have hden_ge : z - omega ≤ z - growth n := by linarith [hgrowth]
+  have hinv_le : (z - growth n)⁻¹ ≤ (z - omega)⁻¹ :=
+    (inv_le_inv₀ hden_pos homega_pos).mpr hden_ge
+  have hinv_nonneg : 0 ≤ (z - growth n)⁻¹ :=
+    inv_nonneg.mpr hden_pos.le
+  have homega_inv_nonneg : 0 ≤ (z - omega)⁻¹ :=
+    inv_nonneg.mpr homega_pos.le
+  have hnorm_nonneg : 0 ≤ ‖a n‖ := norm_nonneg _
+  have hle :
+      (z - growth n)⁻¹ * ‖a n‖ ≤
+        (z - omega)⁻¹ * ‖a n‖ :=
+    mul_le_mul_of_nonneg_right hinv_le hnorm_nonneg
+  calc
+    ‖diagonalResolventCoeff growth z a n‖ ^ 2
+        = ((z - growth n)⁻¹ * ‖a n‖) ^ 2 := by
+            rw [diagonalResolventCoeff, norm_mul, Complex.norm_real,
+              Real.norm_eq_abs, abs_of_nonneg hinv_nonneg]
+    _ ≤ ((z - omega)⁻¹ * ‖a n‖) ^ 2 := by
+            exact
+              (sq_le_sq₀
+                (mul_nonneg hinv_nonneg hnorm_nonneg)
+                (mul_nonneg homega_inv_nonneg hnorm_nonneg)).mpr hle
+    _ = ((z - omega)⁻¹) ^ 2 * ‖a n‖ ^ 2 := by
+            ring
+
+/-- Pointwise resolvent bound from a nonzero-mode spectral upper bound and a
+vanishing zero coefficient. -/
+theorem diagonalResolventCoeff_sq_le_of_growth_le_on_nonzero
+    {growth : ℕ → ℝ} {omega z : ℝ} (hz : omega < z)
+    (hgrowth : ∀ n, n ≠ 0 → growth n ≤ omega)
+    {a : ℕ → ℂ} (ha0 : a 0 = 0) (n : ℕ) :
+    ‖diagonalResolventCoeff growth z a n‖ ^ 2 ≤
+      ((z - omega)⁻¹) ^ 2 * ‖a n‖ ^ 2 := by
+  by_cases hn : n = 0
+  · subst n
+    simp [diagonalResolventCoeff, ha0]
+  · exact diagonalResolventCoeff_sq_le_of_growth_le_at
+      (growth := growth) (omega := omega) hz (a := a)
+      (n := n) (hgrowth n hn)
+
 /-- The real resolvent preserves `ℓ²` outside the spectral upper bound. -/
 theorem diagonalResolventCoeff_l2_summable_of_growth_le
     {growth : ℕ → ℝ} {omega z : ℝ} (hz : omega < z)
@@ -259,6 +409,22 @@ theorem diagonalResolventCoeff_l2_summable_of_growth_le
     (ha.mul_left (((z - omega)⁻¹) ^ 2))
   intro n
   exact diagonalResolventCoeff_sq_le_of_growth_le hz hgrowth a n
+
+/-- The real resolvent preserves `ℓ²` under a nonzero-mode spectral upper
+bound, provided the zero coefficient vanishes. -/
+theorem diagonalResolventCoeff_l2_summable_of_growth_le_on_nonzero
+    {growth : ℕ → ℝ} {omega z : ℝ} (hz : omega < z)
+    (hgrowth : ∀ n, n ≠ 0 → growth n ≤ omega) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) (ha0 : a 0 = 0) :
+    Summable fun n : ℕ =>
+      ‖diagonalResolventCoeff growth z a n‖ ^ 2 := by
+  apply Summable.of_nonneg_of_le
+    (fun n => sq_nonneg _)
+    ?_
+    (ha.mul_left (((z - omega)⁻¹) ^ 2))
+  intro n
+  exact diagonalResolventCoeff_sq_le_of_growth_le_on_nonzero
+    hz hgrowth ha0 n
 
 /-- `L²` coefficient-energy real resolvent bound. -/
 theorem diagonalResolventCoeff_l2_energy_le_of_growth_le
@@ -278,6 +444,29 @@ theorem diagonalResolventCoeff_l2_energy_le_of_growth_le
         ‖diagonalResolventCoeff growth z a n‖ ^ 2 ≤
           ((z - omega)⁻¹) ^ 2 * ‖a n‖ ^ 2 :=
     diagonalResolventCoeff_sq_le_of_growth_le hz hgrowth a
+  have htsum := hs.tsum_le_tsum hle hmajor
+  simpa [coeffL2Energy, ha.tsum_mul_left] using htsum
+
+/-- `L²` coefficient-energy real resolvent bound from a nonzero-mode spectral
+upper bound and a vanishing zero coefficient. -/
+theorem diagonalResolventCoeff_l2_energy_le_of_growth_le_on_nonzero
+    {growth : ℕ → ℝ} {omega z : ℝ} (hz : omega < z)
+    (hgrowth : ∀ n, n ≠ 0 → growth n ≤ omega) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) (ha0 : a 0 = 0) :
+    coeffL2Energy (diagonalResolventCoeff growth z a) ≤
+      ((z - omega)⁻¹) ^ 2 * coeffL2Energy a := by
+  have hs :=
+    diagonalResolventCoeff_l2_summable_of_growth_le_on_nonzero
+      (growth := growth) (omega := omega) hz hgrowth ha ha0
+  have hmajor :
+      Summable fun n : ℕ => ((z - omega)⁻¹) ^ 2 * ‖a n‖ ^ 2 :=
+    ha.mul_left (((z - omega)⁻¹) ^ 2)
+  have hle :
+      ∀ n : ℕ,
+        ‖diagonalResolventCoeff growth z a n‖ ^ 2 ≤
+          ((z - omega)⁻¹) ^ 2 * ‖a n‖ ^ 2 :=
+    diagonalResolventCoeff_sq_le_of_growth_le_on_nonzero
+      hz hgrowth ha0
   have htsum := hs.tsum_le_tsum hle hmajor
   simpa [coeffL2Energy, ha.tsum_mul_left] using htsum
 
@@ -362,6 +551,18 @@ def UnitIntervalLinearSpectralGap
     (p : CM2Params) (uStar vStar rate : ℝ) : Prop :=
   0 < rate ∧ UnitIntervalLinearSpectralBound p uStar vStar (-rate)
 
+/-- Nonzero-mode spectral upper bound for the mass-constrained interval
+linearization.  This is the right linear package for the minimal branch, where
+the constant mode is neutral. -/
+def UnitIntervalLinearMassSpectralBound
+    (p : CM2Params) (uStar vStar omega : ℝ) : Prop :=
+  ∀ n : ℕ, n ≠ 0 → unitIntervalLinearizedGrowth p uStar vStar n ≤ omega
+
+/-- Nonzero-mode spectral gap for the mass-constrained interval linearization. -/
+def UnitIntervalLinearMassSpectralGap
+    (p : CM2Params) (uStar vStar rate : ℝ) : Prop :=
+  0 < rate ∧ UnitIntervalLinearMassSpectralBound p uStar vStar (-rate)
+
 /-- A uniform spectral gap is stronger than Paper3's modewise linear
 stability predicate. -/
 theorem UnitIntervalLinearSpectralGap.linearlyStable
@@ -373,6 +574,19 @@ theorem UnitIntervalLinearSpectralGap.linearlyStable
       sigma p uStar vStar (unitIntervalNeumannSpectrum.eigenvalue n) ≤
         -rate :=
     hgap.2 n
+  exact lt_of_le_of_lt hmode (by linarith [hgap.1])
+
+/-- A nonzero-mode spectral gap is exactly the linear input required by
+Paper3's modewise stability predicate. -/
+theorem UnitIntervalLinearMassSpectralGap.linearlyStable
+    {p : CM2Params} {uStar vStar rate : ℝ}
+    (hgap : UnitIntervalLinearMassSpectralGap p uStar vStar rate) :
+    LinearlyStable unitIntervalNeumannSpectrum p uStar vStar := by
+  intro n hn
+  have hmode :
+      sigma p uStar vStar (unitIntervalNeumannSpectrum.eigenvalue n) ≤
+        -rate :=
+    hgap.2 n hn
   exact lt_of_le_of_lt hmode (by linarith [hgap.1])
 
 /-- For nonpositive sensitivity, the linearized Paper3 growth rate is bounded
@@ -412,6 +626,46 @@ theorem sigma_le_neg_logisticDamping_of_chi_nonpos
   unfold sigma
   nlinarith [hlambda, hchem_nonpos']
 
+/-- If the logistic damping coefficient is zero and the sensitivity is
+nonpositive, the linearized growth is bounded above by the Neumann diffusion
+rate. -/
+theorem sigma_le_neg_lambda_of_chi_nonpos_a_eq_zero
+    (p : CM2Params) {uStar vStar lambdaN : ℝ}
+    (hχ : p.χ₀ ≤ 0) (ha : p.a = 0)
+    (huStar : 0 ≤ uStar) (hvStar : 0 ≤ vStar)
+    (hlambda : 0 ≤ lambdaN) :
+    sigma p uStar vStar lambdaN ≤ -lambdaN := by
+  have hden_pos :
+      0 < (1 + vStar) ^ p.β * (p.μ + lambdaN) := by
+    exact mul_pos
+      (Real.rpow_pos_of_pos (by linarith : 0 < 1 + vStar) _)
+      (by linarith [p.hμ])
+  have hfrac_nonneg :
+      0 ≤
+        (uStar ^ (p.m + p.γ - 1) * lambdaN) /
+          ((1 + vStar) ^ p.β * (p.μ + lambdaN)) := by
+    exact div_nonneg
+      (mul_nonneg (Real.rpow_nonneg huStar _) hlambda)
+      hden_pos.le
+  have hchem_nonpos :
+      p.χ₀ * p.ν * p.γ *
+        ((uStar ^ (p.m + p.γ - 1) * lambdaN) /
+          ((1 + vStar) ^ p.β * (p.μ + lambdaN))) ≤ 0 := by
+    have hcoef_nonneg :
+        0 ≤ p.ν * p.γ *
+          ((uStar ^ (p.m + p.γ - 1) * lambdaN) /
+            ((1 + vStar) ^ p.β * (p.μ + lambdaN))) := by
+      exact mul_nonneg (mul_pos p.hν p.hγ).le hfrac_nonneg
+    nlinarith [mul_nonpos_of_nonpos_of_nonneg hχ hcoef_nonneg]
+  have hchem_nonpos' :
+      p.χ₀ * p.ν * p.γ * (uStar ^ (p.m + p.γ - 1) * lambdaN) /
+          ((1 + vStar) ^ p.β * (p.μ + lambdaN)) ≤ 0 := by
+    convert hchem_nonpos using 1
+    ring
+  unfold sigma
+  rw [ha]
+  nlinarith [hchem_nonpos']
+
 /-- Nonpositive sensitivity with positive logistic damping gives a uniform
 spectral gap for all unit-interval Neumann modes. -/
 theorem UnitIntervalLinearSpectralGap.of_chi_nonpos_a_pos
@@ -443,6 +697,43 @@ theorem positiveEquilibrium_UnitIntervalLinearSpectralGap_of_chi_nonpos
     p hχ ha
     (positiveEquilibrium_fst_pos p ⟨ha, hb⟩).le
     (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le
+
+/-- Nonpositive-sensitivity minimal branch: after removing the neutral
+constant mode, the unit-interval linearization has the Neumann first-mode gap. -/
+theorem UnitIntervalLinearMassSpectralGap.of_chi_nonpos_a_eq_zero
+    (p : CM2Params) {uStar vStar : ℝ}
+    (hχ : p.χ₀ ≤ 0) (ha : p.a = 0)
+    (huStar : 0 ≤ uStar) (hvStar : 0 ≤ vStar) :
+    UnitIntervalLinearMassSpectralGap p uStar vStar
+      unitIntervalNeumannSpectrum.firstNonzero := by
+  refine ⟨unitIntervalNeumannSpectrum_hasNeumannSpectrum.firstNonzero_pos, ?_⟩
+  intro n hn
+  calc
+    unitIntervalLinearizedGrowth p uStar vStar n
+        =
+          sigma p uStar vStar
+            (unitIntervalNeumannSpectrum.eigenvalue n) := rfl
+    _ ≤ -unitIntervalNeumannSpectrum.eigenvalue n :=
+          sigma_le_neg_lambda_of_chi_nonpos_a_eq_zero
+            p hχ ha huStar hvStar
+            (unitIntervalNeumannSpectrum_hasNeumannSpectrum.eigenvalue_nonneg n)
+    _ ≤ -unitIntervalNeumannSpectrum.firstNonzero := by
+          have H := unitIntervalNeumannSpectrum_hasNeumannSpectrum
+          have hle := H.firstNonzero_le_eigenvalue n hn
+          linarith
+
+/-- Minimal-equilibrium nonpositive-sensitivity branch: the nonzero modes have
+the first Neumann spectral gap. -/
+theorem minimalEquilibrium_UnitIntervalLinearMassSpectralGap_of_chi_nonpos
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : p.a = 0)
+    {uStar : ℝ} (huStar : 0 < uStar) :
+    let eq := minimalEquilibrium p uStar
+    UnitIntervalLinearMassSpectralGap p eq.1 eq.2
+      unitIntervalNeumannSpectrum.firstNonzero := by
+  dsimp
+  exact UnitIntervalLinearMassSpectralGap.of_chi_nonpos_a_eq_zero
+    p hχ ha huStar.le
+    (minimalEquilibrium_snd_pos p huStar).le
 
 /-- A spectral gap gives coefficient-energy exponential decay. -/
 theorem unitIntervalLinearizedSemigroup_l2_energy_decay
@@ -483,6 +774,47 @@ theorem unitIntervalLinearizedSemigroupLp_norm_sq_decay
       (omega := -rate) ht hgap.2 ha
   simpa [mul_comm] using h
 
+/-- A nonzero-mode spectral gap gives coefficient-energy exponential decay
+for zero-mode-free coefficient data. -/
+theorem unitIntervalLinearizedMassSemigroup_l2_energy_decay
+    {p : CM2Params} {uStar vStar rate t : ℝ}
+    (hgap : UnitIntervalLinearMassSpectralGap p uStar vStar rate)
+    (ht : 0 ≤ t) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) (ha0 : a 0 = 0) :
+    coeffL2Energy
+        (diagonalSemigroupCoeff
+          (unitIntervalLinearizedGrowth p uStar vStar) t a) ≤
+      (Real.exp (-(rate * t))) ^ 2 * coeffL2Energy a := by
+  have hgrowth :
+      ∀ n : ℕ, n ≠ 0 →
+        unitIntervalLinearizedGrowth p uStar vStar n ≤ -rate :=
+    hgap.2
+  have h :=
+    diagonalSemigroupCoeff_l2_energy_le_of_growth_le_on_nonzero
+      (growth := unitIntervalLinearizedGrowth p uStar vStar)
+      (omega := -rate) ht hgrowth ha ha0
+  simpa [mul_comm] using h
+
+/-- A nonzero-mode spectral gap gives reconstructed interval `L²` exponential
+decay for zero-mode-free coefficient data. -/
+theorem unitIntervalLinearizedMassSemigroupLp_norm_sq_decay
+    {p : CM2Params} {uStar vStar rate t : ℝ}
+    (hgap : UnitIntervalLinearMassSpectralGap p uStar vStar rate)
+    (ht : 0 ≤ t) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) (ha0 : a 0 = 0) :
+    ‖cosineLpFromCoeffs
+        (diagonalSemigroupCoeff
+          (unitIntervalLinearizedGrowth p uStar vStar) t a)
+        (diagonalSemigroupCoeff_l2_summable_of_growth_le_on_nonzero
+          (growth := unitIntervalLinearizedGrowth p uStar vStar)
+          (omega := -rate) ht hgap.2 ha ha0)‖ ^ 2 ≤
+      (Real.exp (-(rate * t))) ^ 2 * coeffL2Energy a := by
+  have h :=
+    diagonalSemigroupLp_norm_sq_le_of_growth_le_on_nonzero
+      (growth := unitIntervalLinearizedGrowth p uStar vStar)
+      (omega := -rate) ht hgap.2 ha ha0
+  simpa [mul_comm] using h
+
 /-- A spectral bound gives the real resolvent estimate for the unit-interval
 linearized operator. -/
 theorem unitIntervalLinearizedResolvent_l2_energy_le
@@ -497,6 +829,21 @@ theorem unitIntervalLinearizedResolvent_l2_energy_le
   diagonalResolventCoeff_l2_energy_le_of_growth_le
     (growth := unitIntervalLinearizedGrowth p uStar vStar)
     (omega := omega) hz hbound ha
+
+/-- A nonzero-mode spectral bound gives the real resolvent estimate for
+zero-mode-free coefficient data. -/
+theorem unitIntervalLinearizedMassResolvent_l2_energy_le
+    {p : CM2Params} {uStar vStar omega z : ℝ}
+    (hbound : UnitIntervalLinearMassSpectralBound p uStar vStar omega)
+    (hz : omega < z) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) (ha0 : a 0 = 0) :
+    coeffL2Energy
+        (diagonalResolventCoeff
+          (unitIntervalLinearizedGrowth p uStar vStar) z a) ≤
+      ((z - omega)⁻¹) ^ 2 * coeffL2Energy a :=
+  diagonalResolventCoeff_l2_energy_le_of_growth_le_on_nonzero
+    (growth := unitIntervalLinearizedGrowth p uStar vStar)
+    (omega := omega) hz hbound ha ha0
 
 end ShenWork.PDE.SectorialOperator
 

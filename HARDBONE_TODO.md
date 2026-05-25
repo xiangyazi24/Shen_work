@@ -328,6 +328,14 @@
   `intervalDomain_positiveEquilibrium_massStability_chi_nonpos_of_spectralGap_sectorialHypothesis`
   now expose the explicit nonpositive-sensitivity gap `p.a * p.α` for the
   positive-equilibrium interval branch before applying the same H3.1 frontiers.
+  New coefficient-layer mass branch increment: `UnitIntervalLinearMassSpectralGap`,
+  `UnitIntervalLinearMassSpectralGap.of_chi_nonpos_a_eq_zero`,
+  `minimalEquilibrium_UnitIntervalLinearMassSpectralGap_of_chi_nonpos`,
+  `unitIntervalLinearizedMassSemigroup_l2_energy_decay`,
+  `unitIntervalLinearizedMassSemigroupLp_norm_sq_decay`, and
+  `unitIntervalLinearizedMassResolvent_l2_energy_le`, giving the zero-mode-free
+  nonzero-mode decay/resolvent estimates needed for minimal mass-constrained
+  linearized stability.
 - **前置**: spectral theory on bounded domain, resolvent estimates
 - **目标文件**: `ShenWork/PDE/SectorialOperator.lean` (new)
 - **产出**: `SectorialLocalExponentialRaw`
