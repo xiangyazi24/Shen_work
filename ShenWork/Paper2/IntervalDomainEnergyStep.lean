@@ -8,6 +8,18 @@
   remaining analytic hypotheses needed to use the already-proved Moser chain:
   a nonnegative time-dissipation term and the interpolation estimate at each
   exponent.
+
+  B3-item1 frontier note: the current interval-domain API can prove the
+  endpoint Neumann boundary contribution is zero, because `intervalDomain`
+  hard-codes `normalDeriv = 0` on `{0,1}`.  The actual analytic integration by
+  parts identity
+      `integral test * laplacian f = boundary - integral test' * f'`
+  and the time chain rule
+      `d/dt integral |u|^p = p * integral |u|^(p-2) u u_t`
+  still require a differentiability/integrability layer for `intervalDomainLift`
+  and differentiation under the parameter integral.  They are therefore kept
+  below as explicitly named theorem hypotheses (`hIBP`, `hLpTime`), not as
+  axioms or hidden `Prop` aliases.
 -/
 import ShenWork.Paper2.IntervalDomainLpMonotonicity
 
@@ -18,6 +30,163 @@ open ShenWork.IntervalDomain
 noncomputable section
 
 namespace ShenWork.Paper2.IntervalDomainEnergyStep
+
+/-- Left endpoint of the concrete unit interval domain. -/
+def intervalDomainLeftEndpoint : intervalDomain.Point :=
+  ⟨0, by exact ⟨le_rfl, zero_le_one⟩⟩
+
+/-- Right endpoint of the concrete unit interval domain. -/
+def intervalDomainRightEndpoint : intervalDomain.Point :=
+  ⟨1, by exact ⟨zero_le_one, le_rfl⟩⟩
+
+theorem intervalDomain_leftEndpoint_mem_boundary :
+    intervalDomainLeftEndpoint ∈ intervalDomain.boundary := by
+  change intervalDomainLeftEndpoint.1 = 0 ∨ intervalDomainLeftEndpoint.1 = 1
+  left
+  rfl
+
+theorem intervalDomain_rightEndpoint_mem_boundary :
+    intervalDomainRightEndpoint ∈ intervalDomain.boundary := by
+  change intervalDomainRightEndpoint.1 = 0 ∨ intervalDomainRightEndpoint.1 = 1
+  right
+  rfl
+
+/-- On the concrete interval domain, the normal derivative is definitionally
+zero at boundary points.  This is the formal Neumann endpoint fact available in
+the current API. -/
+theorem intervalDomain_normalDeriv_zero_on_boundary
+    (f : intervalDomain.Point → ℝ) {x : intervalDomain.Point}
+    (hx : x ∈ intervalDomain.boundary) :
+    intervalDomain.normalDeriv f x = 0 := by
+  have hx' : x.1 = 0 ∨ x.1 = 1 := by
+    simpa [intervalDomain] using hx
+  simpa [intervalDomain] using
+    (intervalDomainNormalDeriv_endpoint f (x := x) hx')
+
+theorem intervalDomain_normalDeriv_leftEndpoint
+    (f : intervalDomain.Point → ℝ) :
+    intervalDomain.normalDeriv f intervalDomainLeftEndpoint = 0 := by
+  exact intervalDomain_normalDeriv_zero_on_boundary f
+    (x := intervalDomainLeftEndpoint) intervalDomain_leftEndpoint_mem_boundary
+
+theorem intervalDomain_normalDeriv_rightEndpoint
+    (f : intervalDomain.Point → ℝ) :
+    intervalDomain.normalDeriv f intervalDomainRightEndpoint = 0 := by
+  exact intervalDomain_normalDeriv_zero_on_boundary f
+    (x := intervalDomainRightEndpoint) intervalDomain_rightEndpoint_mem_boundary
+
+/-- Classical interval solutions carry the Neumann condition for `u`. -/
+theorem intervalDomain_solution_neumann_u_zero
+    {params : CM2Params} {T t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) {x : intervalDomain.Point}
+    (hx : x ∈ intervalDomain.boundary) :
+    intervalDomain.normalDeriv (u t) x = 0 :=
+  (hsol.neumann ht0 htT hx).1
+
+/-- Classical interval solutions carry the Neumann condition for `v`. -/
+theorem intervalDomain_solution_neumann_v_zero
+    {params : CM2Params} {T t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) {x : intervalDomain.Point}
+    (hx : x ∈ intervalDomain.boundary) :
+    intervalDomain.normalDeriv (v t) x = 0 :=
+  (hsol.neumann ht0 htT hx).2
+
+/-- Boundary flux term in the one-dimensional integration-by-parts formula. -/
+def intervalDomainNeumannBoundaryTerm
+    (test f : intervalDomain.Point → ℝ) : ℝ :=
+  test intervalDomainRightEndpoint *
+      intervalDomain.normalDeriv f intervalDomainRightEndpoint -
+    test intervalDomainLeftEndpoint *
+      intervalDomain.normalDeriv f intervalDomainLeftEndpoint
+
+/-- The product of lifted spatial derivatives on `[0,1]`. -/
+def intervalDomainDerivativePairIntegral
+    (test f : intervalDomain.Point → ℝ) : ℝ :=
+  ∫ x in (0 : ℝ)..1,
+    deriv (intervalDomainLift test) x * deriv (intervalDomainLift f) x
+
+/-- The Neumann endpoint contribution vanishes for the concrete interval
+domain. -/
+theorem intervalDomain_neumannBoundaryTerm_eq_zero
+    (test f : intervalDomain.Point → ℝ) :
+    intervalDomainNeumannBoundaryTerm test f = 0 := by
+  unfold intervalDomainNeumannBoundaryTerm
+  rw [intervalDomain_normalDeriv_rightEndpoint f,
+    intervalDomain_normalDeriv_leftEndpoint f]
+  ring
+
+/-- Conditional integration by parts on the interval after removing the
+Neumann boundary term.
+
+The hypothesis `hIBP` is the honest analytic frontier: it is the missing
+spatial integration-by-parts theorem for the lifted interval functions.  This
+theorem only discharges the boundary contribution, which is currently
+formalized. -/
+theorem intervalDomain_integrationByParts_neumann_of_boundary_identity
+    (test f : intervalDomain.Point → ℝ)
+    (hIBP :
+      intervalDomain.integral
+          (fun x => test x * intervalDomain.laplacian f x) =
+        intervalDomainNeumannBoundaryTerm test f -
+          intervalDomainDerivativePairIntegral test f) :
+    intervalDomain.integral
+        (fun x => test x * intervalDomain.laplacian f x) =
+      -(intervalDomainDerivativePairIntegral test f) := by
+  rw [hIBP, intervalDomain_neumannBoundaryTerm_eq_zero]
+  ring
+
+/-- The Lp energy functional on the concrete interval domain. -/
+def intervalDomainLpEnergy
+    (pExp : ℝ) (u : ℝ → intervalDomain.Point → ℝ) (t : ℝ) : ℝ :=
+  intervalDomain.integral (fun x => |u t x| ^ pExp)
+
+/-- The weighted time-derivative term appearing in the Lp chain rule. -/
+def intervalDomainLpEnergyWeightedTimeTerm
+    (pExp : ℝ) (u : ℝ → intervalDomain.Point → ℝ)
+    (t : ℝ) (x : intervalDomain.Point) : ℝ :=
+  |u t x| ^ (pExp - 2) * u t x * intervalDomain.timeDeriv u t x
+
+/-- Conditional Lp energy identity in the form used by Paper 2 estimates.
+
+The hypothesis `hLpTime` is the honest analytic frontier: it packages the
+chain rule for `|u|^p` together with differentiation under the interval
+integral. -/
+theorem intervalDomain_lp_energy_identity_scaled_of_time_frontier
+    {pExp T : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (hpExp : pExp ≠ 0)
+    (hLpTime : ∀ t, 0 < t → t < T →
+      deriv (fun τ => intervalDomainLpEnergy pExp u τ) t =
+        pExp * intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u t)) :
+    ∀ t, 0 < t → t < T →
+      (1 / pExp) *
+          deriv (fun τ => intervalDomainLpEnergy pExp u τ) t =
+        intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u t) := by
+  intro t ht0 htT
+  rw [hLpTime t ht0 htT]
+  field_simp [hpExp]
+
+/-- Multiplying the classical `u` PDE by the Lp weight is pointwise available
+on the interior.  Moving this equality under the interval integral is a
+separate analytic frontier because the PDE is stated on `inside`. -/
+theorem intervalDomain_solution_lp_weighted_timeDeriv_eq_pde
+    {params : CM2Params} {T t pExp : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) {x : intervalDomain.Point}
+    (hx : x ∈ intervalDomain.inside) :
+    intervalDomainLpEnergyWeightedTimeTerm pExp u t x =
+      |u t x| ^ (pExp - 2) * u t x *
+        (intervalDomain.laplacian (u t) x
+          - params.χ₀ * intervalDomain.chemotaxisDiv params (u t) (v t) x
+          + u t x * (params.a - params.b * (u t x) ^ params.α)) := by
+  unfold intervalDomainLpEnergyWeightedTimeTerm
+  rw [hsol.pde_u ht0 htT hx]
 
 /-- A full Paper 2 energy inequality gives the reduced Moser step once the
 time-derivative plus lower-order contribution is nonnegative.
