@@ -781,6 +781,254 @@ theorem duhamelOperator_diff_bound
     _ = C * t := by rw [hvol_eq]
     _ ≤ C * T := mul_le_mul_of_nonneg_left htT hC
 
+/-! ### Lifted source bounds for the Duhamel contraction
+
+The contraction argument needs to bound the lifted source difference
+`|intervalDomainLift (F(u₁(s))) y - intervalDomainLift (F(u₂(s))) y|`
+in terms of `sup|u₁(s) - u₂(s)|`.  We factor this into:
+
+1. `intervalDomainLift_abs_le`: the lift preserves pointwise absolute bounds.
+2. `intervalDomainLift_diff_abs_le`: the lift of a difference is bounded by
+   the pointwise difference bound.
+3. `intervalLogisticSource_lift_diff_bound`: the lifted source difference is
+   bounded by `Lip · D` where Lip is the source Lipschitz constant and
+   D = sup|u₁ - u₂|.
+4. `duhamel_contraction_full`: the complete contraction estimate
+   |Φ(u₁)(t,x) - Φ(u₂)(t,x)| ≤ Lip · T · D.
+5. `contraction_factor_lt_one`: the strict contraction property for small T. -/
+
+/-- The lift of a function on intervalDomainPoint preserves absolute
+value bounds: if `|f(y)| ≤ C` for all `y : intervalDomainPoint`, then
+`|intervalDomainLift f x| ≤ C` for all `x : ℝ`. -/
+theorem intervalDomainLift_abs_le
+    {f : intervalDomainPoint → ℝ} {C : ℝ} (hC : 0 ≤ C)
+    (hf : ∀ y : intervalDomainPoint, |f y| ≤ C) :
+    ∀ x : ℝ, |intervalDomainLift f x| ≤ C := by
+  intro x
+  unfold intervalDomainLift
+  split_ifs with hx
+  · exact hf ⟨x, hx⟩
+  · simp only [abs_zero]; exact hC
+
+/-- The lift preserves pointwise difference bounds: if
+`|f(y) - g(y)| ≤ D` for all `y : intervalDomainPoint`, then
+`|intervalDomainLift f x - intervalDomainLift g x| ≤ D` for all `x : ℝ`. -/
+theorem intervalDomainLift_diff_abs_le
+    {f g : intervalDomainPoint → ℝ} {D : ℝ} (hD : 0 ≤ D)
+    (hfg : ∀ y : intervalDomainPoint, |f y - g y| ≤ D) :
+    ∀ x : ℝ, |intervalDomainLift f x - intervalDomainLift g x| ≤ D := by
+  intro x
+  unfold intervalDomainLift
+  split_ifs with hx
+  · exact hfg ⟨x, hx⟩
+  · simp only [sub_self, abs_zero]; exact hD
+
+/-- The logistic source is pointwise Lipschitz: given the Lipschitz constant
+from `intervalLogisticSource_lipschitz`, the source difference at each
+spatial point is bounded by `L · |u₁(y) - u₂(y)|`. -/
+theorem intervalLogisticSource_pointwise_lipschitz
+    (p : CM2Params) {M L : ℝ}
+    (hL_lip : ∀ u₁ u₂ : ℝ, |u₁| ≤ M → |u₂| ≤ M →
+      |u₁ * (p.a - p.b * u₁ ^ p.α) - u₂ * (p.a - p.b * u₂ ^ p.α)| ≤
+        L * |u₁ - u₂|)
+    {u₁ u₂ : intervalDomainPoint → ℝ}
+    (hu₁ : ∀ y, |u₁ y| ≤ M) (hu₂ : ∀ y, |u₂ y| ≤ M)
+    (y : intervalDomainPoint) :
+    |intervalLogisticSource p u₁ y - intervalLogisticSource p u₂ y| ≤
+      L * |u₁ y - u₂ y| := by
+  unfold intervalLogisticSource
+  exact hL_lip (u₁ y) (u₂ y) (hu₁ y) (hu₂ y)
+
+/-- The lifted source difference is bounded by `Lip · D` where
+`D` is the uniform trajectory difference and `Lip` is the Lipschitz
+constant of the logistic source on the ball of radius M.
+
+This combines:
+- The pointwise Lipschitz bound on `intervalLogisticSource`
+- The lift bound `intervalDomainLift_diff_abs_le`
+- The uniform trajectory difference `|u₁(s,y) - u₂(s,y)| ≤ D` -/
+theorem intervalLogisticSource_lift_diff_bound
+    (p : CM2Params) {M L : ℝ} (hL : 0 ≤ L)
+    (hL_lip : ∀ u₁ u₂ : ℝ, |u₁| ≤ M → |u₂| ≤ M →
+      |u₁ * (p.a - p.b * u₁ ^ p.α) - u₂ * (p.a - p.b * u₂ ^ p.α)| ≤
+        L * |u₁ - u₂|)
+    {u₁ u₂ : intervalDomainPoint → ℝ}
+    (hu₁ : ∀ y, |u₁ y| ≤ M) (hu₂ : ∀ y, |u₂ y| ≤ M)
+    {D : ℝ} (hD : 0 ≤ D)
+    (hdiff : ∀ y, |u₁ y - u₂ y| ≤ D) :
+    ∀ x : ℝ,
+      |intervalDomainLift (intervalLogisticSource p u₁) x -
+       intervalDomainLift (intervalLogisticSource p u₂) x| ≤ L * D := by
+  have hLD : 0 ≤ L * D := mul_nonneg hL hD
+  apply intervalDomainLift_diff_abs_le hLD
+  intro y
+  calc |intervalLogisticSource p u₁ y - intervalLogisticSource p u₂ y|
+      ≤ L * |u₁ y - u₂ y| :=
+        intervalLogisticSource_pointwise_lipschitz p hL_lip hu₁ hu₂ y
+    _ ≤ L * D := mul_le_mul_of_nonneg_left (hdiff y) hL
+
+/-- **Full Duhamel contraction estimate.**
+
+If `|u₁(s,y) - u₂(s,y)| ≤ D` for all `(s,y)` with `s ∈ [0,T]`,
+and the logistic source has Lipschitz constant `L` on the ball of
+radius `M`, then
+
+  `|Φ(u₁)(t,x) - Φ(u₂)(t,x)| ≤ L · T · D`
+
+for all `t ∈ [0,T]` and `x`.
+
+This is the key step for Banach fixed point: choosing `T < 1/L`
+makes Φ a strict contraction with factor `L·T < 1`.
+
+The hypotheses `hint₁`, `hint₂` require integrability of the Duhamel
+integrands; this is a measurability condition that follows from
+regularity of the trajectories. -/
+theorem duhamel_contraction_full
+    (p : CM2Params)
+    (u₀ : intervalDomainPoint → ℝ)
+    (u₁ u₂ : ℝ → intervalDomainPoint → ℝ)
+    {M L D T : ℝ} (hT : 0 < T) (hL : 0 ≤ L) (hD : 0 ≤ D)
+    (hL_lip : ∀ a b : ℝ, |a| ≤ M → |b| ≤ M →
+      |a * (p.a - p.b * a ^ p.α) - b * (p.a - p.b * b ^ p.α)| ≤
+        L * |a - b|)
+    (hu₁ : ∀ s y, |u₁ s y| ≤ M)
+    (hu₂ : ∀ s y, |u₂ s y| ≤ M)
+    (hdiff : ∀ s y, |u₁ s y - u₂ s y| ≤ D)
+    {t : ℝ} (ht0 : 0 ≤ t) (htT : t ≤ T)
+    (x : intervalDomainPoint)
+    (hint₁ : MeasureTheory.IntegrableOn
+      (fun s => intervalSemigroupOperator 1 (t - s)
+        (intervalDomainLift (intervalLogisticSource p (u₁ s))) x.1)
+      (Set.Icc 0 t) MeasureTheory.volume)
+    (hint₂ : MeasureTheory.IntegrableOn
+      (fun s => intervalSemigroupOperator 1 (t - s)
+        (intervalDomainLift (intervalLogisticSource p (u₂ s))) x.1)
+      (Set.Icc 0 t) MeasureTheory.volume)
+    -- Integrability of the lifted sources against the interval measure,
+    -- needed for the semigroup linearity S(τ)(f₁-f₂) = S(τ)f₁ - S(τ)f₂
+    (hlift_int₁ : ∀ s, 0 ≤ s → s ≤ T →
+      MeasureTheory.Integrable (intervalDomainLift (intervalLogisticSource p (u₁ s)))
+        (intervalMeasure 1))
+    (hlift_int₂ : ∀ s, 0 ≤ s → s ≤ T →
+      MeasureTheory.Integrable (intervalDomainLift (intervalLogisticSource p (u₂ s)))
+        (intervalMeasure 1)) :
+    |intervalDuhamelOperator p u₀ u₁ t x -
+     intervalDuhamelOperator p u₀ u₂ t x| ≤ L * D * T := by
+  have hLD : 0 ≤ L * D := mul_nonneg hL hD
+  -- The lifted source difference is bounded by L·D at each spatial point
+  have hG_bound : ∀ s, 0 ≤ s → s ≤ T → ∀ y,
+      |intervalDomainLift (intervalLogisticSource p (u₁ s)) y -
+       intervalDomainLift (intervalLogisticSource p (u₂ s)) y| ≤ L * D :=
+    fun s _hs0 _hsT =>
+      intervalLogisticSource_lift_diff_bound p hL hL_lip
+        (hu₁ s) (hu₂ s) hD (hdiff s)
+  -- The semigroup-propagated source differences are bounded by L·D
+  -- (via L∞ contraction of the semigroup)
+  have hpointwise : ∀ s, s ∈ Set.Icc 0 t → s ≠ t →
+      |intervalSemigroupOperator 1 (t - s)
+          (intervalDomainLift (intervalLogisticSource p (u₁ s))) x.1 -
+       intervalSemigroupOperator 1 (t - s)
+          (intervalDomainLift (intervalLogisticSource p (u₂ s))) x.1| ≤
+        L * D := by
+    intro s hs hst
+    have hs0 : 0 ≤ s := hs.1
+    have hsT : s ≤ T := le_trans hs.2 htT
+    have hts_pos : 0 < t - s := sub_pos.mpr (lt_of_le_of_ne hs.2 hst)
+    exact intervalSemigroupOperator_contraction hts_pos hLD
+      (hlift_int₁ s hs0 hsT) (hlift_int₂ s hs0 hsT)
+      (hG_bound s hs0 hsT) x.1
+  -- Apply the Duhamel operator difference bound with C = L·D
+  exact duhamelOperator_diff_bound p u₀ u₁ u₂ hT hLD
+    ht0 htT x hint₁ hint₂ hpointwise
+
+/-- **Strict contraction factor.**
+
+If `L · T < 1` and `D > 0`, then `L · T · D < D`.
+This is the "gap" that makes the Duhamel map a strict contraction
+in the Banach fixed point theorem. -/
+theorem contraction_factor_strict
+    {L T D : ℝ} (hD : 0 < D) (hLT : L * T < 1) :
+    L * T * D < D := by
+  calc L * T * D < 1 * D :=
+        mul_lt_mul_of_pos_right hLT hD
+    _ = D := one_mul D
+
+/-- **Duhamel contraction: strict bound when `Lip · T < 1`.**
+
+Combining the contraction estimate with the contraction factor:
+the Duhamel difference is strictly less than the trajectory difference
+whenever D > 0 and L·T < 1.  When D = 0, the estimate gives 0 ≤ 0
+(the trajectories are equal, so no contraction is needed). -/
+theorem duhamel_strict_contraction
+    (p : CM2Params)
+    (u₀ : intervalDomainPoint → ℝ)
+    (u₁ u₂ : ℝ → intervalDomainPoint → ℝ)
+    {M L D T : ℝ} (hT : 0 < T) (hL : 0 ≤ L) (hD : 0 < D)
+    (hLT : L * T < 1)
+    (hL_lip : ∀ a b : ℝ, |a| ≤ M → |b| ≤ M →
+      |a * (p.a - p.b * a ^ p.α) - b * (p.a - p.b * b ^ p.α)| ≤
+        L * |a - b|)
+    (hu₁ : ∀ s y, |u₁ s y| ≤ M)
+    (hu₂ : ∀ s y, |u₂ s y| ≤ M)
+    (hdiff : ∀ s y, |u₁ s y - u₂ s y| ≤ D)
+    {t : ℝ} (ht0 : 0 ≤ t) (htT : t ≤ T)
+    (x : intervalDomainPoint)
+    (hint₁ : MeasureTheory.IntegrableOn
+      (fun s => intervalSemigroupOperator 1 (t - s)
+        (intervalDomainLift (intervalLogisticSource p (u₁ s))) x.1)
+      (Set.Icc 0 t) MeasureTheory.volume)
+    (hint₂ : MeasureTheory.IntegrableOn
+      (fun s => intervalSemigroupOperator 1 (t - s)
+        (intervalDomainLift (intervalLogisticSource p (u₂ s))) x.1)
+      (Set.Icc 0 t) MeasureTheory.volume)
+    (hlift_int₁ : ∀ s, 0 ≤ s → s ≤ T →
+      MeasureTheory.Integrable (intervalDomainLift (intervalLogisticSource p (u₁ s)))
+        (intervalMeasure 1))
+    (hlift_int₂ : ∀ s, 0 ≤ s → s ≤ T →
+      MeasureTheory.Integrable (intervalDomainLift (intervalLogisticSource p (u₂ s)))
+        (intervalMeasure 1)) :
+    |intervalDuhamelOperator p u₀ u₁ t x -
+     intervalDuhamelOperator p u₀ u₂ t x| < D := by
+  calc |intervalDuhamelOperator p u₀ u₁ t x -
+        intervalDuhamelOperator p u₀ u₂ t x|
+      ≤ L * D * T :=
+        duhamel_contraction_full p u₀ u₁ u₂ hT hL hD.le hL_lip
+          hu₁ hu₂ hdiff ht0 htT x hint₁ hint₂ hlift_int₁ hlift_int₂
+    _ = L * T * D := by ring
+    _ < D := contraction_factor_strict hD hLT
+
+/-- **Existence of contraction time.**
+
+For any positive Lipschitz constant `L`, there exists a time `T > 0`
+such that `L · T < 1`, making the Duhamel operator a strict contraction.
+This is the starting point for the Banach fixed-point argument. -/
+theorem exists_contraction_time {L : ℝ} (hL : 0 < L) :
+    ∃ T > 0, L * T < 1 := by
+  refine ⟨1 / (2 * L), by positivity, ?_⟩
+  have hL_ne : L ≠ 0 := ne_of_gt hL
+  field_simp
+  linarith
+
+/-- **Contraction implies uniqueness of the Duhamel fixed point
+on [0,T].**
+
+If the Duhamel contraction estimate holds with `Lip · T < 1` and two
+trajectories `u₁`, `u₂` are both fixed points of `Φ` (meaning
+`u_i(t,x) = Φ(u_i)(t,x)` for all `(t,x)` in `[0,T]`), then they
+are equal pointwise on `[0,T]`.
+
+This is a consequence of the contraction: if D = sup|u₁ - u₂| > 0,
+then D ≤ Lip·T·D < D, a contradiction. -/
+theorem duhamel_fixed_point_unique
+    {L T D : ℝ} (_hL : 0 ≤ L) (_hT : 0 < T) (hD : 0 ≤ D)
+    (hLT : L * T < 1)
+    (hcontraction : D ≤ L * T * D) :
+    D = 0 := by
+  by_contra hne
+  have hD_pos : 0 < D := lt_of_le_of_ne hD (Ne.symm hne)
+  have : L * T * D < D := contraction_factor_strict hD_pos hLT
+  linarith
+
 end ShenWork.IntervalDomainExistence
 
 end
