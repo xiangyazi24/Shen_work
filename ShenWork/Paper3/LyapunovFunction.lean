@@ -423,6 +423,16 @@ theorem intervalDomain_chemotaxisEntropyFunctional_nonneg
   chemotaxisEntropyFunctional_nonneg_of_integral_nonneg
     intervalDomain_integral_nonneg hm huStar hu_pos
 
+/-- Concrete interval-domain entropy-functional nonnegativity from positivity
+only on the interior.  Endpoint values are irrelevant to the interval integral. -/
+theorem intervalDomain_chemotaxisEntropyFunctional_nonneg_of_inside_pos
+    {m uStar : ℝ} {u : ℝ → intervalDomain.Point → ℝ} {t : ℝ}
+    (hm : (1 / 2 : ℝ) ≤ m) (huStar : 0 < uStar)
+    (hu_pos : ∀ x, x ∈ intervalDomain.inside → 0 < u t x) :
+    0 ≤ chemotaxisEntropyFunctional intervalDomain m uStar u t := by
+  exact intervalDomain_integral_nonneg_of_inside_nonneg _
+    (fun x hx => chemotaxisEntropyDensity_nonneg hm huStar (hu_pos x hx))
+
 /-- Concrete interval-domain theta dissipation nonnegativity. -/
 theorem intervalDomain_chemotaxisThetaDissipation_nonneg
     {uStar theta : ℝ} {uSlice : intervalDomain.Point → ℝ}
@@ -431,6 +441,16 @@ theorem intervalDomain_chemotaxisThetaDissipation_nonneg
     0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta uSlice :=
   chemotaxisThetaDissipation_nonneg_of_integral_nonneg
     intervalDomain_integral_nonneg huStar htheta huSlice
+
+/-- Concrete interval-domain theta dissipation nonnegativity from
+nonnegativity only on the interior. -/
+theorem intervalDomain_chemotaxisThetaDissipation_nonneg_of_inside_nonneg
+    {uStar theta : ℝ} {uSlice : intervalDomain.Point → ℝ}
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (huSlice : ∀ x, x ∈ intervalDomain.inside → 0 ≤ uSlice x) :
+    0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta uSlice := by
+  exact intervalDomain_integral_nonneg_of_inside_nonneg _
+    (fun x hx => thetaDissipationIntegrand_nonneg huStar htheta (huSlice x hx))
 
 /-- Concrete interval-domain signal-energy nonnegativity. -/
 theorem intervalDomain_chemotaxisSignalEnergy_nonneg
