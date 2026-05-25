@@ -138,6 +138,12 @@ theorem matVec4_smul (A : Matrix Idx Idx ℝ) (a : ℝ) (x : State) :
   simp [matVec4, Pi.smul_apply, smul_eq_mul]
   ring
 
+theorem matVec4_contDiff (A : Matrix Idx Idx ℝ) {n : WithTop ℕ∞} :
+    ContDiff ℝ n (matVec4 A) := by
+  refine contDiff_pi.mpr fun i => ?_
+  dsimp [matVec4]
+  fun_prop
+
 theorem vectorField_contDiffAt (p : Params) (x : State) :
     ContDiffAt ℝ 1 (vectorField p) x := by
   apply ContDiffAt.of_le _ le_top
@@ -245,6 +251,54 @@ h.2
 
 def SolvesLinearized (A : Matrix Idx Idx ℝ) (y : ℝ → State) : Prop :=
   ∀ t : ℝ, HasDerivAt y (matVec4 A (y t)) t
+
+theorem SolvesLinearized.hasDerivAt
+    {A : Matrix Idx Idx ℝ} {y : ℝ → State} (h : SolvesLinearized A y) (t : ℝ) :
+    HasDerivAt y (matVec4 A (y t)) t :=
+  h t
+
+theorem SolvesLinearized.differentiable
+    {A : Matrix Idx Idx ℝ} {y : ℝ → State} (h : SolvesLinearized A y) :
+    Differentiable ℝ y :=
+  fun t => (h.hasDerivAt t).differentiableAt
+
+theorem SolvesLinearized.deriv_eq_matVec
+    {A : Matrix Idx Idx ℝ} {y : ℝ → State} (h : SolvesLinearized A y) :
+    deriv y = fun t => matVec4 A (y t) := by
+  funext t
+  exact (h.hasDerivAt t).deriv
+
+theorem SolvesLinearized.contDiff_one
+    {A : Matrix Idx Idx ℝ} {y : ℝ → State} (h : SolvesLinearized A y) :
+    ContDiff ℝ 1 y := by
+  rw [contDiff_one_iff_deriv]
+  refine ⟨h.differentiable, ?_⟩
+  rw [h.deriv_eq_matVec]
+  exact (matVec4_contDiff (A := A) (n := 1)).continuous.comp h.differentiable.continuous
+
+theorem SolvesLinearized.contDiff_two
+    {A : Matrix Idx Idx ℝ} {y : ℝ → State} (h : SolvesLinearized A y) :
+    ContDiff ℝ 2 y := by
+  rw [show (2 : WithTop ℕ∞) = (1 : WithTop ℕ∞) + 1 by norm_num,
+    contDiff_succ_iff_deriv]
+  refine ⟨h.differentiable, by simp, ?_⟩
+  rw [h.deriv_eq_matVec]
+  simpa [Function.comp_def] using
+    (matVec4_contDiff (A := A) (n := 1)).comp h.contDiff_one
+
+theorem SolvesLinearized.add
+    {A : Matrix Idx Idx ℝ} {y₁ y₂ : ℝ → State}
+    (h₁ : SolvesLinearized A y₁) (h₂ : SolvesLinearized A y₂) :
+    SolvesLinearized A (fun t => y₁ t + y₂ t) := by
+  intro t
+  simpa [matVec4_add] using (h₁.hasDerivAt t).add (h₂.hasDerivAt t)
+
+theorem SolvesLinearized.const_smul
+    {A : Matrix Idx Idx ℝ} (a : ℝ) {y : ℝ → State}
+    (h : SolvesLinearized A y) :
+    SolvesLinearized A (fun t => a • y t) := by
+  intro t
+  simpa [matVec4_smul] using (h.hasDerivAt t).const_smul a
 
 def linearMode (lam : ℝ) (v : State) : ℝ → State :=
   fun t => Real.exp (lam * t) • v
@@ -684,6 +738,15 @@ theorem TravelingWave.deriv_V_tendsto_atTop
     exact (w.ode.hasDerivAt_V t).deriv
   simpa [hderiv, E0] using w.component_tendsto_atTop (3 : Idx)
 
+theorem TravelingWave.U_strictlyPositiveAtLeft
+    {p : Params} (w : TravelingWave p) :
+    ∃ δ > 0, ∀ᶠ t in atBot, δ ≤ w.z t 0 := by
+  refine ⟨1 / 2, by norm_num, ?_⟩
+  have hnhds : Set.Ioi (1 / 2 : ℝ) ∈ nhds (1 : ℝ) :=
+    Ioi_mem_nhds (by norm_num)
+  filter_upwards [w.U_tendsto_atBot hnhds] with t ht
+  exact le_of_lt ht
+
 theorem TravelingWave.profile_boundary_limits
     {p : Params} (w : TravelingWave p) :
     Tendsto (fun t => w.z t 0) atBot (nhds 1) ∧
@@ -698,6 +761,38 @@ theorem TravelingWave.profile_boundary_limits
     w.V_tendsto_atBot, w.V_tendsto_atTop,
     w.deriv_U_tendsto_atBot, w.deriv_U_tendsto_atTop,
     w.deriv_V_tendsto_atBot, w.deriv_V_tendsto_atTop⟩
+
+structure WaveProfileData (p : Params) (U V : ℝ → ℝ) : Prop where
+  U_c2 : ContDiff ℝ 2 U
+  V_c2 : ContDiff ℝ 2 V
+  ode_U : ∀ t : ℝ,
+    iteratedDeriv 2 U t
+      + p.c * deriv U t
+      - p.chi * deriv (fun y => (U y) ^ p.m * deriv V y) t
+      + U t * (1 - (U t) ^ p.alpha) = 0
+  ode_V : ∀ t : ℝ,
+    iteratedDeriv 2 V t - V t + (U t) ^ p.gamma = 0
+  lim_neg_inf : Tendsto U atBot (nhds 1) ∧ Tendsto V atBot (nhds 1)
+  lim_pos_inf : Tendsto U atTop (nhds 0) ∧ Tendsto V atTop (nhds 0)
+  deriv_lim_neg_inf :
+    Tendsto (deriv U) atBot (nhds 0) ∧ Tendsto (deriv V) atBot (nhds 0)
+  deriv_lim_pos_inf :
+    Tendsto (deriv U) atTop (nhds 0) ∧ Tendsto (deriv V) atTop (nhds 0)
+  U_strictlyPositiveAtLeft : ∃ δ > 0, ∀ᶠ t in atBot, δ ≤ U t
+
+theorem TravelingWave.to_profileData
+    {p : Params} (w : TravelingWave p) :
+    WaveProfileData p (fun t => w.z t 0) (fun t => w.z t 2) := by
+  exact
+    { U_c2 := w.profile_c2_bootstrap.1
+      V_c2 := w.profile_c2_bootstrap.2.1
+      ode_U := w.profile_U_equation
+      ode_V := w.profile_V_equation
+      lim_neg_inf := ⟨w.U_tendsto_atBot, w.V_tendsto_atBot⟩
+      lim_pos_inf := ⟨w.U_tendsto_atTop, w.V_tendsto_atTop⟩
+      deriv_lim_neg_inf := ⟨w.deriv_U_tendsto_atBot, w.deriv_V_tendsto_atBot⟩
+      deriv_lim_pos_inf := ⟨w.deriv_U_tendsto_atTop, w.deriv_V_tendsto_atTop⟩
+      U_strictlyPositiveAtLeft := w.U_strictlyPositiveAtLeft }
 
 theorem local_shooting_segment_from_E1_positive_eigenpair
     (p : Params) {lam δ t₀ : ℝ}
@@ -827,6 +922,12 @@ theorem HasHeteroclinicE1E0.exists_profile_equations
   rcases h with ⟨z, hzode, hleft, hright⟩
   rcases hzode.profile_equations with ⟨hUeq, hVeq⟩
   exact ⟨z, hzode, hleft, hright, hUeq, hVeq⟩
+
+theorem HasHeteroclinicE1E0.exists_profileData
+    {p : Params} (h : HasHeteroclinicE1E0 p) :
+    ∃ U V : ℝ → ℝ, WaveProfileData p U V := by
+  rcases travelingWave_of_heteroclinic p h with ⟨w⟩
+  exact ⟨fun t => w.z t 0, fun t => w.z t 2, w.to_profileData⟩
 
 end TravelingWaveODE
 end PDE
