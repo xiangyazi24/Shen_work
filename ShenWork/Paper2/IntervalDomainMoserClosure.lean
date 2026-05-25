@@ -296,6 +296,254 @@ theorem intervalDomain_boundedBefore_of_moser_iteration_chain_and_quantitative_e
   exact intervalDomain_boundedBefore_of_moser_quantitative_endpoint
     (hEndpoint hAll)
 
+/-! ### Relative-energy Moser chain
+
+The relative GN/Young estimate used by the PDE has the form
+`Z <= eps * G + Ceps * Y`.  The existing single-step Moser interface expects
+`Z <= eps * G + C`.  The conversion is valid only inside the solution
+iteration, where the current `Y = ∫u^p` bound is already known.  The lemmas in
+this section make that dependency explicit and keep the final endpoint
+solution-structured.
+-/
+
+/-- Dissipation/drop condition needed to reduce the full Lp energy inequality
+to the Moser gradient inequality. -/
+def MoserDissipationDropBefore
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p → ∀ A B K L_const,
+    (∀ t, 0 < t → t < T →
+      (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+        A * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+        B * D.integral (fun x => (u t x) ^ p) ≤
+      K * D.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+    ∀ t, 0 < t → t < T →
+      0 ≤
+        (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+          B * D.integral (fun x => (u t x) ^ p)
+
+/-- Relative GN/Young interpolation in the form used by the solution Moser
+iteration.  The lower-order factor is `∫u^p`, so it must be paired with the
+current exponent's Lp bound inside the induction. -/
+def RelativeMoserInterpolationBefore
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p → ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧
+    ∀ t, 0 < t → t < T →
+      D.integral (fun x => (u t x) ^ (p + rho)) ≤
+        eps * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+        Ceps * D.integral (fun x => (u t x) ^ p)
+
+/-- Convert relative interpolation to the constant interpolation needed by the
+single-step Moser interface, using the current exponent's Lp bound. -/
+theorem moser_constant_interpolation_of_relative_interpolation_and_lp_bound
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T p rho : ℝ}
+    (hLp : LpPowerBoundedBefore D p T u)
+    (hrel : ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧ ∀ t, 0 < t → t < T →
+      D.integral (fun x => (u t x) ^ (p + rho)) ≤
+        eps * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+        Ceps * D.integral (fun x => (u t x) ^ p)) :
+    ∀ eps > 0, ∃ Cconst, ∀ t, 0 < t → t < T →
+      D.integral (fun x => (u t x) ^ (p + rho)) ≤
+        eps * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+        Cconst := by
+  rcases hLp with ⟨Cp, hCp⟩
+  intro eps heps
+  rcases hrel eps heps with ⟨Ceps, hCeps_nonneg, hCeps⟩
+  refine ⟨Ceps * Cp, ?_⟩
+  intro t ht0 htT
+  have hmain := hCeps t ht0 htT
+  have hY := hCp t ht0 htT
+  have hscaled :
+      Ceps * D.integral (fun x => (u t x) ^ p) ≤ Ceps * Cp :=
+    mul_le_mul_of_nonneg_left hY hCeps_nonneg
+  linarith
+
+/-- Per-exponent Moser step from the full solution energy inequality,
+dissipation/drop, and relative interpolation, using the current Lp bound. -/
+theorem moser_step_of_energy_dissipation_relative_interpolation
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T rho p0 p : ℝ}
+    (henergy : LpBootstrapEnergyInequality D u T rho p0)
+    (hdiss : MoserDissipationDropBefore D u T rho p0)
+    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
+    (hp : p0 ≤ p)
+    (hLp : LpPowerBoundedBefore D p T u) :
+    ∃ A > 0, ∃ K > 0, ∃ L_const,
+      (∀ t, 0 < t → t < T →
+        A * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) ≤
+        K * D.integral (fun x => (u t x) ^ (p + rho)) + L_const) ∧
+      (∀ eps > 0, ∃ Ceps, ∀ t, 0 < t → t < T →
+        D.integral (fun x => (u t x) ^ (p + rho)) ≤
+          eps * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          Ceps) := by
+  rcases henergy p hp with ⟨A, hA, B, _hB, K, hK, L_const, hfull⟩
+  refine ⟨A, hA, K, hK, L_const, ?_, ?_⟩
+  · intro t ht0 htT
+    have hfull_t := hfull t ht0 htT
+    have hdrop_t := hdiss p hp A B K L_const hfull t ht0 htT
+    linarith
+  · exact moser_constant_interpolation_of_relative_interpolation_and_lp_bound
+      hLp (hrel p hp)
+
+/-- The solution-structured relative Moser induction along the arithmetic
+exponent chain. -/
+theorem moser_iteration_chain_of_energy_dissipation_relative_interpolation
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T p0 rho : ℝ}
+    (hrho : 0 < rho)
+    (hbase : LpPowerBoundedBefore D p0 T u)
+    (henergy : LpBootstrapEnergyInequality D u T rho p0)
+    (hdiss : MoserDissipationDropBefore D u T rho p0)
+    (hrel : RelativeMoserInterpolationBefore D u T rho p0) :
+    ∀ n : ℕ, LpPowerBoundedBefore D (p0 + n * rho) T u := by
+  intro n
+  induction n with
+  | zero =>
+    simp only [CharP.cast_eq_zero, zero_mul, add_zero]
+    exact hbase
+  | succ n ih =>
+    have hexp_eq : p0 + (↑(n + 1) : ℝ) * rho = (p0 + ↑n * rho) + rho := by
+      push_cast
+      ring
+    rw [hexp_eq]
+    have hp_ge : p0 ≤ p0 + ↑n * rho :=
+      le_add_of_nonneg_right (mul_nonneg (Nat.cast_nonneg n) hrho.le)
+    obtain ⟨A, hA, K, hK, L_const, hstep_energy, hstep_interp⟩ :=
+      moser_step_of_energy_dissipation_relative_interpolation
+        henergy hdiss hrel hp_ge ih
+    exact IntervalDomainChain.lp_bootstrap_single_step_abstract
+      (L_const := L_const) hA hK hstep_energy hstep_interp
+
+/-- All finite exponents from the relative solution Moser chain plus downward
+Lp monotonicity. -/
+theorem all_exponents_of_energy_dissipation_relative_interpolation_lpmono
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {N T rho p0 : ℝ}
+    (hboot : AbstractLpBootstrapHypothesis D u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality D u T rho p0)
+    (hdiss : MoserDissipationDropBefore D u T rho p0)
+    (hrel : RelativeMoserInterpolationBefore D u T rho p0)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore D q T u → LpPowerBoundedBefore D p T u) :
+    ∀ pExp > 1, LpPowerBoundedBefore D pExp T u := by
+  exact all_exponents_of_chain_and_lp_mono
+    (AbstractLpBootstrapHypothesis.rho_pos hboot)
+    (moser_iteration_chain_of_energy_dissipation_relative_interpolation
+      (AbstractLpBootstrapHypothesis.rho_pos hboot)
+      (AbstractLpBootstrapHypothesis.initial_lp_bound hboot)
+      henergy hdiss hrel)
+    hLpMono
+
+/-- Interval-domain finite-horizon `L∞` bound from the solution-structured
+relative Moser chain and a quantitative endpoint. -/
+theorem intervalDomain_boundedBefore_of_energy_dissipation_relative_interpolation
+    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    {pSeq rootBound : ℕ → ℝ}
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : MoserDissipationDropBefore intervalDomain u T rho p0)
+    (hrel : RelativeMoserInterpolationBefore intervalDomain u T rho p0)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore intervalDomain q T u →
+        LpPowerBoundedBefore intervalDomain p T u)
+    (hEndpoint :
+      (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
+        IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
+    IsPaper2BoundedBefore intervalDomain T u := by
+  have hAll : ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u :=
+    all_exponents_of_energy_dissipation_relative_interpolation_lpmono
+      hboot henergy hdiss hrel hLpMono
+  exact intervalDomain_boundedBefore_of_moser_quantitative_endpoint
+    (hEndpoint hAll)
+
+/-- Pack the structured solution data needed to turn the relative Moser chain
+into an interval-domain finite-horizon `L∞` bound.  The endpoint field is where
+the concrete solution regularity, interval GN/Agmon estimates, and controlled
+per-exponent constants enter; it is not the invalid abstract Lp-envelope
+frontier. -/
+structure IntervalDomainStructuredMoserBootstrapData
+    (u : ℝ → intervalDomain.Point → ℝ) (T : ℝ) where
+  N : ℝ
+  rho : ℝ
+  p0 : ℝ
+  boot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0
+  energy : LpBootstrapEnergyInequality intervalDomain u T rho p0
+  dissipation : MoserDissipationDropBefore intervalDomain u T rho p0
+  relativeInterpolation : RelativeMoserInterpolationBefore intervalDomain u T rho p0
+  lpMono :
+    ∀ {p q : ℝ}, 1 < p → p ≤ q →
+      LpPowerBoundedBefore intervalDomain q T u →
+      LpPowerBoundedBefore intervalDomain p T u
+  pSeq : ℕ → ℝ
+  rootBound : ℕ → ℝ
+  endpoint :
+    (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
+      IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+theorem IntervalDomainStructuredMoserBootstrapData.boundedBefore
+    {u : ℝ → intervalDomain.Point → ℝ} {T : ℝ}
+    (h : IntervalDomainStructuredMoserBootstrapData u T) :
+    IsPaper2BoundedBefore intervalDomain T u :=
+  intervalDomain_boundedBefore_of_energy_dissipation_relative_interpolation
+    h.boot h.energy h.dissipation h.relativeInterpolation h.lpMono h.endpoint
+
+/-- Theorem 1.1 bridge using the structured relative-Moser `L∞` route for the
+boundedness input to global extension.
+
+The explicit theorem's pointwise sup-norm estimate is still supplied by the
+proved negative-sensitivity maximum-principle chain inside
+`Theorem_1_1_intervalDomain_conditional`.  This bridge replaces the old global
+extension boundedness input with the solution-structured Moser endpoint above,
+avoiding the false abstract Lp-envelope endpoint. -/
+theorem Theorem_1_1_intervalDomain_of_structured_relative_moser_endpoint
+    (p : CM2Params)
+    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
+    (hnonminimalMoser :
+      p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          PositiveInitialDatum intervalDomain u₀ →
+        ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p T u v →
+          InitialTrace intervalDomain u₀ u →
+            IntervalDomainStructuredMoserBootstrapData u T)
+    (hminimalMoser :
+      p.χ₀ ≤ 0 → p.a = 0 → p.b = 0 →
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          PositiveInitialDatum intervalDomain u₀ →
+        ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p T u v →
+          InitialTrace intervalDomain u₀ u →
+            IntervalDomainStructuredMoserBootstrapData u T) :
+    Theorem_1_1 intervalDomain p := by
+  intro hχ
+  let hexist' : IntervalDomainTheorem11.IntervalDomainExistence p :=
+    { localExistence := hexist.localExistence
+      initialSupNormApproach := hexist.initialSupNormApproach
+      globalExtension := by
+        intro u₀ hu₀ Tmax hTmax u v hsol htrace hbounded hm
+        by_cases hpos : 0 < p.a ∧ 0 < p.b
+        · have hdata :=
+            hnonminimalMoser hχ hpos.1 hpos.2 u₀ hu₀
+              Tmax hTmax u v hsol htrace
+          exact hexist.globalExtension u₀ hu₀ Tmax hTmax u v hsol htrace
+            hdata.boundedBefore hm
+        · by_cases hzero : p.a = 0 ∧ p.b = 0
+          · have hdata :=
+              hminimalMoser hχ hzero.1 hzero.2 u₀ hu₀
+                Tmax hTmax u v hsol htrace
+            exact hexist.globalExtension u₀ hu₀ Tmax hTmax u v hsol htrace
+              hdata.boundedBefore hm
+          · exact hexist.globalExtension u₀ hu₀ Tmax hTmax u v hsol htrace
+              hbounded hm }
+  exact (IntervalDomainTheorem11.Theorem_1_1_intervalDomain_conditional
+    p hexist') hχ
+
 /-! ### Concrete interval-domain endpoint audit
 
 The abstract frontier above cannot be discharged from an Lp envelope alone,
