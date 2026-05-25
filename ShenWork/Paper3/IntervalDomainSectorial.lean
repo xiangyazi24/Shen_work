@@ -2244,6 +2244,145 @@ theorem intervalDomain_Theorem_2_1_sectorialMainline_of_closedFrontiers
   (intervalDomain_sectorialMainline_unconditionalTarget_of_frontiers
     p M0 uBar vLower hfront).2
 
+/-- Paper2-style existence/stability package for the interval-domain
+Theorem 2.2 sectorial mainline.
+
+This is not a theorem-shaped assumption: the fields are the concrete analytic
+facts still missing after the spectral-decay bridge has been proved, namely
+the nonlinear orbit comparison and the two small-data global Cauchy existence
+branches. -/
+structure IntervalDomainSectorialTheorem22Existence
+    (p : CM2Params) where
+  sigma : ℝ
+  pNorm : ℝ
+  sigma_low : 1 / 2 < sigma
+  sigma_high : sigma < 1
+  pNorm_gt_one : 1 < pNorm
+  spectralSemigroupOrbitBound :
+    IntervalDomainSectorialSpectralSemigroupOrbitBoundRaw p
+  smallDataGlobal :
+    ∀ uStar, ∀ delta > 0,
+      SmallDataGlobalExistence intervalDomain p uStar delta
+  massConstrainedSmallDataGlobal :
+    ∀ uStar, ∀ delta > 0,
+      MassConstrainedSmallDataGlobalExistence intervalDomain p uStar delta
+
+/-- The Paper2-style Theorem 2.2 existence package supplies exactly the local
+frontiers consumed by the lower-level sectorial wrapper. -/
+theorem IntervalDomainSectorialTheorem22Existence.to_localFrontiers
+    {p : CM2Params}
+    (h : IntervalDomainSectorialTheorem22Existence p) :
+    IntervalDomainSectorialTheorem22LocalFrontiers p :=
+  ⟨h.sigma, h.pNorm, h.sigma_low, h.sigma_high, h.pNorm_gt_one,
+    h.spectralSemigroupOrbitBound, h.smallDataGlobal,
+    h.massConstrainedSmallDataGlobal⟩
+
+/-- Paper2-style persistence package for the interval-domain Theorem 2.1
+sectorial mainline.
+
+Point 17 status: this is not discharged by the sectorial semigroup theory.
+The four fields are the genuine uniform-persistence estimates needed by
+Paper3 Theorem 2.1 on `intervalDomain`. -/
+structure IntervalDomainSectorialTheorem21Persistence
+    (p : CM2Params) (uBar : ℝ) where
+  part1 : UniformPersistencePart1Raw intervalDomain p
+  part2 : UniformPersistencePart2Raw intervalDomain p
+  part3 : UniformPersistencePart3Raw intervalDomain p
+  part4 : UniformPersistencePart4Raw intervalDomain p (fun _ => uBar) 1
+
+/-- The Paper2-style persistence package supplies the lower-level persistence
+frontiers. -/
+theorem IntervalDomainSectorialTheorem21Persistence.to_persistenceFrontiers
+    {p : CM2Params} {uBar : ℝ}
+    (h : IntervalDomainSectorialTheorem21Persistence p uBar) :
+    IntervalDomainSectorialTheorem21PersistenceFrontiers p uBar :=
+  ⟨h.part1, h.part2, h.part3, h.part4⟩
+
+/-- Combined Paper3 interval-domain mainline package.
+
+This is the Paper2-consistent reduction point for B4: Theorem 2.2 is reduced
+to a concrete sectorial existence/stability package, and Theorem 2.1 is
+reduced to the concrete persistence package.  A no-assumption theorem would
+require constructing this package from PDE analysis. -/
+structure IntervalDomainSectorialMainlineExistence
+    (p : CM2Params) (uBar : ℝ) where
+  localStability : IntervalDomainSectorialTheorem22Existence p
+  persistence : IntervalDomainSectorialTheorem21Persistence p uBar
+
+/-- The combined mainline package is exactly the lower-level frontier package
+already consumed by the sectorial mainline theorem. -/
+theorem IntervalDomainSectorialMainlineExistence.to_frontiers
+    {p : CM2Params} {uBar : ℝ}
+    (h : IntervalDomainSectorialMainlineExistence p uBar) :
+    IntervalDomainSectorialTheorem21And22Frontiers p uBar :=
+  ⟨h.localStability.to_localFrontiers,
+    h.persistence.to_persistenceFrontiers⟩
+
+/-- Interval-domain Paper3 Theorem 2.2 from the Paper2-style sectorial
+existence/stability package. -/
+theorem intervalDomain_Theorem_2_2_sectorialMainline_of_existence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hexist : IntervalDomainSectorialTheorem22Existence p) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_2_sectorialMainline_of_localFrontiers
+    p M0 uBar vLower hexist.to_localFrontiers
+
+/-- Interval-domain Paper3 Theorem 2.1 from the concrete persistence package. -/
+theorem intervalDomain_Theorem_2_1_sectorialMainline_of_persistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hpersist : IntervalDomainSectorialTheorem21Persistence p uBar) :
+    Theorem_2_1 intervalDomain p
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_1_sectorialMainline_of_persistenceFrontiers
+    p M0 uBar vLower hpersist.to_persistenceFrontiers
+
+/-- Paper2-consistent interval-domain endpoint for Paper3 Theorems 2.1 and
+2.2: the user-facing sectorial mainline reduced to the concrete existence and
+persistence packages. -/
+theorem intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_existence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hexist : IntervalDomainSectorialMainlineExistence p uBar) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+        intervalDomainSectorialStabilityNorms
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower) ∧
+      Theorem_2_1 intervalDomain p
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_frontiers
+    p M0 uBar vLower hexist.to_frontiers
+
+/-- The Theorem 2.2 component of the Paper2-style mainline existence
+package. -/
+theorem intervalDomain_Theorem_2_2_sectorialMainline_of_mainlineExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hexist : IntervalDomainSectorialMainlineExistence p uBar) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  (intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_existence
+    p M0 uBar vLower hexist).1
+
+/-- The Theorem 2.1 component of the Paper2-style mainline existence
+package. -/
+theorem intervalDomain_Theorem_2_1_sectorialMainline_of_mainlineExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hexist : IntervalDomainSectorialMainlineExistence p uBar) :
+    Theorem_2_1 intervalDomain p
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  (intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_existence
+    p M0 uBar vLower hexist).2
+
+/-- The literal no-hidden-field target, reduced to the Paper2-style mainline
+existence package. -/
+theorem intervalDomain_sectorialMainline_unconditionalTarget_of_existence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hexist : IntervalDomainSectorialMainlineExistence p uBar) :
+    IntervalDomainSectorialTheorem21And22UnconditionalTarget
+      p M0 uBar vLower :=
+  intervalDomain_sectorialMainline_unconditionalTarget_of_frontiers
+    p M0 uBar vLower hexist.to_frontiers
+
 /-- Persistence plus the raw nonminimal exponential-upgrade frontier gives
 the per-solution exponential conclusion of Corollary 5.1.
 
