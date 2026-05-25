@@ -2129,6 +2129,56 @@ theorem intervalDomain_chemotaxisSignalEnergy_lyapunovPackage
   · exact intervalDomain_chemotaxisSignalEnergy_tendsto_zero
       hc hK hs hmu hderiv hdiss hcontrol
 
+/-- Full interval-domain signal-energy Lyapunov package including the
+unweighted monotonicity form.  This separates the genuine dissipation
+consequence, which needs no Poincare control, from the exponential upgrade,
+which still depends on `hcontrol`.
+
+Point 17 status: conditional theorem, state ③.  The interval integral and
+gradient-dissipation nonnegativity side conditions are discharged here.  The
+remaining named frontiers are the PDE derivative/dissipation estimates
+`hderiv`/`hdiss` and the Poincare control `hcontrol` for the exponential part. -/
+theorem intervalDomain_chemotaxisSignalEnergy_fullLyapunovPackage
+    {mu vStar c K s : ℝ}
+    {v : ℝ → intervalDomain.Point → ℝ} {energySlope : ℝ → ℝ}
+    (hc : 0 < c) (hK : 0 < K) (hs : 0 < s)
+    (hmu : 0 ≤ mu)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisSignalEnergy intervalDomain mu vStar v tau)
+          (energySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        (1 / 2 : ℝ) * energySlope t +
+          c * chemotaxisSignalGradientDissipation intervalDomain vStar v t ≤ 0)
+    (hcontrol :
+      ∀ t, 0 < t →
+        chemotaxisSignalEnergy intervalDomain mu vStar v t ≤
+          K * chemotaxisSignalGradientDissipation intervalDomain vStar v t) :
+    (∀ t, 0 ≤ chemotaxisSignalEnergy intervalDomain mu vStar v t) ∧
+      AntitoneOn
+        (fun t => chemotaxisSignalEnergy intervalDomain mu vStar v t)
+        (Ioi (0 : ℝ)) ∧
+      AntitoneOn
+        (fun t =>
+          Real.exp ((2 * c / K) * t) *
+            chemotaxisSignalEnergy intervalDomain mu vStar v t)
+        (Ioi (0 : ℝ)) ∧
+      (∀ a b, 0 < a → a ≤ b →
+        chemotaxisSignalEnergy intervalDomain mu vStar v b ≤
+          chemotaxisSignalEnergy intervalDomain mu vStar v a *
+            Real.exp (-(2 * c / K) * (b - a))) ∧
+      Tendsto
+        (fun t => chemotaxisSignalEnergy intervalDomain mu vStar v t)
+        atTop (𝓝 0) := by
+  have hpack :=
+    intervalDomain_chemotaxisSignalEnergy_lyapunovPackage
+      hc hK hs hmu hderiv hdiss hcontrol
+  refine ⟨hpack.1, ?_, hpack.2.1, hpack.2.2.1, hpack.2.2.2⟩
+  exact intervalDomain_chemotaxisSignalEnergy_antitoneOn_of_dissipation
+    hc.le hderiv hdiss
+
 end
 
 end ShenWork.Paper3
