@@ -2782,6 +2782,399 @@ theorem intervalDomain_all_exponents_of_energy_dissipation_relative_interpolatio
       henergy hdiss hrel)
     hu_nonneg hpow_int
 
+/-! ### Bridges to the structured relative-Moser endpoint API -/
+
+/-- Package the raw EnergyStep dissipation/drop interface as the named
+`MoserClosure` field. -/
+theorem moserClosure_dissipationDropBefore_of_raw
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T rho p0 : ℝ}
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+          A * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * D.integral (fun x => (u t x) ^ p) ≤
+        K * D.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+            B * D.integral (fun x => (u t x) ^ p)) :
+    IntervalDomainMoserClosure.MoserDissipationDropBefore D u T rho p0 := by
+  intro p hp A B K L_const hfull t ht0 htT
+  exact hdiss p hp A B K L_const hfull t ht0 htT
+
+/-- Package the raw relative eps-absorption interface as the named
+`MoserClosure` field. -/
+theorem moserClosure_relativeInterpolationBefore_of_raw
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T rho p0 : ℝ}
+    (hrel : ∀ p, p0 ≤ p → ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧
+      ∀ t, 0 < t → t < T →
+        D.integral (fun x => (u t x) ^ (p + rho)) ≤
+          eps * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          Ceps * D.integral (fun x => (u t x) ^ p)) :
+    IntervalDomainMoserClosure.RelativeMoserInterpolationBefore D u T rho p0 := by
+  intro p hp eps heps
+  exact hrel p hp eps heps
+
+/-- The EnergyStep mass-gradient eps-absorption family supplies the named
+relative-interpolation field used by the structured Moser endpoint route. -/
+theorem moserClosure_relativeInterpolationBefore_of_mass_gradient_estimate
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T rho p0 : ℝ}
+    (cGrad : ℝ → ℝ)
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hMG : ∀ p, p0 ≤ p → ∀ eta > 0, ∃ Ceta,
+      LpMassGradientInterpolationEstimate D (p + rho) eta Ceta T u)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      D.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (D.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmassToLp : MoserMassPowerToCurrentLpLowerOrder D u T rho p0) :
+    IntervalDomainMoserClosure.RelativeMoserInterpolationBefore D u T rho p0 :=
+  moserClosure_relativeInterpolationBefore_of_raw
+    (moser_relative_eps_absorption_family_of_mass_gradient_estimate
+      cGrad hcGrad hMG hgrad hmassToLp)
+
+/-- Interval-domain named relative-interpolation field from the mass-gradient
+estimate. -/
+theorem intervalDomain_moserClosure_relativeInterpolationBefore_of_mass_gradient_estimate
+    {u : ℝ → intervalDomain.Point → ℝ} {T rho p0 : ℝ}
+    (cGrad : ℝ → ℝ)
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hMG : ∀ p, p0 ≤ p → ∀ eta > 0, ∃ Ceta,
+      LpMassGradientInterpolationEstimate intervalDomain (p + rho) eta Ceta T u)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmassToLp : MoserMassPowerToCurrentLpLowerOrder intervalDomain u T rho p0) :
+    IntervalDomainMoserClosure.RelativeMoserInterpolationBefore
+      intervalDomain u T rho p0 :=
+  moserClosure_relativeInterpolationBefore_of_mass_gradient_estimate
+    cGrad hcGrad hMG hgrad hmassToLp
+
+/-- Interval-domain named relative-interpolation field using Paper 2
+Lemma 4.1 as the source of the mass-gradient interpolation estimate. -/
+theorem intervalDomain_moserClosure_relativeInterpolationBefore_of_Lemma_4_1
+    {params : CM2Params} {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    (cGrad : ℝ → ℝ)
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (hLemma41 : Lemma_4_1 intervalDomain params)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmassToLp : MoserMassPowerToCurrentLpLowerOrder intervalDomain u T rho p0) :
+    IntervalDomainMoserClosure.RelativeMoserInterpolationBefore
+      intervalDomain u T rho p0 :=
+  moserClosure_relativeInterpolationBefore_of_raw
+    (intervalDomain_moser_relative_eps_absorption_family_of_Lemma_4_1
+      cGrad hboot hLemma41 hu₀ hsol htrace hcGrad hgrad hmassToLp)
+
+/-- Build the component package expected by
+`Theorem_1_1_intervalDomain_of_relative_moser_endpoint_components` from the
+EnergyStep-side named fields. -/
+def intervalDomain_relativeMoserEndpointComponents_of_energy_interfaces
+    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    {pSeq rootBound : ℕ → ℝ}
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : IntervalDomainMoserClosure.MoserDissipationDropBefore
+      intervalDomain u T rho p0)
+    (hrel : IntervalDomainMoserClosure.RelativeMoserInterpolationBefore
+      intervalDomain u T rho p0)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore intervalDomain q T u →
+        LpPowerBoundedBefore intervalDomain p T u)
+    (hEndpoint :
+      (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
+        IntervalDomainMoserClosure.IntervalDomainMoserQuantitativeEndpoint
+          u T pSeq rootBound) :
+    IntervalDomainMoserClosure.IntervalDomainRelativeMoserEndpointComponents u T := by
+  exact
+    { N := N
+      rho := rho
+      p0 := p0
+      pSeq := pSeq
+      rootBound := rootBound
+      boot := hboot
+      energy := henergy
+      dissipation := hdiss
+      relativeInterpolation := hrel
+      lpMono := hLpMono
+      endpoint := hEndpoint }
+
+/-- Same component package, starting from the raw EnergyStep dissipation and
+relative-interpolation hypotheses. -/
+def intervalDomain_relativeMoserEndpointComponents_of_raw_energy_relative
+    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    {pSeq rootBound : ℕ → ℝ}
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv
+            (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+          A * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * intervalDomain.integral (fun x => (u t x) ^ p) ≤
+        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv
+              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+            B * intervalDomain.integral (fun x => (u t x) ^ p))
+    (hrel : ∀ p, p0 ≤ p → ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral (fun x => (u t x) ^ (p + rho)) ≤
+          eps * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          Ceps * intervalDomain.integral (fun x => (u t x) ^ p))
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore intervalDomain q T u →
+        LpPowerBoundedBefore intervalDomain p T u)
+    (hEndpoint :
+      (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
+        IntervalDomainMoserClosure.IntervalDomainMoserQuantitativeEndpoint
+          u T pSeq rootBound) :
+    IntervalDomainMoserClosure.IntervalDomainRelativeMoserEndpointComponents u T :=
+  intervalDomain_relativeMoserEndpointComponents_of_energy_interfaces
+    hboot henergy
+    (moserClosure_dissipationDropBefore_of_raw hdiss)
+    (moserClosure_relativeInterpolationBefore_of_raw hrel)
+    hLpMono hEndpoint
+
+/-- Component package when the `LpBootstrapEnergyInequality` is obtained from
+the cross-diffusion bootstrap estimate. -/
+def intervalDomain_relativeMoserEndpointComponents_of_crossDiffusion_energy_interfaces
+    {params : CM2Params}
+    {u v : ℝ → intervalDomain.Point → ℝ} {T rho p0 : ℝ}
+    {pSeq rootBound : ℕ → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hboot :
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
+    (hEnergyFromCrossDiffusion :
+      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain params T u v →
+        CrossDiffusionBootstrapEstimate intervalDomain params T rho u v →
+        AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0 →
+          LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : IntervalDomainMoserClosure.MoserDissipationDropBefore
+      intervalDomain u T rho p0)
+    (hrel : IntervalDomainMoserClosure.RelativeMoserInterpolationBefore
+      intervalDomain u T rho p0)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore intervalDomain q T u →
+        LpPowerBoundedBefore intervalDomain p T u)
+    (hEndpoint :
+      (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
+        IntervalDomainMoserClosure.IntervalDomainMoserQuantitativeEndpoint
+          u T pSeq rootBound) :
+    IntervalDomainMoserClosure.IntervalDomainRelativeMoserEndpointComponents u T :=
+  intervalDomain_relativeMoserEndpointComponents_of_energy_interfaces
+    hboot (hEnergyFromCrossDiffusion hsol hcross hboot)
+    hdiss hrel hLpMono hEndpoint
+
+/-- Cross-diffusion version with raw EnergyStep dissipation and
+relative-interpolation inputs. -/
+def intervalDomain_relativeMoserEndpointComponents_of_crossDiffusion_raw_energy_relative
+    {params : CM2Params}
+    {u v : ℝ → intervalDomain.Point → ℝ} {T rho p0 : ℝ}
+    {pSeq rootBound : ℕ → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hboot :
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
+    (hEnergyFromCrossDiffusion :
+      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain params T u v →
+        CrossDiffusionBootstrapEstimate intervalDomain params T rho u v →
+        AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0 →
+          LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv
+            (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+          A * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * intervalDomain.integral (fun x => (u t x) ^ p) ≤
+        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv
+              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+            B * intervalDomain.integral (fun x => (u t x) ^ p))
+    (hrel : ∀ p, p0 ≤ p → ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral (fun x => (u t x) ^ (p + rho)) ≤
+          eps * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          Ceps * intervalDomain.integral (fun x => (u t x) ^ p))
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore intervalDomain q T u →
+        LpPowerBoundedBefore intervalDomain p T u)
+    (hEndpoint :
+      (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
+        IntervalDomainMoserClosure.IntervalDomainMoserQuantitativeEndpoint
+          u T pSeq rootBound) :
+    IntervalDomainMoserClosure.IntervalDomainRelativeMoserEndpointComponents u T :=
+  intervalDomain_relativeMoserEndpointComponents_of_crossDiffusion_energy_interfaces
+    hsol hcross hboot hEnergyFromCrossDiffusion
+    (moserClosure_dissipationDropBefore_of_raw hdiss)
+    (moserClosure_relativeInterpolationBefore_of_raw hrel)
+    hLpMono hEndpoint
+
+/-- Component package with relative interpolation supplied by Lemma 4.1. -/
+def intervalDomain_relativeMoserEndpointComponents_of_Lemma_4_1_energy
+    {params : CM2Params} {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    {pSeq rootBound : ℕ → ℝ}
+    (cGrad : ℝ → ℝ)
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : IntervalDomainMoserClosure.MoserDissipationDropBefore
+      intervalDomain u T rho p0)
+    (hLemma41 : Lemma_4_1 intervalDomain params)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmassToLp : MoserMassPowerToCurrentLpLowerOrder intervalDomain u T rho p0)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore intervalDomain q T u →
+        LpPowerBoundedBefore intervalDomain p T u)
+    (hEndpoint :
+      (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
+        IntervalDomainMoserClosure.IntervalDomainMoserQuantitativeEndpoint
+          u T pSeq rootBound) :
+    IntervalDomainMoserClosure.IntervalDomainRelativeMoserEndpointComponents u T :=
+  intervalDomain_relativeMoserEndpointComponents_of_energy_interfaces
+    hboot henergy hdiss
+    (intervalDomain_moserClosure_relativeInterpolationBefore_of_Lemma_4_1
+      cGrad hboot hLemma41 hu₀ hsol htrace hcGrad hgrad hmassToLp)
+    hLpMono hEndpoint
+
+/-- Cross-diffusion component package with relative interpolation supplied by
+Lemma 4.1. -/
+def intervalDomain_relativeMoserEndpointComponents_of_crossDiffusion_Lemma_4_1_energy
+    {params : CM2Params} {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ} {T rho p0 : ℝ}
+    {pSeq rootBound : ℕ → ℝ}
+    (cGrad : ℝ → ℝ)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hboot :
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
+    (hEnergyFromCrossDiffusion :
+      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain params T u v →
+        CrossDiffusionBootstrapEstimate intervalDomain params T rho u v →
+        AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0 →
+          LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : IntervalDomainMoserClosure.MoserDissipationDropBefore
+      intervalDomain u T rho p0)
+    (hLemma41 : Lemma_4_1 intervalDomain params)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmassToLp : MoserMassPowerToCurrentLpLowerOrder intervalDomain u T rho p0)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore intervalDomain q T u →
+        LpPowerBoundedBefore intervalDomain p T u)
+    (hEndpoint :
+      (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
+        IntervalDomainMoserClosure.IntervalDomainMoserQuantitativeEndpoint
+          u T pSeq rootBound) :
+    IntervalDomainMoserClosure.IntervalDomainRelativeMoserEndpointComponents u T :=
+  intervalDomain_relativeMoserEndpointComponents_of_Lemma_4_1_energy
+    cGrad hboot (hEnergyFromCrossDiffusion hsol hcross hboot) hdiss
+    hLemma41 hu₀ hsol htrace hcGrad hgrad hmassToLp hLpMono hEndpoint
+
+/-- Structured-data package for the `hnonminimalMoser`/`hminimalMoser` route
+from the same EnergyStep-side inputs. -/
+def intervalDomain_structuredMoserBootstrapData_of_energy_interfaces
+    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    {pSeq rootBound : ℕ → ℝ}
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : IntervalDomainMoserClosure.MoserDissipationDropBefore
+      intervalDomain u T rho p0)
+    (hrel : IntervalDomainMoserClosure.RelativeMoserInterpolationBefore
+      intervalDomain u T rho p0)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore intervalDomain q T u →
+        LpPowerBoundedBefore intervalDomain p T u)
+    (hEndpoint :
+      (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
+        IntervalDomainMoserClosure.IntervalDomainMoserQuantitativeEndpoint
+          u T pSeq rootBound) :
+    IntervalDomainMoserClosure.IntervalDomainStructuredMoserBootstrapData u T :=
+  (intervalDomain_relativeMoserEndpointComponents_of_energy_interfaces
+    hboot henergy hdiss hrel hLpMono hEndpoint).toStructuredData
+
+/-- Structured-data package from raw EnergyStep hypotheses. -/
+def intervalDomain_structuredMoserBootstrapData_of_raw_energy_relative
+    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    {pSeq rootBound : ℕ → ℝ}
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv
+            (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+          A * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * intervalDomain.integral (fun x => (u t x) ^ p) ≤
+        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv
+              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+            B * intervalDomain.integral (fun x => (u t x) ^ p))
+    (hrel : ∀ p, p0 ≤ p → ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral (fun x => (u t x) ^ (p + rho)) ≤
+          eps * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          Ceps * intervalDomain.integral (fun x => (u t x) ^ p))
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore intervalDomain q T u →
+        LpPowerBoundedBefore intervalDomain p T u)
+    (hEndpoint :
+      (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
+        IntervalDomainMoserClosure.IntervalDomainMoserQuantitativeEndpoint
+          u T pSeq rootBound) :
+    IntervalDomainMoserClosure.IntervalDomainStructuredMoserBootstrapData u T :=
+  (intervalDomain_relativeMoserEndpointComponents_of_raw_energy_relative
+    hboot henergy hdiss hrel hLpMono hEndpoint).toStructuredData
+
 end ShenWork.Paper2.IntervalDomainEnergyStep
 
 end
