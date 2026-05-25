@@ -3,10 +3,10 @@
   Explicit front profiles used as barriers in the traveling-wave construction.
 -/
 import ShenWork.Defs
-import ShenWork.Paper1.Statements
+import ShenWork.Paper1.Lemma25Helpers
 import Mathlib.Analysis.SpecialFunctions.Sigmoid
 
-open Filter Topology Real
+open Filter Topology MeasureTheory Real
 
 noncomputable section
 
@@ -684,5 +684,66 @@ theorem logisticProfile_positive_construction_seed_data_of_chi_lt_half_chiStar
     lt_of_lt_of_le hχ_small (min_le_left _ _)
   exact logisticProfile_positive_construction_seed_data
     hχ_nonneg (by linarith) hc
+
+namespace ShenWork.Paper1
+
+/-- Section 5 arbitrary-wave bridge: once an arbitrary traveling wave has its
+signal identified with the elliptic resolvent, the faithful paper Lemma 2.5
+gives the weighted `L^p` estimate for the signal derivative under the paper's
+small-weight hypotheses. -/
+theorem Lemma_5_1_weighted_signal_derivative_from_Lemma_2_5
+    (p : CMParams) {c pExp : ℝ} (hpExp : 1 < pExp)
+    {U V : ℝ → ℝ}
+    (_hTW : IsTravelingWave p c U V)
+    (hV : V = frozenElliptic p U)
+    (hU_cont : Continuous U)
+    (hbound : HasWaveUpperTailBound p c U) :
+    ∃ kMax > 0, ∃ C > 0,
+      ∀ k : ℝ, 0 ≤ k → k < kMax →
+      ∀ psi : ExponentialWeight,
+        (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+        (∀ z, |iteratedDeriv 2 psi.weight z| ≤ k * psi.weight z) →
+        Integrable (fun x : ℝ => (U x) ^ (p.γ * pExp) * psi.weight x) →
+          Integrable
+            (fun x : ℝ => |deriv V x| ^ pExp * psi.weight x) ∧
+          ∫ x : ℝ, |deriv V x| ^ pExp * psi.weight x ≤
+            C * ∫ x : ℝ, (U x) ^ (p.γ * pExp) * psi.weight x := by
+  have hU : IsCUnifBdd U := hbound.isCUnifBdd_of_continuous hU_cont
+  have hU_nonneg : ∀ x, 0 ≤ U x := fun x => (hbound.pos x).le
+  have hgamma_pos : 0 < p.γ := lt_of_lt_of_le zero_lt_one p.hγ
+  obtain ⟨kMax, hkMax_pos, C, hC_pos, hC⟩ :=
+    lemma_2_5 pExp p.γ 1 1 hpExp hgamma_pos one_pos one_pos
+  refine ⟨kMax, hkMax_pos, C, hC_pos, ?_⟩
+  intro k hk_nonneg hk_small psi hk_deriv hk_second hint
+  subst V
+  simpa [frozenElliptic] using
+    hC k hk_nonneg hk_small U psi hU hU_nonneg hk_deriv hk_second hint
+
+/-- Convenient admissible-weight specialization of the preceding bridge,
+using the named `k_dab < 1` weight envelope. -/
+theorem Lemma_5_1_weighted_signal_derivative_resolventAdmissible
+    (p : CMParams) {c pExp : ℝ} (hpExp : 1 ≤ pExp)
+    {U V : ℝ → ℝ}
+    (_hTW : IsTravelingWave p c U V)
+    (hV : V = frozenElliptic p U)
+    (hU_cont : Continuous U)
+    (hbound : HasWaveUpperTailBound p c U)
+    (psi : ResolventAdmissibleExponentialWeight 1)
+    (hint :
+      Integrable (fun x : ℝ => (U x) ^ (p.γ * pExp) * psi.1.weight x)) :
+    ∃ C > 0,
+      Integrable
+        (fun x : ℝ => |deriv V x| ^ pExp * psi.1.weight x) ∧
+      ∫ x : ℝ, |deriv V x| ^ pExp * psi.1.weight x ≤
+        C * ∫ x : ℝ, (U x) ^ (p.γ * pExp) * psi.1.weight x := by
+  have hU : IsCUnifBdd U := hbound.isCUnifBdd_of_continuous hU_cont
+  have hU_nonneg : ∀ x, 0 ≤ U x := fun x => (hbound.pos x).le
+  obtain ⟨C, hC_pos, hC⟩ :=
+    Lemma_2_5_resolventAdmissibleWeight_CMParams_unit p psi hpExp
+  refine ⟨C, hC_pos, ?_⟩
+  subst V
+  simpa [frozenElliptic] using hC hU hU_nonneg hint
+
+end ShenWork.Paper1
 
 end
