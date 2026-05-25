@@ -18,6 +18,7 @@
 -/
 import ShenWork.Paper2.Statements
 import ShenWork.Paper2.IntervalDomainChain
+import ShenWork.Paper2.IntervalDomainClassicalUniqueness
 import ShenWork.PDE.IntervalDomain
 import ShenWork.PDE.ODEExistence
 import ShenWork.PDE.ODEUniqueness
@@ -3999,23 +4000,38 @@ theorem GlobalSolutionGluingFromReachability_of_overlapUnique
   GlobalSolutionGluingFromReachability_of_overlapUnique_and_locality
     huniq (classicalSolutionLocalityUnderIooAgreement_intervalDomain p)
 
+/-- The sb-lyap energy-method uniqueness handoff supplies exactly the overlap
+uniqueness input needed by the gluing construction. -/
+theorem IntervalClassicalSolutionOverlapUnique_of_energyMethod
+    {p : CM2Params}
+    (hmethod : IntervalDomainClassicalUniquenessEnergyMethod p) :
+    IntervalClassicalSolutionOverlapUnique p := by
+  intro u₀ T₁ T₂ d₁ d₂ t ht0 ht_overlap x
+  exact intervalDomain_classicalSolution_overlap_unique_of_energyMethod
+    hmethod d₁.sol d₂.sol d₁.trace d₂.trace t ht0 ht_overlap x
+
+/-- Arbitrarily long finite reachable solutions glue to a global solution once
+the sb-lyap energy method supplies classical overlap uniqueness. -/
+theorem GlobalSolutionGluingFromReachability_of_energyMethod
+    {p : CM2Params}
+    (hmethod : IntervalDomainClassicalUniquenessEnergyMethod p) :
+    GlobalSolutionGluingFromReachability p :=
+  GlobalSolutionGluingFromReachability_of_overlapUnique
+    (IntervalClassicalSolutionOverlapUnique_of_energyMethod hmethod)
+
 /-!
 Status of the uniqueness/gluing frontier:
 
-* Closed here: the purely formal gluing step.  Overlap uniqueness of finite
-  interval classical solutions implies `GlobalSolutionGluingFromReachability`.
-  The pointwise glued branch is shown to agree with every finite witness on
-  the relevant overlap, inherits the initial trace, and is transported back
-  into `IsPaper2ClassicalSolution` on each finite horizon by local
-  `EventuallyEq` derivative transport.
+* Closed here: the purely formal gluing step, plus the bridge from sb-lyap's
+  energy-method uniqueness handoff.  An
+  `IntervalDomainClassicalUniquenessEnergyMethod p` certificate implies
+  overlap uniqueness of finite interval classical solutions, hence
+  `GlobalSolutionGluingFromReachability p`.
 * First remaining genuine PDE gap: prove
-  `IntervalClassicalSolutionOverlapUnique p`.  The available
-  `intervalDuhamel_fixed_point_unique_of_contraction` only gives uniqueness
-  for two bounded Duhamel fixed points on a single contraction interval; the
-  file does not yet prove that an arbitrary `IsPaper2ClassicalSolution`
-  satisfies the Duhamel fixed-point formula on overlaps.  The existing
-  `comparison_principle` is scalar (`u_t - u_xx = g(u)`) and does not cover
-  the coupled chemotaxis/elliptic difference terms needed for PDE uniqueness.
+  `IntervalDomainClassicalUniquenessEnergyMethod p`, i.e. construct the
+  overlap energy certificate from the coupled interval PDE.  The certificate
+  still has to control the initial `v`-difference as well as the `u` trace;
+  this is not implied by the current `InitialTrace` field alone.
 -/
 
 /-! #### Blow-up exclusion from an a priori bound
