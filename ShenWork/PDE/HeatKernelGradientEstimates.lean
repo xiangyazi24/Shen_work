@@ -1882,6 +1882,51 @@ theorem intervalHeatSemigroup_deriv_eq_scaled_unit
           (fun u => f (L * u)) y)
       (x := x))
 
+/-- Positive dilation sends `[0,1]` onto `[0,L]`. -/
+theorem image_mul_Icc_zero_one {L : ℝ} (hL : 0 < L) :
+    (fun y : ℝ => L * y) '' Set.Icc (0 : ℝ) 1 =
+      Set.Icc (0 : ℝ) L := by
+  ext x
+  constructor
+  · rintro ⟨y, hy, rfl⟩
+    exact ⟨mul_nonneg hL.le hy.1,
+      by
+        simpa using mul_le_mul_of_nonneg_left hy.2 hL.le⟩
+  · intro hx
+    refine ⟨x / L, ?_, ?_⟩
+    · exact ⟨div_nonneg hx.1 hL.le, by
+        rw [div_le_one hL]
+        exact hx.2⟩
+    · field_simp [ne_of_gt hL]
+
+/-- Under the positive dilation `y ↦ L*y`, unit interval measure becomes
+`(1/L)` times interval measure on `[0,L]`. -/
+theorem map_mul_intervalMeasure_one {L : ℝ} (hL : 0 < L) :
+    Measure.map (fun y : ℝ => L * y) (intervalMeasure 1) =
+      ENNReal.ofReal (1 / L) • intervalMeasure L := by
+  let f : ℝ → ℝ := fun y => L * y
+  have hfemb : MeasurableEmbedding f := by
+    simpa [f] using measurableEmbedding_mulLeft₀ (ne_of_gt hL)
+  have himage : f '' intervalSet 1 = intervalSet L := by
+    simpa [f, intervalSet] using image_mul_Icc_zero_one hL
+  unfold intervalMeasure
+  calc
+    Measure.map f (volume.restrict (intervalSet 1))
+        = (Measure.map f volume).restrict (f '' intervalSet 1) := by
+          have h := hfemb.restrict_map (μ := volume) (s := f '' intervalSet 1)
+          have hpre : f ⁻¹' (f '' intervalSet 1) = intervalSet 1 :=
+            Set.preimage_image_eq _ hfemb.injective
+          rw [hpre] at h
+          exact h.symm
+    _ = (ENNReal.ofReal |L⁻¹| • volume).restrict
+          (f '' intervalSet 1) := by
+          rw [Real.map_volume_mul_left (ne_of_gt hL)]
+    _ = ENNReal.ofReal (1 / L) • volume.restrict (intervalSet L) := by
+          rw [Measure.restrict_smul, himage]
+          congr 1
+          rw [abs_of_pos (inv_pos.mpr hL)]
+          ring
+
 /-- The scaled interval spectral semigroup has the already-proved unit
 gradient estimate when `L = 1`. -/
 theorem intervalHeatSemigroup_unit_grad_Lp_Lq_bound
