@@ -257,12 +257,37 @@
 
 ### H4.1 — Theorem 2.2 on intervalDomain (local stability)
 - **前置**: H3.1 (sectorial semigroup), spectral analysis (partly done)
+- **进展** (2026-05-24): `ShenWork/Paper3/IntervalDomainStabilityChain.lean`
+  proves `intervalDomain_Theorem_2_2_of_sectorial_frontiers`, the full
+  intervalDomain `Theorem_2_2` statement from the concrete unit-interval
+  Neumann spectrum plus explicit H3.1 frontiers: raw sectorial local
+  exponential estimate, `X^σ_p`/sup-norm comparison, ordinary small-data
+  existence, and mass-constrained small-data existence.  This is state③, not
+  DONE: the sectorial/local-existence frontiers are still unproved.
 
 ### H4.2 — Theorem 2.3 on intervalDomain (global stability χ≤0)
 - **前置**: H3.2 (Lyapunov), H3.3 (persistence)
+- **进展** (2026-05-24): `ShenWork/Paper3/IntervalDomainStabilityChain.lean`
+  proves
+  `intervalDomain_Theorem_2_3_of_lyapunov_moment_and_exponential_frontiers`.
+  It derives global-attractor convergence from explicit Lyapunov
+  theta-dissipation decay frontiers plus `MomentConvergenceToUniformRaw`, and
+  derives the theorem's uniform C¹ exponential branch from explicit
+  critical-threshold uniform exponential-upgrade frontiers.  This is state③:
+  the moment-decay, moment-to-uniform, and uniform exponential-upgrade
+  frontiers are still analytic gaps.
 
 ### H4.3 — Theorem 2.4 on intervalDomain (global stability strong logistic)
 - **前置**: H3.2 (Lyapunov), H2.1 (global existence)
+- **进展** (2026-05-24): `ShenWork/Paper3/IntervalDomainStabilityChain.lean`
+  proves
+  `intervalDomain_Theorem_2_4_of_lyapunov_moment_and_exponential_frontiers`.
+  It composes the strong-logistic Lyapunov moment-decay frontier with
+  `MomentConvergenceToUniformRaw`; `Lemma_A_7` plus the unit-interval
+  critical-spectrum identity supplies the critical-threshold input for the
+  uniform C¹ exponential-upgrade frontier.  This is state③, not DONE:
+  H2.1/global existence, moment-to-uniform, and uniform exponential upgrade
+  remain explicit frontiers.
 
 ---
 

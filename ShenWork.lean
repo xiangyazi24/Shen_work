@@ -47,3 +47,4 @@ import ShenWork.Paper2.IntervalDomainTheorem13
 import ShenWork.Paper3.UnitPointLogisticBridge
 import ShenWork.Paper3.IntervalDomainTheorem21Part1
 import ShenWork.Paper3.IntervalDomainSectorial
+import ShenWork.Paper3.IntervalDomainStabilityChain
