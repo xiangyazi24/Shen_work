@@ -1397,6 +1397,73 @@ theorem
       intervalDomain_thetaDissipation_antitoneOn_of_positiveGlobalBoundedSolution
         hrate.le huStar htheta huv hderiv hle
 
+/-- Abstract-domain complete theta-production Lyapunov package from the direct
+differential decay estimate and an explicit integral-positivity interface.
+
+Point 17 status: conditional theorem, state ③.  The theorem discharges the
+theta-production positivity side condition from `hintegral_nonneg` and
+pointwise nonnegativity of `u`.  The PDE differential estimate remains the
+named frontier `hderiv`/`hle`; the abstract domain positivity interface remains
+the named frontier `hintegral_nonneg`. -/
+theorem
+    thetaDissipation_completeLyapunovPackage_of_hasDerivAt_le_neg_mul_and_integral_nonneg
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {uStar theta rate s : ℝ} {momentSlope : ℝ → ℝ}
+    (hrate : 0 < rate) (hs : 0 < s)
+    (hintegral_nonneg :
+      ∀ f : D.Point → ℝ, (∀ x, 0 ≤ f x) → 0 ≤ D.integral f)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (hu_nonneg : ∀ t, 0 < t → ∀ x, 0 ≤ u t x)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisThetaDissipation D uStar theta (u tau))
+          (momentSlope t) t)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation D uStar theta (u t)) :
+    (∀ t, 0 < t → momentSlope t ≤ 0) ∧
+      (∀ t, 0 < t →
+        0 ≤ chemotaxisThetaDissipation D uStar theta (u t)) ∧
+      AntitoneOn
+        (fun t => chemotaxisThetaDissipation D uStar theta (u t))
+        (Ioi (0 : ℝ)) ∧
+      AntitoneOn
+        (fun t =>
+          Real.exp (rate * t) *
+            chemotaxisThetaDissipation D uStar theta (u t))
+        (Ioi (0 : ℝ)) ∧
+      (∀ a b, 0 < a → a ≤ b →
+        0 ≤ chemotaxisThetaDissipation D uStar theta (u b) ∧
+          chemotaxisThetaDissipation D uStar theta (u b) ≤
+            chemotaxisThetaDissipation D uStar theta (u a) *
+              Real.exp (-rate * (b - a))) ∧
+      ThetaMomentConvergesToZero D u uStar theta := by
+  have hnonneg :
+      ∀ t, 0 < t →
+        0 ≤ chemotaxisThetaDissipation D uStar theta (u t) := by
+    intro t ht
+    exact chemotaxisThetaDissipation_nonneg_of_integral_nonneg
+      hintegral_nonneg huStar htheta (hu_nonneg t ht)
+  refine ⟨?_, hnonneg, ?_, ?_, ?_, ?_⟩
+  · exact
+      thetaDissipationSlope_nonpos_of_le_neg_mul_and_nonneg
+        hrate.le hle hnonneg
+  · exact
+      thetaDissipation_antitoneOn_of_hasDerivAt_le_neg_mul_and_nonneg
+        hrate.le hderiv hle hnonneg
+  · exact
+      thetaDissipation_weighted_antitoneOn_of_hasDerivAt_le_neg_mul
+        hderiv hle
+  · exact
+      thetaDissipation_two_time_bound_of_hasDerivAt_le_neg_mul_and_integral_nonneg
+        hintegral_nonneg huStar htheta hu_nonneg hderiv hle
+  · exact
+      thetaMomentConvergesToZero_of_hasDerivAt_le_neg_mul_and_integral_nonneg
+        hrate hs hintegral_nonneg huStar htheta
+        (fun t hst => hu_nonneg t (lt_of_lt_of_le hs hst)) hderiv hle
+
 /-- Entropy dissipation makes the Paper3 entropy functional decrease.
 
 Point 17 status: conditional theorem, state ③.  The missing upstream analytic
@@ -1679,6 +1746,56 @@ theorem chemotaxisEntropyFunctional_two_time_bound_of_dissipation_and_integral_n
     chemotaxisEntropyFunctional_nonneg_and_antitoneOn_of_dissipation_and_integral_nonneg
       hc hintegral_nonneg hm huStar htheta hu_pos hderiv hdiss
   exact ⟨henergy.1 t ht, henergy.2 hs ht hst⟩
+
+/-- Abstract-domain free-energy Lyapunov package including entropy-slope
+nonpositivity, nonnegativity, monotonicity, and the two-time bound.
+
+Point 17 status: conditional theorem, state ③.  Scalar entropy positivity is
+proved here; the domain integral is handled by the explicit interface
+`hintegral_nonneg`.  The PDE entropy-production derivation remains exactly the
+named `hderiv`/`hdiss` frontier. -/
+theorem chemotaxisEntropyFunctional_fullLyapunovPackage_of_dissipation_and_integral_nonneg
+    {D : BoundedDomainData} {m uStar theta c : ℝ}
+    {u : ℝ → D.Point → ℝ} {entropySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (hintegral_nonneg :
+      ∀ f : D.Point → ℝ, (∀ x, 0 ≤ f x) → 0 ≤ D.integral f)
+    (hm : (1 / 2 : ℝ) ≤ m) (huStar : 0 < uStar)
+    (htheta : 0 ≤ theta)
+    (hu_pos : ∀ t, 0 < t → ∀ x, 0 < u t x)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisEntropyFunctional D m uStar u tau)
+          (entropySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        entropySlope t ≤
+          -c * chemotaxisThetaDissipation D uStar theta (u t)) :
+    (∀ t, 0 < t → entropySlope t ≤ 0) ∧
+      (∀ t, 0 < t → 0 ≤ chemotaxisEntropyFunctional D m uStar u t) ∧
+      AntitoneOn
+        (fun t => chemotaxisEntropyFunctional D m uStar u t)
+        (Ioi (0 : ℝ)) ∧
+      ∀ s t, 0 < s → s ≤ t →
+        0 ≤ chemotaxisEntropyFunctional D m uStar u t ∧
+          chemotaxisEntropyFunctional D m uStar u t ≤
+            chemotaxisEntropyFunctional D m uStar u s := by
+  have htheta_nonneg :
+      ∀ t, 0 < t →
+        0 ≤ chemotaxisThetaDissipation D uStar theta (u t) := by
+    intro t ht
+    exact chemotaxisThetaDissipation_nonneg_of_integral_nonneg
+      hintegral_nonneg huStar.le htheta (fun x => (hu_pos t ht x).le)
+  have hpack :=
+    chemotaxisEntropyFunctional_nonneg_and_antitoneOn_of_dissipation_and_integral_nonneg
+      hc hintegral_nonneg hm huStar htheta hu_pos hderiv hdiss
+  refine ⟨?_, hpack.1, hpack.2, ?_⟩
+  · exact chemotaxisEntropySlope_nonpos_of_dissipation
+      hc hdiss htheta_nonneg
+  · exact
+      chemotaxisEntropyFunctional_two_time_bound_of_dissipation_and_integral_nonneg
+        hc hintegral_nonneg hm huStar htheta hu_pos hderiv hdiss
 
 /-- Concrete unit-interval two-time Lyapunov estimate for the Paper3 entropy
 functional. -/
@@ -2176,6 +2293,75 @@ theorem chemotaxisSignalEnergy_tendsto_zero
   intro t _ht
   exact chemotaxisSignalEnergy_nonneg_of_integral_nonneg
     hintegral_nonneg hmu
+
+/-- Abstract-domain signal-energy Lyapunov package including slope
+nonpositivity, nonnegativity, unweighted monotonicity, weighted monotonicity,
+exponential two-time decay, and convergence to zero.
+
+Point 17 status: conditional theorem, state ③.  The signal-gradient
+nonnegativity and energy nonnegativity side conditions are discharged from
+`hintegral_nonneg`.  The PDE derivative/dissipation estimates remain the named
+frontiers `hderiv`/`hdiss`, and Poincare control remains `hcontrol`. -/
+theorem
+    chemotaxisSignalEnergy_fullLyapunovPackage_of_dissipation_control_and_integral_nonneg
+    {D : BoundedDomainData} {mu vStar c K s : ℝ}
+    {v : ℝ → D.Point → ℝ} {energySlope : ℝ → ℝ}
+    (hc : 0 < c) (hK : 0 < K) (hs : 0 < s)
+    (hintegral_nonneg :
+      ∀ f : D.Point → ℝ, (∀ x, 0 ≤ f x) → 0 ≤ D.integral f)
+    (hmu : 0 ≤ mu)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisSignalEnergy D mu vStar v tau)
+          (energySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        (1 / 2 : ℝ) * energySlope t +
+          c * chemotaxisSignalGradientDissipation D vStar v t ≤ 0)
+    (hcontrol :
+      ∀ t, 0 < t →
+        chemotaxisSignalEnergy D mu vStar v t ≤
+          K * chemotaxisSignalGradientDissipation D vStar v t) :
+    (∀ t, 0 < t → energySlope t ≤ 0) ∧
+      (∀ t, 0 ≤ chemotaxisSignalEnergy D mu vStar v t) ∧
+      AntitoneOn
+        (fun t => chemotaxisSignalEnergy D mu vStar v t)
+        (Ioi (0 : ℝ)) ∧
+      AntitoneOn
+        (fun t =>
+          Real.exp ((2 * c / K) * t) *
+            chemotaxisSignalEnergy D mu vStar v t)
+        (Ioi (0 : ℝ)) ∧
+      (∀ a b, 0 < a → a ≤ b →
+        chemotaxisSignalEnergy D mu vStar v b ≤
+          chemotaxisSignalEnergy D mu vStar v a *
+            Real.exp (-(2 * c / K) * (b - a))) ∧
+      Tendsto
+        (fun t => chemotaxisSignalEnergy D mu vStar v t)
+        atTop (𝓝 0) := by
+  have hgrad_nonneg :
+      ∀ t, 0 < t →
+        0 ≤ chemotaxisSignalGradientDissipation D vStar v t := by
+    intro t _ht
+    exact chemotaxisSignalGradientDissipation_nonneg_of_integral_nonneg
+      hintegral_nonneg
+  have hpack :=
+    chemotaxisSignalEnergy_nonneg_and_exponential_decay
+      hc hK hintegral_nonneg hmu hderiv hdiss hcontrol
+  refine ⟨?_, hpack.1, ?_, ?_, hpack.2, ?_⟩
+  · exact
+      chemotaxisSignalEnergySlope_nonpos_of_dissipation
+        hc.le hdiss hgrad_nonneg
+  · exact
+      chemotaxisSignalEnergy_antitoneOn_of_dissipation
+        hc.le hderiv hdiss hgrad_nonneg
+  · exact
+      chemotaxisSignalEnergy_weighted_antitoneOn
+        hc hK hderiv hdiss hcontrol
+  · exact
+      chemotaxisSignalEnergy_tendsto_zero
+        hc hK hs hintegral_nonneg hmu hderiv hdiss hcontrol
 
 /-- Concrete interval-domain signal-energy convergence to zero from the Paper3
 dissipation-control estimate. -/
