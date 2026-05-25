@@ -1033,6 +1033,228 @@ theorem unitIntervalCosineLp_span_orthogonal_eq_bot :
   rw [unitIntervalIocMeasure_eq_intervalMeasure] at hae
   exact (Lp.eq_zero_iff_ae_eq_zero).mpr hae
 
+/-- Inner products of raw interval `L²` cosine modes are the corresponding
+complex interval integrals. -/
+theorem unitIntervalCosineLp_inner_eq_integral (m n : ℕ) :
+    inner ℂ (unitIntervalCosineLp m) (unitIntervalCosineLp n) =
+      ∫ x in (0 : ℝ)..1,
+        (Real.cos ((m : ℝ) * Real.pi * x) : ℂ) *
+          (Real.cos ((n : ℝ) * Real.pi * x) : ℂ) := by
+  rw [unitIntervalCosineLp_inner_eq_coeff]
+  apply intervalIntegral.integral_congr_ae_restrict
+  have hcoe := unitIntervalCosineLp_coeFn n
+  have hle :
+      volume.restrict (Set.uIoc (0 : ℝ) 1) ≤ intervalMeasure 1 := by
+    rw [Set.uIoc_of_le (show (0 : ℝ) ≤ 1 by norm_num)]
+    unfold intervalMeasure intervalSet
+    exact Measure.restrict_mono (by
+      intro x hx
+      exact ⟨hx.1.le, hx.2⟩) le_rfl
+  have hcoeI :
+      (fun x : ℝ => unitIntervalCosineLp n x)
+        =ᵐ[volume.restrict (Set.uIoc (0 : ℝ) 1)]
+          fun x : ℝ => (Real.cos ((n : ℝ) * Real.pi * x) : ℂ) := by
+    exact ae_mono hle hcoe
+  filter_upwards [hcoeI] with x hx
+  rw [hx]
+
+/-- The complex cosine-product integral is the complexification of the real
+cosine-product integral from `CosineSpectrum`. -/
+theorem unitIntervalCosine_complex_integral_eq_real (m n : ℕ) :
+    (∫ x in (0 : ℝ)..1,
+        (Real.cos ((m : ℝ) * Real.pi * x) : ℂ) *
+          (Real.cos ((n : ℝ) * Real.pi * x) : ℂ)) =
+      ((∫ x in (0 : ℝ)..1,
+            ShenWork.CosineSpectrum.cosineMode m x *
+            ShenWork.CosineSpectrum.cosineMode n x : ℝ) : ℂ) := by
+  calc
+    (∫ x in (0 : ℝ)..1,
+        (Real.cos ((m : ℝ) * Real.pi * x) : ℂ) *
+          (Real.cos ((n : ℝ) * Real.pi * x) : ℂ))
+        = ∫ x in (0 : ℝ)..1,
+            ((ShenWork.CosineSpectrum.cosineMode m x *
+              ShenWork.CosineSpectrum.cosineMode n x : ℝ) : ℂ) := by
+          apply intervalIntegral.integral_congr
+          intro x _hx
+          simp [ShenWork.CosineSpectrum.cosineMode]
+    _ = ((∫ x in (0 : ℝ)..1,
+          ShenWork.CosineSpectrum.cosineMode m x *
+            ShenWork.CosineSpectrum.cosineMode n x : ℝ) : ℂ) := by
+          simpa using
+            (intervalIntegral.integral_ofReal
+              (a := (0 : ℝ)) (b := 1) (μ := volume)
+              (f := fun x : ℝ =>
+                ShenWork.CosineSpectrum.cosineMode m x *
+                  ShenWork.CosineSpectrum.cosineMode n x))
+
+theorem unitIntervalCosineLp_inner_eq_zero_of_ne {m n : ℕ} (hmn : m ≠ n) :
+    inner ℂ (unitIntervalCosineLp m) (unitIntervalCosineLp n) = 0 := by
+  rw [unitIntervalCosineLp_inner_eq_integral,
+    unitIntervalCosine_complex_integral_eq_real,
+    ShenWork.CosineSpectrum.cosineMode_orthogonal hmn]
+  norm_num
+
+theorem unitIntervalCosineLp_inner_self_zero :
+    inner ℂ (unitIntervalCosineLp 0) (unitIntervalCosineLp 0) = 1 := by
+  rw [unitIntervalCosineLp_inner_eq_integral,
+    unitIntervalCosine_complex_integral_eq_real,
+    ShenWork.CosineSpectrum.cosineMode_self_integral_zero]
+  norm_num
+
+theorem unitIntervalCosineLp_inner_self_of_ne_zero {n : ℕ} (hn : n ≠ 0) :
+    inner ℂ (unitIntervalCosineLp n) (unitIntervalCosineLp n) = 1 / 2 := by
+  rw [unitIntervalCosineLp_inner_eq_integral,
+    unitIntervalCosine_complex_integral_eq_real,
+    ShenWork.CosineSpectrum.cosineMode_self_integral_of_ne_zero hn]
+  norm_num
+
+/-- The normalized Neumann cosine modes in interval `L²`: constant mode
+`1`, and positive modes `sqrt 2 * cos(nπx)`. -/
+def unitIntervalNormalizedCosineLp (n : ℕ) :
+    Lp ℂ 2 (intervalMeasure 1) :=
+  if n = 0 then unitIntervalCosineLp 0
+  else (Real.sqrt 2 : ℂ) • unitIntervalCosineLp n
+
+theorem unitIntervalNormalizedCosineLp_orthonormal :
+    Orthonormal ℂ unitIntervalNormalizedCosineLp := by
+  classical
+  rw [orthonormal_iff_ite]
+  intro m n
+  by_cases hmn : m = n
+  · subst n
+    by_cases hm0 : m = 0
+    · subst m
+      simpa [unitIntervalNormalizedCosineLp] using
+        unitIntervalCosineLp_inner_self_zero
+    · have hsqrt_sq : Real.sqrt 2 * Real.sqrt 2 = 2 := by
+        rw [← sq]
+        exact Real.sq_sqrt (by norm_num)
+      have hsqrt_star :
+          (starRingEnd ℂ) (Real.sqrt 2 : ℂ) =
+            (Real.sqrt 2 : ℂ) := by
+        simpa using Complex.conj_ofReal (Real.sqrt 2)
+      have hsqrt_sq_complex :
+          (Real.sqrt 2 : ℂ) * (Real.sqrt 2 : ℂ) = 2 := by
+        norm_num [← Complex.ofReal_mul, hsqrt_sq]
+      have hnorm :
+          unitIntervalNormalizedCosineLp m =
+            (Real.sqrt 2 : ℂ) • unitIntervalCosineLp m := by
+        simp [unitIntervalNormalizedCosineLp, hm0]
+      have hinner_norm :
+          inner ℂ (unitIntervalNormalizedCosineLp m)
+              (unitIntervalNormalizedCosineLp m) = 1 := by
+        calc
+          inner ℂ (unitIntervalNormalizedCosineLp m)
+              (unitIntervalNormalizedCosineLp m)
+              = (Real.sqrt 2 : ℂ) *
+                  ((Real.sqrt 2 : ℂ) * (1 / 2 : ℂ)) := by
+                rw [hnorm, inner_smul_left, inner_smul_right, hsqrt_star,
+                  unitIntervalCosineLp_inner_self_of_ne_zero hm0]
+          _ = (1 : ℂ) := by
+                rw [← mul_assoc, hsqrt_sq_complex]
+                norm_num
+      simpa using hinner_norm
+  · have hraw :
+        inner ℂ (unitIntervalCosineLp m) (unitIntervalCosineLp n) = 0 :=
+      unitIntervalCosineLp_inner_eq_zero_of_ne hmn
+    by_cases hm0 : m = 0
+    · subst m
+      have hn0 : n ≠ 0 := by
+        intro hn
+        exact hmn hn.symm
+      have hnormn :
+          unitIntervalNormalizedCosineLp n =
+            (Real.sqrt 2 : ℂ) • unitIntervalCosineLp n := by
+        simp [unitIntervalNormalizedCosineLp, hn0]
+      have hnorm0 :
+          unitIntervalNormalizedCosineLp 0 = unitIntervalCosineLp 0 := by
+        simp [unitIntervalNormalizedCosineLp]
+      rw [hnorm0, hnormn, inner_smul_right, hraw]
+      simpa [hmn]
+    · by_cases hn0 : n = 0
+      · subst n
+        have hnormm :
+            unitIntervalNormalizedCosineLp m =
+              (Real.sqrt 2 : ℂ) • unitIntervalCosineLp m := by
+          simp [unitIntervalNormalizedCosineLp, hm0]
+        have hnorm0 :
+            unitIntervalNormalizedCosineLp 0 = unitIntervalCosineLp 0 := by
+          simp [unitIntervalNormalizedCosineLp]
+        rw [hnormm, hnorm0, inner_smul_left, hraw]
+        simpa [hmn]
+      · have hnormm :
+            unitIntervalNormalizedCosineLp m =
+              (Real.sqrt 2 : ℂ) • unitIntervalCosineLp m := by
+          simp [unitIntervalNormalizedCosineLp, hm0]
+        have hnormn :
+            unitIntervalNormalizedCosineLp n =
+              (Real.sqrt 2 : ℂ) • unitIntervalCosineLp n := by
+          simp [unitIntervalNormalizedCosineLp, hn0]
+        rw [hnormm, hnormn, inner_smul_left, inner_smul_right, hraw]
+        simpa [hmn]
+
+/-- The normalized cosine modes are complete in interval `L²`. -/
+theorem unitIntervalNormalizedCosineLp_span_orthogonal_eq_bot :
+    (Submodule.span ℂ
+      (Set.range unitIntervalNormalizedCosineLp :
+        Set (Lp ℂ 2 (intervalMeasure 1))))ᗮ = ⊥ := by
+  let rawSpan : Submodule ℂ (Lp ℂ 2 (intervalMeasure 1)) :=
+    Submodule.span ℂ
+      (Set.range unitIntervalCosineLp :
+        Set (Lp ℂ 2 (intervalMeasure 1)))
+  let normSpan : Submodule ℂ (Lp ℂ 2 (intervalMeasure 1)) :=
+    Submodule.span ℂ
+      (Set.range unitIntervalNormalizedCosineLp :
+        Set (Lp ℂ 2 (intervalMeasure 1)))
+  have hle : rawSpan ≤ normSpan := by
+    refine Submodule.span_le.mpr ?_
+    intro v hv
+    rcases hv with ⟨n, rfl⟩
+    by_cases hn : n = 0
+    · subst n
+      have hnorm : unitIntervalNormalizedCosineLp 0 = unitIntervalCosineLp 0 := by
+        simp [unitIntervalNormalizedCosineLp]
+      rw [← hnorm]
+      exact Submodule.subset_span (Set.mem_range_self 0)
+    · have hsqrt_ne : (Real.sqrt 2 : ℂ) ≠ 0 := by
+        exact_mod_cast
+          (Real.sqrt_ne_zero'.mpr (by norm_num : (0 : ℝ) < 2))
+      have hnorm :
+          unitIntervalNormalizedCosineLp n =
+            (Real.sqrt 2 : ℂ) • unitIntervalCosineLp n := by
+        simp [unitIntervalNormalizedCosineLp, hn]
+      have hmem :
+          unitIntervalNormalizedCosineLp n ∈ normSpan :=
+        Submodule.subset_span (Set.mem_range_self n)
+      have heq :
+          unitIntervalCosineLp n =
+            ((Real.sqrt 2 : ℂ)⁻¹) • unitIntervalNormalizedCosineLp n := by
+        calc
+          unitIntervalCosineLp n =
+              (1 : ℂ) • unitIntervalCosineLp n := by simp
+          _ = ((Real.sqrt 2 : ℂ)⁻¹ * (Real.sqrt 2 : ℂ)) •
+                unitIntervalCosineLp n := by
+              rw [inv_mul_cancel₀ hsqrt_ne]
+          _ = ((Real.sqrt 2 : ℂ)⁻¹) •
+                ((Real.sqrt 2 : ℂ) • unitIntervalCosineLp n) := by
+              rw [smul_smul]
+          _ = ((Real.sqrt 2 : ℂ)⁻¹) • unitIntervalNormalizedCosineLp n := by
+              rw [← hnorm]
+      rw [heq]
+      exact Submodule.smul_mem normSpan _ hmem
+  apply le_antisymm
+  · rw [← unitIntervalCosineLp_span_orthogonal_eq_bot]
+    exact Submodule.orthogonal_le hle
+  · exact bot_le
+
+/-- The complete Hilbert basis of interval `L²` formed by the normalized
+Neumann cosine modes. -/
+def unitIntervalCosineHilbertBasis :
+    HilbertBasis ℕ ℂ (Lp ℂ 2 (intervalMeasure 1)) :=
+  HilbertBasis.mkOfOrthogonalEqBot
+    unitIntervalNormalizedCosineLp_orthonormal
+    unitIntervalNormalizedCosineLp_span_orthogonal_eq_bot
+
 /-- Unit-interval spectral Neumann heat-gradient estimate in Mathlib
 `LpSeminorm` form, from interval `L²` to `L∞`. -/
 theorem unitIntervalNeumannSpectralHeatGradient_L2_Linfty_lpNorm_bound
