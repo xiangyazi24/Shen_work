@@ -1800,6 +1800,124 @@ theorem Proposition_1_1_intervalDomain_of_intervalDuhamel_contraction_regulariza
   obtain ⟨halt, hmge⟩ := hmaximal u₀ hu₀ Tmax hTmax u v hsol htrace
   exact ⟨Tmax, hTmax, u, v, hsol, htrace, halt, hmge⟩
 
+/-! ### Maximal-continuation order skeleton
+
+The standard continuation proof starts from the set of horizons on which a
+classical solution exists with the prescribed initial trace.  If these horizons
+are unbounded, the continuation is global.  If they are bounded, the finite
+maximal time is the supremum of that set.  The analytic continuation step still
+has to prove that bounded, positive finite-time behavior lets one extend past
+the supremum; the lemmas below are the order-theoretic part of that argument. -/
+
+/-- A time horizon is reachable if there is a classical interval solution up to
+that horizon with the prescribed initial trace. -/
+def ReachableClassicalHorizon
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (T : ℝ) : Prop :=
+  0 < T ∧
+    ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v ∧
+      InitialTrace intervalDomain u₀ u
+
+/-- The set of all reachable classical horizons for the initial datum. -/
+def reachableClassicalHorizonSet
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) : Set ℝ :=
+  {T | ReachableClassicalHorizon p u₀ T}
+
+/-- The global branch of the standard maximal-continuation statement:
+arbitrarily long finite horizons are reachable. -/
+def ReachableArbitrarilyLong
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) : Prop :=
+  ∀ T > 0, ReachableClassicalHorizon p u₀ T
+
+/-- The finite branch of the standard maximal-continuation statement, matching
+the current formal `Proposition_1_1` finite-horizon fields. -/
+def FiniteContinuationAlternativeBranch
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) : Prop :=
+  ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+    IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+    InitialTrace intervalDomain u₀ u ∧
+    FiniteHorizonAlternative intervalDomain Tmax u ∧
+    (1 ≤ p.m → MGeOneFiniteHorizonAlternative intervalDomain Tmax u)
+
+/-- Standard maximal-continuation conclusion for one initial datum: either all
+finite horizons are reachable, or a finite maximal-time alternative occurs. -/
+def StandardContinuationAlternative
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) : Prop :=
+  ReachableArbitrarilyLong p u₀ ∨
+    FiniteContinuationAlternativeBranch p u₀
+
+/-- Local existence makes the reachable-horizon set nonempty. -/
+theorem reachableClassicalHorizonSet_nonempty_of_localExistence
+    (p : CM2Params)
+    {u₀ : intervalDomainPoint → ℝ}
+    (hlocal :
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ T > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p T u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀) :
+    (reachableClassicalHorizonSet p u₀).Nonempty := by
+  obtain ⟨T, hT, u, v, hsol, htrace⟩ := hlocal u₀ hu₀
+  exact ⟨T, hT, u, v, hsol, htrace⟩
+
+/-- Finite candidate for the maximal reachable horizon, used only in the
+bounded-horizon branch.  In the global branch the reachable horizons are
+unbounded, so no finite `sSup` represents the maximal time. -/
+noncomputable def finiteMaximalReachableHorizon
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) : ℝ :=
+  sSup (reachableClassicalHorizonSet p u₀)
+
+/-- Any reachable horizon lies below the finite supremum, provided the
+reachable-horizon set is bounded above. -/
+theorem reachable_le_finiteMaximalReachableHorizon
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {T : ℝ}
+    (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+    (hT : ReachableClassicalHorizon p u₀ T) :
+    T ≤ finiteMaximalReachableHorizon p u₀ := by
+  exact le_csSup hbdd hT
+
+/-- If local existence gives a positive reachable horizon and the reachable
+set is bounded above, then the finite supremum is positive. -/
+theorem finiteMaximalReachableHorizon_pos_of_localExistence
+    (p : CM2Params)
+    {u₀ : intervalDomainPoint → ℝ}
+    (hlocal :
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ T > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p T u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hbdd : BddAbove (reachableClassicalHorizonSet p u₀)) :
+    0 < finiteMaximalReachableHorizon p u₀ := by
+  obtain ⟨T, hTmem⟩ :=
+    reachableClassicalHorizonSet_nonempty_of_localExistence p hlocal hu₀
+  exact lt_of_lt_of_le hTmem.1
+    (reachable_le_finiteMaximalReachableHorizon hbdd hTmem)
+
+/-- The already constructed positive equilibrium lies in the global branch of
+the standard continuation alternative: every finite horizon is reachable. -/
+theorem equilibrium_reachableArbitrarilyLong
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) :
+    ReachableArbitrarilyLong p
+      (constOnInterval ((p.a / p.b) ^ (1 / p.α))) := by
+  intro T hT
+  refine ⟨hT, ?_⟩
+  exact ⟨fun _ _ => (p.a / p.b) ^ (1 / p.α),
+    fun _ _ => ellipticV p ((p.a / p.b) ^ (1 / p.α)),
+    (equilibrium_isPaper2ClassicalSolution p ha hb) T hT,
+    constantSolution_initialTrace ((p.a / p.b) ^ (1 / p.α))⟩
+
+/-- Consequently the standard maximal-continuation statement for equilibrium
+data closes by the global branch, not by the finite alternative branch used in
+the current formal `Proposition_1_1`. -/
+theorem equilibrium_standardContinuationAlternative_global
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) :
+    StandardContinuationAlternative p
+      (constOnInterval ((p.a / p.b) ^ (1 / p.α))) :=
+  Or.inl (equilibrium_reachableArbitrarilyLong p ha hb)
+
 /-! ### Finite-horizon alternative diagnostics
 
 The formal `FiniteHorizonAlternative` in `Paper2.Statements` is a genuine
