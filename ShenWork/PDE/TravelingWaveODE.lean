@@ -895,6 +895,81 @@ theorem WaveProfileData.shift
     exact ⟨δ, hδ,
       (tendsto_atBot_add_const_right atBot a tendsto_id).eventually hδle⟩
 
+theorem isBddFun_of_continuous_tendsto_atBot_atTop
+    {f : ℝ → ℝ} {a b : ℝ} (hf : Continuous f)
+    (hbot : Tendsto f atBot (nhds a)) (htop : Tendsto f atTop (nhds b)) :
+    IsBddFun f := by
+  obtain ⟨L, hL⟩ :=
+    eventually_atBot.mp (hbot (Metric.ball_mem_nhds a zero_lt_one))
+  obtain ⟨R, hR⟩ :=
+    eventually_atTop.mp (htop (Metric.ball_mem_nhds b zero_lt_one))
+  obtain ⟨C, hC⟩ :=
+    isCompact_Icc.exists_bound_of_continuousOn
+      (s := Set.Icc L R) hf.continuousOn
+  refine ⟨max (|a| + 1) (max (|b| + 1) C), ?_⟩
+  intro x
+  by_cases hxL : x ≤ L
+  · have hdist : dist (f x) a < 1 := by
+      simpa [Metric.mem_ball] using hL x hxL
+    have hdist_abs : |f x - a| < 1 := by
+      simpa [Real.dist_eq] using hdist
+    have hbound : |f x| ≤ |a| + 1 := by
+      calc
+        |f x| = |(f x - a) + a| := by rw [sub_add_cancel]
+        _ ≤ |f x - a| + |a| := abs_add_le _ _
+        _ ≤ |a| + 1 := by linarith
+    exact hbound.trans (le_max_left _ _)
+  · by_cases hxR : R ≤ x
+    · have hdist : dist (f x) b < 1 := by
+        simpa [Metric.mem_ball] using hR x hxR
+      have hdist_abs : |f x - b| < 1 := by
+        simpa [Real.dist_eq] using hdist
+      have hbound : |f x| ≤ |b| + 1 := by
+        calc
+          |f x| = |(f x - b) + b| := by rw [sub_add_cancel]
+          _ ≤ |f x - b| + |b| := abs_add_le _ _
+          _ ≤ |b| + 1 := by linarith
+      exact hbound.trans
+        ((le_max_left (|b| + 1) C).trans (le_max_right _ _))
+    · have hxmid : x ∈ Set.Icc L R :=
+        ⟨le_of_lt (lt_of_not_ge hxL), le_of_lt (lt_of_not_ge hxR)⟩
+      have hbound : |f x| ≤ C := by
+        simpa using hC x hxmid
+      exact hbound.trans
+        ((le_max_right (|b| + 1) C).trans (le_max_right _ _))
+
+theorem WaveProfileData.U_continuous
+    {p : Params} {U V : ℝ → ℝ} (h : WaveProfileData p U V) :
+    Continuous U :=
+  h.U_c2.continuous
+
+theorem WaveProfileData.V_continuous
+    {p : Params} {U V : ℝ → ℝ} (h : WaveProfileData p U V) :
+    Continuous V :=
+  h.V_c2.continuous
+
+theorem WaveProfileData.U_isBddFun
+    {p : Params} {U V : ℝ → ℝ} (h : WaveProfileData p U V) :
+    IsBddFun U :=
+  isBddFun_of_continuous_tendsto_atBot_atTop
+    h.U_continuous h.lim_neg_inf.1 h.lim_pos_inf.1
+
+theorem WaveProfileData.V_isBddFun
+    {p : Params} {U V : ℝ → ℝ} (h : WaveProfileData p U V) :
+    IsBddFun V :=
+  isBddFun_of_continuous_tendsto_atBot_atTop
+    h.V_continuous h.lim_neg_inf.2 h.lim_pos_inf.2
+
+theorem WaveProfileData.U_isCUnifBdd
+    {p : Params} {U V : ℝ → ℝ} (h : WaveProfileData p U V) :
+    IsCUnifBdd U :=
+  ⟨h.U_continuous, h.U_isBddFun⟩
+
+theorem WaveProfileData.V_isCUnifBdd
+    {p : Params} {U V : ℝ → ℝ} (h : WaveProfileData p U V) :
+    IsCUnifBdd V :=
+  ⟨h.V_continuous, h.V_isBddFun⟩
+
 theorem WaveProfileData.to_isTravelingWave
     {p : Params} {U V : ℝ → ℝ} (h : WaveProfileData p U V)
     (hc : 0 < p.c) (hpos : ∀ x, 0 < U x) :
@@ -1093,6 +1168,18 @@ theorem HasPositiveHeteroclinicE1E0.exists_isTravelingWave
   rcases h with ⟨z, hzode, hleft, hright, hpos⟩
   let w : TravelingWave p := ⟨z, hzode, hleft, hright⟩
   exact ⟨fun t => z t 0, fun t => z t 2, w.to_isTravelingWave hc hpos⟩
+
+theorem HasPositiveHeteroclinicE1E0.exists_profileData_isCUnifBdd_isTravelingWave
+    {p : Params} (h : HasPositiveHeteroclinicE1E0 p) (hc : 0 < p.c) :
+    ∃ U V : ℝ → ℝ,
+      WaveProfileData p U V ∧ IsCUnifBdd U ∧
+      IsTravelingWave p.toCMParams p.c U V := by
+  rcases h with ⟨z, hzode, hleft, hright, hpos⟩
+  let w : TravelingWave p := ⟨z, hzode, hleft, hright⟩
+  let hp : WaveProfileData p (fun t => z t 0) (fun t => z t 2) :=
+    w.to_profileData
+  exact ⟨fun t => z t 0, fun t => z t 2, hp, hp.U_isCUnifBdd,
+    hp.to_isTravelingWave hc hpos⟩
 
 end TravelingWaveODE
 end PDE

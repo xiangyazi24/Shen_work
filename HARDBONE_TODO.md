@@ -503,7 +503,13 @@
   from the Nat-exponent ODE layer to root `IsTravelingWave` under explicit
   positive-speed and global-positivity assumptions
   (`WaveProfileData.to_isTravelingWave`, `TravelingWave.to_isTravelingWave`).
-  It also has E1/E0 linearized eigenmodes with decay
+  It also proves the compact-middle/two-tail boundedness bridge
+  (`isBddFun_of_continuous_tendsto_atBot_atTop`,
+  `WaveProfileData.U_isCUnifBdd`, `WaveProfileData.V_isCUnifBdd`) and packages
+  a positive heteroclinic into profile data, bounded-continuous initial profile,
+  and root traveling wave
+  (`HasPositiveHeteroclinicE1E0.exists_profileData_isCUnifBdd_isTravelingWave`).
+  The ODE layer also has E1/E0 linearized eigenmodes with decay
   (`unstableLinearModeAtOne_solves_and_decays`,
   `stableLinearModeAtZero_solves_and_decays`), the E0 stable local shooting
   segment in `ShenWork/PDE/TravelingWaveODE.lean`, the linearized solution
