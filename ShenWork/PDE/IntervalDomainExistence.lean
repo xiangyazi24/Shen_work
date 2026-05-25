@@ -592,9 +592,8 @@ as a bound on integrals of bounded functions. -/
 is bounded by C·t. This is the elementary version of the Duhamel
 contraction estimate. -/
 theorem integral_Icc_bound_of_pointwise_bound
-    {h : ℝ → ℝ} {C t : ℝ} (ht : 0 ≤ t) (hC : 0 ≤ C)
-    (hbound : ∀ s, s ∈ Set.Icc 0 t → |h s| ≤ C)
-    (hint : MeasureTheory.IntegrableOn h (Set.Icc 0 t) MeasureTheory.volume) :
+    {h : ℝ → ℝ} {C t : ℝ} (ht : 0 ≤ t)
+    (hbound : ∀ s, s ∈ Set.Icc 0 t → |h s| ≤ C) :
     |∫ s in Set.Icc 0 t, h s| ≤ C * t := by
   have hvol : MeasureTheory.volume (Set.Icc (0 : ℝ) t) < ⊤ := by
     simp [Real.volume_Icc]
@@ -607,6 +606,180 @@ theorem integral_Icc_bound_of_pointwise_bound
     _ = C * t := by
         congr 1
         simp [MeasureTheory.Measure.real, Real.volume_Icc, ht]
+
+/-! ### Duhamel contraction estimate with semigroup L∞ bound
+
+The key contraction estimate for the Banach fixed-point argument:
+if the source differences `G(s,y)` are uniformly bounded by `C` and
+the Neumann heat semigroup is L∞-contractive (which it is, via the
+sub-Markov property), then the Duhamel integral
+
+  ∫₀ᵗ e^{(t-s)Δ_N} G(s) ds
+
+is bounded pointwise by `C·T` for `t ∈ [0,T]`.
+
+Combined with the Lipschitz bound on the logistic source
+(`intervalLogisticSource_lipschitz`), this gives:
+if `|u₁(s,y) - u₂(s,y)| ≤ D` for all `(s,y)`,
+then `|Φ(u₁)(t,x) - Φ(u₂)(t,x)| ≤ Lip·D·T`.
+For `T < 1/Lip`, this makes Φ a contraction. -/
+
+/-- The Neumann heat semigroup on `[0,L]` is L∞-contractive:
+if `|f(y)| ≤ M` for all `y`, then `|e^{tΔ_N} f(x)| ≤ M`
+for all `x` and `t > 0`.  This is a direct consequence of the
+sub-Markov property (kernel mass ≤ 1).
+
+This is a repackaging of `intervalSemigroupOperator_Linfty_bound`
+in a form convenient for the Duhamel contraction. -/
+theorem semigroup_Linfty_contraction
+    {L τ : ℝ} (hτ : 0 < τ)
+    {f : ℝ → ℝ} {M : ℝ} (hM : 0 ≤ M) (hf : ∀ y, |f y| ≤ M)
+    (x : ℝ) :
+    |intervalSemigroupOperator L τ f x| ≤ M :=
+  intervalSemigroupOperator_Linfty_bound hτ hM hf x
+
+/-- **Duhamel contraction estimate (pointwise form).**
+
+If the source difference `G(s,·)` is uniformly bounded by `C` for
+all `s ∈ [0,T]`, then the Duhamel integral
+
+  `∫ s in [0,t], e^{(t-s)Δ_N} G(s)(x) ds`
+
+is bounded in absolute value by `C · T` for any `t ∈ [0,T]` and
+any spatial point `x`.
+
+**Proof sketch:**
+- For a.e. `s ∈ [0,t]` (all except `s = t`, which is a null set),
+  we have `t - s > 0`, so the L∞ bound applies:
+  `|e^{(t-s)Δ} G(s)(x)| ≤ C`.
+- By `norm_setIntegral_le_of_norm_le_const_ae`, the integral norm
+  is `≤ C · vol([0,t]) = C · t ≤ C · T`. -/
+theorem duhamel_contraction_pointwise
+    {G : ℝ → ℝ → ℝ} {C T : ℝ} (_hT : 0 < T) (hC : 0 ≤ C)
+    (hG_bound : ∀ s, 0 ≤ s → s ≤ T → ∀ y, |G s y| ≤ C)
+    {t : ℝ} (ht0 : 0 ≤ t) (htT : t ≤ T) (x : ℝ) :
+    |∫ s in Set.Icc 0 t,
+      intervalSemigroupOperator 1 (t - s) (G s) x| ≤ C * T := by
+  -- The integrand is bounded by C a.e. on [0,t]:
+  -- for s < t, the semigroup L∞ bound applies; s = t is null.
+  have hae_bound : ∀ᵐ s ∂MeasureTheory.volume,
+      s ∈ Set.Icc (0 : ℝ) t →
+        ‖intervalSemigroupOperator 1 (t - s) (G s) x‖ ≤ C := by
+    have hne : ∀ᵐ s ∂(MeasureTheory.volume : MeasureTheory.Measure ℝ),
+        s ≠ t := by
+      simp [MeasureTheory.ae_iff, MeasureTheory.measure_singleton]
+    filter_upwards [hne] with s hs_ne hs_mem
+    rw [Real.norm_eq_abs]
+    have hs0 : 0 ≤ s := hs_mem.1
+    have hst : s ≤ t := hs_mem.2
+    have hsT : s ≤ T := le_trans hst htT
+    have hts_pos : 0 < t - s := by
+      exact sub_pos.mpr (lt_of_le_of_ne hst hs_ne)
+    exact intervalSemigroupOperator_Linfty_bound hts_pos hC (hG_bound s hs0 hsT) x
+  -- The set [0,t] has finite measure
+  have hvol_fin : MeasureTheory.volume (Set.Icc (0 : ℝ) t) < ⊤ :=
+    measure_Icc_lt_top
+  -- Apply the norm bound for set integrals
+  have hstep1 : ‖∫ s in Set.Icc (0 : ℝ) t,
+      intervalSemigroupOperator 1 (t - s) (G s) x‖ ≤
+        C * MeasureTheory.volume.real (Set.Icc (0 : ℝ) t) :=
+    MeasureTheory.norm_setIntegral_le_of_norm_le_const_ae' hvol_fin hae_bound
+  -- Compute volume.real [0,t] = t
+  have hvol_eq : MeasureTheory.volume.real (Set.Icc (0 : ℝ) t) = t := by
+    simp [MeasureTheory.Measure.real, Real.volume_Icc, ht0]
+  -- Chain: |integral| = ‖integral‖ ≤ C·t ≤ C·T
+  calc |∫ s in Set.Icc (0 : ℝ) t,
+        intervalSemigroupOperator 1 (t - s) (G s) x|
+      = ‖∫ s in Set.Icc (0 : ℝ) t,
+          intervalSemigroupOperator 1 (t - s) (G s) x‖ :=
+        (Real.norm_eq_abs _).symm
+    _ ≤ C * MeasureTheory.volume.real (Set.Icc (0 : ℝ) t) := hstep1
+    _ = C * t := by rw [hvol_eq]
+    _ ≤ C * T := by exact mul_le_mul_of_nonneg_left htT hC
+
+/-- **Duhamel operator difference bound.**
+
+For two trajectories `u₁`, `u₂`, if the semigroup-propagated source
+differences are pointwise bounded by `C` a.e. on `[0,t]`, and the
+time integrands are integrable, then:
+
+  `|Φ(u₁)(t,x) - Φ(u₂)(t,x)| ≤ C · T`
+
+In practice, the pointwise bound `hpointwise` is obtained by combining:
+- The source Lipschitz bound `|F(u₁) - F(u₂)| ≤ Lip · |u₁ - u₂|`
+- The semigroup linearity `S(τ)(f₁ - f₂) = S(τ)f₁ - S(τ)f₂`
+- The semigroup L∞ bound `|S(τ)g(x)| ≤ sup|g|`
+
+For `C = Lip · D` (where `D = sup|u₁ - u₂|`), the bound becomes
+`Lip · D · T`, and for `T < 1/Lip` this makes `Φ` a strict contraction
+with constant `Lip · T < 1`. -/
+theorem duhamelOperator_diff_bound
+    (p : CM2Params)
+    (u₀ : intervalDomainPoint → ℝ)
+    (u₁ u₂ : ℝ → intervalDomainPoint → ℝ)
+    {C T : ℝ} (_hT : 0 < T) (hC : 0 ≤ C)
+    {t : ℝ} (ht0 : 0 ≤ t) (htT : t ≤ T)
+    (x : intervalDomainPoint)
+    -- Integrability of both time integrands
+    (hint₁ : MeasureTheory.IntegrableOn
+      (fun s => intervalSemigroupOperator 1 (t - s)
+        (intervalDomainLift (intervalLogisticSource p (u₁ s))) x.1)
+      (Set.Icc 0 t) MeasureTheory.volume)
+    (hint₂ : MeasureTheory.IntegrableOn
+      (fun s => intervalSemigroupOperator 1 (t - s)
+        (intervalDomainLift (intervalLogisticSource p (u₂ s))) x.1)
+      (Set.Icc 0 t) MeasureTheory.volume)
+    -- Pointwise bound on the difference of semigroup-propagated sources
+    (hpointwise : ∀ s, s ∈ Set.Icc 0 t → s ≠ t →
+      |intervalSemigroupOperator 1 (t - s)
+          (intervalDomainLift (intervalLogisticSource p (u₁ s))) x.1 -
+       intervalSemigroupOperator 1 (t - s)
+          (intervalDomainLift (intervalLogisticSource p (u₂ s))) x.1| ≤ C) :
+    |intervalDuhamelOperator p u₀ u₁ t x -
+     intervalDuhamelOperator p u₀ u₂ t x| ≤ C * T := by
+  -- Unfold and cancel the initial data term
+  simp only [intervalDuhamelOperator, add_sub_add_left_eq_sub]
+  -- Use ∫f₁ - ∫f₂ = ∫(f₁ - f₂)
+  rw [← MeasureTheory.integral_sub hint₁ hint₂]
+  -- The integrand is bounded by C a.e. on [0,t]
+  have hae_bound : ∀ᵐ s ∂MeasureTheory.volume,
+      s ∈ Set.Icc (0 : ℝ) t →
+        ‖(intervalSemigroupOperator 1 (t - s)
+            (intervalDomainLift (intervalLogisticSource p (u₁ s))) x.1 -
+          intervalSemigroupOperator 1 (t - s)
+            (intervalDomainLift (intervalLogisticSource p (u₂ s))) x.1)‖ ≤ C := by
+    have hne : ∀ᵐ s ∂(MeasureTheory.volume : MeasureTheory.Measure ℝ),
+        s ≠ t := by
+      simp [MeasureTheory.ae_iff, MeasureTheory.measure_singleton]
+    filter_upwards [hne] with s hs_ne hs_mem
+    rw [Real.norm_eq_abs]
+    exact hpointwise s hs_mem hs_ne
+  -- Bound the integral
+  have hvol_fin : MeasureTheory.volume (Set.Icc (0 : ℝ) t) < ⊤ :=
+    measure_Icc_lt_top
+  have hstep : ‖∫ s in Set.Icc (0 : ℝ) t,
+      (intervalSemigroupOperator 1 (t - s)
+          (intervalDomainLift (intervalLogisticSource p (u₁ s))) x.1 -
+       intervalSemigroupOperator 1 (t - s)
+          (intervalDomainLift (intervalLogisticSource p (u₂ s))) x.1)‖ ≤
+        C * MeasureTheory.volume.real (Set.Icc (0 : ℝ) t) :=
+    MeasureTheory.norm_setIntegral_le_of_norm_le_const_ae' hvol_fin hae_bound
+  have hvol_eq : MeasureTheory.volume.real (Set.Icc (0 : ℝ) t) = t := by
+    simp [MeasureTheory.Measure.real, Real.volume_Icc, ht0]
+  calc |∫ s in Set.Icc (0 : ℝ) t,
+        (intervalSemigroupOperator 1 (t - s)
+            (intervalDomainLift (intervalLogisticSource p (u₁ s))) x.1 -
+         intervalSemigroupOperator 1 (t - s)
+            (intervalDomainLift (intervalLogisticSource p (u₂ s))) x.1)|
+      = ‖∫ s in Set.Icc (0 : ℝ) t,
+          (intervalSemigroupOperator 1 (t - s)
+              (intervalDomainLift (intervalLogisticSource p (u₁ s))) x.1 -
+           intervalSemigroupOperator 1 (t - s)
+              (intervalDomainLift (intervalLogisticSource p (u₂ s))) x.1)‖ :=
+        (Real.norm_eq_abs _).symm
+    _ ≤ C * MeasureTheory.volume.real (Set.Icc (0 : ℝ) t) := hstep
+    _ = C * t := by rw [hvol_eq]
+    _ ≤ C * T := mul_le_mul_of_nonneg_left htT hC
 
 end ShenWork.IntervalDomainExistence
 
