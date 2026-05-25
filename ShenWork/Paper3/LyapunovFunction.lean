@@ -1520,7 +1520,7 @@ theorem intervalDomain_entropyFunctional_nonneg_antitone_of_positiveGlobalBounde
       intervalDomain_chemotaxisEntropyFunctional_antitoneOn_of_positiveGlobalBoundedSolution
         hc huStar.le htheta huv hderiv hdiss
 
-/-- Signal-energy exponential decay for the Paper3 minimal-model Lyapunov
+/-- Weighted signal-energy Lyapunov monotonicity for the Paper3 minimal-model
 functional `∫ (mu (v-v*)^2 + |∇(v-v*)|^2)`.
 
 Point 17 status: conditional theorem, state ③.  The theorem is conditional on
@@ -1529,6 +1529,33 @@ the named assumptions in its signature:
 * `hdiss`: the integrated PDE identity/estimate corresponding to Paper3 (8.14);
 * `hcontrol`: the Poincare control corresponding to the step after (8.14).
 These are not derivable yet from `BoundedDomainData`. -/
+theorem chemotaxisSignalEnergy_weighted_antitoneOn
+    {D : BoundedDomainData} {mu vStar c K : ℝ}
+    {v : ℝ → D.Point → ℝ} {energySlope : ℝ → ℝ}
+    (hc : 0 < c) (hK : 0 < K)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisSignalEnergy D mu vStar v tau)
+          (energySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        (1 / 2 : ℝ) * energySlope t +
+          c * chemotaxisSignalGradientDissipation D vStar v t ≤ 0)
+    (hcontrol :
+      ∀ t, 0 < t →
+        chemotaxisSignalEnergy D mu vStar v t ≤
+          K * chemotaxisSignalGradientDissipation D vStar v t) :
+    AntitoneOn
+      (fun t =>
+        Real.exp ((2 * c / K) * t) *
+          chemotaxisSignalEnergy D mu vStar v t)
+      (Ioi (0 : ℝ)) :=
+  energy_weighted_antitoneOn_Ioi_of_dissipation_control
+    hc hK hderiv hdiss hcontrol
+
+/-- Signal-energy exponential decay for the Paper3 minimal-model Lyapunov
+functional `∫ (mu (v-v*)^2 + |∇(v-v*)|^2)`. -/
 theorem chemotaxisSignalEnergy_exponential_decay
     {D : BoundedDomainData} {mu vStar c K : ℝ}
     {v : ℝ → D.Point → ℝ} {energySlope : ℝ → ℝ}
@@ -1551,6 +1578,36 @@ theorem chemotaxisSignalEnergy_exponential_decay
         chemotaxisSignalEnergy D mu vStar v s *
           Real.exp (-(2 * c / K) * (t - s)) :=
   energy_exponential_decay_of_dissipation_control hc hK hderiv hdiss hcontrol
+
+/-- Concrete interval-domain weighted Lyapunov monotonicity for signal energy.
+
+Point 17 status: conditional theorem, state ③.  The remaining named frontiers
+are the signal-energy derivative identity, PDE dissipation estimate, and
+Poincare control packaged as `hderiv`, `hdiss`, and `hcontrol`. -/
+theorem intervalDomain_chemotaxisSignalEnergy_weighted_antitoneOn
+    {mu vStar c K : ℝ}
+    {v : ℝ → intervalDomain.Point → ℝ} {energySlope : ℝ → ℝ}
+    (hc : 0 < c) (hK : 0 < K)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisSignalEnergy intervalDomain mu vStar v tau)
+          (energySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        (1 / 2 : ℝ) * energySlope t +
+          c * chemotaxisSignalGradientDissipation intervalDomain vStar v t ≤ 0)
+    (hcontrol :
+      ∀ t, 0 < t →
+        chemotaxisSignalEnergy intervalDomain mu vStar v t ≤
+          K * chemotaxisSignalGradientDissipation intervalDomain vStar v t) :
+    AntitoneOn
+      (fun t =>
+        Real.exp ((2 * c / K) * t) *
+          chemotaxisSignalEnergy intervalDomain mu vStar v t)
+      (Ioi (0 : ℝ)) :=
+  chemotaxisSignalEnergy_weighted_antitoneOn
+    hc hK hderiv hdiss hcontrol
 
 /-- Nonnegative signal energy together with the Paper3 exponential two-time
 decay estimate.
