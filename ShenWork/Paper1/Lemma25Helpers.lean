@@ -879,6 +879,102 @@ theorem Lemma_2_5_with_k_dab_CMParams_unit
     one_pos one_pos hpExp (lt_of_lt_of_le one_pos p.hγ)
     hk_lt_sqrt hu hu_nn hint_hyp
 
+theorem Lemma_2_5_with_k_dab_exists_constant
+    (psi : ExponentialWeight) {pExp gamma l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 1 ≤ pExp)
+    (hgamma : 0 < gamma) (hk_lt : psi.k_dab < Real.sqrt l) :
+    ∃ C > 0, ∀ {u : ℝ → ℝ}, IsCUnifBdd u → (∀ y, 0 ≤ u y) →
+      Integrable (fun x : ℝ => (u x) ^ (gamma * pExp) * psi.weight x) →
+        Integrable
+          (fun x : ℝ =>
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^
+                pExp * psi.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^
+                pExp * psi.weight x ≤
+          C * ∫ x : ℝ, (u x) ^ (gamma * pExp) * psi.weight x := by
+  refine ⟨(Real.sqrt l) ^ pExp *
+        ((mu / (2 * Real.sqrt l)) ^ pExp *
+          (2 / Real.sqrt l) ^ (pExp - 1) *
+          (2 / (Real.sqrt l - psi.k_dab))), ?_, ?_⟩
+  · have hsqrt_pos : 0 < Real.sqrt l := Real.sqrt_pos.mpr hl
+    have hden_pos : 0 < Real.sqrt l - psi.k_dab := by linarith
+    have hCouter_pos : 0 < (Real.sqrt l) ^ pExp :=
+      Real.rpow_pos_of_pos hsqrt_pos _
+    have hC1_pos : 0 < (mu / (2 * Real.sqrt l)) ^ pExp :=
+      Real.rpow_pos_of_pos (by positivity) _
+    have hC2_pos : 0 < (2 / Real.sqrt l) ^ (pExp - 1) :=
+      Real.rpow_pos_of_pos (by positivity) _
+    have hC3_pos : 0 < 2 / (Real.sqrt l - psi.k_dab) := by positivity
+    positivity
+  · intro u hu hu_nn hint
+    exact Lemma_2_5_with_k_dab psi hl hmu hpExp hgamma hk_lt
+      hu hu_nn hint
+
+theorem Lemma_2_5_with_k_dab_CMParams_unit_exists_constant
+    (p : CMParams) (psi : ExponentialWeight) {pExp : ℝ}
+    (hpExp : 1 ≤ pExp) (hk_lt : psi.k_dab < 1) :
+    ∃ C > 0, ∀ {u : ℝ → ℝ}, IsCUnifBdd u → (∀ y, 0 ≤ u y) →
+      Integrable (fun x : ℝ => (u x) ^ (p.γ * pExp) * psi.weight x) →
+        Integrable
+          (fun x : ℝ =>
+            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^
+                pExp * psi.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^
+                pExp * psi.weight x ≤
+          C * ∫ x : ℝ, (u x) ^ (p.γ * pExp) * psi.weight x := by
+  have hk_lt_sqrt : psi.k_dab < Real.sqrt 1 := by
+    rw [Real.sqrt_one]
+    exact hk_lt
+  exact Lemma_2_5_with_k_dab_exists_constant psi (l := 1) (mu := 1)
+    one_pos one_pos hpExp (lt_of_lt_of_le one_pos p.hγ) hk_lt_sqrt
+
+/-! ### Resolvent-admissible weights
+
+The unrestricted `ExponentialWeight` structure records only that some finite
+log-derivative envelope exists.  The weighted whole-line resolvent estimate
+needs that envelope below the resolvent decay rate.  This subtype keeps that
+smallness as part of the weight data instead of exposing it as a per-use proof
+argument. -/
+
+/-- Exponential weights whose named derivative envelope is below the
+whole-line resolvent decay rate `√l`. -/
+abbrev ResolventAdmissibleExponentialWeight (l : ℝ) :=
+  {psi : ExponentialWeight // psi.k_dab < Real.sqrt l}
+
+theorem Lemma_2_5_resolventAdmissibleWeight
+    {pExp gamma l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 1 ≤ pExp)
+    (hgamma : 0 < gamma) (psi : ResolventAdmissibleExponentialWeight l) :
+    ∃ C > 0, ∀ {u : ℝ → ℝ}, IsCUnifBdd u → (∀ y, 0 ≤ u y) →
+      Integrable (fun x : ℝ => (u x) ^ (gamma * pExp) * psi.1.weight x) →
+        Integrable
+          (fun x : ℝ =>
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^
+                pExp * psi.1.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^
+                pExp * psi.1.weight x ≤
+          C * ∫ x : ℝ, (u x) ^ (gamma * pExp) * psi.1.weight x :=
+  Lemma_2_5_with_k_dab_exists_constant psi.1 hl hmu hpExp hgamma psi.2
+
+theorem Lemma_2_5_resolventAdmissibleWeight_CMParams_unit
+    (p : CMParams) (psi : ResolventAdmissibleExponentialWeight 1)
+    {pExp : ℝ} (hpExp : 1 ≤ pExp) :
+    ∃ C > 0, ∀ {u : ℝ → ℝ}, IsCUnifBdd u → (∀ y, 0 ≤ u y) →
+      Integrable (fun x : ℝ => (u x) ^ (p.γ * pExp) * psi.1.weight x) →
+        Integrable
+          (fun x : ℝ =>
+            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^
+                pExp * psi.1.weight x) ∧
+        ∫ x : ℝ,
+            |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^
+                pExp * psi.1.weight x ≤
+          C * ∫ x : ℝ, (u x) ^ (p.γ * pExp) * psi.1.weight x :=
+  Lemma_2_5_with_k_dab_CMParams_unit_exists_constant p psi.1 hpExp
+    (by simpa [Real.sqrt_one] using psi.2)
+
 /-! ### Unit-resolvent specialization of Lemma_2_5_with_explicit_k -/
 
 /-- Unit-resolvent (`l = μ = 1`) specialization of
