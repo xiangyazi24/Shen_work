@@ -1377,6 +1377,126 @@ def WeightedL2ToUniformMovingFrameUpgrade
     WeightedL2MovingFrameConvergence η c u U →
     UniformMovingFrameConvergence c u U
 
+/-- A right-tail asymptotic at rate `κ₁` gives an eventual pointwise
+exponential error bound against the leading tail `exp (-κx)`. -/
+theorem HasWaveRightTailAsymptotic.eventually_abs_sub_exp_le
+    {c κ₁ : ℝ} {U : ℝ → ℝ}
+    (h : HasWaveRightTailAsymptotic c κ₁ U) :
+    ∀ᶠ x in atTop,
+      |U x - Real.exp (-(kappa c) * x)| ≤ Real.exp (-κ₁ * x) := by
+  have hball : Metric.ball (0 : ℝ) 1 ∈ 𝓝 (0 : ℝ) :=
+    Metric.ball_mem_nhds _ zero_lt_one
+  filter_upwards [h.eventually hball] with x hx
+  set e : ℝ := Real.exp (-(kappa c * x))
+  set r : ℝ := U x / e - 1
+  have he_pos : 0 < e := by
+    dsimp [e]
+    exact Real.exp_pos _
+  have hxle :
+      |Real.exp ((κ₁ - kappa c) * x) * r| ≤ (1 : ℝ) := by
+    have hxlt :
+        ‖Real.exp ((κ₁ - kappa c) * x) *
+            (U x / Real.exp (-(kappa c * x)) - 1)‖ < (1 : ℝ) := by
+      simpa [Metric.mem_ball, dist_eq_norm] using hx
+    exact le_of_lt (by simpa [Real.norm_eq_abs, e, r] using hxlt)
+  have hprod : Real.exp ((κ₁ - kappa c) * x) * |r| ≤ (1 : ℝ) := by
+    simpa [abs_mul, abs_of_nonneg (Real.exp_nonneg _)] using hxle
+  have hr : |r| ≤ Real.exp (-(κ₁ - kappa c) * x) := by
+    calc
+      |r| =
+          (Real.exp ((κ₁ - kappa c) * x))⁻¹ *
+            (Real.exp ((κ₁ - kappa c) * x) * |r|) := by
+            field_simp [Real.exp_ne_zero]
+      _ ≤ (Real.exp ((κ₁ - kappa c) * x))⁻¹ * 1 := by
+        exact mul_le_mul_of_nonneg_left hprod
+          (inv_nonneg.mpr (Real.exp_nonneg _))
+      _ = Real.exp (-(κ₁ - kappa c) * x) := by
+        rw [← Real.exp_neg, mul_one]
+        congr 1
+        ring
+  calc
+    |U x - Real.exp (-(kappa c) * x)| = e * |r| := by
+      have hsub : U x - e = e * r := by
+        dsimp [r]
+        field_simp [ne_of_gt he_pos]
+      rw [show Real.exp (-(kappa c) * x) = e by
+        dsimp [e]
+        congr 1
+        ring, hsub, abs_mul,
+        abs_of_nonneg he_pos.le]
+    _ ≤ e * Real.exp (-(κ₁ - kappa c) * x) :=
+      mul_le_mul_of_nonneg_left hr he_pos.le
+    _ = Real.exp (-κ₁ * x) := by
+      dsimp [e]
+      rw [← Real.exp_add]
+      congr 1
+      ring
+
+/-- Two profiles with the same right-tail asymptotic rate differ by twice
+the eventual tail-error envelope. -/
+theorem HasWaveRightTailAsymptotic.eventually_abs_sub_abs_le_two_exp
+    {c κ₁ : ℝ} {U₁ U₂ : ℝ → ℝ}
+    (h₁ : HasWaveRightTailAsymptotic c κ₁ U₁)
+    (h₂ : HasWaveRightTailAsymptotic c κ₁ U₂) :
+    ∀ᶠ x in atTop,
+      |U₂ x - U₁ x| ≤ 2 * Real.exp (-κ₁ * x) := by
+  filter_upwards [h₁.eventually_abs_sub_exp_le,
+    h₂.eventually_abs_sub_exp_le] with x hx₁ hx₂
+  let E : ℝ := Real.exp (-(kappa c) * x)
+  have htri :
+      |U₂ x - U₁ x| ≤ |U₂ x - E| + |U₁ x - E| := by
+    have h :=
+      abs_sub_le (U₂ x - E) 0 (U₁ x - E)
+    have hsub : (U₂ x - E) - (U₁ x - E) = U₂ x - U₁ x := by ring
+    simpa [hsub, abs_neg, abs_sub_comm] using h
+  calc
+    |U₂ x - U₁ x| ≤ |U₂ x - E| + |U₁ x - E| := htri
+    _ ≤ Real.exp (-κ₁ * x) + Real.exp (-κ₁ * x) :=
+      add_le_add (by simpa [E] using hx₂) (by simpa [E] using hx₁)
+    _ = 2 * Real.exp (-κ₁ * x) := by ring
+
+/-- Common right-tail asymptotics at rate `κ₁` imply the weighted initial
+closeness needed to use wave `U₂` as nearby Cauchy data for stability around
+`U₁`, as long as the stability weight lies below `κ₁`. -/
+theorem WeightedL2InitialCloseness.of_common_waveRightTailAsymptotic
+    {p : CMParams} {c η κ₁ : ℝ} {U₁ U₂ : ℝ → ℝ}
+    (hη : 0 < η) (hηκ₁ : η < κ₁)
+    (hU₁_cont : Continuous U₁) (hU₂_cont : Continuous U₂)
+    (hbound₁ : HasWaveUpperTailBound p c U₁)
+    (hbound₂ : HasWaveUpperTailBound p c U₂)
+    (htail₁ : HasWaveRightTailAsymptotic c κ₁ U₁)
+    (htail₂ : HasWaveRightTailAsymptotic c κ₁ U₂) :
+    WeightedL2InitialCloseness η U₂ U₁ := by
+  refine
+    WeightedL2InitialCloseness.of_left_exp_bound_eventual_right_exp_bound
+      (η := η) (δ := 2 * (κ₁ - η)) hη (by linarith) ?_ ?_ ?_
+  · exact
+      (Continuous.mul
+        (Real.continuous_exp.comp
+          ((continuous_const.mul continuous_const).mul continuous_id))
+        ((hU₂_cont.sub hU₁_cont).abs.pow 2)).aestronglyMeasurable
+  · have hM_pos : 0 < MChi p :=
+      lt_of_lt_of_le (hbound₁.pos 0) (hbound₁.le_MChi 0)
+    refine ⟨(2 * MChi p) ^ 2, sq_nonneg _, fun x => ?_⟩
+    exact
+      weightedL2_integrand_norm_le_of_abs_sub_le
+        (η := η) (A := 2 * MChi p)
+        (u₀ := U₂) (U := U₁) (by linarith)
+        (hbound₁.abs_sub_le_two_MChi hbound₂ x)
+  · have hevent :
+        ∀ᶠ x in atTop, |U₂ x - U₁ x| ≤ 2 * Real.exp (-κ₁ * x) :=
+      htail₁.eventually_abs_sub_abs_le_two_exp htail₂
+    rcases eventually_atTop.1 hevent with ⟨R, hR⟩
+    refine ⟨R, 4, by norm_num, fun x hx => ?_⟩
+    have habs : |U₂ x - U₁ x| ≤ 2 * Real.exp (-κ₁ * x) :=
+      hR x (le_of_lt hx)
+    have hraw :=
+      weightedL2_integrand_norm_le_of_abs_sub_le_exp
+        (η := η) (β := κ₁) (B := 2)
+        (u₀ := U₂) (U := U₁) (by norm_num : (0 : ℝ) ≤ 2) habs
+    convert hraw using 2
+    ring
+
 /-- FRONTIER / Point 17: weighted-`L²` part of the near-neighbor stability
 branch after Lemma 2.5 and the Section 5 signal estimates.
 
@@ -1929,6 +2049,228 @@ theorem Theorem_1_2.of_signal_energy_dissipation_l2_to_uniform_branch
           hketa heta hu₀' hleft' hclose' hsignal)
       (hupgrade p hregime c hc U V u₀ hTW hstrict htail hreg η
         hketa heta hu₀ hleft hclose)
+
+/-- Theorem 1.3 profile-uniqueness branch driven by the B5 stability chain.
+The second wave is used as nearby initial data for stability around the first
+wave.  Lemma 2.5 and the Section 5 estimates produce the signal package,
+energy dissipation gives moving-frame weighted `L²` convergence, the explicit
+`WeightedL2ToUniformMovingFrameUpgrade` gives uniform moving-frame
+convergence, and Cauchy uniqueness identifies the produced solution with the
+moving second wave.
+
+Remaining deep inputs are exactly the PDE facts not proved here: the weighted
+energy package, the `L²`-to-uniform moving-frame upgrade, and Cauchy
+uniqueness for the whole-line Cauchy problem with traveling-wave data. -/
+theorem Theorem_1_3_profile_eq_of_signal_energy_dissipation_l2_to_uniform
+    (p : CMParams) {c η pExp : ℝ} (hpExp : 1 < pExp)
+    {U₁ V₁ U₂ V₂ : ℝ → ℝ}
+    (hTW₁ : IsTravelingWave p c U₁ V₁)
+    (hTW₂ : IsTravelingWave p c U₂ V₂)
+    (hstrict₁ : HasStrictWaveUpperTailBound p c U₁)
+    (hstrict₂ : HasStrictWaveUpperTailBound p c U₂)
+    (hreg₁ : TravelingWaveRegularity p c U₁ V₁)
+    (hreg₂ : TravelingWaveRegularity p c U₂ V₂)
+    (hclose : WeightedL2InitialCloseness η U₂ U₁)
+    (henergy :
+      NonnegativeInitialDatum U₂ →
+      StrictlyPositiveAtLeft U₂ →
+      WeightedL2InitialCloseness η U₂ U₁ →
+      (∃ kMax > 0, ∃ C > 0,
+        ∀ k : ℝ, 0 ≤ k → k < kMax →
+        ∀ psi : ExponentialWeight,
+          (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+          (∀ z, |iteratedDeriv 2 psi.weight z| ≤ k * psi.weight z) →
+          Integrable (fun x : ℝ => (U₁ x) ^ (p.γ * pExp) * psi.weight x) →
+          Integrable (fun x : ℝ => (U₂ x) ^ (p.γ * pExp) * psi.weight x) →
+            (Integrable
+                (fun x : ℝ => |deriv V₁ x| ^ pExp * psi.weight x) ∧
+              ∫ x : ℝ, |deriv V₁ x| ^ pExp * psi.weight x ≤
+                C * ∫ x : ℝ, (U₁ x) ^ (p.γ * pExp) * psi.weight x) ∧
+            (Integrable
+                (fun x : ℝ =>
+                  |deriv (frozenElliptic p U₂) x| ^ pExp * psi.weight x) ∧
+              ∫ x : ℝ, |deriv (frozenElliptic p U₂) x| ^ pExp *
+                  psi.weight x ≤
+                C * ∫ x : ℝ, (U₂ x) ^ (p.γ * pExp) * psi.weight x)) →
+      ∃ u v : ℝ → ℝ → ℝ, ∃ E : ℝ → ℝ, ∃ lam > 0,
+        IsGlobalCauchySolutionFrom p U₂ u v ∧
+        (∀ᶠ t in atTop,
+          ∫ x : ℝ, Real.exp (2 * η * x) * |u t x - U₁ (x - c * t)| ^ 2 ≤
+            E t) ∧
+        (∀ T : ℝ, 0 ≤ T → ContinuousOn E (Set.Icc 0 T)) ∧
+        (∀ T : ℝ, 0 ≤ T → ∀ t ∈ Set.Ico 0 T,
+          HasDerivWithinAt E (deriv E t) (Set.Ici t) t) ∧
+        (∀ t : ℝ, 0 ≤ t → deriv E t ≤ -lam * E t))
+    (hupgrade : WeightedL2ToUniformMovingFrameUpgrade p η c U₂ U₁)
+    (hcauchy_unique :
+      ∀ u v : ℝ → ℝ → ℝ,
+        IsGlobalCauchySolutionFrom p U₂ u v →
+          ∀ t x, u t x = U₂ (x - c * t)) :
+    (∀ x, U₁ x = U₂ x) ∧ (∀ x, V₁ x = V₂ x) := by
+  have hU₂_bdd : IsCUnifBdd U₂ :=
+    hstrict₂.hasWaveUpperTailBound.isCUnifBdd_of_continuous hreg₂.U_cont
+  have hu₂ : NonnegativeInitialDatum U₂ :=
+    IsTravelingWave.nonnegativeInitialDatum hTW₂ hU₂_bdd
+  have hleft₂ : StrictlyPositiveAtLeft U₂ :=
+    IsTravelingWave.strictlyPositiveAtLeft hTW₂
+  rcases
+    Theorem_1_2_nearby_initial_data_branch_of_signal_energy_dissipation_of_l2_to_uniform
+      (p := p) (c := c) (η := η) (pExp := pExp) hpExp
+      hTW₁ hstrict₁ hreg₁ hu₂ hleft₂ hclose henergy hupgrade with
+    ⟨u, v, hsol, _hweighted, huniform⟩
+  have hconv :
+      UniformMovingFrameConvergence c (fun t x => U₂ (x - c * t)) U₁ := by
+    intro ε hε
+    rcases huniform ε hε with ⟨T, hT⟩
+    refine ⟨T, ?_⟩
+    intro t x ht
+    have hu_eq : u t x = U₂ (x - c * t) := hcauchy_unique u v hsol t x
+    simpa [hu_eq] using hT t x ht
+  exact
+    Theorem_1_3_profile_eq_of_uniform_movingFrame_and_resolvent
+      hconv
+      (IsTravelingWave.V_eq_frozenElliptic_full hTW₁
+        hstrict₁.hasWaveUpperTailBound hreg₁)
+      (IsTravelingWave.V_eq_frozenElliptic_full hTW₂
+        hstrict₂.hasWaveUpperTailBound hreg₂)
+
+/-- Main Theorem 1.3 closure through the B5 Theorem 1.2 stability chain.
+The common right-tail asymptotic supplies the weighted closeness of the two
+profiles at a stability weight chosen between `kappa c` and both the
+stability cap and the tail rate.  The rest is the stability-to-uniqueness
+argument in `Theorem_1_3_profile_eq_of_signal_energy_dissipation_l2_to_uniform`.
+
+This reaches the natural frontier for the current repository: the remaining
+unproved hypotheses are the whole-line energy dissipation package, the
+weighted-`L²` to uniform upgrade, and Cauchy uniqueness for the produced
+global solution. -/
+theorem Theorem_1_3.of_signal_energy_dissipation_l2_to_uniform_and_cauchy_unique
+    {pExp : ℝ} (hpExp : 1 < pExp)
+    (cStarStarFn : CMParams → (ℝ → ℝ))
+    (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
+      StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
+        stabilitySpeedBaseline p < cStarStarFn p p.χ)
+    (hregularity : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, cStarStarFn p p.χ < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η →
+          η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          TravelingWaveRegularity p c U V)
+    (henergy : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, cStarStarFn p p.χ < c →
+      ∀ U V u₀ : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η →
+          η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          NonnegativeInitialDatum u₀ →
+          StrictlyPositiveAtLeft u₀ →
+          WeightedL2InitialCloseness η u₀ U →
+          (∃ kMax > 0, ∃ C > 0,
+            ∀ k : ℝ, 0 ≤ k → k < kMax →
+            ∀ psi : ExponentialWeight,
+              (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+              (∀ z, |iteratedDeriv 2 psi.weight z| ≤ k * psi.weight z) →
+              Integrable
+                (fun x : ℝ => (U x) ^ (p.γ * pExp) * psi.weight x) →
+              Integrable
+                (fun x : ℝ => (u₀ x) ^ (p.γ * pExp) * psi.weight x) →
+                (Integrable
+                    (fun x : ℝ => |deriv V x| ^ pExp * psi.weight x) ∧
+                  ∫ x : ℝ, |deriv V x| ^ pExp * psi.weight x ≤
+                    C * ∫ x : ℝ, (U x) ^ (p.γ * pExp) * psi.weight x) ∧
+                (Integrable
+                    (fun x : ℝ =>
+                      |deriv (frozenElliptic p u₀) x| ^ pExp *
+                        psi.weight x) ∧
+                  ∫ x : ℝ, |deriv (frozenElliptic p u₀) x| ^ pExp *
+                      psi.weight x ≤
+                    C * ∫ x : ℝ, (u₀ x) ^ (p.γ * pExp) *
+                      psi.weight x)) →
+          ∃ u v : ℝ → ℝ → ℝ, ∃ E : ℝ → ℝ, ∃ lam > 0,
+            IsGlobalCauchySolutionFrom p u₀ u v ∧
+            (∀ᶠ t in atTop,
+              ∫ x : ℝ,
+                Real.exp (2 * η * x) * |u t x - U (x - c * t)| ^ 2 ≤
+                  E t) ∧
+            (∀ T : ℝ, 0 ≤ T → ContinuousOn E (Set.Icc 0 T)) ∧
+            (∀ T : ℝ, 0 ≤ T → ∀ t ∈ Set.Ico 0 T,
+              HasDerivWithinAt E (deriv E t) (Set.Ici t) t) ∧
+            (∀ t : ℝ, 0 ≤ t → deriv E t ≤ -lam * E t))
+    (hupgrade : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, cStarStarFn p p.χ < c →
+      ∀ U V u₀ : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        TravelingWaveRegularity p c U V →
+        ∀ η : ℝ, kappa c < η →
+          η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          NonnegativeInitialDatum u₀ →
+          StrictlyPositiveAtLeft u₀ →
+          WeightedL2InitialCloseness η u₀ U →
+          WeightedL2ToUniformMovingFrameUpgrade p η c u₀ U)
+    (hcauchy_unique : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, cStarStarFn p p.χ < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        TravelingWaveRegularity p c U V →
+        ∀ u v : ℝ → ℝ → ℝ,
+          IsGlobalCauchySolutionFrom p U u v →
+            ∀ t x, u t x = U (x - c * t)) :
+    Theorem_1_3 := by
+  refine Theorem_1_3.of_assumed_uniqueness_branch cStarStarFn hcStarStar ?_
+  intro p hregime c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hstrict₁ hstrict₂ htailPair
+  rcases hcStarStar p hregime with ⟨_hasymp, hbaseline⟩
+  rcases htailPair with ⟨κ₁, hκ_gt, hκ_lt_one, htail₁, htail₂⟩
+  have hcap : kappa c < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) :=
+    kappa_lt_stability_weight_cap_of_stabilitySpeedBaseline_lt
+      hbaseline hc
+  rcases exists_between (lt_min hκ_gt hcap) with ⟨η, hketa, heta_min⟩
+  have heta_tail : η < κ₁ := lt_of_lt_of_le heta_min (min_le_left _ _)
+  have heta_cap : η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) :=
+    lt_of_lt_of_le heta_min (min_le_right _ _)
+  have htail₁_exists :
+      ∃ κ, kappa c < κ ∧ κ < 1 ∧ HasWaveRightTailAsymptotic c κ U₁ :=
+    ⟨κ₁, hκ_gt, hκ_lt_one, htail₁⟩
+  have htail₂_exists :
+      ∃ κ, kappa c < κ ∧ κ < 1 ∧ HasWaveRightTailAsymptotic c κ U₂ :=
+    ⟨κ₁, hκ_gt, hκ_lt_one, htail₂⟩
+  have hreg₁ : TravelingWaveRegularity p c U₁ V₁ :=
+    hregularity p hregime c hc U₁ V₁ hTW₁ hstrict₁ htail₁_exists
+      η hketa heta_cap
+  have hreg₂ : TravelingWaveRegularity p c U₂ V₂ :=
+    hregularity p hregime c hc U₂ V₂ hTW₂ hstrict₂ htail₂_exists
+      η hketa heta_cap
+  have hclose : WeightedL2InitialCloseness η U₂ U₁ :=
+    WeightedL2InitialCloseness.of_common_waveRightTailAsymptotic
+      (eta_pos_of_stability_weight_hypotheses hbaseline hc hketa)
+      heta_tail hreg₁.U_cont hreg₂.U_cont
+      hstrict₁.hasWaveUpperTailBound hstrict₂.hasWaveUpperTailBound
+      htail₁ htail₂
+  have hU₂_bdd : IsCUnifBdd U₂ :=
+    hstrict₂.hasWaveUpperTailBound.isCUnifBdd_of_continuous hreg₂.U_cont
+  have hu₂ : NonnegativeInitialDatum U₂ :=
+    IsTravelingWave.nonnegativeInitialDatum hTW₂ hU₂_bdd
+  have hleft₂ : StrictlyPositiveAtLeft U₂ :=
+    IsTravelingWave.strictlyPositiveAtLeft hTW₂
+  exact
+    Theorem_1_3_profile_eq_of_signal_energy_dissipation_l2_to_uniform
+      (p := p) (c := c) (η := η) (pExp := pExp) hpExp
+      hTW₁ hTW₂ hstrict₁ hstrict₂ hreg₁ hreg₂ hclose
+      (fun hu₂' hleft₂' hclose' hsignal =>
+        henergy p hregime c hc U₁ V₁ U₂ hTW₁ hstrict₁ htail₁_exists
+          η hketa heta_cap hu₂' hleft₂' hclose' hsignal)
+      (hupgrade p hregime c hc U₁ V₁ U₂ hTW₁ hstrict₁ htail₁_exists
+        hreg₁ η hketa heta_cap hu₂ hleft₂ hclose)
+      (hcauchy_unique p hregime c hc U₂ V₂ hTW₂ hstrict₂ htail₂_exists
+        hreg₂)
 
 /-! ### Unit-resolvent specialization of Lemma_2_5_with_explicit_k -/
 
