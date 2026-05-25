@@ -146,6 +146,65 @@ theorem Theorem_1_3_intervalDomain_of_corollary21_proposition25_and_existence
     p C hCor21 hProp25 hexist.localExistence hexist.globalExtension
     hstrongBootstrap hstrongGlobalBound
 
+/-- Corollary-level Theorem 1.3 assembly with the `m > 0` guard removed from
+the strong-logistic branch frontiers.
+
+The conclusion remains the full `Theorem_1_3 intervalDomain p C`; the target
+statement still introduces `0 < p.m`, and `CM2Params` also carries this field.
+This wrapper is for upstream strong-logistic estimates that have already
+internalized that parameter fact. -/
+theorem Theorem_1_3_intervalDomain_of_parameter_m_pos_and_corollary21
+    (p : CM2Params) (C : Paper2Constants p)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hglobalExtension :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hstrongBootstrap :
+      0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hstrongGlobalBound :
+      0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+      1 ≤ p.m →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2GlobalClassicalSolution intervalDomain p u v →
+        InitialTrace intervalDomain u₀ u →
+        (∀ T > 0,
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) →
+          IsPaper2Bounded intervalDomain u) :
+    Theorem_1_3 intervalDomain p C :=
+  Theorem_1_3_intervalDomain_of_corollary21_and_proposition25
+    p C hCor21 hProp25 hlocal hglobalExtension
+    (fun ha hb _hm hstrong =>
+      hstrongBootstrap ha hb hstrong)
+    (fun ha hb _hm hstrong hm_ge =>
+      hstrongGlobalBound ha hb hstrong hm_ge)
+
 /-- Corollary-level Theorem 1.3 assembly where the long-time frontier is an
 eventual scalar sup-norm estimate rather than `IsPaper2Bounded` itself. -/
 theorem Theorem_1_3_intervalDomain_of_eventual_sup_bound

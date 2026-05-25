@@ -225,6 +225,78 @@ theorem Theorem_1_2_intervalDomain_of_corollary21_proposition25_and_existence
     p hCor21 hProp25 hexist.localExistence hexist.globalExtension
     hslowBootstrap hcriticalBootstrap hcriticalGlobalBound
 
+/-- Corollary-level Theorem 1.2 assembly with parameter-side positivity
+premises removed from the branch frontiers.
+
+The conclusion is still the full `Theorem_1_2 intervalDomain p`; its
+antecedents provide the paper's `0 ≤ a`, `0 ≤ b`, `1 ≤ β`, and `0 < m`
+guards where the statement requires them.  This wrapper is useful when the
+upstream branch estimates have already internalized the `CM2Params` field
+facts and therefore do not expose those guards as hypotheses. -/
+theorem Theorem_1_2_intervalDomain_of_parameter_fields_and_corollary21
+    (p : CM2Params)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hglobalExtension :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hslowBootstrap :
+      1 ≤ p.β → p.m < 1 →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hcriticalBootstrap :
+      1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hcriticalGlobalBound :
+      1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2GlobalClassicalSolution intervalDomain p u v →
+        InitialTrace intervalDomain u₀ u →
+        (∀ T > 0,
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) →
+          IsPaper2Bounded intervalDomain u) :
+    Theorem_1_2 intervalDomain p :=
+  Theorem_1_2_intervalDomain_of_corollary21_and_proposition25
+    p hCor21 hProp25 hlocal hglobalExtension
+    (fun _ha _hb hβ _hm_pos hm_lt =>
+      hslowBootstrap hβ hm_lt)
+    (fun _ha _hb hβ hm_eq hχ =>
+      hcriticalBootstrap hβ hm_eq hχ)
+    (fun _ha _hb hβ hm_eq hχ =>
+      hcriticalGlobalBound hβ hm_eq hχ)
+
 /-- Corollary-level Theorem 1.2 assembly where the long-time frontier is an
 eventual scalar sup-norm estimate rather than `IsPaper2Bounded` itself. -/
 theorem Theorem_1_2_intervalDomain_of_eventual_sup_bound
