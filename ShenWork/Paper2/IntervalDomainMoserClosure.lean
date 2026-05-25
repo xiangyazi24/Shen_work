@@ -43,8 +43,19 @@
   nonminimal/minimal boundedness lemmas above replace `hbounded`, so the final
   exported theorem `Theorem_1_1_intervalDomain_reduces_to_existence` has no
   hidden branch hypothesis beyond `IntervalDomainExistence p`.
+
+  Corrected-existence bridge:
+    `Theorem_1_1_intervalDomain_of_corrected_existence` proves the same full
+    Theorem 1.1 statement from the corrected existential-global package
+    `IntervalDomainGlobalSolutionExists p`, avoiding the legacy same-tail
+    `globalExtension` field.  The hook
+    `Theorem_1_1_intervalDomain_unconditional_of_all_corrected_existence`
+    is the final connection point: once sb-ode supplies
+    `∀ p, IntervalDomainGlobalSolutionExists p`, the interval-domain
+    Theorem 1.1 statement is unconditional for all parameter sets.
 -/
 import ShenWork.Paper2.IntervalDomainChain
+import ShenWork.PDE.IntervalDomainExistence
 
 open ShenWork.Paper2
 open ShenWork.IntervalDomain
@@ -574,6 +585,52 @@ private theorem supNorm_le_initial_of_Ioo_monotone_and_approach
   have h_approach := hδ_bound s hs_pos hs_lt_δ
   linarith
 
+/-- Nonminimal branch sup-norm estimate using only Lemma 3.1 and the concrete
+initial sup-norm approach field. -/
+private theorem nonminimal_supNorm_bound_of_negative_sensitivity_and_approach
+    (p : CM2Params)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    {u₀ : intervalDomain.Point → ℝ} {T : ℝ} (hT : 0 < T)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (happroach : ∀ ε > 0, ∃ δ > 0, δ ≤ T ∧ ∀ s, 0 < s → s < δ →
+      intervalDomain.supNorm (u s) ≤ intervalDomain.supNorm u₀ + ε) :
+    ∀ t, 0 < t → t < T →
+      intervalDomain.supNorm (u t) ≤
+        max (intervalDomain.supNorm u₀) ((p.a / p.b) ^ (1 / p.α)) := by
+  intro t ht_pos ht_lt
+  by_cases h_below :
+      intervalDomain.supNorm (u t) ≤ (p.a / p.b) ^ (1 / p.α)
+  · exact le_trans h_below (le_max_right _ _)
+  · push Not at h_below
+    have hL31 := Lemma_3_1_intervalDomain p
+    have hmono :=
+      (hL31 hχ).1 ha hb T hT u v hsol t ht_pos ht_lt h_below
+    have h_le_init :=
+      supNorm_le_initial_of_Ioc_monotone_and_approach ht_pos hmono
+        (fun ε hε => by
+          obtain ⟨δ, hδ_pos, _hδ_le, hδ_bound⟩ := happroach ε hε
+          exact ⟨δ, hδ_pos, hδ_bound⟩)
+    exact le_trans h_le_init (le_max_left _ _)
+
+/-- Minimal branch sup-norm estimate using only Lemma 3.1 and the concrete
+initial sup-norm approach field. -/
+private theorem minimal_supNorm_bound_of_negative_sensitivity_and_approach
+    (p : CM2Params)
+    (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (hb : p.b = 0)
+    {u₀ : intervalDomain.Point → ℝ} {T : ℝ} (hT : 0 < T)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (happroach : ∀ ε > 0, ∃ δ > 0, δ ≤ T ∧ ∀ s, 0 < s → s < δ →
+      intervalDomain.supNorm (u s) ≤ intervalDomain.supNorm u₀ + ε) :
+    ∀ t, 0 < t → t < T →
+      intervalDomain.supNorm (u t) ≤ intervalDomain.supNorm u₀ := by
+  intro t ht_pos ht_lt
+  have hL31 := Lemma_3_1_intervalDomain p
+  have hmono := (hL31 hχ).2 ha hb T hT u v hsol
+  exact supNorm_le_initial_of_Ioo_monotone_and_approach
+    hT hmono happroach ht_pos ht_lt
+
 /-- Nonminimal negative-sensitivity branch: the local interval solution is
 bounded before `T`.  This is a genuine solution sup-bound proof from the
 already-proved Lemma 3.1 maximum-principle chain and initial approach. -/
@@ -677,6 +734,93 @@ theorem Theorem_1_1_intervalDomain_reduces_to_existence
     (hexist : IntervalDomainTheorem11.IntervalDomainExistence p) :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_of_structured_relative_moser_endpoint p hexist
+
+/-- Corrected-existence bridge for Paper 2 Theorem 1.1 on `intervalDomain`.
+
+This avoids the legacy same-tail `globalExtension` field.  If `1 <= m`, the
+solution used in the theorem conclusion is chosen from the corrected global
+existence field itself; otherwise a local branch is enough because the global
+conclusion is a vacuous implication.  In both cases the branch sup-norm bound
+is proved from Lemma 3.1 plus initial sup-norm approach. -/
+theorem Theorem_1_1_intervalDomain_of_corrected_existence
+    (p : CM2Params)
+    (hexist :
+      ShenWork.IntervalDomainExistence.IntervalDomainGlobalSolutionExists p) :
+    Theorem_1_1 intervalDomain p := by
+  intro hχ
+  constructor
+  · intro ha hb u₀ hu₀
+    by_cases hm : 1 ≤ p.m
+    · rcases hexist.globalSolutionExists u₀ hu₀ hm with
+        ⟨u, v, hglobal, htrace⟩
+      have hT : (0 : ℝ) < 1 := by norm_num
+      have hsol : IsPaper2ClassicalSolution intervalDomain p 1 u v :=
+        hglobal.classical hT
+      have happroach :=
+        hexist.initialSupNormApproach u₀ hu₀ 1 hT u v hsol htrace
+      refine ⟨1, hT, u, v, hsol, htrace, ?_, ?_⟩
+      · exact
+          nonminimal_supNorm_bound_of_negative_sensitivity_and_approach
+            p hχ ha hb hT hsol happroach
+      · intro _hm
+        exact hglobal
+    · obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ :=
+        hexist.localExistence u₀ hu₀
+      have happroach :=
+        hexist.initialSupNormApproach u₀ hu₀ Tmax hTmax u v hsol htrace
+      refine ⟨Tmax, hTmax, u, v, hsol, htrace, ?_, ?_⟩
+      · exact
+          nonminimal_supNorm_bound_of_negative_sensitivity_and_approach
+            p hχ ha hb hTmax hsol happroach
+      · intro hm'
+        exact False.elim (hm hm')
+  · intro ha hb u₀ hu₀
+    by_cases hm : 1 ≤ p.m
+    · rcases hexist.globalSolutionExists u₀ hu₀ hm with
+        ⟨u, v, hglobal, htrace⟩
+      have hT : (0 : ℝ) < 1 := by norm_num
+      have hsol : IsPaper2ClassicalSolution intervalDomain p 1 u v :=
+        hglobal.classical hT
+      have happroach :=
+        hexist.initialSupNormApproach u₀ hu₀ 1 hT u v hsol htrace
+      refine ⟨1, hT, u, v, hsol, htrace, ?_, ?_⟩
+      · exact minimal_supNorm_bound_of_negative_sensitivity_and_approach
+          p hχ ha hb hT hsol happroach
+      · intro _hm
+        exact hglobal
+    · obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ :=
+        hexist.localExistence u₀ hu₀
+      have happroach :=
+        hexist.initialSupNormApproach u₀ hu₀ Tmax hTmax u v hsol htrace
+      refine ⟨Tmax, hTmax, u, v, hsol, htrace, ?_, ?_⟩
+      · exact minimal_supNorm_bound_of_negative_sensitivity_and_approach
+          p hχ ha hb hTmax hsol happroach
+      · intro hm'
+        exact False.elim (hm hm')
+
+/-- Precise all-parameter reduction to the corrected existence package:
+positive sensitivity is vacuous through the outer implication, and on the
+active `χ₀ <= 0` side the only remaining input is corrected interval-domain
+existence. -/
+theorem Theorem_1_1_intervalDomain_reduces_to_corrected_existence_on_active_side
+    (p : CM2Params)
+    (hexist :
+      p.χ₀ ≤ 0 →
+        ShenWork.IntervalDomainExistence.IntervalDomainGlobalSolutionExists p) :
+    Theorem_1_1 intervalDomain p := by
+  intro hχ
+  exact Theorem_1_1_intervalDomain_of_corrected_existence p (hexist hχ) hχ
+
+/-- Final hook for sb-ode: once corrected interval-domain existence is proved
+for every parameter set, Theorem 1.1 on `intervalDomain` is unconditional for
+every parameter set as well. -/
+theorem Theorem_1_1_intervalDomain_unconditional_of_all_corrected_existence
+    (hall :
+      ∀ p : CM2Params,
+        ShenWork.IntervalDomainExistence.IntervalDomainGlobalSolutionExists p) :
+    ∀ p : CM2Params, Theorem_1_1 intervalDomain p := by
+  intro p
+  exact Theorem_1_1_intervalDomain_of_corrected_existence p (hall p)
 
 /-- Positive sensitivity is outside the active statement of Theorem 1.1:
 `Theorem_1_1` is an implication from `χ₀ <= 0`, so `χ₀ > 0` closes
