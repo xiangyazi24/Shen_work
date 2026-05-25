@@ -2494,6 +2494,172 @@ theorem Theorem_1_2_and_1_3.of_signal_energy_dissipation_l2_to_uniform_and_cauch
         (pExp := pExp) hpExp cStarStarFn hcStarStar
         hregularity henergy hupgrade hcauchy_unique
 
+/-- Paper1 B5 mainline existence/frontier package.
+
+This is the Paper2/Paper3-style reduces-to-existence interface for the
+whole-line stability/uniqueness mainline.  It is deliberately not a theorem
+wrapper: no field states `Theorem_1_2`, `Theorem_1_3`, or their combined
+conclusion.  The fields are exactly the remaining analytic content after the
+Lemma 2.5 weighted resolvent estimate, Section 5 signal estimates, and scalar
+Grönwall step have been discharged in this file.
+
+The package is canonical at the weighted `L²` exponent `2`, matching the
+statement of `Theorem_1_2`.  The remaining Point 17 frontiers are:
+
+* the paper's stability speed threshold family;
+* regularity/frozen-resolvent identification for traveling waves in the
+  stability regime;
+* whole-line perturbation energy dissipation for nearby Cauchy data;
+* weighted-`L²` to uniform moving-frame upgrade;
+* whole-line Cauchy uniqueness for traveling-wave initial data. -/
+structure Paper1MainlineExistence
+    (cStarStarFn : CMParams → (ℝ → ℝ)) : Prop where
+  cStarStar_spec : ∀ p : CMParams, StableWaveParameterRegime p →
+    StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
+      stabilitySpeedBaseline p < cStarStarFn p p.χ
+  regularity : ∀ p : CMParams, StableWaveParameterRegime p →
+    ∀ c : ℝ, cStarStarFn p p.χ < c →
+    ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V →
+      HasStrictWaveUpperTailBound p c U →
+      (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+      ∀ η : ℝ, kappa c < η →
+        η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+        TravelingWaveRegularity p c U V
+  energyDissipation : ∀ p : CMParams, StableWaveParameterRegime p →
+    ∀ c : ℝ, cStarStarFn p p.χ < c →
+    ∀ U V u₀ : ℝ → ℝ,
+      IsTravelingWave p c U V →
+      HasStrictWaveUpperTailBound p c U →
+      (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+      ∀ η : ℝ, kappa c < η →
+        η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+        NonnegativeInitialDatum u₀ →
+        StrictlyPositiveAtLeft u₀ →
+        WeightedL2InitialCloseness η u₀ U →
+        (∃ kMax > 0, ∃ C > 0,
+          ∀ k : ℝ, 0 ≤ k → k < kMax →
+          ∀ psi : ExponentialWeight,
+            (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+            (∀ z, |iteratedDeriv 2 psi.weight z| ≤ k * psi.weight z) →
+            Integrable
+              (fun x : ℝ => (U x) ^ (p.γ * (2 : ℝ)) * psi.weight x) →
+            Integrable
+              (fun x : ℝ => (u₀ x) ^ (p.γ * (2 : ℝ)) * psi.weight x) →
+              (Integrable
+                  (fun x : ℝ => |deriv V x| ^ (2 : ℝ) * psi.weight x) ∧
+                ∫ x : ℝ, |deriv V x| ^ (2 : ℝ) * psi.weight x ≤
+                  C * ∫ x : ℝ, (U x) ^ (p.γ * (2 : ℝ)) * psi.weight x) ∧
+              (Integrable
+                  (fun x : ℝ =>
+                    |deriv (frozenElliptic p u₀) x| ^ (2 : ℝ) *
+                      psi.weight x) ∧
+                ∫ x : ℝ, |deriv (frozenElliptic p u₀) x| ^ (2 : ℝ) *
+                    psi.weight x ≤
+                  C * ∫ x : ℝ, (u₀ x) ^ (p.γ * (2 : ℝ)) *
+                    psi.weight x)) →
+        ∃ u v : ℝ → ℝ → ℝ, ∃ E : ℝ → ℝ, ∃ lam > 0,
+          IsGlobalCauchySolutionFrom p u₀ u v ∧
+          (∀ᶠ t in atTop,
+            ∫ x : ℝ,
+              Real.exp (2 * η * x) * |u t x - U (x - c * t)| ^ 2 ≤
+                E t) ∧
+          (∀ T : ℝ, 0 ≤ T → ContinuousOn E (Set.Icc 0 T)) ∧
+          (∀ T : ℝ, 0 ≤ T → ∀ t ∈ Set.Ico 0 T,
+            HasDerivWithinAt E (deriv E t) (Set.Ici t) t) ∧
+          (∀ t : ℝ, 0 ≤ t → deriv E t ≤ -lam * E t)
+  l2ToUniform : ∀ p : CMParams, StableWaveParameterRegime p →
+    ∀ c : ℝ, cStarStarFn p p.χ < c →
+    ∀ U V u₀ : ℝ → ℝ,
+      IsTravelingWave p c U V →
+      HasStrictWaveUpperTailBound p c U →
+      (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+      TravelingWaveRegularity p c U V →
+      ∀ η : ℝ, kappa c < η →
+        η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+        NonnegativeInitialDatum u₀ →
+        StrictlyPositiveAtLeft u₀ →
+        WeightedL2InitialCloseness η u₀ U →
+        WeightedL2ToUniformMovingFrameUpgrade p η c u₀ U
+  cauchyUnique : ∀ p : CMParams, StableWaveParameterRegime p →
+    ∀ c : ℝ, cStarStarFn p p.χ < c →
+    ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V →
+      HasStrictWaveUpperTailBound p c U →
+      (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+      TravelingWaveRegularity p c U V →
+      ∀ u v : ℝ → ℝ → ℝ,
+        IsGlobalCauchySolutionFrom p U u v →
+          ∀ t x, u t x = U (x - c * t)
+
+/-- Theorem 1.2 from the canonical Paper1 mainline existence package. -/
+theorem Theorem_1_2.of_mainlineExistence
+    {cStarStarFn : CMParams → (ℝ → ℝ)}
+    (hexist : Paper1MainlineExistence cStarStarFn) :
+    Theorem_1_2 :=
+  Theorem_1_2.of_signal_energy_dissipation_l2_to_uniform_branch
+    (pExp := (2 : ℝ)) (by norm_num)
+    cStarStarFn hexist.cStarStar_spec
+    hexist.regularity hexist.energyDissipation hexist.l2ToUniform
+
+/-- Theorem 1.3 from the canonical Paper1 mainline existence package. -/
+theorem Theorem_1_3.of_mainlineExistence
+    {cStarStarFn : CMParams → (ℝ → ℝ)}
+    (hexist : Paper1MainlineExistence cStarStarFn) :
+    Theorem_1_3 :=
+  Theorem_1_3.of_signal_energy_dissipation_l2_to_uniform_and_cauchy_unique
+    (pExp := (2 : ℝ)) (by norm_num)
+    cStarStarFn hexist.cStarStar_spec
+    hexist.regularity hexist.energyDissipation hexist.l2ToUniform
+    hexist.cauchyUnique
+
+/-- Literal Paper1 B5 endpoint reduced to the canonical mainline existence
+package.  The conclusion is exactly `Theorem_1_2 ∧ Theorem_1_3`, with no
+intermediate target alias. -/
+theorem Theorem_1_2_and_1_3.of_mainlineExistence
+    {cStarStarFn : CMParams → (ℝ → ℝ)}
+    (hexist : Paper1MainlineExistence cStarStarFn) :
+    Theorem_1_2 ∧ Theorem_1_3 := by
+  exact
+    ⟨Theorem_1_2.of_mainlineExistence hexist,
+      Theorem_1_3.of_mainlineExistence hexist⟩
+
+/-- Instance-facing endpoint: once the canonical Paper1 mainline existence
+package is registered, the B5 endpoint has no explicit frontier argument. -/
+theorem Theorem_1_2_and_1_3.of_mainlineExistenceFact
+    {cStarStarFn : CMParams → (ℝ → ℝ)}
+    [hexist : Fact (Paper1MainlineExistence cStarStarFn)] :
+    Theorem_1_2 ∧ Theorem_1_3 :=
+  Theorem_1_2_and_1_3.of_mainlineExistence hexist.out
+
+/-- Audit record for the Paper1 B5 mainline reduction.
+
+Coverage: `Theorem_1_2`, `Theorem_1_3`, and the literal combined endpoint
+all follow from the same canonical existence/frontier package.  The package
+fields above contain no theorem-shaped conclusion field. -/
+structure Paper1MainlineReductionCoverage
+    (cStarStarFn : CMParams → (ℝ → ℝ)) : Prop where
+  theorem12 :
+    ∀ _hexist : Paper1MainlineExistence cStarStarFn, Theorem_1_2
+  theorem13 :
+    ∀ _hexist : Paper1MainlineExistence cStarStarFn, Theorem_1_3
+  combined :
+    ∀ _hexist : Paper1MainlineExistence cStarStarFn,
+      Theorem_1_2 ∧ Theorem_1_3
+
+/-- Proof that the Paper1 B5 mainline is reduced to the canonical
+existence/frontier package. -/
+theorem Theorem_1_2_and_1_3_reduces_to_existence_coverage
+    (cStarStarFn : CMParams → (ℝ → ℝ)) :
+    Paper1MainlineReductionCoverage cStarStarFn := by
+  refine ⟨?_, ?_, ?_⟩
+  · intro hexist
+    exact Theorem_1_2.of_mainlineExistence hexist
+  · intro hexist
+    exact Theorem_1_3.of_mainlineExistence hexist
+  · intro hexist
+    exact Theorem_1_2_and_1_3.of_mainlineExistence hexist
+
 /-! ### Unit-resolvent specialization of Lemma_2_5_with_explicit_k -/
 
 /-- Unit-resolvent (`l = μ = 1`) specialization of
