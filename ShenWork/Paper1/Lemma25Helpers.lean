@@ -2272,6 +2272,104 @@ theorem Theorem_1_3.of_signal_energy_dissipation_l2_to_uniform_and_cauchy_unique
       (hcauchy_unique p hregime c hc U₂ V₂ hTW₂ hstrict₂ htail₂_exists
         hreg₂)
 
+/-- Joint B5 closure of Theorems 1.2 and 1.3 from the same analytic
+frontier.  Lemma 2.5, the Section 5 signal estimates, and the scalar
+energy-to-weighted-`L²` Grönwall step are discharged before this interface.
+
+The remaining hypotheses are the genuine PDE frontiers: whole-line
+perturbation energy dissipation, the weighted-`L²` to uniform moving-frame
+upgrade, and whole-line Cauchy uniqueness for traveling-wave initial data. -/
+theorem Theorem_1_2_and_1_3.of_signal_energy_dissipation_l2_to_uniform_and_cauchy_unique
+    {pExp : ℝ} (hpExp : 1 < pExp)
+    (cStarStarFn : CMParams → (ℝ → ℝ))
+    (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
+      StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
+        stabilitySpeedBaseline p < cStarStarFn p p.χ)
+    (hregularity : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, cStarStarFn p p.χ < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η →
+          η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          TravelingWaveRegularity p c U V)
+    (henergy : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, cStarStarFn p p.χ < c →
+      ∀ U V u₀ : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η →
+          η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          NonnegativeInitialDatum u₀ →
+          StrictlyPositiveAtLeft u₀ →
+          WeightedL2InitialCloseness η u₀ U →
+          (∃ kMax > 0, ∃ C > 0,
+            ∀ k : ℝ, 0 ≤ k → k < kMax →
+            ∀ psi : ExponentialWeight,
+              (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+              (∀ z, |iteratedDeriv 2 psi.weight z| ≤ k * psi.weight z) →
+              Integrable
+                (fun x : ℝ => (U x) ^ (p.γ * pExp) * psi.weight x) →
+              Integrable
+                (fun x : ℝ => (u₀ x) ^ (p.γ * pExp) * psi.weight x) →
+                (Integrable
+                    (fun x : ℝ => |deriv V x| ^ pExp * psi.weight x) ∧
+                  ∫ x : ℝ, |deriv V x| ^ pExp * psi.weight x ≤
+                    C * ∫ x : ℝ, (U x) ^ (p.γ * pExp) * psi.weight x) ∧
+                (Integrable
+                    (fun x : ℝ =>
+                      |deriv (frozenElliptic p u₀) x| ^ pExp *
+                        psi.weight x) ∧
+                  ∫ x : ℝ, |deriv (frozenElliptic p u₀) x| ^ pExp *
+                      psi.weight x ≤
+                    C * ∫ x : ℝ, (u₀ x) ^ (p.γ * pExp) *
+                      psi.weight x)) →
+          ∃ u v : ℝ → ℝ → ℝ, ∃ E : ℝ → ℝ, ∃ lam > 0,
+            IsGlobalCauchySolutionFrom p u₀ u v ∧
+            (∀ᶠ t in atTop,
+              ∫ x : ℝ,
+                Real.exp (2 * η * x) * |u t x - U (x - c * t)| ^ 2 ≤
+                  E t) ∧
+            (∀ T : ℝ, 0 ≤ T → ContinuousOn E (Set.Icc 0 T)) ∧
+            (∀ T : ℝ, 0 ≤ T → ∀ t ∈ Set.Ico 0 T,
+              HasDerivWithinAt E (deriv E t) (Set.Ici t) t) ∧
+            (∀ t : ℝ, 0 ≤ t → deriv E t ≤ -lam * E t))
+    (hupgrade : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, cStarStarFn p p.χ < c →
+      ∀ U V u₀ : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        TravelingWaveRegularity p c U V →
+        ∀ η : ℝ, kappa c < η →
+          η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          NonnegativeInitialDatum u₀ →
+          StrictlyPositiveAtLeft u₀ →
+          WeightedL2InitialCloseness η u₀ U →
+          WeightedL2ToUniformMovingFrameUpgrade p η c u₀ U)
+    (hcauchy_unique : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, cStarStarFn p p.χ < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        TravelingWaveRegularity p c U V →
+        ∀ u v : ℝ → ℝ → ℝ,
+          IsGlobalCauchySolutionFrom p U u v →
+            ∀ t x, u t x = U (x - c * t)) :
+    Theorem_1_2 ∧ Theorem_1_3 := by
+  refine ⟨?_, ?_⟩
+  · exact
+      Theorem_1_2.of_signal_energy_dissipation_l2_to_uniform_branch
+        (pExp := pExp) hpExp cStarStarFn hcStarStar
+        hregularity henergy hupgrade
+  · exact
+      Theorem_1_3.of_signal_energy_dissipation_l2_to_uniform_and_cauchy_unique
+        (pExp := pExp) hpExp cStarStarFn hcStarStar
+        hregularity henergy hupgrade hcauchy_unique
+
 /-! ### Unit-resolvent specialization of Lemma_2_5_with_explicit_k -/
 
 /-- Unit-resolvent (`l = μ = 1`) specialization of
