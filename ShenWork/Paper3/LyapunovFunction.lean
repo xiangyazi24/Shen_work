@@ -5,8 +5,11 @@
 -/
 import ShenWork.Paper3.Statements
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
+import Mathlib.Analysis.SpecialFunctions.Exp
+import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 
+open Filter Topology
 open Set
 open scoped Interval
 
@@ -131,6 +134,35 @@ theorem energy_decay_estimate_of_hasDerivAt_le_neg_mul
               congr 1
               ring_nf
 
+/-- If a nonnegative energy satisfies `E'(t) ≤ -rate E(t)` with `rate > 0`,
+then it tends to zero.  The start time `s` is explicit so this lemma can be used
+after a solution becomes regular or persistent only eventually. -/
+theorem energy_tendsto_zero_of_hasDerivAt_le_neg_mul
+    {E E' : ℝ → ℝ} {rate s : ℝ}
+    (hrate : 0 < rate) (hs : 0 < s)
+    (hderiv : ∀ t, 0 < t → HasDerivAt E (E' t) t)
+    (hle : ∀ t, 0 < t → E' t ≤ -rate * E t)
+    (hnonneg : ∀ t, s ≤ t → 0 ≤ E t) :
+    Tendsto E atTop (𝓝 0) := by
+  have hdecay := energy_decay_estimate_of_hasDerivAt_le_neg_mul hderiv hle
+  have hexp0 :
+      Tendsto (fun t : ℝ => Real.exp (-rate * (t - s))) atTop (𝓝 0) := by
+    have hlinear :
+        Tendsto (fun t : ℝ => (-rate) * t + rate * s) atTop atBot := by
+      exact tendsto_atBot_add_const_right _ (rate * s)
+        (tendsto_id.const_mul_atTop_of_neg (neg_lt_zero.mpr hrate))
+    refine (Real.tendsto_exp_atBot.comp hlinear).congr' ?_
+    filter_upwards with t
+    apply congrArg Real.exp
+    ring
+  have hupper0 :
+      Tendsto (fun t : ℝ => E s * Real.exp (-rate * (t - s))) atTop (𝓝 0) := by
+    simpa using (tendsto_const_nhds.mul hexp0)
+  refine squeeze_zero' ?_ ?_ hupper0
+  · exact eventually_atTop.mpr ⟨s, fun t ht => hnonneg t ht⟩
+  · exact eventually_atTop.mpr
+      ⟨s, fun t ht => hdecay s t hs ht⟩
+
 /-- Differential dissipation plus a Poincare-type control implies the weighted
 energy is decreasing.
 
@@ -188,6 +220,32 @@ theorem energy_exponential_decay_of_dissipation_control
   have hrateE : (2 * c / K) * E t ≤ 2 * c * G t := by
     simpa [hright] using hcontrol'
   linarith
+
+/-- The dissipation-control form of the Paper3 Lyapunov estimate implies
+decay to zero for nonnegative energies. -/
+theorem energy_tendsto_zero_of_dissipation_control
+    {E E' G : ℝ → ℝ} {c K s : ℝ}
+    (hc : 0 < c) (hK : 0 < K) (hs : 0 < s)
+    (hderiv : ∀ t, 0 < t → HasDerivAt E (E' t) t)
+    (hdiss : ∀ t, 0 < t → (1 / 2 : ℝ) * E' t + c * G t ≤ 0)
+    (hcontrol : ∀ t, 0 < t → E t ≤ K * G t)
+    (hnonneg : ∀ t, s ≤ t → 0 ≤ E t) :
+    Tendsto E atTop (𝓝 0) := by
+  refine energy_tendsto_zero_of_hasDerivAt_le_neg_mul
+    (rate := 2 * c / K) (s := s) ?_ hs hderiv ?_ hnonneg
+  · positivity
+  · intro t ht
+    have hd : E' t + 2 * c * G t ≤ 0 := by
+      linarith [hdiss t ht]
+    have hcoef_nonneg : 0 ≤ 2 * c / K := by positivity
+    have hcontrol' :
+        (2 * c / K) * E t ≤ (2 * c / K) * (K * G t) :=
+      mul_le_mul_of_nonneg_left (hcontrol t ht) hcoef_nonneg
+    have hright : (2 * c / K) * (K * G t) = 2 * c * G t := by
+      field_simp [ne_of_gt hK]
+    have hrateE : (2 * c / K) * E t ≤ 2 * c * G t := by
+      simpa [hright] using hcontrol'
+    linarith
 
 /-- Entropy dissipation makes the Paper3 entropy functional decrease.
 
