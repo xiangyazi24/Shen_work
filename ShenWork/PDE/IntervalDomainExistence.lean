@@ -1620,6 +1620,50 @@ theorem localExistence_of_intervalDuhamel_contraction_and_regularization
   exact localExistence_of_fp_and_regularity p u₀ hu₀ hT hfp
     (hregularize u hfp)
 
+/-- Uniform local-existence closure from the concrete interval-Duhamel Picard
+iteration.
+
+For every positive initial datum, if the concrete Duhamel map has a local
+contraction estimate on `[0,T]`, the first Picard step is bounded there, and
+the resulting fixed point is regularized by the concrete Duhamel iteration into
+`RegularityBootstrap`, then every positive initial datum launches a local
+classical solution with initial trace.
+
+This is the local-existence part of Paper 2 Proposition 1.1.  It deliberately
+does not assert the finite-horizon blow-up/vanishing alternative, which is a
+separate maximal-continuation theorem rather than a consequence of the
+short-time Picard construction. -/
+theorem intervalDomain_localExistence_of_intervalDuhamel_contraction_regularization
+    (p : CM2Params)
+    (hmild :
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ L > 0, ∃ D₀ ≥ 0, ∃ T > 0,
+            L * T < 1 ∧
+            (∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+              0 ≤ D →
+              (∀ s y, 0 ≤ s → s ≤ T →
+                |u₁ s y - u₂ s y| ≤ D) →
+              ∀ t x, 0 ≤ t → t ≤ T →
+                |intervalDuhamelOperator p u₀ u₁ t x -
+                  intervalDuhamelOperator p u₀ u₂ t x| ≤ L * T * D) ∧
+            (∀ t x, 0 ≤ t → t ≤ T →
+              |intervalDuhamelOperator p u₀ (fun _ _ => 0) t x| ≤ D₀) ∧
+            (∀ u : ℝ → intervalDomainPoint → ℝ,
+              (∀ t x, 0 ≤ t → t ≤ T →
+                u t x = intervalDuhamelOperator p u₀ u t x) →
+                RegularityBootstrap p T u₀ u)) :
+    ∀ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨L, hL, D₀, hD₀, T, hT, hLT, hcontr, hbase, hregularize⟩ :=
+    hmild u₀ hu₀
+  exact localExistence_of_intervalDuhamel_contraction_and_regularization
+    p u₀ hu₀ hL hD₀ hT hLT hcontr hbase hregularize
+
 /-- Conditional `Proposition_1_1` assembly from the concrete interval-Duhamel
 Banach construction.
 
@@ -2171,6 +2215,9 @@ The full `IntervalDomainExistence.localExistence` requires `∀ u₀, PID u₀ �
   mild fixed point from the Picard/Banach contraction;
   `localExistence_of_intervalDuhamel_contraction_and_regularization` turns it
   into local classical existence once concrete Duhamel regularization is proved;
+  `intervalDomain_localExistence_of_intervalDuhamel_contraction_regularization`
+  closes the full local-existence field for every positive initial datum under
+  those same concrete Picard/Duhamel hypotheses;
   `Proposition_1_1_intervalDomain_of_intervalDuhamel_contraction_regularization`
   closes `Proposition_1_1 intervalDomain p` conditional on the same concrete
   regularization plus the genuine maximal-continuation/blow-up alternative.
@@ -2193,8 +2240,16 @@ The full `IntervalDomainExistence.localExistence` requires `∀ u₀, PID u₀ �
    fixed interval only gives local existence; it does not imply the stated
    finite-horizon alternative at `Tmax`.
 
-**The gap is precisely identified**: either fix the `∀ p` quantification
-in `classicalRegularity`, or prove RegularityBootstrap for Duhamel FP. -/
+4. The current concrete `intervalDuhamelOperator` contains the logistic source
+   transported by the Neumann heat semigroup.  The full
+   `IsPaper2ClassicalSolution` still contains the chemotaxis term and elliptic
+   signal equation, so `RegularityBootstrap` must come from a concrete
+   Duhamel/Picard regularization theorem that also supplies positivity,
+   the elliptic `v`, Neumann traces, and the stated `classicalRegularity`.
+
+**The gap is precisely identified**: prove RegularityBootstrap for the concrete
+Duhamel FP and prove the maximal-continuation/blow-up alternative; do not use the
+invalid arbitrary-domain regularity shortcut. -/
 
 /-! ### Design issue: `classicalRegularity` blocks below-equilibrium
 
