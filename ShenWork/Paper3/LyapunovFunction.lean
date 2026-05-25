@@ -1024,6 +1024,27 @@ theorem thetaDissipation_antitoneOn_of_hasDerivAt_le_neg_mul_and_nonneg
   energy_antitoneOn_Ioi_of_hasDerivAt_le_neg_mul_nonneg
     hrate hderiv hle hnonneg
 
+/-- A nonnegative theta production satisfying direct differential decay has a
+nonpositive slope. -/
+theorem thetaDissipationSlope_nonpos_of_le_neg_mul_and_nonneg
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {uStar theta rate : ℝ} {momentSlope : ℝ → ℝ}
+    (hrate : 0 ≤ rate)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation D uStar theta (u t))
+    (hnonneg :
+      ∀ t, 0 < t →
+        0 ≤ chemotaxisThetaDissipation D uStar theta (u t)) :
+    ∀ t, 0 < t → momentSlope t ≤ 0 := by
+  intro t ht
+  have hright :
+      -rate * chemotaxisThetaDissipation D uStar theta (u t) ≤ 0 := by
+    simpa [neg_mul] using
+      neg_nonpos.mpr (mul_nonneg hrate (hnonneg t ht))
+  exact le_trans (hle t ht) hright
+
 /-- Concrete interval-domain theta-production monotonicity with nonnegativity
 discharged from `PositiveGlobalBoundedSolution`. -/
 theorem intervalDomain_thetaDissipation_antitoneOn_of_positiveGlobalBoundedSolution
@@ -1047,6 +1068,25 @@ theorem intervalDomain_thetaDissipation_antitoneOn_of_positiveGlobalBoundedSolut
       (Ioi (0 : ℝ)) :=
   thetaDissipation_antitoneOn_of_hasDerivAt_le_neg_mul_and_nonneg
     hrate hderiv hle
+    (fun t ht =>
+      intervalDomain_chemotaxisThetaDissipation_nonneg_of_positiveGlobalBoundedSolution
+        (t := t) huStar htheta huv ht)
+
+/-- Concrete interval-domain theta-production slope nonpositivity with
+nonnegativity discharged from `PositiveGlobalBoundedSolution`. -/
+theorem intervalDomain_thetaDissipationSlope_nonpos_of_positiveGlobalBoundedSolution
+    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta rate : ℝ} {momentSlope : ℝ → ℝ}
+    (hrate : 0 ≤ rate)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    ∀ t, 0 < t → momentSlope t ≤ 0 :=
+  thetaDissipationSlope_nonpos_of_le_neg_mul_and_nonneg
+    hrate hle
     (fun t ht =>
       intervalDomain_chemotaxisThetaDissipation_nonneg_of_positiveGlobalBoundedSolution
         (t := t) huStar htheta huv ht)
@@ -1304,6 +1344,58 @@ theorem
   exact
     intervalDomain_thetaDissipation_weighted_antitoneOn_of_hasDerivAt_le_neg_mul
       hderiv hle
+
+/-- Complete interval-domain theta-production Lyapunov package including slope
+nonpositivity, unweighted monotonicity, weighted monotonicity, exponential
+two-time decay, and `ThetaMomentConvergesToZero`.
+
+Point 17 status: conditional theorem, state ③.  No new analytic input is added:
+the remaining frontier is still the direct PDE differential decay estimate
+`hderiv`/`hle`; all positivity side conditions are discharged here. -/
+theorem
+    intervalDomain_thetaDissipation_completeLyapunovPackage_of_positiveGlobalBoundedSolution
+    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta rate s : ℝ} {momentSlope : ℝ → ℝ}
+    (hrate : 0 < rate) (hs : 0 < s)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau =>
+            chemotaxisThetaDissipation intervalDomain uStar theta (u tau))
+          (momentSlope t) t)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    (∀ t, 0 < t → momentSlope t ≤ 0) ∧
+      (∀ t, 0 < t →
+        0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta (u t)) ∧
+      AntitoneOn
+        (fun t => chemotaxisThetaDissipation intervalDomain uStar theta (u t))
+        (Ioi (0 : ℝ)) ∧
+      AntitoneOn
+        (fun t =>
+          Real.exp (rate * t) *
+            chemotaxisThetaDissipation intervalDomain uStar theta (u t))
+        (Ioi (0 : ℝ)) ∧
+      (∀ a b, 0 < a → a ≤ b →
+        0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta (u b) ∧
+          chemotaxisThetaDissipation intervalDomain uStar theta (u b) ≤
+            chemotaxisThetaDissipation intervalDomain uStar theta (u a) *
+              Real.exp (-rate * (b - a))) ∧
+      ThetaMomentConvergesToZero intervalDomain u uStar theta := by
+  have hfull :=
+    intervalDomain_thetaDissipation_fullLyapunovPackage_of_positiveGlobalBoundedSolution
+      hrate hs huStar htheta huv hderiv hle
+  refine ⟨?_, hfull.1, ?_, hfull.2.1, hfull.2.2.1, hfull.2.2.2⟩
+  · exact
+      intervalDomain_thetaDissipationSlope_nonpos_of_positiveGlobalBoundedSolution
+        hrate.le huStar htheta huv hle
+  · exact
+      intervalDomain_thetaDissipation_antitoneOn_of_positiveGlobalBoundedSolution
+        hrate.le huStar htheta huv hderiv hle
 
 /-- Entropy dissipation makes the Paper3 entropy functional decrease.
 
@@ -1792,6 +1884,47 @@ theorem intervalDomain_entropyFunctional_lyapunovPackage_of_positiveGlobalBounde
     intervalDomain_chemotaxisEntropyFunctional_two_time_bound_of_positiveGlobalBoundedSolution
       hc hm huStar htheta huv hderiv hdiss
 
+/-- Full interval-domain free-energy package including entropy-slope
+nonpositivity.
+
+Point 17 status: conditional theorem, state ③.  This adds no hidden analytic
+claim; the PDE entropy-production derivation remains exactly the named
+`hderiv`/`hdiss` frontier. -/
+theorem
+    intervalDomain_entropyFunctional_fullLyapunovPackage_of_positiveGlobalBoundedSolution
+    {p : CM2Params} {m uStar theta c : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ} {entropySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (hm : (1 / 2 : ℝ) ≤ m) (huStar : 0 < uStar)
+    (htheta : 0 ≤ theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisEntropyFunctional intervalDomain m uStar u tau)
+          (entropySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        entropySlope t ≤
+          -c * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    (∀ t, 0 < t → entropySlope t ≤ 0) ∧
+      (∀ t, 0 < t →
+        0 ≤ chemotaxisEntropyFunctional intervalDomain m uStar u t) ∧
+      AntitoneOn
+        (fun t => chemotaxisEntropyFunctional intervalDomain m uStar u t)
+        (Ioi (0 : ℝ)) ∧
+      ∀ s t, 0 < s → s ≤ t →
+        0 ≤ chemotaxisEntropyFunctional intervalDomain m uStar u t ∧
+          chemotaxisEntropyFunctional intervalDomain m uStar u t ≤
+            chemotaxisEntropyFunctional intervalDomain m uStar u s := by
+  have hpack :=
+    intervalDomain_entropyFunctional_lyapunovPackage_of_positiveGlobalBoundedSolution
+      hc hm huStar htheta huv hderiv hdiss
+  refine ⟨?_, hpack.1, hpack.2.1, hpack.2.2⟩
+  exact
+    intervalDomain_entropySlope_nonpos_of_positiveGlobalBoundedSolution
+      hc huStar.le htheta huv hdiss
+
 /-- Weighted signal-energy Lyapunov monotonicity for the Paper3 minimal-model
 functional `∫ (mu (v-v*)^2 + |∇(v-v*)|^2)`.
 
@@ -1953,6 +2086,23 @@ theorem intervalDomain_chemotaxisSignalEnergy_antitoneOn_of_dissipation
       (Ioi (0 : ℝ)) :=
   chemotaxisSignalEnergy_antitoneOn_of_dissipation
     hc hderiv hdiss
+    (fun t _ht =>
+      intervalDomain_chemotaxisSignalGradientDissipation_nonneg (t := t))
+
+/-- Concrete interval-domain signal-energy slope nonpositivity.  The
+gradient-dissipation nonnegativity side condition is discharged by the
+interval integral positivity theorem. -/
+theorem intervalDomain_chemotaxisSignalEnergySlope_nonpos_of_dissipation
+    {vStar c : ℝ}
+    {v : ℝ → intervalDomain.Point → ℝ} {energySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (hdiss :
+      ∀ t, 0 < t →
+        (1 / 2 : ℝ) * energySlope t +
+          c * chemotaxisSignalGradientDissipation intervalDomain vStar v t ≤ 0) :
+    ∀ t, 0 < t → energySlope t ≤ 0 :=
+  chemotaxisSignalEnergySlope_nonpos_of_dissipation
+    hc hdiss
     (fun t _ht =>
       intervalDomain_chemotaxisSignalGradientDissipation_nonneg (t := t))
 
@@ -2178,6 +2328,56 @@ theorem intervalDomain_chemotaxisSignalEnergy_fullLyapunovPackage
   refine ⟨hpack.1, ?_, hpack.2.1, hpack.2.2.1, hpack.2.2.2⟩
   exact intervalDomain_chemotaxisSignalEnergy_antitoneOn_of_dissipation
     hc.le hderiv hdiss
+
+/-- Complete interval-domain signal-energy Lyapunov package including
+energy-slope nonpositivity.
+
+Point 17 status: conditional theorem, state ③.  The interval integral and
+gradient-dissipation side conditions are discharged.  The remaining named
+frontiers are `hderiv`/`hdiss`, plus `hcontrol` only for the weighted and
+exponential conclusions. -/
+theorem intervalDomain_chemotaxisSignalEnergy_completeLyapunovPackage
+    {mu vStar c K s : ℝ}
+    {v : ℝ → intervalDomain.Point → ℝ} {energySlope : ℝ → ℝ}
+    (hc : 0 < c) (hK : 0 < K) (hs : 0 < s)
+    (hmu : 0 ≤ mu)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisSignalEnergy intervalDomain mu vStar v tau)
+          (energySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        (1 / 2 : ℝ) * energySlope t +
+          c * chemotaxisSignalGradientDissipation intervalDomain vStar v t ≤ 0)
+    (hcontrol :
+      ∀ t, 0 < t →
+        chemotaxisSignalEnergy intervalDomain mu vStar v t ≤
+          K * chemotaxisSignalGradientDissipation intervalDomain vStar v t) :
+    (∀ t, 0 < t → energySlope t ≤ 0) ∧
+      (∀ t, 0 ≤ chemotaxisSignalEnergy intervalDomain mu vStar v t) ∧
+      AntitoneOn
+        (fun t => chemotaxisSignalEnergy intervalDomain mu vStar v t)
+        (Ioi (0 : ℝ)) ∧
+      AntitoneOn
+        (fun t =>
+          Real.exp ((2 * c / K) * t) *
+            chemotaxisSignalEnergy intervalDomain mu vStar v t)
+        (Ioi (0 : ℝ)) ∧
+      (∀ a b, 0 < a → a ≤ b →
+        chemotaxisSignalEnergy intervalDomain mu vStar v b ≤
+          chemotaxisSignalEnergy intervalDomain mu vStar v a *
+            Real.exp (-(2 * c / K) * (b - a))) ∧
+      Tendsto
+        (fun t => chemotaxisSignalEnergy intervalDomain mu vStar v t)
+        atTop (𝓝 0) := by
+  have hpack :=
+    intervalDomain_chemotaxisSignalEnergy_fullLyapunovPackage
+      hc hK hs hmu hderiv hdiss hcontrol
+  refine ⟨?_, hpack.1, hpack.2.1, hpack.2.2.1, hpack.2.2.2.1,
+    hpack.2.2.2.2⟩
+  exact intervalDomain_chemotaxisSignalEnergySlope_nonpos_of_dissipation
+    hc.le hdiss
 
 end
 
