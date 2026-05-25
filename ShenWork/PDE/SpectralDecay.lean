@@ -297,6 +297,30 @@ theorem neumannHeatCoeffCLM_apply
       neumannSemigroupCoeff S t (fun n : ℕ => u n) n := by
   simp [neumannHeatCoeffCLM, neumannHeatCoeffLinearMap, coeffLp2]
 
+/-- The diagonal heat multiplier at time zero is the identity. -/
+theorem neumannHeatCoeffCLM_zero
+    (S : SpectralData) (H : HasNeumannSpectrum S) :
+    neumannHeatCoeffCLM S H 0 (le_refl 0) =
+      ContinuousLinearMap.id ℂ (ℓ²(ℕ, ℂ)) := by
+  ext u n
+  simp [neumannHeatCoeffCLM_apply, neumannSemigroupCoeff]
+
+/-- Semigroup law for the diagonal coefficient heat multiplier. -/
+theorem neumannHeatCoeffCLM_add
+    (S : SpectralData) (H : HasNeumannSpectrum S)
+    {t s : ℝ} (ht : 0 ≤ t) (hs : 0 ≤ s) (hts : 0 ≤ t + s) :
+    neumannHeatCoeffCLM S H (t + s) hts =
+      (neumannHeatCoeffCLM S H t ht).comp
+        (neumannHeatCoeffCLM S H s hs) := by
+  ext u n
+  simp [neumannHeatCoeffCLM_apply, neumannSemigroupCoeff]
+  have harg :
+      (-(↑(S.eigenvalue n) * (↑t + ↑s)) : ℂ) =
+        -(↑(S.eigenvalue n) * ↑t) + -(↑(S.eigenvalue n) * ↑s) := by
+    ring
+  rw [harg, Complex.exp_add]
+  ring
+
 /-- The coefficient model of `I - P₀` as a linear map on `ℓ²`. -/
 def removeZeroModeCoeffLinearMap : ℓ²(ℕ, ℂ) →ₗ[ℂ] ℓ²(ℕ, ℂ) where
   toFun u := coeffLp2 (removeZeroMode (fun n : ℕ => u n))
@@ -566,6 +590,51 @@ theorem unitIntervalNeumannHeatSemigroup_diagonal
   simp [unitIntervalNeumannHeatSemigroup, neumannHeatCoeffCLM_apply,
     neumannSemigroupCoeff]
 
+/-- The concrete unit-interval heat semigroup at time zero is the identity. -/
+theorem unitIntervalNeumannHeatSemigroup_zero :
+    unitIntervalNeumannHeatSemigroup 0 (le_refl 0) =
+      ContinuousLinearMap.id ℂ unitIntervalL2 := by
+  apply ContinuousLinearMap.ext
+  intro f
+  apply unitIntervalCosineHilbertBasis.repr.injective
+  ext n
+  simp [unitIntervalNeumannHeatSemigroup_diagonal]
+
+/-- Semigroup law for the concrete unit-interval Neumann heat semigroup. -/
+theorem unitIntervalNeumannHeatSemigroup_add
+    {t s : ℝ} (ht : 0 ≤ t) (hs : 0 ≤ s) (hts : 0 ≤ t + s) :
+    unitIntervalNeumannHeatSemigroup (t + s) hts =
+      (unitIntervalNeumannHeatSemigroup t ht).comp
+        (unitIntervalNeumannHeatSemigroup s hs) := by
+  apply ContinuousLinearMap.ext
+  intro f
+  apply unitIntervalCosineHilbertBasis.repr.injective
+  ext n
+  simp [unitIntervalNeumannHeatSemigroup_diagonal]
+  have harg :
+      (-(↑((intervalNeumannSpectrum 1).eigenvalue n) *
+            (↑t + ↑s)) : ℂ) =
+        -(↑((intervalNeumannSpectrum 1).eigenvalue n) * ↑t) +
+          -(↑((intervalNeumannSpectrum 1).eigenvalue n) * ↑s) := by
+    ring
+  rw [harg, Complex.exp_add]
+  ring
+
+/-- Physical unit-interval projection complement `I - P₀`, obtained by
+removing the zeroth cosine coefficient. -/
+def unitIntervalNeumannP0Compl : unitIntervalL2 →L[ℂ] unitIntervalL2 :=
+  unitIntervalCosineHilbertBasis.repr.symm.toContinuousLinearEquiv.toContinuousLinearMap.comp
+    (removeZeroModeCoeffCLM.comp
+      unitIntervalCosineHilbertBasis.repr.toContinuousLinearEquiv.toContinuousLinearMap)
+
+/-- Cosine-basis diagonalization of the physical projection complement
+`I - P₀`. -/
+theorem unitIntervalNeumannP0Compl_diagonal (f : unitIntervalL2) (n : ℕ) :
+    unitIntervalCosineHilbertBasis.repr (unitIntervalNeumannP0Compl f) n =
+      removeZeroMode
+        (fun n : ℕ => unitIntervalCosineHilbertBasis.repr f n) n := by
+  simp [unitIntervalNeumannP0Compl, removeZeroModeCoeffCLM_apply]
+
 /-- Concrete unit-interval operator `e^{tA} (I - P₀)` on physical `L²`. -/
 def unitIntervalNeumannHeatSemigroupP0Compl (t : ℝ) (ht : 0 ≤ t) :
     unitIntervalL2 →L[ℂ] unitIntervalL2 :=
@@ -585,6 +654,21 @@ theorem unitIntervalNeumannHeatSemigroupP0Compl_diagonal
   simp [unitIntervalNeumannHeatSemigroupP0Compl,
     neumannHeatP0ComplCoeffCLM_apply, neumannSemigroupCoeff]
 
+/-- The bundled `e^{tA} (I - P₀)` operator is the heat semigroup composed with
+the physical projection complement. -/
+theorem unitIntervalNeumannHeatSemigroupP0Compl_eq_comp
+    {t : ℝ} (ht : 0 ≤ t) :
+    unitIntervalNeumannHeatSemigroupP0Compl t ht =
+      (unitIntervalNeumannHeatSemigroup t ht).comp
+        unitIntervalNeumannP0Compl := by
+  apply ContinuousLinearMap.ext
+  intro f
+  apply unitIntervalCosineHilbertBasis.repr.injective
+  ext n
+  simp [unitIntervalNeumannHeatSemigroupP0Compl_diagonal,
+    unitIntervalNeumannHeatSemigroup_diagonal,
+    unitIntervalNeumannP0Compl_diagonal]
+
 /-- Physical operator norm bound
 `‖e^{tA} (I - P₀)‖ ≤ exp (-π² t)` on `L²(0,1)`. -/
 theorem unitIntervalNeumannHeatSemigroupP0Compl_opNorm_le
@@ -602,6 +686,16 @@ theorem unitIntervalNeumannHeatSemigroupP0Compl_opNorm_le
     neumannHeatP0ComplCoeffCLM, intervalNeumannSpectrum,
     intervalNeumannFirstNonzero] using hcoeff
 
+/-- Physical operator norm bound in explicit composed form:
+`‖e^{tA} ∘ (I - P₀)‖ ≤ exp (-π² t)` on `L²(0,1)`. -/
+theorem unitIntervalNeumannHeatSemigroup_comp_P0Compl_opNorm_le
+    {t : ℝ} (ht : 0 ≤ t) :
+    ‖(unitIntervalNeumannHeatSemigroup t ht).comp
+        unitIntervalNeumannP0Compl‖ ≤
+      Real.exp (-(Real.pi ^ 2) * t) := by
+  simpa [unitIntervalNeumannHeatSemigroupP0Compl_eq_comp ht] using
+    unitIntervalNeumannHeatSemigroupP0Compl_opNorm_le ht
+
 /-- Same physical bound with any sectorial prefactor `C ≥ 1`. -/
 theorem unitIntervalNeumannHeatSemigroupP0Compl_opNorm_le_with_constant
     {C t : ℝ} (hC : 1 ≤ C) (ht : 0 ≤ t) :
@@ -612,6 +706,36 @@ theorem unitIntervalNeumannHeatSemigroupP0Compl_opNorm_le_with_constant
   exact hbase.trans (by simpa using mul_le_mul_of_nonneg_right hC hnonneg)
 
 /-! ### The interval-length form used by H3.1 -/
+
+/-- Coefficient `ℓ²` heat semigroup for an interval of length `L`. -/
+def intervalNeumannHeatCoeffCLM
+    (L : ℝ) (hL : 0 < L) (t : ℝ) (ht : 0 ≤ t) :
+    ℓ²(ℕ, ℂ) →L[ℂ] ℓ²(ℕ, ℂ) :=
+  neumannHeatCoeffCLM (intervalNeumannSpectrum L)
+    (intervalNeumannSpectrum_hasNeumannSpectrum hL) t ht
+
+/-- Cosine-coefficient diagonalization for the interval-length coefficient
+heat semigroup. -/
+theorem intervalNeumannHeatCoeffCLM_diagonal
+    {L t : ℝ} (hL : 0 < L) (ht : 0 ≤ t)
+    (u : ℓ²(ℕ, ℂ)) (n : ℕ) :
+    intervalNeumannHeatCoeffCLM L hL t ht u n =
+      (Real.exp (-(((n : ℝ) * Real.pi / L) ^ 2) * t) : ℂ) * u n := by
+  simp [intervalNeumannHeatCoeffCLM, neumannHeatCoeffCLM_apply,
+    neumannSemigroupCoeff, intervalNeumannSpectrum, intervalNeumannEigenvalue]
+
+/-- Semigroup law for the interval-length coefficient heat semigroup. -/
+theorem intervalNeumannHeatCoeffCLM_add
+    {L t s : ℝ} (hL : 0 < L)
+    (ht : 0 ≤ t) (hs : 0 ≤ s) (hts : 0 ≤ t + s) :
+    intervalNeumannHeatCoeffCLM L hL (t + s) hts =
+      (intervalNeumannHeatCoeffCLM L hL t ht).comp
+        (intervalNeumannHeatCoeffCLM L hL s hs) := by
+  unfold intervalNeumannHeatCoeffCLM
+  exact
+    neumannHeatCoeffCLM_add
+      (intervalNeumannSpectrum L)
+      (intervalNeumannSpectrum_hasNeumannSpectrum hL) ht hs hts
 
 /-- Coefficient `ℓ²` operator `e^{tA} (I - P₀)` for an interval of length `L`. -/
 def intervalNeumannHeatP0ComplCoeffCLM
