@@ -197,6 +197,43 @@ theorem Theorem_1_3_intervalDomain_of_corollary21_and_proposition25
       p C hCor21 hProp25 hlocal hglobalExtension hstrongBootstrap
       hstrongGlobalBound)
 
+/-- Fixed subcritical-`m` regime of Theorem 1.3.
+
+If `m < 1`, the global branch guarded by `1 ≤ m` is vacuous.  The full
+`Theorem_1_3 intervalDomain p C` then follows from the local strong-logistic
+bootstrap route alone; no global-extension or long-time boundedness frontier
+is needed for this wrapper. -/
+theorem Theorem_1_3_intervalDomain_m_lt_one_regime_of_corollary21_and_proposition25
+    (p : CM2Params) (C : Paper2Constants p)
+    (hm_lt : p.m < 1)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hstrongBootstrap :
+      0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) :
+    Theorem_1_3 intervalDomain p C := by
+  refine Theorem_1_3.of_assumed_solutions_branch
+    (D := intervalDomain) (p := p) (C := C)
+    (Theorem_1_3_intervalDomain_local_branch_of_corollary21_and_proposition25
+      p C hCor21 hProp25 hlocal hstrongBootstrap) ?_
+  intro _ha _hb _hm_pos _hstrong hm_ge _u₀ _hu₀
+  have hfalse : False := not_lt_of_ge hm_ge hm_lt
+  exact False.elim hfalse
+
 /-- Corollary-level Theorem 1.3 assembly from the existing interval
 `IntervalDomainExistence` package.
 
