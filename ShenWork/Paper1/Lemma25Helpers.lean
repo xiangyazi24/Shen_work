@@ -1259,6 +1259,134 @@ theorem Theorem_1_2_nearby_initial_data_branch_of_signal_to_movingFrame
       hTW hreg hstrict.hasWaveUpperTailBound hu₀
   exact hmovingFrame hu₀ hleft hclose hsignal
 
+/-- A pure moving-frame `L²` closure lemma: a nonnegative weighted energy
+bounded eventually by any scalar function tending to zero converges to zero.
+This is the analytic endpoint needed after deriving a perturbation energy
+estimate. -/
+theorem WeightedL2MovingFrameConvergence.of_eventual_bound_tendsto_zero
+    {η c : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ} {B : ℝ → ℝ}
+    (hB : Tendsto B atTop (𝓝 0))
+    (hbound :
+      ∀ᶠ t in atTop,
+        ∫ x : ℝ, Real.exp (2 * η * x) * |u t x - U (x - c * t)| ^ 2 ≤ B t) :
+    WeightedL2MovingFrameConvergence η c u U := by
+  unfold WeightedL2MovingFrameConvergence
+  have hnonneg :
+      ∀ᶠ t in atTop,
+        0 ≤ ∫ x : ℝ, Real.exp (2 * η * x) *
+          |u t x - U (x - c * t)| ^ 2 := by
+    exact Eventually.of_forall fun t => by
+      exact integral_nonneg fun x => by
+        exact mul_nonneg (Real.exp_pos _).le (sq_nonneg _)
+  exact squeeze_zero' hnonneg hbound hB
+
+/-- Exponential weighted-energy decay is enough for moving-frame weighted
+`L²` convergence.  The coefficient `A` is intentionally unrestricted: the
+eventual upper bound itself carries any required sign information. -/
+theorem WeightedL2MovingFrameConvergence.of_eventual_exponential_decay
+    {η c lam A : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hdecay :
+      ∀ᶠ t in atTop,
+        ∫ x : ℝ, Real.exp (2 * η * x) * |u t x - U (x - c * t)| ^ 2 ≤
+          A * Real.exp (-lam * t)) :
+    WeightedL2MovingFrameConvergence η c u U := by
+  have hmul0 : Tendsto (fun t : ℝ => t * lam) atTop atTop :=
+    Filter.tendsto_id.atTop_mul_const hlam
+  have hmul : Tendsto (fun t : ℝ => lam * t) atTop atTop := by
+    simpa [mul_comm] using hmul0
+  have hneg : Tendsto (fun t : ℝ => -(lam * t)) atTop atBot :=
+    tendsto_neg_atTop_atBot.comp hmul
+  have hexp : Tendsto (fun t : ℝ => Real.exp (-(lam * t))) atTop (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp hneg
+  have hupper :
+      Tendsto (fun t : ℝ => A * Real.exp (-lam * t)) atTop (𝓝 0) := by
+    have hmul_exp :
+        Tendsto (fun t : ℝ => A * Real.exp (-(lam * t))) atTop (𝓝 (A * 0)) :=
+      tendsto_const_nhds.mul hexp
+    simpa using hmul_exp
+  exact
+    WeightedL2MovingFrameConvergence.of_eventual_bound_tendsto_zero
+      hupper hdecay
+
+/-- FRONTIER / Point 17: weighted-`L²` part of the near-neighbor stability
+branch after Lemma 2.5 and the Section 5 signal estimates.
+
+Discharged here: the resolvent/signal side and the final passage from an
+eventual exponential weighted-energy estimate to moving-frame `L²`
+convergence.
+
+Remaining deep analysis fact: derive `henergy` from the parabolic perturbation
+equations, i.e. construct the Cauchy solution and prove the eventual
+exponential bound for
+`∫ exp(2ηx)|u(t,x)-U(x-ct)|² dx` using the Section 5 signal estimates.  The
+repository currently has no weighted perturbation energy identity or Grönwall
+closure for arbitrary nearby whole-line Cauchy data. -/
+theorem Theorem_1_2_weightedL2_branch_of_signal_energy_decay
+    (p : CMParams) {c η pExp : ℝ} (hpExp : 1 < pExp)
+    {U V u₀ : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hstrict : HasStrictWaveUpperTailBound p c U)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hu₀ : NonnegativeInitialDatum u₀)
+    (hleft : StrictlyPositiveAtLeft u₀)
+    (hclose : WeightedL2InitialCloseness η u₀ U)
+    (henergy :
+      NonnegativeInitialDatum u₀ →
+      StrictlyPositiveAtLeft u₀ →
+      WeightedL2InitialCloseness η u₀ U →
+      (∃ kMax > 0, ∃ C > 0,
+        ∀ k : ℝ, 0 ≤ k → k < kMax →
+        ∀ psi : ExponentialWeight,
+          (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+          (∀ z, |iteratedDeriv 2 psi.weight z| ≤ k * psi.weight z) →
+          Integrable (fun x : ℝ => (U x) ^ (p.γ * pExp) * psi.weight x) →
+          Integrable (fun x : ℝ => (u₀ x) ^ (p.γ * pExp) * psi.weight x) →
+            (Integrable
+                (fun x : ℝ => |deriv V x| ^ pExp * psi.weight x) ∧
+              ∫ x : ℝ, |deriv V x| ^ pExp * psi.weight x ≤
+                C * ∫ x : ℝ, (U x) ^ (p.γ * pExp) * psi.weight x) ∧
+            (Integrable
+                (fun x : ℝ =>
+                  |deriv (frozenElliptic p u₀) x| ^ pExp * psi.weight x) ∧
+              ∫ x : ℝ, |deriv (frozenElliptic p u₀) x| ^ pExp *
+                  psi.weight x ≤
+                C * ∫ x : ℝ, (u₀ x) ^ (p.γ * pExp) * psi.weight x)) →
+      ∃ u v : ℝ → ℝ → ℝ, ∃ lam > 0, ∃ A : ℝ,
+        IsGlobalCauchySolutionFrom p u₀ u v ∧
+        ∀ᶠ t in atTop,
+          ∫ x : ℝ, Real.exp (2 * η * x) * |u t x - U (x - c * t)| ^ 2 ≤
+            A * Real.exp (-lam * t)) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p u₀ u v ∧
+      WeightedL2MovingFrameConvergence η c u U := by
+  have hsignal :
+      ∃ kMax > 0, ∃ C > 0,
+        ∀ k : ℝ, 0 ≤ k → k < kMax →
+        ∀ psi : ExponentialWeight,
+          (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+          (∀ z, |iteratedDeriv 2 psi.weight z| ≤ k * psi.weight z) →
+          Integrable (fun x : ℝ => (U x) ^ (p.γ * pExp) * psi.weight x) →
+          Integrable (fun x : ℝ => (u₀ x) ^ (p.γ * pExp) * psi.weight x) →
+            (Integrable
+                (fun x : ℝ => |deriv V x| ^ pExp * psi.weight x) ∧
+              ∫ x : ℝ, |deriv V x| ^ pExp * psi.weight x ≤
+                C * ∫ x : ℝ, (U x) ^ (p.γ * pExp) * psi.weight x) ∧
+            (Integrable
+                (fun x : ℝ =>
+                  |deriv (frozenElliptic p u₀) x| ^ pExp * psi.weight x) ∧
+              ∫ x : ℝ, |deriv (frozenElliptic p u₀) x| ^ pExp *
+                  psi.weight x ≤
+                C * ∫ x : ℝ, (u₀ x) ^ (p.γ * pExp) * psi.weight x) :=
+    Lemma_5_3_profile_initial_signal_derivative_from_Lemma_2_5 p hpExp
+      hTW hreg hstrict.hasWaveUpperTailBound hu₀
+  rcases henergy hu₀ hleft hclose hsignal with
+    ⟨u, v, lam, hlam, A, hsol, hdecay⟩
+  exact
+    ⟨u, v, hsol,
+      WeightedL2MovingFrameConvergence.of_eventual_exponential_decay
+        hlam hdecay⟩
+
 /-- Theorem 1.2 closure through the Lemma 2.5 / Section 5 signal estimates.
 This isolates the remaining nonlinear stability step: once a stability
 criterion consumes the signal estimates produced below, the full paper-level
