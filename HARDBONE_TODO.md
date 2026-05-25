@@ -163,6 +163,12 @@
   replacing the `Corollary_2_1` input by the explicit mass-gradient Moser
   frontier and cross-diffusion energy derivation.  Not marked done until those
   named frontier hypotheses are proved.
+- **链条汇总** (2026-05-24): `ShenWork/Paper2/IntervalDomainTierChain.lean`
+  proves `intervalDomain_tier1_theorem11_chain_of_frontiers`, a single
+  conditional theorem returning `Lemma_2_6`, `Lemma_4_1`, `Corollary_2_1`, and
+  `Theorem_1_1` from the explicit interval interpolation, mass-gradient Moser,
+  energy-derivation, `Proposition_2_5`, existence/global-extension, and
+  bootstrap-seed frontiers.
 
 ### H2.2 — Paper2 Theorem 1.2 on intervalDomain
 - **前置**: H2.1 基本相同的链
