@@ -433,6 +433,20 @@ theorem intervalDomain_chemotaxisEntropyFunctional_nonneg_of_inside_pos
   exact intervalDomain_integral_nonneg_of_inside_nonneg _
     (fun x hx => chemotaxisEntropyDensity_nonneg hm huStar (hu_pos x hx))
 
+/-- Concrete interval-domain entropy-functional nonnegativity discharged from a
+positive global bounded solution.  No endpoint positivity hypothesis is needed
+because the interval integral ignores endpoints. -/
+theorem
+    intervalDomain_chemotaxisEntropyFunctional_nonneg_of_positiveGlobalBoundedSolution
+    {p : CM2Params} {m uStar t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hm : (1 / 2 : ℝ) ≤ m) (huStar : 0 < uStar)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (ht : 0 < t) :
+    0 ≤ chemotaxisEntropyFunctional intervalDomain m uStar u t :=
+  intervalDomain_chemotaxisEntropyFunctional_nonneg_of_inside_pos
+    hm huStar (fun x hx => huv.pos (t := t) (x := x) ht hx)
+
 /-- Concrete interval-domain theta dissipation nonnegativity. -/
 theorem intervalDomain_chemotaxisThetaDissipation_nonneg
     {uStar theta : ℝ} {uSlice : intervalDomain.Point → ℝ}
@@ -451,6 +465,20 @@ theorem intervalDomain_chemotaxisThetaDissipation_nonneg_of_inside_nonneg
     0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta uSlice := by
   exact intervalDomain_integral_nonneg_of_inside_nonneg _
     (fun x hx => thetaDissipationIntegrand_nonneg huStar htheta (huSlice x hx))
+
+/-- Concrete interval-domain theta-dissipation nonnegativity discharged from a
+positive global bounded solution.  Endpoint values are irrelevant here as well. -/
+theorem
+    intervalDomain_chemotaxisThetaDissipation_nonneg_of_positiveGlobalBoundedSolution
+    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta t : ℝ}
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (ht : 0 < t) :
+    0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta (u t) :=
+  intervalDomain_chemotaxisThetaDissipation_nonneg_of_inside_nonneg
+    huStar htheta
+    (fun x hx => (huv.pos (t := t) (x := x) ht hx).le)
 
 /-- Concrete interval-domain signal-energy nonnegativity. -/
 theorem intervalDomain_chemotaxisSignalEnergy_nonneg
@@ -1196,6 +1224,37 @@ theorem
       intervalDomain_chemotaxisThetaDissipation_nonneg_of_inside_nonneg
         huStar htheta (hu_nonneg t ht))
 
+/-- Concrete interval-domain entropy monotonicity with theta-production
+nonnegativity discharged directly from `PositiveGlobalBoundedSolution`.
+
+Point 17 status: conditional theorem, state ③.  The solution positivity and
+endpoint-null integral side conditions are discharged here.  The remaining
+frontier is the PDE entropy-production estimate `hderiv`/`hdiss`. -/
+theorem
+    intervalDomain_chemotaxisEntropyFunctional_antitoneOn_of_positiveGlobalBoundedSolution
+    {p : CM2Params} {m uStar theta c : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ} {entropySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisEntropyFunctional intervalDomain m uStar u tau)
+          (entropySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        entropySlope t ≤
+          -c * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    AntitoneOn
+      (fun t => chemotaxisEntropyFunctional intervalDomain m uStar u t)
+      (Ioi (0 : ℝ)) :=
+  chemotaxisEntropyFunctional_antitoneOn_of_dissipation
+    hc hderiv hdiss
+    (fun t ht =>
+      intervalDomain_chemotaxisThetaDissipation_nonneg_of_positiveGlobalBoundedSolution
+        (t := t) huStar htheta huv ht)
+
 /-- Nonnegative free energy and entropy monotonicity from the conditional
 Paper3 entropy-production estimate.
 
@@ -1454,13 +1513,12 @@ theorem intervalDomain_entropyFunctional_nonneg_antitone_of_positiveGlobalBounde
         (Ioi (0 : ℝ)) := by
   refine ⟨?_, ?_⟩
   · intro t ht
-    exact intervalDomain_chemotaxisEntropyFunctional_nonneg_of_inside_pos
-      hm huStar (fun x hx => huv.pos (t := t) (x := x) ht hx)
+    exact
+      intervalDomain_chemotaxisEntropyFunctional_nonneg_of_positiveGlobalBoundedSolution
+        hm huStar huv ht
   · exact
-      intervalDomain_chemotaxisEntropyFunctional_antitoneOn_of_dissipation_and_inside_nonneg
-        hc huStar.le htheta
-        (fun t ht x hx => (huv.pos (t := t) (x := x) ht hx).le)
-        hderiv hdiss
+      intervalDomain_chemotaxisEntropyFunctional_antitoneOn_of_positiveGlobalBoundedSolution
+        hc huStar.le htheta huv hderiv hdiss
 
 /-- Signal-energy exponential decay for the Paper3 minimal-model Lyapunov
 functional `∫ (mu (v-v*)^2 + |∇(v-v*)|^2)`.
