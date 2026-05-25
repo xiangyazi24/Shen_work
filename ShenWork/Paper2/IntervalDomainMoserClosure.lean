@@ -22,6 +22,54 @@ noncomputable section
 
 namespace ShenWork.Paper2.IntervalDomainMoserClosure
 
+/-- A concrete envelope for a family of Lp bounds on `(0,T)`.  Unlike
+`LpPowerBoundedBefore`, the constants are kept as an explicit function of the
+exponent, which is the data needed for the final `p → ∞` Moser step. -/
+def LpPowerBoundEnvelopeBefore
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ) (T pMin : ℝ)
+    (lpBound : ℝ → ℝ) : Prop :=
+  ∀ pExp, pMin ≤ pExp → ∀ t, 0 < t → t < T →
+    D.integral (fun x => (u t x) ^ pExp) ≤ lpBound pExp
+
+/-- The final one-dimensional Moser endpoint supplied analytically by
+Gagliardo--Nirenberg/Agmon plus the `p → ∞` iteration.
+
+This is kept as an explicit frontier because the abstract `BoundedDomainData`
+API has no topology, interval coordinate, or chain-rule data from which the
+endpoint inequality can be derived. -/
+def GagliardoNirenbergAgmonLpToLinftyFrontier
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ) (T pMin : ℝ) : Prop :=
+  ∀ lpBound : ℝ → ℝ,
+    LpPowerBoundEnvelopeBefore D u T pMin lpBound →
+      ∃ M, ∀ t, 0 < t → t < T → D.supNorm (u t) ≤ M
+
+/-- Turn pointwise existential Lp bounds at all exponents above `pMin` into
+one explicit exponent envelope. -/
+theorem lpPowerBoundEnvelopeBefore_of_all_LpPowerBoundedBefore
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T pMin : ℝ}
+    (hLp :
+      ∀ pExp, pMin ≤ pExp → LpPowerBoundedBefore D pExp T u) :
+    ∃ lpBound : ℝ → ℝ, LpPowerBoundEnvelopeBefore D u T pMin lpBound := by
+  classical
+  let lpBound : ℝ → ℝ :=
+    fun pExp => if hp : pMin ≤ pExp then Classical.choose (hLp pExp hp) else 0
+  refine ⟨lpBound, ?_⟩
+  intro pExp hp t ht0 htT
+  have hbound := Classical.choose_spec (hLp pExp hp)
+  simpa [lpBound, hp] using hbound t ht0 htT
+
+/-- All Lp bounds plus the GN/Agmon `p → ∞` endpoint give the uniform
+finite-horizon sup bound. -/
+theorem boundedBefore_of_all_LpPowerBoundedBefore_and_GN_Agmon_frontier
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T pMin : ℝ}
+    (hLp :
+      ∀ pExp, pMin ≤ pExp → LpPowerBoundedBefore D pExp T u)
+    (hFrontier : GagliardoNirenbergAgmonLpToLinftyFrontier D u T pMin) :
+    IsPaper2BoundedBefore D T u := by
+  rcases lpPowerBoundEnvelopeBefore_of_all_LpPowerBoundedBefore hLp with
+    ⟨lpBound, hEnvelope⟩
+  exact hFrontier lpBound hEnvelope
+
 /-- If an arithmetic Moser exponent chain `p₀+nρ` is bounded and Lp bounds are
 monotone downward in the exponent, then every exponent `p>1` is bounded.
 
@@ -74,6 +122,56 @@ theorem all_exponents_of_moser_iteration_chain
     ∀ pExp > 1, LpPowerBoundedBefore D pExp T u := by
   exact all_exponents_of_chain_and_lp_mono hrho
     (IntervalDomainChain.moser_iteration_chain hrho hbase hstep) hLpMono
+
+/-- Moser exponent chain plus downward Lp monotonicity and the GN/Agmon
+`p → ∞` endpoint close the bootstrap to a uniform sup-norm bound. -/
+theorem boundedBefore_of_chain_lp_mono_and_GN_Agmon_frontier
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T p0 rho pMin : ℝ}
+    (hpMin : 1 < pMin)
+    (hrho : 0 < rho)
+    (hchain : ∀ n : ℕ, LpPowerBoundedBefore D (p0 + n * rho) T u)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore D q T u → LpPowerBoundedBefore D p T u)
+    (hFrontier : GagliardoNirenbergAgmonLpToLinftyFrontier D u T pMin) :
+    IsPaper2BoundedBefore D T u := by
+  have hAll : ∀ pExp > 1, LpPowerBoundedBefore D pExp T u :=
+    all_exponents_of_chain_and_lp_mono hrho hchain hLpMono
+  exact boundedBefore_of_all_LpPowerBoundedBefore_and_GN_Agmon_frontier
+    (D := D) (u := u) (T := T) (pMin := pMin)
+    (fun pExp hp => hAll pExp (lt_of_lt_of_le hpMin hp))
+    hFrontier
+
+/-- Full Moser iteration closure to finite-horizon `L∞`, conditional only on
+the already-separated analytic inputs: the single-step energy/interpolation
+family, downward Lp monotonicity, and the GN/Agmon endpoint. -/
+theorem boundedBefore_of_moser_iteration_chain_and_GN_Agmon_frontier
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ}
+    {T p0 rho pMin : ℝ}
+    (hpMin : 1 < pMin)
+    (hrho : 0 < rho)
+    (hbase : LpPowerBoundedBefore D p0 T u)
+    (hstep : ∀ p, p0 ≤ p →
+      ∃ A > 0, ∃ K > 0, ∃ L_const,
+        (∀ t, 0 < t → t < T →
+          A * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) ≤
+          K * D.integral (fun x => (u t x) ^ (p + rho)) + L_const) ∧
+        (∀ eps > 0, ∃ Ceps, ∀ t, 0 < t → t < T →
+          D.integral (fun x => (u t x) ^ (p + rho)) ≤
+            eps * D.integral (fun x =>
+              (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+            Ceps))
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore D q T u → LpPowerBoundedBefore D p T u)
+    (hFrontier : GagliardoNirenbergAgmonLpToLinftyFrontier D u T pMin) :
+    IsPaper2BoundedBefore D T u := by
+  exact boundedBefore_of_chain_lp_mono_and_GN_Agmon_frontier
+    (D := D) (u := u) (T := T) (p0 := p0) (rho := rho) (pMin := pMin)
+    hpMin hrho
+    (IntervalDomainChain.moser_iteration_chain hrho hbase hstep)
+    hLpMono hFrontier
 
 end ShenWork.Paper2.IntervalDomainMoserClosure
 
