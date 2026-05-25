@@ -2484,6 +2484,67 @@ def IntervalDomainSectorialMainlineCoreExistence.to_mainlineExistence
       part3 := h.persistencePart3
       part4 := h.persistencePart4 }
 
+/-- The canonical core package supplies exactly the local-stability existence
+package consumed by the Theorem 2.2 sectorial mainline. -/
+def IntervalDomainSectorialMainlineCoreExistence.to_theorem22Existence
+    {p : CM2Params} {uBar : ℝ}
+    (h : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    IntervalDomainSectorialTheorem22Existence p :=
+  h.to_mainlineExistence.localStability
+
+/-- The canonical core package supplies exactly the persistence package consumed
+by the Theorem 2.1 sectorial mainline. -/
+theorem IntervalDomainSectorialMainlineCoreExistence.to_theorem21Persistence
+    {p : CM2Params} {uBar : ℝ}
+    (h : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    IntervalDomainSectorialTheorem21Persistence p uBar :=
+  h.to_mainlineExistence.persistence
+
+/-- Explicit constructor for downstream files: the canonical core existence
+kernel expands to the Paper2-style sectorial mainline existence package. -/
+def intervalDomain_sectorialMainlineExistence_of_coreExistence
+    {p : CM2Params} {uBar : ℝ}
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    IntervalDomainSectorialMainlineExistence p uBar :=
+  hcore.to_mainlineExistence
+
+/-- Explicit core-fact handoff for downstream StabilityChain files.  This file cannot
+state the `IntervalDomainStabilityChain...` target directly, because the
+StabilityChain file imports this sectorial file.  The exported value is the
+sectorial package that the downstream target already consumes. -/
+def intervalDomain_sectorialMainlineExistence_of_coreExistenceFact
+    {p : CM2Params} {uBar : ℝ}
+    [hcore : Fact (IntervalDomainSectorialMainlineCoreExistence p uBar)] :
+    IntervalDomainSectorialMainlineExistence p uBar :=
+  hcore.out.to_mainlineExistence
+
+/-- Sectorial-side handoff package for the downstream StabilityChain target.
+It exposes the already-expanded mainline existence package and its two
+components, while keeping the remaining frontier at the canonical core
+existence level. -/
+structure IntervalDomainSectorialStabilityChainHandoff
+    (p : CM2Params) (uBar : ℝ) where
+  mainlineExistence : IntervalDomainSectorialMainlineExistence p uBar
+  localStability : IntervalDomainSectorialTheorem22Existence p
+  persistence : IntervalDomainSectorialTheorem21Persistence p uBar
+
+/-- Build the sectorial-to-StabilityChain handoff from the canonical core
+existence kernel. -/
+def intervalDomain_sectorialStabilityChainHandoff_of_coreExistence
+    {p : CM2Params} {uBar : ℝ}
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    IntervalDomainSectorialStabilityChainHandoff p uBar where
+  mainlineExistence := hcore.to_mainlineExistence
+  localStability := hcore.to_theorem22Existence
+  persistence := hcore.to_theorem21Persistence
+
+/-- Fact-facing version of the sectorial-to-StabilityChain handoff. -/
+def intervalDomain_sectorialStabilityChainHandoff_of_coreExistenceFact
+    {p : CM2Params} {uBar : ℝ}
+    [hcore : Fact (IntervalDomainSectorialMainlineCoreExistence p uBar)] :
+    IntervalDomainSectorialStabilityChainHandoff p uBar :=
+  intervalDomain_sectorialStabilityChainHandoff_of_coreExistence hcore.out
+
 /-- Theorem 2.2 on the interval from the canonical core existence kernel, with
 all norms and constants concrete. -/
 theorem intervalDomain_Theorem_2_2_sectorialMainline_of_coreExistence
