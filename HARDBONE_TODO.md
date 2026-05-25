@@ -354,7 +354,9 @@
   statement-layer、全 pointwise、open-interior+endpoint 三种 H3.3 表述对齐。
   另有 `intervalDomain_eventually_bddBelow_u_of_positiveGlobalBoundedSolution`
   记录 positive global solution 的 `u` time-slice 下有界性；但主 read-back
-  已经不依赖它。
+  已经不依赖它。新增
+  `Theorem_2_1_part1_intervalDomain_vacuous_when_m_lt_one`，关闭
+  theorem-statement 自身的 `m < 1` vacuous regime。
   按 17-point standard 属于状态③：条件于未证但明确命名的分析前沿；不是
   无条件完成。
 

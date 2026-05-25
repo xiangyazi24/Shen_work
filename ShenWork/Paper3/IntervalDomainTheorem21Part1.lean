@@ -222,6 +222,14 @@ theorem intervalDomain_eventually_bddBelow_u_of_positiveGlobalBoundedSolution
     exact le_trans (min_le_left _ _)
       (le_of_lt (hsol.pos ht hxInside))
 
+/-- Paper3 Theorem 2.1(1) is vacuous on `intervalDomain` when `p.m < 1`,
+because the theorem itself assumes `1 ≤ p.m`. -/
+theorem Theorem_2_1_part1_intervalDomain_vacuous_when_m_lt_one
+    (p : CM2Params) (hm : p.m < 1) :
+    Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p := by
+  intro hm'
+  exact absurd hm' (not_le.mpr hm)
+
 /-- Conditional intervalDomain version of Paper3 Theorem 2.1(1).
 
 The two assumptions are intentionally not hidden inside a constants package:
