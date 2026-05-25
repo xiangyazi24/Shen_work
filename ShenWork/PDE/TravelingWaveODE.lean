@@ -999,6 +999,34 @@ theorem WaveProfileData.to_movingFrame_global_classical_solution
   _root_.IsTravelingWave.to_movingFrame_global_classical_solution
     p.toCMParams (h.to_isTravelingWave hc hpos) h.U_c2 h.V_c2
 
+theorem WaveProfileData.to_movingFrame_bounded_global
+    {p : Params} {U V : ℝ → ℝ} (h : WaveProfileData p U V) :
+    IsBoundedGlobal (fun t x => U (x - p.c * t)) := by
+  rcases h.U_isBddFun with ⟨M, hM⟩
+  exact ⟨M, fun t x _ht => hM (x - p.c * t)⟩
+
+theorem WaveProfileData.to_movingFrame_positive_classical_solution
+    {p : Params} {U V : ℝ → ℝ} (h : WaveProfileData p U V)
+    (hc : 0 < p.c) (hpos : ∀ x, 0 < U x) {T : ℝ} (hT : 0 < T) :
+    IsPositiveClassicalSolution p.toCMParams T
+      (fun t x => U (x - p.c * t)) (fun t x => V (x - p.c * t)) := by
+  exact
+    ⟨h.to_movingFrame_global_classical_solution hc hpos T hT,
+      fun t x _ht0 _htT => hpos (x - p.c * t)⟩
+
+theorem WaveProfileData.to_movingFrame_positive_bounded_global_branch
+    {p : Params} {U V : ℝ → ℝ} (h : WaveProfileData p U V)
+    (hc : 0 < p.c) (hpos : ∀ x, 0 < U x) :
+    IsGlobalClassicalSolution p.toCMParams
+      (fun t x => U (x - p.c * t)) (fun t x => V (x - p.c * t)) ∧
+    IsBoundedGlobal (fun t x => U (x - p.c * t)) ∧
+    (∀ T : ℝ, 0 < T →
+      IsPositiveClassicalSolution p.toCMParams T
+        (fun t x => U (x - p.c * t)) (fun t x => V (x - p.c * t))) :=
+  ⟨h.to_movingFrame_global_classical_solution hc hpos,
+    h.to_movingFrame_bounded_global,
+    fun _ hT => h.to_movingFrame_positive_classical_solution hc hpos hT⟩
+
 theorem WaveProfileData.exists_global_classical_solution
     {p : Params} {U V : ℝ → ℝ} (h : WaveProfileData p U V)
     (hc : 0 < p.c) (hpos : ∀ x, 0 < U x) :
@@ -1019,6 +1047,32 @@ theorem TravelingWave.to_movingFrame_global_classical_solution
       (fun t x => w.z (x - p.c * t) 0)
       (fun t x => w.z (x - p.c * t) 2) :=
   w.to_profileData.to_movingFrame_global_classical_solution hc hpos
+
+theorem TravelingWave.to_movingFrame_bounded_global
+    {p : Params} (w : TravelingWave p) :
+    IsBoundedGlobal (fun t x => w.z (x - p.c * t) 0) :=
+  w.to_profileData.to_movingFrame_bounded_global
+
+theorem TravelingWave.to_movingFrame_positive_classical_solution
+    {p : Params} (w : TravelingWave p)
+    (hc : 0 < p.c) (hpos : ∀ x, 0 < w.z x 0) {T : ℝ} (hT : 0 < T) :
+    IsPositiveClassicalSolution p.toCMParams T
+      (fun t x => w.z (x - p.c * t) 0)
+      (fun t x => w.z (x - p.c * t) 2) :=
+  w.to_profileData.to_movingFrame_positive_classical_solution hc hpos hT
+
+theorem TravelingWave.to_movingFrame_positive_bounded_global_branch
+    {p : Params} (w : TravelingWave p)
+    (hc : 0 < p.c) (hpos : ∀ x, 0 < w.z x 0) :
+    IsGlobalClassicalSolution p.toCMParams
+      (fun t x => w.z (x - p.c * t) 0)
+      (fun t x => w.z (x - p.c * t) 2) ∧
+    IsBoundedGlobal (fun t x => w.z (x - p.c * t) 0) ∧
+    (∀ T : ℝ, 0 < T →
+      IsPositiveClassicalSolution p.toCMParams T
+        (fun t x => w.z (x - p.c * t) 0)
+        (fun t x => w.z (x - p.c * t) 2)) :=
+  w.to_profileData.to_movingFrame_positive_bounded_global_branch hc hpos
 
 theorem TravelingWave.exists_global_classical_solution
     {p : Params} (w : TravelingWave p)
@@ -1224,6 +1278,27 @@ theorem HasPositiveHeteroclinicE1E0.exists_profileData_isCUnifBdd_isTravelingWav
   exact ⟨U, V, fun t x => U (x - p.c * t), fun t x => V (x - p.c * t),
     hp, hp.U_isCUnifBdd, hp.to_isTravelingWave hc hpos,
     hp.to_movingFrame_global_classical_solution hc hpos⟩
+
+theorem HasPositiveHeteroclinicE1E0.exists_positive_bounded_global_wave_branch
+    {p : Params} (h : HasPositiveHeteroclinicE1E0 p) (hc : 0 < p.c) :
+    ∃ U V : ℝ → ℝ, ∃ u v : ℝ → ℝ → ℝ,
+      WaveProfileData p U V ∧ IsCUnifBdd U ∧
+      IsTravelingWave p.toCMParams p.c U V ∧
+      IsGlobalClassicalSolution p.toCMParams u v ∧
+      IsBoundedGlobal u ∧
+      (∀ T : ℝ, 0 < T → IsPositiveClassicalSolution p.toCMParams T u v) := by
+  rcases h with ⟨z, hzode, hleft, hright, hpos⟩
+  let w : TravelingWave p := ⟨z, hzode, hleft, hright⟩
+  let U : ℝ → ℝ := fun t => z t 0
+  let V : ℝ → ℝ := fun t => z t 2
+  let u : ℝ → ℝ → ℝ := fun t x => U (x - p.c * t)
+  let v : ℝ → ℝ → ℝ := fun t x => V (x - p.c * t)
+  let hp : WaveProfileData p U V := w.to_profileData
+  exact ⟨U, V, u, v, hp, hp.U_isCUnifBdd,
+    hp.to_isTravelingWave hc hpos,
+    hp.to_movingFrame_global_classical_solution hc hpos,
+    hp.to_movingFrame_bounded_global,
+    fun _ hT => hp.to_movingFrame_positive_classical_solution hc hpos hT⟩
 
 end TravelingWaveODE
 end PDE
