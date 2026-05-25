@@ -918,6 +918,166 @@ theorem intervalDomain_Theorem_2_4_formula_derivativeInterfaces_of_corollary51
     p N M0 uBar vLower hCor51 hfirst hExpNonminimal
     hEnergy.toCompleteLyapunovInterfaces
 
+/-- Minimal-model complete theta-dissipation Lyapunov interface needed by
+Paper 3 Theorem 2.5.  The constants package appears only through the paper's
+minimal global-stability condition. -/
+structure IntervalDomainTheorem25ThetaCompleteLyapunovInterfaces
+    (p : CM2Params) (C : Paper3Constants intervalDomain p) where
+  minimal :
+    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        MinimalGlobalStabilityCondition intervalDomain p C uStar →
+          ∀ u v : ℝ → intervalDomain.Point → ℝ,
+            PositiveGlobalBoundedSolution intervalDomain p u v →
+              HasInitialMass intervalDomain u uStar →
+                IntervalDomainThetaDissipationCompleteLyapunovData
+                  u eq.1 p.α
+
+/-- Extract the minimal-model `Tendsto` frontier from complete Lyapunov
+interfaces. -/
+theorem IntervalDomainTheorem25ThetaCompleteLyapunovInterfaces.minimal_tendsto_frontier
+    {p : CM2Params} {C : Paper3Constants intervalDomain p}
+    (h : IntervalDomainTheorem25ThetaCompleteLyapunovInterfaces p C) :
+    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        MinimalGlobalStabilityCondition intervalDomain p C uStar →
+          ∀ u v : ℝ → intervalDomain.Point → ℝ,
+            PositiveGlobalBoundedSolution intervalDomain p u v →
+              HasInitialMass intervalDomain u uStar →
+                Tendsto
+                  (fun t =>
+                    chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                      (u t))
+                  atTop (𝓝 0) := by
+  intro ha hb hm hβ uStar huStar
+  dsimp
+  intro hcond u v huv hmass
+  exact (h.minimal ha hb hm hβ uStar huStar hcond u v huv hmass).tendsto_zero
+
+/-- Extract the minimal global-stability frontier from complete Lyapunov
+interfaces plus the moment-to-uniform bridge. -/
+theorem IntervalDomainTheorem25ThetaCompleteLyapunovInterfaces.minimal_global_frontier
+    {p : CM2Params} {C : Paper3Constants intervalDomain p}
+    (h : IntervalDomainTheorem25ThetaCompleteLyapunovInterfaces p C)
+    (hmomentToUniform : MomentConvergenceToUniformRaw intervalDomain p) :
+    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        MinimalGlobalStabilityCondition intervalDomain p C uStar →
+          GloballyAsymptoticallyStableMinimal intervalDomain p
+            eq.1 eq.2 := by
+  intro ha hb hm hβ uStar huStar
+  dsimp
+  intro hcond u v huv hmass
+  let eq := minimalEquilibrium p uStar
+  exact
+    hmomentToUniform (by simp [hm])
+      eq.1 eq.2 p.α p.hα u v huv
+      ((h.minimal ha hb hm hβ uStar huStar hcond u v huv hmass).thetaMoment)
+
+/-- Paper 3 Theorem 2.5 from complete minimal-model theta-dissipation
+Lyapunov interfaces. -/
+theorem intervalDomain_Theorem_2_5_of_thetaCompleteLyapunovInterfaces
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hmomentToUniform : MomentConvergenceToUniformRaw intervalDomain p)
+    (hExpMinimal :
+      p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          MinimalGlobalStabilityCondition intervalDomain p C uStar →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                  HasInitialMass intervalDomain u uStar →
+                    UniformConvergesInSup intervalDomain u eq.1 →
+                      ExponentialC1ConvergenceWith intervalDomain N u v
+                        eq.1 eq.2 A rate)
+    (hEnergy : IntervalDomainTheorem25ThetaCompleteLyapunovInterfaces p C) :
+    Theorem_2_5 intervalDomain p N C :=
+  intervalDomain_Theorem_2_5_of_persistence_exp_frontiers
+    p N C (hEnergy.minimal_global_frontier hmomentToUniform) hExpMinimal
+
+/-- Paper 3 Theorem 2.5 from Corollary 5.1 plus complete minimal-model
+theta-dissipation Lyapunov interfaces. -/
+theorem intervalDomain_Theorem_2_5_of_corollary51_thetaCompleteLyapunovInterfaces
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hCor51 : Corollary_5_1 intervalDomain p N C)
+    (hExpMinimal :
+      p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          MinimalGlobalStabilityCondition intervalDomain p C uStar →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                  HasInitialMass intervalDomain u uStar →
+                    UniformConvergesInSup intervalDomain u eq.1 →
+                      ExponentialC1ConvergenceWith intervalDomain N u v
+                        eq.1 eq.2 A rate)
+    (hEnergy : IntervalDomainTheorem25ThetaCompleteLyapunovInterfaces p C) :
+    Theorem_2_5 intervalDomain p N C :=
+  intervalDomain_Theorem_2_5_of_thetaCompleteLyapunovInterfaces
+    p N C (intervalDomain_momentToUniform_of_corollary51 hCor51)
+    hExpMinimal hEnergy
+
+/-- Minimal-model theta-dissipation derivative interface needed by Paper 3
+Theorem 2.5. -/
+structure IntervalDomainTheorem25ThetaDerivativeInterfaces
+    (p : CM2Params) (C : Paper3Constants intervalDomain p) where
+  minimal :
+    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        MinimalGlobalStabilityCondition intervalDomain p C uStar →
+          ∀ u v : ℝ → intervalDomain.Point → ℝ,
+            PositiveGlobalBoundedSolution intervalDomain p u v →
+              HasInitialMass intervalDomain u uStar →
+                IntervalDomainThetaDissipationDerivativeDecayData u eq.1 p.α
+
+/-- The minimal-model derivative interface proves the complete Lyapunov
+interface. -/
+def IntervalDomainTheorem25ThetaDerivativeInterfaces.toCompleteLyapunovInterfaces
+    {p : CM2Params} {C : Paper3Constants intervalDomain p}
+    (h : IntervalDomainTheorem25ThetaDerivativeInterfaces p C) :
+    IntervalDomainTheorem25ThetaCompleteLyapunovInterfaces p C where
+  minimal := by
+    intro ha hb hm hβ uStar huStar
+    dsimp
+    intro hcond u v huv hmass
+    exact
+      (h.minimal ha hb hm hβ uStar huStar hcond u v huv hmass).toCompleteLyapunovData
+        huv (by simpa [minimalEquilibrium] using huStar.le) p.hα.le
+
+/-- Paper 3 Theorem 2.5 from Corollary 5.1 plus the structured
+minimal-model theta-dissipation derivative interface. -/
+theorem intervalDomain_Theorem_2_5_of_corollary51_thetaDerivativeInterfaces
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hCor51 : Corollary_5_1 intervalDomain p N C)
+    (hExpMinimal :
+      p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          MinimalGlobalStabilityCondition intervalDomain p C uStar →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                  HasInitialMass intervalDomain u uStar →
+                    UniformConvergesInSup intervalDomain u eq.1 →
+                      ExponentialC1ConvergenceWith intervalDomain N u v
+                        eq.1 eq.2 A rate)
+    (hEnergy : IntervalDomainTheorem25ThetaDerivativeInterfaces p C) :
+    Theorem_2_5 intervalDomain p N C :=
+  intervalDomain_Theorem_2_5_of_corollary51_thetaCompleteLyapunovInterfaces
+    p N C hCor51 hExpMinimal hEnergy.toCompleteLyapunovInterfaces
+
 end
 
 end ShenWork.Paper3
