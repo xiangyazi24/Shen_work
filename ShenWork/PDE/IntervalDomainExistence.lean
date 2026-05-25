@@ -1448,6 +1448,87 @@ theorem duhamel_mild_solution_exists
   have hq0 : 0 ≤ L * T := mul_nonneg hL.le hT.le
   exact banach_fixed_point_picard hq0 hLT hD₀ hcontr hbase
 
+/-! ### Wiring: Banach FP + RegularityBootstrap → localExistence
+
+The `RegularityBootstrap` predicate captures the genuine PDE properties
+needed to upgrade a Duhamel fixed point to a classical solution.
+Each field requires real PDE analysis — positivity (comparison principle),
+pointwise PDE (regularity of the mild solution), Neumann BC, max principle,
+and initial trace. -/
+
+/-- Properties that upgrade a Duhamel fixed point u to a classical solution.
+These are genuine PDE results, not formalization scaffolding. -/
+def RegularityBootstrap (p : CM2Params) (T : ℝ)
+    (u₀ : intervalDomainPoint → ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
+  ∃ v : ℝ → intervalDomainPoint → ℝ,
+    (∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside → 0 < u t x) ∧
+    (∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
+      intervalDomain.timeDeriv u t x =
+        intervalDomain.laplacian (u t) x
+          - p.χ₀ * intervalDomain.chemotaxisDiv p (u t) (v t) x
+          + u t x * (p.a - p.b * (u t x) ^ p.α)) ∧
+    (∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
+      0 = intervalDomain.laplacian (v t) x
+        - p.μ * v t x + p.ν * (u t x) ^ p.γ) ∧
+    (∀ t x, 0 < t → t < T → x ∈ intervalDomain.boundary →
+      intervalDomain.normalDeriv (u t) x = 0 ∧
+      intervalDomain.normalDeriv (v t) x = 0) ∧
+    intervalDomainClassicalRegularity T u v ∧
+    InitialTrace intervalDomain u₀ u
+
+/-- Banach FP + RegularityBootstrap → IsMildSolutionData. -/
+theorem isMildSolutionData_of_fp_and_regularity
+    (p : CM2Params) {T : ℝ}
+    (u₀ : intervalDomainPoint → ℝ)
+    {u : ℝ → intervalDomainPoint → ℝ}
+    (hfp : ∀ t x, 0 ≤ t → t ≤ T →
+      u t x = intervalDuhamelOperator p u₀ u t x)
+    (hreg : RegularityBootstrap p T u₀ u) :
+    ∃ v, IsMildSolutionData p T u₀ u v := by
+  obtain ⟨v, hpos, hpde_u, hpde_v, hbc, hclassreg, htrace⟩ := hreg
+  exact ⟨v, hfp, hpos, hpde_u, hpde_v, hbc, hclassreg, htrace⟩
+
+/-- Full composition: Banach FP + RegularityBootstrap → localExistence.
+This is the main bridge theorem. The only remaining gap is constructing
+`RegularityBootstrap` for the Duhamel fixed point, which requires
+genuine PDE analysis (regularity theory, comparison principle, max
+principle). Playbook state ③. -/
+theorem localExistence_of_fp_and_regularity
+    (p : CM2Params)
+    (u₀ : intervalDomainPoint → ℝ)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {T : ℝ} (hT : 0 < T)
+    {u : ℝ → intervalDomainPoint → ℝ}
+    (hfp : ∀ t x, 0 ≤ t → t ≤ T →
+      u t x = intervalDuhamelOperator p u₀ u t x)
+    (hreg : RegularityBootstrap p T u₀ u) :
+    ∃ Tmax > 0, ∃ u' v' : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u' v' ∧
+      InitialTrace intervalDomain u₀ u' := by
+  obtain ⟨v, hdata⟩ := isMildSolutionData_of_fp_and_regularity p u₀ hfp hreg
+  exact localExistence_of_isMildSolutionData p u₀ hu₀ hT hdata
+
+/-- The complete conditional localExistence: for each u₀, if we can
+produce a Duhamel fixed point (via Banach) with RegularityBootstrap,
+then the full local existence theorem holds. -/
+theorem localExistence_from_banach_and_regularity
+    (p : CM2Params)
+    (hmild : ∀ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ T > 0, ∃ u : ℝ → intervalDomainPoint → ℝ,
+          (∀ t x, 0 ≤ t → t ≤ T →
+            u t x = intervalDuhamelOperator p u₀ u t x) ∧
+          RegularityBootstrap p T u₀ u) :
+    ∀ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨T, hT, u, hfp, hreg⟩ := hmild u₀ hu₀
+  exact localExistence_of_fp_and_regularity p u₀ hu₀ hT hfp hreg
+
 end ShenWork.IntervalDomainExistence
 
 end
