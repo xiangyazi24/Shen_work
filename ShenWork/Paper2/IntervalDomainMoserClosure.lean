@@ -493,33 +493,121 @@ theorem IntervalDomainStructuredMoserBootstrapData.boundedBefore
   intervalDomain_boundedBefore_of_energy_dissipation_relative_interpolation
     h.boot h.energy h.dissipation h.relativeInterpolation h.lpMono h.endpoint
 
-/-- Theorem 1.1 bridge using the structured relative-Moser `L∞` route for the
-boundedness input to global extension.
+/-- From Lemma 3.1 monotonicity on `(0,t]` and initial sup-norm approach,
+derive `supNorm(u t) <= supNorm u₀`. -/
+private theorem supNorm_le_initial_of_Ioc_monotone_and_approach
+    {u : ℝ → intervalDomain.Point → ℝ} {u₀ : intervalDomain.Point → ℝ}
+    {t : ℝ} (ht_pos : 0 < t)
+    (hmono : SupNormNonincreasingOn intervalDomain u (Set.Ioc (0 : ℝ) t))
+    (happroach : ∀ ε > 0, ∃ δ > 0, ∀ s, 0 < s → s < δ →
+      intervalDomain.supNorm (u s) ≤ intervalDomain.supNorm u₀ + ε) :
+    intervalDomain.supNorm (u t) ≤ intervalDomain.supNorm u₀ := by
+  by_contra h_gt
+  push Not at h_gt
+  set gap := intervalDomain.supNorm (u t) - intervalDomain.supNorm u₀ with hgap_def
+  have hgap_pos : 0 < gap := by linarith
+  obtain ⟨δ, hδ_pos, hδ_bound⟩ := happroach (gap / 2) (by linarith)
+  set s := min (δ / 2) (t / 2) with hs_def
+  have hs_pos : 0 < s := lt_min (by linarith) (by linarith)
+  have hs_lt_δ : s < δ := lt_of_le_of_lt (min_le_left _ _) (by linarith)
+  have hs_le_t : s ≤ t := le_of_lt (lt_of_le_of_lt (min_le_right _ _) (by linarith))
+  have hs_in_Ioc : s ∈ Set.Ioc (0 : ℝ) t := ⟨hs_pos, hs_le_t⟩
+  have ht_in_Ioc : t ∈ Set.Ioc (0 : ℝ) t := ⟨ht_pos, le_rfl⟩
+  have h_mono := hmono s hs_in_Ioc t ht_in_Ioc hs_le_t
+  have h_approach := hδ_bound s hs_pos hs_lt_δ
+  linarith
 
-The explicit theorem's pointwise sup-norm estimate is still supplied by the
-proved negative-sensitivity maximum-principle chain inside
-`Theorem_1_1_intervalDomain_conditional`.  This bridge replaces the old global
-extension boundedness input with the solution-structured Moser endpoint above,
-avoiding the false abstract Lp-envelope endpoint. -/
-theorem Theorem_1_1_intervalDomain_of_structured_relative_moser_endpoint
+/-- From Lemma 3.1 monotonicity on `(0,T)` and initial sup-norm approach,
+derive `supNorm(u t) <= supNorm u₀`. -/
+private theorem supNorm_le_initial_of_Ioo_monotone_and_approach
+    {u : ℝ → intervalDomain.Point → ℝ} {u₀ : intervalDomain.Point → ℝ}
+    {T : ℝ} (_hT : 0 < T)
+    (hmono : SupNormNonincreasingOn intervalDomain u (Set.Ioo (0 : ℝ) T))
+    (happroach : ∀ ε > 0, ∃ δ > 0, δ ≤ T ∧ ∀ s, 0 < s → s < δ →
+      intervalDomain.supNorm (u s) ≤ intervalDomain.supNorm u₀ + ε)
+    {t : ℝ} (ht_pos : 0 < t) (ht_lt : t < T) :
+    intervalDomain.supNorm (u t) ≤ intervalDomain.supNorm u₀ := by
+  by_contra h_gt
+  push Not at h_gt
+  set gap := intervalDomain.supNorm (u t) - intervalDomain.supNorm u₀ with hgap_def
+  have hgap_pos : 0 < gap := by linarith
+  obtain ⟨δ, hδ_pos, _hδ_le_T, hδ_bound⟩ :=
+    happroach (gap / 2) (by linarith)
+  set s := min (δ / 2) (t / 2) with hs_def
+  have hs_pos : 0 < s := lt_min (by linarith) (by linarith)
+  have hs_lt_δ : s < δ := lt_of_le_of_lt (min_le_left _ _) (by linarith)
+  have hs_lt_t : s < t := lt_of_le_of_lt (min_le_right _ _) (by linarith)
+  have hs_lt_T : s < T := lt_trans hs_lt_t ht_lt
+  have hs_in_Ioo : s ∈ Set.Ioo (0 : ℝ) T := ⟨hs_pos, hs_lt_T⟩
+  have ht_in_Ioo : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht_pos, ht_lt⟩
+  have h_mono := hmono s hs_in_Ioo t ht_in_Ioo hs_lt_t.le
+  have h_approach := hδ_bound s hs_pos hs_lt_δ
+  linarith
+
+/-- Nonminimal negative-sensitivity branch: the local interval solution is
+bounded before `T`.  This is a genuine solution sup-bound proof from the
+already-proved Lemma 3.1 maximum-principle chain and initial approach. -/
+theorem intervalDomain_boundedBefore_nonminimal_of_negative_sensitivity
     (p : CM2Params)
     (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
-    (hnonminimalMoser :
-      p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
-        ∀ u₀ : intervalDomain.Point → ℝ,
-          PositiveInitialDatum intervalDomain u₀ →
-        ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
-          IsPaper2ClassicalSolution intervalDomain p T u v →
-          InitialTrace intervalDomain u₀ u →
-            IntervalDomainStructuredMoserBootstrapData u T)
-    (hminimalMoser :
-      p.χ₀ ≤ 0 → p.a = 0 → p.b = 0 →
-        ∀ u₀ : intervalDomain.Point → ℝ,
-          PositiveInitialDatum intervalDomain u₀ →
-        ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
-          IsPaper2ClassicalSolution intervalDomain p T u v →
-          InitialTrace intervalDomain u₀ u →
-            IntervalDomainStructuredMoserBootstrapData u T) :
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    {u₀ : intervalDomain.Point → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {T : ℝ} (hT : 0 < T)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htrace : InitialTrace intervalDomain u₀ u) :
+    IsPaper2BoundedBefore intervalDomain T u := by
+  refine ⟨max (intervalDomain.supNorm u₀) ((p.a / p.b) ^ (1 / p.α)), ?_⟩
+  intro t ht_pos ht_lt
+  by_cases h_below :
+      intervalDomain.supNorm (u t) ≤ (p.a / p.b) ^ (1 / p.α)
+  · exact le_trans h_below (le_max_right _ _)
+  · push Not at h_below
+    have hL31 := Lemma_3_1_intervalDomain p
+    have hmono :=
+      (hL31 hχ).1 ha hb T hT u v hsol t ht_pos ht_lt h_below
+    have happroach :=
+      hexist.initialSupNormApproach u₀ hu₀ T hT u v hsol htrace
+    have h_le_init :=
+      supNorm_le_initial_of_Ioc_monotone_and_approach ht_pos hmono
+        (fun ε hε => by
+          obtain ⟨δ, hδ_pos, _hδ_le, hδ_bound⟩ := happroach ε hε
+          exact ⟨δ, hδ_pos, hδ_bound⟩)
+    exact le_trans h_le_init (le_max_left _ _)
+
+/-- Minimal negative-sensitivity branch: the local interval solution is
+bounded before `T`. -/
+theorem intervalDomain_boundedBefore_minimal_of_negative_sensitivity
+    (p : CM2Params)
+    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
+    (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (hb : p.b = 0)
+    {u₀ : intervalDomain.Point → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {T : ℝ} (hT : 0 < T)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htrace : InitialTrace intervalDomain u₀ u) :
+    IsPaper2BoundedBefore intervalDomain T u := by
+  refine ⟨intervalDomain.supNorm u₀, ?_⟩
+  intro t ht_pos ht_lt
+  have hL31 := Lemma_3_1_intervalDomain p
+  have hmono := (hL31 hχ).2 ha hb T hT u v hsol
+  have happroach :=
+    hexist.initialSupNormApproach u₀ hu₀ T hT u v hsol htrace
+  exact supNorm_le_initial_of_Ioo_monotone_and_approach
+    hT hmono happroach ht_pos ht_lt
+
+/-- Theorem 1.1 bridge with the branch Moser endpoint no longer assumed.
+
+The finite-horizon boundedness needed by global extension is proved here from
+the solution's negative-sensitivity maximum-principle structure, not assumed as
+`hnonminimalMoser`/`hminimalMoser`.  The relative-energy Moser component
+package remains below as an explicit frontier for the still-open analytic
+energy endpoint; it is not needed as a hypothesis of this bridge. -/
+theorem Theorem_1_1_intervalDomain_of_structured_relative_moser_endpoint
+    (p : CM2Params)
+    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p) :
     Theorem_1_1 intervalDomain p := by
   intro hχ
   let hexist' : IntervalDomainTheorem11.IntervalDomainExistence p :=
@@ -529,16 +617,16 @@ theorem Theorem_1_1_intervalDomain_of_structured_relative_moser_endpoint
         intro u₀ hu₀ Tmax hTmax u v hsol htrace hbounded hm
         by_cases hpos : 0 < p.a ∧ 0 < p.b
         · have hdata :=
-            hnonminimalMoser hχ hpos.1 hpos.2 u₀ hu₀
-              Tmax hTmax u v hsol htrace
+            intervalDomain_boundedBefore_nonminimal_of_negative_sensitivity
+              p hexist hχ hpos.1 hpos.2 hu₀ hTmax hsol htrace
           exact hexist.globalExtension u₀ hu₀ Tmax hTmax u v hsol htrace
-            hdata.boundedBefore hm
+            hdata hm
         · by_cases hzero : p.a = 0 ∧ p.b = 0
           · have hdata :=
-              hminimalMoser hχ hzero.1 hzero.2 u₀ hu₀
-                Tmax hTmax u v hsol htrace
+              intervalDomain_boundedBefore_minimal_of_negative_sensitivity
+                p hexist hχ hzero.1 hzero.2 hu₀ hTmax hsol htrace
             exact hexist.globalExtension u₀ hu₀ Tmax hTmax u v hsol htrace
-              hdata.boundedBefore hm
+              hdata hm
           · exact hexist.globalExtension u₀ hu₀ Tmax hTmax u v hsol htrace
               hbounded hm }
   exact (IntervalDomainTheorem11.Theorem_1_1_intervalDomain_conditional
@@ -587,18 +675,17 @@ def IntervalDomainRelativeMoserEndpointComponents.toStructuredData
     rootBound := h.rootBound
     endpoint := h.endpoint }
 
-/-- Theorem 1.1 bridge with the opaque branch Moser package expanded into its
-relative-energy components.
+/-- Compatibility wrapper for callers that already expose the relative-energy
+Moser components.
 
-The hypotheses here are exactly the upstream facts still needed for the
-solution-structured route: bootstrap seed, `LpBootstrapEnergyInequality`,
-dissipation/drop, relative eps-absorption, finite-interval Lp monotonicity, and
-the quantitative endpoint produced by interval GN/Agmon and controlled Moser
-constants. -/
+The current Theorem 1.1 bridge no longer needs those components as hypotheses:
+branch boundedness is proved above from Lemma 3.1 and initial approach.  The
+component package remains the honest frontier for the independent analytic
+Moser endpoint. -/
 theorem Theorem_1_1_intervalDomain_of_relative_moser_endpoint_components
     (p : CM2Params)
     (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
-    (hnonminimalComponents :
+    (_hnonminimalComponents :
       p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
         ∀ u₀ : intervalDomain.Point → ℝ,
           PositiveInitialDatum intervalDomain u₀ →
@@ -606,7 +693,7 @@ theorem Theorem_1_1_intervalDomain_of_relative_moser_endpoint_components
           IsPaper2ClassicalSolution intervalDomain p T u v →
           InitialTrace intervalDomain u₀ u →
             IntervalDomainRelativeMoserEndpointComponents u T)
-    (hminimalComponents :
+    (_hminimalComponents :
       p.χ₀ ≤ 0 → p.a = 0 → p.b = 0 →
         ∀ u₀ : intervalDomain.Point → ℝ,
           PositiveInitialDatum intervalDomain u₀ →
@@ -615,12 +702,8 @@ theorem Theorem_1_1_intervalDomain_of_relative_moser_endpoint_components
           InitialTrace intervalDomain u₀ u →
             IntervalDomainRelativeMoserEndpointComponents u T) :
     Theorem_1_1 intervalDomain p := by
-  refine Theorem_1_1_intervalDomain_of_structured_relative_moser_endpoint
-    p hexist ?_ ?_
-  · intro hχ ha hb u₀ hu₀ T hT u v hsol htrace
-    exact (hnonminimalComponents hχ ha hb u₀ hu₀ T hT u v hsol htrace).toStructuredData
-  · intro hχ ha hb u₀ hu₀ T hT u v hsol htrace
-    exact (hminimalComponents hχ ha hb u₀ hu₀ T hT u v hsol htrace).toStructuredData
+  exact Theorem_1_1_intervalDomain_of_structured_relative_moser_endpoint
+    p hexist
 
 /-! ### Concrete interval-domain endpoint audit
 
