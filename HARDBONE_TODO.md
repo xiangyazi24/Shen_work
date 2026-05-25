@@ -222,7 +222,11 @@
   已把该 raw hypothesis 专门化到 `intervalDomain` +
   `unitIntervalNeumannSpectrum`，并暴露 `X^σ_p ≤ supNorm` 与 small-data
   existence 作为独立前沿；非正敏感度正平衡的 linear 部分已从 unit-interval
-  Neumann spectrum 直接接上。
+  Neumann spectrum 直接接上。minimal equilibrium (`a=b=0`) 分支也已通过
+  `intervalDomain_minimalEquilibrium_localStability_chi_nonpos_of_sectorialHypothesis`
+  与
+  `intervalDomain_minimalEquilibrium_massStability_chi_nonpos_of_sectorialHypothesis`
+  接到同一 H3.1 raw sectorial/small-data/norm-comparison 前沿。
 - **前置**: spectral theory on bounded domain, resolvent estimates
 - **目标文件**: `ShenWork/PDE/SectorialOperator.lean` (new)
 - **产出**: `SectorialLocalExponentialRaw`
@@ -345,8 +349,17 @@
 - **前置**: H3.1 (sectorial), weighted Sobolev spaces
 - **当前前沿** (2026-05-24): ODE/profile side now has the local Picard
   flow, C² bootstrap, scalar profile ODE identities
-  (`SolvesTWODE.profile_equations`, `TravelingWave.profile_equations`), and the
-  E0 stable local shooting segment in `ShenWork/PDE/TravelingWaveODE.lean`.
+  (`SolvesTWODE.profile_equations`, `TravelingWave.profile_equations`),
+  heteroclinic-to-profile wrappers
+  (`HasHeteroclinicE1E0.exists_profile_equations`,
+  `HasHeteroclinicE1E0.exists_profile_c2_bootstrap`), profile endpoint limits
+  (`TravelingWave.profile_boundary_limits`), E1/E0 linearized eigenmodes with
+  decay (`unstableLinearModeAtOne_solves_and_decays`,
+  `stableLinearModeAtZero_solves_and_decays`), the E0 stable local shooting
+  segment in `ShenWork/PDE/TravelingWaveODE.lean`, and logistic C² smoothness
+  (`logisticProfile_contDiff_two`,
+  `logisticProfile_facts_with_contDiff`) in
+  `ShenWork/PDE/TravelingWaveConstruction.lean`.
   This does not prove Paper1 Theorem 1.2.  The missing analytic load is the
   nonlinear weighted Cauchy stability chain for perturbations of a wave:
   global well-posedness from nearby weighted data, weighted energy/semigroup
