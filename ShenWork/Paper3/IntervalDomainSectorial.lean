@@ -2383,6 +2383,61 @@ theorem intervalDomain_sectorialMainline_unconditionalTarget_of_existence
   intervalDomain_sectorialMainline_unconditionalTarget_of_frontiers
     p M0 uBar vLower hexist.to_frontiers
 
+/-- Audit record for the B4 interval-domain sectorial mainline.
+
+Coverage:
+* `StabilityNorms` is discharged in the main endpoint to the concrete
+  `intervalDomainSectorialStabilityNorms`; no abstract norm package is an
+  argument of the audited theorem.
+* `Paper3Constants` is discharged in the main endpoint to
+  `intervalDomainSectorialPaper3Constants p M0 uBar vLower`; the only
+  remaining scalar parameters are the intended formula parameters
+  `M0`, `uBar`, and `vLower`.
+* `CompactnessData` does not occur in the interval-domain Theorem 2.1/2.2
+  sectorial endpoint.  Compactness/upper-envelope inputs belong to the
+  separate stability-chain/Lemma 3.4 path, not to this T2.1/T2.2 kernel.
+* The remaining input is exactly `IntervalDomainSectorialMainlineExistence`:
+  the spectral-orbit comparison, ordinary and mass-constrained small-data
+  global existence, and the four uniform-persistence estimates. -/
+structure IntervalDomainSectorialMainlineCoverage
+    (p : CM2Params) (M0 uBar vLower : ℝ) : Prop where
+  theorem22Concrete :
+    ∀ _hexist : IntervalDomainSectorialMainlineExistence p uBar,
+      Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+        intervalDomainSectorialStabilityNorms
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower)
+  theorem21Concrete :
+    ∀ _hexist : IntervalDomainSectorialMainlineExistence p uBar,
+      Theorem_2_1 intervalDomain p
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower)
+  targetOnlyNeedsExistence :
+    ∀ _hexist : IntervalDomainSectorialMainlineExistence p uBar,
+      IntervalDomainSectorialTheorem21And22UnconditionalTarget
+        p M0 uBar vLower
+
+/-- Coverage proof for the audited interval-domain sectorial mainline.
+
+This theorem is the precise reduces-to-existence kernel: the endpoint has
+concrete interval norms and concrete interval Paper3 constants; the only
+nontrivial premise is the `IntervalDomainSectorialMainlineExistence` package.
+It deliberately does not claim that package has been constructed. -/
+theorem intervalDomain_sectorialMainline_reducesToExistence_coverage
+    (p : CM2Params) (M0 uBar vLower : ℝ) :
+    IntervalDomainSectorialMainlineCoverage p M0 uBar vLower := by
+  refine ⟨?_, ?_, ?_⟩
+  · intro hexist
+    exact
+      intervalDomain_Theorem_2_2_sectorialMainline_of_mainlineExistence
+        p M0 uBar vLower hexist
+  · intro hexist
+    exact
+      intervalDomain_Theorem_2_1_sectorialMainline_of_mainlineExistence
+        p M0 uBar vLower hexist
+  · intro hexist
+    exact
+      intervalDomain_sectorialMainline_unconditionalTarget_of_existence
+        p M0 uBar vLower hexist
+
 /-- Persistence plus the raw nonminimal exponential-upgrade frontier gives
 the per-solution exponential conclusion of Corollary 5.1.
 
