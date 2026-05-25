@@ -1520,6 +1520,47 @@ theorem intervalDomain_entropyFunctional_nonneg_antitone_of_positiveGlobalBounde
       intervalDomain_chemotaxisEntropyFunctional_antitoneOn_of_positiveGlobalBoundedSolution
         hc huStar.le htheta huv hderiv hdiss
 
+/-- Full interval-domain free-energy Lyapunov package from a positive global
+bounded solution: nonnegativity, monotonicity on `(0,∞)`, and the two-time
+estimate `0 ≤ F(t) ≤ F(s)` for `0 < s ≤ t`.
+
+Point 17 status: conditional theorem, state ③.  This is the complete
+post-processing theorem in this file.  Positivity and endpoint-null integral
+side conditions are discharged; the only remaining named frontier is the PDE
+entropy-production derivation `hderiv`/`hdiss`. -/
+theorem intervalDomain_entropyFunctional_lyapunovPackage_of_positiveGlobalBoundedSolution
+    {p : CM2Params} {m uStar theta c : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ} {entropySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (hm : (1 / 2 : ℝ) ≤ m) (huStar : 0 < uStar)
+    (htheta : 0 ≤ theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisEntropyFunctional intervalDomain m uStar u tau)
+          (entropySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        entropySlope t ≤
+          -c * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    (∀ t, 0 < t →
+        0 ≤ chemotaxisEntropyFunctional intervalDomain m uStar u t) ∧
+      AntitoneOn
+        (fun t => chemotaxisEntropyFunctional intervalDomain m uStar u t)
+        (Ioi (0 : ℝ)) ∧
+      ∀ s t, 0 < s → s ≤ t →
+        0 ≤ chemotaxisEntropyFunctional intervalDomain m uStar u t ∧
+          chemotaxisEntropyFunctional intervalDomain m uStar u t ≤
+            chemotaxisEntropyFunctional intervalDomain m uStar u s := by
+  have hmono :=
+    intervalDomain_entropyFunctional_nonneg_antitone_of_positiveGlobalBoundedSolution
+      hc hm huStar htheta huv hderiv hdiss
+  refine ⟨hmono.1, hmono.2, ?_⟩
+  exact
+    intervalDomain_chemotaxisEntropyFunctional_two_time_bound_of_positiveGlobalBoundedSolution
+      hc hm huStar htheta huv hderiv hdiss
+
 /-- Weighted signal-energy Lyapunov monotonicity for the Paper3 minimal-model
 functional `∫ (mu (v-v*)^2 + |∇(v-v*)|^2)`.
 
