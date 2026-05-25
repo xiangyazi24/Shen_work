@@ -1916,6 +1916,140 @@ theorem not_reachablePast_finiteMaximalReachableHorizon
   exact not_lt_of_ge
     (reachable_le_finiteMaximalReachableHorizon hbdd hT') hgt
 
+/-- Sup-norm monotonicity regularity restricts to smaller time sets. -/
+lemma intervalDomainSupNormDerivativeNonposOn_mono
+    {u : ℝ → intervalDomainPoint → ℝ} {I J : Set ℝ}
+    (h : IntervalDomainSupNormDerivativeNonposOn u I) (hJI : J ⊆ I) :
+    IntervalDomainSupNormDerivativeNonposOn u J := by
+  refine ⟨h.continuousOn.mono hJI, ?_, ?_⟩
+  · exact h.differentiableOn.mono (interior_mono hJI)
+  · intro t ht
+    exact h.deriv_nonpos t ((interior_mono hJI) ht)
+
+/-- `intervalDomainClassicalRegularity` restricts from a longer horizon to a
+shorter horizon. -/
+lemma intervalDomainClassicalRegularity_mono
+    {Tshort Tlong : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    (hTL : Tshort ≤ Tlong)
+    (hreg : intervalDomainClassicalRegularity Tlong u v) :
+    intervalDomainClassicalRegularity Tshort u v := by
+  refine ⟨?_, ?_⟩
+  · intro p hpχ ha hb t₀ ht₀ ht₀T hsup
+    exact hreg.1 p hpχ ha hb t₀ ht₀ (lt_of_lt_of_le ht₀T hTL) hsup
+  · intro p hpχ ha hb
+    exact intervalDomainSupNormDerivativeNonposOn_mono
+      (hreg.2 p hpχ ha hb)
+      (fun t ht => ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩)
+
+/-- A classical interval solution on a longer horizon is also a classical
+solution on every positive shorter horizon. -/
+theorem isPaper2ClassicalSolution_intervalDomain_mono
+    {p : CM2Params} {Tshort Tlong : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hTshort : 0 < Tshort) (hTL : Tshort ≤ Tlong)
+    (hsol : IsPaper2ClassicalSolution intervalDomain p Tlong u v) :
+    IsPaper2ClassicalSolution intervalDomain p Tshort u v :=
+  IsPaper2ClassicalSolution.of_components hTshort
+    (intervalDomainClassicalRegularity_mono (u := u) (v := v)
+      hTL hsol.regularity)
+    (fun _t _x ht0 htT hx =>
+      hsol.u_pos ht0 (lt_of_lt_of_le htT hTL) hx)
+    (fun _t _x ht0 htT hx =>
+      hsol.pde_u ht0 (lt_of_lt_of_le htT hTL) hx)
+    (fun _t _x ht0 htT hx =>
+      hsol.pde_v ht0 (lt_of_lt_of_le htT hTL) hx)
+    (fun _t _x ht0 htT hx =>
+      hsol.neumann ht0 (lt_of_lt_of_le htT hTL) hx)
+
+/-- Reachability is downward closed in the time horizon. -/
+theorem reachableClassicalHorizon_mono
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {Tshort Tlong : ℝ}
+    (hTshort : 0 < Tshort) (hTL : Tshort ≤ Tlong)
+    (hreach : ReachableClassicalHorizon p u₀ Tlong) :
+    ReachableClassicalHorizon p u₀ Tshort := by
+  rcases hreach with ⟨_hTlong, u, v, hsol, htrace⟩
+  exact ⟨hTshort, u, v,
+    isPaper2ClassicalSolution_intervalDomain_mono hTshort hTL hsol, htrace⟩
+
+/-- If reachable horizons are not bounded above, then every finite positive
+horizon is reachable. -/
+theorem reachableArbitrarilyLong_of_not_bddAbove
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hnbdd : ¬ BddAbove (reachableClassicalHorizonSet p u₀)) :
+    ReachableArbitrarilyLong p u₀ := by
+  intro T hT
+  obtain ⟨Tlong, hTlong, hlt⟩ := (not_bddAbove_iff.mp hnbdd) T
+  exact reachableClassicalHorizon_mono hT (le_of_lt hlt) hTlong
+
+/-- Standard maximal-continuation theorem, with the two genuine analytic
+frontiers left explicit.
+
+The proof is now purely order-theoretic:
+* if the reachable-horizon set is unbounded, downward closure gives the global
+  branch;
+* if it is bounded, local existence makes the finite `sSup` positive;
+* a realized classical solution at that `sSup` must satisfy both finite-time
+  alternatives, because failure of either alternative is assumed to construct a
+  larger reachable horizon, contradicting `sSup` maximality.
+
+The hypotheses `hrealize`, `hextend_of_not_finiteAlternative`, and
+`hextend_of_not_mgeAlternative` are precisely the missing PDE continuation
+content: compactness/gluing at the finite supremum, endpoint traces, restart
+local existence, and uniqueness needed to paste the old and restarted
+solutions. -/
+theorem standardContinuationAlternative_of_finiteSup_realization_and_extension
+    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
+    (hlocal :
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ T > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p T u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hrealize :
+      ∀ _hbdd : BddAbove (reachableClassicalHorizonSet p u₀),
+        ∃ u v : ℝ → intervalDomainPoint → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p
+            (finiteMaximalReachableHorizon p u₀) u v ∧
+          InitialTrace intervalDomain u₀ u)
+    (hextend_of_not_finiteAlternative :
+      ∀ (_hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomainPoint → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (finiteMaximalReachableHorizon p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          ¬ FiniteHorizonAlternative intervalDomain
+            (finiteMaximalReachableHorizon p u₀) u →
+          ReachablePast p u₀ (finiteMaximalReachableHorizon p u₀))
+    (hextend_of_not_mgeAlternative :
+      ∀ (_hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomainPoint → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (finiteMaximalReachableHorizon p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          1 ≤ p.m →
+          ¬ MGeOneFiniteHorizonAlternative intervalDomain
+            (finiteMaximalReachableHorizon p u₀) u →
+          ReachablePast p u₀ (finiteMaximalReachableHorizon p u₀)) :
+    StandardContinuationAlternative p u₀ := by
+  by_cases hbdd : BddAbove (reachableClassicalHorizonSet p u₀)
+  · right
+    have hTmax_pos :
+        0 < finiteMaximalReachableHorizon p u₀ :=
+      finiteMaximalReachableHorizon_pos_of_localExistence p hlocal hu₀ hbdd
+    obtain ⟨u, v, hsol, htrace⟩ := hrealize hbdd
+    refine ⟨finiteMaximalReachableHorizon p u₀, hTmax_pos, u, v,
+      hsol, htrace, ?_, ?_⟩
+    · by_contra hnot
+      exact not_reachablePast_finiteMaximalReachableHorizon hbdd
+        (hextend_of_not_finiteAlternative hbdd hsol htrace hnot)
+    · intro hm
+      by_contra hnot
+      exact not_reachablePast_finiteMaximalReachableHorizon hbdd
+        (hextend_of_not_mgeAlternative hbdd hsol htrace hm hnot)
+  · left
+    exact reachableArbitrarilyLong_of_not_bddAbove hbdd
+
 /-- The already constructed positive equilibrium lies in the global branch of
 the standard continuation alternative: every finite horizon is reachable. -/
 theorem equilibrium_reachableArbitrarilyLong
