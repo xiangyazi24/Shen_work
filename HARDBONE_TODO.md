@@ -419,13 +419,18 @@
   (`SolvesTWODE.profile_equations`, `TravelingWave.profile_equations`),
   heteroclinic-to-profile wrappers
   (`HasHeteroclinicE1E0.exists_profile_equations`,
-  `HasHeteroclinicE1E0.exists_profile_c2_bootstrap`), profile endpoint limits
-  (`TravelingWave.profile_boundary_limits`), E1/E0 linearized eigenmodes with
-  decay (`unstableLinearModeAtOne_solves_and_decays`,
+  `HasHeteroclinicE1E0.exists_profile_c2_bootstrap`,
+  `HasHeteroclinicE1E0.exists_profileData`), packaged C²/boundary/left-positive
+  profile data (`WaveProfileData`, `TravelingWave.to_profileData`), profile
+  endpoint limits (`TravelingWave.profile_boundary_limits`), E1/E0 linearized
+  eigenmodes with decay (`unstableLinearModeAtOne_solves_and_decays`,
   `stableLinearModeAtZero_solves_and_decays`), the E0 stable local shooting
-  segment in `ShenWork/PDE/TravelingWaveODE.lean`, and logistic C² smoothness
-  (`logisticProfile_contDiff_two`,
-  `logisticProfile_facts_with_contDiff`) in
+  segment in `ShenWork/PDE/TravelingWaveODE.lean`, the linearized solution
+  regularity/closure facts (`SolvesLinearized.contDiff_two`,
+  `SolvesLinearized.add`, `SolvesLinearized.const_smul`), and logistic C² plus
+  strict-derivative facts (`logisticProfile_contDiff_two`,
+  `logisticProfile_deriv_neg`,
+  `logisticProfile_facts_with_contDiff_exp_bound_and_strict_deriv`) in
   `ShenWork/PDE/TravelingWaveConstruction.lean`.
   This does not prove Paper1 Theorem 1.2.  The missing analytic load is the
   nonlinear weighted Cauchy stability chain for perturbations of a wave:
