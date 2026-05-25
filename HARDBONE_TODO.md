@@ -282,6 +282,16 @@
 
 ### H5.3 — Wave stability (Theorem 1.2)
 - **前置**: H3.1 (sectorial), weighted Sobolev spaces
+- **当前前沿** (2026-05-24): ODE/profile side now has the local Picard
+  flow, C² bootstrap, scalar profile ODE identities
+  (`SolvesTWODE.profile_equations`, `TravelingWave.profile_equations`), and the
+  E0 stable local shooting segment in `ShenWork/PDE/TravelingWaveODE.lean`.
+  This does not prove Paper1 Theorem 1.2.  The missing analytic load is the
+  nonlinear weighted Cauchy stability chain for perturbations of a wave:
+  global well-posedness from nearby weighted data, weighted energy/semigroup
+  decay, uniform moving-frame convergence, and the exact bridge from these
+  estimates to `Paper1.Theorem_1_2`.  Status by point 17: ③ conditional on
+  named upstream PDE/weighted-Sobolev stability inputs, not weakened or faked.
 
 ---
 
