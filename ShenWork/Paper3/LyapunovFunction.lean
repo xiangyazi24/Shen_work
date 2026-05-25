@@ -1107,6 +1107,50 @@ theorem
     (fun t ht x hx => (huv.pos (t := t) (x := x) (lt_of_lt_of_le hs ht) hx).le)
     hderiv hle
 
+/-- Full interval-domain theta-production Lyapunov package from a positive
+global bounded solution: nonnegativity, exponential two-time decay, and the
+statement-layer `ThetaMomentConvergesToZero` conclusion.
+
+Point 17 status: conditional theorem, state ③.  The positivity and endpoint-null
+integral side conditions are discharged here.  The remaining named frontier is
+the direct PDE differential decay estimate `hderiv`/`hle` for the theta
+production functional. -/
+theorem intervalDomain_thetaDissipation_lyapunovPackage_of_positiveGlobalBoundedSolution
+    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta rate s : ℝ} {momentSlope : ℝ → ℝ}
+    (hrate : 0 < rate) (hs : 0 < s)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau =>
+            chemotaxisThetaDissipation intervalDomain uStar theta (u tau))
+          (momentSlope t) t)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    (∀ t, 0 < t →
+        0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta (u t)) ∧
+      (∀ a b, 0 < a → a ≤ b →
+        0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta (u b) ∧
+          chemotaxisThetaDissipation intervalDomain uStar theta (u b) ≤
+            chemotaxisThetaDissipation intervalDomain uStar theta (u a) *
+              Real.exp (-rate * (b - a))) ∧
+      ThetaMomentConvergesToZero intervalDomain u uStar theta := by
+  refine ⟨?_, ?_, ?_⟩
+  · intro t ht
+    exact
+      intervalDomain_chemotaxisThetaDissipation_nonneg_of_positiveGlobalBoundedSolution
+        (t := t) huStar htheta huv ht
+  · exact
+      intervalDomain_thetaDissipation_two_time_bound_of_positiveGlobalBoundedSolution
+        huStar htheta huv hderiv hle
+  · exact
+      intervalDomain_thetaMomentConvergesToZero_of_derivative_positiveGlobalBoundedSolution
+        hrate hs huStar htheta huv hderiv hle
+
 /-- Entropy dissipation makes the Paper3 entropy functional decrease.
 
 Point 17 status: conditional theorem, state ③.  The missing upstream analytic
