@@ -360,6 +360,94 @@ theorem intervalDomain_positiveEquilibrium_massStability_of_chi_lt_critical_of_s
 part is proved from the unit-interval Neumann spectrum, while the nonlinear
 local exponential conclusion remains conditional on H3.1 and the explicit
 small-data/norm-comparison frontiers. -/
+theorem
+intervalDomain_minimalEquilibrium_localStability_chi_nonpos_of_massSpectralGap_sectorialHypothesis
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    {sigma pNorm uStar : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hsectorial :
+      SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (_hb : p.b = 0)
+    (huStar : 0 < uStar)
+    (hxp :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀
+            (fun _ => (minimalEquilibrium p uStar).1) ≤
+          intervalDomain.supNorm
+            (fun x => u₀ x - (minimalEquilibrium p uStar).1))
+    (hexist :
+      ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p
+          (minimalEquilibrium p uStar).1 delta) :
+    let eq := minimalEquilibrium p uStar
+    UnitIntervalLinearMassSpectralGap p eq.1 eq.2
+        unitIntervalNeumannSpectrum.firstNonzero ∧
+      LocallyExponentiallyStableFromSup intervalDomain p N eq.1 eq.2 := by
+  dsimp
+  have hgap :
+      UnitIntervalLinearMassSpectralGap p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2
+        unitIntervalNeumannSpectrum.firstNonzero := by
+    simpa using
+      minimalEquilibrium_UnitIntervalLinearMassSpectralGap_of_chi_nonpos
+        p hχ ha huStar
+  exact
+    ⟨hgap,
+      intervalDomain_locallyExponentiallyStableFromSup_of_sectorialHypothesis
+        p N hsigma_low hsigma_high hpNorm hsectorial hgap.linearlyStable
+        hxp hexist⟩
+
+/-- Mass-constrained version of the explicit nonzero-mode minimal-branch gap. -/
+theorem
+intervalDomain_minimalEquilibrium_massStability_chi_nonpos_of_massSpectralGap_sectorialHypothesis
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    {sigma pNorm uStar : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hsectorial :
+      SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    (hχ : p.χ₀ ≤ 0) (ha : p.a = 0) (_hb : p.b = 0)
+    (huStar : 0 < uStar)
+    (hxp :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀
+            (fun _ => (minimalEquilibrium p uStar).1) ≤
+          intervalDomain.supNorm
+            (fun x => u₀ x - (minimalEquilibrium p uStar).1))
+    (hexist :
+      ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p
+          (minimalEquilibrium p uStar).1 delta) :
+    let eq := minimalEquilibrium p uStar
+    UnitIntervalLinearMassSpectralGap p eq.1 eq.2
+        unitIntervalNeumannSpectrum.firstNonzero ∧
+      MassConstrainedLocallyExponentiallyStableFromSup intervalDomain p N
+        eq.1 eq.2 := by
+  dsimp
+  have hgap :
+      UnitIntervalLinearMassSpectralGap p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2
+        unitIntervalNeumannSpectrum.firstNonzero := by
+    simpa using
+      minimalEquilibrium_UnitIntervalLinearMassSpectralGap_of_chi_nonpos
+        p hχ ha huStar
+  exact
+    ⟨hgap,
+      intervalDomain_massConstrainedLocallyExponentiallyStableFromSup_of_sectorialHypothesis
+        p N hsigma_low hsigma_high hpNorm hsectorial hgap.linearlyStable
+        hxp hexist⟩
+
+/-- Nonpositive-sensitivity minimal-equilibrium interval branch: the linear
+part is proved from the unit-interval Neumann spectrum, while the nonlinear
+local exponential conclusion remains conditional on H3.1 and the explicit
+small-data/norm-comparison frontiers. -/
 theorem intervalDomain_minimalEquilibrium_localStability_chi_nonpos_of_sectorialHypothesis
     (p : CM2Params)
     (N : StabilityNorms intervalDomain)

@@ -349,6 +349,14 @@
   `unitIntervalLinearizedMassSemigroupLp_norm_decay`,
   `unitIntervalLinearizedResolvent_l2_norm_le`, and
   `unitIntervalLinearizedMassResolvent_l2_norm_le`.
+  Follow-up interval wrapper increment:
+  `intervalDomain_minimalEquilibrium_localStability_chi_nonpos_of_massSpectralGap_sectorialHypothesis`
+  and
+  `intervalDomain_minimalEquilibrium_massStability_chi_nonpos_of_massSpectralGap_sectorialHypothesis`
+  expose this nonzero-mode first-Neumann gap for the minimal branch and use it
+  only to discharge `LinearlyStable`; nonlinear sectoriality,
+  `X^σ_p`/`C¹` norm comparison, and branch small-data existence remain state③
+  frontiers.
 - **前置**: spectral theory on bounded domain, resolvent estimates
 - **目标文件**: `ShenWork/PDE/SectorialOperator.lean` (new)
 - **产出**: `SectorialLocalExponentialRaw`
