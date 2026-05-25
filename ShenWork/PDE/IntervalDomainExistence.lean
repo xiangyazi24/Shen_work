@@ -2719,18 +2719,19 @@ theorem intervalDomainTheorem11Existence_of_intervalDuhamel_contraction_regulari
       p hmild)
     hboundedInitial hglobal
 
-/-- The current Theorem 1.1 `globalExtension` field cannot be proved as stated
-for positive equilibrium parameters with `1 ≤ m`.
+/-- General bad-tail obstruction to the current Theorem 1.1 `globalExtension`
+field.
 
 Reason: the field quantifies over every pair of functions `u, v` that solves on
 the finite horizon and then concludes that the same functions are global.  A
 solution can be changed after the finite horizon without affecting the finite
-horizon hypotheses.  Here `u` is the positive equilibrium for all time, while
-`v` is the correct elliptic value before `t = 1` and zero afterwards.  It solves
-on `(0,1)`, has the correct initial trace and boundedness, but cannot be a
-global classical solution. -/
-theorem not_intervalDomainTheorem11_globalExtension_equilibrium_bad_tail
-    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) (hm : 1 ≤ p.m) :
+horizon hypotheses.  Here `u` is a positive constant state satisfying the
+reaction balance, while `v` is the correct elliptic value before `t = 1` and
+zero afterwards.  It solves on `(0,1)`, has the correct initial trace and
+boundedness, but cannot be a global classical solution. -/
+theorem not_intervalDomainTheorem11_globalExtension_constant_bad_tail
+    (p : CM2Params) {c : ℝ} (hc : 0 < c)
+    (hreact : p.a - p.b * c ^ p.α = 0) (hm : 1 ≤ p.m) :
     ¬ (∀ u₀ : intervalDomain.Point → ℝ,
         PositiveInitialDatum intervalDomain u₀ →
         ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
@@ -2740,13 +2741,9 @@ theorem not_intervalDomainTheorem11_globalExtension_equilibrium_bad_tail
               1 ≤ p.m →
                 IsPaper2GlobalClassicalSolution intervalDomain p u v) := by
   intro hglobal
-  let c : ℝ := (p.a / p.b) ^ (1 / p.α)
   let u : ℝ → intervalDomain.Point → ℝ := fun _ _ => c
   let v : ℝ → intervalDomain.Point → ℝ :=
     fun t _ => if t < 1 then ellipticV p c else 0
-  have hc : 0 < c := by
-    dsimp [c]
-    exact equilibrium_pos p ha hb
   have hu₀ : PositiveInitialDatum intervalDomain (constOnInterval c) :=
     constOnInterval_pos hc
   have htrace : InitialTrace intervalDomain (constOnInterval c) u := by
@@ -2787,8 +2784,6 @@ theorem not_intervalDomainTheorem11_globalExtension_equilibrium_bad_tail
             (fun _ : intervalDomainPoint => c)
             (fun _ : intervalDomainPoint => ellipticV p c) x = 0 := by
         rw [hchem, mul_zero]
-      have hreact : p.a - p.b * c ^ p.α = 0 := by
-        exact equilibrium_reaction_zero p ha hb
       have hreact_mul : c * (p.a - p.b * c ^ p.α) = 0 := by
         rw [hreact, mul_zero]
       nlinarith [hchem_mul, hreact_mul]
@@ -2834,6 +2829,21 @@ theorem not_intervalDomainTheorem11_globalExtension_equilibrium_bad_tail
     mul_pos p.hν (Real.rpow_pos_of_pos hc _)
   nlinarith
 
+/-- The current Theorem 1.1 `globalExtension` field cannot be proved as stated
+for positive equilibrium parameters with `1 ≤ m`. -/
+theorem not_intervalDomainTheorem11_globalExtension_equilibrium_bad_tail
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) (hm : 1 ≤ p.m) :
+    ¬ (∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+        ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+          InitialTrace intervalDomain u₀ u →
+            IsPaper2BoundedBefore intervalDomain Tmax u →
+              1 ≤ p.m →
+                IsPaper2GlobalClassicalSolution intervalDomain p u v) := by
+  exact not_intervalDomainTheorem11_globalExtension_constant_bad_tail
+    p (equilibrium_pos p ha hb) (equilibrium_reaction_zero p ha hb) hm
+
 /-- Consequently the full Theorem 1.1 existence package is false for such
 parameters with the current `globalExtension` field.  A standard
 maximal-continuation theorem can provide a continued/glued global solution, or
@@ -2844,6 +2854,33 @@ theorem not_intervalDomainTheorem11Existence_equilibrium_bad_tail
     ¬ Paper2.IntervalDomainTheorem11.IntervalDomainExistence p := by
   intro hexist
   exact not_intervalDomainTheorem11_globalExtension_equilibrium_bad_tail
+    p ha hb hm hexist.globalExtension
+
+/-- The same bad-tail obstruction also hits the zero-reaction branch
+`a = 0`, `b = 0`: any positive constant state has zero reaction, so the finite
+horizon solution can again be modified after the horizon. -/
+theorem not_intervalDomainTheorem11_globalExtension_zeroReaction_bad_tail
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) (hm : 1 ≤ p.m) :
+    ¬ (∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+        ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+          InitialTrace intervalDomain u₀ u →
+            IsPaper2BoundedBefore intervalDomain Tmax u →
+              1 ≤ p.m →
+                IsPaper2GlobalClassicalSolution intervalDomain p u v) := by
+  refine not_intervalDomainTheorem11_globalExtension_constant_bad_tail
+    p (c := 1) one_pos ?_ hm
+  rw [ha, hb]
+  ring
+
+/-- Thus the full Theorem 1.1 existence package is also false in the minimal
+zero-reaction branch when `1 ≤ m`, for the same same-tail reason. -/
+theorem not_intervalDomainTheorem11Existence_zeroReaction_bad_tail
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) (hm : 1 ≤ p.m) :
+    ¬ Paper2.IntervalDomainTheorem11.IntervalDomainExistence p := by
+  intro hexist
+  exact not_intervalDomainTheorem11_globalExtension_zeroReaction_bad_tail
     p ha hb hm hexist.globalExtension
 
 /-- Local existence for spatially-constant initial data above equilibrium,
