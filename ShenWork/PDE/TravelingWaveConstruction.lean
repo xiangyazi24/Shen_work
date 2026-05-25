@@ -219,6 +219,10 @@ lemma logisticProfile_antitone {κ : ℝ} (hκ : 0 < κ) :
   simp only [logisticProfile]
   exact Real.sigmoid_le (neg_le_neg (mul_le_mul_of_nonneg_left hab hκ.le))
 
+theorem logisticProfile_nonincreasingProfile {κ : ℝ} (hκ : 0 < κ) :
+    ShenWork.Paper1.NonincreasingProfile (logisticProfile κ) :=
+  logisticProfile_antitone hκ
+
 lemma logisticProfile_deriv_nonpos {κ : ℝ} (hκ : 0 < κ) (x : ℝ) :
     deriv (logisticProfile κ) x ≤ 0 :=
   (logisticProfile_antitone hκ).deriv_nonpos
@@ -362,6 +366,14 @@ theorem logisticProfile_facts_with_cappedExp_bound {κ : ℝ} (hκ : 0 < κ) :
   · exact fun x => logisticProfile_le_cappedExp hκ x
   · exact fun x => logisticProfile_deriv_neg hκ x
 
+theorem logisticProfile_shenUpperBoundNegative
+    {c : ℝ} :
+    ShenWork.Paper1.ShenUpperBoundNegative c
+      (logisticProfile (kappa c)) := by
+  intro x
+  exact ⟨logisticProfile_pos (kappa c) x,
+    logisticProfile_strict_exp_bound (kappa c) x⟩
+
 theorem logisticProfile_shenUpperBoundPositive
     {p : CMParams} {c : ℝ}
     (hχ_nonneg : 0 ≤ p.χ) (hχ_lt : p.χ < 1) :
@@ -404,6 +416,50 @@ theorem logisticProfile_hasStrictWaveUpperTailBound_of_stable_regime
     ShenWork.Paper1.HasStrictWaveUpperTailBound p c
       (logisticProfile (kappa c)) :=
   logisticProfile_hasStrictWaveUpperTailBound_of_one_le_MChi
+    (ShenWork.Paper1.StableWaveParameterRegime.one_le_MChi hregime)
+
+theorem logisticProfile_inWaveTrapSet_of_one_le
+    {κ M : ℝ} (hM : 1 ≤ M) :
+    ShenWork.Paper1.InWaveTrapSet κ M (logisticProfile κ) := by
+  refine ⟨logisticProfile_isCUnifBdd κ, fun x => ?_⟩
+  refine ⟨(logisticProfile_pos κ x).le, ?_⟩
+  dsimp [ShenWork.Paper1.upperBarrier]
+  exact le_min ((logisticProfile_lt_one κ x).le.trans hM)
+    (by simpa [neg_mul] using logisticProfile_le_exp κ x)
+
+theorem logisticProfile_inWaveTrapSet_one (κ : ℝ) :
+    ShenWork.Paper1.InWaveTrapSet κ 1 (logisticProfile κ) :=
+  logisticProfile_inWaveTrapSet_of_one_le le_rfl
+
+theorem logisticProfile_inMonotoneWaveTrapSet_of_pos_one_le
+    {κ M : ℝ} (hκ : 0 < κ) (hM : 1 ≤ M) :
+    ShenWork.Paper1.InMonotoneWaveTrapSet κ M (logisticProfile κ) :=
+  ⟨logisticProfile_inWaveTrapSet_of_one_le hM,
+    logisticProfile_nonincreasingProfile hκ⟩
+
+theorem logisticProfile_inMonotoneWaveTrapSet_one_of_two_lt
+    {c : ℝ} (hc : 2 < c) :
+    ShenWork.Paper1.InMonotoneWaveTrapSet (kappa c) 1
+      (logisticProfile (kappa c)) :=
+  logisticProfile_inMonotoneWaveTrapSet_of_pos_one_le
+    (kappa_pos_of_two_lt hc) le_rfl
+
+theorem logisticProfile_inWaveTrapSet_MChi_of_stable_regime
+    {p : CMParams} {c : ℝ}
+    (hregime : ShenWork.Paper1.StableWaveParameterRegime p) :
+    ShenWork.Paper1.InWaveTrapSet (kappa c) (ShenWork.Paper1.MChi p)
+      (logisticProfile (kappa c)) :=
+  logisticProfile_inWaveTrapSet_of_one_le
+    (ShenWork.Paper1.StableWaveParameterRegime.one_le_MChi hregime)
+
+theorem logisticProfile_inMonotoneWaveTrapSet_MChi_of_stable_regime
+    {p : CMParams} {c : ℝ}
+    (hregime : ShenWork.Paper1.StableWaveParameterRegime p) (hc : 2 < c) :
+    ShenWork.Paper1.InMonotoneWaveTrapSet
+      (kappa c) (ShenWork.Paper1.MChi p)
+      (logisticProfile (kappa c)) :=
+  logisticProfile_inMonotoneWaveTrapSet_of_pos_one_le
+    (kappa_pos_of_two_lt hc)
     (ShenWork.Paper1.StableWaveParameterRegime.one_le_MChi hregime)
 
 theorem logisticProfile_tail_bounds
@@ -558,5 +614,75 @@ theorem logisticProfile_stability_tail_data_of_threshold
           (logisticProfile (kappa c)) :=
   logisticProfile_stability_tail_data_of_stable_regime hregime
     (ShenWork.Paper1.two_lt_of_stabilitySpeedBaseline_lt hlower hc)
+
+theorem logisticProfile_negative_construction_seed_data
+    {c : ℝ} (hc : 2 < c) :
+    ShenWork.Paper1.ShenUpperBoundNegative c
+        (logisticProfile (kappa c)) ∧
+      ShenWork.Paper1.InMonotoneWaveTrapSet (kappa c) 1
+        (logisticProfile (kappa c)) ∧
+      ∃ κ₁ : ℝ,
+        kappa c < κ₁ ∧ κ₁ < 1 ∧
+        ShenWork.Paper1.HasWaveRightTailAsymptotic c κ₁
+          (logisticProfile (kappa c)) :=
+  ⟨logisticProfile_shenUpperBoundNegative,
+    logisticProfile_inMonotoneWaveTrapSet_one_of_two_lt hc,
+    logisticProfile_exists_waveRightTailAsymptotic_of_two_lt hc⟩
+
+theorem logisticProfile_negative_construction_seed_data_of_cStarLower_lt
+    {p : CMParams} {c : ℝ} (hc : cStarLower p < c) :
+    ShenWork.Paper1.ShenUpperBoundNegative c
+        (logisticProfile (kappa c)) ∧
+      ShenWork.Paper1.InMonotoneWaveTrapSet (kappa c) 1
+        (logisticProfile (kappa c)) ∧
+      ∃ κ₁ : ℝ,
+        kappa c < κ₁ ∧ κ₁ < 1 ∧
+        ShenWork.Paper1.HasWaveRightTailAsymptotic c κ₁
+          (logisticProfile (kappa c)) :=
+  logisticProfile_negative_construction_seed_data
+    (two_lt_of_cStarLower_lt hc)
+
+theorem logisticProfile_positive_construction_seed_data
+    {p : CMParams} {c : ℝ}
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_lt : p.χ < 1) (hc : 2 < c) :
+    ShenWork.Paper1.ShenUpperBoundPositive p c
+        (logisticProfile (kappa c)) ∧
+      ShenWork.Paper1.InWaveTrapSet (kappa c) (ShenWork.Paper1.MChi p)
+        (logisticProfile (kappa c)) ∧
+      ShenWork.Paper1.HasStrictWaveUpperTailBound p c
+        (logisticProfile (kappa c)) ∧
+      ∃ κ₁ : ℝ,
+        kappa c < κ₁ ∧ κ₁ < 1 ∧
+        ShenWork.Paper1.HasWaveRightTailAsymptotic c κ₁
+          (logisticProfile (kappa c)) := by
+  let hupper := logisticProfile_shenUpperBoundPositive
+    (p := p) (c := c) hχ_nonneg hχ_lt
+  let hstrict := logisticProfile_hasStrictWaveUpperTailBound
+    (p := p) (c := c) hχ_nonneg hχ_lt
+  exact ⟨hupper,
+    hstrict.inWaveTrapSet_of_continuous
+      (logisticProfile_contDiff_two (kappa c)).continuous,
+    hstrict,
+    logisticProfile_exists_waveRightTailAsymptotic_of_two_lt hc⟩
+
+theorem logisticProfile_positive_construction_seed_data_of_chi_lt_half_chiStar
+    {p : CMParams} {c : ℝ}
+    (hχ_nonneg : 0 ≤ p.χ)
+    (hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p))
+    (hc : 2 < c) :
+    ShenWork.Paper1.ShenUpperBoundPositive p c
+        (logisticProfile (kappa c)) ∧
+      ShenWork.Paper1.InWaveTrapSet (kappa c) (ShenWork.Paper1.MChi p)
+        (logisticProfile (kappa c)) ∧
+      ShenWork.Paper1.HasStrictWaveUpperTailBound p c
+        (logisticProfile (kappa c)) ∧
+      ∃ κ₁ : ℝ,
+        kappa c < κ₁ ∧ κ₁ < 1 ∧
+        ShenWork.Paper1.HasWaveRightTailAsymptotic c κ₁
+          (logisticProfile (kappa c)) := by
+  have hχ_lt_half : p.χ < (1 / 2 : ℝ) :=
+    lt_of_lt_of_le hχ_small (min_le_left _ _)
+  exact logisticProfile_positive_construction_seed_data
+    hχ_nonneg (by linarith) hc
 
 end
