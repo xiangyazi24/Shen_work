@@ -2272,6 +2272,130 @@ theorem Theorem_1_3.of_signal_energy_dissipation_l2_to_uniform_and_cauchy_unique
       (hcauchy_unique p hregime c hc U₂ V₂ hTW₂ hstrict₂ htail₂_exists
         hreg₂)
 
+/-- Theorem 1.3 from the already-formalized Theorem 1.2 stability statement.
+This isolates the uniqueness part of the paper's main line: once the full
+near-neighbor stability theorem is available, the second wave can be used as
+nearby initial data for stability around the first wave.  The common right
+tail supplies the weighted initial closeness, Cauchy uniqueness identifies
+the produced solution with the translated second wave, and the frozen
+resolvent identities identify the signal profiles.
+
+Point 17 frontier: this theorem does not re-assume the B5 energy package or
+the weighted-`L²` to uniform upgrade; those are now contained in
+`Theorem_1_2`.  The remaining external PDE facts needed to get the paper's
+unconditional uniqueness theorem are:
+
+* `Theorem_1_2` itself for arbitrary nearby whole-line data;
+* regularity/frozen-resolvent identification for all waves in the uniqueness
+  regime;
+* whole-line Cauchy uniqueness for traveling-wave initial data. -/
+theorem Theorem_1_3.of_Theorem_1_2_and_regular_tail_cauchy_unique
+    (h12 : Theorem_1_2)
+    (hregularity : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η →
+          η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          TravelingWaveRegularity p c U V)
+    (hcauchy_unique : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        TravelingWaveRegularity p c U V →
+        ∀ u v : ℝ → ℝ → ℝ,
+          IsGlobalCauchySolutionFrom p U u v →
+            ∀ t x, u t x = U (x - c * t)) :
+    Theorem_1_3 := by
+  intro p hregime
+  rcases h12 p hregime with ⟨cStarStar, hasymp, hbaseline, hstability⟩
+  refine ⟨cStarStar, hasymp, hbaseline, ?_⟩
+  intro c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hstrict₁ hstrict₂ htailPair
+  rcases htailPair with ⟨κ₁, hκ_gt, hκ_lt_one, htail₁, htail₂⟩
+  have hcap : kappa c < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) :=
+    kappa_lt_stability_weight_cap_of_stabilitySpeedBaseline_lt
+      hbaseline hc
+  rcases exists_between (lt_min hκ_gt hcap) with ⟨η, hketa, heta_min⟩
+  have heta_tail : η < κ₁ := lt_of_lt_of_le heta_min (min_le_left _ _)
+  have heta_cap : η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) :=
+    lt_of_lt_of_le heta_min (min_le_right _ _)
+  have htail₁_exists :
+      ∃ κ, kappa c < κ ∧ κ < 1 ∧ HasWaveRightTailAsymptotic c κ U₁ :=
+    ⟨κ₁, hκ_gt, hκ_lt_one, htail₁⟩
+  have htail₂_exists :
+      ∃ κ, kappa c < κ ∧ κ < 1 ∧ HasWaveRightTailAsymptotic c κ U₂ :=
+    ⟨κ₁, hκ_gt, hκ_lt_one, htail₂⟩
+  have hreg₁ : TravelingWaveRegularity p c U₁ V₁ :=
+    hregularity p hregime c U₁ V₁ hTW₁ hstrict₁ htail₁_exists
+      η hketa heta_cap
+  have hreg₂ : TravelingWaveRegularity p c U₂ V₂ :=
+    hregularity p hregime c U₂ V₂ hTW₂ hstrict₂ htail₂_exists
+      η hketa heta_cap
+  have hclose : WeightedL2InitialCloseness η U₂ U₁ :=
+    WeightedL2InitialCloseness.of_common_waveRightTailAsymptotic
+      (eta_pos_of_stability_weight_hypotheses hbaseline hc hketa)
+      heta_tail hreg₁.U_cont hreg₂.U_cont
+      hstrict₁.hasWaveUpperTailBound hstrict₂.hasWaveUpperTailBound
+      htail₁ htail₂
+  have hU₂_bdd : IsCUnifBdd U₂ :=
+    hstrict₂.hasWaveUpperTailBound.isCUnifBdd_of_continuous hreg₂.U_cont
+  have hu₂ : NonnegativeInitialDatum U₂ :=
+    IsTravelingWave.nonnegativeInitialDatum hTW₂ hU₂_bdd
+  have hleft₂ : StrictlyPositiveAtLeft U₂ :=
+    IsTravelingWave.strictlyPositiveAtLeft hTW₂
+  rcases
+      hstability c hc U₁ V₁ hTW₁ hstrict₁ htail₁_exists
+        η hketa heta_cap U₂ hu₂ hleft₂ hclose with
+    ⟨u, v, hsol, _hweighted, huniform⟩
+  have hconv :
+      UniformMovingFrameConvergence c (fun t x => U₂ (x - c * t)) U₁ := by
+    intro ε hε
+    rcases huniform ε hε with ⟨T, hT⟩
+    refine ⟨T, ?_⟩
+    intro t x ht
+    have hu_eq : u t x = U₂ (x - c * t) :=
+      hcauchy_unique p hregime c U₂ V₂ hTW₂ hstrict₂ htail₂_exists
+        hreg₂ u v hsol t x
+    simpa [hu_eq] using hT t x ht
+  exact
+    Theorem_1_3_profile_eq_of_uniform_movingFrame_and_resolvent
+      hconv
+      (IsTravelingWave.V_eq_frozenElliptic_full hTW₁
+        hstrict₁.hasWaveUpperTailBound hreg₁)
+      (IsTravelingWave.V_eq_frozenElliptic_full hTW₂
+        hstrict₂.hasWaveUpperTailBound hreg₂)
+
+/-- Joint main-conclusion package when stability has already been proved.
+Compared with the B5 energy closure below, this theorem makes the logical
+frontier smaller: Theorem 1.3 is downstream of Theorem 1.2 plus regularity
+and Cauchy uniqueness. -/
+theorem Theorem_1_2_and_1_3.of_Theorem_1_2_and_regular_tail_cauchy_unique
+    (h12 : Theorem_1_2)
+    (hregularity : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η →
+          η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          TravelingWaveRegularity p c U V)
+    (hcauchy_unique : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        TravelingWaveRegularity p c U V →
+        ∀ u v : ℝ → ℝ → ℝ,
+          IsGlobalCauchySolutionFrom p U u v →
+            ∀ t x, u t x = U (x - c * t)) :
+    Theorem_1_2 ∧ Theorem_1_3 := by
+  exact
+    ⟨h12,
+      Theorem_1_3.of_Theorem_1_2_and_regular_tail_cauchy_unique
+        h12 hregularity hcauchy_unique⟩
+
 /-- Joint B5 closure of Theorems 1.2 and 1.3 from the same analytic
 frontier.  Lemma 2.5, the Section 5 signal estimates, and the scalar
 energy-to-weighted-`L²` Grönwall step are discharged before this interface.
