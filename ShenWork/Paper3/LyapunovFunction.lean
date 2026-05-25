@@ -2565,6 +2565,294 @@ theorem intervalDomain_chemotaxisSignalEnergy_completeLyapunovPackage
   exact intervalDomain_chemotaxisSignalEnergySlope_nonpos_of_dissipation
     hc.le hdiss
 
+/-- The interval-domain theta-production functional vanishes on the constant
+reference profile `u ≡ u*`.
+
+Point 17 status: complete theorem, state ①.  No PDE or analytic frontier is
+used here; the interval integral is concrete and the integrand is identically
+zero. -/
+theorem intervalDomain_chemotaxisThetaDissipation_const_eq_zero
+    (uStar theta : ℝ) :
+    chemotaxisThetaDissipation intervalDomain uStar theta
+      (fun _ : intervalDomain.Point => uStar) = 0 := by
+  change intervalDomainIntegral
+    (fun _ : intervalDomainPoint =>
+      (uStar - uStar) * (uStar ^ theta - uStar ^ theta)) = 0
+  simp [intervalDomainIntegral, intervalDomainLift]
+
+/-- The interval-domain entropy functional vanishes on the constant reference
+profile `u(t,x) ≡ u*`.
+
+Point 17 status: complete theorem, state ①.  This discharges the entropy
+functional itself in the constant-profile case; no PDE entropy-production
+hypothesis is used. -/
+theorem intervalDomain_chemotaxisEntropyFunctional_const_eq_zero
+    (m uStar t : ℝ) :
+    chemotaxisEntropyFunctional intervalDomain m uStar
+      (fun _ : ℝ => fun _ : intervalDomain.Point => uStar) t = 0 := by
+  change intervalDomainIntegral
+    (fun _ : intervalDomainPoint =>
+      chemotaxisEntropyDensity m uStar uStar) = 0
+  simp [chemotaxisEntropyDensity_self, intervalDomainIntegral, intervalDomainLift]
+
+/-- The interval-domain gradient norm of the zero profile is zero. -/
+theorem intervalDomain_gradNorm_zero (x : intervalDomain.Point) :
+    intervalDomain.gradNorm (fun _ : intervalDomain.Point => 0) x = 0 := by
+  change intervalDomainGradNorm (fun _ : intervalDomainPoint => 0) x = 0
+  have hzero :
+      intervalDomainLift (fun _ : intervalDomainPoint => 0) = fun _ : ℝ => 0 := by
+    ext y
+    simp [intervalDomainLift]
+  unfold intervalDomainGradNorm
+  rw [hzero]
+  simp
+
+/-- Signal-gradient dissipation vanishes on the constant reference profile
+`v(t,x) ≡ v*`.
+
+Point 17 status: complete theorem, state ①.  The gradient is the gradient of
+`v-v* ≡ 0`, so this avoids any endpoint derivative issue for nonzero constant
+lifts. -/
+theorem intervalDomain_chemotaxisSignalGradientDissipation_const_eq_zero
+    (vStar t : ℝ) :
+    chemotaxisSignalGradientDissipation intervalDomain vStar
+      (fun _ : ℝ => fun _ : intervalDomain.Point => vStar) t = 0 := by
+  change intervalDomain.integral
+    (fun x : intervalDomain.Point =>
+      (intervalDomain.gradNorm (fun _ : intervalDomain.Point => vStar - vStar) x) ^ 2) = 0
+  simp only [sub_self]
+  have hfun :
+      (fun x : intervalDomain.Point =>
+        (intervalDomain.gradNorm (fun _ : intervalDomain.Point => 0) x) ^ 2) =
+        fun _ : intervalDomain.Point => 0 := by
+    ext x
+    simp [intervalDomain_gradNorm_zero]
+  rw [hfun]
+  change intervalDomainIntegral (fun _ : intervalDomainPoint => 0) = 0
+  simp [intervalDomainIntegral, intervalDomainLift]
+
+/-- Signal energy vanishes on the constant reference profile `v(t,x) ≡ v*`.
+
+Point 17 status: complete theorem, state ①.  Both the scalar term and the
+gradient term are identically zero. -/
+theorem intervalDomain_chemotaxisSignalEnergy_const_eq_zero
+    (mu vStar t : ℝ) :
+    chemotaxisSignalEnergy intervalDomain mu vStar
+      (fun _ : ℝ => fun _ : intervalDomain.Point => vStar) t = 0 := by
+  change intervalDomain.integral
+    (fun x : intervalDomain.Point =>
+      mu * (vStar - vStar) ^ 2 +
+        (intervalDomain.gradNorm
+          (fun _ : intervalDomain.Point => vStar - vStar) x) ^ 2) = 0
+  simp only [sub_self, zero_pow two_ne_zero, mul_zero, zero_add]
+  have hfun :
+      (fun x : intervalDomain.Point =>
+        (intervalDomain.gradNorm (fun _ : intervalDomain.Point => 0) x) ^ 2) =
+        fun _ : intervalDomain.Point => 0 := by
+    ext x
+    simp [intervalDomain_gradNorm_zero]
+  rw [hfun]
+  change intervalDomainIntegral (fun _ : intervalDomainPoint => 0) = 0
+  simp [intervalDomainIntegral, intervalDomainLift]
+
+/-- The theta-production differential frontier is fully discharged for the
+constant reference profile. -/
+theorem intervalDomain_thetaDissipation_const_frontiers
+    (uStar theta rate : ℝ) :
+    (∀ t, 0 < t →
+        HasDerivAt
+          (fun tau =>
+            chemotaxisThetaDissipation intervalDomain uStar theta
+              ((fun _ : ℝ => fun _ : intervalDomain.Point => uStar) tau))
+          0 t) ∧
+      (∀ t, 0 < t →
+        (0 : ℝ) ≤
+          -rate *
+            chemotaxisThetaDissipation intervalDomain uStar theta
+              ((fun _ : ℝ => fun _ : intervalDomain.Point => uStar) t)) := by
+  refine ⟨?_, ?_⟩
+  · intro t _ht
+    simpa [intervalDomain_chemotaxisThetaDissipation_const_eq_zero] using
+      (hasDerivAt_const (x := t) (c := (0 : ℝ)))
+  · intro t _ht
+    simp [intervalDomain_chemotaxisThetaDissipation_const_eq_zero]
+
+/-- The entropy differential frontier is fully discharged for the constant
+reference profile. -/
+theorem intervalDomain_entropyFunctional_const_frontiers
+    (m uStar theta c : ℝ) :
+    (∀ t, 0 < t →
+        HasDerivAt
+          (fun tau =>
+            chemotaxisEntropyFunctional intervalDomain m uStar
+              (fun _ : ℝ => fun _ : intervalDomain.Point => uStar) tau)
+          0 t) ∧
+      (∀ t, 0 < t →
+        (0 : ℝ) ≤
+          -c *
+            chemotaxisThetaDissipation intervalDomain uStar theta
+              ((fun _ : ℝ => fun _ : intervalDomain.Point => uStar) t)) := by
+  refine ⟨?_, ?_⟩
+  · intro t _ht
+    simpa [intervalDomain_chemotaxisEntropyFunctional_const_eq_zero] using
+      (hasDerivAt_const (x := t) (c := (0 : ℝ)))
+  · intro t _ht
+    simp [intervalDomain_chemotaxisThetaDissipation_const_eq_zero]
+
+/-- The signal-energy differential, dissipation, and control frontiers are
+fully discharged for the constant reference profile. -/
+theorem intervalDomain_signalEnergy_const_frontiers
+    (mu vStar c K : ℝ) :
+    (∀ t, 0 < t →
+        HasDerivAt
+          (fun tau =>
+            chemotaxisSignalEnergy intervalDomain mu vStar
+              (fun _ : ℝ => fun _ : intervalDomain.Point => vStar) tau)
+          0 t) ∧
+      (∀ t, 0 < t →
+        (1 / 2 : ℝ) * 0 +
+          c * chemotaxisSignalGradientDissipation intervalDomain vStar
+            (fun _ : ℝ => fun _ : intervalDomain.Point => vStar) t ≤ 0) ∧
+      (∀ t, 0 < t →
+        chemotaxisSignalEnergy intervalDomain mu vStar
+          (fun _ : ℝ => fun _ : intervalDomain.Point => vStar) t ≤
+          K * chemotaxisSignalGradientDissipation intervalDomain vStar
+            (fun _ : ℝ => fun _ : intervalDomain.Point => vStar) t) := by
+  refine ⟨?_, ?_, ?_⟩
+  · intro t _ht
+    simpa [intervalDomain_chemotaxisSignalEnergy_const_eq_zero] using
+      (hasDerivAt_const (x := t) (c := (0 : ℝ)))
+  · intro t _ht
+    simp [intervalDomain_chemotaxisSignalGradientDissipation_const_eq_zero]
+  · intro t _ht
+    simp [intervalDomain_chemotaxisSignalEnergy_const_eq_zero,
+      intervalDomain_chemotaxisSignalGradientDissipation_const_eq_zero]
+
+/-- Complete theta-production Lyapunov package for the constant reference
+profile `u(t,x) ≡ u*`.
+
+Point 17 status: complete theorem, state ①.  The previously named
+`hderiv`/`hle` frontiers are not assumptions here; they are proved by
+`intervalDomain_thetaDissipation_const_frontiers`. -/
+theorem intervalDomain_thetaDissipation_const_completeLyapunovPackage
+    {uStar theta rate s : ℝ}
+    (hrate : 0 < rate) (hs : 0 < s)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta) :
+    (∀ t : ℝ, 0 < t → (0 : ℝ) ≤ 0) ∧
+      (∀ t, 0 < t →
+        0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta
+          ((fun _ : ℝ => fun _ : intervalDomain.Point => uStar) t)) ∧
+      AntitoneOn
+        (fun t =>
+          chemotaxisThetaDissipation intervalDomain uStar theta
+            ((fun _ : ℝ => fun _ : intervalDomain.Point => uStar) t))
+        (Ioi (0 : ℝ)) ∧
+      AntitoneOn
+        (fun t =>
+          Real.exp (rate * t) *
+            chemotaxisThetaDissipation intervalDomain uStar theta
+              ((fun _ : ℝ => fun _ : intervalDomain.Point => uStar) t))
+        (Ioi (0 : ℝ)) ∧
+      (∀ a b, 0 < a → a ≤ b →
+        0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta
+          ((fun _ : ℝ => fun _ : intervalDomain.Point => uStar) b) ∧
+          chemotaxisThetaDissipation intervalDomain uStar theta
+            ((fun _ : ℝ => fun _ : intervalDomain.Point => uStar) b) ≤
+            chemotaxisThetaDissipation intervalDomain uStar theta
+              ((fun _ : ℝ => fun _ : intervalDomain.Point => uStar) a) *
+              Real.exp (-rate * (b - a))) ∧
+      ThetaMomentConvergesToZero intervalDomain
+        (fun _ : ℝ => fun _ : intervalDomain.Point => uStar) uStar theta := by
+  have hfrontiers :=
+    intervalDomain_thetaDissipation_const_frontiers uStar theta rate
+  exact
+    thetaDissipation_completeLyapunovPackage_of_hasDerivAt_le_neg_mul_and_integral_nonneg
+      (D := intervalDomain)
+      (u := fun _ : ℝ => fun _ : intervalDomain.Point => uStar)
+      (uStar := uStar) (theta := theta) (rate := rate) (s := s)
+      (momentSlope := fun _ : ℝ => 0)
+      hrate hs intervalDomain_integral_nonneg huStar htheta
+      (fun _t _ht _x => huStar) hfrontiers.1 hfrontiers.2
+
+/-- Full entropy Lyapunov package for the constant reference profile
+`u(t,x) ≡ u*`.
+
+Point 17 status: complete theorem, state ①.  The entropy derivative and
+entropy-production frontiers are discharged in this theorem. -/
+theorem intervalDomain_entropyFunctional_const_fullLyapunovPackage
+    {m uStar theta c : ℝ}
+    (hc : 0 ≤ c) (hm : (1 / 2 : ℝ) ≤ m)
+    (huStar : 0 < uStar) (htheta : 0 ≤ theta) :
+    (∀ t : ℝ, 0 < t → (0 : ℝ) ≤ 0) ∧
+      (∀ t, 0 < t →
+        0 ≤ chemotaxisEntropyFunctional intervalDomain m uStar
+          (fun _ : ℝ => fun _ : intervalDomain.Point => uStar) t) ∧
+      AntitoneOn
+        (fun t =>
+          chemotaxisEntropyFunctional intervalDomain m uStar
+            (fun _ : ℝ => fun _ : intervalDomain.Point => uStar) t)
+        (Ioi (0 : ℝ)) ∧
+      ∀ s t, 0 < s → s ≤ t →
+        0 ≤ chemotaxisEntropyFunctional intervalDomain m uStar
+          (fun _ : ℝ => fun _ : intervalDomain.Point => uStar) t ∧
+          chemotaxisEntropyFunctional intervalDomain m uStar
+            (fun _ : ℝ => fun _ : intervalDomain.Point => uStar) t ≤
+            chemotaxisEntropyFunctional intervalDomain m uStar
+              (fun _ : ℝ => fun _ : intervalDomain.Point => uStar) s := by
+  have hfrontiers :=
+    intervalDomain_entropyFunctional_const_frontiers m uStar theta c
+  exact
+    chemotaxisEntropyFunctional_fullLyapunovPackage_of_dissipation_and_integral_nonneg
+      (D := intervalDomain)
+      (u := fun _ : ℝ => fun _ : intervalDomain.Point => uStar)
+      (m := m) (uStar := uStar) (theta := theta) (c := c)
+      (entropySlope := fun _ : ℝ => 0)
+      hc intervalDomain_integral_nonneg hm huStar htheta
+      (fun _t _ht _x => huStar) hfrontiers.1 hfrontiers.2
+
+/-- Full signal-energy Lyapunov package for the constant reference profile
+`v(t,x) ≡ v*`.
+
+Point 17 status: complete theorem, state ①.  The signal-energy derivative,
+integrated dissipation, and Poincare-control frontiers are discharged here
+because both the energy and the gradient dissipation are identically zero. -/
+theorem intervalDomain_signalEnergy_const_fullLyapunovPackage
+    {mu vStar c K s : ℝ}
+    (hc : 0 < c) (hK : 0 < K) (hs : 0 < s)
+    (hmu : 0 ≤ mu) :
+    (∀ t : ℝ, 0 < t → (0 : ℝ) ≤ 0) ∧
+      (∀ t, 0 ≤ chemotaxisSignalEnergy intervalDomain mu vStar
+        (fun _ : ℝ => fun _ : intervalDomain.Point => vStar) t) ∧
+      AntitoneOn
+        (fun t =>
+          chemotaxisSignalEnergy intervalDomain mu vStar
+            (fun _ : ℝ => fun _ : intervalDomain.Point => vStar) t)
+        (Ioi (0 : ℝ)) ∧
+      AntitoneOn
+        (fun t =>
+          Real.exp ((2 * c / K) * t) *
+            chemotaxisSignalEnergy intervalDomain mu vStar
+              (fun _ : ℝ => fun _ : intervalDomain.Point => vStar) t)
+        (Ioi (0 : ℝ)) ∧
+      (∀ a b, 0 < a → a ≤ b →
+        chemotaxisSignalEnergy intervalDomain mu vStar
+          (fun _ : ℝ => fun _ : intervalDomain.Point => vStar) b ≤
+          chemotaxisSignalEnergy intervalDomain mu vStar
+            (fun _ : ℝ => fun _ : intervalDomain.Point => vStar) a *
+            Real.exp (-(2 * c / K) * (b - a))) ∧
+      Tendsto
+        (fun t =>
+          chemotaxisSignalEnergy intervalDomain mu vStar
+            (fun _ : ℝ => fun _ : intervalDomain.Point => vStar) t)
+        atTop (𝓝 0) := by
+  have hfrontiers := intervalDomain_signalEnergy_const_frontiers mu vStar c K
+  exact
+    intervalDomain_chemotaxisSignalEnergy_completeLyapunovPackage
+      (mu := mu) (vStar := vStar) (c := c) (K := K) (s := s)
+      (v := fun _ : ℝ => fun _ : intervalDomain.Point => vStar)
+      (energySlope := fun _ : ℝ => 0)
+      hc hK hs hmu hfrontiers.1 hfrontiers.2.1 hfrontiers.2.2
+
 end
 
 end ShenWork.Paper3
