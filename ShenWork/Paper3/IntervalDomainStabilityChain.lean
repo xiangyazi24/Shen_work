@@ -266,6 +266,31 @@ theorem intervalDomain_norm_upperEnvelope_persistence_mainline
     intervalDomain_Theorem_2_1_for_concrete_constants_of_uniformPersistence_frontiers
       p M0 uBar vLower h1 h2 h3 h4⟩
 
+/-- Concrete StabilityChain mainline for Paper3 Theorem 2.1 with no
+`StabilityNorms` or `CompactnessData` projection left in the statement.
+
+The norm-continuity component is specialized to
+`intervalDomainStabilityNorms`; the upper-envelope component is the already
+proved concrete `supNorm` monotonicity; and the persistence component is routed
+through the four exposed raw persistence frontiers and the explicit interval
+constants. -/
+theorem intervalDomain_Theorem_2_1_for_concreteStabilityNorms_mainline
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcont : IntervalDomainInitialContinuityRaw p)
+    (h1 : UniformPersistencePart1Raw intervalDomain p)
+    (h2 : UniformPersistencePart2Raw intervalDomain p)
+    (h3 : UniformPersistencePart3Raw intervalDomain p)
+    (h4 : UniformPersistencePart4Raw intervalDomain p (fun _ => uBar) 1) :
+    Lemma_3_3 intervalDomain p intervalDomainStabilityNorms ∧
+      UpperEnvelopeMonotonicityRaw intervalDomain p intervalDomain.supNorm ∧
+      Theorem_2_1 intervalDomain p
+        (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  ⟨intervalDomain_Lemma_3_3_for_concreteStabilityNorms_of_initialContinuityRaw
+      p hcont,
+    intervalDomain_upperEnvelopeMonotonicityRaw_supNorm p,
+    intervalDomain_Theorem_2_1_for_concrete_constants_of_uniformPersistence_frontiers
+      p M0 uBar vLower h1 h2 h3 h4⟩
+
 /-- `Lemma_A_7` for the concrete interval constants, reduced to the explicit
 first-mode domination of the maximum strong threshold. -/
 theorem intervalDomain_Lemma_A_7_of_firstMode_threshold
