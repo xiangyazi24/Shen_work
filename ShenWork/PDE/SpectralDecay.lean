@@ -297,6 +297,15 @@ theorem neumannHeatCoeffCLM_apply
       neumannSemigroupCoeff S t (fun n : ℕ => u n) n := by
   simp [neumannHeatCoeffCLM, neumannHeatCoeffLinearMap, coeffLp2]
 
+/-- Operator norm contraction for the full coefficient heat semigroup. -/
+theorem neumannHeatCoeffCLM_opNorm_le
+    (S : SpectralData) (H : HasNeumannSpectrum S) {t : ℝ} (ht : 0 ≤ t) :
+    ‖neumannHeatCoeffCLM S H t ht‖ ≤ 1 := by
+  refine ContinuousLinearMap.opNorm_le_bound _ zero_le_one ?_
+  intro u
+  simpa [neumannHeatCoeffCLM] using
+    neumannHeatCoeffLinearMap_norm_le S H t ht u
+
 /-- The diagonal heat multiplier at time zero is the identity. -/
 theorem neumannHeatCoeffCLM_zero
     (S : SpectralData) (H : HasNeumannSpectrum S) :
@@ -365,6 +374,14 @@ def removeZeroModeCoeffCLM : ℓ²(ℕ, ℂ) →L[ℂ] ℓ²(ℕ, ℂ) :=
 theorem removeZeroModeCoeffCLM_apply (u : ℓ²(ℕ, ℂ)) (n : ℕ) :
     removeZeroModeCoeffCLM u n = removeZeroMode (fun n : ℕ => u n) n := by
   simp [removeZeroModeCoeffCLM, removeZeroModeCoeffLinearMap, coeffLp2]
+
+/-- Operator norm contraction for the projection complement `I - P₀`. -/
+theorem removeZeroModeCoeffCLM_opNorm_le :
+    ‖removeZeroModeCoeffCLM‖ ≤ (1 : ℝ) := by
+  refine ContinuousLinearMap.opNorm_le_bound _ zero_le_one ?_
+  intro u
+  simpa [removeZeroModeCoeffCLM] using
+    removeZeroModeCoeffLinearMap_norm_le u
 
 /-- Pointwise squared multiplier estimate on the zero-mean subspace. -/
 theorem neumannSemigroupCoeff_removeZero_sq_le
@@ -620,6 +637,20 @@ theorem unitIntervalNeumannHeatSemigroup_add
   rw [harg, Complex.exp_add]
   ring
 
+/-- Physical operator norm contraction for the full unit-interval Neumann heat
+semigroup on `L²(0,1)`. -/
+theorem unitIntervalNeumannHeatSemigroup_opNorm_le
+    {t : ℝ} (ht : 0 ≤ t) :
+    ‖unitIntervalNeumannHeatSemigroup t ht‖ ≤ (1 : ℝ) := by
+  refine ContinuousLinearMap.opNorm_le_bound _ zero_le_one ?_
+  intro f
+  have hcoeff :=
+    neumannHeatCoeffLinearMap_norm_le
+      (S := intervalNeumannSpectrum 1)
+      (intervalNeumannSpectrum_hasNeumannSpectrum zero_lt_one)
+      t ht (unitIntervalCosineHilbertBasis.repr f)
+  simpa [unitIntervalNeumannHeatSemigroup, neumannHeatCoeffCLM] using hcoeff
+
 /-- Physical unit-interval projection complement `I - P₀`, obtained by
 removing the zeroth cosine coefficient. -/
 def unitIntervalNeumannP0Compl : unitIntervalL2 →L[ℂ] unitIntervalL2 :=
@@ -634,6 +665,15 @@ theorem unitIntervalNeumannP0Compl_diagonal (f : unitIntervalL2) (n : ℕ) :
       removeZeroMode
         (fun n : ℕ => unitIntervalCosineHilbertBasis.repr f n) n := by
   simp [unitIntervalNeumannP0Compl, removeZeroModeCoeffCLM_apply]
+
+/-- Physical operator norm contraction for `I - P₀` on `L²(0,1)`. -/
+theorem unitIntervalNeumannP0Compl_opNorm_le :
+    ‖unitIntervalNeumannP0Compl‖ ≤ (1 : ℝ) := by
+  refine ContinuousLinearMap.opNorm_le_bound _ zero_le_one ?_
+  intro f
+  have hcoeff :=
+    removeZeroModeCoeffLinearMap_norm_le (unitIntervalCosineHilbertBasis.repr f)
+  simpa [unitIntervalNeumannP0Compl, removeZeroModeCoeffCLM] using hcoeff
 
 /-- Concrete unit-interval operator `e^{tA} (I - P₀)` on physical `L²`. -/
 def unitIntervalNeumannHeatSemigroupP0Compl (t : ℝ) (ht : 0 ≤ t) :
@@ -723,6 +763,16 @@ theorem intervalNeumannHeatCoeffCLM_diagonal
       (Real.exp (-(((n : ℝ) * Real.pi / L) ^ 2) * t) : ℂ) * u n := by
   simp [intervalNeumannHeatCoeffCLM, neumannHeatCoeffCLM_apply,
     neumannSemigroupCoeff, intervalNeumannSpectrum, intervalNeumannEigenvalue]
+
+/-- Coefficient operator-norm contraction for the interval-length heat
+semigroup. -/
+theorem intervalNeumannHeatCoeffCLM_opNorm_le
+    {L t : ℝ} (hL : 0 < L) (ht : 0 ≤ t) :
+    ‖intervalNeumannHeatCoeffCLM L hL t ht‖ ≤ (1 : ℝ) := by
+  simpa [intervalNeumannHeatCoeffCLM] using
+    neumannHeatCoeffCLM_opNorm_le
+      (S := intervalNeumannSpectrum L)
+      (intervalNeumannSpectrum_hasNeumannSpectrum hL) ht
 
 /-- Semigroup law for the interval-length coefficient heat semigroup. -/
 theorem intervalNeumannHeatCoeffCLM_add
