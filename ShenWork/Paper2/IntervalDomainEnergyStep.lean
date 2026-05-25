@@ -1965,6 +1965,179 @@ theorem all_exponents_of_energy_dissipation_relative_interpolation_lpmono
       henergy hdiss hrel)
     hLpMono
 
+/-- Lower-order mass term conversion needed to use Lemma 4.1 inside a genuine
+Moser step.
+
+`LpMassGradientInterpolationEstimate` supplies the lower-order term
+`C * (∫u)^(p+ρ)`.  The relative Moser step needs the term in the form
+`Crel * ∫u^p`.  This comparison is not part of the current abstract
+`BoundedDomainData` API; on the concrete interval it should come from
+nonnegativity, unit volume, and mass/positive-mass information. -/
+def MoserMassPowerToCurrentLpLowerOrder
+    (D : BoundedDomainData) (u : ℝ → D.Point → ℝ)
+    (T rho p0 : ℝ) : Prop :=
+  ∀ p, p0 ≤ p → ∀ Cmass, ∃ Crel, 0 ≤ Crel ∧ ∀ t, 0 < t → t < T →
+    Cmass * (D.integral (u t)) ^ (p + rho) ≤
+      Crel * D.integral (fun x => (u t x) ^ p)
+
+/-- Fixed-exponent eps-absorption from the mass-gradient interpolation form.
+
+This is the algebraic handoff from the GN/Young output
+`LpMassGradientInterpolationEstimate` to the relative Moser input
+`∫u^(p+ρ) <= eps * ∫|∇(u^(p/2))|² + Ceps * ∫u^p`, after supplying:
+* the chain-rule/coercivity comparison from the weighted `|∇u|²` term to
+  `|∇(u^(p/2))|²`;
+* the lower-order conversion from `(∫u)^(p+ρ)` to `∫u^p`. -/
+theorem moser_relative_eps_absorption_of_mass_gradient_estimate
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T p rho cGrad : ℝ}
+    (hcGrad : 0 < cGrad)
+    (hMG : ∀ eta > 0, ∃ Ceta,
+      LpMassGradientInterpolationEstimate D (p + rho) eta Ceta T u)
+    (hgrad : ∀ t, 0 < t → t < T →
+      D.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (D.gradNorm (u t) x) ^ 2) ≤
+        cGrad * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmassToLp : ∀ Ceta, ∃ Crel, 0 ≤ Crel ∧ ∀ t, 0 < t → t < T →
+      Ceta * (D.integral (u t)) ^ (p + rho) ≤
+        Crel * D.integral (fun x => (u t x) ^ p)) :
+    ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧ ∀ t, 0 < t → t < T →
+      D.integral (fun x => (u t x) ^ (p + rho)) ≤
+        eps * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+        Ceps * D.integral (fun x => (u t x) ^ p) := by
+  intro eps heps
+  have heta_pos : 0 < eps / cGrad := div_pos heps hcGrad
+  obtain ⟨Ceta, hCeta⟩ := hMG (eps / cGrad) heta_pos
+  obtain ⟨Crel, hCrel_nonneg, hCrel⟩ := hmassToLp Ceta
+  refine ⟨Crel, hCrel_nonneg, ?_⟩
+  intro t ht0 htT
+  have hbound := LpMassGradientInterpolationEstimate.bound hCeta ht0 htT
+  have hgrad_t := hgrad t ht0 htT
+  have hmass_t := hCrel t ht0 htT
+  have hcoef_nonneg : 0 ≤ eps / cGrad := div_nonneg heps.le hcGrad.le
+  have hgrad_scaled :
+      (eps / cGrad) *
+          D.integral (fun x =>
+            (u t x) ^ (p + rho - 2) * (D.gradNorm (u t) x) ^ 2) ≤
+        (eps / cGrad) *
+          (cGrad * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2)) :=
+    mul_le_mul_of_nonneg_left hgrad_t hcoef_nonneg
+  calc
+    D.integral (fun x => (u t x) ^ (p + rho))
+        ≤
+          (eps / cGrad) *
+              D.integral (fun x =>
+                (u t x) ^ (p + rho - 2) * (D.gradNorm (u t) x) ^ 2) +
+            Ceta * (D.integral (u t)) ^ (p + rho) := hbound
+    _ ≤
+          (eps / cGrad) *
+              (cGrad * D.integral (fun x =>
+                (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2)) +
+            Crel * D.integral (fun x => (u t x) ^ p) := by
+          linarith
+    _ =
+          eps * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+            Crel * D.integral (fun x => (u t x) ^ p) := by
+          field_simp [ne_of_gt hcGrad]
+
+/-- All-exponent family form of the relative eps-absorption bridge from
+mass-gradient interpolation. -/
+theorem moser_relative_eps_absorption_family_of_mass_gradient_estimate
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T rho p0 : ℝ}
+    (cGrad : ℝ → ℝ)
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hMG : ∀ p, p0 ≤ p → ∀ eta > 0, ∃ Ceta,
+      LpMassGradientInterpolationEstimate D (p + rho) eta Ceta T u)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      D.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (D.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmassToLp : MoserMassPowerToCurrentLpLowerOrder D u T rho p0) :
+    ∀ p, p0 ≤ p → ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧
+      ∀ t, 0 < t → t < T →
+        D.integral (fun x => (u t x) ^ (p + rho)) ≤
+          eps * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          Ceps * D.integral (fun x => (u t x) ^ p) := by
+  intro p hp
+  exact moser_relative_eps_absorption_of_mass_gradient_estimate
+    (hcGrad p hp) (hMG p hp) (hgrad p hp) (hmassToLp p hp)
+
+/-- Moser exponent chain from the energy inequality and the GN/Young
+mass-gradient eps-absorption interface. -/
+theorem moser_iteration_chain_of_energy_dissipation_mass_gradient_relative
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {T p0 rho : ℝ}
+    (cGrad : ℝ → ℝ)
+    (hrho : 0 < rho)
+    (hbase : LpPowerBoundedBefore D p0 T u)
+    (henergy : LpBootstrapEnergyInequality D u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+          A * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * D.integral (fun x => (u t x) ^ p) ≤
+        K * D.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+            B * D.integral (fun x => (u t x) ^ p))
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hMG : ∀ p, p0 ≤ p → ∀ eta > 0, ∃ Ceta,
+      LpMassGradientInterpolationEstimate D (p + rho) eta Ceta T u)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      D.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (D.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmassToLp : MoserMassPowerToCurrentLpLowerOrder D u T rho p0) :
+    ∀ n : ℕ, LpPowerBoundedBefore D (p0 + n * rho) T u := by
+  exact moser_iteration_chain_of_energy_dissipation_relative_interpolation
+    hrho hbase henergy hdiss
+    (moser_relative_eps_absorption_family_of_mass_gradient_estimate
+      cGrad hcGrad hMG hgrad hmassToLp)
+
+/-- All finite exponents from the energy inequality and the GN/Young
+mass-gradient eps-absorption interface. -/
+theorem all_exponents_of_energy_dissipation_mass_gradient_relative_lpmono
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {N T rho p0 : ℝ}
+    (cGrad : ℝ → ℝ)
+    (hboot : AbstractLpBootstrapHypothesis D u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality D u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+          A * D.integral (fun x =>
+            (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * D.integral (fun x => (u t x) ^ p) ≤
+        K * D.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv (fun τ => D.integral (fun x => (u τ x) ^ p)) t +
+            B * D.integral (fun x => (u t x) ^ p))
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hMG : ∀ p, p0 ≤ p → ∀ eta > 0, ∃ Ceta,
+      LpMassGradientInterpolationEstimate D (p + rho) eta Ceta T u)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      D.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (D.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * D.integral (fun x =>
+          (D.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmassToLp : MoserMassPowerToCurrentLpLowerOrder D u T rho p0)
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore D q T u → LpPowerBoundedBefore D p T u) :
+    ∀ pExp > 1, LpPowerBoundedBefore D pExp T u := by
+  exact all_exponents_of_energy_dissipation_relative_interpolation_lpmono
+    hboot henergy hdiss
+    (moser_relative_eps_absorption_family_of_mass_gradient_estimate
+      cGrad hcGrad hMG hgrad hmassToLp)
+    hLpMono
+
 /-- Convert the Paper 2 mass-gradient interpolation estimate into the
 `Z <= eps * G + Ceps` interpolation interface used by the Moser step.
 
@@ -2182,6 +2355,76 @@ theorem intervalDomain_all_exponents_of_energy_dissipation_mass_gradient
   exact moser_interpolation_of_mass_gradient_estimate
     (hcGrad p hp) (hMG p hp) (hgrad p hp) (hmass p hp)
 
+/-- Interval-domain relative eps-absorption family produced from the
+mass-gradient interpolation estimate. -/
+theorem intervalDomain_moser_relative_eps_absorption_family_of_mass_gradient_estimate
+    {u : ℝ → intervalDomain.Point → ℝ} {T rho p0 : ℝ}
+    (cGrad : ℝ → ℝ)
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hMG : ∀ p, p0 ≤ p → ∀ eta > 0, ∃ Ceta,
+      LpMassGradientInterpolationEstimate intervalDomain (p + rho) eta Ceta T u)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmassToLp : MoserMassPowerToCurrentLpLowerOrder intervalDomain u T rho p0) :
+    ∀ p, p0 ≤ p → ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral (fun x => (u t x) ^ (p + rho)) ≤
+          eps * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          Ceps * intervalDomain.integral (fun x => (u t x) ^ p) := by
+  exact moser_relative_eps_absorption_family_of_mass_gradient_estimate
+    cGrad hcGrad hMG hgrad hmassToLp
+
+/-- Interval-domain closure from the energy inequality and the relative
+eps-absorption interface supplied by the mass-gradient estimate. -/
+theorem intervalDomain_all_exponents_of_energy_dissipation_mass_gradient_relative
+    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    (cGrad : ℝ → ℝ)
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv
+            (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+          A * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * intervalDomain.integral (fun x => (u t x) ^ p) ≤
+        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv
+              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+            B * intervalDomain.integral (fun x => (u t x) ^ p))
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hMG : ∀ p, p0 ≤ p → ∀ eta > 0, ∃ Ceta,
+      LpMassGradientInterpolationEstimate intervalDomain (p + rho) eta Ceta T u)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmassToLp : MoserMassPowerToCurrentLpLowerOrder intervalDomain u T rho p0)
+    (hu_nonneg :
+      ∀ t, 0 < t → t < T → ∀ x : intervalDomain.Point, 0 ≤ u t x)
+    (hpow_int :
+      ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
+        IntervalIntegrable
+          (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
+          MeasureTheory.volume 0 1) :
+    ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u := by
+  exact IntervalDomainLpMonotonicity.intervalDomain_all_exponents_of_LpPowerBoundedBefore_chain
+    (AbstractLpBootstrapHypothesis.rho_pos hboot)
+    (moser_iteration_chain_of_energy_dissipation_relative_interpolation
+      (AbstractLpBootstrapHypothesis.rho_pos hboot)
+      (AbstractLpBootstrapHypothesis.initial_lp_bound hboot)
+      henergy hdiss
+      (intervalDomain_moser_relative_eps_absorption_family_of_mass_gradient_estimate
+        cGrad hcGrad hMG hgrad hmassToLp))
+    hu_nonneg hpow_int
+
 /-- Interval-domain all-exponents Moser closure from the solution energy
 inequality and the relative GN/Young absorption
 `∫u^(p+ρ) <= eps * ∫|∇(u^(p/2))|^2 + Ceps * ∫u^p`.
@@ -2313,6 +2556,190 @@ theorem intervalDomain_all_exponents_of_energy_dissipation_mass_gradient_inside_
   intro p hp
   exact moser_interpolation_of_mass_gradient_estimate
     (hcGrad p hp) (hMG p hp) (hgrad p hp) (hmass p hp)
+
+/-- Interior-nonnegative interval-domain closure from the energy inequality
+and relative eps-absorption supplied by the mass-gradient estimate. -/
+theorem intervalDomain_all_exponents_of_energy_dissipation_mass_gradient_relative_inside_nonneg
+    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    (cGrad : ℝ → ℝ)
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv
+            (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+          A * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * intervalDomain.integral (fun x => (u t x) ^ p) ≤
+        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv
+              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+            B * intervalDomain.integral (fun x => (u t x) ^ p))
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hMG : ∀ p, p0 ≤ p → ∀ eta > 0, ∃ Ceta,
+      LpMassGradientInterpolationEstimate intervalDomain (p + rho) eta Ceta T u)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmassToLp : MoserMassPowerToCurrentLpLowerOrder intervalDomain u T rho p0)
+    (hu_nonneg :
+      ∀ t, 0 < t → t < T →
+        ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside → 0 ≤ u t x)
+    (hpow_int :
+      ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
+        IntervalIntegrable
+          (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
+          MeasureTheory.volume 0 1) :
+    ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u := by
+  exact intervalDomain_all_exponents_of_LpPowerBoundedBefore_chain_inside_nonneg
+    (AbstractLpBootstrapHypothesis.rho_pos hboot)
+    (moser_iteration_chain_of_energy_dissipation_relative_interpolation
+      (AbstractLpBootstrapHypothesis.rho_pos hboot)
+      (AbstractLpBootstrapHypothesis.initial_lp_bound hboot)
+      henergy hdiss
+      (intervalDomain_moser_relative_eps_absorption_family_of_mass_gradient_estimate
+        cGrad hcGrad hMG hgrad hmassToLp))
+    hu_nonneg hpow_int
+
+/-- Relative eps-absorption family using the Paper 2 Lemma 4.1 interface as
+the source of mass-gradient interpolation. -/
+theorem intervalDomain_moser_relative_eps_absorption_family_of_Lemma_4_1
+    {params : CM2Params} {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    (cGrad : ℝ → ℝ)
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (hLemma41 : Lemma_4_1 intervalDomain params)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmassToLp : MoserMassPowerToCurrentLpLowerOrder intervalDomain u T rho p0) :
+    ∀ p, p0 ≤ p → ∀ eps > 0, ∃ Ceps, 0 ≤ Ceps ∧
+      ∀ t, 0 < t → t < T →
+        intervalDomain.integral (fun x => (u t x) ^ (p + rho)) ≤
+          eps * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          Ceps * intervalDomain.integral (fun x => (u t x) ^ p) := by
+  refine intervalDomain_moser_relative_eps_absorption_family_of_mass_gradient_estimate
+    cGrad hcGrad ?_ hgrad hmassToLp
+  intro p hp eta heta
+  have hp0_gt_one : 1 < p0 :=
+    lt_of_le_of_lt (le_max_left 1 (rho * N / 2))
+      (AbstractLpBootstrapHypothesis.p0_gt_threshold hboot)
+  have hp_gt_one : 1 < p := lt_of_lt_of_le hp0_gt_one hp
+  have hp_rho_gt_one : 1 < p + rho := by
+    have hrho_pos := AbstractLpBootstrapHypothesis.rho_pos hboot
+    linarith
+  obtain ⟨Ceta, _hCeta_pos, hCeta⟩ :=
+    hLemma41 u₀ hu₀ T (AbstractLpBootstrapHypothesis.T_pos hboot)
+      u v hsol htrace eta heta (p + rho) hp_rho_gt_one
+  exact ⟨Ceta, hCeta⟩
+
+/-- Interval-domain all-exponents closure using Lemma 4.1 to supply the
+relative eps-absorption interface for each Moser exponent. -/
+theorem intervalDomain_all_exponents_of_energy_dissipation_Lemma_4_1_relative
+    {params : CM2Params} {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    (cGrad : ℝ → ℝ)
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv
+            (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+          A * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * intervalDomain.integral (fun x => (u t x) ^ p) ≤
+        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv
+              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+            B * intervalDomain.integral (fun x => (u t x) ^ p))
+    (hLemma41 : Lemma_4_1 intervalDomain params)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmassToLp : MoserMassPowerToCurrentLpLowerOrder intervalDomain u T rho p0)
+    (hu_nonneg :
+      ∀ t, 0 < t → t < T → ∀ x : intervalDomain.Point, 0 ≤ u t x)
+    (hpow_int :
+      ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
+        IntervalIntegrable
+          (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
+          MeasureTheory.volume 0 1) :
+    ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u := by
+  exact intervalDomain_all_exponents_of_energy_dissipation_relative_interpolation
+    hboot henergy hdiss
+    (intervalDomain_moser_relative_eps_absorption_family_of_Lemma_4_1
+      cGrad hboot hLemma41 hu₀ hsol htrace hcGrad hgrad hmassToLp)
+    hu_nonneg hpow_int
+
+/-- Interior-nonnegative version of
+`intervalDomain_all_exponents_of_energy_dissipation_Lemma_4_1_relative`. -/
+theorem intervalDomain_all_exponents_of_energy_dissipation_Lemma_4_1_relative_inside_nonneg
+    {params : CM2Params} {u₀ : intervalDomain.Point → ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    (cGrad : ℝ → ℝ)
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv
+            (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+          A * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * intervalDomain.integral (fun x => (u t x) ^ p) ≤
+        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv
+              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+            B * intervalDomain.integral (fun x => (u t x) ^ p))
+    (hLemma41 : Lemma_4_1 intervalDomain params)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmassToLp : MoserMassPowerToCurrentLpLowerOrder intervalDomain u T rho p0)
+    (hu_nonneg :
+      ∀ t, 0 < t → t < T →
+        ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside → 0 ≤ u t x)
+    (hpow_int :
+      ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
+        IntervalIntegrable
+          (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
+          MeasureTheory.volume 0 1) :
+    ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u := by
+  exact intervalDomain_all_exponents_of_LpPowerBoundedBefore_chain_inside_nonneg
+    (AbstractLpBootstrapHypothesis.rho_pos hboot)
+    (moser_iteration_chain_of_energy_dissipation_relative_interpolation
+      (AbstractLpBootstrapHypothesis.rho_pos hboot)
+      (AbstractLpBootstrapHypothesis.initial_lp_bound hboot)
+      henergy hdiss
+      (intervalDomain_moser_relative_eps_absorption_family_of_Lemma_4_1
+        cGrad hboot hLemma41 hu₀ hsol htrace hcGrad hgrad hmassToLp))
+    hu_nonneg hpow_int
 
 /-- Interior-nonnegative version of the relative-interpolation Moser closure. -/
 theorem intervalDomain_all_exponents_of_energy_dissipation_relative_interpolation_inside_nonneg
