@@ -1,4 +1,5 @@
 import Mathlib
+import ShenWork.Defs
 
 noncomputable section
 
@@ -20,6 +21,15 @@ gamma : ℕ
 hm : 0 < m
 halpha : 0 < alpha
 hgamma : 0 < gamma
+
+def Params.toCMParams (p : Params) : CMParams where
+  m := p.m
+  α := p.alpha
+  γ := p.gamma
+  χ := p.chi
+  hm := by exact_mod_cast Nat.succ_le_of_lt p.hm
+  hα := by exact_mod_cast Nat.succ_le_of_lt p.halpha
+  hγ := by exact_mod_cast Nat.succ_le_of_lt p.hgamma
 
 def E1 : State := ![1, 0, 1, 0]
 def E0 : State := ![0, 0, 0, 0]
@@ -884,6 +894,33 @@ theorem WaveProfileData.shift
   · rcases h.U_strictlyPositiveAtLeft with ⟨δ, hδ, hδle⟩
     exact ⟨δ, hδ,
       (tendsto_atBot_add_const_right atBot a tendsto_id).eventually hδle⟩
+
+theorem WaveProfileData.to_isTravelingWave
+    {p : Params} {U V : ℝ → ℝ} (h : WaveProfileData p U V)
+    (hc : 0 < p.c) (hpos : ∀ x, 0 < U x) :
+    IsTravelingWave p.toCMParams p.c U V := by
+  refine
+    { hc := hc
+      U_pos := hpos
+      ode_U := ?_
+      ode_V := ?_
+      lim_neg_inf := h.lim_neg_inf
+      lim_pos_inf := h.lim_pos_inf }
+  · intro x
+    have hchem :
+        (fun y => (U y) ^ p.toCMParams.m * deriv V y) =
+        (fun y => (U y) ^ p.m * deriv V y) := by
+      ext y
+      simp [Params.toCMParams, Real.rpow_natCast]
+    simpa [Params.toCMParams, hchem, Real.rpow_natCast] using h.ode_U x
+  · intro x
+    simpa [Params.toCMParams, Real.rpow_natCast] using h.ode_V x
+
+theorem TravelingWave.to_isTravelingWave
+    {p : Params} (w : TravelingWave p)
+    (hc : 0 < p.c) (hpos : ∀ x, 0 < w.z x 0) :
+    IsTravelingWave p.toCMParams p.c (fun x => w.z x 0) (fun x => w.z x 2) :=
+  w.to_profileData.to_isTravelingWave hc hpos
 
 theorem local_shooting_segment_from_E1_positive_eigenpair
     (p : Params) {lam δ t₀ : ℝ}
