@@ -68,32 +68,15 @@ theorem boundedBefore_of_corollary21_and_proposition25
   exact hProp25 u₀ hu₀ T hT u v hsol htrace
     (boundednessExponent p) (boundednessExponent_above_threshold p) hLp
 
-/-- Paper 2 Theorem 1.2 on `intervalDomain`, conditional on the honest open
-frontier.
+/-- Paper 2 Theorem 1.2 on `intervalDomain`, with the already-composed
+`Corollary_2_1` as the Tier-1 input.
 
-Inputs classified by the playbook:
-* `hLemma21`, `hLemma26`, `hLemma41`, and `hCor21` are the Tier-1/H0 frontier.
-  The current statement-layer proof consumes `hCor21` directly; the other
-  Tier-1 lemmas are kept explicit in the theorem signature because the paper
-  proof depends on them upstream.
-* `hProp25` is the current repo endpoint turning a high-enough Lp bound into
-  finite-horizon sup boundedness.
-* `hexist` is local existence plus bounded-solution global extension, the same
-  honest Cauchy-theory gap used by the interval-domain Theorem 1.1 bridge.
-* `hslowBootstrap` and `hcriticalBootstrap` are the branch-specific PDE
-  bootstrap seeds.
-* `hcriticalGlobalBound` is the remaining long-time uniformity step needed to
-  turn global existence plus all finite-horizon bootstrap data into the
-  theorem's `IsPaper2Bounded` conclusion.
-
-The conclusion is the full, unweakened repository statement
-`Theorem_1_2 intervalDomain p`. -/
-theorem Theorem_1_2_intervalDomain
+At this layer `Lemma_2_1`, `Lemma_2_6`, and `Lemma_4_1` have already done
+their work upstream in `Corollary_2_1` and `Proposition_2_5`; the remaining
+frontier is exactly the Cauchy theory plus the slow/critical bootstrap and
+long-time boundedness branches. -/
+theorem Theorem_1_2_intervalDomain_of_corollary21_and_proposition25
     (p : CM2Params)
-    (S : SemigroupEstimateData intervalDomain)
-    (_hLemma21 : Lemma_2_1 intervalDomain p S)
-    (_hLemma26 : Lemma_2_6 intervalDomain)
-    (_hLemma41 : Lemma_4_1 intervalDomain p)
     (hCor21 : Corollary_2_1 intervalDomain p)
     (hProp25 : Proposition_2_5 intervalDomain p)
     (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
@@ -174,6 +157,78 @@ theorem Theorem_1_2_intervalDomain
       hcriticalGlobalBound ha_nonneg hb_nonneg hβ hm_eq hχ
         u₀ hu₀ u v hglobal htrace hbootstrapAll
     exact ⟨u, v, hglobal, htrace, hbounded⟩
+
+/-- Paper 2 Theorem 1.2 on `intervalDomain`, conditional on the honest open
+frontier.
+
+Inputs classified by the playbook:
+* `hLemma21`, `hLemma26`, `hLemma41`, and `hCor21` are the Tier-1/H0 frontier.
+  The current statement-layer proof consumes `hCor21` directly; the other
+  Tier-1 lemmas are kept explicit in the theorem signature because the paper
+  proof depends on them upstream.
+* `hProp25` is the current repo endpoint turning a high-enough Lp bound into
+  finite-horizon sup boundedness.
+* `hexist` is local existence plus bounded-solution global extension, the same
+  honest Cauchy-theory gap used by the interval-domain Theorem 1.1 bridge.
+* `hslowBootstrap` and `hcriticalBootstrap` are the branch-specific PDE
+  bootstrap seeds.
+* `hcriticalGlobalBound` is the remaining long-time uniformity step needed to
+  turn global existence plus all finite-horizon bootstrap data into the
+  theorem's `IsPaper2Bounded` conclusion.
+
+The conclusion is the full, unweakened repository statement
+`Theorem_1_2 intervalDomain p`. -/
+theorem Theorem_1_2_intervalDomain
+    (p : CM2Params)
+    (S : SemigroupEstimateData intervalDomain)
+    (_hLemma21 : Lemma_2_1 intervalDomain p S)
+    (_hLemma26 : Lemma_2_6 intervalDomain)
+    (_hLemma41 : Lemma_4_1 intervalDomain p)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
+    (hslowBootstrap :
+      0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
+      0 < p.m → p.m < 1 →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hcriticalBootstrap :
+      0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
+      p.m = 1 → p.χ₀ < chiBeta p →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hcriticalGlobalBound :
+      0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
+      p.m = 1 → p.χ₀ < chiBeta p →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2GlobalClassicalSolution intervalDomain p u v →
+        InitialTrace intervalDomain u₀ u →
+        (∀ T > 0,
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) →
+          IsPaper2Bounded intervalDomain u) :
+    Theorem_1_2 intervalDomain p := by
+  exact Theorem_1_2_intervalDomain_of_corollary21_and_proposition25
+    p hCor21 hProp25 hexist hslowBootstrap hcriticalBootstrap
+    hcriticalGlobalBound
 
 /-- Variant of `Theorem_1_2_intervalDomain` that assembles Corollary 2.1 from
 `Lemma_2_6 intervalDomain` plus the explicit PDE energy derivation.

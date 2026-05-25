@@ -16,23 +16,15 @@ noncomputable section
 
 namespace ShenWork.Paper2.IntervalDomainTheorem13
 
-/-- Paper 2 Theorem 1.3 on `intervalDomain`, conditional on the honest open
-frontier.
+/-- Paper 2 Theorem 1.3 on `intervalDomain`, with the already-composed
+`Corollary_2_1` as the Tier-1 input.
 
-The conclusion is the exact repository statement `Theorem_1_3 intervalDomain p C`.
-The local branch is obtained by:
-local existence → strong-logistic bootstrap seed → Corollary 2.1 →
-`Proposition_2_5`.
-
-The global branch additionally uses the bounded-solution global extension
-criterion and an explicit long-time uniformity bridge
-`hstrongGlobalBound`. -/
-theorem Theorem_1_3_intervalDomain
+This is the strongest statement-layer form currently closed here: the
+remaining hypotheses are exactly interval Cauchy/global extension,
+`Proposition_2_5`, the strong-logistic bootstrap seed, and the long-time
+uniform boundedness bridge. -/
+theorem Theorem_1_3_intervalDomain_of_corollary21_and_proposition25
     (p : CM2Params) (C : Paper2Constants p)
-    (S : SemigroupEstimateData intervalDomain)
-    (_hLemma21 : Lemma_2_1 intervalDomain p S)
-    (_hLemma26 : Lemma_2_6 intervalDomain)
-    (_hLemma41 : Lemma_4_1 intervalDomain p)
     (hCor21 : Corollary_2_1 intervalDomain p)
     (hProp25 : Proposition_2_5 intervalDomain p)
     (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
@@ -99,6 +91,55 @@ theorem Theorem_1_3_intervalDomain
       hstrongGlobalBound ha hb hm_pos hstrong hm_ge
         u₀ hu₀ u v hglobal htrace hbootstrapAll
     exact ⟨u, v, hglobal, htrace, hbounded⟩
+
+/-- Paper 2 Theorem 1.3 on `intervalDomain`, conditional on the honest open
+frontier.
+
+The conclusion is the exact repository statement `Theorem_1_3 intervalDomain p C`.
+The local branch is obtained by:
+local existence → strong-logistic bootstrap seed → Corollary 2.1 →
+`Proposition_2_5`.
+
+The global branch additionally uses the bounded-solution global extension
+criterion and an explicit long-time uniformity bridge
+`hstrongGlobalBound`. -/
+theorem Theorem_1_3_intervalDomain
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (_hLemma21 : Lemma_2_1 intervalDomain p S)
+    (_hLemma26 : Lemma_2_6 intervalDomain)
+    (_hLemma41 : Lemma_4_1 intervalDomain p)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
+    (hstrongBootstrap :
+      0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hstrongGlobalBound :
+      0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
+      1 ≤ p.m →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2GlobalClassicalSolution intervalDomain p u v →
+        InitialTrace intervalDomain u₀ u →
+        (∀ T > 0,
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) →
+          IsPaper2Bounded intervalDomain u) :
+    Theorem_1_3 intervalDomain p C := by
+  exact Theorem_1_3_intervalDomain_of_corollary21_and_proposition25
+    p C hCor21 hProp25 hexist hstrongBootstrap hstrongGlobalBound
 
 /-- Variant of `Theorem_1_3_intervalDomain` that derives Corollary 2.1 from
 `Lemma_2_6 intervalDomain` and the explicit PDE energy derivation before
