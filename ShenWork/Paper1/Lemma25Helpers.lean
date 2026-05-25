@@ -6,6 +6,7 @@
   don't race over them.
 -/
 import ShenWork.Paper1.Statements
+import ShenWork.PDE.ResolventEstimate
 
 open Filter Topology MeasureTheory
 
@@ -18,32 +19,16 @@ namespace ShenWork.Paper1
 lemma kernel_exp_combine_integrable
     {c k : ℝ} (hk_lt : k < c) (y : ℝ) :
     Integrable (fun x : ℝ => Real.exp ((k - c) * |x - y|)) := by
-  have hkc_pos : 0 < c - k := by linarith
-  have hbase := _root_.kernel_exp_neg_mul_abs_integrable hkc_pos y
-  have habs_eq :
-      (fun x : ℝ => Real.exp ((k - c) * |x - y|)) =
-        (fun x : ℝ => Real.exp (-(c - k) * |y - x|)) := by
-    funext x
-    rw [abs_sub_comm y x]
-    congr 1
-    ring
-  rw [habs_eq]
-  exact hbase
+  exact
+    ShenWork.PDE.ResolventEstimate.weightedResolventKernelEnvelope_integrable
+      hk_lt y
 
 lemma integral_exp_combine_eq
     {c k : ℝ} (hk_lt : k < c) (y : ℝ) :
     (∫ x : ℝ, Real.exp ((k - c) * |x - y|)) = 2 / (c - k) := by
-  have hkc_pos : 0 < c - k := by linarith
-  have hbase := integral_exp_neg_mul_abs_sub hkc_pos y
-  have habs_eq :
-      (fun x : ℝ => Real.exp ((k - c) * |x - y|)) =
-        (fun x : ℝ => Real.exp (-(c - k) * |y - x|)) := by
-    funext x
-    rw [abs_sub_comm y x]
-    congr 1
-    ring
-  rw [habs_eq]
-  exact hbase
+  simpa [ShenWork.PDE.ResolventEstimate.wholeLineResolventWeightConstant] using
+    ShenWork.PDE.ResolventEstimate.weightedResolventKernelEnvelope_integral_eq
+      hk_lt y
 
 /-! ### Weight transfer for Lemma 2.5
 
@@ -332,6 +317,28 @@ theorem ExponentialWeight.kernel_integrable
   rw [Real.norm_eq_abs, abs_of_nonneg hLHS_nn]
   have h1 := mul_le_mul_of_nonneg_left hexp_le_one hψ_nn
   linarith
+
+/-! ### Named derivative envelope for `ExponentialWeight` -/
+
+/-- The derivative-bound witness carried by an `ExponentialWeight`.
+
+The paper notation behind the weighted resolvent step uses a bound commonly
+written as `k_dab`; the structure stores it existentially in `deriv_abs_le`.
+This selector exposes that witness without strengthening the weight class. -/
+noncomputable def ExponentialWeight.k_dab (psi : ExponentialWeight) : ℝ :=
+  Classical.choose psi.deriv_abs_le
+
+theorem ExponentialWeight.k_dab_pos (psi : ExponentialWeight) :
+    0 < psi.k_dab :=
+  (Classical.choose_spec psi.deriv_abs_le).1
+
+theorem ExponentialWeight.k_dab_nonneg (psi : ExponentialWeight) :
+    0 ≤ psi.k_dab :=
+  (psi.k_dab_pos).le
+
+theorem ExponentialWeight.deriv_abs_le_k_dab (psi : ExponentialWeight) :
+    ∀ x, |deriv psi.weight x| ≤ psi.k_dab * psi.weight x :=
+  (Classical.choose_spec psi.deriv_abs_le).2
 
 /-! ### Joint integrability of `ψ(x) · K_{x-y} · v(y)` -/
 
@@ -768,6 +775,109 @@ theorem Lemma_2_5_with_explicit_k
     ring
   rw [hC_full_eq] at hassemble
   exact ⟨hLHS_int, hassemble⟩
+
+/-! ### Paper-form RHS for the explicit-k estimate -/
+
+/-- Explicit-k Lemma 2.5 with the right-hand side written in the original
+Paper1 power form `u^(γp)`.  The proof is just the nonnegative-base identity
+`(u^γ)^p = u^(γp)` on top of `Lemma_2_5_with_explicit_k`. -/
+theorem Lemma_2_5_with_explicit_k_original_power
+    (psi : ExponentialWeight) {pExp gamma l mu k : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 1 ≤ pExp)
+    (hgamma : 0 < gamma) (hk_nn : 0 ≤ k)
+    (hk_lt : k < Real.sqrt l)
+    (hk_bound : ∀ z, |deriv psi.weight z| ≤ k * psi.weight z)
+    {u : ℝ → ℝ} (hu : IsCUnifBdd u) (hu_nn : ∀ y, 0 ≤ u y)
+    (hint_hyp :
+      Integrable
+        (fun x : ℝ => (u x) ^ (gamma * pExp) * psi.weight x)) :
+    Integrable
+      (fun x : ℝ =>
+        |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+          psi.weight x) ∧
+    ∫ x : ℝ,
+        |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+          psi.weight x ≤
+      ((Real.sqrt l) ^ pExp *
+          ((mu / (2 * Real.sqrt l)) ^ pExp *
+            (2 / Real.sqrt l) ^ (pExp - 1) *
+            (2 / (Real.sqrt l - k)))) *
+        ∫ x : ℝ, (u x) ^ (gamma * pExp) * psi.weight x := by
+  have hpow_eq :
+      (fun x : ℝ => ((u x) ^ gamma) ^ pExp * psi.weight x) =
+        (fun x : ℝ => (u x) ^ (gamma * pExp) * psi.weight x) := by
+    funext x
+    rw [← Real.rpow_mul (hu_nn x) gamma pExp]
+  have hint_explicit :
+      Integrable
+        (fun x : ℝ => ((u x) ^ gamma) ^ pExp * psi.weight x) := by
+    rw [hpow_eq]
+    exact hint_hyp
+  obtain ⟨hLHS_int, hmain⟩ :=
+    Lemma_2_5_with_explicit_k psi hl hmu hpExp hgamma hk_nn hk_lt
+      hk_bound hu hu_nn hint_explicit
+  refine ⟨hLHS_int, ?_⟩
+  have hintegral_eq :
+      (∫ x : ℝ, ((u x) ^ gamma) ^ pExp * psi.weight x) =
+        ∫ x : ℝ, (u x) ^ (gamma * pExp) * psi.weight x := by
+    rw [hpow_eq]
+  rw [hintegral_eq] at hmain
+  exact hmain
+
+/-! ### `k_dab` specialization of Lemma 2.5 -/
+
+/-- Lemma 2.5 driven by the named `k_dab` derivative envelope of a concrete
+`ExponentialWeight`.  The remaining analytic smallness condition is explicit:
+`k_dab < √l`. -/
+theorem Lemma_2_5_with_k_dab
+    (psi : ExponentialWeight) {pExp gamma l mu : ℝ}
+    (hl : 0 < l) (hmu : 0 < mu) (hpExp : 1 ≤ pExp)
+    (hgamma : 0 < gamma) (hk_lt : psi.k_dab < Real.sqrt l)
+    {u : ℝ → ℝ} (hu : IsCUnifBdd u) (hu_nn : ∀ y, 0 ≤ u y)
+    (hint_hyp :
+      Integrable
+        (fun x : ℝ => (u x) ^ (gamma * pExp) * psi.weight x)) :
+    Integrable
+      (fun x : ℝ =>
+        |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+          psi.weight x) ∧
+    ∫ x : ℝ,
+        |deriv (fun z => Psi (fun y => (u y) ^ gamma) l mu z) x| ^ pExp *
+          psi.weight x ≤
+      ((Real.sqrt l) ^ pExp *
+          ((mu / (2 * Real.sqrt l)) ^ pExp *
+            (2 / Real.sqrt l) ^ (pExp - 1) *
+            (2 / (Real.sqrt l - psi.k_dab)))) *
+        ∫ x : ℝ, (u x) ^ (gamma * pExp) * psi.weight x :=
+  Lemma_2_5_with_explicit_k_original_power psi hl hmu hpExp hgamma
+    (ExponentialWeight.k_dab_nonneg psi) hk_lt
+    (ExponentialWeight.deriv_abs_le_k_dab psi) hu hu_nn hint_hyp
+
+theorem Lemma_2_5_with_k_dab_CMParams_unit
+    (p : CMParams) (psi : ExponentialWeight) {pExp : ℝ}
+    (hpExp : 1 ≤ pExp) (hk_lt : psi.k_dab < 1)
+    {u : ℝ → ℝ} (hu : IsCUnifBdd u) (hu_nn : ∀ y, 0 ≤ u y)
+    (hint_hyp :
+      Integrable
+        (fun x : ℝ => (u x) ^ (p.γ * pExp) * psi.weight x)) :
+    Integrable
+      (fun x : ℝ =>
+        |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^ pExp *
+          psi.weight x) ∧
+    ∫ x : ℝ,
+        |deriv (fun z => Psi (fun y => (u y) ^ p.γ) 1 1 z) x| ^ pExp *
+          psi.weight x ≤
+      ((Real.sqrt 1) ^ pExp *
+          ((1 / (2 * Real.sqrt 1)) ^ pExp *
+            (2 / Real.sqrt 1) ^ (pExp - 1) *
+            (2 / (Real.sqrt 1 - psi.k_dab)))) *
+        ∫ x : ℝ, (u x) ^ (p.γ * pExp) * psi.weight x := by
+  have hk_lt_sqrt : psi.k_dab < Real.sqrt 1 := by
+    rw [Real.sqrt_one]
+    exact hk_lt
+  exact Lemma_2_5_with_k_dab psi (l := 1) (mu := 1)
+    one_pos one_pos hpExp (lt_of_lt_of_le one_pos p.hγ)
+    hk_lt_sqrt hu hu_nn hint_hyp
 
 /-! ### Unit-resolvent specialization of Lemma_2_5_with_explicit_k -/
 

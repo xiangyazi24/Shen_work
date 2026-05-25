@@ -1,3 +1,4 @@
+import ShenWork.Defs
 import ShenWork.PDE.CosineSpectrum
 
 /-!
@@ -26,7 +27,77 @@ noncomputable section
 
 namespace ShenWork.PDE.ResolventEstimate
 
-open ShenWork.Paper3
+open MeasureTheory ShenWork.Paper3
+
+/-! ### Whole-line exponential resolvent kernel helpers -/
+
+/-- The scalar whole-line resolvent kernel envelope `exp(-c |x-y|)`. -/
+def wholeLineResolventKernel (c : ℝ) (x y : ℝ) : ℝ :=
+  Real.exp (-c * |x - y|)
+
+/-- The weight-transfer constant for a log-weight slope `k < c`. -/
+def wholeLineResolventWeightConstant (c k : ℝ) : ℝ :=
+  2 / (c - k)
+
+lemma wholeLineResolventWeightConstant_pos {c k : ℝ} (hk_lt : k < c) :
+    0 < wholeLineResolventWeightConstant c k := by
+  have hck_pos : 0 < c - k := by linarith
+  unfold wholeLineResolventWeightConstant
+  positivity
+
+lemma wholeLineResolventKernel_integrable {c : ℝ} (hc : 0 < c) (y : ℝ) :
+    Integrable (fun x : ℝ => wholeLineResolventKernel c x y) := by
+  have hbase := _root_.kernel_exp_neg_mul_abs_integrable hc y
+  have h_eq :
+      (fun x : ℝ => wholeLineResolventKernel c x y) =
+        (fun x : ℝ => Real.exp (-c * |y - x|)) := by
+    funext x
+    rw [wholeLineResolventKernel, abs_sub_comm x y]
+  rw [h_eq]
+  exact hbase
+
+theorem wholeLineResolventKernel_integral_eq {c : ℝ} (hc : 0 < c) (y : ℝ) :
+    (∫ x : ℝ, wholeLineResolventKernel c x y) =
+      wholeLineResolventWeightConstant c 0 := by
+  have hbase := _root_.integral_exp_neg_mul_abs_sub hc y
+  have h_eq :
+      (fun x : ℝ => wholeLineResolventKernel c x y) =
+        (fun x : ℝ => Real.exp (-c * |y - x|)) := by
+    funext x
+    rw [wholeLineResolventKernel, abs_sub_comm x y]
+  rw [h_eq]
+  simpa [wholeLineResolventWeightConstant] using hbase
+
+lemma weightedResolventKernelEnvelope_integrable
+    {c k : ℝ} (hk_lt : k < c) (y : ℝ) :
+    Integrable (fun x : ℝ => Real.exp ((k - c) * |x - y|)) := by
+  have hkc_pos : 0 < c - k := by linarith
+  have hbase := _root_.kernel_exp_neg_mul_abs_integrable hkc_pos y
+  have habs_eq :
+      (fun x : ℝ => Real.exp ((k - c) * |x - y|)) =
+        (fun x : ℝ => Real.exp (-(c - k) * |y - x|)) := by
+    funext x
+    rw [abs_sub_comm y x]
+    congr 1
+    ring
+  rw [habs_eq]
+  exact hbase
+
+theorem weightedResolventKernelEnvelope_integral_eq
+    {c k : ℝ} (hk_lt : k < c) (y : ℝ) :
+    (∫ x : ℝ, Real.exp ((k - c) * |x - y|)) =
+      wholeLineResolventWeightConstant c k := by
+  have hkc_pos : 0 < c - k := by linarith
+  have hbase := _root_.integral_exp_neg_mul_abs_sub hkc_pos y
+  have habs_eq :
+      (fun x : ℝ => Real.exp ((k - c) * |x - y|)) =
+        (fun x : ℝ => Real.exp (-(c - k) * |y - x|)) := by
+    funext x
+    rw [abs_sub_comm y x]
+    congr 1
+    ring
+  rw [habs_eq]
+  simpa [wholeLineResolventWeightConstant] using hbase
 
 /-- Coefficient `ℓ²` energy for Neumann-cosine coefficients. -/
 def coeffL2Energy (a : ℕ → ℂ) : ℝ :=
