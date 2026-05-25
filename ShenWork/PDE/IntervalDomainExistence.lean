@@ -1896,6 +1896,25 @@ theorem finiteMaximalReachableHorizon_pos_of_localExistence
   exact lt_of_lt_of_le hTmem.1
     (reachable_le_finiteMaximalReachableHorizon hbdd hTmem)
 
+/-- A horizon can be continued past if a strictly larger classical horizon is
+reachable with the same initial trace. -/
+def ReachablePast
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (T : ℝ) : Prop :=
+  ∃ T' > T, ReachableClassicalHorizon p u₀ T'
+
+/-- The finite `sSup` of the reachable horizons is order-maximal: no strictly
+larger reachable horizon exists.  The analytic continuation theorem has to
+contradict this by constructing such a larger horizon from bounded positive
+finite-time behavior. -/
+theorem not_reachablePast_finiteMaximalReachableHorizon
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hbdd : BddAbove (reachableClassicalHorizonSet p u₀)) :
+    ¬ ReachablePast p u₀ (finiteMaximalReachableHorizon p u₀) := by
+  intro h
+  rcases h with ⟨T', hgt, hT'⟩
+  exact not_lt_of_ge
+    (reachable_le_finiteMaximalReachableHorizon hbdd hT') hgt
+
 /-- The already constructed positive equilibrium lies in the global branch of
 the standard continuation alternative: every finite horizon is reachable. -/
 theorem equilibrium_reachableArbitrarilyLong
