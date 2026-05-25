@@ -353,6 +353,24 @@ theorem intervalDomain_integral_nonneg
   unfold intervalDomainLift
   simpa [hx] using hf ⟨x, hx⟩
 
+/-- The concrete unit-interval integral only needs nonnegativity on the
+interior; endpoint values are ignored by Lebesgue integration. -/
+theorem intervalDomain_integral_nonneg_of_inside_nonneg
+    (f : intervalDomain.Point → ℝ)
+    (hf : ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside → 0 ≤ f x) :
+    0 ≤ intervalDomain.integral f := by
+  change 0 ≤ intervalDomainIntegral f
+  unfold intervalDomainIntegral
+  refine intervalIntegral.integral_nonneg_of_ae_restrict
+    (a := (0 : ℝ)) (b := 1) (μ := MeasureTheory.volume) (by norm_num) ?_
+  rw [← MeasureTheory.restrict_Ioo_eq_restrict_Icc
+    (μ := MeasureTheory.volume) (a := (0 : ℝ)) (b := 1)]
+  exact (MeasureTheory.ae_restrict_iff' measurableSet_Ioo).mpr <|
+    Eventually.of_forall fun x hx => by
+      have hxIcc : x ∈ Set.Icc (0 : ℝ) 1 := ⟨hx.1.le, hx.2.le⟩
+      unfold intervalDomainLift
+      simpa [hxIcc] using hf ⟨x, hxIcc⟩ hx
+
 /-- Every point of the concrete unit interval is either an interior point or a
 boundary point for `intervalDomain`. -/
 theorem intervalDomain_mem_inside_or_boundary
