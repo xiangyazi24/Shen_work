@@ -70,6 +70,37 @@ theorem shiftedNeumannAnalyticHeatCoeff_add
     Complex.exp_add]
   ring
 
+theorem shiftedNeumannHeatCoeff_zero
+    (ω : ℝ) (a : ℕ → ℂ) :
+    shiftedNeumannHeatCoeff ω 0 a = a := by
+  funext n
+  simp [shiftedNeumannHeatCoeff]
+
+theorem shiftedNeumannHeatCoeff_add
+    (ω : ℝ) (t s : ℝ) (a : ℕ → ℂ) :
+    shiftedNeumannHeatCoeff ω (t + s) a =
+      shiftedNeumannHeatCoeff ω t (shiftedNeumannHeatCoeff ω s a) := by
+  funext n
+  change
+    (Real.exp (-(shiftedNeumannEigenvalue ω n * (t + s))) : ℂ) * a n =
+      (Real.exp (-(shiftedNeumannEigenvalue ω n * t)) : ℂ) *
+        ((Real.exp (-(shiftedNeumannEigenvalue ω n * s)) : ℂ) * a n)
+  rw [show
+      -(shiftedNeumannEigenvalue ω n * (t + s)) =
+        -(shiftedNeumannEigenvalue ω n * t) +
+          -(shiftedNeumannEigenvalue ω n * s) by ring,
+    Real.exp_add]
+  norm_num [Complex.ofReal_mul]
+  ring
+
+theorem shiftedNeumannAnalyticHeatCoeff_ofReal
+    (ω t : ℝ) (a : ℕ → ℂ) :
+    shiftedNeumannAnalyticHeatCoeff ω (t : ℂ) a =
+      shiftedNeumannHeatCoeff ω t a := by
+  funext n
+  simp [shiftedNeumannAnalyticHeatCoeff, shiftedNeumannHeatCoeff,
+    Complex.ofReal_mul]
+
 theorem shiftedNeumannAnalyticHeatCoeff_analyticAt
     (ω : ℝ) (a : ℕ → ℂ) (n : ℕ) (z : ℂ) :
     AnalyticAt ℂ
@@ -285,6 +316,29 @@ theorem shiftedNeumannGeneratorHeatCoeff_l2_norm_le
           rw [Real.sqrt_mul (sq_nonneg ((1 : ℝ) / t))]
           rw [Real.sqrt_sq hfactor_nonneg]
           rfl
+
+theorem shiftedNeumannHeatCoeff_hasDerivAt
+    (ω : ℝ) (a : ℕ → ℂ) (n : ℕ) (t : ℝ) :
+    HasDerivAt (fun s : ℝ => shiftedNeumannHeatCoeff ω s a n)
+      (-(shiftedNeumannGeneratorHeatCoeff ω t a n)) t := by
+  unfold shiftedNeumannHeatCoeff shiftedNeumannGeneratorHeatCoeff
+  set r := shiftedNeumannEigenvalue ω n with hrdef
+  change HasDerivAt
+    (fun s : ℝ => ((Real.exp (-(r * s)) : ℝ) : ℂ) * a n)
+    (-((r : ℂ) * (((Real.exp (-(r * t)) : ℝ) : ℂ) * a n))) t
+  have hreal : HasDerivAt (fun s : ℝ => Real.exp (-(r * s)))
+      (-(r * Real.exp (-(r * t)))) t := by
+    have hlin : HasDerivAt (fun s : ℝ => -(r * s)) (-r) t := by
+      simpa [mul_comm] using (((hasDerivAt_id t).const_mul r).neg)
+    have h := hlin.exp
+    simpa [mul_comm, mul_left_comm, mul_assoc] using h
+  have hc : HasDerivAt
+      (fun s : ℝ => ((Real.exp (-(r * s)) : ℝ) : ℂ))
+      ((-(r * Real.exp (-(r * t))) : ℝ) : ℂ) t :=
+    hreal.ofReal_comp
+  convert hc.mul_const (a n) using 1
+  rw [Complex.ofReal_neg, Complex.ofReal_mul]
+  ring
 
 /-! ### Spectral-bound exponential decay -/
 
@@ -537,6 +591,17 @@ structure ShiftedNeumannCoefficientAnalyticSemigroup (ω : ℝ) where
       shiftedNeumannAnalyticHeatCoeff ω (z + w) a =
         shiftedNeumannAnalyticHeatCoeff ω z
           (shiftedNeumannAnalyticHeatCoeff ω w a)
+  real_zero :
+    ∀ a : ℕ → ℂ,
+      shiftedNeumannHeatCoeff ω 0 a = a
+  real_add :
+    ∀ (t s : ℝ) (a : ℕ → ℂ),
+      shiftedNeumannHeatCoeff ω (t + s) a =
+        shiftedNeumannHeatCoeff ω t (shiftedNeumannHeatCoeff ω s a)
+  analytic_ofReal :
+    ∀ (t : ℝ) (a : ℕ → ℂ),
+      shiftedNeumannAnalyticHeatCoeff ω (t : ℂ) a =
+        shiftedNeumannHeatCoeff ω t a
   analytic_coeff :
     ∀ (a : ℕ → ℂ) (n : ℕ) (z : ℂ),
       AnalyticAt ℂ
@@ -551,6 +616,10 @@ structure ShiftedNeumannCoefficientAnalyticSemigroup (ω : ℝ) where
       ∀ a : ℕ → ℂ, Summable (fun n : ℕ => ‖a n‖ ^ 2) →
         coeffL2Norm (shiftedNeumannGeneratorHeatCoeff ω t a) ≤
           ((1 : ℝ) / t) * coeffL2Norm a
+  generator_derivative_coeff :
+    ∀ (a : ℕ → ℂ) (n : ℕ) (t : ℝ),
+      HasDerivAt (fun s : ℝ => shiftedNeumannHeatCoeff ω s a n)
+        (-(shiftedNeumannGeneratorHeatCoeff ω t a n)) t
   spectral_bound_decay :
     ∀ t : ℝ, 0 ≤ t →
       ∀ a : ℕ → ℂ, Summable (fun n : ℕ => ‖a n‖ ^ 2) →
@@ -570,6 +639,9 @@ theorem ShiftedNeumannSectorialResolventCertificate.generates
   resolvent_norm_estimate := cert.resolvent_norm_estimate
   zero := shiftedNeumannAnalyticHeatCoeff_zero ω
   add := shiftedNeumannAnalyticHeatCoeff_add ω
+  real_zero := shiftedNeumannHeatCoeff_zero ω
+  real_add := shiftedNeumannHeatCoeff_add ω
+  analytic_ofReal := shiftedNeumannAnalyticHeatCoeff_ofReal ω
   analytic_coeff := shiftedNeumannAnalyticHeatCoeff_analyticAt ω
   rightHalfPlane_l2_bound := by
     intro z hz a ha
@@ -581,6 +653,7 @@ theorem ShiftedNeumannSectorialResolventCertificate.generates
     have hω : 0 ≤ ω :=
       shiftedNeumannShift_nonneg_of_spectrum_nonneg cert.eigenvalue_nonneg
     exact shiftedNeumannGeneratorHeatCoeff_l2_norm_le hω ht ha
+  generator_derivative_coeff := shiftedNeumannHeatCoeff_hasDerivAt ω
   spectral_bound_decay := by
     intro t ht a ha
     exact shiftedNeumannHeatCoeff_l2_norm_decay ht ha
