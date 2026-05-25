@@ -370,9 +370,16 @@
   `intervalDomain_Theorem_2_3_of_theta_derivative_frontiers_from_solution_positivity`
   discharge that nonnegativity side condition from the statement-level
   `PositiveGlobalBoundedSolution` interior positivity and the zero measure of
-  the interval endpoints.  Still state③: deriving the direct differential
-  estimate from the PDE, moment-to-uniform, and uniform C¹ exponential upgrade
-  remain open analytic frontiers.
+  the interval endpoints.  New increment:
+  `intervalDomain_momentToUniform_of_corollary51` projects the
+  moment-to-uniform bridge out of `Corollary_5_1`, and
+  `intervalDomain_Theorem_2_3_of_corollary51_theta_derivative_solution`
+  composes that projection with the theta-derivative solution wrapper.
+  Still state③: deriving the direct differential estimate from the PDE and
+  proving the theorem-level uniform C¹ exponential constants remain open
+  analytic frontiers.  `Corollary_5_1` gives per-solution exponential constants;
+  this is strictly weaker than the `∃ A rate, ∀ u v` constants in
+  `Theorem_2_3`, so the uniform-constant frontier is not discharged.
 
 ### H4.3 — Theorem 2.4 on intervalDomain (global stability strong logistic)
 - **前置**: H3.2 (Lyapunov), H2.1 (global existence)
@@ -397,9 +404,14 @@
   New increment:
   `intervalDomain_Theorem_2_4_formula_derivative_frontiers_from_solution_positivity`
   removes that nonnegativity side condition using `PositiveGlobalBoundedSolution`.
-  This does not close H4.3: the PDE derivation of the direct differential
-  estimate, H2.1/global existence, moment-to-uniform, and uniform exponential
-  upgrade remain open.
+  New increment:
+  `intervalDomain_Theorem_2_4_formula_derivative_solution_of_corollary51`
+  supplies the moment-to-uniform input from `Corollary_5_1`.  This does not
+  close H4.3: the PDE derivation of the direct differential estimate,
+  H2.1/global existence, and theorem-level uniform exponential constants
+  remain open.  The same quantifier gap remains: `Corollary_5_1` provides
+  solution-dependent exponential constants, while `Theorem_2_4` requires one
+  `A, rate` for the whole branch.
 
 ---
 

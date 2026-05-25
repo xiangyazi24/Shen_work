@@ -245,6 +245,18 @@ theorem intervalDomain_thetaDissipation_tendsto_zero_of_hasDerivAt_le_neg_mul_of
           huv (lt_of_lt_of_le hs ht) huStar htheta)
   simpa [ThetaMomentConvergesToZero, chemotaxisThetaDissipation] using htheta
 
+/-- Corollary 5.1 contains the moment-to-uniform bridge as its first
+conjunct.  This projection is useful for the global-stability composites,
+where the exponential branch still requires the stronger theorem-level
+uniform constants. -/
+theorem intervalDomain_momentToUniform_of_corollary51
+    {p : CM2Params} {N : StabilityNorms intervalDomain}
+    {C : Paper3Constants intervalDomain p}
+    (hCor51 : Corollary_5_1 intervalDomain p N C) :
+    MomentConvergenceToUniformRaw intervalDomain p := by
+  intro hm uStar vStar theta htheta u v huv hmoment
+  exact (hCor51 hm).1 uStar vStar theta htheta u v huv hmoment
+
 /-- Conditional interval-domain Paper3 Theorem 2.2.
 
 This is the H4.1 statement-level composite.  The remaining frontiers are the
@@ -794,6 +806,87 @@ theorem intervalDomain_Theorem_2_3_of_theta_derivative_frontiers_from_solution_p
           (by simpa [minimalEquilibrium] using huStar.le)
           p.hα.le hderiv hle)
 
+/-- Interval-domain Paper3 Theorem 2.3 with `MomentConvergenceToUniformRaw`
+supplied by Corollary 5.1 and the Lyapunov frontier reduced to direct
+theta-dissipation differential decay.  The remaining frontiers are the PDE
+derivative/decay estimates and the theorem-level uniform C¹ exponential
+constants. -/
+theorem intervalDomain_Theorem_2_3_of_corollary51_theta_derivative_solution
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (M0 uBar vLower : ℝ)
+    (hCor51 :
+      Corollary_5_1 intervalDomain p N
+        (intervalDomainPaper3Constants p M0 uBar vLower))
+    (hExpNonminimal :
+      1 ≤ p.m →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          p.χ₀ <
+              paperCriticalSensitivity unitIntervalNeumannSpectrum p
+                eq.1 eq.2 →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                  UniformConvergesInSup intervalDomain u eq.1 →
+                    ExponentialC1ConvergenceWith intervalDomain N u v
+                      eq.1 eq.2 A rate)
+    (hExpMinimal :
+      1 ≤ p.m → p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          p.χ₀ <
+              paperCriticalSensitivity unitIntervalNeumannSpectrum p
+                eq.1 eq.2 →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                  HasInitialMass intervalDomain u uStar →
+                    UniformConvergesInSup intervalDomain u eq.1 →
+                      ExponentialC1ConvergenceWith intervalDomain N u v
+                        eq.1 eq.2 A rate)
+    (hLyapNonminimalDeriv :
+      p.χ₀ ≤ 0 → 1 ≤ p.m →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          ∀ u v : ℝ → intervalDomain.Point → ℝ,
+            PositiveGlobalBoundedSolution intervalDomain p u v →
+              ∃ rate > 0, ∃ s : ℝ, 0 < s ∧ ∃ momentSlope : ℝ → ℝ,
+                (∀ t, 0 < t →
+                  HasDerivAt
+                    (fun tau =>
+                      chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                        (u tau))
+                    (momentSlope t) t) ∧
+                (∀ t, 0 < t →
+                  momentSlope t ≤
+                    -rate *
+                      chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                        (u t)))
+    (hLyapMinimalDeriv :
+      p.χ₀ ≤ 0 → 1 ≤ p.m → p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          ∀ u v : ℝ → intervalDomain.Point → ℝ,
+            PositiveGlobalBoundedSolution intervalDomain p u v →
+              HasInitialMass intervalDomain u uStar →
+                ∃ rate > 0, ∃ s : ℝ, 0 < s ∧ ∃ momentSlope : ℝ → ℝ,
+                  (∀ t, 0 < t →
+                    HasDerivAt
+                      (fun tau =>
+                        chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                          (u tau))
+                      (momentSlope t) t) ∧
+                  (∀ t, 0 < t →
+                    momentSlope t ≤
+                      -rate *
+                        chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                          (u t))) :
+    Theorem_2_3 intervalDomain p N :=
+  intervalDomain_Theorem_2_3_of_theta_derivative_frontiers_from_solution_positivity
+    p N (intervalDomain_momentToUniform_of_corollary51 hCor51)
+    hExpNonminimal hExpMinimal hLyapNonminimalDeriv hLyapMinimalDeriv
+
 /-- Conditional interval-domain Paper3 Theorem 2.4.
 
 The global-attractor part is obtained from the Lyapunov moment-decay frontier
@@ -1116,6 +1209,67 @@ theorem intervalDomain_Theorem_2_4_formula_derivative_frontiers_from_solution_po
           (momentSlope := momentSlope) huv hrate (show 0 < s from hs)
           (positiveEquilibrium_fst_pos p ⟨ha, hb⟩).le hα_pos.le
           hderiv hle)
+
+/-- Concrete-constants/first-mode Theorem 2.4 with the moment-to-uniform
+input supplied by Corollary 5.1 and the Lyapunov frontier reduced to direct
+theta-dissipation differential decay.  The theorem-level uniform C¹
+exponential constants remain an explicit stronger frontier. -/
+theorem intervalDomain_Theorem_2_4_formula_derivative_solution_of_corollary51
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (M0 uBar vLower : ℝ)
+    (hCor51 :
+      Corollary_5_1 intervalDomain p N
+        (intervalDomainPaper3Constants p M0 uBar vLower))
+    (hfirst :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        max
+            (max (chiStrong1Formula p eq.1 eq.2)
+              (chiStrong2Formula p eq.1))
+            (max (chiStrong3Formula p M0 eq.1 eq.2)
+              (chiStrong4Formula p M0 eq.1)) ≤
+          ((1 + eq.2) ^ p.β /
+              (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+            (p.μ + Real.pi ^ 2))
+    (hExpNonminimal :
+      1 ≤ p.m →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          p.χ₀ <
+              paperCriticalSensitivity unitIntervalNeumannSpectrum p
+                eq.1 eq.2 →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                  UniformConvergesInSup intervalDomain u eq.1 →
+                    ExponentialC1ConvergenceWith intervalDomain N u v
+                      eq.1 eq.2 A rate)
+    (hLyapStrongFormulaDeriv :
+      0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              PositiveGlobalBoundedSolution intervalDomain p u v →
+                ∃ rate > 0, ∃ s : ℝ, 0 < s ∧ ∃ momentSlope : ℝ → ℝ,
+                  (∀ t, 0 < t →
+                    HasDerivAt
+                      (fun tau =>
+                        chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                          (u tau))
+                      (momentSlope t) t) ∧
+                  (∀ t, 0 < t →
+                    momentSlope t ≤
+                      -rate *
+                        chemotaxisThetaDissipation intervalDomain eq.1 p.α
+                          (u t))) :
+    Theorem_2_4 intervalDomain p N
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_4_formula_derivative_frontiers_from_solution_positivity
+    p N M0 uBar vLower hfirst
+    (intervalDomain_momentToUniform_of_corollary51 hCor51)
+    hExpNonminimal hLyapStrongFormulaDeriv
 
 end
 
