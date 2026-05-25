@@ -213,6 +213,110 @@ theorem Theorem_1_2_intervalDomain_of_eventual_sup_bound
   exact IsPaper2Bounded.of_forall_ge_supNorm_le
     (D := intervalDomain) (u := u) (T := T₀) (M := M) hM
 
+/-- Corollary-level Theorem 1.2 assembly using only the Cauchy-theory fields
+actually needed here: local existence and bounded-solution global extension.
+
+This avoids requiring the `initialSupNormApproach` field from
+`IntervalDomainExistence`, which is needed by the Theorem 1.1 sup-norm
+argument but not by the H2.2 assembly. -/
+theorem Theorem_1_2_intervalDomain_of_local_global_and_eventual_sup_bound
+    (p : CM2Params)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hglobalExtension :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hslowBootstrap :
+      0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
+      0 < p.m → p.m < 1 →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hcriticalBootstrap :
+      0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
+      p.m = 1 → p.χ₀ < chiBeta p →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hcriticalEventualSupBound :
+      0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
+      p.m = 1 → p.χ₀ < chiBeta p →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2GlobalClassicalSolution intervalDomain p u v →
+        InitialTrace intervalDomain u₀ u →
+        (∀ T > 0,
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) →
+          ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M) :
+    Theorem_1_2 intervalDomain p := by
+  intro ha_nonneg hb_nonneg hβ
+  constructor
+  · intro hm_pos hm_lt u₀ hu₀
+    obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ := hlocal u₀ hu₀
+    have hbootstrap :=
+      hslowBootstrap ha_nonneg hb_nonneg hβ hm_pos hm_lt
+        u₀ hu₀ Tmax hTmax u v hsol htrace
+    have hbounded :=
+      boundedBefore_of_corollary21_and_proposition25 p hCor21 hProp25
+        hu₀ hTmax hsol htrace hbootstrap
+    exact ⟨Tmax, hTmax, u, v, hsol, htrace, hbounded⟩
+  · intro hm_eq hχ u₀ hu₀
+    obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ := hlocal u₀ hu₀
+    have hbootstrap :=
+      hcriticalBootstrap ha_nonneg hb_nonneg hβ hm_eq hχ
+        u₀ hu₀ Tmax hTmax u v hsol htrace
+    have hboundedBefore :=
+      boundedBefore_of_corollary21_and_proposition25 p hCor21 hProp25
+        hu₀ hTmax hsol htrace hbootstrap
+    have hm_ge : 1 ≤ p.m := by rw [hm_eq]
+    have hglobal :=
+      hglobalExtension u₀ hu₀ Tmax hTmax u v hsol htrace
+        hboundedBefore hm_ge
+    have hbootstrapAll :
+        ∀ T > 0,
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u := by
+      intro T hT
+      exact hcriticalBootstrap ha_nonneg hb_nonneg hβ hm_eq hχ
+        u₀ hu₀ T hT u v (hglobal.classical hT) htrace
+    obtain ⟨T₀, M, hM⟩ :=
+      hcriticalEventualSupBound ha_nonneg hb_nonneg hβ hm_eq hχ
+        u₀ hu₀ u v hglobal htrace hbootstrapAll
+    have hbounded : IsPaper2Bounded intervalDomain u :=
+      IsPaper2Bounded.of_forall_ge_supNorm_le
+        (D := intervalDomain) (u := u) (T := T₀) (M := M) hM
+    exact ⟨u, v, hglobal, htrace, hbounded⟩
+
 /-- Paper 2 Theorem 1.2 on `intervalDomain`, conditional on the honest open
 frontier.
 
