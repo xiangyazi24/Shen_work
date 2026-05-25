@@ -544,6 +544,84 @@ theorem Theorem_1_1_intervalDomain_of_structured_relative_moser_endpoint
   exact (IntervalDomainTheorem11.Theorem_1_1_intervalDomain_conditional
     p hexist') hχ
 
+/-- Explicit relative-energy component package for one solution branch.  This
+is intentionally lower-level than `IntervalDomainStructuredMoserBootstrapData`:
+it names the bootstrap seed, energy inequality, relative eps-absorption, Lp
+monotonicity, and endpoint data separately. -/
+structure IntervalDomainRelativeMoserEndpointComponents
+    (u : ℝ → intervalDomain.Point → ℝ) (T : ℝ) where
+  N : ℝ
+  rho : ℝ
+  p0 : ℝ
+  pSeq : ℕ → ℝ
+  rootBound : ℕ → ℝ
+  boot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0
+  energy : LpBootstrapEnergyInequality intervalDomain u T rho p0
+  dissipation : MoserDissipationDropBefore intervalDomain u T rho p0
+  relativeInterpolation : RelativeMoserInterpolationBefore intervalDomain u T rho p0
+  lpMono :
+    ∀ {p q : ℝ}, 1 < p → p ≤ q →
+      LpPowerBoundedBefore intervalDomain q T u →
+      LpPowerBoundedBefore intervalDomain p T u
+  endpoint :
+    (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
+      IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound
+
+/-- Component-level constructor for the structured Moser data.  This replaces
+an opaque branch-level Moser package by the exact relative-energy inputs used
+by the chain.  The component fields remain the honest upstream analytic
+frontier. -/
+def IntervalDomainRelativeMoserEndpointComponents.toStructuredData
+    {u : ℝ → intervalDomain.Point → ℝ} {T : ℝ}
+    (h : IntervalDomainRelativeMoserEndpointComponents u T) :
+    IntervalDomainStructuredMoserBootstrapData u T :=
+  { N := h.N
+    rho := h.rho
+    p0 := h.p0
+    boot := h.boot
+    energy := h.energy
+    dissipation := h.dissipation
+    relativeInterpolation := h.relativeInterpolation
+    lpMono := h.lpMono
+    pSeq := h.pSeq
+    rootBound := h.rootBound
+    endpoint := h.endpoint }
+
+/-- Theorem 1.1 bridge with the opaque branch Moser package expanded into its
+relative-energy components.
+
+The hypotheses here are exactly the upstream facts still needed for the
+solution-structured route: bootstrap seed, `LpBootstrapEnergyInequality`,
+dissipation/drop, relative eps-absorption, finite-interval Lp monotonicity, and
+the quantitative endpoint produced by interval GN/Agmon and controlled Moser
+constants. -/
+theorem Theorem_1_1_intervalDomain_of_relative_moser_endpoint_components
+    (p : CM2Params)
+    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
+    (hnonminimalComponents :
+      p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          PositiveInitialDatum intervalDomain u₀ →
+        ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p T u v →
+          InitialTrace intervalDomain u₀ u →
+            IntervalDomainRelativeMoserEndpointComponents u T)
+    (hminimalComponents :
+      p.χ₀ ≤ 0 → p.a = 0 → p.b = 0 →
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          PositiveInitialDatum intervalDomain u₀ →
+        ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p T u v →
+          InitialTrace intervalDomain u₀ u →
+            IntervalDomainRelativeMoserEndpointComponents u T) :
+    Theorem_1_1 intervalDomain p := by
+  refine Theorem_1_1_intervalDomain_of_structured_relative_moser_endpoint
+    p hexist ?_ ?_
+  · intro hχ ha hb u₀ hu₀ T hT u v hsol htrace
+    exact (hnonminimalComponents hχ ha hb u₀ hu₀ T hT u v hsol htrace).toStructuredData
+  · intro hχ ha hb u₀ hu₀ T hT u v hsol htrace
+    exact (hminimalComponents hχ ha hb u₀ hu₀ T hT u v hsol htrace).toStructuredData
+
 /-! ### Concrete interval-domain endpoint audit
 
 The abstract frontier above cannot be discharged from an Lp envelope alone,
