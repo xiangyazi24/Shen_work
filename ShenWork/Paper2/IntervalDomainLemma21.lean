@@ -617,6 +617,95 @@ theorem intervalDomainCosineHilbertCoeff_finite_sq_le_lpNorm_sq
               simp [intervalDomainLpNorm]
   rwa [hnorm] at hbase
 
+/-! ### L² coefficient model for the cosine Hilbert basis -/
+
+/-- Package an explicitly square-summable coefficient sequence as an `ℓ²`
+sequence. -/
+def cosineCoeffLp2 (a : ℕ → ℂ)
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) : ℓ²(ℕ, ℂ) := by
+  refine ⟨a, ?_⟩
+  change Memℓp (a : PreLp (fun _ : ℕ => ℂ)) (2 : ℝ≥0∞)
+  simpa [Memℓp] using ha
+
+/-- Reconstruct an interval `L²` vector from square-summable normalized cosine
+coefficients. -/
+def unitIntervalCosineLpFromCoeffs
+    (a : ℕ → ℂ) (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    Lp ℂ 2 (intervalMeasure 1) :=
+  unitIntervalCosineHilbertBasis.repr.symm (cosineCoeffLp2 a ha)
+
+/-- The Hilbert-basis reconstruction has the prescribed normalized cosine
+coefficients. -/
+theorem unitIntervalCosineLpFromCoeffs_repr
+    (a : ℕ → ℂ) (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) (n : ℕ) :
+    unitIntervalCosineHilbertBasis.repr
+        (unitIntervalCosineLpFromCoeffs a ha) n = a n := by
+  simp [unitIntervalCosineLpFromCoeffs, cosineCoeffLp2]
+
+/-- Spectral heat multiplier on normalized cosine coefficients. -/
+def spectralHeatCoeff (t : ℝ) (a : ℕ → ℂ) (n : ℕ) : ℂ :=
+  (Real.exp (-(t * unitIntervalCosineEigenvalue n)) : ℂ) * a n
+
+/-- The spectral heat multiplier is an `ℓ²` contraction at the coefficient
+level. -/
+theorem spectralHeatCoeff_l2_summable
+    {t : ℝ} (ht : 0 ≤ t) (a : ℕ → ℂ)
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    Summable fun n : ℕ => ‖spectralHeatCoeff t a n‖ ^ 2 := by
+  apply Summable.of_nonneg_of_le
+    (fun n => sq_nonneg _)
+    ?_
+    ha
+  intro n
+  have hlambda : 0 ≤ unitIntervalCosineEigenvalue n := by
+    dsimp [unitIntervalCosineEigenvalue]
+    positivity
+  have htl : 0 ≤ t * unitIntervalCosineEigenvalue n :=
+    mul_nonneg ht hlambda
+  have hexp_nonneg :
+      0 ≤ Real.exp (-(t * unitIntervalCosineEigenvalue n)) :=
+    Real.exp_nonneg _
+  have hexp_le_one :
+      Real.exp (-(t * unitIntervalCosineEigenvalue n)) ≤ 1 :=
+    Real.exp_le_one_iff.mpr (by linarith)
+  have hnorm_nonneg : 0 ≤ ‖a n‖ := norm_nonneg _
+  have hmul :
+      Real.exp (-(t * unitIntervalCosineEigenvalue n)) * ‖a n‖ ≤
+        1 * ‖a n‖ :=
+    mul_le_mul_of_nonneg_right hexp_le_one hnorm_nonneg
+  have hleft_nonneg :
+      0 ≤ Real.exp (-(t * unitIntervalCosineEigenvalue n)) * ‖a n‖ :=
+    mul_nonneg hexp_nonneg hnorm_nonneg
+  calc
+    ‖spectralHeatCoeff t a n‖ ^ 2
+        =
+          (Real.exp (-(t * unitIntervalCosineEigenvalue n)) * ‖a n‖) ^ 2 := by
+            rw [spectralHeatCoeff, norm_mul, Complex.norm_real,
+              Real.norm_eq_abs, abs_of_nonneg hexp_nonneg]
+    _ ≤ ‖a n‖ ^ 2 := by
+            nlinarith
+
+/-- The interval `L²` spectral heat vector reconstructed from coefficients. -/
+def unitIntervalCosineHeatLpFromCoeffs
+    {t : ℝ} (ht : 0 ≤ t) (a : ℕ → ℂ)
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    Lp ℂ 2 (intervalMeasure 1) :=
+  unitIntervalCosineLpFromCoeffs
+    (spectralHeatCoeff t a)
+    (spectralHeatCoeff_l2_summable ht a ha)
+
+/-- Coefficients of the reconstructed interval `L²` spectral heat vector are
+exactly the damped coefficients. -/
+theorem unitIntervalCosineHeatLpFromCoeffs_repr
+    {t : ℝ} (ht : 0 ≤ t) (a : ℕ → ℂ)
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) (n : ℕ) :
+    unitIntervalCosineHilbertBasis.repr
+        (unitIntervalCosineHeatLpFromCoeffs ht a ha) n =
+      spectralHeatCoeff t a n := by
+  exact unitIntervalCosineLpFromCoeffs_repr
+    (spectralHeatCoeff t a)
+    (spectralHeatCoeff_l2_summable ht a ha) n
+
 end ShenWork.Paper2.IntervalDomainLemma21
 
 end

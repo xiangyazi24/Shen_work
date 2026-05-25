@@ -123,6 +123,13 @@
   `S(t)-I` and `A^σ e^{-tA}` bounds for `0 < σ ≤ 1`; it still does not
   identify those coefficient energies with the total statement-layer
   `fractionalNorm`.
+- **L² coefficient model increment** (2026-05-24):
+  `cosineCoeffLp2`, `unitIntervalCosineLpFromCoeffs`, and
+  `unitIntervalCosineHeatLpFromCoeffs` package square-summable normalized
+  cosine coefficients as actual `Lp ℂ 2 (intervalMeasure 1)` vectors via
+  `unitIntervalCosineHilbertBasis.repr.symm`; the repr lemmas prove the
+  coefficients are exactly recovered, and `spectralHeatCoeff_l2_summable`
+  proves the heat multiplier preserves `ℓ²`.
 - **BLOCKER / Point 17**: the full `Lemma_2_1 intervalDomain` statement is
   still not discharged.  The missing piece is not H0.1/H0.2 smoothing; it is
   the fractional-domain part of the abstract `SemigroupEstimateData` package:
