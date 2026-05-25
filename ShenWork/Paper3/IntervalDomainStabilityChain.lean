@@ -242,48 +242,72 @@ theorem intervalDomain_Theorem_2_1_for_concrete_constants_of_uniformPersistence_
     (intervalDomain_Theorem_2_1_part4_for_concrete_constants_of_uniformPersistenceRaw
       p M0 uBar vLower h4)
 
+/-- Paper2-style existence/frontier package for the StabilityChain Theorem 2.1
+mainline.
+
+This is the current honest reduction point: the interval norm-continuity input
+is concrete, and persistence is the concrete interval package from the
+sectorial bridge.  No `StabilityNorms`, `CompactnessData`, or
+`Paper3Constants` field projection remains in the theorem interface. -/
+structure IntervalDomainStabilityChainTheorem21Existence
+    (p : CM2Params) (uBar : ℝ) where
+  initialContinuity : IntervalDomainInitialContinuityRaw p
+  persistence : IntervalDomainSectorialTheorem21Persistence p uBar
+
+/-- The StabilityChain existence package supplies the lower-level persistence
+frontiers used by the raw theorem assembler. -/
+theorem IntervalDomainStabilityChainTheorem21Existence.to_persistenceFrontiers
+    {p : CM2Params} {uBar : ℝ}
+    (h : IntervalDomainStabilityChainTheorem21Existence p uBar) :
+    IntervalDomainSectorialTheorem21PersistenceFrontiers p uBar :=
+  h.persistence.to_persistenceFrontiers
+
+/-- Paper3 Theorem 2.1 for the concrete StabilityChain constants, reduced to
+the Paper2-style interval existence/frontier package. -/
+theorem intervalDomain_Theorem_2_1_for_concrete_constants_of_existence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hexist : IntervalDomainStabilityChainTheorem21Existence p uBar) :
+    Theorem_2_1 intervalDomain p
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_1_for_concrete_constants_of_uniformPersistence_frontiers
+    p M0 uBar vLower
+    hexist.persistence.part1 hexist.persistence.part2
+    hexist.persistence.part3 hexist.persistence.part4
+
 /-- Combined concrete Paper3 mainline for the interval: norm-continuity is
 specialized to `intervalDomainStabilityNorms`, upper-envelope monotonicity is
-specialized to the concrete sup norm, and Theorem 2.1 is assembled from the
-four exposed persistence frontiers. -/
+specialized to the concrete sup norm, and Theorem 2.1 is reduced to the
+Paper2-style interval existence/frontier package. -/
 theorem intervalDomain_norm_upperEnvelope_persistence_mainline
     (p : CM2Params) (M0 uBar vLower : ℝ)
-    (hcont : IntervalDomainInitialContinuityRaw p)
-    (h1 : UniformPersistencePart1Raw intervalDomain p)
-    (h2 : UniformPersistencePart2Raw intervalDomain p)
-    (h3 : UniformPersistencePart3Raw intervalDomain p)
-    (h4 : UniformPersistencePart4Raw intervalDomain p (fun _ => uBar) 1) :
+    (hexist : IntervalDomainStabilityChainTheorem21Existence p uBar) :
     Lemma_3_3 intervalDomain p intervalDomainStabilityNorms ∧
       UpperEnvelopeMonotonicityRaw intervalDomain p intervalDomain.supNorm ∧
       Theorem_2_1 intervalDomain p
         (intervalDomainPaper3Constants p M0 uBar vLower) :=
   ⟨intervalDomain_Lemma_3_3_for_concreteStabilityNorms_of_initialContinuityRaw
-      p hcont,
+      p hexist.initialContinuity,
     intervalDomain_upperEnvelopeMonotonicityRaw_supNorm p,
-    intervalDomain_Theorem_2_1_for_concrete_constants_of_uniformPersistence_frontiers
-      p M0 uBar vLower h1 h2 h3 h4⟩
+    intervalDomain_Theorem_2_1_for_concrete_constants_of_existence
+      p M0 uBar vLower hexist⟩
 
 /-- Concrete StabilityChain mainline for Paper3 Theorem 2.1 with no
 `StabilityNorms` or `CompactnessData` projection left in the statement.
 
 The norm-continuity component is specialized to
 `intervalDomainStabilityNorms`; the upper-envelope component is the already
-proved concrete `supNorm` monotonicity; and the persistence component is routed
-through the four exposed raw persistence frontiers and the explicit interval
-constants. -/
+proved concrete `supNorm` monotonicity; and the persistence component is
+reduced to the Paper2-style interval existence/frontier package and the
+explicit interval constants. -/
 theorem intervalDomain_Theorem_2_1_for_concreteStabilityNorms_mainline
     (p : CM2Params) (M0 uBar vLower : ℝ)
-    (hcont : IntervalDomainInitialContinuityRaw p)
-    (h1 : UniformPersistencePart1Raw intervalDomain p)
-    (h2 : UniformPersistencePart2Raw intervalDomain p)
-    (h3 : UniformPersistencePart3Raw intervalDomain p)
-    (h4 : UniformPersistencePart4Raw intervalDomain p (fun _ => uBar) 1) :
+    (hexist : IntervalDomainStabilityChainTheorem21Existence p uBar) :
     Lemma_3_3 intervalDomain p intervalDomainStabilityNorms ∧
       UpperEnvelopeMonotonicityRaw intervalDomain p intervalDomain.supNorm ∧
       Theorem_2_1 intervalDomain p
         (intervalDomainPaper3Constants p M0 uBar vLower) :=
   intervalDomain_norm_upperEnvelope_persistence_mainline
-    p M0 uBar vLower hcont h1 h2 h3 h4
+    p M0 uBar vLower hexist
 
 /-- `Lemma_A_7` for the concrete interval constants, reduced to the explicit
 first-mode domination of the maximum strong threshold. -/
