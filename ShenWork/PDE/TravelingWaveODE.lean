@@ -568,6 +568,25 @@ theorem local_shooting_segment_from_E1_oneDimRoot
       (p := p) (lam := lam) (δ := δ) (t₀ := t₀) hpos hchar
   exact ⟨lam, hpos, hchar, v, hv, r, hr, eps, heps, hseg⟩
 
+theorem local_shooting_segment_from_E0_stable_eigenpair
+    (p : Params) {δ t₀ : ℝ} :
+    ∃ v : State,
+      (-1 : ℝ) < 0 ∧
+      HasEigenpair (jacobianAtZero p) (-1) v ∧
+      ∃ r > 0, ∃ eps > 0,
+        (E0 + δ • v ∈ Metric.closedBall E0 r →
+          ∃ z : ℝ → State,
+            z t₀ = E0 + δ • v ∧
+            ∀ t ∈ Ioo (t₀ - eps) (t₀ + eps),
+              HasDerivAt z (vectorField p (z t)) t) := by
+  let v : State := stableVectorAtZero
+  have hv : HasEigenpair (jacobianAtZero p) (-1) v := by
+    simpa [v] using jacobianAtZero_stable_eigenpair p
+  obtain ⟨r, hr, eps, heps, hloc⟩ := localSolutionExists p E0 t₀
+  refine ⟨v, by norm_num, hv, r, hr, eps, heps, ?_⟩
+  intro hnear
+  exact hloc (E0 + δ • v) hnear
+
 def HasHeteroclinicE1E0 (p : Params) : Prop :=
   ∃ z : ℝ → State,
     SolvesTWODE p z ∧
