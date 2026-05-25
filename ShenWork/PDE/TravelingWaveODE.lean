@@ -1,5 +1,6 @@
 import Mathlib
 import ShenWork.Defs
+import ShenWork.Paper1.Statements
 
 noncomputable section
 
@@ -1034,6 +1035,29 @@ theorem WaveProfileData.exists_global_classical_solution
   _root_.IsTravelingWave.to_global_classical_solution
     p.toCMParams (h.to_isTravelingWave hc hpos) h.U_c2 h.V_c2
 
+theorem WaveProfileData.to_self_initial_data_stability_branch
+    {p : Params} {U V : ℝ → ℝ} (h : WaveProfileData p U V)
+    (hc : 0 < p.c) (hpos : ∀ x, 0 < U x) (η : ℝ) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      ShenWork.Paper1.IsGlobalCauchySolutionFrom p.toCMParams U u v ∧
+      ShenWork.Paper1.WeightedL2MovingFrameConvergence η p.c u U ∧
+      ShenWork.Paper1.UniformMovingFrameConvergence p.c u U :=
+  ShenWork.Paper1.Theorem_1_2_self_initial_data_branch
+    (h.to_isTravelingWave hc hpos) h.U_c2 h.V_c2
+
+theorem WaveProfileData.to_self_initial_data_admissible_stability_branch
+    {p : Params} {U V : ℝ → ℝ} (h : WaveProfileData p U V)
+    (hc : 0 < p.c) (hpos : ∀ x, 0 < U x) (η : ℝ) :
+    ShenWork.Paper1.NonnegativeInitialDatum U ∧
+      ShenWork.Paper1.StrictlyPositiveAtLeft U ∧
+      ShenWork.Paper1.WeightedL2InitialCloseness η U U ∧
+      ∃ u v : ℝ → ℝ → ℝ,
+        ShenWork.Paper1.IsGlobalCauchySolutionFrom p.toCMParams U u v ∧
+        ShenWork.Paper1.WeightedL2MovingFrameConvergence η p.c u U ∧
+        ShenWork.Paper1.UniformMovingFrameConvergence p.c u U :=
+  ShenWork.Paper1.Theorem_1_2_self_initial_data_admissible_branch
+    (h.to_isTravelingWave hc hpos) h.U_isCUnifBdd h.U_c2 h.V_c2
+
 theorem TravelingWave.to_isTravelingWave
     {p : Params} (w : TravelingWave p)
     (hc : 0 < p.c) (hpos : ∀ x, 0 < w.z x 0) :
@@ -1079,6 +1103,34 @@ theorem TravelingWave.exists_global_classical_solution
     (hc : 0 < p.c) (hpos : ∀ x, 0 < w.z x 0) :
     ∃ u v : ℝ → ℝ → ℝ, IsGlobalClassicalSolution p.toCMParams u v :=
   w.to_profileData.exists_global_classical_solution hc hpos
+
+theorem TravelingWave.to_self_initial_data_stability_branch
+    {p : Params} (w : TravelingWave p)
+    (hc : 0 < p.c) (hpos : ∀ x, 0 < w.z x 0) (η : ℝ) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      ShenWork.Paper1.IsGlobalCauchySolutionFrom p.toCMParams
+        (fun x => w.z x 0) u v ∧
+      ShenWork.Paper1.WeightedL2MovingFrameConvergence η p.c u
+        (fun x => w.z x 0) ∧
+      ShenWork.Paper1.UniformMovingFrameConvergence p.c u
+        (fun x => w.z x 0) :=
+  w.to_profileData.to_self_initial_data_stability_branch hc hpos η
+
+theorem TravelingWave.to_self_initial_data_admissible_stability_branch
+    {p : Params} (w : TravelingWave p)
+    (hc : 0 < p.c) (hpos : ∀ x, 0 < w.z x 0) (η : ℝ) :
+    ShenWork.Paper1.NonnegativeInitialDatum (fun x => w.z x 0) ∧
+      ShenWork.Paper1.StrictlyPositiveAtLeft (fun x => w.z x 0) ∧
+      ShenWork.Paper1.WeightedL2InitialCloseness η
+        (fun x => w.z x 0) (fun x => w.z x 0) ∧
+      ∃ u v : ℝ → ℝ → ℝ,
+        ShenWork.Paper1.IsGlobalCauchySolutionFrom p.toCMParams
+          (fun x => w.z x 0) u v ∧
+        ShenWork.Paper1.WeightedL2MovingFrameConvergence η p.c u
+          (fun x => w.z x 0) ∧
+        ShenWork.Paper1.UniformMovingFrameConvergence p.c u
+          (fun x => w.z x 0) :=
+  w.to_profileData.to_self_initial_data_admissible_stability_branch hc hpos η
 
 theorem local_shooting_segment_from_E1_positive_eigenpair
     (p : Params) {lam δ t₀ : ℝ}
@@ -1299,6 +1351,29 @@ theorem HasPositiveHeteroclinicE1E0.exists_positive_bounded_global_wave_branch
     hp.to_movingFrame_global_classical_solution hc hpos,
     hp.to_movingFrame_bounded_global,
     fun _ hT => hp.to_movingFrame_positive_classical_solution hc hpos hT⟩
+
+theorem HasPositiveHeteroclinicE1E0.exists_self_initial_data_stability_branch
+    {p : Params} (h : HasPositiveHeteroclinicE1E0 p)
+    (hc : 0 < p.c) (η : ℝ) :
+    ∃ U V : ℝ → ℝ, ∃ u v : ℝ → ℝ → ℝ,
+      WaveProfileData p U V ∧
+      IsCUnifBdd U ∧
+      IsTravelingWave p.toCMParams p.c U V ∧
+      ShenWork.Paper1.NonnegativeInitialDatum U ∧
+      ShenWork.Paper1.StrictlyPositiveAtLeft U ∧
+      ShenWork.Paper1.WeightedL2InitialCloseness η U U ∧
+      ShenWork.Paper1.IsGlobalCauchySolutionFrom p.toCMParams U u v ∧
+      ShenWork.Paper1.WeightedL2MovingFrameConvergence η p.c u U ∧
+      ShenWork.Paper1.UniformMovingFrameConvergence p.c u U := by
+  rcases h with ⟨z, hzode, hleft, hright, hpos⟩
+  let w : TravelingWave p := ⟨z, hzode, hleft, hright⟩
+  let U : ℝ → ℝ := fun t => z t 0
+  let V : ℝ → ℝ := fun t => z t 2
+  let hp : WaveProfileData p U V := w.to_profileData
+  rcases hp.to_self_initial_data_admissible_stability_branch hc hpos η with
+    ⟨hnonneg, hleftpos, hclose, u, v, hcauchy, hwL2, hunif⟩
+  exact ⟨U, V, u, v, hp, hp.U_isCUnifBdd, hp.to_isTravelingWave hc hpos,
+    hnonneg, hleftpos, hclose, hcauchy, hwL2, hunif⟩
 
 end TravelingWaveODE
 end PDE
