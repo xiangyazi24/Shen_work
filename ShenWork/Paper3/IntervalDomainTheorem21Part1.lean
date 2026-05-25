@@ -182,6 +182,17 @@ theorem intervalDomain_eventuallyLowerBound_iff_inside_boundary_lower
     hdelta]
   exact intervalDomain_eventually_pointwise_lower_iff_inside_boundary_lower
 
+/-- Lower-envelope bounds are monotone in the lower constant: a stronger
+positive lower bound implies any smaller positive lower bound. -/
+theorem EventuallyLowerBound_of_le
+    {D : BoundedDomainData} {u : ℝ → D.Point → ℝ} {delta eta : ℝ}
+    (hdelta : 0 < delta) (hle : delta ≤ eta)
+    (heta : EventuallyLowerBound D u eta) :
+    EventuallyLowerBound D u delta := by
+  refine ⟨hdelta, ?_⟩
+  filter_upwards [heta.eventually] with t ht
+  exact le_trans hle ht
+
 /-- The `u` component of a positive global bounded solution on the concrete
 interval has lower-bounded time slices eventually.  Interior positivity gives
 the lower bound away from the endpoints; the two endpoints are just two real
@@ -390,6 +401,75 @@ theorem Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds_with_v_margin
         hdeltaU hpointU,
       intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
         htarget_pos htargetV⟩
+
+/-- Statement-layer assembly from lower-envelope persistence when the `v`
+frontier gives a possibly stronger positive lower bound than the theorem's
+formula. -/
+theorem Theorem_2_1_part1_of_lowerEnvelope_with_v_margin
+    {D : BoundedDomainData} (p : CM2Params)
+    (hlower :
+      1 ≤ p.m →
+        ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+            ∃ deltaU > 0, ∃ deltaV > 0,
+              p.ν / p.μ * deltaU ^ p.γ ≤ deltaV ∧
+              EventuallyLowerBound D u deltaU ∧
+              EventuallyLowerBound D v deltaV) :
+    Theorem_2_1_part1 D p := by
+  intro hm u v hsol
+  rcases hlower hm u v hsol with
+    ⟨deltaU, hdeltaU, deltaV, _hdeltaV, htarget_le, huLower, hvLower⟩
+  have htarget_pos : 0 < p.ν / p.μ * deltaU ^ p.γ := by
+    exact mul_pos (div_pos p.hν p.hμ)
+      (Real.rpow_pos_of_pos hdeltaU _)
+  exact
+    ⟨deltaU, hdeltaU, huLower,
+      EventuallyLowerBound_of_le htarget_pos htarget_le hvLower⟩
+
+/-- Interval-domain statement-layer assembly from lower-envelope persistence
+with a stronger `v` lower-bound margin. -/
+theorem Theorem_2_1_part1_intervalDomain_of_lowerEnvelope_with_v_margin
+    (p : CM2Params)
+    (hlower :
+      1 ≤ p.m →
+        ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+            ∃ deltaU > 0, ∃ deltaV > 0,
+              p.ν / p.μ * deltaU ^ p.γ ≤ deltaV ∧
+              EventuallyLowerBound ShenWork.IntervalDomain.intervalDomain u
+                deltaU ∧
+              EventuallyLowerBound ShenWork.IntervalDomain.intervalDomain v
+                deltaV) :
+    Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p :=
+  Theorem_2_1_part1_of_lowerEnvelope_with_v_margin p hlower
+
+/-- Exact statement-layer equivalence with a stronger `v` lower-envelope
+frontier. -/
+theorem Theorem_2_1_part1_intervalDomain_iff_lowerEnvelope_with_v_margin
+    (p : CM2Params) :
+    Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p ↔
+      1 ≤ p.m →
+        ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+            ∃ deltaU > 0, ∃ deltaV > 0,
+              p.ν / p.μ * deltaU ^ p.γ ≤ deltaV ∧
+              EventuallyLowerBound ShenWork.IntervalDomain.intervalDomain u
+                deltaU ∧
+              EventuallyLowerBound ShenWork.IntervalDomain.intervalDomain v
+                deltaV := by
+  constructor
+  · intro h21 hm u v hsol
+    rcases h21 hm u v hsol with ⟨deltaU, hdeltaU, huLower, hvLower⟩
+    have hdeltaV : 0 < p.ν / p.μ * deltaU ^ p.γ := by
+      exact mul_pos (div_pos p.hν p.hμ)
+        (Real.rpow_pos_of_pos hdeltaU _)
+    exact
+      ⟨deltaU, hdeltaU, p.ν / p.μ * deltaU ^ p.γ, hdeltaV,
+        le_rfl, huLower, hvLower⟩
+  · intro hlower
+    exact
+      Theorem_2_1_part1_intervalDomain_of_lowerEnvelope_with_v_margin
+        p hlower
 
 /-- Direct pointwise persistence from a stronger `v` lower-bound frontier. -/
 theorem

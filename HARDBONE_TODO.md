@@ -450,6 +450,14 @@
   `Theorem_2_1_part1_intervalDomain_iff_inside_boundary_lower_bounds_with_v_margin`，
   把同一 stronger-`v` lower-bound margin 也接到
   open-interior+endpoint 版本，并证明它与 statement-layer theorem 等价。
+  新增 `EventuallyLowerBound_of_le`,
+  `Theorem_2_1_part1_of_lowerEnvelope_with_v_margin`,
+  `Theorem_2_1_part1_intervalDomain_of_lowerEnvelope_with_v_margin`, and
+  `Theorem_2_1_part1_intervalDomain_iff_lowerEnvelope_with_v_margin`，把
+  stronger-`v` lower-bound margin 直接降到 lower-envelope 层；调用端只需给
+  `EventuallyLowerBound v deltaV` 与
+  `p.ν / p.μ * deltaU ^ p.γ ≤ deltaV`，Lean 侧负责弱化回定理要求的精确
+  `v` 常数。
   按 17-point standard 属于状态③：条件于未证但明确命名的分析前沿；不是
   无条件完成。
 
