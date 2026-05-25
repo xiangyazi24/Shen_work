@@ -165,6 +165,107 @@ theorem intervalDomain_Lemma_3_4_of_upperEnvelope_eq_supNorm
     have hbound := hraw.2 hχ ha hb t₁ t₂ ht₁ h12
     simpa [hupper] using hbound
 
+/-! ### Concrete norm-continuity and persistence mainline -/
+
+/-- Exact norm-continuity frontier for the concrete interval stability gauge.
+The distance functional is exposed directly rather than hidden behind an
+abstract `StabilityNorms` field. -/
+def IntervalDomainInitialContinuityRaw (p : CM2Params) : Prop :=
+  ∀ uStar > 0,
+    InitialContinuityRaw intervalDomain p
+      intervalDomainStabilityNorms.xpSigmaDistance uStar
+
+/-- Paper3 `Lemma_3_3` for the concrete interval stability norms, routed from
+the exposed raw initial-continuity frontier. -/
+theorem intervalDomain_Lemma_3_3_for_concreteStabilityNorms_of_initialContinuityRaw
+    (p : CM2Params)
+    (hcont : IntervalDomainInitialContinuityRaw p) :
+    Lemma_3_3 intervalDomain p intervalDomainStabilityNorms := by
+  intro uStar huStar
+  simpa [IntervalDomainInitialContinuityRaw, InitialContinuityRaw,
+    InitialContinuityConclusion] using hcont uStar huStar
+
+/-- Paper3 Theorem 2.1(1) on the interval, routed from the exposed raw
+persistence frontier. -/
+theorem intervalDomain_Theorem_2_1_part1_of_uniformPersistenceRaw
+    (p : CM2Params)
+    (h : UniformPersistencePart1Raw intervalDomain p) :
+    Theorem_2_1_part1 intervalDomain p :=
+  h
+
+/-- Paper3 Theorem 2.1(2) on the interval, routed from the exposed raw
+persistence frontier. -/
+theorem intervalDomain_Theorem_2_1_part2_of_uniformPersistenceRaw
+    (p : CM2Params)
+    (h : UniformPersistencePart2Raw intervalDomain p) :
+    Theorem_2_1_part2 intervalDomain p :=
+  h
+
+/-- Paper3 Theorem 2.1(3) on the interval, routed from the exposed raw
+persistence frontier. -/
+theorem intervalDomain_Theorem_2_1_part3_of_uniformPersistenceRaw
+    (p : CM2Params)
+    (h : UniformPersistencePart3Raw intervalDomain p) :
+    Theorem_2_1_part3 intervalDomain p :=
+  h
+
+/-- Paper3 Theorem 2.1(4) for the concrete interval constants, routed from the
+exposed raw minimal persistence frontier with `eventualMinimalUBound = uBar`
+and Gaussian lower constant `1`. -/
+theorem intervalDomain_Theorem_2_1_part4_for_concrete_constants_of_uniformPersistenceRaw
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (h : UniformPersistencePart4Raw intervalDomain p (fun _ => uBar) 1) :
+    Theorem_2_1_part4 intervalDomain p
+      (intervalDomainPaper3Constants p M0 uBar vLower) := by
+  intro ha hb hm hβ hχ0 hχ uStar huStar u v huv hmass
+  have hbound :=
+    h (by norm_num : (0 : ℝ) < 1) ha hb hm hβ hχ0 hχ
+      uStar huStar u v huv hmass
+  simpa [intervalDomainPaper3Constants, minimalVLowerFormula] using hbound
+
+/-- Concrete-constants Paper3 Theorem 2.1 on the interval from the four
+exposed persistence frontiers.  This removes the constants-package projection:
+the minimal branch uses the literal `uBar` and Gaussian constant `1` from
+`intervalDomainPaper3Constants`. -/
+theorem intervalDomain_Theorem_2_1_for_concrete_constants_of_uniformPersistence_frontiers
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (h1 : UniformPersistencePart1Raw intervalDomain p)
+    (h2 : UniformPersistencePart2Raw intervalDomain p)
+    (h3 : UniformPersistencePart3Raw intervalDomain p)
+    (h4 : UniformPersistencePart4Raw intervalDomain p (fun _ => uBar) 1) :
+    Theorem_2_1 intervalDomain p
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  Theorem_2_1.of_parts
+    (intervalDomain_Theorem_2_1_part1_of_uniformPersistenceRaw p h1)
+    (intervalDomain_Theorem_2_1_part2_of_uniformPersistenceRaw p h2)
+    (intervalDomain_Theorem_2_1_part3_of_uniformPersistenceRaw p h3)
+    (intervalDomain_Theorem_2_1_part4_for_concrete_constants_of_uniformPersistenceRaw
+      p M0 uBar vLower h4)
+
+/-- Combined concrete Paper3 mainline for the interval: norm-continuity is
+specialized to `intervalDomainStabilityNorms`, upper-envelope monotonicity is
+specialized to the concrete sup norm, and Theorem 2.1 is assembled from the
+four exposed persistence frontiers. -/
+theorem intervalDomain_norm_upperEnvelope_persistence_mainline
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (hcont : IntervalDomainInitialContinuityRaw p)
+    (hupper : ∀ f : intervalDomain.Point → ℝ,
+      K.upperEnvelope f = intervalDomain.supNorm f)
+    (h1 : UniformPersistencePart1Raw intervalDomain p)
+    (h2 : UniformPersistencePart2Raw intervalDomain p)
+    (h3 : UniformPersistencePart3Raw intervalDomain p)
+    (h4 : UniformPersistencePart4Raw intervalDomain p (fun _ => uBar) 1) :
+    Lemma_3_3 intervalDomain p intervalDomainStabilityNorms ∧
+      Lemma_3_4 intervalDomain p K ∧
+      Theorem_2_1 intervalDomain p
+        (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  ⟨intervalDomain_Lemma_3_3_for_concreteStabilityNorms_of_initialContinuityRaw
+      p hcont,
+    intervalDomain_Lemma_3_4_of_upperEnvelope_eq_supNorm p K hupper,
+    intervalDomain_Theorem_2_1_for_concrete_constants_of_uniformPersistence_frontiers
+      p M0 uBar vLower h1 h2 h3 h4⟩
+
 /-- `Lemma_A_7` for the concrete interval constants, reduced to the explicit
 first-mode domination of the maximum strong threshold. -/
 theorem intervalDomain_Lemma_A_7_of_firstMode_threshold
