@@ -292,6 +292,21 @@
   `C.chiCritical` 接到同一 branch-specific raw package；这只 discharge
   constants/critical-spectrum identification，sectoriality、branch norm-comparison
   与 branch small-data existence 仍是 H3.1 state③ 前沿。
+- **线性谱半群增量** (2026-05-24): 新增
+  `ShenWork/PDE/SectorialOperator.lean`，在 unit-interval cosine Hilbert
+  basis 的 coefficient/`Lp ℂ 2` 层证明 diagonal generator 的 semigroup law、
+  real resolvent `L²` bound、spectral-bound semigroup estimate、以及 explicit
+  uniform spectral gap 给出的指数衰减：
+  `diagonalSemigroupCoeff_add`,
+  `diagonalResolventCoeff_l2_energy_le_of_growth_le`,
+  `diagonalSemigroupLp_norm_sq_le_of_growth_le`,
+  `unitIntervalLinearizedResolvent_l2_energy_le`,
+  `unitIntervalLinearizedSemigroup_l2_energy_decay`, and
+  `unitIntervalLinearizedSemigroupLp_norm_sq_decay`.  这 discharge 了 H3.1
+  的线性 Hilbert-space spectral/semigroup 核心；仍未把它升级成
+  `SectorialLocalExponentialRaw`，因为该 raw statement 量化 nonlinear
+  global classical solutions and requires a Duhamel/fixed-point small-data
+  theory plus `X^σ_p`/`C¹` smoothing estimates.
 - **前置**: spectral theory on bounded domain, resolvent estimates
 - **目标文件**: `ShenWork/PDE/SectorialOperator.lean` (new)
 - **产出**: `SectorialLocalExponentialRaw`
