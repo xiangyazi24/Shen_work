@@ -2438,6 +2438,100 @@ theorem intervalDomain_sectorialMainline_reducesToExistence_coverage
       intervalDomain_sectorialMainline_unconditionalTarget_of_existence
         p M0 uBar vLower hexist
 
+/-- Canonical reduces-to-existence kernel for the B4 interval-domain sectorial
+mainline.
+
+Compared with `IntervalDomainSectorialMainlineExistence`, this package fixes
+the harmless sectorial parameter witnesses to `sigma = 3/4` and `pNorm = 2`.
+The fields left here are exactly the analytic content still needed for the
+interval-domain Theorem 2.1/2.2 endpoint: nonlinear orbit control, ordinary
+and mass-constrained small-data global existence, and the four persistence
+estimates. -/
+structure IntervalDomainSectorialMainlineCoreExistence
+    (p : CM2Params) (uBar : ℝ) where
+  spectralSemigroupOrbitBound :
+    IntervalDomainSectorialSpectralSemigroupOrbitBoundRaw p
+  smallDataGlobal :
+    ∀ uStar, ∀ delta > 0,
+      SmallDataGlobalExistence intervalDomain p uStar delta
+  massConstrainedSmallDataGlobal :
+    ∀ uStar, ∀ delta > 0,
+      MassConstrainedSmallDataGlobalExistence intervalDomain p uStar delta
+  persistencePart1 : UniformPersistencePart1Raw intervalDomain p
+  persistencePart2 : UniformPersistencePart2Raw intervalDomain p
+  persistencePart3 : UniformPersistencePart3Raw intervalDomain p
+  persistencePart4 :
+    UniformPersistencePart4Raw intervalDomain p (fun _ => uBar) 1
+
+/-- Expand the canonical core package to the earlier Paper2-style mainline
+existence package. -/
+def IntervalDomainSectorialMainlineCoreExistence.to_mainlineExistence
+    {p : CM2Params} {uBar : ℝ}
+    (h : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    IntervalDomainSectorialMainlineExistence p uBar where
+  localStability :=
+    { sigma := (3 / 4 : ℝ)
+      pNorm := (2 : ℝ)
+      sigma_low := by norm_num
+      sigma_high := by norm_num
+      pNorm_gt_one := by norm_num
+      spectralSemigroupOrbitBound := h.spectralSemigroupOrbitBound
+      smallDataGlobal := h.smallDataGlobal
+      massConstrainedSmallDataGlobal := h.massConstrainedSmallDataGlobal }
+  persistence :=
+    { part1 := h.persistencePart1
+      part2 := h.persistencePart2
+      part3 := h.persistencePart3
+      part4 := h.persistencePart4 }
+
+/-- Theorem 2.2 on the interval from the canonical core existence kernel, with
+all norms and constants concrete. -/
+theorem intervalDomain_Theorem_2_2_sectorialMainline_of_coreExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_2_sectorialMainline_of_mainlineExistence
+    p M0 uBar vLower hcore.to_mainlineExistence
+
+/-- Theorem 2.1 on the interval from the canonical core existence kernel, with
+all constants concrete. -/
+theorem intervalDomain_Theorem_2_1_sectorialMainline_of_coreExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    Theorem_2_1 intervalDomain p
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_1_sectorialMainline_of_mainlineExistence
+    p M0 uBar vLower hcore.to_mainlineExistence
+
+/-- Combined interval-domain Theorem 2.1/2.2 endpoint from the canonical core
+existence kernel. -/
+theorem intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_coreExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+        intervalDomainSectorialStabilityNorms
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower) ∧
+      Theorem_2_1 intervalDomain p
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_existence
+    p M0 uBar vLower hcore.to_mainlineExistence
+
+/-- Instance-facing endpoint: once the canonical core existence kernel is
+registered, the interval-domain Theorem 2.1/2.2 sectorial mainline has no
+explicit frontier argument. -/
+theorem intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_coreExistenceFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hcore : Fact (IntervalDomainSectorialMainlineCoreExistence p uBar)] :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+        intervalDomainSectorialStabilityNorms
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower) ∧
+      Theorem_2_1 intervalDomain p
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_coreExistence
+    p M0 uBar vLower hcore.out
+
 /-- Persistence plus the raw nonminimal exponential-upgrade frontier gives
 the per-solution exponential conclusion of Corollary 5.1.
 
