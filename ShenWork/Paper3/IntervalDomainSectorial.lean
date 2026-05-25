@@ -78,6 +78,67 @@ theorem intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBou
       mul_le_mul_of_nonneg_left hop hC.le
     exact le_trans hsemigroup hmul
 
+/-- Lemma A.1 on the concrete interval once the remaining nonlinear
+orbit-comparison frontier has been supplied.
+
+This is the raw-free theorem-level interface used below for Theorem 2.2's
+`X^σ_p` local exponential branch.  The proof is definitional after the
+spectral-decay discharge above, since `Lemma_A_1` and
+`SectorialLocalExponentialRaw` have the same exposed estimate for
+`StabilityNorms`. -/
+theorem intervalDomain_Lemma_A_1_of_spectralSemigroupOrbitBound
+    (p : CM2Params) (N : StabilityNorms intervalDomain)
+    (horbit : IntervalDomainSpectralSemigroupOrbitBoundRaw p N) :
+    Lemma_A_1 intervalDomain p unitIntervalNeumannSpectrum N :=
+  intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBound
+    p N horbit
+
+/-- Theorem 2.2's `X^σ_p` local exponential branch on the interval with the
+old `SectorialLocalExponentialRaw` input discharged through the concrete
+spectral-decay theorem.
+
+Point 17 status: conditional theorem, state ③.  The linear spectral decay is
+proved in `PDE/SpectralDecay.lean`; the remaining assumption is the named
+nonlinear orbit-comparison frontier, not the raw sectorial package. -/
+theorem
+intervalDomain_Theorem_2_2_xpSigma_local_exponential_branch_of_spectralSemigroupOrbitBound
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hC : Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p C)
+    (horbit : IntervalDomainSpectralSemigroupOrbitBoundRaw p N) :
+    (∀ sigma pNorm, 1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        p.χ₀ < C.chiCritical eq.1 →
+          ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+            ∀ u₀ : intervalDomain.Point → ℝ,
+              PositiveInitialDatum intervalDomain u₀ →
+              N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+                ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                  IsPaper2GlobalClassicalSolution intervalDomain p u v →
+                  InitialTrace intervalDomain u₀ u →
+                    ExponentialC1ConvergenceWith intervalDomain N u v
+                      eq.1 eq.2 A rate) ∧
+    (∀ sigma pNorm, 1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+      p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          p.χ₀ < C.chiCritical uStar →
+            ∃ eps > 0, ∃ A > 0, ∃ rate > 0,
+              ∀ u₀ : intervalDomain.Point → ℝ,
+                PositiveInitialDatum intervalDomain u₀ →
+                N.xpSigmaDistance sigma pNorm u₀ (fun _ => eq.1) ≤ eps →
+                  ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                    IsPaper2GlobalClassicalSolution intervalDomain p u v →
+                    InitialTrace intervalDomain u₀ u →
+                      ExponentialC1ConvergenceWith intervalDomain N u v
+                        eq.1 eq.2 A rate) :=
+  Theorem_2_2_xpSigma_local_exponential_branch_of_Lemma_A_1
+    intervalDomain unitIntervalNeumannSpectrum p N C
+    unitIntervalNeumannSpectrum_hasNeumannSpectrum hC
+    (intervalDomain_Lemma_A_1_of_spectralSemigroupOrbitBound p N horbit)
+
 /-- Interval-domain Paper3 Theorem 2.2 with the old raw sectorial blocker
 replaced by a nonlinear orbit-control frontier plus the proved spectral decay.
 
@@ -110,6 +171,99 @@ theorem intervalDomain_Theorem_2_2_of_spectralSemigroupOrbitBound_frontiers
       (intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBound
         p N horbit)
       hsigma_low hsigma_high hpNorm hcontrol hexist hmexist
+
+/-- H3.1 interval-domain local exponential bridge with
+`SectorialLocalExponentialRaw` removed from the assumptions.
+
+The proof first derives the raw estimate from the orbit-comparison frontier
+and the proved unit-interval spectral decay, then uses the existing Paper3
+sup-to-`X^σ_p` bridge. -/
+theorem intervalDomain_locallyExponentiallyStableFromSup_of_spectralSemigroupOrbitBound
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    {sigma pNorm uStar vStar : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (horbit : IntervalDomainSpectralSemigroupOrbitBoundRaw p N)
+    (hstable :
+      LinearlyStable unitIntervalNeumannSpectrum p uStar vStar)
+    (hxp :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤
+          intervalDomain.supNorm (fun x => u₀ x - uStar))
+    (hexist : ∀ delta > 0, SmallDataGlobalExistence intervalDomain p uStar delta) :
+    LocallyExponentiallyStableFromSup intervalDomain p N uStar vStar :=
+  (intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBound
+    p N horbit).locally_from_xpSigma_le_supNorm
+      hsigma_low hsigma_high hpNorm hstable hxp hexist
+
+/-- Mass-constrained version of
+`intervalDomain_locallyExponentiallyStableFromSup_of_spectralSemigroupOrbitBound`. -/
+theorem
+intervalDomain_massConstrainedLocallyExponentiallyStableFromSup_of_spectralSemigroupOrbitBound
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    {sigma pNorm uStar vStar : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (horbit : IntervalDomainSpectralSemigroupOrbitBoundRaw p N)
+    (hstable :
+      LinearlyStable unitIntervalNeumannSpectrum p uStar vStar)
+    (hxp :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤
+          intervalDomain.supNorm (fun x => u₀ x - uStar))
+    (hexist :
+      ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p uStar delta) :
+    MassConstrainedLocallyExponentiallyStableFromSup intervalDomain p N
+      uStar vStar :=
+  (intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBound
+    p N horbit).massConstrained_from_xpSigma_le_supNorm
+      hsigma_low hsigma_high hpNorm hstable hxp hexist
+
+/-- Spectral-gap-to-local-stability bridge with the raw sectorial input
+removed from the assumptions. -/
+theorem
+intervalDomain_locallyExponentiallyStableFromSup_of_spectralGap_spectralSemigroupOrbitBound
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    {sigma pNorm uStar vStar rate : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (horbit : IntervalDomainSpectralSemigroupOrbitBoundRaw p N)
+    (hgap : UnitIntervalLinearSpectralGap p uStar vStar rate)
+    (hxp :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤
+          intervalDomain.supNorm (fun x => u₀ x - uStar))
+    (hexist : ∀ delta > 0, SmallDataGlobalExistence intervalDomain p uStar delta) :
+    LocallyExponentiallyStableFromSup intervalDomain p N uStar vStar :=
+  intervalDomain_locallyExponentiallyStableFromSup_of_spectralSemigroupOrbitBound
+    p N hsigma_low hsigma_high hpNorm horbit hgap.linearlyStable hxp hexist
+
+/-- Mass-constrained spectral-gap-to-local-stability bridge with the raw
+sectorial input removed from the assumptions. -/
+theorem
+intervalDomain_massConstrainedLocalExp_of_spectralGap_spectralSemigroupOrbitBound
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    {sigma pNorm uStar vStar rate : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (horbit : IntervalDomainSpectralSemigroupOrbitBoundRaw p N)
+    (hgap : UnitIntervalLinearSpectralGap p uStar vStar rate)
+    (hxp :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤
+          intervalDomain.supNorm (fun x => u₀ x - uStar))
+    (hexist :
+      ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p uStar delta) :
+    MassConstrainedLocallyExponentiallyStableFromSup intervalDomain p N
+      uStar vStar :=
+  intervalDomain_massConstrainedLocallyExponentiallyStableFromSup_of_spectralSemigroupOrbitBound
+    p N hsigma_low hsigma_high hpNorm horbit hgap.linearlyStable hxp hexist
 
 /-- H3.1 interval-domain local exponential bridge from the honest raw
 sectorial-semigroup hypothesis, plus the two explicit analytic side inputs
@@ -874,6 +1028,100 @@ theorem intervalDomain_linearStabilityInstabilityRaw_of_branch_frontiers_critica
         (hxpMinimal uStar huStar) (hmexistMinimal uStar huStar)
     rcases hlocal with ⟨δ, hδ, A, hA, rate, hrate, hmain⟩
     exact ⟨hstable, δ, hδ, A, hA, rate, hrate, hmain⟩
+
+/-- Branch-specific Theorem 2.2 local-stability interfaces with the raw
+sectorial input discharged through spectral decay plus the named nonlinear
+orbit-comparison frontier. -/
+theorem intervalDomain_linearStabilityInstabilityRaw_of_branch_frontiers_spectralSemigroupOrbitBound
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (horbit : IntervalDomainSpectralSemigroupOrbitBoundRaw p N)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hxpPositive :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          N.xpSigmaDistance sigma pNorm u₀
+              (fun _ => (positiveEquilibrium p ⟨ha, hb⟩).1) ≤
+            intervalDomain.supNorm
+              (fun x => u₀ x - (positiveEquilibrium p ⟨ha, hb⟩).1))
+    (hexistPositive :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b), ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p
+          (positiveEquilibrium p ⟨ha, hb⟩).1 delta)
+    (hxpMinimal :
+      ∀ uStar, 0 < uStar →
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          N.xpSigmaDistance sigma pNorm u₀
+              (fun _ => (minimalEquilibrium p uStar).1) ≤
+            intervalDomain.supNorm
+              (fun x => u₀ x - (minimalEquilibrium p uStar).1))
+    (hmexistMinimal :
+      ∀ uStar, 0 < uStar → ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p
+          (minimalEquilibrium p uStar).1 delta) :
+    LinearStabilityInstabilityNonminimalRaw intervalDomain p
+        unitIntervalNeumannSpectrum N.c1Distance
+        (fun uStar =>
+          paperCriticalSensitivity unitIntervalNeumannSpectrum p uStar
+            (p.ν / p.μ * uStar ^ p.γ)) ∧
+    LinearStabilityInstabilityMinimalRaw intervalDomain p
+        unitIntervalNeumannSpectrum N.c1Distance
+        (fun uStar =>
+          paperCriticalSensitivity unitIntervalNeumannSpectrum p uStar
+            (p.ν / p.μ * uStar ^ p.γ)) :=
+  intervalDomain_linearStabilityInstabilityRaw_of_branch_frontiers
+    p N
+    (intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBound
+      p N horbit)
+    hsigma_low hsigma_high hpNorm hxpPositive hexistPositive
+    hxpMinimal hmexistMinimal
+
+/-- Critical-spectrum constants-package version of
+`intervalDomain_linearStabilityInstabilityRaw_of_branch_frontiers_spectralSemigroupOrbitBound`. -/
+theorem
+intervalDomain_linearStabilityInstabilityRaw_criticalSpectrum_of_spectralSemigroupOrbitBound
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hC : Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p C)
+    (horbit : IntervalDomainSpectralSemigroupOrbitBoundRaw p N)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hxpPositive :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          N.xpSigmaDistance sigma pNorm u₀
+              (fun _ => (positiveEquilibrium p ⟨ha, hb⟩).1) ≤
+            intervalDomain.supNorm
+              (fun x => u₀ x - (positiveEquilibrium p ⟨ha, hb⟩).1))
+    (hexistPositive :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b), ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p
+          (positiveEquilibrium p ⟨ha, hb⟩).1 delta)
+    (hxpMinimal :
+      ∀ uStar, 0 < uStar →
+        ∀ u₀ : intervalDomain.Point → ℝ,
+          N.xpSigmaDistance sigma pNorm u₀
+              (fun _ => (minimalEquilibrium p uStar).1) ≤
+            intervalDomain.supNorm
+              (fun x => u₀ x - (minimalEquilibrium p uStar).1))
+    (hmexistMinimal :
+      ∀ uStar, 0 < uStar → ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p
+          (minimalEquilibrium p uStar).1 delta) :
+    LinearStabilityInstabilityNonminimalRaw intervalDomain p
+        unitIntervalNeumannSpectrum N.c1Distance C.chiCritical ∧
+    LinearStabilityInstabilityMinimalRaw intervalDomain p
+        unitIntervalNeumannSpectrum N.c1Distance C.chiCritical :=
+  intervalDomain_linearStabilityInstabilityRaw_of_branch_frontiers_criticalSpectrum
+    p N C hC
+    (intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBound
+      p N horbit)
+    hsigma_low hsigma_high hpNorm hxpPositive hexistPositive
+    hxpMinimal hmexistMinimal
 
 end
 
