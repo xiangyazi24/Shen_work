@@ -276,9 +276,11 @@
   existence, and mass-constrained small-data existence.  It also proves
   `intervalDomain_Theorem_2_2_of_xpSigma_le_supNorm_frontiers`, discharging
   the abstract `SupControlsXpSigmaDistance` condition from the primitive
-  pointwise comparison `X^σ_p ≤ supNorm`.  This is state③, not DONE: the
-  sectorial, primitive norm-comparison, and local-existence frontiers are still
-  unproved.
+  pointwise comparison `X^σ_p ≤ supNorm`, and
+  `intervalDomain_Theorem_2_2_for_concrete_constants`, discharging the
+  constants package and critical-spectrum identity through
+  `intervalDomainPaper3Constants`.  This is state③, not DONE: the sectorial,
+  primitive norm-comparison, and local-existence frontiers are still unproved.
 
 ### H4.2 — Theorem 2.3 on intervalDomain (global stability χ≤0)
 - **前置**: H3.2 (Lyapunov), H3.3 (persistence)
@@ -300,9 +302,15 @@
   It composes the strong-logistic Lyapunov moment-decay frontier with
   `MomentConvergenceToUniformRaw`; `Lemma_A_7` plus the unit-interval
   critical-spectrum identity supplies the critical-threshold input for the
-  uniform C¹ exponential-upgrade frontier.  This is state③, not DONE:
-  H2.1/global existence, moment-to-uniform, and uniform exponential upgrade
-  remain explicit frontiers.
+  uniform C¹ exponential-upgrade frontier.  The concrete-constants wrappers
+  `intervalDomain_Theorem_2_4_of_concrete_constants_firstMode_and_frontiers`
+  and
+  `intervalDomain_Theorem_2_4_of_concrete_constants_firstMode_formula_frontiers`
+  discharge the constants package, critical-spectrum identity, `Lemma_A_7`,
+  and the package-shaped strong-logistic condition down to the explicit
+  first-mode/formula frontiers.  This is state③, not DONE: H2.1/global
+  existence, moment-to-uniform, Lyapunov formula decay, and uniform exponential
+  upgrade remain explicit frontiers.
 
 ---
 

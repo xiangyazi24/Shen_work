@@ -84,6 +84,42 @@ theorem intervalDomain_Lemma_A_7_of_firstMode_threshold
   · intro ha hb
     simpa [unitIntervalNeumannSpectrum] using hfirst ha hb
 
+/-- On the concrete interval constants, the package-shaped nonminimal
+stability condition is exactly the explicit formula condition at a positive
+equilibrium. -/
+theorem intervalDomain_concrete_positiveEquilibrium_formulaCondition_of_condition
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    {ha : 0 < p.a} {hb : 0 < p.b}
+    (hcond :
+      NonminimalGlobalStabilityCondition intervalDomain p
+        (intervalDomainPaper3Constants p M0 uBar vLower)
+        (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    NonminimalGlobalStabilityFormulaCondition p
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 M0 := by
+  rcases hcond with h | h | h | h
+  · rcases h with ⟨hm, hrel, hχ0, hχ⟩
+    exact Or.inl
+      ⟨hm, hrel, hχ0,
+        by
+          simpa [intervalDomainPaper3Constants, positiveEquilibrium] using hχ⟩
+  · rcases h with ⟨hm, hβ, hrel, hχ0, hχ⟩
+    exact Or.inr (Or.inl
+      ⟨hm, hβ, hrel, hχ0,
+        by
+          simpa [intervalDomainPaper3Constants] using hχ⟩)
+  · rcases h with ⟨hm, hγ, hrel, hχ⟩
+    exact Or.inr (Or.inr (Or.inl
+      ⟨hm, hγ, hrel,
+        by
+          simpa [intervalDomainPaper3Constants, positiveEquilibrium] using
+            hχ⟩))
+  · rcases h with ⟨hm, hβ, hγ, hrel, hχ⟩
+    exact Or.inr (Or.inr (Or.inr
+      ⟨hm, hβ, hγ, hrel,
+        by
+          simpa [intervalDomainPaper3Constants] using hχ⟩))
+
 /-- The Lyapunov theta-dissipation functional is definitionally the moment
 functional used by `ThetaMomentConvergesToZero`. -/
 theorem intervalDomain_thetaMomentConvergesToZero_of_chemotaxisThetaDissipation
@@ -457,6 +493,62 @@ theorem intervalDomain_Theorem_2_4_of_concrete_constants_firstMode_and_frontiers
     (intervalDomainPaper3Constants_usesCriticalSpectrum p M0 uBar vLower)
     (intervalDomain_Lemma_A_7_of_firstMode_threshold p M0 uBar vLower hfirst)
     hmomentToUniform hExpNonminimal hLyapStrong
+
+/-- Concrete-constants/first-mode version of Theorem 2.4 whose Lyapunov
+frontier is stated directly with the paper's explicit formula condition. -/
+theorem intervalDomain_Theorem_2_4_of_concrete_constants_firstMode_formula_frontiers
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (M0 uBar vLower : ℝ)
+    (hfirst :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        max
+            (max (chiStrong1Formula p eq.1 eq.2)
+              (chiStrong2Formula p eq.1))
+            (max (chiStrong3Formula p M0 eq.1 eq.2)
+              (chiStrong4Formula p M0 eq.1)) ≤
+          ((1 + eq.2) ^ p.β /
+              (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+            (p.μ + Real.pi ^ 2))
+    (hmomentToUniform : MomentConvergenceToUniformRaw intervalDomain p)
+    (hExpNonminimal :
+      1 ≤ p.m →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          p.χ₀ <
+              paperCriticalSensitivity unitIntervalNeumannSpectrum p
+                eq.1 eq.2 →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                  UniformConvergesInSup intervalDomain u eq.1 →
+                    ExponentialC1ConvergenceWith intervalDomain N u v
+                      eq.1 eq.2 A rate)
+    (hLyapStrongFormula :
+      0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              PositiveGlobalBoundedSolution intervalDomain p u v →
+                Tendsto
+                  (fun t =>
+                    chemotaxisThetaDissipation intervalDomain eq.1 p.α (u t))
+                  atTop (𝓝 0)) :
+    Theorem_2_4 intervalDomain p N
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_4_of_concrete_constants_firstMode_and_frontiers
+    p N M0 uBar vLower hfirst hmomentToUniform hExpNonminimal
+    (by
+      intro ha_pos hb_pos hβ_nonneg hα_pos hγ_pos ha hb
+      dsimp
+      intro hcond u v huv
+      exact hLyapStrongFormula ha_pos hb_pos hβ_nonneg hα_pos hγ_pos
+        ha hb
+        (intervalDomain_concrete_positiveEquilibrium_formulaCondition_of_condition
+          p M0 uBar vLower (ha := ha) (hb := hb) hcond)
+        u v huv)
 
 end
 
