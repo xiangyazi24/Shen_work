@@ -187,6 +187,78 @@ theorem IntervalDomainThetaDissipationDerivativeDecayData.two_time_bound
             Real.exp (-h.rate * (b - a)) :=
   (h.completeLyapunovPackage huv huStar htheta).2.2.2.2.1
 
+/-- Complete fixed-solution theta-dissipation Lyapunov data.
+
+This is the post-energy interface consumed most directly by global-stability
+arguments: it records all monotonicity and convergence consequences rather
+than the derivative identity from which they may have been proved. -/
+structure IntervalDomainThetaDissipationCompleteLyapunovData
+    (u : ℝ → intervalDomain.Point → ℝ) (uStar theta : ℝ) where
+  rate : ℝ
+  rate_pos : 0 < rate
+  start : ℝ
+  start_pos : 0 < start
+  slope : ℝ → ℝ
+  slope_nonpos : ∀ t, 0 < t → slope t ≤ 0
+  nonneg :
+    ∀ t, 0 < t →
+      0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta (u t)
+  antitone :
+    AntitoneOn
+      (fun t => chemotaxisThetaDissipation intervalDomain uStar theta (u t))
+      (Ioi (0 : ℝ))
+  weighted_antitone :
+    AntitoneOn
+      (fun t =>
+        Real.exp (rate * t) *
+          chemotaxisThetaDissipation intervalDomain uStar theta (u t))
+      (Ioi (0 : ℝ))
+  two_time_bound :
+    ∀ a b, 0 < a → a ≤ b →
+      0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta (u b) ∧
+        chemotaxisThetaDissipation intervalDomain uStar theta (u b) ≤
+          chemotaxisThetaDissipation intervalDomain uStar theta (u a) *
+            Real.exp (-rate * (b - a))
+  thetaMoment : ThetaMomentConvergesToZero intervalDomain u uStar theta
+
+/-- Complete Lyapunov data gives the theta-dissipation `Tendsto` frontier
+expected by the stability chain. -/
+theorem IntervalDomainThetaDissipationCompleteLyapunovData.tendsto_zero
+    {u : ℝ → intervalDomain.Point → ℝ} {uStar theta : ℝ}
+    (h : IntervalDomainThetaDissipationCompleteLyapunovData u uStar theta) :
+    Tendsto
+      (fun t => chemotaxisThetaDissipation intervalDomain uStar theta (u t))
+      atTop (𝓝 0) := by
+  simpa [ThetaMomentConvergesToZero, chemotaxisThetaDissipation] using
+    h.thetaMoment
+
+/-- The derivative/decay interface proves the complete Lyapunov-data
+interface for positive global bounded solutions.
+
+Point 17 status: complete theorem, state ① for this interface conversion.  The
+PDE derivative identity is still exactly the named input contained in
+`h.deriv`; no additional analytic fact is assumed silently. -/
+def IntervalDomainThetaDissipationDerivativeDecayData.toCompleteLyapunovData
+    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta : ℝ}
+    (h : IntervalDomainThetaDissipationDerivativeDecayData u uStar theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta) :
+    IntervalDomainThetaDissipationCompleteLyapunovData u uStar theta := by
+  have hpack := h.completeLyapunovPackage huv huStar htheta
+  exact
+    { rate := h.rate
+      rate_pos := h.rate_pos
+      start := h.start
+      start_pos := h.start_pos
+      slope := h.slope
+      slope_nonpos := hpack.1
+      nonneg := hpack.2.1
+      antitone := hpack.2.2.1
+      weighted_antitone := hpack.2.2.2.1
+      two_time_bound := hpack.2.2.2.2.1
+      thetaMoment := hpack.2.2.2.2.2 }
+
 /-- Complete fixed-solution theta-dissipation derivative/decay data for the
 constant reference profile `u(t,x) ≡ u*`.
 
@@ -234,6 +306,30 @@ theorem intervalDomain_thetaMoment_const
       (fun _ : ℝ => fun _ : intervalDomain.Point => uStar) uStar theta :=
   intervalDomain_thetaMomentConvergesToZero_of_chemotaxisThetaDissipation
     (intervalDomain_thetaDissipation_const_tendsto_zero uStar theta)
+
+/-- Complete Lyapunov data for the constant reference profile. -/
+def intervalDomainThetaDissipationCompleteLyapunovData_const
+    {uStar theta rate start : ℝ}
+    (hrate : 0 < rate) (hstart : 0 < start)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta) :
+    IntervalDomainThetaDissipationCompleteLyapunovData
+      (fun _ : ℝ => fun _ : intervalDomain.Point => uStar) uStar theta := by
+  have hpack :=
+    intervalDomain_thetaDissipation_const_completeLyapunovPackage
+      (uStar := uStar) (theta := theta) (rate := rate) (s := start)
+      hrate hstart huStar htheta
+  exact
+    { rate := rate
+      rate_pos := hrate
+      start := start
+      start_pos := hstart
+      slope := fun _ => 0
+      slope_nonpos := hpack.1
+      nonneg := hpack.2.1
+      antitone := hpack.2.2.1
+      weighted_antitone := hpack.2.2.2.1
+      two_time_bound := hpack.2.2.2.2.1
+      thetaMoment := hpack.2.2.2.2.2 }
 
 /-- Constant-profile theta-dissipation data specialized to the nonminimal
 positive equilibrium. -/
@@ -434,6 +530,130 @@ theorem
     data.completeLyapunovPackage huv
       (by simpa [minimalEquilibrium] using huStar.le) p.hα.le
 
+/-- Branch-level complete theta-dissipation Lyapunov interfaces needed by
+Paper 3 Theorem 2.3 once the PDE energy step has already been post-processed
+to monotonicity and theta-moment convergence. -/
+structure IntervalDomainTheorem23ThetaCompleteLyapunovInterfaces
+    (p : CM2Params) where
+  nonminimal :
+    p.χ₀ ≤ 0 → 1 ≤ p.m →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution intervalDomain p u v →
+            IntervalDomainThetaDissipationCompleteLyapunovData u eq.1 p.α
+  minimal :
+    p.χ₀ ≤ 0 → 1 ≤ p.m → p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution intervalDomain p u v →
+            HasInitialMass intervalDomain u uStar →
+              IntervalDomainThetaDissipationCompleteLyapunovData u eq.1 p.α
+
+/-- The derivative branch interface proves the complete Lyapunov branch
+interface. -/
+def IntervalDomainTheorem23ThetaDerivativeInterfaces.toCompleteLyapunovInterfaces
+    {p : CM2Params}
+    (h : IntervalDomainTheorem23ThetaDerivativeInterfaces p) :
+    IntervalDomainTheorem23ThetaCompleteLyapunovInterfaces p where
+  nonminimal := by
+    intro hχ hm ha hb
+    dsimp
+    intro u v huv
+    exact
+      (h.nonminimal hχ hm ha hb u v huv).toCompleteLyapunovData
+        huv (positiveEquilibrium_fst_pos p ⟨ha, hb⟩).le p.hα.le
+  minimal := by
+    intro hχ hm ha hb uStar huStar
+    dsimp
+    intro u v huv hmass
+    exact
+      (h.minimal hχ hm ha hb uStar huStar u v huv hmass).toCompleteLyapunovData
+        huv (by simpa [minimalEquilibrium] using huStar.le) p.hα.le
+
+/-- Extract the nonminimal `Tendsto` frontier from complete Lyapunov branch
+interfaces. -/
+theorem IntervalDomainTheorem23ThetaCompleteLyapunovInterfaces.nonminimal_tendsto_frontier
+    {p : CM2Params}
+    (h : IntervalDomainTheorem23ThetaCompleteLyapunovInterfaces p) :
+    p.χ₀ ≤ 0 → 1 ≤ p.m →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution intervalDomain p u v →
+            Tendsto
+              (fun t =>
+                chemotaxisThetaDissipation intervalDomain eq.1 p.α (u t))
+              atTop (𝓝 0) := by
+  intro hχ hm ha hb
+  dsimp
+  intro u v huv
+  exact (h.nonminimal hχ hm ha hb u v huv).tendsto_zero
+
+/-- Extract the minimal `Tendsto` frontier from complete Lyapunov branch
+interfaces. -/
+theorem IntervalDomainTheorem23ThetaCompleteLyapunovInterfaces.minimal_tendsto_frontier
+    {p : CM2Params}
+    (h : IntervalDomainTheorem23ThetaCompleteLyapunovInterfaces p) :
+    p.χ₀ ≤ 0 → 1 ≤ p.m → p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution intervalDomain p u v →
+            HasInitialMass intervalDomain u uStar →
+              Tendsto
+                (fun t =>
+                  chemotaxisThetaDissipation intervalDomain eq.1 p.α (u t))
+                atTop (𝓝 0) := by
+  intro hχ hm ha hb uStar huStar
+  dsimp
+  intro u v huv hmass
+  exact (h.minimal hχ hm ha hb uStar huStar u v huv hmass).tendsto_zero
+
+/-- Paper 3 Theorem 2.3 from Corollary 5.1 plus complete theta-dissipation
+Lyapunov interfaces. -/
+theorem intervalDomain_Theorem_2_3_of_corollary51_thetaCompleteLyapunovInterfaces
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (M0 uBar vLower : ℝ)
+    (hCor51 :
+      Corollary_5_1 intervalDomain p N
+        (intervalDomainPaper3Constants p M0 uBar vLower))
+    (hExpNonminimal :
+      1 ≤ p.m →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          p.χ₀ <
+              paperCriticalSensitivity unitIntervalNeumannSpectrum p
+                eq.1 eq.2 →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                  UniformConvergesInSup intervalDomain u eq.1 →
+                    ExponentialC1ConvergenceWith intervalDomain N u v
+                      eq.1 eq.2 A rate)
+    (hExpMinimal :
+      1 ≤ p.m → p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          p.χ₀ <
+              paperCriticalSensitivity unitIntervalNeumannSpectrum p
+                eq.1 eq.2 →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                  HasInitialMass intervalDomain u uStar →
+                    UniformConvergesInSup intervalDomain u eq.1 →
+                      ExponentialC1ConvergenceWith intervalDomain N u v
+                        eq.1 eq.2 A rate)
+    (hEnergy : IntervalDomainTheorem23ThetaCompleteLyapunovInterfaces p) :
+    Theorem_2_3 intervalDomain p N :=
+  intervalDomain_Theorem_2_3_of_lyapunov_moment_and_exponential_frontiers
+    p N (intervalDomain_momentToUniform_of_corollary51 hCor51)
+    hExpNonminimal hExpMinimal
+    hEnergy.nonminimal_tendsto_frontier hEnergy.minimal_tendsto_frontier
+
 /-- Paper 3 Theorem 2.3 from Corollary 5.1 plus the structured
 energy/dissipation interfaces. -/
 theorem intervalDomain_Theorem_2_3_of_corollary51_thetaDerivativeInterfaces
@@ -472,9 +692,9 @@ theorem intervalDomain_Theorem_2_3_of_corollary51_thetaDerivativeInterfaces
                         eq.1 eq.2 A rate)
     (hEnergy : IntervalDomainTheorem23ThetaDerivativeInterfaces p) :
     Theorem_2_3 intervalDomain p N :=
-  intervalDomain_Theorem_2_3_of_corollary51_theta_derivative_solution
+  intervalDomain_Theorem_2_3_of_corollary51_thetaCompleteLyapunovInterfaces
     p N M0 uBar vLower hCor51 hExpNonminimal hExpMinimal
-    hEnergy.nonminimal_frontier hEnergy.minimal_frontier
+    hEnergy.toCompleteLyapunovInterfaces
 
 /-- Formula-branch theta-dissipation interface needed by Paper 3 Theorem 2.4.
 
@@ -569,6 +789,95 @@ theorem
     data.completeLyapunovPackage huv
       (positiveEquilibrium_fst_pos p ⟨ha, hb⟩).le hα.le
 
+/-- Formula-branch complete theta-dissipation Lyapunov interface needed by
+Paper 3 Theorem 2.4 once the PDE energy estimate has already been
+post-processed to monotonicity and theta-moment convergence. -/
+structure IntervalDomainTheorem24ThetaCompleteLyapunovInterfaces
+    (p : CM2Params) (M0 : ℝ) where
+  strong :
+    0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+          ∀ u v : ℝ → intervalDomain.Point → ℝ,
+            PositiveGlobalBoundedSolution intervalDomain p u v →
+              IntervalDomainThetaDissipationCompleteLyapunovData u eq.1 p.α
+
+/-- The formula-branch derivative interface proves the complete Lyapunov
+formula-branch interface. -/
+def IntervalDomainTheorem24ThetaDerivativeInterfaces.toCompleteLyapunovInterfaces
+    {p : CM2Params} {M0 : ℝ}
+    (h : IntervalDomainTheorem24ThetaDerivativeInterfaces p M0) :
+    IntervalDomainTheorem24ThetaCompleteLyapunovInterfaces p M0 where
+  strong := by
+    intro ha_pos hb_pos hβ hα hγ ha hb
+    dsimp
+    intro hcond u v huv
+    exact
+      (h.strong ha_pos hb_pos hβ hα hγ ha hb hcond u v huv).toCompleteLyapunovData
+        huv (positiveEquilibrium_fst_pos p ⟨ha, hb⟩).le hα.le
+
+/-- Extract the formula-branch `Tendsto` frontier from complete Lyapunov
+interfaces. -/
+theorem IntervalDomainTheorem24ThetaCompleteLyapunovInterfaces.strong_tendsto_frontier
+    {p : CM2Params} {M0 : ℝ}
+    (h : IntervalDomainTheorem24ThetaCompleteLyapunovInterfaces p M0) :
+    0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        NonminimalGlobalStabilityFormulaCondition p eq.1 eq.2 M0 →
+          ∀ u v : ℝ → intervalDomain.Point → ℝ,
+            PositiveGlobalBoundedSolution intervalDomain p u v →
+              Tendsto
+                (fun t =>
+                  chemotaxisThetaDissipation intervalDomain eq.1 p.α (u t))
+                atTop (𝓝 0) := by
+  intro ha_pos hb_pos hβ hα hγ ha hb
+  dsimp
+  intro hcond u v huv
+  exact (h.strong ha_pos hb_pos hβ hα hγ ha hb hcond u v huv).tendsto_zero
+
+/-- Paper 3 Theorem 2.4 from Corollary 5.1 plus complete formula-branch
+theta-dissipation Lyapunov interfaces. -/
+theorem intervalDomain_Theorem_2_4_formula_completeLyapunovInterfaces_of_corollary51
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (M0 uBar vLower : ℝ)
+    (hCor51 :
+      Corollary_5_1 intervalDomain p N
+        (intervalDomainPaper3Constants p M0 uBar vLower))
+    (hfirst :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        max
+            (max (chiStrong1Formula p eq.1 eq.2)
+              (chiStrong2Formula p eq.1))
+            (max (chiStrong3Formula p M0 eq.1 eq.2)
+              (chiStrong4Formula p M0 eq.1)) ≤
+          ((1 + eq.2) ^ p.β /
+              (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+            (p.μ + Real.pi ^ 2))
+    (hExpNonminimal :
+      1 ≤ p.m →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          p.χ₀ <
+              paperCriticalSensitivity unitIntervalNeumannSpectrum p
+                eq.1 eq.2 →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                  UniformConvergesInSup intervalDomain u eq.1 →
+                    ExponentialC1ConvergenceWith intervalDomain N u v
+                      eq.1 eq.2 A rate)
+    (hEnergy : IntervalDomainTheorem24ThetaCompleteLyapunovInterfaces p M0) :
+    Theorem_2_4 intervalDomain p N
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_4_of_concrete_constants_firstMode_formula_frontiers
+    p N M0 uBar vLower hfirst
+    (intervalDomain_momentToUniform_of_corollary51 hCor51)
+    hExpNonminimal hEnergy.strong_tendsto_frontier
+
 /-- Paper 3 Theorem 2.4 from Corollary 5.1 plus the structured
 formula-branch energy/dissipation interface. -/
 theorem intervalDomain_Theorem_2_4_formula_derivativeInterfaces_of_corollary51
@@ -605,9 +914,9 @@ theorem intervalDomain_Theorem_2_4_formula_derivativeInterfaces_of_corollary51
     (hEnergy : IntervalDomainTheorem24ThetaDerivativeInterfaces p M0) :
     Theorem_2_4 intervalDomain p N
       (intervalDomainPaper3Constants p M0 uBar vLower) :=
-  intervalDomain_Theorem_2_4_formula_derivative_solution_of_corollary51
+  intervalDomain_Theorem_2_4_formula_completeLyapunovInterfaces_of_corollary51
     p N M0 uBar vLower hCor51 hfirst hExpNonminimal
-    hEnergy.strong_frontier
+    hEnergy.toCompleteLyapunovInterfaces
 
 end
 
