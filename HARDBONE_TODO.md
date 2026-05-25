@@ -351,7 +351,15 @@
   and
   `Theorem_2_1_part1_intervalDomain_iff_inside_boundary_lower_bounds`，把
   statement-layer、全 pointwise、open-interior+endpoint 三种 H3.3 表述对齐；
-  反向读回仍需要显式 `BddBelow`。
+  反向读回仍需要显式 `BddBelow`。新增
+  `intervalDomain_eventually_bddBelow_u_of_positiveGlobalBoundedSolution`,
+  `Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope_and_v_bddBelow`,
+  `Theorem_2_1_part1_intervalDomain_iff_pointwise_lower_bounds_v_bddBelow`,
+  and
+  `Theorem_2_1_part1_intervalDomain_iff_inside_boundary_lower_bounds_v_bddBelow`:
+  interval positivity and the two endpoint values discharge the `u` time-slice
+  `BddBelow` condition; the analogous `v` lower-boundedness remains an honest
+  elliptic comparison/max-principle frontier.
   按 17-point standard 属于状态③：条件于未证但明确命名的分析前沿；不是
   无条件完成。
 

@@ -185,6 +185,46 @@ theorem intervalDomain_eventuallyLowerBound_iff_inside_boundary_lower
     hdelta hbdd]
   exact intervalDomain_eventually_pointwise_lower_iff_inside_boundary_lower
 
+/-- The `u` component of a positive global bounded solution on the concrete
+interval has lower-bounded time slices eventually.  Interior positivity gives
+the lower bound away from the endpoints; the two endpoints are just two real
+values.  This discharges the `u` half of the lower-bounded-range regularity
+needed to read `sInf` back pointwise. -/
+theorem intervalDomain_eventually_bddBelow_u_of_positiveGlobalBoundedSolution
+    {p : CM2Params}
+    {u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ}
+    (hsol :
+      PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p
+        u v) :
+    ∀ᶠ t in atTop, BddBelow (Set.range (u t)) := by
+  let x0 : ShenWork.IntervalDomain.intervalDomain.Point :=
+    ⟨0, by
+      exact ⟨le_rfl, by norm_num⟩⟩
+  let x1 : ShenWork.IntervalDomain.intervalDomain.Point :=
+    ⟨1, by
+      exact ⟨by norm_num, le_rfl⟩⟩
+  filter_upwards [eventually_gt_atTop (0 : ℝ)] with t ht
+  refine ⟨min 0 (min (u t x0) (u t x1)), ?_⟩
+  intro y hy
+  rcases hy with ⟨x, rfl⟩
+  by_cases hx0 : x.1 = 0
+  · have hx : x = x0 := Subtype.ext hx0
+    have hle : min 0 (min (u t x0) (u t x1)) ≤ u t x0 :=
+      le_trans (min_le_right _ _) (min_le_left _ _)
+    simp [hx]
+  by_cases hx1 : x.1 = 1
+  · have hx : x = x1 := Subtype.ext hx1
+    have hle : min 0 (min (u t x0) (u t x1)) ≤ u t x1 :=
+      le_trans (min_le_right _ _) (min_le_right _ _)
+    simp [hx]
+  · have hxInside : x ∈ ShenWork.IntervalDomain.intervalDomain.inside := by
+      change x.1 ∈ Set.Ioo (0 : ℝ) 1
+      exact
+        ⟨lt_of_le_of_ne x.2.1 (Ne.symm hx0),
+          lt_of_le_of_ne x.2.2 hx1⟩
+    exact le_trans (min_le_left _ _)
+      (le_of_lt (hsol.pos ht hxInside))
+
 /-- Conditional intervalDomain version of Paper3 Theorem 2.1(1).
 
 The two assumptions are intentionally not hidden inside a constants package:
@@ -425,6 +465,39 @@ theorem Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope
       intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound
         hbddV hvLower⟩
 
+/-- Read back the statement-layer theorem to pointwise persistence while
+discharging the `u` lower-bounded-range condition from interval positivity.
+Only the `v` time-slice lower-boundedness remains as an explicit elliptic
+regularity/frontier input. -/
+theorem Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope_and_v_bddBelow
+    {p : CM2Params}
+    (h21 : Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p)
+    (hbddV :
+      ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+        PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+          ∀ᶠ t in atTop, BddBelow (Set.range (v t))) :
+    1 ≤ p.m →
+      ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+        PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+          ∃ deltaU > 0,
+            (∀ᶠ t in atTop,
+              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                deltaU ≤ u t x) ∧
+            (∀ᶠ t in atTop,
+              ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                p.ν / p.μ * deltaU ^ p.γ ≤ v t x) := by
+  intro hm u v hsol
+  rcases h21 hm u v hsol with ⟨deltaU, hdeltaU, huLower, hvLower⟩
+  exact
+    ⟨deltaU, hdeltaU,
+      intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound
+        (intervalDomain_eventually_bddBelow_u_of_positiveGlobalBoundedSolution
+          hsol)
+        huLower,
+      intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound
+        (hbddV u v hsol)
+        hvLower⟩
+
 /-- Exact semantic equivalence between the intervalDomain statement-layer
 Theorem 2.1(1) and its intended pointwise eventual-persistence formulation.
 
@@ -451,6 +524,34 @@ theorem Theorem_2_1_part1_intervalDomain_iff_pointwise_lower_bounds
   constructor
   · intro h21
     exact Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope h21 hbdd
+  · intro hpointwise
+    exact Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds p hpointwise
+
+/-- Variant of the pointwise semantic equivalence where the `u`
+lower-bounded-range side has been discharged from interval positivity.  The
+remaining `v` assumption is the honest elliptic lower-boundedness frontier. -/
+theorem Theorem_2_1_part1_intervalDomain_iff_pointwise_lower_bounds_v_bddBelow
+    (p : CM2Params)
+    (hbddV :
+      ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+        PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+          ∀ᶠ t in atTop, BddBelow (Set.range (v t))) :
+    Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p ↔
+      1 ≤ p.m →
+        ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+            ∃ deltaU > 0,
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  deltaU ≤ u t x) ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  p.ν / p.μ * deltaU ^ p.γ ≤ v t x) := by
+  constructor
+  · intro h21
+    exact
+      Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope_and_v_bddBelow
+        h21 hbddV
   · intro hpointwise
     exact Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds p hpointwise
 
@@ -505,6 +606,58 @@ theorem Theorem_2_1_part1_intervalDomain_iff_inside_boundary_lower_bounds
             p.ν / p.μ * deltaU ^ p.γ ≤ v t x :=
       intervalDomain_eventually_pointwise_lower_of_eventuallyLowerBound
         hbddV hvLower
+    rcases
+        (intervalDomain_eventually_pointwise_lower_iff_inside_boundary_lower.mp
+          huPoint) with
+      ⟨huInside, huBoundary⟩
+    rcases
+        (intervalDomain_eventually_pointwise_lower_iff_inside_boundary_lower.mp
+          hvPoint) with
+      ⟨hvInside, hvBoundary⟩
+    exact
+      ⟨deltaU, hdeltaU, huInside, huBoundary, hvInside, hvBoundary⟩
+  · intro hbounds
+    exact
+      Theorem_2_1_part1_intervalDomain_of_inside_boundary_lower_bounds
+        p hbounds
+
+/-- Interior/boundary semantic equivalence with the `u` lower-bounded-range
+condition discharged by positivity.  The remaining `v` lower-boundedness is
+kept explicit because it requires the elliptic comparison/max-principle
+frontier, not just the definition of `PositiveGlobalBoundedSolution`. -/
+theorem Theorem_2_1_part1_intervalDomain_iff_inside_boundary_lower_bounds_v_bddBelow
+    (p : CM2Params)
+    (hbddV :
+      ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+        PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+          ∀ᶠ t in atTop, BddBelow (Set.range (v t))) :
+    Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p ↔
+      1 ≤ p.m →
+        ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+            ∃ deltaU > 0,
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  x ∈ ShenWork.IntervalDomain.intervalDomain.inside →
+                    deltaU ≤ u t x) ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  x ∈ ShenWork.IntervalDomain.intervalDomain.boundary →
+                    deltaU ≤ u t x) ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  x ∈ ShenWork.IntervalDomain.intervalDomain.inside →
+                    p.ν / p.μ * deltaU ^ p.γ ≤ v t x) ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  x ∈ ShenWork.IntervalDomain.intervalDomain.boundary →
+                    p.ν / p.μ * deltaU ^ p.γ ≤ v t x) := by
+  constructor
+  · intro h21 hm u v hsol
+    rcases
+      Theorem_2_1_part1_intervalDomain_pointwise_of_lowerEnvelope_and_v_bddBelow
+        h21 hbddV hm u v hsol with
+      ⟨deltaU, hdeltaU, huPoint, hvPoint⟩
     rcases
         (intervalDomain_eventually_pointwise_lower_iff_inside_boundary_lower.mp
           huPoint) with
