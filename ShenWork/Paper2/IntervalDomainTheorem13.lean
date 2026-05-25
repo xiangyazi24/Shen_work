@@ -27,7 +27,21 @@ theorem Theorem_1_3_intervalDomain_of_corollary21_and_proposition25
     (p : CM2Params) (C : Paper2Constants p)
     (hCor21 : Corollary_2_1 intervalDomain p)
     (hProp25 : Proposition_2_5 intervalDomain p)
-    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hglobalExtension :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v)
     (hstrongBootstrap :
       0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
       ∀ u₀ : intervalDomain.Point → ℝ,
@@ -57,8 +71,7 @@ theorem Theorem_1_3_intervalDomain_of_corollary21_and_proposition25
   intro ha hb hm_pos hstrong
   constructor
   · intro u₀ hu₀
-    obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ :=
-      hexist.localExistence u₀ hu₀
+    obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ := hlocal u₀ hu₀
     have hbootstrap :=
       hstrongBootstrap ha hb hm_pos hstrong
         u₀ hu₀ Tmax hTmax u v hsol htrace
@@ -67,8 +80,7 @@ theorem Theorem_1_3_intervalDomain_of_corollary21_and_proposition25
         p hCor21 hProp25 hu₀ hTmax hsol htrace hbootstrap
     exact ⟨Tmax, hTmax, u, v, hsol, htrace, hbounded⟩
   · intro hm_ge u₀ hu₀
-    obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ :=
-      hexist.localExistence u₀ hu₀
+    obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ := hlocal u₀ hu₀
     have hbootstrap :=
       hstrongBootstrap ha hb hm_pos hstrong
         u₀ hu₀ Tmax hTmax u v hsol htrace
@@ -76,7 +88,7 @@ theorem Theorem_1_3_intervalDomain_of_corollary21_and_proposition25
       IntervalDomainTheorem12.boundedBefore_of_corollary21_and_proposition25
         p hCor21 hProp25 hu₀ hTmax hsol htrace hbootstrap
     have hglobal :=
-      hexist.globalExtension u₀ hu₀ Tmax hTmax u v hsol htrace
+      hglobalExtension u₀ hu₀ Tmax hTmax u v hsol htrace
         hboundedBefore hm_ge
     have hbootstrapAll :
         ∀ T > 0,
@@ -126,7 +138,8 @@ theorem Theorem_1_3_intervalDomain_of_eventual_sup_bound
           ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M) :
     Theorem_1_3 intervalDomain p C := by
   refine Theorem_1_3_intervalDomain_of_corollary21_and_proposition25
-    p C hCor21 hProp25 hexist hstrongBootstrap ?_
+    p C hCor21 hProp25 hexist.localExistence hexist.globalExtension
+    hstrongBootstrap ?_
   intro ha hb hm hstrong hm_ge u₀ hu₀ u v hglobal htrace hbootstrapAll
   obtain ⟨T₀, M, hM⟩ :=
     hstrongEventualSupBound ha hb hm hstrong hm_ge u₀ hu₀ u v hglobal htrace
@@ -271,7 +284,8 @@ theorem Theorem_1_3_intervalDomain
           IsPaper2Bounded intervalDomain u) :
     Theorem_1_3 intervalDomain p C := by
   exact Theorem_1_3_intervalDomain_of_corollary21_and_proposition25
-    p C hCor21 hProp25 hexist hstrongBootstrap hstrongGlobalBound
+    p C hCor21 hProp25 hexist.localExistence hexist.globalExtension
+    hstrongBootstrap hstrongGlobalBound
 
 /-- Variant of `Theorem_1_3_intervalDomain` that derives Corollary 2.1 from
 `Lemma_2_6 intervalDomain` and the explicit PDE energy derivation before
@@ -279,9 +293,9 @@ assembling the full strong-logistic theorem. -/
 theorem Theorem_1_3_intervalDomain_of_Lemma_2_6_and_energy
     (p : CM2Params) (C : Paper2Constants p)
     (S : SemigroupEstimateData intervalDomain)
-    (hLemma21 : Lemma_2_1 intervalDomain p S)
+    (_hLemma21 : Lemma_2_1 intervalDomain p S)
     (hLemma26 : Lemma_2_6 intervalDomain)
-    (hLemma41 : Lemma_4_1 intervalDomain p)
+    (_hLemma41 : Lemma_4_1 intervalDomain p)
     (hEnergyFromCrossDiffusion :
       ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
         IsPaper2ClassicalSolution intervalDomain p T u v →
@@ -289,7 +303,21 @@ theorem Theorem_1_3_intervalDomain_of_Lemma_2_6_and_energy
         AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
           LpBootstrapEnergyInequality intervalDomain u T rho p0)
     (hProp25 : Proposition_2_5 intervalDomain p)
-    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hglobalExtension :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v)
     (hstrongBootstrap :
       0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
       ∀ u₀ : intervalDomain.Point → ℝ,
@@ -319,9 +347,9 @@ theorem Theorem_1_3_intervalDomain_of_Lemma_2_6_and_energy
   have hCor21 : Corollary_2_1 intervalDomain p :=
     ShenWork.Paper2.IntervalDomainCorollary21.Corollary_2_1_intervalDomain_of_Lemma_2_6_and_energy
       p hLemma26 hEnergyFromCrossDiffusion
-  exact Theorem_1_3_intervalDomain
-    p C S hLemma21 hLemma26 hLemma41 hCor21 hProp25 hexist
-    hstrongBootstrap hstrongGlobalBound
+  exact Theorem_1_3_intervalDomain_of_corollary21_and_proposition25
+    p C hCor21 hProp25 hlocal hglobalExtension hstrongBootstrap
+    hstrongGlobalBound
 
 /-- Variant of `Theorem_1_3_intervalDomain` that discharges both composed
 frontiers: Corollary 2.1 is obtained from `Lemma_2_6` plus the PDE energy
@@ -340,7 +368,21 @@ theorem Theorem_1_3_intervalDomain_of_Lemma_2_6_energy_and_eventual_sup_bound
         AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
           LpBootstrapEnergyInequality intervalDomain u T rho p0)
     (hProp25 : Proposition_2_5 intervalDomain p)
-    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hglobalExtension :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v)
     (hstrongBootstrap :
       0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
       ∀ u₀ : intervalDomain.Point → ℝ,
@@ -370,8 +412,9 @@ theorem Theorem_1_3_intervalDomain_of_Lemma_2_6_energy_and_eventual_sup_bound
   have hCor21 : Corollary_2_1 intervalDomain p :=
     ShenWork.Paper2.IntervalDomainCorollary21.Corollary_2_1_intervalDomain_of_Lemma_2_6_and_energy
       p hLemma26 hEnergyFromCrossDiffusion
-  exact Theorem_1_3_intervalDomain_of_eventual_sup_bound
-    p C hCor21 hProp25 hexist hstrongBootstrap hstrongEventualSupBound
+  exact Theorem_1_3_intervalDomain_of_local_global_and_eventual_sup_bound
+    p C hCor21 hProp25 hlocal hglobalExtension hstrongBootstrap
+    hstrongEventualSupBound
 
 /-- Full interval-domain Theorem 1.3 assembly from the explicit H1 frontiers.
 
@@ -494,7 +537,7 @@ frontier plus an eventual sup-norm long-time estimate.
 This non-vacuous H2.3 wrapper does not take `Corollary_2_1` or
 `IsPaper2Bounded` as inputs.  The remaining explicit frontiers are the
 mass-gradient Moser hypotheses, the PDE energy derivation, `Proposition_2_5`,
-interval Cauchy/global extension, the strong-logistic bootstrap seed, and the
+interval local/global extension, the strong-logistic bootstrap seed, and the
 eventual sup-norm estimate. -/
 theorem Theorem_1_3_intervalDomain_of_mass_gradient_frontier_and_eventual_sup_bound
     (p : CM2Params) (C : Paper2Constants p)
@@ -562,7 +605,21 @@ theorem Theorem_1_3_intervalDomain_of_mass_gradient_frontier_and_eventual_sup_bo
         AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
           LpBootstrapEnergyInequality intervalDomain u T rho p0)
     (hProp25 : Proposition_2_5 intervalDomain p)
-    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hglobalExtension :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v)
     (hstrongBootstrap :
       0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
       ∀ u₀ : intervalDomain.Point → ℝ,
@@ -595,8 +652,9 @@ theorem Theorem_1_3_intervalDomain_of_mass_gradient_frontier_and_eventual_sup_bo
   have hCor21 : Corollary_2_1 intervalDomain p :=
     ShenWork.Paper2.IntervalDomainCorollary21.Corollary_2_1_intervalDomain_of_Lemma_2_6_and_energy
       p hLemma26 hEnergyFromCrossDiffusion
-  exact Theorem_1_3_intervalDomain_of_eventual_sup_bound
-    p C hCor21 hProp25 hexist hstrongBootstrap hstrongEventualSupBound
+  exact Theorem_1_3_intervalDomain_of_local_global_and_eventual_sup_bound
+    p C hCor21 hProp25 hlocal hglobalExtension hstrongBootstrap
+    hstrongEventualSupBound
 
 /-- Vacuous interval-domain Theorem 1.3 branch when `a = 0`. -/
 theorem Theorem_1_3_intervalDomain_vacuous_when_a_zero
