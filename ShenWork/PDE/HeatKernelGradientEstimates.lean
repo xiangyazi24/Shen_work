@@ -1927,6 +1927,78 @@ theorem map_mul_intervalMeasure_one {L : ℝ} (hL : 0 < L) :
           rw [abs_of_pos (inv_pos.mpr hL)]
           ring
 
+/-- `L^p` scaling for pulling an interval function back from `[0,L]` to
+`[0,1]` by `y ↦ L*y`. -/
+theorem lpNorm_comp_mul_intervalMeasure_one_eq
+    {L p : ℝ} (hL : 0 < L) (hp : 0 < p)
+    {f : ℝ → ℝ}
+    (hf_mem : MemLp f (ENNReal.ofReal p) (intervalMeasure L)) :
+    lpNorm (fun y : ℝ => f (L * y)) (ENNReal.ofReal p)
+        (intervalMeasure 1) =
+      (1 / L) ^ (1 / p) *
+        lpNorm f (ENNReal.ofReal p) (intervalMeasure L) := by
+  let c : NNReal := Real.toNNReal (1 / L)
+  let scale : ℝ → ℝ := fun y => L * y
+  have hc_pos : 0 < (c : ℝ) := by
+    have hpos : 0 < 1 / L := one_div_pos.mpr hL
+    dsimp [c]
+    simpa [Real.coe_toNNReal', max_eq_left hpos.le] using hpos
+  have hc_ne : c ≠ 0 := by
+    exact_mod_cast hc_pos.ne'
+  have hmap : Measure.map scale (intervalMeasure 1) =
+      c • intervalMeasure L := by
+    have hbase := map_mul_intervalMeasure_one (L := L) hL
+    have hc_enn : ENNReal.ofReal L⁻¹ = (c : ENNReal) := by
+      simpa [c, one_div] using (ENNReal.ofNNReal_toNNReal (1 / L)).symm
+    simpa [scale, hc_enn] using hbase
+  have hscale_ae : AEMeasurable scale (intervalMeasure 1) := by
+    exact (measurable_const_mul L).aemeasurable
+  have hf_map :
+      AEStronglyMeasurable f (Measure.map scale (intervalMeasure 1)) := by
+    rw [hmap]
+    exact hf_mem.aestronglyMeasurable.smul_measure c
+  have hcomp_meas :
+      AEStronglyMeasurable (fun y : ℝ => f (L * y))
+        (intervalMeasure 1) := by
+    simpa [scale, Function.comp_def] using
+      hf_map.comp_aemeasurable hscale_ae
+  have hp_ne_top : ENNReal.ofReal p ≠ ∞ := by
+    simp
+  calc
+    lpNorm (fun y : ℝ => f (L * y)) (ENNReal.ofReal p)
+        (intervalMeasure 1)
+        = (eLpNorm (fun y : ℝ => f (L * y)) (ENNReal.ofReal p)
+            (intervalMeasure 1)).toReal := by
+          exact (toReal_eLpNorm hcomp_meas).symm
+    _ = (eLpNorm f (ENNReal.ofReal p)
+          (Measure.map scale (intervalMeasure 1))).toReal := by
+          rw [(eLpNorm_map_measure (g := f) (f := scale)
+            (μ := intervalMeasure 1) (p := ENNReal.ofReal p)
+            hf_map hscale_ae)]
+          rfl
+    _ = lpNorm f (ENNReal.ofReal p)
+          (Measure.map scale (intervalMeasure 1)) := by
+          exact toReal_eLpNorm hf_map
+    _ = lpNorm f (ENNReal.ofReal p)
+          (c • intervalMeasure L) := by
+          rw [hmap]
+    _ = (1 / L) ^ (1 / p) *
+          lpNorm f (ENNReal.ofReal p) (intervalMeasure L) := by
+          have hsmul :=
+            lpNorm_smul_measure_of_ne_top
+              (p := ENNReal.ofReal p) (μ := intervalMeasure L)
+              (f := f) hp_ne_top c
+          have hc_real : (c : ℝ) = 1 / L := by
+            dsimp [c]
+            exact Real.coe_toNNReal _ (one_div_pos.mpr hL).le
+          rw [hsmul]
+          change ((c ^ (ENNReal.ofReal p).toReal⁻¹ : NNReal) : ℝ) *
+              lpNorm f (ENNReal.ofReal p) (intervalMeasure L) =
+            (1 / L) ^ (1 / p) *
+              lpNorm f (ENNReal.ofReal p) (intervalMeasure L)
+          rw [NNReal.coe_rpow, ENNReal.toReal_ofReal hp.le, hc_real,
+            one_div p]
+
 /-- The scaled interval spectral semigroup has the already-proved unit
 gradient estimate when `L = 1`. -/
 theorem intervalHeatSemigroup_unit_grad_Lp_Lq_bound
