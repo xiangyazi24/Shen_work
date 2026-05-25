@@ -176,6 +176,126 @@ theorem boundedBefore_of_moser_iteration_chain_and_GN_Agmon_frontier
     (IntervalDomainChain.moser_iteration_chain hrho hbase hstep)
     hLpMono hFrontier
 
+/-! ### Solution-structured quantitative endpoint
+
+The pure envelope endpoint above is intentionally left as a frontier and is
+audited below: it is false without solution regularity.  The valid terminal
+handoff for Theorem 1.1 is instead a quantitative Moser endpoint produced from
+the solution's energy step together with interval GN/Agmon estimates.  At this
+level we record the exact interval-domain terminal hook: once that structured
+iteration gives a pointwise power control at some positive exponent, the
+paper's finite-horizon `L∞` bound follows with no abstract envelope principle.
+-/
+
+/-- An interval-domain pointwise power estimate on the open time slab
+`0 < t < T`.  This is the kind of terminal estimate obtained from the
+solution-structured Moser iteration, after the per-exponent constants have been
+controlled. -/
+def IntervalDomainMoserPointwisePowerControlBefore
+    (u : ℝ → intervalDomain.Point → ℝ) (T pExp R : ℝ) : Prop :=
+  ∀ t, 0 < t → t < T → ∀ x : intervalDomain.Point,
+    |u t x| ^ pExp ≤ R ^ pExp
+
+/-- A quantitative Lp-root envelope for the interval-domain Moser chain.  The
+constants are stored before taking `p → ∞`, so a later energy/GN step can prove
+that their roots stay uniformly controlled. -/
+def IntervalDomainMoserLpAbsRootBoundBefore
+    (u : ℝ → intervalDomain.Point → ℝ) (T pExp R : ℝ) : Prop :=
+  ∀ t, 0 < t → t < T →
+    intervalDomain.integral (fun x : intervalDomain.Point => |u t x| ^ pExp) ≤
+      R ^ pExp
+
+/-- The concrete interval-domain terminal estimate: pointwise control of
+`|u|^p` at one positive exponent controls the interval-domain sup norm. -/
+theorem intervalDomain_supNorm_le_of_pointwise_power_control
+    {v : intervalDomain.Point → ℝ} {pExp R : ℝ}
+    (hp : 0 < pExp) (hR : 0 ≤ R)
+    (hpoint : ∀ x : intervalDomain.Point, |v x| ^ pExp ≤ R ^ pExp) :
+    intervalDomain.supNorm v ≤ R := by
+  change intervalDomainSupNorm v ≤ R
+  unfold intervalDomainSupNorm
+  apply Real.sSup_le
+  · intro y hy
+    rcases hy with ⟨x, rfl⟩
+    exact (Real.rpow_le_rpow_iff (abs_nonneg (v x)) hR hp).mp (hpoint x)
+  · exact hR
+
+/-- A structured Moser terminal pointwise estimate closes the interval-domain
+bounded-before conclusion directly. -/
+theorem intervalDomain_boundedBefore_of_pointwise_power_control
+    {u : ℝ → intervalDomain.Point → ℝ} {T pExp R : ℝ}
+    (hp : 0 < pExp) (hR : 0 ≤ R)
+    (hpoint : IntervalDomainMoserPointwisePowerControlBefore u T pExp R) :
+    IsPaper2BoundedBefore intervalDomain T u := by
+  refine ⟨R, ?_⟩
+  intro t ht0 htT
+  exact intervalDomain_supNorm_le_of_pointwise_power_control hp hR
+    (hpoint t ht0 htT)
+
+/-- Data expected from the solution-structured Moser iteration after the
+energy step and interval GN/Agmon estimates have controlled the constants: a
+bounded root tower and one positive exponent where the pointwise terminal
+estimate is available. -/
+def IntervalDomainMoserQuantitativeEndpoint
+    (u : ℝ → intervalDomain.Point → ℝ) (T : ℝ)
+    (pSeq rootBound : ℕ → ℝ) : Prop :=
+  ∃ M, 0 ≤ M ∧ ∃ n : ℕ,
+    0 < pSeq n ∧ 0 ≤ rootBound n ∧ rootBound n ≤ M ∧
+      IntervalDomainMoserPointwisePowerControlBefore u T (pSeq n) (rootBound n)
+
+/-- The honest replacement for the false envelope endpoint: once the
+solution-structured Moser chain supplies a quantitative endpoint, the concrete
+interval-domain `L∞` bound follows. -/
+theorem intervalDomain_boundedBefore_of_moser_quantitative_endpoint
+    {u : ℝ → intervalDomain.Point → ℝ} {T : ℝ}
+    {pSeq rootBound : ℕ → ℝ}
+    (hEndpoint : IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
+    IsPaper2BoundedBefore intervalDomain T u := by
+  rcases hEndpoint with ⟨M, _hM, n, hp, hR, hR_le_M, hpoint⟩
+  refine ⟨M, ?_⟩
+  intro t ht0 htT
+  exact (intervalDomain_supNorm_le_of_pointwise_power_control hp hR
+    (hpoint t ht0 htT)).trans hR_le_M
+
+/-- Feed the solution's single-step Moser energy inequality through the already
+proved exponent chain, then close with the structured quantitative endpoint.
+
+The remaining endpoint premise is deliberately not the false abstract Lp
+envelope frontier.  It is the place where the concrete solution structure
+supplies controlled per-exponent constants and the final pointwise power
+estimate via interval GN/Agmon. -/
+theorem intervalDomain_boundedBefore_of_moser_iteration_chain_and_quantitative_endpoint
+    {u : ℝ → intervalDomain.Point → ℝ} {T p0 rho : ℝ}
+    {pSeq rootBound : ℕ → ℝ}
+    (hrho : 0 < rho)
+    (hbase : LpPowerBoundedBefore intervalDomain p0 T u)
+    (hstep : ∀ p, p0 ≤ p →
+      ∃ A > 0, ∃ K > 0, ∃ L_const,
+        (∀ t, 0 < t → t < T →
+          A * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) ≤
+          K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) +
+            L_const) ∧
+        (∀ eps > 0, ∃ Ceps, ∀ t, 0 < t → t < T →
+          intervalDomain.integral (fun x => (u t x) ^ (p + rho)) ≤
+            eps * intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+            Ceps))
+    (hLpMono :
+      ∀ {p q : ℝ}, 1 < p → p ≤ q →
+        LpPowerBoundedBefore intervalDomain q T u →
+        LpPowerBoundedBefore intervalDomain p T u)
+    (hEndpoint :
+      (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
+        IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
+    IsPaper2BoundedBefore intervalDomain T u := by
+  have hAll : ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u :=
+    all_exponents_of_moser_iteration_chain
+      (D := intervalDomain) (u := u) (T := T) (p0 := p0) (rho := rho)
+      hrho hbase hstep hLpMono
+  exact intervalDomain_boundedBefore_of_moser_quantitative_endpoint
+    (hEndpoint hAll)
+
 /-! ### Concrete interval-domain endpoint audit
 
 The abstract frontier above cannot be discharged from an Lp envelope alone,
