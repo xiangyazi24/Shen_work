@@ -7,6 +7,16 @@
   Tier-1 interval estimates and the remaining PDE bootstrap/global-boundedness
   bridges are supplied explicitly, the full `Theorem_1_2 intervalDomain p`
   statement follows.
+
+  Current frontier boundary: the theorem-level assembly now reduces the
+  interval Moser input to the interpolation frontier plus classical-solution
+  positivity where possible.  The weak-solution energy derivation is still an
+  honest upstream analytic frontier: it includes the integration-by-parts,
+  chain-rule, and time-derivative-under-the-integral steps needed to turn a
+  cross-diffusion estimate into `LpBootstrapEnergyInequality`.  This file keeps
+  that step explicit as `hEnergyFromCrossDiffusion`; it also leaves the Cauchy
+  theory, branch bootstrap seeds, `Proposition_2_5`, and the critical long-time
+  boundedness/eventual-sup frontier as named hypotheses.
 -/
 import ShenWork.Paper2.IntervalDomainCorollary21
 import ShenWork.Paper2.IntervalDomainChain
@@ -615,6 +625,210 @@ theorem Theorem_1_2_intervalDomain_critical_regime_of_Lemma_2_6_energy_and_event
   have hCor21 : Corollary_2_1 intervalDomain p :=
     ShenWork.Paper2.IntervalDomainCorollary21.Corollary_2_1_intervalDomain_of_Lemma_2_6_and_energy
       p hLemma26 hEnergyFromCrossDiffusion
+  exact
+    Theorem_1_2_intervalDomain_critical_regime_of_parameter_fields_and_eventual_sup_bound
+      p hm_eq hCor21 hProp25 hlocal hglobalExtension hcriticalBootstrap
+      hcriticalEventualSupBound
+
+open ShenWork.Paper2.IntervalDomainTheorem11Composite in
+/-- Fixed slow-diffusion regime from the interval interpolation frontier and
+classical-solution positivity.
+
+This is the slow-regime analogue of
+`Theorem_1_2_intervalDomain_of_interpolation_frontier_solution_positivity`:
+it removes the standalone mass-gradient interpolation input and the separate
+nonnegativity frontier while keeping the genuine energy, integrability,
+`Proposition_2_5`, local existence, and slow bootstrap frontiers explicit. -/
+theorem
+Theorem_1_2_intervalDomain_slow_regime_of_interpolation_frontier_solution_positivity
+    (p : CM2Params)
+    (hm_lt : p.m < 1)
+    (hGN : IntervalDomainLemma41.IntervalDomainInterpolation)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hdiss :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ pExp, p0 ≤ pExp → ∀ A B K L_const,
+          (∀ t, 0 < t → t < T →
+            (1 / pExp) * deriv
+                (fun τ => intervalDomain.integral (fun x => (u τ x) ^ pExp)) t +
+              A * intervalDomain.integral (fun x =>
+                (intervalDomain.gradNorm (fun y => (u t y) ^ (pExp / 2)) x) ^ 2) +
+              B * intervalDomain.integral (fun x => (u t x) ^ pExp) ≤
+            K * intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) + L_const) →
+          ∀ t, 0 < t → t < T →
+            0 ≤
+              (1 / pExp) * deriv
+                  (fun τ => intervalDomain.integral (fun x => (u τ x) ^ pExp)) t +
+                B * intervalDomain.integral (fun x => (u t x) ^ pExp))
+    (hcGrad :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ pExp, p0 ≤ pExp → 0 < cGrad u T rho p0 pExp)
+    (hgrad :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ pExp, p0 ≤ pExp → ∀ t, 0 < t → t < T →
+          intervalDomain.integral (fun x =>
+              (u t x) ^ (pExp + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+            cGrad u T rho p0 pExp * intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm (fun y => (u t y) ^ (pExp / 2)) x) ^ 2))
+    (hmass :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ pExp, p0 ≤ pExp → ∀ Ceta, ∃ Cmass, ∀ t, 0 < t → t < T →
+          Ceta * (intervalDomain.integral (u t)) ^ (pExp + rho) ≤ Cmass)
+    (hpow_int :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
+          IntervalIntegrable
+            (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
+            MeasureTheory.volume 0 1)
+    (hEnergyFromCrossDiffusion :
+      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+        AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
+          LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hslowBootstrap :
+      1 ≤ p.β →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) :
+    Theorem_1_2 intervalDomain p := by
+  have hCor21 : Corollary_2_1 intervalDomain p :=
+    Corollary_2_1_intervalDomain_of_interpolation_frontier_from_solution_positivity
+      p hGN cGrad hdiss hcGrad hgrad hmass hpow_int
+      hEnergyFromCrossDiffusion
+  exact
+    Theorem_1_2_intervalDomain_slow_regime_of_parameter_fields_and_corollary21
+      p hm_lt hCor21 hProp25 hlocal hslowBootstrap
+
+open ShenWork.Paper2.IntervalDomainTheorem11Composite in
+/-- Fixed critical regime from the interval interpolation frontier and
+classical-solution positivity, with long-time boundedness supplied as an
+eventual sup-norm frontier. -/
+theorem
+Theorem_1_2_intervalDomain_critical_regime_of_interpolation_frontier_solution_positivity
+    (p : CM2Params)
+    (hm_eq : p.m = 1)
+    (hGN : IntervalDomainLemma41.IntervalDomainInterpolation)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hdiss :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ pExp, p0 ≤ pExp → ∀ A B K L_const,
+          (∀ t, 0 < t → t < T →
+            (1 / pExp) * deriv
+                (fun τ => intervalDomain.integral (fun x => (u τ x) ^ pExp)) t +
+              A * intervalDomain.integral (fun x =>
+                (intervalDomain.gradNorm (fun y => (u t y) ^ (pExp / 2)) x) ^ 2) +
+              B * intervalDomain.integral (fun x => (u t x) ^ pExp) ≤
+            K * intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) + L_const) →
+          ∀ t, 0 < t → t < T →
+            0 ≤
+              (1 / pExp) * deriv
+                  (fun τ => intervalDomain.integral (fun x => (u τ x) ^ pExp)) t +
+                B * intervalDomain.integral (fun x => (u t x) ^ pExp))
+    (hcGrad :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ pExp, p0 ≤ pExp → 0 < cGrad u T rho p0 pExp)
+    (hgrad :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ pExp, p0 ≤ pExp → ∀ t, 0 < t → t < T →
+          intervalDomain.integral (fun x =>
+              (u t x) ^ (pExp + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+            cGrad u T rho p0 pExp * intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm (fun y => (u t y) ^ (pExp / 2)) x) ^ 2))
+    (hmass :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ pExp, p0 ≤ pExp → ∀ Ceta, ∃ Cmass, ∀ t, 0 < t → t < T →
+          Ceta * (intervalDomain.integral (u t)) ^ (pExp + rho) ≤ Cmass)
+    (hpow_int :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
+          IntervalIntegrable
+            (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
+            MeasureTheory.volume 0 1)
+    (hEnergyFromCrossDiffusion :
+      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+        AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
+          LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hglobalExtension :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hcriticalBootstrap :
+      1 ≤ p.β → p.χ₀ < chiBeta p →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hcriticalEventualSupBound :
+      1 ≤ p.β → p.χ₀ < chiBeta p →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2GlobalClassicalSolution intervalDomain p u v →
+        InitialTrace intervalDomain u₀ u →
+        (∀ T > 0,
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) →
+          ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M) :
+    Theorem_1_2 intervalDomain p := by
+  have hCor21 : Corollary_2_1 intervalDomain p :=
+    Corollary_2_1_intervalDomain_of_interpolation_frontier_from_solution_positivity
+      p hGN cGrad hdiss hcGrad hgrad hmass hpow_int
+      hEnergyFromCrossDiffusion
   exact
     Theorem_1_2_intervalDomain_critical_regime_of_parameter_fields_and_eventual_sup_bound
       p hm_eq hCor21 hProp25 hlocal hglobalExtension hcriticalBootstrap
@@ -1754,6 +1968,134 @@ theorem Theorem_1_2_intervalDomain_of_mass_gradient_frontier_and_eventual_sup_bo
     ShenWork.Paper2.IntervalDomainCorollary21.Corollary_2_1_intervalDomain_of_Lemma_2_6_and_energy
       p hLemma26 hEnergyFromCrossDiffusion
   exact Theorem_1_2_intervalDomain_of_local_global_and_eventual_sup_bound
+    p hCor21 hProp25 hlocal hglobalExtension hslowBootstrap hcriticalBootstrap
+    hcriticalEventualSupBound
+
+open ShenWork.Paper2.IntervalDomainTheorem11Composite in
+/-- Sharpened Theorem 1.2 assembly from the interpolation frontier and
+classical-solution positivity.
+
+Compared with
+`Theorem_1_2_intervalDomain_of_mass_gradient_frontier_and_eventual_sup_bound`,
+this removes the standalone mass-gradient interpolation input and the separate
+nonnegativity frontier.  They are discharged upstream by
+`Corollary_2_1_intervalDomain_of_interpolation_frontier_from_solution_positivity`.
+The remaining hypotheses are the honest PDE energy/dissipation, chain-rule,
+mass-control, integrability, Cauchy theory, branch bootstrap, and eventual
+sup-norm frontiers, with parameter-side guards internalized by the branch
+frontiers. -/
+theorem Theorem_1_2_intervalDomain_of_interpolation_frontier_solution_positivity
+    (p : CM2Params)
+    (hGN : IntervalDomainLemma41.IntervalDomainInterpolation)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hdiss :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ pExp, p0 ≤ pExp → ∀ A B K L_const,
+          (∀ t, 0 < t → t < T →
+            (1 / pExp) * deriv
+                (fun τ => intervalDomain.integral (fun x => (u τ x) ^ pExp)) t +
+              A * intervalDomain.integral (fun x =>
+                (intervalDomain.gradNorm (fun y => (u t y) ^ (pExp / 2)) x) ^ 2) +
+              B * intervalDomain.integral (fun x => (u t x) ^ pExp) ≤
+            K * intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) + L_const) →
+          ∀ t, 0 < t → t < T →
+            0 ≤
+              (1 / pExp) * deriv
+                  (fun τ => intervalDomain.integral (fun x => (u τ x) ^ pExp)) t +
+                B * intervalDomain.integral (fun x => (u t x) ^ pExp))
+    (hcGrad :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ pExp, p0 ≤ pExp → 0 < cGrad u T rho p0 pExp)
+    (hgrad :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ pExp, p0 ≤ pExp → ∀ t, 0 < t → t < T →
+          intervalDomain.integral (fun x =>
+              (u t x) ^ (pExp + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+            cGrad u T rho p0 pExp * intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm (fun y => (u t y) ^ (pExp / 2)) x) ^ 2))
+    (hmass :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ pExp, p0 ≤ pExp → ∀ Ceta, ∃ Cmass, ∀ t, 0 < t → t < T →
+          Ceta * (intervalDomain.integral (u t)) ^ (pExp + rho) ≤ Cmass)
+    (hpow_int :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
+          IntervalIntegrable
+            (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
+            MeasureTheory.volume 0 1)
+    (hEnergyFromCrossDiffusion :
+      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+        AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
+          LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hglobalExtension :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hslowBootstrap :
+      1 ≤ p.β → p.m < 1 →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hcriticalBootstrap :
+      1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hcriticalEventualSupBound :
+      1 ≤ p.β → p.m = 1 → p.χ₀ < chiBeta p →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2GlobalClassicalSolution intervalDomain p u v →
+        InitialTrace intervalDomain u₀ u →
+        (∀ T > 0,
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) →
+          ∃ T₀ M, ∀ t, T₀ ≤ t → intervalDomain.supNorm (u t) ≤ M) :
+    Theorem_1_2 intervalDomain p := by
+  have hCor21 : Corollary_2_1 intervalDomain p :=
+    Corollary_2_1_intervalDomain_of_interpolation_frontier_from_solution_positivity
+      p hGN cGrad hdiss hcGrad hgrad hmass hpow_int
+      hEnergyFromCrossDiffusion
+  exact Theorem_1_2_intervalDomain_of_parameter_fields_and_eventual_sup_bound
     p hCor21 hProp25 hlocal hglobalExtension hslowBootstrap hcriticalBootstrap
     hcriticalEventualSupBound
 
