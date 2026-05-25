@@ -8,14 +8,14 @@
   `intervalDomainSemigroupEstimateData` below uses the real interval `Lp`
   seminorm, the restricted interval heat helper, and its spatial derivative.
 
-  The field-level H0.1/H0.2 estimates are unconditional.  The exact abstract
-  `Lemma_2_1`--`Lemma_2_4` statements still contain extra statement-layer
-  requirements not supplied by H0.1/H0.2 alone: exponential damping in
-  `Lemma_2_1`, a fractional graph norm compatible with `S(t)-I`, and the
-  `t^{-1/2}` divergence singularity in `Lemma_2_3`/`Lemma_2_4` whereas the
-  current H0.2 endpoint gives a stronger small-time singularity.  The
-  comparison obstructions below make those frontiers formal rather than hiding
-  them in the structure fields.
+  The field-level H0.1/H0.2 estimates are unconditional.  The current
+  interval-domain bootstrap files do not unfold the sharp `Lemma_2_3` or
+  `Lemma_2_4` factors; they only pass `Lemma_2_1` as an assembly parameter.
+  Consequently the route below exposes the nonsharp estimates that are
+  currently available from H0.1/H0.2 and keeps the exact statement-layer
+  frontiers separate: exponential damping in `Lemma_2_1`, a fractional graph
+  norm compatible with `S(t)-I`, and the sharp `t^{-1/2}` divergence
+  singularity in `Lemma_2_3`/`Lemma_2_4`.
 -/
 import ShenWork.Paper2.Statements
 import ShenWork.PDE.HeatKernelGradientEstimates
@@ -103,6 +103,20 @@ theorem intervalDomainHeat_Lp_Lq_bound_from_memLp
   exact intervalHeatSemigroup_Lp_Lq_bound
     (L := 1) (t := t) (p := p) (q := q) (r := r)
     ht hrp hpq (f := intervalDomainLift u) hu_mem
+
+/-- H0.1 contraction endpoint specialized to `intervalDomain`: the concrete
+unit-interval helper heat operator is an `L^p` contraction. -/
+theorem intervalDomainHeat_Lp_contraction_from_memLp
+    {t p r : ℝ} (ht : 0 < t) (hrp : r.HolderConjugate p)
+    {u : intervalDomain.Point → ℝ}
+    (hu_mem :
+      MemLp (intervalDomainLift u) (ENNReal.ofReal p) (intervalMeasure 1)) :
+    intervalDomainLpNorm p (intervalDomainHeatSemigroup t u) ≤
+      intervalDomainLpNorm p u := by
+  rw [intervalDomainHeatSemigroup_lpNorm_eq]
+  exact intervalHeatSemigroup_Lp_contraction
+    (L := 1) (t := t) (p := p) (r := r)
+    ht hrp (f := intervalDomainLift u) hu_mem
 
 /-- H0.2 specialized to `intervalDomain`: finite `L^p → L^q` smoothing for
 the spatial derivative of the unit-interval helper heat operator. -/
@@ -229,6 +243,91 @@ theorem intervalDomainSemigroupEstimateData_divergence_Lp_Lq_bound_from_memLp
   rw [intervalDomainHeatDivergenceSemigroup_lpNorm_eq]
   exact intervalDomainHeat_grad_Lp_Lq_bound_from_memLp
     (t := t) (p := p) (q := q) ht hp hq (u := u) hu_mem
+
+/-! ### Current downstream nonsharp route -/
+
+/-- Nonsharp `S(t)` route currently consumed downstream: for the concrete
+data, the chosen fractional norm is the underlying `L^q` norm, and the helper
+heat semigroup is an `L^q` contraction for `q > 1` with a Holder conjugate. -/
+theorem intervalDomainSemigroupEstimateData_fractional_semigroup_Lq_contraction
+    {sigma t q r : ℝ} (ht : 0 < t) (hrq : r.HolderConjugate q)
+    {u : intervalDomain.Point → ℝ}
+    (hu_mem :
+      MemLp (intervalDomainLift u) (ENNReal.ofReal q) (intervalMeasure 1)) :
+    intervalDomainSemigroupEstimateData.fractionalNorm sigma q
+        (intervalDomainSemigroupEstimateData.semigroup t u) ≤
+      intervalDomainSemigroupEstimateData.lpNorm q u := by
+  simpa [intervalDomainSemigroupEstimateData] using
+    intervalDomainHeat_Lp_contraction_from_memLp
+      (t := t) (p := q) (r := r) ht hrq (u := u) hu_mem
+
+/-- Nonsharp same-exponent divergence route in the form used by the current
+interval-domain bootstrap chain.  This is the H0.2 endpoint with `p = q`. -/
+theorem intervalDomainSemigroupEstimateData_divergence_Lq_nonsharp_bound
+    {t q : ℝ} (ht : 0 < t) (hq : 1 < q)
+    {phi : intervalDomain.Point → ℝ}
+    (hphi_mem :
+      MemLp (intervalDomainLift phi) (ENNReal.ofReal q) (intervalMeasure 1)) :
+    intervalDomainSemigroupEstimateData.lpNorm q
+        (intervalDomainSemigroupEstimateData.divergenceSemigroup t phi) ≤
+      heatGradientL1LinftyFactor t *
+        intervalDomainSemigroupEstimateData.vectorLpNorm q phi := by
+  exact intervalDomainSemigroupEstimateData_divergence_Lp_Lq_bound_from_memLp
+    (t := t) (p := q) (q := q) ht hq.le (lt_trans zero_lt_one hq)
+    (u := phi) hphi_mem
+
+/-- Since the current concrete `fractionalNorm` is the underlying `L^q` norm,
+the same nonsharp H0.2 divergence route also controls the fractional
+divergence expression. -/
+theorem intervalDomainSemigroupEstimateData_fractional_divergence_nonsharp_bound
+    {sigma t q : ℝ} (ht : 0 < t) (hq : 1 < q)
+    {phi : intervalDomain.Point → ℝ}
+    (hphi_mem :
+      MemLp (intervalDomainLift phi) (ENNReal.ofReal q) (intervalMeasure 1)) :
+    intervalDomainSemigroupEstimateData.fractionalNorm sigma q
+        (intervalDomainSemigroupEstimateData.divergenceSemigroup t phi) ≤
+      heatGradientL1LinftyFactor t *
+        intervalDomainSemigroupEstimateData.vectorLpNorm q phi := by
+  simpa [intervalDomainSemigroupEstimateData] using
+    intervalDomainSemigroupEstimateData_divergence_Lq_nonsharp_bound
+      (t := t) (q := q) ht hq (phi := phi) hphi_mem
+
+/-- Bundled nonsharp interval semigroup route available from H0.1/H0.2.  The
+current interval bootstrap chain only needs this qualitative route; the sharp
+`1 + t^{-1/2}` divergence factor remains an optional exact-statement
+optimization for `Lemma_2_3`/`Lemma_2_4`. -/
+theorem intervalDomainSemigroupEstimateData_current_downstream_nonsharp_route :
+    (∀ {sigma t q r : ℝ}, 0 < t → r.HolderConjugate q →
+      ∀ {u : intervalDomain.Point → ℝ},
+        MemLp (intervalDomainLift u) (ENNReal.ofReal q) (intervalMeasure 1) →
+          intervalDomainSemigroupEstimateData.fractionalNorm sigma q
+              (intervalDomainSemigroupEstimateData.semigroup t u) ≤
+            intervalDomainSemigroupEstimateData.lpNorm q u) ∧
+    (∀ {t q : ℝ}, 0 < t → 1 < q →
+      ∀ {phi : intervalDomain.Point → ℝ},
+        MemLp (intervalDomainLift phi) (ENNReal.ofReal q) (intervalMeasure 1) →
+          intervalDomainSemigroupEstimateData.lpNorm q
+              (intervalDomainSemigroupEstimateData.divergenceSemigroup t phi) ≤
+            heatGradientL1LinftyFactor t *
+              intervalDomainSemigroupEstimateData.vectorLpNorm q phi) ∧
+    (∀ {sigma t q : ℝ}, 0 < t → 1 < q →
+      ∀ {phi : intervalDomain.Point → ℝ},
+        MemLp (intervalDomainLift phi) (ENNReal.ofReal q) (intervalMeasure 1) →
+          intervalDomainSemigroupEstimateData.fractionalNorm sigma q
+              (intervalDomainSemigroupEstimateData.divergenceSemigroup t phi) ≤
+            heatGradientL1LinftyFactor t *
+              intervalDomainSemigroupEstimateData.vectorLpNorm q phi) := by
+  refine ⟨?_, ?_, ?_⟩
+  · intro sigma t q r ht hrq u hu
+    exact intervalDomainSemigroupEstimateData_fractional_semigroup_Lq_contraction
+      (sigma := sigma) (t := t) (q := q) (r := r) ht hrq
+      (u := u) hu
+  · intro t q ht hq phi hphi
+    exact intervalDomainSemigroupEstimateData_divergence_Lq_nonsharp_bound
+      (t := t) (q := q) ht hq (phi := phi) hphi
+  · intro sigma t q ht hq phi hphi
+    exact intervalDomainSemigroupEstimateData_fractional_divergence_nonsharp_bound
+      (sigma := sigma) (t := t) (q := q) ht hq (phi := phi) hphi
 
 /-! ### Exact Paper2 route obstructions for the current data -/
 
