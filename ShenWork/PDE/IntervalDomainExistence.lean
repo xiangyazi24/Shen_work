@@ -1899,6 +1899,92 @@ theorem aboveEquilibrium_regularityBootstrap
     rw [← Real.dist_eq, dist_comm]
     exact hball (by rwa [Real.dist_eq, sub_zero, abs_of_pos ht0])
 
+/-! ### Sup-norm triangle inequality and initial approach for intervalDomain -/
+
+/-- Helper: `intervalDomainSupNorm` is nonneg.  When BddAbove holds, it's the
+sup of nonneg values ≥ 0.  When NOT BddAbove, it equals 0 by definition. -/
+lemma intervalDomainSupNorm_nonneg (f : intervalDomainPoint → ℝ) :
+    0 ≤ intervalDomainSupNorm f := by
+  unfold intervalDomainSupNorm
+  by_cases hbdd : BddAbove (Set.range (fun x : intervalDomainPoint => |f x|))
+  · exact le_csSup_of_le hbdd ⟨⟨0, le_refl 0, zero_le_one⟩, rfl⟩ (abs_nonneg _)
+  · show 0 ≤ sSup (Set.range fun x => |f x|)
+    rw [Real.sSup_def, dif_neg (by simp [hbdd])]
+
+/-- When NOT BddAbove, `intervalDomainSupNorm` equals 0. -/
+private lemma intervalDomainSupNorm_eq_zero_of_not_bddAbove
+    {f : intervalDomainPoint → ℝ}
+    (h : ¬BddAbove (Set.range (fun x => |f x|))) :
+    intervalDomainSupNorm f = 0 := by
+  unfold intervalDomainSupNorm
+  rw [Real.sSup_def]
+  simp only [Set.range_nonempty, h, and_false, ↓reduceDIte]
+
+/-- If BddAbove holds for `range |f|` and `range |g|`, then BddAbove
+holds for `range |f - g|`. -/
+private lemma bddAbove_range_abs_diff_of_bddAbove
+    {f g : intervalDomainPoint → ℝ}
+    (hf : BddAbove (Set.range (fun x => |f x|)))
+    (hg : BddAbove (Set.range (fun x => |g x|))) :
+    BddAbove (Set.range (fun x => |f x - g x|)) := by
+  obtain ⟨Mf, hMf⟩ := hf
+  obtain ⟨Mg, hMg⟩ := hg
+  refine ⟨Mf + Mg, ?_⟩
+  rintro _ ⟨x, rfl⟩
+  calc |f x - g x| ≤ |f x| + |g x| := abs_sub _ _
+    _ ≤ Mf + Mg := add_le_add (hMf ⟨x, rfl⟩) (hMg ⟨x, rfl⟩)
+
+/-- **Initial sup-norm approach for intervalDomain.**
+
+For any classical solution with initial trace, `supNorm(u t)` is close to
+`supNorm u₀` for small positive time.
+
+**Proof**: From `InitialTrace`, for ε > 0, ∃ δ > 0 with
+`supNorm(u t - u₀) < ε` for `t ∈ (0, δ)`.  When BddAbove holds for the
+relevant ranges (the mathematically meaningful case), the triangle inequality
+`|u t x| ≤ |u₀ x| + |u t x - u₀ x| ≤ supNorm u₀ + ε` gives the result via
+`csSup_le`.  When BddAbove fails, `supNorm(u t) = 0 ≤ supNorm u₀ + ε`. -/
+theorem initialSupNormApproach_intervalDomain (p : CM2Params)
+    (u₀ : intervalDomain.Point → ℝ) (_hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hbdd_u0 : BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|)))
+    {T : ℝ} (hT : 0 < T)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (_hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htrace : InitialTrace intervalDomain u₀ u)
+    {ε : ℝ} (hε : 0 < ε) :
+    ∃ δ > 0, δ ≤ T ∧ ∀ t, 0 < t → t < δ →
+      intervalDomain.supNorm (u t) ≤ intervalDomain.supNorm u₀ + ε := by
+  obtain ⟨δ₁, hδ₁_pos, hδ₁_bound⟩ := htrace ε hε
+  refine ⟨min δ₁ T, lt_min hδ₁_pos hT, min_le_right _ _, fun t ht0 htδ => ?_⟩
+  have ht_lt_δ₁ : t < δ₁ := lt_of_lt_of_le htδ (min_le_left _ _)
+  have hsup_diff : intervalDomainSupNorm (fun x => u t x - u₀ x) < ε :=
+    hδ₁_bound t ht0 ht_lt_δ₁
+  show intervalDomainSupNorm (u t) ≤ intervalDomainSupNorm u₀ + ε
+  by_cases hbdd_ut : BddAbove (Set.range (fun x : intervalDomainPoint => |u t x|))
+  · -- BddAbove case: triangle inequality
+    have hbdd_diff : BddAbove
+        (Set.range (fun x : intervalDomainPoint => |u t x - u₀ x|)) := by
+      obtain ⟨M1, hM1⟩ := hbdd_ut; obtain ⟨M2, hM2⟩ := hbdd_u0
+      exact ⟨M1 + M2, fun _ ⟨x, hx⟩ => hx ▸
+        (abs_sub (u t x) (u₀ x)).trans (add_le_add (hM1 ⟨x, rfl⟩) (hM2 ⟨x, rfl⟩))⟩
+    unfold intervalDomainSupNorm
+    have : Nonempty intervalDomainPoint :=
+      ⟨⟨0, le_refl _, zero_le_one⟩⟩
+    have hne : (Set.range (fun x : intervalDomainPoint => |u t x|)).Nonempty :=
+      Set.range_nonempty _
+    apply csSup_le hne
+    rintro _ ⟨x, rfl⟩
+    have hxdiff : |u t x - u₀ x| < ε :=
+      lt_of_le_of_lt (le_csSup hbdd_diff ⟨x, rfl⟩) hsup_diff
+    calc |u t x| = |u₀ x + (u t x - u₀ x)| := by ring_nf
+      _ ≤ |u₀ x| + |u t x - u₀ x| := abs_add_le _ _
+      _ ≤ sSup (Set.range (fun x => |u₀ x|)) + |u t x - u₀ x| :=
+          add_le_add (le_csSup hbdd_u0 ⟨x, rfl⟩) le_rfl
+      _ ≤ sSup (Set.range (fun x => |u₀ x|)) + ε := by linarith
+  · -- ¬BddAbove: supNorm(u t) = 0
+    rw [intervalDomainSupNorm_eq_zero_of_not_bddAbove hbdd_ut]
+    linarith [intervalDomainSupNorm_nonneg u₀]
+
 /-- Local existence for spatially-constant initial data above equilibrium,
 via the RegularityBootstrap chain.
 
