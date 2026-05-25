@@ -314,7 +314,15 @@
   `diagonalResolventCoeff_shiftMinusGenerator`,
   `sigma_le_neg_logisticDamping_of_chi_nonpos`,
   `UnitIntervalLinearSpectralGap.of_chi_nonpos_a_pos`, and
-  `positiveEquilibrium_UnitIntervalLinearSpectralGap_of_chi_nonpos`.
+  `positiveEquilibrium_UnitIntervalLinearSpectralGap_of_chi_nonpos`.  In
+  `ShenWork/Paper3/IntervalDomainSectorial.lean`, the new
+  `intervalDomain_locallyExponentiallyStableFromSup_of_spectralGap_sectorialHypothesis`
+  and
+  `intervalDomain_massConstrainedLocallyExponentiallyStableFromSup_of_spectralGap_sectorialHypothesis`
+  bridge this spectral-gap package to the existing raw interval-domain
+  sectorial frontier by discharging only the `LinearlyStable` input; nonlinear
+  sectoriality, `X^σ_p`/`C¹` norm comparison, and small-data existence remain
+  state③ frontiers.
 - **前置**: spectral theory on bounded domain, resolvent estimates
 - **目标文件**: `ShenWork/PDE/SectorialOperator.lean` (new)
 - **产出**: `SectorialLocalExponentialRaw`

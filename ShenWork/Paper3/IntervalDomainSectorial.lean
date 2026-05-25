@@ -5,11 +5,13 @@
   operator.  It records the exact H3.1 hypothesis needed on the concrete
   interval domain and routes it through the existing raw Paper3 stability API.
 -/
+import ShenWork.PDE.SectorialOperator
 import ShenWork.Paper3.Statements
 
 namespace ShenWork.Paper3
 
 open ShenWork.IntervalDomain
+open ShenWork.PDE.SectorialOperator
 
 noncomputable section
 
@@ -60,6 +62,53 @@ theorem intervalDomain_massConstrainedLocallyExponentiallyStableFromSup_of_secto
       uStar vStar :=
   hsectorial.massConstrained_from_xpSigma_le_supNorm
     hsigma_low hsigma_high hpNorm hstable hxp hexist
+
+/-- H3.1 bridge using the concrete unit-interval spectral-gap package.  The
+spectral gap discharges the `LinearlyStable` input to the raw sectorial
+interface; nonlinear sectoriality, the norm comparison, and small-data
+existence remain explicit frontiers. -/
+theorem intervalDomain_locallyExponentiallyStableFromSup_of_spectralGap_sectorialHypothesis
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    {sigma pNorm uStar vStar rate : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hsectorial :
+      SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    (hgap : UnitIntervalLinearSpectralGap p uStar vStar rate)
+    (hxp :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤
+          intervalDomain.supNorm (fun x => u₀ x - uStar))
+    (hexist : ∀ delta > 0, SmallDataGlobalExistence intervalDomain p uStar delta) :
+    LocallyExponentiallyStableFromSup intervalDomain p N uStar vStar :=
+  intervalDomain_locallyExponentiallyStableFromSup_of_sectorialHypothesis
+    p N hsigma_low hsigma_high hpNorm hsectorial hgap.linearlyStable hxp hexist
+
+/-- Mass-constrained version of the spectral-gap-to-local-stability bridge. -/
+theorem
+intervalDomain_massConstrainedLocallyExponentiallyStableFromSup_of_spectralGap_sectorialHypothesis
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    {sigma pNorm uStar vStar rate : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hsectorial :
+      SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    (hgap : UnitIntervalLinearSpectralGap p uStar vStar rate)
+    (hxp :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤
+          intervalDomain.supNorm (fun x => u₀ x - uStar))
+    (hexist :
+      ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p uStar delta) :
+    MassConstrainedLocallyExponentiallyStableFromSup intervalDomain p N
+      uStar vStar :=
+  intervalDomain_massConstrainedLocallyExponentiallyStableFromSup_of_sectorialHypothesis
+    p N hsigma_low hsigma_high hpNorm hsectorial hgap.linearlyStable hxp hexist
 
 /-- Nonpositive-sensitivity positive-equilibrium interval branch: the linear
 part is proved from the unit-interval Neumann spectrum; the nonlinear local
