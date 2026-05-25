@@ -336,6 +336,12 @@
   `unitIntervalLinearizedMassResolvent_l2_energy_le`, giving the zero-mode-free
   nonzero-mode decay/resolvent estimates needed for minimal mass-constrained
   linearized stability.
+  Follow-up norm-form increment: `unitIntervalLinearizedSemigroup_l2_norm_decay`,
+  `unitIntervalLinearizedSemigroupLp_norm_decay`,
+  `unitIntervalLinearizedMassSemigroup_l2_norm_decay`,
+  `unitIntervalLinearizedMassSemigroupLp_norm_decay`,
+  `unitIntervalLinearizedResolvent_l2_norm_le`, and
+  `unitIntervalLinearizedMassResolvent_l2_norm_le`.
 - **前置**: spectral theory on bounded domain, resolvent estimates
 - **目标文件**: `ShenWork/PDE/SectorialOperator.lean` (new)
 - **产出**: `SectorialLocalExponentialRaw`

@@ -41,6 +41,15 @@ theorem coeffL2Energy_nonneg (a : ℕ → ℂ) :
     0 ≤ coeffL2Energy a := by
   exact tsum_nonneg fun n => sq_nonneg _
 
+/-- Coefficient `ℓ²` norm induced by `coeffL2Energy`. -/
+def coeffL2Norm (a : ℕ → ℂ) : ℝ :=
+  Real.sqrt (coeffL2Energy a)
+
+/-- Coefficient `ℓ²` norm is nonnegative. -/
+theorem coeffL2Norm_nonneg (a : ℕ → ℂ) :
+    0 ≤ coeffL2Norm a := by
+  exact Real.sqrt_nonneg _
+
 /-- Package square-summable coefficients as an `ℓ²` vector. -/
 def coeffLp2 (a : ℕ → ℂ)
     (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) : ℓ²(ℕ, ℂ) := by
@@ -261,6 +270,29 @@ theorem diagonalSemigroupCoeff_l2_energy_le_of_growth_le
   have htsum := hs.tsum_le_tsum hle hmajor
   simpa [coeffL2Energy, ha.tsum_mul_left] using htsum
 
+/-- `L²` coefficient-norm semigroup bound from a spectral upper bound. -/
+theorem diagonalSemigroupCoeff_l2_norm_le_of_growth_le
+    {growth : ℕ → ℝ} {omega t : ℝ} (ht : 0 ≤ t)
+    (hgrowth : ∀ n, growth n ≤ omega) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    coeffL2Norm (diagonalSemigroupCoeff growth t a) ≤
+      Real.exp (t * omega) * coeffL2Norm a := by
+  have henergy :=
+    diagonalSemigroupCoeff_l2_energy_le_of_growth_le
+      (growth := growth) (omega := omega) ht hgrowth ha
+  have hsqrt := Real.sqrt_le_sqrt henergy
+  have hfactor_nonneg : 0 ≤ Real.exp (t * omega) := Real.exp_nonneg _
+  calc
+    coeffL2Norm (diagonalSemigroupCoeff growth t a)
+        = Real.sqrt (coeffL2Energy
+            (diagonalSemigroupCoeff growth t a)) := rfl
+    _ ≤ Real.sqrt
+          ((Real.exp (t * omega)) ^ 2 * coeffL2Energy a) := hsqrt
+    _ = Real.exp (t * omega) * coeffL2Norm a := by
+          rw [Real.sqrt_mul (sq_nonneg (Real.exp (t * omega)))]
+          rw [Real.sqrt_sq hfactor_nonneg]
+          rfl
+
 /-- `L²` coefficient-energy semigroup bound from a nonzero-mode spectral upper
 bound and a vanishing zero coefficient. -/
 theorem diagonalSemigroupCoeff_l2_energy_le_of_growth_le_on_nonzero
@@ -285,6 +317,30 @@ theorem diagonalSemigroupCoeff_l2_energy_le_of_growth_le_on_nonzero
   have htsum := hs.tsum_le_tsum hle hmajor
   simpa [coeffL2Energy, ha.tsum_mul_left] using htsum
 
+/-- `L²` coefficient-norm semigroup bound from a nonzero-mode spectral upper
+bound and a vanishing zero coefficient. -/
+theorem diagonalSemigroupCoeff_l2_norm_le_of_growth_le_on_nonzero
+    {growth : ℕ → ℝ} {omega t : ℝ} (ht : 0 ≤ t)
+    (hgrowth : ∀ n, n ≠ 0 → growth n ≤ omega) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) (ha0 : a 0 = 0) :
+    coeffL2Norm (diagonalSemigroupCoeff growth t a) ≤
+      Real.exp (t * omega) * coeffL2Norm a := by
+  have henergy :=
+    diagonalSemigroupCoeff_l2_energy_le_of_growth_le_on_nonzero
+      (growth := growth) (omega := omega) ht hgrowth ha ha0
+  have hsqrt := Real.sqrt_le_sqrt henergy
+  have hfactor_nonneg : 0 ≤ Real.exp (t * omega) := Real.exp_nonneg _
+  calc
+    coeffL2Norm (diagonalSemigroupCoeff growth t a)
+        = Real.sqrt (coeffL2Energy
+            (diagonalSemigroupCoeff growth t a)) := rfl
+    _ ≤ Real.sqrt
+          ((Real.exp (t * omega)) ^ 2 * coeffL2Energy a) := hsqrt
+    _ = Real.exp (t * omega) * coeffL2Norm a := by
+          rw [Real.sqrt_mul (sq_nonneg (Real.exp (t * omega)))]
+          rw [Real.sqrt_sq hfactor_nonneg]
+          rfl
+
 /-- Reconstructed interval `L²` semigroup bound from a spectral upper bound. -/
 theorem diagonalSemigroupLp_norm_sq_le_of_growth_le
     {growth : ℕ → ℝ} {omega t : ℝ} (ht : 0 ≤ t)
@@ -298,6 +354,30 @@ theorem diagonalSemigroupLp_norm_sq_le_of_growth_le
   rw [cosineLpFromCoeffs_norm_sq]
   exact diagonalSemigroupCoeff_l2_energy_le_of_growth_le
     (growth := growth) (omega := omega) ht hgrowth ha
+
+/-- Reconstructed interval `L²` semigroup norm bound from a spectral upper
+bound. -/
+theorem diagonalSemigroupLp_norm_le_of_growth_le
+    {growth : ℕ → ℝ} {omega t : ℝ} (ht : 0 ≤ t)
+    (hgrowth : ∀ n, growth n ≤ omega) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    ‖cosineLpFromCoeffs
+        (diagonalSemigroupCoeff growth t a)
+        (diagonalSemigroupCoeff_l2_summable_of_growth_le
+          (growth := growth) (omega := omega) ht hgrowth ha)‖ ≤
+      Real.exp (t * omega) * coeffL2Norm a := by
+  have hsq :=
+    diagonalSemigroupLp_norm_sq_le_of_growth_le
+      (growth := growth) (omega := omega) ht hgrowth ha
+  have hright :
+      (Real.exp (t * omega) * coeffL2Norm a) ^ 2 =
+        (Real.exp (t * omega)) ^ 2 * coeffL2Energy a := by
+    simp [coeffL2Norm, mul_pow, Real.sq_sqrt (coeffL2Energy_nonneg a)]
+  exact
+    (sq_le_sq₀
+      (norm_nonneg _)
+      (mul_nonneg (Real.exp_nonneg _) (coeffL2Norm_nonneg a))).mp
+      (by simpa [hright] using hsq)
 
 /-- Reconstructed interval `L²` semigroup bound from a nonzero-mode spectral
 upper bound and a vanishing zero coefficient. -/
@@ -313,6 +393,30 @@ theorem diagonalSemigroupLp_norm_sq_le_of_growth_le_on_nonzero
   rw [cosineLpFromCoeffs_norm_sq]
   exact diagonalSemigroupCoeff_l2_energy_le_of_growth_le_on_nonzero
     (growth := growth) (omega := omega) ht hgrowth ha ha0
+
+/-- Reconstructed interval `L²` semigroup norm bound from a nonzero-mode
+spectral upper bound and a vanishing zero coefficient. -/
+theorem diagonalSemigroupLp_norm_le_of_growth_le_on_nonzero
+    {growth : ℕ → ℝ} {omega t : ℝ} (ht : 0 ≤ t)
+    (hgrowth : ∀ n, n ≠ 0 → growth n ≤ omega) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) (ha0 : a 0 = 0) :
+    ‖cosineLpFromCoeffs
+        (diagonalSemigroupCoeff growth t a)
+        (diagonalSemigroupCoeff_l2_summable_of_growth_le_on_nonzero
+          (growth := growth) (omega := omega) ht hgrowth ha ha0)‖ ≤
+      Real.exp (t * omega) * coeffL2Norm a := by
+  have hsq :=
+    diagonalSemigroupLp_norm_sq_le_of_growth_le_on_nonzero
+      (growth := growth) (omega := omega) ht hgrowth ha ha0
+  have hright :
+      (Real.exp (t * omega) * coeffL2Norm a) ^ 2 =
+        (Real.exp (t * omega)) ^ 2 * coeffL2Energy a := by
+    simp [coeffL2Norm, mul_pow, Real.sq_sqrt (coeffL2Energy_nonneg a)]
+  exact
+    (sq_le_sq₀
+      (norm_nonneg _)
+      (mul_nonneg (Real.exp_nonneg _) (coeffL2Norm_nonneg a))).mp
+      (by simpa [hright] using hsq)
 
 /-- Pointwise real resolvent coefficient bound outside the spectral half-line. -/
 theorem diagonalResolventCoeff_sq_le_of_growth_le
@@ -447,6 +551,29 @@ theorem diagonalResolventCoeff_l2_energy_le_of_growth_le
   have htsum := hs.tsum_le_tsum hle hmajor
   simpa [coeffL2Energy, ha.tsum_mul_left] using htsum
 
+/-- `L²` coefficient-norm real resolvent bound. -/
+theorem diagonalResolventCoeff_l2_norm_le_of_growth_le
+    {growth : ℕ → ℝ} {omega z : ℝ} (hz : omega < z)
+    (hgrowth : ∀ n, growth n ≤ omega) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    coeffL2Norm (diagonalResolventCoeff growth z a) ≤
+      (z - omega)⁻¹ * coeffL2Norm a := by
+  have henergy :=
+    diagonalResolventCoeff_l2_energy_le_of_growth_le
+      (growth := growth) (omega := omega) hz hgrowth ha
+  have hsqrt := Real.sqrt_le_sqrt henergy
+  have hfactor_nonneg : 0 ≤ (z - omega)⁻¹ := by
+    exact inv_nonneg.mpr (by linarith : 0 ≤ z - omega)
+  calc
+    coeffL2Norm (diagonalResolventCoeff growth z a)
+        = Real.sqrt (coeffL2Energy
+            (diagonalResolventCoeff growth z a)) := rfl
+    _ ≤ Real.sqrt (((z - omega)⁻¹) ^ 2 * coeffL2Energy a) := hsqrt
+    _ = (z - omega)⁻¹ * coeffL2Norm a := by
+          rw [Real.sqrt_mul (sq_nonneg ((z - omega)⁻¹))]
+          rw [Real.sqrt_sq hfactor_nonneg]
+          rfl
+
 /-- `L²` coefficient-energy real resolvent bound from a nonzero-mode spectral
 upper bound and a vanishing zero coefficient. -/
 theorem diagonalResolventCoeff_l2_energy_le_of_growth_le_on_nonzero
@@ -469,6 +596,30 @@ theorem diagonalResolventCoeff_l2_energy_le_of_growth_le_on_nonzero
       hz hgrowth ha0
   have htsum := hs.tsum_le_tsum hle hmajor
   simpa [coeffL2Energy, ha.tsum_mul_left] using htsum
+
+/-- `L²` coefficient-norm real resolvent bound from a nonzero-mode spectral
+upper bound and a vanishing zero coefficient. -/
+theorem diagonalResolventCoeff_l2_norm_le_of_growth_le_on_nonzero
+    {growth : ℕ → ℝ} {omega z : ℝ} (hz : omega < z)
+    (hgrowth : ∀ n, n ≠ 0 → growth n ≤ omega) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) (ha0 : a 0 = 0) :
+    coeffL2Norm (diagonalResolventCoeff growth z a) ≤
+      (z - omega)⁻¹ * coeffL2Norm a := by
+  have henergy :=
+    diagonalResolventCoeff_l2_energy_le_of_growth_le_on_nonzero
+      (growth := growth) (omega := omega) hz hgrowth ha ha0
+  have hsqrt := Real.sqrt_le_sqrt henergy
+  have hfactor_nonneg : 0 ≤ (z - omega)⁻¹ := by
+    exact inv_nonneg.mpr (by linarith : 0 ≤ z - omega)
+  calc
+    coeffL2Norm (diagonalResolventCoeff growth z a)
+        = Real.sqrt (coeffL2Energy
+            (diagonalResolventCoeff growth z a)) := rfl
+    _ ≤ Real.sqrt (((z - omega)⁻¹) ^ 2 * coeffL2Energy a) := hsqrt
+    _ = (z - omega)⁻¹ * coeffL2Norm a := by
+          rw [Real.sqrt_mul (sq_nonneg ((z - omega)⁻¹))]
+          rw [Real.sqrt_sq hfactor_nonneg]
+          rfl
 
 /-- `(z - A) R(z,A) = I` at the coefficient level, outside the real spectral
 half-line. -/
@@ -755,6 +906,26 @@ theorem unitIntervalLinearizedSemigroup_l2_energy_decay
       (omega := -rate) ht hgrowth ha
   simpa [mul_comm] using h
 
+/-- A spectral gap gives coefficient-norm exponential decay. -/
+theorem unitIntervalLinearizedSemigroup_l2_norm_decay
+    {p : CM2Params} {uStar vStar rate t : ℝ}
+    (hgap : UnitIntervalLinearSpectralGap p uStar vStar rate)
+    (ht : 0 ≤ t) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    coeffL2Norm
+        (diagonalSemigroupCoeff
+          (unitIntervalLinearizedGrowth p uStar vStar) t a) ≤
+      Real.exp (-(rate * t)) * coeffL2Norm a := by
+  have hgrowth :
+      ∀ n : ℕ,
+        unitIntervalLinearizedGrowth p uStar vStar n ≤ -rate :=
+    hgap.2
+  have h :=
+    diagonalSemigroupCoeff_l2_norm_le_of_growth_le
+      (growth := unitIntervalLinearizedGrowth p uStar vStar)
+      (omega := -rate) ht hgrowth ha
+  simpa [mul_comm] using h
+
 /-- A spectral gap gives reconstructed interval `L²` exponential decay. -/
 theorem unitIntervalLinearizedSemigroupLp_norm_sq_decay
     {p : CM2Params} {uStar vStar rate t : ℝ}
@@ -770,6 +941,25 @@ theorem unitIntervalLinearizedSemigroupLp_norm_sq_decay
       (Real.exp (-(rate * t))) ^ 2 * coeffL2Energy a := by
   have h :=
     diagonalSemigroupLp_norm_sq_le_of_growth_le
+      (growth := unitIntervalLinearizedGrowth p uStar vStar)
+      (omega := -rate) ht hgap.2 ha
+  simpa [mul_comm] using h
+
+/-- A spectral gap gives reconstructed interval `L²` norm exponential decay. -/
+theorem unitIntervalLinearizedSemigroupLp_norm_decay
+    {p : CM2Params} {uStar vStar rate t : ℝ}
+    (hgap : UnitIntervalLinearSpectralGap p uStar vStar rate)
+    (ht : 0 ≤ t) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    ‖cosineLpFromCoeffs
+        (diagonalSemigroupCoeff
+          (unitIntervalLinearizedGrowth p uStar vStar) t a)
+        (diagonalSemigroupCoeff_l2_summable_of_growth_le
+          (growth := unitIntervalLinearizedGrowth p uStar vStar)
+          (omega := -rate) ht hgap.2 ha)‖ ≤
+      Real.exp (-(rate * t)) * coeffL2Norm a := by
+  have h :=
+    diagonalSemigroupLp_norm_le_of_growth_le
       (growth := unitIntervalLinearizedGrowth p uStar vStar)
       (omega := -rate) ht hgap.2 ha
   simpa [mul_comm] using h
@@ -795,6 +985,27 @@ theorem unitIntervalLinearizedMassSemigroup_l2_energy_decay
       (omega := -rate) ht hgrowth ha ha0
   simpa [mul_comm] using h
 
+/-- A nonzero-mode spectral gap gives coefficient-norm exponential decay for
+zero-mode-free coefficient data. -/
+theorem unitIntervalLinearizedMassSemigroup_l2_norm_decay
+    {p : CM2Params} {uStar vStar rate t : ℝ}
+    (hgap : UnitIntervalLinearMassSpectralGap p uStar vStar rate)
+    (ht : 0 ≤ t) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) (ha0 : a 0 = 0) :
+    coeffL2Norm
+        (diagonalSemigroupCoeff
+          (unitIntervalLinearizedGrowth p uStar vStar) t a) ≤
+      Real.exp (-(rate * t)) * coeffL2Norm a := by
+  have hgrowth :
+      ∀ n : ℕ, n ≠ 0 →
+        unitIntervalLinearizedGrowth p uStar vStar n ≤ -rate :=
+    hgap.2
+  have h :=
+    diagonalSemigroupCoeff_l2_norm_le_of_growth_le_on_nonzero
+      (growth := unitIntervalLinearizedGrowth p uStar vStar)
+      (omega := -rate) ht hgrowth ha ha0
+  simpa [mul_comm] using h
+
 /-- A nonzero-mode spectral gap gives reconstructed interval `L²` exponential
 decay for zero-mode-free coefficient data. -/
 theorem unitIntervalLinearizedMassSemigroupLp_norm_sq_decay
@@ -815,6 +1026,26 @@ theorem unitIntervalLinearizedMassSemigroupLp_norm_sq_decay
       (omega := -rate) ht hgap.2 ha ha0
   simpa [mul_comm] using h
 
+/-- A nonzero-mode spectral gap gives reconstructed interval `L²` norm
+exponential decay for zero-mode-free coefficient data. -/
+theorem unitIntervalLinearizedMassSemigroupLp_norm_decay
+    {p : CM2Params} {uStar vStar rate t : ℝ}
+    (hgap : UnitIntervalLinearMassSpectralGap p uStar vStar rate)
+    (ht : 0 ≤ t) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) (ha0 : a 0 = 0) :
+    ‖cosineLpFromCoeffs
+        (diagonalSemigroupCoeff
+          (unitIntervalLinearizedGrowth p uStar vStar) t a)
+        (diagonalSemigroupCoeff_l2_summable_of_growth_le_on_nonzero
+          (growth := unitIntervalLinearizedGrowth p uStar vStar)
+          (omega := -rate) ht hgap.2 ha ha0)‖ ≤
+      Real.exp (-(rate * t)) * coeffL2Norm a := by
+  have h :=
+    diagonalSemigroupLp_norm_le_of_growth_le_on_nonzero
+      (growth := unitIntervalLinearizedGrowth p uStar vStar)
+      (omega := -rate) ht hgap.2 ha ha0
+  simpa [mul_comm] using h
+
 /-- A spectral bound gives the real resolvent estimate for the unit-interval
 linearized operator. -/
 theorem unitIntervalLinearizedResolvent_l2_energy_le
@@ -830,6 +1061,21 @@ theorem unitIntervalLinearizedResolvent_l2_energy_le
     (growth := unitIntervalLinearizedGrowth p uStar vStar)
     (omega := omega) hz hbound ha
 
+/-- A spectral bound gives the real resolvent norm estimate for the
+unit-interval linearized operator. -/
+theorem unitIntervalLinearizedResolvent_l2_norm_le
+    {p : CM2Params} {uStar vStar omega z : ℝ}
+    (hbound : UnitIntervalLinearSpectralBound p uStar vStar omega)
+    (hz : omega < z) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    coeffL2Norm
+        (diagonalResolventCoeff
+          (unitIntervalLinearizedGrowth p uStar vStar) z a) ≤
+      (z - omega)⁻¹ * coeffL2Norm a :=
+  diagonalResolventCoeff_l2_norm_le_of_growth_le
+    (growth := unitIntervalLinearizedGrowth p uStar vStar)
+    (omega := omega) hz hbound ha
+
 /-- A nonzero-mode spectral bound gives the real resolvent estimate for
 zero-mode-free coefficient data. -/
 theorem unitIntervalLinearizedMassResolvent_l2_energy_le
@@ -842,6 +1088,21 @@ theorem unitIntervalLinearizedMassResolvent_l2_energy_le
           (unitIntervalLinearizedGrowth p uStar vStar) z a) ≤
       ((z - omega)⁻¹) ^ 2 * coeffL2Energy a :=
   diagonalResolventCoeff_l2_energy_le_of_growth_le_on_nonzero
+    (growth := unitIntervalLinearizedGrowth p uStar vStar)
+    (omega := omega) hz hbound ha ha0
+
+/-- A nonzero-mode spectral bound gives the real resolvent norm estimate for
+zero-mode-free coefficient data. -/
+theorem unitIntervalLinearizedMassResolvent_l2_norm_le
+    {p : CM2Params} {uStar vStar omega z : ℝ}
+    (hbound : UnitIntervalLinearMassSpectralBound p uStar vStar omega)
+    (hz : omega < z) {a : ℕ → ℂ}
+    (ha : Summable fun n : ℕ => ‖a n‖ ^ 2) (ha0 : a 0 = 0) :
+    coeffL2Norm
+        (diagonalResolventCoeff
+          (unitIntervalLinearizedGrowth p uStar vStar) z a) ≤
+      (z - omega)⁻¹ * coeffL2Norm a :=
+  diagonalResolventCoeff_l2_norm_le_of_growth_le_on_nonzero
     (growth := unitIntervalLinearizedGrowth p uStar vStar)
     (omega := omega) hz hbound ha ha0
 
