@@ -1800,6 +1800,49 @@ theorem Proposition_1_1_intervalDomain_of_intervalDuhamel_contraction_regulariza
   obtain ⟨halt, hmge⟩ := hmaximal u₀ hu₀ Tmax hTmax u v hsol htrace
   exact ⟨Tmax, hTmax, u, v, hsol, htrace, halt, hmge⟩
 
+/-! ### Finite-horizon alternative diagnostics
+
+The formal `FiniteHorizonAlternative` in `Paper2.Statements` is a genuine
+maximal-time conclusion: at the chosen finite `Tmax`, the solution must either
+be pointwise unbounded from above or approach zero somewhere in the interior.
+The following lemmas record a hard obstruction for the local-existence branch:
+a positive spatially constant local witness satisfies neither alternative.
+Thus this field cannot be manufactured from the short-time Picard solution; it
+needs an independent maximal-continuation theorem, or the statement must be
+changed to quantify over the actual maximal time. -/
+
+/-- A positive spatially constant trajectory is neither unbounded nor
+vanishing, so it cannot satisfy the stated finite-horizon alternative. -/
+theorem const_positive_not_finiteHorizonAlternative
+    {T c : ℝ} (hc : 0 < c) :
+    ¬ FiniteHorizonAlternative intervalDomain T
+        (fun _ (_ : intervalDomainPoint) => c) := by
+  intro h
+  rcases h with hunbounded | hvanishes
+  · rcases hunbounded c with ⟨t, x, ht0, htT, hx, hlt⟩
+    simp at hlt
+  · rcases hvanishes (c / 2) (half_pos hc) with
+      ⟨t, x, ht0, htT, hx, hlt⟩
+    linarith
+
+/-- A spatially constant trajectory cannot satisfy the `m ≥ 1` blow-up-only
+alternative. -/
+theorem const_not_mgeOneFiniteHorizonAlternative
+    {T c : ℝ} :
+    ¬ MGeOneFiniteHorizonAlternative intervalDomain T
+        (fun _ (_ : intervalDomainPoint) => c) := by
+  intro h
+  rcases h c with ⟨t, x, ht0, htT, hx, hlt⟩
+  simp at hlt
+
+/-- The positive equilibrium witness already proved in this file cannot be
+used to close the formal finite-horizon alternative field. -/
+theorem equilibrium_witness_not_finiteHorizonAlternative
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) {T : ℝ} :
+    ¬ FiniteHorizonAlternative intervalDomain T
+        (fun _ (_ : intervalDomainPoint) => (p.a / p.b) ^ (1 / p.α)) :=
+  const_positive_not_finiteHorizonAlternative (equilibrium_pos p ha hb)
+
 /-! ### RegularityBootstrap for spatially-constant solutions
 
 For constant-in-time-and-space solutions u(t,x) = c, all fields of
