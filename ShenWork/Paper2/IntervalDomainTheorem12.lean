@@ -368,6 +368,90 @@ theorem Theorem_1_2_intervalDomain_critical_regime_of_corollary21_and_propositio
     exact (lt_irrefl (1 : ℝ)) hm_lt
   exact False.elim hfalse
 
+/-- Fixed slow-diffusion regime of Theorem 1.2 with parameter-side guards
+removed from the slow bootstrap frontier. -/
+theorem Theorem_1_2_intervalDomain_slow_regime_of_parameter_fields_and_corollary21
+    (p : CM2Params)
+    (hm_lt : p.m < 1)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hslowBootstrap :
+      1 ≤ p.β →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) :
+    Theorem_1_2 intervalDomain p :=
+  Theorem_1_2_intervalDomain_slow_regime_of_corollary21_and_proposition25
+    p hm_lt hCor21 hProp25 hlocal
+    (fun _ha _hb hβ _hm_pos _hm_lt =>
+      hslowBootstrap hβ)
+
+/-- Fixed critical regime of Theorem 1.2 with parameter-side guards removed
+from the critical bootstrap and long-time boundedness frontiers. -/
+theorem Theorem_1_2_intervalDomain_critical_regime_of_parameter_fields_and_corollary21
+    (p : CM2Params)
+    (hm_eq : p.m = 1)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hglobalExtension :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hcriticalBootstrap :
+      1 ≤ p.β → p.χ₀ < chiBeta p →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hcriticalGlobalBound :
+      1 ≤ p.β → p.χ₀ < chiBeta p →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2GlobalClassicalSolution intervalDomain p u v →
+        InitialTrace intervalDomain u₀ u →
+        (∀ T > 0,
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) →
+          IsPaper2Bounded intervalDomain u) :
+    Theorem_1_2 intervalDomain p :=
+  Theorem_1_2_intervalDomain_critical_regime_of_corollary21_and_proposition25
+    p hm_eq hCor21 hProp25 hlocal hglobalExtension
+    (fun _ha _hb hβ _hm_eq hχ =>
+      hcriticalBootstrap hβ hχ)
+    (fun _ha _hb hβ _hm_eq hχ =>
+      hcriticalGlobalBound hβ hχ)
+
 /-- Corollary-level Theorem 1.2 assembly from the existing interval
 `IntervalDomainExistence` package.
 

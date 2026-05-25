@@ -234,6 +234,36 @@ theorem Theorem_1_3_intervalDomain_m_lt_one_regime_of_corollary21_and_propositio
   have hfalse : False := not_lt_of_ge hm_ge hm_lt
   exact False.elim hfalse
 
+/-- Fixed subcritical-`m` regime of Theorem 1.3 with the `m > 0` guard
+removed from the strong-logistic bootstrap frontier. -/
+theorem Theorem_1_3_intervalDomain_m_lt_one_regime_of_parameter_m_pos_and_corollary21
+    (p : CM2Params) (C : Paper2Constants p)
+    (hm_lt : p.m < 1)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hstrongBootstrap :
+      0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) :
+    Theorem_1_3 intervalDomain p C :=
+  Theorem_1_3_intervalDomain_m_lt_one_regime_of_corollary21_and_proposition25
+    p C hm_lt hCor21 hProp25 hlocal
+    (fun ha hb _hm_pos hstrong =>
+      hstrongBootstrap ha hb hstrong)
+
 /-- Corollary-level Theorem 1.3 assembly from the existing interval
 `IntervalDomainExistence` package.
 
