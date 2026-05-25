@@ -2143,6 +2143,100 @@ theorem intervalHeatSemigroup_unit_grad_Lp_Lq_bound
     unitIntervalNeumannHeatSemigroup_grad_Lp_Lq_bound
       (t := t) (p := p) (q := q) ht hp hq (f := f) hf_mem
 
+/-- Scaled interval spectral Neumann heat semigroup gradient estimate on
+`[0,L]`, from finite `L^p`, `1 ≤ p`, to finite `L^q`.  The time singularity
+is the already-proved nonsharp unit-interval `t⁻²` endpoint transported by
+the interval scaling. -/
+theorem intervalHeatSemigroup_grad_Lp_Lq_bound
+    {L t p q : ℝ} (hL : 0 < L) (ht : 0 < t)
+    (hp : 1 ≤ p) (hq : 0 < q)
+    {f : ℝ → ℝ}
+    (hf_mem : MemLp f (ENNReal.ofReal p) (intervalMeasure L)) :
+    lpNorm
+        (fun x =>
+          deriv
+            (fun z =>
+              intervalHeatSemigroup L t f z) x)
+        (ENNReal.ofReal q) (intervalMeasure L) ≤
+      L ^ (1 / q) *
+        ((1 / L) *
+          ((unitIntervalCosineGradientL1LinftyConstant / (t / L ^ 2) ^ 2) *
+            ((1 / L) ^ (1 / p) *
+              lpNorm f (ENNReal.ofReal p) (intervalMeasure L)))) := by
+  let τ : ℝ := t / L ^ 2
+  let g : ℝ → ℝ := fun y => f (L * y)
+  let B : ℝ :=
+    (unitIntervalCosineGradientL1LinftyConstant / τ ^ 2) *
+      lpNorm g (ENNReal.ofReal p) (intervalMeasure 1)
+  let C : ℝ := (1 / L) * B
+  have hp_pos : 0 < p := lt_of_lt_of_le zero_lt_one hp
+  have hτ : 0 < τ := by
+    dsimp [τ]
+    exact div_pos ht (sq_pos_of_ne_zero hL.ne')
+  have hg_mem : MemLp g (ENNReal.ofReal p) (intervalMeasure 1) := by
+    dsimp [g]
+    exact memLp_comp_mul_intervalMeasure_one (L := L) hL (p := ENNReal.ofReal p)
+      (f := f) hf_mem
+  have hg_norm :
+      lpNorm g (ENNReal.ofReal p) (intervalMeasure 1) =
+        (1 / L) ^ (1 / p) *
+          lpNorm f (ENNReal.ofReal p) (intervalMeasure L) := by
+    dsimp [g]
+    exact lpNorm_comp_mul_intervalMeasure_one_eq
+      (L := L) (p := p) hL hp_pos (f := f) hf_mem
+  have hfactor_nonneg :
+      0 ≤ unitIntervalCosineGradientL1LinftyConstant / τ ^ 2 := by
+    exact div_nonneg unitIntervalCosineGradientL1LinftyConstant_nonneg
+      (sq_nonneg τ)
+  have hB_nonneg : 0 ≤ B := by
+    dsimp [B]
+    exact mul_nonneg hfactor_nonneg lpNorm_nonneg
+  have hC_nonneg : 0 ≤ C := by
+    dsimp [C]
+    exact mul_nonneg (one_div_pos.mpr hL).le hB_nonneg
+  have hpoint :
+      ∀ x,
+        ‖deriv (fun z => intervalHeatSemigroup L t f z) x‖ ≤ C := by
+    intro x
+    have hunit :
+        ‖deriv (fun z => unitIntervalNeumannHeatSemigroup τ g z)
+            ((1 / L) * x)‖ ≤ B := by
+      dsimp [B]
+      exact unitIntervalNeumannHeatSemigroup_grad_Lp_pointwise_bound
+        (t := τ) (p := p) hτ hp (f := g) hg_mem ((1 / L) * x)
+    calc
+      ‖deriv (fun z => intervalHeatSemigroup L t f z) x‖
+          = ‖(1 / L) *
+              deriv
+                (fun y =>
+                  unitIntervalNeumannHeatSemigroup τ g y) ((1 / L) * x)‖ := by
+            rw [intervalHeatSemigroup_deriv_eq_scaled_unit
+              (L := L) (t := t) (f := f) (x := x)]
+      _ = (1 / L) *
+            ‖deriv
+              (fun y =>
+                unitIntervalNeumannHeatSemigroup τ g y) ((1 / L) * x)‖ := by
+            rw [norm_mul, Real.norm_of_nonneg (one_div_pos.mpr hL).le]
+      _ ≤ (1 / L) * B := by
+            exact mul_le_mul_of_nonneg_left hunit (one_div_pos.mpr hL).le
+      _ = C := rfl
+  calc
+    lpNorm
+        (fun x =>
+          deriv
+            (fun z =>
+              intervalHeatSemigroup L t f z) x)
+        (ENNReal.ofReal q) (intervalMeasure L)
+        ≤ L ^ (1 / q) * C :=
+          interval_lpNorm_le_of_forall_norm_le hL.le hq hC_nonneg hpoint
+    _ = L ^ (1 / q) *
+        ((1 / L) *
+          ((unitIntervalCosineGradientL1LinftyConstant / (t / L ^ 2) ^ 2) *
+            ((1 / L) ^ (1 / p) *
+              lpNorm f (ENNReal.ofReal p) (intervalMeasure L)))) := by
+          dsimp [C, B, τ]
+          rw [hg_norm]
+
 /-! ## Zeroth-reflection helper-operator gradient bounds -/
 
 /-- Full-line `L¹ → L∞` heat-gradient factor used by the helper-operator
