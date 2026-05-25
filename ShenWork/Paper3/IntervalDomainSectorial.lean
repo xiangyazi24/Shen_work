@@ -1919,6 +1919,47 @@ theorem intervalDomain_Theorem_2_2_m_eq_one_of_spectralSemigroupOrbitBound
       p N horbit)
     hsigma_low hsigma_high hpNorm hcontrol hexist hmexist hm
 
+/-- Exact remaining local frontiers for a literally unconditional
+interval-domain Theorem 2.2 after the linear spectral-decay block has been
+discharged.
+
+Point 17 status: conditional frontier.  The first field is the nonlinear
+Duhamel/orbit comparison with the proved interval Neumann heat semigroup.  The
+second is the interval `sup`-small to `X^σ_p`-small bridge.  The last two are
+small-data global-existence frontiers, respectively without and with the mass
+constraint. -/
+def IntervalDomainTheorem22LocalFrontiers
+    (p : CM2Params) (N : StabilityNorms intervalDomain) : Prop :=
+  ∃ sigma pNorm : ℝ,
+    1 / 2 < sigma ∧ sigma < 1 ∧ 1 < pNorm ∧
+    IntervalDomainSpectralSemigroupOrbitBoundRaw p N ∧
+    (∀ uStar,
+      SupControlsXpSigmaDistance intervalDomain N sigma pNorm uStar) ∧
+    (∀ uStar, ∀ delta > 0,
+      SmallDataGlobalExistence intervalDomain p uStar delta) ∧
+    (∀ uStar, ∀ delta > 0,
+      MassConstrainedSmallDataGlobalExistence intervalDomain p uStar delta)
+
+/-- Full interval-domain Theorem 2.2 from the precise named local frontiers.
+
+This is the strongest theorem available in this file without importing a
+nonlinear Duhamel/fixed-point proof.  It no longer assumes
+`SectorialLocalExponentialRaw`; the only remaining hypotheses are the
+frontiers named in `IntervalDomainTheorem22LocalFrontiers`. -/
+theorem intervalDomain_Theorem_2_2_of_localFrontiers
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hC : Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p C)
+    (hfront : IntervalDomainTheorem22LocalFrontiers p N) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum N C := by
+  rcases hfront with
+    ⟨sigma, pNorm, hsigma_low, hsigma_high, hpNorm, horbit,
+      hcontrol, hexist, hmexist⟩
+  exact
+    intervalDomain_Theorem_2_2_criticalSpectrum_of_spectralSemigroupOrbitBound
+      p N C hC horbit hsigma_low hsigma_high hpNorm hcontrol hexist hmexist
+
 /-- Persistence plus the raw nonminimal exponential-upgrade frontier gives
 the per-solution exponential conclusion of Corollary 5.1.
 
@@ -1984,6 +2025,184 @@ theorem intervalDomain_C51_minimal_of_persistence_raw
     hmass
     (hglobal u v huv (by
       simpa [minimalEquilibrium_fst_eq] using hmass))
+
+/-- Theorem 2.1(1) extracted on the interval: any positive global bounded
+solution is eventually uniformly positive in both components. -/
+theorem intervalDomain_Theorem_2_1_part1_persistence
+    {p : CM2Params} {C : Paper3Constants intervalDomain p}
+    (h21 : Theorem_2_1 intervalDomain p C)
+    (hm : 1 ≤ p.m)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v) :
+    ∃ δu > 0, EventuallyLowerBound intervalDomain u δu ∧
+      EventuallyLowerBound intervalDomain v (p.ν / p.μ * δu ^ p.γ) :=
+  h21.1 hm u v huv
+
+/-- Theorem 2.1(2) extracted on the interval for the `m = 1`, positive
+logistic branch. -/
+theorem intervalDomain_Theorem_2_1_part2_persistence
+    {p : CM2Params} {C : Paper3Constants intervalDomain p}
+    (h21 : Theorem_2_1 intervalDomain p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : p.m = 1) (hβ : 1 ≤ p.β)
+    (hχ : p.χ₀ < p.a / (p.μ * Theta_beta (p.β - 1)))
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v) :
+    let lowerU :=
+      ((p.a - p.χ₀ * p.μ * Theta_beta (p.β - 1)) / p.b) ^
+        (1 / p.α)
+    EventuallyLowerBound intervalDomain u lowerU ∧
+      EventuallyLowerBound intervalDomain v (p.ν / p.μ * lowerU ^ p.γ) :=
+  h21.2.1 ha hb hχ0 hm hβ hχ u v huv
+
+/-- Theorem 2.1(3) extracted on the interval for the superlinear positive
+logistic branch. -/
+theorem intervalDomain_Theorem_2_1_part3_persistence
+    {p : CM2Params} {C : Paper3Constants intervalDomain p}
+    (h21 : Theorem_2_1 intervalDomain p C)
+    (ha : 0 < p.a) (hb : 0 < p.b) (hχ0 : 0 < p.χ₀)
+    (hm : 1 < p.m) (hβ : 1 ≤ p.β)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v) :
+    let lowerU :=
+      min 1 (p.a / (p.b + p.χ₀ * p.μ * Theta_beta (p.β - 1))) ^
+        max (1 / (p.m - 1)) (1 / p.α)
+    EventuallyLowerBound intervalDomain u lowerU ∧
+      EventuallyLowerBound intervalDomain v (p.ν / p.μ * lowerU ^ p.γ) :=
+  h21.2.2.1 ha hb hχ0 hm hβ u v huv
+
+/-- Theorem 2.1(4) extracted on the interval for the minimal model. -/
+theorem intervalDomain_Theorem_2_1_part4_persistence
+    {p : CM2Params} {C : Paper3Constants intervalDomain p}
+    (h21 : Theorem_2_1 intervalDomain p C)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1)
+    (hβ : 1 ≤ p.β) (hχ0 : 0 < p.χ₀)
+    (hχ :
+      p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
+    {uStar : ℝ} (huStar : 0 < uStar)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hmass : HasInitialMass intervalDomain u uStar) :
+    EventuallyLowerBound intervalDomain v
+      (minimalVLowerFormula
+        C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar)) :=
+  h21.2.2.2 ha hb hm hβ hχ0 hχ uStar huStar u v huv hmass
+
+/-- Theorem 2.1 persistence plus the nonminimal global-convergence frontier
+and raw Corollary 5.1 upgrade give persistence together with exponential
+convergence for the same solution. -/
+theorem intervalDomain_C51_nonminimal_of_T21_persistence_raw
+    {p : CM2Params} {C : Paper3Constants intervalDomain p}
+    {N : StabilityNorms intervalDomain}
+    {ha : 0 < p.a} {hb : 0 < p.b}
+    (h21 : Theorem_2_1 intervalDomain p C)
+    (hglobal :
+      GloballyAsymptoticallyStableNonminimal intervalDomain p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2)
+    (hraw :
+      ConvergenceToExponentialNonminimalRaw intervalDomain p N.c1Distance
+        (fun uStar =>
+          paperCriticalSensitivity unitIntervalNeumannSpectrum p uStar
+            (p.ν / p.μ * uStar ^ p.γ)))
+    (hm : 1 ≤ p.m)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v) :
+    (∃ δu > 0, EventuallyLowerBound intervalDomain u δu ∧
+      EventuallyLowerBound intervalDomain v (p.ν / p.μ * δu ^ p.γ)) ∧
+    ExponentialC1Convergence intervalDomain N u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 := by
+  refine ⟨?_, ?_⟩
+  · exact intervalDomain_Theorem_2_1_part1_persistence h21 hm huv
+  · exact intervalDomain_C51_nonminimal_of_persistence_raw
+      (ha := ha) (hb := hb) hglobal hraw hm hχ huv
+
+/-- Theorem 2.1 persistence plus the minimal global-convergence frontier and
+raw Corollary 5.1 upgrade give persistence together with exponential
+convergence for the same mass-constrained solution. -/
+theorem intervalDomain_C51_minimal_of_T21_persistence_raw
+    {p : CM2Params} {C : Paper3Constants intervalDomain p}
+    {N : StabilityNorms intervalDomain} {uStar : ℝ}
+    (h21 : Theorem_2_1 intervalDomain p C)
+    (hglobal :
+      GloballyAsymptoticallyStableMinimal intervalDomain p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2)
+    (hraw :
+      ConvergenceToExponentialMinimalRaw intervalDomain p N.c1Distance
+        (fun uStar =>
+          paperCriticalSensitivity unitIntervalNeumannSpectrum p uStar
+            (p.ν / p.μ * uStar ^ p.γ)))
+    (hm : 1 ≤ p.m) (ha : p.a = 0) (hb : p.b = 0)
+    (huStar : 0 < uStar)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hmass : HasInitialMass intervalDomain u uStar) :
+    (∃ δu > 0, EventuallyLowerBound intervalDomain u δu ∧
+      EventuallyLowerBound intervalDomain v (p.ν / p.μ * δu ^ p.γ)) ∧
+    ExponentialC1Convergence intervalDomain N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 := by
+  refine ⟨?_, ?_⟩
+  · exact intervalDomain_Theorem_2_1_part1_persistence h21 hm huv
+  · exact intervalDomain_C51_minimal_of_persistence_raw
+      (uStar := uStar) hglobal hraw hm ha hb huStar hχ huv hmass
+
+/-- The minimal Theorem 2.1(4) lower bound paired with the raw Corollary 5.1
+exponential upgrade.  This records the exact endpoint currently available
+before proving the remaining global-convergence frontier. -/
+theorem intervalDomain_C51_minimal_of_T21_part4_raw
+    {p : CM2Params} {C : Paper3Constants intervalDomain p}
+    {N : StabilityNorms intervalDomain} {uStar : ℝ}
+    (h21 : Theorem_2_1 intervalDomain p C)
+    (hglobal :
+      GloballyAsymptoticallyStableMinimal intervalDomain p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2)
+    (hraw :
+      ConvergenceToExponentialMinimalRaw intervalDomain p N.c1Distance
+        (fun uStar =>
+          paperCriticalSensitivity unitIntervalNeumannSpectrum p uStar
+            (p.ν / p.μ * uStar ^ p.γ)))
+    (hm_le : 1 ≤ p.m)
+    (ha : p.a = 0) (hb : p.b = 0) (hm : p.m = 1)
+    (hβ : 1 ≤ p.β) (hχ0 : 0 < p.χ₀)
+    (hχsmall :
+      p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)))
+    (huStar : 0 < uStar)
+    (hχcritical :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hmass : HasInitialMass intervalDomain u uStar) :
+    EventuallyLowerBound intervalDomain v
+      (minimalVLowerFormula
+        C.gaussianLowerConst p.γ uStar (C.eventualMinimalUBound uStar)) ∧
+    ExponentialC1Convergence intervalDomain N u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 := by
+  refine ⟨?_, ?_⟩
+  · exact
+      intervalDomain_Theorem_2_1_part4_persistence h21 ha hb hm hβ hχ0
+        hχsmall huStar huv hmass
+  · exact
+      intervalDomain_C51_minimal_of_persistence_raw
+        (uStar := uStar) hglobal hraw hm_le ha hb huStar hχcritical huv
+        hmass
 
 /-- Theorem 2.3 from explicit persistence and uniform exponential-upgrade
 frontiers on the interval.
