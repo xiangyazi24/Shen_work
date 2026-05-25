@@ -15,6 +15,27 @@ def cappedExp (κ : ℝ) : ℝ → ℝ := fun x => min 1 (Real.exp (-(κ * x)))
 lemma cappedExp_pos (κ x : ℝ) : 0 < cappedExp κ x :=
   lt_min one_pos (Real.exp_pos _)
 
+lemma cappedExp_le_one (κ x : ℝ) : cappedExp κ x ≤ 1 := by
+  exact min_le_left _ _
+
+lemma cappedExp_le_exp (κ x : ℝ) :
+    cappedExp κ x ≤ Real.exp (-(κ * x)) := by
+  exact min_le_right _ _
+
+lemma cappedExp_continuous (κ : ℝ) : Continuous (cappedExp κ) := by
+  have hlin : Continuous fun x : ℝ => -(κ * x) := by
+    fun_prop
+  simpa [cappedExp] using continuous_const.min (Real.continuous_exp.comp hlin)
+
+lemma cappedExp_isBddFun (κ : ℝ) : IsBddFun (cappedExp κ) := by
+  refine ⟨1, fun x => ?_⟩
+  have hnonneg : 0 ≤ cappedExp κ x := (cappedExp_pos κ x).le
+  have hle : cappedExp κ x ≤ 1 := cappedExp_le_one κ x
+  simpa [abs_of_nonneg hnonneg] using hle
+
+lemma cappedExp_isCUnifBdd (κ : ℝ) : IsCUnifBdd (cappedExp κ) :=
+  ⟨cappedExp_continuous κ, cappedExp_isBddFun κ⟩
+
 lemma cappedExp_tendsto_atTop {κ : ℝ} (hκ : 0 < κ) :
     Tendsto (cappedExp κ) atTop (𝓝 0) := by
   have hmul : Tendsto (fun x : ℝ => κ * x) atTop atTop :=
@@ -66,6 +87,22 @@ lemma cappedExp_deriv_nonpos {κ : ℝ} (hκ : 0 < κ) (x : ℝ) :
       have hder : deriv (cappedExp κ) x = deriv (fun _ => (1 : ℝ)) x :=
         ((hEqOn_nonpos.mono Set.Iio_subset_Iic_self).deriv isOpen_Iio) hxneg
       simp [hder]
+
+theorem cappedExp_facts_with_isCUnifBdd {κ : ℝ} (hκ : 0 < κ) :
+    ∃ U : ℝ → ℝ,
+      U = cappedExp κ ∧
+      IsCUnifBdd U ∧
+      (∀ x, 0 < U x) ∧
+      (∀ x, U x ≤ 1) ∧
+      Tendsto U atBot (𝓝 1) ∧
+      Tendsto U atTop (𝓝 0) ∧
+      (∀ x, deriv U x ≤ 0) := by
+  exact ⟨cappedExp κ, rfl, cappedExp_isCUnifBdd κ,
+    fun x => cappedExp_pos κ x,
+    fun x => cappedExp_le_one κ x,
+    cappedExp_tendsto_atBot hκ,
+    cappedExp_tendsto_atTop hκ,
+    fun x => cappedExp_deriv_nonpos hκ x⟩
 
 /-- Smooth logistic profile connecting 1 at -∞ to 0 at +∞. -/
 def logisticProfile (κ : ℝ) : ℝ → ℝ := fun x => Real.sigmoid (-(κ * x))
