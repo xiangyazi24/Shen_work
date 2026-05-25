@@ -2192,6 +2192,58 @@ theorem intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_frontiers
       intervalDomain_Theorem_2_1_sectorialMainline_of_persistenceFrontiers
         p M0 uBar vLower h21⟩
 
+/-- The literal unconditional interval-domain target for the sectorial
+mainline: Paper3 Theorem 2.2 local exponential stability together with Paper3
+Theorem 2.1 persistence, both using the concrete interval constants and
+sectorial stability gauges.
+
+Point 17 status: target statement.  This definition has no hidden hypotheses;
+the theorem below records the exact remaining frontiers whose proof would
+close it. -/
+def IntervalDomainSectorialTheorem21And22UnconditionalTarget
+    (p : CM2Params) (M0 uBar vLower : ℝ) : Prop :=
+  Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) ∧
+    Theorem_2_1 intervalDomain p
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower)
+
+/-- Closure of the literal unconditional target from the exact remaining
+frontiers.
+
+This is deliberately not stated without `hfront`: the current imported
+interval-domain infrastructure still does not prove nonlinear Duhamel/orbit
+control, small-data global existence, or the four uniform-persistence
+frontiers. -/
+theorem intervalDomain_sectorialMainline_unconditionalTarget_of_frontiers
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hfront : IntervalDomainSectorialTheorem21And22Frontiers p uBar) :
+    IntervalDomainSectorialTheorem21And22UnconditionalTarget
+      p M0 uBar vLower :=
+  intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_frontiers
+    p M0 uBar vLower hfront
+
+/-- The Theorem 2.2 component of the concrete interval mainline target once
+the exact frontiers are closed. -/
+theorem intervalDomain_Theorem_2_2_sectorialMainline_of_closedFrontiers
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hfront : IntervalDomainSectorialTheorem21And22Frontiers p uBar) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  (intervalDomain_sectorialMainline_unconditionalTarget_of_frontiers
+    p M0 uBar vLower hfront).1
+
+/-- The Theorem 2.1 component of the concrete interval mainline target once
+the exact frontiers are closed. -/
+theorem intervalDomain_Theorem_2_1_sectorialMainline_of_closedFrontiers
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hfront : IntervalDomainSectorialTheorem21And22Frontiers p uBar) :
+    Theorem_2_1 intervalDomain p
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  (intervalDomain_sectorialMainline_unconditionalTarget_of_frontiers
+    p M0 uBar vLower hfront).2
+
 /-- Persistence plus the raw nonminimal exponential-upgrade frontier gives
 the per-solution exponential conclusion of Corollary 5.1.
 
