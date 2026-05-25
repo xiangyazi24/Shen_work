@@ -856,6 +856,67 @@ theorem
   chemotaxisEntropyFunctional_nonneg_and_antitoneOn_of_dissipation_and_integral_nonneg
     hc intervalDomain_integral_nonneg hm huStar htheta hu_pos hderiv hdiss
 
+/-- Two-time Lyapunov estimate for the Paper3 entropy functional:
+`0 ≤ F(t) ≤ F(s)` whenever `0 < s ≤ t`.
+
+Point 17 status: conditional theorem, state ③.  This is the free-energy
+decrease statement after all scalar positivity and integral-positivity
+side-conditions have been discharged.  The remaining named frontier is the PDE
+entropy-production derivation `hderiv`/`hdiss`. -/
+theorem chemotaxisEntropyFunctional_two_time_bound_of_dissipation_and_integral_nonneg
+    {D : BoundedDomainData} {m uStar theta c : ℝ}
+    {u : ℝ → D.Point → ℝ} {entropySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (hintegral_nonneg :
+      ∀ f : D.Point → ℝ, (∀ x, 0 ≤ f x) → 0 ≤ D.integral f)
+    (hm : (1 / 2 : ℝ) ≤ m) (huStar : 0 < uStar)
+    (htheta : 0 ≤ theta)
+    (hu_pos : ∀ t, 0 < t → ∀ x, 0 < u t x)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisEntropyFunctional D m uStar u tau)
+          (entropySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        entropySlope t ≤
+          -c * chemotaxisThetaDissipation D uStar theta (u t)) :
+    ∀ s t, 0 < s → s ≤ t →
+      0 ≤ chemotaxisEntropyFunctional D m uStar u t ∧
+        chemotaxisEntropyFunctional D m uStar u t ≤
+          chemotaxisEntropyFunctional D m uStar u s := by
+  intro s t hs hst
+  have ht : 0 < t := lt_of_lt_of_le hs hst
+  have henergy :=
+    chemotaxisEntropyFunctional_nonneg_and_antitoneOn_of_dissipation_and_integral_nonneg
+      hc hintegral_nonneg hm huStar htheta hu_pos hderiv hdiss
+  exact ⟨henergy.1 t ht, henergy.2 hs ht hst⟩
+
+/-- Concrete unit-interval two-time Lyapunov estimate for the Paper3 entropy
+functional. -/
+theorem intervalDomain_chemotaxisEntropyFunctional_two_time_bound_of_dissipation
+    {m uStar theta c : ℝ}
+    {u : ℝ → intervalDomain.Point → ℝ} {entropySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (hm : (1 / 2 : ℝ) ≤ m) (huStar : 0 < uStar)
+    (htheta : 0 ≤ theta)
+    (hu_pos : ∀ t, 0 < t → ∀ x, 0 < u t x)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisEntropyFunctional intervalDomain m uStar u tau)
+          (entropySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        entropySlope t ≤
+          -c * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    ∀ s t, 0 < s → s ≤ t →
+      0 ≤ chemotaxisEntropyFunctional intervalDomain m uStar u t ∧
+        chemotaxisEntropyFunctional intervalDomain m uStar u t ≤
+          chemotaxisEntropyFunctional intervalDomain m uStar u s :=
+  chemotaxisEntropyFunctional_two_time_bound_of_dissipation_and_integral_nonneg
+    hc intervalDomain_integral_nonneg hm huStar htheta hu_pos hderiv hdiss
+
 /-- Signal-energy exponential decay for the Paper3 minimal-model Lyapunov
 functional `∫ (mu (v-v*)^2 + |∇(v-v*)|^2)`.
 
