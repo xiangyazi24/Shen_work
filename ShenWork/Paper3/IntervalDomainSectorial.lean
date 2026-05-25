@@ -2124,6 +2124,74 @@ theorem intervalDomain_Theorem_2_2_sectorialMainline_of_localFrontiers
           sigma pNorm uStar)
       hexist hmexist
 
+/-- Concrete persistence frontiers for Paper3 Theorem 2.1 on the sectorial
+interval mainline.
+
+Point 17 status: frontier.  These are the four raw uniform-persistence inputs
+which are not proved by the sectorial/spectral-decay infrastructure in this
+file.  The minimal branch uses the concrete constants
+`gaussianLowerConst = 1` and `eventualMinimalUBound = fun _ => uBar`. -/
+def IntervalDomainSectorialTheorem21PersistenceFrontiers
+    (p : CM2Params) (uBar : ℝ) : Prop :=
+  UniformPersistencePart1Raw intervalDomain p ∧
+    UniformPersistencePart2Raw intervalDomain p ∧
+    UniformPersistencePart3Raw intervalDomain p ∧
+    UniformPersistencePart4Raw intervalDomain p (fun _ => uBar) 1
+
+/-- Paper3 Theorem 2.1 on the sectorial interval mainline from the exact
+persistence frontiers.
+
+This removes `Paper3Constants` field projections from the theorem interface;
+the only remaining inputs are the raw persistence estimates themselves. -/
+theorem intervalDomain_Theorem_2_1_sectorialMainline_of_persistenceFrontiers
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hfront : IntervalDomainSectorialTheorem21PersistenceFrontiers p uBar) :
+    Theorem_2_1 intervalDomain p
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) := by
+  rcases hfront with ⟨h1, h2, h3, h4⟩
+  refine Theorem_2_1.of_parts h1 h2 h3 ?_
+  intro ha hb hm hβ hχ0 hχ uStar huStar u v huv hmass
+  have hbound :=
+    h4 (by norm_num : (0 : ℝ) < 1) ha hb hm hβ hχ0 hχ
+      uStar huStar u v huv hmass
+  simpa [intervalDomainSectorialPaper3Constants, minimalVLowerFormula] using
+    hbound
+
+/-- Exact remaining frontiers for the user-facing sectorial interval mainline
+`Theorem_2_2` local exponential stability together with `Theorem_2_1`
+persistence.
+
+The linear spectral-decay part has already been discharged in this file.
+What remains here is precisely the nonlinear orbit comparison, small-data
+global existence, and the four persistence estimates. -/
+def IntervalDomainSectorialTheorem21And22Frontiers
+    (p : CM2Params) (uBar : ℝ) : Prop :=
+  IntervalDomainSectorialTheorem22LocalFrontiers p ∧
+    IntervalDomainSectorialTheorem21PersistenceFrontiers p uBar
+
+/-- Sectorial interval mainline closure: local exponential stability
+(`Theorem_2_2`) and persistence (`Theorem_2_1`) from the exact remaining
+frontiers.
+
+This is the honest endpoint currently available in `IntervalDomainSectorial`.
+A theorem with no frontier hypotheses would require proofs of
+`IntervalDomainSectorialTheorem21And22Frontiers`, in particular nonlinear
+Duhamel/orbit control and small-data global existence on `intervalDomain`. -/
+theorem intervalDomain_Theorem_2_1_and_2_2_sectorialMainline_of_frontiers
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hfront : IntervalDomainSectorialTheorem21And22Frontiers p uBar) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+        intervalDomainSectorialStabilityNorms
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower) ∧
+      Theorem_2_1 intervalDomain p
+        (intervalDomainSectorialPaper3Constants p M0 uBar vLower) := by
+  rcases hfront with ⟨h22, h21⟩
+  exact
+    ⟨intervalDomain_Theorem_2_2_sectorialMainline_of_localFrontiers
+        p M0 uBar vLower h22,
+      intervalDomain_Theorem_2_1_sectorialMainline_of_persistenceFrontiers
+        p M0 uBar vLower h21⟩
+
 /-- Persistence plus the raw nonminimal exponential-upgrade frontier gives
 the per-solution exponential conclusion of Corollary 5.1.
 
