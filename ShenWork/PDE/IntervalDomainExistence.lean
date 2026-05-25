@@ -1287,6 +1287,11 @@ def intervalCoupledDuhamelOperator (p : CM2Params)
     (t : ℝ) (x : intervalDomainPoint) : ℝ :=
   intervalFullDuhamelOperator p u₀ u (fun s => R (u s)) t x
 
+/-- Sup-norm ball for interval-domain time trajectories on `[0,T]`. -/
+def intervalTrajectoryBoundedOn (T M : ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
+  ∀ t x, 0 ≤ t → t ≤ T → |u t x| ≤ M
+
 @[simp] theorem intervalDomainChemotaxisDiv_zero_left
     (p : CM2Params) (v : intervalDomainPoint → ℝ) (x : intervalDomainPoint) :
     intervalDomainChemotaxisDiv p (fun _ : intervalDomainPoint => 0) v x = 0 := by
@@ -1362,6 +1367,113 @@ theorem intervalCoupledDuhamel_zero_trajectory_bound_of_initial_bound
   · have ht_pos : 0 < t := lt_of_le_of_ne ht0 (Ne.symm ht)
     exact intervalSemigroupOperator_Linfty_bound ht_pos hH
       (intervalDomainLift_abs_le hH hu₀) x.1
+
+/-- A pointwise source bound gives a pointwise bound for the full Duhamel
+operator on `[0,T]`.  This is the map-to-ball half of the local fixed-point
+argument. -/
+theorem intervalFullDuhamelOperator_bound_of_source_bound
+    (p : CM2Params)
+    (u₀ : intervalDomainPoint → ℝ)
+    (u v : ℝ → intervalDomainPoint → ℝ)
+    {H C T : ℝ} (hH : 0 ≤ H) (hC : 0 ≤ C)
+    (hu₀ : ∀ y : intervalDomainPoint, |u₀ y| ≤ H)
+    (hsource : ∀ s, 0 ≤ s → s ≤ T → ∀ y,
+      |intervalDomainLift (intervalCoupledSource p (u s) (v s)) y| ≤ C)
+    {t : ℝ} (ht0 : 0 ≤ t) (htT : t ≤ T)
+    (x : intervalDomainPoint)
+    (_hint : MeasureTheory.IntegrableOn
+      (fun s => intervalSemigroupOperator 1 (t - s)
+        (intervalDomainLift (intervalCoupledSource p (u s) (v s))) x.1)
+      (Set.Icc 0 t) MeasureTheory.volume)
+    (_hlift_int : ∀ s, 0 ≤ s → s ≤ T →
+      MeasureTheory.Integrable
+        (intervalDomainLift (intervalCoupledSource p (u s) (v s)))
+        (intervalMeasure 1)) :
+    |intervalFullDuhamelOperator p u₀ u v t x| ≤ H + C * T := by
+  unfold intervalFullDuhamelOperator
+  have hinit :
+      |intervalSemigroupOperator 1 t (intervalDomainLift u₀) x.1| ≤ H := by
+    by_cases ht : t = 0
+    · subst ht
+      rw [intervalSemigroupOperator_zero_time]
+      simpa using hH
+    · have ht_pos : 0 < t := lt_of_le_of_ne ht0 (Ne.symm ht)
+      exact intervalSemigroupOperator_Linfty_bound ht_pos hH
+        (intervalDomainLift_abs_le hH hu₀) x.1
+  have hint_bound :
+      |∫ s in Set.Icc (0 : ℝ) t,
+        intervalSemigroupOperator 1 (t - s)
+          (intervalDomainLift (intervalCoupledSource p (u s) (v s))) x.1| ≤
+          C * T := by
+    have hae_bound : ∀ᵐ s ∂MeasureTheory.volume,
+        s ∈ Set.Icc (0 : ℝ) t →
+          ‖intervalSemigroupOperator 1 (t - s)
+            (intervalDomainLift (intervalCoupledSource p (u s) (v s))) x.1‖ ≤ C := by
+      have hne : ∀ᵐ s ∂(MeasureTheory.volume : MeasureTheory.Measure ℝ),
+          s ≠ t := by
+        simp [MeasureTheory.ae_iff, MeasureTheory.measure_singleton]
+      filter_upwards [hne] with s hs_ne hs_mem
+      rw [Real.norm_eq_abs]
+      have hs0 : 0 ≤ s := hs_mem.1
+      have hsT : s ≤ T := le_trans hs_mem.2 htT
+      have hts_pos : 0 < t - s := sub_pos.mpr (lt_of_le_of_ne hs_mem.2 hs_ne)
+      exact intervalSemigroupOperator_Linfty_bound hts_pos hC
+        (hsource s hs0 hsT) x.1
+    have hvol_fin : MeasureTheory.volume (Set.Icc (0 : ℝ) t) < ⊤ :=
+      measure_Icc_lt_top
+    have hstep : ‖∫ s in Set.Icc (0 : ℝ) t,
+        intervalSemigroupOperator 1 (t - s)
+          (intervalDomainLift (intervalCoupledSource p (u s) (v s))) x.1‖ ≤
+          C * MeasureTheory.volume.real (Set.Icc (0 : ℝ) t) :=
+      MeasureTheory.norm_setIntegral_le_of_norm_le_const_ae' hvol_fin hae_bound
+    have hvol_eq : MeasureTheory.volume.real (Set.Icc (0 : ℝ) t) = t := by
+      simp [MeasureTheory.Measure.real, Real.volume_Icc, ht0]
+    calc |∫ s in Set.Icc (0 : ℝ) t,
+          intervalSemigroupOperator 1 (t - s)
+            (intervalDomainLift (intervalCoupledSource p (u s) (v s))) x.1|
+        = ‖∫ s in Set.Icc (0 : ℝ) t,
+            intervalSemigroupOperator 1 (t - s)
+              (intervalDomainLift (intervalCoupledSource p (u s) (v s))) x.1‖ :=
+          (Real.norm_eq_abs _).symm
+      _ ≤ C * MeasureTheory.volume.real (Set.Icc (0 : ℝ) t) := hstep
+      _ = C * t := by rw [hvol_eq]
+      _ ≤ C * T := mul_le_mul_of_nonneg_left htT hC
+  calc
+    |intervalSemigroupOperator 1 t (intervalDomainLift u₀) x.1 +
+        ∫ s in Set.Icc (0 : ℝ) t,
+          intervalSemigroupOperator 1 (t - s)
+            (intervalDomainLift (intervalCoupledSource p (u s) (v s))) x.1|
+        ≤ |intervalSemigroupOperator 1 t (intervalDomainLift u₀) x.1| +
+          |∫ s in Set.Icc (0 : ℝ) t,
+            intervalSemigroupOperator 1 (t - s)
+              (intervalDomainLift (intervalCoupledSource p (u s) (v s))) x.1| :=
+          abs_add_le _ _
+    _ ≤ H + C * T := add_le_add hinit hint_bound
+
+/-- Source-bound form specialized to the elliptic-resolver coupled Duhamel
+operator. -/
+theorem intervalCoupledDuhamelOperator_bound_of_source_bound
+    (p : CM2Params)
+    (R : (intervalDomainPoint → ℝ) → intervalDomainPoint → ℝ)
+    (u₀ : intervalDomainPoint → ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ)
+    {H C T : ℝ} (hH : 0 ≤ H) (hC : 0 ≤ C)
+    (hu₀ : ∀ y : intervalDomainPoint, |u₀ y| ≤ H)
+    (hsource : ∀ s, 0 ≤ s → s ≤ T → ∀ y,
+      |intervalDomainLift (intervalCoupledSource p (u s) (R (u s))) y| ≤ C)
+    {t : ℝ} (ht0 : 0 ≤ t) (htT : t ≤ T)
+    (x : intervalDomainPoint)
+    (hint : MeasureTheory.IntegrableOn
+      (fun s => intervalSemigroupOperator 1 (t - s)
+        (intervalDomainLift (intervalCoupledSource p (u s) (R (u s)))) x.1)
+      (Set.Icc 0 t) MeasureTheory.volume)
+    (hlift_int : ∀ s, 0 ≤ s → s ≤ T →
+      MeasureTheory.Integrable
+        (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+        (intervalMeasure 1)) :
+    |intervalCoupledDuhamelOperator p R u₀ u t x| ≤ H + C * T :=
+  intervalFullDuhamelOperator_bound_of_source_bound p u₀ u (fun s => R (u s))
+    hH hC hu₀ hsource ht0 htT x hint hlift_int
 
 /-- Full-source difference bound from a pointwise source bound.  This is the
 semigroup part of the coupled contraction proof. -/
@@ -1602,6 +1714,90 @@ theorem intervalCoupledDuhamelOperator_diff_bound_of_resolver_chemotaxis_bound
             p R u₀ u₁ u₂ hT hC hsource ht0 htT x
             hint₁ hint₂ hlift_int₁ hlift_int₂
     _ = (|p.χ₀| * K + L) * T * D := by ring
+
+/-- The concrete estimates needed from the interval Neumann elliptic resolver
+on a fixed trajectory ball.
+
+This is a transparent interface for the resolver file under construction.  It
+does not assert existence of `R`; it records exactly the estimates that let the
+coupled Duhamel map use the existing heat-semigroup contraction proof. -/
+def IntervalCoupledResolverBallEstimates
+    (p : CM2Params)
+    (R : (intervalDomainPoint → ℝ) → intervalDomainPoint → ℝ)
+    (u₀ : intervalDomainPoint → ℝ)
+    (T M K : ℝ) : Prop :=
+  (∀ u : ℝ → intervalDomainPoint → ℝ,
+      intervalTrajectoryBoundedOn T M u →
+        ∀ (t : ℝ) (x : intervalDomainPoint), 0 ≤ t → t ≤ T →
+          |intervalCoupledDuhamelOperator p R u₀ u t x| ≤ M) ∧
+  (∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+      0 ≤ D →
+      intervalTrajectoryBoundedOn T M u₁ →
+      intervalTrajectoryBoundedOn T M u₂ →
+      (∀ s y, 0 ≤ s → s ≤ T → |u₁ s y - u₂ s y| ≤ D) →
+        ∀ (s : ℝ) (y : intervalDomainPoint), 0 ≤ s → s ≤ T →
+          |intervalDomainChemotaxisDiv p (u₁ s) (R (u₁ s)) y -
+            intervalDomainChemotaxisDiv p (u₂ s) (R (u₂ s)) y| ≤ K * D) ∧
+  (∀ u : ℝ → intervalDomainPoint → ℝ,
+      intervalTrajectoryBoundedOn T M u →
+        ∀ (t : ℝ) (x : intervalDomainPoint), 0 ≤ t → t ≤ T →
+          MeasureTheory.IntegrableOn
+            (fun s => intervalSemigroupOperator 1 (t - s)
+              (intervalDomainLift (intervalCoupledSource p (u s) (R (u s)))) x.1)
+            (Set.Icc 0 t) MeasureTheory.volume) ∧
+  (∀ u : ℝ → intervalDomainPoint → ℝ,
+      intervalTrajectoryBoundedOn T M u →
+        ∀ s, 0 ≤ s → s ≤ T →
+          MeasureTheory.Integrable
+            (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+            (intervalMeasure 1))
+
+/-- Resolver ball estimates discharge the coupled Duhamel contraction on the
+trajectory ball.  The constant `A` can be any declared Lipschitz constant above
+the explicit algebraic value `|χ₀| K + L`. -/
+theorem intervalCoupledDuhamel_closedBall_contraction_of_resolver_estimates
+    (p : CM2Params)
+    (R : (intervalDomainPoint → ℝ) → intervalDomainPoint → ℝ)
+    (u₀ : intervalDomainPoint → ℝ)
+    {T M K L A : ℝ} (hT : 0 < T)
+    (hL : 0 ≤ L) (hK : 0 ≤ K) (hA_bound : |p.χ₀| * K + L ≤ A)
+    (hL_lip : ∀ a b : ℝ, |a| ≤ M → |b| ≤ M →
+      |a * (p.a - p.b * a ^ p.α) - b * (p.a - p.b * b ^ p.α)| ≤
+        L * |a - b|)
+    (hest : IntervalCoupledResolverBallEstimates p R u₀ T M K) :
+    ∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+      0 ≤ D →
+      intervalTrajectoryBoundedOn T M u₁ →
+      intervalTrajectoryBoundedOn T M u₂ →
+      (∀ s y, 0 ≤ s → s ≤ T → |u₁ s y - u₂ s y| ≤ D) →
+        ∀ t x, 0 ≤ t → t ≤ T →
+          |intervalCoupledDuhamelOperator p R u₀ u₁ t x -
+            intervalCoupledDuhamelOperator p R u₀ u₂ t x| ≤ A * T * D := by
+  rcases hest with ⟨_hmap, hchem, hint, hlift_int⟩
+  intro u₁ u₂ D hD hu₁ hu₂ hdiff t x ht0 htT
+  have hraw :
+      |intervalCoupledDuhamelOperator p R u₀ u₁ t x -
+        intervalCoupledDuhamelOperator p R u₀ u₂ t x| ≤
+          (|p.χ₀| * K + L) * T * D :=
+    intervalCoupledDuhamelOperator_diff_bound_of_resolver_chemotaxis_bound
+      p R u₀ u₁ u₂ hT hL hK hD hL_lip
+      (fun s y hs0 hsT => hu₁ s y hs0 hsT)
+      (fun s y hs0 hsT => hu₂ s y hs0 hsT)
+      (fun s y hs0 hsT => hdiff s y hs0 hsT)
+      (fun s y hs0 hsT => hchem u₁ u₂ D hD hu₁ hu₂ hdiff s y hs0 hsT)
+      ht0 htT x
+      (hint u₁ hu₁ t x ht0 htT)
+      (hint u₂ hu₂ t x ht0 htT)
+      (hlift_int u₁ hu₁)
+      (hlift_int u₂ hu₂)
+  have hTD : 0 ≤ T * D := mul_nonneg hT.le hD
+  calc
+    |intervalCoupledDuhamelOperator p R u₀ u₁ t x -
+        intervalCoupledDuhamelOperator p R u₀ u₂ t x|
+        ≤ (|p.χ₀| * K + L) * T * D := hraw
+    _ = (|p.χ₀| * K + L) * (T * D) := by ring
+    _ ≤ A * (T * D) := mul_le_mul_of_nonneg_right hA_bound hTD
+    _ = A * T * D := by ring
 
 /-! ### Picard iteration and the Banach fixed-point theorem
 
@@ -1863,6 +2059,108 @@ theorem banach_fixed_point_picard
         ≤ 2 * D₀ * q ^ (n + 1) / (1 - q) := hfp_bound n
       _ = 2 * D₀ * q / (1 - q) * q ^ n := by rw [pow_succ]; ring
   linarith [abs_eq_zero.mp hzero]
+
+/-- Closed-ball version of the pointwise Picard fixed-point theorem.
+
+This is the form needed for the coupled chemotaxis map: the nonlinear
+Lipschitz estimates are local on a trajectory ball, while the Duhamel map is
+shown separately to preserve that ball. -/
+theorem banach_fixed_point_picard_on_closed_ball
+    {Φ : (ℝ → intervalDomainPoint → ℝ) → (ℝ → intervalDomainPoint → ℝ)}
+    {M q D₀ : ℝ} (hM : 0 ≤ M) (hq0 : 0 ≤ q) (hq1 : q < 1)
+    (hD₀ : 0 ≤ D₀)
+    (hmap : ∀ u : ℝ → intervalDomainPoint → ℝ,
+      (∀ t x, |u t x| ≤ M) → ∀ t x, |Φ u t x| ≤ M)
+    (hcontr : ∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+      0 ≤ D →
+      (∀ t x, |u₁ t x| ≤ M) →
+      (∀ t x, |u₂ t x| ≤ M) →
+      (∀ s y, |u₁ s y - u₂ s y| ≤ D) →
+      ∀ t x, |Φ u₁ t x - Φ u₂ t x| ≤ q * D)
+    (hbase : ∀ t x,
+      |picardIteration Φ 1 t x - picardIteration Φ 0 t x| ≤ D₀) :
+    ∃ u_star : ℝ → intervalDomainPoint → ℝ,
+      (∀ t x, |u_star t x| ≤ M) ∧
+      ∀ t x, u_star t x = Φ u_star t x := by
+  have hpicard_ball :
+      ∀ n t x, |picardIteration Φ n t x| ≤ M := by
+    intro n
+    induction n with
+    | zero =>
+        intro t x
+        simpa [picardIteration] using hM
+    | succ n ih =>
+        intro t x
+        exact hmap (picardIteration Φ n) ih t x
+  have hgeom :
+      ∀ n t x,
+        |picardIteration Φ (n + 1) t x - picardIteration Φ n t x| ≤
+          q ^ n * D₀ := by
+    intro n
+    induction n with
+    | zero =>
+        intro t x
+        simpa using hbase t x
+    | succ n ih =>
+        intro t x
+        change |Φ (picardIteration Φ (n + 1)) t x -
+              Φ (picardIteration Φ n) t x| ≤ q ^ (n + 1) * D₀
+        have hstep :=
+          hcontr (picardIteration Φ (n + 1)) (picardIteration Φ n)
+            (q ^ n * D₀) (mul_nonneg (pow_nonneg hq0 n) hD₀)
+            (hpicard_ball (n + 1)) (hpicard_ball n) ih t x
+        calc |Φ (picardIteration Φ (n + 1)) t x -
+              Φ (picardIteration Φ n) t x|
+            ≤ q * (q ^ n * D₀) := hstep
+          _ = q ^ (n + 1) * D₀ := by ring
+  have hcauchy := picard_pointwise_cauchySeq hq0 hq1 hD₀ hgeom
+  have hconv : ∀ t x, ∃ L,
+      Filter.Tendsto (fun n => picardIteration Φ n t x)
+        Filter.atTop (nhds L) :=
+    fun t x => ⟨_, (hcauchy t x).tendsto_limUnder⟩
+  choose u_star hu_star using fun t => fun x => hconv t x
+  have hstar_ball : ∀ t x, |u_star t x| ≤ M := by
+    intro t x
+    exact le_of_tendsto (hu_star t x).abs
+      (Filter.eventually_atTop.mpr ⟨0, fun n _hn => hpicard_ball n t x⟩)
+  refine ⟨u_star, hstar_ball, ?_⟩
+  intro t x
+  have h1q : (0 : ℝ) < 1 - q := sub_pos.mpr hq1
+  have htail := picard_tail_bound hq0 hq1 hD₀ hgeom u_star hu_star
+  have hfp_bound : ∀ n : ℕ,
+      |u_star t x - Φ u_star t x| ≤ 2 * D₀ * q ^ (n + 1) / (1 - q) := by
+    intro n
+    have hpicard_succ : picardIteration Φ (n + 1) t x =
+        Φ (picardIteration Φ n) t x := rfl
+    have hdiff_n : ∀ s y,
+        |picardIteration Φ n s y - u_star s y| ≤ D₀ * q ^ n / (1 - q) := by
+      intro s y
+      rw [abs_sub_comm]
+      exact htail n s y
+    have htail_nonneg : 0 ≤ D₀ * q ^ n / (1 - q) :=
+      div_nonneg (mul_nonneg hD₀ (pow_nonneg hq0 n)) h1q.le
+    have hPhicontr : |Φ (picardIteration Φ n) t x - Φ u_star t x| ≤
+        q * (D₀ * q ^ n / (1 - q)) :=
+      hcontr _ _ _ htail_nonneg (hpicard_ball n) hstar_ball hdiff_n t x
+    calc |u_star t x - Φ u_star t x|
+        = |(u_star t x - picardIteration Φ (n + 1) t x) +
+           (picardIteration Φ (n + 1) t x - Φ u_star t x)| := by ring_nf
+      _ ≤ |u_star t x - picardIteration Φ (n + 1) t x| +
+          |picardIteration Φ (n + 1) t x - Φ u_star t x| := abs_add_le _ _
+      _ = |u_star t x - picardIteration Φ (n + 1) t x| +
+          |Φ (picardIteration Φ n) t x - Φ u_star t x| := by rw [hpicard_succ]
+      _ ≤ D₀ * q ^ (n + 1) / (1 - q) + q * (D₀ * q ^ n / (1 - q)) := by
+          linarith [htail (n + 1) t x]
+      _ = 2 * D₀ * q ^ (n + 1) / (1 - q) := by ring
+  have habs_nn : 0 ≤ |u_star t x - Φ u_star t x| := abs_nonneg _
+  have hzero : |u_star t x - Φ u_star t x| = 0 := by
+    apply eq_zero_of_le_geometric_pow habs_nn
+      (by positivity : 0 ≤ 2 * D₀ * q / (1 - q)) hq0 hq1
+    intro n
+    calc |u_star t x - Φ u_star t x|
+        ≤ 2 * D₀ * q ^ (n + 1) / (1 - q) := hfp_bound n
+      _ = 2 * D₀ * q / (1 - q) * q ^ n := by rw [pow_succ]; ring
+  exact sub_eq_zero.mp (abs_eq_zero.mp hzero)
 
 /-- **Existence of a Duhamel fixed point for small time.**
 
@@ -2789,6 +3087,84 @@ theorem intervalCoupledDuhamel_fixed_point_exists_of_contraction
   have ht : 0 ≤ t ∧ t ≤ T := ⟨ht0, htT⟩
   simpa [Φ, ht] using hfp t x
 
+/-- Closed-ball Banach extraction for the coupled Duhamel map.
+
+Unlike `intervalCoupledDuhamel_fixed_point_exists_of_contraction`, the
+contraction hypothesis here is only required on the trajectory ball preserved
+by the map.  This is the natural local-existence shape for locally Lipschitz
+chemotaxis nonlinearities. -/
+theorem intervalCoupledDuhamel_fixed_point_exists_on_closed_ball
+    (p : CM2Params)
+    (R : (intervalDomainPoint → ℝ) → intervalDomainPoint → ℝ)
+    (u₀ : intervalDomainPoint → ℝ)
+    {L D₀ T M : ℝ} (hL : 0 < L) (hD₀ : 0 ≤ D₀)
+    (hT : 0 < T) (hLT : L * T < 1) (hM : 0 ≤ M)
+    (hmap :
+      ∀ u : ℝ → intervalDomainPoint → ℝ,
+        intervalTrajectoryBoundedOn T M u →
+          ∀ t x, 0 ≤ t → t ≤ T →
+            |intervalCoupledDuhamelOperator p R u₀ u t x| ≤ M)
+    (hcontr :
+      ∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+        0 ≤ D →
+        intervalTrajectoryBoundedOn T M u₁ →
+        intervalTrajectoryBoundedOn T M u₂ →
+        (∀ s y, 0 ≤ s → s ≤ T → |u₁ s y - u₂ s y| ≤ D) →
+        ∀ t x, 0 ≤ t → t ≤ T →
+          |intervalCoupledDuhamelOperator p R u₀ u₁ t x -
+            intervalCoupledDuhamelOperator p R u₀ u₂ t x| ≤ L * T * D)
+    (hbase :
+      ∀ t x, 0 ≤ t → t ≤ T →
+        |intervalCoupledDuhamelOperator p R u₀ (fun _ _ => 0) t x| ≤ D₀) :
+    ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      intervalTrajectoryBoundedOn T M u ∧
+      (∀ t x, 0 ≤ t → t ≤ T →
+        u t x = intervalCoupledDuhamelOperator p R u₀ u t x) ∧
+      (∀ t, v t = R (u t)) := by
+  let Φ : (ℝ → intervalDomainPoint → ℝ) →
+      (ℝ → intervalDomainPoint → ℝ) :=
+    fun u t x =>
+      if 0 ≤ t ∧ t ≤ T then intervalCoupledDuhamelOperator p R u₀ u t x else 0
+  have hmap' :
+      ∀ u : ℝ → intervalDomainPoint → ℝ,
+        (∀ t x, |u t x| ≤ M) → ∀ t x, |Φ u t x| ≤ M := by
+    intro u hu t x
+    by_cases ht : 0 ≤ t ∧ t ≤ T
+    · simpa [Φ, ht] using
+        hmap u (fun s y hs0 hsT => hu s y) t x ht.1 ht.2
+    · simp [Φ, ht, hM]
+  have hcontr' :
+      ∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+        0 ≤ D →
+        (∀ t x, |u₁ t x| ≤ M) →
+        (∀ t x, |u₂ t x| ≤ M) →
+        (∀ s y, |u₁ s y - u₂ s y| ≤ D) →
+        ∀ t x, |Φ u₁ t x - Φ u₂ t x| ≤ L * T * D := by
+    intro u₁ u₂ D hD hu₁ hu₂ hdiff t x
+    by_cases ht : 0 ≤ t ∧ t ≤ T
+    · simpa [Φ, ht] using
+        hcontr u₁ u₂ D hD
+          (fun s y _hs0 _hsT => hu₁ s y)
+          (fun s y _hs0 _hsT => hu₂ s y)
+          (fun s y _hs0 _hsT => hdiff s y)
+          t x ht.1 ht.2
+    · simp [Φ, ht, mul_nonneg (mul_nonneg hL.le hT.le) hD]
+  have hbase' :
+      ∀ t x, |picardIteration Φ 1 t x - picardIteration Φ 0 t x| ≤ D₀ := by
+    intro t x
+    by_cases ht : 0 ≤ t ∧ t ≤ T
+    · simpa [picardIteration, Φ, ht] using hbase t x ht.1 ht.2
+    · simp [picardIteration, Φ, ht, hD₀]
+  obtain ⟨u, hu_ball, hfp⟩ :=
+    banach_fixed_point_picard_on_closed_ball hM
+      (mul_nonneg hL.le hT.le) hLT hD₀ hmap' hcontr' hbase'
+  refine ⟨u, fun t => R (u t), ?_, ?_, fun _ => rfl⟩
+  · intro t x _ht0 _htT
+    exact hu_ball t x
+  · intro t x ht0 htT
+    have ht : 0 ≤ t ∧ t ≤ T := ⟨ht0, htT⟩
+    simpa [Φ, ht] using hfp t x
+
 /-- Uniqueness of bounded local fixed points for the full coupled Duhamel
 operator after substituting the elliptic resolver. -/
 theorem intervalCoupledDuhamel_fixed_point_unique_of_contraction
@@ -2919,6 +3295,102 @@ theorem localExistence_of_coupledDuhamel_contraction_and_regularization
       hL hD₀ hT hLT hcontr hbase
   exact localExistence_of_regularityBootstrap p u₀ hu₀ hT
     (hregularize u v hfp hv)
+
+/-- Closed-ball coupled Duhamel fixed point plus concrete regularization gives
+local classical existence. -/
+theorem localExistence_of_coupledDuhamel_closedBall_contraction_and_regularization
+    (p : CM2Params)
+    (R : (intervalDomainPoint → ℝ) → intervalDomainPoint → ℝ)
+    (u₀ : intervalDomainPoint → ℝ)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {L D₀ T M : ℝ} (hL : 0 < L) (hD₀ : 0 ≤ D₀)
+    (hT : 0 < T) (hLT : L * T < 1) (hM : 0 ≤ M)
+    (hmap :
+      ∀ u : ℝ → intervalDomainPoint → ℝ,
+        intervalTrajectoryBoundedOn T M u →
+          ∀ t x, 0 ≤ t → t ≤ T →
+            |intervalCoupledDuhamelOperator p R u₀ u t x| ≤ M)
+    (hcontr :
+      ∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+        0 ≤ D →
+        intervalTrajectoryBoundedOn T M u₁ →
+        intervalTrajectoryBoundedOn T M u₂ →
+        (∀ s y, 0 ≤ s → s ≤ T → |u₁ s y - u₂ s y| ≤ D) →
+        ∀ t x, 0 ≤ t → t ≤ T →
+          |intervalCoupledDuhamelOperator p R u₀ u₁ t x -
+            intervalCoupledDuhamelOperator p R u₀ u₂ t x| ≤ L * T * D)
+    (hbase :
+      ∀ t x, 0 ≤ t → t ≤ T →
+        |intervalCoupledDuhamelOperator p R u₀ (fun _ _ => 0) t x| ≤ D₀)
+    (hregularize :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        intervalTrajectoryBoundedOn T M u →
+        (∀ t x, 0 ≤ t → t ≤ T →
+          u t x = intervalCoupledDuhamelOperator p R u₀ u t x) →
+        (∀ t, v t = R (u t)) →
+          RegularityBootstrap p T u₀ u) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u₀ u := by
+  obtain ⟨u, v, hu_ball, hfp, hv⟩ :=
+    intervalCoupledDuhamel_fixed_point_exists_on_closed_ball p R u₀
+      hL hD₀ hT hLT hM hmap hcontr hbase
+  exact localExistence_of_regularityBootstrap p u₀ hu₀ hT
+    (hregularize u v hu_ball hfp hv)
+
+/-- Local classical existence from the resolver ball estimates plus a concrete
+regularization theorem.
+
+Once the Neumann elliptic resolver file supplies
+`IntervalCoupledResolverBallEstimates`, this theorem is the import point that
+turns those estimates into the coupled mild fixed point and then into
+`IsPaper2ClassicalSolution`. -/
+theorem localExistence_of_coupledDuhamel_resolver_estimates_and_regularization
+    (p : CM2Params)
+    (R : (intervalDomainPoint → ℝ) → intervalDomainPoint → ℝ)
+    (u₀ : intervalDomainPoint → ℝ)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {A L K T M : ℝ} (hA : 0 < A) (hL : 0 ≤ L) (hK : 0 ≤ K)
+    (hT : 0 < T) (hAT : A * T < 1) (hM : 0 ≤ M)
+    (hA_bound : |p.χ₀| * K + L ≤ A)
+    (hL_lip : ∀ a b : ℝ, |a| ≤ M → |b| ≤ M →
+      |a * (p.a - p.b * a ^ p.α) - b * (p.a - p.b * b ^ p.α)| ≤
+        L * |a - b|)
+    (hest : IntervalCoupledResolverBallEstimates p R u₀ T M K)
+    (hregularize :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        intervalTrajectoryBoundedOn T M u →
+        (∀ t x, 0 ≤ t → t ≤ T →
+          u t x = intervalCoupledDuhamelOperator p R u₀ u t x) →
+        (∀ t, v t = R (u t)) →
+          RegularityBootstrap p T u₀ u) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u₀ u := by
+  rcases hest with ⟨hmap, _hchem, _hint, _hlift_int⟩
+  have hcontr :
+      ∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+        0 ≤ D →
+        intervalTrajectoryBoundedOn T M u₁ →
+        intervalTrajectoryBoundedOn T M u₂ →
+        (∀ s y, 0 ≤ s → s ≤ T → |u₁ s y - u₂ s y| ≤ D) →
+        ∀ t x, 0 ≤ t → t ≤ T →
+          |intervalCoupledDuhamelOperator p R u₀ u₁ t x -
+            intervalCoupledDuhamelOperator p R u₀ u₂ t x| ≤ A * T * D :=
+    intervalCoupledDuhamel_closedBall_contraction_of_resolver_estimates
+      p R u₀ hT hL hK hA_bound hL_lip
+      ⟨hmap, _hchem, _hint, _hlift_int⟩
+  have hzero_ball :
+      intervalTrajectoryBoundedOn T M
+        (fun _ : ℝ => fun _ : intervalDomainPoint => 0) := by
+    intro t x _ht0 _htT
+    simpa using hM
+  have hbase :
+      ∀ t x, 0 ≤ t → t ≤ T →
+        |intervalCoupledDuhamelOperator p R u₀ (fun _ _ => 0) t x| ≤ M :=
+    hmap (fun _ : ℝ => fun _ : intervalDomainPoint => 0) hzero_ball
+  exact localExistence_of_coupledDuhamel_closedBall_contraction_and_regularization
+    p R u₀ hu₀ hA hM hT hAT hM hmap hcontr hbase hregularize
 
 /-- Local existence for constant initial data (equilibrium, a > 0, b > 0)
 via the RegularityBootstrap chain. The solution is u(t,x) = (a/b)^{1/α}
@@ -4019,19 +4491,35 @@ theorem GlobalSolutionGluingFromReachability_of_energyMethod
   GlobalSolutionGluingFromReachability_of_overlapUnique
     (IntervalClassicalSolutionOverlapUnique_of_energyMethod hmethod)
 
+/-- The concrete L2 uniqueness handoff supplies the overlap uniqueness input
+needed by the gluing construction. -/
+theorem IntervalClassicalSolutionOverlapUnique_of_l2EnergyMethod
+    {p : CM2Params}
+    (hmethod : IntervalDomainClassicalUniquenessL2EnergyMethod p) :
+    IntervalClassicalSolutionOverlapUnique p := by
+  intro u₀ T₁ T₂ d₁ d₂ t ht0 ht_overlap x
+  exact intervalDomain_classicalSolution_overlap_unique_of_l2EnergyMethod
+    hmethod d₁.sol d₂.sol d₁.trace d₂.trace t ht0 ht_overlap x
+
+/-- Arbitrarily long finite reachable solutions glue to a global solution once
+the L2 uniqueness handoff supplies equality on overlapping horizons. -/
+theorem GlobalSolutionGluingFromReachability_of_l2EnergyMethod
+    {p : CM2Params}
+    (hmethod : IntervalDomainClassicalUniquenessL2EnergyMethod p) :
+    GlobalSolutionGluingFromReachability p :=
+  GlobalSolutionGluingFromReachability_of_overlapUnique
+    (IntervalClassicalSolutionOverlapUnique_of_l2EnergyMethod hmethod)
+
 /-!
 Status of the uniqueness/gluing frontier:
 
-* Closed here: the purely formal gluing step, plus the bridge from sb-lyap's
-  energy-method uniqueness handoff.  An
-  `IntervalDomainClassicalUniquenessEnergyMethod p` certificate implies
-  overlap uniqueness of finite interval classical solutions, hence
+* Closed here: arbitrary long finite reachable solutions glue to a global
+  interval solution once overlap equality is available.  In particular, the
+  L2 handoff `IntervalDomainClassicalUniquenessL2EnergyMethod p` gives
   `GlobalSolutionGluingFromReachability p`.
-* First remaining genuine PDE gap: prove
-  `IntervalDomainClassicalUniquenessEnergyMethod p`, i.e. construct the
-  overlap energy certificate from the coupled interval PDE.  The certificate
-  still has to control the initial `v`-difference as well as the `u` trace;
-  this is not implied by the current `InitialTrace` field alone.
+* Remaining upstream if one wants the theorem with no uniqueness parameter:
+  construct `IntervalDomainClassicalUniquenessL2EnergyMethod p`, i.e. the
+  concrete overlap L2 certificate for the coupled interval PDE.
 -/
 
 /-! #### Blow-up exclusion from an a priori bound
