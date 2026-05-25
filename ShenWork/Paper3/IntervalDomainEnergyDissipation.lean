@@ -1078,6 +1078,197 @@ theorem intervalDomain_Theorem_2_5_of_corollary51_thetaDerivativeInterfaces
   intervalDomain_Theorem_2_5_of_corollary51_thetaCompleteLyapunovInterfaces
     p N C hCor51 hExpMinimal hEnergy.toCompleteLyapunovInterfaces
 
+/-! ### Structured stability frontiers for the Theorem 2.x reductions -/
+
+/-- Uniform exponential-upgrade frontiers needed by Paper 3 Theorem 2.3.
+
+This is deliberately stronger than the raw `Corollary_5_1` exponential
+upgrade, which gives constants after a particular solution is supplied.
+The theorem statements for 2.3--2.5 require branch-uniform constants, so this
+is kept as an honest named stability frontier. -/
+structure IntervalDomainTheorem23UniformExponentialStabilityInterfaces
+    (p : CM2Params) (N : StabilityNorms intervalDomain) where
+  nonminimal :
+    1 ≤ p.m →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        p.χ₀ <
+            paperCriticalSensitivity unitIntervalNeumannSpectrum p
+              eq.1 eq.2 →
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              PositiveGlobalBoundedSolution intervalDomain p u v →
+                UniformConvergesInSup intervalDomain u eq.1 →
+                  ExponentialC1ConvergenceWith intervalDomain N u v
+                    eq.1 eq.2 A rate
+  minimal :
+    1 ≤ p.m → p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        p.χ₀ <
+            paperCriticalSensitivity unitIntervalNeumannSpectrum p
+              eq.1 eq.2 →
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              PositiveGlobalBoundedSolution intervalDomain p u v →
+                HasInitialMass intervalDomain u uStar →
+                  UniformConvergesInSup intervalDomain u eq.1 →
+                    ExponentialC1ConvergenceWith intervalDomain N u v
+                      eq.1 eq.2 A rate
+
+/-- Paper 3 Theorem 2.3 reduced to Corollary 5.1, complete
+theta-dissipation Lyapunov data, and the branch-uniform exponential stability
+frontier. -/
+theorem intervalDomain_Theorem_2_3_of_corollary51_completeDissipation_stabilityInterfaces
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (M0 uBar vLower : ℝ)
+    (hCor51 :
+      Corollary_5_1 intervalDomain p N
+        (intervalDomainPaper3Constants p M0 uBar vLower))
+    (hStability :
+      IntervalDomainTheorem23UniformExponentialStabilityInterfaces p N)
+    (hEnergy : IntervalDomainTheorem23ThetaCompleteLyapunovInterfaces p) :
+    Theorem_2_3 intervalDomain p N :=
+  intervalDomain_Theorem_2_3_of_corollary51_thetaCompleteLyapunovInterfaces
+    p N M0 uBar vLower hCor51 hStability.nonminimal
+    hStability.minimal hEnergy
+
+/-- Derivative-level version of the Theorem 2.3 reduction. -/
+theorem intervalDomain_Theorem_2_3_of_corollary51_derivativeDissipation_stabilityInterfaces
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (M0 uBar vLower : ℝ)
+    (hCor51 :
+      Corollary_5_1 intervalDomain p N
+        (intervalDomainPaper3Constants p M0 uBar vLower))
+    (hStability :
+      IntervalDomainTheorem23UniformExponentialStabilityInterfaces p N)
+    (hEnergy : IntervalDomainTheorem23ThetaDerivativeInterfaces p) :
+    Theorem_2_3 intervalDomain p N :=
+  intervalDomain_Theorem_2_3_of_corollary51_completeDissipation_stabilityInterfaces
+    p N M0 uBar vLower hCor51 hStability
+    hEnergy.toCompleteLyapunovInterfaces
+
+/-- Uniform exponential-upgrade frontier needed by Paper 3 Theorem 2.4. -/
+structure IntervalDomainTheorem24UniformExponentialStabilityInterfaces
+    (p : CM2Params) (N : StabilityNorms intervalDomain) where
+  nonminimal :
+    1 ≤ p.m →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        p.χ₀ <
+            paperCriticalSensitivity unitIntervalNeumannSpectrum p
+              eq.1 eq.2 →
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              PositiveGlobalBoundedSolution intervalDomain p u v →
+                UniformConvergesInSup intervalDomain u eq.1 →
+                  ExponentialC1ConvergenceWith intervalDomain N u v
+                    eq.1 eq.2 A rate
+
+/-- Paper 3 Theorem 2.4 reduced to Corollary 5.1, the first-mode threshold
+frontier, complete formula-branch theta dissipation, and uniform exponential
+stability. -/
+theorem intervalDomain_Theorem_2_4_of_corollary51_completeDissipation_stabilityInterfaces
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (M0 uBar vLower : ℝ)
+    (hCor51 :
+      Corollary_5_1 intervalDomain p N
+        (intervalDomainPaper3Constants p M0 uBar vLower))
+    (hfirst :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        max
+            (max (chiStrong1Formula p eq.1 eq.2)
+              (chiStrong2Formula p eq.1))
+            (max (chiStrong3Formula p M0 eq.1 eq.2)
+              (chiStrong4Formula p M0 eq.1)) ≤
+          ((1 + eq.2) ^ p.β /
+              (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+            (p.μ + Real.pi ^ 2))
+    (hStability :
+      IntervalDomainTheorem24UniformExponentialStabilityInterfaces p N)
+    (hEnergy : IntervalDomainTheorem24ThetaCompleteLyapunovInterfaces p M0) :
+    Theorem_2_4 intervalDomain p N
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_4_formula_completeLyapunovInterfaces_of_corollary51
+    p N M0 uBar vLower hCor51 hfirst hStability.nonminimal hEnergy
+
+/-- Derivative-level version of the Theorem 2.4 reduction. -/
+theorem intervalDomain_Theorem_2_4_of_corollary51_derivativeDissipation_stabilityInterfaces
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (M0 uBar vLower : ℝ)
+    (hCor51 :
+      Corollary_5_1 intervalDomain p N
+        (intervalDomainPaper3Constants p M0 uBar vLower))
+    (hfirst :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        max
+            (max (chiStrong1Formula p eq.1 eq.2)
+              (chiStrong2Formula p eq.1))
+            (max (chiStrong3Formula p M0 eq.1 eq.2)
+              (chiStrong4Formula p M0 eq.1)) ≤
+          ((1 + eq.2) ^ p.β /
+              (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+            (p.μ + Real.pi ^ 2))
+    (hStability :
+      IntervalDomainTheorem24UniformExponentialStabilityInterfaces p N)
+    (hEnergy : IntervalDomainTheorem24ThetaDerivativeInterfaces p M0) :
+    Theorem_2_4 intervalDomain p N
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_4_of_corollary51_completeDissipation_stabilityInterfaces
+    p N M0 uBar vLower hCor51 hfirst hStability
+    hEnergy.toCompleteLyapunovInterfaces
+
+/-- Uniform exponential-upgrade frontier needed by Paper 3 Theorem 2.5. -/
+structure IntervalDomainTheorem25UniformExponentialStabilityInterfaces
+    (p : CM2Params) (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p) where
+  minimal :
+    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        MinimalGlobalStabilityCondition intervalDomain p C uStar →
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              PositiveGlobalBoundedSolution intervalDomain p u v →
+                HasInitialMass intervalDomain u uStar →
+                  UniformConvergesInSup intervalDomain u eq.1 →
+                    ExponentialC1ConvergenceWith intervalDomain N u v
+                      eq.1 eq.2 A rate
+
+/-- Paper 3 Theorem 2.5 reduced to Corollary 5.1, complete minimal
+theta-dissipation Lyapunov data, and the branch-uniform exponential stability
+frontier. -/
+theorem intervalDomain_Theorem_2_5_of_corollary51_completeDissipation_stabilityInterfaces
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hCor51 : Corollary_5_1 intervalDomain p N C)
+    (hStability :
+      IntervalDomainTheorem25UniformExponentialStabilityInterfaces p N C)
+    (hEnergy : IntervalDomainTheorem25ThetaCompleteLyapunovInterfaces p C) :
+    Theorem_2_5 intervalDomain p N C :=
+  intervalDomain_Theorem_2_5_of_corollary51_thetaCompleteLyapunovInterfaces
+    p N C hCor51 hStability.minimal hEnergy
+
+/-- Derivative-level version of the Theorem 2.5 reduction. -/
+theorem intervalDomain_Theorem_2_5_of_corollary51_derivativeDissipation_stabilityInterfaces
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hCor51 : Corollary_5_1 intervalDomain p N C)
+    (hStability :
+      IntervalDomainTheorem25UniformExponentialStabilityInterfaces p N C)
+    (hEnergy : IntervalDomainTheorem25ThetaDerivativeInterfaces p C) :
+    Theorem_2_5 intervalDomain p N C :=
+  intervalDomain_Theorem_2_5_of_corollary51_completeDissipation_stabilityInterfaces
+    p N C hCor51 hStability hEnergy.toCompleteLyapunovInterfaces
+
 end
 
 end ShenWork.Paper3
