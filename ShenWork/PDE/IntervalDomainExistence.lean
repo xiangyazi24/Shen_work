@@ -19,6 +19,7 @@
 import ShenWork.Paper2.Statements
 import ShenWork.PDE.IntervalDomain
 import ShenWork.PDE.ODEExistence
+import ShenWork.PDE.ODEUniqueness
 
 open ShenWork.Paper2 ShenWork.IntervalDomain
 
@@ -1936,6 +1937,43 @@ theorem equilibrium_standardContinuationAlternative_global
     StandardContinuationAlternative p
       (constOnInterval ((p.a / p.b) ^ (1 / p.α))) :=
   Or.inl (equilibrium_reachableArbitrarilyLong p ha hb)
+
+/-- Scalar ODE uniqueness at the positive logistic equilibrium.  This is the
+ODE-side uniqueness component used by continuation/gluing arguments for
+spatially constant restart data. -/
+theorem equilibrium_logisticProfile_unique
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b)
+    {T m M : ℝ} (hm : 0 < m)
+    (hc_mem :
+      (p.a / p.b) ^ (1 / p.α) ∈ Set.Icc m M)
+    {φ : ℝ → ℝ}
+    (hφ_cont : ContinuousOn φ (Set.Icc 0 T))
+    (hφ_ode : ∀ t ∈ Set.Ico (0 : ℝ) T,
+      HasDerivAt φ (bernoulliLogisticVectorField p (φ t)) t)
+    (hφ_mem : ∀ t ∈ Set.Ico (0 : ℝ) T, φ t ∈ Set.Icc m M)
+    (hinit : φ 0 = (p.a / p.b) ^ (1 / p.α)) :
+    Set.EqOn φ (fun _ : ℝ => (p.a / p.b) ^ (1 / p.α))
+      (Set.Icc 0 T) := by
+  let c : ℝ := (p.a / p.b) ^ (1 / p.α)
+  have hconst_cont : ContinuousOn (fun _ : ℝ => c) (Set.Icc 0 T) :=
+    continuous_const.continuousOn
+  have hfield_c : bernoulliLogisticVectorField p c = 0 := by
+    rw [bernoulliLogisticVectorField]
+    dsimp [c]
+    rw [equilibrium_reaction_zero p ha hb]
+    ring
+  have hconst_ode : ∀ t ∈ Set.Ico (0 : ℝ) T,
+      HasDerivAt (fun _ : ℝ => c)
+        (bernoulliLogisticVectorField p ((fun _ : ℝ => c) t)) t := by
+    intro t ht
+    simpa [hfield_c] using hasDerivAt_const t c
+  have hconst_mem : ∀ t ∈ Set.Ico (0 : ℝ) T,
+      (fun _ : ℝ => c) t ∈ Set.Icc m M := by
+    intro t ht
+    exact hc_mem
+  simpa [c] using
+    bernoulliLogistic_unique p hm hφ_cont hφ_ode hφ_mem
+      hconst_cont hconst_ode hconst_mem hinit
 
 /-! ### Finite-horizon alternative diagnostics
 
