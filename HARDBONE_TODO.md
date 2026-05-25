@@ -115,6 +115,14 @@
   interval-domain point functions through `intervalDomainLiftComplexLp2`.
   This fixes the finite-mode Parseval side needed before passing to infinite
   spectral fractional norms.
+- **`tsum` coefficient increment** (2026-05-24):
+  `spectralCoeff_heat_difference_tsum_le` and
+  `spectralCoeff_heat_smoothing_tsum_le` lift the finite multiplier estimates
+  to infinite coefficient series under explicit `Summable` domain hypotheses.
+  This proves the Hilbert-space coefficient part of the fractional
+  `S(t)-I` and `A^σ e^{-tA}` bounds for `0 < σ ≤ 1`; it still does not
+  identify those coefficient energies with the total statement-layer
+  `fractionalNorm`.
 - **BLOCKER / Point 17**: the full `Lemma_2_1 intervalDomain` statement is
   still not discharged.  The missing piece is not H0.1/H0.2 smoothing; it is
   the fractional-domain part of the abstract `SemigroupEstimateData` package:

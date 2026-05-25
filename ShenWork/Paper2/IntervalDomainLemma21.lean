@@ -387,6 +387,186 @@ theorem finiteSpectralCoeff_heat_smoothing_energy_le
       (sigma := sigma) (a := a n)
       hlambda_pos ht hsigma_nonneg hsigma_le
 
+/-! ### Infinite coefficient-energy estimates with explicit domain hypotheses -/
+
+/-- Spectral fractional coefficient energy for the unit-interval Neumann
+cosine spectrum.  The value is meaningful when the displayed series is
+summable; the theorems below keep that summability hypothesis explicit. -/
+def spectralCoeffFractionalEnergy (sigma : ℝ) (a : ℕ → ℂ) : ℝ :=
+  ∑' n : ℕ,
+    (unitIntervalCosineEigenvalue n ^ sigma) ^ 2 * ‖a n‖ ^ 2
+
+/-- The unweighted coefficient `ℓ²` energy. -/
+def spectralCoeffL2Energy (a : ℕ → ℂ) : ℝ :=
+  ∑' n : ℕ, ‖a n‖ ^ 2
+
+/-- Under finite fractional coefficient energy, the coefficient series for
+`S(t)-I` is summable. -/
+theorem spectralCoeff_heat_difference_sq_summable
+    {t sigma : ℝ} (a : ℕ → ℂ)
+    (ht : 0 < t) (hsigma_pos : 0 < sigma) (hsigma_le : sigma ≤ 1)
+    (henergy :
+      Summable fun n : ℕ =>
+        (unitIntervalCosineEigenvalue n ^ sigma) ^ 2 * ‖a n‖ ^ 2) :
+    Summable fun n : ℕ =>
+      ‖(((Real.exp (-(t * unitIntervalCosineEigenvalue n)) - 1 : ℝ) : ℂ) *
+        a n)‖ ^ 2 := by
+  apply Summable.of_nonneg_of_le
+    (fun n => sq_nonneg _)
+    ?_
+    (henergy.mul_left ((t ^ sigma) ^ 2))
+  intro n
+  have hlambda : 0 ≤ unitIntervalCosineEigenvalue n := by
+    dsimp [unitIntervalCosineEigenvalue]
+    positivity
+  have hterm :=
+    spectralCoeff_heat_difference_sq_le
+      (lambda := unitIntervalCosineEigenvalue n) (t := t)
+      (sigma := sigma) (a := a n)
+      hlambda ht hsigma_pos hsigma_le
+  calc
+    ‖(((Real.exp (-(t * unitIntervalCosineEigenvalue n)) - 1 : ℝ) : ℂ) *
+        a n)‖ ^ 2
+        ≤
+          ((t ^ sigma * unitIntervalCosineEigenvalue n ^ sigma) ^ 2) *
+            ‖a n‖ ^ 2 :=
+            hterm
+    _ =
+          (t ^ sigma) ^ 2 *
+            ((unitIntervalCosineEigenvalue n ^ sigma) ^ 2 *
+              ‖a n‖ ^ 2) := by
+            ring
+
+/-- Infinite-series coefficient-energy form of the fractional `S(t)-I`
+estimate. -/
+theorem spectralCoeff_heat_difference_tsum_le
+    {t sigma : ℝ} (a : ℕ → ℂ)
+    (ht : 0 < t) (hsigma_pos : 0 < sigma) (hsigma_le : sigma ≤ 1)
+    (henergy :
+      Summable fun n : ℕ =>
+        (unitIntervalCosineEigenvalue n ^ sigma) ^ 2 * ‖a n‖ ^ 2) :
+    (∑' n : ℕ,
+      ‖(((Real.exp (-(t * unitIntervalCosineEigenvalue n)) - 1 : ℝ) : ℂ) *
+        a n)‖ ^ 2) ≤
+      (t ^ sigma) ^ 2 * spectralCoeffFractionalEnergy sigma a := by
+  have hdiff :=
+    spectralCoeff_heat_difference_sq_summable
+      (a := a) ht hsigma_pos hsigma_le henergy
+  have hmajor :
+      Summable fun n : ℕ =>
+        (t ^ sigma) ^ 2 *
+          ((unitIntervalCosineEigenvalue n ^ sigma) ^ 2 *
+            ‖a n‖ ^ 2) :=
+    henergy.mul_left ((t ^ sigma) ^ 2)
+  have hle :
+      ∀ n : ℕ,
+        ‖(((Real.exp (-(t * unitIntervalCosineEigenvalue n)) - 1 : ℝ) : ℂ) *
+          a n)‖ ^ 2 ≤
+          (t ^ sigma) ^ 2 *
+            ((unitIntervalCosineEigenvalue n ^ sigma) ^ 2 *
+              ‖a n‖ ^ 2) := by
+    intro n
+    have hlambda : 0 ≤ unitIntervalCosineEigenvalue n := by
+      dsimp [unitIntervalCosineEigenvalue]
+      positivity
+    have hterm :=
+      spectralCoeff_heat_difference_sq_le
+        (lambda := unitIntervalCosineEigenvalue n) (t := t)
+        (sigma := sigma) (a := a n)
+        hlambda ht hsigma_pos hsigma_le
+    calc
+      ‖(((Real.exp (-(t * unitIntervalCosineEigenvalue n)) - 1 : ℝ) : ℂ) *
+          a n)‖ ^ 2
+          ≤
+            ((t ^ sigma * unitIntervalCosineEigenvalue n ^ sigma) ^ 2) *
+              ‖a n‖ ^ 2 :=
+              hterm
+      _ =
+            (t ^ sigma) ^ 2 *
+              ((unitIntervalCosineEigenvalue n ^ sigma) ^ 2 *
+                ‖a n‖ ^ 2) := by
+              ring
+  have htsum := hdiff.tsum_le_tsum hle hmajor
+  simpa [spectralCoeffFractionalEnergy, henergy.tsum_mul_left] using htsum
+
+/-- Smoothing multiplier estimate with a zero-eigenvalue case split, for
+positive fractional exponent. -/
+theorem spectralCoeff_heat_smoothing_sq_le_of_nonneg
+    {lambda t sigma : ℝ} {a : ℂ}
+    (hlambda : 0 ≤ lambda) (ht : 0 < t)
+    (hsigma_pos : 0 < sigma) (hsigma_le : sigma ≤ 1) :
+    (lambda ^ sigma) ^ 2 *
+        ‖(((Real.exp (-(t * lambda)) : ℝ) : ℂ) * a)‖ ^ 2 ≤
+      (t ^ (-sigma)) ^ 2 * ‖a‖ ^ 2 := by
+  by_cases hzero : lambda = 0
+  · subst lambda
+    have hz : (0 : ℝ) ^ sigma = 0 :=
+      Real.zero_rpow (ne_of_gt hsigma_pos)
+    have hright_nonneg :
+        0 ≤ (t ^ (-sigma)) ^ 2 * ‖a‖ ^ 2 := by
+      exact mul_nonneg (sq_nonneg _) (sq_nonneg _)
+    simpa [hz] using hright_nonneg
+  · have hlambda_pos : 0 < lambda := lt_of_le_of_ne hlambda (Ne.symm hzero)
+    exact spectralCoeff_heat_smoothing_sq_le
+      (lambda := lambda) (t := t) (sigma := sigma) (a := a)
+      hlambda_pos ht (le_of_lt hsigma_pos) hsigma_le
+
+/-- Under finite `ℓ²` coefficient energy, the smoothed fractional coefficient
+series is summable. -/
+theorem spectralCoeff_heat_smoothing_sq_summable
+    {t sigma : ℝ} (a : ℕ → ℂ)
+    (ht : 0 < t) (hsigma_pos : 0 < sigma) (hsigma_le : sigma ≤ 1)
+    (hcoeff : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    Summable fun n : ℕ =>
+      (unitIntervalCosineEigenvalue n ^ sigma) ^ 2 *
+        ‖(((Real.exp (-(t * unitIntervalCosineEigenvalue n)) : ℝ) : ℂ) *
+          a n)‖ ^ 2 := by
+  apply Summable.of_nonneg_of_le
+    (fun n => mul_nonneg (sq_nonneg _) (sq_nonneg _))
+    ?_
+    (hcoeff.mul_left ((t ^ (-sigma)) ^ 2))
+  intro n
+  have hlambda : 0 ≤ unitIntervalCosineEigenvalue n := by
+    dsimp [unitIntervalCosineEigenvalue]
+    positivity
+  exact spectralCoeff_heat_smoothing_sq_le_of_nonneg
+    (lambda := unitIntervalCosineEigenvalue n) (t := t)
+    (sigma := sigma) (a := a n)
+    hlambda ht hsigma_pos hsigma_le
+
+/-- Infinite-series coefficient-energy form of `A^σ e^{-tA}` smoothing. -/
+theorem spectralCoeff_heat_smoothing_tsum_le
+    {t sigma : ℝ} (a : ℕ → ℂ)
+    (ht : 0 < t) (hsigma_pos : 0 < sigma) (hsigma_le : sigma ≤ 1)
+    (hcoeff : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    (∑' n : ℕ,
+      (unitIntervalCosineEigenvalue n ^ sigma) ^ 2 *
+        ‖(((Real.exp (-(t * unitIntervalCosineEigenvalue n)) : ℝ) : ℂ) *
+          a n)‖ ^ 2) ≤
+      (t ^ (-sigma)) ^ 2 * spectralCoeffL2Energy a := by
+  have hsmooth :=
+    spectralCoeff_heat_smoothing_sq_summable
+      (a := a) ht hsigma_pos hsigma_le hcoeff
+  have hmajor :
+      Summable fun n : ℕ => (t ^ (-sigma)) ^ 2 * ‖a n‖ ^ 2 :=
+    hcoeff.mul_left ((t ^ (-sigma)) ^ 2)
+  have hle :
+      ∀ n : ℕ,
+        (unitIntervalCosineEigenvalue n ^ sigma) ^ 2 *
+          ‖(((Real.exp (-(t * unitIntervalCosineEigenvalue n)) : ℝ) : ℂ) *
+            a n)‖ ^ 2 ≤
+          (t ^ (-sigma)) ^ 2 * ‖a n‖ ^ 2 := by
+    intro n
+    have hlambda : 0 ≤ unitIntervalCosineEigenvalue n := by
+      dsimp [unitIntervalCosineEigenvalue]
+      positivity
+    exact spectralCoeff_heat_smoothing_sq_le_of_nonneg
+      (lambda := unitIntervalCosineEigenvalue n) (t := t)
+      (sigma := sigma) (a := a n)
+      hlambda ht hsigma_pos hsigma_le
+  have htsum := hsmooth.tsum_le_tsum hle hmajor
+  simpa [spectralCoeffL2Energy, hcoeff.tsum_mul_left] using htsum
+
 /-! ### Hilbert-basis coefficient bridge for finite sums -/
 
 /-- The complex `L²` representative of an interval-domain real function,
