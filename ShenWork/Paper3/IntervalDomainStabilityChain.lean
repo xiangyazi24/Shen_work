@@ -17,6 +17,73 @@ namespace ShenWork.Paper3
 
 noncomputable section
 
+/-- Concrete Paper3 constants on the unit interval, with the critical threshold
+and the strong/minimal thresholds fixed to the paper's explicit formulas.  The
+parameters `M0`, `uBar`, and `vLower` keep the eventual-bound frontiers visible
+instead of hiding them in an arbitrary constants package. -/
+def intervalDomainPaper3Constants
+    (p : CM2Params) (M0 uBar vLower : ℝ) :
+    Paper3Constants intervalDomain p where
+  chiCritical := fun uStar =>
+    paperCriticalSensitivity unitIntervalNeumannSpectrum p uStar
+      (p.ν / p.μ * uStar ^ p.γ)
+  chiStrong1 := fun uStar =>
+    chiStrong1Formula p uStar (p.ν / p.μ * uStar ^ p.γ)
+  chiStrong2 := fun uStar => chiStrong2Formula p uStar
+  chiStrong3 := fun uStar =>
+    chiStrong3Formula p M0 uStar (p.ν / p.μ * uStar ^ p.γ)
+  chiStrong4 := fun uStar => chiStrong4Formula p M0 uStar
+  chiMinimal1 := fun uStar => chiMinimal1Formula p 1 uStar uBar vLower
+  chiMinimal2 := fun _uStar => chiMinimal2Formula p uBar vLower
+  eventualMinimalUBound := fun _uStar => uBar
+  gaussianLowerConst := 1
+  gaussianLowerConst_pos := by norm_num
+
+/-- The concrete interval constants use exactly the unit-interval Neumann
+critical spectrum. -/
+theorem intervalDomainPaper3Constants_usesCriticalSpectrum
+    (p : CM2Params) (M0 uBar vLower : ℝ) :
+    Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p
+      (intervalDomainPaper3Constants p M0 uBar vLower) := by
+  intro uStar _huStar
+  rfl
+
+/-- `Lemma_A_7` for the concrete interval constants, reduced to the explicit
+first-mode domination of the maximum strong threshold. -/
+theorem intervalDomain_Lemma_A_7_of_firstMode_threshold
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hfirst :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        max
+            (max (chiStrong1Formula p eq.1 eq.2)
+              (chiStrong2Formula p eq.1))
+            (max (chiStrong3Formula p M0 eq.1 eq.2)
+              (chiStrong4Formula p M0 eq.1)) ≤
+          ((1 + eq.2) ^ p.β /
+              (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+            (p.μ + Real.pi ^ 2)) :
+    Lemma_A_7 intervalDomain p
+      (intervalDomainPaper3Constants p M0 uBar vLower) := by
+  refine
+    Lemma_A_7_of_firstNonzero_lower_and_formula_fields
+      (D := intervalDomain) (p := p)
+      (C := intervalDomainPaper3Constants p M0 uBar vLower)
+      unitIntervalNeumannSpectrum M0
+      unitIntervalNeumannSpectrum_hasNeumannSpectrum
+      (intervalDomainPaper3Constants_usesCriticalSpectrum p M0 uBar vLower)
+      ?_ ?_ ?_ ?_ ?_
+  · intro ha hb
+    simp [intervalDomainPaper3Constants, positiveEquilibrium]
+  · intro ha hb
+    simp [intervalDomainPaper3Constants]
+  · intro ha hb
+    simp [intervalDomainPaper3Constants, positiveEquilibrium]
+  · intro ha hb
+    simp [intervalDomainPaper3Constants]
+  · intro ha hb
+    simpa [unitIntervalNeumannSpectrum] using hfirst ha hb
+
 /-- The Lyapunov theta-dissipation functional is definitionally the moment
 functional used by `ThetaMomentConvergesToZero`. -/
 theorem intervalDomain_thetaMomentConvergesToZero_of_chemotaxisThetaDissipation
@@ -58,6 +125,35 @@ theorem intervalDomain_Theorem_2_2_of_sectorial_frontiers
     unitIntervalNeumannSpectrum_hasNeumannSpectrum hC hraw
     hsigma_low hsigma_high hpNorm hcontrol hexist hmexist
 
+/-- Concrete-constants version of the interval-domain Paper3 Theorem 2.2
+composite.  Compared with `intervalDomain_Theorem_2_2_of_sectorial_frontiers`,
+this discharges the critical-spectrum package hypothesis by using the explicit
+unit-interval constants above. -/
+theorem intervalDomain_Theorem_2_2_of_concrete_constants_and_sectorial_frontiers
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (M0 uBar vLower : ℝ)
+    (hraw :
+      SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hcontrol :
+      ∀ uStar, SupControlsXpSigmaDistance intervalDomain N sigma pNorm uStar)
+    (hexist :
+      ∀ uStar, ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p uStar delta)
+    (hmexist :
+      ∀ uStar, ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p uStar delta) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum N
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_2_of_sectorial_frontiers
+    p N (intervalDomainPaper3Constants p M0 uBar vLower)
+    (intervalDomainPaper3Constants_usesCriticalSpectrum p M0 uBar vLower)
+    hraw hsigma_low hsigma_high hpNorm hcontrol hexist hmexist
+
 /-- Conditional interval-domain Paper3 Theorem 2.2 with the norm-control
 frontier reduced to the primitive comparison `X^σ_p ≤ supNorm`. -/
 theorem intervalDomain_Theorem_2_2_of_xpSigma_le_supNorm_frontiers
@@ -89,6 +185,36 @@ theorem intervalDomain_Theorem_2_2_of_xpSigma_le_supNorm_frontiers
         (D := intervalDomain) (N := N) (sigma := sigma) (pNorm := pNorm)
         (uStar := uStar) (hxp uStar))
     hexist hmexist
+
+/-- Concrete-constants interval-domain Paper3 Theorem 2.2.  This discharges
+the constants-package and critical-spectrum identity inputs using
+`intervalDomainPaper3Constants`. -/
+theorem intervalDomain_Theorem_2_2_for_concrete_constants
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (M0 uBar vLower : ℝ)
+    (hraw :
+      SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+        N.c1Distance N.xpSigmaDistance)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hxp :
+      ∀ uStar, ∀ u₀ : intervalDomain.Point → ℝ,
+        N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤
+          intervalDomain.supNorm (fun x => u₀ x - uStar))
+    (hexist :
+      ∀ uStar, ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p uStar delta)
+    (hmexist :
+      ∀ uStar, ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p uStar delta) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum N
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_2_of_xpSigma_le_supNorm_frontiers
+    p N (intervalDomainPaper3Constants p M0 uBar vLower)
+    (intervalDomainPaper3Constants_usesCriticalSpectrum p M0 uBar vLower)
+    hraw hsigma_low hsigma_high hpNorm hxp hexist hmexist
 
 /-- Conditional interval-domain Paper3 Theorem 2.3.
 
@@ -278,6 +404,59 @@ theorem intervalDomain_Theorem_2_4_of_lyapunov_moment_and_exponential_frontiers
   refine ⟨hglobal, A, hA, rate, hrate, ?_⟩
   intro u v huv
   exact hdecay u v huv (hglobal u v huv)
+
+/-- Concrete-constants/first-mode version of the interval-domain Paper3
+Theorem 2.4 composite.  This discharges both the critical-spectrum package
+hypothesis and the `Lemma_A_7` package hypothesis, reducing them to the
+explicit first-mode threshold domination. -/
+theorem intervalDomain_Theorem_2_4_of_concrete_constants_firstMode_and_frontiers
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (M0 uBar vLower : ℝ)
+    (hfirst :
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        max
+            (max (chiStrong1Formula p eq.1 eq.2)
+              (chiStrong2Formula p eq.1))
+            (max (chiStrong3Formula p M0 eq.1 eq.2)
+              (chiStrong4Formula p M0 eq.1)) ≤
+          ((1 + eq.2) ^ p.β /
+              (p.ν * p.γ * eq.1 ^ (p.m + p.γ - 1))) *
+            (p.μ + Real.pi ^ 2))
+    (hmomentToUniform : MomentConvergenceToUniformRaw intervalDomain p)
+    (hExpNonminimal :
+      1 ≤ p.m →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          p.χ₀ <
+              paperCriticalSensitivity unitIntervalNeumannSpectrum p
+                eq.1 eq.2 →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                  UniformConvergesInSup intervalDomain u eq.1 →
+                    ExponentialC1ConvergenceWith intervalDomain N u v
+                      eq.1 eq.2 A rate)
+    (hLyapStrong :
+      0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          NonminimalGlobalStabilityCondition intervalDomain p
+              (intervalDomainPaper3Constants p M0 uBar vLower) eq.1 →
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              PositiveGlobalBoundedSolution intervalDomain p u v →
+                Tendsto
+                  (fun t =>
+                    chemotaxisThetaDissipation intervalDomain eq.1 p.α (u t))
+                  atTop (𝓝 0)) :
+    Theorem_2_4 intervalDomain p N
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_4_of_lyapunov_moment_and_exponential_frontiers
+    p N (intervalDomainPaper3Constants p M0 uBar vLower)
+    (intervalDomainPaper3Constants_usesCriticalSpectrum p M0 uBar vLower)
+    (intervalDomain_Lemma_A_7_of_firstMode_threshold p M0 uBar vLower hfirst)
+    hmomentToUniform hExpNonminimal hLyapStrong
 
 end
 
