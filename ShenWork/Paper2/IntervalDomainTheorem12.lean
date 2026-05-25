@@ -865,6 +865,22 @@ theorem Theorem_1_2_intervalDomain_vacuous_when_beta_lt_one
   intro _ha _hb hβ'
   exact absurd hβ' (not_le.mpr hβ)
 
+/-- Vacuous interval-domain Theorem 1.2 branch when the top-level
+`0 ≤ a` hypothesis fails. -/
+theorem Theorem_1_2_intervalDomain_vacuous_when_not_a_nonneg
+    (p : CM2Params) (ha : ¬ 0 ≤ p.a) :
+    Theorem_1_2 intervalDomain p := by
+  intro ha'
+  exact False.elim (ha ha')
+
+/-- Vacuous interval-domain Theorem 1.2 branch when the top-level
+`0 ≤ b` hypothesis fails. -/
+theorem Theorem_1_2_intervalDomain_vacuous_when_not_b_nonneg
+    (p : CM2Params) (hb : ¬ 0 ≤ p.b) :
+    Theorem_1_2 intervalDomain p := by
+  intro _ha hb'
+  exact False.elim (hb hb')
+
 /-- Vacuous interval-domain Theorem 1.2 when `m` is above the theorem's
 slow/critical range. -/
 theorem Theorem_1_2_intervalDomain_vacuous_when_one_lt_m
