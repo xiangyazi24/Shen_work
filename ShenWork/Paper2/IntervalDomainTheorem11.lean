@@ -285,6 +285,100 @@ theorem Corollary_2_1_intervalDomain_of_interpolation_frontier
     (hpow_int habs henergy)
     pExp hpExp
 
+/-- H1.4 closure from the interval interpolation frontier, with the
+nonnegativity input discharged from the classical solution positivity on
+`intervalDomain.inside`.
+
+Compared with `Corollary_2_1_intervalDomain_of_interpolation_frontier`, this
+removes the separate `hu_nonneg` frontier from the actual Paper 2 solution
+workflow.  The endpoint issue is handled by the interior-nonnegative
+finite-interval Lp monotonicity lemma. -/
+theorem Corollary_2_1_intervalDomain_of_interpolation_frontier_from_solution_positivity
+    (p : CM2Params)
+    (hGN : IntervalDomainLemma41.IntervalDomainInterpolation)
+    (cGrad : (ℝ → intervalDomain.Point → ℝ) → ℝ → ℝ → ℝ → ℝ → ℝ)
+    (hdiss :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ p, p0 ≤ p → ∀ A B K L_const,
+          (∀ t, 0 < t → t < T →
+            (1 / p) * deriv
+                (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+              A * intervalDomain.integral (fun x =>
+                (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+              B * intervalDomain.integral (fun x => (u t x) ^ p) ≤
+            K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+          ∀ t, 0 < t → t < T →
+            0 ≤
+              (1 / p) * deriv
+                  (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+                B * intervalDomain.integral (fun x => (u t x) ^ p))
+    (hcGrad :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ p, p0 ≤ p → 0 < cGrad u T rho p0 p)
+    (hgrad :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+          intervalDomain.integral (fun x =>
+              (u t x) ^ (p + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+            cGrad u T rho p0 p * intervalDomain.integral (fun x =>
+              (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmass :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ p, p0 ≤ p → ∀ Ceta, ∃ Cmass, ∀ t, 0 < t → t < T →
+          Ceta * (intervalDomain.integral (u t)) ^ (p + rho) ≤ Cmass)
+    (hpow_int :
+      ∀ {N T rho p0 : ℝ} {u : ℝ → intervalDomain.Point → ℝ},
+        AbstractLpBootstrapHypothesis intervalDomain u N T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0 →
+        ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
+          IntervalIntegrable
+            (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
+            MeasureTheory.volume 0 1)
+    (hEnergyFromCrossDiffusion :
+      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+        AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
+          LpBootstrapEnergyInequality intervalDomain u T rho p0) :
+    Corollary_2_1 intervalDomain p := by
+  intro T hT u v hsol hbootstrap pExp hpExp
+  rcases hbootstrap with ⟨rho, hrho, hcross, p0, hp0_gt, hp0_bound⟩
+  have habs :
+      AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 :=
+    ⟨hrho, hT, hp0_gt, hp0_bound⟩
+  have henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0 :=
+    hEnergyFromCrossDiffusion hsol hcross habs
+  have hMG :
+      ∀ q, p0 ≤ q → ∀ eta > 0, ∃ Ceta,
+        LpMassGradientInterpolationEstimate intervalDomain (q + rho) eta Ceta T u := by
+    intro q hq eta heta
+    have hp0_gt_one : 1 < p0 :=
+      lt_of_le_of_lt (le_max_left (1 : ℝ) (rho * (p.N : ℝ) / 2)) hp0_gt
+    have hq_gt_one : 1 < q := lt_of_lt_of_le hp0_gt_one hq
+    have hq_rho_gt_one : 1 < q + rho := by linarith
+    obtain ⟨Ceta, _hCeta_pos, hinterp⟩ := hGN eta heta (q + rho) hq_rho_gt_one
+    refine ⟨Ceta, ?_⟩
+    intro t ht0 htT
+    exact hinterp (u t) (fun x hx => hsol.u_pos ht0 htT hx)
+  exact intervalDomain_all_exponents_of_energy_dissipation_mass_gradient_inside_nonneg
+    (cGrad u T rho p0) habs henergy
+    (hdiss habs henergy)
+    (hcGrad habs henergy)
+    hMG
+    (hgrad habs henergy)
+    (hmass habs henergy)
+    (fun t ht0 htT x hx => le_of_lt (hsol.u_pos ht0 htT hx))
+    (hpow_int habs henergy)
+    pExp hpExp
+
 /-! ### H2.1 conditional Theorem 1.1 assembly -/
 
 private def boundednessExponent (p : CM2Params) : ℝ :=

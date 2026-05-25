@@ -12,6 +12,7 @@
 import ShenWork.Paper2.IntervalDomainLpMonotonicity
 
 open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainLpMonotonicity
 open ShenWork.IntervalDomain
 
 noncomputable section
@@ -304,6 +305,93 @@ theorem intervalDomain_all_exponents_of_energy_dissipation_mass_gradient
           MeasureTheory.volume 0 1) :
     ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u := by
   refine intervalDomain_all_exponents_of_energy_dissipation_interpolation
+    hboot henergy hdiss ?_ hu_nonneg hpow_int
+  intro p hp
+  exact moser_interpolation_of_mass_gradient_estimate
+    (hcGrad p hp) (hMG p hp) (hgrad p hp) (hmass p hp)
+
+/-- Interior-nonnegative version of
+`intervalDomain_all_exponents_of_energy_dissipation_interpolation`.  This is
+the form supplied directly by classical interval solutions, whose positivity is
+part of `IsPaper2ClassicalSolution` on `intervalDomain.inside`. -/
+theorem intervalDomain_all_exponents_of_energy_dissipation_interpolation_inside_nonneg
+    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv
+            (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+          A * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * intervalDomain.integral (fun x => (u t x) ^ p) ≤
+        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv
+              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+            B * intervalDomain.integral (fun x => (u t x) ^ p))
+    (hinterp : ∀ p, p0 ≤ p → ∀ eps > 0, ∃ Ceps, ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x => (u t x) ^ (p + rho)) ≤
+        eps * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+        Ceps)
+    (hu_nonneg :
+      ∀ t, 0 < t → t < T →
+        ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside → 0 ≤ u t x)
+    (hpow_int :
+      ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
+        IntervalIntegrable
+          (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
+          MeasureTheory.volume 0 1) :
+    ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u := by
+  exact
+    intervalDomain_all_exponents_of_moser_iteration_chain_inside_nonneg
+        (AbstractLpBootstrapHypothesis.rho_pos hboot)
+        (AbstractLpBootstrapHypothesis.initial_lp_bound hboot)
+        (moser_step_family_of_energy_dissipation_interpolation henergy hdiss hinterp)
+        hu_nonneg hpow_int
+
+/-- Interior-nonnegative interval-domain closure with interpolation supplied in
+the Paper 2 mass-gradient form. -/
+theorem intervalDomain_all_exponents_of_energy_dissipation_mass_gradient_inside_nonneg
+    {u : ℝ → intervalDomain.Point → ℝ} {N T rho p0 : ℝ}
+    (cGrad : ℝ → ℝ)
+    (hboot : AbstractLpBootstrapHypothesis intervalDomain u N T rho p0)
+    (henergy : LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hdiss : ∀ p, p0 ≤ p → ∀ A B K L_const,
+      (∀ t, 0 < t → t < T →
+        (1 / p) * deriv
+            (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+          A * intervalDomain.integral (fun x =>
+            (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2) +
+          B * intervalDomain.integral (fun x => (u t x) ^ p) ≤
+        K * intervalDomain.integral (fun x => (u t x) ^ (p + rho)) + L_const) →
+      ∀ t, 0 < t → t < T →
+        0 ≤
+          (1 / p) * deriv
+              (fun τ => intervalDomain.integral (fun x => (u τ x) ^ p)) t +
+            B * intervalDomain.integral (fun x => (u t x) ^ p))
+    (hcGrad : ∀ p, p0 ≤ p → 0 < cGrad p)
+    (hMG : ∀ p, p0 ≤ p → ∀ eta > 0, ∃ Ceta,
+      LpMassGradientInterpolationEstimate intervalDomain (p + rho) eta Ceta T u)
+    (hgrad : ∀ p, p0 ≤ p → ∀ t, 0 < t → t < T →
+      intervalDomain.integral (fun x =>
+          (u t x) ^ (p + rho - 2) * (intervalDomain.gradNorm (u t) x) ^ 2) ≤
+        cGrad p * intervalDomain.integral (fun x =>
+          (intervalDomain.gradNorm (fun y => (u t y) ^ (p / 2)) x) ^ 2))
+    (hmass : ∀ p, p0 ≤ p → ∀ Ceta, ∃ Cmass, ∀ t, 0 < t → t < T →
+      Ceta * (intervalDomain.integral (u t)) ^ (p + rho) ≤ Cmass)
+    (hu_nonneg :
+      ∀ t, 0 < t → t < T →
+        ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside → 0 ≤ u t x)
+    (hpow_int :
+      ∀ pExp : ℝ, 1 < pExp → ∀ t, 0 < t → t < T →
+        IntervalIntegrable
+          (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ pExp))
+          MeasureTheory.volume 0 1) :
+    ∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u := by
+  refine intervalDomain_all_exponents_of_energy_dissipation_interpolation_inside_nonneg
     hboot henergy hdiss ?_ hu_nonneg hpow_int
   intro p hp
   exact moser_interpolation_of_mass_gradient_estimate
