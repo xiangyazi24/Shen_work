@@ -572,6 +572,54 @@ theorem Theorem_1_1_intervalDomain_of_branch_bootstrap_and_proposition25
   exact (IntervalDomainTheorem11.Theorem_1_1_intervalDomain_conditional
     p hexist') hχ
 
+/-- Uniform-bootstrap Theorem 1.1 assembly with the interval initial-approach
+field discharged from the concrete `InitialTrace` theorem.
+
+This is the bounded-initial-data variant of
+`Theorem_1_1_intervalDomain_of_corollary21_and_proposition25`: it preserves the
+same `Corollary_2_1`, `Proposition_2_5`, and single bootstrap frontier, while
+building the `IntervalDomainExistence` package from local existence, bounded
+initial data, and global extension. -/
+theorem Theorem_1_1_intervalDomain_of_corollary21_proposition25_uniform_bounded_initial
+    (p : CM2Params)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hboundedInitial :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+    (hglobal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+        ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+          InitialTrace intervalDomain u₀ u →
+            IsPaper2BoundedBefore intervalDomain Tmax u →
+              1 ≤ p.m →
+                IsPaper2GlobalClassicalSolution intervalDomain p u v)
+    (hbootstrap :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) :
+    Theorem_1_1 intervalDomain p := by
+  exact Theorem_1_1_intervalDomain_of_corollary21_and_proposition25
+    p hCor21 hProp25
+    (IntervalDomainExistence_of_local_global_bounded_initial
+      p hlocal hboundedInitial hglobal)
+    hbootstrap
+
 /-- Branch-sharp Theorem 1.1 assembly with the interval initial-approach field
 discharged from the concrete `InitialTrace` theorem.
 
