@@ -461,8 +461,14 @@
   `HasHeteroclinicE1E0.exists_profile_c2_bootstrap`,
   `HasHeteroclinicE1E0.exists_profileData`), packaged C²/boundary/left-positive
   profile data (`WaveProfileData`, `TravelingWave.to_profileData`), profile
-  endpoint limits (`TravelingWave.profile_boundary_limits`), E1/E0 linearized
-  eigenmodes with decay (`unstableLinearModeAtOne_solves_and_decays`,
+  endpoint limits (`TravelingWave.profile_boundary_limits`), shift invariance
+  for ODE solutions/profile data/heteroclinics (`SolvesTWODE.shift`,
+  `WaveProfileData.shift`, `HasHeteroclinicE1E0.shift`), and the exact bridge
+  from the Nat-exponent ODE layer to root `IsTravelingWave` under explicit
+  positive-speed and global-positivity assumptions
+  (`WaveProfileData.to_isTravelingWave`, `TravelingWave.to_isTravelingWave`).
+  It also has E1/E0 linearized eigenmodes with decay
+  (`unstableLinearModeAtOne_solves_and_decays`,
   `stableLinearModeAtZero_solves_and_decays`), the E0 stable local shooting
   segment in `ShenWork/PDE/TravelingWaveODE.lean`, the linearized solution
   regularity/closure facts (`SolvesLinearized.contDiff_two`,
@@ -472,11 +478,14 @@
   `logisticProfile_facts_with_contDiff_exp_bound_and_strict_deriv`) in
   `ShenWork/PDE/TravelingWaveConstruction.lean`.
   This does not prove Paper1 Theorem 1.2.  The missing analytic load is the
-  nonlinear weighted Cauchy stability chain for perturbations of a wave:
-  global well-posedness from nearby weighted data, weighted energy/semigroup
-  decay, uniform moving-frame convergence, and the exact bridge from these
-  estimates to `Paper1.Theorem_1_2`.  Status by point 17: ③ conditional on
-  named upstream PDE/weighted-Sobolev stability inputs, not weakened or faked.
+  global positivity of the heteroclinic `U` needed to turn an arbitrary
+  `HasHeteroclinicE1E0` into root `IsTravelingWave`, plus the nonlinear
+  weighted Cauchy stability chain for perturbations of a wave: global
+  well-posedness from nearby weighted data, weighted energy/semigroup decay,
+  uniform moving-frame convergence, and the exact bridge from these estimates
+  to `Paper1.Theorem_1_2`.  Status by point 17: ③ conditional on named
+  upstream positivity/PDE/weighted-Sobolev stability inputs, not weakened or
+  faked.
 
 ---
 
