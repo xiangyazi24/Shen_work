@@ -1775,6 +1775,54 @@ theorem intervalDomain_chemotaxisSignalEnergy_nonneg_and_exponential_decay
   chemotaxisSignalEnergy_nonneg_and_exponential_decay
     hc hK intervalDomain_integral_nonneg hmu hderiv hdiss hcontrol
 
+/-- Full interval-domain signal-energy Lyapunov package: nonnegativity,
+weighted monotonicity, exponential two-time decay, and convergence to zero.
+
+Point 17 status: conditional theorem, state ③.  The interval integral
+positivity and pointwise square positivity side conditions are discharged here.
+The remaining named frontiers are the signal-energy derivative identity,
+the PDE dissipation estimate, and the Poincare control packaged as
+`hderiv`, `hdiss`, and `hcontrol`. -/
+theorem intervalDomain_chemotaxisSignalEnergy_lyapunovPackage
+    {mu vStar c K s : ℝ}
+    {v : ℝ → intervalDomain.Point → ℝ} {energySlope : ℝ → ℝ}
+    (hc : 0 < c) (hK : 0 < K) (hs : 0 < s)
+    (hmu : 0 ≤ mu)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisSignalEnergy intervalDomain mu vStar v tau)
+          (energySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        (1 / 2 : ℝ) * energySlope t +
+          c * chemotaxisSignalGradientDissipation intervalDomain vStar v t ≤ 0)
+    (hcontrol :
+      ∀ t, 0 < t →
+        chemotaxisSignalEnergy intervalDomain mu vStar v t ≤
+          K * chemotaxisSignalGradientDissipation intervalDomain vStar v t) :
+    (∀ t, 0 ≤ chemotaxisSignalEnergy intervalDomain mu vStar v t) ∧
+      AntitoneOn
+        (fun t =>
+          Real.exp ((2 * c / K) * t) *
+            chemotaxisSignalEnergy intervalDomain mu vStar v t)
+        (Ioi (0 : ℝ)) ∧
+      (∀ a b, 0 < a → a ≤ b →
+        chemotaxisSignalEnergy intervalDomain mu vStar v b ≤
+          chemotaxisSignalEnergy intervalDomain mu vStar v a *
+            Real.exp (-(2 * c / K) * (b - a))) ∧
+      Tendsto
+        (fun t => chemotaxisSignalEnergy intervalDomain mu vStar v t)
+        atTop (𝓝 0) := by
+  have hnonneg_decay :=
+    intervalDomain_chemotaxisSignalEnergy_nonneg_and_exponential_decay
+      hc hK hmu hderiv hdiss hcontrol
+  refine ⟨hnonneg_decay.1, ?_, hnonneg_decay.2, ?_⟩
+  · exact intervalDomain_chemotaxisSignalEnergy_weighted_antitoneOn
+      hc hK hderiv hdiss hcontrol
+  · exact intervalDomain_chemotaxisSignalEnergy_tendsto_zero
+      hc hK hs hmu hderiv hdiss hcontrol
+
 end
 
 end ShenWork.Paper3
