@@ -365,6 +365,46 @@ theorem Theorem_1_3_intervalDomain_of_parameter_m_pos_and_corollary21
     (fun ha hb _hm hstrong hm_ge =>
       hstrongGlobalBound ha hb hstrong hm_ge)
 
+/-- Existence-package variant of
+`Theorem_1_3_intervalDomain_of_parameter_m_pos_and_corollary21`.
+
+The strong-logistic frontiers do not expose `0 < p.m`; that guard is supplied
+by the theorem target and by the `CM2Params` field. -/
+theorem Theorem_1_3_intervalDomain_of_parameter_m_pos_corollary21_proposition25_and_existence
+    (p : CM2Params) (C : Paper2Constants p)
+    (hCor21 : Corollary_2_1 intervalDomain p)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hexist : IntervalDomainTheorem11.IntervalDomainExistence p)
+    (hstrongBootstrap :
+      0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u)
+    (hstrongGlobalBound :
+      0 < p.a → 0 < p.b → StrongLogisticCondition p C →
+      1 ≤ p.m →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2GlobalClassicalSolution intervalDomain p u v →
+        InitialTrace intervalDomain u₀ u →
+        (∀ T > 0,
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) →
+          IsPaper2Bounded intervalDomain u) :
+    Theorem_1_3 intervalDomain p C :=
+  Theorem_1_3_intervalDomain_of_parameter_m_pos_and_corollary21
+    p C hCor21 hProp25 hexist.localExistence hexist.globalExtension
+    hstrongBootstrap hstrongGlobalBound
+
 /-- Corollary-level Theorem 1.3 assembly where the long-time frontier is an
 eventual scalar sup-norm estimate rather than `IsPaper2Bounded` itself. -/
 theorem Theorem_1_3_intervalDomain_of_eventual_sup_bound
