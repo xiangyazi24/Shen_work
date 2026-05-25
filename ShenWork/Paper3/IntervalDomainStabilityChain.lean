@@ -133,55 +133,6 @@ theorem intervalDomain_thetaMomentConvergesToZero_of_chemotaxisThetaDissipation
     ThetaMomentConvergesToZero intervalDomain u uStar theta := by
   simpa [ThetaMomentConvergesToZero, chemotaxisThetaDissipation] using h
 
-/-- On the unit interval, nonnegativity on the open interior is enough for
-nonnegativity of the concrete interval integral: the two endpoints are null
-sets. -/
-theorem intervalDomain_integral_nonneg_of_inside_nonneg
-    (f : intervalDomain.Point → ℝ)
-    (hf : ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside → 0 ≤ f x) :
-    0 ≤ intervalDomain.integral f := by
-  change 0 ≤ intervalDomainIntegral f
-  unfold intervalDomainIntegral
-  refine intervalIntegral.integral_nonneg_of_ae_restrict
-    (show (0 : ℝ) ≤ 1 by norm_num) ?_
-  rw [Filter.EventuallyLE]
-  rw [MeasureTheory.ae_restrict_iff' measurableSet_Icc]
-  have h0 : ∀ᵐ x : ℝ, x ≠ 0 := by
-    simp [ae_iff, measure_singleton]
-  have h1 : ∀ᵐ x : ℝ, x ≠ 1 := by
-    simp [ae_iff, measure_singleton]
-  filter_upwards [h0, h1] with x hx0 hx1 hxIcc
-  unfold intervalDomainLift
-  simp only [hxIcc, dite_true]
-  apply hf
-  change x ∈ Set.Ioo (0 : ℝ) 1
-  exact
-    ⟨lt_of_le_of_ne hxIcc.1 (Ne.symm hx0),
-      lt_of_le_of_ne hxIcc.2 hx1⟩
-
-/-- Concrete theta-dissipation nonnegativity from positivity on the open
-interval.  This removes endpoint side conditions, since the concrete integral
-does not see the endpoints. -/
-theorem intervalDomain_chemotaxisThetaDissipation_nonneg_of_inside_nonneg
-    {uStar theta : ℝ} {uSlice : intervalDomain.Point → ℝ}
-    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
-    (huSlice :
-      ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside → 0 ≤ uSlice x) :
-    0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta uSlice :=
-  intervalDomain_integral_nonneg_of_inside_nonneg _ fun x hx =>
-    thetaDissipationIntegrand_nonneg huStar htheta (huSlice x hx)
-
-/-- A positive global bounded solution supplies the interior positivity needed
-for concrete interval theta-dissipation nonnegativity. -/
-theorem intervalDomain_chemotaxisThetaDissipation_nonneg_of_positiveGlobalBoundedSolution
-    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
-    {uStar theta t : ℝ}
-    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
-    (ht : 0 < t) (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta) :
-    0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta (u t) :=
-  intervalDomain_chemotaxisThetaDissipation_nonneg_of_inside_nonneg
-    huStar htheta fun x hx => (huv.2.2 t x ht hx).le
-
 /-- Direct differential decay of the interval-domain theta dissipation gives
 the `Tendsto` form used by the stability composites.  This discharges the
 post-processing from the analytic estimate
@@ -242,7 +193,7 @@ theorem intervalDomain_thetaDissipation_tendsto_zero_of_hasDerivAt_le_neg_mul_of
       hrate hs hderiv hle
       (fun t ht =>
         intervalDomain_chemotaxisThetaDissipation_nonneg_of_positiveGlobalBoundedSolution
-          huv (lt_of_lt_of_le hs ht) huStar htheta)
+          huStar htheta huv (lt_of_lt_of_le hs ht))
   simpa [ThetaMomentConvergesToZero, chemotaxisThetaDissipation] using htheta
 
 /-- Corollary 5.1 contains the moment-to-uniform bridge as its first
