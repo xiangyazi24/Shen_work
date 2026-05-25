@@ -1309,6 +1309,62 @@ theorem WeightedL2MovingFrameConvergence.of_eventual_exponential_decay
     WeightedL2MovingFrameConvergence.of_eventual_bound_tendsto_zero
       hupper hdecay
 
+/-- Scalar Grönwall closure for a dissipative energy.  If `E' ≤ -lam E`
+on every finite interval starting at `0`, then eventually
+`E t ≤ E 0 * exp (-lam t)`.  Positivity of `lam` is not needed for this
+finite-time estimate; it is used by downstream convergence lemmas. -/
+theorem scalarEnergy_eventual_exponential_bound_of_deriv_le
+    {E : ℝ → ℝ} {lam : ℝ}
+    (hcont : ∀ T : ℝ, 0 ≤ T → ContinuousOn E (Set.Icc 0 T))
+    (hderiv : ∀ T : ℝ, 0 ≤ T → ∀ t ∈ Set.Ico 0 T,
+      HasDerivWithinAt E (deriv E t) (Set.Ici t) t)
+    (hdiss : ∀ t : ℝ, 0 ≤ t → deriv E t ≤ -lam * E t) :
+    ∀ᶠ t in atTop, E t ≤ E 0 * Real.exp (-lam * t) := by
+  refine eventually_atTop.2 ⟨0, ?_⟩
+  intro T hT
+  have hbound : ∀ x ∈ Set.Ico (0 : ℝ) T, deriv E x ≤ -lam * E x + 0 := by
+    intro x hx
+    have hx0 : 0 ≤ x := hx.1
+    simpa using hdiss x hx0
+  have hslope : ∀ x ∈ Set.Ico (0 : ℝ) T, ∀ r, deriv E x < r →
+      ∃ᶠ z in 𝓝[>] x, (z - x)⁻¹ * (E z - E x) < r := by
+    intro x hx r hr
+    exact (hderiv T hT x hx).liminf_right_slope_le hr
+  have hgr := le_gronwallBound_of_liminf_deriv_right_le
+    (f := E) (f' := fun x => deriv E x)
+    (δ := E 0) (K := -lam) (ε := 0) (a := 0) (b := T)
+    (hcont T hT) hslope (le_refl _) hbound T ⟨hT, le_rfl⟩
+  have hgw : gronwallBound (E 0) (-lam) 0 (T - 0) =
+      E 0 * Real.exp ((-lam) * (T - 0)) := by
+    rw [gronwallBound_ε0]
+  rw [hgw] at hgr
+  convert hgr using 1
+  ring_nf
+
+/-- Moving-frame weighted `L²` convergence from a scalar dissipative energy
+that dominates the weighted perturbation energy.  This is the scalar Grönwall
+part of the stability proof, separated from the PDE derivation of the
+differential inequality. -/
+theorem WeightedL2MovingFrameConvergence.of_energy_dissipation
+    {η c lam : ℝ} {u : ℝ → ℝ → ℝ} {U : ℝ → ℝ} {E : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hcontrol : ∀ᶠ t in atTop,
+      ∫ x : ℝ, Real.exp (2 * η * x) * |u t x - U (x - c * t)| ^ 2 ≤ E t)
+    (hcont : ∀ T : ℝ, 0 ≤ T → ContinuousOn E (Set.Icc 0 T))
+    (hderiv : ∀ T : ℝ, 0 ≤ T → ∀ t ∈ Set.Ico 0 T,
+      HasDerivWithinAt E (deriv E t) (Set.Ici t) t)
+    (hdiss : ∀ t : ℝ, 0 ≤ t → deriv E t ≤ -lam * E t) :
+    WeightedL2MovingFrameConvergence η c u U := by
+  have hE_decay : ∀ᶠ t in atTop, E t ≤ E 0 * Real.exp (-lam * t) :=
+    scalarEnergy_eventual_exponential_bound_of_deriv_le hcont hderiv hdiss
+  have hdecay : ∀ᶠ t in atTop,
+      ∫ x : ℝ, Real.exp (2 * η * x) * |u t x - U (x - c * t)| ^ 2 ≤
+        E 0 * Real.exp (-lam * t) := by
+    filter_upwards [hcontrol, hE_decay] with t hctrl hE
+    exact le_trans hctrl hE
+  exact WeightedL2MovingFrameConvergence.of_eventual_exponential_decay
+    hlam hdecay
+
 /-- FRONTIER / Point 17: weighted-`L²` part of the near-neighbor stability
 branch after Lemma 2.5 and the Section 5 signal estimates.
 
@@ -1386,6 +1442,84 @@ theorem Theorem_1_2_weightedL2_branch_of_signal_energy_decay
     ⟨u, v, hsol,
       WeightedL2MovingFrameConvergence.of_eventual_exponential_decay
         hlam hdecay⟩
+
+/-- FRONTIER / Point 17: same weighted-`L²` branch, but the remaining PDE
+input is only a scalar energy dissipation inequality.  Lemma 2.5 and the
+Section 5 signal estimates are discharged before the energy package is used;
+Mathlib Grönwall then turns the dissipative inequality into the exponential
+weighted-energy decay needed for moving-frame `L²` convergence.
+
+Remaining deep analysis fact: construct such an `E` from the whole-line
+parabolic perturbation equations and prove that it dominates the weighted
+moving-frame `L²` error while satisfying `E' ≤ -lam E`. -/
+theorem Theorem_1_2_weightedL2_branch_of_signal_energy_dissipation
+    (p : CMParams) {c η pExp : ℝ} (hpExp : 1 < pExp)
+    {U V u₀ : ℝ → ℝ}
+    (hTW : IsTravelingWave p c U V)
+    (hstrict : HasStrictWaveUpperTailBound p c U)
+    (hreg : TravelingWaveRegularity p c U V)
+    (hu₀ : NonnegativeInitialDatum u₀)
+    (hleft : StrictlyPositiveAtLeft u₀)
+    (hclose : WeightedL2InitialCloseness η u₀ U)
+    (henergy :
+      NonnegativeInitialDatum u₀ →
+      StrictlyPositiveAtLeft u₀ →
+      WeightedL2InitialCloseness η u₀ U →
+      (∃ kMax > 0, ∃ C > 0,
+        ∀ k : ℝ, 0 ≤ k → k < kMax →
+        ∀ psi : ExponentialWeight,
+          (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+          (∀ z, |iteratedDeriv 2 psi.weight z| ≤ k * psi.weight z) →
+          Integrable (fun x : ℝ => (U x) ^ (p.γ * pExp) * psi.weight x) →
+          Integrable (fun x : ℝ => (u₀ x) ^ (p.γ * pExp) * psi.weight x) →
+            (Integrable
+                (fun x : ℝ => |deriv V x| ^ pExp * psi.weight x) ∧
+              ∫ x : ℝ, |deriv V x| ^ pExp * psi.weight x ≤
+                C * ∫ x : ℝ, (U x) ^ (p.γ * pExp) * psi.weight x) ∧
+            (Integrable
+                (fun x : ℝ =>
+                  |deriv (frozenElliptic p u₀) x| ^ pExp * psi.weight x) ∧
+              ∫ x : ℝ, |deriv (frozenElliptic p u₀) x| ^ pExp *
+                  psi.weight x ≤
+                C * ∫ x : ℝ, (u₀ x) ^ (p.γ * pExp) * psi.weight x)) →
+      ∃ u v : ℝ → ℝ → ℝ, ∃ E : ℝ → ℝ, ∃ lam > 0,
+        IsGlobalCauchySolutionFrom p u₀ u v ∧
+        (∀ᶠ t in atTop,
+          ∫ x : ℝ, Real.exp (2 * η * x) * |u t x - U (x - c * t)| ^ 2 ≤
+            E t) ∧
+        (∀ T : ℝ, 0 ≤ T → ContinuousOn E (Set.Icc 0 T)) ∧
+        (∀ T : ℝ, 0 ≤ T → ∀ t ∈ Set.Ico 0 T,
+          HasDerivWithinAt E (deriv E t) (Set.Ici t) t) ∧
+        (∀ t : ℝ, 0 ≤ t → deriv E t ≤ -lam * E t)) :
+    ∃ u v : ℝ → ℝ → ℝ,
+      IsGlobalCauchySolutionFrom p u₀ u v ∧
+      WeightedL2MovingFrameConvergence η c u U := by
+  have hsignal :
+      ∃ kMax > 0, ∃ C > 0,
+        ∀ k : ℝ, 0 ≤ k → k < kMax →
+        ∀ psi : ExponentialWeight,
+          (∀ z, |deriv psi.weight z| ≤ k * psi.weight z) →
+          (∀ z, |iteratedDeriv 2 psi.weight z| ≤ k * psi.weight z) →
+          Integrable (fun x : ℝ => (U x) ^ (p.γ * pExp) * psi.weight x) →
+          Integrable (fun x : ℝ => (u₀ x) ^ (p.γ * pExp) * psi.weight x) →
+            (Integrable
+                (fun x : ℝ => |deriv V x| ^ pExp * psi.weight x) ∧
+              ∫ x : ℝ, |deriv V x| ^ pExp * psi.weight x ≤
+                C * ∫ x : ℝ, (U x) ^ (p.γ * pExp) * psi.weight x) ∧
+            (Integrable
+                (fun x : ℝ =>
+                  |deriv (frozenElliptic p u₀) x| ^ pExp * psi.weight x) ∧
+              ∫ x : ℝ, |deriv (frozenElliptic p u₀) x| ^ pExp *
+                  psi.weight x ≤
+                C * ∫ x : ℝ, (u₀ x) ^ (p.γ * pExp) * psi.weight x) :=
+    Lemma_5_3_profile_initial_signal_derivative_from_Lemma_2_5 p hpExp
+      hTW hreg hstrict.hasWaveUpperTailBound hu₀
+  rcases henergy hu₀ hleft hclose hsignal with
+    ⟨u, v, E, lam, hlam, hsol, hcontrol, hcont, hderiv, hdiss⟩
+  exact
+    ⟨u, v, hsol,
+      WeightedL2MovingFrameConvergence.of_energy_dissipation
+        hlam hcontrol hcont hderiv hdiss⟩
 
 /-- Theorem 1.2 closure through the Lemma 2.5 / Section 5 signal estimates.
 This isolates the remaining nonlinear stability step: once a stability
