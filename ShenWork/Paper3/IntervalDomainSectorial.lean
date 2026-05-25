@@ -6,14 +6,110 @@
   interval domain and routes it through the existing raw Paper3 stability API.
 -/
 import ShenWork.PDE.SectorialOperator
+import ShenWork.PDE.SpectralDecay
 import ShenWork.Paper3.Statements
 
 namespace ShenWork.Paper3
 
 open ShenWork.IntervalDomain
+open ShenWork.Paper2
 open ShenWork.PDE.SectorialOperator
+open ShenWork.PDE.SpectralDecay
 
 noncomputable section
+
+/-- The remaining nonlinear orbit-control input after the concrete
+unit-interval analytic-semigroup spectral decay has been separated out.
+
+This is deliberately weaker than assuming `SectorialLocalExponentialRaw`
+directly: it asks for a Duhamel/small-data comparison of nonlinear classical
+solutions to the concrete Neumann heat semigroup with the constant mode
+removed.  The exponential time decay of that semigroup is proved in
+`PDE/SpectralDecay.lean` and is applied below.
+
+Point 17 status: conditional theorem frontier, state ③.  The spectral-decay
+subblock is discharged by `unitIntervalNeumannHeatSemigroupP0Compl_opNorm_le`;
+the remaining named frontier is the nonlinear orbit comparison encoded here. -/
+def IntervalDomainSpectralSemigroupOrbitBoundRaw
+    (p : CM2Params) (N : StabilityNorms intervalDomain) : Prop :=
+  ∀ sigma pNorm uStar vStar,
+    1 / 2 < sigma → sigma < 1 → 1 < pNorm →
+    LinearlyStable unitIntervalNeumannSpectrum p uStar vStar →
+      ∃ eps > 0, ∃ C > 0,
+        ∀ u₀ : intervalDomain.Point → ℝ, PositiveInitialDatum intervalDomain u₀ →
+          N.xpSigmaDistance sigma pNorm u₀ (fun _ => uStar) ≤ eps →
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              IsPaper2GlobalClassicalSolution intervalDomain p u v →
+              InitialTrace intervalDomain u₀ u →
+                ∀ t, (ht : 0 ≤ t) →
+                  N.c1Distance (u t) (fun _ => uStar) +
+                    N.c1Distance (v t) (fun _ => vStar) ≤
+                      C * ‖unitIntervalNeumannHeatSemigroupP0Compl t ht‖
+
+/-- The concrete analytic-semigroup spectral decay discharges the exponential
+part of `SectorialLocalExponentialRaw` on `intervalDomain`.
+
+The proof uses the physical `L²(0,1)` estimate
+`‖e^{tΔ_N}(I-P₀)‖ ≤ exp(-π² t)` from `PDE/SpectralDecay.lean`.  What remains
+outside this theorem is the genuine nonlinear Duhamel/orbit-control estimate
+`IntervalDomainSpectralSemigroupOrbitBoundRaw`; this file does not fake that
+as a consequence of linear spectral decay alone. -/
+theorem intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBound
+    (p : CM2Params) (N : StabilityNorms intervalDomain)
+    (horbit : IntervalDomainSpectralSemigroupOrbitBoundRaw p N) :
+    SectorialLocalExponentialRaw intervalDomain p unitIntervalNeumannSpectrum
+      N.c1Distance N.xpSigmaDistance := by
+  intro sigma pNorm uStar vStar hsigma_low hsigma_high hpNorm hstable
+  rcases horbit sigma pNorm uStar vStar
+      hsigma_low hsigma_high hpNorm hstable with
+    ⟨eps, heps, C, hC, hbound⟩
+  refine ⟨eps, heps, C, hC, Real.pi ^ 2, ?_, ?_⟩
+  · exact sq_pos_of_ne_zero (ne_of_gt Real.pi_pos)
+  · intro u₀ hu₀ hsmall u v hglobal htrace t ht
+    have hsemigroup :=
+      hbound u₀ hu₀ hsmall u v hglobal htrace t ht
+    have hop :
+        ‖unitIntervalNeumannHeatSemigroupP0Compl t ht‖ ≤
+          Real.exp (-(Real.pi ^ 2) * t) :=
+      unitIntervalNeumannHeatSemigroupP0Compl_opNorm_le ht
+    have hmul :
+        C * ‖unitIntervalNeumannHeatSemigroupP0Compl t ht‖ ≤
+          C * Real.exp (-(Real.pi ^ 2) * t) :=
+      mul_le_mul_of_nonneg_left hop hC.le
+    exact le_trans hsemigroup hmul
+
+/-- Interval-domain Paper3 Theorem 2.2 with the old raw sectorial blocker
+replaced by a nonlinear orbit-control frontier plus the proved spectral decay.
+
+Point 17 status: conditional theorem, state ③.  Compared with the earlier
+`...of_sectorial_frontiers` wrappers, this theorem no longer assumes
+`SectorialLocalExponentialRaw` directly.  The analytic-semigroup decay part is
+proved by `PDE/SpectralDecay.lean`; the remaining frontiers are the nonlinear
+orbit comparison, `X^σ_p`/sup control, and small-data global existence. -/
+theorem intervalDomain_Theorem_2_2_of_spectralSemigroupOrbitBound_frontiers
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hC : Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p C)
+    (horbit : IntervalDomainSpectralSemigroupOrbitBoundRaw p N)
+    {sigma pNorm : ℝ}
+    (hsigma_low : 1 / 2 < sigma) (hsigma_high : sigma < 1)
+    (hpNorm : 1 < pNorm)
+    (hcontrol :
+      ∀ uStar, SupControlsXpSigmaDistance intervalDomain N sigma pNorm uStar)
+    (hexist :
+      ∀ uStar, ∀ delta > 0,
+        SmallDataGlobalExistence intervalDomain p uStar delta)
+    (hmexist :
+      ∀ uStar, ∀ delta > 0,
+        MassConstrainedSmallDataGlobalExistence intervalDomain p uStar delta) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum N C := by
+  exact
+    Theorem_2_2_full_by_chi_sign_of_raw
+      unitIntervalNeumannSpectrum_hasNeumannSpectrum hC
+      (intervalDomain_sectorialLocalExponentialRaw_of_spectralSemigroupOrbitBound
+        p N horbit)
+      hsigma_low hsigma_high hpNorm hcontrol hexist hmexist
 
 /-- H3.1 interval-domain local exponential bridge from the honest raw
 sectorial-semigroup hypothesis, plus the two explicit analytic side inputs
