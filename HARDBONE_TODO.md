@@ -312,6 +312,14 @@
   statement-layer `Theorem_2_1_part1` 与 intended pointwise persistence
   精确对齐；反向仍显式要求 time-slice `BddBelow`，因为 abstract
   `BoundedDomainData.infValue` 本身不携带 lower-envelope correctness。
+  新增 `intervalDomain_pointwise_lower_of_inside_boundary_lower`,
+  `intervalDomain_eventually_pointwise_lower_of_inside_boundary_lower`,
+  `intervalDomain_eventuallyLowerBound_of_inside_boundary_lower`, and
+  `Theorem_2_1_part1_intervalDomain_of_inside_boundary_lower_bounds`，把
+  open-interior lower bounds 和 endpoint lower bounds 机械组合为全
+  intervalDomain lower-envelope persistence；这只 discharge `[0,1]` 的
+  interior/boundary 覆盖步骤，interior persistence 和 boundary lower-bound
+  仍是分析前沿。
   按 17-point standard 属于状态③：条件于未证但明确命名的分析前沿；不是
   无条件完成。
 

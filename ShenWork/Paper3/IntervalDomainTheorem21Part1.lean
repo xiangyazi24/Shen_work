@@ -43,6 +43,69 @@ theorem intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
     rcases hy with ⟨x, rfl⟩
     exact ht x
 
+/-- The concrete unit interval is the disjoint union of its open interior and
+its two boundary endpoints, for the purpose of pointwise lower bounds. -/
+theorem intervalDomain_pointwise_lower_of_inside_boundary_lower
+    {f : ShenWork.IntervalDomain.intervalDomain.Point → ℝ} {delta : ℝ}
+    (hinside :
+      ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+        x ∈ ShenWork.IntervalDomain.intervalDomain.inside → delta ≤ f x)
+    (hboundary :
+      ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+        x ∈ ShenWork.IntervalDomain.intervalDomain.boundary → delta ≤ f x) :
+    ∀ x : ShenWork.IntervalDomain.intervalDomain.Point, delta ≤ f x := by
+  intro x
+  by_cases hx0 : x.1 = 0
+  · exact hboundary x (by
+      change x.1 = 0 ∨ x.1 = 1
+      exact Or.inl hx0)
+  by_cases hx1 : x.1 = 1
+  · exact hboundary x (by
+      change x.1 = 0 ∨ x.1 = 1
+      exact Or.inr hx1)
+  exact hinside x (by
+    change x.1 ∈ Set.Ioo (0 : ℝ) 1
+    exact
+      ⟨lt_of_le_of_ne x.2.1 (Ne.symm hx0),
+        lt_of_le_of_ne x.2.2 hx1⟩)
+
+/-- Eventual lower bounds on the open interval and on the two endpoints give
+an eventual pointwise lower bound on all concrete interval points. -/
+theorem intervalDomain_eventually_pointwise_lower_of_inside_boundary_lower
+    {u : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ} {delta : ℝ}
+    (hinside :
+      ∀ᶠ t in atTop,
+        ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+          x ∈ ShenWork.IntervalDomain.intervalDomain.inside → delta ≤ u t x)
+    (hboundary :
+      ∀ᶠ t in atTop,
+        ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+          x ∈ ShenWork.IntervalDomain.intervalDomain.boundary → delta ≤ u t x) :
+    ∀ᶠ t in atTop,
+      ∀ x : ShenWork.IntervalDomain.intervalDomain.Point, delta ≤ u t x := by
+  filter_upwards [hinside, hboundary] with t ht_inside ht_boundary x
+  exact intervalDomain_pointwise_lower_of_inside_boundary_lower
+    ht_inside ht_boundary x
+
+/-- Lower bounds on the open interval plus the boundary endpoints imply the
+statement-layer lower-envelope bound.  This is only a domain-covering bridge;
+the analytic work is still proving the two eventual lower-bound hypotheses. -/
+theorem intervalDomain_eventuallyLowerBound_of_inside_boundary_lower
+    {u : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ} {delta : ℝ}
+    (hdelta : 0 < delta)
+    (hinside :
+      ∀ᶠ t in atTop,
+        ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+          x ∈ ShenWork.IntervalDomain.intervalDomain.inside → delta ≤ u t x)
+    (hboundary :
+      ∀ᶠ t in atTop,
+        ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+          x ∈ ShenWork.IntervalDomain.intervalDomain.boundary → delta ≤ u t x) :
+    EventuallyLowerBound ShenWork.IntervalDomain.intervalDomain u delta :=
+  intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower hdelta
+    (intervalDomain_eventually_pointwise_lower_of_inside_boundary_lower
+      hinside hboundary)
+
 /-- Conversely, on intervalDomain the abstract `EventuallyLowerBound` gives a
 pointwise eventual lower bound once the time slices have genuine lower-bounded
 ranges.  The `BddBelow` assumption is necessary for using `sInf` in a
@@ -199,6 +262,46 @@ theorem Theorem_2_1_part1_intervalDomain_of_pointwise_lower_bounds
         hdeltaU hpointU,
       intervalDomain_eventuallyLowerBound_of_eventually_pointwise_lower
         hdeltaV hpointV⟩
+
+/-- Statement-layer assembly when the analytic persistence frontiers are
+available separately on the open interval and on the two Neumann endpoints.
+This discharges only the concrete interval-domain covering step. -/
+theorem Theorem_2_1_part1_intervalDomain_of_inside_boundary_lower_bounds
+    (p : CM2Params)
+    (hbounds :
+      1 ≤ p.m →
+        ∀ u v : ℝ → ShenWork.IntervalDomain.intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution ShenWork.IntervalDomain.intervalDomain p u v →
+            ∃ deltaU > 0,
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  x ∈ ShenWork.IntervalDomain.intervalDomain.inside →
+                    deltaU ≤ u t x) ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  x ∈ ShenWork.IntervalDomain.intervalDomain.boundary →
+                    deltaU ≤ u t x) ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  x ∈ ShenWork.IntervalDomain.intervalDomain.inside →
+                    p.ν / p.μ * deltaU ^ p.γ ≤ v t x) ∧
+              (∀ᶠ t in atTop,
+                ∀ x : ShenWork.IntervalDomain.intervalDomain.Point,
+                  x ∈ ShenWork.IntervalDomain.intervalDomain.boundary →
+                    p.ν / p.μ * deltaU ^ p.γ ≤ v t x)) :
+    Theorem_2_1_part1 ShenWork.IntervalDomain.intervalDomain p := by
+  intro hm u v hsol
+  rcases hbounds hm u v hsol with
+    ⟨deltaU, hdeltaU, huInside, huBoundary, hvInside, hvBoundary⟩
+  have hdeltaV : 0 < p.ν / p.μ * deltaU ^ p.γ := by
+    exact mul_pos (div_pos p.hν p.hμ)
+      (Real.rpow_pos_of_pos hdeltaU _)
+  exact
+    ⟨deltaU, hdeltaU,
+      intervalDomain_eventuallyLowerBound_of_inside_boundary_lower
+        hdeltaU huInside huBoundary,
+      intervalDomain_eventuallyLowerBound_of_inside_boundary_lower
+        hdeltaV hvInside hvBoundary⟩
 
 /-- Semantic read-back of `Theorem_2_1_part1 intervalDomain p`: under the
 explicit lower-bounded-range regularity of the interval time slices, the
