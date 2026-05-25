@@ -4,6 +4,7 @@
   Lyapunov and entropy estimates for Paper3.
 -/
 import ShenWork.Paper3.Statements
+import ShenWork.PDE.IntervalDomain
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
 import Mathlib.Analysis.SpecialFunctions.Exp
 import Mathlib.Analysis.SpecificLimits.Basic
@@ -11,6 +12,7 @@ import Mathlib.MeasureTheory.Integral.IntervalIntegral.Basic
 
 open Filter Topology
 open Set
+open ShenWork.IntervalDomain
 open scoped Interval
 
 namespace ShenWork.Paper3
@@ -128,6 +130,35 @@ theorem chemotaxisSignalEnergy_nonneg_of_integral_nonneg
     signalEnergyIntegrand_nonneg (mu := mu)
       (w := v t x - vStar)
       (grad := D.gradNorm (fun y => v t y - vStar) x) hmu)
+
+/-- The concrete unit interval integral preserves nonnegative functions. -/
+theorem intervalDomain_integral_nonneg
+    (f : intervalDomain.Point → ℝ)
+    (hf : ∀ x, 0 ≤ f x) :
+    0 ≤ intervalDomain.integral f := by
+  change 0 ≤ intervalDomainIntegral f
+  unfold intervalDomainIntegral
+  refine intervalIntegral_nonneg (L := 1) (by norm_num) ?_
+  intro x hx
+  unfold intervalDomainLift
+  simpa [hx] using hf ⟨x, hx⟩
+
+/-- Concrete interval-domain theta dissipation nonnegativity. -/
+theorem intervalDomain_chemotaxisThetaDissipation_nonneg
+    {uStar theta : ℝ} {uSlice : intervalDomain.Point → ℝ}
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (huSlice : ∀ x, 0 ≤ uSlice x) :
+    0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta uSlice :=
+  chemotaxisThetaDissipation_nonneg_of_integral_nonneg
+    intervalDomain_integral_nonneg huStar htheta huSlice
+
+/-- Concrete interval-domain signal-energy nonnegativity. -/
+theorem intervalDomain_chemotaxisSignalEnergy_nonneg
+    {mu vStar : ℝ} {v : ℝ → intervalDomain.Point → ℝ} {t : ℝ}
+    (hmu : 0 ≤ mu) :
+    0 ≤ chemotaxisSignalEnergy intervalDomain mu vStar v t :=
+  chemotaxisSignalEnergy_nonneg_of_integral_nonneg
+    intervalDomain_integral_nonneg hmu
 
 /-- If a differentiable energy has nonpositive time derivative on `(0,∞)`,
 then it is antitone there. -/
@@ -373,6 +404,29 @@ theorem thetaMomentConvergesToZero_of_hasDerivAt_le_neg_mul_and_integral_nonneg
   exact chemotaxisThetaDissipation_nonneg_of_integral_nonneg
     hintegral_nonneg huStar htheta (hu_nonneg t ht)
 
+/-- Concrete interval-domain theta-moment convergence from a direct differential
+decay estimate.  The nonnegativity side condition is discharged by the
+unit-interval integral positivity theorem above. -/
+theorem intervalDomain_thetaMomentConvergesToZero_of_hasDerivAt_le_neg_mul
+    {u : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta rate s : ℝ} {momentSlope : ℝ → ℝ}
+    (hrate : 0 < rate) (hs : 0 < s)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (hu_nonneg : ∀ t, s ≤ t → ∀ x, 0 ≤ u t x)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisThetaDissipation intervalDomain uStar theta (u tau))
+          (momentSlope t) t)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    ThetaMomentConvergesToZero intervalDomain u uStar theta :=
+  thetaMomentConvergesToZero_of_hasDerivAt_le_neg_mul_and_integral_nonneg
+    hrate hs intervalDomain_integral_nonneg huStar htheta hu_nonneg
+    hderiv hle
+
 /-- Entropy dissipation makes the Paper3 entropy functional decrease.
 
 Point 17 status: conditional theorem, state ③.  The missing upstream analytic
@@ -438,6 +492,29 @@ theorem chemotaxisEntropyFunctional_antitoneOn_of_dissipation_and_integral_nonne
       chemotaxisThetaDissipation_nonneg_of_integral_nonneg
         hintegral_nonneg huStar htheta (hu_nonneg t ht))
 
+/-- Concrete interval-domain entropy monotonicity with theta-production
+nonnegativity discharged. -/
+theorem intervalDomain_chemotaxisEntropyFunctional_antitoneOn_of_dissipation
+    {m uStar theta c : ℝ}
+    {u : ℝ → intervalDomain.Point → ℝ} {entropySlope : ℝ → ℝ}
+    (hc : 0 ≤ c)
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (hu_nonneg : ∀ t, 0 < t → ∀ x, 0 ≤ u t x)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisEntropyFunctional intervalDomain m uStar u tau)
+          (entropySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        entropySlope t ≤
+          -c * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    AntitoneOn
+      (fun t => chemotaxisEntropyFunctional intervalDomain m uStar u t)
+      (Ioi (0 : ℝ)) :=
+  chemotaxisEntropyFunctional_antitoneOn_of_dissipation_and_integral_nonneg
+    hc intervalDomain_integral_nonneg huStar htheta hu_nonneg hderiv hdiss
+
 /-- Signal-energy exponential decay for the Paper3 minimal-model Lyapunov
 functional `∫ (mu (v-v*)^2 + |∇(v-v*)|^2)`.
 
@@ -501,6 +578,32 @@ theorem chemotaxisSignalEnergy_tendsto_zero
   intro t _ht
   exact chemotaxisSignalEnergy_nonneg_of_integral_nonneg
     hintegral_nonneg hmu
+
+/-- Concrete interval-domain signal-energy convergence to zero from the Paper3
+dissipation-control estimate. -/
+theorem intervalDomain_chemotaxisSignalEnergy_tendsto_zero
+    {mu vStar c K s : ℝ}
+    {v : ℝ → intervalDomain.Point → ℝ} {energySlope : ℝ → ℝ}
+    (hc : 0 < c) (hK : 0 < K) (hs : 0 < s)
+    (hmu : 0 ≤ mu)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau => chemotaxisSignalEnergy intervalDomain mu vStar v tau)
+          (energySlope t) t)
+    (hdiss :
+      ∀ t, 0 < t →
+        (1 / 2 : ℝ) * energySlope t +
+          c * chemotaxisSignalGradientDissipation intervalDomain vStar v t ≤ 0)
+    (hcontrol :
+      ∀ t, 0 < t →
+        chemotaxisSignalEnergy intervalDomain mu vStar v t ≤
+          K * chemotaxisSignalGradientDissipation intervalDomain vStar v t) :
+    Tendsto
+      (fun t => chemotaxisSignalEnergy intervalDomain mu vStar v t)
+      atTop (𝓝 0) :=
+  chemotaxisSignalEnergy_tendsto_zero
+    hc hK hs intervalDomain_integral_nonneg hmu hderiv hdiss hcontrol
 
 end
 
