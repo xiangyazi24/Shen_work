@@ -379,6 +379,36 @@ theorem Theorem_1_2_intervalDomain_vacuous_when_beta_lt_one
   intro _ha _hb hβ'
   exact absurd hβ' (not_le.mpr hβ)
 
+/-- Vacuous interval-domain Theorem 1.2 when `m` is above the theorem's
+slow/critical range. -/
+theorem Theorem_1_2_intervalDomain_vacuous_when_one_lt_m
+    (p : CM2Params) (hm : 1 < p.m) :
+    Theorem_1_2 intervalDomain p := by
+  intro _ha _hb _hβ
+  constructor
+  · intro _hm_pos hm_lt _u₀ _hu₀
+    exfalso
+    exact (not_lt.mpr hm.le) hm_lt
+  · intro hm_eq _hχ _u₀ _hu₀
+    exfalso
+    rw [hm_eq] at hm
+    exact (lt_irrefl (1 : ℝ)) hm
+
+/-- Vacuous interval-domain Theorem 1.2 critical branch when `m = 1` but the
+critical sensitivity strict inequality fails. -/
+theorem Theorem_1_2_intervalDomain_vacuous_when_m_eq_one_and_chiBeta_le_chi
+    (p : CM2Params) (hm : p.m = 1) (hχ : chiBeta p ≤ p.χ₀) :
+    Theorem_1_2 intervalDomain p := by
+  intro _ha _hb _hβ
+  constructor
+  · intro _hm_pos hm_lt _u₀ _hu₀
+    exfalso
+    rw [hm] at hm_lt
+    exact (lt_irrefl (1 : ℝ)) hm_lt
+  · intro _hm_eq hχ_lt _u₀ _hu₀
+    exfalso
+    exact (not_lt.mpr hχ) hχ_lt
+
 end ShenWork.Paper2.IntervalDomainTheorem12
 
 end

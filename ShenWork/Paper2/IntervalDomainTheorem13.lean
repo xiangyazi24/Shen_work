@@ -286,6 +286,15 @@ theorem Theorem_1_3_intervalDomain_vacuous_when_m_le_zero
   intro _ha _hb hm' _hstrong
   exact absurd hm' (not_lt.mpr hm)
 
+/-- Vacuous interval-domain Theorem 1.3 branch when the strong-logistic
+condition itself is unavailable. -/
+theorem Theorem_1_3_intervalDomain_vacuous_when_not_strong_logistic
+    (p : CM2Params) (C : Paper2Constants p)
+    (hstrong : ¬ StrongLogisticCondition p C) :
+    Theorem_1_3 intervalDomain p C := by
+  intro _ha _hb _hm hstrong'
+  exact False.elim (hstrong hstrong')
+
 end ShenWork.Paper2.IntervalDomainTheorem13
 
 end
