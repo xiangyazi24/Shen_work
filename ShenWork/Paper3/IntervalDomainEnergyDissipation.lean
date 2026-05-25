@@ -3,14 +3,15 @@
 
   Energy/dissipation interfaces for Paper 3 interval-domain stability.
 
-  Point 17 status: state ③.  This file does not prove the PDE derivative
-  identity for the theta dissipation functional, nor the integrated
-  dissipation inequality.  Those are the honest analytic frontiers: they
-  require differentiating the interval integral in time, integrating by parts,
-  and using the PDE structure.  The contribution here is the interface layer:
-  once those two frontiers are supplied for each branch, the existing
-  `IntervalDomainStabilityChain` theorems consume them without additional
-  ad hoc hypotheses.
+  Point 17 status: mixed.  The constant-reference-profile theta dissipation
+  data below is fully proved (state ①).  For arbitrary positive global
+  solutions, this file still does not prove the PDE derivative identity for
+  the theta dissipation functional, nor the integrated dissipation
+  inequality.  Those remain honest analytic frontiers: they require
+  differentiating the interval integral in time, integrating by parts, and
+  using the PDE structure.  The branch-level structures keep that frontier
+  explicit; once supplied, the existing `IntervalDomainStabilityChain`
+  theorems consume it without additional ad hoc hypotheses.
 -/
 import ShenWork.Paper3.IntervalDomainStabilityChain
 
@@ -75,6 +76,78 @@ theorem IntervalDomainThetaDissipationDerivativeDecayData.thetaMoment
     ThetaMomentConvergesToZero intervalDomain u uStar theta :=
   intervalDomain_thetaMomentConvergesToZero_of_chemotaxisThetaDissipation
     (h.tendsto_zero huv huStar htheta)
+
+/-- Complete fixed-solution theta-dissipation derivative/decay data for the
+constant reference profile `u(t,x) ≡ u*`.
+
+Point 17 status: complete theorem, state ①.  This does not use the PDE; the
+theta dissipation is identically zero, so the derivative and decay inequality
+are both discharged by the already-proved interval-domain constant-profile
+frontier. -/
+def intervalDomainThetaDissipationDerivativeDecayData_const
+    (uStar theta : ℝ) {rate start : ℝ}
+    (hrate : 0 < rate) (hstart : 0 < start) :
+    IntervalDomainThetaDissipationDerivativeDecayData
+      (fun _ : ℝ => fun _ : intervalDomain.Point => uStar) uStar theta := by
+  have hfrontiers :=
+    intervalDomain_thetaDissipation_const_frontiers uStar theta rate
+  exact
+    { rate := rate
+      rate_pos := hrate
+      start := start
+      start_pos := hstart
+      slope := fun _ => 0
+      deriv := by
+        intro t ht
+        exact hfrontiers.1 t ht
+      dissipative := by
+        intro t ht
+        simpa using hfrontiers.2 t ht }
+
+/-- The constant reference profile has theta dissipation converging to zero.
+
+This is the direct, solution-free form of the constant-profile result. -/
+theorem intervalDomain_thetaDissipation_const_tendsto_zero
+    (uStar theta : ℝ) :
+    Tendsto
+      (fun t =>
+        chemotaxisThetaDissipation intervalDomain uStar theta
+          ((fun _ : ℝ => fun _ : intervalDomain.Point => uStar) t))
+      atTop (𝓝 0) := by
+  simp [intervalDomain_chemotaxisThetaDissipation_const_eq_zero]
+
+/-- The constant reference profile satisfies the theta-moment convergence
+statement consumed by the Paper 3 moment-to-uniform interfaces. -/
+theorem intervalDomain_thetaMoment_const
+    (uStar theta : ℝ) :
+    ThetaMomentConvergesToZero intervalDomain
+      (fun _ : ℝ => fun _ : intervalDomain.Point => uStar) uStar theta :=
+  intervalDomain_thetaMomentConvergesToZero_of_chemotaxisThetaDissipation
+    (intervalDomain_thetaDissipation_const_tendsto_zero uStar theta)
+
+/-- Constant-profile theta-dissipation data specialized to the nonminimal
+positive equilibrium. -/
+def intervalDomain_positiveEquilibriumThetaDissipationDerivativeDecayData_const
+    (p : CM2Params) {ha : 0 < p.a} {hb : 0 < p.b}
+    {rate start : ℝ} (hrate : 0 < rate) (hstart : 0 < start) :
+    IntervalDomainThetaDissipationDerivativeDecayData
+      (fun _ : ℝ =>
+        fun _ : intervalDomain.Point => (positiveEquilibrium p ⟨ha, hb⟩).1)
+      (positiveEquilibrium p ⟨ha, hb⟩).1 p.α :=
+  intervalDomainThetaDissipationDerivativeDecayData_const
+    (positiveEquilibrium p ⟨ha, hb⟩).1 p.α hrate hstart
+
+/-- Constant-profile theta-dissipation data specialized to the minimal
+mass-parameter equilibrium. -/
+def intervalDomain_minimalEquilibriumThetaDissipationDerivativeDecayData_const
+    (p : CM2Params) (uStar : ℝ)
+    {rate start : ℝ} (hrate : 0 < rate) (hstart : 0 < start) :
+    IntervalDomainThetaDissipationDerivativeDecayData
+      (fun _ : ℝ =>
+        fun _ : intervalDomain.Point => (minimalEquilibrium p uStar).1)
+      (minimalEquilibrium p uStar).1 p.α :=
+  intervalDomainThetaDissipationDerivativeDecayData_const
+    (minimalEquilibrium p uStar).1 p.α hrate hstart
 
 /-- Branch-level theta-dissipation interfaces needed by Paper 3 Theorem 2.3.
 
