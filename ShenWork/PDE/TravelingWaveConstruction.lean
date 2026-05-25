@@ -3,6 +3,7 @@
   Explicit front profiles used as barriers in the traveling-wave construction.
 -/
 import ShenWork.Defs
+import ShenWork.Paper1.Statements
 import Mathlib.Analysis.SpecialFunctions.Sigmoid
 
 open Filter Topology Real
@@ -135,6 +136,17 @@ lemma logisticProfile_le_exp (κ x : ℝ) :
         (Real.exp_nonneg _)
     _ = Real.exp (-(κ * x)) := by simp
 
+lemma logisticProfile_lt_exp (κ x : ℝ) :
+    logisticProfile κ x < Real.exp (-(κ * x)) := by
+  have hpos : 0 < Real.exp (κ * x) := Real.exp_pos _
+  have hlt : Real.exp (κ * x) < 1 + Real.exp (κ * x) := by linarith
+  have hsum : 0 < 1 + Real.exp (κ * x) := by positivity
+  have hinv : (1 + Real.exp (κ * x))⁻¹ < (Real.exp (κ * x))⁻¹ :=
+    (inv_lt_inv₀ hsum hpos).2 hlt
+  have hexp_inv : (Real.exp (κ * x))⁻¹ = Real.exp (-(κ * x)) := by
+    simpa using (Real.exp_neg (κ * x)).symm
+  simpa [logisticProfile, Real.sigmoid_def, hexp_inv] using hinv
+
 lemma logisticProfile_le_cappedExp {κ : ℝ} (hκ : 0 < κ) (x : ℝ) :
     logisticProfile κ x ≤ cappedExp κ x := by
   by_cases hx : 0 ≤ x
@@ -149,6 +161,21 @@ lemma logisticProfile_le_cappedExp {κ : ℝ} (hκ : 0 < κ) (x : ℝ) :
         (mul_nonpos_of_nonneg_of_nonpos hκ.le hxle))
     rw [cappedExp, min_eq_left hone_le_exp]
     exact (logisticProfile_lt_one κ x).le
+
+lemma logisticProfile_lt_cappedExp {κ : ℝ} (hκ : 0 < κ) (x : ℝ) :
+    logisticProfile κ x < cappedExp κ x := by
+  by_cases hx : 0 ≤ x
+  · have hexp_le_one : Real.exp (-(κ * x)) ≤ 1 := by
+      simpa [Real.exp_zero] using
+        Real.exp_le_exp.mpr (neg_nonpos.mpr (mul_nonneg hκ.le hx))
+    rw [cappedExp, min_eq_right hexp_le_one]
+    exact logisticProfile_lt_exp κ x
+  · have hxle : x ≤ 0 := le_of_lt (lt_of_not_ge hx)
+    have hone_le_exp : 1 ≤ Real.exp (-(κ * x)) := by
+      exact Real.one_le_exp (neg_nonneg.mpr
+        (mul_nonpos_of_nonneg_of_nonpos hκ.le hxle))
+    rw [cappedExp, min_eq_left hone_le_exp]
+    exact logisticProfile_lt_one κ x
 
 lemma logisticProfile_tendsto_atTop {κ : ℝ} (hκ : 0 < κ) :
     Tendsto (logisticProfile κ) atTop (𝓝 0) := by
@@ -314,5 +341,47 @@ theorem logisticProfile_facts_with_cappedExp_bound {κ : ℝ} (hκ : 0 < κ) :
   · exact fun x => logisticProfile_pos κ x
   · exact fun x => logisticProfile_le_cappedExp hκ x
   · exact fun x => logisticProfile_deriv_neg hκ x
+
+theorem logisticProfile_shenUpperBoundPositive
+    {p : CMParams} {c : ℝ}
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_lt : p.χ < 1) :
+    ShenWork.Paper1.ShenUpperBoundPositive p c
+      (logisticProfile (kappa c)) := by
+  intro x
+  have hone_le :
+      1 ≤ (1 / (1 - p.χ)) ^ (1 / p.α) := by
+    have hM := ShenWork.Paper1.one_le_MChi_of_chi_nonneg_lt_one
+      p hχ_nonneg hχ_lt
+    rwa [ShenWork.Paper1.MChi_eq_rpow_of_chi_nonneg_lt_one
+      p hχ_nonneg hχ_lt] at hM
+  refine ⟨logisticProfile_pos (kappa c) x, ?_⟩
+  apply lt_min
+  · exact (logisticProfile_lt_one (kappa c) x).trans_le hone_le
+  · simpa [neg_mul] using logisticProfile_lt_exp (kappa c) x
+
+theorem logisticProfile_hasStrictWaveUpperTailBound
+    {p : CMParams} {c : ℝ}
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_lt : p.χ < 1) :
+    ShenWork.Paper1.HasStrictWaveUpperTailBound p c
+      (logisticProfile (kappa c)) :=
+  ShenWork.Paper1.ShenUpperBoundPositive.hasStrictWaveUpperTailBound
+    (logisticProfile_shenUpperBoundPositive hχ_nonneg hχ_lt)
+    hχ_nonneg hχ_lt
+
+theorem logisticProfile_tail_bounds
+    {p : CMParams} {c : ℝ}
+    (hχ_nonneg : 0 ≤ p.χ) (hχ_lt : p.χ < 1) :
+    ShenWork.Paper1.ShenUpperBoundPositive p c
+        (logisticProfile (kappa c)) ∧
+      ShenWork.Paper1.HasStrictWaveUpperTailBound p c
+        (logisticProfile (kappa c)) ∧
+      ShenWork.Paper1.HasWaveUpperTailBound p c
+        (logisticProfile (kappa c)) := by
+  let hupper := logisticProfile_shenUpperBoundPositive
+    (p := p) (c := c) hχ_nonneg hχ_lt
+  let hstrict :=
+    ShenWork.Paper1.ShenUpperBoundPositive.hasStrictWaveUpperTailBound
+      hupper hχ_nonneg hχ_lt
+  exact ⟨hupper, hstrict, hstrict.hasWaveUpperTailBound⟩
 
 end
