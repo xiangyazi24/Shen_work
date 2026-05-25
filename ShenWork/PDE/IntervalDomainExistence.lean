@@ -2926,6 +2926,211 @@ theorem not_forall_intervalDomainTheorem11Existence :
   exact not_intervalDomainTheorem11Existence_counterParams
     (h intervalDomainExistenceCounterParams)
 
+/-! ### Corrected existential-global existence interface
+
+The legacy `IntervalDomainTheorem11.IntervalDomainExistence` asks for the
+arbitrary finite-horizon pair `u, v` itself to be global after `Tmax`; the
+bad-tail theorems above show that this is false.  The corrected interface below
+asks for existence of a genuine global pair with the same initial datum.  This
+is the usual output of maximal continuation plus gluing/uniqueness. -/
+
+/-- A genuine global interval-domain classical solution with the prescribed
+initial trace. -/
+def IntervalDomainGlobalSolutionFor
+    (p : CM2Params) (u₀ : intervalDomain.Point → ℝ) : Prop :=
+  ∃ u v : ℝ → intervalDomain.Point → ℝ,
+    IsPaper2GlobalClassicalSolution intervalDomain p u v ∧
+    InitialTrace intervalDomain u₀ u
+
+/-- Corrected Theorem 1.1 existence package: local existence and initial
+sup-norm approach are as before, but the global component is existential.  It
+does not require an arbitrary finite-horizon tail to be valid after its horizon. -/
+structure IntervalDomainGlobalSolutionExists (p : CM2Params) where
+  localExistence :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u
+  initialSupNormApproach :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∀ ε > 0, ∃ δ > 0, δ ≤ T ∧ ∀ t, 0 < t → t < δ →
+            intervalDomain.supNorm (u t) ≤ intervalDomain.supNorm u₀ + ε
+  globalSolutionExists :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        1 ≤ p.m → IntervalDomainGlobalSolutionFor p u₀
+
+/-- The corrected interface assembled from local existence, bounded initial
+data, and a genuine existential global-continuation theorem. -/
+theorem intervalDomainGlobalSolutionExists_of_local_global_bounded_initial
+    (p : CM2Params)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hboundedInitial :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+    (hglobal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          1 ≤ p.m → IntervalDomainGlobalSolutionFor p u₀) :
+    IntervalDomainGlobalSolutionExists p := by
+  refine
+    { localExistence := hlocal
+      initialSupNormApproach := ?_
+      globalSolutionExists := hglobal }
+  intro u₀ hu₀ T hT u v hsol htrace ε hε
+  exact initialSupNormApproach_intervalDomain p u₀ hu₀
+    (hboundedInitial u₀ hu₀) hT hsol htrace hε
+
+/-- A gluing/uniqueness theorem converting arbitrarily long finite reachable
+horizons into one global classical solution.  This is the analytic content that
+prevents choosing unrelated solutions independently at each horizon. -/
+def GlobalSolutionGluingFromReachability (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomain.Point → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+      ReachableArbitrarilyLong p u₀ →
+        IntervalDomainGlobalSolutionFor p u₀
+
+/-- If the standard continuation alternative holds, the finite branch is ruled
+out for `1 ≤ m`, and arbitrarily long reachable horizons can be glued, then the
+corrected existential-global package follows. -/
+theorem intervalDomainGlobalSolutionExists_of_standardContinuation_and_gluing
+    (p : CM2Params)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hboundedInitial :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+    (hstandard :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          1 ≤ p.m → StandardContinuationAlternative p u₀)
+    (hnoFinite :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          1 ≤ p.m → ¬ FiniteContinuationAlternativeBranch p u₀)
+    (hglue : GlobalSolutionGluingFromReachability p) :
+    IntervalDomainGlobalSolutionExists p := by
+  refine intervalDomainGlobalSolutionExists_of_local_global_bounded_initial
+    p hlocal hboundedInitial ?_
+  intro u₀ hu₀ hm
+  rcases hstandard u₀ hu₀ hm with hlong | hfinite
+  · exact hglue u₀ hu₀ hlong
+  · exact False.elim ((hnoFinite u₀ hu₀ hm) hfinite)
+
+/-- Bridge from the finite-sup maximal-continuation skeleton already proved in
+this file to the corrected existential-global package.  The hypotheses are the
+remaining PDE continuation/gluing frontiers, stated directly rather than hidden
+inside the old false same-tail field. -/
+theorem intervalDomainGlobalSolutionExists_of_finiteSup_continuation_and_gluing
+    (p : CM2Params)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hboundedInitial :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+    (hrealize :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ _hbdd : BddAbove (reachableClassicalHorizonSet p u₀),
+        ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p
+            (finiteMaximalReachableHorizon p u₀) u v ∧
+          InitialTrace intervalDomain u₀ u)
+    (hextend_of_not_finiteAlternative :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ (_hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomain.Point → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (finiteMaximalReachableHorizon p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          ¬ FiniteHorizonAlternative intervalDomain
+            (finiteMaximalReachableHorizon p u₀) u →
+          ReachablePast p u₀ (finiteMaximalReachableHorizon p u₀))
+    (hextend_of_not_mgeAlternative :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ (_hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomain.Point → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (finiteMaximalReachableHorizon p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          1 ≤ p.m →
+          ¬ MGeOneFiniteHorizonAlternative intervalDomain
+            (finiteMaximalReachableHorizon p u₀) u →
+          ReachablePast p u₀ (finiteMaximalReachableHorizon p u₀))
+    (hnoFinite :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          1 ≤ p.m → ¬ FiniteContinuationAlternativeBranch p u₀)
+    (hglue : GlobalSolutionGluingFromReachability p) :
+    IntervalDomainGlobalSolutionExists p := by
+  refine intervalDomainGlobalSolutionExists_of_standardContinuation_and_gluing
+    p hlocal hboundedInitial ?_ hnoFinite hglue
+  intro u₀ hu₀ _hm
+  exact standardContinuationAlternative_of_finiteSup_realization_and_extension
+    p hlocal hu₀
+    (hrealize u₀ hu₀)
+    (hextend_of_not_finiteAlternative u₀ hu₀)
+    (hextend_of_not_mgeAlternative u₀ hu₀)
+
+/-- Concrete Picard/Duhamel local existence plus the corrected existential
+global-continuation theorem gives the corrected package. -/
+theorem intervalDomainGlobalSolutionExists_of_intervalDuhamel_contraction_regularization
+    (p : CM2Params)
+    (hmild :
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ L > 0, ∃ D₀ ≥ 0, ∃ T > 0,
+            L * T < 1 ∧
+            (∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+              0 ≤ D →
+              (∀ s y, 0 ≤ s → s ≤ T →
+                |u₁ s y - u₂ s y| ≤ D) →
+              ∀ t x, 0 ≤ t → t ≤ T →
+                |intervalDuhamelOperator p u₀ u₁ t x -
+                  intervalDuhamelOperator p u₀ u₂ t x| ≤ L * T * D) ∧
+            (∀ t x, 0 ≤ t → t ≤ T →
+              |intervalDuhamelOperator p u₀ (fun _ _ => 0) t x| ≤ D₀) ∧
+            (∀ u : ℝ → intervalDomainPoint → ℝ,
+              (∀ t x, 0 ≤ t → t ≤ T →
+                u t x = intervalDuhamelOperator p u₀ u t x) →
+                RegularityBootstrap p T u₀ u))
+    (hboundedInitial :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+    (hglobal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          1 ≤ p.m → IntervalDomainGlobalSolutionFor p u₀) :
+    IntervalDomainGlobalSolutionExists p := by
+  exact intervalDomainGlobalSolutionExists_of_local_global_bounded_initial p
+    (intervalDomain_localExistence_of_intervalDuhamel_contraction_regularization
+      p hmild)
+    hboundedInitial hglobal
+
 /-- Local existence for spatially-constant initial data above equilibrium,
 via the RegularityBootstrap chain.
 
