@@ -2883,6 +2883,49 @@ theorem not_intervalDomainTheorem11Existence_zeroReaction_bad_tail
   exact not_intervalDomainTheorem11_globalExtension_zeroReaction_bad_tail
     p ha hb hm hexist.globalExtension
 
+/-- Concrete positive-logistic parameters witnessing that the current
+`IntervalDomainExistence` interface cannot hold for all `CM2Params`. -/
+def intervalDomainExistenceCounterParams : CM2Params :=
+  { N := 1
+    hN := by norm_num
+    α := 1
+    γ := 1
+    m := 1
+    μ := 1
+    ν := 1
+    χ₀ := 0
+    a := 1
+    b := 1
+    β := 0
+    hα := by norm_num
+    hγ := by norm_num
+    hm := by norm_num
+    hμ := by norm_num
+    hν := by norm_num
+    ha := by norm_num
+    hb := by norm_num
+    hβ := by norm_num }
+
+/-- The same-tail `globalExtension` field makes
+`IntervalDomainExistence intervalDomainExistenceCounterParams` false. -/
+theorem not_intervalDomainTheorem11Existence_counterParams :
+    ¬ Paper2.IntervalDomainTheorem11.IntervalDomainExistence
+      intervalDomainExistenceCounterParams := by
+  exact not_intervalDomainTheorem11Existence_equilibrium_bad_tail
+    intervalDomainExistenceCounterParams
+    (by norm_num [intervalDomainExistenceCounterParams])
+    (by norm_num [intervalDomainExistenceCounterParams])
+    (by norm_num [intervalDomainExistenceCounterParams])
+
+/-- Consequently there is no theorem of the form
+`∀ p, IntervalDomainExistence p` for the current interface. -/
+theorem not_forall_intervalDomainTheorem11Existence :
+    ¬ ∀ p : CM2Params,
+      Paper2.IntervalDomainTheorem11.IntervalDomainExistence p := by
+  intro h
+  exact not_intervalDomainTheorem11Existence_counterParams
+    (h intervalDomainExistenceCounterParams)
+
 /-- Local existence for spatially-constant initial data above equilibrium,
 via the RegularityBootstrap chain.
 
