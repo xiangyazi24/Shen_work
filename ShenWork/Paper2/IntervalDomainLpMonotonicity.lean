@@ -179,6 +179,254 @@ theorem intervalDomain_integral_abs_rpow_hasDerivAt_of_dominated_deriv_le
       hdiff
   simpa [intervalDomain, intervalDomainIntegral, F, F'] using hmain
 
+/-- Absolute Lp energy on the concrete interval domain. -/
+def intervalDomainLpAbsEnergy
+    (pExp : ℝ) (u : ℝ → intervalDomain.Point → ℝ) (t : ℝ) : ℝ :=
+  intervalDomain.integral (fun x : intervalDomain.Point => |u t x| ^ pExp)
+
+/-- The weighted time derivative delivered by differentiating
+`intervalDomainLpAbsEnergy` under the interval integral on positive interior
+traces. -/
+def intervalDomainLpWeightedTimeDerivative
+    (pExp : ℝ) (u ut : ℝ → intervalDomain.Point → ℝ)
+    (t : ℝ) (x : intervalDomain.Point) : ℝ :=
+  ut t x * pExp * (u t x) ^ (pExp - 1)
+
+/-- The Moser-gradient term paired with the Lp energy. -/
+def intervalDomainLpGradientEnergy
+    (pExp : ℝ) (u : ℝ → intervalDomain.Point → ℝ) (t : ℝ) : ℝ :=
+  intervalDomain.integral (fun x : intervalDomain.Point =>
+    (intervalDomain.gradNorm
+      (fun y : intervalDomain.Point => (u t y) ^ (pExp / 2)) x) ^ 2)
+
+/-- Derivative equality form of
+`intervalDomain_integral_abs_rpow_hasDerivAt_of_dominated_deriv_le`. -/
+theorem intervalDomain_Lp_abs_energy_deriv_eq_weighted_time
+    {u ut : ℝ → intervalDomain.Point → ℝ} {p t : ℝ} {bound : ℝ → ℝ}
+    (hpow_meas :
+      ∀ᶠ s in 𝓝 t,
+        MeasureTheory.AEStronglyMeasurable
+          (intervalDomainLift (fun x : intervalDomain.Point => |u s x| ^ p))
+          intervalDomainInteriorMeasure)
+    (hpow_int :
+      IntervalIntegrable
+        (intervalDomainLift (fun x : intervalDomain.Point => |u t x| ^ p))
+        MeasureTheory.volume 0 1)
+    (hderiv_meas :
+      MeasureTheory.AEStronglyMeasurable
+        (intervalDomainLift
+          (fun x : intervalDomain.Point => ut t x * p * (u t x) ^ (p - 1)))
+        intervalDomainInteriorMeasure)
+    (hderiv_bound :
+      ∀ᵐ y ∂intervalDomainInteriorMeasure,
+        ∀ s ∈ Metric.ball t 1,
+          ‖intervalDomainLift
+            (fun x : intervalDomain.Point => ut s x * p * (u s x) ^ (p - 1)) y‖ ≤
+            bound y)
+    (hbound_int : MeasureTheory.Integrable bound intervalDomainInteriorMeasure)
+    (hu_hasDeriv :
+      ∀ s ∈ Metric.ball t 1,
+        ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside →
+          HasDerivAt (fun τ => u τ x) (ut s x) s)
+    (hu_pos :
+      ∀ s ∈ Metric.ball t 1,
+        ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside → 0 < u s x) :
+    deriv (fun s => intervalDomainLpAbsEnergy p u s) t =
+      intervalDomain.integral
+        (intervalDomainLpWeightedTimeDerivative p u ut t) := by
+  have hderiv :=
+    intervalDomain_integral_abs_rpow_hasDerivAt_of_dominated_deriv_le
+      (u := u) (ut := ut) (p := p) (t := t) (bound := bound)
+      hpow_meas hpow_int hderiv_meas hderiv_bound hbound_int
+      hu_hasDeriv hu_pos
+  simpa [intervalDomainLpAbsEnergy, intervalDomainLpWeightedTimeDerivative]
+    using hderiv.deriv
+
+/-- Replace the weighted time-derivative frontier by the actual time derivative
+of the Lp energy.
+
+The hypothesis `hweighted_frontier` is exactly the estimate obtained after the
+PDE has been tested against the Lp weight and the Neumann integration-by-parts
+boundary term has been discharged.  This theorem only supplies the
+differentiation-under-the-integral part. -/
+theorem intervalDomain_Lp_abs_energy_gronwall_of_weighted_time_frontier
+    {u ut : ℝ → intervalDomain.Point → ℝ}
+    {p rho t A B K L_const : ℝ} {bound : ℝ → ℝ}
+    (hpow_meas :
+      ∀ᶠ s in 𝓝 t,
+        MeasureTheory.AEStronglyMeasurable
+          (intervalDomainLift (fun x : intervalDomain.Point => |u s x| ^ p))
+          intervalDomainInteriorMeasure)
+    (hpow_int :
+      IntervalIntegrable
+        (intervalDomainLift (fun x : intervalDomain.Point => |u t x| ^ p))
+        MeasureTheory.volume 0 1)
+    (hderiv_meas :
+      MeasureTheory.AEStronglyMeasurable
+        (intervalDomainLift
+          (fun x : intervalDomain.Point => ut t x * p * (u t x) ^ (p - 1)))
+        intervalDomainInteriorMeasure)
+    (hderiv_bound :
+      ∀ᵐ y ∂intervalDomainInteriorMeasure,
+        ∀ s ∈ Metric.ball t 1,
+          ‖intervalDomainLift
+            (fun x : intervalDomain.Point => ut s x * p * (u s x) ^ (p - 1)) y‖ ≤
+            bound y)
+    (hbound_int : MeasureTheory.Integrable bound intervalDomainInteriorMeasure)
+    (hu_hasDeriv :
+      ∀ s ∈ Metric.ball t 1,
+        ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside →
+          HasDerivAt (fun τ => u τ x) (ut s x) s)
+    (hu_pos :
+      ∀ s ∈ Metric.ball t 1,
+        ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside → 0 < u s x)
+    (hweighted_frontier :
+      (1 / p) *
+          intervalDomain.integral
+            (intervalDomainLpWeightedTimeDerivative p u ut t) +
+        A * intervalDomainLpGradientEnergy p u t +
+        B * intervalDomainLpAbsEnergy p u t ≤
+      K * intervalDomainLpAbsEnergy (p + rho) u t + L_const) :
+    (1 / p) * deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t +
+        A * intervalDomainLpGradientEnergy p u t +
+        B * intervalDomainLpAbsEnergy p u t ≤
+      K * intervalDomainLpAbsEnergy (p + rho) u t + L_const := by
+  have hderiv :=
+    intervalDomain_Lp_abs_energy_deriv_eq_weighted_time
+      (u := u) (ut := ut) (p := p) (t := t) (bound := bound)
+      hpow_meas hpow_int hderiv_meas hderiv_bound hbound_int
+      hu_hasDeriv hu_pos
+  rwa [hderiv]
+
+/-- Gronwall-form Lp differential inequality from the dissipative estimate
+left by Neumann integration by parts.
+
+Here `hneumann_by_parts_bound` is the honest spatial frontier: after testing
+the PDE by the Lp weight, the Neumann boundary contribution has vanished and
+the diffusion/source terms have been bounded by the displayed right-hand side. -/
+theorem intervalDomain_Lp_abs_energy_gronwall_of_neumann_by_parts_bound
+    {u ut : ℝ → intervalDomain.Point → ℝ}
+    {p rho t A B K L_const : ℝ} {bound : ℝ → ℝ}
+    (hpow_meas :
+      ∀ᶠ s in 𝓝 t,
+        MeasureTheory.AEStronglyMeasurable
+          (intervalDomainLift (fun x : intervalDomain.Point => |u s x| ^ p))
+          intervalDomainInteriorMeasure)
+    (hpow_int :
+      IntervalIntegrable
+        (intervalDomainLift (fun x : intervalDomain.Point => |u t x| ^ p))
+        MeasureTheory.volume 0 1)
+    (hderiv_meas :
+      MeasureTheory.AEStronglyMeasurable
+        (intervalDomainLift
+          (fun x : intervalDomain.Point => ut t x * p * (u t x) ^ (p - 1)))
+        intervalDomainInteriorMeasure)
+    (hderiv_bound :
+      ∀ᵐ y ∂intervalDomainInteriorMeasure,
+        ∀ s ∈ Metric.ball t 1,
+          ‖intervalDomainLift
+            (fun x : intervalDomain.Point => ut s x * p * (u s x) ^ (p - 1)) y‖ ≤
+            bound y)
+    (hbound_int : MeasureTheory.Integrable bound intervalDomainInteriorMeasure)
+    (hu_hasDeriv :
+      ∀ s ∈ Metric.ball t 1,
+        ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside →
+          HasDerivAt (fun τ => u τ x) (ut s x) s)
+    (hu_pos :
+      ∀ s ∈ Metric.ball t 1,
+        ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside → 0 < u s x)
+    (hneumann_by_parts_bound :
+      (1 / p) *
+          intervalDomain.integral
+            (intervalDomainLpWeightedTimeDerivative p u ut t) ≤
+        -A * intervalDomainLpGradientEnergy p u t -
+          B * intervalDomainLpAbsEnergy p u t +
+          K * intervalDomainLpAbsEnergy (p + rho) u t + L_const) :
+    (1 / p) * deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t +
+        A * intervalDomainLpGradientEnergy p u t +
+        B * intervalDomainLpAbsEnergy p u t ≤
+      K * intervalDomainLpAbsEnergy (p + rho) u t + L_const := by
+  have hderiv :=
+    intervalDomain_Lp_abs_energy_deriv_eq_weighted_time
+      (u := u) (ut := ut) (p := p) (t := t) (bound := bound)
+      hpow_meas hpow_int hderiv_meas hderiv_bound hbound_int
+      hu_hasDeriv hu_pos
+  rw [hderiv]
+  linarith
+
+/-- Time-interval version of
+`intervalDomain_Lp_abs_energy_gronwall_of_neumann_by_parts_bound`.
+
+This is the Lp-norm Gronwall differential inequality over `(0,T)`.  The only
+remaining frontiers are exactly the analytic hypotheses listed here: dominated
+differentiation under the integral and the Neumann-by-parts dissipative bound
+for the weighted time term. -/
+theorem intervalDomain_Lp_abs_energy_gronwall_family_of_neumann_by_parts_bound
+    {u ut : ℝ → intervalDomain.Point → ℝ}
+    {T p rho A B K L_const : ℝ} {bound : ℝ → ℝ → ℝ}
+    (hpow_meas :
+      ∀ t, 0 < t → t < T →
+        ∀ᶠ s in 𝓝 t,
+          MeasureTheory.AEStronglyMeasurable
+            (intervalDomainLift (fun x : intervalDomain.Point => |u s x| ^ p))
+            intervalDomainInteriorMeasure)
+    (hpow_int :
+      ∀ t, 0 < t → t < T →
+        IntervalIntegrable
+          (intervalDomainLift (fun x : intervalDomain.Point => |u t x| ^ p))
+          MeasureTheory.volume 0 1)
+    (hderiv_meas :
+      ∀ t, 0 < t → t < T →
+        MeasureTheory.AEStronglyMeasurable
+          (intervalDomainLift
+            (fun x : intervalDomain.Point => ut t x * p * (u t x) ^ (p - 1)))
+          intervalDomainInteriorMeasure)
+    (hderiv_bound :
+      ∀ t, 0 < t → t < T →
+        ∀ᵐ y ∂intervalDomainInteriorMeasure,
+          ∀ s ∈ Metric.ball t 1,
+            ‖intervalDomainLift
+              (fun x : intervalDomain.Point => ut s x * p * (u s x) ^ (p - 1)) y‖ ≤
+              bound t y)
+    (hbound_int :
+      ∀ t, 0 < t → t < T →
+        MeasureTheory.Integrable (bound t) intervalDomainInteriorMeasure)
+    (hu_hasDeriv :
+      ∀ t, 0 < t → t < T →
+        ∀ s ∈ Metric.ball t 1,
+          ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside →
+            HasDerivAt (fun τ => u τ x) (ut s x) s)
+    (hu_pos :
+      ∀ t, 0 < t → t < T →
+        ∀ s ∈ Metric.ball t 1,
+          ∀ x : intervalDomain.Point, x ∈ intervalDomain.inside → 0 < u s x)
+    (hneumann_by_parts_bound :
+      ∀ t, 0 < t → t < T →
+        (1 / p) *
+            intervalDomain.integral
+              (intervalDomainLpWeightedTimeDerivative p u ut t) ≤
+          -A * intervalDomainLpGradientEnergy p u t -
+            B * intervalDomainLpAbsEnergy p u t +
+            K * intervalDomainLpAbsEnergy (p + rho) u t + L_const) :
+    ∀ t, 0 < t → t < T →
+      (1 / p) * deriv (fun τ => intervalDomainLpAbsEnergy p u τ) t +
+          A * intervalDomainLpGradientEnergy p u t +
+          B * intervalDomainLpAbsEnergy p u t ≤
+        K * intervalDomainLpAbsEnergy (p + rho) u t + L_const := by
+  intro t ht0 htT
+  exact intervalDomain_Lp_abs_energy_gronwall_of_neumann_by_parts_bound
+    (u := u) (ut := ut) (p := p) (rho := rho) (t := t)
+    (A := A) (B := B) (K := K) (L_const := L_const)
+    (bound := bound t)
+    (hpow_meas t ht0 htT)
+    (hpow_int t ht0 htT)
+    (hderiv_meas t ht0 htT)
+    (hderiv_bound t ht0 htT)
+    (hbound_int t ht0 htT)
+    (hu_hasDeriv t ht0 htT)
+    (hu_pos t ht0 htT)
+    (hneumann_by_parts_bound t ht0 htT)
+
 lemma rpow_le_one_add_rpow_of_nonneg_of_le
     {a p q : ℝ} (ha : 0 ≤ a) (hp : 0 ≤ p) (hpq : p ≤ q) :
     a ^ p ≤ a ^ q + 1 := by
