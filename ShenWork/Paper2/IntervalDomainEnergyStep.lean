@@ -22,6 +22,20 @@
   axioms or hidden `Prop` aliases.  The same applies to moving the pointwise
   PDE, stated on `inside`, into an interval integral: that is recorded below as
   `hPDEIntegral`.
+
+  B3 cross-diffusion frontier note: the algebra after a
+  Gagliardo-Nirenberg/Young estimate is formalized below, including absorption
+  of the `eps * weighted-gradient` term into the dissipative left-hand side and
+  the resulting closed derivative inequality.  What is still not proved here is
+  the analytic bridge from `gagliardoNirenberg_interval` to
+  `CrossDiffusionBootstrapEstimate`: it requires transporting the real
+  interval `lpNorm` estimate to `intervalDomain` integrals, a spatial
+  chain-rule/coercivity comparison for the weighted `u` powers, and an
+  independent bound on the `v`-gradient factor in the cross-diffusion term.
+  There is also a statement-level mismatch still visible in the API: the
+  current `intervalDomain.chemotaxisDiv` contains the Paper 2 `u * grad v`
+  structure, while the requested `∇·(u^m ∇v)` term is not yet a separate
+  interval-domain operator.
 -/
 import ShenWork.Paper2.IntervalDomainLpMonotonicity
 
@@ -426,6 +440,159 @@ theorem intervalDomain_lp_energy_cross_bootstrap_inequality_of_frontiers
     simpa [intervalDomainLpWeightedGradientDissipation] using hCeps
   have hscaled :=
     mul_le_mul_of_nonneg_left hCeps' hchiBound
+  linarith
+
+/-- A concrete Young-absorption coefficient: choosing
+`eps = A / (2 * (chiBound + 1))` makes the scaled cross term at most half of
+the available diffusion coefficient. -/
+theorem intervalDomain_young_absorption_coefficient_half
+    {A chiBound : ℝ} (hA : 0 < A) (hchiBound : 0 ≤ chiBound) :
+    chiBound * (A / (2 * (chiBound + 1))) ≤ A / 2 := by
+  have hchi1_pos : 0 < chiBound + 1 := by linarith
+  have hden_pos : 0 < 2 * (chiBound + 1) := by positivity
+  have hratio : chiBound / (chiBound + 1) ≤ 1 := by
+    rw [div_le_one hchi1_pos]
+    linarith
+  have hA2_nonneg : 0 ≤ A / 2 := by positivity
+  have heq :
+      chiBound * (A / (2 * (chiBound + 1))) =
+        (A / 2) * (chiBound / (chiBound + 1)) := by
+    field_simp [ne_of_gt hchi1_pos, ne_of_gt hden_pos]
+  calc
+    chiBound * (A / (2 * (chiBound + 1)))
+        = (A / 2) * (chiBound / (chiBound + 1)) := heq
+    _ ≤ (A / 2) * 1 :=
+        mul_le_mul_of_nonneg_left hratio hA2_nonneg
+    _ = A / 2 := by ring
+
+/-- After the GN/Young cross-diffusion estimate has supplied an `eps`-small
+weighted-gradient term, it can be absorbed into the dissipative left-hand side.
+
+The estimate `hCrossGNYoung` is intentionally a named hypothesis: deriving it
+from `gagliardoNirenberg_interval` and the interval-domain chemotaxis structure
+is the current B3 analytic frontier. -/
+theorem intervalDomain_lp_energy_cross_bootstrap_absorbed_of_frontiers
+    {params : CM2Params} {T rho pExp eps A chiBound t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hpExp : 1 < pExp) (heps : 0 < eps) (hchiBound : 0 ≤ chiBound)
+    (ht0 : 0 < t) (htT : t < T)
+    (hCrossGNYoung :
+      CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hLpTime : ∀ s, 0 < s → s < T →
+      deriv (fun τ => intervalDomainLpEnergy pExp u τ) s =
+        pExp * intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u s))
+    (hPDEIntegral :
+      intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u t) =
+        intervalDomainLpDiffusionIntegral pExp u t -
+          params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t +
+          intervalDomainLpLogisticIntegral params pExp u t)
+    (hIBP :
+      intervalDomainLpDiffusionIntegral pExp u t =
+        intervalDomainNeumannBoundaryTerm
+            (intervalDomainLpDiffusionTest pExp u t) (u t) -
+          intervalDomainLpDiffusionDissipation pExp u t)
+    (hDiffusionCoercive :
+      A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
+        intervalDomainLpDiffusionDissipation pExp u t)
+    (hCrossControl :
+      -params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t ≤
+        chiBound *
+          intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t))
+    (habsorb : chiBound * eps ≤ A) :
+    ∃ Ceps,
+      0 ≤ A - chiBound * eps ∧
+      (1 / pExp) *
+          deriv (fun τ => intervalDomainLpEnergy pExp u τ) t +
+        (A - chiBound * eps) *
+          intervalDomainLpWeightedGradientDissipation pExp u t ≤
+          chiBound * Ceps *
+              intervalDomain.integral
+                (fun x => (u t x) ^ (pExp + rho)) +
+            intervalDomainLpLogisticIntegral params pExp u t := by
+  obtain ⟨Ceps, hineq⟩ :=
+    intervalDomain_lp_energy_cross_bootstrap_inequality_of_frontiers
+      (params := params) (T := T) (rho := rho) (pExp := pExp)
+      (eps := eps) (A := A) (chiBound := chiBound) (t := t)
+      (u := u) (v := v) hpExp heps hchiBound ht0 htT
+      hCrossGNYoung hLpTime hPDEIntegral hIBP
+      hDiffusionCoercive hCrossControl
+  refine ⟨Ceps, ?_, ?_⟩
+  · linarith
+  · set Y :=
+      (1 / pExp) *
+        deriv (fun τ => intervalDomainLpEnergy pExp u τ) t
+    set G := intervalDomainLpWeightedGradientDissipation pExp u t
+    set Z :=
+      intervalDomain.integral (fun x => (u t x) ^ (pExp + rho))
+    set R := intervalDomainLpLogisticIntegral params pExp u t
+    change Y + A * G ≤ chiBound * (eps * G + Ceps * Z) + R at hineq
+    calc
+      Y + (A - chiBound * eps) * G
+          = Y + A * G - chiBound * (eps * G) := by ring
+      _ ≤ chiBound * (eps * G + Ceps * Z) + R -
+            chiBound * (eps * G) := by
+          linarith
+      _ = chiBound * Ceps * Z + R := by ring
+
+/-- Closed derivative bound after cross-diffusion absorption and an explicit
+upper bound on the logistic contribution.
+
+The two remaining hypotheses are semantic frontiers, not hidden axioms:
+`hLogisticUpper` is the lower-order logistic estimate, and `hDissNonneg`
+is the nonnegativity needed to drop the absorbed gradient term from the left. -/
+theorem intervalDomain_lp_energy_closed_derivative_bound_of_frontiers
+    {params : CM2Params} {T rho pExp eps A chiBound B L_const t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hpExp : 1 < pExp) (heps : 0 < eps) (hchiBound : 0 ≤ chiBound)
+    (ht0 : 0 < t) (htT : t < T)
+    (hCrossGNYoung :
+      CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hLpTime : ∀ s, 0 < s → s < T →
+      deriv (fun τ => intervalDomainLpEnergy pExp u τ) s =
+        pExp * intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u s))
+    (hPDEIntegral :
+      intervalDomain.integral
+          (intervalDomainLpEnergyWeightedTimeTerm pExp u t) =
+        intervalDomainLpDiffusionIntegral pExp u t -
+          params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t +
+          intervalDomainLpLogisticIntegral params pExp u t)
+    (hIBP :
+      intervalDomainLpDiffusionIntegral pExp u t =
+        intervalDomainNeumannBoundaryTerm
+            (intervalDomainLpDiffusionTest pExp u t) (u t) -
+          intervalDomainLpDiffusionDissipation pExp u t)
+    (hDiffusionCoercive :
+      A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
+        intervalDomainLpDiffusionDissipation pExp u t)
+    (hCrossControl :
+      -params.χ₀ * intervalDomainLpChemotaxisIntegral params pExp u v t ≤
+        chiBound *
+          intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t))
+    (habsorb : chiBound * eps ≤ A)
+    (hLogisticUpper :
+      intervalDomainLpLogisticIntegral params pExp u t ≤
+        B * intervalDomainLpEnergy pExp u t + L_const)
+    (hDissNonneg :
+      0 ≤
+        (A - chiBound * eps) *
+          intervalDomainLpWeightedGradientDissipation pExp u t) :
+    ∃ Ceps,
+      (1 / pExp) *
+          deriv (fun τ => intervalDomainLpEnergy pExp u τ) t ≤
+        chiBound * Ceps *
+            intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) +
+          B * intervalDomainLpEnergy pExp u t + L_const := by
+  obtain ⟨Ceps, _hcoef_nonneg, habsorbed⟩ :=
+    intervalDomain_lp_energy_cross_bootstrap_absorbed_of_frontiers
+      (params := params) (T := T) (rho := rho) (pExp := pExp)
+      (eps := eps) (A := A) (chiBound := chiBound) (t := t)
+      (u := u) (v := v) hpExp heps hchiBound ht0 htT
+      hCrossGNYoung hLpTime hPDEIntegral hIBP
+      hDiffusionCoercive hCrossControl habsorb
+  refine ⟨Ceps, ?_⟩
   linarith
 
 /-- Half of the L2 energy.  This form avoids any convention about `0^0` in
