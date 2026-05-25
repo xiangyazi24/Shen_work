@@ -720,6 +720,48 @@ theorem intervalDomain_thetaMomentConvergesToZero_of_energy_tendsto_zero_and_bou
   thetaMomentConvergesToZero_of_energy_tendsto_zero_and_integral_nonneg_bound
     hE intervalDomain_integral_nonneg huStar htheta hu_nonneg hbound
 
+/-- Concrete interval-domain energy-comparison bridge for theta moment
+convergence, requiring eventual nonnegativity only on the interior. -/
+theorem intervalDomain_thetaMomentConvergesToZero_of_energy_tendsto_zero_and_inside_bound
+    {u : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta : ℝ} {E : ℝ → ℝ} {K : ℝ}
+    (hE : Tendsto E atTop (𝓝 0))
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (hu_nonneg :
+      ∀ᶠ t in atTop,
+        ∀ x, x ∈ intervalDomain.inside → 0 ≤ u t x)
+    (hbound :
+      ∀ᶠ t in atTop,
+        chemotaxisThetaDissipation intervalDomain uStar theta (u t) ≤
+          K * E t) :
+    ThetaMomentConvergesToZero intervalDomain u uStar theta := by
+  refine thetaMomentConvergesToZero_of_energy_tendsto_zero_and_eventual_bound
+    hE ?_ hbound
+  exact hu_nonneg.mono fun t ht =>
+    intervalDomain_chemotaxisThetaDissipation_nonneg_of_inside_nonneg
+      huStar htheta ht
+
+/-- Concrete interval-domain energy-comparison bridge with theta-production
+nonnegativity discharged directly from `PositiveGlobalBoundedSolution`. -/
+theorem
+    intervalDomain_thetaMomentConvergesToZero_of_energy_bound_positiveGlobalBoundedSolution
+    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta : ℝ} {E : ℝ → ℝ} {K : ℝ}
+    (hE : Tendsto E atTop (𝓝 0))
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hbound :
+      ∀ᶠ t in atTop,
+        chemotaxisThetaDissipation intervalDomain uStar theta (u t) ≤
+          K * E t) :
+    ThetaMomentConvergesToZero intervalDomain u uStar theta :=
+  intervalDomain_thetaMomentConvergesToZero_of_energy_tendsto_zero_and_inside_bound
+    hE huStar htheta
+    (eventually_atTop.mpr
+      ⟨1, fun t ht x hx => (huv.pos (t := t) (x := x)
+        (lt_of_lt_of_le zero_lt_one ht) hx).le⟩)
+    hbound
+
 /-- Two-time estimate for theta dissipation from a direct differential decay
 inequality, with nonnegativity discharged by the domain integral.
 
