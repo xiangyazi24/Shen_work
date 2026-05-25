@@ -398,6 +398,49 @@ theorem Theorem_1_2_intervalDomain_slow_regime_of_parameter_fields_and_corollary
     (fun _ha _hb hβ _hm_pos _hm_lt =>
       hslowBootstrap hβ)
 
+/-- Fixed slow-diffusion regime of Theorem 1.2 from `Lemma_2_6` plus the PDE
+energy derivation.
+
+Because `m < 1` is fixed, the critical/global branch is vacuous.  This wrapper
+does not require global extension or any long-time boundedness frontier. -/
+theorem Theorem_1_2_intervalDomain_slow_regime_of_Lemma_2_6_energy_parameter_fields
+    (p : CM2Params)
+    (hm_lt : p.m < 1)
+    (S : SemigroupEstimateData intervalDomain)
+    (_hLemma21 : Lemma_2_1 intervalDomain p S)
+    (hLemma26 : Lemma_2_6 intervalDomain)
+    (_hLemma41 : Lemma_4_1 intervalDomain p)
+    (hEnergyFromCrossDiffusion :
+      ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+        AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
+          LpBootstrapEnergyInequality intervalDomain u T rho p0)
+    (hProp25 : Proposition_2_5 intervalDomain p)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hslowBootstrap :
+      1 ≤ p.β →
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∃ rho > 0,
+            CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+              ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+                LpPowerBoundedBefore intervalDomain p0 T u) :
+    Theorem_1_2 intervalDomain p := by
+  have hCor21 : Corollary_2_1 intervalDomain p :=
+    ShenWork.Paper2.IntervalDomainCorollary21.Corollary_2_1_intervalDomain_of_Lemma_2_6_and_energy
+      p hLemma26 hEnergyFromCrossDiffusion
+  exact Theorem_1_2_intervalDomain_slow_regime_of_parameter_fields_and_corollary21
+    p hm_lt hCor21 hProp25 hlocal hslowBootstrap
+
 /-- Fixed critical regime of Theorem 1.2 with parameter-side guards removed
 from the critical bootstrap and long-time boundedness frontiers. -/
 theorem Theorem_1_2_intervalDomain_critical_regime_of_parameter_fields_and_corollary21
