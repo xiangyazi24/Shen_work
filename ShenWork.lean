@@ -31,6 +31,8 @@ import ShenWork.PDE.TravelingWaveConstruction
 import ShenWork.PDE.ConditionalBoundedDomain
 import ShenWork.PDE.HeatKernelLpEstimates
 import ShenWork.PDE.SectorialOperator
+import ShenWork.PDE.AnalyticSemigroupGen
+import ShenWork.PDE.AnalyticSemigroupDecay
 import ShenWork.PDE.ParabolicMaxPrinciple
 import ShenWork.Paper1.Lemma25Helpers
 import ShenWork.Paper2.UnitPointLogisticBridge

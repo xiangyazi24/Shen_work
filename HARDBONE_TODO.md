@@ -365,6 +365,10 @@
   `‖A e^{-tA} a‖₂ ≤ t⁻¹ ‖a‖₂`.  This proves the concrete diagonal
   sectorial-generation subblock; the abstract closed-operator generation
   theorem and nonlinear `SectorialLocalExponentialRaw` upgrade remain frontiers.
+  Follow-up coefficient decay increment:
+  `ShenWork/PDE/AnalyticSemigroupDecay.lean` proves the shifted spectral-bound
+  decay `‖e^{-t(-Δ_N+ω)}a‖₂ ≤ e^{-ωt}‖a‖₂` and the zero-mode-free unshifted
+  first-mode decay `‖e^{tΔ_N}a‖₂ ≤ e^{-λ₁t}‖a‖₂`.
 - **前置**: spectral theory on bounded domain, resolvent estimates
 - **目标文件**: `ShenWork/PDE/SectorialOperator.lean` (new)
 - **产出**: `SectorialLocalExponentialRaw`
