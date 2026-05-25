@@ -40,6 +40,38 @@ theorem chemotaxisEntropyIntegrand_self
     chemotaxisEntropyIntegrand m uStar uStar = 0 := by
   simp [chemotaxisEntropyIntegrand, div_self huStar]
 
+/-- The scalar entropy-density derivative has the Lyapunov sign:
+`(s-u*) h_m'(s) ≥ 0` on the positive axis when `2m-1 ≥ 0`. -/
+theorem chemotaxisEntropyIntegrand_mul_sub_nonneg
+    {m uStar s : ℝ} (hm : (1 / 2 : ℝ) ≤ m)
+    (huStar : 0 < uStar) (hs : 0 < s) :
+    0 ≤ (s - uStar) * chemotaxisEntropyIntegrand m uStar s := by
+  have hq : 0 ≤ 2 * m - 1 := by linarith
+  by_cases hle : s ≤ uStar
+  · have hratio : 1 ≤ uStar / s := by
+      rw [le_div_iff₀ hs]
+      simpa using hle
+    have hpow :
+        (1 : ℝ) ≤ (uStar / s) ^ (2 * m - 1) := by
+      simpa using Real.rpow_le_rpow zero_le_one hratio hq
+    have hintegrand : chemotaxisEntropyIntegrand m uStar s ≤ 0 := by
+      unfold chemotaxisEntropyIntegrand
+      exact sub_nonpos.mpr hpow
+    exact mul_nonneg_of_nonpos_of_nonpos
+      (sub_nonpos.mpr hle) hintegrand
+  · have hlt : uStar < s := lt_of_not_ge hle
+    have hratio : uStar / s ≤ 1 := by
+      rw [div_le_iff₀ hs]
+      simpa using hlt.le
+    have hratio_nonneg : 0 ≤ uStar / s := div_nonneg huStar.le hs.le
+    have hpow :
+        (uStar / s) ^ (2 * m - 1) ≤ (1 : ℝ) := by
+      simpa using Real.rpow_le_rpow hratio_nonneg hratio hq
+    have hintegrand : 0 ≤ chemotaxisEntropyIntegrand m uStar s := by
+      unfold chemotaxisEntropyIntegrand
+      exact sub_nonneg.mpr hpow
+    exact mul_nonneg (sub_nonneg.mpr hlt.le) hintegrand
+
 /-- The entropy density is normalized to vanish at the equilibrium density. -/
 theorem chemotaxisEntropyDensity_self (m uStar : ℝ) :
     chemotaxisEntropyDensity m uStar uStar = 0 := by
