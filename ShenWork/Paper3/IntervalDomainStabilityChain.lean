@@ -309,6 +309,66 @@ theorem intervalDomain_Theorem_2_1_for_concreteStabilityNorms_mainline
   intervalDomain_norm_upperEnvelope_persistence_mainline
     p M0 uBar vLower hexist
 
+/-- Literal concrete StabilityChain target for Paper3 Theorem 2.1 on the
+interval.  It fixes the concrete interval constants and contains no abstract
+field projection. -/
+def IntervalDomainStabilityChainTheorem21Target
+    (p : CM2Params) (M0 uBar vLower : ℝ) : Prop :=
+  Theorem_2_1 intervalDomain p
+    (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Concrete StabilityChain target including the interval stability norms,
+upper-envelope monotonicity, and the literal Theorem 2.1 target. -/
+def IntervalDomainStabilityChainConcreteMainlineTarget
+    (p : CM2Params) (M0 uBar vLower : ℝ) : Prop :=
+  Lemma_3_3 intervalDomain p intervalDomainStabilityNorms ∧
+    UpperEnvelopeMonotonicityRaw intervalDomain p intervalDomain.supNorm ∧
+    IntervalDomainStabilityChainTheorem21Target p M0 uBar vLower
+
+/-- The literal Theorem 2.1 target reduced to the Paper2-style interval
+existence/frontier package. -/
+theorem intervalDomain_stabilityChainTheorem21Target_of_existence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hexist : IntervalDomainStabilityChainTheorem21Existence p uBar) :
+    IntervalDomainStabilityChainTheorem21Target p M0 uBar vLower :=
+  intervalDomain_Theorem_2_1_for_concrete_constants_of_existence
+    p M0 uBar vLower hexist
+
+/-- The full concrete StabilityChain target reduced to the Paper2-style
+interval existence/frontier package. -/
+theorem intervalDomain_stabilityChainConcreteMainlineTarget_of_existence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hexist : IntervalDomainStabilityChainTheorem21Existence p uBar) :
+    IntervalDomainStabilityChainConcreteMainlineTarget
+      p M0 uBar vLower :=
+  intervalDomain_Theorem_2_1_for_concreteStabilityNorms_mainline
+    p M0 uBar vLower hexist
+
+/-- The StabilityChain Theorem 2.1 existence package extracted from the
+sectorial mainline existence package plus the concrete initial-continuity
+frontier. -/
+theorem IntervalDomainStabilityChainTheorem21Existence.of_sectorialMainline
+    {p : CM2Params} {uBar : ℝ}
+    (hcont : IntervalDomainInitialContinuityRaw p)
+    (hmain : IntervalDomainSectorialMainlineExistence p uBar) :
+    IntervalDomainStabilityChainTheorem21Existence p uBar where
+  initialContinuity := hcont
+  persistence := hmain.persistence
+
+/-- Concrete StabilityChain Theorem 2.1 mainline from the sectorial mainline
+existence package, with the only extra input being the concrete
+initial-continuity frontier for `intervalDomainStabilityNorms`. -/
+theorem intervalDomain_stabilityChainConcreteMainlineTarget_of_sectorialMainlineExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcont : IntervalDomainInitialContinuityRaw p)
+    (hmain : IntervalDomainSectorialMainlineExistence p uBar) :
+    IntervalDomainStabilityChainConcreteMainlineTarget
+      p M0 uBar vLower :=
+  intervalDomain_stabilityChainConcreteMainlineTarget_of_existence
+    p M0 uBar vLower
+    (IntervalDomainStabilityChainTheorem21Existence.of_sectorialMainline
+      hcont hmain)
+
 /-- `Lemma_A_7` for the concrete interval constants, reduced to the explicit
 first-mode domination of the maximum strong threshold. -/
 theorem intervalDomain_Lemma_A_7_of_firstMode_threshold
