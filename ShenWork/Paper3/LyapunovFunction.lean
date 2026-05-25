@@ -723,6 +723,39 @@ theorem intervalDomain_thetaDissipation_two_time_bound_of_hasDerivAt_le_neg_mul
   thetaDissipation_two_time_bound_of_hasDerivAt_le_neg_mul_and_integral_nonneg
     intervalDomain_integral_nonneg huStar htheta hu_nonneg hderiv hle
 
+/-- Concrete theta-dissipation two-time estimate with nonnegativity discharged
+from `PositiveGlobalBoundedSolution` on the interior and an explicit endpoint
+positivity frontier. -/
+theorem intervalDomain_thetaDissipation_two_time_bound_of_solution_positivity
+    {p : CM2Params} {u v : ℝ → intervalDomain.Point → ℝ}
+    {uStar theta rate : ℝ} {momentSlope : ℝ → ℝ}
+    (huStar : 0 ≤ uStar) (htheta : 0 ≤ theta)
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hboundary_pos :
+      ∀ t, 0 < t → ∀ x : intervalDomain.Point,
+        x ∈ intervalDomain.boundary → 0 < u t x)
+    (hderiv :
+      ∀ t, 0 < t →
+        HasDerivAt
+          (fun tau =>
+            chemotaxisThetaDissipation intervalDomain uStar theta (u tau))
+          (momentSlope t) t)
+    (hle :
+      ∀ t, 0 < t →
+        momentSlope t ≤
+          -rate * chemotaxisThetaDissipation intervalDomain uStar theta (u t)) :
+    ∀ s t, 0 < s → s ≤ t →
+      0 ≤ chemotaxisThetaDissipation intervalDomain uStar theta (u t) ∧
+        chemotaxisThetaDissipation intervalDomain uStar theta (u t) ≤
+          chemotaxisThetaDissipation intervalDomain uStar theta (u s) *
+            Real.exp (-rate * (t - s)) :=
+  intervalDomain_thetaDissipation_two_time_bound_of_hasDerivAt_le_neg_mul
+    huStar htheta
+    (fun t ht x =>
+      (intervalDomain_positiveGlobalBoundedSolution_pos_of_boundary_pos
+        huv hboundary_pos t ht x).le)
+    hderiv hle
+
 /-- A direct theta-moment differential decay estimate gives the statement-layer
 `ThetaMomentConvergesToZero` conclusion.
 
