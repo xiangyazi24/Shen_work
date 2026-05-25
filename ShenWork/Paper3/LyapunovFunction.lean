@@ -72,10 +72,63 @@ theorem chemotaxisEntropyIntegrand_mul_sub_nonneg
       exact sub_nonneg.mpr hpow
     exact mul_nonneg (sub_nonneg.mpr hlt.le) hintegrand
 
+/-- The entropy-density derivative is nonnegative to the right of `u*`. -/
+theorem chemotaxisEntropyIntegrand_nonneg_of_ge
+    {m uStar s : ℝ} (hm : (1 / 2 : ℝ) ≤ m)
+    (huStar : 0 < uStar) (hs : 0 < s) (huStar_le : uStar ≤ s) :
+    0 ≤ chemotaxisEntropyIntegrand m uStar s := by
+  have hq : 0 ≤ 2 * m - 1 := by linarith
+  have hratio : uStar / s ≤ 1 := by
+    rw [div_le_iff₀ hs]
+    simpa using huStar_le
+  have hratio_nonneg : 0 ≤ uStar / s := div_nonneg huStar.le hs.le
+  have hpow : (uStar / s) ^ (2 * m - 1) ≤ (1 : ℝ) := by
+    simpa using Real.rpow_le_rpow hratio_nonneg hratio hq
+  unfold chemotaxisEntropyIntegrand
+  exact sub_nonneg.mpr hpow
+
+/-- The entropy-density derivative is nonpositive to the left of `u*`. -/
+theorem chemotaxisEntropyIntegrand_nonpos_of_le
+    {m uStar s : ℝ} (hm : (1 / 2 : ℝ) ≤ m)
+    (_huStar : 0 < uStar) (hs : 0 < s) (hs_le : s ≤ uStar) :
+    chemotaxisEntropyIntegrand m uStar s ≤ 0 := by
+  have hq : 0 ≤ 2 * m - 1 := by linarith
+  have hratio : 1 ≤ uStar / s := by
+    rw [le_div_iff₀ hs]
+    simpa using hs_le
+  have hpow : (1 : ℝ) ≤ (uStar / s) ^ (2 * m - 1) := by
+    simpa using Real.rpow_le_rpow zero_le_one hratio hq
+  unfold chemotaxisEntropyIntegrand
+  exact sub_nonpos.mpr hpow
+
 /-- The entropy density is normalized to vanish at the equilibrium density. -/
 theorem chemotaxisEntropyDensity_self (m uStar : ℝ) :
     chemotaxisEntropyDensity m uStar uStar = 0 := by
   simp [chemotaxisEntropyDensity]
+
+/-- The scalar entropy density is nonnegative on the positive axis when
+`2m-1 ≥ 0`.  This is the one-dimensional Lyapunov positivity statement. -/
+theorem chemotaxisEntropyDensity_nonneg
+    {m uStar s : ℝ} (hm : (1 / 2 : ℝ) ≤ m)
+    (huStar : 0 < uStar) (hs : 0 < s) :
+    0 ≤ chemotaxisEntropyDensity m uStar s := by
+  by_cases hright : uStar ≤ s
+  · unfold chemotaxisEntropyDensity
+    exact intervalIntegral.integral_nonneg hright
+      (fun tau ht =>
+        chemotaxisEntropyIntegrand_nonneg_of_ge hm huStar
+          (lt_of_lt_of_le huStar ht.1) ht.1)
+  · have hleft : s ≤ uStar := le_of_not_ge hright
+    unfold chemotaxisEntropyDensity
+    rw [intervalIntegral.integral_symm]
+    rw [neg_nonneg]
+    rw [← neg_nonneg]
+    rw [← intervalIntegral.integral_neg]
+    exact intervalIntegral.integral_nonneg hleft
+      (fun tau ht =>
+        neg_nonneg.mpr
+          (chemotaxisEntropyIntegrand_nonpos_of_le hm huStar
+            (lt_of_lt_of_le hs ht.1) ht.2))
 
 /-- Away from `tau = 0`, the Paper3 entropy integrand is continuous. -/
 theorem chemotaxisEntropyIntegrand_continuousAt_of_ne
@@ -166,6 +219,20 @@ def chemotaxisEntropyFunctional
     (D : BoundedDomainData) (m uStar : ℝ)
     (u : ℝ → D.Point → ℝ) (t : ℝ) : ℝ :=
   D.integral fun x => chemotaxisEntropyDensity m uStar (u t x)
+
+/-- The entropy functional is nonnegative once the domain integral preserves
+nonnegative functions.  The scalar positivity is fully proved above; this is
+the standard abstract-domain lifting step. -/
+theorem chemotaxisEntropyFunctional_nonneg_of_integral_nonneg
+    {D : BoundedDomainData} {m uStar : ℝ}
+    {u : ℝ → D.Point → ℝ} {t : ℝ}
+    (hintegral_nonneg :
+      ∀ f : D.Point → ℝ, (∀ x, 0 ≤ f x) → 0 ≤ D.integral f)
+    (hm : (1 / 2 : ℝ) ≤ m) (huStar : 0 < uStar)
+    (hu_pos : ∀ x, 0 < u t x) :
+    0 ≤ chemotaxisEntropyFunctional D m uStar u t := by
+  exact hintegral_nonneg _
+    (fun x => chemotaxisEntropyDensity_nonneg hm huStar (hu_pos x))
 
 /-- The theta/entropy-production moment appearing in Paper3's stabilization
 arguments.  With `theta = p.alpha`, this is the paper's
@@ -274,6 +341,15 @@ theorem intervalDomain_integral_nonneg
   intro x hx
   unfold intervalDomainLift
   simpa [hx] using hf ⟨x, hx⟩
+
+/-- Concrete interval-domain entropy-functional nonnegativity. -/
+theorem intervalDomain_chemotaxisEntropyFunctional_nonneg
+    {m uStar : ℝ} {u : ℝ → intervalDomain.Point → ℝ} {t : ℝ}
+    (hm : (1 / 2 : ℝ) ≤ m) (huStar : 0 < uStar)
+    (hu_pos : ∀ x, 0 < u t x) :
+    0 ≤ chemotaxisEntropyFunctional intervalDomain m uStar u t :=
+  chemotaxisEntropyFunctional_nonneg_of_integral_nonneg
+    intervalDomain_integral_nonneg hm huStar hu_pos
 
 /-- Concrete interval-domain theta dissipation nonnegativity. -/
 theorem intervalDomain_chemotaxisThetaDissipation_nonneg
