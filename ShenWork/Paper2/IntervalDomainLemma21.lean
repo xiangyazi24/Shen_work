@@ -670,6 +670,24 @@ theorem unitIntervalCosineLpFromCoeffs_norm_sq
       spectralCoeffL2Energy a := by
   simp [unitIntervalCosineLpFromCoeffs, cosineCoeffLp2_norm_sq]
 
+/-- The cosine Hilbert-basis coefficient sequence of any interval `L²` vector
+is square-summable. -/
+theorem unitIntervalCosineHilbertBasis_repr_l2_summable
+    (v : Lp ℂ 2 (intervalMeasure 1)) :
+    Summable fun n : ℕ => ‖unitIntervalCosineHilbertBasis.repr v n‖ ^ 2 := by
+  have hp : 0 < (2 : ℝ≥0∞).toReal := by norm_num
+  have h := (unitIntervalCosineHilbertBasis.repr v).2.summable hp
+  simpa using h
+
+/-- Reconstructing from the cosine Hilbert-basis coefficients of an interval
+`L²` vector returns the original vector. -/
+theorem unitIntervalCosineLpFromRepr_eq
+    (v : Lp ℂ 2 (intervalMeasure 1)) :
+    unitIntervalCosineLpFromCoeffs
+      (fun n : ℕ => unitIntervalCosineHilbertBasis.repr v n)
+      (unitIntervalCosineHilbertBasis_repr_l2_summable v) = v := by
+  simp [unitIntervalCosineLpFromCoeffs, cosineCoeffLp2]
+
 /-- The Hilbert-basis reconstruction has the prescribed normalized cosine
 coefficients. -/
 theorem unitIntervalCosineLpFromCoeffs_repr

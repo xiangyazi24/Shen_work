@@ -141,7 +141,9 @@
   norm-form estimates
   `unitIntervalCosineHeatDifferenceLpFromCoeffs_norm_le` and
   `unitIntervalCosineFractionalHeatLpFromCoeffs_norm_le` now state the same
-  bounds with square-root coefficient norms.
+  bounds with square-root coefficient norms.  `unitIntervalCosineLpFromRepr_eq`
+  closes the Hilbert-basis round trip from any interval `Lp ℂ 2` vector to its
+  cosine coefficients and back.
 - **BLOCKER / Point 17**: the full `Lemma_2_1 intervalDomain` statement is
   still not discharged.  The missing piece is not H0.1/H0.2 smoothing; it is
   the fractional-domain part of the abstract `SemigroupEstimateData` package:
