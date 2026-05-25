@@ -400,6 +400,25 @@ def spectralCoeffFractionalEnergy (sigma : ℝ) (a : ℕ → ℂ) : ℝ :=
 def spectralCoeffL2Energy (a : ℕ → ℂ) : ℝ :=
   ∑' n : ℕ, ‖a n‖ ^ 2
 
+/-- Square-root form of the spectral fractional coefficient energy. -/
+def spectralCoeffFractionalNorm (sigma : ℝ) (a : ℕ → ℂ) : ℝ :=
+  Real.sqrt (spectralCoeffFractionalEnergy sigma a)
+
+/-- Square-root form of the unweighted coefficient `ℓ²` energy. -/
+def spectralCoeffL2Norm (a : ℕ → ℂ) : ℝ :=
+  Real.sqrt (spectralCoeffL2Energy a)
+
+/-- Fractional coefficient energy is nonnegative. -/
+theorem spectralCoeffFractionalEnergy_nonneg
+    (sigma : ℝ) (a : ℕ → ℂ) :
+    0 ≤ spectralCoeffFractionalEnergy sigma a := by
+  exact tsum_nonneg fun n => mul_nonneg (sq_nonneg _) (sq_nonneg _)
+
+/-- Unweighted coefficient `ℓ²` energy is nonnegative. -/
+theorem spectralCoeffL2Energy_nonneg (a : ℕ → ℂ) :
+    0 ≤ spectralCoeffL2Energy a := by
+  exact tsum_nonneg fun n => sq_nonneg _
+
 /-- Under finite fractional coefficient energy, the coefficient series for
 `S(t)-I` is summable. -/
 theorem spectralCoeff_heat_difference_sq_summable
@@ -787,6 +806,33 @@ theorem unitIntervalCosineHeatDifferenceLpFromCoeffs_norm_sq_le
     spectralCoeff_heat_difference_tsum_le
       (a := a) ht hsigma_pos hsigma_le henergy
 
+/-- Non-squared interval `L²` form of the spectral fractional `S(t)-I`
+estimate. -/
+theorem unitIntervalCosineHeatDifferenceLpFromCoeffs_norm_le
+    {t sigma : ℝ} (a : ℕ → ℂ)
+    (ht : 0 < t) (hsigma_pos : 0 < sigma) (hsigma_le : sigma ≤ 1)
+    (henergy :
+      Summable fun n : ℕ =>
+        (unitIntervalCosineEigenvalue n ^ sigma) ^ 2 * ‖a n‖ ^ 2) :
+    ‖unitIntervalCosineHeatDifferenceLpFromCoeffs
+        a ht hsigma_pos hsigma_le henergy‖ ≤
+      t ^ sigma * spectralCoeffFractionalNorm sigma a := by
+  have hsq :=
+    unitIntervalCosineHeatDifferenceLpFromCoeffs_norm_sq_le
+      (a := a) ht hsigma_pos hsigma_le henergy
+  have henergy_nonneg := spectralCoeffFractionalEnergy_nonneg sigma a
+  have hscale_nonneg : 0 ≤ t ^ sigma := Real.rpow_nonneg ht.le _
+  have hright_nonneg :
+      0 ≤ t ^ sigma * spectralCoeffFractionalNorm sigma a :=
+    mul_nonneg hscale_nonneg (Real.sqrt_nonneg _)
+  have hsq_rhs :
+      (t ^ sigma) ^ 2 * spectralCoeffFractionalEnergy sigma a =
+        (t ^ sigma * spectralCoeffFractionalNorm sigma a) ^ 2 := by
+    rw [spectralCoeffFractionalNorm, mul_pow,
+      Real.sq_sqrt henergy_nonneg]
+  rw [hsq_rhs] at hsq
+  exact (sq_le_sq₀ (norm_nonneg _) hright_nonneg).mp hsq
+
 /-- The fractional heat coefficient sequence is square-summable for
 square-summable input coefficients. -/
 theorem spectralFractionalHeatCoeff_l2_summable
@@ -857,6 +903,30 @@ theorem unitIntervalCosineFractionalHeatLpFromCoeffs_norm_sq_le
     spectralFractionalHeatCoeff_energy_eq]
   exact spectralCoeff_heat_smoothing_tsum_le
     (a := a) ht hsigma_pos hsigma_le hcoeff
+
+/-- Non-squared interval `L²` form of the spectral fractional heat smoothing
+estimate. -/
+theorem unitIntervalCosineFractionalHeatLpFromCoeffs_norm_le
+    {t sigma : ℝ} (a : ℕ → ℂ)
+    (ht : 0 < t) (hsigma_pos : 0 < sigma) (hsigma_le : sigma ≤ 1)
+    (hcoeff : Summable fun n : ℕ => ‖a n‖ ^ 2) :
+    ‖unitIntervalCosineFractionalHeatLpFromCoeffs
+        a ht hsigma_pos hsigma_le hcoeff‖ ≤
+      t ^ (-sigma) * spectralCoeffL2Norm a := by
+  have hsq :=
+    unitIntervalCosineFractionalHeatLpFromCoeffs_norm_sq_le
+      (a := a) ht hsigma_pos hsigma_le hcoeff
+  have henergy_nonneg := spectralCoeffL2Energy_nonneg a
+  have hscale_nonneg : 0 ≤ t ^ (-sigma) := Real.rpow_nonneg ht.le _
+  have hright_nonneg :
+      0 ≤ t ^ (-sigma) * spectralCoeffL2Norm a :=
+    mul_nonneg hscale_nonneg (Real.sqrt_nonneg _)
+  have hsq_rhs :
+      (t ^ (-sigma)) ^ 2 * spectralCoeffL2Energy a =
+        (t ^ (-sigma) * spectralCoeffL2Norm a) ^ 2 := by
+    rw [spectralCoeffL2Norm, mul_pow, Real.sq_sqrt henergy_nonneg]
+  rw [hsq_rhs] at hsq
+  exact (sq_le_sq₀ (norm_nonneg _) hright_nonneg).mp hsq
 
 end ShenWork.Paper2.IntervalDomainLemma21
 
