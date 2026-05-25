@@ -1502,6 +1502,67 @@ theorem intervalDuhamel_fixed_point_exists_of_contraction
   have ht : 0 ≤ t ∧ t ≤ T := ⟨ht0, htT⟩
   simpa [Φ, ht] using hfp t x
 
+/-- Uniqueness of bounded local fixed points for the concrete interval Duhamel
+operator.
+
+This is the uniqueness part supplied by the same contraction estimate as the
+Picard construction.  The hypothesis `hbound` is the ball/bounded-distance
+input for the two candidate trajectories on `[0,T]`; Picard iteration provides
+that bound automatically for fixed points lying in the contraction ball. -/
+theorem intervalDuhamel_fixed_point_unique_of_contraction
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    {L T D : ℝ} (hL : 0 < L) (hD : 0 ≤ D)
+    (hT : 0 < T) (hLT : L * T < 1)
+    (hcontr :
+      ∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D' : ℝ),
+        0 ≤ D' →
+        (∀ s y, 0 ≤ s → s ≤ T → |u₁ s y - u₂ s y| ≤ D') →
+        ∀ t x, 0 ≤ t → t ≤ T →
+          |intervalDuhamelOperator p u₀ u₁ t x -
+            intervalDuhamelOperator p u₀ u₂ t x| ≤ L * T * D')
+    {u₁ u₂ : ℝ → intervalDomainPoint → ℝ}
+    (hfp₁ :
+      ∀ t x, 0 ≤ t → t ≤ T →
+        u₁ t x = intervalDuhamelOperator p u₀ u₁ t x)
+    (hfp₂ :
+      ∀ t x, 0 ≤ t → t ≤ T →
+        u₂ t x = intervalDuhamelOperator p u₀ u₂ t x)
+    (hbound :
+      ∀ t x, 0 ≤ t → t ≤ T → |u₁ t x - u₂ t x| ≤ D) :
+    ∀ t x, 0 ≤ t → t ≤ T → u₁ t x = u₂ t x := by
+  let q : ℝ := L * T
+  have hq0 : 0 ≤ q := by
+    exact mul_nonneg hL.le hT.le
+  have hpow_bound :
+      ∀ n t x, 0 ≤ t → t ≤ T →
+        |u₁ t x - u₂ t x| ≤ q ^ n * D := by
+    intro n
+    induction n with
+    | zero =>
+        intro t x ht0 htT
+        simpa using hbound t x ht0 htT
+    | succ n ih =>
+        intro t x ht0 htT
+        rw [hfp₁ t x ht0 htT, hfp₂ t x ht0 htT]
+        calc
+          |intervalDuhamelOperator p u₀ u₁ t x -
+              intervalDuhamelOperator p u₀ u₂ t x|
+              ≤ L * T * (q ^ n * D) :=
+                hcontr u₁ u₂ (q ^ n * D)
+                  (mul_nonneg (pow_nonneg hq0 n) hD)
+                  (fun s y hs0 hsT => ih s y hs0 hsT) t x ht0 htT
+          _ = q ^ (n + 1) * D := by
+                simp [q, pow_succ]
+                ring
+  intro t x ht0 htT
+  have habs_zero : |u₁ t x - u₂ t x| = 0 := by
+    apply eq_zero_of_le_geometric_pow (abs_nonneg _) hD hq0 hLT
+    intro n
+    calc
+      |u₁ t x - u₂ t x| ≤ q ^ n * D := hpow_bound n t x ht0 htT
+      _ = D * q ^ n := by ring
+  exact sub_eq_zero.mp (abs_eq_zero.mp habs_zero)
+
 /-! ### Wiring: Banach FP + RegularityBootstrap → localExistence
 
 The `RegularityBootstrap` predicate captures the genuine PDE properties
@@ -1663,6 +1724,35 @@ theorem intervalDomain_localExistence_of_intervalDuhamel_contraction_regularizat
     hmild u₀ hu₀
   exact localExistence_of_intervalDuhamel_contraction_and_regularization
     p u₀ hu₀ hL hD₀ hT hLT hcontr hbase hregularize
+
+/-- Full `Proposition_1_1 intervalDomain p` from a closed local-existence
+theorem plus the genuine finite-horizon alternative.
+
+The first hypothesis is exactly the local branch closed by
+`intervalDomain_localExistence_of_intervalDuhamel_contraction_regularization`.
+The second hypothesis is the remaining maximal-time/blow-up alternative. -/
+theorem Proposition_1_1_intervalDomain_of_localExistence_and_finiteHorizonAlternative
+    (p : CM2Params)
+    (hlocal :
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (halternative :
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          FiniteHorizonAlternative intervalDomain Tmax u ∧
+          (1 ≤ p.m → MGeOneFiniteHorizonAlternative intervalDomain Tmax u)) :
+    Proposition_1_1 intervalDomain p := by
+  intro u₀ hu₀
+  obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ := hlocal u₀ hu₀
+  obtain ⟨halt, hmge⟩ :=
+    halternative u₀ hu₀ Tmax hTmax u v hsol htrace
+  exact ⟨Tmax, hTmax, u, v, hsol, htrace, halt, hmge⟩
 
 /-- Conditional `Proposition_1_1` assembly from the concrete interval-Duhamel
 Banach construction.
@@ -2218,6 +2308,10 @@ The full `IntervalDomainExistence.localExistence` requires `∀ u₀, PID u₀ �
   `intervalDomain_localExistence_of_intervalDuhamel_contraction_regularization`
   closes the full local-existence field for every positive initial datum under
   those same concrete Picard/Duhamel hypotheses;
+  `intervalDuhamel_fixed_point_unique_of_contraction` gives uniqueness for
+  bounded local fixed points in the contraction ball;
+  `Proposition_1_1_intervalDomain_of_localExistence_and_finiteHorizonAlternative`
+  isolates the exact remaining proposition-level frontier;
   `Proposition_1_1_intervalDomain_of_intervalDuhamel_contraction_regularization`
   closes `Proposition_1_1 intervalDomain p` conditional on the same concrete
   regularization plus the genuine maximal-continuation/blow-up alternative.
