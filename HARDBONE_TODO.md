@@ -99,6 +99,15 @@
   `intervalDomainHeat_Lp_Lq_bound_from_memLp`,
   `intervalDomainHeat_grad_Lp_Lq_bound_from_memLp`, and
   `intervalDomainHeat_grad_Lp_Linfty_bound_from_memLp`.
+- **新增进展** (2026-05-24): the same file now proves the fractional-time
+  heat multiplier facts needed for the `S(t)-I` branch,
+  `heat_time_multiplier_difference_le_fractional` and
+  `heat_time_multiplier_smoothing_le`, plus finite Neumann spectral
+  coefficient-energy estimates
+  `finiteSpectralCoeff_heat_difference_energy_le` and
+  `finiteSpectralCoeff_heat_smoothing_energy_le`.  These are real
+  coefficient-level fractional estimates; the remaining work is the
+  `tsum`/Hilbert-basis transport to the statement-layer total norm below.
 - **BLOCKER / Point 17**: the full `Lemma_2_1 intervalDomain` statement is
   still not discharged.  The missing piece is not H0.1/H0.2 smoothing; it is
   the fractional-domain part of the abstract `SemigroupEstimateData` package:
