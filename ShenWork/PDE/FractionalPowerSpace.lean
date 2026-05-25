@@ -37,6 +37,11 @@ one-dimensional input behind the `X^σ ↪ C⁰` embedding. -/
 def reciprocalFractionalPowerWeight (L sigma : ℝ) (n : ℕ) : ℝ :=
   (fractionalPowerWeight L sigma n)⁻¹
 
+/-- Reciprocal trace weight for one spatial derivative:
+`λₙ (1 + λₙ)^(-2σ)`. -/
+def derivativeReciprocalFractionalPowerWeight (L sigma : ℝ) (n : ℕ) : ℝ :=
+  neumannEigenvalue L n * reciprocalFractionalPowerWeight L sigma n
+
 /-- Spectral fractional-power coefficient space for `(I - Δ)^σ` on `(0,L)`.
 
 Membership is exactly square summability of the coefficients weighted by
@@ -81,7 +86,13 @@ theorem reciprocalFractionalPowerWeight_nonneg (L sigma : ℝ) (n : ℕ) :
   dsimp [reciprocalFractionalPowerWeight]
   exact inv_nonneg.mpr (fractionalPowerWeight_pos L sigma n).le
 
-private theorem reciprocalFractionalPowerWeight_succ_le_pseries_majorant
+theorem derivativeReciprocalFractionalPowerWeight_nonneg
+    (L sigma : ℝ) (n : ℕ) :
+    0 ≤ derivativeReciprocalFractionalPowerWeight L sigma n := by
+  exact mul_nonneg (neumannEigenvalue_nonneg L n)
+    (reciprocalFractionalPowerWeight_nonneg L sigma n)
+
+theorem reciprocalFractionalPowerWeight_succ_le_pseries_majorant
     {L sigma : ℝ} (hL : 0 < L) (hsigma : 1 / 4 < sigma) (n : ℕ) :
     reciprocalFractionalPowerWeight L sigma (n + 1) ≤
       ((Real.pi / L) ^ 2) ^ (-(2 * sigma)) *
@@ -175,6 +186,112 @@ theorem reciprocalFractionalPowerWeight_summable_of_sigma_gt_quarter
       hmajorant
   exact (summable_nat_add_iff (f := fun n : ℕ =>
     reciprocalFractionalPowerWeight L sigma n) 1).mp htail
+
+theorem derivativeReciprocalFractionalPowerWeight_succ_le_pseries_majorant
+    {L sigma : ℝ} (hL : 0 < L) (hsigma : 3 / 4 < sigma) (n : ℕ) :
+    derivativeReciprocalFractionalPowerWeight L sigma (n + 1) ≤
+      ((Real.pi / L) ^ 2) ^ (1 - 2 * sigma) *
+        (1 / |(n : ℝ) + 1| ^ (4 * sigma - 2)) := by
+  let c : ℝ := (Real.pi / L) ^ 2
+  let m : ℕ := n + 1
+  have hsigma_quarter : 1 / 4 < sigma := by linarith
+  have hc_pos : 0 < c := by
+    dsimp [c]
+    exact sq_pos_of_pos (div_pos Real.pi_pos hL)
+  have hm_pos_nat : 0 < m := Nat.succ_pos n
+  have hm_pos : 0 < (m : ℝ) := by exact_mod_cast hm_pos_nat
+  have hneumann :
+      neumannEigenvalue L m = c * (m : ℝ) ^ 2 := by
+    dsimp [neumannEigenvalue, c]
+    ring
+  have hrecip_le :=
+    reciprocalFractionalPowerWeight_succ_le_pseries_majorant
+      (L := L) (sigma := sigma) hL hsigma_quarter n
+  have habs : |(n : ℝ) + 1| = (m : ℝ) := by
+    have hpos : 0 < (n : ℝ) + 1 := by positivity
+    rw [abs_of_pos hpos]
+    dsimp [m]
+    norm_num
+  calc
+    derivativeReciprocalFractionalPowerWeight L sigma (n + 1)
+        = (c * (m : ℝ) ^ 2) *
+            reciprocalFractionalPowerWeight L sigma (n + 1) := by
+          dsimp [derivativeReciprocalFractionalPowerWeight]
+          rw [show n + 1 = m from rfl, hneumann]
+    _ ≤ (c * (m : ℝ) ^ 2) *
+          (c ^ (-(2 * sigma)) *
+            (1 / |(n : ℝ) + 1| ^ (4 * sigma))) := by
+          exact mul_le_mul_of_nonneg_left hrecip_le
+            (mul_nonneg hc_pos.le (sq_nonneg (m : ℝ)))
+    _ = c ^ (1 - 2 * sigma) *
+          (1 / |(n : ℝ) + 1| ^ (4 * sigma - 2)) := by
+          rw [habs]
+          have hc_id :
+              c * c ^ (-(2 * sigma)) = c ^ (1 - 2 * sigma) := by
+            calc
+              c * c ^ (-(2 * sigma))
+                  = c ^ (1 : ℝ) * c ^ (-(2 * sigma)) := by
+                    rw [Real.rpow_one]
+              _ = c ^ ((1 : ℝ) + (-(2 * sigma))) := by
+                    rw [← Real.rpow_add hc_pos 1 (-(2 * sigma))]
+              _ = c ^ (1 - 2 * sigma) := by ring_nf
+          have hm_id :
+              (m : ℝ) ^ 2 * (1 / (m : ℝ) ^ (4 * sigma)) =
+                1 / (m : ℝ) ^ (4 * sigma - 2) := by
+            calc
+              (m : ℝ) ^ 2 * (1 / (m : ℝ) ^ (4 * sigma))
+                  = (m : ℝ) ^ (2 : ℝ) /
+                      (m : ℝ) ^ (4 * sigma) := by
+                    rw [Real.rpow_two]
+                    ring
+              _ = (m : ℝ) ^ ((2 : ℝ) - 4 * sigma) := by
+                    rw [← Real.rpow_sub' hm_pos.le
+                      (by ring_nf; linarith [hsigma])]
+              _ = 1 / (m : ℝ) ^ (4 * sigma - 2) := by
+                    have hexp :
+                        (2 : ℝ) - 4 * sigma = -(4 * sigma - 2) := by
+                      ring
+                    rw [hexp, Real.rpow_neg hm_pos.le (4 * sigma - 2)]
+                    rw [one_div]
+          calc
+            (c * (m : ℝ) ^ 2) *
+                (c ^ (-(2 * sigma)) *
+                  (1 / (m : ℝ) ^ (4 * sigma)))
+                = (c * c ^ (-(2 * sigma))) *
+                    ((m : ℝ) ^ 2 *
+                      (1 / (m : ℝ) ^ (4 * sigma))) := by
+                  ring
+            _ = c ^ (1 - 2 * sigma) *
+                (1 / (m : ℝ) ^ (4 * sigma - 2)) := by
+                  rw [hc_id, hm_id]
+
+/-- For `σ > 3/4`, the one-derivative reciprocal shifted spectral trace is
+summable.  This is the coefficient-side core of the one-dimensional
+`X^σ ↪ C¹` embedding. -/
+theorem derivativeReciprocalFractionalPowerWeight_summable_of_sigma_gt_three_quarters
+    {L sigma : ℝ} (hL : 0 < L) (hsigma : 3 / 4 < sigma) :
+    Summable fun n : ℕ =>
+      derivativeReciprocalFractionalPowerWeight L sigma n := by
+  have hp : 1 < 4 * sigma - 2 := by nlinarith [hsigma]
+  have hpseries :
+      Summable fun n : ℕ => 1 / |(n : ℝ) + 1| ^ (4 * sigma - 2) :=
+    (Real.summable_one_div_nat_add_rpow 1 (4 * sigma - 2)).mpr hp
+  have hmajorant :
+      Summable fun n : ℕ =>
+        ((Real.pi / L) ^ 2) ^ (1 - 2 * sigma) *
+          (1 / |(n : ℝ) + 1| ^ (4 * sigma - 2)) :=
+    hpseries.mul_left (((Real.pi / L) ^ 2) ^ (1 - 2 * sigma))
+  have htail :
+      Summable fun n : ℕ =>
+        derivativeReciprocalFractionalPowerWeight L sigma (n + 1) := by
+    refine Summable.of_nonneg_of_le
+      (fun n => derivativeReciprocalFractionalPowerWeight_nonneg L sigma (n + 1))
+      (fun n =>
+        derivativeReciprocalFractionalPowerWeight_succ_le_pseries_majorant
+          (L := L) (sigma := sigma) hL hsigma n)
+      hmajorant
+  exact (summable_nat_add_iff (f := fun n : ℕ =>
+    derivativeReciprocalFractionalPowerWeight L sigma n) 1).mp htail
 
 /-- Weighted `ℓ²` coefficients are `ℓ¹` once the reciprocal spectral trace is
 summable.  This is the Cauchy-Schwarz/Young inequality core of the
