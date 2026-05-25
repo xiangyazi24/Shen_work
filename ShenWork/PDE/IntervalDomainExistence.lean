@@ -2063,6 +2063,24 @@ theorem equilibrium_reachableArbitrarilyLong
     (equilibrium_isPaper2ClassicalSolution p ha hb) T hT,
     constantSolution_initialTrace ((p.a / p.b) ^ (1 / p.α))⟩
 
+/-- For positive equilibrium data, the reachable-horizon set is genuinely
+unbounded.  This is the formal obstruction to replacing the global branch of
+maximal continuation by a finite `Tmax` alternative. -/
+theorem equilibrium_reachableClassicalHorizonSet_not_bddAbove
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) :
+    ¬ BddAbove (reachableClassicalHorizonSet p
+      (constOnInterval ((p.a / p.b) ^ (1 / p.α)))) := by
+  rw [not_bddAbove_iff]
+  intro T
+  let Tlong : ℝ := max (T + 1) 1
+  have hTlong_pos : 0 < Tlong :=
+    lt_of_lt_of_le zero_lt_one (le_max_right (T + 1) (1 : ℝ))
+  have hT_lt_Tlong : T < Tlong :=
+    lt_of_lt_of_le (lt_add_one T) (le_max_left (T + 1) (1 : ℝ))
+  exact ⟨Tlong,
+    equilibrium_reachableArbitrarilyLong p ha hb Tlong hTlong_pos,
+    hT_lt_Tlong⟩
+
 /-- Consequently the standard maximal-continuation statement for equilibrium
 data closes by the global branch, not by the finite alternative branch used in
 the current formal `Proposition_1_1`. -/
