@@ -66,8 +66,11 @@
   This file contains **no `sorry`, no `admit`, no custom `axiom`.**
 -/
 import ShenWork.Paper2.IntervalDomainL2FrontierBuilder
+import ShenWork.PDE.IntervalUnderIntegralLeibniz
 
 open ShenWork.IntervalDomain MeasureTheory
+open ShenWork.IntervalUnderIntegralLeibniz
+open ShenWork.Paper2.IntervalDomainLpMonotonicity
 open scoped Topology
 
 namespace ShenWork.Paper2
@@ -147,8 +150,235 @@ theorem intervalDomain_difference_sq_hasDerivAt_time
   have := hw.pow 2
   simpa [pow_one, two_mul, mul_comm, mul_left_comm, mul_assoc] using this
 
+/-! ## Energy as an explicit interval integral, and the localized time-Leibniz -/
+
+/-- The lift of a pointwise sum of two squares splits as a sum of squares of the
+lifts.  Pure unfolding of `intervalDomainLift` (case split on `x ∈ [0,1]`). -/
+theorem intervalDomainLift_sumSq
+    (f g : intervalDomain.Point → ℝ) (y : ℝ) :
+    intervalDomainLift (fun x => f x ^ 2 + g x ^ 2) y
+      = (intervalDomainLift f y) ^ 2 + (intervalDomainLift g y) ^ 2 := by
+  unfold intervalDomainLift
+  by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+  · simp [hy]
+  · simp [hy]
+
+/-- The L² difference energy written as a plain interval integral of the lifted
+squared differences. -/
+theorem intervalDomainClassicalL2DifferenceEnergy_eq_integral
+    (u v U V : ℝ → intervalDomain.Point → ℝ) (t : ℝ) :
+    intervalDomainClassicalL2DifferenceEnergy u v U V t
+      = ∫ y in (0 : ℝ)..1,
+          (intervalDomainLift (fun x => u t x - U t x) y) ^ 2
+            + (intervalDomainLift (fun x => v t x - V t x) y) ^ 2 := by
+  unfold intervalDomainClassicalL2DifferenceEnergy intervalDomain
+  show intervalDomainIntegral
+      (fun x => (u t x - U t x) ^ 2 + (v t x - V t x) ^ 2) = _
+  unfold intervalDomainIntegral
+  refine intervalIntegral.integral_congr ?_
+  intro y _
+  exact intervalDomainLift_sumSq _ _ y
+
+/-- **The time-derivative integrand of the energy.**  At an interior space-time
+point, `∂τ[(lift w τ y)² + (lift z τ y)²] = 2(lift w τ y)(∂τ lift w) + 2(lift z τ
+y)(∂τ lift z)`, where `w = u₁−u₂`, `z = v₁−v₂`.  Off `[0,1]` the lift is `0`, so
+the integrand and its derivative both vanish; on `(0,1)` this is the per-`x`
+square chain rule. -/
+def intervalDomainEnergyIntegrand
+    (u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ) (s y : ℝ) : ℝ :=
+  (intervalDomainLift (fun x => u₁ s x - u₂ s x) y) ^ 2
+    + (intervalDomainLift (fun x => v₁ s x - v₂ s x) y) ^ 2
+
+/-- The time-derivative field of the energy integrand, as an `ℝ → ℝ → ℝ` family
+in `(s, y)`. -/
+def intervalDomainEnergyIntegrandDeriv
+    (u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ) (s y : ℝ) : ℝ :=
+  2 * (intervalDomainLift (fun x => u₁ s x - u₂ s x) y)
+      * deriv (fun r => intervalDomainLift (fun x => u₁ r x - u₂ r x) y) s
+    + 2 * (intervalDomainLift (fun x => v₁ s x - v₂ s x) y)
+      * deriv (fun r => intervalDomainLift (fun x => v₁ r x - v₂ r x) y) s
+
+/-- **(D1), discharged on the localization ball.**  For an interior spatial point
+`y ∈ (0,1)` and every time `s` in a ball `Metric.ball τ δ ⊆ (0,T)`, the energy
+integrand `r ↦ intervalDomainEnergyIntegrand … r y` has the stated time
+derivative.  Uses the interior-time-differentiability conjunct `.2.2.2.1` at the
+interior time `s` (valid because the ball lies inside `(0,T)`) together with the
+square chain rule, lifted through `intervalDomainLift` on the interior branch. -/
+theorem intervalDomainEnergyIntegrand_hasDerivAt_interior
+    {p : CM2Params} {T₁ T₂ : ℝ}
+    {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ}
+    (hsol₁ : IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁)
+    (hsol₂ : IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂)
+    {y : ℝ} (hy : y ∈ Set.Ioo (0 : ℝ) 1)
+    {s : ℝ} (hs : s ∈ Set.Ioo (0 : ℝ) (min T₁ T₂)) :
+    HasDerivAt
+      (fun r => intervalDomainEnergyIntegrand u₁ v₁ u₂ v₂ r y)
+      (intervalDomainEnergyIntegrandDeriv u₁ v₁ u₂ v₂ s y) s := by
+  classical
+  -- The interior point `y` packages into `intervalDomain.Point`.
+  have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hy
+  set x : intervalDomain.Point := ⟨y, hyIcc⟩ with hx
+  have hxIoo : (x.1 : ℝ) ∈ Set.Ioo (0 : ℝ) 1 := hy
+  -- On the interior branch the lift of a slice equals the slice value at `x`.
+  have hlift_u : ∀ r : ℝ,
+      intervalDomainLift (fun z => u₁ r z - u₂ r z) y = u₁ r x - u₂ r x := by
+    intro r; simp [intervalDomainLift, hyIcc, hx]
+  have hlift_v : ∀ r : ℝ,
+      intervalDomainLift (fun z => v₁ r z - v₂ r z) y = v₁ r x - v₂ r x := by
+    intro r; simp [intervalDomainLift, hyIcc, hx]
+  -- Pointwise time derivatives of the difference slices at `s` (interior time).
+  have hwsq := intervalDomain_difference_sq_hasDerivAt_time hsol₁ hsol₂ hxIoo hs
+  -- For `v` we need the analogous square-derivative lemma; build it directly.
+  have hzw : HasDerivAt (fun r : ℝ => v₁ r x - v₂ r x)
+      (intervalDomain.timeDeriv v₁ s x - intervalDomain.timeDeriv v₂ s x) s := by
+    have hs1 : s ∈ Set.Ioo (0 : ℝ) T₁ :=
+      ⟨hs.1, lt_of_lt_of_le hs.2 (min_le_left _ _)⟩
+    have hs2 : s ∈ Set.Ioo (0 : ℝ) T₂ :=
+      ⟨hs.1, lt_of_lt_of_le hs.2 (min_le_right _ _)⟩
+    exact (intervalDomain_timeDeriv_isGenuine_v hsol₁ hxIoo hs1).sub
+      (intervalDomain_timeDeriv_isGenuine_v hsol₂ hxIoo hs2)
+  have hzsq := hzw.pow 2
+  -- Assemble: rewrite the integrand and its derivative through the lift identities.
+  have hsum : HasDerivAt
+      (fun r => (u₁ r x - u₂ r x) ^ 2 + (v₁ r x - v₂ r x) ^ 2)
+      (2 * (u₁ s x - u₂ s x) *
+          (intervalDomain.timeDeriv u₁ s x - intervalDomain.timeDeriv u₂ s x)
+        + 2 * (v₁ s x - v₂ s x) *
+          (intervalDomain.timeDeriv v₁ s x - intervalDomain.timeDeriv v₂ s x)) s := by
+    have h1 := hwsq
+    have h2 : HasDerivAt (fun r : ℝ => (v₁ r x - v₂ r x) ^ 2)
+        (2 * (v₁ s x - v₂ s x) *
+          (intervalDomain.timeDeriv v₁ s x - intervalDomain.timeDeriv v₂ s x)) s := by
+      simpa [pow_one, two_mul, mul_comm, mul_left_comm, mul_assoc] using hzsq
+    exact h1.add h2
+  -- Transport `hsum` to the lifted integrand via the eventual equality of functions.
+  have hfun_eq : (fun r => intervalDomainEnergyIntegrand u₁ v₁ u₂ v₂ r y)
+      = fun r => (u₁ r x - u₂ r x) ^ 2 + (v₁ r x - v₂ r x) ^ 2 := by
+    funext r; simp [intervalDomainEnergyIntegrand, hlift_u r, hlift_v r]
+  -- The derivative-field also rewrites: `deriv (lift slice) s = timeDeriv … s x`.
+  have hderiv_u :
+      deriv (fun r => intervalDomainLift (fun z => u₁ r z - u₂ r z) y) s
+        = intervalDomain.timeDeriv u₁ s x - intervalDomain.timeDeriv u₂ s x := by
+    have : (fun r => intervalDomainLift (fun z => u₁ r z - u₂ r z) y)
+        = fun r => u₁ r x - u₂ r x := by funext r; exact hlift_u r
+    rw [this]
+    exact (intervalDomain_difference_hasDerivAt_time hsol₁ hsol₂ hxIoo hs).deriv
+  have hderiv_v :
+      deriv (fun r => intervalDomainLift (fun z => v₁ r z - v₂ r z) y) s
+        = intervalDomain.timeDeriv v₁ s x - intervalDomain.timeDeriv v₂ s x := by
+    have : (fun r => intervalDomainLift (fun z => v₁ r z - v₂ r z) y)
+        = fun r => v₁ r x - v₂ r x := by funext r; exact hlift_v r
+    rw [this]; exact hzw.deriv
+  rw [hfun_eq]
+  have hval : intervalDomainEnergyIntegrandDeriv u₁ v₁ u₂ v₂ s y
+      = 2 * (u₁ s x - u₂ s x) *
+          (intervalDomain.timeDeriv u₁ s x - intervalDomain.timeDeriv u₂ s x)
+        + 2 * (v₁ s x - v₂ s x) *
+          (intervalDomain.timeDeriv v₁ s x - intervalDomain.timeDeriv v₂ s x) := by
+    unfold intervalDomainEnergyIntegrandDeriv
+    rw [hlift_u s, hlift_v s, hderiv_u, hderiv_v]
+  rw [hval]
+  exact hsum
+
+/-- **Energy time-derivative identity (step i), modulo the (D2) envelope.**
+
+Given an integrable dominating envelope `bound` for the energy
+integrand's time derivative, uniform over a localization ball
+`Metric.ball τ δ ⊆ (0,T)`, the L² difference energy `E` has a genuine time
+derivative `∫₀¹ ∂τ[(lift w)² + (lift z)²]` at `τ`.  All hypotheses except the
+envelope (`hbound_int`, `h_bound`) are discharged here from the regularity:
+(D1) via `intervalDomainEnergyIntegrand_hasDerivAt_interior`, the
+measurability/integrability via continuity of the integrand on the compact
+interior.  This isolates the envelope as the single residual analytic input. -/
+theorem intervalDomainClassicalL2DifferenceEnergy_hasDerivAt_of_envelope
+    {p : CM2Params} {T₁ T₂ : ℝ}
+    {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ}
+    (hsol₁ : IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁)
+    (hsol₂ : IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂)
+    {τ δ : ℝ} (hδ : 0 < δ)
+    (hball : Metric.ball τ δ ⊆ Set.Ioo (0 : ℝ) (min T₁ T₂))
+    {bound : ℝ → ℝ}
+    (hF_meas : ∀ᶠ s in 𝓝 τ,
+        AEStronglyMeasurable
+          (intervalDomainEnergyIntegrand u₁ v₁ u₂ v₂ s)
+          intervalDomainInteriorMeasure)
+    (hF_int : IntervalIntegrable
+        (intervalDomainEnergyIntegrand u₁ v₁ u₂ v₂ τ) volume 0 1)
+    (hF'_meas : AEStronglyMeasurable
+        (intervalDomainEnergyIntegrandDeriv u₁ v₁ u₂ v₂ τ)
+        intervalDomainInteriorMeasure)
+    (h_bound : ∀ᵐ y ∂intervalDomainInteriorMeasure,
+        ∀ s ∈ Metric.ball τ δ,
+          ‖intervalDomainEnergyIntegrandDeriv u₁ v₁ u₂ v₂ s y‖ ≤ bound y)
+    (hbound_int : Integrable bound intervalDomainInteriorMeasure) :
+    HasDerivAt
+      (intervalDomainClassicalL2DifferenceEnergy u₁ v₁ u₂ v₂)
+      (∫ y in (0 : ℝ)..1,
+        intervalDomainEnergyIntegrandDeriv u₁ v₁ u₂ v₂ τ y) τ := by
+  -- (D1): time-slice differentiability for a.e. interior `y`, on the whole ball.
+  have h_diff : ∀ᵐ y ∂intervalDomainInteriorMeasure,
+      ∀ s ∈ Metric.ball τ δ,
+        HasDerivAt (fun r => intervalDomainEnergyIntegrand u₁ v₁ u₂ v₂ r y)
+          (intervalDomainEnergyIntegrandDeriv u₁ v₁ u₂ v₂ s y) s := by
+    refine (ae_restrict_iff' measurableSet_Ioo).2 ?_
+    refine Filter.Eventually.of_forall (fun y hy s hs => ?_)
+    exact intervalDomainEnergyIntegrand_hasDerivAt_interior hsol₁ hsol₂ hy
+      (hball hs)
+  -- Localized Leibniz gives the derivative of the integral form of `E`.
+  have hderiv :
+      HasDerivAt
+        (fun s => ∫ y in (0 : ℝ)..1,
+          intervalDomainEnergyIntegrand u₁ v₁ u₂ v₂ s y)
+        (∫ y in (0 : ℝ)..1,
+          intervalDomainEnergyIntegrandDeriv u₁ v₁ u₂ v₂ τ y) τ :=
+    intervalIntegral_hasDerivAt_time_of_local hδ hF_meas hF_int hF'_meas
+      h_bound hbound_int h_diff
+  -- Rewrite `E` as that integral form.
+  have hEeq : (intervalDomainClassicalL2DifferenceEnergy u₁ v₁ u₂ v₂)
+      = fun s => ∫ y in (0 : ℝ)..1,
+          intervalDomainEnergyIntegrand u₁ v₁ u₂ v₂ s y := by
+    funext s
+    rw [intervalDomainClassicalL2DifferenceEnergy_eq_integral]
+    rfl
+  rw [hEeq]
+  exact hderiv
+
+/-- **(D2) envelope from closed-slab joint continuity, and the energy
+derivative.**  This is the decisive reduction: if the energy integrand's
+time-derivative field is *jointly continuous on the closed slab*
+`Icc(τ−δ,τ+δ) ×ˢ Icc 0 1`, then `exists_bound_of_continuousOn_slab` supplies the
+(D2) constant envelope and the energy has a genuine time derivative at `τ`.
+Everything reduces to this one closed-slab continuity input. -/
+theorem intervalDomainClassicalL2DifferenceEnergy_hasDerivAt_of_slabContinuous
+    {p : CM2Params} {T₁ T₂ : ℝ}
+    {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ}
+    (hsol₁ : IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁)
+    (hsol₂ : IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂)
+    {τ δ : ℝ} (hδ : 0 < δ)
+    (hball : Metric.ball τ δ ⊆ Set.Ioo (0 : ℝ) (min T₁ T₂))
+    (hF_meas : ∀ᶠ s in 𝓝 τ,
+        AEStronglyMeasurable
+          (intervalDomainEnergyIntegrand u₁ v₁ u₂ v₂ s)
+          intervalDomainInteriorMeasure)
+    (hF_int : IntervalIntegrable
+        (intervalDomainEnergyIntegrand u₁ v₁ u₂ v₂ τ) volume 0 1)
+    (hF'_meas : AEStronglyMeasurable
+        (intervalDomainEnergyIntegrandDeriv u₁ v₁ u₂ v₂ τ)
+        intervalDomainInteriorMeasure)
+    (hslab : ContinuousOn
+        (Function.uncurry (intervalDomainEnergyIntegrandDeriv u₁ v₁ u₂ v₂))
+        (Set.Icc (τ - δ) (τ + δ) ×ˢ Set.Icc (0 : ℝ) 1)) :
+    HasDerivAt
+      (intervalDomainClassicalL2DifferenceEnergy u₁ v₁ u₂ v₂)
+      (∫ y in (0 : ℝ)..1,
+        intervalDomainEnergyIntegrandDeriv u₁ v₁ u₂ v₂ τ y) τ := by
+  obtain ⟨bound, hbound_int, h_bound⟩ :=
+    exists_bound_of_continuousOn_slab hδ hslab
+  exact intervalDomainClassicalL2DifferenceEnergy_hasDerivAt_of_envelope
+    hsol₁ hsol₂ hδ hball hF_meas hF_int hF'_meas h_bound hbound_int
+
 /-!
-## The differential-inequality field `diffIneq` — precise remaining gap
+## The differential-inequality field `diffIneq` — precise remaining gap (UPDATED)
 
 `diffIneq` requires, for arbitrary abstract classical solutions and at every
 interior time `τ`,
@@ -158,27 +388,61 @@ interior time `τ`,
       (Eprime τ) (Set.Ici τ) τ
   ∧ Eprime τ ≤ K · E τ.
 
-The three pointwise facts above give the integrand's time derivative
-`∂τ((w s x)²) = 2 (w t x)(∂τw t x)` at every interior `(x,t)`.  To pass to a
-derivative of the *spatial integral* one invokes
-`intervalDomain_intervalIntegral_hasDerivAt_of_dominated_deriv_le`
-(ShenWork/Paper2/IntervalDomainLpMonotonicity.lean), whose hypotheses are:
+### What the faithful 6-conjunct regularity NOW buys (genuine progress)
 
-  (D1) `∀ᵐ y, ∀ s ∈ Metric.ball t 1, HasDerivAt (fun τ => F τ y) (F' s y) s`
-       — time-slice differentiability on a *whole* time-ball around `t`;
-  (D2) `∀ᵐ y, ∀ s ∈ Metric.ball t 1, ‖F' s y‖ ≤ bound y` with `Integrable bound`
-       — a τ-uniform integrable dominating envelope on `2 w ∂τw`.
+The time-derivative half (`HasDerivAt E …`) is reduced here to a single,
+sharply-named analytic input — *closed-slab joint continuity of the integrand's
+time-derivative field* — via:
 
-The available hypotheses deliver only the single-time, interior-`x` pointwise
-derivative (the facts above): NOT (D1) — `IsPaper2ClassicalSolution` says nothing
-for times `s ∉ (0,T)` that lie in `Metric.ball t 1` — and NOT (D2) — there is no
-uniform-in-`s` integrable bound on `∂τw` (equivalently on `Δw` via the PDE) over
-`[0,1]`.  Both are genuine joint parabolic space-time regularity.
+  * `intervalDomainEnergyIntegrand_hasDerivAt_interior` discharges **(D1)** (the
+    time-slice differentiability on the whole *localization* ball) using the
+    4th conjunct `.2.2.2.1` plus the square chain rule.  The old "global
+    `Metric.ball τ 1` leaks outside `(0,T)`" obstruction is eliminated by the
+    `intervalIntegral_hasDerivAt_time_of_local` localization (`exists_ball_subset_Ioo`).
+  * `intervalDomainClassicalL2DifferenceEnergy_hasDerivAt_of_envelope` closes the
+    Leibniz step from any integrable **(D2)** envelope, with the
+    measurability/integrability side conditions explicit.
+  * `intervalDomainClassicalL2DifferenceEnergy_hasDerivAt_of_slabContinuous`
+    discharges (D2) from `ContinuousOn (uncurry F') (Icc(τ−δ,τ+δ) ×ˢ Icc 0 1)`
+    via `exists_bound_of_continuousOn_slab` (the 6th conjunct's compact-slab
+    envelope tool).
 
-This is exactly the obligation already named as
-`IntervalDomainL2JointTimeRegularity p` in
-`ShenWork.Paper2.IntervalDomainL2FrontierBuilder`.  We therefore record the
-honest reduction rather than fabricating `diffIneq`:
+So the entire time-derivative existence reduces to **one** hypothesis.
+
+### The exact remaining blocker — spatial-endpoint envelope integrability
+
+The 6th conjunct supplies joint continuity of `(t,x) ↦ ∂ₜ(intervalDomainLift
+(uᵢ t)) x` on the **OPEN** slab `(0,T) ×ˢ (0,1)`.  The (D2) tool
+`exists_bound_of_continuousOn_slab` needs continuity on the **CLOSED** slab
+`Icc(τ−δ,τ+δ) ×ˢ Icc 0 1`, i.e. *up to the spatial endpoints* `x ∈ {0,1}`.  The
+mismatch is precisely at `x = 0` and `x = 1`:
+
+  * `intervalDomainLift` has its `if x ∈ [0,1]` branch boundary exactly there;
+  * the 6th regularity conjunct is stated on the open `(0,1)` and is **silent**
+    at the endpoints — it does NOT assert that `∂ₜ(lift uᵢ)` extends continuously
+    (equivalently, stays bounded by an integrable envelope) as `x → 0⁺, 1⁻`.
+
+The integral `∫₀¹` runs up to the endpoints, and the dominating envelope must be
+`intervalDomainInteriorMeasure`-integrable over all of `(0,1)`, including a
+neighbourhood of `0` and `1`.  Open-interior continuity gives a *pointwise* bound
+at each interior `y` but **no τ-uniform integrable envelope as `y → 0⁺, 1⁻`**.
+This is the named subtlety: **spatial-endpoint envelope integrability** of the
+time-derivative field.  It is genuine parabolic boundary regularity (the
+time-derivative field is bounded up to the Neumann boundary), NOT a missing
+Mathlib lemma and NOT implied by the 6 conjuncts.
+
+### Also outstanding: the `Eprime ≤ K·E` bound
+
+Even granting closed-slab continuity, the *inequality* half needs steps (ii)–(iv):
+PDE substitution `∂τw = Δw − χ₀·chemDiff + logisticDiff`, the Neumann IBP
+`∫ w·Δw = −∫(∂ₓw)² ≤ 0` (`intervalCosineLaplacianCoeff_eq` /
+`intervalDomainLift_hasDerivAt_of_interiorC2`, requiring the genuine endpoint
+Neumann values `w'(0)=w'(1)=0` — again an endpoint fact), and the Lipschitz
+bounds on the chemotaxis/reaction differences.  These remain to be assembled.
+
+Both outstanding items are precisely the joint parabolic *boundary* regularity
+packaged abstractly as `IntervalDomainL2JointTimeRegularity p`.  We therefore
+record the honest reduction rather than fabricating `diffIneq`:
 -/
 
 /-- **Honest reduction of the frontier builder.**
@@ -204,27 +468,50 @@ def intervalDomainL2DifferenceEnergyFrontierBuilder_of_jointTime
 * **Proved here (no `sorry`/`admit`/`axiom`):**
   - `intervalDomain_timeDeriv_isGenuine` (+ `_v`): the abstract `timeDeriv` is a
     genuine `HasDerivAt` at interior `(x,t)`, from the 4th regularity conjunct.
-  - `intervalDomain_difference_hasDerivAt_time`: the difference `w = u₁−u₂` has a
-    genuine pointwise time derivative at interior points.
-  - `intervalDomain_difference_sq_hasDerivAt_time`: the integrand `w²` of the L²
-    energy has time derivative `2 w·∂τw` (the `½ d/dτ ∫ w² = ∫ w·∂τw` seed).
+  - `intervalDomain_difference_hasDerivAt_time` /
+    `intervalDomain_difference_sq_hasDerivAt_time`: genuine pointwise time
+    derivative of `w = u₁−u₂` and of `w²`.
+  - `intervalDomainLift_sumSq`,
+    `intervalDomainClassicalL2DifferenceEnergy_eq_integral`: the L² energy as a
+    plain interval integral of lifted squared differences.
+  - `intervalDomainEnergyIntegrand_hasDerivAt_interior`: **(D1) discharged** —
+    the energy integrand's time-slice has the expected derivative for *every*
+    `s` in a localization ball `⊆ (0,T)` and a.e. interior `y`.
+  - `intervalDomainClassicalL2DifferenceEnergy_hasDerivAt_of_envelope`: the
+    localized Leibniz energy derivative from any integrable (D2) envelope.
+  - `intervalDomainClassicalL2DifferenceEnergy_hasDerivAt_of_slabContinuous`:
+    **the time-derivative half of `diffIneq` reduced to a single hypothesis** —
+    closed-slab joint continuity of the integrand's time-derivative field —
+    discharged through `exists_bound_of_continuousOn_slab`.
   - `intervalDomainL2DifferenceEnergyFrontierBuilder_of_jointTime`: the frontier
     builder, hence gluing, reduces to the single named obligation.
 
-* **NOT closed unconditionally — the precise blocking field:**
-  the `diffIneq` field of `IntervalDomainL2DifferenceEnergyFrontier`, i.e.
-  `HasDerivWithinAt (fun τ => ∫₀¹ w² + z²) (Eprime τ) (Ici τ) τ` together with
-  `Eprime τ ≤ K·E τ`, for ARBITRARY abstract classical solutions.  Mathlib's
-  dominated-differentiation requires (D1) time-slice differentiability on a whole
-  time-ball around `τ` and (D2) a `τ`-uniform integrable envelope on `2 w·∂τw`;
-  `intervalDomainClassicalRegularity` provides only single-time interior pointwise
-  differentiability and no uniform integrable bound.  This is the joint parabolic
-  space-time regularity already isolated as `IntervalDomainL2JointTimeRegularity`.
+* **NOT closed unconditionally — the EXACT remaining step (named precisely):**
 
-  Consequently gluing does **not** close unconditionally on the current
-  hypotheses; it is unconditional **modulo** `IntervalDomainL2JointTimeRegularity p`
-  via `intervalDomainClassicalUniquenessL2EnergyMethod_of_jointTimeRegularity` and
-  `GlobalSolutionGluingFromReachability_of_l2EnergyMethod`.
+  1. *Spatial-endpoint envelope integrability.*  The 6th regularity conjunct
+     gives joint continuity of the time-derivative field only on the **OPEN**
+     slab `(0,T) ×ˢ (0,1)`.  `exists_bound_of_continuousOn_slab` (the (D2) tool)
+     needs continuity on the **CLOSED** slab `Icc(τ−δ,τ+δ) ×ˢ Icc 0 1`, i.e. up
+     to the spatial endpoints `x ∈ {0,1}` where `intervalDomainLift` branches and
+     the conjunct is silent.  Equivalently: a `τ`-uniform **integrable** envelope
+     on `∂τw` as `x → 0⁺, 1⁻`.  This boundary-uniform bound is genuine parabolic
+     boundary regularity, not a Mathlib gap and not implied by the 6 conjuncts.
+     It is the precise hypothesis of
+     `intervalDomainClassicalL2DifferenceEnergy_hasDerivAt_of_slabContinuous`.
+
+  2. *The `Eprime ≤ K·E` inequality.*  Steps (ii)–(iv): PDE substitution, the
+     Neumann IBP `∫ w·Δw = −∫(∂ₓw)² ≤ 0` (needing endpoint Neumann values
+     `w'(0)=w'(1)=0`, again a boundary fact), and the chemotaxis/reaction
+     Lipschitz absorption.  Still to assemble.
+
+  Both reduce to the joint parabolic *boundary* regularity packaged abstractly as
+  `IntervalDomainL2JointTimeRegularity p`.  Consequently gluing does **not** close
+  unconditionally; it is unconditional **modulo** that obligation, via
+  `intervalDomainClassicalUniquenessL2EnergyMethod_of_jointTimeRegularity` and
+  `GlobalSolutionGluingFromReachability_of_l2EnergyMethod`.  The genuine advance
+  of this file: the time-derivative existence is now reduced to a *single*
+  sharply-named boundary-continuity hypothesis (item 1), with (D1) and the
+  Leibniz mechanics fully proved.
 -/
 
 end
