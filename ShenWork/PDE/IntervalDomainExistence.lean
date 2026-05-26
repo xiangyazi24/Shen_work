@@ -208,7 +208,7 @@ lemma constantInTime_classicalRegularity
       (fun t : ℝ => intervalDomainSupNorm
         ((fun _s (_ : intervalDomainPoint) => c) t)) = fun _ => c := by
     ext _; exact hsup_eq
-  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- First conjunct: for any p' with a > 0, b > 0, if supNorm > equilibrium,
     -- the sup-norm is nonincreasing on Ioc 0 t₀.
     intro _p' _hχ _ha _hb t₀ _ht₀ _ht₀T _hsup_gt
@@ -248,7 +248,25 @@ lemma constantInTime_classicalRegularity
           = fun _ => (0 : ℝ) := by
         funext s; exact deriv_const s (ellipticV p c)
       rw [h0]; exact continuousOn_const
-  · -- Fifth conjunct: genuine interior-Neumann.  Both `u ≡ c` and
+  · -- Fifth conjunct: JOINT space-time continuity of `∂ₜ`.  Both `u ≡ c` and
+    -- `v ≡ ellipticV p c` are constant in time, so the lift is constant in `s`
+    -- and `∂ₜ ≡ 0` as a function of `(t,x)`, which is (jointly) continuous.
+    constructor
+    · have h0 : (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv (fun s : ℝ => intervalDomainLift
+              ((fun _s (_ : intervalDomainPoint) => c) s) x) t))
+          = fun _ => (0 : ℝ) := by
+        funext q; simp [Function.uncurry, deriv_const]
+      rw [h0]; exact continuousOn_const
+    · have h0 : (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv (fun s : ℝ => intervalDomainLift
+              ((fun _s (_ : intervalDomainPoint) => ellipticV p c) s) x) t))
+          = fun _ => (0 : ℝ) := by
+        funext q; simp [Function.uncurry, deriv_const]
+      rw [h0]; exact continuousOn_const
+  · -- Sixth conjunct: genuine interior-Neumann.  Both `u ≡ c` and
     -- `v ≡ ellipticV p c` are spatially constant, so their lift derivatives
     -- vanish on `(0,1)` and tend to `0` at both endpoints.
     intro _t _ht
@@ -2741,7 +2759,7 @@ lemma intervalDomainClassicalRegularity_mono
     (hTL : Tshort ≤ Tlong)
     (hreg : intervalDomainClassicalRegularity Tlong u v) :
     intervalDomainClassicalRegularity Tshort u v := by
-  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro p hpχ ha hb t₀ ht₀ ht₀T hsup
     exact hreg.1 p hpχ ha hb t₀ ht₀ (lt_of_lt_of_le ht₀T hTL) hsup
   · intro p hpχ ha hb
@@ -2756,8 +2774,12 @@ lemma intervalDomainClassicalRegularity_mono
     exact ⟨hdiff,
       hcontU.mono (Set.Ioo_subset_Ioo_right hTL),
       hcontV.mono (Set.Ioo_subset_Ioo_right hTL)⟩
+  · -- Joint time-derivative continuity restricts to the shorter horizon slab.
+    obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2.1
+    exact ⟨hjU.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTL) (le_refl _)),
+      hjV.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTL) (le_refl _))⟩
   · intro t ht
-    exact hreg.2.2.2.2 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
+    exact hreg.2.2.2.2.2 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
 
 /-- A classical interval solution on a longer horizon is also a classical
 solution on every positive shorter horizon. -/
@@ -3623,6 +3645,11 @@ theorem classicalRegularity_of_spatially_constant_decreasing
     (hvTimeCont : ∀ x : intervalDomainPoint, (x.1 : ℝ) ∈ Set.Ioo (0 : ℝ) 1 →
       ContinuousOn (fun s : ℝ => deriv (fun r : ℝ => v r x) s)
         (Set.Ioo (0 : ℝ) T))
+    (hvTimeJoint : ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) =>
+          deriv (fun s : ℝ => intervalDomainLift (v s) x) t))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Ioo (0 : ℝ) 1))
     (hvNeumann : ∀ t, t ∈ Set.Ioo (0 : ℝ) T →
       Filter.Tendsto (deriv (intervalDomainLift (v t)))
           (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
@@ -3631,7 +3658,7 @@ theorem classicalRegularity_of_spatially_constant_decreasing
     intervalDomainClassicalRegularity T
       (fun t (_ : intervalDomainPoint) => φ t) v := by
   unfold intervalDomainClassicalRegularity
-  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- First conjunct: for any p' with a > 0, b > 0, if supNorm > equilibrium,
     -- the sup-norm is nonincreasing on Ioc 0 t₀.
     intro _p' _hχ _ha _hb t₀ ht₀ ht₀T _hsup_gt
@@ -3657,7 +3684,30 @@ theorem classicalRegularity_of_spatially_constant_decreasing
     intro x hx t ht
     refine ⟨⟨(hφ_diff t ht).differentiableAt (isOpen_Ioo.mem_nhds ht),
       hvTime x hx t ht⟩, hφ_deriv_cont, hvTimeCont x hx⟩
-  · -- Fifth conjunct: genuine interior-Neumann.  `u t = fun _ => φ t` is
+  · -- Fifth conjunct: JOINT space-time continuity of `∂ₜ`.  For `u t = fun _ => φ t`
+    -- the lift at any interior `x ∈ (0,1) ⊆ [0,1]` equals `φ t`, so `∂ₜ` of the
+    -- time slice is `deriv φ t`, independent of `x` and continuous in `t`; hence
+    -- jointly continuous via composition with the first projection.  `v` is
+    -- supplied jointly by hypothesis.
+    refine ⟨?_, hvTimeJoint⟩
+    have hEq : Set.EqOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv (fun s : ℝ =>
+              intervalDomainLift ((fun t (_ : intervalDomainPoint) => φ t) s) x) t))
+        (fun q : ℝ × ℝ => deriv φ q.1)
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Ioo (0 : ℝ) 1) := by
+      rintro ⟨t, x⟩ ⟨_ht, hx⟩
+      have hxIcc : x ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hx
+      have hslice : (fun s : ℝ =>
+          intervalDomainLift ((fun t (_ : intervalDomainPoint) => φ t) s) x)
+          = fun s : ℝ => φ s := by
+        funext s; simp [intervalDomainLift, hxIcc]
+      simp only [Function.uncurry]
+      rw [hslice]
+    refine ContinuousOn.congr ?_ hEq
+    exact hφ_deriv_cont.comp continuousOn_fst (fun q hq => hq.1)
+  · -- Sixth conjunct: genuine interior-Neumann.  `u t = fun _ => φ t` is
     -- spatially constant (lift deriv vanishes on `(0,1)`); `v` is supplied.
     intro t ht
     exact ⟨intervalDomainLift_const_neumann (φ t), hvNeumann t ht⟩
@@ -3758,37 +3808,69 @@ theorem aboveEquilibrium_regularityBootstrap
       refine ContinuousOn.congr ?_ (fun t ht => hφ_ode t ht)
       exact hφ_cont_Ioo.mul (continuousOn_const.sub
         (continuousOn_const.mul hφ_pow_cont))
-    refine classicalRegularity_of_spatially_constant_decreasing hT hφ_pos
-      hφ_cont hφ_diff hφ_deriv_nonpos hφ_deriv_cont _
-      (fun t _ht => intervalDomainLift_const_contDiffOn (ellipticV p (φ t)))
-      hvDiff ?_
-      (fun t _ht => intervalDomainLift_const_neumann (ellipticV p (φ t)))
     -- Continuity of `∂ₜ(ellipticV ∘ φ)` on `(0,T)`.  On the open `(0,T)` the
     -- chain rule gives `∂ₜ ((ν/μ)(φ)^γ) = (ν/μ) γ (φ)^{γ−1} φ'`, continuous since
     -- `φ`, `φ'` are continuous and `φ > 0`.
-    intro x _hx
-    have hpowDeriv : Set.EqOn
-        (fun s : ℝ => deriv (fun r : ℝ => ellipticV p (φ r)) s)
-        (fun s : ℝ => (p.ν / p.μ) * (p.γ * (φ s) ^ (p.γ - 1) * deriv φ s))
-        (Set.Ioo (0 : ℝ) T) := by
-      intro s hs
-      have hφ_at : DifferentiableAt ℝ φ s :=
-        (hφ_diff s hs).differentiableAt (isOpen_Ioo.mem_nhds hs)
-      have hrpow : HasDerivAt (fun r : ℝ => (φ r) ^ p.γ)
-          (deriv φ s * p.γ * (φ s) ^ (p.γ - 1)) s :=
-        hφ_at.hasDerivAt.rpow_const (Or.inl (ne_of_gt (hφ_pos s)))
-      have hev : HasDerivAt (fun r : ℝ => ellipticV p (φ r))
-          ((p.ν / p.μ) * (p.γ * (φ s) ^ (p.γ - 1) * deriv φ s)) s := by
-        have := (hrpow.const_mul (p.ν / p.μ))
-        simpa [ellipticV, mul_comm, mul_left_comm, mul_assoc] using this
-      exact hev.deriv
-    refine ContinuousOn.congr ?_ hpowDeriv
-    have hφ_pow1_cont : ContinuousOn (fun s : ℝ => (φ s) ^ (p.γ - 1))
-        (Set.Ioo 0 T) := by
-      apply ContinuousOn.rpow_const hφ_cont_Ioo
-      exact fun s _ => Or.inl (ne_of_gt (hφ_pos s))
-    exact continuousOn_const.mul
-      ((continuousOn_const.mul hφ_pow1_cont).mul hφ_deriv_cont)
+    have hellipticDerivCont :
+        ContinuousOn (fun s : ℝ => deriv (fun r : ℝ => ellipticV p (φ r)) s)
+          (Set.Ioo (0 : ℝ) T) := by
+      have hpowDeriv : Set.EqOn
+          (fun s : ℝ => deriv (fun r : ℝ => ellipticV p (φ r)) s)
+          (fun s : ℝ => (p.ν / p.μ) * (p.γ * (φ s) ^ (p.γ - 1) * deriv φ s))
+          (Set.Ioo (0 : ℝ) T) := by
+        intro s hs
+        have hφ_at : DifferentiableAt ℝ φ s :=
+          (hφ_diff s hs).differentiableAt (isOpen_Ioo.mem_nhds hs)
+        have hrpow : HasDerivAt (fun r : ℝ => (φ r) ^ p.γ)
+            (deriv φ s * p.γ * (φ s) ^ (p.γ - 1)) s :=
+          hφ_at.hasDerivAt.rpow_const (Or.inl (ne_of_gt (hφ_pos s)))
+        have hev : HasDerivAt (fun r : ℝ => ellipticV p (φ r))
+            ((p.ν / p.μ) * (p.γ * (φ s) ^ (p.γ - 1) * deriv φ s)) s := by
+          have := (hrpow.const_mul (p.ν / p.μ))
+          simpa [ellipticV, mul_comm, mul_left_comm, mul_assoc] using this
+        exact hev.deriv
+      refine ContinuousOn.congr ?_ hpowDeriv
+      have hφ_pow1_cont : ContinuousOn (fun s : ℝ => (φ s) ^ (p.γ - 1))
+          (Set.Ioo 0 T) := by
+        apply ContinuousOn.rpow_const hφ_cont_Ioo
+        exact fun s _ => Or.inl (ne_of_gt (hφ_pos s))
+      exact continuousOn_const.mul
+        ((continuousOn_const.mul hφ_pow1_cont).mul hφ_deriv_cont)
+    -- Joint continuity of `∂ₜ` of the `v`-slice.  `v s = fun _ => ellipticV p (φ s)`
+    -- is spatially constant, so its lift at any interior `x ∈ (0,1) ⊆ [0,1]` equals
+    -- `ellipticV p (φ s)`, hence `∂ₜ` depends only on `t` and is continuous via the
+    -- single-variable `hellipticDerivCont` composed with the first projection.
+    have hvJoint : ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv (fun s : ℝ =>
+              intervalDomainLift
+                ((fun t (_ : intervalDomainPoint) => ellipticV p (φ t)) s) x) t))
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Ioo (0 : ℝ) 1) := by
+      have hEq : Set.EqOn
+          (Function.uncurry
+            (fun (t : ℝ) (x : ℝ) =>
+              deriv (fun s : ℝ =>
+                intervalDomainLift
+                  ((fun t (_ : intervalDomainPoint) => ellipticV p (φ t)) s) x) t))
+          (fun q : ℝ × ℝ => deriv (fun r : ℝ => ellipticV p (φ r)) q.1)
+          (Set.Ioo (0 : ℝ) T ×ˢ Set.Ioo (0 : ℝ) 1) := by
+        rintro ⟨t, x⟩ ⟨_ht, hx⟩
+        have hxIcc : x ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hx
+        have hslice : (fun s : ℝ =>
+            intervalDomainLift
+              ((fun t (_ : intervalDomainPoint) => ellipticV p (φ t)) s) x)
+            = fun s : ℝ => ellipticV p (φ s) := by
+          funext s; simp [intervalDomainLift, hxIcc]
+        simp only [Function.uncurry]
+        rw [hslice]
+      refine ContinuousOn.congr ?_ hEq
+      exact hellipticDerivCont.comp continuousOn_fst (fun q hq => hq.1)
+    refine classicalRegularity_of_spatially_constant_decreasing hT hφ_pos
+      hφ_cont hφ_diff hφ_deriv_nonpos hφ_deriv_cont _
+      (fun t _ht => intervalDomainLift_const_contDiffOn (ellipticV p (φ t)))
+      hvDiff (fun x _hx => hellipticDerivCont) hvJoint
+      (fun t _ht => intervalDomainLift_const_neumann (ellipticV p (φ t)))
   · -- Initial trace: φ(t) → c₀ = φ(0) as t → 0⁺
     intro ε hε
     -- Since φ is continuous at 0, ∃ δ > 0 with |φ(t) - φ(0)| < ε for t ∈ (0,δ)
@@ -4026,7 +4108,7 @@ theorem not_intervalDomainTheorem11_globalExtension_constant_bad_tail
       -- The sup-norm conjuncts depend only on `u`; the C² conjunct needs the
       -- lift of `v t` on `(0,1)`, where `t < 1` forces `v t = fun _ => ellipticV p c`.
       have hbase := constantInTime_classicalRegularity hc one_pos p
-      refine ⟨hbase.1, hbase.2.1, ?_, ?_, ?_⟩
+      refine ⟨hbase.1, hbase.2.1, ?_, ?_, ?_, ?_⟩
       · intro t ht
         have hvt : v t = fun _ : intervalDomainPoint => ellipticV p c := by
           funext y
@@ -4065,7 +4147,47 @@ theorem not_intervalDomainTheorem11_globalExtension_constant_bad_tail
               Set.EqOn.eventuallyEq_of_mem hvEqOn (isOpen_Iio.mem_nhds hs.2)
             simp only [hev.deriv_eq, deriv_const]
           exact continuousOn_const.congr hderiv0
-      · -- Fifth conjunct: genuine interior-Neumann.  `u ≡ c` and (on `(0,1)`)
+      · -- Fifth conjunct: JOINT space-time continuity of `∂ₜ` on `(0,1) × (0,1)`.
+        -- `u ≡ c` has lift constant in time (`∂ₜ ≡ 0`).  For `v`, at any interior
+        -- `t ∈ (0,1)` the slice `s ↦ lift(v s) x = (if s < 1 then ellipticV p c
+        -- else 0)` is locally constant near `t` (since `t < 1`), so `∂ₜ ≡ 0` on
+        -- the slab; both fields are identically `0`, hence jointly continuous.
+        constructor
+        · have h0 : Set.EqOn
+              (Function.uncurry
+                (fun (t : ℝ) (x : ℝ) =>
+                  deriv (fun s : ℝ => intervalDomainLift (u s) x) t))
+              (fun _ : ℝ × ℝ => (0 : ℝ))
+              (Set.Ioo (0 : ℝ) 1 ×ˢ Set.Ioo (0 : ℝ) 1) := by
+            rintro ⟨t, x⟩ _
+            simp only [Function.uncurry]
+            show deriv (fun s : ℝ => intervalDomainLift (u s) x) t = 0
+            have : (fun s : ℝ => intervalDomainLift (u s) x)
+                = fun _ : ℝ => intervalDomainLift (fun _ : intervalDomainPoint => c) x := by
+              funext s; rfl
+            rw [this, deriv_const]
+          exact continuousOn_const.congr h0
+        · have h0 : Set.EqOn
+              (Function.uncurry
+                (fun (t : ℝ) (x : ℝ) =>
+                  deriv (fun s : ℝ => intervalDomainLift (v s) x) t))
+              (fun _ : ℝ × ℝ => (0 : ℝ))
+              (Set.Ioo (0 : ℝ) 1 ×ˢ Set.Ioo (0 : ℝ) 1) := by
+            rintro ⟨t, x⟩ ⟨ht, hx⟩
+            simp only [Function.uncurry]
+            show deriv (fun s : ℝ => intervalDomainLift (v s) x) t = 0
+            have hxIcc : x ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hx
+            have hslice : (fun s : ℝ => intervalDomainLift (v s) x)
+                =ᶠ[nhds t] (fun _ : ℝ => ellipticV p c) := by
+              refine Set.EqOn.eventuallyEq_of_mem ?_ (isOpen_Iio.mem_nhds ht.2)
+              intro s hs
+              show intervalDomainLift (v s) x = ellipticV p c
+              simp only [intervalDomainLift, hxIcc, dif_pos]
+              show (if s < 1 then ellipticV p c else 0) = ellipticV p c
+              rw [if_pos (Set.mem_Iio.mp hs)]
+            rw [hslice.deriv_eq, deriv_const]
+          exact continuousOn_const.congr h0
+      · -- Sixth conjunct: genuine interior-Neumann.  `u ≡ c` and (on `(0,1)`)
         -- `v t = ellipticV p c` are both spatially constant.
         intro t ht
         have hvt : v t = fun _ : intervalDomainPoint => ellipticV p c := by
@@ -4402,7 +4524,7 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
     (hEq : ∀ t, 0 < t → t < T → u t = U t)
     (hEqV : ∀ t, 0 < t → t < T → v t = V t) :
     intervalDomainClassicalRegularity T u v := by
-  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro q hqχ hqa hqb t₀ ht₀ ht₀T hsup
     have hreg₀ := hreg.1 q hqχ hqa hqb t₀ ht₀ ht₀T ?_
     · exact intervalDomainSupNormDerivativeNonposOn_congr_of_eqOn hreg₀
@@ -4455,7 +4577,34 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
     exact ⟨⟨(huEv.differentiableAt_iff).mpr hU,
         (hvEv.differentiableAt_iff).mpr hV⟩,
       hcontU.congr hderivEqU, hcontV.congr hderivEqV⟩
-  · -- Fifth conjunct: lifts of `u t, v t` equal lifts of `U t, V t`, so the
+  · -- Fifth conjunct: JOINT time-derivative continuity transfers.  On the open
+    -- `(0,T)` the lifts `lift(u s) = lift(U s)` (pointwise `u s = U s` lifts to
+    -- equal extensions), so near each interior `t` the time slices agree and the
+    -- joint derivative fields agree on the slab; `ContinuousOn.congr` transfers
+    -- `hreg`'s joint continuity.
+    obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2.1
+    have hliftEq : ∀ s, 0 < s → s < T →
+        intervalDomainLift (u s) = intervalDomainLift (U s) := by
+      intro s hs0 hsT; rw [hEq s hs0 hsT]
+    have hliftEqV : ∀ s, 0 < s → s < T →
+        intervalDomainLift (v s) = intervalDomainLift (V s) := by
+      intro s hs0 hsT; rw [hEqV s hs0 hsT]
+    refine ⟨ContinuousOn.congr hjU ?_, ContinuousOn.congr hjV ?_⟩
+    · rintro ⟨t, x⟩ ⟨ht, _hx⟩
+      simp only [Function.uncurry]
+      have hEv : (fun s : ℝ => intervalDomainLift (u s) x) =ᶠ[nhds t]
+          (fun s : ℝ => intervalDomainLift (U s) x) :=
+        Set.EqOn.eventuallyEq_of_mem
+          (fun s hs => by rw [hliftEq s hs.1 hs.2]) (isOpen_Ioo.mem_nhds ht)
+      rw [hEv.deriv_eq]
+    · rintro ⟨t, x⟩ ⟨ht, _hx⟩
+      simp only [Function.uncurry]
+      have hEv : (fun s : ℝ => intervalDomainLift (v s) x) =ᶠ[nhds t]
+          (fun s : ℝ => intervalDomainLift (V s) x) :=
+        Set.EqOn.eventuallyEq_of_mem
+          (fun s hs => by rw [hliftEqV s hs.1 hs.2]) (isOpen_Ioo.mem_nhds ht)
+      rw [hEv.deriv_eq]
+  · -- Sixth conjunct: lifts of `u t, v t` equal lifts of `U t, V t`, so the
     -- one-sided endpoint derivative limits transfer verbatim.
     intro t ht
     have huL : intervalDomainLift (u t) = intervalDomainLift (U t) := by
@@ -4463,7 +4612,7 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
     have hvL : intervalDomainLift (v t) = intervalDomainLift (V t) := by
       rw [hEqV t ht.1 ht.2]
     rw [huL, hvL]
-    exact hreg.2.2.2.2 t ht
+    exact hreg.2.2.2.2.2 t ht
 
 private lemma intervalDomainLift_eventuallyEq_of_pointwise_eq
     {f g : intervalDomainPoint → ℝ}

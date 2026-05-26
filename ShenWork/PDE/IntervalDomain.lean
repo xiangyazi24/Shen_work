@@ -2803,6 +2803,31 @@ def intervalDomainClassicalRegularity
             (Set.Ioo (0 : ℝ) T) ∧
           ContinuousOn (fun s : ℝ => deriv (fun r : ℝ => _v r x) s)
             (Set.Ioo (0 : ℝ) T))) ∧
+  -- **Joint space-time continuity of the time-derivative field (genuine
+  -- parabolic regularity, the (D2) envelope input).**  The previous conjunct
+  -- gives, for each fixed interior `x`, continuity of `s ↦ ∂ₜ(u·x) s` in time
+  -- alone; that is *not* enough to bound `∂ₜu` uniformly over a space-time slab,
+  -- which is what the L²-uniqueness time-Leibniz step needs.  Here we record the
+  -- honest fact that the time-derivative *field* `(t,x) ↦ ∂ₜ(intervalDomainLift
+  -- (u t)) x`, as a function of `(t,x)` jointly, is continuous on the open
+  -- interior `(0,T) × (0,1)`.  By restriction to a compact closed slab
+  -- `[τ−δ,τ+δ] × [0,1] ⊆ (0,T) × ⋯` this yields the bounded, τ-uniform
+  -- integrable dominating envelope consumed by `exists_bound_of_continuousOn_slab`
+  -- (the (D2) input of `intervalIntegral_hasDerivAt_time_of_local`).  The
+  -- constant solution proves this trivially (`∂ₜ ≡ 0`); the cosine spectral heat
+  -- profile proves it from the Weierstrass-M joint summability of
+  -- `−∑ₙ λₙ e^{−tλₙ} f̂ₙ cos(nπx)`.  The lift form (`intervalDomainLift (u t) x`
+  -- over real `x`) matches the `ℝ → ℝ → ℝ` integrand shape of the envelope lemma.
+  (ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) =>
+          deriv (fun s : ℝ => intervalDomainLift (u s) x) t))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Ioo (0 : ℝ) 1) ∧
+    ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) =>
+          deriv (fun s : ℝ => intervalDomainLift (_v s) x) t))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Ioo (0 : ℝ) 1)) ∧
   -- **Genuine interior-Neumann boundary condition.**  The hardcoded `0` in
   -- `intervalDomainNormalDeriv` makes the Neumann conjunct of
   -- `IsPaper2ClassicalSolution` definitionally vacuous, so the real boundary
