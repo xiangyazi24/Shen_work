@@ -66,4 +66,5 @@ import ShenWork.PDE.IntervalDuhamelRepresentation
 import ShenWork.Paper2.IntervalDomainL2UniquenessCertificate
 import ShenWork.Paper2.IntervalDomainL2FrontierBuilder
 import ShenWork.Paper2.IntervalDomainL2EnergyInequality
+import ShenWork.Paper2.IntervalDomainL2UEnergy
 import ShenWork.PDE.IntervalDomainExistence
