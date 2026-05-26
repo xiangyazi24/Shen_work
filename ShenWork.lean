@@ -69,3 +69,4 @@ import ShenWork.Paper2.IntervalDomainL2EnergyInequality
 import ShenWork.Paper2.IntervalDomainL2UEnergy
 import ShenWork.Paper2.IntervalDomainL2UEnergyInequality
 import ShenWork.PDE.IntervalDomainExistence
+import ShenWork.PDE.IntervalEllipticCharacterization
