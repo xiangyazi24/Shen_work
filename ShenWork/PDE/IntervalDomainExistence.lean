@@ -234,10 +234,20 @@ lemma constantInTime_classicalRegularity
     intro _t _ht
     exact ⟨intervalDomainLift_const_contDiffOn c,
            intervalDomainLift_const_contDiffOn (ellipticV p c)⟩
-  · -- Fourth conjunct: interior time regularity.  Both slices are constant in
-    -- time, hence trivially differentiable in `t`.
+  · -- Fourth conjunct: interior time `C¹`.  Both slices are constant in time,
+    -- hence trivially differentiable in `t`, and their time derivatives are the
+    -- constant function `0` (via `deriv_const`), which is continuous on `(0,T)`.
     intro _x _hx _t _ht
-    exact ⟨differentiableAt_const c, differentiableAt_const (ellipticV p c)⟩
+    refine ⟨⟨?_, ?_⟩, ?_, ?_⟩
+    · exact differentiableAt_const c
+    · exact differentiableAt_const (ellipticV p c)
+    · have h0 : (fun s : ℝ => deriv (fun _r : ℝ => c) s) = fun _ => (0 : ℝ) := by
+        funext s; exact deriv_const s c
+      rw [h0]; exact continuousOn_const
+    · have h0 : (fun s : ℝ => deriv (fun _r : ℝ => ellipticV p c) s)
+          = fun _ => (0 : ℝ) := by
+        funext s; exact deriv_const s (ellipticV p c)
+      rw [h0]; exact continuousOn_const
   · -- Fifth conjunct: genuine interior-Neumann.  Both `u ≡ c` and
     -- `v ≡ ellipticV p c` are spatially constant, so their lift derivatives
     -- vanish on `(0,1)` and tend to `0` at both endpoints.
@@ -2741,7 +2751,11 @@ lemma intervalDomainClassicalRegularity_mono
   · intro t ht
     exact hreg.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
   · intro x hx t ht
-    exact hreg.2.2.2.1 x hx t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
+    obtain ⟨hdiff, hcontU, hcontV⟩ :=
+      hreg.2.2.2.1 x hx t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
+    exact ⟨hdiff,
+      hcontU.mono (Set.Ioo_subset_Ioo_right hTL),
+      hcontV.mono (Set.Ioo_subset_Ioo_right hTL)⟩
   · intro t ht
     exact hreg.2.2.2.2 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
 
@@ -3599,12 +3613,16 @@ theorem classicalRegularity_of_spatially_constant_decreasing
     (hφ_cont : ContinuousOn φ (Set.Icc 0 T))
     (hφ_diff : DifferentiableOn ℝ φ (Set.Ioo 0 T))
     (hφ_deriv_nonpos : ∀ t, t ∈ Set.Ioo 0 T → deriv φ t ≤ 0)
+    (hφ_deriv_cont : ContinuousOn (deriv φ) (Set.Ioo 0 T))
     (v : ℝ → intervalDomainPoint → ℝ)
     (hvC2 : ∀ t, t ∈ Set.Ioo (0 : ℝ) T →
       ContDiffOn ℝ 2 (intervalDomainLift (v t)) (Set.Ioo (0 : ℝ) 1))
     (hvTime : ∀ x : intervalDomainPoint, (x.1 : ℝ) ∈ Set.Ioo (0 : ℝ) 1 →
       ∀ t, t ∈ Set.Ioo (0 : ℝ) T →
         DifferentiableAt ℝ (fun s : ℝ => v s x) t)
+    (hvTimeCont : ∀ x : intervalDomainPoint, (x.1 : ℝ) ∈ Set.Ioo (0 : ℝ) 1 →
+      ContinuousOn (fun s : ℝ => deriv (fun r : ℝ => v r x) s)
+        (Set.Ioo (0 : ℝ) T))
     (hvNeumann : ∀ t, t ∈ Set.Ioo (0 : ℝ) T →
       Filter.Tendsto (deriv (intervalDomainLift (v t)))
           (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
@@ -3633,12 +3651,12 @@ theorem classicalRegularity_of_spatially_constant_decreasing
     -- is spatially constant; `v` is C² by hypothesis.
     intro t ht
     exact ⟨intervalDomainLift_const_contDiffOn (φ t), hvC2 t ht⟩
-  · -- Fourth conjunct: interior time regularity.  `s ↦ u s x = φ s` is
-    -- differentiable on `(0,T)` by `hφ_diff` (open set ⇒ `DifferentiableAt`);
-    -- `s ↦ v s x` is differentiable by hypothesis.
+  · -- Fourth conjunct: interior time `C¹`.  `s ↦ u s x = φ s` is differentiable
+    -- on `(0,T)` by `hφ_diff` (open set ⇒ `DifferentiableAt`) with `∂ₜ = deriv φ`
+    -- continuous (`hφ_deriv_cont`); `s ↦ v s x` is supplied by `hvTime`/`hvTimeCont`.
     intro x hx t ht
-    refine ⟨?_, hvTime x hx t ht⟩
-    exact (hφ_diff t ht).differentiableAt (isOpen_Ioo.mem_nhds ht)
+    refine ⟨⟨(hφ_diff t ht).differentiableAt (isOpen_Ioo.mem_nhds ht),
+      hvTime x hx t ht⟩, hφ_deriv_cont, hvTimeCont x hx⟩
   · -- Fifth conjunct: genuine interior-Neumann.  `u t = fun _ => φ t` is
     -- spatially constant (lift deriv vanishes on `(0,1)`); `v` is supplied.
     intro t ht
@@ -3712,23 +3730,65 @@ theorem aboveEquilibrium_regularityBootstrap
     exact ⟨intervalDomainNormalDeriv_const_zero (φ t) hx,
            intervalDomainNormalDeriv_const_zero (ellipticV p (φ t)) hx⟩
   · -- Classical regularity
-    refine classicalRegularity_of_spatially_constant_decreasing hT hφ_pos
-      hφ_cont hφ_diff hφ_deriv_nonpos _
-      (fun t _ht => intervalDomainLift_const_contDiffOn (ellipticV p (φ t)))
-      ?_
-      (fun t _ht => intervalDomainLift_const_neumann (ellipticV p (φ t)))
     -- `s ↦ ellipticV p (φ s) = (ν/μ) * (φ s) ^ γ` is differentiable in `s`:
-    -- `φ` is differentiable on the open `(0,T)` and stays positive, so the
-    -- real power composes differentiably.
-    intro x _hx t ht
-    have hφ_at : DifferentiableAt ℝ φ t :=
-      (hφ_diff t ht).differentiableAt (isOpen_Ioo.mem_nhds ht)
-    have hpow : DifferentiableAt ℝ (fun s : ℝ => (φ s) ^ p.γ) t := by
-      have := (Real.differentiableAt_rpow_const_of_ne (p.γ) (ne_of_gt (hφ_pos t)))
-      exact this.comp t hφ_at
-    have : DifferentiableAt ℝ (fun s : ℝ => (p.ν / p.μ) * (φ s) ^ p.γ) t :=
-      hpow.const_mul (p.ν / p.μ)
-    simpa [ellipticV] using this
+    -- `φ` is differentiable on the open `(0,T)` and stays positive, so the real
+    -- power composes differentiably.
+    have hvDiff : ∀ x : intervalDomainPoint, (x.1 : ℝ) ∈ Set.Ioo (0 : ℝ) 1 →
+        ∀ t, t ∈ Set.Ioo (0 : ℝ) T →
+          DifferentiableAt ℝ (fun s : ℝ => ellipticV p (φ s)) t := by
+      intro x _hx t ht
+      have hφ_at : DifferentiableAt ℝ φ t :=
+        (hφ_diff t ht).differentiableAt (isOpen_Ioo.mem_nhds ht)
+      have hpow : DifferentiableAt ℝ (fun s : ℝ => (φ s) ^ p.γ) t := by
+        have := (Real.differentiableAt_rpow_const_of_ne (p.γ) (ne_of_gt (hφ_pos t)))
+        exact this.comp t hφ_at
+      have : DifferentiableAt ℝ (fun s : ℝ => (p.ν / p.μ) * (φ s) ^ p.γ) t :=
+        hpow.const_mul (p.ν / p.μ)
+      simpa [ellipticV] using this
+    -- Continuity of `∂ₜφ = deriv φ` on `(0,T)`: by the ODE, `deriv φ` agrees on
+    -- `(0,T)` with `t ↦ φ t * (a − b (φ t)^α)`, continuous since `φ` is
+    -- continuous on the open `(0,T)` and stays positive.
+    have hφ_cont_Ioo : ContinuousOn φ (Set.Ioo 0 T) :=
+      fun t ht => ((hφ_diff t ht).differentiableAt
+        (isOpen_Ioo.mem_nhds ht)).continuousAt.continuousWithinAt
+    have hφ_pow_cont : ContinuousOn (fun t : ℝ => (φ t) ^ p.α) (Set.Ioo 0 T) := by
+      apply ContinuousOn.rpow_const hφ_cont_Ioo
+      exact fun t _ => Or.inl (ne_of_gt (hφ_pos t))
+    have hφ_deriv_cont : ContinuousOn (deriv φ) (Set.Ioo 0 T) := by
+      refine ContinuousOn.congr ?_ (fun t ht => hφ_ode t ht)
+      exact hφ_cont_Ioo.mul (continuousOn_const.sub
+        (continuousOn_const.mul hφ_pow_cont))
+    refine classicalRegularity_of_spatially_constant_decreasing hT hφ_pos
+      hφ_cont hφ_diff hφ_deriv_nonpos hφ_deriv_cont _
+      (fun t _ht => intervalDomainLift_const_contDiffOn (ellipticV p (φ t)))
+      hvDiff ?_
+      (fun t _ht => intervalDomainLift_const_neumann (ellipticV p (φ t)))
+    -- Continuity of `∂ₜ(ellipticV ∘ φ)` on `(0,T)`.  On the open `(0,T)` the
+    -- chain rule gives `∂ₜ ((ν/μ)(φ)^γ) = (ν/μ) γ (φ)^{γ−1} φ'`, continuous since
+    -- `φ`, `φ'` are continuous and `φ > 0`.
+    intro x _hx
+    have hpowDeriv : Set.EqOn
+        (fun s : ℝ => deriv (fun r : ℝ => ellipticV p (φ r)) s)
+        (fun s : ℝ => (p.ν / p.μ) * (p.γ * (φ s) ^ (p.γ - 1) * deriv φ s))
+        (Set.Ioo (0 : ℝ) T) := by
+      intro s hs
+      have hφ_at : DifferentiableAt ℝ φ s :=
+        (hφ_diff s hs).differentiableAt (isOpen_Ioo.mem_nhds hs)
+      have hrpow : HasDerivAt (fun r : ℝ => (φ r) ^ p.γ)
+          (deriv φ s * p.γ * (φ s) ^ (p.γ - 1)) s :=
+        hφ_at.hasDerivAt.rpow_const (Or.inl (ne_of_gt (hφ_pos s)))
+      have hev : HasDerivAt (fun r : ℝ => ellipticV p (φ r))
+          ((p.ν / p.μ) * (p.γ * (φ s) ^ (p.γ - 1) * deriv φ s)) s := by
+        have := (hrpow.const_mul (p.ν / p.μ))
+        simpa [ellipticV, mul_comm, mul_left_comm, mul_assoc] using this
+      exact hev.deriv
+    refine ContinuousOn.congr ?_ hpowDeriv
+    have hφ_pow1_cont : ContinuousOn (fun s : ℝ => (φ s) ^ (p.γ - 1))
+        (Set.Ioo 0 T) := by
+      apply ContinuousOn.rpow_const hφ_cont_Ioo
+      exact fun s _ => Or.inl (ne_of_gt (hφ_pos s))
+    exact continuousOn_const.mul
+      ((continuousOn_const.mul hφ_pow1_cont).mul hφ_deriv_cont)
   · -- Initial trace: φ(t) → c₀ = φ(0) as t → 0⁺
     intro ε hε
     -- Since φ is continuous at 0, ∃ δ > 0 with |φ(t) - φ(0)| < ε for t ∈ (0,δ)
@@ -3979,14 +4039,32 @@ theorem not_intervalDomainTheorem11_globalExtension_constant_bad_tail
         -- constant `ellipticV p c` on the neighborhood `Iio 1 ∋ t`, hence is
         -- differentiable at every `t ∈ (0,1)`.
         intro x _hx t ht
-        refine ⟨differentiableAt_const c, ?_⟩
-        have hev : (fun s : ℝ => v s x) =ᶠ[nhds t]
-            (fun _ : ℝ => ellipticV p c) := by
-          refine Set.EqOn.eventuallyEq_of_mem ?_ (isOpen_Iio.mem_nhds ht.2)
+        -- `v s x = ellipticV p c` for all `s < 1`, in particular near any
+        -- `t ∈ (0,1)` and on the whole `(0,1)`.
+        have hvEqOn : Set.EqOn (fun s : ℝ => v s x)
+            (fun _ : ℝ => ellipticV p c) (Set.Iio (1 : ℝ)) := by
           intro s hs
           show (if s < 1 then ellipticV p c else 0) = ellipticV p c
           rw [if_pos (Set.mem_Iio.mp hs)]
-        exact (hev.differentiableAt_iff).mpr (differentiableAt_const _)
+        have hdiffV : DifferentiableAt ℝ (fun s : ℝ => v s x) t := by
+          have hev : (fun s : ℝ => v s x) =ᶠ[nhds t]
+              (fun _ : ℝ => ellipticV p c) :=
+            Set.EqOn.eventuallyEq_of_mem hvEqOn (isOpen_Iio.mem_nhds ht.2)
+          exact (hev.differentiableAt_iff).mpr (differentiableAt_const _)
+        refine ⟨⟨differentiableAt_const c, hdiffV⟩, ?_, ?_⟩
+        · -- `∂ₜu = deriv (fun _ => c) = 0`, continuous on `(0,1)`.
+          have : (fun s : ℝ => deriv (fun _r : ℝ => c) s) = fun _ => (0 : ℝ) := by
+            ext s; exact deriv_const s c
+          rw [this]; exact continuousOn_const
+        · -- `∂ₜv = 0` on `(0,1)` since `v · x` is locally constant there.
+          have hderiv0 : Set.EqOn (fun s : ℝ => deriv (fun r : ℝ => v r x) s)
+              (fun _ : ℝ => (0 : ℝ)) (Set.Ioo (0 : ℝ) 1) := by
+            intro s hs
+            have hev : (fun r : ℝ => v r x) =ᶠ[nhds s]
+                (fun _ : ℝ => ellipticV p c) :=
+              Set.EqOn.eventuallyEq_of_mem hvEqOn (isOpen_Iio.mem_nhds hs.2)
+            simp only [hev.deriv_eq, deriv_const]
+          exact continuousOn_const.congr hderiv0
       · -- Fifth conjunct: genuine interior-Neumann.  `u ≡ c` and (on `(0,1)`)
         -- `v t = ellipticV p c` are both spatially constant.
         intro t ht
@@ -4356,8 +4434,27 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
       Set.EqOn.eventuallyEq_of_mem
         (fun s hs => by rw [hEqV s hs.1 hs.2])
         (isOpen_Ioo.mem_nhds ht)
-    obtain ⟨hU, hV⟩ := hreg.2.2.2.1 x hx t ht
-    exact ⟨(huEv.differentiableAt_iff).mpr hU, (hvEv.differentiableAt_iff).mpr hV⟩
+    obtain ⟨⟨hU, hV⟩, hcontU, hcontV⟩ := hreg.2.2.2.1 x hx t ht
+    -- For the continuity of `∂ₜ`: on the open `(0,T)` the slices agree, and
+    -- `deriv` at an interior point depends only on a neighbourhood, so the two
+    -- time-derivative fields agree pointwise on `(0,T)`.
+    have hderivEqU : Set.EqOn (fun s : ℝ => deriv (fun r : ℝ => u r x) s)
+        (fun s : ℝ => deriv (fun r : ℝ => U r x) s) (Set.Ioo (0 : ℝ) T) := by
+      intro s hs
+      have hEv : (fun r : ℝ => u r x) =ᶠ[nhds s] (fun r : ℝ => U r x) :=
+        Set.EqOn.eventuallyEq_of_mem
+          (fun r hr => by rw [hEq r hr.1 hr.2]) (isOpen_Ioo.mem_nhds hs)
+      simp only [hEv.deriv_eq]
+    have hderivEqV : Set.EqOn (fun s : ℝ => deriv (fun r : ℝ => v r x) s)
+        (fun s : ℝ => deriv (fun r : ℝ => V r x) s) (Set.Ioo (0 : ℝ) T) := by
+      intro s hs
+      have hEv : (fun r : ℝ => v r x) =ᶠ[nhds s] (fun r : ℝ => V r x) :=
+        Set.EqOn.eventuallyEq_of_mem
+          (fun r hr => by rw [hEqV r hr.1 hr.2]) (isOpen_Ioo.mem_nhds hs)
+      simp only [hEv.deriv_eq]
+    exact ⟨⟨(huEv.differentiableAt_iff).mpr hU,
+        (hvEv.differentiableAt_iff).mpr hV⟩,
+      hcontU.congr hderivEqU, hcontV.congr hderivEqV⟩
   · -- Fifth conjunct: lifts of `u t, v t` equal lifts of `U t, V t`, so the
     -- one-sided endpoint derivative limits transfer verbatim.
     intro t ht

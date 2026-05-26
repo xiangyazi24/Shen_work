@@ -121,9 +121,15 @@ theorem intervalDomainClassicalRegularity_mono_horizon
   · -- Spatial `C²` on the interior, restricted to the shorter horizon.
     intro t ht
     exact hreg'.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
-  · -- Interior time differentiability, restricted to the shorter horizon.
+  · -- Interior time `C¹`, restricted to the shorter horizon.  The pointwise
+    -- differentiability transfers verbatim; the continuity of `∂ₜu` is over the
+    -- longer interior `(0,T)`, so restrict it down to `(0,T')` via `.mono`.
     intro x hx t ht
-    exact hreg'.2.2.2.1 x hx t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
+    obtain ⟨hdiff, hcontU, hcontV⟩ :=
+      hreg'.2.2.2.1 x hx t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
+    exact ⟨hdiff,
+      hcontU.mono (Set.Ioo_subset_Ioo_right hTT'),
+      hcontV.mono (Set.Ioo_subset_Ioo_right hTT')⟩
   · -- Genuine interior-Neumann, restricted to the shorter horizon.
     intro t ht
     exact hreg'.2.2.2.2 t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩

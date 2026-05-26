@@ -2788,10 +2788,21 @@ def intervalDomainClassicalRegularity
   -- uniqueness energy method (differentiating `E(τ) = ∫₀¹ w²` in `τ`) has
   -- meaning.  Together with the spatial `C²` conjunct above this records the
   -- joint `C^{2,1}` regularity of a classical solution (Liang's B).
+  -- The time slices are genuinely `C¹` in time on the interior: not only is
+  -- `s ↦ u s x` differentiable at every interior `t`, but its time derivative
+  -- `s ↦ ∂ₜu s x` is *continuous* on the whole interior `(0,T)`.  Continuity on
+  -- the compact closure of a slab `[τ−δ,τ+δ] ⊆ (0,T)` makes `∂ₜu` *bounded*
+  -- there, which is precisely the τ-uniform integrable dominating envelope (D2)
+  -- consumed by `intervalIntegral_hasDerivAt_time_of_local`.  The
+  -- `DifferentiableAt` half is kept so existing consumers are unchanged.
   (∀ x : intervalDomainPoint, (x.1 : ℝ) ∈ Set.Ioo (0 : ℝ) 1 →
     ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
-      DifferentiableAt ℝ (fun s : ℝ => u s x) t ∧
-        DifferentiableAt ℝ (fun s : ℝ => _v s x) t) ∧
+      (DifferentiableAt ℝ (fun s : ℝ => u s x) t ∧
+          DifferentiableAt ℝ (fun s : ℝ => _v s x) t) ∧
+        (ContinuousOn (fun s : ℝ => deriv (fun r : ℝ => u r x) s)
+            (Set.Ioo (0 : ℝ) T) ∧
+          ContinuousOn (fun s : ℝ => deriv (fun r : ℝ => _v r x) s)
+            (Set.Ioo (0 : ℝ) T))) ∧
   -- **Genuine interior-Neumann boundary condition.**  The hardcoded `0` in
   -- `intervalDomainNormalDeriv` makes the Neumann conjunct of
   -- `IsPaper2ClassicalSolution` definitionally vacuous, so the real boundary

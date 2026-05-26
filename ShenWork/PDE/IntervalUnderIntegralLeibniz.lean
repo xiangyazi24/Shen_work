@@ -134,6 +134,51 @@ theorem exists_ball_subset_Ioo
   obtain ⟨δ, hδpos, hsub⟩ := Metric.isOpen_iff.mp hopen τ hτ
   exact ⟨δ, hδpos, hsub⟩
 
+/-- **The (D2) envelope, from joint continuity of `∂ₜg` on a compact slab.**
+
+Given the time-derivative field `g'` *jointly continuous* on the compact slab
+`Set.Icc (τ−δ) (τ+δ) ×ˢ Set.Icc 0 1`, there is a single **constant** integrable
+envelope `bound ≡ M` with `‖g' s y‖ ≤ bound y` for every `s ∈ Metric.ball τ δ`
+and almost every `y` (the interior measure is supported in `Ioo 0 1 ⊆ Icc 0 1`).
+A constant is `intervalDomainInteriorMeasure`-integrable because that measure is
+finite (`volume.restrict (Ioo 0 1)`, total mass `1`).
+
+This is the reusable lemma that supplies the `h_bound`/`hbound_int` hypotheses of
+`intervalIntegral_hasDerivAt_time_of_local`: joint continuity on the compact
+slab is exactly the genuine `C¹`-in-time (continuous `∂ₜu`) regularity that the
+strengthened time conjunct of `intervalDomainClassicalRegularity` records. -/
+theorem exists_bound_of_continuousOn_slab
+    {g' : ℝ → ℝ → ℝ} {τ δ : ℝ} (hδ : 0 < δ)
+    (hcont : ContinuousOn (Function.uncurry g')
+      (Set.Icc (τ - δ) (τ + δ) ×ˢ Set.Icc (0 : ℝ) 1)) :
+    ∃ bound : ℝ → ℝ,
+      Integrable bound intervalDomainInteriorMeasure ∧
+      (∀ᵐ y ∂intervalDomainInteriorMeasure,
+        ∀ s ∈ Metric.ball τ δ, ‖g' s y‖ ≤ bound y) := by
+  classical
+  -- The slab is compact, so the continuous `‖∂ₜg‖` attains a finite bound `M`.
+  have hcompact : IsCompact
+      (Set.Icc (τ - δ) (τ + δ) ×ˢ Set.Icc (0 : ℝ) 1) :=
+    (isCompact_Icc).prod isCompact_Icc
+  obtain ⟨M, hM⟩ := hcompact.exists_bound_of_continuousOn hcont
+  refine ⟨fun _ => M, ?_, ?_⟩
+  · -- A constant is integrable for the finite interior measure.
+    have : IsFiniteMeasure intervalDomainInteriorMeasure := by
+      refine ⟨?_⟩
+      simp [intervalDomainInteriorMeasure, MeasureTheory.Measure.restrict_apply,
+        Real.volume_Ioo]
+    exact integrable_const M
+  · -- Almost every `y` lies in `Ioo 0 1 ⊆ Icc 0 1`; for `s ∈ ball τ δ ⊆
+    -- Icc (τ−δ) (τ+δ)` the slab bound `M` applies.
+    refine (ae_restrict_iff' measurableSet_Ioo).2 ?_
+    refine Filter.Eventually.of_forall (fun y hy s hs => ?_)
+    have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hy
+    have hsIcc : s ∈ Set.Icc (τ - δ) (τ + δ) := by
+      rw [Metric.mem_ball, Real.dist_eq] at hs
+      rw [Set.mem_Icc]
+      constructor <;> [linarith [abs_lt.mp hs |>.1]; linarith [abs_lt.mp hs |>.2]]
+    exact hM (s, y) (Set.mk_mem_prod hsIcc hyIcc)
+
 /-!
 ## Honest gap report — what (D1) and (D2) require, and what supplies them
 
