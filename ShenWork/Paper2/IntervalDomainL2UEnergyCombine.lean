@@ -178,6 +178,518 @@ theorem flux_diff_pointwise_bound
           · positivity
       _ = U * G * Lq * |v₁ - v₂| := by ring
 
+/-! ## (A) helper bounds for the chemotaxis quotient `q = (1+v)^{-β}`
+
+`q(v) = (1+v)^{-β}` for `v ≥ 0` (the positive solution range gives `lift(v t) ≥ 0`
+since `v t` is a positive classical solution, but here we only need `v ≥ 0`,
+equivalently `1+v ≥ 1`).  Two facts:
+
+  * `q ∈ (0,1]`: base `1+v ≥ 1`, exponent `−β ≤ 0` ⇒ `(1+v)^{-β} ≤ 1`, and `> 0`;
+  * `q` is `β`-Lipschitz in `v` on `v ≥ 0`: derivative `−β(1+v)^{-β-1}` has
+    absolute value `β(1+v)^{-β-1} ≤ β` (since `1+v ≥ 1`, `-β-1 ≤ 0`). -/
+
+/-- `(1+v)^{-β} ∈ (0,1]` for `v ≥ 0` and `β ≥ 0`. -/
+theorem chemQuotient_mem_Ioc
+    {β v : ℝ} (hβ : 0 ≤ β) (hv : 0 ≤ v) :
+    0 < (1 + v) ^ (-β) ∧ (1 + v) ^ (-β) ≤ 1 := by
+  have hbase : (1 : ℝ) ≤ 1 + v := by linarith
+  have hbase_pos : (0 : ℝ) < 1 + v := by linarith
+  refine ⟨Real.rpow_pos_of_pos hbase_pos _, ?_⟩
+  -- `(1+v)^{-β} ≤ 1^{-β} = 1` since `1+v ≥ 1` and exponent `-β ≤ 0`.
+  have := Real.rpow_le_rpow_of_nonpos (by norm_num : (0:ℝ) < 1) hbase
+    (by linarith : -β ≤ 0)
+  simpa using this
+
+/-- **(A)-helper (iii): `β`-Lipschitz of `s ↦ (1+s)^{-β}` on `s ≥ 0`.**
+For `v₁, v₂ ≥ 0`,
+`|(1+v₁)^{-β} − (1+v₂)^{-β}| ≤ β · |v₁ − v₂|`.
+MVT on the convex `Icc 0 (max v₁ v₂) ⊆ [0,∞)`; the derivative
+`−β·(1+s)^{-β-1}` has norm `β·(1+s)^{-β-1} ≤ β` there (`1+s ≥ 1`, exponent `≤ 0`). -/
+theorem chemQuotient_lipschitz
+    {β : ℝ} (hβ : 0 ≤ β) {v₁ v₂ : ℝ} (hv₁ : 0 ≤ v₁) (hv₂ : 0 ≤ v₂) :
+    |(1 + v₁) ^ (-β) - (1 + v₂) ^ (-β)| ≤ β * |v₁ - v₂| := by
+  set M : ℝ := max v₁ v₂ with hM
+  have hv₁M : v₁ ∈ Set.Icc (0:ℝ) M := ⟨hv₁, le_max_left _ _⟩
+  have hv₂M : v₂ ∈ Set.Icc (0:ℝ) M := ⟨hv₂, le_max_right _ _⟩
+  have hconv : Convex ℝ (Set.Icc (0:ℝ) M) := convex_Icc 0 M
+  -- derivative on `Icc 0 M`.
+  have hderiv : ∀ s ∈ Set.Icc (0:ℝ) M,
+      HasDerivWithinAt (fun y : ℝ => (1 + y) ^ (-β))
+        (-β * (1 + s) ^ (-β - 1)) (Set.Icc (0:ℝ) M) s := by
+    intro s hs
+    have hbase_pos : (0:ℝ) < 1 + s := by have := hs.1; linarith
+    have hb : HasDerivAt (fun y : ℝ => (1 + y)) (1 : ℝ) s := by
+      simpa using (hasDerivAt_id s).const_add (1 : ℝ)
+    have hrp : HasDerivAt (fun y : ℝ => (1 + y) ^ (-β))
+        ((-β) * (1 + s) ^ (-β - 1) * 1) s :=
+      (Real.hasDerivAt_rpow_const (p := -β) (Or.inl (ne_of_gt hbase_pos))).comp s hb
+    have : (-β) * (1 + s) ^ (-β - 1) * 1 = -β * (1 + s) ^ (-β - 1) := by ring
+    rw [this] at hrp
+    exact hrp.hasDerivWithinAt
+  -- derivative norm bound `≤ β` on `Icc 0 M`.
+  have hbound : ∀ s ∈ Set.Icc (0:ℝ) M, ‖-β * (1 + s) ^ (-β - 1)‖ ≤ β := by
+    intro s hs
+    have hbase : (1:ℝ) ≤ 1 + s := by have := hs.1; linarith
+    have hbase_pos : (0:ℝ) < 1 + s := by linarith
+    have hle1 : (1 + s) ^ (-β - 1) ≤ 1 := by
+      have := Real.rpow_le_rpow_of_nonpos (by norm_num : (0:ℝ) < 1) hbase
+        (by linarith : -β - 1 ≤ 0)
+      simpa using this
+    have hpos : (0:ℝ) ≤ (1 + s) ^ (-β - 1) := (Real.rpow_pos_of_pos hbase_pos _).le
+    rw [Real.norm_eq_abs, abs_mul, abs_neg, abs_of_nonneg hβ, abs_of_nonneg hpos]
+    calc β * (1 + s) ^ (-β - 1) ≤ β * 1 := mul_le_mul_of_nonneg_left hle1 hβ
+      _ = β := by ring
+  have hmvt := hconv.norm_image_sub_le_of_norm_hasDerivWithin_le hderiv hbound hv₂M hv₁M
+  rw [Real.norm_eq_abs, Real.norm_eq_abs] at hmvt
+  exact hmvt
+
+/-! ## (A) uniform L∞ helper bounds on `[0,1]` -/
+
+/-- **(A)-helper (i): `resolverGradReal p (u τ)` is continuous on ℝ** (exported from
+the inline argument inside `static_v_grad_L2_le_Eu`).  Uniform-limit of continuous
+terms under the summable gradient majorant `∑ₖ |coeffₖ.re|·kπ` from source decay. -/
+theorem resolverGradReal_continuous
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    Continuous (fun x : ℝ => resolverGradReal p (u τ) x) := by
+  have hdecay := sourceCoeffQuadraticDecay_of_solution hsol hτ
+  have hmaj := resolverGrad_majorant_summable_of_sourceDecay hdecay.C_nonneg hdecay.decay
+  refine continuous_tsum (fun k => ?_) hmaj (fun k x => ?_)
+  · exact continuous_const.mul (continuous_const.mul
+      (Real.continuous_sin.comp (by fun_prop)))
+  · rw [Real.norm_eq_abs, abs_mul]
+    have hsin : |(-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * x))|
+        ≤ (k : ℝ) * Real.pi := by
+      rw [abs_mul, abs_neg, abs_mul, abs_of_nonneg (by positivity : (0:ℝ) ≤ (k:ℝ)),
+        abs_of_nonneg Real.pi_pos.le]
+      have h1 : |Real.sin ((k : ℝ) * Real.pi * x)| ≤ 1 := Real.abs_sin_le_one _
+      nlinarith [mul_nonneg (Nat.cast_nonneg k) Real.pi_pos.le, abs_nonneg
+        (Real.sin ((k : ℝ) * Real.pi * x)), h1]
+    exact mul_le_mul_of_nonneg_left hsin (abs_nonneg _)
+
+/-- **(A)-helper (i): uniform L∞ bound on `resolverGradReal p (u τ)` over `[0,1]`.**
+Continuity on the compact `[0,1]`. -/
+theorem resolverGradReal_bounded
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    ∃ G : ℝ, 0 ≤ G ∧
+      ∀ x ∈ Set.Icc (0:ℝ) 1, |resolverGradReal p (u τ) x| ≤ G := by
+  have hcont : Continuous (fun x : ℝ => resolverGradReal p (u τ) x) :=
+    resolverGradReal_continuous hsol hτ
+  have hne : (Set.Icc (0:ℝ) 1).Nonempty := ⟨0, by constructor <;> norm_num⟩
+  obtain ⟨G, hG⟩ :=
+    (isCompact_Icc.image_of_continuousOn
+      (hcont.continuousOn.abs)).bddAbove
+  refine ⟨max G 0, le_max_right _ _, fun x hx => ?_⟩
+  exact le_trans (hG ⟨x, hx, rfl⟩) (le_max_left _ _)
+
+/-- **(A)-helper (ii): uniform L∞ bound on `intervalDomainLift (v τ)` over `[0,1]`.**
+Conjunct-7 `C²` ⇒ continuous on the compact `[0,1]` ⇒ bounded. -/
+theorem lift_v_bounded
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    ∃ M : ℝ, 0 ≤ M ∧
+      ∀ x ∈ Set.Icc (0:ℝ) 1, |intervalDomainLift (v τ) x| ≤ M := by
+  have hcont : ContinuousOn (intervalDomainLift (v τ)) (Set.Icc (0:ℝ) 1) :=
+    ((hsol.regularity.2.2.2.2.2.2.1 τ hτ).2.1).continuousOn
+  obtain ⟨M, hM⟩ :=
+    (isCompact_Icc.image_of_continuousOn hcont.abs).bddAbove
+  refine ⟨max M 0, le_max_right _ _, fun x hx => ?_⟩
+  exact le_trans (hM ⟨x, hx, rfl⟩) (le_max_left _ _)
+
+/-- **(A)-helper: uniform L∞ bound on `intervalDomainLift (u τ)` over `[0,1]`.**
+(`lift_u_bounded_pos` gives a two-sided positive bound; here we just need the upper
+absolute bound.) -/
+theorem lift_u_bounded
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    ∃ U : ℝ, 0 ≤ U ∧
+      ∀ x ∈ Set.Icc (0:ℝ) 1, |intervalDomainLift (u τ) x| ≤ U := by
+  obtain ⟨δ, M, _, hb⟩ := lift_u_bounded_pos hsol hτ
+  refine ⟨max M 0, le_max_right _ _, fun x hx => ?_⟩
+  have hmem := hb x hx
+  have hpos : 0 < intervalDomainLift (u τ) x := solution_lift_pos hsol hτ x hx
+  rw [abs_of_pos hpos]
+  exact le_trans hmem.2 (le_max_left _ _)
+
+/-! ## (A) The L²-integrated flux-difference bound
+
+The chemotaxis flux at `(τ, y)` is
+`fluxᵢ(τ,y) = lift(uᵢ τ) y · deriv(lift(vᵢ τ)) y / (1 + lift(vᵢ τ) y)^β`
+(so that `chemDivᵢ = ∂ₓ(fluxᵢ) = intervalDomainChemotaxisDiv p (uᵢ τ) (vᵢ τ)`).  We
+prove `∫₀¹ (flux₁ − flux₂)² ≤ C · E_u(τ)`.
+
+The bound needs `1 + lift(vᵢ τ) > 0` on `[0,1]`; we record the (physical-model)
+nonnegativity of the chemical concentration `vᵢ ≥ 0` on `[0,1]` as the named
+hypotheses `hv₁nn`/`hv₂nn` (it is exactly `q = (1+v)^{-β} ∈ (0,1]`, and the genuine
+content of the resolver of a positive source `ν u^γ` under the maximum principle —
+a fact not carried by the abstract `IsPaper2ClassicalSolution`).  Everything else is
+unconditional. -/
+
+/-- The chemotaxis flux of a solution, as a plain real function on ℝ. -/
+def intervalFlux (p : CM2Params) (u v : intervalDomainPoint → ℝ) (y : ℝ) : ℝ :=
+  intervalDomainLift u y * deriv (intervalDomainLift v) y /
+    (1 + intervalDomainLift v y) ^ p.β
+
+/-- The continuous interior representative of the flux: `deriv(lift v)` replaced by
+`resolverGradReal` and the quotient written as a product with `(1+v)^{-β}`.  Equal to
+`intervalFlux` on the open interior `(0,1)` (where `deriv(lift v) = resolverGradReal`
+and `a/b^β = a·b^{-β}` for `b > 0`). -/
+def intervalFluxRepr (p : CM2Params) (u v : intervalDomainPoint → ℝ) (y : ℝ) : ℝ :=
+  intervalDomainLift u y * resolverGradReal p u y *
+    (1 + intervalDomainLift v y) ^ (-p.β)
+
+/-- On the interior `(0,1)`, the flux equals its continuous representative.  Uses
+`solution_lift_v_deriv_eq_resolverGrad` (interior deriv↔RGrad) and
+`a / b^β = a · b^{-β}` (valid since `1+v > 0`). -/
+theorem intervalFlux_eq_repr_interior
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T)
+    (hvnn : ∀ x ∈ Set.Icc (0:ℝ) 1, 0 ≤ intervalDomainLift (v τ) x)
+    {y : ℝ} (hy : y ∈ Set.Ioo (0 : ℝ) 1) :
+    intervalFlux p (u τ) (v τ) y = intervalFluxRepr p (u τ) (v τ) y := by
+  have hyIcc : y ∈ Set.Icc (0:ℝ) 1 := Set.Ioo_subset_Icc_self hy
+  have hgrad := solution_lift_v_deriv_eq_resolverGrad hsol hτ hy
+  have hbase_pos : (0:ℝ) < 1 + intervalDomainLift (v τ) y := by
+    have := hvnn y hyIcc; linarith
+  unfold intervalFlux intervalFluxRepr
+  rw [hgrad, div_eq_mul_inv, ← Real.rpow_neg hbase_pos.le]
+
+/-- `intervalFluxRepr` is continuous on `[0,1]` (each factor: `lift u` continuous;
+`resolverGradReal` continuous; `(1+lift v)^{-β}` continuous since `1+lift v > 0`). -/
+theorem intervalFluxRepr_continuousOn
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T)
+    (hvnn : ∀ x ∈ Set.Icc (0:ℝ) 1, 0 ≤ intervalDomainLift (v τ) x) :
+    ContinuousOn (intervalFluxRepr p (u τ) (v τ)) (Set.Icc (0:ℝ) 1) := by
+  have hu : ContinuousOn (intervalDomainLift (u τ)) (Set.Icc (0:ℝ) 1) :=
+    ((hsol.regularity.2.2.2.2.2.2.1 τ hτ).1.1).continuousOn
+  have hg : ContinuousOn (fun x => resolverGradReal p (u τ) x) (Set.Icc (0:ℝ) 1) :=
+    (resolverGradReal_continuous hsol hτ).continuousOn
+  have hv : ContinuousOn (intervalDomainLift (v τ)) (Set.Icc (0:ℝ) 1) :=
+    ((hsol.regularity.2.2.2.2.2.2.1 τ hτ).2.1).continuousOn
+  have hbase : ContinuousOn (fun x => 1 + intervalDomainLift (v τ) x) (Set.Icc (0:ℝ) 1) :=
+    continuousOn_const.add hv
+  have hq : ContinuousOn (fun x => (1 + intervalDomainLift (v τ) x) ^ (-p.β))
+      (Set.Icc (0:ℝ) 1) :=
+    hbase.rpow_const (fun x hx => Or.inl (by have := hvnn x hx; linarith))
+  exact (hu.mul hg).mul hq
+
+/-- The `u`-difference integral equals `E_u`: `∫₀¹(lift u₁ − lift u₂)² = E_u(τ)`. -/
+theorem lift_u_diff_sq_integral_eq_Eu
+    (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (τ : ℝ) :
+    (∫ y in (0:ℝ)..1,
+        (intervalDomainLift (u₁ τ) y - intervalDomainLift (u₂ τ) y) ^ 2)
+      = intervalDomainClassicalL2DifferenceEnergyU u₁ u₂ τ := by
+  rw [intervalDomainL2UEnergy_eq_integral]
+  refine intervalIntegral.integral_congr (fun y _ => ?_)
+  by_cases hy : y ∈ Set.Icc (0:ℝ) 1
+  · simp only [intervalDomainLift, hy, dif_pos]
+  · simp [intervalDomainLift, hy]
+
+/-- **(A) L²-integrated flux-difference bound.**
+For two positive classical solutions and `τ ∈ (0,T₁) ∩ (0,T₂)`, with the chemical
+concentrations nonnegative on `[0,1]` (`hv₁nn`/`hv₂nn`),
+
+  `∫₀¹ (flux₁(τ,y) − flux₂(τ,y))² dy ≤ C · E_u(τ)`,
+
+where `fluxᵢ = lift(uᵢ)·∂ₓ(lift vᵢ)/(1+lift vᵢ)^β` and
+`E_u(τ) = ∫₀¹ (lift(u₁−u₂))²`.  The constant is
+`C = 3·(G² + U²·C_grad + (U·G·β)²·C_val)` with `U,G` the uniform L∞ bounds on
+`lift uᵢ` / `resolverGradReal(uᵢ)`, and `C_grad,C_val` from the static `v`-control
+lemmas.  Route: square the proved pointwise `flux_diff_pointwise_bound`
+(`(X+Y+Z)² ≤ 3(X²+Y²+Z²)`), integrate over the interior, and bound the three
+resulting integrals by `static_v_grad_L2_le_Eu`, `static_v_value_L2_le_Eu`, and the
+identity `∫(lift u₁−lift u₂)² = E_u`. -/
+theorem flux_diff_L2_le_Eu
+    {p : CM2Params} {T₁ T₂ : ℝ}
+    {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ}
+    (hsol₁ : IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁)
+    (hsol₂ : IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂)
+    {τ : ℝ} (hτ₁ : τ ∈ Set.Ioo (0 : ℝ) T₁) (hτ₂ : τ ∈ Set.Ioo (0 : ℝ) T₂)
+    (hv₁nn : ∀ x ∈ Set.Icc (0:ℝ) 1, 0 ≤ intervalDomainLift (v₁ τ) x)
+    (hv₂nn : ∀ x ∈ Set.Icc (0:ℝ) 1, 0 ≤ intervalDomainLift (v₂ τ) x) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      (∫ y in (0:ℝ)..1,
+        (intervalFlux p (u₁ τ) (v₁ τ) y - intervalFlux p (u₂ τ) (v₂ τ) y) ^ 2)
+        ≤ C * intervalDomainClassicalL2DifferenceEnergyU u₁ u₂ τ := by
+  classical
+  set Eu : ℝ := intervalDomainClassicalL2DifferenceEnergyU u₁ u₂ τ with hEu
+  have hEu_nn : 0 ≤ Eu := intervalDomainClassicalL2DifferenceEnergyU_nonneg u₁ u₂ τ
+  -- uniform L∞ bounds `U` (on both `lift uᵢ`) and `G` (on both `resolverGradReal`).
+  obtain ⟨U₁, hU₁nn, hU₁⟩ := lift_u_bounded hsol₁ hτ₁
+  obtain ⟨U₂, hU₂nn, hU₂⟩ := lift_u_bounded hsol₂ hτ₂
+  obtain ⟨G₁, hG₁nn, hG₁⟩ := resolverGradReal_bounded hsol₁ hτ₁
+  obtain ⟨G₂, hG₂nn, hG₂⟩ := resolverGradReal_bounded hsol₂ hτ₂
+  set U : ℝ := max U₁ U₂ with hUdef
+  set G : ℝ := max G₁ G₂ with hGdef
+  have hUnn : 0 ≤ U := le_trans hU₁nn (le_max_left _ _)
+  have hGnn : 0 ≤ G := le_trans hG₁nn (le_max_left _ _)
+  have hβnn : 0 ≤ p.β := p.hβ
+  -- pointwise bound on the interior `(0,1)` of the (continuous representative) flux.
+  have hpt : ∀ y ∈ Set.Ioo (0:ℝ) 1,
+      |intervalFluxRepr p (u₁ τ) (v₁ τ) y - intervalFluxRepr p (u₂ τ) (v₂ τ) y|
+        ≤ G * |intervalDomainLift (u₁ τ) y - intervalDomainLift (u₂ τ) y|
+          + U * |resolverGradReal p (u₁ τ) y - resolverGradReal p (u₂ τ) y|
+          + U * G * p.β
+              * |intervalDomainLift (v₁ τ) y - intervalDomainLift (v₂ τ) y| := by
+    intro y hy
+    have hyIcc : y ∈ Set.Icc (0:ℝ) 1 := Set.Ioo_subset_Icc_self hy
+    -- factor bounds.
+    have ha₁ : |intervalDomainLift (u₁ τ) y| ≤ U :=
+      le_trans (hU₁ y hyIcc) (le_max_left _ _)
+    have ha₂ : |intervalDomainLift (u₂ τ) y| ≤ U :=
+      le_trans (hU₂ y hyIcc) (le_max_right _ _)
+    have hg₁ : |resolverGradReal p (u₁ τ) y| ≤ G :=
+      le_trans (hG₁ y hyIcc) (le_max_left _ _)
+    have hg₂ : |resolverGradReal p (u₂ τ) y| ≤ G :=
+      le_trans (hG₂ y hyIcc) (le_max_right _ _)
+    have hq₁ := chemQuotient_mem_Ioc hβnn (hv₁nn y hyIcc)
+    have hq₂ := chemQuotient_mem_Ioc hβnn (hv₂nn y hyIcc)
+    have hqLip := chemQuotient_lipschitz hβnn (hv₁nn y hyIcc) (hv₂nn y hyIcc)
+    -- the algebraic flux-difference bound on the representative.
+    have := flux_diff_pointwise_bound
+      (a₁ := intervalDomainLift (u₁ τ) y) (a₂ := intervalDomainLift (u₂ τ) y)
+      (g₁ := resolverGradReal p (u₁ τ) y) (g₂ := resolverGradReal p (u₂ τ) y)
+      (q₁ := (1 + intervalDomainLift (v₁ τ) y) ^ (-p.β))
+      (q₂ := (1 + intervalDomainLift (v₂ τ) y) ^ (-p.β))
+      (v₁ := intervalDomainLift (v₁ τ) y) (v₂ := intervalDomainLift (v₂ τ) y)
+      (U := U) (G := G) (Lq := p.β)
+      ha₁ ha₂ hg₁ hg₂ hq₁.1.le hq₁.2 hq₂.1.le hq₂.2 hUnn hGnn hqLip
+    simpa only [intervalFluxRepr] using this
+  -- square the pointwise bound: `(Δflux)² ≤ 3(G²Δa² + U²Δg² + (UGβ)²Δv²)` on `(0,1)`.
+  set a := fun y => (intervalDomainLift (u₁ τ) y - intervalDomainLift (u₂ τ) y) with ha
+  set gg := fun y => (resolverGradReal p (u₁ τ) y - resolverGradReal p (u₂ τ) y) with hgg
+  set vv := fun y => (intervalDomainLift (v₁ τ) y - intervalDomainLift (v₂ τ) y) with hvv
+  have hsq : ∀ y ∈ Set.Ioo (0:ℝ) 1,
+      (intervalFluxRepr p (u₁ τ) (v₁ τ) y - intervalFluxRepr p (u₂ τ) (v₂ τ) y) ^ 2
+        ≤ 3 * (G^2 * (a y)^2 + U^2 * (gg y)^2 + (U*G*p.β)^2 * (vv y)^2) := by
+    intro y hy
+    have hb := hpt y hy
+    set X := G * |a y| with hX
+    set Y := U * |gg y| with hY
+    set Z := U * G * p.β * |vv y| with hZ
+    have hXnn : 0 ≤ X := by rw [hX]; positivity
+    have hYnn : 0 ≤ Y := by rw [hY]; positivity
+    have hZnn : 0 ≤ Z := by rw [hZ]; positivity
+    have hb' : |intervalFluxRepr p (u₁ τ) (v₁ τ) y - intervalFluxRepr p (u₂ τ) (v₂ τ) y|
+        ≤ X + Y + Z := hb
+    have hsq0 : (intervalFluxRepr p (u₁ τ) (v₁ τ) y
+          - intervalFluxRepr p (u₂ τ) (v₂ τ) y) ^ 2
+        ≤ (X + Y + Z) ^ 2 := by
+      rw [← sq_abs]
+      exact pow_le_pow_left₀ (abs_nonneg _) hb' 2
+    refine hsq0.trans ?_
+    have hexp : (X + Y + Z) ^ 2 ≤ 3 * (X^2 + Y^2 + Z^2) := by nlinarith [sq_nonneg (X-Y), sq_nonneg (Y-Z), sq_nonneg (X-Z)]
+    refine hexp.trans ?_
+    have hXsq : X^2 = G^2 * (a y)^2 := by rw [hX]; rw [mul_pow, sq_abs]
+    have hYsq : Y^2 = U^2 * (gg y)^2 := by rw [hY]; rw [mul_pow, sq_abs]
+    have hZsq : Z^2 = (U*G*p.β)^2 * (vv y)^2 := by rw [hZ]; rw [mul_pow, sq_abs]
+    rw [hXsq, hYsq, hZsq]
+  -- the LHS flux integral equals the representative integral (interior agreement).
+  have hflux_eq : (∫ y in (0:ℝ)..1,
+        (intervalFlux p (u₁ τ) (v₁ τ) y - intervalFlux p (u₂ τ) (v₂ τ) y) ^ 2)
+      = ∫ y in (0:ℝ)..1,
+        (intervalFluxRepr p (u₁ τ) (v₁ τ) y - intervalFluxRepr p (u₂ τ) (v₂ τ) y) ^ 2 := by
+    refine intervalIntegral.integral_congr_ae ?_
+    -- equality holds on `Ioo 0 1 = Ι 0 1 \ {1}` (the endpoint `1` is null).
+    have hnull : volume ({(1:ℝ)} : Set ℝ) = 0 := Real.volume_singleton
+    refine (MeasureTheory.ae_iff).2 (measure_mono_null ?_ hnull)
+    intro y hy
+    simp only [Set.mem_setOf_eq] at hy
+    push_neg at hy
+    obtain ⟨hyIoc0, hne⟩ := hy
+    rw [Set.uIoc_of_le (by norm_num : (0:ℝ) ≤ 1)] at hyIoc0
+    simp only [Set.mem_singleton_iff]
+    by_contra hy1
+    have hyIoo : y ∈ Set.Ioo (0:ℝ) 1 := ⟨hyIoc0.1, lt_of_le_of_ne hyIoc0.2 hy1⟩
+    exact hne (by rw [intervalFlux_eq_repr_interior hsol₁ hτ₁ hv₁nn hyIoo,
+      intervalFlux_eq_repr_interior hsol₂ hτ₂ hv₂nn hyIoo])
+  -- integrability of the representative-difference square (continuous on `[0,1]`).
+  have hcontR : ContinuousOn
+      (fun y => (intervalFluxRepr p (u₁ τ) (v₁ τ) y
+        - intervalFluxRepr p (u₂ τ) (v₂ τ) y) ^ 2) (Set.uIcc (0:ℝ) 1) := by
+    rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)]
+    exact (((intervalFluxRepr_continuousOn hsol₁ hτ₁ hv₁nn).sub
+      (intervalFluxRepr_continuousOn hsol₂ hτ₂ hv₂nn)).pow 2)
+  have hintR : IntervalIntegrable
+      (fun y => (intervalFluxRepr p (u₁ τ) (v₁ τ) y
+        - intervalFluxRepr p (u₂ τ) (v₂ τ) y) ^ 2) volume 0 1 :=
+    hcontR.intervalIntegrable
+  -- the three static integrals.
+  obtain ⟨Cg, hCgnn, hCg⟩ := static_v_grad_L2_le_Eu hsol₁ hsol₂ hτ₁ hτ₂
+  obtain ⟨Cv, hCvnn, hCv⟩ := static_v_value_L2_le_Eu hsol₁ hsol₂ hτ₁ hτ₂
+  -- integrability of the three squared difference integrands (continuous on `[0,1]`).
+  have hcont_u₁ : ContinuousOn (intervalDomainLift (u₁ τ)) (Set.Icc (0:ℝ) 1) :=
+    ((hsol₁.regularity.2.2.2.2.2.2.1 τ hτ₁).1.1).continuousOn
+  have hcont_u₂ : ContinuousOn (intervalDomainLift (u₂ τ)) (Set.Icc (0:ℝ) 1) :=
+    ((hsol₂.regularity.2.2.2.2.2.2.1 τ hτ₂).1.1).continuousOn
+  have hcont_v₁ : ContinuousOn (intervalDomainLift (v₁ τ)) (Set.Icc (0:ℝ) 1) :=
+    ((hsol₁.regularity.2.2.2.2.2.2.1 τ hτ₁).2.1).continuousOn
+  have hcont_v₂ : ContinuousOn (intervalDomainLift (v₂ τ)) (Set.Icc (0:ℝ) 1) :=
+    ((hsol₂.regularity.2.2.2.2.2.2.1 τ hτ₂).2.1).continuousOn
+  have hcg₁ := resolverGradReal_continuous hsol₁ hτ₁
+  have hcg₂ := resolverGradReal_continuous hsol₂ hτ₂
+  have hint_a : IntervalIntegrable (fun y => (a y)^2) volume 0 1 := by
+    rw [ha]
+    have : ContinuousOn (fun y => (intervalDomainLift (u₁ τ) y
+        - intervalDomainLift (u₂ τ) y)^2) (Set.uIcc (0:ℝ) 1) := by
+      rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)]; exact (hcont_u₁.sub hcont_u₂).pow 2
+    exact this.intervalIntegrable
+  have hint_g : IntervalIntegrable (fun y => (gg y)^2) volume 0 1 := by
+    rw [hgg]; exact (((hcg₁.sub hcg₂).pow 2)).intervalIntegrable _ _
+  have hint_v : IntervalIntegrable (fun y => (vv y)^2) volume 0 1 := by
+    rw [hvv]
+    have : ContinuousOn (fun y => (intervalDomainLift (v₁ τ) y
+        - intervalDomainLift (v₂ τ) y)^2) (Set.uIcc (0:ℝ) 1) := by
+      rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)]; exact (hcont_v₁.sub hcont_v₂).pow 2
+    exact this.intervalIntegrable
+  set RHSfun := fun y => 3 * (G^2 * (a y)^2 + U^2 * (gg y)^2 + (U*G*p.β)^2 * (vv y)^2)
+    with hRHSfun
+  have hint_RHS : IntervalIntegrable RHSfun volume 0 1 := by
+    rw [hRHSfun]
+    exact (((hint_a.const_mul (G^2)).add (hint_g.const_mul (U^2))).add
+      (hint_v.const_mul ((U*G*p.β)^2))).const_mul 3
+  -- integrate the squared pointwise bound on `(0,1)` (= a.e. on `[0,1]`).
+  have hmono : (∫ y in (0:ℝ)..1,
+        (intervalFluxRepr p (u₁ τ) (v₁ τ) y
+          - intervalFluxRepr p (u₂ τ) (v₂ τ) y) ^ 2)
+      ≤ ∫ y in (0:ℝ)..1, RHSfun y := by
+    -- the bound holds on `Ioo 0 1`, which is `Icc 0 1` minus the null endpoints.
+    have hae : (fun y => (intervalFluxRepr p (u₁ τ) (v₁ τ) y
+          - intervalFluxRepr p (u₂ τ) (v₂ τ) y) ^ 2)
+        ≤ᵐ[volume.restrict (Set.Icc (0:ℝ) 1)] RHSfun := by
+      have hmeas : MeasurableSet (Set.Icc (0:ℝ) 1) := measurableSet_Icc
+      refine (ae_restrict_iff' (μ := volume) hmeas).2 ?_
+      have hnull : volume (insert (0:ℝ) ({(1:ℝ)} : Set ℝ)) = 0 :=
+        Set.Finite.measure_zero
+          ((Set.finite_singleton (1:ℝ)).insert (0:ℝ)) volume
+      refine (MeasureTheory.ae_iff).2 (measure_mono_null ?_ hnull)
+      intro y hy
+      simp only [Set.mem_setOf_eq] at hy
+      push_neg at hy
+      obtain ⟨hyIcc, hne⟩ := hy
+      simp only [Set.mem_insert_iff, Set.mem_singleton_iff]
+      by_contra hcon
+      push_neg at hcon
+      obtain ⟨hy0, hy1⟩ := hcon
+      exact absurd (hsq y ⟨lt_of_le_of_ne hyIcc.1 (Ne.symm hy0),
+        lt_of_le_of_ne hyIcc.2 hy1⟩) (not_le.mpr hne)
+    exact intervalIntegral.integral_mono_ae_restrict (by norm_num) hintR hint_RHS hae
+  refine ⟨3 * (G^2 + U^2 * Cg + (U*G*p.β)^2 * Cv), by positivity, ?_⟩
+  rw [hflux_eq]
+  refine hmono.trans ?_
+  -- expand the RHS integral by linearity and bound each piece.
+  have hRHSint : (∫ y in (0:ℝ)..1, RHSfun y)
+      = 3 * (G^2 * (∫ y in (0:ℝ)..1, (a y)^2)
+        + U^2 * (∫ y in (0:ℝ)..1, (gg y)^2)
+        + (U*G*p.β)^2 * (∫ y in (0:ℝ)..1, (vv y)^2)) := by
+    rw [hRHSfun]
+    rw [intervalIntegral.integral_const_mul]
+    rw [intervalIntegral.integral_add
+        ((hint_a.const_mul (G^2)).add (hint_g.const_mul (U^2))) (hint_v.const_mul _),
+      intervalIntegral.integral_add (hint_a.const_mul (G^2)) (hint_g.const_mul (U^2)),
+      intervalIntegral.integral_const_mul, intervalIntegral.integral_const_mul,
+      intervalIntegral.integral_const_mul]
+  rw [hRHSint]
+  -- the three integral bounds.
+  have hIa : (∫ y in (0:ℝ)..1, (a y)^2) = Eu := by
+    rw [ha, hEu]; exact lift_u_diff_sq_integral_eq_Eu u₁ u₂ τ
+  have hIg : (∫ y in (0:ℝ)..1, (gg y)^2) ≤ Cg * Eu := by rw [hgg, hEu]; exact hCg
+  have hIv : (∫ y in (0:ℝ)..1, (vv y)^2) ≤ Cv * Eu := by rw [hvv, hEu]; exact hCv
+  rw [hIa]
+  -- assemble: `3(G²·Eu + U²·∫gg² + (UGβ)²·∫vv²) ≤ 3(G² + U²Cg + (UGβ)²Cv)·Eu`.
+  have hUGβsq_nn : 0 ≤ (U*G*p.β)^2 := sq_nonneg _
+  have hU2nn : 0 ≤ U^2 := sq_nonneg _
+  calc 3 * (G^2 * Eu + U^2 * (∫ y in (0:ℝ)..1, (gg y)^2)
+        + (U*G*p.β)^2 * (∫ y in (0:ℝ)..1, (vv y)^2))
+      ≤ 3 * (G^2 * Eu + U^2 * (Cg * Eu) + (U*G*p.β)^2 * (Cv * Eu)) := by
+        have h1 : U^2 * (∫ y in (0:ℝ)..1, (gg y)^2) ≤ U^2 * (Cg * Eu) :=
+          mul_le_mul_of_nonneg_left hIg hU2nn
+        have h2 : (U*G*p.β)^2 * (∫ y in (0:ℝ)..1, (vv y)^2)
+            ≤ (U*G*p.β)^2 * (Cv * Eu) :=
+          mul_le_mul_of_nonneg_left hIv hUGβsq_nn
+        nlinarith [h1, h2]
+    _ = 3 * (G^2 + U^2 * Cg + (U*G*p.β)^2 * Cv) * Eu := by ring
+
+/-! ## (B) flux C¹ regularity + endpoint vanishing -/
+
+/-- **(B) flux endpoint vanishing.**  `fluxᵢ(τ,0) = fluxᵢ(τ,1) = 0` — the genuine
+homogeneous-Neumann content (`∂ₓvᵢ = 0` at the endpoints, conjunct 7).  This is the
+boundary datum `F 0 = F 1 = 0` consumed by `intervalFluxByParts`. -/
+theorem flux_endpoint_zero
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    intervalFlux p (u τ) (v τ) 0 = 0 ∧ intervalFlux p (u τ) (v τ) 1 = 0 := by
+  have hreg := (hsol.regularity.2.2.2.2.2.2.1 τ hτ).2
+  have hbc0 : deriv (intervalDomainLift (v τ)) 0 = 0 := hreg.2.1
+  have hbc1 : deriv (intervalDomainLift (v τ)) 1 = 0 := hreg.2.2
+  refine ⟨?_, ?_⟩
+  · unfold intervalFlux; rw [hbc0]; simp
+  · unfold intervalFlux; rw [hbc1]; simp
+
+/-- **(B) flux C¹ regularity on the interior `(0,1)`.**  Each `fluxᵢ(τ,·)` is `C¹`
+on the open interior `(0,1)`: `fluxᵢ = lift(uᵢ)·∂ₓ(lift vᵢ)/(1+lift vᵢ)^β`, where
+`lift uᵢ` is `C²` (conjunct 7, so `C¹`), `∂ₓ(lift vᵢ) = deriv(lift vᵢ)` is `C¹`
+(`lift vᵢ` is `C²`, so its derivative is `C¹` on the interior), and `(1+lift vᵢ)^{-β}`
+is `C¹` (rpow on the positive base `1+v ≥ 1 > 0`, using `hvnn`).  Hence
+`chemDivᵢ = ∂ₓ(fluxᵢ)` is well-defined on the interior, which is exactly where the
+chemotaxis integration-by-parts integrates. -/
+theorem flux_contDiffOn_Ioo
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T)
+    (hvnn : ∀ x ∈ Set.Ioo (0:ℝ) 1, 0 ≤ intervalDomainLift (v τ) x) :
+    ContDiffOn ℝ 1 (intervalFlux p (u τ) (v τ)) (Set.Ioo (0:ℝ) 1) := by
+  have hreg := hsol.regularity.2.2.1 τ hτ
+  -- interior `C²` of `lift u` and `lift v`.
+  have hCu : ContDiffOn ℝ 2 (intervalDomainLift (u τ)) (Set.Ioo (0:ℝ) 1) := hreg.1
+  have hCv : ContDiffOn ℝ 2 (intervalDomainLift (v τ)) (Set.Ioo (0:ℝ) 1) := hreg.2
+  -- `lift u` is `C¹` on the interior.
+  have hu1 : ContDiffOn ℝ 1 (intervalDomainLift (u τ)) (Set.Ioo (0:ℝ) 1) :=
+    hCu.of_le (by norm_num)
+  -- `deriv (lift v)` is `C¹` on the open interior (derivative of a `C²` function;
+  -- `deriv = derivWithin` on the open set, and `ContDiffOn.deriv_of_isOpen`).
+  have hdv1 : ContDiffOn ℝ 1 (deriv (intervalDomainLift (v τ))) (Set.Ioo (0:ℝ) 1) := by
+    have hderivWithin : ContDiffOn ℝ 1
+        (derivWithin (intervalDomainLift (v τ)) (Set.Ioo (0:ℝ) 1)) (Set.Ioo (0:ℝ) 1) :=
+      hCv.derivWithin isOpen_Ioo.uniqueDiffOn (by norm_num)
+    refine hderivWithin.congr (fun x hx => ?_)
+    exact (derivWithin_of_isOpen isOpen_Ioo hx).symm
+  -- `(1+lift v)^{-β}` is `C¹` on the interior (rpow on positives).
+  have hbase1 : ContDiffOn ℝ 1 (fun x => 1 + intervalDomainLift (v τ) x)
+      (Set.Ioo (0:ℝ) 1) := contDiffOn_const.add (hCv.of_le (by norm_num))
+  have hne : ∀ x ∈ Set.Ioo (0:ℝ) 1, (1 + intervalDomainLift (v τ) x) ≠ 0 := by
+    intro x hx; have := hvnn x hx; positivity
+  have hq1 : ContDiffOn ℝ 1 (fun x => (1 + intervalDomainLift (v τ) x) ^ (-p.β))
+      (Set.Ioo (0:ℝ) 1) := hbase1.rpow_const_of_ne hne
+  -- assemble: flux = (lift u · deriv(lift v)) · (1+lift v)^{-β} (quotient as product).
+  have hprod : ContDiffOn ℝ 1
+      (fun x => intervalDomainLift (u τ) x * deriv (intervalDomainLift (v τ)) x
+        * (1 + intervalDomainLift (v τ) x) ^ (-p.β)) (Set.Ioo (0:ℝ) 1) :=
+    (hu1.mul hdv1).mul hq1
+  refine hprod.congr (fun x hx => ?_)
+  -- `a·g/(1+v)^β = a·g·(1+v)^{-β}` (base `> 0`).
+  have hbase_pos : (0:ℝ) < 1 + intervalDomainLift (v τ) x := by
+    have := hvnn x hx; linarith
+  unfold intervalFlux
+  rw [div_eq_mul_inv, ← Real.rpow_neg hbase_pos.le]
+
 end
 
 end ShenWork.Paper2
