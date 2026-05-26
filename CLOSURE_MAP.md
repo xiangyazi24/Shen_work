@@ -1,9 +1,55 @@
-# ShenWork Closure Map — precise remaining frontier (2026-05-25)
+# ShenWork Closure Map — precise remaining frontier (2026-05-26)
 
 State after the Claude-subagent round (codex usage exhausted). Whole project
-builds integrated: `lake build ShenWork` green, 8326 jobs, 0 sorry / 0 axiom
+builds integrated: `lake build ShenWork` green, 8327 jobs, 0 sorry / 0 axiom
 (every key theorem `#print axioms` = [propext, Classical.choice, Quot.sound]).
 PDE direction confirmed by Liang: classical solution = joint C^{2,1}.
+
+## ROUND-3 UPDATE (2026-05-26, commit 8561490, self-verified build+axioms)
+
+R1 and R2 — the two pieces scoped as closeable — are DONE and clean:
+- R1: conjunct (9) of `intervalDomainClassicalRegularity` = joint continuity of
+  the solution field `(t,x)↦intervalDomainLift(u t)x` on `Ioo 0 T ×ˢ Icc 0 1`
+  (+ for v). All 6 build-path constructors/transfer lemmas re-discharged.
+- R2: `ShenWork.IntervalSolutionCoeffDeriv.intervalEnergyByParts`:
+  `∫₀¹ w·w'' = −∫₀¹ (w')²` via closed-`Icc` `HasDerivAt` + endpoint Neumann
+  values (conjunct 7), one `integral_mul_deriv_eq_deriv_mul_of_hasDerivAt`.
+
+KEY SHIFT: because conjunct (7) now ASSERTS closed-Icc C² + endpoint Neumann in
+the def, the remaining residual is NO LONGER "prove Schauder boundary
+regularity" — that regularity is now hypothesised by the faithful def. The
+single residual `IntervalDomainL2JointTimeRegularity p` is the nonlinear ENERGY
+ESTIMATE assembly: substitute the pointwise PDE identity into E′, IBP via R2,
+absorb chemotaxis/reaction differences by `intervalLogisticSource_lipschitz` +
+resolver Lipschitz + the L∞ bound (now available: conjunct-7 `ContDiffOn (Icc 0
+1)` ⇒ bounded on compact). Multi-lemma but reachable, repo-side, no Mathlib gap.
+
+## ROUND-4 UPDATE (2026-05-26, commit 2b8a8b8, self-verified build 8328 + axioms)
+
+FINDING: the bundled energy `∫₀¹ (u−U)²+(v−V)²` is the WRONG functional for a
+parabolic-elliptic system. Differentiating `(v−V)²` forces `∫ z·∂ₜz` (z=v−V),
+but z solves an ELLIPTIC relation (`0=∂ₓₓz−μz+ν(u₁^γ−u₂^γ)`) — no time-equation
+among hypotheses ⇒ dead-end. Artifact of the energy choice, not a Mathlib gap.
+
+FIX (standard parabolic-elliptic uniqueness; new file
+`ShenWork/Paper2/IntervalDomainL2UEnergy.lean`, in build graph): u-only energy
+`E_u=∫₀¹ (u−U)²`; z controlled STATICALLY (`‖z‖,‖∂ₓz‖≤C‖w‖` via proven
+`intervalNeumannResolverR_(sup|grad_sup)_lipschitz`); `E_u=0⇒u=U⇒v=V` by
+elliptic uniqueness. PROVED + axiom-clean: `…L2DifferenceEnergyU(+_nonneg)`,
+`IntervalDomainClassicalOverlapL2UEnergyCertificate`,
+`…overlap_unique_of_l2UEnergyCertificate` (genuine Grönwall on E_u),
+`IntervalDomainL2UDifferenceEnergyFrontier(+_of_diffIneqFrontier)`,
+`intervalDomainClassicalUniquenessL2EnergyMethod_of_uFrontier` (THE bridge ⇒
+full joint method ⇒ `GlobalSolutionGluingFromReachability`),
+`IntervalDomainL2UJointTimeRegularity`(+builder+`_of_uJointTimeRegularity`).
+
+REMAINING (single obligation, strictly WEAKER — v-difference time-derivative
+GONE): construct `IntervalDomainL2UJointTimeRegularity p` = standard parabolic
+`E_u′≤K·E_u`. Leibniz half from conjuncts (8)(9)+slab machinery; dissipation
+`−2∫(∂ₓw)²≤0` from proven `intervalEnergyByParts`. Open part = chemotaxis/
+reaction Lipschitz absorption assembly + reconciling abstract `chemotaxisDiv`/
+`laplacian` derivs with resolver-Lipschitz summability (may need a lemma that
+the abstract solution's v IS the resolver of u).
 
 ## PROVEN this round (deep machinery, all axiom-clean, committed)
 
