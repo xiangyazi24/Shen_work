@@ -39,7 +39,30 @@ once `supNorm(uᵢ τ) ≤ M` uniformly ⇒ Kunif; u₀ bounded ⇒ bdd₀. CAVE
 bound holds under Theorem 1.1's parameter regime (hχ neg-sensitivity, a,b>0, m≥1),
 so the honest resting point may be "gluing unconditional modulo boundedness, which
 holds in the Theorem 1.1 regime" — matching paper2's own "bounded ⇒ global"
-structure. (Discharge attempt in progress.)
+structure.
+
+## ROUND-9 FINAL STATE (2026-05-26, HEAD ccb926a, self-verified, build 8342)
+
+Discharge outcome: full-unconditional is FALSE (uniform M needs Thm 1.1 regime
+χ₀≤0,a,b>0 via Lemma 3.1). Delivered the FAITHFUL reduction — gluing is now
+`GlobalSolutionGluingFromReachability_of_uniformSupBound` (axiom-clean), taking the
+NATURAL hypothesis `IntervalDomainUniformLiftBound p` (every solution-pair sharing
+a trace is uniformly `lift(uᵢ τ) ∈ [δ,M]` on (0,minT)×[0,1]) + datum boundedness.
+The ad-hoc Grönwall K is now DERIVED, not assumed: quantitative resolver sup bounds
+`resolverValue/Grad_sup_le_of_ub` (`F(M)=(ℓ²-weight)·2νM^γ`) ⇒ `CfluxQuant(δ,M)` ⇒
+uniform K. Files Paper2/IntervalDomainResolverSupQuantitative.lean,
+Paper2/IntervalDomainL2UEnergyUniform.lean.
+
+NET: the ENTIRE u-only uniqueness/gluing ANALYTIC machinery is proved unconditional
+& axiom-clean. Gluing holds modulo exactly: (i) uniform sup bound `M` on solutions
+(= `IsPaper2BoundedBefore`, which Theorem_1_1_intervalDomain_conditional ALREADY
+proves under the regime); (ii) uniform positive lower bound `δ>0` (needed only for
+`γ<1`; a strong-max-principle quantitative positivity — NOT yet in repo); (iii)
+datum boundedness `bdd₀` (intervalDomain `initialAdmissible=True` is too weak — a
+faithful-def question). All three are boundedness/positivity inputs matching paper2's
+own structure, NOT analytic gaps. REMAINING WORK = formulation/architecture (connect
+(i) to Lemma 3.1 under the regime; decide datum-admissibility def; prove uniform δ>0)
+— best done with Xiang/Liang, not autonomously.
 
 ## ROUNDS 5–7 CONSOLIDATED (2026-05-26, HEAD 31c4df3, self-verified)
 
