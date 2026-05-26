@@ -187,7 +187,7 @@ lemma constantInTime_classicalRegularity
       (fun t : ℝ => intervalDomainSupNorm
         ((fun _s (_ : intervalDomainPoint) => c) t)) = fun _ => c := by
     ext _; exact hsup_eq
-  refine ⟨?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_⟩
   · -- First conjunct: for any p' with a > 0, b > 0, if supNorm > equilibrium,
     -- the sup-norm is nonincreasing on Ioc 0 t₀.
     intro _p' _hχ _ha _hb t₀ _ht₀ _ht₀T _hsup_gt
@@ -213,6 +213,10 @@ lemma constantInTime_classicalRegularity
     intro _t _ht
     exact ⟨intervalDomainLift_const_contDiffOn c,
            intervalDomainLift_const_contDiffOn (ellipticV p c)⟩
+  · -- Fourth conjunct: interior time regularity.  Both slices are constant in
+    -- time, hence trivially differentiable in `t`.
+    intro _x _hx _t _ht
+    exact ⟨differentiableAt_const c, differentiableAt_const (ellipticV p c)⟩
 
 /-! ### The v-equation for the elliptic relation -/
 
@@ -2700,7 +2704,7 @@ lemma intervalDomainClassicalRegularity_mono
     (hTL : Tshort ≤ Tlong)
     (hreg : intervalDomainClassicalRegularity Tlong u v) :
     intervalDomainClassicalRegularity Tshort u v := by
-  refine ⟨?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_⟩
   · intro p hpχ ha hb t₀ ht₀ ht₀T hsup
     exact hreg.1 p hpχ ha hb t₀ ht₀ (lt_of_lt_of_le ht₀T hTL) hsup
   · intro p hpχ ha hb
@@ -2708,7 +2712,9 @@ lemma intervalDomainClassicalRegularity_mono
       (hreg.2.1 p hpχ ha hb)
       (fun t ht => ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩)
   · intro t ht
-    exact hreg.2.2 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
+    exact hreg.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
+  · intro x hx t ht
+    exact hreg.2.2.2 x hx t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
 
 /-- A classical interval solution on a longer horizon is also a classical
 solution on every positive shorter horizon. -/
@@ -3566,11 +3572,14 @@ theorem classicalRegularity_of_spatially_constant_decreasing
     (hφ_deriv_nonpos : ∀ t, t ∈ Set.Ioo 0 T → deriv φ t ≤ 0)
     (v : ℝ → intervalDomainPoint → ℝ)
     (hvC2 : ∀ t, t ∈ Set.Ioo (0 : ℝ) T →
-      ContDiffOn ℝ 2 (intervalDomainLift (v t)) (Set.Ioo (0 : ℝ) 1)) :
+      ContDiffOn ℝ 2 (intervalDomainLift (v t)) (Set.Ioo (0 : ℝ) 1))
+    (hvTime : ∀ x : intervalDomainPoint, (x.1 : ℝ) ∈ Set.Ioo (0 : ℝ) 1 →
+      ∀ t, t ∈ Set.Ioo (0 : ℝ) T →
+        DifferentiableAt ℝ (fun s : ℝ => v s x) t) :
     intervalDomainClassicalRegularity T
       (fun t (_ : intervalDomainPoint) => φ t) v := by
   unfold intervalDomainClassicalRegularity
-  refine ⟨?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_⟩
   · -- First conjunct: for any p' with a > 0, b > 0, if supNorm > equilibrium,
     -- the sup-norm is nonincreasing on Ioc 0 t₀.
     intro _p' _hχ _ha _hb t₀ ht₀ ht₀T _hsup_gt
@@ -3590,6 +3599,12 @@ theorem classicalRegularity_of_spatially_constant_decreasing
     -- is spatially constant; `v` is C² by hypothesis.
     intro t ht
     exact ⟨intervalDomainLift_const_contDiffOn (φ t), hvC2 t ht⟩
+  · -- Fourth conjunct: interior time regularity.  `s ↦ u s x = φ s` is
+    -- differentiable on `(0,T)` by `hφ_diff` (open set ⇒ `DifferentiableAt`);
+    -- `s ↦ v s x` is differentiable by hypothesis.
+    intro x hx t ht
+    refine ⟨?_, hvTime x hx t ht⟩
+    exact (hφ_diff t ht).differentiableAt (isOpen_Ioo.mem_nhds ht)
 
 /-! ### RegularityBootstrap for above-equilibrium ODE solutions
 
@@ -3659,9 +3674,22 @@ theorem aboveEquilibrium_regularityBootstrap
     exact ⟨intervalDomainNormalDeriv_const_zero (φ t) hx,
            intervalDomainNormalDeriv_const_zero (ellipticV p (φ t)) hx⟩
   · -- Classical regularity
-    exact classicalRegularity_of_spatially_constant_decreasing hT hφ_pos
+    refine classicalRegularity_of_spatially_constant_decreasing hT hφ_pos
       hφ_cont hφ_diff hφ_deriv_nonpos _
       (fun t _ht => intervalDomainLift_const_contDiffOn (ellipticV p (φ t)))
+      ?_
+    -- `s ↦ ellipticV p (φ s) = (ν/μ) * (φ s) ^ γ` is differentiable in `s`:
+    -- `φ` is differentiable on the open `(0,T)` and stays positive, so the
+    -- real power composes differentiably.
+    intro x _hx t ht
+    have hφ_at : DifferentiableAt ℝ φ t :=
+      (hφ_diff t ht).differentiableAt (isOpen_Ioo.mem_nhds ht)
+    have hpow : DifferentiableAt ℝ (fun s : ℝ => (φ s) ^ p.γ) t := by
+      have := (Real.differentiableAt_rpow_const_of_ne (p.γ) (ne_of_gt (hφ_pos t)))
+      exact this.comp t hφ_at
+    have : DifferentiableAt ℝ (fun s : ℝ => (p.ν / p.μ) * (φ s) ^ p.γ) t :=
+      hpow.const_mul (p.ν / p.μ)
+    simpa [ellipticV] using this
   · -- Initial trace: φ(t) → c₀ = φ(0) as t → 0⁺
     intro ε hε
     -- Since φ is continuous at 0, ∃ δ > 0 with |φ(t) - φ(0)| < ε for t ∈ (0,δ)
@@ -3899,15 +3927,27 @@ theorem not_intervalDomainTheorem11_globalExtension_constant_bad_tail
       -- The sup-norm conjuncts depend only on `u`; the C² conjunct needs the
       -- lift of `v t` on `(0,1)`, where `t < 1` forces `v t = fun _ => ellipticV p c`.
       have hbase := constantInTime_classicalRegularity hc one_pos p
-      refine ⟨hbase.1, hbase.2.1, ?_⟩
-      intro t ht
-      have hvt : v t = fun _ : intervalDomainPoint => ellipticV p c := by
-        funext y
-        show (if t < 1 then ellipticV p c else 0) = ellipticV p c
-        rw [if_pos ht.2]
-      refine ⟨intervalDomainLift_const_contDiffOn c, ?_⟩
-      rw [hvt]
-      exact intervalDomainLift_const_contDiffOn (ellipticV p c)
+      refine ⟨hbase.1, hbase.2.1, ?_, ?_⟩
+      · intro t ht
+        have hvt : v t = fun _ : intervalDomainPoint => ellipticV p c := by
+          funext y
+          show (if t < 1 then ellipticV p c else 0) = ellipticV p c
+          rw [if_pos ht.2]
+        refine ⟨intervalDomainLift_const_contDiffOn c, ?_⟩
+        rw [hvt]
+        exact intervalDomainLift_const_contDiffOn (ellipticV p c)
+      · -- Fourth conjunct: `s ↦ u s x = c` is constant; `s ↦ v s x` equals the
+        -- constant `ellipticV p c` on the neighborhood `Iio 1 ∋ t`, hence is
+        -- differentiable at every `t ∈ (0,1)`.
+        intro x _hx t ht
+        refine ⟨differentiableAt_const c, ?_⟩
+        have hev : (fun s : ℝ => v s x) =ᶠ[nhds t]
+            (fun _ : ℝ => ellipticV p c) := by
+          refine Set.EqOn.eventuallyEq_of_mem ?_ (isOpen_Iio.mem_nhds ht.2)
+          intro s hs
+          show (if s < 1 then ellipticV p c else 0) = ellipticV p c
+          rw [if_pos (Set.mem_Iio.mp hs)]
+        exact (hev.differentiableAt_iff).mpr (differentiableAt_const _)
     · intro _t _x _ht0 _htT _hx
       exact hc
     · intro t x _ht0 htT hx
@@ -4235,7 +4275,7 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
     (hEq : ∀ t, 0 < t → t < T → u t = U t)
     (hEqV : ∀ t, 0 < t → t < T → v t = V t) :
     intervalDomainClassicalRegularity T u v := by
-  refine ⟨?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_⟩
   · intro q hqχ hqa hqb t₀ ht₀ ht₀T hsup
     have hreg₀ := hreg.1 q hqχ hqa hqb t₀ ht₀ ht₀T ?_
     · exact intervalDomainSupNormDerivativeNonposOn_congr_of_eqOn hreg₀
@@ -4254,7 +4294,21 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
     have hvL : intervalDomainLift (v t) = intervalDomainLift (V t) := by
       rw [hEqV t ht.1 ht.2]
     rw [huL, hvL]
-    exact hreg.2.2 t ht
+    exact hreg.2.2.1 t ht
+  · -- Fourth conjunct: the time slices `s ↦ u s x` and `s ↦ U s x` agree on the
+    -- open `(0,T)`, hence are `EventuallyEq` near each interior `t`, so
+    -- differentiability transfers.
+    intro x hx t ht
+    have huEv : (fun s : ℝ => u s x) =ᶠ[nhds t] (fun s : ℝ => U s x) :=
+      Set.EqOn.eventuallyEq_of_mem
+        (fun s hs => by rw [hEq s hs.1 hs.2])
+        (isOpen_Ioo.mem_nhds ht)
+    have hvEv : (fun s : ℝ => v s x) =ᶠ[nhds t] (fun s : ℝ => V s x) :=
+      Set.EqOn.eventuallyEq_of_mem
+        (fun s hs => by rw [hEqV s hs.1 hs.2])
+        (isOpen_Ioo.mem_nhds ht)
+    obtain ⟨hU, hV⟩ := hreg.2.2.2 x hx t ht
+    exact ⟨(huEv.differentiableAt_iff).mpr hU, (hvEv.differentiableAt_iff).mpr hV⟩
 
 private lemma intervalDomainLift_eventuallyEq_of_pointwise_eq
     {f g : intervalDomainPoint → ℝ}

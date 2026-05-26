@@ -9,6 +9,23 @@
 
   ## Honest status (read this first)
 
+  UPDATE.  `intervalDomainClassicalRegularity` now carries a **fourth conjunct**
+  (interior time regularity: `s ↦ u s x` and `s ↦ v s x` are `DifferentiableAt`
+  at every interior `(x,t)`), so the def records full joint `C^{2,1}` and the
+  abstract `timeDeriv u t x = deriv (fun s => u s x) t` is now a *genuine* time
+  derivative — the time-Leibniz `HasDerivWithinAt` half of `diffIneq` is
+  available.  This is *necessary* for the energy method but **not sufficient**
+  to close `IntervalDomainL2JointTimeRegularity`: the remaining blocker is the
+  differential-inequality *bound* `Eprime τ ≤ K · E τ`, i.e. the nonlinear
+  spatial energy estimate — the spatial IBP `∫ w·Δw = −∫|∂ₓw|²` together with
+  the chemotaxis/reaction Lipschitz control of the difference `w = u₁−u₂`,
+  `z = v₁−v₂`.  Those are exactly the named analytic frontiers (`hIBP`,
+  `hLpTime`, the cross-diffusion/Young frontiers) that the entire
+  `IntervalDomainEnergyStep` family carries as explicit hypotheses; no lemma in
+  the repo proves them unconditionally from `IsPaper2ClassicalSolution`.  Hence
+  `intervalDomainL2JointTimeRegularity_concrete` is still NOT provable here, and
+  is not faked.  The precise unprovable obligation is named below.
+
   The intended route was: a classical solution's spatial profile is, via the
   kernel↔spectral identity
   (`IntervalFullKernelInterchange.intervalFullSemigroupOperator_eq_cosineHeatValue_unconditional`),

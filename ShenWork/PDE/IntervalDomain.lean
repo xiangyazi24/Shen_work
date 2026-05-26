@@ -2779,7 +2779,19 @@ def intervalDomainClassicalRegularity
   -- behaviour is recorded separately inside `IsPaper2ClassicalSolution`.)
   (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
     ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Ioo (0 : ℝ) 1) ∧
-      ContDiffOn ℝ 2 (intervalDomainLift (_v t)) (Set.Ioo (0 : ℝ) 1))
+      ContDiffOn ℝ 2 (intervalDomainLift (_v t)) (Set.Ioo (0 : ℝ) 1)) ∧
+  -- Interior *time* regularity (the time half of joint `C^{2,1}`).  At every
+  -- interior spatial point `x` and every interior time `t ∈ (0,T)`, the time
+  -- slices `s ↦ u s x` and `s ↦ _v s x` are genuinely differentiable.  This is
+  -- what turns the *unconditioned* `timeDeriv u t x = deriv (fun s => u s x) t`
+  -- into a real time derivative, so that the time-Leibniz step of the L²
+  -- uniqueness energy method (differentiating `E(τ) = ∫₀¹ w²` in `τ`) has
+  -- meaning.  Together with the spatial `C²` conjunct above this records the
+  -- joint `C^{2,1}` regularity of a classical solution (Liang's B).
+  (∀ x : intervalDomainPoint, (x.1 : ℝ) ∈ Set.Ioo (0 : ℝ) 1 →
+    ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+      DifferentiableAt ℝ (fun s : ℝ => u s x) t ∧
+        DifferentiableAt ℝ (fun s : ℝ => _v s x) t)
 
 def intervalDomainGradNorm (f : intervalDomainPoint → ℝ)
     (x : intervalDomainPoint) : ℝ :=
