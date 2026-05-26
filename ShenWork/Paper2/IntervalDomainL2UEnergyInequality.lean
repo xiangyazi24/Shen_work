@@ -75,10 +75,14 @@
 -/
 import ShenWork.Paper2.IntervalDomainL2UEnergy
 import ShenWork.Paper2.IntervalDomainL2EnergyInequality
+import ShenWork.PDE.IntervalEllipticCharacterization
+import ShenWork.PDE.IntervalNeumannEllipticResolverR
 
 open ShenWork.IntervalDomain MeasureTheory
 open ShenWork.IntervalUnderIntegralLeibniz
 open ShenWork.Paper2.IntervalDomainLpMonotonicity
+open ShenWork.HeatKernelGradientEstimates ShenWork.CosineParsevalBridge
+open ShenWork.PDE ShenWork.IntervalEllipticCharacterization
 open scoped Topology
 
 namespace ShenWork.Paper2
@@ -294,6 +298,136 @@ theorem intervalDomainUEnergyIntegrandDeriv_continuousOn_closedSlab_of_timeConst
   rw [hzero]
   exact continuousOn_const
 
+/-! ## Static elliptic control inputs, discharged unconditionally
+
+The chemotaxis term of the `Eprime ≤ K·E_u` estimate controls `v−V` (and its
+spatial gradient) STATICALLY by `‖u−U‖` via the resolver-Lipschitz bounds
+(`intervalNeumannResolverR_sup_lipschitz` / `…_grad_sup_lipschitz`).  Combined
+with the UNCONDITIONAL coefficient-level elliptic characterization
+`solution_v_resolverCoeff_eq` (which equates `v(·,t)`'s cosine coefficients with
+the resolver coefficients of `ν u^γ`), the resolver bounds give the static
+`v`-control — PROVIDED their two analytic side-hypotheses are met:
+
+  * `hsrc` — the source-coefficient real-part `ℓ²` summability;
+  * `hsum₁/hsum₂` — pointwise reconstruction (absolute summability of the
+    resolver cosine series).
+
+Here we discharge `hsrc` UNCONDITIONALLY for any classical solution
+(`source_resolverCoeff_re_sq_summable`), via the L² mass of the bounded source
+`ν u^γ` fed through `unitIntervalNeumannCosineCoeff_l2_bound`.  This removes one
+of the two side-hypotheses of the value-level resolver bound. -/
+
+/-- The even reflection of a function continuous on `Icc 0 1` is `MemLp 2` on the
+finite-measure interval `Ioc (-1) 1`.  (Continuity on the compact `[0,1]` gives a
+uniform bound; the zero-extension reflection is `AEStronglyMeasurable` on the
+restricted measure, and the measure is finite — so `MemLp.of_bound` applies.) -/
+theorem evenReflection_memLp_two_of_continuousOn
+    {g : ℝ → ℝ} (hg : ContinuousOn g (Set.Icc (0 : ℝ) 1)) :
+    MemLp (unitIntervalEvenReflection (fun x => (g x : ℂ))) 2
+      (volume.restrict (Set.Ioc (-1 : ℝ) 1)) := by
+  classical
+  set F : ℝ → ℂ := unitIntervalEvenReflection (fun x => (g x : ℂ)) with hF
+  have hcompact : IsCompact (Set.Icc (0 : ℝ) 1) := isCompact_Icc
+  obtain ⟨M, hM⟩ : ∃ M : ℝ, ∀ y ∈ Set.Icc (0:ℝ) 1, |g y| ≤ M := by
+    obtain ⟨M, hMmem⟩ := (hcompact.image_of_continuousOn (hg.abs)).bddAbove
+    exact ⟨M, fun y hy => hMmem ⟨y, hy, rfl⟩⟩
+  have hmeas : AEStronglyMeasurable F (volume.restrict (Set.Ioc (-1:ℝ) 1)) := by
+    have hcontOn : ContinuousOn F (Set.Ioc (-1:ℝ) 1) := by
+      have habs : ContinuousOn (fun x : ℝ => |x|) (Set.Ioc (-1:ℝ) 1) :=
+        continuous_abs.continuousOn
+      have hmaps : Set.MapsTo (fun x : ℝ => |x|) (Set.Ioc (-1:ℝ) 1) (Set.Icc (0:ℝ) 1) := by
+        intro x hx
+        refine ⟨abs_nonneg x, ?_⟩
+        rw [abs_le]; constructor <;> [linarith [hx.1]; linarith [hx.2]]
+      have hgc : ContinuousOn (fun x => (g x : ℂ)) (Set.Icc (0:ℝ) 1) :=
+        (Complex.continuous_ofReal.comp_continuousOn hg)
+      exact (hgc.comp habs hmaps)
+    exact hcontOn.aestronglyMeasurable measurableSet_Ioc
+  refine MemLp.of_bound hmeas M ?_
+  refine (ae_restrict_iff' measurableSet_Ioc).2 (Filter.Eventually.of_forall ?_)
+  intro x hx
+  have hxabs : |x| ∈ Set.Icc (0:ℝ) 1 := by
+    refine ⟨abs_nonneg x, ?_⟩
+    rw [abs_le]; constructor <;> [linarith [hx.1]; linarith [hx.2]]
+  have hval : F x = ((g |x| : ℝ) : ℂ) := by rw [hF, unitIntervalEvenReflection]
+  rw [hval, Complex.norm_real, Real.norm_eq_abs]
+  exact hM _ hxabs
+
+/-- The source `g(x) = ν·(lift(u t) x)^γ` is continuous on `Icc 0 1` for a
+classical solution at an interior time `t` (conjunct 7 ⇒ lift `C²` on `Icc`). -/
+theorem source_continuousOn_Icc
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    ContinuousOn (fun x : ℝ => p.ν * intervalDomainLift (u t) x ^ p.γ)
+      (Set.Icc (0:ℝ) 1) := by
+  have hreg : intervalDomainClassicalRegularity T u v := hsol.regularity
+  have hC2u := (hreg.2.2.2.2.2.2.1 t ht).1.1
+  have hUcont : ContinuousOn (intervalDomainLift (u t)) (Set.Icc (0:ℝ) 1) :=
+    hC2u.continuousOn
+  have hUpow : ContinuousOn (fun x : ℝ => intervalDomainLift (u t) x ^ p.γ)
+      (Set.Icc (0:ℝ) 1) :=
+    hUcont.rpow_const (fun x _ => Or.inr p.hγ.le)
+  exact continuousOn_const.mul hUpow
+
+/-- **Source-coefficient `ℓ²` summability for classical solutions
+(UNCONDITIONAL).**  The difference of the elliptic-source cosine coefficients of
+two classical solutions at interior times has `ℓ²`-summable real-part squares —
+exactly the `hsrc` side-hypothesis of `intervalNeumannResolverR_sup_lipschitz`
+and `intervalNeumannResolverR_grad_sup_lipschitz`.  Proved from the L² mass of
+the bounded source `ν u^γ` via `unitIntervalNeumannCosineCoeff_l2_bound`. -/
+theorem source_resolverCoeff_re_sq_summable
+    {p : CM2Params} {T₁ T₂ : ℝ}
+    {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ}
+    (hsol₁ : IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁)
+    (hsol₂ : IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂)
+    {t : ℝ} (ht₁ : t ∈ Set.Ioo (0 : ℝ) T₁) (ht₂ : t ∈ Set.Ioo (0 : ℝ) T₂) :
+    Summable fun k : ℕ =>
+      ((intervalNeumannResolverSourceCoeff p (u₁ t) k -
+        intervalNeumannResolverSourceCoeff p (u₂ t) k).re) ^ 2 := by
+  classical
+  have hsingle : ∀ {Tj : ℝ} {uj vj : ℝ → intervalDomainPoint → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p Tj uj vj →
+      t ∈ Set.Ioo (0:ℝ) Tj →
+      Summable fun k : ℕ =>
+        (intervalNeumannResolverSourceCoeff p (uj t) k).re ^ 2 := by
+    intro Tj uj vj hsolj htj
+    set g : ℝ → ℝ := fun x => p.ν * intervalDomainLift (uj t) x ^ p.γ with hg
+    have hgcont : ContinuousOn g (Set.Icc (0:ℝ) 1) := source_continuousOn_Icc hsolj htj
+    set f : ℝ → ℂ := fun x => ((g x : ℝ) : ℂ) with hf
+    have hfcontOn : ContinuousOn f (Set.uIcc (0:ℝ) 1) := by
+      rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)]
+      exact Complex.continuous_ofReal.comp_continuousOn hgcont
+    have hfint : IntervalIntegrable f volume 0 1 := hfcontOn.intervalIntegrable
+    have hfsq : IntervalIntegrable (fun x : ℝ => ‖f x‖ ^ 2) volume 0 1 :=
+      ((hfcontOn.norm).pow 2).intervalIntegrable
+    have hL2 : MemLp (unitIntervalEvenReflection f) 2
+        (volume.restrict (Set.Ioc (-1:ℝ) 1)) :=
+      evenReflection_memLp_two_of_continuousOn hgcont
+    have hsum := (unitIntervalNeumannCosineCoeff_l2_bound hfint hL2 hfsq).1
+    refine hsum.congr ?_
+    intro k
+    have : (intervalNeumannResolverSourceCoeff p (uj t) k).re =
+        unitIntervalNeumannCosineCoeff f k := by
+      simp only [intervalNeumannResolverSourceCoeff, hf, hg, Complex.ofReal_re]
+    rw [this]
+  have h1 := hsingle hsol₁ ht₁
+  have h2 := hsingle hsol₂ ht₂
+  refine Summable.of_nonneg_of_le (fun k => sq_nonneg _) ?_
+    ((h1.mul_left 2).add (h2.mul_left 2))
+  intro k
+  have hre : (intervalNeumannResolverSourceCoeff p (u₁ t) k -
+      intervalNeumannResolverSourceCoeff p (u₂ t) k).re =
+      (intervalNeumannResolverSourceCoeff p (u₁ t) k).re -
+        (intervalNeumannResolverSourceCoeff p (u₂ t) k).re := by
+    rw [Complex.sub_re]
+  rw [hre]
+  nlinarith [sq_nonneg ((intervalNeumannResolverSourceCoeff p (u₁ t) k).re -
+    (intervalNeumannResolverSourceCoeff p (u₂ t) k).re),
+    sq_nonneg ((intervalNeumannResolverSourceCoeff p (u₁ t) k).re +
+    (intervalNeumannResolverSourceCoeff p (u₂ t) k).re)]
+
 /-! ## The precise residual obligation (named, NOT a `sorry`)
 
 After the Leibniz half above, the `diffIneq` field of the `u`-only frontier is
@@ -306,14 +440,48 @@ reduced to two inputs that genuine nonlinear parabolic theory must supply:
 
   (ii) the inequality `E_u' ≤ K · E_u` — PDE substitution + Neumann IBP
        dissipation (`intervalEnergyByParts`) + chemotaxis/reaction Lipschitz
-       absorption, the last requiring the STATIC elliptic control of `v−V` by
-       `u−U` via the resolver-Lipschitz lemmas, which in turn presupposes the
-       elliptic characterization `v = intervalNeumannResolverR p (ν u^γ)`.
+       absorption, the last requiring the STATIC elliptic control of `v−V` AND
+       `∂ₓ(v−V)` by `u−U` via the resolver-Lipschitz lemmas.
 
-The elliptic characterization is the genuine missing analytic bridge (it is not
-in the repo and not implied by the hypotheses).  We package the full
-`u`-only frontier as a single named residual obligation, mirroring the joint
-track's `IntervalDomainL2JointTimeRegularity`, and assemble
+## What this session newly discharged, and the PRECISE remaining gap
+
+The coefficient-level elliptic characterization `solution_v_resolverCoeff_eq` is
+now UNCONDITIONAL: `(intervalNeumannResolverCoeff p (u t) k).re =
+cosineCoeffs (lift (v t)) k` for every mode.  Feeding the resolver-Lipschitz
+bounds, this still needs their analytic side-hypotheses; of these we close one
+UNCONDITIONALLY here: `source_resolverCoeff_re_sq_summable` discharges the
+source-coefficient `ℓ²` summability (`hsrc`).
+
+Two genuine analytic bridges nonetheless REMAIN, and they are NOT implied by the
+regularity conjuncts + Mathlib (they are the standard `|f̂ₙ| ≤ C/n²` absolutely-
+convergent-series facts, explicitly isolated and not formalised in
+`IntervalCosineInversion`):
+
+  (A) **VALUE reconstruction** — `hsum₁/hsum₂` of
+      `intervalNeumannResolverR_sup_lipschitz`: absolute summability of the
+      resolver cosine series `∑ₖ (v̂ₖ).re·cos(kπx)`.  The resolver weight
+      `1/(μ+λ_k) ~ 1/k²` is itself `ℓ¹`, so once one knows the source
+      coefficients are bounded this CLOSES; it is the lighter of the two.
+
+  (B) **GRADIENT reconstruction + termwise-derivative identification** — the
+      chemotaxis term needs `∂ₓ(v−V)`, controlled by
+      `intervalNeumannResolverR_grad_sup_lipschitz`, whose output is the
+      *termwise-differentiated* series `intervalNeumannResolverRGrad`.  This is
+      blocked TWICE: (b1) the derivative-mode weight `kπ/(μ+λ_k) ~ 1/k` is NOT
+      `ℓ¹`, so absolute summability of the gradient series is NOT automatic and
+      requires the `~1/k²` source-coefficient decay (the unformalised bridge);
+      and (b2) even granting the series converges, NO repo lemma equates the
+      termwise series `intervalNeumannResolverRGrad p (u t)` with the solution's
+      actual spatial derivative `deriv (intervalDomainLift (v t))` used in the
+      chemotaxis flux — that is the interchange-of-`deriv`-and-`tsum` theorem,
+      which the repo handles only under explicit summable-majorant hypotheses
+      (`RegularityBootstrap`) and is not available here unconditionally.
+
+So gluing does NOT close unconditionally: the SMALLEST precise remaining step is
+gap (B) — the static `∂ₓ(v−V)` control, i.e. the termwise-differentiation bridge
+`deriv (intervalDomainLift (v t)) x = intervalNeumannResolverRGrad p (u t) ⟨x,…⟩`
+plus the gradient-series absolute summability.  We package the full `u`-only
+frontier as a single named residual obligation and assemble
 `IntervalDomainL2UJointTimeRegularity` from it.  This keeps gluing unconditional
 **modulo this one strictly-weaker (no `∂ₜ(v−V)`) obligation**. -/
 
