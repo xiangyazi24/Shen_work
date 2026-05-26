@@ -813,14 +813,6 @@ theorem GlobalSolutionGluingFromReachability_of_regimeAndLowerBound
         InitialTrace intervalDomain u₀ u₁ →
         InitialTrace intervalDomain u₀ u₂ →
           PositiveInitialDatum intervalDomain u₀)
-    (hdatum :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|)))
     (hlower :
       ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
         {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
@@ -832,9 +824,12 @@ theorem GlobalSolutionGluingFromReachability_of_regimeAndLowerBound
             (∀ x ∈ Set.Icc (0:ℝ) 1, δ ≤ intervalDomainLift (u₁ τ) x) ∧
             (∀ x ∈ Set.Icc (0:ℝ) 1, δ ≤ intervalDomainLift (u₂ τ) x)) :
     ShenWork.IntervalDomainExistence.GlobalSolutionGluingFromReachability p :=
+  -- Datum-boundedness is folded into the strengthened `intervalDomain.initialAdmissible`
+  -- (`BddAbove (range |·|)`), so `hpos.admissible` directly supplies it.
   GlobalSolutionGluingFromReachability_of_uniformSupBound p
-    (uniformLiftBound_of_regimeAndLowerBound p hχ ha hb hpos hdatum hlower)
-    (fun hsol₁ hsol₂ htr₁ htr₂ => hdatum hsol₁ hsol₂ htr₁ htr₂)
+    (uniformLiftBound_of_regimeAndLowerBound p hχ ha hb hpos
+      (fun hsol₁ hsol₂ htr₁ htr₂ => (hpos hsol₁ hsol₂ htr₁ htr₂).admissible) hlower)
+    (fun hsol₁ hsol₂ htr₁ htr₂ => (hpos hsol₁ hsol₂ htr₁ htr₂).admissible)
 
 end
 

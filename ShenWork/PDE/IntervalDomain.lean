@@ -2966,7 +2966,7 @@ def intervalDomain : ShenWork.Paper2.BoundedDomainData where
   chemotaxisDiv := intervalDomainChemotaxisDiv
   crossDiffusionEnergyTerm := intervalDomainCrossDiffusionEnergyTerm
   normalDeriv := intervalDomainNormalDeriv
-  initialAdmissible := fun _ => True
+  initialAdmissible := fun u₀ => BddAbove (Set.range fun x => |u₀ x|)
   classicalRegularity := intervalDomainClassicalRegularity
 
 end ShenWork.IntervalDomain
