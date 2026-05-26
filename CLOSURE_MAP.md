@@ -37,3 +37,29 @@ Remaining = complete the faithful def (genuine Neumann, #2) + standard analysis
 (pointwise cosine inversion A; under-integral coeff/energy regularity B,E;
 representation reassembly C) + final assembly F. Each reachable, real,
 multi-step. No Mathlib gap identified — all repo-side / standard parabolic theory.
+
+---
+
+## ROUND-2 UPDATE (2026-05-25, after Claude-subagent push — 22 commits)
+
+### Faithful definition COMPLETE
+`intervalDomainClassicalRegularity` now has 6 conjuncts = genuine joint C^{2,1} + genuine Neumann:
+`.1/.2` sup-mono; `.2.2.1` interior spatial ContDiffOn ℝ 2; `.2.2.2.1` per-x time DifferentiableAt + ∂ₜ ContinuousOn; `.2.2.2.2.1` JOINT (t,x) continuity of ∂ₜ on Ioo×Ioo; `.2.2.2.2.2` genuine one-sided Neumann. All constructors (constant/equilibrium/bad-tail) discharge. Full build green 8326.
+
+### Additionally PROVEN this round (axiom-clean, committed)
+- Obligation A CLOSED: `intervalCosine_hasSum_pointwise` + `intervalCosineCoeff_summable_abs` (pointwise cosine inversion + ℓ¹) — e40efab.
+- Localized under-integral Leibniz `intervalIntegral_hasDerivAt_time_of_local` + `exists_bound_of_continuousOn_slab` (D1 fixed; D2 from closed-slab continuity) — 90db85f.
+- Energy Leibniz machinery `intervalDomainClassicalL2DifferenceEnergy_hasDerivAt_of_slabContinuous` (energy time-derivative reduced to one closed-slab-continuity hypothesis) — 0614724.
+- Genuine-Neumann (d20173a), continuous-∂ₜ (3fb3c1d), joint-continuity (c972404).
+
+### THE RECURSIVE-DEEPENING FINDING (honest)
+Each regularity level revealed the next: spatial-C² → genuine-Neumann → time-DifferentiableAt → time-ContinuousOn → JOINT continuity → now BOUNDARY regularity. The current blocker for E (gluing): `exists_bound_of_continuousOn_slab` needs continuity on the CLOSED slab `Icc(τ−δ,τ+δ) ×ˢ Icc 0 1`, but the def gives only OPEN `Ioo×Ioo` — i.e. a τ-uniform INTEGRABLE bound on ∂ₜw up to spatial endpoints x→0⁺,1⁻ (where the zero-extension lift branches). This is genuine PARABOLIC BOUNDARY REGULARITY — a real classical PDE theorem, not bookkeeping, not a Mathlib gap.
+
+### REMAINING (genuine deep tail, each a real theorem)
+1. Parabolic boundary regularity: ∂ₜu (and ∂ₓ,∂ₓₓ) continuous/integrable UP TO the spatial endpoints → closes the closed-slab envelope → E (gluing).
+2. `Eprime ≤ K·E` IBP step (PDE substitution + Neumann IBP with genuine boundary w'(0)=w'(1)=0 + Lipschitz absorption).
+3. localExistence genuine constructor: full-kernel mild solution satisfies the complete 6-conjunct regularity (needs joint Weierstrass `continuous_tsum` for −∑λₙe^{−tλₙ}f̂ₙcos) + the Duhamel term (DuhamelTermInteriorC2 / DuhamelHeatValueRepresentation).
+4. Representation reassembly with the approximate-identity limit (C); final assembly (F) → Theorem 1.1.
+
+### Honest status
+Faithful def + all reachable deep machinery proven & verified & integrated (8326 green). Theorem 1.1 NOT closed; the remaining is genuine boundary parabolic-regularity theory — a sustained expert-level effort, not in-session subagent-grindable. No Mathlib gap identified.
