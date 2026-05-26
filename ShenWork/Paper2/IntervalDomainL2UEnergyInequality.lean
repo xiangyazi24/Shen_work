@@ -816,42 +816,6 @@ the source `ℓ²` summability, and the Leibniz half — is now PROVED and axiom
 This keeps gluing unconditional **modulo this one strictly-weaker (no `∂ₜ(v−V)`)
 source-regularity obligation**. -/
 
-/-- **The precise residual obligation for the `u`-only differential inequality.**
-
-This is exactly the data the `diffIneq` field of
-`IntervalDomainL2UDifferenceEnergyFrontier` needs that the regularity conjuncts +
-Mathlib do not already supply: for any two interval classical solutions sharing
-the initial `u`-trace, the full `u`-only difference-energy frontier on the overlap
-horizon.  Its only genuinely-upstream content is the PARABOLIC `E_u' ≤ K · E_u`
-inequality (PDE substitution + Neumann IBP dissipation + chemotaxis/reaction
-Lipschitz absorption + static elliptic `v`-control); it never requires any time
-derivative of `v−V`. -/
-structure IntervalDomainL2UDiffIneqResidual
-    (p : CM2Params) where
-  frontier :
-    ∀ {u₀ : intervalDomain.Point → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
-        IntervalDomainL2UDifferenceEnergyFrontier
-          p (min T₁ T₂) u₁ v₁ u₂ v₂
-
-/-- **The `u`-only joint-time regularity instance, from the named residual.**
-
-`IntervalDomainL2UJointTimeRegularity p` is built directly from the single named
-residual `IntervalDomainL2UDiffIneqResidual p`.  Composing with
-`intervalDomainClassicalUniquenessL2EnergyMethod_of_uJointTimeRegularity` and
-`GlobalSolutionGluingFromReachability_of_l2EnergyMethod`, the entire gluing /
-uniqueness chain is unconditional MODULO this one strictly-weaker obligation. -/
-def intervalDomainL2UJointTimeRegularity_of_residual
-    {p : CM2Params}
-    (hres : IntervalDomainL2UDiffIneqResidual p) :
-    IntervalDomainL2UJointTimeRegularity p where
-  frontier := fun hsol₁ hsol₂ htr₁ htr₂ =>
-    hres.frontier hsol₁ hsol₂ htr₁ htr₂
-
 end
 
 end ShenWork.Paper2

@@ -2795,7 +2795,19 @@ def intervalDomainClassicalRegularity
   -- there, which is precisely the τ-uniform integrable dominating envelope (D2)
   -- consumed by `intervalIntegral_hasDerivAt_time_of_local`.  The
   -- `DifferentiableAt` half is kept so existing consumers are unchanged.
-  (∀ x : intervalDomainPoint, (x.1 : ℝ) ∈ Set.Ioo (0 : ℝ) 1 →
+  -- **Closed-domain time `C¹` (interior AND endpoints).**  A genuine classical
+  -- `C^{2,1}` solution is time-differentiable up to the closed Neumann boundary,
+  -- so the time slices `s ↦ u s x`, `s ↦ _v s x` are differentiable at every
+  -- interior time `t ∈ (0,T)` for EVERY spatial point `x ∈ [0,1]` (closed,
+  -- unconditional in `x`), not merely on the open interior `(0,1)`.  This closed-
+  -- domain extension is what lets the energy time-Leibniz / closed-slab integrand
+  -- continuity split `∂ₛ(u₁−u₂)` into `∂ₛu₁ − ∂ₛu₂` at the two Neumann endpoints
+  -- `{0,1}` as well, discharging the boundary time-differentiability input
+  -- (`hbd`) unconditionally.  Spatially-constant / time-constant build-path
+  -- witnesses are time-differentiable everywhere trivially; the equilibrium/decay
+  -- ODE witnesses are differentiable in `t` at every `x` (their slices do not
+  -- depend on `x`).
+  (∀ x : intervalDomainPoint,
     ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
       (DifferentiableAt ℝ (fun s : ℝ => u s x) t ∧
           DifferentiableAt ℝ (fun s : ℝ => _v s x) t) ∧

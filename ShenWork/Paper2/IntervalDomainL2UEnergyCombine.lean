@@ -1715,15 +1715,7 @@ theorem intervalDomainUEnergyIntegrandDeriv_continuousOn_closedSlab
     (hsol₁ : IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁)
     (hsol₂ : IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂)
     {τ δ : ℝ} (hδ : 0 < δ)
-    (hslab : Set.Icc (τ - δ) (τ + δ) ⊆ Set.Ioo (0:ℝ) (min T₁ T₂))
-    -- The genuine remaining analytic input: at the TWO spatial Neumann endpoints
-    -- `x ∈ {0,1}` and every slab time `s`, the time slices `r ↦ uⱼ r x` are
-    -- differentiable (so that `∂ₛ` of the difference splits).  Conjunct (4) supplies
-    -- this only on the OPEN spatial interior `(0,1)`; the endpoint boundary case is
-    -- the one piece not implied by the current regularity conjuncts.
-    (hbd : ∀ (x : intervalDomainPoint), (x.1 = 0 ∨ x.1 = 1) →
-        ∀ s ∈ Set.Icc (τ - δ) (τ + δ),
-          DifferentiableAt ℝ (fun r => u₁ r x) s ∧ DifferentiableAt ℝ (fun r => u₂ r x) s) :
+    (hslab : Set.Icc (τ - δ) (τ + δ) ⊆ Set.Ioo (0:ℝ) (min T₁ T₂)) :
     ContinuousOn
       (Function.uncurry (intervalDomainUEnergyIntegrandDeriv u₁ u₂))
       (Set.Icc (τ - δ) (τ + δ) ×ˢ Set.Icc (0 : ℝ) 1) := by
@@ -1777,21 +1769,14 @@ theorem intervalDomainUEnergyIntegrandDeriv_continuousOn_closedSlab
         funext r; simp [intervalDomainLift, hyIcc, hx]
       have heq2 : (fun r => intervalDomainLift (u₂ r) q.2) = fun r => u₂ r x := by
         funext r; simp [intervalDomainLift, hyIcc, hx]
-      -- differentiability of the time slices at `x`: interior via conjunct (4),
-      -- endpoints via the named boundary hypothesis `hbd`.
+      -- differentiability of the time slices at `x`: conjunct (4) is now
+      -- UNCONDITIONAL in `x` (closed-domain time `C¹`), so it covers the open
+      -- interior AND the two Neumann endpoints `{0,1}` directly — no separate
+      -- boundary hypothesis is needed.
       have hdd : DifferentiableAt ℝ (fun r => u₁ r x) q.1
-          ∧ DifferentiableAt ℝ (fun r => u₂ r x) q.1 := by
-        by_cases hint : (x.1 : ℝ) ∈ Set.Ioo (0:ℝ) 1
-        · exact ⟨(hsol₁.regularity.2.2.2.1 x hint q.1 hsIoo₁).1.1,
-            (hsol₂.regularity.2.2.2.1 x hint q.1 hsIoo₂).1.1⟩
-        · -- `x.1 ∈ {0,1}` (in `[0,1]` but not `(0,1)`).
-          have hbd' : x.1 = 0 ∨ x.1 = 1 := by
-            rcases hyIcc.1.lt_or_eq with h0 | h0
-            · rcases hyIcc.2.lt_or_eq with h1 | h1
-              · exact absurd ⟨h0, h1⟩ hint
-              · right; exact h1
-            · left; exact h0.symm
-          exact hbd x hbd' q.1 hs
+          ∧ DifferentiableAt ℝ (fun r => u₂ r x) q.1 :=
+        ⟨(hsol₁.regularity.2.2.2.1 x q.1 hsIoo₁).1.1,
+          (hsol₂.regularity.2.2.2.1 x q.1 hsIoo₂).1.1⟩
       -- the slices, as functions of `r`, are `u₁ · x − u₂ · x` etc; use `HasDerivAt`.
       have hH1 : HasDerivAt (fun r => intervalDomainLift (u₁ r) q.2)
           (deriv (fun r => u₁ r x) q.1) q.1 := by

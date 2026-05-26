@@ -361,7 +361,7 @@ lemma constantInTime_classicalRegularity
   · -- Fourth conjunct: interior time `C¹`.  Both slices are constant in time,
     -- hence trivially differentiable in `t`, and their time derivatives are the
     -- constant function `0` (via `deriv_const`), which is continuous on `(0,T)`.
-    intro _x _hx _t _ht
+    intro _x _t _ht
     refine ⟨⟨?_, ?_⟩, ?_, ?_⟩
     · exact differentiableAt_const c
     · exact differentiableAt_const (ellipticV p c)
@@ -2920,9 +2920,9 @@ lemma intervalDomainClassicalRegularity_mono
       (fun t ht => ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩)
   · intro t ht
     exact hreg.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
-  · intro x hx t ht
+  · intro x t ht
     obtain ⟨hdiff, hcontU, hcontV⟩ :=
-      hreg.2.2.2.1 x hx t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
+      hreg.2.2.2.1 x t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
     exact ⟨hdiff,
       hcontU.mono (Set.Ioo_subset_Ioo_right hTL),
       hcontV.mono (Set.Ioo_subset_Ioo_right hTL)⟩
@@ -3809,10 +3809,10 @@ theorem classicalRegularity_of_spatially_constant_decreasing
     (v : ℝ → intervalDomainPoint → ℝ)
     (hvC2 : ∀ t, t ∈ Set.Ioo (0 : ℝ) T →
       ContDiffOn ℝ 2 (intervalDomainLift (v t)) (Set.Ioo (0 : ℝ) 1))
-    (hvTime : ∀ x : intervalDomainPoint, (x.1 : ℝ) ∈ Set.Ioo (0 : ℝ) 1 →
+    (hvTime : ∀ x : intervalDomainPoint,
       ∀ t, t ∈ Set.Ioo (0 : ℝ) T →
         DifferentiableAt ℝ (fun s : ℝ => v s x) t)
-    (hvTimeCont : ∀ x : intervalDomainPoint, (x.1 : ℝ) ∈ Set.Ioo (0 : ℝ) 1 →
+    (hvTimeCont : ∀ x : intervalDomainPoint,
       ContinuousOn (fun s : ℝ => deriv (fun r : ℝ => v r x) s)
         (Set.Ioo (0 : ℝ) T))
     (hvTimeJoint : ContinuousOn
@@ -3864,9 +3864,9 @@ theorem classicalRegularity_of_spatially_constant_decreasing
   · -- Fourth conjunct: interior time `C¹`.  `s ↦ u s x = φ s` is differentiable
     -- on `(0,T)` by `hφ_diff` (open set ⇒ `DifferentiableAt`) with `∂ₜ = deriv φ`
     -- continuous (`hφ_deriv_cont`); `s ↦ v s x` is supplied by `hvTime`/`hvTimeCont`.
-    intro x hx t ht
+    intro x t ht
     refine ⟨⟨(hφ_diff t ht).differentiableAt (isOpen_Ioo.mem_nhds ht),
-      hvTime x hx t ht⟩, hφ_deriv_cont, hvTimeCont x hx⟩
+      hvTime x t ht⟩, hφ_deriv_cont, hvTimeCont x⟩
   · -- Fifth conjunct: JOINT space-time continuity of `∂ₜ`.  For `u t = fun _ => φ t`
     -- the lift at any interior `x ∈ (0,1) ⊆ [0,1]` equals `φ t`, so `∂ₜ` of the
     -- time slice is `deriv φ t`, independent of `x` and continuous in `t`; hence
@@ -4012,10 +4012,10 @@ theorem aboveEquilibrium_regularityBootstrap
     -- `s ↦ ellipticV p (φ s) = (ν/μ) * (φ s) ^ γ` is differentiable in `s`:
     -- `φ` is differentiable on the open `(0,T)` and stays positive, so the real
     -- power composes differentiably.
-    have hvDiff : ∀ x : intervalDomainPoint, (x.1 : ℝ) ∈ Set.Ioo (0 : ℝ) 1 →
+    have hvDiff : ∀ x : intervalDomainPoint,
         ∀ t, t ∈ Set.Ioo (0 : ℝ) T →
           DifferentiableAt ℝ (fun s : ℝ => ellipticV p (φ s)) t := by
-      intro x _hx t ht
+      intro x t ht
       have hφ_at : DifferentiableAt ℝ φ t :=
         (hφ_diff t ht).differentiableAt (isOpen_Ioo.mem_nhds ht)
       have hpow : DifferentiableAt ℝ (fun s : ℝ => (φ s) ^ p.γ) t := by
@@ -4153,7 +4153,7 @@ theorem aboveEquilibrium_regularityBootstrap
     refine classicalRegularity_of_spatially_constant_decreasing hT hφ_pos
       hφ_cont hφ_diff hφ_deriv_nonpos hφ_deriv_cont _
       (fun t _ht => intervalDomainLift_const_contDiffOn (ellipticV p (φ t)))
-      hvDiff (fun x _hx => hellipticDerivCont) hvJoint
+      hvDiff (fun x => hellipticDerivCont) hvJoint
       (fun t _ht => intervalDomainLift_const_neumann (ellipticV p (φ t)))
       (fun t _ht => ⟨intervalDomainLift_const_contDiffOn_Icc (ellipticV p (φ t)),
         (intervalDomainLift_const_deriv_endpoint_zero (ellipticV p (φ t))).1,
@@ -4408,7 +4408,7 @@ theorem not_intervalDomainTheorem11_globalExtension_constant_bad_tail
       · -- Fourth conjunct: `s ↦ u s x = c` is constant; `s ↦ v s x` equals the
         -- constant `ellipticV p c` on the neighborhood `Iio 1 ∋ t`, hence is
         -- differentiable at every `t ∈ (0,1)`.
-        intro x _hx t ht
+        intro x t ht
         -- `v s x = ellipticV p c` for all `s < 1`, in particular near any
         -- `t ∈ (0,1)` and on the whole `(0,1)`.
         have hvEqOn : Set.EqOn (fun s : ℝ => v s x)
@@ -4917,7 +4917,7 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
   · -- Fourth conjunct: the time slices `s ↦ u s x` and `s ↦ U s x` agree on the
     -- open `(0,T)`, hence are `EventuallyEq` near each interior `t`, so
     -- differentiability transfers.
-    intro x hx t ht
+    intro x t ht
     have huEv : (fun s : ℝ => u s x) =ᶠ[nhds t] (fun s : ℝ => U s x) :=
       Set.EqOn.eventuallyEq_of_mem
         (fun s hs => by rw [hEq s hs.1 hs.2])
@@ -4926,7 +4926,7 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
       Set.EqOn.eventuallyEq_of_mem
         (fun s hs => by rw [hEqV s hs.1 hs.2])
         (isOpen_Ioo.mem_nhds ht)
-    obtain ⟨⟨hU, hV⟩, hcontU, hcontV⟩ := hreg.2.2.2.1 x hx t ht
+    obtain ⟨⟨hU, hV⟩, hcontU, hcontV⟩ := hreg.2.2.2.1 x t ht
     -- For the continuity of `∂ₜ`: on the open `(0,T)` the slices agree, and
     -- `deriv` at an interior point depends only on a neighbourhood, so the two
     -- time-derivative fields agree pointwise on `(0,T)`.
