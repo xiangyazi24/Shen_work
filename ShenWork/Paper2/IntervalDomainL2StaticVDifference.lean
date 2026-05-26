@@ -881,6 +881,62 @@ theorem static_v_grad_L2_le_Eu
     _ = Cg2 * 4 * (p.ν * L) ^ 2 *
           intervalDomainClassicalL2DifferenceEnergyU u₁ u₂ τ := by ring
 
+/-- **Uniform positive lower bound for `lift (u τ)` on a closed time sub-interval
+`[s,t] ⊂ (0,T)` jointly in time and space.**
+
+For a positive classical solution and any `0 < s ≤ t < T`, there exists `δ > 0`
+such that `δ ≤ intervalDomainLift (u τ) x` simultaneously for every `τ ∈ [s,t]`
+and every `x ∈ [0,1]`.
+
+Proof: conjunct (9) of the classical regularity bundle gives joint continuity of
+`(τ,x) ↦ intervalDomainLift (u τ) x` on `Ioo 0 T ×ˢ Icc 0 1`; the compact closed
+slab `Icc s t ×ˢ Icc 0 1` sits inside that open-by-closed slab, so the function
+attains its minimum on the compact at some `(τ₀,x₀)`; closed-domain positivity
+`u_pos'` (via `solution_lift_pos`) makes that minimum strictly positive. -/
+theorem lift_u_uniformPositive_on_compact
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {s t : ℝ} (hs : 0 < s) (hst : s ≤ t) (htT : t < T) :
+    ∃ δ : ℝ, 0 < δ ∧
+      ∀ τ ∈ Set.Icc s t, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        δ ≤ intervalDomainLift (u τ) x := by
+  classical
+  -- (9) joint continuity of `(τ,x) ↦ lift (u τ) x` on `Ioo 0 T ×ˢ Icc 0 1`.
+  have hfield : ContinuousOn
+      (Function.uncurry (fun (τ : ℝ) (x : ℝ) => intervalDomainLift (u τ) x))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+    (hsol.regularity.2.2.2.2.2.2.2.2).1
+  -- compact slab `Icc s t ×ˢ Icc 0 1`.
+  have hKcompact : IsCompact (Set.Icc s t ×ˢ Set.Icc (0 : ℝ) 1) :=
+    isCompact_Icc.prod isCompact_Icc
+  have hKne : (Set.Icc s t ×ˢ Set.Icc (0 : ℝ) 1).Nonempty :=
+    ⟨(s, 0), ⟨Set.left_mem_Icc.mpr hst, by constructor <;> norm_num⟩⟩
+  -- inclusion `Icc s t ×ˢ Icc 0 1 ⊆ Ioo 0 T ×ˢ Icc 0 1`.
+  have hsub : Set.Icc s t ×ˢ Set.Icc (0 : ℝ) 1 ⊆
+      Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1 := by
+    rintro ⟨τ, x⟩ ⟨hτ, hx⟩
+    refine ⟨⟨lt_of_lt_of_le hs hτ.1, lt_of_le_of_lt hτ.2 htT⟩, hx⟩
+  -- restrict continuity to the compact slab.
+  have hcontK : ContinuousOn
+      (Function.uncurry (fun (τ : ℝ) (x : ℝ) => intervalDomainLift (u τ) x))
+      (Set.Icc s t ×ˢ Set.Icc (0 : ℝ) 1) := hfield.mono hsub
+  -- minimum of the (uncurried) continuous function on the nonempty compact.
+  obtain ⟨q₀, hq₀_mem, hq₀_min⟩ :=
+    hKcompact.exists_isMinOn hKne hcontK
+  -- the minimum value is positive: `q₀ = (τ₀, x₀)` with `τ₀ ∈ Ioo 0 T`,
+  -- `x₀ ∈ Icc 0 1`, so `solution_lift_pos` applies.
+  obtain ⟨τ₀, x₀⟩ := q₀
+  obtain ⟨hτ₀_mem, hx₀_mem⟩ := hq₀_mem
+  have hτ₀_open : τ₀ ∈ Set.Ioo (0 : ℝ) T :=
+    ⟨lt_of_lt_of_le hs hτ₀_mem.1, lt_of_le_of_lt hτ₀_mem.2 htT⟩
+  have hmin_pos : 0 < intervalDomainLift (u τ₀) x₀ :=
+    solution_lift_pos hsol hτ₀_open x₀ hx₀_mem
+  refine ⟨intervalDomainLift (u τ₀) x₀, hmin_pos, ?_⟩
+  intro τ hτ x hx
+  have hmem : (τ, x) ∈ Set.Icc s t ×ˢ Set.Icc (0 : ℝ) 1 := ⟨hτ, hx⟩
+  exact isMinOn_iff.mp hq₀_min (τ, x) hmem
+
 end
 
 end ShenWork.Paper2
