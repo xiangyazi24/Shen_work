@@ -77,6 +77,8 @@ import ShenWork.Paper2.IntervalDomainL2UEnergy
 import ShenWork.Paper2.IntervalDomainL2EnergyInequality
 import ShenWork.PDE.IntervalEllipticCharacterization
 import ShenWork.PDE.IntervalNeumannEllipticResolverR
+import ShenWork.PDE.IntervalCosineCoeffDecay
+import ShenWork.PDE.IntervalResolverGradientBridge
 
 open ShenWork.IntervalDomain MeasureTheory
 open ShenWork.IntervalUnderIntegralLeibniz
@@ -428,6 +430,50 @@ theorem source_resolverCoeff_re_sq_summable
     sq_nonneg ((intervalNeumannResolverSourceCoeff p (u₁ t) k).re +
     (intervalNeumannResolverSourceCoeff p (u₂ t) k).re)]
 
+/-! ## (b1)+(b2) discharged: gradient static control from the source-decay input
+
+The two formerly-unformalised analytic bridges (A) and (B) are now PROVED
+(`ShenWork.IntervalCosineCoeffDecay`, `ShenWork.IntervalResolverGradientBridge`).
+The single precise input that does not follow from the regularity conjuncts (for
+fractional `γ` with a vanishing `u`) is the SOURCE `C²`-Neumann quadratic decay; we
+name it `SourceCoeffQuadraticDecay` and prove that from it the static gradient
+control of `v` closes — i.e. the spatial derivative of the resolver value series
+equals the termwise gradient series for the actual solution. -/
+
+open ShenWork.IntervalResolverGradientBridge in
+/-- **The named source-coefficient quadratic-decay input.**  For the solution's
+`u(·,t)`, the elliptic source `ν·u(·,t)^γ` has cosine coefficients with quadratic
+decay.  By sub-step (b1) this holds whenever `ν·u^γ` is `C²`-Neumann (e.g. `γ ∈ ℕ`
+or `u(·,t) > 0`); it is the precise still-open regularity input for fractional `γ`
+with a vanishing `u`. -/
+structure SourceCoeffQuadraticDecay (p : CM2Params) (u : intervalDomainPoint → ℝ)
+    where
+  C : ℝ
+  C_nonneg : 0 ≤ C
+  decay : ∀ k : ℕ, 1 ≤ k →
+    |(intervalNeumannResolverSourceCoeff p u k).re| ≤ C / ((k : ℝ) * Real.pi) ^ 2
+
+open ShenWork.IntervalResolverGradientBridge in
+/-- **Static gradient control from the source-decay input (b1 ⇒ b2, assembled).**
+
+Given the source quadratic-decay input for the solution's `u(·,t)`, the spatial
+derivative of the resolver value series (which equals `v(·,t)` on the interior by
+`solution_v_resolverCoeff_eq`) is the termwise-differentiated gradient series
+`intervalNeumannResolverRGrad p (u t)`, at every point of `[0,1]`.  This is exactly
+the `∂ₓ(v−V)` static-control identity the chemotaxis energy term consumes —
+unconditional MODULO `SourceCoeffQuadraticDecay`. -/
+theorem solution_resolver_grad_hasDerivAt_of_sourceDecay
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hdecay : SourceCoeffQuadraticDecay p u)
+    {y : ℝ} (hy : y ∈ Set.Icc (0 : ℝ) 1) :
+    HasDerivAt
+      (fun z : ℝ => ∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re *
+        Real.cos ((k : ℝ) * Real.pi * z))
+      (intervalNeumannResolverRGrad p u ⟨y, hy⟩) y := by
+  have hmaj :=
+    resolverGrad_majorant_summable_of_sourceDecay hdecay.C_nonneg hdecay.decay
+  exact resolverR_hasDerivAt_grad hmaj y hy
+
 /-! ## The precise residual obligation (named, NOT a `sorry`)
 
 After the Leibniz half above, the `diffIneq` field of the `u`-only frontier is
@@ -452,38 +498,54 @@ bounds, this still needs their analytic side-hypotheses; of these we close one
 UNCONDITIONALLY here: `source_resolverCoeff_re_sq_summable` discharges the
 source-coefficient `ℓ²` summability (`hsrc`).
 
-Two genuine analytic bridges nonetheless REMAIN, and they are NOT implied by the
-regularity conjuncts + Mathlib (they are the standard `|f̂ₙ| ≤ C/n²` absolutely-
-convergent-series facts, explicitly isolated and not formalised in
-`IntervalCosineInversion`):
+The two previously-isolated analytic bridges `(A)`/`(B)` — the standard
+`|f̂ₙ| ≤ C/n²` decay facts — are now FORMALISED as honest, axiom-clean theorems:
 
-  (A) **VALUE reconstruction** — `hsum₁/hsum₂` of
-      `intervalNeumannResolverR_sup_lipschitz`: absolute summability of the
-      resolver cosine series `∑ₖ (v̂ₖ).re·cos(kπx)`.  The resolver weight
-      `1/(μ+λ_k) ~ 1/k²` is itself `ℓ¹`, so once one knows the source
-      coefficients are bounded this CLOSES; it is the lighter of the two.
+  (b1) **C²-Neumann cosine-coefficient decay** — `|f̂ₙ| ≤ M/(nπ)²` for any closed-
+       `Icc` `C²`-Neumann interval datum, proved in
+       `ShenWork.IntervalCosineCoeffDecay.cosineCoeff_decay` via the eigenfunction
+       IBP, with the absolutely-summable consequence
+       `ShenWork.IntervalCosineCoeffDecay.fourierCoeff_reflCircle_summable`.  This
+       fully discharges the **VALUE-reconstruction** input `hFsum` (gap A) of
+       `solution_v_eq_resolver_pointwise` for the solution's `v(·,t)` — which IS
+       genuinely `C²`-Neumann (conjuncts 6,7).
 
-  (B) **GRADIENT reconstruction + termwise-derivative identification** — the
-      chemotaxis term needs `∂ₓ(v−V)`, controlled by
-      `intervalNeumannResolverR_grad_sup_lipschitz`, whose output is the
-      *termwise-differentiated* series `intervalNeumannResolverRGrad`.  This is
-      blocked TWICE: (b1) the derivative-mode weight `kπ/(μ+λ_k) ~ 1/k` is NOT
-      `ℓ¹`, so absolute summability of the gradient series is NOT automatic and
-      requires the `~1/k²` source-coefficient decay (the unformalised bridge);
-      and (b2) even granting the series converges, NO repo lemma equates the
-      termwise series `intervalNeumannResolverRGrad p (u t)` with the solution's
-      actual spatial derivative `deriv (intervalDomainLift (v t))` used in the
-      chemotaxis flux — that is the interchange-of-`deriv`-and-`tsum` theorem,
-      which the repo handles only under explicit summable-majorant hypotheses
-      (`RegularityBootstrap`) and is not available here unconditionally.
+  (b2) **Termwise-differentiation bridge** — under a summable gradient majorant
+       (`∑ₖ |(v̂ₖ).re|·kπ < ∞`), the spatial derivative of the resolver cosine
+       value-series equals the termwise-differentiated gradient series
+       `intervalNeumannResolverRGrad`, proved in
+       `ShenWork.IntervalResolverGradientBridge.resolverR_hasDerivAt_grad` via the
+       Mathlib Weierstrass M-test `hasDerivAt_tsum`.  The required gradient
+       majorant is supplied from source-coefficient quadratic decay by
+       `ShenWork.IntervalResolverGradientBridge.resolverGrad_majorant_summable_of_sourceDecay`.
 
-So gluing does NOT close unconditionally: the SMALLEST precise remaining step is
-gap (B) — the static `∂ₓ(v−V)` control, i.e. the termwise-differentiation bridge
-`deriv (intervalDomainLift (v t)) x = intervalNeumannResolverRGrad p (u t) ⟨x,…⟩`
-plus the gradient-series absolute summability.  We package the full `u`-only
-frontier as a single named residual obligation and assemble
-`IntervalDomainL2UJointTimeRegularity` from it.  This keeps gluing unconditional
-**modulo this one strictly-weaker (no `∂ₜ(v−V)`) obligation**. -/
+THE SINGLE PRECISE REMAINING OBSTRUCTION TO UNCONDITIONAL GLUING.  The gradient
+majorant `∑ₖ |(v̂ₖ).re|·kπ` requires the elliptic SOURCE coefficient quadratic
+decay `|(intervalNeumannResolverSourceCoeff p (u t) k).re| ≤ C/(kπ)²`.  By (b1)
+this holds when the source `ν·u(·,t)^γ` is itself `C²`-Neumann.  Conjunct (7) gives
+`u(·,t)` closed-`Icc` `C²` with Neumann, but for the chemotaxis nonlinearity the
+source is `u^γ`, and:
+
+  * if `γ ∈ ℕ` (or more generally `u(·,t) > 0` on `[0,1]`), `u^γ` is `C²`-Neumann
+    by the chain rule (`(u^γ)'(0) = γ u^{γ-1} u'(0) = 0` since `u'(0)=0`), and the
+    source decay — hence the gradient majorant, hence the static `∂ₓ(v−V)` control
+    — CLOSES via the theorems above;
+
+  * for FRACTIONAL `γ` with `u` allowed to vanish (the bare `CM2Params.hγ : 0 < γ`,
+    no positivity), `u^γ` need NOT be `C²` at a zero of `u`, so the source
+    `C²`-Neumann regularity — and with it the source quadratic decay — is NOT
+    implied by the regularity conjuncts + Mathlib.
+
+This source-regularity fact (`u^γ` is `C²`-Neumann, equivalently the source
+quadratic-decay constant exists) is therefore the SMALLEST precise still-open step;
+it is a genuine additional regularity input about the abstract solution, NOT a
+`sorry`.  We package the full `u`-only frontier as a single named residual
+obligation and assemble `IntervalDomainL2UJointTimeRegularity` from it.  Everything
+upstream of this one source-`C²`-regularity input — the value reconstruction (b1),
+the termwise-differentiation bridge (b2), the gradient majorant from source decay,
+the source `ℓ²` summability, and the Leibniz half — is now PROVED and axiom-clean.
+This keeps gluing unconditional **modulo this one strictly-weaker (no `∂ₜ(v−V)`)
+source-regularity obligation**. -/
 
 /-- **The precise residual obligation for the `u`-only differential inequality.**
 

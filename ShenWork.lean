@@ -70,3 +70,5 @@ import ShenWork.Paper2.IntervalDomainL2UEnergy
 import ShenWork.Paper2.IntervalDomainL2UEnergyInequality
 import ShenWork.PDE.IntervalDomainExistence
 import ShenWork.PDE.IntervalEllipticCharacterization
+import ShenWork.PDE.IntervalCosineCoeffDecay
+import ShenWork.PDE.IntervalResolverGradientBridge
