@@ -1,9 +1,60 @@
 # ShenWork Closure Map — precise remaining frontier (2026-05-26)
 
 State after the Claude-subagent round (codex usage exhausted). Whole project
-builds integrated: `lake build ShenWork` green, 8327 jobs, 0 sorry / 0 axiom
+builds integrated: `lake build ShenWork` green, 8336 jobs, 0 sorry / 0 axiom
 (every key theorem `#print axioms` = [propext, Classical.choice, Quot.sound]).
 PDE direction confirmed by Liang: classical solution = joint C^{2,1}.
+
+## ROUNDS 5–7 CONSOLIDATED (2026-05-26, HEAD 31c4df3, self-verified)
+
+The ENTIRE analytic infrastructure for u-only uniqueness is now UNCONDITIONAL
+(no hypotheses). Gluing closes via the chain
+`IntervalDomainL2UDiffIneqResidual p` → `intervalDomainL2UJointTimeRegularity_of_residual`
+→ `intervalDomainClassicalUniquenessL2EnergyMethod_of_uJointTimeRegularity`
+→ `..._of_uFrontier` → `GlobalSolutionGluingFromReachability_of_l2EnergyMethod`,
+and the ONLY remaining open obligation is the single residual structure
+`IntervalDomainL2UDiffIneqResidual p` = the nonlinear parabolic energy
+inequality `E_u'(τ) ≤ K·E_u(τ)` itself.
+
+PROVED unconditional + axiom-clean this stretch (commits fc0f5c3, a67c952,
+d1f581f, 4c3ee88, 31c4df3):
+- Elliptic characterization `solution_v_resolverCoeff_eq` (v cosine-coeffs =
+  resolver coeffs; coefficient-level, no hyps) + supporting eigenfunction-IBP
+  `intervalCosineLaplacianCoeff_eq_of_contDiffOn`. File PDE/IntervalEllipticCharacterization.lean.
+- Coefficient decay `cosineCoeff_decay` (|f̂ₙ|≤M/(nπ)² for C²-Neumann) +
+  ℓ¹ value reconstruction `fourierCoeff_reflCircle_summable`. File PDE/IntervalCosineCoeffDecay.lean.
+- Termwise-diff bridge `resolverR_hasDerivAt_grad` (deriv of value series =
+  resolver gradient series, Weierstrass M-test). File PDE/IntervalResolverGradientBridge.lean.
+- FAITHFUL POSITIVITY: `IsPaper2ClassicalSolution` positivity strengthened
+  interior-conditional → closed-domain `0 < u t x` (positive classical solution,
+  Chen–Ruau–Shen + strong max principle); ~30 sites re-discharged across 11
+  files; Paper3 counterexample `proposition12Counter` given a positive profile
+  (content preserved: u=t unbounded for t≥1, Thm1.1⇏Prop1.2 holds; the old
+  version had exploited the vacuous empty-interior positivity).
+- `sourceCoeffQuadraticDecay_of_solution` PROVED unconditional (positive lower
+  bound + rpow C² on positives + Neumann endpoints + cosineCoeff_decay).
+- `solution_resolver_grad_hasDerivAt` (static ∂ₓ(v−V) control) unconditional.
+- Resolver-Lipschitz pointwise-reconstruction side-hyps discharged for solutions:
+  `solution_resolver_(cosine|sine)Series_summable`. File Paper2/IntervalDomainL2UStaticVControl.lean.
+- u-only track (E_u=∫(u−U)²) + Leibniz half + bridges (rounds 4): files
+  Paper2/IntervalDomainL2UEnergy.lean, Paper2/IntervalDomainL2UEnergyInequality.lean.
+
+REMAINING = `IntervalDomainL2UDiffIneqResidual p`, a 5-step nonlinear combine,
+all inputs now unconditional:
+1. Pointwise elliptic rep `lift(v t) = resolverR(u t)` unconditional for
+   solutions (discharge `solution_v_eq_resolver_pointwise` F/hFcont/hFcoeff/
+   hFsum/hFeq by constructing the continuous even-reflection representative;
+   hFsum from `fourierCoeff_reflCircle_summable`, hRsum from the new summability).
+2. Static L² control `∫ (lift(v₁−v₂))² + (∂ₓlift(v₁−v₂))² ≤ C·E_u`
+   (per-point sup bounds + L∞ via conjunct-7 compactness).
+3. Chemotaxis IBP lemma `∫ w·∂ₓ(F) = −∫ ∂ₓw·F` (Neumann kills boundary), analogue
+   of proven `intervalEnergyByParts`.
+4. Flux-difference pointwise bound `|flux₁−flux₂| ≤ C(|w|+|v-diff|+|∂ₓ v-diff|)`
+   (product/quotient rule on `u·∂ₓv/(1+v)^β`, using `1+v≥1` from v>0).
+5. Combine: `pde_u` substitution into `½E_u'=∫w·∂ₜw` + dissipation `−∫(∂ₓw)²`
+   (`intervalEnergyByParts`) + reaction `intervalLogisticSource_lipschitz` +
+   Young (sign-free `|χ₀|`, ε∫(∂ₓw)² absorbed) ⇒ `E_u'≤K·E_u`.
+No Mathlib gap; pure repo-side nonlinear parabolic-elliptic energy estimate.
 
 ## ROUND-3 UPDATE (2026-05-26, commit 8561490, self-verified build+axioms)
 
