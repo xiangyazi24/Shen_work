@@ -2791,7 +2791,26 @@ def intervalDomainClassicalRegularity
   (∀ x : intervalDomainPoint, (x.1 : ℝ) ∈ Set.Ioo (0 : ℝ) 1 →
     ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
       DifferentiableAt ℝ (fun s : ℝ => u s x) t ∧
-        DifferentiableAt ℝ (fun s : ℝ => _v s x) t)
+        DifferentiableAt ℝ (fun s : ℝ => _v s x) t) ∧
+  -- **Genuine interior-Neumann boundary condition.**  The hardcoded `0` in
+  -- `intervalDomainNormalDeriv` makes the Neumann conjunct of
+  -- `IsPaper2ClassicalSolution` definitionally vacuous, so the real boundary
+  -- behaviour is recorded here: for every interior time `t ∈ (0,T)`, the genuine
+  -- one-sided spatial derivative of the lift tends to `0` at both endpoints
+  -- (`0⁺` and `1⁻`).  This is the honest content `g'(0⁺) = g'(1⁻) = 0` consumed
+  -- by the eigenfunction integration-by-parts identity
+  -- `intervalCosineLaplacianCoeff_eq`, and it is provable both for the cosine
+  -- spectral heat profile (via `unitIntervalCosineHeatValue_deriv_zero_at_endpoint`)
+  -- and for spatially-constant solutions (whose lift has `deriv = 0` on `(0,1)`).
+  (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+    (Filter.Tendsto (deriv (intervalDomainLift (u t)))
+        (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
+      Filter.Tendsto (deriv (intervalDomainLift (u t)))
+        (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)) ∧
+    (Filter.Tendsto (deriv (intervalDomainLift (_v t)))
+        (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
+      Filter.Tendsto (deriv (intervalDomainLift (_v t)))
+        (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)))
 
 def intervalDomainGradNorm (f : intervalDomainPoint → ℝ)
     (x : intervalDomainPoint) : ℝ :=

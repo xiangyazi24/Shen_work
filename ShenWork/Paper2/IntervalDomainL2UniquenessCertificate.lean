@@ -112,7 +112,7 @@ theorem intervalDomainClassicalRegularity_mono_horizon
     (hreg : intervalDomain.classicalRegularity T u v) :
     intervalDomain.classicalRegularity T' u v := by
   have hreg' : intervalDomainClassicalRegularity T u v := hreg
-  refine ⟨?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · intro p hχ ha hb t₀ ht₀0 ht₀T' hsup
     exact hreg'.1 p hχ ha hb t₀ ht₀0 (lt_of_lt_of_le ht₀T' hTT') hsup
   · intro p hχ ha hb
@@ -123,7 +123,10 @@ theorem intervalDomainClassicalRegularity_mono_horizon
     exact hreg'.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
   · -- Interior time differentiability, restricted to the shorter horizon.
     intro x hx t ht
-    exact hreg'.2.2.2 x hx t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
+    exact hreg'.2.2.2.1 x hx t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
+  · -- Genuine interior-Neumann, restricted to the shorter horizon.
+    intro t ht
+    exact hreg'.2.2.2.2 t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
 
 /-- The named analytic frontier for the L² difference energy of two interval
 classical solutions on a common horizon `T`.

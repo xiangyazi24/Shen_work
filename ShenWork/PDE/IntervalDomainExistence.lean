@@ -106,6 +106,27 @@ lemma intervalDomainLift_const_contDiffOn (c : ℝ) :
       (Set.Ioo (0 : ℝ) 1) :=
   (contDiff_const.contDiffOn).congr (intervalDomainLift_const_eqOn_Ioo c)
 
+/-- **Genuine interior-Neumann for a spatially-constant lift.**  The derivative
+of the lift of a constant is `0` on the open interior `(0,1)`, so it tends to `0`
+along the one-sided endpoint filters `𝓝[>] 0` and `𝓝[<] 1`.  This discharges the
+fifth (genuine-Neumann) conjunct of `intervalDomainClassicalRegularity` for any
+spatially-constant solution. -/
+lemma intervalDomainLift_const_neumann (c : ℝ) :
+    Filter.Tendsto (deriv (intervalDomainLift (fun _ : intervalDomainPoint => c)))
+        (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
+      Filter.Tendsto (deriv (intervalDomainLift (fun _ : intervalDomainPoint => c)))
+        (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) := by
+  constructor
+  · -- On `𝓝[>] 0` the argument eventually lies in `(0,1)`, where deriv = 0.
+    refine Filter.Tendsto.congr' ?_ tendsto_const_nhds
+    refine Filter.eventuallyEq_iff_exists_mem.mpr ?_
+    exact ⟨Set.Ioo (0 : ℝ) 1, Ioo_mem_nhdsGT (by norm_num),
+      fun y hy => (intervalDomainLift_const_deriv_zero c hy).symm⟩
+  · refine Filter.Tendsto.congr' ?_ tendsto_const_nhds
+    refine Filter.eventuallyEq_iff_exists_mem.mpr ?_
+    exact ⟨Set.Ioo (0 : ℝ) 1, Ioo_mem_nhdsLT (by norm_num),
+      fun y hy => (intervalDomainLift_const_deriv_zero c hy).symm⟩
+
 /-- The Laplacian of a constant function on intervalDomain is zero at
 any interior point. -/
 lemma intervalDomainLaplacian_const_zero (c : ℝ)
@@ -187,7 +208,7 @@ lemma constantInTime_classicalRegularity
       (fun t : ℝ => intervalDomainSupNorm
         ((fun _s (_ : intervalDomainPoint) => c) t)) = fun _ => c := by
     ext _; exact hsup_eq
-  refine ⟨?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · -- First conjunct: for any p' with a > 0, b > 0, if supNorm > equilibrium,
     -- the sup-norm is nonincreasing on Ioc 0 t₀.
     intro _p' _hχ _ha _hb t₀ _ht₀ _ht₀T _hsup_gt
@@ -217,6 +238,12 @@ lemma constantInTime_classicalRegularity
     -- time, hence trivially differentiable in `t`.
     intro _x _hx _t _ht
     exact ⟨differentiableAt_const c, differentiableAt_const (ellipticV p c)⟩
+  · -- Fifth conjunct: genuine interior-Neumann.  Both `u ≡ c` and
+    -- `v ≡ ellipticV p c` are spatially constant, so their lift derivatives
+    -- vanish on `(0,1)` and tend to `0` at both endpoints.
+    intro _t _ht
+    exact ⟨intervalDomainLift_const_neumann c,
+           intervalDomainLift_const_neumann (ellipticV p c)⟩
 
 /-! ### The v-equation for the elliptic relation -/
 
@@ -2704,7 +2731,7 @@ lemma intervalDomainClassicalRegularity_mono
     (hTL : Tshort ≤ Tlong)
     (hreg : intervalDomainClassicalRegularity Tlong u v) :
     intervalDomainClassicalRegularity Tshort u v := by
-  refine ⟨?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · intro p hpχ ha hb t₀ ht₀ ht₀T hsup
     exact hreg.1 p hpχ ha hb t₀ ht₀ (lt_of_lt_of_le ht₀T hTL) hsup
   · intro p hpχ ha hb
@@ -2714,7 +2741,9 @@ lemma intervalDomainClassicalRegularity_mono
   · intro t ht
     exact hreg.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
   · intro x hx t ht
-    exact hreg.2.2.2 x hx t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
+    exact hreg.2.2.2.1 x hx t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
+  · intro t ht
+    exact hreg.2.2.2.2 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
 
 /-- A classical interval solution on a longer horizon is also a classical
 solution on every positive shorter horizon. -/
@@ -3575,11 +3604,16 @@ theorem classicalRegularity_of_spatially_constant_decreasing
       ContDiffOn ℝ 2 (intervalDomainLift (v t)) (Set.Ioo (0 : ℝ) 1))
     (hvTime : ∀ x : intervalDomainPoint, (x.1 : ℝ) ∈ Set.Ioo (0 : ℝ) 1 →
       ∀ t, t ∈ Set.Ioo (0 : ℝ) T →
-        DifferentiableAt ℝ (fun s : ℝ => v s x) t) :
+        DifferentiableAt ℝ (fun s : ℝ => v s x) t)
+    (hvNeumann : ∀ t, t ∈ Set.Ioo (0 : ℝ) T →
+      Filter.Tendsto (deriv (intervalDomainLift (v t)))
+          (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
+        Filter.Tendsto (deriv (intervalDomainLift (v t)))
+          (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)) :
     intervalDomainClassicalRegularity T
       (fun t (_ : intervalDomainPoint) => φ t) v := by
   unfold intervalDomainClassicalRegularity
-  refine ⟨?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · -- First conjunct: for any p' with a > 0, b > 0, if supNorm > equilibrium,
     -- the sup-norm is nonincreasing on Ioc 0 t₀.
     intro _p' _hχ _ha _hb t₀ ht₀ ht₀T _hsup_gt
@@ -3605,6 +3639,10 @@ theorem classicalRegularity_of_spatially_constant_decreasing
     intro x hx t ht
     refine ⟨?_, hvTime x hx t ht⟩
     exact (hφ_diff t ht).differentiableAt (isOpen_Ioo.mem_nhds ht)
+  · -- Fifth conjunct: genuine interior-Neumann.  `u t = fun _ => φ t` is
+    -- spatially constant (lift deriv vanishes on `(0,1)`); `v` is supplied.
+    intro t ht
+    exact ⟨intervalDomainLift_const_neumann (φ t), hvNeumann t ht⟩
 
 /-! ### RegularityBootstrap for above-equilibrium ODE solutions
 
@@ -3678,6 +3716,7 @@ theorem aboveEquilibrium_regularityBootstrap
       hφ_cont hφ_diff hφ_deriv_nonpos _
       (fun t _ht => intervalDomainLift_const_contDiffOn (ellipticV p (φ t)))
       ?_
+      (fun t _ht => intervalDomainLift_const_neumann (ellipticV p (φ t)))
     -- `s ↦ ellipticV p (φ s) = (ν/μ) * (φ s) ^ γ` is differentiable in `s`:
     -- `φ` is differentiable on the open `(0,T)` and stays positive, so the
     -- real power composes differentiably.
@@ -3927,7 +3966,7 @@ theorem not_intervalDomainTheorem11_globalExtension_constant_bad_tail
       -- The sup-norm conjuncts depend only on `u`; the C² conjunct needs the
       -- lift of `v t` on `(0,1)`, where `t < 1` forces `v t = fun _ => ellipticV p c`.
       have hbase := constantInTime_classicalRegularity hc one_pos p
-      refine ⟨hbase.1, hbase.2.1, ?_, ?_⟩
+      refine ⟨hbase.1, hbase.2.1, ?_, ?_, ?_⟩
       · intro t ht
         have hvt : v t = fun _ : intervalDomainPoint => ellipticV p c := by
           funext y
@@ -3948,6 +3987,16 @@ theorem not_intervalDomainTheorem11_globalExtension_constant_bad_tail
           show (if s < 1 then ellipticV p c else 0) = ellipticV p c
           rw [if_pos (Set.mem_Iio.mp hs)]
         exact (hev.differentiableAt_iff).mpr (differentiableAt_const _)
+      · -- Fifth conjunct: genuine interior-Neumann.  `u ≡ c` and (on `(0,1)`)
+        -- `v t = ellipticV p c` are both spatially constant.
+        intro t ht
+        have hvt : v t = fun _ : intervalDomainPoint => ellipticV p c := by
+          funext y
+          show (if t < 1 then ellipticV p c else 0) = ellipticV p c
+          rw [if_pos ht.2]
+        refine ⟨intervalDomainLift_const_neumann c, ?_⟩
+        rw [hvt]
+        exact intervalDomainLift_const_neumann (ellipticV p c)
     · intro _t _x _ht0 _htT _hx
       exact hc
     · intro t x _ht0 htT hx
@@ -4275,7 +4324,7 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
     (hEq : ∀ t, 0 < t → t < T → u t = U t)
     (hEqV : ∀ t, 0 < t → t < T → v t = V t) :
     intervalDomainClassicalRegularity T u v := by
-  refine ⟨?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · intro q hqχ hqa hqb t₀ ht₀ ht₀T hsup
     have hreg₀ := hreg.1 q hqχ hqa hqb t₀ ht₀ ht₀T ?_
     · exact intervalDomainSupNormDerivativeNonposOn_congr_of_eqOn hreg₀
@@ -4307,8 +4356,17 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
       Set.EqOn.eventuallyEq_of_mem
         (fun s hs => by rw [hEqV s hs.1 hs.2])
         (isOpen_Ioo.mem_nhds ht)
-    obtain ⟨hU, hV⟩ := hreg.2.2.2 x hx t ht
+    obtain ⟨hU, hV⟩ := hreg.2.2.2.1 x hx t ht
     exact ⟨(huEv.differentiableAt_iff).mpr hU, (hvEv.differentiableAt_iff).mpr hV⟩
+  · -- Fifth conjunct: lifts of `u t, v t` equal lifts of `U t, V t`, so the
+    -- one-sided endpoint derivative limits transfer verbatim.
+    intro t ht
+    have huL : intervalDomainLift (u t) = intervalDomainLift (U t) := by
+      rw [hEq t ht.1 ht.2]
+    have hvL : intervalDomainLift (v t) = intervalDomainLift (V t) := by
+      rw [hEqV t ht.1 ht.2]
+    rw [huL, hvL]
+    exact hreg.2.2.2.2 t ht
 
 private lemma intervalDomainLift_eventuallyEq_of_pointwise_eq
     {f g : intervalDomainPoint → ℝ}

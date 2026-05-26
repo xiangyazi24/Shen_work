@@ -90,7 +90,7 @@ theorem intervalDomain_timeDeriv_isGenuine
   -- Unpack the fourth regularity conjunct.
   have hreg : intervalDomainClassicalRegularity T u v := hsol.regularity
   have hdiff : DifferentiableAt ℝ (fun s : ℝ => u s x) t :=
-    (hreg.2.2.2 x hx t ht).1
+    (hreg.2.2.2.1 x hx t ht).1
   -- `timeDeriv u t x = deriv (fun s => u s x) t` definitionally.
   simpa [intervalDomain, intervalDomainClassicalRegularity] using hdiff.hasDerivAt
 
@@ -103,7 +103,7 @@ theorem intervalDomain_timeDeriv_isGenuine_v
     HasDerivAt (fun s : ℝ => v s x) (intervalDomain.timeDeriv v t x) t := by
   have hreg : intervalDomainClassicalRegularity T u v := hsol.regularity
   have hdiff : DifferentiableAt ℝ (fun s : ℝ => v s x) t :=
-    (hreg.2.2.2 x hx t ht).2
+    (hreg.2.2.2.1 x hx t ht).2
   simpa [intervalDomain, intervalDomainClassicalRegularity] using hdiff.hasDerivAt
 
 /-- **Pointwise time derivative of the difference `w = u₁ − u₂` at interior
