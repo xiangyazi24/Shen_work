@@ -1,9 +1,50 @@
 # ShenWork Closure Map — precise remaining frontier (2026-05-26)
 
 State after the Claude-subagent round (codex usage exhausted). Whole project
-builds integrated: `lake build ShenWork` green, 8339 jobs, 0 sorry / 0 axiom
+builds integrated: `lake build ShenWork` green, 8343 jobs, 0 sorry / 0 axiom
 (every key theorem `#print axioms` = [propext, Classical.choice, Quot.sound]).
 PDE direction confirmed by Liang: classical solution = joint C^{2,1}.
+
+## ROUND-10 FINAL (2026-05-26, HEAD 66e6e90, self-verified) — GLUING CLOSED IN TWO FORMS
+
+Two coexisting fully-verified gluing theorems (both axiom-clean):
+
+### (A) γ≥1: FULLY UNCONDITIONAL (modulo regime + positive datum)
+`GlobalSolutionGluingFromReachability_of_regime_gammaGeOne (p) (hχ : χ₀≤0) (ha : 0<a) (hb : 0<b) (hγ_ge_one : 1 ≤ γ) (hpos : ∀ pair, PositiveInitialDatum)`
+covers paper2 formula (1.3)'s standard KS regime (γ=m=α=1). `L_γ = γ·M^(γ-1)` via
+MVT on `[0,M]` (no `δ` needed since `x^{γ-1}` bounded when `γ≥1`).
+File `Paper2/IntervalDomainL2UEnergyUniformGammaGeOne.lean`.
+
+### (B) general γ>0: unconditional modulo δ>0 lower bound
+`GlobalSolutionGluingFromReachability_of_regimeAndLowerBound (p) (hχ) (ha) (hb) (hpos) (hlower : ∃ δ>0, …)`
+covers all `γ>0`; needs the `δ>0` lower bound only because `x↦x^γ` Lipschitz
+constant on `[δ,M]` is `γ(δ^{γ-1}+M^{γ-1})` and `δ^{γ-1}` blows up at 0 for `γ<1`.
+The `δ>0` is the strong-maximum-principle-style content (uniform positivity of
+the solution on `(0,T)×[0,1]`); proving it is a separate genuine PDE theorem
+(not in repo, not a Lean gap).
+
+### Faithful def state
+`intervalDomain.initialAdmissible := BddAbove (Set.range fun x => |u₀ x|)`
+(strengthened from `True`; faithful PDE-classical-solution datum requirement).
+`IsPaper2ClassicalSolution` carries closed-domain `0 < u`, `0 ≤ v`, closed-`Icc`
+C² + endpoint Neumann (values), joint continuity, closed-slab ∂ₜ continuity,
+endpoint time-differentiability — a genuine positive classical-solution predicate.
+
+### Entire u-only uniqueness analytic machinery PROVED unconditional + axiom-clean
+PDE substitution → dissipation `−∫(∂ₓw)²` (`intervalEnergyByParts`) → chemotaxis
+IBP (`intervalFluxByParts`) → Young absorption → reaction Lipschitz → energy
+inequality `∫integrandDeriv ≤ K·E_u` (`intervalDomainL2U_energy_diffIneq_bound`).
+Full frontier (Leibniz HasDerivAt, cont, initial_vanishes, zero_pointwise where
+v=V via resolver characterization). Static v-control (value+grad) by E_u.
+Elliptic characterization `solution_v_resolverCoeff_eq` (coefficient-level
+unconditional). Cosine coefficient decay `|f̂ₙ|≤M/(nπ)²` for C²-Neumann.
+Resolver gradient bridge `resolverR_hasDerivAt_grad` (Weierstrass M-test).
+Quantitative resolver sup bounds `F(M)=(ℓ²-weight)·2νM^γ`. Flux closed-Icc C¹.
+Upper bound M derived from proven Lemma 3.1 (`uniform_lift_upper_bound_of_regime`).
+
+### Commits this stretch
+~18 verified commits 8561490 → 66e6e90, every one self-verified
+(`lake build ShenWork` green + `#print axioms` = the three core only).
 
 ## ROUND-8 CONSOLIDATED (2026-05-26, HEAD 5a34322, self-verified) — GLUING ≈ CLOSED
 
