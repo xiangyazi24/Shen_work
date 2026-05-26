@@ -2771,7 +2771,15 @@ def intervalDomainClassicalRegularity
       (p.a / p.b) ^ (1 / p.α) < intervalDomainSupNorm (u t₀) →
         IntervalDomainSupNormDerivativeNonposOn u (Set.Ioc (0 : ℝ) t₀)) ∧
   (∀ p : CM2Params, p.χ₀ ≤ 0 → p.a = 0 → p.b = 0 →
-    IntervalDomainSupNormDerivativeNonposOn u (Set.Ioo (0 : ℝ) T))
+    IntervalDomainSupNormDerivativeNonposOn u (Set.Ioo (0 : ℝ) T)) ∧
+  -- Spatial C² regularity on the interior of the unit interval.  The lift is
+  -- the zero-extension to all of ℝ, which has jumps at the endpoints `0, 1`;
+  -- the genuine `C^{2,1}` content lives on the open interior `(0,1)`, exactly
+  -- where it is needed for interior integration-by-parts.  (Neumann boundary
+  -- behaviour is recorded separately inside `IsPaper2ClassicalSolution`.)
+  (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+    ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Ioo (0 : ℝ) 1) ∧
+      ContDiffOn ℝ 2 (intervalDomainLift (_v t)) (Set.Ioo (0 : ℝ) 1))
 
 def intervalDomainGradNorm (f : intervalDomainPoint → ℝ)
     (x : intervalDomainPoint) : ℝ :=

@@ -88,6 +88,24 @@ lemma intervalDomainLift_const_deriv_eventuallyEq_zero (c : ℝ) {x : ℝ}
   refine ⟨Set.Ioo 0 1, Ioo_mem_nhds hx.1 hx.2, fun y hy => ?_⟩
   exact intervalDomainLift_const_deriv_zero c hy
 
+/-- The lift of a constant function agrees with the constant on the open
+interior `(0,1)`. -/
+lemma intervalDomainLift_const_eqOn_Ioo (c : ℝ) :
+    Set.EqOn (intervalDomainLift (fun _ : intervalDomainPoint => c))
+      (fun _ => c) (Set.Ioo (0 : ℝ) 1) := by
+  intro y hy
+  have hy' : y ∈ Set.Icc (0 : ℝ) 1 :=
+    ⟨le_of_lt (Set.mem_Ioo.mp hy).1, le_of_lt (Set.mem_Ioo.mp hy).2⟩
+  rw [intervalDomainLift_const]
+  simp [hy']
+
+/-- The lift of a constant function is `C²` on the open interior `(0,1)`,
+because it agrees there with a (globally `C^∞`) constant function. -/
+lemma intervalDomainLift_const_contDiffOn (c : ℝ) :
+    ContDiffOn ℝ 2 (intervalDomainLift (fun _ : intervalDomainPoint => c))
+      (Set.Ioo (0 : ℝ) 1) :=
+  (contDiff_const.contDiffOn).congr (intervalDomainLift_const_eqOn_Ioo c)
+
 /-- The Laplacian of a constant function on intervalDomain is zero at
 any interior point. -/
 lemma intervalDomainLaplacian_const_zero (c : ℝ)
@@ -169,7 +187,7 @@ lemma constantInTime_classicalRegularity
       (fun t : ℝ => intervalDomainSupNorm
         ((fun _s (_ : intervalDomainPoint) => c) t)) = fun _ => c := by
     ext _; exact hsup_eq
-  refine ⟨?_, ?_⟩
+  refine ⟨?_, ?_, ?_⟩
   · -- First conjunct: for any p' with a > 0, b > 0, if supNorm > equilibrium,
     -- the sup-norm is nonincreasing on Ioc 0 t₀.
     intro _p' _hχ _ha _hb t₀ _ht₀ _ht₀T _hsup_gt
@@ -190,6 +208,11 @@ lemma constantInTime_classicalRegularity
         intro t _ht
         rw [hsup_fun_eq]; simp [deriv_const]
     }
+  · -- Third conjunct: spatial C² regularity on (0,1).  Both `u ≡ c` and
+    -- `v ≡ ellipticV p c` are constant in space, so their lifts are C² there.
+    intro _t _ht
+    exact ⟨intervalDomainLift_const_contDiffOn c,
+           intervalDomainLift_const_contDiffOn (ellipticV p c)⟩
 
 /-! ### The v-equation for the elliptic relation -/
 
@@ -2677,13 +2700,15 @@ lemma intervalDomainClassicalRegularity_mono
     (hTL : Tshort ≤ Tlong)
     (hreg : intervalDomainClassicalRegularity Tlong u v) :
     intervalDomainClassicalRegularity Tshort u v := by
-  refine ⟨?_, ?_⟩
+  refine ⟨?_, ?_, ?_⟩
   · intro p hpχ ha hb t₀ ht₀ ht₀T hsup
     exact hreg.1 p hpχ ha hb t₀ ht₀ (lt_of_lt_of_le ht₀T hTL) hsup
   · intro p hpχ ha hb
     exact intervalDomainSupNormDerivativeNonposOn_mono
-      (hreg.2 p hpχ ha hb)
+      (hreg.2.1 p hpχ ha hb)
       (fun t ht => ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩)
+  · intro t ht
+    exact hreg.2.2 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
 
 /-- A classical interval solution on a longer horizon is also a classical
 solution on every positive shorter horizon. -/
@@ -3539,11 +3564,13 @@ theorem classicalRegularity_of_spatially_constant_decreasing
     (hφ_cont : ContinuousOn φ (Set.Icc 0 T))
     (hφ_diff : DifferentiableOn ℝ φ (Set.Ioo 0 T))
     (hφ_deriv_nonpos : ∀ t, t ∈ Set.Ioo 0 T → deriv φ t ≤ 0)
-    (v : ℝ → intervalDomainPoint → ℝ) :
+    (v : ℝ → intervalDomainPoint → ℝ)
+    (hvC2 : ∀ t, t ∈ Set.Ioo (0 : ℝ) T →
+      ContDiffOn ℝ 2 (intervalDomainLift (v t)) (Set.Ioo (0 : ℝ) 1)) :
     intervalDomainClassicalRegularity T
       (fun t (_ : intervalDomainPoint) => φ t) v := by
   unfold intervalDomainClassicalRegularity
-  refine ⟨?_, ?_⟩
+  refine ⟨?_, ?_, ?_⟩
   · -- First conjunct: for any p' with a > 0, b > 0, if supNorm > equilibrium,
     -- the sup-norm is nonincreasing on Ioc 0 t₀.
     intro _p' _hχ _ha _hb t₀ ht₀ ht₀T _hsup_gt
@@ -3559,6 +3586,10 @@ theorem classicalRegularity_of_spatially_constant_decreasing
     · exact hφ_cont.mono Set.Ioo_subset_Icc_self
     · exact hφ_diff
     · exact hφ_deriv_nonpos
+  · -- Third conjunct: spatial C² regularity on (0,1).  `u t = fun _ => φ t`
+    -- is spatially constant; `v` is C² by hypothesis.
+    intro t ht
+    exact ⟨intervalDomainLift_const_contDiffOn (φ t), hvC2 t ht⟩
 
 /-! ### RegularityBootstrap for above-equilibrium ODE solutions
 
@@ -3630,6 +3661,7 @@ theorem aboveEquilibrium_regularityBootstrap
   · -- Classical regularity
     exact classicalRegularity_of_spatially_constant_decreasing hT hφ_pos
       hφ_cont hφ_diff hφ_deriv_nonpos _
+      (fun t _ht => intervalDomainLift_const_contDiffOn (ellipticV p (φ t)))
   · -- Initial trace: φ(t) → c₀ = φ(0) as t → 0⁺
     intro ε hε
     -- Since φ is continuous at 0, ∃ δ > 0 with |φ(t) - φ(0)| < ε for t ∈ (0,δ)
@@ -3863,8 +3895,19 @@ theorem not_intervalDomainTheorem11_globalExtension_constant_bad_tail
     rw [intervalDomainSupNorm_const, abs_of_pos hc]
   have hsol : IsPaper2ClassicalSolution intervalDomain p 1 u v := by
     refine IsPaper2ClassicalSolution.of_components one_pos ?_ ?_ ?_ ?_ ?_
-    · dsimp [u]
-      exact constantInTime_classicalRegularity hc one_pos p
+    · -- Regularity for `u ≡ c`, `v t = if t < 1 then ellipticV p c else 0`.
+      -- The sup-norm conjuncts depend only on `u`; the C² conjunct needs the
+      -- lift of `v t` on `(0,1)`, where `t < 1` forces `v t = fun _ => ellipticV p c`.
+      have hbase := constantInTime_classicalRegularity hc one_pos p
+      refine ⟨hbase.1, hbase.2.1, ?_⟩
+      intro t ht
+      have hvt : v t = fun _ : intervalDomainPoint => ellipticV p c := by
+        funext y
+        show (if t < 1 then ellipticV p c else 0) = ellipticV p c
+        rw [if_pos ht.2]
+      refine ⟨intervalDomainLift_const_contDiffOn c, ?_⟩
+      rw [hvt]
+      exact intervalDomainLift_const_contDiffOn (ellipticV p c)
     · intro _t _x _ht0 _htT _hx
       exact hc
     · intro t x _ht0 htT hx
@@ -4189,9 +4232,10 @@ private lemma intervalDomainSupNormDerivativeNonposOn_congr_of_eqOn
 private lemma intervalDomainClassicalRegularity_congr_Ioo
     {T : ℝ} {u v U V : ℝ → intervalDomainPoint → ℝ}
     (hreg : intervalDomainClassicalRegularity T U V)
-    (hEq : ∀ t, 0 < t → t < T → u t = U t) :
+    (hEq : ∀ t, 0 < t → t < T → u t = U t)
+    (hEqV : ∀ t, 0 < t → t < T → v t = V t) :
     intervalDomainClassicalRegularity T u v := by
-  constructor
+  refine ⟨?_, ?_, ?_⟩
   · intro q hqχ hqa hqb t₀ ht₀ ht₀T hsup
     have hreg₀ := hreg.1 q hqχ hqa hqb t₀ ht₀ ht₀T ?_
     · exact intervalDomainSupNormDerivativeNonposOn_congr_of_eqOn hreg₀
@@ -4199,9 +4243,18 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
     · rw [hEq t₀ ht₀ ht₀T] at hsup
       exact hsup
   · intro q hqχ hqa hqb
-    have hreg₀ := hreg.2 q hqχ hqa hqb
+    have hreg₀ := hreg.2.1 q hqχ hqa hqb
     exact intervalDomainSupNormDerivativeNonposOn_congr_of_eqOn hreg₀
       (fun s hs => hEq s hs.1 hs.2)
+  · -- Third conjunct: lifts of `u t, v t` equal lifts of `U t, V t` (pointwise
+    -- function equality lifts to equal extensions), so C² transfers verbatim.
+    intro t ht
+    have huL : intervalDomainLift (u t) = intervalDomainLift (U t) := by
+      rw [hEq t ht.1 ht.2]
+    have hvL : intervalDomainLift (v t) = intervalDomainLift (V t) := by
+      rw [hEqV t ht.1 ht.2]
+    rw [huL, hvL]
+    exact hreg.2.2 t ht
 
 private lemma intervalDomainLift_eventuallyEq_of_pointwise_eq
     {f g : intervalDomainPoint → ℝ}
@@ -4322,7 +4375,7 @@ theorem classicalSolutionLocalityUnderIooAgreement_intervalDomain
     exact (hEq t ht0 htT x).2
   refine IsPaper2ClassicalSolution.of_components hT ?_ ?_ ?_ ?_ ?_
   · exact intervalDomainClassicalRegularity_congr_Ioo
-      (u := u) (v := v) (U := U) (V := V) hsol.regularity huEq
+      (u := u) (v := v) (U := U) (V := V) hsol.regularity huEq hvEq
   · intro t x ht0 htT hx
     rw [huEq t ht0 htT]
     exact hsol.u_pos ht0 htT hx

@@ -3592,7 +3592,7 @@ theorem Lemma_3_1_intervalDomain (p : CM2Params) :
     have hreg :
         ShenWork.IntervalDomain.intervalDomainClassicalRegularity T u v := by
       simpa [ShenWork.IntervalDomain.intervalDomain] using hsol.2.1
-    have hcert := hreg.2 p hχ ha hb
+    have hcert := hreg.2.1 p hχ ha hb
     have hcont :
         ContinuousOn
           (fun t => ShenWork.IntervalDomain.intervalDomain.supNorm (u t))
