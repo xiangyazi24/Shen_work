@@ -2881,6 +2881,27 @@ def intervalDomainClassicalRegularity
       (Function.uncurry
         (fun (t : ℝ) (x : ℝ) =>
           deriv (fun s : ℝ => intervalDomainLift (_v s) x) t))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)) ∧
+  -- **(9) CLOSED-slab joint continuity of the SOLUTION field itself** (R1).
+  -- The energy integrand's time-derivative field is the PRODUCT
+  -- `2·(lift w)·(∂ₜ lift w) + 2·(lift z)·(∂ₜ lift z)`.  Conjunct (8) makes the
+  -- `∂ₜ` factor jointly continuous on the closed slab; to feed
+  -- `…_hasDerivAt_of_slabContinuous` (which needs the PRODUCT continuous) we
+  -- also need the SOLUTION-field factor `(t,x) ↦ intervalDomainLift (u s) x`
+  -- jointly continuous on `Ioo 0 T ×ˢ Icc 0 1` — continuous up to the spatial
+  -- endpoints.  Conjunct (7) gives only per-fixed-`t` spatial `C²`, not joint
+  -- `(t,x)` continuity, so this is a genuinely additional joint-continuity
+  -- conjunct.  Build-path (spatially-constant) constructors discharge it
+  -- trivially: the lift is constant in `(t,x)` on `[0,1]`, hence jointly
+  -- continuous; the cosine spectral heat profile discharges it from the
+  -- Weierstrass-M joint summability of `∑ₙ e^{−tλₙ} f̂ₙ cos(nπx)`.
+  (ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) => intervalDomainLift (u t) x))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) ∧
+    ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) => intervalDomainLift (_v t) x))
       (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1))
 
 def intervalDomainGradNorm (f : intervalDomainPoint → ℝ)

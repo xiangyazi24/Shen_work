@@ -214,6 +214,62 @@ theorem intervalCosineLaplacianCoeff_eq
           apply integral_congr; intro x _; simp [hc'']; ring]
   rw [intervalIntegral.integral_const_mul]
 
+/-! ## R2 — the Icc-intrinsic energy integration-by-parts `∫ w·w'' = −∫ (w')²` -/
+
+/-- **R2: Icc-intrinsic energy integration-by-parts (the `∫ w·Δw = −∫|∂ₓw|²`
+core).**
+
+For `w : ℝ → ℝ` that is `C²` up to the *closed* interval `[0,1]` — concretely:
+`w` has derivative `w'` and `w'` has derivative `w''` at every point of
+`Set.uIcc 0 1`, with `w'` interval-integrable — and that satisfies the **genuine
+endpoint Neumann VALUES** `w'(0) = 0`, `w'(1) = 0` (conjunct (7) of
+`intervalDomainClassicalRegularity`):
+
+  `∫₀¹ w(x) · w''(x) dx = − ∫₀¹ (w'(x))² dx`.
+
+This is the energy IBP that turns `∫ w·Δw` into `−∫(∂ₓw)² ≤ 0`, the dissipation
+sign that makes the `Eprime ≤ K·E` differential inequality work.  Unlike
+`intervalCosineLaplacianCoeff_eq` it consumes the closed-`Icc` regularity
+directly (a single IBP), and is the difference-form `w = u₁ − u₂` whose boundary
+trace derivative vanishes.  Boundary term `[w·w']₀¹` is killed by `w'(0)=w'(1)=0`.
+Proved by one application of Mathlib's
+`integral_mul_deriv_eq_deriv_mul_of_hasDerivAt` (the open-interval `HasDerivAt`
+half follows by restricting the closed-`uIcc` hypotheses to the interior). -/
+theorem intervalEnergyByParts
+    {w w' w'' : ℝ → ℝ}
+    (hw : ∀ x ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt w (w' x) x)
+    (hw' : ∀ x ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt w' (w'' x) x)
+    (hw'int : IntervalIntegrable w' MeasureTheory.volume 0 1)
+    (hw''int : IntervalIntegrable w'' MeasureTheory.volume 0 1)
+    (hbc0 : w' 0 = 0) (hbc1 : w' 1 = 0) :
+    (∫ x in (0 : ℝ)..1, w x * w'' x) = - ∫ x in (0 : ℝ)..1, (w' x) ^ 2 := by
+  classical
+  -- Continuity on the closed interval for the IBP `ContinuousOn` hypotheses.
+  have hw_cont : ContinuousOn w (Set.uIcc (0 : ℝ) 1) :=
+    fun x hx => (hw x hx).continuousAt.continuousWithinAt
+  have hw'_cont : ContinuousOn w' (Set.uIcc (0 : ℝ) 1) :=
+    fun x hx => (hw' x hx).continuousAt.continuousWithinAt
+  -- Restrict the `HasDerivAt`s to the open interior `Ioo (min 0 1) (max 0 1)`.
+  have huIcc : Set.Ioo (min (0:ℝ) 1) (max 0 1) ⊆ Set.uIcc (0:ℝ) 1 := by
+    rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1),
+      min_eq_left (by norm_num : (0:ℝ) ≤ 1), max_eq_right (by norm_num : (0:ℝ) ≤ 1)]
+    exact fun x hx => Set.mem_Icc_of_Ioo hx
+  have hw_io : ∀ x ∈ Set.Ioo (min (0:ℝ) 1) (max 0 1), HasDerivAt w (w' x) x :=
+    fun x hx => hw x (huIcc hx)
+  have hw'_io : ∀ x ∈ Set.Ioo (min (0:ℝ) 1) (max 0 1), HasDerivAt w' (w'' x) x :=
+    fun x hx => hw' x (huIcc hx)
+  -- IBP:  ∫ w · w'' = w·w'|₀¹ − ∫ w' · w'.
+  have hIBP :
+      (∫ x in (0:ℝ)..1, w x * w'' x) =
+        w 1 * w' 1 - w 0 * w' 0 - ∫ x in (0:ℝ)..1, w' x * w' x :=
+    integral_mul_deriv_eq_deriv_mul_of_hasDerivAt
+      hw_cont hw'_cont hw_io hw'_io hw'int hw''int
+  -- Kill the boundary term (Neumann) and rewrite `w'·w'` as `(w')²`.
+  rw [hIBP, hbc0, hbc1]
+  rw [show (∫ x in (0:ℝ)..1, w' x * w' x) = ∫ x in (0:ℝ)..1, (w' x) ^ 2 from by
+    apply integral_congr; intro x _; ring]
+  ring
+
 /-! ## The named remaining obligations (the joint-time / under-integral inputs) -/
 
 /-- **Under-the-integral time derivative of the spatial Fourier coefficient.**

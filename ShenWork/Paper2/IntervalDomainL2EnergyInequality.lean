@@ -607,27 +607,37 @@ def intervalDomainL2DifferenceEnergyFrontierBuilder_of_jointTime
          the `∂ₜ` factor continuous on the closed slab, but
          `intervalDomainClassicalL2DifferenceEnergy_hasDerivAt_of_slabContinuous`
          needs the PRODUCT continuous, hence also the FACTOR `(t,x) ↦ lift(u s) x`
-         jointly continuous on `Ioo 0 T ×ˢ Icc 0 1`.  Conjunct (7) gives only
-         per-fixed-`t` spatial `C²`, not joint `(t,x)` continuity.  This is an
-         additional joint-continuity conjunct, still absent.
+         jointly continuous on `Ioo 0 T ×ˢ Icc 0 1`.
+
+         RESOLVED.  This is now **conjunct (9)** of `intervalDomainClassicalRegularity`
+         (CLOSED-slab joint continuity of the solution field), discharged for the
+         build-path constructors via
+         `intervalDomainLift_constInTimeSpace_field_continuousOn` (and transferred
+         through `_congr_Ioo` / `_mono` / `classicalRegularity_of_spatially_constant_decreasing`).
 
     (R2) *The `Eprime ≤ K·E` inequality.*  PDE substitution + Neumann IBP +
-         chemotaxis/reaction Lipschitz absorption, UNCHANGED in difficulty by
-         (7)/(8).  Moreover the existing IBP lemma `intervalCosineLaplacianCoeff_eq`
-         is stated for the ZERO-EXTENSION `intervalDomainLift`, which is NOT
-         two-sided `HasDerivAt` at `x ∈ {0,1}` for a solution whose boundary trace
-         is nonzero (the lift jumps to `0` outside `[0,1]`).  Closing the IBP for
-         arbitrary solutions requires either an `Icc`-INTRINSIC IBP (consuming
-         conjunct (7)'s `ContDiffOn ℝ 2 … (Icc 0 1)` via `HasDerivWithinAt`) or a
-         boundary-vanishing reduction — a genuine rework of the IBP object, not a
-         wiring step.
+         chemotaxis/reaction Lipschitz absorption.  The IBP object is now closed:
+         the existing `intervalCosineLaplacianCoeff_eq` is the zero-extension
+         eigenfunction form, but the new `Icc`-INTRINSIC energy IBP
+         `ShenWork.IntervalSolutionCoeffDeriv.intervalEnergyByParts`
+         (`∫ w·w'' = −∫ (w')²`) consumes conjunct (7)'s closed-`Icc` regularity
+         and endpoint Neumann VALUES `w'(0)=w'(1)=0` directly (single IBP).  What
+         REMAINS to assemble for arbitrary solutions: substituting the pointwise
+         PDE identity `∂τw = Δw − χ₀·chemDiff + reaction` into the energy
+         derivative and absorbing the chemotaxis/reaction differences by Lipschitz
+         + L∞ bounds (the latter following from conjunct-7 `ContDiffOn (Icc 0 1)` ⇒
+         continuous on the compact `[0,1]` ⇒ bounded).  This nonlinear energy
+         estimate is the single residual content of
+         `IntervalDomainL2JointTimeRegularity p`.
 
-  VERDICT: conjuncts (7)/(8) are real, provable for the build path, and discharge
-  the spatial-endpoint Neumann VALUES and the `∂ₜ`-factor closed-slab continuity.
-  Gluing still does NOT close unconditionally: the precise residual is (R1) a
-  joint `(t,x)` solution-field continuity conjunct, and (R2) the `Eprime ≤ K·E`
-  energy-inequality assembly with an `Icc`-intrinsic Neumann IBP.  Both remain
-  packaged as `IntervalDomainL2JointTimeRegularity p`.
+  VERDICT: conjuncts (7)/(8)/(9) are real, provable for the build path, and
+  discharge the spatial-endpoint Neumann VALUES, the `∂ₜ`-factor closed-slab
+  continuity (R1's `∂ₜ` half) AND the solution-field closed-slab continuity (R1's
+  factor half).  The `Icc`-intrinsic energy IBP (R2's IBP object) is proved as
+  `intervalEnergyByParts`.  Gluing still does NOT close unconditionally: the
+  precise residual is the `Eprime ≤ K·E` differential-inequality ASSEMBLY for
+  arbitrary classical solutions (PDE substitution + chemotaxis Lipschitz
+  absorption), packaged as `IntervalDomainL2JointTimeRegularity p`.
 -/
 
 end
