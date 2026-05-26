@@ -1214,7 +1214,7 @@ def proposition12CounterV : ℝ → proposition12CounterDomain.Point → ℝ :=
 lemma proposition12Counter_classical (T : ℝ) (hT : 0 < T) :
     IsPaper2ClassicalSolution proposition12CounterDomain
       proposition12CounterParams T proposition12CounterU proposition12CounterV := by
-  refine IsPaper2ClassicalSolution.of_components hT ?_ ?_ ?_ ?_ ?_
+  refine IsPaper2ClassicalSolution.of_components hT ?_ ?_ ?_ ?_ ?_ ?_
   · intro t ht0 htT
     simp [proposition12CounterU]
   · intro t x ht0 htT
@@ -1222,6 +1222,8 @@ lemma proposition12Counter_classical (T : ℝ) (hT : 0 < T) :
     split
     · norm_num
     · linarith
+  · intro t x ht0 htT
+    simp [proposition12CounterV]
   · intro t x ht0 htT hx
     cases hx
   · intro t x ht0 htT hx
@@ -3644,7 +3646,9 @@ lemma theorem21Part1Counter_classical (T : ℝ) (hT : 0 < T) :
     IsPaper2ClassicalSolution theorem21Part1NoLowerEnvelopeDomain
       theorem21Part1CounterParams T
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
-  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT
+    norm_num
   · intro t x ht0 htT
     norm_num
   · intro t x ht0 htT hx
@@ -3716,7 +3720,9 @@ lemma initialContinuityNoDistanceControl_constant_one_classical
     IsPaper2ClassicalSolution initialContinuityNoDistanceControlDomain
       theorem21Part1CounterParams T
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
-  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT
+    norm_num
   · intro t x ht0 htT
     norm_num
   · intro t x ht0 htT hx
@@ -4205,7 +4211,9 @@ lemma momentConvergenceNoUniform_constant_one_classical
     IsPaper2ClassicalSolution momentConvergenceNoUniformDomain
       theorem21Part1CounterParams T
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
-  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT
+    norm_num
   · intro t x ht0 htT
     norm_num
   · intro t x ht0 htT hx
@@ -4343,7 +4351,9 @@ lemma initialContinuityNoDistanceControl_nonminimalCounter_classical
     IsPaper2ClassicalSolution initialContinuityNoDistanceControlDomain
       nonminimalGlobalStabilityCounterParams T
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
-  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT
+    norm_num
   · intro t x ht0 htT
     norm_num
   · intro t x ht0 htT hx
@@ -4486,7 +4496,9 @@ lemma initialContinuityNoDistanceControl_minimalCounter_classical
     IsPaper2ClassicalSolution initialContinuityNoDistanceControlDomain
       minimalGlobalStabilityCounterParams T
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
-  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT
+    norm_num
   · intro t x ht0 htT
     norm_num
   · intro t x ht0 htT hx
@@ -5088,7 +5100,9 @@ lemma initialContinuityNoDistanceControl_increasing_minimal_classical
     IsPaper2ClassicalSolution initialContinuityNoDistanceControlDomain
       proposition14NoRegularityParams T
       (fun t _ => t + 1) (fun t _ => t + 1) := by
-  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT
+    linarith
   · intro t x ht0 htT
     linarith
   · intro t x ht0 htT hx
@@ -5255,7 +5269,9 @@ lemma theorem21NoLowerEnvelope_constant_one_classical
     (T : ℝ) (hT : 0 < T) :
     IsPaper2ClassicalSolution theorem21Part1NoLowerEnvelopeDomain p T
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
-  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT
+    norm_num
   · intro t x ht0 htT
     norm_num
   · intro t x ht0 htT hx
@@ -5549,7 +5565,9 @@ lemma theorem21Part4Counter_classical (T : ℝ) (hT : 0 < T) :
     IsPaper2ClassicalSolution theorem21Part1NoLowerEnvelopeDomain
       theorem21Part4CounterParams T
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
-  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT
+    norm_num
   · intro t x ht0 htT
     norm_num
   · intro t x ht0 htT hx
@@ -11013,7 +11031,7 @@ theorem unitPointDomain.upperEnvelopeMaxPrincipleData
     intro u v hsol
     obtain ⟨hglobal, _, _⟩ := hsol
     have hsol1 := hglobal.classical (T := 1) (by norm_num)
-    obtain ⟨_, ⟨hu_diff, _⟩, _, _, _, _⟩ := hsol1
+    obtain ⟨_, ⟨hu_diff, _⟩, _, _, _, _, _⟩ := hsol1
     have hcont : Continuous (fun t : ℝ => |u t ()|) := hu_diff.continuous.abs
     -- `upperEnvelope ∘ u t` is `fun t => |u t ()|`
     exact hcont.continuousOn
@@ -11021,7 +11039,7 @@ theorem unitPointDomain.upperEnvelopeMaxPrincipleData
     intro _hχ ha hb u v hsol t ht_pos hgt
     obtain ⟨hglobal, _, hpospts⟩ := hsol
     have hsol1 := hglobal.classical (T := t + 1) (by linarith)
-    obtain ⟨_, ⟨hu_diff, _⟩, _, hpde_u, _, _⟩ := hsol1
+    obtain ⟨_, ⟨hu_diff, _⟩, _, _, hpde_u, _, _⟩ := hsol1
     have hu_pos : 0 < u t () := hpospts t () ht_pos trivial
     have hu_cont : Continuous (fun s : ℝ => u s ()) := hu_diff.continuous
     have h_pos_nbhd : ∀ᶠ s in 𝓝 t, 0 < u s () :=
@@ -11066,7 +11084,7 @@ theorem unitPointDomain.upperEnvelopeMaxPrincipleData
     intro _hχ ha hb u v hsol t ht_pos
     obtain ⟨hglobal, _, hpospts⟩ := hsol
     have hsol1 := hglobal.classical (T := t + 1) (by linarith)
-    obtain ⟨_, ⟨hu_diff, _⟩, _, hpde_u, _, _⟩ := hsol1
+    obtain ⟨_, ⟨hu_diff, _⟩, _, _, hpde_u, _, _⟩ := hsol1
     have hu_pos : 0 < u t () := hpospts t () ht_pos trivial
     have hu_cont : Continuous (fun s : ℝ => u s ()) := hu_diff.continuous
     have h_pos_nbhd : ∀ᶠ s in 𝓝 t, 0 < u s () :=
@@ -11128,7 +11146,7 @@ theorem unitPointDomain.Lemma_3_5 (p : CM2Params) :
   intro ha hb _hm _hβ _hχ_pos _hχ_lt u v hsol uStar huStar hmass
   obtain ⟨hglobal, _, hu_pos⟩ := hsol
   have hsol1 := hglobal.classical (T := 1) (by norm_num)
-  obtain ⟨_, ⟨hu_diff, _⟩, _, _, _, _⟩ := hsol1
+  obtain ⟨_, ⟨hu_diff, _⟩, _, _, _, _, _⟩ := hsol1
   -- u'(s) = 0 on Set.Ioi 0
   have h_deriv_zero :
       ∀ s ∈ Set.Ioi (0 : ℝ), deriv (fun r : ℝ => u r ()) s = 0 := by
@@ -11136,7 +11154,7 @@ theorem unitPointDomain.Lemma_3_5 (p : CM2Params) :
     have hs_pos : 0 < s := hs
     have hsol_s :=
       hglobal.classical (T := s + 1) (by linarith)
-    obtain ⟨_, _, _, hpde_u_s, _, _⟩ := hsol_s
+    obtain ⟨_, _, _, _, hpde_u_s, _, _⟩ := hsol_s
     have hpde := hpde_u_s s () hs_pos (by linarith) trivial
     simpa [ShenWork.Paper2.unitPointDomain, ha, hb] using hpde
   -- u constant on (0, ∞)
@@ -11217,8 +11235,13 @@ theorem unitPointDomain.Proposition_1_4_minimal_only
   · -- IsPaper2GlobalClassicalSolution
     intro T hT
     refine ⟨hT, ⟨differentiable_const _, continuous_const⟩,
-      ?_, ?_, ?_, ?_⟩
+      ?_, ?_, ?_, ?_, ?_⟩
     · intro t x _ _; exact hu₀.pos trivial
+    · intro t x _ _
+      have hu₀pos : 0 < u₀ () := hu₀.pos trivial
+      have : 0 < ustar := by
+        rw [hustar_def]; exact mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos hu₀pos _)
+      exact this.le
     · intro t x _ _ _
       show deriv (fun s : ℝ => u₀ ()) t =
         0 - p.χ₀ * 0 + u₀ x * (p.a - p.b * (u₀ x) ^ p.α)
@@ -11260,8 +11283,13 @@ theorem unitPointDomain.Proposition_1_2_minimal_only
   · -- IsPaper2GlobalClassicalSolution
     intro T hT
     refine ⟨hT, ⟨differentiable_const _, continuous_const⟩,
-      ?_, ?_, ?_, ?_⟩
+      ?_, ?_, ?_, ?_, ?_⟩
     · intro t x _ _; exact hu₀.pos trivial
+    · intro t x _ _
+      have hu₀pos : 0 < u₀ () := hu₀.pos trivial
+      have : 0 < ustar := by
+        rw [hustar_def]; exact mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos hu₀pos _)
+      exact this.le
     · intro t x _ _ _
       show deriv (fun s : ℝ => u₀ ()) t =
         0 - p.χ₀ * 0 + u₀ x * (p.a - p.b * (u₀ x) ^ p.α)
@@ -11373,13 +11401,13 @@ theorem unitPointDomain.Theorem_2_1_part1_minimal_only
   intro _hm u v hsol
   obtain ⟨hglobal, _hbdd, hupos⟩ := hsol
   have hsol1 := hglobal.classical (T := 1) (by norm_num)
-  obtain ⟨_, ⟨hu_diff, _⟩, _, _, _, _⟩ := hsol1
+  obtain ⟨_, ⟨hu_diff, _⟩, _, _, _, _, _⟩ := hsol1
   have h_deriv_zero :
       ∀ s ∈ Set.Ioi (0 : ℝ), deriv (fun r : ℝ => u r ()) s = 0 := by
     intro s hs
     have hs_pos : 0 < s := hs
     have hsol_s := hglobal.classical (T := s + 1) (by linarith)
-    obtain ⟨_, _, _, hpde_u_s, _, _⟩ := hsol_s
+    obtain ⟨_, _, _, _, hpde_u_s, _, _⟩ := hsol_s
     have hpde := hpde_u_s s () hs_pos (by linarith) trivial
     simpa [ShenWork.Paper2.unitPointDomain, ha, hb] using hpde
   have h_const :
@@ -11394,7 +11422,7 @@ theorem unitPointDomain.Theorem_2_1_part1_minimal_only
   have hv_eq : ∀ t, 0 < t → v t () = (p.ν / p.μ) * (u t ()) ^ p.γ := by
     intro t ht_pos
     have hsol_t := hglobal.classical (T := t + 1) (by linarith)
-    obtain ⟨_, _, _, _, hpde_v_t, _⟩ := hsol_t
+    obtain ⟨_, _, _, _, _, hpde_v_t, _⟩ := hsol_t
     have hpde := hpde_v_t t () ht_pos (by linarith) trivial
     have h0 : (0 : ℝ) = 0 - p.μ * v t () + p.ν * (u t ()) ^ p.γ := by
       simpa [ShenWork.Paper2.unitPointDomain] using hpde

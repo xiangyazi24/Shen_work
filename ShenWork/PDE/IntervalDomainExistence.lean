@@ -476,6 +476,8 @@ theorem equilibrium_isPaper2ClassicalSolution
     (constantInTime_classicalRegularity hc hT p)
     -- positivity
     (fun _t _x _ht0 _htT => hc)
+    -- v-nonnegativity (chemical concentration ≥ 0)
+    (fun _t _x _ht0 _htT => (ellipticV_pos p hc).le)
     -- u-PDE: timeDeriv = laplacian - χ₀·chemtaxisDiv + u(a - bu^α)
     (fun t x ht0 htT hx => by
       -- timeDeriv u t x = deriv (fun s => c) t = 0
@@ -513,6 +515,7 @@ theorem zeroReaction_isPaper2ClassicalSolution
   exact IsPaper2ClassicalSolution.of_components hT
     (constantInTime_classicalRegularity hc hT p)
     (fun _t _x _ht0 _htT => hc)
+    (fun _t _x _ht0 _htT => (ellipticV_pos p hc).le)
     -- u-PDE
     (fun t x ht0 htT hx => by
       change deriv (fun s : ℝ => c) t =
@@ -738,6 +741,9 @@ def IsMildSolutionData (p : CM2Params) (T : ℝ)
   -- Positivity of u on the CLOSED domain (positive classical solution; the
   -- strong maximum principle forces `u > 0` up to the Neumann boundary).
   (∀ t x, 0 < t → t < T → 0 < u t x) ∧
+  -- Nonnegativity of the chemical concentration `v` on the CLOSED domain
+  -- (positive classical solution: `u > 0`, `v ≥ 0`).
+  (∀ t x, 0 < t → t < T → 0 ≤ v t x) ∧
   -- The u-equation holds pointwise (regularity bootstrap)
   (∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
     intervalDomain.timeDeriv u t x =
@@ -774,8 +780,9 @@ theorem localExistence_of_isMildSolutionData
       InitialTrace intervalDomain u₀ u' :=
   ⟨T, hT, u, v,
     IsPaper2ClassicalSolution.of_components hT
-      hdata.2.2.2.2.2.1 hdata.2.1 hdata.2.2.1 hdata.2.2.2.1 hdata.2.2.2.2.1,
-    hdata.2.2.2.2.2.2⟩
+      hdata.2.2.2.2.2.2.1 hdata.2.1 hdata.2.2.1 hdata.2.2.2.1 hdata.2.2.2.2.1
+      hdata.2.2.2.2.2.1,
+    hdata.2.2.2.2.2.2.2⟩
 
 /-- Conditional local existence for intervalDomain.
 
@@ -2548,6 +2555,8 @@ def RegularityBootstrap (p : CM2Params) (T : ℝ)
     (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
   ∃ v : ℝ → intervalDomainPoint → ℝ,
     (∀ t x, 0 < t → t < T → 0 < u t x) ∧
+    -- Nonnegativity of the chemical concentration `v` (positive classical sol.)
+    (∀ t x, 0 < t → t < T → 0 ≤ v t x) ∧
     (∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
       intervalDomain.timeDeriv u t x =
         intervalDomain.laplacian (u t) x
@@ -2571,8 +2580,8 @@ theorem isMildSolutionData_of_fp_and_regularity
       u t x = intervalDuhamelOperator p u₀ u t x)
     (hreg : RegularityBootstrap p T u₀ u) :
     ∃ v, IsMildSolutionData p T u₀ u v := by
-  obtain ⟨v, hpos, hpde_u, hpde_v, hbc, hclassreg, htrace⟩ := hreg
-  exact ⟨v, hfp, hpos, hpde_u, hpde_v, hbc, hclassreg, htrace⟩
+  obtain ⟨v, hpos, hvnn, hpde_u, hpde_v, hbc, hclassreg, htrace⟩ := hreg
+  exact ⟨v, hfp, hpos, hvnn, hpde_u, hpde_v, hbc, hclassreg, htrace⟩
 
 /-- Full composition: Banach FP + RegularityBootstrap → localExistence.
 This is the main bridge theorem. The only remaining gap is constructing
@@ -2949,6 +2958,8 @@ theorem isPaper2ClassicalSolution_intervalDomain_mono
       hTL hsol.regularity)
     (fun _t _x ht0 htT =>
       hsol.u_pos' ht0 (lt_of_lt_of_le htT hTL))
+    (fun _t _x ht0 htT =>
+      hsol.v_nonneg ht0 (lt_of_lt_of_le htT hTL))
     (fun _t _x ht0 htT hx =>
       hsol.pde_u ht0 (lt_of_lt_of_le htT hTL) hx)
     (fun _t _x ht0 htT hx =>
@@ -3183,9 +3194,11 @@ theorem equilibrium_regularityBootstrap
       (fun _ (_ : intervalDomainPoint) => (p.a / p.b) ^ (1 / p.α)) := by
   set c := (p.a / p.b) ^ (1 / p.α) with hc_def
   have hc : 0 < c := equilibrium_pos p ha hb
-  refine ⟨fun _ _ => ellipticV p c, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨fun _ _ => ellipticV p c, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- Positivity
     exact fun _t _x _ht0 _htT => hc
+  · -- v-nonnegativity
+    exact fun _t _x _ht0 _htT => (ellipticV_pos p hc).le
   · -- u-PDE: timeDeriv u = Δu - χ₀·chemDiv + u(a - bu^α)
     intro t x _ht0 _htT hx
     change deriv (fun _s : ℝ => c) t =
@@ -3221,9 +3234,11 @@ theorem zeroReaction_regularityBootstrap
     RegularityBootstrap p T
       (constOnInterval c)
       (fun _ (_ : intervalDomainPoint) => c) := by
-  refine ⟨fun _ _ => ellipticV p c, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨fun _ _ => ellipticV p c, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- Positivity
     exact fun _t _x _ht0 _htT => hc
+  · -- v-nonnegativity
+    exact fun _t _x _ht0 _htT => (ellipticV_pos p hc).le
   · -- u-PDE
     intro t x _ht0 _htT hx
     change deriv (fun _s : ℝ => c) t =
@@ -3275,9 +3290,9 @@ theorem localExistence_of_regularityBootstrap
     ∃ Tmax > 0, ∃ u' v' : ℝ → intervalDomainPoint → ℝ,
       IsPaper2ClassicalSolution intervalDomain p Tmax u' v' ∧
       InitialTrace intervalDomain u₀ u' := by
-  obtain ⟨v, hpos, hpde_u, hpde_v, hbc, hclassreg, htrace⟩ := hreg
+  obtain ⟨v, hpos, hvnn, hpde_u, hpde_v, hbc, hclassreg, htrace⟩ := hreg
   exact ⟨T, hT, u, v,
-    IsPaper2ClassicalSolution.of_components hT hclassreg hpos hpde_u hpde_v hbc,
+    IsPaper2ClassicalSolution.of_components hT hclassreg hpos hvnn hpde_u hpde_v hbc,
     htrace⟩
 
 /-! ### Coupled Duhamel fixed point to local existence
@@ -3965,9 +3980,11 @@ theorem aboveEquilibrium_regularityBootstrap
     RegularityBootstrap p T
       (constOnInterval c₀)
       (fun t (_ : intervalDomainPoint) => φ t) := by
-  refine ⟨fun t _ => ellipticV p (φ t), ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨fun t _ => ellipticV p (φ t), ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- Positivity
     exact fun _t _x _ht0 _htT => hφ_pos _
+  · -- v-nonnegativity
+    exact fun t _x _ht0 _htT => (ellipticV_pos p (hφ_pos t)).le
   · -- u-PDE: timeDeriv u = Δu - χ₀·chemDiv + u(a - bu^α)
     intro t x _ht0 _htT hx
     -- u(t,x) = φ(t), so timeDeriv u t x = φ'(t)
@@ -4374,7 +4391,7 @@ theorem not_intervalDomainTheorem11_globalExtension_constant_bad_tail
     change intervalDomainSupNorm (fun _ : intervalDomainPoint => c) ≤ c
     rw [intervalDomainSupNorm_const, abs_of_pos hc]
   have hsol : IsPaper2ClassicalSolution intervalDomain p 1 u v := by
-    refine IsPaper2ClassicalSolution.of_components one_pos ?_ ?_ ?_ ?_ ?_
+    refine IsPaper2ClassicalSolution.of_components one_pos ?_ ?_ ?_ ?_ ?_ ?_
     · -- Regularity for `u ≡ c`, `v t = if t < 1 then ellipticV p c else 0`.
       -- The sup-norm conjuncts depend only on `u`; the C² conjunct needs the
       -- lift of `v t` on `(0,1)`, where `t < 1` forces `v t = fun _ => ellipticV p c`.
@@ -4547,6 +4564,11 @@ theorem not_intervalDomainTheorem11_globalExtension_constant_bad_tail
           exact continuousOn_const.congr h0
     · intro _t _x _ht0 _htT
       exact hc
+    · -- v-nonnegativity: `v t x = if t<1 then ellipticV p c else 0`, both ≥ 0.
+      intro t x _ht0 _htT
+      change (0:ℝ) ≤ (if t < 1 then ellipticV p c else 0)
+      have hev : (0:ℝ) ≤ ellipticV p c := (ellipticV_pos p hc).le
+      split <;> simp [hev]
     · intro t x _ht0 htT hx
       have hv_t : v t = fun _ : intervalDomain.Point => ellipticV p c := by
         ext y
@@ -5124,12 +5146,15 @@ theorem classicalSolutionLocalityUnderIooAgreement_intervalDomain
     intro t ht0 htT
     funext x
     exact (hEq t ht0 htT x).2
-  refine IsPaper2ClassicalSolution.of_components hT ?_ ?_ ?_ ?_ ?_
+  refine IsPaper2ClassicalSolution.of_components hT ?_ ?_ ?_ ?_ ?_ ?_
   · exact intervalDomainClassicalRegularity_congr_Ioo
       (u := u) (v := v) (U := U) (V := V) hsol.regularity huEq hvEq
   · intro t x ht0 htT
     rw [huEq t ht0 htT]
     exact hsol.u_pos' ht0 htT
+  · intro t x ht0 htT
+    rw [hvEq t ht0 htT]
+    exact hsol.v_nonneg ht0 htT
   · intro t x ht0 htT hx
     have htime := intervalDomainTimeDeriv_eq_of_Ioo_eq huEq ht0 htT x
     have hlap :=

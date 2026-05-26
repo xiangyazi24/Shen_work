@@ -260,6 +260,143 @@ theorem resolverGrad_majorant_summable_of_sourceDecay
   have hkne : ((k : ℝ) + 1) ≠ 0 := by positivity
   field_simp
 
+/-! ## Second-derivative (C¹ of the gradient) bridge
+
+The gradient series `z ↦ ∑ c_k · (−kπ · sin(kπ z))` is itself differentiable when
+the *second-derivative* term magnitudes `|c_k| · (kπ)²` are summable; its derivative
+is the termwise second-derivative cosine series `∑ c_k · (−(kπ)² · cos(kπ z))`.
+Differentiating `−kπ sin(kπ z)` once more in `z` gives `−kπ · (kπ cos(kπ z)) =
+−(kπ)² cos(kπ z)`.  This upgrades the gradient from merely continuous to `C¹`. -/
+
+/-- `z ↦ c · (−kπ · sin(kπ z))` has derivative `c · (−(kπ)² · cos(kπ z))`. -/
+theorem sineTerm_hasDerivAt (c : ℝ) (k : ℕ) (y : ℝ) :
+    HasDerivAt (fun z : ℝ => c * (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * z)))
+      (c * (-(((k : ℝ) * Real.pi) ^ 2) * Real.cos ((k : ℝ) * Real.pi * y))) y := by
+  have hlin : HasDerivAt (fun z : ℝ => (k : ℝ) * Real.pi * z) ((k : ℝ) * Real.pi) y := by
+    simpa using (hasDerivAt_id y).const_mul ((k : ℝ) * Real.pi)
+  have hsin : HasDerivAt (fun z : ℝ => Real.sin ((k : ℝ) * Real.pi * z))
+      (Real.cos ((k : ℝ) * Real.pi * y) * ((k : ℝ) * Real.pi)) y :=
+    (Real.hasDerivAt_sin _).comp y hlin
+  have h := (hsin.const_mul (-((k : ℝ) * Real.pi))).const_mul c
+  convert h using 1
+  ring
+
+/-- **General second-derivative bridge.**  For a real coefficient sequence `c` whose
+second-derivative-term magnitudes `|c k| · (kπ)²` are summable, the gradient
+(sine) series `z ↦ ∑ c k · (−kπ · sin(kπ z))` is differentiable with derivative the
+termwise second-derivative cosine series `∑ c k · (−(kπ)² · cos(kπ z))`. -/
+theorem sineSeries_hasDerivAt_of_grad2Summable
+    {c : ℕ → ℝ}
+    (hmaj : Summable fun k : ℕ => |c k| * ((k : ℝ) * Real.pi) ^ 2)
+    (y : ℝ) :
+    HasDerivAt
+      (fun z : ℝ => ∑' k : ℕ, c k * (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * z)))
+      (∑' k : ℕ, c k * (-(((k : ℝ) * Real.pi) ^ 2) * Real.cos ((k : ℝ) * Real.pi * y))) y := by
+  set u : ℕ → ℝ := fun k => |c k| * ((k : ℝ) * Real.pi) ^ 2 with hu
+  -- value series at `y₀ = 0` is `∑ c k · (−kπ · sin 0) = ∑ 0 = 0`, trivially summable.
+  have hg0 : Summable fun k : ℕ =>
+      c k * (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * (0 : ℝ))) := by
+    have heq : (fun k : ℕ => c k * (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * (0 : ℝ))))
+        = fun _ => (0 : ℝ) := by
+      funext k; simp
+    rw [heq]; exact summable_zero
+  exact hasDerivAt_tsum (𝕜 := ℝ) (F := ℝ) (u := u)
+    (g := fun k z => c k * (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * z)))
+    (g' := fun k z => c k * (-(((k : ℝ) * Real.pi) ^ 2) * Real.cos ((k : ℝ) * Real.pi * z)))
+    hmaj
+    (fun k z => sineTerm_hasDerivAt (c k) k z)
+    (fun k z => by
+      rw [Real.norm_eq_abs, hu, abs_mul]
+      have hcos : |(-(((k : ℝ) * Real.pi) ^ 2) * Real.cos ((k : ℝ) * Real.pi * z))|
+          ≤ ((k : ℝ) * Real.pi) ^ 2 := by
+        rw [abs_mul, abs_neg, abs_of_nonneg (by positivity : (0:ℝ) ≤ ((k:ℝ) * Real.pi) ^ 2)]
+        calc ((k : ℝ) * Real.pi) ^ 2 * |Real.cos ((k : ℝ) * Real.pi * z)|
+            ≤ ((k : ℝ) * Real.pi) ^ 2 * 1 :=
+              mul_le_mul_of_nonneg_left (Real.abs_cos_le_one _) (by positivity)
+          _ = ((k : ℝ) * Real.pi) ^ 2 := mul_one _
+      exact mul_le_mul_of_nonneg_left hcos (abs_nonneg _))
+    hg0 y
+
+/-- **Second-derivative `ℓ¹` majorant from source-coefficient quadratic decay.**
+
+Given quadratic decay `|(source coeff).re| ≤ C/(kπ)²` of the elliptic source's
+cosine coefficients for `k ≥ 1`, the resolver second-derivative coefficients
+`|(v̂_k).re| · (kπ)²` are absolutely summable.  Indeed for `k ≥ 1`,
+
+  `|(v̂_k).re|·(kπ)² = |(source).re|/(μ+λ_k)·(kπ)² ≤ (C/(kπ)²)/(kπ)²·(kπ)² = (C/π²)·1/k²`,
+
+summable by comparison with `∑ 1/k²`.  This discharges the second-derivative
+majorant hypothesis of `sineSeries_hasDerivAt_of_grad2Summable`. -/
+theorem resolverGrad2_majorant_summable_of_sourceDecay
+    {p : CM2Params} {u : intervalDomainPoint → ℝ} {C : ℝ} (hC : 0 ≤ C)
+    (hdecay : ∀ k : ℕ, 1 ≤ k →
+      |(intervalNeumannResolverSourceCoeff p u k).re| ≤ C / ((k : ℝ) * Real.pi) ^ 2) :
+    Summable fun k : ℕ =>
+      |(intervalNeumannResolverCoeff p u k).re| * ((k : ℝ) * Real.pi) ^ 2 := by
+  classical
+  rw [← summable_nat_add_iff 1]
+  -- Majorant `(C/π²)·1/(k+1)²`.
+  have hmaj : Summable fun k : ℕ => (C / Real.pi ^ 2) * (1 / ((k : ℝ) + 1) ^ 2) := by
+    have hp2 : Summable fun k : ℕ => 1 / ((k : ℝ) + 1) ^ 2 := by
+      have := (Real.summable_one_div_nat_pow (p := 2)).mpr (by norm_num)
+      simpa using (summable_nat_add_iff (f := fun k : ℕ => 1 / (k : ℝ) ^ 2) 1).2 this
+    exact hp2.mul_left _
+  refine Summable.of_nonneg_of_le (fun k => by positivity) ?_ hmaj
+  intro k
+  set m : ℕ := k + 1 with hm
+  have hm1 : 1 ≤ m := Nat.le_add_left 1 k
+  have hmpos : (0 : ℝ) < (m : ℝ) := by exact_mod_cast Nat.lt_of_lt_of_le Nat.zero_lt_one hm1
+  have hmpi_pos : (0 : ℝ) < (m : ℝ) * Real.pi := mul_pos hmpos Real.pi_pos
+  have hden_pos : 0 < p.μ + unitIntervalNeumannSpectrum.eigenvalue m :=
+    intervalNeumannResolver_denom_pos p m
+  have hlam : unitIntervalNeumannSpectrum.eigenvalue m = (m : ℝ) ^ 2 * Real.pi ^ 2 := rfl
+  have hdenlow : ((m : ℝ) * Real.pi) ^ 2 ≤ p.μ + unitIntervalNeumannSpectrum.eigenvalue m := by
+    rw [hlam]; nlinarith [p.hμ.le, sq_nonneg ((m:ℝ) * Real.pi)]
+  rw [resolverCoeff_re_eq, abs_div, abs_of_pos hden_pos]
+  have hnum := hdecay m hm1
+  have hmpi_sq_pos : (0 : ℝ) < ((m : ℝ) * Real.pi) ^ 2 := by positivity
+  -- `|src|/den ≤ (C/(mπ)²)/(mπ)²` (numerator up, denominator down).
+  have hfrac : |(intervalNeumannResolverSourceCoeff p u m).re| /
+        (p.μ + unitIntervalNeumannSpectrum.eigenvalue m)
+      ≤ (C / ((m : ℝ) * Real.pi) ^ 2) / ((m : ℝ) * Real.pi) ^ 2 := by
+    have hden_inv : 1 / (p.μ + unitIntervalNeumannSpectrum.eigenvalue m)
+        ≤ 1 / ((m : ℝ) * Real.pi) ^ 2 :=
+      one_div_le_one_div_of_le hmpi_sq_pos hdenlow
+    rw [div_eq_mul_one_div, div_eq_mul_one_div (C / ((m : ℝ) * Real.pi) ^ 2)]
+    apply mul_le_mul hnum hden_inv (by positivity) (by positivity)
+  have hstep : |(intervalNeumannResolverSourceCoeff p u m).re| /
+        (p.μ + unitIntervalNeumannSpectrum.eigenvalue m) * ((m : ℝ) * Real.pi) ^ 2
+      ≤ (C / ((m : ℝ) * Real.pi) ^ 2) / ((m : ℝ) * Real.pi) ^ 2 * ((m : ℝ) * Real.pi) ^ 2 :=
+    mul_le_mul_of_nonneg_right hfrac (le_of_lt hmpi_sq_pos)
+  refine hstep.trans (le_of_eq ?_)
+  -- `(C/(mπ)²)/(mπ)²·(mπ)² = (C/π²)/m²`.  And `m = k+1`.
+  have hpi : Real.pi ≠ 0 := Real.pi_ne_zero
+  have hmne : (m : ℝ) ≠ 0 := ne_of_gt hmpos
+  have hmcast : (m : ℝ) = (k : ℝ) + 1 := by rw [hm]; push_cast; ring
+  rw [hmcast]
+  have hkne : ((k : ℝ) + 1) ≠ 0 := by positivity
+  field_simp
+
+/-- **Second-derivative bridge for the resolver gradient.**
+
+If the resolver second-derivative coefficients are `ℓ¹` (`hmaj`:
+`∑ |(v̂_k).re|·(kπ)² < ∞`), then for every real coordinate `y` the spatial
+derivative of the resolver *gradient* series `z ↦ resolverGradReal p u z` (as a
+series in `z`) equals the termwise second-derivative cosine series.  Hence the
+gradient is `C¹` (its derivative is a uniformly-convergent continuous series). -/
+theorem resolverGrad_hasDerivAt_grad2
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hmaj : Summable fun k : ℕ =>
+      |(intervalNeumannResolverCoeff p u k).re| * ((k : ℝ) * Real.pi) ^ 2)
+    (y : ℝ) :
+    HasDerivAt
+      (fun z : ℝ => ∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re *
+        (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * z)))
+      (∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re *
+        (-(((k : ℝ) * Real.pi) ^ 2) * Real.cos ((k : ℝ) * Real.pi * y))) y :=
+  sineSeries_hasDerivAt_of_grad2Summable
+    (c := fun k => (intervalNeumannResolverCoeff p u k).re) hmaj y
+
 end
 
 end ShenWork.IntervalResolverGradientBridge

@@ -345,10 +345,15 @@ lemma unitPointDecay_classicalSolution
     exact continuous_const.mul
       (hsol_diff.continuous.rpow_const fun t =>
         Or.inl (ne_of_gt (hsol_pos_all t)))
-  refine ⟨hT, ⟨hsol_diff, hv_cont⟩, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, ⟨hsol_diff, hv_cont⟩, ?_, ?_, ?_, ?_, ?_⟩
   · intro t x _ht_pos _ht_lt
     cases x
     exact hsol_pos_all t
+  · intro t x _ht_pos _ht_lt
+    cases x
+    have : (0:ℝ) < (p.ν / p.μ) * (bernoulliDecaySolution p (u₀ ()) t) ^ p.γ :=
+      mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos (hsol_pos_all t) _)
+    simpa [unitPointDomain] using this.le
   · intro t x ht_pos _ht_lt _hx
     cases x
     have hderiv :=

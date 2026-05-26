@@ -751,6 +751,8 @@ theorem intervalClassicalSolution_of_regularized_mild
     (hreg : intervalDomainClassicalRegularity T u v)
     (hpos :
       ∀ t x, 0 < t → t < T → 0 < u t x)
+    (hv_nonneg :
+      ∀ t x, 0 < t → t < T → 0 ≤ v t x)
     (hpde_u :
       ∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
         intervalDomain.timeDeriv u t x =
@@ -766,7 +768,7 @@ theorem intervalClassicalSolution_of_regularized_mild
         intervalDomain.normalDeriv (u t) x = 0 ∧
           intervalDomain.normalDeriv (v t) x = 0) :
     IsPaper2ClassicalSolution intervalDomain p T u v :=
-  IsPaper2ClassicalSolution.of_components hT hreg hpos hpde_u hpde_v hneumann
+  IsPaper2ClassicalSolution.of_components hT hreg hpos hv_nonneg hpde_u hpde_v hneumann
 
 end ShenWork.RegularityBootstrap
 

@@ -538,10 +538,15 @@ lemma unitPointLogistic_classicalSolution
     exact continuous_const.mul
       (hsol_diff.continuous.rpow_const fun t =>
         Or.inl (ne_of_gt (hsol_pos_all t)))
-  refine ⟨hT, ⟨hsol_diff, hv_cont⟩, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, ⟨hsol_diff, hv_cont⟩, ?_, ?_, ?_, ?_, ?_⟩
   · intro t x _ht_pos _ht_lt
     cases x
     exact hsol_pos_all t
+  · intro t x _ht_pos _ht_lt
+    cases x
+    have : (0:ℝ) < (p.ν / p.μ) * (bernoulliLogisticSolution p (u₀ ()) t) ^ p.γ :=
+      mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos (hsol_pos_all t) _)
+    simpa [unitPointDomain] using this.le
   · intro t x ht_pos _ht_lt _hx
     cases x
     have hderiv :=
@@ -699,9 +704,13 @@ lemma unitPointMinimal_classicalSolution
       (fun _ => u₀)
       (fun _ _ => (p.ν / p.μ) * (u₀ ()) ^ p.γ) := by
   set vstar : ℝ := (p.ν / p.μ) * (u₀ ()) ^ p.γ with hvstar_def
-  refine ⟨hT, ⟨differentiable_const _, continuous_const⟩, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, ⟨differentiable_const _, continuous_const⟩, ?_, ?_, ?_, ?_, ?_⟩
   · intro t x _ht_pos _ht_lt
     exact hu₀.pos trivial
+  · intro t x _ht_pos _ht_lt
+    have : (0:ℝ) < vstar := by
+      rw [hvstar_def]; exact mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos (hu₀.pos trivial) _)
+    exact this.le
   · intro t x _ht_pos _ht_lt _hx
     show deriv (fun _ : ℝ => u₀ x) t =
       0 - p.χ₀ * 0 + u₀ x * (p.a - p.b * (u₀ x) ^ p.α)

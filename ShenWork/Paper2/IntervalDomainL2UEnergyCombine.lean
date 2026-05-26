@@ -67,6 +67,53 @@ theorem solution_lift_v_deriv_eq_resolverGrad
     exact IsOpen.mem_nhds isOpen_Ioo hx
   rw [hloc.deriv_eq, hSderiv.deriv, resolverGradReal_eq p (u t) ⟨x, hxIcc⟩]
 
+/-- `resolverGradReal p u 0 = 0`: every term carries `sin(kπ·0) = 0`. -/
+theorem resolverGradReal_zero (p : CM2Params) (u : intervalDomainPoint → ℝ) :
+    resolverGradReal p u 0 = 0 := by
+  unfold resolverGradReal
+  have : (fun k : ℕ => (intervalNeumannResolverCoeff p u k).re *
+      (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * (0:ℝ)))) = fun _ => 0 := by
+    funext k; simp
+  rw [this, tsum_zero]
+
+/-- `resolverGradReal p u 1 = 0`: every term carries `sin(kπ·1) = sin(kπ) = 0`. -/
+theorem resolverGradReal_one (p : CM2Params) (u : intervalDomainPoint → ℝ) :
+    resolverGradReal p u 1 = 0 := by
+  unfold resolverGradReal
+  have : (fun k : ℕ => (intervalNeumannResolverCoeff p u k).re *
+      (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * (1:ℝ)))) = fun _ => 0 := by
+    funext k
+    have hsin : Real.sin ((k : ℝ) * Real.pi * 1) = 0 := by
+      rw [mul_one]; exact Real.sin_nat_mul_pi k
+    rw [hsin]; ring
+  rw [this, tsum_zero]
+
+/-- On the CLOSED interval `[0,1]`, `deriv(lift v) = resolverGradReal p (u t)`.
+Interior agreement is `solution_lift_v_deriv_eq_resolverGrad`; at the endpoints both
+sides are `0` (Neumann: `deriv(lift v) 0 = deriv(lift v) 1 = 0` from conjunct 7, and
+`resolverGradReal` vanishes at `0,1` since every sine term does). -/
+theorem solution_lift_v_deriv_eq_resolverGrad_Icc
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    {x : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    deriv (intervalDomainLift (v t)) x = resolverGradReal p (u t) x := by
+  rcases eq_or_lt_of_le hx.1 with hx0 | hx0
+  · -- `x = 0`
+    subst hx0
+    have hbc0 : deriv (intervalDomainLift (v t)) 0 = 0 :=
+      (hsol.regularity.2.2.2.2.2.2.1 t ht).2.2.1
+    rw [hbc0, resolverGradReal_zero]
+  · rcases eq_or_lt_of_le hx.2 with hx1 | hx1
+    · -- `x = 1`
+      subst hx1
+      have hbc1 : deriv (intervalDomainLift (v t)) 1 = 0 :=
+        (hsol.regularity.2.2.2.2.2.2.1 t ht).2.2.2
+      rw [hbc1, resolverGradReal_one]
+    · -- interior
+      exact solution_lift_v_deriv_eq_resolverGrad hsol ht ⟨hx0, hx1⟩
+
 /-- **(3) Chemotaxis flux integration-by-parts.**
 
 For `φ, F : ℝ → ℝ` both `C¹` up to the closed interval `[0,1]` (`φ` has derivative
@@ -269,6 +316,82 @@ theorem resolverGradReal_continuous
         (Real.sin ((k : ℝ) * Real.pi * x)), h1]
     exact mul_le_mul_of_nonneg_left hsin (abs_nonneg _)
 
+/-- The termwise SECOND-derivative cosine series of the resolver gradient:
+`z ↦ ∑ₖ (v̂_k).re · (−(kπ)² · cos(kπ z))`.  This is the derivative of
+`resolverGradReal p u` once the gradient `ℓ¹` (second-derivative) majorant
+`∑ₖ |(v̂_k).re|·(kπ)²` is summable. -/
+noncomputable def resolverGrad2Real (p : CM2Params) (u : intervalDomainPoint → ℝ) (z : ℝ) : ℝ :=
+  ∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re *
+    (-(((k : ℝ) * Real.pi) ^ 2) * Real.cos ((k : ℝ) * Real.pi * z))
+
+/-- **(B)-helper: `resolverGrad2Real p (u τ)` is continuous on ℝ.**  Uniform-limit
+of continuous terms under the summable second-derivative majorant
+`∑ₖ |(v̂_k).re|·(kπ)²` (from source quadratic decay). -/
+theorem resolverGrad2Real_continuous
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    Continuous (fun z : ℝ => resolverGrad2Real p (u τ) z) := by
+  have hdecay := sourceCoeffQuadraticDecay_of_solution hsol hτ
+  have hmaj :=
+    ShenWork.IntervalResolverGradientBridge.resolverGrad2_majorant_summable_of_sourceDecay
+      hdecay.C_nonneg hdecay.decay
+  refine continuous_tsum (fun k => ?_) hmaj (fun k z => ?_)
+  · exact continuous_const.mul (continuous_const.mul
+      (Real.continuous_cos.comp (by fun_prop)))
+  · rw [Real.norm_eq_abs, abs_mul]
+    have hcos : |(-(((k : ℝ) * Real.pi) ^ 2) * Real.cos ((k : ℝ) * Real.pi * z))|
+        ≤ ((k : ℝ) * Real.pi) ^ 2 := by
+      rw [abs_mul, abs_neg, abs_of_nonneg (by positivity : (0:ℝ) ≤ ((k:ℝ) * Real.pi) ^ 2)]
+      have h1 : |Real.cos ((k : ℝ) * Real.pi * z)| ≤ 1 := Real.abs_cos_le_one _
+      nlinarith [sq_nonneg ((k:ℝ) * Real.pi), abs_nonneg (Real.cos ((k : ℝ) * Real.pi * z)), h1]
+    exact mul_le_mul_of_nonneg_left hcos (abs_nonneg _)
+
+/-- **(B): `resolverGradReal p (u τ)` has derivative `resolverGrad2Real p (u τ)` at
+every real point**, for a positive classical solution.  Via the second-derivative
+bridge `resolverGrad_hasDerivAt_grad2` fed the summable `∑ |(v̂_k).re|·(kπ)²` from
+source decay.  (`resolverGradReal` is definitionally the sine series.) -/
+theorem resolverGradReal_hasDerivAt
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) (z : ℝ) :
+    HasDerivAt (fun w : ℝ => resolverGradReal p (u τ) w) (resolverGrad2Real p (u τ) z) z := by
+  have hdecay := sourceCoeffQuadraticDecay_of_solution hsol hτ
+  have hmaj :=
+    ShenWork.IntervalResolverGradientBridge.resolverGrad2_majorant_summable_of_sourceDecay
+      hdecay.C_nonneg hdecay.decay
+  -- `resolverGradReal p (u τ)` is definitionally the sine series; `resolverGrad2Real`
+  -- is the termwise second-derivative cosine series — exactly the bridge conclusion.
+  exact ShenWork.IntervalResolverGradientBridge.resolverGrad_hasDerivAt_grad2 hmaj z
+
+/-- **(B): `resolverGradReal p (u τ)` is `C¹` on `Icc 0 1`.**  It is differentiable
+everywhere with derivative `resolverGrad2Real p (u τ)` (a uniformly-convergent
+continuous series), so by `contDiff_one_iff_deriv` it is `C¹` on all of ℝ, hence on
+the closed `[0,1]`.  This is the missing closed-interval input for the flux factor
+`∂ₓ(lift v) = resolverGradReal` of `flux_contDiffOn_Icc`. -/
+theorem resolverGradReal_contDiffOn_Icc
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    ContDiffOn ℝ 1 (fun x : ℝ => resolverGradReal p (u τ) x) (Set.Icc (0:ℝ) 1) := by
+  have hderiv : ∀ z : ℝ,
+      HasDerivAt (fun w : ℝ => resolverGradReal p (u τ) w) (resolverGrad2Real p (u τ) z) z :=
+    fun z => resolverGradReal_hasDerivAt hsol hτ z
+  have hdiff : Differentiable ℝ (fun x : ℝ => resolverGradReal p (u τ) x) :=
+    fun z => (hderiv z).differentiableAt
+  -- `deriv (resolverGradReal …) = resolverGrad2Real …`, which is continuous.
+  have hderiv_eq : deriv (fun w : ℝ => resolverGradReal p (u τ) w)
+      = fun z => resolverGrad2Real p (u τ) z := by
+    funext z; exact (hderiv z).deriv
+  have hcontD : Continuous (deriv (fun w : ℝ => resolverGradReal p (u τ) w)) := by
+    rw [hderiv_eq]; exact resolverGrad2Real_continuous hsol hτ
+  have hC1 : ContDiff ℝ 1 (fun x : ℝ => resolverGradReal p (u τ) x) :=
+    contDiff_one_iff_deriv.2 ⟨hdiff, hcontD⟩
+  exact hC1.contDiffOn
+
 /-- **(A)-helper (i): uniform L∞ bound on `resolverGradReal p (u τ)` over `[0,1]`.**
 Continuity on the compact `[0,1]`. -/
 theorem resolverGradReal_bounded
@@ -346,6 +469,30 @@ and `a/b^β = a·b^{-β}` for `b > 0`). -/
 def intervalFluxRepr (p : CM2Params) (u v : intervalDomainPoint → ℝ) (y : ℝ) : ℝ :=
   intervalDomainLift u y * resolverGradReal p u y *
     (1 + intervalDomainLift v y) ^ (-p.β)
+
+/-- **Nonnegativity of the lifted chemical concentration, for free from a solution.**
+A paper solution is a positive classical solution: `v ≥ 0` on the closed domain
+(`IsPaper2ClassicalSolution.v_nonneg`).  For `x ∈ [0,1]` the lift `intervalDomainLift
+(v τ) x` equals `v τ ⟨x, _⟩`, hence `≥ 0`.  This discharges every `hvnn`-style
+hypothesis without an extra assumption. -/
+theorem solution_lift_v_nonneg_Icc
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    ∀ x ∈ Set.Icc (0:ℝ) 1, 0 ≤ intervalDomainLift (v τ) x := by
+  intro x hx
+  simp only [intervalDomainLift, hx, dif_pos]
+  exact hsol.v_nonneg hτ.1 hτ.2
+
+/-- Interior version of `solution_lift_v_nonneg_Icc` (`x ∈ (0,1) ⊆ [0,1]`). -/
+theorem solution_lift_v_nonneg_Ioo
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    ∀ x ∈ Set.Ioo (0:ℝ) 1, 0 ≤ intervalDomainLift (v τ) x :=
+  fun x hx => solution_lift_v_nonneg_Icc hsol hτ x (Set.Ioo_subset_Icc_self hx)
 
 /-- On the interior `(0,1)`, the flux equals its continuous representative.  Uses
 `solution_lift_v_deriv_eq_resolverGrad` (interior deriv↔RGrad) and
@@ -624,6 +771,22 @@ theorem flux_diff_L2_le_Eu
         nlinarith [h1, h2]
     _ = 3 * (G^2 + U^2 * Cg + (U*G*p.β)^2 * Cv) * Eu := by ring
 
+/-- **(A), unconditional for solutions.**  The chemical-concentration
+nonnegativity hypotheses of `flux_diff_L2_le_Eu` are supplied for free by the
+paper positivity (`v ≥ 0`), via `solution_lift_v_nonneg_Icc`. -/
+theorem flux_diff_L2_le_Eu_of_solution
+    {p : CM2Params} {T₁ T₂ : ℝ}
+    {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ}
+    (hsol₁ : IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁)
+    (hsol₂ : IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂)
+    {τ : ℝ} (hτ₁ : τ ∈ Set.Ioo (0 : ℝ) T₁) (hτ₂ : τ ∈ Set.Ioo (0 : ℝ) T₂) :
+    ∃ C : ℝ, 0 ≤ C ∧
+      (∫ y in (0:ℝ)..1,
+        (intervalFlux p (u₁ τ) (v₁ τ) y - intervalFlux p (u₂ τ) (v₂ τ) y) ^ 2)
+        ≤ C * intervalDomainClassicalL2DifferenceEnergyU u₁ u₂ τ :=
+  flux_diff_L2_le_Eu hsol₁ hsol₂ hτ₁ hτ₂
+    (solution_lift_v_nonneg_Icc hsol₁ hτ₁) (solution_lift_v_nonneg_Icc hsol₂ hτ₂)
+
 /-! ## (B) flux C¹ regularity + endpoint vanishing -/
 
 /-- **(B) flux endpoint vanishing.**  `fluxᵢ(τ,0) = fluxᵢ(τ,1) = 0` — the genuine
@@ -685,6 +848,69 @@ theorem flux_contDiffOn_Ioo
     (hu1.mul hdv1).mul hq1
   refine hprod.congr (fun x hx => ?_)
   -- `a·g/(1+v)^β = a·g·(1+v)^{-β}` (base `> 0`).
+  have hbase_pos : (0:ℝ) < 1 + intervalDomainLift (v τ) x := by
+    have := hvnn x hx; linarith
+  unfold intervalFlux
+  rw [div_eq_mul_inv, ← Real.rpow_neg hbase_pos.le]
+
+/-- **(B) flux C¹ on the interior, unconditional for solutions.**  The `hvnn`
+hypothesis of `flux_contDiffOn_Ioo` is supplied for free by paper positivity
+(`v ≥ 0`), via `solution_lift_v_nonneg_Ioo`. -/
+theorem flux_contDiffOn_Ioo_of_solution
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    ContDiffOn ℝ 1 (intervalFlux p (u τ) (v τ)) (Set.Ioo (0:ℝ) 1) :=
+  flux_contDiffOn_Ioo hsol hτ (solution_lift_v_nonneg_Ioo hsol hτ)
+
+/-- **(B) flux C¹ regularity on the CLOSED interval `[0,1]`, for a positive
+classical solution.**  All three factors of `flux = lift(u)·∂ₓ(lift v)/(1+lift v)^β`
+are now `C¹` on the *closed* `[0,1]`:
+
+  * `lift u` is `C²` on `Icc 0 1` (regularity conjunct 7), hence `C¹`;
+  * `∂ₓ(lift v) = deriv(lift v)` equals `resolverGradReal p (u τ)` on all of `[0,1]`
+    (`solution_lift_v_deriv_eq_resolverGrad_Icc`: interior + endpoint vanishing), and
+    `resolverGradReal` is `C¹` on `[0,1]` via the second-derivative cosine majorant
+    `∑ |(v̂_k).re|·(kπ)² < ∞` (`resolverGradReal_contDiffOn_Icc`);
+  * `(1+lift v)^{-β}` is `C¹` (rpow on the positive base `1+v ≥ 1 > 0`, from `v ≥ 0`).
+
+This is the two-sided-endpoint-derivative input that lets `intervalFluxByParts` be
+applied on the closed interval `uIcc 0 1`. -/
+theorem flux_contDiffOn_Icc
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    ContDiffOn ℝ 1 (intervalFlux p (u τ) (v τ)) (Set.Icc (0:ℝ) 1) := by
+  have hvnn : ∀ x ∈ Set.Icc (0:ℝ) 1, 0 ≤ intervalDomainLift (v τ) x :=
+    solution_lift_v_nonneg_Icc hsol hτ
+  -- closed-Icc C² of `lift u` and `lift v` (conjunct 7).
+  have hCu : ContDiffOn ℝ 2 (intervalDomainLift (u τ)) (Set.Icc (0:ℝ) 1) :=
+    (hsol.regularity.2.2.2.2.2.2.1 τ hτ).1.1
+  have hCv : ContDiffOn ℝ 2 (intervalDomainLift (v τ)) (Set.Icc (0:ℝ) 1) :=
+    (hsol.regularity.2.2.2.2.2.2.1 τ hτ).2.1
+  -- `lift u` is `C¹` on `[0,1]`.
+  have hu1 : ContDiffOn ℝ 1 (intervalDomainLift (u τ)) (Set.Icc (0:ℝ) 1) :=
+    hCu.of_le (by norm_num)
+  -- `deriv (lift v)` is `C¹` on `[0,1]`: it equals `resolverGradReal p (u τ)` there,
+  -- and the latter is `C¹` (second-derivative majorant).
+  have hdv1 : ContDiffOn ℝ 1 (deriv (intervalDomainLift (v τ))) (Set.Icc (0:ℝ) 1) := by
+    refine (resolverGradReal_contDiffOn_Icc hsol hτ).congr (fun x hx => ?_)
+    exact solution_lift_v_deriv_eq_resolverGrad_Icc hsol hτ hx
+  -- `(1+lift v)^{-β}` is `C¹` on `[0,1]` (rpow on positives).
+  have hbase1 : ContDiffOn ℝ 1 (fun x => 1 + intervalDomainLift (v τ) x)
+      (Set.Icc (0:ℝ) 1) := contDiffOn_const.add (hCv.of_le (by norm_num))
+  have hne : ∀ x ∈ Set.Icc (0:ℝ) 1, (1 + intervalDomainLift (v τ) x) ≠ 0 := by
+    intro x hx; have := hvnn x hx; positivity
+  have hq1 : ContDiffOn ℝ 1 (fun x => (1 + intervalDomainLift (v τ) x) ^ (-p.β))
+      (Set.Icc (0:ℝ) 1) := hbase1.rpow_const_of_ne hne
+  -- assemble: flux = (lift u · deriv(lift v)) · (1+lift v)^{-β} on `[0,1]`.
+  have hprod : ContDiffOn ℝ 1
+      (fun x => intervalDomainLift (u τ) x * deriv (intervalDomainLift (v τ)) x
+        * (1 + intervalDomainLift (v τ) x) ^ (-p.β)) (Set.Icc (0:ℝ) 1) :=
+    (hu1.mul hdv1).mul hq1
+  refine hprod.congr (fun x hx => ?_)
   have hbase_pos : (0:ℝ) < 1 + intervalDomainLift (v τ) x := by
     have := hvnn x hx; linarith
   unfold intervalFlux

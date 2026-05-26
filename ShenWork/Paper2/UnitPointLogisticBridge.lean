@@ -200,7 +200,7 @@ theorem not_Theorem_1_2_unitPointDomain_when_a_pos_b_zero :
     intro t ht
     -- Choose T := t + 1 > t > 0
     have hsol := hglobal (T := t + 1) (by linarith)
-    have hpde_raw := hsol.2.2.2.1 t () ht (by linarith : t < t + 1) (Set.mem_univ ())
+    have hpde_raw := hsol.2.2.2.2.1 t () ht (by linarith : t < t + 1) (Set.mem_univ ())
     -- On unitPointDomain: timeDeriv = deriv, laplacian = 0, chemotaxisDiv = 0
     simp only [unitPointDomain] at hpde_raw
     -- The PDE is: deriv f t = 0 - 0 * 0 + f t * (a - b * (f t)^α)

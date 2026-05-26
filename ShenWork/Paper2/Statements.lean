@@ -81,6 +81,14 @@ def IsPaper2ClassicalSolution
     -- regularity (cf. `SourceCoeffQuadraticDecay`).  Constant build-path
     -- constructors discharge it with a positive constant `c > 0`.
     (∀ t x, 0 < t → t < T → 0 < u t x) ∧
+    -- **Nonnegativity of the chemical concentration (closed domain).**  A paper
+    -- solution is a POSITIVE classical solution: alongside `u > 0`, the chemical
+    -- concentration `v` is nonnegative (Chen–Ruau–Shen).  Unlike `u`, the
+    -- concentration may vanish, so the faithful statement is `0 ≤ v` (not strict).
+    -- This is exactly what the chemotactic flux quotient `(1+v)^{-β}` needs: it
+    -- keeps `1 + v ≥ 1 > 0` on the compact `[0,1]`.  Build-path constructors set
+    -- `v` to `0` or a positive constant, discharging `0 ≤ v` trivially.
+    (∀ t x, 0 < t → t < T → 0 ≤ v t x) ∧
     (∀ t x, 0 < t → t < T → x ∈ D.inside →
       D.timeDeriv u t x =
         D.laplacian (u t) x
@@ -103,6 +111,8 @@ lemma IsPaper2ClassicalSolution.of_components
     (hreg : D.classicalRegularity T u v)
     (hpos :
       ∀ t x, 0 < t → t < T → 0 < u t x)
+    (hv_nonneg :
+      ∀ t x, 0 < t → t < T → 0 ≤ v t x)
     (hpde_u :
       ∀ t x, 0 < t → t < T → x ∈ D.inside →
         D.timeDeriv u t x =
@@ -116,7 +126,7 @@ lemma IsPaper2ClassicalSolution.of_components
       ∀ t x, 0 < t → t < T → x ∈ D.boundary →
         D.normalDeriv (u t) x = 0 ∧ D.normalDeriv (v t) x = 0) :
     IsPaper2ClassicalSolution D p T u v :=
-  ⟨hT, hreg, hpos, hpde_u, hpde_v, hneumann⟩
+  ⟨hT, hreg, hpos, hv_nonneg, hpde_u, hpde_v, hneumann⟩
 
 lemma IsPaper2GlobalClassicalSolution.of_classical
     {D : BoundedDomainData} {p : CM2Params}
@@ -161,6 +171,17 @@ lemma IsPaper2ClassicalSolution.u_pos
     0 < u t x :=
   h.2.2.1 t x ht0 htT
 
+/-- Closed-domain nonnegativity of the chemical concentration: `0 ≤ v t x` at
+EVERY point `x` (including the boundary), for any interior time.  Genuine paper
+content (positive classical solution: `u > 0`, `v ≥ 0`). -/
+lemma IsPaper2ClassicalSolution.v_nonneg
+    {D : BoundedDomainData} {p : CM2Params} {T t : ℝ}
+    {u v : ℝ → D.Point → ℝ} {x : D.Point}
+    (h : IsPaper2ClassicalSolution D p T u v)
+    (ht0 : 0 < t) (htT : t < T) :
+    0 ≤ v t x :=
+  h.2.2.2.1 t x ht0 htT
+
 lemma IsPaper2ClassicalSolution.pde_u
     {D : BoundedDomainData} {p : CM2Params} {T t : ℝ}
     {u v : ℝ → D.Point → ℝ} {x : D.Point}
@@ -170,7 +191,7 @@ lemma IsPaper2ClassicalSolution.pde_u
       D.laplacian (u t) x
         - p.χ₀ * D.chemotaxisDiv p (u t) (v t) x
         + u t x * (p.a - p.b * (u t x) ^ p.α) :=
-  h.2.2.2.1 t x ht0 htT hx
+  h.2.2.2.2.1 t x ht0 htT hx
 
 lemma IsPaper2ClassicalSolution.pde_v
     {D : BoundedDomainData} {p : CM2Params} {T t : ℝ}
@@ -178,7 +199,7 @@ lemma IsPaper2ClassicalSolution.pde_v
     (h : IsPaper2ClassicalSolution D p T u v)
     (ht0 : 0 < t) (htT : t < T) (hx : x ∈ D.inside) :
     0 = D.laplacian (v t) x - p.μ * v t x + p.ν * (u t x) ^ p.γ :=
-  h.2.2.2.2.1 t x ht0 htT hx
+  h.2.2.2.2.2.1 t x ht0 htT hx
 
 lemma IsPaper2ClassicalSolution.neumann
     {D : BoundedDomainData} {p : CM2Params} {T t : ℝ}
@@ -186,7 +207,7 @@ lemma IsPaper2ClassicalSolution.neumann
     (h : IsPaper2ClassicalSolution D p T u v)
     (ht0 : 0 < t) (htT : t < T) (hx : x ∈ D.boundary) :
     D.normalDeriv (u t) x = 0 ∧ D.normalDeriv (v t) x = 0 :=
-  h.2.2.2.2.2 t x ht0 htT hx
+  h.2.2.2.2.2.2 t x ht0 htT hx
 
 lemma IsPaper2GlobalClassicalSolution.classical
     {D : BoundedDomainData} {p : CM2Params} {T : ℝ}
@@ -2334,7 +2355,10 @@ lemma corollary21CounterIntegral_three {t : ℝ} (ht : t < 1) :
 lemma corollary21Counter_solution :
     IsPaper2ClassicalSolution corollary21CounterDomain corollary21CounterParams 1
       corollary21CounterU corollary21CounterU := by
-  refine IsPaper2ClassicalSolution.of_components (by norm_num) trivial ?_ ?_ ?_ ?_
+  refine IsPaper2ClassicalSolution.of_components (by norm_num) trivial ?_ ?_ ?_ ?_ ?_
+  · intro t x _ht0 _htT
+    unfold corollary21CounterU
+    split <;> positivity
   · intro t x _ht0 _htT
     unfold corollary21CounterU
     split <;> positivity
@@ -2633,9 +2657,11 @@ lemma proposition21Counter_classical (T : ℝ) (hT : 0 < T) :
     IsPaper2ClassicalSolution proposition21CounterDomain
       proposition21CounterParams T proposition21CounterU
       proposition21CounterV := by
-  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_, ?_⟩
   · intro t x ht0 htT
     norm_num [proposition21CounterU]
+  · intro t x ht0 htT
+    norm_num [proposition21CounterV]
   · intro t x ht0 htT hx
     change (0 : ℝ) =
       0 - proposition21CounterParams.χ₀ * 0 +
@@ -2702,9 +2728,11 @@ lemma proposition22Counter_classical (T : ℝ) (hT : 0 < T) :
     IsPaper2ClassicalSolution proposition22CounterDomain
       proposition21CounterParams T proposition22CounterU
       proposition22CounterV := by
-  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_, ?_⟩
   · intro t x ht0 htT
     norm_num [proposition22CounterU]
+  · intro t x ht0 htT
+    norm_num [proposition22CounterV]
   · intro t x ht0 htT hx
     change (0 : ℝ) =
       0 - proposition21CounterParams.χ₀ * 0 +
@@ -2771,9 +2799,11 @@ lemma proposition23Counter_classical (T : ℝ) (hT : 0 < T) :
     IsPaper2ClassicalSolution proposition23CounterDomain
       proposition21CounterParams T proposition23CounterU
       proposition23CounterV := by
-  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_, ?_⟩
   · intro t x ht0 htT
     norm_num [proposition23CounterU]
+  · intro t x ht0 htT
+    norm_num [proposition23CounterV]
   · intro t x ht0 htT hx
     change (0 : ℝ) =
       0 - proposition21CounterParams.χ₀ * 0 +
@@ -2879,9 +2909,11 @@ lemma proposition24Counter_trace :
 lemma proposition24Counter_classical (T : ℝ) (hT : 0 < T) :
     IsPaper2ClassicalSolution proposition24CounterDomain
       proposition24CounterParams T proposition24CounterU proposition24CounterV := by
-  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_, ?_⟩
   · intro t x ht0 htT
     norm_num [proposition24CounterU]
+  · intro t x ht0 htT
+    norm_num [proposition24CounterV]
   · intro t x ht0 htT hx
     change (0 : ℝ) =
       0 - proposition24CounterParams.χ₀ * 0 +
@@ -2982,10 +3014,13 @@ lemma proposition25Counter_classical (T : ℝ) (hT : T = 1) :
     IsPaper2ClassicalSolution proposition25CounterDomain
       proposition24CounterParams T proposition25CounterU proposition25CounterV := by
   subst T
-  refine ⟨by norm_num, trivial, ?_, ?_, ?_, ?_⟩
+  refine ⟨by norm_num, trivial, ?_, ?_, ?_, ?_, ?_⟩
   · intro t x ht0 htT
     have hden : 0 < 1 - t := by linarith
     exact inv_pos.mpr hden
+  · intro t x ht0 htT
+    have hden : 0 < 1 - t := by linarith
+    exact le_of_lt (inv_pos.mpr hden)
   · intro t x ht0 htT hx
     change (0 : ℝ) =
       0 - proposition24CounterParams.χ₀ * 0 +
@@ -3668,9 +3703,12 @@ def lemma31CounterV : ℝ → lemma31CounterDomain.Point → ℝ :=
 lemma lemma31Counter_classical (T : ℝ) (hT : 0 < T) :
     IsPaper2ClassicalSolution lemma31CounterDomain
       proposition24CounterParams T lemma31CounterU lemma31CounterV := by
-  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_, ?_⟩
   · intro t x ht0 htT
     dsimp [lemma31CounterU]
+    linarith
+  · intro t x ht0 htT
+    dsimp [lemma31CounterV]
     linarith
   · intro t x ht0 htT hx
     change (0 : ℝ) =
@@ -3755,9 +3793,12 @@ lemma lemma31NonminimalCounter_classical (T : ℝ) (hT : 0 < T) :
     IsPaper2ClassicalSolution lemma31NonminimalCounterDomain
       lemma31NonminimalCounterParams T
       lemma31NonminimalCounterU lemma31NonminimalCounterV := by
-  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_, ?_⟩
   · intro t x ht0 htT
     dsimp [lemma31NonminimalCounterU]
+    linarith
+  · intro t x ht0 htT
+    dsimp [lemma31NonminimalCounterV]
     linarith
   · intro t x ht0 htT hx
     change (t + 1) * (1 - (t + 1)) =
@@ -3907,9 +3948,11 @@ lemma lemma41Counter_trace :
 lemma lemma41Counter_classical (T : ℝ) (hT : 0 < T) :
     IsPaper2ClassicalSolution lemma41CounterDomain lemma41CounterParams T
       lemma41CounterU lemma41CounterV := by
-  refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
+  refine ⟨hT, trivial, ?_, ?_, ?_, ?_, ?_⟩
   · intro t x ht0 htT
     norm_num [lemma41CounterU]
+  · intro t x ht0 htT
+    norm_num [lemma41CounterV]
   · intro t x ht0 htT hx
     change (0 : ℝ) =
       0 - lemma41CounterParams.χ₀ * 0 +
@@ -4756,11 +4799,11 @@ theorem unitPointDomain.parabolicMaxPrincipleData
     (p : CM2Params) : ParabolicMaxPrincipleData unitPointDomain p where
   supNorm_continuous_in_time := by
     intro T _hT u v hsol
-    obtain ⟨_, ⟨hu_diff, _⟩, _, _, _, _⟩ := hsol
+    obtain ⟨_, ⟨hu_diff, _⟩, _, _, _, _, _⟩ := hsol
     exact (hu_diff.continuous.abs).continuousOn
   nonminimal_supNorm_hasDerivAt_nonpos := by
     intro _hχ ha hb T _hT u v hsol t ht_in_Ioo hgt
-    obtain ⟨_, ⟨hu_diff, _⟩, hpos, hpde_u, _, _⟩ := hsol
+    obtain ⟨_, ⟨hu_diff, _⟩, hpos, _, hpde_u, _, _⟩ := hsol
     have hu_pos : 0 < u t () :=
       hpos t () ht_in_Ioo.1 ht_in_Ioo.2
     -- supNorm at t equals u t ()
@@ -4819,7 +4862,7 @@ theorem unitPointDomain.parabolicMaxPrincipleData
     exact h_prod
   minimal_supNorm_hasDerivAt_nonpos := by
     intro _hχ ha hb T _hT u v hsol t ht_in_Ioo
-    obtain ⟨_, ⟨hu_diff, _⟩, hpos, hpde_u, _, _⟩ := hsol
+    obtain ⟨_, ⟨hu_diff, _⟩, hpos, _, hpde_u, _, _⟩ := hsol
     have hu_pos : 0 < u t () :=
       hpos t () ht_in_Ioo.1 ht_in_Ioo.2
     have hu_cont : Continuous (fun s : ℝ => u s ()) := hu_diff.continuous
@@ -4892,7 +4935,7 @@ hence a sup-norm bound. -/
 theorem unitPointDomain.Proposition_2_5 (p : CM2Params) :
     Proposition_2_5 unitPointDomain p := by
   intro u₀ _hu₀ Tmax hTmax u v hsol _htrace pExp hpExp hlp
-  obtain ⟨_, _, hu_pos, _, _, _⟩ := hsol
+  obtain ⟨_, _, hu_pos, _, _, _, _⟩ := hsol
   obtain ⟨C, hC⟩ := hlp
   have hN_pos : 1 ≤ (p.N : ℝ) := by exact_mod_cast p.hN
   have hpExp_pos : 0 < pExp := by
@@ -4935,7 +4978,7 @@ theorem unitPointDomain.Proposition_2_2 (p : CM2Params) :
   intro T _hT u v hsol pExp hpExp
   refine ⟨1, by norm_num, ?_⟩
   intro t ht_pos ht_lt
-  obtain ⟨_, _, hupos, _, _, _⟩ := hsol
+  obtain ⟨_, _, hupos, _, _, _, _⟩ := hsol
   have hu_pos : 0 < u t () := hupos t () ht_pos ht_lt
   have h2p_ne : 2 * pExp ≠ 0 := by
     have : 0 < pExp := lt_trans zero_lt_one hpExp
@@ -4964,7 +5007,7 @@ theorem unitPointDomain.Proposition_2_3 (p : CM2Params) :
   intro T _hT u v hsol pExp hpExp eps heps
   refine ⟨1, by norm_num, ?_⟩
   intro t ht_pos ht_lt
-  obtain ⟨_, _, hupos, _, hpde_v, _⟩ := hsol
+  obtain ⟨_, _, hupos, _, _, hpde_v, _⟩ := hsol
   have hu_pos : 0 < u t () := hupos t () ht_pos ht_lt
   have hpExp_pos : 0 < pExp :=
     lt_trans zero_lt_one
@@ -5024,7 +5067,7 @@ theorem unitPointDomain.Proposition_2_3 (p : CM2Params) :
 theorem unitPointDomain.Proposition_2_4 (p : CM2Params) :
     Proposition_2_4 unitPointDomain p := by
   intro u₀ _hu₀ T _hT u v hsol htrace
-  obtain ⟨_, ⟨hu_diff, _⟩, hupos, hpde_u, _, _⟩ := hsol
+  obtain ⟨_, ⟨hu_diff, _⟩, hupos, _, hpde_u, _, _⟩ := hsol
   refine ⟨?_, ?_⟩
   · -- Case 1: a = b = 0
     intro ha hb t ht_pos ht_T
@@ -5191,7 +5234,7 @@ theorem unitPointDomain.Theorem_1_1_minimal_only
     set ustar : ℝ := (p.ν / p.μ) * (u₀ ()) ^ p.γ with hustar_def
     refine ⟨1, by norm_num, fun _ => u₀, fun _ _ => ustar, ?_, ?_, ?_, ?_⟩
     · -- IsPaper2ClassicalSolution unitPointDomain p 1 (fun _ => u₀) (fun _ _ => ustar)
-      refine ⟨by norm_num, ⟨?_, ?_⟩, ?_, ?_, ?_, ?_⟩
+      refine ⟨by norm_num, ⟨?_, ?_⟩, ?_, ?_, ?_, ?_, ?_⟩
       · -- Differentiable ℝ (fun t : ℝ => u₀ ())
         exact differentiable_const _
       · -- Continuous (fun t : ℝ => ustar)
@@ -5199,6 +5242,11 @@ theorem unitPointDomain.Theorem_1_1_minimal_only
       · -- u_pos
         intro t x _ _
         exact hu₀.pos trivial
+      · -- v_nonneg
+        intro t x _ _
+        have hvnn0 : (0:ℝ) < ustar := by
+          rw [hustar_def]; exact mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos (hu₀.pos trivial) _)
+        exact hvnn0.le
       · -- pde_u
         intro t x _ _ _
         show deriv (fun s : ℝ => u₀ ()) t = 0 - p.χ₀ * 0 +
@@ -5233,11 +5281,15 @@ theorem unitPointDomain.Theorem_1_1_minimal_only
       exact le_refl _
     · -- Global if 1 ≤ p.m
       intro _ T hT
-      refine ⟨hT, ⟨?_, ?_⟩, ?_, ?_, ?_, ?_⟩
+      refine ⟨hT, ⟨?_, ?_⟩, ?_, ?_, ?_, ?_, ?_⟩
       · exact differentiable_const _
       · exact continuous_const
       · intro t x _ _
         exact hu₀.pos trivial
+      · intro t x _ _
+        have hvnn0 : (0:ℝ) < ustar := by
+          rw [hustar_def]; exact mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos (hu₀.pos trivial) _)
+        exact hvnn0.le
       · intro t x _ _ _
         show deriv (fun s : ℝ => u₀ ()) t = 0 - p.χ₀ * 0 +
           u₀ x * (p.a - p.b * (u₀ x) ^ p.α)
@@ -5384,7 +5436,7 @@ is `LpPowerBoundedBefore` at `pExp`. -/
 theorem unitPointDomain.Corollary_2_1 (p : CM2Params) :
     Corollary_2_1 unitPointDomain p := by
   intro T _hT u v hsol hbootstrap pExp hpExp
-  obtain ⟨_, _, hupos, _, _, _⟩ := hsol
+  obtain ⟨_, _, hupos, _, _, _, _⟩ := hsol
   obtain ⟨rho, _hrho, _hCDB, p0, hp0_gt, hLp0⟩ := hbootstrap
   obtain ⟨C₀, hC₀⟩ := hLp0
   have hp0_pos : 0 < p0 :=
@@ -5490,8 +5542,12 @@ theorem unitPointDomain.Theorem_1_2_minimal_only
     refine ⟨1, by norm_num, fun _ => u₀, fun _ _ => ustar, ?_, ?_, ?_⟩
     · -- classical solution on (0, 1)
       refine ⟨by norm_num, ⟨differentiable_const _, continuous_const⟩,
-        ?_, ?_, ?_, ?_⟩
+        ?_, ?_, ?_, ?_, ?_⟩
       · intro t x _ _; exact hu₀.pos trivial
+      · intro t x _ _
+        have hvnn0 : (0:ℝ) < ustar := by
+          rw [hustar_def]; exact mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos (hu₀.pos trivial) _)
+        exact hvnn0.le
       · intro t x _ _ _
         show deriv (fun s : ℝ => u₀ ()) t =
           0 - p.χ₀ * 0 + u₀ x * (p.a - p.b * (u₀ x) ^ p.α)
@@ -5524,8 +5580,12 @@ theorem unitPointDomain.Theorem_1_2_minimal_only
     · -- IsPaper2GlobalClassicalSolution
       intro T hT
       refine ⟨hT, ⟨differentiable_const _, continuous_const⟩,
-        ?_, ?_, ?_, ?_⟩
+        ?_, ?_, ?_, ?_, ?_⟩
       · intro t x _ _; exact hu₀.pos trivial
+      · intro t x _ _
+        have hvnn0 : (0:ℝ) < ustar := by
+          rw [hustar_def]; exact mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos (hu₀.pos trivial) _)
+        exact hvnn0.le
       · intro t x _ _ _
         show deriv (fun s : ℝ => u₀ ()) t =
           0 - p.χ₀ * 0 + u₀ x * (p.a - p.b * (u₀ x) ^ p.α)

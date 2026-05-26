@@ -245,11 +245,13 @@ def intervalDomainClassicalUniquenessL2EnergyMethod_of_frontier
     -- Restrict each solution to the overlap horizon `min T₁ T₂`.
     have hsol₁' :
         IsPaper2ClassicalSolution intervalDomain p (min T₁ T₂) u₁ v₁ := by
-      refine ⟨lt_min hsol₁.T_pos hsol₂.T_pos, ?_, ?_, ?_, ?_, ?_⟩
+      refine ⟨lt_min hsol₁.T_pos hsol₂.T_pos, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · exact intervalDomainClassicalRegularity_mono_horizon
           (min_le_left _ _) hsol₁.regularity
       · exact fun t x ht0 htT =>
           hsol₁.u_pos' ht0 (lt_of_lt_of_le htT (min_le_left _ _))
+      · exact fun t x ht0 htT =>
+          hsol₁.v_nonneg ht0 (lt_of_lt_of_le htT (min_le_left _ _))
       · exact fun t x ht0 htT hx =>
           hsol₁.pde_u ht0 (lt_of_lt_of_le htT (min_le_left _ _)) hx
       · exact fun t x ht0 htT hx =>
@@ -258,11 +260,13 @@ def intervalDomainClassicalUniquenessL2EnergyMethod_of_frontier
           hsol₁.neumann ht0 (lt_of_lt_of_le htT (min_le_left _ _)) hx
     have hsol₂' :
         IsPaper2ClassicalSolution intervalDomain p (min T₁ T₂) u₂ v₂ := by
-      refine ⟨lt_min hsol₁.T_pos hsol₂.T_pos, ?_, ?_, ?_, ?_, ?_⟩
+      refine ⟨lt_min hsol₁.T_pos hsol₂.T_pos, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · exact intervalDomainClassicalRegularity_mono_horizon
           (min_le_right _ _) hsol₂.regularity
       · exact fun t x ht0 htT =>
           hsol₂.u_pos' ht0 (lt_of_lt_of_le htT (min_le_right _ _))
+      · exact fun t x ht0 htT =>
+          hsol₂.v_nonneg ht0 (lt_of_lt_of_le htT (min_le_right _ _))
       · exact fun t x ht0 htT hx =>
           hsol₂.pde_u ht0 (lt_of_lt_of_le htT (min_le_right _ _)) hx
       · exact fun t x ht0 htT hx =>
