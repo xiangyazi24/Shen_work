@@ -72,6 +72,7 @@ import ShenWork.Paper2.IntervalDomainL2UStaticVControl
 import ShenWork.Paper2.IntervalDomainL2StaticVDifference
 import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
 import ShenWork.Paper2.IntervalDomainL2UFrontierAssembly
+import ShenWork.Paper2.IntervalDomainL2UBoundedDatumUniformOfBounded
 import ShenWork.PDE.IntervalDomainExistence
 import ShenWork.PDE.IntervalEllipticCharacterization
 import ShenWork.PDE.IntervalCosineCoeffDecay
