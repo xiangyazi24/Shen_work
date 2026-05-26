@@ -441,17 +441,265 @@ control of `v` closes — i.e. the spatial derivative of the resolver value seri
 equals the termwise gradient series for the actual solution. -/
 
 open ShenWork.IntervalResolverGradientBridge in
-/-- **The named source-coefficient quadratic-decay input.**  For the solution's
-`u(·,t)`, the elliptic source `ν·u(·,t)^γ` has cosine coefficients with quadratic
-decay.  By sub-step (b1) this holds whenever `ν·u^γ` is `C²`-Neumann (e.g. `γ ∈ ℕ`
-or `u(·,t) > 0`); it is the precise still-open regularity input for fractional `γ`
-with a vanishing `u`. -/
+/-- **The source-coefficient quadratic-decay datum (now PROVED for positive
+classical solutions).**  For the solution's `u(·,t)`, the elliptic source
+`ν·u(·,t)^γ` has cosine coefficients with quadratic decay `|ĝₖ| ≤ C/(kπ)²`.  By
+sub-step (b1) this holds whenever `ν·u^γ` is `C²`-Neumann; since
+`IsPaper2ClassicalSolution` now carries closed-domain positivity (the paper studies
+*positive* classical solutions), `u(·,t)` is bounded away from `0` on `[0,1]`, so
+`x ↦ x^γ` is `C^∞` on the range and `ν·u^γ` is genuinely `C²`-Neumann.  Hence this
+datum is no longer a hypothesis: it is produced unconditionally by
+`sourceCoeffQuadraticDecay_of_solution`. -/
 structure SourceCoeffQuadraticDecay (p : CM2Params) (u : intervalDomainPoint → ℝ)
     where
   C : ℝ
   C_nonneg : 0 ≤ C
   decay : ∀ k : ℕ, 1 ≤ k →
     |(intervalNeumannResolverSourceCoeff p u k).re| ≤ C / ((k : ℝ) * Real.pi) ^ 2
+
+/-! ## `SourceCoeffQuadraticDecay` is UNCONDITIONAL for positive classical solutions
+
+For a Paper-2 *positive* classical solution, the elliptic source `g = ν·u(·,t)^γ`
+is genuinely `C²`-Neumann on the closed interval `[0,1]`: positivity (now part of
+`IsPaper2ClassicalSolution`, on the closed domain) gives `u(·,t)` a positive lower
+bound on the compact `[0,1]`, so `x ↦ x^γ` is `C^∞` on the range, and the chain
+rule makes `g` `C²` with `g'(0)=g'(1)=0`.  Feeding the proven
+`IntervalCosineCoeffDecay.cosineCoeff_decay` then yields the quadratic decay
+`|ĝₖ| ≤ M/(kπ)²`, hence `SourceCoeffQuadraticDecay`.  No `sorry`, no `axiom`. -/
+
+/-- The lift of `u(·,t)` is strictly positive on the closed `[0,1]`, for a positive
+classical solution. -/
+theorem solution_lift_pos
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (u t) x := by
+  intro x hx
+  rw [intervalDomainLift]
+  simp only [hx, dif_pos]
+  exact hsol.u_pos' ht.1 ht.2
+
+/-- The elliptic source `g = ν·(lift(u t))^γ` is `C²` on the closed `[0,1]` for a
+positive classical solution: `lift(u t)` is `C²` (conjunct 7) and bounded away from
+`0` (positivity), so `x ↦ x^γ` composes to a `C²` function. -/
+theorem source_contDiffOn_Icc
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    ContDiffOn ℝ 2 (fun x : ℝ => p.ν * intervalDomainLift (u t) x ^ p.γ)
+      (Set.Icc (0:ℝ) 1) := by
+  have hreg : intervalDomainClassicalRegularity T u v := hsol.regularity
+  have hC2u := (hreg.2.2.2.2.2.2.1 t ht).1.1
+  have hne : ∀ x ∈ Set.Icc (0:ℝ) 1, intervalDomainLift (u t) x ≠ 0 :=
+    fun x hx => ne_of_gt (solution_lift_pos hsol ht x hx)
+  have hpow : ContDiffOn ℝ 2 (fun x : ℝ => intervalDomainLift (u t) x ^ p.γ)
+      (Set.Icc (0:ℝ) 1) := hC2u.rpow_const_of_ne hne
+  exact hpow.const_smul p.ν |>.congr (fun x _ => by rw [smul_eq_mul])
+
+/-- The source's derivative vanishes (Mathlib-junk value) at the endpoints `0,1`:
+the lift jumps at the endpoints (`lift(u t)` is `>0` there but `= 0` just outside
+`[0,1]`, and `0^γ = 0` since `γ > 0`), so `g = ν·(lift(u t))^γ` is discontinuous,
+hence not differentiable, hence `deriv g = 0` at the endpoint by convention.  This
+matches the genuine homogeneous-Neumann content `g'(0⁺)=g'(1⁻)=0` recorded by the
+one-sided endpoint limits. -/
+theorem source_deriv_endpoint_eq_zero
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    {e : ℝ} (he : e = 0 ∨ e = 1) :
+    deriv (fun x : ℝ => p.ν * intervalDomainLift (u t) x ^ p.γ) e = 0 := by
+  set g : ℝ → ℝ := fun x => p.ν * intervalDomainLift (u t) x ^ p.γ with hg
+  have heIcc : e ∈ Set.Icc (0:ℝ) 1 := by
+    rcases he with rfl | rfl <;> constructor <;> norm_num
+  -- `g e > 0` (positivity + `e ∈ [0,1]`).
+  have hge_pos : 0 < g e := by
+    rw [hg]
+    exact mul_pos p.hν (Real.rpow_pos_of_pos (solution_lift_pos hsol ht e heIcc) _)
+  -- `g` vanishes just outside `[0,1]` (lift is the zero-extension; `0^γ = 0`).
+  have hg_out : ∀ x : ℝ, x ∉ Set.Icc (0:ℝ) 1 → g x = 0 := by
+    intro x hx
+    have hlift : intervalDomainLift (u t) x = 0 := by
+      simp only [intervalDomainLift, dif_neg hx]
+    rw [hg]; simp only [hlift, Real.zero_rpow p.hγ.ne', mul_zero]
+  -- `g` is discontinuous at the endpoint: side-limit (outside `[0,1]`) is `0 ≠ g e`.
+  refine deriv_zero_of_not_differentiableAt (fun hdiff => ?_)
+  have hcont : ContinuousAt g e := hdiff.continuousAt
+  rcases he with rfl | rfl
+  · -- endpoint `0`: approach from the left, where `x < 0 ∉ [0,1]`, so `g = 0`.
+    have htends : Filter.Tendsto g (nhdsWithin (0:ℝ) (Set.Iio 0)) (nhds (g 0)) :=
+      hcont.tendsto.mono_left nhdsWithin_le_nhds
+    have hzeroT : Filter.Tendsto g (nhdsWithin (0:ℝ) (Set.Iio 0)) (nhds 0) := by
+      refine tendsto_const_nhds.congr' ?_
+      filter_upwards [self_mem_nhdsWithin] with x hx
+      exact (hg_out x (fun hxIcc => absurd hxIcc.1 (not_le.mpr hx))).symm
+    have := tendsto_nhds_unique htends hzeroT
+    rw [this] at hge_pos; exact lt_irrefl _ hge_pos
+  · -- endpoint `1`: approach from the right, where `x > 1 ∉ [0,1]`, so `g = 0`.
+    have htends : Filter.Tendsto g (nhdsWithin (1:ℝ) (Set.Ioi 1)) (nhds (g 1)) :=
+      hcont.tendsto.mono_left nhdsWithin_le_nhds
+    have hzeroT : Filter.Tendsto g (nhdsWithin (1:ℝ) (Set.Ioi 1)) (nhds 0) := by
+      refine tendsto_const_nhds.congr' ?_
+      filter_upwards [self_mem_nhdsWithin] with x hx
+      exact (hg_out x (fun hxIcc => absurd hxIcc.2 (not_le.mpr hx))).symm
+    have := tendsto_nhds_unique htends hzeroT
+    rw [this] at hge_pos; exact lt_irrefl _ hge_pos
+
+/-- On the open interior `(0,1)`, the source derivative is the chain-rule value
+`deriv g x = ν · (γ · u^{γ-1}) · u'`, where `u = lift(u t)`. -/
+theorem source_deriv_interior
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    {x : ℝ} (hx : x ∈ Set.Ioo (0:ℝ) 1) :
+    deriv (fun y : ℝ => p.ν * intervalDomainLift (u t) y ^ p.γ) x =
+      p.ν * (p.γ * intervalDomainLift (u t) x ^ (p.γ - 1) *
+        deriv (intervalDomainLift (u t)) x) := by
+  have hreg : intervalDomainClassicalRegularity T u v := hsol.regularity
+  have hC2u := (hreg.2.2.2.2.2.2.1 t ht).1.1
+  have hxIcc : x ∈ Set.Icc (0:ℝ) 1 := Set.Ioo_subset_Icc_self hx
+  -- `lift(u t)` is differentiable at the interior point `x`.
+  have hmem : Set.Icc (0:ℝ) 1 ∈ nhds x := by
+    rw [mem_nhds_iff]
+    exact ⟨Set.Ioo (0:ℝ) 1, Set.Ioo_subset_Icc_self, isOpen_Ioo, hx⟩
+  have hUdiff : DifferentiableAt ℝ (intervalDomainLift (u t)) x :=
+    (hC2u.differentiableOn (by norm_num)).differentiableAt hmem
+  have hUhas : HasDerivAt (intervalDomainLift (u t))
+      (deriv (intervalDomainLift (u t)) x) x := hUdiff.hasDerivAt
+  have hne : intervalDomainLift (u t) x ≠ 0 :=
+    ne_of_gt (solution_lift_pos hsol ht x hxIcc)
+  have hpow : HasDerivAt (fun y : ℝ => intervalDomainLift (u t) y ^ p.γ)
+      (p.γ * intervalDomainLift (u t) x ^ (p.γ - 1) *
+        deriv (intervalDomainLift (u t)) x) x :=
+    (Real.hasDerivAt_rpow_const (Or.inl hne)).comp x hUhas
+  have hg : HasDerivAt (fun y : ℝ => p.ν * intervalDomainLift (u t) y ^ p.γ)
+      (p.ν * (p.γ * intervalDomainLift (u t) x ^ (p.γ - 1) *
+        deriv (intervalDomainLift (u t)) x)) x := hpow.const_mul p.ν
+  exact hg.deriv
+
+/-- The source derivative tends to `0` at each endpoint along the one-sided
+interior approach (genuine homogeneous Neumann for `g`): on `(0,1)` it equals the
+chain-rule value `ν·γ·u^{γ-1}·u'`, and `u' → 0` (conjunct 6) while `u^{γ-1}` is
+continuous and positive. -/
+theorem source_deriv_tendsto_endpoint
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    Filter.Tendsto (deriv (fun y : ℝ => p.ν * intervalDomainLift (u t) y ^ p.γ))
+        (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
+      Filter.Tendsto (deriv (fun y : ℝ => p.ν * intervalDomainLift (u t) y ^ p.γ))
+        (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) := by
+  have hreg : intervalDomainClassicalRegularity T u v := hsol.regularity
+  have hC2u := (hreg.2.2.2.2.2.2.1 t ht).1.1
+  have h6u := (hreg.2.2.2.2.2.1 t ht).1
+  obtain ⟨htend0u, htend1u⟩ := h6u
+  -- continuity of `y ↦ u^{γ-1}` on `[0,1]` (lift `C²` ⇒ continuous; positive ⇒ rpow ok).
+  have hUcont : ContinuousOn (intervalDomainLift (u t)) (Set.Icc (0:ℝ) 1) :=
+    hC2u.continuousOn
+  have hpowcont : ContinuousOn (fun y : ℝ => intervalDomainLift (u t) y ^ (p.γ - 1))
+      (Set.Icc (0:ℝ) 1) :=
+    hUcont.rpow_const (fun y hy => Or.inl (ne_of_gt (solution_lift_pos hsol ht y hy)))
+  -- filter rewrites: near `0`, `𝓝[>]0 = 𝓝[Ioo 0 1]0`; near `1`, `𝓝[<]1 = 𝓝[Ioo 0 1]1`.
+  have hfilt0 : nhdsWithin (0:ℝ) (Set.Ioi 0) = nhdsWithin (0:ℝ) (Set.Ioo 0 1) := by
+    have : Set.Ioo (0:ℝ) 1 = Set.Ioi (0:ℝ) ∩ Set.Iio 1 := by
+      ext y; simp [Set.mem_Ioo, Set.mem_inter_iff, Set.mem_Ioi, Set.mem_Iio]
+    rw [this, nhdsWithin_inter_of_mem']
+    exact mem_nhdsWithin_of_mem_nhds (Iio_mem_nhds (by norm_num))
+  have hfilt1 : nhdsWithin (1:ℝ) (Set.Iio 1) = nhdsWithin (1:ℝ) (Set.Ioo 0 1) := by
+    have : Set.Ioo (0:ℝ) 1 = Set.Iio (1:ℝ) ∩ Set.Ioi 0 := by
+      ext y; simp [Set.mem_Ioo, Set.mem_inter_iff, Set.mem_Ioi, Set.mem_Iio]; tauto
+    rw [this, nhdsWithin_inter_of_mem']
+    exact mem_nhdsWithin_of_mem_nhds (Ioi_mem_nhds (by norm_num))
+  constructor
+  · -- endpoint `0`.
+    rw [hfilt0]
+    -- on `Ioo 0 1`, `deriv g = ν·γ·u^{γ-1}·u'`.
+    have hEq : deriv (fun y : ℝ => p.ν * intervalDomainLift (u t) y ^ p.γ)
+        =ᶠ[nhdsWithin (0:ℝ) (Set.Ioo 0 1)]
+        (fun y : ℝ => p.ν * (p.γ * intervalDomainLift (u t) y ^ (p.γ - 1) *
+          deriv (intervalDomainLift (u t)) y)) := by
+      filter_upwards [self_mem_nhdsWithin] with y hy
+      exact source_deriv_interior hsol ht hy
+    refine Filter.Tendsto.congr' hEq.symm ?_
+    -- `u^{γ-1} → (lift 0)^{γ-1}`, `u' → 0`, product → 0.
+    have hp1 : Filter.Tendsto (fun y : ℝ => intervalDomainLift (u t) y ^ (p.γ - 1))
+        (nhdsWithin (0:ℝ) (Set.Ioo 0 1))
+        (nhds (intervalDomainLift (u t) 0 ^ (p.γ - 1))) :=
+      ((hpowcont 0 (by constructor <;> norm_num)).mono
+        Set.Ioo_subset_Icc_self).tendsto
+    have hp2 : Filter.Tendsto (deriv (intervalDomainLift (u t)))
+        (nhdsWithin (0:ℝ) (Set.Ioo 0 1)) (nhds 0) :=
+      htend0u.mono_left (nhdsWithin_mono _ (fun y hy => hy.1))
+    have hcomb := ((hp1.const_mul p.γ).mul hp2).const_mul p.ν
+    simpa using hcomb
+  · -- endpoint `1`.
+    rw [hfilt1]
+    have hEq : deriv (fun y : ℝ => p.ν * intervalDomainLift (u t) y ^ p.γ)
+        =ᶠ[nhdsWithin (1:ℝ) (Set.Ioo 0 1)]
+        (fun y : ℝ => p.ν * (p.γ * intervalDomainLift (u t) y ^ (p.γ - 1) *
+          deriv (intervalDomainLift (u t)) y)) := by
+      filter_upwards [self_mem_nhdsWithin] with y hy
+      exact source_deriv_interior hsol ht hy
+    refine Filter.Tendsto.congr' hEq.symm ?_
+    have hp1 : Filter.Tendsto (fun y : ℝ => intervalDomainLift (u t) y ^ (p.γ - 1))
+        (nhdsWithin (1:ℝ) (Set.Ioo 0 1))
+        (nhds (intervalDomainLift (u t) 1 ^ (p.γ - 1))) :=
+      ((hpowcont 1 (by constructor <;> norm_num)).mono
+        Set.Ioo_subset_Icc_self).tendsto
+    have hp2 : Filter.Tendsto (deriv (intervalDomainLift (u t)))
+        (nhdsWithin (1:ℝ) (Set.Ioo 0 1)) (nhds 0) :=
+      htend1u.mono_left (nhdsWithin_mono _ (fun y hy => hy.2))
+    have hcomb := ((hp1.const_mul p.γ).mul hp2).const_mul p.ν
+    simpa using hcomb
+
+/-- **`SourceCoeffQuadraticDecay` is UNCONDITIONAL for a positive classical
+solution.**  The elliptic source `g = ν·u(·,t)^γ` is `C²`-Neumann on `[0,1]`
+(positivity ⇒ `u` bounded away from `0` ⇒ `x^γ` is `C^∞` on the range, chain rule),
+so the proven `IntervalCosineCoeffDecay.cosineCoeff_decay` gives the quadratic decay
+`|ĝₖ| ≤ M/(kπ)²`.  Reading off `(intervalNeumannResolverSourceCoeff p (u t) k).re =
+2·∫₀¹ cos(kπx)·g` (for `k ≥ 1`) yields the `decay` field with `C = 2M`. -/
+noncomputable def sourceCoeffQuadraticDecay_of_solution
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    SourceCoeffQuadraticDecay p (u t) := by
+  classical
+  set g : ℝ → ℝ := fun x => p.ν * intervalDomainLift (u t) x ^ p.γ with hg
+  have hC2g : ContDiffOn ℝ 2 g (Set.Icc (0:ℝ) 1) := source_contDiffOn_Icc hsol ht
+  have hbc0 : deriv g 0 = 0 := source_deriv_endpoint_eq_zero hsol ht (Or.inl rfl)
+  have hbc1 : deriv g 1 = 0 := source_deriv_endpoint_eq_zero hsol ht (Or.inr rfl)
+  obtain ⟨htend0, htend1⟩ := source_deriv_tendsto_endpoint hsol ht
+  -- uniform `|ĝ''ₙ| ≤ M` bound (choose `M` from the existence statement).
+  let Mspec := ShenWork.IntervalCosineCoeffDecay.exists_laplacianCoeff_bound hC2g
+  refine ⟨2 * Mspec.choose, ?_, ?_⟩
+  · have := Mspec.choose_spec.1; positivity
+  · intro k hk
+    have hMnonneg := Mspec.choose_spec.1
+    have hMbound := Mspec.choose_spec.2
+    have hdec := ShenWork.IntervalCosineCoeffDecay.cosineCoeff_decay hC2g htend0 htend1
+      hbc0 hbc1 hMnonneg hMbound hk
+    have hkne : k ≠ 0 := by omega
+    have hre_eq : (intervalNeumannResolverSourceCoeff p (u t) k).re =
+        2 * ∫ x in (0:ℝ)..1, Real.cos ((k:ℝ) * Real.pi * x) * g x := by
+      simp only [intervalNeumannResolverSourceCoeff, Complex.ofReal_re,
+        unitIntervalNeumannCosineCoeff, if_neg hkne, hg]
+      rw [unitIntervalCosineRawCoeff]
+      have hcast : (fun x : ℝ => (Real.cos ((k:ℝ) * Real.pi * x) : ℂ) *
+            ((p.ν * intervalDomainLift (u t) x ^ p.γ : ℝ) : ℂ))
+          = (fun x : ℝ => ((Real.cos ((k:ℝ) * Real.pi * x) *
+              (p.ν * intervalDomainLift (u t) x ^ p.γ) : ℝ) : ℂ)) := by
+        funext x; push_cast; ring
+      rw [hcast, intervalIntegral.integral_ofReal, Complex.ofReal_re]
+    rw [hre_eq, abs_mul, abs_of_pos (by norm_num : (0:ℝ) < 2)]
+    calc 2 * |∫ x in (0:ℝ)..1, Real.cos ((k:ℝ) * Real.pi * x) * g x|
+        ≤ 2 * (Mspec.choose / ((k:ℝ) * Real.pi) ^ 2) :=
+          mul_le_mul_of_nonneg_left hdec (by norm_num)
+      _ = 2 * Mspec.choose / ((k:ℝ) * Real.pi) ^ 2 := by ring
 
 open ShenWork.IntervalResolverGradientBridge in
 /-- **Static gradient control from the source-decay input (b1 ⇒ b2, assembled).**
@@ -473,6 +721,27 @@ theorem solution_resolver_grad_hasDerivAt_of_sourceDecay
   have hmaj :=
     resolverGrad_majorant_summable_of_sourceDecay hdecay.C_nonneg hdecay.decay
   exact resolverR_hasDerivAt_grad hmaj y hy
+
+open ShenWork.IntervalResolverGradientBridge in
+/-- **The static `∂ₓ(v−V)` control is now UNCONDITIONAL for positive classical
+solutions.**  Feeding the proven `sourceCoeffQuadraticDecay_of_solution` (the last
+former analytic blocker, discharged from closed-domain positivity + conjunct-7
+`C²`-Neumann) into `solution_resolver_grad_hasDerivAt_of_sourceDecay`, the spatial
+derivative of the resolver value series equals the termwise gradient series at every
+point of `[0,1]` — with NO remaining hypothesis.  This is exactly the static
+chemotaxis-gradient identity the `E_u' ≤ K·E_u` energy inequality consumes. -/
+theorem solution_resolver_grad_hasDerivAt
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    {y : ℝ} (hy : y ∈ Set.Icc (0 : ℝ) 1) :
+    HasDerivAt
+      (fun z : ℝ => ∑' k : ℕ, (intervalNeumannResolverCoeff p (u t) k).re *
+        Real.cos ((k : ℝ) * Real.pi * z))
+      (intervalNeumannResolverRGrad p (u t) ⟨y, hy⟩) y :=
+  solution_resolver_grad_hasDerivAt_of_sourceDecay
+    (sourceCoeffQuadraticDecay_of_solution hsol ht) hy
 
 /-! ## The precise residual obligation (named, NOT a `sorry`)
 

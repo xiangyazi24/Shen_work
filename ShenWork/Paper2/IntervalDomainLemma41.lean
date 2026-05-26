@@ -166,7 +166,7 @@ theorem Lemma_4_1_intervalDomain_of_interpolation
   refine ⟨Ceps, hCeps_pos, ?_⟩
   -- At each time t ∈ (0, T), u(t, ·) is positive on the interior
   intro t ht_pos ht_lt
-  exact hinterp (u t) (fun x hx => hsol.2.2.1 t x ht_pos ht_lt hx)
+  exact hinterp (u t) (fun x _hx => hsol.2.2.1 t x ht_pos ht_lt)
 
 end ShenWork.Paper2.IntervalDomainLemma41
 

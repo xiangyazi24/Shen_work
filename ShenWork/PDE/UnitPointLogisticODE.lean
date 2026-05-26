@@ -539,7 +539,7 @@ lemma unitPointLogistic_classicalSolution
       (hsol_diff.continuous.rpow_const fun t =>
         Or.inl (ne_of_gt (hsol_pos_all t)))
   refine ⟨hT, ⟨hsol_diff, hv_cont⟩, ?_, ?_, ?_, ?_⟩
-  · intro t x _ht_pos _ht_lt _hx
+  · intro t x _ht_pos _ht_lt
     cases x
     exact hsol_pos_all t
   · intro t x ht_pos _ht_lt _hx
@@ -700,7 +700,7 @@ lemma unitPointMinimal_classicalSolution
       (fun _ _ => (p.ν / p.μ) * (u₀ ()) ^ p.γ) := by
   set vstar : ℝ := (p.ν / p.μ) * (u₀ ()) ^ p.γ with hvstar_def
   refine ⟨hT, ⟨differentiable_const _, continuous_const⟩, ?_, ?_, ?_, ?_⟩
-  · intro t x _ht_pos _ht_lt _hx
+  · intro t x _ht_pos _ht_lt
     exact hu₀.pos trivial
   · intro t x _ht_pos _ht_lt _hx
     show deriv (fun _ : ℝ => u₀ x) t =

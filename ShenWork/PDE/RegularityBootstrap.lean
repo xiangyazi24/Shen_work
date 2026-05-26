@@ -750,7 +750,7 @@ theorem intervalClassicalSolution_of_regularized_mild
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hreg : intervalDomainClassicalRegularity T u v)
     (hpos :
-      ∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside → 0 < u t x)
+      ∀ t x, 0 < t → t < T → 0 < u t x)
     (hpde_u :
       ∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
         intervalDomain.timeDeriv u t x =

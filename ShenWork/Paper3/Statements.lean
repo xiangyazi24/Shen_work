@@ -1179,10 +1179,10 @@ def proposition12CounterDomain : BoundedDomainData where
   chemotaxisDiv := fun _ _ _ _ => 0
   crossDiffusionEnergyTerm := fun _ _ _ _ => 0
   normalDeriv := fun _ _ => 0
-  initialAdmissible := fun u₀ => u₀ () = 0
+  initialAdmissible := fun u₀ => u₀ () = 1
   classicalRegularity :=
     fun _T u _v => ∀ t, 0 < t → t < _T →
-      u t () = if t < 1 then 0 else t
+      u t () = if t < 1 then 1 else t
 
 def proposition12CounterParams : CM2Params where
   N := 1
@@ -1206,7 +1206,7 @@ def proposition12CounterParams : CM2Params where
   hβ := by norm_num
 
 def proposition12CounterU : ℝ → proposition12CounterDomain.Point → ℝ :=
-  fun t _ => if t < 1 then 0 else t
+  fun t _ => if t < 1 then 1 else t
 
 def proposition12CounterV : ℝ → proposition12CounterDomain.Point → ℝ :=
   fun _ _ => 0
@@ -1217,8 +1217,11 @@ lemma proposition12Counter_classical (T : ℝ) (hT : 0 < T) :
   refine IsPaper2ClassicalSolution.of_components hT ?_ ?_ ?_ ?_ ?_
   · intro t ht0 htT
     simp [proposition12CounterU]
-  · intro t x ht0 htT hx
-    cases hx
+  · intro t x ht0 htT
+    simp only [proposition12CounterU]
+    split
+    · norm_num
+    · linarith
   · intro t x ht0 htT hx
     cases hx
   · intro t x ht0 htT hx
@@ -1234,7 +1237,7 @@ lemma proposition12Counter_initialTrace
   refine ⟨1 / 2, by norm_num, ?_⟩
   intro t ht0 htδ
   have ht1 : t < 1 := by nlinarith
-  have hu0 : u₀ () = 0 := hu₀.1
+  have hu0 : u₀ () = 1 := hu₀.1
   simp [proposition12CounterDomain, proposition12CounterU, ht1, hu0, hε]
 
 lemma proposition12Counter_paper2_theorem_1_1 :
@@ -1251,7 +1254,7 @@ lemma proposition12Counter_paper2_theorem_1_1 :
     · exact proposition12Counter_initialTrace hu₀
     · intro t ht0 htT
       have ht1 : t < 1 := by nlinarith
-      have hu0 : u₀ () = 0 := hu₀.1
+      have hu0 : u₀ () = 1 := hu₀.1
       simp [proposition12CounterDomain, proposition12CounterU, ht1, hu0]
     · intro _hm T hT
       exact proposition12Counter_classical T hT
@@ -1266,13 +1269,13 @@ theorem not_paper2_theorem_1_1_implies_paper3_proposition_1_2 :
     h proposition12CounterDomain proposition12CounterParams
       proposition12Counter_paper2_theorem_1_1
   have hu₀ :
-      PositiveInitialDatum proposition12CounterDomain (fun _ => 0) := by
+      PositiveInitialDatum proposition12CounterDomain (fun _ => 1) := by
     constructor
     · rfl
     · intro x hx
       cases hx
   rcases hprop (by norm_num [proposition12CounterParams])
-      (by norm_num [proposition12CounterParams]) (fun _ => 0) hu₀ with
+      (by norm_num [proposition12CounterParams]) (fun _ => 1) hu₀ with
     ⟨u, v, hglobal, _htrace, hbdd⟩
   rcases hbdd with ⟨M, hM⟩
   rcases eventually_atTop.mp hM with ⟨T, hT⟩
@@ -1300,7 +1303,7 @@ theorem not_paper2_theorem_1_1_implies_paper3_proposition_1_2 :
   have hreg :
       proposition12CounterDomain.classicalRegularity (t + 1) u v :=
     (hglobal.classical (by linarith)).regularity
-  have hprofile_raw : u t () = if t < 1 then 0 else t :=
+  have hprofile_raw : u t () = if t < 1 then 1 else t :=
     hreg t ht0 (by linarith)
   have hprofile : u t () = t := by
     simpa [ht_not_lt_one] using hprofile_raw
@@ -3642,7 +3645,7 @@ lemma theorem21Part1Counter_classical (T : ℝ) (hT : 0 < T) :
       theorem21Part1CounterParams T
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
   refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
-  · intro t x ht0 htT hx
+  · intro t x ht0 htT
     norm_num
   · intro t x ht0 htT hx
     change (0 : ℝ) =
@@ -3714,7 +3717,7 @@ lemma initialContinuityNoDistanceControl_constant_one_classical
       theorem21Part1CounterParams T
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
   refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
-  · intro t x ht0 htT hx
+  · intro t x ht0 htT
     norm_num
   · intro t x ht0 htT hx
     change (0 : ℝ) =
@@ -4203,7 +4206,7 @@ lemma momentConvergenceNoUniform_constant_one_classical
       theorem21Part1CounterParams T
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
   refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
-  · intro t x ht0 htT hx
+  · intro t x ht0 htT
     norm_num
   · intro t x ht0 htT hx
     change (0 : ℝ) =
@@ -4341,7 +4344,7 @@ lemma initialContinuityNoDistanceControl_nonminimalCounter_classical
       nonminimalGlobalStabilityCounterParams T
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
   refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
-  · intro t x ht0 htT hx
+  · intro t x ht0 htT
     norm_num
   · intro t x ht0 htT hx
     change (0 : ℝ) =
@@ -4484,7 +4487,7 @@ lemma initialContinuityNoDistanceControl_minimalCounter_classical
       minimalGlobalStabilityCounterParams T
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
   refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
-  · intro t x ht0 htT hx
+  · intro t x ht0 htT
     norm_num
   · intro t x ht0 htT hx
     change (0 : ℝ) =
@@ -5086,7 +5089,7 @@ lemma initialContinuityNoDistanceControl_increasing_minimal_classical
       proposition14NoRegularityParams T
       (fun t _ => t + 1) (fun t _ => t + 1) := by
   refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
-  · intro t x ht0 htT hx
+  · intro t x ht0 htT
     linarith
   · intro t x ht0 htT hx
     change (0 : ℝ) =
@@ -5253,7 +5256,7 @@ lemma theorem21NoLowerEnvelope_constant_one_classical
     IsPaper2ClassicalSolution theorem21Part1NoLowerEnvelopeDomain p T
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
   refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
-  · intro t x ht0 htT hx
+  · intro t x ht0 htT
     norm_num
   · intro t x ht0 htT hx
     change (0 : ℝ) =
@@ -5547,7 +5550,7 @@ lemma theorem21Part4Counter_classical (T : ℝ) (hT : 0 < T) :
       theorem21Part4CounterParams T
       (fun _ _ => (1 : ℝ)) (fun _ _ => (1 : ℝ)) := by
   refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
-  · intro t x ht0 htT hx
+  · intro t x ht0 htT
     norm_num
   · intro t x ht0 htT hx
     change (0 : ℝ) =
@@ -11215,7 +11218,7 @@ theorem unitPointDomain.Proposition_1_4_minimal_only
     intro T hT
     refine ⟨hT, ⟨differentiable_const _, continuous_const⟩,
       ?_, ?_, ?_, ?_⟩
-    · intro t x _ _ _; exact hu₀.pos trivial
+    · intro t x _ _; exact hu₀.pos trivial
     · intro t x _ _ _
       show deriv (fun s : ℝ => u₀ ()) t =
         0 - p.χ₀ * 0 + u₀ x * (p.a - p.b * (u₀ x) ^ p.α)
@@ -11258,7 +11261,7 @@ theorem unitPointDomain.Proposition_1_2_minimal_only
     intro T hT
     refine ⟨hT, ⟨differentiable_const _, continuous_const⟩,
       ?_, ?_, ?_, ?_⟩
-    · intro t x _ _ _; exact hu₀.pos trivial
+    · intro t x _ _; exact hu₀.pos trivial
     · intro t x _ _ _
       show deriv (fun s : ℝ => u₀ ()) t =
         0 - p.χ₀ * 0 + u₀ x * (p.a - p.b * (u₀ x) ^ p.α)

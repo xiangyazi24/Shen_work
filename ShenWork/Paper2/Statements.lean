@@ -72,7 +72,15 @@ def IsPaper2ClassicalSolution
     (u v : ℝ → D.Point → ℝ) : Prop :=
   0 < T ∧
     D.classicalRegularity T u v ∧
-    (∀ t x, 0 < t → t < T → x ∈ D.inside → 0 < u t x) ∧
+    -- **Positivity (closed domain).**  A paper solution is a POSITIVE classical
+    -- solution (Chen–Ruau–Shen study positive classical solutions of (CM)
+    -- throughout); under homogeneous Neumann BC the strong maximum principle
+    -- forces `u > 0` up to the CLOSED boundary, not merely on the open interior.
+    -- This closed-domain positivity is exactly what gives the elliptic source
+    -- `ν·u^γ` a positive lower bound on the compact `[0,1]`, hence `C²`-Neumann
+    -- regularity (cf. `SourceCoeffQuadraticDecay`).  Constant build-path
+    -- constructors discharge it with a positive constant `c > 0`.
+    (∀ t x, 0 < t → t < T → 0 < u t x) ∧
     (∀ t x, 0 < t → t < T → x ∈ D.inside →
       D.timeDeriv u t x =
         D.laplacian (u t) x
@@ -94,7 +102,7 @@ lemma IsPaper2ClassicalSolution.of_components
     (hT : 0 < T)
     (hreg : D.classicalRegularity T u v)
     (hpos :
-      ∀ t x, 0 < t → t < T → x ∈ D.inside → 0 < u t x)
+      ∀ t x, 0 < t → t < T → 0 < u t x)
     (hpde_u :
       ∀ t x, 0 < t → t < T → x ∈ D.inside →
         D.timeDeriv u t x =
@@ -131,13 +139,27 @@ lemma IsPaper2ClassicalSolution.regularity
     D.classicalRegularity T u v :=
   h.2.1
 
+/-- Closed-domain positivity: `0 < u t x` at EVERY point `x` (including the
+boundary), for any interior time.  This is the genuine paper content (positive
+classical solution; strong maximum principle up to the Neumann boundary). -/
+lemma IsPaper2ClassicalSolution.u_pos'
+    {D : BoundedDomainData} {p : CM2Params} {T t : ℝ}
+    {u v : ℝ → D.Point → ℝ} {x : D.Point}
+    (h : IsPaper2ClassicalSolution D p T u v)
+    (ht0 : 0 < t) (htT : t < T) :
+    0 < u t x :=
+  h.2.2.1 t x ht0 htT
+
+/-- Interior positivity (backward-compatible accessor; the membership `hx` is
+no longer needed since positivity now holds on the closed domain, but the
+argument is kept so existing call sites are unchanged). -/
 lemma IsPaper2ClassicalSolution.u_pos
     {D : BoundedDomainData} {p : CM2Params} {T t : ℝ}
     {u v : ℝ → D.Point → ℝ} {x : D.Point}
     (h : IsPaper2ClassicalSolution D p T u v)
-    (ht0 : 0 < t) (htT : t < T) (hx : x ∈ D.inside) :
+    (ht0 : 0 < t) (htT : t < T) (_hx : x ∈ D.inside) :
     0 < u t x :=
-  h.2.2.1 t x ht0 htT hx
+  h.2.2.1 t x ht0 htT
 
 lemma IsPaper2ClassicalSolution.pde_u
     {D : BoundedDomainData} {p : CM2Params} {T t : ℝ}
@@ -2313,7 +2335,7 @@ lemma corollary21Counter_solution :
     IsPaper2ClassicalSolution corollary21CounterDomain corollary21CounterParams 1
       corollary21CounterU corollary21CounterU := by
   refine IsPaper2ClassicalSolution.of_components (by norm_num) trivial ?_ ?_ ?_ ?_
-  · intro t x _ht0 _htT _hx
+  · intro t x _ht0 _htT
     unfold corollary21CounterU
     split <;> positivity
   · intro t x _ht0 _htT _hx
@@ -2612,7 +2634,7 @@ lemma proposition21Counter_classical (T : ℝ) (hT : 0 < T) :
       proposition21CounterParams T proposition21CounterU
       proposition21CounterV := by
   refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
-  · intro t x ht0 htT hx
+  · intro t x ht0 htT
     norm_num [proposition21CounterU]
   · intro t x ht0 htT hx
     change (0 : ℝ) =
@@ -2681,7 +2703,7 @@ lemma proposition22Counter_classical (T : ℝ) (hT : 0 < T) :
       proposition21CounterParams T proposition22CounterU
       proposition22CounterV := by
   refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
-  · intro t x ht0 htT hx
+  · intro t x ht0 htT
     norm_num [proposition22CounterU]
   · intro t x ht0 htT hx
     change (0 : ℝ) =
@@ -2750,7 +2772,7 @@ lemma proposition23Counter_classical (T : ℝ) (hT : 0 < T) :
       proposition21CounterParams T proposition23CounterU
       proposition23CounterV := by
   refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
-  · intro t x ht0 htT hx
+  · intro t x ht0 htT
     norm_num [proposition23CounterU]
   · intro t x ht0 htT hx
     change (0 : ℝ) =
@@ -2858,7 +2880,7 @@ lemma proposition24Counter_classical (T : ℝ) (hT : 0 < T) :
     IsPaper2ClassicalSolution proposition24CounterDomain
       proposition24CounterParams T proposition24CounterU proposition24CounterV := by
   refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
-  · intro t x ht0 htT hx
+  · intro t x ht0 htT
     norm_num [proposition24CounterU]
   · intro t x ht0 htT hx
     change (0 : ℝ) =
@@ -2961,7 +2983,7 @@ lemma proposition25Counter_classical (T : ℝ) (hT : T = 1) :
       proposition24CounterParams T proposition25CounterU proposition25CounterV := by
   subst T
   refine ⟨by norm_num, trivial, ?_, ?_, ?_, ?_⟩
-  · intro t x ht0 htT hx
+  · intro t x ht0 htT
     have hden : 0 < 1 - t := by linarith
     exact inv_pos.mpr hden
   · intro t x ht0 htT hx
@@ -3647,7 +3669,7 @@ lemma lemma31Counter_classical (T : ℝ) (hT : 0 < T) :
     IsPaper2ClassicalSolution lemma31CounterDomain
       proposition24CounterParams T lemma31CounterU lemma31CounterV := by
   refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
-  · intro t x ht0 htT hx
+  · intro t x ht0 htT
     dsimp [lemma31CounterU]
     linarith
   · intro t x ht0 htT hx
@@ -3734,7 +3756,7 @@ lemma lemma31NonminimalCounter_classical (T : ℝ) (hT : 0 < T) :
       lemma31NonminimalCounterParams T
       lemma31NonminimalCounterU lemma31NonminimalCounterV := by
   refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
-  · intro t x ht0 htT hx
+  · intro t x ht0 htT
     dsimp [lemma31NonminimalCounterU]
     linarith
   · intro t x ht0 htT hx
@@ -3886,7 +3908,7 @@ lemma lemma41Counter_classical (T : ℝ) (hT : 0 < T) :
     IsPaper2ClassicalSolution lemma41CounterDomain lemma41CounterParams T
       lemma41CounterU lemma41CounterV := by
   refine ⟨hT, trivial, ?_, ?_, ?_, ?_⟩
-  · intro t x ht0 htT hx
+  · intro t x ht0 htT
     norm_num [lemma41CounterU]
   · intro t x ht0 htT hx
     change (0 : ℝ) =
@@ -4740,7 +4762,7 @@ theorem unitPointDomain.parabolicMaxPrincipleData
     intro _hχ ha hb T _hT u v hsol t ht_in_Ioo hgt
     obtain ⟨_, ⟨hu_diff, _⟩, hpos, hpde_u, _, _⟩ := hsol
     have hu_pos : 0 < u t () :=
-      hpos t () ht_in_Ioo.1 ht_in_Ioo.2 trivial
+      hpos t () ht_in_Ioo.1 ht_in_Ioo.2
     -- supNorm at t equals u t ()
     have hsup_eq : |u t ()| = u t () := abs_of_pos hu_pos
     -- HasDerivAt of (fun s ↦ u s ()) at t
@@ -4799,7 +4821,7 @@ theorem unitPointDomain.parabolicMaxPrincipleData
     intro _hχ ha hb T _hT u v hsol t ht_in_Ioo
     obtain ⟨_, ⟨hu_diff, _⟩, hpos, hpde_u, _, _⟩ := hsol
     have hu_pos : 0 < u t () :=
-      hpos t () ht_in_Ioo.1 ht_in_Ioo.2 trivial
+      hpos t () ht_in_Ioo.1 ht_in_Ioo.2
     have hu_cont : Continuous (fun s : ℝ => u s ()) := hu_diff.continuous
     have h_pos_nbhd : ∀ᶠ s in 𝓝 t, 0 < u s () :=
       continuousAt_const.eventually_lt hu_cont.continuousAt hu_pos
@@ -4882,14 +4904,14 @@ theorem unitPointDomain.Proposition_2_5 (p : CM2Params) :
   have hT_half_lt : Tmax / 2 < Tmax := by linarith
   -- C ≥ 0: at some t ∈ (0, Tmax), (u t ())^pExp ≤ C and ≥ 0
   have hu_mid_pos : 0 < u (Tmax / 2) () :=
-    hu_pos (Tmax / 2) () hT_half_pos hT_half_lt trivial
+    hu_pos (Tmax / 2) () hT_half_pos hT_half_lt
   have hC_nonneg : 0 ≤ C := by
     have := hC (Tmax / 2) hT_half_pos hT_half_lt
     simp [unitPointDomain] at this
     exact le_trans (Real.rpow_nonneg hu_mid_pos.le _) this
   refine ⟨C ^ (1 / pExp), ?_⟩
   intro t ht_pos ht_lt
-  have hu_t_pos : 0 < u t () := hu_pos t () ht_pos ht_lt trivial
+  have hu_t_pos : 0 < u t () := hu_pos t () ht_pos ht_lt
   show |u t ()| ≤ C ^ (1 / pExp)
   rw [abs_of_pos hu_t_pos]
   have hbd : (u t ()) ^ pExp ≤ C := by
@@ -4914,7 +4936,7 @@ theorem unitPointDomain.Proposition_2_2 (p : CM2Params) :
   refine ⟨1, by norm_num, ?_⟩
   intro t ht_pos ht_lt
   obtain ⟨_, _, hupos, _, _, _⟩ := hsol
-  have hu_pos : 0 < u t () := hupos t () ht_pos ht_lt trivial
+  have hu_pos : 0 < u t () := hupos t () ht_pos ht_lt
   have h2p_ne : 2 * pExp ≠ 0 := by
     have : 0 < pExp := lt_trans zero_lt_one hpExp
     positivity
@@ -4943,7 +4965,7 @@ theorem unitPointDomain.Proposition_2_3 (p : CM2Params) :
   refine ⟨1, by norm_num, ?_⟩
   intro t ht_pos ht_lt
   obtain ⟨_, _, hupos, _, hpde_v, _⟩ := hsol
-  have hu_pos : 0 < u t () := hupos t () ht_pos ht_lt trivial
+  have hu_pos : 0 < u t () := hupos t () ht_pos ht_lt
   have hpExp_pos : 0 < pExp :=
     lt_trans zero_lt_one
       (lt_of_le_of_lt (le_max_left 1 p.β) hpExp)
@@ -5061,7 +5083,7 @@ theorem unitPointDomain.Proposition_2_4 (p : CM2Params) :
         ∀ s ∈ Set.Ioo (0 : ℝ) T, K < M s →
           ∃ d : ℝ, d ≤ 0 ∧ HasDerivAt M d s := by
       intro s hs hM_gt
-      have hu_pos : 0 < u s () := hupos s () hs.1 hs.2 trivial
+      have hu_pos : 0 < u s () := hupos s () hs.1 hs.2
       have hα_pos : 0 < p.α := p.hα
       have hα_ne : p.α ≠ 0 := ne_of_gt hα_pos
       have hab_nn : 0 ≤ p.a / p.b := div_nonneg ha.le hb.le
@@ -5175,7 +5197,7 @@ theorem unitPointDomain.Theorem_1_1_minimal_only
       · -- Continuous (fun t : ℝ => ustar)
         exact continuous_const
       · -- u_pos
-        intro t x _ _ _
+        intro t x _ _
         exact hu₀.pos trivial
       · -- pde_u
         intro t x _ _ _
@@ -5214,7 +5236,7 @@ theorem unitPointDomain.Theorem_1_1_minimal_only
       refine ⟨hT, ⟨?_, ?_⟩, ?_, ?_, ?_, ?_⟩
       · exact differentiable_const _
       · exact continuous_const
-      · intro t x _ _ _
+      · intro t x _ _
         exact hu₀.pos trivial
       · intro t x _ _ _
         show deriv (fun s : ℝ => u₀ ()) t = 0 - p.χ₀ * 0 +
@@ -5370,7 +5392,7 @@ theorem unitPointDomain.Corollary_2_1 (p : CM2Params) :
       (lt_of_le_of_lt (le_max_left 1 _) hp0_gt)
   refine ⟨(max C₀ 1) ^ (pExp / p0), ?_⟩
   intro t ht_pos ht_lt
-  have hu_pos : 0 < u t () := hupos t () ht_pos ht_lt trivial
+  have hu_pos : 0 < u t () := hupos t () ht_pos ht_lt
   have hbd : (u t ()) ^ p0 ≤ C₀ := by
     have h := hC₀ t ht_pos ht_lt
     have hint : unitPointDomain.integral (fun x => (u t x) ^ p0) =
@@ -5469,7 +5491,7 @@ theorem unitPointDomain.Theorem_1_2_minimal_only
     · -- classical solution on (0, 1)
       refine ⟨by norm_num, ⟨differentiable_const _, continuous_const⟩,
         ?_, ?_, ?_, ?_⟩
-      · intro t x _ _ _; exact hu₀.pos trivial
+      · intro t x _ _; exact hu₀.pos trivial
       · intro t x _ _ _
         show deriv (fun s : ℝ => u₀ ()) t =
           0 - p.χ₀ * 0 + u₀ x * (p.a - p.b * (u₀ x) ^ p.α)
@@ -5503,7 +5525,7 @@ theorem unitPointDomain.Theorem_1_2_minimal_only
       intro T hT
       refine ⟨hT, ⟨differentiable_const _, continuous_const⟩,
         ?_, ?_, ?_, ?_⟩
-      · intro t x _ _ _; exact hu₀.pos trivial
+      · intro t x _ _; exact hu₀.pos trivial
       · intro t x _ _ _
         show deriv (fun s : ℝ => u₀ ()) t =
           0 - p.χ₀ * 0 + u₀ x * (p.a - p.b * (u₀ x) ^ p.α)

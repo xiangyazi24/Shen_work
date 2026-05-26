@@ -475,7 +475,7 @@ theorem equilibrium_isPaper2ClassicalSolution
     -- regularity
     (constantInTime_classicalRegularity hc hT p)
     -- positivity
-    (fun _t _x _ht0 _htT _hx => hc)
+    (fun _t _x _ht0 _htT => hc)
     -- u-PDE: timeDeriv = laplacian - χ₀·chemtaxisDiv + u(a - bu^α)
     (fun t x ht0 htT hx => by
       -- timeDeriv u t x = deriv (fun s => c) t = 0
@@ -512,7 +512,7 @@ theorem zeroReaction_isPaper2ClassicalSolution
   intro T hT
   exact IsPaper2ClassicalSolution.of_components hT
     (constantInTime_classicalRegularity hc hT p)
-    (fun _t _x _ht0 _htT _hx => hc)
+    (fun _t _x _ht0 _htT => hc)
     -- u-PDE
     (fun t x ht0 htT hx => by
       change deriv (fun s : ℝ => c) t =
@@ -735,8 +735,9 @@ def IsMildSolutionData (p : CM2Params) (T : ℝ)
   -- u is a fixed point of the Duhamel operator
   (∀ t x, 0 ≤ t → t ≤ T →
     u t x = intervalDuhamelOperator p u₀ u t x) ∧
-  -- Positivity of u in the interior
-  (∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside → 0 < u t x) ∧
+  -- Positivity of u on the CLOSED domain (positive classical solution; the
+  -- strong maximum principle forces `u > 0` up to the Neumann boundary).
+  (∀ t x, 0 < t → t < T → 0 < u t x) ∧
   -- The u-equation holds pointwise (regularity bootstrap)
   (∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
     intervalDomain.timeDeriv u t x =
@@ -2546,7 +2547,7 @@ def RegularityBootstrap (p : CM2Params) (T : ℝ)
     (u₀ : intervalDomainPoint → ℝ)
     (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
   ∃ v : ℝ → intervalDomainPoint → ℝ,
-    (∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside → 0 < u t x) ∧
+    (∀ t x, 0 < t → t < T → 0 < u t x) ∧
     (∀ t x, 0 < t → t < T → x ∈ intervalDomain.inside →
       intervalDomain.timeDeriv u t x =
         intervalDomain.laplacian (u t) x
@@ -2946,8 +2947,8 @@ theorem isPaper2ClassicalSolution_intervalDomain_mono
   IsPaper2ClassicalSolution.of_components hTshort
     (intervalDomainClassicalRegularity_mono (u := u) (v := v)
       hTL hsol.regularity)
-    (fun _t _x ht0 htT hx =>
-      hsol.u_pos ht0 (lt_of_lt_of_le htT hTL) hx)
+    (fun _t _x ht0 htT =>
+      hsol.u_pos' ht0 (lt_of_lt_of_le htT hTL))
     (fun _t _x ht0 htT hx =>
       hsol.pde_u ht0 (lt_of_lt_of_le htT hTL) hx)
     (fun _t _x ht0 htT hx =>
@@ -3184,7 +3185,7 @@ theorem equilibrium_regularityBootstrap
   have hc : 0 < c := equilibrium_pos p ha hb
   refine ⟨fun _ _ => ellipticV p c, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- Positivity
-    exact fun _t _x _ht0 _htT _hx => hc
+    exact fun _t _x _ht0 _htT => hc
   · -- u-PDE: timeDeriv u = Δu - χ₀·chemDiv + u(a - bu^α)
     intro t x _ht0 _htT hx
     change deriv (fun _s : ℝ => c) t =
@@ -3222,7 +3223,7 @@ theorem zeroReaction_regularityBootstrap
       (fun _ (_ : intervalDomainPoint) => c) := by
   refine ⟨fun _ _ => ellipticV p c, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- Positivity
-    exact fun _t _x _ht0 _htT _hx => hc
+    exact fun _t _x _ht0 _htT => hc
   · -- u-PDE
     intro t x _ht0 _htT hx
     change deriv (fun _s : ℝ => c) t =
@@ -3966,7 +3967,7 @@ theorem aboveEquilibrium_regularityBootstrap
       (fun t (_ : intervalDomainPoint) => φ t) := by
   refine ⟨fun t _ => ellipticV p (φ t), ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- Positivity
-    exact fun _t _x _ht0 _htT _hx => hφ_pos _
+    exact fun _t _x _ht0 _htT => hφ_pos _
   · -- u-PDE: timeDeriv u = Δu - χ₀·chemDiv + u(a - bu^α)
     intro t x _ht0 _htT hx
     -- u(t,x) = φ(t), so timeDeriv u t x = φ'(t)
@@ -4544,7 +4545,7 @@ theorem not_intervalDomainTheorem11_globalExtension_constant_bad_tail
             show (if t < 1 then ellipticV p c else 0) = ellipticV p c
             rw [if_pos ht.2]
           exact continuousOn_const.congr h0
-    · intro _t _x _ht0 _htT _hx
+    · intro _t _x _ht0 _htT
       exact hc
     · intro t x _ht0 htT hx
       have hv_t : v t = fun _ : intervalDomain.Point => ellipticV p c := by
@@ -5126,9 +5127,9 @@ theorem classicalSolutionLocalityUnderIooAgreement_intervalDomain
   refine IsPaper2ClassicalSolution.of_components hT ?_ ?_ ?_ ?_ ?_
   · exact intervalDomainClassicalRegularity_congr_Ioo
       (u := u) (v := v) (U := U) (V := V) hsol.regularity huEq hvEq
-  · intro t x ht0 htT hx
+  · intro t x ht0 htT
     rw [huEq t ht0 htT]
-    exact hsol.u_pos ht0 htT hx
+    exact hsol.u_pos' ht0 htT
   · intro t x ht0 htT hx
     have htime := intervalDomainTimeDeriv_eq_of_Ioo_eq huEq ht0 htT x
     have hlap :=

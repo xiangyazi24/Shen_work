@@ -346,7 +346,7 @@ lemma unitPointDecay_classicalSolution
       (hsol_diff.continuous.rpow_const fun t =>
         Or.inl (ne_of_gt (hsol_pos_all t)))
   refine ⟨hT, ⟨hsol_diff, hv_cont⟩, ?_, ?_, ?_, ?_⟩
-  · intro t x _ht_pos _ht_lt _hx
+  · intro t x _ht_pos _ht_lt
     cases x
     exact hsol_pos_all t
   · intro t x ht_pos _ht_lt _hx

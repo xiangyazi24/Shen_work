@@ -211,7 +211,7 @@ theorem not_Theorem_1_2_unitPointDomain_when_a_pos_b_zero :
   have hf_pos : ∀ t : ℝ, 0 < t → 0 < f t := by
     intro t ht
     have hsol := hglobal (T := t + 1) (by linarith)
-    exact hsol.2.2.1 t () ht (by linarith : t < t + 1) (Set.mem_univ ())
+    exact hsol.2.2.1 t () ht (by linarith : t < t + 1)
   -- Specific value: f 1 > 0
   have hf1_pos : 0 < f 1 := hf_pos 1 one_pos
   -- Monotonicity on [1, ∞): deriv f t > 0 on (1, ∞)
