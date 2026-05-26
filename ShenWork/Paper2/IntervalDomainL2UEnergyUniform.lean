@@ -24,6 +24,7 @@
 -/
 import ShenWork.Paper2.IntervalDomainResolverSupQuantitative
 import ShenWork.Paper2.IntervalDomainL2UBoundedDatumUniformOfBounded
+import ShenWork.Paper2.IntervalDomainGlobalWellposed
 
 open MeasureTheory intervalIntegral
 open ShenWork.IntervalDomain
@@ -644,6 +645,196 @@ theorem GlobalSolutionGluingFromReachability_of_uniformSupBound
     ShenWork.IntervalDomainExistence.GlobalSolutionGluingFromReachability p :=
   GlobalSolutionGluingFromReachability_of_bounded p
     (boundednessHypothesis_of_uniformSupBound hbnd hdatum)
+
+/-! ## Discharging the UPPER bound `M` from the proven sup-norm bound (Lemma 3.1)
+
+`Theorem_1_1_intervalDomain_conditional` / `boundedBefore_nonminimal_of_corrected_initial_approach`
+prove, under the Theorem-1.1 negative-sensitivity regime (`χ₀ ≤ 0`, `0 < a`, `0 < b`)
+and for a positive bounded shared initial datum, the sup-norm bound
+`supNorm (u t) ≤ M` with the EXPLICIT τ-independent
+`M = max (supNorm u₀, (a/b)^{1/α})` via `Lemma_3_1_intervalDomain`
+(sup-norm monotonicity above carrying capacity) + the corrected initial-approach
+ε-squeeze.  Since the lift `lift (u τ)` is continuous on the compact `[0,1]`, its
+range of absolute values is `BddAbove`, so `|lift (u τ) x| ≤ supNorm (u τ) ≤ M`.
+With strict positivity (`solution_lift_pos`) this gives the UPPER half (and `≥0`) of
+the uniform two-sided lift bound `[δ,M]`.  The δ>0 lower bound remains the only
+genuine residual (needed for the source `x↦x^γ` Lipschitz constant when `γ<1`). -/
+
+/-- **Single-slice pointwise lift bound by the sup-norm.**  For a classical solution
+`u` at an interior time `τ`, `|lift (u τ) y| ≤ supNorm (u τ)` for every `y ∈ [0,1]`:
+the lift is continuous on the compact `[0,1]`, so its range of absolute values is
+`BddAbove` and the `sSup` defining `supNorm` is a genuine upper bound. -/
+theorem abs_lift_le_supNorm
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0:ℝ) T)
+    {y : ℝ} (hy : y ∈ Set.Icc (0:ℝ) 1) :
+    |intervalDomainLift (u τ) y| ≤ intervalDomainSupNorm (u τ) := by
+  classical
+  have hcont : ContinuousOn (intervalDomainLift (u τ)) (Set.Icc (0:ℝ) 1) :=
+    solution_lift_continuousOn_Icc hsol hτ
+  have hbdd : BddAbove
+      (Set.range (fun x : intervalDomainPoint => |u τ x|)) := by
+    have hcompact : IsCompact (Set.Icc (0:ℝ) 1) := isCompact_Icc
+    obtain ⟨B, hB⟩ := (hcompact.image_of_continuousOn (hcont.abs)).bddAbove
+    refine ⟨B, ?_⟩
+    rintro _ ⟨x, rfl⟩
+    have hBx := hB ⟨x.1, x.2, rfl⟩
+    have hlift : intervalDomainLift (u τ) x.1 = u τ x := by
+      simp [intervalDomainLift, x.2]
+    simpa only [hlift] using hBx
+  have hle : |u τ ⟨y, hy⟩| ≤ intervalDomainSupNorm (u τ) :=
+    le_csSup hbdd ⟨⟨y, hy⟩, rfl⟩
+  have hlift : intervalDomainLift (u τ) y = u τ ⟨y, hy⟩ := by
+    simp [intervalDomainLift, hy]
+  rw [hlift]; exact hle
+
+/-- **The uniform UPPER lift bound `M = max(supNorm u₀, (a/b)^{1/α})`, regime-conditional.**
+Under the Theorem-1.1 negative-sensitivity regime (`χ₀ ≤ 0`, `0 < a`, `0 < b`), for a
+positive bounded shared initial datum `u₀` and a classical solution `u` with initial
+trace `u₀`, every interior-time lift value is sandwiched `0 < lift (u τ) x ≤ M` on
+`[0,1]`, with the EXPLICIT τ-independent `M = max (supNorm u₀, (a/b)^{1/α})`.  The
+upper bound is the `IsPaper2BoundedBefore` sup bound transported pointwise via
+`abs_lift_le_supNorm`; the strict lower `0 <` is `solution_lift_pos`. -/
+theorem uniform_lift_upper_bound_of_regime
+    (p : CM2Params)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    {u₀ : intervalDomainPoint → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hbddu₀ : BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|)))
+    {T : ℝ} (hT : 0 < T)
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htrace : InitialTrace intervalDomain u₀ u) :
+    ∀ τ, 0 < τ → τ < T →
+      ∀ x ∈ Set.Icc (0:ℝ) 1,
+        0 < intervalDomainLift (u τ) x ∧
+        intervalDomainLift (u τ) x
+          ≤ max (intervalDomainSupNorm u₀) ((p.a / p.b) ^ (1 / p.α)) := by
+  classical
+  -- the corrected initial sup-norm approach, proved unconditionally for the
+  -- bounded shared datum `u₀` (the `BddAbove` makes the trace bound non-vacuous).
+  have happroach : ∀ ε > 0, ∃ δ > 0, δ ≤ T ∧ ∀ s, 0 < s → s < δ →
+      intervalDomain.supNorm (u s) ≤ intervalDomain.supNorm u₀ + ε := fun ε hε =>
+    ShenWork.IntervalDomainExistence.initialSupNormApproach_intervalDomain
+      p u₀ hu₀ hbddu₀ hT hsol htrace hε
+  -- the proven finite-horizon sup-norm bound `supNorm (u t) ≤ max(supNorm u₀, cap)`.
+  have hM :=
+    ShenWork.Paper2.IntervalDomainGlobalWellposed.nonminimal_supNorm_bound_of_corrected_initial_approach
+      p hχ ha hb hT hsol happroach
+  intro τ hτ0 hτT x hx
+  have hτmem : τ ∈ Set.Ioo (0:ℝ) T := ⟨hτ0, hτT⟩
+  refine ⟨solution_lift_pos hsol hτmem x hx, ?_⟩
+  have hpos : 0 < intervalDomainLift (u τ) x := solution_lift_pos hsol hτmem x hx
+  have habs : |intervalDomainLift (u τ) x| ≤ intervalDomainSupNorm (u τ) :=
+    abs_lift_le_supNorm hsol hτmem hx
+  rw [abs_of_pos hpos] at habs
+  exact le_trans habs (hM τ hτ0 hτT)
+
+/-- **The uniform two-sided lift bound from the regime + an explicit δ>0 lower bound.**
+Under the Theorem-1.1 negative-sensitivity regime (`χ₀ ≤ 0`, `0 < a`, `0 < b`), with a
+positive bounded shared initial datum for each solution pair (supplied by `hpos`,
+`hdatum`) and an explicit positive uniform lower bound `δ>0` (supplied by `hlower` —
+genuinely needed only for the `γ<1` source Lipschitz constant), the clean datum
+`IntervalDomainUniformLiftBound p` holds: the common upper bound is
+`M = max (supNorm u₀, (a/b)^{1/α})`, derived from the proven sup-norm bound. -/
+theorem uniformLiftBound_of_regimeAndLowerBound
+    (p : CM2Params)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hpos :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          PositiveInitialDatum intervalDomain u₀)
+    (hdatum :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|)))
+    (hlower :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          ∃ δ : ℝ, 0 < δ ∧ ∀ τ, 0 < τ → τ < min T₁ T₂ →
+            (∀ x ∈ Set.Icc (0:ℝ) 1, δ ≤ intervalDomainLift (u₁ τ) x) ∧
+            (∀ x ∈ Set.Icc (0:ℝ) 1, δ ≤ intervalDomainLift (u₂ τ) x)) :
+    IntervalDomainUniformLiftBound p where
+  bound := by
+    intro u₀ T₁ T₂ u₁ v₁ u₂ v₂ hsol₁ hsol₂ htr₁ htr₂
+    obtain ⟨δ, hδ, hδlo⟩ := hlower hsol₁ hsol₂ htr₁ htr₂
+    have hu₀ : PositiveInitialDatum intervalDomain u₀ := hpos hsol₁ hsol₂ htr₁ htr₂
+    have hbddu₀ : BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|)) :=
+      hdatum hsol₁ hsol₂ htr₁ htr₂
+    set M : ℝ := max (intervalDomainSupNorm u₀) ((p.a / p.b) ^ (1 / p.α)) with hMdef
+    have hub₁ := uniform_lift_upper_bound_of_regime p hχ ha hb hu₀ hbddu₀
+      hsol₁.T_pos hsol₁ htr₁
+    have hub₂ := uniform_lift_upper_bound_of_regime p hχ ha hb hu₀ hbddu₀
+      hsol₂.T_pos hsol₂ htr₂
+    refine ⟨δ, M, hδ, ?_⟩
+    intro τ hτ0 hτmin
+    have hτ1 : τ < T₁ := lt_of_lt_of_le hτmin (min_le_left _ _)
+    have hτ2 : τ < T₂ := lt_of_lt_of_le hτmin (min_le_right _ _)
+    obtain ⟨hlo1, hlo2⟩ := hδlo τ hτ0 hτmin
+    refine ⟨fun x hx => ?_, fun x hx => ?_⟩
+    · exact ⟨hlo1 x hx, (hub₁ τ hτ0 hτ1 x hx).2⟩
+    · exact ⟨hlo2 x hx, (hub₂ τ hτ0 hτ2 x hx).2⟩
+
+/-- **Global-solution gluing from reachability, reduced to the regime + δ>0 lower bound.**
+The full gluing theorem holds under the Theorem-1.1 negative-sensitivity regime
+(`χ₀ ≤ 0`, `0 < a`, `0 < b`), given for each solution pair sharing an initial trace:
+* `hpos` — the shared datum is a positive initial datum;
+* `hdatum` — the shared datum is bounded (the genuinely-independent input);
+* `hlower` — an explicit positive uniform lower bound `δ>0` on the lifts over the
+  overlap interior (needed only for the `γ<1` source Lipschitz constant).
+
+The UPPER bound `M = max (supNorm u₀, (a/b)^{1/α})` is NO LONGER an assumption: it is
+DERIVED from the proven sup-norm bound (`Lemma 3.1` monotonicity + the corrected
+initial approach), transported pointwise via `abs_lift_le_supNorm`.  The Grönwall
+constant is read off the resulting uniform two-sided bound as in
+`GlobalSolutionGluingFromReachability_of_uniformSupBound`. -/
+theorem GlobalSolutionGluingFromReachability_of_regimeAndLowerBound
+    (p : CM2Params)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hpos :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          PositiveInitialDatum intervalDomain u₀)
+    (hdatum :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|)))
+    (hlower :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          ∃ δ : ℝ, 0 < δ ∧ ∀ τ, 0 < τ → τ < min T₁ T₂ →
+            (∀ x ∈ Set.Icc (0:ℝ) 1, δ ≤ intervalDomainLift (u₁ τ) x) ∧
+            (∀ x ∈ Set.Icc (0:ℝ) 1, δ ≤ intervalDomainLift (u₂ τ) x)) :
+    ShenWork.IntervalDomainExistence.GlobalSolutionGluingFromReachability p :=
+  GlobalSolutionGluingFromReachability_of_uniformSupBound p
+    (uniformLiftBound_of_regimeAndLowerBound p hχ ha hb hpos hdatum hlower)
+    (fun hsol₁ hsol₂ htr₁ htr₂ => hdatum hsol₁ hsol₂ htr₁ htr₂)
 
 end
 
