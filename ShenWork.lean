@@ -69,6 +69,7 @@ import ShenWork.Paper2.IntervalDomainL2EnergyInequality
 import ShenWork.Paper2.IntervalDomainL2UEnergy
 import ShenWork.Paper2.IntervalDomainL2UEnergyInequality
 import ShenWork.Paper2.IntervalDomainL2UStaticVControl
+import ShenWork.Paper2.IntervalDomainL2StaticVDifference
 import ShenWork.PDE.IntervalDomainExistence
 import ShenWork.PDE.IntervalEllipticCharacterization
 import ShenWork.PDE.IntervalCosineCoeffDecay
