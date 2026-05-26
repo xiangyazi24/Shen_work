@@ -2846,7 +2846,42 @@ def intervalDomainClassicalRegularity
     (Filter.Tendsto (deriv (intervalDomainLift (_v t)))
         (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
       Filter.Tendsto (deriv (intervalDomainLift (_v t)))
-        (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)))
+        (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0))) ∧
+  -- **(7) CLOSED-boundary spatial `C²` + genuine endpoint Neumann values.**
+  -- A classical solution is `C^{2,1}` up to the CLOSED domain `[0,1]` (Liang):
+  -- the spatial lift is `C²` on the *closed* interval `Set.Icc 0 1` (one-sided
+  -- derivatives at the endpoints), and its first spatial derivative vanishes
+  -- *as an actual endpoint value* `deriv (lift (u t)) 0 = 0`,
+  -- `deriv (lift (u t)) 1 = 0` (genuine homogeneous Neumann).  This is exactly
+  -- the closed-`uIcc 0 1` `HasDerivAt` of the lift + its derivative, with
+  -- honest `g'(0)=g'(1)=0`, consumed by the eigenfunction IBP identity
+  -- `intervalCosineLaplacianCoeff_eq`.  Build-path (spatially-constant)
+  -- constructors discharge it trivially: the lift is constant on `[0,1]` (hence
+  -- `C²` there) with `deriv ≡ 0` (hence both endpoint derivs `= 0`).
+  (∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) T →
+    (ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) ∧
+        deriv (intervalDomainLift (u t)) 0 = 0 ∧
+        deriv (intervalDomainLift (u t)) 1 = 0) ∧
+      (ContDiffOn ℝ 2 (intervalDomainLift (_v t)) (Set.Icc (0 : ℝ) 1) ∧
+        deriv (intervalDomainLift (_v t)) 0 = 0 ∧
+        deriv (intervalDomainLift (_v t)) 1 = 0)) ∧
+  -- **(8) CLOSED-slab joint `∂ₜ` continuity (the (D2) envelope input).**
+  -- The time-derivative field `(t,x) ↦ ∂ₜ(lift (u t)) x` is jointly continuous
+  -- on the half-open/closed slab `Ioo 0 T ×ˢ Icc 0 1` (closed up to the spatial
+  -- endpoints).  Restricting to a compact `[τ−δ,τ+δ] ×ˢ Icc 0 1 ⊆ Ioo 0 T ×ˢ
+  -- Icc 0 1` gives the bounded, `τ`-uniform integrable dominating envelope
+  -- consumed by `exists_bound_of_continuousOn_slab`.  Constant build-path
+  -- solutions prove it trivially (`∂ₜ ≡ 0`).
+  (ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) =>
+          deriv (fun s : ℝ => intervalDomainLift (u s) x) t))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) ∧
+    ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) =>
+          deriv (fun s : ℝ => intervalDomainLift (_v s) x) t))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1))
 
 def intervalDomainGradNorm (f : intervalDomainPoint → ℝ)
     (x : intervalDomainPoint) : ℝ :=

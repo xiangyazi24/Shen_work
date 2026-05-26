@@ -112,7 +112,7 @@ theorem intervalDomainClassicalRegularity_mono_horizon
     (hreg : intervalDomain.classicalRegularity T u v) :
     intervalDomain.classicalRegularity T' u v := by
   have hreg' : intervalDomainClassicalRegularity T u v := hreg
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro p hχ ha hb t₀ ht₀0 ht₀T' hsup
     exact hreg'.1 p hχ ha hb t₀ ht₀0 (lt_of_lt_of_le ht₀T' hTT') hsup
   · intro p hχ ha hb
@@ -136,7 +136,14 @@ theorem intervalDomainClassicalRegularity_mono_horizon
       hjV.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTT') (le_refl _))⟩
   · -- Genuine interior-Neumann, restricted to the shorter horizon.
     intro t ht
-    exact hreg'.2.2.2.2.2 t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
+    exact hreg'.2.2.2.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
+  · -- (7) Closed-`Icc` `C²` + endpoint Neumann, restricted to shorter horizon.
+    intro t ht
+    exact hreg'.2.2.2.2.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
+  · -- (8) Closed-slab joint `∂ₜ` continuity, restricted to the shorter slab.
+    obtain ⟨hjU, hjV⟩ := hreg'.2.2.2.2.2.2.2
+    exact ⟨hjU.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTT') (le_refl _)),
+      hjV.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTT') (le_refl _))⟩
 
 /-- The named analytic frontier for the L² difference energy of two interval
 classical solutions on a common horizon `T`.

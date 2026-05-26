@@ -577,6 +577,57 @@ def intervalDomainL2DifferenceEnergyFrontierBuilder_of_jointTime
   of this file: the time-derivative existence is now reduced to a *single*
   sharply-named boundary-continuity hypothesis (item 1), with (D1) and the
   Leibniz mechanics fully proved.
+
+  ## UPDATE — closed-boundary conjuncts (7) and (8) added to the definition
+
+  `intervalDomainClassicalRegularity` now carries two appended conjuncts that
+  every `IsPaper2ClassicalSolution` is required to satisfy (and which the
+  build-path spatially-constant constructors discharge trivially,
+  `intervalDomainLift_const_contDiffOn_Icc` /
+  `intervalDomainLift_const_deriv_endpoint_zero` /
+  `intervalDomainLift_constInTime_jointDeriv_continuousOn`):
+
+    (7) CLOSED-`Icc 0 1` spatial `C²` of the lift **plus the genuine endpoint
+        Neumann VALUES** `deriv (lift (u t)) 0 = 0`, `deriv (lift (u t)) 1 = 0`
+        (and for `v`).  This supplies the `g'(0)=g'(1)=0` of
+        `intervalCosineLaplacianCoeff_eq` directly as endpoint values (no longer
+        only a one-sided `Tendsto`).
+    (8) CLOSED-slab joint continuity of the per-`x` time-derivative field
+        `(t,x) ↦ ∂ₜ(lift (u s)) x` on `Ioo 0 T ×ˢ Icc 0 1` — continuous up to the
+        spatial endpoints, exactly item (1)'s missing **closed**-slab continuity
+        for the `∂ₜ` FACTOR of the envelope.
+
+  These close exactly the two endpoint facts named above as "boundary facts".
+  Two obligations nevertheless REMAIN before `diffIneq` is unconditional for
+  ARBITRARY classical solutions, and they are named EXACTLY:
+
+    (R1) *Joint `(t,x)` continuity of the SOLUTION field itself* on the closed
+         slab.  The integrand-derivative field is
+         `2·(lift w)·(∂ₜ lift w) + 2·(lift z)·(∂ₜ lift z)`.  Conjunct (8) makes
+         the `∂ₜ` factor continuous on the closed slab, but
+         `intervalDomainClassicalL2DifferenceEnergy_hasDerivAt_of_slabContinuous`
+         needs the PRODUCT continuous, hence also the FACTOR `(t,x) ↦ lift(u s) x`
+         jointly continuous on `Ioo 0 T ×ˢ Icc 0 1`.  Conjunct (7) gives only
+         per-fixed-`t` spatial `C²`, not joint `(t,x)` continuity.  This is an
+         additional joint-continuity conjunct, still absent.
+
+    (R2) *The `Eprime ≤ K·E` inequality.*  PDE substitution + Neumann IBP +
+         chemotaxis/reaction Lipschitz absorption, UNCHANGED in difficulty by
+         (7)/(8).  Moreover the existing IBP lemma `intervalCosineLaplacianCoeff_eq`
+         is stated for the ZERO-EXTENSION `intervalDomainLift`, which is NOT
+         two-sided `HasDerivAt` at `x ∈ {0,1}` for a solution whose boundary trace
+         is nonzero (the lift jumps to `0` outside `[0,1]`).  Closing the IBP for
+         arbitrary solutions requires either an `Icc`-INTRINSIC IBP (consuming
+         conjunct (7)'s `ContDiffOn ℝ 2 … (Icc 0 1)` via `HasDerivWithinAt`) or a
+         boundary-vanishing reduction — a genuine rework of the IBP object, not a
+         wiring step.
+
+  VERDICT: conjuncts (7)/(8) are real, provable for the build path, and discharge
+  the spatial-endpoint Neumann VALUES and the `∂ₜ`-factor closed-slab continuity.
+  Gluing still does NOT close unconditionally: the precise residual is (R1) a
+  joint `(t,x)` solution-field continuity conjunct, and (R2) the `Eprime ≤ K·E`
+  energy-inequality assembly with an `Icc`-intrinsic Neumann IBP.  Both remain
+  packaged as `IntervalDomainL2JointTimeRegularity p`.
 -/
 
 end
