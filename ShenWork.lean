@@ -60,3 +60,9 @@ import ShenWork.Paper3.IntervalDomainStabilityChain
 import ShenWork.Paper3.IntervalDomainEnergyDissipation
 import ShenWork.PDE.IntervalNeumannFullKernel
 import ShenWork.PDE.IntervalFullKernelInterchange
+import ShenWork.PDE.IntervalFullKernelRegularity
+import ShenWork.PDE.IntervalDuhamelRegularity
+import ShenWork.Paper2.IntervalDomainL2UniquenessCertificate
+import ShenWork.Paper2.IntervalDomainL2FrontierBuilder
+import ShenWork.Paper2.IntervalDomainL2EnergyInequality
+import ShenWork.PDE.IntervalDomainExistence
