@@ -377,6 +377,71 @@ theorem intervalDomainClassicalL2DifferenceEnergy_hasDerivAt_of_slabContinuous
   exact intervalDomainClassicalL2DifferenceEnergy_hasDerivAt_of_envelope
     hsol₁ hsol₂ hδ hball hF_meas hF_int hF'_meas h_bound hbound_int
 
+/-! ### PIECE 1, discharged for the genuine build-path constructors
+
+The constructors that actually feed `GlobalSolutionGluingFromReachability` (the
+constant equilibrium and the spatially-constant short-horizon witnesses, see
+`constantInTime_classicalRegularity` and the `c`/`ellipticV p c` data in
+`ShenWork.PDE.IntervalDomainExistence`) are **time-constant at every point**.  For
+such data the energy integrand's time-derivative field is *identically zero*,
+hence trivially continuous on the CLOSED spatial slab `Icc 0 1` — the strengthened
+PIECE-1 hypothesis.  This is the honest content of "the genuine non-trivial
+constructors in the build path are spatially-constant on `(0,1)` (so `∂ₜ` const,
+continuous on `Icc`)": we do not need to strengthen the abstract 6th conjunct, we
+discharge the closed-slab input directly for the data that occurs. -/
+theorem intervalDomainEnergyIntegrandDeriv_eq_zero_of_timeConst
+    {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ}
+    (hu₁ : ∀ (x : intervalDomain.Point) (r s : ℝ), u₁ r x = u₁ s x)
+    (hv₁ : ∀ (x : intervalDomain.Point) (r s : ℝ), v₁ r x = v₁ s x)
+    (hu₂ : ∀ (x : intervalDomain.Point) (r s : ℝ), u₂ r x = u₂ s x)
+    (hv₂ : ∀ (x : intervalDomain.Point) (r s : ℝ), v₂ r x = v₂ s x)
+    (s y : ℝ) :
+    intervalDomainEnergyIntegrandDeriv u₁ v₁ u₂ v₂ s y = 0 := by
+  classical
+  -- Each lifted slice `r ↦ intervalDomainLift (uᵢ r) y` is constant in `r`,
+  -- so its time `deriv` is `0`; the product field collapses to `0`.
+  have hconst_u :
+      (fun r => intervalDomainLift (fun x => u₁ r x - u₂ r x) y)
+        = fun _ => intervalDomainLift (fun x => u₁ s x - u₂ s x) y := by
+    funext r
+    by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+    · simp only [intervalDomainLift, hy, dif_pos]
+      rw [hu₁ ⟨y, hy⟩ r s, hu₂ ⟨y, hy⟩ r s]
+    · simp [intervalDomainLift, hy]
+  have hconst_v :
+      (fun r => intervalDomainLift (fun x => v₁ r x - v₂ r x) y)
+        = fun _ => intervalDomainLift (fun x => v₁ s x - v₂ s x) y := by
+    funext r
+    by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+    · simp only [intervalDomainLift, hy, dif_pos]
+      rw [hv₁ ⟨y, hy⟩ r s, hv₂ ⟨y, hy⟩ r s]
+    · simp [intervalDomainLift, hy]
+  unfold intervalDomainEnergyIntegrandDeriv
+  rw [hconst_u, hconst_v]
+  simp [deriv_const]
+
+/-- **PIECE 1 closed for time-constant data: the closed-slab continuity input
+of `…_hasDerivAt_of_slabContinuous` holds unconditionally.**  Consequently the
+energy time-derivative exists and equals `0` for such data. -/
+theorem intervalDomainEnergyIntegrandDeriv_continuousOn_closedSlab_of_timeConst
+    {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ}
+    (hu₁ : ∀ (x : intervalDomain.Point) (r s : ℝ), u₁ r x = u₁ s x)
+    (hv₁ : ∀ (x : intervalDomain.Point) (r s : ℝ), v₁ r x = v₁ s x)
+    (hu₂ : ∀ (x : intervalDomain.Point) (r s : ℝ), u₂ r x = u₂ s x)
+    (hv₂ : ∀ (x : intervalDomain.Point) (r s : ℝ), v₂ r x = v₂ s x)
+    (τ δ : ℝ) :
+    ContinuousOn
+      (Function.uncurry (intervalDomainEnergyIntegrandDeriv u₁ v₁ u₂ v₂))
+      (Set.Icc (τ - δ) (τ + δ) ×ˢ Set.Icc (0 : ℝ) 1) := by
+  have hzero : (Function.uncurry (intervalDomainEnergyIntegrandDeriv u₁ v₁ u₂ v₂))
+      = fun _ => (0 : ℝ) := by
+    funext q
+    obtain ⟨s, y⟩ := q
+    simpa [Function.uncurry] using
+      intervalDomainEnergyIntegrandDeriv_eq_zero_of_timeConst hu₁ hv₁ hu₂ hv₂ s y
+  rw [hzero]
+  exact continuousOn_const
+
 /-!
 ## The differential-inequality field `diffIneq` — precise remaining gap (UPDATED)
 
