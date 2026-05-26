@@ -1,9 +1,45 @@
 # ShenWork Closure Map — precise remaining frontier (2026-05-26)
 
 State after the Claude-subagent round (codex usage exhausted). Whole project
-builds integrated: `lake build ShenWork` green, 8336 jobs, 0 sorry / 0 axiom
+builds integrated: `lake build ShenWork` green, 8339 jobs, 0 sorry / 0 axiom
 (every key theorem `#print axioms` = [propext, Classical.choice, Quot.sound]).
 PDE direction confirmed by Liang: classical solution = joint C^{2,1}.
+
+## ROUND-8 CONSOLIDATED (2026-05-26, HEAD 5a34322, self-verified) — GLUING ≈ CLOSED
+
+The ENTIRE u-only uniqueness/gluing analytic body is now PROVED unconditional +
+axiom-clean. Gluing `GlobalSolutionGluingFromReachability p` reduces to ONE
+boundedness obligation `IntervalDomainL2UBoundedDatumUniform p`
+(file Paper2/IntervalDomainL2UFrontierAssembly.lean), via
+`GlobalSolutionGluingFromReachability_of_boundedDatumUniform`.
+
+PROVED unconditional this stretch (commits 9c9778d…5a34322, all axiom-clean):
+- Energy inequality CORE `intervalDomainL2U_energy_diffIneq_bound`
+  (`∫ integrandDeriv ≤ K·E_u`, K=χ₀²Cflux+2L): PDE substitution + dissipation
+  `−∫(∂ₓw)²` + chemotaxis IBP + Young `2χ₀∫∂ₓw·g ≤ ∫(∂ₓw)²+χ₀²∫g²` + reaction
+  Lipschitz. File Paper2/IntervalDomainL2UEnergyCombine.lean.
+- Full frontier assembled unconditional (Paper2/IntervalDomainL2UFrontierAssembly.lean):
+  Leibniz `intervalDomainL2UEnergy_hasDerivAt_of_solution`, `cont`,
+  `initial_vanishes`, `zero_pointwise` (E_u=0⟹u=U; v=V via static_v_value).
+- Faithful def repairs (interior→closed / missing conjuncts): endpoint
+  time-differentiability (conjunct 4 → closed), v≥0 (concentration), u>0,
+  closed-Icc C² + Neumann, joint continuity. IsPaper2ClassicalSolution now a
+  genuine positive classical-solution predicate.
+- Static v-control (value+grad) by E_u, flux IBP, flux closed-Icc C¹, flux L²
+  bound, elliptic characterization, coeff decay, gradient bridge — all earlier,
+  all unconditional.
+
+REMAINING = `IntervalDomainL2UBoundedDatumUniform p`: (bdd₀) shared initial
+datum bounded + (Kunif) a τ-uniform Grönwall constant. KEY: this is a
+BOUNDEDNESS obligation, NOT a new analytic gap — `Theorem_1_1_intervalDomain_conditional`
+(Paper2/IntervalDomainChain.lean) ALREADY proves the uniform sup-norm bound
+`supNorm(u t) ≤ max(supNorm u₀, (a/b)^{1/α})` (via Lemma_3_1 + initialSupNormApproach)
+and constructs `IsPaper2BoundedBefore`. The per-time K(τ)=χ₀²Cflux+2L is bounded
+once `supNorm(uᵢ τ) ≤ M` uniformly ⇒ Kunif; u₀ bounded ⇒ bdd₀. CAVEAT: Lemma_3_1's
+bound holds under Theorem 1.1's parameter regime (hχ neg-sensitivity, a,b>0, m≥1),
+so the honest resting point may be "gluing unconditional modulo boundedness, which
+holds in the Theorem 1.1 regime" — matching paper2's own "bounded ⇒ global"
+structure. (Discharge attempt in progress.)
 
 ## ROUNDS 5–7 CONSOLIDATED (2026-05-26, HEAD 31c4df3, self-verified)
 
