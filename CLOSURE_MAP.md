@@ -46,6 +46,51 @@ Upper bound M derived from proven Lemma 3.1 (`uniform_lift_upper_bound_of_regime
 ~18 verified commits 8561490 → 66e6e90, every one self-verified
 (`lake build ShenWork` green + `#print axioms` = the three core only).
 
+## ROUND-11 UPDATE (2026-05-27, HEAD 7806e57, build 8344) — GENERAL γ>0 DELTA-FREE
+
+Eliminated the explicit `δ>0` hypothesis from the general γ>0 case using a
+per-sub-horizon parallel gluing chain (file
+`Paper2/IntervalDomainL2USubHorizonGluing.lean`, additive — doesn't touch the
+γ≥1 / explicit-δ chains).
+
+The trick: for each target `t < min T₁ T₂`, pick a strict sub-horizon
+`T' := (t + min T₁ T₂)/2 ∈ (t, min T₁ T₂)`. On `(0, T']` the half-horizon
+lemma gives uniform `δ_{T'} > 0` (from `lift_u_uniformPositive_on_halfHorizon`
+fed by `IntervalDomainPosDatumLowerBound`), and `uniform_lift_upper_bound_of_regime`
+gives `M`. Each pair (t, T') applies the existing energy method on the truncated
+horizon `T'` (via `IsPaper2ClassicalSolution.restrict_horizon` + the proved
+chain), concluding equality at the target `t`. This avoids the
+"approaching min T₁ T₂" frontier where a uniform δ would need strong-max-principle
+theory.
+
+NEW final theorem:
+`GlobalSolutionGluingFromReachability_of_regimeAndPosDatumLowerBound (p)
+  (hχ : χ₀≤0) (ha : 0<a) (hb : 0<b)
+  (hpos : ∀ per-pair, PositiveInitialDatum)
+  (hposLower : ∀ per-pair, IntervalDomainPosDatumLowerBound u₀)`
+→ `GlobalSolutionGluingFromReachability p` (axiom-clean).
+
+## CURRENT FINAL STATE — THREE COEXISTING UNCONDITIONAL GLUING THEOREMS
+
+All `[propext, Classical.choice, Quot.sound]`:
+
+1. `GlobalSolutionGluingFromReachability_of_regime_gammaGeOne` — paper2 standard
+   regime + γ≥1 (covers formula (1.3): γ=m=α=1). Fully unconditional modulo
+   regime + positive datum.
+2. `GlobalSolutionGluingFromReachability_of_regimeAndPosDatumLowerBound` (NEW) —
+   general γ>0 + regime + positive datum with uniform lower bound `δ₀>0`.
+   Fully unconditional. The lower-bound condition is the standard PDE-textbook
+   "positive classical solution with bounded-below initial datum" assumption.
+3. `GlobalSolutionGluingFromReachability_of_regimeAndLowerBound` (legacy) —
+   general γ>0 + regime + positive datum + explicit `∃ δ>0, …(0,minT)…`. Kept
+   for cases that supply the uniform δ externally.
+
+The entire u-only uniqueness analytic machinery (energy inequality core,
+frontier assembly, elliptic characterization, coefficient decay, gradient
+bridge, faithful def repairs, static v-control, flux IBP/L²/C¹, quantitative
+resolver F(M), upper bound from Lemma 3.1, sub-horizon truncation) — fully
+unconditional, axiom-clean.
+
 ## ROUND-8 CONSOLIDATED (2026-05-26, HEAD 5a34322, self-verified) — GLUING ≈ CLOSED
 
 The ENTIRE u-only uniqueness/gluing analytic body is now PROVED unconditional +
