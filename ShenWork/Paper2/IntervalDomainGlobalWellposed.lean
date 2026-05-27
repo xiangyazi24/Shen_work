@@ -14,6 +14,7 @@
 -/
 import ShenWork.PDE.IntervalDomainExistence
 import ShenWork.Paper2.IntervalDomainMoserClosure
+import ShenWork.Paper2.IntervalDomainL2StaticVDifference
 
 open ShenWork.Paper2
 open ShenWork.IntervalDomain
@@ -387,6 +388,253 @@ theorem Theorem_1_1_intervalDomain_of_corrected_global_existence
           (hexist.initialSupNormApproach u₀ hu₀ T hT u v hsol htrace)
       · intro hm'
         exact False.elim (hm hm')
+
+/-! ### Internal collapse of `extend_finite` into `extend_mge`
+
+In the regime `1 ≤ p.m` that drives the global-existence path (the only regime
+in which `IntervalDomainGlobalSolutionExists.globalSolutionExists` is invoked),
+the `extend_finite` hypothesis of the standard maximal-continuation interface
+is internally derivable from `extend_mge` plus the unconditional Lemma 3.1 +
+spatial regularity machinery already in the repo.  Three ingredients:
+
+1. `mgeOneFiniteHorizonAlternative_imp_finiteHorizonAlternative` — pure logical
+   implication on the disjunction (`MGeOne` is the unboundedness disjunct
+   of `Finite`).
+
+2. `not_mgeOneFiniteHorizonAlternative_of_realize_in_negative_regime` —
+   internally derive `¬ MGeOneFiniteHorizonAlternative` at the realized `T*`,
+   by combining
+     - `boundedBefore_nonminimal_of_corrected_initial_approach` (Lemma 3.1 +
+       initial sup-norm approach gives a sup-norm bound on the open `(0, T*)`),
+     - `supNormControlsPointwiseBefore_of_timeSlice_rangeBounded` (regularity
+       conjunct (7), already discharged by `classicalSolution_u_range_bddAbove`),
+     - `not_mgeOneFiniteHorizonAlternative_of_pointwiseBoundedBefore`.
+
+3. Consequence: when invoking the maximal-continuation alternative inside the
+   `1 ≤ p.m` branch, `¬ Finite → ¬ MGeOne`, and `hextend_mge` produces the
+   contradicting `ReachablePast`.  No use is ever made of `hextend_finite` in
+   this branch, so it can be dropped from the umbrella interface.
+
+This is genuine internal progress on the maximal-continuation theorem: the
+`extend_finite` PDE-textbook input is **eliminated** from the umbrella's
+hypothesis surface, leaving only `realize` and `extend_mge` as the two genuine
+analytic frontiers (compactness at `sSup` + restart past `sSup`). -/
+
+/-- The `MGeOne` blow-up alternative implies the `Finite` continuation
+alternative: the `Finite` alternative is the disjunction "blow up OR vanish",
+of which `MGeOne` is the first disjunct. -/
+lemma mgeOneFiniteHorizonAlternative_imp_finiteHorizonAlternative
+    {T : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (h : MGeOneFiniteHorizonAlternative intervalDomain T u) :
+    FiniteHorizonAlternative intervalDomain T u :=
+  Or.inl h
+
+/-- Contrapositive of the previous: `¬ Finite → ¬ MGeOne`. -/
+lemma not_mgeOneFiniteHorizonAlternative_of_not_finiteHorizonAlternative
+    {T : ℝ} {u : ℝ → intervalDomain.Point → ℝ}
+    (h : ¬ FiniteHorizonAlternative intervalDomain T u) :
+    ¬ MGeOneFiniteHorizonAlternative intervalDomain T u :=
+  fun hmge => h (mgeOneFiniteHorizonAlternative_imp_finiteHorizonAlternative hmge)
+
+/-- Internal derivation of `¬ MGeOneFiniteHorizonAlternative` at any realized
+classical horizon in the negative-sensitivity regime, using only the
+unconditional Lemma 3.1 + initial sup-norm approach + closed-domain spatial
+`C²` regularity (conjunct (7)).  No PDE-textbook continuation input is
+consumed. -/
+theorem not_mgeOneFiniteHorizonAlternative_of_realize_in_negative_regime
+    (p : CM2Params)
+    (hboundedInitial :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    {u₀ : intervalDomain.Point → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {T : ℝ} (hT : 0 < T)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (htrace : InitialTrace intervalDomain u₀ u) :
+    ¬ MGeOneFiniteHorizonAlternative intervalDomain T u := by
+  -- Lemma 3.1 + corrected initial-approach gives a sup-norm bound on (0, T).
+  have hbdd : IsPaper2BoundedBefore intervalDomain T u :=
+    boundedBefore_nonminimal_of_corrected_initial_approach
+      p hboundedInitial hχ ha hb hu₀ hT hsol htrace
+  -- Conjunct (7) of regularity (closed-Icc spatial C²) plus continuity-on-compact
+  -- gives that every time slice has a bounded absolute-value range.
+  have hrange :
+      ∀ t, 0 < t → t < T →
+        BddAbove (Set.range (fun x : intervalDomain.Point => |u t x|)) := by
+    intro t ht_pos ht_T
+    exact ShenWork.Paper2.classicalSolution_u_range_bddAbove hsol ⟨ht_pos, ht_T⟩
+  -- Spatial sup-norm controls the per-time-slice point values.
+  have hsup :
+      ShenWork.IntervalDomainExistence.SupNormControlsPointwiseBefore T u :=
+    supNormControlsPointwiseBefore_of_timeSlice_rangeBounded hrange
+  -- Combine for a pointwise upper bound below T.
+  have hpw :
+      ShenWork.IntervalDomainExistence.PointwiseBoundedBefore T u :=
+    ShenWork.IntervalDomainExistence.pointwiseBoundedBefore_of_boundedBefore_and_supNormControls
+      hbdd hsup
+  -- Pointwise upper bound rules out the (m ≥ 1) blow-up alternative.
+  exact
+    ShenWork.IntervalDomainExistence.not_mgeOneFiniteHorizonAlternative_of_pointwiseBoundedBefore
+      hpw
+
+/-- **Direct global branch from `extend_mge` only (no `extend_finite`).**
+
+In the negative-sensitivity regime with `1 ≤ p.m`, the
+`hextend_of_not_finiteAlternative` field of the standard maximal-continuation
+interface is internally redundant: given `hrealize` and `hextend_of_not_mgeAlternative`,
+plus the unconditional Lemma 3.1 + closed-domain spatial `C²` regularity,
+one can directly contradict any putative bounded upper bound on the reachable
+horizon set, yielding `ReachableArbitrarilyLong`.
+
+Proof sketch:
+1. Assume for contradiction `hbdd : BddAbove (reachableClassicalHorizonSet p u₀)`.
+2. By `hrealize`, get a classical solution `(u, v)` on `[0, T*)` with the
+   prescribed initial trace, where `T* = finiteMaximalReachableHorizon p u₀ > 0`.
+3. Internally derive `¬ MGeOneFiniteHorizonAlternative T* u` from Lemma 3.1 +
+   initial-approach + conjunct (7) of regularity
+   (`not_mgeOneFiniteHorizonAlternative_of_realize_in_negative_regime`).
+4. By `hextend_of_not_mgeAlternative`, obtain `ReachablePast p u₀ T*`,
+   contradicting `not_reachablePast_finiteMaximalReachableHorizon`.
+
+The `extend_finite` hypothesis is never consumed. -/
+theorem reachableArbitrarilyLong_of_realize_extend_mge_in_negative_regime
+    (p : CM2Params)
+    (hboundedInitial :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hrealize :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ _hbdd : BddAbove
+          (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀),
+        ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u v ∧
+          InitialTrace intervalDomain u₀ u)
+    (hextend_of_not_mgeAlternative :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ (_hbdd : BddAbove
+          (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomain.Point → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          1 ≤ p.m →
+          ¬ MGeOneFiniteHorizonAlternative intervalDomain
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u →
+          ShenWork.IntervalDomainExistence.ReachablePast p u₀
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀))
+    {u₀ : intervalDomain.Point → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hm : 1 ≤ p.m) :
+    ShenWork.IntervalDomainExistence.ReachableArbitrarilyLong p u₀ := by
+  by_contra hnot
+  -- From the negation, derive that reachable horizons are bounded above.
+  -- Use the contrapositive of `reachableArbitrarilyLong_of_not_bddAbove`.
+  by_cases hbdd :
+      BddAbove (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀)
+  · -- Bounded case: extract realized solution at T*, derive contradiction.
+    have hT_pos :
+        0 < ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon p u₀ :=
+      ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon_pos_of_localExistence
+        p hlocal hu₀ hbdd
+    obtain ⟨u, v, hsol, htrace⟩ := hrealize u₀ hu₀ hbdd
+    have hnotMge :
+        ¬ MGeOneFiniteHorizonAlternative intervalDomain
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon p u₀) u :=
+      not_mgeOneFiniteHorizonAlternative_of_realize_in_negative_regime
+        p hboundedInitial hχ ha hb hu₀ hT_pos hsol htrace
+    have hpast :
+        ShenWork.IntervalDomainExistence.ReachablePast p u₀
+          (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon p u₀) :=
+      hextend_of_not_mgeAlternative u₀ hu₀ hbdd hsol htrace hm hnotMge
+    exact
+      ShenWork.IntervalDomainExistence.not_reachablePast_finiteMaximalReachableHorizon
+        hbdd hpast
+  · -- Unbounded case: contradicts `hnot` by `reachableArbitrarilyLong_of_not_bddAbove`.
+    exact hnot
+      (ShenWork.IntervalDomainExistence.reachableArbitrarilyLong_of_not_bddAbove hbdd)
+
+/-- **Refined existential-global package: nonminimal branch, `extend_finite`
+eliminated.**  Same conclusion as
+`intervalDomainGlobalSolutionExists_nonminimal_of_continuation_and_gluing`,
+but with the `hextend_of_not_finiteAlternative` hypothesis removed: it is
+internally redundant in the `1 ≤ p.m` regime that drives the global branch,
+because `¬ MGeOneFiniteHorizonAlternative` at the realized `T*` follows from
+Lemma 3.1 + initial-approach + closed-domain spatial `C²` regularity, and
+`hextend_of_not_mgeAlternative` alone suffices to contradict the bounded-supremum
+assumption. -/
+theorem
+    intervalDomainGlobalSolutionExists_nonminimal_of_continuation_and_gluing_no_extend_finite
+    (p : CM2Params)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hboundedInitial :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)))
+    (hrealize :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ _hbdd : BddAbove
+          (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀),
+        ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u v ∧
+          InitialTrace intervalDomain u₀ u)
+    (hextend_of_not_mgeAlternative :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ (_hbdd : BddAbove
+          (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomain.Point → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          1 ≤ p.m →
+          ¬ MGeOneFiniteHorizonAlternative intervalDomain
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u →
+          ShenWork.IntervalDomainExistence.ReachablePast p u₀
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀))
+    (hglue :
+      ShenWork.IntervalDomainExistence.GlobalSolutionGluingFromReachability p) :
+    ShenWork.IntervalDomainExistence.IntervalDomainGlobalSolutionExists p := by
+  refine intervalDomainGlobalSolutionExists_of_local_global_bounded_initial
+    p hlocal hboundedInitial ?_
+  intro u₀ hu₀ hm
+  -- Build ReachableArbitrarilyLong directly via the no-extend_finite chain.
+  have hlong :
+      ShenWork.IntervalDomainExistence.ReachableArbitrarilyLong p u₀ :=
+    reachableArbitrarilyLong_of_realize_extend_mge_in_negative_regime
+      p hboundedInitial hχ ha hb hlocal hrealize hextend_of_not_mgeAlternative
+      hu₀ hm
+  -- Apply the gluing closure.
+  exact hglue u₀ hu₀ hlong
 
 end ShenWork.Paper2.IntervalDomainGlobalWellposed
 
