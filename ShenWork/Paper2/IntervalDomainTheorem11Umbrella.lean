@@ -389,6 +389,95 @@ theorem
     p hχ ha hb hlocal hrealize hextend_of_not_finiteAlternative
     hextend_of_not_mgeAlternative hrangeBounded hposWit hposLowerWit
 
+/-- **Bundled continuation data for the Paper 2 interval-domain umbrella.**
+
+Packages the four textbook PDE continuation hypotheses (`local`, `realize`,
+`extend_finite`, `extend_mge`) together with the two book-keeping
+pass-throughs (`posWit`, `posLowerWit`) consumed by
+`Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound_no_hreach_no_hrangeBounded`
+into a single record, for cleaner downstream composition.  The field shapes
+mirror the umbrella signature verbatim. -/
+structure IntervalDomainPaper2ContinuationData (p : CM2Params) : Prop where
+  localExistence :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u
+  realize :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ _hbdd : BddAbove
+        (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀),
+      ∃ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p
+          (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+            p u₀) u v ∧
+        InitialTrace intervalDomain u₀ u
+  extend_finite :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ (_hbdd : BddAbove
+        (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀))
+      {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p
+          (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+            p u₀) u v →
+        InitialTrace intervalDomain u₀ u →
+        ¬ FiniteHorizonAlternative intervalDomain
+          (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+            p u₀) u →
+        ShenWork.IntervalDomainExistence.ReachablePast p u₀
+          (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+            p u₀)
+  extend_mge :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ (_hbdd : BddAbove
+        (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀))
+      {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p
+          (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+            p u₀) u v →
+        InitialTrace intervalDomain u₀ u →
+        1 ≤ p.m →
+        ¬ MGeOneFiniteHorizonAlternative intervalDomain
+          (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+            p u₀) u →
+        ShenWork.IntervalDomainExistence.ReachablePast p u₀
+          (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+            p u₀)
+  posWit :
+    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+      InitialTrace intervalDomain u₀ u₁ →
+      InitialTrace intervalDomain u₀ u₂ →
+        PositiveInitialDatum intervalDomain u₀
+  posLowerWit :
+    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+      InitialTrace intervalDomain u₀ u₁ →
+      InitialTrace intervalDomain u₀ u₂ →
+        IntervalDomainPosDatumLowerBound u₀
+
+/-- **Bundled-input wrapper for the Paper 2 interval-domain umbrella.**
+
+Same conclusion as
+`Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound_no_hreach_no_hrangeBounded`,
+but consuming the six textbook/pass-through hypotheses as a single
+`IntervalDomainPaper2ContinuationData` record for cleaner composition. -/
+theorem Theorem_1_1_intervalDomain_via_regime_and_continuationData
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hData : IntervalDomainPaper2ContinuationData p) :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound_no_hreach_no_hrangeBounded
+    p hχ ha hb hData.localExistence hData.realize hData.extend_finite
+    hData.extend_mge hData.posWit hData.posLowerWit
+
 end
 
 end ShenWork.Paper2
