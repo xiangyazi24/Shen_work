@@ -937,6 +937,60 @@ theorem lift_u_uniformPositive_on_compact
   have hmem : (τ, x) ∈ Set.Icc s t ×ˢ Set.Icc (0 : ℝ) 1 := ⟨hτ, hx⟩
   exact isMinOn_iff.mp hq₀_min (τ, x) hmem
 
+/-- **Uniform upper bound for `|lift (v τ)|` on a closed time sub-interval
+`[s,t] ⊂ (0,T)` jointly in time and space.**
+
+For a classical solution and any `0 < s ≤ t < T`, there exists `M ≥ 0` such
+that `|intervalDomainLift (v τ) x| ≤ M` simultaneously for every `τ ∈ [s,t]`
+and every `x ∈ [0,1]`.
+
+Proof: conjunct (9) of the classical regularity bundle provides joint continuity
+of `(τ,x) ↦ intervalDomainLift (v τ) x` on `Ioo 0 T ×ˢ Icc 0 1`.  Compose with
+`|·|` (continuous) and restrict to the compact slab `Icc s t ×ˢ Icc 0 1`; a
+continuous function on a nonempty compact attains its maximum, and that maximum
+is `≥ 0` since it bounds an absolute value at one of the slab's points. -/
+theorem lift_v_bounded_on_compact
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {s t : ℝ} (hs : 0 < s) (hst : s ≤ t) (htT : t < T) :
+    ∃ M : ℝ, 0 ≤ M ∧
+      ∀ τ ∈ Set.Icc s t, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |intervalDomainLift (v τ) x| ≤ M := by
+  classical
+  -- (9) joint continuity of `(τ,x) ↦ lift (v τ) x` on `Ioo 0 T ×ˢ Icc 0 1`
+  -- (the v-side conjunct of (9), paired alongside the u-side conjunct).
+  have hfield : ContinuousOn
+      (Function.uncurry (fun (τ : ℝ) (x : ℝ) => intervalDomainLift (v τ) x))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+    (hsol.regularity.2.2.2.2.2.2.2.2).2
+  -- compact slab `Icc s t ×ˢ Icc 0 1`.
+  have hKcompact : IsCompact (Set.Icc s t ×ˢ Set.Icc (0 : ℝ) 1) :=
+    isCompact_Icc.prod isCompact_Icc
+  have hKne : (Set.Icc s t ×ˢ Set.Icc (0 : ℝ) 1).Nonempty :=
+    ⟨(s, 0), ⟨Set.left_mem_Icc.mpr hst, by constructor <;> norm_num⟩⟩
+  -- inclusion `Icc s t ×ˢ Icc 0 1 ⊆ Ioo 0 T ×ˢ Icc 0 1`.
+  have hsub : Set.Icc s t ×ˢ Set.Icc (0 : ℝ) 1 ⊆
+      Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1 := by
+    rintro ⟨τ, x⟩ ⟨hτ, hx⟩
+    refine ⟨⟨lt_of_lt_of_le hs hτ.1, lt_of_le_of_lt hτ.2 htT⟩, hx⟩
+  -- restrict joint continuity to the compact slab.
+  have hcontK : ContinuousOn
+      (Function.uncurry (fun (τ : ℝ) (x : ℝ) => intervalDomainLift (v τ) x))
+      (Set.Icc s t ×ˢ Set.Icc (0 : ℝ) 1) := hfield.mono hsub
+  -- compose with `|·|`: still continuous on the compact slab.
+  have hcontAbs : ContinuousOn
+      (fun q : ℝ × ℝ => |intervalDomainLift (v q.1) q.2|)
+      (Set.Icc s t ×ˢ Set.Icc (0 : ℝ) 1) := hcontK.abs
+  -- maximum of the (uncurried) continuous function on the nonempty compact.
+  obtain ⟨q₀, hq₀_mem, hq₀_max⟩ :=
+    hKcompact.exists_isMaxOn hKne hcontAbs
+  obtain ⟨τ₀, x₀⟩ := q₀
+  refine ⟨|intervalDomainLift (v τ₀) x₀|, abs_nonneg _, ?_⟩
+  intro τ hτ x hx
+  have hmem : (τ, x) ∈ Set.Icc s t ×ˢ Set.Icc (0 : ℝ) 1 := ⟨hτ, hx⟩
+  exact isMaxOn_iff.mp hq₀_max (τ, x) hmem
+
 /-- **Strengthened positive initial datum predicate: uniform positive lower bound.**
 
 A faithful PDE-textbook strengthening of `PositiveInitialDatum`: the datum `u₀`
