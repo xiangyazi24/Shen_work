@@ -82,3 +82,4 @@ import ShenWork.PDE.IntervalDomainExistence
 import ShenWork.PDE.IntervalEllipticCharacterization
 import ShenWork.PDE.IntervalCosineCoeffDecay
 import ShenWork.PDE.IntervalResolverGradientBridge
+import ShenWork.PDE.IntervalResolverLaplacianBridge
