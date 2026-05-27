@@ -72,6 +72,8 @@ import ShenWork.PDE.IntervalNeumannEllipticResolverR
 import ShenWork.PDE.IntervalCosineCoeffDecay
 import ShenWork.PDE.IntervalResolverGradientBridge
 import ShenWork.Paper2.IntervalDomainL2UEnergyInequality
+import ShenWork.Paper2.IntervalDomainL2StaticVDifference
+import ShenWork.Paper2.IntervalDomainL2UEnergyUniformGammaGeOne
 
 open MeasureTheory
 open ShenWork.IntervalDomain ShenWork.CosineSpectrum
@@ -473,6 +475,187 @@ theorem intervalNeumannResolverRLap_diff_abs_le
           |intervalNeumannResolverSourceValue p u₁ y -
             intervalNeumannResolverSourceValue p u₂ y| := by
           rw [abs_mul, abs_of_pos p.hμ]
+
+/-! ## Fourier inversion identity for the source value series
+
+The source value series `sourceValue p (u τ) y = ∑' k, (â_k).re · cos(kπ y.1)` is
+exactly the cosine series of `g = p.ν · u(τ,·)^γ` (this is how `â_k` is defined,
+via `unitIntervalNeumannCosineCoeff`).  For a positive classical solution,
+conjuncts 6,7 + closed-domain positivity make `g` `C²`-Neumann on `[0,1]`, hence
+its cosine series is `ℓ¹` and the standard pointwise Fourier inversion
+(`intervalCosine_hasSum_pointwise`) gives the sum equals `g` on the open interior.
+A continuity/closure argument extends it to the endpoints of `[0,1]`. -/
+
+open ShenWork.Paper2 (liftRepr clamp01 clamp01_continuous clamp01_mem clamp01_eq_self
+  liftRepr_eq_on_Icc liftRepr_continuous cosineCoeffs_congr_on_Icc cosineCoeffs_liftRepr
+  fourierCoeff_reflCircle_summable_of_repr solution_lift_pos source_contDiffOn_Icc
+  source_deriv_endpoint_eq_zero source_deriv_tendsto_endpoint
+  sourceCoeffQuadraticDecay_of_solution rpow_lipschitz_on_Icc_zeroM_of_one_le_gamma)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.IntervalCosineInversion (intervalCosine_hasSum_pointwise
+  intervalCosineCoeff_summable_abs reflCircle)
+open ShenWork.IntervalCosineCoeffDecay (fourierCoeff_reflCircle_summable)
+open ShenWork.HeatKernelGradientEstimates (unitIntervalNeumannCosineCoeff)
+
+/-- **Source value pointwise identity (Task 1).**
+
+For a positive classical solution `(u,v)` and an interior time `τ ∈ (0,T)`, the
+source value series equals the pointwise value of `p.ν · u(τ,·)^γ` at every
+`y ∈ [0,1]` (closed):
+
+  `intervalNeumannResolverSourceValue p (u τ) y = p.ν · (lift (u τ) y.1)^γ`.
+
+Route: `g = ν·u(τ,·)^γ` is `C²`-Neumann on `[0,1]` (positivity + conjuncts 6,7),
+so its cosine coefficients are `ℓ¹` (`fourierCoeff_reflCircle_summable_of_repr`
+applied to the clamp01-extended continuous representative of `g`).  Pointwise
+Fourier inversion (`intervalCosine_hasSum_pointwise`) gives the sum equals `g` on
+the open `(0,1)`.  Both sides are continuous in `y.1` on the closed `[0,1]` (LHS:
+uniform majorant `|â_k|`; RHS: lift continuous on `[0,1]` and `rpow` continuous
+on the positive range), so equality extends to the endpoints. -/
+theorem sourceValue_eq_source
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T)
+    (y : intervalDomainPoint) :
+    intervalNeumannResolverSourceValue p (u τ) y =
+      p.ν * (intervalDomainLift (u τ) y.1) ^ p.γ := by
+  classical
+  -- Set up the source `g` and its globally continuous representative `G`.
+  set g : ℝ → ℝ := fun x => p.ν * intervalDomainLift (u τ) x ^ p.γ with hgdef
+  have hC2g : ContDiffOn ℝ 2 g (Set.Icc (0:ℝ) 1) := source_contDiffOn_Icc hsol hτ
+  have hbc0 : deriv g 0 = 0 := source_deriv_endpoint_eq_zero hsol hτ (Or.inl rfl)
+  have hbc1 : deriv g 1 = 0 := source_deriv_endpoint_eq_zero hsol hτ (Or.inr rfl)
+  obtain ⟨htend0, htend1⟩ := source_deriv_tendsto_endpoint hsol hτ
+  have hgC0 : ContinuousOn g (Set.Icc (0:ℝ) 1) := hC2g.continuousOn
+  -- Build a globally continuous representative `G` of `g` via clamp01.
+  set G : ℝ → ℝ := fun x => g (clamp01 x) with hGdef
+  have hGcont : Continuous G := by
+    refine continuousOn_univ.mp ?_
+    refine hgC0.comp clamp01_continuous.continuousOn ?_
+    intro x _; exact clamp01_mem x
+  have hGeqOn : ∀ x ∈ Set.Icc (0:ℝ) 1, G x = g x := by
+    intro x hx; show g (clamp01 x) = g x; rw [clamp01_eq_self hx]
+  -- ℓ¹ summability of the even-reflection Fourier coefficients of `G`.
+  have hGsum : Summable (fun n : ℤ => fourierCoeff (reflCircle G) n) :=
+    fourierCoeff_reflCircle_summable_of_repr hGcont hC2g hGeqOn htend0 htend1 hbc0 hbc1
+  -- The source coefficient real part equals `cosineCoeffs g k`, hence `cosineCoeffs G k`.
+  have hcoeff_eq : ∀ k : ℕ,
+      (intervalNeumannResolverSourceCoeff p (u τ) k).re = cosineCoeffs G k := by
+    intro k
+    -- (â_k).re = unitIntervalNeumannCosineCoeff (fun x => (g x : ℂ)) k = cosineCoeffs g k.
+    have h1 : (intervalNeumannResolverSourceCoeff p (u τ) k).re =
+        cosineCoeffs g k := by
+      simp only [intervalNeumannResolverSourceCoeff, Complex.ofReal_re,
+        cosineCoeffs, hgdef]
+    rw [h1]
+    -- cosineCoeffs g k = cosineCoeffs G k since they agree on [0,1].
+    exact cosineCoeffs_congr_on_Icc (fun x hx => (hGeqOn x hx).symm) k
+  -- Build the pointwise series `S(x) := ∑' k, (â_k).re · cos(kπx)` as a function of `x : ℝ`.
+  set S : ℝ → ℝ := fun x =>
+    ∑' k : ℕ, (intervalNeumannResolverSourceCoeff p (u τ) k).re *
+      Real.cos ((k : ℝ) * Real.pi * x) with hSdef
+  -- `S` is the pointwise Fourier-inverse of `G` on `(0,1)`: `S x = G x = g x`.
+  -- Step 1: continuity of `S` (uniform majorant `|â_k|`, which is ℓ¹).
+  -- ℓ¹ summability of `(â_k).re` (via `intervalCosineCoeff_summable_abs`).
+  have habs : Summable fun k : ℕ => |cosineCoeffs G k| :=
+    intervalCosineCoeff_summable_abs G hGcont hGsum
+  have habs' : Summable fun k : ℕ => |(intervalNeumannResolverSourceCoeff p (u τ) k).re| := by
+    refine habs.congr (fun k => ?_)
+    rw [hcoeff_eq]
+  have hScont : Continuous S := by
+    refine continuous_tsum (fun k => ?_) habs' (fun k x => ?_)
+    · exact continuous_const.mul (Real.continuous_cos.comp (by fun_prop))
+    · rw [Real.norm_eq_abs, abs_mul]
+      have hcos : |Real.cos ((k : ℝ) * Real.pi * x)| ≤ 1 := Real.abs_cos_le_one _
+      calc |(intervalNeumannResolverSourceCoeff p (u τ) k).re| *
+              |Real.cos ((k : ℝ) * Real.pi * x)|
+          ≤ |(intervalNeumannResolverSourceCoeff p (u τ) k).re| * 1 :=
+            mul_le_mul_of_nonneg_left hcos (abs_nonneg _)
+        _ = |(intervalNeumannResolverSourceCoeff p (u τ) k).re| := mul_one _
+  -- Continuity of `g` on `[0,1]` (lift is C² on Icc).
+  have hgContOn : ContinuousOn g (Set.Icc (0:ℝ) 1) := hgC0
+  -- Step 2: `S x = g x` for `x ∈ (0,1)` via Fourier inversion.
+  have hSeq_int : ∀ x ∈ Set.Ioo (0:ℝ) 1, S x = g x := by
+    intro x hx
+    have hinv : HasSum (fun k => unitIntervalCosineMode k x * cosineCoeffs G k) (G x) :=
+      intervalCosine_hasSum_pointwise G hGcont hx hGsum
+    -- Rewrite the summand via `hcoeff_eq` and `unitIntervalCosineMode`.
+    have hterm : ∀ k : ℕ,
+        unitIntervalCosineMode k x * cosineCoeffs G k =
+          (intervalNeumannResolverSourceCoeff p (u τ) k).re *
+            Real.cos ((k : ℝ) * Real.pi * x) := by
+      intro k
+      rw [← hcoeff_eq k]
+      unfold unitIntervalCosineMode
+      ring
+    have hinv' : HasSum (fun k => (intervalNeumannResolverSourceCoeff p (u τ) k).re *
+        Real.cos ((k : ℝ) * Real.pi * x)) (G x) :=
+      hinv.congr_fun (fun k => (hterm k).symm)
+    have hSx : S x = G x := hinv'.tsum_eq
+    rw [hSx, hGeqOn x (Set.Ioo_subset_Icc_self hx)]
+  -- Step 3: extend to the closed `[0,1]` by continuity.
+  -- `S` is continuous globally; `g` is continuous on `[0,1]`.  They agree on the dense
+  -- subset `Ioo 0 1` of `Icc 0 1`, hence on `Icc 0 1`.
+  have hSeq_closed : ∀ x ∈ Set.Icc (0:ℝ) 1, S x = g x := by
+    have hcl : closure (Set.Ioo (0:ℝ) 1) = Set.Icc (0:ℝ) 1 :=
+      closure_Ioo (by norm_num : (0:ℝ) ≠ 1)
+    have hsub : Set.Ioo (0:ℝ) 1 ⊆ Set.Icc (0:ℝ) 1 := Set.Ioo_subset_Icc_self
+    have hts : Set.Icc (0:ℝ) 1 ⊆ closure (Set.Ioo (0:ℝ) 1) := hcl.ge
+    have hEq : Set.EqOn S g (Set.Ioo (0:ℝ) 1) := fun x hx => hSeq_int x hx
+    have hclosed : Set.EqOn S g (Set.Icc (0:ℝ) 1) :=
+      hEq.of_subset_closure hScont.continuousOn hgContOn hsub hts
+    intro x hx; exact hclosed hx
+  -- Conclude at `y.1 ∈ Icc 0 1`.
+  show S y.1 = g y.1
+  exact hSeq_closed y.1 y.2
+
+/-- **Source value sup-Lipschitz of `γ≥1` in trajectory difference (Task 2).**
+
+For two trajectory snapshots `u₁ τ`, `u₂ τ` on the closed trajectory ball
+`lift (u_i τ) ∈ [0, M]` and `p.γ ≥ 1`, the source value difference at every
+`y ∈ [0,1]` is bounded by the (sup-of-)trajectory difference:
+
+  `|sourceValue p (u₁ τ) y − sourceValue p (u₂ τ) y| ≤
+      p.ν · p.γ · M^(γ−1) · |lift (u₁ τ) y.1 − lift (u₂ τ) y.1|`.
+
+Route: `sourceValue_eq_source` rewrites both sides as `ν · u_i^γ`.  The MVT
+Lipschitz `rpow_lipschitz_on_Icc_zeroM_of_one_le_gamma` (γ≥1, on `[0,M]`) then
+gives `|u₁^γ − u₂^γ| ≤ γ · M^(γ-1) · |u₁ − u₂|`.  Multiply by `ν`. -/
+theorem sourceValue_sup_lipschitz_of_uBoundedDiff
+    {p : CM2Params} {T₁ T₂ : ℝ}
+    {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ}
+    (hsol₁ : IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁)
+    (hsol₂ : IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂)
+    {M τ : ℝ} (hMnn : 0 ≤ M) (hγ_ge_one : 1 ≤ p.γ)
+    (hmem₁ : ∀ x ∈ Set.Icc (0:ℝ) 1, intervalDomainLift (u₁ τ) x ∈ Set.Icc (0:ℝ) M)
+    (hmem₂ : ∀ x ∈ Set.Icc (0:ℝ) 1, intervalDomainLift (u₂ τ) x ∈ Set.Icc (0:ℝ) M)
+    (hτ₁ : τ ∈ Set.Ioo (0:ℝ) T₁) (hτ₂ : τ ∈ Set.Ioo (0:ℝ) T₂)
+    (y : intervalDomainPoint) :
+    |intervalNeumannResolverSourceValue p (u₁ τ) y -
+        intervalNeumannResolverSourceValue p (u₂ τ) y|
+      ≤ p.ν * (p.γ * M ^ (p.γ - 1)) *
+          |intervalDomainLift (u₁ τ) y.1 - intervalDomainLift (u₂ τ) y.1| := by
+  classical
+  -- Rewrite both sides via `sourceValue_eq_source`.
+  rw [sourceValue_eq_source hsol₁ hτ₁ y, sourceValue_eq_source hsol₂ hτ₂ y]
+  -- Now we have `|ν·u₁^γ − ν·u₂^γ| ≤ ν·γ·M^(γ-1)·|u₁ − u₂|`.
+  have hyIcc : y.1 ∈ Set.Icc (0:ℝ) 1 := y.2
+  have hmem1y := hmem₁ y.1 hyIcc
+  have hmem2y := hmem₂ y.1 hyIcc
+  have hlip := rpow_lipschitz_on_Icc_zeroM_of_one_le_gamma hγ_ge_one hMnn hmem1y hmem2y
+  -- Factor out `p.ν` (positive).
+  have hνnn : 0 ≤ p.ν := p.hν.le
+  calc |p.ν * intervalDomainLift (u₁ τ) y.1 ^ p.γ -
+          p.ν * intervalDomainLift (u₂ τ) y.1 ^ p.γ|
+      = p.ν * |intervalDomainLift (u₁ τ) y.1 ^ p.γ -
+          intervalDomainLift (u₂ τ) y.1 ^ p.γ| := by
+        rw [← mul_sub, abs_mul, abs_of_nonneg hνnn]
+    _ ≤ p.ν * (p.γ * M ^ (p.γ - 1) *
+          |intervalDomainLift (u₁ τ) y.1 - intervalDomainLift (u₂ τ) y.1|) :=
+        mul_le_mul_of_nonneg_left hlip hνnn
+    _ = p.ν * (p.γ * M ^ (p.γ - 1)) *
+          |intervalDomainLift (u₁ τ) y.1 - intervalDomainLift (u₂ τ) y.1| := by ring
 
 end
 
