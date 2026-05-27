@@ -58,12 +58,14 @@
     `C²,α` parabolic Schauder bound on `u`.  Documented gap below.
 -/
 import ShenWork.PDE.IntervalDomainExistence
+import ShenWork.PDE.IntervalCoupledBallEstimates
 import ShenWork.PDE.IntervalResolverLaplacianBridge
 import ShenWork.PDE.IntervalNeumannEllipticResolverR
 import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
 
 open ShenWork.Paper2 ShenWork.IntervalDomain ShenWork.PDE MeasureTheory
 open ShenWork.IntervalResolverLaplacianBridge
+open ShenWork.IntervalCoupledBallEstimates
 open scoped Topology
 
 noncomputable section
@@ -1235,6 +1237,551 @@ theorem intervalDomainChemotaxisDiv_classical_K_D_form_interior
   rw [h₁, h₂]
   exact hbound y hy_Icc
 
+/-! ## Classical-strength C¹_x parallel ball estimates predicate
+
+The existing `IntervalCoupledResolverBallEstimates` (in
+`IntervalDomainExistence.lean`, line 1959) is the four-conjunct interface that
+discharges the coupled Duhamel contraction on a sup-norm trajectory ball.  Its
+chemotaxis-divergence conjunct (`hchem`) is parameterized over
+`intervalTrajectoryBoundedOn T M u`, a sup-norm-only ball hypothesis whose
+hypotheses cannot fire `intervalDomainChemotaxisDiv_classical_K_D_form_interior`
+(which needs `IntervalDomainClassicalC1Snapshot` strength).
+
+We now define a STRONGER parallel ball-estimates predicate
+`IntervalCoupledClassicalC1BallEstimates` whose chemotaxis conjunct
+is parameterized over **C¹_x classical snapshots**, in the
+`K_u · D + K_g · D_g` two-dimensional shape of the proven Lipschitz.  This is
+the natural target for the chemDiv Lipschitz on the C¹_x ball.
+
+The four conjuncts of the parallel predicate are:
+
+  * (`hmap`) Coupled Duhamel maps the C¹_x ball into itself (the Duhamel
+    operator preserves both the sup-norm `M` and the C¹_x gradient-sup `G_u`
+    when applied to a C¹_x snapshot trajectory).  This is the genuine
+    Schauder/heat-kernel-smoothing step — recorded as an EXPLICIT FIELD,
+    not discharged.
+  * (`hchem`) chemDiv pointwise Lipschitz on the C¹_x ball:
+    `|chemDiv₁ − chemDiv₂| ≤ K_u · D + K_g · D_g` at interior `y`, where
+    `D = sup |Δ(lift u)|`, `D_g = sup |Δ(deriv lift u)|`.  ASSEMBLED from
+    `intervalDomainChemotaxisDiv_classical_K_D_form_interior` (proved above)
+    plus the named resolver Lipschitz constants `L_V, L_R, L_H` and an `H`
+    sup bound on `intervalNeumannResolverRLap` on the ball.
+  * (`hint`) Time-integrability of the Duhamel integrand:
+    `s ↦ S(t-s)(lift(coupledSource(u s, R(u s))))(x)` on `Icc 0 t`.  Assembled
+    from `intervalCoupledDuhamelIntegrand_integrableOn` given chemDiv-sup,
+    log-sup and a.e.-strong-measurability of the semigroup integrand.
+  * (`hlift_int`) Integrability of the lifted coupled source against the
+    interval measure.  Assembled from `intervalCoupledSource_lift_integrable`
+    given chemDiv-sup, log-sup and a.e.-strong-measurability of the lift.
+
+The structure is a `Prop`-valued predicate so it has no implementation gap of
+its own; constructors that supply the four conjuncts compose into it. -/
+
+/-- **C¹_x classical-strength parallel ball-estimates predicate.**
+
+The four conjuncts (hmap, hchem, hint, hlift_int) for the coupled chemotaxis-
+logistic Duhamel scaffold, parameterized over **C¹_x classical snapshots**
+rather than sup-norm trajectory ball.  The `hchem` conjunct is in the
+two-dimensional `K_u · D + K_g · D_g` shape supplied by
+`intervalDomainChemotaxisDiv_classical_K_D_form_interior`.
+
+Type parameters:
+  * `p : CM2Params` — chemotaxis parameters.
+  * `R : (intervalDomainPoint → ℝ) → intervalDomainPoint → ℝ` — the elliptic
+    resolver mapping `u ↦ v`.
+  * `u₀ : intervalDomainPoint → ℝ` — initial datum.
+  * `T M G_u K_u K_g : ℝ` — time horizon, sup bound, C¹_x gradient sup bound,
+    and the two-dimensional Lipschitz constants for chemDiv. -/
+def IntervalCoupledClassicalC1BallEstimates
+    (p : CM2Params)
+    (R : (intervalDomainPoint → ℝ) → intervalDomainPoint → ℝ)
+    (u₀ : intervalDomainPoint → ℝ)
+    (T M G_u K_u K_g : ℝ) : Prop :=
+  -- (hmap): Coupled Duhamel preserves the C¹_x ball.  Explicit field — the
+  -- genuine Schauder/heat-kernel-smoothing step required for the C¹_x ball.
+  (∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        IntervalDomainClassicalC1Snapshot p T M G_u
+          (fun t : ℝ => fun x : intervalDomainPoint =>
+            intervalCoupledDuhamelOperator p R u₀ u t x) v) ∧
+  -- (hchem): chemDiv K_u · D + K_g · D_g Lipschitz at interior y on the
+  -- C¹_x ball.  Discharged by `intervalDomainChemotaxisDiv_classical_K_D_form_interior`.
+  (∀ (u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ) (D D_g : ℝ),
+      0 ≤ D → 0 ≤ D_g →
+      IntervalDomainClassicalC1Snapshot p T M G_u u₁ v₁ →
+      IntervalDomainClassicalC1Snapshot p T M G_u u₂ v₂ →
+      (∀ τ x, τ ∈ Set.Ioo (0:ℝ) T → x ∈ Set.Icc (0:ℝ) 1 →
+        |intervalDomainLift (u₁ τ) x - intervalDomainLift (u₂ τ) x| ≤ D) →
+      (∀ τ x, τ ∈ Set.Ioo (0:ℝ) T → x ∈ Set.Icc (0:ℝ) 1 →
+        |deriv (intervalDomainLift (u₁ τ)) x
+          - deriv (intervalDomainLift (u₂ τ)) x| ≤ D_g) →
+        ∀ (τ : ℝ) (y : intervalDomainPoint),
+          τ ∈ Set.Ioo (0:ℝ) T → y.1 ∈ Set.Ioo (0:ℝ) 1 →
+          |intervalDomainChemotaxisDiv p (u₁ τ) (v₁ τ) y -
+            intervalDomainChemotaxisDiv p (u₂ τ) (v₂ τ) y| ≤ K_u * D + K_g * D_g) ∧
+  -- (hint): Time-integrability of Duhamel integrand on the C¹_x ball.
+  (∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        ∀ (t : ℝ) (x : intervalDomainPoint), 0 ≤ t → t ≤ T →
+          MeasureTheory.IntegrableOn
+            (fun s => intervalSemigroupOperator 1 (t - s)
+              (intervalDomainLift (intervalCoupledSource p (u s) (R (u s)))) x.1)
+            (Set.Icc 0 t) MeasureTheory.volume) ∧
+  -- (hlift_int): Integrability of the lifted coupled source on the C¹_x ball.
+  (∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        ∀ s, 0 ≤ s → s ≤ T →
+          MeasureTheory.Integrable
+            (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+            (intervalMeasure 1))
+
+namespace IntervalCoupledClassicalC1BallEstimates
+
+variable {p : CM2Params}
+  {R : (intervalDomainPoint → ℝ) → intervalDomainPoint → ℝ}
+  {u₀ : intervalDomainPoint → ℝ} {T M G_u K_u K_g : ℝ}
+
+theorem hmap (h : IntervalCoupledClassicalC1BallEstimates p R u₀ T M G_u K_u K_g) :
+    ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        IntervalDomainClassicalC1Snapshot p T M G_u
+          (fun t : ℝ => fun x : intervalDomainPoint =>
+            intervalCoupledDuhamelOperator p R u₀ u t x) v :=
+  h.1
+
+theorem hchem (h : IntervalCoupledClassicalC1BallEstimates p R u₀ T M G_u K_u K_g) :
+    ∀ (u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ) (D D_g : ℝ),
+      0 ≤ D → 0 ≤ D_g →
+      IntervalDomainClassicalC1Snapshot p T M G_u u₁ v₁ →
+      IntervalDomainClassicalC1Snapshot p T M G_u u₂ v₂ →
+      (∀ τ x, τ ∈ Set.Ioo (0:ℝ) T → x ∈ Set.Icc (0:ℝ) 1 →
+        |intervalDomainLift (u₁ τ) x - intervalDomainLift (u₂ τ) x| ≤ D) →
+      (∀ τ x, τ ∈ Set.Ioo (0:ℝ) T → x ∈ Set.Icc (0:ℝ) 1 →
+        |deriv (intervalDomainLift (u₁ τ)) x
+          - deriv (intervalDomainLift (u₂ τ)) x| ≤ D_g) →
+        ∀ (τ : ℝ) (y : intervalDomainPoint),
+          τ ∈ Set.Ioo (0:ℝ) T → y.1 ∈ Set.Ioo (0:ℝ) 1 →
+          |intervalDomainChemotaxisDiv p (u₁ τ) (v₁ τ) y -
+            intervalDomainChemotaxisDiv p (u₂ τ) (v₂ τ) y| ≤ K_u * D + K_g * D_g :=
+  h.2.1
+
+theorem hint (h : IntervalCoupledClassicalC1BallEstimates p R u₀ T M G_u K_u K_g) :
+    ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        ∀ (t : ℝ) (x : intervalDomainPoint), 0 ≤ t → t ≤ T →
+          MeasureTheory.IntegrableOn
+            (fun s => intervalSemigroupOperator 1 (t - s)
+              (intervalDomainLift (intervalCoupledSource p (u s) (R (u s)))) x.1)
+            (Set.Icc 0 t) MeasureTheory.volume :=
+  h.2.2.1
+
+theorem hlift_int (h : IntervalCoupledClassicalC1BallEstimates p R u₀ T M G_u K_u K_g) :
+    ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        ∀ s, 0 ≤ s → s ≤ T →
+          MeasureTheory.Integrable
+            (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+            (intervalMeasure 1) :=
+  h.2.2.2
+
+end IntervalCoupledClassicalC1BallEstimates
+
+/-! ### Assembly of `hchem` from the proven chemDiv K-form
+
+The `hchem` conjunct in the structure form has fixed `K_u K_g` (parameters
+of the structure).  To assemble it from
+`intervalDomainChemotaxisDiv_classical_K_D_form_interior`, we additionally need
+a UNIFORM L∞ sup bound `G` on `resolverGradReal` over the trajectory ball
+(this absorbs the per-snapshot `G` that the K-form theorem extracts via
+`resolverGradReal_bounded` into a uniform constant), plus the L∞ `H` sup
+bound on `intervalNeumannResolverRLap` and the three resolver-Lipschitz
+factorizations `(L_V, L_R, L_H)`.  Given these, `K_u, K_g` are fixed by:
+
+```
+  K_u := (H + p.β · G²) + (G_u + 2 p.β · M · G) · L_R + M · L_H
+         + (G_u · G + M · H) · p.β · L_V
+         + p.β · (M · G²) · (p.β + 1) · L_V
+  K_g := G
+```
+
+and the chemDiv `K_u · D + K_g · D_g` bound holds across the entire ball. -/
+
+/-- **Per-pair chemDiv `K_u · D + K_g · D_g` Lipschitz against a uniform `G`.**
+
+Strengthens `intervalDomainChemotaxisDiv_classical_K_D_form_interior` by
+threading a UNIFORM `G` sup bound (rather than the snapshot-extracted one) on
+`resolverGradReal`, yielding FIXED `K_u, K_g` constants that no longer depend
+on the specific snapshot pair.  This is the per-pair piece of `hchem`. -/
+theorem intervalDomainChemotaxisDiv_classical_K_D_form_interior_uniformG
+    {p : CM2Params} {T M G_u : ℝ}
+    {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ}
+    (hsnap₁ : IntervalDomainClassicalC1Snapshot p T M G_u u₁ v₁)
+    (hsnap₂ : IntervalDomainClassicalC1Snapshot p T M G_u u₂ v₂)
+    (hMnn : 0 ≤ M) (hGunn : 0 ≤ G_u)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T)
+    {G H : ℝ} (hGnn : 0 ≤ G) (hHnn : 0 ≤ H)
+    (hG₁ : ∀ x ∈ Set.Icc (0:ℝ) 1, |resolverGradReal p (u₁ τ) x| ≤ G)
+    (hG₂ : ∀ x ∈ Set.Icc (0:ℝ) 1, |resolverGradReal p (u₂ τ) x| ≤ G)
+    (hH₁ : ∀ y : intervalDomainPoint, y.1 ∈ Set.Icc (0:ℝ) 1 →
+      |intervalNeumannResolverRLap p (u₁ τ) y| ≤ H)
+    (hH₂ : ∀ y : intervalDomainPoint, y.1 ∈ Set.Icc (0:ℝ) 1 →
+      |intervalNeumannResolverRLap p (u₂ τ) y| ≤ H)
+    {D D_g L_V L_R L_H : ℝ}
+    (hDnn : 0 ≤ D) (hDgnn : 0 ≤ D_g)
+    (hLVnn : 0 ≤ L_V) (hLRnn : 0 ≤ L_R) (hLHnn : 0 ≤ L_H)
+    (hu_diff :
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |intervalDomainLift (u₁ τ) x - intervalDomainLift (u₂ τ) x| ≤ D)
+    (hdu_diff :
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |deriv (intervalDomainLift (u₁ τ)) x
+          - deriv (intervalDomainLift (u₂ τ)) x| ≤ D_g)
+    (hv_diff :
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |intervalDomainLift (v₁ τ) x - intervalDomainLift (v₂ τ) x| ≤ L_V * D)
+    (hg_diff :
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |resolverGradReal p (u₁ τ) x - resolverGradReal p (u₂ τ) x| ≤ L_R * D)
+    (hH_diff :
+      ∀ y : intervalDomainPoint, y.1 ∈ Set.Icc (0 : ℝ) 1 →
+        |intervalNeumannResolverRLap p (u₁ τ) y
+          - intervalNeumannResolverRLap p (u₂ τ) y| ≤ L_H * D) :
+    ∀ y : intervalDomainPoint, y.1 ∈ Set.Ioo (0 : ℝ) 1 →
+      |intervalDomainChemotaxisDiv p (u₁ τ) (v₁ τ) y
+        - intervalDomainChemotaxisDiv p (u₂ τ) (v₂ τ) y|
+        ≤ ((H + p.β * G^2)
+              + (G_u + 2 * p.β * M * G) * L_R
+              + M * L_H
+              + (G_u * G + M * H) * p.β * L_V
+              + p.β * (M * G^2) * (p.β + 1) * L_V) * D
+          + G * D_g := by
+  classical
+  -- The K-form theorem extracts its `G` from `resolverGradReal_bounded`.
+  -- We reroute via the underlying `intervalChemDivRepr_classical_diff_abs_le`
+  -- which factors through any uniform `G` bound on resolverGradReal — except
+  -- the file's lemma uses `max G₁ G₂`.  We therefore prove the bound by
+  -- directly invoking `chemDivRepr_diff_pointwise_bound` with our supplied
+  -- uniform `G`, then composing with the chemDiv = chemDivRepr identity.
+  intro y hy_int
+  have hy_Icc : y.1 ∈ Set.Icc (0:ℝ) 1 := Set.Ioo_subset_Icc_self hy_int
+  have hsol₁ := hsnap₁.isSolution
+  have hsol₂ := hsnap₂.isSolution
+  have hv₁nn := solution_lift_v_nonneg_Icc hsol₁ hτ
+  have hv₂nn := solution_lift_v_nonneg_Icc hsol₂ hτ
+  have hβnn : 0 ≤ p.β := p.hβ
+  -- Per-factor bounds.
+  have ha₁ : |intervalDomainLift (u₁ τ) y.1| ≤ M := hsnap₁.sup_bound hτ hy_Icc
+  have ha₂ : |intervalDomainLift (u₂ τ) y.1| ≤ M := hsnap₂.sup_bound hτ hy_Icc
+  have hdu₁ : |deriv (intervalDomainLift (u₁ τ)) y.1| ≤ G_u :=
+    hsnap₁.grad_sup_bound hτ hy_Icc
+  have hdu₂ : |deriv (intervalDomainLift (u₂ τ)) y.1| ≤ G_u :=
+    hsnap₂.grad_sup_bound hτ hy_Icc
+  have hgv₁ : |resolverGradReal p (u₁ τ) y.1| ≤ G := hG₁ y.1 hy_Icc
+  have hgv₂ : |resolverGradReal p (u₂ τ) y.1| ≤ G := hG₂ y.1 hy_Icc
+  have hgp₁ : |intervalNeumannResolverRLap p (u₁ τ) y| ≤ H := hH₁ y hy_Icc
+  have hgp₂ : |intervalNeumannResolverRLap p (u₂ τ) y| ≤ H := hH₂ y hy_Icc
+  have hq₁ := chemQuotient_mem_Ioc hβnn (hv₁nn y.1 hy_Icc)
+  have hq₂ := chemQuotient_mem_Ioc hβnn (hv₂nn y.1 hy_Icc)
+  have hqLip := chemQuotient_lipschitz hβnn (hv₁nn y.1 hy_Icc) (hv₂nn y.1 hy_Icc)
+  have hqp₁ := chemQuotient2_mem_Ioc hβnn (hv₁nn y.1 hy_Icc)
+  have hqp₂ := chemQuotient2_mem_Ioc hβnn (hv₂nn y.1 hy_Icc)
+  have hqpLip := chemQuotient2_lipschitz hβnn (hv₁nn y.1 hy_Icc) (hv₂nn y.1 hy_Icc)
+  -- Algebraic bound on the chemDivRepr difference.
+  have hbound := chemDivRepr_diff_pointwise_bound
+    (du₁ := deriv (intervalDomainLift (u₁ τ)) y.1)
+    (du₂ := deriv (intervalDomainLift (u₂ τ)) y.1)
+    (a₁ := intervalDomainLift (u₁ τ) y.1)
+    (a₂ := intervalDomainLift (u₂ τ) y.1)
+    (g₁ := resolverGradReal p (u₁ τ) y.1)
+    (g₂ := resolverGradReal p (u₂ τ) y.1)
+    (gp₁ := intervalNeumannResolverRLap p (u₁ τ) y)
+    (gp₂ := intervalNeumannResolverRLap p (u₂ τ) y)
+    (q₁ := (1 + intervalDomainLift (v₁ τ) y.1) ^ (-p.β))
+    (q₂ := (1 + intervalDomainLift (v₂ τ) y.1) ^ (-p.β))
+    (qp₁ := (1 + intervalDomainLift (v₁ τ) y.1) ^ (-p.β - 1))
+    (qp₂ := (1 + intervalDomainLift (v₂ τ) y.1) ^ (-p.β - 1))
+    (v₁ := intervalDomainLift (v₁ τ) y.1)
+    (v₂ := intervalDomainLift (v₂ τ) y.1)
+    (A := M) (Du := G_u) (G := G) (Gp := H)
+    (Lq := p.β) (Lqp := p.β + 1) (β := p.β)
+    hdu₁ hdu₂ ha₁ ha₂ hgv₁ hgv₂ hgp₁ hgp₂
+    hq₁.1.le hq₁.2 hq₂.1.le hq₂.2
+    hqp₁.1.le hqp₁.2 hqp₂.1.le hqp₂.2
+    hMnn hGunn hGnn hHnn hβnn hqLip hqpLip
+  -- chemDiv = chemDivRepr identity on the interior.
+  have hch₁ := intervalDomainChemotaxisDiv_eq_chemDivRepr_interior
+    hsol₁ hτ (y := y) hy_int
+  have hch₂ := intervalDomainChemotaxisDiv_eq_chemDivRepr_interior
+    hsol₂ hτ (y := y) hy_int
+  have hu := hu_diff y.1 hy_Icc
+  have hdu := hdu_diff y.1 hy_Icc
+  have hv := hv_diff y.1 hy_Icc
+  have hg := hg_diff y.1 hy_Icc
+  have hHd := hH_diff y hy_Icc
+  have hHβG2 : 0 ≤ H + p.β * G^2 :=
+    add_nonneg hHnn (mul_nonneg hβnn (sq_nonneg _))
+  have h2pβMG : 0 ≤ 2 * p.β * M * G := by
+    have : 0 ≤ 2 * p.β := by positivity
+    exact mul_nonneg (mul_nonneg this hMnn) hGnn
+  have hGu2pβMG : 0 ≤ G_u + 2 * p.β * M * G := add_nonneg hGunn h2pβMG
+  have hMG : 0 ≤ M * G := mul_nonneg hMnn hGnn
+  have hGMnn : 0 ≤ (G_u * G + M * H) * p.β :=
+    mul_nonneg (add_nonneg (mul_nonneg hGunn hGnn) (mul_nonneg hMnn hHnn)) hβnn
+  have hβMG2nn : 0 ≤ p.β * (M * G^2) * (p.β + 1) := by
+    have hMG2 : 0 ≤ M * G^2 := mul_nonneg hMnn (sq_nonneg _)
+    have : 0 ≤ p.β + 1 := by linarith
+    exact mul_nonneg (mul_nonneg hβnn hMG2) this
+  -- Bound each factor difference.
+  have c1 : G * |deriv (intervalDomainLift (u₁ τ)) y.1
+              - deriv (intervalDomainLift (u₂ τ)) y.1|
+            ≤ G * D_g := mul_le_mul_of_nonneg_left hdu hGnn
+  have c2 : (H + p.β * G^2) * |intervalDomainLift (u₁ τ) y.1
+                                - intervalDomainLift (u₂ τ) y.1|
+            ≤ (H + p.β * G^2) * D := mul_le_mul_of_nonneg_left hu hHβG2
+  have c3 : (G_u + 2 * p.β * M * G) * |resolverGradReal p (u₁ τ) y.1
+                                        - resolverGradReal p (u₂ τ) y.1|
+            ≤ (G_u + 2 * p.β * M * G) * (L_R * D) :=
+    mul_le_mul_of_nonneg_left hg hGu2pβMG
+  have c4 : M * |intervalNeumannResolverRLap p (u₁ τ) y
+                - intervalNeumannResolverRLap p (u₂ τ) y|
+            ≤ M * (L_H * D) := mul_le_mul_of_nonneg_left hHd hMnn
+  have c5 : (G_u * G + M * H) * p.β * |intervalDomainLift (v₁ τ) y.1
+                                        - intervalDomainLift (v₂ τ) y.1|
+            ≤ (G_u * G + M * H) * p.β * (L_V * D) :=
+    mul_le_mul_of_nonneg_left hv hGMnn
+  have c6 : p.β * (M * G^2) * (p.β + 1) * |intervalDomainLift (v₁ τ) y.1
+                                            - intervalDomainLift (v₂ τ) y.1|
+            ≤ p.β * (M * G^2) * (p.β + 1) * (L_V * D) :=
+    mul_le_mul_of_nonneg_left hv hβMG2nn
+  -- Unfold `intervalChemDivRepr` on both sides and combine.
+  have hrepr_unfold₁ :
+      intervalChemDivRepr p (u₁ τ) (v₁ τ) y
+        = deriv (intervalDomainLift (u₁ τ)) y.1 * resolverGradReal p (u₁ τ) y.1
+              * (1 + intervalDomainLift (v₁ τ) y.1) ^ (-p.β)
+          + intervalDomainLift (u₁ τ) y.1 * intervalNeumannResolverRLap p (u₁ τ) y
+              * (1 + intervalDomainLift (v₁ τ) y.1) ^ (-p.β)
+          - p.β * intervalDomainLift (u₁ τ) y.1
+              * (resolverGradReal p (u₁ τ) y.1)^2
+              * (1 + intervalDomainLift (v₁ τ) y.1) ^ (-p.β - 1) := rfl
+  have hrepr_unfold₂ :
+      intervalChemDivRepr p (u₂ τ) (v₂ τ) y
+        = deriv (intervalDomainLift (u₂ τ)) y.1 * resolverGradReal p (u₂ τ) y.1
+              * (1 + intervalDomainLift (v₂ τ) y.1) ^ (-p.β)
+          + intervalDomainLift (u₂ τ) y.1 * intervalNeumannResolverRLap p (u₂ τ) y
+              * (1 + intervalDomainLift (v₂ τ) y.1) ^ (-p.β)
+          - p.β * intervalDomainLift (u₂ τ) y.1
+              * (resolverGradReal p (u₂ τ) y.1)^2
+              * (1 + intervalDomainLift (v₂ τ) y.1) ^ (-p.β - 1) := rfl
+  rw [hch₁, hch₂, hrepr_unfold₁, hrepr_unfold₂]
+  -- The algebraic chemDivRepr bound gives 8 terms; we bound them
+  -- by the closed-form K_u·D + K_g·D_g expression.
+  calc |(deriv (intervalDomainLift (u₁ τ)) y.1 * resolverGradReal p (u₁ τ) y.1
+              * (1 + intervalDomainLift (v₁ τ) y.1) ^ (-p.β)
+          + intervalDomainLift (u₁ τ) y.1 * intervalNeumannResolverRLap p (u₁ τ) y
+              * (1 + intervalDomainLift (v₁ τ) y.1) ^ (-p.β)
+          - p.β * intervalDomainLift (u₁ τ) y.1
+              * (resolverGradReal p (u₁ τ) y.1)^2
+              * (1 + intervalDomainLift (v₁ τ) y.1) ^ (-p.β - 1))
+        - (deriv (intervalDomainLift (u₂ τ)) y.1 * resolverGradReal p (u₂ τ) y.1
+              * (1 + intervalDomainLift (v₂ τ) y.1) ^ (-p.β)
+          + intervalDomainLift (u₂ τ) y.1 * intervalNeumannResolverRLap p (u₂ τ) y
+              * (1 + intervalDomainLift (v₂ τ) y.1) ^ (-p.β)
+          - p.β * intervalDomainLift (u₂ τ) y.1
+              * (resolverGradReal p (u₂ τ) y.1)^2
+              * (1 + intervalDomainLift (v₂ τ) y.1) ^ (-p.β - 1))|
+      ≤ G * |deriv (intervalDomainLift (u₁ τ)) y.1
+              - deriv (intervalDomainLift (u₂ τ)) y.1|
+        + H * |intervalDomainLift (u₁ τ) y.1 - intervalDomainLift (u₂ τ) y.1|
+        + M * |intervalNeumannResolverRLap p (u₁ τ) y
+                - intervalNeumannResolverRLap p (u₂ τ) y|
+        + G_u * |resolverGradReal p (u₁ τ) y.1 - resolverGradReal p (u₂ τ) y.1|
+        + (G_u * G + M * H) * p.β * |intervalDomainLift (v₁ τ) y.1
+                                      - intervalDomainLift (v₂ τ) y.1|
+        + p.β * (M * G^2) * (p.β + 1) * |intervalDomainLift (v₁ τ) y.1
+                                          - intervalDomainLift (v₂ τ) y.1|
+        + p.β * G^2 * |intervalDomainLift (u₁ τ) y.1 - intervalDomainLift (u₂ τ) y.1|
+        + p.β * M * (G + G) * |resolverGradReal p (u₁ τ) y.1
+                                - resolverGradReal p (u₂ τ) y.1| := hbound
+    _ ≤ G * D_g
+        + H * D
+        + M * (L_H * D)
+        + G_u * (L_R * D)
+        + (G_u * G + M * H) * p.β * (L_V * D)
+        + p.β * (M * G^2) * (p.β + 1) * (L_V * D)
+        + p.β * G^2 * D
+        + p.β * M * (G + G) * (L_R * D) := by
+        have hH_nn := hHnn
+        have hM_nn := hMnn
+        have hGu_nn := hGunn
+        have hG_nn := hGnn
+        have hHd_le : H * |intervalDomainLift (u₁ τ) y.1
+                            - intervalDomainLift (u₂ τ) y.1| ≤ H * D :=
+          mul_le_mul_of_nonneg_left hu hHnn
+        have hMLHd : M * |intervalNeumannResolverRLap p (u₁ τ) y
+                            - intervalNeumannResolverRLap p (u₂ τ) y|
+                      ≤ M * (L_H * D) := mul_le_mul_of_nonneg_left hHd hMnn
+        have hGuLR : G_u * |resolverGradReal p (u₁ τ) y.1
+                            - resolverGradReal p (u₂ τ) y.1| ≤ G_u * (L_R * D) :=
+          mul_le_mul_of_nonneg_left hg hGunn
+        have hβG2_nn : 0 ≤ p.β * G^2 := mul_nonneg hβnn (sq_nonneg _)
+        have hβG2d : p.β * G^2 * |intervalDomainLift (u₁ τ) y.1
+                                  - intervalDomainLift (u₂ τ) y.1| ≤ p.β * G^2 * D :=
+          mul_le_mul_of_nonneg_left hu hβG2_nn
+        have hβM2G_nn : 0 ≤ p.β * M * (G + G) := by positivity
+        have hβM2Gg : p.β * M * (G + G) * |resolverGradReal p (u₁ τ) y.1
+                                            - resolverGradReal p (u₂ τ) y.1|
+                       ≤ p.β * M * (G + G) * (L_R * D) :=
+          mul_le_mul_of_nonneg_left hg hβM2G_nn
+        linarith [c1, hHd_le, hMLHd, hGuLR, c5, c6, hβG2d, hβM2Gg]
+    _ = ((H + p.β * G^2)
+              + (G_u + 2 * p.β * M * G) * L_R
+              + M * L_H
+              + (G_u * G + M * H) * p.β * L_V
+              + p.β * (M * G^2) * (p.β + 1) * L_V) * D
+          + G * D_g := by ring
+
+/-- **Assembly of `IntervalCoupledClassicalC1BallEstimates`** from the
+constituent inputs: an explicit `hmap` (Schauder / heat-kernel-smoothing
+deferred), the proven chemDiv K-form (uniform-`G` version), and integrability
+inputs (chemDiv-sup, log-sup, and a.e.-strong-measurability of the integrand
+and the lift). -/
+theorem intervalCoupledClassicalC1BallEstimates_assemble
+    {p : CM2Params}
+    {R : (intervalDomainPoint → ℝ) → intervalDomainPoint → ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {T M G_u : ℝ}
+    (hMnn : 0 ≤ M) (hGunn : 0 ≤ G_u)
+    -- (hmap): supplied as an explicit input (Schauder).
+    (hmap : ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        IntervalDomainClassicalC1Snapshot p T M G_u
+          (fun t : ℝ => fun x : intervalDomainPoint =>
+            intervalCoupledDuhamelOperator p R u₀ u t x) v)
+    -- chemDiv K-form inputs:
+    {G H L_V L_R L_H : ℝ}
+    (hGnn : 0 ≤ G) (hHnn : 0 ≤ H)
+    (hLVnn : 0 ≤ L_V) (hLRnn : 0 ≤ L_R) (hLHnn : 0 ≤ L_H)
+    (hG_sup : ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        ∀ τ : ℝ, τ ∈ Set.Ioo (0:ℝ) T →
+          ∀ x ∈ Set.Icc (0:ℝ) 1,
+            |resolverGradReal p (u τ) x| ≤ G)
+    (hH_sup : ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        ∀ τ : ℝ, τ ∈ Set.Ioo (0:ℝ) T →
+          ∀ y : intervalDomainPoint, y.1 ∈ Set.Icc (0:ℝ) 1 →
+            |intervalNeumannResolverRLap p (u τ) y| ≤ H)
+    (hv_lip : ∀ (u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+      0 ≤ D →
+      IntervalDomainClassicalC1Snapshot p T M G_u u₁ v₁ →
+      IntervalDomainClassicalC1Snapshot p T M G_u u₂ v₂ →
+      (∀ τ x, τ ∈ Set.Ioo (0:ℝ) T → x ∈ Set.Icc (0:ℝ) 1 →
+        |intervalDomainLift (u₁ τ) x - intervalDomainLift (u₂ τ) x| ≤ D) →
+        ∀ τ : ℝ, τ ∈ Set.Ioo (0:ℝ) T →
+          ∀ x ∈ Set.Icc (0:ℝ) 1,
+            |intervalDomainLift (v₁ τ) x - intervalDomainLift (v₂ τ) x| ≤ L_V * D)
+    (hg_lip : ∀ (u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+      0 ≤ D →
+      IntervalDomainClassicalC1Snapshot p T M G_u u₁ v₁ →
+      IntervalDomainClassicalC1Snapshot p T M G_u u₂ v₂ →
+      (∀ τ x, τ ∈ Set.Ioo (0:ℝ) T → x ∈ Set.Icc (0:ℝ) 1 →
+        |intervalDomainLift (u₁ τ) x - intervalDomainLift (u₂ τ) x| ≤ D) →
+        ∀ τ : ℝ, τ ∈ Set.Ioo (0:ℝ) T →
+          ∀ x ∈ Set.Icc (0:ℝ) 1,
+            |resolverGradReal p (u₁ τ) x - resolverGradReal p (u₂ τ) x| ≤ L_R * D)
+    (hH_lip : ∀ (u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+      0 ≤ D →
+      IntervalDomainClassicalC1Snapshot p T M G_u u₁ v₁ →
+      IntervalDomainClassicalC1Snapshot p T M G_u u₂ v₂ →
+      (∀ τ x, τ ∈ Set.Ioo (0:ℝ) T → x ∈ Set.Icc (0:ℝ) 1 →
+        |intervalDomainLift (u₁ τ) x - intervalDomainLift (u₂ τ) x| ≤ D) →
+        ∀ τ : ℝ, τ ∈ Set.Ioo (0:ℝ) T →
+          ∀ y : intervalDomainPoint, y.1 ∈ Set.Icc (0:ℝ) 1 →
+            |intervalNeumannResolverRLap p (u₁ τ) y
+              - intervalNeumannResolverRLap p (u₂ τ) y| ≤ L_H * D)
+    -- Integrability inputs:
+    {Kc Lc : ℝ} (hKc : 0 ≤ Kc) (hLc : 0 ≤ Lc)
+    (hchem_sup_ball : ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        ∀ τ : ℝ, 0 ≤ τ → τ ≤ T →
+          ∀ y : intervalDomainPoint,
+            |intervalDomainChemotaxisDiv p (u τ) (R (u τ)) y| ≤ Kc)
+    (hlog_sup_ball : ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        ∀ τ : ℝ, 0 ≤ τ → τ ≤ T →
+          ∀ y : intervalDomainPoint,
+            |intervalLogisticSource p (u τ) y| ≤ Lc)
+    (hsemigroup_meas : ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        ∀ (t : ℝ) (x : intervalDomainPoint), 0 ≤ t → t ≤ T →
+          AEStronglyMeasurable
+            (fun s => intervalSemigroupOperator 1 (t - s)
+              (intervalDomainLift (intervalCoupledSource p (u s) (R (u s)))) x.1)
+            (volume.restrict (Set.Icc 0 t)))
+    (hlift_meas : ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        ∀ s, 0 ≤ s → s ≤ T →
+          AEStronglyMeasurable
+            (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+            (intervalMeasure 1)) :
+    let K_u : ℝ := (H + p.β * G^2)
+              + (G_u + 2 * p.β * M * G) * L_R
+              + M * L_H
+              + (G_u * G + M * H) * p.β * L_V
+              + p.β * (M * G^2) * (p.β + 1) * L_V
+    let K_g : ℝ := G
+    IntervalCoupledClassicalC1BallEstimates p R u₀ T M G_u K_u K_g := by
+  classical
+  intro K_u K_g
+  refine ⟨hmap, ?_, ?_, ?_⟩
+  · -- hchem
+    intro u₁ v₁ u₂ v₂ D D_g hDnn hDgnn hsnap₁ hsnap₂ hu_diff hdu_diff τ y hτ hy_int
+    have hG₁ : ∀ x ∈ Set.Icc (0:ℝ) 1, |resolverGradReal p (u₁ τ) x| ≤ G :=
+      fun x hx => hG_sup u₁ v₁ hsnap₁ τ hτ x hx
+    have hG₂ : ∀ x ∈ Set.Icc (0:ℝ) 1, |resolverGradReal p (u₂ τ) x| ≤ G :=
+      fun x hx => hG_sup u₂ v₂ hsnap₂ τ hτ x hx
+    have hH₁ : ∀ y : intervalDomainPoint, y.1 ∈ Set.Icc (0:ℝ) 1 →
+        |intervalNeumannResolverRLap p (u₁ τ) y| ≤ H :=
+      fun y hy => hH_sup u₁ v₁ hsnap₁ τ hτ y hy
+    have hH₂ : ∀ y : intervalDomainPoint, y.1 ∈ Set.Icc (0:ℝ) 1 →
+        |intervalNeumannResolverRLap p (u₂ τ) y| ≤ H :=
+      fun y hy => hH_sup u₂ v₂ hsnap₂ τ hτ y hy
+    have hu_τ : ∀ x ∈ Set.Icc (0:ℝ) 1,
+        |intervalDomainLift (u₁ τ) x - intervalDomainLift (u₂ τ) x| ≤ D :=
+      fun x hx => hu_diff τ x hτ hx
+    have hdu_τ : ∀ x ∈ Set.Icc (0:ℝ) 1,
+        |deriv (intervalDomainLift (u₁ τ)) x
+          - deriv (intervalDomainLift (u₂ τ)) x| ≤ D_g :=
+      fun x hx => hdu_diff τ x hτ hx
+    have hv_τ : ∀ x ∈ Set.Icc (0:ℝ) 1,
+        |intervalDomainLift (v₁ τ) x - intervalDomainLift (v₂ τ) x| ≤ L_V * D :=
+      hv_lip u₁ v₁ u₂ v₂ D hDnn hsnap₁ hsnap₂ hu_diff τ hτ
+    have hg_τ : ∀ x ∈ Set.Icc (0:ℝ) 1,
+        |resolverGradReal p (u₁ τ) x - resolverGradReal p (u₂ τ) x| ≤ L_R * D :=
+      hg_lip u₁ v₁ u₂ v₂ D hDnn hsnap₁ hsnap₂ hu_diff τ hτ
+    have hH_τ : ∀ y : intervalDomainPoint, y.1 ∈ Set.Icc (0:ℝ) 1 →
+        |intervalNeumannResolverRLap p (u₁ τ) y
+          - intervalNeumannResolverRLap p (u₂ τ) y| ≤ L_H * D :=
+      hH_lip u₁ v₁ u₂ v₂ D hDnn hsnap₁ hsnap₂ hu_diff τ hτ
+    exact intervalDomainChemotaxisDiv_classical_K_D_form_interior_uniformG
+      hsnap₁ hsnap₂ hMnn hGunn hτ hGnn hHnn hG₁ hG₂ hH₁ hH₂
+      hDnn hDgnn hLVnn hLRnn hLHnn hu_τ hdu_τ hv_τ hg_τ hH_τ y hy_int
+  · -- hint
+    intro u v hsnap t x ht0 htT
+    refine intervalCoupledDuhamelIntegrand_integrableOn p R u (Kc := Kc) (Lc := Lc)
+      ht0 hKc hLc x ?_ ?_ ?_
+    · exact hsemigroup_meas u v hsnap t x ht0 htT
+    · exact fun s y hs0 hst =>
+        hchem_sup_ball u v hsnap s hs0 (le_trans hst htT) y
+    · exact fun s y hs0 hst =>
+        hlog_sup_ball u v hsnap s hs0 (le_trans hst htT) y
+  · -- hlift_int
+    intro u v hsnap s hs0 hsT
+    exact intervalCoupledSource_lift_integrable p (u s) (R (u s))
+      (hlift_meas u v hsnap s hs0 hsT)
+      (fun y => hchem_sup_ball u v hsnap s hs0 hsT y)
+      (fun y => hlog_sup_ball u v hsnap s hs0 hsT y)
+
 /-! ### Axiom audit for the new C¹_x snapshot declarations.
 Verified `#print axioms` on each of the following prints exactly
 `[propext, Classical.choice, Quot.sound]` (the Mathlib-standard set):
@@ -1248,7 +1795,10 @@ Verified `#print axioms` on each of the following prints exactly
   * `intervalChemDivRepr_classical_K_D_form`
   * `intervalDomainChemotaxisDiv_eq_chemDivRepr_interior`
   * `intervalDomainChemotaxisDiv_classical_K_D_form_interior`
+  * `IntervalCoupledClassicalC1BallEstimates`
+  * `intervalDomainChemotaxisDiv_classical_K_D_form_interior_uniformG`
+  * `intervalCoupledClassicalC1BallEstimates_assemble`
 
-(checked on uisai1, build 8347 axiom-clean.) -/
+(verify on uisai1, build green.) -/
 
 end ShenWork.IntervalCoupledClassicalBallEstimates
