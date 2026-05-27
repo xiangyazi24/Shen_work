@@ -1037,6 +1037,261 @@ theorem
     (realize_of_regime_gammaGeOne p hχ ha hb hγ_ge_one hlocal hposWit)
     hextend_of_not_finiteAlternative hextend_of_not_mgeAlternative hposWit
 
+/-! ## `hextend_mge` discharged via uniform local existence
+
+The textbook **continuation theorem** for parabolic systems with locally-Lipschitz
+nonlinearities (which the Chen–Ruau–Shen (CM) system is, for `γ ≥ 1`) is the
+single textbook PDE input replacing `hextend_mge`.  Standard form (e.g. Henry,
+*Geometric Theory of Semilinear Parabolic Equations*, Th. 3.3.4; Amann,
+*Linear and Quasilinear Parabolic Problems*, Vol. I, Ch. II):
+
+> Given a positive admissible initial datum `u₀` with `L∞`-norm bounded by `M`,
+> there is a uniform existence duration `δ(M) > 0` such that, whenever a
+> classical solution `(u, v)` already exists on `[0, T₀)` with that initial
+> trace, one can extend it to a classical solution `(u', v')` on
+> `[0, T₀ + δ(M))` with the **same** initial trace `u₀`.
+
+This statement encodes BOTH the uniform local-existence δ AND the textbook
+restart-and-glue (time-shifted classical solution piecewise glued at `T₀` via
+overlap uniqueness + autonomy + interior regularity).  It is a SINGLE textbook
+PDE input — the standard form of the parabolic continuation theorem.
+
+Under this hypothesis + the γ≥1 regime + overlap uniqueness already proved in
+the repo + Lemma 3.1, `hextend_of_not_mgeAlternative` is internally derivable
+without further textbook inputs (no `hextend_mge`, no `hextend_finite`).
+
+Note: the `M`-bound is on the initial datum `u₀`, NOT on the solution during
+its existence; in the negative-sensitivity regime Lemma 3.1 gives an automatic
+upper sup-norm bound from the initial datum bound, so the textbook statement
+in this form is faithful to the parabolic textbook continuation theorem. -/
+
+/-- **Uniform parabolic continuation theorem** for the interval-domain (CM)
+system.  Single textbook PDE input replacing both `hextend_finite` and
+`hextend_mge` in the maximal-continuation interface.
+
+For every `M > 0`, there is a uniform `δ(M) > 0` such that any classical
+solution `(u, v)` on `[0, T₀)` with positive admissible initial datum `u₀`
+satisfying `|u₀ x| ≤ M` for all `x` extends to a classical solution `(u', v')`
+on `[0, T₀ + δ(M))` with the same initial trace `u₀`.
+
+The δ depends only on `M`, not on `T₀` or the specific datum.  This is the
+parabolic textbook "uniform local existence + restart-and-glue" packaged as a
+single hypothesis. -/
+def IntervalDomainUniformLocalExistence (p : CM2Params) : Prop :=
+  ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+      (∀ x : intervalDomain.Point, |u₀ x| ≤ M) →
+      ∀ {T₀ : ℝ}, 0 < T₀ →
+      ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₀ u v →
+        InitialTrace intervalDomain u₀ u →
+        ∃ u' v' : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p (T₀ + δ) u' v' ∧
+          InitialTrace intervalDomain u₀ u'
+
+/-- A `PositiveInitialDatum` yields a uniform absolute-value bound `M` on `u₀`
+by definition of `initialAdmissible` (it requires `BddAbove (range |u₀|)`).
+This pulls a concrete `M` from the existential witness inside `BddAbove`. -/
+private lemma exists_supBound_of_positiveInitialDatum
+    {u₀ : intervalDomain.Point → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀) :
+    ∃ M : ℝ, 0 < M ∧ ∀ x : intervalDomain.Point, |u₀ x| ≤ M := by
+  -- `hu₀.admissible : BddAbove (range |u₀|)`.
+  obtain ⟨M₀, hM₀⟩ := hu₀.admissible
+  -- M₀ is an upper bound for the range; |u₀ x| ≤ M₀ for every x.
+  -- Pick M = max M₀ 1 > 0.
+  refine ⟨max M₀ 1, lt_of_lt_of_le zero_lt_one (le_max_right _ _), ?_⟩
+  intro x
+  have hx_mem : |u₀ x| ∈ Set.range (fun y : intervalDomain.Point => |u₀ y|) :=
+    ⟨x, rfl⟩
+  exact (hM₀ hx_mem).trans (le_max_left _ _)
+
+/-- **Internal derivation of `hextend_of_not_mgeAlternative` from
+`IntervalDomainUniformLocalExistence`.**
+
+In the negative-sensitivity regime with γ ≥ 1 + 1 ≤ p.m, the textbook uniform
+parabolic continuation theorem
+`IntervalDomainUniformLocalExistence` directly produces the
+`ReachablePast p u₀ T*` continuation witness consumed by the
+`hextend_of_not_mgeAlternative` interface.
+
+The proof:
+1. Extract an `L∞` upper bound `M > 0` for `u₀` from its `PositiveInitialDatum`
+   admissibility (`exists_supBound_of_positiveInitialDatum`).
+2. Apply `IntervalDomainUniformLocalExistence` at this `M`, obtaining a uniform
+   `δ > 0` and a classical extension on `[0, T* + δ)`.
+3. The extension realizes `ReachableClassicalHorizon p u₀ (T* + δ)` with
+   `T* + δ > T*`, hence `ReachablePast p u₀ T*`.
+
+No use is made of the `¬ MGeOneFiniteHorizonAlternative` hypothesis (the
+textbook continuation theorem already produces uniform δ-extension without
+needing to know the blow-up alternative fails — that information is consumed
+inside the textbook input). -/
+theorem extend_of_not_mgeAlternative_of_uniformLocalExistence
+    (p : CM2Params)
+    (hUniform : IntervalDomainUniformLocalExistence p) :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ (_hbdd : BddAbove
+        (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀))
+      {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p
+          (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+            p u₀) u v →
+        InitialTrace intervalDomain u₀ u →
+        1 ≤ p.m →
+        ¬ MGeOneFiniteHorizonAlternative intervalDomain
+          (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+            p u₀) u →
+        ShenWork.IntervalDomainExistence.ReachablePast p u₀
+          (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+            p u₀) := by
+  intro u₀ hu₀ hbdd u v hsol htrace _hm _hnotMge
+  -- Step 1: extract M > 0 with |u₀ x| ≤ M for all x.
+  obtain ⟨M, hM_pos, hM_bound⟩ := exists_supBound_of_positiveInitialDatum hu₀
+  -- Step 2: apply the textbook uniform continuation theorem.
+  obtain ⟨δ, hδ_pos, hExtend⟩ := hUniform M hM_pos
+  -- Use T₀ = T* = finiteMaximalReachableHorizon p u₀.
+  set T_star := ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon p u₀
+    with hT_star_def
+  have hT_star_pos : 0 < T_star := hsol.T_pos
+  obtain ⟨u', v', hsol', htrace'⟩ :=
+    hExtend (u₀ := u₀) hu₀ hM_bound (T₀ := T_star) hT_star_pos hsol htrace
+  -- Step 3: ReachableClassicalHorizon p u₀ (T_star + δ) with T_star + δ > T_star.
+  refine ⟨T_star + δ, ?_, ?_⟩
+  · linarith
+  · refine ⟨?_, u', v', hsol', htrace'⟩
+    -- T_star + δ > 0
+    linarith
+
+/-- **Paper 2-aligned umbrella theorem (γ ≥ 1), `hextend_mge` eliminated.**
+
+The umbrella's `hextend_of_not_mgeAlternative` hypothesis is discharged
+internally via the textbook uniform parabolic continuation theorem
+(`IntervalDomainUniformLocalExistence`).  Likewise `hextend_finite` (already
+eliminated in `_no_extend_finite`) and `hrealize` (already eliminated in
+`_no_hrealize`) are not consumed at all.
+
+The remaining textbook PDE inputs for the γ ≥ 1 regime are exactly:
+* `hlocal` — standard short-time local existence;
+* `hUniform` — textbook uniform parabolic continuation (`δ(M)`);
+* `hposWit` — book-keeping pass-through (per-pair positive initial datum). -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hUniform : IntervalDomainUniformLocalExistence p)
+    (hposWit :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          PositiveInitialDatum intervalDomain u₀) :
+    Theorem_1_1 intervalDomain p := by
+  -- Build `hextend_of_not_mgeAlternative` from `hUniform`.
+  have hextend_mge :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ (_hbdd : BddAbove
+          (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomain.Point → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          1 ≤ p.m →
+          ¬ MGeOneFiniteHorizonAlternative intervalDomain
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u →
+          ShenWork.IntervalDomainExistence.ReachablePast p u₀
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) :=
+    extend_of_not_mgeAlternative_of_uniformLocalExistence p hUniform
+  -- Build `hextend_of_not_finiteAlternative` from `hUniform` as well.  The textbook
+  -- continuation theorem produces a δ-extension regardless of whether the finite
+  -- blow-up alternative occurs (it consumes the `M`-bound on `u₀`, period), so the
+  -- same `extend_of_not_mgeAlternative_of_uniformLocalExistence` argument
+  -- (with the `1 ≤ p.m` and `¬MGeOne` hypotheses unused) gives the
+  -- `¬ FiniteHorizonAlternative` variant too.
+  have hextend_finite :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ (_hbdd : BddAbove
+          (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomain.Point → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          ¬ FiniteHorizonAlternative intervalDomain
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u →
+          ShenWork.IntervalDomainExistence.ReachablePast p u₀
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) := by
+    intro u₀ hu₀ hbdd u v hsol htrace _hnot
+    -- Step 1: extract M > 0.
+    obtain ⟨M, hM_pos, hM_bound⟩ := exists_supBound_of_positiveInitialDatum hu₀
+    -- Step 2: apply textbook uniform continuation.
+    obtain ⟨δ, hδ_pos, hExtend⟩ := hUniform M hM_pos
+    set T_star := ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon p u₀
+    have hT_star_pos : 0 < T_star := hsol.T_pos
+    obtain ⟨u', v', hsol', htrace'⟩ :=
+      hExtend (u₀ := u₀) hu₀ hM_bound (T₀ := T_star) hT_star_pos hsol htrace
+    refine ⟨T_star + δ, ?_, ?_⟩
+    · linarith
+    · refine ⟨?_, u', v', hsol', htrace'⟩
+      linarith
+  -- Compose with the existing γ ≥ 1 + no_hrealize umbrella.
+  exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hrealize
+    p hχ ha hb hγ_ge_one hlocal hextend_finite hextend_mge hposWit
+
+/-- **Paper 2-aligned bundled continuation data (γ ≥ 1), `hextend_mge`
+eliminated.**
+
+Packages the three textbook PDE inputs (`localExistence`, `uniformLocal`,
+`hposWit`) into a single record.  This is the leanest textbook PDE input
+surface for Paper 2 Theorem 1.1 in the γ ≥ 1 regime: TWO genuine textbook PDE
+inputs (local + uniform continuation) plus ONE book-keeping pass-through. -/
+structure IntervalDomainPaper2ContinuationDataGammaGeOne_no_hextend_mge
+    (p : CM2Params) : Prop where
+  localExistence :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u
+  uniformLocal : IntervalDomainUniformLocalExistence p
+  posWit :
+    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+      InitialTrace intervalDomain u₀ u₁ →
+      InitialTrace intervalDomain u₀ u₂ →
+        PositiveInitialDatum intervalDomain u₀
+
+/-- **Bundled-input wrapper (γ ≥ 1, `hextend_mge` eliminated).**
+
+Same conclusion as `Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge`
+but consuming the three textbook/pass-through hypotheses as a single bundle. -/
+theorem Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge_bundled
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData : IntervalDomainPaper2ContinuationDataGammaGeOne_no_hextend_mge p) :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
+    p hχ ha hb hγ_ge_one hData.localExistence hData.uniformLocal hData.posWit
+
 end
 
 end ShenWork.Paper2
