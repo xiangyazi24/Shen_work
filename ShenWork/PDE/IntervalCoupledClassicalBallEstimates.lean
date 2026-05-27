@@ -64,6 +64,7 @@ import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
 
 open ShenWork.Paper2 ShenWork.IntervalDomain ShenWork.PDE MeasureTheory
 open ShenWork.IntervalResolverLaplacianBridge
+open scoped Topology
 
 noncomputable section
 
@@ -975,42 +976,264 @@ theorem intervalChemDivRepr_classical_K_D_form
         + p.β * (M * G^2) * (p.β + 1) * (L_V * D) := by linarith
     _ = K_u * D + K_g * D_g := by rw [hKudef, hKgdef]; ring
 
-/-! ### Documented gap: lifting chemDivRepr to chemDiv on the open interior
+/-! ### Pointwise identity `chemDiv = chemDivRepr` on the open interior
 
 `intervalChemDivRepr` is the closed-form product-rule expansion of the
 chemotaxis divergence using `resolverGradReal` for `∂ₓ(lift v)` and `RLap`
-for `∂ₓ²(lift v)`.  To lift the Lipschitz bound above to the definitionally
-honest `intervalDomainChemotaxisDiv p (u τ) v τ y = deriv (lift u · deriv (lift v) /
-(1+lift v)^β) y`, one needs to prove the pointwise identity
+for `∂ₓ²(lift v)`.  At every interior `y ∈ (0,1)`, the definitionally honest
+`intervalDomainChemotaxisDiv p (u τ) (v τ) y = deriv (lift u·deriv(lift v) /
+(1+lift v)^β) y` agrees with the closed-form representative. -/
 
-  `intervalDomainChemotaxisDiv p (u τ) (v τ) y = intervalChemDivRepr p (u τ) (v τ) y`
+/-- **Pointwise identity `chemDiv = chemDivRepr` at every interior `y`.**
 
-for `y` in the open interior under the C¹_x snapshot hypothesis.  The route is
-the standard product/quotient rule applied to the three-factor product
+At every interior point `y` of a paper-2 classical solution, the chemotaxis
+divergence (the spatial derivative of `lift u · deriv(lift v) / (1+lift v)^β`)
+equals the closed-form product-rule expansion `intervalChemDivRepr`:
 
-  `lift u(z) · ∂ₓ(lift v)(z) · (1+lift v(z))^{-β}`
+  `deriv(lift u)·g·(1+lift v)^{-β} + lift u·RLap·(1+lift v)^{-β}
+   − β · lift u · g² · (1+lift v)^{-β-1}`
 
-(equal to `lift u(z) · ∂ₓ(lift v)(z) / (1+lift v(z))^β` since `1+lift v > 0`),
-using the named `HasDerivAt` lemmas:
+where `g = resolverGradReal p (u τ)` (the `∂ₓ(lift v)` identification on
+`(0,1)` from `solution_lift_v_deriv_eq_resolverGrad`) and `RLap` is
+`∂ₓ(resolverGradReal)` (from `deriv_resolverGradReal_eq_RLap`).
 
-  * `HasDerivAt (intervalDomainLift (u τ)) (deriv (intervalDomainLift (u τ)) y) y`
-    (from `IsPaper2ClassicalSolution`'s C² regularity, conjuncts 6,7,
-    `solution_deriv_lift_continuousOn_Icc`).
-  * `solution_lift_v_deriv_eq_resolverGrad` gives `deriv (lift v) z =
-    resolverGradReal p u z` on `(0,1)`.
-  * `resolverGradReal_hasDerivAt_RLap` gives `HasDerivAt (resolverGradReal p u)
-    (RLap p u ⟨z,…⟩) z` on `[0,1]`.
-  * `chemQuotient` HasDerivAt: standard `Real.hasDerivAt_rpow_const` chained
-    with `lift v` derivative bridge.
+Route: `HasDerivAt.div` on `(lift u · deriv(lift v))/(1+lift v)^β`, with
+`HasDerivAt` for the numerator (product rule, with `deriv(lift v)` having
+derivative `RLap` via `EventuallyEq` swap with `resolverGradReal` and
+`resolverGradReal_hasDerivAt_RLap`) and `HasDerivAt` for the denominator
+(chain rule for `^β` at base `1+lift v > 0`). -/
+theorem intervalDomainChemotaxisDiv_eq_chemDivRepr_interior
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T)
+    {y : intervalDomainPoint} (hy_int : y.1 ∈ Set.Ioo (0 : ℝ) 1) :
+    intervalDomainChemotaxisDiv p (u τ) (v τ) y =
+      intervalChemDivRepr p (u τ) (v τ) y := by
+  classical
+  -- Notation.
+  set y₀ : ℝ := y.1 with hy₀
+  have hy_Icc : y₀ ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hy_int
+  -- C² interior regularity of `lift u` and `lift v` (conjunct 3).
+  have hC2u : ContDiffOn ℝ 2 (intervalDomainLift (u τ)) (Set.Ioo (0:ℝ) 1) :=
+    (hsol.regularity.2.2.1 τ hτ).1
+  have hC2v : ContDiffOn ℝ 2 (intervalDomainLift (v τ)) (Set.Ioo (0:ℝ) 1) :=
+    (hsol.regularity.2.2.1 τ hτ).2
+  -- HasDerivAt for `lift u` at `y₀`.
+  have hU_diff : DifferentiableAt ℝ (intervalDomainLift (u τ)) y₀ :=
+    (hC2u.differentiableOn (by norm_num)).differentiableAt
+      (IsOpen.mem_nhds isOpen_Ioo hy_int)
+  have hU_has : HasDerivAt (intervalDomainLift (u τ))
+      (deriv (intervalDomainLift (u τ)) y₀) y₀ := hU_diff.hasDerivAt
+  -- HasDerivAt for `lift v` at `y₀`.
+  have hV_diff : DifferentiableAt ℝ (intervalDomainLift (v τ)) y₀ :=
+    (hC2v.differentiableOn (by norm_num)).differentiableAt
+      (IsOpen.mem_nhds isOpen_Ioo hy_int)
+  -- deriv (lift v) y₀ = resolverGradReal p (u τ) y₀ on the interior.
+  have hdv_eq : deriv (intervalDomainLift (v τ)) y₀
+      = resolverGradReal p (u τ) y₀ :=
+    solution_lift_v_deriv_eq_resolverGrad hsol hτ hy_int
+  set g₀ : ℝ := resolverGradReal p (u τ) y₀ with hg₀_def
+  have hV_has : HasDerivAt (intervalDomainLift (v τ)) g₀ y₀ := by
+    have h := hV_diff.hasDerivAt
+    rw [hdv_eq] at h; exact h
+  -- HasDerivAt for `deriv (lift v)` at `y₀`.  This requires switching from
+  -- `deriv (lift v)` to `resolverGradReal p (u τ)` via `EventuallyEq` on a
+  -- neighborhood of `y₀`, then applying `resolverGradReal_hasDerivAt_RLap`.
+  have hdecay : SourceCoeffQuadraticDecay p (u τ) :=
+    sourceCoeffQuadraticDecay_of_solution hsol hτ
+  -- `deriv (lift v) =ᶠ resolverGradReal p (u τ)` on `Ioo (0,1)` (a nbhd of `y₀`).
+  have hdv_eqOn : ∀ x ∈ Set.Ioo (0:ℝ) 1,
+      deriv (intervalDomainLift (v τ)) x = resolverGradReal p (u τ) x := by
+    intro x hx
+    exact solution_lift_v_deriv_eq_resolverGrad hsol hτ hx
+  have hdv_eventuallyEq :
+      deriv (intervalDomainLift (v τ)) =ᶠ[𝓝 y₀] resolverGradReal p (u τ) := by
+    refine Filter.eventuallyEq_of_mem
+      (IsOpen.mem_nhds isOpen_Ioo hy_int) ?_
+    intro x hx
+    exact hdv_eqOn x hx
+  -- `HasDerivAt (resolverGradReal p (u τ)) (RLap …) y₀`.
+  have hRgrad_has : HasDerivAt (fun z : ℝ => resolverGradReal p (u τ) z)
+      (intervalNeumannResolverRLap p (u τ) ⟨y₀, hy_Icc⟩) y₀ :=
+    resolverGradReal_hasDerivAt_RLap hdecay hy_Icc
+  set H₀ : ℝ := intervalNeumannResolverRLap p (u τ) ⟨y₀, hy_Icc⟩ with hH₀_def
+  have hW_has : HasDerivAt (deriv (intervalDomainLift (v τ))) H₀ y₀ :=
+    hRgrad_has.congr_of_eventuallyEq hdv_eventuallyEq
+  -- Positivity `1 + lift v y₀ > 0`.
+  have hv_nn : 0 ≤ intervalDomainLift (v τ) y₀ :=
+    solution_lift_v_nonneg_Icc hsol hτ y₀ hy_Icc
+  set V₀ : ℝ := intervalDomainLift (v τ) y₀ with hV₀_def
+  have hV₀_pos : 0 < 1 + V₀ := by linarith
+  have hV₀_ne : (1 + V₀) ≠ 0 := ne_of_gt hV₀_pos
+  -- HasDerivAt for `1 + lift v`.
+  have hOnePlusV_has : HasDerivAt (fun z : ℝ => 1 + intervalDomainLift (v τ) z)
+      g₀ y₀ := by
+    have h := (hasDerivAt_const y₀ (1 : ℝ)).add hV_has
+    have : (fun z : ℝ => (1 : ℝ) + intervalDomainLift (v τ) z)
+        = (fun _ : ℝ => (1 : ℝ)) + intervalDomainLift (v τ) := by
+      funext z; simp [Pi.add_apply]
+    rw [this]
+    have hzero : (0 : ℝ) + g₀ = g₀ := zero_add _
+    simpa [hzero] using h
+  -- HasDerivAt for `(1+V)^β` via chain rule.
+  have hpow_at : HasDerivAt (fun x : ℝ => x ^ p.β)
+      (p.β * (1 + V₀) ^ (p.β - 1)) (1 + V₀) :=
+    Real.hasDerivAt_rpow_const (Or.inl hV₀_ne)
+  have hD_has : HasDerivAt (fun z : ℝ => (1 + intervalDomainLift (v τ) z) ^ p.β)
+      (p.β * (1 + V₀) ^ (p.β - 1) * g₀) y₀ := by
+    have hcomp := hpow_at.comp y₀ hOnePlusV_has
+    -- `hcomp : HasDerivAt ((fun x => x^β) ∘ (1 + lift v)) (β·(1+V₀)^(β-1) · g₀) y₀`
+    simpa [Function.comp] using hcomp
+  set D₀ : ℝ := (1 + V₀) ^ p.β with hD₀_def
+  have hD₀_pos : 0 < D₀ := Real.rpow_pos_of_pos hV₀_pos _
+  have hD₀_ne : D₀ ≠ 0 := ne_of_gt hD₀_pos
+  -- HasDerivAt for the numerator `lift u · deriv (lift v)`.
+  have hN_has : HasDerivAt
+      (fun z : ℝ => intervalDomainLift (u τ) z * deriv (intervalDomainLift (v τ)) z)
+      (deriv (intervalDomainLift (u τ)) y₀ * deriv (intervalDomainLift (v τ)) y₀
+        + intervalDomainLift (u τ) y₀ * H₀) y₀ := by
+    have := hU_has.mul hW_has
+    simpa using this
+  -- HasDerivAt for the chemotactic-flux quotient.
+  have hQ_has : HasDerivAt
+      (fun z : ℝ => intervalDomainLift (u τ) z * deriv (intervalDomainLift (v τ)) z
+        / (1 + intervalDomainLift (v τ) z) ^ p.β)
+      (((deriv (intervalDomainLift (u τ)) y₀ * deriv (intervalDomainLift (v τ)) y₀
+            + intervalDomainLift (u τ) y₀ * H₀) * D₀
+          - intervalDomainLift (u τ) y₀ * deriv (intervalDomainLift (v τ)) y₀
+              * (p.β * (1 + V₀) ^ (p.β - 1) * g₀))
+          / D₀ ^ 2) y₀ := by
+    have := hN_has.div hD_has hD₀_ne
+    -- Reshape the explicit `(1 + lift v _)^β` denominator to `D₀`.
+    simpa using this
+  -- `.deriv` of `hQ_has` gives the LHS in the divider form.  Unfold chemotaxisDiv.
+  have hLHS : intervalDomainChemotaxisDiv p (u τ) (v τ) y
+      = ((deriv (intervalDomainLift (u τ)) y₀ * deriv (intervalDomainLift (v τ)) y₀
+            + intervalDomainLift (u τ) y₀ * H₀) * D₀
+          - intervalDomainLift (u τ) y₀ * deriv (intervalDomainLift (v τ)) y₀
+              * (p.β * (1 + V₀) ^ (p.β - 1) * g₀)) / D₀ ^ 2 := by
+    unfold intervalDomainChemotaxisDiv
+    exact hQ_has.deriv
+  -- Now algebraically simplify the RHS of `hLHS` to `intervalChemDivRepr p (u τ) (v τ) y`.
+  -- Use:  `D₀ = (1+V₀)^β`, hence
+  --       `1/D₀ = (1+V₀)^(-β)`, and
+  --       `(1+V₀)^(β-1) / D₀^2 = (1+V₀)^(β-1) * (1+V₀)^(-2β) = (1+V₀)^(-β-1)`.
+  have hD₀_eq : D₀ = (1 + V₀) ^ p.β := hD₀_def
+  -- Key rpow identities (using `1+V₀ > 0`).
+  have hrpow_neg_β : (1 + V₀) ^ (-p.β) = ((1 + V₀) ^ p.β)⁻¹ :=
+    Real.rpow_neg hV₀_pos.le p.β
+  have hrpow_neg_β_minus1 : (1 + V₀) ^ (-p.β - 1) = ((1 + V₀) ^ (p.β + 1))⁻¹ := by
+    have h := Real.rpow_neg hV₀_pos.le (p.β + 1)
+    have : -(p.β + 1) = -p.β - 1 := by ring
+    rw [this] at h; exact h
+  -- `D₀^2 = (1+V₀)^(2β)` and `(1+V₀)^(β-1) / (1+V₀)^(2β) = (1+V₀)^(-β-1)`.
+  have hD₀_sq : D₀ ^ 2 = (1 + V₀) ^ (2 * p.β) := by
+    have h1 : D₀ ^ 2 = ((1 + V₀) ^ p.β) ^ (2 : ℕ) := by rw [hD₀_eq]
+    rw [h1, ← Real.rpow_natCast ((1 + V₀) ^ p.β) 2,
+        ← Real.rpow_mul hV₀_pos.le]
+    congr 1; push_cast; ring
+  -- `(1+V₀)^(β-1) / (1+V₀)^(2β) = (1+V₀)^(β-1 - 2β) = (1+V₀)^(-β-1)`.
+  have hrpow_combine : (1 + V₀) ^ (p.β - 1) / (1 + V₀) ^ (2 * p.β)
+      = (1 + V₀) ^ (-p.β - 1) := by
+    rw [← Real.rpow_sub hV₀_pos]
+    congr 1; ring
+  -- Plug everything in.  Use `deriv(lift v) y₀ = g₀`.
+  have hRHS_simplify :
+      ((deriv (intervalDomainLift (u τ)) y₀ * deriv (intervalDomainLift (v τ)) y₀
+          + intervalDomainLift (u τ) y₀ * H₀) * D₀
+        - intervalDomainLift (u τ) y₀ * deriv (intervalDomainLift (v τ)) y₀
+            * (p.β * (1 + V₀) ^ (p.β - 1) * g₀)) / D₀ ^ 2
+      = intervalChemDivRepr p (u τ) (v τ) y := by
+    -- Substitute `deriv (lift v) y₀ = g₀`.
+    rw [hdv_eq]
+    -- Now everything is in `g₀, H₀, V₀, U(y₀), D₀ = (1+V₀)^β`.
+    -- Split the division.
+    have hsplit :
+        ((deriv (intervalDomainLift (u τ)) y₀ * g₀
+            + intervalDomainLift (u τ) y₀ * H₀) * D₀
+          - intervalDomainLift (u τ) y₀ * g₀
+              * (p.β * (1 + V₀) ^ (p.β - 1) * g₀)) / D₀ ^ 2
+        = (deriv (intervalDomainLift (u τ)) y₀ * g₀ * (1 / D₀)
+          + intervalDomainLift (u τ) y₀ * H₀ * (1 / D₀))
+            - p.β * intervalDomainLift (u τ) y₀ * g₀ ^ 2
+                * ((1 + V₀) ^ (p.β - 1) / D₀ ^ 2) := by
+      have hD₀_sq_ne : D₀ ^ 2 ≠ 0 := pow_ne_zero 2 hD₀_ne
+      field_simp
+    rw [hsplit]
+    -- `1 / D₀ = (1+V₀)^(-β)`.
+    have h1D₀ : (1 : ℝ) / D₀ = (1 + V₀) ^ (-p.β) := by
+      rw [hrpow_neg_β, hD₀_eq, one_div]
+    rw [h1D₀]
+    -- `(1+V₀)^(β-1) / D₀^2 = (1+V₀)^(-β-1)`.
+    rw [hD₀_sq, hrpow_combine]
+    -- Identify `H₀` with `intervalNeumannResolverRLap p (u τ) y` (same fun on `.1`).
+    have hH₀_eq : H₀ = intervalNeumannResolverRLap p (u τ) y := by
+      rw [hH₀_def]; rfl
+    -- Unfold `intervalChemDivRepr` and `set`s so the polynomial identity can be
+    -- closed by `ring`.
+    unfold intervalChemDivRepr
+    -- After unfolding RHS, the `set` abbreviations on the LHS are `g₀, V₀, H₀, y₀`.
+    -- Substitute each in terms of the actual expressions, then match via `ring`.
+    rw [hg₀_def, hV₀_def, hH₀_eq, hy₀]
+  rw [hLHS, hRHS_simplify]
 
-The identity is mechanical from there, but the actual Lean wiring needs ~150
-lines of `HasDerivAt.mul`/`HasDerivAt.add`/`HasDerivAt.deriv` plumbing,
-including the `Filter.EventuallyEq` argument to switch from `lift u · deriv
-(lift v) / (1+lift v)^β` to `lift u · resolverGradReal p u · (1+lift v)^{-β}`
-on an open neighbourhood of the interior point.  We leave this gap precisely
-documented; `intervalChemDivRepr_classical_K_D_form` is the genuine Lipschitz
-output and is the natural intermediate for any subsequent attack on the
-chemDiv proper. -/
+/-- **Corollary: chemDiv `K_u · D + K_g · D_g` Lipschitz on the C¹_x snapshot
+ball at interior `y`.**  Combines the pointwise identity
+`intervalDomainChemotaxisDiv_eq_chemDivRepr_interior` with
+`intervalChemDivRepr_classical_K_D_form`. -/
+theorem intervalDomainChemotaxisDiv_classical_K_D_form_interior
+    {p : CM2Params} {T M G_u : ℝ}
+    {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ}
+    (hsnap₁ : IntervalDomainClassicalC1Snapshot p T M G_u u₁ v₁)
+    (hsnap₂ : IntervalDomainClassicalC1Snapshot p T M G_u u₂ v₂)
+    (hMnn : 0 ≤ M) (hGunn : 0 ≤ G_u)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T)
+    {H : ℝ} (hHnn : 0 ≤ H)
+    (hH₁ : ∀ y : intervalDomainPoint, y.1 ∈ Set.Icc (0:ℝ) 1 →
+      |intervalNeumannResolverRLap p (u₁ τ) y| ≤ H)
+    (hH₂ : ∀ y : intervalDomainPoint, y.1 ∈ Set.Icc (0:ℝ) 1 →
+      |intervalNeumannResolverRLap p (u₂ τ) y| ≤ H)
+    {D D_g L_V L_R L_H : ℝ}
+    (hDnn : 0 ≤ D) (hDgnn : 0 ≤ D_g)
+    (hLVnn : 0 ≤ L_V) (hLRnn : 0 ≤ L_R) (hLHnn : 0 ≤ L_H)
+    (hu_diff :
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |intervalDomainLift (u₁ τ) x - intervalDomainLift (u₂ τ) x| ≤ D)
+    (hdu_diff :
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |deriv (intervalDomainLift (u₁ τ)) x
+          - deriv (intervalDomainLift (u₂ τ)) x| ≤ D_g)
+    (hv_diff :
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |intervalDomainLift (v₁ τ) x - intervalDomainLift (v₂ τ) x| ≤ L_V * D)
+    (hg_diff :
+      ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |resolverGradReal p (u₁ τ) x - resolverGradReal p (u₂ τ) x| ≤ L_R * D)
+    (hH_diff :
+      ∀ y : intervalDomainPoint, y.1 ∈ Set.Icc (0 : ℝ) 1 →
+        |intervalNeumannResolverRLap p (u₁ τ) y
+          - intervalNeumannResolverRLap p (u₂ τ) y| ≤ L_H * D) :
+    ∃ G K_u K_g : ℝ, 0 ≤ G ∧ 0 ≤ K_u ∧ 0 ≤ K_g ∧
+      ∀ y : intervalDomainPoint, y.1 ∈ Set.Ioo (0 : ℝ) 1 →
+        |intervalDomainChemotaxisDiv p (u₁ τ) (v₁ τ) y
+          - intervalDomainChemotaxisDiv p (u₂ τ) (v₂ τ) y|
+        ≤ K_u * D + K_g * D_g := by
+  classical
+  obtain ⟨G, K_u, K_g, hGnn, hKunn, hKgnn, hbound⟩ :=
+    intervalChemDivRepr_classical_K_D_form
+      hsnap₁ hsnap₂ hMnn hGunn hτ hHnn hH₁ hH₂
+      hDnn hDgnn hLVnn hLRnn hLHnn
+      hu_diff hdu_diff hv_diff hg_diff hH_diff
+  refine ⟨G, K_u, K_g, hGnn, hKunn, hKgnn, ?_⟩
+  intro y hy_int
+  have hy_Icc : y.1 ∈ Set.Icc (0:ℝ) 1 := Set.Ioo_subset_Icc_self hy_int
+  have h₁ := intervalDomainChemotaxisDiv_eq_chemDivRepr_interior
+    hsnap₁.isSolution hτ (y := y) hy_int
+  have h₂ := intervalDomainChemotaxisDiv_eq_chemDivRepr_interior
+    hsnap₂.isSolution hτ (y := y) hy_int
+  rw [h₁, h₂]
+  exact hbound y hy_Icc
 
 /-! ### Axiom audit for the new C¹_x snapshot declarations.
 Verified `#print axioms` on each of the following prints exactly
@@ -1023,6 +1246,8 @@ Verified `#print axioms` on each of the following prints exactly
   * `chemDivRepr_diff_pointwise_bound`
   * `intervalChemDivRepr_classical_diff_abs_le`
   * `intervalChemDivRepr_classical_K_D_form`
+  * `intervalDomainChemotaxisDiv_eq_chemDivRepr_interior`
+  * `intervalDomainChemotaxisDiv_classical_K_D_form_interior`
 
 (checked on uisai1, build 8347 axiom-clean.) -/
 
