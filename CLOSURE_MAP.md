@@ -305,3 +305,32 @@ Each regularity level revealed the next: spatial-C² → genuine-Neumann → tim
 
 ### Honest status
 Faithful def + all reachable deep machinery proven & verified & integrated (8326 green). Theorem 1.1 NOT closed; the remaining is genuine boundary parabolic-regularity theory — a sustained expert-level effort, not in-session subagent-grindable. No Mathlib gap identified.
+
+## ROUND-12 — END-TO-END THEOREM 1.1 UMBRELLA (2026-05-27, HEAD be51e99, build 8345 axiom-clean)
+
+After ROUND-11 closed the gluing chain for both γ≥1 (regime+datum) and general γ>0 (regime+datum+PosDatumLowerBound), wired the chain all the way to **Paper2 Theorem 1.1**.
+
+### `Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound_no_hreach_no_hrangeBounded` (Paper2/IntervalDomainTheorem11Umbrella.lean)
+
+Produces `Theorem_1_1 intervalDomain p` from minimal honest hypothesis set:
+- **Math inputs (faithful):** regime (χ₀≤0, a,b>0); `PosDatumLowerBound u₀` (bounded-below positive datum) per pair; `PositiveInitialDatum u₀` per pair.
+- **Textbook PDE inputs (genuine repo gaps, none fabricated):**
+  - `hlocal`: standard short-time local classical existence.
+  - `hrealize`: realization-at-`sSup` of reachable horizons (compactness/Ascoli–Arzelà).
+  - `hextend_of_not_finiteAlternative`: restart past finite-sup when the finite alternative fails.
+  - `hextend_of_not_mgeAlternative`: same for the m≥1 alternative.
+
+### What was eliminated internally vs. the original umbrella:
+- ❌ `hreach` (the `ReachableArbitrarilyLong` black-box) — DERIVED from regime + Lemma 3.1 sup-norm bound + supnorm-controls-pointwise + `not_finiteContinuationAlternativeBranch_of_boundedBefore_and_supNormControl` + `standardContinuationAlternative_of_finiteSup_realization_and_extension`.
+- ❌ `hrangeBounded` — DERIVED from conjunct-7 (lift `ContDiffOn ℝ 2 (Icc 0 1)` ⇒ continuous on compact ⇒ bounded), via the proven `classicalSolution_u_range_bddAbove` lemma.
+- ❌ `hboundedInitial` — DERIVED from `PositiveInitialDatum.admissible` (the strengthened datum-def, now `BddAbove (range |u₀|)`).
+- ❌ Explicit `δ>0` uniform on (0,minT) — DERIVED from `PosDatumLowerBound` via sub-horizon construction + halfHorizon + lift_u_uniformPositive_on_compact.
+
+### Net: the umbrella's textbook surface is now MINIMAL
+The 4 PDE textbook inputs (hlocal + hrealize + hextend_*) are precisely the standard maximal-continuation theorem ingredients — exactly the content Paper2 cites from PDE literature, not anything specific to chemotaxis. The 3 datum pass-throughs (hposWit / hposLowerWit / per-pair positivity) are forced by gluing's universal quantification over solution pairs — semantically required, not removable without restructuring the gluing API.
+
+### Building-block lemmas added (all axiom-clean, useful for future work):
+- `lift_u_uniformPositive_on_compact` (closed [s,t]⊂(0,T) uniform δ from u_pos' + conjunct-9 + compactness).
+- `lift_u_uniformPositive_on_halfHorizon` (uniform δ on (0,t] via trace squeeze + compactness, given PosDatumLowerBound).
+- `lift_v_bounded_on_compact` (v-side parallel to u).
+- `classicalSolution_u_range_bddAbove` (per-time bounded range from conjunct-7).
