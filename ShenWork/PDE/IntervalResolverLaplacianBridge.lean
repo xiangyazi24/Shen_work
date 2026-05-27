@@ -657,6 +657,52 @@ theorem sourceValue_sup_lipschitz_of_uBoundedDiff
     _ = p.ν * (p.γ * M ^ (p.γ - 1)) *
           |intervalDomainLift (u₁ τ) y.1 - intervalDomainLift (u₂ τ) y.1| := by ring
 
+/-! ## Pointwise second-derivative bridge for `resolverGradReal`
+
+Under `SourceCoeffQuadraticDecay`, the real gradient series
+`resolverGradReal p u : ℝ → ℝ` is differentiable at every `y ∈ [0,1]` (in fact at
+every real `y`) with derivative equal to the Laplacian-mode value series
+`intervalNeumannResolverRLap p u ⟨y, hy⟩`.  This upgrades the C¹-regularity
+infrastructure for the resolver gradient from "matches `resolverGrad2Real`" to
+"matches the elliptic-identity-friendly `intervalNeumannResolverRLap` packaging",
+allowing the chemotaxis flux Schauder/Lipschitz scaffolds to talk to the
+elliptic identity (★) directly. -/
+
+/-- **Pointwise second-derivative bridge for `resolverGradReal`.**
+
+Under `SourceCoeffQuadraticDecay`, the resolver gradient series has spatial
+derivative equal to the Laplacian-mode value series at every `y ∈ [0,1]`:
+
+  `HasDerivAt (resolverGradReal p u) (intervalNeumannResolverRLap p u ⟨y, hy⟩) y`.
+
+This is the second-derivative bridge `resolverGrad_hasDerivAt_grad2` packaged at
+the `intervalDomainPoint` subtype layer, fed by
+`resolverGrad2_majorant_summable_of_sourceDecay`. -/
+theorem resolverGradReal_hasDerivAt_RLap
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hdecay : SourceCoeffQuadraticDecay p u)
+    {y : ℝ} (hy : y ∈ Set.Icc (0 : ℝ) 1) :
+    HasDerivAt (fun z : ℝ => resolverGradReal p u z)
+      (intervalNeumannResolverRLap p u ⟨y, hy⟩) y := by
+  have hmaj :=
+    ShenWork.IntervalResolverGradientBridge.resolverGrad2_majorant_summable_of_sourceDecay
+      hdecay.C_nonneg hdecay.decay
+  -- `resolverGradReal p u` is the sine series; `intervalNeumannResolverRLap p u ⟨y,hy⟩`
+  -- is the termwise second-derivative cosine series — that is exactly
+  -- `resolverGrad_hasDerivAt_grad2`'s conclusion.
+  exact ShenWork.IntervalResolverGradientBridge.resolverGrad_hasDerivAt_grad2 hmaj y
+
+/-- **Pointwise identity `deriv (resolverGradReal p u) y = intervalNeumannResolverRLap p u ⟨y,hy⟩`**
+on `Icc 0 1`, under `SourceCoeffQuadraticDecay`.  Direct corollary of
+`resolverGradReal_hasDerivAt_RLap`. -/
+theorem deriv_resolverGradReal_eq_RLap
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hdecay : SourceCoeffQuadraticDecay p u)
+    {y : ℝ} (hy : y ∈ Set.Icc (0 : ℝ) 1) :
+    deriv (fun z : ℝ => resolverGradReal p u z) y =
+      intervalNeumannResolverRLap p u ⟨y, hy⟩ :=
+  (resolverGradReal_hasDerivAt_RLap hdecay hy).deriv
+
 end
 
 end ShenWork.IntervalResolverLaplacianBridge
