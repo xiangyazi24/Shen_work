@@ -5354,6 +5354,813 @@ Status of the uniqueness/gluing frontier:
   concrete overlap L2 certificate for the coupled interval PDE.
 -/
 
+/-! #### Sup-realization from overlap uniqueness (structural sub-horizon gluing)
+
+Goal: given `BddAbove (reachableClassicalHorizonSet p u₀)`, produce a classical
+interval solution at horizon `T* = finiteMaximalReachableHorizon p u₀` with the
+prescribed initial trace — i.e. discharge the `hrealize` umbrella hypothesis
+internally, without any external PDE input beyond overlap uniqueness.
+
+The construction is structural: for every `τ ∈ (0, T*)` there is a reachable
+horizon `T_τ > τ` (because `τ < sSup` and the set is `BddAbove`-nonempty);
+overlap uniqueness makes all the witnesses at different `T_τ` agree on the
+common open interval `(0, T_τ)`, so they merge into one function on `(0, T*)`.
+The merged function is then a classical solution AT horizon `T*` because the
+nine-conjunct `intervalDomainClassicalRegularity` is local on the open slab
+`Ioo 0 T* × Icc 0 1`, and on every sub-slab `Ioo 0 T_τ × Icc 0 1 ⊆ Ioo 0 T*
+× Icc 0 1` the merged function coincides with a genuine classical witness.
+
+This argument needs NO compactness/Ascoli-Arzelà input at the endpoint `T*`
+(the predicate `IsPaper2ClassicalSolution intervalDomain p T* · ·` only
+requires properties for `t ∈ (0, T*)` strictly). -/
+
+/-- Pick a reachable horizon strictly above any `t < T*`.  Exists because
+`t < sSup` and the reachable set is non-empty `BddAbove`. -/
+private noncomputable def pickReachableAbove
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+    (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
+    {t : ℝ} (ht : t < finiteMaximalReachableHorizon p u₀) :
+    {T : ℝ // ReachableClassicalHorizon p u₀ T ∧ t < T} :=
+  let h : ∃ T ∈ reachableClassicalHorizonSet p u₀, t < T :=
+    (lt_csSup_iff hbdd hne).mp ht
+  ⟨Classical.choose h,
+    (Classical.choose_spec h).1,
+    (Classical.choose_spec h).2⟩
+
+/-- The packaged reachable witness chosen by `pickReachableAbove`. -/
+private noncomputable def pickReachableAboveData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+    (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
+    {t : ℝ} (ht : t < finiteMaximalReachableHorizon p u₀) :
+    ReachableClassicalSolutionData p u₀
+      (pickReachableAbove hbdd hne ht).1 :=
+  reachableClassicalSolutionDataOfReach
+    (pickReachableAbove hbdd hne ht).2.1
+
+/-- The chosen reachable horizon strictly exceeds `t`. -/
+private lemma pickReachableAbove_lt
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+    (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
+    {t : ℝ} (ht : t < finiteMaximalReachableHorizon p u₀) :
+    t < (pickReachableAbove hbdd hne ht).1 :=
+  (pickReachableAbove hbdd hne ht).2.2
+
+/-- Glued `u` for the bounded reachable-horizon case: at every interior time
+`t ∈ (0, T*)` use the witness on the chosen horizon `T_t > t`. -/
+noncomputable def boundedReachableGluedU
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+    (hne : (reachableClassicalHorizonSet p u₀).Nonempty) :
+    ℝ → intervalDomainPoint → ℝ :=
+  fun t x =>
+    if h : 0 < t ∧ t < finiteMaximalReachableHorizon p u₀ then
+      (pickReachableAboveData hbdd hne h.2).u t x
+    else 0
+
+/-- Glued `v` for the bounded reachable-horizon case, using the same chosen
+witness as `boundedReachableGluedU`. -/
+noncomputable def boundedReachableGluedV
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+    (hne : (reachableClassicalHorizonSet p u₀).Nonempty) :
+    ℝ → intervalDomainPoint → ℝ :=
+  fun t x =>
+    if h : 0 < t ∧ t < finiteMaximalReachableHorizon p u₀ then
+      (pickReachableAboveData hbdd hne h.2).v t x
+    else 0
+
+/-- Under overlap uniqueness, the bounded-case glued branch agrees on
+`(0, T)` with any chosen reachable witness on horizon `T ≤ T*`. -/
+theorem boundedReachableGlued_eq_reachableData_of_overlapUnique
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+    (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
+    {T : ℝ} (d : ReachableClassicalSolutionData p u₀ T) :
+    ∀ t, 0 < t → t < T → ∀ x : intervalDomainPoint,
+      boundedReachableGluedU hbdd hne t x = d.u t x ∧
+      boundedReachableGluedV hbdd hne t x = d.v t x := by
+  intro t ht0 htT x
+  -- The witness horizon `T` is ≤ T*.
+  have hT_le : T ≤ finiteMaximalReachableHorizon p u₀ :=
+    reachable_le_finiteMaximalReachableHorizon hbdd
+      ⟨d.T_pos, d.u, d.v, d.sol, d.trace⟩
+  have ht_lt_Tmax : t < finiteMaximalReachableHorizon p u₀ :=
+    lt_of_lt_of_le htT hT_le
+  -- Apply uniqueness between the chosen sub-horizon witness and `d`.
+  let dpick : ReachableClassicalSolutionData p u₀
+      (pickReachableAbove hbdd hne ht_lt_Tmax).1 :=
+    pickReachableAboveData hbdd hne ht_lt_Tmax
+  have ht_lt_pick : t < (pickReachableAbove hbdd hne ht_lt_Tmax).1 :=
+    pickReachableAbove_lt hbdd hne ht_lt_Tmax
+  have ht_overlap : t < min (pickReachableAbove hbdd hne ht_lt_Tmax).1 T :=
+    lt_min ht_lt_pick htT
+  have hsame := huniq dpick d t ht0 ht_overlap x
+  refine ⟨?_, ?_⟩
+  · -- `boundedReachableGluedU t x = dpick.u t x = d.u t x`.
+    have h_if : boundedReachableGluedU hbdd hne t x = dpick.u t x := by
+      unfold boundedReachableGluedU
+      simp only [ht0, ht_lt_Tmax, and_self, dite_true, dpick,
+        pickReachableAboveData]
+    rw [h_if]; exact hsame.1
+  · have h_if : boundedReachableGluedV hbdd hne t x = dpick.v t x := by
+      unfold boundedReachableGluedV
+      simp only [ht0, ht_lt_Tmax, and_self, dite_true, dpick,
+        pickReachableAboveData]
+    rw [h_if]; exact hsame.2
+
+/-- Helper: for any `t ∈ (0, T*)` the glued branch matches its own chosen
+witness pointwise at time `t`. -/
+private lemma boundedReachableGlued_eq_pickWitness
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+    (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
+    {t : ℝ} (ht0 : 0 < t) (ht_lt : t < finiteMaximalReachableHorizon p u₀) :
+    ∀ x : intervalDomainPoint,
+      boundedReachableGluedU hbdd hne t x =
+          (pickReachableAboveData hbdd hne ht_lt).u t x ∧
+        boundedReachableGluedV hbdd hne t x =
+          (pickReachableAboveData hbdd hne ht_lt).v t x := by
+  intro x
+  refine ⟨?_, ?_⟩
+  · unfold boundedReachableGluedU
+    simp only [ht0, ht_lt, and_self, dite_true]
+  · unfold boundedReachableGluedV
+    simp only [ht0, ht_lt, and_self, dite_true]
+
+/-- The glued branch on a sub-horizon `T < T*` agrees pointwise with the
+chosen witness on the WHOLE open slab `Ioo 0 T`.  Same statement as
+`boundedReachableGlued_eq_reachableData_of_overlapUnique` but packaged for
+direct use by the `_congr_Ioo` regularity transfer. -/
+private lemma boundedReachableGlued_eq_on_subSlab
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+    (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
+    {T : ℝ} (d : ReachableClassicalSolutionData p u₀ T) :
+    (∀ t, 0 < t → t < T → boundedReachableGluedU hbdd hne t = d.u t) ∧
+      (∀ t, 0 < t → t < T → boundedReachableGluedV hbdd hne t = d.v t) := by
+  refine ⟨?_, ?_⟩
+  · intro t ht0 htT
+    funext x
+    exact (boundedReachableGlued_eq_reachableData_of_overlapUnique
+      huniq hbdd hne d t ht0 htT x).1
+  · intro t ht0 htT
+    funext x
+    exact (boundedReachableGlued_eq_reachableData_of_overlapUnique
+      huniq hbdd hne d t ht0 htT x).2
+
+/-- The glued branch inherits the initial trace from any chosen reachable
+witness, using overlap uniqueness for small positive times.  Picks the witness
+on the unique smallest reachable horizon via `hne`. -/
+theorem boundedReachableGlued_initialTrace_of_overlapUnique
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+    (hne : (reachableClassicalHorizonSet p u₀).Nonempty) :
+    InitialTrace intervalDomain u₀ (boundedReachableGluedU hbdd hne) := by
+  -- Take ANY reachable witness from `hne` (kept named via choose).
+  have hT₀mem : hne.choose ∈ reachableClassicalHorizonSet p u₀ := hne.choose_spec
+  set T₀ : ℝ := hne.choose with hT₀def
+  let d : ReachableClassicalSolutionData p u₀ T₀ :=
+    reachableClassicalSolutionDataOfReach hT₀mem
+  intro ε hε
+  obtain ⟨δ, hδ_pos, hδ_bound⟩ := d.trace ε hε
+  refine ⟨min δ T₀, lt_min hδ_pos d.T_pos, ?_⟩
+  intro t ht0 ht_lt
+  have htδ : t < δ := lt_of_lt_of_le ht_lt (min_le_left _ _)
+  have htT₀ : t < T₀ := lt_of_lt_of_le ht_lt (min_le_right _ _)
+  have hsame :=
+    boundedReachableGlued_eq_reachableData_of_overlapUnique
+      huniq hbdd hne d t ht0 htT₀
+  have hfun :
+      (fun x : intervalDomainPoint =>
+          boundedReachableGluedU hbdd hne t x - u₀ x) =
+        (fun x : intervalDomainPoint => d.u t x - u₀ x) := by
+    funext x; rw [(hsame x).1]
+  change intervalDomainSupNorm
+      (fun x : intervalDomainPoint =>
+        boundedReachableGluedU hbdd hne t x - u₀ x) < ε
+  rw [hfun]
+  simpa [intervalDomain] using hδ_bound t ht0 htδ
+
+/-! ##### Conjunct-by-conjunct regularity transfer at horizon `T*`. -/
+
+/-- The lifts of the glued `u` and the chosen witness `u` agree at every
+interior time `t ∈ (0, T)`. -/
+private lemma boundedReachableGluedU_lift_eq
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+    (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
+    {T : ℝ} (d : ReachableClassicalSolutionData p u₀ T) :
+    ∀ t, 0 < t → t < T →
+      intervalDomainLift (boundedReachableGluedU hbdd hne t) =
+        intervalDomainLift (d.u t) := by
+  intro t ht0 htT
+  have hEq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne d).1
+    t ht0 htT
+  rw [hEq]
+
+private lemma boundedReachableGluedV_lift_eq
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+    (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
+    {T : ℝ} (d : ReachableClassicalSolutionData p u₀ T) :
+    ∀ t, 0 < t → t < T →
+      intervalDomainLift (boundedReachableGluedV hbdd hne t) =
+        intervalDomainLift (d.v t) := by
+  intro t ht0 htT
+  have hEq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne d).2
+    t ht0 htT
+  rw [hEq]
+
+/-- The classical regularity bundle holds for the glued branch at horizon
+`T*`, obtained by locally restricting to a sub-horizon `T < T*` and applying
+`intervalDomainClassicalRegularity_congr_Ioo` against the chosen witness
+(plus joint-continuity local-to-global). -/
+theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+    (hne : (reachableClassicalHorizonSet p u₀).Nonempty) :
+    intervalDomainClassicalRegularity
+      (finiteMaximalReachableHorizon p u₀)
+      (boundedReachableGluedU hbdd hne)
+      (boundedReachableGluedV hbdd hne) := by
+  set Tmax : ℝ := finiteMaximalReachableHorizon p u₀ with hTmaxDef
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · -- (1) Sup-norm derivative nonpos on `Ioc 0 t₀` (for `t₀ < T*`).
+    intro q hqχ hqa hqb t₀ ht₀ ht₀T hsup
+    -- Pick a reachable horizon `T > t₀` and reuse its conjunct-1.
+    have htmax : t₀ < Tmax := ht₀T
+    let dpick : ReachableClassicalSolutionData p u₀
+        (pickReachableAbove hbdd hne htmax).1 :=
+      pickReachableAboveData hbdd hne htmax
+    let Tpick : ℝ := (pickReachableAbove hbdd hne htmax).1
+    have hT_gt : t₀ < Tpick :=
+      pickReachableAbove_lt hbdd hne htmax
+    -- Apply `intervalDomainClassicalRegularity_congr_Ioo` style transfer
+    -- on the slab `Ioo 0 Tpick`.
+    have hEq := boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick
+    -- Translate the `hsup` from glued to dpick.
+    have hsup' :
+        (q.a / q.b) ^ (1 / q.α) <
+          intervalDomainSupNorm (dpick.u t₀) := by
+      have : boundedReachableGluedU hbdd hne t₀ = dpick.u t₀ :=
+        hEq.1 t₀ ht₀ hT_gt
+      rw [this] at hsup; exact hsup
+    have hreg₀ := dpick.sol.regularity.1 q hqχ hqa hqb t₀ ht₀ hT_gt hsup'
+    -- Transfer non-pos derivative back to glued on `Ioc 0 t₀`.
+    refine intervalDomainSupNormDerivativeNonposOn_congr_of_eqOn hreg₀ ?_
+    intro s hs
+    have hs0 : 0 < s := hs.1
+    have hs_le : s ≤ t₀ := hs.2
+    have hs_lt_T : s < Tpick := lt_of_le_of_lt hs_le hT_gt
+    exact hEq.1 s hs0 hs_lt_T
+  · -- (2) Sup-norm derivative nonpos on `Ioo 0 T*` (when a = b = 0).
+    intro q hqχ hqa hqb
+    -- Argue per-point on Ioo 0 T* using a pick at each point.  But here the
+    -- structure asks for a SupNormDerivativeNonposOn on the whole open
+    -- interval — this is local in time so we use the locally-continuous /
+    -- locally-differentiable structure.
+    -- For each `t ∈ Ioo 0 T*`, glued = (pick at t).u, and (pick at t)'s
+    -- sup-norm-deriv is non-pos on a NEIGHBOURHOOD of `t` in Ioo 0 T*.
+    refine ⟨?_, ?_, ?_⟩
+    · -- continuity of sup-norm on `Ioo 0 T*`.
+      -- Directly use the local-to-global continuity lemma.
+      apply continuousOn_of_locally_continuousOn
+      intro t ht
+      have htmax : t < Tmax := ht.2
+      let dpick := pickReachableAboveData hbdd hne htmax
+      let Tpick : ℝ := (pickReachableAbove hbdd hne htmax).1
+      have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne htmax
+      refine ⟨Set.Ioo (0 : ℝ) Tpick, isOpen_Ioo,
+        ⟨ht.1, hT_gt⟩, ?_⟩
+      -- on Ioo 0 T* ∩ Ioo 0 Tpick = Ioo 0 (min T* Tpick),
+      -- glued = dpick.u, so continuity follows from dpick.sol's conjunct (2).
+      have hreg₂_dpick :=
+        dpick.sol.regularity.2.1 q hqχ hqa hqb
+      have hcontDpick : ContinuousOn
+          (fun s => intervalDomainSupNorm (dpick.u s))
+          (Set.Ioo (0 : ℝ) Tpick) :=
+        hreg₂_dpick.continuousOn
+      have hsub : Set.Ioo (0 : ℝ) Tmax ∩ Set.Ioo (0 : ℝ) Tpick ⊆
+          Set.Ioo (0 : ℝ) Tpick := Set.inter_subset_right
+      have hcont' : ContinuousOn
+          (fun s => intervalDomainSupNorm (dpick.u s))
+          (Set.Ioo (0 : ℝ) Tmax ∩ Set.Ioo (0 : ℝ) Tpick) :=
+        hcontDpick.mono hsub
+      apply hcont'.congr
+      rintro s ⟨_hs1, hs2⟩
+      have hs0 : 0 < s := hs2.1
+      have hsT : s < Tpick := hs2.2
+      have hgl_eq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).1
+        s hs0 hsT
+      change intervalDomainSupNorm (boundedReachableGluedU hbdd hne s) =
+        intervalDomainSupNorm (dpick.u s)
+      rw [hgl_eq]
+    · -- differentiability on interior (Ioo 0 T*).
+      rw [interior_Ioo]
+      intro t ht
+      have htmax : t < Tmax := ht.2
+      let dpick := pickReachableAboveData hbdd hne htmax
+      let Tpick : ℝ := (pickReachableAbove hbdd hne htmax).1
+      have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne htmax
+      have hreg₂_dpick :=
+        dpick.sol.regularity.2.1 q hqχ hqa hqb
+      have hdiffDpick : DifferentiableOn ℝ
+          (fun s => intervalDomainSupNorm (dpick.u s))
+          (interior (Set.Ioo (0 : ℝ) Tpick)) :=
+        hreg₂_dpick.differentiableOn
+      -- On `Ioo 0 Tpick` (which is its own interior), glued sup-norm =
+      -- dpick sup-norm, so glued's differentiability at `t` follows.
+      have hdiffDpickAt : DifferentiableAt ℝ
+          (fun s => intervalDomainSupNorm (dpick.u s)) t := by
+        have hin_Ioo : t ∈ Set.Ioo (0 : ℝ) Tpick := ⟨ht.1, hT_gt⟩
+        have hin_int : t ∈ interior (Set.Ioo (0 : ℝ) Tpick) := by
+          rw [interior_Ioo]; exact hin_Ioo
+        have hisOpen_int : IsOpen (interior (Set.Ioo (0 : ℝ) Tpick)) :=
+          isOpen_interior
+        exact ((hdiffDpick t hin_int).differentiableAt
+          (hisOpen_int.mem_nhds hin_int))
+      -- transfer via EventuallyEq on neighborhood `Ioo 0 Tpick`.
+      have heventually :
+          (fun s => intervalDomainSupNorm
+              (boundedReachableGluedU hbdd hne s)) =ᶠ[nhds t]
+            (fun s => intervalDomainSupNorm (dpick.u s)) := by
+        refine Set.EqOn.eventuallyEq_of_mem ?_
+          (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick) ⟨ht.1, hT_gt⟩)
+        intro s hs
+        have := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).1
+          s hs.1 hs.2
+        change intervalDomainSupNorm (boundedReachableGluedU hbdd hne s) =
+          intervalDomainSupNorm (dpick.u s)
+        rw [this]
+      have hdiffGlued : DifferentiableAt ℝ
+          (fun s => intervalDomainSupNorm
+              (boundedReachableGluedU hbdd hne s)) t :=
+        (heventually.differentiableAt_iff).mpr hdiffDpickAt
+      exact hdiffGlued.differentiableWithinAt
+    · -- deriv ≤ 0 on interior of Ioo 0 T*.
+      rw [interior_Ioo]
+      intro t ht
+      have htmax : t < Tmax := ht.2
+      let dpick := pickReachableAboveData hbdd hne htmax
+      let Tpick : ℝ := (pickReachableAbove hbdd hne htmax).1
+      have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne htmax
+      have hreg₂_dpick :=
+        dpick.sol.regularity.2.1 q hqχ hqa hqb
+      have heventually :
+          (fun s => intervalDomainSupNorm
+              (boundedReachableGluedU hbdd hne s)) =ᶠ[nhds t]
+            (fun s => intervalDomainSupNorm (dpick.u s)) := by
+        refine Set.EqOn.eventuallyEq_of_mem ?_
+          (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick) ⟨ht.1, hT_gt⟩)
+        intro s hs
+        have := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).1
+          s hs.1 hs.2
+        change intervalDomainSupNorm (boundedReachableGluedU hbdd hne s) =
+          intervalDomainSupNorm (dpick.u s)
+        rw [this]
+      rw [Filter.EventuallyEq.deriv_eq heventually]
+      have hin : t ∈ interior (Set.Ioo (0 : ℝ) Tpick) := by
+        rw [interior_Ioo]; exact ⟨ht.1, hT_gt⟩
+      exact hreg₂_dpick.deriv_nonpos t hin
+  · -- (3) Spatial C² on Ioo 0 1 for u t, v t (per fixed interior t).
+    intro t ht
+    let dpick := pickReachableAboveData hbdd hne ht.2
+    let Tpick : ℝ := (pickReachableAbove hbdd hne ht.2).1
+    have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne ht.2
+    have huL := boundedReachableGluedU_lift_eq huniq hbdd hne dpick t ht.1 hT_gt
+    have hvL := boundedReachableGluedV_lift_eq huniq hbdd hne dpick t ht.1 hT_gt
+    rw [huL, hvL]
+    exact dpick.sol.regularity.2.2.1 t ⟨ht.1, hT_gt⟩
+  · -- (4) Per-point time differentiability + ∂ₜ continuity on Ioo 0 T*.
+    intro x t ht
+    let dpick := pickReachableAboveData hbdd hne ht.2
+    let Tpick : ℝ := (pickReachableAbove hbdd hne ht.2).1
+    have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne ht.2
+    have hreg4 := dpick.sol.regularity.2.2.2.1 x t ⟨ht.1, hT_gt⟩
+    have hEqU := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).1
+    have hEqV := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).2
+    -- EventuallyEq for time slices.
+    have huEv : (fun s : ℝ => boundedReachableGluedU hbdd hne s x) =ᶠ[nhds t]
+        (fun s : ℝ => dpick.u s x) := by
+      refine Set.EqOn.eventuallyEq_of_mem ?_
+        (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick) ⟨ht.1, hT_gt⟩)
+      intro s hs
+      have := hEqU s hs.1 hs.2
+      change boundedReachableGluedU hbdd hne s x = dpick.u s x
+      rw [this]
+    have hvEv : (fun s : ℝ => boundedReachableGluedV hbdd hne s x) =ᶠ[nhds t]
+        (fun s : ℝ => dpick.v s x) := by
+      refine Set.EqOn.eventuallyEq_of_mem ?_
+        (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick) ⟨ht.1, hT_gt⟩)
+      intro s hs
+      have := hEqV s hs.1 hs.2
+      change boundedReachableGluedV hbdd hne s x = dpick.v s x
+      rw [this]
+    refine ⟨⟨(huEv.differentiableAt_iff).mpr hreg4.1.1,
+        (hvEv.differentiableAt_iff).mpr hreg4.1.2⟩, ?_, ?_⟩
+    · -- ContinuousOn of `∂ₜ u·x` on Ioo 0 T*.
+      apply continuousOn_of_locally_continuousOn
+      intro t' ht'
+      let dpick' := pickReachableAboveData hbdd hne ht'.2
+      let Tpick' : ℝ := (pickReachableAbove hbdd hne ht'.2).1
+      have hT_gt' : t' < Tpick' := pickReachableAbove_lt hbdd hne ht'.2
+      refine ⟨Set.Ioo (0 : ℝ) Tpick', isOpen_Ioo,
+        ⟨ht'.1, hT_gt'⟩, ?_⟩
+      have hreg4' := dpick'.sol.regularity.2.2.2.1 x
+      -- Continuity of dpick'.u derivative on Ioo 0 Tpick' (any point gives same field).
+      -- Use one chosen `t''` in Ioo to extract continuity.
+      obtain ⟨t'', ht''⟩ : (Set.Ioo (0 : ℝ) Tpick').Nonempty :=
+        ⟨Tpick' / 2, by constructor <;> linarith [dpick'.T_pos]⟩
+      have hcontPick := (hreg4' t'' ht'').2.1
+      have hsub : Set.Ioo (0 : ℝ) Tmax ∩ Set.Ioo (0 : ℝ) Tpick' ⊆
+          Set.Ioo (0 : ℝ) Tpick' := Set.inter_subset_right
+      have hcontPick' :
+          ContinuousOn
+            (fun s : ℝ => deriv (fun r : ℝ => dpick'.u r x) s)
+            (Set.Ioo (0 : ℝ) Tmax ∩ Set.Ioo (0 : ℝ) Tpick') :=
+        hcontPick.mono hsub
+      apply hcontPick'.congr
+      rintro s ⟨_, hs2⟩
+      have hs0 : 0 < s := hs2.1
+      have hsT : s < Tpick' := hs2.2
+      have hsame :=
+        (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick').1 s hs0 hsT
+      have hEv : (fun r : ℝ => boundedReachableGluedU hbdd hne r x) =ᶠ[nhds s]
+          (fun r : ℝ => dpick'.u r x) := by
+        refine Set.EqOn.eventuallyEq_of_mem ?_
+          (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick') hs2)
+        intro r hr
+        have := (boundedReachableGlued_eq_on_subSlab
+          huniq hbdd hne dpick').1 r hr.1 hr.2
+        change boundedReachableGluedU hbdd hne r x = dpick'.u r x
+        rw [this]
+      simp only [hEv.deriv_eq]
+    · -- ContinuousOn of `∂ₜ v·x` on Ioo 0 T*.
+      apply continuousOn_of_locally_continuousOn
+      intro t' ht'
+      let dpick' := pickReachableAboveData hbdd hne ht'.2
+      let Tpick' : ℝ := (pickReachableAbove hbdd hne ht'.2).1
+      have hT_gt' : t' < Tpick' := pickReachableAbove_lt hbdd hne ht'.2
+      refine ⟨Set.Ioo (0 : ℝ) Tpick', isOpen_Ioo,
+        ⟨ht'.1, hT_gt'⟩, ?_⟩
+      have hreg4' := dpick'.sol.regularity.2.2.2.1 x
+      obtain ⟨t'', ht''⟩ : (Set.Ioo (0 : ℝ) Tpick').Nonempty :=
+        ⟨Tpick' / 2, by constructor <;> linarith [dpick'.T_pos]⟩
+      have hcontPick := (hreg4' t'' ht'').2.2
+      have hsub : Set.Ioo (0 : ℝ) Tmax ∩ Set.Ioo (0 : ℝ) Tpick' ⊆
+          Set.Ioo (0 : ℝ) Tpick' := Set.inter_subset_right
+      have hcontPick' :
+          ContinuousOn
+            (fun s : ℝ => deriv (fun r : ℝ => dpick'.v r x) s)
+            (Set.Ioo (0 : ℝ) Tmax ∩ Set.Ioo (0 : ℝ) Tpick') :=
+        hcontPick.mono hsub
+      apply hcontPick'.congr
+      rintro s ⟨_, hs2⟩
+      have hs0 : 0 < s := hs2.1
+      have hsT : s < Tpick' := hs2.2
+      have hEv : (fun r : ℝ => boundedReachableGluedV hbdd hne r x) =ᶠ[nhds s]
+          (fun r : ℝ => dpick'.v r x) := by
+        refine Set.EqOn.eventuallyEq_of_mem ?_
+          (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick') hs2)
+        intro r hr
+        have := (boundedReachableGlued_eq_on_subSlab
+          huniq hbdd hne dpick').2 r hr.1 hr.2
+        change boundedReachableGluedV hbdd hne r x = dpick'.v r x
+        rw [this]
+      simp only [hEv.deriv_eq]
+  · -- (5) Joint ∂ₜ continuity on `Ioo 0 T* × Ioo 0 1`.
+    refine ⟨?_, ?_⟩
+    · apply continuousOn_of_locally_continuousOn
+      rintro ⟨t, x⟩ ⟨ht, hx⟩
+      let dpick := pickReachableAboveData hbdd hne ht.2
+      let Tpick : ℝ := (pickReachableAbove hbdd hne ht.2).1
+      have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne ht.2
+      refine ⟨Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ,
+        isOpen_Ioo.prod isOpen_univ,
+        ⟨⟨ht.1, hT_gt⟩, Set.mem_univ _⟩, ?_⟩
+      have hcontPick := dpick.sol.regularity.2.2.2.2.1.1
+      -- hcontPick : ContinuousOn (uncurry ∂ₜ lift) (Ioo 0 Tpick × Ioo 0 1)
+      have hsub :
+          ((Set.Ioo (0 : ℝ) Tmax ×ˢ Set.Ioo (0 : ℝ) 1) ∩
+            (Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ))
+          ⊆ Set.Ioo (0 : ℝ) Tpick ×ˢ Set.Ioo (0 : ℝ) 1 := by
+        rintro ⟨s, y⟩ ⟨⟨hs1, hy1⟩, hs2, _⟩
+        exact ⟨hs2, hy1⟩
+      have hcontPick' := hcontPick.mono hsub
+      apply hcontPick'.congr
+      rintro ⟨s, y⟩ ⟨⟨hs1, hy1⟩, hs2, _⟩
+      simp only [Function.uncurry]
+      have hLiftEq := boundedReachableGluedU_lift_eq
+        huniq hbdd hne dpick s hs2.1 hs2.2
+      have hEv : (fun r : ℝ => intervalDomainLift
+          (boundedReachableGluedU hbdd hne r) y) =ᶠ[nhds s]
+            (fun r : ℝ => intervalDomainLift (dpick.u r) y) := by
+        refine Set.EqOn.eventuallyEq_of_mem ?_
+          (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick) hs2)
+        intro r hr
+        have hle := boundedReachableGluedU_lift_eq huniq hbdd hne dpick
+          r hr.1 hr.2
+        change intervalDomainLift (boundedReachableGluedU hbdd hne r) y =
+          intervalDomainLift (dpick.u r) y
+        rw [hle]
+      exact hEv.deriv_eq
+    · apply continuousOn_of_locally_continuousOn
+      rintro ⟨t, x⟩ ⟨ht, hx⟩
+      let dpick := pickReachableAboveData hbdd hne ht.2
+      let Tpick : ℝ := (pickReachableAbove hbdd hne ht.2).1
+      have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne ht.2
+      refine ⟨Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ,
+        isOpen_Ioo.prod isOpen_univ,
+        ⟨⟨ht.1, hT_gt⟩, Set.mem_univ _⟩, ?_⟩
+      have hcontPick := dpick.sol.regularity.2.2.2.2.1.2
+      have hsub :
+          ((Set.Ioo (0 : ℝ) Tmax ×ˢ Set.Ioo (0 : ℝ) 1) ∩
+            (Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ))
+          ⊆ Set.Ioo (0 : ℝ) Tpick ×ˢ Set.Ioo (0 : ℝ) 1 := by
+        rintro ⟨s, y⟩ ⟨⟨hs1, hy1⟩, hs2, _⟩
+        exact ⟨hs2, hy1⟩
+      have hcontPick' := hcontPick.mono hsub
+      apply hcontPick'.congr
+      rintro ⟨s, y⟩ ⟨⟨hs1, hy1⟩, hs2, _⟩
+      simp only [Function.uncurry]
+      have hEv : (fun r : ℝ => intervalDomainLift
+          (boundedReachableGluedV hbdd hne r) y) =ᶠ[nhds s]
+            (fun r : ℝ => intervalDomainLift (dpick.v r) y) := by
+        refine Set.EqOn.eventuallyEq_of_mem ?_
+          (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick) hs2)
+        intro r hr
+        have hle := boundedReachableGluedV_lift_eq huniq hbdd hne dpick
+          r hr.1 hr.2
+        change intervalDomainLift (boundedReachableGluedV hbdd hne r) y =
+          intervalDomainLift (dpick.v r) y
+        rw [hle]
+      exact hEv.deriv_eq
+  · -- (6) Endpoint tendsto for lift derivative (per fixed interior t).
+    intro t ht
+    let dpick := pickReachableAboveData hbdd hne ht.2
+    let Tpick : ℝ := (pickReachableAbove hbdd hne ht.2).1
+    have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne ht.2
+    have huL := boundedReachableGluedU_lift_eq huniq hbdd hne dpick t ht.1 hT_gt
+    have hvL := boundedReachableGluedV_lift_eq huniq hbdd hne dpick t ht.1 hT_gt
+    rw [huL, hvL]
+    exact dpick.sol.regularity.2.2.2.2.2.1 t ⟨ht.1, hT_gt⟩
+  · -- (7) Closed Icc C² + endpoint Neumann (per fixed interior t).
+    intro t ht
+    let dpick := pickReachableAboveData hbdd hne ht.2
+    let Tpick : ℝ := (pickReachableAbove hbdd hne ht.2).1
+    have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne ht.2
+    have huL := boundedReachableGluedU_lift_eq huniq hbdd hne dpick t ht.1 hT_gt
+    have hvL := boundedReachableGluedV_lift_eq huniq hbdd hne dpick t ht.1 hT_gt
+    rw [huL, hvL]
+    exact dpick.sol.regularity.2.2.2.2.2.2.1 t ⟨ht.1, hT_gt⟩
+  · -- (8) Closed-slab joint ∂ₜ continuity on `Ioo 0 T* × Icc 0 1`.
+    refine ⟨?_, ?_⟩
+    · apply continuousOn_of_locally_continuousOn
+      rintro ⟨t, x⟩ ⟨ht, hx⟩
+      let dpick := pickReachableAboveData hbdd hne ht.2
+      let Tpick : ℝ := (pickReachableAbove hbdd hne ht.2).1
+      have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne ht.2
+      refine ⟨Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ,
+        isOpen_Ioo.prod isOpen_univ,
+        ⟨⟨ht.1, hT_gt⟩, Set.mem_univ _⟩, ?_⟩
+      have hcontPick := dpick.sol.regularity.2.2.2.2.2.2.2.1.1
+      have hsub :
+          ((Set.Ioo (0 : ℝ) Tmax ×ˢ Set.Icc (0 : ℝ) 1) ∩
+            (Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ))
+          ⊆ Set.Ioo (0 : ℝ) Tpick ×ˢ Set.Icc (0 : ℝ) 1 := by
+        rintro ⟨s, y⟩ ⟨⟨hs1, hy1⟩, hs2, _⟩
+        exact ⟨hs2, hy1⟩
+      have hcontPick' := hcontPick.mono hsub
+      apply hcontPick'.congr
+      rintro ⟨s, y⟩ ⟨⟨hs1, hy1⟩, hs2, _⟩
+      simp only [Function.uncurry]
+      have hEv : (fun r : ℝ => intervalDomainLift
+          (boundedReachableGluedU hbdd hne r) y) =ᶠ[nhds s]
+            (fun r : ℝ => intervalDomainLift (dpick.u r) y) := by
+        refine Set.EqOn.eventuallyEq_of_mem ?_
+          (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick) hs2)
+        intro r hr
+        have hle := boundedReachableGluedU_lift_eq huniq hbdd hne dpick
+          r hr.1 hr.2
+        change intervalDomainLift (boundedReachableGluedU hbdd hne r) y =
+          intervalDomainLift (dpick.u r) y
+        rw [hle]
+      exact hEv.deriv_eq
+    · apply continuousOn_of_locally_continuousOn
+      rintro ⟨t, x⟩ ⟨ht, hx⟩
+      let dpick := pickReachableAboveData hbdd hne ht.2
+      let Tpick : ℝ := (pickReachableAbove hbdd hne ht.2).1
+      have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne ht.2
+      refine ⟨Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ,
+        isOpen_Ioo.prod isOpen_univ,
+        ⟨⟨ht.1, hT_gt⟩, Set.mem_univ _⟩, ?_⟩
+      have hcontPick := dpick.sol.regularity.2.2.2.2.2.2.2.1.2
+      have hsub :
+          ((Set.Ioo (0 : ℝ) Tmax ×ˢ Set.Icc (0 : ℝ) 1) ∩
+            (Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ))
+          ⊆ Set.Ioo (0 : ℝ) Tpick ×ˢ Set.Icc (0 : ℝ) 1 := by
+        rintro ⟨s, y⟩ ⟨⟨hs1, hy1⟩, hs2, _⟩
+        exact ⟨hs2, hy1⟩
+      have hcontPick' := hcontPick.mono hsub
+      apply hcontPick'.congr
+      rintro ⟨s, y⟩ ⟨⟨hs1, hy1⟩, hs2, _⟩
+      simp only [Function.uncurry]
+      have hEv : (fun r : ℝ => intervalDomainLift
+          (boundedReachableGluedV hbdd hne r) y) =ᶠ[nhds s]
+            (fun r : ℝ => intervalDomainLift (dpick.v r) y) := by
+        refine Set.EqOn.eventuallyEq_of_mem ?_
+          (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick) hs2)
+        intro r hr
+        have hle := boundedReachableGluedV_lift_eq huniq hbdd hne dpick
+          r hr.1 hr.2
+        change intervalDomainLift (boundedReachableGluedV hbdd hne r) y =
+          intervalDomainLift (dpick.v r) y
+        rw [hle]
+      exact hEv.deriv_eq
+  · -- (9) Closed-slab joint SOLUTION-FIELD continuity on `Ioo 0 T* × Icc 0 1`.
+    refine ⟨?_, ?_⟩
+    · apply continuousOn_of_locally_continuousOn
+      rintro ⟨t, x⟩ ⟨ht, hx⟩
+      let dpick := pickReachableAboveData hbdd hne ht.2
+      let Tpick : ℝ := (pickReachableAbove hbdd hne ht.2).1
+      have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne ht.2
+      refine ⟨Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ,
+        isOpen_Ioo.prod isOpen_univ,
+        ⟨⟨ht.1, hT_gt⟩, Set.mem_univ _⟩, ?_⟩
+      have hcontPick := dpick.sol.regularity.2.2.2.2.2.2.2.2.1
+      have hsub :
+          ((Set.Ioo (0 : ℝ) Tmax ×ˢ Set.Icc (0 : ℝ) 1) ∩
+            (Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ))
+          ⊆ Set.Ioo (0 : ℝ) Tpick ×ˢ Set.Icc (0 : ℝ) 1 := by
+        rintro ⟨s, y⟩ ⟨⟨hs1, hy1⟩, hs2, _⟩
+        exact ⟨hs2, hy1⟩
+      have hcontPick' := hcontPick.mono hsub
+      apply hcontPick'.congr
+      rintro ⟨s, y⟩ ⟨⟨hs1, hy1⟩, hs2, _⟩
+      simp only [Function.uncurry]
+      have hle := boundedReachableGluedU_lift_eq huniq hbdd hne dpick
+        s hs2.1 hs2.2
+      change intervalDomainLift (boundedReachableGluedU hbdd hne s) y =
+        intervalDomainLift (dpick.u s) y
+      rw [hle]
+    · apply continuousOn_of_locally_continuousOn
+      rintro ⟨t, x⟩ ⟨ht, hx⟩
+      let dpick := pickReachableAboveData hbdd hne ht.2
+      let Tpick : ℝ := (pickReachableAbove hbdd hne ht.2).1
+      have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne ht.2
+      refine ⟨Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ,
+        isOpen_Ioo.prod isOpen_univ,
+        ⟨⟨ht.1, hT_gt⟩, Set.mem_univ _⟩, ?_⟩
+      have hcontPick := dpick.sol.regularity.2.2.2.2.2.2.2.2.2
+      have hsub :
+          ((Set.Ioo (0 : ℝ) Tmax ×ˢ Set.Icc (0 : ℝ) 1) ∩
+            (Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ))
+          ⊆ Set.Ioo (0 : ℝ) Tpick ×ˢ Set.Icc (0 : ℝ) 1 := by
+        rintro ⟨s, y⟩ ⟨⟨hs1, hy1⟩, hs2, _⟩
+        exact ⟨hs2, hy1⟩
+      have hcontPick' := hcontPick.mono hsub
+      apply hcontPick'.congr
+      rintro ⟨s, y⟩ ⟨⟨hs1, hy1⟩, hs2, _⟩
+      simp only [Function.uncurry]
+      have hle := boundedReachableGluedV_lift_eq huniq hbdd hne dpick
+        s hs2.1 hs2.2
+      change intervalDomainLift (boundedReachableGluedV hbdd hne s) y =
+        intervalDomainLift (dpick.v s) y
+      rw [hle]
+
+/-- The glued branch is a classical interval solution at horizon `T*`. -/
+theorem boundedReachableGlued_isPaper2ClassicalSolution_of_overlapUnique
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
+    (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
+    (hTmax_pos : 0 < finiteMaximalReachableHorizon p u₀) :
+    IsPaper2ClassicalSolution intervalDomain p
+      (finiteMaximalReachableHorizon p u₀)
+      (boundedReachableGluedU hbdd hne)
+      (boundedReachableGluedV hbdd hne) := by
+  set Tmax : ℝ := finiteMaximalReachableHorizon p u₀ with hTmaxDef
+  refine IsPaper2ClassicalSolution.of_components hTmax_pos
+    (boundedReachableGlued_classicalRegularity_of_overlapUnique
+      huniq hbdd hne)
+    ?hpos ?hv_nonneg ?hpde_u ?hpde_v ?hneumann
+  case hpos =>
+    intro t x ht0 htT
+    let dpick := pickReachableAboveData hbdd hne htT
+    let Tpick : ℝ := (pickReachableAbove hbdd hne htT).1
+    have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne htT
+    have heq :=
+      (boundedReachableGlued_eq_reachableData_of_overlapUnique
+        huniq hbdd hne dpick t ht0 hT_gt x).1
+    rw [heq]
+    exact dpick.sol.u_pos' ht0 hT_gt
+  case hv_nonneg =>
+    intro t x ht0 htT
+    let dpick := pickReachableAboveData hbdd hne htT
+    let Tpick : ℝ := (pickReachableAbove hbdd hne htT).1
+    have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne htT
+    have heq :=
+      (boundedReachableGlued_eq_reachableData_of_overlapUnique
+        huniq hbdd hne dpick t ht0 hT_gt x).2
+    rw [heq]
+    exact dpick.sol.v_nonneg ht0 hT_gt
+  case hpde_u =>
+    intro t x ht0 htT hx
+    let dpick := pickReachableAboveData hbdd hne htT
+    let Tpick : ℝ := (pickReachableAbove hbdd hne htT).1
+    have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne htT
+    have huEq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).1
+    have hvEq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).2
+    have htime :=
+      intervalDomainTimeDeriv_eq_of_Ioo_eq (T := Tpick) huEq ht0 hT_gt x
+    have hlap :=
+      intervalDomainLaplacian_eq_of_pointwise_eq
+        (fun y => congrFun (huEq t ht0 hT_gt) y) hx
+    have hchem :=
+      intervalDomainChemotaxisDiv_eq_of_pointwise_eq p
+        (fun y => congrFun (huEq t ht0 hT_gt) y)
+        (fun y => congrFun (hvEq t ht0 hT_gt) y) hx
+    have hpde := dpick.sol.pde_u ht0 hT_gt hx
+    have hlap' :
+        intervalDomain.laplacian (boundedReachableGluedU hbdd hne t) x =
+          intervalDomain.laplacian (dpick.u t) x := by
+      simpa [intervalDomain] using hlap
+    have hchem' :
+        intervalDomain.chemotaxisDiv p
+            (boundedReachableGluedU hbdd hne t)
+            (boundedReachableGluedV hbdd hne t) x =
+          intervalDomain.chemotaxisDiv p (dpick.u t) (dpick.v t) x := by
+      simpa [intervalDomain] using hchem
+    have huval : boundedReachableGluedU hbdd hne t x = dpick.u t x :=
+      congrFun (huEq t ht0 hT_gt) x
+    rw [htime, hlap', hchem', huval]
+    exact hpde
+  case hpde_v =>
+    intro t x ht0 htT hx
+    let dpick := pickReachableAboveData hbdd hne htT
+    let Tpick : ℝ := (pickReachableAbove hbdd hne htT).1
+    have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne htT
+    have huEq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).1
+    have hvEq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).2
+    have hlap :=
+      intervalDomainLaplacian_eq_of_pointwise_eq
+        (fun y => congrFun (hvEq t ht0 hT_gt) y) hx
+    have hpde := dpick.sol.pde_v ht0 hT_gt hx
+    have hlap' :
+        intervalDomain.laplacian (boundedReachableGluedV hbdd hne t) x =
+          intervalDomain.laplacian (dpick.v t) x := by
+      simpa [intervalDomain] using hlap
+    have huval : boundedReachableGluedU hbdd hne t x = dpick.u t x :=
+      congrFun (huEq t ht0 hT_gt) x
+    have hvval : boundedReachableGluedV hbdd hne t x = dpick.v t x :=
+      congrFun (hvEq t ht0 hT_gt) x
+    rw [hlap', hvval, huval]
+    exact hpde
+  case hneumann =>
+    intro t x _ht0 _htT hx
+    change intervalDomainNormalDeriv (boundedReachableGluedU hbdd hne t) x = 0 ∧
+      intervalDomainNormalDeriv (boundedReachableGluedV hbdd hne t) x = 0
+    exact ⟨intervalDomainNormalDeriv_endpoint
+        (boundedReachableGluedU hbdd hne t) hx,
+      intervalDomainNormalDeriv_endpoint
+        (boundedReachableGluedV hbdd hne t) hx⟩
+
+/-- Bundle: under overlap uniqueness, the `hrealize` umbrella hypothesis is
+discharged internally — a classical interval solution at horizon `T*` with the
+prescribed initial trace exists. -/
+theorem realize_at_finiteMaximalReachableHorizon_of_overlapUnique
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hlocal :
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ T > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p T u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (hbdd : BddAbove (reachableClassicalHorizonSet p u₀)) :
+    ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p
+        (finiteMaximalReachableHorizon p u₀) u v ∧
+      InitialTrace intervalDomain u₀ u := by
+  have hne : (reachableClassicalHorizonSet p u₀).Nonempty :=
+    reachableClassicalHorizonSet_nonempty_of_localExistence p hlocal hu₀
+  have hTmax_pos : 0 < finiteMaximalReachableHorizon p u₀ :=
+    finiteMaximalReachableHorizon_pos_of_localExistence p hlocal hu₀ hbdd
+  refine ⟨boundedReachableGluedU hbdd hne, boundedReachableGluedV hbdd hne,
+    boundedReachableGlued_isPaper2ClassicalSolution_of_overlapUnique
+      huniq hbdd hne hTmax_pos,
+    boundedReachableGlued_initialTrace_of_overlapUnique huniq hbdd hne⟩
+
 /-! #### Blow-up exclusion from an a priori bound
 
 The standard continuation theorem produces a finite branch only if the

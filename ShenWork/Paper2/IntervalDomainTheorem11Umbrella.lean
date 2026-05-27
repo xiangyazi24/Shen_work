@@ -913,6 +913,130 @@ theorem Theorem_1_1_intervalDomain_via_regime_gammaGeOne_and_continuationData_bu
     p hχ ha hb hγ_ge_one hData.localExistence hData.realize
     hData.extend_finite hData.extend_mge hData.posWit
 
+/-! ## `hrealize` discharged internally for the γ≥1 regime
+
+Under the Theorem-1.1 negative-sensitivity regime + γ≥1 + the per-pair
+positive-initial-datum book-keeping, overlap uniqueness is available from the
+γ≥1 L²-energy chain (`intervalDomainClassicalUniquenessL2EnergyMethod_of_boundedDatumUniform`
+→ `IntervalClassicalSolutionOverlapUnique_of_l2EnergyMethod`).  Composing
+with `realize_at_finiteMaximalReachableHorizon_of_overlapUnique` produces
+the umbrella's `hrealize` hypothesis **internally**, without any external
+PDE input: structural sub-horizon merging at the finite supremum. -/
+
+/-- The umbrella's `hrealize` hypothesis discharged internally for the γ≥1
+regime, by overlap uniqueness (γ≥1 L²-energy chain) plus structural
+sub-horizon gluing at the finite reachable supremum. -/
+theorem realize_of_regime_gammaGeOne
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hposWit :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          PositiveInitialDatum intervalDomain u₀) :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ _hbdd : BddAbove
+        (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀),
+      ∃ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p
+          (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+            p u₀) u v ∧
+        InitialTrace intervalDomain u₀ u := by
+  -- Step 1: build `IntervalClassicalSolutionOverlapUnique p` from the γ≥1 chain.
+  have hbdd_uniform :
+      IntervalDomainL2UBoundednessHypothesis p :=
+    boundednessHypothesis_of_uniformSupBoundZeroM hγ_ge_one
+      (uniformLiftBoundZeroM_of_regime p hχ ha hb hposWit
+        (fun hsol₁ hsol₂ htr₁ htr₂ => (hposWit hsol₁ hsol₂ htr₁ htr₂).admissible))
+      (fun hsol₁ hsol₂ htr₁ htr₂ => (hposWit hsol₁ hsol₂ htr₁ htr₂).admissible)
+  have hbdd_datum :
+      IntervalDomainL2UBoundedDatumUniform p :=
+    intervalDomainL2UBoundedDatumUniform_of_bounded hbdd_uniform
+  have hL2method :
+      IntervalDomainClassicalUniquenessL2EnergyMethod p :=
+    intervalDomainClassicalUniquenessL2EnergyMethod_of_boundedDatumUniform p
+      hbdd_datum
+  have huniq :
+      ShenWork.IntervalDomainExistence.IntervalClassicalSolutionOverlapUnique p :=
+    ShenWork.IntervalDomainExistence.IntervalClassicalSolutionOverlapUnique_of_l2EnergyMethod
+      hL2method
+  -- Step 2: produce hrealize from huniq + hlocal.
+  intro u₀ hu₀ hbdd
+  exact ShenWork.IntervalDomainExistence.realize_at_finiteMaximalReachableHorizon_of_overlapUnique
+    huniq hlocal hu₀ hbdd
+
+/-- **Paper 2-aligned umbrella theorem (γ≥1), `hrealize` eliminated.**
+
+Same conclusion as `Theorem_1_1_intervalDomain_via_regime_gammaGeOne_and_continuationData`
+but with `hrealize` discharged internally — only `hlocal`, `hextend_of_not_finiteAlternative`,
+`hextend_of_not_mgeAlternative`, and `hposWit` remain as textbook PDE inputs. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hrealize
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hextend_of_not_finiteAlternative :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ (_hbdd : BddAbove
+          (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomain.Point → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          ¬ FiniteHorizonAlternative intervalDomain
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u →
+          ShenWork.IntervalDomainExistence.ReachablePast p u₀
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀))
+    (hextend_of_not_mgeAlternative :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ (_hbdd : BddAbove
+          (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomain.Point → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          1 ≤ p.m →
+          ¬ MGeOneFiniteHorizonAlternative intervalDomain
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u →
+          ShenWork.IntervalDomainExistence.ReachablePast p u₀
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀))
+    (hposWit :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          PositiveInitialDatum intervalDomain u₀) :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_and_continuationData
+    p hχ ha hb hγ_ge_one hlocal
+    (realize_of_regime_gammaGeOne p hχ ha hb hγ_ge_one hlocal hposWit)
+    hextend_of_not_finiteAlternative hextend_of_not_mgeAlternative hposWit
+
 end
 
 end ShenWork.Paper2
