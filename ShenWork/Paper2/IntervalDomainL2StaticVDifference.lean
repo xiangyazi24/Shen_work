@@ -937,6 +937,133 @@ theorem lift_u_uniformPositive_on_compact
   have hmem : (τ, x) ∈ Set.Icc s t ×ˢ Set.Icc (0 : ℝ) 1 := ⟨hτ, hx⟩
   exact isMinOn_iff.mp hq₀_min (τ, x) hmem
 
+/-- **Strengthened positive initial datum predicate: uniform positive lower bound.**
+
+A faithful PDE-textbook strengthening of `PositiveInitialDatum`: the datum `u₀`
+admits a *uniform* positive lower bound `δ₀ > 0` that is independent of the
+spatial point.  Stated as a standalone predicate (not folded into
+`PositiveInitialDatum` / `initialAdmissible`) so that downstream gluing
+theorems that need a *uniform* short-time positivity gap can opt in
+selectively without blast-radius to the rest of the existence theory. -/
+def IntervalDomainPosDatumLowerBound (u₀ : intervalDomainPoint → ℝ) : Prop :=
+  ∃ δ₀ : ℝ, 0 < δ₀ ∧ ∀ x : intervalDomainPoint, δ₀ ≤ u₀ x
+
+/-- **Uniform positive lower bound for `lift (u τ)` on the half-horizon `(0,t]`
+jointly in time and space**, from a bounded-below initial datum + initial trace.
+
+Given a classical solution `(u,v)` sharing its initial trace with an initial
+datum `u₀` that admits a uniform positive lower bound `δ₀ > 0` (and is
+admissible, i.e. `BddAbove (range |u₀|)` — needed to make the trace sup-norm
+bound pointwise via `le_csSup`), for every `t ∈ (0,T)` there is `δ > 0` such
+that `δ ≤ intervalDomainLift (u τ) x` for every `τ ∈ (0,t]` and every
+`x ∈ [0,1]`.
+
+Proof: split `(0,t]` at a short-time cut `τ_a ∈ (0,t]`.  On `(0, τ_a]` the
+initial trace gives `supNorm(u τ - u₀) < δ₀/2`, hence pointwise on `Icc 0 1`
+`lift(u τ) y ≥ u₀ ⟨y,hy⟩ - δ₀/2 ≥ δ₀/2`.  On `[τ_a, t]` the existing compact-
+slab uniform lower bound `lift_u_uniformPositive_on_compact` gives a uniform
+`δ_a > 0`.  Take `δ := min (δ₀/2) δ_a`. -/
+theorem lift_u_uniformPositive_on_halfHorizon
+    {p : CM2Params} {T : ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hTrace : InitialTrace intervalDomain u₀ u)
+    (hPos : IntervalDomainPosDatumLowerBound u₀)
+    (hAdm : intervalDomain.initialAdmissible u₀)
+    {t : ℝ} (ht0 : 0 < t) (htT : t < T) :
+    ∃ δ : ℝ, 0 < δ ∧
+      ∀ τ : ℝ, 0 < τ → τ ≤ t →
+        ∀ x ∈ Set.Icc (0 : ℝ) 1, δ ≤ intervalDomainLift (u τ) x := by
+  classical
+  -- 1. extract the datum lower bound.
+  obtain ⟨δ₀, hδ₀_pos, hδ₀_le⟩ := hPos
+  have hδ₀_half_pos : 0 < δ₀ / 2 := by linarith
+  -- 2. trace: pick `τ_raw > 0` such that for `τ ∈ (0, τ_raw)`,
+  --    `supNorm(u τ - u₀) < δ₀/2`.  Then trim to land inside `(0, t]`.
+  obtain ⟨τ_raw, hτ_raw_pos, hτ_raw_bound⟩ :=
+    hTrace.eventually_small (ε := δ₀ / 2) hδ₀_half_pos
+  -- pick `τ_a := min (τ_raw / 2) t`, a positive point with `τ_a < τ_raw` and `τ_a ≤ t`.
+  set τ_a : ℝ := min (τ_raw / 2) t with hτ_a_def
+  have hτ_raw_half_pos : 0 < τ_raw / 2 := by linarith
+  have hτ_a_pos : 0 < τ_a := lt_min hτ_raw_half_pos ht0
+  have hτ_a_le_t : τ_a ≤ t := min_le_right _ _
+  have hτ_a_lt_raw : τ_a < τ_raw := by
+    have h1 : τ_a ≤ τ_raw / 2 := min_le_left _ _
+    linarith
+  -- 3. compact-slab uniform bound on `[τ_a, t]`.
+  obtain ⟨δ_a, hδ_a_pos, hδ_a_bound⟩ :=
+    lift_u_uniformPositive_on_compact hsol (s := τ_a) (t := t) hτ_a_pos hτ_a_le_t htT
+  -- 4. set `δ := min (δ₀/2) δ_a`.
+  set δ : ℝ := min (δ₀ / 2) δ_a with hδ_def
+  have hδ_pos : 0 < δ := lt_min hδ₀_half_pos hδ_a_pos
+  refine ⟨δ, hδ_pos, ?_⟩
+  intro τ hτ_pos hτ_le_t x hx
+  -- case split: `τ ≤ τ_a` (short-time, use trace) vs `τ_a ≤ τ` (slab, use compact lemma).
+  by_cases hcase : τ ≤ τ_a
+  · -- short-time leg `(0, τ_a]`: use the trace bound.
+    have hτ_lt_raw : τ < τ_raw := lt_of_le_of_lt hcase hτ_a_lt_raw
+    have hsup_lt : intervalDomainSupNorm (fun y => u τ y - u₀ y) < δ₀ / 2 :=
+      hτ_raw_bound τ hτ_pos hτ_lt_raw
+    -- pointwise: `|u τ ⟨y,hy⟩ - u₀ ⟨y,hy⟩| ≤ supNorm`, via BddAbove of the range.
+    -- BddAbove comes from continuity of `lift (u τ)` on `[0,1]` and admissibility of `u₀`.
+    have hτ_open : τ ∈ Set.Ioo (0 : ℝ) T :=
+      ⟨hτ_pos, lt_of_le_of_lt (le_trans hcase hτ_a_le_t) htT⟩
+    have hu_cont : ContinuousOn (intervalDomainLift (u τ)) (Set.Icc (0 : ℝ) 1) :=
+      ((hsol.regularity.2.2.2.2.2.2.1 τ hτ_open).1.1).continuousOn
+    have hu_bddR : BddAbove (Set.range (fun z : intervalDomainPoint => |u τ z|)) := by
+      have hcompact : IsCompact (Set.Icc (0:ℝ) 1) := isCompact_Icc
+      obtain ⟨M, hM⟩ := (hcompact.image_of_continuousOn (hu_cont.abs)).bddAbove
+      refine ⟨M, ?_⟩
+      rintro _ ⟨z, rfl⟩
+      have hMz := hM ⟨z.1, z.2, rfl⟩
+      have hlift : intervalDomainLift (u τ) z.1 = u τ z := by
+        simp [intervalDomainLift, z.2]
+      simpa only [hlift] using hMz
+    -- `u₀` admissibility = BddAbove of `range |u₀|`.
+    have hu₀_bddR : BddAbove (Set.range (fun z : intervalDomainPoint => |u₀ z|)) := hAdm
+    -- BddAbove of `range |u τ - u₀|` via triangle inequality.
+    have hdiff_bddR :
+        BddAbove (Set.range (fun z : intervalDomainPoint => |u τ z - u₀ z|)) := by
+      obtain ⟨M₁, hM₁⟩ := hu_bddR
+      obtain ⟨M₂, hM₂⟩ := hu₀_bddR
+      refine ⟨M₁ + M₂, ?_⟩
+      rintro _ ⟨z, rfl⟩
+      have h1 : |u τ z| ≤ M₁ := hM₁ ⟨z, rfl⟩
+      have h2 : |u₀ z| ≤ M₂ := hM₂ ⟨z, rfl⟩
+      calc |u τ z - u₀ z|
+          ≤ |u τ z| + |u₀ z| := abs_sub _ _
+        _ ≤ M₁ + M₂ := add_le_add h1 h2
+    -- pointwise extraction at `⟨x, hx⟩ : intervalDomainPoint`.
+    have hpt : |u τ ⟨x, hx⟩ - u₀ ⟨x, hx⟩|
+        ≤ intervalDomainSupNorm (fun z => u τ z - u₀ z) := by
+      have hmem : |u τ ⟨x, hx⟩ - u₀ ⟨x, hx⟩|
+          ∈ Set.range (fun z : intervalDomainPoint => |u τ z - u₀ z|) :=
+        ⟨⟨x, hx⟩, rfl⟩
+      exact le_csSup hdiff_bddR hmem
+    have hpt_lt : |u τ ⟨x, hx⟩ - u₀ ⟨x, hx⟩| < δ₀ / 2 :=
+      lt_of_le_of_lt hpt hsup_lt
+    -- translate to lift: at `x ∈ Icc 0 1`, `lift (u τ) x = u τ ⟨x, hx⟩` and
+    -- `lift u₀ x = u₀ ⟨x, hx⟩`.
+    have hlift_u : intervalDomainLift (u τ) x = u τ ⟨x, hx⟩ := by
+      simp [intervalDomainLift, hx]
+    have hlift_u₀ : intervalDomainLift u₀ x = u₀ ⟨x, hx⟩ := by
+      simp [intervalDomainLift, hx]
+    -- so `lift (u τ) x ≥ u₀ ⟨x,hx⟩ - δ₀/2 ≥ δ₀ - δ₀/2 = δ₀/2 ≥ δ`.
+    have habs_lt : |intervalDomainLift (u τ) x - u₀ ⟨x, hx⟩| < δ₀ / 2 := by
+      rw [hlift_u]; exact hpt_lt
+    have hge : u₀ ⟨x, hx⟩ - δ₀ / 2 < intervalDomainLift (u τ) x := by
+      have := abs_lt.mp habs_lt
+      linarith [this.1]
+    have hu₀_ge : δ₀ ≤ u₀ ⟨x, hx⟩ := hδ₀_le ⟨x, hx⟩
+    have hhalf_le : δ₀ / 2 ≤ intervalDomainLift (u τ) x := by linarith
+    exact le_trans (min_le_left _ _) hhalf_le
+  · -- slab leg `[τ_a, t]`: use `lift_u_uniformPositive_on_compact`.
+    have hcase' : τ_a < τ := lt_of_not_ge hcase
+    have hτ_in : τ ∈ Set.Icc τ_a t := ⟨le_of_lt hcase', hτ_le_t⟩
+    have hδa_le : δ_a ≤ intervalDomainLift (u τ) x := hδ_a_bound τ hτ_in x hx
+    exact le_trans (min_le_right _ _) hδa_le
+
 end
 
 end ShenWork.Paper2
