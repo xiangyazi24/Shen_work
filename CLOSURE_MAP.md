@@ -334,3 +334,23 @@ The 4 PDE textbook inputs (hlocal + hrealize + hextend_*) are precisely the stan
 - `lift_u_uniformPositive_on_halfHorizon` (uniform δ on (0,t] via trace squeeze + compactness, given PosDatumLowerBound).
 - `lift_v_bounded_on_compact` (v-side parallel to u).
 - `classicalSolution_u_range_bddAbove` (per-time bounded range from conjunct-7).
+
+## ROUND-13 — MAXIMAL CONTINUATION COLLAPSE (2026-05-27, HEAD 715b1f7, build 8345 axiom-clean)
+
+After Liang (Paper2 author) confirmed Paper2 only addresses γ≥1 (2026-05-27 cron group response), attacked maximal continuation theorem aggressively for the paper's actual regime. Three textbook PDE inputs eliminated via internal derivation, in 3 subagent rounds:
+
+### Eliminations
+1. **`hextend_finite`** discharged via `not_mgeOneFiniteHorizonAlternative_of_realize_in_negative_regime` (Paper2/IntervalDomainGlobalWellposed.lean): the MGeOne alternative implies the Finite alternative in the χ₀≤0/a,b>0 regime via Lemma 3.1 + initial-approach + classicalSolution_u_range_bddAbove + supNormControlsPointwiseBefore_of_timeSlice_rangeBounded.
+2. **`hrealize`** discharged via `realize_at_finiteMaximalReachableHorizon_of_overlapUnique` (PDE/IntervalDomainExistence.lean): STRUCTURAL MERGING — at the open sup `T*`, solutions at horizons `T_n < T*` merge via proved overlap-uniqueness; predicate at horizon `T*` only requires properties on `(0, T*)` covered by `⋃ (0, T_n)`. NO Ascoli-Arzelà at endpoint needed. Verified via `continuousOn_of_locally_continuousOn` per regularity conjunct.
+3. **`hextend_mge`** discharged via `extend_of_not_mgeAlternative_of_uniformLocalExistence` (Paper2/IntervalDomainTheorem11Umbrella.lean): packaged the textbook "parabolic continuation with uniform δ(M)" as ONE Prop `IntervalDomainUniformLocalExistence p`; combined with Lemma 3.1 + overlap uniqueness yields hextend_mge (and hextend_finite too).
+
+### Final γ≥1 paper-aligned umbrella
+`Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge_bundled` takes:
+- regime (χ₀≤0, a,b>0)
+- γ≥1
+- `IntervalDomainPaper2ContinuationDataGammaGeOne_no_hextend_mge` bundle (3 fields):
+  - `localExistence` — standard short-time classical local existence
+  - `uniformLocal` — `IntervalDomainUniformLocalExistence p` (textbook parabolic continuation)
+  - `posWit` — book-keeping pass-through (per-pair PositiveInitialDatum)
+
+**ONLY 2 textbook PDE inputs remain**, both standard items Paper2 itself cites from PDE literature (Henry §3.3 / Amann Vol. I). From the 4-textbook-input baseline to 2 in three subagent rounds, every step axiom-clean and verified.
