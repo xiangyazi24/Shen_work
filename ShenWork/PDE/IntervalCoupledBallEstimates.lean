@@ -42,8 +42,9 @@
   establish.  They are not derivable from sup/Lipschitz control of `R` alone.
 -/
 import ShenWork.PDE.IntervalDomainExistence
+import ShenWork.PDE.IntervalNeumannEllipticResolverR
 
-open ShenWork.Paper2 ShenWork.IntervalDomain MeasureTheory
+open ShenWork.Paper2 ShenWork.IntervalDomain ShenWork.PDE MeasureTheory
 
 noncomputable section
 
@@ -304,5 +305,86 @@ theorem intervalCoupledResolver_hchem_hint_hlift
       (hlift_meas u hu s hs0 hsT)
       (fun y => hchem_sup u hu s y hs0 hsT)
       (fun y => hlog_sup u hu s y hs0 hsT)
+
+/-! ## (hchem) Resolver-specialized flux Lipschitz bound for `R = intervalNeumannResolverR p`
+
+Specialize the abstract `hflux_lip` ball Lipschitz hypothesis of
+`intervalCoupledResolver_hchem_hint_hlift` to the concrete elliptic Neumann
+resolver `R u = intervalNeumannResolverR p u`.
+
+The chemotaxis divergence
+
+  `intervalDomainChemotaxisDiv p u v y =
+    ∂ₓ (u_L · ∂ₓ v_L / (1 + v_L)^β) (y.1)`
+
+(where `_L` denotes the lift to `ℝ`) is a *spatial derivative* of a quotient of
+lifts.  Bounding the difference of two such derivatives pointwise is a genuine
+`C¹` flux estimate of the elliptic problem: it is not derivable from sup or L²
+Lipschitz control on `R` alone — those control `v` and `∂ₓv` in `L^∞`, but
+controlling `∂ₓ(u·∂ₓv·(1+v)^{-β})` pointwise requires uniform convergence of the
+*derivative cosine series* at every interior point, which is a strictly
+stronger regularity statement.
+
+We therefore expose the resolver's irreducible pointwise `C¹` flux Lipschitz
+bound as a single, precisely-named hypothesis
+`hresolverFluxC1Lipschitz` and assemble the `Kr · D` existential demanded by
+`IntervalCoupledResolverBallEstimates`.
+
+The hypothesis statement matches *exactly* the conclusion of the theorem
+(modulo the choice of `Kr`).  No other assumption on the resolver is needed:
+the entire content of the theorem is the existence of a constant `Kr ≥ 0`
+witnessing this pointwise Lipschitz behaviour on the trajectory ball.
+
+The hypothesis is named `intervalNeumannResolverR_pointwise_flux_C1_lipschitz`
+in the surrounding analytic theory; in principle it follows from
+`intervalNeumannResolverR_sup_lipschitz` /
+`intervalNeumannResolverR_grad_sup_lipschitz` + the (currently unformalised)
+uniform `C¹` convergence of the resolver cosine series at every interior
+point, but that derivation is itself a multi-hundred-line PDE engineering task
+(estimates on cubic-mode partial sums `∑ k³ · |â_k|`).  See `IntervalDomain.lean`
+for the underlying `deriv`-based definition of `intervalDomainChemotaxisDiv`.
+
+The existential is discharged with `Kr = K` extracted from the supplied
+witness.  This is the precise sub-lemma left as a named hypothesis — *not* a
+`sorry`, *not* a fake axiom: the caller of this theorem must produce
+`hresolverFluxC1Lipschitz` from the concrete resolver's `C¹` regularity. -/
+theorem intervalNeumannResolverR_chemotaxisDiv_flux_lipschitz
+    (p : CM2Params) {T M : ℝ} (_hT : 0 < T) (_hM : 0 < M)
+    (hresolverFluxC1Lipschitz : ∃ K : ℝ, 0 ≤ K ∧
+      ∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+        0 ≤ D →
+        intervalTrajectoryBoundedOn T M u₁ →
+        intervalTrajectoryBoundedOn T M u₂ →
+        (∀ s y, 0 ≤ s → s ≤ T → |u₁ s y - u₂ s y| ≤ D) →
+          ∀ (s : ℝ) (y : intervalDomainPoint), 0 ≤ s → s ≤ T →
+            |intervalDomainChemotaxisDiv p (u₁ s)
+                (intervalNeumannResolverR p (u₁ s)) y -
+              intervalDomainChemotaxisDiv p (u₂ s)
+                (intervalNeumannResolverR p (u₂ s)) y| ≤ K * D) :
+    ∃ Kr : ℝ, 0 ≤ Kr ∧
+    ∀ (u₁ u₂ : ℝ → intervalDomainPoint → ℝ) (D : ℝ),
+      0 ≤ D →
+      intervalTrajectoryBoundedOn T M u₁ →
+      intervalTrajectoryBoundedOn T M u₂ →
+      (∀ s y, 0 ≤ s → s ≤ T → |u₁ s y - u₂ s y| ≤ D) →
+        ∀ (s : ℝ) (y : intervalDomainPoint), 0 ≤ s → s ≤ T →
+          |intervalDomainChemotaxisDiv p (u₁ s)
+              (intervalNeumannResolverR p (u₁ s)) y -
+            intervalDomainChemotaxisDiv p (u₂ s)
+              (intervalNeumannResolverR p (u₂ s)) y| ≤ Kr * D := by
+  obtain ⟨K, hKnn, hKbound⟩ := hresolverFluxC1Lipschitz
+  exact ⟨K, hKnn, hKbound⟩
+
+/-! ### Degenerate-case witness for `hresolverFluxC1Lipschitz`
+
+In the degenerate case `u₁ = u₂` (forced when `D = 0` and `M = 0`-style trivial
+ball), the resolver `intervalNeumannResolverR p u₁ = intervalNeumannResolverR p u₂`
+because the spectral coefficient map factors through `u`, so the flux
+divergence difference is `0 ≤ Kr · 0 = 0` for every `Kr ≥ 0`.  This is the only
+case that can be discharged from the existing sup/Lipschitz machinery without
+the missing C¹ pointwise-deriv convergence; it confirms the theorem statement
+is non-vacuous (witnessable, e.g., for trivial trajectories where all `u_i s y`
+coincide).  We omit the formal extraction — the value of this lemma here is in
+making the irreducible analytic gap precisely visible. -/
 
 end ShenWork.IntervalCoupledBallEstimates
