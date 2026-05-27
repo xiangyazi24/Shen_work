@@ -1118,6 +1118,43 @@ theorem lift_u_uniformPositive_on_halfHorizon
     have hδa_le : δ_a ≤ intervalDomainLift (u τ) x := hδ_a_bound τ hτ_in x hx
     exact le_trans (min_le_right _ _) hδa_le
 
+/-- **Range boundedness of `|u t ·|` for a classical solution at an interior time.**
+
+For an `IsPaper2ClassicalSolution` and every interior time `t ∈ (0,T)`, the
+absolute-value range `{|u t x| : x : intervalDomainPoint}` is bounded above.
+
+Proof: conjunct (7) of `intervalDomainClassicalRegularity` provides
+`ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc 0 1)`, hence
+`ContinuousOn (intervalDomainLift (u t)) (Icc 0 1)`; composing with `|·|`
+gives a continuous function on the compact `Icc 0 1`, whose image is bounded
+above.  For every `x : intervalDomainPoint`, `intervalDomainLift (u t) x.1 =
+u t x` (since `x.1 ∈ Icc 0 1`), so the absolute-value range over the subtype
+embeds into the absolute-value image over `Icc 0 1`, which is bounded.
+
+This is the internal discharge for the `hrangeBounded` data hypothesis of the
+`no_hreach` umbrella in `IntervalDomainTheorem11Umbrella.lean`. -/
+theorem classicalSolution_u_range_bddAbove
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    BddAbove (Set.range (fun x : intervalDomainPoint => |u t x|)) := by
+  classical
+  -- conjunct (7): closed-domain `C²` regularity of the lift on `Icc 0 1`.
+  have hcont : ContinuousOn (intervalDomainLift (u t)) (Set.Icc (0:ℝ) 1) :=
+    ((hsol.regularity.2.2.2.2.2.2.1 t ht).1.1).continuousOn
+  -- image of `|lift (u t)|` over the compact `Icc 0 1` is bounded above.
+  obtain ⟨B, hB⟩ :=
+    (isCompact_Icc.image_of_continuousOn hcont.abs).bddAbove
+  refine ⟨B, ?_⟩
+  rintro _ ⟨x, rfl⟩
+  -- bound at `x.1 ∈ Icc 0 1`.
+  have hBx : |intervalDomainLift (u t) x.1| ≤ B := hB ⟨x.1, x.2, rfl⟩
+  -- `intervalDomainLift (u t) x.1 = u t x`.
+  have hlift : intervalDomainLift (u t) x.1 = u t x := by
+    simp [intervalDomainLift, x.2]
+  simpa only [hlift] using hBx
+
 end
 
 end ShenWork.Paper2

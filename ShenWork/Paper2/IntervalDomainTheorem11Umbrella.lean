@@ -291,6 +291,104 @@ theorem Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound_no_hreach
   -- Step 5. Route through the existing Moser-closure Theorem 1.1 bridge.
   exact Theorem_1_1_intervalDomain_of_corrected_existence p hexist
 
+/-- **Tightened umbrella theorem (no `hreach`, no `hrangeBounded`).**  Same as
+`Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound_no_hreach` except
+that the `hrangeBounded` time-slice range-boundedness hypothesis is dropped:
+it is discharged internally by `classicalSolution_u_range_bddAbove`, which
+extracts conjunct (7) (closed-domain `C²` regularity of the lift on `Icc 0 1`)
+of the classical-solution regularity bundle and converts continuity on the
+compact `[0,1]` into boundedness of `|u t ·|` on the subtype range.
+
+The remaining textbook-input hypotheses (`hlocal`, `hrealize`,
+`hextend_of_not_finiteAlternative`, `hextend_of_not_mgeAlternative`,
+`hposWit`, `hposLowerWit`) are identical to the `_no_hreach` variant. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound_no_hreach_no_hrangeBounded
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hrealize :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ _hbdd : BddAbove
+          (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀),
+        ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u v ∧
+          InitialTrace intervalDomain u₀ u)
+    (hextend_of_not_finiteAlternative :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ (_hbdd : BddAbove
+          (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomain.Point → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          ¬ FiniteHorizonAlternative intervalDomain
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u →
+          ShenWork.IntervalDomainExistence.ReachablePast p u₀
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀))
+    (hextend_of_not_mgeAlternative :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ (_hbdd : BddAbove
+          (ShenWork.IntervalDomainExistence.reachableClassicalHorizonSet p u₀))
+        {u v : ℝ → intervalDomain.Point → ℝ},
+          IsPaper2ClassicalSolution intervalDomain p
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u v →
+          InitialTrace intervalDomain u₀ u →
+          1 ≤ p.m →
+          ¬ MGeOneFiniteHorizonAlternative intervalDomain
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀) u →
+          ShenWork.IntervalDomainExistence.ReachablePast p u₀
+            (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
+              p u₀))
+    (hposWit :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          PositiveInitialDatum intervalDomain u₀)
+    (hposLowerWit :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          IntervalDomainPosDatumLowerBound u₀) :
+    Theorem_1_1 intervalDomain p := by
+  -- Internally discharge `hrangeBounded` from conjunct (7) of the classical
+  -- regularity bundle on every interior time `t ∈ (0,T)`.
+  have hrangeBounded :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p T u v →
+        InitialTrace intervalDomain u₀ u →
+          ∀ t, 0 < t → t < T →
+            BddAbove (Set.range (fun x : intervalDomain.Point => |u t x|)) := by
+    intro _u₀ _hu₀ T _hT u v hsol _htrace t ht_pos ht_T
+    exact classicalSolution_u_range_bddAbove hsol ⟨ht_pos, ht_T⟩
+  -- Route through the existing `_no_hreach` umbrella with the derived
+  -- `hrangeBounded` field.
+  exact Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound_no_hreach
+    p hχ ha hb hlocal hrealize hextend_of_not_finiteAlternative
+    hextend_of_not_mgeAlternative hrangeBounded hposWit hposLowerWit
+
 end
 
 end ShenWork.Paper2
@@ -301,4 +399,6 @@ end ShenWork.Paper2
 -- #print axioms ShenWork.Paper2.Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound
 -- #print axioms
 --   ShenWork.Paper2.Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound_no_hreach
+-- #print axioms
+--   ShenWork.Paper2.Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound_no_hreach_no_hrangeBounded
 
