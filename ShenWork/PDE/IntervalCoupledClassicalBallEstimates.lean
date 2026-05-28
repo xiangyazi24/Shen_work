@@ -3947,6 +3947,360 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial
     rw [hG_u_eq]
     exact hbound
 
+/-! ### Path-A consolidation: clean `hmap_dirichlet_initial`.
+
+The `..._hmap_dirichlet_initial` theorem above carries a long list of
+bridge hypotheses, several of which are pure bookkeeping discharges given
+the natural data we already have in hand (joint measurability of the
+source field, the Dirichlet C¹ representative `u₀_ext` of the lifted
+initial datum, etc.).
+
+The clean variant below internalizes the routine bookkeeping bridges and
+keeps only:
+
+* the Schauder / PDE-solution content (`hSol` — multi-week),
+* the boundary-derivative bridge `hGradEq` (the equality
+  `deriv (lift ∘ Duhamel) = deriv (semigroup + integral)` at points in
+  `Icc 0 1`; this is structurally non-trivial at the endpoints `{0,1}`),
+* the gradient-`deriv_add` split `hSplit` (requires a packaged
+  `DifferentiableAt` of both summands at `x₀`),
+* the natural data hypotheses (sup/integrability/measurability),
+* the Dirichlet C¹ representative on the lifted initial datum.
+
+The following are discharged internally:
+
+* `hSupEq` and `hLiftSemigroupDerivEq` — **dead hypotheses** in the
+  proof body of `..._hmap_dirichlet_initial`; removed in the clean
+  variant.
+* `hLiftSemigroupEq` — discharged via integrand congruence on
+  `intervalMeasure 1` (the kernel only sees `[0,1]`, on which
+  `intervalDomainLift u₀ = u₀_ext` by `hext_eq`).
+* `hLeibniz` — discharged via `intervalCoupledDuhamel_grad_leibniz`
+  (the standalone Leibniz lemma).
+* `hGrad_int` — discharged via
+  `intervalCoupledDuhamel_grad_integrand_intervalIntegrable`.
+* `hDom_int` — discharged via
+  `intervalCoupledDuhamel_grad_envelope_intervalIntegrable`.
+
+Remaining hypotheses are TRULY irreducible from the existing
+infrastructure. -/
+
+/-- **Clean `hmap` for the C¹_x ball, Dirichlet initial-data variant.**
+
+Consolidated version of `intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial`.
+The routine bookkeeping bridges (`hSupEq`, `hLiftSemigroupEq`,
+`hLiftSemigroupDerivEq`, `hLeibniz`, `hGrad_int`, `hDom_int`) have been
+discharged internally; only the truly load-bearing hypotheses remain.
+
+Specifically, the caller must supply:
+
+1. **PDE content (Schauder, multi-week):** `hSol` — the Duhamel image of
+   a snapshot satisfies `IsPaper2ClassicalSolution`.
+
+2. **Boundary-derivative bridge:** `hGradEq` — the spatial derivative of
+   the lifted Duhamel image agrees with the spatial derivative of the
+   explicit `semigroup + integral` formula at points of `Icc 0 1`.  This
+   is bookkeeping in `Ioo 0 1` (definitions agree on a neighborhood) but
+   carries genuine content at the endpoints `{0,1}` (the lift is
+   zero-extended outside).
+
+3. **`deriv_add` for the sum split:** `hSplit` — both the
+   semigroup-evaluated initial-data term and the source-integral term
+   are differentiable at the relevant `x₀`, and `deriv` distributes over
+   the sum.
+
+4. **Natural data hypotheses:**
+   - `hu₀_sup`, `hu₀_ext_int`, `hu₀_ext_C1`, `hu₀_ext'_int`,
+     `hu₀_ext_one`, `hu₀_ext'_sup`, `hext_eq` (the Dirichlet C¹
+     representative of the lifted initial datum);
+   - `hSource_sup_local`, `hSource_sup_global`,
+     `hSource_int_global` (pointwise / integrability bounds on the
+     source field);
+   - `hF_joint_meas` (joint measurability of the lifted source as a
+     function `(s, y) ↦ lift(Source p (u s) (R (u s))) y`);
+   - `hint`, `hlift_int` (per-`x` and per-`s` integrability).
+
+The conclusion is the same `hmap` form as in
+`..._hmap_dirichlet_initial`. -/
+theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_clean
+    {p : CM2Params}
+    {R : (intervalDomainPoint → ℝ) → intervalDomainPoint → ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u₀_ext u₀'_ext : ℝ → ℝ}
+    {T M G_u G_u_init C_source H : ℝ}
+    (hT : 0 < T) (hH_nn : 0 ≤ H) (hC_nn : 0 ≤ C_source)
+    (hG_init_nn : 0 ≤ G_u_init)
+    (hM_eq : M = H + C_source * T)
+    (hG_u_eq : G_u = G_u_init +
+      ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+        (2 * Real.sqrt T) * C_source)
+    (hu₀_sup : ∀ y : intervalDomainPoint, |u₀ y| ≤ H)
+    (hext_eq : ∀ y ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift u₀ y = u₀_ext y)
+    (hu₀_ext_int : MeasureTheory.Integrable u₀_ext
+      (ShenWork.IntervalDomain.intervalMeasure 1))
+    (hu₀_ext_C1 : ∀ y ∈ Set.uIcc (0 : ℝ) 1,
+      HasDerivAt u₀_ext (u₀'_ext y) y)
+    (hu₀_ext'_int : IntervalIntegrable u₀'_ext MeasureTheory.volume 0 1)
+    (hu₀_ext_one : u₀_ext 1 = 0)
+    (hu₀_ext'_sup : ∀ y : ℝ, |u₀'_ext y| ≤ G_u_init)
+    (hSol : ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        IsPaper2ClassicalSolution intervalDomain p T
+          (fun τ : ℝ => fun y : intervalDomainPoint =>
+            intervalCoupledDuhamelOperator p R u₀ u τ y) v)
+    (hSource_sup_local :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IntervalDomainClassicalC1Snapshot p T M G_u u v →
+          ∀ s, 0 ≤ s → s ≤ T → ∀ y : ℝ,
+            |intervalDomainLift
+              (intervalCoupledSource p (u s) (R (u s))) y| ≤ C_source)
+    (hSource_sup_global :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IntervalDomainClassicalC1Snapshot p T M G_u u v →
+          ∀ s : ℝ, ∀ y : ℝ,
+            |intervalDomainLift
+              (intervalCoupledSource p (u s) (R (u s))) y| ≤ C_source)
+    (hint :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IntervalDomainClassicalC1Snapshot p T M G_u u v →
+          ∀ (t : ℝ) (x : intervalDomainPoint), 0 ≤ t → t ≤ T →
+            MeasureTheory.IntegrableOn
+              (fun s => intervalSemigroupOperator 1 (t - s)
+                (intervalDomainLift (intervalCoupledSource p (u s) (R (u s)))) x.1)
+              (Set.Icc 0 t) MeasureTheory.volume)
+    (hlift_int :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IntervalDomainClassicalC1Snapshot p T M G_u u v →
+          ∀ s, 0 ≤ s → s ≤ T →
+            MeasureTheory.Integrable
+              (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+              (ShenWork.IntervalDomain.intervalMeasure 1))
+    (hSource_int_global :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IntervalDomainClassicalC1Snapshot p T M G_u u v →
+          ∀ s : ℝ,
+            MeasureTheory.Integrable
+              (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+              (ShenWork.IntervalDomain.intervalMeasure 1))
+    (hF_joint_meas :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IntervalDomainClassicalC1Snapshot p T M G_u u v →
+          Measurable
+            (Function.uncurry
+              (fun (s : ℝ) (y : ℝ) =>
+                intervalDomainLift
+                  (intervalCoupledSource p (u s) (R (u s))) y)))
+    (hGradEq :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IntervalDomainClassicalC1Snapshot p T M G_u u v →
+          ∀ (τ : ℝ) (x : ℝ), τ ∈ Set.Ioo (0 : ℝ) T → x ∈ Set.Icc (0 : ℝ) 1 →
+            deriv
+              (intervalDomainLift
+                (fun y : intervalDomainPoint =>
+                  intervalCoupledDuhamelOperator p R u₀ u τ y)) x =
+            deriv (fun z : ℝ =>
+              intervalSemigroupOperator 1 τ (intervalDomainLift u₀) z +
+              ∫ s in (0 : ℝ)..τ,
+                intervalSemigroupOperator 1 (τ - s)
+                  (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+                  z) x)
+    (hSplit :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IntervalDomainClassicalC1Snapshot p T M G_u u v →
+          ∀ (τ : ℝ) (x : ℝ), τ ∈ Set.Ioo (0 : ℝ) T → x ∈ Set.Icc (0 : ℝ) 1 →
+            deriv (fun z : ℝ =>
+              intervalSemigroupOperator 1 τ u₀_ext z +
+              ∫ s in (0 : ℝ)..τ,
+                intervalSemigroupOperator 1 (τ - s)
+                  (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+                  z) x =
+            deriv (fun z : ℝ =>
+              intervalSemigroupOperator 1 τ u₀_ext z) x +
+            deriv (fun z : ℝ =>
+              ∫ s in (0 : ℝ)..τ,
+                intervalSemigroupOperator 1 (τ - s)
+                  (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+                  z) x) :
+    ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        IntervalDomainClassicalC1Snapshot p T M G_u
+          (fun t : ℝ => fun x : intervalDomainPoint =>
+            intervalCoupledDuhamelOperator p R u₀ u t x) v := by
+  intro u v hsnap
+  -- Internally-discharged bookkeeping: `hLiftSemigroupEq` from `hext_eq`.
+  have hLiftSemigroupEq :
+      ∀ (τ : ℝ) (x : ℝ),
+        intervalSemigroupOperator 1 τ (intervalDomainLift u₀) x =
+        intervalSemigroupOperator 1 τ u₀_ext x := by
+    intro τ x
+    unfold intervalSemigroupOperator
+    -- The integral is taken w.r.t. `intervalMeasure 1 = volume.restrict (Icc 0 1)`;
+    -- on `Icc 0 1` the two integrands agree by `hext_eq`.
+    refine MeasureTheory.integral_congr_ae ?_
+    refine (MeasureTheory.ae_restrict_iff' measurableSet_Icc).mpr ?_
+    refine Filter.Eventually.of_forall ?_
+    intro y hy
+    show normalizedZerothReflectionKernel 1 τ x y * intervalDomainLift u₀ y =
+      normalizedZerothReflectionKernel 1 τ x y * u₀_ext y
+    rw [hext_eq y hy]
+  -- Internally-discharged bookkeeping: `hLeibniz`, `hGrad_int`, `hDom_int`
+  -- (per-snapshot, per-(τ, x)).
+  have hDom_int_local :
+      ∀ (τ : ℝ), τ ∈ Set.Ioo (0 : ℝ) T →
+        IntervalIntegrable
+          (fun s : ℝ =>
+            ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+              * C_source * (τ - s) ^ (-(1/2 : ℝ)))
+          MeasureTheory.volume (0 : ℝ) τ := by
+    intro τ hτ
+    exact intervalCoupledDuhamel_grad_envelope_intervalIntegrable hτ.1 C_source
+  have hGrad_int_local :
+      ∀ (τ : ℝ) (x : ℝ), τ ∈ Set.Ioo (0 : ℝ) T → x ∈ Set.Icc (0 : ℝ) 1 →
+        IntervalIntegrable
+          (fun s : ℝ =>
+            deriv (fun z : ℝ =>
+              intervalSemigroupOperator 1 (τ - s)
+                (intervalDomainLift
+                  (intervalCoupledSource p (u s) (R (u s)))) z) x)
+          MeasureTheory.volume (0 : ℝ) τ := by
+    intro τ x hτ _hx
+    exact intervalCoupledDuhamel_grad_integrand_intervalIntegrable
+      hτ.1 (hF_joint_meas u v hsnap)
+      (fun s => hSource_int_global u v hsnap s)
+      hC_nn (fun s y => hSource_sup_global u v hsnap s y) x
+  have hLeibniz_local :
+      ∀ (τ : ℝ) (x : ℝ), τ ∈ Set.Ioo (0 : ℝ) T → x ∈ Set.Icc (0 : ℝ) 1 →
+        deriv (fun z : ℝ =>
+          ∫ s in (0 : ℝ)..τ,
+            intervalSemigroupOperator 1 (τ - s)
+              (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+              z) x =
+        ∫ s in (0 : ℝ)..τ,
+          deriv (fun z : ℝ =>
+            intervalSemigroupOperator 1 (τ - s)
+              (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+              z) x := by
+    intro τ x hτ _hx
+    set F : ℝ → ℝ → ℝ := fun s y =>
+      intervalDomainLift (intervalCoupledSource p (u s) (R (u s))) y with hF_def
+    have hF_int : ∀ s, MeasureTheory.Integrable (F s)
+        (ShenWork.IntervalDomain.intervalMeasure 1) :=
+      fun s => hSource_int_global u v hsnap s
+    have hF_sup : ∀ s, ∀ y : ℝ, |F s y| ≤ C_source :=
+      fun s y => hSource_sup_global u v hsnap s y
+    have hF_joint : Measurable (Function.uncurry F) := hF_joint_meas u v hsnap
+    -- AE-strong-measurability of `s ↦ S(t-s)(F s) x` on `Ι 0 τ` (for the
+    -- `hF_meas` slot of `intervalCoupledDuhamel_grad_leibniz`).
+    have hF_meas_pt :
+        ∀ x' : ℝ,
+          MeasureTheory.AEStronglyMeasurable
+            (fun s : ℝ => intervalSemigroupOperator 1 (τ - s) (F s) x')
+            (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) τ)) := by
+      intro x'
+      exact intervalSemigroupOperator_s_dependent_aestronglyMeasurable_x
+        hτ.1 hF_joint x'
+    -- AE-strong-measurability of the derivative in `s` at `x`.
+    have hF'_meas :
+        MeasureTheory.AEStronglyMeasurable
+          (fun s : ℝ =>
+            deriv (fun z : ℝ =>
+              intervalSemigroupOperator 1 (τ - s) (F s) z) x)
+          (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) τ)) :=
+      intervalSemigroupOperator_s_dependent_deriv_aestronglyMeasurable_x₀
+        hτ.1 hF_joint hF_int x
+    exact intervalCoupledDuhamel_grad_leibniz
+      (t := τ) hτ.1 (F := F) hF_int (C_source := C_source) hC_nn hF_sup x
+      hF_meas_pt hF'_meas (hDom_int_local τ hτ)
+  -- Assemble the conclusion exactly as in `..._hmap_dirichlet_initial`, but
+  -- with the discharged bridges built locally above.
+  refine ⟨hSol u v hsnap, ?_, ?_⟩
+  · -- Sup-bound conjunct (unchanged from `..._hmap_dirichlet_initial`).
+    intro τ hτ x hxIcc
+    have hτ_le : τ ≤ T := le_of_lt hτ.2
+    have hτ_nn : 0 ≤ τ := le_of_lt hτ.1
+    have hsource' :
+        ∀ s, 0 ≤ s → s ≤ T → ∀ y : ℝ,
+          |intervalDomainLift
+            (intervalCoupledSource p (u s) (R (u s))) y| ≤ C_source :=
+      fun s hs0 hsT y => hSource_sup_local u v hsnap s hs0 hsT y
+    have hint_pt :
+        ∀ x' : intervalDomainPoint,
+          MeasureTheory.IntegrableOn
+            (fun s => intervalSemigroupOperator 1 (τ - s)
+              (intervalDomainLift
+                (intervalCoupledSource p (u s) (R (u s)))) x'.1)
+            (Set.Icc 0 τ) MeasureTheory.volume :=
+      fun x' => hint u v hsnap τ x' hτ_nn hτ_le
+    have hlift_pt :
+        ∀ s, 0 ≤ s → s ≤ T →
+          MeasureTheory.Integrable
+            (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+            (ShenWork.IntervalDomain.intervalMeasure 1) :=
+      fun s hs0 hsT => hlift_int u v hsnap s hs0 hsT
+    have hsup_le :=
+      intervalCoupledDuhamel_lift_abs_le
+        (p := p) (R := R) (u₀ := u₀) (u := u) (H := H) (C := C_source) (T := T)
+        hH_nn hC_nn hu₀_sup hsource' (t := τ) hτ_nn hτ_le hint_pt hlift_pt
+        x hxIcc
+    have hM_form : H + C_source * T = M := hM_eq.symm
+    rw [hM_form] at hsup_le
+    exact hsup_le
+  · -- Gradient-bound conjunct, via the Dirichlet IBP path, with bookkeeping
+    -- bridges discharged locally.
+    intro τ hτ x hxIcc
+    have hτ_le : τ ≤ T := le_of_lt hτ.2
+    have hτ_pos : 0 < τ := hτ.1
+    -- Boundary-derivative bridge `hGradEq` (kept; deep at endpoints).
+    rw [hGradEq u v hsnap τ x hτ hxIcc]
+    -- Replace `lift u₀` by the C¹ Dirichlet representative `u₀_ext` inside
+    -- both the value and the integrand, using `hLiftSemigroupEq` derived
+    -- from `hext_eq` above.
+    have hreplace_fun :
+        (fun z : ℝ =>
+          intervalSemigroupOperator 1 τ (intervalDomainLift u₀) z +
+          ∫ s in (0 : ℝ)..τ,
+            intervalSemigroupOperator 1 (τ - s)
+              (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+              z) =
+        (fun z : ℝ =>
+          intervalSemigroupOperator 1 τ u₀_ext z +
+          ∫ s in (0 : ℝ)..τ,
+            intervalSemigroupOperator 1 (τ - s)
+              (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+              z) := by
+      funext z
+      rw [hLiftSemigroupEq τ z]
+    rw [hreplace_fun]
+    -- Apply the Dirichlet full estimate at `x`, with the locally-discharged
+    -- `hLeibniz`, `hGrad_int`, `hDom_int` bridges, and the user-supplied
+    -- `hSplit` bridge.
+    have hF_int_τ :
+        ∀ s, MeasureTheory.Integrable
+          (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+          (ShenWork.IntervalDomain.intervalMeasure 1) :=
+      fun s => hSource_int_global u v hsnap s
+    have hF_sup_τ :
+        ∀ s : ℝ, ∀ y : ℝ,
+          |intervalDomainLift (intervalCoupledSource p (u s) (R (u s))) y| ≤
+            C_source :=
+      fun s y => hSource_sup_global u v hsnap s y
+    have hbound :=
+      intervalCoupledDuhamel_grad_estimate_full_dirichlet
+        (t := τ) (T := T) hτ_pos hτ_le
+        (u₀ := u₀_ext) (u₀' := u₀'_ext)
+        hu₀_ext_int hu₀_ext_C1 hu₀_ext'_int hu₀_ext_one
+        (G_u_init := G_u_init) hG_init_nn hu₀_ext'_sup
+        (F := fun s : ℝ => intervalDomainLift
+          (intervalCoupledSource p (u s) (R (u s))))
+        hF_int_τ (C_source := C_source) hC_nn hF_sup_τ x
+        (hSplit u v hsnap τ x hτ hxIcc)
+        (hLeibniz_local τ x hτ hxIcc)
+        (hGrad_int_local τ x hτ hxIcc)
+        (hDom_int_local τ hτ)
+    rw [hG_u_eq]
+    exact hbound
+
 /-! ### Axiom audit for the new C¹_x snapshot declarations.
 Verified `#print axioms` on each of the following prints exactly
 `[propext, Classical.choice, Quot.sound]` (the Mathlib-standard set):
@@ -3977,6 +4331,7 @@ Verified `#print axioms` on each of the following prints exactly
   * `intervalCoupledDuhamel_grad_initial_bound_dirichlet`
   * `intervalCoupledDuhamel_grad_estimate_full_dirichlet`
   * `intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial`
+  * `intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_clean`
 
 (verify on uisai1, build green.) -/
 
