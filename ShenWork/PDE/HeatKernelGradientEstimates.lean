@@ -2,6 +2,7 @@ import ShenWork.PDE.HeatKernelLpEstimates
 import ShenWork.PDE.CosineParsevalBridge
 import Mathlib.Analysis.PSeries
 import Mathlib.MeasureTheory.Function.LpSeminorm.CompareExp
+import Mathlib.MeasureTheory.Integral.IntervalIntegral.IntegrationByParts
 
 open MeasureTheory
 open scoped ENNReal
@@ -2763,5 +2764,398 @@ theorem unitIntervalSemigroupOperator_grad_Lp_Linfty_lpNorm_bound
   exact hbase.trans
     (mul_le_mul_of_nonneg_left hLp
       (heatGradientL1LinftyFactor_nonneg ht))
+
+/-! ## Interval Dirichlet kernel and IBP identity for the helper operator
+
+The helper Neumann-style operator `intervalSemigroupOperator L t u₀ x` differentiated
+in `x` is **not** of the form `S_L(t)(u₀')`.  Integration by parts in `y` produces
+the *Dirichlet* kernel `K_D(t,x,y) := G(t,x-y) - G(t,x+y)` (with sign-flipped
+reflection), together with a boundary trace at `y = L` (the `y = 0` trace
+vanishes structurally because `K_D(t,x,0) = G(t,x) - G(t,x) = 0`).
+
+The identity we prove (for `L = 1` and `u₀` satisfying mild C¹ + integrability
+hypotheses on `[0,1]`):
+
+  `∂_x (S_L(t) u₀)(x)
+    = -(1/2)·K_D(t,x,1)·u₀(1) + (1/2)·∫₀¹ K_D(t,x,y)·u₀'(y) dy`.
+
+The crucial Dirichlet-case corollary (`u₀(0) = u₀(1) = 0`) gives the clean form
+
+  `∂_x (S_L(t) u₀)(x) = (1/2)·∫₀¹ K_D(t,x,y)·u₀'(y) dy`,
+
+which is the integral form needed for downstream commutation arguments.
+-/
+
+/-- The interval Dirichlet kernel `K_D(t,x,y) := G(t,x-y) - G(t,x+y)`.  This is
+the odd-reflection kernel produced by IBP applied to the even (Neumann-style)
+helper kernel. -/
+def intervalDirichletKernel (t x y : ℝ) : ℝ :=
+  heatKernel t (x - y) - heatKernel t (x + y)
+
+/-- Structural vanishing of the Dirichlet kernel at `y = 0`. -/
+lemma intervalDirichletKernel_y_zero (t x : ℝ) :
+    intervalDirichletKernel t x 0 = 0 := by
+  unfold intervalDirichletKernel
+  simp
+
+/-- The Dirichlet kernel is continuous in `y` (for `t > 0`). -/
+lemma intervalDirichletKernel_continuous_y {t : ℝ} (_ht : 0 < t) (x : ℝ) :
+    Continuous (fun y : ℝ => intervalDirichletKernel t x y) := by
+  unfold intervalDirichletKernel heatKernel
+  fun_prop
+
+/-- `HasDerivAt` for the Dirichlet kernel in `y`.  The `y`-derivative is
+
+  `(∂/∂y) K_D(t,x,y) = ((x-y)/(2t))·G(t,x-y) + ((x+y)/(2t))·G(t,x+y)`. -/
+lemma intervalDirichletKernel_hasDerivAt_y
+    {t : ℝ} (ht : 0 < t) (x y : ℝ) :
+    HasDerivAt (fun w : ℝ => intervalDirichletKernel t x w)
+      (((x - y) / (2 * t)) * heatKernel t (x - y) +
+        ((x + y) / (2 * t)) * heatKernel t (x + y)) y := by
+  unfold intervalDirichletKernel
+  have hleft : HasDerivAt (fun w : ℝ => heatKernel t (x - w))
+      (((x - y) / (2 * t)) * heatKernel t (x - y)) y :=
+    heatKernel_translated_hasDerivAt_right ht x y
+  -- For `(fun w => heatKernel t (x + w))` we view it as composition.
+  have hinner : HasDerivAt (fun w : ℝ => x + w) (1 : ℝ) y := by
+    simpa using (hasDerivAt_const y x).add (hasDerivAt_id y)
+  have hright_raw : HasDerivAt (fun w : ℝ => heatKernel t (x + w))
+      (-((x + y) / (2 * t)) * heatKernel t (x + y) * 1) y :=
+    (heatKernel_hasDerivAt ht (x + y)).comp y hinner
+  have hright : HasDerivAt (fun w : ℝ => heatKernel t (x + w))
+      (-((x + y) / (2 * t)) * heatKernel t (x + y)) y := by
+    have hsimp :
+        -((x + y) / (2 * t)) * heatKernel t (x + y) * 1 =
+          -((x + y) / (2 * t)) * heatKernel t (x + y) := by ring
+    simpa [hsimp] using hright_raw
+  have h := hleft.sub hright
+  convert h using 1
+  ring
+
+/-- Pointwise: `∂_z G(t,z-y)|_x - ∂_z G(t,z-y)|_{-x} = -∂_y K_D(t,x,y)`.
+
+This is the kernel-algebra identity behind IBP for the helper operator.
+LHS arises from differentiating the half-line-plus-reflection representation
+of `intervalSemigroupOperator`; RHS is `-(y`-derivative of Dirichlet kernel`)`. -/
+lemma deriv_heatKernel_translated_diff_at_neg_eq_neg_intervalDirichletKernel_y
+    {t : ℝ} (ht : 0 < t) (x y : ℝ) :
+    deriv (fun z : ℝ => heatKernel t (z - y)) x -
+        deriv (fun z : ℝ => heatKernel t (z - y)) (-x) =
+      -(((x - y) / (2 * t)) * heatKernel t (x - y) +
+          ((x + y) / (2 * t)) * heatKernel t (x + y)) := by
+  rw [deriv_heatKernel_translated_left ht x y,
+      deriv_heatKernel_translated_left ht (-x) y]
+  -- second term: -((-x - y) / (2t)) · G(t, -x - y).  Use G(t,-z) = G(t,z).
+  rw [show heatKernel t (-x - y) = heatKernel t (x + y) by
+      rw [show -x - y = -(x + y) by ring, heatKernel_neg]]
+  ring
+
+/-- The `x`-derivative of the helper operator at `x` as the **difference of two
+full-line integrals** against `g = indicator [0,L] u₀`. -/
+lemma deriv_intervalSemigroupOperator_eq_diff_fullLine
+    {L t : ℝ} (ht : 0 < t) {u₀ : ℝ → ℝ}
+    (hu₀_int : Integrable u₀ (intervalMeasure L)) (x : ℝ) :
+    deriv (fun z : ℝ => intervalSemigroupOperator L t u₀ z) x =
+      (1 / 2 : ℝ) *
+          (∫ y : ℝ,
+            deriv (fun z : ℝ => heatKernel t (z - y)) x *
+              Set.indicator (intervalSet L) u₀ y) -
+        (1 / 2 : ℝ) *
+          (∫ y : ℝ,
+            deriv (fun z : ℝ => heatKernel t (z - y)) (-x) *
+              Set.indicator (intervalSet L) u₀ y) := by
+  set g : ℝ → ℝ := Set.indicator (intervalSet L) u₀ with hg_def
+  have hg_int : Integrable g volume :=
+    interval_indicator_integrable_of_integrable (L := L) (f := u₀) hu₀_int
+  -- Represent the helper operator via the averaged full-line semigroup.
+  have hrepr :
+      (fun z : ℝ => intervalSemigroupOperator L t u₀ z) =
+        fun z : ℝ =>
+          (1 / 2 : ℝ) * heatSemigroup t g z +
+            (1 / 2 : ℝ) * heatSemigroup t g (-z) := by
+    funext z
+    exact intervalSemigroupOperator_eq_half_heatSemigroup_add_reflected
+      (L := L) (t := t) ht (f := u₀) hu₀_int z
+  rw [hrepr]
+  rw [deriv_half_heatSemigroup_add_reflected (t := t) (x := x) ht hg_int]
+  rw [deriv_heatSemigroup (f := g) ht x hg_int,
+      deriv_heatSemigroup (f := g) ht (-x) hg_int]
+
+/-- Combine the two full-line integrals into a single integral on
+`intervalMeasure L` whose integrand is `-(∂_y K_D)(t,x,y) · u₀(y)`. -/
+lemma deriv_intervalSemigroupOperator_eq_neg_half_kernel_y_deriv_integral
+    {L t : ℝ} (ht : 0 < t) {u₀ : ℝ → ℝ}
+    (hu₀_int : Integrable u₀ (intervalMeasure L)) (x : ℝ) :
+    deriv (fun z : ℝ => intervalSemigroupOperator L t u₀ z) x =
+      -(1 / 2 : ℝ) *
+        ∫ y, (((x - y) / (2 * t)) * heatKernel t (x - y) +
+              ((x + y) / (2 * t)) * heatKernel t (x + y)) * u₀ y
+          ∂ intervalMeasure L := by
+  rw [deriv_intervalSemigroupOperator_eq_diff_fullLine (L := L) (t := t)
+    ht hu₀_int x]
+  -- Move the difference inside a single full-line integral.
+  have hg_int : Integrable (Set.indicator (intervalSet L) u₀) volume :=
+    interval_indicator_integrable_of_integrable (L := L) (f := u₀) hu₀_int
+  have hI1_int :
+      Integrable (fun y : ℝ =>
+        deriv (fun z : ℝ => heatKernel t (z - y)) x *
+          Set.indicator (intervalSet L) u₀ y) volume :=
+    heatKernel_deriv_mul_integrable_of_integrable ht x hg_int
+  have hI2_int :
+      Integrable (fun y : ℝ =>
+        deriv (fun z : ℝ => heatKernel t (z - y)) (-x) *
+          Set.indicator (intervalSet L) u₀ y) volume :=
+    heatKernel_deriv_mul_integrable_of_integrable ht (-x) hg_int
+  -- Express the difference of half-integrals as a single integral with combined
+  -- integrand.
+  have hcomb :
+      (1 / 2 : ℝ) *
+          (∫ y : ℝ,
+            deriv (fun z : ℝ => heatKernel t (z - y)) x *
+              Set.indicator (intervalSet L) u₀ y) -
+        (1 / 2 : ℝ) *
+          (∫ y : ℝ,
+            deriv (fun z : ℝ => heatKernel t (z - y)) (-x) *
+              Set.indicator (intervalSet L) u₀ y) =
+        ∫ y : ℝ,
+          ((1 / 2 : ℝ) *
+            (deriv (fun z : ℝ => heatKernel t (z - y)) x *
+              Set.indicator (intervalSet L) u₀ y) -
+            (1 / 2 : ℝ) *
+              (deriv (fun z : ℝ => heatKernel t (z - y)) (-x) *
+                Set.indicator (intervalSet L) u₀ y)) := by
+    rw [MeasureTheory.integral_sub (hI1_int.const_mul _) (hI2_int.const_mul _)]
+    rw [MeasureTheory.integral_const_mul, MeasureTheory.integral_const_mul]
+  rw [hcomb]
+  -- Rewrite the integrand using the kernel-algebra identity (still on full
+  -- line, integrand carries the indicator).
+  have hrewrite : ∀ y : ℝ,
+      (1 / 2 : ℝ) *
+          (deriv (fun z : ℝ => heatKernel t (z - y)) x *
+            Set.indicator (intervalSet L) u₀ y) -
+        (1 / 2 : ℝ) *
+          (deriv (fun z : ℝ => heatKernel t (z - y)) (-x) *
+            Set.indicator (intervalSet L) u₀ y) =
+        -(1 / 2 : ℝ) *
+          ((((x - y) / (2 * t)) * heatKernel t (x - y) +
+            ((x + y) / (2 * t)) * heatKernel t (x + y)) *
+              Set.indicator (intervalSet L) u₀ y) := by
+    intro y
+    have hid :=
+      deriv_heatKernel_translated_diff_at_neg_eq_neg_intervalDirichletKernel_y
+        (t := t) ht x y
+    have hexpand :
+        (1 / 2 : ℝ) *
+            (deriv (fun z : ℝ => heatKernel t (z - y)) x *
+              Set.indicator (intervalSet L) u₀ y) -
+          (1 / 2 : ℝ) *
+            (deriv (fun z : ℝ => heatKernel t (z - y)) (-x) *
+              Set.indicator (intervalSet L) u₀ y) =
+          (1 / 2 : ℝ) *
+            ((deriv (fun z : ℝ => heatKernel t (z - y)) x -
+              deriv (fun z : ℝ => heatKernel t (z - y)) (-x)) *
+                Set.indicator (intervalSet L) u₀ y) := by ring
+    rw [hexpand, hid]
+    ring
+  rw [show
+      (fun y : ℝ =>
+        (1 / 2 : ℝ) *
+            (deriv (fun z : ℝ => heatKernel t (z - y)) x *
+              Set.indicator (intervalSet L) u₀ y) -
+          (1 / 2 : ℝ) *
+            (deriv (fun z : ℝ => heatKernel t (z - y)) (-x) *
+              Set.indicator (intervalSet L) u₀ y)) =
+      (fun y : ℝ =>
+        -(1 / 2 : ℝ) *
+          ((((x - y) / (2 * t)) * heatKernel t (x - y) +
+            ((x + y) / (2 * t)) * heatKernel t (x + y)) *
+              Set.indicator (intervalSet L) u₀ y)) from
+      funext hrewrite]
+  -- Replace the indicator pattern with `indicator (intervalSet L) (kernel·u₀)`.
+  have hindic_eq : ∀ y : ℝ,
+      -(1 / 2 : ℝ) *
+          ((((x - y) / (2 * t)) * heatKernel t (x - y) +
+            ((x + y) / (2 * t)) * heatKernel t (x + y)) *
+              Set.indicator (intervalSet L) u₀ y) =
+        -(1 / 2 : ℝ) *
+          Set.indicator (intervalSet L)
+            (fun y' : ℝ =>
+              (((x - y') / (2 * t)) * heatKernel t (x - y') +
+                ((x + y') / (2 * t)) * heatKernel t (x + y')) * u₀ y') y := by
+    intro y
+    by_cases hy : y ∈ intervalSet L
+    · rw [Set.indicator_of_mem hy, Set.indicator_of_mem hy]
+    · rw [Set.indicator_of_notMem hy, Set.indicator_of_notMem hy]
+      ring
+  rw [show
+      (fun y : ℝ =>
+        -(1 / 2 : ℝ) *
+          ((((x - y) / (2 * t)) * heatKernel t (x - y) +
+            ((x + y) / (2 * t)) * heatKernel t (x + y)) *
+              Set.indicator (intervalSet L) u₀ y)) =
+      (fun y : ℝ =>
+        -(1 / 2 : ℝ) *
+          Set.indicator (intervalSet L)
+            (fun y' : ℝ =>
+              (((x - y') / (2 * t)) * heatKernel t (x - y') +
+                ((x + y') / (2 * t)) * heatKernel t (x + y')) * u₀ y') y) from
+      funext hindic_eq]
+  rw [MeasureTheory.integral_const_mul]
+  rw [MeasureTheory.integral_indicator
+    (show MeasurableSet (intervalSet L) by simp [intervalSet])]
+  rfl
+
+/-- **IBP identity for the helper operator on `[0,1]` (general u₀ with C¹
+hypotheses).**
+
+For `u₀` continuous on `[0,1]`, with derivative `u₀'` such that
+`HasDerivAt u₀ (u₀' y) y` for every `y ∈ uIcc 0 1` and `u₀'` interval-integrable:
+
+  `∂_x (S_1(t) u₀)(x)
+    = -(1/2)·K_D(t,x,1)·u₀(1) + (1/2)·∫₀¹ K_D(t,x,y)·u₀'(y) dy`.
+
+(The y = 0 boundary trace vanishes structurally because
+`K_D(t,x,0) = 0`.) -/
+theorem intervalSemigroupOperator_deriv_ibp_identity_unit
+    {t : ℝ} (ht : 0 < t) {u₀ u₀' : ℝ → ℝ}
+    (hu₀_int : Integrable u₀ (intervalMeasure 1))
+    (hu₀ : ∀ y ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt u₀ (u₀' y) y)
+    (hu₀'_int : IntervalIntegrable u₀' MeasureTheory.volume 0 1)
+    (x : ℝ) :
+    deriv (fun z : ℝ => intervalSemigroupOperator 1 t u₀ z) x =
+      -(1 / 2 : ℝ) * intervalDirichletKernel t x 1 * u₀ 1 +
+        (1 / 2 : ℝ) *
+          ∫ y in (0 : ℝ)..1, intervalDirichletKernel t x y * u₀' y := by
+  -- Step 1: rewrite deriv as -(1/2) ∫ y in [0,1], (∂_y K_D)(t,x,y) · u₀(y) dμ_1.
+  have hstep1 := deriv_intervalSemigroupOperator_eq_neg_half_kernel_y_deriv_integral
+    (L := 1) (t := t) ht (u₀ := u₀) hu₀_int x
+  rw [hstep1]
+  -- Step 2: convert the interval-measure integral to `∫ y in (0:ℝ)..1, ...`.
+  let φ : ℝ → ℝ := fun y =>
+    (((x - y) / (2 * t)) * heatKernel t (x - y) +
+        ((x + y) / (2 * t)) * heatKernel t (x + y)) * u₀ y
+  have hconv :
+      (∫ y, φ y ∂ intervalMeasure 1) =
+        ∫ y in (0 : ℝ)..1, φ y := by
+    rw [intervalMeasure, intervalSet]
+    change (∫ y in Set.Icc (0 : ℝ) 1, φ y ∂ MeasureTheory.volume) =
+      ∫ y in (0 : ℝ)..1, φ y
+    rw [intervalIntegral.integral_of_le (by norm_num : (0 : ℝ) ≤ 1),
+        ← MeasureTheory.integral_Icc_eq_integral_Ioc]
+  -- Step 3: change variable name; integrand is `(∂_y K_D)(t,x,y) · u₀(y)`.
+  have hphi_eq : ∀ y : ℝ,
+      φ y = (((x - y) / (2 * t)) * heatKernel t (x - y) +
+              ((x + y) / (2 * t)) * heatKernel t (x + y)) * u₀ y := fun y => rfl
+  -- Apply IBP on (0..1):
+  -- ∫₀¹ (∂_y K_D)(t,x,y) · u₀(y) dy = [K_D · u₀]_0^1 - ∫₀¹ K_D · u₀'.
+  -- Use `integral_mul_deriv_eq_deriv_mul_of_hasDerivAt` with
+  --   u := (K_D as fn of y), u' := (∂_y K_D), v := u₀, v' := u₀'.
+  -- Hypotheses:
+  -- ContinuousOn for K_D and u₀ on uIcc 0 1.
+  have hKD_cont : Continuous (fun y : ℝ => intervalDirichletKernel t x y) :=
+    intervalDirichletKernel_continuous_y ht x
+  have hKD_contOn :
+      ContinuousOn (fun y : ℝ => intervalDirichletKernel t x y)
+        (Set.uIcc (0 : ℝ) 1) := hKD_cont.continuousOn
+  have hu₀_contOn : ContinuousOn u₀ (Set.uIcc (0 : ℝ) 1) :=
+    fun y hy => (hu₀ y hy).continuousAt.continuousWithinAt
+  -- Open interior `Ioo (min 0 1) (max 0 1) = Ioo 0 1 ⊆ uIcc 0 1`.
+  have huIcc : Set.Ioo (min (0 : ℝ) 1) (max 0 1) ⊆ Set.uIcc (0 : ℝ) 1 := by
+    rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1),
+        min_eq_left (by norm_num : (0 : ℝ) ≤ 1),
+        max_eq_right (by norm_num : (0 : ℝ) ≤ 1)]
+    exact fun y hy => Set.mem_Icc_of_Ioo hy
+  -- Pointwise derivatives on the open interior:
+  have hKD_io :
+      ∀ y ∈ Set.Ioo (min (0 : ℝ) 1) (max 0 1),
+        HasDerivAt (fun w : ℝ => intervalDirichletKernel t x w)
+          (((x - y) / (2 * t)) * heatKernel t (x - y) +
+            ((x + y) / (2 * t)) * heatKernel t (x + y)) y :=
+    fun y _ => intervalDirichletKernel_hasDerivAt_y (t := t) ht x y
+  have hu₀_io :
+      ∀ y ∈ Set.Ioo (min (0 : ℝ) 1) (max 0 1),
+        HasDerivAt u₀ (u₀' y) y :=
+    fun y hy => hu₀ y (huIcc hy)
+  -- Integrability of the kernel y-derivative on (0..1): it's continuous, hence
+  -- interval-integrable.
+  have hKDderiv_cont : Continuous
+      (fun y : ℝ =>
+        ((x - y) / (2 * t)) * heatKernel t (x - y) +
+          ((x + y) / (2 * t)) * heatKernel t (x + y)) := by
+    unfold heatKernel
+    fun_prop
+  have hKDderiv_int : IntervalIntegrable
+      (fun y : ℝ =>
+        ((x - y) / (2 * t)) * heatKernel t (x - y) +
+          ((x + y) / (2 * t)) * heatKernel t (x + y))
+      MeasureTheory.volume 0 1 :=
+    hKDderiv_cont.continuousOn.intervalIntegrable
+  -- IBP application: pick u = u₀, v = K_D; then
+  -- ∫ u₀ · (∂_y K_D) = u₀(1)·K_D(t,x,1) - u₀(0)·K_D(t,x,0) - ∫ u₀' · K_D.
+  have hIBP_raw :
+      (∫ y in (0 : ℝ)..1, u₀ y *
+          (((x - y) / (2 * t)) * heatKernel t (x - y) +
+            ((x + y) / (2 * t)) * heatKernel t (x + y))) =
+        u₀ 1 * intervalDirichletKernel t x 1 -
+          u₀ 0 * intervalDirichletKernel t x 0 -
+            ∫ y in (0 : ℝ)..1, u₀' y * intervalDirichletKernel t x y :=
+    intervalIntegral.integral_mul_deriv_eq_deriv_mul_of_hasDerivAt
+      hu₀_contOn hKD_contOn hu₀_io hKD_io hu₀'_int hKDderiv_int
+  -- Commute the products to match the desired orientation.
+  have hIBP :
+      (∫ y in (0 : ℝ)..1,
+          (((x - y) / (2 * t)) * heatKernel t (x - y) +
+              ((x + y) / (2 * t)) * heatKernel t (x + y)) * u₀ y) =
+        intervalDirichletKernel t x 1 * u₀ 1 -
+          intervalDirichletKernel t x 0 * u₀ 0 -
+            ∫ y in (0 : ℝ)..1, intervalDirichletKernel t x y * u₀' y := by
+    have hcomm1 :
+        (fun y : ℝ =>
+            (((x - y) / (2 * t)) * heatKernel t (x - y) +
+                ((x + y) / (2 * t)) * heatKernel t (x + y)) * u₀ y) =
+          fun y : ℝ => u₀ y *
+            (((x - y) / (2 * t)) * heatKernel t (x - y) +
+              ((x + y) / (2 * t)) * heatKernel t (x + y)) := by
+      funext y; ring
+    have hcomm2 :
+        (fun y : ℝ => intervalDirichletKernel t x y * u₀' y) =
+          fun y : ℝ => u₀' y * intervalDirichletKernel t x y := by
+      funext y; ring
+    rw [hcomm1, hIBP_raw, hcomm2, mul_comm (u₀ 1), mul_comm (u₀ 0)]
+  -- Kill the y = 0 boundary term.
+  have hKD0 : intervalDirichletKernel t x 0 = 0 :=
+    intervalDirichletKernel_y_zero t x
+  -- Assemble: deriv = -(1/2) * (∫ φ ∂μ₁) = -(1/2) * (∫₀¹ φ) = -(1/2) * (IBP RHS).
+  rw [hconv]
+  show -(1 / 2 : ℝ) * (∫ y in (0 : ℝ)..1, φ y) = _
+  rw [show (fun y : ℝ => φ y) =
+      (fun y : ℝ =>
+        (((x - y) / (2 * t)) * heatKernel t (x - y) +
+          ((x + y) / (2 * t)) * heatKernel t (x + y)) * u₀ y) from
+    funext hphi_eq]
+  rw [hIBP, hKD0]
+  ring
+
+/-- **IBP identity, Dirichlet u₀ corollary.**
+
+If `u₀` satisfies the Dirichlet boundary conditions `u₀(0) = u₀(1) = 0` (in
+addition to the C¹ + integrability hypotheses of
+`intervalSemigroupOperator_deriv_ibp_identity_unit`), both boundary traces
+vanish and we obtain the clean identity
+
+  `∂_x (S_1(t) u₀)(x) = (1/2)·∫₀¹ K_D(t,x,y)·u₀'(y) dy`. -/
+theorem intervalSemigroupOperator_deriv_ibp_identity_unit_dirichlet
+    {t : ℝ} (ht : 0 < t) {u₀ u₀' : ℝ → ℝ}
+    (hu₀_int : Integrable u₀ (intervalMeasure 1))
+    (hu₀ : ∀ y ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt u₀ (u₀' y) y)
+    (hu₀'_int : IntervalIntegrable u₀' MeasureTheory.volume 0 1)
+    (hu₀_one : u₀ 1 = 0)
+    (x : ℝ) :
+    deriv (fun z : ℝ => intervalSemigroupOperator 1 t u₀ z) x =
+      (1 / 2 : ℝ) *
+        ∫ y in (0 : ℝ)..1, intervalDirichletKernel t x y * u₀' y := by
+  rw [intervalSemigroupOperator_deriv_ibp_identity_unit
+    (t := t) ht (u₀ := u₀) (u₀' := u₀') hu₀_int hu₀ hu₀'_int x, hu₀_one]
+  ring
 
 end ShenWork.HeatKernelGradientEstimates
