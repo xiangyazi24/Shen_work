@@ -2131,4 +2131,99 @@ theorem heatKernel_mono_away {t x R : ℝ} (ht : 0 < t)
   exact div_le_div_of_nonneg_right (neg_le_neg hsq)
     (show (0 : ℝ) ≤ 4 * t by nlinarith [ht])
 
+/-! ## Kernel derivative-symmetry identities (the IBP backbone)
+
+The heat kernel `G(t,·)` satisfies the antisymmetry
+`(∂/∂z) G(t,z-y)|_x = -(∂/∂y) G(t,x-y)|_y`.  This is pure calculus (both
+sides reduce to `-((x-y)/(2t))·G(t,x-y)`).  It is the algebraic skeleton
+behind every "heat semigroup commutes with spatial derivative on `ℝ`"
+identity: differentiating under the integral sign on the `z` slot turns,
+via this identity, into differentiating under the integral on the `y`
+slot, which IBP then transfers onto the input `f`.
+
+These lemmas are purely pointwise; they do not invoke any IBP. -/
+
+/-- **Kernel derivative antisymmetry**: at every `(x,y)` and `t > 0`,
+`(∂/∂z) G(t, z-y)|_x = -(∂/∂y) G(t, x-y)|_y`.  Both sides equal
+`-((x-y)/(2t))·G(t, x-y)`. -/
+theorem deriv_heatKernel_z_eq_neg_deriv_heatKernel_y
+    {t : ℝ} (ht : 0 < t) (x y : ℝ) :
+    deriv (fun z : ℝ => heatKernel t (z - y)) x =
+      -deriv (fun w : ℝ => heatKernel t (x - w)) y := by
+  rw [deriv_heatKernel_translated_left ht x y,
+      deriv_heatKernel_translated_right ht x y]
+  ring
+
+/-- **Heat-semigroup derivative as `-y`-derivative integral.**
+
+The pointwise `z`-derivative of the heat semigroup, expressed as an
+integral of the `y`-derivative of the (translated) kernel against the
+input, with a minus sign.  This is the algebraic precursor to integration
+by parts in the `y` variable.  It requires only `f` integrable; no `C¹`
+hypothesis on `f`.
+
+`(∂/∂z)(S(t) f)(x) = -∫ (∂/∂y) G(t, x-y) · f(y) dy`. -/
+theorem deriv_heatSemigroup_eq_neg_integral_deriv_y
+    {f : ℝ → ℝ} {t : ℝ} (ht : 0 < t) (x : ℝ)
+    (hf_int : MeasureTheory.Integrable f) :
+    deriv (fun z : ℝ => heatSemigroup t f z) x =
+      -∫ y : ℝ, deriv (fun w : ℝ => heatKernel t (x - w)) y * f y := by
+  rw [deriv_heatSemigroup ht x hf_int]
+  rw [show
+      (fun y : ℝ => deriv (fun z : ℝ => heatKernel t (z - y)) x * f y) =
+        (fun y : ℝ =>
+          -(deriv (fun w : ℝ => heatKernel t (x - w)) y * f y)) by
+      funext y
+      rw [deriv_heatKernel_z_eq_neg_deriv_heatKernel_y ht x y]
+      ring]
+  rw [MeasureTheory.integral_neg]
+
+/-! ## Full-line heat-semigroup ↔ spatial-derivative commutation
+
+The commutation `(∂/∂x) S(t) f = S(t) (∂/∂x f)` on the whole line is the
+"heat semigroup commutes with spatial derivative" identity used in classical
+PDE.  The proof is integration by parts in `y`:
+
+  `∫ (∂_z G)(t, z-y)|_x · f(y) dy
+   = -∫ (∂_y G)(t, x-y) · f(y) dy
+   = -[G(t,x-y)·f(y)]_{y=-∞}^{y=+∞} + ∫ G(t,x-y) · f'(y) dy
+   = 0 + ∫ G(t,x-y) · f'(y) dy
+   = S(t)(f')(x)`,
+
+provided the boundary term at `±∞` vanishes.  The cleanest sufficient
+condition is **compact support**: `f` is supported in some `[-R, R]`.
+
+The cleanest natural sufficient condition shape:
+
+  (i) `f` is `C¹` on `ℝ` (so the IBP and `deriv f`-integrability make
+      sense);
+  (ii) `f y = 0` for `|y|` large.
+
+The IBP step itself is provided by `intervalIntegral.integral_mul_deriv_eq_deriv_mul_of_hasDerivAt`;
+the conversion full-line ↔ interval integral uses indicator/zero-outside
+content.  This is the **honest natural sufficient hypothesis form** for
+the commutation.
+
+For the interval helper operator `intervalSemigroupOperator L t f`, the
+analogous commutation does **not** hold in the form
+`deriv (S_L(t) u₀) x = S_L(t) (deriv u₀) x`: the helper kernel
+`K_N(t,x,y) = G(t,x-y) + G(t,x+y)` (even Neumann reflection) has
+`∂_x K_N = -∂_y K_D` where `K_D = G(t,x-y) - G(t,x+y)` (the odd Dirichlet
+reflection kernel).  IBP therefore transfers `∂_x` onto `f` **but with
+the kernel switched from `K_N` to `K_D`**.  The structural mismatch
+means there is no natural condition on `u₀` (Dirichlet, Neumann, smooth,
+compactly supported) that makes the helper commutation hold in the
+"naive" form; the correct identity introduces a boundary trace
+`(1/2)(G(t,x-1) - G(t,x+1)) u₀(1)` plus a swapped Dirichlet kernel
+applied to `deriv u₀`.
+
+The Route-1 named hypothesis
+`hCommute : deriv (S_L(t) u₀) x = S_L(t) (deriv u₀) x` is therefore the
+genuine analytic content of the full-line commutation (after the
+helper-to-full-line bridge cancels the helper-specific reflection
+mismatch) — i.e., it abstracts a real PDE fact that does hold for the
+full-line semigroup applied to the zero-extension of `u₀`, modulo the
+interval-vs-full-line averaging.  The named hypothesis is the right
+shape to leave as an honest analytic input. -/
+
 end
