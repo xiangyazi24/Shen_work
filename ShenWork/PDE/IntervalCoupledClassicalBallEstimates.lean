@@ -4939,6 +4939,181 @@ theorem intervalDomainLift_u_joint_measurable_of_snapshot_and_extension
   rw [← h_eq]
   exact hpw_meas
 
+/-! ### Path-A v-side joint regularity extraction (companion to u-side).
+
+The v-side of conjunct (9) of `intervalDomainClassicalRegularity` provides
+joint continuity of `(s,y) ↦ intervalDomainLift (v s) y` on
+`Ioo 0 T ×ˢ Icc 0 1`.  This is the v-trajectory analog of
+`intervalDomainLift_u_joint_continuous_on_Ioo_Icc`.  Together with a
+v-side zero-extension specification (mirroring `hU_zero_outside_horizon`)
+it discharges joint measurability of the lifted v-trajectory on `ℝ²` by
+the same `ContinuousOn.measurable_piecewise` route.
+
+This is the natural first step toward discharging the deeper
+`hChemDiv_joint_meas` atomic hypothesis on the lifted chemotaxis
+divergence: under the (separate) snapshot constraint that the resolver
+`R (u s)` agrees with the solution `v s` (which is the case when `R` is
+the `intervalNeumannResolverR`-style elliptic resolver, by
+`solution_v_eq_resolver_pointwise_unconditional`), joint measurability of
+`(s,y) ↦ lift(R (u s)) y` reduces to joint measurability of
+`(s,y) ↦ lift(v s) y`, which is the content of this v-side lemma.
+
+The spatial-derivative factor `(s,y) ↦ deriv (lift R(u s)) y` is the
+remaining genuine gap: the current snapshot provides joint continuity
+of the TIME derivative field on the closed slab (conjunct (8)) but
+**not** of the SPATIAL derivative field, so this piece is not yet
+discharged from the snapshot alone.  It is the irreducible PDE content
+remaining inside `hChemDiv_joint_meas`. -/
+
+/-- **Joint continuity of `(s,y) ↦ intervalDomainLift (v s) y` on
+`Ioo 0 T ×ˢ Icc 0 1`** — v-side extraction of conjunct (9) of
+`intervalDomainClassicalRegularity` from a `C¹_x` snapshot. -/
+theorem intervalDomainLift_v_joint_continuous_on_Ioo_Icc
+    {p : CM2Params} {T M G_u : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsnap : IntervalDomainClassicalC1Snapshot p T M G_u u v) :
+    ContinuousOn
+      (Function.uncurry
+        (fun (s : ℝ) (y : ℝ) => intervalDomainLift (v s) y))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+  (hsnap.isSolution.regularity.2.2.2.2.2.2.2.2).2
+
+/-- **Joint measurability of `(s,y) ↦ intervalDomainLift (v s) y` on `ℝ²`**
+from the snapshot's joint continuity on `Ioo 0 T ×ˢ Icc 0 1`, plus the
+zero-extension specification `v s = 0` for `s ∉ Ioo 0 T`.
+
+Mirror of `intervalDomainLift_u_joint_measurable_of_snapshot_and_extension`:
+piecewise on `S = Ioo 0 T ×ˢ Icc 0 1` (continuous via conjunct (9)) and
+`0` on the complement (lift is zero on `y ∉ Icc 0 1`; outside the time
+horizon `s ∉ Ioo 0 T` the trajectory equals zero by hypothesis). -/
+theorem intervalDomainLift_v_joint_measurable_of_snapshot_and_extension
+    {p : CM2Params} {T M G_u : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsnap : IntervalDomainClassicalC1Snapshot p T M G_u u v)
+    (hV_zero_outside_horizon :
+      ∀ s : ℝ, s ∉ Set.Ioo (0 : ℝ) T →
+        ∀ y : intervalDomainPoint, v s y = 0) :
+    Measurable
+      (Function.uncurry
+        (fun (s : ℝ) (y : ℝ) => intervalDomainLift (v s) y)) := by
+  classical
+  -- Joint continuity on `Ioo 0 T ×ˢ Icc 0 1` from conjunct (9), v-side.
+  set S : Set (ℝ × ℝ) := Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1 with hSdef
+  have hcontS :
+      ContinuousOn
+        (Function.uncurry
+          (fun (s : ℝ) (y : ℝ) => intervalDomainLift (v s) y))
+        S :=
+    intervalDomainLift_v_joint_continuous_on_Ioo_Icc hsnap
+  -- `S` is measurable.
+  have hSmeas : MeasurableSet S :=
+    (measurableSet_Ioo).prod (measurableSet_Icc)
+  -- Zero function on the complement is continuous (hence ContinuousOn).
+  have hcontC : ContinuousOn (fun _ : ℝ × ℝ => (0 : ℝ)) Sᶜ :=
+    continuousOn_const
+  -- The piecewise function is measurable on `ℝ²`.
+  have hpw_meas :
+      Measurable
+        (S.piecewise
+          (Function.uncurry
+            (fun (s : ℝ) (y : ℝ) => intervalDomainLift (v s) y))
+          (fun _ : ℝ × ℝ => (0 : ℝ))) :=
+    ContinuousOn.measurable_piecewise hcontS hcontC hSmeas
+  -- The piecewise function POINTWISE EQUALS the target.
+  have h_eq :
+      (S.piecewise
+        (Function.uncurry
+          (fun (s : ℝ) (y : ℝ) => intervalDomainLift (v s) y))
+        (fun _ : ℝ × ℝ => (0 : ℝ))) =
+      (Function.uncurry
+        (fun (s : ℝ) (y : ℝ) => intervalDomainLift (v s) y)) := by
+    funext z
+    obtain ⟨s, y⟩ := z
+    by_cases hzS : (s, y) ∈ S
+    · simp [Set.piecewise, hzS]
+    · -- `(s,y) ∉ S`.  Split on `y ∈ Icc 0 1`.
+      simp only [Set.piecewise, hzS, if_false, Function.uncurry_apply_pair]
+      by_cases hyIcc : y ∈ Set.Icc (0 : ℝ) 1
+      · -- `y ∈ Icc 0 1` but `(s,y) ∉ S`, so `s ∉ Ioo 0 T`.
+        have hsNotIoo : s ∉ Set.Ioo (0 : ℝ) T := by
+          intro hsIoo
+          exact hzS ⟨hsIoo, hyIcc⟩
+        -- `v s ⟨y, hyIcc⟩ = 0` by the zero-extension specification.
+        have hvz : v s ⟨y, hyIcc⟩ = 0 :=
+          hV_zero_outside_horizon s hsNotIoo ⟨y, hyIcc⟩
+        -- Lift evaluates to `v s ⟨y, hyIcc⟩` on `y ∈ Icc 0 1`.
+        unfold intervalDomainLift
+        simp [hyIcc, hvz]
+      · -- `y ∉ Icc 0 1`, lift is zero by definition.
+        unfold intervalDomainLift
+        simp [hyIcc]
+  rw [← h_eq]
+  exact hpw_meas
+
+/-! ### Path-A `hChemDiv_joint_meas` reduction to spatial-derivative
+joint measurability under the snapshot v-side identification.
+
+Investigation note (overnight scope).  Joint measurability of
+`(s,y) ↦ intervalDomainLift (intervalDomainChemotaxisDiv p (u s) (R (u s))) y`
+unfolds to joint measurability of
+
+```
+(s,y) ↦ deriv (fun y' : ℝ =>
+            intervalDomainLift (u s) y'
+              * deriv (intervalDomainLift (R (u s))) y'
+              / (1 + intervalDomainLift (R (u s)) y') ^ p.β) y
+```
+
+Decomposing via the quotient rule on the open interior `(0,1)` gives the
+algebraic five-factor form (`intervalChemDivRepr`-like) in:
+
+* `(s,y) ↦ intervalDomainLift (u s) y`               — joint cts (conj. (9) u-side),
+* `(s,y) ↦ deriv (intervalDomainLift (u s)) y`      — spatial deriv of u,
+* `(s,y) ↦ intervalDomainLift (R (u s)) y`          — needs R-side joint reg,
+* `(s,y) ↦ deriv (intervalDomainLift (R (u s))) y` — spatial deriv of R-lift,
+* `(s,y) ↦ deriv² (intervalDomainLift (R (u s))) y` — second spatial deriv.
+
+Under the snapshot identification `R (u s) ≡ v s` (which is exactly
+`solution_v_eq_resolver_pointwise_unconditional` when `R` is the elliptic
+Neumann resolver `intervalNeumannResolverR`, the canonical paper-2
+choice), the v-side joint continuity (the v half of conjunct (9))
+provides joint measurability of `(s,y) ↦ lift(R (u s)) y` via
+`intervalDomainLift_v_joint_measurable_of_snapshot_and_extension`.
+
+**Honest remaining gap.**  The current snapshot regularity bundle
+provides joint continuity of the spatial *function* fields
+`(s,y) ↦ lift(u s) y` and `(s,y) ↦ lift(v s) y` on
+`Ioo 0 T ×ˢ Icc 0 1` (conjunct (9)) and joint continuity of the *time*
+derivative fields on the same slab (conjunct (8)), but **not** joint
+continuity of the *spatial* derivative fields
+`(s,y) ↦ deriv (lift (u s)) y` and `(s,y) ↦ deriv (lift (v s)) y`.
+This is the genuine missing ingredient for `hChemDiv_joint_meas`: the
+deriv of a function does **not** inherit joint measurability from joint
+measurability of the function (deriv is a pointwise limit, and pointwise
+limits of jointly measurable functions need not be jointly measurable
+without additional uniformity).
+
+Two honest discharge routes are available, neither of which is overnight
+scope:
+
+1.  **Add a snapshot conjunct (10):** joint continuity of the spatial
+    derivative fields on the closed slab `Ioo 0 T ×ˢ Icc 0 1`.  This is
+    genuine parabolic `C^{2,1}` content (the spatial half of joint
+    `C^{2,1}`); build-path constructors (spatially-constant trajectories,
+    cosine spectral heat profile) satisfy it trivially.
+
+2.  **Specialise to `R = intervalNeumannResolverR`** and use the
+    closed-form spectral identity `deriv (lift (v s)) = resolverGradReal
+    p (u s)` (on `Icc 0 1` via
+    `solution_lift_v_deriv_eq_resolverGrad_Icc`), in which case the
+    spatial deriv factor becomes the explicit cosine series, jointly
+    measurable from joint measurability of `(s,y) ↦ resolverGradReal p
+    (u s) y` (a separate but tractable infrastructure step using
+    Mathlib `Measurable.tsum`).
+
+The v-side joint measurability lemma above is the natural first piece
+for either route.  -/
+
 /-- **Cleanest `hmap` for the C¹_x ball, Dirichlet initial-data variant.**
 
 Consolidated version of
@@ -5127,6 +5302,8 @@ Verified `#print axioms` on each of the following prints exactly
   * `intervalCoupledSource_lift_joint_measurable_of_components`
   * `intervalDomainLift_u_joint_continuous_on_Ioo_Icc`
   * `intervalDomainLift_u_joint_measurable_of_snapshot_and_extension`
+  * `intervalDomainLift_v_joint_continuous_on_Ioo_Icc`
+  * `intervalDomainLift_v_joint_measurable_of_snapshot_and_extension`
   * `intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleanest`
 
 (verify on uisai1, build green.) -/
