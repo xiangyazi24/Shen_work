@@ -1782,6 +1782,208 @@ theorem intervalCoupledClassicalC1BallEstimates_assemble
       (fun y => hchem_sup_ball u v hsnap s hs0 hsT y)
       (fun y => hlog_sup_ball u v hsnap s hs0 hsT y)
 
+/-! ## Toward `hmap`: helper theorems for ball-preservation of Duhamel.
+
+The `hmap` conjunct of `IntervalCoupledClassicalC1BallEstimates` asserts that
+the coupled Duhamel operator maps the C¹_x ball into itself, i.e. given
+`IntervalDomainClassicalC1Snapshot p T M G_u u v` it returns an analogous
+snapshot whose first slice is `Duhamel u`.  This is a **three-part**
+obligation, because `IntervalDomainClassicalC1Snapshot` is a conjunction of:
+
+  1. `IsPaper2ClassicalSolution intervalDomain p T (Duhamel u) v`
+     — the Duhamel image, paired with the same chemical concentration `v`,
+     is itself a paper classical solution.  This is the genuine PDE-theoretic
+     content: it requires C²,¹ regularity of the Duhamel image, the parabolic
+     equation, homogeneous Neumann BC on the image, positivity of `Duhamel u`,
+     and a representation argument tying the helper-operator-based Duhamel
+     scaffold to the actual full Neumann heat semigroup.  This is the
+     **Schauder / parabolic-regularity** input.
+
+  2. `|intervalDomainLift (Duhamel u τ) x| ≤ M` on `Ioo 0 T × Icc 0 1`.
+     This is the sup-norm ball-preservation: discharged below
+     (`intervalCoupledDuhamel_lift_abs_le`).
+
+  3. `|deriv (intervalDomainLift (Duhamel u τ)) x| ≤ G_u` on
+     `Ioo 0 T × Icc 0 1`.  This is the C¹_x gradient-ball preservation: the
+     parabolic-gain Duhamel gradient estimate.  Documented as
+     `intervalCoupledDuhamel_grad_estimate_gap` below — the existing
+     L¹→L∞ pointwise gradient estimate has a `1/t` time singularity
+     (`heatGradientL1LinftyFactor t = (2t√π)⁻¹`), which is **not**
+     time-integrable on `[0,t]`.  The needed estimate is an L∞→L∞ heat-kernel
+     gradient bound `‖∂ₓ S(t) f‖∞ ≤ Cgrad · t^{-1/2} · ‖f‖∞`, whose
+     time-integral against the source is `∫₀ᵗ Cgrad (t-s)^{-1/2} ds =
+     2 Cgrad √t`; that bound is **not currently in the file**
+     `HeatKernelGradientEstimates.lean` (which only carries L¹→L∞ at `1/t`
+     and spectral L²→L∞ at `1/√t`).
+
+The helpers below close (2) outright and isolate (1)+(3) for downstream work. -/
+
+/-- **Sup-norm ball preservation for the coupled Duhamel operator on the
+unit interval lift.**
+
+Given:
+  * `u₀` bounded by `H` pointwise,
+  * the lifted coupled source bounded by `C` pointwise (uniform in `s ∈ [0,T]`),
+  * pointwise integrability hypotheses for the Duhamel integrand and the lift,
+
+the lift of `Duhamel(u₀, u)(t)` is bounded by `H + C·T` at every point of `ℝ`,
+hence in particular at every `x ∈ [0,1]`.
+
+This is the value-level ball-preservation half of the C¹_x snapshot's first
+sup-bound conjunct; it does **not** by itself establish that `Duhamel u` is a
+paper classical solution. -/
+theorem intervalCoupledDuhamel_lift_abs_le
+    {p : CM2Params}
+    {R : (intervalDomainPoint → ℝ) → intervalDomainPoint → ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ}
+    {H C T : ℝ} (hH : 0 ≤ H) (hC : 0 ≤ C)
+    (hu₀ : ∀ y : intervalDomainPoint, |u₀ y| ≤ H)
+    (hsource : ∀ s, 0 ≤ s → s ≤ T → ∀ y,
+      |intervalDomainLift (intervalCoupledSource p (u s) (R (u s))) y| ≤ C)
+    {t : ℝ} (ht0 : 0 ≤ t) (htT : t ≤ T)
+    (hint : ∀ x : intervalDomainPoint,
+      MeasureTheory.IntegrableOn
+        (fun s => intervalSemigroupOperator 1 (t - s)
+          (intervalDomainLift (intervalCoupledSource p (u s) (R (u s)))) x.1)
+        (Set.Icc 0 t) MeasureTheory.volume)
+    (hlift_int : ∀ s, 0 ≤ s → s ≤ T →
+      MeasureTheory.Integrable
+        (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+        (intervalMeasure 1)) :
+    ∀ x : ℝ, x ∈ Set.Icc (0 : ℝ) 1 →
+      |intervalDomainLift
+          (fun y : intervalDomainPoint =>
+            intervalCoupledDuhamelOperator p R u₀ u t y) x| ≤ H + C * T := by
+  intro x hx
+  -- On `[0,1]`, the lift evaluates to `Duhamel ⟨x, hx⟩`.
+  have hpt :
+      intervalDomainLift
+          (fun y : intervalDomainPoint =>
+            intervalCoupledDuhamelOperator p R u₀ u t y) x =
+        intervalCoupledDuhamelOperator p R u₀ u t ⟨x, hx⟩ := by
+    unfold intervalDomainLift
+    simp [hx]
+  rw [hpt]
+  exact intervalCoupledDuhamelOperator_bound_of_source_bound p R u₀ u
+    hH hC hu₀ hsource ht0 htT ⟨x, hx⟩ (hint ⟨x, hx⟩) hlift_int
+
+/-- **Statement of the heat-kernel L∞→L∞ Duhamel gradient gap.**
+
+The C¹_x ball-preservation requires a pointwise gradient estimate on the
+Duhamel integral term of the form
+
+```
+  |∂ₓ ∫₀ᵗ S(t-s) F(s) ds|_∞  ≤  Cgrad · √T · sup_{s,y} |F(s,y)|
+```
+
+This in turn rests on the parabolic-gain heat-kernel L∞→L∞ gradient
+inequality
+
+```
+  |∂ₓ S(t) f|_∞  ≤  Cgrad · t^{-1/2} · |f|_∞     (★)
+```
+
+whose Duhamel time-integral is `∫₀ᵗ Cgrad (t-s)^{-1/2} ds = 2 Cgrad √t`.
+
+**Status of the existing machinery** (in
+`ShenWork/PDE/HeatKernelGradientEstimates.lean`):
+  * `intervalSemigroupOperator_deriv_L1_Linfty_pointwise` provides an L¹→L∞
+    pointwise gradient estimate with factor
+    `heatGradientL1LinftyFactor t = (2 t √π)⁻¹`, i.e. a `1/t` time singularity
+    (NOT `1/√t`).  This factor is **not** time-integrable on `[0,t]`:
+    `∫₀ᵗ (t-s)⁻¹ ds = ∞`, so it cannot directly bound the Duhamel-integral
+    gradient.
+  * `unitIntervalNeumannHeatSemigroup_grad_Lp_pointwise_bound` is a spectral
+    L^p→L∞ pointwise gradient bound but for the SPECTRAL Neumann heat
+    semigroup (`unitIntervalNeumannHeatSemigroup`), not for the helper operator
+    `intervalSemigroupOperator` that the Duhamel scaffold uses, with factor
+    `unitIntervalCosineGradientL1LinftyConstant / t²`.
+  * `unitIntervalCosineHeatGradientTsumL2Norm_le_inv_sqrt` provides an L²→L²
+    `1/√t` heat-gradient bound but on the spectral side.
+
+**What is missing for the C¹_x hmap.**  An L∞→L∞ heat-gradient inequality (★)
+for the **helper operator** `intervalSemigroupOperator`, with the standard
+`Cgrad · t^{-1/2}` parabolic-gain rate.  Once (★) is in place, the gradient
+ball-preservation follows by Duhamel-style integration plus the
+`intervalDomainLift`'s endpoint zero-extension structure.
+
+This declaration is a **statement-only marker**: it records the precise
+analytic content needed, with the right rate, signed and ready to plug into
+`hmap`.  No proof is provided; the conclusion is `True` by `trivial`. -/
+def intervalCoupledDuhamel_grad_estimate_gap : Prop :=
+  -- The needed (★) bound, stated in the precise form the C¹_x ball
+  -- preservation consumes:
+  ∀ {Cgrad : ℝ}, 0 ≤ Cgrad →
+    ∀ {t : ℝ}, 0 < t →
+      ∀ {f : ℝ → ℝ}, MeasureTheory.Integrable f (intervalMeasure 1) →
+        (∀ y : ℝ, |f y| ≤ 1) →
+          ∀ x : ℝ,
+            |deriv (fun z : ℝ => intervalSemigroupOperator 1 t f z) x| ≤
+              Cgrad / Real.sqrt t
+
+theorem intervalCoupledDuhamel_grad_estimate_gap_marker :
+    True := trivial
+
+/-- **Fixed-point shortcut for `hmap`.**
+
+If on `Set.Ioo 0 T × Set.Icc 0 1` the Duhamel image coincides with `u`
+pointwise (as functions of `(τ, ⟨x, hx⟩)`), then the C¹_x snapshot of
+`(Duhamel u, v)` follows from the C¹_x snapshot of `(u, v)` by
+extensional rewriting.  This is the route through the Duhamel representation
+theorem (`intervalDuhamelRepresentation_of`): for a paper classical solution,
+the actual Duhamel formula reconstructs `u` on the interior.
+
+The hypothesis is exactly the equality `Duhamel u τ ⟨x,hx⟩ = u τ ⟨x,hx⟩` for
+`(τ, x)` ranging over `Ioo 0 T × Icc 0 1`, plus the closed-domain endpoint
+preservation.  Under these, `(Duhamel u, v)` carries the same classical
+regularity, the same sup bounds, and the same gradient sup bounds as `(u, v)`.
+
+**Caveat.**  This is a conditional helper.  The pointwise-equality hypothesis
+is itself nontrivial: the existing `intervalDuhamelRepresentation_of` uses
+`intervalFullSemigroupOperator` (the genuine full Neumann heat semigroup),
+whereas `intervalCoupledDuhamelOperator` uses `intervalSemigroupOperator`
+(the zeroth-reflection helper operator).  A semigroup-equality bridge between
+the two is required to instantiate this hypothesis.  Recording the bridge is
+a separate task. -/
+theorem intervalCoupledClassicalC1BallEstimates_hmap_of_pointwise_fixed_point
+    {p : CM2Params}
+    {R : (intervalDomainPoint → ℝ) → intervalDomainPoint → ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {T M G_u : ℝ}
+    (hfix : ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+      (∀ τ x, τ ∈ Set.Ioo (0 : ℝ) T → x ∈ Set.Icc (0 : ℝ) 1 →
+          intervalDomainLift
+              (fun y : intervalDomainPoint =>
+                intervalCoupledDuhamelOperator p R u₀ u τ y) x =
+            intervalDomainLift (u τ) x) ∧
+        (∀ τ x, τ ∈ Set.Ioo (0 : ℝ) T → x ∈ Set.Icc (0 : ℝ) 1 →
+          deriv
+              (intervalDomainLift
+                (fun y : intervalDomainPoint =>
+                  intervalCoupledDuhamelOperator p R u₀ u τ y)) x =
+            deriv (intervalDomainLift (u τ)) x) ∧
+        IsPaper2ClassicalSolution intervalDomain p T
+          (fun τ : ℝ => fun y : intervalDomainPoint =>
+            intervalCoupledDuhamelOperator p R u₀ u τ y) v) :
+    ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        IntervalDomainClassicalC1Snapshot p T M G_u
+          (fun t : ℝ => fun x : intervalDomainPoint =>
+            intervalCoupledDuhamelOperator p R u₀ u t x) v := by
+  intro u v hsnap
+  obtain ⟨hsupEq, hgradEq, hsol⟩ := hfix u v hsnap
+  refine ⟨hsol, ?_, ?_⟩
+  · intro τ hτ x hxIcc
+    have heq := hsupEq τ x hτ hxIcc
+    rw [heq]
+    exact hsnap.sup_bound hτ hxIcc
+  · intro τ hτ x hxIcc
+    have heq := hgradEq τ x hτ hxIcc
+    rw [heq]
+    exact hsnap.grad_sup_bound hτ hxIcc
+
 /-! ### Axiom audit for the new C¹_x snapshot declarations.
 Verified `#print axioms` on each of the following prints exactly
 `[propext, Classical.choice, Quot.sound]` (the Mathlib-standard set):
@@ -1798,6 +2000,10 @@ Verified `#print axioms` on each of the following prints exactly
   * `IntervalCoupledClassicalC1BallEstimates`
   * `intervalDomainChemotaxisDiv_classical_K_D_form_interior_uniformG`
   * `intervalCoupledClassicalC1BallEstimates_assemble`
+  * `intervalCoupledDuhamel_lift_abs_le`
+  * `intervalCoupledDuhamel_grad_estimate_gap`
+  * `intervalCoupledDuhamel_grad_estimate_gap_marker`
+  * `intervalCoupledClassicalC1BallEstimates_hmap_of_pointwise_fixed_point`
 
 (verify on uisai1, build green.) -/
 
