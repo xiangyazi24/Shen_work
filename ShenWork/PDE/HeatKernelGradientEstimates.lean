@@ -2507,6 +2507,135 @@ theorem intervalSemigroupOperator_deriv_L1_Linfty_pointwise
             ∫ y, |f y| ∂ intervalMeasure L := by
           rw [hIg_eq]
 
+/-- Concrete `L∞ → L∞` heat-kernel gradient constant `Cgrad = 1/√π`,
+appearing in the parabolic-gain inequality
+`|∂ₓ S(t) f|_∞ ≤ (1/√π) · t^{-1/2} · ‖f‖_∞`. -/
+def heatGradientLinftyLinftyConstant : ℝ := 1 / Real.sqrt Real.pi
+
+theorem heatGradientLinftyLinftyConstant_nonneg :
+    0 ≤ heatGradientLinftyLinftyConstant := by
+  unfold heatGradientLinftyLinftyConstant
+  positivity
+
+/-- Pointwise `L∞ → L∞` gradient bound for the restricted zeroth-reflection
+helper operator with the standard parabolic-gain `t^{-1/2}` rate.
+
+Given any pointwise bound `|f y| ≤ Cf` (forcing `0 ≤ Cf`), the spatial
+derivative of the helper semigroup operator on `[0,L]` satisfies
+`|∂ₓ (S_L(t) f)(x)| ≤ (1/√π) · t^{-1/2} · Cf`.
+
+This is the missing analytic input for the C¹_x ball-preservation
+argument: the bound is integrable in time on `[0,t]`, so its Duhamel
+time-integral is finite (`∫₀ᵗ (t-s)^{-1/2} ds = 2√t`). -/
+theorem intervalSemigroupOperator_deriv_Linfty_pointwise_sqrt_t
+    {L t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf_int : Integrable f (intervalMeasure L))
+    {Cf : ℝ} (hf : ∀ y, |f y| ≤ Cf) (x : ℝ) :
+    |deriv (fun z : ℝ => intervalSemigroupOperator L t f z) x| ≤
+      heatGradientLinftyLinftyConstant / Real.sqrt t * Cf := by
+  -- Underlying nonnegativity of the bound `Cf`.
+  have hCf_nonneg : 0 ≤ Cf := le_trans (abs_nonneg (f 0)) (hf 0)
+  -- Zero-extension `g : ℝ → ℝ`.
+  let g : ℝ → ℝ := Set.indicator (intervalSet L) f
+  have hg_int : Integrable g volume :=
+    interval_indicator_integrable_of_integrable (L := L) (f := f) hf_int
+  have hg_bound : ∀ y : ℝ, |g y| ≤ Cf := by
+    intro y
+    by_cases hy : y ∈ intervalSet L
+    · simpa [g, Set.indicator_of_mem hy] using hf y
+    · simp [g, Set.indicator_of_notMem hy, hCf_nonneg]
+  -- Average representation of the interval helper operator.
+  have hrepr :
+      (fun z : ℝ => intervalSemigroupOperator L t f z) =
+        fun z : ℝ =>
+          (1 / 2 : ℝ) * heatSemigroup t g z +
+            (1 / 2 : ℝ) * heatSemigroup t g (-z) := by
+    funext z
+    exact intervalSemigroupOperator_eq_half_heatSemigroup_add_reflected
+      (L := L) (t := t) ht (f := f) hf_int z
+  have hderiv :
+      deriv (fun z : ℝ => intervalSemigroupOperator L t f z) x =
+        (1 / 2 : ℝ) * deriv (fun z : ℝ => heatSemigroup t g z) x -
+          (1 / 2 : ℝ) * deriv (fun z : ℝ => heatSemigroup t g z) (-x) := by
+    rw [hrepr]
+    exact deriv_half_heatSemigroup_add_reflected (t := t) (x := x) ht hg_int
+  -- Pointwise `1/√t` gradient bound for both `S_t g` evaluations.
+  have hD1 :=
+    deriv_heatSemigroup_bounded_abs_le
+      (t := t) (M := Cf) ht hCf_nonneg (f := g) hg_bound x hg_int
+  have hD2 :=
+    deriv_heatSemigroup_bounded_abs_le
+      (t := t) (M := Cf) ht hCf_nonneg (f := g) hg_bound (-x) hg_int
+  -- Algebraic reduction `2 / √(4 π t) = (1/√π) / √t`.
+  have hsqrt_pi_pos : (0 : ℝ) < Real.sqrt Real.pi := Real.sqrt_pos.mpr Real.pi_pos
+  have hsqrt_t_pos : (0 : ℝ) < Real.sqrt t := Real.sqrt_pos.mpr ht
+  have hpi_nn : (0 : ℝ) ≤ Real.pi := Real.pi_pos.le
+  have ht_nn : (0 : ℝ) ≤ t := ht.le
+  have hfour_nn : (0 : ℝ) ≤ (4 : ℝ) := by norm_num
+  have hsqrt_factor :
+      Real.sqrt (4 * Real.pi * t) = 2 * (Real.sqrt Real.pi * Real.sqrt t) := by
+    have h4pi : Real.sqrt 4 * Real.sqrt Real.pi = 2 * Real.sqrt Real.pi := by
+      rw [show (4 : ℝ) = 2 ^ 2 by norm_num, Real.sqrt_sq (by norm_num : (0:ℝ) ≤ 2)]
+    calc Real.sqrt (4 * Real.pi * t)
+        = Real.sqrt 4 * Real.sqrt Real.pi * Real.sqrt t := by
+          rw [Real.sqrt_mul (by positivity), Real.sqrt_mul hfour_nn]
+      _ = 2 * Real.sqrt Real.pi * Real.sqrt t := by rw [h4pi]
+      _ = 2 * (Real.sqrt Real.pi * Real.sqrt t) := by ring
+  have hbound_eq :
+      (2 : ℝ) / Real.sqrt (4 * Real.pi * t) * Cf =
+        heatGradientLinftyLinftyConstant / Real.sqrt t * Cf := by
+    unfold heatGradientLinftyLinftyConstant
+    rw [hsqrt_factor]
+    have hne_pi : Real.sqrt Real.pi ≠ 0 := ne_of_gt hsqrt_pi_pos
+    have hne_t : Real.sqrt t ≠ 0 := ne_of_gt hsqrt_t_pos
+    field_simp
+  -- Combine the two halves and reduce.
+  have hhalf_nonneg : (0 : ℝ) ≤ (1 / 2 : ℝ) := by norm_num
+  have hRHS_nonneg :
+      0 ≤ (2 : ℝ) / Real.sqrt (4 * Real.pi * t) * Cf := by positivity
+  calc
+    |deriv (fun z : ℝ => intervalSemigroupOperator L t f z) x|
+        =
+          |(1 / 2 : ℝ) * deriv (fun z : ℝ => heatSemigroup t g z) x -
+            (1 / 2 : ℝ) * deriv (fun z : ℝ => heatSemigroup t g z) (-x)| := by
+          rw [hderiv]
+    _ ≤
+          |(1 / 2 : ℝ) * deriv (fun z : ℝ => heatSemigroup t g z) x| +
+            |(1 / 2 : ℝ) *
+              deriv (fun z : ℝ => heatSemigroup t g z) (-x)| :=
+          abs_sub _ _
+    _ =
+          (1 / 2 : ℝ) * |deriv (fun z : ℝ => heatSemigroup t g z) x| +
+            (1 / 2 : ℝ) *
+              |deriv (fun z : ℝ => heatSemigroup t g z) (-x)| := by
+          rw [abs_mul, abs_mul, abs_of_nonneg hhalf_nonneg]
+    _ ≤
+          (1 / 2 : ℝ) *
+              ((2 : ℝ) / Real.sqrt (4 * Real.pi * t) * Cf) +
+            (1 / 2 : ℝ) *
+              ((2 : ℝ) / Real.sqrt (4 * Real.pi * t) * Cf) := by
+          exact add_le_add
+            (mul_le_mul_of_nonneg_left hD1 hhalf_nonneg)
+            (mul_le_mul_of_nonneg_left hD2 hhalf_nonneg)
+    _ =
+          (2 : ℝ) / Real.sqrt (4 * Real.pi * t) * Cf := by ring
+    _ =
+          heatGradientLinftyLinftyConstant / Real.sqrt t * Cf :=
+          hbound_eq
+
+/-- Specialisation to `L = 1` and the unit pointwise bound `Cf = 1`,
+matching the shape recorded in `intervalCoupledDuhamel_grad_estimate_gap`. -/
+theorem intervalSemigroupOperator_deriv_Linfty_pointwise_sqrt_t_unit
+    {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf_int : Integrable f (intervalMeasure 1))
+    (hf : ∀ y : ℝ, |f y| ≤ 1) (x : ℝ) :
+    |deriv (fun z : ℝ => intervalSemigroupOperator 1 t f z) x| ≤
+      heatGradientLinftyLinftyConstant / Real.sqrt t := by
+  have h :=
+    intervalSemigroupOperator_deriv_Linfty_pointwise_sqrt_t
+      (L := 1) (t := t) ht (f := f) hf_int (Cf := (1 : ℝ)) hf x
+  simpa using h
+
 /-- On the unit interval, real `L^p` controls real `L¹` for `1 ≤ p < ∞`. -/
 theorem unitInterval_lpNorm_one_le_lpNorm_of_one_le_real
     {p : ℝ} (hp : 1 ≤ p) {f : ℝ → ℝ}
