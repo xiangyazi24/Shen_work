@@ -3158,4 +3158,278 @@ theorem intervalSemigroupOperator_deriv_ibp_identity_unit_dirichlet
     (t := t) ht (u₀ := u₀) (u₀' := u₀') hu₀_int hu₀ hu₀'_int x, hu₀_one]
   ring
 
+/-! ### Uniform-in-`t` `L¹` bound on the Dirichlet kernel and the
+    resulting uniform gradient bound for the helper semigroup on
+    Dirichlet C¹ data.
+
+The IBP identity above represents the spatial derivative of the helper
+semigroup as a kernel integral against `u₀'`.  The kernel `K_D(t,x,y) =
+G(t,x-y) - G(t,x+y)` is the difference of two non-negative heat-kernel
+slices, so its interval `L¹` mass on `[0,1]` is bounded by the sum of
+the two full-line `L¹` masses, which are each `1`.  Hence
+
+  `∫₀¹ |K_D(t,x,y)| dy ≤ 2`
+
+**uniformly in `t > 0`**.  Combined with the IBP identity this yields
+
+  `|∂_x (S_1(t) u₀)(x)| ≤ ‖u₀'‖_∞`,
+
+a Schauder-free uniform gradient bound — no `t^{-1/2}` blow-up — that
+discharges the heat-semigroup-derivative commutation hypothesis in the
+Dirichlet C¹ case. -/
+
+/-- **Uniform-in-`t` `L¹` bound on the interval Dirichlet kernel.**
+
+For any `t > 0` and any `x ∈ ℝ`,
+
+  `∫₀¹ |K_D(t,x,y)| dy ≤ 2`.
+
+The bound is uniform in `t` (no `t^{-1/2}` blow-up). -/
+theorem intervalDirichletKernel_L1_bound
+    {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    (∫ y in (0 : ℝ)..1, |intervalDirichletKernel t x y|) ≤ 2 := by
+  -- Pointwise triangle bound: |K_D| ≤ G(t,x-y) + G(t,x+y).
+  have hKD_tri : ∀ y : ℝ,
+      |intervalDirichletKernel t x y| ≤
+        heatKernel t (x - y) + heatKernel t (x + y) := by
+    intro y
+    unfold intervalDirichletKernel
+    calc
+      |heatKernel t (x - y) - heatKernel t (x + y)|
+          ≤ |heatKernel t (x - y)| + |heatKernel t (x + y)| := abs_sub _ _
+      _ = heatKernel t (x - y) + heatKernel t (x + y) := by
+            rw [abs_of_nonneg (heatKernel_nonneg ht (x - y)),
+                abs_of_nonneg (heatKernel_nonneg ht (x + y))]
+  -- Continuity / interval-integrability of the pieces.
+  have hG_sub_cont : Continuous (fun y : ℝ => heatKernel t (x - y)) := by
+    unfold heatKernel; fun_prop
+  have hG_add_cont : Continuous (fun y : ℝ => heatKernel t (x + y)) := by
+    unfold heatKernel; fun_prop
+  have hKD_cont : Continuous (fun y : ℝ => |intervalDirichletKernel t x y|) :=
+    (intervalDirichletKernel_continuous_y ht x).abs
+  have hKD_int : IntervalIntegrable
+      (fun y : ℝ => |intervalDirichletKernel t x y|)
+      MeasureTheory.volume 0 1 :=
+    hKD_cont.continuousOn.intervalIntegrable
+  have hG_sub_int : IntervalIntegrable
+      (fun y : ℝ => heatKernel t (x - y)) MeasureTheory.volume 0 1 :=
+    hG_sub_cont.continuousOn.intervalIntegrable
+  have hG_add_int : IntervalIntegrable
+      (fun y : ℝ => heatKernel t (x + y)) MeasureTheory.volume 0 1 :=
+    hG_add_cont.continuousOn.intervalIntegrable
+  -- Apply the triangle bound under the integral.
+  have hstep1 :
+      (∫ y in (0 : ℝ)..1, |intervalDirichletKernel t x y|) ≤
+        ∫ y in (0 : ℝ)..1, heatKernel t (x - y) + heatKernel t (x + y) := by
+    apply intervalIntegral.integral_mono_on (by norm_num : (0 : ℝ) ≤ 1)
+      hKD_int (hG_sub_int.add hG_add_int)
+    intro y _hy
+    exact hKD_tri y
+  -- Split the sum.
+  have hsplit :
+      (∫ y in (0 : ℝ)..1, heatKernel t (x - y) + heatKernel t (x + y)) =
+        (∫ y in (0 : ℝ)..1, heatKernel t (x - y)) +
+          (∫ y in (0 : ℝ)..1, heatKernel t (x + y)) :=
+    intervalIntegral.integral_add hG_sub_int hG_add_int
+  -- Convert each interval integral to a set integral on `Set.Ioc 0 1`.
+  have hsub_to_set :
+      (∫ y in (0 : ℝ)..1, heatKernel t (x - y)) =
+        ∫ y in Set.Ioc (0 : ℝ) 1, heatKernel t (x - y) ∂MeasureTheory.volume := by
+    rw [intervalIntegral.integral_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+  have hadd_to_set :
+      (∫ y in (0 : ℝ)..1, heatKernel t (x + y)) =
+        ∫ y in Set.Ioc (0 : ℝ) 1, heatKernel t (x + y) ∂MeasureTheory.volume := by
+    rw [intervalIntegral.integral_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+  -- Bound each set integral by the full-line integral.
+  have hsub_le_full :
+      (∫ y in Set.Ioc (0 : ℝ) 1, heatKernel t (x - y)
+          ∂MeasureTheory.volume) ≤
+        ∫ y, heatKernel t (x - y) := by
+    -- Use `setIntegral_le_integral` with non-negativity of the heat kernel.
+    have hint_full :
+        MeasureTheory.Integrable (fun y : ℝ => heatKernel t (x - y))
+          MeasureTheory.volume := by
+      -- Translation/reflection of an integrable function is integrable.
+      -- y ↦ G(t, x - y) = G(t, -(y - x))
+      have h := heatKernel_integrable ht
+      -- shift: y ↦ y - x integrability of G(t, -·)
+      have h1 : MeasureTheory.Integrable (fun y : ℝ => heatKernel t (-y))
+          MeasureTheory.volume := h.comp_neg
+      have h2 : MeasureTheory.Integrable
+          (fun y : ℝ => heatKernel t (-(y - x))) MeasureTheory.volume :=
+        h1.comp_sub_right x
+      have hfun : (fun y : ℝ => heatKernel t (x - y)) =
+          (fun y : ℝ => heatKernel t (-(y - x))) := by
+        funext y; congr 1; ring
+      rw [hfun]; exact h2
+    exact MeasureTheory.setIntegral_le_integral hint_full
+      (Filter.Eventually.of_forall (fun y => heatKernel_nonneg ht (x - y)))
+  have hadd_le_full :
+      (∫ y in Set.Ioc (0 : ℝ) 1, heatKernel t (x + y)
+          ∂MeasureTheory.volume) ≤
+        ∫ y, heatKernel t (x + y) := by
+    have hint_full :
+        MeasureTheory.Integrable (fun y : ℝ => heatKernel t (x + y))
+          MeasureTheory.volume := by
+      have h := heatKernel_integrable ht
+      have h1 : MeasureTheory.Integrable
+          (fun y : ℝ => heatKernel t (y + x)) MeasureTheory.volume :=
+        h.comp_add_right x
+      have hfun : (fun y : ℝ => heatKernel t (x + y)) =
+          (fun y : ℝ => heatKernel t (y + x)) := by
+        funext y; congr 1; ring
+      rw [hfun]; exact h1
+    exact MeasureTheory.setIntegral_le_integral hint_full
+      (Filter.Eventually.of_forall (fun y => heatKernel_nonneg ht (x + y)))
+  -- Each full-line integral is 1.
+  have hsub_eq_one : (∫ y : ℝ, heatKernel t (x - y)) = 1 :=
+    heatKernel_integral_translated ht x
+  have hadd_eq_one : (∫ y : ℝ, heatKernel t (x + y)) = 1 :=
+    ShenWork.IntervalDomain.heatKernel_integral_add ht x
+  -- Assemble.
+  calc
+    (∫ y in (0 : ℝ)..1, |intervalDirichletKernel t x y|)
+        ≤ ∫ y in (0 : ℝ)..1, heatKernel t (x - y) + heatKernel t (x + y) := hstep1
+    _ = (∫ y in (0 : ℝ)..1, heatKernel t (x - y)) +
+          (∫ y in (0 : ℝ)..1, heatKernel t (x + y)) := hsplit
+    _ = (∫ y in Set.Ioc (0 : ℝ) 1, heatKernel t (x - y)
+            ∂MeasureTheory.volume) +
+          (∫ y in Set.Ioc (0 : ℝ) 1, heatKernel t (x + y)
+            ∂MeasureTheory.volume) := by rw [hsub_to_set, hadd_to_set]
+    _ ≤ (∫ y, heatKernel t (x - y)) + (∫ y, heatKernel t (x + y)) := by
+          exact add_le_add hsub_le_full hadd_le_full
+    _ = 1 + 1 := by rw [hsub_eq_one, hadd_eq_one]
+    _ = 2 := by norm_num
+
+/-- **Uniform-in-`t` gradient bound on the helper semigroup for Dirichlet
+C¹ initial data.**
+
+For `u₀ : ℝ → ℝ` with:
+* the C¹ regularity `∀ y ∈ uIcc 0 1, HasDerivAt u₀ (u₀' y) y`,
+* `u₀'` interval-integrable on `[0,1]`,
+* sup bound `|u₀' y| ≤ M` for every `y`,
+* the Dirichlet boundary trace `u₀ 1 = 0`,
+* integrability of `u₀` against `intervalMeasure 1`,
+
+we have
+
+  `|∂_x (S_1(t) u₀)(x)| ≤ M`
+
+for every `t > 0` and every `x ∈ ℝ`, **uniformly in `t`**.
+
+The proof uses the IBP identity
+`intervalSemigroupOperator_deriv_ibp_identity_unit_dirichlet` together
+with the uniform `L¹` bound `intervalDirichletKernel_L1_bound`.
+
+This is the analytic content that lets us discharge the
+heat-semigroup-derivative commutation hypothesis in the Dirichlet C¹
+case, without any literal kernel-commutation identity. -/
+theorem intervalSemigroupOperator_deriv_Linfty_dirichlet
+    {t : ℝ} (ht : 0 < t) {u₀ u₀' : ℝ → ℝ}
+    (hu₀_int : Integrable u₀ (intervalMeasure 1))
+    (hu₀ : ∀ y ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt u₀ (u₀' y) y)
+    (hu₀'_int : IntervalIntegrable u₀' MeasureTheory.volume 0 1)
+    (hu₀_one : u₀ 1 = 0)
+    {M : ℝ} (hM_nn : 0 ≤ M)
+    (hu₀'_sup : ∀ y : ℝ, |u₀' y| ≤ M)
+    (x : ℝ) :
+    |deriv (fun z : ℝ => intervalSemigroupOperator 1 t u₀ z) x| ≤ M := by
+  -- Substitute the IBP identity.
+  rw [intervalSemigroupOperator_deriv_ibp_identity_unit_dirichlet
+    (t := t) ht (u₀ := u₀) (u₀' := u₀') hu₀_int hu₀ hu₀'_int hu₀_one x]
+  -- |(1/2)·∫ K_D · u₀'| ≤ (1/2) · ∫ |K_D| · |u₀'| ≤ (1/2) · M · ∫ |K_D| ≤ (1/2)·M·2.
+  have h_abs_mul :
+      |(1 / 2 : ℝ) * ∫ y in (0 : ℝ)..1, intervalDirichletKernel t x y * u₀' y| =
+        (1 / 2 : ℝ) * |∫ y in (0 : ℝ)..1, intervalDirichletKernel t x y * u₀' y| := by
+    rw [abs_mul]
+    rw [show |(1 / 2 : ℝ)| = (1 / 2 : ℝ) by
+      rw [abs_of_nonneg]; norm_num]
+  rw [h_abs_mul]
+  -- Pointwise bound on the integrand: |K_D · u₀'| ≤ M · |K_D|.
+  have hKD_cont : Continuous (fun y : ℝ => intervalDirichletKernel t x y) :=
+    intervalDirichletKernel_continuous_y ht x
+  have hKD_int : IntervalIntegrable
+      (fun y : ℝ => intervalDirichletKernel t x y)
+      MeasureTheory.volume 0 1 := hKD_cont.continuousOn.intervalIntegrable
+  have hKDabs_int : IntervalIntegrable
+      (fun y : ℝ => |intervalDirichletKernel t x y|)
+      MeasureTheory.volume 0 1 := hKD_int.abs
+  -- Bound |∫ K_D · u₀'| ≤ ∫ |K_D · u₀'| = ∫ |K_D| · |u₀'| ≤ M · ∫ |K_D|.
+  have h_abs_int_le :
+      |∫ y in (0 : ℝ)..1, intervalDirichletKernel t x y * u₀' y| ≤
+        ∫ y in (0 : ℝ)..1, |intervalDirichletKernel t x y * u₀' y| := by
+    have := intervalIntegral.abs_integral_le_integral_abs (a := (0 : ℝ)) (b := 1)
+      (μ := MeasureTheory.volume)
+      (f := fun y : ℝ => intervalDirichletKernel t x y * u₀' y)
+      (by norm_num : (0 : ℝ) ≤ 1)
+    exact this
+  have h_abs_eq : ∀ y : ℝ,
+      |intervalDirichletKernel t x y * u₀' y| =
+        |intervalDirichletKernel t x y| * |u₀' y| := fun y => abs_mul _ _
+  have h_abs_int_eq :
+      (∫ y in (0 : ℝ)..1, |intervalDirichletKernel t x y * u₀' y|) =
+        ∫ y in (0 : ℝ)..1,
+          |intervalDirichletKernel t x y| * |u₀' y| := by
+    apply intervalIntegral.integral_congr
+    intro y _hy
+    exact h_abs_eq y
+
+  -- |K_D| · |u₀'| ≤ M · |K_D|, integrating on [0,1].
+  have hKDabs_M_int : IntervalIntegrable
+      (fun y : ℝ => M * |intervalDirichletKernel t x y|)
+      MeasureTheory.volume 0 1 := hKDabs_int.const_mul M
+  have hprodabs_int : IntervalIntegrable
+      (fun y : ℝ =>
+        |intervalDirichletKernel t x y| * |u₀' y|)
+      MeasureTheory.volume 0 1 := by
+    -- |u₀'| interval-integrable; |K_D| continuous ⇒ |K_D| * |u₀'| interval-integrable.
+    exact hu₀'_int.abs.continuousOn_mul (hKD_cont.abs).continuousOn
+  have h_mono :
+      (∫ y in (0 : ℝ)..1,
+          |intervalDirichletKernel t x y| * |u₀' y|) ≤
+        ∫ y in (0 : ℝ)..1,
+          M * |intervalDirichletKernel t x y| := by
+    apply intervalIntegral.integral_mono_on (by norm_num : (0 : ℝ) ≤ 1)
+      hprodabs_int hKDabs_M_int
+    intro y _hy
+    have hKD_nn : 0 ≤ |intervalDirichletKernel t x y| := abs_nonneg _
+    have h1 : |intervalDirichletKernel t x y| * |u₀' y| ≤
+        |intervalDirichletKernel t x y| * M :=
+      mul_le_mul_of_nonneg_left (hu₀'_sup y) hKD_nn
+    have h2 : |intervalDirichletKernel t x y| * M =
+        M * |intervalDirichletKernel t x y| := by ring
+    linarith
+  -- Pull out the constant M.
+  have h_const :
+      (∫ y in (0 : ℝ)..1, M * |intervalDirichletKernel t x y|) =
+        M * ∫ y in (0 : ℝ)..1, |intervalDirichletKernel t x y| :=
+    intervalIntegral.integral_const_mul _ _
+  -- L¹ bound on K_D.
+  have hL1 : (∫ y in (0 : ℝ)..1,
+      |intervalDirichletKernel t x y|) ≤ 2 :=
+    intervalDirichletKernel_L1_bound (t := t) ht x
+  -- Assemble.
+  calc
+    (1 / 2 : ℝ) * |∫ y in (0 : ℝ)..1,
+          intervalDirichletKernel t x y * u₀' y|
+        ≤ (1 / 2 : ℝ) *
+            ∫ y in (0 : ℝ)..1, |intervalDirichletKernel t x y * u₀' y| := by
+          apply mul_le_mul_of_nonneg_left h_abs_int_le
+          norm_num
+    _ = (1 / 2 : ℝ) *
+            ∫ y in (0 : ℝ)..1,
+              |intervalDirichletKernel t x y| * |u₀' y| := by
+          rw [h_abs_int_eq]
+    _ ≤ (1 / 2 : ℝ) *
+            ∫ y in (0 : ℝ)..1, M * |intervalDirichletKernel t x y| := by
+          apply mul_le_mul_of_nonneg_left h_mono
+          norm_num
+    _ = (1 / 2 : ℝ) * (M * ∫ y in (0 : ℝ)..1,
+            |intervalDirichletKernel t x y|) := by rw [h_const]
+    _ ≤ (1 / 2 : ℝ) * (M * 2) := by
+          apply mul_le_mul_of_nonneg_left
+          · apply mul_le_mul_of_nonneg_left hL1 hM_nn
+          · norm_num
+    _ = M := by ring
+
 end ShenWork.HeatKernelGradientEstimates
