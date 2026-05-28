@@ -2789,6 +2789,147 @@ theorem intervalSemigroupOperator_s_dependent_deriv_aestronglyMeasurable_x₀
   -- Combine, matching `(1/2)*D₁ - (1/2)*D₂ = deriv (...)`.
   rw [hOp_deriv, hh1', hh2']
 
+/-- **Envelope integrability on `[0,t]`** for the `(t-s)^{-1/2}` gradient
+bound.  For `t > 0`, `Cgrad ≥ 0`, `C_source ≥ 0`, the dominating envelope
+`s ↦ Cgrad · C_source · (t - s)^{-1/2}` is `IntervalIntegrable` on `[0, t]`.
+
+Route: `intervalIntegral.intervalIntegrable_rpow'` (which needs `-1 < r`,
+satisfied by `r = -1/2`) gives `IntervalIntegrable (fun x => x^(-1/2)) volume 0 t`;
+`IntervalIntegrable.comp_sub_left` translates to `(t - s)^(-1/2)`; `const_mul`
+multiplies by the constant `Cgrad · C_source`.
+
+This discharges the `hDom_int` hypothesis of
+`intervalCoupledDuhamel_grad_integral_bound_no_meas` internally.  Closed-form
+value `∫₀ᵗ (t - s)^{-1/2} ds = 2√t` is recorded separately in
+`intervalIntegral_inv_sqrt_sub_eq_two_sqrt`. -/
+theorem intervalCoupledDuhamel_grad_envelope_intervalIntegrable
+    {t : ℝ} (ht : 0 < t) (C_source : ℝ) :
+    IntervalIntegrable
+      (fun s : ℝ =>
+        ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          * C_source * (t - s) ^ (-(1/2 : ℝ)))
+      MeasureTheory.volume (0 : ℝ) t := by
+  -- Base step: `s ↦ s ^ (-1/2)` is interval integrable on `[0, t]` via the
+  -- `intervalIntegrable_rpow'` lemma (`-1 < -1/2`).
+  have hbase : IntervalIntegrable (fun x : ℝ => x ^ (-(1/2 : ℝ)))
+      MeasureTheory.volume (0 : ℝ) t :=
+    intervalIntegral.intervalIntegrable_rpow' (by norm_num : (-1 : ℝ) < -(1/2 : ℝ))
+  -- Translate by `t`: `(fun x => (t - x) ^ (-1/2))` is IntervalIntegrable on
+  -- `[t - 0, t - t] = [t, 0]`, hence on `[0, t]` by symmetry.
+  have htrans :
+      IntervalIntegrable (fun x : ℝ => (t - x) ^ (-(1/2 : ℝ)))
+        MeasureTheory.volume (t - 0) (t - t) :=
+    hbase.comp_sub_left t
+  have htrans' :
+      IntervalIntegrable (fun x : ℝ => (t - x) ^ (-(1/2 : ℝ)))
+        MeasureTheory.volume t 0 := by
+    have h1 : (t - 0 : ℝ) = t := by ring
+    have h2 : (t - t : ℝ) = 0 := by ring
+    rw [h1, h2] at htrans
+    exact htrans
+  have hsub : IntervalIntegrable (fun s : ℝ => (t - s) ^ (-(1/2 : ℝ)))
+      MeasureTheory.volume (0 : ℝ) t := htrans'.symm
+  -- Multiply by the constant `Cgrad * C_source`.
+  exact hsub.const_mul _
+
+/-- **Gradient integrand interval integrability on `[0,t]`** (envelope-dominated).
+
+For `t > 0` and a source field `F : ℝ → ℝ → ℝ` with joint measurability,
+per-slice `intervalMeasure`-integrability, and a uniform pointwise sup bound
+`|F s y| ≤ C_source`, the parameter-derivative integrand
+`s ↦ deriv (fun z => S(t-s)(F s) z) x₀` is `IntervalIntegrable` on `[0, t]`.
+
+Route: dominate by the envelope `Cgrad · C_source · (t - s)^{-1/2}` (proved
+integrable in `intervalCoupledDuhamel_grad_envelope_intervalIntegrable`) using
+the pointwise bound `intervalCoupledDuhamel_grad_integrand_pointwise_bound`,
+then apply `IntervalIntegrable.mono_fun'` with the AE-strong-measurability
+of the integrand provided by
+`intervalSemigroupOperator_s_dependent_deriv_aestronglyMeasurable_x₀`.
+
+This discharges the `hGrad_int` hypothesis of
+`intervalCoupledDuhamel_grad_integral_bound_no_meas` internally. -/
+theorem intervalCoupledDuhamel_grad_integrand_intervalIntegrable
+    {t : ℝ} (ht : 0 < t)
+    {F : ℝ → ℝ → ℝ}
+    (hF_joint_meas : Measurable (Function.uncurry F))
+    (hF_int : ∀ s, MeasureTheory.Integrable (F s) (intervalMeasure 1))
+    {C_source : ℝ} (hC_source_nn : 0 ≤ C_source)
+    (hF_sup : ∀ s, ∀ y : ℝ, |F s y| ≤ C_source)
+    (x₀ : ℝ) :
+    IntervalIntegrable
+      (fun s : ℝ =>
+        deriv (fun z : ℝ =>
+          intervalSemigroupOperator 1 (t - s) (F s) z) x₀)
+      MeasureTheory.volume (0 : ℝ) t := by
+  set Cgrad :=
+    ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+    with hCgrad_def
+  have hCgrad_nn : 0 ≤ Cgrad :=
+    ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+  -- AE-strong-measurability of the integrand on `volume.restrict (Ι 0 t)`.
+  have hF'_meas :
+      MeasureTheory.AEStronglyMeasurable
+        (fun s : ℝ =>
+          deriv (fun z : ℝ =>
+            intervalSemigroupOperator 1 (t - s) (F s) z) x₀)
+        (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) :=
+    intervalSemigroupOperator_s_dependent_deriv_aestronglyMeasurable_x₀
+      ht hF_joint_meas hF_int x₀
+  -- Envelope `s ↦ Cgrad · C_source · (t - s)^{-1/2}` is IntervalIntegrable.
+  have henv :
+      IntervalIntegrable
+        (fun s : ℝ => Cgrad * C_source * (t - s) ^ (-(1/2 : ℝ)))
+        MeasureTheory.volume (0 : ℝ) t :=
+    intervalCoupledDuhamel_grad_envelope_intervalIntegrable ht C_source
+  -- Pointwise dominance `‖integrand‖ ≤ envelope` on the `Ι 0 t = Ioc 0 t` set.
+  have huIoc_eq : Set.uIoc (0 : ℝ) t = Set.Ioc (0 : ℝ) t :=
+    Set.uIoc_of_le ht.le
+  -- `s ≠ t` a.e. wrt `volume`, so `s < t` a.e. on the `Ι 0 t` restriction.
+  have hae_ne_t : ∀ᵐ s ∂MeasureTheory.volume, s ≠ t := by
+    have heq : {s : ℝ | ¬ s ≠ t} = {t} := by
+      ext s; simp [eq_comm]
+    rw [MeasureTheory.ae_iff, heq]
+    exact Real.volume_singleton
+  have hdom_ae :
+      (fun s : ℝ =>
+          ‖deriv (fun z : ℝ =>
+            intervalSemigroupOperator 1 (t - s) (F s) z) x₀‖) ≤ᵐ[
+        MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)]
+        (fun s : ℝ => Cgrad * C_source * (t - s) ^ (-(1/2 : ℝ))) := by
+    refine (MeasureTheory.ae_restrict_iff' measurableSet_uIoc).mpr ?_
+    filter_upwards [hae_ne_t] with s hsne hs
+    rw [huIoc_eq] at hs
+    have hs0 : 0 ≤ s := hs.1.le
+    have hst : s < t := lt_of_le_of_ne hs.2 hsne
+    have htms_pos : 0 < t - s := sub_pos.mpr hst
+    have h := intervalCoupledDuhamel_grad_integrand_pointwise_bound
+      (t := t) (s := s) hs0 hst (F := F s) (hF_int s)
+      (C_source := C_source) hC_source_nn (hF_sup s) x₀
+    -- Convert `Cgrad / √(t-s) * C_source` to `Cgrad * C_source * (t-s)^(-1/2)`.
+    have hsqrt_eq : Real.sqrt (t - s) = (t - s) ^ ((1 : ℝ)/2) :=
+      Real.sqrt_eq_rpow (t - s)
+    have hrpow_neg : (t - s) ^ (-(1/2 : ℝ)) = (Real.sqrt (t - s))⁻¹ := by
+      rw [Real.rpow_neg htms_pos.le, hsqrt_eq]
+    have hrhs_eq :
+        Cgrad / Real.sqrt (t - s) * C_source =
+          Cgrad * C_source * (t - s) ^ (-(1/2 : ℝ)) := by
+      rw [hrpow_neg]; field_simp
+    have h' :
+        |deriv (fun z : ℝ =>
+            intervalSemigroupOperator 1 (t - s) (F s) z) x₀| ≤
+          Cgrad * C_source * (t - s) ^ (-(1/2 : ℝ)) := by
+      calc
+        |deriv (fun z : ℝ =>
+            intervalSemigroupOperator 1 (t - s) (F s) z) x₀|
+            ≤ Cgrad / Real.sqrt (t - s) * C_source := h
+        _ = Cgrad * C_source * (t - s) ^ (-(1/2 : ℝ)) := hrhs_eq
+    simpa [Real.norm_eq_abs] using h'
+  -- Apply `IntervalIntegrable.mono_fun'` against the envelope.
+  exact IntervalIntegrable.mono_fun' (f := fun s : ℝ =>
+      deriv (fun z : ℝ => intervalSemigroupOperator 1 (t - s) (F s) z) x₀)
+    (g := fun s : ℝ => Cgrad * C_source * (t - s) ^ (-(1/2 : ℝ)))
+    henv hF'_meas hdom_ae
+
 /-- **Source-integral gradient bound, internal measurability discharge.**
 
 The `_no_meas` upgrade of `intervalCoupledDuhamel_grad_integral_bound_no_leibniz`:
@@ -2850,6 +2991,70 @@ theorem intervalCoupledDuhamel_grad_integral_bound_no_meas
     intervalCoupledDuhamel_grad_integral_bound_no_leibniz
       (t := t) (T := T) ht htT (F := F) hF_int (C_source := C_source)
       hC_source_nn hF_sup x₀ hF_meas hF'_meas hGrad_int hDom_int
+
+/-- **Source-integral gradient bound, integrability hypotheses discharged.**
+
+The `_no_int` upgrade of `intervalCoupledDuhamel_grad_integral_bound_no_meas`:
+both the gradient-integrand `IntervalIntegrable` hypothesis `hGrad_int` and the
+envelope `IntervalIntegrable` hypothesis `hDom_int` are now produced internally
+from the standard analytic inputs — joint measurability of `F`, per-slice
+`intervalMeasure`-integrability of each `F s`, and the uniform pointwise sup
+bound on each slice.
+
+The envelope discharge is the closed-form `(t-s)^{-1/2}` integrability proved
+in `intervalCoupledDuhamel_grad_envelope_intervalIntegrable`; the gradient
+integrand discharge is the envelope-dominated `mono_fun'` argument proved in
+`intervalCoupledDuhamel_grad_integrand_intervalIntegrable`.
+
+The remaining hypotheses are exactly the per-slice analytic obligations any
+classical-solution snapshot supplies:
+
+* `hF_joint_meas : Measurable (Function.uncurry F)` — free from
+  `Continuous (Function.uncurry F)`.
+* `hF_int : ∀ s, Integrable (F s) (intervalMeasure 1)` — per-slice integrability
+  of the source field against the unit interval measure.
+* `hF_sup : ∀ s, ∀ y, |F s y| ≤ C_source` — uniform pointwise sup bound.
+
+The conclusion is identical to the `_no_meas` variant:
+
+```
+|deriv (fun x => ∫₀ᵗ S(t-s) F(s) (x) ds) x₀|  ≤  Cgrad · 2 · √T · C_source.
+```
+-/
+theorem intervalCoupledDuhamel_grad_integral_bound_no_int
+    {t T : ℝ} (ht : 0 < t) (htT : t ≤ T)
+    {F : ℝ → ℝ → ℝ}
+    (hF_joint_meas : Measurable (Function.uncurry F))
+    (hF_int : ∀ s, MeasureTheory.Integrable (F s) (intervalMeasure 1))
+    {C_source : ℝ} (hC_source_nn : 0 ≤ C_source)
+    (hF_sup : ∀ s, ∀ y : ℝ, |F s y| ≤ C_source)
+    (x₀ : ℝ) :
+    |deriv (fun x : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          intervalSemigroupOperator 1 (t - s) (F s) x) x₀| ≤
+      ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+        (2 * Real.sqrt T) * C_source := by
+  -- Discharge `hDom_int` via the closed-form envelope integrability lemma.
+  have hDom_int :
+      IntervalIntegrable
+        (fun s : ℝ =>
+          ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * C_source * (t - s) ^ (-(1/2 : ℝ)))
+        MeasureTheory.volume (0 : ℝ) t :=
+    intervalCoupledDuhamel_grad_envelope_intervalIntegrable ht C_source
+  -- Discharge `hGrad_int` via the envelope-dominated `mono_fun'` argument.
+  have hGrad_int :
+      IntervalIntegrable
+        (fun s : ℝ =>
+          deriv (fun z : ℝ =>
+            intervalSemigroupOperator 1 (t - s) (F s) z) x₀)
+        MeasureTheory.volume (0 : ℝ) t :=
+    intervalCoupledDuhamel_grad_integrand_intervalIntegrable
+      ht hF_joint_meas hF_int hC_source_nn hF_sup x₀
+  exact
+    intervalCoupledDuhamel_grad_integral_bound_no_meas
+      (t := t) (T := T) ht htT (F := F) hF_joint_meas hF_int
+      (C_source := C_source) hC_source_nn hF_sup x₀ hGrad_int hDom_int
 
 /-! ### Initial-data gradient gap (documentation only)
 
