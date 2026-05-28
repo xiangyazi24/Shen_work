@@ -4819,26 +4819,151 @@ theorem intervalCoupledSource_lift_joint_measurable_of_components
   rw [h_eq]
   exact h_sum
 
+/-! ### Path-A `hU_joint_meas` discharge from snapshot.
+
+The conjunct (9) of `intervalDomainClassicalRegularity` provides joint
+continuity of `(s,y) ↦ intervalDomainLift (u s) y` on
+`Ioo 0 T ×ˢ Icc 0 1`.  This is the natural snapshot-derived input for the
+atomic `hU_joint_meas` hypothesis.  Below we wire it to a `Measurable`
+output on `ℝ²` via two pieces:
+
+1. `intervalDomainLift_u_joint_continuous_on_Ioo_Icc` extracts conjunct (9)
+   from the snapshot's `IsPaper2ClassicalSolution` regularity bundle.
+
+2. `intervalDomainLift_u_joint_measurable_of_snapshot_and_extension` builds
+   `Measurable (Function.uncurry (fun s y => lift(u s) y))` on **all of**
+   `ℝ²` from
+   (a) the snapshot's joint continuity (1) and
+   (b) a clean zero-extension specification `hU_zero_outside_horizon` that
+       records `u s = 0` (as a function on `intervalDomainPoint`) for every
+       `s ∉ Ioo 0 T`.
+
+The zero-extension specification is a natural normalization for paper-2
+trajectories: the snapshot governs the time horizon `(0,T)` only, and
+build-path constructors readily satisfy `u s ≡ 0` outside.  It is a real,
+named, dischargeable hypothesis on the trajectory's behaviour past the
+horizon — not a hidden gap.  With it, the lifted trajectory is jointly
+measurable on `ℝ²` from `ContinuousOn.measurable_piecewise`. -/
+
+/-- **Joint continuity of `(s,y) ↦ intervalDomainLift (u s) y` on
+`Ioo 0 T ×ˢ Icc 0 1`** — extraction of conjunct (9) of
+`intervalDomainClassicalRegularity` from a `C¹_x` snapshot. -/
+theorem intervalDomainLift_u_joint_continuous_on_Ioo_Icc
+    {p : CM2Params} {T M G_u : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsnap : IntervalDomainClassicalC1Snapshot p T M G_u u v) :
+    ContinuousOn
+      (Function.uncurry
+        (fun (s : ℝ) (y : ℝ) => intervalDomainLift (u s) y))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+  (hsnap.isSolution.regularity.2.2.2.2.2.2.2.2).1
+
+/-- **Joint measurability of `(s,y) ↦ intervalDomainLift (u s) y` on `ℝ²`**
+from the snapshot's joint continuity on `Ioo 0 T ×ˢ Icc 0 1`, plus the
+zero-extension specification `u s = 0` for `s ∉ Ioo 0 T`.
+
+The proof uses `ContinuousOn.measurable_piecewise`: the function equals
+`intervalDomainLift (u s) y` on `Ioo 0 T ×ˢ Icc 0 1` (continuous, hence
+measurable on the measurable set) and `0` on the complement (constant).
+The complement decomposes into two parts:
+* `y ∉ Icc 0 1`: `intervalDomainLift (u s) y = 0` by definition;
+* `s ∉ Ioo 0 T`, `y ∈ Icc 0 1`: `intervalDomainLift (u s) y = u s ⟨y,_⟩ = 0`
+  from `hU_zero_outside_horizon`.
+
+Both cases collapse to `0`, so the piecewise function literally equals the
+target uncurried lift on all of `ℝ²`. -/
+theorem intervalDomainLift_u_joint_measurable_of_snapshot_and_extension
+    {p : CM2Params} {T M G_u : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsnap : IntervalDomainClassicalC1Snapshot p T M G_u u v)
+    (hU_zero_outside_horizon :
+      ∀ s : ℝ, s ∉ Set.Ioo (0 : ℝ) T →
+        ∀ y : intervalDomainPoint, u s y = 0) :
+    Measurable
+      (Function.uncurry
+        (fun (s : ℝ) (y : ℝ) => intervalDomainLift (u s) y)) := by
+  classical
+  -- Joint continuity on `Ioo 0 T ×ˢ Icc 0 1` from conjunct (9).
+  set S : Set (ℝ × ℝ) := Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1 with hSdef
+  have hcontS :
+      ContinuousOn
+        (Function.uncurry
+          (fun (s : ℝ) (y : ℝ) => intervalDomainLift (u s) y))
+        S :=
+    intervalDomainLift_u_joint_continuous_on_Ioo_Icc hsnap
+  -- `S` is measurable.
+  have hSmeas : MeasurableSet S :=
+    (measurableSet_Ioo).prod (measurableSet_Icc)
+  -- Zero function on the complement is continuous (hence ContinuousOn).
+  have hcontC : ContinuousOn (fun _ : ℝ × ℝ => (0 : ℝ)) Sᶜ :=
+    continuousOn_const
+  -- The piecewise function `S.piecewise (lift_uncurry) (fun _ => 0)` is
+  -- measurable on `ℝ²` by `ContinuousOn.measurable_piecewise`.
+  have hpw_meas :
+      Measurable
+        (S.piecewise
+          (Function.uncurry
+            (fun (s : ℝ) (y : ℝ) => intervalDomainLift (u s) y))
+          (fun _ : ℝ × ℝ => (0 : ℝ))) :=
+    ContinuousOn.measurable_piecewise hcontS hcontC hSmeas
+  -- The piecewise function POINTWISE EQUALS the target.  We rewrite via
+  -- `funext`: outside `S` the lift is zero (either by `y ∉ Icc 0 1` lift
+  -- zero-extension, or by `s ∉ Ioo 0 T` and `hU_zero_outside_horizon`).
+  have h_eq :
+      (S.piecewise
+        (Function.uncurry
+          (fun (s : ℝ) (y : ℝ) => intervalDomainLift (u s) y))
+        (fun _ : ℝ × ℝ => (0 : ℝ))) =
+      (Function.uncurry
+        (fun (s : ℝ) (y : ℝ) => intervalDomainLift (u s) y)) := by
+    funext z
+    obtain ⟨s, y⟩ := z
+    by_cases hzS : (s, y) ∈ S
+    · simp [Set.piecewise, hzS]
+    · -- `(s,y) ∉ S`.  Split on `y ∈ Icc 0 1`.
+      simp only [Set.piecewise, hzS, if_false, Function.uncurry_apply_pair]
+      by_cases hyIcc : y ∈ Set.Icc (0 : ℝ) 1
+      · -- `y ∈ Icc 0 1` but `(s,y) ∉ S`, so `s ∉ Ioo 0 T`.
+        have hsNotIoo : s ∉ Set.Ioo (0 : ℝ) T := by
+          intro hsIoo
+          exact hzS ⟨hsIoo, hyIcc⟩
+        -- `u s ⟨y, hyIcc⟩ = 0` by the zero-extension specification.
+        have huz : u s ⟨y, hyIcc⟩ = 0 :=
+          hU_zero_outside_horizon s hsNotIoo ⟨y, hyIcc⟩
+        -- Lift evaluates to `u s ⟨y, hyIcc⟩` on `y ∈ Icc 0 1`.
+        unfold intervalDomainLift
+        simp [hyIcc, huz]
+      · -- `y ∉ Icc 0 1`, lift is zero by definition.
+        unfold intervalDomainLift
+        simp [hyIcc]
+  rw [← h_eq]
+  exact hpw_meas
+
 /-- **Cleanest `hmap` for the C¹_x ball, Dirichlet initial-data variant.**
 
 Consolidated version of
 `intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleaner`,
 which replaces the monolithic `hF_joint_meas` hypothesis on the lifted
-coupled source with the two atomic joint-measurability hypotheses
+coupled source with:
 
-* `hU_joint_meas` — joint measurability of the lifted trajectory
-  `(s,y) ↦ lift(u s) y`,
-* `hChemDiv_joint_meas` — joint measurability of the lifted chemotaxis
-  divergence `(s,y) ↦ lift(chemDiv p (u s) (R (u s))) y`.
+* the snapshot-derivable atomic hypothesis `hU_zero_outside_horizon`
+  recording the natural zero-extension of `u` past the time horizon
+  `Ioo 0 T` (jointly with the snapshot's joint continuity from conjunct
+  (9) of `intervalDomainClassicalRegularity`, this fully discharges
+  `hU_joint_meas` internally, see
+  `intervalDomainLift_u_joint_measurable_of_snapshot_and_extension`); and
+* the deeper atomic hypothesis `hChemDiv_joint_meas` on the lifted
+  chemotaxis divergence `(s,y) ↦ lift(chemDiv p (u s) (R (u s))) y`,
+  which records joint regularity of `R (u s)` and `∂ₓ lift (R (u s))` in
+  `(s,y)` — the current snapshot does not provide this.
 
 The combination is discharged by
 `intervalCoupledSource_lift_joint_measurable_of_components`.
 
-Honest gap (unchanged from `_cleaner` in PDE content, but decomposed):
-* `hU_joint_meas` reduces (under conjunct (9) of
-  `intervalDomainClassicalRegularity`) to `ContinuousOn → Measurable`
-  bookkeeping plus the `Borel`/`OpensMeasurableSpace` infrastructure on
-  `ℝ²`; this is mechanical Lean work but not yet wired here.
+Honest gap (now isolated to a single named PDE hypothesis):
+* `hU_joint_meas` is **discharged internally** from the snapshot's joint
+  continuity (conjunct (9)) and `hU_zero_outside_horizon` via
+  `ContinuousOn.measurable_piecewise`.
 * `hChemDiv_joint_meas` is the irreducible PDE content: joint regularity
   of `R (u s)` and `∂ₓ lift (R (u s))` in `(s,y)`, which the current
   snapshot does not provide.
@@ -4906,12 +5031,11 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleanest
             MeasureTheory.Integrable
               (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
               (ShenWork.IntervalDomain.intervalMeasure 1))
-    (hU_joint_meas :
+    (hU_zero_outside_horizon :
       ∀ u v : ℝ → intervalDomainPoint → ℝ,
         IntervalDomainClassicalC1Snapshot p T M G_u u v →
-          Measurable
-            (Function.uncurry
-              (fun (s : ℝ) (y : ℝ) => intervalDomainLift (u s) y)))
+          ∀ s : ℝ, s ∉ Set.Ioo (0 : ℝ) T →
+            ∀ y : intervalDomainPoint, u s y = 0)
     (hChemDiv_joint_meas :
       ∀ u v : ℝ → intervalDomainPoint → ℝ,
         IntervalDomainClassicalC1Snapshot p T M G_u u v →
@@ -4949,12 +5073,21 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleanest
     hu₀_ext_int hu₀_ext_C1 hu₀_ext'_int hu₀_ext_one hu₀_ext'_sup
     hSol hSource_sup_local hSource_sup_global hint hlift_int
     hSource_int_global ?_ hGradEq
-  -- Atomic combination: `hF_joint_meas` from `hU_joint_meas` and
-  -- `hChemDiv_joint_meas` at the current snapshot.
+  -- Atomic combination: `hF_joint_meas` from the snapshot-derived
+  -- `hU_joint_meas` (discharged via
+  -- `intervalDomainLift_u_joint_measurable_of_snapshot_and_extension`)
+  -- and the remaining deeper atomic hypothesis `hChemDiv_joint_meas`.
   intro u v hsnap
+  have hU_joint_meas :
+      Measurable
+        (Function.uncurry
+          (fun (s : ℝ) (y : ℝ) => intervalDomainLift (u s) y)) :=
+    intervalDomainLift_u_joint_measurable_of_snapshot_and_extension
+      (p := p) (T := T) (M := M) (G_u := G_u) (u := u) (v := v) hsnap
+      (hU_zero_outside_horizon u v hsnap)
   exact intervalCoupledSource_lift_joint_measurable_of_components
     (p := p) (R := R) (u := u)
-    (hU_joint_meas u v hsnap)
+    hU_joint_meas
     (hChemDiv_joint_meas u v hsnap)
 
 /-! ### Axiom audit for the new C¹_x snapshot declarations.
@@ -4992,6 +5125,8 @@ Verified `#print axioms` on each of the following prints exactly
   * `intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleaner`
   * `intervalCoupledSource_lift_pointwise_decomp`
   * `intervalCoupledSource_lift_joint_measurable_of_components`
+  * `intervalDomainLift_u_joint_continuous_on_Ioo_Icc`
+  * `intervalDomainLift_u_joint_measurable_of_snapshot_and_extension`
   * `intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleanest`
 
 (verify on uisai1, build green.) -/
