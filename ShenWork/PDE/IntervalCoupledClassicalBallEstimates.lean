@@ -4668,6 +4668,295 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleaner
   -- `deriv_add` discharges `hSplit` at `x`.
   exact deriv_add hInit_diff hIntegral_diff
 
+/-! ### Path-A `_cleanest`: decompose `hF_joint_meas` into atomic pieces.
+
+The `_cleaner` form carries a monolithic joint-measurability hypothesis
+`hF_joint_meas` on the LIFTED coupled source
+
+```
+Measurable (Function.uncurry (fun s y =>
+  intervalDomainLift (intervalCoupledSource p (u s) (R (u s))) y))
+```
+
+This monolithic hypothesis hides two unrelated analytic ingredients:
+
+1.  **Joint measurability of the lifted trajectory** `(s,y) ↦ lift(u s) y`
+    — a low-level statement about the trajectory `u`, with conjunct (9) of
+    `intervalDomainClassicalRegularity` (joint continuity on
+    `Ioo 0 T ×ˢ Icc 0 1`) as the natural snapshot-derived source.
+
+2.  **Joint measurability of the lifted chemotaxis divergence**
+    `(s,y) ↦ lift(intervalDomainChemotaxisDiv p (u s) (R (u s))) y`
+    — the genuinely deep PDE/spectral piece: it folds in joint regularity
+    of the elliptic resolver `R(u s)` and of `∂ₓ lift (R (u s))`, neither
+    of which is provided by the current snapshot.  This is the *honest*
+    irreducible content of `hF_joint_meas`.
+
+Below we prove a helper
+`intervalCoupledSource_lift_joint_measurable_of_components` which combines
+(1) and (2) into `hF_joint_meas` by pure algebraic measurability: the lifted
+coupled source decomposes pointwise into a measurable combination of
+`lift(u s) y` and `lift(chemDiv ...) y`, namely
+
+```
+lift(source p (u s)(R(u s))) y
+  = -p.χ₀ · lift(chemDiv p (u s)(R(u s))) y
+    + lift(u s) y · (p.a - p.b · (lift(u s) y) ^ p.α)
+```
+
+(the equality holds **everywhere** as a function of `y`, including outside
+`[0,1]` where both sides are `0` because the lift is zero-extended and
+`0^p.α = 0` for `p.α > 0`).
+
+The `_cleanest` variant then replaces `hF_joint_meas` with the two atomic
+hypotheses (1) and (2), so downstream consumers see two precisely-named
+pieces and can attack them independently — (1) reduces to continuity →
+measurability infrastructure, (2) remains the standing PDE gap. -/
+
+/-- **Pointwise lift identity for the coupled source.**  Holds everywhere on
+`ℝ` as a function of `y`: inside `[0,1]` both sides equal the value
+`−χ₀·chemDiv + logistic`; outside, both sides are zero (the LHS by the lift
+zero-extension; the RHS because `lift(u s) y = 0` and
+`0 · (a − b · 0^α) = 0`). -/
+lemma intervalCoupledSource_lift_pointwise_decomp
+    (p : CM2Params) (u v : intervalDomainPoint → ℝ) (y : ℝ) :
+    intervalDomainLift (intervalCoupledSource p u v) y =
+      -p.χ₀ * intervalDomainLift (intervalDomainChemotaxisDiv p u v) y +
+        intervalDomainLift u y *
+          (p.a - p.b * (intervalDomainLift u y) ^ p.α) := by
+  unfold intervalDomainLift
+  by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+  · simp [hy, intervalCoupledSource, intervalLogisticSource]
+  · -- Outside [0,1]: lift is 0 on every piece, RHS reduces to `0 · (...)`.
+    have hαpos : (0 : ℝ) < p.α := p.hα
+    have hα_ne : (0 : ℝ) ^ p.α = 0 := Real.zero_rpow hαpos.ne'
+    simp [hy, hα_ne]
+
+/-- **Algebraic combination step for `hF_joint_meas`.**
+
+Given the two atomic joint-measurability inputs:
+
+* `hU_joint : Measurable (Function.uncurry (fun s y => lift(u s) y))`,
+* `hChemDiv_joint : Measurable (Function.uncurry (fun s y =>
+      lift(chemDiv p (u s) (R (u s))) y))`,
+
+the lifted coupled source `(s,y) ↦ lift(intervalCoupledSource p (u s)
+(R (u s))) y` is jointly measurable.  The proof is the pointwise decomp
+identity `intervalCoupledSource_lift_pointwise_decomp` plus standard
+algebraic closure of `Measurable` (constants, sum, product, real `rpow`
+by a fixed exponent). -/
+theorem intervalCoupledSource_lift_joint_measurable_of_components
+    {p : CM2Params}
+    {R : (intervalDomainPoint → ℝ) → intervalDomainPoint → ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ}
+    (hU_joint :
+      Measurable
+        (Function.uncurry
+          (fun (s : ℝ) (y : ℝ) => intervalDomainLift (u s) y)))
+    (hChemDiv_joint :
+      Measurable
+        (Function.uncurry
+          (fun (s : ℝ) (y : ℝ) =>
+            intervalDomainLift
+              (intervalDomainChemotaxisDiv p (u s) (R (u s))) y))) :
+    Measurable
+      (Function.uncurry
+        (fun (s : ℝ) (y : ℝ) =>
+          intervalDomainLift (intervalCoupledSource p (u s) (R (u s))) y)) := by
+  -- Step 1.  Build the RHS of the pointwise decomposition as a `Measurable`
+  -- function of `z : ℝ × ℝ`.
+  set Glift : ℝ × ℝ → ℝ :=
+    fun z : ℝ × ℝ => intervalDomainLift (u z.1) z.2 with hGlift_def
+  set Hchem : ℝ × ℝ → ℝ :=
+    fun z : ℝ × ℝ =>
+      intervalDomainLift
+        (intervalDomainChemotaxisDiv p (u z.1) (R (u z.1))) z.2
+    with hHchem_def
+  have hGlift_meas : Measurable Glift := hU_joint
+  have hHchem_meas : Measurable Hchem := hChemDiv_joint
+  -- `(lift u s y)^p.α` is measurable: it factors as `Real.rpow (·) p.α ∘ Glift`,
+  -- and `Real.rpow` is continuous at every fixed exponent off the negative
+  -- branch — but for our purposes we only need that the composition is
+  -- measurable, which follows from `Glift_meas` plus the measurability of
+  -- `fun x : ℝ => x ^ p.α` (a `fun_prop` Mathlib fact for `Real.rpow`).
+  have h_rpow_meas : Measurable (fun x : ℝ => x ^ p.α) := by
+    fun_prop
+  have h_pow_meas : Measurable (fun z : ℝ × ℝ => (Glift z) ^ p.α) :=
+    h_rpow_meas.comp hGlift_meas
+  -- The bracket factor `(p.a - p.b * (Glift z)^p.α)`.
+  have h_bracket :
+      Measurable (fun z : ℝ × ℝ => p.a - p.b * (Glift z) ^ p.α) := by
+    have := (measurable_const (a := p.b)).mul h_pow_meas
+    exact (measurable_const (a := p.a)).sub this
+  -- The logistic summand `Glift z * (p.a - p.b * (Glift z) ^ p.α)`.
+  have h_log :
+      Measurable
+        (fun z : ℝ × ℝ => Glift z * (p.a - p.b * (Glift z) ^ p.α)) :=
+    hGlift_meas.mul h_bracket
+  -- The chemotaxis summand `-p.χ₀ * Hchem z`.
+  have h_chem :
+      Measurable (fun z : ℝ × ℝ => -p.χ₀ * Hchem z) :=
+    (measurable_const (a := -p.χ₀)).mul hHchem_meas
+  -- Sum of both summands.
+  have h_sum :
+      Measurable
+        (fun z : ℝ × ℝ =>
+          -p.χ₀ * Hchem z + Glift z * (p.a - p.b * (Glift z) ^ p.α)) :=
+    h_chem.add h_log
+  -- Step 2.  Identify the uncurried lifted source with `h_sum`'s function
+  -- pointwise.
+  have h_eq :
+      (Function.uncurry
+          (fun (s : ℝ) (y : ℝ) =>
+            intervalDomainLift (intervalCoupledSource p (u s) (R (u s))) y)) =
+        (fun z : ℝ × ℝ =>
+          -p.χ₀ * Hchem z + Glift z * (p.a - p.b * (Glift z) ^ p.α)) := by
+    funext z
+    -- Destruct `z` to apply the pointwise lemma.
+    obtain ⟨s, y⟩ := z
+    simpa [Function.uncurry, Glift, Hchem] using
+      intervalCoupledSource_lift_pointwise_decomp p (u s) (R (u s)) y
+  rw [h_eq]
+  exact h_sum
+
+/-- **Cleanest `hmap` for the C¹_x ball, Dirichlet initial-data variant.**
+
+Consolidated version of
+`intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleaner`,
+which replaces the monolithic `hF_joint_meas` hypothesis on the lifted
+coupled source with the two atomic joint-measurability hypotheses
+
+* `hU_joint_meas` — joint measurability of the lifted trajectory
+  `(s,y) ↦ lift(u s) y`,
+* `hChemDiv_joint_meas` — joint measurability of the lifted chemotaxis
+  divergence `(s,y) ↦ lift(chemDiv p (u s) (R (u s))) y`.
+
+The combination is discharged by
+`intervalCoupledSource_lift_joint_measurable_of_components`.
+
+Honest gap (unchanged from `_cleaner` in PDE content, but decomposed):
+* `hU_joint_meas` reduces (under conjunct (9) of
+  `intervalDomainClassicalRegularity`) to `ContinuousOn → Measurable`
+  bookkeeping plus the `Borel`/`OpensMeasurableSpace` infrastructure on
+  `ℝ²`; this is mechanical Lean work but not yet wired here.
+* `hChemDiv_joint_meas` is the irreducible PDE content: joint regularity
+  of `R (u s)` and `∂ₓ lift (R (u s))` in `(s,y)`, which the current
+  snapshot does not provide.
+
+The conclusion is the same `hmap` form as in
+`..._hmap_dirichlet_initial_cleaner`. -/
+theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleanest
+    {p : CM2Params}
+    {R : (intervalDomainPoint → ℝ) → intervalDomainPoint → ℝ}
+    {u₀ : intervalDomainPoint → ℝ}
+    {u₀_ext u₀'_ext : ℝ → ℝ}
+    {T M G_u G_u_init C_source H : ℝ}
+    (hT : 0 < T) (hH_nn : 0 ≤ H) (hC_nn : 0 ≤ C_source)
+    (hG_init_nn : 0 ≤ G_u_init)
+    (hM_eq : M = H + C_source * T)
+    (hG_u_eq : G_u = G_u_init +
+      ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+        (2 * Real.sqrt T) * C_source)
+    (hu₀_sup : ∀ y : intervalDomainPoint, |u₀ y| ≤ H)
+    (hext_eq : ∀ y ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift u₀ y = u₀_ext y)
+    (hu₀_ext_int : MeasureTheory.Integrable u₀_ext
+      (ShenWork.IntervalDomain.intervalMeasure 1))
+    (hu₀_ext_C1 : ∀ y ∈ Set.uIcc (0 : ℝ) 1,
+      HasDerivAt u₀_ext (u₀'_ext y) y)
+    (hu₀_ext'_int : IntervalIntegrable u₀'_ext MeasureTheory.volume 0 1)
+    (hu₀_ext_one : u₀_ext 1 = 0)
+    (hu₀_ext'_sup : ∀ y : ℝ, |u₀'_ext y| ≤ G_u_init)
+    (hSol : ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        IsPaper2ClassicalSolution intervalDomain p T
+          (fun τ : ℝ => fun y : intervalDomainPoint =>
+            intervalCoupledDuhamelOperator p R u₀ u τ y) v)
+    (hSource_sup_local :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IntervalDomainClassicalC1Snapshot p T M G_u u v →
+          ∀ s, 0 ≤ s → s ≤ T → ∀ y : ℝ,
+            |intervalDomainLift
+              (intervalCoupledSource p (u s) (R (u s))) y| ≤ C_source)
+    (hSource_sup_global :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IntervalDomainClassicalC1Snapshot p T M G_u u v →
+          ∀ s : ℝ, ∀ y : ℝ,
+            |intervalDomainLift
+              (intervalCoupledSource p (u s) (R (u s))) y| ≤ C_source)
+    (hint :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IntervalDomainClassicalC1Snapshot p T M G_u u v →
+          ∀ (t : ℝ) (x : intervalDomainPoint), 0 ≤ t → t ≤ T →
+            MeasureTheory.IntegrableOn
+              (fun s => intervalSemigroupOperator 1 (t - s)
+                (intervalDomainLift (intervalCoupledSource p (u s) (R (u s)))) x.1)
+              (Set.Icc 0 t) MeasureTheory.volume)
+    (hlift_int :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IntervalDomainClassicalC1Snapshot p T M G_u u v →
+          ∀ s, 0 ≤ s → s ≤ T →
+            MeasureTheory.Integrable
+              (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+              (ShenWork.IntervalDomain.intervalMeasure 1))
+    (hSource_int_global :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IntervalDomainClassicalC1Snapshot p T M G_u u v →
+          ∀ s : ℝ,
+            MeasureTheory.Integrable
+              (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+              (ShenWork.IntervalDomain.intervalMeasure 1))
+    (hU_joint_meas :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IntervalDomainClassicalC1Snapshot p T M G_u u v →
+          Measurable
+            (Function.uncurry
+              (fun (s : ℝ) (y : ℝ) => intervalDomainLift (u s) y)))
+    (hChemDiv_joint_meas :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IntervalDomainClassicalC1Snapshot p T M G_u u v →
+          Measurable
+            (Function.uncurry
+              (fun (s : ℝ) (y : ℝ) =>
+                intervalDomainLift
+                  (intervalDomainChemotaxisDiv p (u s) (R (u s))) y)))
+    (hGradEq :
+      ∀ u v : ℝ → intervalDomainPoint → ℝ,
+        IntervalDomainClassicalC1Snapshot p T M G_u u v →
+          ∀ (τ : ℝ) (x : ℝ), τ ∈ Set.Ioo (0 : ℝ) T → x ∈ Set.Icc (0 : ℝ) 1 →
+            deriv
+              (intervalDomainLift
+                (fun y : intervalDomainPoint =>
+                  intervalCoupledDuhamelOperator p R u₀ u τ y)) x =
+            deriv (fun z : ℝ =>
+              intervalSemigroupOperator 1 τ (intervalDomainLift u₀) z +
+              ∫ s in (0 : ℝ)..τ,
+                intervalSemigroupOperator 1 (τ - s)
+                  (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
+                  z) x) :
+    ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IntervalDomainClassicalC1Snapshot p T M G_u u v →
+        IntervalDomainClassicalC1Snapshot p T M G_u
+          (fun t : ℝ => fun x : intervalDomainPoint =>
+            intervalCoupledDuhamelOperator p R u₀ u t x) v := by
+  -- Build `hF_joint_meas` from the two atomic pieces via the algebraic
+  -- combination lemma, then forward to `_cleaner`.
+  refine intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleaner
+    (p := p) (R := R) (u₀ := u₀) (u₀_ext := u₀_ext) (u₀'_ext := u₀'_ext)
+    (T := T) (M := M) (G_u := G_u) (G_u_init := G_u_init)
+    (C_source := C_source) (H := H)
+    hT hH_nn hC_nn hG_init_nn hM_eq hG_u_eq hu₀_sup hext_eq
+    hu₀_ext_int hu₀_ext_C1 hu₀_ext'_int hu₀_ext_one hu₀_ext'_sup
+    hSol hSource_sup_local hSource_sup_global hint hlift_int
+    hSource_int_global ?_ hGradEq
+  -- Atomic combination: `hF_joint_meas` from `hU_joint_meas` and
+  -- `hChemDiv_joint_meas` at the current snapshot.
+  intro u v hsnap
+  exact intervalCoupledSource_lift_joint_measurable_of_components
+    (p := p) (R := R) (u := u)
+    (hU_joint_meas u v hsnap)
+    (hChemDiv_joint_meas u v hsnap)
+
 /-! ### Axiom audit for the new C¹_x snapshot declarations.
 Verified `#print axioms` on each of the following prints exactly
 `[propext, Classical.choice, Quot.sound]` (the Mathlib-standard set):
@@ -4701,6 +4990,9 @@ Verified `#print axioms` on each of the following prints exactly
   * `intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_clean`
   * `intervalCoupledDuhamel_grad_integral_hasDerivAt`
   * `intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleaner`
+  * `intervalCoupledSource_lift_pointwise_decomp`
+  * `intervalCoupledSource_lift_joint_measurable_of_components`
+  * `intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleanest`
 
 (verify on uisai1, build green.) -/
 
