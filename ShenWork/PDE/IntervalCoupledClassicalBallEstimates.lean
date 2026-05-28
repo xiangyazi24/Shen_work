@@ -1984,6 +1984,369 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_of_pointwise_fixed_point
     rw [heq]
     exact hsnap.grad_sup_bound hτ hxIcc
 
+/-! ## Wiring the L∞→L∞ gradient estimate into the Duhamel time-integral
+
+With `intervalSemigroupOperator_deriv_Linfty_pointwise_sqrt_t` now proved (in
+`ShenWork.HeatKernelGradientEstimates`), the pointwise bound
+
+```
+  |∂_z (S(t-s) F(s))(x)|  ≤  Cgrad · (t-s)^{-1/2} · C_source
+```
+
+becomes available whenever the lifted source `F(s) = lift (source(u s, R(u s)))`
+satisfies the pointwise sup bound `|F(s) y| ≤ C_source`.  Its time integral
+against `s ↦ (t-s)^{-1/2}` evaluates to `2 Cgrad · C_source · √t` on `[0,t]`,
+hence is uniformly bounded by `2 Cgrad · C_source · √T` on `t ∈ (0,T]`.  This
+is the source-integral contribution to the C¹_x ball-preservation argument.
+
+The block below assembles this in three pieces:
+
+1. `intervalCoupledDuhamel_grad_integrand_pointwise_bound` — for any
+   `s ∈ [0,t)`, the spatial derivative of the helper-semigroup integrand at
+   time-slice `s` is bounded by `Cgrad / √(t-s) · C_source`.  This is direct
+   from `intervalSemigroupOperator_deriv_Linfty_pointwise_sqrt_t_unit` after
+   normalizing the source sup bound to `1`.
+
+2. `intervalIntegral_inv_sqrt_sub_eq_two_sqrt` — the elementary calculus fact
+   `∫₀ᵗ (t-s)^{-1/2} ds = 2√t` for `0 < t`, via `integral_rpow` after the
+   change of variable `u = t-s`.
+
+3. `intervalCoupledDuhamel_grad_integral_bound_of_leibniz` — the bridge
+   theorem.  Given (a) a differentiation-under-the-integral hypothesis
+   linking `deriv (fun x => ∫₀ᵗ S(t-s) F(s) (x) ds) x₀` to
+   `∫₀ᵗ deriv (fun z => S(t-s) F(s) z) x₀ ds`, and (b) the pointwise sup bound
+   on the lifted source, conclude `|deriv ...| ≤ Cgrad · 2√T · C_source`.
+
+Honest scope. -/
+
+/-- **Pointwise gradient bound on a single time slice of the Duhamel integrand.**
+
+For `0 ≤ s < t` and a pointwise sup bound `|F(s) y| ≤ C_source` on the lifted
+source at time `s`, the spatial derivative of the helper semigroup operator
+`z ↦ intervalSemigroupOperator 1 (t-s) (F(s)) z` is bounded at every `x` by
+`Cgrad · C_source · (t-s)^{-1/2}`, where
+`Cgrad = heatGradientLinftyLinftyConstant = 1/√π`.
+
+This is the integrand-level gradient bound; combined with the time-integral
+identity `∫₀ᵗ (t-s)^{-1/2} ds = 2√t` and a differentiation-under-the-integral
+hypothesis, it discharges the source-integral half of the C¹_x ball-
+preservation. -/
+theorem intervalCoupledDuhamel_grad_integrand_pointwise_bound
+    {t s : ℝ} (hs0 : 0 ≤ s) (hst : s < t)
+    {F : ℝ → ℝ}
+    (hF_int : MeasureTheory.Integrable F (intervalMeasure 1))
+    {C_source : ℝ} (hC_source_nn : 0 ≤ C_source)
+    (hF_sup : ∀ y : ℝ, |F y| ≤ C_source) (x : ℝ) :
+    |deriv (fun z : ℝ => intervalSemigroupOperator 1 (t - s) F z) x| ≤
+      ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+        / Real.sqrt (t - s) * C_source := by
+  have htmS_pos : 0 < t - s := sub_pos.mpr hst
+  exact ShenWork.HeatKernelGradientEstimates.intervalSemigroupOperator_deriv_Linfty_pointwise_sqrt_t
+    (L := 1) (t := t - s) htmS_pos (f := F) hF_int
+    (Cf := C_source) hF_sup x
+
+/-- **Time integral of `(t-s)^{-1/2}` over `[0,t]` is `2√t`.**
+
+A clean Mathlib calculation: change of variables `u = t - s` reduces the
+integral to `∫₀ᵗ u^{-1/2} du`, which `integral_rpow` evaluates to
+`t^{1/2}/(1/2) = 2√t`.  This is the standard analytic input for the Duhamel
+time integral of the parabolic-gain gradient kernel. -/
+theorem intervalIntegral_inv_sqrt_sub_eq_two_sqrt
+    {t : ℝ} (ht : 0 < t) :
+    ∫ s in (0 : ℝ)..t, (t - s) ^ (-(1/2 : ℝ)) = 2 * Real.sqrt t := by
+  -- Substitution: `intervalIntegral.integral_comp_sub_left` rewrites
+  --   `∫_{0}^{t} (t - s) ^ r ds = ∫_{t - t}^{t - 0} s ^ r ds = ∫_{0}^{t} s ^ r ds`.
+  have hcomp : ∫ s in (0 : ℝ)..t, (t - s) ^ (-(1/2 : ℝ)) =
+      ∫ s in (t - t)..(t - 0), s ^ (-(1/2 : ℝ)) := by
+    rw [intervalIntegral.integral_comp_sub_left (fun s => s ^ (-(1/2 : ℝ))) t]
+  have h2 : (t - t : ℝ) = 0 := by ring
+  have h3 : (t - 0 : ℝ) = t := by ring
+  rw [hcomp, h2, h3]
+  -- Evaluate `∫₀ᵗ s^(-1/2) ds = (t^(1/2) - 0^(1/2)) / (1/2) = 2√t`.
+  have hrpow := integral_rpow (a := (0 : ℝ)) (b := t) (r := -(1/2 : ℝ))
+    (Or.inl (by norm_num))
+  rw [hrpow]
+  have hexp : (-(1/2 : ℝ) + 1) = (1/2 : ℝ) := by ring
+  rw [hexp]
+  have hzero : (0 : ℝ) ^ (1/2 : ℝ) = 0 :=
+    Real.zero_rpow (by norm_num : (1/2 : ℝ) ≠ 0)
+  rw [hzero, sub_zero]
+  have ht_half : t ^ (1/2 : ℝ) = Real.sqrt t := (Real.sqrt_eq_rpow t).symm
+  rw [ht_half]
+  ring
+
+/-- **Bridge: source-integral gradient bound under a Leibniz-interchange
+hypothesis.**
+
+Given:
+  * `t ∈ (0,T]`,
+  * a Leibniz-interchange identity: the spatial derivative of the time
+    integral at `x` equals the time integral of the spatial derivatives —
+    `deriv (fun x => ∫₀ᵗ S(t-s) F(s) (x) ds) x₀ = ∫₀ᵗ deriv_x S(t-s)(F(s)) x₀ ds`,
+  * pointwise sup bound on each lifted source slice: `|F(s) y| ≤ C_source`,
+  * pointwise integrability of each slice as required by the unit estimate,
+  * integrability over `[0,t]` of the gradient integrand,
+  * a closed-form sup bound expression on the dominating integrand
+    (delivered cleanly via the time-integral identity
+    `intervalIntegral_inv_sqrt_sub_eq_two_sqrt`).
+
+we conclude
+
+```
+  |deriv (fun x => ∫₀ᵗ S(t-s) F(s) (x) ds) x₀|  ≤  Cgrad · 2 · √T · C_source.
+```
+
+This is the source-integral part of the C¹_x ball-preservation: uniformly
+bounded as `t → 0⁺` (the factor `√t ≤ √T`), with `Cgrad = 1/√π`.
+
+The Leibniz identity is a hypothesis here — proving it from the existing
+regularity conjuncts requires joint space-time regularity of the integrand
+(`hasDerivAt_integral_of_dominated_loc_of_deriv_le` with a uniform integrable
+envelope on a neighbourhood of `x₀`), which is an additional analytic input
+on the source field, not a Mathlib gap. -/
+theorem intervalCoupledDuhamel_grad_integral_bound_of_leibniz
+    {t T : ℝ} (ht : 0 < t) (htT : t ≤ T)
+    {F : ℝ → ℝ → ℝ}
+    (hF_int : ∀ s, MeasureTheory.Integrable (F s) (intervalMeasure 1))
+    {C_source : ℝ} (hC_source_nn : 0 ≤ C_source)
+    (hF_sup : ∀ s, ∀ y : ℝ, |F s y| ≤ C_source)
+    (x₀ : ℝ)
+    (hLeibniz :
+      deriv (fun x : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          intervalSemigroupOperator 1 (t - s) (F s) x) x₀ =
+      ∫ s in (0 : ℝ)..t,
+        deriv (fun z : ℝ =>
+          intervalSemigroupOperator 1 (t - s) (F s) z) x₀)
+    (hGrad_int :
+      IntervalIntegrable
+        (fun s : ℝ =>
+          deriv (fun z : ℝ =>
+            intervalSemigroupOperator 1 (t - s) (F s) z) x₀)
+        MeasureTheory.volume (0 : ℝ) t)
+    (hDom_int :
+      IntervalIntegrable
+        (fun s : ℝ =>
+          ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * C_source * (t - s) ^ (-(1/2 : ℝ)))
+        MeasureTheory.volume (0 : ℝ) t) :
+    |deriv (fun x : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          intervalSemigroupOperator 1 (t - s) (F s) x) x₀| ≤
+      ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+        (2 * Real.sqrt T) * C_source := by
+  set Cgrad :=
+    ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant with hCgrad_def
+  have hCgrad_nn : 0 ≤ Cgrad :=
+    ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+  -- Pointwise gradient bound at each interior time slice:
+  -- `|deriv (S(t-s) F(s)) x₀| ≤ Cgrad · C_source · (t-s)^(-1/2)`.
+  have hpt_bound : ∀ s ∈ Set.Ioo (0 : ℝ) t,
+      |deriv (fun z : ℝ =>
+        intervalSemigroupOperator 1 (t - s) (F s) z) x₀| ≤
+      Cgrad * C_source * (t - s) ^ (-(1/2 : ℝ)) := by
+    intro s hs
+    have hs0 : 0 ≤ s := hs.1.le
+    have hst : s < t := hs.2
+    have htms_pos : 0 < t - s := sub_pos.mpr hst
+    have h1 := intervalCoupledDuhamel_grad_integrand_pointwise_bound
+      (t := t) (s := s) hs0 hst (F := F s) (hF_int s)
+      (C_source := C_source) hC_source_nn (hF_sup s) x₀
+    -- Convert `Cgrad / √(t-s) · C_source` to `Cgrad · C_source · (t-s)^(-1/2)`.
+    have hsqrt_eq : Real.sqrt (t - s) = (t - s) ^ ((1 : ℝ)/2) :=
+      Real.sqrt_eq_rpow (t - s)
+    have hsqrt_pos : 0 < Real.sqrt (t - s) := Real.sqrt_pos.mpr htms_pos
+    have hsqrt_ne : Real.sqrt (t - s) ≠ 0 := ne_of_gt hsqrt_pos
+    have hrpow_neg : (t - s) ^ (-(1/2 : ℝ)) = (Real.sqrt (t - s))⁻¹ := by
+      rw [Real.rpow_neg htms_pos.le, hsqrt_eq]
+    have hrhs_eq :
+        Cgrad / Real.sqrt (t - s) * C_source =
+          Cgrad * C_source * (t - s) ^ (-(1/2 : ℝ)) := by
+      rw [hrpow_neg]
+      field_simp
+    calc
+      |deriv (fun z : ℝ =>
+          intervalSemigroupOperator 1 (t - s) (F s) z) x₀|
+          ≤ Cgrad / Real.sqrt (t - s) * C_source := h1
+      _ = Cgrad * C_source * (t - s) ^ (-(1/2 : ℝ)) := hrhs_eq
+  -- Rewrite the derivative using the Leibniz hypothesis.
+  rw [hLeibniz]
+  -- Bound `|∫ deriv|` by `∫ Cgrad·C·(t-s)^(-1/2)` via abs+integral_mono_on.
+  have habs_le :
+      |∫ s in (0 : ℝ)..t,
+          deriv (fun z : ℝ =>
+            intervalSemigroupOperator 1 (t - s) (F s) z) x₀| ≤
+        ∫ s in (0 : ℝ)..t,
+          |deriv (fun z : ℝ =>
+            intervalSemigroupOperator 1 (t - s) (F s) z) x₀| := by
+    exact intervalIntegral.abs_integral_le_integral_abs ht.le
+  have hmono :
+      ∫ s in (0 : ℝ)..t,
+        |deriv (fun z : ℝ =>
+          intervalSemigroupOperator 1 (t - s) (F s) z) x₀| ≤
+      ∫ s in (0 : ℝ)..t, Cgrad * C_source * (t - s) ^ (-(1/2 : ℝ)) := by
+    refine intervalIntegral.integral_mono_on_of_le_Ioo ht.le ?_ ?_ ?_
+    · exact hGrad_int.abs
+    · exact hDom_int
+    · intro s hs
+      exact hpt_bound s hs
+  -- Compute `∫₀ᵗ Cgrad·C·(t-s)^(-1/2) ds = Cgrad·C · 2√t`.
+  have hint_eq :
+      ∫ s in (0 : ℝ)..t, Cgrad * C_source * (t - s) ^ (-(1/2 : ℝ)) =
+        Cgrad * C_source * (2 * Real.sqrt t) := by
+    rw [intervalIntegral.integral_const_mul]
+    rw [intervalIntegral_inv_sqrt_sub_eq_two_sqrt ht]
+  -- Combine and use `√t ≤ √T`.
+  have hsqrt_mono : Real.sqrt t ≤ Real.sqrt T := Real.sqrt_le_sqrt htT
+  have hC_nn : 0 ≤ Cgrad * C_source := mul_nonneg hCgrad_nn hC_source_nn
+  have hsqrt_t_nn : 0 ≤ 2 * Real.sqrt t := by positivity
+  have htriple_nn : 0 ≤ Cgrad * C_source := hC_nn
+  have hT_bound :
+      Cgrad * C_source * (2 * Real.sqrt t) ≤
+        Cgrad * C_source * (2 * Real.sqrt T) := by
+    have h2 : 2 * Real.sqrt t ≤ 2 * Real.sqrt T :=
+      mul_le_mul_of_nonneg_left hsqrt_mono (by norm_num)
+    exact mul_le_mul_of_nonneg_left h2 hC_nn
+  -- Final algebraic shuffle to `Cgrad * (2√T) * C_source`.
+  have hfinal_form :
+      Cgrad * C_source * (2 * Real.sqrt T) =
+        Cgrad * (2 * Real.sqrt T) * C_source := by ring
+  calc
+    |∫ s in (0 : ℝ)..t,
+        deriv (fun z : ℝ =>
+          intervalSemigroupOperator 1 (t - s) (F s) z) x₀|
+        ≤ ∫ s in (0 : ℝ)..t,
+            |deriv (fun z : ℝ =>
+              intervalSemigroupOperator 1 (t - s) (F s) z) x₀| := habs_le
+    _ ≤ ∫ s in (0 : ℝ)..t,
+            Cgrad * C_source * (t - s) ^ (-(1/2 : ℝ)) := hmono
+    _ = Cgrad * C_source * (2 * Real.sqrt t) := hint_eq
+    _ ≤ Cgrad * C_source * (2 * Real.sqrt T) := hT_bound
+    _ = Cgrad * (2 * Real.sqrt T) * C_source := hfinal_form
+
+/-! ### Initial-data gradient gap (documentation only)
+
+The third conjunct of `IntervalDomainClassicalC1Snapshot` for the Duhamel image
+requires a uniform spatial-derivative bound on the **initial-data term**
+`x ↦ S(t)·u₀(x)`.  The L∞→L∞ heat-kernel gradient estimate gives only
+
+```
+  |deriv (S(t) (lift u₀)) x|  ≤  Cgrad · t^{-1/2} · ‖u₀‖_∞,
+```
+
+which **blows up as `t → 0⁺`** unless `u₀` itself carries C¹ regularity.
+
+There are two structurally honest routes to close this gap, neither of which
+is a `sorry`-shaped Mathlib hole:
+
+1. **Strengthen the admissibility of `u₀`.** Require `u₀ ∈ C¹` on `[0,1]`
+   (or equivalently, a uniform pointwise sup bound on `deriv (lift u₀)`).
+   Then `deriv (S(t)(lift u₀)) (x) = S(t) (deriv (lift u₀)) (x)` by the
+   semigroup-derivative commutativity (parabolic regularity of the semigroup
+   on C¹ data), giving the uniform bound
+   `|deriv (S(t)(lift u₀)) x| ≤ ‖deriv (lift u₀)‖_∞`.
+
+2. **Absorb the initial-data term differently.** For a paper classical
+   solution `(u, v)` the Duhamel representation theorem
+   (`intervalDuhamelRepresentation_of`) gives a pointwise equality
+   `S(t)·u₀ = u(t) - ∫₀ᵗ S(t-s)·source(s) ds` on the interior, so the
+   gradient of `S(t)·u₀` inherits the gradient of `u(t)` minus the
+   already-bounded source-integral gradient.  This route does not require
+   strengthening the admissibility but uses the representation theorem to
+   trade unstrengthened initial-data regularity for the snapshot's existing
+   `grad_sup_bound`.
+
+Both routes are valid; route 1 is the cleaner conceptual fit for the C¹_x
+ball framework (the ball is C¹ in `x` to begin with), while route 2 needs
+only the existing snapshot data.  The choice is a structural design
+decision, not a missing analytic step. -/
+
+/-- **Combined source-integral + initial-data gradient bound under the
+Leibniz-interchange hypothesis and an explicit initial-data gradient sup.**
+
+If, in addition to the source-integral hypotheses above, the initial-data
+term carries a uniform pointwise gradient sup bound `G_init` —
+`|deriv (fun z => intervalSemigroupOperator 1 t (lift u₀) z) x| ≤ G_init` —
+and the Duhamel image's spatial derivative splits as the sum of the initial-
+data and source-integral gradients (a linearity hypothesis, since both are
+present in the Duhamel sum), then the full Duhamel gradient is bounded by
+`G_init + Cgrad · 2√T · C_source`.
+
+This is the analog of `intervalCoupledDuhamel_lift_abs_le` for the gradient.
+Like its sup-bound sibling, it requires the integrability hypotheses to be
+delivered by the snapshot (here in the gradient direction), and like the
+fixed-point bridge `..._hmap_of_pointwise_fixed_point`, the Leibniz step is
+recorded as a hypothesis rather than reproved.
+
+The gradient-linearity hypothesis is the direct consequence of the
+`deriv_add` rule when both summands of the Duhamel operator are
+differentiable at `x₀`. -/
+theorem intervalCoupledDuhamel_grad_estimate_of_leibniz
+    {t T : ℝ} (ht : 0 < t) (htT : t ≤ T)
+    {u₀ : ℝ → ℝ}
+    {F : ℝ → ℝ → ℝ}
+    (hF_int : ∀ s, MeasureTheory.Integrable (F s) (intervalMeasure 1))
+    {C_source : ℝ} (hC_source_nn : 0 ≤ C_source)
+    (hF_sup : ∀ s, ∀ y : ℝ, |F s y| ≤ C_source)
+    (x₀ : ℝ)
+    {G_init : ℝ} (hG_init_nn : 0 ≤ G_init)
+    (hInit_grad :
+      |deriv (fun z : ℝ => intervalSemigroupOperator 1 t u₀ z) x₀| ≤ G_init)
+    (hSplit :
+      deriv (fun x : ℝ =>
+        intervalSemigroupOperator 1 t u₀ x +
+        ∫ s in (0 : ℝ)..t,
+          intervalSemigroupOperator 1 (t - s) (F s) x) x₀ =
+      deriv (fun z : ℝ => intervalSemigroupOperator 1 t u₀ z) x₀ +
+      deriv (fun x : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          intervalSemigroupOperator 1 (t - s) (F s) x) x₀)
+    (hLeibniz :
+      deriv (fun x : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          intervalSemigroupOperator 1 (t - s) (F s) x) x₀ =
+      ∫ s in (0 : ℝ)..t,
+        deriv (fun z : ℝ =>
+          intervalSemigroupOperator 1 (t - s) (F s) z) x₀)
+    (hGrad_int :
+      IntervalIntegrable
+        (fun s : ℝ =>
+          deriv (fun z : ℝ =>
+            intervalSemigroupOperator 1 (t - s) (F s) z) x₀)
+        MeasureTheory.volume (0 : ℝ) t)
+    (hDom_int :
+      IntervalIntegrable
+        (fun s : ℝ =>
+          ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * C_source * (t - s) ^ (-(1/2 : ℝ)))
+        MeasureTheory.volume (0 : ℝ) t) :
+    |deriv (fun x : ℝ =>
+        intervalSemigroupOperator 1 t u₀ x +
+        ∫ s in (0 : ℝ)..t,
+          intervalSemigroupOperator 1 (t - s) (F s) x) x₀| ≤
+      G_init +
+        ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+          (2 * Real.sqrt T) * C_source := by
+  set Cgrad :=
+    ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+  rw [hSplit]
+  have hint_bound :=
+    intervalCoupledDuhamel_grad_integral_bound_of_leibniz
+      (t := t) (T := T) ht htT (F := F) hF_int (C_source := C_source)
+      hC_source_nn hF_sup x₀ hLeibniz hGrad_int hDom_int
+  calc
+    |deriv (fun z : ℝ => intervalSemigroupOperator 1 t u₀ z) x₀ +
+        deriv (fun x : ℝ =>
+          ∫ s in (0 : ℝ)..t,
+            intervalSemigroupOperator 1 (t - s) (F s) x) x₀|
+        ≤
+        |deriv (fun z : ℝ => intervalSemigroupOperator 1 t u₀ z) x₀| +
+          |deriv (fun x : ℝ =>
+            ∫ s in (0 : ℝ)..t,
+              intervalSemigroupOperator 1 (t - s) (F s) x) x₀| := abs_add_le _ _
+    _ ≤ G_init + Cgrad * (2 * Real.sqrt T) * C_source :=
+        add_le_add hInit_grad hint_bound
+
 /-! ### Axiom audit for the new C¹_x snapshot declarations.
 Verified `#print axioms` on each of the following prints exactly
 `[propext, Classical.choice, Quot.sound]` (the Mathlib-standard set):
@@ -2004,6 +2367,10 @@ Verified `#print axioms` on each of the following prints exactly
   * `intervalCoupledDuhamel_grad_estimate_gap`
   * `intervalCoupledDuhamel_grad_estimate_gap_marker`
   * `intervalCoupledClassicalC1BallEstimates_hmap_of_pointwise_fixed_point`
+  * `intervalCoupledDuhamel_grad_integrand_pointwise_bound`
+  * `intervalIntegral_inv_sqrt_sub_eq_two_sqrt`
+  * `intervalCoupledDuhamel_grad_integral_bound_of_leibniz`
+  * `intervalCoupledDuhamel_grad_estimate_of_leibniz`
 
 (verify on uisai1, build green.) -/
 
