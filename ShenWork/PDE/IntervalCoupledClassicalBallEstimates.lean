@@ -61,7 +61,9 @@ import ShenWork.PDE.IntervalDomainExistence
 import ShenWork.PDE.IntervalCoupledBallEstimates
 import ShenWork.PDE.IntervalResolverLaplacianBridge
 import ShenWork.PDE.IntervalNeumannEllipticResolverR
+import ShenWork.PDE.RegularityBootstrap
 import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
+import Mathlib.Analysis.Calculus.ParametricIntervalIntegral
 
 open ShenWork.Paper2 ShenWork.IntervalDomain ShenWork.PDE MeasureTheory
 open ShenWork.IntervalResolverLaplacianBridge
@@ -2223,6 +2225,256 @@ theorem intervalCoupledDuhamel_grad_integral_bound_of_leibniz
     _ = Cgrad * C_source * (2 * Real.sqrt t) := hint_eq
     _ ≤ Cgrad * C_source * (2 * Real.sqrt T) := hT_bound
     _ = Cgrad * (2 * Real.sqrt T) * C_source := hfinal_form
+
+/-! ### Discharge of the Leibniz interchange via dominated differentiation
+
+The bridge above (`intervalCoupledDuhamel_grad_integral_bound_of_leibniz`)
+takes the differentiation-under-the-integral identity `hLeibniz` as an
+opaque hypothesis.  Mathlib provides
+`intervalIntegral.hasDerivAt_integral_of_dominated_loc_of_deriv_le` for
+exactly this purpose: given per-slice differentiability of the integrand
+in the parameter `x`, joint measurability of the integrand and its
+parameter-derivative, and a uniform-in-`x` envelope on the
+parameter-derivative that is interval-integrable in `s`, the spatial
+derivative of the time integral equals the time integral of the spatial
+derivatives.
+
+For the Duhamel integrand `(s, x) ↦ intervalSemigroupOperator 1 (t-s) (F s) x`,
+the ingredients are:
+
+* Per-slice differentiability: free from
+  `intervalSemigroupOperator_hasDerivAt_deriv` (proved in
+  `ShenWork.RegularityBootstrap`), available for every `s < t`.
+* Uniform-in-`x` envelope on the parameter-derivative:
+  `intervalSemigroupOperator_deriv_Linfty_pointwise_sqrt_t` provides
+  `|deriv_z (S(t-s) F(s))(x)| ≤ Cgrad · C_source · (t-s)^(-1/2)`
+  with the bound independent of `x`; integrability on `[0,t]` is the
+  closed-form `2√t` of `intervalIntegral_inv_sqrt_sub_eq_two_sqrt`.
+* Measurability: routine joint-measurability content on the helper-kernel
+  integral.  This is named as a hypothesis pair (`hF_meas_s`, `hF'_meas_s`),
+  not a `sorry`; it is the standard analytic obligation any caller can
+  discharge from the source field's joint regularity.
+
+The Leibniz discharge below is the `_no_leibniz` upgrade of the bridge:
+it produces the Leibniz identity from these natural hypotheses, then chains
+into the existing source-integral gradient bound. -/
+
+/-- **Discharge of the Leibniz interchange for the Duhamel time integral.**
+
+Given the natural analytic inputs — per-slice spatial differentiability of
+the source integrand (free from `intervalSemigroupOperator_hasDerivAt_deriv`),
+measurability of the integrand and its `x`-derivative as functions of `s`,
+the uniform pointwise envelope from
+`intervalCoupledDuhamel_grad_integrand_pointwise_bound`, and the envelope's
+interval-integrability — Mathlib's
+`intervalIntegral.hasDerivAt_integral_of_dominated_loc_of_deriv_le` yields
+the differentiation-under-the-integral identity
+
+```
+deriv (fun x => ∫ s in (0:ℝ)..t, intervalSemigroupOperator 1 (t-s) (F s) x) x₀
+  = ∫ s in (0:ℝ)..t, deriv (fun z => intervalSemigroupOperator 1 (t-s) (F s) z) x₀.
+```
+
+This is the analytic content that the original `_of_leibniz` bridges
+recorded as a hypothesis; here it is proved from atomic ingredients. -/
+theorem intervalCoupledDuhamel_grad_leibniz
+    {t : ℝ} (ht : 0 < t)
+    {F : ℝ → ℝ → ℝ}
+    (hF_int : ∀ s, MeasureTheory.Integrable (F s) (intervalMeasure 1))
+    {C_source : ℝ} (hC_source_nn : 0 ≤ C_source)
+    (hF_sup : ∀ s, ∀ y : ℝ, |F s y| ≤ C_source)
+    (x₀ : ℝ)
+    (hF_meas :
+      ∀ x : ℝ,
+        MeasureTheory.AEStronglyMeasurable
+          (fun s : ℝ => intervalSemigroupOperator 1 (t - s) (F s) x)
+          (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)))
+    (hF'_meas :
+      MeasureTheory.AEStronglyMeasurable
+        (fun s : ℝ =>
+          deriv (fun z : ℝ =>
+            intervalSemigroupOperator 1 (t - s) (F s) z) x₀)
+        (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)))
+    (hDom_int :
+      IntervalIntegrable
+        (fun s : ℝ =>
+          ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * C_source * (t - s) ^ (-(1/2 : ℝ)))
+        MeasureTheory.volume (0 : ℝ) t) :
+    deriv (fun x : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          intervalSemigroupOperator 1 (t - s) (F s) x) x₀ =
+      ∫ s in (0 : ℝ)..t,
+        deriv (fun z : ℝ =>
+          intervalSemigroupOperator 1 (t - s) (F s) z) x₀ := by
+  set Cgrad :=
+    ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+    with hCgrad_def
+  -- Parametric integrand and its `x`-derivative, as functions of `(x, s)`.
+  set F_p : ℝ → ℝ → ℝ :=
+    fun x s => intervalSemigroupOperator 1 (t - s) (F s) x with hF_p_def
+  set F'_p : ℝ → ℝ → ℝ :=
+    fun x s => deriv (fun z : ℝ =>
+      intervalSemigroupOperator 1 (t - s) (F s) z) x with hF'_p_def
+  set bound : ℝ → ℝ :=
+    fun s => Cgrad * C_source * (t - s) ^ (-(1/2 : ℝ)) with hbound_def
+  -- `Ι 0 t = Ioc 0 t` for `0 < t`.
+  have huIoc_eq : Set.uIoc (0 : ℝ) t = Set.Ioc (0 : ℝ) t :=
+    Set.uIoc_of_le ht.le
+  -- The single point `{t}` has volume zero, so `s < t` holds a.e. on the
+  -- restriction to `Ι 0 t = Ioc 0 t`.  We use this to upgrade `s ≤ t` (from
+  -- membership in `Ioc 0 t`) to the strict `s < t` needed for `t - s > 0`.
+  have hae_ne_t : ∀ᵐ s ∂MeasureTheory.volume, s ≠ t := by
+    have heq : {s : ℝ | ¬ s ≠ t} = {t} := by
+      ext s; simp [eq_comm]
+    rw [MeasureTheory.ae_iff, heq]
+    exact Real.volume_singleton
+  -- Per-slice spatial differentiability of `x ↦ F_p x s` for `s ∈ Ι 0 t`.
+  have hDiff_pt : ∀ᵐ s ∂MeasureTheory.volume, s ∈ Set.uIoc (0 : ℝ) t →
+      ∀ x ∈ (Set.univ : Set ℝ),
+        HasDerivAt (fun x => F_p x s) (F'_p x s) x := by
+    filter_upwards [hae_ne_t] with s hsne hs x _
+    rw [huIoc_eq] at hs
+    have hst : s < t := lt_of_le_of_ne hs.2 hsne
+    have htms_pos : 0 < t - s := sub_pos.mpr hst
+    exact
+      ShenWork.RegularityBootstrap.intervalSemigroupOperator_hasDerivAt_deriv
+        (L := 1) (t := t - s) (x := x) htms_pos
+        (f := F s) (hF_int s)
+  -- Uniform-in-`x` pointwise envelope on the parameter-derivative on `Ι 0 t`.
+  have hBound_pt : ∀ᵐ s ∂MeasureTheory.volume, s ∈ Set.uIoc (0 : ℝ) t →
+      ∀ x ∈ (Set.univ : Set ℝ), ‖F'_p x s‖ ≤ bound s := by
+    filter_upwards [hae_ne_t] with s hsne hs x _
+    rw [huIoc_eq] at hs
+    have hs0 : 0 ≤ s := hs.1.le
+    have hst : s < t := lt_of_le_of_ne hs.2 hsne
+    have htms_pos : 0 < t - s := sub_pos.mpr hst
+    have h := intervalCoupledDuhamel_grad_integrand_pointwise_bound
+      (t := t) (s := s) hs0 hst (F := F s) (hF_int s)
+      (C_source := C_source) hC_source_nn (hF_sup s) x
+    have hsqrt_eq : Real.sqrt (t - s) = (t - s) ^ ((1 : ℝ)/2) :=
+      Real.sqrt_eq_rpow (t - s)
+    have hrpow_neg : (t - s) ^ (-(1/2 : ℝ)) = (Real.sqrt (t - s))⁻¹ := by
+      rw [Real.rpow_neg htms_pos.le, hsqrt_eq]
+    have hrhs_eq :
+        Cgrad / Real.sqrt (t - s) * C_source =
+          Cgrad * C_source * (t - s) ^ (-(1/2 : ℝ)) := by
+      rw [hrpow_neg]; field_simp
+    have h' :
+        |deriv (fun z : ℝ =>
+            intervalSemigroupOperator 1 (t - s) (F s) z) x| ≤
+          Cgrad * C_source * (t - s) ^ (-(1/2 : ℝ)) := by
+      calc
+        |deriv (fun z : ℝ =>
+            intervalSemigroupOperator 1 (t - s) (F s) z) x|
+            ≤ Cgrad / Real.sqrt (t - s) * C_source := h
+        _ = Cgrad * C_source * (t - s) ^ (-(1/2 : ℝ)) := hrhs_eq
+    simpa [F'_p, bound, Real.norm_eq_abs] using h'
+  -- `F_p x₀` is interval-integrable on `[0,t]` via `IntervalIntegrable.mono_fun'`
+  -- against the integrable constant `C_source` (volume is locally finite).
+  have hF_p_sup_ae :
+      (fun s => ‖F_p x₀ s‖) ≤ᵐ[MeasureTheory.volume.restrict (Set.uIoc 0 t)]
+        (fun _ => C_source) := by
+    refine (MeasureTheory.ae_restrict_iff' measurableSet_uIoc).mpr ?_
+    filter_upwards [hae_ne_t] with s hsne hs
+    rw [huIoc_eq] at hs
+    have hst : s < t := lt_of_le_of_ne hs.2 hsne
+    have htms_pos : 0 < t - s := sub_pos.mpr hst
+    have h := ShenWork.IntervalDomain.intervalSemigroupOperator_Linfty_bound
+      (L := 1) (t := t - s) htms_pos (M := C_source) hC_source_nn (hF_sup s) x₀
+    simpa [F_p, Real.norm_eq_abs] using h
+  have hconst_int : IntervalIntegrable (fun _ : ℝ => C_source)
+      MeasureTheory.volume (0 : ℝ) t :=
+    intervalIntegrable_const
+  have hF_p_int :
+      IntervalIntegrable (F_p x₀) MeasureTheory.volume (0 : ℝ) t :=
+    IntervalIntegrable.mono_fun' (f := F_p x₀) (g := fun _ => C_source)
+      hconst_int (hF_meas x₀) hF_p_sup_ae
+  -- Eventually-in-`x` measurability is supplied uniformly by `hF_meas`.
+  have hF_meas_evt :
+      ∀ᶠ x in 𝓝 x₀,
+        MeasureTheory.AEStronglyMeasurable (F_p x)
+          (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) :=
+    Filter.Eventually.of_forall (fun x => hF_meas x)
+  -- Invoke Mathlib's parametric Leibniz lemma with `s = univ` neighbourhood.
+  have hresult :=
+    intervalIntegral.hasDerivAt_integral_of_dominated_loc_of_deriv_le
+      (μ := MeasureTheory.volume) (a := (0 : ℝ)) (b := t)
+      (F := F_p) (F' := F'_p) (x₀ := x₀)
+      (s := (Set.univ : Set ℝ))
+      (bound := bound)
+      (hs := Filter.univ_mem)
+      (hF_meas := hF_meas_evt)
+      (hF_int := hF_p_int)
+      (hF'_meas := hF'_meas)
+      (h_bound := hBound_pt)
+      (bound_integrable := hDom_int)
+      (h_diff := hDiff_pt)
+  -- Read off the equality from `HasDerivAt`.
+  have hderiv := hresult.2
+  exact hderiv.deriv
+
+/-- **Source-integral gradient bound, Leibniz hypothesis discharged.**
+
+The `_no_leibniz` upgrade of `intervalCoupledDuhamel_grad_integral_bound_of_leibniz`:
+the `hLeibniz` differentiation-under-the-integral hypothesis is now produced
+internally via `intervalCoupledDuhamel_grad_leibniz`, taking only the
+natural analytic inputs — joint measurability of the integrand and its
+parameter-derivative as functions of `s`, plus the standard per-slice
+pointwise integrability of the source.
+
+The conclusion is identical to the `_of_leibniz` variant:
+
+```
+|deriv (fun x => ∫₀ᵗ S(t-s) F(s) (x) ds) x₀|  ≤  Cgrad · 2 · √T · C_source.
+```
+
+The remaining hypotheses (`hF_meas`, `hF'_meas`) are the routine measurability
+obligations any caller can deliver from the source field's joint regularity;
+they are not opaque differentiation-interchange identities. -/
+theorem intervalCoupledDuhamel_grad_integral_bound_no_leibniz
+    {t T : ℝ} (ht : 0 < t) (htT : t ≤ T)
+    {F : ℝ → ℝ → ℝ}
+    (hF_int : ∀ s, MeasureTheory.Integrable (F s) (intervalMeasure 1))
+    {C_source : ℝ} (hC_source_nn : 0 ≤ C_source)
+    (hF_sup : ∀ s, ∀ y : ℝ, |F s y| ≤ C_source)
+    (x₀ : ℝ)
+    (hF_meas :
+      ∀ x : ℝ,
+        MeasureTheory.AEStronglyMeasurable
+          (fun s : ℝ => intervalSemigroupOperator 1 (t - s) (F s) x)
+          (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)))
+    (hF'_meas :
+      MeasureTheory.AEStronglyMeasurable
+        (fun s : ℝ =>
+          deriv (fun z : ℝ =>
+            intervalSemigroupOperator 1 (t - s) (F s) z) x₀)
+        (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)))
+    (hGrad_int :
+      IntervalIntegrable
+        (fun s : ℝ =>
+          deriv (fun z : ℝ =>
+            intervalSemigroupOperator 1 (t - s) (F s) z) x₀)
+        MeasureTheory.volume (0 : ℝ) t)
+    (hDom_int :
+      IntervalIntegrable
+        (fun s : ℝ =>
+          ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * C_source * (t - s) ^ (-(1/2 : ℝ)))
+        MeasureTheory.volume (0 : ℝ) t) :
+    |deriv (fun x : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          intervalSemigroupOperator 1 (t - s) (F s) x) x₀| ≤
+      ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+        (2 * Real.sqrt T) * C_source := by
+  have hLeibniz :=
+    intervalCoupledDuhamel_grad_leibniz
+      (t := t) ht (F := F) hF_int (C_source := C_source) hC_source_nn
+      hF_sup x₀ hF_meas hF'_meas hDom_int
+  exact
+    intervalCoupledDuhamel_grad_integral_bound_of_leibniz
+      (t := t) (T := T) ht htT (F := F) hF_int (C_source := C_source)
+      hC_source_nn hF_sup x₀ hLeibniz hGrad_int hDom_int
 
 /-! ### Initial-data gradient gap (documentation only)
 
