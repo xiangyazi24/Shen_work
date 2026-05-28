@@ -2476,6 +2476,381 @@ theorem intervalCoupledDuhamel_grad_integral_bound_no_leibniz
       (t := t) (T := T) ht htT (F := F) hF_int (C_source := C_source)
       hC_source_nn hF_sup x₀ hLeibniz hGrad_int hDom_int
 
+/-! ### Joint-continuity discharge of the measurability hypotheses
+
+The two `AEStronglyMeasurable`-in-`s` hypotheses (`hF_meas`, `hF'_meas`) of
+`intervalCoupledDuhamel_grad_integral_bound_no_leibniz` are the routine
+joint-measurability content that comes for free from any **joint regularity**
+of the source field `F : ℝ → ℝ → ℝ`.  Below we discharge both from the
+single, precisely-named analytic input
+
+```
+hF_joint_meas : Measurable (Function.uncurry F)
+```
+
+— i.e. measurability of the source field viewed as a function of
+`(s, y) : ℝ × ℝ` — which is exactly what a paper classical-solution snapshot
+supplies (any jointly continuous `F` is jointly measurable).
+
+The reasoning is Fubini-Tonelli: the integrand
+`(s, y) ↦ K(1, t-s, x, y) · F s y` is jointly measurable in `(s, y)` (the
+helper kernel `K` is a Borel function of `(s, y)`, even with its singularity
+at `s = t`), and `intervalMeasure 1 = volume.restrict (Icc 0 1)` is
+`SFinite`, so the partial integral in `y` is `AEStronglyMeasurable` in `s`
+by `MeasureTheory.AEStronglyMeasurable.integral_prod_right'`.  The
+derivative case is handled by rewriting through `intervalSemigroupOperator_hasDerivAt`
+and applying the same Fubini argument to the kernel-derivative `K'`. -/
+
+/-- The normalized zeroth-reflection helper kernel `(s, y) ↦ K(L, t-s, x, y)`
+is jointly `Measurable` as a function of `(s, y) : ℝ × ℝ`. -/
+private lemma normalizedZerothReflectionKernel_s_dependent_measurable
+    (L t x : ℝ) :
+    Measurable
+      (fun z : ℝ × ℝ =>
+        ShenWork.IntervalDomain.normalizedZerothReflectionKernel L
+            (t - z.1) x z.2) := by
+  unfold ShenWork.IntervalDomain.normalizedZerothReflectionKernel
+    ShenWork.IntervalDomain.neumannHeatKernel_zerothReflection heatKernel
+  fun_prop
+
+/-- The derivative of the heat kernel `(s, y) ↦ deriv (fun w => heatKernel (t-s) (w - y)) z`
+is jointly `Measurable` as a function of `(s, y) : ℝ × ℝ`, for any fixed `z`. -/
+private lemma heatKernel_translated_deriv_s_dependent_measurable
+    (t z : ℝ) :
+    Measurable
+      (fun w : ℝ × ℝ =>
+        deriv (fun w' : ℝ => heatKernel (t - w.1) (w' - w.2)) z) := by
+  -- For `t - w.1 > 0`, the closed-form derivative is
+  --   `K'(t-s)(z, y) = -((z - y) / (2 * (t-s))) * heatKernel (t-s) (z - y)`.
+  -- For `t - w.1 ≤ 0`, `heatKernel (t-w.1) _ ≡ 0` (Lean's `Real.sqrt` returns 0
+  -- on nonpositive inputs, hence `1 / Real.sqrt 0 = 0`), so the inner function
+  -- is constantly zero and its derivative is 0.
+  -- Both cases agree with the piecewise closed-form
+  --   `if t - w.1 > 0 then -((z-y)/(2(t-s))) * heatKernel(t-s)(z-y) else 0`,
+  -- which `fun_prop` proves measurable.
+  set M : ℝ × ℝ → ℝ :=
+    fun w : ℝ × ℝ =>
+      -((z - w.2) / (2 * (t - w.1))) * heatKernel (t - w.1) (z - w.2)
+    with hM_def
+  have hM_meas : Measurable M := by
+    show Measurable
+      (fun w : ℝ × ℝ =>
+        -((z - w.2) / (2 * (t - w.1))) * heatKernel (t - w.1) (z - w.2))
+    unfold heatKernel
+    fun_prop
+  set f_pw : ℝ × ℝ → ℝ :=
+    fun w : ℝ × ℝ => if 0 < t - w.1 then M w else 0
+    with hf_pw_def
+  have hf_pw_meas : Measurable f_pw := by
+    show Measurable (fun w : ℝ × ℝ => if 0 < t - w.1 then M w else 0)
+    refine Measurable.ite ?_ hM_meas measurable_const
+    have h_open : IsOpen {w : ℝ × ℝ | 0 < t - w.1} := by
+      have hset_eq :
+          {w : ℝ × ℝ | 0 < t - w.1} = (fun w : ℝ × ℝ => t - w.1) ⁻¹' Set.Ioi 0 :=
+        rfl
+      rw [hset_eq]
+      exact (continuous_const.sub continuous_fst).isOpen_preimage _ isOpen_Ioi
+    exact h_open.measurableSet
+  -- Pointwise equality: `deriv (...) = f_pw`.
+  have h_eq :
+      ∀ w : ℝ × ℝ,
+        deriv (fun w' : ℝ => heatKernel (t - w.1) (w' - w.2)) z = f_pw w := by
+    intro w
+    by_cases hpos : 0 < t - w.1
+    · simp only [f_pw, hpos, if_true]
+      -- `deriv_heatKernel_translated_left` gives the full closed form directly.
+      have h := deriv_heatKernel_translated_left (t := t - w.1) hpos z w.2
+      simpa [M] using h
+    · simp only [f_pw, hpos, if_false]
+      -- `t - w.1 ≤ 0` so `Real.sqrt (4π(t-w.1)) = 0`, kernel is 0 everywhere.
+      have htle : t - w.1 ≤ 0 := not_lt.mp hpos
+      have h4π_nn : (0 : ℝ) ≤ 4 * Real.pi := by positivity
+      have hprod_nonpos : 4 * Real.pi * (t - w.1) ≤ 0 :=
+        mul_nonpos_of_nonneg_of_nonpos h4π_nn htle
+      have h_sqrt0 : Real.sqrt (4 * Real.pi * (t - w.1)) = 0 :=
+        Real.sqrt_eq_zero'.mpr hprod_nonpos
+      have hkernel_zero : ∀ w' : ℝ, heatKernel (t - w.1) (w' - w.2) = 0 := by
+        intro w'
+        unfold heatKernel
+        rw [h_sqrt0]
+        ring
+      have hconst :
+          (fun w' : ℝ => heatKernel (t - w.1) (w' - w.2)) =
+            (fun _ : ℝ => (0 : ℝ)) := by
+        funext w'
+        exact hkernel_zero w'
+      rw [hconst]
+      exact deriv_const z 0
+  -- `Measurable f → f = g pointwise → Measurable g` via congr from below.
+  have : Measurable
+      (fun w : ℝ × ℝ =>
+        deriv (fun w' : ℝ => heatKernel (t - w.1) (w' - w.2)) z) := by
+    have h_fn_eq : (fun w : ℝ × ℝ =>
+        deriv (fun w' : ℝ => heatKernel (t - w.1) (w' - w.2)) z) = f_pw := by
+      funext w
+      exact h_eq w
+    rw [h_fn_eq]
+    exact hf_pw_meas
+  exact this
+
+/-- **Lemma 1 (`hF_meas` discharge).** Given joint measurability of the source
+field `F` and per-slice integrability against the interval measure, the map
+`s ↦ intervalSemigroupOperator 1 (t-s) (F s) x` is `AEStronglyMeasurable` on
+`volume.restrict (Set.uIoc 0 t)` for any fixed `x : ℝ`. -/
+theorem intervalSemigroupOperator_s_dependent_aestronglyMeasurable_x
+    {t : ℝ} (ht : 0 < t) {F : ℝ → ℝ → ℝ}
+    (hF_joint_meas : Measurable (Function.uncurry F))
+    (x : ℝ) :
+    AEStronglyMeasurable
+      (fun s : ℝ => intervalSemigroupOperator 1 (t - s) (F s) x)
+      (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) := by
+  -- The integrand of `intervalSemigroupOperator` is `K(1, t-s, x, y) * F s y`,
+  -- which is jointly measurable.  Apply Fubini's
+  -- `AEStronglyMeasurable.integral_prod_right'`.
+  set J : ℝ × ℝ → ℝ :=
+    fun z : ℝ × ℝ =>
+      ShenWork.IntervalDomain.normalizedZerothReflectionKernel 1 (t - z.1) x z.2 *
+        F z.1 z.2 with hJ_def
+  -- Joint measurability of `J`.
+  have hK_meas := normalizedZerothReflectionKernel_s_dependent_measurable 1 t x
+  have hF_meas_pair : Measurable (fun z : ℝ × ℝ => F z.1 z.2) := by
+    have : (fun z : ℝ × ℝ => F z.1 z.2) = Function.uncurry F := rfl
+    rw [this]; exact hF_joint_meas
+  have hJ_meas : Measurable J := hK_meas.mul hF_meas_pair
+  -- AE-strongly measurable on the product measure.
+  have hJ_aestrong :
+      AEStronglyMeasurable J
+        (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t) |>.prod
+          (ShenWork.IntervalDomain.intervalMeasure 1)) :=
+    hJ_meas.aestronglyMeasurable
+  -- Apply Fubini: `s ↦ ∫ y, J(s, y) ∂(intervalMeasure 1)` is AE strongly measurable.
+  have hfubini :=
+    MeasureTheory.AEStronglyMeasurable.integral_prod_right'
+      (μ := MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t))
+      (ν := ShenWork.IntervalDomain.intervalMeasure 1)
+      (f := J) hJ_aestrong
+  -- Unfold `intervalSemigroupOperator` to match.
+  simpa [intervalSemigroupOperator, J] using hfubini
+
+/-- **Lemma 2 (`hF'_meas` discharge).** Given joint measurability of the source
+field `F` and per-slice integrability against the interval measure, the map
+`s ↦ deriv (fun z => intervalSemigroupOperator 1 (t-s) (F s) z) x₀` is
+`AEStronglyMeasurable` on `volume.restrict (Set.uIoc 0 t)`.
+
+The proof rewrites the parameter derivative through `intervalSemigroupOperator_hasDerivAt`
+into a sum of two explicit parametric integrals against the kernel-derivative
+`(s, y) ↦ deriv (fun w => heatKernel (t-s) (w - y)) z`, each jointly measurable
+in `(s, y)`. -/
+theorem intervalSemigroupOperator_s_dependent_deriv_aestronglyMeasurable_x₀
+    {t : ℝ} (ht : 0 < t) {F : ℝ → ℝ → ℝ}
+    (hF_joint_meas : Measurable (Function.uncurry F))
+    (hF_int : ∀ s, MeasureTheory.Integrable (F s) (intervalMeasure 1))
+    (x₀ : ℝ) :
+    AEStronglyMeasurable
+      (fun s : ℝ =>
+        deriv (fun z : ℝ =>
+          intervalSemigroupOperator 1 (t - s) (F s) z) x₀)
+      (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) := by
+  -- Define the closed-form parametric-integral surrogate `G(s)` that equals the
+  -- `deriv` a.e. on `uIoc 0 t` (specifically, on the full-measure subset
+  -- `s < t`).
+  set Kderiv : ℝ → ℝ → ℝ → ℝ :=
+    fun s y z =>
+      deriv (fun w : ℝ => heatKernel (t - s) (w - y)) z with hKderiv_def
+  -- Joint measurability of `(s, y) ↦ Kderiv s y z` for any `z`.
+  have hKderiv_meas : ∀ z : ℝ,
+      Measurable (fun w : ℝ × ℝ => Kderiv w.1 w.2 z) := by
+    intro z
+    exact heatKernel_translated_deriv_s_dependent_measurable t z
+  -- Joint integrand: `(s, y) ↦ Kderiv s y z * (indicator (intervalSet 1) (F s)) y`.
+  -- For the partial-integral form, we use the unrestricted full-line measure with the
+  -- indicator absorbed into `F`-piece via the intervalMeasure restriction.
+  -- Explicitly: `D(s, z) := deriv (fun w => heatSemigroup (t-s) (indicator (intervalSet 1) (F s)) w) z
+  --              = ∫ y, Kderiv s y z * F s y ∂(intervalMeasure 1)` (a.e.)
+  set D₁ : ℝ → ℝ :=
+    fun s : ℝ =>
+      ∫ y, Kderiv s y x₀ * F s y ∂(ShenWork.IntervalDomain.intervalMeasure 1)
+    with hD₁_def
+  set D₂ : ℝ → ℝ :=
+    fun s : ℝ =>
+      ∫ y, Kderiv s y (-x₀) * F s y ∂(ShenWork.IntervalDomain.intervalMeasure 1)
+    with hD₂_def
+  -- `D₁`, `D₂` are AEStronglyMeasurable on `volume.restrict (uIoc 0 t)` by Fubini.
+  have hF_meas_pair : Measurable (fun z : ℝ × ℝ => F z.1 z.2) := by
+    have : (fun z : ℝ × ℝ => F z.1 z.2) = Function.uncurry F := rfl
+    rw [this]; exact hF_joint_meas
+  have hD₁_aestrong : AEStronglyMeasurable D₁
+      (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) := by
+    have hint_meas : Measurable
+        (fun w : ℝ × ℝ => Kderiv w.1 w.2 x₀ * F w.1 w.2) :=
+      (hKderiv_meas x₀).mul hF_meas_pair
+    have :=
+      MeasureTheory.AEStronglyMeasurable.integral_prod_right'
+        (μ := MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t))
+        (ν := ShenWork.IntervalDomain.intervalMeasure 1)
+        (f := fun w : ℝ × ℝ => Kderiv w.1 w.2 x₀ * F w.1 w.2)
+        hint_meas.aestronglyMeasurable
+    exact this
+  have hD₂_aestrong : AEStronglyMeasurable D₂
+      (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) := by
+    have hint_meas : Measurable
+        (fun w : ℝ × ℝ => Kderiv w.1 w.2 (-x₀) * F w.1 w.2) :=
+      (hKderiv_meas (-x₀)).mul hF_meas_pair
+    have :=
+      MeasureTheory.AEStronglyMeasurable.integral_prod_right'
+        (μ := MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t))
+        (ν := ShenWork.IntervalDomain.intervalMeasure 1)
+        (f := fun w : ℝ × ℝ => Kderiv w.1 w.2 (-x₀) * F w.1 w.2)
+        hint_meas.aestronglyMeasurable
+    exact this
+  -- The combination `(1/2) * D₁ - (1/2) * D₂` is AEStronglyMeasurable.
+  have hG_aestrong : AEStronglyMeasurable
+      (fun s : ℝ => (1/2 : ℝ) * D₁ s - (1/2 : ℝ) * D₂ s)
+      (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) := by
+    exact (hD₁_aestrong.const_mul (1/2 : ℝ)).sub (hD₂_aestrong.const_mul (1/2 : ℝ))
+  -- Now show `deriv (...) x₀ = (1/2) * D₁ s - (1/2) * D₂ s` a.e. on `uIoc 0 t`.
+  refine hG_aestrong.congr ?_
+  -- The equality holds for all `s` with `t - s > 0`, i.e., `s < t`.
+  have huIoc_eq : Set.uIoc (0 : ℝ) t = Set.Ioc (0 : ℝ) t :=
+    Set.uIoc_of_le ht.le
+  have hae_lt_t : ∀ᵐ s ∂(MeasureTheory.volume.restrict (Set.uIoc 0 t)), s < t := by
+    refine (MeasureTheory.ae_restrict_iff' measurableSet_uIoc).mpr ?_
+    have hae_ne_t : ∀ᵐ s ∂MeasureTheory.volume, s ≠ t := by
+      have heq : {s : ℝ | ¬ s ≠ t} = {t} := by
+        ext s; simp [eq_comm]
+      rw [MeasureTheory.ae_iff, heq]
+      exact Real.volume_singleton
+    filter_upwards [hae_ne_t] with s hsne hs
+    rw [huIoc_eq] at hs
+    exact lt_of_le_of_ne hs.2 hsne
+  filter_upwards [hae_lt_t] with s hst
+  -- For such `s`, use `intervalSemigroupOperator_hasDerivAt` and `deriv_heatSemigroup`.
+  have htms_pos : 0 < t - s := sub_pos.mpr hst
+  -- Use the closed-form for the operator derivative.
+  have hOp_deriv :
+      deriv (fun z : ℝ => intervalSemigroupOperator 1 (t - s) (F s) z) x₀ =
+        (1 / 2 : ℝ) *
+            deriv
+              (fun z : ℝ =>
+                heatSemigroup (t - s)
+                  (Set.indicator (ShenWork.IntervalDomain.intervalSet 1) (F s)) z) x₀ -
+          (1 / 2 : ℝ) *
+            deriv
+              (fun z : ℝ =>
+                heatSemigroup (t - s)
+                  (Set.indicator (ShenWork.IntervalDomain.intervalSet 1) (F s)) z) (-x₀) :=
+    (ShenWork.RegularityBootstrap.intervalSemigroupOperator_hasDerivAt
+      (L := 1) (t := t - s) (x := x₀) htms_pos (f := F s) (hF_int s)).deriv
+  -- Express each `deriv (heatSemigroup ...) z` as a parametric integral against the
+  -- full-line measure, then convert to the interval measure.
+  set g_s : ℝ → ℝ :=
+    Set.indicator (ShenWork.IntervalDomain.intervalSet 1) (F s) with hg_s_def
+  have hg_s_int : MeasureTheory.Integrable g_s MeasureTheory.volume :=
+    ShenWork.HeatKernelGradientEstimates.interval_indicator_integrable_of_integrable
+      (L := 1) (f := F s) (hF_int s)
+  have hh1 :
+      deriv (fun z : ℝ => heatSemigroup (t - s) g_s z) x₀ =
+        ∫ y, deriv (fun w : ℝ => heatKernel (t - s) (w - y)) x₀ * g_s y :=
+    deriv_heatSemigroup htms_pos x₀ hg_s_int
+  have hh2 :
+      deriv (fun z : ℝ => heatSemigroup (t - s) g_s z) (-x₀) =
+        ∫ y, deriv (fun w : ℝ => heatKernel (t - s) (w - y)) (-x₀) * g_s y :=
+    deriv_heatSemigroup htms_pos (-x₀) hg_s_int
+  -- Convert each full-line integral to an intervalMeasure integral by absorbing
+  -- the indicator.  Lemma: `∫ y, k y * indicator(intervalSet 1) f y = ∫ y in intervalSet 1, k y * f y dy
+  -- = ∫ y, k y * f y ∂ intervalMeasure 1`.
+  have hconv :
+      ∀ k : ℝ → ℝ, ∫ y, k y * g_s y =
+        ∫ y, k y * F s y ∂(ShenWork.IntervalDomain.intervalMeasure 1) := by
+    intro k
+    show ∫ y, k y * Set.indicator (ShenWork.IntervalDomain.intervalSet 1) (F s) y =
+      ∫ y, k y * F s y ∂(ShenWork.IntervalDomain.intervalMeasure 1)
+    have hfun :
+        (fun y : ℝ => k y * Set.indicator (ShenWork.IntervalDomain.intervalSet 1) (F s) y) =
+          Set.indicator (ShenWork.IntervalDomain.intervalSet 1)
+            (fun y => k y * F s y) := by
+      funext y
+      by_cases hy : y ∈ ShenWork.IntervalDomain.intervalSet 1
+      · simp [Set.indicator_of_mem hy]
+      · simp [Set.indicator_of_notMem hy]
+    rw [hfun]
+    rw [MeasureTheory.integral_indicator
+      (show MeasurableSet (ShenWork.IntervalDomain.intervalSet 1) by
+        simp [ShenWork.IntervalDomain.intervalSet])]
+    rfl
+  have hh1' :
+      deriv (fun z : ℝ => heatSemigroup (t - s) g_s z) x₀ =
+        D₁ s := by
+    rw [hh1, hconv]
+  have hh2' :
+      deriv (fun z : ℝ => heatSemigroup (t - s) g_s z) (-x₀) =
+        D₂ s := by
+    rw [hh2, hconv]
+  -- Combine, matching `(1/2)*D₁ - (1/2)*D₂ = deriv (...)`.
+  rw [hOp_deriv, hh1', hh2']
+
+/-- **Source-integral gradient bound, internal measurability discharge.**
+
+The `_no_meas` upgrade of `intervalCoupledDuhamel_grad_integral_bound_no_leibniz`:
+both the `hF_meas` (per-`x`) and `hF'_meas` (at `x₀`) `AEStronglyMeasurable`
+hypotheses are now produced internally from the single, precisely-named
+analytic input `hF_joint_meas : Measurable (Function.uncurry F)` — the source
+field's joint measurability in `(s, y) : ℝ × ℝ`.
+
+Any paper classical-solution snapshot supplies `Continuous (Function.uncurry F)`,
+which in turn gives `Measurable (Function.uncurry F)` for free.
+
+The conclusion is identical to the `_no_leibniz` variant:
+
+```
+|deriv (fun x => ∫₀ᵗ S(t-s) F(s) (x) ds) x₀|  ≤  Cgrad · 2 · √T · C_source.
+```
+-/
+theorem intervalCoupledDuhamel_grad_integral_bound_no_meas
+    {t T : ℝ} (ht : 0 < t) (htT : t ≤ T)
+    {F : ℝ → ℝ → ℝ}
+    (hF_joint_meas : Measurable (Function.uncurry F))
+    (hF_int : ∀ s, MeasureTheory.Integrable (F s) (intervalMeasure 1))
+    {C_source : ℝ} (hC_source_nn : 0 ≤ C_source)
+    (hF_sup : ∀ s, ∀ y : ℝ, |F s y| ≤ C_source)
+    (x₀ : ℝ)
+    (hGrad_int :
+      IntervalIntegrable
+        (fun s : ℝ =>
+          deriv (fun z : ℝ =>
+            intervalSemigroupOperator 1 (t - s) (F s) z) x₀)
+        MeasureTheory.volume (0 : ℝ) t)
+    (hDom_int :
+      IntervalIntegrable
+        (fun s : ℝ =>
+          ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * C_source * (t - s) ^ (-(1/2 : ℝ)))
+        MeasureTheory.volume (0 : ℝ) t) :
+    |deriv (fun x : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          intervalSemigroupOperator 1 (t - s) (F s) x) x₀| ≤
+      ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+        (2 * Real.sqrt T) * C_source := by
+  -- Discharge both measurability hypotheses from the joint-measurability input.
+  have hF_meas : ∀ x : ℝ,
+      MeasureTheory.AEStronglyMeasurable
+        (fun s : ℝ => intervalSemigroupOperator 1 (t - s) (F s) x)
+        (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) := by
+    intro x
+    exact intervalSemigroupOperator_s_dependent_aestronglyMeasurable_x ht hF_joint_meas x
+  have hF'_meas :
+      MeasureTheory.AEStronglyMeasurable
+        (fun s : ℝ =>
+          deriv (fun z : ℝ =>
+            intervalSemigroupOperator 1 (t - s) (F s) z) x₀)
+        (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) :=
+    intervalSemigroupOperator_s_dependent_deriv_aestronglyMeasurable_x₀
+      ht hF_joint_meas hF_int x₀
+  exact
+    intervalCoupledDuhamel_grad_integral_bound_no_leibniz
+      (t := t) (T := T) ht htT (F := F) hF_int (C_source := C_source)
+      hC_source_nn hF_sup x₀ hF_meas hF'_meas hGrad_int hDom_int
+
 /-! ### Initial-data gradient gap (documentation only)
 
 The third conjunct of `IntervalDomainClassicalC1Snapshot` for the Duhamel image
