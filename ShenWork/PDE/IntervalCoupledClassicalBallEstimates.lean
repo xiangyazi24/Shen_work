@@ -2733,30 +2733,28 @@ field `F` and per-slice integrability against the interval measure, the map
 `volume.restrict (Set.uIoc 0 t)` for any fixed `x : ℝ`. -/
 theorem intervalSemigroupOperator_s_dependent_aestronglyMeasurable_x
     {t : ℝ} (ht : 0 < t) {F : ℝ → ℝ → ℝ}
-    (hF_joint_meas : Measurable (Function.uncurry F))
+    (hF_ae : AEStronglyMeasurable (Function.uncurry F)
+      ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)).prod
+        (ShenWork.IntervalDomain.intervalMeasure 1)))
     (x : ℝ) :
     AEStronglyMeasurable
       (fun s : ℝ => intervalSemigroupOperator 1 (t - s) (F s) x)
       (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) := by
   -- The integrand of `intervalSemigroupOperator` is `K(1, t-s, x, y) * F s y`,
-  -- which is jointly measurable.  Apply Fubini's
+  -- AE-strongly measurable on the product measure.  Apply Fubini's
   -- `AEStronglyMeasurable.integral_prod_right'`.
   set J : ℝ × ℝ → ℝ :=
     fun z : ℝ × ℝ =>
       ShenWork.IntervalDomain.normalizedZerothReflectionKernel 1 (t - z.1) x z.2 *
         F z.1 z.2 with hJ_def
-  -- Joint measurability of `J`.
+  -- Measurability of the kernel factor.
   have hK_meas := normalizedZerothReflectionKernel_s_dependent_measurable 1 t x
-  have hF_meas_pair : Measurable (fun z : ℝ × ℝ => F z.1 z.2) := by
-    have : (fun z : ℝ × ℝ => F z.1 z.2) = Function.uncurry F := rfl
-    rw [this]; exact hF_joint_meas
-  have hJ_meas : Measurable J := hK_meas.mul hF_meas_pair
-  -- AE-strongly measurable on the product measure.
+  -- AE-strongly measurable on the product measure (kernel measurable × `F` a.e.).
   have hJ_aestrong :
       AEStronglyMeasurable J
         (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t) |>.prod
           (ShenWork.IntervalDomain.intervalMeasure 1)) :=
-    hJ_meas.aestronglyMeasurable
+    hK_meas.aestronglyMeasurable.mul hF_ae
   -- Apply Fubini: `s ↦ ∫ y, J(s, y) ∂(intervalMeasure 1)` is AE strongly measurable.
   have hfubini :=
     MeasureTheory.AEStronglyMeasurable.integral_prod_right'
@@ -2777,7 +2775,9 @@ into a sum of two explicit parametric integrals against the kernel-derivative
 in `(s, y)`. -/
 theorem intervalSemigroupOperator_s_dependent_deriv_aestronglyMeasurable_x₀
     {t : ℝ} (ht : 0 < t) {F : ℝ → ℝ → ℝ}
-    (hF_joint_meas : Measurable (Function.uncurry F))
+    (hF_ae : AEStronglyMeasurable (Function.uncurry F)
+      ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)).prod
+        (ShenWork.IntervalDomain.intervalMeasure 1)))
     (hF_int : ∀ s, MeasureTheory.Integrable (F s) (intervalMeasure 1))
     (x₀ : ℝ) :
     AEStronglyMeasurable
@@ -2810,32 +2810,33 @@ theorem intervalSemigroupOperator_s_dependent_deriv_aestronglyMeasurable_x₀
       ∫ y, Kderiv s y (-x₀) * F s y ∂(ShenWork.IntervalDomain.intervalMeasure 1)
     with hD₂_def
   -- `D₁`, `D₂` are AEStronglyMeasurable on `volume.restrict (uIoc 0 t)` by Fubini.
-  have hF_meas_pair : Measurable (fun z : ℝ × ℝ => F z.1 z.2) := by
-    have : (fun z : ℝ × ℝ => F z.1 z.2) = Function.uncurry F := rfl
-    rw [this]; exact hF_joint_meas
   have hD₁_aestrong : AEStronglyMeasurable D₁
       (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) := by
-    have hint_meas : Measurable
-        (fun w : ℝ × ℝ => Kderiv w.1 w.2 x₀ * F w.1 w.2) :=
-      (hKderiv_meas x₀).mul hF_meas_pair
+    have hint_ae : AEStronglyMeasurable
+        (fun w : ℝ × ℝ => Kderiv w.1 w.2 x₀ * F w.1 w.2)
+        ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)).prod
+          (ShenWork.IntervalDomain.intervalMeasure 1)) :=
+      (hKderiv_meas x₀).aestronglyMeasurable.mul hF_ae
     have :=
       MeasureTheory.AEStronglyMeasurable.integral_prod_right'
         (μ := MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t))
         (ν := ShenWork.IntervalDomain.intervalMeasure 1)
         (f := fun w : ℝ × ℝ => Kderiv w.1 w.2 x₀ * F w.1 w.2)
-        hint_meas.aestronglyMeasurable
+        hint_ae
     exact this
   have hD₂_aestrong : AEStronglyMeasurable D₂
       (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) := by
-    have hint_meas : Measurable
-        (fun w : ℝ × ℝ => Kderiv w.1 w.2 (-x₀) * F w.1 w.2) :=
-      (hKderiv_meas (-x₀)).mul hF_meas_pair
+    have hint_ae : AEStronglyMeasurable
+        (fun w : ℝ × ℝ => Kderiv w.1 w.2 (-x₀) * F w.1 w.2)
+        ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)).prod
+          (ShenWork.IntervalDomain.intervalMeasure 1)) :=
+      (hKderiv_meas (-x₀)).aestronglyMeasurable.mul hF_ae
     have :=
       MeasureTheory.AEStronglyMeasurable.integral_prod_right'
         (μ := MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t))
         (ν := ShenWork.IntervalDomain.intervalMeasure 1)
         (f := fun w : ℝ × ℝ => Kderiv w.1 w.2 (-x₀) * F w.1 w.2)
-        hint_meas.aestronglyMeasurable
+        hint_ae
     exact this
   -- The combination `(1/2) * D₁ - (1/2) * D₂` is AEStronglyMeasurable.
   have hG_aestrong : AEStronglyMeasurable
@@ -2985,7 +2986,9 @@ This discharges the `hGrad_int` hypothesis of
 theorem intervalCoupledDuhamel_grad_integrand_intervalIntegrable
     {t : ℝ} (ht : 0 < t)
     {F : ℝ → ℝ → ℝ}
-    (hF_joint_meas : Measurable (Function.uncurry F))
+    (hF_ae : AEStronglyMeasurable (Function.uncurry F)
+      ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)).prod
+        (ShenWork.IntervalDomain.intervalMeasure 1)))
     (hF_int : ∀ s, MeasureTheory.Integrable (F s) (intervalMeasure 1))
     {C_source : ℝ} (hC_source_nn : 0 ≤ C_source)
     (hF_sup : ∀ s, ∀ y : ℝ, |F s y| ≤ C_source)
@@ -3008,7 +3011,7 @@ theorem intervalCoupledDuhamel_grad_integrand_intervalIntegrable
             intervalSemigroupOperator 1 (t - s) (F s) z) x₀)
         (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) :=
     intervalSemigroupOperator_s_dependent_deriv_aestronglyMeasurable_x₀
-      ht hF_joint_meas hF_int x₀
+      ht hF_ae hF_int x₀
   -- Envelope `s ↦ Cgrad · C_source · (t - s)^{-1/2}` is IntervalIntegrable.
   have henv :
       IntervalIntegrable
@@ -3084,7 +3087,9 @@ The conclusion is identical to the `_no_leibniz` variant:
 theorem intervalCoupledDuhamel_grad_integral_bound_no_meas
     {t T : ℝ} (ht : 0 < t) (htT : t ≤ T)
     {F : ℝ → ℝ → ℝ}
-    (hF_joint_meas : Measurable (Function.uncurry F))
+    (hF_ae : AEStronglyMeasurable (Function.uncurry F)
+      ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)).prod
+        (ShenWork.IntervalDomain.intervalMeasure 1)))
     (hF_int : ∀ s, MeasureTheory.Integrable (F s) (intervalMeasure 1))
     {C_source : ℝ} (hC_source_nn : 0 ≤ C_source)
     (hF_sup : ∀ s, ∀ y : ℝ, |F s y| ≤ C_source)
@@ -3112,7 +3117,7 @@ theorem intervalCoupledDuhamel_grad_integral_bound_no_meas
         (fun s : ℝ => intervalSemigroupOperator 1 (t - s) (F s) x)
         (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) := by
     intro x
-    exact intervalSemigroupOperator_s_dependent_aestronglyMeasurable_x ht hF_joint_meas x
+    exact intervalSemigroupOperator_s_dependent_aestronglyMeasurable_x ht hF_ae x
   have hF'_meas :
       MeasureTheory.AEStronglyMeasurable
         (fun s : ℝ =>
@@ -3120,7 +3125,7 @@ theorem intervalCoupledDuhamel_grad_integral_bound_no_meas
             intervalSemigroupOperator 1 (t - s) (F s) z) x₀)
         (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) :=
     intervalSemigroupOperator_s_dependent_deriv_aestronglyMeasurable_x₀
-      ht hF_joint_meas hF_int x₀
+      ht hF_ae hF_int x₀
   exact
     intervalCoupledDuhamel_grad_integral_bound_no_leibniz
       (t := t) (T := T) ht htT (F := F) hF_int (C_source := C_source)
@@ -3158,7 +3163,9 @@ The conclusion is identical to the `_no_meas` variant:
 theorem intervalCoupledDuhamel_grad_integral_bound_no_int
     {t T : ℝ} (ht : 0 < t) (htT : t ≤ T)
     {F : ℝ → ℝ → ℝ}
-    (hF_joint_meas : Measurable (Function.uncurry F))
+    (hF_ae : AEStronglyMeasurable (Function.uncurry F)
+      ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)).prod
+        (ShenWork.IntervalDomain.intervalMeasure 1)))
     (hF_int : ∀ s, MeasureTheory.Integrable (F s) (intervalMeasure 1))
     {C_source : ℝ} (hC_source_nn : 0 ≤ C_source)
     (hF_sup : ∀ s, ∀ y : ℝ, |F s y| ≤ C_source)
@@ -3184,10 +3191,10 @@ theorem intervalCoupledDuhamel_grad_integral_bound_no_int
             intervalSemigroupOperator 1 (t - s) (F s) z) x₀)
         MeasureTheory.volume (0 : ℝ) t :=
     intervalCoupledDuhamel_grad_integrand_intervalIntegrable
-      ht hF_joint_meas hF_int hC_source_nn hF_sup x₀
+      ht hF_ae hF_int hC_source_nn hF_sup x₀
   exact
     intervalCoupledDuhamel_grad_integral_bound_no_meas
-      (t := t) (T := T) ht htT (F := F) hF_joint_meas hF_int
+      (t := t) (T := T) ht htT (F := F) hF_ae hF_int
       (C_source := C_source) hC_source_nn hF_sup x₀ hGrad_int hDom_int
 
 /-! ### Initial-data gradient gap (documentation only)
@@ -4217,14 +4224,17 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_clean
             MeasureTheory.Integrable
               (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
               (ShenWork.IntervalDomain.intervalMeasure 1))
-    (hF_joint_meas :
+    (hF_ae :
       ∀ u v : ℝ → intervalDomainPoint → ℝ,
         IntervalDomainClassicalC1Snapshot p T M G_u u v →
-          Measurable
-            (Function.uncurry
-              (fun (s : ℝ) (y : ℝ) =>
-                intervalDomainLift
-                  (intervalCoupledSource p (u s) (R (u s))) y)))
+          ∀ τ : ℝ, τ ∈ Set.Ioo (0 : ℝ) T →
+            AEStronglyMeasurable
+              (Function.uncurry
+                (fun (s : ℝ) (y : ℝ) =>
+                  intervalDomainLift
+                    (intervalCoupledSource p (u s) (R (u s))) y))
+              ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) τ)).prod
+                (ShenWork.IntervalDomain.intervalMeasure 1)))
     (hGradEq :
       ∀ u v : ℝ → intervalDomainPoint → ℝ,
         IntervalDomainClassicalC1Snapshot p T M G_u u v →
@@ -4300,7 +4310,7 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_clean
           MeasureTheory.volume (0 : ℝ) τ := by
     intro τ x hτ _hx
     exact intervalCoupledDuhamel_grad_integrand_intervalIntegrable
-      hτ.1 (hF_joint_meas u v hsnap)
+      hτ.1 (hF_ae u v hsnap τ hτ)
       (fun s => hSource_int_global u v hsnap s)
       hC_nn (fun s y => hSource_sup_global u v hsnap s y) x
   have hLeibniz_local :
@@ -4323,7 +4333,9 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_clean
       fun s => hSource_int_global u v hsnap s
     have hF_sup : ∀ s, ∀ y : ℝ, |F s y| ≤ C_source :=
       fun s y => hSource_sup_global u v hsnap s y
-    have hF_joint : Measurable (Function.uncurry F) := hF_joint_meas u v hsnap
+    have hF_aeτ : AEStronglyMeasurable (Function.uncurry F)
+        ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) τ)).prod
+          (ShenWork.IntervalDomain.intervalMeasure 1)) := hF_ae u v hsnap τ hτ
     -- AE-strong-measurability of `s ↦ S(t-s)(F s) x` on `Ι 0 τ` (for the
     -- `hF_meas` slot of `intervalCoupledDuhamel_grad_leibniz`).
     have hF_meas_pt :
@@ -4333,7 +4345,7 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_clean
             (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) τ)) := by
       intro x'
       exact intervalSemigroupOperator_s_dependent_aestronglyMeasurable_x
-        hτ.1 hF_joint x'
+        hτ.1 hF_aeτ x'
     -- AE-strong-measurability of the derivative in `s` at `x`.
     have hF'_meas :
         MeasureTheory.AEStronglyMeasurable
@@ -4342,7 +4354,7 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_clean
               intervalSemigroupOperator 1 (τ - s) (F s) z) x)
           (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) τ)) :=
       intervalSemigroupOperator_s_dependent_deriv_aestronglyMeasurable_x₀
-        hτ.1 hF_joint hF_int x
+        hτ.1 hF_aeτ hF_int x
     exact intervalCoupledDuhamel_grad_leibniz
       (t := τ) hτ.1 (F := F) hF_int (C_source := C_source) hC_nn hF_sup x
       hF_meas_pt hF'_meas (hDom_int_local τ hτ)
@@ -4566,14 +4578,17 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleaner
             MeasureTheory.Integrable
               (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
               (ShenWork.IntervalDomain.intervalMeasure 1))
-    (hF_joint_meas :
+    (hF_ae :
       ∀ u v : ℝ → intervalDomainPoint → ℝ,
         IntervalDomainClassicalC1Snapshot p T M G_u u v →
-          Measurable
-            (Function.uncurry
-              (fun (s : ℝ) (y : ℝ) =>
-                intervalDomainLift
-                  (intervalCoupledSource p (u s) (R (u s))) y)))
+          ∀ τ : ℝ, τ ∈ Set.Ioo (0 : ℝ) T →
+            AEStronglyMeasurable
+              (Function.uncurry
+                (fun (s : ℝ) (y : ℝ) =>
+                  intervalDomainLift
+                    (intervalCoupledSource p (u s) (R (u s))) y))
+              ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) τ)).prod
+                (ShenWork.IntervalDomain.intervalMeasure 1)))
     (hGradEq :
       ∀ u v : ℝ → intervalDomainPoint → ℝ,
         IntervalDomainClassicalC1Snapshot p T M G_u u v →
@@ -4601,7 +4616,7 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleaner
     hT hH_nn hC_nn hG_init_nn hM_eq hG_u_eq hu₀_sup hext_eq
     hu₀_ext_int hu₀_ext_C1 hu₀_ext'_int hu₀_ext_one hu₀_ext'_sup
     hSol hSource_sup_local hSource_sup_global hint hlift_int
-    hSource_int_global hF_joint_meas hGradEq ?_
+    hSource_int_global hF_ae hGradEq ?_
   -- `hSplit`: pure `deriv_add` at the point `x` from `DifferentiableAt` of
   -- both summands.
   intro u v hsnap τ x hτ _hxIcc
@@ -4623,7 +4638,9 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleaner
     fun s => hSource_int_global u v hsnap s
   have hF_sup_local : ∀ s, ∀ y : ℝ, |F s y| ≤ C_source :=
     fun s y => hSource_sup_global u v hsnap s y
-  have hF_joint : Measurable (Function.uncurry F) := hF_joint_meas u v hsnap
+  have hF_aeτ : AEStronglyMeasurable (Function.uncurry F)
+      ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) τ)).prod
+        (ShenWork.IntervalDomain.intervalMeasure 1)) := hF_ae u v hsnap τ hτ
   have hF_meas_pt :
       ∀ x' : ℝ,
         MeasureTheory.AEStronglyMeasurable
@@ -4631,7 +4648,7 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleaner
           (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) τ)) := by
     intro x'
     exact intervalSemigroupOperator_s_dependent_aestronglyMeasurable_x
-      hτ.1 hF_joint x'
+      hτ.1 hF_aeτ x'
   have hF'_meas :
       MeasureTheory.AEStronglyMeasurable
         (fun s : ℝ =>
@@ -4639,7 +4656,7 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleaner
             intervalSemigroupOperator 1 (τ - s) (F s) z) x)
         (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) τ)) :=
     intervalSemigroupOperator_s_dependent_deriv_aestronglyMeasurable_x₀
-      hτ.1 hF_joint hF_int_local x
+      hτ.1 hF_aeτ hF_int_local x
   have hDom_int_local :
       IntervalIntegrable
         (fun s : ℝ =>
@@ -5252,7 +5269,7 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleanest
   -- `hU_joint_meas` (discharged via
   -- `intervalDomainLift_u_joint_measurable_of_snapshot_and_extension`)
   -- and the remaining deeper atomic hypothesis `hChemDiv_joint_meas`.
-  intro u v hsnap
+  intro u v hsnap τ _hτ
   have hU_joint_meas :
       Measurable
         (Function.uncurry
@@ -5260,10 +5277,10 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_cleanest
     intervalDomainLift_u_joint_measurable_of_snapshot_and_extension
       (p := p) (T := T) (M := M) (G_u := G_u) (u := u) (v := v) hsnap
       (hU_zero_outside_horizon u v hsnap)
-  exact intervalCoupledSource_lift_joint_measurable_of_components
+  exact (intervalCoupledSource_lift_joint_measurable_of_components
     (p := p) (R := R) (u := u)
     hU_joint_meas
-    (hChemDiv_joint_meas u v hsnap)
+    (hChemDiv_joint_meas u v hsnap)).aestronglyMeasurable
 
 /-! ### Axiom audit for the new C¹_x snapshot declarations.
 Verified `#print axioms` on each of the following prints exactly
