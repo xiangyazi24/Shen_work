@@ -54,23 +54,23 @@ The half-open cells `Ioc (2k) (2k+2)`, `k ∈ ℤ`, partition `ℝ` — they cov
 and are pairwise disjoint.  This is the index family for the tiling
 `∫_ℝ G = ∑ₖ ∫_{cell k} G`. -/
 
-/-- The period-`2` half-open cells cover `ℝ`. -/
-theorem iUnion_Ioc_two_mul_eq_univ :
-    ⋃ k : ℤ, Set.Ioc ((2 : ℝ) * (k : ℝ)) ((2 : ℝ) * (k : ℝ) + 2) = Set.univ := by
+/-- The period-`2` half-open cells with offset `a` cover `ℝ`. -/
+theorem iUnion_Ioc_offset_eq_univ (a : ℝ) :
+    ⋃ k : ℤ, Set.Ioc (a + 2 * (k : ℝ)) (a + 2 * (k : ℝ) + 2) = Set.univ := by
   apply Set.eq_univ_of_forall
   intro w
   rw [Set.mem_iUnion]
-  refine ⟨⌈w / 2⌉ - 1, ?_⟩
-  have h1 : (⌈w / 2⌉ : ℝ) < w / 2 + 1 := Int.ceil_lt_add_one (w / 2)
-  have h2 : (w / 2 : ℝ) ≤ (⌈w / 2⌉ : ℝ) := Int.le_ceil (w / 2)
+  refine ⟨⌈(w - a) / 2⌉ - 1, ?_⟩
+  have h1 : (⌈(w - a) / 2⌉ : ℝ) < (w - a) / 2 + 1 := Int.ceil_lt_add_one ((w - a) / 2)
+  have h2 : ((w - a) / 2 : ℝ) ≤ (⌈(w - a) / 2⌉ : ℝ) := Int.le_ceil ((w - a) / 2)
   rw [Set.mem_Ioc]
   push_cast
   constructor <;> linarith
 
-/-- The period-`2` half-open cells are pairwise disjoint. -/
-theorem pairwise_disjoint_Ioc_two_mul :
+/-- The period-`2` half-open cells with offset `a` are pairwise disjoint. -/
+theorem pairwise_disjoint_Ioc_offset (a : ℝ) :
     Pairwise (Function.onFun Disjoint
-      (fun k : ℤ => Set.Ioc ((2 : ℝ) * (k : ℝ)) ((2 : ℝ) * (k : ℝ) + 2))) := by
+      (fun k : ℤ => Set.Ioc (a + 2 * (k : ℝ)) (a + 2 * (k : ℝ) + 2))) := by
   intro i j hij
   simp only [Function.onFun, Set.disjoint_left, Set.mem_Ioc]
   rintro w ⟨hwi_lo, hwi_hi⟩ ⟨hwj_lo, hwj_hi⟩
@@ -80,19 +80,20 @@ theorem pairwise_disjoint_Ioc_two_mul :
   · have hle : (j : ℝ) + 1 ≤ (i : ℝ) := by exact_mod_cast Int.add_one_le_iff.mpr h
     linarith
 
-/-- **Step 3: tiling integral split.**  For an integrable `G : ℝ → ℝ`, the
-full-line integral is the sum of the integrals over the period-`2` cells. -/
-theorem integral_eq_tsum_integral_Ioc_two_mul
+/-- **Step 3: tiling integral split (arbitrary offset).**  For an integrable
+`G : ℝ → ℝ`, the full-line integral is the sum of the integrals over the
+period-`2` cells with any offset `a`. -/
+theorem integral_eq_tsum_integral_Ioc_offset (a : ℝ)
     {G : ℝ → ℝ} (hG : MeasureTheory.Integrable G) :
     ∫ w : ℝ, G w
-      = ∑' k : ℤ, ∫ w in Set.Ioc ((2 : ℝ) * (k : ℝ)) ((2 : ℝ) * (k : ℝ) + 2), G w := by
+      = ∑' k : ℤ, ∫ w in Set.Ioc (a + 2 * (k : ℝ)) (a + 2 * (k : ℝ) + 2), G w := by
   have hmeas : ∀ k : ℤ,
-      MeasurableSet (Set.Ioc ((2 : ℝ) * (k : ℝ)) ((2 : ℝ) * (k : ℝ) + 2)) :=
+      MeasurableSet (Set.Ioc (a + 2 * (k : ℝ)) (a + 2 * (k : ℝ) + 2)) :=
     fun _ => measurableSet_Ioc
   have hint_univ : MeasureTheory.IntegrableOn G
-      (⋃ k : ℤ, Set.Ioc ((2 : ℝ) * (k : ℝ)) ((2 : ℝ) * (k : ℝ) + 2)) := by
-    rw [iUnion_Ioc_two_mul_eq_univ]; exact hG.integrableOn
-  rw [← MeasureTheory.setIntegral_univ, ← iUnion_Ioc_two_mul_eq_univ]
-  exact MeasureTheory.integral_iUnion hmeas pairwise_disjoint_Ioc_two_mul hint_univ
+      (⋃ k : ℤ, Set.Ioc (a + 2 * (k : ℝ)) (a + 2 * (k : ℝ) + 2)) := by
+    rw [iUnion_Ioc_offset_eq_univ]; exact hG.integrableOn
+  rw [← MeasureTheory.setIntegral_univ, ← iUnion_Ioc_offset_eq_univ a]
+  exact MeasureTheory.integral_iUnion hmeas (pairwise_disjoint_Ioc_offset a) hint_univ
 
 end ShenWork
