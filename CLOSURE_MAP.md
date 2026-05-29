@@ -52,9 +52,24 @@ independently-verified steps, all `#print axioms` = core three):
     period-`2` half-open cells `Ioc(2k)(2k+2)` partition `ℝ`.
   * Step 3 `integral_eq_tsum_integral_Ioc_two_mul` — `∫_ℝ G = ∑ₖ ∫_{cell} G`
     for integrable `G` (the tiling integral split, via `integral_iUnion`).
-  REMAINING: Step 4 — move `deriv` inside the kernel's lattice `tsum`, the
-  per-cell change of variables `∫_{cell} = ∫₀¹ (·±y+2k)`, assembly to
-  `∫₀¹ |∂ₓ K_full(t,x,·)| ≤ ∫_ℝ |heat'|`, and the final L∞→L∞ bound.
+  * Step 3' `iUnion_Ioc_offset_eq_univ` / `pairwise_disjoint_Ioc_offset` /
+    `integral_eq_tsum_integral_Ioc_offset` — Steps 2-3 generalized to arbitrary
+    offset `a` (the kernel cells are centered at `x+2k`, offset `a = x−1`).
+  * Step 4 `cell_integral_eq` — per-cell change of variables: reflected image
+    `∫₀¹ g(x−y+2k)` (`integral_comp_sub_left`) + direct image `∫₀¹ g(x+y+2k)`
+    (`integral_comp_add_left`) `= ∫_{Ioc(x+2k−1)(x+2k+1)} g` (adjacent merge).
+  * Step 5 `tsum_cell_integral_eq_integral` — **kernel-shaped tiling**:
+    `∑ₖ [∫₀¹ g(x−y+2k) + ∫₀¹ g(x+y+2k)] = ∫_ℝ g` for any integrable `g`.
+    Applied with `g = |heat'(t,·)|` (integrable) + Step 1 this gives
+    `∑ₖ [∫₀¹|heat'(x−y+2k)| + ∫₀¹|heat'(x+y+2k)|] = (1/√π) t^(−1/2)`.
+
+  REMAINING: Step 6 — the move-`deriv`-inside-the-lattice-`tsum`
+  (`∂ₓ K_full(t,x,y) = ∑ₖ (heat'(x−y+2k)+heat'(x+y+2k))`, via `hasDerivAt_tsum`
+  + a UNIFORM Gaussian-gradient lattice summability bound) and the triangle/
+  Tonelli step `∫₀¹|∑ₖ ·| dy ≤ ∑ₖ ∫₀¹|·| dy`, then assemble with Steps 1+5 for
+  `|deriv (S_full t f) x| ≤ ‖f‖∞ · (1/√π) t^(−1/2)`.  Step 6 is the genuinely
+  hard analytic core (needs the uniform Gaussian-gradient lattice summability
+  infrastructure — the gradient analogue of `LatticeGaussianSummable`).
 
 NET: hGradEq is closed on the full kernel (ROUND-16); the full operator's
 Duhamel-ball wiring is gated by this gradient estimate (the tiling theorem) and,
