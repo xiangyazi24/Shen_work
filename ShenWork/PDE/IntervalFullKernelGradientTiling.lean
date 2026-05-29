@@ -80,4 +80,19 @@ theorem pairwise_disjoint_Ioc_two_mul :
   · have hle : (j : ℝ) + 1 ≤ (i : ℝ) := by exact_mod_cast Int.add_one_le_iff.mpr h
     linarith
 
+/-- **Step 3: tiling integral split.**  For an integrable `G : ℝ → ℝ`, the
+full-line integral is the sum of the integrals over the period-`2` cells. -/
+theorem integral_eq_tsum_integral_Ioc_two_mul
+    {G : ℝ → ℝ} (hG : MeasureTheory.Integrable G) :
+    ∫ w : ℝ, G w
+      = ∑' k : ℤ, ∫ w in Set.Ioc ((2 : ℝ) * (k : ℝ)) ((2 : ℝ) * (k : ℝ) + 2), G w := by
+  have hmeas : ∀ k : ℤ,
+      MeasurableSet (Set.Ioc ((2 : ℝ) * (k : ℝ)) ((2 : ℝ) * (k : ℝ) + 2)) :=
+    fun _ => measurableSet_Ioc
+  have hint_univ : MeasureTheory.IntegrableOn G
+      (⋃ k : ℤ, Set.Ioc ((2 : ℝ) * (k : ℝ)) ((2 : ℝ) * (k : ℝ) + 2)) := by
+    rw [iUnion_Ioc_two_mul_eq_univ]; exact hG.integrableOn
+  rw [← MeasureTheory.setIntegral_univ, ← iUnion_Ioc_two_mul_eq_univ]
+  exact MeasureTheory.integral_iUnion hmeas pairwise_disjoint_Ioc_two_mul hint_univ
+
 end ShenWork
