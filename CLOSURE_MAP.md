@@ -1,5 +1,54 @@
 # ShenWork Closure Map — precise remaining frontier (2026-05-26)
 
+## ROUND-17 — full-kernel gradient L∞→L∞ estimate: diagnosis (2026-05-29)
+
+Attacked the full-kernel gradient `L∞→L∞` estimate (the prerequisite for wiring
+the full operator into the `_clean` chain).  Determination after mapping the
+infrastructure and ruling out shortcuts — **this is a genuine multi-day
+real-space theorem, no shortcut exists**:
+
+WHAT IS NEEDED: `|deriv (intervalFullSemigroupOperator t f) x| ≤ C · t^(−1/2) · ‖f‖∞`
+with the `t^(−1/2)` power (so the Duhamel envelope `∫₀ᵗ |∂ₓ S(t−s)F| ds` is
+finite — `∫ (t−s)^(−1/2) ds = 2√t` converges; `∫ 1/(t−s) ds` DIVERGES).
+
+SHORTCUTS RULED OUT (with reasons):
+* **Spectral form is INSUFFICIENT.** Via the cosine identity the gradient is
+  `∑ₙ exp(−t(nπ)²)·(−nπ sin(nπx))·aₙ`; each spatial derivative pulls a factor
+  `nπ`, and `∑ₙ n e^(−tn²) ~ 1/t`, so the spectral sup bound is `C/t·‖f‖∞`
+  (the proved `unitIntervalCosineHeatGradientValue_L2_Linfty_smoothing` is
+  `Const/t`).  `1/(t−s)` is NON-integrable at `s=t` → useless for the envelope.
+* **C²-compactness is INSUFFICIENT.** `intervalFullSemigroupOperator t f` is `C²`
+  on `[0,1]` (`..._contDiff_two_unconditional`) so its derivative is bounded on
+  the compact, but the bound is not uniform in `t` (blows up as `t→0⁺`) — again
+  not the integrable `t^(−1/2)`.
+
+THE ONLY ROUTE (real-space method-of-images tiling):
+  `|deriv (S_full t f) x| ≤ ‖f‖∞ · ∫₀¹ |∂ₓ K_full(t,x,y)| dy`, and
+  `∫₀¹ |∂ₓ K_full| dy = ∫₀¹ |∑ₖ (heat'(x−y+2k)+heat'(x+y+2k))| dy
+     ≤ ∑ₖ ∫₀¹ (|heat'(x−y+2k)|+|heat'(x+y+2k)|) dy = ∫_ℝ |heat'(t,·)| = (1/√π)t^(−1/2)`,
+  the last step being the TILING: the images `{x−y+2k}∪{x+y+2k}` (y∈[0,1], k∈ℤ)
+  partition ℝ into unit cells.
+
+FOUNDATIONAL PIECES IN PLACE:
+* `heatKernel_deriv_abs_integral : ∫ |∂ₓ heat(t,·)| = 2/√(4πt) = (1/√π)t^(−1/2)`
+  (HeatSemigroup.lean) — the L¹ gradient norm constant.
+* `intervalSemigroupOperator_deriv_Linfty_pointwise_sqrt_t` — the zeroth-reflection
+  analogue (`(1/√π)t^(−1/2)‖f‖∞`), the template.
+* `tsum_int_eq_zero_add_two_mul_tsum_pnat` (IntervalFullKernelInterchange.lean) —
+  the even-fold of the ℤ-lattice, reusable.
+
+GENUINE REMAINING WORK (multi-step, best tackled with fresh context):
+  (i) move `deriv` inside the lattice `tsum` (`hasDerivAt_tsum` + uniform
+      Gaussian-gradient summability); (ii) the tiling identity
+      `∑ₖ ∫₀¹ φ(·±y+2k) dy = ∫_ℝ φ` (via `integral_iUnion` over the cell
+      partition + change of variables); (iii) assemble with the heat L¹ norm.
+
+NET: hGradEq is closed on the full kernel (ROUND-16); the full operator's
+Duhamel-ball wiring is gated by this gradient estimate (the tiling theorem) and,
+independently, by `hSol`'s interior Schauder `C²` content.
+
+---
+
 ## ROUND-16 — Resolution (b): hGradEq is TRUE on the full Neumann kernel (2026-05-29, build 8352 axiom-clean)
 
 Executed ROUND-15 resolution (b): rebuilt the gradient bridge on the full
