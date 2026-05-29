@@ -332,4 +332,142 @@ theorem intervalDomainChemDiv_v_lift_aestronglyMeasurable
     exact hnull
   exact (hGchem_meas.aestronglyMeasurable).congr heq.symm
 
+/-- **Reusable interior-slab a.e. upgrade.**  Two fields that agree on the
+interior slab `Ioo 0 T ×ˢ Ioo 0 1` are a.e. equal for the Fubini product
+measure (the time endpoint `{T}` and spatial endpoints `{0,1}` are null when
+`0 < t ≤ T`), so a.e.-strong measurability transfers. -/
+theorem aestronglyMeasurable_of_eqOn_interiorSlab
+    {T t : ℝ} (ht : 0 < t) (htT : t ≤ T) {F G : ℝ × ℝ → ℝ}
+    (hG : AEStronglyMeasurable G
+      ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)).prod (intervalMeasure 1)))
+    (hagree : ∀ q ∈ Set.Ioo (0 : ℝ) T ×ˢ Set.Ioo (0 : ℝ) 1, F q = G q) :
+    AEStronglyMeasurable F
+      ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)).prod (intervalMeasure 1)) := by
+  classical
+  set μ := (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)).prod
+    (intervalMeasure 1) with hμ_def
+  have hnull : μ (Set.Ioo (0 : ℝ) T ×ˢ Set.Ioo (0 : ℝ) 1)ᶜ = 0 := by
+    have hsub :
+        (Set.Ioo (0 : ℝ) T ×ˢ Set.Ioo (0 : ℝ) 1)ᶜ ⊆
+          ((Set.Ioo (0 : ℝ) T)ᶜ ×ˢ (Set.univ : Set ℝ)) ∪
+            ((Set.univ : Set ℝ) ×ˢ (Set.Ioo (0 : ℝ) 1)ᶜ) := by
+      rintro ⟨a, b⟩ hq
+      simp only [Set.mem_prod, not_and_or, Set.mem_compl_iff] at hq
+      rcases hq with ha | hb
+      · exact Or.inl (Set.mk_mem_prod ha (Set.mem_univ _))
+      · exact Or.inr (Set.mk_mem_prod (Set.mem_univ _) hb)
+    refine measure_mono_null hsub ?_
+    have hT_null :
+        (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)) (Set.Ioo (0 : ℝ) T)ᶜ = 0 := by
+      rw [MeasureTheory.Measure.restrict_apply measurableSet_Ioo.compl]
+      refine measure_mono_null ?_ (measure_singleton T)
+      rintro x ⟨hx_notIoo, hx_uIoc⟩
+      rw [Set.uIoc_of_le ht.le] at hx_uIoc
+      have hx_pos : 0 < x := hx_uIoc.1
+      have hx_le : x ≤ t := hx_uIoc.2
+      simp only [Set.mem_compl_iff, Set.mem_Ioo, not_and, not_lt] at hx_notIoo
+      have hxT : T ≤ x := hx_notIoo hx_pos
+      have : x = T := le_antisymm (le_trans hx_le htT) hxT
+      simp [this]
+    have hX_null :
+        (intervalMeasure 1) (Set.Ioo (0 : ℝ) 1)ᶜ = 0 := by
+      unfold intervalMeasure intervalSet
+      rw [MeasureTheory.Measure.restrict_apply measurableSet_Ioo.compl]
+      refine measure_mono_null ?_
+        (Set.Finite.measure_zero ((Set.finite_singleton (1 : ℝ)).insert 0) _)
+      rintro x ⟨hx_notIoo, hx_Icc⟩
+      simp only [Set.mem_compl_iff, Set.mem_Ioo, not_and, not_lt] at hx_notIoo
+      simp only [Set.mem_Icc] at hx_Icc
+      simp only [Set.mem_insert_iff, Set.mem_singleton_iff]
+      rcases eq_or_lt_of_le hx_Icc.1 with h0 | h0
+      · exact Or.inl h0.symm
+      · exact Or.inr (le_antisymm hx_Icc.2 (hx_notIoo h0))
+    refine le_antisymm ?_ (zero_le _)
+    calc
+      μ (((Set.Ioo (0 : ℝ) T)ᶜ ×ˢ (Set.univ : Set ℝ)) ∪
+            ((Set.univ : Set ℝ) ×ˢ (Set.Ioo (0 : ℝ) 1)ᶜ))
+          ≤ μ ((Set.Ioo (0 : ℝ) T)ᶜ ×ˢ (Set.univ : Set ℝ)) +
+              μ ((Set.univ : Set ℝ) ×ˢ (Set.Ioo (0 : ℝ) 1)ᶜ) :=
+            measure_union_le _ _
+      _ = 0 := by
+            rw [hμ_def, MeasureTheory.Measure.prod_prod,
+              MeasureTheory.Measure.prod_prod, hT_null, hX_null]
+            simp
+  have heq : F =ᵐ[μ] G := by
+    rw [Filter.eventuallyEq_iff_exists_mem]
+    refine ⟨Set.Ioo (0 : ℝ) T ×ˢ Set.Ioo (0 : ℝ) 1, ?_, hagree⟩
+    rw [MeasureTheory.mem_ae_iff]
+    exact hnull
+  exact hG.congr heq.symm
+
+/-- **The chemotaxis divergence built from the elliptic Neumann resolver equals
+the one built from the solution's chemical, at interior points.**  Uses the
+unconditional pointwise identity `intervalNeumannResolverR p (u τ) ≡ lift (v τ)`
+on `(0,1)`: the lifts agree on the open interior, hence so do their spatial
+derivatives, the fluxes, and finally the flux derivatives. -/
+theorem solution_chemDiv_resolver_eq_v_interior
+    {p : CM2Params} {T : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T)
+    {y : intervalDomainPoint} (hy_int : y.1 ∈ Set.Ioo (0 : ℝ) 1) :
+    intervalDomainChemotaxisDiv p (u τ) (intervalNeumannResolverR p (u τ)) y =
+      intervalDomainChemotaxisDiv p (u τ) (v τ) y := by
+  classical
+  -- Lifts agree on `(0,1)`.
+  have hlift_eq : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      intervalDomainLift (intervalNeumannResolverR p (u τ)) x = intervalDomainLift (v τ) x := by
+    intro x hx
+    unfold intervalDomainLift
+    rw [dif_pos (Set.Ioo_subset_Icc_self hx)]
+    exact solution_v_eq_resolver_pointwise_unconditional hsol hτ hx
+  -- Spatial derivatives agree on `(0,1)` (equal functions on an open nbhd).
+  have hderiv_eq : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      deriv (intervalDomainLift (intervalNeumannResolverR p (u τ))) x
+        = deriv (intervalDomainLift (v τ)) x := by
+    intro x hx
+    exact Filter.EventuallyEq.deriv_eq
+      (Filter.eventuallyEq_of_mem (IsOpen.mem_nhds isOpen_Ioo hx) hlift_eq)
+  -- Fluxes agree on a neighborhood of `y.1`.
+  have hflux_eq :
+      (fun z : ℝ =>
+        intervalDomainLift (u τ) z
+          * deriv (intervalDomainLift (intervalNeumannResolverR p (u τ))) z
+          / (1 + intervalDomainLift (intervalNeumannResolverR p (u τ)) z) ^ p.β)
+        =ᶠ[𝓝 y.1]
+      (fun z : ℝ =>
+        intervalDomainLift (u τ) z * deriv (intervalDomainLift (v τ)) z
+          / (1 + intervalDomainLift (v τ) z) ^ p.β) := by
+    refine Filter.eventuallyEq_of_mem (IsOpen.mem_nhds isOpen_Ioo hy_int) ?_
+    intro x hx
+    dsimp only
+    rw [hlift_eq x hx, hderiv_eq x hx]
+  -- The chemotaxis divergence is the flux derivative; conclude.
+  unfold intervalDomainChemotaxisDiv
+  exact hflux_eq.deriv_eq
+
+/-- **A.e.-strong measurability of the lifted chemotaxis-divergence field built
+from the elliptic Neumann resolver** (the paper-2 canonical `R`), for a
+classical solution.  Reduces to the solution-`v` version
+(`intervalDomainChemDiv_v_lift_aestronglyMeasurable`) via the interior identity
+`solution_chemDiv_resolver_eq_v_interior` and the interior-slab a.e. upgrade. -/
+theorem intervalDomainChemDiv_resolver_lift_aestronglyMeasurable
+    {p : CM2Params} {T : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ T) :
+    AEStronglyMeasurable
+      (Function.uncurry
+        (fun (s : ℝ) (y : ℝ) =>
+          intervalDomainLift
+            (intervalDomainChemotaxisDiv p (u s) (intervalNeumannResolverR p (u s))) y))
+      ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)).prod
+        (intervalMeasure 1)) := by
+  refine aestronglyMeasurable_of_eqOn_interiorSlab ht htT
+    (intervalDomainChemDiv_v_lift_aestronglyMeasurable hsol ht htT) ?_
+  rintro ⟨s, ycoord⟩ ⟨hs, hyc⟩
+  have hy_Icc : ycoord ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hyc
+  simp only [Function.uncurry]
+  unfold intervalDomainLift
+  rw [dif_pos hy_Icc, dif_pos hy_Icc]
+  exact solution_chemDiv_resolver_eq_v_interior hsol hs (y := ⟨ycoord, hy_Icc⟩) hyc
+
 end ShenWork
