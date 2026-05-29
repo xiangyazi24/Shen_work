@@ -88,3 +88,4 @@ import ShenWork.PDE.IntervalFullSemigroupNeumann
 import ShenWork.PDE.IntervalCoupledClassicalBallEstimates
 import ShenWork.PDE.IntervalChemDivAEMeasurable
 import ShenWork.PDE.IntervalFullKernelDuhamelGradEq
+import ShenWork.PDE.IntervalFullKernelGradientTiling
