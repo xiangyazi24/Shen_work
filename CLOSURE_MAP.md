@@ -43,6 +43,19 @@ GENUINE REMAINING WORK (multi-step, best tackled with fresh context):
       `∑ₖ ∫₀¹ φ(·±y+2k) dy = ∫_ℝ φ` (via `integral_iUnion` over the cell
       partition + change of variables); (iii) assemble with the heat L¹ norm.
 
+PROGRESS (file `ShenWork/PDE/IntervalFullKernelGradientTiling.lean`, small
+independently-verified steps, all `#print axioms` = core three):
+  * Step 1 `heatKernel_deriv_abs_integral_sqrt_form` — `∫_ℝ |∂ₓ heat(t,·)|`
+    `= heatGradientLinftyLinftyConstant · t^(−1/2)` (the envelope-integrable
+    power; restates the existing `= 2/√(4πt)`).
+  * Step 2 `iUnion_Ioc_two_mul_eq_univ` + `pairwise_disjoint_Ioc_two_mul` — the
+    period-`2` half-open cells `Ioc(2k)(2k+2)` partition `ℝ`.
+  * Step 3 `integral_eq_tsum_integral_Ioc_two_mul` — `∫_ℝ G = ∑ₖ ∫_{cell} G`
+    for integrable `G` (the tiling integral split, via `integral_iUnion`).
+  REMAINING: Step 4 — move `deriv` inside the kernel's lattice `tsum`, the
+  per-cell change of variables `∫_{cell} = ∫₀¹ (·±y+2k)`, assembly to
+  `∫₀¹ |∂ₓ K_full(t,x,·)| ≤ ∫_ℝ |heat'|`, and the final L∞→L∞ bound.
+
 NET: hGradEq is closed on the full kernel (ROUND-16); the full operator's
 Duhamel-ball wiring is gated by this gradient estimate (the tiling theorem) and,
 independently, by `hSol`'s interior Schauder `C²` content.
