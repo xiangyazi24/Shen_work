@@ -85,3 +85,4 @@ import ShenWork.PDE.IntervalResolverGradientBridge
 import ShenWork.PDE.IntervalResolverLaplacianBridge
 import ShenWork.PDE.IntervalParamDerivMeasurable
 import ShenWork.PDE.IntervalCoupledClassicalBallEstimates
+import ShenWork.PDE.IntervalChemDivAEMeasurable
