@@ -1,6 +1,6 @@
 # ShenWork Closure Map — precise remaining frontier (2026-05-26)
 
-## ROUND-14 — hChemDiv_joint_meas MATHEMATICAL CONTENT CLOSED via the AE route (2026-05-29, build 8350 axiom-clean)
+## ROUND-14 — hChemDiv_joint_meas DISCHARGED via the AE route (2026-05-29, build 8350 axiom-clean)
 
 The previously-open atomic frontier `hChemDiv_joint_meas` (joint measurability
 of the lifted chemotaxis divergence `(s,y) ↦ lift(chemDiv p (u s)(R(u s))) y`)
@@ -32,17 +32,31 @@ New files (both in `lake build ShenWork`, every decl `#print axioms` = core thre
   - `intervalCoupledSource_lift_aestronglyMeasurable_of_components` (AE algebraic closure);
   - `intervalCoupledSource_resolver_lift_aestronglyMeasurable` — CAPSTONE: AEStronglyMeasurable of the lifted coupled-source field for R = paper-2 resolver, directly from a classical solution. This is exactly the `F`-field measurability the Duhamel ball-estimate chain currently takes as the full-`Measurable` `hF_joint_meas`/`hChemDiv_joint_meas` hypothesis.
 
-REMAINING (mechanical plumbing, NOT new math): to literally delete
-`hChemDiv_joint_meas` from `_cleanest` and the Theorem-1.1 umbrella, the
-consumer chain `leaves → grad-bound lemmas → _clean → _cleaner → _cleanest`
-(~600 lines in `IntervalCoupledClassicalBallEstimates.lean`, currently threading
-full `Measurable (uncurry F)`) must be re-stated to thread
-`AEStronglyMeasurable (uncurry F) ((volume.restrict (uIoc 0 τ)).prod
-(intervalMeasure 1))` instead (a strictly weaker, faithful hypothesis; generic
-callers convert for free via `Measurable.aestronglyMeasurable`). Then a
-`*_resolver` discharge instantiates R = intervalNeumannResolverR and fills the
-AE hypothesis with the capstone above. This is an additive AE-refactor with
-zero new analytic content.
+DISCHARGE COMPLETE (commit c91d063, build 8350 axiom-clean). The consumer
+chain `leaves → grad-bound lemmas → _clean → _cleaner` in
+`IntervalCoupledClassicalBallEstimates.lean` was AE-refactored IN PLACE (the
+chain has no external consumers, so blast radius is contained): the two leaves
+and three grad-bound lemmas now take
+`AEStronglyMeasurable (uncurry F) ((volume.restrict (uIoc 0 t)).prod
+(intervalMeasure 1))` instead of full `Measurable (uncurry F)`; `_clean`/`_cleaner`
+take the per-τ AE form. `_cleanest` keeps its `Measurable` hypotheses and
+converts via `Measurable.aestronglyMeasurable`, so it and all existing callers
+build unchanged.
+
+NEW terminal theorem
+`intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_resolver`
+(IntervalChemDivAEMeasurable.lean): the C¹_x Duhamel-image ball map for
+`R = intervalNeumannResolverR p` with the source-field joint-measurability
+obligation (the former `hF_joint_meas`/`hChemDiv_joint_meas`) **eliminated** —
+filled internally by `intervalCoupledSource_resolver_lift_aestronglyMeasurable`.
+Only the genuine residuals `hSol` (Schauder) and `hGradEq` (Dirichlet endpoint
+deriv) remain.  `#print axioms` = core three on the discharge and every
+refactored chain lemma; no `sorryAx`/`_native`.
+
+NET: the `hChemDiv_joint_meas` frontier is CLOSED. Two genuine PDE residuals
+remain on the Path-A `_resolver` hmap: hSol (Schauder C^{2,1} interior
+regularity of the Duhamel image — multi-week classical PDE) and hGradEq
+(Dirichlet endpoint derivative-matching bridge).
 
 ---
 
