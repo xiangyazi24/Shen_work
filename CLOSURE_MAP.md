@@ -1,5 +1,52 @@
 # ShenWork Closure Map — precise remaining frontier (2026-05-26)
 
+## ROUND-14 — hChemDiv_joint_meas MATHEMATICAL CONTENT CLOSED via the AE route (2026-05-29, build 8350 axiom-clean)
+
+The previously-open atomic frontier `hChemDiv_joint_meas` (joint measurability
+of the lifted chemotaxis divergence `(s,y) ↦ lift(chemDiv p (u s)(R(u s))) y`)
+is now **fully proved as a sequence of axiom-clean lemmas**, in the faithful
+a.e. form the downstream consumer actually needs.
+
+KEY FINDING (confirmed by reading the consumer): the leaf consumers
+`intervalSemigroupOperator_s_dependent_{aestronglyMeasurable_x, deriv_…_x₀}`
+use the joint-measurability input ONLY to produce `AEStronglyMeasurable` of the
+`s`-integrand on the Fubini product measure
+`(volume.restrict (uIoc 0 t)).prod (intervalMeasure 1)`. So the spatial-endpoint
+lines `{y∈{0,1}}` (Lebesgue-null) are discardable — the genuine obstruction
+(joint measurability of the *spatial-derivative field* on the full plane, which
+Mathlib's `measurable_deriv_with_param` cannot give: it needs GLOBAL joint
+continuity, broken by the zero-extension's endpoint jump) is sidestepped.
+
+New files (both in `lake build ShenWork`, every decl `#print axioms` = core three):
+
+* `ShenWork/PDE/IntervalParamDerivMeasurable.lean` — `diffQuotLimsup` surrogate:
+  a globally-measurable function built from joint MEASURABILITY alone
+  (`limsup_n (n+1)·(g(s,y+1/(n+1))−g(s,y))`), equal to the parametrized spatial
+  derivative wherever it exists (`HasDerivAt.tendsto_slope` + `Tendsto.limsup_eq`).
+* `ShenWork/PDE/IntervalChemDivAEMeasurable.lean`:
+  - `solution_chemotaxisFlux_hasDerivAt` (flux differentiable at interior, deriv = chemDiv);
+  - `intervalDomainChemDiv_v_lift_aestronglyMeasurable` (chemDiv-v field AE meas via nested diffQuotLimsup surrogate + interior-slab identification);
+  - `aestronglyMeasurable_of_eqOn_interiorSlab` (reusable: agree on Ioo 0 T ×ˢ Ioo 0 1 ⇒ AE-equal, complement null for 0<t≤T);
+  - `solution_chemDiv_resolver_eq_v_interior` (R=intervalNeumannResolverR ≡ v on interior);
+  - `intervalDomainChemDiv_resolver_lift_aestronglyMeasurable`;
+  - `intervalCoupledSource_lift_aestronglyMeasurable_of_components` (AE algebraic closure);
+  - `intervalCoupledSource_resolver_lift_aestronglyMeasurable` — CAPSTONE: AEStronglyMeasurable of the lifted coupled-source field for R = paper-2 resolver, directly from a classical solution. This is exactly the `F`-field measurability the Duhamel ball-estimate chain currently takes as the full-`Measurable` `hF_joint_meas`/`hChemDiv_joint_meas` hypothesis.
+
+REMAINING (mechanical plumbing, NOT new math): to literally delete
+`hChemDiv_joint_meas` from `_cleanest` and the Theorem-1.1 umbrella, the
+consumer chain `leaves → grad-bound lemmas → _clean → _cleaner → _cleanest`
+(~600 lines in `IntervalCoupledClassicalBallEstimates.lean`, currently threading
+full `Measurable (uncurry F)`) must be re-stated to thread
+`AEStronglyMeasurable (uncurry F) ((volume.restrict (uIoc 0 τ)).prod
+(intervalMeasure 1))` instead (a strictly weaker, faithful hypothesis; generic
+callers convert for free via `Measurable.aestronglyMeasurable`). Then a
+`*_resolver` discharge instantiates R = intervalNeumannResolverR and fills the
+AE hypothesis with the capstone above. This is an additive AE-refactor with
+zero new analytic content.
+
+---
+
+
 State after the Claude-subagent round (codex usage exhausted). Whole project
 builds integrated: `lake build ShenWork` green, 8343 jobs, 0 sorry / 0 axiom
 (every key theorem `#print axioms` = [propext, Classical.choice, Quot.sound]).
