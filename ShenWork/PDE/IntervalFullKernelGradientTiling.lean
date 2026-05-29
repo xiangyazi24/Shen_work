@@ -48,4 +48,36 @@ theorem heatKernel_deriv_abs_integral_sqrt_form {t : ℝ} (ht : 0 < t) :
   have hst : Real.sqrt t ≠ 0 := ne_of_gt (Real.sqrt_pos.mpr ht)
   field_simp
 
+/-! ### Step 2: the period-`2` cell partition of `ℝ`.
+
+The half-open cells `Ioc (2k) (2k+2)`, `k ∈ ℤ`, partition `ℝ` — they cover it
+and are pairwise disjoint.  This is the index family for the tiling
+`∫_ℝ G = ∑ₖ ∫_{cell k} G`. -/
+
+/-- The period-`2` half-open cells cover `ℝ`. -/
+theorem iUnion_Ioc_two_mul_eq_univ :
+    ⋃ k : ℤ, Set.Ioc ((2 : ℝ) * (k : ℝ)) ((2 : ℝ) * (k : ℝ) + 2) = Set.univ := by
+  apply Set.eq_univ_of_forall
+  intro w
+  rw [Set.mem_iUnion]
+  refine ⟨⌈w / 2⌉ - 1, ?_⟩
+  have h1 : (⌈w / 2⌉ : ℝ) < w / 2 + 1 := Int.ceil_lt_add_one (w / 2)
+  have h2 : (w / 2 : ℝ) ≤ (⌈w / 2⌉ : ℝ) := Int.le_ceil (w / 2)
+  rw [Set.mem_Ioc]
+  push_cast
+  constructor <;> linarith
+
+/-- The period-`2` half-open cells are pairwise disjoint. -/
+theorem pairwise_disjoint_Ioc_two_mul :
+    Pairwise (Function.onFun Disjoint
+      (fun k : ℤ => Set.Ioc ((2 : ℝ) * (k : ℝ)) ((2 : ℝ) * (k : ℝ) + 2))) := by
+  intro i j hij
+  simp only [Function.onFun, Set.disjoint_left, Set.mem_Ioc]
+  rintro w ⟨hwi_lo, hwi_hi⟩ ⟨hwj_lo, hwj_hi⟩
+  rcases lt_or_gt_of_ne hij with h | h
+  · have hle : (i : ℝ) + 1 ≤ (j : ℝ) := by exact_mod_cast Int.add_one_le_iff.mpr h
+    linarith
+  · have hle : (j : ℝ) + 1 ≤ (i : ℝ) := by exact_mod_cast Int.add_one_le_iff.mpr h
+    linarith
+
 end ShenWork
