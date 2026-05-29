@@ -96,4 +96,49 @@ theorem integral_eq_tsum_integral_Ioc_offset (a : ℝ)
   rw [← MeasureTheory.setIntegral_univ, ← iUnion_Ioc_offset_eq_univ a]
   exact MeasureTheory.integral_iUnion hmeas (pairwise_disjoint_Ioc_offset a) hint_univ
 
+/-! ### Step 4: per-cell change of variables.
+
+The two `[0,1]` images `y ↦ x−y+2k` and `y ↦ x+y+2k` fill the cell
+`Ioc (x+2k−1) (x+2k+1)`. -/
+
+/-- **Per-cell change of variables.**  The reflected and direct `[0,1]` images
+assemble to the integral over one period-`2` cell centered at `x+2k`. -/
+theorem cell_integral_eq {g : ℝ → ℝ} (hg : MeasureTheory.Integrable g) (x : ℝ) (k : ℤ) :
+    (∫ y in (0 : ℝ)..1, g (x - y + 2 * (k : ℝ)))
+        + (∫ y in (0 : ℝ)..1, g (x + y + 2 * (k : ℝ)))
+      = ∫ y in Set.Ioc (x + 2 * (k : ℝ) - 1) (x + 2 * (k : ℝ) + 1), g y := by
+  -- reflected image: `g (x - y + 2k) = g ((x+2k) - y)`, then `integral_comp_sub_left`.
+  have hcov1 : (∫ y in (0 : ℝ)..1, g (x - y + 2 * (k : ℝ)))
+      = ∫ y in (x + 2 * (k : ℝ) - 1)..(x + 2 * (k : ℝ)), g y := by
+    rw [show (∫ y in (0 : ℝ)..1, g (x - y + 2 * (k : ℝ)))
+          = ∫ y in (0 : ℝ)..1, g ((x + 2 * (k : ℝ)) - y) from by
+        apply intervalIntegral.integral_congr; intro y _; congr 1; ring,
+      intervalIntegral.integral_comp_sub_left g (x + 2 * (k : ℝ))]
+    simp only [sub_zero]
+  -- direct image: `g (x + y + 2k) = g ((x+2k) + y)`, then `integral_comp_add_left`.
+  have hcov2 : (∫ y in (0 : ℝ)..1, g (x + y + 2 * (k : ℝ)))
+      = ∫ y in (x + 2 * (k : ℝ))..(x + 2 * (k : ℝ) + 1), g y := by
+    rw [show (∫ y in (0 : ℝ)..1, g (x + y + 2 * (k : ℝ)))
+          = ∫ y in (0 : ℝ)..1, g ((x + 2 * (k : ℝ)) + y) from by
+        apply intervalIntegral.integral_congr; intro y _; congr 1; ring,
+      intervalIntegral.integral_comp_add_left g (x + 2 * (k : ℝ))]
+    simp only [add_zero]
+  rw [hcov1, hcov2,
+    intervalIntegral.integral_add_adjacent_intervals
+      hg.intervalIntegrable hg.intervalIntegrable,
+    intervalIntegral.integral_of_le (by linarith)]
+
+/-- **Step 5: kernel-shaped tiling.**  Summing the reflected+direct `[0,1]`
+images over all lattice cells recovers the full-line integral of any integrable
+`g`. -/
+theorem tsum_cell_integral_eq_integral {g : ℝ → ℝ} (hg : MeasureTheory.Integrable g) (x : ℝ) :
+    (∑' k : ℤ,
+        ((∫ y in (0 : ℝ)..1, g (x - y + 2 * (k : ℝ)))
+          + (∫ y in (0 : ℝ)..1, g (x + y + 2 * (k : ℝ)))))
+      = ∫ w : ℝ, g w := by
+  rw [integral_eq_tsum_integral_Ioc_offset (x - 1) hg]
+  refine tsum_congr (fun k => ?_)
+  rw [cell_integral_eq hg x k]
+  congr 1 <;> ring
+
 end ShenWork
