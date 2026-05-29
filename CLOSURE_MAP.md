@@ -56,7 +56,50 @@ refactored chain lemma; no `sorryAx`/`_native`.
 NET: the `hChemDiv_joint_meas` frontier is CLOSED. Two genuine PDE residuals
 remain on the Path-A `_resolver` hmap: hSol (Schauder C^{2,1} interior
 regularity of the Duhamel image — multi-week classical PDE) and hGradEq
-(Dirichlet endpoint derivative-matching bridge).
+(endpoint derivative-matching bridge — see ROUND-15 finding below).
+
+## ROUND-15 — hGradEq DIAGNOSIS: FALSE at x=1 for the zeroth-reflection kernel (2026-05-29, build axiom-clean)
+
+Rigorous endpoint analysis of `hGradEq` (commit a28055b, three new axiom-clean
+lemmas in `IntervalChemDivAEMeasurable.lean`).
+
+`hGradEq` asserts, for `x ∈ Icc 0 1`:
+`deriv (intervalDomainLift (Duhamel image τ)) x = deriv (explicit semigroup+integral) x`.
+
+* **Interior `x ∈ Ioo 0 1`:** trivially true — the lift coincides with the
+  explicit on the open interior, so the derivatives agree.
+* **Endpoints:** `deriv (intervalDomainLift g) 0 = 0` and `… 1 = 0` for EVERY
+  `g` (`intervalDomainLift_deriv_at_{zero,one}_eq_zero`: the zero-extension's
+  exterior-constant side pins the two-sided derivative to `0`, or it is `0` by
+  the non-differentiable convention). So **LHS = 0 at both endpoints**.
+  The RHS vanishes at `x = 0` (`intervalSemigroupOperator_deriv_at_zero_eq_zero`:
+  the kernel `(1/2)(heatKernel(x−y)+heatKernel(x+y))` is even about `0`).
+
+**FINDING.** `normalizedZerothReflectionKernel` reflects only about `0`, so it is
+NOT Neumann at the right endpoint `x = 1`: `deriv (explicit) 1 ≠ 0` for generic
+data, while LHS `= 0`.  Hence **`hGradEq` (as stated, ∀ x ∈ Icc) is FALSE at
+x = 1**, i.e. the Path-A `_clean`/`_cleaner`/`_resolver` hmap currently carries a
+hypothesis that is false for its own Duhamel kernel — the theorems are valid
+implications but UNINSTANTIABLE as long as the Duhamel operator is built on the
+zeroth-reflection `intervalSemigroupOperator`.
+
+Root cause: `intervalCoupledDuhamelOperator` → `intervalFullDuhamelOperator`
+uses `intervalSemigroupOperator` (zeroth reflection, Neumann at `0` only) rather
+than the FULL Neumann semigroup.  The same root likely affects `hSol` (which
+asserts the image is a genuine two-endpoint-Neumann classical solution).
+
+Two sound resolutions, both architectural (flagged for Xiang/Liang — which
+kernel the paper-2 mild solution should use):
+  (a) **Weaken `hGradEq` to the interior `Ioo 0 1`** (where it is true) and prove
+      the endpoint `G_u` bound directly via LHS `= 0` (`|0| ≤ G_u`).  This
+      removes the false hypothesis and would discharge `hGradEq` outright, but
+      leaves `hSol`'s two-endpoint-Neumann content unaddressed.
+  (b) **Rebuild the Duhamel operator on the full Neumann kernel**
+      (`intervalNeumannFullKernel`, proved `= cosineKernel`, Neumann at both
+      endpoints).  Then both `hGradEq` and the boundary part of `hSol` become
+      genuinely true.  This is the real Path-A frontier; the ROUND-14
+      measurability discharge transfers verbatim (it is kernel-agnostic — about
+      the source field, not the semigroup).
 
 ---
 
