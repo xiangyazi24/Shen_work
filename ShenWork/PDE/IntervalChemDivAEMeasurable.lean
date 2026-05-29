@@ -44,6 +44,7 @@ open ShenWork.Paper2 ShenWork.IntervalDomain ShenWork.PDE MeasureTheory Filter
 open ShenWork.IntervalResolverLaplacianBridge
 open ShenWork.IntervalCoupledBallEstimates
 open ShenWork.IntervalCoupledClassicalBallEstimates
+open ShenWork.IntervalDomainExistence
 open scoped Topology
 
 namespace ShenWork
@@ -469,5 +470,106 @@ theorem intervalDomainChemDiv_resolver_lift_aestronglyMeasurable
   unfold intervalDomainLift
   rw [dif_pos hy_Icc, dif_pos hy_Icc]
   exact solution_chemDiv_resolver_eq_v_interior hsol hs (y := ⟨ycoord, hy_Icc⟩) hyc
+
+/-- **A.e.-measurable algebraic-closure combination for the lifted coupled
+source.**  A.e.-strong-measurability analogue of
+`intervalCoupledSource_lift_joint_measurable_of_components`: from a.e.-strong
+measurability of the lifted `u`-trajectory and of the lifted chemotaxis
+divergence, the lifted coupled source field is a.e.-strongly measurable.
+
+The proof reuses the *everywhere* pointwise decomposition
+`intervalCoupledSource_lift_pointwise_decomp` (source `= -χ₀·chemDiv +
+u·(a - b·u^α)`) and closes a.e.-measurability under the constant/sum/product/
+`rpow`-by-fixed-exponent operations. -/
+theorem intervalCoupledSource_lift_aestronglyMeasurable_of_components
+    {p : CM2Params}
+    {R : (intervalDomainPoint → ℝ) → intervalDomainPoint → ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ} {μ : MeasureTheory.Measure (ℝ × ℝ)}
+    (hU_ae : AEStronglyMeasurable
+      (Function.uncurry (fun (s : ℝ) (y : ℝ) => intervalDomainLift (u s) y)) μ)
+    (hChemDiv_ae : AEStronglyMeasurable
+      (Function.uncurry
+        (fun (s : ℝ) (y : ℝ) =>
+          intervalDomainLift (intervalDomainChemotaxisDiv p (u s) (R (u s))) y)) μ) :
+    AEStronglyMeasurable
+      (Function.uncurry
+        (fun (s : ℝ) (y : ℝ) =>
+          intervalDomainLift (intervalCoupledSource p (u s) (R (u s))) y)) μ := by
+  set Glift : ℝ × ℝ → ℝ :=
+    fun z : ℝ × ℝ => intervalDomainLift (u z.1) z.2 with hGlift_def
+  set Hchem : ℝ × ℝ → ℝ :=
+    fun z : ℝ × ℝ =>
+      intervalDomainLift (intervalDomainChemotaxisDiv p (u z.1) (R (u z.1))) z.2
+    with hHchem_def
+  have hGlift_ae : AEMeasurable Glift μ := hU_ae.aemeasurable
+  have hHchem_ae : AEMeasurable Hchem μ := hChemDiv_ae.aemeasurable
+  have h_rpow_meas : Measurable (fun x : ℝ => x ^ p.α) := by fun_prop
+  have h_pow_ae : AEMeasurable (fun z : ℝ × ℝ => (Glift z) ^ p.α) μ :=
+    h_rpow_meas.comp_aemeasurable hGlift_ae
+  have h_bracket :
+      AEMeasurable (fun z : ℝ × ℝ => p.a - p.b * (Glift z) ^ p.α) μ :=
+    (aemeasurable_const).sub ((aemeasurable_const).mul h_pow_ae)
+  have h_log :
+      AEMeasurable (fun z : ℝ × ℝ => Glift z * (p.a - p.b * (Glift z) ^ p.α)) μ :=
+    hGlift_ae.mul h_bracket
+  have h_chem : AEMeasurable (fun z : ℝ × ℝ => -p.χ₀ * Hchem z) μ :=
+    hHchem_ae.const_mul _
+  have h_sum :
+      AEMeasurable
+        (fun z : ℝ × ℝ =>
+          -p.χ₀ * Hchem z + Glift z * (p.a - p.b * (Glift z) ^ p.α)) μ :=
+    h_chem.add h_log
+  have h_eq :
+      (Function.uncurry
+          (fun (s : ℝ) (y : ℝ) =>
+            intervalDomainLift (intervalCoupledSource p (u s) (R (u s))) y)) =
+        (fun z : ℝ × ℝ =>
+          -p.χ₀ * Hchem z + Glift z * (p.a - p.b * (Glift z) ^ p.α)) := by
+    funext z
+    obtain ⟨s, y⟩ := z
+    simpa [Function.uncurry, Glift, Hchem] using
+      intervalCoupledSource_lift_pointwise_decomp p (u s) (R (u s)) y
+  rw [h_eq]
+  exact h_sum.aestronglyMeasurable
+
+/-- **A.e.-strong measurability of the lifted `u`-trajectory field** for a
+classical solution, against the Fubini product measure — no zero-extension
+hypothesis needed (the measurable `liftSlab` surrogate agrees with the field on
+the interior slab). -/
+theorem intervalDomainLift_u_aestronglyMeasurable_of_solution
+    {p : CM2Params} {T : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ T) :
+    AEStronglyMeasurable
+      (Function.uncurry (fun (s : ℝ) (y : ℝ) => intervalDomainLift (u s) y))
+      ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)).prod (intervalMeasure 1)) := by
+  have hcontU : ContinuousOn
+      (Function.uncurry (fun s y => intervalDomainLift (u s) y))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+    (hsol.regularity.2.2.2.2.2.2.2.2).1
+  refine aestronglyMeasurable_of_eqOn_interiorSlab ht htT
+    (measurable_liftSlab hcontU).aestronglyMeasurable ?_
+  rintro ⟨s, ycoord⟩ ⟨hs, hyc⟩
+  exact (liftSlab_eq_of_mem hs (Set.Ioo_subset_Icc_self hyc)).symm
+
+/-- **A.e.-strong measurability of the lifted coupled-source field built from
+the elliptic Neumann resolver**, for a classical solution.  This is the precise
+`F`-field measurability the Duhamel ball-estimate consumer chain needs, in the
+faithful a.e. form (full joint measurability is obstructed only on the
+Lebesgue-null spatial-endpoint lines). -/
+theorem intervalCoupledSource_resolver_lift_aestronglyMeasurable
+    {p : CM2Params} {T : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ T) :
+    AEStronglyMeasurable
+      (Function.uncurry
+        (fun (s : ℝ) (y : ℝ) =>
+          intervalDomainLift
+            (intervalCoupledSource p (u s) (intervalNeumannResolverR p (u s))) y))
+      ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)).prod
+        (intervalMeasure 1)) :=
+  intervalCoupledSource_lift_aestronglyMeasurable_of_components
+    (intervalDomainLift_u_aestronglyMeasurable_of_solution hsol ht htT)
+    (intervalDomainChemDiv_resolver_lift_aestronglyMeasurable hsol ht htT)
 
 end ShenWork
