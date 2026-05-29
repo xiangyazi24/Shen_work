@@ -679,4 +679,96 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_resolver
         hsnap.isSolution hτ.1 (le_of_lt hτ.2))
     hGradEq
 
+/-! ### `hGradEq` endpoint analysis (diagnosis lemmas)
+
+The `hGradEq` hypothesis equates `deriv (intervalDomainLift (Duhamel image)) x`
+(LHS) with `deriv (explicit semigroup+integral) x` (RHS) for `x ∈ Icc 0 1`.
+
+* **Interior** `x ∈ Ioo 0 1`: the lift agrees with the explicit on the open
+  interior, so the two derivatives coincide — trivially true.
+* **Endpoints** `x ∈ {0,1}`: the two lemmas below show
+  - LHS `= 0` ALWAYS (`intervalDomainLift_deriv_at_{zero,one}_eq_zero`): the
+    zero-extension forces the two-sided derivative of any lift to vanish at the
+    domain endpoints (either the lift is differentiable there, in which case the
+    constant-`0` side pins the derivative to `0`, or it is not, in which case
+    `deriv` is `0` by convention).
+  - RHS `= 0` at `x = 0` (`intervalSemigroupOperator_deriv_at_zero_eq_zero`):
+    the zeroth-reflection kernel is even about `0`
+    (`= (1/2)(S g + reflected S g)`), so the spatial derivative at `0` vanishes.
+
+  At `x = 1`, however, the RHS need NOT vanish: `intervalSemigroupOperator` uses
+  `normalizedZerothReflectionKernel = (1/2)(heatKernel(x−y)+heatKernel(x+y))`,
+  which reflects only about `0` — it is NOT Neumann at the right endpoint `1`.
+  So `hGradEq` is genuinely FALSE at `x = 1` for generic data (LHS `= 0` ≠ RHS).
+  This is the precise sense in which `hGradEq` is "real boundary content, not
+  bookkeeping": the architecturally-sound resolutions are (a) weaken `hGradEq`
+  to the interior `Ioo 0 1` and bound the endpoint gradient directly via
+  LHS `= 0` (`|0| ≤ G_u`), or (b) rebuild the Duhamel operator on the FULL
+  Neumann kernel (`intervalNeumannFullKernel`, Neumann at both endpoints). -/
+
+/-- **Left-endpoint Neumann for the zeroth-reflection semigroup.**  The spatial
+derivative of `intervalSemigroupOperator L t f` vanishes at `x = 0` — the
+operator equals `(1/2)(S g + reflected S g)` (even about `0`), so its derivative
+value at `0` is `(1/2)D − (1/2)D = 0`. -/
+theorem intervalSemigroupOperator_deriv_at_zero_eq_zero
+    {L t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf_int : MeasureTheory.Integrable f (intervalMeasure L)) :
+    deriv (fun z : ℝ => intervalSemigroupOperator L t f z) 0 = 0 := by
+  have h := ShenWork.RegularityBootstrap.intervalSemigroupOperator_hasDerivAt
+    (L := L) (t := t) (x := 0) ht hf_int
+  simp only [neg_zero, sub_self] at h
+  exact h.deriv
+
+/-- **Zero endpoint derivative of any lift at `x = 0`.**  For every
+`g : intervalDomainPoint → ℝ`, the zero-extension `intervalDomainLift g` has
+`deriv … 0 = 0`: if it is differentiable at `0` the constant-`0` left side pins
+the derivative to `0`; otherwise `deriv` is `0` by convention. -/
+theorem intervalDomainLift_deriv_at_zero_eq_zero (g : intervalDomainPoint → ℝ) :
+    deriv (intervalDomainLift g) 0 = 0 := by
+  by_cases hdiff : DifferentiableAt ℝ (intervalDomainLift g) 0
+  · have hHas := hdiff.hasDerivAt
+    have hEqOn : ∀ z ∈ Set.Iio (0 : ℝ), intervalDomainLift g z = 0 := by
+      intro z hz
+      have hzn : z ∉ Set.Icc (0 : ℝ) 1 := fun h => absurd h.1 (not_le.mpr hz)
+      simp [intervalDomainLift, hzn]
+    have hval : intervalDomainLift g 0 = 0 := by
+      have h1 := (hdiff.continuousAt.continuousWithinAt (s := Set.Iio (0 : ℝ))).tendsto
+      have h2 : Filter.Tendsto (intervalDomainLift g)
+          (nhdsWithin 0 (Set.Iio 0)) (𝓝 0) := by
+        refine Filter.Tendsto.congr' ?_ tendsto_const_nhds
+        filter_upwards [self_mem_nhdsWithin] with z hz using (hEqOn z hz).symm
+      exact tendsto_nhds_unique h1 h2
+    have hc : HasDerivWithinAt (intervalDomainLift g) 0 (Set.Iio 0) 0 :=
+      (hasDerivWithinAt_const (0 : ℝ) (Set.Iio (0 : ℝ)) (0 : ℝ)).congr hEqOn hval
+    have huniq := uniqueDiffWithinAt_Iio (0 : ℝ)
+    have e1 := hHas.hasDerivWithinAt.derivWithin huniq
+    have e2 := hc.derivWithin huniq
+    exact e1.symm.trans e2
+  · exact deriv_zero_of_not_differentiableAt hdiff
+
+/-- **Zero endpoint derivative of any lift at `x = 1`** (right-endpoint mirror of
+`intervalDomainLift_deriv_at_zero_eq_zero`). -/
+theorem intervalDomainLift_deriv_at_one_eq_zero (g : intervalDomainPoint → ℝ) :
+    deriv (intervalDomainLift g) 1 = 0 := by
+  by_cases hdiff : DifferentiableAt ℝ (intervalDomainLift g) 1
+  · have hHas := hdiff.hasDerivAt
+    have hEqOn : ∀ z ∈ Set.Ioi (1 : ℝ), intervalDomainLift g z = 0 := by
+      intro z hz
+      have hzn : z ∉ Set.Icc (0 : ℝ) 1 := fun h => absurd h.2 (not_le.mpr hz)
+      simp [intervalDomainLift, hzn]
+    have hval : intervalDomainLift g 1 = 0 := by
+      have h1 := (hdiff.continuousAt.continuousWithinAt (s := Set.Ioi (1 : ℝ))).tendsto
+      have h2 : Filter.Tendsto (intervalDomainLift g)
+          (nhdsWithin 1 (Set.Ioi 1)) (𝓝 0) := by
+        refine Filter.Tendsto.congr' ?_ tendsto_const_nhds
+        filter_upwards [self_mem_nhdsWithin] with z hz using (hEqOn z hz).symm
+      exact tendsto_nhds_unique h1 h2
+    have hc : HasDerivWithinAt (intervalDomainLift g) 0 (Set.Ioi 1) 1 :=
+      (hasDerivWithinAt_const (1 : ℝ) (Set.Ioi (1 : ℝ)) (0 : ℝ)).congr hEqOn hval
+    have huniq := uniqueDiffWithinAt_Ioi (1 : ℝ)
+    have e1 := hHas.hasDerivWithinAt.derivWithin huniq
+    have e2 := hc.derivWithin huniq
+    exact e1.symm.trans e2
+  · exact deriv_zero_of_not_differentiableAt hdiff
+
 end ShenWork
