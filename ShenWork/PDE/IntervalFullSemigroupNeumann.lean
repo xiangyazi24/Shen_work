@@ -142,4 +142,45 @@ theorem intervalFullSemigroupOperator_deriv_at_one_eq_zero (t : ℝ) (f : ℝ �
   rw [show (2 * (1 : ℝ) - x) = 2 - x by ring]
   exact intervalFullSemigroupOperator_even_one t f x
 
+/-- The Duhamel **source-integral term** `z ↦ ∫₀^τ S(τ−s)(g s) z ds` is even
+about `0`: the integral of even functions is even. -/
+theorem intervalFullSemigroup_integral_even_zero (τ : ℝ) (g : ℝ → ℝ → ℝ) (z : ℝ) :
+    (∫ s in (0 : ℝ)..τ, intervalFullSemigroupOperator (τ - s) (g s) (-z))
+      = ∫ s in (0 : ℝ)..τ, intervalFullSemigroupOperator (τ - s) (g s) z :=
+  intervalIntegral.integral_congr
+    (fun s _ => intervalFullSemigroupOperator_even_zero (τ - s) (g s) z)
+
+/-- The Duhamel **source-integral term** is even about `1`. -/
+theorem intervalFullSemigroup_integral_even_one (τ : ℝ) (g : ℝ → ℝ → ℝ) (z : ℝ) :
+    (∫ s in (0 : ℝ)..τ, intervalFullSemigroupOperator (τ - s) (g s) (2 - z))
+      = ∫ s in (0 : ℝ)..τ, intervalFullSemigroupOperator (τ - s) (g s) z :=
+  intervalIntegral.integral_congr
+    (fun s _ => intervalFullSemigroupOperator_even_one (τ - s) (g s) z)
+
+/-- **Left-endpoint Neumann for the full-kernel Duhamel explicit field.**  The
+spatial derivative of `z ↦ S(τ) h z + ∫₀^τ S(τ−s)(g s) z ds` vanishes at
+`x = 0`: both the initial-data term and the source-integral term are even about
+`0`. -/
+theorem intervalFullDuhamelExplicit_deriv_at_zero_eq_zero
+    (τ : ℝ) (h : ℝ → ℝ) (g : ℝ → ℝ → ℝ) :
+    deriv (fun z : ℝ =>
+        intervalFullSemigroupOperator τ h z +
+          ∫ s in (0 : ℝ)..τ, intervalFullSemigroupOperator (τ - s) (g s) z) 0 = 0 := by
+  refine deriv_eq_zero_of_even_about (c := 0) (fun z => ?_)
+  rw [show (2 * (0 : ℝ) - z) = -z by ring,
+    intervalFullSemigroupOperator_even_zero,
+    intervalFullSemigroup_integral_even_zero]
+
+/-- **Right-endpoint Neumann for the full-kernel Duhamel explicit field** at
+`x = 1`. -/
+theorem intervalFullDuhamelExplicit_deriv_at_one_eq_zero
+    (τ : ℝ) (h : ℝ → ℝ) (g : ℝ → ℝ → ℝ) :
+    deriv (fun z : ℝ =>
+        intervalFullSemigroupOperator τ h z +
+          ∫ s in (0 : ℝ)..τ, intervalFullSemigroupOperator (τ - s) (g s) z) 1 = 0 := by
+  refine deriv_eq_zero_of_even_about (c := 1) (fun z => ?_)
+  rw [show (2 * (1 : ℝ) - z) = 2 - z by ring,
+    intervalFullSemigroupOperator_even_one,
+    intervalFullSemigroup_integral_even_one]
+
 end ShenWork
