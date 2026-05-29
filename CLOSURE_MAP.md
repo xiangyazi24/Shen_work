@@ -1,5 +1,49 @@
 # ShenWork Closure Map — precise remaining frontier (2026-05-26)
 
+## ROUND-16 — Resolution (b): hGradEq is TRUE on the full Neumann kernel (2026-05-29, build 8352 axiom-clean)
+
+Executed ROUND-15 resolution (b): rebuilt the gradient bridge on the full
+Neumann kernel.  The `hGradEq` frontier is now CLOSED (proved, not assumed) for
+the full-kernel Duhamel operator.
+
+New files (all decls `#print axioms` = core three; whole project green 8352):
+
+* `ShenWork/PDE/IntervalFullSemigroupNeumann.lean`:
+  - `deriv_eq_zero_of_even_about` (general: even about `c` ⇒ `deriv = 0` at `c`).
+  - `intervalNeumannFullKernel_even_zero` / `_period_two` / `_even_one` — the
+    full kernel `∑' k:ℤ, heat(x−y+2k)+heat(x+y+2k)` is even about `0`, period
+    `2`, hence even about `1` (lattice reindex: `Equiv.neg`, `Equiv.addRight`).
+  - `intervalFullSemigroupOperator_even_{zero,one}` — inherited under the integral.
+  - `intervalFullSemigroupOperator_deriv_at_{zero,one}_eq_zero` — genuine
+    two-endpoint Neumann (the property the zeroth-reflection kernel lacked at `1`).
+  - `intervalFullSemigroup_integral_even_{zero,one}`,
+    `intervalFullDuhamelExplicit_deriv_at_{zero,one}_eq_zero` — the source-integral
+    term and the full Duhamel explicit field are even about both endpoints
+    (integral of even is even), so the explicit field's endpoint derivative is `0`.
+    No differentiate-under-integral needed.
+
+* `ShenWork/PDE/IntervalFullKernelDuhamelGradEq.lean`:
+  - `intervalFullKernelCoupledDuhamelOperator` — the coupled Duhamel map rebuilt
+    on `intervalFullSemigroupOperator`.
+  - `intervalFullKernel_hGradEq` — **`hGradEq` holds at EVERY `x ∈ Icc 0 1`**,
+    including `x = 1`: interior by lift=explicit on the open interior (set integral
+    `Icc 0 τ` = interval integral `0..τ`); endpoints by both sides `= 0` (LHS
+    zero-extension, RHS full-kernel two-endpoint Neumann).  This is exactly the
+    identity that was FALSE at `x = 1` for the zeroth-reflection kernel (ROUND-15).
+
+REMAINING for full (b) instantiation of Path-A:
+  1. **Wire the full-kernel operator into the `_clean`/`_cleaner`/`_resolver`
+     hmap chain.** Needs full-kernel gradient `L∞→L∞` estimates (analogues of the
+     existing `intervalCoupledDuhamel_grad_*`, which are for the zeroth-reflection
+     `intervalSemigroupOperator`) — substantial new analysis, likely via the
+     cosine spectral form of the full kernel.
+  2. **`hSol`** — the Duhamel image is a genuine classical solution. (b) fixes the
+     BOUNDARY (Neumann at both endpoints, now genuine); the INTERIOR content (the
+     image solves the PDE + closed-`Icc` `C²` regularity) is the Schauder
+     analysis — kernel-independent, the genuine multi-week frontier.
+
+---
+
 ## ROUND-14 — hChemDiv_joint_meas DISCHARGED via the AE route (2026-05-29, build 8350 axiom-clean)
 
 The previously-open atomic frontier `hChemDiv_joint_meas` (joint measurability
