@@ -101,5 +101,7 @@ import ShenWork.PDE.IntervalFullKernelLeibniz
 import ShenWork.PDE.IntervalFullKernelCleanerFull
 import ShenWork.PDE.IntervalFullKernelResolverFull
 import ShenWork.PDE.IntervalFullKernelBoundaryRegularity
+import ShenWork.PDE.IntervalProfileBoundaryRegularity
 import ShenWork.Paper2.IntervalDomainNeumannIBP
 import ShenWork.Paper2.IntervalDomainSemigroupIBP
+import ShenWork.Paper2.IntervalDomainProfileIBP
