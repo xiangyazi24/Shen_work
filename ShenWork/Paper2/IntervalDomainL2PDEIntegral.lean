@@ -250,18 +250,64 @@ theorem intervalDomainLift_logistic_intervalIntegrable_of_regularity
   rw [Set.uIcc_of_le (zero_le_one)]
   exact hcomp.congr hEq
 
+/-! ## Factoring `hB`: the `u` multiplier is continuous (bounded) -/
+
+/-- The lift of a pointwise product is the product of the lifts (everywhere on
+`ℝ`). -/
+theorem intervalDomainLift_mul (f g : intervalDomain.Point → ℝ) (y : ℝ) :
+    intervalDomainLift (fun x => f x * g x) y
+      = intervalDomainLift f y * intervalDomainLift g y := by
+  unfold intervalDomainLift
+  by_cases hy : y ∈ Set.Icc (0 : ℝ) 1 <;> simp [hy]
+
+/-- **`hB` factored: it suffices that the chemotaxis divergence itself is
+interval-integrable.**  The diffusion-energy chemotaxis integrand `u·chemDiv`
+factors, on `[0,1]`, as the product of `lift u` (continuous on the compact
+`[0,1]` by conjunct (7), hence bounded) and `lift chemDiv`; a continuous-times-
+integrable product on a compact interval is interval-integrable.  This removes the
+`u` entanglement: the only residual is the interval-integrability of the
+chemotaxis flux divergence `∂ₓ(u·∂ₓv/(1+v)^β)` itself — the genuine `v`-coupled
+frontier (`v ∈ C²`, `1+v ≥ 1 > 0` from `v_nonneg`). -/
+theorem intervalDomainLift_chemotaxis_intervalIntegrable_of_chemDiv
+    {params : CM2Params} {T t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht : t ∈ Set.Ioo (0 : ℝ) T)
+    (hchem : IntervalIntegrable
+        (intervalDomainLift (intervalDomain.chemotaxisDiv params (u t) (v t)))
+        volume 0 1) :
+    IntervalIntegrable
+      (intervalDomainLift
+        (fun x => u t x * intervalDomain.chemotaxisDiv params (u t) (v t) x))
+      volume 0 1 := by
+  have hcont_u : ContinuousOn (intervalDomainLift (u t)) (Set.uIcc (0 : ℝ) 1) := by
+    rw [Set.uIcc_of_le (zero_le_one)]
+    exact (hsol.regularity.2.2.2.2.2.2.1 t ht).1.1.continuousOn
+  have hfun : intervalDomainLift
+      (fun x => u t x * intervalDomain.chemotaxisDiv params (u t) (v t) x)
+      = fun y => intervalDomainLift (u t) y *
+        intervalDomainLift (intervalDomain.chemotaxisDiv params (u t) (v t)) y := by
+    funext y; exact intervalDomainLift_mul _ _ y
+  rw [hfun]
+  exact hchem.continuousOn_mul hcont_u
+
 /-! ## Status of the remaining integrability input
 
 `intervalDomain_l2_half_energy_hPDEIntegral_of_integrable` reduces `hPDEIntegral`
-to `hA`, `hB`, `hC`.  `hA` (diffusion) and `hC` (logistic) are now **discharged**
-from the regularity conjunct (7) + positivity
-(`intervalDomainLift_{diffusion,logistic}_intervalIntegrable_of_regularity`).  The
-single remaining integrability input is:
+to `hA`, `hB`, `hC`.  `hA` (diffusion) and `hC` (logistic) are **discharged** from
+the regularity conjunct (7) + positivity
+(`intervalDomainLift_{diffusion,logistic}_intervalIntegrable_of_regularity`).  `hB`
+is **factored** (`intervalDomainLift_chemotaxis_intervalIntegrable_of_chemDiv`): the
+`u` multiplier is continuous/bounded, so `hB` follows from the interval-
+integrability of the chemotaxis flux divergence alone.  The single remaining
+integrability input is therefore:
 
-* **`hB` (`∫₀¹ u·chemDiv`)** — the chemotaxis flux divergence
-  `∂ₓ(u·∂ₓv/(1+v)^β)`, coupling to `v`'s `C²` regularity and `1+v ≥ 1 > 0`
-  (`v ≥ 0`, `IsPaper2ClassicalSolution.v_nonneg`); the genuine `v`-coupled
-  frontier.
+* **interval-integrability of `∂ₓ(u·∂ₓv/(1+v)^β)`** — the chemotaxis flux
+  divergence, coupling to `v`'s `C²` regularity and `1+v ≥ 1 > 0` (`v ≥ 0`,
+  `IsPaper2ClassicalSolution.v_nonneg`); the genuine `v`-coupled frontier.  It
+  needs the quotient `q = (lift u)·(∂ₓ lift v)/(1+lift v)^β` to be `C¹` up to the
+  boundary (so `∂ₓ q` is bounded/integrable), via `ContDiffOn.div` +
+  `contDiffAt_rpow_const_of_ne` + `ContDiffOn.derivWithin`.
 
 This is recorded as the precise residual of `hPDEIntegral`, NOT faked.
 -/
