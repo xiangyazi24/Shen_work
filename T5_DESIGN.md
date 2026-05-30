@@ -267,3 +267,44 @@ hL2Time bridge** 均已落地（见上表）。两者都是「归约」层：
 它的作用是证*构造的* full-kernel 解满足 conjunct 7/8/9（= localExistence 正则性），
 不再是 T5 能量不等式的前置。R1（hL2Time）、R2（hPDEIntegral）、cross-control 全部
 作为任意经典解的定理 discharge。
+
+---
+
+## 7. 重大更正（2026-05-30）—— `DuhamelHeatValueRepresentation` 是错误工具；
+## 真正的 frontier 是 localExistence 构造（D_t∈C²），且 Kunif 早已闭合
+
+本节更正 §1–§4 的两处误判，基于已验证（非手挥）的数学论证。
+
+### 7.1 Kunif / gluing-uniqueness 不是 frontier —— 早已闭合
+§4 之外的审计发现：`Kunif`（uniform Grönwall 常数）链条已全部证完、axiom-clean：
+`resolverGrad_sup_le_of_ub`（定量 `|RGrad u|≤√(∑W_k²)·2νM^γ`）→
+`intervalDomainL2U_energy_diffIneq_bound_uniform_explicit_zeroM`（M-定量逐时界）→
+`gronwall_const_of_uniformLiftBoundZeroM` → `uniformLiftBoundZeroM_of_regime`
+（regime + 正有界 datum 给 uniform M）→ `boundednessHypothesis_of_uniformSupBoundZeroM`
+→ gluing chain。`IntervalDomainL2UBoundedDatumUniformOfBounded.lean` 头部那条
+"resolver-gradient sup bound 不可用" 的 blocker note 是**过时的**（早于
+`IntervalDomainResolverSupQuantitative.lean` "Piece 1"）。
+
+### 7.2 `DuhamelHeatValueRepresentation`（bounded b）对 bounded 源**为假**
+§0/§1/§B 把 Duhamel 切片当作"effective τ>0 + bounded b 的 cosine heat value"，
+并称这是"elementary Fubini"。**这是错的**（详证见
+`IntervalDuhamelRegularity.lean` 末尾更正块）：
+- `unitIntervalCosineHeatValue_contDiff_two` 只凭 τ>0 + bounded b 就给 C^∞（`e^{−τλ_n}`
+  Gauss 压制），所以 bounded-b heat-value 形式 = 断言 D_t 空间 C^∞。
+- 但 `cₙ(t)=∫₀ᵗ e^{−(t−s)λ_n}ĝ_{s,n}ds`，parabolic gain 只给 `|cₙ|≲1/λ_n~1/n²`
+  （= H^{<3/2}，非 C²）。`cₙ=e^{−τλ_n}bₙ ⟹ bₙ=cₙe^{τλ_n}`，s≈t 部分 `~(1/λ_n)e^{τλ_n}→∞`，
+  **b 对任意 τ>0 无界**。任何**多项式**源衰减都救不了（`e^{τλ_n}` 胜过多项式）；
+  只有源**实解析**（`e^{−cλ_n}` 衰减）才行——而源不是。
+- 故 `intervalDuhamelTerm_interiorC2_of_eqOn_heatValue` 的前提对真 Duhamel 项不可达，
+  该 reduction 实质死掉。Path α 的"借谱显式正则"对 Duhamel **半群部分**成立
+  （S_full(t)u₀ = heat value at τ=t），对 **Duhamel 积分项不成立**。
+
+### 7.3 真正的 frontier：localExistence 构造 + uniformLocal（深墙）
+Paper2 Thm 1.1（γ≥1）经审计确认只剩 `localExistence`（短时经典存在）+
+`IntervalDomainUniformLocalExistence`（一致抛物延拓）+ posWit（pass-through）。
+二者皆 = **构造满足 9-conjunct 正则的经典解**，核心卡在 conjunct 7（D_t 闭 C²）。
+诚实路线（B1）：直接证 ∂ₓₓD_t = ∫₀ᵗ ∂ₓₓS(t−s)g_s ds，但核二阶导 `~(t−s)^{−3/2}` 在
+s=t 不可积，必须用热方程恒等 `∂ₓₓS=∂_rS` + **时间分部积分**把导数搬到 `∂_s g_s`
+（需源 g_s 关于 s 的 C¹ 正则 + S(0)=id 近似单位边界项），与不动点 bootstrap 耦合。
+这需要 Mathlib 没有的抛物正则性/解析半群基础设施，是真·多月工程，无可独立提交的
+小增量（构造是循环的：要先有解才能谈其 conjunct）。
