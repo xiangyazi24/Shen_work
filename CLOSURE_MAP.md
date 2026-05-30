@@ -69,22 +69,39 @@ independently-verified steps, all `#print axioms` = core three):
   Tonelli step `∫₀¹|∑ₖ ·| dy ≤ ∑ₖ ∫₀¹|·| dy`, then assemble with Steps 1+5 for
   `|deriv (S_full t f) x| ≤ ‖f‖∞ · (1/√π) t^(−1/2)`.
 
-  STEP 6 IS A MULTI-LEMMA SUMMABILITY STACK (foundation gap identified):
-  * `LatticeGaussianSummable t z` (= `Summable (k ↦ heatKernel t (z+2k))`) is
-    only ever used as a HYPOTHESIS — it is NOT proved in the repo.  Even this
-    base must be established for `t>0` from Mathlib's Gaussian/Poisson
-    infrastructure (`Complex.tsum_exp_neg_quadratic` gives the `tsum` VALUE, not
-    directly the `Summable` predicate in the shifted/scaled `exp(−(z+2k)²/(4t))`
-    form — needs a comparison/`isBigO` argument).
-  * Then the GRADIENT lattice `Summable (k ↦ deriv heatKernel (z+2k))`
-    (`= ∑ₖ −((z+2k)/(2t))·heatKernel t (z+2k)`, polynomial×Gaussian) via the
-    bound `|w|·exp(−w²/4t) ≤ C·exp(−w²/8t)` reducing to a `t↦2t` Gaussian lattice.
-  * Then UNIFORMITY on a bounded neighborhood (`u k = sup_{x'∈nbhd}|heat'(x'+2k)|`,
-    summable) to feed `hasDerivAt_tsum_of_isPreconnected` (the GLOBAL
-    `hasDerivAt_tsum` is unusable — no uniform-over-ℝ summable bound exists).
-  * Then triangle/Tonelli + Steps 1+5.
-  Each is bounded but the stack is multi-session; best with fresh context (the
-  intricate Gaussian-summability proofs are hang-prone at large context).
+  STEP 6 SUMMABILITY + DIFFERENTIATION STACK — Steps 6.1–6.4 DONE (2026-05-29,
+  all in `PDE/IntervalNeumannFullKernel.lean`, each `#print axioms` = core three,
+  single-file builds green):
+  * 6.1 `latticeGaussianSummable {t}(ht:0<t)(z)` — `LatticeGaussianSummable t z`
+    PROVED (was hypothesis-only). Complete-the-square `(z+2k)² ≥ 2k²−z²` (from
+    `2(k±z)²≥0`) ⇒ term ≤ `exp(z²/4t)·exp(−k²/2t)`; dominating `∑ exp(−k²/2t)`
+    via `Real.summable_exp_nat_mul_of_ge` (k≤k²), `Summable.of_nat_of_neg` over ℤ.
+    Discharges ALL the `LatticeGaussianSummable` hypotheses across the repo.
+  * 6.1′ `latticeExpSummable {s}(hs)(z)` — bare `∑ exp(−(z+2k)²/4s)` summable
+    (heatKernel minus its prefactor, `Summable.mul_left`/`.congr`).
+  * 6.2 `latticeGaussianGradSummable {t}(ht)(z)` — `∑ deriv(heatKernel t)(z+2k)`
+    summable; via 6.3a pointwise bound + `latticeExpSummable(2t)`, `Summable.of_abs`.
+  * 6.3a `abs_deriv_heatKernel_le {t}(ht)(x)` + def `heatGradPointwiseBound t`:
+    `|deriv(heatKernel t)x| ≤ heatGradPointwiseBound t · exp(−x²/8t)` — linear
+    prefactor absorbed into HALF-rate Gaussian via `Real.abs_mulExpNegMulSq_le`
+    (ε=1/8t ⇒ `|x|exp(−x²/8t) ≤ √8t`). The half-rate is what gives summability.
+  * 6.3 `hasDerivAt_heatKernel_lattice_tsum {t}(ht)(b x)` — THE move-deriv-inside:
+    `HasDerivAt (w ↦ ∑ₖ heat(w+b+2k)) (∑ₖ deriv heat(x+b+2k)) x`. Via
+    `hasDerivAt_tsum_of_isPreconnected` on `(x−1,x+1)`; UNIFORM bound = 6.3a +
+    Young `(A+B)²≥½A²−B²` (B=w−x,|B|<1) ⇒ majorant `latticeExpSummable(4t)`.
+  * 6.4 `hasDerivAt_intervalNeumannFullKernel_fst {t}(ht)(x y)` — `∂ₓ K_full`:
+    `HasDerivAt (x↦K_full t x y) ((∑ₖ deriv heat(x−y+2k))+(∑ₖ deriv heat(x+y+2k))) x`.
+    Kernel tsum split by `Summable.tsum_add`; each half by 6.3 (b=−y, b=y).
+
+  REMAINING Step 6 tail (assembly, the genuinely-analytic finish):
+  * 6.5 L¹ tiling bound: `∫₀¹ |∂ₓK_full(t,x,y)| dy ≤ (1/√π)t^(−1/2)`. Triangle
+    `|∑A+∑B| ≤ ∑|A|+∑|B|` (`norm_tsum_le_tsum_norm`, summability from 6.2/abs) +
+    Tonelli `∫₀¹∑ₖ = ∑ₖ∫₀¹` (`integral_tsum`, nonneg) + Step 5
+    `tsum_cell_integral_eq_integral` (g=|heat'|) + Step 1 (`∫_ℝ|heat'|=(1/√π)t^(−1/2)`).
+    Needs `Integrable |deriv heatKernel|`.
+  * 6.6 differentiate operator under integral: `deriv(x↦∫₀¹ K_full·f) = ∫₀¹ ∂ₓK_full·f`
+    (uniform dominated bound from the 6.3 majorant), then
+    `|deriv(S_full t f)x| ≤ ‖f‖∞·∫₀¹|∂ₓK_full| ≤ ‖f‖∞·(1/√π)t^(−1/2)`. THE goal.
 
 NET: hGradEq is closed on the full kernel (ROUND-16); the full operator's
 Duhamel-ball wiring is gated by this gradient estimate (the tiling theorem) and,
