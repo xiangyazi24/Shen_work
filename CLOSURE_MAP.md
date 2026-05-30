@@ -98,19 +98,24 @@ independently-verified steps, all `#print axioms` = core three):
     = heatGradientLinftyLinftyConstant·t^(−1/2)`. Step 5 (g=|∂ₓheat|, integrable by
     `heatKernel_deriv_abs_integrable`) + Step 1. The target constant, in closed form.
 
+  * 6.5b-pre `abs_deriv_intervalNeumannFullKernel_fst_le {t}(ht)(x y)` DONE
+    (IntervalNeumannFullKernel.lean): pointwise integrand bound
+    `|∂ₓK_full(t,x,y)| ≤ ∑ₖ(|∂heat(x−y+2k)|+|∂heat(x+y+2k)|)`. Triangle on the
+    two-tsum derivative (6.4) via `abs_add_le`+`norm_tsum_le_tsum_norm`
+    (norm-summability = `summable_abs_iff.mpr (latticeGaussianGradSummable …)`),
+    recombined `Summable.tsum_add`. INTEGRABILITY-FREE.
+
   REMAINING Step 6 tail (assembly — standard measure-theory plumbing, NOT the
   conceptual core; the hard Gaussian-summability foundation is now fully closed):
   * 6.5b L¹ tiling BOUND: `∫₀¹ |deriv(x↦K_full t x y) x| dy ≤ heatGradientLinfty
-    LinftyConstant·t^(−1/2)`. Integrand = (6.4) `(∑ₖ∂heat(x−y+2k))+(∑ₖ∂heat(x+y+2k))`.
-    Route: pointwise `|∑A+∑B| ≤ ∑|A|+∑|B|` via `abs_add`+`norm_tsum_le_tsum_norm`
-    (norm-summability = `summable_abs_iff.mpr (latticeGaussianGradSummable …)`);
-    `∑|A|+∑|B| = ∑ₖ(|∂heat(x−y+2k)|+|∂heat(x+y+2k)|)` via `Summable.tsum_add`;
-    monotone interval-integral ⇒ `≤ ∫₀¹ ∑ₖ hₖ`; Tonelli `MeasureTheory.integral_tsum`
-    over `volume.restrict (Ioc 0 1)` (hₖ continuous ⇒ AEStronglyMeasurable; the
-    `∑ ∫⁻‖hₖ‖ ≠ ∞` side from `∫₀¹ hₖ = ∫_cellₖ |∂heat|` (`cell_integral_eq`) +
-    integrable-cover summability) ⇒ `= ∑ₖ ∫₀¹ hₖ`; finish with 6.5a.
-    KEY simplification: combine the A,B families per-k into `hₖ` BEFORE Tonelli, so
-    only ONE `integral_tsum` is needed and `cell_integral_eq` gives `∫₀¹ hₖ` summable.
+    LinftyConstant·t^(−1/2)`. Now: integrate 6.5b-pre over `y∈[0,1]` (monotone
+    interval-integral — needs `IntervalIntegrable` of both sides on [0,1]) then
+    Tonelli `integral_tsum_of_summable_integral_norm` over `volume.restrict (Ioc 0 1)`
+    on `hₖ y := |∂heat(x−y+2k)|+|∂heat(x+y+2k)|` (≥0): `hF_int` = hₖ integrable on
+    [0,1] (continuous); `hF_sum` = `Summable (k ↦ ∫₀¹ hₖ)` from `∫₀¹ hₖ = ∫_cellₖ|∂heat|`
+    (`cell_integral_eq`) + `(hasSum_integral_iUnion … (heatKernel_deriv_abs_integrable
+    ht).integrableOn).summable`; then `∑ₖ∫₀¹ hₖ = const` by 6.5a. The genuinely-new
+    sub-work is the integrability/continuity of `y↦∂ₓK_full(t,x,y)` and of `y↦∑ₖhₖ y`.
   * 6.6 differentiate operator under integral: `deriv(x↦∫₀¹ K_full·f) = ∫₀¹ ∂ₓK_full·f`
     via `MeasureTheory.hasDerivAt_integral_of_dominated_loc_of_deriv_le` (uniform
     dominating bound = the 6.3 `hg'` majorant, integrable on [0,1]); then
