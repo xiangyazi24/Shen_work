@@ -219,4 +219,54 @@ theorem linearStability_dichotomy_unitInterval
   · simp [unitIntervalNeumannSpectrum]
   · simpa [unitIntervalNeumannSpectrum] using hregime
 
+/-! ## Equilibrium-specialised dichotomies (Paper3 Theorem 2.2 equilibria) -/
+
+/-- **Sharp dichotomy at the positive constant equilibrium.**  The explicit
+first-mode threshold separates linear stability from instability of the positive
+equilibrium `(u*, v*)` of the logistic model. -/
+theorem positiveEquilibrium_linearStability_dichotomy_of_firstMode_dominant
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    (ha : 0 < p.a) (hb : 0 < p.b)
+    (hmode1 : S.eigenvalue 1 = S.firstNonzero)
+    (hregime : p.a * p.α * p.μ ≤ S.firstNonzero ^ 2) :
+    (p.χ₀ < sigmaCriticalChiPaperFormula p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 (S.eigenvalue 1) →
+        LinearlyStable S p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2) ∧
+      (sigmaCriticalChiPaperFormula p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 (S.eigenvalue 1) < p.χ₀ →
+        LinearlyUnstable S p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2) :=
+  linearStability_dichotomy_at_mode_one_threshold S p H
+    (positiveEquilibrium_fst_pos p ⟨ha, hb⟩)
+    (positiveEquilibrium_snd_pos p ⟨ha, hb⟩).le hmode1 hregime
+
+/-- **Sharp dichotomy at the minimal constant equilibrium.**  The explicit
+first-mode threshold separates linear stability from instability of the minimal
+equilibrium `(u*, ν u*^γ / μ)` of the volume-filling/minimal model. -/
+theorem minimalEquilibrium_linearStability_dichotomy_of_firstMode_dominant
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hmode1 : S.eigenvalue 1 = S.firstNonzero)
+    (hregime : p.a * p.α * p.μ ≤ S.firstNonzero ^ 2) :
+    (p.χ₀ < sigmaCriticalChiPaperFormula p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 (S.eigenvalue 1) →
+        LinearlyStable S p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2) ∧
+      (sigmaCriticalChiPaperFormula p
+        (minimalEquilibrium p uStar).1
+        (minimalEquilibrium p uStar).2 (S.eigenvalue 1) < p.χ₀ →
+        LinearlyUnstable S p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2) :=
+  linearStability_dichotomy_at_mode_one_threshold S p H
+    (by simpa [minimalEquilibrium_fst_eq] using huStar)
+    (minimalEquilibrium_snd_pos p huStar).le hmode1 hregime
+
 end ShenWork.Paper3
