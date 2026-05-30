@@ -144,4 +144,79 @@ theorem paperCriticalSensitivity_unitInterval_eq_mode_one
   · simp [unitIntervalNeumannSpectrum]
   · simpa [unitIntervalNeumannSpectrum] using hregime
 
+/-! ## Sharp explicit-threshold linear stability/instability dichotomy
+
+With the exact value `χ* = paperFormula(λ₁)` (first-mode-dominant regime), the
+linearized stability of the constant equilibrium switches at the explicit first-mode
+threshold: stable strictly below, unstable strictly above.  This is the
+formula-level content of Paper3 Theorem 2.2's linear part, with the threshold given
+by the explicit per-mode formula rather than an abstract constant. -/
+
+/-- **Linear stability strictly below the exact first-mode threshold.**  In the
+first-mode-dominant regime, `χ₀ < paperFormula(λ₁)` (`= χ*`) implies linear
+stability. -/
+theorem linearlyStable_of_chi_lt_mode_one_threshold
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    {uStar vStar : ℝ} (huStar : 0 < uStar) (hvStar : 0 ≤ vStar)
+    (hmode1 : S.eigenvalue 1 = S.firstNonzero)
+    (hregime : p.a * p.α * p.μ ≤ S.firstNonzero ^ 2)
+    (hχ : p.χ₀ < sigmaCriticalChiPaperFormula p uStar vStar (S.eigenvalue 1)) :
+    LinearlyStable S p uStar vStar := by
+  have hχ' : p.χ₀ < paperCriticalSensitivity S p uStar vStar := by
+    rw [paperCriticalSensitivity_eq_mode_one_of_firstMode_dominant
+      S p H huStar hvStar hmode1 hregime]
+    exact hχ
+  exact (BelowAllLinearCriticalThresholds_of_chi_lt_paperCriticalSensitivity
+    S p H hχ' huStar hvStar).linearlyStable H huStar hvStar
+
+/-- **Linear instability strictly above the first-mode threshold.**  `paperFormula(λ₁)
+< χ₀` implies linear instability — *without* the regime hypothesis, since exceeding
+the first-mode threshold already destabilises mode 1.  (Under the regime
+`paperFormula(λ₁) = χ*`, so this is instability strictly above `χ*`.) -/
+theorem linearlyUnstable_of_mode_one_threshold_lt_chi
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    {uStar vStar : ℝ} (huStar : 0 < uStar) (hvStar : 0 ≤ vStar)
+    (hχ : sigmaCriticalChiPaperFormula p uStar vStar (S.eigenvalue 1) < p.χ₀) :
+    LinearlyUnstable S p uStar vStar := by
+  have heq : sigmaCriticalChi p uStar vStar (S.eigenvalue 1)
+      = sigmaCriticalChiPaperFormula p uStar vStar (S.eigenvalue 1) :=
+    sigmaCriticalChi_eq_paperFormula p huStar hvStar
+      (H.eigenvalue_pos_of_ne_zero 1 one_ne_zero)
+  exact LinearlyUnstable_of_sigmaCriticalChi_lt_chi S p H huStar hvStar
+    one_ne_zero (by rw [heq]; exact hχ)
+
+/-- **Sharp dichotomy at the explicit first-mode threshold (first-mode-dominant
+regime).**  The exact critical sensitivity `χ* = paperFormula(λ₁)` separates linear
+stability (`χ₀ < χ*`) from linear instability (`χ* < χ₀`). -/
+theorem linearStability_dichotomy_at_mode_one_threshold
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    {uStar vStar : ℝ} (huStar : 0 < uStar) (hvStar : 0 ≤ vStar)
+    (hmode1 : S.eigenvalue 1 = S.firstNonzero)
+    (hregime : p.a * p.α * p.μ ≤ S.firstNonzero ^ 2) :
+    (p.χ₀ < sigmaCriticalChiPaperFormula p uStar vStar (S.eigenvalue 1) →
+        LinearlyStable S p uStar vStar) ∧
+      (sigmaCriticalChiPaperFormula p uStar vStar (S.eigenvalue 1) < p.χ₀ →
+        LinearlyUnstable S p uStar vStar) :=
+  ⟨fun hχ => linearlyStable_of_chi_lt_mode_one_threshold
+      S p H huStar hvStar hmode1 hregime hχ,
+   fun hχ => linearlyUnstable_of_mode_one_threshold_lt_chi
+      S p H huStar hvStar hχ⟩
+
+/-- **Sharp linear stability/instability dichotomy for the unit interval.**  At the
+explicit first-mode threshold `paperFormula(π²)`, in the regime `aαμ ≤ π⁴`. -/
+theorem linearStability_dichotomy_unitInterval
+    (p : CM2Params) {uStar vStar : ℝ} (huStar : 0 < uStar) (hvStar : 0 ≤ vStar)
+    (hregime : p.a * p.α * p.μ ≤ (Real.pi ^ 2) ^ 2) :
+    (p.χ₀ < sigmaCriticalChiPaperFormula p uStar vStar
+        (unitIntervalNeumannSpectrum.eigenvalue 1) →
+        LinearlyStable unitIntervalNeumannSpectrum p uStar vStar) ∧
+      (sigmaCriticalChiPaperFormula p uStar vStar
+        (unitIntervalNeumannSpectrum.eigenvalue 1) < p.χ₀ →
+        LinearlyUnstable unitIntervalNeumannSpectrum p uStar vStar) := by
+  refine linearStability_dichotomy_at_mode_one_threshold
+    unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+    huStar hvStar ?_ ?_
+  · simp [unitIntervalNeumannSpectrum]
+  · simpa [unitIntervalNeumannSpectrum] using hregime
+
 end ShenWork.Paper3
