@@ -170,3 +170,31 @@ uniform `K` → `Kunif` → `IntervalDomainL2UBoundedDatumUniform` →
 `GlobalSolutionGluingFromReachability` (Thm 1.1 uniqueness).  γ≥1 regime supplies the
 uniform `M` via `Lemma_3_1_intervalDomain` (sup-norm monotonicity).  This is a
 multi-step elliptic-regularity build, a genuine next sub-project.
+
+## CORRECTION (2026-05-30) — the `Kunif` "next target" above is ALREADY CLOSED
+
+The "NEXT TARGET DIAGNOSIS" section above (resolver-gradient sup bound → `Kunif`)
+was written from the OUTDATED blocker note in
+`IntervalDomainL2UBoundedDatumUniformOfBounded.lean`.  On inspection the entire
+chain is already proved, axiom-clean:
+* `resolverGrad_sup_le_of_ub` (`IntervalDomainResolverSupQuantitative.lean`) — the
+  quantitative `|RGrad u x| ≤ √(∑W_k²)·2νM^γ` from a uniform upper bound `M` (the
+  "Piece 1" file already discharged the per-point summability + cosine-Bessel that
+  the blocker note flagged as missing);
+* `intervalDomainL2U_energy_diffIneq_bound_uniform_explicit_zeroM` — the fully
+  `M`-quantitative per-time bound `∫ ≤ (χ₀²·CfluxQuantZeroM(M)+2L)·E_u`;
+* `gronwall_const_of_uniformLiftBoundZeroM` — uniform `K` from a uniform-in-τ lift
+  bound (= `Kunif`);
+* `uniformLiftBoundZeroM_of_regime` — the uniform lift bound `M=max(‖u₀‖,(a/b)^{1/α})`
+  from the Thm-1.1 regime (χ₀≤0,a,b>0) + positive bounded datum;
+* `boundednessHypothesis_of_uniformSupBoundZeroM` → `IntervalDomainL2UBoundednessHypothesis`
+  → the gluing/uniqueness chain.
+
+So `Kunif` / the gluing-uniqueness obligation is NOT a frontier.  The genuine
+remaining critical-path frontier is **T6 / localExistence**: constructing a
+full-kernel classical solution that satisfies the regularity conjuncts (7/8/9).
+Its core analytic step is exactly `DuhamelHeatValueRepresentation` (the Fubini
+`∫₀ᵗ↔∑'ₙ` interchange + `parabolicGain_le_one`), which gives conjunct (7) for the
+*constructed* Duhamel term — the same predicate T5-u showed is NOT needed for the
+energy inequality but IS needed to exhibit a solution.  Plus `uniformLocal`
+(parabolic continuation with uniform δ(M)).
