@@ -92,6 +92,52 @@ theorem abs_deriv_heatKernel_le_unitShift {t : ℝ} (ht : 0 < t) (x : ℝ) (k : 
     _ = heatGradPointwiseBound t * Real.exp (1 / (4 * (2 * t)))
           * Real.exp (-(x + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t))) := by ring
 
+/-- Radius-`r` window majorant (generalises `heatGradUnitBound` to a window of
+half-width `r`): the `B² ≤ r²` Young slack yields the `exp(r²/8t)` factor. -/
+noncomputable def heatGradWindowBound (t x r : ℝ) (k : ℤ) : ℝ :=
+  heatGradPointwiseBound t * Real.exp (r ^ 2 / (4 * (2 * t)))
+    * Real.exp (-(x + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t)))
+
+theorem summable_heatGradWindowBound {t : ℝ} (ht : 0 < t) (x r : ℝ) :
+    Summable (fun k : ℤ => heatGradWindowBound t x r k) := by
+  have h4t : (0 : ℝ) < 4 * t := by linarith
+  exact (latticeExpSummable h4t x).mul_left _
+
+/-- **Radius-`r` uniform gradient bound.**  Whenever the lattice argument `w` is
+within distance `r` of the centre `x + 2k`, `|∂heat w| ≤ heatGradWindowBound t x r k`.
+(Same Young estimate as the unit version, with `|B| ≤ r`.) -/
+theorem abs_deriv_heatKernel_le_windowShift {t : ℝ} (ht : 0 < t) (x r : ℝ) (k : ℤ)
+    {w : ℝ} (hw : |w - (x + 2 * (k : ℝ))| ≤ r) :
+    |deriv (fun z : ℝ => heatKernel t z) w| ≤ heatGradWindowBound t x r k := by
+  refine (abs_deriv_heatKernel_le ht w).trans ?_
+  rw [heatGradWindowBound]
+  have hr : 0 ≤ r := le_trans (abs_nonneg _) hw
+  have hP : (1 / 2) * (x + 2 * (k : ℝ)) ^ 2 - r ^ 2 ≤ w ^ 2 := by
+    have hB : (w - (x + 2 * (k : ℝ))) ^ 2 ≤ r ^ 2 := by
+      rw [← sq_abs]; nlinarith [hw, abs_nonneg (w - (x + 2 * (k : ℝ)))]
+    nlinarith [sq_nonneg (2 * w - (x + 2 * (k : ℝ))), hB]
+  have hexp : Real.exp (-w ^ 2 / (4 * (2 * t)))
+      ≤ Real.exp (r ^ 2 / (4 * (2 * t))) * Real.exp (-(x + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t))) := by
+    rw [← Real.exp_add]
+    apply Real.exp_le_exp.mpr
+    have htne : t ≠ 0 := ne_of_gt ht
+    have e1 : -w ^ 2 / (4 * (2 * t)) = (-2 * w ^ 2) / (4 * (4 * t)) := by
+      field_simp
+      ring
+    have e2 : r ^ 2 / (4 * (2 * t)) + -(x + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t))
+        = (2 * r ^ 2 - (x + 2 * (k : ℝ)) ^ 2) / (4 * (4 * t)) := by
+      field_simp
+      ring
+    rw [e1, e2]
+    apply (div_le_div_iff_of_pos_right (by positivity : (0 : ℝ) < 4 * (4 * t))).mpr
+    nlinarith [hP]
+  calc heatGradPointwiseBound t * Real.exp (-w ^ 2 / (4 * (2 * t)))
+      ≤ heatGradPointwiseBound t * (Real.exp (r ^ 2 / (4 * (2 * t)))
+          * Real.exp (-(x + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t)))) :=
+        mul_le_mul_of_nonneg_left hexp (by unfold heatGradPointwiseBound; positivity)
+    _ = heatGradPointwiseBound t * Real.exp (r ^ 2 / (4 * (2 * t)))
+          * Real.exp (-(x + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t))) := by ring
+
 /-- The heat-kernel spatial derivative `w ↦ ∂heat w` is continuous. -/
 theorem continuous_deriv_heatKernel {t : ℝ} (ht : 0 < t) :
     Continuous (fun w : ℝ => deriv (fun z : ℝ => heatKernel t z) w) := by
