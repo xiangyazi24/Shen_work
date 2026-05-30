@@ -19,6 +19,8 @@ open scoped Topology
 
 namespace ShenWork.IntervalNeumannFullKernel
 
+open ShenWork.IntervalDomain
+
 /-- **Step 6.5b-1: cell-integral summability.**  The reflected+direct `[0,1]`
 heat-gradient `L¹` masses are summable over the lattice.  Each pair equals the
 mass over one period-`2` cell (`cell_integral_eq`), and the cell masses of the
@@ -222,5 +224,58 @@ theorem intervalNeumannFullKernel_deriv_abs_interval_integral_le {t : ℝ} (ht :
         exact intervalIntegral.integral_add (hAii k) (hBii k)
     _ = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
           * t ^ (-(1 / 2) : ℝ) := ShenWork.tsum_cell_heatGrad_abs_integral_eq ht x
+
+/-- **Step 6.6 (bounding half): full-kernel gradient `L∞→L∞`, given the
+differentiation-under-the-integral representation.**  For `|f| ≤ Cf`, once the
+operator derivative is realised as the integral of the kernel derivative
+(`hrepr` — the standard parametric-integral differentiation, the one residual
+frontier), the `L∞→L∞` gradient bound is the `L¹` tiling bound `(1/√π)t^(−1/2)`
+scaled by `Cf`:
+
+  `|deriv (z ↦ intervalFullSemigroupOperator t f z) x| ≤ (1/√π)·t^(−1/2)·Cf`.
+
+`|∫ ∂ₓK·f| ≤ ∫ |∂ₓK|·|f| ≤ Cf·∫₀¹|∂ₓK_full|` (`Icc`↔`Ioc` null-set bridge) and
+`intervalNeumannFullKernel_deriv_abs_interval_integral_le` (Step 6.5b). -/
+theorem intervalFullSemigroupOperator_deriv_Linfty_of_hasDerivAt
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure 1))
+    {Cf : ℝ} (hf : ∀ y, |f y| ≤ Cf) (x : ℝ)
+    (hrepr : HasDerivAt (fun z : ℝ => intervalFullSemigroupOperator t f z)
+        (∫ y, deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x * f y ∂(intervalMeasure 1)) x) :
+    |deriv (fun z : ℝ => intervalFullSemigroupOperator t f z) x|
+      ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          * t ^ (-(1 / 2) : ℝ) * Cf := by
+  have hCf : 0 ≤ Cf := le_trans (abs_nonneg (f 0)) (hf 0)
+  have hKint : Integrable (fun y : ℝ => deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x)
+      (intervalMeasure 1) := by
+    simp only [intervalMeasure, intervalSet]
+    exact (continuousOn_deriv_intervalNeumannFullKernel_fst ht x).integrableOn_Icc
+  have hbdd : ∀ᵐ y ∂(intervalMeasure 1), ‖f y‖ ≤ Cf :=
+    Filter.Eventually.of_forall fun y => by simpa [Real.norm_eq_abs] using hf y
+  have hprod_int : Integrable
+      (fun y : ℝ => deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x * f y)
+      (intervalMeasure 1) := hKint.mul_bdd hf_meas hbdd
+  -- the `L¹` bound on `|∂ₓK_full|` against the measure `intervalMeasure 1`.
+  have hint_le : (∫ y, |deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x| ∂(intervalMeasure 1))
+      ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant * t ^ (-(1 / 2) : ℝ) := by
+    have hcv : (∫ y, |deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x| ∂(intervalMeasure 1))
+        = ∫ y in (0 : ℝ)..1, |deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x| := by
+      simp only [intervalMeasure, intervalSet]
+      rw [MeasureTheory.integral_Icc_eq_integral_Ioc,
+        ← intervalIntegral.integral_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+    rw [hcv]
+    exact intervalNeumannFullKernel_deriv_abs_interval_integral_le ht x
+  rw [hrepr.deriv]
+  calc |∫ y, deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x * f y ∂(intervalMeasure 1)|
+      ≤ ∫ y, ‖deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x * f y‖ ∂(intervalMeasure 1) := by
+        rw [← Real.norm_eq_abs]; exact norm_integral_le_integral_norm _
+    _ ≤ ∫ y, |deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x| * Cf ∂(intervalMeasure 1) := by
+        refine MeasureTheory.integral_mono hprod_int.norm (hKint.abs.mul_const Cf) (fun y => ?_)
+        rw [Real.norm_eq_abs, abs_mul]
+        exact mul_le_mul_of_nonneg_left (hf y) (abs_nonneg _)
+    _ = (∫ y, |deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x| ∂(intervalMeasure 1)) * Cf := by
+        rw [MeasureTheory.integral_mul_const]
+    _ ≤ (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant * t ^ (-(1 / 2) : ℝ)) * Cf :=
+        mul_le_mul_of_nonneg_right hint_le hCf
 
 end ShenWork.IntervalNeumannFullKernel
