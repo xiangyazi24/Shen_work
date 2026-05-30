@@ -219,4 +219,151 @@ theorem deriv_intervalDomainLift_continuousOn_Icc_of_semigroup
         exact hev.deriv_eq
   exact (hderiv_cont.continuousOn).congr hEqD
 
+/-! ## The remaining T4-b regularity-package pieces for a semigroup profile
+
+Below, `S := fun x => intervalFullSemigroupOperator t f x` is `ContDiff ℝ 2` on all
+of `ℝ`, and `lift g = S` on `[0,1]`.  On the **open** interior `(0,1)` the lift and
+all its derivatives agree with `S`'s (an open-set congruence), which yields the
+interior `HasDerivWithinAt` data and the interval-integrability of the first and
+second derivatives. -/
+
+/-- On the open interior, the first lift derivative agrees with `deriv S`. -/
+theorem deriv_intervalDomainLift_eqOn_Ioo_of_semigroup
+    {t : ℝ} {f : ℝ → ℝ}
+    {g : intervalDomainPoint → ℝ}
+    (hg : Set.EqOn (intervalDomainLift g)
+      (fun x => intervalFullSemigroupOperator t f x) (Set.Icc (0 : ℝ) 1)) :
+    Set.EqOn (deriv (intervalDomainLift g))
+      (deriv (fun x => intervalFullSemigroupOperator t f x)) (Set.Ioo (0 : ℝ) 1) := by
+  intro y hy
+  have hev : intervalDomainLift g =ᶠ[𝓝 y]
+      (fun x => intervalFullSemigroupOperator t f x) :=
+    Filter.eventuallyEq_of_mem (isOpen_Ioo.mem_nhds hy)
+      (fun z hz => hg ⟨le_of_lt hz.1, le_of_lt hz.2⟩)
+  exact hev.deriv_eq
+
+/-- Closed-`[0,1]` continuity of the lift itself (the `C⁰` package piece). -/
+theorem intervalDomainLift_continuousOn_Icc_of_semigroup
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf : Continuous f) {M : ℝ}
+    (hM : ∀ n, |cosineCoeffs f n| ≤ M)
+    {g : intervalDomainPoint → ℝ}
+    (hg : Set.EqOn (intervalDomainLift g)
+      (fun x => intervalFullSemigroupOperator t f x) (Set.Icc (0 : ℝ) 1))
+    (hkernel : ∀ x : ℝ, ∀ y,
+      intervalNeumannFullKernel t x y =
+        ∑' m : ℤ, Real.exp (-t * ((m : ℝ) * Real.pi) ^ 2) *
+          (Real.cos ((m : ℝ) * Real.pi * x) * Real.cos ((m : ℝ) * Real.pi * y))) :
+    ContinuousOn (intervalDomainLift g) (Set.Icc (0 : ℝ) 1) :=
+  (intervalFullSemigroupProfile_contDiffOn_two_closed ht hf hM hg hkernel).continuousOn
+
+/-- Interior right-`HasDerivWithinAt` of the lift (`test`/`f` first-order datum). -/
+theorem intervalDomainLift_hasDerivWithinAt_Ioi_of_semigroup
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf : Continuous f) {M : ℝ}
+    (hM : ∀ n, |cosineCoeffs f n| ≤ M)
+    {g : intervalDomainPoint → ℝ}
+    (hg : Set.EqOn (intervalDomainLift g)
+      (fun x => intervalFullSemigroupOperator t f x) (Set.Icc (0 : ℝ) 1))
+    (hkernel : ∀ x : ℝ, ∀ y,
+      intervalNeumannFullKernel t x y =
+        ∑' m : ℤ, Real.exp (-t * ((m : ℝ) * Real.pi) ^ 2) *
+          (Real.cos ((m : ℝ) * Real.pi * x) * Real.cos ((m : ℝ) * Real.pi * y)))
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    HasDerivWithinAt (intervalDomainLift g)
+      (deriv (intervalDomainLift g) x) (Set.Ioi x) x := by
+  have hC2 :
+      ContDiff ℝ 2 (fun x => intervalFullSemigroupOperator t f x) :=
+    ShenWork.IntervalFullKernelInterchange.intervalFullSemigroupOperator_contDiff_two_unconditional
+      t ht f hf hM hkernel
+  have hev : intervalDomainLift g =ᶠ[𝓝 x]
+      (fun z => intervalFullSemigroupOperator t f z) :=
+    Filter.eventuallyEq_of_mem (isOpen_Ioo.mem_nhds hx)
+      (fun z hz => hg ⟨le_of_lt hz.1, le_of_lt hz.2⟩)
+  have hdiff : DifferentiableAt ℝ (intervalDomainLift g) x :=
+    (hC2.differentiable (by norm_num)).differentiableAt.congr_of_eventuallyEq hev
+  exact hdiff.hasDerivAt.hasDerivWithinAt
+
+/-- Interior right-`HasDerivWithinAt` of the first derivative (second-order datum). -/
+theorem deriv_intervalDomainLift_hasDerivWithinAt_Ioi_of_semigroup
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf : Continuous f) {M : ℝ}
+    (hM : ∀ n, |cosineCoeffs f n| ≤ M)
+    {g : intervalDomainPoint → ℝ}
+    (hg : Set.EqOn (intervalDomainLift g)
+      (fun x => intervalFullSemigroupOperator t f x) (Set.Icc (0 : ℝ) 1))
+    (hkernel : ∀ x : ℝ, ∀ y,
+      intervalNeumannFullKernel t x y =
+        ∑' m : ℤ, Real.exp (-t * ((m : ℝ) * Real.pi) ^ 2) *
+          (Real.cos ((m : ℝ) * Real.pi * x) * Real.cos ((m : ℝ) * Real.pi * y)))
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    HasDerivWithinAt (deriv (intervalDomainLift g))
+      (deriv (deriv (intervalDomainLift g)) x) (Set.Ioi x) x := by
+  have hC2 :
+      ContDiff ℝ 2 (fun x => intervalFullSemigroupOperator t f x) :=
+    ShenWork.IntervalFullKernelInterchange.intervalFullSemigroupOperator_contDiff_two_unconditional
+      t ht f hf hM hkernel
+  have hevD : deriv (intervalDomainLift g) =ᶠ[𝓝 x]
+      deriv (fun z => intervalFullSemigroupOperator t f z) :=
+    Filter.eventuallyEq_of_mem (isOpen_Ioo.mem_nhds hx)
+      (fun z hz => deriv_intervalDomainLift_eqOn_Ioo_of_semigroup hg hz)
+  have hdiff : DifferentiableAt ℝ (deriv (intervalDomainLift g)) x :=
+    ((hC2.deriv' (n := 1)).differentiable (by norm_num)).differentiableAt.congr_of_eventuallyEq
+      hevD
+  exact hdiff.hasDerivAt.hasDerivWithinAt
+
+/-- First lift derivative is interval-integrable on `[0,1]` (from `C¹` continuity). -/
+theorem intervalIntegrable_deriv_intervalDomainLift_of_semigroup
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf : Continuous f) {M : ℝ}
+    (hM : ∀ n, |cosineCoeffs f n| ≤ M)
+    {g : intervalDomainPoint → ℝ}
+    (hg : Set.EqOn (intervalDomainLift g)
+      (fun x => intervalFullSemigroupOperator t f x) (Set.Icc (0 : ℝ) 1))
+    (hkernel : ∀ x : ℝ, ∀ y,
+      intervalNeumannFullKernel t x y =
+        ∑' m : ℤ, Real.exp (-t * ((m : ℝ) * Real.pi) ^ 2) *
+          (Real.cos ((m : ℝ) * Real.pi * x) * Real.cos ((m : ℝ) * Real.pi * y))) :
+    IntervalIntegrable (deriv (intervalDomainLift g)) MeasureTheory.volume 0 1 := by
+  apply ContinuousOn.intervalIntegrable
+  rw [Set.uIcc_of_le (zero_le_one)]
+  exact deriv_intervalDomainLift_continuousOn_Icc_of_semigroup ht hf hM hg hkernel
+
+/-- Second lift derivative is interval-integrable on `[0,1]`: it equals `deriv² S`
+on the interior (full measure on `[0,1]`), and `deriv² S` is continuous. -/
+theorem intervalIntegrable_deriv2_intervalDomainLift_of_semigroup
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf : Continuous f) {M : ℝ}
+    (hM : ∀ n, |cosineCoeffs f n| ≤ M)
+    {g : intervalDomainPoint → ℝ}
+    (hg : Set.EqOn (intervalDomainLift g)
+      (fun x => intervalFullSemigroupOperator t f x) (Set.Icc (0 : ℝ) 1))
+    (hkernel : ∀ x : ℝ, ∀ y,
+      intervalNeumannFullKernel t x y =
+        ∑' m : ℤ, Real.exp (-t * ((m : ℝ) * Real.pi) ^ 2) *
+          (Real.cos ((m : ℝ) * Real.pi * x) * Real.cos ((m : ℝ) * Real.pi * y))) :
+    IntervalIntegrable (deriv (deriv (intervalDomainLift g)))
+      MeasureTheory.volume 0 1 := by
+  set S : ℝ → ℝ := fun x => intervalFullSemigroupOperator t f x with hS
+  have hC2 : ContDiff ℝ 2 S :=
+    ShenWork.IntervalFullKernelInterchange.intervalFullSemigroupOperator_contDiff_two_unconditional
+      t ht f hf hM hkernel
+  have hd2S_cont : Continuous (deriv (deriv S)) :=
+    (hC2.deriv' (n := 1)).continuous_deriv (by norm_num)
+  have hd2S_int : IntervalIntegrable (deriv (deriv S)) MeasureTheory.volume 0 1 :=
+    hd2S_cont.intervalIntegrable 0 1
+  -- second derivatives agree on the interior `(0,1)`, full measure on `[0,1]`.
+  have hEq2 : Set.EqOn (deriv (deriv (intervalDomainLift g))) (deriv (deriv S))
+      (Set.Ioo (0 : ℝ) 1) := by
+    intro y hy
+    have hevD : deriv (intervalDomainLift g) =ᶠ[𝓝 y] deriv S :=
+      Filter.eventuallyEq_of_mem (isOpen_Ioo.mem_nhds hy)
+        (fun z hz => deriv_intervalDomainLift_eqOn_Ioo_of_semigroup hg hz)
+    exact hevD.deriv_eq
+  have hae : deriv (deriv (intervalDomainLift g)) =ᵐ[MeasureTheory.volume.restrict (Set.uIoc 0 1)]
+      deriv (deriv S) := by
+    rw [Set.uIoc_of_le (zero_le_one)]
+    refine (MeasureTheory.ae_restrict_iff' measurableSet_Ioc).mpr ?_
+    have hne1 : ∀ᵐ y ∂MeasureTheory.volume, y ≠ (1 : ℝ) := by
+      have heq : {y : ℝ | ¬ y ≠ 1} = {(1 : ℝ)} := by ext y; simp [eq_comm]
+      rw [MeasureTheory.ae_iff, heq]; exact Real.volume_singleton
+    filter_upwards [hne1] with y hyne hyIoc
+    exact hEq2 ⟨hyIoc.1, lt_of_le_of_ne hyIoc.2 hyne⟩
+  exact hd2S_int.congr_ae hae.symm
+
 end ShenWork.IntervalFullKernelRegularity
