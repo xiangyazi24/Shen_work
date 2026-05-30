@@ -133,4 +133,76 @@ theorem intervalFullCoupledDuhamel_grad_integral_bound_of_leibniz
     _ ≤ Cgrad * C_source * (2 * Real.sqrt T) := hT_bound
     _ = Cgrad * (2 * Real.sqrt T) * C_source := by ring
 
+/-- **Full-kernel Duhamel gradient estimate (initial + source).**  The
+full-Neumann-kernel analogue of `intervalCoupledDuhamel_grad_estimate_of_leibniz`:
+the full Duhamel image's spatial gradient is bounded by
+`G_init + Cgrad·2√T·C_source`, taking the initial-data gradient bound `hInit_grad`
+abstractly (its full-kernel IBP discharge is the remaining grad-prerequisite) and
+the source-integral bound from `intervalFullCoupledDuhamel_grad_integral_bound_of
+_leibniz`. -/
+theorem intervalFullCoupledDuhamel_grad_estimate_of_leibniz
+    {t T : ℝ} (ht : 0 < t) (htT : t ≤ T)
+    {u₀ : ℝ → ℝ}
+    {F : ℝ → ℝ → ℝ}
+    (hF_int : ∀ s, MeasureTheory.Integrable (F s) (intervalMeasure 1))
+    {C_source : ℝ} (hC_source_nn : 0 ≤ C_source)
+    (hF_sup : ∀ s, ∀ y : ℝ, |F s y| ≤ C_source)
+    (x₀ : ℝ)
+    {G_init : ℝ} (hG_init_nn : 0 ≤ G_init)
+    (hInit_grad :
+      |deriv (fun z : ℝ => intervalFullSemigroupOperator t u₀ z) x₀| ≤ G_init)
+    (hSplit :
+      deriv (fun x : ℝ =>
+        intervalFullSemigroupOperator t u₀ x +
+        ∫ s in (0 : ℝ)..t,
+          intervalFullSemigroupOperator (t - s) (F s) x) x₀ =
+      deriv (fun z : ℝ => intervalFullSemigroupOperator t u₀ z) x₀ +
+      deriv (fun x : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          intervalFullSemigroupOperator (t - s) (F s) x) x₀)
+    (hLeibniz :
+      deriv (fun x : ℝ =>
+        ∫ s in (0 : ℝ)..t,
+          intervalFullSemigroupOperator (t - s) (F s) x) x₀ =
+      ∫ s in (0 : ℝ)..t,
+        deriv (fun z : ℝ =>
+          intervalFullSemigroupOperator (t - s) (F s) z) x₀)
+    (hGrad_int :
+      IntervalIntegrable
+        (fun s : ℝ =>
+          deriv (fun z : ℝ =>
+            intervalFullSemigroupOperator (t - s) (F s) z) x₀)
+        MeasureTheory.volume (0 : ℝ) t)
+    (hDom_int :
+      IntervalIntegrable
+        (fun s : ℝ =>
+          ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * C_source * (t - s) ^ (-(1 / 2 : ℝ)))
+        MeasureTheory.volume (0 : ℝ) t) :
+    |deriv (fun x : ℝ =>
+        intervalFullSemigroupOperator t u₀ x +
+        ∫ s in (0 : ℝ)..t,
+          intervalFullSemigroupOperator (t - s) (F s) x) x₀| ≤
+      G_init +
+        ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant *
+          (2 * Real.sqrt T) * C_source := by
+  set Cgrad := ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+  rw [hSplit]
+  have hint_bound :=
+    intervalFullCoupledDuhamel_grad_integral_bound_of_leibniz
+      (t := t) (T := T) ht htT (F := F) hF_int (C_source := C_source)
+      hC_source_nn hF_sup x₀ hLeibniz hGrad_int hDom_int
+  calc
+    |deriv (fun z : ℝ => intervalFullSemigroupOperator t u₀ z) x₀ +
+        deriv (fun x : ℝ =>
+          ∫ s in (0 : ℝ)..t,
+            intervalFullSemigroupOperator (t - s) (F s) x) x₀|
+        ≤
+        |deriv (fun z : ℝ => intervalFullSemigroupOperator t u₀ z) x₀| +
+          |deriv (fun x : ℝ =>
+            ∫ s in (0 : ℝ)..t,
+              intervalFullSemigroupOperator (t - s) (F s) x) x₀| := abs_add_le _ _
+    _ ≤ G_init + Cgrad * (2 * Real.sqrt T) * C_source :=
+        add_le_add hInit_grad hint_bound
+
 end ShenWork.IntervalNeumannFullKernel
