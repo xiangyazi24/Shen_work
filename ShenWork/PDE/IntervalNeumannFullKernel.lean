@@ -53,6 +53,7 @@ import ShenWork.PDE.IntervalSemigroupSpectralForm
 import ShenWork.PDE.HeatKernelGradientEstimates
 import ShenWork.PDE.IntervalDomainRegularityBootstrap
 import Mathlib.Analysis.SpecialFunctions.Gaussian.PoissonSummation
+import Mathlib.Analysis.Calculus.SmoothSeries
 
 open MeasureTheory
 
@@ -405,6 +406,78 @@ theorem latticeGaussianGradSummable {t : ℝ} (ht : 0 < t) (z : ℝ) :
   apply Summable.of_abs
   exact ((latticeExpSummable h2t z).mul_left (heatGradPointwiseBound t)).of_nonneg_of_le
     (fun k => abs_nonneg _) (fun k => abs_deriv_heatKernel_le ht _)
+
+/-- **Termwise differentiation of the lattice heat sum.**  For `t > 0` and any
+shift `b`, the lattice `w ↦ ∑ₖ heatKernel t (w + b + 2k)` is differentiable in
+`w`, with derivative the termwise lattice sum of the heat-kernel derivatives.
+
+Proof via `hasDerivAt_tsum_of_isPreconnected` on the open interval `(x−1, x+1)`:
+the per-term uniform derivative bound is `abs_deriv_heatKernel_le` followed by the
+Young inequality `(A+B)² ≥ ½A² − B²` (with `A = x+b+2k`, `B = w − x`, `|B| < 1`),
+giving a `k`-summable majorant `latticeExpSummable (4t)`. -/
+theorem hasDerivAt_heatKernel_lattice_tsum {t : ℝ} (ht : 0 < t) (b x : ℝ) :
+    HasDerivAt (fun w : ℝ => ∑' k : ℤ, heatKernel t (w + b + 2 * (k : ℝ)))
+      (∑' k : ℤ, deriv (fun u : ℝ => heatKernel t u) (x + b + 2 * (k : ℝ))) x := by
+  have h4t : (0 : ℝ) < 4 * t := by linarith
+  -- the uniform summable majorant on `(x−1, x+1)`
+  set u : ℤ → ℝ := fun k =>
+    heatGradPointwiseBound t * Real.exp (1 / (4 * (2 * t)))
+      * Real.exp (-(x + b + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t))) with hu_def
+  have hu : Summable u :=
+    (latticeExpSummable h4t (x + b)).mul_left
+      (heatGradPointwiseBound t * Real.exp (1 / (4 * (2 * t))))
+  -- per-term derivative (chain rule through the affine shift `w ↦ w+b+2k`)
+  have hg : ∀ (k : ℤ) (w : ℝ), w ∈ Set.Ioo (x - 1) (x + 1) →
+      HasDerivAt (fun w : ℝ => heatKernel t (w + b + 2 * (k : ℝ)))
+        (deriv (fun u : ℝ => heatKernel t u) (w + b + 2 * (k : ℝ))) w := by
+    intro k w _
+    have hinner : HasDerivAt (fun w : ℝ => w + b + 2 * (k : ℝ)) 1 w := by
+      simpa using ((hasDerivAt_id w).add_const b).add_const (2 * (k : ℝ))
+    have hcomp := (heatKernel_hasDerivAt ht (w + b + 2 * (k : ℝ))).comp w hinner
+    rw [deriv_heatKernel ht]
+    simpa using hcomp
+  -- uniform derivative bound: pointwise bound + Young inequality
+  have hg' : ∀ (k : ℤ) (w : ℝ), w ∈ Set.Ioo (x - 1) (x + 1) →
+      ‖deriv (fun u : ℝ => heatKernel t u) (w + b + 2 * (k : ℝ))‖ ≤ u k := by
+    intro k w hw
+    rw [Real.norm_eq_abs]
+    refine (abs_deriv_heatKernel_le ht (w + b + 2 * (k : ℝ))).trans ?_
+    rw [hu_def]
+    have hP : (1 / 2) * (x + b + 2 * (k : ℝ)) ^ 2 - 1 ≤ (w + b + 2 * (k : ℝ)) ^ 2 := by
+      have hB : (w - x) ^ 2 ≤ 1 := by nlinarith [hw.1, hw.2]
+      nlinarith [sq_nonneg (2 * w - x + b + 2 * (k : ℝ)), hB]
+    have hexp : Real.exp (-(w + b + 2 * (k : ℝ)) ^ 2 / (4 * (2 * t)))
+        ≤ Real.exp (1 / (4 * (2 * t)))
+          * Real.exp (-(x + b + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t))) := by
+      rw [← Real.exp_add]
+      apply Real.exp_le_exp.mpr
+      have htne : t ≠ 0 := ne_of_gt ht
+      have e1 : -(w + b + 2 * (k : ℝ)) ^ 2 / (4 * (2 * t))
+          = (-2 * (w + b + 2 * (k : ℝ)) ^ 2) / (4 * (4 * t)) := by
+        field_simp
+        ring
+      have e2 : 1 / (4 * (2 * t)) + -(x + b + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t))
+          = (2 - (x + b + 2 * (k : ℝ)) ^ 2) / (4 * (4 * t)) := by
+        field_simp
+        ring
+      rw [e1, e2]
+      apply (div_le_div_iff_of_pos_right (by positivity : (0 : ℝ) < 4 * (4 * t))).mpr
+      nlinarith [hP]
+    calc heatGradPointwiseBound t
+            * Real.exp (-(w + b + 2 * (k : ℝ)) ^ 2 / (4 * (2 * t)))
+        ≤ heatGradPointwiseBound t * (Real.exp (1 / (4 * (2 * t)))
+            * Real.exp (-(x + b + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t)))) :=
+          mul_le_mul_of_nonneg_left hexp (by unfold heatGradPointwiseBound; positivity)
+      _ = heatGradPointwiseBound t * Real.exp (1 / (4 * (2 * t)))
+            * Real.exp (-(x + b + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t))) := by ring
+  have hg0 : Summable (fun k : ℤ => heatKernel t (x + b + 2 * (k : ℝ))) :=
+    latticeGaussianSummable ht (x + b)
+  exact hasDerivAt_tsum_of_isPreconnected (u := u) (t := Set.Ioo (x - 1) (x + 1))
+    (g := fun (k : ℤ) (w : ℝ) => heatKernel t (w + b + 2 * (k : ℝ)))
+    (g' := fun (k : ℤ) (w : ℝ) => deriv (fun u : ℝ => heatKernel t u) (w + b + 2 * (k : ℝ)))
+    hu isOpen_Ioo (convex_Ioo _ _).isPreconnected hg hg'
+    (y₀ := x) (Set.mem_Ioo.mpr ⟨by linarith, by linarith⟩) hg0
+    (y := x) (Set.mem_Ioo.mpr ⟨by linarith, by linarith⟩)
 
 /-- **Pointwise kernel identity** (reduced).  Given lattice-Gaussian summability at the
 two shifts, the full periodised image kernel equals the cosine spectral kernel:
