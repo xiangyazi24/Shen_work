@@ -661,3 +661,25 @@ After Liang (Paper2 author) confirmed Paper2 only addresses γ≥1 (2026-05-27 c
   - `posWit` — book-keeping pass-through (per-pair PositiveInitialDatum)
 
 **ONLY 2 textbook PDE inputs remain**, both standard items Paper2 itself cites from PDE literature (Henry §3.3 / Amann Vol. I). From the 4-textbook-input baseline to 2 in three subagent rounds, every step axiom-clean and verified.
+
+## ROUND-T5∂ₜ — L² ENERGY TIME-FRONTIERS CLOSED (2026-05-30, HEAD e629148, build 8372 axiom-clean)
+
+Attacked the T5 ∂ₜ tail of the L²-energy differential inequality `E'(t)+dissipation ≤ χ·(…)+logistic` for the full full-kernel solution. Two time-frontiers — `hL2Time` (the time-Leibniz chain rule) and `hPDEIntegral` (the PDE substitution) — were **fully discharged as unconditional theorems about any classical solution**, and the closed-boundary representation gap was reduced. 12 commits, all axiom-clean.
+
+### R1 — `hL2Time` UNCONDITIONAL (T5-j/k/l)
+`intervalDomain_l2_half_energy_hL2Time` (`Paper2/IntervalDomainL2HalfEnergyTimeLeibniz.lean`): `d/dt (½∫₀¹u²) = ∫₀¹ u·∂ₜu` for any `IsPaper2ClassicalSolution` at an interior time, NO extra hypotheses.
+- Reduction `…_of_slabContinuous`: localized Leibniz (`intervalIntegral_hasDerivAt_time_of_local`) + (D1) square chain rule (`intervalDomain_timeDeriv_isGenuine`) + (D2) `exists_bound_of_continuousOn_slab`.
+- Side conditions discharged: closed-slab joint continuity = conjunct (9)·(8); `hF_meas`/`hF_int`/`hF'_meas` from time-slice continuity (`intervalDomain_continuousOn_timeSlice` + `ContinuousOn.aestronglyMeasurable`/`.intervalIntegrable`).
+- Key simplification: the derivative is in TIME, so the lift's spatial endpoint jump is irrelevant — `∫(deriv field) = intervalDomain.integral(u·∂ₜu)` EXACTLY on `[0,1]`, no a.e. needed.
+
+### R2 — `hPDEIntegral` UNCONDITIONAL (T5-m..q)
+`intervalDomain_l2_half_energy_hPDEIntegral_of_regularity` (`Paper2/IntervalDomainL2PDEIntegral.lean`): integrates the proved pointwise PDE; the three energy integrals split by linearity once the three lifted integrands are interval-integrable, and all three are discharged:
+- `hA` (u·Δu): conjunct (7) closed-`C²`, via `ContDiffOn.derivWithin` + `derivWithin_of_mem_nhds` (ordinary `deriv²` ↔ closed `derivWithin²` on the interior, a.e.-on-`Ioc`).
+- `hC` (u²(a−bu^α)): conjunct (7) + strict positivity `u>0` (`u_pos'`), via `ContinuousOn.rpow_const`.
+- `hB` (u·chemDiv): factor the bounded `u` (`continuousOn_mul`) ⟹ chemotaxis-flux-divergence integrability; the closed flux quotient `q̃=(lift u)·(derivWithin(lift v))/(1+lift v)^β` is `C¹` (`ContDiffOn.div` + `Real.contDiffAt_rpow_const_of_ne` + `v_nonneg` ⇒ `1+v≥1>0`), and `chemDiv=deriv q ↔ derivWithin q̃` on the interior.
+
+### R3 — closed-boundary representation reduced (T5-i)
+`eqOn_Icc_of_eqOn_Ioo_of_continuousOn` density bridge (`Set.EqOn.of_subset_closure`+`closure_Ioo`) ⇒ the energy inequality consumes only the OPEN-`(0,1)` cosine representation (the natural form of `DuhamelHeatValueRepresentation`) + conjunct (7); endpoints free by continuity.
+
+### Capstone (T5-r)
+`intervalDomain_l2_half_energy_inequality_of_cosineProfile_full`: full-solution `E'≤K·E` with BOTH `hL2Time` and `hPDEIntegral` discharged. **Only remaining inputs**: the OPEN-`(0,1)` cosine representation `hrepIoo` (`DuhamelHeatValueRepresentation` body = Fubini ∫₀ᵗ↔∑'ₙ + `parabolicGain_le_one`) and `hCrossControl`. Conjuncts (8)/(9) for the cosine *constructed* solution (Weierstrass-M) belong to T6.
