@@ -133,4 +133,94 @@ theorem intervalIntegrable_deriv_intervalNeumannFullKernel_fst {t : ℝ} (ht : 0
   rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
   exact continuousOn_deriv_intervalNeumannFullKernel_fst ht x
 
+/-- **Step 6.5b: the full-kernel gradient `L¹` bound.**  The `[0,1]` mass of the
+full-Neumann-kernel `x`-derivative is the envelope-integrable constant:
+
+  `∫₀¹ |∂ₓ K_full(t,x,y)| dy ≤ (1/√π)·t^(−1/2)`.
+
+Monotone bound by the dominating lattice series (`abs_deriv_intervalNeumannFull
+Kernel_fst_le`), Tonelli interchange `∫₀¹ ∑ₖ = ∑ₖ ∫₀¹`
+(`integral_tsum_of_summable_integral_norm`, summable cell masses), and the tiling
+value `tsum_cell_heatGrad_abs_integral_eq`. -/
+theorem intervalNeumannFullKernel_deriv_abs_interval_integral_le {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    (∫ y in (0 : ℝ)..1, |deriv (fun x : ℝ => intervalNeumannFullKernel t x y) x|)
+      ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          * t ^ (-(1 / 2) : ℝ) := by
+  have h01 : (0 : ℝ) ≤ 1 := by norm_num
+  have hcd := continuous_deriv_heatKernel ht
+  have hAcont : ∀ k : ℤ,
+      Continuous (fun y : ℝ => |deriv (fun z : ℝ => heatKernel t z) (x - y + 2 * (k : ℝ))|) :=
+    fun k => (hcd.comp (by fun_prop)).abs
+  have hBcont : ∀ k : ℤ,
+      Continuous (fun y : ℝ => |deriv (fun z : ℝ => heatKernel t z) (x + y + 2 * (k : ℝ))|) :=
+    fun k => (hcd.comp (by fun_prop)).abs
+  have hAii : ∀ k : ℤ,
+      IntervalIntegrable (fun y : ℝ => |deriv (fun z : ℝ => heatKernel t z) (x - y + 2 * (k : ℝ))|)
+        MeasureTheory.volume 0 1 := fun k => (hAcont k).intervalIntegrable 0 1
+  have hBii : ∀ k : ℤ,
+      IntervalIntegrable (fun y : ℝ => |deriv (fun z : ℝ => heatKernel t z) (x + y + 2 * (k : ℝ))|)
+        MeasureTheory.volume 0 1 := fun k => (hBcont k).intervalIntegrable 0 1
+  set hk : ℤ → ℝ → ℝ := fun k y =>
+    |deriv (fun z : ℝ => heatKernel t z) (x - y + 2 * (k : ℝ))|
+      + |deriv (fun z : ℝ => heatKernel t z) (x + y + 2 * (k : ℝ))| with hk_def
+  have hk_nonneg : ∀ k y, 0 ≤ hk k y := fun k y => by rw [hk_def]; positivity
+  have hu2 : Summable (fun k : ℤ => 2 * heatGradUnitBound t x k) :=
+    (summable_heatGradUnitBound ht x).mul_left 2
+  have hk_bound : ∀ (k : ℤ) (y : ℝ), y ∈ Set.Icc (0 : ℝ) 1 → ‖hk k y‖ ≤ 2 * heatGradUnitBound t x k := by
+    intro k y hy
+    rw [Real.norm_eq_abs, abs_of_nonneg (hk_nonneg k y)]
+    have h1 := abs_deriv_heatKernel_le_unitShift ht x k (w := x - y + 2 * (k : ℝ))
+      (by rw [show x - y + 2 * (k : ℝ) - (x + 2 * (k : ℝ)) = -y by ring, abs_neg]
+          exact abs_le.mpr ⟨by linarith [hy.1], by linarith [hy.2]⟩)
+    have h2 := abs_deriv_heatKernel_le_unitShift ht x k (w := x + y + 2 * (k : ℝ))
+      (by rw [show x + y + 2 * (k : ℝ) - (x + 2 * (k : ℝ)) = y by ring]
+          exact abs_le.mpr ⟨by linarith [hy.1], by linarith [hy.2]⟩)
+    rw [hk_def]; linarith [h1, h2]
+  have hDii : IntervalIntegrable (fun y : ℝ => ∑' k : ℤ, hk k y) MeasureTheory.volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    rw [Set.uIcc_of_le h01]
+    exact continuousOn_tsum (fun k => ((hAcont k).add (hBcont k)).continuousOn) hu2 hk_bound
+  -- Step 1: dominate by the lattice series.
+  have hmono : (∫ y in (0 : ℝ)..1, |deriv (fun x : ℝ => intervalNeumannFullKernel t x y) x|)
+      ≤ ∫ y in (0 : ℝ)..1, ∑' k : ℤ, hk k y := by
+    refine intervalIntegral.integral_mono_on h01
+      (intervalIntegrable_deriv_intervalNeumannFullKernel_fst ht x).abs hDii (fun y _ => ?_)
+    rw [hk_def]
+    exact abs_deriv_intervalNeumannFullKernel_fst_le ht x y
+  refine hmono.trans (le_of_eq ?_)
+  -- Step 2: Tonelli + the tiling value.
+  have hμint : ∀ k : ℤ, Integrable (hk k) (MeasureTheory.volume.restrict (Set.Ioc (0 : ℝ) 1)) := by
+    intro k
+    rw [hk_def]
+    exact (intervalIntegrable_iff_integrableOn_Ioc_of_le h01).mp ((hAii k).add (hBii k))
+  have heq : ∀ k : ℤ,
+      (∫ y, ‖hk k y‖ ∂(MeasureTheory.volume.restrict (Set.Ioc (0 : ℝ) 1)))
+        = (∫ y in (0 : ℝ)..1, |deriv (fun z : ℝ => heatKernel t z) (x - y + 2 * (k : ℝ))|)
+            + (∫ y in (0 : ℝ)..1, |deriv (fun z : ℝ => heatKernel t z) (x + y + 2 * (k : ℝ))|) := by
+    intro k
+    have e1 : (∫ y, ‖hk k y‖ ∂(MeasureTheory.volume.restrict (Set.Ioc (0 : ℝ) 1)))
+        = ∫ y in (0 : ℝ)..1, hk k y := by
+      rw [intervalIntegral.integral_of_le h01]
+      exact MeasureTheory.integral_congr_ae
+        (Filter.Eventually.of_forall fun y => Real.norm_of_nonneg (hk_nonneg k y))
+    rw [e1]
+    exact intervalIntegral.integral_add (hAii k) (hBii k)
+  have hμsum : Summable
+      (fun k : ℤ => ∫ y, ‖hk k y‖ ∂(MeasureTheory.volume.restrict (Set.Ioc (0 : ℝ) 1))) :=
+    (summable_cell_heatGrad_interval_integral ht x).congr (fun k => (heq k).symm)
+  have key := integral_tsum_of_summable_integral_norm
+    (μ := MeasureTheory.volume.restrict (Set.Ioc (0 : ℝ) 1)) (F := hk) hμint hμsum
+  calc (∫ y in (0 : ℝ)..1, ∑' k : ℤ, hk k y)
+      = ∫ y, (∑' k : ℤ, hk k y) ∂(MeasureTheory.volume.restrict (Set.Ioc (0 : ℝ) 1)) :=
+        intervalIntegral.integral_of_le h01
+    _ = ∑' k : ℤ, ∫ y, hk k y ∂(MeasureTheory.volume.restrict (Set.Ioc (0 : ℝ) 1)) := key.symm
+    _ = ∑' k : ℤ,
+          ((∫ y in (0 : ℝ)..1, |deriv (fun z : ℝ => heatKernel t z) (x - y + 2 * (k : ℝ))|)
+            + (∫ y in (0 : ℝ)..1, |deriv (fun z : ℝ => heatKernel t z) (x + y + 2 * (k : ℝ))|)) := by
+        refine tsum_congr (fun k => ?_)
+        rw [← intervalIntegral.integral_of_le h01]
+        exact intervalIntegral.integral_add (hAii k) (hBii k)
+    _ = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          * t ^ (-(1 / 2) : ℝ) := ShenWork.tsum_cell_heatGrad_abs_integral_eq ht x
+
 end ShenWork.IntervalNeumannFullKernel
