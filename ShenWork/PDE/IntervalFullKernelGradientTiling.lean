@@ -141,4 +141,23 @@ theorem tsum_cell_integral_eq_integral {g : ℝ → ℝ} (hg : MeasureTheory.Int
   rw [cell_integral_eq hg x k]
   congr 1 <;> ring
 
+/-- **Step 5′ (kernel-shaped tiling applied to `|heat'|`).**  The lattice sum of
+the reflected+direct `[0,1]` heat-gradient `L¹` masses equals the full-line
+heat-gradient `L¹` norm, in `t^(−1/2)` form:
+
+  `∑ₖ [∫₀¹|∂ₓheat(x−y+2k)| + ∫₀¹|∂ₓheat(x+y+2k)|] = (1/√π)·t^(−1/2)`.
+
+Step 5 (`tsum_cell_integral_eq_integral`) with `g = |∂ₓheat|`
+(integrable by `heatKernel_deriv_abs_integrable`) followed by Step 1
+(`heatKernel_deriv_abs_integral_sqrt_form`).  This is the exact constant the
+full-kernel gradient `L¹` integrand is to be bounded by. -/
+theorem tsum_cell_heatGrad_abs_integral_eq {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    (∑' k : ℤ,
+        ((∫ y in (0 : ℝ)..1, |deriv (fun z : ℝ => heatKernel t z) (x - y + 2 * (k : ℝ))|)
+          + (∫ y in (0 : ℝ)..1, |deriv (fun z : ℝ => heatKernel t z) (x + y + 2 * (k : ℝ))|)))
+      = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          * t ^ (-(1 / 2) : ℝ) := by
+  rw [tsum_cell_integral_eq_integral (heatKernel_deriv_abs_integrable ht) x,
+    heatKernel_deriv_abs_integral_sqrt_form ht]
+
 end ShenWork
