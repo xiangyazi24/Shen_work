@@ -163,4 +163,52 @@ theorem intervalFullCoupledDuhamel_grad_leibniz
   (intervalFullCoupledDuhamel_grad_integral_hasDerivAt ht hF_int hC_source_nn hF_sup
     x₀ hF_meas hF'_meas hDom_int).deriv
 
+/-- **Full-kernel gradient integrand is interval-integrable in `s`** (the
+`hGrad_int` ingredient): the deriv integrand is dominated by the envelope
+`Cgrad·C·(t−s)^(−1/2)` (T2-a) and so interval-integrable. -/
+theorem intervalFullCoupledDuhamel_grad_integrand_intervalIntegrable
+    {t : ℝ} (ht : 0 < t)
+    {F : ℝ → ℝ → ℝ}
+    (hF_int : ∀ s, MeasureTheory.Integrable (F s) (intervalMeasure 1))
+    {C_source : ℝ} (hC_source_nn : 0 ≤ C_source)
+    (hF_sup : ∀ s, ∀ y : ℝ, |F s y| ≤ C_source)
+    (x₀ : ℝ)
+    (hF'_meas :
+      MeasureTheory.AEStronglyMeasurable
+        (fun s : ℝ =>
+          deriv (fun z : ℝ =>
+            intervalFullSemigroupOperator (t - s) (F s) z) x₀)
+        (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) t)))
+    (hDom_int :
+      IntervalIntegrable
+        (fun s : ℝ =>
+          ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            * C_source * (t - s) ^ (-(1/2 : ℝ)))
+        MeasureTheory.volume (0 : ℝ) t) :
+    IntervalIntegrable
+      (fun s : ℝ =>
+        deriv (fun z : ℝ =>
+          intervalFullSemigroupOperator (t - s) (F s) z) x₀)
+      MeasureTheory.volume (0 : ℝ) t := by
+  have huIoc_eq : Set.uIoc (0 : ℝ) t = Set.Ioc (0 : ℝ) t := Set.uIoc_of_le ht.le
+  have hae_ne_t : ∀ᵐ s ∂MeasureTheory.volume, s ≠ t := by
+    have heq : {s : ℝ | ¬ s ≠ t} = {t} := by ext s; simp [eq_comm]
+    rw [MeasureTheory.ae_iff, heq]; exact Real.volume_singleton
+  refine IntervalIntegrable.mono_fun'
+    (g := fun s : ℝ => ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+      * C_source * (t - s) ^ (-(1/2 : ℝ)))
+    hDom_int hF'_meas ?_
+  refine (MeasureTheory.ae_restrict_iff' measurableSet_uIoc).mpr ?_
+  filter_upwards [hae_ne_t] with s hsne hs
+  rw [huIoc_eq] at hs
+  have h := intervalFullCoupledDuhamel_grad_integrand_pointwise_bound
+    (t := t) (s := s) hs.1.le (lt_of_le_of_ne hs.2 hsne) (F := F s) (hF_int s)
+    (C_source := C_source) hC_source_nn (hF_sup s) x₀
+  rw [Real.norm_eq_abs]
+  calc |deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) (F s) z) x₀|
+      ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          * (t - s) ^ (-(1/2 : ℝ)) * C_source := h
+    _ = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          * C_source * (t - s) ^ (-(1/2 : ℝ)) := by ring
+
 end ShenWork.IntervalNeumannFullKernel
