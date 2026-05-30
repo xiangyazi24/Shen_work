@@ -105,17 +105,29 @@ independently-verified steps, all `#print axioms` = core three):
     (norm-summability = `summable_abs_iff.mpr (latticeGaussianGradSummable …)`),
     recombined `Summable.tsum_add`. INTEGRABILITY-FREE.
 
-  REMAINING Step 6 tail (assembly — standard measure-theory plumbing, NOT the
-  conceptual core; the hard Gaussian-summability foundation is now fully closed):
-  * 6.5b L¹ tiling BOUND: `∫₀¹ |deriv(x↦K_full t x y) x| dy ≤ heatGradientLinfty
-    LinftyConstant·t^(−1/2)`. Now: integrate 6.5b-pre over `y∈[0,1]` (monotone
-    interval-integral — needs `IntervalIntegrable` of both sides on [0,1]) then
-    Tonelli `integral_tsum_of_summable_integral_norm` over `volume.restrict (Ioc 0 1)`
-    on `hₖ y := |∂heat(x−y+2k)|+|∂heat(x+y+2k)|` (≥0): `hF_int` = hₖ integrable on
-    [0,1] (continuous); `hF_sum` = `Summable (k ↦ ∫₀¹ hₖ)` from `∫₀¹ hₖ = ∫_cellₖ|∂heat|`
-    (`cell_integral_eq`) + `(hasSum_integral_iUnion … (heatKernel_deriv_abs_integrable
-    ht).integrableOn).summable`; then `∑ₖ∫₀¹ hₖ = const` by 6.5a. The genuinely-new
-    sub-work is the integrability/continuity of `y↦∂ₓK_full(t,x,y)` and of `y↦∑ₖhₖ y`.
+  Step 6.5b L¹ tiling BOUND — DONE (new file PDE/IntervalFullKernelGradientLinfty.lean):
+  * 6.5b-1 `summable_cell_heatGrad_interval_integral` — cell-mass summability
+    (`cell_integral_eq` + `hasSum_integral_iUnion.summable`).
+  * 6.5b-2a `heatGradUnitBound` + `summable_heatGradUnitBound` +
+    `abs_deriv_heatKernel_le_unitShift` — uniform window majorant (Young).
+  * 6.5b-2b `continuous_deriv_heatKernel`, `continuousOn_deriv_intervalNeumannFull
+    Kernel_fst` (continuousOn_tsum on [0,1]), `intervalIntegrable_deriv_…`.
+  * 6.5b `intervalNeumannFullKernel_deriv_abs_interval_integral_le`:
+    `∫₀¹ |∂ₓK_full(t,x,y)| dy ≤ heatGradientLinftyLinftyConstant·t^(−1/2)` — monotone
+    dominate (6.5b-pre) + Tonelli (`integral_tsum_of_summable_integral_norm`) +
+    `integral_add` + 6.5a. All axiom-clean; whole project green 8354.
+
+  REMAINING — Step 6.6 (final assembly):
+  * `intervalFullSemigroupOperator_deriv_Linfty_pointwise_sqrt_t`:
+    `|deriv (z ↦ intervalFullSemigroupOperator t f z) x| ≤
+       heatGradientLinftyLinftyConstant/√t · Cf` for `|f|≤Cf`. (Mirror of zeroth-
+    reflection `intervalSemigroupOperator_deriv_Linfty_pointwise_sqrt_t` in
+    HeatKernelGradientEstimates.lean.) Operator `= ∫ y, K_full t x y · f y ∂(interval
+    Measure 1 = volume.restrict (Icc 0 1))`. Route: differentiate under the integral
+    (`hasDerivAt_integral_of_dominated_loc_of_deriv_le`, dominating function the
+    uniform-over-(z near x, y∈[0,1]) lattice majorant `Cf·∑ₖ hₖ`); then `|∫ ∂ₓK·f| ≤
+    ∫ |∂ₓK|·|f| ≤ Cf·∫₀¹|∂ₓK_full| ≤ Cf·heatGradLinftyConstant/√t` (6.5b, Icc↔Ioc
+    null-set bridge). This wires the full operator into the Duhamel _clean chain.
   * 6.6 differentiate operator under integral: `deriv(x↦∫₀¹ K_full·f) = ∫₀¹ ∂ₓK_full·f`
     via `MeasureTheory.hasDerivAt_integral_of_dominated_loc_of_deriv_le` (uniform
     dominating bound = the 6.3 `hg'` majorant, integrable on [0,1]); then
