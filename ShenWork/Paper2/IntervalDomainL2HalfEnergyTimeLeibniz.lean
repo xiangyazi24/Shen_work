@@ -36,6 +36,7 @@
 -/
 import ShenWork.Paper2.IntervalDomainNeumannIBP
 import ShenWork.Paper2.IntervalDomainL2EnergyInequality
+import ShenWork.Paper2.IntervalDomainProfileIBP
 import ShenWork.PDE.IntervalUnderIntegralLeibniz
 
 open ShenWork.IntervalDomain MeasureTheory
@@ -388,6 +389,50 @@ theorem intervalDomain_l2_half_energy_hL2Time
       Set.Ioo_subset_Icc_self).aestronglyMeasurable measurableSet_Ioo
   exact intervalDomain_l2_half_energy_hL2Time_of_slabContinuous hsol hδ hball
     hF_meas hF_int hF'_meas hslab
+
+/-! ## Capstone: the cosine-profile L² energy inequality with `hL2Time` discharged -/
+
+open ShenWork.Paper2.IntervalDomainEnergyStep in
+/-- **L² energy inequality for a cosine-represented solution, with the time-Leibniz
+frontier `hL2Time` discharged.**  Combines the OPEN-interior cosine energy
+inequality (`intervalDomain_l2_half_energy_inequality_of_cosineProfile_interior`,
+T5-i) with the unconditional time-Leibniz chain rule
+(`intervalDomain_l2_half_energy_hL2Time`, T5-k): `hL2Time` is no longer assumed, it
+is proved from the regularity conjuncts.  The remaining honest frontiers are the
+PDE-substitution `hPDEIntegral` (R2), the OPEN-`(0,1)` cosine representation
+`hrepIoo` (the body of `DuhamelHeatValueRepresentation`, R3), and the
+cross-diffusion control `hCrossControl`. -/
+theorem intervalDomain_l2_half_energy_inequality_of_cosineProfile_solution
+    {params : CM2Params} {T rho eps chiBound t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (heps : 0 < eps) (hchiBound : 0 ≤ chiBound)
+    (ht0 : 0 < t) (htT : t < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hPDEIntegral :
+      intervalDomain.integral (intervalDomainL2TimeTerm u t) =
+        intervalDomainL2DiffusionIntegral u t -
+          params.χ₀ * intervalDomainL2ChemotaxisIntegral params u v t +
+          intervalDomainL2LogisticIntegral params u t)
+    {τ : ℝ} (hτ : 0 < τ) {b : ℕ → ℝ} {M : ℝ} (hM : ∀ n, |b n| ≤ M)
+    (hrepIoo : Set.EqOn (intervalDomainLift (u t))
+      (fun x => unitIntervalCosineHeatValue τ b x) (Set.Ioo (0 : ℝ) 1))
+    (hCrossControl :
+      -params.χ₀ * intervalDomainL2ChemotaxisIntegral params u v t ≤
+        chiBound *
+          intervalDomain.crossDiffusionEnergyTerm params 2 (u t) (v t)) :
+    ∃ Ceps,
+      deriv (fun τ' => intervalDomainL2HalfEnergy u τ') t +
+          intervalDomainL2DiffusionDissipation u t ≤
+        chiBound *
+            (eps * intervalDomainLpWeightedGradientDissipation 2 u t +
+              Ceps *
+                intervalDomain.integral (fun x => (u t x) ^ (2 + rho))) +
+          intervalDomainL2LogisticIntegral params u t :=
+  intervalDomain_l2_half_energy_inequality_of_cosineProfile_interior
+    heps hchiBound ht0 htT hsol hcross
+    (intervalDomain_l2_half_energy_hL2Time hsol ⟨ht0, htT⟩)
+    hPDEIntegral hτ hM hrepIoo hCrossControl
 
 end
 
