@@ -92,3 +92,4 @@ import ShenWork.PDE.IntervalFullKernelGradientTiling
 import ShenWork.PDE.IntervalFullKernelGradientLinfty
 import ShenWork.PDE.IntervalFullKernelGradEstimate
 import ShenWork.PDE.IntervalFullKernelMass
+import ShenWork.PDE.IntervalFullKernelInitialIBP
