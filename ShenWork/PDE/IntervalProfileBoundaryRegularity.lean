@@ -30,6 +30,24 @@ namespace ShenWork.IntervalFullKernelRegularity
 
 open ShenWork.IntervalDomain
 
+/-- **Closed-boundary upgrade of an interior agreement (density bridge).**  Two
+functions that agree on the open interior `(0,1)` and are *continuous on the
+closed* `[0,1]` agree on all of `[0,1]`, including the endpoints.  The interior
+`(0,1)` is dense in `[0,1]` (its closure is `[0,1]`), so the agreement extends to
+the closure by `Set.EqOn.of_subset_closure`.  This converts the open-interior
+heat-value representation (`DuhamelHeatValueRepresentation`, stated on `Ioo`) into
+the closed-`Icc` agreement that the Neumann IBP / energy machinery consumes,
+*provided* closed-`[0,1]` continuity is available (which conjunct (7)'s
+`ContDiffOn ℝ 2 _ (Icc 0 1)` supplies). -/
+theorem eqOn_Icc_of_eqOn_Ioo_of_continuousOn
+    {f S : ℝ → ℝ}
+    (hf : ContinuousOn f (Set.Icc (0 : ℝ) 1))
+    (hS : ContinuousOn S (Set.Icc (0 : ℝ) 1))
+    (h : Set.EqOn f S (Set.Ioo (0 : ℝ) 1)) :
+    Set.EqOn f S (Set.Icc (0 : ℝ) 1) := by
+  refine Set.EqOn.of_subset_closure h hf hS Set.Ioo_subset_Icc_self ?_
+  rw [closure_Ioo (by norm_num : (0 : ℝ) ≠ 1)]
+
 variable {S : ℝ → ℝ} {g : intervalDomainPoint → ℝ}
 
 /-- Closed-`[0,1]` `C²` of a profile slice. -/
