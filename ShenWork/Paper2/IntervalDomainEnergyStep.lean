@@ -75,30 +75,6 @@ theorem intervalDomain_rightEndpoint_mem_boundary :
   right
   rfl
 
-/-- On the concrete interval domain, the normal derivative is definitionally
-zero at boundary points.  This is the formal Neumann endpoint fact available in
-the current API. -/
-theorem intervalDomain_normalDeriv_zero_on_boundary
-    (f : intervalDomain.Point → ℝ) {x : intervalDomain.Point}
-    (hx : x ∈ intervalDomain.boundary) :
-    intervalDomain.normalDeriv f x = 0 := by
-  have hx' : x.1 = 0 ∨ x.1 = 1 := by
-    simpa [intervalDomain] using hx
-  simpa [intervalDomain] using
-    (intervalDomainNormalDeriv_endpoint f (x := x) hx')
-
-theorem intervalDomain_normalDeriv_leftEndpoint
-    (f : intervalDomain.Point → ℝ) :
-    intervalDomain.normalDeriv f intervalDomainLeftEndpoint = 0 := by
-  exact intervalDomain_normalDeriv_zero_on_boundary f
-    (x := intervalDomainLeftEndpoint) intervalDomain_leftEndpoint_mem_boundary
-
-theorem intervalDomain_normalDeriv_rightEndpoint
-    (f : intervalDomain.Point → ℝ) :
-    intervalDomain.normalDeriv f intervalDomainRightEndpoint = 0 := by
-  exact intervalDomain_normalDeriv_zero_on_boundary f
-    (x := intervalDomainRightEndpoint) intervalDomain_rightEndpoint_mem_boundary
-
 /-- Classical interval solutions carry the Neumann condition for `u`. -/
 theorem intervalDomain_solution_neumann_u_zero
     {params : CM2Params} {T t : ℝ}
@@ -133,14 +109,15 @@ def intervalDomainDerivativePairIntegral
   ∫ x in (0 : ℝ)..1,
     deriv (intervalDomainLift test) x * deriv (intervalDomainLift f) x
 
-/-- The Neumann endpoint contribution vanishes for the concrete interval
-domain. -/
+/-- The Neumann endpoint contribution vanishes when `f` genuinely satisfies the
+Neumann boundary condition (one-sided derivative `0` at both endpoints). -/
 theorem intervalDomain_neumannBoundaryTerm_eq_zero
-    (test f : intervalDomain.Point → ℝ) :
+    (test f : intervalDomain.Point → ℝ)
+    (hNeuR : intervalDomain.normalDeriv f intervalDomainRightEndpoint = 0)
+    (hNeuL : intervalDomain.normalDeriv f intervalDomainLeftEndpoint = 0) :
     intervalDomainNeumannBoundaryTerm test f = 0 := by
   unfold intervalDomainNeumannBoundaryTerm
-  rw [intervalDomain_normalDeriv_rightEndpoint f,
-    intervalDomain_normalDeriv_leftEndpoint f]
+  rw [hNeuR, hNeuL]
   ring
 
 /-- Conditional integration by parts on the interval after removing the
@@ -156,11 +133,13 @@ theorem intervalDomain_integrationByParts_neumann_of_boundary_identity
       intervalDomain.integral
           (fun x => test x * intervalDomain.laplacian f x) =
         intervalDomainNeumannBoundaryTerm test f -
-          intervalDomainDerivativePairIntegral test f) :
+          intervalDomainDerivativePairIntegral test f)
+    (hNeuR : intervalDomain.normalDeriv f intervalDomainRightEndpoint = 0)
+    (hNeuL : intervalDomain.normalDeriv f intervalDomainLeftEndpoint = 0) :
     intervalDomain.integral
         (fun x => test x * intervalDomain.laplacian f x) =
       -(intervalDomainDerivativePairIntegral test f) := by
-  rw [hIBP, intervalDomain_neumannBoundaryTerm_eq_zero]
+  rw [hIBP, intervalDomain_neumannBoundaryTerm_eq_zero test f hNeuR hNeuL]
   ring
 
 /-- The Lp energy functional on the concrete interval domain. -/
@@ -284,7 +263,9 @@ theorem intervalDomain_lp_energy_balance_of_frontiers
       intervalDomainLpDiffusionIntegral pExp u t =
         intervalDomainNeumannBoundaryTerm
             (intervalDomainLpDiffusionTest pExp u t) (u t) -
-          intervalDomainLpDiffusionDissipation pExp u t) :
+          intervalDomainLpDiffusionDissipation pExp u t)
+    (hNeuR : intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0) :
     (1 / pExp) *
         deriv (fun τ => intervalDomainLpEnergy pExp u τ) t +
       intervalDomainLpDiffusionDissipation pExp u t =
@@ -306,7 +287,7 @@ theorem intervalDomain_lp_energy_balance_of_frontiers
       intervalDomainLpDiffusionDissipation] using hIBP
   have hdiff :=
     intervalDomain_integrationByParts_neumann_of_boundary_identity
-      (intervalDomainLpDiffusionTest pExp u t) (u t) hIBP'
+      (intervalDomainLpDiffusionTest pExp u t) (u t) hIBP' hNeuR hNeuL
   have hdiff_named :
       intervalDomainLpDiffusionIntegral pExp u t =
         -intervalDomainLpDiffusionDissipation pExp u t := by
@@ -355,6 +336,8 @@ theorem intervalDomain_lp_energy_gradient_inequality_of_frontiers
         intervalDomainNeumannBoundaryTerm
             (intervalDomainLpDiffusionTest pExp u t) (u t) -
           intervalDomainLpDiffusionDissipation pExp u t)
+    (hNeuR : intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0)
     (hDiffusionCoercive :
       A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
         intervalDomainLpDiffusionDissipation pExp u t)
@@ -371,7 +354,7 @@ theorem intervalDomain_lp_energy_gradient_inequality_of_frontiers
   have hbalance :=
     intervalDomain_lp_energy_balance_of_frontiers
       (params := params) (T := T) (pExp := pExp) (t := t)
-      (u := u) (v := v) hpExp ht0 htT hLpTime hPDEIntegral hIBP
+      (u := u) (v := v) hpExp ht0 htT hLpTime hPDEIntegral hIBP hNeuR hNeuL
   calc
     (1 / pExp) *
           deriv (fun τ => intervalDomainLpEnergy pExp u τ) t +
@@ -413,6 +396,8 @@ theorem intervalDomain_lp_energy_cross_bootstrap_inequality_of_frontiers
         intervalDomainNeumannBoundaryTerm
             (intervalDomainLpDiffusionTest pExp u t) (u t) -
           intervalDomainLpDiffusionDissipation pExp u t)
+    (hNeuR : intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0)
     (hDiffusionCoercive :
       A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
         intervalDomainLpDiffusionDissipation pExp u t)
@@ -438,7 +423,7 @@ theorem intervalDomain_lp_energy_cross_bootstrap_inequality_of_frontiers
     intervalDomain_lp_energy_gradient_inequality_of_frontiers
       (params := params) (T := T) (pExp := pExp) (A := A)
       (chiBound := chiBound) (t := t) (u := u) (v := v)
-      hpExp_ne ht0 htT hLpTime hPDEIntegral hIBP
+      hpExp_ne ht0 htT hLpTime hPDEIntegral hIBP hNeuR hNeuL
       hDiffusionCoercive hCrossControl
   have hCeps' :
       intervalDomain.crossDiffusionEnergyTerm params pExp (u t) (v t) ≤
@@ -501,6 +486,8 @@ theorem intervalDomain_lp_energy_cross_bootstrap_absorbed_of_frontiers
         intervalDomainNeumannBoundaryTerm
             (intervalDomainLpDiffusionTest pExp u t) (u t) -
           intervalDomainLpDiffusionDissipation pExp u t)
+    (hNeuR : intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0)
     (hDiffusionCoercive :
       A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
         intervalDomainLpDiffusionDissipation pExp u t)
@@ -524,7 +511,7 @@ theorem intervalDomain_lp_energy_cross_bootstrap_absorbed_of_frontiers
       (params := params) (T := T) (rho := rho) (pExp := pExp)
       (eps := eps) (A := A) (chiBound := chiBound) (t := t)
       (u := u) (v := v) hpExp heps hchiBound ht0 htT
-      hCrossGNYoung hLpTime hPDEIntegral hIBP
+      hCrossGNYoung hLpTime hPDEIntegral hIBP hNeuR hNeuL
       hDiffusionCoercive hCrossControl
   refine ⟨Ceps, ?_, ?_⟩
   · linarith
@@ -572,6 +559,8 @@ theorem intervalDomain_lp_energy_closed_derivative_bound_of_frontiers
         intervalDomainNeumannBoundaryTerm
             (intervalDomainLpDiffusionTest pExp u t) (u t) -
           intervalDomainLpDiffusionDissipation pExp u t)
+    (hNeuR : intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0)
     (hDiffusionCoercive :
       A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
         intervalDomainLpDiffusionDissipation pExp u t)
@@ -598,7 +587,7 @@ theorem intervalDomain_lp_energy_closed_derivative_bound_of_frontiers
       (params := params) (T := T) (rho := rho) (pExp := pExp)
       (eps := eps) (A := A) (chiBound := chiBound) (t := t)
       (u := u) (v := v) hpExp heps hchiBound ht0 htT
-      hCrossGNYoung hLpTime hPDEIntegral hIBP
+      hCrossGNYoung hLpTime hPDEIntegral hIBP hNeuR hNeuL
       hDiffusionCoercive hCrossControl habsorb
   refine ⟨Ceps, ?_⟩
   linarith
@@ -629,6 +618,8 @@ theorem intervalDomain_lp_energy_derivative_le_explicit_lower_terms_of_frontiers
         intervalDomainNeumannBoundaryTerm
             (intervalDomainLpDiffusionTest pExp u t) (u t) -
           intervalDomainLpDiffusionDissipation pExp u t)
+    (hNeuR : intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0)
     (hDiffusionCoercive :
       A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
         intervalDomainLpDiffusionDissipation pExp u t)
@@ -659,7 +650,7 @@ theorem intervalDomain_lp_energy_derivative_le_explicit_lower_terms_of_frontiers
     intervalDomain_lp_energy_gradient_inequality_of_frontiers
       (params := params) (T := T) (pExp := pExp) (A := A)
       (chiBound := chiBound) (t := t) (u := u) (v := v)
-      hpExp_ne ht0 htT hLpTime hPDEIntegral hIBP
+      hpExp_ne ht0 htT hLpTime hPDEIntegral hIBP hNeuR hNeuL
       hDiffusionCoercive hCrossControl
   have hscaled :=
     mul_le_mul_of_nonneg_left hCrossGNYoungAt hchiBound
@@ -732,6 +723,10 @@ theorem intervalDomain_lp_abs_energy_derivative_le_explicit_lower_terms_family_o
           intervalDomainNeumannBoundaryTerm
               (intervalDomainLpDiffusionTest pExp u t) (u t) -
             intervalDomainLpDiffusionDissipation pExp u t)
+    (hNeuR : ∀ t, 0 < t → t < T →
+      intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : ∀ t, 0 < t → t < T →
+      intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0)
     (hDiffusionCoercive :
       ∀ t, 0 < t → t < T →
         A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
@@ -769,7 +764,7 @@ theorem intervalDomain_lp_abs_energy_derivative_le_explicit_lower_terms_family_o
       (eps := eps) (A := A) (chiBound := chiBound) (B := B)
       (L_const := L_const) (Ccross := Ccross) (t := t)
       (u := u) (v := v) hpExp hchiBound ht0 htT hLpTime
-      (hPDEIntegral t ht0 htT) (hIBP t ht0 htT)
+      (hPDEIntegral t ht0 htT) (hIBP t ht0 htT) (hNeuR t ht0 htT) (hNeuL t ht0 htT)
       (hDiffusionCoercive t ht0 htT) (hCrossControl t ht0 htT)
       (hCrossGNYoungAt t ht0 htT) (hLogisticUpper t ht0 htT)
       (hDissNonneg t ht0 htT)
@@ -803,6 +798,8 @@ theorem intervalDomain_lp_energy_derivative_le_constant_of_explicit_cross_bound
         intervalDomainNeumannBoundaryTerm
             (intervalDomainLpDiffusionTest pExp u t) (u t) -
           intervalDomainLpDiffusionDissipation pExp u t)
+    (hNeuR : intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0)
     (hDiffusionCoercive :
       A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
         intervalDomainLpDiffusionDissipation pExp u t)
@@ -834,7 +831,7 @@ theorem intervalDomain_lp_energy_derivative_le_constant_of_explicit_cross_bound
     intervalDomain_lp_energy_gradient_inequality_of_frontiers
       (params := params) (T := T) (pExp := pExp) (A := A)
       (chiBound := chiBound) (t := t) (u := u) (v := v)
-      hpExp_ne ht0 htT hLpTime hPDEIntegral hIBP
+      hpExp_ne ht0 htT hLpTime hPDEIntegral hIBP hNeuR hNeuL
       hDiffusionCoercive hCrossControl
   have hscaled :=
     mul_le_mul_of_nonneg_left hCrossGNYoungAt hchiBound
@@ -908,6 +905,10 @@ theorem intervalDomain_lp_abs_energy_derivative_le_constant_family_of_frontiers
           intervalDomainNeumannBoundaryTerm
               (intervalDomainLpDiffusionTest pExp u t) (u t) -
             intervalDomainLpDiffusionDissipation pExp u t)
+    (hNeuR : ∀ t, 0 < t → t < T →
+      intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : ∀ t, 0 < t → t < T →
+      intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0)
     (hDiffusionCoercive :
       ∀ t, 0 < t → t < T →
         A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
@@ -947,7 +948,7 @@ theorem intervalDomain_lp_abs_energy_derivative_le_constant_family_of_frontiers
       (eps := eps) (A := A) (chiBound := chiBound) (B := B)
       (L_const := L_const) (Ccross := Ccross) (C := C) (t := t)
       (u := u) (v := v) hpExp hchiBound ht0 htT hLpTime
-      (hPDEIntegral t ht0 htT) (hIBP t ht0 htT)
+      (hPDEIntegral t ht0 htT) (hIBP t ht0 htT) (hNeuR t ht0 htT) (hNeuL t ht0 htT)
       (hDiffusionCoercive t ht0 htT) (hCrossControl t ht0 htT)
       (hCrossGNYoungAt t ht0 htT)
       (hLogisticUpper t ht0 htT) (hDissNonneg t ht0 htT)
@@ -980,6 +981,8 @@ theorem intervalDomain_lp_energy_derivative_le_energy_plus_lower_of_frontiers
         intervalDomainNeumannBoundaryTerm
             (intervalDomainLpDiffusionTest pExp u t) (u t) -
           intervalDomainLpDiffusionDissipation pExp u t)
+    (hNeuR : intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0)
     (hDiffusionCoercive :
       A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
         intervalDomainLpDiffusionDissipation pExp u t)
@@ -1014,7 +1017,7 @@ theorem intervalDomain_lp_energy_derivative_le_energy_plus_lower_of_frontiers
       (L_const := L_const) (Ccross := Ccross)
       (C := Cgr * (intervalDomainLpEnergy pExp u t + lower)) (t := t)
       (u := u) (v := v) hpExp hchiBound ht0 htT hLpTime
-      hPDEIntegral hIBP hDiffusionCoercive hCrossControl
+      hPDEIntegral hIBP hNeuR hNeuL hDiffusionCoercive hCrossControl
       hCrossGNYoungAt hLogisticUpper hDissNonneg hRhsGronwall
 
 /-- Time-family Gronwall form for the absolute Lp energy:
@@ -1043,6 +1046,10 @@ theorem intervalDomain_lp_abs_energy_derivative_le_energy_plus_lower_family_of_f
           intervalDomainNeumannBoundaryTerm
               (intervalDomainLpDiffusionTest pExp u t) (u t) -
             intervalDomainLpDiffusionDissipation pExp u t)
+    (hNeuR : ∀ t, 0 < t → t < T →
+      intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : ∀ t, 0 < t → t < T →
+      intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0)
     (hDiffusionCoercive :
       ∀ t, 0 < t → t < T →
         A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
@@ -1085,7 +1092,7 @@ theorem intervalDomain_lp_abs_energy_derivative_le_energy_plus_lower_family_of_f
       (L_const := L_const) (Ccross := Ccross) (Cgr := Cgr)
       (lower := lower t) (t := t) (u := u) (v := v)
       hpExp hchiBound ht0 htT hLpTime (hPDEIntegral t ht0 htT)
-      (hIBP t ht0 htT) (hDiffusionCoercive t ht0 htT)
+      (hIBP t ht0 htT) (hNeuR t ht0 htT) (hNeuL t ht0 htT) (hDiffusionCoercive t ht0 htT)
       (hCrossControl t ht0 htT) (hCrossGNYoungAt t ht0 htT)
       (hLogisticUpper t ht0 htT) (hDissNonneg t ht0 htT)
       (hRhsGronwall t ht0 htT)
@@ -1118,6 +1125,10 @@ intervalDomain_lp_abs_energy_derivative_le_energy_plus_next_power_family_of_fron
           intervalDomainNeumannBoundaryTerm
               (intervalDomainLpDiffusionTest pExp u t) (u t) -
             intervalDomainLpDiffusionDissipation pExp u t)
+    (hNeuR : ∀ t, 0 < t → t < T →
+      intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : ∀ t, 0 < t → t < T →
+      intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0)
     (hDiffusionCoercive :
       ∀ t, 0 < t → t < T →
         A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
@@ -1162,7 +1173,7 @@ intervalDomain_lp_abs_energy_derivative_le_energy_plus_next_power_family_of_fron
       (L_const := L_const) (Ccross := Ccross) (Cgr := Cgr)
       (lower := fun t =>
         intervalDomain.integral (fun x => (u t x) ^ (pExp + rho)) + 1)
-      hpExp hchiBound hLpTime hPDEIntegral hIBP hDiffusionCoercive
+      hpExp hchiBound hLpTime hPDEIntegral hIBP hNeuR hNeuL hDiffusionCoercive
       hCrossControl hCrossGNYoungAt hLogisticUpper hDissNonneg ?_
   intro t ht0 htT
   set E := intervalDomainLpEnergy pExp u t
@@ -1220,6 +1231,10 @@ theorem intervalDomain_lp_abs_energy_derivative_le_linear_source_family_of_front
           intervalDomainNeumannBoundaryTerm
               (intervalDomainLpDiffusionTest pExp u t) (u t) -
             intervalDomainLpDiffusionDissipation pExp u t)
+    (hNeuR : ∀ t, 0 < t → t < T →
+      intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : ∀ t, 0 < t → t < T →
+      intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0)
     (hDiffusionCoercive :
       ∀ t, 0 < t → t < T →
         A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
@@ -1257,7 +1272,7 @@ theorem intervalDomain_lp_abs_energy_derivative_le_linear_source_family_of_front
       (params := params) (T := T) (rho := rho) (pExp := pExp)
       (eps := eps) (A := A) (chiBound := chiBound) (B := B)
       (L_const := L_const) (Ccross := Ccross) (u := u) (v := v)
-      hpExp hchiBound hLpTime hPDEIntegral hIBP hDiffusionCoercive
+      hpExp hchiBound hLpTime hPDEIntegral hIBP hNeuR hNeuL hDiffusionCoercive
       hCrossControl hCrossGNYoungAt hLogisticUpper hDissNonneg t ht0 htT
   set E := intervalDomainLpAbsEnergy pExp u t
   set Z := intervalDomain.integral (fun x => (u t x) ^ (pExp + rho))
@@ -1323,6 +1338,10 @@ theorem intervalDomain_lp_abs_energy_derivative_le_gronwall_source_family_of_fro
           intervalDomainNeumannBoundaryTerm
               (intervalDomainLpDiffusionTest pExp u t) (u t) -
             intervalDomainLpDiffusionDissipation pExp u t)
+    (hNeuR : ∀ t, 0 < t → t < T →
+      intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : ∀ t, 0 < t → t < T →
+      intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0)
     (hDiffusionCoercive :
       ∀ t, 0 < t → t < T →
         A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
@@ -1363,7 +1382,7 @@ theorem intervalDomain_lp_abs_energy_derivative_le_gronwall_source_family_of_fro
       (eps := eps) (A := A) (chiBound := chiBound) (B := B)
       (L_const := L_const) (Ccross := Ccross) (Zbound := Zbound)
       (u := u) (v := v) hpExp hchiBound hCcross_nonneg
-      hLpTime hPDEIntegral hIBP hDiffusionCoercive hCrossControl
+      hLpTime hPDEIntegral hIBP hNeuR hNeuL hDiffusionCoercive hCrossControl
       hCrossGNYoungAt hLogisticUpper hDissNonneg hNextPowerBound
   intro t ht0 htT
   set E := intervalDomainLpAbsEnergy pExp u t
@@ -1405,6 +1424,10 @@ theorem intervalDomain_lp_abs_energy_derivative_le_gronwall_ico_of_frontiers
           intervalDomainNeumannBoundaryTerm
               (intervalDomainLpDiffusionTest pExp u t) (u t) -
             intervalDomainLpDiffusionDissipation pExp u t)
+    (hNeuR : ∀ t, 0 < t → t < T →
+      intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : ∀ t, 0 < t → t < T →
+      intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0)
     (hDiffusionCoercive :
       ∀ t, 0 < t → t < T →
         A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
@@ -1445,7 +1468,7 @@ theorem intervalDomain_lp_abs_energy_derivative_le_gronwall_ico_of_frontiers
       (eps := eps) (A := A) (chiBound := chiBound) (B := B)
       (L_const := L_const) (Ccross := Ccross) (Zbound := Zbound)
       (c := c) (d := d) (u := u) (v := v)
-      hpExp hchiBound hCcross_nonneg hLpTime hPDEIntegral hIBP
+      hpExp hchiBound hCcross_nonneg hLpTime hPDEIntegral hIBP hNeuR hNeuL
       hDiffusionCoercive hCrossControl hCrossGNYoungAt hLogisticUpper
       hDissNonneg hNextPowerBound hEnergyNonneg hEnergyCoeff hSourceCoeff
   intro t ht
@@ -1499,6 +1522,10 @@ theorem intervalDomain_LpPowerBoundedBefore_of_energy_frontiers_next_power_bound
           intervalDomainNeumannBoundaryTerm
               (intervalDomainLpDiffusionTest pExp u t) (u t) -
             intervalDomainLpDiffusionDissipation pExp u t)
+    (hNeuR : ∀ t, 0 < t → t < T →
+      intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : ∀ t, 0 < t → t < T →
+      intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0)
     (hDiffusionCoercive :
       ∀ t, 0 < t → t < T →
         A * intervalDomainLpWeightedGradientDissipation pExp u t ≤
@@ -1537,7 +1564,7 @@ theorem intervalDomain_LpPowerBoundedBefore_of_energy_frontiers_next_power_bound
       (eps := eps) (A := A) (chiBound := chiBound) (B := B)
       (L_const := L_const) (Ccross := Ccross) (Zbound := Zbound)
       (c := c) (d := d) (u := u) (v := v)
-      hpExp hchiBound hCcross_nonneg hDerivZero hLpTime hPDEIntegral hIBP
+      hpExp hchiBound hCcross_nonneg hDerivZero hLpTime hPDEIntegral hIBP hNeuR hNeuL
       hDiffusionCoercive hCrossControl hCrossGNYoungAt hLogisticUpper
       hDissNonneg hNextPowerBound hEnergyNonneg hEnergyCoeff hSourceCoeff
   exact
@@ -1610,7 +1637,9 @@ theorem intervalDomain_l2_half_energy_balance_of_frontiers
     (hIBP :
       intervalDomainL2DiffusionIntegral u t =
         intervalDomainNeumannBoundaryTerm (u t) (u t) -
-          intervalDomainL2DiffusionDissipation u t) :
+          intervalDomainL2DiffusionDissipation u t)
+    (hNeuR : intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0) :
     deriv (fun τ => intervalDomainL2HalfEnergy u τ) t +
       intervalDomainL2DiffusionDissipation u t =
         -params.χ₀ * intervalDomainL2ChemotaxisIntegral params u v t +
@@ -1624,7 +1653,7 @@ theorem intervalDomain_l2_half_energy_balance_of_frontiers
       intervalDomainL2DiffusionDissipation] using hIBP
   have hdiff :=
     intervalDomain_integrationByParts_neumann_of_boundary_identity
-      (u t) (u t) hIBP'
+      (u t) (u t) hIBP' hNeuR hNeuL
   have hdiff_named :
       intervalDomainL2DiffusionIntegral u t =
         -intervalDomainL2DiffusionDissipation u t := by
@@ -1665,6 +1694,8 @@ theorem intervalDomain_l2_half_energy_inequality_of_cross_control
       intervalDomainL2DiffusionIntegral u t =
         intervalDomainNeumannBoundaryTerm (u t) (u t) -
           intervalDomainL2DiffusionDissipation u t)
+    (hNeuR : intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0)
     (hCrossControl :
       -params.χ₀ * intervalDomainL2ChemotaxisIntegral params u v t ≤
         chiBound *
@@ -1677,7 +1708,7 @@ theorem intervalDomain_l2_half_energy_inequality_of_cross_control
   have hbalance :=
     intervalDomain_l2_half_energy_balance_of_frontiers
       (params := params) (t := t) (u := u) (v := v)
-      hL2Time hPDEIntegral hIBP
+      hL2Time hPDEIntegral hIBP hNeuR hNeuL
   rw [hbalance]
   linarith
 
@@ -1701,6 +1732,8 @@ theorem intervalDomain_l2_half_energy_cross_bootstrap_inequality_of_frontiers
       intervalDomainL2DiffusionIntegral u t =
         intervalDomainNeumannBoundaryTerm (u t) (u t) -
           intervalDomainL2DiffusionDissipation u t)
+    (hNeuR : intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0)
+    (hNeuL : intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0)
     (hCrossControl :
       -params.χ₀ * intervalDomainL2ChemotaxisIntegral params u v t ≤
         chiBound *
@@ -1721,7 +1754,7 @@ theorem intervalDomain_l2_half_energy_cross_bootstrap_inequality_of_frontiers
   have hbasic :=
     intervalDomain_l2_half_energy_inequality_of_cross_control
       (params := params) (t := t) (chiBound := chiBound)
-      (u := u) (v := v) hL2Time hPDEIntegral hIBP hCrossControl
+      (u := u) (v := v) hL2Time hPDEIntegral hIBP hNeuR hNeuL hCrossControl
   have hCeps' :
       intervalDomain.crossDiffusionEnergyTerm params 2 (u t) (v t) ≤
         eps * intervalDomainLpWeightedGradientDissipation 2 u t +

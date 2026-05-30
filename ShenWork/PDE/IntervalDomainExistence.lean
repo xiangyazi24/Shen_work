@@ -292,8 +292,9 @@ lemma intervalDomainChemotaxisDiv_const_zero (p : CM2Params) (c₁ c₂ : ℝ)
 at any boundary point. -/
 lemma intervalDomainNormalDeriv_const_zero (c : ℝ)
     {x : intervalDomainPoint} (hx : x ∈ intervalDomain.boundary) :
-    intervalDomainNormalDeriv (fun _ : intervalDomainPoint => c) x = 0 :=
-  intervalDomainNormalDeriv_endpoint _ hx
+    intervalDomainNormalDeriv (fun _ : intervalDomainPoint => c) x = 0 := by
+  have hx' : x.1 = 0 ∨ x.1 = 1 := by simpa [intervalDomain] using hx
+  exact intervalDomainNormalDeriv_const_endpoint_zero c hx'
 
 /-! ### Sup-norm of constant-in-space functions -/
 
@@ -5190,11 +5191,11 @@ theorem classicalSolutionLocalityUnderIooAgreement_intervalDomain
     have hvval : v t x = V t x := congrFun (hvEq t ht0 htT) x
     rw [hlap', hvval, huval]
     exact hpde
-  · intro t x _ht0 _htT hx
-    change intervalDomainNormalDeriv (u t) x = 0 ∧
-      intervalDomainNormalDeriv (v t) x = 0
-    exact ⟨intervalDomainNormalDeriv_endpoint (u t) hx,
-      intervalDomainNormalDeriv_endpoint (v t) hx⟩
+  · intro t x ht0 htT hx
+    -- `u,v` agree with the base solution `U,V` as full functions on `(0,T)`, so the
+    -- genuine Neumann conjunct transfers from `hsol`.
+    rw [huEq t ht0 htT, hvEq t ht0 htT]
+    exact hsol.neumann ht0 htT hx
 
 /-- Canonical pointwise glued `u`: at each positive time `t`, choose the
 finite reachable witness on horizon `t + 1`.  Nonpositive times are irrelevant
@@ -6126,13 +6127,16 @@ theorem boundedReachableGlued_isPaper2ClassicalSolution_of_overlapUnique
     rw [hlap', hvval, huval]
     exact hpde
   case hneumann =>
-    intro t x _ht0 _htT hx
-    change intervalDomainNormalDeriv (boundedReachableGluedU hbdd hne t) x = 0 ∧
-      intervalDomainNormalDeriv (boundedReachableGluedV hbdd hne t) x = 0
-    exact ⟨intervalDomainNormalDeriv_endpoint
-        (boundedReachableGluedU hbdd hne t) hx,
-      intervalDomainNormalDeriv_endpoint
-        (boundedReachableGluedV hbdd hne t) hx⟩
+    intro t x ht0 htT hx
+    let dpick := pickReachableAboveData hbdd hne htT
+    have hT_gt : t < (pickReachableAbove hbdd hne htT).1 :=
+      pickReachableAbove_lt hbdd hne htT
+    have huEq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).1
+    have hvEq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).2
+    -- The glued solution agrees with the picked finite-horizon solution as full
+    -- functions on the sub-slab, so the genuine Neumann conjunct transfers.
+    rw [huEq t ht0 hT_gt, hvEq t ht0 hT_gt]
+    exact dpick.sol.neumann ht0 hT_gt hx
 
 /-- Bundle: under overlap uniqueness, the `hrealize` umbrella hypothesis is
 discharged internally — a classical interval solution at horizon `T*` with the

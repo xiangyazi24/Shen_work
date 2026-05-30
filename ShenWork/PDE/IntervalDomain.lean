@@ -16,6 +16,8 @@ import ShenWork.PDE.BoundedDomainData
 
 open MeasureTheory Set
 
+open scoped Topology
+
 noncomputable section
 
 namespace ShenWork.IntervalDomain
@@ -2939,16 +2941,48 @@ def intervalDomainCrossDiffusionEnergyTerm (p : CM2Params)
       |deriv (intervalDomainLift u) x| * |deriv (intervalDomainLift v) x| /
         (1 + intervalDomainLift v x) ^ p.β
 
+/-- The **genuine one-sided** normal derivative on the interval `[0,1]`:
+at the left endpoint `0` it is the right-hand derivative `derivWithin … (Ici 0) 0`,
+at the right endpoint `1` it is the left-hand derivative `derivWithin … (Iic 1) 1`,
+and in the interior the ordinary derivative.  (Previously hard-coded to `0` at
+the endpoints, which made the Neumann boundary conjunct vacuous.) -/
 def intervalDomainNormalDeriv (f : intervalDomainPoint → ℝ)
     (x : intervalDomainPoint) : ℝ :=
-  if _h : x.1 = 0 ∨ x.1 = 1 then 0 else deriv (intervalDomainLift f) x.1
+  if x.1 = 0 then derivWithin (intervalDomainLift f) (Set.Ici 0) 0
+  else if x.1 = 1 then derivWithin (intervalDomainLift f) (Set.Iic 1) 1
+  else deriv (intervalDomainLift f) x.1
 
-theorem intervalDomainNormalDeriv_endpoint
-    (f : intervalDomainPoint → ℝ) {x : intervalDomainPoint}
-    (hx : x.1 = 0 ∨ x.1 = 1) :
-    intervalDomainNormalDeriv f x = 0 := by
+/-- The one-sided normal derivative of a **constant** function vanishes at either
+endpoint: on a within-neighbourhood of the endpoint the lift agrees with the
+constant `c`, so the one-sided derivative equals `derivWithin (fun _ => c) = 0`. -/
+theorem intervalDomainNormalDeriv_const_endpoint_zero (c : ℝ)
+    {x : intervalDomainPoint} (hx : x.1 = 0 ∨ x.1 = 1) :
+    intervalDomainNormalDeriv (fun _ : intervalDomainPoint => c) x = 0 := by
+  have hmem0 : ∀ᶠ y in 𝓝[Set.Ici (0 : ℝ)] (0 : ℝ), y ∈ Set.Icc (0 : ℝ) 1 := by
+    filter_upwards [self_mem_nhdsWithin,
+      nhdsWithin_le_nhds (Iic_mem_nhds (show (0 : ℝ) < 1 by norm_num))]
+      with y hy1 hy2 using ⟨hy1, hy2⟩
+  have hmem1 : ∀ᶠ y in 𝓝[Set.Iic (1 : ℝ)] (1 : ℝ), y ∈ Set.Icc (0 : ℝ) 1 := by
+    filter_upwards [self_mem_nhdsWithin,
+      nhdsWithin_le_nhds (Ici_mem_nhds (show (0 : ℝ) < 1 by norm_num))]
+      with y hy1 hy2 using ⟨hy2, hy1⟩
   unfold intervalDomainNormalDeriv
-  exact if_pos hx
+  rcases hx with h0 | h1
+  · rw [if_pos h0]
+    have hEq : intervalDomainLift (fun _ : intervalDomainPoint => c)
+        =ᶠ[𝓝[Set.Ici (0 : ℝ)] (0 : ℝ)] (fun _ => c) := by
+      filter_upwards [hmem0] with y hy
+      simp [intervalDomainLift, hy]
+    rw [hEq.derivWithin_eq_of_mem Set.left_mem_Ici]
+    simp
+  · have h0' : x.1 ≠ 0 := by rw [h1]; norm_num
+    rw [if_neg h0', if_pos h1]
+    have hEq : intervalDomainLift (fun _ : intervalDomainPoint => c)
+        =ᶠ[𝓝[Set.Iic (1 : ℝ)] (1 : ℝ)] (fun _ => c) := by
+      filter_upwards [hmem1] with y hy
+      simp [intervalDomainLift, hy]
+    rw [hEq.derivWithin_eq_of_mem Set.right_mem_Iic]
+    simp
 
 /-- Concrete bounded-domain data for the unit interval [0,1] with Neumann endpoint
 conditions (normal derivative is explicitly `0` on `{0,1}`). -/
