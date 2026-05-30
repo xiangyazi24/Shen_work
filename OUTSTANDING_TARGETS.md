@@ -58,3 +58,28 @@ Remaining for full T2 (each substantial, T1-scale):
    `hGradEq` hypothesis via the already-proved `intervalFullKernel_hGradEq`
    (IntervalFullKernelDuhamelGradEq.lean) and using the T2 grad estimates above.
    Large structural mirror of the ~hundreds-of-lines `_clean`/`_cleaner` proofs.
+
+## T3 detail (scoped 2026-05-29) — Neumann BC fidelity fix
+
+`intervalDomainNormalDeriv` (IntervalDomain.lean:2944) currently returns hardcoded
+`0` at `{0,1}`, so the BC conjunct `D.normalDeriv (u t) x = 0` (Paper2/Statements.lean
+:100,127,209,261) is VACUOUS. Atomic refactor (74 refs, 7 files; build red until all
+fixed — must land in ONE commit):
+1. Change the def to a genuine one-sided derivative:
+   `if x.1=0 then derivWithin (intervalDomainLift f) (Set.Ici 0) 0
+    else if x.1=1 then derivWithin (intervalDomainLift f) (Set.Iic 1) 1
+    else deriv (intervalDomainLift f) x.1`.
+   `intervalDomainNormalDeriv_endpoint` becomes FALSE → delete/replace with a genuine
+   characterization lemma.
+2. `intervalDomainNormalDeriv_const_zero` (IntervalDomainExistence.lean:293) — re-prove
+   genuinely (`derivWithin_const = 0`). MECHANICAL. Covers ~16 uses (constant `c` /
+   `ellipticV p c` constructors at lines 504,537,3224,3261,4012,4617).
+3. The ABSTRACT-solution uses (IntervalDomainExistence.lean:5196, 6132) construct a
+   classical solution from a glued `u,v` and currently get the BC for free. After the
+   change they need the GENUINE one-sided `derivWithin (lift (u t)) (Ici 0) 0 = 0`,
+   which must be threaded from the underlying solution's regularity — the non-trivial
+   part (the abstract solution must carry a genuine Neumann field, or it is derived
+   from a stronger regularity conjunct). This is the real content of T3 and gates T4.
+NOTE: the `normalDeriv := fun _ _ => 0` instances in Statements.lean (2216,2612,2717,
+2788,2860) and Paper3 are DIFFERENT degenerate domains (Unit-point etc.), NOT
+`intervalDomain` — leave them; only `intervalDomainNormalDeriv` changes.
