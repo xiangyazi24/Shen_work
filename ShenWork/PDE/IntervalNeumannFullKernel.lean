@@ -336,6 +336,68 @@ theorem latticeGaussianSummable {t : ℝ} (ht : 0 < t) (z : ℝ) :
   · refine core _ (fun n => ?_)
     push_cast; nlinarith [sq_nonneg ((n : ℝ) - z)]
 
+/-- **Exp-form lattice summability.**  The bare shifted Gaussian
+`k ↦ exp(−(z+2k)²/(4s))` is summable for `s > 0`; this is `heatKernel s`
+stripped of its `(4πs)^{-1/2}` prefactor, recovered by `Summable.mul_left`. -/
+theorem latticeExpSummable {s : ℝ} (hs : 0 < s) (z : ℝ) :
+    Summable (fun k : ℤ => Real.exp (-(z + 2 * (k : ℝ)) ^ 2 / (4 * s))) := by
+  have hne : Real.sqrt (4 * Real.pi * s) ≠ 0 :=
+    ne_of_gt (Real.sqrt_pos.mpr (by positivity))
+  refine ((latticeGaussianSummable hs z).mul_left
+    (Real.sqrt (4 * Real.pi * s))).congr (fun k => ?_)
+  unfold heatKernel
+  rw [← mul_assoc, mul_one_div, div_self hne, one_mul]
+
+/-- **Gradient lattice summability (proved).**  For `t > 0` the derivative
+lattice `k ↦ deriv (heatKernel t) (z + 2k) = −((z+2k)/(2t))·heatKernel t (z+2k)`
+is summable.  The linear factor is absorbed by halving the Gaussian rate via the
+elementary bound `|w|·exp(−w²/(4·2t)) ≤ √(4·2t)` (`Real.abs_mulExpNegMulSq_le`),
+reducing the dominating series to `latticeExpSummable (2t)`. -/
+theorem latticeGaussianGradSummable {t : ℝ} (ht : 0 < t) (z : ℝ) :
+    Summable (fun k : ℤ => deriv (fun w : ℝ => heatKernel t w) (z + 2 * (k : ℝ))) := by
+  have h2t : (0 : ℝ) < 2 * t := by linarith
+  apply Summable.of_abs
+  set C : ℝ := (1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t)) * Real.sqrt (4 * (2 * t))
+    with hC
+  have hsum : Summable (fun k : ℤ =>
+      C * Real.exp (-(z + 2 * (k : ℝ)) ^ 2 / (4 * (2 * t)))) :=
+    (latticeExpSummable h2t z).mul_left C
+  refine hsum.of_nonneg_of_le (fun k => abs_nonneg _) (fun k => ?_)
+  set x : ℝ := z + 2 * (k : ℝ) with hx
+  -- elementary Gaussian-gradient bound  |x|·exp(−x²/(4·2t)) ≤ √(4·2t)
+  have hw : |x| * Real.exp (-x ^ 2 / (4 * (2 * t))) ≤ Real.sqrt (4 * (2 * t)) := by
+    have hε : (0 : ℝ) < 1 / (4 * (2 * t)) := by positivity
+    have hb := Real.abs_mulExpNegMulSq_le hε (x := x)
+    rw [Real.mulExpNegSq_apply] at hb
+    rw [show -(1 / (4 * (2 * t)) * x * x) = -x ^ 2 / (4 * (2 * t)) by ring,
+        abs_mul, abs_of_pos (Real.exp_pos _)] at hb
+    have hsqrt : (Real.sqrt (1 / (4 * (2 * t))))⁻¹ = Real.sqrt (4 * (2 * t)) := by
+      rw [one_div, Real.sqrt_inv, inv_inv]
+    rwa [hsqrt] at hb
+  -- split the heat-rate Gaussian into two half-rate Gaussians
+  have hsplit : Real.exp (-x ^ 2 / (4 * t))
+      = Real.exp (-x ^ 2 / (4 * (2 * t))) * Real.exp (-x ^ 2 / (4 * (2 * t))) := by
+    rw [← Real.exp_add]; congr 1
+    field_simp
+    ring
+  have hfac : 0 ≤ (1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t)) := by positivity
+  have hcore : |x| * Real.exp (-x ^ 2 / (4 * t))
+      ≤ Real.sqrt (4 * (2 * t)) * Real.exp (-x ^ 2 / (4 * (2 * t))) := by
+    rw [hsplit, ← mul_assoc]
+    exact mul_le_mul_of_nonneg_right hw (Real.exp_pos _).le
+  rw [deriv_heatKernel ht, abs_mul, abs_neg, abs_div, abs_of_pos h2t,
+    abs_of_nonneg (heatKernel_nonneg ht _)]
+  unfold heatKernel
+  rw [hC]
+  calc |x| / (2 * t) * (1 / Real.sqrt (4 * Real.pi * t) * Real.exp (-x ^ 2 / (4 * t)))
+      = (1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))
+          * (|x| * Real.exp (-x ^ 2 / (4 * t))) := by ring
+    _ ≤ (1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))
+          * (Real.sqrt (4 * (2 * t)) * Real.exp (-x ^ 2 / (4 * (2 * t)))) :=
+        mul_le_mul_of_nonneg_left hcore hfac
+    _ = (1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t)) * Real.sqrt (4 * (2 * t))
+          * Real.exp (-x ^ 2 / (4 * (2 * t))) := by ring
+
 /-- **Pointwise kernel identity** (reduced).  Given lattice-Gaussian summability at the
 two shifts, the full periodised image kernel equals the cosine spectral kernel:
 
