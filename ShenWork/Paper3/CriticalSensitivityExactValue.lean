@@ -402,4 +402,55 @@ theorem MinimalGlobalStabilityFormulaCondition.linearlyStable_of_chiBeta_le_mode
       (paperCriticalSensitivity_minimalEquilibrium_eq_mode_one_of_firstMode_dominant
         S p H huStar hmode1 hregime).symm))
 
+/-- **Thm 2.4 linear stability at the exact first-mode threshold, unit interval.**
+`hmode1` is automatic; the regime is the explicit `aαμ ≤ π⁴`. -/
+theorem NonminimalGlobalStabilityFormulaCondition.linearlyStable_of_max_threshold_le_mode_one_unitInterval
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) {M0 : ℝ}
+    (hregime : p.a * p.α * p.μ ≤ (Real.pi ^ 2) ^ 2)
+    (hmode :
+      max
+          (max
+            (chiStrong1Formula p
+              (positiveEquilibrium p ⟨ha, hb⟩).1
+              (positiveEquilibrium p ⟨ha, hb⟩).2)
+            (chiStrong2Formula p (positiveEquilibrium p ⟨ha, hb⟩).1))
+          (max
+            (chiStrong3Formula p M0
+              (positiveEquilibrium p ⟨ha, hb⟩).1
+              (positiveEquilibrium p ⟨ha, hb⟩).2)
+            (chiStrong4Formula p M0 (positiveEquilibrium p ⟨ha, hb⟩).1)) ≤
+        sigmaCriticalChiPaperFormula p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2
+          (unitIntervalNeumannSpectrum.eigenvalue 1))
+    (h :
+      NonminimalGlobalStabilityFormulaCondition p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 M0) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 :=
+  h.linearlyStable_of_max_threshold_le_mode_one
+    unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+    ha hb (by simp [unitIntervalNeumannSpectrum])
+    (by simpa [unitIntervalNeumannSpectrum] using hregime) hmode
+
+/-- **Thm 2.5 linear stability at the exact first-mode threshold, unit interval.** -/
+theorem MinimalGlobalStabilityFormulaCondition.linearlyStable_of_chiBeta_le_mode_one_unitInterval
+    (p : CM2Params) {uStar uBar vLower : ℝ}
+    (hβ : 1 ≤ p.β) (huStar : 0 < uStar)
+    (hregime : p.a * p.α * p.μ ≤ (Real.pi ^ 2) ^ 2)
+    (hmode :
+      chiBeta p ≤
+        sigmaCriticalChiPaperFormula p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2
+          (unitIntervalNeumannSpectrum.eigenvalue 1))
+    (h : MinimalGlobalStabilityFormulaCondition p uStar uBar vLower) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 :=
+  h.linearlyStable_of_chiBeta_le_mode_one
+    unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+    hβ huStar (by simp [unitIntervalNeumannSpectrum])
+    (by simpa [unitIntervalNeumannSpectrum] using hregime) hmode
+
 end ShenWork.Paper3
