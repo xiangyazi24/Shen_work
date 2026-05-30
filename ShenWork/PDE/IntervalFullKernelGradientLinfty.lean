@@ -138,6 +138,71 @@ theorem abs_deriv_heatKernel_le_windowShift {t : ℝ} (ht : 0 < t) (x r : ℝ) (
     _ = heatGradPointwiseBound t * Real.exp (r ^ 2 / (4 * (2 * t)))
           * Real.exp (-(x + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t))) := by ring
 
+/-- Radius-`r` window majorant for the heat kernel itself (no linear factor). -/
+noncomputable def heatKernelWindowBound (t x r : ℝ) (k : ℤ) : ℝ :=
+  (1 / Real.sqrt (4 * Real.pi * t)) * Real.exp (r ^ 2 / (4 * t))
+    * Real.exp (-(x + 2 * (k : ℝ)) ^ 2 / (4 * (2 * t)))
+
+theorem summable_heatKernelWindowBound {t : ℝ} (ht : 0 < t) (x r : ℝ) :
+    Summable (fun k : ℤ => heatKernelWindowBound t x r k) := by
+  have h2t : (0 : ℝ) < 2 * t := by linarith
+  exact (latticeExpSummable h2t x).mul_left _
+
+/-- **Radius-`r` uniform heat-kernel bound.**  Whenever `|w − (x+2k)| ≤ r`,
+`heatKernel t w ≤ heatKernelWindowBound t x r k` (Young `w² ≥ ½(x+2k)² − r²`). -/
+theorem heatKernel_le_windowShift {t : ℝ} (ht : 0 < t) (x r : ℝ) (k : ℤ)
+    {w : ℝ} (hw : |w - (x + 2 * (k : ℝ))| ≤ r) :
+    heatKernel t w ≤ heatKernelWindowBound t x r k := by
+  unfold heatKernel heatKernelWindowBound
+  have hP : (1 / 2) * (x + 2 * (k : ℝ)) ^ 2 - r ^ 2 ≤ w ^ 2 := by
+    have hB : (w - (x + 2 * (k : ℝ))) ^ 2 ≤ r ^ 2 := by
+      rw [← sq_abs]; nlinarith [hw, abs_nonneg (w - (x + 2 * (k : ℝ)))]
+    nlinarith [sq_nonneg (2 * w - (x + 2 * (k : ℝ))), hB]
+  have hexp : Real.exp (-w ^ 2 / (4 * t))
+      ≤ Real.exp (r ^ 2 / (4 * t)) * Real.exp (-(x + 2 * (k : ℝ)) ^ 2 / (4 * (2 * t))) := by
+    rw [← Real.exp_add]
+    apply Real.exp_le_exp.mpr
+    have htne : t ≠ 0 := ne_of_gt ht
+    have e1 : -w ^ 2 / (4 * t) = (-2 * w ^ 2) / (4 * (2 * t)) := by
+      field_simp
+    have e2 : r ^ 2 / (4 * t) + -(x + 2 * (k : ℝ)) ^ 2 / (4 * (2 * t))
+        = (2 * r ^ 2 - (x + 2 * (k : ℝ)) ^ 2) / (4 * (2 * t)) := by
+      field_simp; ring
+    rw [e1, e2]
+    apply (div_le_div_iff_of_pos_right (by positivity : (0 : ℝ) < 4 * (2 * t))).mpr
+    nlinarith [hP]
+  have h0 : (0 : ℝ) ≤ 1 / Real.sqrt (4 * Real.pi * t) := by positivity
+  calc 1 / Real.sqrt (4 * Real.pi * t) * Real.exp (-w ^ 2 / (4 * t))
+      ≤ 1 / Real.sqrt (4 * Real.pi * t)
+          * (Real.exp (r ^ 2 / (4 * t)) * Real.exp (-(x + 2 * (k : ℝ)) ^ 2 / (4 * (2 * t)))) :=
+        mul_le_mul_of_nonneg_left hexp h0
+    _ = 1 / Real.sqrt (4 * Real.pi * t) * Real.exp (r ^ 2 / (4 * t))
+          * Real.exp (-(x + 2 * (k : ℝ)) ^ 2 / (4 * (2 * t))) := by ring
+
+/-- **Continuity of `y ↦ K_full(t,z,y)` on `[0,1]`.**  Each lattice term is
+continuous; the uniform majorant on `[0,1]` is `2·heatKernelWindowBound t z 1`. -/
+theorem continuousOn_intervalNeumannFullKernel_snd {t : ℝ} (ht : 0 < t) (z : ℝ) :
+    ContinuousOn (fun y : ℝ => intervalNeumannFullKernel t z y) (Set.Icc 0 1) := by
+  have hh : Continuous (fun w : ℝ => heatKernel t w) := by unfold heatKernel; fun_prop
+  have hsum : Summable (fun k : ℤ => 2 * heatKernelWindowBound t z 1 k) :=
+    (summable_heatKernelWindowBound ht z 1).mul_left 2
+  show ContinuousOn (fun y : ℝ => ∑' k : ℤ,
+    (heatKernel t (z - y + 2 * (k : ℝ)) + heatKernel t (z + y + 2 * (k : ℝ)))) (Set.Icc 0 1)
+  refine continuousOn_tsum
+    (fun k => ((hh.comp (by fun_prop)).add (hh.comp (by fun_prop))).continuousOn) hsum
+    (fun k y hy => ?_)
+  rw [Real.norm_eq_abs,
+    abs_of_nonneg (add_nonneg (heatKernel_nonneg ht _) (heatKernel_nonneg ht _))]
+  have h1 : heatKernel t (z - y + 2 * (k : ℝ)) ≤ heatKernelWindowBound t z 1 k :=
+    heatKernel_le_windowShift ht z 1 k
+      (by rw [show z - y + 2 * (k : ℝ) - (z + 2 * (k : ℝ)) = -y by ring, abs_neg]
+          exact abs_le.mpr ⟨by linarith [hy.1], by linarith [hy.2]⟩)
+  have h2 : heatKernel t (z + y + 2 * (k : ℝ)) ≤ heatKernelWindowBound t z 1 k :=
+    heatKernel_le_windowShift ht z 1 k
+      (by rw [show z + y + 2 * (k : ℝ) - (z + 2 * (k : ℝ)) = y by ring]
+          exact abs_le.mpr ⟨by linarith [hy.1], by linarith [hy.2]⟩)
+  linarith [h1, h2]
+
 /-- The heat-kernel spatial derivative `w ↦ ∂heat w` is continuous. -/
 theorem continuous_deriv_heatKernel {t : ℝ} (ht : 0 < t) :
     Continuous (fun w : ℝ => deriv (fun z : ℝ => heatKernel t z) w) := by
