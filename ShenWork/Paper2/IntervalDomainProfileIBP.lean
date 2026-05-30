@@ -75,4 +75,59 @@ theorem intervalDomain_spatial_IBP_of_cosineProfile
     (unitIntervalCosineHeatValue_deriv_zero_at_endpoint hτ hM (Or.inr rfl))
     hw hNeuR hNeuL
 
+/-- **L2 energy differential inequality for a cosine-heat-value solution slice.**
+When `u t` is represented on `[0,1]` by a bounded-coefficient cosine heat value
+(the common spatial form of the full full-kernel solution `S_t u₀ + D_t`), the
+`hIBP` frontier is supplied by `intervalDomain_spatial_IBP_of_cosineProfile` (the
+`C^{2,1}`-up-to-boundary regularity proved from the spectral representation) and the
+Neumann frontier by `hsol.neumann` (T3).  The energy inequality
+
+  `E'(t) + dissipation ≤ χ·(ε·gradDiss + C·∫u^{2+ρ}) + logistic`
+
+then holds conditional only on the chain rule `hL2Time`, the PDE substitution
+`hPDEIntegral`, and the cross-diffusion controls.  The single deep analytic input
+is now exactly the closed-boundary heat-value representation `hrep` (the
+Fubini/parabolic-gain step). -/
+theorem intervalDomain_l2_half_energy_inequality_of_cosineProfile
+    {params : CM2Params} {T rho eps chiBound t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (heps : 0 < eps) (hchiBound : 0 ≤ chiBound)
+    (ht0 : 0 < t) (htT : t < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    (hL2Time :
+      deriv (fun τ => intervalDomainL2HalfEnergy u τ) t =
+        intervalDomain.integral (intervalDomainL2TimeTerm u t))
+    (hPDEIntegral :
+      intervalDomain.integral (intervalDomainL2TimeTerm u t) =
+        intervalDomainL2DiffusionIntegral u t -
+          params.χ₀ * intervalDomainL2ChemotaxisIntegral params u v t +
+          intervalDomainL2LogisticIntegral params u t)
+    {τ : ℝ} (hτ : 0 < τ) {b : ℕ → ℝ} {M : ℝ} (hM : ∀ n, |b n| ≤ M)
+    (hrep : Set.EqOn (intervalDomainLift (u t))
+      (fun x => unitIntervalCosineHeatValue τ b x) (Set.Icc (0 : ℝ) 1))
+    (hCrossControl :
+      -params.χ₀ * intervalDomainL2ChemotaxisIntegral params u v t ≤
+        chiBound *
+          intervalDomain.crossDiffusionEnergyTerm params 2 (u t) (v t)) :
+    ∃ Ceps,
+      deriv (fun τ' => intervalDomainL2HalfEnergy u τ') t +
+          intervalDomainL2DiffusionDissipation u t ≤
+        chiBound *
+            (eps * intervalDomainLpWeightedGradientDissipation 2 u t +
+              Ceps *
+                intervalDomain.integral (fun x => (u t x) ^ (2 + rho))) +
+          intervalDomainL2LogisticIntegral params u t := by
+  have hNeuR : intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint = 0 :=
+    (hsol.neumann ht0 htT intervalDomain_rightEndpoint_mem_boundary).1
+  have hNeuL : intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint = 0 :=
+    (hsol.neumann ht0 htT intervalDomain_leftEndpoint_mem_boundary).1
+  have hIBP :
+      intervalDomainL2DiffusionIntegral u t =
+        intervalDomainNeumannBoundaryTerm (u t) (u t) -
+          intervalDomainL2DiffusionDissipation u t :=
+    intervalDomain_spatial_IBP_of_cosineProfile hτ hM hrep hNeuR hNeuL
+  exact intervalDomain_l2_half_energy_cross_bootstrap_inequality_of_frontiers
+    heps hchiBound ht0 htT hcross hL2Time hPDEIntegral hIBP hNeuR hNeuL hCrossControl
+
 end ShenWork.Paper2.IntervalDomainEnergyStep
