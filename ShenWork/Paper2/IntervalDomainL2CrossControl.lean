@@ -42,6 +42,7 @@ open ShenWork.IntervalDomain
 open ShenWork.PDE ShenWork.IntervalEllipticCharacterization
 open ShenWork.Paper2.IntervalDomainEnergyStep
 open ShenWork.Paper2.IntervalDomainLpMonotonicity
+open ShenWork.IntervalFullKernelRegularity
 
 /-- **Chemotaxis cross-diffusion control, unconditional from regularity.**
 For any classical solution at an interior time `t ∈ (0,T)`,
@@ -247,6 +248,132 @@ theorem intervalDomain_l2_half_energy_inequality_of_cosineProfile_full_final
           intervalDomainL2LogisticIntegral params u t :=
   intervalDomain_l2_half_energy_inequality_of_cosineProfile_full
     heps (abs_nonneg _) ht0 htT hsol hcross hτ hM hrepIoo
+    (intervalDomain_l2_crossControl_of_regularity hsol ht0 htT)
+
+/-! ## The cosine representation is unnecessary: spatial IBP directly from
+conjunct (7) + genuine Neumann
+
+The cosine-heat-value representation `hrepIoo` was only ever used to supply a
+global `C²` profile `S` whose derivative matches `deriv (lift (u t))` up to the
+closed boundary (for the spatial Neumann IBP).  But conjunct (7) (closed-`[0,1]`
+`C²`) together with the genuine endpoint Neumann data already deliver this: on the
+interior `deriv (lift (u t)) = derivWithin (lift (u t)) [0,1]`, and at the two
+endpoints both equal `0` (the lift's ordinary derivative is junk-`0`, and the
+closed `derivWithin` is `0` by the genuine Neumann condition).  Hence
+`deriv (lift (u t))` is continuous on the *closed* `[0,1]`, and the full regularity
+package feeding `intervalDomain_l2_half_energy_inequality_of_regularity` is
+discharged from `hsol` alone — eliminating `hrepIoo` entirely. -/
+
+/-- Continuity of `deriv (lift f)` on the closed `[0,1]` from closed-`C²` and the
+genuine endpoint Neumann values `derivWithin (lift f) [0,1] {0,1} = 0`. -/
+theorem deriv_intervalDomainLift_continuousOn_Icc_of_regularity
+    {f : intervalDomain.Point → ℝ}
+    (hf : ContDiffOn ℝ 2 (intervalDomainLift f) (Set.Icc (0:ℝ) 1))
+    (hdw0 : derivWithin (intervalDomainLift f) (Set.Icc (0:ℝ) 1) 0 = 0)
+    (hdw1 : derivWithin (intervalDomainLift f) (Set.Icc (0:ℝ) 1) 1 = 0) :
+    ContinuousOn (deriv (intervalDomainLift f)) (Set.Icc (0:ℝ) 1) := by
+  refine (continuousOn_derivWithin_of_contDiffOn_two hf).congr ?_
+  intro x hx
+  rcases eq_or_lt_of_le hx.1 with hx0 | hx0
+  · rw [← hx0, deriv_intervalDomainLift_eq_zero_at_zero, hdw0]
+  · rcases eq_or_lt_of_le hx.2 with hx1 | hx1
+    · rw [hx1, deriv_intervalDomainLift_eq_zero_at_one, hdw1]
+    · exact deriv_eq_derivWithin_interior ⟨hx0, hx1⟩
+
+/-- **Full-solution L² energy differential inequality — UNCONDITIONAL.**  Every
+classical solution at an interior time satisfies
+
+  `E'(t) + dissipation ≤ |χ₀|·(ε·gradDiss + Ceps·∫u^{2+ρ}) + logistic`
+
+with NO extra hypotheses beyond being a classical solution (and the cross-diffusion
+bootstrap data `hcross`).  All four former frontiers are discharged as theorems
+about an arbitrary classical solution:
+* `hL2Time` (R1) — `intervalDomain_l2_half_energy_hL2Time`;
+* `hPDEIntegral` (R2) — `intervalDomain_l2_half_energy_hPDEIntegral_of_regularity`;
+* `hCrossControl` (T5-s) — `intervalDomain_l2_crossControl_of_regularity`;
+* the `C²`-up-to-boundary regularity package — from conjunct (7) + genuine Neumann.
+
+In particular the deepest input `hrepIoo` (the cosine-heat-value / Duhamel
+representation) is **eliminated**: the spatial Neumann IBP follows from the
+closed-`C²` regularity the solution already carries, not from a spectral
+representation. -/
+theorem intervalDomain_l2_half_energy_inequality_unconditional
+    {params : CM2Params} {T rho eps t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (heps : 0 < eps)
+    (ht0 : 0 < t) (htT : t < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v) :
+    ∃ Ceps,
+      deriv (fun τ => intervalDomainL2HalfEnergy u τ) t +
+          intervalDomainL2DiffusionDissipation u t ≤
+        |params.χ₀| *
+            (eps * intervalDomainLpWeightedGradientDissipation 2 u t +
+              Ceps *
+                intervalDomain.integral (fun x => (u t x) ^ (2 + rho))) +
+          intervalDomainL2LogisticIntegral params u t := by
+  have ht : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
+  -- conjunct (7): closed-`[0,1]` `C²` of the `u`-lift.
+  have hCu : ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0:ℝ) 1) :=
+    (hsol.regularity.2.2.2.2.2.2.1 t ht).1.1
+  -- genuine endpoint Neumann values, as closed-`Icc` `derivWithin` zeros.
+  have hset : (Set.Ici (0:ℝ)) =ᶠ[𝓝 (0:ℝ)] (Set.Icc (0:ℝ) 1) := by
+    filter_upwards [Iio_mem_nhds (show (0:ℝ) < 1 by norm_num)] with x hx
+    simp only [Set.mem_Icc, eq_iff_iff]
+    exact ⟨fun h0 => ⟨h0, le_of_lt hx⟩, fun h => h.1⟩
+  have hset1 : (Set.Iic (1:ℝ)) =ᶠ[𝓝 (1:ℝ)] (Set.Icc (0:ℝ) 1) := by
+    filter_upwards [Ioi_mem_nhds (show (0:ℝ) < 1 by norm_num)] with x hx
+    simp only [Set.mem_Icc, eq_iff_iff]
+    exact ⟨fun h1 => ⟨le_of_lt hx, h1⟩, fun h => h.2⟩
+  have hdw0 : derivWithin (intervalDomainLift (u t)) (Set.Icc (0:ℝ) 1) 0 = 0 := by
+    have hN := (hsol.neumann ht0 htT intervalDomain_leftEndpoint_mem_boundary).1
+    have hNeq : intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint
+        = derivWithin (intervalDomainLift (u t)) (Set.Ici (0:ℝ)) 0 := by
+      show intervalDomainNormalDeriv (u t) intervalDomainLeftEndpoint = _
+      unfold intervalDomainNormalDeriv
+      rw [if_pos (show (intervalDomainLeftEndpoint : intervalDomainPoint).1 = 0 from rfl)]
+    rw [hNeq, derivWithin_congr_set hset] at hN
+    exact hN
+  have hdw1 : derivWithin (intervalDomainLift (u t)) (Set.Icc (0:ℝ) 1) 1 = 0 := by
+    have hN := (hsol.neumann ht0 htT intervalDomain_rightEndpoint_mem_boundary).1
+    have hNeq : intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint
+        = derivWithin (intervalDomainLift (u t)) (Set.Iic (1:ℝ)) 1 := by
+      show intervalDomainNormalDeriv (u t) intervalDomainRightEndpoint = _
+      unfold intervalDomainNormalDeriv
+      rw [if_neg (show ¬ (intervalDomainRightEndpoint : intervalDomainPoint).1 = 0 by
+            norm_num [intervalDomainRightEndpoint]),
+        if_pos (show (intervalDomainRightEndpoint : intervalDomainPoint).1 = 1 from rfl)]
+    rw [hNeq, derivWithin_congr_set hset1] at hN
+    exact hN
+  -- assemble the regularity package.
+  have hcont : ContinuousOn (intervalDomainLift (u t)) (Set.Icc 0 1) := hCu.continuousOn
+  have hf1_cont : ContinuousOn (deriv (intervalDomainLift (u t))) (Set.Icc 0 1) :=
+    deriv_intervalDomainLift_continuousOn_Icc_of_regularity hCu hdw0 hdw1
+  have hf_deriv : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivWithinAt (intervalDomainLift (u t))
+        (deriv (intervalDomainLift (u t)) x) (Set.Ioi x) x := fun x hx =>
+    (hasDerivAt_of_contDiffOn_two_interior hCu hx).hasDerivWithinAt
+  have hf_deriv2 : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      HasDerivWithinAt (deriv (intervalDomainLift (u t)))
+        (deriv (deriv (intervalDomainLift (u t))) x) (Set.Ioi x) x := fun x hx =>
+    (hasDerivAt_deriv_of_contDiffOn_two_interior hCu hx).hasDerivWithinAt
+  have hf1_int : IntervalIntegrable (deriv (intervalDomainLift (u t))) volume 0 1 :=
+    intervalIntegrable_deriv_of_contDiffOn_two hCu
+  have hf2_int : IntervalIntegrable (deriv (deriv (intervalDomainLift (u t)))) volume 0 1 :=
+    intervalIntegrable_deriv_deriv_of_contDiffOn_two hCu
+  have hbdryR : deriv (intervalDomainLift (u t)) 1 =
+      intervalDomain.normalDeriv (u t) intervalDomainRightEndpoint := by
+    rw [deriv_intervalDomainLift_eq_zero_at_one,
+      (hsol.neumann ht0 htT intervalDomain_rightEndpoint_mem_boundary).1]
+  have hbdryL : deriv (intervalDomainLift (u t)) 0 =
+      intervalDomain.normalDeriv (u t) intervalDomainLeftEndpoint := by
+    rw [deriv_intervalDomainLift_eq_zero_at_zero,
+      (hsol.neumann ht0 htT intervalDomain_leftEndpoint_mem_boundary).1]
+  exact intervalDomain_l2_half_energy_inequality_of_regularity
+    heps (abs_nonneg _) ht0 htT hsol hcross
+    (intervalDomain_l2_half_energy_hL2Time hsol ht)
+    (intervalDomain_l2_half_energy_hPDEIntegral_of_regularity hsol ht0 htT)
+    hcont hf1_cont hf_deriv hf_deriv2 hf1_int hf2_int hbdryR hbdryL
     (intervalDomain_l2_crossControl_of_regularity hsol ht0 htT)
 
 end ShenWork.Paper2
