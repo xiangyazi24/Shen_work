@@ -117,30 +117,32 @@ independently-verified steps, all `#print axioms` = core three):
     dominate (6.5b-pre) + Tonelli (`integral_tsum_of_summable_integral_norm`) +
     `integral_add` + 6.5a. All axiom-clean; whole project green 8354.
 
-  Step 6.6 BOUNDING HALF — DONE
-  (`intervalFullSemigroupOperator_deriv_Linfty_of_hasDerivAt`, IntervalFullKernel
-  GradientLinfty.lean): given the parametric-integral differentiation `hrepr`
-  (HasDerivAt of the operator with derivative `∫ y, ∂ₓK_full(t,·,y)·f y ∂μ`), the
-  full `L∞→L∞` gradient bound `|deriv(S_full t f)x| ≤ heatGradLinftyConstant·t^(−1/2)·Cf`
-  for `|f|≤Cf` is PROVED: `|∫ ∂ₓK·f| ≤ ∫|∂ₓK|·|f| ≤ Cf·∫₀¹|∂ₓK_full|` (`Icc`↔`Ioc`
-  via `integral_Icc_eq_integral_Ioc`) `≤ Cf·heatGradLinftyConstant·t^(−1/2)` (6.5b).
-  Uses `hKint` (continuity ⇒ `integrableOn_Icc`), `Integrable.mul_bdd`,
-  `norm_integral_le_integral_norm`, `integral_mono`. Axiom-clean.
+  Step 6.6 — DONE, UNCONDITIONAL (IntervalFullKernelGradientLinfty.lean):
+  * 6.6-a `heatGradWindowBound` + `abs_deriv_heatKernel_le_windowShift` (radius-r
+    gradient window bound).
+  * 6.6-b `heatKernelWindowBound`/`heatKernel_le_windowShift` +
+    `continuousOn_intervalNeumannFullKernel_snd` (K_full continuous in y on [0,1]).
+  * 6.6-c `abs_deriv_intervalNeumannFullKernel_fst_le_const` — `|∂ₓK_full(t,z,y)| ≤
+    ∑ₖ 2·heatGradWindowBound t x 2 k` for `|z−x|≤1, |y|≤1` (the CONSTANT majorant).
+  * `intervalFullSemigroupOperator_deriv_Linfty_of_hasDerivAt` — bounding half:
+    `|∫∂ₓK·f| ≤ ∫|∂ₓK|·|f| ≤ Cf·∫₀¹|∂ₓK_full|` (`Icc↔Ioc`) `≤ Cf·heatGradLinfty·t^(−1/2)` (6.5b).
+  * `intervalFullSemigroupOperator_hasDerivAt_fst` — `hrepr` PROVED: differentiation
+    under the integral via `hasDerivAt_integral_of_dominated_loc_of_deriv_le` on
+    `ball x 1` (constant dominating fn 6.6-c, integrable on finite `intervalMeasure 1`;
+    measurability from 6.6-b / 6.5b-2b continuity; `h_diff` = 6.4`.mul_const`).
+  * **`intervalFullSemigroupOperator_deriv_Linfty_pointwise_sqrt_t`** (CAPSTONE):
+    `|deriv(z↦intervalFullSemigroupOperator t f z) x| ≤ heatGradLinftyConstant·t^(−1/2)·Cf`
+    for `|f|≤Cf`. Composes `hrepr` + bounding half. The FULL-kernel analogue of the
+    zeroth-reflection `intervalSemigroupOperator_deriv_Linfty_pointwise_sqrt_t`.
 
-  REMAINING — the SINGLE residual: `hrepr` itself (standard differentiation under
-  the integral sign for the periodised kernel). Apply `hasDerivAt_integral_of_
-  dominated_loc_of_deriv_le` on `s = ball x 1`, `μ = intervalMeasure 1`:
-  - `h_diff`: `(hasDerivAt_intervalNeumannFullKernel_fst ht z y).mul_const (f y)`.
-  - `h_bound`/`bound_integrable`: CONSTANT majorant `Cf·2·∑ₖ heatGradWindowBound t x 2 k`
-    (radius-2 window covers `z∈ball(x,1), y∈[0,1]`; needs an `r`-parametrised
-    generalisation of `abs_deriv_heatKernel_le_unitShift`, trivial: `B²≤r²` ⇒
-    `exp(r²/8t)` factor) — constant ⇒ integrable on the finite `intervalMeasure 1`.
-  - `hF_meas`/`hF_int`/`hF'_meas`: `K_full t z ·` and `∂ₓK_full(t,·,y)` continuous
-    in `y` on `[0,1]` (`continuousOn_tsum`, as in 6.5b-2b) × `f` (bounded, meas).
-  Once `hrepr` lands, compose with the bounding half ⇒ the UNCONDITIONAL
-  `intervalFullSemigroupOperator_deriv_Linfty_pointwise_sqrt_t`, wiring the full
-  operator into the Duhamel `_clean` chain. All ~100–150 lines of standard
-  parametric-integral plumbing; the analytic core (summability + tiling L¹) is done.
+  ✅ ENTIRE Step 6 CLOSED (2026-05-29): Gaussian lattice summability (6.1–6.2) →
+  termwise differentiation / ∂ₓK_full (6.3–6.4) → kernel-shaped tiling L¹ bound
+  (6.5a–6.5b) → differentiation under the integral (6.6) → the `t^(−1/2)`-integrable
+  full-Neumann-kernel gradient `L∞→L∞` estimate. Whole project `lake build ShenWork`
+  green (8354 jobs); every new decl `#print axioms` = [propext, Classical.choice,
+  Quot.sound]; 0 sorry / 0 admit / 0 custom axiom. This is exactly the
+  gradient estimate ROUND-16/17 flagged as the prerequisite for wiring the full
+  operator into the `_clean`/`_cleaner`/`_resolver` hmap chain (remaining (b) task 1).
   * 6.6 differentiate operator under integral: `deriv(x↦∫₀¹ K_full·f) = ∫₀¹ ∂ₓK_full·f`
     via `MeasureTheory.hasDerivAt_integral_of_dominated_loc_of_deriv_le` (uniform
     dominating bound = the 6.3 `hg'` majorant, integrable on [0,1]); then
