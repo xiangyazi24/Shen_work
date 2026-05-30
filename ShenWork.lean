@@ -100,3 +100,4 @@ import ShenWork.PDE.IntervalFullKernelCleanFull
 import ShenWork.PDE.IntervalFullKernelLeibniz
 import ShenWork.PDE.IntervalFullKernelCleanerFull
 import ShenWork.PDE.IntervalFullKernelResolverFull
+import ShenWork.Paper2.IntervalDomainNeumannIBP
