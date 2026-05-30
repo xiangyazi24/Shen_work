@@ -42,4 +42,52 @@ theorem summable_cell_heatGrad_interval_integral {t : ℝ} (ht : 0 < t) (x : ℝ
   rw [hset]
   exact (ShenWork.cell_integral_eq hg x k).symm
 
+/-- Uniform majorant constant for the lattice gradient over a unit shift around
+`x + 2k` (the lattice point seen as `y` ranges over a unit window). -/
+noncomputable def heatGradUnitBound (t x : ℝ) (k : ℤ) : ℝ :=
+  heatGradPointwiseBound t * Real.exp (1 / (4 * (2 * t)))
+    * Real.exp (-(x + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t)))
+
+/-- The unit-window majorant is summable over the lattice (`latticeExpSummable (4t)`). -/
+theorem summable_heatGradUnitBound {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    Summable (fun k : ℤ => heatGradUnitBound t x k) := by
+  have h4t : (0 : ℝ) < 4 * t := by linarith
+  exact (latticeExpSummable h4t x).mul_left _
+
+/-- **Uniform gradient bound over a unit window.**  Whenever the lattice argument
+`w` lies within distance `1` of the centre `x + 2k`, the heat-gradient is bounded
+by the summable constant `heatGradUnitBound t x k`.  Pointwise bound
+`abs_deriv_heatKernel_le` + Young `(A+B)² ≥ ½A² − B²` (`B = w − (x+2k)`, `|B| ≤ 1`).
+This is the uniform majorant feeding `continuousOn_tsum` on `[0,1]`. -/
+theorem abs_deriv_heatKernel_le_unitShift {t : ℝ} (ht : 0 < t) (x : ℝ) (k : ℤ)
+    {w : ℝ} (hw : |w - (x + 2 * (k : ℝ))| ≤ 1) :
+    |deriv (fun z : ℝ => heatKernel t z) w| ≤ heatGradUnitBound t x k := by
+  refine (abs_deriv_heatKernel_le ht w).trans ?_
+  rw [heatGradUnitBound]
+  have hP : (1 / 2) * (x + 2 * (k : ℝ)) ^ 2 - 1 ≤ w ^ 2 := by
+    have hB : (w - (x + 2 * (k : ℝ))) ^ 2 ≤ 1 := by
+      rw [← sq_abs]; nlinarith [hw, abs_nonneg (w - (x + 2 * (k : ℝ)))]
+    nlinarith [sq_nonneg (2 * w - (x + 2 * (k : ℝ))), hB]
+  have hexp : Real.exp (-w ^ 2 / (4 * (2 * t)))
+      ≤ Real.exp (1 / (4 * (2 * t))) * Real.exp (-(x + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t))) := by
+    rw [← Real.exp_add]
+    apply Real.exp_le_exp.mpr
+    have htne : t ≠ 0 := ne_of_gt ht
+    have e1 : -w ^ 2 / (4 * (2 * t)) = (-2 * w ^ 2) / (4 * (4 * t)) := by
+      field_simp
+      ring
+    have e2 : 1 / (4 * (2 * t)) + -(x + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t))
+        = (2 - (x + 2 * (k : ℝ)) ^ 2) / (4 * (4 * t)) := by
+      field_simp
+      ring
+    rw [e1, e2]
+    apply (div_le_div_iff_of_pos_right (by positivity : (0 : ℝ) < 4 * (4 * t))).mpr
+    nlinarith [hP]
+  calc heatGradPointwiseBound t * Real.exp (-w ^ 2 / (4 * (2 * t)))
+      ≤ heatGradPointwiseBound t * (Real.exp (1 / (4 * (2 * t)))
+          * Real.exp (-(x + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t)))) :=
+        mul_le_mul_of_nonneg_left hexp (by unfold heatGradPointwiseBound; positivity)
+    _ = heatGradPointwiseBound t * Real.exp (1 / (4 * (2 * t)))
+          * Real.exp (-(x + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t))) := by ring
+
 end ShenWork.IntervalNeumannFullKernel
