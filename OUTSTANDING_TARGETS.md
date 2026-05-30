@@ -11,7 +11,7 @@ Invariant throughout: 0 sorry, 0 admit, 0 custom axiom, full build green.
 |---|--------|--------|-----------|------|
 | T0 | `hChemDiv_joint_meas` measurability frontier | DONE | — | diffQuotLimsup AE surrogate; `_resolver` drops the measurability hypothesis |
 | T1 | full-kernel gradient L∞→L∞ estimate (Step 6 tiling) | DONE | T0 | `105aaa0`; unconditional, end-to-end, green 8354 |
-| T2 | wire full kernel operator into `_clean/_cleaner/_resolver` hmap chain | WIP (grad core done) | T1 | full-kernel source grad bounds + combiner DONE (`c46e996`, `d5fb043`); remaining: full-kernel initial-data IBP bound + `_clean_full` rebuild discharging `hGradEq` |
+| T2 | wire full kernel operator into `_clean/_cleaner/_resolver` hmap chain | WIP (analytic core DONE) | T1 | ALL full-kernel grad estimates DONE (source+initial+mass+IBP, T2-a..g); remaining: `_clean_full` snapshot-chain rebuild discharging `hGradEq` (structural) |
 | T3 | Neumann BC fidelity fix: `intervalDomainNormalDeriv` genuine one-sided deriv = 0 (replace hardcoded 0), re-prove ~24 users | TODO | — | independent; current BC conjunct is VACUOUS; IBP needs genuine g'(0)=g'(1)=0 |
 | T4 | energy IBP: `Eprime ≤ K·E` (PDE substitution + Neumann IBP + Lipschitz absorption) | TODO | T3 | needs genuine boundary from T3 |
 | T5 | `hSol` / parabolic boundary regularity: ∂ₜ,∂ₓ,∂ₓₓ continuous/integrable up to spatial endpoints x→0⁺,1⁻ | TODO (deep) | — | real classical PDE theorem; closes the closed-slab envelope → gluing. The big wall. |
@@ -51,25 +51,29 @@ T1's capstone `intervalFullSemigroupOperator_deriv_Linfty_pointwise_sqrt_t`:
 conservation) — Tonelli + tiling `tsum_cell_integral_eq_integral` (g=heat) +
 `heatKernel_integral_eq_one`. The `∫₀¹|K̃| ≤ ∫₀¹ K_full = 1` input for the IBP bound.
 
-Remaining for full T2 (each substantial, T1-scale):
-1. **full-kernel initial-data IBP gradient bound** `|deriv(S_full(t)u₀)x| ≤ ‖u₀'‖∞`
-   for C¹ `u₀` with `u₀(1)=0`. Needs a **lattice IBP engine** (analogue of the
-   zeroth-reflection two-term `intervalSemigroupOperator_deriv_ibp_identity_unit`
-   in HeatKernelGradientEstimates.lean:3147, but for the period-2 lattice kernel):
-   - `deriv(S_full t u₀) x = ∫₀¹ ∂ₓK_full(t,x,y)·u₀ y dy` from
-     `intervalFullSemigroupOperator_hasDerivAt_fst` (6.6 hrepr, f=u₀);
-   - `∂ₓK_full = ∂_y K̃`, `K̃ = ∑ₖ(−heat(x−y+2k)+heat(x+y+2k))` — establish `∂_y K̃`
-     via `hasDerivAt_tsum` (mirror 6.3) + continuity of `∂_y K̃` on [0,1];
-   - IBP in y (`intervalIntegral.integral_deriv_mul_eq_sub` / product-rule), boundary
-     `[K̃ u₀]₀¹ = 0` since `K̃(t,x,0)=0` (lattice symmetry) and `u₀(1)=0` ⇒
-     `deriv = −∫₀¹ K̃ u₀'`;
-   - `|deriv| ≤ ‖u₀'‖∞·∫₀¹|K̃| ≤ ‖u₀'‖∞·∫₀¹ K_full = ‖u₀'‖∞·1` (mass DONE above,
-     `|K̃| ≤ K_full` pointwise). Discharges `hInit_grad`.
-2. **`_clean_full` chain rebuild** — a parallel `intervalCoupledClassicalC1Ball
-   Estimates_hmap_*` on `intervalFullKernelCoupledDuhamelOperator`, discharging the
-   `hGradEq` hypothesis via the already-proved `intervalFullKernel_hGradEq`
-   (IntervalFullKernelDuhamelGradEq.lean) and using the T2 grad estimates above.
-   Large structural mirror of the ~hundreds-of-lines `_clean`/`_cleaner` proofs.
+**DONE — full-kernel initial-data IBP gradient bound + complete estimate**
+(`ShenWork/PDE/IntervalFullKernelInitialIBP.lean`, `…GradEstimateFull.lean`):
+- `intervalNeumannConjugateKernel` `K̃ = ∑ₖ(−heat(x−y+2k)+heat(x+y+2k))`, with
+  `conjugateKernel_at_zero` (`K̃(·,0)=0`), `abs_conjugateKernel_le` (`|K̃|≤K_full`),
+  `conjugateKernel_L1_bound` (`∫₀¹|K̃|≤1`) — T2-d.
+- `hasDerivAt_conjugateKernel_snd` (`∂_yK̃ = ∂ₓK_full`, via 6.3 ± `y↦−y`) — T2-e.
+- `intervalFullCoupledDuhamel_grad_initial_bound`: `|deriv(S_full(t)u₀)x| ≤ G_init`
+  UNIFORM in t — hrepr (6.6) + IBP (`integral_mul_deriv_eq_deriv_mul`, boundary
+  vanishes) + `conjugateKernel_L1_bound` — T2-f.
+- `intervalFullCoupledDuhamel_grad_estimate_full`: complete `|deriv(S_full(t)u₀ +
+  ∫…)x₀| ≤ G_init + Cgrad·2√T·C_source`, NO abstract `hInit_grad` — the
+  full-Neumann-kernel analogue of `intervalCoupledDuhamel_grad_estimate_full_dirichlet`
+  — T2-g. **The entire analytic gradient prerequisite is now done on the full kernel.**
+
+REMAINING (structural, the only T2 piece left):
+**`_clean_full` snapshot-chain rebuild** — a parallel `intervalCoupledClassicalC1Ball
+Estimates_hmap_*` on `intervalFullKernelCoupledDuhamelOperator`, with the gradient
+conjunct discharging `hGradEq` via the proved `intervalFullKernel_hGradEq`
+(IntervalFullKernelDuhamelGradEq.lean) + lift-replacement (`u₀_ext` C¹ rep, as in
+the zeroth `_clean`:4395) + the complete grad estimate `intervalFullCoupledDuhamel
+_grad_estimate_full` (T2-g). The other snapshot conjuncts (sup bound, regularity,
+`hSol`, measurability) mirror the existing `_clean`/`_cleaner` proofs on the full
+operator. Large structural mirror (~hundreds of lines); next round.
 
 ## T3 detail (scoped 2026-05-29) — Neumann BC fidelity fix
 
