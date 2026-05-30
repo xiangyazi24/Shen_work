@@ -99,3 +99,4 @@ import ShenWork.PDE.IntervalFullKernelDuhamelSup
 import ShenWork.PDE.IntervalFullKernelCleanFull
 import ShenWork.PDE.IntervalFullKernelLeibniz
 import ShenWork.PDE.IntervalFullKernelCleanerFull
+import ShenWork.PDE.IntervalFullKernelResolverFull
