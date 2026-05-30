@@ -164,3 +164,44 @@ repo 已把它精确命名为单一义务 `DuhamelTermInteriorC2`（`IntervalFul
 - 核谱/Poisson：`IntervalNeumannFullKernel.lean`（T2）
 - T4-b 消费端：`ShenWork/Paper2/IntervalDomainNeumannIBP.lean`
 - 诚实 gap 报告：`IntervalDomainJointTimeRegularity.lean` 末尾 status note
+
+---
+
+## 5. 实现进度（Path α，自主推进，2026-05-30+）
+
+**空间正则半边（∂ₓ, ∂ₓₓ up-to-boundary）整条 DONE**，对任意被 bounded-coeff cosine
+heat value 表示的解切片成立（覆盖齐次半群 + Duhamel 项 + 完整解 S_t u₀ + D_t）：
+
+| commit | 内容 |
+|--------|------|
+| T5-a | 闭 `[0,1]` C² of 半群 profile（`intervalFullSemigroupProfile_contDiffOn_two_closed`）—— operator=cosineValue 在全 x 成立（`_eq_cosineHeatValue` 的 `hx` unused）→ ContDiff ℝ 2 on ℝ → ContDiffOn.congr |
+| T5-b | **无条件** `deriv (lift g) {0,1} = 0`（任意 g）—— 零延拓在外部射线恒 0，单边导=0 + uniqueDiffWithinAt |
+| T5-c | up-to-boundary C¹ 连续 `ContinuousOn (deriv (lift g)) (Icc)` —— 内部=deriv S，端点都=0（T5-b + Neumann `_deriv_zero_at_endpoint`） |
+| T5-d | 全部 T4-b package：内部 HasDerivWithinAt ×2、deriv/deriv² 区间可积（deriv²=deriv² S a.e. on [0,1]） |
+| T5-e | `intervalDomain_spatial_IBP_of_semigroup` —— 真证 hIBP（正则性 DERIVED） |
+| T5-f | `intervalDomain_l2_half_energy_inequality_of_semigroup` —— L2 E'≤K·E |
+| T5-g | **抽象 C² Neumann profile package**（`IntervalProfileBoundaryRegularity`）+ `intervalDomain_spatial_IBP_of_{profile,cosineProfile}` —— 一招通吃半群/Duhamel/完整解 |
+| T5-h | `intervalDomain_l2_half_energy_inequality_of_cosineProfile` —— **完整解** L2 E'≤K·E，conditional on 闭边界 cosine 表示 hrep |
+
+净效果：`hIBP` frontier 对完整解真证（正则性是真分析内容，不是假设）；L2 能量不等式
+对完整解成立，只剩诚实 frontier：`hL2Time`/`hPDEIntegral`/`hrep`/cross-controls。
+
+**剩余 tail（∂ₜ 时间正则 + 代数 + 表示）——精确 scope**：
+
+- **R1（∂ₜ 时间正则 / `hL2Time`）**：`d/dt ½∫u² = ∫u·∂ₜu`。工具齐：
+  `intervalIntegral_hasDerivAt_time_of_local`（参数时间积分求导）+ slab 连续 envelope
+  (`exists_bound_of_continuousOn_slab`)。需 conjunct 4（逐点时间可微）+ 8/9（∂ₜu, u 的
+  `(t,x)` 闭 slab 联合连续）。**陷阱**：cosine value 的 ∂ₜ 不是 bounded-coeff cosine
+  value（∂ₜ weight = −λₙe^{−τλₙ}，系数 −λₙbₙ 不有界）——时间方向的 parabolic gain 比
+  空间更细，要在 τ>0 用 e^{−τλₙ} 的衰减压住 λₙ 增长（per-τ bounded，τ-uniform on
+  compact slab）。这是 conjunct 8 的真内容。
+- **R2（`hPDEIntegral` PDE 代入）**：积分 pointwise PDE
+  (`intervalDomain_solution_l2_weighted_timeDeriv_eq_pde`) + 线性拆分，需各项可积
+  （u·laplacian ✓ from T5-d；u·chemoDiv 含 `(1+v)^β` 分母，可积性是真 bookkeeping）。
+- **R3（`hrep` 闭边界 cosine 表示）**：把 `DuhamelHeatValueRepresentation` 从 `Ioo` 升到
+  `Icc`（端点 cosine value 直接有定义，平凡延伸）；其本体（Fubini ∫₀ᵗ↔∑'ₙ + parabolic
+  gain `parabolicGain_le_one`）是 `IntervalDuhamelRegularity` 已 isolate 的单一深 step。
+
+依赖：R1 ⟸ conjunct 8（联合连续，⟸ R3 表示的联合连续 / Weierstrass-M）；R2 独立；
+R3 是最深 step（Fubini + parabolic gain）。下一步攻 R3 的闭边界升级 + R1 的 slab-continuous
+hL2Time bridge。
