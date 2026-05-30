@@ -143,3 +143,30 @@ fixed — must land in ONE commit):
 NOTE: the `normalDeriv := fun _ _ => 0` instances in Statements.lean (2216,2612,2717,
 2788,2860) and Paper3 are DIFFERENT degenerate domains (Unit-point etc.), NOT
 `intervalDomain` — leave them; only `intervalDomainNormalDeriv` changes.
+
+## NEXT TARGET DIAGNOSIS (2026-05-30, after T5-u) — `Kunif` → gluing/uniqueness
+
+The single-solution L² energy inequality is now unconditional (T5-u).  The next
+high-value gate on the **gluing/uniqueness critical path** (→ Paper2 Thm 1.1
+uniqueness) is `Kunif`, the UNIFORM Grönwall constant in
+`IntervalDomainL2UBoundedDatumUniform` (see
+`IntervalDomainL2UBoundedDatumUniformOfBounded.lean` header for the honest blocker).
+
+The per-time bound `intervalDomainL2U_energy_diffIneq_bound_uniform_explicit_zeroM`
+already proves `∫ integrandDeriv τ ≤ (χ₀²·Cflux(M)+2L)·E_u(τ)` with a *uniform* `M`
+(sup bound) and `L` (logistic Lipschitz).  The ONLY missing piece for a τ-uniform
+`K` is a **quantitative resolver-gradient sup bound** `‖∂ₓR(νu^γ)‖_∞ ≤ F(M)`
+(currently `resolverGradReal_bounded` gives only non-quantitative compactness
+existence).
+
+**Reachable path (no Mathlib gap):** `intervalNeumannResolverR_grad_sup_lipschitz`
+already gives `|RGrad u₁ − RGrad u₂| ≤ √(∑W_k²)·‖sourceCoeffΔ‖_{L²}`, gated on
+per-point summability side-conditions `Summable (k ↦ R̂_k·kπ·sin(kπx))`.  Those ARE
+provable: terms `~ Â_k/k`, summable by Cauchy–Schwarz (`∑Â_k/k ≤ √(∑Â_k²)·√(∑1/k²)`,
+source `Â ∈ ℓ²` via Bessel).  Steps: (1) sup version of the grad bound (set `u₂=0`);
+(2) the summability side-conditions from `Â ∈ ℓ²`; (3) `‖sourceCoeff(u)‖_{L²} ≤
+ν·M^γ` from `u ≤ M` (Parseval/Bessel); (4) assemble `G(M)` → uniform `Cflux(M)` →
+uniform `K` → `Kunif` → `IntervalDomainL2UBoundedDatumUniform` →
+`GlobalSolutionGluingFromReachability` (Thm 1.1 uniqueness).  γ≥1 regime supplies the
+uniform `M` via `Lemma_3_1_intervalDomain` (sup-norm monotonicity).  This is a
+multi-step elliptic-regularity build, a genuine next sub-project.
