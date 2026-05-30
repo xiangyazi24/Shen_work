@@ -267,6 +267,128 @@ theorem intervalDomain_l2_half_energy_hL2Time_of_slabContinuous
   rw [hHD.deriv]
   exact intervalDomainHalfEnergyIntegrandDeriv_integral_eq_timeTerm u t
 
+/-! ## Discharging the side conditions: `hL2Time` UNCONDITIONALLY from the
+regularity conjuncts -/
+
+/-- A jointly-continuous space-time field on the open-time/closed-space slab,
+restricted to a fixed interior time, is continuous in space on `[0,1]`. -/
+theorem intervalDomain_continuousOn_timeSlice
+    {g : ℝ → ℝ → ℝ} {T t : ℝ}
+    (hg : ContinuousOn (Function.uncurry g)
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1))
+    (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    ContinuousOn (fun x => g t x) (Set.Icc (0 : ℝ) 1) := by
+  have hmap : ContinuousOn (fun x : ℝ => (t, x)) (Set.Icc (0 : ℝ) 1) :=
+    (continuous_const.prodMk continuous_id).continuousOn
+  have hsub : Set.MapsTo (fun x : ℝ => (t, x)) (Set.Icc (0 : ℝ) 1)
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+    fun x hx => Set.mk_mem_prod ht hx
+  exact hg.comp hmap hsub
+
+/-- **Joint continuity of the half-energy integrand-derivative field, from the
+regularity conjuncts.**  The field is the product of the solution field (conjunct
+(9)) and its time-derivative field (conjunct (8)), both jointly continuous on
+`Ioo 0 T ×ˢ Icc 0 1`. -/
+theorem intervalDomainHalfEnergyIntegrandDeriv_continuousOn_of_regularity
+    {p : CM2Params} {T : ℝ} {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v) :
+    ContinuousOn (Function.uncurry (intervalDomainHalfEnergyIntegrandDeriv u))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) := by
+  have hreg := hsol.regularity
+  have hc9 : ContinuousOn
+      (Function.uncurry (fun (t : ℝ) (x : ℝ) => intervalDomainLift (u t) x))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+    hreg.2.2.2.2.2.2.2.2.1
+  have hc8 : ContinuousOn
+      (Function.uncurry
+        (fun (t : ℝ) (x : ℝ) => deriv (fun s : ℝ => intervalDomainLift (u s) x) t))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+    hreg.2.2.2.2.2.2.2.1.1
+  exact hc9.mul hc8
+
+/-- **Continuity of the half-energy integrand at a fixed interior time.**  From
+conjunct (9) (continuity of the solution field). -/
+theorem intervalDomainHalfEnergyIntegrand_continuousOn_timeSlice
+    {p : CM2Params} {T : ℝ} {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    ContinuousOn (intervalDomainHalfEnergyIntegrand u t) (Set.Icc (0 : ℝ) 1) := by
+  have hc9 : ContinuousOn
+      (Function.uncurry (fun (t : ℝ) (x : ℝ) => intervalDomainLift (u t) x))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+    hsol.regularity.2.2.2.2.2.2.2.2.1
+  have hlift : ContinuousOn (fun x => intervalDomainLift (u t) x) (Set.Icc (0 : ℝ) 1) :=
+    intervalDomain_continuousOn_timeSlice hc9 ht
+  have : ContinuousOn (fun y => (intervalDomainLift (u t) y) ^ 2) (Set.Icc (0 : ℝ) 1) :=
+    hlift.pow 2
+  exact this.const_mul (1 / 2)
+
+/-- A closed time-slab `[t−δ,t+δ] ⊆ (0,T)` together with the open ball, for a
+positive radius `δ`. -/
+theorem exists_closedSlab_subset
+    {t T : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    ∃ δ : ℝ, 0 < δ ∧ Metric.ball t δ ⊆ Set.Ioo (0 : ℝ) T ∧
+      Set.Icc (t - δ) (t + δ) ⊆ Set.Ioo (0 : ℝ) T := by
+  obtain ⟨δ', hδ'pos, hsub'⟩ := exists_ball_subset_Ioo ht
+  refine ⟨δ' / 2, by positivity, ?_, ?_⟩
+  · exact subset_trans (Metric.ball_subset_ball (by linarith)) hsub'
+  · intro x hx
+    apply hsub'
+    rw [Metric.mem_ball, Real.dist_eq]
+    rw [Set.mem_Icc] at hx
+    rw [abs_lt]
+    constructor <;> linarith [hx.1, hx.2]
+
+/-- **`hL2Time`, UNCONDITIONALLY for any classical solution at an interior time.**
+The single-solution time-Leibniz chain rule
+
+  `deriv (fun τ => ½∫₀¹ (u τ)²) t = intervalDomain.integral (u·∂ₜu)`
+
+holds for every `IsPaper2ClassicalSolution` and every interior time `t ∈ (0,T)`,
+with NO extra hypotheses: the closed-slab joint continuity is the product of
+conjuncts (8) and (9), and the measurability/integrability side conditions follow
+from the same joint continuity by restriction to a fixed time.  This fully
+discharges the `hL2Time` frontier of the L²-energy inequality from the regularity
+conjuncts every classical solution carries. -/
+theorem intervalDomain_l2_half_energy_hL2Time
+    {p : CM2Params} {T : ℝ} {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {t : ℝ} (ht : t ∈ Set.Ioo (0 : ℝ) T) :
+    deriv (fun τ => intervalDomainL2HalfEnergy u τ) t =
+      intervalDomain.integral (intervalDomainL2TimeTerm u t) := by
+  obtain ⟨δ, hδ, hball, hIcc⟩ := exists_closedSlab_subset ht
+  -- Joint continuity of the integrand-derivative field on the open-T slab.
+  have hjoint := intervalDomainHalfEnergyIntegrandDeriv_continuousOn_of_regularity hsol
+  -- (D2) input: continuity on the compact slab `[t−δ,t+δ] ×ˢ [0,1]`.
+  have hslab : ContinuousOn
+      (Function.uncurry (intervalDomainHalfEnergyIntegrandDeriv u))
+      (Set.Icc (t - δ) (t + δ) ×ˢ Set.Icc (0 : ℝ) 1) :=
+    hjoint.mono (Set.prod_mono hIcc (le_refl _))
+  -- `hF'_meas`: the deriv field at `t` is continuous on `[0,1]`, hence a.e.-measurable.
+  have hderiv_slice : ContinuousOn (intervalDomainHalfEnergyIntegrandDeriv u t)
+      (Set.Icc (0 : ℝ) 1) :=
+    intervalDomain_continuousOn_timeSlice hjoint ht
+  have hF'_meas : AEStronglyMeasurable
+      (intervalDomainHalfEnergyIntegrandDeriv u t) intervalDomainInteriorMeasure :=
+    (hderiv_slice.mono Set.Ioo_subset_Icc_self).aestronglyMeasurable measurableSet_Ioo
+  -- `hF_int`: the integrand at `t` is continuous on `[0,1]`, hence interval-integrable.
+  have hint_slice : ContinuousOn (intervalDomainHalfEnergyIntegrand u t)
+      (Set.Icc (0 : ℝ) 1) :=
+    intervalDomainHalfEnergyIntegrand_continuousOn_timeSlice hsol ht
+  have hF_int : IntervalIntegrable
+      (intervalDomainHalfEnergyIntegrand u t) volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable
+    rwa [Set.uIcc_of_le (zero_le_one)]
+  -- `hF_meas`: for `s` near `t` (hence in `(0,T)`) the integrand is a.e.-measurable.
+  have hF_meas : ∀ᶠ s in 𝓝 t,
+      AEStronglyMeasurable (intervalDomainHalfEnergyIntegrand u s)
+        intervalDomainInteriorMeasure := by
+    filter_upwards [isOpen_Ioo.mem_nhds ht] with s hs
+    exact ((intervalDomainHalfEnergyIntegrand_continuousOn_timeSlice hsol hs).mono
+      Set.Ioo_subset_Icc_self).aestronglyMeasurable measurableSet_Ioo
+  exact intervalDomain_l2_half_energy_hL2Time_of_slabContinuous hsol hδ hball
+    hF_meas hF_int hF'_meas hslab
+
 end
 
 end ShenWork.Paper2
