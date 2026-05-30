@@ -348,22 +348,20 @@ theorem latticeExpSummable {s : ℝ} (hs : 0 < s) (z : ℝ) :
   unfold heatKernel
   rw [← mul_assoc, mul_one_div, div_self hne, one_mul]
 
-/-- **Gradient lattice summability (proved).**  For `t > 0` the derivative
-lattice `k ↦ deriv (heatKernel t) (z + 2k) = −((z+2k)/(2t))·heatKernel t (z+2k)`
-is summable.  The linear factor is absorbed by halving the Gaussian rate via the
-elementary bound `|w|·exp(−w²/(4·2t)) ≤ √(4·2t)` (`Real.abs_mulExpNegMulSq_le`),
-reducing the dominating series to `latticeExpSummable (2t)`. -/
-theorem latticeGaussianGradSummable {t : ℝ} (ht : 0 < t) (z : ℝ) :
-    Summable (fun k : ℤ => deriv (fun w : ℝ => heatKernel t w) (z + 2 * (k : ℝ))) := by
+/-- The pointwise heat-gradient bound constant `(1/(2t))·(4πt)^{-1/2}·√(8t)`. -/
+def heatGradPointwiseBound (t : ℝ) : ℝ :=
+  (1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t)) * Real.sqrt (4 * (2 * t))
+
+/-- **Pointwise Gaussian-gradient bound.**  For `t > 0`, the heat-kernel spatial
+derivative obeys `|deriv (heatKernel t) x| ≤ heatGradPointwiseBound t · exp(−x²/(8t))`
+— the linear `x` prefactor of `deriv` is absorbed into the *half-rate* Gaussian by
+the elementary bound `|x|·exp(−x²/(8t)) ≤ √(8t)` (`Real.abs_mulExpNegMulSq_le` with
+`ε = 1/(8t)`).  The surviving half-rate Gaussian `exp(−x²/(8t))` is what makes the
+derivative lattice summable (and uniformly so on bounded sets). -/
+theorem abs_deriv_heatKernel_le {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    |deriv (fun u : ℝ => heatKernel t u) x|
+      ≤ heatGradPointwiseBound t * Real.exp (-x ^ 2 / (4 * (2 * t))) := by
   have h2t : (0 : ℝ) < 2 * t := by linarith
-  apply Summable.of_abs
-  set C : ℝ := (1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t)) * Real.sqrt (4 * (2 * t))
-    with hC
-  have hsum : Summable (fun k : ℤ =>
-      C * Real.exp (-(z + 2 * (k : ℝ)) ^ 2 / (4 * (2 * t)))) :=
-    (latticeExpSummable h2t z).mul_left C
-  refine hsum.of_nonneg_of_le (fun k => abs_nonneg _) (fun k => ?_)
-  set x : ℝ := z + 2 * (k : ℝ) with hx
   -- elementary Gaussian-gradient bound  |x|·exp(−x²/(4·2t)) ≤ √(4·2t)
   have hw : |x| * Real.exp (-x ^ 2 / (4 * (2 * t))) ≤ Real.sqrt (4 * (2 * t)) := by
     have hε : (0 : ℝ) < 1 / (4 * (2 * t)) := by positivity
@@ -387,8 +385,7 @@ theorem latticeGaussianGradSummable {t : ℝ} (ht : 0 < t) (z : ℝ) :
     exact mul_le_mul_of_nonneg_right hw (Real.exp_pos _).le
   rw [deriv_heatKernel ht, abs_mul, abs_neg, abs_div, abs_of_pos h2t,
     abs_of_nonneg (heatKernel_nonneg ht _)]
-  unfold heatKernel
-  rw [hC]
+  unfold heatKernel heatGradPointwiseBound
   calc |x| / (2 * t) * (1 / Real.sqrt (4 * Real.pi * t) * Real.exp (-x ^ 2 / (4 * t)))
       = (1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t))
           * (|x| * Real.exp (-x ^ 2 / (4 * t))) := by ring
@@ -397,6 +394,17 @@ theorem latticeGaussianGradSummable {t : ℝ} (ht : 0 < t) (z : ℝ) :
         mul_le_mul_of_nonneg_left hcore hfac
     _ = (1 / (2 * t)) * (1 / Real.sqrt (4 * Real.pi * t)) * Real.sqrt (4 * (2 * t))
           * Real.exp (-x ^ 2 / (4 * (2 * t))) := by ring
+
+/-- **Gradient lattice summability (proved).**  For `t > 0` the derivative
+lattice `k ↦ deriv (heatKernel t) (z + 2k) = −((z+2k)/(2t))·heatKernel t (z+2k)`
+is summable, dominated termwise by `heatGradPointwiseBound t · exp(−(z+2k)²/(8t))`
+(`abs_deriv_heatKernel_le`), whose lattice sum is `latticeExpSummable (2t)`. -/
+theorem latticeGaussianGradSummable {t : ℝ} (ht : 0 < t) (z : ℝ) :
+    Summable (fun k : ℤ => deriv (fun w : ℝ => heatKernel t w) (z + 2 * (k : ℝ))) := by
+  have h2t : (0 : ℝ) < 2 * t := by linarith
+  apply Summable.of_abs
+  exact ((latticeExpSummable h2t z).mul_left (heatGradPointwiseBound t)).of_nonneg_of_le
+    (fun k => abs_nonneg _) (fun k => abs_deriv_heatKernel_le ht _)
 
 /-- **Pointwise kernel identity** (reduced).  Given lattice-Gaussian summability at the
 two shifts, the full periodised image kernel equals the cosine spectral kernel:
