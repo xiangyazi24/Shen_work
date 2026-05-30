@@ -151,4 +151,72 @@ theorem deriv_intervalDomainLift_eq_zero_at_one (g : intervalDomainPoint → ℝ
     exact (uniqueDiffWithinAt_Ioi 1).eq_deriv _ h1 h2
   · exact deriv_zero_of_not_differentiableAt hdiff
 
+/-! ## Up-to-boundary `C¹` continuity of the semigroup-profile spatial derivative -/
+
+/-- The full propagator equals, **as a function on all of `ℝ`**, the cosine
+spectral heat value of its coefficients (the `hx : Ioo 0 1` of
+`intervalFullSemigroupOperator_eq_cosineHeatValue` is unused). -/
+theorem intervalFullSemigroupOperator_eq_cosineHeatValue_funext
+    (t : ℝ) (ht : 0 < t) (f : ℝ → ℝ) (hf : Continuous f)
+    (hkernel : ∀ x : ℝ, ∀ y,
+      intervalNeumannFullKernel t x y =
+        ∑' m : ℤ, Real.exp (-t * ((m : ℝ) * Real.pi) ^ 2) *
+          (Real.cos ((m : ℝ) * Real.pi * x) * Real.cos ((m : ℝ) * Real.pi * y))) :
+    (fun x => intervalFullSemigroupOperator t f x) =
+      fun x => unitIntervalCosineHeatValue t (cosineCoeffs f) x := by
+  funext x
+  rw [intervalFullSemigroupOperator]
+  rw [show (fun y => intervalNeumannFullKernel t x y * f y)
+        = (fun y => (∑' m : ℤ, Real.exp (-t * ((m : ℝ) * Real.pi) ^ 2) *
+            (Real.cos ((m : ℝ) * Real.pi * x) *
+              Real.cos ((m : ℝ) * Real.pi * y))) * f y) from by
+      funext y; rw [hkernel x y]]
+  exact ShenWork.IntervalFullKernelInterchange.fullKernelIntegralInterchange_holds t ht f hf x
+
+/-- **Up-to-boundary `C¹` continuity of the semigroup profile derivative.**
+For a semigroup-profile slice (`lift g = S_t f` on `[0,1]`), the *ordinary*
+spatial derivative `deriv (lift g)` is continuous on the **closed** `[0,1]`.
+
+On the interior it agrees with `deriv (S_t f)` (continuous, since `S_t f ∈ C²`);
+at the endpoints both vanish — `deriv (lift g) = 0` by
+`deriv_intervalDomainLift_eq_zero_at_{zero,one}` and `deriv (S_t f) = 0` by the
+Neumann property of the cosine profile
+(`unitIntervalCosineHeatValue_deriv_zero_at_endpoint`). -/
+theorem deriv_intervalDomainLift_continuousOn_Icc_of_semigroup
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf : Continuous f) {M : ℝ}
+    (hM : ∀ n, |cosineCoeffs f n| ≤ M)
+    {g : intervalDomainPoint → ℝ}
+    (hg : Set.EqOn (intervalDomainLift g)
+      (fun x => intervalFullSemigroupOperator t f x) (Set.Icc (0 : ℝ) 1))
+    (hkernel : ∀ x : ℝ, ∀ y,
+      intervalNeumannFullKernel t x y =
+        ∑' m : ℤ, Real.exp (-t * ((m : ℝ) * Real.pi) ^ 2) *
+          (Real.cos ((m : ℝ) * Real.pi * x) * Real.cos ((m : ℝ) * Real.pi * y))) :
+    ContinuousOn (deriv (intervalDomainLift g)) (Set.Icc (0 : ℝ) 1) := by
+  set S : ℝ → ℝ := fun x => intervalFullSemigroupOperator t f x with hS
+  have hid : S = fun x => unitIntervalCosineHeatValue t (cosineCoeffs f) x :=
+    intervalFullSemigroupOperator_eq_cosineHeatValue_funext t ht f hf hkernel
+  have hC2 :
+      ContDiff ℝ 2 S :=
+    ShenWork.IntervalFullKernelInterchange.intervalFullSemigroupOperator_contDiff_two_unconditional
+      t ht f hf hM hkernel
+  have hderiv_cont : Continuous (deriv S) := hC2.continuous_deriv (by norm_num)
+  have hd0 : deriv S 0 = 0 := by
+    rw [hid]; exact unitIntervalCosineHeatValue_deriv_zero_at_endpoint ht hM (Or.inl rfl)
+  have hd1 : deriv S 1 = 0 := by
+    rw [hid]; exact unitIntervalCosineHeatValue_deriv_zero_at_endpoint ht hM (Or.inr rfl)
+  have hEqD : Set.EqOn (deriv (intervalDomainLift g)) (deriv S) (Set.Icc (0 : ℝ) 1) := by
+    intro x hx
+    rcases eq_or_lt_of_le hx.1 with hx0 | hx0
+    · subst hx0; rw [deriv_intervalDomainLift_eq_zero_at_zero, hd0]
+    · rcases eq_or_lt_of_le hx.2 with hx1 | hx1
+      · rw [hx1, deriv_intervalDomainLift_eq_zero_at_one, hd1]
+      · -- interior point: `lift g =ᶠ S` on the open `(0,1)`
+        have hxIoo : x ∈ Set.Ioo (0 : ℝ) 1 := ⟨hx0, hx1⟩
+        have hev : intervalDomainLift g =ᶠ[𝓝 x] S :=
+          Filter.eventuallyEq_of_mem (isOpen_Ioo.mem_nhds hxIoo)
+            (fun y hy => hg ⟨le_of_lt hy.1, le_of_lt hy.2⟩)
+        exact hev.deriv_eq
+  exact (hderiv_cont.continuousOn).congr hEqD
+
 end ShenWork.IntervalFullKernelRegularity
