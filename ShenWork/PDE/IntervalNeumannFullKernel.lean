@@ -479,6 +479,34 @@ theorem hasDerivAt_heatKernel_lattice_tsum {t : ℝ} (ht : 0 < t) (b x : ℝ) :
     (y₀ := x) (Set.mem_Ioo.mpr ⟨by linarith, by linarith⟩) hg0
     (y := x) (Set.mem_Ioo.mpr ⟨by linarith, by linarith⟩)
 
+/-- **`∂ₓ` of the full periodised Neumann kernel.**  For `t > 0`, the full kernel
+`K_full t · y = ∑ₖ (heat(·−y+2k) + heat(·+y+2k))` is differentiable in its first
+argument, with derivative the sum of the two termwise-differentiated lattice
+series.  Both the value split (`Summable.tsum_add` on the kernel) and the two
+lattice derivatives come from `hasDerivAt_heatKernel_lattice_tsum` (with shifts
+`b = −y` and `b = y`). -/
+theorem hasDerivAt_intervalNeumannFullKernel_fst {t : ℝ} (ht : 0 < t) (x y : ℝ) :
+    HasDerivAt (fun x : ℝ => intervalNeumannFullKernel t x y)
+      ((∑' k : ℤ, deriv (fun u : ℝ => heatKernel t u) (x - y + 2 * (k : ℝ)))
+        + (∑' k : ℤ, deriv (fun u : ℝ => heatKernel t u) (x + y + 2 * (k : ℝ)))) x := by
+  -- reflected family (shift `b = −y`)
+  have hL : HasDerivAt (fun w : ℝ => ∑' k : ℤ, heatKernel t (w - y + 2 * (k : ℝ)))
+      (∑' k : ℤ, deriv (fun u : ℝ => heatKernel t u) (x - y + 2 * (k : ℝ))) x := by
+    simpa only [sub_eq_add_neg] using hasDerivAt_heatKernel_lattice_tsum ht (-y) x
+  -- direct family (shift `b = y`)
+  have hR : HasDerivAt (fun w : ℝ => ∑' k : ℤ, heatKernel t (w + y + 2 * (k : ℝ)))
+      (∑' k : ℤ, deriv (fun u : ℝ => heatKernel t u) (x + y + 2 * (k : ℝ))) x :=
+    hasDerivAt_heatKernel_lattice_tsum ht y x
+  -- split the kernel's single tsum into the two lattice sums
+  have hfun : (fun w : ℝ => intervalNeumannFullKernel t w y)
+      = fun w => (∑' k : ℤ, heatKernel t (w - y + 2 * (k : ℝ)))
+          + (∑' k : ℤ, heatKernel t (w + y + 2 * (k : ℝ))) := by
+    funext w
+    rw [intervalNeumannFullKernel]
+    exact Summable.tsum_add (latticeGaussianSummable ht (w - y)) (latticeGaussianSummable ht (w + y))
+  rw [hfun]
+  exact hL.add hR
+
 /-- **Pointwise kernel identity** (reduced).  Given lattice-Gaussian summability at the
 two shifts, the full periodised image kernel equals the cosine spectral kernel:
 
