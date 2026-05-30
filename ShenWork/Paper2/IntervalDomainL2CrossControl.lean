@@ -41,6 +41,7 @@ namespace ShenWork.Paper2
 open ShenWork.IntervalDomain
 open ShenWork.PDE ShenWork.IntervalEllipticCharacterization
 open ShenWork.Paper2.IntervalDomainEnergyStep
+open ShenWork.Paper2.IntervalDomainLpMonotonicity
 
 /-- **Chemotaxis cross-diffusion control, unconditional from regularity.**
 For any classical solution at an interior time `t ∈ (0,T)`,
@@ -217,5 +218,35 @@ theorem intervalDomain_l2_crossControl_of_regularity
         intro y _
         simp only [hrhsCross, hlu, hlv]
         rw [show (2:ℝ) - 1 = 1 by norm_num, Real.rpow_one]
+
+/-- **Full-solution L² energy inequality — both remaining gates discharged but
+`hrepIoo`.**  Strengthens `…_of_cosineProfile_full` by also discharging the
+cross-diffusion control `hCrossControl` via
+`intervalDomain_l2_crossControl_of_regularity` (T5-s), with `chiBound := |χ₀|`.
+The **only** remaining input is the OPEN-`(0,1)` cosine representation `hrepIoo`
+(`DuhamelHeatValueRepresentation` body, the Fubini/parabolic-gain step).  Every
+other hypothesis of the energy differential inequality is now a theorem about an
+arbitrary classical solution. -/
+theorem intervalDomain_l2_half_energy_inequality_of_cosineProfile_full_final
+    {params : CM2Params} {T rho eps t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (heps : 0 < eps)
+    (ht0 : 0 < t) (htT : t < T)
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
+    {τ : ℝ} (hτ : 0 < τ) {b : ℕ → ℝ} {M : ℝ} (hM : ∀ n, |b n| ≤ M)
+    (hrepIoo : Set.EqOn (intervalDomainLift (u t))
+      (fun x => unitIntervalCosineHeatValue τ b x) (Set.Ioo (0 : ℝ) 1)) :
+    ∃ Ceps,
+      deriv (fun τ' => intervalDomainL2HalfEnergy u τ') t +
+          intervalDomainL2DiffusionDissipation u t ≤
+        |params.χ₀| *
+            (eps * intervalDomainLpWeightedGradientDissipation 2 u t +
+              Ceps *
+                intervalDomain.integral (fun x => (u t x) ^ (2 + rho))) +
+          intervalDomainL2LogisticIntegral params u t :=
+  intervalDomain_l2_half_energy_inequality_of_cosineProfile_full
+    heps (abs_nonneg _) ht0 htT hsol hcross hτ hM hrepIoo
+    (intervalDomain_l2_crossControl_of_regularity hsol ht0 htT)
 
 end ShenWork.Paper2
