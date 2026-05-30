@@ -87,4 +87,68 @@ theorem intervalFullSemigroupProfile_classicalRegularity_closedC2
   exact ⟨intervalFullSemigroupProfile_contDiffOn_two_closed htpos hfu_cont hMu hu_eq hu_ker,
     intervalFullSemigroupProfile_contDiffOn_two_closed htpos hfv_cont hMv hv_eq hv_ker⟩
 
+/-! ## Unconditional endpoint vanishing of the ordinary lift derivative
+
+For **any** `g : intervalDomainPoint → ℝ`, the *ordinary* (two-sided) derivative of
+the zero-extension lift vanishes at both endpoints `0, 1`.  Reason: the lift is
+identically `0` on the exterior ray (`Iio 0` resp. `Ioi 1`), so its one-sided
+derivative there is `0`; either the lift is not differentiable at the endpoint
+(`deriv = 0` by convention) or it is, in which case continuity forces the endpoint
+value to `0` and the (unique) derivative equals the exterior one-sided derivative
+`0`.  This discharges the `deriv (lift (u t)) {0,1} = 0` half of conjunct (7) of
+`intervalDomainClassicalRegularity` for *every* solution, and supplies the
+endpoint identification used by the energy IBP (T4). -/
+
+/-- The ordinary lift derivative vanishes at the left endpoint, for any `g`. -/
+theorem deriv_intervalDomainLift_eq_zero_at_zero (g : intervalDomainPoint → ℝ) :
+    deriv (intervalDomainLift g) 0 = 0 := by
+  by_cases hdiff : DifferentiableAt ℝ (intervalDomainLift g) (0 : ℝ)
+  · have hev0 : intervalDomainLift g =ᶠ[nhdsWithin (0 : ℝ) (Set.Iio 0)] (fun _ => 0) := by
+      filter_upwards [self_mem_nhdsWithin] with x hx
+      have hxlt : x < 0 := hx
+      simp only [intervalDomainLift]
+      rw [dif_neg (fun h => absurd h.1 (not_le.mpr hxlt))]
+    have hval : intervalDomainLift g (0 : ℝ) = 0 := by
+      have hL : Filter.Tendsto (intervalDomainLift g)
+          (nhdsWithin (0 : ℝ) (Set.Iio 0)) (𝓝 0) :=
+        (Filter.tendsto_congr' hev0).mpr tendsto_const_nhds
+      have hC : Filter.Tendsto (intervalDomainLift g)
+          (nhdsWithin (0 : ℝ) (Set.Iio 0)) (𝓝 (intervalDomainLift g 0)) :=
+        hdiff.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+      exact tendsto_nhds_unique hC hL
+    have h2 : HasDerivWithinAt (intervalDomainLift g) 0 (Set.Iio 0) 0 :=
+      (hasDerivWithinAt_const (c := (0 : ℝ)) (s := Set.Iio (0 : ℝ)) (x := (0 : ℝ))).congr_of_eventuallyEq
+        hev0 hval
+    have h1 : HasDerivWithinAt (intervalDomainLift g)
+        (deriv (intervalDomainLift g) 0) (Set.Iio 0) 0 :=
+      hdiff.hasDerivAt.hasDerivWithinAt
+    exact (uniqueDiffWithinAt_Iio 0).eq_deriv _ h1 h2
+  · exact deriv_zero_of_not_differentiableAt hdiff
+
+/-- The ordinary lift derivative vanishes at the right endpoint, for any `g`. -/
+theorem deriv_intervalDomainLift_eq_zero_at_one (g : intervalDomainPoint → ℝ) :
+    deriv (intervalDomainLift g) 1 = 0 := by
+  by_cases hdiff : DifferentiableAt ℝ (intervalDomainLift g) (1 : ℝ)
+  · have hev1 : intervalDomainLift g =ᶠ[nhdsWithin (1 : ℝ) (Set.Ioi 1)] (fun _ => 0) := by
+      filter_upwards [self_mem_nhdsWithin] with x hx
+      have hxgt : 1 < x := hx
+      simp only [intervalDomainLift]
+      rw [dif_neg (fun h => absurd h.2 (not_le.mpr hxgt))]
+    have hval : intervalDomainLift g (1 : ℝ) = 0 := by
+      have hL : Filter.Tendsto (intervalDomainLift g)
+          (nhdsWithin (1 : ℝ) (Set.Ioi 1)) (𝓝 0) :=
+        (Filter.tendsto_congr' hev1).mpr tendsto_const_nhds
+      have hC : Filter.Tendsto (intervalDomainLift g)
+          (nhdsWithin (1 : ℝ) (Set.Ioi 1)) (𝓝 (intervalDomainLift g 1)) :=
+        hdiff.continuousAt.tendsto.mono_left nhdsWithin_le_nhds
+      exact tendsto_nhds_unique hC hL
+    have h2 : HasDerivWithinAt (intervalDomainLift g) 0 (Set.Ioi 1) 1 :=
+      (hasDerivWithinAt_const (c := (0 : ℝ)) (s := Set.Ioi (1 : ℝ)) (x := (1 : ℝ))).congr_of_eventuallyEq
+        hev1 hval
+    have h1 : HasDerivWithinAt (intervalDomainLift g)
+        (deriv (intervalDomainLift g) 1) (Set.Ioi 1) 1 :=
+      hdiff.hasDerivAt.hasDerivWithinAt
+    exact (uniqueDiffWithinAt_Ioi 1).eq_deriv _ h1 h2
+  · exact deriv_zero_of_not_differentiableAt hdiff
+
 end ShenWork.IntervalFullKernelRegularity
