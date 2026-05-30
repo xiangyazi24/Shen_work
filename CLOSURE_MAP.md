@@ -117,17 +117,30 @@ independently-verified steps, all `#print axioms` = core three):
     dominate (6.5b-pre) + Tonelli (`integral_tsum_of_summable_integral_norm`) +
     `integral_add` + 6.5a. All axiom-clean; whole project green 8354.
 
-  REMAINING — Step 6.6 (final assembly):
-  * `intervalFullSemigroupOperator_deriv_Linfty_pointwise_sqrt_t`:
-    `|deriv (z ↦ intervalFullSemigroupOperator t f z) x| ≤
-       heatGradientLinftyLinftyConstant/√t · Cf` for `|f|≤Cf`. (Mirror of zeroth-
-    reflection `intervalSemigroupOperator_deriv_Linfty_pointwise_sqrt_t` in
-    HeatKernelGradientEstimates.lean.) Operator `= ∫ y, K_full t x y · f y ∂(interval
-    Measure 1 = volume.restrict (Icc 0 1))`. Route: differentiate under the integral
-    (`hasDerivAt_integral_of_dominated_loc_of_deriv_le`, dominating function the
-    uniform-over-(z near x, y∈[0,1]) lattice majorant `Cf·∑ₖ hₖ`); then `|∫ ∂ₓK·f| ≤
-    ∫ |∂ₓK|·|f| ≤ Cf·∫₀¹|∂ₓK_full| ≤ Cf·heatGradLinftyConstant/√t` (6.5b, Icc↔Ioc
-    null-set bridge). This wires the full operator into the Duhamel _clean chain.
+  Step 6.6 BOUNDING HALF — DONE
+  (`intervalFullSemigroupOperator_deriv_Linfty_of_hasDerivAt`, IntervalFullKernel
+  GradientLinfty.lean): given the parametric-integral differentiation `hrepr`
+  (HasDerivAt of the operator with derivative `∫ y, ∂ₓK_full(t,·,y)·f y ∂μ`), the
+  full `L∞→L∞` gradient bound `|deriv(S_full t f)x| ≤ heatGradLinftyConstant·t^(−1/2)·Cf`
+  for `|f|≤Cf` is PROVED: `|∫ ∂ₓK·f| ≤ ∫|∂ₓK|·|f| ≤ Cf·∫₀¹|∂ₓK_full|` (`Icc`↔`Ioc`
+  via `integral_Icc_eq_integral_Ioc`) `≤ Cf·heatGradLinftyConstant·t^(−1/2)` (6.5b).
+  Uses `hKint` (continuity ⇒ `integrableOn_Icc`), `Integrable.mul_bdd`,
+  `norm_integral_le_integral_norm`, `integral_mono`. Axiom-clean.
+
+  REMAINING — the SINGLE residual: `hrepr` itself (standard differentiation under
+  the integral sign for the periodised kernel). Apply `hasDerivAt_integral_of_
+  dominated_loc_of_deriv_le` on `s = ball x 1`, `μ = intervalMeasure 1`:
+  - `h_diff`: `(hasDerivAt_intervalNeumannFullKernel_fst ht z y).mul_const (f y)`.
+  - `h_bound`/`bound_integrable`: CONSTANT majorant `Cf·2·∑ₖ heatGradWindowBound t x 2 k`
+    (radius-2 window covers `z∈ball(x,1), y∈[0,1]`; needs an `r`-parametrised
+    generalisation of `abs_deriv_heatKernel_le_unitShift`, trivial: `B²≤r²` ⇒
+    `exp(r²/8t)` factor) — constant ⇒ integrable on the finite `intervalMeasure 1`.
+  - `hF_meas`/`hF_int`/`hF'_meas`: `K_full t z ·` and `∂ₓK_full(t,·,y)` continuous
+    in `y` on `[0,1]` (`continuousOn_tsum`, as in 6.5b-2b) × `f` (bounded, meas).
+  Once `hrepr` lands, compose with the bounding half ⇒ the UNCONDITIONAL
+  `intervalFullSemigroupOperator_deriv_Linfty_pointwise_sqrt_t`, wiring the full
+  operator into the Duhamel `_clean` chain. All ~100–150 lines of standard
+  parametric-integral plumbing; the analytic core (summability + tiling L¹) is done.
   * 6.6 differentiate operator under integral: `deriv(x↦∫₀¹ K_full·f) = ∫₀¹ ∂ₓK_full·f`
     via `MeasureTheory.hasDerivAt_integral_of_dominated_loc_of_deriv_le` (uniform
     dominating bound = the 6.3 `hg'` majorant, integrable on [0,1]); then
