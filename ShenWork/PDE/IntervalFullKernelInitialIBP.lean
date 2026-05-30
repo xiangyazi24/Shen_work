@@ -164,4 +164,72 @@ theorem hasDerivAt_conjugateKernel_snd {t : ℝ} (ht : 0 < t) (x y : ℝ) :
   convert (hRefl.neg).add hDir using 1
   rw [neg_neg]
 
+/-- **Full-kernel initial-data IBP gradient bound.**  For `t > 0` and globally
+bounded C¹ data `u₀` with `u₀(1)=0` and `|u₀'| ≤ G_init`,
+
+  `|deriv (z ↦ intervalFullSemigroupOperator t u₀ z) x| ≤ G_init`,
+
+uniformly in `t` (no `t^{−1/2}` blow-up).  Differentiation under the integral
+(`intervalFullSemigroupOperator_hasDerivAt_fst`) gives `deriv = ∫₀¹ ∂ₓK_full·u₀`;
+`∂ₓK_full = ∂_y K̃` (`hasDerivAt_conjugateKernel_snd`) and integration by parts
+(`integral_mul_deriv_eq_deriv_mul`) move the derivative onto `u₀`, the boundary
+term vanishing (`K̃(·,0)=0`, `u₀(1)=0`); finally `|∫₀¹ K̃·u₀'| ≤ G_init·∫₀¹|K̃| ≤
+G_init` by the uniform `L¹` mass bound `conjugateKernel_L1_bound`.  This discharges
+the `hInit_grad` hypothesis of `intervalFullCoupledDuhamel_grad_estimate_of_leibniz`. -/
+theorem intervalFullCoupledDuhamel_grad_initial_bound {t : ℝ} (ht : 0 < t)
+    {u₀ u₀' : ℝ → ℝ}
+    (hu₀_meas : AEStronglyMeasurable u₀ (intervalMeasure 1))
+    {Cu₀ : ℝ} (hu₀_bound : ∀ y, |u₀ y| ≤ Cu₀)
+    (hu₀ : ∀ y ∈ Set.uIcc (0 : ℝ) 1, HasDerivAt u₀ (u₀' y) y)
+    (hu₀'_int : IntervalIntegrable u₀' MeasureTheory.volume 0 1)
+    (hu₀_one : u₀ 1 = 0)
+    {G_init : ℝ} (hG_init_nn : 0 ≤ G_init)
+    (hu₀'_sup : ∀ y, |u₀' y| ≤ G_init) (x : ℝ) :
+    |deriv (fun z : ℝ => intervalFullSemigroupOperator t u₀ z) x| ≤ G_init := by
+  have h01 : (0 : ℝ) ≤ 1 := by norm_num
+  rw [(intervalFullSemigroupOperator_hasDerivAt_fst ht hu₀_meas hu₀_bound x).deriv]
+  -- pass to the interval integral, commute, and integrate by parts.
+  have hμconv :
+      (∫ y, deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x * u₀ y ∂(intervalMeasure 1))
+        = ∫ y in (0 : ℝ)..1, u₀ y * deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x := by
+    simp only [intervalMeasure, intervalSet]
+    rw [MeasureTheory.integral_Icc_eq_integral_Ioc, ← intervalIntegral.integral_of_le h01]
+    refine intervalIntegral.integral_congr (fun y _ => ?_)
+    ring
+  rw [hμconv]
+  have hvderiv : ∀ y ∈ Set.uIcc (0 : ℝ) 1,
+      HasDerivAt (fun y : ℝ => intervalNeumannConjugateKernel t x y)
+        (deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x) y := by
+    intro y _
+    have h := hasDerivAt_conjugateKernel_snd ht x y
+    rwa [← (hasDerivAt_intervalNeumannFullKernel_fst ht x y).deriv] at h
+  have hDii : IntervalIntegrable
+      (fun y : ℝ => deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x)
+      MeasureTheory.volume 0 1 :=
+    intervalIntegrable_deriv_intervalNeumannFullKernel_fst ht x
+  rw [intervalIntegral.integral_mul_deriv_eq_deriv_mul hu₀ hvderiv hu₀'_int hDii,
+    hu₀_one, conjugateKernel_at_zero, zero_mul, mul_zero, sub_zero, zero_sub, abs_neg]
+  -- bound `|∫₀¹ u₀'·K̃| ≤ G_init·∫₀¹|K̃| ≤ G_init`.
+  have hKcont : ContinuousOn (fun y : ℝ => intervalNeumannConjugateKernel t x y) (Set.uIcc 0 1) := by
+    rw [Set.uIcc_of_le h01]; exact continuousOn_conjugateKernel_snd ht x
+  have hKabs_ii : IntervalIntegrable
+      (fun y : ℝ => |intervalNeumannConjugateKernel t x y|) MeasureTheory.volume 0 1 := by
+    apply ContinuousOn.intervalIntegrable; rw [Set.uIcc_of_le h01]
+    exact (continuousOn_conjugateKernel_snd ht x).abs
+  have hprod_ii : IntervalIntegrable
+      (fun y : ℝ => u₀' y * intervalNeumannConjugateKernel t x y) MeasureTheory.volume 0 1 :=
+    hu₀'_int.mul_continuousOn hKcont
+  calc |∫ y in (0 : ℝ)..1, u₀' y * intervalNeumannConjugateKernel t x y|
+      ≤ ∫ y in (0 : ℝ)..1, |u₀' y * intervalNeumannConjugateKernel t x y| :=
+        intervalIntegral.abs_integral_le_integral_abs h01
+    _ ≤ ∫ y in (0 : ℝ)..1, G_init * |intervalNeumannConjugateKernel t x y| := by
+        refine intervalIntegral.integral_mono_on h01 hprod_ii.abs (hKabs_ii.const_mul G_init)
+          (fun y _ => ?_)
+        rw [abs_mul]
+        exact mul_le_mul_of_nonneg_right (hu₀'_sup y) (abs_nonneg _)
+    _ = G_init * ∫ y in (0 : ℝ)..1, |intervalNeumannConjugateKernel t x y| := by
+        rw [intervalIntegral.integral_const_mul]
+    _ ≤ G_init * 1 := mul_le_mul_of_nonneg_left (conjugateKernel_L1_bound ht x) hG_init_nn
+    _ = G_init := mul_one G_init
+
 end ShenWork.IntervalNeumannFullKernel
