@@ -364,6 +364,64 @@ theorem abs_deriv_intervalNeumannFullKernel_fst_le_const {t : ℝ} (ht : 0 < t) 
       exact abs_le.mpr ⟨by linarith [hzb.1, hyb.1], by linarith [hzb.2, hyb.2]⟩)
   linarith [h1, h2]
 
+/-- **Differentiation under the integral for the full propagator.**  For `t > 0`
+and bounded measurable `f` (`|f| ≤ Cf`), the full Neumann propagator
+`z ↦ intervalFullSemigroupOperator t f z` is differentiable at `x`, with
+derivative the integral of the kernel derivative:
+
+  `HasDerivAt (S_full t f) (∫ y, ∂ₓK_full(t,·,y)·f y ∂(intervalMeasure 1)) x`.
+
+`hasDerivAt_integral_of_dominated_loc_of_deriv_le` on `s = ball x 1`: the
+constant dominating function `(∑ₖ 2·heatGradWindowBound t x 2 k)·Cf`
+(`abs_deriv_intervalNeumannFullKernel_fst_le_const`, integrable on the finite
+`intervalMeasure 1`); measurability from `continuousOn_intervalNeumannFullKernel
+_snd` / `continuousOn_deriv_…`; pointwise derivative from
+`hasDerivAt_intervalNeumannFullKernel_fst.mul_const`. -/
+theorem intervalFullSemigroupOperator_hasDerivAt_fst {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf_meas : AEStronglyMeasurable f (intervalMeasure 1))
+    {Cf : ℝ} (hf : ∀ y, |f y| ≤ Cf) (x : ℝ) :
+    HasDerivAt (fun z : ℝ => intervalFullSemigroupOperator t f z)
+      (∫ y, deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x * f y ∂(intervalMeasure 1)) x := by
+  haveI : IsFiniteMeasure (intervalMeasure 1) := ⟨intervalMeasure_univ_lt_top 1⟩
+  have hbdd : ∀ᵐ y ∂(intervalMeasure 1), ‖f y‖ ≤ Cf :=
+    Filter.Eventually.of_forall fun y => by simpa [Real.norm_eq_abs] using hf y
+  set M : ℝ := ∑' k : ℤ, (heatGradWindowBound t x 2 k + heatGradWindowBound t x 2 k) with hM
+  have hMnn : 0 ≤ M := by
+    rw [hM]; exact tsum_nonneg fun k => by
+      unfold heatGradWindowBound heatGradPointwiseBound; positivity
+  refine (hasDerivAt_integral_of_dominated_loc_of_deriv_le (x₀ := x)
+    (bound := fun _ => M * Cf)
+    (F := fun z y => intervalNeumannFullKernel t z y * f y)
+    (F' := fun z y => deriv (fun z' : ℝ => intervalNeumannFullKernel t z' y) z * f y)
+    (Metric.ball_mem_nhds x one_pos)
+    ?hFmeas ?hFint ?hF'meas ?hbound ?hbdint ?hdiff).2
+  case hFmeas =>
+    exact Filter.Eventually.of_forall fun z =>
+      ((continuousOn_intervalNeumannFullKernel_snd ht z).aestronglyMeasurable
+        measurableSet_Icc).mul hf_meas
+  case hFint =>
+    exact ((continuousOn_intervalNeumannFullKernel_snd ht x).integrableOn_Icc).mul_bdd hf_meas hbdd
+  case hF'meas =>
+    exact ((continuousOn_deriv_intervalNeumannFullKernel_fst ht x).aestronglyMeasurable
+      measurableSet_Icc).mul hf_meas
+  case hbound =>
+    simp only [intervalMeasure, intervalSet]
+    rw [MeasureTheory.ae_restrict_iff' measurableSet_Icc]
+    refine Filter.Eventually.of_forall fun y hy z hz => ?_
+    rw [Real.norm_eq_abs, abs_mul]
+    have hz1 : |z - x| ≤ 1 := by
+      rw [← Real.dist_eq]; exact le_of_lt (Metric.mem_ball.mp hz)
+    have hy1 : |y| ≤ 1 := abs_le.mpr ⟨by linarith [hy.1], by linarith [hy.2]⟩
+    exact mul_le_mul (abs_deriv_intervalNeumannFullKernel_fst_le_const ht x hz1 hy1)
+      (hf y) (abs_nonneg _) hMnn
+  case hbdint => exact integrable_const _
+  case hdiff =>
+    refine Filter.Eventually.of_forall fun y z _ => ?_
+    show HasDerivAt (fun z' : ℝ => intervalNeumannFullKernel t z' y * f y)
+      (deriv (fun z' : ℝ => intervalNeumannFullKernel t z' y) z * f y) z
+    rw [(hasDerivAt_intervalNeumannFullKernel_fst ht z y).deriv]
+    exact (hasDerivAt_intervalNeumannFullKernel_fst ht z y).mul_const (f y)
+
 /-- **Step 6.6 (bounding half): full-kernel gradient `L∞→L∞`, given the
 differentiation-under-the-integral representation.**  For `|f| ≤ Cf`, once the
 operator derivative is realised as the integral of the kernel derivative
@@ -416,5 +474,26 @@ theorem intervalFullSemigroupOperator_deriv_Linfty_of_hasDerivAt
         rw [MeasureTheory.integral_mul_const]
     _ ≤ (ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant * t ^ (-(1 / 2) : ℝ)) * Cf :=
         mul_le_mul_of_nonneg_right hint_le hCf
+
+/-- **Step 6.6 — full-kernel gradient `L∞→L∞` estimate (UNCONDITIONAL).**  For
+`t > 0` and bounded measurable `f` (`|f| ≤ Cf`), the full Neumann propagator has
+the `t^(−1/2)`-integrable gradient bound
+
+  `|deriv (z ↦ intervalFullSemigroupOperator t f z) x| ≤ (1/√π)·t^(−1/2)·Cf`.
+
+Composition of the differentiation-under-the-integral representation
+(`intervalFullSemigroupOperator_hasDerivAt_fst`) with the bounding half
+(`…_of_hasDerivAt`, ultimately the `L¹` tiling bound Step 6.5b).  This is the
+analogue of `intervalSemigroupOperator_deriv_Linfty_pointwise_sqrt_t` for the
+FULL Neumann kernel — the estimate wiring the full operator into the Duhamel
+`_clean` chain (Path-A (b)). -/
+theorem intervalFullSemigroupOperator_deriv_Linfty_pointwise_sqrt_t {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf_meas : AEStronglyMeasurable f (intervalMeasure 1))
+    {Cf : ℝ} (hf : ∀ y, |f y| ≤ Cf) (x : ℝ) :
+    |deriv (fun z : ℝ => intervalFullSemigroupOperator t f z) x|
+      ≤ ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+          * t ^ (-(1 / 2) : ℝ) * Cf :=
+  intervalFullSemigroupOperator_deriv_Linfty_of_hasDerivAt ht hf_meas hf x
+    (intervalFullSemigroupOperator_hasDerivAt_fst ht hf_meas hf x)
 
 end ShenWork.IntervalNeumannFullKernel
