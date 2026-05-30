@@ -118,4 +118,50 @@ theorem conjugateKernel_L1_bound {t : ℝ} (ht : 0 < t) (x : ℝ) :
           (fun y _ => abs_conjugateKernel_le ht x y)
     _ = 1 := intervalNeumannFullKernel_integral_eq_one ht x
 
+/-- **`∂_y K̃ = ∂ₓ K_full`.**  The conjugate kernel's `y`-derivative is the full
+kernel's `x`-derivative (the identity powering the IBP).  `K̃` splits into the
+reflected (`−∑ₖ heat(x−y+2k)`) and direct (`∑ₖ heat(x+y+2k)`) lattice families;
+the direct family differentiates by `hasDerivAt_heatKernel_lattice_tsum` (6.3),
+the reflected one by the same composed with `y ↦ −y`. -/
+theorem hasDerivAt_conjugateKernel_snd {t : ℝ} (ht : 0 < t) (x y : ℝ) :
+    HasDerivAt (fun y : ℝ => intervalNeumannConjugateKernel t x y)
+      ((∑' k : ℤ, deriv (fun u : ℝ => heatKernel t u) (x - y + 2 * (k : ℝ)))
+        + (∑' k : ℤ, deriv (fun u : ℝ => heatKernel t u) (x + y + 2 * (k : ℝ)))) y := by
+  -- direct family: 6.3 with shift `b = x`, point `y`, after `add_comm` in the arg.
+  have hDir : HasDerivAt (fun y' : ℝ => ∑' k : ℤ, heatKernel t (x + y' + 2 * (k : ℝ)))
+      (∑' k : ℤ, deriv (fun u : ℝ => heatKernel t u) (x + y + 2 * (k : ℝ))) y := by
+    have hfeq : (fun y' : ℝ => ∑' k : ℤ, heatKernel t (x + y' + 2 * (k : ℝ)))
+        = fun w : ℝ => ∑' k : ℤ, heatKernel t (w + x + 2 * (k : ℝ)) := by
+      funext y'; refine tsum_congr (fun k => ?_); congr 1; ring
+    have hdeq : (∑' k : ℤ, deriv (fun u : ℝ => heatKernel t u) (x + y + 2 * (k : ℝ)))
+        = ∑' k : ℤ, deriv (fun u : ℝ => heatKernel t u) (y + x + 2 * (k : ℝ)) := by
+      refine tsum_congr (fun k => ?_); congr 1; ring
+    rw [hfeq, hdeq]
+    exact hasDerivAt_heatKernel_lattice_tsum ht x y
+  -- reflected family: 6.3 (at `-y`) composed with `y' ↦ -y'`.
+  have hRefl : HasDerivAt (fun y' : ℝ => ∑' k : ℤ, heatKernel t (x - y' + 2 * (k : ℝ)))
+      (-(∑' k : ℤ, deriv (fun u : ℝ => heatKernel t u) (x - y + 2 * (k : ℝ)))) y := by
+    have h := hasDerivAt_heatKernel_lattice_tsum ht x (-y)
+    have hneg : HasDerivAt (fun y' : ℝ => -y') (-1) y := by simpa using (hasDerivAt_id y).neg
+    have hcomp := h.comp y hneg
+    have hfeq : (fun y' : ℝ => ∑' k : ℤ, heatKernel t (x - y' + 2 * (k : ℝ)))
+        = (fun w : ℝ => ∑' k : ℤ, heatKernel t (w + x + 2 * (k : ℝ))) ∘ fun y' : ℝ => -y' := by
+      funext y'; simp only [Function.comp]; refine tsum_congr (fun k => ?_); congr 1; ring
+    have hdeq : -(∑' k : ℤ, deriv (fun u : ℝ => heatKernel t u) (x - y + 2 * (k : ℝ)))
+        = (∑' k : ℤ, deriv (fun u : ℝ => heatKernel t u) (-y + x + 2 * (k : ℝ))) * (-1) := by
+      rw [mul_neg_one]; congr 1; refine tsum_congr (fun k => ?_); congr 1; ring
+    rw [hfeq, hdeq]
+    exact hcomp
+  -- assemble: K̃ = −(reflected) + (direct).
+  have hfun : (fun y : ℝ => intervalNeumannConjugateKernel t x y)
+      = fun y : ℝ => -(∑' k : ℤ, heatKernel t (x - y + 2 * (k : ℝ)))
+          + (∑' k : ℤ, heatKernel t (x + y + 2 * (k : ℝ))) := by
+    funext y'
+    rw [intervalNeumannConjugateKernel,
+      Summable.tsum_add (latticeGaussianSummable ht (x - y')).neg (latticeGaussianSummable ht (x + y')),
+      tsum_neg]
+  rw [hfun]
+  convert (hRefl.neg).add hDir using 1
+  rw [neg_neg]
+
 end ShenWork.IntervalNeumannFullKernel
