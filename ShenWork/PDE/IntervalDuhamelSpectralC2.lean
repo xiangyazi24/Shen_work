@@ -147,4 +147,46 @@ theorem duhamelSpectralCoeff_commutator_eq
   rw [duhamelSpectralCoeff_commutator_split hg, intervalExpKernel_time_integral hlam]
   ring
 
+/-! ## The `(II)` term under `∂ₓₓ` (parabolic gain, route-independent)
+
+`∂ₓₓ` brings down a factor `−λₙ` per mode, so the contribution of the `(II)ₙ` term to
+`∂ₓₓ D` is `−λₙ·(II)ₙ = −(1 − e^{−tλₙ})·ĝₙ(t)`.  The factor `1 − e^{−tλₙ}` lies in
+`[0,1]` (parabolic gain at the coefficient level), so `|λₙ·(II)ₙ| ≤ |ĝₙ(t)|`
+uniformly in `n` — exactly the bound that reduces the `(II)`-part summability of
+`∂ₓₓ D` to the `ℓ¹` summability of the source coefficients `ĝ(t)`.  These are
+elementary and independent of the eventual convergence formulation. -/
+
+/-- The coefficient-level parabolic gain factor lies in `[0,1]`: `0 ≤ 1 − e^{−tλ} ≤ 1`
+for `t, λ ≥ 0`. -/
+theorem one_sub_exp_mem_Icc {t lam : ℝ} (ht : 0 ≤ t) (hlam : 0 ≤ lam) :
+    1 - Real.exp (-t * lam) ∈ Set.Icc (0 : ℝ) 1 := by
+  constructor
+  · have : Real.exp (-t * lam) ≤ 1 := by
+      rw [Real.exp_le_one_iff]; nlinarith
+    linarith
+  · have : 0 ≤ Real.exp (-t * lam) := (Real.exp_pos _).le
+    linarith
+
+/-- **`∂ₓₓ` of the `(II)` term, per mode.**  Multiplying the `(II)ₙ` coefficient
+`(1 − e^{−tλ})/λ · ĝ` by the `∂ₓₓ` factor `λ` collapses the `1/λ`: `λ·(II) =
+(1 − e^{−tλ})·ĝ`. -/
+theorem duhamelSpectralCoeff_II_mul_lam {t lam ghat : ℝ} (hlam : lam ≠ 0) :
+    lam * ((1 - Real.exp (-t * lam)) / lam * ghat)
+      = (1 - Real.exp (-t * lam)) * ghat := by
+  field_simp
+
+/-- **Uniform per-mode bound for the `∂ₓₓ`-weighted `(II)` term.**  `|λ·(II)ₙ| ≤
+|ĝ(t)|`, the parabolic-gain bound that makes the `(II)` part of `∂ₓₓ D` summable
+whenever the source coefficients `ĝ(t)` are `ℓ¹`. -/
+theorem abs_duhamelSpectralCoeff_II_mul_lam_le
+    {t lam ghat : ℝ} (ht : 0 ≤ t) (hlam : 0 < lam) :
+    |lam * ((1 - Real.exp (-t * lam)) / lam * ghat)| ≤ |ghat| := by
+  rw [duhamelSpectralCoeff_II_mul_lam (ne_of_gt hlam), abs_mul]
+  have hgain := one_sub_exp_mem_Icc ht hlam.le
+  have h1 : |1 - Real.exp (-t * lam)| ≤ 1 := by
+    rw [abs_of_nonneg hgain.1]; exact hgain.2
+  calc |1 - Real.exp (-t * lam)| * |ghat| ≤ 1 * |ghat| :=
+        mul_le_mul_of_nonneg_right h1 (abs_nonneg _)
+    _ = |ghat| := one_mul _
+
 end ShenWork.IntervalDuhamelSpectralC2
