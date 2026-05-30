@@ -507,6 +507,48 @@ theorem hasDerivAt_intervalNeumannFullKernel_fst {t : ℝ} (ht : 0 < t) (x y : �
   rw [hfun]
   exact hL.add hR
 
+/-- **Pointwise integrand bound for the full-kernel gradient `L¹` estimate.**
+At every `y`, the `x`-derivative of the full Neumann kernel is dominated by the
+termwise-absolute lattice sum:
+
+  `|∂ₓ K_full(t,x,y)| ≤ ∑ₖ (|∂heat(x−y+2k)| + |∂heat(x+y+2k)|)`.
+
+Triangle inequality on the two-tsum derivative (`hasDerivAt_intervalNeumannFull
+Kernel_fst`) via `abs_add` and `norm_tsum_le_tsum_norm` (norm-summability from
+`latticeGaussianGradSummable` + `summable_abs_iff`), recombined by
+`Summable.tsum_add`.  Integrating this in `y` over `[0,1]` and applying the
+tiling identity `tsum_cell_heatGrad_abs_integral_eq` yields the `(1/√π)t^(−1/2)`
+gradient `L¹` bound. -/
+theorem abs_deriv_intervalNeumannFullKernel_fst_le {t : ℝ} (ht : 0 < t) (x y : ℝ) :
+    |deriv (fun x : ℝ => intervalNeumannFullKernel t x y) x|
+      ≤ ∑' k : ℤ, (|deriv (fun z : ℝ => heatKernel t z) (x - y + 2 * (k : ℝ))|
+          + |deriv (fun z : ℝ => heatKernel t z) (x + y + 2 * (k : ℝ))|) := by
+  rw [(hasDerivAt_intervalNeumannFullKernel_fst ht x y).deriv]
+  have hsumA : Summable (fun k : ℤ => |deriv (fun z : ℝ => heatKernel t z) (x - y + 2 * (k : ℝ))|) :=
+    summable_abs_iff.mpr (latticeGaussianGradSummable ht (x - y))
+  have hsumB : Summable (fun k : ℤ => |deriv (fun z : ℝ => heatKernel t z) (x + y + 2 * (k : ℝ))|) :=
+    summable_abs_iff.mpr (latticeGaussianGradSummable ht (x + y))
+  have hA : |∑' k : ℤ, deriv (fun z : ℝ => heatKernel t z) (x - y + 2 * (k : ℝ))|
+      ≤ ∑' k : ℤ, |deriv (fun z : ℝ => heatKernel t z) (x - y + 2 * (k : ℝ))| := by
+    simpa [Real.norm_eq_abs] using
+      norm_tsum_le_tsum_norm (f := fun k : ℤ => deriv (fun z : ℝ => heatKernel t z) (x - y + 2 * (k : ℝ)))
+        (by simpa [Real.norm_eq_abs] using hsumA)
+  have hB : |∑' k : ℤ, deriv (fun z : ℝ => heatKernel t z) (x + y + 2 * (k : ℝ))|
+      ≤ ∑' k : ℤ, |deriv (fun z : ℝ => heatKernel t z) (x + y + 2 * (k : ℝ))| := by
+    simpa [Real.norm_eq_abs] using
+      norm_tsum_le_tsum_norm (f := fun k : ℤ => deriv (fun z : ℝ => heatKernel t z) (x + y + 2 * (k : ℝ)))
+        (by simpa [Real.norm_eq_abs] using hsumB)
+  calc |(∑' k : ℤ, deriv (fun z : ℝ => heatKernel t z) (x - y + 2 * (k : ℝ)))
+          + (∑' k : ℤ, deriv (fun z : ℝ => heatKernel t z) (x + y + 2 * (k : ℝ)))|
+      ≤ |∑' k : ℤ, deriv (fun z : ℝ => heatKernel t z) (x - y + 2 * (k : ℝ))|
+          + |∑' k : ℤ, deriv (fun z : ℝ => heatKernel t z) (x + y + 2 * (k : ℝ))| := abs_add_le _ _
+    _ ≤ (∑' k : ℤ, |deriv (fun z : ℝ => heatKernel t z) (x - y + 2 * (k : ℝ))|)
+          + (∑' k : ℤ, |deriv (fun z : ℝ => heatKernel t z) (x + y + 2 * (k : ℝ))|) :=
+        add_le_add hA hB
+    _ = ∑' k : ℤ, (|deriv (fun z : ℝ => heatKernel t z) (x - y + 2 * (k : ℝ))|
+          + |deriv (fun z : ℝ => heatKernel t z) (x + y + 2 * (k : ℝ))|) :=
+        (Summable.tsum_add hsumA hsumB).symm
+
 /-- **Pointwise kernel identity** (reduced).  Given lattice-Gaussian summability at the
 two shifts, the full periodised image kernel equals the cosine spectral kernel:
 
