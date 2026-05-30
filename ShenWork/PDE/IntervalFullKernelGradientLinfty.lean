@@ -90,4 +90,47 @@ theorem abs_deriv_heatKernel_le_unitShift {t : ℝ} (ht : 0 < t) (x : ℝ) (k : 
     _ = heatGradPointwiseBound t * Real.exp (1 / (4 * (2 * t)))
           * Real.exp (-(x + 2 * (k : ℝ)) ^ 2 / (4 * (4 * t))) := by ring
 
+/-- The heat-kernel spatial derivative `w ↦ ∂heat w` is continuous. -/
+theorem continuous_deriv_heatKernel {t : ℝ} (ht : 0 < t) :
+    Continuous (fun w : ℝ => deriv (fun z : ℝ => heatKernel t z) w) := by
+  have heq : (fun w : ℝ => deriv (fun z : ℝ => heatKernel t z) w)
+      = fun w : ℝ => -(w / (2 * t)) * heatKernel t w := by
+    funext w; rw [deriv_heatKernel ht]
+  rw [heq]; unfold heatKernel; fun_prop
+
+/-- **Step 6.5b-2b: continuity of the full-kernel `x`-derivative in `y` on `[0,1]`.**
+`y ↦ ∂ₓ K_full(t,x,y)` is continuous on `[0,1]`: by `hasDerivAt_intervalNeumann
+FullKernel_fst` it is the sum of two lattice series, each continuous on the unit
+window by `continuousOn_tsum` with the uniform majorant `heatGradUnitBound`. -/
+theorem continuousOn_deriv_intervalNeumannFullKernel_fst {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    ContinuousOn (fun y : ℝ => deriv (fun x : ℝ => intervalNeumannFullKernel t x y) x)
+      (Set.Icc 0 1) := by
+  have hcd := continuous_deriv_heatKernel ht
+  have hfun : (fun y : ℝ => deriv (fun x : ℝ => intervalNeumannFullKernel t x y) x)
+      = fun y : ℝ => (∑' k : ℤ, deriv (fun z : ℝ => heatKernel t z) (x - y + 2 * (k : ℝ)))
+          + (∑' k : ℤ, deriv (fun z : ℝ => heatKernel t z) (x + y + 2 * (k : ℝ))) := by
+    funext y; exact (hasDerivAt_intervalNeumannFullKernel_fst ht x y).deriv
+  rw [hfun]
+  refine ContinuousOn.add ?_ ?_
+  · refine continuousOn_tsum (fun k => (hcd.comp (by fun_prop)).continuousOn)
+      (summable_heatGradUnitBound ht x) (fun k y hy => ?_)
+    rw [Real.norm_eq_abs]
+    refine abs_deriv_heatKernel_le_unitShift ht x k ?_
+    rw [show x - y + 2 * (k : ℝ) - (x + 2 * (k : ℝ)) = -y by ring, abs_neg]
+    exact abs_le.mpr ⟨by linarith [hy.1], by linarith [hy.2]⟩
+  · refine continuousOn_tsum (fun k => (hcd.comp (by fun_prop)).continuousOn)
+      (summable_heatGradUnitBound ht x) (fun k y hy => ?_)
+    rw [Real.norm_eq_abs]
+    refine abs_deriv_heatKernel_le_unitShift ht x k ?_
+    rw [show x + y + 2 * (k : ℝ) - (x + 2 * (k : ℝ)) = y by ring]
+    exact abs_le.mpr ⟨by linarith [hy.1], by linarith [hy.2]⟩
+
+/-- The full-kernel `x`-derivative is interval-integrable in `y` on `[0,1]`. -/
+theorem intervalIntegrable_deriv_intervalNeumannFullKernel_fst {t : ℝ} (ht : 0 < t) (x : ℝ) :
+    IntervalIntegrable (fun y : ℝ => deriv (fun x : ℝ => intervalNeumannFullKernel t x y) x)
+      MeasureTheory.volume 0 1 := by
+  apply ContinuousOn.intervalIntegrable
+  rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+  exact continuousOn_deriv_intervalNeumannFullKernel_fst ht x
+
 end ShenWork.IntervalNeumannFullKernel
