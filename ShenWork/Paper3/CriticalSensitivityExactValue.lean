@@ -30,6 +30,8 @@ import ShenWork.Paper3.Statements
 
 namespace ShenWork.Paper3
 
+open ShenWork.Paper2 (chiBeta)
+
 /-- **Monotonicity of the per-mode threshold past the U-shape minimum.**  The
 explicit per-mode value `paperFormula(λ)` is increasing in `λ` whenever the product
 `λ₁·λ₂` of two arguments is at least `aαμ` (which holds in particular for
@@ -331,5 +333,73 @@ theorem Theorem_2_2_linear_explicit_first_mode_dichotomy_unitInterval
     ?_ ?_
   · simp [unitIntervalNeumannSpectrum]
   · simpa [unitIntervalNeumannSpectrum] using hregime
+
+/-! ## Explicit-formula linear-stability upgrades for Theorems 2.4 / 2.5
+
+The existing global-stability linear-stability bridges
+(`NonminimalGlobalStabilityFormulaCondition.linearlyStable_of_firstNonzero_lower`,
+`MinimalGlobalStabilityFormulaCondition.linearlyStable_of_firstNonzero_lower`)
+derive linear stability from the *crude* first-mode lower bound
+`A·(μ + firstNonzero) ≤ χ*`.  With the EXACT value `χ* = paperFormula(λ₁)` (this
+file), they upgrade to the *sharp* threshold: it suffices that the strong/minimal
+global-stability constants are bounded by the explicit per-mode formula
+`paperFormula(λ₁)` — a strictly weaker hypothesis (`paperFormula(λ₁) ≥
+A·(μ+firstNonzero)`), so these are genuine strengthenings, in the first-mode-dominant
+regime. -/
+
+/-- **Theorem 2.4 linear stability from the EXACT first-mode threshold.**  Sharper
+than `…linearlyStable_of_firstNonzero_lower`: the strong-stability constants need
+only be `≤ paperFormula(λ₁) = χ*` (not the crude `A·(μ+firstNonzero)`). -/
+theorem NonminimalGlobalStabilityFormulaCondition.linearlyStable_of_max_threshold_le_mode_one
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    (ha : 0 < p.a) (hb : 0 < p.b) {M0 : ℝ}
+    (hmode1 : S.eigenvalue 1 = S.firstNonzero)
+    (hregime : p.a * p.α * p.μ ≤ S.firstNonzero ^ 2)
+    (hmode :
+      max
+          (max
+            (chiStrong1Formula p
+              (positiveEquilibrium p ⟨ha, hb⟩).1
+              (positiveEquilibrium p ⟨ha, hb⟩).2)
+            (chiStrong2Formula p (positiveEquilibrium p ⟨ha, hb⟩).1))
+          (max
+            (chiStrong3Formula p M0
+              (positiveEquilibrium p ⟨ha, hb⟩).1
+              (positiveEquilibrium p ⟨ha, hb⟩).2)
+            (chiStrong4Formula p M0 (positiveEquilibrium p ⟨ha, hb⟩).1)) ≤
+        sigmaCriticalChiPaperFormula p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2 (S.eigenvalue 1))
+    (h :
+      NonminimalGlobalStabilityFormulaCondition p
+        (positiveEquilibrium p ⟨ha, hb⟩).1
+        (positiveEquilibrium p ⟨ha, hb⟩).2 M0) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyStable S p eq.1 eq.2 :=
+  h.linearlyStable_of_max_threshold_le_critical S p H ha hb
+    (hmode.trans (le_of_eq
+      (paperCriticalSensitivity_positiveEquilibrium_eq_mode_one_of_firstMode_dominant
+        S p H ha hb hmode1 hregime).symm))
+
+/-- **Theorem 2.5 linear stability from the EXACT first-mode threshold.**  Sharper
+than `…linearlyStable_of_firstNonzero_lower`: the minimal-model threshold `chiBeta`
+need only be `≤ paperFormula(λ₁) = χ*`. -/
+theorem MinimalGlobalStabilityFormulaCondition.linearlyStable_of_chiBeta_le_mode_one
+    (S : SpectralData) (p : CM2Params) {uStar uBar vLower : ℝ}
+    (H : HasNeumannSpectrum S) (hβ : 1 ≤ p.β) (huStar : 0 < uStar)
+    (hmode1 : S.eigenvalue 1 = S.firstNonzero)
+    (hregime : p.a * p.α * p.μ ≤ S.firstNonzero ^ 2)
+    (hmode :
+      chiBeta p ≤
+        sigmaCriticalChiPaperFormula p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2 (S.eigenvalue 1))
+    (h : MinimalGlobalStabilityFormulaCondition p uStar uBar vLower) :
+    let eq := minimalEquilibrium p uStar
+    LinearlyStable S p eq.1 eq.2 :=
+  h.linearlyStable_of_chiBeta_le_critical S p H hβ huStar
+    (hmode.trans (le_of_eq
+      (paperCriticalSensitivity_minimalEquilibrium_eq_mode_one_of_firstMode_dominant
+        S p H huStar hmode1 hregime).symm))
 
 end ShenWork.Paper3
