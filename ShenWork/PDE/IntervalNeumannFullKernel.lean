@@ -287,6 +287,55 @@ theorem gaussianLatticeSum_poisson (t : ℝ) (ht : 0 < t) (z : ℝ) :
 def LatticeGaussianSummable (t z : ℝ) : Prop :=
   Summable (fun k : ℤ => heatKernel t (z + 2 * k))
 
+/-- **Lattice Gaussian summability (proved, not assumed).**  For `t > 0` the
+period-`2` shifted lattice Gaussian `k ↦ heatKernel t (z + 2k)` is summable.
+
+The Gaussian tail dominates the linear shift: completing the square gives, for
+*every* real lattice argument `a`, the bound `a² ≥ 2k² − z²` (from the perfect
+square `2(k ± z)² ≥ 0`), so each term is bounded by
+`exp(z²/(4t)) · exp(−k²/(2t))`, and `∑ₖ exp(−k²/(2t))` converges (`k ≤ k²`,
+`Real.summable_exp_nat_mul_of_ge`).  This discharges the `LatticeGaussianSummable`
+hypotheses appearing in the kernel↔spectral identities below. -/
+theorem latticeGaussianSummable {t : ℝ} (ht : 0 < t) (z : ℝ) :
+    LatticeGaussianSummable t z := by
+  unfold LatticeGaussianSummable
+  -- `heatKernel t (z+2k) = (1/√(4πt)) · exp(−(z+2k)²/(4t))`; the constant factors out.
+  simp only [heatKernel]
+  apply Summable.mul_left
+  -- `Summable (fun k : ℤ ↦ exp(−(z+2k)²/(4t)))`.
+  set c : ℝ := -(1 / (2 * t)) with hc_def
+  have hc : c < 0 := by
+    rw [hc_def]
+    have hpos : 0 < 1 / (2 * t) := by positivity
+    linarith
+  have ht4 : (0 : ℝ) < 4 * t := by linarith
+  -- the dominating one-sided Gaussian `∑ₙ exp(c · n²)` converges (`n ≤ n²`).
+  have hbase : Summable (fun n : ℕ => Real.exp (c * (n : ℝ) ^ 2)) := by
+    refine Real.summable_exp_nat_mul_of_ge hc (f := fun n : ℕ => (n : ℝ) ^ 2) (fun i => ?_)
+    have hnat : i ≤ i ^ 2 := by nlinarith [Nat.zero_le i]
+    calc (i : ℝ) = ((i : ℕ) : ℝ) := rfl
+      _ ≤ ((i ^ 2 : ℕ) : ℝ) := by exact_mod_cast hnat
+      _ = (i : ℝ) ^ 2 := by push_cast; ring
+  -- core comparison: any one-sided lattice with `a n` satisfying `a² ≥ 2n²−z²` is summable.
+  have core : ∀ a : ℕ → ℝ, (∀ n : ℕ, 2 * (n : ℝ) ^ 2 - z ^ 2 ≤ (a n) ^ 2) →
+      Summable (fun n : ℕ => Real.exp (-(a n) ^ 2 / (4 * t))) := by
+    intro a ha
+    refine (hbase.mul_left (Real.exp (z ^ 2 / (4 * t)))).of_nonneg_of_le
+      (fun n => Real.exp_nonneg _) (fun n => ?_)
+    rw [← Real.exp_add]
+    apply Real.exp_le_exp.mpr
+    calc -(a n) ^ 2 / (4 * t)
+        ≤ (z ^ 2 - 2 * (n : ℝ) ^ 2) / (4 * t) :=
+          (div_le_div_iff_of_pos_right ht4).mpr (by linarith [ha n])
+      _ = z ^ 2 / (4 * t) + c * (n : ℝ) ^ 2 := by
+          rw [hc_def]; field_simp; ring
+  -- split `ℤ = ℕ ⊕ (−ℕ)`; each side is a one-sided lattice handled by `core`.
+  apply Summable.of_nat_of_neg
+  · refine core _ (fun n => ?_)
+    push_cast; nlinarith [sq_nonneg ((n : ℝ) + z)]
+  · refine core _ (fun n => ?_)
+    push_cast; nlinarith [sq_nonneg ((n : ℝ) - z)]
+
 /-- **Pointwise kernel identity** (reduced).  Given lattice-Gaussian summability at the
 two shifts, the full periodised image kernel equals the cosine spectral kernel:
 
