@@ -67,9 +67,24 @@ independently-verified steps, all `#print axioms` = core three):
   (`∂ₓ K_full(t,x,y) = ∑ₖ (heat'(x−y+2k)+heat'(x+y+2k))`, via `hasDerivAt_tsum`
   + a UNIFORM Gaussian-gradient lattice summability bound) and the triangle/
   Tonelli step `∫₀¹|∑ₖ ·| dy ≤ ∑ₖ ∫₀¹|·| dy`, then assemble with Steps 1+5 for
-  `|deriv (S_full t f) x| ≤ ‖f‖∞ · (1/√π) t^(−1/2)`.  Step 6 is the genuinely
-  hard analytic core (needs the uniform Gaussian-gradient lattice summability
-  infrastructure — the gradient analogue of `LatticeGaussianSummable`).
+  `|deriv (S_full t f) x| ≤ ‖f‖∞ · (1/√π) t^(−1/2)`.
+
+  STEP 6 IS A MULTI-LEMMA SUMMABILITY STACK (foundation gap identified):
+  * `LatticeGaussianSummable t z` (= `Summable (k ↦ heatKernel t (z+2k))`) is
+    only ever used as a HYPOTHESIS — it is NOT proved in the repo.  Even this
+    base must be established for `t>0` from Mathlib's Gaussian/Poisson
+    infrastructure (`Complex.tsum_exp_neg_quadratic` gives the `tsum` VALUE, not
+    directly the `Summable` predicate in the shifted/scaled `exp(−(z+2k)²/(4t))`
+    form — needs a comparison/`isBigO` argument).
+  * Then the GRADIENT lattice `Summable (k ↦ deriv heatKernel (z+2k))`
+    (`= ∑ₖ −((z+2k)/(2t))·heatKernel t (z+2k)`, polynomial×Gaussian) via the
+    bound `|w|·exp(−w²/4t) ≤ C·exp(−w²/8t)` reducing to a `t↦2t` Gaussian lattice.
+  * Then UNIFORMITY on a bounded neighborhood (`u k = sup_{x'∈nbhd}|heat'(x'+2k)|`,
+    summable) to feed `hasDerivAt_tsum_of_isPreconnected` (the GLOBAL
+    `hasDerivAt_tsum` is unusable — no uniform-over-ℝ summable bound exists).
+  * Then triangle/Tonelli + Steps 1+5.
+  Each is bounded but the stack is multi-session; best with fresh context (the
+  intricate Gaussian-summability proofs are hang-prone at large context).
 
 NET: hGradEq is closed on the full kernel (ROUND-16); the full operator's
 Duhamel-ball wiring is gated by this gradient estimate (the tiling theorem) and,
