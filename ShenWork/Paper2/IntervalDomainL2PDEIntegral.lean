@@ -202,20 +202,68 @@ theorem intervalDomainLift_diffusion_intervalIntegrable_of_regularity
   intervalDomainLift_diffusion_intervalIntegrable_of_contDiffOn
     (hsol.regularity.2.2.2.2.2.2.1 t ht).1.1
 
-/-! ## Status of the remaining two integrability inputs
+/-! ## Discharging `hC` (the logistic term) from regularity + positivity -/
+
+/-- **The logistic integrand `u²(a−bu^α)` is interval-integrable**, from conjunct
+(7) closed-`C²` (continuity of `lift u` on `[0,1]`) and the solution positivity
+`u > 0`.  On `[0,1]` the lift of `u²(a−bu^α)` equals `(lift u)²·(a − b·(lift u)^α)`,
+continuous because `lift u` is continuous and strictly positive there (so the real
+power `(lift u)^α` is continuous via `ContinuousOn.rpow_const`). -/
+theorem intervalDomainLift_logistic_intervalIntegrable_of_regularity
+    {params : CM2Params} {T t : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) :
+    IntervalIntegrable
+      (intervalDomainLift
+        (fun x => (u t x) ^ 2 * (params.a - params.b * (u t x) ^ params.α)))
+      volume 0 1 := by
+  classical
+  have hreg7 : ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
+    (hsol.regularity.2.2.2.2.2.2.1 t ⟨ht0, htT⟩).1.1
+  have hcont_u : ContinuousOn (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
+    hreg7.continuousOn
+  -- `lift u` is strictly positive on `[0,1]` (positivity at every point).
+  have hpos : ∀ y ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (u t) y ≠ 0 := by
+    intro y hy
+    have : intervalDomainLift (u t) y = u t ⟨y, hy⟩ := by simp [intervalDomainLift, hy]
+    rw [this]; exact ne_of_gt (hsol.u_pos' ht0 htT)
+  -- The continuous comparison function on `[0,1]`.
+  have hpow : ContinuousOn (fun y => (intervalDomainLift (u t) y) ^ params.α)
+      (Set.Icc (0 : ℝ) 1) :=
+    hcont_u.rpow_const (fun y hy => Or.inl (hpos y hy))
+  have hcomp : ContinuousOn
+      (fun y => (intervalDomainLift (u t) y) ^ 2 *
+        (params.a - params.b * (intervalDomainLift (u t) y) ^ params.α))
+      (Set.Icc (0 : ℝ) 1) :=
+    (hcont_u.pow 2).mul (continuousOn_const.sub (continuousOn_const.mul hpow))
+  -- The lifted integrand agrees with the comparison on `[0,1]`.
+  have hEq : Set.EqOn
+      (intervalDomainLift
+        (fun x => (u t x) ^ 2 * (params.a - params.b * (u t x) ^ params.α)))
+      (fun y => (intervalDomainLift (u t) y) ^ 2 *
+        (params.a - params.b * (intervalDomainLift (u t) y) ^ params.α))
+      (Set.Icc (0 : ℝ) 1) := by
+    intro y hy
+    simp only [intervalDomainLift, hy, dif_pos]
+  apply ContinuousOn.intervalIntegrable
+  rw [Set.uIcc_of_le (zero_le_one)]
+  exact hcomp.congr hEq
+
+/-! ## Status of the remaining integrability input
 
 `intervalDomain_l2_half_energy_hPDEIntegral_of_integrable` reduces `hPDEIntegral`
-to `hA`, `hB`, `hC`.  `hA` is now **discharged** from conjunct (7)
-(`intervalDomainLift_diffusion_intervalIntegrable_of_regularity`).  The remaining:
+to `hA`, `hB`, `hC`.  `hA` (diffusion) and `hC` (logistic) are now **discharged**
+from the regularity conjunct (7) + positivity
+(`intervalDomainLift_{diffusion,logistic}_intervalIntegrable_of_regularity`).  The
+single remaining integrability input is:
 
-* **`hC` (`∫₀¹ u²(a−bu^α)`)** — continuous in `u`, but the real power `u^α`
-  (`α : ℝ`, `1 ≤ α`) is only continuous where `u ≥ 0`, so this needs solution
-  positivity `u ≥ 0` (a genuine maximum-principle input).
 * **`hB` (`∫₀¹ u·chemDiv`)** — the chemotaxis flux divergence
-  `∂ₓ(u·∂ₓv/(1+v)^β)`, coupling to `v`'s `C²` regularity and `1+v` bounded below;
-  the genuine `v`-coupled frontier.
+  `∂ₓ(u·∂ₓv/(1+v)^β)`, coupling to `v`'s `C²` regularity and `1+v ≥ 1 > 0`
+  (`v ≥ 0`, `IsPaper2ClassicalSolution.v_nonneg`); the genuine `v`-coupled
+  frontier.
 
-These are recorded as the precise residual of `hPDEIntegral`, NOT faked.
+This is recorded as the precise residual of `hPDEIntegral`, NOT faked.
 -/
 
 end
