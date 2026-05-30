@@ -11,7 +11,7 @@ Invariant throughout: 0 sorry, 0 admit, 0 custom axiom, full build green.
 |---|--------|--------|-----------|------|
 | T0 | `hChemDiv_joint_meas` measurability frontier | DONE | — | diffQuotLimsup AE surrogate; `_resolver` drops the measurability hypothesis |
 | T1 | full-kernel gradient L∞→L∞ estimate (Step 6 tiling) | DONE | T0 | `105aaa0`; unconditional, end-to-end, green 8354 |
-| T2 | wire full kernel operator into `_clean/_cleaner/_resolver` hmap chain | DONE (chain built) | T1 | full chain `_clean_full→_cleaner_full→_resolver_full` on the full Neumann kernel, `hGradEq` DISCHARGED + grad/sup/Leibniz all discharged (T2-a..m); per-slice measurability `hF_meas`/`hF'_meas` carried as hypotheses (lattice `s_dependent` measurability = documented residual) |
+| T2 | wire full kernel operator into `_clean/_cleaner/_resolver` hmap chain | **DONE (100% closed)** | T1 | full chain `_clean_full→_cleaner_full→_resolver_full` on the full Neumann kernel, `hGradEq` DISCHARGED + grad/sup/Leibniz all discharged (T2-a..m); **per-slice measurability now FULLY DISCHARGED** (T2-n): lattice `s_dependent` measurability proved via `measurable_tsum_int_of_summable` (tsum = pointwise limit of partial sums); `_resolver_full` carries NO `hF_meas`/`hF'_meas` — verbatim mirror of zeroth terminal |
 | T3 | Neumann BC fidelity fix: `intervalDomainNormalDeriv` genuine one-sided deriv = 0 (replace hardcoded 0), re-prove ~24 users | TODO | — | independent; current BC conjunct is VACUOUS; IBP needs genuine g'(0)=g'(1)=0 |
 | T4 | energy IBP: `Eprime ≤ K·E` (PDE substitution + Neumann IBP + Lipschitz absorption) | TODO | T3 | needs genuine boundary from T3 |
 | T5 | `hSol` / parabolic boundary regularity: ∂ₜ,∂ₓ,∂ₓₓ continuous/integrable up to spatial endpoints x→0⁺,1⁻ | TODO (deep) | — | real classical PDE theorem; closes the closed-slab envelope → gluing. The big wall. |
@@ -97,13 +97,27 @@ discharged.  Difference from the zeroth: the per-slice measurability is carried 
 `hF_meas`/`hF'_meas` hypotheses (the zeroth carries `hF_ae` + converts via the proved
 `intervalSemigroupOperator_s_dependent_*` lemmas).
 
-ONE documented residual (clean follow-up): the **lattice `s_dependent` measurability**
-`intervalFullSemigroupOperator_s_dependent_{aestronglyMeasurable_x, deriv_…_x₀}` —
-joint measurability of `(s,y) ↦ K_full(t−s,x,y)` and `∂ₓK_full(t−s,x,y)` (via a 2-D
-`continuousOn_tsum` + the heat/grad window bounds, K_full continuous on `{s<t}×ℝ`).
-Once these land, `hF_meas`/`hF'_meas` are replaced by `hF_ae` (discharged for the
-resolver by the ROUND-14 `intervalCoupledSource_resolver_lift_aestronglyMeasurable`),
-making `_resolver_full` a verbatim mirror of the zeroth terminal.
+**DONE — lattice `s_dependent` measurability (T2-n, the last residual):**
+`ShenWork/PDE/IntervalFullKernelSDependentMeasurable.lean` (new):
+- `measurable_tsum_int_of_summable` — generic principle: an integer-lattice `tsum`
+  of measurable, everywhere-summable functions is measurable (tsum reindexed `ℕ ≃ ℤ`
+  = pointwise limit of `Finset.range` partial sums via `HasSum.tendsto_sum_nat`, each
+  measurable, limit measurable by `measurable_of_tendsto_metrizable`).  Avoids the
+  2-D `continuousOn_tsum` route entirely (no locally-uniform window bound needed).
+- `deriv_heatKernel_global` — `deriv (heat t) x = −(x/2t)·heat t x` for ALL `t`
+  (both sides `0` for `t ≤ 0`), so the heat kernel and its spatial derivative are
+  jointly `(s,y)`-measurable by `fun_prop` on the closed form.
+- `intervalNeumannFullKernel_s_dependent_measurable`,
+  `deriv_intervalNeumannFullKernel_fst_s_dependent_measurable` — joint measurability
+  of `(s,y) ↦ K_full(t−s,x,y)` and `∂ₓK_full(t−s,x,y)`.
+- `intervalFullSemigroupOperator_s_dependent_{aestronglyMeasurable_x,
+  deriv_…_x₀}` — Fubini (`integral_prod_right'`) ⇒ the `hF_meas`/`hF'_meas` forms.
+
+`_cleaner_full` now takes a single `hF_ae` (joint source-field measurability) and
+derives `hF_meas`/`hF'_meas` internally; `_resolver_full` discharges `hF_ae` via the
+ROUND-14 `intervalCoupledSource_resolver_lift_aestronglyMeasurable`.  `_resolver_full`
+is now a verbatim mirror of the zeroth terminal — **T2 100% closed, axiom-clean,
+build 8365.**
 
 ## T3 detail (scoped 2026-05-29) — Neumann BC fidelity fix
 

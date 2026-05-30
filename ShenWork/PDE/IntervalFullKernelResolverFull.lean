@@ -20,6 +20,7 @@
   No `sorry`/`admit`/custom `axiom`.
 -/
 import ShenWork.PDE.IntervalFullKernelCleanerFull
+import ShenWork.PDE.IntervalChemDivAEMeasurable
 
 open MeasureTheory
 open scoped Topology
@@ -84,26 +85,7 @@ theorem intervalFullKernelClassicalC1BallEstimates_hmap_dirichlet_initial_resolv
               (intervalDomainLift
                 (intervalCoupledSource p (u s) (intervalNeumannResolverR p (u s))))
               (intervalMeasure 1))
-    (hF_meas :
-      ∀ u v : ℝ → intervalDomainPoint → ℝ,
-        IntervalDomainClassicalC1Snapshot p T M G_u u v →
-          ∀ (τ : ℝ), τ ∈ Set.Ioo (0 : ℝ) T → ∀ x' : ℝ,
-            MeasureTheory.AEStronglyMeasurable
-              (fun s : ℝ => intervalFullSemigroupOperator (τ - s)
-                (intervalDomainLift
-                  (intervalCoupledSource p (u s) (intervalNeumannResolverR p (u s)))) x')
-              (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) τ)))
-    (hF'_meas :
-      ∀ u v : ℝ → intervalDomainPoint → ℝ,
-        IntervalDomainClassicalC1Snapshot p T M G_u u v →
-          ∀ (τ x : ℝ), τ ∈ Set.Ioo (0 : ℝ) T → x ∈ Set.Icc (0 : ℝ) 1 →
-            MeasureTheory.AEStronglyMeasurable
-              (fun s : ℝ =>
-                deriv (fun z : ℝ =>
-                  intervalFullSemigroupOperator (τ - s)
-                    (intervalDomainLift
-                      (intervalCoupledSource p (u s) (intervalNeumannResolverR p (u s)))) z) x)
-              (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) τ))) :
+    :
     ∀ u v : ℝ → intervalDomainPoint → ℝ,
       IntervalDomainClassicalC1Snapshot p T M G_u u v →
         IntervalDomainClassicalC1Snapshot p T M G_u
@@ -113,6 +95,9 @@ theorem intervalFullKernelClassicalC1BallEstimates_hmap_dirichlet_initial_resolv
     (R := intervalNeumannResolverR p)
     hT hH_nn hC_nn hG_init_nn hM_eq hG_u_eq hu₀_sup hext_eq
     hu₀_ext_int hu₀_ext_bound hu₀_ext_C1 hu₀_ext'_int hu₀_ext_one hu₀_ext'_sup
-    hSol hSource_sup_local hSource_sup_global hint hSource_int_global hF_meas hF'_meas
+    hSol hSource_sup_local hSource_sup_global hint hSource_int_global
+    (fun u v hsnap τ hτ =>
+      ShenWork.intervalCoupledSource_resolver_lift_aestronglyMeasurable
+        hsnap.isSolution hτ.1 (le_of_lt hτ.2))
 
 end ShenWork.IntervalNeumannFullKernel

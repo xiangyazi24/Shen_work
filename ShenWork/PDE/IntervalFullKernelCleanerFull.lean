@@ -16,6 +16,7 @@
 -/
 import ShenWork.PDE.IntervalFullKernelCleanFull
 import ShenWork.PDE.IntervalFullKernelLeibniz
+import ShenWork.PDE.IntervalFullKernelSDependentMeasurable
 
 open MeasureTheory
 open scoped Topology
@@ -76,24 +77,16 @@ theorem intervalFullKernelClassicalC1BallEstimates_hmap_dirichlet_initial_cleane
             MeasureTheory.Integrable
               (intervalDomainLift (intervalCoupledSource p (u s) (R (u s))))
               (intervalMeasure 1))
-    (hF_meas :
+    (hF_ae :
       ∀ u v : ℝ → intervalDomainPoint → ℝ,
         IntervalDomainClassicalC1Snapshot p T M G_u u v →
-          ∀ (τ : ℝ), τ ∈ Set.Ioo (0 : ℝ) T → ∀ x' : ℝ,
+          ∀ τ : ℝ, τ ∈ Set.Ioo (0 : ℝ) T →
             MeasureTheory.AEStronglyMeasurable
-              (fun s : ℝ => intervalFullSemigroupOperator (τ - s)
-                (intervalDomainLift (intervalCoupledSource p (u s) (R (u s)))) x')
-              (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) τ)))
-    (hF'_meas :
-      ∀ u v : ℝ → intervalDomainPoint → ℝ,
-        IntervalDomainClassicalC1Snapshot p T M G_u u v →
-          ∀ (τ x : ℝ), τ ∈ Set.Ioo (0 : ℝ) T → x ∈ Set.Icc (0 : ℝ) 1 →
-            MeasureTheory.AEStronglyMeasurable
-              (fun s : ℝ =>
-                deriv (fun z : ℝ =>
-                  intervalFullSemigroupOperator (τ - s)
-                    (intervalDomainLift (intervalCoupledSource p (u s) (R (u s)))) z) x)
-              (MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) τ))) :
+              (Function.uncurry
+                (fun (s : ℝ) (y : ℝ) =>
+                  intervalDomainLift (intervalCoupledSource p (u s) (R (u s))) y))
+              ((MeasureTheory.volume.restrict (Set.uIoc (0 : ℝ) τ)).prod
+                (intervalMeasure 1))) :
     ∀ u v : ℝ → intervalDomainPoint → ℝ,
       IntervalDomainClassicalC1Snapshot p T M G_u u v →
         IntervalDomainClassicalC1Snapshot p T M G_u
@@ -108,6 +101,13 @@ theorem intervalFullKernelClassicalC1BallEstimates_hmap_dirichlet_initial_cleane
     hSol hSource_sup_local hSource_sup_global hint hSource_int_global ?_ ?_ ?_
   · -- hSplit via `deriv_add`.
     intro u v hsnap τ x hτ hxIcc
+    have hF_aeτ := hF_ae u v hsnap τ hτ
+    have hFm := fun x' : ℝ =>
+      intervalFullSemigroupOperator_s_dependent_aestronglyMeasurable_x hτ.1 hF_aeτ x'
+    have hFd :=
+      intervalFullSemigroupOperator_s_dependent_deriv_aestronglyMeasurable_x₀ hτ.1 hF_aeτ
+        (fun s => hSource_int_global u v hsnap s)
+        (fun s y => hSource_sup_global u v hsnap s y) x
     have hInit_diff :
         DifferentiableAt ℝ (fun z : ℝ => intervalFullSemigroupOperator τ u₀_ext z) x :=
       (intervalFullSemigroupOperator_hasDerivAt_fst hτ.1
@@ -122,24 +122,36 @@ theorem intervalFullKernelClassicalC1BallEstimates_hmap_dirichlet_initial_cleane
         (F := fun s y => intervalDomainLift (intervalCoupledSource p (u s) (R (u s))) y)
         (fun s => hSource_int_global u v hsnap s) hC_nn
         (fun s y => hSource_sup_global u v hsnap s y) x
-        (hF_meas u v hsnap τ hτ) (hF'_meas u v hsnap τ x hτ hxIcc)
+        hFm hFd
         (intervalCoupledDuhamel_grad_envelope_intervalIntegrable hτ.1 C_source)).differentiableAt
     exact deriv_add hInit_diff hIntegral_diff
   · -- hLeibniz.
     intro u v hsnap τ x hτ hxIcc
+    have hF_aeτ := hF_ae u v hsnap τ hτ
+    have hFm := fun x' : ℝ =>
+      intervalFullSemigroupOperator_s_dependent_aestronglyMeasurable_x hτ.1 hF_aeτ x'
+    have hFd :=
+      intervalFullSemigroupOperator_s_dependent_deriv_aestronglyMeasurable_x₀ hτ.1 hF_aeτ
+        (fun s => hSource_int_global u v hsnap s)
+        (fun s y => hSource_sup_global u v hsnap s y) x
     exact intervalFullCoupledDuhamel_grad_leibniz (t := τ) hτ.1
       (F := fun s y => intervalDomainLift (intervalCoupledSource p (u s) (R (u s))) y)
       (fun s => hSource_int_global u v hsnap s) hC_nn
       (fun s y => hSource_sup_global u v hsnap s y) x
-      (hF_meas u v hsnap τ hτ) (hF'_meas u v hsnap τ x hτ hxIcc)
+      hFm hFd
       (intervalCoupledDuhamel_grad_envelope_intervalIntegrable hτ.1 C_source)
   · -- hGrad_int.
     intro u v hsnap τ x hτ hxIcc
+    have hF_aeτ := hF_ae u v hsnap τ hτ
+    have hFd :=
+      intervalFullSemigroupOperator_s_dependent_deriv_aestronglyMeasurable_x₀ hτ.1 hF_aeτ
+        (fun s => hSource_int_global u v hsnap s)
+        (fun s y => hSource_sup_global u v hsnap s y) x
     exact intervalFullCoupledDuhamel_grad_integrand_intervalIntegrable (t := τ) hτ.1
       (F := fun s y => intervalDomainLift (intervalCoupledSource p (u s) (R (u s))) y)
       (fun s => hSource_int_global u v hsnap s) hC_nn
       (fun s y => hSource_sup_global u v hsnap s y) x
-      (hF'_meas u v hsnap τ x hτ hxIcc)
+      hFd
       (intervalCoupledDuhamel_grad_envelope_intervalIntegrable hτ.1 C_source)
 
 end ShenWork.IntervalNeumannFullKernel
