@@ -46,13 +46,25 @@ T1's capstone `intervalFullSemigroupOperator_deriv_Linfty_pointwise_sqrt_t`:
   `|deriv(S_full(t)u₀ + ∫…)x| ≤ G_init + Cgrad·2√T·C_source`, taking the
   initial-data gradient bound `hInit_grad` abstractly.
 
+**DONE** `intervalNeumannFullKernel_integral_eq_one` (`84d4664`,
+`ShenWork/PDE/IntervalFullKernelMass.lean`): `∫₀¹ K_full(t,x,y) dy = 1` (mass
+conservation) — Tonelli + tiling `tsum_cell_integral_eq_integral` (g=heat) +
+`heatKernel_integral_eq_one`. The `∫₀¹|K̃| ≤ ∫₀¹ K_full = 1` input for the IBP bound.
+
 Remaining for full T2 (each substantial, T1-scale):
 1. **full-kernel initial-data IBP gradient bound** `|deriv(S_full(t)u₀)x| ≤ ‖u₀'‖∞`
-   for C¹ `u₀` with `u₀(1)=0`. Route: `∂ₓK_full = ∂_y K̃` with
-   `K̃ = ∑ₖ(−heat(x−y+2k)+heat(x+y+2k))` (so `K̃(t,x,0)=0`); differentiate under
-   the integral, IBP in `y` (boundary terms vanish: `K̃(·,0)=0`, `u₀(1)=0`),
-   `|deriv| ≤ ‖u₀'‖∞·∫₀¹|K̃| ≤ ‖u₀'‖∞·∫₀¹ K_full = ‖u₀'‖∞` (needs full-kernel mass
-   `∫₀¹ K_full(t,x,·)=1`, currently UNPROVED). This discharges `hInit_grad`.
+   for C¹ `u₀` with `u₀(1)=0`. Needs a **lattice IBP engine** (analogue of the
+   zeroth-reflection two-term `intervalSemigroupOperator_deriv_ibp_identity_unit`
+   in HeatKernelGradientEstimates.lean:3147, but for the period-2 lattice kernel):
+   - `deriv(S_full t u₀) x = ∫₀¹ ∂ₓK_full(t,x,y)·u₀ y dy` from
+     `intervalFullSemigroupOperator_hasDerivAt_fst` (6.6 hrepr, f=u₀);
+   - `∂ₓK_full = ∂_y K̃`, `K̃ = ∑ₖ(−heat(x−y+2k)+heat(x+y+2k))` — establish `∂_y K̃`
+     via `hasDerivAt_tsum` (mirror 6.3) + continuity of `∂_y K̃` on [0,1];
+   - IBP in y (`intervalIntegral.integral_deriv_mul_eq_sub` / product-rule), boundary
+     `[K̃ u₀]₀¹ = 0` since `K̃(t,x,0)=0` (lattice symmetry) and `u₀(1)=0` ⇒
+     `deriv = −∫₀¹ K̃ u₀'`;
+   - `|deriv| ≤ ‖u₀'‖∞·∫₀¹|K̃| ≤ ‖u₀'‖∞·∫₀¹ K_full = ‖u₀'‖∞·1` (mass DONE above,
+     `|K̃| ≤ K_full` pointwise). Discharges `hInit_grad`.
 2. **`_clean_full` chain rebuild** — a parallel `intervalCoupledClassicalC1Ball
    Estimates_hmap_*` on `intervalFullKernelCoupledDuhamelOperator`, discharging the
    `hGradEq` hypothesis via the already-proved `intervalFullKernel_hGradEq`
