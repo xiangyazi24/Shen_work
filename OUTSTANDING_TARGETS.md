@@ -11,7 +11,7 @@ Invariant throughout: 0 sorry, 0 admit, 0 custom axiom, full build green.
 |---|--------|--------|-----------|------|
 | T0 | `hChemDiv_joint_meas` measurability frontier | DONE | — | diffQuotLimsup AE surrogate; `_resolver` drops the measurability hypothesis |
 | T1 | full-kernel gradient L∞→L∞ estimate (Step 6 tiling) | DONE | T0 | `105aaa0`; unconditional, end-to-end, green 8354 |
-| T2 | wire full kernel operator into `_clean/_cleaner/_resolver` hmap chain | WIP (analytic core DONE) | T1 | ALL full-kernel grad estimates DONE (source+initial+mass+IBP, T2-a..g); remaining: `_clean_full` snapshot-chain rebuild discharging `hGradEq` (structural) |
+| T2 | wire full kernel operator into `_clean/_cleaner/_resolver` hmap chain | WIP (`_clean_full` DONE) | T1 | grad estimates + sup + `_clean_full` snapshot hmap DONE with `hGradEq` DISCHARGED (T2-a..j); remaining: `_cleaner_full`/`_resolver_full` wrappers (need full-kernel source-integral HasDerivAt + per-slice measurability) |
 | T3 | Neumann BC fidelity fix: `intervalDomainNormalDeriv` genuine one-sided deriv = 0 (replace hardcoded 0), re-prove ~24 users | TODO | — | independent; current BC conjunct is VACUOUS; IBP needs genuine g'(0)=g'(1)=0 |
 | T4 | energy IBP: `Eprime ≤ K·E` (PDE substitution + Neumann IBP + Lipschitz absorption) | TODO | T3 | needs genuine boundary from T3 |
 | T5 | `hSol` / parabolic boundary regularity: ∂ₜ,∂ₓ,∂ₓₓ continuous/integrable up to spatial endpoints x→0⁺,1⁻ | TODO (deep) | — | real classical PDE theorem; closes the closed-slab envelope → gluing. The big wall. |
@@ -65,15 +65,32 @@ conservation) — Tonelli + tiling `tsum_cell_integral_eq_integral` (g=heat) +
   full-Neumann-kernel analogue of `intervalCoupledDuhamel_grad_estimate_full_dirichlet`
   — T2-g. **The entire analytic gradient prerequisite is now done on the full kernel.**
 
-REMAINING (structural, the only T2 piece left):
-**`_clean_full` snapshot-chain rebuild** — a parallel `intervalCoupledClassicalC1Ball
-Estimates_hmap_*` on `intervalFullKernelCoupledDuhamelOperator`, with the gradient
-conjunct discharging `hGradEq` via the proved `intervalFullKernel_hGradEq`
-(IntervalFullKernelDuhamelGradEq.lean) + lift-replacement (`u₀_ext` C¹ rep, as in
-the zeroth `_clean`:4395) + the complete grad estimate `intervalFullCoupledDuhamel
-_grad_estimate_full` (T2-g). The other snapshot conjuncts (sup bound, regularity,
-`hSol`, measurability) mirror the existing `_clean`/`_cleaner` proofs on the full
-operator. Large structural mirror (~hundreds of lines); next round.
+**DONE — full-kernel sup bound + `_clean_full`:**
+- `IntervalFullKernelSupBound.lean` (T2-h): `intervalFullSemigroupOperator_Linfty_bound`
+  `|S_full(t)f x| ≤ M` (kernel nonneg/integrable/mass=1 + `integral_mono`).
+- `IntervalFullKernelDuhamelSup.lean` (T2-i): `intervalFullKernelDuhamel_lift_abs_le`
+  `|full Duhamel image| ≤ H+C·T` (mirror of `intervalFullDuhamelOperator_bound_of
+  _source_bound`, `ht:0<t`).
+- `IntervalFullKernelCleanFull.lean` (T2-j):
+  **`intervalFullKernelClassicalC1BallEstimates_hmap_dirichlet_initial_clean`** —
+  the snapshot-preservation hmap on the FULL kernel, with **`hGradEq` DISCHARGED**
+  via the proved `intervalFullKernel_hGradEq` + lift-replacement + T2-g grad
+  estimate; sup conjunct = T2-i; `hLiftSemigroupEq`/`hDom_int` discharged locally.
+  The Leibniz/integrability bridges (`hSplit`/`hLeibniz`/`hGrad_int`) are carried as
+  hypotheses (as the zeroth `_clean` carries `hSplit`). **This is the T2 essence:
+  `hGradEq` — false at `x=1` for the zeroth kernel — is now discharged end-to-end on
+  the full Neumann kernel.** Whole project green 8361; all axiom-clean.
+
+REMAINING for full T2 (mechanical wrappers + their machinery):
+**`_cleaner_full` / `_resolver_full`** — `_cleaner` discharges `hSplit` via `deriv_add`
+(needs the full-kernel source-integral `HasDerivAt`, a mirror of
+`intervalCoupledDuhamel_grad_integral_hasDerivAt`:2425 using 6.6
+`intervalFullSemigroupOperator_hasDerivAt_fst` + T2-a pointwise bound + the per-slice
+measurability `intervalSemigroupOperator_s_dependent_*` full analogues — the latter
+is the substantive new piece); `_resolver` specializes `R := intervalNeumannResolverR p`
+and discharges measurability via the kernel-agnostic ROUND-14 `intervalCoupledSource
+_resolver_lift_aestronglyMeasurable`. Once the full source-integral HasDerivAt +
+per-slice measurability land, `_cleaner_full`/`_resolver_full` are thin mirrors.
 
 ## T3 detail (scoped 2026-05-29) — Neumann BC fidelity fix
 
