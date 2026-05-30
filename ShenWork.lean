@@ -63,6 +63,7 @@ import ShenWork.PDE.IntervalNeumannFullKernel
 import ShenWork.PDE.IntervalFullKernelInterchange
 import ShenWork.PDE.IntervalFullKernelRegularity
 import ShenWork.PDE.IntervalDuhamelRegularity
+import ShenWork.PDE.IntervalDuhamelSpectralC2
 import ShenWork.PDE.IntervalDuhamelRepresentation
 import ShenWork.Paper2.IntervalDomainL2UniquenessCertificate
 import ShenWork.Paper2.IntervalDomainL2FrontierBuilder
