@@ -96,3 +96,4 @@ import ShenWork.PDE.IntervalFullKernelInitialIBP
 import ShenWork.PDE.IntervalFullKernelGradEstimateFull
 import ShenWork.PDE.IntervalFullKernelSupBound
 import ShenWork.PDE.IntervalFullKernelDuhamelSup
+import ShenWork.PDE.IntervalFullKernelCleanFull
