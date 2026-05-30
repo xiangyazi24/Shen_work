@@ -269,4 +269,67 @@ theorem minimalEquilibrium_linearStability_dichotomy_of_firstMode_dominant
     (by simpa [minimalEquilibrium_fst_eq] using huStar)
     (minimalEquilibrium_snd_pos p huStar).le hmode1 hregime
 
+/-- **Paper3 Theorem 2.2, linear part — EXPLICIT first-mode-formula dichotomy.**
+The paper-aligned linear stability/instability dichotomy of Theorem 2.2, with the
+critical sensitivity given by the *explicit* per-mode formula `(2.10)` evaluated at
+the first nonzero mode (rather than the abstract infimum
+`paperCriticalSensitivity`), valid in the first-mode-dominant regime
+`aαμ ≤ firstNonzero²`.
+
+This completes the explicit-formula version of Theorem 2.2's linear part: the prior
+`Theorem_2_2_linear_mode_one_instability_branch_direct` supplied only the
+instability half at the explicit threshold, because the stability half genuinely
+needs the EXACT value `paperFormula(λ₁) = χ*` (proved here) — `χ₀ < paperFormula(λ₁)`
+implies `χ₀ < χ* = inf` only when the first mode realises the infimum. -/
+theorem Theorem_2_2_linear_explicit_first_mode_dichotomy
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    (hmode1 : S.eigenvalue 1 = S.firstNonzero)
+    (hregime : p.a * p.α * p.μ ≤ S.firstNonzero ^ 2) :
+    (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      (p.χ₀ < sigmaCriticalChiPaperFormula p eq.1 eq.2 (S.eigenvalue 1) →
+          LinearlyStable S p eq.1 eq.2) ∧
+        (sigmaCriticalChiPaperFormula p eq.1 eq.2 (S.eigenvalue 1) < p.χ₀ →
+          LinearlyUnstable S p eq.1 eq.2)) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        (p.χ₀ < sigmaCriticalChiPaperFormula p eq.1 eq.2 (S.eigenvalue 1) →
+            LinearlyStable S p eq.1 eq.2) ∧
+          (sigmaCriticalChiPaperFormula p eq.1 eq.2 (S.eigenvalue 1) < p.χ₀ →
+            LinearlyUnstable S p eq.1 eq.2)) :=
+  ⟨fun ha hb =>
+      positiveEquilibrium_linearStability_dichotomy_of_firstMode_dominant
+        S p H ha hb hmode1 hregime,
+   fun _ha _hb uStar huStar =>
+      minimalEquilibrium_linearStability_dichotomy_of_firstMode_dominant
+        S p H huStar hmode1 hregime⟩
+
+/-- **Paper3 Theorem 2.2 linear part, explicit-formula dichotomy on the unit
+interval** (`firstNonzero = π²`, regime `aαμ ≤ π⁴`). -/
+theorem Theorem_2_2_linear_explicit_first_mode_dichotomy_unitInterval
+    (p : CM2Params) (hregime : p.a * p.α * p.μ ≤ (Real.pi ^ 2) ^ 2) :
+    (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      (p.χ₀ < sigmaCriticalChiPaperFormula p eq.1 eq.2
+          (unitIntervalNeumannSpectrum.eigenvalue 1) →
+          LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2) ∧
+        (sigmaCriticalChiPaperFormula p eq.1 eq.2
+          (unitIntervalNeumannSpectrum.eigenvalue 1) < p.χ₀ →
+          LinearlyUnstable unitIntervalNeumannSpectrum p eq.1 eq.2)) ∧
+    (p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        (p.χ₀ < sigmaCriticalChiPaperFormula p eq.1 eq.2
+            (unitIntervalNeumannSpectrum.eigenvalue 1) →
+            LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2) ∧
+          (sigmaCriticalChiPaperFormula p eq.1 eq.2
+            (unitIntervalNeumannSpectrum.eigenvalue 1) < p.χ₀ →
+            LinearlyUnstable unitIntervalNeumannSpectrum p eq.1 eq.2)) := by
+  refine Theorem_2_2_linear_explicit_first_mode_dichotomy
+    unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+    ?_ ?_
+  · simp [unitIntervalNeumannSpectrum]
+  · simpa [unitIntervalNeumannSpectrum] using hregime
+
 end ShenWork.Paper3
