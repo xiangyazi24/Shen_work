@@ -196,4 +196,43 @@ theorem intervalDuhamelTerm_interiorC2
     DuhamelTermInteriorC2 T w :=
   intervalDuhamelTerm_interiorC2_of_eqOn_heatValue hrep
 
+/-! ## ⚠ CORRECTION (2026-05-30): `DuhamelHeatValueRepresentation` is OVER-STRONG —
+NOT an "elementary Fubini" step (verified definition-level finding)
+
+The header above calls `DuhamelHeatValueRepresentation` "elementary analysis (a
+one-dimensional integral plus Fubini)".  **That characterisation is wrong**, and
+the predicate as stated (a *bounded* coefficient sequence `b` at a *fixed* `τ > 0`)
+is in general **FALSE** for the Duhamel term of a merely-bounded source.  The reason
+is exactly the regularity the heat-value form encodes:
+
+* `unitIntervalCosineHeatValue_contDiff_two` derives `C²` (indeed `C^∞`,
+  real-analytic) from *only* `τ > 0` and `|b n| ≤ M`, because the factor
+  `e^{−τ λ_n}` Gaussian-dominates every polynomial in `λ_n`.  So asserting
+  `lift (D_t) = ∑ₙ e^{−τλ_n} bₙ cos(nπ·)` with bounded `b` is asserting `D_t` is
+  `C^∞` in space.
+* But `D_t(x) = ∑ₙ cₙ(t) cos(nπx)` with
+  `cₙ(t) = ∫₀ᵗ e^{−(t−s)λ_n} ĝ_{s,n} ds`, and the parabolic gain
+  (`parabolicGain_le_one`) gives only `λ_n |cₙ(t)| ≤ ‖g‖_∞`, i.e. `|cₙ(t)| ≲ 1/λ_n
+  ~ 1/n²`.  This is `H^{s}` for `s < 3/2` — `C⁰` but **not** `C²`.  Writing
+  `cₙ(t) = e^{−τλ_n} bₙ` forces `bₙ = cₙ(t) e^{τλ_n}`; the `s≈t` part of the time
+  integral contributes `~ (1/λ_n) e^{τλ_n} → ∞`, so `b` is **unbounded** for any
+  `τ > 0`.  (The `s` away from `t` part is fine; the singularity is at `s = t`.)
+
+**Consequence.**  The boundedness of `b` (= the `C^∞` heat-value claim) genuinely
+requires the source `g_s = F(u(s))` to have *spatial regularity* (decaying cosine
+coefficients), not just an `L^∞` bound — i.e. it couples to the regularity
+bootstrap of the constructed solution.  `intervalDuhamelTerm_interiorC2_of_eqOn_heatValue`
+is therefore a valid reduction only when such a representation *exists*, which is
+not "elementary"; for a generic bounded source it does not exist.
+
+**Honest path to `DuhamelTermInteriorC2` (the real B1 atom).**  Prove `∂ₓₓ D_t`
+directly, NOT via a heat-value form.  Differentiating the kernel twice fails (the
+`∂ₓₓ K_full(t−s,·)` bound `~ (t−s)^{−3/2}` is non-integrable in `s` at `s=t`); the
+correct route uses the heat-equation identity `∂ₓₓ S(r) = ∂_r S(r)` and an
+integration by parts **in time** to move one derivative onto `∂_s g_s` (plus the
+`S(0)=id` approximate-identity boundary term), which needs `g_s` to be `C¹` in `s`
+— again a genuine coupling to the solution's joint regularity, not Fubini.  This is
+the genuine deep content of `localExistence` (T6) and is not closable from the
+crude parabolic gain alone. -/
+
 end ShenWork.IntervalDuhamelRegularity
