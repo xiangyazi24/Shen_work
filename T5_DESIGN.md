@@ -241,3 +241,29 @@ hL2Time bridge** 均已落地（见上表）。两者都是「归约」层：
 下一步候选：(i) `DuhamelHeatValueRepresentation` 本体（最深，Fubini+parabolic gain）。
 (ii) conjunct 8/9 对 cosine 构造解的 Weierstrass-M 装配（T6 领域：让构造解真满足正则性，
 从而 hL2Time/hPDEIntegral 对构造解也无 hsol 假设）。(iii) hCrossControl 分析。
+
+---
+
+## 6. 进度更新（2026-05-30，T5-s/u）—— full-solution E'≤K·E 无条件，hrepIoo 消除
+
+**最终状态：T5 对抽象经典解的能量不等式目标 COMPLETE。**
+
+- **T5-s（hCrossControl 无条件）**：`intervalDomain_l2_crossControl_of_regularity`
+  （`IntervalDomainL2CrossControl.lean`）—— `-χ₀·∫u·chemDiv ≤ |χ₀|·crossTerm`。
+  flux IBP（`intervalFluxByParts_open`，端点 flux=0 即 v-Neumann）+ 逐点
+  `|χ₀|·|a|·|b|` 界 + `integral_mono_on`。RHS 被积函数可积借连续 `derivWithin` 代表元
+  a.e. 相等。
+- **T5-u（关键洞察：hrepIoo 不必要）**：`intervalDomain_l2_half_energy_inequality_
+  unconditional` —— 任意经典解的 `E'≤K·E` 无条件（chiBound:=|χ₀|，只留独立教科书插值
+  假设 `hcross`）。**cosine 表示 hrepIoo 被消除**：它过去仅用于给空间 Neumann IBP 提供
+  一个全局 C² profile，但 conjunct (7) 闭 C² + 真 Neumann 已直接给出
+  `deriv(lift u)=derivWithin(lift u)[0,1]` 在整 `[0,1]`（内部相等；端点 junk-0 =
+  真-Neumann-0，`derivWithin_congr_set` 桥 Ici/Iic→Icc），故 `deriv(lift u)` 在闭区间
+  连续，`_of_regularity` 整包从 `hsol` 兑现。
+
+**重新定位 Path 选择**：Round 3 的 Path α/β/γ 之争（如何对*构造解*证表示）被旁路——
+能量不等式根本不需要表示，只需经典解定义自带的正则性（conjunct 7 + Neumann）。
+`DuhamelHeatValueRepresentation`（原 R3 本体，Fubini+parabolic gain）**降级为 T6**：
+它的作用是证*构造的* full-kernel 解满足 conjunct 7/8/9（= localExistence 正则性），
+不再是 T5 能量不等式的前置。R1（hL2Time）、R2（hPDEIntegral）、cross-control 全部
+作为任意经典解的定理 discharge。

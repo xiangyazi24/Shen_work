@@ -683,3 +683,50 @@ Attacked the T5 ∂ₜ tail of the L²-energy differential inequality `E'(t)+dis
 
 ### Capstone (T5-r)
 `intervalDomain_l2_half_energy_inequality_of_cosineProfile_full`: full-solution `E'≤K·E` with BOTH `hL2Time` and `hPDEIntegral` discharged. **Only remaining inputs**: the OPEN-`(0,1)` cosine representation `hrepIoo` (`DuhamelHeatValueRepresentation` body = Fubini ∫₀ᵗ↔∑'ₙ + `parabolicGain_le_one`) and `hCrossControl`. Conjuncts (8)/(9) for the cosine *constructed* solution (Weierstrass-M) belong to T6.
+
+## ROUND-T5∂ₓ — FULL-SOLUTION L² ENERGY INEQUALITY UNCONDITIONAL (2026-05-30, HEAD 762cc3c, build 8373 axiom-clean)
+
+Closed the last two gates of the full-solution L²-energy differential inequality
+`E'(t)+dissipation ≤ |χ₀|·(ε·gradDiss+Ceps·∫u^{2+ρ})+logistic`, making it
+**unconditional for any `IsPaper2ClassicalSolution`** (modulo the independent
+textbook interpolation hypothesis `hcross`). New file
+`ShenWork/Paper2/IntervalDomainL2CrossControl.lean`. 3 commits, all axiom-clean.
+
+### T5-s — `hCrossControl` UNCONDITIONAL
+`intervalDomain_l2_crossControl_of_regularity`: `-χ₀·∫₀¹u·chemDiv(u,v) ≤
+|χ₀|·∫₀¹u·|∂ₓu|·|∂ₓv|/(1+v)^β`. Flux IBP on the open interior
+(`intervalFluxByParts_open`) with the flux vanishing at both endpoints
+(`flux_endpoint_zero`, genuine v-Neumann) moves the derivative:
+`∫u·∂ₓ(flux) = -∫∂ₓu·flux`. Pointwise `χ₀·∂ₓu·u·∂ₓv/(1+v)^β ≤
+|χ₀|·u·|∂ₓu|·|∂ₓv|/(1+v)^β` (u≥0, (1+v)^β>0, `χ₀·a·b ≤ |χ₀|·|a|·|b|` via
+`le_abs_self`+`abs_mul`), closed by `integral_mono_on`. RHS integrand integrable
+via an a.e.-equal continuous `derivWithin` representative.
+
+### T5-u — full-solution `E'≤K·E` UNCONDITIONAL, `hrepIoo` ELIMINATED
+`intervalDomain_l2_half_energy_inequality_unconditional`: discharges EVERY frontier
+of `intervalDomain_l2_half_energy_inequality_of_regularity` from `hsol`:
+* `hL2Time` (R1) — `intervalDomain_l2_half_energy_hL2Time`;
+* `hPDEIntegral` (R2) — `intervalDomain_l2_half_energy_hPDEIntegral_of_regularity`;
+* `hCrossControl` (T5-s) — `intervalDomain_l2_crossControl_of_regularity` (chiBound:=|χ₀|);
+* the C²-up-to-boundary regularity package — from conjunct (7) + genuine Neumann.
+
+**Key realization:** the cosine-heat-value representation `hrepIoo`
+(`DuhamelHeatValueRepresentation`) was only ever used to supply a global-C² profile
+`S` whose derivative matches `deriv(lift u)` up to the closed boundary, for the
+spatial Neumann IBP. Conjunct (7) (closed-[0,1] C²) + the genuine endpoint Neumann
+data give this directly: on the interior `deriv(lift u)=derivWithin(lift u)[0,1]`,
+and at the endpoints both equal 0 (lift's ordinary deriv is junk-0; closed
+`derivWithin` is 0 by genuine Neumann, bridged `Ici/Iic→Icc` via
+`derivWithin_congr_set`). Hence `deriv(lift u)` is continuous on the closed `[0,1]`
+(`deriv_intervalDomainLift_continuousOn_Icc_of_regularity`), interior right-
+`HasDerivWithinAt` data come from `hasDerivAt_{,deriv_}of_contDiffOn_two_interior`,
+integrabilities from `intervalIntegrable_deriv{,_deriv}_of_contDiffOn_two`, and the
+boundary terms from `hsol.neumann`. **`hrepIoo` is no longer needed for the energy
+inequality — it belongs to T6** (proving the *constructed* full-kernel solution
+actually satisfies conjuncts 7/8/9).
+
+### Net
+T5's purpose — make `E'≤K·E` unconditional for classical solutions — is COMPLETE.
+Every former frontier (`hL2Time`/`hPDEIntegral`/`hCrossControl`/`hIBP`) is a theorem
+about an arbitrary classical solution. Remaining `DuhamelHeatValueRepresentation`
+is reclassified as T6 (constructed-solution regularity), not a T5 energy gate.
