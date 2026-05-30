@@ -336,6 +336,34 @@ theorem intervalNeumannFullKernel_deriv_abs_interval_integral_le {t : ℝ} (ht :
     _ = ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
           * t ^ (-(1 / 2) : ℝ) := ShenWork.tsum_cell_heatGrad_abs_integral_eq ht x
 
+/-- **Uniform constant bound on `∂ₓK_full` over `ball(x,1) × [0,1]`.**  For
+`|z−x| ≤ 1` and `|y| ≤ 1` the kernel `x`-derivative is dominated by the fixed
+constant `∑ₖ 2·heatGradWindowBound t x 2 k` (radius-2 window covers the whole
+neighbourhood).  This is the constant dominating function for the differentiation
+under the integral sign. -/
+theorem abs_deriv_intervalNeumannFullKernel_fst_le_const {t : ℝ} (ht : 0 < t) (x : ℝ)
+    {z y : ℝ} (hz : |z - x| ≤ 1) (hy : |y| ≤ 1) :
+    |deriv (fun z : ℝ => intervalNeumannFullKernel t z y) z|
+      ≤ ∑' k : ℤ, (heatGradWindowBound t x 2 k + heatGradWindowBound t x 2 k) := by
+  refine (abs_deriv_intervalNeumannFullKernel_fst_le ht z y).trans ?_
+  have hzb := abs_le.mp hz
+  have hyb := abs_le.mp hy
+  refine Summable.tsum_le_tsum (fun k => ?_)
+    ((summable_abs_iff.mpr (latticeGaussianGradSummable ht (z - y))).add
+      (summable_abs_iff.mpr (latticeGaussianGradSummable ht (z + y))))
+    ((summable_heatGradWindowBound ht x 2).add (summable_heatGradWindowBound ht x 2))
+  have h1 : |deriv (fun z : ℝ => heatKernel t z) (z - y + 2 * (k : ℝ))|
+      ≤ heatGradWindowBound t x 2 k :=
+    abs_deriv_heatKernel_le_windowShift ht x 2 k (by
+      rw [show z - y + 2 * (k : ℝ) - (x + 2 * (k : ℝ)) = z - x - y by ring]
+      exact abs_le.mpr ⟨by linarith [hzb.1, hyb.2], by linarith [hzb.2, hyb.1]⟩)
+  have h2 : |deriv (fun z : ℝ => heatKernel t z) (z + y + 2 * (k : ℝ))|
+      ≤ heatGradWindowBound t x 2 k :=
+    abs_deriv_heatKernel_le_windowShift ht x 2 k (by
+      rw [show z + y + 2 * (k : ℝ) - (x + 2 * (k : ℝ)) = z - x + y by ring]
+      exact abs_le.mpr ⟨by linarith [hzb.1, hyb.1], by linarith [hzb.2, hyb.2]⟩)
+  linarith [h1, h2]
+
 /-- **Step 6.6 (bounding half): full-kernel gradient `L∞→L∞`, given the
 differentiation-under-the-integral representation.**  For `|f| ≤ Cf`, once the
 operator derivative is realised as the integral of the kernel derivative
