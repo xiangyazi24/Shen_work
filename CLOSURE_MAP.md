@@ -93,15 +93,33 @@ independently-verified steps, all `#print axioms` = core three):
     `HasDerivAt (x↦K_full t x y) ((∑ₖ deriv heat(x−y+2k))+(∑ₖ deriv heat(x+y+2k))) x`.
     Kernel tsum split by `Summable.tsum_add`; each half by 6.3 (b=−y, b=y).
 
-  REMAINING Step 6 tail (assembly, the genuinely-analytic finish):
-  * 6.5 L¹ tiling bound: `∫₀¹ |∂ₓK_full(t,x,y)| dy ≤ (1/√π)t^(−1/2)`. Triangle
-    `|∑A+∑B| ≤ ∑|A|+∑|B|` (`norm_tsum_le_tsum_norm`, summability from 6.2/abs) +
-    Tonelli `∫₀¹∑ₖ = ∑ₖ∫₀¹` (`integral_tsum`, nonneg) + Step 5
-    `tsum_cell_integral_eq_integral` (g=|heat'|) + Step 1 (`∫_ℝ|heat'|=(1/√π)t^(−1/2)`).
-    Needs `Integrable |deriv heatKernel|`.
+  * 6.5a `tsum_cell_heatGrad_abs_integral_eq {t}(ht)(x)` (IntervalFullKernelGradient
+    Tiling.lean) DONE: `∑ₖ[∫₀¹|∂ₓheat(x−y+2k)| + ∫₀¹|∂ₓheat(x+y+2k)|]
+    = heatGradientLinftyLinftyConstant·t^(−1/2)`. Step 5 (g=|∂ₓheat|, integrable by
+    `heatKernel_deriv_abs_integrable`) + Step 1. The target constant, in closed form.
+
+  REMAINING Step 6 tail (assembly — standard measure-theory plumbing, NOT the
+  conceptual core; the hard Gaussian-summability foundation is now fully closed):
+  * 6.5b L¹ tiling BOUND: `∫₀¹ |deriv(x↦K_full t x y) x| dy ≤ heatGradientLinfty
+    LinftyConstant·t^(−1/2)`. Integrand = (6.4) `(∑ₖ∂heat(x−y+2k))+(∑ₖ∂heat(x+y+2k))`.
+    Route: pointwise `|∑A+∑B| ≤ ∑|A|+∑|B|` via `abs_add`+`norm_tsum_le_tsum_norm`
+    (norm-summability = `summable_abs_iff.mpr (latticeGaussianGradSummable …)`);
+    `∑|A|+∑|B| = ∑ₖ(|∂heat(x−y+2k)|+|∂heat(x+y+2k)|)` via `Summable.tsum_add`;
+    monotone interval-integral ⇒ `≤ ∫₀¹ ∑ₖ hₖ`; Tonelli `MeasureTheory.integral_tsum`
+    over `volume.restrict (Ioc 0 1)` (hₖ continuous ⇒ AEStronglyMeasurable; the
+    `∑ ∫⁻‖hₖ‖ ≠ ∞` side from `∫₀¹ hₖ = ∫_cellₖ |∂heat|` (`cell_integral_eq`) +
+    integrable-cover summability) ⇒ `= ∑ₖ ∫₀¹ hₖ`; finish with 6.5a.
+    KEY simplification: combine the A,B families per-k into `hₖ` BEFORE Tonelli, so
+    only ONE `integral_tsum` is needed and `cell_integral_eq` gives `∫₀¹ hₖ` summable.
   * 6.6 differentiate operator under integral: `deriv(x↦∫₀¹ K_full·f) = ∫₀¹ ∂ₓK_full·f`
-    (uniform dominated bound from the 6.3 majorant), then
-    `|deriv(S_full t f)x| ≤ ‖f‖∞·∫₀¹|∂ₓK_full| ≤ ‖f‖∞·(1/√π)t^(−1/2)`. THE goal.
+    via `MeasureTheory.hasDerivAt_integral_of_dominated_loc_of_deriv_le` (uniform
+    dominating bound = the 6.3 `hg'` majorant, integrable on [0,1]); then
+    `|deriv(S_full t f)x| ≤ ‖f‖∞·∫₀¹|∂ₓK_full| ≤ ‖f‖∞·heatGradLinftyConstant·t^(−1/2)`.
+    THE goal (= `intervalSemigroupOperator_deriv_Linfty_pointwise_sqrt_t` analogue).
+
+  All Step 6.1–6.5a lemmas live in PDE/IntervalNeumannFullKernel.lean (summability +
+  differentiation) and PDE/IntervalFullKernelGradientTiling.lean (tiling); whole
+  project `lake build ShenWork` green at 8353 jobs, every new decl axiom-clean.
 
 NET: hGradEq is closed on the full kernel (ROUND-16); the full operator's
 Duhamel-ball wiring is gated by this gradient estimate (the tiling theorem) and,
