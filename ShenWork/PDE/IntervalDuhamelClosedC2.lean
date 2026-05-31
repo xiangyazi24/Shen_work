@@ -225,4 +225,213 @@ theorem unitIntervalCosineHeatPointWeight_sub_hasDerivAt
   convert hcomp using 1
   ring
 
+/-- **Per-mode product rule for the Duhamel integrand.**  For a coefficient family
+`a : ℝ → ℕ → ℝ` with per-mode time derivative `adot`, the `n`-th integrand mode
+`s ↦ e^{−(t−s)λₙ}cos(nπx)·ĝₙ(s)` has `s`-derivative
+
+  `−secondPointWeight(t−s₀)·ĝₙ(s₀)  +  pointWeight(t−s₀)·ĝ′ₙ(s₀)`,
+
+i.e. (the `n`-th term of) `−∂ₓₓ S(t−s)g(s) + S(t−s)∂ₛg(s)`.  Product of the
+reversed-time point-weight derivative (3a) and the coefficient derivative. -/
+theorem unitIntervalCosineHeatTerm_sub_hasDerivAt
+    (t x : ℝ) (n : ℕ) {a adot : ℝ → ℕ → ℝ} {s₀ : ℝ}
+    (hda : HasDerivAt (fun s : ℝ => a s n) (adot s₀ n) s₀) :
+    HasDerivAt (fun s : ℝ => unitIntervalCosineHeatPointWeight (t - s) x n * a s n)
+      (-(unitIntervalCosineHeatSecondPointWeight (t - s₀) x n) * a s₀ n
+        + unitIntervalCosineHeatPointWeight (t - s₀) x n * adot s₀ n) s₀ :=
+  (unitIntervalCosineHeatPointWeight_sub_hasDerivAt t x n s₀).mul hda
+
+/-- **Step 3 — the time chain rule (assembled).**  For a uniformly bounded
+coefficient family `a` with uniformly bounded per-mode time derivative `adot`, the
+Duhamel integrand `Φ(s) = S(t−s)g(s)(x) = unitIntervalCosineHeatValue (t−s) (a s) x`
+is `s`-differentiable at any interior `s₀ ∈ (0,t)`, with
+
+  `Φ′(s₀) = −∂ₓₓ S(t−s₀)g(s₀)(x) + S(t−s₀)(∂ₛg(s₀))(x)`
+         `= −unitIntervalCosineHeatSecondValue (t−s₀) (a s₀) x`
+         `   + unitIntervalCosineHeatValue (t−s₀) (adot s₀) x`.
+
+Termwise product rule (3b) + dominated differentiation (`hasDerivAt_tsum_of_isPreconnected`)
+on an interval around `s₀` kept away from `s=t` (so `t−s ≥ (t−s₀)/2 > 0`, killing the
+singularity).  The majorant is `C·n⁻² + Mdot·e^{−rₘᵢₙλₙ}` (the `−∂ₓₓ` term's
+reciprocal-square + the `S(t−s)∂ₛg` term's Gaussian). -/
+theorem duhamelIntegrand_hasDerivAt
+    {t x : ℝ} {a adot : ℝ → ℕ → ℝ} {M Mdot : ℝ}
+    (hbound : ∀ s n, |a s n| ≤ M) (hbound' : ∀ s n, |adot s n| ≤ Mdot)
+    (hda : ∀ s n, HasDerivAt (fun σ : ℝ => a σ n) (adot s n) s)
+    {s₀ : ℝ} (hs₀ : s₀ ∈ Set.Ioo 0 t) :
+    HasDerivAt (fun s : ℝ => unitIntervalCosineHeatValue (t - s) (a s) x)
+      (-(unitIntervalCosineHeatSecondValue (t - s₀) (a s₀) x)
+        + unitIntervalCosineHeatValue (t - s₀) (adot s₀) x) s₀ := by
+  classical
+  obtain ⟨hs₀pos, hs₀lt⟩ := hs₀
+  have hMnn : 0 ≤ M := le_trans (abs_nonneg _) (hbound s₀ 0)
+  have hMdotnn : 0 ≤ Mdot := le_trans (abs_nonneg _) (hbound' s₀ 0)
+  set rmin : ℝ := (t - s₀) / 2 with hrmin_def
+  have hrmin_pos : 0 < rmin := by rw [hrmin_def]; linarith
+  set δ : ℝ := min s₀ (t - s₀) / 2 with hδ_def
+  have hδ_pos : 0 < δ := by
+    rw [hδ_def]; have := lt_min hs₀pos (show (0:ℝ) < t - s₀ by linarith); linarith
+  set S : Set ℝ := Set.Ioo (s₀ - δ) (s₀ + δ) with hS_def
+  have hS_open : IsOpen S := isOpen_Ioo
+  have hS_conn : IsPreconnected S := (convex_Ioo _ _).isPreconnected
+  have hs₀_mem : s₀ ∈ S := by
+    rw [hS_def]; exact ⟨by linarith, by linarith⟩
+  -- on `S`: `0 < s` and `rmin ≤ t − s`.
+  have hsub_pos : ∀ s ∈ S, 0 < t - s := by
+    intro s hs
+    have hδ1 : δ ≤ (t - s₀) / 2 := by
+      rw [hδ_def]; have := min_le_right s₀ (t - s₀); linarith
+    have : s < s₀ + δ := hs.2
+    linarith
+  have hsub_ge : ∀ s ∈ S, rmin ≤ t - s := by
+    intro s hs
+    have hδ1 : δ ≤ (t - s₀) / 2 := by
+      rw [hδ_def]; have := min_le_right s₀ (t - s₀); linarith
+    have : s < s₀ + δ := hs.2
+    rw [hrmin_def]; linarith
+  -- the summable majorant.
+  set u : ℕ → ℝ := fun n =>
+    (4 / (rmin ^ 2 * Real.pi ^ 2) * reciprocalSquareTerm n) * M
+      + Real.exp (-rmin * unitIntervalCosineEigenvalue n) * Mdot with hu_def
+  have hu_summable : Summable u := by
+    refine Summable.add ?_ ?_
+    · have := ((reciprocalSquareTerm_summable.mul_left
+        (4 / (rmin ^ 2 * Real.pi ^ 2))).mul_right M)
+      simpa [mul_assoc] using this
+    · exact (ShenWork.HeatKernelGradientEstimates.unitIntervalCosineHeatTrace_single_exp_summable
+        hrmin_pos).mul_right Mdot
+  -- (hf) per-mode `HasDerivAt` on `S` (3b).
+  have hf : ∀ n : ℕ, ∀ s ∈ S,
+      HasDerivAt (fun s : ℝ => unitIntervalCosineHeatPointWeight (t - s) x n * a s n)
+        (-(unitIntervalCosineHeatSecondPointWeight (t - s) x n) * a s n
+          + unitIntervalCosineHeatPointWeight (t - s) x n * adot s n) s :=
+    fun n s _hs => unitIntervalCosineHeatTerm_sub_hasDerivAt t x n (hda s n)
+  -- (hf') uniform bound on `S`.
+  have hf' : ∀ n : ℕ, ∀ s ∈ S,
+      ‖-(unitIntervalCosineHeatSecondPointWeight (t - s) x n) * a s n
+        + unitIntervalCosineHeatPointWeight (t - s) x n * adot s n‖ ≤ u n := by
+    intro n s hs
+    have htspos : 0 < t - s := hsub_pos s hs
+    have htsge : rmin ≤ t - s := hsub_ge s hs
+    have hrec_nonneg : (0 : ℝ) ≤ reciprocalSquareTerm n := by
+      unfold reciprocalSquareTerm; positivity
+    -- bound term 1: |−second · a| ≤ (4/((t−s)²π²)·recip)·M ≤ (4/(rmin²π²)·recip)·M
+    have hb1 : ‖-(unitIntervalCosineHeatSecondPointWeight (t - s) x n) * a s n‖
+        ≤ (4 / (rmin ^ 2 * Real.pi ^ 2) * reciprocalSquareTerm n) * M := by
+      rw [Real.norm_eq_abs, abs_mul, abs_neg]
+      have hsb := unitIntervalCosineHeatSecondPointWeight_abs_le htspos x n
+      have hCmono : 4 / ((t - s) ^ 2 * Real.pi ^ 2) ≤ 4 / (rmin ^ 2 * Real.pi ^ 2) := by
+        apply div_le_div_of_nonneg_left (by norm_num) (by positivity)
+        have : rmin ^ 2 ≤ (t - s) ^ 2 := by nlinarith [htsge, hrmin_pos.le]
+        nlinarith [this, Real.pi_pos, sq_nonneg Real.pi]
+      calc |unitIntervalCosineHeatSecondPointWeight (t - s) x n| * |a s n|
+          ≤ (4 / ((t - s) ^ 2 * Real.pi ^ 2) * reciprocalSquareTerm n) * M :=
+            mul_le_mul hsb (hbound s n) (abs_nonneg _)
+              (mul_nonneg (by positivity) hrec_nonneg)
+        _ ≤ (4 / (rmin ^ 2 * Real.pi ^ 2) * reciprocalSquareTerm n) * M := by
+            apply mul_le_mul_of_nonneg_right _ hMnn
+            exact mul_le_mul_of_nonneg_right hCmono hrec_nonneg
+    -- bound term 2: |pw · adot| ≤ e^{−(t−s)λ}·Mdot ≤ e^{−rmin λ}·Mdot
+    have hb2 : ‖unitIntervalCosineHeatPointWeight (t - s) x n * adot s n‖
+        ≤ Real.exp (-rmin * unitIntervalCosineEigenvalue n) * Mdot := by
+      rw [Real.norm_eq_abs, abs_mul]
+      have hpw : |unitIntervalCosineHeatPointWeight (t - s) x n|
+          ≤ Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) := by
+        unfold unitIntervalCosineHeatPointWeight unitIntervalCosineMode
+        rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+        calc Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) *
+                |Real.cos ((n : ℝ) * Real.pi * x)|
+            ≤ Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * 1 :=
+              mul_le_mul_of_nonneg_left (Real.abs_cos_le_one _) (Real.exp_nonneg _)
+          _ = Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) := by ring
+      have hexpmono : Real.exp (-(t - s) * unitIntervalCosineEigenvalue n)
+          ≤ Real.exp (-rmin * unitIntervalCosineEigenvalue n) := by
+        apply Real.exp_le_exp.mpr
+        have hlam : 0 ≤ unitIntervalCosineEigenvalue n := by
+          unfold unitIntervalCosineEigenvalue; positivity
+        nlinarith [htsge, hlam]
+      calc |unitIntervalCosineHeatPointWeight (t - s) x n| * |adot s n|
+          ≤ Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * Mdot :=
+            mul_le_mul hpw (hbound' s n) (abs_nonneg _) (Real.exp_nonneg _)
+        _ ≤ Real.exp (-rmin * unitIntervalCosineEigenvalue n) * Mdot :=
+            mul_le_mul_of_nonneg_right hexpmono hMdotnn
+    calc ‖-(unitIntervalCosineHeatSecondPointWeight (t - s) x n) * a s n
+            + unitIntervalCosineHeatPointWeight (t - s) x n * adot s n‖
+        ≤ ‖-(unitIntervalCosineHeatSecondPointWeight (t - s) x n) * a s n‖
+            + ‖unitIntervalCosineHeatPointWeight (t - s) x n * adot s n‖ :=
+          norm_add_le _ _
+      _ ≤ u n := by rw [hu_def]; exact add_le_add hb1 hb2
+  -- (hf0) the value series converges at `s₀`.
+  have hf0 : Summable (fun n => unitIntervalCosineHeatPointWeight (t - s₀) x n * a s₀ n) := by
+    have hts₀ : 0 < t - s₀ := by linarith
+    apply Summable.of_norm_bounded
+      (g := fun n => Real.exp (-(t - s₀) * unitIntervalCosineEigenvalue n) * M)
+      ((ShenWork.HeatKernelGradientEstimates.unitIntervalCosineHeatTrace_single_exp_summable
+        hts₀).mul_right M)
+    intro n
+    rw [Real.norm_eq_abs, abs_mul]
+    have hpw : |unitIntervalCosineHeatPointWeight (t - s₀) x n|
+        ≤ Real.exp (-(t - s₀) * unitIntervalCosineEigenvalue n) := by
+      unfold unitIntervalCosineHeatPointWeight unitIntervalCosineMode
+      rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+      calc Real.exp (-(t - s₀) * unitIntervalCosineEigenvalue n) *
+              |Real.cos ((n : ℝ) * Real.pi * x)|
+          ≤ Real.exp (-(t - s₀) * unitIntervalCosineEigenvalue n) * 1 :=
+            mul_le_mul_of_nonneg_left (Real.abs_cos_le_one _) (Real.exp_nonneg _)
+        _ = Real.exp (-(t - s₀) * unitIntervalCosineEigenvalue n) := by ring
+    exact mul_le_mul hpw (hbound s₀ n) (abs_nonneg _) (Real.exp_nonneg _)
+  -- assemble.
+  have hmain := hasDerivAt_tsum_of_isPreconnected (u := u) (t := S)
+    (g := fun n s => unitIntervalCosineHeatPointWeight (t - s) x n * a s n)
+    (g' := fun n s => -(unitIntervalCosineHeatSecondPointWeight (t - s) x n) * a s n
+      + unitIntervalCosineHeatPointWeight (t - s) x n * adot s n)
+    hu_summable hS_open hS_conn hf hf' hs₀_mem hf0 hs₀_mem
+  -- identify the limiting tsum with the named values.
+  have hts₀ : 0 < t - s₀ := by linarith
+  have summ1 : Summable
+      (fun n => -(unitIntervalCosineHeatSecondPointWeight (t - s₀) x n) * a s₀ n) := by
+    apply Summable.of_norm_bounded
+      (g := fun n => (4 / ((t - s₀) ^ 2 * Real.pi ^ 2) * reciprocalSquareTerm n) * M)
+      (by
+        have := ((reciprocalSquareTerm_summable.mul_left
+          (4 / ((t - s₀) ^ 2 * Real.pi ^ 2))).mul_right M)
+        simpa [mul_assoc] using this)
+    intro n
+    rw [Real.norm_eq_abs, abs_mul, abs_neg]
+    have hrec_nonneg : (0 : ℝ) ≤ reciprocalSquareTerm n := by
+      unfold reciprocalSquareTerm; positivity
+    exact mul_le_mul (unitIntervalCosineHeatSecondPointWeight_abs_le hts₀ x n)
+      (hbound s₀ n) (abs_nonneg _) (mul_nonneg (by positivity) hrec_nonneg)
+  have summ2 : Summable
+      (fun n => unitIntervalCosineHeatPointWeight (t - s₀) x n * adot s₀ n) := by
+    apply Summable.of_norm_bounded
+      (g := fun n => Real.exp (-(t - s₀) * unitIntervalCosineEigenvalue n) * Mdot)
+      ((ShenWork.HeatKernelGradientEstimates.unitIntervalCosineHeatTrace_single_exp_summable
+        hts₀).mul_right Mdot)
+    intro n
+    rw [Real.norm_eq_abs, abs_mul]
+    have hpw : |unitIntervalCosineHeatPointWeight (t - s₀) x n|
+        ≤ Real.exp (-(t - s₀) * unitIntervalCosineEigenvalue n) := by
+      unfold unitIntervalCosineHeatPointWeight unitIntervalCosineMode
+      rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+      calc Real.exp (-(t - s₀) * unitIntervalCosineEigenvalue n) *
+              |Real.cos ((n : ℝ) * Real.pi * x)|
+          ≤ Real.exp (-(t - s₀) * unitIntervalCosineEigenvalue n) * 1 :=
+            mul_le_mul_of_nonneg_left (Real.abs_cos_le_one _) (Real.exp_nonneg _)
+        _ = Real.exp (-(t - s₀) * unitIntervalCosineEigenvalue n) := by ring
+    exact mul_le_mul hpw (hbound' s₀ n) (abs_nonneg _) (Real.exp_nonneg _)
+  have hval : (∑' n, (-(unitIntervalCosineHeatSecondPointWeight (t - s₀) x n) * a s₀ n
+        + unitIntervalCosineHeatPointWeight (t - s₀) x n * adot s₀ n))
+      = -(unitIntervalCosineHeatSecondValue (t - s₀) (a s₀) x)
+        + unitIntervalCosineHeatValue (t - s₀) (adot s₀) x := by
+    have e1 : (∑' n, -(unitIntervalCosineHeatSecondPointWeight (t - s₀) x n) * a s₀ n)
+        = -(unitIntervalCosineHeatSecondValue (t - s₀) (a s₀) x) := by
+      rw [unitIntervalCosineHeatSecondValue, ← tsum_neg]
+      apply tsum_congr; intro n; ring
+    have e2 : (∑' n, unitIntervalCosineHeatPointWeight (t - s₀) x n * adot s₀ n)
+        = unitIntervalCosineHeatValue (t - s₀) (adot s₀) x := rfl
+    rw [Summable.tsum_add summ1 summ2, e1, e2]
+  rw [hval] at hmain
+  exact hmain
+
 end ShenWork.IntervalDuhamelClosedC2
