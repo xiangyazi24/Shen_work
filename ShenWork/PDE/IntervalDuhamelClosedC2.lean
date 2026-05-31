@@ -644,4 +644,44 @@ theorem duhamelCutoff_secondValue_eq
     rw [intervalIntegral.integral_neg]
   linarith [hFTC, hadd, hneg]
 
+/-- **Step 5 (limit assembly).**  Taking `ε→0⁺` in `duhamelCutoff_secondValue_eq`,
+the cutoff `∂ₓₓ`-integral converges to the closed-form candidate
+
+  `P(t)(x) = S(t)g(0)(x) − g(t)(x) + ∫₀ᵗ S(t−s)∂ₛg(s)(x) ds`
+         `= value t (a 0) x − gt + Ig`,
+
+GIVEN the two analytic-frontier convergences (the honest step-5 inputs, NOT hidden):
+* `hconv1` — the joint approximate-identity limit `S(ε)g(t−ε)(x) → g(t)(x)` (= `gt`);
+* `hconv2` — the improper→Lebesgue integral limit `∫₀^{t−ε} S(t−s)∂ₛg → ∫₀ᵗ … = Ig`.
+The assembly itself is pure `Tendsto` algebra over the rearranged cutoff formula. -/
+theorem duhamelSecondValue_tendsto
+    {t x : ℝ} {a adot : ℝ → ℕ → ℝ} {M Mdot : ℝ}
+    (hbound : ∀ s n, |a s n| ≤ M) (hbound' : ∀ s n, |adot s n| ≤ Mdot)
+    (hda : ∀ s n, HasDerivAt (fun σ : ℝ => a σ n) (adot s n) s)
+    (hadotcont : ∀ n, Continuous (fun s : ℝ => adot s n)) (ht : 0 < t)
+    {gt Ig : ℝ}
+    (hconv1 : Tendsto (fun ε => unitIntervalCosineHeatValue ε (a (t - ε)) x)
+      (𝓝[>] (0:ℝ)) (𝓝 gt))
+    (hconv2 : Tendsto
+      (fun ε => ∫ s in (0:ℝ)..(t - ε), unitIntervalCosineHeatValue (t - s) (adot s) x)
+      (𝓝[>] (0:ℝ)) (𝓝 Ig)) :
+    Tendsto
+      (fun ε => ∫ s in (0:ℝ)..(t - ε), unitIntervalCosineHeatSecondValue (t - s) (a s) x)
+      (𝓝[>] (0:ℝ))
+      (𝓝 (unitIntervalCosineHeatValue t (a 0) x - gt + Ig)) := by
+  have hmem : Set.Ioc (0:ℝ) t ∈ 𝓝[>] (0:ℝ) := by
+    have : Set.Ioi (0:ℝ) ∩ Set.Iic t ∈ 𝓝[>] (0:ℝ) :=
+      inter_mem self_mem_nhdsWithin (nhdsWithin_le_nhds (Iic_mem_nhds ht))
+    simpa [Set.Ioc, Set.Ioi, Set.Iic, Set.inter_def] using this
+  have heq : (fun ε => ∫ s in (0:ℝ)..(t - ε),
+        unitIntervalCosineHeatSecondValue (t - s) (a s) x)
+      =ᶠ[𝓝[>] (0:ℝ)]
+      (fun ε => unitIntervalCosineHeatValue t (a 0) x
+        - unitIntervalCosineHeatValue ε (a (t - ε)) x
+        + ∫ s in (0:ℝ)..(t - ε), unitIntervalCosineHeatValue (t - s) (adot s) x) := by
+    filter_upwards [hmem] with ε hε
+    exact duhamelCutoff_secondValue_eq hbound hbound' hda hadotcont hε.1 hε.2
+  rw [tendsto_congr' heq]
+  exact (tendsto_const_nhds.sub hconv1).add hconv2
+
 end ShenWork.IntervalDuhamelClosedC2
