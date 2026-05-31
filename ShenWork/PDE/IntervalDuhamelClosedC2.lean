@@ -521,4 +521,46 @@ theorem unitIntervalCosineHeatValue_comp_sub_continuousOn
       _ ≤ Real.exp (-(t - c) * unitIntervalCosineEigenvalue n) * M :=
           mul_le_mul_of_nonneg_right hexpmono hMnn
 
+/-- **Step 4 — cutoff FTC.**  Integrating the chain rule (step 3) over `[0, t−ε]`:
+
+  `∫₀^{t−ε} (−∂ₓₓS(t−s)g(s) + S(t−s)∂ₛg(s))(x) ds = S(ε)g(t−ε)(x) − S(t)g(0)(x)`,
+
+i.e. `∫₀^{t−ε} (−secondValue(t−s)(a s) + value(t−s)(adot s)) = value ε (a(t−ε)) −
+value t (a 0)`.  `integral_eq_sub_of_hasDerivAt` with step 3 (`s ≤ t−ε < t`) and the
+integrand continuous on the compact (steps-4 continuity lemmas). -/
+theorem duhamelCutoff_FTC
+    {t x : ℝ} {a adot : ℝ → ℕ → ℝ} {M Mdot : ℝ}
+    (hbound : ∀ s n, |a s n| ≤ M) (hbound' : ∀ s n, |adot s n| ≤ Mdot)
+    (hda : ∀ s n, HasDerivAt (fun σ : ℝ => a σ n) (adot s n) s)
+    (hadotcont : ∀ n, Continuous (fun s : ℝ => adot s n))
+    {ε : ℝ} (hε : 0 < ε) (hεt : ε ≤ t) :
+    (∫ s in (0:ℝ)..(t - ε), (-(unitIntervalCosineHeatSecondValue (t - s) (a s) x)
+        + unitIntervalCosineHeatValue (t - s) (adot s) x))
+      = unitIntervalCosineHeatValue ε (a (t - ε)) x
+        - unitIntervalCosineHeatValue t (a 0) x := by
+  have hac : ∀ n, Continuous (fun s : ℝ => a s n) :=
+    fun n => continuous_iff_continuousAt.2 (fun s => (hda s n).continuousAt)
+  have hle : (0 : ℝ) ≤ t - ε := by linarith
+  have hctlt : t - ε < t := by linarith
+  -- hypotheses for the FTC.
+  have hderiv : ∀ s ∈ Set.uIcc (0 : ℝ) (t - ε),
+      HasDerivAt (fun s : ℝ => unitIntervalCosineHeatValue (t - s) (a s) x)
+        (-(unitIntervalCosineHeatSecondValue (t - s) (a s) x)
+          + unitIntervalCosineHeatValue (t - s) (adot s) x) s := by
+    intro s hs
+    rw [Set.uIcc_of_le hle] at hs
+    exact duhamelIntegrand_hasDerivAt hbound hbound' hda (by linarith [hs.2])
+  have hsub : Set.uIcc (0 : ℝ) (t - ε) ⊆ Set.Iic (t - ε) := by
+    rw [Set.uIcc_of_le hle]; exact fun s hs => hs.2
+  have hint : IntervalIntegrable
+      (fun s : ℝ => -(unitIntervalCosineHeatSecondValue (t - s) (a s) x)
+        + unitIntervalCosineHeatValue (t - s) (adot s) x) volume 0 (t - ε) := by
+    apply ContinuousOn.intervalIntegrable
+    refine (((unitIntervalCosineHeatSecondValue_comp_sub_continuousOn
+      hbound hac hctlt).neg).add
+      (unitIntervalCosineHeatValue_comp_sub_continuousOn hbound' hadotcont hctlt)).mono hsub
+  have hΦ := intervalIntegral.integral_eq_sub_of_hasDerivAt hderiv hint
+  rw [hΦ]
+  norm_num
+
 end ShenWork.IntervalDuhamelClosedC2
