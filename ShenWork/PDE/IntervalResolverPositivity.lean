@@ -30,14 +30,17 @@ import ShenWork.PDE.IntervalFullKernelSupBound
 import ShenWork.PDE.IntervalFullKernelInterchange
 import ShenWork.PDE.IntervalDuhamelSpectralC2
 import ShenWork.PDE.IntervalNeumannEllipticResolverR
+import ShenWork.PDE.IntervalResolverGradientBridge
 
 open MeasureTheory intervalIntegral
-open ShenWork.IntervalDomain (intervalMeasure)
+open ShenWork.IntervalDomain (intervalMeasure intervalDomainPoint)
 open ShenWork.IntervalNeumannFullKernel
 open ShenWork.IntervalFullKernelInterchange
 open ShenWork.IntervalDuhamelSpectralC2 (intervalExpKernel_time_integral)
 open ShenWork.PDE (intervalNeumannResolverWeight intervalNeumannResolverWeight_sq_summable
-  intervalNeumannResolver_denom_pos)
+  intervalNeumannResolver_denom_pos intervalNeumannResolverR intervalNeumannResolverSourceCoeff
+  intervalNeumannResolverCoeff)
+open ShenWork.IntervalResolverGradientBridge (resolverCoeff_re_eq)
 open ShenWork.Paper3 (unitIntervalNeumannSpectrum)
 
 noncomputable section
@@ -446,5 +449,36 @@ theorem laplaceHeatTrunc_tendsto {p : CM2Params} {â : ℕ → ℝ}
         Real.tendsto_exp_neg_atTop_nhds_zero.comp hμT
       simpa only [neg_mul] using hcomp
     simpa using hexp.mul_const M
+
+/-- **O1c/O1d — resolver positivity on the interior.**  For a continuous
+nonnegative source representative `f` whose Neumann cosine coefficients are the
+resolver source coefficients (`â ∈ ℓ²`), the resolver value is nonnegative at
+every interior point: `R(u) x ≥ 0` for `x ∈ (0,1)`.  Reconstruction
+`R(u) x = ∑ₖ âₖ cos/(μ+λₖ)` (resolverCoeff_re_eq + eigenvalue bridge) is the
+`T→∞` limit of the nonnegative truncations (`laplaceHeatTrunc_tendsto` +
+`laplaceHeatTrunc_nonneg`); the closed cone `Ici 0` passes positivity to the
+limit (`IsClosed.mem_of_tendsto`). -/
+theorem intervalNeumannResolverR_nonneg_interior {p : CM2Params}
+    {u : intervalDomainPoint → ℝ} {f : ℝ → ℝ}
+    (hf_cont : Continuous f) (hf_nonneg : ∀ y, 0 ≤ f y)
+    (hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re)
+    (hâ : Summable (fun k => (cosineCoeffs f k) ^ 2))
+    {xp : intervalDomainPoint} (hx : xp.1 ∈ Set.Ioo (0 : ℝ) 1) :
+    0 ≤ intervalNeumannResolverR p u xp := by
+  have heig : ∀ k, p.μ + unitIntervalNeumannSpectrum.eigenvalue k
+      = p.μ + unitIntervalCosineEigenvalue k := by
+    intro k; congr 1
+    rw [show unitIntervalNeumannSpectrum.eigenvalue k = (k : ℝ) ^ 2 * Real.pi ^ 2 from rfl,
+      unitIntervalCosineEigenvalue]; ring
+  have hrecon : intervalNeumannResolverR p u xp
+      = ∑' k, cosineCoeffs f k * unitIntervalCosineMode k xp.1
+          / (p.μ + unitIntervalCosineEigenvalue k) := by
+    rw [intervalNeumannResolverR]
+    refine tsum_congr (fun k => ?_)
+    rw [resolverCoeff_re_eq, hf_coeff k, heig k]; ring
+  rw [hrecon]
+  refine isClosed_Ici.mem_of_tendsto (laplaceHeatTrunc_tendsto hâ xp.1) ?_
+  filter_upwards [Filter.eventually_ge_atTop (0:ℝ)] with T hT
+  exact laplaceHeatTrunc_nonneg hf_cont hf_nonneg hx hT
 
 end ShenWork.IntervalResolverPositivity
