@@ -1325,4 +1325,218 @@ theorem cosineCoeffSeries_deriv_at_one {b : ℕ → ℝ}
     ring
   rw [this, tsum_zero]
 
+/-! ## Spectral Duhamel term: closed `C²` under time-`C¹` source regularity -/
+
+/-- **Parabolic-gain integral summability.**  `∑'ₙ Mdot·∫₀ᵗ e^{−(t−s)λₙ} ds < ∞`:
+the `n=0` term is `Mdot·t`, and for `n ≥ 1` the gain integral is `≤ 1/λₙ = 1/(π²(n+1)²)`,
+a `p=2` series.  (Extracted from the `∂ₛg`-integral majorant.) -/
+theorem duhamelGainIntegral_summable {t Mdot : ℝ} (ht : 0 < t) (hMdotnn : 0 ≤ Mdot) :
+    Summable (fun n => Mdot * ∫ s in (0:ℝ)..t,
+      Real.exp (-(t - s) * unitIntervalCosineEigenvalue n)) := by
+  set E : ℕ → ℝ := fun n => ∫ s in (0:ℝ)..t,
+    Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) with hE_def
+  have hEnn : ∀ n, 0 ≤ E n := by
+    intro n
+    apply intervalIntegral.integral_nonneg (le_of_lt ht)
+    intro s _; exact Real.exp_nonneg _
+  have hgsum : Summable (fun n : ℕ => Mdot * (1 / Real.pi ^ 2) * (1 / ((n : ℝ) + 1) ^ 2)) := by
+    have hp2 : Summable fun n : ℕ => 1 / ((n : ℝ) + 1) ^ 2 := by
+      have := (Real.summable_one_div_nat_pow (p := 2)).mpr (by norm_num)
+      simpa using (summable_nat_add_iff (f := fun n : ℕ => 1 / (n : ℝ) ^ 2) 1).2 this
+    exact hp2.mul_left (Mdot * (1 / Real.pi ^ 2))
+  have htail : Summable (fun n => Mdot * E (n + 1)) := by
+    refine Summable.of_nonneg_of_le
+      (fun n => mul_nonneg hMdotnn (hEnn (n + 1))) (fun n => ?_) hgsum
+    have hlam_pos : 0 < unitIntervalCosineEigenvalue (n + 1) := by
+      unfold unitIntervalCosineEigenvalue
+      have : (0:ℝ) < ((n : ℝ) + 1) := by positivity
+      positivity
+    have hgain := ShenWork.IntervalDuhamelRegularity.parabolicGain_le_one
+      (lam := unitIntervalCosineEigenvalue (n + 1)) (t := t) hlam_pos.le ht.le
+    have hElt : E (n + 1) ≤ 1 / unitIntervalCosineEigenvalue (n + 1) := by
+      rw [le_div_iff₀ hlam_pos]
+      calc E (n + 1) * unitIntervalCosineEigenvalue (n + 1)
+          = unitIntervalCosineEigenvalue (n + 1) * E (n + 1) := by ring
+        _ ≤ 1 := hgain
+    have hlam_eq : unitIntervalCosineEigenvalue (n + 1)
+        = ((n : ℝ) + 1) ^ 2 * Real.pi ^ 2 := by
+      unfold unitIntervalCosineEigenvalue; push_cast; ring
+    calc Mdot * E (n + 1) ≤ Mdot * (1 / unitIntervalCosineEigenvalue (n + 1)) :=
+          mul_le_mul_of_nonneg_left hElt hMdotnn
+      _ = Mdot * (1 / Real.pi ^ 2) * (1 / ((n : ℝ) + 1) ^ 2) := by
+          rw [hlam_eq]; field_simp; try ring
+  exact (summable_nat_add_iff (f := fun n => Mdot * E n) 1).mp htail
+
+/-- **Spectral Duhamel coefficient.**  `bₙ(t) = ∫₀ᵗ e^{−(t−s)λₙ} ĝₙ(s) ds`, the `n`-th
+cosine coefficient of the Duhamel term `D(t)(x) = ∫₀ᵗ S(t−s)g(s)(x) ds`. -/
+noncomputable def duhamelSpectralCoeff (a : ℝ → ℕ → ℝ) (t : ℝ) (n : ℕ) : ℝ :=
+  ∫ s in (0:ℝ)..t, Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * a s n
+
+/-- **Time-`C¹` source regularity** for the spectral Duhamel term.  The cosine
+coefficients `s ↦ a s n` are `C¹` in time (`hderiv`, derivative `adot` continuous in
+`s`), uniformly summable (`envelope`, an ℓ¹ majorant), with a uniform bound on the time
+derivative (`derivBound`).  This is the honest source hypothesis; the `C²` of the term
+is the *conclusion*, not packed in here. -/
+structure DuhamelSourceTimeC1 (a : ℝ → ℕ → ℝ) where
+  /-- Time derivative of the `n`-th coefficient. -/
+  adot : ℝ → ℕ → ℝ
+  /-- Each coefficient is `C¹` in time with derivative `adot`. -/
+  hderiv : ∀ s n, HasDerivAt (fun r => a r n) (adot s n) s
+  /-- The derivative coefficients are continuous in time. -/
+  hadotcont : ∀ n, Continuous (fun s : ℝ => adot s n)
+  /-- ℓ¹ envelope dominating the coefficients uniformly in time. -/
+  envelope : ℕ → ℝ
+  /-- The envelope is summable. -/
+  henv_summable : Summable envelope
+  /-- The coefficients are dominated by the envelope, uniformly in time. -/
+  henv_bound : ∀ s n, |a s n| ≤ envelope n
+  /-- Uniform bound on the time derivative. -/
+  derivBound : ℝ
+  /-- The derivative is uniformly bounded. -/
+  hderivBound : ∀ s n, |adot s n| ≤ derivBound
+
+/-- **(D) Spectral form of the Duhamel term.**  `∫₀ᵗ S(t−s)g(s)(x) ds = ∑'ₙ bₙ(t) cos(nπx)`:
+the `∑∫ = ∫∑` swap (`duhamelValue_adot_eq_tsum`, summable since the envelope is ℓ¹), then
+pulling the `s`-constant `cos(nπx)` out of each mode integral. -/
+theorem duhamelSpectral_eq_cosineSeries {t x : ℝ} {a : ℝ → ℕ → ℝ}
+    (src : DuhamelSourceTimeC1 a) (ht : 0 < t) :
+    (∫ s in (0:ℝ)..t, unitIntervalCosineHeatValue (t - s) (a s) x)
+      = ∑' n, duhamelSpectralCoeff a t n * cosineMode n x := by
+  have hnn : ∀ n, 0 ≤ src.envelope n := fun n => le_trans (abs_nonneg _) (src.henv_bound 0 n)
+  have hunif : ∀ s i, |a s i| ≤ ∑' k, src.envelope k := by
+    intro s i
+    refine le_trans (src.henv_bound s i) ?_
+    have := src.henv_summable.sum_le_tsum {i} (fun j _ => hnn j)
+    simpa using this
+  have hcont_a : ∀ n, Continuous (fun s : ℝ => a s n) := fun n =>
+    continuous_iff_continuousAt.2 (fun s => (src.hderiv s n).continuousAt)
+  rw [duhamelValue_adot_eq_tsum (adot := a) (Mdot := ∑' k, src.envelope k)
+      ht hunif hcont_a (b := t) ht.le (le_refl t)]
+  refine tsum_congr (fun n => ?_)
+  calc (∫ s in (0:ℝ)..t, unitIntervalCosineHeatPointWeight (t - s) x n * a s n)
+      = ∫ s in (0:ℝ)..t,
+          (Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * a s n) * cosineMode n x :=
+        intervalIntegral.integral_congr (fun s _ => by
+          simp only [unitIntervalCosineHeatPointWeight, unitIntervalCosineMode, cosineMode]; ring)
+    _ = (∫ s in (0:ℝ)..t, Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * a s n)
+          * cosineMode n x := intervalIntegral.integral_mul_const _ _
+    _ = duhamelSpectralCoeff a t n * cosineMode n x := rfl
+
+/-- **(S) Eigenvalue-weighted coefficient summability.**  `∑'ₙ λₙ|bₙ(t)| < ∞`.  Per-mode
+time IBP (`duhamelCoeff_eigenvalue_mul`) gives
+`λₙ bₙ = ĝₙ(t) − e^{−tλₙ}ĝₙ(0) − ∫₀ᵗ e^{−(t−s)λₙ}ĝₙ′(s) ds`, so
+`λₙ|bₙ| ≤ 2·envₙ + Ṁ·∫₀ᵗe^{−(t−s)λₙ}` — ℓ¹ envelope plus the summable parabolic gain. -/
+theorem duhamelSpectralCoeff_eigenvalue_summable {t : ℝ} {a : ℝ → ℕ → ℝ}
+    (src : DuhamelSourceTimeC1 a) (ht : 0 < t) :
+    Summable (fun n => unitIntervalCosineEigenvalue n * |duhamelSpectralCoeff a t n|) := by
+  have hnn : ∀ n, 0 ≤ src.envelope n := fun n => le_trans (abs_nonneg _) (src.henv_bound 0 n)
+  have hdbnn : 0 ≤ src.derivBound := le_trans (abs_nonneg _) (src.hderivBound 0 0)
+  have hM : Summable (fun n => 2 * src.envelope n
+      + src.derivBound * ∫ s in (0:ℝ)..t,
+          Real.exp (-(t - s) * unitIntervalCosineEigenvalue n)) :=
+    (src.henv_summable.mul_left 2).add (duhamelGainIntegral_summable ht hdbnn)
+  refine Summable.of_nonneg_of_le (fun n => mul_nonneg ?_ (abs_nonneg _)) (fun n => ?_) hM
+  · unfold unitIntervalCosineEigenvalue; positivity
+  · have hlamnn : (0:ℝ) ≤ unitIntervalCosineEigenvalue n := by
+      unfold unitIntervalCosineEigenvalue; positivity
+    have hkey := duhamelCoeff_eigenvalue_mul (t := t) (lam := unitIntervalCosineEigenvalue n)
+      (a := fun s => a s n) (adot := fun s => src.adot s n)
+      (fun s => src.hderiv s n) (src.hadotcont n)
+    have hconv : unitIntervalCosineEigenvalue n * |duhamelSpectralCoeff a t n|
+        = |a t n - Real.exp (-t * unitIntervalCosineEigenvalue n) * a 0 n
+            - ∫ s in (0:ℝ)..t,
+                Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * src.adot s n| := by
+      have key := congrArg abs hkey
+      rw [abs_mul, abs_of_nonneg hlamnn] at key
+      exact key
+    rw [hconv]
+    -- triangle + per-term bounds
+    have hb1 : |a t n| ≤ src.envelope n := src.henv_bound t n
+    have hexp_le : Real.exp (-t * unitIntervalCosineEigenvalue n) ≤ 1 := by
+      rw [← Real.exp_zero]
+      apply Real.exp_le_exp.mpr
+      have : 0 ≤ t * unitIntervalCosineEigenvalue n := mul_nonneg ht.le hlamnn
+      linarith
+    have hb2 : |Real.exp (-t * unitIntervalCosineEigenvalue n) * a 0 n| ≤ src.envelope n := by
+      rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+      calc Real.exp (-t * unitIntervalCosineEigenvalue n) * |a 0 n|
+          ≤ 1 * |a 0 n| := mul_le_mul_of_nonneg_right hexp_le (abs_nonneg _)
+        _ = |a 0 n| := one_mul _
+        _ ≤ src.envelope n := src.henv_bound 0 n
+    have hI_bound : |∫ s in (0:ℝ)..t,
+          Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * src.adot s n|
+        ≤ src.derivBound * ∫ s in (0:ℝ)..t,
+            Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) := by
+      have hkernel : Continuous
+          (fun s : ℝ => Real.exp (-(t - s) * unitIntervalCosineEigenvalue n)) := by fun_prop
+      have hII1 : IntervalIntegrable
+          (fun s => Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * src.adot s n)
+          volume 0 t := (hkernel.mul (src.hadotcont n)).intervalIntegrable 0 t
+      calc |∫ s in (0:ℝ)..t,
+              Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * src.adot s n|
+          = ‖∫ s in (0:ℝ)..t,
+              Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * src.adot s n‖ :=
+            (Real.norm_eq_abs _).symm
+        _ ≤ ∫ s in (0:ℝ)..t,
+              ‖Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * src.adot s n‖ :=
+            intervalIntegral.norm_integral_le_integral_norm ht.le
+        _ ≤ ∫ s in (0:ℝ)..t,
+              src.derivBound * Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) := by
+            apply intervalIntegral.integral_mono_on ht.le hII1.norm
+              (by apply Continuous.intervalIntegrable; fun_prop)
+            intro s _
+            rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (Real.exp_nonneg _),
+              mul_comm src.derivBound]
+            exact mul_le_mul_of_nonneg_left (src.hderivBound s n) (Real.exp_nonneg _)
+        _ = src.derivBound * ∫ s in (0:ℝ)..t,
+              Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) := by
+            rw [intervalIntegral.integral_const_mul]
+    calc |a t n - Real.exp (-t * unitIntervalCosineEigenvalue n) * a 0 n
+            - ∫ s in (0:ℝ)..t,
+                Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * src.adot s n|
+        ≤ |a t n - Real.exp (-t * unitIntervalCosineEigenvalue n) * a 0 n|
+            + |∫ s in (0:ℝ)..t,
+                Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * src.adot s n| := by
+          have := abs_add_le (a t n - Real.exp (-t * unitIntervalCosineEigenvalue n) * a 0 n)
+            (-(∫ s in (0:ℝ)..t,
+                Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * src.adot s n))
+          simpa [sub_eq_add_neg, abs_neg] using this
+      _ ≤ (|a t n| + |Real.exp (-t * unitIntervalCosineEigenvalue n) * a 0 n|)
+            + |∫ s in (0:ℝ)..t,
+                Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * src.adot s n| := by
+          gcongr
+          have := abs_add_le (a t n)
+            (-(Real.exp (-t * unitIntervalCosineEigenvalue n) * a 0 n))
+          simpa [sub_eq_add_neg, abs_neg] using this
+      _ ≤ (src.envelope n + src.envelope n)
+            + src.derivBound * ∫ s in (0:ℝ)..t,
+                Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) := by
+          gcongr
+      _ = 2 * src.envelope n
+            + src.derivBound * ∫ s in (0:ℝ)..t,
+                Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) := by ring
+
+/-- **(A) Closed `C²` for the spectral Duhamel term.**  Under time-`C¹` source regularity,
+`x ↦ ∫₀ᵗ S(t−s)g(s)(x) ds` is `ContDiff ℝ 2`, satisfies the Neumann condition at both
+endpoints `x = 0, 1`, and has the spectral second derivative
+`∂ₓₓ = ∑'ₙ bₙ(t)·(−(nπ)²cos(nπx)) = −∑'ₙ λₙ bₙ cos(nπx)`. -/
+theorem intervalDuhamelTerm_closedC2_of_timeC1_source
+    {t : ℝ} {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a) (ht : 0 < t) :
+    ContDiff ℝ 2 (fun x => ∫ s in (0:ℝ)..t, unitIntervalCosineHeatValue (t - s) (a s) x)
+      ∧ deriv (fun x => ∫ s in (0:ℝ)..t, unitIntervalCosineHeatValue (t - s) (a s) x) 0 = 0
+      ∧ deriv (fun x => ∫ s in (0:ℝ)..t, unitIntervalCosineHeatValue (t - s) (a s) x) 1 = 0
+      ∧ ∀ x, deriv (deriv
+            (fun x => ∫ s in (0:ℝ)..t, unitIntervalCosineHeatValue (t - s) (a s) x)) x
+          = ∑' n, duhamelSpectralCoeff a t n
+              * (-(((n : ℝ) * Real.pi) ^ 2) * Real.cos ((n : ℝ) * Real.pi * x)) := by
+  have hS := duhamelSpectralCoeff_eigenvalue_summable src ht
+  have hEq : (fun x => ∫ s in (0:ℝ)..t, unitIntervalCosineHeatValue (t - s) (a s) x)
+      = fun x => ∑' n, duhamelSpectralCoeff a t n * cosineMode n x := by
+    funext x; exact duhamelSpectral_eq_cosineSeries src ht
+  rw [hEq]
+  exact ⟨cosineCoeffSeries_contDiff_two hS,
+    cosineCoeffSeries_deriv_at_zero hS,
+    cosineCoeffSeries_deriv_at_one hS,
+    fun x => cosineCoeffSeries_deriv2_eq hS x⟩
+
 end ShenWork.IntervalDuhamelClosedC2
