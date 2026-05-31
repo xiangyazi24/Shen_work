@@ -42,6 +42,7 @@ open ShenWork.PDE ShenWork.IntervalEllipticCharacterization
 open ShenWork.HeatKernelGradientEstimates
 open ShenWork.IntervalResolverGradientBridge
 open ShenWork.CosineParsevalBridge
+open ShenWork.PDE.ResolventEstimate
 open ShenWork.Paper2
 open ShenWork.Paper3 (unitIntervalNeumannSpectrum)
 open scoped Topology BigOperators
@@ -167,5 +168,136 @@ theorem resolver_sineSeries_summable_of_sourceL2
     _ ≤ (s ^ 2 + Wg ^ 2) / 2 := by
         have h := two_mul_le_add_sq |s| Wg
         rw [sq_abs] at h; nlinarith [h]
+
+/-! ## B3 — source `L²`-mass bound and the value/gradient sup bounds (weak) -/
+
+/-- **Weak source `ℓ²`-mass bound `coeffL2Norm(â(u)) ≤ 2·ν·M^γ`.**  With
+`0 ≤ lift u ≤ M` continuous on `[0,1]`, the source `ν·u^γ ∈ [0, ν M^γ]`, so
+`∫₀¹ (ν u^γ)² ≤ (ν M^γ)²` and cosine–Bessel gives the `ℓ²`-mass bound.  Mirrors
+`source_coeffL2Norm_le` with `hsol` replaced by continuity + the two-sided ball
+bound `0 ≤ lift u ≤ M`. -/
+theorem source_coeffL2Norm_le_of_bounded
+    (p : CM2Params) {u : intervalDomainPoint → ℝ} {M : ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0:ℝ) 1))
+    (hlb : ∀ x ∈ Set.Icc (0:ℝ) 1, 0 ≤ intervalDomainLift u x)
+    (hub : ∀ x ∈ Set.Icc (0:ℝ) 1, intervalDomainLift u x ≤ M) :
+    coeffL2Norm
+        (fun k : ℕ => intervalNeumannResolverSourceCoeff p u k -
+          intervalNeumannResolverSourceCoeff p (fun _ => 0) k)
+      ≤ 2 * (p.ν * M ^ p.γ) := by
+  classical
+  simp only [intervalNeumannResolverSourceCoeff_zero, sub_zero]
+  set g : ℝ → ℝ := fun x => p.ν * intervalDomainLift u x ^ p.γ with hg
+  have hgcont : ContinuousOn g (Set.Icc (0:ℝ) 1) :=
+    continuousOn_const.mul (hUcont.rpow_const (fun x _ => Or.inr p.hγ.le))
+  set f : ℝ → ℂ := fun x => ((g x : ℝ) : ℂ) with hf
+  have hfcontOn : ContinuousOn f (Set.uIcc (0:ℝ) 1) := by
+    rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)]
+    exact Complex.continuous_ofReal.comp_continuousOn hgcont
+  have hfint : IntervalIntegrable f volume 0 1 := hfcontOn.intervalIntegrable
+  have hfsq : IntervalIntegrable (fun x : ℝ => ‖f x‖ ^ 2) volume 0 1 :=
+    ((hfcontOn.norm).pow 2).intervalIntegrable
+  have hL2 : MemLp (unitIntervalEvenReflection f) 2
+      (volume.restrict (Set.Ioc (-1:ℝ) 1)) :=
+    evenReflection_memLp_two_of_continuousOn hgcont
+  obtain ⟨hsum, hnorm_le⟩ := unitIntervalNeumannCosineCoeff_l2_bound hfint hL2 hfsq
+  have hre : ∀ k : ℕ,
+      (intervalNeumannResolverSourceCoeff p u k).re = unitIntervalNeumannCosineCoeff f k := by
+    intro k; simp only [intervalNeumannResolverSourceCoeff, hf, hg, Complex.ofReal_re]
+  have hfg : ∀ x, ‖f x‖ ^ 2 = (g x) ^ 2 := by
+    intro x; rw [hf, Complex.norm_real, Real.norm_eq_abs, sq_abs]
+  have hMnn : 0 ≤ M := by
+    have h0 : (0:ℝ) ∈ Set.Icc (0:ℝ) 1 := by constructor <;> norm_num
+    exact le_trans (hlb 0 h0) (hub 0 h0)
+  have hgptw : ∀ x ∈ Set.Icc (0:ℝ) 1, (g x) ^ 2 ≤ (p.ν * M ^ p.γ) ^ 2 := by
+    intro x hx
+    have hle : intervalDomainLift u x ^ p.γ ≤ M ^ p.γ :=
+      Real.rpow_le_rpow (hlb x hx) (hub x hx) p.hγ.le
+    have hgnn : 0 ≤ g x := by
+      rw [hg]; exact mul_nonneg p.hν.le (Real.rpow_nonneg (hlb x hx) p.γ)
+    have hgub : g x ≤ p.ν * M ^ p.γ := by
+      rw [hg]; exact mul_le_mul_of_nonneg_left hle p.hν.le
+    nlinarith [hgnn, hgub, mul_nonneg p.hν.le (Real.rpow_nonneg hMnn p.γ)]
+  have hg2cont : ContinuousOn (fun x => (g x) ^ 2) (Set.uIcc (0:ℝ) 1) := by
+    rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)]; exact hgcont.pow 2
+  have hIle : (∫ x in (0:ℝ)..1, (g x) ^ 2) ≤ (p.ν * M ^ p.γ) ^ 2 := by
+    have hcI : IntervalIntegrable (fun _ : ℝ => (p.ν * M ^ p.γ) ^ 2) volume 0 1 :=
+      (continuous_const).intervalIntegrable 0 1
+    have hmono := intervalIntegral.integral_mono_on (by norm_num)
+      hg2cont.intervalIntegrable hcI hgptw
+    have hconst : (∫ _x in (0:ℝ)..1, (p.ν * M ^ p.γ) ^ 2 ∂volume) = (p.ν * M ^ p.γ) ^ 2 := by
+      rw [intervalIntegral.integral_const, sub_zero, one_smul]
+    rwa [hconst] at hmono
+  have hIeq : (∫ x in (0:ℝ)..1, ‖f x‖ ^ 2) = ∫ x in (0:ℝ)..1, (g x) ^ 2 := by
+    apply intervalIntegral.integral_congr; intro x _; exact hfg x
+  have hnorm_eq : coeffL2Norm
+      (fun k : ℕ => intervalNeumannResolverSourceCoeff p u k)
+      = unitIntervalCosineL2TsumNorm (unitIntervalNeumannCosineCoeff f) := by
+    rw [coeffL2Norm, coeffL2Energy, unitIntervalCosineL2TsumNorm,
+      unitIntervalCosineL2TsumEnergy]
+    congr 1
+    refine tsum_congr (fun k => ?_)
+    have him : (intervalNeumannResolverSourceCoeff p u k).im = 0 := by
+      simp [intervalNeumannResolverSourceCoeff]
+    rw [Complex.sq_norm, Complex.normSq_apply, him, hre k]; ring
+  rw [hnorm_eq]
+  refine hnorm_le.trans ?_
+  rw [hIeq]
+  have hsqrt : Real.sqrt (∫ x in (0:ℝ)..1, (g x) ^ 2) ≤ p.ν * M ^ p.γ := by
+    have hnn : 0 ≤ p.ν * M ^ p.γ := mul_nonneg p.hν.le (Real.rpow_nonneg hMnn p.γ)
+    rw [show p.ν * M ^ p.γ = Real.sqrt ((p.ν * M ^ p.γ) ^ 2) from (Real.sqrt_sq hnn).symm]
+    exact Real.sqrt_le_sqrt hIle
+  linarith
+
+/-- **B3 (value sup bound `‖E u‖∞ ≤ C₀·M^γ`).**  For a bounded continuous ball
+element `0 ≤ lift u ≤ M`, the resolver value is sup-bounded by
+`C₀·M^γ = sqrt(∑ₖ 1/(μ+λₖ)²)·2·ν·M^γ`.  Weak analogue of
+`resolverValue_sup_le_of_ub` (no `hsol`): the sup-Lipschitz against the zero
+source, with the `ℓ²` side conditions discharged by B1/B2 and the mass bound by
+`source_coeffL2Norm_le_of_bounded`. -/
+theorem resolverValue_sup_le_of_bounded
+    (p : CM2Params) {u : intervalDomainPoint → ℝ} {M : ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0:ℝ) 1))
+    (hlb : ∀ x ∈ Set.Icc (0:ℝ) 1, 0 ≤ intervalDomainLift u x)
+    (hub : ∀ x ∈ Set.Icc (0:ℝ) 1, intervalDomainLift u x ≤ M)
+    (x : intervalDomainPoint) :
+    |intervalNeumannResolverR p u x| ≤
+      Real.sqrt (∑' k : ℕ, (intervalNeumannResolverWeight p k) ^ 2) *
+        (2 * (p.ν * M ^ p.γ)) := by
+  have hsrc := resolverSourceCoeff_re_sq_summable_of_continuousOn p hUcont
+  have hl2 : Summable fun k : ℕ => ((intervalNeumannResolverSourceCoeff p u k).re) ^ 2 := by
+    simpa [intervalNeumannResolverSourceCoeff_zero, sub_zero] using hsrc
+  have hsum₁ := resolver_cosineSeries_summable_of_sourceL2 p hl2 x.1
+  have hsum₂ := zero_resolver_cosineSeries_summable p x.1
+  have hbound := intervalNeumannResolverR_sup_lipschitz p u (fun _ => 0) hsrc x hsum₁ hsum₂
+  rw [intervalNeumannResolverR_zero, sub_zero] at hbound
+  refine hbound.trans ?_
+  exact mul_le_mul_of_nonneg_left
+    (source_coeffL2Norm_le_of_bounded p hUcont hlb hub) (Real.sqrt_nonneg _)
+
+/-- **B3 (gradient sup bound `‖∂ₓ(E u)‖∞ ≤ C₁·M^γ`).**  Same route for the
+resolver gradient `resolverGradReal` via `intervalNeumannResolverR_grad_sup_lipschitz`
+and the sine-series summability B2.  `C₁·M^γ = sqrt(∑ₖ (kπ/(μ+λₖ))²)·2·ν·M^γ`. -/
+theorem resolverGrad_sup_le_of_bounded
+    (p : CM2Params) {u : intervalDomainPoint → ℝ} {M : ℝ}
+    (hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0:ℝ) 1))
+    (hlb : ∀ x ∈ Set.Icc (0:ℝ) 1, 0 ≤ intervalDomainLift u x)
+    (hub : ∀ x ∈ Set.Icc (0:ℝ) 1, intervalDomainLift u x ≤ M)
+    {x : ℝ} (hx : x ∈ Set.Icc (0:ℝ) 1) :
+    |resolverGradReal p u x| ≤
+      Real.sqrt (∑' k : ℕ, (intervalNeumannResolverGradWeight p k) ^ 2) *
+        (2 * (p.ν * M ^ p.γ)) := by
+  have hsrc := resolverSourceCoeff_re_sq_summable_of_continuousOn p hUcont
+  have hl2 : Summable fun k : ℕ => ((intervalNeumannResolverSourceCoeff p u k).re) ^ 2 := by
+    simpa [intervalNeumannResolverSourceCoeff_zero, sub_zero] using hsrc
+  have hsum₁ := resolver_sineSeries_summable_of_sourceL2 p hl2 x
+  have hsum₂ := zero_resolver_sineSeries_summable p x
+  have hbound := intervalNeumannResolverR_grad_sup_lipschitz p u (fun _ => 0) hsrc
+    ⟨x, hx⟩ hsum₁ hsum₂
+  rw [intervalNeumannResolverRGrad_zero, sub_zero] at hbound
+  rw [resolverGradReal_eq p u ⟨x, hx⟩]
+  refine hbound.trans ?_
+  exact mul_le_mul_of_nonneg_left
+    (source_coeffL2Norm_le_of_bounded p hUcont hlb hub) (Real.sqrt_nonneg _)
 
 end ShenWork.IntervalResolverWeakBounds
