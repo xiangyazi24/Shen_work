@@ -906,4 +906,57 @@ theorem duhamelValue_adot_improper_tendsto
       (by linarith [hε.2]) (by linarith [hε.1])
   rw [tendsto_congr' heq]; exact htan
 
+/-- **`hconv1` discharged (under ℓ¹ source coefficients).**  The joint
+approximate-identity limit `S(ε)g(t−ε)(x) → g(t)(x)` as `ε↓0`, where the source has
+uniformly-ℓ¹ cosine coefficients (`|a s n| ≤ c n`, `Summable c` — the honest spatial
+regularity of `g`).  Tannery's theorem over the per-mode limits
+`e^{−ελₙ}cos(nπx)·ĝₙ(t−ε) → cos(nπx)·ĝₙ(t)` (heat factor `→1`, coefficient continuous
+in time), dominated by `c n` (`|e^{−ελₙ}cos| ≤ 1`).  The limit
+`g(t)(x) = ∑'ₙ cos(nπx)·ĝₙ(t)` is the cosine reconstruction of the source at time `t`. -/
+theorem duhamelValue_a_joint_tendsto
+    {t x : ℝ} {a : ℝ → ℕ → ℝ} {c : ℕ → ℝ}
+    (hacont : ∀ n, Continuous (fun s : ℝ => a s n))
+    (hl1 : ∀ s n, |a s n| ≤ c n) (hc_summable : Summable c) :
+    Tendsto (fun ε => unitIntervalCosineHeatValue ε (a (t - ε)) x)
+      (𝓝[>] (0:ℝ))
+      (𝓝 (∑' n, unitIntervalCosineMode n x * a t n)) := by
+  have hsub : Tendsto (fun ε : ℝ => t - ε) (𝓝[>] (0:ℝ)) (𝓝 t) := by
+    have h0 : Tendsto (fun ε : ℝ => t - ε) (𝓝 (0:ℝ)) (𝓝 (t - 0)) :=
+      (continuous_const.sub continuous_id).tendsto 0
+    simpa using h0.mono_left nhdsWithin_le_nhds
+  refine tendsto_tsum_of_dominated_convergence (bound := c) hc_summable (fun n => ?_) ?_
+  · -- per-mode: e^{−ελₙ}cos·a(t−ε) → cos·a t
+    have hpwcont : Continuous
+        (fun ε : ℝ => unitIntervalCosineHeatPointWeight ε x n) := by
+      unfold unitIntervalCosineHeatPointWeight unitIntervalCosineMode; fun_prop
+    have hpw0 : unitIntervalCosineHeatPointWeight 0 x n = unitIntervalCosineMode n x := by
+      unfold unitIntervalCosineHeatPointWeight; simp
+    have hpw : Tendsto (fun ε => unitIntervalCosineHeatPointWeight ε x n)
+        (𝓝[>] (0:ℝ)) (𝓝 (unitIntervalCosineMode n x)) := by
+      have := (hpwcont.tendsto 0).mono_left
+        (nhdsWithin_le_nhds (a := (0:ℝ)) (s := Set.Ioi 0))
+      rwa [hpw0] at this
+    have ha : Tendsto (fun ε => a (t - ε) n) (𝓝[>] (0:ℝ)) (𝓝 (a t n)) :=
+      ((hacont n).tendsto t).comp hsub
+    exact hpw.mul ha
+  · -- bound `‖e^{−ελₙ}cos·a(t−ε)‖ ≤ c n` (ε ≥ 0).
+    filter_upwards [self_mem_nhdsWithin] with ε hε n
+    have hεnn : (0:ℝ) ≤ ε := le_of_lt hε
+    rw [Real.norm_eq_abs, abs_mul]
+    have hpwle : |unitIntervalCosineHeatPointWeight ε x n| ≤ 1 := by
+      unfold unitIntervalCosineHeatPointWeight unitIntervalCosineMode
+      rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+      have hexple : Real.exp (-ε * unitIntervalCosineEigenvalue n) ≤ 1 := by
+        rw [Real.exp_le_one_iff]
+        have hlam : 0 ≤ unitIntervalCosineEigenvalue n := by
+          unfold unitIntervalCosineEigenvalue; positivity
+        nlinarith [hεnn, hlam]
+      calc Real.exp (-ε * unitIntervalCosineEigenvalue n) *
+              |Real.cos ((n : ℝ) * Real.pi * x)|
+          ≤ 1 * 1 := mul_le_mul hexple (Real.abs_cos_le_one _) (abs_nonneg _) (by norm_num)
+        _ = 1 := by ring
+    calc |unitIntervalCosineHeatPointWeight ε x n| * |a (t - ε) n|
+        ≤ 1 * c n := mul_le_mul hpwle (hl1 (t - ε) n) (abs_nonneg _) zero_le_one
+      _ = c n := one_mul _
+
 end ShenWork.IntervalDuhamelClosedC2
