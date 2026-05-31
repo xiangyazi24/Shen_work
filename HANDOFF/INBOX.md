@@ -4,70 +4,64 @@
 
 ```bash
 export PATH="$HOME/.elan/bin:$PATH"
-cd ~/repos/shen_work && lake env lean ShenWork/Paper2/IntervalMildPicard.lean
 cd ~/repos/shen_work && lake build
 ```
 
-Invariant: BUILD OK. IntervalMildPicard.lean has 4 sorry (all pure real analysis).
+Invariant: BUILD OK (8387 jobs). 1 sorry in IntervalMildPicard.lean.
 
-## Task: Close 4 sorry in IntervalMildPicard.lean
+## Task: Close intervalMildSolution_exists_picard
 
-File: `ShenWork/Paper2/IntervalMildPicard.lean`
+File: `ShenWork/Paper2/IntervalMildPicard.lean` (line ~364)
 
-### Context
+### What is proved (0 sorry)
 
-T7 Atom E/F is set up as Picard iteration → IntervalMildSolution.
-The approach bypasses Q2 (joint continuity / BCF) entirely.
+The entire Picard fixed-point theory is done:
 
-Already proved:
-- `picardIter`: Picard iteration definition
-- `real_cauchySeq_of_geometric_bound`: |a_{n+1}-a_n| ≤ K^n·C₀ → Cauchy
-- `picardIter_pointwise_convergent`: Picard iterates converge at each (t,x)
-- `picardLimit`: the pointwise limit trajectory
-- `geometric_tail_tendsto_zero`: K^n·C₀/(1-K) → 0
-- `picardIter_uniform_convergence`: geometric tail → uniform convergence
-  (PROVED, assuming `picardIter_pointwise_tail_bound`)
-
-### 4 sorry to close (priority order)
-
-#### 1. `picardIter_pointwise_tail_bound` (line ~96)
-Statement: `|u_n(t,x) - u(t,x)| ≤ K^n · C₀ / (1 - K)`
-This is the standard geometric series tail bound. Proof sketch:
-- `|u_n(t,x) - u(t,x)| ≤ ∑_{k≥n} |u_{k+1}(t,x) - u_k(t,x)| ≤ ∑_{k≥n} K^k · C₀ = K^n · C₀ / (1-K)`
-- Uses `tsum_geometric_of_lt_one` and telescoping
-- The limit is `atTop.limUnder (fun n => picardIter ...)` so need to connect it to the Cauchy limit
-
-#### 2. `picardLimit_bounded` (line ~130)
-Statement: `|picardLimit p u₀ T t x| ≤ M`
-Proof: pointwise limit of M-bounded functions. Use `le_of_tendsto` from Mathlib.
-
-#### 3. `picardLimit_is_mildSolution` (line ~142)
-Statement: `IntervalMildSolution p T u₀ (picardLimit p u₀ T)`
-Key proof:
 ```
-|Φ(u₀,u)(t,x) - u(t,x)|
-  ≤ |Φ(u₀,u) - Φ(u₀,u_n)| + |u_{n+1} - u|
-  ≤ K · sup|u - u_n| + |u_{n+1}(t,x) - u(t,x)|
-  → 0 as n → ∞
+MildExistenceData → picardIter_ball → picardIter_geometric →
+  cauchySeq → pointwise_convergent → tail_bound →
+  uniform_convergence → bounded → is_mildSolution →
+  intervalMildSolution_of_data
 ```
-Uses: `hcontract` (contraction on any two bounded trajectories), `picardLimit_bounded`,
-`picardIter_uniform_convergence`
 
-#### 4. `intervalMildSolution_exists_picard` (line ~172)
-Statement: main theorem
-Assembly: choose T from `exists_small_contraction_time`, M from `hu₀_bounded`,
-prove the geometric bound by induction on n, prove ball membership by induction,
-instantiate the contraction from `contraction_pointwise` in IntervalMildExistence.lean,
-apply `picardLimit_is_mildSolution`.
+All 0 sorry. The conditional theorem `intervalMildSolution_of_data` says:
+given suitable constants satisfying MapsTo + contraction + ball bounds,
+a mild solution exists.
 
-### Also in the repo
+### What remains (1 sorry)
 
-`IntervalMildExistence.lean` has the BCF approach (2 sorry: Q2 + main theorem).
-The Picard approach in `IntervalMildPicard.lean` is strictly better — it avoids Q2.
-Once the 4 sorry above are closed, `IntervalMildExistence.lean` can be cleaned up.
+`intervalMildSolution_exists_picard`: construct `MildExistenceData p u₀`.
+
+Concretely, need to provide:
+1. **T** — from `exists_small_contraction_time` (already proved)
+2. **M** — from `hu₀_bounded` (e.g., 2B + 1)
+3. **K** — contraction constant K(T) = 2|χ₀|·C_grad·C_Q·√T + C_L·T
+4. **C₀** — initial correction bound
+5. **hbase_ball** — |S(t)u₀(x)| ≤ M (semigroup contraction)
+6. **hmapsTo** — from `mapsTo_mildBall` (IntervalMildExistence.lean, proved)
+7. **hcontr** — from `contraction_pointwise` (IntervalMildExistence.lean, proved)
+8. **hbase_diff** — |Φ(u₀, S·u₀) - S·u₀| ≤ C₀
+
+The HARD part is discharging the integrability/measurability hypotheses
+that `gradDuhamel_sup_bound` / `valueDuhamel_sup_bound` /
+`gradDuhamel_diff_sup_bound` / `valueDuhamel_diff_sup_bound` require:
+- `∀ s, Integrable (q s) (intervalMeasure 1)` — flux slice integrable
+- `IntervalIntegrable (fun s => deriv (S(t-s) q(s)) x) volume 0 t`
+- `IntervalIntegrable (fun s => S(t-s) r(s) x) volume 0 t`
+- Per-(s,z) kernel integrability and spatial differentiability
+
+These are all "bounded on finite measure → integrable" but need
+measurability of the resolver, flux, logistic compositions.
+
+### Strategy
+
+1. Prove a generic "bounded measurable source → Duhamel integrable" lemma
+2. Prove chemFluxLifted and logisticLifted are bounded measurable for
+   bounded trajectories (from existing resolver bounds)
+3. Instantiate MildExistenceData with these
 
 ### Constraints
 
-- 0 sorry in all files EXCEPT IntervalMildPicard.lean and IntervalMildExistence.lean
+- 0 sorry in all files EXCEPT IntervalMildPicard.lean (1 sorry)
+- IntervalMildExistence.lean has 2 sorry (Q2 + main) — superseded by Picard approach
 - BUILD OK (8387 jobs)
-- Run `grep -rn "\bsorry\b" ShenWork --include="*.lean"` after edits
