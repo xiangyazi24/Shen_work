@@ -76,6 +76,7 @@ import ShenWork.Paper2.IntervalDomainL2UEnergyInequality
 import ShenWork.Paper2.IntervalDomainL2UStaticVControl
 import ShenWork.Paper2.IntervalDomainL2StaticVDifference
 import ShenWork.Paper2.IntervalDomainResolverSupQuantitative
+import ShenWork.Paper2.IntervalResolverWeakBounds
 import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
 import ShenWork.Paper2.IntervalDomainL2UFrontierAssembly
 import ShenWork.Paper2.IntervalDomainL2UBoundedDatumUniformOfBounded
