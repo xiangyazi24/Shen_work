@@ -54,4 +54,52 @@ theorem oneAddRpow_neg_lipschitz {β : ℝ} (hβ : 0 ≤ β) {r₁ r₂ : ℝ}
     (convex_Ici 0) (Set.mem_Ici.mpr hr₂) (Set.mem_Ici.mpr hr₁)
   simpa [hf, Real.norm_eq_abs] using hconv
 
+/-- Helper: `|p·q·r| ≤ pb·qb·rb` from `|p|≤pb, |q|≤qb, |r|≤rb` (`qb,rb ≥ 0`). -/
+private theorem abs_mul₃_le {p q r pb qb rb : ℝ}
+    (hp : |p| ≤ pb) (hq : |q| ≤ qb) (hr : |r| ≤ rb) (hqb : 0 ≤ qb) :
+    |p * q * r| ≤ pb * qb * rb := by
+  rw [abs_mul, abs_mul]
+  exact mul_le_mul (mul_le_mul hp hq (abs_nonneg _) (le_trans (abs_nonneg _) hp))
+    hr (abs_nonneg _) (mul_nonneg (le_trans (abs_nonneg _) hp) hqb)
+
+/-- **glue1 (value core) — flux-value Lipschitz.**  The chemotaxis flux value
+`a·g·(1+v)^{−β}` (mass `a = u`, gradient `g = ∂ₓR`, signal `v = R ≥ 0`) is
+Lipschitz in `(a,g,v)` on the bounded ball, with constant
+`L_Q = B_G + M·L_G + M·B_G·β·L_R`.  Telescoping
+`a₁g₁w₁−a₂g₂w₂ = (a₁−a₂)g₁w₁ + a₂(g₁−g₂)w₁ + a₂g₂(w₁−w₂)`, with `0 ≤ wᵢ ≤ 1`
+(`vᵢ ≥ 0`) and `|w₁−w₂| ≤ β·L_R·d` (`oneAddRpow_neg_lipschitz`). -/
+theorem chemFluxValue_lipschitz {β M B_G d L_G L_R : ℝ} (hβ : 0 ≤ β)
+    {a₁ a₂ g₁ g₂ v₁ v₂ : ℝ}
+    (ha₂ : |a₂| ≤ M) (hg₁ : |g₁| ≤ B_G) (hg₂ : |g₂| ≤ B_G)
+    (hv₁ : 0 ≤ v₁) (hv₂ : 0 ≤ v₂)
+    (had : |a₁ - a₂| ≤ d) (hgd : |g₁ - g₂| ≤ L_G * d) (hvd : |v₁ - v₂| ≤ L_R * d)
+    (hBnn : 0 ≤ B_G) :
+    |a₁ * g₁ * (1 + v₁) ^ (-β) - a₂ * g₂ * (1 + v₂) ^ (-β)|
+      ≤ (B_G + M * L_G + M * B_G * β * L_R) * d := by
+  set w₁ : ℝ := (1 + v₁) ^ (-β) with hw₁
+  set w₂ : ℝ := (1 + v₂) ^ (-β) with hw₂
+  have hw₁_nn : 0 ≤ w₁ := Real.rpow_nonneg (by linarith) _
+  have hw₂_nn : 0 ≤ w₂ := Real.rpow_nonneg (by linarith) _
+  have hw₁_le : w₁ ≤ 1 := Real.rpow_le_one_of_one_le_of_nonpos (by linarith) (by linarith)
+  have hwabs : |w₁| ≤ 1 := by rw [abs_of_nonneg hw₁_nn]; exact hw₁_le
+  have hwd : |w₁ - w₂| ≤ β * (L_R * d) := by
+    calc |w₁ - w₂| ≤ β * |v₁ - v₂| := oneAddRpow_neg_lipschitz hβ hv₁ hv₂
+      _ ≤ β * (L_R * d) := mul_le_mul_of_nonneg_left hvd hβ
+  have htel : a₁ * g₁ * w₁ - a₂ * g₂ * w₂
+      = (a₁ - a₂) * g₁ * w₁ + a₂ * (g₁ - g₂) * w₁ + a₂ * g₂ * (w₁ - w₂) := by ring
+  rw [htel]
+  have hb1 : |(a₁ - a₂) * g₁ * w₁| ≤ d * B_G * 1 :=
+    abs_mul₃_le had hg₁ hwabs hBnn
+  have hb2 : |a₂ * (g₁ - g₂) * w₁| ≤ M * (L_G * d) * 1 :=
+    abs_mul₃_le ha₂ hgd hwabs (le_trans (abs_nonneg _) hgd)
+  have hb3 : |a₂ * g₂ * (w₁ - w₂)| ≤ M * B_G * (β * (L_R * d)) :=
+    abs_mul₃_le ha₂ hg₂ hwd hBnn
+  calc |(a₁ - a₂) * g₁ * w₁ + a₂ * (g₁ - g₂) * w₁ + a₂ * g₂ * (w₁ - w₂)|
+      ≤ |(a₁ - a₂) * g₁ * w₁ + a₂ * (g₁ - g₂) * w₁| + |a₂ * g₂ * (w₁ - w₂)| :=
+        abs_add_le _ _
+    _ ≤ (|(a₁ - a₂) * g₁ * w₁| + |a₂ * (g₁ - g₂) * w₁|) + |a₂ * g₂ * (w₁ - w₂)| := by
+        gcongr; exact abs_add_le _ _
+    _ ≤ (d * B_G * 1 + M * (L_G * d) * 1) + M * B_G * (β * (L_R * d)) := by gcongr
+    _ = (B_G + M * L_G + M * B_G * β * L_R) * d := by ring
+
 end ShenWork.IntervalChemFluxLipschitz
