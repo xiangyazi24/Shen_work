@@ -1,63 +1,73 @@
-# Shen_work — Current Task for Codex
+# Shen_work — Current Task
 
 ## Build
 
 ```bash
-~/.openclaw/workspace/scripts/remote-build.sh shen_work
-~/.openclaw/workspace/scripts/remote-build.sh shen_work --file ShenWork/Paper3/Statements.lean
+export PATH="$HOME/.elan/bin:$PATH"
+cd ~/repos/shen_work && lake env lean ShenWork/Paper2/IntervalMildPicard.lean
+cd ~/repos/shen_work && lake build
 ```
 
-NEVER run local `lake build`. Invariant: 0 sorry, BUILD OK.
+Invariant: BUILD OK. IntervalMildPicard.lean has 4 sorry (all pure real analysis).
 
-## Task: Paper3 Theorem 2.3/2.4/2.5 global stability convergence bridges
+## Task: Close 4 sorry in IntervalMildPicard.lean
 
-File: `ShenWork/Paper3/Statements.lean`
+File: `ShenWork/Paper2/IntervalMildPicard.lean`
 
 ### Context
 
-Paper3 Theorems 2.3--2.5 each have two components:
-1. **Linear stability** — proved for 2.4 and 2.5 (see `Theorem_2_4_linear_stability_formula_branch_proved`, `Theorem_2_5_linear_stability_formula_branch_proved`, and their first-mode variants)
-2. **Global/exponential convergence** — still externalized in package fields
+T7 Atom E/F is set up as Picard iteration → IntervalMildSolution.
+The approach bypasses Q2 (joint continuity / BCF) entirely.
 
-The exponential convergence conclusions route through `MassConstrainedLocallyExponentiallyStableFromSup` and `ExponentialC1Convergence`. These are already assembled for some branches (see e.g. `Theorem_2_2.nonminimal_stability_conclusion_of_Lemma_A_7`, `Theorem_2_2.minimal_exponential_convergence_of_Lemma_A_8`).
+Already proved:
+- `picardIter`: Picard iteration definition
+- `real_cauchySeq_of_geometric_bound`: |a_{n+1}-a_n| ≤ K^n·C₀ → Cauchy
+- `picardIter_pointwise_convergent`: Picard iterates converge at each (t,x)
+- `picardLimit`: the pointwise limit trajectory
+- `geometric_tail_tendsto_zero`: K^n·C₀/(1-K) → 0
+- `picardIter_uniform_convergence`: geometric tail → uniform convergence
+  (PROVED, assuming `picardIter_pointwise_tail_bound`)
 
-### What to add
+### 4 sorry to close (priority order)
 
-Build more **formula-level** bridges that bypass the `Paper3Constants` package and state conclusions directly using the explicit threshold formulas and `paperCriticalSensitivity`. These should follow the pattern of the existing `Theorem_2_4_linear_stability_formula_branch` and `Theorem_2_5_linear_stability_formula_branch` but extend to the full stability + convergence conclusions.
+#### 1. `picardIter_pointwise_tail_bound` (line ~96)
+Statement: `|u_n(t,x) - u(t,x)| ≤ K^n · C₀ / (1 - K)`
+This is the standard geometric series tail bound. Proof sketch:
+- `|u_n(t,x) - u(t,x)| ≤ ∑_{k≥n} |u_{k+1}(t,x) - u_k(t,x)| ≤ ∑_{k≥n} K^k · C₀ = K^n · C₀ / (1-K)`
+- Uses `tsum_geometric_of_lt_one` and telescoping
+- The limit is `atTop.limUnder (fun n => picardIter ...)` so need to connect it to the Cauchy limit
 
-#### 1. Theorem 2.3 negative-sensitivity convergence formula bridge
+#### 2. `picardLimit_bounded` (line ~130)
+Statement: `|picardLimit p u₀ T t x| ≤ M`
+Proof: pointwise limit of M-bounded functions. Use `le_of_tendsto` from Mathlib.
 
-For the negative-sensitivity case (`χ₀ ≤ 0`), the linear stability is trivially satisfied (already proved by `Theorem_2_2_linear_stability_chi_nonpos_branch_proved`). Build a bridge that:
-- Takes `χ₀ ≤ 0`, `a > 0`, `b > 0`, Neumann spectrum, and the sectorial local exponential stability conclusion as explicit hypotheses
-- Gives both `LinearlyStable` and `MassConstrainedLocallyExponentiallyStableFromSup` for the positive equilibrium
+#### 3. `picardLimit_is_mildSolution` (line ~142)
+Statement: `IntervalMildSolution p T u₀ (picardLimit p u₀ T)`
+Key proof:
+```
+|Φ(u₀,u)(t,x) - u(t,x)|
+  ≤ |Φ(u₀,u) - Φ(u₀,u_n)| + |u_{n+1} - u|
+  ≤ K · sup|u - u_n| + |u_{n+1}(t,x) - u(t,x)|
+  → 0 as n → ∞
+```
+Uses: `hcontract` (contraction on any two bounded trajectories), `picardLimit_bounded`,
+`picardIter_uniform_convergence`
 
-The sectorial stability should be an explicit hypothesis (not from a package) since the analytic proof is still open.
+#### 4. `intervalMildSolution_exists_picard` (line ~172)
+Statement: main theorem
+Assembly: choose T from `exists_small_contraction_time`, M from `hu₀_bounded`,
+prove the geometric bound by induction on n, prove ball membership by induction,
+instantiate the contraction from `contraction_pointwise` in IntervalMildExistence.lean,
+apply `picardLimit_is_mildSolution`.
 
-#### 2. Theorem 2.4 full stability formula bridge
+### Also in the repo
 
-Extend `Theorem_2_4_linear_stability_formula_branch` to also conclude `MassConstrainedLocallyExponentiallyStableFromSup`. This should:
-- Keep the existing explicit formula threshold hypotheses
-- Add an explicit `SectorialLocalExponentialRaw`-style hypothesis for the local exponential part
-- Give both linear stability and exponential stability as conclusions
-
-#### 3. Theorem 2.5 full stability formula bridge
-
-Same pattern as (2) but for the minimal model with `a = 0, b = 0, m = 1`.
-
-#### 4. Explicit equilibrium formula simplifications
-
-Add bridge lemmas that simplify the equilibrium formulas for special parameter cases that appear in the paper's examples:
-- `positiveEquilibrium_fst_eq_one` when `a = b` (so `(a/b)^(1/α) = 1`)
-- `positiveEquilibrium_snd_eq_nu_div_mu` when `a = b` and `γ = 1`
-- `minimalEquilibrium_snd_eq_nu_div_mu_mul_uStar` when `γ = 1`
-
-These are algebraic simplifications from the existing definitions that make the threshold formulas more concrete.
+`IntervalMildExistence.lean` has the BCF approach (2 sorry: Q2 + main theorem).
+The Picard approach in `IntervalMildPicard.lean` is strictly better — it avoids Q2.
+Once the 4 sorry above are closed, `IntervalMildExistence.lean` can be cleaned up.
 
 ### Constraints
 
-- 0 sorry, BUILD OK
-- No axioms, no assumption structures
-- Follow the naming pattern of existing `_formula_branch` and `_first_mode_branch` theorems
-- Add theorems after the existing `Theorem_2_5_linear_stability_first_mode_branch_proved` and before `Theorem_2_2.nonminimal_stability_conclusion_of_Lemma_A_7`
-- Keep `#print axioms` checks for any new `_proved` theorems
-- Run `rg -n "\bsorry\b" ShenWork --glob '*.lean'` after every edit
+- 0 sorry in all files EXCEPT IntervalMildPicard.lean and IntervalMildExistence.lean
+- BUILD OK (8387 jobs)
+- Run `grep -rn "\bsorry\b" ShenWork --include="*.lean"` after edits
