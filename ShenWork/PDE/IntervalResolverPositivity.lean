@@ -172,4 +172,38 @@ theorem summable_abs_sourceCoeff_mul_weight {p : CM2Params} {â : ℕ → ℝ}
     rw [sq_abs] at h
     nlinarith [h]
 
+/-- The `k`-th Laplace-mode integrand `gₖ(t) = e^{−μt}·(e^{−tλₖ}cos(kπx))·âₖ
+= e^{−(μ+λₖ)t}·cos(kπx)·âₖ`. -/
+def laplaceMode (μ : ℝ) (â : ℕ → ℝ) (x : ℝ) (k : ℕ) (t : ℝ) : ℝ :=
+  Real.exp (-μ * t) * (unitIntervalCosineHeatPointWeight t x k * â k)
+
+/-- Each Laplace mode is continuous in `t`. -/
+theorem laplaceMode_continuous (μ : ℝ) (â : ℕ → ℝ) (x : ℝ) (k : ℕ) :
+    Continuous (laplaceMode μ â x k) := by
+  unfold laplaceMode unitIntervalCosineHeatPointWeight
+  fun_prop
+
+/-- Per-mode integral `∫₀ᵀ gₖ = âₖ·cos(kπx)·(1−e^{−(μ+λₖ)T})/(μ+λₖ)`. -/
+theorem integral_laplaceMode {p : CM2Params} {â : ℕ → ℝ} {x T : ℝ} (k : ℕ) :
+    (∫ t in (0:ℝ)..T, laplaceMode p.μ â x k t)
+      = â k * unitIntervalCosineMode k x
+          * ((1 - Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T))
+              / (p.μ + unitIntervalCosineEigenvalue k)) := by
+  have hne : p.μ + unitIntervalCosineEigenvalue k ≠ 0 := by
+    have : 0 < p.μ + unitIntervalCosineEigenvalue k := by
+      have : 0 ≤ unitIntervalCosineEigenvalue k := by
+        unfold unitIntervalCosineEigenvalue; positivity
+      linarith [p.hμ]
+    exact ne_of_gt this
+  have hrw : ∀ t : ℝ, laplaceMode p.μ â x k t
+      = (â k * unitIntervalCosineMode k x)
+        * Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * t) := by
+    intro t
+    unfold laplaceMode unitIntervalCosineHeatPointWeight unitIntervalCosineMode
+    rw [show -(p.μ + unitIntervalCosineEigenvalue k) * t
+        = (-p.μ * t) + (-t * unitIntervalCosineEigenvalue k) from by ring, Real.exp_add]
+    ring
+  rw [intervalIntegral.integral_congr (fun t _ => hrw t),
+    intervalIntegral.integral_const_mul, integral_exp_neg_mul hne]
+
 end ShenWork.IntervalResolverPositivity
