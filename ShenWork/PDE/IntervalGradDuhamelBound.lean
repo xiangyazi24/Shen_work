@@ -152,4 +152,51 @@ theorem valueDuhamel_sup_bound
     _ = t * Cr := by rw [intervalIntegral.integral_const, sub_zero, smul_eq_mul]
     _ ≤ T * Cr := by gcongr
 
+/-! ## Atom D — difference Lipschitz (semigroup linearity)
+
+The maps are LINEAR in the source, so the difference of two Duhamel images is the
+Duhamel image of the difference source; the sup bounds then apply to `r₁ − r₂`. -/
+
+/-- **Semigroup linearity.**  `S(τ)(f − g) = S(τ)f − S(τ)g` (the operator is
+`∫ K·(·)`, so this is `integral_sub` once the kernel-weighted integrands are
+integrable). -/
+theorem intervalFullSemigroupOperator_sub {τ x : ℝ} {f g : ℝ → ℝ}
+    (hf : Integrable (fun y => intervalNeumannFullKernel τ x y * f y) (intervalMeasure 1))
+    (hg : Integrable (fun y => intervalNeumannFullKernel τ x y * g y) (intervalMeasure 1)) :
+    intervalFullSemigroupOperator τ (fun y => f y - g y) x
+      = intervalFullSemigroupOperator τ f x - intervalFullSemigroupOperator τ g x := by
+  unfold intervalFullSemigroupOperator
+  have hpt : (fun y => intervalNeumannFullKernel τ x y * (f y - g y))
+      = (fun y => intervalNeumannFullKernel τ x y * f y
+          - intervalNeumannFullKernel τ x y * g y) := by
+    funext y; ring
+  rw [hpt, MeasureTheory.integral_sub hf hg]
+
+/-- **Atom D — value-Duhamel difference Lipschitz.**  By linearity the difference
+of two value-Duhamel images equals the value-Duhamel image of the source
+difference, so `|∫₀ᵗ (S(t−s)r₁ − S(t−s)r₂) ds| ≤ T·D` whenever `|r₁ − r₂| ≤ D`.
+`hKr₁/hKr₂` are the per-slice kernel-integrability prerequisites used by the
+linearity split (honest regularity inputs, NOT the conclusion). -/
+theorem valueDuhamel_diff_sup_bound
+    {t T : ℝ} (ht : 0 < t) (htT : t ≤ T) {r₁ r₂ : ℝ → ℝ → ℝ}
+    {D : ℝ} (hD : 0 ≤ D) (hr_diff : ∀ s y, |r₁ s y - r₂ s y| ≤ D) (x : ℝ)
+    (hKr₁ : ∀ s, Integrable
+      (fun y => intervalNeumannFullKernel (t - s) x y * r₁ s y) (intervalMeasure 1))
+    (hKr₂ : ∀ s, Integrable
+      (fun y => intervalNeumannFullKernel (t - s) x y * r₂ s y) (intervalMeasure 1))
+    (hdiff_int : IntervalIntegrable
+      (fun s : ℝ => intervalFullSemigroupOperator (t - s) (fun y => r₁ s y - r₂ s y) x)
+      volume 0 t) :
+    |∫ s in (0:ℝ)..t, (intervalFullSemigroupOperator (t - s) (r₁ s) x
+        - intervalFullSemigroupOperator (t - s) (r₂ s) x)| ≤ T * D := by
+  have hcongr : (fun s : ℝ => intervalFullSemigroupOperator (t - s) (r₁ s) x
+        - intervalFullSemigroupOperator (t - s) (r₂ s) x)
+      = fun s : ℝ => intervalFullSemigroupOperator (t - s) (fun y => r₁ s y - r₂ s y) x := by
+    funext s
+    rw [intervalFullSemigroupOperator_sub (hKr₁ s) (hKr₂ s)]
+  rw [intervalIntegral.integral_congr (g := fun s : ℝ =>
+        intervalFullSemigroupOperator (t - s) (fun y => r₁ s y - r₂ s y) x)
+      (fun s _ => congrFun hcongr s)]
+  exact valueDuhamel_sup_bound ht htT hD hr_diff x hdiff_int
+
 end ShenWork.IntervalGradDuhamelBound
