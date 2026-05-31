@@ -67,6 +67,7 @@ import ShenWork.PDE.IntervalFullKernelRegularity
 import ShenWork.Paper2.IntervalDomainJointTimeRegularity
 import ShenWork.PDE.IntervalSemigroupApproxIdentity
 import ShenWork.PDE.IntervalDuhamelSpectralC2
+import ShenWork.PDE.CosineSpectrum
 
 open MeasureTheory Filter Topology
 
@@ -76,6 +77,7 @@ namespace ShenWork.IntervalDuhamelClosedC2
 
 open ShenWork.IntervalDomain ShenWork.IntervalDomainRegularityBootstrap
 open ShenWork.IntervalFullKernelRegularity
+open ShenWork.CosineSpectrum (cosineMode cosineMode_hasDerivAt cosineMode_deriv cosineMode_second_deriv cosineMode_neumann_left cosineMode_neumann_right)
 
 /-- The second-spatial-derivative term-weight equals `−λₙ` times the value
 term-weight: `e^{−rλₙ}·(−(nπ)²cos) = −λₙ·e^{−rλₙ}cos`.  In particular it coincides
@@ -1096,5 +1098,38 @@ theorem duhamelCoeff_eigenvalue_mul
     intervalIntegral.integral_congr (fun s _ => by ring)
   rw [he1, he2] at hFTC
   linarith [hFTC]
+
+/-! ## General cosine-series `C²` engine
+
+`∑'ₙ bₙ cos(nπx)` is `C²` whenever `∑'ₙ λₙ|bₙ| < ∞` (`λₙ = (nπ)²`).  Termwise
+differentiation twice; majorants `|bₙ|`, `(nπ)|bₙ|`, `λₙ|bₙ|`, all dominated by
+`∑λₙ|bₙ|`.  This is the engine that turns the time-IBP coefficient decay
+(`duhamelCoeff_eigenvalue_mul`) into the `C²` of the Duhamel term. -/
+
+/-- From `∑λₙ|bₙ| < ∞`: `∑(nπ)|bₙ| < ∞` and `∑|bₙ| < ∞` (since `nπ ≤ (nπ)² = λₙ` for
+`n ≥ 1`). -/
+theorem cosineCoeff_summable_of_eigenvalue_summable {b : ℕ → ℝ}
+    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|)) :
+    Summable (fun n : ℕ => ((n : ℝ) * Real.pi) * |b n|) ∧ Summable (fun n => |b n|) := by
+  -- `nπ|bₙ| ≤ λₙ|bₙ|` for ALL `n` (n=0: both 0; n≥1: nπ ≤ (nπ)²).
+  have hfreq : Summable (fun n : ℕ => ((n : ℝ) * Real.pi) * |b n|) := by
+    refine Summable.of_nonneg_of_le (fun n => by positivity) (fun n => ?_) hb
+    have hle : ((n : ℝ) * Real.pi) ≤ unitIntervalCosineEigenvalue n := by
+      rcases Nat.eq_zero_or_pos n with h | h
+      · subst h; simp [unitIntervalCosineEigenvalue]
+      · have hn1 : (1 : ℝ) ≤ (n : ℝ) := by exact_mod_cast h
+        have hnpi : (1 : ℝ) ≤ (n : ℝ) * Real.pi := by nlinarith [Real.two_le_pi, hn1]
+        unfold unitIntervalCosineEigenvalue; nlinarith [hnpi]
+    exact mul_le_mul_of_nonneg_right hle (abs_nonneg _)
+  refine ⟨hfreq, ?_⟩
+  -- `|bₙ|`: drop `n=0`, then `|b(n+1)| ≤ (n+1)π·|b(n+1)|`.
+  have htail : Summable (fun n => |b (n + 1)|) := by
+    refine Summable.of_nonneg_of_le (fun n => abs_nonneg _) (fun n => ?_)
+      ((summable_nat_add_iff (f := fun n : ℕ => ((n : ℝ) * Real.pi) * |b n|) 1).2 hfreq)
+    have hcast : ((n + 1 : ℕ) : ℝ) = (n : ℝ) + 1 := by push_cast; ring
+    have hge : (1 : ℝ) ≤ ((n + 1 : ℕ) : ℝ) * Real.pi := by
+      rw [hcast]; nlinarith [Real.two_le_pi, (by positivity : (0:ℝ) ≤ (n : ℝ))]
+    nlinarith [abs_nonneg (b (n + 1)), hge]
+  exact (summable_nat_add_iff (f := fun n => |b n|) 1).1 htail
 
 end ShenWork.IntervalDuhamelClosedC2
