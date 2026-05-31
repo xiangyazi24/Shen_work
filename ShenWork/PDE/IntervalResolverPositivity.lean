@@ -279,4 +279,172 @@ theorem laplaceResolverTrunc_eq_tsum {p : CM2Params} {â : ℕ → ℝ}
   refine tsum_congr (fun k => ?_)
   rw [← intervalIntegral.integral_of_le hT, integral_laplaceMode]
 
+/-- **O1c — the heat-value Laplace truncation is nonnegative** (interior `x`).
+`∫₀ᵀ e^{−μt}·(heat value t (cosineCoeffs f) x) dt ≥ 0` for `f ≥ 0` continuous,
+`x ∈ (0,1)`, `0 ≤ T` — the integrand is `e^{−μt}·(≥0 by O1b)` for `t > 0`. -/
+theorem laplaceHeatTrunc_nonneg {p : CM2Params} {f : ℝ → ℝ} (hf_cont : Continuous f)
+    (hf_nonneg : ∀ y, 0 ≤ f y) {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) {T : ℝ} (hT : 0 ≤ T) :
+    0 ≤ ∫ t in (0:ℝ)..T,
+        Real.exp (-p.μ * t) * unitIntervalCosineHeatValue t (cosineCoeffs f) x := by
+  refine intervalIntegral.integral_nonneg_of_ae_restrict hT ?_
+  have hne : ∀ᵐ t : ℝ ∂volume, t ≠ 0 := by
+    rw [ae_iff]; simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+  refine (ae_restrict_iff' measurableSet_Icc).mpr ?_
+  filter_upwards [hne] with t ht_ne ht_mem
+  have ht0 : 0 < t := lt_of_le_of_ne ht_mem.1 (Ne.symm ht_ne)
+  exact mul_nonneg (Real.exp_nonneg _)
+    (unitIntervalCosineHeatValue_nonneg_of_continuous ht0 hf_cont hf_nonneg hx)
+
+/-- The `T→∞` spectral limit target `∑ₖ âₖ cos(kπx)/(μ+λₖ)` is summable
+(`|·| ≤ |âₖ|·weightₖ`, the ℓ¹ majorant). -/
+theorem summable_resolverTarget {p : CM2Params} {â : ℕ → ℝ}
+    (hâ : Summable (fun n => (â n) ^ 2)) (x : ℝ) :
+    Summable (fun k => â k * unitIntervalCosineMode k x
+      / (p.μ + unitIntervalCosineEigenvalue k)) := by
+  refine Summable.of_norm_bounded (summable_abs_sourceCoeff_mul_weight (p := p) hâ) (fun k => ?_)
+  have hdpos : (0:ℝ) < p.μ + unitIntervalCosineEigenvalue k := by
+    have h0 : 0 ≤ unitIntervalCosineEigenvalue k := by
+      unfold unitIntervalCosineEigenvalue; positivity
+    linarith [p.hμ]
+  have heig : intervalNeumannResolverWeight p k = 1 / (p.μ + unitIntervalCosineEigenvalue k) := by
+    rw [intervalNeumannResolverWeight]
+    congr 2
+    rw [show unitIntervalNeumannSpectrum.eigenvalue k = (k : ℝ) ^ 2 * Real.pi ^ 2 from rfl,
+      unitIntervalCosineEigenvalue]; ring
+  rw [Real.norm_eq_abs, abs_div, abs_mul, abs_of_pos hdpos, heig]
+  rw [div_eq_mul_inv, one_div]
+  refine mul_le_mul_of_nonneg_right ?_ (inv_nonneg.mpr hdpos.le)
+  calc |â k| * |unitIntervalCosineMode k x| ≤ |â k| * 1 := by
+        refine mul_le_mul_of_nonneg_left ?_ (abs_nonneg _)
+        rw [unitIntervalCosineMode]; exact Real.abs_cos_le_one _
+    _ = |â k| := mul_one _
+
+/-- **O1c step 3 — the spectral `T→∞` limit.**  `∫₀ᵀ e^{−μt}·(heat value t â x) dt
+→ ∑ₖ âₖ cos(kπx)/(μ+λₖ)` as `T→∞`, by the uniform squeeze
+`‖trunc(T) − target‖ ≤ e^{−μT}·M` (`e^{−(μ+λₖ)T} ≤ e^{−μT}`, `M = ∑|âₖ|/(μ+λₖ)`). -/
+theorem laplaceHeatTrunc_tendsto {p : CM2Params} {â : ℕ → ℝ}
+    (hâ : Summable (fun n => (â n) ^ 2)) (x : ℝ) :
+    Filter.Tendsto
+      (fun T => ∫ t in (0:ℝ)..T,
+        Real.exp (-p.μ * t) * unitIntervalCosineHeatValue t â x)
+      Filter.atTop
+      (nhds (∑' k, â k * unitIntervalCosineMode k x
+        / (p.μ + unitIntervalCosineEigenvalue k))) := by
+  have hMsum := summable_abs_sourceCoeff_mul_weight (p := p) hâ
+  have htargetsum := summable_resolverTarget (p := p) hâ x
+  have hdpos : ∀ k, (0:ℝ) < p.μ + unitIntervalCosineEigenvalue k := by
+    intro k
+    have h0 : 0 ≤ unitIntervalCosineEigenvalue k := by
+      unfold unitIntervalCosineEigenvalue; positivity
+    linarith [p.hμ]
+  have hweq : ∀ k, intervalNeumannResolverWeight p k
+      = 1 / (p.μ + unitIntervalCosineEigenvalue k) := by
+    intro k
+    rw [intervalNeumannResolverWeight]; congr 2
+    rw [show unitIntervalNeumannSpectrum.eigenvalue k = (k : ℝ) ^ 2 * Real.pi ^ 2 from rfl,
+      unitIntervalCosineEigenvalue]; ring
+  set M : ℝ := ∑' k, |â k| * intervalNeumannResolverWeight p k with hM
+  set target : ℝ := ∑' k, â k * unitIntervalCosineMode k x
+    / (p.μ + unitIntervalCosineEigenvalue k) with htarget
+  -- the difference mode `cₖ(T) = âₖ cos e^{−(μ+λₖ)T}/(μ+λₖ)`, ‖cₖ‖ ≤ e^{−μT}|âₖ|weightₖ.
+  set c : ℝ → ℕ → ℝ := fun T k => â k * unitIntervalCosineMode k x
+    * Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T)
+    / (p.μ + unitIntervalCosineEigenvalue k) with hc
+  have hnormc : ∀ T k, 0 ≤ T →
+      ‖c T k‖ ≤ Real.exp (-p.μ * T) * (|â k| * intervalNeumannResolverWeight p k) := by
+    intro T k hT
+    have hexple : Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T)
+        ≤ Real.exp (-p.μ * T) := by
+      apply Real.exp_le_exp.mpr
+      have h0 : 0 ≤ unitIntervalCosineEigenvalue k := by
+        unfold unitIntervalCosineEigenvalue; positivity
+      nlinarith [h0, hT]
+    rw [hc, Real.norm_eq_abs, abs_div, abs_mul, abs_mul, Real.abs_exp,
+      abs_of_pos (hdpos k), hweq k, div_eq_mul_inv, one_div]
+    have hcos : |unitIntervalCosineMode k x| ≤ 1 := by
+      rw [unitIntervalCosineMode]; exact Real.abs_cos_le_one _
+    have key : |â k| * |unitIntervalCosineMode k x|
+        * Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T)
+        * (p.μ + unitIntervalCosineEigenvalue k)⁻¹
+        ≤ |â k| * Real.exp (-p.μ * T) * (p.μ + unitIntervalCosineEigenvalue k)⁻¹ := by
+      have h1 : |â k| * |unitIntervalCosineMode k x| ≤ |â k| := by
+        calc |â k| * |unitIntervalCosineMode k x| ≤ |â k| * 1 :=
+              mul_le_mul_of_nonneg_left hcos (abs_nonneg _)
+          _ = |â k| := mul_one _
+      have hinv : (0:ℝ) ≤ (p.μ + unitIntervalCosineEigenvalue k)⁻¹ := inv_nonneg.mpr (hdpos k).le
+      have h2 : |â k| * |unitIntervalCosineMode k x|
+          * Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T)
+          ≤ |â k| * Real.exp (-p.μ * T) :=
+        mul_le_mul h1 hexple (Real.exp_nonneg _) (abs_nonneg _)
+      exact mul_le_mul_of_nonneg_right h2 hinv
+    calc |â k| * |unitIntervalCosineMode k x|
+          * Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T)
+          * (p.μ + unitIntervalCosineEigenvalue k)⁻¹
+        ≤ |â k| * Real.exp (-p.μ * T) * (p.μ + unitIntervalCosineEigenvalue k)⁻¹ := key
+      _ = Real.exp (-p.μ * T) * (|â k| * (p.μ + unitIntervalCosineEigenvalue k)⁻¹) := by ring
+  have hcnormsum : ∀ T, 0 ≤ T → Summable (fun k => ‖c T k‖) := by
+    intro T hT
+    refine Summable.of_nonneg_of_le (fun k => norm_nonneg _) (fun k => hnormc T k hT)
+      (hMsum.mul_left (Real.exp (-p.μ * T)))
+  -- the squeeze bound on the truncated-spectral series.
+  have hev : ∀ᶠ T in Filter.atTop,
+      (∫ t in (0:ℝ)..T, Real.exp (-p.μ * t) * unitIntervalCosineHeatValue t â x)
+        = ∑' k, â k * unitIntervalCosineMode k x
+            * ((1 - Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T))
+                / (p.μ + unitIntervalCosineEigenvalue k)) := by
+    filter_upwards [Filter.eventually_ge_atTop (0:ℝ)] with T hT
+    exact laplaceResolverTrunc_eq_tsum hâ hT
+  refine Filter.Tendsto.congr' (Filter.EventuallyEq.symm hev) ?_
+  rw [← tendsto_sub_nhds_zero_iff]
+  apply squeeze_zero_norm' (a := fun T => Real.exp (-p.μ * T) * M)
+  · filter_upwards [Filter.eventually_ge_atTop (0:ℝ)] with T hT
+    -- truncSpectral T − target = − ∑' cₖ(T); its norm ≤ e^{−μT}·M.
+    have hasum : Summable (fun k => â k * unitIntervalCosineMode k x
+        * ((1 - Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T))
+            / (p.μ + unitIntervalCosineEigenvalue k))) := by
+      refine Summable.of_norm_bounded hMsum (fun k => ?_)
+      have hcos : |unitIntervalCosineMode k x| ≤ 1 := by
+        rw [unitIntervalCosineMode]; exact Real.abs_cos_le_one _
+      have he0 : 0 ≤ 1 - Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T) := by
+        have : Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T) ≤ 1 :=
+          Real.exp_le_one_iff.mpr (by nlinarith [hdpos k, hT])
+        linarith
+      have he1 : 1 - Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T) ≤ 1 := by
+        linarith [Real.exp_nonneg (-(p.μ + unitIntervalCosineEigenvalue k) * T)]
+      have hrw : â k * unitIntervalCosineMode k x
+          * ((1 - Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T))
+              / (p.μ + unitIntervalCosineEigenvalue k))
+          = (â k * unitIntervalCosineMode k x
+              * (1 - Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T)))
+            / (p.μ + unitIntervalCosineEigenvalue k) := by ring
+      rw [Real.norm_eq_abs, hrw, abs_div, abs_of_pos (hdpos k), hweq k,
+        div_eq_mul_inv, one_div]
+      refine mul_le_mul_of_nonneg_right ?_ (inv_nonneg.mpr (hdpos k).le)
+      rw [abs_mul, abs_mul, abs_of_nonneg he0]
+      calc |â k| * |unitIntervalCosineMode k x|
+            * (1 - Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T))
+          ≤ |â k| * 1 * 1 := by gcongr
+        _ = |â k| := by ring
+    have hdiff : (∑' k, â k * unitIntervalCosineMode k x
+          * ((1 - Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T))
+              / (p.μ + unitIntervalCosineEigenvalue k))) - target
+        = ∑' k, (- c T k) := by
+      rw [htarget, ← Summable.tsum_sub hasum htargetsum]
+      refine tsum_congr (fun k => ?_)
+      rw [hc]; field_simp; ring
+    rw [hdiff, tsum_neg, norm_neg]
+    calc ‖∑' k, c T k‖ ≤ ∑' k, ‖c T k‖ := norm_tsum_le_tsum_norm (hcnormsum T hT)
+      _ ≤ ∑' k, Real.exp (-p.μ * T) * (|â k| * intervalNeumannResolverWeight p k) :=
+          (hcnormsum T hT).tsum_le_tsum (fun k => hnormc T k hT)
+            (hMsum.mul_left (Real.exp (-p.μ * T)))
+      _ = Real.exp (-p.μ * T) * M := by rw [hM, tsum_mul_left]
+  · have hexp : Filter.Tendsto (fun T : ℝ => Real.exp (-p.μ * T)) Filter.atTop (nhds 0) := by
+      have hμT : Filter.Tendsto (fun T : ℝ => p.μ * T) Filter.atTop Filter.atTop :=
+        Filter.Tendsto.const_mul_atTop p.hμ Filter.tendsto_id
+      have hcomp : Filter.Tendsto (fun T : ℝ => Real.exp (-(p.μ * T)))
+          Filter.atTop (nhds 0) :=
+        Real.tendsto_exp_neg_atTop_nhds_zero.comp hμT
+      simpa only [neg_mul] using hcomp
+    simpa using hexp.mul_const M
+
 end ShenWork.IntervalResolverPositivity
