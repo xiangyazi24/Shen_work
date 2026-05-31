@@ -1132,4 +1132,42 @@ theorem cosineCoeff_summable_of_eigenvalue_summable {b : ℕ → ℝ}
     nlinarith [abs_nonneg (b (n + 1)), hge]
   exact (summable_nat_add_iff (f := fun n => |b n|) 1).1 htail
 
+/-! ## Remaining to close the atom (precise structure)
+
+Done in this file: per-mode time IBP (`duhamelCoeff_eigenvalue_mul`) + the
+coefficient summability `∑λₙ|bₙ|<∞ ⟹ ∑(nπ)|bₙ|<∞ ∧ ∑|bₙ|<∞`
+(`cosineCoeff_summable_of_eigenvalue_summable`).  The remaining pieces:
+
+**(E) Cosine-series `C²` engine** `cosineCoeffSeries_contDiff_two`:
+`∑'ₙ bₙ cos(nπx)` is `ContDiff ℝ 2` from `∑λₙ|bₙ|<∞`.  Structure (parallels
+`unitIntervalCosineHeatValue_contDiff_two`): value `→` grad `∑bₙ(−nπsin)` `→` second
+`∑bₙ(−(nπ)²cos)` by `hasDerivAt_tsum` (uniform majorants `(nπ)|bₙ|`, `λₙ|bₙ|` from
+the helper); second series continuous (`continuous_tsum`); assemble via
+`contDiff_succ_iff_deriv` + `contDiff_one_iff_deriv`.  Per-term derivatives:
+`(cosineMode_hasDerivAt n y).const_mul (b n)` (value→grad); for grad→second use
+`(Real.hasDerivAt_sin (nπy)).comp y ((hasDerivAt_id y).const_mul (nπ))` then
+`.const_mul (−nπ)` then `.const_mul (b n)`.
+
+**(D) Spectral form of `D`** `D(t)(x) = ∑'ₙ bₙ cos(nπx)`, `bₙ = ∫₀ᵗ e^{−(t−s)λₙ}ĝₙ(s)
+ds`, via `duhamelValue_adot_eq_tsum` applied to the family `a` (factor `cos(nπx)`
+out of the `s`-integral since it is `s`-constant: `∫₀ᵗ pw(t−s,x,n)·aₙ(s) = cos(nπx)·bₙ`).
+
+**(S) `∑λₙ|bₙ|<∞`** for these `bₙ`: from `duhamelCoeff_eigenvalue_mul`,
+`λₙbₙ = ĝₙ(t) − e^{−tλₙ}ĝₙ(0) − ∫₀ᵗe^{−(t−s)λₙ}ĝₙ′(s)`, so
+`λₙ|bₙ| ≤ |ĝₙ(t)| + |ĝₙ(0)| + Mdot·∫₀ᵗe^{−(t−s)λₙ} ≤ 2cₙ + Mdot/λₙ` (ℓ¹ + parabolic
+gain), summable.
+
+**(I) `∂ₓₓD = P`**: `∂ₓₓ[∑bₙcos] = ∑bₙ(−(nπ)²cos) = −∑λₙbₙcos`, and by (S)/IBP
+`−∑λₙbₙcos = value t(a 0) − (∑'ₙcos·ĝₙ(t)) + ∑'ₙ∫₀ᵗfₙ = P`.
+
+**(N) Neumann** `∂ₓD(t,0)=∂ₓD(t,1)=0`: `∂ₓ[∑bₙcos] = ∑bₙ(deriv cosineMode n)`, and
+`cosineMode_neumann_left/right` give `deriv(cosineMode n) 0 = deriv(cosineMode n) 1
+= 0` per mode, so the (uniformly-convergent) grad series vanishes at the endpoints.
+
+**(A) Atom** `intervalDuhamelTerm_closedC2_of_timeC1_source`: package the source
+regularity as `DuhamelSourceTimeC1` (bounded coeffs + time-`C¹` derivative + uniformly
+ℓ¹), then (D)+(S)+(E) give `ContDiffOn ℝ 2 (lift (D t)) (Icc 0 1)` (via the lift↔series
+agreement on `[0,1]`), (I) the `∂ₓₓ` formula, (N) the Neumann condition —
+`DuhamelTermInteriorC2` and its closed-boundary upgrade. -/
+
 end ShenWork.IntervalDuhamelClosedC2
