@@ -1170,30 +1170,104 @@ regularity as `DuhamelSourceTimeC1` (bounded coeffs + time-`C¹` derivative + un
 agreement on `[0,1]`), (I) the `∂ₓₓ` formula, (N) the Neumann condition —
 `DuhamelTermInteriorC2` and its closed-boundary upgrade. -/
 
-/-- **General cosine-series `C²`.**  `x ↦ ∑'ₙ bₙ cos(nπx)` is `ContDiff ℝ 2` when
-`∑'ₙ λₙ|bₙ| < ∞`.  Termwise differentiation twice (`hasDerivAt_tsum`), uniform
-majorants `(nπ)|bₙ|`, `λₙ|bₙ|`. -/
-theorem cosineCoeffSeries_contDiff_two {b : ℕ → ℝ}
-    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|)) :
-    ContDiff ℝ 2 (fun x => ∑' n, b n * cosineMode n x) := by
+/-- **Gradient `HasDerivAt` of the cosine series.**  Termwise differentiation:
+`∂ₓ ∑'ₙ bₙ cos(nπx) = ∑'ₙ bₙ·(−nπ·sin(nπx))`, uniformly majorised by `(nπ)|bₙ|`. -/
+theorem cosineCoeffSeries_grad_hasDerivAt {b : ℕ → ℝ}
+    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|)) (y : ℝ) :
+    HasDerivAt (fun x => ∑' n, b n * cosineMode n x)
+      (∑' n, b n * (-((n : ℝ) * Real.pi) * Real.sin ((n : ℝ) * Real.pi * y))) y := by
   obtain ⟨hfreq, hval⟩ := cosineCoeff_summable_of_eigenvalue_summable hb
-  set G : ℕ → ℝ → ℝ := fun (n : ℕ) (z : ℝ) =>
-    b n * (-((n : ℝ) * Real.pi) * Real.sin ((n : ℝ) * Real.pi * z)) with hG
-  set H : ℕ → ℝ → ℝ := fun (n : ℕ) (z : ℝ) =>
-    b n * (-(((n : ℝ) * Real.pi) ^ 2) * Real.cos ((n : ℝ) * Real.pi * z)) with hH
-  -- bounds (uniform in the spatial variable).
-  have hGbound : ∀ (n : ℕ) (y : ℝ), ‖G n y‖ ≤ ((n : ℝ) * Real.pi) * |b n| := by
-    intro n y
-    rw [hG]; rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_neg]
-    calc |b n| * (|(n : ℝ) * Real.pi| * |Real.sin ((n : ℝ) * Real.pi * y)|)
+  have hGbound : ∀ (n : ℕ) (z : ℝ),
+      ‖b n * (-((n : ℝ) * Real.pi) * Real.sin ((n : ℝ) * Real.pi * z))‖
+        ≤ ((n : ℝ) * Real.pi) * |b n| := by
+    intro n z
+    rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_neg]
+    calc |b n| * (|(n : ℝ) * Real.pi| * |Real.sin ((n : ℝ) * Real.pi * z)|)
         ≤ |b n| * (((n : ℝ) * Real.pi) * 1) := by
           gcongr
           · rw [abs_of_nonneg (by positivity)]
           · exact Real.abs_sin_le_one _
       _ = ((n : ℝ) * Real.pi) * |b n| := by ring
-  have hHbound : ∀ (n : ℕ) (y : ℝ), ‖H n y‖ ≤ unitIntervalCosineEigenvalue n * |b n| := by
-    intro n y
-    rw [hH]; rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_neg]
+  have hvalsum : Summable (fun n => b n * cosineMode n y) := by
+    refine Summable.of_norm_bounded hval (fun n => ?_)
+    rw [Real.norm_eq_abs, abs_mul]
+    calc |b n| * |cosineMode n y| ≤ |b n| * 1 :=
+          mul_le_mul_of_nonneg_left (by unfold cosineMode; exact Real.abs_cos_le_one _)
+            (abs_nonneg _)
+      _ = |b n| := mul_one _
+  have hterm1 : ∀ (n : ℕ) (z : ℝ),
+      HasDerivAt (fun x => b n * cosineMode n x)
+        (b n * (-((n : ℝ) * Real.pi) * Real.sin ((n : ℝ) * Real.pi * z))) z := by
+    intro n z
+    exact (cosineMode_hasDerivAt n z).const_mul (b n)
+  exact hasDerivAt_tsum (𝕜 := ℝ)
+    (u := fun n : ℕ => ((n : ℝ) * Real.pi) * |b n|)
+    hfreq hterm1 hGbound hvalsum y
+
+/-- **Second-gradient `HasDerivAt` of the cosine series.**  Termwise differentiation of
+the gradient series: `∂ₓ ∑'ₙ bₙ(−nπ sin(nπx)) = ∑'ₙ bₙ·(−(nπ)²·cos(nπx))`, majorised
+by `λₙ|bₙ|`. -/
+theorem cosineCoeffSeries_grad2_hasDerivAt {b : ℕ → ℝ}
+    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|)) (y : ℝ) :
+    HasDerivAt
+      (fun x => ∑' n, b n * (-((n : ℝ) * Real.pi) * Real.sin ((n : ℝ) * Real.pi * x)))
+      (∑' n, b n * (-(((n : ℝ) * Real.pi) ^ 2) * Real.cos ((n : ℝ) * Real.pi * y))) y := by
+  obtain ⟨hfreq, hval⟩ := cosineCoeff_summable_of_eigenvalue_summable hb
+  have hGbound : ∀ (n : ℕ) (z : ℝ),
+      ‖b n * (-((n : ℝ) * Real.pi) * Real.sin ((n : ℝ) * Real.pi * z))‖
+        ≤ ((n : ℝ) * Real.pi) * |b n| := by
+    intro n z
+    rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_neg]
+    calc |b n| * (|(n : ℝ) * Real.pi| * |Real.sin ((n : ℝ) * Real.pi * z)|)
+        ≤ |b n| * (((n : ℝ) * Real.pi) * 1) := by
+          gcongr
+          · rw [abs_of_nonneg (by positivity)]
+          · exact Real.abs_sin_le_one _
+      _ = ((n : ℝ) * Real.pi) * |b n| := by ring
+  have hHbound : ∀ (n : ℕ) (z : ℝ),
+      ‖b n * (-(((n : ℝ) * Real.pi) ^ 2) * Real.cos ((n : ℝ) * Real.pi * z))‖
+        ≤ unitIntervalCosineEigenvalue n * |b n| := by
+    intro n z
+    rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_neg]
+    have hlam : unitIntervalCosineEigenvalue n = ((n : ℝ) * Real.pi) ^ 2 := by
+      unfold unitIntervalCosineEigenvalue; ring
+    rw [hlam]
+    calc |b n| * (|((n : ℝ) * Real.pi) ^ 2| * |Real.cos ((n : ℝ) * Real.pi * z)|)
+        ≤ |b n| * ((((n : ℝ) * Real.pi) ^ 2) * 1) := by
+          gcongr
+          · rw [abs_of_nonneg (by positivity)]
+          · exact Real.abs_cos_le_one _
+      _ = ((n : ℝ) * Real.pi) ^ 2 * |b n| := by ring
+  have hGsum : Summable
+      (fun n => b n * (-((n : ℝ) * Real.pi) * Real.sin ((n : ℝ) * Real.pi * y))) :=
+    Summable.of_norm_bounded hfreq (fun n => hGbound n y)
+  have hterm2 : ∀ (n : ℕ) (z : ℝ),
+      HasDerivAt
+        (fun x => b n * (-((n : ℝ) * Real.pi) * Real.sin ((n : ℝ) * Real.pi * x)))
+        (b n * (-(((n : ℝ) * Real.pi) ^ 2) * Real.cos ((n : ℝ) * Real.pi * z))) z := by
+    intro n z
+    have hsin : HasDerivAt (fun x : ℝ => Real.sin ((n : ℝ) * Real.pi * x))
+        ((n : ℝ) * Real.pi * Real.cos ((n : ℝ) * Real.pi * z)) z := by
+      have := (Real.hasDerivAt_sin ((n : ℝ) * Real.pi * z)).comp z
+        ((hasDerivAt_id z).const_mul ((n : ℝ) * Real.pi))
+      convert this using 1; ring
+    have := (hsin.const_mul (-((n : ℝ) * Real.pi))).const_mul (b n)
+    convert this using 1; ring
+  exact hasDerivAt_tsum (𝕜 := ℝ)
+    (u := fun n => unitIntervalCosineEigenvalue n * |b n|)
+    hb hterm2 hHbound hGsum y
+
+/-- **General cosine-series `C²`.**  `x ↦ ∑'ₙ bₙ cos(nπx)` is `ContDiff ℝ 2` when
+`∑'ₙ λₙ|bₙ| < ∞`.  Two-fold termwise differentiation
+(`cosineCoeffSeries_grad_hasDerivAt`, `cosineCoeffSeries_grad2_hasDerivAt`) with the
+second series continuous (`continuous_tsum`, majorant `λₙ|bₙ|`). -/
+theorem cosineCoeffSeries_contDiff_two {b : ℕ → ℝ}
+    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|)) :
+    ContDiff ℝ 2 (fun x => ∑' n, b n * cosineMode n x) := by
+  have hHcont : Continuous
+      (fun y => ∑' n, b n * (-(((n : ℝ) * Real.pi) ^ 2) * Real.cos ((n : ℝ) * Real.pi * y))) := by
+    refine continuous_tsum (fun n => by fun_prop) hb (fun n y => ?_)
+    rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_neg]
     have hlam : unitIntervalCosineEigenvalue n = ((n : ℝ) * Real.pi) ^ 2 := by
       unfold unitIntervalCosineEigenvalue; ring
     rw [hlam]
@@ -1203,54 +1277,52 @@ theorem cosineCoeffSeries_contDiff_two {b : ℕ → ℝ}
           · rw [abs_of_nonneg (by positivity)]
           · exact Real.abs_cos_le_one _
       _ = ((n : ℝ) * Real.pi) ^ 2 * |b n| := by ring
-  have hvalsum : ∀ y : ℝ, Summable (fun n => b n * cosineMode n y) := by
-    intro y
-    refine Summable.of_norm_bounded hval (fun n => ?_)
-    rw [Real.norm_eq_abs, abs_mul]
-    calc |b n| * |cosineMode n y| ≤ |b n| * 1 :=
-          mul_le_mul_of_nonneg_left (by unfold cosineMode; exact Real.abs_cos_le_one _)
-            (abs_nonneg _)
-      _ = |b n| := mul_one _
-  have hGsum : ∀ y : ℝ, Summable (fun n => G n y) :=
-    fun y => Summable.of_norm_bounded hfreq (fun n => hGbound n y)
-  -- per-term `HasDerivAt`s.
-  have hterm1 : ∀ (n : ℕ) (y : ℝ),
-      HasDerivAt (fun z => b n * cosineMode n z) (G n y) y := by
-    intro n y
-    have := (cosineMode_hasDerivAt n y).const_mul (b n)
-    rw [hG]; convert this using 1
-  have hterm2 : ∀ (n : ℕ) (y : ℝ), HasDerivAt (fun z => G n z) (H n y) y := by
-    intro n y
-    have hsin : HasDerivAt (fun z : ℝ => Real.sin ((n : ℝ) * Real.pi * z))
-        ((n : ℝ) * Real.pi * Real.cos ((n : ℝ) * Real.pi * y)) y := by
-      have := (Real.hasDerivAt_sin ((n : ℝ) * Real.pi * y)).comp y
-        ((hasDerivAt_id y).const_mul ((n : ℝ) * Real.pi))
-      convert this using 1; ring
-    have := (hsin.const_mul (-((n : ℝ) * Real.pi))).const_mul (b n)
-    rw [hG, hH]; convert this using 1; ring
-  -- the two derivative series.
-  have hderiv1 : ∀ y : ℝ,
-      HasDerivAt (fun z => ∑' n, b n * cosineMode n z) (∑' n, G n y) y := by
-    intro y
-    exact hasDerivAt_tsum (𝕜 := ℝ)
-      (u := fun n : ℕ => ((n : ℝ) * Real.pi) * |b n|)
-      hfreq hterm1 hGbound (hvalsum y) y
-  have hderiv2 : ∀ y : ℝ, HasDerivAt (fun z => ∑' n, G n z) (∑' n, H n y) y := by
-    intro y
-    exact hasDerivAt_tsum (𝕜 := ℝ)
-      (u := fun n => unitIntervalCosineEigenvalue n * |b n|)
-      hb hterm2 hHbound (hGsum y) y
-  have hHcont : Continuous (fun y => ∑' n, H n y) := by
-    refine continuous_tsum (fun n => by rw [hH]; fun_prop) hb (fun n y => hHbound n y)
-  -- assemble.
   rw [show (2 : WithTop ℕ∞) = 1 + 1 from rfl, contDiff_succ_iff_deriv]
-  refine ⟨fun y => (hderiv1 y).differentiableAt, by simp, ?_⟩
-  have he1 : deriv (fun z => ∑' n, b n * cosineMode n z) = fun y => ∑' n, G n y := by
-    funext y; exact (hderiv1 y).deriv
+  refine ⟨fun y => (cosineCoeffSeries_grad_hasDerivAt hb y).differentiableAt, by simp, ?_⟩
+  have he1 : deriv (fun x => ∑' n, b n * cosineMode n x)
+      = fun y => ∑' n, b n * (-((n : ℝ) * Real.pi) * Real.sin ((n : ℝ) * Real.pi * y)) := by
+    funext y; exact (cosineCoeffSeries_grad_hasDerivAt hb y).deriv
   rw [he1, contDiff_one_iff_deriv]
-  refine ⟨fun y => (hderiv2 y).differentiableAt, ?_⟩
-  have he2 : deriv (fun z => ∑' n, G n z) = fun y => ∑' n, H n y := by
-    funext y; exact (hderiv2 y).deriv
+  refine ⟨fun y => (cosineCoeffSeries_grad2_hasDerivAt hb y).differentiableAt, ?_⟩
+  have he2 : deriv
+      (fun x => ∑' n, b n * (-((n : ℝ) * Real.pi) * Real.sin ((n : ℝ) * Real.pi * x)))
+      = fun y => ∑' n, b n * (-(((n : ℝ) * Real.pi) ^ 2) * Real.cos ((n : ℝ) * Real.pi * y)) := by
+    funext y; exact (cosineCoeffSeries_grad2_hasDerivAt hb y).deriv
   rw [he2]; exact hHcont
+
+/-- **Spectral second derivative.**  `∂ₓₓ ∑'ₙ bₙ cos(nπx) = ∑'ₙ bₙ·(−(nπ)²cos(nπx))`
+`= −∑'ₙ λₙ bₙ cos(nπx)`. -/
+theorem cosineCoeffSeries_deriv2_eq {b : ℕ → ℝ}
+    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|)) (y : ℝ) :
+    deriv (deriv (fun x => ∑' n, b n * cosineMode n x)) y
+      = ∑' n, b n * (-(((n : ℝ) * Real.pi) ^ 2) * Real.cos ((n : ℝ) * Real.pi * y)) := by
+  have he1 : deriv (fun x => ∑' n, b n * cosineMode n x)
+      = fun z => ∑' n, b n * (-((n : ℝ) * Real.pi) * Real.sin ((n : ℝ) * Real.pi * z)) := by
+    funext z; exact (cosineCoeffSeries_grad_hasDerivAt hb z).deriv
+  rw [he1]; exact (cosineCoeffSeries_grad2_hasDerivAt hb y).deriv
+
+/-- **Neumann at the left endpoint.**  `∂ₓ ∑'ₙ bₙ cos(nπx)` vanishes at `x = 0`
+(each term carries `sin(nπ·0) = 0`). -/
+theorem cosineCoeffSeries_deriv_at_zero {b : ℕ → ℝ}
+    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|)) :
+    deriv (fun x => ∑' n, b n * cosineMode n x) 0 = 0 := by
+  rw [(cosineCoeffSeries_grad_hasDerivAt hb 0).deriv]
+  have : (fun n => b n * (-((n : ℝ) * Real.pi) * Real.sin ((n : ℝ) * Real.pi * 0)))
+      = fun _ : ℕ => (0 : ℝ) := by
+    funext n; simp
+  rw [this, tsum_zero]
+
+/-- **Neumann at the right endpoint.**  `∂ₓ ∑'ₙ bₙ cos(nπx)` vanishes at `x = 1`
+(each term carries `sin(nπ·1) = sin(nπ) = 0`). -/
+theorem cosineCoeffSeries_deriv_at_one {b : ℕ → ℝ}
+    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|)) :
+    deriv (fun x => ∑' n, b n * cosineMode n x) 1 = 0 := by
+  rw [(cosineCoeffSeries_grad_hasDerivAt hb 1).deriv]
+  have : (fun n => b n * (-((n : ℝ) * Real.pi) * Real.sin ((n : ℝ) * Real.pi * 1)))
+      = fun _ : ℕ => (0 : ℝ) := by
+    funext n
+    rw [mul_one, Real.sin_nat_mul_pi]
+    ring
+  rw [this, tsum_zero]
 
 end ShenWork.IntervalDuhamelClosedC2
