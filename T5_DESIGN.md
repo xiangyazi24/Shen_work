@@ -308,3 +308,22 @@ s=t 不可积，必须用热方程恒等 `∂ₓₓS=∂_rS` + **时间分部积
 （需源 g_s 关于 s 的 C¹ 正则 + S(0)=id 近似单位边界项），与不动点 bootstrap 耦合。
 这需要 Mathlib 没有的抛物正则性/解析半群基础设施，是真·多月工程，无可独立提交的
 小增量（构造是循环的：要先有解才能谈其 conjunct）。
+
+### 7.4 更新（2026-05-30，T6 闭合后）—— B1 的解析核 [D1] 已被 T6 atom 证完
+§7.3 说的"诚实路线 B1"（∂ₓₓD_t = S(t)g(0)−g(t)+∫₀ᵗ S(t−s)∂ₛg ds，热恒等 ∂ₓₓS=∂_rS
++ 时间分部积分把导数搬到 ∂ₛg，需源时间 C¹）**正是 T6 atom**
+`intervalDuhamelTerm_closedC2_of_timeC1_source`（`IntervalDuhamelClosedC2.lean`）所证。
+故 §7.3 的"深墙"应拆为两半：
+
+- **[D1] 解析核 = DONE（T6）**：给定源 `DuhamelSourceTimeC1 a`（时间 C¹ cosine 系数 +
+  ℓ¹ envelope + 导数一致界），Duhamel 项闭 C² + 两端 Neumann + 谱 ∂ₓₓ 显式。`(t−s)^{−3/2}`
+  奇性已被时间 IBP 消掉。T7[A][B]（`IntervalCosineSliceRegularity.lean`）把这一输出接到
+  仓库 `intervalDomainClassicalRegularity` 的 conjunct (3)/(6)/(7) 精确形态。
+
+- **[D2] 不动点 bootstrap = 仍是墙**：仍需构造耦合解 (u,v) 并证其源
+  `g_s = −χ∇·(u∇v/(1+v)^β)+u(a−bu^α)` 满足 `DuhamelSourceTimeC1`（时间 C¹ + 谱系数
+  ℓ¹），闭合循环（"要先有解才能谈其源的正则"）。这是 Banach/Picard 不动点 + 抛物
+  Schauder/解析半群，Mathlib 缺，真墙。**T7 的最终组装卡在 [D2]，不卡在 [D1]。**
+
+剩余正则 conjunct：(4)(5)(8)(9)（时间/联合时空连续）= T7[C]，需 cosine 系数 cₙ(t) 的
+联合 Weierstrass-M（齐次部分 cₙ(t)=e^{−tλₙ}û₀ₙ 可证；与 [D2] 同样依赖表示存在）。
