@@ -199,4 +199,66 @@ theorem valueDuhamel_diff_sup_bound
       (fun s _ => congrFun hcongr s)]
   exact valueDuhamel_sup_bound ht htT hD hr_diff x hdiff_int
 
+/-- **Gradient semigroup linearity.**  `∂ₓ(S(τ)(f−g)) = ∂ₓ(S(τ)f) − ∂ₓ(S(τ)g)`:
+the function-level `intervalFullSemigroupOperator_sub` (at every `z`) plus
+`deriv_sub`. -/
+theorem intervalFullSemigroupOperator_deriv_sub {τ x : ℝ} {f g : ℝ → ℝ}
+    (hKf : ∀ z, Integrable
+      (fun y => intervalNeumannFullKernel τ z y * f y) (intervalMeasure 1))
+    (hKg : ∀ z, Integrable
+      (fun y => intervalNeumannFullKernel τ z y * g y) (intervalMeasure 1))
+    (hdf : DifferentiableAt ℝ (fun z => intervalFullSemigroupOperator τ f z) x)
+    (hdg : DifferentiableAt ℝ (fun z => intervalFullSemigroupOperator τ g z) x) :
+    deriv (fun z => intervalFullSemigroupOperator τ (fun y => f y - g y) z) x
+      = deriv (fun z => intervalFullSemigroupOperator τ f z) x
+        - deriv (fun z => intervalFullSemigroupOperator τ g z) x := by
+  have hfun : (fun z => intervalFullSemigroupOperator τ (fun y => f y - g y) z)
+      = (fun z => intervalFullSemigroupOperator τ f z
+          - intervalFullSemigroupOperator τ g z) := by
+    funext z; exact intervalFullSemigroupOperator_sub (hKf z) (hKg z)
+  rw [hfun]; exact deriv_sub hdf hdg
+
+/-- **Atom D — gradient-Duhamel difference Lipschitz.**  By gradient linearity the
+difference of two gradient-Duhamel images equals the gradient-Duhamel image of
+the source difference, so `|∫₀ᵗ (∂ₓS(t−s)q₁ − ∂ₓS(t−s)q₂) ds| ≤ Cgrad·2√T·D`
+whenever `|q₁ − q₂| ≤ D`.  `hKq₁/hKq₂` (per-`(s,z)` kernel integrability) and
+`hd₁/hd₂` (per-slice spatial differentiability, from T1) are the honest
+regularity inputs of the linearity split. -/
+theorem gradDuhamel_diff_sup_bound
+    {t T : ℝ} (ht : 0 < t) (htT : t ≤ T) {q₁ q₂ : ℝ → ℝ → ℝ}
+    {D : ℝ} (hD : 0 ≤ D) (hq_diff : ∀ s y, |q₁ s y - q₂ s y| ≤ D)
+    (hq_int_diff : ∀ s, Integrable (fun y => q₁ s y - q₂ s y) (intervalMeasure 1))
+    (x : ℝ)
+    (hKq₁ : ∀ s z, Integrable
+      (fun y => intervalNeumannFullKernel (t - s) z y * q₁ s y) (intervalMeasure 1))
+    (hKq₂ : ∀ s z, Integrable
+      (fun y => intervalNeumannFullKernel (t - s) z y * q₂ s y) (intervalMeasure 1))
+    (hd₁ : ∀ s, 0 ≤ s → s < t →
+      DifferentiableAt ℝ (fun z => intervalFullSemigroupOperator (t - s) (q₁ s) z) x)
+    (hd₂ : ∀ s, 0 ≤ s → s < t →
+      DifferentiableAt ℝ (fun z => intervalFullSemigroupOperator (t - s) (q₂ s) z) x)
+    (hg_int : IntervalIntegrable
+      (fun s : ℝ => deriv
+        (fun z : ℝ => intervalFullSemigroupOperator (t - s) (fun y => q₁ s y - q₂ s y) z) x)
+      volume 0 t) :
+    |∫ s in (0:ℝ)..t,
+        (deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q₁ s) z) x
+          - deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q₂ s) z) x)|
+      ≤ heatGradientLinftyLinftyConstant * (2 * Real.sqrt T) * D := by
+  have hne : ∀ᵐ s : ℝ ∂volume, s ≠ t := by
+    rw [ae_iff]
+    simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+  have hcongr : ∀ᵐ s : ℝ ∂volume, s ∈ Set.uIoc 0 t →
+      deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q₁ s) z) x
+          - deriv (fun z : ℝ => intervalFullSemigroupOperator (t - s) (q₂ s) z) x
+        = deriv
+          (fun z : ℝ => intervalFullSemigroupOperator (t - s) (fun y => q₁ s y - q₂ s y) z) x := by
+    filter_upwards [hne] with s hs_ne hs_mem
+    rw [Set.uIoc_of_le ht.le] at hs_mem
+    have hst : s < t := lt_of_le_of_ne hs_mem.2 hs_ne
+    exact (intervalFullSemigroupOperator_deriv_sub (hKq₁ s) (hKq₂ s)
+      (hd₁ s hs_mem.1.le hst) (hd₂ s hs_mem.1.le hst)).symm
+  rw [intervalIntegral.integral_congr_ae hcongr]
+  exact gradDuhamel_sup_bound ht htT hq_int_diff hD hq_diff x hg_int
+
 end ShenWork.IntervalGradDuhamelBound
