@@ -78,22 +78,51 @@ def picardLimit (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (T : ℝ)
 
 /-! ## Uniform convergence from geometric bound -/
 
-/-- The Picard iterates converge uniformly on (0,T] × [0,1]:
-‖u_n − u‖_∞ ≤ K^n · C₀ / (1 − K). -/
+/-- The geometric tail sum K^n · C₀ / (1 − K) tends to 0. -/
+
+private theorem geometric_tail_tendsto_zero {K C₀ : ℝ}
+    (hK : K < 1) (hK_nn : 0 ≤ K) :
+    Tendsto (fun n => K ^ n * C₀ / (1 - K)) atTop (nhds 0) := by
+  have h1K : (0 : ℝ) < 1 - K := by linarith
+  rw [show (0:ℝ) = 0 / (1 - K) from by simp]
+  apply Tendsto.div_const
+  have := tendsto_pow_atTop_nhds_zero_of_lt_one hK_nn hK |>.mul_const C₀
+  simp [zero_mul] at this
+  exact this
+
+/-- At each (t,x), the Cauchy sequence u_n(t,x) satisfies the tail bound
+|u_n(t,x) - L| ≤ K^n · C₀ / (1 - K). This is the quantitative rate from
+the geometric Cauchy bound. -/
+theorem picardIter_pointwise_tail_bound (p : CM2Params)
+    (u₀ : intervalDomainPoint → ℝ)
+    {T K C₀ : ℝ} (hK : K < 1) (hK_nn : 0 ≤ K) (hC₀ : 0 ≤ C₀)
+    (hbound : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |picardIter p u₀ (n + 1) t x - picardIter p u₀ n t x| ≤ K ^ n * C₀)
+    (t : ℝ) (ht : 0 < t) (htT : t ≤ T) (x : intervalDomainPoint) (n : ℕ) :
+    |picardIter p u₀ n t x - picardLimit p u₀ T t x| ≤ K ^ n * C₀ / (1 - K) := by
+  sorry
+
 theorem picardIter_uniform_convergence (p : CM2Params)
     (u₀ : intervalDomainPoint → ℝ)
-    {T K C₀ : ℝ} (_hT : 0 < T) (hK : K < 1) (hK_nn : 0 ≤ K) (_hC₀ : 0 ≤ C₀)
+    {T K C₀ : ℝ} (_hT : 0 < T) (hK : K < 1) (hK_nn : 0 ≤ K) (hC₀ : 0 ≤ C₀)
     (hbound : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
       |picardIter p u₀ (n + 1) t x - picardIter p u₀ n t x| ≤ K ^ n * C₀) :
     ∀ ε > 0, ∃ N : ℕ, ∀ n ≥ N, ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
       |picardIter p u₀ n t x - picardLimit p u₀ T t x| < ε := by
   intro ε hε
-  -- The tail sum K^N · C₀ / (1 - K) → 0, so ∃ N with tail < ε.
-  -- For any (t,x), the telescoping bound gives:
-  --   |u_n(t,x) - u(t,x)| ≤ ∑_{k≥n} |u_{k+1}(t,x) - u_k(t,x)|
-  --                        ≤ ∑_{k≥n} K^k · C₀ = K^n · C₀ / (1 - K)
-  -- We choose N so K^N · C₀ / (1 - K) < ε.
-  sorry
+  have htend := geometric_tail_tendsto_zero hK hK_nn (C₀ := C₀)
+  rw [Metric.tendsto_atTop] at htend
+  obtain ⟨N, hN⟩ := htend ε hε
+  exact ⟨N, fun n hn t ht htT x => by
+    calc |picardIter p u₀ n t x - picardLimit p u₀ T t x|
+        ≤ K ^ n * C₀ / (1 - K) :=
+          picardIter_pointwise_tail_bound p u₀ hK hK_nn hC₀ hbound t ht htT x n
+      _ < ε := by
+          have h1K : (0 : ℝ) < 1 - K := by linarith
+          have hnn : 0 ≤ K ^ n * C₀ / (1 - K) :=
+            div_nonneg (mul_nonneg (pow_nonneg hK_nn n) hC₀) h1K.le
+          have := hN n hn
+          rwa [dist_zero_right, Real.norm_eq_abs, abs_of_nonneg hnn] at this⟩
 
 /-! ## The limit is a fixed point -/
 
