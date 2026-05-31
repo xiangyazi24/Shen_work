@@ -102,4 +102,25 @@ theorem chemFluxValue_lipschitz {β M B_G d L_G L_R : ℝ} (hβ : 0 ≤ β)
     _ ≤ (d * B_G * 1 + M * (L_G * d) * 1) + M * B_G * (β * (L_R * d)) := by gcongr
     _ = (B_G + M * L_G + M * B_G * β * L_R) * d := by ring
 
+/-- **glue1 — chemotaxis flux sup-Lipschitz (`/(1+v)^β` form).**  The actual flux
+quotient `a·g/(1+v)^β` (`= a·g·(1+v)^{−β}` since `v ≥ 0`) is Lipschitz at every
+point, directly from the value core.  This is the interface consumed by the
+contraction (glue2 / Atom E): the caller supplies the pointwise resolver bounds
+(`a = u` bounded, `g = ∂ₓR` bounded+Lipschitz via Atom B, `v = R ≥ 0` bounded+
+Lipschitz via Atom B + O1). -/
+theorem chemFlux_div_lipschitz {β M B_G d L_G L_R : ℝ} (hβ : 0 ≤ β)
+    {a₁ a₂ g₁ g₂ v₁ v₂ : ℝ}
+    (ha₂ : |a₂| ≤ M) (hg₁ : |g₁| ≤ B_G) (hg₂ : |g₂| ≤ B_G)
+    (hv₁ : 0 ≤ v₁) (hv₂ : 0 ≤ v₂)
+    (had : |a₁ - a₂| ≤ d) (hgd : |g₁ - g₂| ≤ L_G * d) (hvd : |v₁ - v₂| ≤ L_R * d)
+    (hBnn : 0 ≤ B_G) :
+    |a₁ * g₁ / (1 + v₁) ^ β - a₂ * g₂ / (1 + v₂) ^ β|
+      ≤ (B_G + M * L_G + M * B_G * β * L_R) * d := by
+  have hcv : ∀ {v : ℝ}, 0 ≤ v → (1 + v) ^ (-β) = ((1 + v) ^ β)⁻¹ := by
+    intro v hv; rw [Real.rpow_neg (by linarith)]
+  have heq : ∀ {a g v : ℝ}, 0 ≤ v → a * g / (1 + v) ^ β = a * g * (1 + v) ^ (-β) := by
+    intro a g v hv; rw [hcv hv, div_eq_mul_inv]
+  rw [heq hv₁, heq hv₂]
+  exact chemFluxValue_lipschitz hβ ha₂ hg₁ hg₂ hv₁ hv₂ had hgd hvd hBnn
+
 end ShenWork.IntervalChemFluxLipschitz
