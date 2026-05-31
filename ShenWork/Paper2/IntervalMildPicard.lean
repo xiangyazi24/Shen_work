@@ -100,7 +100,24 @@ theorem picardIter_pointwise_tail_bound (p : CM2Params)
       |picardIter p u₀ (n + 1) t x - picardIter p u₀ n t x| ≤ K ^ n * C₀)
     (t : ℝ) (ht : 0 < t) (htT : t ≤ T) (x : intervalDomainPoint) (n : ℕ) :
     |picardIter p u₀ n t x - picardLimit p u₀ T t x| ≤ K ^ n * C₀ / (1 - K) := by
-  sorry
+  set a := fun m => picardIter p u₀ m t x
+  set d := fun m => K ^ m * C₀
+  have hdist : ∀ m, dist (a m) (a m.succ) ≤ d m := by
+    intro m; rw [Real.dist_eq, abs_sub_comm]; exact hbound m t ht htT x
+  have hd_sum : Summable d :=
+    Summable.mul_right C₀ (summable_geometric_of_lt_one hK_nn hK)
+  have hcauchy : CauchySeq a := cauchySeq_of_dist_le_of_summable d hdist hd_sum
+  obtain ⟨L, hL⟩ := cauchySeq_tendsto_of_complete hcauchy
+  have hlim_eq : picardLimit p u₀ T t x = L := by
+    unfold picardLimit; simp only [ht, htT, and_self, ite_true]
+    change (atTop.limUnder fun n => picardIter p u₀ n t x) = L
+    exact hL.limUnder_eq
+  rw [hlim_eq, ← Real.dist_eq]
+  calc dist (a n) L ≤ ∑' m, d (n + m) :=
+        dist_le_tsum_of_dist_le_of_tendsto d hdist hd_sum hL n
+    _ = K ^ n * C₀ / (1 - K) := by
+        simp_rw [d, pow_add, mul_assoc]
+        rw [tsum_mul_left, tsum_mul_right, tsum_geometric_of_lt_one hK_nn hK]; ring
 
 theorem picardIter_uniform_convergence (p : CM2Params)
     (u₀ : intervalDomainPoint → ℝ)
@@ -128,7 +145,9 @@ theorem picardIter_uniform_convergence (p : CM2Params)
 
 /-- The limit trajectory is bounded: |u(t,x)| ≤ M when all iterates are. -/
 theorem picardLimit_bounded (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
-    {T M : ℝ}
+    {T K C₀ M : ℝ} (hK : K < 1) (hK_nn : 0 ≤ K) (hC₀ : 0 ≤ C₀)
+    (hbound : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |picardIter p u₀ (n + 1) t x - picardIter p u₀ n t x| ≤ K ^ n * C₀)
     (hball : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
       |picardIter p u₀ n t x| ≤ M) :
     ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
@@ -136,8 +155,12 @@ theorem picardLimit_bounded (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   intro t ht htT x
   unfold picardLimit
   simp only [ht, htT, and_self, ite_true]
-  -- The limit of M-bounded functions is M-bounded
-  sorry
+  set a := fun m => picardIter p u₀ m t x
+  have hcauchy : CauchySeq a :=
+    real_cauchySeq_of_geometric_bound hK hK_nn hC₀ (fun n => hbound n t ht htT x)
+  obtain ⟨L, hL⟩ := cauchySeq_tendsto_of_complete hcauchy
+  rw [hL.limUnder_eq]
+  exact le_of_tendsto (hL.abs) (Eventually.of_forall (fun n => hball n t ht htT x))
 
 theorem picardLimit_is_mildSolution (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
     {T K C₀ M : ℝ} (hT : 0 < T) (hK : K < 1) (hK_nn : 0 ≤ K) (hC₀ : 0 ≤ C₀)
