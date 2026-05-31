@@ -68,6 +68,7 @@ import ShenWork.PDE.IntervalDuhamelClosedC2
 import ShenWork.PDE.IntervalCosineSliceRegularity
 import ShenWork.PDE.IntervalLogisticLipschitz
 import ShenWork.PDE.IntervalGradDuhamelBound
+import ShenWork.PDE.IntervalResolverPositivity
 import ShenWork.PDE.IntervalDuhamelRepresentation
 import ShenWork.Paper2.IntervalDomainL2UniquenessCertificate
 import ShenWork.Paper2.IntervalDomainL2FrontierBuilder
