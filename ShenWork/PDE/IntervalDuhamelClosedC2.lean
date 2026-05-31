@@ -258,37 +258,31 @@ theorem duhamelIntegrand_hasDerivAt
     {t x : ℝ} {a adot : ℝ → ℕ → ℝ} {M Mdot : ℝ}
     (hbound : ∀ s n, |a s n| ≤ M) (hbound' : ∀ s n, |adot s n| ≤ Mdot)
     (hda : ∀ s n, HasDerivAt (fun σ : ℝ => a σ n) (adot s n) s)
-    {s₀ : ℝ} (hs₀ : s₀ ∈ Set.Ioo 0 t) :
+    {s₀ : ℝ} (hs₀lt : s₀ < t) :
     HasDerivAt (fun s : ℝ => unitIntervalCosineHeatValue (t - s) (a s) x)
       (-(unitIntervalCosineHeatSecondValue (t - s₀) (a s₀) x)
         + unitIntervalCosineHeatValue (t - s₀) (adot s₀) x) s₀ := by
   classical
-  obtain ⟨hs₀pos, hs₀lt⟩ := hs₀
   have hMnn : 0 ≤ M := le_trans (abs_nonneg _) (hbound s₀ 0)
   have hMdotnn : 0 ≤ Mdot := le_trans (abs_nonneg _) (hbound' s₀ 0)
+  -- the neighbourhood `(s₀−δ, s₀+δ)` with `δ = (t−s₀)/2` keeps `s` away from `t`
+  -- (so `t−s ≥ rmin > 0`); it may dip below `0` — harmless, `a` is defined on all ℝ.
   set rmin : ℝ := (t - s₀) / 2 with hrmin_def
   have hrmin_pos : 0 < rmin := by rw [hrmin_def]; linarith
-  set δ : ℝ := min s₀ (t - s₀) / 2 with hδ_def
-  have hδ_pos : 0 < δ := by
-    rw [hδ_def]; have := lt_min hs₀pos (show (0:ℝ) < t - s₀ by linarith); linarith
+  set δ : ℝ := (t - s₀) / 2 with hδ_def
+  have hδ_pos : 0 < δ := by rw [hδ_def]; linarith
   set S : Set ℝ := Set.Ioo (s₀ - δ) (s₀ + δ) with hS_def
   have hS_open : IsOpen S := isOpen_Ioo
   have hS_conn : IsPreconnected S := (convex_Ioo _ _).isPreconnected
   have hs₀_mem : s₀ ∈ S := by
     rw [hS_def]; exact ⟨by linarith, by linarith⟩
-  -- on `S`: `0 < s` and `rmin ≤ t − s`.
-  have hsub_pos : ∀ s ∈ S, 0 < t - s := by
-    intro s hs
-    have hδ1 : δ ≤ (t - s₀) / 2 := by
-      rw [hδ_def]; have := min_le_right s₀ (t - s₀); linarith
-    have : s < s₀ + δ := hs.2
-    linarith
+  -- on `S`: `rmin ≤ t − s` (hence `0 < t − s`).
   have hsub_ge : ∀ s ∈ S, rmin ≤ t - s := by
     intro s hs
-    have hδ1 : δ ≤ (t - s₀) / 2 := by
-      rw [hδ_def]; have := min_le_right s₀ (t - s₀); linarith
     have : s < s₀ + δ := hs.2
-    rw [hrmin_def]; linarith
+    rw [hrmin_def, hδ_def] at *; linarith
+  have hsub_pos : ∀ s ∈ S, 0 < t - s := fun s hs =>
+    lt_of_lt_of_le hrmin_pos (hsub_ge s hs)
   -- the summable majorant.
   set u : ℕ → ℝ := fun n =>
     (4 / (rmin ^ 2 * Real.pi ^ 2) * reciprocalSquareTerm n) * M
