@@ -196,4 +196,33 @@ theorem unitIntervalCosineHeatValue_heat_identity
   rw [unitIntervalCosineHeatValue_spatial_second_deriv hr hM,
     (unitIntervalCosineHeatValue_hasDerivAt_time hr hM).deriv]
 
+/-! ## Step 3 — the time chain rule `d/ds[S(t−s)g(s)]`
+
+The Duhamel integrand `Φ(s) = S(t−s)g(s)(x)` is, spectrally,
+`∑'ₙ e^{−(t−s)λₙ}cos(nπx)·ĝₙ(s)`.  Its `s`-derivative is a genuine two-variable
+chain rule (the heat time `t−s` AND the coefficients `ĝ(s)` both move with `s`),
+proved by termwise product rule + dominated differentiation (`hasDerivAt_tsum`),
+valid away from the `s=t` singularity.  We build it per mode first. -/
+
+/-- **Per-mode reversed-time derivative.**  The point-weight along the *reversed*
+time `s ↦ S(t−s)`-mode, `s ↦ e^{−(t−s)λₙ}cos(nπx)`, has `s`-derivative
+`−secondPointWeight(t−s₀)` (`= +λₙ e^{−(t−s₀)λₙ}cos`): the heat time-derivative
+`−λₙ·pw` composed with `d/ds(t−s) = −1`.  Spectrally this is the integrand of
+`−∂ₓₓ S(t−s)` (the first term of the chain rule). -/
+theorem unitIntervalCosineHeatPointWeight_sub_hasDerivAt
+    (t x : ℝ) (n : ℕ) (s₀ : ℝ) :
+    HasDerivAt (fun s : ℝ => unitIntervalCosineHeatPointWeight (t - s) x n)
+      (-(unitIntervalCosineHeatSecondPointWeight (t - s₀) x n)) s₀ := by
+  have htime :=
+    ShenWork.Paper2.unitIntervalCosineHeatPointWeight_hasDerivAt_time x n (t - s₀)
+  have hsub : HasDerivAt (fun s : ℝ => t - s) (-1 : ℝ) s₀ := by
+    simpa using (hasDerivAt_id s₀).const_sub t
+  have hcomp : HasDerivAt (fun s : ℝ => unitIntervalCosineHeatPointWeight (t - s) x n)
+      (-(unitIntervalCosineEigenvalue n) *
+        unitIntervalCosineHeatPointWeight (t - s₀) x n * (-1)) s₀ :=
+    htime.comp s₀ hsub
+  rw [unitIntervalCosineHeatSecondPointWeight_eq_neg_eigenvalue_mul]
+  convert hcomp using 1
+  ring
+
 end ShenWork.IntervalDuhamelClosedC2
