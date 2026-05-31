@@ -992,4 +992,41 @@ theorem duhamelSecondValue_tendsto_closed
     (duhamelValue_a_joint_tendsto (x := x) hacont hl1 hc_summable)
     (duhamelValue_adot_improper_tendsto (x := x) ht hbound' hadotcont)
 
+/-! ## Steps 6–7 — connecting the cutoff limit to `∂ₓₓD` (precise remaining route)
+
+Step 5 is CLOSED: `lim_{ε→0} ∫₀^{t−ε} ∂ₓₓS(t−s)g(s)(x) ds = P(t)(x)`
+(`duhamelSecondValue_tendsto_closed`).  The remaining content is to upgrade this
+to `∂ₓₓ D(t)(x) = P(t)(x)` with `D(t)(x) = ∫₀ᵗ S(t−s)g(s)(x) ds`, hence
+`DuhamelTermInteriorC2`.  The careful route (avoiding differentiating the singular
+`∂ₓₓ`-kernel under the integral, and the non-integrable `∫₀ᵗ secondValue`):
+
+**Step 6 — `P(t)` is continuous in `x` on `[0,1]`.**  `P = value t (a 0) ·
+− (∑'ₙ cos(nπ·)·ĝₙ(t)) + (∑'ₙ ∫₀ᵗ fₙ)`.  Each summand is continuous: the heat value
+(`C²`); the reconstruction `∑'ₙ cos(nπ·)ĝₙ(t)` by Weierstrass-`M` with the ℓ¹ bound
+`c n`; the integral series `∑'ₙ ∫₀ᵗ fₙ` by `continuous_tsum` with the uniform-in-`x`
+bound `∫₀ᵗ‖fₙ‖ ≤ Mdot/λₙ` (`duhamelMode_integralNorm_summable`).
+
+**Step 7 — `∂ₓₓD = P` via the double cutoff + space-FTC + Fubini.**  Work with the
+cutoff `D'_ε(x) := ∫₀^{t−ε} gradValue(t−s)(a s) x ds` (first `x`-derivative under the
+integral — the gradValue kernel `(t−s)^{−1/2}` IS integrable).  Then for `x₀,x`:
+  `D'_ε(x) − D'_ε(x₀) = ∫₀^{t−ε} (gradValue x − gradValue x₀) ds
+       = ∫₀^{t−ε} ∫_{x₀}^{x} secondValue(t−s)(a s) y dy ds`  (space FTC, `∂_y gradValue
+       = secondValue`)
+       `= ∫_{x₀}^{x} (∫₀^{t−ε} secondValue(t−s)(a s) y ds) dy`  (Fubini on the FINITE
+       `[0,t−ε]×[x₀,x]`, everything bounded/continuous).
+  Let `ε→0`: LHS `→ D'(x) − D'(x₀)` (gradValue integral converges, `(t−s)^{−1/2}`
+  integrable); the inner `∫₀^{t−ε} secondValue y ds → P(t)(y)` (step 5), and the
+  outer `∫_{x₀}^{x}` passes to the limit by dominated convergence (uniform bound on
+  the cutoff in `y`).  So `D'(x) − D'(x₀) = ∫_{x₀}^{x} P(t)(y) dy`.  With `P`
+  continuous (step 6), `D'` is `C¹` with `(D')' = P`, i.e. `D` is `C²` with
+  `∂ₓₓD = P` — `DuhamelTermInteriorC2`, plus Neumann `∂ₓD(t,0)=∂ₓD(t,1)=0` from the
+  endpoint vanishing of `gradValue` (`unitIntervalCosineHeatGradientValue_eq_zero_at
+  _{zero,one}`, integrated; kernel `(t−s)^{−1/2}` integrable).
+
+These steps need: a first-derivative-under-integral Leibniz (gradValue, integrable
+kernel), the space FTC + Fubini on the finite cutoff, and a final
+`HasDerivAt`-from-integral assembly — a substantial but singularity-free build,
+deferred as the next increment.  Source regularity is the `DuhamelSourceTimeC1`-style
+input already isolated (bounded coeffs + time-`C¹` + uniformly-ℓ¹ coeffs). -/
+
 end ShenWork.IntervalDuhamelClosedC2
