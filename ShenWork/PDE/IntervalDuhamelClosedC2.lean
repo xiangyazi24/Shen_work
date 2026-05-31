@@ -600,4 +600,48 @@ integrand is genuinely singular `~(t−s)^{−3/2}` and NOT Lebesgue-integrable 
 `∂ₓₓ` candidate; `R` is continuous in `x` (step 6) — each summand is, and the
 `∫₀ᵗ value(t−s)(adot s) ·` term is continuous by dominated convergence. -/
 
+/-- **Step 5a — rearranged cutoff formula.**  Isolating the `∂ₓₓ`-integral:
+
+  `∫₀^{t−ε} ∂ₓₓS(t−s)g(s)(x) ds = S(t)g(0)(x) − S(ε)g(t−ε)(x)
+      + ∫₀^{t−ε} S(t−s)∂ₛg(s)(x) ds`,
+
+i.e. `∫₀^{t−ε} secondValue(t−s)(a s) = value t (a 0) − value ε (a(t−ε)) +
+∫₀^{t−ε} value(t−s)(adot s)`.  Pure rearrangement of `duhamelCutoff_FTC` (linearity
+of the integral + both pieces interval-integrable). -/
+theorem duhamelCutoff_secondValue_eq
+    {t x : ℝ} {a adot : ℝ → ℕ → ℝ} {M Mdot : ℝ}
+    (hbound : ∀ s n, |a s n| ≤ M) (hbound' : ∀ s n, |adot s n| ≤ Mdot)
+    (hda : ∀ s n, HasDerivAt (fun σ : ℝ => a σ n) (adot s n) s)
+    (hadotcont : ∀ n, Continuous (fun s : ℝ => adot s n))
+    {ε : ℝ} (hε : 0 < ε) (hεt : ε ≤ t) :
+    (∫ s in (0:ℝ)..(t - ε), unitIntervalCosineHeatSecondValue (t - s) (a s) x)
+      = unitIntervalCosineHeatValue t (a 0) x
+        - unitIntervalCosineHeatValue ε (a (t - ε)) x
+        + ∫ s in (0:ℝ)..(t - ε), unitIntervalCosineHeatValue (t - s) (adot s) x := by
+  have hac : ∀ n, Continuous (fun s : ℝ => a s n) :=
+    fun n => continuous_iff_continuousAt.2 (fun s => (hda s n).continuousAt)
+  have hle : (0 : ℝ) ≤ t - ε := by linarith
+  have hctlt : t - ε < t := by linarith
+  have hsub : Set.uIcc (0 : ℝ) (t - ε) ⊆ Set.Iic (t - ε) := by
+    rw [Set.uIcc_of_le hle]; exact fun s hs => hs.2
+  have hint_second : IntervalIntegrable
+      (fun s => unitIntervalCosineHeatSecondValue (t - s) (a s) x) volume 0 (t - ε) :=
+    ((unitIntervalCosineHeatSecondValue_comp_sub_continuousOn hbound hac hctlt).mono
+      hsub).intervalIntegrable
+  have hint_value : IntervalIntegrable
+      (fun s => unitIntervalCosineHeatValue (t - s) (adot s) x) volume 0 (t - ε) :=
+    ((unitIntervalCosineHeatValue_comp_sub_continuousOn hbound' hadotcont hctlt).mono
+      hsub).intervalIntegrable
+  have hFTC := duhamelCutoff_FTC (x := x) hbound hbound' hda hadotcont hε hεt
+  have hadd : (∫ s in (0:ℝ)..(t - ε),
+        (-(unitIntervalCosineHeatSecondValue (t - s) (a s) x)
+          + unitIntervalCosineHeatValue (t - s) (adot s) x))
+      = (∫ s in (0:ℝ)..(t - ε), -(unitIntervalCosineHeatSecondValue (t - s) (a s) x))
+        + ∫ s in (0:ℝ)..(t - ε), unitIntervalCosineHeatValue (t - s) (adot s) x :=
+    intervalIntegral.integral_add hint_second.neg hint_value
+  have hneg : (∫ s in (0:ℝ)..(t - ε), -(unitIntervalCosineHeatSecondValue (t - s) (a s) x))
+      = -(∫ s in (0:ℝ)..(t - ε), unitIntervalCosineHeatSecondValue (t - s) (a s) x) := by
+    rw [intervalIntegral.integral_neg]
+  linarith [hFTC, hadd, hneg]
+
 end ShenWork.IntervalDuhamelClosedC2
