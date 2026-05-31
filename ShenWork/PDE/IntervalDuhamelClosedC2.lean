@@ -563,4 +563,41 @@ theorem duhamelCutoff_FTC
   rw [hΦ]
   norm_num
 
+/-! ## Step 5 (ε→0) — precise remaining sub-problems (for the next Lean statements)
+
+Steps 1–4 are DONE.  Taking `ε→0⁺` in `duhamelCutoff_FTC` to reach
+
+  `lim_{ε→0} ∫₀^{t−ε} ∂ₓₓS(t−s)g(s)(x) ds = S(t)g(0)(x) − g(t)(x)
+      + ∫₀ᵗ S(t−s)∂ₛg(s)(x) ds`   (= R(x))
+
+requires two genuine sub-lemmas, NOT yet trivial from what is built:
+
+**(5a) Joint approximate-identity limit** `S(ε)g(t−ε)(x) → g(t)(x)` as `ε↓0`.
+Both the time `ε→0` AND the coefficients `a(t−ε)→a(t)` move.  The repo's
+`intervalFullSemigroup_tendsto_id_at_zero` handles `S(ε)f→f(x)` for a *fixed* `f`.
+Split `S(ε)g(t−ε) − g(t) = S(ε)(g(t−ε)−g(t)) + (S(ε)g(t) − g(t))`:
+* second term `→ 0` by the fixed-`f` approx identity at `f = g(t)`;
+* first term `→ 0` by the semigroup `L∞` contraction
+  (`intervalFullSemigroupOperator_Linfty_bound`, T2) applied to `g(t−ε)−g(t)`,
+  whose sup-norm `→ 0` by time-continuity of `g` (an input of the
+  `DuhamelSourceTimeC1` predicate).
+At the cosine-value level this is `unitIntervalCosineHeatValue ε (a(t−ε)) x →
+∑'ₙ cos(nπx)·(a t n) = g(t)(x)`, needing the pointwise cosine reconstruction of
+`g(t)` (`hrecon`-type, ℓ¹ coeffs) — a faithful source-regularity input.
+
+**(5b) Improper → Lebesgue integral** `lim_{ε→0} ∫₀^{t−ε} value(t−s)(adot s) x ds
+= ∫₀ᵗ value(t−s)(adot s) x ds`.  The integrand `S(t−s)∂ₛg(s)(x)` is bounded on
+`[0,t)` by the semigroup contraction `≤ ‖∂ₛg(s)‖_∞` (NOT by the coefficient series
+majorant `Mdot·∑e^{−(t−s)λₙ}`, which blows up as `s→t`).  Hence it is
+interval-integrable on `[0,t]`, and `ε ↦ ∫₀^{t−ε}` is continuous in `ε` at `0`
+(integral continuous in its endpoint).  Needs: the operator `L∞` bound bridged to
+the cosine-value form, and `intervalIntegral` endpoint-continuity.
+
+The secondValue side (`∫₀^{t−ε} secondValue`) is the *improper* limit only — its
+integrand is genuinely singular `~(t−s)^{−3/2}` and NOT Lebesgue-integrable on
+`[0,t]`; that is exactly why the IBP form (RHS) is needed.  The final
+`intervalDuhamelTerm_closedC2_of_timeC1_source` (steps 6–7) consumes `R` as the
+`∂ₓₓ` candidate; `R` is continuous in `x` (step 6) — each summand is, and the
+`∫₀ᵗ value(t−s)(adot s) ·` term is continuous by dominated convergence. -/
+
 end ShenWork.IntervalDuhamelClosedC2
