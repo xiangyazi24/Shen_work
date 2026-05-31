@@ -29,6 +29,7 @@
 import ShenWork.PDE.IntervalFullKernelSupBound
 import ShenWork.PDE.IntervalFullKernelInterchange
 import ShenWork.PDE.IntervalDuhamelSpectralC2
+import ShenWork.PDE.IntervalNeumannEllipticResolverR
 
 open MeasureTheory intervalIntegral
 open ShenWork.IntervalDomain (intervalMeasure)
@@ -150,5 +151,25 @@ theorem laplaceTruncation_nonneg {μ T : ℝ} (hT : 0 ≤ T) {f : ℝ → ℝ}
   filter_upwards [hne] with t ht_ne ht_mem
   have ht0 : 0 < t := lt_of_le_of_ne ht_mem.1 (Ne.symm ht_ne)
   exact mul_nonneg (Real.exp_nonneg _) (intervalFullSemigroupOperator_nonneg ht0 hf x)
+
+/-! ## O1c step 2 / O1d — spectral limit (foundation) -/
+
+open ShenWork.PDE in
+/-- **ℓ¹ majorant.**  `∑ₙ |âₙ|/(μ+λₙ) < ∞` from `â ∈ ℓ²` and the resolvent weight
+`1/(μ+λₙ) ∈ ℓ²` (`intervalNeumannResolverWeight_sq_summable`), via AM-GM
+`|âₙ|·wₙ ≤ (âₙ²+wₙ²)/2`.  This is the dominating series both for the Fubini
+interchange `∑ₙ ∫₀ᵀ|·|` and for the `T→∞` dominated-convergence limit. -/
+theorem summable_abs_sourceCoeff_mul_weight {p : CM2Params} {â : ℕ → ℝ}
+    (hâ : Summable (fun n => (â n) ^ 2)) :
+    Summable (fun n => |â n| * intervalNeumannResolverWeight p n) := by
+  have hw := intervalNeumannResolverWeight_sq_summable p
+  refine Summable.of_nonneg_of_le (fun n => ?_) (fun n => ?_)
+    ((hâ.add hw).div_const 2)
+  · refine mul_nonneg (abs_nonneg _) ?_
+    rw [intervalNeumannResolverWeight]
+    exact le_of_lt (one_div_pos.mpr (intervalNeumannResolver_denom_pos p n))
+  · have h := two_mul_le_add_sq |â n| (intervalNeumannResolverWeight p n)
+    rw [sq_abs] at h
+    nlinarith [h]
 
 end ShenWork.IntervalResolverPositivity
