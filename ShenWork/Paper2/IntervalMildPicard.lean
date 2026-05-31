@@ -126,16 +126,19 @@ theorem picardIter_uniform_convergence (p : CM2Params)
 
 /-! ## The limit is a fixed point -/
 
-/-- **Key theorem:** The limit of the Picard iteration satisfies the
-mild solution equation u = Φ(u₀, u).
+/-- The limit trajectory is bounded: |u(t,x)| ≤ M when all iterates are. -/
+theorem picardLimit_bounded (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    {T M : ℝ}
+    (hball : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |picardIter p u₀ n t x| ≤ M) :
+    ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |picardLimit p u₀ T t x| ≤ M := by
+  intro t ht htT x
+  unfold picardLimit
+  simp only [ht, htT, and_self, ite_true]
+  -- The limit of M-bounded functions is M-bounded
+  sorry
 
-Proof idea: at each (t,x),
-  |Φ(u₀,u)(t,x) − u(t,x)|
-    = lim |Φ(u₀,u)(t,x) − u_{n+1}(t,x)|     [u_{n+1} → u]
-    = lim |Φ(u₀,u)(t,x) − Φ(u₀,u_n)(t,x)|   [by def of u_{n+1}]
-    ≤ lim K · sup|u − u_n|                     [contraction]
-    → 0                                          [uniform convergence]
--/
 theorem picardLimit_is_mildSolution (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
     {T K C₀ M : ℝ} (hT : 0 < T) (hK : K < 1) (hK_nn : 0 ≤ K) (hC₀ : 0 ≤ C₀)
     (_hM : 0 < M)
@@ -143,21 +146,20 @@ theorem picardLimit_is_mildSolution (p : CM2Params) (u₀ : intervalDomainPoint 
       |picardIter p u₀ (n + 1) t x - picardIter p u₀ n t x| ≤ K ^ n * C₀)
     (hball : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
       |picardIter p u₀ n t x| ≤ M)
-    (hcontract_any : ∀ (u w : ℝ → intervalDomainPoint → ℝ),
+    -- Pointwise contraction: Φ is K-Lipschitz in the trajectory
+    (hcontract : ∀ (u w : ℝ → intervalDomainPoint → ℝ) (d : ℝ),
       (∀ t, 0 < t → t ≤ T → ∀ x, |u t x| ≤ M) →
       (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+      (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
       ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
-        ∃ d : ℝ, (∀ s, 0 < s → s ≤ T → ∀ y, |u s y - w s y| ≤ d) ∧
-          |intervalGradientDuhamelMap p u₀ u t x
-            - intervalGradientDuhamelMap p u₀ w t x| ≤ K * d) :
+        |intervalGradientDuhamelMap p u₀ u t x
+          - intervalGradientDuhamelMap p u₀ w t x| ≤ K * d) :
     IntervalMildSolution p T u₀ (picardLimit p u₀ T) := by
   intro t ht htT x
-  -- u(t,x) = picardLimit p u₀ T t x = lim u_n(t,x)
-  -- Φ(u₀,u)(t,x) = intervalGradientDuhamelMap p u₀ (picardLimit p u₀ T) t x
-  -- Need: these are equal
-  -- Strategy: show |Φ(u₀,u)(t,x) - u(t,x)| < ε for all ε > 0
   unfold picardLimit
   simp only [ht, htT, and_self, ite_true]
+  -- Goal: atTop.limUnder (u_n t x) = Φ(u₀, limUnder(u_n))(t,x)
+  -- We show |Φ(u₀,u)(t,x) - u(t,x)| = 0 by squeezing with ε
   sorry
 
 /-! ## Main existence theorem -/
