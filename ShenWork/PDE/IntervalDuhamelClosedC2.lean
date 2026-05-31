@@ -774,4 +774,31 @@ theorem duhamelMode_integralNorm_summable
     (fun n => intervalIntegral.integral_nonneg (le_of_lt ht) (fun s _ => norm_nonneg _))
     hcn_le hmaj
 
+/-- **Per-mode improper-integral continuity.**  `∫₀^{t−ε} fₙ → ∫₀ᵗ fₙ` as `ε↓0`,
+where `fₙ(s) = e^{−(t−s)λₙ}cos(nπx)·ĝₙ′(s)` is continuous (on all of `ℝ`), so its
+primitive is continuous and composes with `ε↦t−ε`. -/
+theorem duhamelMode_primitive_tendsto
+    {t x : ℝ} {adot : ℝ → ℕ → ℝ} (n : ℕ)
+    (hadotcont : Continuous (fun s : ℝ => adot s n)) :
+    Tendsto (fun ε => ∫ s in (0:ℝ)..(t - ε),
+        unitIntervalCosineHeatPointWeight (t - s) x n * adot s n)
+      (𝓝[>] (0:ℝ))
+      (𝓝 (∫ s in (0:ℝ)..t,
+        unitIntervalCosineHeatPointWeight (t - s) x n * adot s n)) := by
+  have hfcont : Continuous
+      (fun s : ℝ => unitIntervalCosineHeatPointWeight (t - s) x n * adot s n) := by
+    have hkernel : Continuous
+        (fun s : ℝ => unitIntervalCosineHeatPointWeight (t - s) x n) := by
+      unfold unitIntervalCosineHeatPointWeight unitIntervalCosineMode; fun_prop
+    exact hkernel.mul hadotcont
+  have hprim : Continuous (fun b : ℝ => ∫ s in (0:ℝ)..b,
+      unitIntervalCosineHeatPointWeight (t - s) x n * adot s n) :=
+    intervalIntegral.continuous_primitive
+      (fun a b => hfcont.intervalIntegrable a b) 0
+  have hsub : Tendsto (fun ε : ℝ => t - ε) (𝓝[>] (0:ℝ)) (𝓝 t) := by
+    have h0 : Tendsto (fun ε : ℝ => t - ε) (𝓝 (0:ℝ)) (𝓝 (t - 0)) :=
+      (continuous_const.sub continuous_id).tendsto 0
+    simpa using h0.mono_left nhdsWithin_le_nhds
+  simpa using (hprim.tendsto t).comp hsub
+
 end ShenWork.IntervalDuhamelClosedC2
