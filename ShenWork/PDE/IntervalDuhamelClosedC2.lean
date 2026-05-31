@@ -801,4 +801,50 @@ theorem duhamelMode_primitive_tendsto
     simpa using h0.mono_left nhdsWithin_le_nhds
   simpa using (hprim.tendsto t).comp hsub
 
+/-- **Spectral form of the Duhamel `∂ₛg`-integral.**  `∫₀^b S(t−s)∂ₛg(s)(x) ds =
+∑'ₙ ∫₀^b fₙ` for `0 ≤ b ≤ t` — the `∑∫=∫∑` swap, valid since `∑'ₙ ∫‖fₙ‖ < ∞`
+(`duhamelMode_integralNorm_summable`).  No closed-`[0,t]` integrability of the full
+sum is needed; everything is per-mode on the finite interval. -/
+theorem duhamelValue_adot_eq_tsum
+    {t x : ℝ} {adot : ℝ → ℕ → ℝ} {Mdot : ℝ} (ht : 0 < t)
+    (hbound' : ∀ s n, |adot s n| ≤ Mdot)
+    (hadotcont : ∀ n, Continuous (fun s : ℝ => adot s n))
+    {b : ℝ} (hb0 : 0 ≤ b) (hbt : b ≤ t) :
+    (∫ s in (0:ℝ)..b, unitIntervalCosineHeatValue (t - s) (adot s) x)
+      = ∑' n, ∫ s in (0:ℝ)..b,
+        unitIntervalCosineHeatPointWeight (t - s) x n * adot s n := by
+  have hfcont : ∀ n, Continuous
+      (fun s : ℝ => unitIntervalCosineHeatPointWeight (t - s) x n * adot s n) := by
+    intro n
+    have hk : Continuous (fun s : ℝ => unitIntervalCosineHeatPointWeight (t - s) x n) := by
+      unfold unitIntervalCosineHeatPointWeight unitIntervalCosineMode; fun_prop
+    exact hk.mul (hadotcont n)
+  have hint : ∀ n, Integrable
+      (fun s => unitIntervalCosineHeatPointWeight (t - s) x n * adot s n)
+      (volume.restrict (Set.Ioc 0 b)) :=
+    fun n => (intervalIntegrable_iff_integrableOn_Ioc_of_le hb0).1
+      ((hfcont n).intervalIntegrable 0 b)
+  have hsum : Summable (fun n => ∫ s,
+      ‖unitIntervalCosineHeatPointWeight (t - s) x n * adot s n‖
+      ∂(volume.restrict (Set.Ioc 0 b))) := by
+    refine Summable.of_nonneg_of_le
+      (fun n => integral_nonneg (fun s => norm_nonneg _)) (fun n => ?_)
+      (duhamelMode_integralNorm_summable (x := x) ht hbound' hadotcont)
+    rw [← intervalIntegral.integral_of_le hb0]
+    refine intervalIntegral.integral_mono_interval (le_refl 0) hb0 hbt ?_ ?_
+    · filter_upwards with s using norm_nonneg _
+    · exact ((hfcont n).norm).intervalIntegrable 0 t
+  have hswap := integral_tsum_of_summable_integral_norm hint hsum
+  calc (∫ s in (0:ℝ)..b, unitIntervalCosineHeatValue (t - s) (adot s) x)
+      = ∫ s in Set.Ioc 0 b, unitIntervalCosineHeatValue (t - s) (adot s) x :=
+        intervalIntegral.integral_of_le hb0
+    _ = ∫ s in Set.Ioc 0 b,
+          ∑' n, unitIntervalCosineHeatPointWeight (t - s) x n * adot s n := by
+        rfl
+    _ = ∑' n, ∫ s in Set.Ioc 0 b,
+          unitIntervalCosineHeatPointWeight (t - s) x n * adot s n := hswap.symm
+    _ = ∑' n, ∫ s in (0:ℝ)..b,
+          unitIntervalCosineHeatPointWeight (t - s) x n * adot s n := by
+        exact tsum_congr (fun n => (intervalIntegral.integral_of_le hb0).symm)
+
 end ShenWork.IntervalDuhamelClosedC2
