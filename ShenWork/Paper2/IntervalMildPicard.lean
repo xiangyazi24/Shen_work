@@ -271,9 +271,52 @@ theorem intervalMildSolution_of_bounds (p : CM2Params)
   ⟨picardLimit p u₀ T,
     picardLimit_is_mildSolution p u₀ hT hK hK_nn hC₀ hM hbound hball hcontract⟩
 
-/-- Full mild existence: assembles the conditional theorem with the PDE estimates.
-Remaining sorry: parameter selection (T, M, K from the Duhamel bounds)
-and inductive verification of hbound/hball. Pure plumbing, no new math. -/
+/-- Ball membership of Picard iterates by induction. -/
+theorem picardIter_ball (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    {T M : ℝ}
+    (hbase : ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |picardIter p u₀ 0 t x| ≤ M)
+    (hmapsTo : ∀ (w : ℝ → intervalDomainPoint → ℝ),
+      (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+      ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+        |intervalGradientDuhamelMap p u₀ w t x| ≤ M)
+    (n : ℕ) :
+    ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |picardIter p u₀ n t x| ≤ M := by
+  induction n with
+  | zero => exact hbase
+  | succ n ih => exact fun t ht htT x => hmapsTo _ ih t ht htT x
+
+/-- Geometric decay of Picard differences by induction. -/
+theorem picardIter_geometric (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    {T K M : ℝ} (hK_nn : 0 ≤ K)
+    (hball : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |picardIter p u₀ n t x| ≤ M)
+    (hcontr : ∀ (u w : ℝ → intervalDomainPoint → ℝ) (d : ℝ),
+      (∀ t, 0 < t → t ≤ T → ∀ x, |u t x| ≤ M) →
+      (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+      (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
+      ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+        |intervalGradientDuhamelMap p u₀ u t x
+          - intervalGradientDuhamelMap p u₀ w t x| ≤ K * d)
+    {C₀ : ℝ} (_hC₀ : 0 ≤ C₀)
+    (hbase_diff : ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |picardIter p u₀ 1 t x - picardIter p u₀ 0 t x| ≤ C₀)
+    (n : ℕ) :
+    ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |picardIter p u₀ (n + 1) t x - picardIter p u₀ n t x| ≤ K ^ n * C₀ := by
+  induction n with
+  | zero => simpa using hbase_diff
+  | succ n ih =>
+    intro t ht htT x
+    calc |picardIter p u₀ (n + 2) t x - picardIter p u₀ (n + 1) t x|
+        = |intervalGradientDuhamelMap p u₀ (picardIter p u₀ (n + 1)) t x
+            - intervalGradientDuhamelMap p u₀ (picardIter p u₀ n) t x| := rfl
+      _ ≤ K * (K ^ n * C₀) :=
+          hcontr _ _ _ (hball (n + 1)) (hball n) ih t ht htT x
+      _ = K ^ (n + 1) * C₀ := by ring
+
+/-- Full mild existence: assembles everything. -/
 theorem intervalMildSolution_exists_picard (p : CM2Params)
     (u₀ : intervalDomainPoint → ℝ)
     (_hu₀_bounded : ∃ B : ℝ, ∀ x, |u₀ x| ≤ B) :
