@@ -123,4 +123,39 @@ theorem chemFlux_div_lipschitz {β M B_G d L_G L_R : ℝ} (hβ : 0 ≤ β)
   rw [heq hv₁, heq hv₂]
   exact chemFluxValue_lipschitz hβ ha₂ hg₁ hg₂ hv₁ hv₂ had hgd hvd hBnn
 
+/-! ## glue2 — the small-time contraction constant -/
+
+/-- **Small-time contraction.**  For `A, B ≥ 0` there is a `T > 0` with
+`A·√T + B·T < 1` (explicitly `T = 1/(A+B+1)²`).  Applied with
+`A = 2|χ₀|·C·C_Q`, `B = C_L` this is the "取 T 小" step that makes the weak mild
+map `Φ` a contraction: `‖Φu−Φw‖ ≤ (A·√T + B·T)·‖u−w‖`. -/
+theorem exists_small_contraction_time {A B : ℝ} (hA : 0 ≤ A) (hB : 0 ≤ B) :
+    ∃ T : ℝ, 0 < T ∧ A * Real.sqrt T + B * T < 1 := by
+  set c : ℝ := A + B + 1 with hc
+  have hcpos : 0 < c := by positivity
+  refine ⟨1 / c ^ 2, by positivity, ?_⟩
+  have hsqrt : Real.sqrt (1 / c ^ 2) = 1 / c := by
+    rw [show (1:ℝ) / c ^ 2 = (1 / c) ^ 2 from by rw [div_pow, one_pow],
+      Real.sqrt_sq (by positivity)]
+  rw [hsqrt]
+  have hkey : A * c + B < c ^ 2 := by rw [hc]; nlinarith [hA, hB, sq_nonneg (A + B)]
+  have hform : A * (1 / c) + B * (1 / c ^ 2) = (A * c + B) / c ^ 2 := by
+    field_simp
+  rw [hform, div_lt_one (by positivity)]
+  exact hkey
+
+/-- **glue2 (pointwise contraction core).**  The weak mild-map difference at a
+point, `Φu−Φw = −χ₀·G + V` with `G = ∫₀ᵗ∂ₓS(t−s)(Q(u)−Q(w))ds` and
+`V = ∫₀ᵗS(t−s)(L(u)−L(w))ds`, is bounded by `(2|χ₀|·C·C_Q·√T + C_L·T)·d`, given
+the gradient-Duhamel bound on `G` (Atom D + glue1: `|G| ≤ C·2√T·C_Q·d`) and the
+value-Duhamel bound on `V` (Atom D + Atom C: `|V| ≤ T·C_L·d`), `d = ‖u−w‖_{T,∞}`. -/
+theorem gradientDuhamel_contraction_pointwise {χ₀ Cgrad C_Q C_L T d G V : ℝ}
+    (hG : |G| ≤ Cgrad * (2 * Real.sqrt T) * (C_Q * d))
+    (hV : |V| ≤ T * (C_L * d)) :
+    |(-χ₀) * G + V| ≤ (2 * |χ₀| * Cgrad * C_Q * Real.sqrt T + C_L * T) * d := by
+  calc |(-χ₀) * G + V| ≤ |(-χ₀) * G| + |V| := abs_add_le _ _
+    _ = |χ₀| * |G| + |V| := by rw [abs_mul, abs_neg]
+    _ ≤ |χ₀| * (Cgrad * (2 * Real.sqrt T) * (C_Q * d)) + T * (C_L * d) := by gcongr
+    _ = (2 * |χ₀| * Cgrad * C_Q * Real.sqrt T + C_L * T) * d := by ring
+
 end ShenWork.IntervalChemFluxLipschitz
