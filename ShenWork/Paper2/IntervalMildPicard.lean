@@ -181,9 +181,72 @@ theorem picardLimit_is_mildSolution (p : CM2Params) (u₀ : intervalDomainPoint 
   intro t ht htT x
   unfold picardLimit
   simp only [ht, htT, and_self, ite_true]
-  -- Goal: atTop.limUnder (u_n t x) = Φ(u₀, limUnder(u_n))(t,x)
-  -- We show |Φ(u₀,u)(t,x) - u(t,x)| = 0 by squeezing with ε
-  sorry
+  set a := fun m => picardIter p u₀ m t x
+  set u := picardLimit p u₀ T
+  have hcauchy : CauchySeq a :=
+    real_cauchySeq_of_geometric_bound hK hK_nn hC₀ (fun n => hbound n t ht htT x)
+  obtain ⟨L, hL⟩ := cauchySeq_tendsto_of_complete hcauchy
+  change atTop.limUnder a = _
+  rw [hL.limUnder_eq]
+  -- Goal: L = intervalGradientDuhamelMap p u₀ u t x
+  -- Strategy: |Φ(u₀,u) - L| ≤ K * tail_n + tail_{n+1} → 0
+  have h1K : (0:ℝ) < 1 - K := by linarith
+  set tail := fun n => K ^ n * C₀ / (1 - K)
+  -- u is bounded
+  have hu_ball : ∀ s, 0 < s → s ≤ T → ∀ y, |u s y| ≤ M :=
+    picardLimit_bounded p u₀ hK hK_nn hC₀ hbound hball
+  -- u_n - u tail bound
+  have htail : ∀ n s, 0 < s → s ≤ T → ∀ y : intervalDomainPoint,
+      |picardIter p u₀ n s y - u s y| ≤ tail n :=
+    fun n s hs hsT y => picardIter_pointwise_tail_bound p u₀ hK hK_nn hC₀ hbound s hs hsT y n
+  -- For every n: |Φu - L| ≤ |Φu - Φu_n| + |u_{n+1} - L| ≤ K·tail_n + tail_{n+1}
+  have hkey : ∀ n, |intervalGradientDuhamelMap p u₀ u t x - L| ≤ K * tail n + tail (n + 1) := by
+    intro n
+    have htri := abs_sub_abs_le_abs_sub
+        (intervalGradientDuhamelMap p u₀ u t x)
+        (intervalGradientDuhamelMap p u₀ (picardIter p u₀ n) t x)
+    calc |intervalGradientDuhamelMap p u₀ u t x - L|
+        ≤ |intervalGradientDuhamelMap p u₀ u t x
+            - intervalGradientDuhamelMap p u₀ (picardIter p u₀ n) t x|
+          + |intervalGradientDuhamelMap p u₀ (picardIter p u₀ n) t x - L| :=
+        abs_sub_le _ _ _
+      _ = |intervalGradientDuhamelMap p u₀ u t x
+            - intervalGradientDuhamelMap p u₀ (picardIter p u₀ n) t x|
+          + |picardIter p u₀ (n+1) t x - L| := by rfl
+      _ ≤ K * tail n + tail (n + 1) := by
+          gcongr
+          · exact hcontract u (picardIter p u₀ n) (tail n) hu_ball
+              (fun s hs hsT y => hball n s hs hsT y)
+              (fun s hs hsT y => by
+                rw [abs_sub_comm]
+                exact htail n s hs hsT y)
+              t ht htT x
+          · have hconv : L = picardLimit p u₀ T t x := by
+              unfold picardLimit
+              simp only [ht, htT, and_self, ite_true]
+              exact hL.limUnder_eq.symm
+            rw [hconv]
+            exact picardIter_pointwise_tail_bound p u₀ hK hK_nn hC₀ hbound t ht htT x (n+1)
+  -- K·tail_n + tail_{n+1} → 0 as n → ∞
+  have hvanish : Tendsto (fun n => K * tail n + tail (n + 1)) atTop (nhds 0) := by
+    have := geometric_tail_tendsto_zero hK hK_nn (C₀ := C₀)
+    have h2 := this.comp (tendsto_add_atTop_nat 1)
+    simpa [add_comm] using this.const_mul K |>.add h2
+  -- |Φu - L| ≤ 0, hence = 0
+  have habs_le_zero : |intervalGradientDuhamelMap p u₀ u t x - L| ≤ 0 :=
+    le_of_forall_pos_le_add (fun ε hε => by
+      rw [zero_add]
+      obtain ⟨N, hN⟩ := (Metric.tendsto_atTop.mp hvanish) ε hε
+      have := hN N le_rfl
+      have hnn : 0 ≤ K * tail N + tail (N + 1) := by
+        apply add_nonneg <;> apply mul_nonneg
+        · exact hK_nn
+        · exact div_nonneg (mul_nonneg (pow_nonneg hK_nn N) hC₀) h1K.le
+        · exact mul_nonneg (pow_nonneg hK_nn (N + 1)) hC₀
+        · exact inv_nonneg.mpr h1K.le
+      simp only [Real.dist_eq, sub_zero, abs_of_nonneg hnn] at this
+      exact (hkey N).trans this.le)
+  exact (eq_of_abs_sub_nonpos habs_le_zero).symm
 
 /-! ## Main existence theorem -/
 
