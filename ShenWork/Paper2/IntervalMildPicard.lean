@@ -316,12 +316,62 @@ theorem picardIter_geometric (p : CM2Params) (u₀ : intervalDomainPoint → ℝ
           hcontr _ _ _ (hball (n + 1)) (hball n) ih t ht htT x
       _ = K ^ (n + 1) * C₀ := by ring
 
-/-- Full mild existence: assembles everything. -/
+/-- All the data needed for mild existence via Picard iteration. -/
+structure MildExistenceData (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) where
+  T : ℝ
+  M : ℝ
+  K : ℝ
+  C₀ : ℝ
+  hT : 0 < T
+  hM : 0 < M
+  hK : K < 1
+  hK_nn : 0 ≤ K
+  hC₀ : 0 ≤ C₀
+  -- u₀ initial iterate bounded
+  hbase_ball : ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+    |picardIter p u₀ 0 t x| ≤ M
+  -- MapsTo: Φ maps ball to ball
+  hmapsTo : ∀ (w : ℝ → intervalDomainPoint → ℝ),
+    (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+    ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |intervalGradientDuhamelMap p u₀ w t x| ≤ M
+  -- Contraction
+  hcontr : ∀ (u w : ℝ → intervalDomainPoint → ℝ) (d : ℝ),
+    (∀ t, 0 < t → t ≤ T → ∀ x, |u t x| ≤ M) →
+    (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+    (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
+    ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |intervalGradientDuhamelMap p u₀ u t x
+        - intervalGradientDuhamelMap p u₀ w t x| ≤ K * d
+  -- Initial difference bounded
+  hbase_diff : ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+    |picardIter p u₀ 1 t x - picardIter p u₀ 0 t x| ≤ C₀
+
+/-- Given MildExistenceData, mild solution exists (0 sorry). -/
+theorem intervalMildSolution_of_data {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : MildExistenceData p u₀) :
+    ∃ T : ℝ, 0 < T ∧ ∃ u : ℝ → intervalDomainPoint → ℝ,
+      IntervalMildSolution p T u₀ u := by
+  have hball := picardIter_ball p u₀ D.hbase_ball D.hmapsTo
+  have hgeom := picardIter_geometric p u₀ D.hK_nn hball D.hcontr D.hC₀ D.hbase_diff
+  exact ⟨D.T, D.hT, picardLimit p u₀ D.T,
+    picardLimit_is_mildSolution p u₀ D.hT D.hK D.hK_nn D.hC₀ D.hM
+      (fun n => hgeom n) hball D.hcontr⟩
+
+/-- Full mild existence: constructs MildExistenceData from PDE estimates.
+Sorry: instantiating T, M, K, C₀ from Duhamel bounds + flux/logistic Lipschitz.
+This is pure plumbing — no new math, just regularity/integrability discharge. -/
 theorem intervalMildSolution_exists_picard (p : CM2Params)
     (u₀ : intervalDomainPoint → ℝ)
     (_hu₀_bounded : ∃ B : ℝ, ∀ x, |u₀ x| ≤ B) :
     ∃ T : ℝ, 0 < T ∧ ∃ u : ℝ → intervalDomainPoint → ℝ,
       IntervalMildSolution p T u₀ u := by
+  -- Need to construct MildExistenceData p u₀ from PDE estimates
+  -- T from exists_small_contraction_time
+  -- M from hu₀_bounded (e.g., 2B + 1)
+  -- K from the contraction constant at T
+  -- C₀ from the initial MapsTo correction
+  -- Then: intervalMildSolution_of_data
   sorry
 
 end ShenWork.IntervalMildPicard
