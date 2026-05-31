@@ -66,6 +66,7 @@ import ShenWork.PDE.IntervalDomainRegularityBootstrap
 import ShenWork.PDE.IntervalFullKernelRegularity
 import ShenWork.Paper2.IntervalDomainJointTimeRegularity
 import ShenWork.PDE.IntervalSemigroupApproxIdentity
+import ShenWork.PDE.IntervalDuhamelSpectralC2
 
 open MeasureTheory Filter Topology
 
@@ -683,5 +684,94 @@ theorem duhamelSecondValue_tendsto
     exact duhamelCutoff_secondValue_eq hbound hbound' hda hadotcont hε.1 hε.2
   rw [tendsto_congr' heq]
   exact (tendsto_const_nhds.sub hconv1).add hconv2
+
+/-! ## Step 5 — discharging `hconv2` (improper → Lebesgue, spectral form)
+
+`hconv2` is proved WITHOUT the operator contraction, via the per-mode structure
+`F(s) = ∑'ₙ fₙ(s)`, `fₙ(s) = e^{−(t−s)λₙ}cos(nπx)·ĝₙ′(s)`.  The L¹-norm series is
+summable by the parabolic gain `λₙ ∫₀ᵗ e^{−(t−s)λₙ} ≤ 1` (`parabolicGain_le_one`),
+so `∫₀^b F = ∑'ₙ ∫₀^b fₙ` and a dominated tsum-convergence gives the limit. -/
+
+/-- **Per-mode `L¹`-norm summability.**  `∑'ₙ ∫₀ᵗ ‖e^{−(t−s)λₙ}cos(nπx)·ĝₙ′(s)‖ ds <
+∞`: each term is `≤ Mdot·∫₀ᵗ e^{−(t−s)λₙ} ds ≤ Mdot/λₙ` (parabolic gain), summable
+by comparison with `∑ 1/n²`.  This is the L¹ control that makes the Duhamel
+`∂ₛg`-integrand an honest `∑∫ = ∫∑` series. -/
+theorem duhamelMode_integralNorm_summable
+    {t x : ℝ} {adot : ℝ → ℕ → ℝ} {Mdot : ℝ} (ht : 0 < t)
+    (hbound' : ∀ s n, |adot s n| ≤ Mdot)
+    (hadotcont : ∀ n, Continuous (fun s : ℝ => adot s n)) :
+    Summable (fun n => ∫ s in (0:ℝ)..t,
+      ‖unitIntervalCosineHeatPointWeight (t - s) x n * adot s n‖) := by
+  have hMdotnn : 0 ≤ Mdot := le_trans (abs_nonneg _) (hbound' 0 0)
+  set E : ℕ → ℝ := fun n => ∫ s in (0:ℝ)..t,
+    Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) with hE_def
+  -- `0 ≤ E n`.
+  have hEnn : ∀ n, 0 ≤ E n := by
+    intro n
+    apply intervalIntegral.integral_nonneg (le_of_lt ht)
+    intro s _; exact (Real.exp_nonneg _)
+  -- per-mode: `∫₀ᵗ‖fₙ‖ ≤ Mdot·E n`.
+  have hcn_le : ∀ n, (∫ s in (0:ℝ)..t,
+      ‖unitIntervalCosineHeatPointWeight (t - s) x n * adot s n‖) ≤ Mdot * E n := by
+    intro n
+    have hkernel : Continuous
+        (fun s : ℝ => unitIntervalCosineHeatPointWeight (t - s) x n) := by
+      unfold unitIntervalCosineHeatPointWeight unitIntervalCosineMode; fun_prop
+    have hII1 : IntervalIntegrable
+        (fun s => ‖unitIntervalCosineHeatPointWeight (t - s) x n * adot s n‖) volume 0 t :=
+      ((hkernel.mul (hadotcont n)).norm).intervalIntegrable 0 t
+    have hII2 : IntervalIntegrable
+        (fun s => Mdot * Real.exp (-(t - s) * unitIntervalCosineEigenvalue n)) volume 0 t := by
+      apply Continuous.intervalIntegrable; fun_prop
+    rw [hE_def, ← intervalIntegral.integral_const_mul]
+    apply intervalIntegral.integral_mono_on (le_of_lt ht) hII1 hII2
+    intro s _
+    rw [Real.norm_eq_abs, abs_mul]
+    have hpw : |unitIntervalCosineHeatPointWeight (t - s) x n|
+        ≤ Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) := by
+      unfold unitIntervalCosineHeatPointWeight unitIntervalCosineMode
+      rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+      calc Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) *
+              |Real.cos ((n : ℝ) * Real.pi * x)|
+          ≤ Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * 1 :=
+            mul_le_mul_of_nonneg_left (Real.abs_cos_le_one _) (Real.exp_nonneg _)
+        _ = Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) := by ring
+    calc |unitIntervalCosineHeatPointWeight (t - s) x n| * |adot s n|
+        ≤ Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * Mdot :=
+          mul_le_mul hpw (hbound' s n) (abs_nonneg _) (Real.exp_nonneg _)
+      _ = Mdot * Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) := by ring
+  -- `Summable (Mdot·E)` by parabolic gain `E n ≤ 1/λₙ` (n≥1).
+  have hmaj : Summable (fun n => Mdot * E n) := by
+    have hgsum : Summable
+        (fun n : ℕ => Mdot * (1 / Real.pi ^ 2) * (1 / ((n : ℝ) + 1) ^ 2)) := by
+      have hp2 : Summable fun n : ℕ => 1 / ((n : ℝ) + 1) ^ 2 := by
+        have := (Real.summable_one_div_nat_pow (p := 2)).mpr (by norm_num)
+        simpa using (summable_nat_add_iff (f := fun n : ℕ => 1 / (n : ℝ) ^ 2) 1).2 this
+      exact hp2.mul_left (Mdot * (1 / Real.pi ^ 2))
+    have htail : Summable (fun n => Mdot * E (n + 1)) := by
+      refine Summable.of_nonneg_of_le
+        (fun n => mul_nonneg hMdotnn (hEnn (n + 1))) (fun n => ?_) hgsum
+      have hlam_pos : 0 < unitIntervalCosineEigenvalue (n + 1) := by
+        unfold unitIntervalCosineEigenvalue
+        have : (0:ℝ) < ((n : ℝ) + 1) := by positivity
+        positivity
+      have hgain := ShenWork.IntervalDuhamelRegularity.parabolicGain_le_one (lam := unitIntervalCosineEigenvalue (n + 1))
+        (t := t) hlam_pos.le ht.le
+      have hElt : E (n + 1) ≤ 1 / unitIntervalCosineEigenvalue (n + 1) := by
+        rw [le_div_iff₀ hlam_pos]
+        calc E (n + 1) * unitIntervalCosineEigenvalue (n + 1)
+            = unitIntervalCosineEigenvalue (n + 1) * E (n + 1) := by ring
+          _ ≤ 1 := hgain
+      have hlam_eq : unitIntervalCosineEigenvalue (n + 1)
+          = ((n : ℝ) + 1) ^ 2 * Real.pi ^ 2 := by
+        unfold unitIntervalCosineEigenvalue; push_cast; ring
+      calc Mdot * E (n + 1) ≤ Mdot * (1 / unitIntervalCosineEigenvalue (n + 1)) :=
+            mul_le_mul_of_nonneg_left hElt hMdotnn
+        _ = Mdot * (1 / Real.pi ^ 2) * (1 / ((n : ℝ) + 1) ^ 2) := by
+            rw [hlam_eq]; field_simp; try ring
+    exact (summable_nat_add_iff (f := fun n => Mdot * E n) 1).mp htail
+  exact Summable.of_nonneg_of_le
+    (fun n => intervalIntegral.integral_nonneg (le_of_lt ht) (fun s _ => norm_nonneg _))
+    hcn_le hmaj
 
 end ShenWork.IntervalDuhamelClosedC2
