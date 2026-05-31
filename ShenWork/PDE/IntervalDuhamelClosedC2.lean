@@ -847,4 +847,63 @@ theorem duhamelValue_adot_eq_tsum
           unitIntervalCosineHeatPointWeight (t - s) x n * adot s n := by
         exact tsum_congr (fun n => (intervalIntegral.integral_of_le hb0).symm)
 
+/-- **`hconv2` discharged.**  The improper Duhamel `∂ₛg`-integral converges
+(spectral form): `∫₀^{t−ε} S(t−s)∂ₛg(s)(x) ds → ∑'ₙ ∫₀ᵗ fₙ` as `ε↓0`.  Tannery's
+theorem (`tendsto_tsum_of_dominated_convergence`) over the per-mode primitive limits
+(`duhamelMode_primitive_tendsto`), dominated by the summable `∫₀ᵗ‖fₙ‖`
+(`duhamelMode_integralNorm_summable`), combined with the `∑∫=∫∑` swap. -/
+theorem duhamelValue_adot_improper_tendsto
+    {t x : ℝ} {adot : ℝ → ℕ → ℝ} {Mdot : ℝ} (ht : 0 < t)
+    (hbound' : ∀ s n, |adot s n| ≤ Mdot)
+    (hadotcont : ∀ n, Continuous (fun s : ℝ => adot s n)) :
+    Tendsto
+      (fun ε => ∫ s in (0:ℝ)..(t - ε), unitIntervalCosineHeatValue (t - s) (adot s) x)
+      (𝓝[>] (0:ℝ))
+      (𝓝 (∑' n, ∫ s in (0:ℝ)..t,
+        unitIntervalCosineHeatPointWeight (t - s) x n * adot s n)) := by
+  have hmem : Set.Ioc (0:ℝ) t ∈ 𝓝[>] (0:ℝ) := by
+    have : Set.Ioi (0:ℝ) ∩ Set.Iic t ∈ 𝓝[>] (0:ℝ) :=
+      inter_mem self_mem_nhdsWithin (nhdsWithin_le_nhds (Iic_mem_nhds ht))
+    simpa [Set.Ioc, Set.Ioi, Set.Iic, Set.inter_def] using this
+  have hfcont : ∀ n, Continuous
+      (fun s : ℝ => unitIntervalCosineHeatPointWeight (t - s) x n * adot s n) := by
+    intro n
+    have hk : Continuous (fun s : ℝ => unitIntervalCosineHeatPointWeight (t - s) x n) := by
+      unfold unitIntervalCosineHeatPointWeight unitIntervalCosineMode; fun_prop
+    exact hk.mul (hadotcont n)
+  have htan : Tendsto
+      (fun ε => ∑' n, ∫ s in (0:ℝ)..(t - ε),
+        unitIntervalCosineHeatPointWeight (t - s) x n * adot s n)
+      (𝓝[>] (0:ℝ))
+      (𝓝 (∑' n, ∫ s in (0:ℝ)..t,
+        unitIntervalCosineHeatPointWeight (t - s) x n * adot s n)) := by
+    refine tendsto_tsum_of_dominated_convergence
+      (bound := fun n => ∫ s in (0:ℝ)..t,
+        ‖unitIntervalCosineHeatPointWeight (t - s) x n * adot s n‖)
+      (duhamelMode_integralNorm_summable (x := x) ht hbound' hadotcont)
+      (fun n => duhamelMode_primitive_tendsto (x := x) n (hadotcont n)) ?_
+    filter_upwards [hmem] with ε hε n
+    have hle1 : ‖∫ s in (0:ℝ)..(t - ε),
+          unitIntervalCosineHeatPointWeight (t - s) x n * adot s n‖
+        ≤ ∫ s in (0:ℝ)..(t - ε),
+          ‖unitIntervalCosineHeatPointWeight (t - s) x n * adot s n‖ :=
+      intervalIntegral.norm_integral_le_integral_norm (by linarith [hε.2] : (0:ℝ) ≤ t - ε)
+    have hle2 : (∫ s in (0:ℝ)..(t - ε),
+          ‖unitIntervalCosineHeatPointWeight (t - s) x n * adot s n‖)
+        ≤ ∫ s in (0:ℝ)..t,
+          ‖unitIntervalCosineHeatPointWeight (t - s) x n * adot s n‖ :=
+      intervalIntegral.integral_mono_interval (le_refl 0)
+        (by linarith [hε.2]) (by linarith [hε.1])
+        (Filter.Eventually.of_forall (fun s => norm_nonneg _))
+        (((hfcont n).norm).intervalIntegrable 0 t)
+    exact le_trans hle1 hle2
+  have heq : (fun ε => ∫ s in (0:ℝ)..(t - ε),
+        unitIntervalCosineHeatValue (t - s) (adot s) x)
+      =ᶠ[𝓝[>] (0:ℝ)] (fun ε => ∑' n, ∫ s in (0:ℝ)..(t - ε),
+        unitIntervalCosineHeatPointWeight (t - s) x n * adot s n) := by
+    filter_upwards [hmem] with ε hε
+    exact duhamelValue_adot_eq_tsum (x := x) ht hbound' hadotcont
+      (by linarith [hε.2]) (by linarith [hε.1])
+  rw [tendsto_congr' heq]; exact htan
+
 end ShenWork.IntervalDuhamelClosedC2
