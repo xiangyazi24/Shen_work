@@ -481,4 +481,48 @@ theorem intervalNeumannResolverR_nonneg_interior {p : CM2Params}
   filter_upwards [Filter.eventually_ge_atTop (0:ℝ)] with T hT
   exact laplaceHeatTrunc_nonneg hf_cont hf_nonneg hx hT
 
+/-- **O1 — the resolver positivity atom (closed domain).**  Extends the interior
+positivity to the closed interval `[0,1]`: the resolver value `x ↦ R(u) x`
+(a cosine series with `ℓ¹` coefficients) is continuous, so `{x | 0 ≤ R(u) x}` is
+closed; it contains the interior `(0,1)`, hence its closure `[0,1]`.  Therefore
+`R(u) ≥ 0` at every point of the closed domain. -/
+theorem intervalNeumannResolverR_nonneg_of_nonneg_source {p : CM2Params}
+    {u : intervalDomainPoint → ℝ} {f : ℝ → ℝ}
+    (hf_cont : Continuous f) (hf_nonneg : ∀ y, 0 ≤ f y)
+    (hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re)
+    (hâ : Summable (fun k => (cosineCoeffs f k) ^ 2))
+    (xp : intervalDomainPoint) :
+    0 ≤ intervalNeumannResolverR p u xp := by
+  set g : ℝ → ℝ := fun x => ∑' k, (intervalNeumannResolverCoeff p u k).re
+    * unitIntervalCosineMode k x with hg
+  -- `ℓ¹` majorant of the resolver coefficients.
+  have hl1 : Summable (fun k => |(intervalNeumannResolverCoeff p u k).re|) := by
+    have hbase : Summable (fun k => |(intervalNeumannResolverSourceCoeff p u k).re|
+        * intervalNeumannResolverWeight p k) := by
+      refine summable_abs_sourceCoeff_mul_weight (p := p) ?_
+      refine hâ.congr (fun k => ?_); rw [hf_coeff]
+    refine hbase.congr (fun k => ?_)
+    rw [resolverCoeff_re_eq, abs_div, abs_of_pos (intervalNeumannResolver_denom_pos p k),
+      intervalNeumannResolverWeight]
+    ring
+  -- `g` is continuous (Weierstrass-M).
+  have hg_cont : Continuous g := by
+    refine continuous_tsum (fun k => ?_) hl1 (fun k x => ?_)
+    · exact continuous_const.mul (by unfold unitIntervalCosineMode; fun_prop)
+    · rw [Real.norm_eq_abs, abs_mul]
+      calc |(intervalNeumannResolverCoeff p u k).re| * |unitIntervalCosineMode k x|
+          ≤ |(intervalNeumannResolverCoeff p u k).re| * 1 := by
+            refine mul_le_mul_of_nonneg_left ?_ (abs_nonneg _)
+            rw [unitIntervalCosineMode]; exact Real.abs_cos_le_one _
+        _ = |(intervalNeumannResolverCoeff p u k).re| := mul_one _
+  -- `{x | 0 ≤ g x}` closed, contains `(0,1)`, hence `[0,1]`.
+  have hsub : Set.Ioo (0:ℝ) 1 ⊆ {x : ℝ | 0 ≤ g x} := by
+    intro x hx
+    exact intervalNeumannResolverR_nonneg_interior hf_cont hf_nonneg hf_coeff hâ
+      (xp := ⟨x, Set.Ioo_subset_Icc_self hx⟩) hx
+  have hIcc : Set.Icc (0:ℝ) 1 ⊆ {x : ℝ | 0 ≤ g x} := by
+    rw [← closure_Ioo (by norm_num : (0:ℝ) ≠ 1)]
+    exact (isClosed_le continuous_const hg_cont).closure_subset_iff.mpr hsub
+  exact hIcc xp.2
+
 end ShenWork.IntervalResolverPositivity
