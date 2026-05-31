@@ -428,4 +428,97 @@ theorem duhamelIntegrand_hasDerivAt
   rw [hval] at hmain
   exact hmain
 
+/-! ## Step 4 — cutoff fundamental theorem of calculus on `[0, t−ε]`
+
+Integrating the chain rule (step 3) over `[0, t−ε]` (avoiding the `s=t`
+singularity).  Prerequisite: the integrand `Φ′` is continuous on the compact, hence
+interval-integrable — proved from uniform convergence (`continuousOn_tsum`), the
+time argument `t−s` staying `≥ t−c > 0`. -/
+
+/-- Continuity of `s ↦ ∂ₓₓ S(t−s)g(s)(x) = unitIntervalCosineHeatSecondValue (t−s)
+(a s) x` on `Iic c` for `c < t` (where `t−s ≥ t−c > 0`).  Uniform convergence with
+the reciprocal-square majorant `4/((t−c)²π²)·n⁻²·M`. -/
+theorem unitIntervalCosineHeatSecondValue_comp_sub_continuousOn
+    {t x : ℝ} {a : ℝ → ℕ → ℝ} {M : ℝ}
+    (hbound : ∀ s n, |a s n| ≤ M) (hcont : ∀ n, Continuous (fun s : ℝ => a s n))
+    {c : ℝ} (hc : c < t) :
+    ContinuousOn (fun s : ℝ => unitIntervalCosineHeatSecondValue (t - s) (a s) x)
+      (Set.Iic c) := by
+  have hMnn : 0 ≤ M := le_trans (abs_nonneg _) (hbound c 0)
+  refine continuousOn_tsum
+    (u := fun n => 4 / ((t - c) ^ 2 * Real.pi ^ 2) * reciprocalSquareTerm n * M)
+    (fun n => ?_) ?_ (fun n s hs => ?_)
+  · apply Continuous.continuousOn
+    have hpw : Continuous
+        (fun s : ℝ => unitIntervalCosineHeatSecondPointWeight (t - s) x n) := by
+      unfold unitIntervalCosineHeatSecondPointWeight; fun_prop
+    exact hpw.mul (hcont n)
+  · have := ((reciprocalSquareTerm_summable.mul_left
+      (4 / ((t - c) ^ 2 * Real.pi ^ 2))).mul_right M)
+    simpa [mul_assoc] using this
+  · have hsc : s ≤ c := hs
+    have htspos : 0 < t - s := by linarith
+    rw [Real.norm_eq_abs, abs_mul]
+    have hsb := unitIntervalCosineHeatSecondPointWeight_abs_le htspos x n
+    have hrec_nonneg : (0 : ℝ) ≤ reciprocalSquareTerm n := by
+      unfold reciprocalSquareTerm; positivity
+    have htc : (0 : ℝ) < t - c := by linarith
+    have hCmono : 4 / ((t - s) ^ 2 * Real.pi ^ 2)
+        ≤ 4 / ((t - c) ^ 2 * Real.pi ^ 2) := by
+      apply div_le_div_of_nonneg_left (by norm_num) (by positivity)
+      have hsq : (t - c) ^ 2 ≤ (t - s) ^ 2 := by nlinarith [hsc, hc]
+      nlinarith [hsq, sq_nonneg Real.pi]
+    calc |unitIntervalCosineHeatSecondPointWeight (t - s) x n| * |a s n|
+        ≤ (4 / ((t - s) ^ 2 * Real.pi ^ 2) * reciprocalSquareTerm n) * M :=
+          mul_le_mul hsb (hbound s n) (abs_nonneg _)
+            (mul_nonneg (by positivity) hrec_nonneg)
+      _ ≤ (4 / ((t - c) ^ 2 * Real.pi ^ 2) * reciprocalSquareTerm n) * M := by
+          apply mul_le_mul_of_nonneg_right _ hMnn
+          exact mul_le_mul_of_nonneg_right hCmono hrec_nonneg
+
+/-- Continuity of `s ↦ S(t−s)g(s)(x) = unitIntervalCosineHeatValue (t−s) (a s) x` on
+`Iic c` for `c < t`.  Uniform convergence with the Gaussian majorant
+`e^{−(t−c)λₙ}·M`. -/
+theorem unitIntervalCosineHeatValue_comp_sub_continuousOn
+    {t x : ℝ} {a : ℝ → ℕ → ℝ} {M : ℝ}
+    (hbound : ∀ s n, |a s n| ≤ M) (hcont : ∀ n, Continuous (fun s : ℝ => a s n))
+    {c : ℝ} (hc : c < t) :
+    ContinuousOn (fun s : ℝ => unitIntervalCosineHeatValue (t - s) (a s) x)
+      (Set.Iic c) := by
+  have hMnn : 0 ≤ M := le_trans (abs_nonneg _) (hbound c 0)
+  have htc : (0 : ℝ) < t - c := by linarith
+  refine continuousOn_tsum
+    (u := fun n => Real.exp (-(t - c) * unitIntervalCosineEigenvalue n) * M)
+    (fun n => ?_) ?_ (fun n s hs => ?_)
+  · apply Continuous.continuousOn
+    have hpw : Continuous
+        (fun s : ℝ => unitIntervalCosineHeatPointWeight (t - s) x n) := by
+      unfold unitIntervalCosineHeatPointWeight unitIntervalCosineMode; fun_prop
+    exact hpw.mul (hcont n)
+  · exact (ShenWork.HeatKernelGradientEstimates.unitIntervalCosineHeatTrace_single_exp_summable
+      htc).mul_right M
+  · have hsc : s ≤ c := hs
+    have htspos : 0 < t - s := by linarith
+    rw [Real.norm_eq_abs, abs_mul]
+    have hpw : |unitIntervalCosineHeatPointWeight (t - s) x n|
+        ≤ Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) := by
+      unfold unitIntervalCosineHeatPointWeight unitIntervalCosineMode
+      rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+      calc Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) *
+              |Real.cos ((n : ℝ) * Real.pi * x)|
+          ≤ Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * 1 :=
+            mul_le_mul_of_nonneg_left (Real.abs_cos_le_one _) (Real.exp_nonneg _)
+        _ = Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) := by ring
+    have hexpmono : Real.exp (-(t - s) * unitIntervalCosineEigenvalue n)
+        ≤ Real.exp (-(t - c) * unitIntervalCosineEigenvalue n) := by
+      apply Real.exp_le_exp.mpr
+      have hlam : 0 ≤ unitIntervalCosineEigenvalue n := by
+        unfold unitIntervalCosineEigenvalue; positivity
+      nlinarith [hsc, hlam]
+    calc |unitIntervalCosineHeatPointWeight (t - s) x n| * |a s n|
+        ≤ Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * M :=
+          mul_le_mul hpw (hbound s n) (abs_nonneg _) (Real.exp_nonneg _)
+      _ ≤ Real.exp (-(t - c) * unitIntervalCosineEigenvalue n) * M :=
+          mul_le_mul_of_nonneg_right hexpmono hMnn
+
 end ShenWork.IntervalDuhamelClosedC2
