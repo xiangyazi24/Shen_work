@@ -23,6 +23,7 @@ import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 import Mathlib.Analysis.SpecialFunctions.Integrability.Basic
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import ShenWork.PDE.IntervalFullKernelGradEstimate
+import ShenWork.PDE.IntervalFullKernelSupBound
 
 open MeasureTheory intervalIntegral
 open ShenWork.IntervalDomain (intervalMeasure)
@@ -118,5 +119,37 @@ theorem gradDuhamel_sup_bound
         have hsqrt : Real.sqrt t ≤ Real.sqrt T := Real.sqrt_le_sqrt htT
         have hsqT : 0 ≤ Real.sqrt T := Real.sqrt_nonneg _
         nlinarith [hCgnn, hCq, Real.sqrt_nonneg t, hsqrt, mul_nonneg hCgnn hCq]
+
+/-- **Atom D — value-Duhamel sup bound.**  For a source path `r` bounded by `Cr`,
+the value-Duhamel integral `∫₀ᵗ S(t−s) r(s) ds` is bounded by `T·Cr`.  The
+non-singular per-slice value (semigroup `L∞`-contraction
+`intervalFullSemigroupOperator_Linfty_bound`, `|S(τ)f| ≤ Cr`) integrates against
+the length `t ≤ T`.  `hr_int` is the (continuity-derivable) integrability
+prerequisite. -/
+theorem valueDuhamel_sup_bound
+    {t T : ℝ} (ht : 0 < t) (htT : t ≤ T) {r : ℝ → ℝ → ℝ}
+    {Cr : ℝ} (hCr : 0 ≤ Cr) (hr_sup : ∀ s y, |r s y| ≤ Cr) (x : ℝ)
+    (hr_int : IntervalIntegrable
+      (fun s : ℝ => intervalFullSemigroupOperator (t - s) (r s) x) volume 0 t) :
+    |∫ s in (0:ℝ)..t, intervalFullSemigroupOperator (t - s) (r s) x| ≤ T * Cr := by
+  have hptw : ∀ s, 0 ≤ s → s < t →
+      |intervalFullSemigroupOperator (t - s) (r s) x| ≤ Cr := fun s _ hst =>
+    intervalFullSemigroupOperator_Linfty_bound (sub_pos.mpr hst) hCr (hr_sup s) x
+  have hne : ∀ᵐ s : ℝ ∂volume, s ≠ t := by
+    rw [ae_iff]
+    simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+  have hae : (fun s : ℝ => |intervalFullSemigroupOperator (t - s) (r s) x|)
+      ≤ᵐ[volume.restrict (Set.Icc 0 t)] (fun _ : ℝ => Cr) := by
+    refine (ae_restrict_iff' measurableSet_Icc).2 ?_
+    filter_upwards [hne] with s hs_ne hs_mem
+    exact hptw s hs_mem.1 (lt_of_le_of_ne hs_mem.2 hs_ne)
+  calc |∫ s in (0:ℝ)..t, intervalFullSemigroupOperator (t - s) (r s) x|
+      ≤ ∫ s in (0:ℝ)..t, |intervalFullSemigroupOperator (t - s) (r s) x| :=
+        intervalIntegral.abs_integral_le_integral_abs ht.le
+    _ ≤ ∫ _s in (0:ℝ)..t, Cr :=
+        intervalIntegral.integral_mono_ae_restrict ht.le hr_int.abs
+          (_root_.intervalIntegrable_const) hae
+    _ = t * Cr := by rw [intervalIntegral.integral_const, sub_zero, smul_eq_mul]
+    _ ≤ T * Cr := by gcongr
 
 end ShenWork.IntervalGradDuhamelBound
