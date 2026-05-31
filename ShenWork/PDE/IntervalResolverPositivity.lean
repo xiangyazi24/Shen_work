@@ -28,11 +28,13 @@
 -/
 import ShenWork.PDE.IntervalFullKernelSupBound
 import ShenWork.PDE.IntervalFullKernelInterchange
+import ShenWork.PDE.IntervalDuhamelSpectralC2
 
-open MeasureTheory
+open MeasureTheory intervalIntegral
 open ShenWork.IntervalDomain (intervalMeasure)
 open ShenWork.IntervalNeumannFullKernel
 open ShenWork.IntervalFullKernelInterchange
+open ShenWork.IntervalDuhamelSpectralC2 (intervalExpKernel_time_integral)
 
 noncomputable section
 
@@ -47,7 +49,7 @@ theorem intervalFullSemigroupOperator_nonneg {t : ℝ} (ht : 0 < t)
     {f : ℝ → ℝ} (hf : ∀ y, 0 ≤ f y) (x : ℝ) :
     0 ≤ intervalFullSemigroupOperator t f x := by
   unfold intervalFullSemigroupOperator
-  apply integral_nonneg
+  apply MeasureTheory.integral_nonneg
   intro y
   exact mul_nonneg (intervalNeumannFullKernel_nonneg ht x y) (hf y)
 
@@ -105,5 +107,48 @@ theorem unitIntervalCosineHeatValue_nonneg_of_continuous {t : ℝ} (ht : 0 < t)
   rw [← intervalFullSemigroupOperator_eq_cosineHeatValue_unconditional t ht f hf_cont x hx
         (fun y => intervalNeumannFullKernel_cosineKernel_identity ht x y)]
   exact intervalFullSemigroupOperator_nonneg ht hf_nonneg x
+
+/-! ## O1c — the heat-Laplace truncation `R_T` and its nonnegativity -/
+
+/-- **Per-mode Laplace integral.**  `∫₀ᵀ e^{−aτ} dτ = (1−e^{−aT})/a` (`a ≠ 0`):
+the `τ = T−s` reflection of the proven `intervalExpKernel_time_integral`. -/
+theorem integral_exp_neg_mul {a T : ℝ} (ha : a ≠ 0) :
+    (∫ τ in (0:ℝ)..T, Real.exp (-a * τ)) = (1 - Real.exp (-a * T)) / a := by
+  have key : ∀ τ : ℝ,
+      HasDerivAt (fun τ : ℝ => -Real.exp (-a * τ) / a) (Real.exp (-a * τ)) τ := by
+    intro τ
+    have hinner : HasDerivAt (fun τ : ℝ => -a * τ) (-a) τ := by
+      simpa using (hasDerivAt_id τ).const_mul (-a)
+    have hd := ((hinner.exp).neg).div_const a
+    convert hd using 1
+    field_simp
+  rw [intervalIntegral.integral_eq_sub_of_hasDerivAt (fun τ _ => key τ)
+      ((Real.continuous_exp.comp (by fun_prop)).intervalIntegrable 0 T)]
+  simp only [mul_zero, Real.exp_zero]
+  field_simp
+  ring
+
+/-- **The heat-Laplace truncation.**  `R_T(f)(x) = ∫₀ᵀ e^{−μt} S(t)f x dt`, the
+finite-`T` truncation of the resolvent Laplace representation
+`R(f) = ∫₀^∞ e^{−μt} S(t)f dt`.  (Defined via the FULL propagator
+`intervalFullSemigroupOperator`, which carries both positivity and the cosine
+spectral form.) -/
+def laplaceTruncation (μ T : ℝ) (f : ℝ → ℝ) (x : ℝ) : ℝ :=
+  ∫ t in (0:ℝ)..T, Real.exp (-μ * t) * intervalFullSemigroupOperator t f x
+
+/-- **O1c (step 1) — `R_T ≥ 0`.**  For a nonnegative source `f ≥ 0` and `0 ≤ T`,
+the truncation is nonnegative: the integrand `e^{−μt}·S(t)f x ≥ 0` for `t > 0`
+(`Real.exp_nonneg` × O1a `intervalFullSemigroupOperator_nonneg`); the endpoint
+`t = 0` is null. -/
+theorem laplaceTruncation_nonneg {μ T : ℝ} (hT : 0 ≤ T) {f : ℝ → ℝ}
+    (hf : ∀ y, 0 ≤ f y) (x : ℝ) : 0 ≤ laplaceTruncation μ T f x := by
+  refine intervalIntegral.integral_nonneg_of_ae_restrict hT ?_
+  have hne : ∀ᵐ t : ℝ ∂volume, t ≠ 0 := by
+    rw [ae_iff]
+    simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+  refine (ae_restrict_iff' measurableSet_Icc).mpr ?_
+  filter_upwards [hne] with t ht_ne ht_mem
+  have ht0 : 0 < t := lt_of_le_of_ne ht_mem.1 (Ne.symm ht_ne)
+  exact mul_nonneg (Real.exp_nonneg _) (intervalFullSemigroupOperator_nonneg ht0 hf x)
 
 end ShenWork.IntervalResolverPositivity
