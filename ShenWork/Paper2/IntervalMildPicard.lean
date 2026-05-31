@@ -250,11 +250,30 @@ theorem picardLimit_is_mildSolution (p : CM2Params) (u₀ : intervalDomainPoint 
 
 /-! ## Main existence theorem -/
 
-/-- **T7 mild existence via Picard iteration.**
+/-- Conditional mild existence: given suitable constants satisfying the
+analytic bounds, Picard iteration produces a mild solution. -/
+theorem intervalMildSolution_of_bounds (p : CM2Params)
+    (u₀ : intervalDomainPoint → ℝ)
+    {T K C₀ M : ℝ} (hT : 0 < T) (hK : K < 1) (hK_nn : 0 ≤ K) (hC₀ : 0 ≤ C₀)
+    (hM : 0 < M)
+    (hbound : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |picardIter p u₀ (n + 1) t x - picardIter p u₀ n t x| ≤ K ^ n * C₀)
+    (hball : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |picardIter p u₀ n t x| ≤ M)
+    (hcontract : ∀ (u w : ℝ → intervalDomainPoint → ℝ) (d : ℝ),
+      (∀ t, 0 < t → t ≤ T → ∀ x, |u t x| ≤ M) →
+      (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+      (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
+      ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+        |intervalGradientDuhamelMap p u₀ u t x
+          - intervalGradientDuhamelMap p u₀ w t x| ≤ K * d) :
+    ∃ u : ℝ → intervalDomainPoint → ℝ, IntervalMildSolution p T u₀ u :=
+  ⟨picardLimit p u₀ T,
+    picardLimit_is_mildSolution p u₀ hT hK hK_nn hC₀ hM hbound hball hcontract⟩
 
-For any CM2 parameters and bounded initial datum, there exists T > 0
-and a trajectory satisfying the weak Duhamel equation on (0,T].
--/
+/-- Full mild existence: assembles the conditional theorem with the PDE estimates.
+Remaining sorry: parameter selection (T, M, K from the Duhamel bounds)
+and inductive verification of hbound/hball. Pure plumbing, no new math. -/
 theorem intervalMildSolution_exists_picard (p : CM2Params)
     (u₀ : intervalDomainPoint → ℝ)
     (_hu₀_bounded : ∃ B : ℝ, ∀ x, |u₀ x| ≤ B) :
