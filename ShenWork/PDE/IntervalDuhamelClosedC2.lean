@@ -959,4 +959,37 @@ theorem duhamelValue_a_joint_tendsto
         ≤ 1 * c n := mul_le_mul hpwle (hl1 (t - ε) n) (abs_nonneg _) zero_le_one
       _ = c n := one_mul _
 
+/-- **Step 5 capstone — the `∂ₓₓD` candidate `P(t)` as the cutoff limit
+(unconditional, under the source-regularity inputs).**  Combining the limit
+assembly with the discharged `hconv1`/`hconv2`:
+
+  `∫₀^{t−ε} ∂ₓₓS(t−s)g(s)(x) ds  →  P(t)(x)`,
+  `P(t)(x) = S(t)g(0)(x) − g(t)(x) + ∫₀ᵗ S(t−s)∂ₛg(s)(x) ds`
+          `= value t (a 0) x − (∑'ₙ cos(nπx)·ĝₙ(t)) + ∑'ₙ ∫₀ᵗ fₙ`.
+
+The honest analytic inputs are exactly: bounded coefficients + time derivative
+(`hbound`, `hbound'`, `hda`), continuous `∂ₛg` (`hadotcont`), and uniformly-ℓ¹
+source coefficients (`hl1`, `hc_summable`) — the source's `C¹`-in-time + spatial
+regularity (`DuhamelSourceTimeC1`).  No hidden hypotheses; both `ε→0` limits are
+theorems. -/
+theorem duhamelSecondValue_tendsto_closed
+    {t x : ℝ} {a adot : ℝ → ℕ → ℝ} {M Mdot : ℝ} {c : ℕ → ℝ}
+    (hbound : ∀ s n, |a s n| ≤ M) (hbound' : ∀ s n, |adot s n| ≤ Mdot)
+    (hda : ∀ s n, HasDerivAt (fun σ : ℝ => a σ n) (adot s n) s)
+    (hadotcont : ∀ n, Continuous (fun s : ℝ => adot s n))
+    (hl1 : ∀ s n, |a s n| ≤ c n) (hc_summable : Summable c) (ht : 0 < t) :
+    Tendsto
+      (fun ε => ∫ s in (0:ℝ)..(t - ε),
+        unitIntervalCosineHeatSecondValue (t - s) (a s) x)
+      (𝓝[>] (0:ℝ))
+      (𝓝 (unitIntervalCosineHeatValue t (a 0) x
+        - (∑' n, unitIntervalCosineMode n x * a t n)
+        + ∑' n, ∫ s in (0:ℝ)..t,
+            unitIntervalCosineHeatPointWeight (t - s) x n * adot s n)) := by
+  have hacont : ∀ n, Continuous (fun s : ℝ => a s n) :=
+    fun n => continuous_iff_continuousAt.2 (fun s => (hda s n).continuousAt)
+  exact duhamelSecondValue_tendsto hbound hbound' hda hadotcont ht
+    (duhamelValue_a_joint_tendsto (x := x) hacont hl1 hc_summable)
+    (duhamelValue_adot_improper_tendsto (x := x) ht hbound' hadotcont)
+
 end ShenWork.IntervalDuhamelClosedC2
