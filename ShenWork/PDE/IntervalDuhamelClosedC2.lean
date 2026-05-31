@@ -1029,4 +1029,72 @@ kernel), the space FTC + Fubini on the finite cutoff, and a final
 deferred as the next increment.  Source regularity is the `DuhamelSourceTimeC1`-style
 input already isolated (bounded coeffs + time-`C¹` + uniformly-ℓ¹ coeffs). -/
 
+/-! ## Step 7 — the per-mode time integration by parts (the heart of `∂ₓₓD`)
+
+`D(t)(x) = ∑'ₙ bₙ cos(nπx)` with `bₙ = ∫₀ᵗ e^{−(t−s)λₙ}·ĝₙ(s) ds`.  The time IBP
+`λₙ bₙ = ĝₙ(t) − e^{−tλₙ}ĝₙ(0) − ∫₀ᵗ e^{−(t−s)λₙ}·ĝₙ′(s) ds` shows `λₙ|bₙ|` is
+summable (ℓ¹ source + parabolic gain), hence `D` is `C²` with `∂ₓₓD = −∑'ₙ λₙbₙcos =
+P`.  This is the singularity-free heart: no second kernel derivative, the `∂ₛg`
+appears instead. -/
+
+/-- **Per-mode time integration by parts.**  For a `C¹`-in-time coefficient
+`a` (with derivative `adot`), `λ·∫₀ᵗ e^{−(t−s)λ} a(s) ds = a(t) − e^{−tλ} a(0) −
+∫₀ᵗ e^{−(t−s)λ} a′(s) ds`.  (`∫₀ᵗ w′ = w(t)−w(0)` for `w(s)=a(s)e^{−(t−s)λ}`;
+`d/ds e^{−(t−s)λ} = λ e^{−(t−s)λ}`.) -/
+theorem duhamelCoeff_eigenvalue_mul
+    {t lam : ℝ} {a adot : ℝ → ℝ}
+    (hda : ∀ s, HasDerivAt a (adot s) s) (hadotcont : Continuous adot) :
+    lam * (∫ s in (0:ℝ)..t, Real.exp (-(t - s) * lam) * a s)
+      = a t - Real.exp (-t * lam) * a 0
+        - ∫ s in (0:ℝ)..t, Real.exp (-(t - s) * lam) * adot s := by
+  have hacont : Continuous a :=
+    continuous_iff_continuousAt.2 (fun s => (hda s).continuousAt)
+  -- `w s = a s · e^{−(t−s)λ}`, `w′ s = adot s · e^{−(t−s)λ} + a s · (λ e^{−(t−s)λ})`.
+  have hexp : ∀ s, HasDerivAt (fun s : ℝ => Real.exp (-(t - s) * lam))
+      (lam * Real.exp (-(t - s) * lam)) s := by
+    intro s
+    have harg : HasDerivAt (fun s : ℝ => -(t - s) * lam) lam s := by
+      have h1 : HasDerivAt (fun s : ℝ => -(t - s)) 1 s := by
+        have : HasDerivAt (fun s : ℝ => s - t) 1 s := by
+          simpa using (hasDerivAt_id s).sub_const t
+        refine this.congr_of_eventuallyEq ?_
+        filter_upwards with y using by ring
+      simpa using h1.mul_const lam
+    simpa [mul_comm] using harg.exp
+  have hw : ∀ s, HasDerivAt (fun s : ℝ => a s * Real.exp (-(t - s) * lam))
+      (adot s * Real.exp (-(t - s) * lam)
+        + a s * (lam * Real.exp (-(t - s) * lam))) s :=
+    fun s => (hda s).mul (hexp s)
+  have hcont' : Continuous (fun s : ℝ => adot s * Real.exp (-(t - s) * lam)
+      + a s * (lam * Real.exp (-(t - s) * lam))) := by
+    have he : Continuous (fun s : ℝ => Real.exp (-(t - s) * lam)) := by fun_prop
+    exact (hadotcont.mul he).add (hacont.mul (continuous_const.mul he))
+  have hFTC := intervalIntegral.integral_eq_sub_of_hasDerivAt (fun s _ => hw s)
+    (hcont'.intervalIntegrable 0 t)
+  -- evaluate boundary: `w t = a t`, `w 0 = a 0 · e^{−tλ}`.
+  have hwt : a t * Real.exp (-(t - t) * lam) = a t := by simp
+  have hw0 : a 0 * Real.exp (-(t - 0) * lam) = Real.exp (-t * lam) * a 0 := by
+    rw [show -(t - 0) * lam = -t * lam by ring]; ring
+  rw [hwt, hw0] at hFTC
+  -- split the integral on the LHS of hFTC.
+  have hi1 : IntervalIntegrable
+      (fun s => adot s * Real.exp (-(t - s) * lam)) volume 0 t := by
+    have he : Continuous (fun s : ℝ => Real.exp (-(t - s) * lam)) := by fun_prop
+    exact (hadotcont.mul he).intervalIntegrable 0 t
+  have hi2 : IntervalIntegrable
+      (fun s => a s * (lam * Real.exp (-(t - s) * lam))) volume 0 t := by
+    have he : Continuous (fun s : ℝ => Real.exp (-(t - s) * lam)) := by fun_prop
+    exact (hacont.mul (continuous_const.mul he)).intervalIntegrable 0 t
+  rw [intervalIntegral.integral_add hi1 hi2] at hFTC
+  -- `∫ a·(λ·e) = λ·∫ a·e = λ·∫ e·a` ; `∫ adot·e = ∫ e·adot`.
+  have he1 : (∫ s in (0:ℝ)..t, a s * (lam * Real.exp (-(t - s) * lam)))
+      = lam * ∫ s in (0:ℝ)..t, Real.exp (-(t - s) * lam) * a s := by
+    rw [← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr (fun s _ => by ring)
+  have he2 : (∫ s in (0:ℝ)..t, adot s * Real.exp (-(t - s) * lam))
+      = ∫ s in (0:ℝ)..t, Real.exp (-(t - s) * lam) * adot s :=
+    intervalIntegral.integral_congr (fun s _ => by ring)
+  rw [he1, he2] at hFTC
+  linarith [hFTC]
+
 end ShenWork.IntervalDuhamelClosedC2
