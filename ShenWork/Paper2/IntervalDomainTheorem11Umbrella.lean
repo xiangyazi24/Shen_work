@@ -43,6 +43,24 @@
       uniform upper bound, half-horizon positivity, initial-sup-norm
       approach, branch sup-norm bounds, Lemma 3.1 bridge — is discharged
       unconditionally inside the repo.
+
+    * **Precise frontier of `hlocal` (T7, 2026-05-30).**  `hlocal` is an
+      EXISTENCE claim (construct `(u,v)` solving the coupled nonlinear system
+      for every positive datum), NOT merely a regularity claim.  The T6 atom
+      `intervalDuhamelTerm_closedC2_of_timeC1_source` and the T7 bridges
+      (`ShenWork/PDE/IntervalCosineSliceRegularity.lean`) discharge the
+      *regularity* half: a mild-solution slice `S_t u₀ + D_t`, being a single
+      cosine series `∑cₙcos` with `∑λₙ|cₙ|<∞`, satisfies the spatial regularity
+      conjuncts (3)/(6)/(7) of `intervalDomainClassicalRegularity` for free.
+      What remains — the irreducible core **[D2]** — is the *construction*:
+      the mild-solution fixed point `u = S_t u₀ + ∫₀ᵗ S(t−s)·g[u,v](s)ds` whose
+      source `g[u,v] = −χ∇·(u∇v/(1+v)^β)+u(a−bu^α)` depends on `u,v`, plus the
+      bootstrap proving that source is `DuhamelSourceTimeC1` (circular: needs
+      `u,v` already regular).  This is a Banach/Picard fixed point + parabolic
+      Schauder theory that is absent from both this repo and Mathlib; see
+      `T5_DESIGN.md` §7.4 and `T7_DESIGN.md`.  `hlocal` therefore remains an
+      honest textbook hypothesis; the atom removes its hardest *analytic*
+      sub-obstruction (`∂ₓₓD_t`), not the existence itself.
 -/
 import ShenWork.Paper2.IntervalDomainMoserClosure
 import ShenWork.Paper2.IntervalDomainL2USubHorizonGluing
