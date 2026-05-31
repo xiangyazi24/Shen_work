@@ -36,6 +36,9 @@ open ShenWork.IntervalDomain (intervalMeasure)
 open ShenWork.IntervalNeumannFullKernel
 open ShenWork.IntervalFullKernelInterchange
 open ShenWork.IntervalDuhamelSpectralC2 (intervalExpKernel_time_integral)
+open ShenWork.PDE (intervalNeumannResolverWeight intervalNeumannResolverWeight_sq_summable
+  intervalNeumannResolver_denom_pos)
+open ShenWork.Paper3 (unitIntervalNeumannSpectrum)
 
 noncomputable section
 
@@ -154,7 +157,6 @@ theorem laplaceTruncation_nonneg {μ T : ℝ} (hT : 0 ≤ T) {f : ℝ → ℝ}
 
 /-! ## O1c step 2 / O1d — spectral limit (foundation) -/
 
-open ShenWork.PDE in
 /-- **ℓ¹ majorant.**  `∑ₙ |âₙ|/(μ+λₙ) < ∞` from `â ∈ ℓ²` and the resolvent weight
 `1/(μ+λₙ) ∈ ℓ²` (`intervalNeumannResolverWeight_sq_summable`), via AM-GM
 `|âₙ|·wₙ ≤ (âₙ²+wₙ²)/2`.  This is the dominating series both for the Fubini
@@ -183,6 +185,16 @@ theorem laplaceMode_continuous (μ : ℝ) (â : ℕ → ℝ) (x : ℝ) (k : ℕ)
   unfold laplaceMode unitIntervalCosineHeatPointWeight
   fun_prop
 
+/-- Closed form `gₖ(t) = (âₖ·cos(kπx))·e^{−(μ+λₖ)t}`. -/
+theorem laplaceMode_eq (μ : ℝ) (â : ℕ → ℝ) (x : ℝ) (k : ℕ) (t : ℝ) :
+    laplaceMode μ â x k t
+      = (â k * unitIntervalCosineMode k x)
+        * Real.exp (-(μ + unitIntervalCosineEigenvalue k) * t) := by
+  unfold laplaceMode unitIntervalCosineHeatPointWeight unitIntervalCosineMode
+  rw [show -(μ + unitIntervalCosineEigenvalue k) * t
+      = (-μ * t) + (-t * unitIntervalCosineEigenvalue k) from by ring, Real.exp_add]
+  ring
+
 /-- Per-mode integral `∫₀ᵀ gₖ = âₖ·cos(kπx)·(1−e^{−(μ+λₖ)T})/(μ+λₖ)`. -/
 theorem integral_laplaceMode {p : CM2Params} {â : ℕ → ℝ} {x T : ℝ} (k : ℕ) :
     (∫ t in (0:ℝ)..T, laplaceMode p.μ â x k t)
@@ -195,15 +207,76 @@ theorem integral_laplaceMode {p : CM2Params} {â : ℕ → ℝ} {x T : ℝ} (k :
         unfold unitIntervalCosineEigenvalue; positivity
       linarith [p.hμ]
     exact ne_of_gt this
-  have hrw : ∀ t : ℝ, laplaceMode p.μ â x k t
-      = (â k * unitIntervalCosineMode k x)
-        * Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * t) := by
-    intro t
-    unfold laplaceMode unitIntervalCosineHeatPointWeight unitIntervalCosineMode
-    rw [show -(p.μ + unitIntervalCosineEigenvalue k) * t
-        = (-p.μ * t) + (-t * unitIntervalCosineEigenvalue k) from by ring, Real.exp_add]
-    ring
-  rw [intervalIntegral.integral_congr (fun t _ => hrw t),
+  rw [intervalIntegral.integral_congr (fun t _ => laplaceMode_eq p.μ â x k t),
     intervalIntegral.integral_const_mul, integral_exp_neg_mul hne]
+
+/-- **O1c step 2 — Fubini spectral form of the Laplace truncation.**  For
+`â ∈ ℓ²` and `0 ≤ T`, `∫₀ᵀ e^{−μt}·(heat value t â x) dt = ∑ₖ âₖ cos(kπx)·
+(1−e^{−(μ+λₖ)T})/(μ+λₖ)`.  The `∑∫=∫∑` swap is `integral_tsum_of_summable_integral_norm`,
+dominated by the ℓ¹ majorant `∑ₖ|âₖ|/(μ+λₖ)`. -/
+theorem laplaceResolverTrunc_eq_tsum {p : CM2Params} {â : ℕ → ℝ}
+    (hâ : Summable (fun n => (â n) ^ 2)) {x T : ℝ} (hT : 0 ≤ T) :
+    (∫ t in (0:ℝ)..T, Real.exp (-p.μ * t) * unitIntervalCosineHeatValue t â x)
+      = ∑' k : ℕ, â k * unitIntervalCosineMode k x
+          * ((1 - Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T))
+              / (p.μ + unitIntervalCosineEigenvalue k)) := by
+  have hdpos : ∀ k, (0:ℝ) < p.μ + unitIntervalCosineEigenvalue k := by
+    intro k
+    have h0 : 0 ≤ unitIntervalCosineEigenvalue k := by
+      unfold unitIntervalCosineEigenvalue; positivity
+    linarith [p.hμ]
+  -- per-mode integrability on `Ioc 0 T`.
+  have hF_int : ∀ k, Integrable (laplaceMode p.μ â x k) (volume.restrict (Set.Ioc 0 T)) :=
+    fun k => (laplaceMode_continuous p.μ â x k).integrableOn_Ioc
+  -- `∫_{Ioc 0 T} ‖gₖ‖ ≤ |âₖ|·weightₖ`, summable.
+  have hF_sum : Summable (fun k => ∫ t in Set.Ioc 0 T, ‖laplaceMode p.μ â x k t‖) := by
+    refine Summable.of_nonneg_of_le
+      (fun k => MeasureTheory.integral_nonneg (fun t => norm_nonneg _)) (fun k => ?_)
+      (summable_abs_sourceCoeff_mul_weight (p := p) hâ)
+    -- `∫ ‖gₖ‖ = |âₖ·cos|·(1−e^{−(μ+λₖ)T})/(μ+λₖ) ≤ |âₖ|·weightₖ`.
+    have hnorm : ∀ t : ℝ, ‖laplaceMode p.μ â x k t‖
+        = |â k * unitIntervalCosineMode k x|
+          * Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * t) := by
+      intro t
+      rw [Real.norm_eq_abs, laplaceMode_eq, abs_mul, Real.abs_exp]
+    rw [← intervalIntegral.integral_of_le hT]
+    rw [intervalIntegral.integral_congr (fun t _ => hnorm t),
+      intervalIntegral.integral_const_mul,
+      integral_exp_neg_mul (ne_of_gt (hdpos k))]
+    have hcos : |â k * unitIntervalCosineMode k x| ≤ |â k| := by
+      rw [abs_mul]
+      calc |â k| * |unitIntervalCosineMode k x|
+          ≤ |â k| * 1 := by
+            refine mul_le_mul_of_nonneg_left ?_ (abs_nonneg _)
+            rw [unitIntervalCosineMode]; exact Real.abs_cos_le_one _
+        _ = |â k| := mul_one _
+    have heig : p.μ + unitIntervalCosineEigenvalue k
+        = p.μ + unitIntervalNeumannSpectrum.eigenvalue k := by
+      have : unitIntervalCosineEigenvalue k = unitIntervalNeumannSpectrum.eigenvalue k := by
+        rw [show unitIntervalNeumannSpectrum.eigenvalue k = (k : ℝ) ^ 2 * Real.pi ^ 2 from rfl,
+          unitIntervalCosineEigenvalue]; ring
+      rw [this]
+    have hexp_le : Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T) ≤ 1 :=
+      Real.exp_le_one_iff.mpr (by nlinarith [hdpos k, hT])
+    have hfac : (1 - Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T))
+        / (p.μ + unitIntervalCosineEigenvalue k)
+        ≤ intervalNeumannResolverWeight p k := by
+      rw [intervalNeumannResolverWeight, ← heig, div_eq_mul_inv, one_div]
+      exact mul_le_of_le_one_left (inv_nonneg.mpr (hdpos k).le)
+        (by linarith [Real.exp_nonneg (-(p.μ + unitIntervalCosineEigenvalue k) * T)])
+    have hfac_nn : 0 ≤ (1 - Real.exp (-(p.μ + unitIntervalCosineEigenvalue k) * T))
+        / (p.μ + unitIntervalCosineEigenvalue k) :=
+      div_nonneg (by linarith [hexp_le]) (hdpos k).le
+    exact mul_le_mul hcos hfac hfac_nn (abs_nonneg _)
+  -- Fubini.
+  have hfub := integral_tsum_of_summable_integral_norm hF_int hF_sum
+  have hint_eq : (fun t => Real.exp (-p.μ * t) * unitIntervalCosineHeatValue t â x)
+      = (fun t => ∑' k, laplaceMode p.μ â x k t) := by
+    funext t
+    simp only [unitIntervalCosineHeatValue, laplaceMode]
+    rw [← tsum_mul_left]
+  rw [intervalIntegral.integral_of_le hT, hint_eq, ← hfub]
+  refine tsum_congr (fun k => ?_)
+  rw [← intervalIntegral.integral_of_le hT, integral_laplaceMode]
 
 end ShenWork.IntervalResolverPositivity
