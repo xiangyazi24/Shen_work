@@ -103,4 +103,91 @@ theorem intervalDomainCosineSlice_conjunct7
             intervalDomainLift_deriv_right_endpoint_zero_of_ne hne1⟩
   exact ((cosineCoeffSeries_contDiff_two hb).contDiffOn).congr hagree
 
+/-! ## Subgoal [B] — the remaining spatial conjuncts (3) and (6)
+
+Conjunct (3) is the open-interval `ContDiffOn` (a restriction of conjunct (7));
+conjunct (6) is the genuine one-sided Neumann *limit* `deriv(lift w) → 0` at the
+endpoints.  Both are supplied by the same cosine-series engine. -/
+
+/-- **Conjunct-(3) bridge.**  Open-interval spatial `C²` for a cosine-series
+slice — the restriction of conjunct (7)'s closed `ContDiffOn` to `Ioo 0 1`.
+Needs no endpoint hypotheses (the interior never sees the zero-extension jump). -/
+theorem intervalDomainCosineSlice_contDiffOn_Ioo
+    {b : ℕ → ℝ} {w : intervalDomainPoint → ℝ}
+    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|))
+    (hagree : Set.EqOn (intervalDomainLift w)
+        (fun x => ∑' n, b n * cosineMode n x) (Set.Icc (0 : ℝ) 1)) :
+    ContDiffOn ℝ 2 (intervalDomainLift w) (Set.Ioo (0 : ℝ) 1) :=
+  (((cosineCoeffSeries_contDiff_two hb).contDiffOn).congr hagree).mono
+    Set.Ioo_subset_Icc_self
+
+/-- **Eventual deriv agreement near an endpoint.**  On the open interior the lift
+agrees with the cosine series `g` on an open neighbourhood of each point, so the
+derivatives agree on the one-sided neighbourhood filter at the endpoint. -/
+private theorem deriv_lift_eventuallyEq_cosineSeries_left
+    {b : ℕ → ℝ} {w : intervalDomainPoint → ℝ}
+    (hagree : Set.EqOn (intervalDomainLift w)
+        (fun x => ∑' n, b n * cosineMode n x) (Set.Icc (0 : ℝ) 1)) :
+    deriv (intervalDomainLift w)
+      =ᶠ[nhdsWithin (0 : ℝ) (Set.Ioi 0)] deriv (fun x => ∑' n, b n * cosineMode n x) := by
+  have hmem : Set.Ioo (0 : ℝ) 1 ∈ nhdsWithin (0 : ℝ) (Set.Ioi 0) :=
+    mem_nhdsWithin.mpr ⟨Set.Iio 1, isOpen_Iio, by norm_num, by
+      intro z hz; exact ⟨hz.2, hz.1⟩⟩
+  filter_upwards [hmem] with y hy
+  refine Filter.EventuallyEq.deriv_eq ?_
+  filter_upwards [Ioo_mem_nhds hy.1 hy.2] with z hz
+  exact hagree (Set.Ioo_subset_Icc_self hz)
+
+private theorem deriv_lift_eventuallyEq_cosineSeries_right
+    {b : ℕ → ℝ} {w : intervalDomainPoint → ℝ}
+    (hagree : Set.EqOn (intervalDomainLift w)
+        (fun x => ∑' n, b n * cosineMode n x) (Set.Icc (0 : ℝ) 1)) :
+    deriv (intervalDomainLift w)
+      =ᶠ[nhdsWithin (1 : ℝ) (Set.Iio 1)] deriv (fun x => ∑' n, b n * cosineMode n x) := by
+  have hmem : Set.Ioo (0 : ℝ) 1 ∈ nhdsWithin (1 : ℝ) (Set.Iio 1) :=
+    mem_nhdsWithin.mpr ⟨Set.Ioi 0, isOpen_Ioi, by norm_num, by
+      intro z hz; exact ⟨hz.1, hz.2⟩⟩
+  filter_upwards [hmem] with y hy
+  refine Filter.EventuallyEq.deriv_eq ?_
+  filter_upwards [Ioo_mem_nhds hy.1 hy.2] with z hz
+  exact hagree (Set.Ioo_subset_Icc_self hz)
+
+/-- **Conjunct-(6) bridge, left endpoint.**  The genuine one-sided Neumann limit
+`deriv(lift w) → 0` as `x → 0⁺`: on the interior the lift's derivative equals the
+cosine series' derivative, which is globally continuous (the series is `C²`) and
+vanishes at `0` (`cosineCoeffSeries_deriv_at_zero`). -/
+theorem intervalDomainCosineSlice_neumann_limit_left
+    {b : ℕ → ℝ} {w : intervalDomainPoint → ℝ}
+    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|))
+    (hagree : Set.EqOn (intervalDomainLift w)
+        (fun x => ∑' n, b n * cosineMode n x) (Set.Icc (0 : ℝ) 1)) :
+    Filter.Tendsto (deriv (intervalDomainLift w))
+      (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) := by
+  have hcont : Continuous (deriv (fun x => ∑' n, b n * cosineMode n x)) :=
+    (cosineCoeffSeries_contDiff_two hb).continuous_deriv (by norm_num)
+  have htend : Filter.Tendsto (deriv (fun x => ∑' n, b n * cosineMode n x))
+      (nhds 0) (nhds 0) := by
+    have := hcont.continuousAt (x := (0 : ℝ)) |>.tendsto
+    rwa [cosineCoeffSeries_deriv_at_zero hb] at this
+  exact Filter.Tendsto.congr' (deriv_lift_eventuallyEq_cosineSeries_left hagree).symm
+    (htend.mono_left nhdsWithin_le_nhds)
+
+/-- **Conjunct-(6) bridge, right endpoint.**  Symmetric: `deriv(lift w) → 0` as
+`x → 1⁻` (`cosineCoeffSeries_deriv_at_one`). -/
+theorem intervalDomainCosineSlice_neumann_limit_right
+    {b : ℕ → ℝ} {w : intervalDomainPoint → ℝ}
+    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|))
+    (hagree : Set.EqOn (intervalDomainLift w)
+        (fun x => ∑' n, b n * cosineMode n x) (Set.Icc (0 : ℝ) 1)) :
+    Filter.Tendsto (deriv (intervalDomainLift w))
+      (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) := by
+  have hcont : Continuous (deriv (fun x => ∑' n, b n * cosineMode n x)) :=
+    (cosineCoeffSeries_contDiff_two hb).continuous_deriv (by norm_num)
+  have htend : Filter.Tendsto (deriv (fun x => ∑' n, b n * cosineMode n x))
+      (nhds 1) (nhds 0) := by
+    have := hcont.continuousAt (x := (1 : ℝ)) |>.tendsto
+    rwa [cosineCoeffSeries_deriv_at_one hb] at this
+  exact Filter.Tendsto.congr' (deriv_lift_eventuallyEq_cosineSeries_right hagree).symm
+    (htend.mono_left nhdsWithin_le_nhds)
+
 end ShenWork.IntervalCosineSliceRegularity
