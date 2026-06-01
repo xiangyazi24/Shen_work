@@ -487,7 +487,7 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
               _ ≤ M := by linarith)
         (ShenWork.IntervalDuhamelIntegrability.intervalDomainLift_aestronglyMeasurable_of_continuous
           _hu₀_cont)).comp continuous_subtype_val
-    hmapsTo := by sorry  -- Duhamel bounds + flux/logistic sup
+    hmapsTo := by sorry  -- needs universal Duhamel bounds + T choice
     hcont_preserved := by
       -- Φ(u₀, w)(t, x) is a sum of semigroup terms, each continuous by
       -- intervalFullSemigroupOperator_continuous_of_bounded.
