@@ -438,7 +438,8 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
     (u₀ : intervalDomainPoint → ℝ)
     (_hu₀_bounded : ∃ B : ℝ, ∀ x, |u₀ x| ≤ B)
     (_hu₀_cont : Continuous u₀)
-    (hα_ge : 1 ≤ p.α) :
+    (hα_ge : 1 ≤ p.α)
+    (_hu₀_nonneg : ∀ x, 0 ≤ u₀ x) :
     ∃ T : ℝ, 0 < T ∧ ∃ u : ℝ → intervalDomainPoint → ℝ,
       IntervalMildSolution p T u₀ u := by
   obtain ⟨B, hB⟩ := _hu₀_bounded
