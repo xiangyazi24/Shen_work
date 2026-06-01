@@ -698,6 +698,26 @@ theorem valueDuhamel_intervalIntegrable_of_joint_measurable
     {C : ℝ} (hC : 0 ≤ C) (hf_bdd : ∀ s y, |f s y| ≤ C) (x : ℝ) :
     IntervalIntegrable
       (fun s => intervalFullSemigroupOperator (t - s) (f s) x) volume 0 t := by
-  sorry
+  open ShenWork.IntervalNeumannFullKernel in
+  rw [intervalIntegrable_iff]
+  -- Step 1: AEStronglyMeasurable of the time integrand on uIoc 0 t
+  have hmeas : AEStronglyMeasurable
+      (fun s => intervalFullSemigroupOperator (t - s) (f s) x)
+      (volume.restrict (Set.uIoc 0 t)) := by
+    sorry
+  -- Step 2: bounded a.e. by C (L∞ contraction for t - s > 0, which is a.e. on Ioc 0 t)
+  have hbdd : ∀ᵐ s ∂(volume.restrict (Set.uIoc 0 t)),
+      ‖intervalFullSemigroupOperator (t - s) (f s) x‖ ≤ C := by
+    rw [Set.uIoc_of_le ht.le, ae_restrict_iff' measurableSet_Ioc]
+    have hne : ∀ᵐ s ∂volume, s ≠ t := by
+      rw [ae_iff]; simp only [not_not, Set.setOf_eq_eq_singleton]; exact Real.volume_singleton
+    filter_upwards [hne] with s hs_ne hs_mem
+    rw [Real.norm_eq_abs]
+    have hts : 0 < t - s := sub_pos.mpr (lt_of_le_of_ne hs_mem.2 hs_ne)
+    exact intervalFullSemigroupOperator_Linfty_bound hts hC (hf_bdd s) x
+  -- Step 3: IntegrableOn from bounded + AEStronglyMeasurable on finite measure set
+  have hfin : volume (Set.uIoc 0 t) < ⊤ := by
+    rw [Set.uIoc_of_le ht.le, Real.volume_Ioc]; exact ENNReal.ofReal_lt_top
+  exact IntegrableOn.of_bound hfin hmeas C hbdd
 
 end ShenWork.IntervalDuhamelIntegrability
