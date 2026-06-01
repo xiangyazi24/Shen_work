@@ -237,7 +237,8 @@ theorem picardLimit_is_mildSolution (p : CM2Params) (u₀ : intervalDomainPoint 
       0 ≤ picardIter p u₀ n t x)
     (hcont_iterates : ∀ n, HasContinuousSlices T (picardIter p u₀ n))
     (hcont_limit : HasContinuousSlices T (picardLimit p u₀ T))
-    -- Pointwise contraction: Φ is K-Lipschitz in the trajectory
+    (hmeas_iterates : ∀ n, HasJointMeasurability (picardIter p u₀ n))
+    (hmeas_limit : HasJointMeasurability (picardLimit p u₀ T))
     (hcontract : ∀ (u w : ℝ → intervalDomainPoint → ℝ) (d : ℝ),
       (∀ t, 0 < t → t ≤ T → ∀ x, |u t x| ≤ M) →
       (∀ t, 0 < t → t ≤ T → ∀ x, 0 ≤ u t x) →
@@ -297,8 +298,8 @@ theorem picardLimit_is_mildSolution (p : CM2Params) (u₀ : intervalDomainPoint 
               (fun s hs hsT y => hball_nn n s hs hsT y)
               hcont_limit
               (hcont_iterates n)
-              (sorry : HasJointMeasurability (picardLimit p u₀ T))
-              (sorry : HasJointMeasurability (picardIter p u₀ n))
+              hmeas_limit
+              (hmeas_iterates n)
               (fun s hs hsT y => by
                 rw [abs_sub_comm]
                 exact htail n s hs hsT y)
@@ -346,6 +347,8 @@ theorem intervalMildSolution_of_bounds (p : CM2Params)
       0 ≤ picardIter p u₀ n t x)
     (hcont_iterates : ∀ n, HasContinuousSlices T (picardIter p u₀ n))
     (hcont_limit : HasContinuousSlices T (picardLimit p u₀ T))
+    (hmeas_iterates : ∀ n, HasJointMeasurability (picardIter p u₀ n))
+    (hmeas_limit : HasJointMeasurability (picardLimit p u₀ T))
     (hcontract : ∀ (u w : ℝ → intervalDomainPoint → ℝ) (d : ℝ),
       (∀ t, 0 < t → t ≤ T → ∀ x, |u t x| ≤ M) →
       (∀ t, 0 < t → t ≤ T → ∀ x, 0 ≤ u t x) →
@@ -362,7 +365,7 @@ theorem intervalMildSolution_of_bounds (p : CM2Params)
     ∃ u : ℝ → intervalDomainPoint → ℝ, IntervalMildSolution p T u₀ u :=
   ⟨picardLimit p u₀ T,
     picardLimit_is_mildSolution p u₀ hT hK hK_nn hC₀ hM hbound hball hball_nn
-      hcont_iterates hcont_limit hcontract⟩
+      hcont_iterates hcont_limit hmeas_iterates hmeas_limit hcontract⟩
 
 /-- Ball membership, nonnegativity, and continuity of Picard iterates by induction. -/
 theorem picardIter_ball (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
@@ -522,9 +525,11 @@ theorem intervalMildSolution_of_data {p : CM2Params} {u₀ : intervalDomainPoint
     hcont_iterates hmeas_iterates D.hcontr D.hC₀ D.hbase_diff
   have hcont_limit := picardLimit_hasContinuousSlices p u₀ D.hT D.hK D.hK_nn D.hC₀
     (fun n => hgeom n) hcont_iterates
+  have hmeas_limit : HasJointMeasurability (picardLimit p u₀ D.T) := by sorry
   exact ⟨D.T, D.hT, picardLimit p u₀ D.T,
     picardLimit_is_mildSolution p u₀ D.hT D.hK D.hK_nn D.hC₀ D.hM
-      (fun n => hgeom n) hball hball_nn hcont_iterates hcont_limit D.hcontr⟩
+      (fun n => hgeom n) hball hball_nn hcont_iterates hcont_limit
+      hmeas_iterates hmeas_limit D.hcontr⟩
 
 /-- Full mild existence: constructs MildExistenceData from PDE estimates.
 Sorry: instantiating T, M, K, C₀ from Duhamel bounds + flux/logistic Lipschitz.
