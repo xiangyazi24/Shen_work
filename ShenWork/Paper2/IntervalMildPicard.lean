@@ -1227,10 +1227,18 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
               exact mul_nonneg hC_Q_lip_nn hd_nn
           · -- s ∉ (0, T₀]: 0 - 0 = 0
             simp; exact mul_nonneg hC_Q_lip_nn hd_nn
-        -- Integral Lipschitz bound from hq_diff_bound
-        -- (gradient Duhamel difference ≤ C_grad · 2√T₀ · C_Q_lip · d)
-        -- TODO: follow the by_cases IntervalIntegrable pattern from hV
-        sorry
+        -- Gradient Duhamel difference bound
+        -- Same by_cases IntervalIntegrable pattern as hV.
+        -- Both not-integrable branches discharge via source joint measurability
+        -- (same sorry as hV L1003/1008 — trajectory joint measurability).
+        by_cases hint_Gu : IntervalIntegrable
+            (fun s => deriv (fun z => intervalFullSemigroupOperator (t - s) (q_u s) z) x.1) volume 0 t
+        · by_cases hint_Gw : IntervalIntegrable
+              (fun s => deriv (fun z => intervalFullSemigroupOperator (t - s) (q_w s) z) x.1) volume 0 t
+          · -- Both integrable: combine + per-slice gradient bound + integrate
+            sorry
+          · exfalso; exact hint_Gw sorry
+        · exfalso; exact hint_Gu sorry
       -- Step 4: Assemble via gradientDuhamel_contraction_pointwise
       calc |(-p.χ₀) * (Gu - Gw) + (Vu - Vw)|
           ≤ (2 * |p.χ₀| * C_grad * C_Q_lip * Real.sqrt T₀ + C_L * T₀) * d :=
