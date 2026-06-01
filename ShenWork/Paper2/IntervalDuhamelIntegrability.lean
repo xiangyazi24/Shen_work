@@ -721,9 +721,11 @@ theorem valueDuhamel_intervalIntegrable_of_joint_measurable
     -- K is continuous in (s,y) for all s (smooth Gaussian kernel)
     -- f is Measurable (hypothesis)
     -- Product of measurable functions is measurable → AEStronglyMeasurable
-    exact ((sorry : Measurable (fun p : ℝ × ℝ =>
-      intervalNeumannFullKernel (t - p.1) x p.2)).aestronglyMeasurable.mul
-        (hf_meas.aestronglyMeasurable))
+    have hK_meas : Measurable (fun p : ℝ × ℝ =>
+        intervalNeumannFullKernel (t - p.1) x p.2) := by
+      unfold intervalNeumannFullKernel
+      sorry
+    exact (hK_meas.aestronglyMeasurable.mul hf_meas.aestronglyMeasurable)
   -- Step 2: bounded a.e. by C (L∞ contraction for t - s > 0, which is a.e. on Ioc 0 t)
   have hbdd : ∀ᵐ s ∂(volume.restrict (Set.uIoc 0 t)),
       ‖intervalFullSemigroupOperator (t - s) (f s) x‖ ≤ C := by
