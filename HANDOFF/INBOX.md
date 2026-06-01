@@ -1,79 +1,88 @@
-# Shen_work — Current Task
+# Shen_work — Current Task (updated 2026-05-31 23:00 CDT)
 
 ## Build
-
 ```bash
-export PATH="$HOME/.elan/bin:$PATH"
-cd ~/repos/shen_work && lake build
+export PATH="$HOME/.elan/bin:$PATH" && cd ~/repos/shen_work && lake build
 ```
+Build green (8387 jobs).
 
-Build green (8387 jobs). 4 sorry total (2 BCF superseded, 2 active).
+## Sorry Count
+```
+IntervalMildExistence.lean: 2 (BCF approach, superseded by Picard)
+IntervalMildPicard.lean:    1 (main theorem — MildExistenceData construction)
+IntervalDuhamelIntegrability.lean: 2 (gradient edge case + flux integrability)
+```
+Total: 5 sorry. Active: 3.
 
-## Active Sorry
+## What Is Proved (0 sorry)
 
-### 1. `IntervalMildPicard.lean:~402` — intervalMildSolution_exists_picard
+### Picard fixed-point theory (IntervalMildPicard.lean)
+- picardIter + picardLimit definitions
+- real_cauchySeq_of_geometric_bound
+- picardIter_pointwise_convergent
+- picardIter_pointwise_tail_bound (dist_le_tsum)
+- picardIter_uniform_convergence
+- picardLimit_bounded (le_of_tendsto)
+- picardLimit_hasContinuousSlices (uniform limit)
+- picardLimit_is_mildSolution (contraction squeeze)
+- intervalMildSolution_of_bounds
+- picardIter_ball (+ HasContinuousSlices, mutual induction)
+- picardIter_geometric
+- MildExistenceData structure
+- intervalMildSolution_of_data (assembly)
+- hbase_ball (semigroup L∞ bound)
 
-The main theorem. Needs to construct `MildExistenceData p u₀`.
+### Integrability chain (IntervalDuhamelIntegrability.lean)
+- continuousOn_aestronglyMeasurable_intervalMeasure
+- intervalDomainLift_aestronglyMeasurable_of_continuous
+  KEY PROOF: Set.restrict (Icc 0 1) (intervalDomainLift f) = f
+  via continuousOn_iff_continuous_restrict
+- logisticLifted_integrable_of_continuous
+  (rpow_const + lift measurability + bounded finite measure)
+- valueDuhamel_sup_bound_universal (integral_undef for non-integrable)
 
-**Precise remaining steps:**
+## Remaining Gaps (priority order)
 
-A. **Add `HasContinuousSlices` to MildExistenceData** — the ball condition
-must include spatial continuity because `resolverGrad_sup_le_of_bounded`
-(the resolver gradient bound needed for the flux) requires
-`ContinuousOn (intervalDomainLift u) (Icc 0 1)`.
+### GAP 1: Semigroup smoothing for general bounded input (DEEP)
+`hbase_cont` and `hcont_preserved` need: S(t) maps bounded → C²(Icc 0 1).
+The spectral form `unitIntervalCosineHeatValue_contDiff_two` is proved for
+bounded coefficient sequences. But connecting `intervalFullSemigroupOperator`
+(kernel integral) to `unitIntervalCosineHeatValue` (spectral sum) requires
+the kernel↔spectral bridge (Parseval for Neumann cosine expansion).
 
-B. **Propagate continuity through downstream theorems:**
-   - `picardIter_ball` → add continuity induction hypothesis
-   - `picardIter_geometric` → add continuity to ball hypothesis
-   - `picardLimit_is_mildSolution` → add continuity to hcontract hypothesis
-   - `intervalMildSolution_of_data` → pass through
+This bridge is partially built:
+- `heatKernel_lattice_poisson` (Poisson summation) — proved
+- `intervalNeumannFullKernel` (full image kernel) — defined
+- The connection needs: `∫ K(t,x,y)f(y)dy = ∑ e^{-λt} f̂_n cos(nπx)`
+  where `f̂_n = ∫ f(y) cos(nπy) dy`. This is in `CosineParsevalBridge.lean`
+  but not yet connected to `intervalFullSemigroupOperator`.
 
-C. **Prove continuity preservation:**
-   - `picardIter_continuous_slices`: by induction. Base: `S(t)u₀` is C²
-     on [0,1] for t > 0 (from `intervalFullSemigroupProfile_contDiffOn_two_closed`).
-     Step: Φ maps spatially-continuous bounded to spatially-smooth (same reason:
-     the Duhamel integral of a bounded source via the heat semigroup is smooth).
-   - `picardLimit_continuous_slices`: uniform limit of continuous on compact
-     is continuous (`TendstoUniformly.continuous`).
+Estimate: multi-day work.
 
-D. **Instantiate constants:**
-   - C_grad := `heatGradientLinftyLinftyConstant` (fixed)
-   - B_G := from `resolverGrad_sup_le_of_bounded` with M
-   - C_Q := M * B_G (flux sup bound)
-   - L_Q := from `chemFlux_div_lipschitz` (flux Lipschitz)
-   - C_L := from `intervalLogisticReaction_lipschitz_on_bounded` (needs α ≥ 1)
-   - T := from `exists_small_contraction_time` with A = 2|χ₀|·C_grad·L_Q, B = C_L
-   - K := A·√T + B·T < 1
-   - M := 2·max(B₀, 1) where B₀ bounds u₀
-   - Verify MapsTo: M/2 + |χ₀|·C_grad·2√T·C_Q + T·C_L·M ≤ M (small T)
+### GAP 2: chemFluxLifted integrability (MEDIUM)
+`chemFluxLifted_integrable_of_continuous` — flux = w · resolverGrad / (1+R)^β.
+Needs: resolverGradReal and resolverR are continuous when w is continuous.
+These are cosine/sine series (from IntervalNeumannEllipticResolverR.lean)
+with summable coefficients. Continuity follows from continuous_tsum.
+Estimate: hours.
 
-E. **Discharge integrability:** for spatially-continuous bounded w,
-   `intervalDomainLift w` is continuous on [0,1] hence measurable hence
-   integrable (via `intervalMeasure_integrable_of_abs_bound`). Spatial
-   continuity makes ALL integrability hypotheses trivially dischargeable.
+### GAP 3: hmapsTo / hcontr instantiation (MEDIUM)
+Once integrability is available (Gap 2), connect to Duhamel bounds:
+- gradDuhamel_sup_bound for flux
+- valueDuhamel_sup_bound for logistic (DONE — universal version)
+- gradDuhamel_diff_sup_bound for flux difference
+- valueDuhamel_diff_sup_bound for logistic difference
+Then choose T from exists_small_contraction_time.
+Estimate: hours, assuming Gap 2 closed.
 
-### 2. `IntervalDuhamelIntegrability.lean:~63` — gradient edge case
+### GAP 4: Gradient edge case (LOW priority)
+gradDuhamel_sup_bound_universal: spatial non-integrable + time integrable.
+Never occurs for spatially continuous trajectories.
+Can be left as sorry without blocking any real proof.
 
-`gradDuhamel_sup_bound_universal`: case `¬(∀ s, Integrable (q s))` ∧
-`IntervalIntegrable (time integrand)`. Edge case — never occurs for
-spatially continuous trajectories (which is what the Picard iteration uses).
-Can be left as sorry without blocking progress.
-
-## What Is Complete (0 sorry)
-
-- Picard iteration definition
-- Geometric Cauchy → pointwise convergence
-- Pointwise tail bound (dist_le_tsum)
-- Uniform convergence
-- Limit is bounded
-- **Limit is a fixed point (picardLimit_is_mildSolution)**
-- Conditional existence (intervalMildSolution_of_data)
-- Ball induction (picardIter_ball)
-- Geometric induction (picardIter_geometric)
-- Universal value Duhamel bound (valueDuhamel_sup_bound_universal)
-
-## Repository State
-
-- 1761 theorems/lemmas/defs across Paper1/2/3
-- Paper2 Theorem 1.1: proved conditional on localExistence (0 sorry)
-- From mild solution to localExistence: [A][B][C] regularity + [D] coupled (u,v)
+## Strategy
+1. Close Gap 2 (flux integrability via continuous_tsum for resolver)
+2. Close Gap 3 (hmapsTo/hcontr from Duhamel bounds + integrability)
+3. Sorry Gap 1 (semigroup smoothing — needs Parseval bridge, multi-day)
+4. Accept Gap 4 sorry (edge case)
+5. Main theorem assembles with 2 sorry (Gap 1 + Gap 4)
