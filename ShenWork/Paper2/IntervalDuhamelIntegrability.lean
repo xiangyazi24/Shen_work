@@ -14,6 +14,7 @@ open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalMea
 open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator)
 open ShenWork.IntervalGradDuhamelBound (valueDuhamel_sup_bound gradDuhamel_sup_bound)
 open ShenWork.IntervalGradientDuhamelMap (logisticLifted chemFluxLifted)
+open ShenWork.IntervalDomainExistence (intervalLogisticSource)
 open ShenWork.HeatKernelGradientEstimates (heatGradientLinftyLinftyConstant
   heatGradientLinftyLinftyConstant_nonneg)
 
@@ -78,6 +79,17 @@ theorem continuousOn_aestronglyMeasurable_intervalMeasure {f : ℝ → ℝ}
     AEStronglyMeasurable f (intervalMeasure 1) :=
   hf.aestronglyMeasurable measurableSet_Icc
 
+/-- For positive time, the full Neumann heat semigroup maps bounded measurable
+data to a function continuous on the compact interval `[0,1]`. -/
+theorem continuousOn_intervalFullSemigroupOperator_of_aestronglyMeasurable_bounded
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure 1))
+    {Cf : ℝ} (hf_bound : ∀ y, |f y| ≤ Cf) :
+    ContinuousOn (fun x : ℝ => intervalFullSemigroupOperator t f x) (Set.Icc (0:ℝ) 1) := by
+  exact (continuous_iff_continuousAt.mpr fun x =>
+    (ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_hasDerivAt_fst
+      ht hf_meas hf_bound x).continuousAt).continuousOn
+
 /-- The lift of a continuous function on intervalDomainPoint is
 AEStronglyMeasurable against intervalMeasure 1, because intervalMeasure 1
 only sees Icc 0 1, where the lift agrees with the continuous subtype function. -/
@@ -85,22 +97,16 @@ theorem intervalDomainLift_aestronglyMeasurable_of_continuous
     {f : intervalDomainPoint → ℝ} (hf : Continuous f) :
     AEStronglyMeasurable (intervalDomainLift f) (intervalMeasure 1) := by
   -- intervalMeasure 1 = volume.restrict (Icc 0 1)
-  -- On Icc 0 1, intervalDomainLift f y = f ⟨y, hy⟩
-  -- f ∘ (subtype inclusion) is continuous on Icc 0 1
-  -- ContinuousOn + measurableSet → AEStronglyMeasurable
-  unfold intervalMeasure intervalDomainLift
-  have hcont_on : ContinuousOn (fun y : ℝ => if hy : y ∈ Set.Icc (0:ℝ) 1 then f ⟨y, hy⟩ else 0)
-      (Set.Icc (0:ℝ) 1) := by
-    intro x hx
-    -- Strategy: show intervalDomainLift f agrees a.e. (on Icc 0 1) with
-    -- a continuous function, then use Continuous.aestronglyMeasurable.
-    -- The continuous function: extend f ∘ Subtype.val⁻¹ continuously to all of ℝ.
-    -- But simpler: use ContinuousOn.aestronglyMeasurable directly.
-    --
-    -- On Icc 0 1, intervalDomainLift f y = f ⟨y, hy⟩.
-    -- The map y ↦ f ⟨y, hy⟩ is ContinuousOn on Icc 0 1 because:
-    --   f is Continuous (on subtype) and inclusion Icc 0 1 ↪ intervalDomainPoint is continuous.
-    sorry
+  -- ContinuousOn.aestronglyMeasurable needs ContinuousOn on Icc 0 1
+  -- continuousOn_iff_continuous_restrict: ContinuousOn ↔ Continuous (restrict)
+  -- Set.restrict (Icc 0 1) (intervalDomainLift f) = f (subtype identity)
+  have hcont_on : ContinuousOn (intervalDomainLift f) (Set.Icc (0:ℝ) 1) := by
+    rw [continuousOn_iff_continuous_restrict]
+    have heq : Set.restrict (Set.Icc (0:ℝ) 1) (intervalDomainLift f) = f := by
+      ext ⟨x, hx⟩
+      simp [Set.restrict, intervalDomainLift, hx]; rfl
+    rw [heq]
+    exact hf
   exact hcont_on.aestronglyMeasurable measurableSet_Icc
 
 theorem logisticLifted_integrable_of_continuous
@@ -108,9 +114,20 @@ theorem logisticLifted_integrable_of_continuous
     (hw : ∀ x, |w x| ≤ M) (hM : 0 ≤ M)
     (hcont : Continuous w) :
     Integrable (logisticLifted p w) (intervalMeasure 1) := by
-  -- logisticLifted p w = intervalDomainLift (logistic ∘ w)
-  -- continuous on Icc ⇒ AEStronglyMeasurable ⇒ + bounded ⇒ integrable
-  sorry
+  have hsrc_cont : Continuous (ShenWork.IntervalDomainExistence.intervalLogisticSource p w) := by
+    unfold ShenWork.IntervalDomainExistence.intervalLogisticSource
+    exact hcont.mul
+      (continuous_const.sub
+        (continuous_const.mul (hcont.rpow_const (fun _ => Or.inr p.hα.le))))
+  have hmeas : AEStronglyMeasurable (logisticLifted p w) (intervalMeasure 1) := by
+    unfold logisticLifted
+    exact intervalDomainLift_aestronglyMeasurable_of_continuous hsrc_cont
+  have hMpos : 0 < M + 1 := by linarith
+  have hw' : ∀ x, |w x| ≤ M + 1 := fun x => by linarith [hw x]
+  exact ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound
+    hmeas
+    (ShenWork.IntervalDomainExistence.intervalLogisticSource_lift_abs_bound
+      p hMpos hw')
 
 
 end ShenWork.IntervalDuhamelIntegrability
