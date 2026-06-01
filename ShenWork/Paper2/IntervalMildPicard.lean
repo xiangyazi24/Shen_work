@@ -466,7 +466,8 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
   -- Extract PDE constants
   have hlog := ShenWork.IntervalLogisticLipschitz.intervalLogisticReaction_lipschitz_on_bounded p hα_ge hM
   obtain ⟨C_L, hC_L_pos, hC_L_lip⟩ := hlog
-  -- Choose T from exists_small_contraction_time with A=1 (flux placeholder), B=C_L
+  -- Choose T from exists_small_contraction_time with A=1 (placeholder), B=C_L
+  -- TODO: replace A=1 with actual flux contraction constant once C_Q is uniform
   obtain ⟨T₀, hT₀, hK_lt⟩ := exists_small_contraction_time
     (show (0:ℝ) ≤ 1 from by norm_num) hC_L_pos.le
   refine intervalMildSolution_of_data {
