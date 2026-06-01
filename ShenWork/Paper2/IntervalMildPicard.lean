@@ -911,12 +911,18 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
               exact mul_nonneg hC_L_pos.le hd_nn
           · -- s ∉ (0, T₀]: 0 - 0 = 0
             simp; exact mul_nonneg hC_L_pos.le hd_nn
-        -- Use valueDuhamel_sup_bound_universal on the source difference:
-        -- |∫₀ᵗ S(t-s)(r_u s - r_w s)(x) ds| ≤ T₀ · (C_L · d)
-        -- where |r_u s y - r_w s y| ≤ C_L · d (proved above as hr_diff).
-        -- This bypasses semigroup linearity — the universal bound handles
-        -- non-integrable sources too (integral_undef → 0 ≤ bound).
-        sorry
+        -- By cases: if the time integrands are integrable, use linearity.
+        -- If not, both integrals are 0 by integral_undef.
+        by_cases hint_u : IntervalIntegrable
+            (fun s => intervalFullSemigroupOperator (t - s) (r_u s) x.1) volume 0 t
+        · by_cases hint_w : IntervalIntegrable
+              (fun s => intervalFullSemigroupOperator (t - s) (r_w s) x.1) volume 0 t
+          · -- Both integrable: |∫f - ∫g| ≤ ∫|f - g| ≤ t * C_L * d
+            sorry
+          · -- w not integrable: ∫w = 0, |∫u - 0| ≤ T₀ * C_L_val ≤ T₀ * C_L * d (if d ≥ val/C_L)
+            sorry
+        · -- u not integrable: ∫u = 0
+          sorry
       have hG : |Gu - Gw| ≤ C_grad * (2 * Real.sqrt T₀) * (C_Q_unif * d) := by
         -- Extended flux sources (= original on (0,T₀], = 0 otherwise)
         set q_u : ℝ → ℝ → ℝ := fun s y =>
