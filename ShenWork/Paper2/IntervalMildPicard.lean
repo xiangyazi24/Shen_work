@@ -508,6 +508,7 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
     (_hu₀_bounded : ∃ B : ℝ, ∀ x, |u₀ x| ≤ B)
     (_hu₀_cont : Continuous u₀)
     (hα_ge : 1 ≤ p.α)
+    (hγ_ge : 1 ≤ p.γ)
     (_hu₀_nonneg : ∀ x, 0 ≤ u₀ x) :
     ∃ T : ℝ, 0 < T ∧ ∃ u : ℝ → intervalDomainPoint → ℝ,
       IntervalMildSolution p T u₀ u := by
@@ -1018,15 +1019,211 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
           intro s hs; rw [Set.uIoc_of_le ht.le] at hs
           simp only [q_w, if_pos (And.intro hs.1 (hs.2.trans htT))]
         rw [hGu_eq, hGw_eq]
-        -- Flux source diff bound: |q_u s y - q_w s y| ≤ C_Q_unif · d
-        -- Needs: chemFlux Lipschitz on the M-ball with constant C_Q_unif.
-        -- chemFlux_div_lipschitz (or flux_diff_pointwise_bound) gives a bound
-        -- in terms of resolver gradient/value Lipschitz constants.
-        -- For the uniform M-ball, these are bounded by constants depending on
-        -- C_RG, M, β, and resolver Lipschitz (from Atom B).
-        -- The bound |Q(u)(y) − Q(w)(y)| ≤ C_Q_unif · d requires showing that
-        -- the resolver Lipschitz is suitably controlled.
-        -- This is the deepest lemma in the contraction chain.
+        -- γ ≥ 1 (needed for resolver Lipschitz — should be a theorem parameter)
+        -- hγ_ge is now a theorem hypothesis
+        -- Flux source diff bound: |q_u s y - q_w s y| ≤ C_Q_lip · d
+        -- Core: chemFlux_div_lipschitz + resolver Atom B bounds.
+        have hq_diff_bound : ∀ s y, |q_u s y - q_w s y| ≤ C_Q_lip * d := by
+          intro s y; simp only [q_u, q_w]
+          split_ifs with h
+          · -- 0 < s ∧ s ≤ T₀: chemFlux Lipschitz
+            unfold chemFluxLifted
+            by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+            · -- y ∈ [0,1]: build resolver bounds, apply chemFlux_div_lipschitz
+              have hu_s := hu s h.1 h.2
+              have hw_s := hw s h.1 h.2
+              have hu_nn_s := hu_nn s h.1 h.2
+              have hw_nn_s := hw_nn s h.1 h.2
+              have hd_s := hd s h.1 h.2
+              have hu_cont_s := huc s h.1 h.2
+              have hw_cont_s := hwc s h.1 h.2
+              -- ContinuousOn of lifts on [0,1]
+              have hcont_u : ContinuousOn (intervalDomainLift (u s))
+                  (Set.Icc (0 : ℝ) 1) := by
+                rw [continuousOn_iff_continuous_restrict]
+                have : Set.restrict (Set.Icc (0:ℝ) 1)
+                    (intervalDomainLift (u s)) = u s := by
+                  ext ⟨x, hx⟩; simp [Set.restrict, intervalDomainLift, hx]; rfl
+                rw [this]; exact hu_cont_s
+              have hcont_w : ContinuousOn (intervalDomainLift (w s))
+                  (Set.Icc (0 : ℝ) 1) := by
+                rw [continuousOn_iff_continuous_restrict]
+                have : Set.restrict (Set.Icc (0:ℝ) 1)
+                    (intervalDomainLift (w s)) = w s := by
+                  ext ⟨x, hx⟩; simp [Set.restrict, intervalDomainLift, hx]; rfl
+                rw [this]; exact hw_cont_s
+              -- Membership in [0, M]
+              have hmem_u : ∀ x ∈ Set.Icc (0:ℝ) 1,
+                  intervalDomainLift (u s) x ∈ Set.Icc (0:ℝ) M := by
+                intro x hx; constructor
+                · simp [intervalDomainLift, hx]; exact hu_nn_s ⟨x, hx⟩
+                · simp [intervalDomainLift, hx]
+                  exact (abs_le.mp (hu_s ⟨x, hx⟩)).2
+              have hmem_w : ∀ x ∈ Set.Icc (0:ℝ) 1,
+                  intervalDomainLift (w s) x ∈ Set.Icc (0:ℝ) M := by
+                intro x hx; constructor
+                · simp [intervalDomainLift, hx]; exact hw_nn_s ⟨x, hx⟩
+                · simp [intervalDomainLift, hx]
+                  exact (abs_le.mp (hw_s ⟨x, hx⟩)).2
+              -- |lift u - lift w| ≤ d on [0,1]
+              have hlift_diff : ∀ x ∈ Set.Icc (0:ℝ) 1,
+                  |intervalDomainLift (u s) x - intervalDomainLift (w s) x| ≤ d := by
+                intro x hx
+                simp [intervalDomainLift, hx]
+                exact hd_s ⟨x, hx⟩
+              -- |a₂| ≤ M  (w bounded)
+              have ha₂ : |intervalDomainLift (w s) y| ≤ M := by
+                simp [intervalDomainLift, hy]; exact hw_s ⟨y, hy⟩
+              -- |a₁ - a₂| ≤ d  (u-w diff bounded)
+              have had : |intervalDomainLift (u s) y
+                  - intervalDomainLift (w s) y| ≤ d := hlift_diff y hy
+              -- Open namespaces for resolver gradient + positivity proofs
+              open ShenWork.PDE ShenWork.IntervalResolverGradientBridge
+                  ShenWork.IntervalResolverWeakBounds ShenWork.Paper2
+                  ShenWork.IntervalNeumannFullKernel
+                  ShenWork.IntervalResolverPositivity in
+              -- |g₁| ≤ C_RG  (resolver gradient sup bound for u)
+              have hg₁ : |resolverGradReal p (u s) y| ≤ C_RG :=
+                resolverGrad_sup_le_of_bounded
+                  p hcont_u (fun x hx => (hmem_u x hx).1)
+                  (fun x hx => (hmem_u x hx).2) hy
+              -- |g₂| ≤ C_RG  (resolver gradient sup bound for w)
+              have hg₂ : |resolverGradReal p (w s) y| ≤ C_RG :=
+                resolverGrad_sup_le_of_bounded
+                  p hcont_w (fun x hx => (hmem_w x hx).1)
+                  (fun x hx => (hmem_w x hx).2) hy
+              -- |g₁ - g₂| ≤ C_RGL * d  (resolver gradient Lipschitz)
+              have hgd : |resolverGradReal p (u s) y
+                  - resolverGradReal p (w s) y| ≤ C_RGL * d := by
+                have h :=
+                  resolverGrad_diff_sup_le_of_bounded
+                    p hγ_ge hcont_u hcont_w hmem_u hmem_w hlift_diff hy
+                calc |resolverGradReal p (u s) y - resolverGradReal p (w s) y|
+                    ≤ Real.sqrt (∑' k : ℕ,
+                        (intervalNeumannResolverGradWeight p k) ^ 2) *
+                      (2 * (p.ν * (p.γ * M ^ (p.γ - 1)) * d)) := h
+                  _ = C_RGL * d := by ring
+              -- v₁ = R(u s)(y) ≥ 0  (resolver positivity for u)
+              have hR_u_nonneg :
+                  0 ≤ intervalNeumannResolverR p (u s) ⟨y, hy⟩ := by
+                have hcont_src : Continuous
+                    (fun x : intervalDomainPoint ↦ p.ν * (u s x) ^ p.γ) :=
+                  continuous_const.mul
+                    (hu_cont_s.rpow_const (fun x ↦ Or.inr p.hγ.le))
+                set clip : ℝ → intervalDomainPoint := fun x ↦
+                  ⟨max 0 (min x 1), le_max_left 0 _,
+                    max_le (by norm_num) (min_le_right x 1)⟩
+                have hclip_cont : Continuous clip :=
+                  Continuous.subtype_mk
+                    (continuous_const.max (continuous_id.min continuous_const)) _
+                set f : ℝ → ℝ :=
+                  (fun x : intervalDomainPoint ↦ p.ν * (u s x) ^ p.γ) ∘ clip
+                have hf_cont : Continuous f := hcont_src.comp hclip_cont
+                have hf_nonneg : ∀ z, 0 ≤ f z := fun z ↦
+                  mul_nonneg p.hν.le (Real.rpow_nonneg (hu_nn_s _) _)
+                have hf_coeff : ∀ k, cosineCoeffs f k =
+                    (intervalNeumannResolverSourceCoeff p (u s) k).re := by
+                  intro k
+                  have hsrc_eq :
+                      (intervalNeumannResolverSourceCoeff p (u s) k).re =
+                      cosineCoeffs
+                        (fun x ↦ p.ν * intervalDomainLift (u s) x ^ p.γ)
+                        k := by
+                    simp [cosineCoeffs, intervalNeumannResolverSourceCoeff,
+                      Complex.ofReal_re]
+                  rw [hsrc_eq]
+                  exact cosineCoeffs_congr_on_Icc (fun x hx ↦ by
+                    simp only [f, Function.comp, clip]
+                    have hclip_eq : max 0 (min x 1) = x := by
+                      rw [min_eq_left hx.2, max_eq_right hx.1]
+                    simp only [hclip_eq, intervalDomainLift,
+                      dif_pos (Set.mem_Icc.mpr hx)]) k
+                have hâ : Summable (fun k ↦ (cosineCoeffs f k) ^ 2) := by
+                  have h := resolverSourceCoeff_re_sq_summable_of_continuousOn
+                    p hcont_u
+                  simp only [intervalNeumannResolverSourceCoeff_zero, sub_zero]
+                    at h
+                  exact h.congr (fun k ↦ by rw [hf_coeff])
+                exact intervalNeumannResolverR_nonneg_of_nonneg_source
+                  hf_cont hf_nonneg hf_coeff hâ ⟨y, hy⟩
+              -- v₂ = R(w s)(y) ≥ 0  (resolver positivity for w)
+              have hR_w_nonneg :
+                  0 ≤ intervalNeumannResolverR p (w s) ⟨y, hy⟩ := by
+                have hcont_src : Continuous
+                    (fun x : intervalDomainPoint ↦ p.ν * (w s x) ^ p.γ) :=
+                  continuous_const.mul
+                    (hw_cont_s.rpow_const (fun x ↦ Or.inr p.hγ.le))
+                set clip : ℝ → intervalDomainPoint := fun x ↦
+                  ⟨max 0 (min x 1), le_max_left 0 _,
+                    max_le (by norm_num) (min_le_right x 1)⟩
+                have hclip_cont : Continuous clip :=
+                  Continuous.subtype_mk
+                    (continuous_const.max (continuous_id.min continuous_const)) _
+                set f : ℝ → ℝ :=
+                  (fun x : intervalDomainPoint ↦ p.ν * (w s x) ^ p.γ) ∘ clip
+                have hf_cont : Continuous f := hcont_src.comp hclip_cont
+                have hf_nonneg : ∀ z, 0 ≤ f z := fun z ↦
+                  mul_nonneg p.hν.le (Real.rpow_nonneg (hw_nn_s _) _)
+                have hf_coeff : ∀ k, cosineCoeffs f k =
+                    (intervalNeumannResolverSourceCoeff p (w s) k).re := by
+                  intro k
+                  have hsrc_eq :
+                      (intervalNeumannResolverSourceCoeff p (w s) k).re =
+                      cosineCoeffs
+                        (fun x ↦ p.ν * intervalDomainLift (w s) x ^ p.γ)
+                        k := by
+                    simp [cosineCoeffs, intervalNeumannResolverSourceCoeff,
+                      Complex.ofReal_re]
+                  rw [hsrc_eq]
+                  exact cosineCoeffs_congr_on_Icc (fun x hx ↦ by
+                    simp only [f, Function.comp, clip]
+                    have hclip_eq : max 0 (min x 1) = x := by
+                      rw [min_eq_left hx.2, max_eq_right hx.1]
+                    simp only [hclip_eq, intervalDomainLift,
+                      dif_pos (Set.mem_Icc.mpr hx)]) k
+                have hâ : Summable (fun k ↦ (cosineCoeffs f k) ^ 2) := by
+                  have h := resolverSourceCoeff_re_sq_summable_of_continuousOn
+                    p hcont_w
+                  simp only [intervalNeumannResolverSourceCoeff_zero, sub_zero]
+                    at h
+                  exact h.congr (fun k ↦ by rw [hf_coeff])
+                exact intervalNeumannResolverR_nonneg_of_nonneg_source
+                  hf_cont hf_nonneg hf_coeff hâ ⟨y, hy⟩
+              -- v₁ ≥ 0 (lifted resolver value for u)
+              have hv₁ : 0 ≤ intervalDomainLift
+                  (intervalNeumannResolverR p (u s)) y := by
+                simp [intervalDomainLift, hy]; exact hR_u_nonneg
+              -- v₂ ≥ 0 (lifted resolver value for w)
+              have hv₂ : 0 ≤ intervalDomainLift
+                  (intervalNeumannResolverR p (w s)) y := by
+                simp [intervalDomainLift, hy]; exact hR_w_nonneg
+              -- |v₁ - v₂| ≤ C_RV * d (resolver value Lipschitz)
+              have hvd : |intervalDomainLift
+                    (intervalNeumannResolverR p (u s)) y
+                  - intervalDomainLift
+                    (intervalNeumannResolverR p (w s)) y|
+                  ≤ C_RV * d := by
+                simp [intervalDomainLift, hy]
+                have h :=
+                  resolverValue_diff_sup_le_of_bounded
+                    p hγ_ge hcont_u hcont_w hmem_u hmem_w hlift_diff ⟨y, hy⟩
+                calc |intervalNeumannResolverR p (u s) ⟨y, hy⟩
+                      - intervalNeumannResolverR p (w s) ⟨y, hy⟩|
+                    ≤ Real.sqrt (∑' k : ℕ,
+                        (intervalNeumannResolverWeight p k) ^ 2) *
+                      (2 * (p.ν * (p.γ * M ^ (p.γ - 1)) * d)) := h
+                  _ = C_RV * d := by ring
+              -- Apply chemFlux_div_lipschitz
+              exact chemFlux_div_lipschitz p.hβ ha₂ hg₁ hg₂ hv₁ hv₂
+                had hgd hvd hC_RG_nn
+            · -- y ∉ [0,1]: both lifts = 0, fluxes = 0
+              simp [intervalDomainLift, hy, zero_mul, zero_div, sub_self, abs_zero]
+              exact mul_nonneg hC_Q_lip_nn hd_nn
+          · -- s ∉ (0, T₀]: 0 - 0 = 0
+            simp; exact mul_nonneg hC_Q_lip_nn hd_nn
+        -- Integral Lipschitz bound from hq_diff_bound
+        -- (gradient Duhamel difference ≤ C_grad · 2√T₀ · C_Q_lip · d)
+        -- TODO: follow the by_cases IntervalIntegrable pattern from hV
         sorry
       -- Step 4: Assemble via gradientDuhamel_contraction_pointwise
       calc |(-p.χ₀) * (Gu - Gw) + (Vu - Vw)|
