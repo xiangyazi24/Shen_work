@@ -488,7 +488,12 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
         (ShenWork.IntervalDuhamelIntegrability.intervalDomainLift_aestronglyMeasurable_of_continuous
           _hu₀_cont)).comp continuous_subtype_val
     hmapsTo := by sorry  -- Duhamel bounds + flux/logistic sup
-    hcont_preserved := by sorry  -- Φ preserves continuity (semigroup smoothing)
+    hcont_preserved := by
+      -- Φ(u₀, w)(t, x) is a sum of semigroup terms, each continuous by
+      -- intervalFullSemigroupOperator_continuous_of_bounded.
+      -- The Duhamel integrals ∫₀ᵗ S(t-s) g(s) ds are also continuous in x
+      -- (each slice S(t-s)g(s) is continuous, and the integral preserves it).
+      sorry
     hcontr := by sorry  -- contraction (Duhamel diff bounds)
     hbase_diff := by
       -- |u_1 - u_0| = |Φ(u₀, S·u₀) - S·u₀|
