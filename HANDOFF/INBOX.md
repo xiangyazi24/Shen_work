@@ -7,61 +7,73 @@ export PATH="$HOME/.elan/bin:$PATH"
 cd ~/repos/shen_work && lake build
 ```
 
-Invariant: BUILD OK (8387 jobs). 1 sorry in IntervalMildPicard.lean.
+Build green (8387 jobs). 4 sorry total (2 BCF superseded, 2 active).
 
-## Task: Close intervalMildSolution_exists_picard
+## Active Sorry
 
-File: `ShenWork/Paper2/IntervalMildPicard.lean` (line ~364)
+### 1. `IntervalMildPicard.lean:~402` — intervalMildSolution_exists_picard
 
-### What is proved (0 sorry)
+The main theorem. Needs to construct `MildExistenceData p u₀`.
 
-The entire Picard fixed-point theory is done:
+**Precise remaining steps:**
 
-```
-MildExistenceData → picardIter_ball → picardIter_geometric →
-  cauchySeq → pointwise_convergent → tail_bound →
-  uniform_convergence → bounded → is_mildSolution →
-  intervalMildSolution_of_data
-```
+A. **Add `HasContinuousSlices` to MildExistenceData** — the ball condition
+must include spatial continuity because `resolverGrad_sup_le_of_bounded`
+(the resolver gradient bound needed for the flux) requires
+`ContinuousOn (intervalDomainLift u) (Icc 0 1)`.
 
-All 0 sorry. The conditional theorem `intervalMildSolution_of_data` says:
-given suitable constants satisfying MapsTo + contraction + ball bounds,
-a mild solution exists.
+B. **Propagate continuity through downstream theorems:**
+   - `picardIter_ball` → add continuity induction hypothesis
+   - `picardIter_geometric` → add continuity to ball hypothesis
+   - `picardLimit_is_mildSolution` → add continuity to hcontract hypothesis
+   - `intervalMildSolution_of_data` → pass through
 
-### What remains (1 sorry)
+C. **Prove continuity preservation:**
+   - `picardIter_continuous_slices`: by induction. Base: `S(t)u₀` is C²
+     on [0,1] for t > 0 (from `intervalFullSemigroupProfile_contDiffOn_two_closed`).
+     Step: Φ maps spatially-continuous bounded to spatially-smooth (same reason:
+     the Duhamel integral of a bounded source via the heat semigroup is smooth).
+   - `picardLimit_continuous_slices`: uniform limit of continuous on compact
+     is continuous (`TendstoUniformly.continuous`).
 
-`intervalMildSolution_exists_picard`: construct `MildExistenceData p u₀`.
+D. **Instantiate constants:**
+   - C_grad := `heatGradientLinftyLinftyConstant` (fixed)
+   - B_G := from `resolverGrad_sup_le_of_bounded` with M
+   - C_Q := M * B_G (flux sup bound)
+   - L_Q := from `chemFlux_div_lipschitz` (flux Lipschitz)
+   - C_L := from `intervalLogisticReaction_lipschitz_on_bounded` (needs α ≥ 1)
+   - T := from `exists_small_contraction_time` with A = 2|χ₀|·C_grad·L_Q, B = C_L
+   - K := A·√T + B·T < 1
+   - M := 2·max(B₀, 1) where B₀ bounds u₀
+   - Verify MapsTo: M/2 + |χ₀|·C_grad·2√T·C_Q + T·C_L·M ≤ M (small T)
 
-Concretely, need to provide:
-1. **T** — from `exists_small_contraction_time` (already proved)
-2. **M** — from `hu₀_bounded` (e.g., 2B + 1)
-3. **K** — contraction constant K(T) = 2|χ₀|·C_grad·C_Q·√T + C_L·T
-4. **C₀** — initial correction bound
-5. **hbase_ball** — |S(t)u₀(x)| ≤ M (semigroup contraction)
-6. **hmapsTo** — from `mapsTo_mildBall` (IntervalMildExistence.lean, proved)
-7. **hcontr** — from `contraction_pointwise` (IntervalMildExistence.lean, proved)
-8. **hbase_diff** — |Φ(u₀, S·u₀) - S·u₀| ≤ C₀
+E. **Discharge integrability:** for spatially-continuous bounded w,
+   `intervalDomainLift w` is continuous on [0,1] hence measurable hence
+   integrable (via `intervalMeasure_integrable_of_abs_bound`). Spatial
+   continuity makes ALL integrability hypotheses trivially dischargeable.
 
-The HARD part is discharging the integrability/measurability hypotheses
-that `gradDuhamel_sup_bound` / `valueDuhamel_sup_bound` /
-`gradDuhamel_diff_sup_bound` / `valueDuhamel_diff_sup_bound` require:
-- `∀ s, Integrable (q s) (intervalMeasure 1)` — flux slice integrable
-- `IntervalIntegrable (fun s => deriv (S(t-s) q(s)) x) volume 0 t`
-- `IntervalIntegrable (fun s => S(t-s) r(s) x) volume 0 t`
-- Per-(s,z) kernel integrability and spatial differentiability
+### 2. `IntervalDuhamelIntegrability.lean:~63` — gradient edge case
 
-These are all "bounded on finite measure → integrable" but need
-measurability of the resolver, flux, logistic compositions.
+`gradDuhamel_sup_bound_universal`: case `¬(∀ s, Integrable (q s))` ∧
+`IntervalIntegrable (time integrand)`. Edge case — never occurs for
+spatially continuous trajectories (which is what the Picard iteration uses).
+Can be left as sorry without blocking progress.
 
-### Strategy
+## What Is Complete (0 sorry)
 
-1. Prove a generic "bounded measurable source → Duhamel integrable" lemma
-2. Prove chemFluxLifted and logisticLifted are bounded measurable for
-   bounded trajectories (from existing resolver bounds)
-3. Instantiate MildExistenceData with these
+- Picard iteration definition
+- Geometric Cauchy → pointwise convergence
+- Pointwise tail bound (dist_le_tsum)
+- Uniform convergence
+- Limit is bounded
+- **Limit is a fixed point (picardLimit_is_mildSolution)**
+- Conditional existence (intervalMildSolution_of_data)
+- Ball induction (picardIter_ball)
+- Geometric induction (picardIter_geometric)
+- Universal value Duhamel bound (valueDuhamel_sup_bound_universal)
 
-### Constraints
+## Repository State
 
-- 0 sorry in all files EXCEPT IntervalMildPicard.lean (1 sorry)
-- IntervalMildExistence.lean has 2 sorry (Q2 + main) — superseded by Picard approach
-- BUILD OK (8387 jobs)
+- 1761 theorems/lemmas/defs across Paper1/2/3
+- Paper2 Theorem 1.1: proved conditional on localExistence (0 sorry)
+- From mild solution to localExistence: [A][B][C] regularity + [D] coupled (u,v)
