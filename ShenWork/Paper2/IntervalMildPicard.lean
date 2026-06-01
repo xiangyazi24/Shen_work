@@ -997,10 +997,16 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
               _ = t * (C_L * d) := by
                   rw [intervalIntegral.integral_const, sub_zero, smul_eq_mul]
               _ ≤ T₀ * (C_L * d) := by gcongr
-          · -- w not integrable (should not happen for bounded measurable sources)
-            sorry
-        · -- u not integrable (should not happen for bounded measurable sources)
-          sorry
+          · -- w not integrable: derive contradiction from joint measurability
+            exfalso; exact hint_w
+              (ShenWork.IntervalDuhamelIntegrability.valueDuhamel_intervalIntegrable_of_joint_measurable
+                ht (sorry : Measurable (Function.uncurry r_w)) hC_L_val_nn
+                (hr_w_bdd) x.1)
+        · -- u not integrable: derive contradiction from joint measurability
+          exfalso; exact hint_u
+            (ShenWork.IntervalDuhamelIntegrability.valueDuhamel_intervalIntegrable_of_joint_measurable
+              ht (sorry : Measurable (Function.uncurry r_u)) hC_L_val_nn
+              (hr_u_bdd) x.1)
       have hG : |Gu - Gw| ≤ C_grad * (2 * Real.sqrt T₀) * (C_Q_lip * d) := by
         -- Extended flux sources (= original on (0,T₀], = 0 otherwise)
         set q_u : ℝ → ℝ → ℝ := fun s y =>
