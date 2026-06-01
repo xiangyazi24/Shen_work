@@ -84,7 +84,20 @@ only sees Icc 0 1, where the lift agrees with the continuous subtype function. -
 theorem intervalDomainLift_aestronglyMeasurable_of_continuous
     {f : intervalDomainPoint → ℝ} (hf : Continuous f) :
     AEStronglyMeasurable (intervalDomainLift f) (intervalMeasure 1) := by
-  sorry
+  -- intervalMeasure 1 = volume.restrict (Icc 0 1)
+  -- On Icc 0 1, intervalDomainLift f y = f ⟨y, hy⟩
+  -- f ∘ (subtype inclusion) is continuous on Icc 0 1
+  -- ContinuousOn + measurableSet → AEStronglyMeasurable
+  unfold intervalMeasure intervalDomainLift
+  have hcont_on : ContinuousOn (fun y : ℝ => if hy : y ∈ Set.Icc (0:ℝ) 1 then f ⟨y, hy⟩ else 0)
+      (Set.Icc (0:ℝ) 1) := by
+    intro x hx
+    simp only [ContinuousWithinAt]
+    have heq : ∀ᶠ y in nhdsWithin x (Set.Icc (0:ℝ) 1),
+        (if hy : y ∈ Set.Icc (0:ℝ) 1 then f ⟨y, hy⟩ else 0) = f ⟨y, sorry⟩ := by
+      exact Filter.eventually_of_mem (self_mem_nhdsWithin) (fun y hy => by simp [hy])
+    sorry
+  exact hcont_on.aestronglyMeasurable measurableSet_Icc
 
 theorem logisticLifted_integrable_of_continuous
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
