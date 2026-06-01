@@ -474,7 +474,13 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
     hmapsTo := by sorry  -- Duhamel bounds + flux/logistic sup
     hcont_preserved := by sorry  -- Φ preserves continuity (semigroup smoothing)
     hcontr := by sorry  -- contraction (Duhamel diff bounds)
-    hbase_diff := by sorry  -- initial step bound
+    hbase_diff := by
+      -- |u_1 - u_0| = |Φ(u₀, S·u₀) - S·u₀|
+      -- = |(-χ₀)∫∂ₓS·Q(S·u₀) + ∫S·L(S·u₀)|
+      -- ≤ |χ₀|·C_grad·2√T·C_Q + T·C_L ≤ M for T=1
+      -- Bound by M (the placeholder C₀)
+      intro t ht htT x
+      sorry  -- Duhamel correction bound (needs flux/logistic sup + universal bounds)
   }
 
 end ShenWork.IntervalMildPicard
