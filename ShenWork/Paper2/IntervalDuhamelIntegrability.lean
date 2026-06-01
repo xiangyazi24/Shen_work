@@ -301,4 +301,15 @@ theorem chemFluxLifted_integrable_of_continuous
   sorry
 
 
+open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator_hasDerivAt_fst) in
+/-- Semigroup output is continuous for bounded AEStronglyMeasurable source. -/
+theorem intervalFullSemigroupOperator_continuous_of_bounded
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} {M : ℝ}
+    (_hM : 0 ≤ M) (hf : ∀ y, |f y| ≤ M)
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure 1)) :
+    Continuous (fun x => intervalFullSemigroupOperator t f x) :=
+  continuous_iff_continuousAt.mpr fun x =>
+    (intervalFullSemigroupOperator_hasDerivAt_fst ht hf_meas hf x).continuousAt
+
+
 end ShenWork.IntervalDuhamelIntegrability
