@@ -15,6 +15,7 @@
 import ShenWork.Paper2.IntervalGradientDuhamelMap
 import ShenWork.PDE.IntervalChemFluxLipschitz
 import ShenWork.Paper2.IntervalDuhamelIntegrability
+import ShenWork.PDE.IntervalLogisticLipschitz
 import Mathlib.Topology.Algebra.InfiniteSum.Real
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Topology.UniformSpace.UniformApproximation
@@ -436,7 +437,8 @@ This is pure plumbing — no new math, just regularity/integrability discharge. 
 theorem intervalMildSolution_exists_picard (p : CM2Params)
     (u₀ : intervalDomainPoint → ℝ)
     (_hu₀_bounded : ∃ B : ℝ, ∀ x, |u₀ x| ≤ B)
-    (_hu₀_cont : Continuous u₀) :
+    (_hu₀_cont : Continuous u₀)
+    (hα_ge : 1 ≤ p.α) :
     ∃ T : ℝ, 0 < T ∧ ∃ u : ℝ → intervalDomainPoint → ℝ,
       IntervalMildSolution p T u₀ u := by
   obtain ⟨B, hB⟩ := _hu₀_bounded
@@ -460,14 +462,16 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
               · exact hB_le ⟨y, hy⟩
               · simp; linarith
             _ ≤ M := by linarith) x.1
-  -- Choose T from exists_small_contraction_time with A=1, B=1 (placeholders for actual PDE constants)
-  -- Actual constants: A = 2|χ₀|·C_grad·C_Q, B = C_L (from flux/logistic Lipschitz)
+  -- Extract PDE constants
+  have hlog := ShenWork.IntervalLogisticLipschitz.intervalLogisticReaction_lipschitz_on_bounded p hα_ge hM
+  obtain ⟨C_L, hC_L_pos, hC_L_lip⟩ := hlog
+  -- Choose T from exists_small_contraction_time with A=1 (flux placeholder), B=C_L
   obtain ⟨T₀, hT₀, hK_lt⟩ := exists_small_contraction_time
-    (show (0:ℝ) ≤ 1 from by norm_num) (show (0:ℝ) ≤ 1 from by norm_num)
+    (show (0:ℝ) ≤ 1 from by norm_num) hC_L_pos.le
   refine intervalMildSolution_of_data {
     T := T₀
     M := M
-    K := 1 * Real.sqrt T₀ + 1 * T₀
+    K := 1 * Real.sqrt T₀ + C_L * T₀
     C₀ := M
     hT := hT₀
     hM := hM
