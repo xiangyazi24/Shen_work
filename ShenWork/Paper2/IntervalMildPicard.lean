@@ -911,10 +911,11 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
               exact mul_nonneg hC_L_pos.le hd_nn
           · -- s ∉ (0, T₀]: 0 - 0 = 0
             simp; exact mul_nonneg hC_L_pos.le hd_nn
-        -- The integrals differ by a semigroup-convolved logistic difference.
-        -- Needs: (1) semigroup linearity (spatial integrability),
-        --        (2) interval integral linearity (time integrability).
-        -- Both hold for continuous bounded sources on finite intervals.
+        -- Use valueDuhamel_sup_bound_universal on the source difference:
+        -- |∫₀ᵗ S(t-s)(r_u s - r_w s)(x) ds| ≤ T₀ · (C_L · d)
+        -- where |r_u s y - r_w s y| ≤ C_L · d (proved above as hr_diff).
+        -- This bypasses semigroup linearity — the universal bound handles
+        -- non-integrable sources too (integral_undef → 0 ≤ bound).
         sorry
       have hG : |Gu - Gw| ≤ C_grad * (2 * Real.sqrt T₀) * (C_Q_unif * d) := by
         -- Extended flux sources (= original on (0,T₀], = 0 otherwise)
