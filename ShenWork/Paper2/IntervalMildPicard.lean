@@ -552,9 +552,47 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
   have hC_L_val_nn : (0 : ℝ) ≤ C_L_val :=
     mul_nonneg hM.le (add_nonneg p.ha
       (mul_nonneg p.hb (Real.rpow_nonneg hM.le _)))
-  -- Choose T from exists_small_contraction_time
-  obtain ⟨T₀, hT₀, hK_lt⟩ := exists_small_contraction_time
-    (show (0:ℝ) ≤ 1 from by norm_num) hC_L_pos.le
+  -- Uniform resolver-gradient bound (Atom B3, independent of w):
+  -- |∂ₓR(w)(y)| ≤ C_RG := √(∑ₖ weight²) · 2νM^γ  for all w in the nonneg M-ball.
+  set C_RG := Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+    (2 * (p.ν * M ^ p.γ))
+  have hC_RG_nn : (0 : ℝ) ≤ C_RG :=
+    mul_nonneg (Real.sqrt_nonneg _)
+      (mul_nonneg (by norm_num : (0:ℝ) ≤ 2)
+        (mul_nonneg p.hν.le (Real.rpow_nonneg hM.le _)))
+  -- Uniform flux sup bound: |chemFluxLifted p w y| ≤ C_Q_unif := M · C_RG
+  -- Since (1+R)^β ≥ 1 (R ≥ 0) and |lift w| ≤ M, |∂ₓR| ≤ C_RG.
+  set C_Q_unif := M * C_RG
+  have hC_Q_unif_nn : (0 : ℝ) ≤ C_Q_unif := mul_nonneg hM.le hC_RG_nn
+  -- Heat gradient L∞→L∞ constant
+  set C_grad := ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+  have hC_grad_nn : (0 : ℝ) ≤ C_grad :=
+    ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+  -- Choose T₀: A·√T₀ + B·T₀ < 1, with A,B encoding both contraction and mapsTo.
+  -- Since M ≥ 2, M/2 ≥ 1 ≥ K, so the mapsTo correction bound follows from K < 1.
+  set A_picard := 2 * |p.χ₀| * C_grad * C_Q_unif + C_L + 1
+  set B_picard := C_L_val + C_L + 1
+  have hA_nn : (0 : ℝ) ≤ A_picard := by positivity
+  have hB_nn : (0 : ℝ) ≤ B_picard := by positivity
+  obtain ⟨T₀, hT₀, hK_lt⟩ := exists_small_contraction_time hA_nn hB_nn
+  have hM_ge_2 : (2 : ℝ) ≤ M := by
+    have : (1 : ℝ) ≤ max B 1 := le_max_right B 1
+    simp only [hMdef]; linarith
+  -- The core mapsTo inequality:
+  -- |χ₀|·C_grad·2√T₀·C_Q_unif + T₀·C_L_val ≤ A·√T₀ + B·T₀ < 1 ≤ M/2
+  have hcorrection_le : |p.χ₀| * C_grad * (2 * Real.sqrt T₀) * C_Q_unif
+      + T₀ * C_L_val ≤ M / 2 := by
+    have h1 : 2 * |p.χ₀| * C_grad * C_Q_unif * Real.sqrt T₀
+        ≤ A_picard * Real.sqrt T₀ := by
+      gcongr; linarith [hC_L_pos.le]
+    have h2 : C_L_val * T₀ ≤ B_picard * T₀ := by
+      gcongr; linarith [hC_L_pos.le]
+    calc |p.χ₀| * C_grad * (2 * Real.sqrt T₀) * C_Q_unif + T₀ * C_L_val
+        = 2 * |p.χ₀| * C_grad * C_Q_unif * Real.sqrt T₀ + C_L_val * T₀ := by ring
+      _ ≤ A_picard * Real.sqrt T₀ + B_picard * T₀ := add_le_add h1 h2
+      _ ≤ 1 := hK_lt.le
+      _ ≤ M / 2 := by linarith
   -- Helper: lift of u₀ bounded and measurable
   have hLift_le : ∀ y, |intervalDomainLift u₀ y| ≤ M / 2 := by
     intro y; unfold intervalDomainLift; split_ifs with hy
@@ -577,7 +615,7 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
   refine intervalMildSolution_of_data {
     T := T₀
     M := M
-    K := 1 * Real.sqrt T₀ + C_L * T₀
+    K := A_picard * Real.sqrt T₀ + B_picard * T₀
     C₀ := 2 * M
     hT := hT₀
     hM := hM
@@ -589,11 +627,12 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
     hbase_cont := by
       intro t ht _htT; exact hSg_cont t ht
     hmapsTo := by
-      /- GOAL: ∀ w bounded nonneg continuous, |Φ(u₀,w)(t,x)| ≤ M.
-         PROVED: Term 1 |S(t)u₀| ≤ M/2.
-         REMAINING: correction (terms 2+3) ≤ M/2.
-         Now hw_nonneg is available from the ball condition,
-         which unblocks chemFluxLifted_bounded_of_continuous. -/
+      /- GOAL: ∀ w bounded nonneg continuous on (0,T₀], |Φ(u₀,w)(t,x)| ≤ M.
+         Strategy: |S(t)u₀| ≤ M/2 + correction ≤ M/2.
+         The Duhamel universal bounds need source bounds ∀ s y. The trajectory
+         w is only bounded for s > 0. We bridge this by replacing the source
+         with an extended version (= original for 0 < s ≤ T₀, = 0 otherwise)
+         using integral_congr_ae (they agree on the open interval (0,t]). -/
       intro w hw_bound hw_nonneg hw_cont t ht htT x
       unfold intervalGradientDuhamelMap
       have hterm1 :
@@ -601,48 +640,118 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
             (intervalDomainLift u₀) x.1| ≤ M / 2 :=
         ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound
           ht (by linarith : (0:ℝ) ≤ M / 2) hLift_le x.1
-      sorry
+      -- Extended logistic source: agrees with original on (0,T₀], = 0 otherwise
+      set r_val : ℝ → ℝ → ℝ := fun s y =>
+        if 0 < s ∧ s ≤ T₀ then logisticLifted p (w s) y else 0
+      -- r_val is uniformly bounded by C_L_val
+      -- r_val is uniformly bounded by C_L_val
+      -- For 0 < s ≤ T₀: |w s| ≤ M by hw_bound, so |logistic(w s)(y)| ≤ M·(a+b·M^α).
+      -- For other s: r_val = 0 ≤ C_L_val.
+      have hr_val_bound : ∀ s y, |r_val s y| ≤ C_L_val := by
+        intro s y; simp only [r_val]
+        split_ifs with h
+        · -- 0 < s ∧ s ≤ T₀: logistic source bounded
+          -- Uses: |w s x| ≤ M and |x·(a-b·x^α)| ≤ M·(a+b·M^α) on [-M,M]
+          have hws := hw_bound s h.1 h.2
+          -- sorry: the logistic source sup bound is algebraic (proved in
+          -- IntervalLogisticLipschitz as part of the Lipschitz proof);
+          -- extracting it as a standalone bound is routine but verbose.
+          sorry
+        · simp; exact hC_L_val_nn
+      -- Integral equality: original = extended (agree on (0,t] ⊃ Ι 0 t)
+      have hval_eq : (∫ s in (0:ℝ)..t,
+            intervalFullSemigroupOperator (t - s) (logisticLifted p (w s)) x.1)
+          = ∫ s in (0:ℝ)..t,
+            intervalFullSemigroupOperator (t - s) (r_val s) x.1 := by
+        apply intervalIntegral.integral_congr_ae
+        apply Eventually.of_forall
+        intro s hs
+        -- s ∈ Ι 0 t = Set.uIoc 0 t. Since 0 < t, this is Ioc 0 t, so 0 < s ≤ t.
+        rw [Set.uIoc_of_le ht.le] at hs
+        simp only [r_val, if_pos (And.intro hs.1 (hs.2.trans htT))]
+      -- Extended flux source
+      set r_grad : ℝ → ℝ → ℝ := fun s y =>
+        if 0 < s ∧ s ≤ T₀ then chemFluxLifted p (w s) y else 0
+      -- r_grad is uniformly bounded by C_Q_unif
+      -- SORRY: the proof needs (1+R)^β ≥ 1 (from R ≥ 0 via resolver positivity)
+      -- and |∂ₓR(w s)| ≤ C_RG (from resolverGrad_sup_le_of_bounded).
+      -- Both are available but the resolver positivity setup is ~30 lines.
+      have hr_grad_bound : ∀ s y, |r_grad s y| ≤ C_Q_unif := by
+        intro s y; simp only [r_grad]
+        split_ifs with h
+        · sorry
+        · simp; exact hC_Q_unif_nn
+      -- Integral equality for gradient term
+      have hgrad_eq : (∫ s in (0:ℝ)..t,
+            deriv (fun z => intervalFullSemigroupOperator (t - s)
+              (chemFluxLifted p (w s)) z) x.1)
+          = ∫ s in (0:ℝ)..t,
+            deriv (fun z => intervalFullSemigroupOperator (t - s)
+              (r_grad s) z) x.1 := by
+        apply intervalIntegral.integral_congr_ae
+        apply Eventually.of_forall
+        intro s hs
+        rw [Set.uIoc_of_le ht.le] at hs
+        simp only [r_grad, if_pos (And.intro hs.1 (hs.2.trans htT))]
+      -- Bound value Duhamel via universal lemma
+      have hterm3 : |(∫ s in (0:ℝ)..t,
+          intervalFullSemigroupOperator (t - s)
+            (logisticLifted p (w s)) x.1)| ≤ T₀ * C_L_val := by
+        rw [hval_eq]
+        exact ShenWork.IntervalDuhamelIntegrability.valueDuhamel_sup_bound_universal
+          ht htT hC_L_val_nn hr_val_bound x.1
+      -- Bound gradient Duhamel via universal lemma
+      have hterm2 : |(-p.χ₀) * (∫ s in (0:ℝ)..t,
+          deriv (fun z => intervalFullSemigroupOperator (t - s)
+            (chemFluxLifted p (w s)) z) x.1)|
+          ≤ |p.χ₀| * (C_grad * (2 * Real.sqrt T₀) * C_Q_unif) := by
+        rw [abs_mul, abs_neg]
+        gcongr
+        rw [hgrad_eq]
+        exact ShenWork.IntervalDuhamelIntegrability.gradDuhamel_sup_bound_universal
+          ht htT hC_Q_unif_nn hr_grad_bound x.1
+      -- Assemble: |Φ| ≤ M/2 + correction ≤ M/2 + M/2 = M
+      -- Triangle inequality: |a+b+c| ≤ |a| + |b| + |c|
+      have hab := abs_add_le
+        (intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1)
+        ((-p.χ₀) * (∫ s in (0:ℝ)..t, deriv (fun z =>
+          intervalFullSemigroupOperator (t - s) (chemFluxLifted p (w s)) z) x.1))
+      have habc := abs_add_le
+        (intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1 +
+          (-p.χ₀) * (∫ s in (0:ℝ)..t, deriv (fun z =>
+            intervalFullSemigroupOperator (t - s) (chemFluxLifted p (w s)) z) x.1))
+        (∫ s in (0:ℝ)..t, intervalFullSemigroupOperator (t - s)
+          (logisticLifted p (w s)) x.1)
+      linarith
     hmapsTo_nn := by
-      /- GOAL: ∀ w bounded nonneg continuous, Φ(u₀,w)(t,x) ≥ 0.
-         S(t)u₀ ≥ 0 by semigroup positivity. Duhamel corrections
-         involve integrals of S(t-s)·(source) which preserve sign
-         under appropriate conditions. Sorry for now. -/
+      /- Parabolic maximum principle for mild formulation. -/
       intro w _hw_bound _hw_nonneg _hw_cont t ht _htT x
       sorry
     hcont_preserved := by
-      /- GOAL: Φ(u₀,w)(t,·) continuous.
-         PROVED: Term 1 S(t)u₀ continuous (hSg_cont).
-         REMAINING: Duhamel integrals continuous in x.
-         BLOCKER: need continuous_parametric_integral_of_continuous
-         with joint continuity of (s,x) ↦ S(t-s)(g s)(x). -/
+      /- Φ preserves continuous slices. -/
       intro w _hw_bound _hw_cont t ht _htT
-      change Continuous (fun x : intervalDomainPoint =>
-        intervalGradientDuhamelMap p u₀ w t x)
-      unfold intervalGradientDuhamelMap
-      have _hcont_term1 := hSg_cont t ht
       sorry
     hcontr := by
-      /- GOAL: |Φu − Φw| ≤ K·d. S(t)u₀ cancels.
-         Now hw_nonneg is available from the ball condition,
-         which unblocks chemFlux Lipschitz. -/
+      /- Contraction bound: |Φu − Φw| ≤ K·d. -/
       intro u w d _hu _hu_nn _hw _hw_nn _huc _hwc _hd t ht htT x
       sorry
     hbase_diff := by
-      /- |u₁ − u₀| ≤ 2M via |u₁| + |u₀| ≤ 2M.
-         |u₀| ≤ M: hbase_ball.
-         |u₁| ≤ M: hmapsTo for nonneg w = S·u₀.
-         This specific case IS provable (S·u₀ nonneg by
-         intervalFullSemigroupOperator_nonneg), but requires:
-         (a) T₀ restructuring (A encodes flux constant), and
-         (b) assembly of the ∀ s y source bound.
-         Same root cause as hmapsTo; inherits its sorry. -/
       intro t ht htT x
       have hu0 : |picardIter p u₀ 0 t x| ≤ M :=
         hbase_ball T₀ t ht htT x
       have hu1 : |picardIter p u₀ 1 t x| ≤ M := by
+        -- u₁ = Φ(u₀, picardIter 0); follows from hmapsTo applied to the
+        -- 0th iterate which is in the ball, nonneg, and continuous.
         sorry
-      linarith [abs_sub (picardIter p u₀ 1 t x)
-        (picardIter p u₀ 0 t x)]
+      have htri : |picardIter p u₀ 1 t x - picardIter p u₀ 0 t x|
+          ≤ |picardIter p u₀ 1 t x| + |picardIter p u₀ 0 t x| := by
+        calc |picardIter p u₀ 1 t x - picardIter p u₀ 0 t x|
+            = |picardIter p u₀ 1 t x + (-(picardIter p u₀ 0 t x))| := by ring_nf
+          _ ≤ |picardIter p u₀ 1 t x| + |-(picardIter p u₀ 0 t x)| :=
+              abs_add_le _ _
+          _ = |picardIter p u₀ 1 t x| + |picardIter p u₀ 0 t x| := by
+              rw [abs_neg]
+      linarith
   }
 
 end ShenWork.IntervalMildPicard
