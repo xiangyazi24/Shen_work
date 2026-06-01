@@ -1,88 +1,66 @@
-# Shen_work — Current Task (updated 2026-05-31 23:00 CDT)
+# Shen_work — Final Session Status (2026-05-31 ~23:30 CDT)
 
 ## Build
 ```bash
 export PATH="$HOME/.elan/bin:$PATH" && cd ~/repos/shen_work && lake build
 ```
-Build green (8387 jobs).
+Build green (8388 jobs). 37 commits today.
 
-## Sorry Count
-```
-IntervalMildExistence.lean: 2 (BCF approach, superseded by Picard)
-IntervalMildPicard.lean:    1 (main theorem — MildExistenceData construction)
-IntervalDuhamelIntegrability.lean: 2 (gradient edge case + flux integrability)
-```
-Total: 5 sorry. Active: 3.
+## Sorry Summary
+- IntervalMildPicard.lean: 4 sorry (in main theorem: hmapsTo, hcont_preserved, hcontr, hbase_diff)
+- IntervalDuhamelIntegrability.lean: 1 sorry (gradient edge case, never triggered for continuous sources)
+- IntervalMildExistence.lean: 2 sorry (BCF approach, superseded by Picard)
+Total: 7. Active: 5 (4 main + 1 edge case).
 
-## What Is Proved (0 sorry)
+## What Was Proved Today (all 0 sorry)
 
-### Picard fixed-point theory (IntervalMildPicard.lean)
-- picardIter + picardLimit definitions
-- real_cauchySeq_of_geometric_bound
-- picardIter_pointwise_convergent
+### Core Picard Theory
+- picardIter, picardLimit definitions
+- real_cauchySeq_of_geometric_bound, picardIter_pointwise_convergent
 - picardIter_pointwise_tail_bound (dist_le_tsum)
-- picardIter_uniform_convergence
-- picardLimit_bounded (le_of_tendsto)
+- picardIter_uniform_convergence, picardLimit_bounded
 - picardLimit_hasContinuousSlices (uniform limit)
-- picardLimit_is_mildSolution (contraction squeeze)
-- intervalMildSolution_of_bounds
-- picardIter_ball (+ HasContinuousSlices, mutual induction)
+- **picardLimit_is_mildSolution** (contraction squeeze — the KEY theorem)
+- intervalMildSolution_of_bounds, intervalMildSolution_of_data
+- picardIter_ball (+ HasContinuousSlices mutual induction)
 - picardIter_geometric
 - MildExistenceData structure
-- intervalMildSolution_of_data (assembly)
-- hbase_ball (semigroup L∞ bound)
 
-### Integrability chain (IntervalDuhamelIntegrability.lean)
+### Integrability Chain
 - continuousOn_aestronglyMeasurable_intervalMeasure
-- intervalDomainLift_aestronglyMeasurable_of_continuous
-  KEY PROOF: Set.restrict (Icc 0 1) (intervalDomainLift f) = f
-  via continuousOn_iff_continuous_restrict
-- logisticLifted_integrable_of_continuous
-  (rpow_const + lift measurability + bounded finite measure)
-- valueDuhamel_sup_bound_universal (integral_undef for non-integrable)
+- **intervalDomainLift_aestronglyMeasurable_of_continuous** (restrict trick: Set.restrict = f)
+- **logisticLifted_integrable_of_continuous** (rpow_const chain)
+- **valueDuhamel_sup_bound_universal** (integral_undef for non-integrable)
 
-## Remaining Gaps (priority order)
+### Semigroup Smoothing (THE breakthrough)
+- **intervalFullSemigroupOperator_continuous_of_bounded** 
+  via hasDerivAt_fst → ContinuousAt. NO Parseval bridge needed!
 
-### GAP 1: Semigroup smoothing for general bounded input (DEEP)
-`hbase_cont` and `hcont_preserved` need: S(t) maps bounded → C²(Icc 0 1).
-The spectral form `unitIntervalCosineHeatValue_contDiff_two` is proved for
-bounded coefficient sequences. But connecting `intervalFullSemigroupOperator`
-(kernel integral) to `unitIntervalCosineHeatValue` (spectral sum) requires
-the kernel↔spectral bridge (Parseval for Neumann cosine expansion).
+### Main Theorem Fields
+- **hbase_ball**: proved (semigroup L∞ bound)
+- **hbase_cont**: proved (semigroup continuous + comp subtype_val)
+- picardIter_zero simp lemma
 
-This bridge is partially built:
-- `heatKernel_lattice_poisson` (Poisson summation) — proved
-- `intervalNeumannFullKernel` (full image kernel) — defined
-- The connection needs: `∫ K(t,x,y)f(y)dy = ∑ e^{-λt} f̂_n cos(nπx)`
-  where `f̂_n = ∫ f(y) cos(nπy) dy`. This is in `CosineParsevalBridge.lean`
-  but not yet connected to `intervalFullSemigroupOperator`.
+## Remaining 4 Sorry (all same category: PDE constant instantiation)
 
-Estimate: multi-day work.
+All need: extract C_Q (flux sup), C_L (logistic sup/Lip) from repo theorems,
+choose T from exists_small_contraction_time, verify bounds.
 
-### GAP 2: chemFluxLifted integrability (MEDIUM)
-`chemFluxLifted_integrable_of_continuous` — flux = w · resolverGrad / (1+R)^β.
-Needs: resolverGradReal and resolverR are continuous when w is continuous.
-These are cosine/sine series (from IntervalNeumannEllipticResolverR.lean)
-with summable coefficients. Continuity follows from continuous_tsum.
-Estimate: hours.
+1. **hmapsTo**: |Φ| ≤ M. Route: hbase_ball (✓) + valueDuhamel_sup_bound_universal (✓)
+   + gradDuhamel_sup_bound_universal (1 edge sorry) + T small enough.
+   
+2. **hcont_preserved**: Φ preserves continuity. Route: continuous_of_dominated
+   on the Duhamel integral (each slice continuous by semigroup_continuous, bounded
+   uniformly by semigroup L∞ contraction).
+   
+3. **hcontr**: |Φu - Φw| ≤ K·d. Route: valueDuhamel_diff_sup_bound +
+   gradDuhamel_diff_sup_bound + flux/logistic Lipschitz.
+   
+4. **hbase_diff**: |u_1 - u_0| ≤ C₀. Route: same as hmapsTo correction terms.
 
-### GAP 3: hmapsTo / hcontr instantiation (MEDIUM)
-Once integrability is available (Gap 2), connect to Duhamel bounds:
-- gradDuhamel_sup_bound for flux
-- valueDuhamel_sup_bound for logistic (DONE — universal version)
-- gradDuhamel_diff_sup_bound for flux difference
-- valueDuhamel_diff_sup_bound for logistic difference
-Then choose T from exists_small_contraction_time.
-Estimate: hours, assuming Gap 2 closed.
+## Key Insight of This Session
 
-### GAP 4: Gradient edge case (LOW priority)
-gradDuhamel_sup_bound_universal: spatial non-integrable + time integrable.
-Never occurs for spatially continuous trajectories.
-Can be left as sorry without blocking any real proof.
-
-## Strategy
-1. Close Gap 2 (flux integrability via continuous_tsum for resolver)
-2. Close Gap 3 (hmapsTo/hcontr from Duhamel bounds + integrability)
-3. Sorry Gap 1 (semigroup smoothing — needs Parseval bridge, multi-day)
-4. Accept Gap 4 sorry (edge case)
-5. Main theorem assembles with 2 sorry (Gap 1 + Gap 4)
+The semigroup smoothing gap (previously thought to need multi-day Parseval bridge
+work) was resolved in 1 line: `hasDerivAt_fst.continuousAt`. The spatial derivative
+of the semigroup EXISTS (already proved in IntervalFullKernelGradientLinfty.lean),
+which immediately gives continuity. This bypasses the entire spectral theory path.
