@@ -444,6 +444,28 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
     intro x; calc |u₀ x| ≤ B := hB x
       _ ≤ max B 1 := le_max_left B 1
       _ = M / 2 := by rw [hMdef]; ring
+  -- Step 1: hbase_ball — S(t)u₀ is bounded by M
+  have hbase_ball : ∀ T : ℝ, ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |picardIter p u₀ 0 t x| ≤ M := by
+    intro T t ht _htT x
+    exact ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound ht
+      (by linarith : (0:ℝ) ≤ M)
+      (fun y => by
+        calc |intervalDomainLift u₀ y|
+            ≤ M / 2 := by
+              unfold intervalDomainLift
+              split_ifs with hy
+              · exact hB_le ⟨y, hy⟩
+              · simp; linarith
+            _ ≤ M := by linarith) x.1
+  -- Remaining steps require PDE-specific constants and integrability.
+  -- Each field of MildExistenceData needs:
+  -- - hbase_cont: semigroup smoothing (contDiffOn_two → continuous)
+  -- - hmapsTo: Duhamel bounds + flux/logistic sup bounds
+  -- - hcont_preserved: semigroup maps bounded → C²
+  -- - hcontr: Duhamel diff bounds + flux/logistic Lipschitz
+  -- - hbase_diff: first Picard step bound
+  -- All depend on HasContinuousSlices → integrability chain.
   sorry
 
 end ShenWork.IntervalMildPicard
