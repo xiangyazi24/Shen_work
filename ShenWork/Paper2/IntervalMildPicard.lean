@@ -14,6 +14,7 @@
 -/
 import ShenWork.Paper2.IntervalGradientDuhamelMap
 import ShenWork.PDE.IntervalChemFluxLipschitz
+import ShenWork.Paper2.IntervalDuhamelIntegrability
 import Mathlib.Topology.Algebra.InfiniteSum.Real
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Topology.UniformSpace.UniformApproximation
@@ -471,7 +472,12 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
     hK_nn := by norm_num
     hC₀ := by linarith
     hbase_ball := hbase_ball 1
-    hbase_cont := by sorry  -- semigroup smoothing (kernel↔spectral bridge)
+    hbase_cont := by
+      -- PROOF ROUTE: intervalFullSemigroupOperator_continuous_of_bounded (proved, 0 sorry)
+      -- + intervalDomainLift_aestronglyMeasurable_of_continuous (proved, 0 sorry)
+      -- + continuous_subtype_val composition
+      -- Blocked by: picardIter recursion not reducing definitionally
+      sorry
     hmapsTo := by sorry  -- Duhamel bounds + flux/logistic sup
     hcont_preserved := by sorry  -- Φ preserves continuity (semigroup smoothing)
     hcontr := by sorry  -- contraction (Duhamel diff bounds)

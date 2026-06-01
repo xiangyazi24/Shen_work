@@ -221,6 +221,24 @@ theorem continuousOn_intervalFullSemigroupOperator_of_aestronglyMeasurable_bound
     (ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_hasDerivAt_fst
       ht hf_meas hf_bound x).continuousAt).continuousOn
 
+/-- For positive time, the full Neumann heat semigroup maps any bounded input
+to a function continuous on the compact interval `[0,1]`.  If the input is not
+integrable against `intervalMeasure 1`, the kernel integral is identically zero
+under Lean's Bochner integral convention; otherwise the differentiability theorem
+for the smooth full kernel gives continuity. -/
+theorem continuousOn_intervalFullSemigroupOperator_of_bounded
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
+    {Cf : ℝ} (hf_bound : ∀ y, |f y| ≤ Cf) :
+    ContinuousOn (fun x : ℝ => intervalFullSemigroupOperator t f x) (Set.Icc (0:ℝ) 1) := by
+  by_cases hf_int : Integrable f (intervalMeasure 1)
+  · exact continuousOn_intervalFullSemigroupOperator_of_aestronglyMeasurable_bounded
+      ht hf_int.aestronglyMeasurable hf_bound
+  · have hzero : (fun x : ℝ => intervalFullSemigroupOperator t f x) = fun _ => 0 := by
+      funext x
+      exact intervalFullSemigroupOperator_eq_zero_of_not_integrable ht hf_int x
+    rw [hzero]
+    exact continuousOn_const
+
 /-- The lift of a continuous function on intervalDomainPoint is
 AEStronglyMeasurable against intervalMeasure 1, because intervalMeasure 1
 only sees Icc 0 1, where the lift agrees with the continuous subtype function. -/

@@ -120,3 +120,4 @@ import ShenWork.Paper2.IntervalDomainProfileIBP
 import ShenWork.Paper2.IntervalDomainL2HalfEnergyTimeLeibniz
 import ShenWork.Paper2.IntervalDomainL2PDEIntegral
 import ShenWork.Paper2.IntervalDomainL2CrossControl
+import ShenWork.Paper2.IntervalDuhamelIntegrability
