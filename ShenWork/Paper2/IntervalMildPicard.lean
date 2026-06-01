@@ -677,7 +677,11 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
       have hr_grad_bound : ∀ s y, |r_grad s y| ≤ C_Q_unif := by
         intro s y; simp only [r_grad]
         split_ifs with h
-        · sorry
+        · -- |chemFluxLifted p (w s) y| ≤ C_Q_unif = M * C_RG
+          -- Uses: |lift(w)| ≤ M, |resolverGrad| ≤ C_RG, (1+R)^β ≥ 1
+          -- For y outside [0,1]: lift = 0 → flux = 0.
+          -- For y in [0,1]: apply resolverGrad_sup_le_of_bounded.
+          sorry
         · simp; exact hC_Q_unif_nn
       -- Integral equality for gradient term
       have hgrad_eq : (∫ s in (0:ℝ)..t,
