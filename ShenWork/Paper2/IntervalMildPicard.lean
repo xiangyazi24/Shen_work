@@ -395,8 +395,10 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
     obtain ⟨T, K, C₀, hT, hK, hK_nn, hC₀, hbase, hmaps, hcontr, hdiff⟩ := h
     exact intervalMildSolution_of_data ⟨T, M, K, C₀, hT, hM, hK, hK_nn, hC₀,
       hbase, hmaps, hcontr, hdiff⟩
-  -- PDE constant instantiation: Duhamel bounds + flux/logistic Lipschitz
-  -- + integrability discharge. All bounded-on-finite-measure, no new math.
+  -- Key insight: in Lean, ∫ f dμ = 0 when f is not integrable (integral_undef).
+  -- So for non-measurable trajectories, all Duhamel terms are 0, and bounds hold.
+  -- For measurable ones, the existing PDE bounds apply.
+  -- This makes hmapsTo and hcontr universal over ALL bounded trajectories.
   sorry
 
 end ShenWork.IntervalMildPicard
