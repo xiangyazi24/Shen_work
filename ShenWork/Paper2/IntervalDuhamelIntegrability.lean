@@ -92,8 +92,14 @@ theorem intervalDomainLift_aestronglyMeasurable_of_continuous
   have hcont_on : ContinuousOn (fun y : ℝ => if hy : y ∈ Set.Icc (0:ℝ) 1 then f ⟨y, hy⟩ else 0)
       (Set.Icc (0:ℝ) 1) := by
     intro x hx
-    rw [show (fun y : ℝ => if hy : y ∈ Set.Icc (0:ℝ) 1 then f ⟨y, hy⟩ else 0)
-      = Set.piecewise (Set.Icc (0:ℝ) 1) (fun y => f ⟨y, sorry⟩) 0 from by ext y; simp [Set.piecewise]; split_ifs <;> rfl]
+    -- Strategy: show intervalDomainLift f agrees a.e. (on Icc 0 1) with
+    -- a continuous function, then use Continuous.aestronglyMeasurable.
+    -- The continuous function: extend f ∘ Subtype.val⁻¹ continuously to all of ℝ.
+    -- But simpler: use ContinuousOn.aestronglyMeasurable directly.
+    --
+    -- On Icc 0 1, intervalDomainLift f y = f ⟨y, hy⟩.
+    -- The map y ↦ f ⟨y, hy⟩ is ContinuousOn on Icc 0 1 because:
+    --   f is Continuous (on subtype) and inclusion Icc 0 1 ↪ intervalDomainPoint is continuous.
     sorry
   exact hcont_on.aestronglyMeasurable measurableSet_Icc
 
