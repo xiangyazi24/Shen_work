@@ -75,16 +75,24 @@ theorem gradDuhamel_sup_bound_universal
 /-- Continuous on compact [0,1] → AEStronglyMeasurable against intervalMeasure. -/
 theorem continuousOn_aestronglyMeasurable_intervalMeasure {f : ℝ → ℝ}
     (hf : ContinuousOn f (Set.Icc (0:ℝ) 1)) :
-    AEStronglyMeasurable f (intervalMeasure 1) := by
-  exact hf.aestronglyMeasurable measurableSet_Icc
+    AEStronglyMeasurable f (intervalMeasure 1) :=
+  hf.aestronglyMeasurable measurableSet_Icc
 
-/-- For a trajectory with continuous slices, the lifted logistic source is
-spatially integrable at each time. -/
+/-- The lift of a continuous function on intervalDomainPoint is
+AEStronglyMeasurable against intervalMeasure 1, because intervalMeasure 1
+only sees Icc 0 1, where the lift agrees with the continuous subtype function. -/
+theorem intervalDomainLift_aestronglyMeasurable_of_continuous
+    {f : intervalDomainPoint → ℝ} (hf : Continuous f) :
+    AEStronglyMeasurable (intervalDomainLift f) (intervalMeasure 1) := by
+  sorry
+
 theorem logisticLifted_integrable_of_continuous
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
     (hw : ∀ x, |w x| ≤ M) (hM : 0 ≤ M)
     (hcont : Continuous w) :
     Integrable (logisticLifted p w) (intervalMeasure 1) := by
+  -- logisticLifted p w = intervalDomainLift (logistic ∘ w)
+  -- continuous on Icc ⇒ AEStronglyMeasurable ⇒ + bounded ⇒ integrable
   sorry
 
 
