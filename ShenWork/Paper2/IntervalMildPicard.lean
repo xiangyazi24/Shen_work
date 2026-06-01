@@ -1028,14 +1028,17 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
             -- Measurability follows from hwm : HasJointMeasurability w
             exfalso; exact hint_w
               (ShenWork.IntervalDuhamelIntegrability.valueDuhamel_intervalIntegrable_of_joint_measurable
-                ht (sorry : Measurable (Function.uncurry r_w)) hC_L_val_nn
+                ht (by
+                  show Measurable (fun p : ℝ × ℝ => r_w p.1 p.2)
+                  simp only [r_w]
+                  sorry) hC_L_val_nn
                 (hr_w_bdd) x.1)
-        · -- u not integrable: derive contradiction from joint measurability
-          -- r_u s y = if 0 < s ∧ s ≤ T₀ then logisticLifted p (u s) y else 0
-          -- Measurability follows from hum : HasJointMeasurability u
-          exfalso; exact hint_u
+        · exfalso; exact hint_u
             (ShenWork.IntervalDuhamelIntegrability.valueDuhamel_intervalIntegrable_of_joint_measurable
-              ht (sorry : Measurable (Function.uncurry r_u)) hC_L_val_nn
+              ht (by
+                show Measurable (fun p : ℝ × ℝ => r_u p.1 p.2)
+                simp only [r_u]
+                sorry) hC_L_val_nn
               (hr_u_bdd) x.1)
       have hG : |Gu - Gw| ≤ C_grad * (2 * Real.sqrt T₀) * (C_Q_lip * d) := by
         -- Extended flux sources (= original on (0,T₀], = 0 otherwise)
