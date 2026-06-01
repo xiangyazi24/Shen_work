@@ -11,6 +11,17 @@ import ShenWork.Paper2.IntervalGradientDuhamelMap
 
 open MeasureTheory Set
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalMeasure)
+/-- Resolver gradient is continuous on R for continuous bounded sources.
+Uses: resolverSourceCoeff_re_sq_summable_of_continuousOn + resolver_sineSeries_summable
++ continuous_tsum. This is the same proof as in IntervalResolverPositivity (hg_cont)
+but extracted for continuous bounded trajectories (not classical solutions). -/
+theorem resolverGradReal_continuous_of_continuousOn
+    (p : CM2Params) {w : intervalDomainPoint → ℝ}
+    (hcont : ContinuousOn (intervalDomainLift w) (Set.Icc (0:ℝ) 1)) :
+    Continuous (fun x : ℝ => ShenWork.Paper2.resolverGradReal p w x) := by
+  sorry
+
+
 open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator)
 open ShenWork.IntervalGradDuhamelBound (valueDuhamel_sup_bound gradDuhamel_sup_bound)
 open ShenWork.IntervalGradientDuhamelMap (logisticLifted chemFluxLifted)
@@ -294,6 +305,17 @@ theorem chemFluxLifted_integrable_of_continuous
   -- (each factor continuous via continuous_tsum on resolver series).
   -- Continuous on compact -> bounded. Bounded + AEStronglyMeasurable -> integrable.
   -- Key dependency: resolverSourceCoeff_re_sq_summable_of_continuousOn (needs ContinuousOn lift).
+  sorry
+
+
+/-- Resolver gradient is continuous on R for continuous bounded sources.
+Uses: resolverSourceCoeff_re_sq_summable_of_continuousOn + resolver_sineSeries_summable
++ continuous_tsum. This is the same proof as in IntervalResolverPositivity (hg_cont)
+but extracted for continuous bounded trajectories (not classical solutions). -/
+theorem resolverGradReal_continuous_of_continuousOn
+    (p : CM2Params) {w : intervalDomainPoint → ℝ}
+    (hcont : ContinuousOn (intervalDomainLift w) (Set.Icc (0:ℝ) 1)) :
+    Continuous (fun x : ℝ => ShenWork.Paper2.resolverGradReal p w x) := by
   sorry
 
 
