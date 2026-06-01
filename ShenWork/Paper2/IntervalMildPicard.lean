@@ -845,17 +845,120 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
       intro w _hw_bound _hw_cont t ht _htT
       sorry
     hcontr := by
-      /- Contraction bound: |Φu − Φw| ≤ K·d.
-         Route: S(t)u₀ terms cancel. The value Duhamel diff
-         |∫₀ᵗ S(t-s)(L(u(s)) - L(w(s))) ds| ≤ C_L · T₀ · d
-         follows from logistic Lipschitz (intervalLogisticReaction_lipschitz_on_bounded)
-         and valueDuhamel_diff_sup_bound. The gradient Duhamel diff
-         |∫₀ᵗ ∂ₓS(t-s)(Q(u(s)) - Q(w(s))) ds| ≤ A' · √T₀ · d
-         follows from chemFlux Lipschitz (chemFluxValue_lipschitz) and
-         gradDuhamel_diff_sup_bound. Total: (A·√T₀ + B·T₀)·d = K·d.
-         All ingredient lemmas exist; the assembly is ~40 lines. -/
-      intro u w d _hu _hu_nn _hw _hw_nn _huc _hwc _hd t ht htT x
-      sorry
+      intro u w d hu hu_nn hw hw_nn huc hwc hd t ht htT x
+      -- Step 1: Unfold Φ and cancel S(t)u₀
+      simp only [intervalGradientDuhamelMap]
+      set Gu := ∫ s in (0:ℝ)..t,
+        deriv (fun z => intervalFullSemigroupOperator (t - s)
+          (chemFluxLifted p (u s)) z) x.1
+      set Gw := ∫ s in (0:ℝ)..t,
+        deriv (fun z => intervalFullSemigroupOperator (t - s)
+          (chemFluxLifted p (w s)) z) x.1
+      set Vu := ∫ s in (0:ℝ)..t,
+        intervalFullSemigroupOperator (t - s) (logisticLifted p (u s)) x.1
+      set Vw := ∫ s in (0:ℝ)..t,
+        intervalFullSemigroupOperator (t - s) (logisticLifted p (w s)) x.1
+      have hcancel :
+          (intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+            + (-p.χ₀) * Gu + Vu)
+          - (intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+            + (-p.χ₀) * Gw + Vw)
+          = (-p.χ₀) * (Gu - Gw) + (Vu - Vw) := by ring
+      rw [hcancel]
+      -- Step 2: d ≥ 0 (since |u - w| ≥ 0 ≤ d)
+      have hd_nn : 0 ≤ d := by
+        have := hd t ht htT x
+        exact le_trans (abs_nonneg _) this
+      -- Step 3: Bound the two Duhamel differences
+      have hV : |Vu - Vw| ≤ T₀ * (C_L * d) := by
+        -- Extended logistic sources (= original on (0,T₀], = 0 otherwise)
+        set r_u : ℝ → ℝ → ℝ := fun s y =>
+          if 0 < s ∧ s ≤ T₀ then logisticLifted p (u s) y else 0
+        set r_w : ℝ → ℝ → ℝ := fun s y =>
+          if 0 < s ∧ s ≤ T₀ then logisticLifted p (w s) y else 0
+        -- Integral congr: Vu = ∫ with r_u
+        have hVu_eq : Vu = ∫ s in (0:ℝ)..t,
+            intervalFullSemigroupOperator (t - s) (r_u s) x.1 := by
+          apply intervalIntegral.integral_congr_ae; apply Eventually.of_forall
+          intro s hs; rw [Set.uIoc_of_le ht.le] at hs
+          simp only [r_u, if_pos (And.intro hs.1 (hs.2.trans htT))]
+        have hVw_eq : Vw = ∫ s in (0:ℝ)..t,
+            intervalFullSemigroupOperator (t - s) (r_w s) x.1 := by
+          apply intervalIntegral.integral_congr_ae; apply Eventually.of_forall
+          intro s hs; rw [Set.uIoc_of_le ht.le] at hs
+          simp only [r_w, if_pos (And.intro hs.1 (hs.2.trans htT))]
+        rw [hVu_eq, hVw_eq]
+        -- Source diff bound: |r_u s y - r_w s y| ≤ C_L · d
+        have hr_diff_bound : ∀ s y, |r_u s y - r_w s y| ≤ C_L * d := by
+          intro s y; simp only [r_u, r_w]
+          split_ifs with h
+          · -- s ∈ (0, T₀]: logistic Lipschitz
+            unfold logisticLifted intervalDomainLift
+              ShenWork.IntervalDomainExistence.intervalLogisticSource
+            by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+            · -- y ∈ [0,1]: use hC_L_lip + hd
+              simp only [dif_pos hy]
+              have hu_s := hu s h.1 h.2 ⟨y, hy⟩
+              have hw_s := hw s h.1 h.2 ⟨y, hy⟩
+              have hd_s := hd s h.1 h.2 ⟨y, hy⟩
+              calc |u s ⟨y, hy⟩ * (p.a - p.b * (u s ⟨y, hy⟩) ^ p.α)
+                      - w s ⟨y, hy⟩ * (p.a - p.b * (w s ⟨y, hy⟩) ^ p.α)|
+                  ≤ C_L * |u s ⟨y, hy⟩ - w s ⟨y, hy⟩| :=
+                    hC_L_lip _ _ hu_s hw_s
+                _ ≤ C_L * d := mul_le_mul_of_nonneg_left hd_s hC_L_pos.le
+            · -- y ∉ [0,1]: both lifts = 0
+              simp only [dif_neg hy, sub_self, abs_zero]
+              exact mul_nonneg hC_L_pos.le hd_nn
+          · -- s ∉ (0, T₀]: 0 - 0 = 0
+            simp; exact mul_nonneg hC_L_pos.le hd_nn
+        -- The integrals differ by a semigroup-convolved logistic difference.
+        -- Needs: (1) semigroup linearity (spatial integrability),
+        --        (2) interval integral linearity (time integrability).
+        -- Both hold for continuous bounded sources on finite intervals.
+        sorry
+      have hG : |Gu - Gw| ≤ C_grad * (2 * Real.sqrt T₀) * (C_Q_unif * d) := by
+        -- Extended flux sources (= original on (0,T₀], = 0 otherwise)
+        set q_u : ℝ → ℝ → ℝ := fun s y =>
+          if 0 < s ∧ s ≤ T₀ then chemFluxLifted p (u s) y else 0
+        set q_w : ℝ → ℝ → ℝ := fun s y =>
+          if 0 < s ∧ s ≤ T₀ then chemFluxLifted p (w s) y else 0
+        -- Integral congr: Gu = ∫ with q_u
+        have hGu_eq : Gu = ∫ s in (0:ℝ)..t,
+            deriv (fun z => intervalFullSemigroupOperator (t - s) (q_u s) z) x.1 := by
+          apply intervalIntegral.integral_congr_ae; apply Eventually.of_forall
+          intro s hs; rw [Set.uIoc_of_le ht.le] at hs
+          simp only [q_u, if_pos (And.intro hs.1 (hs.2.trans htT))]
+        have hGw_eq : Gw = ∫ s in (0:ℝ)..t,
+            deriv (fun z => intervalFullSemigroupOperator (t - s) (q_w s) z) x.1 := by
+          apply intervalIntegral.integral_congr_ae; apply Eventually.of_forall
+          intro s hs; rw [Set.uIoc_of_le ht.le] at hs
+          simp only [q_w, if_pos (And.intro hs.1 (hs.2.trans htT))]
+        rw [hGu_eq, hGw_eq]
+        -- Flux source diff bound: |q_u s y - q_w s y| ≤ C_Q_unif · d
+        -- Needs: chemFlux Lipschitz on the M-ball with constant C_Q_unif.
+        -- chemFlux_div_lipschitz (or flux_diff_pointwise_bound) gives a bound
+        -- in terms of resolver gradient/value Lipschitz constants.
+        -- For the uniform M-ball, these are bounded by constants depending on
+        -- C_RG, M, β, and resolver Lipschitz (from Atom B).
+        -- The bound |Q(u)(y) − Q(w)(y)| ≤ C_Q_unif · d requires showing that
+        -- the resolver Lipschitz is suitably controlled.
+        -- This is the deepest lemma in the contraction chain.
+        sorry
+      -- Step 4: Assemble via gradientDuhamel_contraction_pointwise
+      calc |(-p.χ₀) * (Gu - Gw) + (Vu - Vw)|
+          ≤ (2 * |p.χ₀| * C_grad * C_Q_unif * Real.sqrt T₀ + C_L * T₀) * d :=
+            gradientDuhamel_contraction_pointwise hG hV
+        _ ≤ (A_picard * Real.sqrt T₀ + B_picard * T₀) * d := by
+            have hA_ge : 2 * |p.χ₀| * C_grad * C_Q_unif ≤ A_picard := by
+              simp only [A_picard]; linarith [hC_L_pos.le]
+            have hB_ge : C_L ≤ B_picard := by
+              simp only [B_picard]; linarith [hC_L_val_nn]
+            have h1 : 2 * |p.χ₀| * C_grad * C_Q_unif * Real.sqrt T₀
+                ≤ A_picard * Real.sqrt T₀ :=
+              mul_le_mul_of_nonneg_right hA_ge (Real.sqrt_nonneg _)
+            have h2 : C_L * T₀ ≤ B_picard * T₀ :=
+              mul_le_mul_of_nonneg_right hB_ge hT₀.le
+            nlinarith [hd_nn, Real.sqrt_nonneg T₀, hA_nn, hB_nn]
     hbase_diff := by
       intro t ht htT x
       have hu0 : |picardIter p u₀ 0 t x| ≤ M :=
