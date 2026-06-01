@@ -351,11 +351,36 @@ theorem chemFluxLifted_integrable_of_continuous
     (_hw : ∀ x, |w x| ≤ M) (_hM : 0 ≤ M)
     (hcont : Continuous w) :
     Integrable (chemFluxLifted p w) (intervalMeasure 1) := by
-  -- Cleaner route: chemFluxLifted p w is continuous on intervalDomainPoint
-  -- (each factor continuous via continuous_tsum on resolver series).
-  -- Continuous on compact -> bounded. Bounded + AEStronglyMeasurable -> integrable.
-  -- Key dependency: resolverSourceCoeff_re_sq_summable_of_continuousOn (needs ContinuousOn lift).
-  sorry
+  -- The flux as a function on intervalDomainPoint is continuous:
+  -- chemFluxLifted p w x.1 = lift(w)(x.1) * resolverGradReal(x.1) / (1+lift(R)(x.1))^β
+  -- Each factor is continuous → product/quotient continuous → flux continuous on subtype
+  -- → lift is AEStronglyMeasurable → bounded + finite measure → integrable.
+  have hcont_on : ContinuousOn (intervalDomainLift w) (Set.Icc (0:ℝ) 1) := by
+    rw [continuousOn_iff_continuous_restrict]
+    have : Set.restrict (Set.Icc (0:ℝ) 1) (intervalDomainLift w) = w := by
+      ext ⟨x, hx⟩; simp [Set.restrict, intervalDomainLift, hx]; rfl
+    rw [this]; exact hcont
+  -- resolverGradReal is continuous (just proved!)
+  have hgrad_cont : Continuous (fun x : ℝ => ShenWork.Paper2.resolverGradReal p w x) :=
+    resolverGradReal_continuous_of_continuousOn p hcont_on
+  -- chemFluxLifted is continuous on ℝ (product of continuous functions)
+  have hflux_cont : Continuous (chemFluxLifted p w) := by
+    unfold chemFluxLifted
+    -- lift w is not continuous on all of ℝ (jumps at 0,1), so flux is not continuous on all ℝ.
+    -- But it IS ContinuousOn on Icc 0 1 (each factor is).
+    sorry
+  -- Actually: chemFluxLifted p w = lift(w) * resolverGrad / (1+lift(R))^β
+  -- lift(w) has jumps at 0,1 so NOT continuous on ℝ. But on Icc 0 1 it IS.
+  -- Use ContinuousOn.aestronglyMeasurable instead.
+  have hflux_cont_on : ContinuousOn (chemFluxLifted p w) (Set.Icc (0:ℝ) 1) := by
+    sorry
+  have hmeas : AEStronglyMeasurable (chemFluxLifted p w) (intervalMeasure 1) :=
+    hflux_cont_on.aestronglyMeasurable measurableSet_Icc
+  -- Bounded: continuous on compact → bounded
+  have hbdd : ∃ C : ℝ, ∀ y, |chemFluxLifted p w y| ≤ C := by
+    sorry
+  obtain ⟨C, hC⟩ := hbdd
+  exact ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound hmeas hC
 
 
 /-- Resolver gradient is continuous on R for continuous bounded sources.
