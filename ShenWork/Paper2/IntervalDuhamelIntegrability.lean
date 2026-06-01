@@ -9,6 +9,7 @@ import ShenWork.PDE.IntervalGradDuhamelBound
 import ShenWork.PDE.IntervalFullKernelSupBound
 import ShenWork.Paper2.IntervalGradientDuhamelMap
 import ShenWork.Paper2.IntervalResolverWeakBounds
+import ShenWork.PDE.IntervalResolverPositivity
 
 open MeasureTheory Set
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalMeasure)
@@ -341,49 +342,149 @@ theorem logisticLifted_integrable_of_continuous
 
 
 
-/-- For a trajectory with continuous slices, the lifted chemotaxis flux is
-spatially integrable at each time. The flux is a composition of
-continuous functions (w, resolverGradReal, resolverR) — each continuous
-when w is continuous — so the composition is continuous, hence its
-lift is AEStronglyMeasurable, hence integrable (bounded on finite measure). -/
+/-- The resolver VALUE (cosine tsum) is continuous on ℝ for continuous sources.
+Same pattern as `resolverGradReal_continuous_of_continuousOn` but for
+`cos(kπx)` (bounded by 1) — simpler since no kπ factor. -/
+theorem resolverValueReal_continuous_of_continuousOn
+    (p : CM2Params) {w : intervalDomainPoint → ℝ}
+    (hcont : ContinuousOn (intervalDomainLift w) (Set.Icc (0:ℝ) 1)) :
+    Continuous (fun x : ℝ ↦ ∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverCoeff p w k).re *
+        unitIntervalCosineMode k x) := by
+  open ShenWork.PDE ShenWork.IntervalResolverGradientBridge
+      ShenWork.IntervalResolverWeakBounds ShenWork.Paper2 in
+  have hl2 : Summable fun k : ℕ ↦
+      ((intervalNeumannResolverSourceCoeff p w k).re) ^ 2 := by
+    have h := resolverSourceCoeff_re_sq_summable_of_continuousOn p hcont
+    simp only [intervalNeumannResolverSourceCoeff_zero, sub_zero] at h
+    exact h
+  have hw := intervalNeumannResolverWeight_sq_summable p
+  have hmaj : Summable fun k : ℕ ↦
+      (((intervalNeumannResolverSourceCoeff p w k).re) ^ 2 +
+        (intervalNeumannResolverWeight p k) ^ 2) / 2 :=
+    (hl2.add hw).div_const 2
+  refine continuous_tsum (fun k ↦ ?_) hmaj (fun k x ↦ ?_)
+  · exact continuous_const.mul (by unfold unitIntervalCosineMode; fun_prop)
+  · rw [Real.norm_eq_abs, abs_mul]
+    set s := (intervalNeumannResolverSourceCoeff p w k).re
+    set W := intervalNeumannResolverWeight p k
+    have hd : 0 < p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k :=
+      intervalNeumannResolver_denom_pos p k
+    have hWnn : 0 ≤ W := intervalNeumannResolverWeight_nonneg p k
+    have hcos : |unitIntervalCosineMode k x| ≤ 1 := by
+      unfold unitIntervalCosineMode; exact Real.abs_cos_le_one _
+    calc |(intervalNeumannResolverCoeff p w k).re| * |unitIntervalCosineMode k x|
+        = |s| / (p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k) *
+            |unitIntervalCosineMode k x| := by
+          rw [resolverCoeff_re_eq, abs_div, abs_of_pos hd]
+      _ ≤ |s| / (p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k) * 1 :=
+          mul_le_mul_of_nonneg_left hcos (div_nonneg (abs_nonneg _) hd.le)
+      _ = |s| * W := by
+          rw [show W = 1 / (p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k)
+            from rfl]; ring
+      _ ≤ (s ^ 2 + W ^ 2) / 2 := by
+          have h := two_mul_le_add_sq |s| W
+          rw [sq_abs] at h; nlinarith [h]
+
+/-- For a trajectory with continuous nonneg slices, the lifted chemotaxis flux is
+spatially integrable. Uses: resolver value/gradient continuity (cosine/sine tsum),
+resolver positivity (1+R ≥ 1), compactness of [0,1]. -/
 theorem chemFluxLifted_integrable_of_continuous
     (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
     (_hw : ∀ x, |w x| ≤ M) (_hM : 0 ≤ M)
-    (hcont : Continuous w) :
+    (hcont : Continuous w)
+    (hw_nonneg : ∀ x, 0 ≤ w x) :
     Integrable (chemFluxLifted p w) (intervalMeasure 1) := by
-  -- The flux as a function on intervalDomainPoint is continuous:
-  -- chemFluxLifted p w x.1 = lift(w)(x.1) * resolverGradReal(x.1) / (1+lift(R)(x.1))^β
-  -- Each factor is continuous → product/quotient continuous → flux continuous on subtype
-  -- → lift is AEStronglyMeasurable → bounded + finite measure → integrable.
+  open ShenWork.PDE ShenWork.IntervalResolverGradientBridge
+      ShenWork.IntervalResolverWeakBounds ShenWork.Paper2
+      ShenWork.IntervalNeumannFullKernel ShenWork.IntervalResolverPositivity in
+  -- Step 1: ContinuousOn of lift(w) on [0,1]
   have hcont_on : ContinuousOn (intervalDomainLift w) (Set.Icc (0:ℝ) 1) := by
     rw [continuousOn_iff_continuous_restrict]
     have : Set.restrict (Set.Icc (0:ℝ) 1) (intervalDomainLift w) = w := by
       ext ⟨x, hx⟩; simp [Set.restrict, intervalDomainLift, hx]; rfl
     rw [this]; exact hcont
-  -- resolverGradReal is continuous (just proved!)
-  have hgrad_cont : Continuous (fun x : ℝ => ShenWork.Paper2.resolverGradReal p w x) :=
+  -- Step 2: resolverGradReal is Continuous on ℝ
+  have hgrad_cont : Continuous (fun x : ℝ ↦ resolverGradReal p w x) :=
     resolverGradReal_continuous_of_continuousOn p hcont_on
-  -- chemFluxLifted is continuous on ℝ (product of continuous functions)
-  have hflux_cont : Continuous (chemFluxLifted p w) := by
-    unfold chemFluxLifted
-    -- lift w is not continuous on all of ℝ (jumps at 0,1), so flux is not continuous on all ℝ.
-    -- But it IS ContinuousOn on Icc 0 1 (each factor is).
-    sorry
-  -- Actually: chemFluxLifted p w = lift(w) * resolverGrad / (1+lift(R))^β
-  -- lift(w) has jumps at 0,1 so NOT continuous on ℝ. But on Icc 0 1 it IS.
-  -- Use ContinuousOn.aestronglyMeasurable instead.
+  -- Step 3: resolver VALUE tsum is Continuous on ℝ
+  have hval_cont : Continuous (fun x : ℝ ↦ ∑' k : ℕ,
+      (intervalNeumannResolverCoeff p w k).re * unitIntervalCosineMode k x) :=
+    resolverValueReal_continuous_of_continuousOn p hcont_on
+  -- Step 4: R ≥ 0 on the subtype (nonneg source + heat semigroup positivity)
+  have hR_nonneg : ∀ x : intervalDomainPoint, 0 ≤ intervalNeumannResolverR p w x := by
+    -- Construct continuous nonneg extension of source to ℝ
+    have hcont_src : Continuous (fun x : intervalDomainPoint ↦ p.ν * (w x) ^ p.γ) :=
+      continuous_const.mul (hcont.rpow_const (fun x ↦ Or.inr p.hγ.le))
+    set clip : ℝ → intervalDomainPoint := fun x ↦
+      ⟨max 0 (min x 1), le_max_left 0 _, max_le (by norm_num) (min_le_right x 1)⟩
+    have hclip_cont : Continuous clip :=
+      Continuous.subtype_mk (continuous_const.max (continuous_id.min continuous_const)) _
+    set f : ℝ → ℝ := (fun x : intervalDomainPoint ↦ p.ν * (w x) ^ p.γ) ∘ clip
+    have hf_cont : Continuous f := hcont_src.comp hclip_cont
+    have hf_nonneg : ∀ y, 0 ≤ f y := fun y ↦
+      mul_nonneg p.hν.le (Real.rpow_nonneg (hw_nonneg _) _)
+    -- f agrees with source on [0,1] ⇒ same cosine coefficients
+    have hf_coeff : ∀ k, cosineCoeffs f k =
+        (intervalNeumannResolverSourceCoeff p w k).re := by
+      intro k
+      have hsrc_eq : (intervalNeumannResolverSourceCoeff p w k).re =
+          cosineCoeffs (fun x ↦ p.ν * intervalDomainLift w x ^ p.γ) k := by
+        simp [cosineCoeffs, intervalNeumannResolverSourceCoeff, Complex.ofReal_re]
+      rw [hsrc_eq]
+      exact cosineCoeffs_congr_on_Icc (fun x hx ↦ by
+        simp only [f, Function.comp, clip]
+        have hclip_eq : max 0 (min x 1) = x := by
+          rw [min_eq_left hx.2, max_eq_right hx.1]
+        simp only [hclip_eq, intervalDomainLift, dif_pos (Set.mem_Icc.mpr hx)]) k
+    have hâ : Summable (fun k ↦ (cosineCoeffs f k) ^ 2) := by
+      have h := resolverSourceCoeff_re_sq_summable_of_continuousOn p hcont_on
+      simp only [intervalNeumannResolverSourceCoeff_zero, sub_zero] at h
+      exact h.congr (fun k ↦ by rw [hf_coeff])
+    exact fun x ↦ intervalNeumannResolverR_nonneg_of_nonneg_source
+      hf_cont hf_nonneg hf_coeff hâ x
+  -- Step 5: denominator (1 + R)^β > 0
+  have hden_pos : ∀ x : intervalDomainPoint,
+      0 < (1 + intervalNeumannResolverR p w x) ^ p.β :=
+    fun x ↦ Real.rpow_pos_of_pos (by linarith [hR_nonneg x]) p.β
+  -- Step 6: ContinuousOn of the flux on [0,1]
   have hflux_cont_on : ContinuousOn (chemFluxLifted p w) (Set.Icc (0:ℝ) 1) := by
-    sorry
+    rw [continuousOn_iff_continuous_restrict]
+    show Continuous (Set.restrict (Set.Icc (0:ℝ) 1) (chemFluxLifted p w))
+    have heq : Set.restrict (Set.Icc (0:ℝ) 1) (chemFluxLifted p w) =
+        fun x : ↑(Set.Icc (0:ℝ) 1) ↦
+          w x * resolverGradReal p w x.1
+            / (1 + intervalNeumannResolverR p w x) ^ p.β := by
+      ext ⟨x, hx⟩
+      simp only [Set.restrict, chemFluxLifted, intervalDomainLift, dif_pos hx]
+      congr 1
+    rw [heq]
+    refine Continuous.div ?_ ?_ (fun x ↦ ne_of_gt (hden_pos x))
+    · -- numerator: w(x) * resolverGrad(x.1)
+      exact (hcont.comp (continuous_subtype_val.subtype_mk _)).mul
+        (hgrad_cont.comp continuous_subtype_val)
+    · -- denominator: (1 + R(x))^β
+      refine (continuous_const.add ?_).rpow_const (fun x ↦ Or.inr p.hβ)
+      exact hval_cont.comp continuous_subtype_val
   have hmeas : AEStronglyMeasurable (chemFluxLifted p w) (intervalMeasure 1) :=
     hflux_cont_on.aestronglyMeasurable measurableSet_Icc
-  -- Bounded: continuous on compact → bounded
+  -- Step 7: Bounded (ContinuousOn on compact ⇒ bounded; outside [0,1] flux = 0)
   have hbdd : ∃ C : ℝ, ∀ y, |chemFluxLifted p w y| ≤ C := by
-    sorry
+    have hC_bdd : BddAbove ((fun y ↦ ‖chemFluxLifted p w y‖) '' Set.Icc (0:ℝ) 1) :=
+      (isCompact_Icc.image_of_continuousOn (hflux_cont_on.norm)).bddAbove
+    refine ⟨max (sSup ((λ y ↦ ‖chemFluxLifted p w y‖) '' Set.Icc (0:ℝ) 1)) 0, fun y ↦ ?_⟩
+    by_cases hy : y ∈ Set.Icc (0:ℝ) 1
+    · have hmem : ‖chemFluxLifted p w y‖ ∈
+          ((λ y ↦ ‖chemFluxLifted p w y‖) '' Set.Icc (0:ℝ) 1) := ⟨y, hy, rfl⟩
+      have hle := le_csSup hC_bdd hmem
+      rw [Real.norm_eq_abs] at hle
+      exact hle.trans (le_max_left _ _)
+    · simp only [chemFluxLifted, intervalDomainLift, dif_neg hy, zero_mul, zero_div, abs_zero]
+      exact le_max_right _ _
   obtain ⟨C, hC⟩ := hbdd
   exact ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound hmeas hC
-
-
 /-- Resolver gradient is continuous on R for continuous bounded sources.
+
 Uses: resolverSourceCoeff_re_sq_summable_of_continuousOn + resolver_sineSeries_summable
 + continuous_tsum. This is the same proof as in IntervalResolverPositivity (hg_cont)
 but extracted for continuous bounded trajectories (not classical solutions). -/
@@ -443,7 +544,7 @@ theorem resolverGradReal_continuous_of_continuousOn
           rw [sq_abs] at h; nlinarith [h]
 
 
-open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator_hasDerivAt_fst) in
+open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator intervalFullSemigroupOperator_hasDerivAt_fst) in
 /-- Semigroup output is continuous for bounded AEStronglyMeasurable source. -/
 theorem intervalFullSemigroupOperator_continuous_of_bounded
     {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} {M : ℝ}
