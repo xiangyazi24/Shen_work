@@ -7,17 +7,21 @@
 -/
 import ShenWork.PDE.IntervalGradDuhamelBound
 import ShenWork.PDE.IntervalFullKernelSupBound
+import ShenWork.Paper2.IntervalGradientDuhamelMap
 
 open MeasureTheory Set
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalMeasure)
 open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator)
 open ShenWork.IntervalGradDuhamelBound (valueDuhamel_sup_bound gradDuhamel_sup_bound)
+open ShenWork.IntervalGradientDuhamelMap (logisticLifted chemFluxLifted)
 open ShenWork.HeatKernelGradientEstimates (heatGradientLinftyLinftyConstant
   heatGradientLinftyLinftyConstant_nonneg)
 
 noncomputable section
 
 namespace ShenWork.IntervalDuhamelIntegrability
+
+instance : TopologicalSpace intervalDomainPoint := instTopologicalSpaceSubtype
 
 /-- Universal value Duhamel bound: works for ALL bounded sources, regardless
 of measurability. When the integrand is IntervalIntegrable, uses the standard
@@ -66,5 +70,22 @@ theorem gradDuhamel_sup_bound_universal
         (mul_nonneg heatGradientLinftyLinftyConstant_nonneg
           (mul_nonneg (by norm_num : (0:ℝ) ≤ 2) (Real.sqrt_nonneg T)))
         hCq
+
+
+/-- Continuous on compact [0,1] → AEStronglyMeasurable against intervalMeasure. -/
+theorem continuousOn_aestronglyMeasurable_intervalMeasure {f : ℝ → ℝ}
+    (hf : ContinuousOn f (Set.Icc (0:ℝ) 1)) :
+    AEStronglyMeasurable f (intervalMeasure 1) := by
+  exact hf.aestronglyMeasurable measurableSet_Icc
+
+/-- For a trajectory with continuous slices, the lifted logistic source is
+spatially integrable at each time. -/
+theorem logisticLifted_integrable_of_continuous
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
+    (hw : ∀ x, |w x| ≤ M) (hM : 0 ≤ M)
+    (hcont : Continuous w) :
+    Integrable (logisticLifted p w) (intervalMeasure 1) := by
+  sorry
+
 
 end ShenWork.IntervalDuhamelIntegrability
