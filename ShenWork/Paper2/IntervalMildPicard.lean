@@ -366,12 +366,37 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
     (_hu₀_bounded : ∃ B : ℝ, ∀ x, |u₀ x| ≤ B) :
     ∃ T : ℝ, 0 < T ∧ ∃ u : ℝ → intervalDomainPoint → ℝ,
       IntervalMildSolution p T u₀ u := by
-  -- Need to construct MildExistenceData p u₀ from PDE estimates
-  -- T from exists_small_contraction_time
-  -- M from hu₀_bounded (e.g., 2B + 1)
-  -- K from the contraction constant at T
-  -- C₀ from the initial MapsTo correction
-  -- Then: intervalMildSolution_of_data
+  obtain ⟨B, hB⟩ := _hu₀_bounded
+  set M := 2 * max B 1 with hMdef
+  have hM : 0 < M := by positivity
+  have hB_le : ∀ x, |u₀ x| ≤ M / 2 := by
+    intro x; calc |u₀ x| ≤ B := hB x
+      _ ≤ max B 1 := le_max_left B 1
+      _ = M / 2 := by rw [hMdef]; ring
+  -- The Duhamel bounds give constants C_grad, C_Q, C_L depending on M and p.
+  -- For now we sorry the existence of suitable T, K, C₀ satisfying all conditions.
+  -- This is pure PDE-constant instantiation (no new math).
+  suffices h : ∃ T K C₀ : ℝ, 0 < T ∧ K < 1 ∧ 0 ≤ K ∧ 0 ≤ C₀ ∧
+      (∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+        |picardIter p u₀ 0 t x| ≤ M) ∧
+      (∀ (w : ℝ → intervalDomainPoint → ℝ),
+        (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+        ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u₀ w t x| ≤ M) ∧
+      (∀ (u w : ℝ → intervalDomainPoint → ℝ) (d : ℝ),
+        (∀ t, 0 < t → t ≤ T → ∀ x, |u t x| ≤ M) →
+        (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+        (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
+        ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u₀ u t x
+            - intervalGradientDuhamelMap p u₀ w t x| ≤ K * d) ∧
+      (∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+        |picardIter p u₀ 1 t x - picardIter p u₀ 0 t x| ≤ C₀) by
+    obtain ⟨T, K, C₀, hT, hK, hK_nn, hC₀, hbase, hmaps, hcontr, hdiff⟩ := h
+    exact intervalMildSolution_of_data ⟨T, M, K, C₀, hT, hM, hK, hK_nn, hC₀,
+      hbase, hmaps, hcontr, hdiff⟩
+  -- PDE constant instantiation: Duhamel bounds + flux/logistic Lipschitz
+  -- + integrability discharge. All bounded-on-finite-measure, no new math.
   sorry
 
 end ShenWork.IntervalMildPicard
