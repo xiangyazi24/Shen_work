@@ -472,7 +472,7 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
     T := T₀
     M := M
     K := 1 * Real.sqrt T₀ + C_L * T₀
-    C₀ := M
+    C₀ := 2 * M
     hT := hT₀
     hM := hM
     hK := hK_lt
