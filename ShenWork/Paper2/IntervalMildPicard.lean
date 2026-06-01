@@ -911,17 +911,61 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
               exact mul_nonneg hC_L_pos.le hd_nn
           · -- s ∉ (0, T₀]: 0 - 0 = 0
             simp; exact mul_nonneg hC_L_pos.le hd_nn
-        -- By cases: if the time integrands are integrable, use linearity.
-        -- If not, both integrals are 0 by integral_undef.
+        -- Source spatial integrability (logistic of continuous bounded, or zero)
+        have hr_u_int : ∀ s, Integrable (r_u s) (ShenWork.IntervalDomain.intervalMeasure 1) := by
+          intro s; simp only [r_u]; split_ifs with h
+          · exact ShenWork.IntervalDuhamelIntegrability.logisticLifted_integrable_of_continuous
+              p (hu s h.1 h.2) hM.le (huc s h.1 h.2)
+          · exact integrable_zero ℝ ℝ (ShenWork.IntervalDomain.intervalMeasure 1)
+        have hr_w_int : ∀ s, Integrable (r_w s) (ShenWork.IntervalDomain.intervalMeasure 1) := by
+          intro s; simp only [r_w]; split_ifs with h
+          · exact ShenWork.IntervalDuhamelIntegrability.logisticLifted_integrable_of_continuous
+              p (hw s h.1 h.2) hM.le (hwc s h.1 h.2)
+          · exact integrable_zero ℝ ℝ (ShenWork.IntervalDomain.intervalMeasure 1)
+        -- Source sup bounds
+        have hr_u_bdd : ∀ s y, |r_u s y| ≤ C_L_val := by
+          intro s y; simp only [r_u]; split_ifs with h
+          · exact ShenWork.IntervalDomainExistence.intervalLogisticSource_lift_abs_bound
+              p hM (hu s h.1 h.2) y
+          · simp; exact hC_L_val_nn
+        have hr_w_bdd : ∀ s y, |r_w s y| ≤ C_L_val := by
+          intro s y; simp only [r_w]; split_ifs with h
+          · exact ShenWork.IntervalDomainExistence.intervalLogisticSource_lift_abs_bound
+              p hM (hw s h.1 h.2) y
+          · simp; exact hC_L_val_nn
+        have hCLd_nn : 0 ≤ C_L * d := mul_nonneg hC_L_pos.le hd_nn
         by_cases hint_u : IntervalIntegrable
             (fun s => intervalFullSemigroupOperator (t - s) (r_u s) x.1) volume 0 t
         · by_cases hint_w : IntervalIntegrable
               (fun s => intervalFullSemigroupOperator (t - s) (r_w s) x.1) volume 0 t
-          · -- Both integrable: |∫f - ∫g| ≤ ∫|f - g| ≤ t * C_L * d
+          · -- Both integrable: combine + per-slice bound + integrate
+            rw [← intervalIntegral.integral_sub hint_u hint_w]
+            have hptw : ∀ᵐ s ∂(volume.restrict (Set.Icc 0 t)),
+                |intervalFullSemigroupOperator (t - s) (r_u s) x.1
+                  - intervalFullSemigroupOperator (t - s) (r_w s) x.1| ≤ C_L * d := by
+              have hne : ∀ᵐ s ∂volume, s ≠ t := by
+                rw [ae_iff]; simp only [not_not, Set.setOf_eq_eq_singleton]
+                exact Real.volume_singleton
+              refine (ae_restrict_iff' measurableSet_Icc).mpr ?_
+              filter_upwards [hne] with s hs hs_mem
+              have hst : 0 < t - s := sub_pos.mpr (lt_of_le_of_ne hs_mem.2 hs)
+              exact ShenWork.IntervalDuhamelIntegrability.intervalFullSemigroupOperator_diff_Linfty_of_integrable
+                hst (hr_u_int s) (hr_w_int s) hC_L_val_nn (hr_u_bdd s) hC_L_val_nn
+                (hr_w_bdd s) hCLd_nn (hr_diff_bound s) x.1
+            calc |∫ s in (0:ℝ)..t, (intervalFullSemigroupOperator (t - s) (r_u s) x.1
+                    - intervalFullSemigroupOperator (t - s) (r_w s) x.1)|
+                ≤ ∫ s in (0:ℝ)..t, |intervalFullSemigroupOperator (t - s) (r_u s) x.1
+                    - intervalFullSemigroupOperator (t - s) (r_w s) x.1| :=
+                  intervalIntegral.abs_integral_le_integral_abs ht.le
+              _ ≤ ∫ s in (0:ℝ)..t, (C_L * d) :=
+                  intervalIntegral.integral_mono_ae_restrict ht.le
+                    (hint_u.sub hint_w).abs intervalIntegrable_const hptw
+              _ = t * (C_L * d) := by
+                  rw [intervalIntegral.integral_const, sub_zero, smul_eq_mul]
+              _ ≤ T₀ * (C_L * d) := by gcongr
+          · -- w not integrable (should not happen for bounded measurable sources)
             sorry
-          · -- w not integrable: ∫w = 0, |∫u - 0| ≤ T₀ * C_L_val ≤ T₀ * C_L * d (if d ≥ val/C_L)
-            sorry
-        · -- u not integrable: ∫u = 0
+        · -- u not integrable (should not happen for bounded measurable sources)
           sorry
       have hG : |Gu - Gw| ≤ C_grad * (2 * Real.sqrt T₀) * (C_Q_unif * d) := by
         -- Extended flux sources (= original on (0,T₀], = 0 otherwise)
