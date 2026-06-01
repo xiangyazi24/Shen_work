@@ -721,10 +721,31 @@ theorem valueDuhamel_intervalIntegrable_of_joint_measurable
     -- K is continuous in (s,y) for all s (smooth Gaussian kernel)
     -- f is Measurable (hypothesis)
     -- Product of measurable functions is measurable → AEStronglyMeasurable
+    have hK_nn_all : ∀ τ z, 0 ≤ heatKernel τ z :=
+      fun τ z => mul_nonneg (div_nonneg one_pos.le (Real.sqrt_nonneg _)) (Real.exp_pos _).le
     have hK_meas : Measurable (fun p : ℝ × ℝ =>
         intervalNeumannFullKernel (t - p.1) x p.2) := by
       unfold intervalNeumannFullKernel
-      sorry
+      set F : ℤ → ℝ × ℝ → ℝ := fun k p =>
+        heatKernel (t - p.1) (x - p.2 + 2 * ↑k) +
+        heatKernel (t - p.1) (x + p.2 + 2 * ↑k)
+      have hF_meas : ∀ k, Measurable (F k) := fun k =>
+        (by unfold heatKernel; fun_prop :
+          Measurable (fun p : ℝ × ℝ => heatKernel (t - p.1) (x - p.2 + 2 * ↑k))).add
+        (by unfold heatKernel; fun_prop :
+          Measurable (fun p : ℝ × ℝ => heatKernel (t - p.1) (x + p.2 + 2 * ↑k)))
+      have hF_nn : ∀ k p, 0 ≤ F k p := fun k p =>
+        add_nonneg (hK_nn_all _ _) (hK_nn_all _ _)
+      have hE_meas : Measurable (fun p =>
+          ∑' k : ℤ, ENNReal.ofReal (F k p)) :=
+        Measurable.ennreal_tsum (fun k => (hF_meas k).ennreal_ofReal)
+      have hfun_eq : (fun p => ∑' k : ℤ, F k p) =
+          (fun p => (∑' k : ℤ, ENNReal.ofReal (F k p)).toReal) := by
+        funext p
+        rw [ENNReal.tsum_toReal_eq (fun k => ENNReal.ofReal_ne_top)]
+        congr 1; ext k
+        exact (ENNReal.toReal_ofReal (hF_nn k p)).symm
+      rw [hfun_eq]; exact hE_meas.ennreal_toReal
     exact (hK_meas.aestronglyMeasurable.mul hf_meas.aestronglyMeasurable)
   -- Step 2: bounded a.e. by C (L∞ contraction for t - s > 0, which is a.e. on Ioc 0 t)
   have hbdd : ∀ᵐ s ∂(volume.restrict (Set.uIoc 0 t)),
