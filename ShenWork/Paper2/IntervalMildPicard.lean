@@ -495,7 +495,51 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
               _ ≤ M := by linarith)
         (ShenWork.IntervalDuhamelIntegrability.intervalDomainLift_aestronglyMeasurable_of_continuous
           _hu₀_cont)).comp continuous_subtype_val
-    hmapsTo := by sorry  -- needs universal Duhamel bounds + T choice
+    hmapsTo := by
+      -- Strategy: |Φ(u₀,w)(t,x)| = |S(t)u₀ + (-χ₀)·grad_term + val_term|
+      --   ≤ |S(t)u₀| + |χ₀|·|grad_term| + |val_term|
+      --   ≤ M/2 + |χ₀|·C_grad·2√T₀·C_Q + T₀·C_L_val
+      -- For T₀ small enough (from exists_small_contraction_time), this ≤ M.
+      --
+      -- The semigroup term and logistic (value Duhamel) term are fully provable.
+      -- The chemFlux (gradient Duhamel) term requires a concrete uniform bound
+      -- C_Q on |chemFluxLifted p (w s) y| for all s,y when |w s| ≤ M.
+      -- This bound exists (continuous on compact [0,1], zero outside) but is not
+      -- yet extracted as a named constant independent of the classical solution
+      -- framework. The missing piece is:
+      --   ∀ w, (∀ x, |w x| ≤ M) → Continuous w → (∀ x, 0 ≤ w x) →
+      --     ∀ y, |chemFluxLifted p w y| ≤ C_Q(M,p)
+      -- Once this is available, the bound follows from gradDuhamel_sup_bound_universal
+      -- and the T₀-smallness from exists_small_contraction_time (with A = |χ₀|·C_grad·C_Q).
+      intro w hw_bound hw_cont t ht htT x
+      unfold intervalGradientDuhamelMap
+      -- Term 1: |S(t)u₀(x)| ≤ M/2
+      have hterm1 : |intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1| ≤ M / 2 :=
+        ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound ht
+          (show (0:ℝ) ≤ M / 2 from by linarith)
+          (fun y => by
+            unfold intervalDomainLift; split_ifs with hy
+            · exact hB_le ⟨y, hy⟩
+            · simp; linarith) x.1
+      -- Term 3 (value Duhamel): |∫₀ᵗ S(t-s) L(w(s))(x) ds| ≤ T₀ · C_L_val
+      -- where C_L_val = M * (p.a + p.b * M ^ p.α)
+      -- Uses valueDuhamel_sup_bound_universal with Cr = C_L_val.
+      -- Subtlety: hlog_bound requires |w s z| ≤ M for all z, but hw_bound gives
+      -- this only for 0 < s ≤ T₀. The Duhamel integral is over [0,t] ⊆ [0,T₀],
+      -- and valueDuhamel_sup_bound_universal handles non-integrable case (integral=0).
+      -- Term 2 (gradient Duhamel): |(-χ₀)·∫₀ᵗ ∂ₓS(t-s) Q(w(s))(x) ds|
+      -- ≤ |χ₀| · C_grad · 2√T₀ · C_Q
+      -- Uses gradDuhamel_sup_bound_universal once C_Q is available.
+      -- Combining: M/2 + |χ₀|·C_grad·2√T₀·C_Q + T₀·C_L_val ≤ M
+      -- requires choosing T₀ so the correction fits in M/2.
+      -- The current T₀ from exists_small_contraction_time(A=1, B=C_L) ensures
+      -- 1·√T₀ + C_L·T₀ < 1, which controls the contraction but NOT directly
+      -- the mapsTo bound. A separate T₀ choice (or proving the correction ≤ M/2
+      -- from the existing T₀ constraints) is needed.
+      --
+      -- BLOCKER: chemFluxLifted uniform sup bound C_Q(M,p) not yet extracted
+      -- from compactness argument in a form usable here.
+      sorry
     hcont_preserved := by
       -- Φ(u₀, w)(t, x) is a sum of semigroup terms, each continuous by
       -- intervalFullSemigroupOperator_continuous_of_bounded.
