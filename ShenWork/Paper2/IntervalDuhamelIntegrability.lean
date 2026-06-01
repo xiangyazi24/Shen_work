@@ -644,4 +644,48 @@ theorem chemFluxLifted_bounded_of_continuous
     exact le_max_right _ _
 
 
+
+
+open ShenWork.IntervalNeumannFullKernel in
+/-- **Kernel product integrability.** If `f` is integrable and bounded by `M`,
+and the kernel `K(τ,x,·)` is nonneg and integrable (both proved for τ > 0),
+then `K(τ,x,·) * f(·)` is integrable against `intervalMeasure 1`. -/
+theorem kernel_mul_integrable_of_source_integrable
+    {τ : ℝ} (hτ : 0 < τ) (x : ℝ) {f : ℝ → ℝ}
+    (hf_int : Integrable f (intervalMeasure 1))
+    {M : ℝ} (hM : 0 ≤ M) (hf_bdd : ∀ y, |f y| ≤ M) :
+    Integrable (fun y => intervalNeumannFullKernel τ x y * f y)
+      (intervalMeasure 1) := by
+  have hK_int := intervalNeumannFullKernel_integrable hτ x
+  have hK_nn := fun y => intervalNeumannFullKernel_nonneg hτ x y
+  refine Integrable.mono (hK_int.const_mul M)
+    (hK_int.aestronglyMeasurable.mul hf_int.aestronglyMeasurable)
+    (Filter.Eventually.of_forall fun y => ?_)
+  simp only [Real.norm_eq_abs, abs_mul, abs_of_nonneg (hK_nn y), abs_of_nonneg hM]
+  calc intervalNeumannFullKernel τ x y * |f y|
+      ≤ intervalNeumannFullKernel τ x y * M :=
+        mul_le_mul_of_nonneg_left (hf_bdd y) (hK_nn y)
+    _ = M * intervalNeumannFullKernel τ x y := mul_comm _ _
+
+/-- **Per-slice semigroup difference L∞ bound.** For τ > 0, if f and g are
+integrable and bounded, then |S(τ)(f) x - S(τ)(g) x| ≤ sup|f - g|.
+Uses semigroup linearity (kernel integrability) + L∞ contraction. -/
+theorem intervalFullSemigroupOperator_diff_Linfty_of_integrable
+    {τ : ℝ} (hτ : 0 < τ) {f g : ℝ → ℝ}
+    (hf_int : Integrable f (intervalMeasure 1))
+    (hg_int : Integrable g (intervalMeasure 1))
+    {Mf : ℝ} (hMf : 0 ≤ Mf) (hf_bdd : ∀ y, |f y| ≤ Mf)
+    {Mg : ℝ} (hMg : 0 ≤ Mg) (hg_bdd : ∀ y, |g y| ≤ Mg)
+    {D : ℝ} (hD : 0 ≤ D) (hdiff : ∀ y, |f y - g y| ≤ D) (x : ℝ) :
+    |intervalFullSemigroupOperator τ f x
+      - intervalFullSemigroupOperator τ g x| ≤ D := by
+  have hKf := kernel_mul_integrable_of_source_integrable hτ x hf_int hMf hf_bdd
+  have hKg := kernel_mul_integrable_of_source_integrable hτ x hg_int hMg hg_bdd
+  calc |intervalFullSemigroupOperator τ f x - intervalFullSemigroupOperator τ g x|
+      = |intervalFullSemigroupOperator τ (fun y => f y - g y) x| :=
+        congr_arg abs (ShenWork.IntervalGradDuhamelBound.intervalFullSemigroupOperator_sub
+          hKf hKg).symm
+    _ ≤ D := ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound
+        hτ hD hdiff x
+
 end ShenWork.IntervalDuhamelIntegrability
