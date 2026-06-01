@@ -704,6 +704,12 @@ theorem valueDuhamel_intervalIntegrable_of_joint_measurable
   have hmeas : AEStronglyMeasurable
       (fun s => intervalFullSemigroupOperator (t - s) (f s) x)
       (volume.restrict (Set.uIoc 0 t)) := by
+    -- Route: S(t-s)(f s) x = ∫ y, K(t-s,x,y) * f(s,y) d(intervalMeasure 1)
+    -- AEStronglyMeasurable.integral_prod_right' on (s,y) ↦ K(t-s,x,y) * f(s,y)
+    -- gives AEStronglyMeasurable of the parametric integral.
+    -- K is smooth hence measurable; f is measurable by hypothesis;
+    -- product K*f is measurable; integral_prod_right' gives the result.
+    -- Needs: unfold S to ∫ K*f, apply integral_prod_right', refold.
     sorry
   -- Step 2: bounded a.e. by C (L∞ contraction for t - s > 0, which is a.e. on Ioc 0 t)
   have hbdd : ∀ᵐ s ∂(volume.restrict (Set.uIoc 0 t)),
