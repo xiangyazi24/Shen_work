@@ -678,10 +678,33 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
         intro s y; simp only [r_grad]
         split_ifs with h
         · -- |chemFluxLifted p (w s) y| ≤ C_Q_unif = M * C_RG
-          -- Uses: |lift(w)| ≤ M, |resolverGrad| ≤ C_RG, (1+R)^β ≥ 1
-          -- For y outside [0,1]: lift = 0 → flux = 0.
-          -- For y in [0,1]: apply resolverGrad_sup_le_of_bounded.
-          sorry
+          unfold chemFluxLifted
+          by_cases hy : y ∈ Set.Icc (0:ℝ) 1
+          · -- y in [0,1]: bound each factor
+            have hw_s := hw_bound s h.1 h.2
+            have hw_nn_s := hw_nonneg s h.1 h.2
+            have hw_cont_s := hw_cont s h.1 h.2
+            have hcont_on : ContinuousOn (intervalDomainLift (w s)) (Set.Icc (0:ℝ) 1) := by
+              rw [continuousOn_iff_continuous_restrict]
+              have : Set.restrict (Set.Icc (0:ℝ) 1) (intervalDomainLift (w s)) = w s := by
+                ext ⟨x, hx⟩; simp [Set.restrict, intervalDomainLift, hx]; rfl
+              rw [this]; exact hw_cont_s
+            have hlb : ∀ x ∈ Set.Icc (0:ℝ) 1, 0 ≤ intervalDomainLift (w s) x := by
+              intro x hx; simp [intervalDomainLift, hx]; exact hw_nn_s ⟨x, hx⟩
+            have hub : ∀ x ∈ Set.Icc (0:ℝ) 1, intervalDomainLift (w s) x ≤ M := by
+              intro x hx; simp [intervalDomainLift, hx]
+              exact (abs_le.mp (hw_s ⟨x, hx⟩)).2
+            -- |resolverGrad| ≤ C_RG
+            have hgrad := ShenWork.IntervalResolverWeakBounds.resolverGrad_sup_le_of_bounded
+              p hcont_on hlb hub hy
+            -- |lift w| ≤ M
+            have hlift : |intervalDomainLift (w s) y| ≤ M := by
+              simp [intervalDomainLift, hy]; exact hw_s ⟨y, hy⟩
+            -- (1+R)^β ≥ 1: sorry (needs R ≥ 0 → 1+R ≥ 1 → (1+R)^β ≥ 1)
+            sorry
+          · -- y outside [0,1]: lift = 0
+            simp [intervalDomainLift, hy, zero_mul, zero_div, abs_zero]
+            exact hC_Q_unif_nn
         · simp; exact hC_Q_unif_nn
       -- Integral equality for gradient term
       have hgrad_eq : (∫ s in (0:ℝ)..t,
