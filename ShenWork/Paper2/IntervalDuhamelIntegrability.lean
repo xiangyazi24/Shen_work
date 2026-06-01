@@ -704,13 +704,26 @@ theorem valueDuhamel_intervalIntegrable_of_joint_measurable
   have hmeas : AEStronglyMeasurable
       (fun s => intervalFullSemigroupOperator (t - s) (f s) x)
       (volume.restrict (Set.uIoc 0 t)) := by
-    -- Route: S(t-s)(f s) x = ∫ y, K(t-s,x,y) * f(s,y) d(intervalMeasure 1)
-    -- AEStronglyMeasurable.integral_prod_right' on (s,y) ↦ K(t-s,x,y) * f(s,y)
-    -- gives AEStronglyMeasurable of the parametric integral.
-    -- K is smooth hence measurable; f is measurable by hypothesis;
-    -- product K*f is measurable; integral_prod_right' gives the result.
-    -- Needs: unfold S to ∫ K*f, apply integral_prod_right', refold.
-    sorry
+    -- S(t-s)(f s) x = ∫ y, K(t-s,x,y) * f(s,y) d(intervalMeasure 1)
+    -- by definition of intervalFullSemigroupOperator
+    have hfun_eq : (fun s => intervalFullSemigroupOperator (t - s) (f s) x)
+        = (fun s => ∫ y, intervalNeumannFullKernel (t - s) x y * f s y
+            ∂(intervalMeasure 1)) := by
+      ext s; rfl
+    rw [hfun_eq]
+    -- Apply AEStronglyMeasurable.integral_prod_right'
+    -- Need: AEStronglyMeasurable (uncurry g) on product measure
+    -- where g(s,y) = K(t-s,x,y) * f(s,y)
+    refine (MeasureTheory.AEStronglyMeasurable.integral_prod_right'
+      (f := fun p : ℝ × ℝ => intervalNeumannFullKernel (t - p.1) x p.2 * f p.1 p.2)
+      ?_).mono_measure (Measure.restrict_mono (Set.subset_univ _) le_rfl)
+    -- Prove: AEStronglyMeasurable on volume.prod (intervalMeasure 1)
+    -- K is continuous in (s,y) for all s (smooth Gaussian kernel)
+    -- f is Measurable (hypothesis)
+    -- Product of measurable functions is measurable → AEStronglyMeasurable
+    exact ((sorry : Measurable (fun p : ℝ × ℝ =>
+      intervalNeumannFullKernel (t - p.1) x p.2)).aestronglyMeasurable.mul
+        (hf_meas.aestronglyMeasurable))
   -- Step 2: bounded a.e. by C (L∞ contraction for t - s > 0, which is a.e. on Ioc 0 t)
   have hbdd : ∀ᵐ s ∂(volume.restrict (Set.uIoc 0 t)),
       ‖intervalFullSemigroupOperator (t - s) (f s) x‖ ≤ C := by
