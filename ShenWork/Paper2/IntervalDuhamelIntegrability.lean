@@ -555,4 +555,15 @@ theorem intervalFullSemigroupOperator_continuous_of_bounded
     (intervalFullSemigroupOperator_hasDerivAt_fst ht hf_meas hf x).continuousAt
 
 
+/-- The chemotaxis flux has a uniform sup bound for continuous bounded nonneg sources.
+This extracts the compactness argument from chemFluxLifted_integrable_of_continuous. -/
+theorem chemFluxLifted_bounded_of_continuous
+    (p : CM2Params) {w : intervalDomainPoint -> Real} {M : Real}
+    (hw : forall x, |w x| <= M) (hM : 0 <= M)
+    (hcont : Continuous w) (hw_nonneg : forall x, 0 <= w x) :
+    exists C_Q : Real, 0 <= C_Q /\ forall y, |chemFluxLifted p w y| <= C_Q := by
+  have hint := chemFluxLifted_integrable_of_continuous p hw hM hcont hw_nonneg
+  sorry
+
+
 end ShenWork.IntervalDuhamelIntegrability
