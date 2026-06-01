@@ -458,28 +458,23 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
               · exact hB_le ⟨y, hy⟩
               · simp; linarith
             _ ≤ M := by linarith) x.1
-  -- Construct MildExistenceData.
-  -- The integrability chain (HasContinuousSlices → AEStronglyMeasurable → Integrable)
-  -- is proved in IntervalDuhamelIntegrability.lean.
-  -- Remaining fields need PDE-specific constants.
-  --
-  -- For now, sorry the entire MildExistenceData construction.
-  -- Each field has a clear proof route:
-  -- - hbase_ball: PROVED (above)
-  -- - hbase_cont: semigroup smoothing (sorry — needs contDiffOn → Continuous)
-  -- - hmapsTo: universal Duhamel bounds + flux/logistic sup bounds
-  -- - hcont_preserved: semigroup maps bounded → C² (sorry — same as hbase_cont)
-  -- - hcontr: universal Duhamel diff bounds + flux/logistic Lipschitz
-  -- - hbase_diff: bound on first Picard step (from hmapsTo with w = S(t)u₀)
-  --
-  -- The key integrability chain is now proved:
-  -- - intervalDomainLift_aestronglyMeasurable_of_continuous (0 sorry)
-  -- - logisticLifted_integrable_of_continuous (0 sorry)
-  -- - valueDuhamel_sup_bound_universal (0 sorry)
-  --
-  -- Unblocked: value Duhamel in hmapsTo/hcontr.
-  -- Still blocked: gradient Duhamel (needs chemFluxLifted integrability — same chain applies).
-  -- Still blocked: hbase_cont/hcont_preserved (semigroup smoothing for general bounded input).
-  sorry
+  -- Construct MildExistenceData with explicit per-field sorry.
+  refine intervalMildSolution_of_data {
+    T := 1
+    M := M
+    K := 1/2
+    C₀ := M
+    hT := by norm_num
+    hM := hM
+    hK := by norm_num
+    hK_nn := by norm_num
+    hC₀ := by linarith
+    hbase_ball := hbase_ball 1
+    hbase_cont := by sorry  -- semigroup smoothing (kernel↔spectral bridge)
+    hmapsTo := by sorry  -- Duhamel bounds + flux/logistic sup
+    hcont_preserved := by sorry  -- Φ preserves continuity (semigroup smoothing)
+    hcontr := by sorry  -- contraction (Duhamel diff bounds)
+    hbase_diff := by sorry  -- initial step bound
+  }
 
 end ShenWork.IntervalMildPicard
