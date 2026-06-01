@@ -688,4 +688,16 @@ theorem intervalFullSemigroupOperator_diff_Linfty_of_integrable
     _ ≤ D := ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound
         hτ hD hdiff x
 
+/-- Semigroup of bounded jointly-measurable source is IntervalIntegrable.
+Given `Measurable (fun p : ℝ × ℝ => f p.1 p.2)` (joint measurability of source)
+and `∀ s y, |f s y| ≤ C` (uniform bound), the time integrand
+`s ↦ S(t-s)(f(s)) x` is IntervalIntegrable on `[0, t]`. -/
+theorem valueDuhamel_intervalIntegrable_of_joint_measurable
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ → ℝ}
+    (hf_meas : Measurable (Function.uncurry f))
+    {C : ℝ} (hC : 0 ≤ C) (hf_bdd : ∀ s y, |f s y| ≤ C) (x : ℝ) :
+    IntervalIntegrable
+      (fun s => intervalFullSemigroupOperator (t - s) (f s) x) volume 0 t := by
+  sorry
+
 end ShenWork.IntervalDuhamelIntegrability
