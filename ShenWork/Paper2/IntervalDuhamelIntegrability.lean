@@ -92,10 +92,8 @@ theorem intervalDomainLift_aestronglyMeasurable_of_continuous
   have hcont_on : ContinuousOn (fun y : ℝ => if hy : y ∈ Set.Icc (0:ℝ) 1 then f ⟨y, hy⟩ else 0)
       (Set.Icc (0:ℝ) 1) := by
     intro x hx
-    simp only [ContinuousWithinAt]
-    have heq : ∀ᶠ y in nhdsWithin x (Set.Icc (0:ℝ) 1),
-        (if hy : y ∈ Set.Icc (0:ℝ) 1 then f ⟨y, hy⟩ else 0) = f ⟨y, sorry⟩ := by
-      exact Filter.eventually_of_mem (self_mem_nhdsWithin) (fun y hy => by simp [hy])
+    rw [show (fun y : ℝ => if hy : y ∈ Set.Icc (0:ℝ) 1 then f ⟨y, hy⟩ else 0)
+      = Set.piecewise (Set.Icc (0:ℝ) 1) (fun y => f ⟨y, sorry⟩) 0 from by ext y; simp [Set.piecewise]; split_ifs <;> rfl]
     sorry
   exact hcont_on.aestronglyMeasurable measurableSet_Icc
 
