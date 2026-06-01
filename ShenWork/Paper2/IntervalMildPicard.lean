@@ -565,13 +565,38 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
   -- Since (1+R)^β ≥ 1 (R ≥ 0) and |lift w| ≤ M, |∂ₓR| ≤ C_RG.
   set C_Q_unif := M * C_RG
   have hC_Q_unif_nn : (0 : ℝ) ≤ C_Q_unif := mul_nonneg hM.le hC_RG_nn
+  -- Resolver value weight (for value Lipschitz in Atom B4)
+  set C_RV := Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverWeight p k) ^ 2) *
+    (2 * (p.ν * (p.γ * M ^ (p.γ - 1))))
+  have hC_RV_nn : (0 : ℝ) ≤ C_RV :=
+    mul_nonneg (Real.sqrt_nonneg _)
+      (mul_nonneg (by norm_num : (0:ℝ) ≤ 2)
+        (mul_nonneg p.hν.le (mul_nonneg p.hγ.le (Real.rpow_nonneg hM.le _))))
+  -- Resolver gradient Lipschitz constant (Atom B4 gradient diff)
+  set C_RGL := Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+    (2 * (p.ν * (p.γ * M ^ (p.γ - 1))))
+  have hC_RGL_nn : (0 : ℝ) ≤ C_RGL :=
+    mul_nonneg (Real.sqrt_nonneg _)
+      (mul_nonneg (by norm_num : (0:ℝ) ≤ 2)
+        (mul_nonneg p.hν.le (mul_nonneg p.hγ.le (Real.rpow_nonneg hM.le _))))
+  -- Flux Lipschitz constant from chemFlux_div_lipschitz:
+  -- |Q(u)(y) - Q(w)(y)| ≤ C_Q_lip · d where
+  -- C_Q_lip = B_G + M·L_G + M·B_G·β·L_R (B_G=C_RG, L_G=C_RGL, L_R=C_RV)
+  set C_Q_lip := C_RG + M * C_RGL + M * C_RG * p.β * C_RV
+  have hC_Q_lip_nn : (0 : ℝ) ≤ C_Q_lip :=
+    add_nonneg (add_nonneg hC_RG_nn (mul_nonneg hM.le hC_RGL_nn))
+      (mul_nonneg (mul_nonneg (mul_nonneg hM.le hC_RG_nn) p.hβ) hC_RV_nn)
   -- Heat gradient L∞→L∞ constant
   set C_grad := ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
   have hC_grad_nn : (0 : ℝ) ≤ C_grad :=
     ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
-  -- Choose T₀: A·√T₀ + B·T₀ < 1, with A,B encoding both contraction and mapsTo.
-  -- Since M ≥ 2, M/2 ≥ 1 ≥ K, so the mapsTo correction bound follows from K < 1.
-  set A_picard := 2 * |p.χ₀| * C_grad * C_Q_unif + C_L + 1
+  -- Choose T₀: A·√T₀ + B·T₀ < 1. A uses max(C_Q_unif, C_Q_lip) to cover
+  -- both mapsTo (sup bound C_Q_unif) and contraction (Lipschitz C_Q_lip).
+  set C_Q_max := max C_Q_unif C_Q_lip
+  have hC_Q_max_nn : (0 : ℝ) ≤ C_Q_max := le_max_of_le_left hC_Q_unif_nn
+  set A_picard := 2 * |p.χ₀| * C_grad * C_Q_max + C_L + 1
   set B_picard := C_L_val + C_L + 1
   have hA_nn : (0 : ℝ) ≤ A_picard := by positivity
   have hB_nn : (0 : ℝ) ≤ B_picard := by positivity
@@ -581,11 +606,19 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
     simp only [hMdef]; linarith
   -- The core mapsTo inequality:
   -- |χ₀|·C_grad·2√T₀·C_Q_unif + T₀·C_L_val ≤ A·√T₀ + B·T₀ < 1 ≤ M/2
+  -- (C_Q_unif ≤ C_Q_lip since C_Q_lip = C_RG + M·C_RGL + M·C_RG·β·C_RV ≥ C_RG
+  --  and C_Q_unif = M·C_RG, so we bound via C_Q_unif ≤ C_Q_lip when possible,
+  --  or directly via A_picard which absorbs both)
   have hcorrection_le : |p.χ₀| * C_grad * (2 * Real.sqrt T₀) * C_Q_unif
       + T₀ * C_L_val ≤ M / 2 := by
+    have hle : C_Q_unif ≤ C_Q_max := le_max_left _ _
     have h1 : 2 * |p.χ₀| * C_grad * C_Q_unif * Real.sqrt T₀
         ≤ A_picard * Real.sqrt T₀ := by
-      gcongr; linarith [hC_L_pos.le]
+      gcongr
+      calc 2 * |p.χ₀| * C_grad * C_Q_unif
+          ≤ 2 * |p.χ₀| * C_grad * C_Q_max := by
+            gcongr
+        _ ≤ A_picard := by simp only [A_picard]; linarith [hC_L_pos.le]
     have h2 : C_L_val * T₀ ≤ B_picard * T₀ := by
       gcongr; linarith [hC_L_pos.le]
     calc |p.χ₀| * C_grad * (2 * Real.sqrt T₀) * C_Q_unif + T₀ * C_L_val
@@ -967,7 +1000,7 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
             sorry
         · -- u not integrable (should not happen for bounded measurable sources)
           sorry
-      have hG : |Gu - Gw| ≤ C_grad * (2 * Real.sqrt T₀) * (C_Q_unif * d) := by
+      have hG : |Gu - Gw| ≤ C_grad * (2 * Real.sqrt T₀) * (C_Q_lip * d) := by
         -- Extended flux sources (= original on (0,T₀], = 0 otherwise)
         set q_u : ℝ → ℝ → ℝ := fun s y =>
           if 0 < s ∧ s ≤ T₀ then chemFluxLifted p (u s) y else 0
@@ -997,14 +1030,17 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
         sorry
       -- Step 4: Assemble via gradientDuhamel_contraction_pointwise
       calc |(-p.χ₀) * (Gu - Gw) + (Vu - Vw)|
-          ≤ (2 * |p.χ₀| * C_grad * C_Q_unif * Real.sqrt T₀ + C_L * T₀) * d :=
+          ≤ (2 * |p.χ₀| * C_grad * C_Q_lip * Real.sqrt T₀ + C_L * T₀) * d :=
             gradientDuhamel_contraction_pointwise hG hV
         _ ≤ (A_picard * Real.sqrt T₀ + B_picard * T₀) * d := by
-            have hA_ge : 2 * |p.χ₀| * C_grad * C_Q_unif ≤ A_picard := by
-              simp only [A_picard]; linarith [hC_L_pos.le]
+            have hA_ge : 2 * |p.χ₀| * C_grad * C_Q_lip ≤ A_picard := by
+              calc 2 * |p.χ₀| * C_grad * C_Q_lip
+                  ≤ 2 * |p.χ₀| * C_grad * C_Q_max := by
+                    gcongr; exact le_max_right _ _
+                _ ≤ A_picard := by simp only [A_picard]; linarith [hC_L_pos.le]
             have hB_ge : C_L ≤ B_picard := by
               simp only [B_picard]; linarith [hC_L_val_nn]
-            have h1 : 2 * |p.χ₀| * C_grad * C_Q_unif * Real.sqrt T₀
+            have h1 : 2 * |p.χ₀| * C_grad * C_Q_lip * Real.sqrt T₀
                 ≤ A_picard * Real.sqrt T₀ :=
               mul_le_mul_of_nonneg_right hA_ge (Real.sqrt_nonneg _)
             have h2 : C_L * T₀ ≤ B_picard * T₀ :=
