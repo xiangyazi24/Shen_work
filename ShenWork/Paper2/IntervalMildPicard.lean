@@ -473,11 +473,20 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
     hC₀ := by linarith
     hbase_ball := hbase_ball 1
     hbase_cont := by
-      -- PROOF ROUTE: intervalFullSemigroupOperator_continuous_of_bounded (proved, 0 sorry)
-      -- + intervalDomainLift_aestronglyMeasurable_of_continuous (proved, 0 sorry)
-      -- + continuous_subtype_val composition
-      -- Blocked by: picardIter recursion not reducing definitionally
-      sorry
+      intro t ht _htT
+      show Continuous (fun x : intervalDomainPoint =>
+        intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1)
+      exact (ShenWork.IntervalDuhamelIntegrability.intervalFullSemigroupOperator_continuous_of_bounded
+        ht (by linarith : (0:ℝ) ≤ M)
+        (fun y => by
+          calc |intervalDomainLift u₀ y|
+              ≤ M / 2 := by
+                unfold intervalDomainLift; split_ifs with hy
+                · exact hB_le ⟨y, hy⟩
+                · simp; linarith
+              _ ≤ M := by linarith)
+        (ShenWork.IntervalDuhamelIntegrability.intervalDomainLift_aestronglyMeasurable_of_continuous
+          _hu₀_cont)).comp continuous_subtype_val
     hmapsTo := by sorry  -- Duhamel bounds + flux/logistic sup
     hcont_preserved := by sorry  -- Φ preserves continuity (semigroup smoothing)
     hcontr := by sorry  -- contraction (Duhamel diff bounds)
