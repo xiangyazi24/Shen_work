@@ -653,10 +653,8 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
         · -- 0 < s ∧ s ≤ T₀: logistic source bounded
           -- Uses: |w s x| ≤ M and |x·(a-b·x^α)| ≤ M·(a+b·M^α) on [-M,M]
           have hws := hw_bound s h.1 h.2
-          -- sorry: the logistic source sup bound is algebraic (proved in
-          -- IntervalLogisticLipschitz as part of the Lipschitz proof);
-          -- extracting it as a standalone bound is routine but verbose.
-          sorry
+          exact ShenWork.IntervalDomainExistence.intervalLogisticSource_lift_abs_bound p hM
+            (fun x => hws x) y
         · simp; exact hC_L_val_nn
       -- Integral equality: original = extended (agree on (0,t] ⊃ Ι 0 t)
       have hval_eq : (∫ s in (0:ℝ)..t,
