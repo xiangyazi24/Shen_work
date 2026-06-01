@@ -45,6 +45,11 @@ instance : TopologicalSpace intervalDomainPoint :=
 def HasContinuousSlices (T : ℝ) (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
   ∀ t, 0 < t → t ≤ T → Continuous (u t)
 
+/-- A trajectory is jointly measurable: (s, x) ↦ u(s)(x) is measurable as a map ℝ × ℝ → ℝ
+    (where the spatial argument is the underlying real of the subtype). -/
+def HasJointMeasurability (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
+  Measurable (fun p : ℝ × ℝ => intervalDomainLift (u p.1) p.2)
+
 /-! ## Picard iteration -/
 
 /-- The Picard iteration: u₀(t,x) = S(t)u₀(x), u_{n+1} = Φ(u₀, u_n). -/
@@ -240,6 +245,8 @@ theorem picardLimit_is_mildSolution (p : CM2Params) (u₀ : intervalDomainPoint 
       (∀ t, 0 < t → t ≤ T → ∀ x, 0 ≤ w t x) →
       HasContinuousSlices T u →
       HasContinuousSlices T w →
+      HasJointMeasurability u →
+      HasJointMeasurability w →
       (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
       ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
         |intervalGradientDuhamelMap p u₀ u t x
@@ -290,6 +297,8 @@ theorem picardLimit_is_mildSolution (p : CM2Params) (u₀ : intervalDomainPoint 
               (fun s hs hsT y => hball_nn n s hs hsT y)
               hcont_limit
               (hcont_iterates n)
+              (sorry : HasJointMeasurability (picardLimit p u₀ T))
+              (sorry : HasJointMeasurability (picardIter p u₀ n))
               (fun s hs hsT y => by
                 rw [abs_sub_comm]
                 exact htail n s hs hsT y)
@@ -344,6 +353,8 @@ theorem intervalMildSolution_of_bounds (p : CM2Params)
       (∀ t, 0 < t → t ≤ T → ∀ x, 0 ≤ w t x) →
       HasContinuousSlices T u →
       HasContinuousSlices T w →
+      HasJointMeasurability u →
+      HasJointMeasurability w →
       (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
       ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
         |intervalGradientDuhamelMap p u₀ u t x
@@ -398,6 +409,7 @@ theorem picardIter_geometric (p : CM2Params) (u₀ : intervalDomainPoint → ℝ
     (hball_nn : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
       0 ≤ picardIter p u₀ n t x)
     (hcont_iterates : ∀ n, HasContinuousSlices T (picardIter p u₀ n))
+    (hmeas_iterates : ∀ n, HasJointMeasurability (picardIter p u₀ n))
     (hcontr : ∀ (u w : ℝ → intervalDomainPoint → ℝ) (d : ℝ),
       (∀ t, 0 < t → t ≤ T → ∀ x, |u t x| ≤ M) →
       (∀ t, 0 < t → t ≤ T → ∀ x, 0 ≤ u t x) →
@@ -405,6 +417,8 @@ theorem picardIter_geometric (p : CM2Params) (u₀ : intervalDomainPoint → ℝ
       (∀ t, 0 < t → t ≤ T → ∀ x, 0 ≤ w t x) →
       HasContinuousSlices T u →
       HasContinuousSlices T w →
+      HasJointMeasurability u →
+      HasJointMeasurability w →
       (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
       ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
         |intervalGradientDuhamelMap p u₀ u t x
@@ -425,7 +439,8 @@ theorem picardIter_geometric (p : CM2Params) (u₀ : intervalDomainPoint → ℝ
       _ ≤ K * (K ^ n * C₀) :=
           hcontr _ _ _ (hball (n + 1)) (hball_nn (n + 1))
             (hball n) (hball_nn n)
-            (hcont_iterates (n + 1)) (hcont_iterates n) ih t ht htT x
+            (hcont_iterates (n + 1)) (hcont_iterates n)
+            (hmeas_iterates (n + 1)) (hmeas_iterates n) ih t ht htT x
       _ = K ^ (n + 1) * C₀ := by ring
 
 /-- All the data needed for mild existence via Picard iteration. -/
@@ -466,7 +481,7 @@ structure MildExistenceData (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
     (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
     HasContinuousSlices T w →
     HasContinuousSlices T (fun t x => intervalGradientDuhamelMap p u₀ w t x)
-  -- Contraction (for continuous nonneg trajectories)
+  -- Contraction (for continuous nonneg jointly measurable trajectories)
   hcontr : ∀ (u w : ℝ → intervalDomainPoint → ℝ) (d : ℝ),
     (∀ t, 0 < t → t ≤ T → ∀ x, |u t x| ≤ M) →
     (∀ t, 0 < t → t ≤ T → ∀ x, 0 ≤ u t x) →
@@ -474,6 +489,8 @@ structure MildExistenceData (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
     (∀ t, 0 < t → t ≤ T → ∀ x, 0 ≤ w t x) →
     HasContinuousSlices T u →
     HasContinuousSlices T w →
+    HasJointMeasurability u →
+    HasJointMeasurability w →
     (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
     ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
       |intervalGradientDuhamelMap p u₀ u t x
@@ -481,6 +498,11 @@ structure MildExistenceData (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   -- Initial difference bounded
   hbase_diff : ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
     |picardIter p u₀ 1 t x - picardIter p u₀ 0 t x| ≤ C₀
+  -- Joint measurability of the base iterate
+  hbase_meas : HasJointMeasurability (picardIter p u₀ 0)
+  -- Φ preserves joint measurability
+  hmeas_preserved : ∀ w, HasJointMeasurability w →
+    HasJointMeasurability (fun t x => intervalGradientDuhamelMap p u₀ w t x)
 
 /-- Given MildExistenceData, mild solution exists (0 sorry). -/
 theorem intervalMildSolution_of_data {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
@@ -492,8 +514,12 @@ theorem intervalMildSolution_of_data {p : CM2Params} {u₀ : intervalDomainPoint
   have hball := fun n => (hball_cont n).1
   have hball_nn := fun n => (hball_cont n).2.1
   have hcont_iterates := fun n => (hball_cont n).2.2
+  have hmeas_iterates : ∀ n, HasJointMeasurability (picardIter p u₀ n) := by
+    intro n; induction n with
+    | zero => exact D.hbase_meas
+    | succ n ih => exact D.hmeas_preserved _ ih
   have hgeom := picardIter_geometric p u₀ D.hK_nn hball hball_nn
-    hcont_iterates D.hcontr D.hC₀ D.hbase_diff
+    hcont_iterates hmeas_iterates D.hcontr D.hC₀ D.hbase_diff
   have hcont_limit := picardLimit_hasContinuousSlices p u₀ D.hT D.hK D.hK_nn D.hC₀
     (fun n => hgeom n) hcont_iterates
   exact ⟨D.T, D.hT, picardLimit p u₀ D.T,
@@ -879,7 +905,7 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
       intro w _hw_bound _hw_cont t ht _htT
       sorry
     hcontr := by
-      intro u w d hu hu_nn hw hw_nn huc hwc hd t ht htT x
+      intro u w d hu hu_nn hw hw_nn huc hwc hum hwm hd t ht htT x
       -- Step 1: Unfold Φ and cancel S(t)u₀
       simp only [intervalGradientDuhamelMap]
       set Gu := ∫ s in (0:ℝ)..t,
@@ -998,11 +1024,15 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
                   rw [intervalIntegral.integral_const, sub_zero, smul_eq_mul]
               _ ≤ T₀ * (C_L * d) := by gcongr
           · -- w not integrable: derive contradiction from joint measurability
+            -- r_w s y = if 0 < s ∧ s ≤ T₀ then logisticLifted p (w s) y else 0
+            -- Measurability follows from hwm : HasJointMeasurability w
             exfalso; exact hint_w
               (ShenWork.IntervalDuhamelIntegrability.valueDuhamel_intervalIntegrable_of_joint_measurable
                 ht (sorry : Measurable (Function.uncurry r_w)) hC_L_val_nn
                 (hr_w_bdd) x.1)
         · -- u not integrable: derive contradiction from joint measurability
+          -- r_u s y = if 0 < s ∧ s ≤ T₀ then logisticLifted p (u s) y else 0
+          -- Measurability follows from hum : HasJointMeasurability u
           exfalso; exact hint_u
             (ShenWork.IntervalDuhamelIntegrability.valueDuhamel_intervalIntegrable_of_joint_measurable
               ht (sorry : Measurable (Function.uncurry r_u)) hC_L_val_nn
@@ -1274,6 +1304,13 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
           _ = |picardIter p u₀ 1 t x| + |picardIter p u₀ 0 t x| := by
               rw [abs_neg]
       linarith
+    hbase_meas := by
+      -- HasJointMeasurability (picardIter p u₀ 0):
+      -- picardIter p u₀ 0 t x = intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+      sorry
+    hmeas_preserved := by
+      -- ∀ w, HasJointMeasurability w → HasJointMeasurability (fun t x => intervalGradientDuhamelMap p u₀ w t x)
+      sorry
   }
 
 end ShenWork.IntervalMildPicard
