@@ -16,6 +16,7 @@ import ShenWork.Paper2.IntervalGradientDuhamelMap
 import ShenWork.PDE.IntervalChemFluxLipschitz
 import Mathlib.Topology.Algebra.InfiniteSum.Real
 import Mathlib.Analysis.SpecificLimits.Basic
+import Mathlib.Topology.UniformSpace.UniformApproximation
 
 open MeasureTheory Set Filter
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
@@ -26,6 +27,15 @@ open ShenWork.IntervalChemFluxLipschitz
 noncomputable section
 
 namespace ShenWork.IntervalMildPicard
+
+/-! ## Topology and continuity -/
+
+instance : TopologicalSpace intervalDomainPoint :=
+  instTopologicalSpaceSubtype
+
+/-- A trajectory has continuous spatial slices if each time-slice is continuous. -/
+def HasContinuousSlices (T : ℝ) (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
+  ∀ t, 0 < t → t ≤ T → Continuous (u t)
 
 /-! ## Picard iteration -/
 
@@ -162,6 +172,28 @@ theorem picardLimit_bounded (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   rw [hL.limUnder_eq]
   exact le_of_tendsto (hL.abs) (Eventually.of_forall (fun n => hball n t ht htT x))
 
+/-- The Picard limit has continuous slices when all iterates do and the
+convergence is uniform (which follows from the geometric bound). -/
+theorem picardLimit_hasContinuousSlices (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    {T K C₀ : ℝ} (hT : 0 < T) (hK : K < 1) (hK_nn : 0 ≤ K) (hC₀ : 0 ≤ C₀)
+    (hbound : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |picardIter p u₀ (n + 1) t x - picardIter p u₀ n t x| ≤ K ^ n * C₀)
+    (hcont_iterates : ∀ n, HasContinuousSlices T (picardIter p u₀ n)) :
+    HasContinuousSlices T (picardLimit p u₀ T) := by
+  intro t ht htT
+  -- Each u_n(t, ·) is continuous and u_n(t, ·) → u(t, ·) uniformly.
+  -- By the uniform limit theorem, u(t, ·) is continuous.
+  have hunif : TendstoUniformly (fun n => picardIter p u₀ n t) (picardLimit p u₀ T t) atTop := by
+    rw [Metric.tendstoUniformly_iff]
+    intro ε hε
+    have hconv := picardIter_uniform_convergence p u₀ hT hK hK_nn hC₀ hbound ε hε
+    obtain ⟨N, hN⟩ := hconv
+    apply Filter.eventually_atTop.mpr
+    exact ⟨N, fun n hn x => by
+      rw [Real.dist_eq, abs_sub_comm]
+      exact hN n hn t ht htT x⟩
+  exact hunif.continuous (Eventually.of_forall (fun n => hcont_iterates n t ht htT) |>.frequently)
+
 theorem picardLimit_is_mildSolution (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
     {T K C₀ M : ℝ} (hT : 0 < T) (hK : K < 1) (hK_nn : 0 ≤ K) (hC₀ : 0 ≤ C₀)
     (_hM : 0 < M)
@@ -169,10 +201,14 @@ theorem picardLimit_is_mildSolution (p : CM2Params) (u₀ : intervalDomainPoint 
       |picardIter p u₀ (n + 1) t x - picardIter p u₀ n t x| ≤ K ^ n * C₀)
     (hball : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
       |picardIter p u₀ n t x| ≤ M)
+    (hcont_iterates : ∀ n, HasContinuousSlices T (picardIter p u₀ n))
+    (hcont_limit : HasContinuousSlices T (picardLimit p u₀ T))
     -- Pointwise contraction: Φ is K-Lipschitz in the trajectory
     (hcontract : ∀ (u w : ℝ → intervalDomainPoint → ℝ) (d : ℝ),
       (∀ t, 0 < t → t ≤ T → ∀ x, |u t x| ≤ M) →
       (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+      HasContinuousSlices T u →
+      HasContinuousSlices T w →
       (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
       ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
         |intervalGradientDuhamelMap p u₀ u t x
@@ -217,6 +253,8 @@ theorem picardLimit_is_mildSolution (p : CM2Params) (u₀ : intervalDomainPoint 
           gcongr
           · exact hcontract u (picardIter p u₀ n) (tail n) hu_ball
               (fun s hs hsT y => hball n s hs hsT y)
+              hcont_limit
+              (hcont_iterates n)
               (fun s hs hsT y => by
                 rw [abs_sub_comm]
                 exact htail n s hs hsT y)
@@ -260,41 +298,58 @@ theorem intervalMildSolution_of_bounds (p : CM2Params)
       |picardIter p u₀ (n + 1) t x - picardIter p u₀ n t x| ≤ K ^ n * C₀)
     (hball : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
       |picardIter p u₀ n t x| ≤ M)
+    (hcont_iterates : ∀ n, HasContinuousSlices T (picardIter p u₀ n))
+    (hcont_limit : HasContinuousSlices T (picardLimit p u₀ T))
     (hcontract : ∀ (u w : ℝ → intervalDomainPoint → ℝ) (d : ℝ),
       (∀ t, 0 < t → t ≤ T → ∀ x, |u t x| ≤ M) →
       (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+      HasContinuousSlices T u →
+      HasContinuousSlices T w →
       (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
       ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
         |intervalGradientDuhamelMap p u₀ u t x
           - intervalGradientDuhamelMap p u₀ w t x| ≤ K * d) :
     ∃ u : ℝ → intervalDomainPoint → ℝ, IntervalMildSolution p T u₀ u :=
   ⟨picardLimit p u₀ T,
-    picardLimit_is_mildSolution p u₀ hT hK hK_nn hC₀ hM hbound hball hcontract⟩
+    picardLimit_is_mildSolution p u₀ hT hK hK_nn hC₀ hM hbound hball
+      hcont_iterates hcont_limit hcontract⟩
 
-/-- Ball membership of Picard iterates by induction. -/
+/-- Ball membership and continuity of Picard iterates by induction. -/
 theorem picardIter_ball (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
     {T M : ℝ}
     (hbase : ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
       |picardIter p u₀ 0 t x| ≤ M)
+    (hbase_cont : HasContinuousSlices T (picardIter p u₀ 0))
     (hmapsTo : ∀ (w : ℝ → intervalDomainPoint → ℝ),
       (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+      HasContinuousSlices T w →
       ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
         |intervalGradientDuhamelMap p u₀ w t x| ≤ M)
+    (hcont_preserved : ∀ (w : ℝ → intervalDomainPoint → ℝ),
+      (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+      HasContinuousSlices T w →
+      HasContinuousSlices T (fun t x => intervalGradientDuhamelMap p u₀ w t x))
     (n : ℕ) :
-    ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
-      |picardIter p u₀ n t x| ≤ M := by
+    (∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+      |picardIter p u₀ n t x| ≤ M) ∧
+    HasContinuousSlices T (picardIter p u₀ n) := by
   induction n with
-  | zero => exact hbase
-  | succ n ih => exact fun t ht htT x => hmapsTo _ ih t ht htT x
+  | zero => exact ⟨hbase, hbase_cont⟩
+  | succ n ih =>
+    exact ⟨fun t ht htT x => hmapsTo _ ih.1 ih.2 t ht htT x,
+           hcont_preserved _ ih.1 ih.2⟩
 
 /-- Geometric decay of Picard differences by induction. -/
 theorem picardIter_geometric (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
     {T K M : ℝ} (hK_nn : 0 ≤ K)
     (hball : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
       |picardIter p u₀ n t x| ≤ M)
+    (hcont_iterates : ∀ n, HasContinuousSlices T (picardIter p u₀ n))
     (hcontr : ∀ (u w : ℝ → intervalDomainPoint → ℝ) (d : ℝ),
       (∀ t, 0 < t → t ≤ T → ∀ x, |u t x| ≤ M) →
       (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+      HasContinuousSlices T u →
+      HasContinuousSlices T w →
       (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
       ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
         |intervalGradientDuhamelMap p u₀ u t x
@@ -313,7 +368,8 @@ theorem picardIter_geometric (p : CM2Params) (u₀ : intervalDomainPoint → ℝ
         = |intervalGradientDuhamelMap p u₀ (picardIter p u₀ (n + 1)) t x
             - intervalGradientDuhamelMap p u₀ (picardIter p u₀ n) t x| := rfl
       _ ≤ K * (K ^ n * C₀) :=
-          hcontr _ _ _ (hball (n + 1)) (hball n) ih t ht htT x
+          hcontr _ _ _ (hball (n + 1)) (hball n)
+            (hcont_iterates (n + 1)) (hcont_iterates n) ih t ht htT x
       _ = K ^ (n + 1) * C₀ := by ring
 
 /-- All the data needed for mild existence via Picard iteration. -/
@@ -330,15 +386,25 @@ structure MildExistenceData (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   -- u₀ initial iterate bounded
   hbase_ball : ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
     |picardIter p u₀ 0 t x| ≤ M
-  -- MapsTo: Φ maps ball to ball
+  -- Initial iterate has continuous slices
+  hbase_cont : HasContinuousSlices T (picardIter p u₀ 0)
+  -- MapsTo: Φ maps ball to ball (for continuous trajectories)
   hmapsTo : ∀ (w : ℝ → intervalDomainPoint → ℝ),
     (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+    HasContinuousSlices T w →
     ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
       |intervalGradientDuhamelMap p u₀ w t x| ≤ M
-  -- Contraction
+  -- Φ preserves continuous slices
+  hcont_preserved : ∀ (w : ℝ → intervalDomainPoint → ℝ),
+    (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+    HasContinuousSlices T w →
+    HasContinuousSlices T (fun t x => intervalGradientDuhamelMap p u₀ w t x)
+  -- Contraction (for continuous trajectories)
   hcontr : ∀ (u w : ℝ → intervalDomainPoint → ℝ) (d : ℝ),
     (∀ t, 0 < t → t ≤ T → ∀ x, |u t x| ≤ M) →
     (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+    HasContinuousSlices T u →
+    HasContinuousSlices T w →
     (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
     ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
       |intervalGradientDuhamelMap p u₀ u t x
@@ -352,11 +418,16 @@ theorem intervalMildSolution_of_data {p : CM2Params} {u₀ : intervalDomainPoint
     (D : MildExistenceData p u₀) :
     ∃ T : ℝ, 0 < T ∧ ∃ u : ℝ → intervalDomainPoint → ℝ,
       IntervalMildSolution p T u₀ u := by
-  have hball := picardIter_ball p u₀ D.hbase_ball D.hmapsTo
-  have hgeom := picardIter_geometric p u₀ D.hK_nn hball D.hcontr D.hC₀ D.hbase_diff
+  have hball_cont := fun n => picardIter_ball p u₀ D.hbase_ball D.hbase_cont
+    D.hmapsTo D.hcont_preserved n
+  have hball := fun n => (hball_cont n).1
+  have hcont_iterates := fun n => (hball_cont n).2
+  have hgeom := picardIter_geometric p u₀ D.hK_nn hball hcont_iterates D.hcontr D.hC₀ D.hbase_diff
+  have hcont_limit := picardLimit_hasContinuousSlices p u₀ D.hT D.hK D.hK_nn D.hC₀
+    (fun n => hgeom n) hcont_iterates
   exact ⟨D.T, D.hT, picardLimit p u₀ D.T,
     picardLimit_is_mildSolution p u₀ D.hT D.hK D.hK_nn D.hC₀ D.hM
-      (fun n => hgeom n) hball D.hcontr⟩
+      (fun n => hgeom n) hball hcont_iterates hcont_limit D.hcontr⟩
 
 /-- Full mild existence: constructs MildExistenceData from PDE estimates.
 Sorry: instantiating T, M, K, C₀ from Duhamel bounds + flux/logistic Lipschitz.
@@ -373,32 +444,6 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
     intro x; calc |u₀ x| ≤ B := hB x
       _ ≤ max B 1 := le_max_left B 1
       _ = M / 2 := by rw [hMdef]; ring
-  -- The Duhamel bounds give constants C_grad, C_Q, C_L depending on M and p.
-  -- For now we sorry the existence of suitable T, K, C₀ satisfying all conditions.
-  -- This is pure PDE-constant instantiation (no new math).
-  suffices h : ∃ T K C₀ : ℝ, 0 < T ∧ K < 1 ∧ 0 ≤ K ∧ 0 ≤ C₀ ∧
-      (∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
-        |picardIter p u₀ 0 t x| ≤ M) ∧
-      (∀ (w : ℝ → intervalDomainPoint → ℝ),
-        (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
-        ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
-          |intervalGradientDuhamelMap p u₀ w t x| ≤ M) ∧
-      (∀ (u w : ℝ → intervalDomainPoint → ℝ) (d : ℝ),
-        (∀ t, 0 < t → t ≤ T → ∀ x, |u t x| ≤ M) →
-        (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
-        (∀ t, 0 < t → t ≤ T → ∀ x, |u t x - w t x| ≤ d) →
-        ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
-          |intervalGradientDuhamelMap p u₀ u t x
-            - intervalGradientDuhamelMap p u₀ w t x| ≤ K * d) ∧
-      (∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
-        |picardIter p u₀ 1 t x - picardIter p u₀ 0 t x| ≤ C₀) by
-    obtain ⟨T, K, C₀, hT, hK, hK_nn, hC₀, hbase, hmaps, hcontr, hdiff⟩ := h
-    exact intervalMildSolution_of_data ⟨T, M, K, C₀, hT, hM, hK, hK_nn, hC₀,
-      hbase, hmaps, hcontr, hdiff⟩
-  -- Key insight: in Lean, ∫ f dμ = 0 when f is not integrable (integral_undef).
-  -- So for non-measurable trajectories, all Duhamel terms are 0, and bounds hold.
-  -- For measurable ones, the existing PDE bounds apply.
-  -- This makes hmapsTo and hcontr universal over ALL bounded trajectories.
   sorry
 
 end ShenWork.IntervalMildPicard
