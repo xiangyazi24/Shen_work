@@ -1,66 +1,42 @@
-# Shen_work — Final Session Status (2026-05-31 ~23:30 CDT)
+# Shen_work — Current Status (2026-06-01 ~00:30 CDT)
 
-## Build
-```bash
-export PATH="$HOME/.elan/bin:$PATH" && cd ~/repos/shen_work && lake build
-```
-Build green (8388 jobs). 37 commits today.
+## Build: green (8388 jobs), 45 commits this session
 
-## Sorry Summary
-- IntervalMildPicard.lean: 4 sorry (in main theorem: hmapsTo, hcont_preserved, hcontr, hbase_diff)
-- IntervalDuhamelIntegrability.lean: 1 sorry (gradient edge case, never triggered for continuous sources)
-- IntervalMildExistence.lean: 2 sorry (BCF approach, superseded by Picard)
-Total: 7. Active: 5 (4 main + 1 edge case).
+## Sorry Count
+- IntervalMildPicard.lean: 4 sorry in main theorem (hmapsTo, hcont_preserved, hcontr, hbase_diff)
+- IntervalDuhamelIntegrability.lean: 2 sorry (resolverGradReal_continuous, chemFluxLifted_integrable)
+  + 1 sorry (gradient edge case, non-blocking)
+- IntervalMildExistence.lean: 2 sorry (BCF approach, superseded)
 
-## What Was Proved Today (all 0 sorry)
+## What Was Proved This Session (all 0 sorry)
 
-### Core Picard Theory
-- picardIter, picardLimit definitions
-- real_cauchySeq_of_geometric_bound, picardIter_pointwise_convergent
-- picardIter_pointwise_tail_bound (dist_le_tsum)
-- picardIter_uniform_convergence, picardLimit_bounded
-- picardLimit_hasContinuousSlices (uniform limit)
-- **picardLimit_is_mildSolution** (contraction squeeze — the KEY theorem)
-- intervalMildSolution_of_bounds, intervalMildSolution_of_data
-- picardIter_ball (+ HasContinuousSlices mutual induction)
-- picardIter_geometric
-- MildExistenceData structure
+1. Complete Picard fixed-point theory (iteration → convergence → fixed point)
+2. intervalDomainLift_aestronglyMeasurable_of_continuous
+3. logisticLifted_integrable_of_continuous
+4. valueDuhamel_sup_bound_universal
+5. intervalFullSemigroupOperator_continuous_of_bounded (THE key breakthrough)
+6. hbase_ball + hbase_cont in main theorem
+7. hK with real C_L from intervalLogisticReaction_lipschitz_on_bounded
+8. picardIter_zero simp lemma
+9. MildExistenceData + intervalMildSolution_of_data (conditional existence, 0 sorry)
 
-### Integrability Chain
-- continuousOn_aestronglyMeasurable_intervalMeasure
-- **intervalDomainLift_aestronglyMeasurable_of_continuous** (restrict trick: Set.restrict = f)
-- **logisticLifted_integrable_of_continuous** (rpow_const chain)
-- **valueDuhamel_sup_bound_universal** (integral_undef for non-integrable)
+## The One Missing Link
 
-### Semigroup Smoothing (THE breakthrough)
-- **intervalFullSemigroupOperator_continuous_of_bounded** 
-  via hasDerivAt_fst → ContinuousAt. NO Parseval bridge needed!
+resolverGradReal_continuous_of_continuousOn: prove the resolver gradient sine
+series is continuous for continuous bounded sources. Chain:
 
-### Main Theorem Fields
-- **hbase_ball**: proved (semigroup L∞ bound)
-- **hbase_cont**: proved (semigroup continuous + comp subtype_val)
-- picardIter_zero simp lemma
+1. ContinuousOn (lift w) Icc → resolverSourceCoeff_re_sq_summable_of_continuousOn [PROVED]
+2. → resolver_sineSeries_summable_of_sourceL2 [PROVED in repo]
+3. → continuous_tsum on the sine series [pattern in IntervalResolverPositivity:510-520]
+4. → Continuous resolverGradReal [GOAL]
 
-## Remaining 4 Sorry (all same category: PDE constant instantiation)
+Once this is proved, chemFluxLifted_integrable follows (flux is bounded continuous →
+lift AEStronglyMeasurable → bounded on finite measure → integrable).
 
-All need: extract C_Q (flux sup), C_L (logistic sup/Lip) from repo theorems,
-choose T from exists_small_contraction_time, verify bounds.
+Then hmapsTo, hcontr, hbase_diff use the universal Duhamel bounds + flux/logistic
+integrability to close.
 
-1. **hmapsTo**: |Φ| ≤ M. Route: hbase_ball (✓) + valueDuhamel_sup_bound_universal (✓)
-   + gradDuhamel_sup_bound_universal (1 edge sorry) + T small enough.
-   
-2. **hcont_preserved**: Φ preserves continuity. Route: continuous_of_dominated
-   on the Duhamel integral (each slice continuous by semigroup_continuous, bounded
-   uniformly by semigroup L∞ contraction).
-   
-3. **hcontr**: |Φu - Φw| ≤ K·d. Route: valueDuhamel_diff_sup_bound +
-   gradDuhamel_diff_sup_bound + flux/logistic Lipschitz.
-   
-4. **hbase_diff**: |u_1 - u_0| ≤ C₀. Route: same as hmapsTo correction terms.
+hcont_preserved uses continuous_of_dominated on the Duhamel integral (each slice
+continuous by semigroup smoothing, bounded uniformly).
 
-## Key Insight of This Session
-
-The semigroup smoothing gap (previously thought to need multi-day Parseval bridge
-work) was resolved in 1 line: `hasDerivAt_fst.continuousAt`. The spatial derivative
-of the semigroup EXISTS (already proved in IntervalFullKernelGradientLinfty.lean),
-which immediately gives continuity. This bypasses the entire spectral theory path.
+## Codex is working on resolverGradReal_continuous_of_continuousOn right now.
