@@ -290,14 +290,13 @@ theorem chemFluxLifted_integrable_of_continuous
     (_hw : ∀ x, |w x| ≤ M) (_hM : 0 ≤ M)
     (hcont : Continuous w) :
     Integrable (chemFluxLifted p w) (intervalMeasure 1) := by
-  -- Chain: Continuous w → ContinuousOn (lift w) Icc → L² source coefficients summable
-  -- → resolver gradient ℓ¹ summable → resolverGradReal continuous → flux continuous
-  -- → lift AEStronglyMeasurable → bounded + finite measure → integrable.
-  -- All pieces exist in the repo. The critical chain:
-  -- 1. ContinuousOn from intervalDomainLift_aestronglyMeasurable proof route
-  -- 2. resolverSourceCoeff_re_sq_summable_of_continuousOn (IntervalResolverWeakBounds)
-  -- 3. resolverGrad_sup_le_of_bounded (IntervalResolverWeakBounds)
-  -- 4. chemFlux bounded → intervalMeasure_integrable_of_abs_bound
+  -- The flux is bounded (each factor is bounded: |lift w| ≤ M, resolverGradReal bounded
+  -- by Cauchy-Schwarz on the ℓ² source coefficients, denominator ≥ 1).
+  -- Boundedness + AEStronglyMeasurable on finite measure → Integrable.
+  -- AEStronglyMeasurable follows from the flux being a composition of continuous functions
+  -- on the subtype (w continuous → lift continuous on Icc → resolver continuous on Icc).
+  -- The resolver continuity uses resolverSourceCoeff_re_sq_summable_of_continuousOn +
+  -- continuous_tsum (Weierstrass M-test on the cosine/sine series).
   sorry
 
 
