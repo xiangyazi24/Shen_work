@@ -8,6 +8,7 @@
 import ShenWork.PDE.IntervalGradDuhamelBound
 import ShenWork.PDE.IntervalFullKernelSupBound
 import ShenWork.Paper2.IntervalGradientDuhamelMap
+import ShenWork.Paper2.IntervalResolverWeakBounds
 
 open MeasureTheory Set
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalMeasure)
@@ -19,7 +20,56 @@ theorem resolverGradReal_continuous_of_continuousOn
     (p : CM2Params) {w : intervalDomainPoint → ℝ}
     (hcont : ContinuousOn (intervalDomainLift w) (Set.Icc (0:ℝ) 1)) :
     Continuous (fun x : ℝ => ShenWork.Paper2.resolverGradReal p w x) := by
-  sorry
+  open ShenWork.PDE ShenWork.IntervalResolverGradientBridge
+      ShenWork.IntervalResolverWeakBounds ShenWork.Paper2 in
+  -- Source coefficients are ℓ² from continuity (Bessel).
+  have hl2 : Summable fun k : ℕ =>
+      ((intervalNeumannResolverSourceCoeff p w k).re) ^ 2 := by
+    have h := resolverSourceCoeff_re_sq_summable_of_continuousOn p hcont
+    simp only [intervalNeumannResolverSourceCoeff_zero, sub_zero] at h
+    exact h
+  -- Gradient weight ℓ².
+  have hwg := intervalNeumannResolverGradWeight_sq_summable p
+  -- Uniform summable majorant: (s_k² + Wg_k²) / 2.
+  have hmaj : Summable fun k : ℕ =>
+      (((intervalNeumannResolverSourceCoeff p w k).re) ^ 2 +
+        (intervalNeumannResolverGradWeight p k) ^ 2) / 2 :=
+    (hl2.add hwg).div_const 2
+  -- Apply continuous_tsum (Weierstrass M-test).
+  unfold resolverGradReal
+  refine continuous_tsum (fun k => ?_) hmaj (fun k x => ?_)
+  · -- Each term is continuous.
+    exact continuous_const.mul (continuous_const.mul
+      (Real.continuous_sin.comp (by fun_prop)))
+  · -- Pointwise norm bound ≤ majorant.
+    rw [Real.norm_eq_abs, abs_mul]
+    set s := (intervalNeumannResolverSourceCoeff p w k).re
+    set Wg := intervalNeumannResolverGradWeight p k
+    have hd : 0 < p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k :=
+      intervalNeumannResolver_denom_pos p k
+    have hWgnn : 0 ≤ Wg := intervalNeumannResolverGradWeight_nonneg p k
+    have hsin : |(-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * x))|
+        ≤ (k : ℝ) * Real.pi := by
+      rw [abs_mul, abs_neg, abs_mul, Nat.abs_cast, abs_of_pos Real.pi_pos]
+      calc (k : ℝ) * Real.pi * |Real.sin ((k : ℝ) * Real.pi * x)|
+          ≤ (k : ℝ) * Real.pi * 1 :=
+            mul_le_mul_of_nonneg_left (Real.abs_sin_le_one _) (by positivity)
+        _ = (k : ℝ) * Real.pi := mul_one _
+    calc |(intervalNeumannResolverCoeff p w k).re| *
+            |(-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * x))|
+        = |s| / (p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k) *
+            |(-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * x))| := by
+          rw [resolverCoeff_re_eq, abs_div, abs_of_pos hd]
+      _ ≤ |s| / (p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k) *
+            ((k : ℝ) * Real.pi) :=
+          mul_le_mul_of_nonneg_left hsin (div_nonneg (abs_nonneg _) hd.le)
+      _ = |s| * Wg := by
+          rw [show Wg = ((k : ℝ) * Real.pi) /
+            (p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k) from rfl]
+          ring
+      _ ≤ (s ^ 2 + Wg ^ 2) / 2 := by
+          have h := two_mul_le_add_sq |s| Wg
+          rw [sq_abs] at h; nlinarith [h]
 
 
 open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator)
@@ -316,7 +366,56 @@ theorem resolverGradReal_continuous_of_continuousOn
     (p : CM2Params) {w : intervalDomainPoint → ℝ}
     (hcont : ContinuousOn (intervalDomainLift w) (Set.Icc (0:ℝ) 1)) :
     Continuous (fun x : ℝ => ShenWork.Paper2.resolverGradReal p w x) := by
-  sorry
+  open ShenWork.PDE ShenWork.IntervalResolverGradientBridge
+      ShenWork.IntervalResolverWeakBounds ShenWork.Paper2 in
+  -- Source coefficients are ℓ² from continuity (Bessel).
+  have hl2 : Summable fun k : ℕ =>
+      ((intervalNeumannResolverSourceCoeff p w k).re) ^ 2 := by
+    have h := resolverSourceCoeff_re_sq_summable_of_continuousOn p hcont
+    simp only [intervalNeumannResolverSourceCoeff_zero, sub_zero] at h
+    exact h
+  -- Gradient weight ℓ².
+  have hwg := intervalNeumannResolverGradWeight_sq_summable p
+  -- Uniform summable majorant: (s_k² + Wg_k²) / 2.
+  have hmaj : Summable fun k : ℕ =>
+      (((intervalNeumannResolverSourceCoeff p w k).re) ^ 2 +
+        (intervalNeumannResolverGradWeight p k) ^ 2) / 2 :=
+    (hl2.add hwg).div_const 2
+  -- Apply continuous_tsum (Weierstrass M-test).
+  unfold resolverGradReal
+  refine continuous_tsum (fun k => ?_) hmaj (fun k x => ?_)
+  · -- Each term is continuous.
+    exact continuous_const.mul (continuous_const.mul
+      (Real.continuous_sin.comp (by fun_prop)))
+  · -- Pointwise norm bound ≤ majorant.
+    rw [Real.norm_eq_abs, abs_mul]
+    set s := (intervalNeumannResolverSourceCoeff p w k).re
+    set Wg := intervalNeumannResolverGradWeight p k
+    have hd : 0 < p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k :=
+      intervalNeumannResolver_denom_pos p k
+    have hWgnn : 0 ≤ Wg := intervalNeumannResolverGradWeight_nonneg p k
+    have hsin : |(-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * x))|
+        ≤ (k : ℝ) * Real.pi := by
+      rw [abs_mul, abs_neg, abs_mul, Nat.abs_cast, abs_of_pos Real.pi_pos]
+      calc (k : ℝ) * Real.pi * |Real.sin ((k : ℝ) * Real.pi * x)|
+          ≤ (k : ℝ) * Real.pi * 1 :=
+            mul_le_mul_of_nonneg_left (Real.abs_sin_le_one _) (by positivity)
+        _ = (k : ℝ) * Real.pi := mul_one _
+    calc |(intervalNeumannResolverCoeff p w k).re| *
+            |(-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * x))|
+        = |s| / (p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k) *
+            |(-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * x))| := by
+          rw [resolverCoeff_re_eq, abs_div, abs_of_pos hd]
+      _ ≤ |s| / (p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k) *
+            ((k : ℝ) * Real.pi) :=
+          mul_le_mul_of_nonneg_left hsin (div_nonneg (abs_nonneg _) hd.le)
+      _ = |s| * Wg := by
+          rw [show Wg = ((k : ℝ) * Real.pi) /
+            (p.μ + ShenWork.Paper3.unitIntervalNeumannSpectrum.eigenvalue k) from rfl]
+          ring
+      _ ≤ (s ^ 2 + Wg ^ 2) / 2 := by
+          have h := two_mul_le_add_sq |s| Wg
+          rw [sq_abs] at h; nlinarith [h]
 
 
 open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator_hasDerivAt_fst) in
