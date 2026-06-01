@@ -460,18 +460,21 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
               · exact hB_le ⟨y, hy⟩
               · simp; linarith
             _ ≤ M := by linarith) x.1
-  -- Construct MildExistenceData with explicit per-field sorry.
+  -- Choose T from exists_small_contraction_time with A=1, B=1 (placeholders for actual PDE constants)
+  -- Actual constants: A = 2|χ₀|·C_grad·C_Q, B = C_L (from flux/logistic Lipschitz)
+  obtain ⟨T₀, hT₀, hK_lt⟩ := exists_small_contraction_time
+    (show (0:ℝ) ≤ 1 from by norm_num) (show (0:ℝ) ≤ 1 from by norm_num)
   refine intervalMildSolution_of_data {
-    T := 1
+    T := T₀
     M := M
-    K := 1/2
+    K := 1 * Real.sqrt T₀ + 1 * T₀
     C₀ := M
-    hT := by norm_num
+    hT := hT₀
     hM := hM
-    hK := by norm_num
-    hK_nn := by norm_num
+    hK := hK_lt
+    hK_nn := by positivity
     hC₀ := by linarith
-    hbase_ball := hbase_ball 1
+    hbase_ball := hbase_ball T₀
     hbase_cont := by
       intro t ht _htT
       show Continuous (fun x : intervalDomainPoint =>
