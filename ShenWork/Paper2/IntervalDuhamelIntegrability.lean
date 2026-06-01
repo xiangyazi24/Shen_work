@@ -130,4 +130,26 @@ theorem logisticLifted_integrable_of_continuous
       p hMpos hw')
 
 
+
+/-- For a trajectory with continuous slices, the lifted chemotaxis flux is
+spatially integrable at each time. The flux is a composition of
+continuous functions (w, resolverGradReal, resolverR) — each continuous
+when w is continuous — so the composition is continuous, hence its
+lift is AEStronglyMeasurable, hence integrable (bounded on finite measure). -/
+theorem chemFluxLifted_integrable_of_continuous
+    (p : CM2Params) {w : intervalDomainPoint → ℝ} {M : ℝ}
+    (_hw : ∀ x, |w x| ≤ M) (_hM : 0 ≤ M)
+    (hcont : Continuous w) :
+    Integrable (chemFluxLifted p w) (intervalMeasure 1) := by
+  -- chemFluxLifted p w y = lift(w)(y) * resolverGradReal(w)(y) / (1+lift(R(w))(y))^β
+  -- Each component is continuous when w is continuous:
+  -- - lift(w) on [0,1] is continuous (from w continuous)
+  -- - resolverGradReal is a convergent cosine series, continuous
+  -- - resolverR is a convergent cosine series, continuous
+  -- - division/rpow are continuous on the domain (denominator ≥ 1)
+  -- So the composition is continuous on intervalDomainPoint, hence the lift
+  -- is AEStronglyMeasurable, and bounded + finite measure → integrable.
+  sorry
+
+
 end ShenWork.IntervalDuhamelIntegrability

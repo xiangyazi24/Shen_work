@@ -458,14 +458,28 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
               · exact hB_le ⟨y, hy⟩
               · simp; linarith
             _ ≤ M := by linarith) x.1
-  -- Remaining steps require PDE-specific constants and integrability.
-  -- Each field of MildExistenceData needs:
-  -- - hbase_cont: semigroup smoothing (contDiffOn_two → continuous)
-  -- - hmapsTo: Duhamel bounds + flux/logistic sup bounds
-  -- - hcont_preserved: semigroup maps bounded → C²
-  -- - hcontr: Duhamel diff bounds + flux/logistic Lipschitz
-  -- - hbase_diff: first Picard step bound
-  -- All depend on HasContinuousSlices → integrability chain.
+  -- Construct MildExistenceData.
+  -- The integrability chain (HasContinuousSlices → AEStronglyMeasurable → Integrable)
+  -- is proved in IntervalDuhamelIntegrability.lean.
+  -- Remaining fields need PDE-specific constants.
+  --
+  -- For now, sorry the entire MildExistenceData construction.
+  -- Each field has a clear proof route:
+  -- - hbase_ball: PROVED (above)
+  -- - hbase_cont: semigroup smoothing (sorry — needs contDiffOn → Continuous)
+  -- - hmapsTo: universal Duhamel bounds + flux/logistic sup bounds
+  -- - hcont_preserved: semigroup maps bounded → C² (sorry — same as hbase_cont)
+  -- - hcontr: universal Duhamel diff bounds + flux/logistic Lipschitz
+  -- - hbase_diff: bound on first Picard step (from hmapsTo with w = S(t)u₀)
+  --
+  -- The key integrability chain is now proved:
+  -- - intervalDomainLift_aestronglyMeasurable_of_continuous (0 sorry)
+  -- - logisticLifted_integrable_of_continuous (0 sorry)
+  -- - valueDuhamel_sup_bound_universal (0 sorry)
+  --
+  -- Unblocked: value Duhamel in hmapsTo/hcontr.
+  -- Still blocked: gradient Duhamel (needs chemFluxLifted integrability — same chain applies).
+  -- Still blocked: hbase_cont/hcont_preserved (semigroup smoothing for general bounded input).
   sorry
 
 end ShenWork.IntervalMildPicard
