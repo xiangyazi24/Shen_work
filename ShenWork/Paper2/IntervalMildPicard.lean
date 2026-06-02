@@ -616,6 +616,7 @@ structure MildExistenceData (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   hmeas_preserved : ∀ w, HasJointMeasurability w →
     HasJointMeasurability (fun t x => intervalGradientDuhamelMap p u₀ w t x)
 
+set_option maxHeartbeats 800000 in
 /-- Given MildExistenceData, mild solution exists (0 sorry). -/
 theorem intervalMildSolution_of_data {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (D : MildExistenceData p u₀) :
@@ -673,6 +674,7 @@ theorem intervalMildSolution_of_data {p : CM2Params} {u₀ : intervalDomainPoint
       (fun n => hgeom n) hball hball_nn hcont_iterates hcont_limit
       hmeas_iterates hmeas_limit D.hcontr⟩
 
+set_option maxHeartbeats 800000 in
 /-- Full mild existence: constructs MildExistenceData from PDE estimates.
 Sorry: instantiating T, M, K, C₀ from Duhamel bounds + flux/logistic Lipschitz.
 This is pure plumbing — no new math, just regularity/integrability discharge. -/
@@ -1416,7 +1418,78 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
         · by_cases hint_Gw : IntervalIntegrable
               (fun s => deriv (fun z => intervalFullSemigroupOperator (t - s) (q_w s) z) x.1) volume 0 t
           · -- Both integrable: combine + per-slice gradient bound + integrate
-            sorry
+            -- Per-slice integrability of q_u, q_w
+            have hq_u_int : ∀ s, Integrable (q_u s) (intervalMeasure 1) := by
+              intro s; simp only [q_u]; split_ifs with h
+              · exact ShenWork.IntervalDuhamelIntegrability.chemFluxLifted_integrable_of_continuous
+                  p (hu s h.1 h.2) hM.le (huc s h.1 h.2) (hu_nn s h.1 h.2)
+              · exact integrable_zero ℝ ℝ (intervalMeasure 1)
+            have hq_w_int : ∀ s, Integrable (q_w s) (intervalMeasure 1) := by
+              intro s; simp only [q_w]; split_ifs with h
+              · exact ShenWork.IntervalDuhamelIntegrability.chemFluxLifted_integrable_of_continuous
+                  p (hw s h.1 h.2) hM.le (hwc s h.1 h.2) (hw_nn s h.1 h.2)
+              · exact integrable_zero ℝ ℝ (intervalMeasure 1)
+            -- Combine integrals
+            rw [← intervalIntegral.integral_sub hint_Gu hint_Gw]
+            -- Per-slice gradient difference bound via linearity + singular bound
+            set Cg := ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+            have hCQLd_nn : 0 ≤ C_Q_lip * d := mul_nonneg hC_Q_lip_nn hd_nn
+            have hptw : ∀ᵐ s ∂(volume.restrict (Set.Icc 0 t)),
+                |deriv (fun z => intervalFullSemigroupOperator (t - s) (q_u s) z) x.1
+                  - deriv (fun z => intervalFullSemigroupOperator (t - s) (q_w s) z) x.1|
+                  ≤ Cg * (C_Q_lip * d) * (t - s) ^ (-(1/2) : ℝ) := by
+              have hne : ∀ᵐ s ∂volume, s ≠ t := by
+                rw [ae_iff]; simp only [not_not, Set.setOf_eq_eq_singleton]
+                exact Real.volume_singleton
+              refine (ae_restrict_iff' measurableSet_Icc).mpr ?_
+              filter_upwards [hne] with s hs hs_mem
+              have hst : s < t := lt_of_le_of_ne hs_mem.2 hs
+              have htms : 0 < t - s := sub_pos.mpr hst
+              -- Linearize: deriv(S(τ)(f-g)) = deriv(S(τ)f) - deriv(S(τ)g)
+              have hq_u_bdd : ∀ y, |q_u s y| ≤ C_Q_unif := sorry
+              have hq_w_bdd : ∀ y, |q_w s y| ≤ C_Q_unif := sorry
+              have hKu : ∀ z, Integrable
+                  (fun y => ShenWork.IntervalNeumannFullKernel.intervalNeumannFullKernel
+                    (t - s) z y * q_u s y) (intervalMeasure 1) :=
+                fun z => ShenWork.IntervalDuhamelIntegrability.kernel_mul_integrable_of_source_integrable
+                  htms z (hq_u_int s) hC_Q_unif_nn hq_u_bdd
+              have hKw : ∀ z, Integrable
+                  (fun y => ShenWork.IntervalNeumannFullKernel.intervalNeumannFullKernel
+                    (t - s) z y * q_w s y) (intervalMeasure 1) :=
+                fun z => ShenWork.IntervalDuhamelIntegrability.kernel_mul_integrable_of_source_integrable
+                  htms z (hq_w_int s) hC_Q_unif_nn hq_w_bdd
+              have hdu := ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_hasDerivAt_fst
+                htms (hq_u_int s).aestronglyMeasurable hq_u_bdd x.1
+              have hdw := ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_hasDerivAt_fst
+                htms (hq_w_int s).aestronglyMeasurable hq_w_bdd x.1
+              have hq_diff_int : Integrable (fun y => q_u s y - q_w s y) (intervalMeasure 1) :=
+                (hq_u_int s).sub (hq_w_int s)
+              have hlin := ShenWork.IntervalGradDuhamelBound.intervalFullSemigroupOperator_deriv_sub
+                hKu hKw hdu.differentiableAt hdw.differentiableAt
+              rw [← hlin]
+              have h := ShenWork.IntervalNeumannFullKernel.intervalFullCoupledDuhamel_grad_integrand_pointwise_bound
+                hs_mem.1 hst hq_diff_int hCQLd_nn (hq_diff_bound s) x.1
+              linarith [mul_comm (Cg * (t - s) ^ (-(1/2) : ℝ)) (C_Q_lip * d)]
+            -- Integrate the singular bound
+            calc |∫ s in (0:ℝ)..t, (deriv (fun z => intervalFullSemigroupOperator (t - s) (q_u s) z) x.1
+                    - deriv (fun z => intervalFullSemigroupOperator (t - s) (q_w s) z) x.1)|
+                ≤ ∫ s in (0:ℝ)..t, |deriv (fun z => intervalFullSemigroupOperator (t - s) (q_u s) z) x.1
+                    - deriv (fun z => intervalFullSemigroupOperator (t - s) (q_w s) z) x.1| :=
+                  intervalIntegral.abs_integral_le_integral_abs ht.le
+              _ ≤ ∫ s in (0:ℝ)..t, Cg * (C_Q_lip * d) * (t - s) ^ (-(1/2) : ℝ) :=
+                  intervalIntegral.integral_mono_ae_restrict ht.le
+                    (hint_Gu.sub hint_Gw).abs
+                    ((ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half t).const_mul
+                      (Cg * (C_Q_lip * d)))
+                    hptw
+              _ = Cg * (C_Q_lip * d) * (2 * Real.sqrt t) := by
+                  rw [intervalIntegral.integral_const_mul,
+                    ShenWork.IntervalGradDuhamelBound.integral_sub_rpow_neg_half ht.le]
+              _ ≤ Cg * (2 * Real.sqrt T₀) * (C_Q_lip * d) := by
+                  have hsqrt : Real.sqrt t ≤ Real.sqrt T₀ := Real.sqrt_le_sqrt htT
+                  have hCg_nn := ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
+                  have hsqT_nn := Real.sqrt_nonneg T₀
+                  nlinarith [mul_nonneg hCg_nn hCQLd_nn, mul_nonneg hsqT_nn hCQLd_nn]
           · exfalso; exact hint_Gw sorry
         · exfalso; exact hint_Gu sorry
       -- Step 4: Assemble via gradientDuhamel_contraction_pointwise
