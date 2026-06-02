@@ -1489,7 +1489,17 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
   have hA_nn : (0 : ℝ) ≤ A_picard := by positivity
   have hB_nn : (0 : ℝ) ≤ B_picard := by positivity
   -- inf u₀ > 0 (continuous on compact, pointwise positive)
-  have hu₀_inf_pos : 0 < sInf (Set.range (fun x => u₀ x)) := by sorry
+  have hu₀_inf_pos : 0 < sInf (Set.range (fun x => u₀ x)) := by
+    haveI : CompactSpace intervalDomainPoint :=
+      isCompact_iff_compactSpace.mp isCompact_Icc
+    haveI : Nonempty intervalDomainPoint :=
+      ⟨⟨0, left_mem_Icc.mpr zero_le_one⟩⟩
+    have hcpt : IsCompact (Set.range (fun x => u₀ x)) := isCompact_range _hu₀_cont
+    have hne : (Set.range (fun x => u₀ x)).Nonempty := Set.range_nonempty _
+    have hmem := hcpt.sInf_mem hne
+    obtain ⟨y₀, hy₀⟩ := Set.mem_range.mp hmem
+    rw [← hy₀]
+    exact _hu₀_pos y₀
   set c_u₀ := sInf (Set.range (fun x => u₀ x)) with hc_u₀_def
   -- Choose T₀ with A√T₀ + BT₀ < min(1, c_u₀)
   obtain ⟨T₀, hT₀, hK_lt_min⟩ :=
@@ -1754,9 +1764,123 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
     hmapsTo_nn := by
       -- Small-T₀ domination: S(t)u₀(x) ≥ inf u₀, |corrections| < inf u₀
       intro w _hw_bound _hw_nonneg _hw_cont t ht _htT x
-      -- The map Φ(w)(t,x) is defined as S(t)u₀ + grad_term + val_term
-      -- We show it's ≥ 0 by: S(t)u₀ ≥ c_u₀ > |corrections|
-      sorry
+      haveI : CompactSpace intervalDomainPoint :=
+        isCompact_iff_compactSpace.mp isCompact_Icc
+      haveI : Nonempty intervalDomainPoint :=
+        ⟨⟨0, left_mem_Icc.mpr zero_le_one⟩⟩
+      unfold intervalGradientDuhamelMap
+      -- Step 1: Lower bound the semigroup term
+      have hLift_lower : ∀ y, y ∈ Set.Icc (0 : ℝ) 1 → c_u₀ ≤ intervalDomainLift u₀ y := by
+        intro y hy
+        simp only [intervalDomainLift, dif_pos hy]
+        exact csInf_le (isCompact_range _hu₀_cont).bddBelow
+          (Set.mem_range.mpr ⟨⟨y, hy⟩, rfl⟩)
+      have hc_le_M : c_u₀ ≤ M := by
+        have hmem : c_u₀ ∈ Set.range (fun x => u₀ x) :=
+          (isCompact_range _hu₀_cont).sInf_mem (Set.range_nonempty _)
+        obtain ⟨x₀, hx₀⟩ := Set.mem_range.mp hmem
+        rw [← hx₀]
+        exact le_trans (le_abs_self _) ((hB_le x₀).trans (by linarith))
+      have hSg_lower : c_u₀ ≤ intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1 :=
+        ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_lower_bound
+          ht hu₀_inf_pos.le hc_le_M hLift_meas hLift_lower hLift_le_M x.1
+      -- Step 2: Bound the correction terms
+      -- Extended logistic source
+      set r_val : ℝ → ℝ → ℝ := fun s y =>
+        if 0 < s ∧ s ≤ T₀ then logisticLifted p (w s) y else 0
+      have hr_val_bound : ∀ s y, |r_val s y| ≤ C_L_val := by
+        intro s y; simp only [r_val]
+        split_ifs with h
+        · exact ShenWork.IntervalDomainExistence.intervalLogisticSource_lift_abs_bound p hM
+            (fun x => _hw_bound s h.1 h.2 x) y
+        · simp; exact hC_L_val_nn
+      -- Extended flux source
+      set r_grad : ℝ → ℝ → ℝ := fun s y =>
+        if 0 < s ∧ s ≤ T₀ then chemFluxLifted p (w s) y else 0
+      have hr_grad_bound : ∀ s y, |r_grad s y| ≤ C_Q_unif := by
+        intro s y; simp only [r_grad]
+        split_ifs with h
+        · simpa [C_Q_unif, C_RG] using
+            chemFluxLifted_bound_of_ball p hM.le
+              (_hw_bound s h.1 h.2) (_hw_nonneg s h.1 h.2)
+              (_hw_cont s h.1 h.2) y
+        · simp; exact hC_Q_unif_nn
+      -- Integral equalities
+      have hval_eq : (∫ s in (0:ℝ)..t,
+            intervalFullSemigroupOperator (t - s) (logisticLifted p (w s)) x.1)
+          = ∫ s in (0:ℝ)..t,
+            intervalFullSemigroupOperator (t - s) (r_val s) x.1 := by
+        apply intervalIntegral.integral_congr_ae
+        apply Eventually.of_forall
+        intro s hs
+        rw [Set.uIoc_of_le ht.le] at hs
+        simp only [r_val, if_pos (And.intro hs.1 (hs.2.trans _htT))]
+      have hgrad_eq : (∫ s in (0:ℝ)..t,
+            deriv (fun z => intervalFullSemigroupOperator (t - s)
+              (chemFluxLifted p (w s)) z) x.1)
+          = ∫ s in (0:ℝ)..t,
+            deriv (fun z => intervalFullSemigroupOperator (t - s)
+              (r_grad s) z) x.1 := by
+        apply intervalIntegral.integral_congr_ae
+        apply Eventually.of_forall
+        intro s hs
+        rw [Set.uIoc_of_le ht.le] at hs
+        simp only [r_grad, if_pos (And.intro hs.1 (hs.2.trans _htT))]
+      -- Value Duhamel bound
+      have hterm3 : |(∫ s in (0:ℝ)..t,
+          intervalFullSemigroupOperator (t - s)
+            (logisticLifted p (w s)) x.1)| ≤ T₀ * C_L_val := by
+        rw [hval_eq]
+        exact ShenWork.IntervalDuhamelIntegrability.valueDuhamel_sup_bound_universal
+          ht _htT hC_L_val_nn hr_val_bound x.1
+      -- Gradient Duhamel bound
+      have hterm2 : |(-p.χ₀) * (∫ s in (0:ℝ)..t,
+          deriv (fun z => intervalFullSemigroupOperator (t - s)
+            (chemFluxLifted p (w s)) z) x.1)|
+          ≤ |p.χ₀| * (C_grad * (2 * Real.sqrt T₀) * C_Q_unif) := by
+        rw [abs_mul, abs_neg]
+        gcongr
+        rw [hgrad_eq]
+        exact ShenWork.IntervalDuhamelIntegrability.gradDuhamel_sup_bound_universal
+          ht _htT hC_Q_unif_nn hr_grad_bound x.1
+      -- Step 3: Combine: S(t)u₀ + correction ≥ c_u₀ - |correction| > 0
+      have hcorr_abs : |(-p.χ₀) * (∫ s in (0:ℝ)..t,
+            deriv (fun z => intervalFullSemigroupOperator (t - s)
+              (chemFluxLifted p (w s)) z) x.1)
+          + (∫ s in (0:ℝ)..t, intervalFullSemigroupOperator (t - s)
+              (logisticLifted p (w s)) x.1)| ≤
+          A_picard * Real.sqrt T₀ + B_picard * T₀ := by
+        calc |(-p.χ₀) * (∫ s in (0:ℝ)..t,
+              deriv (fun z => intervalFullSemigroupOperator (t - s)
+                (chemFluxLifted p (w s)) z) x.1)
+            + (∫ s in (0:ℝ)..t, intervalFullSemigroupOperator (t - s)
+                (logisticLifted p (w s)) x.1)|
+            ≤ |(-p.χ₀) * (∫ s in (0:ℝ)..t,
+                deriv (fun z => intervalFullSemigroupOperator (t - s)
+                  (chemFluxLifted p (w s)) z) x.1)|
+              + |(∫ s in (0:ℝ)..t, intervalFullSemigroupOperator (t - s)
+                  (logisticLifted p (w s)) x.1)| := abs_add_le _ _
+          _ ≤ |p.χ₀| * (C_grad * (2 * Real.sqrt T₀) * C_Q_unif)
+              + T₀ * C_L_val := add_le_add hterm2 hterm3
+          _ ≤ A_picard * Real.sqrt T₀ + B_picard * T₀ := by
+              have hle_CQ : C_Q_unif ≤ C_Q_max := le_max_left _ _
+              have h1 : 2 * |p.χ₀| * C_grad * C_Q_unif * Real.sqrt T₀
+                  ≤ A_picard * Real.sqrt T₀ := by
+                gcongr
+                calc 2 * |p.χ₀| * C_grad * C_Q_unif
+                    ≤ 2 * |p.χ₀| * C_grad * C_Q_max := by gcongr
+                  _ ≤ A_picard := by simp only [A_picard]; linarith [hC_L_pos.le]
+              have h2 : C_L_val * T₀ ≤ B_picard * T₀ := by
+                gcongr; linarith [hC_L_pos.le]
+              calc |p.χ₀| * (C_grad * (2 * Real.sqrt T₀) * C_Q_unif) + T₀ * C_L_val
+                  = 2 * |p.χ₀| * C_grad * C_Q_unif * Real.sqrt T₀ + C_L_val * T₀ := by ring
+                _ ≤ A_picard * Real.sqrt T₀ + B_picard * T₀ := add_le_add h1 h2
+      linarith [neg_abs_le ((-p.χ₀) * (∫ s in (0:ℝ)..t,
+            deriv (fun z => intervalFullSemigroupOperator (t - s)
+              (chemFluxLifted p (w s)) z) x.1)
+          + (∫ s in (0:ℝ)..t, intervalFullSemigroupOperator (t - s)
+              (logisticLifted p (w s)) x.1))]
+
     hcont_preserved := by
       /- Φ preserves continuous slices.
          Route: S(t)u₀ is continuous (hSg_cont). For the Duhamel integrals
