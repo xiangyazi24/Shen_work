@@ -634,7 +634,40 @@ theorem intervalMildSolution_of_data {p : CM2Params} {u₀ : intervalDomainPoint
     hcont_iterates hmeas_iterates D.hcontr D.hC₀ D.hbase_diff
   have hcont_limit := picardLimit_hasContinuousSlices p u₀ D.hT D.hK D.hK_nn D.hC₀
     (fun n => hgeom n) hcont_iterates
-  have hmeas_limit : HasJointMeasurability (picardLimit p u₀ D.T) := by sorry
+  have hmeas_limit : HasJointMeasurability (picardLimit p u₀ D.T) := by
+    -- Pointwise limit of jointly measurable iterates is jointly measurable.
+    -- Define modified sequence: = iterate on (0,T]×[0,1], else 0.
+    set f_n : ℕ → ℝ × ℝ → ℝ := fun n q =>
+      if 0 < q.1 ∧ q.1 ≤ D.T then intervalDomainLift (picardIter p u₀ n q.1) q.2 else 0
+    set g : ℝ × ℝ → ℝ := fun q => intervalDomainLift (picardLimit p u₀ D.T q.1) q.2
+    -- Each f_n is measurable
+    have hf_meas : ∀ n, Measurable (f_n n) := fun n => by
+      apply Measurable.ite
+      · exact measurableSet_Ioc.preimage measurable_fst
+      · exact hmeas_iterates n
+      · exact measurable_const
+    -- f_n → g pointwise
+    have hlim : Filter.Tendsto f_n Filter.atTop (nhds g) := by
+      rw [tendsto_pi_nhds]; intro q
+      by_cases hq : 0 < q.1 ∧ q.1 ≤ D.T
+      · -- On (0,T]: f_n q = intervalDomainLift (picardIter n q.1) q.2 → g q
+        simp only [f_n, if_pos hq, g]
+        unfold picardLimit; simp only [if_pos hq]
+        -- Need: intervalDomainLift (picardIter n t) y → intervalDomainLift (limUnder...) y
+        unfold intervalDomainLift
+        by_cases hy : q.2 ∈ Set.Icc (0 : ℝ) 1
+        · simp only [dif_pos hy]
+          exact tendsto_nhds_limUnder
+            (picardIter_pointwise_convergent p u₀ D.hK D.hK_nn D.hC₀
+              (fun n => hgeom n) q.1 hq.1 hq.2 ⟨q.2, hy⟩)
+        · simp only [dif_neg hy]; exact tendsto_const_nhds
+      · -- Outside (0,T]: both sides are 0
+        simp only [f_n, if_neg hq]
+        have hg0 : g q = 0 := by
+          simp only [g, picardLimit, if_neg hq, intervalDomainLift]
+          split_ifs <;> rfl
+        rw [hg0]; exact tendsto_const_nhds
+    exact measurable_of_tendsto_metrizable hf_meas hlim
   exact ⟨D.T, D.hT, picardLimit p u₀ D.T,
     picardLimit_is_mildSolution p u₀ D.hT D.hK D.hK_nn D.hC₀ D.hM
       (fun n => hgeom n) hball hball_nn hcont_iterates hcont_limit
