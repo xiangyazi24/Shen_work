@@ -159,3 +159,11 @@ theorem gradientDuhamel_contraction_pointwise {χ₀ Cgrad C_Q C_L T d G V : ℝ
     _ = (2 * |χ₀| * Cgrad * C_Q * Real.sqrt T + C_L * T) * d := by ring
 
 end ShenWork.IntervalChemFluxLipschitz
+
+/-- Parameterized version: `A * √T + B * T < δ` for any `δ > 0`. -/
+theorem exists_small_contraction_time_target {A B δ : ℝ} (hA : 0 ≤ A) (hB : 0 ≤ B) (hδ : 0 < δ) :
+    ∃ T : ℝ, 0 < T ∧ A * Real.sqrt T + B * T < δ := by
+  obtain ⟨T, hT, hlt⟩ := ShenWork.IntervalChemFluxLipschitz.exists_small_contraction_time (div_nonneg hA hδ.le) (div_nonneg hB hδ.le)
+  refine ⟨T, hT, ?_⟩
+  rw [show A / δ * Real.sqrt T + B / δ * T = (A * Real.sqrt T + B * T) / δ from by ring] at hlt
+  exact (div_lt_one hδ).mp hlt
