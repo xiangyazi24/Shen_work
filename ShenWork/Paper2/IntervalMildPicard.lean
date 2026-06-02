@@ -22,13 +22,14 @@ import ShenWork.PDE.IntervalChemFluxLipschitz
 import ShenWork.Paper2.IntervalDuhamelIntegrability
 import ShenWork.PDE.IntervalLogisticLipschitz
 import ShenWork.PDE.IntervalResolverPositivity
+import ShenWork.PDE.IntervalFullKernelSDependentMeasurable
 import Mathlib.Topology.Algebra.InfiniteSum.Real
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Topology.UniformSpace.UniformApproximation
 
 open MeasureTheory Set Filter
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator)
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalMeasure)
+open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator intervalNeumannFullKernel)
 open ShenWork.IntervalGradientDuhamelMap
 open ShenWork.IntervalChemFluxLipschitz
 
@@ -85,6 +86,78 @@ private theorem logisticLifted_time_cutoff_measurable
     exact (isOpen_Ioi.preimage continuous_fst).measurableSet.inter
       (isClosed_Iic.preimage continuous_fst).measurableSet
   exact htime
+
+private theorem intervalDomainLift_measurable_of_continuous
+    {f : intervalDomainPoint → ℝ} (hf : Continuous f) :
+    Measurable (intervalDomainLift f) := by
+  have hcont_on : ContinuousOn (intervalDomainLift f) (Set.Icc (0 : ℝ) 1) := by
+    rw [continuousOn_iff_continuous_restrict]
+    have heq : Set.restrict (Set.Icc (0 : ℝ) 1) (intervalDomainLift f) = f := by
+      ext ⟨x, hx⟩
+      change intervalDomainLift f x = f ⟨x, hx⟩
+      rw [intervalDomainLift, dif_pos hx]
+    rw [heq]
+    exact hf
+  have hpiece :
+      (Set.Icc (0 : ℝ) 1).piecewise (intervalDomainLift f) (fun _ : ℝ => 0) =
+        intervalDomainLift f := by
+    funext x
+    by_cases hx : x ∈ Set.Icc (0 : ℝ) 1
+    · rw [Set.piecewise_eq_of_mem _ _ _ hx]
+    · rw [Set.piecewise_eq_of_notMem _ _ _ hx]
+      simp [intervalDomainLift, hx]
+  rw [← hpiece]
+  exact ContinuousOn.measurable_piecewise hcont_on continuousOn_const measurableSet_Icc
+
+private theorem intervalNeumannFullKernel_joint_measurable :
+    Measurable (fun q : (ℝ × ℝ) × ℝ =>
+      intervalNeumannFullKernel q.1.1 q.1.2 q.2) := by
+  open ShenWork.IntervalNeumannFullKernel in
+  set g : ℤ → (ℝ × ℝ) × ℝ → ℝ :=
+    fun k q =>
+      heatKernel q.1.1 (q.1.2 - q.2 + 2 * (k : ℝ)) +
+        heatKernel q.1.1 (q.1.2 + q.2 + 2 * (k : ℝ)) with hg_def
+  have hg_meas : ∀ k, Measurable (g k) := by
+    intro k
+    show Measurable (fun q : (ℝ × ℝ) × ℝ =>
+      heatKernel q.1.1 (q.1.2 - q.2 + 2 * (k : ℝ)) +
+        heatKernel q.1.1 (q.1.2 + q.2 + 2 * (k : ℝ)))
+    unfold heatKernel
+    fun_prop
+  have hg_sum : ∀ q : (ℝ × ℝ) × ℝ, Summable (fun k : ℤ => g k q) := by
+    intro q
+    rcases lt_or_ge 0 q.1.1 with ht | ht
+    · exact (latticeGaussianSummable ht (q.1.2 - q.2)).add
+        (latticeGaussianSummable ht (q.1.2 + q.2))
+    · have hzero : (fun k : ℤ => g k q) = fun _ : ℤ => (0 : ℝ) := by
+        funext k
+        simp [hg_def, ShenWork.IntervalNeumannFullKernel.heatKernel_of_nonpos ht]
+      rw [hzero]
+      exact summable_zero
+  have hmeas := ShenWork.IntervalNeumannFullKernel.measurable_tsum_int_of_summable
+    hg_meas hg_sum
+  have hfun :
+      (fun q : (ℝ × ℝ) × ℝ => intervalNeumannFullKernel q.1.1 q.1.2 q.2) =
+        fun q : (ℝ × ℝ) × ℝ => ∑' k : ℤ, g k q := by
+    funext q
+    rfl
+  rw [hfun]
+  exact hmeas
+
+private theorem intervalFullSemigroupOperator_joint_measurable
+    {f : ℝ → ℝ} (hf : Measurable f) :
+    Measurable (fun q : ℝ × ℝ => intervalFullSemigroupOperator q.1 f q.2) := by
+  have hprod : Measurable (fun q : (ℝ × ℝ) × ℝ =>
+      intervalNeumannFullKernel q.1.1 q.1.2 q.2 * f q.2) :=
+    intervalNeumannFullKernel_joint_measurable.mul (hf.comp measurable_snd)
+  have hstrong : StronglyMeasurable (fun q : (ℝ × ℝ) × ℝ =>
+      intervalNeumannFullKernel q.1.1 q.1.2 q.2 * f q.2) :=
+    hprod.stronglyMeasurable
+  have hI : StronglyMeasurable (fun q : ℝ × ℝ =>
+      ∫ y, intervalNeumannFullKernel q.1 q.2 y * f y ∂ intervalMeasure 1) :=
+    MeasureTheory.StronglyMeasurable.integral_prod_right'
+      (ν := intervalMeasure 1) hstrong
+  simpa [intervalFullSemigroupOperator] using hI.measurable
 
 /-! ## Picard iteration -/
 
@@ -1349,9 +1422,25 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
               rw [abs_neg]
       linarith
     hbase_meas := by
-      -- HasJointMeasurability (picardIter p u₀ 0):
-      -- picardIter p u₀ 0 t x = intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
-      sorry
+      have hSg_meas : Measurable (fun q : ℝ × ℝ =>
+          intervalFullSemigroupOperator q.1 (intervalDomainLift u₀) q.2) :=
+        intervalFullSemigroupOperator_joint_measurable
+          (intervalDomainLift_measurable_of_continuous _hu₀_cont)
+      have hfield :
+          (fun q : ℝ × ℝ => intervalDomainLift (picardIter p u₀ 0 q.1) q.2) =
+            fun q : ℝ × ℝ =>
+              if q.2 ∈ Set.Icc (0 : ℝ) 1 then
+                intervalFullSemigroupOperator q.1 (intervalDomainLift u₀) q.2
+              else 0 := by
+        funext q
+        by_cases hy : q.2 ∈ Set.Icc (0 : ℝ) 1
+        · simp [picardIter, intervalDomainLift, hy]
+        · simp [picardIter, intervalDomainLift, hy]
+      change Measurable (fun q : ℝ × ℝ =>
+        intervalDomainLift (picardIter p u₀ 0 q.1) q.2)
+      rw [hfield]
+      exact Measurable.ite (measurableSet_Icc.preimage measurable_snd)
+        hSg_meas measurable_const
     hmeas_preserved := by
       -- ∀ w, HasJointMeasurability w → HasJointMeasurability (fun t x => intervalGradientDuhamelMap p u₀ w t x)
       sorry
