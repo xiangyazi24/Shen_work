@@ -789,7 +789,12 @@ theorem picardIter_ball (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
     (hcont_preserved : ∀ (w : ℝ → intervalDomainPoint → ℝ),
       (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
       HasContinuousSlices T w →
+      HasJointMeasurability w →
       HasContinuousSlices T (fun t x => intervalGradientDuhamelMap p u₀ w t x))
+    (hbase_meas : HasJointMeasurability (picardIter p u₀ 0))
+    (hmeas_preserved : ∀ (w : ℝ → intervalDomainPoint → ℝ),
+      HasJointMeasurability w →
+      HasJointMeasurability (fun t x => intervalGradientDuhamelMap p u₀ w t x))
     (n : ℕ) :
     (∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
       |picardIter p u₀ n t x| ≤ M) ∧
@@ -799,9 +804,13 @@ theorem picardIter_ball (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   induction n with
   | zero => exact ⟨hbase, hbase_nn, hbase_cont⟩
   | succ n ih =>
+    have hmeas_iterates : ∀ k, HasJointMeasurability (picardIter p u₀ k) := by
+      intro k; induction k with
+      | zero => exact hbase_meas
+      | succ j ihj => exact hmeas_preserved _ ihj
     exact ⟨fun t ht htT x => hmapsTo _ ih.1 ih.2.1 ih.2.2 t ht htT x,
            fun t ht htT x => hmapsTo_nn _ ih.1 ih.2.1 ih.2.2 t ht htT x,
-           hcont_preserved _ ih.1 ih.2.2⟩
+           hcont_preserved _ ih.1 ih.2.2 (hmeas_iterates n)⟩
 
 /-- Geometric decay of Picard differences by induction. -/
 theorem picardIter_geometric (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
@@ -882,6 +891,7 @@ structure MildExistenceData (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   hcont_preserved : ∀ (w : ℝ → intervalDomainPoint → ℝ),
     (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
     HasContinuousSlices T w →
+    HasJointMeasurability w →
     HasContinuousSlices T (fun t x => intervalGradientDuhamelMap p u₀ w t x)
   -- Contraction (for continuous nonneg jointly measurable trajectories)
   hcontr : ∀ (u w : ℝ → intervalDomainPoint → ℝ) (d : ℝ),
@@ -913,7 +923,8 @@ theorem intervalMildSolution_of_data {p : CM2Params} {u₀ : intervalDomainPoint
     ∃ T : ℝ, 0 < T ∧ ∃ u : ℝ → intervalDomainPoint → ℝ,
       IntervalMildSolution p T u₀ u := by
   have hball_cont := fun n => picardIter_ball p u₀ D.hbase_ball D.hbase_nonneg
-    D.hbase_cont D.hmapsTo D.hmapsTo_nn D.hcont_preserved n
+    D.hbase_cont D.hmapsTo D.hmapsTo_nn D.hcont_preserved
+    D.hbase_meas D.hmeas_preserved n
   have hball := fun n => (hball_cont n).1
   have hball_nn := fun n => (hball_cont n).2.1
   have hcont_iterates := fun n => (hball_cont n).2.2
@@ -1341,7 +1352,11 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
          The gradient Duhamel ∫₀ᵗ ∂ₓS(t-s) flux(s) x ds uses the same pattern
          with the heat gradient kernel. Converting intervalIntegral to Bochner
          integral is the main technical step. -/
-      intro w _hw_bound _hw_cont t ht _htT
+      intro w hw_bound hw_cont hwm t ht htT
+      -- Φ(w)(t)(x) = S(t)u₀(x.1) + (-χ₀) * ∫₀ᵗ ∂ₓS(t-s) Q(w s) ds + ∫₀ᵗ S(t-s) L(w s) ds
+      -- Need: Continuous (Φ(w)(t)) where Φ(w)(t) : intervalDomainPoint → ℝ
+      -- Route: continuous_of_dominated_interval for each Duhamel integral,
+      -- composed with continuous_subtype_val.
       sorry
     hcontr := by
       intro u w d hu hu_nn hw hw_nn huc hwc hum hwm hd t ht htT x
