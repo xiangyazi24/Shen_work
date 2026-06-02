@@ -1385,6 +1385,82 @@ theorem intervalMildSolution_of_data {p : CM2Params} {u₀ : intervalDomainPoint
       (fun n => hgeom n) hball hball_nn hcont_iterates hcont_limit
       hmeas_iterates hmeas_limit D.hcontr⟩
 
+/-- Packaged output of the Picard iteration, exposing all side conditions. -/
+structure GradientMildSolutionData (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) where
+  T : ℝ
+  hT : 0 < T
+  M : ℝ
+  hM : 0 < M
+  u : ℝ → intervalDomainPoint → ℝ
+  hmild : IntervalMildSolution p T u₀ u
+  hbound : ∀ t, 0 < t → t ≤ T → ∀ x, |u t x| ≤ M
+  hnonneg : ∀ t, 0 < t → t ≤ T → ∀ x, 0 ≤ u t x
+  hcont : HasContinuousSlices T u
+  hmeas : HasJointMeasurability u
+
+set_option maxHeartbeats 800000 in
+/-- Construct `GradientMildSolutionData` from `MildExistenceData`, exposing all
+side conditions produced by the Picard iteration. -/
+def gradientMildSolutionData_of_data {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : MildExistenceData p u₀) : GradientMildSolutionData p u₀ := by
+  have hball_cont := fun n => picardIter_ball p u₀ D.hbase_ball D.hbase_nonneg
+    D.hbase_cont D.hmapsTo D.hmapsTo_nn D.hcont_preserved
+    D.hbase_meas D.hmeas_preserved n
+  have hball := fun n => (hball_cont n).1
+  have hball_nn := fun n => (hball_cont n).2.1
+  have hcont_iterates := fun n => (hball_cont n).2.2
+  have hmeas_iterates : ∀ n, HasJointMeasurability (picardIter p u₀ n) := by
+    intro n; induction n with
+    | zero => exact D.hbase_meas
+    | succ n ih => exact D.hmeas_preserved _ ih
+  have hgeom := picardIter_geometric p u₀ D.hK_nn hball hball_nn
+    hcont_iterates hmeas_iterates D.hcontr D.hC₀ D.hbase_diff
+  have hcont_limit := picardLimit_hasContinuousSlices p u₀ D.hT D.hK D.hK_nn D.hC₀
+    (fun n => hgeom n) hcont_iterates
+  have hmeas_limit : HasJointMeasurability (picardLimit p u₀ D.T) := by
+    set f_n : ℕ → ℝ × ℝ → ℝ := fun n q =>
+      if 0 < q.1 ∧ q.1 ≤ D.T then intervalDomainLift (picardIter p u₀ n q.1) q.2 else 0
+    set g : ℝ × ℝ → ℝ := fun q => intervalDomainLift (picardLimit p u₀ D.T q.1) q.2
+    have hf_meas : ∀ n, Measurable (f_n n) := fun n => by
+      apply Measurable.ite
+      · exact measurableSet_Ioc.preimage measurable_fst
+      · exact hmeas_iterates n
+      · exact measurable_const
+    have hlim : Filter.Tendsto f_n Filter.atTop (nhds g) := by
+      rw [tendsto_pi_nhds]; intro q
+      by_cases hq : 0 < q.1 ∧ q.1 ≤ D.T
+      · simp only [f_n, if_pos hq, g]
+        unfold picardLimit; simp only [if_pos hq]
+        unfold intervalDomainLift
+        by_cases hy : q.2 ∈ Set.Icc (0 : ℝ) 1
+        · simp only [dif_pos hy]
+          exact tendsto_nhds_limUnder
+            (picardIter_pointwise_convergent p u₀ D.hK D.hK_nn D.hC₀
+              (fun n => hgeom n) q.1 hq.1 hq.2 ⟨q.2, hy⟩)
+        · simp only [dif_neg hy]; exact tendsto_const_nhds
+      · simp only [f_n, if_neg hq]
+        have hg0 : g q = 0 := by
+          simp only [g, picardLimit, if_neg hq, intervalDomainLift]
+          split_ifs <;> rfl
+        rw [hg0]; exact tendsto_const_nhds
+    exact measurable_of_tendsto_metrizable hf_meas hlim
+  exact {
+    T := D.T
+    hT := D.hT
+    M := D.M
+    hM := D.hM
+    u := picardLimit p u₀ D.T
+    hmild := picardLimit_is_mildSolution p u₀ D.hT D.hK D.hK_nn D.hC₀ D.hM
+      (fun n => hgeom n) hball hball_nn hcont_iterates hcont_limit
+      hmeas_iterates hmeas_limit D.hcontr
+    hbound := picardLimit_bounded p u₀ D.hK D.hK_nn D.hC₀
+      (fun n => hgeom n) hball
+    hnonneg := picardLimit_nonneg p u₀ D.hK D.hK_nn D.hC₀
+      (fun n => hgeom n) hball_nn
+    hcont := hcont_limit
+    hmeas := hmeas_limit
+  }
+
 set_option maxHeartbeats 800000 in
 /-- Full mild existence: constructs MildExistenceData from PDE estimates.
 Sorry: instantiating T, M, K, C₀ from Duhamel bounds + flux/logistic Lipschitz.
