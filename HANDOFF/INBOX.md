@@ -1,38 +1,37 @@
-# Shen_work — Status (2026-06-01 ~13:00 CDT)
+# Shen_work — Status (2026-06-01 ~18:00 CDT)
 
-## Build: green (3541 jobs), HEAD = 961dc59
+## Build: green (3541 jobs), HEAD = d75a757, 15 commits today
 
-## Sorry: 5 in IntervalMildPicard.lean
+## Sorry: 10 in IntervalMildPicard.lean, 0 in IntervalDuhamelIntegrability.lean
 
-### What was proved today (4 commits):
-1. kernel_mul_integrable_of_source_integrable (IntervalDuhamelIntegrability.lean)
-2. intervalFullSemigroupOperator_diff_Linfty_of_integrable (IntervalDuhamelIntegrability.lean)
-3. hV both-integrable case CLOSED (value Duhamel diff bound)
-4. C_Q_lip constant refactor (fix constant mismatch)
-5. hq_diff_bound PROVED (flux Lipschitz on M-ball, 0 sorry) — 205 lines
-6. hgamma_ge : 1 <= p.gamma added as theorem hypothesis
+### Today's achievements (15 commits):
+1. kernel_mul_integrable_of_source_integrable (0 sorry)
+2. intervalFullSemigroupOperator_diff_Linfty_of_integrable (0 sorry)
+3. hV both-integrable case CLOSED
+4. C_Q_lip constant refactor
+5. hq_diff_bound PROVED (flux Lipschitz, 205 lines, 0 sorry)
+6. valueDuhamel_intervalIntegrable FULLY PROVED (0 sorry) — BREAKTHROUGH
+   - Heat kernel joint measurability via ENNReal tsum roundtrip
+   - Full chain: kernel meas → K*f AEStronglyMeasurable → integral_prod_right → bounded → IntegrableOn
+7. HasJointMeasurability interface (option A) implemented
+8. hV not-integrable restructured to exfalso+absurd
+9. hG by_cases structure added
 
-### Remaining 5 sorry (classified):
+### Remaining 10 sorry (classified):
+- L528: hmeas_limit (pointwise limit of measurable is measurable)
+- L899: hmapsTo_nn (parabolic max principle — independent hard problem)
+- L911: hcont_preserved (continuous_of_dominated — needs time measurability)
+- L1039/1046: Measurable (uncurry r_w/r_u) — source measurability from hum/hwm
+- L1277: hG both-integrable (gradient per-slice bound — gradDuhamel_diff_sup_bound plumbing)
+- L1278/1279: hG not-integrable (gradient IntervalIntegrable)
+- L1318/1321: hbase_meas/hmeas_preserved (instantiation)
 
-**Time-measurability blocked (4 sorry):**
-- hV not-integrable x2 (L1001/1003)
-- hG integral bound (L1227)
-- hcont_preserved (L880)
-
-All need: AEStronglyMeasurable (fun s => S(t-s)(r(s)) x) on [0,t].
-Mathematically vacuous for Picard iterates (impossible branches).
-Architectural fix: add joint-measurability hypothesis or restructure.
-
-**Parabolic max principle (1 sorry):**
-- hmapsTo_nn (L868): Phi preserves nonnegativity
-Genuinely hard. Needs comparison principle for mild formulation.
-
-### ChatGPT Pro R3 pending
-Asked for architectural guidance on the time-measurability fix.
+### Codex session active
+shen-meas on uisai1: working on source measurability + hbase_meas/hmeas_preserved.
 
 ### Key infrastructure (all 0 sorry):
-- chemFlux_div_lipschitz + hq_diff_bound (flux Lipschitz)
-- Atom B3/B4 bounds
-- O1 resolver positivity
-- kernel_mul_integrable + semigroup diff L-infty
-- valueDuhamel_sup/diff_bound_universal
+- IntervalDuhamelIntegrability.lean: 0 sorry (fully proved)
+- valueDuhamel_intervalIntegrable_of_joint_measurable
+- kernel_mul_integrable_of_source_integrable
+- intervalFullSemigroupOperator_diff_Linfty_of_integrable
+- chemFlux_div_lipschitz + hq_diff_bound
