@@ -762,4 +762,16 @@ theorem valueDuhamel_intervalIntegrable_of_joint_measurable
     rw [Set.uIoc_of_le ht.le, Real.volume_Ioc]; exact ENNReal.ofReal_lt_top
   exact IntegrableOn.of_bound hfin hmeas C hbdd
 
+/-- Gradient semigroup of bounded jointly-measurable source is IntervalIntegrable.
+Same chain as `valueDuhamel_intervalIntegrable_of_joint_measurable` but for
+the gradient integrand `s ↦ deriv (S(t-s)(f s)) x`. -/
+theorem gradDuhamel_intervalIntegrable_of_joint_measurable
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ → ℝ}
+    (hf_meas : Measurable (Function.uncurry f))
+    {C : ℝ} (hC : 0 ≤ C) (hf_bdd : ∀ s y, |f s y| ≤ C) (x : ℝ) :
+    IntervalIntegrable
+      (fun s => deriv (fun z => intervalFullSemigroupOperator (t - s) (f s) z) x)
+      volume 0 t := by
+  sorry
+
 end ShenWork.IntervalDuhamelIntegrability
