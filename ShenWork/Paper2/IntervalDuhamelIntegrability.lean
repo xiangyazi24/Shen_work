@@ -7,6 +7,7 @@
 -/
 import ShenWork.PDE.IntervalGradDuhamelBound
 import ShenWork.PDE.IntervalFullKernelSupBound
+import ShenWork.PDE.IntervalFullKernelSDependentMeasurable
 import ShenWork.Paper2.IntervalGradientDuhamelMap
 import ShenWork.Paper2.IntervalResolverWeakBounds
 import ShenWork.PDE.IntervalResolverPositivity
@@ -772,6 +773,40 @@ theorem gradDuhamel_intervalIntegrable_of_joint_measurable
     IntervalIntegrable
       (fun s => deriv (fun z => intervalFullSemigroupOperator (t - s) (f s) z) x)
       volume 0 t := by
-  sorry
+  open ShenWork.IntervalNeumannFullKernel in
+  open ShenWork.IntervalGradDuhamelBound in
+  rw [intervalIntegrable_iff]
+  -- Per-slice integrability of the source
+  have hf_slice_int : ∀ s, Integrable (f s) (intervalMeasure 1) := fun s =>
+    ShenWork.IntervalDomain.intervalMeasure_integrable_of_abs_bound
+      ((hf_meas.comp measurable_prodMk_left).aestronglyMeasurable)
+      (hf_bdd s)
+  -- Step 1: AEStronglyMeasurable of the gradient integrand on uIoc 0 t
+  have hmeas : AEStronglyMeasurable
+      (fun s => deriv (fun z => intervalFullSemigroupOperator (t - s) (f s) z) x)
+      (volume.restrict (Set.uIoc 0 t)) :=
+    intervalFullSemigroupOperator_s_dependent_deriv_aestronglyMeasurable_x₀
+      ht hf_meas.aestronglyMeasurable hf_slice_int (fun s => hf_bdd s) x
+  -- Step 2: Domination by Cg * C * (t-s)^(-1/2), which is integrable
+  set Cg := ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant
+  have hdom_int : IntegrableOn
+      (fun s => Cg * (t - s) ^ (-(1/2) : ℝ) * C) (Set.uIoc 0 t) volume := by
+    rw [show (fun s => Cg * (t - s) ^ (-(1/2) : ℝ) * C) =
+        (fun s => (Cg * C) * (t - s) ^ (-(1/2) : ℝ)) from by ext; ring]
+    rw [← intervalIntegrable_iff]
+    exact (intervalIntegrable_sub_rpow_neg_half t).const_mul (Cg * C)
+  -- a.e. on uIoc 0 t, s < t (singleton {t} is null), giving the pointwise bound
+  have hne : ∀ᵐ s ∂volume, s ≠ t := by
+    rw [ae_iff]; simp only [not_not, Set.setOf_eq_eq_singleton]; exact Real.volume_singleton
+  have hae : ∀ᵐ s ∂(volume.restrict (Set.uIoc 0 t)),
+      ‖(fun s => deriv (fun z => intervalFullSemigroupOperator (t - s) (f s) z) x) s‖
+        ≤ (fun s => Cg * (t - s) ^ (-(1/2) : ℝ) * C) s := by
+    rw [Set.uIoc_of_le ht.le, ae_restrict_iff' measurableSet_Ioc]
+    filter_upwards [hne] with s hs_ne hs_mem
+    rw [Real.norm_eq_abs]
+    exact intervalFullCoupledDuhamel_grad_integrand_pointwise_bound
+      hs_mem.1.le (lt_of_le_of_ne hs_mem.2 hs_ne) (hf_slice_int s) hC (hf_bdd s) x
+  -- Conclude: AEStronglyMeasurable + dominated by integrable → IntegrableOn
+  exact Integrable.mono' hdom_int.integrable hmeas hae
 
 end ShenWork.IntervalDuhamelIntegrability
