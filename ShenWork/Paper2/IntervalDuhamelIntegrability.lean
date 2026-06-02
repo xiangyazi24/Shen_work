@@ -154,7 +154,7 @@ private theorem integrable_of_integrable_intervalNeumannFullKernel_mul
             exact (Real.norm_of_nonneg
               (mul_nonneg hdinv_nonneg (norm_nonneg _))).symm)
 
-private theorem intervalFullSemigroupOperator_eq_zero_of_not_integrable
+theorem intervalFullSemigroupOperator_eq_zero_of_not_integrable
     {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
     (hf_not : ¬ Integrable f (intervalMeasure 1)) (x : ℝ) :
     intervalFullSemigroupOperator t f x = 0 := by
@@ -163,7 +163,7 @@ private theorem intervalFullSemigroupOperator_eq_zero_of_not_integrable
   intro hprod
   exact hf_not (integrable_of_integrable_intervalNeumannFullKernel_mul ht hprod)
 
-private theorem deriv_intervalFullSemigroupOperator_eq_zero_of_not_integrable
+theorem deriv_intervalFullSemigroupOperator_eq_zero_of_not_integrable
     {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ}
     (hf_not : ¬ Integrable f (intervalMeasure 1)) (x : ℝ) :
     deriv (fun z : ℝ => intervalFullSemigroupOperator t f z) x = 0 := by
