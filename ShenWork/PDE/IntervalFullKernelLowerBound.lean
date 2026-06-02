@@ -44,6 +44,7 @@ Proof: `c = c·∫K = ∫(K·c) ≤ ∫(K·f) = S(t)f(x)`, the inequality using 
 and `c ≤ f` on the support `[0,1]` of `intervalMeasure 1`. -/
 theorem intervalFullSemigroupOperator_lower_bound {t : ℝ} (ht : 0 < t)
     {f : ℝ → ℝ} {c B : ℝ} (hc : 0 ≤ c) (hcB : c ≤ B)
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure 1))
     (hf_lower : ∀ y, y ∈ Set.Icc (0 : ℝ) 1 → c ≤ f y)
     (hf_bound : ∀ y, |f y| ≤ B) (x : ℝ) :
     c ≤ intervalFullSemigroupOperator t f x := by
@@ -55,7 +56,8 @@ theorem intervalFullSemigroupOperator_lower_bound {t : ℝ} (ht : 0 < t)
   have hKf_int : Integrable (fun y => intervalNeumannFullKernel t x y * f y)
       (intervalMeasure 1) := by
     apply Integrable.mono (hK_int.mul_const B)
-    · sorry -- AEStronglyMeasurable
+    · exact ((continuousOn_intervalNeumannFullKernel_snd ht x).aestronglyMeasurable
+        measurableSet_Icc).mul hf_meas
     · apply Filter.Eventually.of_forall
       intro y
       simp only [Real.norm_eq_abs, abs_mul, abs_of_nonneg (hK_nn y)]
