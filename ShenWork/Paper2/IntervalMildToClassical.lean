@@ -99,10 +99,9 @@ theorem mildChemical_nonneg (p : CM2Params)
 theorem mildSolution_strictlyPositive (p : CM2Params)
     {u₀ : intervalDomainPoint → ℝ}
     (D : GradientMildSolutionData p u₀)
-    (hu₀_pos : ∀ x, 0 < u₀ x)
     {t : ℝ} (ht : 0 < t) (htT : t ≤ D.T) (x : intervalDomainPoint) :
     0 < D.u t x := by
-  sorry -- Strengthen hmapsTo_nn from ≥ 0 to > 0 using the positive margin
+  exact D.hpos t ht htT x
 
 /-- Initial trace: u(t) → u₀ as t → 0⁺ in L∞. -/
 theorem mildSolution_initialTrace (p : CM2Params)
