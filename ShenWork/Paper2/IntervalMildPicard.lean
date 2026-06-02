@@ -50,6 +50,42 @@ def HasContinuousSlices (T : ℝ) (u : ℝ → intervalDomainPoint → ℝ) : Pr
 def HasJointMeasurability (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
   Measurable (fun p : ℝ × ℝ => intervalDomainLift (u p.1) p.2)
 
+private theorem logisticLifted_time_cutoff_measurable
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (hum : HasJointMeasurability u) :
+    Measurable
+      (fun q : ℝ × ℝ =>
+        if 0 < q.1 ∧ q.1 ≤ T then logisticLifted p (u q.1) q.2 else 0) := by
+  have hsource :
+      Measurable (fun q : ℝ × ℝ => logisticLifted p (u q.1) q.2) := by
+    have h_rpow : Measurable (fun x : ℝ => x ^ p.α) := by fun_prop
+    have hpow :
+        Measurable (fun q : ℝ × ℝ =>
+          (intervalDomainLift (u q.1) q.2) ^ p.α) :=
+      h_rpow.comp hum
+    have hpoly :
+        Measurable (fun q : ℝ × ℝ =>
+          intervalDomainLift (u q.1) q.2 *
+            (p.a - p.b * (intervalDomainLift (u q.1) q.2) ^ p.α)) :=
+      hum.mul (measurable_const.sub (measurable_const.mul hpow))
+    rw [show
+        (fun q : ℝ × ℝ => logisticLifted p (u q.1) q.2) =
+          fun q : ℝ × ℝ =>
+            intervalDomainLift (u q.1) q.2 *
+              (p.a - p.b * (intervalDomainLift (u q.1) q.2) ^ p.α) by
+      funext q
+      by_cases hy : q.2 ∈ Set.Icc (0 : ℝ) 1
+      · simp [logisticLifted, ShenWork.IntervalDomainExistence.intervalLogisticSource,
+          intervalDomainLift, hy]
+      · simp [logisticLifted, intervalDomainLift, hy]]
+    exact hpoly
+  refine Measurable.ite ?_ hsource measurable_const
+  have htime :
+      MeasurableSet {q : ℝ × ℝ | 0 < q.1 ∧ q.1 ≤ T} := by
+    exact (isOpen_Ioi.preimage continuous_fst).measurableSet.inter
+      (isClosed_Iic.preimage continuous_fst).measurableSet
+  exact htime
+
 /-! ## Picard iteration -/
 
 /-- The Picard iteration: u₀(t,x) = S(t)u₀(x), u_{n+1} = Φ(u₀, u_n). -/
@@ -1036,14 +1072,14 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
                 ht (by
                   show Measurable (fun p : ℝ × ℝ => r_w p.1 p.2)
                   simp only [r_w]
-                  sorry) hC_L_val_nn
+                  exact logisticLifted_time_cutoff_measurable hwm) hC_L_val_nn
                 (hr_w_bdd) x.1)
         · exfalso; exact hint_u
             (ShenWork.IntervalDuhamelIntegrability.valueDuhamel_intervalIntegrable_of_joint_measurable
               ht (by
                 show Measurable (fun p : ℝ × ℝ => r_u p.1 p.2)
                 simp only [r_u]
-                sorry) hC_L_val_nn
+                exact logisticLifted_time_cutoff_measurable hum) hC_L_val_nn
               (hr_u_bdd) x.1)
       have hG : |Gu - Gw| ≤ C_grad * (2 * Real.sqrt T₀) * (C_Q_lip * d) := by
         -- Extended flux sources (= original on (0,T₀], = 0 otherwise)
