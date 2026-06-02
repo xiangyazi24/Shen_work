@@ -23,6 +23,7 @@ import ShenWork.Paper2.IntervalDuhamelIntegrability
 import ShenWork.PDE.IntervalLogisticLipschitz
 import ShenWork.PDE.IntervalResolverPositivity
 import ShenWork.PDE.IntervalFullKernelSDependentMeasurable
+import Mathlib.MeasureTheory.Constructions.Polish.StronglyMeasurable
 import Mathlib.Topology.Algebra.InfiniteSum.Real
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Topology.UniformSpace.UniformApproximation
@@ -158,6 +159,295 @@ private theorem intervalFullSemigroupOperator_joint_measurable
     MeasureTheory.StronglyMeasurable.integral_prod_right'
       (ν := intervalMeasure 1) hstrong
   simpa [intervalFullSemigroupOperator] using hI.measurable
+
+private theorem measurable_tsum_nat {α : Type*} [MeasurableSpace α]
+    {f : ℕ → α → ℝ} (hf : ∀ n, Measurable (f n)) :
+    Measurable (fun a : α => ∑' n : ℕ, f n a) := by
+  classical
+  let L := SummationFilter.unconditional ℕ
+  set S : Finset ℕ → α → ℝ := fun s a => ∑ n ∈ s, f n a with hSdef
+  have hS_meas : ∀ s, StronglyMeasurable (S s) := by
+    intro s
+    exact (Finset.measurable_sum _ (fun n _ => hf n)).stronglyMeasurable
+  set C : Set α := {a | ∃ c : ℝ, Tendsto (fun s : Finset ℕ => S s a) L.filter (nhds c)}
+    with hCdef
+  have hC_meas : MeasurableSet C := by
+    simpa [C] using MeasureTheory.StronglyMeasurable.measurableSet_exists_tendsto
+      (l := L.filter) (f := S) hS_meas
+  have hlim_meas : Measurable (fun a : α =>
+      L.filter.limUnder (fun s : Finset ℕ => S s a)) := by
+    exact (MeasureTheory.StronglyMeasurable.limUnder (l := L.filter) hS_meas).measurable
+  have h_eq : (fun a : α => ∑' n : ℕ, f n a) =
+      fun a : α => if a ∈ C then L.filter.limUnder (fun s : Finset ℕ => S s a) else 0 := by
+    funext a
+    by_cases ha : a ∈ C
+    · simp only [ha, if_true]
+      rcases ha with ⟨c, hc⟩
+      have hsum : Summable (fun n : ℕ => f n a) := ⟨c, hc⟩
+      exact hsum.hasSum.limUnder_eq.symm
+    · simp only [ha, if_false]
+      have hnot : ¬ Summable (fun n : ℕ => f n a) := by
+        intro hs
+        exact ha ⟨∑' n : ℕ, f n a, hs.hasSum⟩
+      exact tsum_eq_zero_of_not_summable hnot
+  rw [h_eq]
+  exact Measurable.ite hC_meas hlim_meas measurable_const
+
+private theorem intervalNeumannResolverSourceCoeff_time_measurable
+    {p : CM2Params} {w : ℝ → intervalDomainPoint → ℝ}
+    (hum : HasJointMeasurability w) (k : ℕ) :
+    Measurable (fun s : ℝ => ShenWork.PDE.intervalNeumannResolverSourceCoeff p (w s) k) := by
+  set src : ℝ → ℝ → ℂ :=
+    fun s x => ((p.ν * intervalDomainLift (w s) x ^ p.γ : ℝ) : ℂ) with hsrc_def
+  have hsrc_meas : Measurable (fun q : ℝ × ℝ => src q.1 q.2) := by
+    have h_rpow : Measurable (fun x : ℝ => x ^ p.γ) := by fun_prop
+    have hpow : Measurable (fun q : ℝ × ℝ =>
+        intervalDomainLift (w q.1) q.2 ^ p.γ) :=
+      h_rpow.comp hum
+    have hreal : Measurable (fun q : ℝ × ℝ =>
+        p.ν * intervalDomainLift (w q.1) q.2 ^ p.γ) :=
+      measurable_const.mul hpow
+    exact Complex.continuous_ofReal.measurable.comp hreal
+  have hraw : ∀ n : ℕ, Measurable (fun s : ℝ =>
+      ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff (fun x : ℝ => src s x) n) := by
+    intro n
+    set F : ℝ × ℝ → ℂ :=
+      fun q => (Real.cos ((n : ℝ) * Real.pi * q.2) : ℂ) * src q.1 q.2 with hF_def
+    have hF : Measurable F := by
+      have hcos : Measurable (fun q : ℝ × ℝ =>
+          (Real.cos ((n : ℝ) * Real.pi * q.2) : ℂ)) := by
+        fun_prop
+      exact hcos.mul hsrc_meas
+    have hI : StronglyMeasurable (fun s : ℝ =>
+        ∫ x : ℝ, F (s, x) ∂(volume.restrict (Set.Ioc (0 : ℝ) 1))) :=
+      MeasureTheory.StronglyMeasurable.integral_prod_right'
+        (ν := volume.restrict (Set.Ioc (0 : ℝ) 1)) hF.stronglyMeasurable
+    have hfun : (fun s : ℝ =>
+        ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff
+          (fun x : ℝ => src s x) n) =
+        fun s : ℝ => ∫ x : ℝ, F (s, x) ∂(volume.restrict (Set.Ioc (0 : ℝ) 1)) := by
+      funext s
+      rw [ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff,
+        intervalIntegral.integral_of_le (show (0 : ℝ) ≤ 1 by norm_num)]
+    rw [hfun]
+    exact hI.measurable
+  have hcoeff_real : Measurable (fun s : ℝ =>
+      ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff
+        (fun x : ℝ => src s x) k) := by
+    by_cases hk : k = 0
+    · subst k
+      have hre : Measurable (fun s : ℝ =>
+          (ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff
+            (fun x : ℝ => src s x) 0).re) :=
+        Complex.continuous_re.measurable.comp (hraw 0)
+      simpa [ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff] using hre
+    · have hre : Measurable (fun s : ℝ =>
+          (ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff
+            (fun x : ℝ => src s x) k).re) :=
+        Complex.continuous_re.measurable.comp (hraw k)
+      simpa [ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff, hk] using
+        (measurable_const.mul hre)
+  have hcomplex : Measurable (fun s : ℝ =>
+      ((ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff
+        (fun x : ℝ => src s x) k : ℝ) : ℂ)) :=
+    Complex.continuous_ofReal.measurable.comp hcoeff_real
+  simpa [ShenWork.PDE.intervalNeumannResolverSourceCoeff, hsrc_def] using hcomplex
+
+private theorem intervalNeumannResolverCoeff_re_time_measurable
+    {p : CM2Params} {w : ℝ → intervalDomainPoint → ℝ}
+    (hum : HasJointMeasurability w) (k : ℕ) :
+    Measurable (fun s : ℝ => (ShenWork.PDE.intervalNeumannResolverCoeff p (w s) k).re) := by
+  have hsource := intervalNeumannResolverSourceCoeff_time_measurable (p := p) (w := w) hum k
+  have hcoeff : Measurable (fun s : ℝ =>
+      ShenWork.PDE.intervalNeumannResolverCoeff p (w s) k) := by
+    unfold ShenWork.PDE.intervalNeumannResolverCoeff
+    unfold ShenWork.PDE.ResolventEstimate.shiftedNeumannResolventCoeff
+    exact measurable_const.mul hsource
+  exact Complex.continuous_re.measurable.comp hcoeff
+
+private theorem intervalNeumannResolverR_lift_joint_measurable
+    {p : CM2Params} {w : ℝ → intervalDomainPoint → ℝ}
+    (hum : HasJointMeasurability w) :
+    Measurable (fun q : ℝ × ℝ =>
+      intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p (w q.1)) q.2) := by
+  have hseries : Measurable (fun q : ℝ × ℝ =>
+      ∑' k : ℕ,
+        (ShenWork.PDE.intervalNeumannResolverCoeff p (w q.1) k).re *
+          unitIntervalCosineMode k q.2) := by
+    refine measurable_tsum_nat ?_
+    intro k
+    have hcoeff : Measurable (fun q : ℝ × ℝ =>
+        (ShenWork.PDE.intervalNeumannResolverCoeff p (w q.1) k).re) :=
+      (intervalNeumannResolverCoeff_re_time_measurable (p := p) (w := w) hum k).comp
+        measurable_fst
+    have hmode : Measurable (fun q : ℝ × ℝ => unitIntervalCosineMode k q.2) := by
+      unfold unitIntervalCosineMode
+      fun_prop
+    exact hcoeff.mul hmode
+  have hfun : (fun q : ℝ × ℝ =>
+      intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p (w q.1)) q.2) =
+      fun q : ℝ × ℝ =>
+        if q.2 ∈ Set.Icc (0 : ℝ) 1 then
+          ∑' k : ℕ,
+            (ShenWork.PDE.intervalNeumannResolverCoeff p (w q.1) k).re *
+              unitIntervalCosineMode k q.2
+        else 0 := by
+    funext q
+    by_cases hy : q.2 ∈ Set.Icc (0 : ℝ) 1
+    · simp [intervalDomainLift, ShenWork.PDE.intervalNeumannResolverR, hy]
+    · simp [intervalDomainLift, hy]
+  rw [hfun]
+  exact Measurable.ite (measurableSet_Icc.preimage measurable_snd) hseries measurable_const
+
+private theorem resolverGradReal_joint_measurable
+    {p : CM2Params} {w : ℝ → intervalDomainPoint → ℝ}
+    (hum : HasJointMeasurability w) :
+    Measurable (fun q : ℝ × ℝ => ShenWork.Paper2.resolverGradReal p (w q.1) q.2) := by
+  unfold ShenWork.Paper2.resolverGradReal
+  refine measurable_tsum_nat ?_
+  intro k
+  have hcoeff : Measurable (fun q : ℝ × ℝ =>
+      (ShenWork.PDE.intervalNeumannResolverCoeff p (w q.1) k).re) :=
+    (intervalNeumannResolverCoeff_re_time_measurable (p := p) (w := w) hum k).comp
+      measurable_fst
+  have hmode : Measurable (fun q : ℝ × ℝ =>
+      -((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * q.2)) := by
+    fun_prop
+  exact hcoeff.mul hmode
+
+private theorem chemFluxLifted_joint_measurable
+    {p : CM2Params} {w : ℝ → intervalDomainPoint → ℝ}
+    (hum : HasJointMeasurability w) :
+    Measurable (fun q : ℝ × ℝ => chemFluxLifted p (w q.1) q.2) := by
+  have hR := intervalNeumannResolverR_lift_joint_measurable (p := p) (w := w) hum
+  have hG := resolverGradReal_joint_measurable (p := p) (w := w) hum
+  have hden_base : Measurable (fun q : ℝ × ℝ =>
+      1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p (w q.1)) q.2) :=
+    measurable_const.add hR
+  have h_rpow : Measurable (fun x : ℝ => x ^ p.β) := by fun_prop
+  have hden : Measurable (fun q : ℝ × ℝ =>
+      (1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p (w q.1)) q.2) ^ p.β) :=
+    h_rpow.comp hden_base
+  have hnum : Measurable (fun q : ℝ × ℝ =>
+      intervalDomainLift (w q.1) q.2 *
+        ShenWork.Paper2.resolverGradReal p (w q.1) q.2) :=
+    hum.mul hG
+  simpa [chemFluxLifted] using hnum.div hden
+
+private theorem chemFluxLifted_bound_of_ball
+    (p : CM2Params) {M : ℝ} (hM_nonneg : 0 ≤ M)
+    {w : intervalDomainPoint → ℝ}
+    (hw_bound : ∀ x, |w x| ≤ M)
+    (hw_nonneg : ∀ x, 0 ≤ w x)
+    (hw_cont : Continuous w) :
+    ∀ y : ℝ,
+      |chemFluxLifted p w y| ≤
+        M * (Real.sqrt (∑' k : ℕ,
+          (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+            (2 * (p.ν * M ^ p.γ))) := by
+  intro y
+  set C_RG := Real.sqrt (∑' k : ℕ,
+      (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+    (2 * (p.ν * M ^ p.γ))
+  have hC_RG_nn : 0 ≤ C_RG :=
+    mul_nonneg (Real.sqrt_nonneg _)
+      (mul_nonneg (by norm_num : (0 : ℝ) ≤ 2)
+        (mul_nonneg p.hν.le (Real.rpow_nonneg hM_nonneg _)))
+  unfold chemFluxLifted
+  by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+  · have hcont_on : ContinuousOn (intervalDomainLift w) (Set.Icc (0 : ℝ) 1) := by
+      rw [continuousOn_iff_continuous_restrict]
+      have : Set.restrict (Set.Icc (0 : ℝ) 1) (intervalDomainLift w) = w := by
+        ext ⟨x, hx⟩
+        simp [Set.restrict, intervalDomainLift, hx]
+        rfl
+      rw [this]
+      exact hw_cont
+    have hlb : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 ≤ intervalDomainLift w x := by
+      intro x hx
+      simp [intervalDomainLift, hx]
+      exact hw_nonneg ⟨x, hx⟩
+    have hub : ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift w x ≤ M := by
+      intro x hx
+      simp [intervalDomainLift, hx]
+      exact (abs_le.mp (hw_bound ⟨x, hx⟩)).2
+    have hgrad : |ShenWork.Paper2.resolverGradReal p w y| ≤ C_RG := by
+      simpa [C_RG] using
+        ShenWork.IntervalResolverWeakBounds.resolverGrad_sup_le_of_bounded
+          p hcont_on hlb hub hy
+    have hlift : |intervalDomainLift w y| ≤ M := by
+      simp [intervalDomainLift, hy]
+      exact hw_bound ⟨y, hy⟩
+    open ShenWork.PDE ShenWork.IntervalResolverGradientBridge
+        ShenWork.IntervalResolverWeakBounds ShenWork.Paper2
+        ShenWork.IntervalNeumannFullKernel ShenWork.IntervalResolverPositivity in
+    have hR_nonneg_pt : 0 ≤ intervalNeumannResolverR p w ⟨y, hy⟩ := by
+      have hcont_src : Continuous
+          (fun x : intervalDomainPoint ↦ p.ν * (w x) ^ p.γ) :=
+        continuous_const.mul (hw_cont.rpow_const (fun x ↦ Or.inr p.hγ.le))
+      set clip : ℝ → intervalDomainPoint := fun x ↦
+        ⟨max 0 (min x 1), le_max_left 0 _,
+          max_le (by norm_num) (min_le_right x 1)⟩
+      have hclip_cont : Continuous clip :=
+        Continuous.subtype_mk
+          (continuous_const.max (continuous_id.min continuous_const)) _
+      set f : ℝ → ℝ :=
+        (fun x : intervalDomainPoint ↦ p.ν * (w x) ^ p.γ) ∘ clip
+      have hf_cont : Continuous f := hcont_src.comp hclip_cont
+      have hf_nonneg : ∀ z, 0 ≤ f z := fun z ↦
+        mul_nonneg p.hν.le (Real.rpow_nonneg (hw_nonneg _) _)
+      have hf_coeff : ∀ k, cosineCoeffs f k =
+          (intervalNeumannResolverSourceCoeff p w k).re := by
+        intro k
+        have hsrc_eq :
+            (intervalNeumannResolverSourceCoeff p w k).re =
+            cosineCoeffs (fun x ↦ p.ν * intervalDomainLift w x ^ p.γ) k := by
+          simp [cosineCoeffs, intervalNeumannResolverSourceCoeff,
+            Complex.ofReal_re]
+        rw [hsrc_eq]
+        exact cosineCoeffs_congr_on_Icc (fun x hx ↦ by
+          simp only [f, Function.comp, clip]
+          have hclip_eq : max 0 (min x 1) = x := by
+            rw [min_eq_left hx.2, max_eq_right hx.1]
+          simp only [hclip_eq, intervalDomainLift,
+            dif_pos (Set.mem_Icc.mpr hx)]) k
+      have hâ : Summable (fun k ↦ (cosineCoeffs f k) ^ 2) := by
+        have h := resolverSourceCoeff_re_sq_summable_of_continuousOn p hcont_on
+        simp only [intervalNeumannResolverSourceCoeff_zero, sub_zero] at h
+        exact h.congr (fun k ↦ by rw [hf_coeff])
+      exact intervalNeumannResolverR_nonneg_of_nonneg_source
+        hf_cont hf_nonneg hf_coeff hâ ⟨y, hy⟩
+    have hR_lift_eq :
+        intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y =
+          ShenWork.PDE.intervalNeumannResolverR p w ⟨y, hy⟩ := by
+      simp [intervalDomainLift, hy]
+    have hden_ge_one :
+        1 ≤ (1 + intervalDomainLift
+          (ShenWork.PDE.intervalNeumannResolverR p w) y) ^ p.β := by
+      rw [hR_lift_eq]
+      exact Real.one_le_rpow (by linarith [hR_nonneg_pt]) p.hβ
+    calc
+      |intervalDomainLift w y * ShenWork.Paper2.resolverGradReal p w y /
+          (1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y) ^ p.β|
+          = |intervalDomainLift w y * ShenWork.Paper2.resolverGradReal p w y| /
+            |(1 + intervalDomainLift (ShenWork.PDE.intervalNeumannResolverR p w) y) ^ p.β| :=
+            abs_div _ _
+      _ ≤ |intervalDomainLift w y * ShenWork.Paper2.resolverGradReal p w y| / 1 := by
+          apply div_le_div_of_nonneg_left (abs_nonneg _) one_pos
+          rwa [abs_of_nonneg (le_of_lt (Real.rpow_pos_of_pos
+            (by rw [hR_lift_eq]; linarith [hR_nonneg_pt]) p.β))]
+      _ = |intervalDomainLift w y * ShenWork.Paper2.resolverGradReal p w y| := by
+          rw [div_one]
+      _ ≤ |intervalDomainLift w y| * |ShenWork.Paper2.resolverGradReal p w y| :=
+          le_of_eq (abs_mul _ _)
+      _ ≤ M * C_RG := by
+          exact mul_le_mul hlift hgrad (abs_nonneg _) hM_nonneg
+      _ = M * (Real.sqrt (∑' k : ℕ,
+            (ShenWork.PDE.intervalNeumannResolverGradWeight p k) ^ 2) *
+              (2 * (p.ν * M ^ p.γ))) := by
+          rfl
+  · simp [intervalDomainLift, hy, zero_mul, abs_zero]
+    exact mul_nonneg hM_nonneg hC_RG_nn
 
 /-! ## Picard iteration -/
 
@@ -1409,6 +1699,38 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
               exact mul_nonneg hC_Q_lip_nn hd_nn
           · -- s ∉ (0, T₀]: 0 - 0 = 0
             simp; exact mul_nonneg hC_Q_lip_nn hd_nn
+        have hq_u_bound : ∀ s y, |q_u s y| ≤ C_Q_unif := by
+          intro s y
+          simp only [q_u]
+          split_ifs with h
+          · simpa [C_Q_unif, C_RG] using
+              chemFluxLifted_bound_of_ball p hM.le
+                (hu s h.1 h.2) (hu_nn s h.1 h.2) (huc s h.1 h.2) y
+          · simp
+            exact hC_Q_unif_nn
+        have hq_w_bound : ∀ s y, |q_w s y| ≤ C_Q_unif := by
+          intro s y
+          simp only [q_w]
+          split_ifs with h
+          · simpa [C_Q_unif, C_RG] using
+              chemFluxLifted_bound_of_ball p hM.le
+                (hw s h.1 h.2) (hw_nn s h.1 h.2) (hwc s h.1 h.2) y
+          · simp
+            exact hC_Q_unif_nn
+        have htime_cutoff :
+            MeasurableSet {q : ℝ × ℝ | 0 < q.1 ∧ q.1 ≤ T₀} := by
+          exact (isOpen_Ioi.preimage continuous_fst).measurableSet.inter
+            (isClosed_Iic.preimage continuous_fst).measurableSet
+        have hq_u_meas : Measurable (Function.uncurry q_u) := by
+          show Measurable (fun q : ℝ × ℝ => q_u q.1 q.2)
+          simp only [q_u]
+          exact Measurable.ite htime_cutoff
+            (chemFluxLifted_joint_measurable hum) measurable_const
+        have hq_w_meas : Measurable (Function.uncurry q_w) := by
+          show Measurable (fun q : ℝ × ℝ => q_w q.1 q.2)
+          simp only [q_w]
+          exact Measurable.ite htime_cutoff
+            (chemFluxLifted_joint_measurable hwm) measurable_const
         -- Gradient Duhamel difference bound
         -- Same by_cases IntervalIntegrable pattern as hV.
         -- Both not-integrable branches discharge via source joint measurability
@@ -1446,8 +1768,8 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
               have hst : s < t := lt_of_le_of_ne hs_mem.2 hs
               have htms : 0 < t - s := sub_pos.mpr hst
               -- Linearize: deriv(S(τ)(f-g)) = deriv(S(τ)f) - deriv(S(τ)g)
-              have hq_u_bdd : ∀ y, |q_u s y| ≤ C_Q_unif := sorry
-              have hq_w_bdd : ∀ y, |q_w s y| ≤ C_Q_unif := sorry
+              have hq_u_bdd : ∀ y, |q_u s y| ≤ C_Q_unif := hq_u_bound s
+              have hq_w_bdd : ∀ y, |q_w s y| ≤ C_Q_unif := hq_w_bound s
               have hKu : ∀ z, Integrable
                   (fun y => ShenWork.IntervalNeumannFullKernel.intervalNeumannFullKernel
                     (t - s) z y * q_u s y) (intervalMeasure 1) :=
@@ -1490,8 +1812,14 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
                   have hCg_nn := ShenWork.HeatKernelGradientEstimates.heatGradientLinftyLinftyConstant_nonneg
                   have hsqT_nn := Real.sqrt_nonneg T₀
                   nlinarith [mul_nonneg hCg_nn hCQLd_nn, mul_nonneg hsqT_nn hCQLd_nn]
-          · exfalso; exact hint_Gw sorry
-        · exfalso; exact hint_Gu sorry
+          · exfalso
+            exact hint_Gw
+              (ShenWork.IntervalDuhamelIntegrability.gradDuhamel_intervalIntegrable_of_joint_measurable
+                ht hq_w_meas hC_Q_unif_nn hq_w_bound x.1)
+        · exfalso
+          exact hint_Gu
+            (ShenWork.IntervalDuhamelIntegrability.gradDuhamel_intervalIntegrable_of_joint_measurable
+              ht hq_u_meas hC_Q_unif_nn hq_u_bound x.1)
       -- Step 4: Assemble via gradientDuhamel_contraction_pointwise
       calc |(-p.χ₀) * (Gu - Gw) + (Vu - Vw)|
           ≤ (2 * |p.χ₀| * C_grad * C_Q_lip * Real.sqrt T₀ + C_L * T₀) * d :=
