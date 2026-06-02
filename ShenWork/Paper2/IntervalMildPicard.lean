@@ -43,6 +43,10 @@ namespace ShenWork.IntervalMildPicard
 instance : TopologicalSpace intervalDomainPoint :=
   instTopologicalSpaceSubtype
 
+instance : FirstCountableTopology intervalDomainPoint := by
+  unfold intervalDomainPoint
+  infer_instance
+
 /-- A trajectory has continuous spatial slices if each time-slice is continuous. -/
 def HasContinuousSlices (T : ℝ) (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
   ∀ t, 0 < t → t ≤ T → Continuous (u t)
@@ -295,6 +299,111 @@ private theorem intervalFullSemigroupOperator_hasDerivAt_fst_of_integrable
     have hderiv :=
       ShenWork.IntervalNeumannFullKernel.hasDerivAt_intervalNeumannFullKernel_fst ht z y
     simpa [hderiv.deriv] using hderiv.mul_const (f y)
+
+private theorem continuousOn_deriv_intervalNeumannFullKernel_fst_in_x
+    {t : ℝ} (ht : 0 < t) {y : ℝ} (hy : y ∈ Set.Icc (0 : ℝ) 1) :
+    ContinuousOn (fun x : ℝ =>
+      deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x)
+      (Set.Icc (0 : ℝ) 1) := by
+  have hcd := ShenWork.IntervalNeumannFullKernel.continuous_deriv_heatKernel ht
+  have hfun :
+      (fun x : ℝ => deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x) =
+        fun x : ℝ =>
+          (∑' k : ℤ,
+            deriv (fun z : ℝ => heatKernel t z) (x - y + 2 * (k : ℝ))) +
+          (∑' k : ℤ,
+            deriv (fun z : ℝ => heatKernel t z) (x + y + 2 * (k : ℝ))) := by
+    funext x
+    exact (ShenWork.IntervalNeumannFullKernel.hasDerivAt_intervalNeumannFullKernel_fst
+      ht x y).deriv
+  rw [hfun]
+  refine ContinuousOn.add ?_ ?_
+  · refine continuousOn_tsum (fun k => (hcd.comp (by fun_prop)).continuousOn)
+      (ShenWork.IntervalNeumannFullKernel.summable_heatGradWindowBound ht 0 1)
+      (fun k x hx => ?_)
+    rw [Real.norm_eq_abs]
+    refine ShenWork.IntervalNeumannFullKernel.abs_deriv_heatKernel_le_windowShift
+      ht 0 1 k ?_
+    rw [show x - y + 2 * (k : ℝ) - (0 + 2 * (k : ℝ)) = x - y by ring]
+    exact abs_le.mpr ⟨by linarith [hx.1, hy.2], by linarith [hx.2, hy.1]⟩
+  · refine continuousOn_tsum (fun k => (hcd.comp (by fun_prop)).continuousOn)
+      (ShenWork.IntervalNeumannFullKernel.summable_heatGradWindowBound ht 0 2)
+      (fun k x hx => ?_)
+    rw [Real.norm_eq_abs]
+    refine ShenWork.IntervalNeumannFullKernel.abs_deriv_heatKernel_le_windowShift
+      ht 0 2 k ?_
+    rw [show x + y + 2 * (k : ℝ) - (0 + 2 * (k : ℝ)) = x + y by ring]
+    exact abs_le.mpr ⟨by linarith [hx.1, hy.1], by linarith [hx.2, hy.2]⟩
+
+private theorem intervalFullSemigroupOperator_deriv_continuous_of_bounded
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} {C : ℝ}
+    (_hC : 0 ≤ C) (hf_bound : ∀ y, |f y| ≤ C)
+    (hf_meas : AEStronglyMeasurable f (intervalMeasure 1)) :
+    Continuous (fun x : intervalDomainPoint =>
+      deriv (fun z : ℝ => intervalFullSemigroupOperator t f z) x.1) := by
+  haveI : IsFiniteMeasure (intervalMeasure 1) :=
+    ⟨ShenWork.IntervalDomain.intervalMeasure_univ_lt_top 1⟩
+  set B : ℝ := ∑' k : ℤ,
+    (ShenWork.IntervalNeumannFullKernel.heatGradWindowBound t 0 2 k +
+      ShenWork.IntervalNeumannFullKernel.heatGradWindowBound t 0 2 k)
+  have hB_nn : 0 ≤ B := by
+    simp only [B]
+    exact tsum_nonneg fun k => by
+      unfold ShenWork.IntervalNeumannFullKernel.heatGradWindowBound
+        ShenWork.IntervalNeumannFullKernel.heatGradPointwiseBound
+      positivity
+  have hcont_int :
+      Continuous (fun x : intervalDomainPoint =>
+        ∫ y, deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x.1 * f y
+          ∂(intervalMeasure 1)) := by
+    refine MeasureTheory.continuous_of_dominated
+      (μ := intervalMeasure 1)
+      (F := fun x : intervalDomainPoint => fun y : ℝ =>
+        deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x.1 * f y)
+      (bound := fun _ : ℝ => B * C) ?hF_meas ?h_bound ?h_bound_int ?h_cont
+    · intro x
+      exact ((ShenWork.IntervalNeumannFullKernel.continuousOn_deriv_intervalNeumannFullKernel_fst
+          ht x.1).aestronglyMeasurable measurableSet_Icc).mul hf_meas
+    · intro x
+      change ∀ᵐ y ∂(volume.restrict (Set.Icc (0 : ℝ) 1)),
+        ‖deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x.1 * f y‖ ≤ B * C
+      rw [MeasureTheory.ae_restrict_iff' measurableSet_Icc]
+      refine Filter.Eventually.of_forall fun y hy => ?_
+      rw [Real.norm_eq_abs, abs_mul]
+      have hx_abs : |x.1 - (0 : ℝ)| ≤ 1 :=
+        abs_le.mpr ⟨by linarith [x.2.1], by linarith [x.2.2]⟩
+      have hy_abs : |y| ≤ 1 :=
+        abs_le.mpr ⟨by linarith [hy.1], by linarith [hy.2]⟩
+      have hderiv_bound :
+          |deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x.1| ≤ B := by
+        simpa [B] using
+          (ShenWork.IntervalNeumannFullKernel.abs_deriv_intervalNeumannFullKernel_fst_le_const
+            (t := t) ht (0 : ℝ) (z := x.1) (y := y) hx_abs hy_abs)
+      exact mul_le_mul hderiv_bound (hf_bound y) (abs_nonneg _) hB_nn
+    · exact integrable_const _
+    · change ∀ᵐ y ∂(volume.restrict (Set.Icc (0 : ℝ) 1)),
+        Continuous (fun x : intervalDomainPoint =>
+          deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x.1 * f y)
+      rw [MeasureTheory.ae_restrict_iff' measurableSet_Icc]
+      refine Filter.Eventually.of_forall fun y hy => ?_
+      have hcx : Continuous (fun x : intervalDomainPoint =>
+          deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x.1) := by
+        change Continuous (Set.restrict (Set.Icc (0 : ℝ) 1)
+          (fun x : ℝ => deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x))
+        exact continuousOn_iff_continuous_restrict.mp
+          (continuousOn_deriv_intervalNeumannFullKernel_fst_in_x ht hy)
+      exact hcx.mul continuous_const
+  have hrepr :
+      (fun x : intervalDomainPoint =>
+        deriv (fun z : ℝ => intervalFullSemigroupOperator t f z) x.1) =
+        fun x : intervalDomainPoint =>
+          ∫ y, deriv (fun z : ℝ => intervalNeumannFullKernel t z y) x.1 * f y
+            ∂(intervalMeasure 1) := by
+    funext x
+    exact (ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_hasDerivAt_fst
+      (t := t) ht (f := f) hf_meas (Cf := C) hf_bound x.1).deriv
+  rw [hrepr]
+  exact hcont_int
 
 private theorem intervalNeumannFullKernel_of_nonpos {t : ℝ} (ht : t ≤ 0) (x y : ℝ) :
     intervalNeumannFullKernel t x y = 0 := by
@@ -1657,7 +1766,151 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
       -- Need: Continuous (Φ(w)(t)) where Φ(w)(t) : intervalDomainPoint → ℝ
       -- Route: continuous_of_dominated_interval for each Duhamel integral,
       -- composed with continuous_subtype_val.
-      sorry
+      have hL_bound : ∀ s, 0 < s → s ≤ T₀ → ∀ y : ℝ,
+          |logisticLifted p (w s) y| ≤ C_L_val := by
+        intro s hs hsT y
+        exact ShenWork.IntervalDomainExistence.intervalLogisticSource_lift_abs_bound p hM
+          (fun x => hw_bound s hs hsT x) y
+      have hQ_bound : ∀ s, 0 < s → s ≤ T₀ → ∀ y : ℝ,
+          |chemFluxLifted p (w s) y| ≤ C_Q_unif := by
+        intro s hs hsT y
+        simpa [C_Q_unif, C_RG] using
+          chemFluxLifted_bound_of_ball p hM.le
+            (hw_bound s hs hsT) (hw_nonneg s hs hsT) (hw_cont s hs hsT) y
+      have hL_meas : Measurable (fun q : ℝ × ℝ => logisticLifted p (w q.1) q.2) :=
+        logisticLifted_joint_measurable (p := p) (u := w) hwm
+      have hQ_meas : Measurable (fun q : ℝ × ℝ => chemFluxLifted p (w q.1) q.2) :=
+        chemFluxLifted_joint_measurable (p := p) (w := w) hwm
+      have hL_slice_meas : ∀ s,
+          AEStronglyMeasurable (logisticLifted p (w s)) (intervalMeasure 1) := by
+        intro s
+        have hm : Measurable (fun y : ℝ => logisticLifted p (w s) y) :=
+          hL_meas.comp (measurable_const.prodMk measurable_id)
+        exact hm.aestronglyMeasurable
+      have hQ_slice_meas : ∀ s,
+          AEStronglyMeasurable (chemFluxLifted p (w s)) (intervalMeasure 1) := by
+        intro s
+        have hm : Measurable (fun y : ℝ => chemFluxLifted p (w s) y) :=
+          hQ_meas.comp (measurable_const.prodMk measurable_id)
+        exact hm.aestronglyMeasurable
+      have hne_t : ∀ᵐ s : ℝ ∂volume, s ≠ t := by
+        rw [ae_iff]
+        simp only [not_not, Set.setOf_eq_eq_singleton, Real.volume_singleton]
+      have hL_joint_semigroup :
+          Measurable (fun r : (ℝ × ℝ) × ℝ =>
+            intervalFullSemigroupOperator (r.1.1 - r.2)
+              (logisticLifted p (w r.2)) r.1.2) :=
+        intervalFullSemigroupOperator_s_param_joint_measurable
+          (F := fun s => logisticLifted p (w s))
+          (by simpa [Function.uncurry] using hL_meas)
+      set GQ : (ℝ × ℝ) × ℝ → ℝ := fun r =>
+        deriv (fun z : ℝ =>
+          intervalFullSemigroupOperator (r.1.1 - r.2)
+            (chemFluxLifted p (w r.2)) z) r.1.2
+      have hQ_joint_grad : Measurable GQ := by
+        dsimp only [GQ]
+        exact intervalFullSemigroupOperator_deriv_s_param_joint_measurable
+          (F := fun s => chemFluxLifted p (w s))
+          (by simpa [Function.uncurry] using hQ_meas)
+      have hVal_cont : Continuous (fun x : intervalDomainPoint =>
+          ∫ s in (0 : ℝ)..t,
+            intervalFullSemigroupOperator (t - s) (logisticLifted p (w s)) x.1) := by
+        refine intervalIntegral.continuous_of_dominated_interval
+          (μ := volume)
+          (F := fun x : intervalDomainPoint => fun s : ℝ =>
+            intervalFullSemigroupOperator (t - s) (logisticLifted p (w s)) x.1)
+          (bound := fun _ : ℝ => C_L_val)
+          ?hVal_meas ?hVal_bound intervalIntegrable_const ?hVal_slice_cont
+        · intro x
+          have hmap : Measurable (fun s : ℝ => (((t, x.1), s) : (ℝ × ℝ) × ℝ)) :=
+            measurable_const.prodMk measurable_id
+          have hm : Measurable (fun s : ℝ =>
+              intervalFullSemigroupOperator (t - s) (logisticLifted p (w s)) x.1) :=
+            hL_joint_semigroup.comp hmap
+          exact hm.aestronglyMeasurable
+        · intro x
+          filter_upwards [hne_t] with s hsne hsI
+          rw [Set.uIoc_of_le ht.le] at hsI
+          have hst : s < t := lt_of_le_of_ne hsI.2 hsne
+          have hts : 0 < t - s := sub_pos.mpr hst
+          rw [Real.norm_eq_abs]
+          exact ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_Linfty_bound
+            hts hC_L_val_nn (hL_bound s hsI.1 (hsI.2.trans htT)) x.1
+        · filter_upwards [hne_t] with s hsne hsI
+          rw [Set.uIoc_of_le ht.le] at hsI
+          have hst : s < t := lt_of_le_of_ne hsI.2 hsne
+          have hts : 0 < t - s := sub_pos.mpr hst
+          have hLs_bound : ∀ y : ℝ, |logisticLifted p (w s) y| ≤ C_L_val :=
+            hL_bound s hsI.1 (hsI.2.trans htT)
+          have hcont_real : Continuous (fun x : ℝ =>
+              intervalFullSemigroupOperator (t - s) (logisticLifted p (w s)) x) :=
+            ShenWork.IntervalDuhamelIntegrability.intervalFullSemigroupOperator_continuous_of_bounded
+              (t := t - s) (f := logisticLifted p (w s)) (M := C_L_val)
+              hts hC_L_val_nn hLs_bound (hL_slice_meas s)
+          exact hcont_real.comp continuous_subtype_val
+      have hGrad_cont_GQ : Continuous (fun x : intervalDomainPoint =>
+          ∫ s in (0 : ℝ)..t, GQ ((t, x.1), s)) := by
+        refine intervalIntegral.continuous_of_dominated_interval
+          (μ := volume)
+          (F := fun x : intervalDomainPoint => fun s : ℝ => GQ ((t, x.1), s))
+          (bound := fun s : ℝ =>
+            C_grad * C_Q_unif * (t - s) ^ (-(1 / 2) : ℝ))
+          ?hGrad_meas ?hGrad_bound
+          ((ShenWork.IntervalGradDuhamelBound.intervalIntegrable_sub_rpow_neg_half t).const_mul
+            (C_grad * C_Q_unif))
+          ?hGrad_slice_cont
+        · intro x
+          have hmap : Measurable (fun s : ℝ => (((t, x.1), s) : (ℝ × ℝ) × ℝ)) :=
+            measurable_const.prodMk measurable_id
+          have hm : Measurable (fun s : ℝ => GQ ((t, x.1), s)) :=
+            hQ_joint_grad.comp hmap
+          exact hm.aestronglyMeasurable
+        · intro x
+          filter_upwards [hne_t] with s hsne hsI
+          rw [Set.uIoc_of_le ht.le] at hsI
+          have hst : s < t := lt_of_le_of_ne hsI.2 hsne
+          have hts : 0 < t - s := sub_pos.mpr hst
+          dsimp only [GQ]
+          rw [Real.norm_eq_abs]
+          have hQs_bound : ∀ y : ℝ, |chemFluxLifted p (w s) y| ≤ C_Q_unif :=
+            hQ_bound s hsI.1 (hsI.2.trans htT)
+          have hderiv_bound :
+              |deriv (fun z : ℝ =>
+                intervalFullSemigroupOperator (t - s) (chemFluxLifted p (w s)) z) x.1|
+                ≤ C_grad * (t - s) ^ (-(1 / 2) : ℝ) * C_Q_unif := by
+            simpa [C_grad] using
+              ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator_deriv_Linfty_pointwise_sqrt_t
+                (t := t - s) (f := chemFluxLifted p (w s)) hts
+                (hQ_slice_meas s) (Cf := C_Q_unif) hQs_bound x.1
+          calc
+            |deriv (fun z : ℝ =>
+                intervalFullSemigroupOperator (t - s) (chemFluxLifted p (w s)) z) x.1|
+                ≤ C_grad * (t - s) ^ (-(1 / 2) : ℝ) * C_Q_unif := hderiv_bound
+            _ = C_grad * C_Q_unif * (t - s) ^ (-(1 / 2) : ℝ) := by ring
+        · filter_upwards [hne_t] with s hsne hsI
+          rw [Set.uIoc_of_le ht.le] at hsI
+          have hst : s < t := lt_of_le_of_ne hsI.2 hsne
+          have hts : 0 < t - s := sub_pos.mpr hst
+          dsimp only [GQ]
+          have hQs_bound : ∀ y : ℝ, |chemFluxLifted p (w s) y| ≤ C_Q_unif :=
+            hQ_bound s hsI.1 (hsI.2.trans htT)
+          exact intervalFullSemigroupOperator_deriv_continuous_of_bounded
+            (t := t - s) (f := chemFluxLifted p (w s)) (C := C_Q_unif)
+            hts hC_Q_unif_nn hQs_bound (hQ_slice_meas s)
+      have hGrad_cont : Continuous (fun x : intervalDomainPoint =>
+          ∫ s in (0 : ℝ)..t,
+            deriv (fun z : ℝ =>
+              intervalFullSemigroupOperator (t - s) (chemFluxLifted p (w s)) z) x.1) := by
+        simpa [GQ] using hGrad_cont_GQ
+      have hassemble : Continuous (fun x : intervalDomainPoint =>
+          intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+            + (-p.χ₀) * (∫ s in (0 : ℝ)..t,
+              deriv (fun z : ℝ =>
+                intervalFullSemigroupOperator (t - s) (chemFluxLifted p (w s)) z) x.1)
+            + ∫ s in (0 : ℝ)..t,
+              intervalFullSemigroupOperator (t - s) (logisticLifted p (w s)) x.1) :=
+        ((hSg_cont t ht).add (continuous_const.mul hGrad_cont)).add hVal_cont
+      simpa [intervalGradientDuhamelMap] using hassemble
     hcontr := by
       intro u w d hu hu_nn hw hw_nn huc hwc hum hwm hd t ht htT x
       -- Step 1: Unfold Φ and cancel S(t)u₀
