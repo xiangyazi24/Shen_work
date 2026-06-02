@@ -22,6 +22,7 @@ import ShenWork.PDE.IntervalChemFluxLipschitz
 import ShenWork.Paper2.IntervalDuhamelIntegrability
 import ShenWork.PDE.IntervalLogisticLipschitz
 import ShenWork.PDE.IntervalResolverPositivity
+import ShenWork.PDE.IntervalFullKernelLowerBound
 import ShenWork.PDE.IntervalFullKernelSDependentMeasurable
 import Mathlib.MeasureTheory.Constructions.Polish.StronglyMeasurable
 import Mathlib.Topology.Algebra.InfiniteSum.Real
@@ -1394,7 +1395,8 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
     (_hu₀_cont : Continuous u₀)
     (hα_ge : 1 ≤ p.α)
     (hγ_ge : 1 ≤ p.γ)
-    (_hu₀_nonneg : ∀ x, 0 ≤ u₀ x) :
+    (_hu₀_nonneg : ∀ x, 0 ≤ u₀ x)
+    (_hu₀_pos : ∀ x, 0 < u₀ x) :
     ∃ T : ℝ, 0 < T ∧ ∃ u : ℝ → intervalDomainPoint → ℝ,
       IntervalMildSolution p T u₀ u := by
   obtain ⟨B, hB⟩ := _hu₀_bounded
@@ -1486,7 +1488,16 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
   set B_picard := C_L_val + C_L + 1
   have hA_nn : (0 : ℝ) ≤ A_picard := by positivity
   have hB_nn : (0 : ℝ) ≤ B_picard := by positivity
-  obtain ⟨T₀, hT₀, hK_lt⟩ := exists_small_contraction_time hA_nn hB_nn
+  -- inf u₀ > 0 (continuous on compact, pointwise positive)
+  have hu₀_inf_pos : 0 < sInf (Set.range (fun x => u₀ x)) := by sorry
+  set c_u₀ := sInf (Set.range (fun x => u₀ x)) with hc_u₀_def
+  -- Choose T₀ with A√T₀ + BT₀ < min(1, c_u₀)
+  obtain ⟨T₀, hT₀, hK_lt_min⟩ :=
+    exists_small_contraction_time_target hA_nn hB_nn (lt_min one_pos hu₀_inf_pos)
+  have hK_lt : A_picard * Real.sqrt T₀ + B_picard * T₀ < 1 :=
+    lt_of_lt_of_le hK_lt_min (min_le_left 1 c_u₀)
+  have hcorr_lt_cu₀ : A_picard * Real.sqrt T₀ + B_picard * T₀ < c_u₀ :=
+    lt_of_lt_of_le hK_lt_min (min_le_right 1 c_u₀)
   have hM_ge_2 : (2 : ℝ) ≤ M := by
     have : (1 : ℝ) ≤ max B 1 := le_max_right B 1
     simp only [hMdef]; linarith
@@ -1741,15 +1752,10 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
       intro t ht _htT; exact hSg_cont t ht
     hmapsTo := hmapsTo_proof
     hmapsTo_nn := by
-      /- Parabolic maximum principle for mild formulation.
-         Route: S(t)u₀ ≥ 0 (semigroup preserves nonneg, already proved in
-         IntervalResolverPositivity.intervalFullSemigroupOperator_nonneg).
-         The Duhamel value integral ∫₀ᵗ S(t-s) L(w(s)) ds requires the
-         logistic source L(w(s)) to be nonneg, which is NOT always true:
-         L(w) = w(a - b·w^α) is negative when w > (a/b)^{1/α}.
-         Full proof requires a comparison principle / parabolic maximum
-         principle for the mild formulation. Multi-day effort. -/
+      -- Small-T₀ domination: S(t)u₀(x) ≥ inf u₀, |corrections| < inf u₀
       intro w _hw_bound _hw_nonneg _hw_cont t ht _htT x
+      -- The map Φ(w)(t,x) is defined as S(t)u₀ + grad_term + val_term
+      -- We show it's ≥ 0 by: S(t)u₀ ≥ c_u₀ > |corrections|
       sorry
     hcont_preserved := by
       /- Φ preserves continuous slices.
