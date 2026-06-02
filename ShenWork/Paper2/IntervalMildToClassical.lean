@@ -21,6 +21,7 @@ namespace ShenWork.IntervalMildToClassical
 open ShenWork.IntervalMildPicard
 open ShenWork.IntervalDomain
 open ShenWork.PDE ShenWork.Paper2
+open ShenWork.IntervalNeumannFullKernel
 
 /-! ## Bridge: GradientMildSolutionData → RegularityBootstrap
 
@@ -42,7 +43,56 @@ theorem mildChemical_nonneg (p : CM2Params)
     {t : ℝ} (ht : 0 < t) (htT : t ≤ T) (x : intervalDomainPoint) :
     0 ≤ mildChemicalConcentration p u t x := by
   unfold mildChemicalConcentration
-  sorry -- Wire intervalNeumannResolverR_nonneg_of_nonneg_source
+  -- Specialize to time slice: w := u t
+  have hw_cont : Continuous (u t) := hu_cont t ht htT
+  have hw_nonneg : ∀ y : intervalDomainPoint, 0 ≤ u t y := hu_nonneg t ht htT
+  -- ContinuousOn for the lift
+  have hcont_on : ContinuousOn (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) := by
+    rw [continuousOn_iff_continuous_restrict]
+    have : Set.restrict (Set.Icc (0 : ℝ) 1) (intervalDomainLift (u t)) = u t := by
+      ext ⟨x, hx⟩
+      simp [Set.restrict, intervalDomainLift, hx]
+      rfl
+    rw [this]
+    exact hw_cont
+  -- Source function continuous on ℝ via clip
+  have hcont_src : Continuous
+      (fun y : intervalDomainPoint ↦ p.ν * (u t y) ^ p.γ) :=
+    continuous_const.mul (hw_cont.rpow_const (fun y ↦ Or.inr p.hγ.le))
+  set clip : ℝ → intervalDomainPoint := fun x ↦
+    ⟨max 0 (min x 1), le_max_left 0 _,
+      max_le (by norm_num) (min_le_right x 1)⟩
+  have hclip_cont : Continuous clip :=
+    Continuous.subtype_mk
+      (continuous_const.max (continuous_id.min continuous_const)) _
+  set f : ℝ → ℝ :=
+    (fun y : intervalDomainPoint ↦ p.ν * (u t y) ^ p.γ) ∘ clip
+  have hf_cont : Continuous f := hcont_src.comp hclip_cont
+  have hf_nonneg : ∀ z, 0 ≤ f z := fun z ↦
+    mul_nonneg p.hν.le (Real.rpow_nonneg (hw_nonneg _) _)
+  have hf_coeff : ∀ k, cosineCoeffs f k =
+      (intervalNeumannResolverSourceCoeff p (u t) k).re := by
+    intro k
+    have hsrc_eq :
+        (intervalNeumannResolverSourceCoeff p (u t) k).re =
+        cosineCoeffs (fun x ↦ p.ν * intervalDomainLift (u t) x ^ p.γ) k := by
+      simp [cosineCoeffs, intervalNeumannResolverSourceCoeff,
+        Complex.ofReal_re]
+    rw [hsrc_eq]
+    exact cosineCoeffs_congr_on_Icc (fun x hx ↦ by
+      simp only [f, Function.comp, clip]
+      have hclip_eq : max 0 (min x 1) = x := by
+        rw [min_eq_left hx.2, max_eq_right hx.1]
+      simp only [hclip_eq, intervalDomainLift,
+        dif_pos (Set.mem_Icc.mpr hx)]) k
+  open ShenWork.IntervalResolverWeakBounds in
+  have hâ : Summable (fun k ↦ (cosineCoeffs f k) ^ 2) := by
+    have h := resolverSourceCoeff_re_sq_summable_of_continuousOn p hcont_on
+    simp only [intervalNeumannResolverSourceCoeff_zero, sub_zero] at h
+    exact h.congr (fun k ↦ by rw [hf_coeff])
+  open ShenWork.IntervalResolverPositivity in
+  exact intervalNeumannResolverR_nonneg_of_nonneg_source
+    hf_cont hf_nonneg hf_coeff hâ x
 
 /-- u(t,x) > 0 (strict positivity) from the Picard iteration:
     S(t)u₀(x) ≥ inf u₀ > 0 and corrections are small. -/
