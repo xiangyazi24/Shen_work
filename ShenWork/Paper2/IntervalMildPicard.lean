@@ -1086,6 +1086,7 @@ theorem picardIter_ball (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
         0 ≤ intervalGradientDuhamelMap p u₀ w t x)
     (hcont_preserved : ∀ (w : ℝ → intervalDomainPoint → ℝ),
       (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+      (∀ t, 0 < t → t ≤ T → ∀ x, 0 ≤ w t x) →
       HasContinuousSlices T w →
       HasJointMeasurability w →
       HasContinuousSlices T (fun t x => intervalGradientDuhamelMap p u₀ w t x))
@@ -1108,7 +1109,7 @@ theorem picardIter_ball (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
       | succ j ihj => exact hmeas_preserved _ ihj
     exact ⟨fun t ht htT x => hmapsTo _ ih.1 ih.2.1 ih.2.2 t ht htT x,
            fun t ht htT x => hmapsTo_nn _ ih.1 ih.2.1 ih.2.2 t ht htT x,
-           hcont_preserved _ ih.1 ih.2.2 (hmeas_iterates n)⟩
+           hcont_preserved _ ih.1 ih.2.1 ih.2.2 (hmeas_iterates n)⟩
 
 /-- Geometric decay of Picard differences by induction. -/
 theorem picardIter_geometric (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
@@ -1188,6 +1189,7 @@ structure MildExistenceData (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   -- Φ preserves continuous slices
   hcont_preserved : ∀ (w : ℝ → intervalDomainPoint → ℝ),
     (∀ t, 0 < t → t ≤ T → ∀ x, |w t x| ≤ M) →
+    (∀ t, 0 < t → t ≤ T → ∀ x, 0 ≤ w t x) →
     HasContinuousSlices T w →
     HasJointMeasurability w →
     HasContinuousSlices T (fun t x => intervalGradientDuhamelMap p u₀ w t x)
@@ -1650,7 +1652,7 @@ theorem intervalMildSolution_exists_picard (p : CM2Params)
          The gradient Duhamel ∫₀ᵗ ∂ₓS(t-s) flux(s) x ds uses the same pattern
          with the heat gradient kernel. Converting intervalIntegral to Bochner
          integral is the main technical step. -/
-      intro w hw_bound hw_cont hwm t ht htT
+      intro w hw_bound hw_nonneg hw_cont hwm t ht htT
       -- Φ(w)(t)(x) = S(t)u₀(x.1) + (-χ₀) * ∫₀ᵗ ∂ₓS(t-s) Q(w s) ds + ∫₀ᵗ S(t-s) L(w s) ds
       -- Need: Continuous (Φ(w)(t)) where Φ(w)(t) : intervalDomainPoint → ℝ
       -- Route: continuous_of_dominated_interval for each Duhamel integral,
