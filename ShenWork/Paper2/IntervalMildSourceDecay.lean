@@ -85,9 +85,28 @@ theorem reaction_term_bounded {γ : ℝ} (hγ : 0 < γ)
       c ≤ u_val → u_val ≤ M → |grad_val| ≤ G → |F_val| ≤ B_F →
       |γ * (γ - 1) * u_val ^ (γ - 2) * grad_val ^ 2
         + γ * u_val ^ (γ - 1) * F_val| ≤ B_R := by
-  -- Each factor is bounded on [c,M] with c > 0; the product is bounded.
-  -- The bound is elementary but involves rpow monotonicity on [c,M].
-  sorry
+  have hM_pos : 0 < M := lt_of_lt_of_le hc hcM
+  refine ⟨γ * |γ - 1| * (c ^ (γ - 2) + M ^ (γ - 2)) * G ^ 2
+    + γ * M ^ (γ - 1) * B_F, ?_, ?_⟩
+  · positivity
+  intro u_val grad_val F_val hcu huM hgv hfv
+  have hu_pos : 0 < u_val := lt_of_lt_of_le hc hcu
+  have hrpow_bound : u_val ^ (γ - 2) ≤ c ^ (γ - 2) + M ^ (γ - 2) := by
+    rcases le_or_gt (γ - 2) (0 : ℝ) with hr | hr
+    · exact le_add_of_le_of_nonneg
+        (Real.rpow_le_rpow_of_exponent_nonpos hc hcu hr)
+        (Real.rpow_nonneg hM_pos.le _)
+    · exact le_add_of_nonneg_of_le
+        (Real.rpow_nonneg hc.le _)
+        (Real.rpow_le_rpow hu_pos.le huM (le_of_lt hr))
+  calc |γ * (γ - 1) * u_val ^ (γ - 2) * grad_val ^ 2
+        + γ * u_val ^ (γ - 1) * F_val|
+      ≤ |γ * (γ - 1) * u_val ^ (γ - 2) * grad_val ^ 2|
+        + |γ * u_val ^ (γ - 1) * F_val| := abs_add_le _ _
+    _ ≤ γ * |γ - 1| * (c ^ (γ - 2) + M ^ (γ - 2)) * G ^ 2
+        + γ * M ^ (γ - 1) * B_F := by
+      -- Both summands are bounded: products of bounded factors on [c,M].
+      sorry
 
 /-! ## Main theorem -/
 
