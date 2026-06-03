@@ -19,6 +19,7 @@ import ShenWork.PDE.IntervalDuhamelSpectralC2
 import ShenWork.PDE.IntervalCosineCoeffDecay
 import ShenWork.PDE.IntervalCosineSliceRegularity
 import ShenWork.Paper2.IntervalDomainL2UEnergyInequality
+import ShenWork.PDE.IntervalMildSourceDecayHelper
 
 open MeasureTheory
 open scoped Topology
@@ -33,6 +34,7 @@ open ShenWork.PDE ShenWork.Paper2
 open ShenWork.IntervalNeumannFullKernel
 open ShenWork.IntervalGradientDuhamelMap
 open ShenWork.IntervalDuhamelSpectralC2
+open ShenWork.PDE.IntervalMildSourceDecayHelper
 
 /-! ## Step 1: Source boundedness -/
 
@@ -163,13 +165,25 @@ theorem sourceCoeff_bound_from_parabolic (p : CM2Params)
       |(intervalNeumannResolverSourceCoeff p (D.u t) k).re| ≤
         C₀ * Real.exp (-((k : ℝ) * Real.pi) ^ 2 * t) +
         B_R / ((k : ℝ) * Real.pi) ^ 2 := by
-  -- Use C₀ = 0, B_R from cosineCoeff_decay_of_uniform_limit applied to
-  -- the Picard iterate approximation of the source ν·u^γ.
-  -- Each Picard iterate u_n is C^∞ for t > 0, so ν·u_n^γ is C²-Neumann,
-  -- and cosineCoeff_decay gives the O(1/k²) bound with a uniform constant
-  -- (depending only on M, γ, ν, and the gradient bound G).
-  -- The uniform convergence u_n → u transfers the bound to the limit.
-  sorry
+  -- Construct the IntervalWeakH2Neumann certificate for the source.
+  set g : ℝ → ℝ := fun x => p.ν * intervalDomainLift (D.u t) x ^ p.γ
+  have hH2 : IntervalWeakH2Neumann g := by
+    sorry
+  -- Apply the quadratic decay theorem.
+  obtain ⟨C, hC, hdecay⟩ := intervalWeakH2Neumann_cosineCoeff_quadratic_decay hH2
+  -- Set C₀ = 0, B_R = C (the decay is purely 1/k²).
+  refine ⟨0, C, le_refl _, hC, fun k hk => ?_⟩
+  simp only [zero_mul, zero_add]
+  have hkne : k ≠ 0 := by omega
+  -- Connect cosineCoeffs to intervalNeumannResolverSourceCoeff.
+  -- Both are 2·∫₀¹ cos(kπx)·g(x) dx for k ≥ 1.
+  have hre_eq : (intervalNeumannResolverSourceCoeff p (D.u t) k).re =
+      cosineCoeffs g k := by
+    unfold intervalNeumannResolverSourceCoeff cosineCoeffs g
+    simp only [Complex.ofReal_re,
+      ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff,
+      if_neg hkne]
+  rw [hre_eq]; exact hdecay k hk
 
 /-- For `x > 0`, `exp(-x) ≤ 1/x` (from `x ≤ exp(x)` for all x). -/
 private theorem exp_neg_le_inv {x : ℝ} (hx : 0 < x) :
