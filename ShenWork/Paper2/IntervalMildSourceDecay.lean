@@ -73,42 +73,80 @@ The identity `∫ cos(kπx) Δ(u^γ) = -λ_k (u^γ)_hat_k` holds in the weak
 (H¹) sense because `sin(0) = sin(kπ) = 0` — no Neumann BC of `u^γ`
 needed. Only `u^γ ∈ H¹` (from u Lipschitz and u > 0). -/
 
-/-- The derived-parabolic reaction term `R` for `u^γ` is bounded by a
-constant depending only on the parameters and the M-ball/gradient bounds. -/
-theorem reaction_term_bounded (p : CM2Params)
-    {u : intervalDomainPoint → ℝ} {M G : ℝ}
-    (hM : 0 < M) (hnn : ∀ x, 0 ≤ u x)
-    (hbound : ∀ x, u x ≤ M)
-    (hgrad : ∀ x : intervalDomainPoint,
-      |deriv (intervalDomainLift u) x.1| ≤ G)
-    (hF_bound : ℝ) :
+/-- The reaction term in the derived parabolic equation for `u^γ`
+is bounded when u is bounded away from 0 and u' is bounded.
+Each factor in the expression is bounded: u^{γ-2} is bounded on [c,M],
+|u'|² ≤ G², u^{γ-1} ≤ M^{γ-1}, |F| ≤ B_F. -/
+theorem reaction_term_bounded {γ : ℝ} (hγ : 0 < γ)
+    {c M G B_F : ℝ} (hc : 0 < c) (hcM : c ≤ M)
+    (hG : 0 ≤ G) (hBF : 0 ≤ B_F) :
     ∃ B_R : ℝ, 0 ≤ B_R ∧
-      ∀ x : intervalDomainPoint,
-        |(-p.γ * (p.γ - 1) * (u x) ^ (p.γ - 2) *
-          (deriv (intervalDomainLift u) x.1) ^ 2
-          + p.γ * (u x) ^ (p.γ - 1) * hF_bound)| ≤ B_R := by
+    ∀ (u_val grad_val F_val : ℝ),
+      c ≤ u_val → u_val ≤ M → |grad_val| ≤ G → |F_val| ≤ B_F →
+      |γ * (γ - 1) * u_val ^ (γ - 2) * grad_val ^ 2
+        + γ * u_val ^ (γ - 1) * F_val| ≤ B_R := by
+  -- Each factor is bounded on [c,M] with c > 0; the product is bounded.
+  -- The bound is elementary but involves rpow monotonicity on [c,M].
   sorry
 
 /-! ## Main theorem -/
 
-/-- **SourceCoeffQuadraticDecay for the mild solution.**
+/-- **Fourier coefficient bound from the derived parabolic equation.**
 
-The elliptic source `ν·u(t)^γ` has cosine coefficients with O(1/k²)
-decay. Proved via the derived parabolic equation for `u^γ`:
+The source coefficient `(ν u^γ)_hat_k` is bounded by a combination
+of exponential decay (from the initial data) and a `1/k²` term (from
+the bounded reaction in the derived parabolic equation for `u^γ`).
 
-1. u satisfies `∂_t u = Δu + F` (mild equation)
-2. `u^γ` satisfies `∂_t(u^γ) = Δ(u^γ) + R` with `R` bounded
-3. Fourier ODE: `d/dt (u^γ)_hat_k = -λ_k (u^γ)_hat_k + R̂_k`
-4. Variation of constants: `|(u^γ)_hat_k(t)| ≤ |(u₀^γ)_hat_k| e^{-λ_k t} + B_R/λ_k`
-5. For `k ≥ 1`: `O(e^{-k²t}) + O(1/k²) = O(1/k²)` -/
+The constants `C₀, B_R` are **uniform in k**: `C₀` bounds the initial
+source coefficients (from `‖u₀^γ‖_∞`), and `B_R` bounds the reaction
+(from `u ∈ [c,M]`, `‖u'‖_∞ ≤ G`, `‖F‖_∞ ≤ B_F`). -/
+theorem sourceCoeff_bound_from_parabolic (p : CM2Params)
+    {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ D.T) :
+    ∃ C₀ B_R : ℝ, 0 ≤ C₀ ∧ 0 ≤ B_R ∧
+    ∀ k : ℕ, 1 ≤ k →
+      |(intervalNeumannResolverSourceCoeff p (D.u t) k).re| ≤
+        C₀ * Real.exp (-((k : ℝ) * Real.pi) ^ 2 * t) +
+        B_R / ((k : ℝ) * Real.pi) ^ 2 := by
+  sorry
+
+/-- For `x > 0`, `exp(-x) ≤ 1/x` (from `x ≤ exp(x)` for all x). -/
+private theorem exp_neg_le_inv {x : ℝ} (hx : 0 < x) :
+    Real.exp (-x) ≤ 1 / x := by
+  rw [one_div, Real.exp_neg]
+  exact inv_anti₀ hx
+    (le_trans (by linarith) (Real.add_one_le_exp x))
+
+/-- **SourceCoeffQuadraticDecay for the mild solution.** -/
 def sourceCoeffQuadraticDecay_of_mildSolution (p : CM2Params)
     {u₀ : intervalDomainPoint → ℝ}
     (D : GradientMildSolutionData p u₀)
     {t : ℝ} (ht : 0 < t) (htT : t ≤ D.T) :
     SourceCoeffQuadraticDecay p (D.u t) := by
-  -- The bound on |(ν u^γ)_hat_k| uses the derived parabolic equation.
-  -- The reaction term R is bounded (u > 0, u bounded, u Lipschitz).
-  -- The Fourier ODE + damping integral gives O(1/k²).
-  sorry
+  have hex := sourceCoeff_bound_from_parabolic p D ht htT
+  set C₀ := hex.choose with hC₀_def
+  set B_R := hex.choose_spec.choose with hBR_def
+  have hC₀ := hex.choose_spec.choose_spec.1
+  have hBR := hex.choose_spec.choose_spec.2.1
+  have hbound := hex.choose_spec.choose_spec.2.2
+  exact ⟨C₀ / t + B_R,
+    add_nonneg (div_nonneg hC₀ ht.le) hBR, fun k hk => by
+    have hkpos : (0 : ℝ) < (k : ℝ) := Nat.cast_pos.mpr (by omega)
+    have hlampos : (0 : ℝ) < ((k : ℝ) * Real.pi) ^ 2 := by positivity
+    have hlamt : 0 < ((k : ℝ) * Real.pi) ^ 2 * t := mul_pos hlampos ht
+    calc |(intervalNeumannResolverSourceCoeff p (D.u t) k).re|
+        ≤ C₀ * Real.exp (-((k : ℝ) * Real.pi) ^ 2 * t) +
+          B_R / ((k : ℝ) * Real.pi) ^ 2 := hbound k hk
+      _ ≤ C₀ * (1 / (((k : ℝ) * Real.pi) ^ 2 * t)) +
+          B_R / ((k : ℝ) * Real.pi) ^ 2 := by
+        gcongr
+        convert exp_neg_le_inv hlamt using 2
+        ring
+      _ = C₀ / (t * ((k : ℝ) * Real.pi) ^ 2) +
+          B_R / ((k : ℝ) * Real.pi) ^ 2 := by
+        congr 1; rw [mul_comm]; ring
+      _ = (C₀ / t + B_R) / ((k : ℝ) * Real.pi) ^ 2 := by
+        rw [add_div, div_div]⟩
 
 end ShenWork.IntervalMildSourceDecay
