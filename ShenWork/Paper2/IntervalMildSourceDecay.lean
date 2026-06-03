@@ -87,7 +87,7 @@ theorem reaction_term_bounded {γ : ℝ} (hγ : 0 < γ)
         + γ * u_val ^ (γ - 1) * F_val| ≤ B_R := by
   have hM_pos : 0 < M := lt_of_lt_of_le hc hcM
   refine ⟨γ * |γ - 1| * (c ^ (γ - 2) + M ^ (γ - 2)) * G ^ 2
-    + γ * M ^ (γ - 1) * B_F, ?_, ?_⟩
+    + γ * (c ^ (γ - 1) + M ^ (γ - 1)) * B_F, ?_, ?_⟩
   · positivity
   intro u_val grad_val F_val hcu huM hgv hfv
   have hu_pos : 0 < u_val := lt_of_lt_of_le hc hcu
@@ -104,9 +104,44 @@ theorem reaction_term_bounded {γ : ℝ} (hγ : 0 < γ)
       ≤ |γ * (γ - 1) * u_val ^ (γ - 2) * grad_val ^ 2|
         + |γ * u_val ^ (γ - 1) * F_val| := abs_add_le _ _
     _ ≤ γ * |γ - 1| * (c ^ (γ - 2) + M ^ (γ - 2)) * G ^ 2
-        + γ * M ^ (γ - 1) * B_F := by
-      -- Both summands are bounded: products of bounded factors on [c,M].
-      sorry
+        + γ * (c ^ (γ - 1) + M ^ (γ - 1)) * B_F := by
+      -- Key bounds on individual factors
+      have hrpow1_bound : u_val ^ (γ - 1) ≤ c ^ (γ - 1) + M ^ (γ - 1) := by
+        rcases le_or_gt (γ - 1) (0 : ℝ) with h1 | h1
+        · exact le_add_of_le_of_nonneg
+            (Real.rpow_le_rpow_of_exponent_nonpos hc hcu h1)
+            (Real.rpow_nonneg hM_pos.le _)
+        · exact le_add_of_nonneg_of_le
+            (Real.rpow_nonneg hc.le _)
+            (Real.rpow_le_rpow hu_pos.le huM h1.le)
+      have hgsq : grad_val ^ 2 ≤ G ^ 2 := by
+        have hab : |grad_val| ≤ G := hgv
+        nlinarith [sq_nonneg grad_val, sq_nonneg G, sq_abs grad_val,
+          sq_abs G, abs_nonneg grad_val]
+      have hrpow_nn : 0 ≤ u_val ^ (γ - 2) := Real.rpow_nonneg hu_pos.le _
+      have hrpow1_nn : 0 ≤ u_val ^ (γ - 1) := Real.rpow_nonneg hu_pos.le _
+      -- Term 1: |γ(γ-1) u^{γ-2} g²| ≤ γ|γ-1| (c^{γ-2}+M^{γ-2}) G²
+      have hterm1 : |γ * (γ - 1) * u_val ^ (γ - 2) * grad_val ^ 2|
+          ≤ γ * |γ - 1| * (c ^ (γ - 2) + M ^ (γ - 2)) * G ^ 2 := by
+        have habs_prod : |γ * (γ - 1) * u_val ^ (γ - 2) * grad_val ^ 2|
+          = γ * |γ - 1| * u_val ^ (γ - 2) * grad_val ^ 2 := by
+          rw [show γ * (γ - 1) * u_val ^ (γ - 2) * grad_val ^ 2
+            = (γ * (γ - 1)) * (u_val ^ (γ - 2) * grad_val ^ 2) from by ring,
+            abs_mul, abs_mul (γ) (γ - 1), abs_of_pos hγ,
+            abs_of_nonneg (mul_nonneg hrpow_nn (sq_nonneg _))]
+          ring
+        rw [habs_prod]
+        gcongr
+      -- Term 2: |γ u^{γ-1} F| ≤ γ (c^{γ-1}+M^{γ-1}) B_F
+      have hterm2 : |γ * u_val ^ (γ - 1) * F_val|
+          ≤ γ * (c ^ (γ - 1) + M ^ (γ - 1)) * B_F := by
+        have : |γ * u_val ^ (γ - 1) * F_val|
+          = γ * u_val ^ (γ - 1) * |F_val| := by
+          rw [show γ * u_val ^ (γ - 1) * F_val
+            = (γ * u_val ^ (γ - 1)) * F_val from by ring,
+            abs_mul, abs_of_nonneg (mul_nonneg hγ.le hrpow1_nn)]
+        rw [this]; gcongr
+      exact add_le_add hterm1 hterm2
 
 /-! ## Main theorem -/
 
