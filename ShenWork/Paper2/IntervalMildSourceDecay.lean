@@ -128,6 +128,29 @@ theorem sourceCoeff_bound_from_parabolic (p : CM2Params)
       |(intervalNeumannResolverSourceCoeff p (D.u t) k).re| ≤
         C₀ * Real.exp (-((k : ℝ) * Real.pi) ^ 2 * t) +
         B_R / ((k : ℝ) * Real.pi) ^ 2 := by
+  -- The derived parabolic equation for u^γ:
+  --   ∂_t(u^γ) = Δ(u^γ) + R,  R = -γ(γ-1)u^{γ-2}|u'|² + γu^{γ-1}F, |R| ≤ B_R
+  --
+  -- Projecting onto cos(kπx) via the weak eigenfunction identity
+  --   ∫₀¹ cos(kπx) Δ(u^γ) dx = -(kπ)² ∫₀¹ cos(kπx) u^γ dx
+  -- (valid in H¹: the sin boundary terms sin(0) = sin(kπ) = 0 vanish
+  -- regardless of the Neumann BC of u^γ), we get the Fourier ODE:
+  --   d/dt a_k = -(kπ)² a_k + R̂_k(t),  |R̂_k| ≤ 2B_R
+  --
+  -- Variation of constants:
+  --   a_k(t) = e^{-(kπ)²t} a_k(0) + ∫₀ᵗ e^{-(kπ)²(t-s)} R̂_k(s) ds
+  --   |a_k(t)| ≤ |a_k(0)| e^{-(kπ)²t} + 2B_R/(kπ)²
+  --
+  -- Set C₀ = 2ν‖u₀^γ‖_∞ (bounds |a_k(0)|), B_R' = 2B_R.
+  --
+  -- BLOCKER: establishing the Fourier ODE requires:
+  -- (a) d/dt ∫cos·(ν u^γ) = ∫cos·∂_t(ν u^γ) (differentiate under integral)
+  -- (b) ∂_t(u^γ) = γu^{γ-1}∂_t u (chain rule in time)
+  -- (c) the mild equation gives ∂_t u = Δu + F (in distributional sense)
+  -- (d) weak IBP ∫cos·Δ(u^γ) = -(kπ)²∫cos·u^γ (sin boundary terms vanish)
+  -- All four hold for the mild solution (u Lipschitz, u > 0, u bounded).
+  -- The formal Lean4 proof requires connecting the mild equation's
+  -- distributional PDE to the spectral coefficient ODE.
   sorry
 
 /-- For `x > 0`, `exp(-x) ≤ 1/x` (from `x ≤ exp(x)` for all x). -/
