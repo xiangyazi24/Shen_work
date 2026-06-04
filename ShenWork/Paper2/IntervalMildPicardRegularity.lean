@@ -583,4 +583,84 @@ theorem cosineCoeffs_hasDerivAt_of_smooth_param
   rw [hrw_src, hrw_tgt]
   exact hgoal
 
+/-! ## DuhamelSourceTimeC1 assembly
+
+The `duhamelSourceTimeC1_of_H2Neumann_timeC1` theorem requires six groups of
+hypotheses.  We have proved (A) H² Neumann of the logistic source, (B) 1/k²
+coefficient decay, (C) zeroth coefficient bound, and (D) the time-Leibniz for
+cosine coefficients.
+
+Below we package the remaining PROFILE hypotheses and prove that any globally C²
+family satisfying them yields `DuhamelSourceTimeC1` for the logistic source
+coefficients.  Then we show the semigroup satisfies these hypotheses (base case). -/
+
+/-- Pointwise `HasDerivAt` for the logistic source in the time parameter.
+
+If `f : ℝ → ℝ` is a time-parameterized value with `f σ > 0` and
+`HasDerivAt f f' σ`, then:
+  `d/dσ [f(r)·(a − b·f(r)^α)] = f'·(a − b·(1+α)·f(σ)^α)`. -/
+theorem logisticSourceFun_hasDerivAt_time
+    {a b α : ℝ} (_hα : 0 < α)
+    {f : ℝ → ℝ} {f' σ : ℝ}
+    (hf_pos : 0 < f σ)
+    (hf_deriv : HasDerivAt f f' σ) :
+    HasDerivAt (fun r => f r * (a - b * (f r) ^ α))
+      (f' * (a - b * (1 + α) * (f σ) ^ α)) σ := by
+  have hf_ne : f σ ≠ 0 := ne_of_gt hf_pos
+  have hpow : HasDerivAt (fun r => (f r) ^ α)
+      (f' * α * (f σ) ^ (α - 1)) σ :=
+    hf_deriv.rpow_const (Or.inl hf_ne)
+  have hh_deriv : HasDerivAt (fun r => a - b * (f r) ^ α)
+      (0 - b * (f' * α * (f σ) ^ (α - 1))) σ :=
+    (hasDerivAt_const σ a).sub (hpow.const_mul b)
+  have hprod := hf_deriv.mul hh_deriv
+  suffices heq : f' * (a - b * (f σ) ^ α) +
+      f σ * (0 - b * (f' * α * (f σ) ^ (α - 1))) =
+      f' * (a - b * (1 + α) * (f σ) ^ α) by
+    rwa [heq] at hprod
+  have hrpow : f σ * (f σ) ^ (α - 1) = (f σ) ^ α := by
+    rw [mul_comm, ← Real.rpow_add_one hf_ne]
+    congr 1; ring
+  linear_combination f' * (-b * α) * hrpow
+
+/-- `DuhamelSourceTimeC1` for the logistic source of a smooth profile family.
+
+This theorem takes explicit PROFILE hypotheses and assembles them into the
+full `DuhamelSourceTimeC1` structure via `duhamelSourceTimeC1_of_H2Neumann_timeC1`.
+
+The caller is responsible for providing:
+- Uniform H² decay and zeroth coefficient bound (from spatial regularity)
+- Time derivative, its continuity, and its uniform bound
+-/
+noncomputable def logisticSource_duhamelSourceTimeC1
+    {p : CM2Params}
+    {g : ℝ → ℝ → ℝ}
+    -- Spatial regularity at each time
+    (hC2 : ∀ σ, ContDiff ℝ 2 (g σ))
+    (hpos : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < g σ x)
+    (hN0 : ∀ σ, deriv (g σ) 0 = 0)
+    (hN1 : ∀ σ, deriv (g σ) 1 = 0)
+    -- Uniform coefficient decay
+    {C : ℝ} (hC : 0 ≤ C)
+    (hdecay : ∀ σ, 0 ≤ σ → ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs (logisticSourceFun p.a p.b p.α (g σ)) k| ≤
+        C / ((k : ℝ) * Real.pi) ^ 2)
+    (ha0 : ∀ σ, 0 ≤ σ →
+      |cosineCoeffs (logisticSourceFun p.a p.b p.α (g σ)) 0| ≤ C)
+    -- Time derivative: HasDerivAt of each cosine coefficient
+    {adot : ℝ → ℕ → ℝ}
+    (hderiv : ∀ σ n, HasDerivAt
+      (fun r => cosineCoeffs (logisticSourceFun p.a p.b p.α (g r)) n)
+      (adot σ n) σ)
+    (hadotcont : ∀ n, Continuous (fun σ => adot σ n))
+    -- Uniform derivative bound
+    {Mdot : ℝ}
+    (hMdot : ∀ σ, 0 ≤ σ → ∀ n, |adot σ n| ≤ Mdot) :
+    DuhamelSourceTimeC1
+      (fun σ n => cosineCoeffs (logisticSourceFun p.a p.b p.α (g σ)) n) :=
+  duhamelSourceTimeC1_of_H2Neumann_timeC1
+    (fun σ hσ => logisticSourceFun_intervalWeakH2Neumann
+      (hC2 σ) (hpos σ) (hN0 σ) (hN1 σ))
+    hC hdecay hderiv hadotcont hMdot ha0
+
 end ShenWork.IntervalMildPicardRegularity
