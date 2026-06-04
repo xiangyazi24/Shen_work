@@ -5966,6 +5966,26 @@ theorem unitPointDomain.not_Proposition_1_1 :
     rw [hx] at hδ
     linarith [hone t ht0 htT]
 
+/-- Combined Paper 2 main results for the unit-point domain from the
+logistic nonminimal package.  Packages all three paper theorems into a
+single statement, dispatching:
+- Theorem 1.1: nonminimal branch from logistic package, minimal branch
+  unconditional.
+- Theorem 1.2: nonminimal branch from logistic package, minimal branch
+  unconditional.
+- Theorem 1.3: nonminimal branch from logistic package (strong logistic
+  hypotheses in Theorem 1.3 force a > 0, b > 0). -/
+theorem unitPointDomain.paper2_main_results_from_logistic_nonminimal
+    (p : CM2Params) (C : Paper2Constants p)
+    (hlogistic : UnitPointLogisticNonminimalPackage p)
+    (hbranch : (p.a = 0 ∧ p.b = 0) ∨ (0 < p.a ∧ 0 < p.b)) :
+    Theorem_1_1 unitPointDomain p ∧
+      Theorem_1_2 unitPointDomain p ∧
+      Theorem_1_3 unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_1_1_from_logistic_nonminimal p hlogistic,
+    unitPointDomain.Theorem_1_2_from_logistic_nonminimal p hlogistic hbranch,
+    unitPointDomain.Theorem_1_3_from_logistic_nonminimal p C hlogistic⟩
+
 end
 
 end ShenWork.Paper2

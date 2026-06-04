@@ -10013,6 +10013,27 @@ theorem Theorem_2_1_part4.of_assumed_bound_branch
     Theorem_2_1_part4 D p C :=
   hbound
 
+/-- Paper3 Theorem 2.1 from the four raw uniform-persistence interfaces. -/
+theorem Theorem_2_1.of_uniformPersistenceRaw_parts
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (h1 : UniformPersistencePart1Raw D p)
+    (h2 : UniformPersistencePart2Raw D p)
+    (h3 : UniformPersistencePart3Raw D p)
+    (h4 :
+      UniformPersistencePart4Raw D p
+        C.eventualMinimalUBound C.gaussianLowerConst) :
+    Theorem_2_1 D p C := by
+  refine Theorem_2_1.of_parts
+    (Theorem_2_1_part1.of_assumed_bound_branch h1)
+    (Theorem_2_1_part2.of_assumed_bound_branch h2)
+    (Theorem_2_1_part3.of_assumed_bound_branch h3)
+    ?_
+  exact Theorem_2_1_part4.of_assumed_bound_branch (by
+    intro ha hb hm hβ hχ hχ_bound uStar huStar u v huv hmass
+    simpa [minimalVLowerFormula] using
+      h4 C.gaussianLowerConst_pos ha hb hm hβ hχ hχ_bound
+        uStar huStar u v huv hmass)
+
 /-- Generic closure: Paper3 Theorem 2.2 from the four branches. -/
 theorem Theorem_2_2.of_parts
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
@@ -10727,6 +10748,51 @@ theorem Theorem_2_5.of_assumed_stability_branch
     Theorem_2_5 D p N C :=
   hstab
 
+/-- Combined stability bridge for Paper3 Theorems 2.3-2.5. -/
+theorem Theorem_2_3_to_2_5.of_assumed_stability_branches
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (h23 : p.χ₀ ≤ 0 → 1 ≤ p.m →
+      (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        GloballyAsymptoticallyStableNonminimal D p eq.1 eq.2 ∧
+        ∃ A > 0, ∃ rate > 0,
+          ∀ u v : ℝ → D.Point → ℝ,
+            PositiveGlobalBoundedSolution D p u v →
+              ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) ∧
+      (p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          GloballyAsymptoticallyStableMinimal D p eq.1 eq.2 ∧
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → D.Point → ℝ,
+              PositiveGlobalBoundedSolution D p u v →
+              HasInitialMass D u uStar →
+                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate))
+    (h24 : 0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      NonminimalGlobalStabilityCondition D p C eq.1 →
+        GloballyAsymptoticallyStableNonminimal D p eq.1 eq.2 ∧
+        ∃ A > 0, ∃ rate > 0,
+          ∀ u v : ℝ → D.Point → ℝ,
+            PositiveGlobalBoundedSolution D p u v →
+              ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate)
+    (h25 : p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        MinimalGlobalStabilityCondition D p C uStar →
+          GloballyAsymptoticallyStableMinimal D p eq.1 eq.2 ∧
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → D.Point → ℝ,
+              PositiveGlobalBoundedSolution D p u v →
+              HasInitialMass D u uStar →
+                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) :
+    Theorem_2_3 D p N ∧ Theorem_2_4 D p N C ∧ Theorem_2_5 D p N C := by
+  exact ⟨Theorem_2_3.of_assumed_stability_branch h23,
+    Theorem_2_4.of_assumed_stability_branch h24,
+    Theorem_2_5.of_assumed_stability_branch h25⟩
+
 /-- **TAUTOLOGY (no math content)**: body is `:= hreg`, definitionally equal
 to `Lemma_3_1 D p`.  Target signature only. -/
 theorem Lemma_3_1.of_assumed_regularity_branch
@@ -10758,6 +10824,14 @@ theorem Lemma_3_2.of_assumed_compactness_branch
     Lemma_3_2 D p K :=
   hcompact
 
+/-- Paper3 Lemma 3.2 from the exposed time-translate compactness raw predicate. -/
+theorem Lemma_3_2.of_timeTranslateCompactnessRaw
+    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
+    (hcompact : TimeTranslateCompactnessRaw D p K.locallyConverges) :
+    Lemma_3_2 D p K := by
+  intro hm hγ u v huv times htimes
+  exact hcompact hm hγ u v huv times htimes
+
 /-- **TAUTOLOGY (no math content)**: body is `:= hcont`, definitionally
 equal to `Lemma_3_3 D p N`.  Target signature only. -/
 theorem Lemma_3_3.of_assumed_continuity_branch
@@ -10775,6 +10849,15 @@ theorem Lemma_3_4.of_assumed_envelope_branch
         UpperEnvelopeMonotonicityConclusion D p K u) :
     Lemma_3_4 D p K :=
   henv
+
+/-- Paper3 Lemma 3.4 from the exposed upper-envelope monotonicity raw
+predicate. -/
+theorem Lemma_3_4.of_upperEnvelopeMonotonicityRaw
+    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
+    (henv : UpperEnvelopeMonotonicityRaw D p K.upperEnvelope) :
+    Lemma_3_4 D p K := by
+  intro u v huv
+  exact henv u v huv
 
 /-- Primitive analytic axioms for the parabolic max principle of
 `K.upperEnvelope`.  Parallel to `ParabolicMaxPrincipleData` for `D.supNorm`,
@@ -10959,6 +11042,43 @@ theorem Lemma_7_1.of_assumed_bound_branch
         K.neumannResolventGradientBound mu nu f M0) :
     Lemma_7_1 D K :=
   hbound
+
+/-- Paper3 Lemma 7.1 from the exposed Neumann-resolvent bound raw predicate. -/
+theorem Lemma_7_1.of_neumannResolventGradientBoundExistsRaw
+    {D : BoundedDomainData} {K : CompactnessData D}
+    (hbound :
+      NeumannResolventGradientBoundExistsRaw D K.neumannResolventGradientBound) :
+    Lemma_7_1 D K :=
+  hbound
+
+/-- Compactness/regularity support package from the exposed raw frontiers.
+
+`Lemma_3_1` is already closed by the global classical-solution regularity
+field.  The compactness and envelope conclusions are routed through their raw
+interfaces; the minimal upper-bound and Neumann-resolvent estimates remain
+explicit branch inputs. -/
+theorem compactness_regularization_support_of_raw_frontiers
+    {D : BoundedDomainData} {p : CM2Params}
+    {K : CompactnessData D} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (hcompact : TimeTranslateCompactnessRaw D p K.locallyConverges)
+    (hcont : ∀ uStar > 0, InitialContinuityConclusion D p N uStar)
+    (henv : UpperEnvelopeMonotonicityRaw D p K.upperEnvelope)
+    (hminUpper : p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      0 < p.χ₀ → p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) →
+        ∀ u v : ℝ → D.Point → ℝ,
+          PositiveGlobalBoundedSolution D p u v →
+            EventuallyUpperBoundMinimalConclusion D p C u)
+    (hres :
+      NeumannResolventGradientBoundExistsRaw D K.neumannResolventGradientBound) :
+    Lemma_3_1 D p ∧ Lemma_3_2 D p K ∧ Lemma_3_3 D p N ∧
+      Lemma_3_4 D p K ∧ Lemma_3_5 D p C ∧ Lemma_7_1 D K := by
+  exact ⟨Lemma_3_1_proved D p,
+    Lemma_3_2.of_timeTranslateCompactnessRaw hcompact,
+    Lemma_3_3.of_assumed_continuity_branch hcont,
+    Lemma_3_4.of_upperEnvelopeMonotonicityRaw henv,
+    Lemma_3_5.of_assumed_bound_branch hminUpper,
+    Lemma_7_1.of_neumannResolventGradientBoundExistsRaw hres⟩
 
 /-- **TAUTOLOGY (no math content)**: body is `:= hdecay`, definitionally
 equal to `Lemma_A_1 D p S N`.  Target signature only. -/
@@ -11968,6 +12088,67 @@ theorem unitPointDomain.Theorem_2_1_vacuous_when_b_nonzero_beta_lt_one_m_lt_one
     unitPointDomain.Theorem_2_1_part2_vacuous_when_beta_lt_one p hβ,
     unitPointDomain.Theorem_2_1_part3_vacuous_when_beta_lt_one p hβ,
     unitPointDomain.Theorem_2_1_part4_vacuous_when_b_nonzero p hb C⟩
+
+/-- Paper 3 Theorem 2.1 for the unit-point domain in the minimal
+nonpositive-sensitivity regime `a = 0, b = 0, χ₀ ≤ 0`.
+
+Part 1 is proved unconditionally (minimal ODE forces constant solutions);
+parts 2–3 are vacuous (require `0 < a`); part 4 is vacuous (`χ₀ ≤ 0`).
+This is a **non-vacuous** branch: Part 1 has real analytical content. -/
+theorem unitPointDomain.Theorem_2_1_minimal_chi_nonpos
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) (hχ : p.χ₀ ≤ 0)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_minimal_only p ha hb,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_chi_nonpos p hχ C⟩
+
+/-- Paper 3 Theorem 2.1 for the unit-point domain when `a ≠ 0, χ₀ ≤ 0, m < 1`.
+All four parts are vacuous under these parameter constraints. -/
+theorem unitPointDomain.Theorem_2_1_vacuous_when_a_nonzero_chi_nonpos
+    (p : CM2Params) (ha : p.a ≠ 0) (hχ : p.χ₀ ≤ 0) (hm : p.m < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_vacuous_when_m_lt_one p hm,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_chi_nonpos p hχ,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_chi_nonpos p hχ,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero p ha C⟩
+
+/-- Paper 3 Theorem 2.1 for the unit-point domain when `b ≠ 0, χ₀ ≤ 0, m < 1`.
+All four parts are vacuous under these parameter constraints. -/
+theorem unitPointDomain.Theorem_2_1_vacuous_when_b_nonzero_chi_nonpos
+    (p : CM2Params) (hb : p.b ≠ 0) (hχ : p.χ₀ ≤ 0) (hm : p.m < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_vacuous_when_m_lt_one p hm,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_chi_nonpos p hχ,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_chi_nonpos p hχ,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_b_nonzero p hb C⟩
+
+/-- Paper 3 Theorem 2.1 for the unit-point domain in the minimal regime
+`a = 0, b = 0, β < 1`.  Part 1 is proved unconditionally (minimal ODE);
+parts 2–3 are vacuous (`a = 0`); part 4 is vacuous (`β < 1`). -/
+theorem unitPointDomain.Theorem_2_1_minimal_beta_lt_one
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) (hβ : p.β < 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_minimal_only p ha hb,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_beta_lt_one p hβ C⟩
+
+/-- Paper 3 Theorem 2.1 for the unit-point domain in the minimal regime
+`a = 0, b = 0, m ≠ 1`.  Part 1 is proved unconditionally (minimal ODE);
+parts 2–3 are vacuous (`a = 0`); part 4 is vacuous (`m ≠ 1`). -/
+theorem unitPointDomain.Theorem_2_1_minimal_m_ne_one
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) (hm : p.m ≠ 1)
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  ⟨unitPointDomain.Theorem_2_1_part1_minimal_only p ha hb,
+    unitPointDomain.Theorem_2_1_part2_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part3_vacuous_when_a_zero p ha,
+    unitPointDomain.Theorem_2_1_part4_vacuous_when_m_ne_one p hm C⟩
 
 end
 
