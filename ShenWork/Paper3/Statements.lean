@@ -12150,6 +12150,31 @@ theorem unitPointDomain.Theorem_2_1_minimal_m_ne_one
     unitPointDomain.Theorem_2_1_part3_vacuous_when_a_zero p ha,
     unitPointDomain.Theorem_2_1_part4_vacuous_when_m_ne_one p hm C⟩
 
+/-- Combined Paper 3 partial results for the unit-point domain in the
+minimal, nonpositive-sensitivity regime `a = 0, b = 0, χ₀ ≤ 0`.
+
+Packages three of the five main stability theorems:
+- Theorem 2.1 (eventual lower bound): **non-vacuously proved** (Part 1 has
+  real content from the minimal ODE forcing constant solutions)
+- Theorem 2.4: vacuously true (`a = 0`)
+- Theorem 2.5: unconditionally holds (the stability condition is
+  contradictory with `paper3UnitPointConstants`)
+
+Theorems 2.2 (linear stability) and 2.3 (global asymptotic stability)
+are omitted: their minimal branches need spectral/semigroup analysis. -/
+theorem unitPointDomain.paper3_partial_results_minimal_chi_nonpos
+    (p : CM2Params) (ha : p.a = 0) (hb : p.b = 0) (hχ : p.χ₀ ≤ 0) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p (paper3UnitPointConstants p) ∧
+      Theorem_2_4 ShenWork.Paper2.unitPointDomain p
+        unitPointStabilityNorms (paper3UnitPointConstants p) ∧
+      Theorem_2_5 ShenWork.Paper2.unitPointDomain p
+        unitPointStabilityNorms (paper3UnitPointConstants p) :=
+  ⟨unitPointDomain.Theorem_2_1_minimal_chi_nonpos p ha hb hχ
+      (paper3UnitPointConstants p),
+    unitPointDomain.Theorem_2_4_vacuous_when_a_zero p ha
+      unitPointStabilityNorms (paper3UnitPointConstants p),
+    unitPointDomain.Theorem_2_5_holds p⟩
+
 end
 
 end ShenWork.Paper3
