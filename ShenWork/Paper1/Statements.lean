@@ -17568,6 +17568,89 @@ theorem Theorem_1_2_and_1_3.of_stability_cauchy_unique_resolvent_remark43
     Theorem_1_3.of_Theorem_1_2_cauchy_unique_resolvent_remark43
       h12 hcont hcauchy hresolvent htail_asymp⟩
 
+/-- Paper1 main results: construction + stability → Theorems 1.1 ∧ 1.2 ∧ 1.3.
+
+This is the top-level paper result bridge.  It packages the two
+independent analytical obligations:
+1. **Construction** (Theorem 1.1): supply frozen stationary profiles in
+   both the negative- and positive-sensitivity regimes.
+2. **Stability analysis** (Theorem 1.2): for every traveling wave above
+   the speed threshold, prove weighted L2 stability for nearby data.
+
+The remaining hypotheses (continuity, resolvent, Cauchy uniqueness,
+Remark 4.3 tails) are structural regularity conditions that follow from
+the wave equation once elliptic regularity and PDE uniqueness are
+established. -/
+theorem paper1_main_results
+    (hconstruction_neg :
+      ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
+        ∀ c : ℝ, cStarLower p < c →
+          ∃ U : ℝ → ℝ,
+            FrozenStationaryWaveProfile p c U ∧
+              (∀ x, deriv U x ≤ 0) ∧
+              (∀ x, deriv (frozenElliptic p U) x ≤ 0) ∧
+              ShenUpperBoundNegative c U ∧
+              ∀ κ₁, kappa c < κ₁ →
+                κ₁ <
+                  min ((1 + p.α) * kappa c)
+                    (min (p.m * kappa c + 1 / 2) 1) →
+                HasWaveRightTailAsymptotic c κ₁ U)
+    (hconstruction_pos :
+      ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+        0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+        ∀ c : ℝ, 2 < c →
+          ∃ U : ℝ → ℝ,
+            FrozenStationaryWaveProfile p c U ∧
+              ShenUpperBoundPositive p c U ∧
+              ∀ κ₁, kappa c < κ₁ →
+                κ₁ <
+                  min ((1 + p.α) * kappa c)
+                    (min (p.m * kappa c + 1 / 2) 1) →
+                HasWaveRightTailAsymptotic c κ₁ U)
+    (cStarStarFn : CMParams → (ℝ → ℝ))
+    (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
+      StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
+        stabilitySpeedBaseline p < cStarStarFn p p.χ)
+    (hstability : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, cStarStarFn p p.χ < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          ∀ u₀ : ℝ → ℝ,
+            NonnegativeInitialDatum u₀ →
+            StrictlyPositiveAtLeft u₀ →
+            WeightedL2InitialCloseness η u₀ U →
+            ∃ u v : ℝ → ℝ → ℝ,
+              IsGlobalCauchySolutionFrom p u₀ u v ∧
+              WeightedL2MovingFrameConvergence η c u U ∧
+              UniformMovingFrameConvergence c u U)
+    (hcont : ∀ p : CMParams, ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V → Continuous U)
+    (hcauchy : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        IsCUnifBdd U →
+        ∀ u v : ℝ → ℝ → ℝ,
+          IsGlobalCauchySolutionFrom p U u v →
+            ∀ t x, u t x = U (x - c * t))
+    (hresolvent : ∀ p : CMParams, ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V → V = frozenElliptic p U)
+    (htail_asymp : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        HasRemark43TailAsymptotic p c U) :
+    Theorem_1_1 ∧ Theorem_1_2 ∧ Theorem_1_3 := by
+  have h11 : Theorem_1_1 :=
+    Theorem_1_1.of_assumed_frozenStationaryProfile_branches
+      hconstruction_neg hconstruction_pos
+  have ⟨h12, h13⟩ :=
+    Theorem_1_2_and_1_3.of_stability_cauchy_unique_resolvent_remark43
+      cStarStarFn hcStarStar hstability hcont hcauchy hresolvent htail_asymp
+  exact ⟨h11, h12, h13⟩
+
 end
 
 end ShenWork.Paper1
