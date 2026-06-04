@@ -334,6 +334,37 @@ theorem localExistence_of_gradientMildSolutionData_and_intervalDuhamel_eq
     regularityBootstrap_of_gradientMildSolutionData p D hInitialApproach hclassical
   exact localExistence_of_fp_and_regularity p u0 hu0 D.hT hfp hreg
 
+/-- Route through `localExistence_of_fp_and_regularity`, using restart-cosine
+representations to discharge the elliptic and Neumann regularity conjuncts. -/
+theorem
+    localExistence_of_gradientMildSolutionData_and_intervalDuhamel_eq_of_restartCosineRepresentations
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (hu0 : PositiveInitialDatum intervalDomain u0)
+    (D : GradientMildSolutionData p u0)
+    (H : HasRestartCosineRepresentations D.T D.u)
+    (hzero : ∀ x : intervalDomainPoint,
+      D.u 0 x = intervalDuhamelOperator p u0 D.u 0 x)
+    (hDuhamelEq : ∀ t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
+      intervalGradientDuhamelMap p u0 D.u t x =
+        intervalDuhamelOperator p u0 D.u t x)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u)) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u0 u := by
+  have hfp : ∀ t x, 0 ≤ t → t ≤ D.T →
+      D.u t x = intervalDuhamelOperator p u0 D.u t x :=
+    intervalDuhamel_fixedPoint_of_gradientMildSolutionData
+      p D hzero hDuhamelEq
+  have hreg : RegularityBootstrap p D.T u0 D.u :=
+    regularityBootstrap_of_gradientMildSolutionData_of_restartCosineRepresentations
+      p D H hInitialApproach hclassical
+  exact localExistence_of_fp_and_regularity p u0 hu0 D.hT hfp hreg
+
 /-- Route through `localExistence_of_fp_and_regularity` in the zero-sensitivity
 branch, constructing the old fixed-point hypothesis directly from
 `GradientMildSolutionData` and the componentwise Duhamel frontiers. -/
@@ -371,6 +402,45 @@ theorem localExistence_of_gradientMildSolutionData_chi_zero_via_intervalDuhamel
     regularityBootstrap_of_gradientMildSolutionData p D hInitialApproach hclassical
   exact localExistence_of_fp_and_regularity p u0 hu0 D.hT hfp hreg
 
+/-- Zero-sensitivity route through `localExistence_of_fp_and_regularity`, with
+elliptic/Neumann regularity discharged by restart-cosine representations. -/
+theorem
+    localExistence_of_gradientMildSolutionData_chi_zero_via_intervalDuhamel_of_restartCosineRepresentations
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (hu0 : PositiveInitialDatum intervalDomain u0)
+    (D : GradientMildSolutionData p u0)
+    (H : HasRestartCosineRepresentations D.T D.u)
+    (hχ : p.χ₀ = 0)
+    (hzero : ∀ x : intervalDomainPoint,
+      D.u 0 x = intervalDuhamelOperator p u0 D.u 0 x)
+    (hinit : ∀ t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
+      intervalFullSemigroupOperator t (intervalDomainLift u0) x.1 =
+        intervalSemigroupOperator 1 t (intervalDomainLift u0) x.1)
+    (hlog : ∀ t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
+      (∫ s in (0 : ℝ)..t,
+          intervalFullSemigroupOperator (t - s)
+            (logisticLifted p (D.u s)) x.1) =
+        ∫ s in Set.Icc 0 t,
+          intervalSemigroupOperator 1 (t - s)
+            (logisticLifted p (D.u s)) x.1)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u)) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u0 u := by
+  have hfp : ∀ t x, 0 ≤ t → t ≤ D.T →
+      D.u t x = intervalDuhamelOperator p u0 D.u t x :=
+    intervalDuhamel_fixedPoint_of_gradientMildSolutionData_chi_zero
+      p D hχ hzero hinit hlog
+  have hreg : RegularityBootstrap p D.T u0 D.u :=
+    regularityBootstrap_of_gradientMildSolutionData_of_restartCosineRepresentations
+      p D H hInitialApproach hclassical
+  exact localExistence_of_fp_and_regularity p u0 hu0 D.hT hfp hreg
+
 /-- Version that explicitly routes through
 `IntervalDomainExistence.localExistence_of_fp_and_regularity`.
 
@@ -394,6 +464,29 @@ theorem localExistence_of_gradientMildSolutionData_and_intervalDuhamel_fp
       InitialTrace intervalDomain u0 u := by
   have hreg : RegularityBootstrap p D.T u0 D.u :=
     regularityBootstrap_of_gradientMildSolutionData p D hInitialApproach hclassical
+  exact localExistence_of_fp_and_regularity p u0 hu0 D.hT hfp hreg
+
+/-- Old-fixed-point route through `localExistence_of_fp_and_regularity`, using
+restart-cosine representations for the elliptic and Neumann conjuncts. -/
+theorem localExistence_of_gradientMildSolutionData_and_intervalDuhamel_fp_of_restartCosineRepresentations
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (hu0 : PositiveInitialDatum intervalDomain u0)
+    (D : GradientMildSolutionData p u0)
+    (H : HasRestartCosineRepresentations D.T D.u)
+    (hfp : ∀ t x, 0 ≤ t → t ≤ D.T →
+      D.u t x = intervalDuhamelOperator p u0 D.u t x)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u)) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u0 u := by
+  have hreg : RegularityBootstrap p D.T u0 D.u :=
+    regularityBootstrap_of_gradientMildSolutionData_of_restartCosineRepresentations
+      p D H hInitialApproach hclassical
   exact localExistence_of_fp_and_regularity p u0 hu0 D.hT hfp hreg
 
 end ShenWork.IntervalMildToLocalExistence

@@ -74,6 +74,7 @@ open ShenWork.IntervalGradientDuhamelMap
 open ShenWork.IntervalNeumannFullKernel
 open ShenWork.IntervalMildPicard
 open ShenWork.IntervalMildToLocalExistence
+open ShenWork.IntervalMildRegularityBootstrap
 open ShenWork.Paper2.IntervalDomainMoserClosure
 open ShenWork.Paper2.IntervalDomainGlobalWellposed
 
@@ -116,6 +117,37 @@ theorem localExistence_of_gradientMildLocalData
   exact ShenWork.IntervalMildToLocalExistence.localExistence_of_gradientMildSolutionData
     p hu₀ D hInitialApproach hclassical
 
+/-- Picard gradient-mild local data with restart-cosine representations for
+every positive-time slice.  This is the local-data interface matching the T7e
+restart bootstrap: the elliptic PDE and Neumann boundary conjuncts are not read
+from `hclassical.regularity`, but rebuilt from `H`. -/
+def IntervalDomainGradientMildRestartLocalData (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomain.Point → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+      ∃ D : GradientMildSolutionData p u₀,
+        HasRestartCosineRepresentations D.T D.u ∧
+        (∀ ε, 0 < ε →
+          ∃ δ > 0, ∀ t, 0 < t → t < δ →
+            ∀ x : intervalDomainPoint,
+              |intervalGradientDuhamelMap p u₀ D.u t x - u₀ x| < ε) ∧
+        IsPaper2ClassicalSolution intervalDomain p D.T D.u
+          (ShenWork.IntervalMildToClassical.mildChemicalConcentration p D.u)
+
+/-- Convert restart-cosine Picard gradient-mild local data into the `hlocal`
+field consumed by the umbrella theorems. -/
+theorem localExistence_of_gradientMildRestartLocalData
+    (p : CM2Params)
+    (hMildLocal : IntervalDomainGradientMildRestartLocalData p) :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨D, H, hInitialApproach, hclassical⟩ := hMildLocal u₀ hu₀
+  exact localExistence_of_gradientMildSolutionData_of_restartCosineRepresentations
+    p hu₀ D H hInitialApproach hclassical
+
 /-- Picard gradient-mild local data with the extra old-Duhamel fixed-point
 frontiers needed to route through
 `IntervalDomainExistence.localExistence_of_fp_and_regularity`.
@@ -157,6 +189,42 @@ theorem localExistence_of_gradientMildIntervalDuhamelLocalData
     hMildLocal u₀ hu₀
   exact localExistence_of_gradientMildSolutionData_and_intervalDuhamel_eq
     p hu₀ D hzero hDuhamelEq hInitialApproach hclassical
+
+/-- Old-Duhamel routed local data with restart-cosine representations. -/
+def IntervalDomainGradientMildRestartIntervalDuhamelLocalData
+    (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomain.Point → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+      ∃ D : GradientMildSolutionData p u₀,
+        HasRestartCosineRepresentations D.T D.u ∧
+        (∀ x : intervalDomainPoint,
+          D.u 0 x = intervalDuhamelOperator p u₀ D.u 0 x) ∧
+        (∀ t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
+          intervalGradientDuhamelMap p u₀ D.u t x =
+            intervalDuhamelOperator p u₀ D.u t x) ∧
+        (∀ ε, 0 < ε →
+          ∃ δ > 0, ∀ t, 0 < t → t < δ →
+            ∀ x : intervalDomainPoint,
+              |intervalGradientDuhamelMap p u₀ D.u t x - u₀ x| < ε) ∧
+        IsPaper2ClassicalSolution intervalDomain p D.T D.u
+          (ShenWork.IntervalMildToClassical.mildChemicalConcentration p D.u)
+
+/-- Convert old-Duhamel routed local data with restart-cosine representations
+into the `hlocal` field. -/
+theorem localExistence_of_gradientMildRestartIntervalDuhamelLocalData
+    (p : CM2Params)
+    (hMildLocal : IntervalDomainGradientMildRestartIntervalDuhamelLocalData p) :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨D, H, hzero, hDuhamelEq, hInitialApproach, hclassical⟩ :=
+    hMildLocal u₀ hu₀
+  exact
+    localExistence_of_gradientMildSolutionData_and_intervalDuhamel_eq_of_restartCosineRepresentations
+      p hu₀ D H hzero hDuhamelEq hInitialApproach hclassical
 
 /-- Zero-sensitivity Picard local data using the componentwise Duhamel frontiers
 from `IntervalMildToLocalExistence`.
@@ -204,6 +272,50 @@ theorem localExistence_of_gradientMildChiZeroDuhamelLocalData
     hMildLocal u₀ hu₀
   exact localExistence_of_gradientMildSolutionData_chi_zero_via_intervalDuhamel
     p hu₀ D hχ hzero hinit hlog hInitialApproach hclassical
+
+/-- Zero-sensitivity componentwise Duhamel local data with restart-cosine
+representations. -/
+def IntervalDomainGradientMildRestartChiZeroDuhamelLocalData
+    (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomain.Point → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+      ∃ D : GradientMildSolutionData p u₀,
+        HasRestartCosineRepresentations D.T D.u ∧
+        (∀ x : intervalDomainPoint,
+          D.u 0 x = intervalDuhamelOperator p u₀ D.u 0 x) ∧
+        (∀ t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
+          intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1 =
+            intervalSemigroupOperator 1 t (intervalDomainLift u₀) x.1) ∧
+        (∀ t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
+          (∫ s in (0 : ℝ)..t,
+              intervalFullSemigroupOperator (t - s)
+                (logisticLifted p (D.u s)) x.1) =
+            ∫ s in Set.Icc 0 t,
+              intervalSemigroupOperator 1 (t - s)
+                (logisticLifted p (D.u s)) x.1) ∧
+        (∀ ε, 0 < ε →
+          ∃ δ > 0, ∀ t, 0 < t → t < δ →
+            ∀ x : intervalDomainPoint,
+              |intervalGradientDuhamelMap p u₀ D.u t x - u₀ x| < ε) ∧
+        IsPaper2ClassicalSolution intervalDomain p D.T D.u
+          (ShenWork.IntervalMildToClassical.mildChemicalConcentration p D.u)
+
+/-- Convert zero-sensitivity componentwise Duhamel local data with
+restart-cosine representations into the `hlocal` field. -/
+theorem localExistence_of_gradientMildRestartChiZeroDuhamelLocalData
+    (p : CM2Params) (hχ : p.χ₀ = 0)
+    (hMildLocal : IntervalDomainGradientMildRestartChiZeroDuhamelLocalData p) :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨D, H, hzero, hinit, hlog, hInitialApproach, hclassical⟩ :=
+    hMildLocal u₀ hu₀
+  exact
+    localExistence_of_gradientMildSolutionData_chi_zero_via_intervalDuhamel_of_restartCosineRepresentations
+      p hu₀ D H hχ hzero hinit hlog hInitialApproach hclassical
 
 /-- **Umbrella theorem.**  Paper 2 Theorem 1.1 on the interval domain follows
 from the negative-sensitivity regime (`χ₀ ≤ 0`, `0 < a`, `0 < b`) together with
@@ -1468,6 +1580,28 @@ theorem
     (localExistence_of_gradientMildLocalData p hMildLocal)
     hUniform hposWit
 
+/-- Paper 2-aligned umbrella via Picard gradient-mild local data whose
+elliptic/Neumann regularity is supplied by restart-cosine representations. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildRestartLocalData
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hMildLocal : IntervalDomainGradientMildRestartLocalData p)
+    (hUniform : IntervalDomainUniformLocalExistence p)
+    (hposWit :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          PositiveInitialDatum intervalDomain u₀) :
+    Theorem_1_1 intervalDomain p := by
+  exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
+    p hχ ha hb hγ_ge_one
+    (localExistence_of_gradientMildRestartLocalData p hMildLocal)
+    hUniform hposWit
+
 /-- Paper 2-aligned umbrella via Picard gradient-mild local data, explicitly
 routed through the older `localExistence_of_fp_and_regularity` interface.
 
@@ -1496,6 +1630,28 @@ theorem
   exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
     p hχ ha hb hγ_ge_one
     (localExistence_of_gradientMildIntervalDuhamelLocalData p hMildLocal)
+    hUniform hposWit
+
+/-- Old-Duhamel-routed Paper 2 umbrella with restart-cosine regularity
+discharge for the elliptic and Neumann conjuncts. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildRestartIntervalDuhamelLocalData
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hMildLocal : IntervalDomainGradientMildRestartIntervalDuhamelLocalData p)
+    (hUniform : IntervalDomainUniformLocalExistence p)
+    (hposWit :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          PositiveInitialDatum intervalDomain u₀) :
+    Theorem_1_1 intervalDomain p := by
+  exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
+    p hχ ha hb hγ_ge_one
+    (localExistence_of_gradientMildRestartIntervalDuhamelLocalData p hMildLocal)
     hUniform hposWit
 
 /-- Zero-sensitivity version of the old-Duhamel-routed Paper 2 umbrella.
@@ -1527,6 +1683,31 @@ theorem
       p hχ_zero hMildLocal)
     hUniform hposWit
 
+/-- Zero-sensitivity old-Duhamel Paper 2 umbrella with restart-cosine
+regularity discharge for the elliptic and Neumann conjuncts. -/
+theorem
+    Theorem_1_1_intervalDomain_via_chiZero_gammaGeOne_gradientMildRestartDuhamelLocalData
+    (p : CM2Params) (hχ_zero : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hMildLocal : IntervalDomainGradientMildRestartChiZeroDuhamelLocalData p)
+    (hUniform : IntervalDomainUniformLocalExistence p)
+    (hposWit :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          PositiveInitialDatum intervalDomain u₀) :
+    Theorem_1_1 intervalDomain p := by
+  have hχ : p.χ₀ ≤ 0 := by
+    simp [hχ_zero]
+  exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
+    p hχ ha hb hγ_ge_one
+    (localExistence_of_gradientMildRestartChiZeroDuhamelLocalData
+      p hχ_zero hMildLocal)
+    hUniform hposWit
+
 /-- Bundled input for the Picard-gradient-mild version of the γ≥1 umbrella. -/
 structure IntervalDomainPaper2GradientMildContinuationData (p : CM2Params) :
     Prop where
@@ -1548,6 +1729,31 @@ theorem Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildLocalData_b
     (hData : IntervalDomainPaper2GradientMildContinuationData p) :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildLocalData
+    p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+
+/-- Bundled input for the restart-cosine Picard-gradient-mild γ≥1 umbrella. -/
+structure IntervalDomainPaper2GradientMildRestartContinuationData
+    (p : CM2Params) : Prop where
+  mildLocal : IntervalDomainGradientMildRestartLocalData p
+  uniformLocal : IntervalDomainUniformLocalExistence p
+  posWit :
+    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+      InitialTrace intervalDomain u₀ u₁ →
+      InitialTrace intervalDomain u₀ u₂ →
+        PositiveInitialDatum intervalDomain u₀
+
+/-- Bundled-input wrapper for the restart-cosine Picard-gradient-mild γ≥1
+umbrella. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildRestartLocalData_bundled
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData : IntervalDomainPaper2GradientMildRestartContinuationData p) :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildRestartLocalData
     p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
 
 /-- Bundled input for the old-Duhamel-routed Picard-gradient-mild γ≥1
@@ -1576,6 +1782,32 @@ theorem
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildIntervalDuhamelLocalData
     p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
 
+/-- Bundled input for the old-Duhamel-routed restart-cosine Picard-gradient-mild
+γ≥1 umbrella. -/
+structure IntervalDomainPaper2GradientMildRestartIntervalDuhamelContinuationData
+    (p : CM2Params) : Prop where
+  mildLocal : IntervalDomainGradientMildRestartIntervalDuhamelLocalData p
+  uniformLocal : IntervalDomainUniformLocalExistence p
+  posWit :
+    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+      InitialTrace intervalDomain u₀ u₁ →
+      InitialTrace intervalDomain u₀ u₂ →
+        PositiveInitialDatum intervalDomain u₀
+
+/-- Bundled-input wrapper for the old-Duhamel-routed restart-cosine
+Picard-gradient-mild γ≥1 umbrella. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildRestartIntervalDuhamelLocalData_bundled
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData : IntervalDomainPaper2GradientMildRestartIntervalDuhamelContinuationData p) :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildRestartIntervalDuhamelLocalData
+    p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+
 /-- Bundled input for the zero-sensitivity component-frontier Duhamel γ≥1
 umbrella. -/
 structure IntervalDomainPaper2GradientMildChiZeroDuhamelContinuationData
@@ -1600,6 +1832,32 @@ theorem
     (hData : IntervalDomainPaper2GradientMildChiZeroDuhamelContinuationData p) :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_chiZero_gammaGeOne_gradientMildDuhamelLocalData
+    p hχ_zero ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+
+/-- Bundled input for the zero-sensitivity restart-cosine component-frontier
+Duhamel γ≥1 umbrella. -/
+structure IntervalDomainPaper2GradientMildRestartChiZeroDuhamelContinuationData
+    (p : CM2Params) : Prop where
+  mildLocal : IntervalDomainGradientMildRestartChiZeroDuhamelLocalData p
+  uniformLocal : IntervalDomainUniformLocalExistence p
+  posWit :
+    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+      InitialTrace intervalDomain u₀ u₁ →
+      InitialTrace intervalDomain u₀ u₂ →
+        PositiveInitialDatum intervalDomain u₀
+
+/-- Bundled-input wrapper for the zero-sensitivity restart-cosine
+component-frontier Duhamel γ≥1 umbrella. -/
+theorem
+    Theorem_1_1_intervalDomain_via_chiZero_gammaGeOne_gradientMildRestartDuhamelLocalData_bundled
+    (p : CM2Params) (hχ_zero : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData : IntervalDomainPaper2GradientMildRestartChiZeroDuhamelContinuationData p) :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_chiZero_gammaGeOne_gradientMildRestartDuhamelLocalData
     p hχ_zero ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
 
 end
