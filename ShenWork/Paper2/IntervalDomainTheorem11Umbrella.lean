@@ -205,6 +205,38 @@ theorem localExistence_of_gradientMildRestartCoreLocalData
   exact localExistence_of_gradientMildSolutionData_of_restartCosineRepresentations_and_coreData
     p hu₀ D H hInitialApproach hCore
 
+/-- Restart-cosine Picard local data using only the reduced regularity frontier.
+The restart bootstrap supplies the `u` spatial `C²`/Neumann parts of
+`intervalDomainClassicalRegularity`; the data here supplies the remaining
+frontier. -/
+def IntervalDomainGradientMildRestartFrontierCoreLocalData
+    (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomain.Point → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+      ∃ D : GradientMildSolutionData p u₀,
+        HasRestartCosineRepresentations D.T D.u ∧
+        (∀ ε, 0 < ε →
+          ∃ δ > 0, ∀ t, 0 < t → t < δ →
+            ∀ x : intervalDomainPoint,
+              |intervalGradientDuhamelMap p u₀ D.u t x - u₀ x| < ε) ∧
+        GradientMildClassicalFrontierCoreData p D
+
+/-- Convert restart-cosine Picard gradient-mild frontier-core local data into
+the `hlocal` field consumed by the umbrella theorems. -/
+theorem localExistence_of_gradientMildRestartFrontierCoreLocalData
+    (p : CM2Params)
+    (hMildLocal : IntervalDomainGradientMildRestartFrontierCoreLocalData p) :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨D, H, hInitialApproach, hCore⟩ := hMildLocal u₀ hu₀
+  exact
+    localExistence_of_gradientMildSolutionData_of_restartCosineRepresentations_and_frontierCore
+      p hu₀ D H hInitialApproach hCore
+
 /-- Picard gradient-mild local data with half-step source regularity and
 cosine-series agreement.  The restart-cosine representation is constructed
 internally from this half-step package. -/
@@ -261,6 +293,70 @@ theorem localExistence_of_gradientMildHalfStepRestartCoreLocalData
   obtain ⟨D, R, hInitialApproach, hCore⟩ := hMildLocal u₀ hu₀
   exact localExistence_of_gradientMildSolutionData_of_halfStepRestartData_and_coreData
     p hu₀ D R hInitialApproach hCore
+
+/-- Half-step restart Picard local data using only the reduced regularity
+frontier. -/
+def IntervalDomainGradientMildHalfStepRestartFrontierCoreLocalData
+    (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomain.Point → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+      ∃ D : GradientMildSolutionData p u₀,
+      ∃ _R : GradientMildHalfStepRestartData D,
+        (∀ ε, 0 < ε →
+          ∃ δ > 0, ∀ t, 0 < t → t < δ →
+            ∀ x : intervalDomainPoint,
+              |intervalGradientDuhamelMap p u₀ D.u t x - u₀ x| < ε) ∧
+        GradientMildClassicalFrontierCoreData p D
+
+/-- Convert half-step restart Picard gradient-mild frontier-core local data into
+the `hlocal` field consumed by the umbrella theorems. -/
+theorem localExistence_of_gradientMildHalfStepRestartFrontierCoreLocalData
+    (p : CM2Params)
+    (hMildLocal :
+      IntervalDomainGradientMildHalfStepRestartFrontierCoreLocalData p) :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨D, R, hInitialApproach, hCore⟩ := hMildLocal u₀ hu₀
+  exact localExistence_of_gradientMildSolutionData_of_halfStepRestartData_and_frontierCore
+    p hu₀ D R hInitialApproach hCore
+
+/-- Picard gradient-mild local data with H²-Neumann half-step source regularity,
+quadratic source-coefficient decay, and only the reduced regularity frontier.
+
+The H² source data is converted internally to the older half-step restart
+package, which then supplies restart-cosine representations for every
+positive-time slice. -/
+def IntervalDomainGradientMildHalfStepH2SourceFrontierCoreLocalData
+    (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomain.Point → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+      ∃ D : GradientMildSolutionData p u₀,
+      ∃ _S : GradientMildHalfStepH2SourceData D,
+        (∀ ε, 0 < ε →
+          ∃ δ > 0, ∀ t, 0 < t → t < δ →
+            ∀ x : intervalDomainPoint,
+              |intervalGradientDuhamelMap p u₀ D.u t x - u₀ x| < ε) ∧
+        GradientMildClassicalFrontierCoreData p D
+
+/-- Convert H²-source half-step Picard gradient-mild frontier-core local data
+into the `hlocal` field consumed by the umbrella theorems. -/
+theorem localExistence_of_gradientMildHalfStepH2SourceFrontierCoreLocalData
+    (p : CM2Params)
+    (hMildLocal :
+      IntervalDomainGradientMildHalfStepH2SourceFrontierCoreLocalData p) :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨D, S, hInitialApproach, hCore⟩ := hMildLocal u₀ hu₀
+  exact localExistence_of_gradientMildSolutionData_of_halfStepH2SourceData_and_frontierCore
+    p hu₀ D S hInitialApproach hCore
 
 /-- Picard gradient-mild local data with the extra old-Duhamel fixed-point
 frontiers needed to route through
@@ -1797,6 +1893,76 @@ theorem
   exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
     p hχ ha hb hγ_ge_one
     (localExistence_of_gradientMildRestartLocalData p hMildLocal)
+    hUniform hposWit
+
+/-- Paper 2-aligned umbrella via restart-cosine Picard gradient-mild local data
+using only the reduced regularity frontier. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildRestartFrontierCoreLocalData
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hMildLocal : IntervalDomainGradientMildRestartFrontierCoreLocalData p)
+    (hUniform : IntervalDomainUniformLocalExistence p)
+    (hposWit :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          PositiveInitialDatum intervalDomain u₀) :
+    Theorem_1_1 intervalDomain p := by
+  exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
+    p hχ ha hb hγ_ge_one
+    (localExistence_of_gradientMildRestartFrontierCoreLocalData p hMildLocal)
+    hUniform hposWit
+
+/-- Paper 2-aligned umbrella via half-step restart Picard gradient-mild local
+data using only the reduced regularity frontier. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildHalfStepRestartFrontierCoreLocalData
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hMildLocal :
+      IntervalDomainGradientMildHalfStepRestartFrontierCoreLocalData p)
+    (hUniform : IntervalDomainUniformLocalExistence p)
+    (hposWit :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          PositiveInitialDatum intervalDomain u₀) :
+    Theorem_1_1 intervalDomain p := by
+  exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
+    p hχ ha hb hγ_ge_one
+    (localExistence_of_gradientMildHalfStepRestartFrontierCoreLocalData
+      p hMildLocal)
+    hUniform hposWit
+
+/-- Paper 2-aligned umbrella via H²-source half-step Picard gradient-mild local
+data using only the reduced regularity frontier. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildHalfStepH2SourceFrontierCoreLocalData
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hMildLocal :
+      IntervalDomainGradientMildHalfStepH2SourceFrontierCoreLocalData p)
+    (hUniform : IntervalDomainUniformLocalExistence p)
+    (hposWit :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          PositiveInitialDatum intervalDomain u₀) :
+    Theorem_1_1 intervalDomain p := by
+  exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
+    p hχ ha hb hγ_ge_one
+    (localExistence_of_gradientMildHalfStepH2SourceFrontierCoreLocalData
+      p hMildLocal)
     hUniform hposWit
 
 /-- Paper 2-aligned umbrella via Picard gradient-mild local data, explicitly

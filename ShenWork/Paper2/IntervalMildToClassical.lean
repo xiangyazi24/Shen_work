@@ -516,6 +516,20 @@ theorem mildChemical_ellipticPDE_of_gradientMildHalfStepRestartData (p : CM2Para
   mildChemical_ellipticPDE_of_restartCosineRepresentations p D
     (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
 
+/-- Elliptic PDE with restart-cosine representations built from H²-Neumann
+half-step source data, quadratic coefficient decay, and series agreement. -/
+theorem mildChemical_ellipticPDE_of_gradientMildHalfStepH2SourceData
+    (p : CM2Params) {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepH2SourceData D) :
+    ∀ t x, 0 < t -> t < D.T -> x ∈ intervalDomain.inside ->
+      0 = intervalDomain.laplacian
+            (mildChemicalConcentration p D.u t) x
+          - p.μ * mildChemicalConcentration p D.u t x
+          + p.ν * (D.u t x) ^ p.γ :=
+  mildChemical_ellipticPDE_of_gradientMildHalfStepRestartData p D
+    (gradientMildHalfStepRestartData_of_H2SourceData D S)
+
 /-! ## Neumann BC -/
 
 theorem mildSolution_neumannBC_of_closedC2_neumann (p : CM2Params)
@@ -584,7 +598,163 @@ theorem mildSolution_neumannBC_of_gradientMildHalfStepRestartData (p : CM2Params
   mildSolution_neumannBC_of_restartCosineRepresentations p D
     (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
 
+/-- Neumann boundary conditions with restart-cosine representations built from
+H²-Neumann half-step source data, quadratic coefficient decay, and series
+agreement. -/
+theorem mildSolution_neumannBC_of_gradientMildHalfStepH2SourceData
+    (p : CM2Params) {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepH2SourceData D) :
+    ∀ t x, 0 < t -> t < D.T -> x ∈ intervalDomain.boundary ->
+      intervalDomain.normalDeriv (D.u t) x = 0 ∧
+      intervalDomain.normalDeriv
+        (mildChemicalConcentration p D.u t) x = 0 :=
+  mildSolution_neumannBC_of_gradientMildHalfStepRestartData p D
+    (gradientMildHalfStepRestartData_of_H2SourceData D S)
+
 /-! ## Classical regularity -/
+
+/-- The remaining regularity frontier after `HasRestartCosineRepresentations`
+has supplied the mild solution's spatial `C²` regularity and genuine Neumann
+data.
+
+The restart-cosine bootstrap discharges the `u` half of conjuncts (3), (6), and
+(7) of `intervalDomainClassicalRegularity`.  The fields below are exactly the
+pieces still not supplied by that bootstrap: sup-norm monotonicity, the `v`
+spatial/Neumann package, time regularity, and joint slab continuity. -/
+structure GradientMildClassicalRegularityFrontierData
+    (p : CM2Params) {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀) : Prop where
+  supnormLogistic :
+    ∀ q : CM2Params, q.χ₀ ≤ 0 -> 0 < q.a -> 0 < q.b ->
+      ∀ t₀, 0 < t₀ -> t₀ < D.T ->
+        (q.a / q.b) ^ (1 / q.α) < intervalDomainSupNorm (D.u t₀) ->
+          IntervalDomainSupNormDerivativeNonposOn D.u (Set.Ioc (0 : ℝ) t₀)
+  supnormZero :
+    ∀ q : CM2Params, q.χ₀ ≤ 0 -> q.a = 0 -> q.b = 0 ->
+      IntervalDomainSupNormDerivativeNonposOn D.u (Set.Ioo (0 : ℝ) D.T)
+  vSpatialInterior :
+    ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) D.T ->
+      ContDiffOn ℝ 2
+        (intervalDomainLift (mildChemicalConcentration p D.u t))
+        (Set.Ioo (0 : ℝ) 1)
+  timeSlices :
+    ∀ x : intervalDomainPoint,
+      ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) D.T ->
+        (DifferentiableAt ℝ (fun s : ℝ => D.u s x) t ∧
+            DifferentiableAt ℝ
+              (fun s : ℝ => mildChemicalConcentration p D.u s x) t) ∧
+          (ContinuousOn (fun s : ℝ => deriv (fun r : ℝ => D.u r x) s)
+              (Set.Ioo (0 : ℝ) D.T) ∧
+            ContinuousOn
+              (fun s : ℝ =>
+                deriv (fun r : ℝ => mildChemicalConcentration p D.u r x) s)
+              (Set.Ioo (0 : ℝ) D.T))
+  jointTimeDerivInterior :
+    ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv (fun s : ℝ => intervalDomainLift (D.u s) x) t))
+        (Set.Ioo (0 : ℝ) D.T ×ˢ Set.Ioo (0 : ℝ) 1) ∧
+      ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv
+              (fun s : ℝ =>
+                intervalDomainLift (mildChemicalConcentration p D.u s) x) t))
+        (Set.Ioo (0 : ℝ) D.T ×ˢ Set.Ioo (0 : ℝ) 1)
+  vNeumannLimits :
+    ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) D.T ->
+      Filter.Tendsto
+          (deriv (intervalDomainLift (mildChemicalConcentration p D.u t)))
+          (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
+        Filter.Tendsto
+          (deriv (intervalDomainLift (mildChemicalConcentration p D.u t)))
+          (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)
+  vClosedSpatial :
+    ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) D.T ->
+      ContDiffOn ℝ 2
+          (intervalDomainLift (mildChemicalConcentration p D.u t))
+          (Set.Icc (0 : ℝ) 1) ∧
+        deriv (intervalDomainLift (mildChemicalConcentration p D.u t)) 0 = 0 ∧
+        deriv (intervalDomainLift (mildChemicalConcentration p D.u t)) 1 = 0
+  jointTimeDerivClosed :
+    ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv (fun s : ℝ => intervalDomainLift (D.u s) x) t))
+        (Set.Ioo (0 : ℝ) D.T ×ˢ Set.Icc (0 : ℝ) 1) ∧
+      ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            deriv
+              (fun s : ℝ =>
+                intervalDomainLift (mildChemicalConcentration p D.u s) x) t))
+        (Set.Ioo (0 : ℝ) D.T ×ˢ Set.Icc (0 : ℝ) 1)
+  jointSolutionClosed :
+    ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) => intervalDomainLift (D.u t) x))
+        (Set.Ioo (0 : ℝ) D.T ×ˢ Set.Icc (0 : ℝ) 1) ∧
+      ContinuousOn
+        (Function.uncurry
+          (fun (t : ℝ) (x : ℝ) =>
+            intervalDomainLift (mildChemicalConcentration p D.u t) x))
+        (Set.Ioo (0 : ℝ) D.T ×ˢ Set.Icc (0 : ℝ) 1)
+
+/-- Classical regularity for `(u, resolver(u))` from restart-cosine regularity
+plus the remaining frontier data. -/
+theorem mildSolution_classicalRegularity_of_restartCosineRepresentations_and_frontier
+    (p : CM2Params) {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations D.T D.u)
+    (F : GradientMildClassicalRegularityFrontierData p D) :
+    intervalDomainClassicalRegularity D.T D.u
+      (mildChemicalConcentration p D.u) := by
+  unfold intervalDomainClassicalRegularity
+  refine ⟨F.supnormLogistic, F.supnormZero, ?_, F.timeSlices,
+    F.jointTimeDerivInterior, ?_, ?_, F.jointTimeDerivClosed,
+    F.jointSolutionClosed⟩
+  · intro t ht
+    exact ⟨(gradientMild_contDiffOn_of_restartCosineRepresentations
+        D H t ht.1 ht.2).mono Set.Ioo_subset_Icc_self,
+      F.vSpatialInterior t ht⟩
+  · intro t ht
+    exact
+      ⟨⟨gradientMild_neumann_left_of_restartCosineRepresentations
+            D H t ht.1 ht.2,
+          gradientMild_neumann_right_of_restartCosineRepresentations
+            D H t ht.1 ht.2⟩,
+        F.vNeumannLimits t ht⟩
+  · intro t ht
+    exact
+      ⟨gradientMild_closedC2_endpointDerivs_of_restartCosineRepresentations
+          D H t ht.1 ht.2,
+        F.vClosedSpatial t ht⟩
+
+/-- Same classical-regularity bridge, with restart representations produced
+from the half-step restart package. -/
+theorem mildSolution_classicalRegularity_of_halfStepRestartData_and_frontier
+    (p : CM2Params) {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (R : GradientMildHalfStepRestartData D)
+    (F : GradientMildClassicalRegularityFrontierData p D) :
+    intervalDomainClassicalRegularity D.T D.u
+      (mildChemicalConcentration p D.u) :=
+  mildSolution_classicalRegularity_of_restartCosineRepresentations_and_frontier
+    p D (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R) F
+
+/-- Same classical-regularity bridge, with restart representations produced
+from H²-Neumann half-step source data and quadratic source-coefficient decay. -/
+theorem mildSolution_classicalRegularity_of_halfStepH2SourceData_and_frontier
+    (p : CM2Params) {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepH2SourceData D)
+    (F : GradientMildClassicalRegularityFrontierData p D) :
+    intervalDomainClassicalRegularity D.T D.u
+      (mildChemicalConcentration p D.u) :=
+  mildSolution_classicalRegularity_of_halfStepRestartData_and_frontier
+    p D (gradientMildHalfStepRestartData_of_H2SourceData D S) F
 
 theorem mildSolution_classicalRegularity (p : CM2Params)
     {u₀ : intervalDomainPoint -> ℝ}

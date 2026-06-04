@@ -15,12 +15,16 @@
 -/
 import ShenWork.PDE.IntervalCosineSliceRegularity
 import ShenWork.Paper2.IntervalMildPicard
+import ShenWork.PDE.IntervalSemigroupNeumann
 
 open MeasureTheory Filter Topology
 open ShenWork.IntervalDomain
 open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.IntervalDuhamelClosedC2
 open ShenWork.IntervalMildPicard
+open ShenWork.IntervalSemigroupNeumann
+open ShenWork.PDE.IntervalMildSourceDecayHelper
 
 noncomputable section
 
@@ -359,6 +363,61 @@ structure GradientMildHalfStepRestartData
             (a t) (t / 2) n * cosineMode n x)
       (Set.Icc (0 : ℝ) 1)
 
+/-- Half-step restart data with the `DuhamelSourceTimeC1` obligation replaced by
+the H²-Neumann/time-C¹ coefficient hypotheses consumed by
+`duhamelSourceTimeC1_of_H2Neumann_timeC1`.
+
+The remaining genuinely algebraic restart obligation is `hagree`: identifying
+the mild slice with the corresponding restarted cosine-Duhamel series. -/
+structure GradientMildHalfStepH2SourceData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀) where
+  source : ℝ → ℝ → ℝ → ℝ
+  C : ℝ → ℝ
+  hC : ∀ t, 0 < t → t < D.T → 0 ≤ C t
+  hH2 : ∀ t, 0 < t → t < D.T →
+    ∀ s, 0 ≤ s → IntervalWeakH2Neumann (source t s)
+  hdecay : ∀ t, 0 < t → t < D.T →
+    ∀ s, 0 ≤ s → ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs (source t s) k| ≤ C t / ((k : ℝ) * Real.pi) ^ 2
+  adot : ℝ → ℝ → ℕ → ℝ
+  hderiv : ∀ t, 0 < t → t < D.T →
+    ∀ s n, HasDerivAt
+      (fun r : ℝ => cosineCoeffs (source t r) n) (adot t s n) s
+  hadotcont : ∀ t, 0 < t → t < D.T →
+    ∀ n, Continuous (fun s : ℝ => adot t s n)
+  Mdot : ℝ → ℝ
+  hMdot : ∀ t, 0 < t → t < D.T →
+    ∀ s, 0 ≤ s → ∀ n, |adot t s n| ≤ Mdot t
+  ha0_bound : ∀ t, 0 < t → t < D.T →
+    ∀ s, 0 ≤ s → |cosineCoeffs (source t s) 0| ≤ C t
+  hagree : ∀ t, 0 < t → t < D.T →
+    Set.EqOn (intervalDomainLift (D.u t))
+      (fun x : ℝ =>
+        ∑' n : ℕ,
+          restartDuhamelCoeff (gradientMildHalfStepInitialCoeff D t)
+            (fun s n => cosineCoeffs (source t s) n) (t / 2) n *
+            cosineMode n x)
+      (Set.Icc (0 : ℝ) 1)
+
+/-- H²-Neumann/time-C¹ half-step source data produces the older restart package:
+the `src` field is supplied by
+`duhamelSourceTimeC1_of_H2Neumann_timeC1`. -/
+noncomputable def gradientMildHalfStepRestartData_of_H2SourceData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepH2SourceData D) :
+    GradientMildHalfStepRestartData D where
+  a := fun t s n => cosineCoeffs (S.source t s) n
+  src := by
+    intro t ht htT
+    exact duhamelSourceTimeC1_of_H2Neumann_timeC1
+      (S.hH2 t ht htT) (S.hC t ht htT)
+      (S.hdecay t ht htT) (S.hderiv t ht htT)
+      (S.hadotcont t ht htT) (S.hMdot t ht htT)
+      (S.ha0_bound t ht htT)
+  hagree := S.hagree
+
 /-- Construct `HasRestartCosineRepresentations` for a `GradientMildSolutionData`
 from the exact half-step source regularity and cosine-series agreement. -/
 theorem hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData
@@ -379,6 +438,16 @@ theorem hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData
       hagree := R.hagree t ht htT }
   positivity
 
+/-- Construct `HasRestartCosineRepresentations` directly from H²-Neumann/time-C¹
+half-step source data plus the restarted cosine-series agreement. -/
+theorem hasRestartCosineRepresentations_of_gradientMildHalfStepH2SourceData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepH2SourceData D) :
+    HasRestartCosineRepresentations D.T D.u :=
+  hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D
+    (gradientMildHalfStepRestartData_of_H2SourceData D S)
+
 /-- Discharge the closed-interval `ContDiffOn` family from restarted cosine
 representations of the mild slices. -/
 theorem gradientMild_contDiffOn_of_restartCosineRepresentations
@@ -397,6 +466,27 @@ theorem gradientMild_contDiffOn_of_restartCosineRepresentations
     simp only [intervalDomainLift, hmem, dif_pos]
     exact ne_of_gt (D.hpos t ht0 (le_of_lt htT) ⟨1, hmem⟩)
   exact ((Classical.choice (H t ht0 htT)).conjunct7 h0 h1).1
+
+/-- Discharge the closed-interval spatial `C²` package, including endpoint
+derivative values, from restarted cosine representations of the mild slices. -/
+theorem gradientMild_closedC2_endpointDerivs_of_restartCosineRepresentations
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations D.T D.u) :
+    ∀ t, 0 < t → t < D.T →
+      ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1)
+        ∧ deriv (intervalDomainLift (D.u t)) 0 = 0
+        ∧ deriv (intervalDomainLift (D.u t)) 1 = 0 := by
+  intro t ht0 htT
+  have h0 : intervalDomainLift (D.u t) 0 ≠ 0 := by
+    have hmem : (0 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by constructor <;> norm_num
+    simp only [intervalDomainLift, hmem, dif_pos]
+    exact ne_of_gt (D.hpos t ht0 (le_of_lt htT) ⟨0, hmem⟩)
+  have h1 : intervalDomainLift (D.u t) 1 ≠ 0 := by
+    have hmem : (1 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by constructor <;> norm_num
+    simp only [intervalDomainLift, hmem, dif_pos]
+    exact ne_of_gt (D.hpos t ht0 (le_of_lt htT) ⟨1, hmem⟩)
+  exact (Classical.choice (H t ht0 htT)).conjunct7 h0 h1
 
 /-- Discharge the left Neumann-limit family from restarted cosine
 representations of the mild slices. -/
