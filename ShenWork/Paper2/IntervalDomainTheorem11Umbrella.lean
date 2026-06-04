@@ -117,6 +117,34 @@ theorem localExistence_of_gradientMildLocalData
   exact ShenWork.IntervalMildToLocalExistence.localExistence_of_gradientMildSolutionData
     p hu₀ D hInitialApproach hclassical
 
+/-- Local-existence input stated at the Picard gradient-mild level after the
+mild-to-classical bridge has been reduced to its core frontier: the parabolic
+equation for `u` and the classical regularity bundle. -/
+def IntervalDomainGradientMildCoreLocalData (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomain.Point → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+      ∃ D : GradientMildSolutionData p u₀,
+        (∀ ε, 0 < ε →
+          ∃ δ > 0, ∀ t, 0 < t → t < δ →
+            ∀ x : intervalDomainPoint,
+              |intervalGradientDuhamelMap p u₀ D.u t x - u₀ x| < ε) ∧
+        GradientMildClassicalCoreData p D
+
+/-- Convert Picard gradient-mild core local data into the `hlocal` field
+consumed by the umbrella theorems. -/
+theorem localExistence_of_gradientMildCoreLocalData
+    (p : CM2Params)
+    (hMildLocal : IntervalDomainGradientMildCoreLocalData p) :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨D, hInitialApproach, hCore⟩ := hMildLocal u₀ hu₀
+  exact localExistence_of_gradientMildSolutionData_and_coreData
+    p hu₀ D hInitialApproach hCore
+
 /-- Picard gradient-mild local data with restart-cosine representations for
 every positive-time slice.  This is the local-data interface matching the T7e
 restart bootstrap: the elliptic PDE and Neumann boundary conjuncts are not read
@@ -148,6 +176,35 @@ theorem localExistence_of_gradientMildRestartLocalData
   exact localExistence_of_gradientMildSolutionData_of_restartCosineRepresentations
     p hu₀ D H hInitialApproach hclassical
 
+/-- Restart-cosine Picard local data using only the remaining classical core.
+The elliptic PDE and Neumann conjuncts are rebuilt from the restart-cosine
+representations. -/
+def IntervalDomainGradientMildRestartCoreLocalData (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomain.Point → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+      ∃ D : GradientMildSolutionData p u₀,
+        HasRestartCosineRepresentations D.T D.u ∧
+        (∀ ε, 0 < ε →
+          ∃ δ > 0, ∀ t, 0 < t → t < δ →
+            ∀ x : intervalDomainPoint,
+              |intervalGradientDuhamelMap p u₀ D.u t x - u₀ x| < ε) ∧
+        GradientMildClassicalCoreData p D
+
+/-- Convert restart-cosine Picard gradient-mild core local data into the
+`hlocal` field consumed by the umbrella theorems. -/
+theorem localExistence_of_gradientMildRestartCoreLocalData
+    (p : CM2Params)
+    (hMildLocal : IntervalDomainGradientMildRestartCoreLocalData p) :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨D, H, hInitialApproach, hCore⟩ := hMildLocal u₀ hu₀
+  exact localExistence_of_gradientMildSolutionData_of_restartCosineRepresentations_and_coreData
+    p hu₀ D H hInitialApproach hCore
+
 /-- Picard gradient-mild local data with half-step source regularity and
 cosine-series agreement.  The restart-cosine representation is constructed
 internally from this half-step package. -/
@@ -177,6 +234,33 @@ theorem localExistence_of_gradientMildHalfStepRestartLocalData
   obtain ⟨D, R, hInitialApproach, hclassical⟩ := hMildLocal u₀ hu₀
   exact localExistence_of_gradientMildSolutionData_of_halfStepRestartData
     p hu₀ D R hInitialApproach hclassical
+
+/-- Half-step restart Picard local data using only the remaining classical core. -/
+def IntervalDomainGradientMildHalfStepRestartCoreLocalData (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomain.Point → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+      ∃ D : GradientMildSolutionData p u₀,
+      ∃ _R : GradientMildHalfStepRestartData D,
+        (∀ ε, 0 < ε →
+          ∃ δ > 0, ∀ t, 0 < t → t < δ →
+            ∀ x : intervalDomainPoint,
+              |intervalGradientDuhamelMap p u₀ D.u t x - u₀ x| < ε) ∧
+        GradientMildClassicalCoreData p D
+
+/-- Convert half-step restart Picard gradient-mild core local data into the
+`hlocal` field consumed by the umbrella theorems. -/
+theorem localExistence_of_gradientMildHalfStepRestartCoreLocalData
+    (p : CM2Params)
+    (hMildLocal : IntervalDomainGradientMildHalfStepRestartCoreLocalData p) :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨D, R, hInitialApproach, hCore⟩ := hMildLocal u₀ hu₀
+  exact localExistence_of_gradientMildSolutionData_of_halfStepRestartData_and_coreData
+    p hu₀ D R hInitialApproach hCore
 
 /-- Picard gradient-mild local data with the extra old-Duhamel fixed-point
 frontiers needed to route through
