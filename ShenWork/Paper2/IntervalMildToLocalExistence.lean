@@ -101,6 +101,23 @@ theorem regularityBootstrap_of_gradientMildSolutionData_of_restartCosineRepresen
   · simpa [v] using mildSolution_classicalRegularity p D hclassical
   · exact mildSolution_initialTrace p D hInitialApproach
 
+/-- Assemble `RegularityBootstrap` from the half-step source regularity and
+series-agreement package, first turning it into restart-cosine representations. -/
+theorem regularityBootstrap_of_gradientMildSolutionData_of_halfStepRestartData
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u0)
+    (R : GradientMildHalfStepRestartData D)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u)) :
+    RegularityBootstrap p D.T u0 D.u :=
+  regularityBootstrap_of_gradientMildSolutionData_of_restartCosineRepresentations
+    p D (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
+    hInitialApproach hclassical
+
 /-- Direct local existence from the Picard gradient mild solution package after
 assembling `RegularityBootstrap`.  This avoids the older logistic-only Duhamel
 fixed-point theorem. -/
@@ -140,6 +157,27 @@ theorem localExistence_of_gradientMildSolutionData_of_restartCosineRepresentatio
   have hreg : RegularityBootstrap p D.T u0 D.u :=
     regularityBootstrap_of_gradientMildSolutionData_of_restartCosineRepresentations
       p D H hInitialApproach hclassical
+  exact localExistence_of_regularityBootstrap p u0 hu0 D.hT hreg
+
+/-- Direct local existence from Picard gradient mild data, with restart-cosine
+regularity produced from the half-step source and series package. -/
+theorem localExistence_of_gradientMildSolutionData_of_halfStepRestartData
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (hu0 : PositiveInitialDatum intervalDomain u0)
+    (D : GradientMildSolutionData p u0)
+    (R : GradientMildHalfStepRestartData D)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u)) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u0 u := by
+  have hreg : RegularityBootstrap p D.T u0 D.u :=
+    regularityBootstrap_of_gradientMildSolutionData_of_halfStepRestartData
+      p D R hInitialApproach hclassical
   exact localExistence_of_regularityBootstrap p u0 hu0 D.hT hreg
 
 /-- Exact componentwise bridge between the gradient-form mild map and the older
@@ -365,6 +403,31 @@ theorem
       p D H hInitialApproach hclassical
   exact localExistence_of_fp_and_regularity p u0 hu0 D.hT hfp hreg
 
+/-- Route through `localExistence_of_fp_and_regularity`, with restart-cosine
+regularity produced from the half-step source and series package. -/
+theorem localExistence_of_gradientMildSolutionData_and_intervalDuhamel_eq_of_halfStepRestartData
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (hu0 : PositiveInitialDatum intervalDomain u0)
+    (D : GradientMildSolutionData p u0)
+    (R : GradientMildHalfStepRestartData D)
+    (hzero : ∀ x : intervalDomainPoint,
+      D.u 0 x = intervalDuhamelOperator p u0 D.u 0 x)
+    (hDuhamelEq : ∀ t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
+      intervalGradientDuhamelMap p u0 D.u t x =
+        intervalDuhamelOperator p u0 D.u t x)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u)) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u0 u :=
+  localExistence_of_gradientMildSolutionData_and_intervalDuhamel_eq_of_restartCosineRepresentations
+    p hu0 D (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
+    hzero hDuhamelEq hInitialApproach hclassical
+
 /-- Route through `localExistence_of_fp_and_regularity` in the zero-sensitivity
 branch, constructing the old fixed-point hypothesis directly from
 `GradientMildSolutionData` and the componentwise Duhamel frontiers. -/
@@ -441,6 +504,39 @@ theorem
       p D H hInitialApproach hclassical
   exact localExistence_of_fp_and_regularity p u0 hu0 D.hT hfp hreg
 
+/-- Zero-sensitivity route through `localExistence_of_fp_and_regularity`, with
+restart-cosine regularity produced from the half-step source and series package. -/
+theorem localExistence_of_gradientMildSolutionData_chi_zero_via_intervalDuhamel_of_halfStepRestartData
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (hu0 : PositiveInitialDatum intervalDomain u0)
+    (D : GradientMildSolutionData p u0)
+    (R : GradientMildHalfStepRestartData D)
+    (hχ : p.χ₀ = 0)
+    (hzero : ∀ x : intervalDomainPoint,
+      D.u 0 x = intervalDuhamelOperator p u0 D.u 0 x)
+    (hinit : ∀ t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
+      intervalFullSemigroupOperator t (intervalDomainLift u0) x.1 =
+        intervalSemigroupOperator 1 t (intervalDomainLift u0) x.1)
+    (hlog : ∀ t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
+      (∫ s in (0 : ℝ)..t,
+          intervalFullSemigroupOperator (t - s)
+            (logisticLifted p (D.u s)) x.1) =
+        ∫ s in Set.Icc 0 t,
+          intervalSemigroupOperator 1 (t - s)
+            (logisticLifted p (D.u s)) x.1)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u)) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u0 u :=
+  localExistence_of_gradientMildSolutionData_chi_zero_via_intervalDuhamel_of_restartCosineRepresentations
+    p hu0 D (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
+    hχ hzero hinit hlog hInitialApproach hclassical
+
 /-- Version that explicitly routes through
 `IntervalDomainExistence.localExistence_of_fp_and_regularity`.
 
@@ -487,6 +583,29 @@ theorem localExistence_of_gradientMildSolutionData_and_intervalDuhamel_fp_of_res
   have hreg : RegularityBootstrap p D.T u0 D.u :=
     regularityBootstrap_of_gradientMildSolutionData_of_restartCosineRepresentations
       p D H hInitialApproach hclassical
+  exact localExistence_of_fp_and_regularity p u0 hu0 D.hT hfp hreg
+
+/-- Old-fixed-point route through `localExistence_of_fp_and_regularity`, with
+restart-cosine regularity produced from the half-step source and series package. -/
+theorem localExistence_of_gradientMildSolutionData_and_intervalDuhamel_fp_of_halfStepRestartData
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (hu0 : PositiveInitialDatum intervalDomain u0)
+    (D : GradientMildSolutionData p u0)
+    (R : GradientMildHalfStepRestartData D)
+    (hfp : ∀ t x, 0 ≤ t → t ≤ D.T →
+      D.u t x = intervalDuhamelOperator p u0 D.u t x)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u)) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u0 u := by
+  have hreg : RegularityBootstrap p D.T u0 D.u :=
+    regularityBootstrap_of_gradientMildSolutionData_of_halfStepRestartData
+      p D R hInitialApproach hclassical
   exact localExistence_of_fp_and_regularity p u0 hu0 D.hT hfp hreg
 
 end ShenWork.IntervalMildToLocalExistence

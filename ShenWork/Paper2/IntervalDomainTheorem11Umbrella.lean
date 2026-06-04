@@ -148,6 +148,36 @@ theorem localExistence_of_gradientMildRestartLocalData
   exact localExistence_of_gradientMildSolutionData_of_restartCosineRepresentations
     p hu₀ D H hInitialApproach hclassical
 
+/-- Picard gradient-mild local data with half-step source regularity and
+cosine-series agreement.  The restart-cosine representation is constructed
+internally from this half-step package. -/
+def IntervalDomainGradientMildHalfStepRestartLocalData (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomain.Point → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+      ∃ D : GradientMildSolutionData p u₀,
+      ∃ _R : GradientMildHalfStepRestartData D,
+        (∀ ε, 0 < ε →
+          ∃ δ > 0, ∀ t, 0 < t → t < δ →
+            ∀ x : intervalDomainPoint,
+              |intervalGradientDuhamelMap p u₀ D.u t x - u₀ x| < ε) ∧
+        IsPaper2ClassicalSolution intervalDomain p D.T D.u
+          (ShenWork.IntervalMildToClassical.mildChemicalConcentration p D.u)
+
+/-- Convert half-step restart Picard gradient-mild local data into the `hlocal`
+field consumed by the umbrella theorems. -/
+theorem localExistence_of_gradientMildHalfStepRestartLocalData
+    (p : CM2Params)
+    (hMildLocal : IntervalDomainGradientMildHalfStepRestartLocalData p) :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨D, R, hInitialApproach, hclassical⟩ := hMildLocal u₀ hu₀
+  exact localExistence_of_gradientMildSolutionData_of_halfStepRestartData
+    p hu₀ D R hInitialApproach hclassical
+
 /-- Picard gradient-mild local data with the extra old-Duhamel fixed-point
 frontiers needed to route through
 `IntervalDomainExistence.localExistence_of_fp_and_regularity`.
@@ -225,6 +255,44 @@ theorem localExistence_of_gradientMildRestartIntervalDuhamelLocalData
   exact
     localExistence_of_gradientMildSolutionData_and_intervalDuhamel_eq_of_restartCosineRepresentations
       p hu₀ D H hzero hDuhamelEq hInitialApproach hclassical
+
+/-- Old-Duhamel routed local data with half-step restart source regularity and
+cosine-series agreement. -/
+def IntervalDomainGradientMildHalfStepRestartIntervalDuhamelLocalData
+    (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomain.Point → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+      ∃ D : GradientMildSolutionData p u₀,
+      ∃ _R : GradientMildHalfStepRestartData D,
+        (∀ x : intervalDomainPoint,
+          D.u 0 x = intervalDuhamelOperator p u₀ D.u 0 x) ∧
+        (∀ t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
+          intervalGradientDuhamelMap p u₀ D.u t x =
+            intervalDuhamelOperator p u₀ D.u t x) ∧
+        (∀ ε, 0 < ε →
+          ∃ δ > 0, ∀ t, 0 < t → t < δ →
+            ∀ x : intervalDomainPoint,
+              |intervalGradientDuhamelMap p u₀ D.u t x - u₀ x| < ε) ∧
+        IsPaper2ClassicalSolution intervalDomain p D.T D.u
+          (ShenWork.IntervalMildToClassical.mildChemicalConcentration p D.u)
+
+/-- Convert old-Duhamel routed half-step restart local data into the `hlocal`
+field. -/
+theorem localExistence_of_gradientMildHalfStepRestartIntervalDuhamelLocalData
+    (p : CM2Params)
+    (hMildLocal :
+      IntervalDomainGradientMildHalfStepRestartIntervalDuhamelLocalData p) :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨D, R, hzero, hDuhamelEq, hInitialApproach, hclassical⟩ :=
+    hMildLocal u₀ hu₀
+  exact
+    localExistence_of_gradientMildSolutionData_and_intervalDuhamel_eq_of_halfStepRestartData
+      p hu₀ D R hzero hDuhamelEq hInitialApproach hclassical
 
 /-- Zero-sensitivity Picard local data using the componentwise Duhamel frontiers
 from `IntervalMildToLocalExistence`.
@@ -316,6 +384,51 @@ theorem localExistence_of_gradientMildRestartChiZeroDuhamelLocalData
   exact
     localExistence_of_gradientMildSolutionData_chi_zero_via_intervalDuhamel_of_restartCosineRepresentations
       p hu₀ D H hχ hzero hinit hlog hInitialApproach hclassical
+
+/-- Zero-sensitivity componentwise Duhamel local data with half-step restart
+source regularity and cosine-series agreement. -/
+def IntervalDomainGradientMildHalfStepRestartChiZeroDuhamelLocalData
+    (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomain.Point → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+      ∃ D : GradientMildSolutionData p u₀,
+      ∃ _R : GradientMildHalfStepRestartData D,
+        (∀ x : intervalDomainPoint,
+          D.u 0 x = intervalDuhamelOperator p u₀ D.u 0 x) ∧
+        (∀ t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
+          intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1 =
+            intervalSemigroupOperator 1 t (intervalDomainLift u₀) x.1) ∧
+        (∀ t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
+          (∫ s in (0 : ℝ)..t,
+              intervalFullSemigroupOperator (t - s)
+                (logisticLifted p (D.u s)) x.1) =
+            ∫ s in Set.Icc 0 t,
+              intervalSemigroupOperator 1 (t - s)
+                (logisticLifted p (D.u s)) x.1) ∧
+        (∀ ε, 0 < ε →
+          ∃ δ > 0, ∀ t, 0 < t → t < δ →
+            ∀ x : intervalDomainPoint,
+              |intervalGradientDuhamelMap p u₀ D.u t x - u₀ x| < ε) ∧
+        IsPaper2ClassicalSolution intervalDomain p D.T D.u
+          (ShenWork.IntervalMildToClassical.mildChemicalConcentration p D.u)
+
+/-- Convert zero-sensitivity half-step restart Duhamel local data into the
+`hlocal` field. -/
+theorem localExistence_of_gradientMildHalfStepRestartChiZeroDuhamelLocalData
+    (p : CM2Params) (hχ : p.χ₀ = 0)
+    (hMildLocal :
+      IntervalDomainGradientMildHalfStepRestartChiZeroDuhamelLocalData p) :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨D, R, hzero, hinit, hlog, hInitialApproach, hclassical⟩ :=
+    hMildLocal u₀ hu₀
+  exact
+    localExistence_of_gradientMildSolutionData_chi_zero_via_intervalDuhamel_of_halfStepRestartData
+      p hu₀ D R hχ hzero hinit hlog hInitialApproach hclassical
 
 /-- **Umbrella theorem.**  Paper 2 Theorem 1.1 on the interval domain follows
 from the negative-sensitivity regime (`χ₀ ≤ 0`, `0 < a`, `0 < b`) together with

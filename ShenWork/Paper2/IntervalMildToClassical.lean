@@ -502,6 +502,20 @@ theorem mildChemical_ellipticPDE_of_restartCosineRepresentations (p : CM2Params)
           + p.ν * (D.u t x) ^ p.γ :=
   mildChemical_ellipticPDE p D H
 
+/-- Elliptic PDE with restart-cosine representations built from half-step source
+regularity and series agreement. -/
+theorem mildChemical_ellipticPDE_of_gradientMildHalfStepRestartData (p : CM2Params)
+    {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (R : GradientMildHalfStepRestartData D) :
+    ∀ t x, 0 < t -> t < D.T -> x ∈ intervalDomain.inside ->
+      0 = intervalDomain.laplacian
+            (mildChemicalConcentration p D.u t) x
+          - p.μ * mildChemicalConcentration p D.u t x
+          + p.ν * (D.u t x) ^ p.γ :=
+  mildChemical_ellipticPDE_of_restartCosineRepresentations p D
+    (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
+
 /-! ## Neumann BC -/
 
 theorem mildSolution_neumannBC_of_closedC2_neumann (p : CM2Params)
@@ -556,6 +570,19 @@ theorem mildSolution_neumannBC_of_restartCosineRepresentations (p : CM2Params)
       intervalDomain.normalDeriv
         (mildChemicalConcentration p D.u t) x = 0 :=
   mildSolution_neumannBC p D H
+
+/-- Neumann boundary conditions with restart-cosine representations built from
+half-step source regularity and series agreement. -/
+theorem mildSolution_neumannBC_of_gradientMildHalfStepRestartData (p : CM2Params)
+    {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (R : GradientMildHalfStepRestartData D) :
+    ∀ t x, 0 < t -> t < D.T -> x ∈ intervalDomain.boundary ->
+      intervalDomain.normalDeriv (D.u t) x = 0 ∧
+      intervalDomain.normalDeriv
+        (mildChemicalConcentration p D.u t) x = 0 :=
+  mildSolution_neumannBC_of_restartCosineRepresentations p D
+    (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
 
 /-! ## Classical regularity -/
 

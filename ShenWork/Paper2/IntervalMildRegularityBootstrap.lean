@@ -248,6 +248,137 @@ def HasRestartCosineRepresentations (T : ℝ)
     (u : ℝ → intervalDomainPoint → ℝ) : Prop :=
   ∀ t, 0 < t → t < T → Nonempty (RestartCosineRepresentation (u t))
 
+/-- The half-step restart coefficients of a gradient mild solution, obtained by
+taking the Neumann cosine coefficients of the slice `u(t/2)`. -/
+def gradientMildHalfStepInitialCoeff
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀) (t : ℝ) : ℕ → ℝ :=
+  ShenWork.IntervalNeumannFullKernel.cosineCoeffs
+    (intervalDomainLift (D.u (t / 2)))
+
+/-- Uniform boundedness of the half-step restart coefficients.  This is the
+easy part of the restart construction: the `L¹` coefficient bound plus
+`GradientMildSolutionData.hbound` gives `|a₀ₙ| ≤ 2M`. -/
+theorem gradientMildHalfStepInitialCoeff_abs_le
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    {t : ℝ} (ht : 0 < t) (htT : t < D.T) :
+    ∀ n, |gradientMildHalfStepInitialCoeff D t n| ≤ 2 * D.M := by
+  intro n
+  have ht_half_pos : 0 < t / 2 := by positivity
+  have ht_half_le : t / 2 ≤ D.T := by
+    have ht_le_T : t ≤ D.T := le_of_lt htT
+    nlinarith
+  have hcont_sub :
+      Continuous (D.u (t / 2)) :=
+    D.hcont (t / 2) ht_half_pos ht_half_le
+  have hcont_on :
+      ContinuousOn (fun x : ℝ =>
+        ((intervalDomainLift (D.u (t / 2)) x : ℝ) : ℂ))
+        (Set.Icc (0 : ℝ) 1) := by
+    rw [continuousOn_iff_continuous_restrict]
+    have heq :
+        Set.restrict (Set.Icc (0 : ℝ) 1)
+            (fun x : ℝ =>
+              ((intervalDomainLift (D.u (t / 2)) x : ℝ) : ℂ)) =
+          fun x : intervalDomainPoint =>
+            ((D.u (t / 2) x : ℝ) : ℂ) := by
+      ext x
+      change ((intervalDomainLift (D.u (t / 2)) x.1 : ℝ) : ℂ) =
+        ((D.u (t / 2) x : ℝ) : ℂ)
+      simp [intervalDomainLift, x.2]
+    rw [heq]
+    exact Complex.continuous_ofReal.comp hcont_sub
+  have hfint :
+      IntervalIntegrable
+        (fun x : ℝ => ((intervalDomainLift (D.u (t / 2)) x : ℝ) : ℂ))
+        volume (0 : ℝ) 1 :=
+    (by
+      refine ContinuousOn.intervalIntegrable ?_
+      rwa [Set.uIcc_of_le (show (0 : ℝ) ≤ 1 by norm_num)])
+  have hcoeff :=
+    ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff_abs_le_two_integral_norm
+      (f := fun x : ℝ => ((intervalDomainLift (D.u (t / 2)) x : ℝ) : ℂ))
+      hfint n
+  have hM_nonneg : 0 ≤ D.M := le_of_lt D.hM
+  have hnorm_bound : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      ‖((intervalDomainLift (D.u (t / 2)) x : ℝ) : ℂ)‖ ≤ D.M := by
+    intro x hx
+    have hnorm_eq : ∀ r : ℝ, ‖(r : ℂ)‖ = |r| := by
+      intro r
+      have hsq : ‖(r : ℂ)‖ ^ 2 = |r| ^ 2 := by
+        rw [Complex.sq_norm, Complex.normSq_ofReal]
+        rw [sq_abs]
+        ring
+      have hnon1 : 0 ≤ ‖(r : ℂ)‖ := norm_nonneg _
+      have hnon2 : 0 ≤ |r| := abs_nonneg _
+      nlinarith
+    have hxb : |D.u (t / 2) ⟨x, hx⟩| ≤ D.M :=
+      D.hbound (t / 2) ht_half_pos ht_half_le ⟨x, hx⟩
+    simpa [intervalDomainLift, hx, hnorm_eq] using hxb
+  have hint_norm :
+      IntervalIntegrable
+        (fun x : ℝ =>
+          ‖((intervalDomainLift (D.u (t / 2)) x : ℝ) : ℂ)‖)
+        volume (0 : ℝ) 1 :=
+    hfint.norm
+  have hintegral_le :
+      ∫ x in (0 : ℝ)..1,
+          ‖((intervalDomainLift (D.u (t / 2)) x : ℝ) : ℂ)‖ ≤ D.M := by
+    have hconst_int :
+        IntervalIntegrable (fun _ : ℝ => D.M) volume (0 : ℝ) 1 :=
+      intervalIntegrable_const
+    have hmono := intervalIntegral.integral_mono_on
+      (show (0 : ℝ) ≤ 1 by norm_num) hint_norm hconst_int hnorm_bound
+    have hconst :
+        ∫ x in (0 : ℝ)..1, D.M = D.M := by
+      simp
+    simpa [hconst] using hmono
+  calc
+    |gradientMildHalfStepInitialCoeff D t n|
+        ≤ 2 * ∫ x in (0 : ℝ)..1,
+            ‖((intervalDomainLift (D.u (t / 2)) x : ℝ) : ℂ)‖ := by
+          simpa [gradientMildHalfStepInitialCoeff,
+            ShenWork.IntervalNeumannFullKernel.cosineCoeffs] using hcoeff
+    _ ≤ 2 * D.M := by nlinarith
+
+/-- The two analytic half-step obligations needed to restart a gradient mild
+solution as a classical cosine-Duhamel series.  `src` is the T6 time-`C¹`
+coefficient package for the restarted source; `hagree` is the exact equality of
+the target slice with the corresponding half-step cosine series. -/
+structure GradientMildHalfStepRestartData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀) where
+  a : ℝ → ℝ → ℕ → ℝ
+  src : ∀ t, 0 < t → t < D.T → DuhamelSourceTimeC1 (a t)
+  hagree : ∀ t, 0 < t → t < D.T →
+    Set.EqOn (intervalDomainLift (D.u t))
+      (fun x : ℝ =>
+        ∑' n : ℕ,
+          restartDuhamelCoeff (gradientMildHalfStepInitialCoeff D t)
+            (a t) (t / 2) n * cosineMode n x)
+      (Set.Icc (0 : ℝ) 1)
+
+/-- Construct `HasRestartCosineRepresentations` for a `GradientMildSolutionData`
+from the exact half-step source regularity and cosine-series agreement. -/
+theorem hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (R : GradientMildHalfStepRestartData D) :
+    HasRestartCosineRepresentations D.T D.u := by
+  intro t ht htT
+  refine ⟨?_⟩
+  refine
+    { τ := t / 2
+      hτ := ?_
+      M := 2 * D.M
+      a₀ := gradientMildHalfStepInitialCoeff D t
+      a := R.a t
+      ha₀ := gradientMildHalfStepInitialCoeff_abs_le D ht htT
+      src := R.src t ht htT
+      hagree := R.hagree t ht htT }
+  positivity
+
 /-- Discharge the closed-interval `ContDiffOn` family from restarted cosine
 representations of the mild slices. -/
 theorem gradientMild_contDiffOn_of_restartCosineRepresentations

@@ -405,4 +405,16 @@ def sourceCoeffQuadraticDecay_of_restartCosineRepresentations (p : CM2Params)
     SourceCoeffQuadraticDecay p (D.u t) :=
   sourceCoeffQuadraticDecay_of_mildSolution p D H ht htT
 
+/-- Source coefficient decay with restart-cosine representations built from the
+half-step source regularity and series-agreement package. -/
+def sourceCoeffQuadraticDecay_of_gradientMildHalfStepRestartData (p : CM2Params)
+    {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (R : GradientMildHalfStepRestartData D)
+    {t : ℝ} (ht : 0 < t) (htT : t < D.T) :
+    SourceCoeffQuadraticDecay p (D.u t) :=
+  sourceCoeffQuadraticDecay_of_mildSolution p D
+    (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
+    ht htT
+
 end ShenWork.IntervalMildSourceDecay
