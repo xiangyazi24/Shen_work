@@ -168,6 +168,13 @@ theorem sourceCoeff_bound_from_parabolic (p : CM2Params)
   -- Construct the IntervalWeakH2Neumann certificate for the source.
   set g : ℝ → ℝ := fun x => p.ν * intervalDomainLift (D.u t) x ^ p.γ
   have hH2 : IntervalWeakH2Neumann g := by
+    -- g = ν·u^γ where u = intervalDomainLift(D.u t).
+    -- g'' = ν·[γ(γ-1)u^{γ-2}(u')² + γu^{γ-1}u''] (chain rule).
+    -- The first term is bounded (u > 0, u bounded, u' bounded).
+    -- The weak cosine IBP identity holds because:
+    --   First IBP: ∫cos·g' = [g·sin]₀¹ - ... boundary = 0 (sin=0)
+    --   Second IBP: ∫sin·g' = [-g'·cos]₀¹ + ... boundary = 0 (Neumann: g'(0)=g'(1)=0)
+    -- Together: ∫cos·g'' = -(kπ)²∫cos·g
     sorry
   -- Apply the quadratic decay theorem.
   obtain ⟨C, hC, hdecay⟩ := intervalWeakH2Neumann_cosineCoeff_quadratic_decay hH2
