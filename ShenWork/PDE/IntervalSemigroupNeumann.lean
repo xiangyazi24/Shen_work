@@ -1,6 +1,7 @@
 import ShenWork.PDE.IntervalFullKernelInterchange
 import ShenWork.PDE.IntervalDuhamelClosedC2
 import ShenWork.PDE.IntervalResolverPositivity
+import ShenWork.PDE.IntervalCosineSliceRegularity
 
 /-!
 # Neumann boundary conditions for the interval semigroup
@@ -155,5 +156,51 @@ theorem intervalFullSemigroupOperator_neumann_at_one
   rw [deriv_eq_right_of_eqOn_Ioo_of_contDiff (by norm_num : (0:ℝ) < 1)
     (hC2_S.of_le (by norm_num)) (hC2_H.of_le (by norm_num)) heq_Ioo]
   exact unitIntervalCosineHeatValue_deriv_at_one ht hM
+
+/-! ## Mild-solution Neumann BC from positivity
+
+For a positive mild solution at time `t > 0`, the interval domain lift
+`intervalDomainLift (u t)` is discontinuous at the endpoints `0` and `1`
+(it zero-extends outside `[0,1]` but is positive at the endpoints).
+Lean's `deriv` returns `0` at non-differentiable points, so the conjunct-7
+Neumann condition `deriv (lift (u t)) 0 = 0` follows trivially from
+positivity — no analytical semigroup argument needed. -/
+
+open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift)
+
+/-- Mild solution Neumann BC at x = 0 from positivity at the endpoint.
+`deriv (intervalDomainLift (u t)) 0 = 0` because the zero extension
+creates a discontinuity at 0, making `deriv` junk-return 0. -/
+theorem mildSolution_neumann_deriv_zero_of_pos
+    {u : intervalDomainPoint → ℝ}
+    (hpos : 0 < u ⟨0, le_refl _, by norm_num⟩) :
+    deriv (intervalDomainLift u) 0 = 0 := by
+  apply ShenWork.IntervalCosineSliceRegularity.intervalDomainLift_deriv_left_endpoint_zero_of_ne
+  intro h
+  have : intervalDomainLift u 0 = u ⟨0, le_refl _, by norm_num⟩ := by
+    simp [intervalDomainLift, show (0:ℝ) ∈ Set.Icc (0:ℝ) 1 from ⟨le_refl _, by norm_num⟩]
+  linarith [this ▸ h]
+
+/-- Mild solution Neumann BC at x = 1 from positivity at the endpoint. -/
+theorem mildSolution_neumann_deriv_one_of_pos
+    {u : intervalDomainPoint → ℝ}
+    (hpos : 0 < u ⟨1, by norm_num, le_refl _⟩) :
+    deriv (intervalDomainLift u) 1 = 0 := by
+  apply ShenWork.IntervalCosineSliceRegularity.intervalDomainLift_deriv_right_endpoint_zero_of_ne
+  intro h
+  have : intervalDomainLift u 1 = u ⟨1, by norm_num, le_refl _⟩ := by
+    simp [intervalDomainLift, show (1:ℝ) ∈ Set.Icc (0:ℝ) 1 from ⟨by norm_num, le_refl _⟩]
+  linarith [this ▸ h]
+
+/-- **Mild solution Neumann BC (conjunct 7 form).**  For any function with
+pointwise positivity on the interval domain, the lift's `deriv` vanishes at
+both endpoints.  Applied to the `t`-slice of a mild solution at `t > 0`. -/
+theorem mildSolution_neumann_of_positive_time
+    {u : intervalDomainPoint → ℝ}
+    (hpos : ∀ x : intervalDomainPoint, 0 < u x) :
+    deriv (intervalDomainLift u) 0 = 0 ∧
+      deriv (intervalDomainLift u) 1 = 0 :=
+  ⟨mildSolution_neumann_deriv_zero_of_pos (hpos ⟨0, le_refl _, by norm_num⟩),
+    mildSolution_neumann_deriv_one_of_pos (hpos ⟨1, by norm_num, le_refl _⟩)⟩
 
 end ShenWork.IntervalSemigroupNeumann
