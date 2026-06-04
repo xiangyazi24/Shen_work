@@ -1454,6 +1454,18 @@ theorem Lemma_2_4_zero_data (D : BoundedDomainData) (p : CM2Params) :
   · intro sigma q t phi
     norm_num [zeroSemigroupEstimateData]
 
+/-- Degenerate semigroup package for Lemmas 2.1-2.4. -/
+theorem lemmas_2_1_to_2_4_zero_data
+    (D : BoundedDomainData) (p : CM2Params) :
+    Lemma_2_1 D p (zeroSemigroupEstimateData D) ∧
+      Lemma_2_2 D (zeroSemigroupEstimateData D) ∧
+        Lemma_2_3 D p (zeroSemigroupEstimateData D) ∧
+          Lemma_2_4 D p (zeroSemigroupEstimateData D) := by
+  exact ⟨Lemma_2_1_zero_data D p,
+    Lemma_2_2_zero_data D,
+    Lemma_2_3_zero_data D p,
+    Lemma_2_4_zero_data D p⟩
+
 lemma Psi_beta_pos {beta : ℝ} (hbeta : 0 < beta) :
     0 < Psi_beta beta := by
   unfold Psi_beta
@@ -5667,6 +5679,21 @@ theorem unitPointDomain.Corollary_2_1 (p : CM2Params) :
       (u t ()) ^ pExp := rfl
   rw [hint]
   exact hle_pExp
+
+/-- Unit-point package for the proved Paper 2 estimate statements. -/
+theorem unitPointDomain.estimate_statement_package (p : CM2Params) :
+    _root_.ShenWork.Paper2.Lemma_3_1 unitPointDomain p ∧
+      _root_.ShenWork.Paper2.Lemma_4_1 unitPointDomain p ∧
+        _root_.ShenWork.Paper2.Corollary_2_1 unitPointDomain p ∧
+          _root_.ShenWork.Paper2.Proposition_2_2 unitPointDomain p ∧
+            _root_.ShenWork.Paper2.Proposition_2_3 unitPointDomain p ∧
+              _root_.ShenWork.Paper2.Proposition_2_4 unitPointDomain p ∧
+                _root_.ShenWork.Paper2.Proposition_2_5 unitPointDomain p := by
+  have hprops := unitPointDomain.Propositions_2_2_to_2_5 p
+  exact ⟨unitPointDomain.Lemma_3_1 p,
+    unitPointDomain.Lemma_4_1 p,
+    unitPointDomain.Corollary_2_1 p,
+    hprops.1, hprops.2.1, hprops.2.2.1, hprops.2.2.2⟩
 
 /-- Paper 2 Theorem 1.3 holds vacuously on the unit-point domain when
 `p.a = 0` (or `p.b = 0`).  The whole theorem is conditional on
