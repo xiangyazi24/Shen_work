@@ -2208,6 +2208,19 @@ theorem
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildHalfStepRestartFrontierCoreLocalData
     p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
 
+/-- Instance-facing bundled wrapper for the half-step restart
+Picard-gradient-mild γ≥1 umbrella. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildHalfStepRestartFrontierCoreLocalData_bundledFact
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2GradientMildHalfStepRestartFrontierCoreContinuationData
+        p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildHalfStepRestartFrontierCoreLocalData_bundled
+    p hχ ha hb hγ_ge_one hData.out
+
 /-- Bundled input for the half-step H2-source Picard-gradient-mild γ≥1
 umbrella using only the frontier classical core. -/
 structure
@@ -2236,6 +2249,19 @@ theorem
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildHalfStepH2SourceFrontierCoreLocalData
     p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+
+/-- Instance-facing bundled wrapper for the half-step H2-source
+Picard-gradient-mild γ≥1 umbrella. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildHalfStepH2SourceFrontierCoreLocalData_bundledFact
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2GradientMildHalfStepH2SourceFrontierCoreContinuationData
+        p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildHalfStepH2SourceFrontierCoreLocalData_bundled
+    p hχ ha hb hγ_ge_one hData.out
 
 /-- Bundled input for the half-step logistic-source Picard-gradient-mild γ≥1
 umbrella using only the frontier classical core. -/
@@ -2266,6 +2292,19 @@ theorem
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildHalfStepLogisticSourceFrontierCoreLocalData
     p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+
+/-- Instance-facing bundled wrapper for the half-step logistic-source
+Picard-gradient-mild γ≥1 umbrella. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildHalfStepLogisticSourceFrontierCoreLocalData_bundledFact
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2GradientMildHalfStepLogisticSourceFrontierCoreContinuationData
+        p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildHalfStepLogisticSourceFrontierCoreLocalData_bundled
+    p hχ ha hb hγ_ge_one hData.out
 
 /-- Bundled input for the old-Duhamel-routed Picard-gradient-mild γ≥1
 umbrella. -/
