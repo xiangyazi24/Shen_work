@@ -145,7 +145,7 @@ theorem reaction_term_bounded {γ : ℝ} (hγ : 0 < γ)
         rw [this]; gcongr
       exact add_le_add hterm1 hterm2
 
-private theorem powerSource_deriv_interior_of_contDiffOn
+theorem powerSource_deriv_interior_of_contDiffOn
     {p : CM2Params} {u : intervalDomainPoint → ℝ}
     (hC2 : ContDiffOn ℝ 2 (intervalDomainLift u) (Set.Icc (0:ℝ) 1))
     (hpos : ∀ x ∈ Set.Icc (0:ℝ) 1, 0 < intervalDomainLift u x)
@@ -168,7 +168,7 @@ private theorem powerSource_deriv_interior_of_contDiffOn
     (Real.hasDerivAt_rpow_const (Or.inl hne)).comp x hUhas
   exact (hpow.const_mul p.ν).deriv
 
-private theorem powerSource_deriv_endpoint_eq_zero
+theorem powerSource_deriv_endpoint_eq_zero
     {p : CM2Params} {u : intervalDomainPoint → ℝ}
     (hpos : ∀ x ∈ Set.Icc (0:ℝ) 1, 0 < intervalDomainLift u x)
     {e : ℝ} (he : e = 0 ∨ e = 1) :
@@ -204,7 +204,7 @@ private theorem powerSource_deriv_endpoint_eq_zero
     have := tendsto_nhds_unique htends hzeroT
     rw [this] at hge_pos; exact lt_irrefl _ hge_pos
 
-private theorem powerSource_deriv_tendsto_endpoint_of_neumann
+theorem powerSource_deriv_tendsto_endpoint_of_neumann
     {p : CM2Params} {u : intervalDomainPoint → ℝ}
     (hC2 : ContDiffOn ℝ 2 (intervalDomainLift u) (Set.Icc (0:ℝ) 1))
     (hpos : ∀ x ∈ Set.Icc (0:ℝ) 1, 0 < intervalDomainLift u x)

@@ -8,8 +8,8 @@
 
   **Status (post-reduction):**
   - Sorry 3 (InitialTrace): 1 sorry -- semigroup approx identity + Duhamel->0
-  - Sorry 4 (Elliptic PDE): 1 sorry -- SourceCoeffQuadraticDecay for mild sol
-  - Sorry 5 (Neumann BC): 1 sorry -- normalDeriv of mild sol at boundary
+  - Sorry 4 (Elliptic PDE): closed under C²/Neumann snapshot hypotheses
+  - Sorry 5 (Neumann BC): closed under C²/Neumann snapshot hypotheses
   - Sorry 6 (Parabolic PDE): 1 sorry -- Schauder bootstrap
   - Sorry 7 (Classical regularity): 1 sorry -- full regularity bundle
 -/
@@ -20,6 +20,7 @@ import ShenWork.Paper2.Statements
 import ShenWork.PDE.IntervalResolverLaplacianBridge
 import ShenWork.PDE.IntervalCosineSliceRegularity
 import ShenWork.PDE.IntervalFullSemigroupNeumann
+import ShenWork.Paper2.IntervalMildSourceDecay
 
 open MeasureTheory
 open scoped Topology
@@ -33,6 +34,10 @@ open ShenWork.IntervalNeumannFullKernel
 open ShenWork.IntervalResolverGradientBridge
 open ShenWork.IntervalResolverLaplacianBridge
 open ShenWork.IntervalGradientDuhamelMap
+open ShenWork.IntervalMildSourceDecay
+open ShenWork.IntervalCosineCoeffDecay
+open ShenWork.IntervalCosineInversion
+open ShenWork.CosineSpectrum
 
 /-! ## Bridge: GradientMildSolutionData -> RegularityBootstrap -/
 
@@ -125,6 +130,252 @@ theorem mildSolution_lift_eq_duhamelMap (p : CM2Params)
   simp only [intervalDomainLift, dif_pos hy]
   exact D.hmild t ht htT ⟨y, hy⟩
 
+private theorem intervalDomainNormalDeriv_zero_of_contDiffOn_neumann
+    {u : intervalDomainPoint → ℝ}
+    (hC2 : ContDiffOn ℝ 2 (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    (hN0 : Filter.Tendsto (deriv (intervalDomainLift u))
+      (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
+    (hN1 : Filter.Tendsto (deriv (intervalDomainLift u))
+      (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0))
+    {x : intervalDomainPoint} (hx : x ∈ intervalDomain.boundary) :
+    intervalDomain.normalDeriv u x = 0 := by
+  change intervalDomainNormalDeriv u x = 0
+  have hdiff : DifferentiableOn ℝ (intervalDomainLift u) (Set.Ioo (0 : ℝ) 1) :=
+    (hC2.differentiableOn (by norm_num)).mono Set.Ioo_subset_Icc_self
+  have hcont0 : ContinuousWithinAt (intervalDomainLift u) (Set.Ioo (0 : ℝ) 1) 0 :=
+    (hC2.continuousOn 0 (by constructor <;> norm_num)).mono Set.Ioo_subset_Icc_self
+  have hcont1 : ContinuousWithinAt (intervalDomainLift u) (Set.Ioo (0 : ℝ) 1) 1 :=
+    (hC2.continuousOn 1 (by constructor <;> norm_num)).mono Set.Ioo_subset_Icc_self
+  have hmem0 : Set.Ioo (0 : ℝ) 1 ∈ nhdsWithin (0 : ℝ) (Set.Ioi 0) :=
+    mem_nhdsWithin.mpr ⟨Set.Iio 1, isOpen_Iio, by norm_num,
+      fun z hz => ⟨hz.2, hz.1⟩⟩
+  have hmem1 : Set.Ioo (0 : ℝ) 1 ∈ nhdsWithin (1 : ℝ) (Set.Iio 1) :=
+    mem_nhdsWithin.mpr ⟨Set.Ioi 0, isOpen_Ioi, by norm_num,
+      fun z hz => ⟨hz.1, hz.2⟩⟩
+  rcases hx with h0 | h1
+  · unfold intervalDomainNormalDeriv
+    rw [if_pos h0]
+    exact (hasDerivWithinAt_Ici_of_tendsto_deriv hdiff hcont0 hmem0 hN0).derivWithin
+      (uniqueDiffWithinAt_Ici (0 : ℝ))
+  · unfold intervalDomainNormalDeriv
+    rw [if_neg (by rw [h1]; norm_num), if_pos h1]
+    exact (hasDerivWithinAt_Iic_of_tendsto_deriv hdiff hcont1 hmem1 hN1).derivWithin
+      (uniqueDiffWithinAt_Iic (1 : ℝ))
+
+private theorem mild_source_contDiffOn_Icc
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hC2 : ContDiffOn ℝ 2 (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    (hpos : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift u x) :
+    ContDiffOn ℝ 2 (fun x : ℝ => p.ν * intervalDomainLift u x ^ p.γ)
+      (Set.Icc (0 : ℝ) 1) := by
+  have hpow :
+      ContDiffOn ℝ 2 (fun x : ℝ => intervalDomainLift u x ^ p.γ)
+        (Set.Icc (0 : ℝ) 1) :=
+    hC2.rpow_const_of_ne (fun x hx => ne_of_gt (hpos x hx))
+  exact hpow.const_smul p.ν |>.congr (fun x _ => by rw [smul_eq_mul])
+
+private theorem mild_sourceValue_eq_source
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hC2 : ContDiffOn ℝ 2 (intervalDomainLift u) (Set.Icc (0 : ℝ) 1))
+    (hN0 : Filter.Tendsto (deriv (intervalDomainLift u))
+      (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
+    (hN1 : Filter.Tendsto (deriv (intervalDomainLift u))
+      (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0))
+    (hpos : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift u x)
+    (y : intervalDomainPoint) :
+    intervalNeumannResolverSourceValue p u y =
+      p.ν * (intervalDomainLift u y.1) ^ p.γ := by
+  classical
+  set g : ℝ → ℝ := fun x => p.ν * intervalDomainLift u x ^ p.γ with hgdef
+  have hC2g : ContDiffOn ℝ 2 g (Set.Icc (0:ℝ) 1) := by
+    simpa [g] using mild_source_contDiffOn_Icc (p := p) hC2 hpos
+  have hbc0 : deriv g 0 = 0 := by
+    simpa [g] using powerSource_deriv_endpoint_eq_zero (p := p) (u := u) hpos (Or.inl rfl)
+  have hbc1 : deriv g 1 = 0 := by
+    simpa [g] using powerSource_deriv_endpoint_eq_zero (p := p) (u := u) hpos (Or.inr rfl)
+  obtain ⟨htend0, htend1⟩ :=
+    powerSource_deriv_tendsto_endpoint_of_neumann (p := p) (u := u) hC2 hpos hN0 hN1
+  have hgC0 : ContinuousOn g (Set.Icc (0:ℝ) 1) := hC2g.continuousOn
+  set G : ℝ → ℝ := fun x => g (clamp01 x) with hGdef
+  have hGcont : Continuous G := by
+    refine continuousOn_univ.mp ?_
+    refine hgC0.comp clamp01_continuous.continuousOn ?_
+    intro x _; exact clamp01_mem x
+  have hGeqOn : ∀ x ∈ Set.Icc (0:ℝ) 1, G x = g x := by
+    intro x hx; show g (clamp01 x) = g x; rw [clamp01_eq_self hx]
+  have hGsum : Summable (fun n : ℤ => fourierCoeff (reflCircle G) n) :=
+    fourierCoeff_reflCircle_summable_of_repr hGcont hC2g hGeqOn htend0 htend1 hbc0 hbc1
+  have hcoeff_eq : ∀ k : ℕ,
+      (intervalNeumannResolverSourceCoeff p u k).re = cosineCoeffs G k := by
+    intro k
+    have h1 : (intervalNeumannResolverSourceCoeff p u k).re =
+        cosineCoeffs g k := by
+      simp only [intervalNeumannResolverSourceCoeff, Complex.ofReal_re,
+        cosineCoeffs, hgdef]
+    rw [h1]
+    exact cosineCoeffs_congr_on_Icc (fun x hx => (hGeqOn x hx).symm) k
+  set S : ℝ → ℝ := fun x =>
+    ∑' k : ℕ, (intervalNeumannResolverSourceCoeff p u k).re *
+      Real.cos ((k : ℝ) * Real.pi * x) with hSdef
+  have habs : Summable fun k : ℕ => |cosineCoeffs G k| :=
+    intervalCosineCoeff_summable_abs G hGcont hGsum
+  have habs' : Summable fun k : ℕ => |(intervalNeumannResolverSourceCoeff p u k).re| := by
+    refine habs.congr (fun k => ?_)
+    rw [hcoeff_eq]
+  have hScont : Continuous S := by
+    refine continuous_tsum (fun k => ?_) habs' (fun k x => ?_)
+    · exact continuous_const.mul (Real.continuous_cos.comp (by fun_prop))
+    · rw [Real.norm_eq_abs, abs_mul]
+      have hcos : |Real.cos ((k : ℝ) * Real.pi * x)| ≤ 1 := Real.abs_cos_le_one _
+      calc |(intervalNeumannResolverSourceCoeff p u k).re| *
+              |Real.cos ((k : ℝ) * Real.pi * x)|
+          ≤ |(intervalNeumannResolverSourceCoeff p u k).re| * 1 :=
+            mul_le_mul_of_nonneg_left hcos (abs_nonneg _)
+        _ = |(intervalNeumannResolverSourceCoeff p u k).re| := mul_one _
+  have hSeq_int : ∀ x ∈ Set.Ioo (0:ℝ) 1, S x = g x := by
+    intro x hx
+    have hinv : HasSum (fun k => unitIntervalCosineMode k x * cosineCoeffs G k) (G x) :=
+      intervalCosine_hasSum_pointwise G hGcont hx hGsum
+    have hterm : ∀ k : ℕ,
+        unitIntervalCosineMode k x * cosineCoeffs G k =
+          (intervalNeumannResolverSourceCoeff p u k).re *
+            Real.cos ((k : ℝ) * Real.pi * x) := by
+      intro k
+      rw [← hcoeff_eq k]
+      unfold unitIntervalCosineMode
+      ring
+    have hinv' : HasSum (fun k => (intervalNeumannResolverSourceCoeff p u k).re *
+        Real.cos ((k : ℝ) * Real.pi * x)) (G x) :=
+      hinv.congr_fun (fun k => (hterm k).symm)
+    have hSx : S x = G x := hinv'.tsum_eq
+    rw [hSx, hGeqOn x (Set.Ioo_subset_Icc_self hx)]
+  have hSeq_closed : ∀ x ∈ Set.Icc (0:ℝ) 1, S x = g x := by
+    have hcl : closure (Set.Ioo (0:ℝ) 1) = Set.Icc (0:ℝ) 1 :=
+      closure_Ioo (by norm_num : (0:ℝ) ≠ 1)
+    have hsub : Set.Ioo (0:ℝ) 1 ⊆ Set.Icc (0:ℝ) 1 := Set.Ioo_subset_Icc_self
+    have hts : Set.Icc (0:ℝ) 1 ⊆ closure (Set.Ioo (0:ℝ) 1) := hcl.ge
+    have hEq : Set.EqOn S g (Set.Ioo (0:ℝ) 1) := fun x hx => hSeq_int x hx
+    have hclosed : Set.EqOn S g (Set.Icc (0:ℝ) 1) :=
+      hEq.of_subset_closure hScont.continuousOn hgC0 hsub hts
+    intro x hx; exact hclosed hx
+  show S y.1 = g y.1
+  exact hSeq_closed y.1 y.2
+
+private theorem resolver_lift_deriv_eq_resolverGrad_of_sourceDecay
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hdecay : SourceCoeffQuadraticDecay p u)
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    deriv (intervalDomainLift (intervalNeumannResolverR p u)) x =
+      resolverGradReal p u x := by
+  classical
+  set S : ℝ → ℝ := fun z : ℝ =>
+    ∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re *
+      Real.cos ((k : ℝ) * Real.pi * z) with hS
+  have hxIcc : x ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hx
+  have hSderiv : HasDerivAt S (intervalNeumannResolverRGrad p u ⟨x, hxIcc⟩) x := by
+    rw [hS]; exact solution_resolver_grad_hasDerivAt_of_sourceDecay hdecay hxIcc
+  have hEq : ∀ y ∈ Set.Ioo (0 : ℝ) 1,
+      intervalDomainLift (intervalNeumannResolverR p u) y = S y := by
+    intro y hy
+    have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hy
+    simp [intervalDomainLift, hyIcc]
+    rw [resolverR_apply_eq, hS]
+  have hloc : intervalDomainLift (intervalNeumannResolverR p u) =ᶠ[𝓝 x] S := by
+    refine Filter.eventuallyEq_of_mem ?_ hEq
+    exact IsOpen.mem_nhds isOpen_Ioo hx
+  rw [hloc.deriv_eq, hSderiv.deriv, resolverGradReal_eq p u ⟨x, hxIcc⟩]
+
+private theorem resolver_laplacian_eq_RLap_of_sourceDecay
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hdecay : SourceCoeffQuadraticDecay p u)
+    {x : intervalDomainPoint} (hx : x ∈ intervalDomain.inside) :
+    intervalDomain.laplacian (intervalNeumannResolverR p u) x =
+      intervalNeumannResolverRLap p u x := by
+  change intervalDomainLaplacian (intervalNeumannResolverR p u) x =
+    intervalNeumannResolverRLap p u x
+  unfold intervalDomainLaplacian
+  have hxIcc : x.1 ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hx
+  have hloc : deriv (intervalDomainLift (intervalNeumannResolverR p u))
+      =ᶠ[𝓝 x.1] resolverGradReal p u := by
+    filter_upwards [IsOpen.mem_nhds isOpen_Ioo hx] with y hy
+    exact resolver_lift_deriv_eq_resolverGrad_of_sourceDecay hdecay hy
+  rw [hloc.deriv_eq]
+  exact deriv_resolverGradReal_eq_RLap hdecay hxIcc
+
+private theorem intervalNeumannResolverR_normalDeriv_zero_of_sourceDecay
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hdecay : SourceCoeffQuadraticDecay p u)
+    {x : intervalDomainPoint} (hx : x ∈ intervalDomain.boundary) :
+    intervalDomain.normalDeriv (intervalNeumannResolverR p u) x = 0 := by
+  classical
+  change intervalDomainNormalDeriv (intervalNeumannResolverR p u) x = 0
+  set S : ℝ → ℝ := fun z : ℝ =>
+    ∑' k : ℕ, (intervalNeumannResolverCoeff p u k).re *
+      Real.cos ((k : ℝ) * Real.pi * z) with hS
+  have hS0 : HasDerivWithinAt S 0 (Set.Ici (0 : ℝ)) 0 := by
+    have h0Icc : (0 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by constructor <;> norm_num
+    have h := solution_resolver_grad_hasDerivAt_of_sourceDecay hdecay h0Icc
+    have hgrad0 : intervalNeumannResolverRGrad p u ⟨0, h0Icc⟩ = 0 := by
+      rw [resolverRGrad_apply_eq]
+      have : (fun k : ℕ => (intervalNeumannResolverCoeff p u k).re *
+          (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * (0:ℝ)))) =
+          fun _ => (0 : ℝ) := by
+        funext k; simp
+      rw [this, tsum_zero]
+    have hderiv : HasDerivAt S 0 0 := by
+      simpa [S] using h.congr_deriv hgrad0
+    exact hderiv.hasDerivWithinAt
+  have hS1 : HasDerivWithinAt S 0 (Set.Iic (1 : ℝ)) 1 := by
+    have h1Icc : (1 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by constructor <;> norm_num
+    have h := solution_resolver_grad_hasDerivAt_of_sourceDecay hdecay h1Icc
+    have hgrad1 : intervalNeumannResolverRGrad p u ⟨1, h1Icc⟩ = 0 := by
+      rw [resolverRGrad_apply_eq]
+      have : (fun k : ℕ => (intervalNeumannResolverCoeff p u k).re *
+          (-((k : ℝ) * Real.pi) * Real.sin ((k : ℝ) * Real.pi * (1:ℝ)))) =
+          fun _ => (0 : ℝ) := by
+        funext k
+        rw [mul_one, Real.sin_nat_mul_pi]
+        ring
+      rw [this, tsum_zero]
+    have hderiv : HasDerivAt S 0 1 := by
+      simpa [S] using h.congr_deriv hgrad1
+    exact hderiv.hasDerivWithinAt
+  have hEq0 : intervalDomainLift (intervalNeumannResolverR p u)
+      =ᶠ[nhdsWithin (0 : ℝ) (Set.Ici 0)] S := by
+    have hnear : ∀ᶠ y in nhdsWithin (0 : ℝ) (Set.Ici 0), y ∈ Set.Icc (0 : ℝ) 1 := by
+      filter_upwards [self_mem_nhdsWithin,
+        nhdsWithin_le_nhds (Iic_mem_nhds (show (0 : ℝ) < 1 by norm_num))]
+        with y hy0 hy1 using ⟨hy0, hy1⟩
+    filter_upwards [hnear] with y hy
+    simp [intervalDomainLift, hy]
+    rw [resolverR_apply_eq, hS]
+  have hEq1 : intervalDomainLift (intervalNeumannResolverR p u)
+      =ᶠ[nhdsWithin (1 : ℝ) (Set.Iic 1)] S := by
+    have hnear : ∀ᶠ y in nhdsWithin (1 : ℝ) (Set.Iic 1), y ∈ Set.Icc (0 : ℝ) 1 := by
+      filter_upwards [self_mem_nhdsWithin,
+        nhdsWithin_le_nhds (Ici_mem_nhds (show (0 : ℝ) < 1 by norm_num))]
+        with y hy1 hy0 using ⟨hy0, hy1⟩
+    filter_upwards [hnear] with y hy
+    simp [intervalDomainLift, hy]
+    rw [resolverR_apply_eq, hS]
+  rcases hx with h0 | h1
+  · unfold intervalDomainNormalDeriv
+    rw [if_pos h0]
+    have h0Icc : (0 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by constructor <;> norm_num
+    have hEqAt0 : intervalDomainLift (intervalNeumannResolverR p u) 0 = S 0 := by
+      simp [intervalDomainLift, h0Icc]
+      rw [resolverR_apply_eq, hS]
+    exact (hS0.congr_of_eventuallyEq hEq0 hEqAt0).derivWithin
+      (uniqueDiffWithinAt_Ici (0 : ℝ))
+  · unfold intervalDomainNormalDeriv
+    rw [if_neg (by rw [h1]; norm_num), if_pos h1]
+    have h1Icc : (1 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by constructor <;> norm_num
+    have hEqAt1 : intervalDomainLift (intervalNeumannResolverR p u) 1 = S 1 := by
+      simp [intervalDomainLift, h1Icc]
+      rw [resolverR_apply_eq, hS]
+    exact (hS1.congr_of_eventuallyEq hEq1 hEqAt1).derivWithin
+      (uniqueDiffWithinAt_Iic (1 : ℝ))
+
 /-! ## Sorry 3: Initial trace -/
 
 theorem mildSolution_initialTrace (p : CM2Params)
@@ -158,39 +409,74 @@ theorem mildSolution_parabolicPDE (p : CM2Params)
 
 theorem mildChemical_ellipticPDE (p : CM2Params)
     {u₀ : intervalDomainPoint -> ℝ}
-    (D : GradientMildSolutionData p u₀) :
+    (D : GradientMildSolutionData p u₀)
+    (hC2 : ∀ t, 0 < t -> t < D.T ->
+      ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1))
+    (hN0 : ∀ t, 0 < t -> t < D.T ->
+      Filter.Tendsto (deriv (intervalDomainLift (D.u t)))
+        (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
+    (hN1 : ∀ t, 0 < t -> t < D.T ->
+      Filter.Tendsto (deriv (intervalDomainLift (D.u t)))
+        (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)) :
     ∀ t x, 0 < t -> t < D.T -> x ∈ intervalDomain.inside ->
       0 = intervalDomain.laplacian
             (mildChemicalConcentration p D.u t) x
           - p.μ * mildChemicalConcentration p D.u t x
           + p.ν * (D.u t x) ^ p.γ := by
-  -- The resolver satisfies the elliptic equation spectrally:
-  -- intervalNeumannResolverRLap_elliptic_identity gives
-  --   RLap = mu * R - sourceValue
-  -- i.e. laplacian(R) - mu*R + sourceValue = 0.
-  -- BLOCKER: Connecting intervalDomainLaplacian to RLap requires
-  -- SourceCoeffQuadraticDecay (C2 of source), circular with sorry 7.
-  sorry
+  intro t x ht htT hx
+  have htTle : t ≤ D.T := le_of_lt htT
+  have hdecay : SourceCoeffQuadraticDecay p (D.u t) :=
+    sourceCoeffQuadraticDecay_of_mildSolution p D ht htTle
+      (hC2 t ht htT) (hN0 t ht htT) (hN1 t ht htT)
+  have hRLap := intervalNeumannResolverRLap_elliptic_identity hdecay x
+  have hlap :
+      intervalDomain.laplacian (mildChemicalConcentration p D.u t) x =
+        intervalNeumannResolverRLap p (D.u t) x := by
+    unfold mildChemicalConcentration
+    exact resolver_laplacian_eq_RLap_of_sourceDecay hdecay hx
+  have hpos : ∀ y ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (D.u t) y := by
+    intro y hy
+    simp only [intervalDomainLift, hy, dif_pos]
+    exact D.hpos t ht htTle ⟨y, hy⟩
+  have hsource :
+      intervalNeumannResolverSourceValue p (D.u t) x =
+        p.ν * (intervalDomainLift (D.u t) x.1) ^ p.γ :=
+    mild_sourceValue_eq_source (p := p) (u := D.u t)
+      (hC2 t ht htT) (hN0 t ht htT) (hN1 t ht htT) hpos x
+  have hxIcc : x.1 ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hx
+  rw [hlap, hRLap, hsource]
+  have hxsub : (⟨x.1, hxIcc⟩ : intervalDomainPoint) = x := Subtype.ext rfl
+  simp only [mildChemicalConcentration, intervalDomainLift, hxIcc, dif_pos]
+  rw [hxsub]
+  ring
 
 /-! ## Sorry 5: Neumann BC -/
 
 theorem mildSolution_neumannBC (p : CM2Params)
     {u₀ : intervalDomainPoint -> ℝ}
-    (D : GradientMildSolutionData p u₀) :
+    (D : GradientMildSolutionData p u₀)
+    (hC2 : ∀ t, 0 < t -> t < D.T ->
+      ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1))
+    (hN0 : ∀ t, 0 < t -> t < D.T ->
+      Filter.Tendsto (deriv (intervalDomainLift (D.u t)))
+        (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
+    (hN1 : ∀ t, 0 < t -> t < D.T ->
+      Filter.Tendsto (deriv (intervalDomainLift (D.u t)))
+        (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)) :
     ∀ t x, 0 < t -> t < D.T -> x ∈ intervalDomain.boundary ->
       intervalDomain.normalDeriv (D.u t) x = 0 ∧
       intervalDomain.normalDeriv
         (mildChemicalConcentration p D.u t) x = 0 := by
-  -- The mild solution lift agrees with the Duhamel formula on [0,1].
-  -- Each semigroup term S(t)f is even about 0 and 1
-  -- (IntervalFullSemigroupNeumann), hence has derivative 0 at endpoints.
-  -- The gradient Duhamel term needs careful analysis: its contribution
-  -- to the boundary derivative involves second-order effects that
-  -- cancel by the self-consistency of the mild equation.
-  -- BLOCKER: derivWithin of the lift at endpoints requires showing the
-  -- lift is differentiable from the appropriate side, which needs C1
-  -- regularity of the mild solution up to the boundary.
-  sorry
+  intro t x ht htT hx
+  have htTle : t ≤ D.T := le_of_lt htT
+  have hdecay : SourceCoeffQuadraticDecay p (D.u t) :=
+    sourceCoeffQuadraticDecay_of_mildSolution p D ht htTle
+      (hC2 t ht htT) (hN0 t ht htT) (hN1 t ht htT)
+  constructor
+  · exact intervalDomainNormalDeriv_zero_of_contDiffOn_neumann
+      (hC2 t ht htT) (hN0 t ht htT) (hN1 t ht htT) hx
+  · unfold mildChemicalConcentration
+    exact intervalNeumannResolverR_normalDeriv_zero_of_sourceDecay hdecay hx
 
 /-! ## Sorry 7: Classical regularity -/
 
