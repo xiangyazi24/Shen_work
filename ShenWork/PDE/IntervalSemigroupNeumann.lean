@@ -665,4 +665,107 @@ theorem mildMap_neumann_limit_of_terms
   rw [h0]
   exact ((hS.add hchem).add hlog).congr' heq.symm
 
+/-! ## DuhamelSourceTimeC1 for heat-damped coefficients
+
+The heat-damped coefficients `a(s,n) = e^{-(s+δ)λₙ} cₙ` (with fixed bounded `c`
+and positive offset `δ > 0`) satisfy `DuhamelSourceTimeC1`.  The construction
+needs the offset `δ > 0` to ensure:
+
+- Envelope summability: `∑ e^{-δλₙ} |cₙ| < ∞`
+  (from `unitIntervalCosineHeatTrace_single_exp_summable`)
+- Envelope bound (for `s ≥ 0`): `|a(s,n)| = e^{-(s+δ)λₙ} |cₙ| ≤ e^{-δλₙ} |cₙ|`
+- Derivative bound (for `s ≥ 0`): `|adot(s,n)| = λₙ e^{-(s+δ)λₙ} |cₙ| ≤ M/δ`
+  (from `real_mul_exp_neg_mul_le_inv`) -/
+
+/-- **`DuhamelSourceTimeC1` for shifted-heat coefficients.**
+`a(s,n) = e^{-(s+δ)λₙ} cₙ` satisfies the time-C¹ source regularity
+with envelope `e^{-δλₙ} |cₙ|` and derivative bound `M/δ`. -/
+noncomputable def duhamelSourceTimeC1_of_heatDamped
+    {c : ℕ → ℝ} {M : ℝ} (hM : ∀ n, |c n| ≤ M) {δ : ℝ} (hδ : 0 < δ) :
+    DuhamelSourceTimeC1
+      (fun s n => Real.exp (-(s + δ) * unitIntervalCosineEigenvalue n) * c n) where
+  adot := fun s n =>
+    -(unitIntervalCosineEigenvalue n) *
+      Real.exp (-(s + δ) * unitIntervalCosineEigenvalue n) * c n
+  hderiv := by
+    intro s n
+    -- d/ds [exp(-(s+δ)·eig) * c n] = -eig * exp(-(s+δ)·eig) * c n
+    -- inner(r) = -(r+δ) * eig, inner'(r) = -eig
+    have hinner : HasDerivAt
+        (fun r => -(r + δ) * unitIntervalCosineEigenvalue n)
+        (-(1 : ℝ) * unitIntervalCosineEigenvalue n) s := by
+      -- -(r + δ) * eig = (-1) * r * eig + (-δ) * eig
+      -- d/dr = (-1) * eig = -eig
+      have h_id : HasDerivAt (fun r => -r - δ) (-1) s := by
+        have := ((hasDerivAt_id s).neg).sub (hasDerivAt_const s δ)
+        simp at this; exact this
+      have h_mul : HasDerivAt (fun r => (-r - δ) * unitIntervalCosineEigenvalue n)
+          (-1 * unitIntervalCosineEigenvalue n) s := by
+        exact h_id.mul_const _
+      have heq : (fun r => (-r - δ) * unitIntervalCosineEigenvalue n) =
+          (fun r => -(r + δ) * unitIntervalCosineEigenvalue n) := by
+        ext r; ring
+      rwa [heq] at h_mul
+    have hexp := hinner.exp
+    have hfinal := hexp.mul_const (c n)
+    have hmatch : Real.exp (-(s + δ) * unitIntervalCosineEigenvalue n) *
+        (-1 * unitIntervalCosineEigenvalue n) * c n =
+      -(unitIntervalCosineEigenvalue n) *
+        Real.exp (-(s + δ) * unitIntervalCosineEigenvalue n) * c n := by ring
+    rwa [hmatch] at hfinal
+  hadotcont := by
+    intro n
+    have : Continuous (fun s =>
+        -(unitIntervalCosineEigenvalue n) *
+          Real.exp (-(s + δ) * unitIntervalCosineEigenvalue n) * c n) := by
+      fun_prop
+    exact this
+  envelope := fun n => Real.exp (-δ * unitIntervalCosineEigenvalue n) * |c n|
+  henv_summable := by
+    refine Summable.of_nonneg_of_le (fun n => by positivity)
+      (fun n => ?_) ((unitIntervalCosineHeatTrace_single_exp_summable hδ).mul_right M)
+    exact mul_le_mul_of_nonneg_left (hM n) (Real.exp_nonneg _)
+  henv_bound := by
+    intro s hs n
+    rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+    exact mul_le_mul_of_nonneg_right
+      (Real.exp_le_exp_of_le (by
+        have : 0 ≤ unitIntervalCosineEigenvalue n := by
+          simp [unitIntervalCosineEigenvalue]; positivity
+        nlinarith))
+      (abs_nonneg _)
+  derivBound := M / δ
+  hderivBound := by
+    intro s hs n
+    rw [abs_mul, abs_mul, abs_neg,
+        abs_of_nonneg (by simp [unitIntervalCosineEigenvalue]; positivity),
+        abs_of_nonneg (Real.exp_nonneg _)]
+    have heig_nn : 0 ≤ unitIntervalCosineEigenvalue n := by
+      simp [unitIntervalCosineEigenvalue]; positivity
+    have hsd : 0 < s + δ := by linarith
+    -- Key: eig * exp(-eig*(s+δ)) ≤ 1/(s+δ) from y*exp(-y) ≤ 1 with y=(s+δ)*eig
+    have hkey : unitIntervalCosineEigenvalue n *
+        Real.exp (-(s + δ) * unitIntervalCosineEigenvalue n) ≤ 1 / (s + δ) := by
+      rw [le_div_iff₀ hsd]
+      have hprod_nn : 0 ≤ (s + δ) * unitIntervalCosineEigenvalue n :=
+        mul_nonneg hsd.le heig_nn
+      calc unitIntervalCosineEigenvalue n *
+              Real.exp (-(s + δ) * unitIntervalCosineEigenvalue n) * (s + δ)
+            = ((s + δ) * unitIntervalCosineEigenvalue n) *
+                Real.exp (-((s + δ) * unitIntervalCosineEigenvalue n)) := by ring
+          _ ≤ 1 := real_mul_exp_neg_le_one hprod_nn
+    have hMnn : 0 ≤ M := le_trans (abs_nonneg (c 0)) (hM 0)
+    have h1div : 1 / (s + δ) ≤ 1 / δ :=
+      div_le_div_of_nonneg_left (by norm_num : (0:ℝ) ≤ 1) hδ
+        (by linarith : δ ≤ s + δ)
+    calc unitIntervalCosineEigenvalue n *
+          Real.exp (-(s + δ) * unitIntervalCosineEigenvalue n) * |c n|
+        ≤ (1 / (s + δ)) * |c n| :=
+          mul_le_mul_of_nonneg_right hkey (abs_nonneg _)
+      _ ≤ (1 / (s + δ)) * M :=
+          mul_le_mul_of_nonneg_left (hM n) (div_nonneg (by norm_num) hsd.le)
+      _ ≤ (1 / δ) * M :=
+          mul_le_mul_of_nonneg_right h1div hMnn
+      _ = M / δ := by ring
+
 end ShenWork.IntervalSemigroupNeumann
