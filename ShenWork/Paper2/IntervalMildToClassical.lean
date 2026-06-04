@@ -35,6 +35,7 @@ open ShenWork.IntervalResolverGradientBridge
 open ShenWork.IntervalResolverLaplacianBridge
 open ShenWork.IntervalGradientDuhamelMap
 open ShenWork.IntervalMildSourceDecay
+open ShenWork.IntervalMildRegularityBootstrap
 open ShenWork.IntervalCosineCoeffDecay
 open ShenWork.IntervalCosineInversion
 open ShenWork.CosineSpectrum
@@ -431,7 +432,7 @@ theorem mildSolution_parabolicPDE (p : CM2Params)
 
 /-! ## Elliptic PDE for v -/
 
-theorem mildChemical_ellipticPDE (p : CM2Params)
+theorem mildChemical_ellipticPDE_of_closedC2_neumann (p : CM2Params)
     {u₀ : intervalDomainPoint -> ℝ}
     (D : GradientMildSolutionData p u₀)
     (hC2 : ∀ t, 0 < t -> t < D.T ->
@@ -450,7 +451,7 @@ theorem mildChemical_ellipticPDE (p : CM2Params)
   intro t x ht htT hx
   have htTle : t ≤ D.T := le_of_lt htT
   have hdecay : SourceCoeffQuadraticDecay p (D.u t) :=
-    sourceCoeffQuadraticDecay_of_mildSolution p D ht htTle
+    sourceCoeffQuadraticDecay_of_mildSolution_of_closedC2_neumann p D ht htTle
       (hC2 t ht htT) (hN0 t ht htT) (hN1 t ht htT)
   have hRLap := intervalNeumannResolverRLap_elliptic_identity hdecay x
   have hlap :
@@ -474,9 +475,36 @@ theorem mildChemical_ellipticPDE (p : CM2Params)
   rw [hxsub]
   ring
 
+/-- Elliptic PDE for the mild chemical concentration, with the closed-interval
+`C²` and one-sided Neumann hypotheses supplied by the restart-cosine bootstrap. -/
+theorem mildChemical_ellipticPDE (p : CM2Params)
+    {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations D.T D.u) :
+    ∀ t x, 0 < t -> t < D.T -> x ∈ intervalDomain.inside ->
+      0 = intervalDomain.laplacian
+            (mildChemicalConcentration p D.u t) x
+          - p.μ * mildChemicalConcentration p D.u t x
+          + p.ν * (D.u t x) ^ p.γ := by
+  obtain ⟨hC2, hN0, hN1⟩ :=
+    gradientMild_closedC2_neumann_of_restartCosineRepresentations D H
+  exact mildChemical_ellipticPDE_of_closedC2_neumann p D hC2 hN0 hN1
+
+/-- Alias emphasizing the restart-cosine route to the unconditional elliptic PDE. -/
+theorem mildChemical_ellipticPDE_of_restartCosineRepresentations (p : CM2Params)
+    {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations D.T D.u) :
+    ∀ t x, 0 < t -> t < D.T -> x ∈ intervalDomain.inside ->
+      0 = intervalDomain.laplacian
+            (mildChemicalConcentration p D.u t) x
+          - p.μ * mildChemicalConcentration p D.u t x
+          + p.ν * (D.u t x) ^ p.γ :=
+  mildChemical_ellipticPDE p D H
+
 /-! ## Neumann BC -/
 
-theorem mildSolution_neumannBC (p : CM2Params)
+theorem mildSolution_neumannBC_of_closedC2_neumann (p : CM2Params)
     {u₀ : intervalDomainPoint -> ℝ}
     (D : GradientMildSolutionData p u₀)
     (hC2 : ∀ t, 0 < t -> t < D.T ->
@@ -494,13 +522,40 @@ theorem mildSolution_neumannBC (p : CM2Params)
   intro t x ht htT hx
   have htTle : t ≤ D.T := le_of_lt htT
   have hdecay : SourceCoeffQuadraticDecay p (D.u t) :=
-    sourceCoeffQuadraticDecay_of_mildSolution p D ht htTle
+    sourceCoeffQuadraticDecay_of_mildSolution_of_closedC2_neumann p D ht htTle
       (hC2 t ht htT) (hN0 t ht htT) (hN1 t ht htT)
   constructor
   · exact intervalDomainNormalDeriv_zero_of_contDiffOn_neumann
       (hC2 t ht htT) (hN0 t ht htT) (hN1 t ht htT) hx
   · unfold mildChemicalConcentration
     exact intervalNeumannResolverR_normalDeriv_zero_of_sourceDecay hdecay hx
+
+/-- Neumann boundary conditions for the mild solution and chemical concentration,
+with the closed-interval `C²` and one-sided Neumann hypotheses supplied by the
+restart-cosine bootstrap. -/
+theorem mildSolution_neumannBC (p : CM2Params)
+    {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations D.T D.u) :
+    ∀ t x, 0 < t -> t < D.T -> x ∈ intervalDomain.boundary ->
+      intervalDomain.normalDeriv (D.u t) x = 0 ∧
+      intervalDomain.normalDeriv
+        (mildChemicalConcentration p D.u t) x = 0 := by
+  obtain ⟨hC2, hN0, hN1⟩ :=
+    gradientMild_closedC2_neumann_of_restartCosineRepresentations D H
+  exact mildSolution_neumannBC_of_closedC2_neumann p D hC2 hN0 hN1
+
+/-- Alias emphasizing the restart-cosine route to the unconditional Neumann
+boundary conditions. -/
+theorem mildSolution_neumannBC_of_restartCosineRepresentations (p : CM2Params)
+    {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations D.T D.u) :
+    ∀ t x, 0 < t -> t < D.T -> x ∈ intervalDomain.boundary ->
+      intervalDomain.normalDeriv (D.u t) x = 0 ∧
+      intervalDomain.normalDeriv
+        (mildChemicalConcentration p D.u t) x = 0 :=
+  mildSolution_neumannBC p D H
 
 /-! ## Classical regularity -/
 

@@ -20,6 +20,7 @@ import ShenWork.PDE.IntervalCosineCoeffDecay
 import ShenWork.PDE.IntervalCosineSliceRegularity
 import ShenWork.Paper2.IntervalDomainL2UEnergyInequality
 import ShenWork.PDE.IntervalMildSourceDecayHelper
+import ShenWork.Paper2.IntervalMildRegularityBootstrap
 
 open MeasureTheory
 open scoped Topology
@@ -35,6 +36,7 @@ open ShenWork.IntervalNeumannFullKernel
 open ShenWork.IntervalGradientDuhamelMap
 open ShenWork.IntervalDuhamelSpectralC2
 open ShenWork.PDE.IntervalMildSourceDecayHelper
+open ShenWork.IntervalMildRegularityBootstrap
 
 /-! ## Step 1: Source boundedness -/
 
@@ -344,8 +346,9 @@ private theorem exp_neg_le_inv {x : ℝ} (hx : 0 < x) :
   exact inv_anti₀ hx
     (le_trans (by linarith) (Real.add_one_le_exp x))
 
-/-- **SourceCoeffQuadraticDecay for the mild solution.** -/
-def sourceCoeffQuadraticDecay_of_mildSolution (p : CM2Params)
+/-- **SourceCoeffQuadraticDecay for the mild solution from closed spatial
+regularity and one-sided Neumann data.** -/
+def sourceCoeffQuadraticDecay_of_mildSolution_of_closedC2_neumann (p : CM2Params)
     {u₀ : intervalDomainPoint → ℝ}
     (D : GradientMildSolutionData p u₀)
     {t : ℝ} (ht : 0 < t) (htT : t ≤ D.T)
@@ -379,5 +382,27 @@ def sourceCoeffQuadraticDecay_of_mildSolution (p : CM2Params)
         congr 1; rw [mul_comm]; ring
       _ = (C₀ / t + B_R) / ((k : ℝ) * Real.pi) ^ 2 := by
         rw [add_div, div_div]⟩
+
+/-- **SourceCoeffQuadraticDecay for the mild solution**, with `ContDiffOn` and
+one-sided Neumann hypotheses discharged by restarted cosine representations. -/
+def sourceCoeffQuadraticDecay_of_mildSolution (p : CM2Params)
+    {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations D.T D.u)
+    {t : ℝ} (ht : 0 < t) (htT : t < D.T) :
+    SourceCoeffQuadraticDecay p (D.u t) := by
+  obtain ⟨hC2, hN0, hN1⟩ :=
+    gradientMild_closedC2_neumann_of_restartCosineRepresentations D H
+  exact sourceCoeffQuadraticDecay_of_mildSolution_of_closedC2_neumann p D ht (le_of_lt htT)
+    (hC2 t ht htT) (hN0 t ht htT) (hN1 t ht htT)
+
+/-- Name emphasizing the restart-cosine bootstrap route. -/
+def sourceCoeffQuadraticDecay_of_restartCosineRepresentations (p : CM2Params)
+    {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations D.T D.u)
+    {t : ℝ} (ht : 0 < t) (htT : t < D.T) :
+    SourceCoeffQuadraticDecay p (D.u t) :=
+  sourceCoeffQuadraticDecay_of_mildSolution p D H ht htT
 
 end ShenWork.IntervalMildSourceDecay

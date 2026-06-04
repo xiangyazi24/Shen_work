@@ -15,14 +15,12 @@
 -/
 import ShenWork.PDE.IntervalCosineSliceRegularity
 import ShenWork.Paper2.IntervalMildPicard
-import ShenWork.Paper2.IntervalMildSourceDecay
 
 open MeasureTheory Filter Topology
 open ShenWork.IntervalDomain
 open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.IntervalDuhamelClosedC2
 open ShenWork.IntervalMildPicard
-open ShenWork.IntervalMildSourceDecay
 
 noncomputable section
 
@@ -310,18 +308,5 @@ theorem gradientMild_closedC2_neumann_of_restartCosineRepresentations
   ⟨gradientMild_contDiffOn_of_restartCosineRepresentations D H,
     gradientMild_neumann_left_of_restartCosineRepresentations D H,
     gradientMild_neumann_right_of_restartCosineRepresentations D H⟩
-
-/-- `SourceCoeffQuadraticDecay` for a mild slice, with the `ContDiffOn` and
-one-sided Neumann hypotheses discharged by restarted cosine representations. -/
-def sourceCoeffQuadraticDecay_of_restartCosineRepresentations
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    (D : GradientMildSolutionData p u₀)
-    (H : HasRestartCosineRepresentations D.T D.u)
-    {t : ℝ} (ht : 0 < t) (htT : t < D.T) :
-    ShenWork.Paper2.SourceCoeffQuadraticDecay p (D.u t) := by
-  obtain ⟨hC2, hN0, hN1⟩ :=
-    gradientMild_closedC2_neumann_of_restartCosineRepresentations D H
-  exact sourceCoeffQuadraticDecay_of_mildSolution p D ht (le_of_lt htT)
-    (hC2 t ht htT) (hN0 t ht htT) (hN1 t ht htT)
 
 end ShenWork.IntervalMildRegularityBootstrap

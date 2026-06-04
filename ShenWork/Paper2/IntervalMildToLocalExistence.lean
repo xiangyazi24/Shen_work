@@ -27,6 +27,7 @@ open ShenWork.IntervalGradientDuhamelMap
 open ShenWork.IntervalNeumannFullKernel
 open ShenWork.IntervalMildPicard
 open ShenWork.IntervalMildToClassical
+open ShenWork.IntervalMildRegularityBootstrap
 open ShenWork.Paper2
 
 /-- Assemble the `RegularityBootstrap` predicate for the Picard gradient mild
@@ -66,8 +67,37 @@ theorem regularityBootstrap_of_gradientMildSolutionData
   · intro t x ht0 htT
     exact mildChemical_nonneg p D.hnonneg D.hcont ht0 (le_of_lt htT) x
   · simpa [v] using mildSolution_parabolicPDE p D hclassical
-  · simpa [v] using mildChemical_ellipticPDE p D hC2 hN0 hN1
-  · simpa [v] using mildSolution_neumannBC p D hC2 hN0 hN1
+  · simpa [v] using mildChemical_ellipticPDE_of_closedC2_neumann p D hC2 hN0 hN1
+  · simpa [v] using mildSolution_neumannBC_of_closedC2_neumann p D hC2 hN0 hN1
+  · simpa [v] using mildSolution_classicalRegularity p D hclassical
+  · exact mildSolution_initialTrace p D hInitialApproach
+
+/-- Assemble `RegularityBootstrap` using restart-cosine regularity for the
+elliptic PDE and Neumann boundary conditions.  This removes the direct
+`ContDiffOn`/one-sided-Neumann extraction previously needed for those two
+conjuncts. -/
+theorem regularityBootstrap_of_gradientMildSolutionData_of_restartCosineRepresentations
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u0)
+    (H : HasRestartCosineRepresentations D.T D.u)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u)) :
+    RegularityBootstrap p D.T u0 D.u := by
+  let v : ℝ → intervalDomainPoint → ℝ := mildChemicalConcentration p D.u
+  refine ⟨v, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT
+    exact mildSolution_strictlyPositive p D ht0 (le_of_lt htT) x
+  · intro t x ht0 htT
+    exact mildChemical_nonneg p D.hnonneg D.hcont ht0 (le_of_lt htT) x
+  · simpa [v] using mildSolution_parabolicPDE p D hclassical
+  · simpa [v] using
+      mildChemical_ellipticPDE_of_restartCosineRepresentations p D H
+  · simpa [v] using
+      mildSolution_neumannBC_of_restartCosineRepresentations p D H
   · simpa [v] using mildSolution_classicalRegularity p D hclassical
   · exact mildSolution_initialTrace p D hInitialApproach
 
@@ -89,6 +119,27 @@ theorem localExistence_of_gradientMildSolutionData
       InitialTrace intervalDomain u0 u := by
   have hreg : RegularityBootstrap p D.T u0 D.u :=
     regularityBootstrap_of_gradientMildSolutionData p D hInitialApproach hclassical
+  exact localExistence_of_regularityBootstrap p u0 hu0 D.hT hreg
+
+/-- Direct local existence from the Picard gradient mild solution package, with
+elliptic/Neumann regularity discharged by restart-cosine representations. -/
+theorem localExistence_of_gradientMildSolutionData_of_restartCosineRepresentations
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (hu0 : PositiveInitialDatum intervalDomain u0)
+    (D : GradientMildSolutionData p u0)
+    (H : HasRestartCosineRepresentations D.T D.u)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u)) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u0 u := by
+  have hreg : RegularityBootstrap p D.T u0 D.u :=
+    regularityBootstrap_of_gradientMildSolutionData_of_restartCosineRepresentations
+      p D H hInitialApproach hclassical
   exact localExistence_of_regularityBootstrap p u0 hu0 D.hT hreg
 
 /-- Exact componentwise bridge between the gradient-form mild map and the older
