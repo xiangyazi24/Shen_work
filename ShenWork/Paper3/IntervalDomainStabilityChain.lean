@@ -185,6 +185,43 @@ theorem intervalDomain_Lemma_3_3_for_concreteStabilityNorms_of_initialContinuity
   simpa [IntervalDomainInitialContinuityRaw, InitialContinuityRaw,
     InitialContinuityConclusion] using hcont uStar huStar
 
+/-- Interval-domain compactness/regularization support from the exposed
+frontiers, with the upper-envelope component discharged by the concrete
+interval sup-norm max principle.
+
+The remaining inputs are exactly the analytic frontiers not supplied by the
+max-principle bridge: time-translate compactness, initial norm-continuity,
+minimal upper bounds, and the Neumann-resolvent gradient estimate. -/
+theorem intervalDomain_compactness_regularization_support_of_frontiers
+    (p : CM2Params) (K : CompactnessData intervalDomain)
+    (N : StabilityNorms intervalDomain) (C : Paper3Constants intervalDomain p)
+    (hupper : ∀ f : intervalDomain.Point → ℝ,
+      K.upperEnvelope f = intervalDomain.supNorm f)
+    (hcompact :
+      TimeTranslateCompactnessRaw intervalDomain p K.locallyConverges)
+    (hcont : ∀ uStar > 0,
+      InitialContinuityConclusion intervalDomain p N uStar)
+    (hminUpper : p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      0 < p.χ₀ → p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) →
+        ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution intervalDomain p u v →
+            EventuallyUpperBoundMinimalConclusion intervalDomain p C u)
+    (hres :
+      NeumannResolventGradientBoundExistsRaw intervalDomain
+        K.neumannResolventGradientBound) :
+    Lemma_3_1 intervalDomain p ∧
+      Lemma_3_2 intervalDomain p K ∧
+      Lemma_3_3 intervalDomain p N ∧
+      Lemma_3_4 intervalDomain p K ∧
+      Lemma_3_5 intervalDomain p C ∧
+      Lemma_7_1 intervalDomain K :=
+  ⟨Lemma_3_1_proved intervalDomain p,
+    Lemma_3_2.of_timeTranslateCompactnessRaw hcompact,
+    Lemma_3_3.of_assumed_continuity_branch hcont,
+    intervalDomain_Lemma_3_4_of_upperEnvelope_eq_supNorm p K hupper,
+    Lemma_3_5.of_assumed_bound_branch hminUpper,
+    Lemma_7_1.of_neumannResolventGradientBoundExistsRaw hres⟩
+
 /-- Paper3 Theorem 2.1(1) on the interval, routed from the exposed raw
 persistence frontier. -/
 theorem intervalDomain_Theorem_2_1_part1_of_uniformPersistenceRaw
