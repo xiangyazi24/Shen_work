@@ -2154,6 +2154,17 @@ theorem Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildLocalData_b
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildLocalData
     p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
 
+/-- Instance-facing bundled-input wrapper for the Picard-gradient-mild γ≥1
+umbrella. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildLocalData_bundledFact
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact (IntervalDomainPaper2GradientMildContinuationData p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildLocalData_bundled
+    p hχ ha hb hγ_ge_one hData.out
+
 /-- Bundled input for the restart-cosine Picard-gradient-mild γ≥1 umbrella. -/
 structure IntervalDomainPaper2GradientMildRestartContinuationData
     (p : CM2Params) : Prop where
@@ -2178,6 +2189,17 @@ theorem
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildRestartLocalData
     p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+
+/-- Instance-facing bundled-input wrapper for the restart-cosine
+Picard-gradient-mild γ≥1 umbrella. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildRestartLocalData_bundledFact
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact (IntervalDomainPaper2GradientMildRestartContinuationData p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildRestartLocalData_bundled
+    p hχ ha hb hγ_ge_one hData.out
 
 /-- Bundled input for the half-step restart Picard-gradient-mild γ≥1
 umbrella using only the frontier classical core. -/
@@ -2332,6 +2354,18 @@ theorem
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildIntervalDuhamelLocalData
     p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
 
+/-- Instance-facing bundled-input wrapper for the old-Duhamel-routed
+Picard-gradient-mild γ≥1 umbrella. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildIntervalDuhamelLocalData_bundledFact
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2GradientMildIntervalDuhamelContinuationData p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildIntervalDuhamelLocalData_bundled
+    p hχ ha hb hγ_ge_one hData.out
+
 /-- Bundled input for the old-Duhamel-routed restart-cosine Picard-gradient-mild
 γ≥1 umbrella. -/
 structure IntervalDomainPaper2GradientMildRestartIntervalDuhamelContinuationData
@@ -2357,6 +2391,19 @@ theorem
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildRestartIntervalDuhamelLocalData
     p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+
+/-- Instance-facing bundled-input wrapper for the old-Duhamel-routed
+restart-cosine Picard-gradient-mild γ≥1 umbrella. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildRestartIntervalDuhamelLocalData_bundledFact
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2GradientMildRestartIntervalDuhamelContinuationData
+        p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildRestartIntervalDuhamelLocalData_bundled
+    p hχ ha hb hγ_ge_one hData.out
 
 /-- Bundled input for the zero-sensitivity component-frontier Duhamel γ≥1
 umbrella. -/
@@ -2384,6 +2431,18 @@ theorem
   Theorem_1_1_intervalDomain_via_chiZero_gammaGeOne_gradientMildDuhamelLocalData
     p hχ_zero ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
 
+/-- Instance-facing bundled-input wrapper for the zero-sensitivity
+component-frontier Duhamel γ≥1 umbrella. -/
+theorem
+    Theorem_1_1_intervalDomain_via_chiZero_gammaGeOne_gradientMildDuhamelLocalData_bundledFact
+    (p : CM2Params) (hχ_zero : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2GradientMildChiZeroDuhamelContinuationData p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_chiZero_gammaGeOne_gradientMildDuhamelLocalData_bundled
+    p hχ_zero ha hb hγ_ge_one hData.out
+
 /-- Bundled input for the zero-sensitivity restart-cosine component-frontier
 Duhamel γ≥1 umbrella. -/
 structure IntervalDomainPaper2GradientMildRestartChiZeroDuhamelContinuationData
@@ -2409,6 +2468,19 @@ theorem
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_chiZero_gammaGeOne_gradientMildRestartDuhamelLocalData
     p hχ_zero ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+
+/-- Instance-facing bundled-input wrapper for the zero-sensitivity
+restart-cosine component-frontier Duhamel γ≥1 umbrella. -/
+theorem
+    Theorem_1_1_intervalDomain_via_chiZero_gammaGeOne_gradientMildRestartDuhamelLocalData_bundledFact
+    (p : CM2Params) (hχ_zero : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2GradientMildRestartChiZeroDuhamelContinuationData
+        p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_chiZero_gammaGeOne_gradientMildRestartDuhamelLocalData_bundled
+    p hχ_zero ha hb hγ_ge_one hData.out
 
 end
 
