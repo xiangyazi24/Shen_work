@@ -75,6 +75,7 @@ open ShenWork.IntervalNeumannFullKernel
 open ShenWork.IntervalMildPicard
 open ShenWork.IntervalMildToLocalExistence
 open ShenWork.IntervalMildRegularityBootstrap
+open ShenWork.IntervalMildPicardRegularity
 open ShenWork.Paper2.IntervalDomainMoserClosure
 open ShenWork.Paper2.IntervalDomainGlobalWellposed
 
@@ -357,6 +358,41 @@ theorem localExistence_of_gradientMildHalfStepH2SourceFrontierCoreLocalData
   obtain ⟨D, S, hInitialApproach, hCore⟩ := hMildLocal u₀ hu₀
   exact localExistence_of_gradientMildSolutionData_of_halfStepH2SourceData_and_frontierCore
     p hu₀ D S hInitialApproach hCore
+
+/-- Picard gradient-mild local data with logistic half-step source regularity
+and only the reduced regularity frontier.
+
+The logistic source data is converted internally to the half-step restart
+package, which supplies `DuhamelSourceTimeC1`, closed-interval `C²` endpoint
+data, and restart-cosine representations for every positive-time slice. -/
+def IntervalDomainGradientMildHalfStepLogisticSourceFrontierCoreLocalData
+    (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomain.Point → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+      ∃ D : GradientMildSolutionData p u₀,
+      ∃ _S : GradientMildHalfStepLogisticSourceData D,
+        (∀ ε, 0 < ε →
+          ∃ δ > 0, ∀ t, 0 < t → t < δ →
+            ∀ x : intervalDomainPoint,
+              |intervalGradientDuhamelMap p u₀ D.u t x - u₀ x| < ε) ∧
+        GradientMildClassicalFrontierCoreData p D
+
+/-- Convert logistic-source half-step Picard gradient-mild frontier-core local
+data into the `hlocal` field consumed by the umbrella theorems. -/
+theorem localExistence_of_gradientMildHalfStepLogisticSourceFrontierCoreLocalData
+    (p : CM2Params)
+    (hMildLocal :
+      IntervalDomainGradientMildHalfStepLogisticSourceFrontierCoreLocalData p) :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨D, S, hInitialApproach, hCore⟩ := hMildLocal u₀ hu₀
+  exact
+    localExistence_of_gradientMildSolutionData_of_halfStepLogisticSourceData_and_frontierCore
+      p hu₀ D S hInitialApproach hCore
 
 /-- Picard gradient-mild local data with the extra old-Duhamel fixed-point
 frontiers needed to route through
@@ -1962,6 +1998,30 @@ theorem
   exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
     p hχ ha hb hγ_ge_one
     (localExistence_of_gradientMildHalfStepH2SourceFrontierCoreLocalData
+      p hMildLocal)
+    hUniform hposWit
+
+/-- Paper 2-aligned umbrella via logistic-source half-step Picard
+gradient-mild local data using only the reduced regularity frontier. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildHalfStepLogisticSourceFrontierCoreLocalData
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hMildLocal :
+      IntervalDomainGradientMildHalfStepLogisticSourceFrontierCoreLocalData p)
+    (hUniform : IntervalDomainUniformLocalExistence p)
+    (hposWit :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          PositiveInitialDatum intervalDomain u₀) :
+    Theorem_1_1 intervalDomain p := by
+  exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
+    p hχ ha hb hγ_ge_one
+    (localExistence_of_gradientMildHalfStepLogisticSourceFrontierCoreLocalData
       p hMildLocal)
     hUniform hposWit
 

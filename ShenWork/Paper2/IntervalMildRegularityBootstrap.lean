@@ -153,6 +153,75 @@ theorem restartDuhamelCoeffSeries_contDiff_two
   cosineCoeffSeries_contDiff_two
     (restartDuhamelCoeff_eigenvalue_summable hτ ha₀ src)
 
+/-- Closed `C²` of the restarted heat+Duhamel formula, explicitly routed
+through `intervalDuhamelTerm_closedC2_of_timeC1_source` for the Duhamel term
+and the semigroup closed-`C²`/Neumann endpoint package for the homogeneous term.
+
+This is the term-level bridge:
+`DuhamelSourceTimeC1 → closedC2(Duhamel term) → closedC2(restart formula)`. -/
+theorem restartDuhamelFormula_closedC2_of_timeC1_source
+    {τ M : ℝ} {a₀ : ℕ → ℝ} {a : ℝ → ℕ → ℝ}
+    (hτ : 0 < τ)
+    (ha₀ : ∀ n, |a₀ n| ≤ M)
+    (src : DuhamelSourceTimeC1 a) :
+    ContDiff ℝ 2
+        (fun x : ℝ =>
+          unitIntervalCosineHeatValue τ a₀ x +
+            ∫ s in (0 : ℝ)..τ, unitIntervalCosineHeatValue (τ - s) (a s) x)
+      ∧ deriv
+          (fun x : ℝ =>
+            unitIntervalCosineHeatValue τ a₀ x +
+              ∫ s in (0 : ℝ)..τ, unitIntervalCosineHeatValue (τ - s) (a s) x)
+          0 = 0
+      ∧ deriv
+          (fun x : ℝ =>
+            unitIntervalCosineHeatValue τ a₀ x +
+              ∫ s in (0 : ℝ)..τ, unitIntervalCosineHeatValue (τ - s) (a s) x)
+          1 = 0 := by
+  let hhom : ℝ → ℝ := fun x => unitIntervalCosineHeatValue τ a₀ x
+  let hduh : ℝ → ℝ := fun x =>
+    ∫ s in (0 : ℝ)..τ, unitIntervalCosineHeatValue (τ - s) (a s) x
+  have hhomC2 : ContDiff ℝ 2 hhom :=
+    ShenWork.IntervalDomainRegularityBootstrap.unitIntervalCosineHeatValue_contDiff_two
+      hτ ha₀
+  have hduhClosed := intervalDuhamelTerm_closedC2_of_timeC1_source
+    (t := τ) src hτ
+  have hduhC2 : ContDiff ℝ 2 hduh := by
+    simpa [hduh] using hduhClosed.1
+  have hsumC2 : ContDiff ℝ 2 (fun x : ℝ => hhom x + hduh x) :=
+    hhomC2.add hduhC2
+  refine ⟨by simpa [hhom, hduh] using hsumC2, ?_, ?_⟩
+  · have hhomDiff : DifferentiableAt ℝ hhom 0 :=
+      hhomC2.differentiable (by norm_num) 0
+    have hduhDiff : DifferentiableAt ℝ hduh 0 :=
+      hduhC2.differentiable (by norm_num) 0
+    have hderiv : HasDerivAt (fun x : ℝ => hhom x + hduh x)
+        (deriv hhom 0 + deriv hduh 0) 0 := by
+      simpa [Pi.add_apply] using hhomDiff.hasDerivAt.add hduhDiff.hasDerivAt
+    change deriv (fun x : ℝ => hhom x + hduh x) 0 = 0
+    rw [hderiv.deriv]
+    have hhom0 : deriv hhom 0 = 0 := by
+      simpa [hhom] using unitIntervalCosineHeatValue_deriv_at_zero hτ ha₀
+    have hduh0 : deriv hduh 0 = 0 := by
+      simpa [hduh] using hduhClosed.2.1
+    rw [hhom0, hduh0]
+    ring
+  · have hhomDiff : DifferentiableAt ℝ hhom 1 :=
+      hhomC2.differentiable (by norm_num) 1
+    have hduhDiff : DifferentiableAt ℝ hduh 1 :=
+      hduhC2.differentiable (by norm_num) 1
+    have hderiv : HasDerivAt (fun x : ℝ => hhom x + hduh x)
+        (deriv hhom 1 + deriv hduh 1) 1 := by
+      simpa [Pi.add_apply] using hhomDiff.hasDerivAt.add hduhDiff.hasDerivAt
+    change deriv (fun x : ℝ => hhom x + hduh x) 1 = 0
+    rw [hderiv.deriv]
+    have hhom1 : deriv hhom 1 = 0 := by
+      simpa [hhom] using unitIntervalCosineHeatValue_deriv_at_one hτ ha₀
+    have hduh1 : deriv hduh 1 = 0 := by
+      simpa [hduh] using hduhClosed.2.2.1
+    rw [hhom1, hduh1]
+    ring
+
 /-- Closed-interval `C²` bridge for any slice represented by the restarted
 coefficient series. -/
 theorem restartDuhamelSlice_conjunct7
@@ -487,6 +556,61 @@ theorem gradientMild_closedC2_endpointDerivs_of_restartCosineRepresentations
     simp only [intervalDomainLift, hmem, dif_pos]
     exact ne_of_gt (D.hpos t ht0 (le_of_lt htT) ⟨1, hmem⟩)
   exact (Classical.choice (H t ht0 htT)).conjunct7 h0 h1
+
+/-- Half-step restart data discharges the closed-interval spatial `C²` package,
+including endpoint derivative values. -/
+theorem gradientMild_closedC2_endpointDerivs_of_halfStepRestartData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (R : GradientMildHalfStepRestartData D) :
+    ∀ t, 0 < t → t < D.T →
+      ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1)
+        ∧ deriv (intervalDomainLift (D.u t)) 0 = 0
+        ∧ deriv (intervalDomainLift (D.u t)) 1 = 0 :=
+  gradientMild_closedC2_endpointDerivs_of_restartCosineRepresentations D
+    (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
+
+/-- H²/time-`C¹` half-step source data discharges the closed-interval spatial
+`C²` package, including endpoint derivative values. -/
+theorem gradientMild_closedC2_endpointDerivs_of_halfStepH2SourceData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepH2SourceData D) :
+    ∀ t, 0 < t → t < D.T →
+      ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1)
+        ∧ deriv (intervalDomainLift (D.u t)) 0 = 0
+        ∧ deriv (intervalDomainLift (D.u t)) 1 = 0 :=
+  gradientMild_closedC2_endpointDerivs_of_halfStepRestartData D
+    (gradientMildHalfStepRestartData_of_H2SourceData D S)
+
+/-- Half-step restart data simultaneously gives closed-interval `C²` endpoint
+data and the restart-cosine representation package. -/
+theorem gradientMild_closedC2_endpointDerivs_and_hasRestart_of_halfStepRestartData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (R : GradientMildHalfStepRestartData D) :
+    (∀ t, 0 < t → t < D.T →
+      ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1)
+        ∧ deriv (intervalDomainLift (D.u t)) 0 = 0
+        ∧ deriv (intervalDomainLift (D.u t)) 1 = 0)
+      ∧ HasRestartCosineRepresentations D.T D.u := by
+  let H := hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R
+  exact
+    ⟨gradientMild_closedC2_endpointDerivs_of_restartCosineRepresentations D H, H⟩
+
+/-- H²/time-`C¹` source data simultaneously gives closed-interval `C²`
+endpoint data and the restart-cosine representation package. -/
+theorem gradientMild_closedC2_endpointDerivs_and_hasRestart_of_halfStepH2SourceData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepH2SourceData D) :
+    (∀ t, 0 < t → t < D.T →
+      ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1)
+        ∧ deriv (intervalDomainLift (D.u t)) 0 = 0
+        ∧ deriv (intervalDomainLift (D.u t)) 1 = 0)
+      ∧ HasRestartCosineRepresentations D.T D.u :=
+  gradientMild_closedC2_endpointDerivs_and_hasRestart_of_halfStepRestartData D
+    (gradientMildHalfStepRestartData_of_H2SourceData D S)
 
 /-- Discharge the left Neumann-limit family from restarted cosine
 representations of the mild slices. -/

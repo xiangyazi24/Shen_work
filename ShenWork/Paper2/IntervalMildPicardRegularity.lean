@@ -859,8 +859,9 @@ theorem cosineCoeffs_abs_le_of_continuous_bounded
         rw [Complex.norm_real, Real.norm_eq_abs]
       rw [this]
       exact hfb x hx
-    have hconst : ∫ _ in (0 : ℝ)..1, B = B := by simp
-    linarith
+    calc
+      ∫ x in (0 : ℝ)..1, ‖(f x : ℂ)‖ ≤ ∫ x in (0 : ℝ)..1, B := hmono
+      _ = B := by simp
   calc |cosineCoeffs f n|
       ≤ 2 * ∫ x in (0 : ℝ)..1, ‖(f x : ℂ)‖ := hcoeff
     _ ≤ 2 * B := by nlinarith

@@ -29,6 +29,7 @@ open ShenWork.IntervalNeumannFullKernel
 open ShenWork.IntervalMildPicard
 open ShenWork.IntervalMildToClassical
 open ShenWork.IntervalMildRegularityBootstrap
+open ShenWork.IntervalMildPicardRegularity
 open ShenWork.IntervalSemigroupNeumann
 open ShenWork.Paper2
 
@@ -214,6 +215,17 @@ theorem gradientMildClassicalCoreData_of_halfStepH2SourceData_and_frontierCore
   gradientMildClassicalCoreData_of_halfStepRestartData_and_frontierCore
     p D (gradientMildHalfStepRestartData_of_H2SourceData D S) C
 
+/-- Logistic-source variant of
+`gradientMildClassicalCoreData_of_restartCosineRepresentations_and_frontierCore`. -/
+theorem gradientMildClassicalCoreData_of_halfStepLogisticSourceData_and_frontierCore
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u0)
+    (S : GradientMildHalfStepLogisticSourceData D)
+    (C : GradientMildClassicalFrontierCoreData p D) :
+    GradientMildClassicalCoreData p D :=
+  gradientMildClassicalCoreData_of_halfStepRestartData_and_frontierCore
+    p D (gradientMildHalfStepRestartData_of_logisticSourceData D S) C
+
 /-- Assemble the `RegularityBootstrap` predicate for the Picard gradient mild
 solution once the already-proved mild-to-classical side hypotheses are supplied.
 
@@ -317,6 +329,22 @@ theorem regularityBootstrap_of_gradientMildSolutionData_of_halfStepH2SourceData
     RegularityBootstrap p D.T u0 D.u :=
   regularityBootstrap_of_gradientMildSolutionData_of_halfStepRestartData
     p D (gradientMildHalfStepRestartData_of_H2SourceData D S)
+    hInitialApproach hclassical
+
+/-- Assemble `RegularityBootstrap` from logistic half-step source data. -/
+theorem regularityBootstrap_of_gradientMildSolutionData_of_halfStepLogisticSourceData
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u0)
+    (S : GradientMildHalfStepLogisticSourceData D)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u)) :
+    RegularityBootstrap p D.T u0 D.u :=
+  regularityBootstrap_of_gradientMildSolutionData_of_halfStepRestartData
+    p D (gradientMildHalfStepRestartData_of_logisticSourceData D S)
     hInitialApproach hclassical
 
 /-- Build the full classical-solution package from Picard gradient mild data and
@@ -423,6 +451,18 @@ theorem isPaper2ClassicalSolution_of_gradientMildSolutionData_of_halfStepH2Sourc
   isPaper2ClassicalSolution_of_gradientMildSolutionData_of_halfStepRestartData
     p D (gradientMildHalfStepRestartData_of_H2SourceData D S) C
 
+/-- Full classical-solution package from logistic half-step source data plus the
+remaining classical core. -/
+theorem isPaper2ClassicalSolution_of_gradientMildSolutionData_of_halfStepLogisticSourceData
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u0)
+    (S : GradientMildHalfStepLogisticSourceData D)
+    (C : GradientMildClassicalCoreData p D) :
+    IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u) :=
+  isPaper2ClassicalSolution_of_gradientMildSolutionData_of_halfStepRestartData
+    p D (gradientMildHalfStepRestartData_of_logisticSourceData D S) C
+
 /-- Build the full classical-solution package from restart-cosine Picard
 gradient mild data and only the reduced frontier core. -/
 theorem isPaper2ClassicalSolution_of_gradientMildSolutionData_of_restartCosineRepresentations_and_frontierCore
@@ -462,6 +502,19 @@ theorem
       (mildChemicalConcentration p D.u) :=
   isPaper2ClassicalSolution_of_gradientMildSolutionData_of_halfStepRestartData_and_frontierCore
     p D (gradientMildHalfStepRestartData_of_H2SourceData D S) C
+
+/-- Full classical-solution package from logistic half-step source data and only
+the reduced frontier core. -/
+theorem
+    isPaper2ClassicalSolution_of_gradientMildSolutionData_of_halfStepLogisticSourceData_and_frontierCore
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u0)
+    (S : GradientMildHalfStepLogisticSourceData D)
+    (C : GradientMildClassicalFrontierCoreData p D) :
+    IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u) :=
+  isPaper2ClassicalSolution_of_gradientMildSolutionData_of_halfStepRestartData_and_frontierCore
+    p D (gradientMildHalfStepRestartData_of_logisticSourceData D S) C
 
 /-- Restart-cosine `RegularityBootstrap` using only the remaining classical core
 instead of a full classical-solution hypothesis. -/
@@ -513,6 +566,22 @@ theorem regularityBootstrap_of_gradientMildSolutionData_of_halfStepH2SourceData_
     p D (gradientMildHalfStepRestartData_of_H2SourceData D S)
     hInitialApproach C
 
+/-- Logistic-source half-step `RegularityBootstrap` using only the remaining
+classical core. -/
+theorem regularityBootstrap_of_gradientMildSolutionData_of_halfStepLogisticSourceData_and_coreData
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u0)
+    (S : GradientMildHalfStepLogisticSourceData D)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (C : GradientMildClassicalCoreData p D) :
+    RegularityBootstrap p D.T u0 D.u :=
+  regularityBootstrap_of_gradientMildSolutionData_of_halfStepRestartData_and_coreData
+    p D (gradientMildHalfStepRestartData_of_logisticSourceData D S)
+    hInitialApproach C
+
 /-- Restart-cosine `RegularityBootstrap` from the reduced frontier core. -/
 theorem regularityBootstrap_of_gradientMildSolutionData_of_restartCosineRepresentations_and_frontierCore
     (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
@@ -558,6 +627,22 @@ theorem regularityBootstrap_of_gradientMildSolutionData_of_halfStepH2SourceData_
     RegularityBootstrap p D.T u0 D.u :=
   regularityBootstrap_of_gradientMildSolutionData_of_halfStepRestartData_and_frontierCore
     p D (gradientMildHalfStepRestartData_of_H2SourceData D S)
+    hInitialApproach C
+
+/-- Logistic-source half-step `RegularityBootstrap` from the reduced frontier
+core. -/
+theorem regularityBootstrap_of_gradientMildSolutionData_of_halfStepLogisticSourceData_and_frontierCore
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u0)
+    (S : GradientMildHalfStepLogisticSourceData D)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (C : GradientMildClassicalFrontierCoreData p D) :
+    RegularityBootstrap p D.T u0 D.u :=
+  regularityBootstrap_of_gradientMildSolutionData_of_halfStepRestartData_and_frontierCore
+    p D (gradientMildHalfStepRestartData_of_logisticSourceData D S)
     hInitialApproach C
 
 /-- Direct local existence from the Picard gradient mild solution package after
@@ -642,6 +727,25 @@ theorem localExistence_of_gradientMildSolutionData_of_halfStepH2SourceData
     p hu0 D (gradientMildHalfStepRestartData_of_H2SourceData D S)
     hInitialApproach hclassical
 
+/-- Direct local existence from logistic half-step source data. -/
+theorem localExistence_of_gradientMildSolutionData_of_halfStepLogisticSourceData
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (hu0 : PositiveInitialDatum intervalDomain u0)
+    (D : GradientMildSolutionData p u0)
+    (S : GradientMildHalfStepLogisticSourceData D)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u)) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u0 u :=
+  localExistence_of_gradientMildSolutionData_of_halfStepRestartData
+    p hu0 D (gradientMildHalfStepRestartData_of_logisticSourceData D S)
+    hInitialApproach hclassical
+
 /-- Direct local existence from Picard gradient mild data using only the
 remaining classical core. -/
 theorem localExistence_of_gradientMildSolutionData_and_coreData
@@ -722,6 +826,25 @@ theorem localExistence_of_gradientMildSolutionData_of_halfStepH2SourceData_and_c
     p hu0 D (gradientMildHalfStepRestartData_of_H2SourceData D S)
     hInitialApproach C
 
+/-- Direct local existence from logistic half-step source data using only the
+remaining classical core. -/
+theorem localExistence_of_gradientMildSolutionData_of_halfStepLogisticSourceData_and_coreData
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (hu0 : PositiveInitialDatum intervalDomain u0)
+    (D : GradientMildSolutionData p u0)
+    (S : GradientMildHalfStepLogisticSourceData D)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (C : GradientMildClassicalCoreData p D) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u0 u :=
+  localExistence_of_gradientMildSolutionData_of_halfStepRestartData_and_coreData
+    p hu0 D (gradientMildHalfStepRestartData_of_logisticSourceData D S)
+    hInitialApproach C
+
 /-- Direct local existence from restart-cosine Picard gradient mild data using
 only the reduced frontier core. -/
 theorem localExistence_of_gradientMildSolutionData_of_restartCosineRepresentations_and_frontierCore
@@ -780,6 +903,26 @@ theorem
       InitialTrace intervalDomain u0 u :=
   localExistence_of_gradientMildSolutionData_of_halfStepRestartData_and_frontierCore
     p hu0 D (gradientMildHalfStepRestartData_of_H2SourceData D S)
+    hInitialApproach C
+
+/-- Direct local existence from logistic half-step source data using only the
+reduced frontier core. -/
+theorem
+    localExistence_of_gradientMildSolutionData_of_halfStepLogisticSourceData_and_frontierCore
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (hu0 : PositiveInitialDatum intervalDomain u0)
+    (D : GradientMildSolutionData p u0)
+    (S : GradientMildHalfStepLogisticSourceData D)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (C : GradientMildClassicalFrontierCoreData p D) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u0 u :=
+  localExistence_of_gradientMildSolutionData_of_halfStepRestartData_and_frontierCore
+    p hu0 D (gradientMildHalfStepRestartData_of_logisticSourceData D S)
     hInitialApproach C
 
 /-- Exact componentwise bridge between the gradient-form mild map and the older

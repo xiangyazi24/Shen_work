@@ -21,6 +21,7 @@ import ShenWork.PDE.IntervalResolverLaplacianBridge
 import ShenWork.PDE.IntervalCosineSliceRegularity
 import ShenWork.PDE.IntervalFullSemigroupNeumann
 import ShenWork.Paper2.IntervalMildSourceDecay
+import ShenWork.Paper2.IntervalMildPicardRegularity
 
 open MeasureTheory
 open scoped Topology
@@ -36,6 +37,7 @@ open ShenWork.IntervalResolverLaplacianBridge
 open ShenWork.IntervalGradientDuhamelMap
 open ShenWork.IntervalMildSourceDecay
 open ShenWork.IntervalMildRegularityBootstrap
+open ShenWork.IntervalMildPicardRegularity
 open ShenWork.IntervalCosineCoeffDecay
 open ShenWork.IntervalCosineInversion
 open ShenWork.CosineSpectrum
@@ -530,6 +532,20 @@ theorem mildChemical_ellipticPDE_of_gradientMildHalfStepH2SourceData
   mildChemical_ellipticPDE_of_gradientMildHalfStepRestartData p D
     (gradientMildHalfStepRestartData_of_H2SourceData D S)
 
+/-- Elliptic PDE with restart-cosine representations built from logistic
+half-step source data. -/
+theorem mildChemical_ellipticPDE_of_gradientMildHalfStepLogisticSourceData
+    (p : CM2Params) {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepLogisticSourceData D) :
+    ∀ t x, 0 < t -> t < D.T -> x ∈ intervalDomain.inside ->
+      0 = intervalDomain.laplacian
+            (mildChemicalConcentration p D.u t) x
+          - p.μ * mildChemicalConcentration p D.u t x
+          + p.ν * (D.u t x) ^ p.γ :=
+  mildChemical_ellipticPDE_of_gradientMildHalfStepRestartData p D
+    (gradientMildHalfStepRestartData_of_logisticSourceData D S)
+
 /-! ## Neumann BC -/
 
 theorem mildSolution_neumannBC_of_closedC2_neumann (p : CM2Params)
@@ -611,6 +627,19 @@ theorem mildSolution_neumannBC_of_gradientMildHalfStepH2SourceData
         (mildChemicalConcentration p D.u t) x = 0 :=
   mildSolution_neumannBC_of_gradientMildHalfStepRestartData p D
     (gradientMildHalfStepRestartData_of_H2SourceData D S)
+
+/-- Neumann boundary conditions with restart-cosine representations built from
+logistic half-step source data. -/
+theorem mildSolution_neumannBC_of_gradientMildHalfStepLogisticSourceData
+    (p : CM2Params) {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepLogisticSourceData D) :
+    ∀ t x, 0 < t -> t < D.T -> x ∈ intervalDomain.boundary ->
+      intervalDomain.normalDeriv (D.u t) x = 0 ∧
+      intervalDomain.normalDeriv
+        (mildChemicalConcentration p D.u t) x = 0 :=
+  mildSolution_neumannBC_of_gradientMildHalfStepRestartData p D
+    (gradientMildHalfStepRestartData_of_logisticSourceData D S)
 
 /-! ## Classical regularity -/
 
@@ -755,6 +784,18 @@ theorem mildSolution_classicalRegularity_of_halfStepH2SourceData_and_frontier
       (mildChemicalConcentration p D.u) :=
   mildSolution_classicalRegularity_of_halfStepRestartData_and_frontier
     p D (gradientMildHalfStepRestartData_of_H2SourceData D S) F
+
+/-- Same classical-regularity bridge, with restart representations produced
+from logistic half-step source data. -/
+theorem mildSolution_classicalRegularity_of_halfStepLogisticSourceData_and_frontier
+    (p : CM2Params) {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepLogisticSourceData D)
+    (F : GradientMildClassicalRegularityFrontierData p D) :
+    intervalDomainClassicalRegularity D.T D.u
+      (mildChemicalConcentration p D.u) :=
+  mildSolution_classicalRegularity_of_halfStepRestartData_and_frontier
+    p D (gradientMildHalfStepRestartData_of_logisticSourceData D S) F
 
 theorem mildSolution_classicalRegularity (p : CM2Params)
     {u₀ : intervalDomainPoint -> ℝ}
