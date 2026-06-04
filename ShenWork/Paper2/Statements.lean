@@ -4761,6 +4761,70 @@ theorem Theorem_1_3.of_assumed_solutions_branch
   · intro hm_one u₀ hu₀
     exact hglobal ha hb hm hcond hm_one u₀ hu₀
 
+/-- Paper 2 main result bridge from the three independent solution branches.
+
+This packages the paper-level statements `Theorem_1_1`, `Theorem_1_2`, and
+`Theorem_1_3` without adding analytical content: each component is discharged
+by its corresponding `.of_assumed_solutions_branch` wrapper above. -/
+theorem paper2_main_results_of_assumed_solutions_branches
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hnonminimal :
+      p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+          IsPaper2ClassicalSolution D p Tmax u v ∧
+          InitialTrace D u₀ u ∧
+          (∀ t, 0 < t → t < Tmax →
+            D.supNorm (u t) ≤ max (D.supNorm u₀) ((p.a / p.b) ^ (1 / p.α))) ∧
+          (1 ≤ p.m → IsPaper2GlobalClassicalSolution D p u v))
+    (hminimal :
+      p.χ₀ ≤ 0 → p.a = 0 → p.b = 0 →
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+          IsPaper2ClassicalSolution D p Tmax u v ∧
+          InitialTrace D u₀ u ∧
+          (∀ t, 0 < t → t < Tmax → D.supNorm (u t) ≤ D.supNorm u₀) ∧
+          (1 ≤ p.m → IsPaper2GlobalClassicalSolution D p u v))
+    (hslow_diffusion :
+      0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
+      0 < p.m → p.m < 1 →
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+          IsPaper2ClassicalSolution D p Tmax u v ∧
+            InitialTrace D u₀ u ∧
+            IsPaper2BoundedBefore D Tmax u)
+    (hcritical :
+      0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
+      p.m = 1 → p.χ₀ < chiBeta p →
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        ∃ u v : ℝ → D.Point → ℝ,
+          IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            IsPaper2Bounded D u)
+    (hlocal :
+      0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+          IsPaper2ClassicalSolution D p Tmax u v ∧
+            InitialTrace D u₀ u ∧
+            IsPaper2BoundedBefore D Tmax u)
+    (hglobal :
+      0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
+      1 ≤ p.m →
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        ∃ u v : ℝ → D.Point → ℝ,
+          IsPaper2GlobalClassicalSolution D p u v ∧
+            InitialTrace D u₀ u ∧
+            IsPaper2Bounded D u) :
+    Theorem_1_1 D p ∧ Theorem_1_2 D p ∧ Theorem_1_3 D p C := by
+  have h11 : Theorem_1_1 D p :=
+    Theorem_1_1.of_assumed_solutions_branch hnonminimal hminimal
+  have h12 : Theorem_1_2 D p :=
+    Theorem_1_2.of_assumed_solutions_branch hslow_diffusion hcritical
+  have h13 : Theorem_1_3 D p C :=
+    Theorem_1_3.of_assumed_solutions_branch hlocal hglobal
+  exact ⟨h11, h12, h13⟩
+
 /-! ### Concrete unit-point bounded domain
 
 Single-point spatial domain `Unit`.  Every classical solution `u` is
