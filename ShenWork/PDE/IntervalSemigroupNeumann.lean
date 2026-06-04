@@ -297,4 +297,75 @@ theorem intervalFullSemigroupOperator_neumann_limit_right
   have := hcont.continuousAt (x := (1 : ℝ)) |>.tendsto
   rw [h1] at this; exact this.mono_left nhdsWithin_le_nhds
 
+/-! ## Value-form Duhamel Neumann
+
+The value-form Duhamel integral `V(x) = ∫₀ᵗ S(t-s)(r(s))(x) ds` satisfies
+Neumann BC at both endpoints.  The proof: under the Leibniz interchange,
+`deriv V(0) = ∫₀ᵗ deriv(S(t-s)(r(s)))(0) ds = ∫₀ᵗ 0 ds = 0`, where each
+per-slice derivative vanishes by the semigroup Neumann property.
+
+The Leibniz interchange (`HasDerivAt`) and the per-slice semigroup Neumann
+are combined here; the measurability/integrability prerequisites are taken
+as explicit hypotheses (dischargeable from continuity and boundedness of the
+source).  For the Tendsto limit version, the C¹ regularity bridge
+`neumann_limit_left_of_eqOn_C1` applies once the integral is identified
+with a C¹ function. -/
+
+/-- **Value-Duhamel Neumann at x = 0.**  If the Leibniz interchange holds
+at x₀ = 0, then the derivative is 0: each per-slice integrand
+`deriv(S(t-s)(F(s)))(0) = 0` by the semigroup Neumann property (for s < t,
+so t-s > 0), and the singleton {t} has measure 0. -/
+theorem valueDuhamel_neumann_at_zero_of_hasDerivAt
+    {t : ℝ} (ht : 0 < t) {F : ℝ → ℝ → ℝ}
+    (hF_cont : ∀ s, Continuous (F s))
+    {M : ℝ} (hM : ∀ s n, |cosineCoeffs (F s) n| ≤ M)
+    (hleibniz :
+      HasDerivAt
+        (fun x => ∫ s in (0:ℝ)..t,
+          intervalFullSemigroupOperator (t - s) (F s) x)
+        (∫ s in (0:ℝ)..t,
+          deriv (fun z => intervalFullSemigroupOperator (t - s) (F s) z) 0)
+        0) :
+    deriv (fun x => ∫ s in (0:ℝ)..t,
+      intervalFullSemigroupOperator (t - s) (F s) x) 0 = 0 := by
+  rw [hleibniz.deriv]
+  have hae : ∀ᵐ s ∂volume, s ∈ Set.uIoc 0 t →
+      deriv (fun z => intervalFullSemigroupOperator (t - s) (F s) z) 0 = 0 := by
+    have hne : ∀ᵐ s ∂volume, s ≠ t :=
+      ae_iff.mpr (by simp [Real.volume_singleton])
+    filter_upwards [hne] with s hs hmem
+    have hst : s < t := by
+      rw [Set.uIoc_of_le ht.le] at hmem
+      exact lt_of_le_of_ne hmem.2 hs
+    exact intervalFullSemigroupOperator_neumann_at_zero (sub_pos.mpr hst) (hF_cont s) (hM s)
+  conv_rhs => rw [show (0 : ℝ) = ∫ _s in (0:ℝ)..t, (0 : ℝ) from by simp]
+  exact intervalIntegral.integral_congr_ae hae
+
+/-- **Value-Duhamel Neumann at x = 1.**  Symmetric. -/
+theorem valueDuhamel_neumann_at_one_of_hasDerivAt
+    {t : ℝ} (ht : 0 < t) {F : ℝ → ℝ → ℝ}
+    (hF_cont : ∀ s, Continuous (F s))
+    {M : ℝ} (hM : ∀ s n, |cosineCoeffs (F s) n| ≤ M)
+    (hleibniz :
+      HasDerivAt
+        (fun x => ∫ s in (0:ℝ)..t,
+          intervalFullSemigroupOperator (t - s) (F s) x)
+        (∫ s in (0:ℝ)..t,
+          deriv (fun z => intervalFullSemigroupOperator (t - s) (F s) z) 1)
+        1) :
+    deriv (fun x => ∫ s in (0:ℝ)..t,
+      intervalFullSemigroupOperator (t - s) (F s) x) 1 = 0 := by
+  rw [hleibniz.deriv]
+  have hae : ∀ᵐ s ∂volume, s ∈ Set.uIoc 0 t →
+      deriv (fun z => intervalFullSemigroupOperator (t - s) (F s) z) 1 = 0 := by
+    have hne : ∀ᵐ s ∂volume, s ≠ t :=
+      ae_iff.mpr (by simp [Real.volume_singleton])
+    filter_upwards [hne] with s hs hmem
+    have hst : s < t := by
+      rw [Set.uIoc_of_le ht.le] at hmem
+      exact lt_of_le_of_ne hmem.2 hs
+    exact intervalFullSemigroupOperator_neumann_at_one (sub_pos.mpr hst) (hF_cont s) (hM s)
+  conv_rhs => rw [show (0 : ℝ) = ∫ _s in (0:ℝ)..t, (0 : ℝ) from by simp]
+  exact intervalIntegral.integral_congr_ae hae
+
 end ShenWork.IntervalSemigroupNeumann
