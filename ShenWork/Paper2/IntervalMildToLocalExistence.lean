@@ -88,6 +88,74 @@ theorem localExistence_of_gradientMildSolutionData
     regularityBootstrap_of_gradientMildSolutionData p D hInitialApproach hclassical
   exact localExistence_of_regularityBootstrap p u0 hu0 D.hT hreg
 
+/-- Positive-time fixed-point bridge.  Once the gradient-divergence Duhamel RHS
+is identified with the older `intervalDuhamelOperator` RHS, the Picard mild
+equation gives the older fixed-point equation on `(0, T]`. -/
+theorem intervalDuhamel_fixedPoint_pos_of_gradientMildSolutionData
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u0)
+    (hDuhamelEq : ∀ t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
+      intervalGradientDuhamelMap p u0 D.u t x =
+        intervalDuhamelOperator p u0 D.u t x) :
+    ∀ t x, 0 < t → t ≤ D.T →
+      D.u t x = intervalDuhamelOperator p u0 D.u t x := by
+  intro t x ht0 htT
+  rw [D.hmild t ht0 htT x]
+  exact hDuhamelEq t ht0 htT x
+
+/-- Closed-time fixed-point bridge for `localExistence_of_fp_and_regularity`.
+
+`GradientMildSolutionData.hmild` is only a positive-time equation, while the old
+local-existence wrapper asks for `0 ≤ t ≤ T`.  Thus the endpoint `t = 0` is kept
+as a separate exact-value hypothesis. -/
+theorem intervalDuhamel_fixedPoint_of_gradientMildSolutionData
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u0)
+    (hzero : ∀ x : intervalDomainPoint,
+      D.u 0 x = intervalDuhamelOperator p u0 D.u 0 x)
+    (hDuhamelEq : ∀ t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
+      intervalGradientDuhamelMap p u0 D.u t x =
+        intervalDuhamelOperator p u0 D.u t x) :
+    ∀ t x, 0 ≤ t → t ≤ D.T →
+      D.u t x = intervalDuhamelOperator p u0 D.u t x := by
+  intro t x ht0 htT
+  by_cases htpos : 0 < t
+  · exact intervalDuhamel_fixedPoint_pos_of_gradientMildSolutionData
+      p D hDuhamelEq t x htpos htT
+  · have ht_le_zero : t ≤ 0 := le_of_not_gt htpos
+    have ht_eq : t = 0 := le_antisymm ht_le_zero ht0
+    subst t
+    exact hzero x
+
+/-- Route through `localExistence_of_fp_and_regularity` after supplying the
+operator-equivalence bridge and the exact `t = 0` fixed-point value required by
+that older wrapper. -/
+theorem localExistence_of_gradientMildSolutionData_and_intervalDuhamel_eq
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (hu0 : PositiveInitialDatum intervalDomain u0)
+    (D : GradientMildSolutionData p u0)
+    (hzero : ∀ x : intervalDomainPoint,
+      D.u 0 x = intervalDuhamelOperator p u0 D.u 0 x)
+    (hDuhamelEq : ∀ t, 0 < t → t ≤ D.T → ∀ x : intervalDomainPoint,
+      intervalGradientDuhamelMap p u0 D.u t x =
+        intervalDuhamelOperator p u0 D.u t x)
+    (hInitialApproach : ∀ ε, 0 < ε →
+      ∃ δ > 0, ∀ t, 0 < t → t < δ →
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
+    (hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u)) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u0 u := by
+  have hfp : ∀ t x, 0 ≤ t → t ≤ D.T →
+      D.u t x = intervalDuhamelOperator p u0 D.u t x :=
+    intervalDuhamel_fixedPoint_of_gradientMildSolutionData
+      p D hzero hDuhamelEq
+  have hreg : RegularityBootstrap p D.T u0 D.u :=
+    regularityBootstrap_of_gradientMildSolutionData p D hInitialApproach hclassical
+  exact localExistence_of_fp_and_regularity p u0 hu0 D.hT hfp hreg
+
 /-- Version that explicitly routes through
 `IntervalDomainExistence.localExistence_of_fp_and_regularity`.
 
