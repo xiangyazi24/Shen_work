@@ -143,7 +143,15 @@ File header reference: `ShenWork/Paper3/Defs.lean`, arXiv `2604.02599`.
 | Lemma A.1 sectorial local stability | `StabilityNorms.sectorialLocalExponential` | package field assumption | The former conditional wrapper projecting the explicit sectorial local-exponential field in `StabilityNorms` has been removed; the sectorial theorem remains open. |
 | Lemmas A.2--A.5 semigroup estimates | `Paper3.Lemma_A_2.paper2`--`Paper3.Lemma_A_5.paper2`, `Paper3.Lemma_A_2_zero_output_branch`, `Paper3.Lemma_A_3_zero_embedding_branch`, `Paper3.Lemma_A_4_zero_divergence_branch`, `Paper3.Lemma_A_5_zero_fractional_divergence_branch`, `Paper3.Lemma_A_2_zero_data`--`Paper3.Lemma_A_5_zero_data` | aliases plus proved zero-output and all-zero-data branches | These Appendix lemmas are definitionally the Paper2 semigroup targets. The full estimates remain externalized in `SemigroupEstimateData`, but the zero-output/zero-embedding branches and concrete all-zero-data branches are proved directly by reusing the Paper2 branch theorems. |
 
-Next accurate theorem work:
+### unitPointDomain composites (Paper2 + Paper3, 2026-06-04)
+
+| Paper theorem area | Current Lean artifact | Status | Notes |
+| --- | --- | --- | --- |
+| Paper2 Theorems 1.1–1.3 combined (unitPointDomain) | `unitPointDomain.paper2_main_results_from_logistic_nonminimal` | conditional on `UnitPointLogisticNonminimalPackage` + `(a=0∧b=0)∨(a>0∧b>0)` | Combined Thm1.1∧1.2∧1.3 for the unit-point domain from the logistic ODE package. Minimal branch unconditional, nonminimal branch from the explicit Bernoulli-logistic solution. |
+| Paper3 Theorem 2.1 minimal (unitPointDomain) | `unitPointDomain.Theorem_2_1_minimal_chi_nonpos`, `…_beta_lt_one`, `…_m_ne_one` | **non-vacuously proved** for a=0,b=0 + vacuity condition | Part 1 has real content: minimal ODE forces constant solutions, giving the eventual lower bound. Parts 2–4 vacuous under the given parameter condition. |
+| Paper3 Theorems 2.1∧2.4∧2.5 (unitPointDomain) | `unitPointDomain.paper3_partial_results_minimal_chi_nonpos` | proved for a=0,b=0,χ₀≤0 | Three of five stability theorems packaged: Thm 2.1 (non-vacuously proved), Thm 2.4 (vacuous a=0), Thm 2.5 (unconditionally holds). Thms 2.2, 2.3 omitted (minimal branches need spectral analysis). |
+
+Next accurate theorem work (Paper3):
 
 1. Audit exact statement fidelity for the numbered Paper3 items already listed
    in `PAPER_INVENTORY.md`, especially Definition 2.1, Theorems 2.1--2.5,
