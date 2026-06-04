@@ -2602,6 +2602,14 @@ theorem Theorem_1_2.of_mainlineExistence
     cStarStarFn hexist.cStarStar_spec
     hexist.regularity hexist.energyDissipation hexist.l2ToUniform
 
+/-- Instance-facing Theorem 1.2 endpoint from the canonical Paper1 mainline
+existence package. -/
+theorem Theorem_1_2.of_mainlineExistenceFact
+    {cStarStarFn : CMParams → (ℝ → ℝ)}
+    [hexist : Fact (Paper1MainlineExistence cStarStarFn)] :
+    Theorem_1_2 :=
+  Theorem_1_2.of_mainlineExistence hexist.out
+
 /-- Theorem 1.3 from the canonical Paper1 mainline existence package. -/
 theorem Theorem_1_3.of_mainlineExistence
     {cStarStarFn : CMParams → (ℝ → ℝ)}
@@ -2612,6 +2620,14 @@ theorem Theorem_1_3.of_mainlineExistence
     cStarStarFn hexist.cStarStar_spec
     hexist.regularity hexist.energyDissipation hexist.l2ToUniform
     hexist.cauchyUnique
+
+/-- Instance-facing Theorem 1.3 endpoint from the canonical Paper1 mainline
+existence package. -/
+theorem Theorem_1_3.of_mainlineExistenceFact
+    {cStarStarFn : CMParams → (ℝ → ℝ)}
+    [hexist : Fact (Paper1MainlineExistence cStarStarFn)] :
+    Theorem_1_3 :=
+  Theorem_1_3.of_mainlineExistence hexist.out
 
 /-- Literal Paper1 B5 endpoint reduced to the canonical mainline existence
 package.  The conclusion is exactly `Theorem_1_2 ∧ Theorem_1_3`, with no
