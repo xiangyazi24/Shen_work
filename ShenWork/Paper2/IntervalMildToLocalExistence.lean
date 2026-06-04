@@ -16,6 +16,7 @@
   must vanish (for instance in the zero-sensitivity branch).
 -/
 import ShenWork.Paper2.IntervalMildToClassical
+import ShenWork.PDE.IntervalSemigroupNeumann
 
 open scoped Topology
 
@@ -28,7 +29,115 @@ open ShenWork.IntervalNeumannFullKernel
 open ShenWork.IntervalMildPicard
 open ShenWork.IntervalMildToClassical
 open ShenWork.IntervalMildRegularityBootstrap
+open ShenWork.IntervalSemigroupNeumann
 open ShenWork.Paper2
+
+/-- The semigroup term in the gradient-form mild map. -/
+noncomputable def gradientMildSemigroupTerm
+    (u0 : intervalDomainPoint → ℝ) (t x : ℝ) : ℝ :=
+  intervalFullSemigroupOperator t (intervalDomainLift u0) x
+
+/-- The chemotaxis divergence-form Duhamel term in the gradient mild map. -/
+noncomputable def gradientMildChemotaxisDuhamelTerm
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (t x : ℝ) : ℝ :=
+  (-p.χ₀) *
+    (∫ s in (0 : ℝ)..t,
+      deriv
+        (fun z =>
+          intervalFullSemigroupOperator (t - s)
+            (chemFluxLifted p (u s)) z) x)
+
+/-- The logistic value-form Duhamel term in the gradient mild map. -/
+noncomputable def gradientMildLogisticDuhamelTerm
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (t x : ℝ) : ℝ :=
+  ∫ s in (0 : ℝ)..t,
+    intervalFullSemigroupOperator (t - s)
+      (logisticLifted p (u s)) x
+
+/-- The three-term real-variable expression underlying
+`intervalGradientDuhamelMap`. -/
+noncomputable def gradientMildMapTermSum
+    (p : CM2Params) (u0 : intervalDomainPoint → ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ) (t x : ℝ) : ℝ :=
+  gradientMildSemigroupTerm u0 t x
+    + gradientMildChemotaxisDuhamelTerm p u t x
+    + gradientMildLogisticDuhamelTerm p u t x
+
+/-- The subtype-valued gradient mild map is exactly the three-term real-variable
+map evaluated at the subtype coordinate. -/
+theorem intervalGradientDuhamelMap_eq_gradientMildMapTermSum
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (u : ℝ → intervalDomainPoint → ℝ)
+    (t : ℝ) (x : intervalDomainPoint) :
+    intervalGradientDuhamelMap p u0 u t x =
+      gradientMildMapTermSum p u0 u t x.1 := by
+  rfl
+
+/-- For a Picard gradient mild solution, the lifted time slice agrees on
+`[0,1]` with the real-variable three-term mild-map expression. -/
+theorem gradientMildSolution_lift_eq_gradientMildMapTermSum_on_Icc
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u0)
+    {t : ℝ} (ht0 : 0 < t) (htT : t ≤ D.T) :
+    Set.EqOn (intervalDomainLift (D.u t))
+      (gradientMildMapTermSum p u0 D.u t) (Set.Icc (0 : ℝ) 1) := by
+  intro x hx
+  calc
+    intervalDomainLift (D.u t) x = D.u t ⟨x, hx⟩ := by
+      simp [intervalDomainLift, hx]
+    _ = intervalGradientDuhamelMap p u0 D.u t ⟨x, hx⟩ := D.hmild t ht0 htT ⟨x, hx⟩
+    _ = gradientMildMapTermSum p u0 D.u t x :=
+      intervalGradientDuhamelMap_eq_gradientMildMapTermSum p D.u t ⟨x, hx⟩
+
+/-- Interior spatial `C²` for the three-term gradient mild map.  The semigroup
+term is discharged by `IntervalSemigroupNeumann`; the two Duhamel term
+regularity hypotheses are the genuine remaining Leibniz/source frontiers. -/
+theorem gradientMildMapTermSum_contDiffOn_Ioo_of_terms
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (u : ℝ → intervalDomainPoint → ℝ)
+    {t : ℝ} (ht : 0 < t)
+    (hu0cont : Continuous (intervalDomainLift u0))
+    {M : ℝ} (hM : ∀ n, |cosineCoeffs (intervalDomainLift u0) n| ≤ M)
+    (hchem : ContDiffOn ℝ 2 (gradientMildChemotaxisDuhamelTerm p u t)
+      (Set.Ioo (0 : ℝ) 1))
+    (hlog : ContDiffOn ℝ 2 (gradientMildLogisticDuhamelTerm p u t)
+      (Set.Ioo (0 : ℝ) 1)) :
+    ContDiffOn ℝ 2 (gradientMildMapTermSum p u0 u t)
+      (Set.Ioo (0 : ℝ) 1) := by
+  have hS : ContDiffOn ℝ 2 (gradientMildSemigroupTerm u0 t)
+      (Set.Ioo (0 : ℝ) 1) := by
+    simpa [gradientMildSemigroupTerm] using
+      intervalFullSemigroupOperator_contDiffOn_Ioo ht hu0cont hM
+  simpa [gradientMildMapTermSum] using
+    mildMap_conjunct3_of_terms
+      (t := t)
+      (S_term := gradientMildSemigroupTerm u0 t)
+      (chem_term := gradientMildChemotaxisDuhamelTerm p u t)
+      (log_term := gradientMildLogisticDuhamelTerm p u t)
+      hS hchem hlog
+
+/-- Interior spatial `C²` for a Picard gradient mild-solution slice, transferred
+from the three-term real-variable mild map. -/
+theorem gradientMildSolution_contDiffOn_Ioo_of_termRegularity
+    (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u0)
+    {t : ℝ} (ht0 : 0 < t) (htT : t ≤ D.T)
+    (hu0cont : Continuous (intervalDomainLift u0))
+    {M : ℝ} (hM : ∀ n, |cosineCoeffs (intervalDomainLift u0) n| ≤ M)
+    (hchem : ContDiffOn ℝ 2 (gradientMildChemotaxisDuhamelTerm p D.u t)
+      (Set.Ioo (0 : ℝ) 1))
+    (hlog : ContDiffOn ℝ 2 (gradientMildLogisticDuhamelTerm p D.u t)
+      (Set.Ioo (0 : ℝ) 1)) :
+    ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Ioo (0 : ℝ) 1) := by
+  have hsum : ContDiffOn ℝ 2 (gradientMildMapTermSum p u0 D.u t)
+      (Set.Ioo (0 : ℝ) 1) :=
+    gradientMildMapTermSum_contDiffOn_Ioo_of_terms
+      p D.u ht0 hu0cont hM hchem hlog
+  have heq : Set.EqOn (intervalDomainLift (D.u t))
+      (gradientMildMapTermSum p u0 D.u t) (Set.Ioo (0 : ℝ) 1) :=
+    (gradientMildSolution_lift_eq_gradientMildMapTermSum_on_Icc
+      p D ht0 htT).mono Set.Ioo_subset_Icc_self
+  exact hsum.congr heq
 
 /-- The remaining classical-side core after the restart-cosine bootstrap has
 discharged positivity, chemical nonnegativity, the elliptic equation for the
