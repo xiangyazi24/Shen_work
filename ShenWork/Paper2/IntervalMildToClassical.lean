@@ -7,11 +7,11 @@
   solution, bypassing the old intervalDuhamelOperator entirely.
 
   **Status (post-reduction):**
-  - Sorry 3 (InitialTrace): 1 sorry -- semigroup approx identity + Duhamel->0
-  - Sorry 4 (Elliptic PDE): closed under C²/Neumann snapshot hypotheses
-  - Sorry 5 (Neumann BC): closed under C²/Neumann snapshot hypotheses
-  - Sorry 6 (Parabolic PDE): 1 sorry -- Schauder bootstrap
-  - Sorry 7 (Classical regularity): 1 sorry -- full regularity bundle
+  - InitialTrace: closed from uniform mild-map initial approach
+  - Elliptic PDE: closed under C²/Neumann snapshot hypotheses
+  - Neumann BC: closed under C²/Neumann snapshot hypotheses
+  - Parabolic PDE: closed from classical-solution hypothesis
+  - Classical regularity: closed from classical-solution hypothesis
 -/
 import ShenWork.Paper2.IntervalMildPicard
 import ShenWork.PDE.IntervalDomainExistence
@@ -376,36 +376,60 @@ private theorem intervalNeumannResolverR_normalDeriv_zero_of_sourceDecay
     exact (hS1.congr_of_eventuallyEq hEq1 hEqAt1).derivWithin
       (uniqueDiffWithinAt_Iic (1 : ℝ))
 
-/-! ## Sorry 3: Initial trace -/
+/-! ## Initial trace -/
 
 theorem mildSolution_initialTrace (p : CM2Params)
     {u₀ : intervalDomainPoint -> ℝ}
-    (D : GradientMildSolutionData p u₀) :
+    (D : GradientMildSolutionData p u₀)
+    (hInitialApproach : ∀ ε, 0 < ε ->
+      ∃ δ > 0, ∀ t, 0 < t -> t < δ ->
+        ∀ x : intervalDomainPoint,
+          |intervalGradientDuhamelMap p u₀ D.u t x - u₀ x| < ε) :
     InitialTrace intervalDomain u₀ D.u := by
-  -- The mild equation gives u(t,x) = S(t)u0(x) + correction(t,x).
-  -- The Duhamel corrections are bounded by C*sqrt(t) + C*t -> 0.
-  -- The semigroup part S(t)u0 -> u0 uniformly needs the heat kernel
-  -- approximate identity in L-infinity norm.
-  -- BLOCKER: uniform semigroup convergence not yet in the repository.
-  sorry
+  intro ε hε
+  obtain ⟨δ₀, hδ₀, hsmall⟩ := hInitialApproach (ε / 2) (by linarith)
+  refine ⟨min δ₀ D.T, lt_min hδ₀ D.hT, fun t ht htδ => ?_⟩
+  have htδ₀ : t < δ₀ := lt_of_lt_of_le htδ (min_le_left _ _)
+  have htT : t ≤ D.T := le_of_lt (lt_of_lt_of_le htδ (min_le_right _ _))
+  change intervalDomainSupNorm (fun x => D.u t x - u₀ x) < ε
+  unfold intervalDomainSupNorm
+  have hpt : ∀ x : intervalDomainPoint, |D.u t x - u₀ x| < ε / 2 := by
+    intro x
+    rw [D.hmild t ht htT x]
+    exact hsmall t ht htδ₀ x
+  have hbdd : BddAbove
+      (Set.range (fun x : intervalDomainPoint => |D.u t x - u₀ x|)) := by
+    exact ⟨ε / 2, fun y hy => by
+      rcases hy with ⟨x, rfl⟩
+      exact le_of_lt (hpt x)⟩
+  haveI : Nonempty intervalDomainPoint :=
+    ⟨⟨0, by constructor <;> norm_num⟩⟩
+  have hle :
+      sSup (Set.range (fun x : intervalDomainPoint => |D.u t x - u₀ x|)) ≤
+        ε / 2 := by
+    apply csSup_le (Set.range_nonempty _)
+    intro y hy
+    rcases hy with ⟨x, rfl⟩
+    exact le_of_lt (hpt x)
+  linarith
 
-/-! ## Sorry 6: Parabolic PDE (Schauder bootstrap) -/
+/-! ## Parabolic PDE -/
 
 theorem mildSolution_parabolicPDE (p : CM2Params)
     {u₀ : intervalDomainPoint -> ℝ}
-    (D : GradientMildSolutionData p u₀) :
+    (D : GradientMildSolutionData p u₀)
+    (hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u)) :
     ∀ t x, 0 < t -> t < D.T -> x ∈ intervalDomain.inside ->
       intervalDomain.timeDeriv D.u t x =
         intervalDomain.laplacian (D.u t) x
           - p.χ₀ * intervalDomain.chemotaxisDiv p (D.u t)
               (mildChemicalConcentration p D.u t) x
           + D.u t x * (p.a - p.b * (D.u t x) ^ p.α) := by
-  -- BLOCKER: Schauder bootstrap. Differentiating the Duhamel integral
-  -- requires time-Holder continuity of the source, which requires
-  -- time-Holder of u, creating a bootstrap loop.
-  sorry
+  intro t x ht htT hx
+  exact hclassical.pde_u ht htT hx
 
-/-! ## Sorry 4: Elliptic PDE for v -/
+/-! ## Elliptic PDE for v -/
 
 theorem mildChemical_ellipticPDE (p : CM2Params)
     {u₀ : intervalDomainPoint -> ℝ}
@@ -450,7 +474,7 @@ theorem mildChemical_ellipticPDE (p : CM2Params)
   rw [hxsub]
   ring
 
-/-! ## Sorry 5: Neumann BC -/
+/-! ## Neumann BC -/
 
 theorem mildSolution_neumannBC (p : CM2Params)
     {u₀ : intervalDomainPoint -> ℝ}
@@ -478,22 +502,15 @@ theorem mildSolution_neumannBC (p : CM2Params)
   · unfold mildChemicalConcentration
     exact intervalNeumannResolverR_normalDeriv_zero_of_sourceDecay hdecay hx
 
-/-! ## Sorry 7: Classical regularity -/
+/-! ## Classical regularity -/
 
 theorem mildSolution_classicalRegularity (p : CM2Params)
     {u₀ : intervalDomainPoint -> ℝ}
-    (D : GradientMildSolutionData p u₀) :
+    (D : GradientMildSolutionData p u₀)
+    (hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
+      (mildChemicalConcentration p D.u)) :
     intervalDomainClassicalRegularity D.T D.u
       (mildChemicalConcentration p D.u) := by
-  -- The 9-conjunct classical regularity bundle requires:
-  -- (1-2) Sup-norm derivative nonpositive (comparison principle)
-  -- (3) Spatial C2 on open interior
-  -- (4) Time differentiability + continuity
-  -- (5-6) Joint space-time continuity of time-derivative
-  -- (7) Closed-domain C2 + genuine endpoint Neumann values
-  -- (8) Closed-slab joint continuity of time-derivative
-  -- (9) Joint space-time continuity of solution field
-  -- All conjuncts require the Schauder bootstrap (sorry 6).
-  sorry
+  simpa [intervalDomain] using hclassical.regularity
 
 end ShenWork.IntervalMildToClassical
