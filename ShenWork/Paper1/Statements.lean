@@ -17718,6 +17718,91 @@ theorem paper1_main_results
       cStarStarFn hcStarStar hstability hcont hcauchy hresolvent htail_asymp
   exact ⟨h11, h12, h13⟩
 
+/-- Bundled frontiers for the Paper1 main statement bridge. -/
+structure Paper1MainResultsData
+    (cStarStarFn : CMParams → ℝ → ℝ) : Prop where
+  construction_neg :
+    ∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
+      ∀ c : ℝ, cStarLower p < c →
+        ∃ U : ℝ → ℝ,
+          FrozenStationaryWaveProfile p c U ∧
+            (∀ x, deriv U x ≤ 0) ∧
+            (∀ x, deriv (frozenElliptic p U) x ≤ 0) ∧
+            ShenUpperBoundNegative c U ∧
+            ∀ κ₁, kappa c < κ₁ →
+              κ₁ <
+                min ((1 + p.α) * kappa c)
+                  (min (p.m * kappa c + 1 / 2) 1) →
+              HasWaveRightTailAsymptotic c κ₁ U
+  construction_pos :
+    ∀ p : CMParams, p.α = p.m + p.γ - 1 →
+      0 ≤ p.χ → p.χ < min (1 / 2 : ℝ) (chiStar p) →
+      ∀ c : ℝ, 2 < c →
+        ∃ U : ℝ → ℝ,
+          FrozenStationaryWaveProfile p c U ∧
+            ShenUpperBoundPositive p c U ∧
+            ∀ κ₁, kappa c < κ₁ →
+              κ₁ <
+                min ((1 + p.α) * kappa c)
+                  (min (p.m * kappa c + 1 / 2) 1) →
+              HasWaveRightTailAsymptotic c κ₁ U
+  cStarStar_spec :
+    ∀ p : CMParams, StableWaveParameterRegime p →
+      StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
+        stabilitySpeedBaseline p < cStarStarFn p p.χ
+  stability :
+    ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, cStarStarFn p p.χ < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          ∀ u₀ : ℝ → ℝ,
+            NonnegativeInitialDatum u₀ →
+            StrictlyPositiveAtLeft u₀ →
+            WeightedL2InitialCloseness η u₀ U →
+            ∃ u v : ℝ → ℝ → ℝ,
+              IsGlobalCauchySolutionFrom p u₀ u v ∧
+              WeightedL2MovingFrameConvergence η c u U ∧
+              UniformMovingFrameConvergence c u U
+  wave_cont :
+    ∀ p : CMParams, ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V → Continuous U
+  cauchy_unique :
+    ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        IsCUnifBdd U →
+        ∀ u v : ℝ → ℝ → ℝ,
+          IsGlobalCauchySolutionFrom p U u v →
+            ∀ t x, u t x = U (x - c * t)
+  resolvent :
+    ∀ p : CMParams, ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V → V = frozenElliptic p U
+  tail_asymp :
+    ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        HasRemark43TailAsymptotic p c U
+
+/-- Bundled Paper1 main statement bridge. -/
+theorem paper1_main_results_bundled
+    (cStarStarFn : CMParams → ℝ → ℝ)
+    (hData : Paper1MainResultsData cStarStarFn) :
+    Theorem_1_1 ∧ Theorem_1_2 ∧ Theorem_1_3 :=
+  paper1_main_results hData.construction_neg hData.construction_pos
+    cStarStarFn hData.cStarStar_spec hData.stability hData.wave_cont
+    hData.cauchy_unique hData.resolvent hData.tail_asymp
+
+/-- Instance-facing bundled Paper1 main statement bridge. -/
+theorem paper1_main_results_bundledFact
+    (cStarStarFn : CMParams → ℝ → ℝ)
+    [hData : Fact (Paper1MainResultsData cStarStarFn)] :
+    Theorem_1_1 ∧ Theorem_1_2 ∧ Theorem_1_3 :=
+  paper1_main_results_bundled cStarStarFn hData.out
+
 end
 
 end ShenWork.Paper1
