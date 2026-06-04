@@ -66,15 +66,53 @@ import ShenWork.Paper2.IntervalDomainMoserClosure
 import ShenWork.Paper2.IntervalDomainL2USubHorizonGluing
 import ShenWork.Paper2.IntervalDomainGlobalWellposed
 import ShenWork.Paper2.IntervalDomainL2UEnergyUniformGammaGeOne
+import ShenWork.Paper2.IntervalMildToLocalExistence
 
 open ShenWork.IntervalDomain
 open ShenWork.IntervalDomainExistence
+open ShenWork.IntervalGradientDuhamelMap
+open ShenWork.IntervalMildPicard
 open ShenWork.Paper2.IntervalDomainMoserClosure
 open ShenWork.Paper2.IntervalDomainGlobalWellposed
 
 namespace ShenWork.Paper2
 
 noncomputable section
+
+/-! ## Local-existence bridge input from gradient mild data -/
+
+/-- Local-existence input stated at the Picard gradient-mild level.
+
+For every positive admissible datum, this supplies the `GradientMildSolutionData`
+plus the two mild-to-local-existence side conditions consumed by
+`IntervalMildToLocalExistence.localExistence_of_gradientMildSolutionData`:
+initial approach of the gradient Duhamel map and the closed classical solution
+bridge for `(u, resolver(u))`. -/
+def IntervalDomainGradientMildLocalData (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomain.Point → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+      ∃ D : GradientMildSolutionData p u₀,
+        (∀ ε, 0 < ε →
+          ∃ δ > 0, ∀ t, 0 < t → t < δ →
+            ∀ x : intervalDomainPoint,
+              |intervalGradientDuhamelMap p u₀ D.u t x - u₀ x| < ε) ∧
+        IsPaper2ClassicalSolution intervalDomain p D.T D.u
+          (ShenWork.IntervalMildToClassical.mildChemicalConcentration p D.u)
+
+/-- Convert the Picard gradient-mild local data into the `hlocal` field consumed
+by the umbrella theorems. -/
+theorem localExistence_of_gradientMildLocalData
+    (p : CM2Params)
+    (hMildLocal : IntervalDomainGradientMildLocalData p) :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro u₀ hu₀
+  obtain ⟨D, hInitialApproach, hclassical⟩ := hMildLocal u₀ hu₀
+  exact ShenWork.IntervalMildToLocalExistence.localExistence_of_gradientMildSolutionData
+    p hu₀ D hInitialApproach hclassical
 
 /-- **Umbrella theorem.**  Paper 2 Theorem 1.1 on the interval domain follows
 from the negative-sensitivity regime (`χ₀ ≤ 0`, `0 < a`, `0 < b`) together with
@@ -1310,6 +1348,58 @@ theorem Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge_bundled
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
     p hχ ha hb hγ_ge_one hData.localExistence hData.uniformLocal hData.posWit
 
+/-- **Paper 2-aligned umbrella via Picard gradient-mild local data.**
+
+This is the same γ≥1/no-`hextend_mge` umbrella, but the local-existence input is
+lowered from an abstract classical `hlocal` hypothesis to the concrete
+Picard-output interface `IntervalDomainGradientMildLocalData`, using
+`IntervalMildToLocalExistence.localExistence_of_gradientMildSolutionData`.
+
+Remaining inputs are the genuine continuation theorem
+`IntervalDomainUniformLocalExistence` and the `posWit` bookkeeping pass-through. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildLocalData
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hMildLocal : IntervalDomainGradientMildLocalData p)
+    (hUniform : IntervalDomainUniformLocalExistence p)
+    (hposWit :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          PositiveInitialDatum intervalDomain u₀) :
+    Theorem_1_1 intervalDomain p := by
+  exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
+    p hχ ha hb hγ_ge_one
+    (localExistence_of_gradientMildLocalData p hMildLocal)
+    hUniform hposWit
+
+/-- Bundled input for the Picard-gradient-mild version of the γ≥1 umbrella. -/
+structure IntervalDomainPaper2GradientMildContinuationData (p : CM2Params) :
+    Prop where
+  mildLocal : IntervalDomainGradientMildLocalData p
+  uniformLocal : IntervalDomainUniformLocalExistence p
+  posWit :
+    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+      InitialTrace intervalDomain u₀ u₁ →
+      InitialTrace intervalDomain u₀ u₂ →
+        PositiveInitialDatum intervalDomain u₀
+
+/-- Bundled-input wrapper for the Picard-gradient-mild γ≥1 umbrella. -/
+theorem Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildLocalData_bundled
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData : IntervalDomainPaper2GradientMildContinuationData p) :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildLocalData
+    p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+
 end
 
 end ShenWork.Paper2
@@ -1321,5 +1411,5 @@ end ShenWork.Paper2
 -- #print axioms
 --   ShenWork.Paper2.Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound_no_hreach
 -- #print axioms
---   ShenWork.Paper2.Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound_no_hreach_no_hrangeBounded
-
+--   ShenWork.Paper2.
+--     Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound_no_hreach_no_hrangeBounded
