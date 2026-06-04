@@ -116,6 +116,18 @@ theorem intervalDomain_paper3_compactnessRegularizationTargets_of_frontiers
     p K N C hData.upperEq hData.compact hData.initialContinuity
     hData.minimalUpper hData.resolvent
 
+/-- Instance-facing compactness/regularization statement-target assembly on
+the interval domain. -/
+theorem intervalDomain_paper3_compactnessRegularizationTargets_of_frontiersFact
+    (p : CM2Params) (K : CompactnessData intervalDomain)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    [hData : Fact
+      (IntervalDomainPaper3CompactnessRegularizationData p K N C)] :
+    IntervalDomainPaper3CompactnessRegularizationTargets p K N C :=
+  intervalDomain_paper3_compactnessRegularizationTargets_of_frontiers
+    p K N C hData.out
+
 /-- Bundled raw frontiers for the concrete interval constants and concrete
 interval stability norms. -/
 structure IntervalDomainPaper3ConcreteCompactnessRegularizationData
@@ -164,6 +176,21 @@ theorem
   intro uStar huStar
   simpa [IntervalDomainInitialContinuityRaw, InitialContinuityRaw,
     InitialContinuityConclusion] using hData.initialContinuity uStar huStar
+
+/-- Instance-facing concrete-constants compactness/regularization
+statement-target assembly on the interval domain. -/
+theorem
+    intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_frontiersFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    [hData : Fact
+      (IntervalDomainPaper3ConcreteCompactnessRegularizationData
+        p M0 uBar vLower K)] :
+    IntervalDomainPaper3CompactnessRegularizationTargets p K
+      intervalDomainStabilityNorms
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_frontiers
+    p M0 uBar vLower K hData.out
 
 end
 
