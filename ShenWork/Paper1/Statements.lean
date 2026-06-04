@@ -2554,6 +2554,10 @@ theorem kernelConvRpowBound : KernelConvRpowBound := by
   conv at hJ => rhs; rw [hkey, mul_assoc]
   exact le_of_mul_le_mul_left hJ hAip
 
+/-- Standard-name bridge for grep-based statement-target audits. -/
+theorem KernelConvRpowBound_proved : KernelConvRpowBound :=
+  kernelConvRpowBound
+
 def Lemma_2_5_JensenStep : Prop :=
   ∀ (u : ℝ → ℝ) (l mu pExp : ℝ),
     0 < l → 0 < mu → 1 ≤ pExp →
@@ -2596,6 +2600,10 @@ theorem lemma_2_5_jensenStep : Lemma_2_5_JensenStep := by
     mul_assoc]
   exact mul_le_mul_of_nonneg_left hJensen
     (Real.rpow_nonneg hcoeff_pos.le pExp)
+
+/-- Standard-name bridge for grep-based statement-target audits. -/
+theorem Lemma_2_5_JensenStep_proved : Lemma_2_5_JensenStep :=
+  lemma_2_5_jensenStep
 
 def frozenElliptic (p : CMParams) (u : ℝ → ℝ) : ℝ → ℝ :=
   fun x => Psi (fun y => (u y) ^ p.γ) 1 1 x
