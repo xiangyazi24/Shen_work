@@ -36,7 +36,9 @@
 -/
 import ShenWork.Paper2.IntervalMildRegularityBootstrap
 import ShenWork.PDE.IntervalSemigroupNeumann
+import ShenWork.PDE.IntervalFullKernelBoundaryRegularity
 import ShenWork.PDE.IntervalUnderIntegralLeibniz
+import ShenWork.PDE.IntervalFullKernelBoundaryRegularity
 
 open MeasureTheory Filter Topology
 open ShenWork.IntervalDomain
@@ -44,6 +46,7 @@ open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalFullSemigroupOperator)
 open ShenWork.IntervalDuhamelClosedC2
 open ShenWork.IntervalMildPicard
+open ShenWork.IntervalGradientDuhamelMap (logisticLifted)
 open ShenWork.IntervalSemigroupNeumann
 open ShenWork.PDE.IntervalMildSourceDecayHelper
 open ShenWork.IntervalMildRegularityBootstrap
@@ -662,5 +665,238 @@ noncomputable def logisticSource_duhamelSourceTimeC1
     (fun σ hσ => logisticSourceFun_intervalWeakH2Neumann
       (hC2 σ) (hpos σ) (hN0 σ) (hN1 σ))
     hC hdecay hderiv hadotcont hMdot ha0
+
+/-- On `[0,1]`, the domain-lifted logistic source is the scalar logistic
+source applied to the lifted profile. -/
+theorem logisticLifted_eq_logisticSourceFun_on_Icc
+    (p : CM2Params) (w : intervalDomainPoint → ℝ) :
+    Set.EqOn (logisticLifted p w)
+      (logisticSourceFun p.a p.b p.α (intervalDomainLift w))
+      (Set.Icc (0 : ℝ) 1) := by
+  intro x hx
+  simp [logisticLifted, ShenWork.IntervalDomainExistence.intervalLogisticSource,
+    logisticSourceFun, intervalDomainLift, hx]
+
+/-- Half-step restart data specialized to the logistic source.
+
+This packages exactly the profile-level hypotheses consumed by
+`logisticSource_duhamelSourceTimeC1`, plus the algebraic restarted-series
+agreement.  It is weaker than a generic H² source package: H²-Neumann of the
+source itself is derived from the logistic structure. -/
+structure GradientMildHalfStepLogisticSourceData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀) where
+  profile : ℝ → ℝ → ℝ → ℝ
+  C : ℝ → ℝ
+  hC : ∀ t, 0 < t → t < D.T → 0 ≤ C t
+  hC2 : ∀ t, 0 < t → t < D.T →
+    ∀ σ, ContDiff ℝ 2 (profile t σ)
+  hpos : ∀ t, 0 < t → t < D.T →
+    ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < profile t σ x
+  hN0 : ∀ t, 0 < t → t < D.T →
+    ∀ σ, deriv (profile t σ) 0 = 0
+  hN1 : ∀ t, 0 < t → t < D.T →
+    ∀ σ, deriv (profile t σ) 1 = 0
+  hdecay : ∀ t, 0 < t → t < D.T →
+    ∀ σ, 0 ≤ σ → ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs (logisticSourceFun p.a p.b p.α (profile t σ)) k| ≤
+        C t / ((k : ℝ) * Real.pi) ^ 2
+  ha0_bound : ∀ t, 0 < t → t < D.T →
+    ∀ σ, 0 ≤ σ →
+      |cosineCoeffs (logisticSourceFun p.a p.b p.α (profile t σ)) 0| ≤ C t
+  adot : ℝ → ℝ → ℕ → ℝ
+  hderiv : ∀ t, 0 < t → t < D.T →
+    ∀ σ n, HasDerivAt
+      (fun r : ℝ =>
+        cosineCoeffs (logisticSourceFun p.a p.b p.α (profile t r)) n)
+      (adot t σ n) σ
+  hadotcont : ∀ t, 0 < t → t < D.T →
+    ∀ n, Continuous (fun σ : ℝ => adot t σ n)
+  Mdot : ℝ → ℝ
+  hMdot : ∀ t, 0 < t → t < D.T →
+    ∀ σ, 0 ≤ σ → ∀ n, |adot t σ n| ≤ Mdot t
+  hagree : ∀ t, 0 < t → t < D.T →
+    Set.EqOn (intervalDomainLift (D.u t))
+      (fun x : ℝ =>
+        ∑' n : ℕ,
+          restartDuhamelCoeff (gradientMildHalfStepInitialCoeff D t)
+            (fun σ n =>
+              cosineCoeffs (logisticSourceFun p.a p.b p.α (profile t σ)) n)
+            (t / 2) n * cosineMode n x)
+      (Set.Icc (0 : ℝ) 1)
+
+/-- Logistic half-step source data produces the older restart package by using
+`logisticSource_duhamelSourceTimeC1` for the source regularity field. -/
+noncomputable def gradientMildHalfStepRestartData_of_logisticSourceData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepLogisticSourceData D) :
+    GradientMildHalfStepRestartData D where
+  a := fun t σ n =>
+    cosineCoeffs (logisticSourceFun p.a p.b p.α (S.profile t σ)) n
+  src := by
+    intro t ht htT
+    exact logisticSource_duhamelSourceTimeC1
+      (p := p) (g := S.profile t)
+      (S.hC2 t ht htT) (S.hpos t ht htT)
+      (S.hN0 t ht htT) (S.hN1 t ht htT)
+      (S.hC t ht htT) (S.hdecay t ht htT)
+      (S.ha0_bound t ht htT) (S.hderiv t ht htT)
+      (S.hadotcont t ht htT) (S.hMdot t ht htT)
+  hagree := S.hagree
+
+/-- Construct `HasRestartCosineRepresentations` directly from logistic
+half-step source data and restarted-series agreement. -/
+theorem hasRestartCosineRepresentations_of_gradientMildHalfStepLogisticSourceData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepLogisticSourceData D) :
+    HasRestartCosineRepresentations D.T D.u :=
+  hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D
+    (gradientMildHalfStepRestartData_of_logisticSourceData D S)
+
+/-- Logistic half-step source data discharges the closed-interval spatial `C²`
+package, including endpoint derivative values. -/
+theorem gradientMild_closedC2_endpointDerivs_of_halfStepLogisticSourceData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepLogisticSourceData D) :
+    ∀ t, 0 < t → t < D.T →
+      ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1)
+        ∧ deriv (intervalDomainLift (D.u t)) 0 = 0
+        ∧ deriv (intervalDomainLift (D.u t)) 1 = 0 :=
+  gradientMild_closedC2_endpointDerivs_of_halfStepRestartData D
+    (gradientMildHalfStepRestartData_of_logisticSourceData D S)
+
+/-- Logistic half-step source data simultaneously gives closed-interval `C²`
+endpoint data and the restart-cosine representation package. -/
+theorem gradientMild_closedC2_endpointDerivs_and_hasRestart_of_halfStepLogisticSourceData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepLogisticSourceData D) :
+    (∀ t, 0 < t → t < D.T →
+      ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1)
+        ∧ deriv (intervalDomainLift (D.u t)) 0 = 0
+        ∧ deriv (intervalDomainLift (D.u t)) 1 = 0)
+      ∧ HasRestartCosineRepresentations D.T D.u :=
+  gradientMild_closedC2_endpointDerivs_and_hasRestart_of_halfStepRestartData D
+    (gradientMildHalfStepRestartData_of_logisticSourceData D S)
+
+/-! ## Picard iterate spatial regularity by induction
+
+The regularity bootstrap for the full mild solution is closed once we
+establish `HasRestartCosineRepresentations`.  The structural machinery
+above converts this to **profile-level data** (`GradientMildHalfStepLogisticSourceData`).
+
+Below we prove the KEY CHAIN:
+
+  `DuhamelSourceTimeC1 of source` ->
+  `duhamelSpectralCoeff_eigenvalue_summable` ->
+  `cosineCoeffSeries_contDiff_two` ->
+  C² of the Duhamel cosine series
+
+and the base case (zeroth iterate = semigroup is C²). -/
+
+/-- The logistic Duhamel cosine series is globally C² given
+`DuhamelSourceTimeC1` of the source coefficients.  This is the
+one-step chain from DuhamelSourceTimeC1 to C² via eigenvalue
+summability -> cosine C² engine. -/
+theorem duhamel_cosine_series_contDiff_two
+    {a : ℝ → ℕ → ℝ} {t : ℝ} (ht : 0 < t)
+    (src : DuhamelSourceTimeC1 a) :
+    ContDiff ℝ 2 (fun x : ℝ =>
+      ∑' n : ℕ, duhamelSpectralCoeff a t n * cosineMode n x) :=
+  cosineCoeffSeries_contDiff_two (duhamelSpectralCoeff_eigenvalue_summable src ht)
+
+/-- The restart (homogeneous + Duhamel) cosine series is globally C² given
+bounded restart coefficients and `DuhamelSourceTimeC1` of the source.
+This is `restartDuhamelCoeffSeries_contDiff_two` re-exported with the
+explicit half-step interpretation. -/
+theorem restart_cosine_series_contDiff_two
+    {τ M : ℝ} {a₀ : ℕ → ℝ} {a : ℝ → ℕ → ℝ}
+    (hτ : 0 < τ) (ha₀ : ∀ n, |a₀ n| ≤ M)
+    (src : DuhamelSourceTimeC1 a) :
+    ContDiff ℝ 2 (fun x : ℝ =>
+      ∑' n : ℕ, restartDuhamelCoeff a₀ a τ n * cosineMode n x) :=
+  restartDuhamelCoeffSeries_contDiff_two hτ ha₀ src
+
+/-! ### Picard iterate slice regularity predicate -/
+
+/-- A Picard iterate has C² slices: at each interior time, the lifted
+spatial slice is `ContDiffOn ℝ 2` on `[0,1]` with Neumann BC. -/
+def PicardIterateHasC2Slices (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (T : ℝ) (n : ℕ) : Prop :=
+  ∀ t, 0 < t → t ≤ T →
+    ContDiffOn ℝ 2 (intervalDomainLift (picardIter p u₀ n t)) (Set.Icc (0 : ℝ) 1)
+    ∧ deriv (intervalDomainLift (picardIter p u₀ n t)) 0 = 0
+    ∧ deriv (intervalDomainLift (picardIter p u₀ n t)) 1 = 0
+
+/-! ### Base case: zeroth iterate (semigroup) is C² -/
+
+/-- Cosine coefficients of a bounded continuous function on `[0,1]` are uniformly bounded. -/
+theorem cosineCoeffs_abs_le_of_continuous_bounded
+    {f : ℝ → ℝ} (hf : ContinuousOn f (Set.Icc (0 : ℝ) 1))
+    {B : ℝ} (hB : 0 ≤ B)
+    (hfb : ∀ x ∈ Set.Icc (0 : ℝ) 1, |f x| ≤ B) :
+    ∀ n, |cosineCoeffs f n| ≤ 2 * B := by
+  intro n
+  have hfC : ContinuousOn (fun x : ℝ => (f x : ℂ)) (Set.Icc (0 : ℝ) 1) :=
+    Complex.continuous_ofReal.comp_continuousOn hf
+  have hint : IntervalIntegrable (fun x : ℝ => (f x : ℂ))
+      volume (0 : ℝ) 1 := by
+    apply ContinuousOn.intervalIntegrable
+    rwa [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+  have hcoeff :=
+    ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff_abs_le_two_integral_norm
+      hint n
+  have hnorm_le : ∫ x in (0 : ℝ)..1, ‖(f x : ℂ)‖ ≤ B := by
+    have hmono : ∫ x in (0 : ℝ)..1, ‖(f x : ℂ)‖ ≤
+        ∫ x in (0 : ℝ)..1, B := by
+      apply intervalIntegral.integral_mono_on (by norm_num : (0 : ℝ) ≤ 1)
+        (hint.norm) (intervalIntegrable_const)
+      intro x hx
+      have : ‖(f x : ℂ)‖ = |f x| := by
+        rw [Complex.norm_real, Real.norm_eq_abs]
+      rw [this]
+      exact hfb x hx
+    have hconst : ∫ _ in (0 : ℝ)..1, B = B := by simp
+    linarith
+  calc |cosineCoeffs f n|
+      ≤ 2 * ∫ x in (0 : ℝ)..1, ‖(f x : ℂ)‖ := hcoeff
+    _ ≤ 2 * B := by nlinarith
+
+/-- The zeroth Picard iterate (heat semigroup) has C² slices with Neumann BC
+at every positive time. -/
+theorem picardIterateHasC2Slices_zero
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (hf_cont : Continuous (intervalDomainLift u₀))
+    {B : ℝ} (hB : 0 ≤ B)
+    (hbound : ∀ x : intervalDomainPoint, |u₀ x| ≤ B)
+    (T : ℝ) :
+    PicardIterateHasC2Slices p u₀ T 0 := by
+  intro t ht _htT
+  set f := intervalDomainLift u₀
+  have hf_cont' : Continuous f := by
+    simpa [f] using hf_cont
+  have hf_bound : ∀ x ∈ Set.Icc (0 : ℝ) 1, |f x| ≤ B := by
+    intro x hx; simp only [f, intervalDomainLift, hx, dif_pos]; exact hbound ⟨x, hx⟩
+  have hM : ∀ n, |cosineCoeffs f n| ≤ 2 * B :=
+    cosineCoeffs_abs_le_of_continuous_bounded hf_cont'.continuousOn hB hf_bound
+  -- Semigroup is globally C²
+  have hC2 : ContDiff ℝ 2 (fun x => intervalFullSemigroupOperator t f x) :=
+    semigroup_contDiff_two ht hf_cont' hM
+  -- Agreement on [0,1]: lift(iter₀(t)) = S(t)(lift u₀)
+  have hagree : Set.EqOn (intervalDomainLift (picardIter p u₀ 0 t))
+      (fun x => intervalFullSemigroupOperator t f x) (Set.Icc (0 : ℝ) 1) := by
+    intro x hx
+    simp only [intervalDomainLift, hx, dif_pos]
+    rfl
+  refine ⟨?_, ?_, ?_⟩
+  -- C² on [0,1] by agreement with the globally C² semigroup
+  · exact hC2.contDiffOn.congr hagree
+  -- Neumann BC at x=0: unconditional for intervalDomainLift
+  · exact ShenWork.IntervalFullKernelRegularity.deriv_intervalDomainLift_eq_zero_at_zero _
+  -- Neumann BC at x=1: unconditional for intervalDomainLift
+  · exact ShenWork.IntervalFullKernelRegularity.deriv_intervalDomainLift_eq_zero_at_one _
 
 end ShenWork.IntervalMildPicardRegularity
