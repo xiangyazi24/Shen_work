@@ -145,6 +145,130 @@ theorem reaction_term_bounded {γ : ℝ} (hγ : 0 < γ)
         rw [this]; gcongr
       exact add_le_add hterm1 hterm2
 
+private theorem powerSource_deriv_interior_of_contDiffOn
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hC2 : ContDiffOn ℝ 2 (intervalDomainLift u) (Set.Icc (0:ℝ) 1))
+    (hpos : ∀ x ∈ Set.Icc (0:ℝ) 1, 0 < intervalDomainLift u x)
+    {x : ℝ} (hx : x ∈ Set.Ioo (0:ℝ) 1) :
+    deriv (fun y : ℝ => p.ν * intervalDomainLift u y ^ p.γ) x =
+      p.ν * (p.γ * intervalDomainLift u x ^ (p.γ - 1) *
+        deriv (intervalDomainLift u) x) := by
+  have hxIcc : x ∈ Set.Icc (0:ℝ) 1 := Set.Ioo_subset_Icc_self hx
+  have hmem : Set.Icc (0:ℝ) 1 ∈ nhds x := by
+    rw [mem_nhds_iff]
+    exact ⟨Set.Ioo (0:ℝ) 1, Set.Ioo_subset_Icc_self, isOpen_Ioo, hx⟩
+  have hUdiff : DifferentiableAt ℝ (intervalDomainLift u) x :=
+    (hC2.differentiableOn (by norm_num)).differentiableAt hmem
+  have hUhas : HasDerivAt (intervalDomainLift u)
+      (deriv (intervalDomainLift u) x) x := hUdiff.hasDerivAt
+  have hne : intervalDomainLift u x ≠ 0 := ne_of_gt (hpos x hxIcc)
+  have hpow : HasDerivAt (fun y : ℝ => intervalDomainLift u y ^ p.γ)
+      (p.γ * intervalDomainLift u x ^ (p.γ - 1) *
+        deriv (intervalDomainLift u) x) x :=
+    (Real.hasDerivAt_rpow_const (Or.inl hne)).comp x hUhas
+  exact (hpow.const_mul p.ν).deriv
+
+private theorem powerSource_deriv_endpoint_eq_zero
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hpos : ∀ x ∈ Set.Icc (0:ℝ) 1, 0 < intervalDomainLift u x)
+    {e : ℝ} (he : e = 0 ∨ e = 1) :
+    deriv (fun x : ℝ => p.ν * intervalDomainLift u x ^ p.γ) e = 0 := by
+  set g : ℝ → ℝ := fun x => p.ν * intervalDomainLift u x ^ p.γ with hg
+  have heIcc : e ∈ Set.Icc (0:ℝ) 1 := by
+    rcases he with rfl | rfl <;> constructor <;> norm_num
+  have hge_pos : 0 < g e := by
+    rw [hg]
+    exact mul_pos p.hν (Real.rpow_pos_of_pos (hpos e heIcc) _)
+  have hg_out : ∀ x : ℝ, x ∉ Set.Icc (0:ℝ) 1 → g x = 0 := by
+    intro x hx
+    have hlift : intervalDomainLift u x = 0 := by
+      simp only [intervalDomainLift, dif_neg hx]
+    rw [hg]; simp only [hlift, Real.zero_rpow p.hγ.ne', mul_zero]
+  refine deriv_zero_of_not_differentiableAt (fun hdiff => ?_)
+  have hcont : ContinuousAt g e := hdiff.continuousAt
+  rcases he with rfl | rfl
+  · have htends : Filter.Tendsto g (nhdsWithin (0:ℝ) (Set.Iio 0)) (nhds (g 0)) :=
+      hcont.tendsto.mono_left nhdsWithin_le_nhds
+    have hzeroT : Filter.Tendsto g (nhdsWithin (0:ℝ) (Set.Iio 0)) (nhds 0) := by
+      refine tendsto_const_nhds.congr' ?_
+      filter_upwards [self_mem_nhdsWithin] with x hx
+      exact (hg_out x (fun hxIcc => absurd hxIcc.1 (not_le.mpr hx))).symm
+    have := tendsto_nhds_unique htends hzeroT
+    rw [this] at hge_pos; exact lt_irrefl _ hge_pos
+  · have htends : Filter.Tendsto g (nhdsWithin (1:ℝ) (Set.Ioi 1)) (nhds (g 1)) :=
+      hcont.tendsto.mono_left nhdsWithin_le_nhds
+    have hzeroT : Filter.Tendsto g (nhdsWithin (1:ℝ) (Set.Ioi 1)) (nhds 0) := by
+      refine tendsto_const_nhds.congr' ?_
+      filter_upwards [self_mem_nhdsWithin] with x hx
+      exact (hg_out x (fun hxIcc => absurd hxIcc.2 (not_le.mpr hx))).symm
+    have := tendsto_nhds_unique htends hzeroT
+    rw [this] at hge_pos; exact lt_irrefl _ hge_pos
+
+private theorem powerSource_deriv_tendsto_endpoint_of_neumann
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hC2 : ContDiffOn ℝ 2 (intervalDomainLift u) (Set.Icc (0:ℝ) 1))
+    (hpos : ∀ x ∈ Set.Icc (0:ℝ) 1, 0 < intervalDomainLift u x)
+    (hN0 : Filter.Tendsto (deriv (intervalDomainLift u))
+      (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
+    (hN1 : Filter.Tendsto (deriv (intervalDomainLift u))
+      (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)) :
+    Filter.Tendsto (deriv (fun y : ℝ => p.ν * intervalDomainLift u y ^ p.γ))
+        (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
+      Filter.Tendsto (deriv (fun y : ℝ => p.ν * intervalDomainLift u y ^ p.γ))
+        (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) := by
+  have hUcont : ContinuousOn (intervalDomainLift u) (Set.Icc (0:ℝ) 1) :=
+    hC2.continuousOn
+  have hpowcont : ContinuousOn (fun y : ℝ => intervalDomainLift u y ^ (p.γ - 1))
+      (Set.Icc (0:ℝ) 1) :=
+    hUcont.rpow_const (fun y hy => Or.inl (ne_of_gt (hpos y hy)))
+  have hfilt0 : nhdsWithin (0:ℝ) (Set.Ioi 0) = nhdsWithin (0:ℝ) (Set.Ioo 0 1) := by
+    have : Set.Ioo (0:ℝ) 1 = Set.Ioi (0:ℝ) ∩ Set.Iio 1 := by
+      ext y; simp [Set.mem_Ioo, Set.mem_inter_iff, Set.mem_Ioi, Set.mem_Iio]
+    rw [this, nhdsWithin_inter_of_mem']
+    exact mem_nhdsWithin_of_mem_nhds (Iio_mem_nhds (by norm_num))
+  have hfilt1 : nhdsWithin (1:ℝ) (Set.Iio 1) = nhdsWithin (1:ℝ) (Set.Ioo 0 1) := by
+    have : Set.Ioo (0:ℝ) 1 = Set.Iio (1:ℝ) ∩ Set.Ioi 0 := by
+      ext y; simp [Set.mem_Ioo, Set.mem_inter_iff, Set.mem_Ioi, Set.mem_Iio]; tauto
+    rw [this, nhdsWithin_inter_of_mem']
+    exact mem_nhdsWithin_of_mem_nhds (Ioi_mem_nhds (by norm_num))
+  constructor
+  · rw [hfilt0]
+    have hEq : deriv (fun y : ℝ => p.ν * intervalDomainLift u y ^ p.γ)
+        =ᶠ[nhdsWithin (0:ℝ) (Set.Ioo 0 1)]
+        (fun y : ℝ => p.ν * (p.γ * intervalDomainLift u y ^ (p.γ - 1) *
+          deriv (intervalDomainLift u) y)) := by
+      filter_upwards [self_mem_nhdsWithin] with y hy
+      exact powerSource_deriv_interior_of_contDiffOn hC2 hpos hy
+    refine Filter.Tendsto.congr' hEq.symm ?_
+    have hp1 : Filter.Tendsto (fun y : ℝ => intervalDomainLift u y ^ (p.γ - 1))
+        (nhdsWithin (0:ℝ) (Set.Ioo 0 1))
+        (nhds (intervalDomainLift u 0 ^ (p.γ - 1))) :=
+      ((hpowcont 0 (by constructor <;> norm_num)).mono
+        Set.Ioo_subset_Icc_self).tendsto
+    have hp2 : Filter.Tendsto (deriv (intervalDomainLift u))
+        (nhdsWithin (0:ℝ) (Set.Ioo 0 1)) (nhds 0) :=
+      hN0.mono_left (nhdsWithin_mono _ (fun y hy => hy.1))
+    have hcomb := ((hp1.const_mul p.γ).mul hp2).const_mul p.ν
+    simpa using hcomb
+  · rw [hfilt1]
+    have hEq : deriv (fun y : ℝ => p.ν * intervalDomainLift u y ^ p.γ)
+        =ᶠ[nhdsWithin (1:ℝ) (Set.Ioo 0 1)]
+        (fun y : ℝ => p.ν * (p.γ * intervalDomainLift u y ^ (p.γ - 1) *
+          deriv (intervalDomainLift u) y)) := by
+      filter_upwards [self_mem_nhdsWithin] with y hy
+      exact powerSource_deriv_interior_of_contDiffOn hC2 hpos hy
+    refine Filter.Tendsto.congr' hEq.symm ?_
+    have hp1 : Filter.Tendsto (fun y : ℝ => intervalDomainLift u y ^ (p.γ - 1))
+        (nhdsWithin (1:ℝ) (Set.Ioo 0 1))
+        (nhds (intervalDomainLift u 1 ^ (p.γ - 1))) :=
+      ((hpowcont 1 (by constructor <;> norm_num)).mono
+        Set.Ioo_subset_Icc_self).tendsto
+    have hp2 : Filter.Tendsto (deriv (intervalDomainLift u))
+        (nhdsWithin (1:ℝ) (Set.Ioo 0 1)) (nhds 0) :=
+      hN1.mono_left (nhdsWithin_mono _ (fun y hy => hy.2))
+    have hcomb := ((hp1.const_mul p.γ).mul hp2).const_mul p.ν
+    simpa using hcomb
+
 /-! ## Main theorem -/
 
 /-- **Fourier coefficient bound from the derived parabolic equation.**
@@ -159,7 +283,12 @@ source coefficients (from `‖u₀^γ‖_∞`), and `B_R` bounds the reaction
 theorem sourceCoeff_bound_from_parabolic (p : CM2Params)
     {u₀ : intervalDomainPoint → ℝ}
     (D : GradientMildSolutionData p u₀)
-    {t : ℝ} (ht : 0 < t) (htT : t ≤ D.T) :
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ D.T)
+    (hC2 : ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1))
+    (hN0 : Filter.Tendsto (deriv (intervalDomainLift (D.u t)))
+      (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
+    (hN1 : Filter.Tendsto (deriv (intervalDomainLift (D.u t)))
+      (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)) :
     ∃ C₀ B_R : ℝ, 0 ≤ C₀ ∧ 0 ≤ B_R ∧
     ∀ k : ℕ, 1 ≤ k →
       |(intervalNeumannResolverSourceCoeff p (D.u t) k).re| ≤
@@ -168,14 +297,30 @@ theorem sourceCoeff_bound_from_parabolic (p : CM2Params)
   -- Construct the IntervalWeakH2Neumann certificate for the source.
   set g : ℝ → ℝ := fun x => p.ν * intervalDomainLift (D.u t) x ^ p.γ
   have hH2 : IntervalWeakH2Neumann g := by
-    -- g = ν·u^γ where u = intervalDomainLift(D.u t).
-    -- g'' = ν·[γ(γ-1)u^{γ-2}(u')² + γu^{γ-1}u''] (chain rule).
-    -- The first term is bounded (u > 0, u bounded, u' bounded).
-    -- The weak cosine IBP identity holds because:
-    --   First IBP: ∫cos·g' = [g·sin]₀¹ - ... boundary = 0 (sin=0)
-    --   Second IBP: ∫sin·g' = [-g'·cos]₀¹ + ... boundary = 0 (Neumann: g'(0)=g'(1)=0)
-    -- Together: ∫cos·g'' = -(kπ)²∫cos·g
-    sorry
+    have hpos : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (D.u t) x := by
+      intro x hx
+      simp only [intervalDomainLift, hx, dif_pos]
+      exact D.hpos t ht htT ⟨x, hx⟩
+    have hC2g :
+        ContDiffOn ℝ 2 (fun x : ℝ => p.ν * intervalDomainLift (D.u t) x ^ p.γ)
+          (Set.Icc (0 : ℝ) 1) := by
+      have hpow :
+          ContDiffOn ℝ 2 (fun x : ℝ => intervalDomainLift (D.u t) x ^ p.γ)
+            (Set.Icc (0 : ℝ) 1) :=
+        hC2.rpow_const_of_ne (fun x hx => ne_of_gt (hpos x hx))
+      exact hpow.const_smul p.ν |>.congr (fun x _ => by rw [smul_eq_mul])
+    obtain ⟨htend0, htend1⟩ :=
+      powerSource_deriv_tendsto_endpoint_of_neumann
+        (p := p) (u := D.u t) hC2 hpos hN0 hN1
+    have hbc0 :
+        deriv (fun x : ℝ => p.ν * intervalDomainLift (D.u t) x ^ p.γ) 0 = 0 :=
+      powerSource_deriv_endpoint_eq_zero (p := p) (u := D.u t) hpos (Or.inl rfl)
+    have hbc1 :
+        deriv (fun x : ℝ => p.ν * intervalDomainLift (D.u t) x ^ p.γ) 1 = 0 :=
+      powerSource_deriv_endpoint_eq_zero (p := p) (u := D.u t) hpos (Or.inr rfl)
+    simpa [g] using
+      powerSource_intervalWeakH2Neumann (ν := p.ν) (γ := p.γ)
+        (u := intervalDomainLift (D.u t)) hC2g htend0 htend1 hbc0 hbc1
   -- Apply the quadratic decay theorem.
   obtain ⟨C, hC, hdecay⟩ := intervalWeakH2Neumann_cosineCoeff_quadratic_decay hH2
   -- Set C₀ = 0, B_R = C (the decay is purely 1/k²).
@@ -203,9 +348,14 @@ private theorem exp_neg_le_inv {x : ℝ} (hx : 0 < x) :
 def sourceCoeffQuadraticDecay_of_mildSolution (p : CM2Params)
     {u₀ : intervalDomainPoint → ℝ}
     (D : GradientMildSolutionData p u₀)
-    {t : ℝ} (ht : 0 < t) (htT : t ≤ D.T) :
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ D.T)
+    (hC2 : ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1))
+    (hN0 : Filter.Tendsto (deriv (intervalDomainLift (D.u t)))
+      (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
+    (hN1 : Filter.Tendsto (deriv (intervalDomainLift (D.u t)))
+      (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)) :
     SourceCoeffQuadraticDecay p (D.u t) := by
-  have hex := sourceCoeff_bound_from_parabolic p D ht htT
+  have hex := sourceCoeff_bound_from_parabolic p D ht htT hC2 hN0 hN1
   set C₀ := hex.choose with hC₀_def
   set B_R := hex.choose_spec.choose with hBR_def
   have hC₀ := hex.choose_spec.choose_spec.1
