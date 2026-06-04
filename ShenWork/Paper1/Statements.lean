@@ -16214,6 +16214,65 @@ theorem Proposition_1_2_constant_one_positive_admissible_branch
     Proposition_1_2_constant_one_positive_long_time_branch p hχ_pos hχ_small
       halpha⟩
 
+/-- Proposition 1.2 from separated global existence and convergence analysis.
+The two analytical steps — PDE existence and long-time convergence to the
+constant — are made independent hypotheses. -/
+theorem Proposition_1_2.of_global_existence_and_convergence
+    (hexist : ∀ p : CMParams,
+      ∀ u₀ : ℝ → ℝ, NonnegativeInitialDatum u₀ → UniformlyPositive u₀ →
+        ∃ u v : ℝ → ℝ → ℝ, IsGlobalCauchySolutionFrom p u₀ u v)
+    (hconv_neg : ∀ p : CMParams, p.χ ≤ 0 →
+      ∀ u₀ : ℝ → ℝ, NonnegativeInitialDatum u₀ → UniformlyPositive u₀ →
+      ∀ u v : ℝ → ℝ → ℝ, IsGlobalCauchySolutionFrom p u₀ u v →
+        UniformConvergesToConstant u 1)
+    (hconv_pos : ∀ p : CMParams, 0 < p.χ → p.χ < (1 / 2 : ℝ) →
+      p.m + p.γ - 1 ≤ p.α →
+      ∀ u₀ : ℝ → ℝ, NonnegativeInitialDatum u₀ → UniformlyPositive u₀ →
+      ∀ u v : ℝ → ℝ → ℝ, IsGlobalCauchySolutionFrom p u₀ u v →
+        UniformConvergesToConstant u 1) :
+    Proposition_1_2 := by
+  constructor
+  · intro p hχ u₀ hu₀ hu₀_pos
+    rcases hexist p u₀ hu₀ hu₀_pos with ⟨u, v, hsol⟩
+    exact ⟨u, v, hsol, hconv_neg p hχ u₀ hu₀ hu₀_pos u v hsol⟩
+  · intro p hχ hχ_small hα u₀ hu₀ hu₀_pos
+    rcases hexist p u₀ hu₀ hu₀_pos with ⟨u, v, hsol⟩
+    exact ⟨u, v, hsol, hconv_pos p hχ hχ_small hα u₀ hu₀ hu₀_pos u v hsol⟩
+
+/-- Proposition 1.1 from separated global existence and a priori estimates.
+The three analytical steps — PDE existence, maximum-principle bound, and
+long-time limsup/boundedness — are made independent hypotheses. -/
+theorem Proposition_1_1.of_global_existence_and_bounds
+    (hexist : ∀ p : CMParams,
+      ∀ u₀ : ℝ → ℝ, NonnegativeInitialDatum u₀ →
+        ∃ u v : ℝ → ℝ → ℝ, IsGlobalCauchySolutionFrom p u₀ u v)
+    (hmax_neg : ∀ p : CMParams, p.χ ≤ 0 →
+      ∀ u₀ : ℝ → ℝ, NonnegativeInitialDatum u₀ →
+      ∀ u v : ℝ → ℝ → ℝ, IsGlobalCauchySolutionFrom p u₀ u v →
+        (∀ M, (∀ x, u₀ x ≤ M) → ∀ t x, 0 ≤ t → u t x ≤ max 1 M) ∧
+        UniformLimsupLe u 1)
+    (hbound_pos : ∀ p : CMParams,
+      (0 < p.χ ∧ p.α > p.m + p.γ - 1) ∨
+        (0 < p.χ ∧
+          p.χ < min
+            ((p.m + p.γ - 1) / (2 * p.m - 1))
+            ((p.m + p.γ - 1) / (p.γ - 1)) ∧
+          p.α = p.m + p.γ - 1) →
+      ∀ u₀ : ℝ → ℝ, NonnegativeInitialDatum u₀ →
+      ∀ u v : ℝ → ℝ → ℝ, IsGlobalCauchySolutionFrom p u₀ u v →
+        UniformEventuallyBounded u ∧
+        (0 < p.χ → p.χ < 1 → UniformLimsupLe u ((1 / (1 - p.χ)) ^ (1 / p.α)))) :
+    Proposition_1_1 := by
+  constructor
+  · intro p hχ u₀ hu₀
+    rcases hexist p u₀ hu₀ with ⟨u, v, hsol⟩
+    rcases hmax_neg p hχ u₀ hu₀ u v hsol with ⟨hmax, hlimsup⟩
+    exact ⟨u, v, hsol, hmax, hlimsup⟩
+  · intro p hcond u₀ hu₀
+    rcases hexist p u₀ hu₀ with ⟨u, v, hsol⟩
+    rcases hbound_pos p hcond u₀ hu₀ u v hsol with ⟨hbdd, hlimsup⟩
+    exact ⟨u, v, hsol, hbdd, hlimsup⟩
+
 /-- Paper1 Theorem 1.1: existence of traveling waves. -/
 def Theorem_1_1 : Prop :=
   (∀ p : CMParams, p.α ≤ p.m + p.γ - 1 → p.χ ≤ 0 →
