@@ -1883,6 +1883,91 @@ theorem intervalDomain_Theorem_2_5_for_concreteStabilityNorms_of_persistence_exp
   intervalDomain_Theorem_2_5_of_persistence_exp_frontiers
     p intervalDomainStabilityNorms C hglobal hExp
 
+/-- Concrete-norm stability bundle for Paper3 Theorems 2.3--2.5 from the
+explicit global-convergence and uniform exponential-upgrade frontiers. -/
+theorem intervalDomain_Theorem_2_3_to_2_5_for_concreteStabilityNorms_of_frontiers
+    (p : CM2Params)
+    (C : Paper3Constants intervalDomain p)
+    (hglobalNonminimal23 :
+      p.χ₀ ≤ 0 → 1 ≤ p.m →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          GloballyAsymptoticallyStableNonminimal intervalDomain p
+            eq.1 eq.2)
+    (hglobalMinimal23 :
+      p.χ₀ ≤ 0 → 1 ≤ p.m → p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          GloballyAsymptoticallyStableMinimal intervalDomain p
+            eq.1 eq.2)
+    (hExpNonminimal23 :
+      p.χ₀ ≤ 0 → 1 ≤ p.m →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              PositiveGlobalBoundedSolution intervalDomain p u v →
+              UniformConvergesInSup intervalDomain u eq.1 →
+                ExponentialC1ConvergenceWith intervalDomain
+                  intervalDomainStabilityNorms u v eq.1 eq.2 A rate)
+    (hExpMinimal23 :
+      p.χ₀ ≤ 0 → 1 ≤ p.m → p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → intervalDomain.Point → ℝ,
+              PositiveGlobalBoundedSolution intervalDomain p u v →
+              HasInitialMass intervalDomain u uStar →
+              UniformConvergesInSup intervalDomain u eq.1 →
+                ExponentialC1ConvergenceWith intervalDomain
+                  intervalDomainStabilityNorms u v eq.1 eq.2 A rate)
+    (hglobal24 :
+      0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          NonminimalGlobalStabilityCondition intervalDomain p C eq.1 →
+            GloballyAsymptoticallyStableNonminimal intervalDomain p
+              eq.1 eq.2)
+    (hExp24 :
+      0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+        ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+          let eq := positiveEquilibrium p ⟨ha, hb⟩
+          NonminimalGlobalStabilityCondition intervalDomain p C eq.1 →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                UniformConvergesInSup intervalDomain u eq.1 →
+                  ExponentialC1ConvergenceWith intervalDomain
+                    intervalDomainStabilityNorms u v eq.1 eq.2 A rate)
+    (hglobal25 :
+      p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          MinimalGlobalStabilityCondition intervalDomain p C uStar →
+            GloballyAsymptoticallyStableMinimal intervalDomain p
+              eq.1 eq.2)
+    (hExp25 :
+      p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          MinimalGlobalStabilityCondition intervalDomain p C uStar →
+            ∃ A > 0, ∃ rate > 0,
+              ∀ u v : ℝ → intervalDomain.Point → ℝ,
+                PositiveGlobalBoundedSolution intervalDomain p u v →
+                HasInitialMass intervalDomain u uStar →
+                UniformConvergesInSup intervalDomain u eq.1 →
+                  ExponentialC1ConvergenceWith intervalDomain
+                    intervalDomainStabilityNorms u v eq.1 eq.2 A rate) :
+    Theorem_2_3 intervalDomain p intervalDomainStabilityNorms ∧
+      Theorem_2_4 intervalDomain p intervalDomainStabilityNorms C ∧
+      Theorem_2_5 intervalDomain p intervalDomainStabilityNorms C :=
+  ⟨intervalDomain_Theorem_2_3_for_concreteStabilityNorms_of_persistence_exp_frontiers
+      p hglobalNonminimal23 hglobalMinimal23 hExpNonminimal23 hExpMinimal23,
+    intervalDomain_Theorem_2_4_for_concreteStabilityNorms_of_persistence_exp_frontiers
+      p C hglobal24 hExp24,
+    intervalDomain_Theorem_2_5_for_concreteStabilityNorms_of_persistence_exp_frontiers
+      p C hglobal25 hExp25⟩
+
 end
 
 end ShenWork.Paper3
