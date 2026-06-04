@@ -203,4 +203,98 @@ theorem mildSolution_neumann_of_positive_time
   ⟨mildSolution_neumann_deriv_zero_of_pos (hpos ⟨0, le_refl _, by norm_num⟩),
     mildSolution_neumann_deriv_one_of_pos (hpos ⟨1, by norm_num, le_refl _⟩)⟩
 
+/-! ## Conjunct-6 genuine Neumann limit — bridge theorems
+
+The genuine one-sided Neumann limit `deriv(lift(u t)) → 0` as `x → 0⁺`
+(conjunct 6) requires showing that on the interior `(0,1)`, the lift's
+derivative agrees with the derivative of a C¹ function that has `deriv = 0`
+at the boundary.
+
+For the semigroup term S(t)f, this is proved analytically above.  For the
+full mild map (including the divergence-form chemotaxis Duhamel), the
+genuine Neumann BC is a consequence of the PDE structure — the Neumann
+heat kernel's spatial derivative vanishes at the boundary, so every term
+`∂ₓS(τ)(g)(0) = 0`.  The following bridge reduces the conjunct-6 limit
+to a C¹-regularity hypothesis on the mild map. -/
+
+/-- **Conjunct-6 bridge, left endpoint.**  If `intervalDomainLift w` agrees
+with a `C¹` function `g` on `[0,1]` and `deriv g 0 = 0`, then
+`deriv(lift w) → 0` as `x → 0⁺`.  The `C¹` regularity of `g` supplies
+continuity of `deriv g`, and the `EqOn` transfers the derivative on the
+interior to the lift. -/
+theorem neumann_limit_left_of_eqOn_C1
+    {w : intervalDomainPoint → ℝ} {g : ℝ → ℝ}
+    (hg : ContDiff ℝ 1 g)
+    (hg0 : deriv g 0 = 0)
+    (hagree : Set.EqOn (intervalDomainLift w) g (Set.Icc (0 : ℝ) 1)) :
+    Filter.Tendsto (deriv (intervalDomainLift w))
+      (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) := by
+  have hdg_cont : Continuous (deriv g) := hg.continuous_deriv le_rfl
+  have htend : Filter.Tendsto (deriv g)
+      (nhds 0) (nhds 0) := by
+    have := hdg_cont.continuousAt (x := (0 : ℝ)) |>.tendsto
+    rwa [hg0] at this
+  have heq_filter :
+      deriv (intervalDomainLift w) =ᶠ[nhdsWithin (0 : ℝ) (Set.Ioi 0)] deriv g := by
+    filter_upwards [Ioo_mem_nhdsGT (by norm_num : (0:ℝ) < 1)] with y hy
+    exact Filter.EventuallyEq.deriv_eq
+      (Filter.eventually_of_mem (Ioo_mem_nhds hy.1 hy.2)
+        (fun z hz => hagree (Set.Ioo_subset_Icc_self hz)))
+  exact (htend.mono_left nhdsWithin_le_nhds).congr' heq_filter.symm
+
+/-- **Conjunct-6 bridge, right endpoint.**  Symmetric. -/
+theorem neumann_limit_right_of_eqOn_C1
+    {w : intervalDomainPoint → ℝ} {g : ℝ → ℝ}
+    (hg : ContDiff ℝ 1 g)
+    (hg1 : deriv g 1 = 0)
+    (hagree : Set.EqOn (intervalDomainLift w) g (Set.Icc (0 : ℝ) 1)) :
+    Filter.Tendsto (deriv (intervalDomainLift w))
+      (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) := by
+  have hdg_cont : Continuous (deriv g) := hg.continuous_deriv le_rfl
+  have htend : Filter.Tendsto (deriv g)
+      (nhds 1) (nhds 0) := by
+    have := hdg_cont.continuousAt (x := (1 : ℝ)) |>.tendsto
+    rwa [hg1] at this
+  have heq_filter :
+      deriv (intervalDomainLift w) =ᶠ[nhdsWithin (1 : ℝ) (Set.Iio 1)] deriv g := by
+    filter_upwards [Ioo_mem_nhdsLT (by norm_num : (0:ℝ) < 1)] with y hy
+    exact Filter.EventuallyEq.deriv_eq
+      (Filter.eventually_of_mem (Ioo_mem_nhds hy.1 hy.2)
+        (fun z hz => hagree (Set.Ioo_subset_Icc_self hz)))
+  exact (htend.mono_left nhdsWithin_le_nhds).congr' heq_filter.symm
+
+/-- **Semigroup Neumann limit, left.**  The full semigroup's spatial derivative
+tends to 0 as `x → 0⁺`.  Since `S(t)f` is globally `C²` (hence `C¹` with
+continuous derivative), this follows from `deriv (S(t)f) 0 = 0`. -/
+theorem intervalFullSemigroupOperator_neumann_limit_left
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf : Continuous f)
+    {M : ℝ} (hM : ∀ n, |cosineCoeffs f n| ≤ M) :
+    Filter.Tendsto
+      (deriv (fun x => intervalFullSemigroupOperator t f x))
+      (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) := by
+  have hC2 := intervalFullSemigroupOperator_contDiff_two_unconditional
+    t ht f hf hM (fun x => intervalNeumannFullKernel_cosineKernel_identity ht x)
+  have hC1 : ContDiff ℝ 1 (fun x => intervalFullSemigroupOperator t f x) :=
+    hC2.of_le (by norm_num)
+  have h0 := intervalFullSemigroupOperator_neumann_at_zero ht hf hM
+  have hcont := hC1.continuous_deriv le_rfl
+  have := hcont.continuousAt (x := (0 : ℝ)) |>.tendsto
+  rw [h0] at this; exact this.mono_left nhdsWithin_le_nhds
+
+/-- **Semigroup Neumann limit, right.** -/
+theorem intervalFullSemigroupOperator_neumann_limit_right
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf : Continuous f)
+    {M : ℝ} (hM : ∀ n, |cosineCoeffs f n| ≤ M) :
+    Filter.Tendsto
+      (deriv (fun x => intervalFullSemigroupOperator t f x))
+      (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) := by
+  have hC2 := intervalFullSemigroupOperator_contDiff_two_unconditional
+    t ht f hf hM (fun x => intervalNeumannFullKernel_cosineKernel_identity ht x)
+  have hC1 : ContDiff ℝ 1 (fun x => intervalFullSemigroupOperator t f x) :=
+    hC2.of_le (by norm_num)
+  have h1 := intervalFullSemigroupOperator_neumann_at_one ht hf hM
+  have hcont := hC1.continuous_deriv le_rfl
+  have := hcont.continuousAt (x := (1 : ℝ)) |>.tendsto
+  rw [h1] at this; exact this.mono_left nhdsWithin_le_nhds
+
 end ShenWork.IntervalSemigroupNeumann
