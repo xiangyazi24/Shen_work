@@ -58,6 +58,7 @@ import ShenWork.Paper3.UnitPointLogisticBridge
 import ShenWork.Paper3.IntervalDomainTheorem21Part1
 import ShenWork.Paper3.IntervalDomainSectorial
 import ShenWork.Paper3.IntervalDomainStabilityChain
+import ShenWork.Paper3.IntervalDomainStatementAssembly
 import ShenWork.Paper3.IntervalDomainEnergyDissipation
 import ShenWork.PDE.IntervalNeumannFullKernel
 import ShenWork.PDE.IntervalFullKernelInterchange
