@@ -65,6 +65,106 @@ theorem intervalDomain_paper3_coreStatementTargets_of_coreExistenceFact
   intervalDomain_paper3_coreStatementTargets_of_coreExistence
     p M0 uBar vLower hcont.out hcore.out
 
+/-- Concrete interval-domain compactness/regularization targets closed by the
+raw compactness, initial-continuity, minimal upper-bound, and Neumann-resolvent
+frontiers. -/
+def IntervalDomainPaper3CompactnessRegularizationTargets
+    (p : CM2Params) (K : CompactnessData intervalDomain)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p) : Prop :=
+  Lemma_3_1 intervalDomain p ∧
+    Lemma_3_2 intervalDomain p K ∧
+    Lemma_3_3 intervalDomain p N ∧
+    Lemma_3_4 intervalDomain p K ∧
+    Lemma_3_5 intervalDomain p C ∧
+    Lemma_7_1 intervalDomain K
+
+/-- Bundled raw frontiers for the interval-domain Paper3 compactness and
+regularization targets.  The upper-envelope field is tied to the concrete
+interval sup norm; the other fields remain the exposed analytic frontiers. -/
+structure IntervalDomainPaper3CompactnessRegularizationData
+    (p : CM2Params) (K : CompactnessData intervalDomain)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p) : Prop where
+  upperEq :
+    ∀ f : intervalDomain.Point → ℝ,
+      K.upperEnvelope f = intervalDomain.supNorm f
+  compact :
+    TimeTranslateCompactnessRaw intervalDomain p K.locallyConverges
+  initialContinuity :
+    ∀ uStar > 0, InitialContinuityConclusion intervalDomain p N uStar
+  minimalUpper :
+    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      0 < p.χ₀ → p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) →
+        ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution intervalDomain p u v →
+            EventuallyUpperBoundMinimalConclusion intervalDomain p C u
+  resolvent :
+    NeumannResolventGradientBoundExistsRaw intervalDomain
+      K.neumannResolventGradientBound
+
+/-- Bundled compactness/regularization statement-target assembly on the
+interval domain. -/
+theorem intervalDomain_paper3_compactnessRegularizationTargets_of_frontiers
+    (p : CM2Params) (K : CompactnessData intervalDomain)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hData :
+      IntervalDomainPaper3CompactnessRegularizationData p K N C) :
+    IntervalDomainPaper3CompactnessRegularizationTargets p K N C :=
+  intervalDomain_compactness_regularization_support_of_frontiers
+    p K N C hData.upperEq hData.compact hData.initialContinuity
+    hData.minimalUpper hData.resolvent
+
+/-- Bundled raw frontiers for the concrete interval constants and concrete
+interval stability norms. -/
+structure IntervalDomainPaper3ConcreteCompactnessRegularizationData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain) : Prop where
+  upperEq :
+    ∀ f : intervalDomain.Point → ℝ,
+      K.upperEnvelope f = intervalDomain.supNorm f
+  compact :
+    TimeTranslateCompactnessRaw intervalDomain p K.locallyConverges
+  initialContinuity : IntervalDomainInitialContinuityRaw p
+  minimalUpper :
+    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      0 < p.χ₀ → p.χ₀ < min (chiBeta p / 2) (Real.sqrt (chiBeta p)) →
+        ∀ u v : ℝ → intervalDomain.Point → ℝ,
+          PositiveGlobalBoundedSolution intervalDomain p u v →
+            EventuallyUpperBoundMinimalConclusion intervalDomain p
+              (intervalDomainPaper3Constants p M0 uBar vLower) u
+  resolvent :
+    NeumannResolventGradientBoundExistsRaw intervalDomain
+      K.neumannResolventGradientBound
+
+/-- Concrete-constants compactness/regularization statement-target assembly on
+the interval domain. -/
+theorem
+    intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_frontiers
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (hData :
+      IntervalDomainPaper3ConcreteCompactnessRegularizationData
+        p M0 uBar vLower K) :
+    IntervalDomainPaper3CompactnessRegularizationTargets p K
+      intervalDomainStabilityNorms
+      (intervalDomainPaper3Constants p M0 uBar vLower) := by
+  refine
+    intervalDomain_paper3_compactnessRegularizationTargets_of_frontiers
+      p K intervalDomainStabilityNorms
+      (intervalDomainPaper3Constants p M0 uBar vLower)
+      ?_
+  refine
+    { upperEq := hData.upperEq
+      compact := hData.compact
+      initialContinuity := ?_
+      minimalUpper := hData.minimalUpper
+      resolvent := hData.resolvent }
+  intro uStar huStar
+  simpa [IntervalDomainInitialContinuityRaw, InitialContinuityRaw,
+    InitialContinuityConclusion] using hData.initialContinuity uStar huStar
+
 end
 
 end ShenWork.Paper3
