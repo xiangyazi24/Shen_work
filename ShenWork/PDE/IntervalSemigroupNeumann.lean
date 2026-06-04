@@ -585,4 +585,84 @@ theorem unitIntervalCosineHeatSecondValue_continuousOn_slab
   (unitIntervalCosineHeatSecondValue_continuousOn_Ioi_prod hM).mono
     (Set.prod_mono Set.Ioo_subset_Ioi_self (fun _ _ => Set.mem_univ _))
 
+/-! ## Mild-map regularity composition
+
+The mild map `Φ(t,x) = S(t)(lift u₀)(x) + chem(t,x) + logistic(t,x)` has
+regularity properties that compose additively from the three terms.  The
+semigroup term's regularity is proved above; the Duhamel terms are taken as
+explicit hypotheses (dischargeable from Leibniz + source regularity). -/
+
+open ShenWork.IntervalDomain (intervalDomainLift)
+
+/-- **Conjunct-9 composition for the mild map.**  If the semigroup term and
+both Duhamel corrections are each jointly continuous on the slab, the full
+mild map is jointly continuous.  For the semigroup term, use
+`unitIntervalCosineHeatValue_continuousOn_slab`; for the Duhamel terms,
+the hypothesis is a genuine regularity input. -/
+theorem mildMap_conjunct9_of_terms
+    {T : ℝ} {S_term chem_term log_term : ℝ → ℝ → ℝ}
+    (hS : ContinuousOn (Function.uncurry S_term)
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1))
+    (hchem : ContinuousOn (Function.uncurry chem_term)
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1))
+    (hlog : ContinuousOn (Function.uncurry log_term)
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1)) :
+    ContinuousOn (Function.uncurry (fun t x => S_term t x + chem_term t x + log_term t x))
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) := by
+  have : Function.uncurry (fun t x => S_term t x + chem_term t x + log_term t x) =
+      fun p : ℝ × ℝ => Function.uncurry S_term p + Function.uncurry chem_term p +
+        Function.uncurry log_term p := by ext ⟨t, x⟩; rfl
+  rw [this]; exact (hS.add hchem).add hlog
+
+/-- **Conjunct-3 composition for the mild map.**  If each term is spatially
+`C²` on `(0,1)` at each time, the sum is `C²` on `(0,1)`. -/
+theorem mildMap_conjunct3_of_terms
+    {t : ℝ} {S_term chem_term log_term : ℝ → ℝ}
+    (hS : ContDiffOn ℝ 2 S_term (Set.Ioo (0 : ℝ) 1))
+    (hchem : ContDiffOn ℝ 2 chem_term (Set.Ioo (0 : ℝ) 1))
+    (hlog : ContDiffOn ℝ 2 log_term (Set.Ioo (0 : ℝ) 1)) :
+    ContDiffOn ℝ 2 (fun x => S_term x + chem_term x + log_term x)
+      (Set.Ioo (0 : ℝ) 1) :=
+  (hS.add hchem).add hlog
+
+/-- **Conjunct-7 deriv=0 composition.**  If each term has `deriv = 0` at an
+endpoint and all are differentiable there, the sum has `deriv = 0`. -/
+theorem mildMap_neumann_at_of_terms
+    {S_term chem_term log_term : ℝ → ℝ} {x₀ : ℝ}
+    (hS : deriv S_term x₀ = 0)
+    (hchem : deriv chem_term x₀ = 0)
+    (hlog : deriv log_term x₀ = 0)
+    (hdiff_S : DifferentiableAt ℝ S_term x₀)
+    (hdiff_chem : DifferentiableAt ℝ chem_term x₀)
+    (hdiff_log : DifferentiableAt ℝ log_term x₀) :
+    deriv (fun x => S_term x + chem_term x + log_term x) x₀ = 0 := by
+  have heq : (fun x => S_term x + chem_term x + log_term x) =ᶠ[nhds x₀]
+      (fun x => S_term x + chem_term x + log_term x) :=
+    Filter.EventuallyEq.refl _ _
+  have hd : HasDerivAt (fun x => S_term x + chem_term x + log_term x)
+      (deriv S_term x₀ + deriv chem_term x₀ + deriv log_term x₀) x₀ := by
+    exact (hdiff_S.hasDerivAt.add hdiff_chem.hasDerivAt).add hdiff_log.hasDerivAt
+  rw [hd.deriv, hS, hchem, hlog]; ring
+
+/-- **Conjunct-6 Neumann limit composition.**  If each term's derivative
+tends to 0 at an endpoint (from one side), the sum's derivative does too. -/
+theorem mildMap_neumann_limit_of_terms
+    {S_term chem_term log_term : ℝ → ℝ} {x₀ : ℝ} {nhd : Filter ℝ}
+    (hS : Filter.Tendsto (deriv S_term) nhd (nhds 0))
+    (hchem : Filter.Tendsto (deriv chem_term) nhd (nhds 0))
+    (hlog : Filter.Tendsto (deriv log_term) nhd (nhds 0))
+    (hdiff_S : ∀ᶠ x in nhd, DifferentiableAt ℝ S_term x)
+    (hdiff_chem : ∀ᶠ x in nhd, DifferentiableAt ℝ chem_term x)
+    (hdiff_log : ∀ᶠ x in nhd, DifferentiableAt ℝ log_term x) :
+    Filter.Tendsto (deriv (fun x => S_term x + chem_term x + log_term x))
+      nhd (nhds 0) := by
+  have heq : deriv (fun x => S_term x + chem_term x + log_term x)
+      =ᶠ[nhd] (fun x => deriv S_term x + deriv chem_term x + deriv log_term x) := by
+    filter_upwards [hdiff_S, hdiff_chem, hdiff_log] with x hS' hC' hL'
+    exact ((hS'.add hC').hasDerivAt.add hL'.hasDerivAt).deriv.trans
+      (by rw [(hS'.hasDerivAt.add hC'.hasDerivAt).deriv])
+  have h0 : (0 : ℝ) = 0 + 0 + 0 := by ring
+  rw [h0]
+  exact ((hS.add hchem).add hlog).congr' heq.symm
+
 end ShenWork.IntervalSemigroupNeumann
