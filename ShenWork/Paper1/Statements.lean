@@ -17520,6 +17520,54 @@ theorem Theorem_1_3.of_Theorem_1_2_cauchy_unique_resolvent_remark43
     Theorem_1_3_profile_eq_of_uniform_movingFrame_and_resolvent
       hconv (hresolvent p c U₁ V₁ hTW₁) (hresolvent p c U₂ V₂ hTW₂)
 
+/-- Combined bridge: per-instance stability implies both Theorem 1.2 AND
+Theorem 1.3, given wave regularity (continuity, resolvent, Cauchy uniqueness,
+Remark 4.3 tails).  This captures the paper's full logical architecture:
+the stability analysis is the single hard analytical step; once established,
+both the stability theorem and the uniqueness theorem follow. -/
+theorem Theorem_1_2_and_1_3.of_stability_cauchy_unique_resolvent_remark43
+    (cStarStarFn : CMParams → (ℝ → ℝ))
+    (hcStarStar : ∀ p : CMParams, StableWaveParameterRegime p →
+      StabilitySpeedThresholdFamilyAsymptotic p (cStarStarFn p) ∧
+        stabilitySpeedBaseline p < cStarStarFn p p.χ)
+    (hstability : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, cStarStarFn p p.χ < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧ HasWaveRightTailAsymptotic c κ₁ U) →
+        ∀ η : ℝ, kappa c < η → η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) →
+          ∀ u₀ : ℝ → ℝ,
+            NonnegativeInitialDatum u₀ →
+            StrictlyPositiveAtLeft u₀ →
+            WeightedL2InitialCloseness η u₀ U →
+            ∃ u v : ℝ → ℝ → ℝ,
+              IsGlobalCauchySolutionFrom p u₀ u v ∧
+              WeightedL2MovingFrameConvergence η c u U ∧
+              UniformMovingFrameConvergence c u U)
+    (hcont : ∀ p : CMParams, ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V → Continuous U)
+    (hcauchy : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        IsCUnifBdd U →
+        ∀ u v : ℝ → ℝ → ℝ,
+          IsGlobalCauchySolutionFrom p U u v →
+            ∀ t x, u t x = U (x - c * t))
+    (hresolvent : ∀ p : CMParams, ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V → V = frozenElliptic p U)
+    (htail_asymp : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        HasRemark43TailAsymptotic p c U) :
+    Theorem_1_2 ∧ Theorem_1_3 := by
+  have h12 : Theorem_1_2 :=
+    Theorem_1_2.of_assumed_stability_branch cStarStarFn hcStarStar hstability
+  exact ⟨h12,
+    Theorem_1_3.of_Theorem_1_2_cauchy_unique_resolvent_remark43
+      h12 hcont hcauchy hresolvent htail_asymp⟩
+
 end
 
 end ShenWork.Paper1
