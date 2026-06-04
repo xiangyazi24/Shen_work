@@ -4678,6 +4678,117 @@ theorem Proposition_2_5.of_assumed_bound_branch
     Proposition_2_5 D p :=
   hbound
 
+/-- Combined bridge for the two abstract bootstrap targets.
+
+The raw all-domain forms of both lemmas have explicit counterexamples above;
+this theorem only packages the exact branch hypotheses that are definitionally
+equal to the statement targets. -/
+theorem lemma_2_6_and_2_7_of_assumed_bound_branches
+    {D : BoundedDomainData}
+    (h26 : ∀ N > 0, ∀ u : ℝ → D.Point → ℝ, ∀ T rho p0,
+      AbstractLpBootstrapHypothesis D u N T rho p0 →
+        LpBootstrapEnergyInequality D u T rho p0 →
+          ∀ pExp > 1, LpPowerBoundedBefore D pExp T u)
+    (h27 : ∀ u : ℝ → D.Point → ℝ, ∀ T pExp C1 C2 C3 C4 eps alpha,
+      0 < T → 1 < pExp →
+        0 ≤ C1 → 0 ≤ C2 → 0 ≤ C3 → 0 < C4 →
+          0 < eps → eps ≤ alpha →
+            (∀ t, 0 < t → t < T →
+              deriv (fun τ => D.integral (fun x => (u τ x) ^ pExp)) t +
+                  C3 * D.integral (fun x => (u t x) ^ (pExp + alpha - eps)) ≤
+                C1 + C2 * D.integral (fun x => (u t x) ^ pExp) -
+                  C4 * D.integral (fun x => (u t x) ^ (pExp + alpha))) →
+              LpPowerBoundedBefore D pExp T u) :
+    Lemma_2_6 D ∧ Lemma_2_7 D := by
+  exact ⟨Lemma_2_6.of_assumed_bound_branch h26,
+    Lemma_2_7.of_assumed_bound_branch h27⟩
+
+/-- Combined bridge for Paper 2 Propositions 2.2-2.5.
+
+Each component is already present as a statement-layer branch wrapper; this
+packages the four analytic estimates into one target for downstream theorem
+assembly. -/
+theorem propositions_2_2_to_2_5_of_assumed_branches
+    {D : BoundedDomainData} {p : CM2Params}
+    (h22 : ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p T u v →
+        ∀ pExp > 1, ∃ Mstar > 0,
+          WeightedGradientEstimate D pExp p.β p.γ Mstar T u v)
+    (h23 : ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p T u v →
+        ∀ pExp, max 1 p.β < pExp →
+          ∀ eps > 0, ∃ Ceps > 0,
+            WeightedSignalEstimate D pExp p.β p.γ eps Ceps T u v)
+    (h24 : ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+      ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+        IsPaper2ClassicalSolution D p T u v →
+        InitialTrace D u₀ u →
+          (p.a = 0 → p.b = 0 → MassConservedBefore D T u₀ u) ∧
+            (0 < p.a → 0 < p.b → LogisticMassUpperBoundBefore D p T u₀ u))
+    (h25 : ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → D.Point → ℝ,
+        IsPaper2ClassicalSolution D p Tmax u v →
+        InitialTrace D u₀ u →
+          ∀ pExp,
+            max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+              LpPowerBoundedBefore D pExp Tmax u →
+                IsPaper2BoundedBefore D Tmax u) :
+    Proposition_2_2 D p ∧ Proposition_2_3 D p ∧
+      Proposition_2_4 D p ∧ Proposition_2_5 D p := by
+  exact ⟨Proposition_2_2.of_assumed_estimate_branch h22,
+    Proposition_2_3.of_assumed_estimate_branch h23,
+    Proposition_2_4.of_assumed_mass_branch h24,
+    Proposition_2_5.of_assumed_bound_branch h25⟩
+
+/-- Combined bridge for the bootstrap and estimate targets most often used
+upstream of the Paper 2 theorem-level assemblies. -/
+theorem lemma_2_6_2_7_and_propositions_2_2_to_2_5_of_assumed_branches
+    {D : BoundedDomainData} {p : CM2Params}
+    (h26 : ∀ N > 0, ∀ u : ℝ → D.Point → ℝ, ∀ T rho p0,
+      AbstractLpBootstrapHypothesis D u N T rho p0 →
+        LpBootstrapEnergyInequality D u T rho p0 →
+          ∀ pExp > 1, LpPowerBoundedBefore D pExp T u)
+    (h27 : ∀ u : ℝ → D.Point → ℝ, ∀ T pExp C1 C2 C3 C4 eps alpha,
+      0 < T → 1 < pExp →
+        0 ≤ C1 → 0 ≤ C2 → 0 ≤ C3 → 0 < C4 →
+          0 < eps → eps ≤ alpha →
+            (∀ t, 0 < t → t < T →
+              deriv (fun τ => D.integral (fun x => (u τ x) ^ pExp)) t +
+                  C3 * D.integral (fun x => (u t x) ^ (pExp + alpha - eps)) ≤
+                C1 + C2 * D.integral (fun x => (u t x) ^ pExp) -
+                  C4 * D.integral (fun x => (u t x) ^ (pExp + alpha))) →
+              LpPowerBoundedBefore D pExp T u)
+    (h22 : ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p T u v →
+        ∀ pExp > 1, ∃ Mstar > 0,
+          WeightedGradientEstimate D pExp p.β p.γ Mstar T u v)
+    (h23 : ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p T u v →
+        ∀ pExp, max 1 p.β < pExp →
+          ∀ eps > 0, ∃ Ceps > 0,
+            WeightedSignalEstimate D pExp p.β p.γ eps Ceps T u v)
+    (h24 : ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+      ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+        IsPaper2ClassicalSolution D p T u v →
+        InitialTrace D u₀ u →
+          (p.a = 0 → p.b = 0 → MassConservedBefore D T u₀ u) ∧
+            (0 < p.a → 0 < p.b → LogisticMassUpperBoundBefore D p T u₀ u))
+    (h25 : ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → D.Point → ℝ,
+        IsPaper2ClassicalSolution D p Tmax u v →
+        InitialTrace D u₀ u →
+          ∀ pExp,
+            max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+              LpPowerBoundedBefore D pExp Tmax u →
+                IsPaper2BoundedBefore D Tmax u) :
+    Lemma_2_6 D ∧ Lemma_2_7 D ∧
+      Proposition_2_2 D p ∧ Proposition_2_3 D p ∧
+        Proposition_2_4 D p ∧ Proposition_2_5 D p := by
+  have hlemmas := lemma_2_6_and_2_7_of_assumed_bound_branches h26 h27
+  have hprops := propositions_2_2_to_2_5_of_assumed_branches h22 h23 h24 h25
+  exact ⟨hlemmas.1, hlemmas.2, hprops.1, hprops.2.1,
+    hprops.2.2.1, hprops.2.2.2⟩
+
 /-- Generic existence-hypothesis closure for Paper 2 Theorem 1.1.
 Given that the relevant Cauchy solution exists with the required `L∞` bound
 and the global criterion `1 ≤ p.m` in both branches, `Theorem_1_1` follows. -/
@@ -5279,6 +5390,17 @@ theorem unitPointDomain.Proposition_2_4 (p : CM2Params) :
     calc u t () = M t := rfl
       _ ≤ u₀ () := hM_t_le_u₀
       _ ≤ max (u₀ ()) K := le_max_left _ _
+
+/-- Unit-point package for Paper 2 Propositions 2.2-2.5. -/
+theorem unitPointDomain.Propositions_2_2_to_2_5 (p : CM2Params) :
+    _root_.ShenWork.Paper2.Proposition_2_2 unitPointDomain p ∧
+      _root_.ShenWork.Paper2.Proposition_2_3 unitPointDomain p ∧
+        _root_.ShenWork.Paper2.Proposition_2_4 unitPointDomain p ∧
+          _root_.ShenWork.Paper2.Proposition_2_5 unitPointDomain p := by
+  exact ⟨unitPointDomain.Proposition_2_2 p,
+    unitPointDomain.Proposition_2_3 p,
+    unitPointDomain.Proposition_2_4 p,
+    unitPointDomain.Proposition_2_5 p⟩
 
 /-- Paper 2 Theorem 1.1 holds for the unit-point domain in the *minimal*
 parameter regime `p.a = 0 ∧ p.b = 0`.  The nonminimal branch
