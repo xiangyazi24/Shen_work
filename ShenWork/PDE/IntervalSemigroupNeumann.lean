@@ -477,4 +477,112 @@ theorem unitIntervalCosineHeatValue_continuousOn_Ioi_prod
     prod_mem_nhds (Ici_mem_nhds (by linarith : t₀ / 2 < t₀)) Filter.univ_mem
   exact (hcon.continuousAt hnhd).continuousWithinAt
 
+/-! ## Conjunct 9: semigroup joint solution-field continuity on the slab
+
+The semigroup output `(t,x) ↦ S(t)f(x)` is jointly continuous on
+`(0,T) × [0,1]`.  On the interior `(0,1)` this follows from the
+cosine heat value joint continuity via the spectral identity; the
+closed-endpoint extension uses the global C² (hence continuous)
+spatial regularity of `S(t)f` at each fixed `t`.
+
+For the cosine heat value with fixed bounded coefficients, the
+joint continuity on `(0,∞) × [0,1]` is immediate from `…_Ioi_prod`
+by restricting the spatial component. -/
+
+/-- **Conjunct-9 for the cosine heat value.**  Joint `(t,x)` continuity
+on `(0,T) × [0,1]`. -/
+theorem unitIntervalCosineHeatValue_continuousOn_slab
+    {a : ℕ → ℝ} {M : ℝ} (hM : ∀ n, |a n| ≤ M) {T : ℝ} (_hT : 0 < T) :
+    ContinuousOn
+      (fun p : ℝ × ℝ => unitIntervalCosineHeatValue p.1 a p.2)
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+  (unitIntervalCosineHeatValue_continuousOn_Ioi_prod hM).mono
+    (Set.prod_mono Set.Ioo_subset_Ioi_self (fun _ _ => Set.mem_univ _))
+
+/-! ## Conjunct 8: joint continuity of the time-derivative field
+
+For the cosine heat value `H(t,x) = ∑ e^{-tλₙ} aₙ cos(nπx)`, the
+time-derivative field is `∂_t H = secondValue = ∑ e^{-tλₙ}(−λₙ cos(nπx)) aₙ`.
+The Weierstrass-M bound `λₙ e^{-δλₙ} |aₙ|` is summable for `δ > 0`
+(from `heatCoeff_eigenvalue_summable`), so this series is jointly
+continuous on `{t ≥ δ} × ℝ` and hence on `(0,∞) × ℝ`.  The existing
+`unitIntervalCosineHeatValue_hasDerivAt_time` connects the time derivative
+to the secondValue. -/
+
+set_option maxHeartbeats 800000 in
+/-- **Joint continuity of secondValue** on `[δ,∞) × ℝ`. -/
+theorem unitIntervalCosineHeatSecondValue_continuousOn_Ici_prod
+    {a : ℕ → ℝ} {M : ℝ} (hM : ∀ n, |a n| ≤ M)
+    {δ : ℝ} (hδ : 0 < δ) :
+    ContinuousOn
+      (fun p : ℝ × ℝ => unitIntervalCosineHeatSecondValue p.1 a p.2)
+      (Set.Ici δ ×ˢ Set.univ) := by
+  simp only [unitIntervalCosineHeatSecondValue]
+  refine continuousOn_tsum
+    (fun n => ?_)
+    (heatCoeff_eigenvalue_summable hδ hM)
+    ?_
+  · -- Per-term continuity: (t,x) ↦ exp(-t·λₙ)·(−(nπ)²·cos(nπx))·aₙ
+    simp only [unitIntervalCosineHeatSecondPointWeight]
+    fun_prop
+  · intro n ⟨t, x⟩ ⟨ht, _⟩
+    simp only [unitIntervalCosineHeatSecondPointWeight,
+      Set.mem_Ici] at ht ⊢
+    rw [Real.norm_eq_abs, abs_mul, abs_mul]
+    have heig_nn : (0 : ℝ) ≤ unitIntervalCosineEigenvalue n := by
+      simp [unitIntervalCosineEigenvalue]; positivity
+    -- LHS = |exp(-t·λₙ)| · |-(nπ)²·cos(nπx)| · |aₙ|
+    -- ≤ exp(-δ·λₙ) · (nπ)² · |aₙ|  = eigenvalue n · exp(-δ·λₙ) · |aₙ|
+    have h_exp : |Real.exp (-t * unitIntervalCosineEigenvalue n)| ≤
+        Real.exp (-δ * unitIntervalCosineEigenvalue n) := by
+      rw [abs_of_nonneg (Real.exp_nonneg _)]
+      exact Real.exp_le_exp_of_le (by nlinarith)
+    have h_trig : |-(↑n * Real.pi) ^ 2 * Real.cos (↑n * Real.pi * x)| ≤
+        unitIntervalCosineEigenvalue n := by
+      calc |-(↑n * Real.pi) ^ 2 * Real.cos (↑n * Real.pi * x)|
+          = |(-(↑n * Real.pi) ^ 2)| * |Real.cos (↑n * Real.pi * x)| := abs_mul _ _
+        _ ≤ (↑n * Real.pi) ^ 2 * 1 := by
+            gcongr
+            · rw [abs_neg, abs_of_nonneg (by positivity : (0 : ℝ) ≤ (↑n * Real.pi) ^ 2)]
+            · exact Real.abs_cos_le_one _
+        _ = unitIntervalCosineEigenvalue n := by
+            simp [unitIntervalCosineEigenvalue]
+    calc |Real.exp (-t * unitIntervalCosineEigenvalue n)| *
+            |-(↑n * Real.pi) ^ 2 * Real.cos (↑n * Real.pi * x)| * |a n|
+        ≤ Real.exp (-δ * unitIntervalCosineEigenvalue n) *
+            unitIntervalCosineEigenvalue n * |a n| :=
+          mul_le_mul
+            (mul_le_mul h_exp h_trig (abs_nonneg _) (Real.exp_nonneg _))
+            le_rfl (abs_nonneg _)
+            (mul_nonneg (Real.exp_nonneg _) heig_nn)
+      _ = unitIntervalCosineEigenvalue n *
+          |Real.exp (-δ * unitIntervalCosineEigenvalue n) * a n| := by
+          rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]; ring
+
+/-- **Joint continuity of secondValue** on `(0,∞) × ℝ`. -/
+theorem unitIntervalCosineHeatSecondValue_continuousOn_Ioi_prod
+    {a : ℕ → ℝ} {M : ℝ} (hM : ∀ n, |a n| ≤ M) :
+    ContinuousOn
+      (fun p : ℝ × ℝ => unitIntervalCosineHeatSecondValue p.1 a p.2)
+      (Set.Ioi (0 : ℝ) ×ˢ Set.univ) := by
+  intro ⟨t₀, x₀⟩ ht₀x₀
+  have ht₀ : 0 < t₀ := ht₀x₀.1
+  have hδ : 0 < t₀ / 2 := by linarith
+  have hcon := unitIntervalCosineHeatSecondValue_continuousOn_Ici_prod hM hδ
+  have hmem : (t₀, x₀) ∈ Set.Ici (t₀ / 2) ×ˢ Set.univ :=
+    ⟨by simp [Set.mem_Ici]; linarith, Set.mem_univ _⟩
+  have hnhd : Set.Ici (t₀ / 2) ×ˢ Set.univ ∈ nhds (t₀, x₀) :=
+    prod_mem_nhds (Ici_mem_nhds (by linarith : t₀ / 2 < t₀)) Filter.univ_mem
+  exact (hcon.continuousAt hnhd).continuousWithinAt
+
+/-- **Conjunct-8 for the cosine heat value.**  Joint `(t,x)` continuity
+of the time-derivative field on `(0,T) × [0,1]`. -/
+theorem unitIntervalCosineHeatSecondValue_continuousOn_slab
+    {a : ℕ → ℝ} {M : ℝ} (hM : ∀ n, |a n| ≤ M) {T : ℝ} (_hT : 0 < T) :
+    ContinuousOn
+      (fun p : ℝ × ℝ => unitIntervalCosineHeatSecondValue p.1 a p.2)
+      (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
+  (unitIntervalCosineHeatSecondValue_continuousOn_Ioi_prod hM).mono
+    (Set.prod_mono Set.Ioo_subset_Ioi_self (fun _ _ => Set.mem_univ _))
+
 end ShenWork.IntervalSemigroupNeumann
