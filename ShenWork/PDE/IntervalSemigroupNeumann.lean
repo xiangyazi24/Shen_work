@@ -2,6 +2,7 @@ import ShenWork.PDE.IntervalFullKernelInterchange
 import ShenWork.PDE.IntervalDuhamelClosedC2
 import ShenWork.PDE.IntervalResolverPositivity
 import ShenWork.PDE.IntervalCosineSliceRegularity
+import ShenWork.PDE.IntervalMildSourceDecayHelper
 
 /-!
 # Neumann boundary conditions for the interval semigroup
@@ -25,6 +26,7 @@ open ShenWork.IntervalDuhamelClosedC2
 open ShenWork.IntervalResolverPositivity
 open ShenWork.IntervalDomainRegularityBootstrap
 open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.PDE.IntervalMildSourceDecayHelper
 
 theorem heatCoeff_eigenvalue_summable {t : ℝ} (ht : 0 < t)
     {a : ℕ → ℝ} {M : ℝ} (hM : ∀ n, |a n| ≤ M) :
@@ -795,5 +797,74 @@ propagate by induction through the Picard iteration.  Each step requires:
 The `duhamelSourceTimeC1_of_heatDamped` construction handles the semigroup
 (homogeneous) part of each iterate.  The nonlinear part requires the
 chain-rule + Leibniz infrastructure outlined above. -/
+
+/-- **1/k² coefficient decay → ℓ¹ summability.**  If cosine coefficients
+satisfy `|aₙ| ≤ C/(nπ)²` for `n ≥ 1`, then `∑ |aₙ| < ∞`. -/
+theorem summable_abs_of_quadratic_decay
+    {a : ℕ → ℝ} {C : ℝ} (hC : 0 ≤ C)
+    (hdecay : ∀ k : ℕ, 1 ≤ k → |a k| ≤ C / ((k : ℝ) * Real.pi) ^ 2) :
+    Summable (fun n => |a n|) := by
+  have hpi2 : (0 : ℝ) < Real.pi ^ 2 := by positivity
+  set B := C / Real.pi ^ 2 with hB_def
+  have hB_nn : 0 ≤ B := div_nonneg hC hpi2.le
+  refine Summable.of_norm_bounded_eventually_nat
+    (reciprocalSquareTerm_summable.mul_left B) ?_
+  filter_upwards [Filter.eventually_ge_atTop 1] with n hn
+  simp only [Real.norm_eq_abs, abs_abs]
+  have hdec := hdecay n hn
+  have hn_pos : (0 : ℝ) < (n : ℝ) := Nat.cast_pos.mpr (by omega)
+  calc |a n| ≤ C / ((n : ℝ) * Real.pi) ^ 2 := hdec
+    _ = B / (n : ℝ) ^ 2 := by
+        rw [hB_def, mul_pow]
+        field_simp [ne_of_gt hn_pos, Real.pi_ne_zero]
+    _ = B * reciprocalSquareTerm n := by
+        simp [reciprocalSquareTerm, div_eq_mul_inv]
+
+/-- **H²-Neumann source → DuhamelSourceTimeC1** for the semigroup-smoothed
+first Picard iterate.  If `f` has `IntervalWeakH2Neumann` at each time
+`s ≥ 0`, with uniform H² bound and uniformly bounded time derivative of
+its cosine coefficients, then the cosine coefficients of `f` satisfy
+`DuhamelSourceTimeC1`. -/
+noncomputable def duhamelSourceTimeC1_of_H2Neumann_timeC1
+    {f : ℝ → ℝ → ℝ}
+    (_hH2 : ∀ s, 0 ≤ s → IntervalWeakH2Neumann (f s))
+    {C : ℝ} (hC : 0 ≤ C)
+    (hdecay : ∀ s, 0 ≤ s → ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs (f s) k| ≤ C / ((k : ℝ) * Real.pi) ^ 2)
+    {adot : ℝ → ℕ → ℝ}
+    (hderiv : ∀ s n, HasDerivAt (fun r => cosineCoeffs (f r) n) (adot s n) s)
+    (hadotcont : ∀ n, Continuous (fun s => adot s n))
+    {Mdot : ℝ}
+    (hMdot : ∀ s, 0 ≤ s → ∀ n, |adot s n| ≤ Mdot)
+    (ha0_bound : ∀ s, 0 ≤ s → |cosineCoeffs (f s) 0| ≤ C) :
+    DuhamelSourceTimeC1 (fun s n => cosineCoeffs (f s) n) where
+  adot := adot
+  hderiv := hderiv
+  hadotcont := hadotcont
+  envelope := fun n => if n = 0 then C else C / ((n : ℝ) * Real.pi) ^ 2
+  henv_summable := by
+    refine Summable.of_norm_bounded_eventually_nat
+      (reciprocalSquareTerm_summable.mul_left (C / Real.pi ^ 2)) ?_
+    filter_upwards [Filter.eventually_ge_atTop 1] with n hn
+    simp only [Real.norm_eq_abs]
+    have hn0 : n ≠ 0 := by omega
+    rw [if_neg hn0]
+    have hpi2 : (0 : ℝ) < Real.pi ^ 2 := by positivity
+    have hn_pos : (0 : ℝ) < (n : ℝ) := Nat.cast_pos.mpr (by omega)
+    calc |C / ((n : ℝ) * Real.pi) ^ 2|
+        = C / ((n : ℝ) * Real.pi) ^ 2 := by
+          rw [abs_of_nonneg (div_nonneg hC (by positivity))]
+      _ = C / Real.pi ^ 2 * reciprocalSquareTerm n := by
+          rw [reciprocalSquareTerm, mul_pow]
+          field_simp [ne_of_gt hn_pos, Real.pi_ne_zero]
+      _ ≤ C / Real.pi ^ 2 * reciprocalSquareTerm n := le_rfl
+  henv_bound := by
+    intro s hs n
+    rcases Nat.eq_zero_or_pos n with rfl | hn
+    · simp; exact ha0_bound s hs
+    · simp [show n ≠ 0 from Nat.pos_iff_ne_zero.mp hn]
+      exact hdecay s hs n hn
+  derivBound := Mdot
+  hderivBound := hMdot
 
 end ShenWork.IntervalSemigroupNeumann
