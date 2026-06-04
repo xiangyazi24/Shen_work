@@ -768,4 +768,32 @@ noncomputable def duhamelSourceTimeC1_of_heatDamped
           mul_le_mul_of_nonneg_right h1div hMnn
       _ = M / δ := by ring
 
+/-! ## Gap documentation: regularity bootstrap closure route
+
+The `GradientMildHalfStepRestartData` structure (line 349) is the single
+remaining gate to unconditional spatial regularity.  It requires:
+
+1. **`DuhamelSourceTimeC1`** for the nonlinear source at each restart time.
+   For the HOMOGENEOUS part, this is done (`duhamelSourceTimeC1_of_heatDamped`).
+   For the nonlinear (logistic/chemotactic) source, the coefficients' time-C¹
+   regularity and ℓ¹ envelope depend on solution regularity — the fixed-point
+   circularity.
+
+2. **Cosine-series agreement** of `lift(u t)` with the restarted spectral
+   representation on `[0,1]`.  Follows from the spectral interchange
+   (`intervalFullSemigroupOperator_eq_cosineHeatValue_unconditional`) +
+   `duhamelSpectral_eq_cosineSeries`, once (1) is available.
+
+The **closure route** (breaking the circularity): prove `DuhamelSourceTimeC1`
+for the first Picard iterate's source (where u = S(s)u₀ is smooth), then
+propagate by induction through the Picard iteration.  Each step requires:
+- H²-Neumann of the source → 1/k² coefficient decay → ℓ¹ summability
+  (existing: `intervalWeakH2Neumann_cosineCoeff_quadratic_decay`)
+- Time-Leibniz for cosine coefficients (∂_s ∫₀¹ f(s,y)cos dy = ∫₀¹ ∂_s f cos dy)
+- Uniform derivative bound from the PDE structure
+
+The `duhamelSourceTimeC1_of_heatDamped` construction handles the semigroup
+(homogeneous) part of each iterate.  The nonlinear part requires the
+chain-rule + Leibniz infrastructure outlined above. -/
+
 end ShenWork.IntervalSemigroupNeumann
