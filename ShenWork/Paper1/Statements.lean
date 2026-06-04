@@ -10995,6 +10995,44 @@ theorem Lemma_5_1_resolvent_identified_direct
   exact Lemma_5_1.fixed_point_conclusion_of_wave_derivative_bounds
     p hc hU hbound hderiv_tends hderiv_bound hderiv_exp
 
+/-- Universal closure of Lemma 5.1 from resolvent identification, wave
+continuity, and the three derivative-bound residuals.  Each residual is a
+genuine analytical property of traveling waves; the signal estimates are
+derived internally from the frozen elliptic resolvent. -/
+theorem Lemma_5_1.of_resolvent_derivative_bounds
+    (hresolvent : ∀ p : CMParams, ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V → V = frozenElliptic p U)
+    (hcont : ∀ p : CMParams, ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V → Continuous U)
+    (hderiv_tends : ∀ p : CMParams, ∀ c : ℝ, 2 < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        WaveDerivativeTendsZero U)
+    (hderiv_bound : ∀ p : CMParams, ∀ c : ℝ, 2 < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        c > p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) →
+          ∃ B > 0, ∀ x, |deriv U x| ≤ B)
+    (hderiv_exp : ∀ p : CMParams, ∀ c : ℝ, 2 < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        c > max (p.γ + p.γ⁻¹)
+          (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+          ∃ B1 B2, ∀ x,
+            |deriv U x| ≤
+              B1 * Real.exp (-(kappa c) * x) +
+                B2 * Real.exp (-(kappa c) * p.γ * x)) :
+    Lemma_5_1 := by
+  intro p c hc U V hTW hbound
+  exact Lemma_5_1_resolvent_identified_direct hc hTW
+    (hresolvent p c U V hTW) (hcont p c U V hTW) hbound
+    (hderiv_tends p c hc U V hTW hbound)
+    (hderiv_bound p c hc U V hTW hbound)
+    (hderiv_exp p c hc U V hTW hbound)
+
 /-- Lemma 5.1's signal estimates for a frozen stationary profile already
 known to lie in the wave trap.  This avoids the arbitrary `IsTravelingWave`
 projection route: the elliptic signal is definitionally `frozenElliptic p U`,
@@ -17342,6 +17380,145 @@ theorem Theorem_1_3.of_assumed_uniqueness_branch_offset
     linarith
   · intro p hreg c hc
     exact huniq p hreg c hc
+
+/-- Reflexive branch of Theorem 1.3: when both waves are the same profile,
+uniqueness is immediate. -/
+theorem Theorem_1_3_reflexive_branch
+    {p : CMParams} {c : ℝ} {U V : ℝ → ℝ}
+    (_hTW : IsTravelingWave p c U V) :
+    (∀ x, U x = U x) ∧ (∀ x, V x = V x) :=
+  ⟨fun _ => rfl, fun _ => rfl⟩
+
+/-- Bridge: Theorem 1.2 (stability) + Cauchy uniqueness + resolvent
+identification + weighted closeness together imply Theorem 1.3 (uniqueness).
+
+The proof strategy: given two waves `(U₁,V₁)` and `(U₂,V₂)`, apply
+Theorem 1.2's stability conclusion to wave `U₁` with initial data `U₂`.
+The stability result produces a Cauchy solution from `U₂` that converges
+uniformly to `U₁` in the moving frame.  Cauchy uniqueness identifies that
+solution with `U₂` translated, so `U₂` itself converges to `U₁`, giving
+`U₁ = U₂`.  Then `V₁ = V₂` follows from the resolvent identification. -/
+theorem Theorem_1_3.of_Theorem_1_2_cauchy_unique_resolvent_closeness
+    (h12 : Theorem_1_2)
+    (hcont : ∀ p : CMParams, ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V → Continuous U)
+    (hcauchy : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        IsCUnifBdd U →
+        ∀ u v : ℝ → ℝ → ℝ,
+          IsGlobalCauchySolutionFrom p U u v →
+            ∀ t x, u t x = U (x - c * t))
+    (hresolvent : ∀ p : CMParams, ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V → V = frozenElliptic p U)
+    (hclose : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ,
+      ∀ U₁ V₁ U₂ V₂ : ℝ → ℝ,
+        IsTravelingWave p c U₁ V₁ →
+        IsTravelingWave p c U₂ V₂ →
+        HasStrictWaveUpperTailBound p c U₁ →
+        HasStrictWaveUpperTailBound p c U₂ →
+        (∃ κ₁, kappa c < κ₁ ∧ κ₁ < 1 ∧
+          HasWaveRightTailAsymptotic c κ₁ U₁ ∧
+          HasWaveRightTailAsymptotic c κ₁ U₂) →
+        ∃ η : ℝ, kappa c < η ∧
+          η < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) ∧
+          WeightedL2InitialCloseness η U₂ U₁) :
+    Theorem_1_3 := by
+  intro p hreg
+  rcases h12 p hreg with ⟨cStarStar, hasymp, hbaseline, hstab⟩
+  refine ⟨cStarStar, hasymp, hbaseline, ?_⟩
+  intro c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hbound₁ hbound₂ htail
+  rcases hclose p hreg c U₁ V₁ U₂ V₂ hTW₁ hTW₂ hbound₁ hbound₂ htail with
+    ⟨η, hη_lower, hη_upper, hη_close⟩
+  have hU₂_bdd : IsCUnifBdd U₂ :=
+    hbound₂.isCUnifBdd_of_continuous (hcont p c U₂ V₂ hTW₂)
+  rcases hstab c hc U₁ V₁ hTW₁ hbound₁
+      (htail.imp fun κ₁ ⟨h1, h2, h3, _⟩ => ⟨h1, h2, h3⟩)
+      η hη_lower hη_upper U₂
+      (IsTravelingWave.nonnegativeInitialDatum hTW₂ hU₂_bdd)
+      (IsTravelingWave.strictlyPositiveAtLeft hTW₂)
+      hη_close with
+    ⟨u, v, hsol, _hweighted, huniform⟩
+  have hconv :
+      UniformMovingFrameConvergence c (fun t x => U₂ (x - c * t)) U₁ := by
+    intro ε hε
+    rcases huniform ε hε with ⟨T, hT⟩
+    exact ⟨T, fun t x ht => by
+      have h := hT t x ht
+      rwa [hcauchy p hreg c U₂ V₂ hTW₂ hU₂_bdd u v hsol t x] at h⟩
+  exact
+    Theorem_1_3_profile_eq_of_uniform_movingFrame_and_resolvent
+      hconv (hresolvent p c U₁ V₁ hTW₁) (hresolvent p c U₂ V₂ hTW₂)
+
+/-- Bridge: Theorem 1.2 (stability) + Cauchy uniqueness + resolvent
+identification + Remark 4.3 tail asymptotics + wave continuity together imply
+Theorem 1.3 (uniqueness).
+
+This is the sharpest Theorem 1.2 → 1.3 bridge: the closeness between two waves
+is derived internally from Remark 4.3 instead of being assumed.  The five
+explicit residual hypotheses are:
+- `hcont`: traveling wave profiles are continuous
+- `hcauchy`: Cauchy solutions from wave profile data are the translated wave
+- `hresolvent`: the signal component V equals the frozen elliptic resolvent
+- `htail_asymp`: waves have the paper's Remark 4.3 right-tail normalization -/
+theorem Theorem_1_3.of_Theorem_1_2_cauchy_unique_resolvent_remark43
+    (h12 : Theorem_1_2)
+    (hcont : ∀ p : CMParams, ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V → Continuous U)
+    (hcauchy : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        IsCUnifBdd U →
+        ∀ u v : ℝ → ℝ → ℝ,
+          IsGlobalCauchySolutionFrom p U u v →
+            ∀ t x, u t x = U (x - c * t))
+    (hresolvent : ∀ p : CMParams, ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V → V = frozenElliptic p U)
+    (htail_asymp : ∀ p : CMParams, StableWaveParameterRegime p →
+      ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasStrictWaveUpperTailBound p c U →
+        HasRemark43TailAsymptotic p c U) :
+    Theorem_1_3 := by
+  intro p hreg
+  rcases h12 p hreg with ⟨cStarStar, hasymp, hbaseline, hstab⟩
+  refine ⟨cStarStar, hasymp, hbaseline, ?_⟩
+  intro c hc U₁ V₁ U₂ V₂ hTW₁ hTW₂ hbound₁ hbound₂ htail
+  have hkappa_pos : 0 < kappa c :=
+    kappa_pos_of_stabilitySpeedBaseline_lt hbaseline hc
+  have hkappa_lt_one : kappa c < 1 :=
+    kappa_lt_one_of_stabilitySpeedBaseline_lt hbaseline hc
+  have hkappa_cap : kappa c < 1 / (1 + |p.χ| ^ (1 / 6 : ℝ)) :=
+    kappa_lt_stability_weight_cap_of_stabilitySpeedBaseline_lt hbaseline hc
+  rcases exists_remark43TailRateBound_with_weight_below
+      hkappa_pos hkappa_lt_one hkappa_cap with
+    ⟨eta, heta_bound, heta_weight⟩
+  have hU₂_bdd : IsCUnifBdd U₂ :=
+    hbound₂.isCUnifBdd_of_continuous (hcont p c U₂ V₂ hTW₂)
+  have hclose : WeightedL2InitialCloseness (eta + kappa c) U₂ U₁ :=
+    Remark_4_3_regular_direct hkappa_pos hTW₁ hTW₂
+      (hcont p c U₁ V₁ hTW₁) (hcont p c U₂ V₂ hTW₂)
+      hbound₁.hasWaveUpperTailBound hbound₂.hasWaveUpperTailBound
+      (htail_asymp p hreg c U₁ V₁ hTW₁ hbound₁)
+      (htail_asymp p hreg c U₂ V₂ hTW₂ hbound₂) heta_bound
+  rcases hstab c hc U₁ V₁ hTW₁ hbound₁
+      (htail.imp fun κ₁ ⟨h1, h2, h3, _⟩ => ⟨h1, h2, h3⟩)
+      (eta + kappa c) (by linarith [heta_bound.pos]) heta_weight U₂
+      (IsTravelingWave.nonnegativeInitialDatum hTW₂ hU₂_bdd)
+      (IsTravelingWave.strictlyPositiveAtLeft hTW₂)
+      hclose with
+    ⟨u, v, hsol, _hweighted, huniform⟩
+  have hconv :
+      UniformMovingFrameConvergence c (fun t x => U₂ (x - c * t)) U₁ := by
+    intro ε hε
+    rcases huniform ε hε with ⟨T, hT⟩
+    exact ⟨T, fun t x ht => by
+      have h := hT t x ht
+      rwa [hcauchy p hreg c U₂ V₂ hTW₂ hU₂_bdd u v hsol t x] at h⟩
+  exact
+    Theorem_1_3_profile_eq_of_uniform_movingFrame_and_resolvent
+      hconv (hresolvent p c U₁ V₁ hTW₁) (hresolvent p c U₂ V₂ hTW₂)
 
 end
 
