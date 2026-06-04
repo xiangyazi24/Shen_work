@@ -1501,6 +1501,16 @@ theorem Theorem_1_1_intervalDomain_via_regime_gammaGeOne_and_continuationData_bu
     p hχ ha hb hγ_ge_one hData.localExistence hData.realize
     hData.extend_finite hData.extend_mge hData.posWit
 
+/-- Instance-facing bundled continuation-data wrapper (γ ≥ 1). -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_and_continuationData_bundledFact
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact (IntervalDomainPaper2ContinuationDataGammaGeOne p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_and_continuationData_bundled
+    p hχ ha hb hγ_ge_one hData.out
+
 /-! ## `hrealize` discharged internally for the γ≥1 regime
 
 Under the Theorem-1.1 negative-sensitivity regime + γ≥1 + the per-pair
@@ -1879,6 +1889,18 @@ theorem Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge_bundled
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
     p hχ ha hb hγ_ge_one hData.localExistence hData.uniformLocal hData.posWit
+
+/-- Instance-facing bundled continuation-data wrapper (γ ≥ 1,
+`hextend_mge` eliminated). -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge_bundledFact
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2ContinuationDataGammaGeOne_no_hextend_mge p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge_bundled
+    p hχ ha hb hγ_ge_one hData.out
 
 /-- **Paper 2-aligned umbrella via Picard gradient-mild local data.**
 
