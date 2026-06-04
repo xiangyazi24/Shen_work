@@ -1067,6 +1067,15 @@ theorem Theorem_1_1_intervalDomain_via_regime_and_continuationData
     p hχ ha hb hData.localExistence hData.realize hData.extend_finite
     hData.extend_mge hData.posWit hData.posLowerWit
 
+/-- Instance-facing bundled continuation-data wrapper for the full Paper 2
+interval-domain umbrella. -/
+theorem Theorem_1_1_intervalDomain_via_regime_and_continuationDataFact
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    [hData : Fact (IntervalDomainPaper2ContinuationData p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_and_continuationData
+    p hχ ha hb hData.out
+
 /-! ## Refined umbrella: `extend_finite` eliminated
 
 The next umbrella variant drops the `hextend_of_not_finiteAlternative` textbook
@@ -1261,6 +1270,16 @@ theorem Theorem_1_1_intervalDomain_via_regime_and_continuationData_no_extend_fin
   Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound_no_extend_finite
     p hχ ha hb hData.localExistence hData.realize hData.extend_mge
     hData.posWit hData.posLowerWit
+
+/-- Instance-facing bundled continuation-data wrapper with `extend_finite`
+eliminated. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_and_continuationData_no_extend_finiteFact
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    [hData : Fact (IntervalDomainPaper2ContinuationData_no_extend_finite p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_and_continuationData_no_extend_finite
+    p hχ ha hb hData.out
 
 /-- Forgetful map: every old continuation-data bundle (6 fields) gives rise to
 the new leaner bundle (5 fields) by simply dropping `extend_finite`.  This
