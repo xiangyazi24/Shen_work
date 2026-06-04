@@ -368,4 +368,113 @@ theorem valueDuhamel_neumann_at_one_of_hasDerivAt
   conv_rhs => rw [show (0 : ℝ) = ∫ _s in (0:ℝ)..t, (0 : ℝ) from by simp]
   exact intervalIntegral.integral_congr_ae hae
 
+/-! ## Conjunct 3: spatial C² on the open interior
+
+The semigroup output `S(t)f` is globally `C²` for `t > 0`, so it is
+`C²` on any subset including `(0,1)`.  This is conjunct (3) of the
+classical regularity predicate. -/
+
+/-- **Conjunct-3 for the semigroup.**  `S(t)f` is `C²` on `(0,1)`. -/
+theorem intervalFullSemigroupOperator_contDiffOn_Ioo
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf : Continuous f)
+    {M : ℝ} (hM : ∀ n, |cosineCoeffs f n| ≤ M) :
+    ContDiffOn ℝ 2 (fun x => intervalFullSemigroupOperator t f x)
+      (Set.Ioo (0 : ℝ) 1) :=
+  (intervalFullSemigroupOperator_contDiff_two_unconditional
+    t ht f hf hM (fun x => intervalNeumannFullKernel_cosineKernel_identity ht x)
+  ).contDiffOn
+
+/-- **Conjunct-7 closed C² for the semigroup.**  `S(t)f` is `C²` on `[0,1]`. -/
+theorem intervalFullSemigroupOperator_contDiffOn_Icc
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf : Continuous f)
+    {M : ℝ} (hM : ∀ n, |cosineCoeffs f n| ≤ M) :
+    ContDiffOn ℝ 2 (fun x => intervalFullSemigroupOperator t f x)
+      (Set.Icc (0 : ℝ) 1) :=
+  (intervalFullSemigroupOperator_contDiff_two_unconditional
+    t ht f hf hM (fun x => intervalNeumannFullKernel_cosineKernel_identity ht x)
+  ).contDiffOn
+
+/-- **Conjunct-7 full bundle for the semigroup.**  Closed-`[0,1]` `C²`
+plus `deriv = 0` at both endpoints. -/
+theorem intervalFullSemigroupOperator_conjunct7
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf : Continuous f)
+    {M : ℝ} (hM : ∀ n, |cosineCoeffs f n| ≤ M) :
+    ContDiffOn ℝ 2 (fun x => intervalFullSemigroupOperator t f x)
+        (Set.Icc (0 : ℝ) 1) ∧
+      deriv (fun x => intervalFullSemigroupOperator t f x) 0 = 0 ∧
+      deriv (fun x => intervalFullSemigroupOperator t f x) 1 = 0 :=
+  ⟨intervalFullSemigroupOperator_contDiffOn_Icc ht hf hM,
+    intervalFullSemigroupOperator_neumann_at_zero ht hf hM,
+    intervalFullSemigroupOperator_neumann_at_one ht hf hM⟩
+
+/-- **Conjunct-6 full bundle for the semigroup.**  Genuine one-sided Neumann
+limits at both endpoints. -/
+theorem intervalFullSemigroupOperator_conjunct6
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf : Continuous f)
+    {M : ℝ} (hM : ∀ n, |cosineCoeffs f n| ≤ M) :
+    Filter.Tendsto (deriv (fun x => intervalFullSemigroupOperator t f x))
+        (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
+      Filter.Tendsto (deriv (fun x => intervalFullSemigroupOperator t f x))
+        (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) :=
+  ⟨intervalFullSemigroupOperator_neumann_limit_left ht hf hM,
+    intervalFullSemigroupOperator_neumann_limit_right ht hf hM⟩
+
+/-! ## Joint (t,x) continuity of the cosine heat value
+
+The spectral representation `∑ e^{-tλₙ} aₙ cos(nπx)` converges uniformly on
+compact subsets of `{t > 0} × ℝ` (Weierstrass-M with the bound
+`e^{-δλₙ}|aₙ|` for `t ≥ δ`).  This gives joint `(t,x)` continuity of the
+cosine heat value and, via the spectral interchange, of the semigroup. -/
+
+/-- **Joint continuity of cosine heat value** on `[δ, ∞) × ℝ` for fixed `δ > 0`.
+Each term is jointly continuous; the Weierstrass-M bound `e^{-δλₙ}M` is
+summable by `unitIntervalCosineHeatTrace_single_exp_summable`. -/
+theorem unitIntervalCosineHeatValue_continuousOn_Ici_prod
+    {a : ℕ → ℝ} {M : ℝ} (hM : ∀ n, |a n| ≤ M)
+    {δ : ℝ} (hδ : 0 < δ) :
+    ContinuousOn
+      (fun p : ℝ × ℝ => unitIntervalCosineHeatValue p.1 a p.2)
+      (Set.Ici δ ×ˢ Set.univ) := by
+  simp only [unitIntervalCosineHeatValue]
+  refine continuousOn_tsum
+    (fun n => ?_) ((unitIntervalCosineHeatTrace_single_exp_summable hδ).mul_right M) ?_
+  · -- Per-term continuity: (t,x) ↦ exp(-t·λₙ) · cos(nπx) · aₙ
+    simp only [unitIntervalCosineHeatPointWeight, unitIntervalCosineMode]
+    fun_prop
+  · intro n ⟨t, x⟩ ⟨ht, _⟩
+    simp only [unitIntervalCosineHeatPointWeight, unitIntervalCosineMode, Set.mem_Ici] at ht ⊢
+    rw [Real.norm_eq_abs, abs_mul, abs_mul]
+    have heig_nn : (0 : ℝ) ≤ unitIntervalCosineEigenvalue n := by
+      simp [unitIntervalCosineEigenvalue]; positivity
+    have h1 : |Real.exp (-t * unitIntervalCosineEigenvalue n)| ≤
+        Real.exp (-δ * unitIntervalCosineEigenvalue n) := by
+      rw [abs_of_nonneg (Real.exp_nonneg _)]
+      exact Real.exp_le_exp_of_le (by nlinarith)
+    have h2 : |Real.cos (↑n * Real.pi * x)| ≤ 1 := Real.abs_cos_le_one _
+    have h3 : |a n| ≤ M := hM n
+    calc |Real.exp (-t * unitIntervalCosineEigenvalue n)| *
+            |Real.cos (↑n * Real.pi * x)| * |a n|
+        ≤ Real.exp (-δ * unitIntervalCosineEigenvalue n) * 1 * M :=
+          mul_le_mul (mul_le_mul h1 h2 (abs_nonneg _) (Real.exp_nonneg _))
+            h3 (abs_nonneg _) (mul_nonneg (Real.exp_nonneg _) zero_le_one)
+      _ = Real.exp (-δ * unitIntervalCosineEigenvalue n) * M := by ring
+
+/-- **Joint continuity of the cosine heat value** on `(0, ∞) × ℝ`.
+Covers any `(t₀, x₀)` with `t₀ > 0` by choosing `δ = t₀/2`. -/
+theorem unitIntervalCosineHeatValue_continuousOn_Ioi_prod
+    {a : ℕ → ℝ} {M : ℝ} (hM : ∀ n, |a n| ≤ M) :
+    ContinuousOn
+      (fun p : ℝ × ℝ => unitIntervalCosineHeatValue p.1 a p.2)
+      (Set.Ioi (0 : ℝ) ×ˢ Set.univ) := by
+  intro ⟨t₀, x₀⟩ ht₀x₀
+  have ht₀ : 0 < t₀ := ht₀x₀.1
+  have hδ : 0 < t₀ / 2 := by linarith
+  -- ContinuousOn on Ici(t₀/2)×univ, and that set is a nhd of (t₀,x₀)
+  have hcon := unitIntervalCosineHeatValue_continuousOn_Ici_prod hM hδ
+  have hmem : (t₀, x₀) ∈ Set.Ici (t₀ / 2) ×ˢ Set.univ :=
+    ⟨by simp [Set.mem_Ici]; linarith, Set.mem_univ _⟩
+  have hnhd : Set.Ici (t₀ / 2) ×ˢ Set.univ ∈ nhds (t₀, x₀) :=
+    prod_mem_nhds (Ici_mem_nhds (by linarith : t₀ / 2 < t₀)) Filter.univ_mem
+  exact (hcon.continuousAt hnhd).continuousWithinAt
+
 end ShenWork.IntervalSemigroupNeumann
