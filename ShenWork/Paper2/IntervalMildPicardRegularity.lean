@@ -10,21 +10,33 @@
   This file breaks the circularity by proving key structural lemmas for the
   Picard regularity induction.
 
-  **Core contribution**: If `g : ℝ → ℝ` is globally `C²` and positive on
-  `[0,1]`, then:
+  **Core contributions**:
+
+  (A) **Logistic source C² + H² Neumann from globally C², positive profile.**
+  If `g : ℝ → ℝ` is globally `C²` and positive on `[0,1]`, then:
   1. The logistic source `g(x)·(a − b·g(x)^α)` is `C²` on an open
      neighborhood of `[0,1]` (from `g > 0` there).
   2. Its Neumann boundary conditions follow from those of `g`.
   3. Assembling with `intervalWeakH2Neumann_of_contDiffOn` gives
      the `IntervalWeakH2Neumann` certificate.
+  Applied to the semigroup via `intervalFullSemigroupOperator_contDiff_two_unconditional`.
 
-  This applies directly to the semigroup (zeroth Picard iterate), which is
-  globally `C²` by `intervalFullSemigroupOperator_contDiff_two_unconditional`.
+  (B) **Zeroth cosine coefficient bound.**
+  `cosineCoeffs_zero_eq_integral`, `cosineCoeffs_zero_abs_le_of_bound`, and
+  `logisticSourceFun_cosineCoeffs_zeroth_bound` give the `ha0_bound`
+  hypothesis of `duhamelSourceTimeC1_of_H2Neumann_timeC1`.
+
+  (C) **Time-Leibniz for cosine coefficients.**
+  `cosineCoeffs_hasDerivAt_of_smooth_param`: if `f(s, ·)` is continuous and
+  `∂_s f` exists and is jointly continuous on a compact slab, then
+  `HasDerivAt (fun s => cosineCoeffs (f s) n) (cosineCoeffs (∂_s f τ) n) τ`.
+  This gives the `hderiv` hypothesis of `duhamelSourceTimeC1_of_H2Neumann_timeC1`.
 
   No `sorry`/`admit`/custom `axiom`.
 -/
 import ShenWork.Paper2.IntervalMildRegularityBootstrap
 import ShenWork.PDE.IntervalSemigroupNeumann
+import ShenWork.PDE.IntervalUnderIntegralLeibniz
 
 open MeasureTheory Filter Topology
 open ShenWork.IntervalDomain
@@ -37,6 +49,7 @@ open ShenWork.PDE.IntervalMildSourceDecayHelper
 open ShenWork.IntervalMildRegularityBootstrap
 open ShenWork.IntervalFullKernelInterchange
 open ShenWork.IntervalResolverPositivity
+open ShenWork.Paper2.IntervalDomainLpMonotonicity (intervalDomainInteriorMeasure)
 
 noncomputable section
 
@@ -314,5 +327,260 @@ theorem semigroup_logistic_cosineCoeff_quadratic_decay
     (semigroup_contDiff_two ht hf hM) hpos
     (intervalFullSemigroupOperator_neumann_at_zero ht hf hM)
     (intervalFullSemigroupOperator_neumann_at_one ht hf hM)
+
+/-! ## Zeroth cosine coefficient bound
+
+The zeroth cosine coefficient `cosineCoeffs f 0 = ∫₀¹ f(x) dx`.  For continuous
+`f` on `[0,1]`, `|cosineCoeffs f 0| ≤ sup_{[0,1]} |f|`. -/
+
+/-- The zeroth cosine coefficient equals `∫₀¹ f(x) dx` (no factor of 2). -/
+theorem cosineCoeffs_zero_eq_integral (f : ℝ → ℝ) :
+    cosineCoeffs f 0 =
+      (∫ x in (0 : ℝ)..1, f x) := by
+  simp only [cosineCoeffs,
+    ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff,
+    ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff]
+  simp only [Nat.cast_zero, zero_mul, Real.cos_zero]
+  -- Goal is: `if True then (...).re else 2 * (...).re = ∫₀¹ f x`
+  simp only [if_true]
+  -- The integrand is `(↑(1:ℝ) : ℂ) * ↑(f x)`, simplify to `↑(f x)`
+  have : (fun x : ℝ => ((1 : ℝ) : ℂ) * ((f x : ℝ) : ℂ)) =
+      (fun x : ℝ => ((f x : ℝ) : ℂ)) := by
+    funext x; rw [Complex.ofReal_one, one_mul]
+  rw [this, intervalIntegral.integral_ofReal, Complex.ofReal_re]
+
+/-- `|cosineCoeffs f 0| ≤ ∫₀¹ |f(x)| dx`. -/
+theorem cosineCoeffs_zero_abs_le_integral_abs
+    (f : ℝ → ℝ) :
+    |cosineCoeffs f 0| ≤ ∫ x in (0 : ℝ)..1, |f x| := by
+  rw [cosineCoeffs_zero_eq_integral]
+  have h01 : (0 : ℝ) ≤ 1 := by norm_num
+  have := intervalIntegral.norm_integral_le_integral_norm h01 (f := f) (μ := volume)
+  simp only [Real.norm_eq_abs] at this
+  exact this
+
+/-- `|cosineCoeffs f 0| ≤ B` when `f` is continuous on `[0,1]` and `|f(x)| ≤ B`
+everywhere on `[0,1]`. -/
+theorem cosineCoeffs_zero_abs_le_of_bound
+    {f : ℝ → ℝ} {B : ℝ} (_hB : 0 ≤ B)
+    (hcont : ContinuousOn f (Set.Icc (0 : ℝ) 1))
+    (hbd : ∀ x ∈ Set.Icc (0 : ℝ) 1, |f x| ≤ B) :
+    |cosineCoeffs f 0| ≤ B := by
+  have hf_int : IntervalIntegrable f volume 0 1 := by
+    rw [intervalIntegrable_iff_integrableOn_Icc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+    exact hcont.integrableOn_compact isCompact_Icc
+  calc |cosineCoeffs f 0|
+      ≤ ∫ x in (0 : ℝ)..1, |f x| :=
+        cosineCoeffs_zero_abs_le_integral_abs f
+    _ ≤ ∫ _ in (0 : ℝ)..1, B := by
+        apply intervalIntegral.integral_mono_on (by norm_num : (0 : ℝ) ≤ 1)
+          (hf_int.norm) (intervalIntegrable_const)
+        intro x hx
+        exact hbd x (Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1) ▸ hx)
+    _ = B := by simp
+
+/-- The logistic source is bounded on `[0,1]` when the profile is bounded. -/
+theorem logisticSourceFun_abs_le_of_bound
+    {a b α : ℝ} {g : ℝ → ℝ} {B : ℝ}
+    (hB : 0 ≤ B) (hα : 0 < α) (ha : 0 ≤ a) (hb : 0 ≤ b)
+    (hbd : ∀ x ∈ Set.Icc (0 : ℝ) 1, |g x| ≤ B)
+    (hpos : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < g x) :
+    ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |logisticSourceFun a b α g x| ≤ B * (a + b * B ^ α) := by
+  intro x hx
+  simp only [logisticSourceFun]
+  have hgx_pos : 0 < g x := hpos x hx
+  have hgx_le : g x ≤ B := by
+    have := hbd x hx
+    rw [abs_of_pos hgx_pos] at this
+    exact this
+  have hgx_nn : 0 ≤ g x := hgx_pos.le
+  -- |g(x) * (a - b * g(x)^α)|
+  rw [abs_mul]
+  -- |g(x)| = g(x) since g(x) > 0
+  rw [abs_of_pos hgx_pos]
+  -- |a - b * g(x)^α| ≤ a + b * g(x)^α ≤ a + b * B^α
+  have hgα_nn : 0 ≤ g x ^ α := Real.rpow_nonneg hgx_nn α
+  have hgα_le : g x ^ α ≤ B ^ α :=
+    Real.rpow_le_rpow hgx_nn hgx_le hα.le
+  have hbgα_nn : 0 ≤ b * g x ^ α := mul_nonneg hb hgα_nn
+  have hbBα_nn : 0 ≤ b * B ^ α := mul_nonneg hb (Real.rpow_nonneg hB α)
+  have hab_sum_nn : 0 ≤ a + b * g x ^ α := by linarith
+  have haBα_nn : 0 ≤ a + b * B ^ α := by linarith
+  have hbgα_le_bBα : b * g x ^ α ≤ b * B ^ α :=
+    mul_le_mul_of_nonneg_left hgα_le hb
+  have habs_le : |a - b * g x ^ α| ≤ a + b * g x ^ α := by
+    rw [abs_le]
+    constructor <;> linarith
+  calc g x * |a - b * g x ^ α|
+      ≤ g x * (a + b * g x ^ α) :=
+        mul_le_mul_of_nonneg_left habs_le hgx_nn
+    _ ≤ B * (a + b * B ^ α) :=
+        mul_le_mul hgx_le (by linarith) hab_sum_nn hB
+
+/-- Zeroth cosine coefficient bound for the logistic source applied to a
+globally C², positive, bounded profile on `[0,1]`. -/
+theorem logisticSourceFun_cosineCoeffs_zeroth_bound
+    {a b α : ℝ} {g : ℝ → ℝ} {B : ℝ}
+    (hB : 0 ≤ B) (hα : 0 < α) (ha : 0 ≤ a) (hb : 0 ≤ b)
+    (hg : ContDiff ℝ 2 g)
+    (hpos : ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < g x)
+    (hbd : ∀ x ∈ Set.Icc (0 : ℝ) 1, |g x| ≤ B) :
+    |cosineCoeffs (logisticSourceFun a b α g) 0| ≤ B * (a + b * B ^ α) := by
+  apply cosineCoeffs_zero_abs_le_of_bound
+    (by positivity : 0 ≤ B * (a + b * B ^ α))
+  · exact (logisticSourceFun_contDiffOn_Icc hg hpos).continuousOn
+  · exact logisticSourceFun_abs_le_of_bound hB hα ha hb hbd hpos
+
+/-! ## cosineCoeffs as a real integral
+
+The `cosineCoeffs` definition goes through a complex integral.  For real-valued
+functions, we express it purely as a real interval integral so that the
+real-valued Leibniz lemma `intervalIntegral_hasDerivAt_time_of_local` applies. -/
+
+/-- For a real-valued `f`, the positive-mode cosine coefficient equals
+`2 * ∫₀¹ cos(nπx) * f(x) dx`. -/
+theorem cosineCoeffs_pos_eq_integral {f : ℝ → ℝ} {n : ℕ} (hn : n ≠ 0) :
+    cosineCoeffs f n =
+      2 * ∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * f x := by
+  simp only [cosineCoeffs,
+    ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff,
+    if_neg hn,
+    ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff]
+  congr 1
+  rw [show (fun x : ℝ =>
+        (Real.cos ((n : ℝ) * Real.pi * x) : ℂ) * ((f x : ℝ) : ℂ)) =
+      fun x : ℝ => ((Real.cos ((n : ℝ) * Real.pi * x) * f x : ℝ) : ℂ) from by
+    funext x; push_cast; ring]
+  rw [intervalIntegral.integral_ofReal, Complex.ofReal_re]
+
+/-- Uniform formula: `cosineCoeffs f n = c(n) * ∫₀¹ cos(nπx) * f(x) dx`
+where `c(0) = 1` and `c(n) = 2` for `n ≥ 1`. -/
+theorem cosineCoeffs_eq_factor_mul_integral (f : ℝ → ℝ) (n : ℕ) :
+    cosineCoeffs f n =
+      (if n = 0 then 1 else 2) *
+        ∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * f x := by
+  rcases Nat.eq_zero_or_pos n with rfl | hn
+  · simp [cosineCoeffs_zero_eq_integral]
+  · rw [if_neg (Nat.pos_iff_ne_zero.mp hn)]
+    exact cosineCoeffs_pos_eq_integral (Nat.pos_iff_ne_zero.mp hn)
+
+/-! ## Time-Leibniz for cosine coefficients
+
+General lemma: if `f : ℝ → ℝ → ℝ` is a smooth parameter family (parameter `s`,
+spatial variable `x`) such that:
+- `f(s, ·)` is continuous on `[0,1]` for each `s` near `τ`,
+- `∂_s f` exists at each `x ∈ (0,1)` for `s` in a ball around `τ`,
+- `∂_s f` is jointly continuous on a compact slab,
+
+then `HasDerivAt (fun s => cosineCoeffs (f s) n) (cosineCoeffs (∂_s f τ) n) τ`.
+
+The proof reduces to the real Leibniz integral rule via the integral formula
+for `cosineCoeffs`, then uses `exists_bound_of_continuousOn_slab` for the
+dominated convergence bound. -/
+
+/-- **Time-Leibniz for cosine coefficients.**
+
+If `f : ℝ → ℝ → ℝ` satisfies:
+1. `f(s,·)` is continuous on `[0,1]` for `s` near `τ`,
+2. Each spatial point `x ∈ (0,1)` has `HasDerivAt (fun s => f s x) (f' s x) s`
+   for all `s ∈ Metric.ball τ δ`,
+3. `f'` is jointly continuous on `[τ-δ, τ+δ] × [0,1]`,
+
+then `HasDerivAt (fun s => cosineCoeffs (f s) n) (cosineCoeffs (f' τ) n) τ`. -/
+theorem cosineCoeffs_hasDerivAt_of_smooth_param
+    {f f' : ℝ → ℝ → ℝ} {τ δ : ℝ} {n : ℕ} (hδ : 0 < δ)
+    (hf_cont : ∀ᶠ s in 𝓝 τ, ContinuousOn (f s) (Set.Icc (0 : ℝ) 1))
+    (h_diff : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      ∀ s ∈ Metric.ball τ δ,
+        HasDerivAt (fun r => f r x) (f' s x) s)
+    (h_cont_deriv : ContinuousOn (Function.uncurry f')
+      (Set.Icc (τ - δ) (τ + δ) ×ˢ Set.Icc (0 : ℝ) 1)) :
+    HasDerivAt (fun s => cosineCoeffs (f s) n)
+      (cosineCoeffs (f' τ) n) τ := by
+  -- Express cosineCoeffs via the real integral formula
+  have hfactor : ∀ s, cosineCoeffs (f s) n =
+      (if n = 0 then 1 else 2) *
+        ∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * f s x :=
+    fun s => cosineCoeffs_eq_factor_mul_integral (f s) n
+  -- Set up weighted integrand and its time derivative
+  set g : ℝ → ℝ → ℝ := fun s x =>
+    Real.cos ((n : ℝ) * Real.pi * x) * f s x
+  set g' : ℝ → ℝ → ℝ := fun s x =>
+    Real.cos ((n : ℝ) * Real.pi * x) * f' s x
+  -- Abbreviation for the cosine weight
+  have hcos_cont : Continuous (fun x : ℝ => Real.cos ((n : ℝ) * Real.pi * x)) :=
+    Real.continuous_cos.comp (continuous_const.mul continuous_id')
+  -- Joint continuity of g' on the slab
+  have hg'_cont_slab : ContinuousOn (Function.uncurry g')
+      (Set.Icc (τ - δ) (τ + δ) ×ˢ Set.Icc (0 : ℝ) 1) := by
+    change ContinuousOn
+      (fun p : ℝ × ℝ => Real.cos ((n : ℝ) * Real.pi * p.2) * f' p.1 p.2) _
+    exact ContinuousOn.mul
+      (hcos_cont.comp continuous_snd).continuousOn
+      h_cont_deriv
+  -- Get the dominated bound from slab continuity
+  obtain ⟨bound, hbound_int, hbound⟩ :=
+    ShenWork.IntervalUnderIntegralLeibniz.exists_bound_of_continuousOn_slab hδ hg'_cont_slab
+  -- Apply the real Leibniz integral rule
+  have hraw : HasDerivAt
+      (fun s => ∫ x in (0 : ℝ)..1, g s x)
+      (∫ x in (0 : ℝ)..1, g' τ x) τ := by
+    apply ShenWork.IntervalUnderIntegralLeibniz.intervalIntegral_hasDerivAt_time_of_local hδ
+    · -- (hF_meas) AEStronglyMeasurable for g s
+      filter_upwards [hf_cont] with s hs
+      have : ContinuousOn (g s) (Set.Ioo (0 : ℝ) 1) :=
+        ContinuousOn.mul hcos_cont.continuousOn (hs.mono Set.Ioo_subset_Icc_self)
+      exact this.aestronglyMeasurable measurableSet_Ioo
+    · -- (hF_int) IntervalIntegrable for g τ at the base point
+      have hτ_cont := hf_cont.self_of_nhds
+      have : ContinuousOn (g τ) (Set.uIcc (0 : ℝ) 1) := by
+        rw [Set.uIcc_of_le (by norm_num : (0 : ℝ) ≤ 1)]
+        exact ContinuousOn.mul hcos_cont.continuousOn hτ_cont
+      exact this.intervalIntegrable
+    · -- (hF'_meas) AEStronglyMeasurable for g' τ
+      have hf'τ_cont : ContinuousOn (f' τ) (Set.Icc (0 : ℝ) 1) := by
+        -- f'(τ, ·) = (uncurry f') ∘ (Prod.mk τ), which is continuous on Icc 0 1
+        -- since uncurry f' is continuous on the slab containing {τ} × Icc 0 1.
+        have hτ_mem : τ ∈ Set.Icc (τ - δ) (τ + δ) := ⟨by linarith, by linarith⟩
+        exact h_cont_deriv.comp
+          (continuousOn_const.prodMk continuousOn_id)
+          (fun x hx => Set.mk_mem_prod hτ_mem hx)
+      have : ContinuousOn (g' τ) (Set.Ioo (0 : ℝ) 1) :=
+        ContinuousOn.mul hcos_cont.continuousOn
+          (hf'τ_cont.mono Set.Ioo_subset_Icc_self)
+      exact this.aestronglyMeasurable measurableSet_Ioo
+    · -- (h_bound) dominated bound
+      exact hbound
+    · -- (hbound_int) integrability of bound
+      exact hbound_int
+    · -- (h_diff) pointwise HasDerivAt on the ball
+      refine (MeasureTheory.ae_restrict_iff' measurableSet_Ioo).2 ?_
+      refine Filter.Eventually.of_forall (fun x hx s hs => ?_)
+      change HasDerivAt (fun r => Real.cos ((n : ℝ) * Real.pi * x) * f r x)
+        (Real.cos ((n : ℝ) * Real.pi * x) * f' s x) s
+      have hconst : HasDerivAt (fun _ : ℝ => Real.cos ((n : ℝ) * Real.pi * x)) 0 s :=
+        hasDerivAt_const s _
+      have hf_deriv : HasDerivAt (fun r => f r x) (f' s x) s :=
+        h_diff x hx s hs
+      convert hconst.mul hf_deriv using 1
+      ring
+  -- Combine: cosineCoeffs(f s)(n) = factor * ∫ g, HasDerivAt lifts through const mul
+  have hgoal : HasDerivAt
+      (fun s => (if n = 0 then (1 : ℝ) else 2) *
+        ∫ x in (0 : ℝ)..1, g s x)
+      ((if n = 0 then (1 : ℝ) else 2) *
+        ∫ x in (0 : ℝ)..1, g' τ x) τ :=
+    hraw.const_mul _
+  have hrw_src : (fun s => cosineCoeffs (f s) n) =
+      (fun s => (if n = 0 then (1 : ℝ) else 2) *
+        ∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * f s x) := by
+    funext s; exact hfactor s
+  have hrw_tgt : cosineCoeffs (f' τ) n =
+      (if n = 0 then (1 : ℝ) else 2) *
+        ∫ x in (0 : ℝ)..1, Real.cos ((n : ℝ) * Real.pi * x) * f' τ x :=
+    cosineCoeffs_eq_factor_mul_integral (f' τ) n
+  rw [hrw_src, hrw_tgt]
+  exact hgoal
 
 end ShenWork.IntervalMildPicardRegularity
