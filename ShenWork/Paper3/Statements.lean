@@ -10807,6 +10807,118 @@ theorem Theorem_2_3_to_2_5.of_assumed_stability_branches
     Theorem_2_4.of_assumed_stability_branch h24,
     Theorem_2_5.of_assumed_stability_branch h25⟩
 
+/-- Bundled stability branches for Paper3 Theorems 2.3-2.5. -/
+structure Paper3Stability23To25BranchData
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (C : Paper3Constants D p) : Prop where
+  branch23 :
+    p.χ₀ ≤ 0 → 1 ≤ p.m →
+      (∀ (ha : 0 < p.a) (hb : 0 < p.b),
+        let eq := positiveEquilibrium p ⟨ha, hb⟩
+        GloballyAsymptoticallyStableNonminimal D p eq.1 eq.2 ∧
+        ∃ A > 0, ∃ rate > 0,
+          ∀ u v : ℝ → D.Point → ℝ,
+            PositiveGlobalBoundedSolution D p u v →
+              ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate) ∧
+      (p.a = 0 → p.b = 0 →
+        ∀ uStar > 0,
+          let eq := minimalEquilibrium p uStar
+          GloballyAsymptoticallyStableMinimal D p eq.1 eq.2 ∧
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → D.Point → ℝ,
+              PositiveGlobalBoundedSolution D p u v →
+              HasInitialMass D u uStar →
+                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate)
+  branch24 :
+    0 < p.a → 0 < p.b → 0 ≤ p.β → 0 < p.α → 0 < p.γ →
+      ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      NonminimalGlobalStabilityCondition D p C eq.1 →
+        GloballyAsymptoticallyStableNonminimal D p eq.1 eq.2 ∧
+        ∃ A > 0, ∃ rate > 0,
+          ∀ u v : ℝ → D.Point → ℝ,
+            PositiveGlobalBoundedSolution D p u v →
+              ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate
+  branch25 :
+    p.a = 0 → p.b = 0 → p.m = 1 → 1 ≤ p.β →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        MinimalGlobalStabilityCondition D p C uStar →
+          GloballyAsymptoticallyStableMinimal D p eq.1 eq.2 ∧
+          ∃ A > 0, ∃ rate > 0,
+            ∀ u v : ℝ → D.Point → ℝ,
+              PositiveGlobalBoundedSolution D p u v →
+              HasInitialMass D u uStar →
+                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate
+
+/-- Bundle-facing stability bridge for Paper3 Theorems 2.3-2.5. -/
+theorem Theorem_2_3_to_2_5.of_stabilityBranchData
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (hData : Paper3Stability23To25BranchData D p N C) :
+    Theorem_2_3 D p N ∧ Theorem_2_4 D p N C ∧ Theorem_2_5 D p N C :=
+  Theorem_2_3_to_2_5.of_assumed_stability_branches
+    hData.branch23 hData.branch24 hData.branch25
+
+/-- Instance-facing stability bridge for Paper3 Theorems 2.3-2.5. -/
+theorem Theorem_2_3_to_2_5.of_stabilityBranchDataFact
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    [hData : Fact (Paper3Stability23To25BranchData D p N C)] :
+    Theorem_2_3 D p N ∧ Theorem_2_4 D p N C ∧ Theorem_2_5 D p N C :=
+  Theorem_2_3_to_2_5.of_stabilityBranchData hData.out
+
+/-- Single-target wrapper for Paper3 Theorem 2.3 from the bundled stability
+branches. -/
+theorem Theorem_2_3.of_stabilityBranchData
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (hData : Paper3Stability23To25BranchData D p N C) :
+    Theorem_2_3 D p N :=
+  (Theorem_2_3_to_2_5.of_stabilityBranchData hData).1
+
+/-- Instance-facing single-target wrapper for Paper3 Theorem 2.3. -/
+theorem Theorem_2_3.of_stabilityBranchDataFact
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    [hData : Fact (Paper3Stability23To25BranchData D p N C)] :
+    Theorem_2_3 D p N :=
+  Theorem_2_3.of_stabilityBranchData hData.out
+
+/-- Single-target wrapper for Paper3 Theorem 2.4 from the bundled stability
+branches. -/
+theorem Theorem_2_4.of_stabilityBranchData
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (hData : Paper3Stability23To25BranchData D p N C) :
+    Theorem_2_4 D p N C :=
+  (Theorem_2_3_to_2_5.of_stabilityBranchData hData).2.1
+
+/-- Instance-facing single-target wrapper for Paper3 Theorem 2.4. -/
+theorem Theorem_2_4.of_stabilityBranchDataFact
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    [hData : Fact (Paper3Stability23To25BranchData D p N C)] :
+    Theorem_2_4 D p N C :=
+  Theorem_2_4.of_stabilityBranchData hData.out
+
+/-- Single-target wrapper for Paper3 Theorem 2.5 from the bundled stability
+branches. -/
+theorem Theorem_2_5.of_stabilityBranchData
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (hData : Paper3Stability23To25BranchData D p N C) :
+    Theorem_2_5 D p N C :=
+  (Theorem_2_3_to_2_5.of_stabilityBranchData hData).2.2
+
+/-- Instance-facing single-target wrapper for Paper3 Theorem 2.5. -/
+theorem Theorem_2_5.of_stabilityBranchDataFact
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    [hData : Fact (Paper3Stability23To25BranchData D p N C)] :
+    Theorem_2_5 D p N C :=
+  Theorem_2_5.of_stabilityBranchData hData.out
+
 /-- **TAUTOLOGY (no math content)**: body is `:= hreg`, definitionally equal
 to `Lemma_3_1 D p`.  Target signature only. -/
 theorem Lemma_3_1.of_assumed_regularity_branch
