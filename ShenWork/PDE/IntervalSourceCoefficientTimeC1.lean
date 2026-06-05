@@ -1033,6 +1033,150 @@ theorem duhamelSeries_jointContinuousOn
     IsOpen.prod isOpen_Ioo isOpen_univ
   exact hcont_on.continuousAt (hopen.mem_nhds hmem)
 
+/-- **G4l-hom: Joint continuity of the homogeneous cosine-heat series on `(0,∞) × ℝ`.**
+`(τ, x) ↦ ∑' n, e^{−τλₙ} a₀ₙ cos(nπx)` is jointly continuous on `(0,∞) × ℝ`.
+
+Proof: at each `(τ₀, x₀)` with `τ₀ > 0`, work on the open neighborhood
+`Ioo (τ₀/2) (τ₀+1) ×ˢ univ`.  On this set the uniform majorant
+`e^{−(τ₀/2)λₙ} M` is summable, so `continuousOn_tsum` applies. -/
+theorem homogeneousSeries_jointContinuousOn
+    {a₀ : ℕ → ℝ} {M : ℝ} (hM : 0 ≤ M) (ha₀ : ∀ n, |a₀ n| ≤ M) :
+    ContinuousOn
+      (Function.uncurry (fun (τ : ℝ) (x : ℝ) =>
+        ∑' n, Real.exp (-τ * unitIntervalCosineEigenvalue n) *
+          a₀ n * cosineMode n x))
+      (Set.Ioi (0 : ℝ) ×ˢ Set.univ) := by
+  change ContinuousOn
+    (fun p : ℝ × ℝ => ∑' n,
+      Real.exp (-p.1 * unitIntervalCosineEigenvalue n) * a₀ n * cosineMode n p.2)
+    (Set.Ioi 0 ×ˢ Set.univ)
+  apply continuousOn_of_forall_continuousAt
+  intro p hp
+  obtain ⟨hτ₀mem, _⟩ := Set.mem_prod.mp hp
+  have hτ₀ : 0 < p.1 := Set.mem_Ioi.mp hτ₀mem
+  have ht2 : 0 < p.1 / 2 := by linarith
+  set T := p.1 + 1 with hT_def
+  -- Summable majorant: e^{-(p.1/2)*λₙ} * M
+  have hu : Summable (fun n =>
+      Real.exp (-(p.1 / 2) * unitIntervalCosineEigenvalue n) * M) :=
+    (ShenWork.HeatKernelGradientEstimates.unitIntervalCosineHeatTrace_single_exp_summable
+      ht2).mul_right M
+  -- Joint continuity on Ioo (p.1/2) T ×ˢ univ via continuousOn_tsum
+  have hcont_on : ContinuousOn
+      (fun q : ℝ × ℝ => ∑' n,
+        Real.exp (-q.1 * unitIntervalCosineEigenvalue n) * a₀ n * cosineMode n q.2)
+      (Set.Ioo (p.1 / 2) T ×ˢ (Set.univ : Set ℝ)) := by
+    apply continuousOn_tsum
+    · intro n
+      apply ContinuousOn.mul
+      · apply ContinuousOn.mul
+        · exact (Real.continuous_exp.comp
+            (by fun_prop : Continuous (fun q : ℝ × ℝ =>
+              -q.1 * unitIntervalCosineEigenvalue n))).continuousOn
+        · exact continuousOn_const
+      · exact (Real.continuous_cos.comp
+          (by fun_prop : Continuous (fun q : ℝ × ℝ =>
+            (n : ℝ) * Real.pi * q.2))).continuousOn
+    · exact hu
+    · intro n q hq
+      obtain ⟨hτ, _⟩ := Set.mem_prod.mp hq
+      have hτ_ge : p.1 / 2 < q.1 := (Set.mem_Ioo.mp hτ).1
+      have hlam : (0 : ℝ) ≤ unitIntervalCosineEigenvalue n := by
+        unfold unitIntervalCosineEigenvalue; positivity
+      rw [Real.norm_eq_abs,
+        show Real.exp (-q.1 * unitIntervalCosineEigenvalue n) * a₀ n * cosineMode n q.2 =
+          Real.exp (-q.1 * unitIntervalCosineEigenvalue n) *
+            (a₀ n * cosineMode n q.2) from by ring,
+        abs_mul, abs_of_nonneg (Real.exp_nonneg _), abs_mul]
+      have hexp_mono : Real.exp (-q.1 * unitIntervalCosineEigenvalue n) ≤
+          Real.exp (-(p.1 / 2) * unitIntervalCosineEigenvalue n) :=
+        Real.exp_le_exp_of_le (by nlinarith)
+      have hcos_le : |cosineMode n q.2| ≤ 1 := by
+        unfold cosineMode; exact Real.abs_cos_le_one _
+      calc Real.exp (-q.1 * unitIntervalCosineEigenvalue n) * (|a₀ n| * |cosineMode n q.2|)
+          ≤ Real.exp (-(p.1 / 2) * unitIntervalCosineEigenvalue n) * (M * 1) :=
+            mul_le_mul hexp_mono
+              (mul_le_mul (ha₀ n) hcos_le (abs_nonneg _) hM)
+              (mul_nonneg (abs_nonneg _) (abs_nonneg _))
+              (Real.exp_nonneg _)
+        _ = Real.exp (-(p.1 / 2) * unitIntervalCosineEigenvalue n) * M := by ring
+  have hmem : p ∈ Set.Ioo (p.1 / 2) T ×ˢ (Set.univ : Set ℝ) :=
+    ⟨Set.mem_Ioo.mpr ⟨by linarith, by simp [hT_def]⟩, Set.mem_univ _⟩
+  have hopen : IsOpen (Set.Ioo (p.1 / 2) T ×ˢ (Set.univ : Set ℝ)) :=
+    IsOpen.prod isOpen_Ioo isOpen_univ
+  exact hcont_on.continuousAt (hopen.mem_nhds hmem)
+
+/-- **G4l-restart: Joint continuity of the full restart cosine series on `(0,∞) × ℝ`.**
+`(τ, x) ↦ ∑' n, (e^{−τλₙ} a₀ₙ + bₙ(τ)) cos(nπx)` is jointly continuous on
+`(0,∞) × ℝ`.  Splits as homogeneous + Duhamel and applies `ContinuousOn.add`. -/
+theorem restartSeries_jointContinuousOn
+    {a₀ : ℕ → ℝ} {M : ℝ} (hM : 0 ≤ M) (ha₀ : ∀ n, |a₀ n| ≤ M)
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a) :
+    ContinuousOn
+      (Function.uncurry (fun (τ : ℝ) (x : ℝ) =>
+        ∑' n, localRestartCoeff a₀ a τ n * cosineMode n x))
+      (Set.Ioi (0 : ℝ) ×ˢ Set.univ) := by
+  change ContinuousOn
+    (fun p : ℝ × ℝ => ∑' n, localRestartCoeff a₀ a p.1 n * cosineMode n p.2)
+    (Set.Ioi 0 ×ˢ Set.univ)
+  have hcos_le : ∀ n (x : ℝ), |cosineMode n x| ≤ 1 := fun n x => by
+    unfold cosineMode; exact Real.abs_cos_le_one _
+  -- Summability of the homogeneous piece at any τ > 0 and any x
+  have hsum_hom : ∀ (τ x : ℝ), 0 < τ → Summable (fun n =>
+      Real.exp (-τ * unitIntervalCosineEigenvalue n) * a₀ n * cosineMode n x) := by
+    intro τ x hτ
+    refine Summable.of_norm_bounded
+      (g := fun n => Real.exp (-τ * unitIntervalCosineEigenvalue n) * M)
+      ((ShenWork.HeatKernelGradientEstimates.unitIntervalCosineHeatTrace_single_exp_summable
+        hτ).mul_right M) (fun n => ?_)
+    rw [Real.norm_eq_abs,
+      show Real.exp (-τ * unitIntervalCosineEigenvalue n) * a₀ n * cosineMode n x =
+        Real.exp (-τ * unitIntervalCosineEigenvalue n) *
+          (a₀ n * cosineMode n x) from by ring,
+      abs_mul, abs_of_nonneg (Real.exp_nonneg _), abs_mul]
+    exact mul_le_mul_of_nonneg_left
+      (by calc |a₀ n| * |cosineMode n x|
+              ≤ M * 1 := mul_le_mul (ha₀ n) (hcos_le n x) (abs_nonneg _) hM
+            _ = M := mul_one _)
+      (Real.exp_nonneg _)
+  -- Summability of the Duhamel piece at any τ > 0 and any x
+  have hsum_duh : ∀ (τ x : ℝ), 0 < τ → Summable (fun n =>
+      duhamelSpectralCoeff a τ n * cosineMode n x) := by
+    intro τ x hτ
+    have ⟨_, habs⟩ := cosineCoeff_summable_of_eigenvalue_summable
+      (duhamelSpectralCoeff_eigenvalue_summable src hτ)
+    exact Summable.of_norm (habs.of_nonneg_of_le (fun _ => abs_nonneg _) (fun n => by
+      rw [Real.norm_eq_abs, abs_mul]
+      exact mul_le_of_le_one_right (abs_nonneg _) (hcos_le n x)))
+  -- The tsum over restart coefficients equals hom tsum + duh tsum
+  have hfun_tsum : ∀ p : ℝ × ℝ, p ∈ Set.Ioi (0 : ℝ) ×ˢ (Set.univ : Set ℝ) →
+      ∑' n, localRestartCoeff a₀ a p.1 n * cosineMode n p.2 =
+      (∑' n, Real.exp (-p.1 * unitIntervalCosineEigenvalue n) * a₀ n * cosineMode n p.2) +
+        (∑' n, duhamelSpectralCoeff a p.1 n * cosineMode n p.2) := by
+    intro p hp
+    have hτ' : 0 < p.1 := Set.mem_Ioi.mp (Set.mem_prod.mp hp).1
+    conv_lhs =>
+      rw [show (fun n => localRestartCoeff a₀ a p.1 n * cosineMode n p.2) =
+          fun n => Real.exp (-p.1 * unitIntervalCosineEigenvalue n) * a₀ n * cosineMode n p.2 +
+            duhamelSpectralCoeff a p.1 n * cosineMode n p.2 from by
+          ext n; simp only [localRestartCoeff]; ring]
+    exact Summable.tsum_add (hsum_hom p.1 p.2 hτ') (hsum_duh p.1 p.2 hτ')
+  -- Get joint continuity of each piece as functions on ℝ × ℝ
+  have hcont_hom : ContinuousOn
+      (fun p : ℝ × ℝ => ∑' n,
+        Real.exp (-p.1 * unitIntervalCosineEigenvalue n) * a₀ n * cosineMode n p.2)
+      (Set.Ioi 0 ×ˢ Set.univ) :=
+    homogeneousSeries_jointContinuousOn hM ha₀
+  have hcont_duh : ContinuousOn
+      (fun p : ℝ × ℝ => ∑' n, duhamelSpectralCoeff a p.1 n * cosineMode n p.2)
+      (Set.Ioi 0 ×ˢ Set.univ) :=
+    duhamelSeries_jointContinuousOn src
+  -- The function equals the sum of the two pieces; combine with ContinuousOn.congr
+  apply ContinuousOn.congr (hcont_hom.add hcont_duh)
+  intro p hp
+  simp only [Pi.add_apply]
+  exact hfun_tsum p hp
+
 end RestartSeries
 
 end ShenWork.IntervalSourceCoefficientTimeC1
