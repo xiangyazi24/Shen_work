@@ -179,6 +179,48 @@ theorem paper2_mainTheoremTargets_of_solutionBranchDataFact
     Paper2MainTheoremTargets D p C :=
   paper2_mainTheoremTargets_of_solutionBranchData hData.out
 
+/-- Single-target wrapper for Paper2 Theorem 1.1. -/
+theorem paper2_Theorem_1_1_of_solutionBranchData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hData : Paper2MainSolutionBranchData D p C) :
+    Theorem_1_1 D p :=
+  (paper2_mainTheoremTargets_of_solutionBranchData hData).1
+
+/-- Instance-facing wrapper for Paper2 Theorem 1.1. -/
+theorem paper2_Theorem_1_1_of_solutionBranchDataFact
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p)
+    [hData : Fact (Paper2MainSolutionBranchData D p C)] :
+    Theorem_1_1 D p :=
+  paper2_Theorem_1_1_of_solutionBranchData hData.out
+
+/-- Single-target wrapper for Paper2 Theorem 1.2. -/
+theorem paper2_Theorem_1_2_of_solutionBranchData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hData : Paper2MainSolutionBranchData D p C) :
+    Theorem_1_2 D p :=
+  (paper2_mainTheoremTargets_of_solutionBranchData hData).2.1
+
+/-- Instance-facing wrapper for Paper2 Theorem 1.2. -/
+theorem paper2_Theorem_1_2_of_solutionBranchDataFact
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p)
+    [hData : Fact (Paper2MainSolutionBranchData D p C)] :
+    Theorem_1_2 D p :=
+  paper2_Theorem_1_2_of_solutionBranchData hData.out
+
+/-- Single-target wrapper for Paper2 Theorem 1.3. -/
+theorem paper2_Theorem_1_3_of_solutionBranchData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hData : Paper2MainSolutionBranchData D p C) :
+    Theorem_1_3 D p C :=
+  (paper2_mainTheoremTargets_of_solutionBranchData hData).2.2
+
+/-- Instance-facing wrapper for Paper2 Theorem 1.3. -/
+theorem paper2_Theorem_1_3_of_solutionBranchDataFact
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p)
+    [hData : Fact (Paper2MainSolutionBranchData D p C)] :
+    Theorem_1_3 D p C :=
+  paper2_Theorem_1_3_of_solutionBranchData hData.out
+
 /-- Paper2 Proposition 1.1 together with Theorems 1.1--1.3. -/
 def Paper2LocalAndMainTheoremTargets
     (D : BoundedDomainData) (p : CM2Params)
