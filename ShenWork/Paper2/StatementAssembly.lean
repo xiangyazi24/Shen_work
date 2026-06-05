@@ -38,6 +38,90 @@ theorem paper2_bootstrapEstimateTargets_of_branchDataFact
     Paper2BootstrapEstimateTargets D p :=
   paper2_bootstrapEstimateTargets_of_branchData hData.out
 
+/-- Single-target wrapper for Paper2 Lemma 2.6. -/
+theorem paper2_Lemma_2_6_of_branchData
+    {D : BoundedDomainData} {p : CM2Params}
+    (hData : Paper2BootstrapEstimateBranchData D p) :
+    Lemma_2_6 D :=
+  Lemma_2_6.of_branchData hData
+
+/-- Instance-facing wrapper for Paper2 Lemma 2.6. -/
+theorem paper2_Lemma_2_6_of_branchDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    [hData : Fact (Paper2BootstrapEstimateBranchData D p)] :
+    Lemma_2_6 D :=
+  paper2_Lemma_2_6_of_branchData hData.out
+
+/-- Single-target wrapper for Paper2 Lemma 2.7. -/
+theorem paper2_Lemma_2_7_of_branchData
+    {D : BoundedDomainData} {p : CM2Params}
+    (hData : Paper2BootstrapEstimateBranchData D p) :
+    Lemma_2_7 D :=
+  Lemma_2_7.of_branchData hData
+
+/-- Instance-facing wrapper for Paper2 Lemma 2.7. -/
+theorem paper2_Lemma_2_7_of_branchDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    [hData : Fact (Paper2BootstrapEstimateBranchData D p)] :
+    Lemma_2_7 D :=
+  paper2_Lemma_2_7_of_branchData hData.out
+
+/-- Single-target wrapper for Paper2 Proposition 2.2. -/
+theorem paper2_Proposition_2_2_of_branchData
+    {D : BoundedDomainData} {p : CM2Params}
+    (hData : Paper2BootstrapEstimateBranchData D p) :
+    Proposition_2_2 D p :=
+  Proposition_2_2.of_branchData hData
+
+/-- Instance-facing wrapper for Paper2 Proposition 2.2. -/
+theorem paper2_Proposition_2_2_of_branchDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    [hData : Fact (Paper2BootstrapEstimateBranchData D p)] :
+    Proposition_2_2 D p :=
+  paper2_Proposition_2_2_of_branchData hData.out
+
+/-- Single-target wrapper for Paper2 Proposition 2.3. -/
+theorem paper2_Proposition_2_3_of_branchData
+    {D : BoundedDomainData} {p : CM2Params}
+    (hData : Paper2BootstrapEstimateBranchData D p) :
+    Proposition_2_3 D p :=
+  Proposition_2_3.of_branchData hData
+
+/-- Instance-facing wrapper for Paper2 Proposition 2.3. -/
+theorem paper2_Proposition_2_3_of_branchDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    [hData : Fact (Paper2BootstrapEstimateBranchData D p)] :
+    Proposition_2_3 D p :=
+  paper2_Proposition_2_3_of_branchData hData.out
+
+/-- Single-target wrapper for Paper2 Proposition 2.4. -/
+theorem paper2_Proposition_2_4_of_branchData
+    {D : BoundedDomainData} {p : CM2Params}
+    (hData : Paper2BootstrapEstimateBranchData D p) :
+    Proposition_2_4 D p :=
+  Proposition_2_4.of_branchData hData
+
+/-- Instance-facing wrapper for Paper2 Proposition 2.4. -/
+theorem paper2_Proposition_2_4_of_branchDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    [hData : Fact (Paper2BootstrapEstimateBranchData D p)] :
+    Proposition_2_4 D p :=
+  paper2_Proposition_2_4_of_branchData hData.out
+
+/-- Single-target wrapper for Paper2 Proposition 2.5. -/
+theorem paper2_Proposition_2_5_of_branchData
+    {D : BoundedDomainData} {p : CM2Params}
+    (hData : Paper2BootstrapEstimateBranchData D p) :
+    Proposition_2_5 D p :=
+  Proposition_2_5.of_branchData hData
+
+/-- Instance-facing wrapper for Paper2 Proposition 2.5. -/
+theorem paper2_Proposition_2_5_of_branchDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    [hData : Fact (Paper2BootstrapEstimateBranchData D p)] :
+    Proposition_2_5 D p :=
+  paper2_Proposition_2_5_of_branchData hData.out
+
 /-! ## Proposition 1.1 local-existence target -/
 
 /-- Paper2 Proposition 1.1 target. -/
