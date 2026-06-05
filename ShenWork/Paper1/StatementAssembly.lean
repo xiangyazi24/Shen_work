@@ -261,6 +261,41 @@ theorem paper1_Proposition_1_2_of_frontierData
     Proposition_1_2 :=
   (paper1_propositionTargets_of_frontierData hData).2
 
+/-! ## Combined statement targets -/
+
+/-- Paper1 statement targets currently assembled by this file. -/
+def Paper1CombinedStatementTargets : Prop :=
+  Paper1MainStatementTargets ∧
+    Paper1PropositionTargets ∧
+      Paper1Lemma25Targets ∧
+        Paper1Lemma51And52Targets
+
+/-- Bundled data for the Paper1 combined statement-target assembly. -/
+structure Paper1CombinedStatementData
+    (cStarStarFn : CMParams → ℝ → ℝ) : Prop where
+  main : Paper1MainResultsData cStarStarFn
+  propositions : Paper1PropositionFrontierData
+  lemma51 : Paper1Lemma51FrontierData
+  lemma52 : Paper1Lemma52FrontierData
+
+/-- Assemble the Paper1 statement targets covered by existing data records. -/
+theorem paper1_combinedStatementTargets_of_data
+    {cStarStarFn : CMParams → ℝ → ℝ}
+    (hData : Paper1CombinedStatementData cStarStarFn) :
+    Paper1CombinedStatementTargets :=
+  ⟨paper1_mainStatementTargets_of_mainResultsData hData.main,
+    paper1_propositionTargets_of_frontierData hData.propositions,
+    paper1_lemma25Targets,
+    paper1_lemma51And52Targets_of_frontierData
+      hData.lemma51 hData.lemma52⟩
+
+/-- Instance-facing wrapper for the combined Paper1 statement targets. -/
+theorem paper1_combinedStatementTargets_of_dataFact
+    (cStarStarFn : CMParams → ℝ → ℝ)
+    [hData : Fact (Paper1CombinedStatementData cStarStarFn)] :
+    Paper1CombinedStatementTargets :=
+  paper1_combinedStatementTargets_of_data hData.out
+
 end
 
 end ShenWork.Paper1
