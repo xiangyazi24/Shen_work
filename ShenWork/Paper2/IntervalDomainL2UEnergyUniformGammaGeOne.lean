@@ -1043,8 +1043,8 @@ theorem GlobalSolutionGluingFromReachability_of_regime_gammaGeOne
   GlobalSolutionGluingFromReachability_of_bounded p
     (boundednessHypothesis_of_uniformSupBoundZeroM hγ_ge_one
       (uniformLiftBoundZeroM_of_regime p hχ ha hb hpos
-        (fun hsol₁ hsol₂ htr₁ htr₂ => (hpos hsol₁ hsol₂ htr₁ htr₂).admissible))
-      (fun hsol₁ hsol₂ htr₁ htr₂ => (hpos hsol₁ hsol₂ htr₁ htr₂).admissible))
+        (fun hsol₁ hsol₂ htr₁ htr₂ => (hpos hsol₁ hsol₂ htr₁ htr₂).admissible.1))
+      (fun hsol₁ hsol₂ htr₁ htr₂ => (hpos hsol₁ hsol₂ htr₁ htr₂).admissible.1))
 
 /-- Instance-facing γ≥1 regime gluing theorem. -/
 theorem GlobalSolutionGluingFromReachability_of_regime_gammaGeOneFact

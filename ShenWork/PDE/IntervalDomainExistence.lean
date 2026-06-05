@@ -42,11 +42,9 @@ def constOnInterval (c : ℝ) : intervalDomainPoint → ℝ := fun _ => c
 
 lemma constOnInterval_pos {c : ℝ} (hc : 0 < c) :
     PositiveInitialDatum intervalDomain (constOnInterval c) := by
-  refine ⟨?_, ?_⟩
-  · -- `BddAbove (range |·|)`: the range of `|constOnInterval c|` is the singleton `{|c|}`.
-    refine ⟨|c|, ?_⟩
-    rintro _ ⟨x, rfl⟩
-    simp [constOnInterval]
+  refine ⟨⟨⟨|c|, ?_⟩, ?_⟩, ?_⟩
+  · rintro _ ⟨x, rfl⟩; simp [constOnInterval]
+  · exact continuous_const
   · intro x _hx; exact hc
 
 /-! ### Lift of constant functions on intervalDomain -/

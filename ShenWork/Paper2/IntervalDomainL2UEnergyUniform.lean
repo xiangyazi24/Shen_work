@@ -859,8 +859,8 @@ theorem GlobalSolutionGluingFromReachability_of_regimeAndLowerBound
   -- (`BddAbove (range |·|)`), so `hpos.admissible` directly supplies it.
   GlobalSolutionGluingFromReachability_of_uniformSupBound p
     (uniformLiftBound_of_regimeAndLowerBound p hχ ha hb hpos
-      (fun hsol₁ hsol₂ htr₁ htr₂ => (hpos hsol₁ hsol₂ htr₁ htr₂).admissible) hlower)
-    (fun hsol₁ hsol₂ htr₁ htr₂ => (hpos hsol₁ hsol₂ htr₁ htr₂).admissible)
+      (fun hsol₁ hsol₂ htr₁ htr₂ => (hpos hsol₁ hsol₂ htr₁ htr₂).admissible.1) hlower)
+    (fun hsol₁ hsol₂ htr₁ htr₂ => (hpos hsol₁ hsol₂ htr₁ htr₂).admissible.1)
 
 end
 

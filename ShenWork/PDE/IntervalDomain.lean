@@ -2984,6 +2984,8 @@ theorem intervalDomainNormalDeriv_const_endpoint_zero (c : ℝ)
     rw [hEq.derivWithin_eq_of_mem Set.right_mem_Iic]
     simp
 
+instance : TopologicalSpace intervalDomainPoint := instTopologicalSpaceSubtype
+
 /-- Concrete bounded-domain data for the unit interval [0,1] with Neumann endpoint
 conditions (normal derivative is explicitly `0` on `{0,1}`). -/
 def intervalDomain : ShenWork.Paper2.BoundedDomainData where
@@ -3000,7 +3002,7 @@ def intervalDomain : ShenWork.Paper2.BoundedDomainData where
   chemotaxisDiv := intervalDomainChemotaxisDiv
   crossDiffusionEnergyTerm := intervalDomainCrossDiffusionEnergyTerm
   normalDeriv := intervalDomainNormalDeriv
-  initialAdmissible := fun u₀ => BddAbove (Set.range fun x => |u₀ x|)
+  initialAdmissible := fun u₀ => BddAbove (Set.range fun x => |u₀ x|) ∧ Continuous u₀
   classicalRegularity := intervalDomainClassicalRegularity
 
 end ShenWork.IntervalDomain

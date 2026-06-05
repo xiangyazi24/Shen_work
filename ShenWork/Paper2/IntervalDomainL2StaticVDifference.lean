@@ -1075,7 +1075,7 @@ theorem lift_u_uniformPositive_on_halfHorizon
         simp [intervalDomainLift, z.2]
       simpa only [hlift] using hMz
     -- `u₀` admissibility = BddAbove of `range |u₀|`.
-    have hu₀_bddR : BddAbove (Set.range (fun z : intervalDomainPoint => |u₀ z|)) := hAdm
+    have hu₀_bddR : BddAbove (Set.range (fun z : intervalDomainPoint => |u₀ z|)) := hAdm.1
     -- BddAbove of `range |u τ - u₀|` via triangle inequality.
     have hdiff_bddR :
         BddAbove (Set.range (fun z : intervalDomainPoint => |u τ z - u₀ z|)) := by

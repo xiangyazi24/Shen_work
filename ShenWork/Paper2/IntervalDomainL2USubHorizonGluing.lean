@@ -381,7 +381,7 @@ theorem subHorizonUniformLiftBound_of_regimeAndPosDatumLowerBound
     have hu₀ : PositiveInitialDatum intervalDomain u₀ := hpos hsol₁ hsol₂ htr₁ htr₂
     have hu₀_adm : intervalDomain.initialAdmissible u₀ := hu₀.admissible
     have hbddu₀ : BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|)) :=
-      hu₀_adm
+      hu₀_adm.1
     have hPosLow : IntervalDomainPosDatumLowerBound u₀ :=
       hposLower hsol₁ hsol₂ htr₁ htr₂
     -- Half-horizon uniform lower bound for `u₁` on `(0, T']`.
@@ -458,7 +458,7 @@ theorem GlobalSolutionGluingFromReachability_of_regimeAndPosDatumLowerBound
   GlobalSolutionGluingFromReachability_of_subHorizonUniformBound p
     (subHorizonUniformLiftBound_of_regimeAndPosDatumLowerBound
       p hχ ha hb hpos hposLower)
-    (fun hsol₁ hsol₂ htr₁ htr₂ => (hpos hsol₁ hsol₂ htr₁ htr₂).admissible)
+    (fun hsol₁ hsol₂ htr₁ htr₂ => (hpos hsol₁ hsol₂ htr₁ htr₂).admissible.1)
 
 end
 

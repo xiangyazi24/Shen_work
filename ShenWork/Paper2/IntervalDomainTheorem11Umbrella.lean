@@ -914,7 +914,7 @@ theorem Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound
         PositiveInitialDatum intervalDomain u₀ →
           BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)) := by
     intro u₀ hu₀
-    exact hu₀.admissible
+    exact hu₀.admissible.1
   have hexist :
       ShenWork.IntervalDomainExistence.IntervalDomainGlobalSolutionExists p := by
     refine intervalDomainGlobalSolutionExists_of_local_global_bounded_initial
@@ -1043,7 +1043,7 @@ theorem Theorem_1_1_intervalDomain_via_regime_and_posDatumLowerBound_no_hreach
         PositiveInitialDatum intervalDomain u₀ →
           BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)) := by
     intro u₀ hu₀
-    exact hu₀.admissible
+    exact hu₀.admissible.1
   -- Step 2. Spatial sup-norm-controls-pointwise on every branch from
   --         time-slice range boundedness.
   have hsupControls :
@@ -1391,7 +1391,7 @@ theorem
         PositiveInitialDatum intervalDomain u₀ →
           BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)) := by
     intro u₀ hu₀
-    exact hu₀.admissible
+    exact hu₀.admissible.1
   -- Per-branch gluing from regime + positive-datum lower-bound witness.
   have hglue :
       ShenWork.IntervalDomainExistence.GlobalSolutionGluingFromReachability p :=
@@ -1612,7 +1612,7 @@ theorem
         PositiveInitialDatum intervalDomain u₀ →
           BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|)) := by
     intro u₀ hu₀
-    exact hu₀.admissible
+    exact hu₀.admissible.1
   -- Step 2. Internal `hrangeBounded` from conjunct (7) of the classical
   --         regularity bundle.
   have hrangeBounded :
@@ -1803,8 +1803,8 @@ theorem realize_of_regime_gammaGeOne
       IntervalDomainL2UBoundednessHypothesis p :=
     boundednessHypothesis_of_uniformSupBoundZeroM hγ_ge_one
       (uniformLiftBoundZeroM_of_regime p hχ ha hb hposWit
-        (fun hsol₁ hsol₂ htr₁ htr₂ => (hposWit hsol₁ hsol₂ htr₁ htr₂).admissible))
-      (fun hsol₁ hsol₂ htr₁ htr₂ => (hposWit hsol₁ hsol₂ htr₁ htr₂).admissible)
+        (fun hsol₁ hsol₂ htr₁ htr₂ => (hposWit hsol₁ hsol₂ htr₁ htr₂).admissible.1))
+      (fun hsol₁ hsol₂ htr₁ htr₂ => (hposWit hsol₁ hsol₂ htr₁ htr₂).admissible.1)
   have hbdd_datum :
       IntervalDomainL2UBoundedDatumUniform p :=
     intervalDomainL2UBoundedDatumUniform_of_bounded hbdd_uniform
@@ -1943,8 +1943,7 @@ private lemma exists_supBound_of_positiveInitialDatum
     {u₀ : intervalDomain.Point → ℝ}
     (hu₀ : PositiveInitialDatum intervalDomain u₀) :
     ∃ M : ℝ, 0 < M ∧ ∀ x : intervalDomain.Point, |u₀ x| ≤ M := by
-  -- `hu₀.admissible : BddAbove (range |u₀|)`.
-  obtain ⟨M₀, hM₀⟩ := hu₀.admissible
+  obtain ⟨M₀, hM₀⟩ := hu₀.admissible.1
   -- M₀ is an upper bound for the range; |u₀ x| ≤ M₀ for every x.
   -- Pick M = max M₀ 1 > 0.
   refine ⟨max M₀ 1, lt_of_lt_of_le zero_lt_one (le_max_right _ _), ?_⟩
