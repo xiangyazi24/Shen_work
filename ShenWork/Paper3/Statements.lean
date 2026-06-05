@@ -10048,6 +10048,94 @@ theorem Theorem_2_1.of_uniformPersistenceRaw_partsFact
   Theorem_2_1.of_uniformPersistenceRaw_parts
     h1.out h2.out h3.out h4.out
 
+/-- Bundled raw uniform-persistence frontiers for Paper3 Theorem 2.1. -/
+structure Paper3UniformPersistenceRawData
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper3Constants D p) :
+    Prop where
+  part1 : UniformPersistencePart1Raw D p
+  part2 : UniformPersistencePart2Raw D p
+  part3 : UniformPersistencePart3Raw D p
+  part4 :
+    UniformPersistencePart4Raw D p
+      C.eventualMinimalUBound C.gaussianLowerConst
+
+/-- Bundle-facing Paper3 Theorem 2.1 from the four raw persistence
+frontiers. -/
+theorem Theorem_2_1.of_uniformPersistenceRawData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hData : Paper3UniformPersistenceRawData D p C) :
+    Theorem_2_1 D p C :=
+  Theorem_2_1.of_uniformPersistenceRaw_parts
+    hData.part1 hData.part2 hData.part3 hData.part4
+
+/-- Instance-facing Paper3 Theorem 2.1 from a bundled raw persistence
+frontier. -/
+theorem Theorem_2_1.of_uniformPersistenceRawDataFact
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    [hData : Fact (Paper3UniformPersistenceRawData D p C)] :
+    Theorem_2_1 D p C :=
+  Theorem_2_1.of_uniformPersistenceRawData hData.out
+
+/-- Single-target wrapper for Paper3 Theorem 2.1 part 1 from the bundled raw
+persistence frontiers. -/
+theorem Theorem_2_1_part1.of_uniformPersistenceRawData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hData : Paper3UniformPersistenceRawData D p C) :
+    Theorem_2_1_part1 D p :=
+  (Theorem_2_1.of_uniformPersistenceRawData hData).1
+
+/-- Instance-facing single-target wrapper for Paper3 Theorem 2.1 part 1. -/
+theorem Theorem_2_1_part1.of_uniformPersistenceRawDataFact
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    [hData : Fact (Paper3UniformPersistenceRawData D p C)] :
+    Theorem_2_1_part1 D p :=
+  Theorem_2_1_part1.of_uniformPersistenceRawData hData.out
+
+/-- Single-target wrapper for Paper3 Theorem 2.1 part 2 from the bundled raw
+persistence frontiers. -/
+theorem Theorem_2_1_part2.of_uniformPersistenceRawData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hData : Paper3UniformPersistenceRawData D p C) :
+    Theorem_2_1_part2 D p :=
+  (Theorem_2_1.of_uniformPersistenceRawData hData).2.1
+
+/-- Instance-facing single-target wrapper for Paper3 Theorem 2.1 part 2. -/
+theorem Theorem_2_1_part2.of_uniformPersistenceRawDataFact
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    [hData : Fact (Paper3UniformPersistenceRawData D p C)] :
+    Theorem_2_1_part2 D p :=
+  Theorem_2_1_part2.of_uniformPersistenceRawData hData.out
+
+/-- Single-target wrapper for Paper3 Theorem 2.1 part 3 from the bundled raw
+persistence frontiers. -/
+theorem Theorem_2_1_part3.of_uniformPersistenceRawData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hData : Paper3UniformPersistenceRawData D p C) :
+    Theorem_2_1_part3 D p :=
+  (Theorem_2_1.of_uniformPersistenceRawData hData).2.2.1
+
+/-- Instance-facing single-target wrapper for Paper3 Theorem 2.1 part 3. -/
+theorem Theorem_2_1_part3.of_uniformPersistenceRawDataFact
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    [hData : Fact (Paper3UniformPersistenceRawData D p C)] :
+    Theorem_2_1_part3 D p :=
+  Theorem_2_1_part3.of_uniformPersistenceRawData hData.out
+
+/-- Single-target wrapper for Paper3 Theorem 2.1 part 4 from the bundled raw
+persistence frontiers. -/
+theorem Theorem_2_1_part4.of_uniformPersistenceRawData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    (hData : Paper3UniformPersistenceRawData D p C) :
+    Theorem_2_1_part4 D p C :=
+  (Theorem_2_1.of_uniformPersistenceRawData hData).2.2.2
+
+/-- Instance-facing single-target wrapper for Paper3 Theorem 2.1 part 4. -/
+theorem Theorem_2_1_part4.of_uniformPersistenceRawDataFact
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    [hData : Fact (Paper3UniformPersistenceRawData D p C)] :
+    Theorem_2_1_part4 D p C :=
+  Theorem_2_1_part4.of_uniformPersistenceRawData hData.out
+
 /-- Generic closure: Paper3 Theorem 2.2 from the four branches. -/
 theorem Theorem_2_2.of_parts
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
