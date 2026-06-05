@@ -38,6 +38,40 @@ theorem paper2_bootstrapEstimateTargets_of_branchDataFact
     Paper2BootstrapEstimateTargets D p :=
   paper2_bootstrapEstimateTargets_of_branchData hData.out
 
+/-! ## Proposition 1.1 local-existence target -/
+
+/-- Paper2 Proposition 1.1 target. -/
+def Paper2Proposition11Target
+    (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  Proposition_1_1 D p
+
+/-- Branch data for Paper2 Proposition 1.1.  This is the exact local
+existence/blow-up alternative target shape exposed by `Statements`. -/
+structure Paper2Proposition11ExistenceData
+    (D : BoundedDomainData) (p : CM2Params) : Prop where
+  existence :
+    ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+      ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+        IsPaper2ClassicalSolution D p Tmax u v ∧
+          InitialTrace D u₀ u ∧
+          FiniteHorizonAlternative D Tmax u ∧
+          (1 ≤ p.m → MGeOneFiniteHorizonAlternative D Tmax u)
+
+/-- Assemble Paper2 Proposition 1.1 from its statement-layer existence
+branch. -/
+theorem paper2_Proposition_1_1_of_existenceData
+    {D : BoundedDomainData} {p : CM2Params}
+    (hData : Paper2Proposition11ExistenceData D p) :
+    Paper2Proposition11Target D p :=
+  Proposition_1_1.of_assumed_existence_branch hData.existence
+
+/-- Instance-facing wrapper for Paper2 Proposition 1.1. -/
+theorem paper2_Proposition_1_1_of_existenceDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    [hData : Fact (Paper2Proposition11ExistenceData D p)] :
+    Paper2Proposition11Target D p :=
+  paper2_Proposition_1_1_of_existenceData hData.out
+
 /-! ## Theorem 1.1--1.3 targets -/
 
 /-- Paper2 main theorem targets covered by the solution-branch package. -/
@@ -60,6 +94,36 @@ theorem paper2_mainTheoremTargets_of_solutionBranchDataFact
     [hData : Fact (Paper2MainSolutionBranchData D p C)] :
     Paper2MainTheoremTargets D p C :=
   paper2_mainTheoremTargets_of_solutionBranchData hData.out
+
+/-- Paper2 Proposition 1.1 together with Theorems 1.1--1.3. -/
+def Paper2LocalAndMainTheoremTargets
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper2Constants p) : Prop :=
+  Proposition_1_1 D p ∧ Paper2MainTheoremTargets D p C
+
+/-- Bundled data for Paper2 Proposition 1.1 and Theorems 1.1--1.3. -/
+structure Paper2LocalAndMainTheoremData
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper2Constants p) : Prop where
+  localExistence : Paper2Proposition11ExistenceData D p
+  main : Paper2MainSolutionBranchData D p C
+
+/-- Assemble Paper2 Proposition 1.1 and Theorems 1.1--1.3 from their existing
+statement-layer data records. -/
+theorem paper2_localAndMainTheoremTargets_of_data
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hData : Paper2LocalAndMainTheoremData D p C) :
+    Paper2LocalAndMainTheoremTargets D p C :=
+  ⟨paper2_Proposition_1_1_of_existenceData hData.localExistence,
+    paper2_mainTheoremTargets_of_solutionBranchData hData.main⟩
+
+/-- Instance-facing wrapper for Paper2 Proposition 1.1 and Theorems
+1.1--1.3. -/
+theorem paper2_localAndMainTheoremTargets_of_dataFact
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p)
+    [hData : Fact (Paper2LocalAndMainTheoremData D p C)] :
+    Paper2LocalAndMainTheoremTargets D p C :=
+  paper2_localAndMainTheoremTargets_of_data hData.out
 
 end
 
