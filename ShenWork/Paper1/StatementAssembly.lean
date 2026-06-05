@@ -81,6 +81,24 @@ theorem paper1_Theorem_1_3_of_mainlineExistence
     Theorem_1_3 :=
   (paper1_mainlineStatementTargets_of_mainlineExistence hexist).2
 
+/-! ## Lemma 2.5 targets -/
+
+/-- Paper1 Lemma 2.5 together with its Jensen-step support target. -/
+def Paper1Lemma25Targets : Prop :=
+  Lemma_2_5 ∧ Lemma_2_5_JensenStep
+
+/-- Single-target wrapper for Paper1 Lemma 2.5. -/
+theorem paper1_Lemma_2_5 : Lemma_2_5 :=
+  Lemma_2_5_proved
+
+/-- Single-target wrapper for the Paper1 Lemma 2.5 Jensen step. -/
+theorem paper1_Lemma_2_5_JensenStep : Lemma_2_5_JensenStep :=
+  Lemma_2_5_JensenStep_proved
+
+/-- Bundle wrapper for the closed Paper1 Lemma 2.5 targets. -/
+theorem paper1_lemma25Targets : Paper1Lemma25Targets :=
+  ⟨paper1_Lemma_2_5, paper1_Lemma_2_5_JensenStep⟩
+
 /-! ## Proposition 1.x targets -/
 
 /-- Paper1 Proposition 1.1 and Proposition 1.2 targets. -/
