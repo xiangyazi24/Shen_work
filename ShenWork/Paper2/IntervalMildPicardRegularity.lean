@@ -900,4 +900,75 @@ theorem picardIterateHasC2Slices_zero
   -- Neumann BC at x=1: unconditional for intervalDomainLift
   · exact ShenWork.IntervalFullKernelRegularity.deriv_intervalDomainLift_eq_zero_at_one _
 
+/-! ### Induction step: C² of iterate n → C² of iterate n+1
+
+The induction step uses `RestartCosineRepresentation` from the bootstrap file.
+Given:
+- Bounded restart coefficients at the half-step (from Picard ball membership)
+- `DuhamelSourceTimeC1` for the source (from C² of iterate n + logistic assembly)
+- Spectral agreement: the iterate agrees with the restart cosine series on `[0,1]`
+- Nonvanishing at endpoints (from positivity of iterates)
+
+we get `ContDiffOn ℝ 2` + Neumann BC from `restartDuhamelSlice_conjunct7`.
+
+The construction below packages this as a clean induction theorem. The spectral
+agreement (`hagree`) remains a hypothesis — it follows from the spectral
+interchange theorems but is technically involved for the gradient Duhamel form. -/
+
+/-- The data needed to perform one step of the Picard regularity induction:
+DuhamelSourceTimeC1 of the source, bounded restart coefficients, spectral
+agreement on `[0,1]`, and nonvanishing at endpoints. -/
+structure PicardRegularityStepData
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (T : ℝ) (n : ℕ) where
+  -- For each positive time t ≤ T, the half-step restart data:
+  -- Bounded restart coefficients
+  M_restart : ℝ
+  ha₀_bound : ∀ t, 0 < t → t ≤ T →
+    ∀ k, |ShenWork.IntervalNeumannFullKernel.cosineCoeffs
+      (intervalDomainLift (picardIter p u₀ (n + 1) (t / 2))) k| ≤ M_restart
+  -- DuhamelSourceTimeC1 for the source at each restart
+  source : ℝ → ℝ → ℕ → ℝ
+  src : ∀ t, 0 < t → t ≤ T → DuhamelSourceTimeC1 (source t)
+  -- Spectral agreement on [0,1]
+  hagree : ∀ t, 0 < t → t ≤ T →
+    Set.EqOn (intervalDomainLift (picardIter p u₀ (n + 1) t))
+      (fun x : ℝ =>
+        ∑' k : ℕ,
+          restartDuhamelCoeff
+            (ShenWork.IntervalNeumannFullKernel.cosineCoeffs
+              (intervalDomainLift (picardIter p u₀ (n + 1) (t / 2))))
+            (source t) (t / 2) k * cosineMode k x)
+      (Set.Icc (0 : ℝ) 1)
+  -- Nonvanishing at endpoints (from positivity)
+  hne0 : ∀ t, 0 < t → t ≤ T →
+    intervalDomainLift (picardIter p u₀ (n + 1) t) 0 ≠ 0
+  hne1 : ∀ t, 0 < t → t ≤ T →
+    intervalDomainLift (picardIter p u₀ (n + 1) t) 1 ≠ 0
+
+/-- **Picard regularity induction step.** Given the step data, the (n+1)-th
+iterate has C² slices with Neumann BC. -/
+theorem picardIterateHasC2Slices_succ
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {T : ℝ} {n : ℕ}
+    (S : PicardRegularityStepData p u₀ T n) :
+    PicardIterateHasC2Slices p u₀ T (n + 1) := by
+  intro t ht htT
+  have ht2 : 0 < t / 2 := by linarith
+  exact restartDuhamelSlice_conjunct7
+    ht2 (S.ha₀_bound t ht htT) (S.src t ht htT)
+    (S.hagree t ht htT) (S.hne0 t ht htT) (S.hne1 t ht htT)
+
+/-- **Full Picard regularity by induction.** Given step data at every level,
+all iterates have C² slices. -/
+theorem picardIterateHasC2Slices_all
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {T : ℝ}
+    (hf_cont : Continuous (intervalDomainLift u₀))
+    {B : ℝ} (hB : 0 ≤ B)
+    (hbound : ∀ x : intervalDomainPoint, |u₀ x| ≤ B)
+    (steps : ∀ n, PicardRegularityStepData p u₀ T n) :
+    ∀ n, PicardIterateHasC2Slices p u₀ T n := by
+  intro n
+  induction n with
+  | zero => exact picardIterateHasC2Slices_zero hf_cont hB hbound T
+  | succ n _ih => exact picardIterateHasC2Slices_succ (steps n)
+
 end ShenWork.IntervalMildPicardRegularity
