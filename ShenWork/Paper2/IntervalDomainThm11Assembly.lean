@@ -131,6 +131,38 @@ Both paths are wired into RegularityFrontierAssembly (u-side + v-side).
 Genuine frontier: **F1** (uniform continuation) only.
 F2 (limit source DuhamelSourceTimeC1) feeds into
 `HasResolverDirectSpectralData`, which is the remaining link.
+
+## F1 decomposition (from IntervalDomainRestartExtension)
+
+`IntervalDomainUniformLocalExistence` =
+  `QuantitativeLocalExistence` + `RestartAndGlueWorks` + `hSupNorm`
+
+| Sub-hypothesis | Status | Source |
+|----------------|--------|--------|
+| QuantitativeLocalExistence | δ(M) defined | picardDelta = 1/(1+L(M)), contraction rate proved |
+| RestartAndGlueWorks | hypothesis | time-shift (proved) + overlap glue (G6) + locality |
+| hSupNorm | composable | Lemma 3.1 (uniform_lift_upper_bound_of_regime) |
+| RegularityTimeShiftWorks | hypothesis | tedious but mechanical field verification |
+
+## Complete dependency DAG
+
+```
+Picard FP (unconditional)
+  ↓
+DuhamelSourceTimeC1 limit (G2.5) ← F2 (iterate convergence)
+  ↓
+HasRestartCosineRepresentations → regularity bootstrap
+  ↓
+G4 spectral time derivatives → 15/15 frontier fields
+  ↓
+GradientMildClassicalFrontierCoreData (066c03f wiring)
+  ↓
+hMildLocal → hlocal
+  ↓
+hUniform (F1 = QuantitativeLocal + RestartAndGlue + SupNorm)
+  ↓
+γ≥1 umbrella (no hposWit, G6) → Theorem_1_1
+```
 -/
 
 end ShenWork.Paper2.Theorem11Assembly
