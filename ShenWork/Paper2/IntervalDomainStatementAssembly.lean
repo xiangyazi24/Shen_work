@@ -300,6 +300,42 @@ theorem intervalDomainPaper2_Theorems_1_2_and_1_3_of_frontierDataFact
   intervalDomainPaper2_Theorems_1_2_and_1_3_of_frontierData
     p C S hData.out
 
+/-- Single-target interval-domain wrapper for Paper2 Theorem 1.2. -/
+theorem intervalDomainPaper2_Theorem_1_2_of_frontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (hData : IntervalDomainPaper2Theorem12And13FrontierData p C S) :
+    Theorem_1_2 intervalDomain p :=
+  (intervalDomainPaper2_Theorems_1_2_and_1_3_of_frontierData
+    p C S hData).1
+
+/-- Instance-facing interval-domain wrapper for Paper2 Theorem 1.2. -/
+theorem intervalDomainPaper2_Theorem_1_2_of_frontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    [hData : Fact (IntervalDomainPaper2Theorem12And13FrontierData p C S)] :
+    Theorem_1_2 intervalDomain p :=
+  intervalDomainPaper2_Theorem_1_2_of_frontierData
+    p C S hData.out
+
+/-- Single-target interval-domain wrapper for Paper2 Theorem 1.3. -/
+theorem intervalDomainPaper2_Theorem_1_3_of_frontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (hData : IntervalDomainPaper2Theorem12And13FrontierData p C S) :
+    Theorem_1_3 intervalDomain p C :=
+  (intervalDomainPaper2_Theorems_1_2_and_1_3_of_frontierData
+    p C S hData).2
+
+/-- Instance-facing interval-domain wrapper for Paper2 Theorem 1.3. -/
+theorem intervalDomainPaper2_Theorem_1_3_of_frontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    [hData : Fact (IntervalDomainPaper2Theorem12And13FrontierData p C S)] :
+    Theorem_1_3 intervalDomain p C :=
+  intervalDomainPaper2_Theorem_1_3_of_frontierData
+    p C S hData.out
+
 /-! ## Main theorem bundles -/
 
 /-- Concrete interval-domain Paper 2 main theorem targets. -/
