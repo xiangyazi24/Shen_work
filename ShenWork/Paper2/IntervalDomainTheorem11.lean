@@ -57,6 +57,44 @@ theorem IntervalDomainExistence_of_local_global_bounded_initial
   exact ShenWork.IntervalDomainExistence.initialSupNormApproach_intervalDomain
     p u₀ hu₀ (hboundedInitial u₀ hu₀) hT hsol htrace hε
 
+/-- Bundled local/global interval-domain existence frontiers with the concrete
+bounded-initial-data input used to discharge `initialSupNormApproach`. -/
+structure IntervalDomainLocalGlobalBoundedInitialData (p : CM2Params) : Prop where
+  localExistence :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u
+  boundedInitial :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        BddAbove (Set.range (fun x : intervalDomain.Point => |u₀ x|))
+  globalExtension :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+        IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+        InitialTrace intervalDomain u₀ u →
+          IsPaper2BoundedBefore intervalDomain Tmax u →
+            1 ≤ p.m →
+              IsPaper2GlobalClassicalSolution intervalDomain p u v
+
+/-- Bundled local/global interval-domain existence wrapper. -/
+theorem IntervalDomainExistence_of_local_global_bounded_initialData
+    (p : CM2Params)
+    (H : IntervalDomainLocalGlobalBoundedInitialData p) :
+    IntervalDomainTheorem11.IntervalDomainExistence p :=
+  IntervalDomainExistence_of_local_global_bounded_initial
+    p H.localExistence H.boundedInitial H.globalExtension
+
+/-- Instance-facing bundled local/global interval-domain existence wrapper. -/
+theorem IntervalDomainExistence_of_local_global_bounded_initialDataFact
+    (p : CM2Params)
+    [H : Fact (IntervalDomainLocalGlobalBoundedInitialData p)] :
+    IntervalDomainTheorem11.IntervalDomainExistence p :=
+  IntervalDomainExistence_of_local_global_bounded_initialData p H.out
+
 /-! ### H1.2/H1.3/H1.4 conditional closures -/
 
 /-- H1.2 front-line closure: the interval-domain Moser lemma follows from the
@@ -226,6 +264,14 @@ theorem Lemma_4_1_intervalDomain_of_GN_frontier
     (hGN : IntervalDomainLemma41.IntervalDomainInterpolation) :
     Lemma_4_1 intervalDomain p :=
   IntervalDomainLemma41.Lemma_4_1_intervalDomain_of_interpolation hGN p
+
+/-- Instance-facing wrapper for the interval-domain Gagliardo-Nirenberg
+frontier closure. -/
+theorem Lemma_4_1_intervalDomain_of_GN_frontierFact
+    (p : CM2Params)
+    [hGN : Fact IntervalDomainLemma41.IntervalDomainInterpolation] :
+    Lemma_4_1 intervalDomain p :=
+  Lemma_4_1_intervalDomain_of_GN_frontier p hGN.out
 
 /-- H1.4 closure from the Moser/frontier closure and the PDE energy derivation
 from the cross-diffusion bootstrap estimate. -/
