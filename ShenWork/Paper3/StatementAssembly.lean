@@ -319,6 +319,114 @@ theorem paper3_compactnessRegularizationTargets_of_rawDataFact
     Paper3CompactnessRegularizationTargets D p K N C :=
   paper3_compactnessRegularizationTargets_of_rawData hData.out
 
+/-- Single-target wrapper for Paper3 Lemma 3.1. -/
+theorem paper3_Lemma_3_1_of_compactnessRawData
+    {D : BoundedDomainData} {p : CM2Params}
+    {K : CompactnessData D} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (hData : Paper3CompactnessRegularizationRawData D p K N C) :
+    Lemma_3_1 D p :=
+  (paper3_compactnessRegularizationTargets_of_rawData hData).1
+
+/-- Instance-facing wrapper for Paper3 Lemma 3.1. -/
+theorem paper3_Lemma_3_1_of_compactnessRawDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    (K : CompactnessData D) (N : StabilityNorms D)
+    (C : Paper3Constants D p)
+    [hData : Fact (Paper3CompactnessRegularizationRawData D p K N C)] :
+    Lemma_3_1 D p :=
+  paper3_Lemma_3_1_of_compactnessRawData hData.out
+
+/-- Single-target wrapper for Paper3 Lemma 3.2. -/
+theorem paper3_Lemma_3_2_of_compactnessRawData
+    {D : BoundedDomainData} {p : CM2Params}
+    {K : CompactnessData D} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (hData : Paper3CompactnessRegularizationRawData D p K N C) :
+    Lemma_3_2 D p K :=
+  (paper3_compactnessRegularizationTargets_of_rawData hData).2.1
+
+/-- Instance-facing wrapper for Paper3 Lemma 3.2. -/
+theorem paper3_Lemma_3_2_of_compactnessRawDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    (K : CompactnessData D) (N : StabilityNorms D)
+    (C : Paper3Constants D p)
+    [hData : Fact (Paper3CompactnessRegularizationRawData D p K N C)] :
+    Lemma_3_2 D p K :=
+  paper3_Lemma_3_2_of_compactnessRawData hData.out
+
+/-- Single-target wrapper for Paper3 Lemma 3.3. -/
+theorem paper3_Lemma_3_3_of_compactnessRawData
+    {D : BoundedDomainData} {p : CM2Params}
+    {K : CompactnessData D} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (hData : Paper3CompactnessRegularizationRawData D p K N C) :
+    Lemma_3_3 D p N :=
+  (paper3_compactnessRegularizationTargets_of_rawData hData).2.2.1
+
+/-- Instance-facing wrapper for Paper3 Lemma 3.3. -/
+theorem paper3_Lemma_3_3_of_compactnessRawDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    (K : CompactnessData D) (N : StabilityNorms D)
+    (C : Paper3Constants D p)
+    [hData : Fact (Paper3CompactnessRegularizationRawData D p K N C)] :
+    Lemma_3_3 D p N :=
+  paper3_Lemma_3_3_of_compactnessRawData hData.out
+
+/-- Single-target wrapper for Paper3 Lemma 3.4. -/
+theorem paper3_Lemma_3_4_of_compactnessRawData
+    {D : BoundedDomainData} {p : CM2Params}
+    {K : CompactnessData D} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (hData : Paper3CompactnessRegularizationRawData D p K N C) :
+    Lemma_3_4 D p K :=
+  (paper3_compactnessRegularizationTargets_of_rawData hData).2.2.2.1
+
+/-- Instance-facing wrapper for Paper3 Lemma 3.4. -/
+theorem paper3_Lemma_3_4_of_compactnessRawDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    (K : CompactnessData D) (N : StabilityNorms D)
+    (C : Paper3Constants D p)
+    [hData : Fact (Paper3CompactnessRegularizationRawData D p K N C)] :
+    Lemma_3_4 D p K :=
+  paper3_Lemma_3_4_of_compactnessRawData hData.out
+
+/-- Single-target wrapper for Paper3 Lemma 3.5. -/
+theorem paper3_Lemma_3_5_of_compactnessRawData
+    {D : BoundedDomainData} {p : CM2Params}
+    {K : CompactnessData D} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (hData : Paper3CompactnessRegularizationRawData D p K N C) :
+    Lemma_3_5 D p C :=
+  (paper3_compactnessRegularizationTargets_of_rawData hData).2.2.2.2.1
+
+/-- Instance-facing wrapper for Paper3 Lemma 3.5. -/
+theorem paper3_Lemma_3_5_of_compactnessRawDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    (K : CompactnessData D) (N : StabilityNorms D)
+    (C : Paper3Constants D p)
+    [hData : Fact (Paper3CompactnessRegularizationRawData D p K N C)] :
+    Lemma_3_5 D p C :=
+  paper3_Lemma_3_5_of_compactnessRawData hData.out
+
+/-- Single-target wrapper for Paper3 Lemma 7.1. -/
+theorem paper3_Lemma_7_1_of_compactnessRawData
+    {D : BoundedDomainData} {p : CM2Params}
+    {K : CompactnessData D} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (hData : Paper3CompactnessRegularizationRawData D p K N C) :
+    Lemma_7_1 D K :=
+  (paper3_compactnessRegularizationTargets_of_rawData hData).2.2.2.2.2
+
+/-- Instance-facing wrapper for Paper3 Lemma 7.1. -/
+theorem paper3_Lemma_7_1_of_compactnessRawDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    (K : CompactnessData D) (N : StabilityNorms D)
+    (C : Paper3Constants D p)
+    [hData : Fact (Paper3CompactnessRegularizationRawData D p K N C)] :
+    Lemma_7_1 D K :=
+  paper3_Lemma_7_1_of_compactnessRawData hData.out
+
 /-! ## Theorem 2.3--2.5 stability targets -/
 
 /-- Paper3 Theorems 2.3--2.5 from the same stability branch-data package. -/
