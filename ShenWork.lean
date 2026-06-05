@@ -56,6 +56,7 @@ import ShenWork.Paper2.IntervalDomainClassicalUniqueness
 import ShenWork.Paper2.IntervalDomainTheorem12
 import ShenWork.Paper2.IntervalDomainTheorem13
 import ShenWork.Paper2.IntervalDomainGlobalWellposed
+import ShenWork.Paper3.StatementAssembly
 import ShenWork.Paper3.UnitPointLogisticBridge
 import ShenWork.Paper3.UnitPointStatementAssembly
 import ShenWork.Paper3.IntervalDomainTheorem21Part1
