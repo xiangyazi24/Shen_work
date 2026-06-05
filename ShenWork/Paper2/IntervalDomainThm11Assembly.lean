@@ -49,7 +49,9 @@ import ShenWork.Paper2.IntervalDomainTheorem11Umbrella
 import ShenWork.Paper2.IntervalMildPicardLimitRegularity
 import ShenWork.Paper2.IntervalMildTimeRegularity
 import ShenWork.Paper2.IntervalMildToLocalExistence
+import ShenWork.Paper2.IntervalMildRegularityFrontierAssembly
 import ShenWork.PDE.IntervalRestartDerivJointContinuity
+import ShenWork.PDE.IntervalMildTimeDerivContinuity
 
 open ShenWork.IntervalDomain
 open ShenWork.IntervalDuhamelClosedC2
@@ -93,21 +95,23 @@ theorem paper2_theorem_1_1_of_frontier
 | `D : GradientMildSolutionData` | ✓ proved | IntervalMildPicard |
 | `S : GradientMildHalfStepLogisticSourceData` | **F2** frontier | needs DuhamelSourceTimeC1 for limit |
 | Initial approach | ✓ proved | G5 (IntervalSemigroupUniform) |
-| `hpde_u` | ~provable | G4i spectral + pointwise bridge |
-| `supnormLogistic` | ✓ proved | IntervalDomainExistence |
+| `hpde_u` | ✓ proved | G4n-p (spectral PDE identity + bridge) |
+| `supnormLogistic` | ✓ proved | IntervalDomainExistence (Lemma 3.1) |
 | `supnormZero` | ✓ proved | IntervalDomainExistence |
 | `vSpatialInterior` | ✓ proved | elliptic resolver C² |
-| `timeSlices` (u part) | ✓ proved | G4j (mildSolution_differentiableAt_time) |
-| `timeSlices` (v part) | ~provable | resolver chain rule from u time-diff |
-| `jointTimeDerivInterior` (u part) | ✓ proved | G4 remaining (restartDerivField_continuousOn_joint) |
-| `jointTimeDerivInterior` (v part) | ~provable | resolver chain + joint continuity |
+| `timeSlices` (u) | ✓ proved | G4: HasDerivAt + ContinuousOn (RegularityFrontierAssembly) |
+| `timeSlices` (v) | ~comp | resolver chain rule from u time-diff |
+| `jointTimeDerivInterior` (u) | ✓ proved | G4: jointContinuousOn (RegularityFrontierAssembly) |
+| `jointTimeDerivInterior` (v) | ~comp | resolver joint continuity |
 | `vNeumannLimits` | ✓ proved | restart cosine representation |
 | `vClosedSpatial` | ✓ proved | restart cosine representation |
-| `jointTimeDerivClosed` | ~provable | extension from interior to closed |
-| `jointSolutionClosed` | ✓ proved | uniform convergence on compact |
+| `jointTimeDerivClosed` | ~comp | extension from interior to closed (standard) |
+| `jointSolutionClosed` (u) | ✓ proved | G4l: restartSeries_jointContinuousOn |
+| `jointSolutionClosed` (v) | ~comp | resolver joint continuity |
 
-Legend: ✓ = proved in the repo, ~provable = follows from existing
-infrastructure by straightforward composition, **F2** = genuine frontier.
+Legend: ✓ = proved in the repo, ~comp = composable from existing
+infrastructure (resolver chain rule, standard extensions),
+**F2** = genuine frontier.
 -/
 
 end ShenWork.Paper2.Theorem11Assembly
