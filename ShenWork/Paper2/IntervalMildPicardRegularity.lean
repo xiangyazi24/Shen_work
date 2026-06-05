@@ -971,4 +971,51 @@ theorem picardIterateHasC2Slices_all
   | zero => exact picardIterateHasC2Slices_zero hf_cont hB hbound T
   | succ n _ih => exact picardIterateHasC2Slices_succ (steps n)
 
+/-! ### Restart coefficient bound from Picard ball membership
+
+The Picard iterates satisfy `|u_n(t, x)| ≤ M` (ball membership) and have
+continuous slices.  This gives `|cosineCoeffs(lift(u_n(t))) k| ≤ 2M`,
+supplying the `ha₀_bound` field of `PicardRegularityStepData`. -/
+
+/-- Restart coefficient bound: if the (n+1)-th iterate at the half-step
+is bounded by M and has continuous slices, its cosine coefficients are
+bounded by 2M. -/
+theorem picardIter_cosineCoeffs_bound
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {n : ℕ}
+    {M : ℝ} (hM : 0 ≤ M)
+    {t : ℝ} (ht : 0 < t)
+    (hball : ∀ x : intervalDomainPoint,
+      |picardIter p u₀ (n + 1) (t / 2) x| ≤ M)
+    (hcont : Continuous (picardIter p u₀ (n + 1) (t / 2))) :
+    ∀ k, |ShenWork.IntervalNeumannFullKernel.cosineCoeffs
+      (intervalDomainLift (picardIter p u₀ (n + 1) (t / 2))) k| ≤ 2 * M := by
+  set w := picardIter p u₀ (n + 1) (t / 2)
+  set f := intervalDomainLift w
+  have hf_cont : ContinuousOn f (Set.Icc (0 : ℝ) 1) := by
+    rw [continuousOn_iff_continuous_restrict]
+    have heq : Set.restrict (Set.Icc (0 : ℝ) 1) f = fun x : intervalDomainPoint => w x := by
+      ext ⟨x, hx⟩; simp only [Set.restrict, f, intervalDomainLift, hx, dif_pos]; rfl
+    rw [heq]; exact hcont
+  have hf_bound : ∀ x ∈ Set.Icc (0 : ℝ) 1, |f x| ≤ M := by
+    intro x hx
+    simp only [f, intervalDomainLift, hx, dif_pos]
+    exact hball ⟨x, hx⟩
+  exact cosineCoeffs_abs_le_of_continuous_bounded hf_cont hM hf_bound
+
+/-- Positivity of the iterate at boundary points gives the nonvanishing
+conditions needed by the restart framework. -/
+theorem picardIter_endpoint_ne_zero
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ} {n : ℕ}
+    {t : ℝ}
+    (hpos : ∀ x : intervalDomainPoint, 0 < picardIter p u₀ n t x) :
+    intervalDomainLift (picardIter p u₀ n t) 0 ≠ 0
+    ∧ intervalDomainLift (picardIter p u₀ n t) 1 ≠ 0 := by
+  have h0 : (0 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by constructor <;> norm_num
+  have h1 : (1 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by constructor <;> norm_num
+  constructor
+  · simp only [intervalDomainLift, h0, dif_pos]
+    exact ne_of_gt (hpos ⟨0, h0⟩)
+  · simp only [intervalDomainLift, h1, dif_pos]
+    exact ne_of_gt (hpos ⟨1, h1⟩)
+
 end ShenWork.IntervalMildPicardRegularity
