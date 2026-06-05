@@ -1380,6 +1380,25 @@ theorem restartCosine_timeDeriv_eq_spectralDeriv
   -- Step 3: the cosine series has derivative given by restartCosineSeries_hasDerivAt_time
   exact (restartCosineSeries_hasDerivAt_time hM ha₀ src ht₀ x).deriv
 
+/-- **G4o: Laplacian of the restart cosine series.**
+If the restart coefficients are eigenvalue-summable, then
+  `deriv (deriv (fun x => ∑ cₙ cos(nπx))) y = -∑ λₙ cₙ cos(nπy)`.
+This is `cosineCoeffSeries_deriv2_eq` reformulated with eigenvalues. -/
+theorem restartCosineSeries_laplacian_eq
+    {b : ℕ → ℝ}
+    (hb : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|))
+    (y : ℝ) :
+    deriv (deriv (fun x => ∑' n, b n * cosineMode n x)) y =
+      -(∑' n, unitIntervalCosineEigenvalue n * b n * cosineMode n y) := by
+  -- Apply cosineCoeffSeries_deriv2_eq to get the second derivative as a tsum
+  rw [ShenWork.IntervalDuhamelClosedC2.cosineCoeffSeries_deriv2_eq hb y]
+  -- The RHS is -∑ λₙ bₙ cos(nπy); unfold eigenvalue and cosineMode then check algebra
+  simp only [unitIntervalCosineEigenvalue, cosineMode]
+  rw [← tsum_neg]
+  congr 1
+  ext n
+  ring
+
 end RestartSeries
 
 end ShenWork.IntervalSourceCoefficientTimeC1
