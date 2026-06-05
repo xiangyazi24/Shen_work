@@ -6,6 +6,12 @@
   - u-side: from `HasTimeNeighborhoodSpectralAgreement` (G4)
   - v-side: from `HasResolverDirectSpectralData` (F2)
 
+  Also contains the packaging theorem:
+  `hasResolverDirectSpectralData_of_sourceCoeffTimeC1` — given
+  `DuhamelSourceTimeC1` of the resolver source coefficients
+  `s ↦ (intervalNeumannResolverSourceCoeff p (u s) k).re`, construct
+  `HasResolverDirectSpectralData T (mildChemicalConcentration p u) p`.
+
   No `sorry`/`admit`/custom `axiom`.
 -/
 import ShenWork.Paper2.IntervalMildToClassical
@@ -31,6 +37,12 @@ open ShenWork.IntervalResolverDirectTimeRegularity
    resolver_direct_jointTimeDerivInterior
    resolver_direct_jointTimeDerivClosed
    resolver_direct_jointSolutionClosed)
+open ShenWork.IntervalMildToClassical (mildChemicalConcentration)
+open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
+open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.PDE (intervalNeumannResolverSourceCoeff intervalNeumannResolverWeight
+  intervalNeumannResolverCoeff)
+open ShenWork.IntervalResolverGradientBridge (resolverCoeff_re_eq resolverR_apply_eq)
 open Set Filter Topology
 
 noncomputable section
@@ -145,5 +157,66 @@ theorem jointSolutionClosed_v_of_resolverSpectral
         (fun (t : ℝ) (x : ℝ) => intervalDomainLift (v t) x))
       (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1) :=
   resolver_direct_jointSolutionClosed H
+
+/-! ## V-side spectral packaging from resolver algebra -/
+
+/-- **Algebraic identity**: the resolver value equals the weighted
+source-coefficient cosine series.
+
+For every time `s` and every `x : intervalDomainPoint`:
+```
+mildChemicalConcentration p u s x
+  = ∑' k, (intervalNeumannResolverSourceCoeff p (u s) k).re
+           · intervalNeumannResolverWeight p k · cos(kπ x)
+```
+
+Proof is purely algebraic:
+1. `mildChemicalConcentration p u s = intervalNeumannResolverR p (u s)`
+2. `resolverR_apply_eq` gives the cosine series `∑ resolverCoeff.re · cos`
+3. `resolverCoeff_re_eq` rewrites each mode:
+   `resolverCoeff.re = sourceCoeff.re / (μ + λ_k) = sourceCoeff.re · w_k`
+
+No `sorry`. -/
+theorem mildChemicalConcentration_eq_sourceWeight_series
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (s : ℝ)
+    (x : intervalDomainPoint) :
+    mildChemicalConcentration p u s x =
+      ∑' k, (intervalNeumannResolverSourceCoeff p (u s) k).re *
+        intervalNeumannResolverWeight p k * cosineMode k x.1 := by
+  -- Unfold to `intervalNeumannResolverR p (u s) x` and apply the series identity.
+  simp only [mildChemicalConcentration, resolverR_apply_eq, cosineMode]
+  refine tsum_congr (fun k => ?_)
+  -- Per-mode: resolverCoeff.re = sourceCoeff.re / (μ + λ_k), w_k = 1 / (μ + λ_k).
+  rw [resolverCoeff_re_eq, intervalNeumannResolverWeight]
+  ring
+
+/-- **Packaging theorem**: given `DuhamelSourceTimeC1` of the resolver source
+coefficients `(s, k) ↦ (intervalNeumannResolverSourceCoeff p (u s) k).re`,
+construct `HasResolverDirectSpectralData T (mildChemicalConcentration p u) p`.
+
+The series identity `v s x = ∑ sourceCoeff.re · w_k · cos` holds for **all** `s`
+(not just eventually), so the `∀ᶠ s in 𝓝 t₀` condition is discharged by
+`eventually_of_forall`.
+
+**Residual**: the hypothesis `hsrc` is an honest remaining gap.  To instantiate it:
+- The summable envelope requires `|sourceCoeff k| ≤ C/(kπ)²` for k ≥ 1
+  (from `SourceCoeffQuadraticDecay p (u s)` at each `s`, which in turn follows
+  from C²-Neumann regularity of `s ↦ p.ν · (u s)^γ` via
+  `powerSource_cosineCoeff_quadratic_decay_of_chain_rule`).
+- The time derivative of the source coefficient at each mode `k` comes from
+  the Leibniz rule (`hasDerivAt_intervalIntegral_of_dominated`) applied to
+  `∂ₛ [∫₀¹ p.ν (u s x)^γ cos(kπx) dx]`, using the time differentiability
+  of `u s x` from `HasTimeNeighborhoodSpectralAgreement`.
+
+No `sorry`. -/
+theorem hasResolverDirectSpectralData_of_sourceCoeffTimeC1
+    {T : ℝ} {p : CM2Params} (u : ℝ → intervalDomainPoint → ℝ)
+    (hsrc : DuhamelSourceTimeC1
+      (fun s k => (intervalNeumannResolverSourceCoeff p (u s) k).re)) :
+    HasResolverDirectSpectralData T (mildChemicalConcentration p u) p :=
+  ⟨fun s k => (intervalNeumannResolverSourceCoeff p (u s) k).re, hsrc,
+   fun _t₀ _ht₀ _ht₀T =>
+     Eventually.of_forall (fun s x =>
+       mildChemicalConcentration_eq_sourceWeight_series p u s x)⟩
 
 end ShenWork.Paper2.RegularityFrontierAssembly
