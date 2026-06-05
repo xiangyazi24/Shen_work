@@ -923,6 +923,22 @@ def boundednessHypothesis_of_uniformSupBoundZeroM
     obtain ⟨M, hMnn, hb⟩ := hbnd.bound hsol₁ hsol₂ htr₁ htr₂
     exact gronwall_const_of_uniformLiftBoundZeroM hsol₁ hsol₂ hγ_ge_one hMnn hb
 
+/-- Instance-facing γ≥1 upper-only lift-bound to boundedness-hypothesis bridge. -/
+def boundednessHypothesis_of_uniformSupBoundZeroMFact
+    {p : CM2Params}
+    [hγ_ge_one : Fact (1 ≤ p.γ)]
+    [hbnd : Fact (IntervalDomainUniformLiftBoundZeroM p)]
+    (hdatum :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|))) :
+    IntervalDomainL2UBoundednessHypothesis p :=
+  boundednessHypothesis_of_uniformSupBoundZeroM hγ_ge_one.out hbnd.out hdatum
+
 /-- **The γ≥1 upper-only lift bound from the Theorem-1.1 regime + bounded datum.**
 Under the negative-sensitivity regime (`χ₀ ≤ 0`, `0 < a`, `0 < b`), with a positive
 bounded shared initial datum (supplied by `hpos`, `hdatum`), the upper-only datum
@@ -974,6 +990,29 @@ theorem uniformLiftBoundZeroM_of_regime
     · exact ⟨(solution_lift_pos hsol₁ ⟨hτ0, hτ1⟩ x hx).le, (hub₁ τ hτ0 hτ1 x hx).2⟩
     · exact ⟨(solution_lift_pos hsol₂ ⟨hτ0, hτ2⟩ x hx).le, (hub₂ τ hτ0 hτ2 x hx).2⟩
 
+/-- Instance-facing regime-to-γ≥1-upper-only-lift-bound bridge. -/
+theorem uniformLiftBoundZeroM_of_regimeFact
+    (p : CM2Params)
+    [hχ : Fact (p.χ₀ ≤ 0)] [ha : Fact (0 < p.a)] [hb : Fact (0 < p.b)]
+    (hpos :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          PositiveInitialDatum intervalDomain u₀)
+    (hdatum :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|))) :
+    IntervalDomainUniformLiftBoundZeroM p :=
+  uniformLiftBoundZeroM_of_regime p hχ.out ha.out hb.out hpos hdatum
+
 /-- **Global-solution gluing from reachability, fully unconditional for `γ ≥ 1` modulo
 the parameter regime + positive initial datum.**
 
@@ -1006,6 +1045,23 @@ theorem GlobalSolutionGluingFromReachability_of_regime_gammaGeOne
       (uniformLiftBoundZeroM_of_regime p hχ ha hb hpos
         (fun hsol₁ hsol₂ htr₁ htr₂ => (hpos hsol₁ hsol₂ htr₁ htr₂).admissible))
       (fun hsol₁ hsol₂ htr₁ htr₂ => (hpos hsol₁ hsol₂ htr₁ htr₂).admissible))
+
+/-- Instance-facing γ≥1 regime gluing theorem. -/
+theorem GlobalSolutionGluingFromReachability_of_regime_gammaGeOneFact
+    (p : CM2Params)
+    [hχ : Fact (p.χ₀ ≤ 0)] [ha : Fact (0 < p.a)] [hb : Fact (0 < p.b)]
+    [hγ_ge_one : Fact (1 ≤ p.γ)]
+    (hpos :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          PositiveInitialDatum intervalDomain u₀) :
+    ShenWork.IntervalDomainExistence.GlobalSolutionGluingFromReachability p :=
+  GlobalSolutionGluingFromReachability_of_regime_gammaGeOne
+    p hχ.out ha.out hb.out hγ_ge_one.out hpos
 
 end
 
