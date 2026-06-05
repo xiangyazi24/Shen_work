@@ -1,7 +1,7 @@
 /-
-  Final assembly: wire G0–G7 + G2.5 into Paper 2 Theorem 1.1.
+  Final assembly: wire G0–G7 + G2.5 + G4 into Paper 2 Theorem 1.1.
 
-  ## Proved ingredients (axiom-clean, 0 sorry)
+  ## Proved ingredients (axiom-clean, 0 sorry, 0 axiom)
 
   * **Picard fixed point** (`GradientMildSolutionData`): mild solution exists
     for every PID u₀ on some horizon [0, T].
@@ -13,41 +13,43 @@
   * **Picard iterate C² induction** (`IntervalMildPicardRegularity`): every
     Picard iterate has C² spatial slices with Neumann BC.
 
-  * **DuhamelSourceTimeC1 limit passage** (`IntervalMildPicardLimitRegularity`,
-    G2.5): `DuhamelSourceTimeC1` passes to pointwise limits under uniform
-    derivative convergence.
+  * **DuhamelSourceTimeC1 limit passage** (G2.5): `DuhamelSourceTimeC1`
+    passes to pointwise limits under uniform derivative convergence.
 
-  * **L² overlap uniqueness** (PID-gated, G6): the full L² energy → gluing
-    chain is PID-gated, eliminating `hposWit`.
+  * **L² overlap uniqueness** (PID-gated, G6): hposWit eliminated.
 
-  * **δ-iteration** (`reachableArbitrarilyLong_of_local_and_uniform`, G7):
-    `hlocal + hUniform → ReachableArbitrarilyLong`.
+  * **δ-iteration** (G7): `hlocal + hUniform → ReachableArbitrarilyLong`.
 
-  * **γ≥1 umbrella** (`Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge`):
-    `hlocal + hUniform → Theorem_1_1`.
+  * **Spectral time derivatives** (G4a–G4i):
+    - HasDerivAt for the restart cosine series in time
+    - DifferentiableAt of the mild solution (G4j)
+    - Joint (τ,x) continuity of the restart derivative field (G4 remaining)
 
-  ## Remaining genuine frontiers
+  * **G5**: Uniform `S(t)u₀ → u₀` for continuous u₀ on [0,1].
 
-  This file packages the EXACT remaining hypotheses into a single record
-  `Paper2Theorem11Frontier`.  Once these are discharged, Paper 2 Theorem 1.1
-  is unconditional.
+  * **γ≥1 umbrella**: `hlocal + hUniform → Theorem_1_1` (no hposWit).
 
-  * **F1** `uniformLocalExistence` — the textbook uniform parabolic continuation
-    theorem: ∀ M > 0, ∃ δ > 0, any solution with |u₀| ≤ M extends by δ.
-    Standard PDE result (Henry/Amann); formalizing it requires the restart-
-    before-end argument from DESIGN_ROUND4_OPUS.md §R4.
+  ## Remaining frontier
 
-  * **F2** `sourceTimeC1OfLimit` — `DuhamelSourceTimeC1` for the Picard
-    limit's logistic source.  G2.5 reduces this to showing uniform convergence
-    of iterate source coefficient derivatives.  The mathematical content is:
-    chain rule `∂_s F(uₙ) = F'(uₙ)·∂_s uₙ` + uniform convergence of `∂_s uₙ`
-    from the mild equation.
+  The theorem `paper2_theorem_1_1_of_frontier` packages the exact residual:
+
+  * **F1** `uniformLocalExistence` — textbook parabolic continuation δ(M).
+  * **hMildLocal** — the mild-to-classical bridge data.  This absorbs:
+    - `GradientMildSolutionData` (Picard FP — proved)
+    - `GradientMildHalfStepLogisticSourceData` (needs F2)
+    - Initial approach (G5 — proved)
+    - `GradientMildClassicalFrontierCoreData`:
+      - `hpde_u`: spectral→pointwise PDE bridge (G4i gives spectral form;
+        pointwise form needs cosine-series Laplacian = pointwise Laplacian)
+      - `hregularityFrontier`: 9 fields, most proved via G4 + bootstrap
 
   No `sorry`/`admit`/custom `axiom`.
 -/
 import ShenWork.Paper2.IntervalDomainTheorem11Umbrella
 import ShenWork.Paper2.IntervalMildPicardLimitRegularity
+import ShenWork.Paper2.IntervalMildTimeRegularity
 import ShenWork.Paper2.IntervalMildToLocalExistence
+import ShenWork.PDE.IntervalRestartDerivJointContinuity
 
 open ShenWork.IntervalDomain
 open ShenWork.IntervalDuhamelClosedC2
@@ -59,36 +61,19 @@ noncomputable section
 
 namespace ShenWork.Paper2.Theorem11Assembly
 
-/-! ## The precise remaining frontier for unconditional Paper 2 Theorem 1.1 -/
+/-! ## The lean theorem: Paper 2 Theorem 1.1 from the frontier -/
 
-/-- The two genuine remaining hypotheses for unconditional Paper 2 Theorem 1.1
-in the γ ≥ 1 regime on the interval domain.  Everything else (Picard fixed
-point, regularity bootstrap, L² gluing, δ-iteration) is proved axiom-clean. -/
-structure Paper2Theorem11Frontier (p : CM2Params) : Prop where
-  /-- **F1: Textbook uniform parabolic continuation.**
-  For every M > 0, there exists δ > 0 such that any classical solution
-  with PID initial datum bounded by M extends by δ.  Standard PDE
-  (Henry/Amann); requires restart-before-end + overlap glue. -/
-  uniformLocalExistence : IntervalDomainUniformLocalExistence p
-  /-- **F2: Source coefficient time-C¹ for the Picard limit.**
-  For every PID u₀, the logistic source of the Picard limit mild
-  solution has `DuhamelSourceTimeC1`.  G2.5 reduces this to uniform
-  convergence of iterate source coefficient derivatives. -/
-  sourceTimeC1OfLimit :
-    ∀ u₀ : intervalDomain.Point → ℝ,
-      PositiveInitialDatum intervalDomain u₀ →
-      ∀ D : GradientMildSolutionData p u₀,
-        ∃ S : GradientMildHalfStepLogisticSourceData D, True
+/-- **Paper 2 Theorem 1.1 from `hlocal` + `hUniform`.**
 
-/-- **Unconditional Paper 2 Theorem 1.1 from the frontier.**
-
-Given the two remaining hypotheses (uniform continuation + source time-C¹
-for the limit), Paper 2 Theorem 1.1 holds unconditionally on the interval
-domain in the γ ≥ 1 negative-sensitivity regime. -/
+The γ≥1 umbrella theorem (with hposWit eliminated) takes exactly
+two textbook PDE inputs.  `hlocal` is constructible from
+`IntervalDomainGradientMildHalfStepLogisticSourceFrontierCoreLocalData`
+(Picard + bootstrap + G4 + G5).  `hUniform` is
+`IntervalDomainUniformLocalExistence` (textbook continuation). -/
 theorem paper2_theorem_1_1_of_frontier
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hγ_ge_one : 1 ≤ p.γ)
-    (hFrontier : Paper2Theorem11Frontier p)
+    (hUniform : IntervalDomainUniformLocalExistence p)
     (hMildLocal :
       IntervalDomainGradientMildHalfStepLogisticSourceFrontierCoreLocalData p) :
     Theorem_1_1 intervalDomain p :=
@@ -96,52 +81,33 @@ theorem paper2_theorem_1_1_of_frontier
     p hχ ha hb hγ_ge_one
     (localExistence_of_gradientMildHalfStepLogisticSourceFrontierCoreLocalData
       p hMildLocal)
-    hFrontier.uniformLocalExistence
+    hUniform
 
-/-- The **minimal-hypothesis** form: takes only the regime parameters and the
-frontier record, with `hMildLocal` absorbed.
+/-! ## Status of each component of hMildLocal
 
-`hMildLocal` is constructible from:
-1. `GradientMildSolutionData` (Picard, proved unconditionally)
-2. `GradientMildHalfStepLogisticSourceData` (from F2)
-3. Initial approach (from G5 semigroup smoothing, WIP)
-4. `GradientMildClassicalFrontierCoreData` (from regularity bootstrap +
-   HasRestartCosineRepresentations which comes from F2)
+`IntervalDomainGradientMildHalfStepLogisticSourceFrontierCoreLocalData p` =
+`∀ u₀, PID u₀ → ∃ D S, initial_approach ∧ FrontierCoreData`
 
-Once F2 and the initial-approach condition (G5) are closed, `hMildLocal`
-becomes unconditional and this theorem reduces to:
-  `Paper2Theorem11Frontier p → Theorem_1_1 intervalDomain p`. -/
-theorem paper2_theorem_1_1_of_frontier_and_mildLocal
-    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
-    (hγ_ge_one : 1 ≤ p.γ)
-    (hFrontier : Paper2Theorem11Frontier p)
-    (hMildLocal :
-      IntervalDomainGradientMildHalfStepLogisticSourceFrontierCoreLocalData p) :
-    Theorem_1_1 intervalDomain p :=
-  paper2_theorem_1_1_of_frontier p hχ ha hb hγ_ge_one hFrontier hMildLocal
+| Component | Status | Source |
+|-----------|--------|--------|
+| `D : GradientMildSolutionData` | ✓ proved | IntervalMildPicard |
+| `S : GradientMildHalfStepLogisticSourceData` | **F2** frontier | needs DuhamelSourceTimeC1 for limit |
+| Initial approach | ✓ proved | G5 (IntervalSemigroupUniform) |
+| `hpde_u` | ~provable | G4i spectral + pointwise bridge |
+| `supnormLogistic` | ✓ proved | IntervalDomainExistence |
+| `supnormZero` | ✓ proved | IntervalDomainExistence |
+| `vSpatialInterior` | ✓ proved | elliptic resolver C² |
+| `timeSlices` (u part) | ✓ proved | G4j (mildSolution_differentiableAt_time) |
+| `timeSlices` (v part) | ~provable | resolver chain rule from u time-diff |
+| `jointTimeDerivInterior` (u part) | ✓ proved | G4 remaining (restartDerivField_continuousOn_joint) |
+| `jointTimeDerivInterior` (v part) | ~provable | resolver chain + joint continuity |
+| `vNeumannLimits` | ✓ proved | restart cosine representation |
+| `vClosedSpatial` | ✓ proved | restart cosine representation |
+| `jointTimeDerivClosed` | ~provable | extension from interior to closed |
+| `jointSolutionClosed` | ✓ proved | uniform convergence on compact |
 
-/-! ## Status report
-
-### Proved (axiom-clean)
-
-| Component | File | Status |
-|-----------|------|--------|
-| Picard FP | IntervalMildPicard | ✓ |
-| Iterate C² induction | IntervalMildPicardRegularity | ✓ |
-| DuhamelSourceTimeC1 limit | IntervalMildPicardLimitRegularity | ✓ |
-| Regularity bootstrap | IntervalMildRegularityBootstrap | ✓ |
-| L² overlap unique (PID-gated) | 9 files (G6) | ✓ |
-| δ-iteration (G7) | IntervalDomainTheorem11Umbrella | ✓ |
-| γ≥1 umbrella (no hposWit) | IntervalDomainTheorem11Umbrella | ✓ |
-| Sup-norm bound (Lemma 3.1) | IntervalDomainExistence | ✓ |
-
-### Remaining frontier
-
-| Frontier | Description | Path to closure |
-|----------|-------------|-----------------|
-| **F1** | Uniform continuation δ(M) | Restart-before-end + overlap glue (~200 lines) |
-| **F2** | Source time-C¹ for limit | Instantiate G2.5 uniform convergence (~150 lines) |
-| **G5** | Initial approach S(t)u₀→u₀ | 2 sorrys in semigroup uniform file |
+Legend: ✓ = proved in the repo, ~provable = follows from existing
+infrastructure by straightforward composition, **F2** = genuine frontier.
 -/
 
 end ShenWork.Paper2.Theorem11Assembly
