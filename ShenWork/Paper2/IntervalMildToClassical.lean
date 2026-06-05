@@ -514,9 +514,10 @@ theorem mildChemical_ellipticPDE_of_gradientMildHalfStepRestartData (p : CM2Para
       0 = intervalDomain.laplacian
             (mildChemicalConcentration p D.u t) x
           - p.μ * mildChemicalConcentration p D.u t x
-          + p.ν * (D.u t x) ^ p.γ :=
-  mildChemical_ellipticPDE_of_restartCosineRepresentations p D
-    (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
+          + p.ν * (D.u t x) ^ p.γ := by
+  obtain ⟨hC2, hN0, hN1⟩ :=
+    gradientMild_closedC2_neumann_of_halfStepRestartData D R
+  exact mildChemical_ellipticPDE_of_closedC2_neumann p D hC2 hN0 hN1
 
 /-- Elliptic PDE with restart-cosine representations built from H²-Neumann
 half-step source data, quadratic coefficient decay, and series agreement. -/
@@ -528,9 +529,10 @@ theorem mildChemical_ellipticPDE_of_gradientMildHalfStepH2SourceData
       0 = intervalDomain.laplacian
             (mildChemicalConcentration p D.u t) x
           - p.μ * mildChemicalConcentration p D.u t x
-          + p.ν * (D.u t x) ^ p.γ :=
-  mildChemical_ellipticPDE_of_gradientMildHalfStepRestartData p D
-    (gradientMildHalfStepRestartData_of_H2SourceData D S)
+          + p.ν * (D.u t x) ^ p.γ := by
+  obtain ⟨hC2, hN0, hN1⟩ :=
+    gradientMild_closedC2_neumann_of_halfStepH2SourceData D S
+  exact mildChemical_ellipticPDE_of_closedC2_neumann p D hC2 hN0 hN1
 
 /-- Elliptic PDE with restart-cosine representations built from logistic
 half-step source data. -/
@@ -610,9 +612,10 @@ theorem mildSolution_neumannBC_of_gradientMildHalfStepRestartData (p : CM2Params
     ∀ t x, 0 < t -> t < D.T -> x ∈ intervalDomain.boundary ->
       intervalDomain.normalDeriv (D.u t) x = 0 ∧
       intervalDomain.normalDeriv
-        (mildChemicalConcentration p D.u t) x = 0 :=
-  mildSolution_neumannBC_of_restartCosineRepresentations p D
-    (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
+        (mildChemicalConcentration p D.u t) x = 0 := by
+  obtain ⟨hC2, hN0, hN1⟩ :=
+    gradientMild_closedC2_neumann_of_halfStepRestartData D R
+  exact mildSolution_neumannBC_of_closedC2_neumann p D hC2 hN0 hN1
 
 /-- Neumann boundary conditions with restart-cosine representations built from
 H²-Neumann half-step source data, quadratic coefficient decay, and series
@@ -624,9 +627,10 @@ theorem mildSolution_neumannBC_of_gradientMildHalfStepH2SourceData
     ∀ t x, 0 < t -> t < D.T -> x ∈ intervalDomain.boundary ->
       intervalDomain.normalDeriv (D.u t) x = 0 ∧
       intervalDomain.normalDeriv
-        (mildChemicalConcentration p D.u t) x = 0 :=
-  mildSolution_neumannBC_of_gradientMildHalfStepRestartData p D
-    (gradientMildHalfStepRestartData_of_H2SourceData D S)
+        (mildChemicalConcentration p D.u t) x = 0 := by
+  obtain ⟨hC2, hN0, hN1⟩ :=
+    gradientMild_closedC2_neumann_of_halfStepH2SourceData D S
+  exact mildSolution_neumannBC_of_closedC2_neumann p D hC2 hN0 hN1
 
 /-- Neumann boundary conditions with restart-cosine representations built from
 logistic half-step source data. -/
