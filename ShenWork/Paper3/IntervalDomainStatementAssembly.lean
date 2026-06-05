@@ -236,6 +236,123 @@ theorem
   intervalDomain_paper3_sectorialTheorem21And22Target_of_coreExistence
     p M0 uBar vLower hcont.out hcore.out
 
+/-- Concrete interval-domain Paper3 Theorem 2.1 target together with its four
+part statements. -/
+def IntervalDomainPaper3Theorem21PartTargets
+    (p : CM2Params) (M0 uBar vLower : ℝ) : Prop :=
+  Theorem_2_1 intervalDomain p
+      (intervalDomainPaper3Constants p M0 uBar vLower) ∧
+    Theorem_2_1_part1 intervalDomain p ∧
+    Theorem_2_1_part2 intervalDomain p ∧
+    Theorem_2_1_part3 intervalDomain p ∧
+    Theorem_2_1_part4 intervalDomain p
+      (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Single-target wrapper for the concrete interval-domain Paper3 Theorem
+2.1 statement from the core existence bundle. -/
+theorem intervalDomain_paper3_Theorem_2_1_of_coreExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcont : IntervalDomainInitialContinuityRaw p)
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    Theorem_2_1 intervalDomain p
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_paper3_stabilityChainTheorem21Target_of_coreExistence
+    p M0 uBar vLower hcont hcore
+
+/-- Instance-facing concrete interval-domain Paper3 Theorem 2.1 wrapper. -/
+theorem intervalDomain_paper3_Theorem_2_1_of_coreExistenceFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hcont : Fact (IntervalDomainInitialContinuityRaw p)]
+    [hcore : Fact (IntervalDomainSectorialMainlineCoreExistence p uBar)] :
+    Theorem_2_1 intervalDomain p
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_paper3_Theorem_2_1_of_coreExistence
+    p M0 uBar vLower hcont.out hcore.out
+
+/-- Assemble concrete interval-domain Paper3 Theorem 2.1 and all four part
+statements from the core existence bundle. -/
+theorem intervalDomain_paper3_Theorem_2_1_partTargets_of_coreExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcont : IntervalDomainInitialContinuityRaw p)
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    IntervalDomainPaper3Theorem21PartTargets p M0 uBar vLower := by
+  have h21 :
+      Theorem_2_1 intervalDomain p
+        (intervalDomainPaper3Constants p M0 uBar vLower) :=
+    intervalDomain_paper3_Theorem_2_1_of_coreExistence
+      p M0 uBar vLower hcont hcore
+  exact ⟨h21, h21.1, h21.2.1, h21.2.2.1, h21.2.2.2⟩
+
+/-- Instance-facing concrete interval-domain Paper3 Theorem 2.1 part-target
+bundle. -/
+theorem intervalDomain_paper3_Theorem_2_1_partTargets_of_coreExistenceFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hcont : Fact (IntervalDomainInitialContinuityRaw p)]
+    [hcore : Fact (IntervalDomainSectorialMainlineCoreExistence p uBar)] :
+    IntervalDomainPaper3Theorem21PartTargets p M0 uBar vLower :=
+  intervalDomain_paper3_Theorem_2_1_partTargets_of_coreExistence
+    p M0 uBar vLower hcont.out hcore.out
+
+/-- Single-target wrapper for Paper3 Theorem 2.1 part 1. -/
+theorem intervalDomain_paper3_Theorem_2_1_part1_of_coreExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcont : IntervalDomainInitialContinuityRaw p)
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    Theorem_2_1_part1 intervalDomain p :=
+  (intervalDomain_paper3_Theorem_2_1_partTargets_of_coreExistence
+    p M0 uBar vLower hcont hcore).2.1
+
+/-- Single-target wrapper for Paper3 Theorem 2.1 part 2. -/
+theorem intervalDomain_paper3_Theorem_2_1_part2_of_coreExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcont : IntervalDomainInitialContinuityRaw p)
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    Theorem_2_1_part2 intervalDomain p :=
+  (intervalDomain_paper3_Theorem_2_1_partTargets_of_coreExistence
+    p M0 uBar vLower hcont hcore).2.2.1
+
+/-- Single-target wrapper for Paper3 Theorem 2.1 part 3. -/
+theorem intervalDomain_paper3_Theorem_2_1_part3_of_coreExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcont : IntervalDomainInitialContinuityRaw p)
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    Theorem_2_1_part3 intervalDomain p :=
+  (intervalDomain_paper3_Theorem_2_1_partTargets_of_coreExistence
+    p M0 uBar vLower hcont hcore).2.2.2.1
+
+/-- Single-target wrapper for Paper3 Theorem 2.1 part 4. -/
+theorem intervalDomain_paper3_Theorem_2_1_part4_of_coreExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcont : IntervalDomainInitialContinuityRaw p)
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    Theorem_2_1_part4 intervalDomain p
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  (intervalDomain_paper3_Theorem_2_1_partTargets_of_coreExistence
+    p M0 uBar vLower hcont hcore).2.2.2.2
+
+/-- Single-target wrapper for the sectorial interval-domain Paper3 Theorem
+2.2 statement from the core existence bundle. -/
+theorem intervalDomain_paper3_Theorem_2_2_sectorial_of_coreExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcont : IntervalDomainInitialContinuityRaw p)
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum
+      intervalDomainSectorialStabilityNorms
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  (intervalDomain_paper3_sectorialTheorem21And22Target_of_coreExistence
+    p M0 uBar vLower hcont hcore).1
+
+/-- Single-target wrapper for the sectorial interval-domain Paper3 Theorem
+2.1 statement from the core existence bundle. -/
+theorem intervalDomain_paper3_Theorem_2_1_sectorial_of_coreExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcont : IntervalDomainInitialContinuityRaw p)
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    Theorem_2_1 intervalDomain p
+      (intervalDomainSectorialPaper3Constants p M0 uBar vLower) :=
+  (intervalDomain_paper3_sectorialTheorem21And22Target_of_coreExistence
+    p M0 uBar vLower hcont hcore).2
+
 /-- Concrete interval-domain compactness/regularization targets closed by the
 raw compactness, initial-continuity, minimal upper-bound, and Neumann-resolvent
 frontiers. -/
