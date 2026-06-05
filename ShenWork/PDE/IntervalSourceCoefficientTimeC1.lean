@@ -1,15 +1,19 @@
 /-
   ShenWork/PDE/IntervalSourceCoefficientTimeC1.lean
 
-  **G3 Stage 1 — Leibniz rule for parametric integrals on [0,1] and
-  `DuhamelSourceTimeC1` construction.**
+  **G3 Stages 1–3: Leibniz rule, resolver time-diff, total source assembly.**
 
-  Core lemma: if `F(t, y)` is C¹ in `t` with `|F'(t,y)| ≤ bound(y)` and
-  `bound` integrable, then `t ↦ ∫ F(t,y) dμ` is C¹ via Mathlib's
-  `hasDerivAt_integral_of_dominated_loc_of_deriv_le`.
+  Stage 1 — Leibniz rule for parametric integrals on [0,1] and
+  `DuhamelSourceTimeC1` construction.
 
-  Applied to `F(t,y) = f(t,y)·cos(nπy)`, this gives time-C¹ cosine
-  coefficients from time-C¹ source data.
+  Stage 2 — Mode-wise multiplication by a bounded weight preserves
+  `DuhamelSourceTimeC1`.  Applied to the elliptic resolver: if the source
+  coefficients `â_k(s)` are time-C¹, then the resolver coefficients
+  `v̂_k(s) = â_k(s)/(μ+λ_k)` are time-C¹ with the same structure.
+
+  Stage 3 — `DuhamelSourceTimeC1` is closed under addition and scalar
+  multiplication.  This lets us combine logistic + chemotaxis divergence
+  into a single total-source `DuhamelSourceTimeC1`.
 
   No `sorry`, no `admit`, no custom `axiom`.
 -/
@@ -70,5 +74,38 @@ def duhamelSourceTimeC1_of_data
   henv_bound := henv_bound
   derivBound := derivBound
   hderivBound := hderivBound
+
+/-! ## Stage 2: Mode-wise weight multiplication preserves DuhamelSourceTimeC1
+
+The elliptic resolver coefficient `v̂_k = â_k / (μ + λ_k)` is a mode-wise
+rescaling of the source coefficients.  More generally, multiplying each mode
+by a bounded weight `c(n)` preserves all DuhamelSourceTimeC1 fields:
+- `HasDerivAt` of `c(n) · a(s,n)` is `c(n) · adot(s,n)`
+- Envelope becomes `Cw · envelope(n)` (summable if `Cw` is finite)
+- Derivative bound becomes `Cw · derivBound`
+-/
+
+/-- **Mode-wise multiplication by a bounded weight preserves
+`DuhamelSourceTimeC1`.** If the coefficients `a(s,n)` satisfy
+`DuhamelSourceTimeC1` and `|c(n)| ≤ Cw` for all `n`, then the rescaled
+coefficients `c(n) · a(s,n)` also satisfy `DuhamelSourceTimeC1`. -/
+noncomputable def duhamelSourceTimeC1_mul_weight
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a)
+    (c : ℕ → ℝ) {Cw : ℝ} (hCw_nn : 0 ≤ Cw) (hCw : ∀ n, |c n| ≤ Cw) :
+    DuhamelSourceTimeC1 (fun s n => c n * a s n) where
+  adot := fun s n => c n * src.adot s n
+  hderiv := fun s n => (src.hderiv s n).const_mul (c n)
+  hadotcont := fun n => continuous_const.mul (src.hadotcont n)
+  envelope := fun n => Cw * src.envelope n
+  henv_summable := src.henv_summable.mul_left Cw
+  henv_bound := fun s hs n => by
+    calc |c n * a s n| = |c n| * |a s n| := abs_mul _ _
+      _ ≤ Cw * src.envelope n :=
+        mul_le_mul (hCw n) (src.henv_bound s hs n) (abs_nonneg _) hCw_nn
+  derivBound := Cw * src.derivBound
+  hderivBound := fun s hs n => by
+    calc |c n * src.adot s n| = |c n| * |src.adot s n| := abs_mul _ _
+      _ ≤ Cw * src.derivBound :=
+        mul_le_mul (hCw n) (src.hderivBound s hs n) (abs_nonneg _) hCw_nn
 
 end ShenWork.IntervalSourceCoefficientTimeC1
