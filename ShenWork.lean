@@ -73,6 +73,7 @@ import ShenWork.PDE.IntervalDuhamelSpectralC2
 import ShenWork.PDE.IntervalDuhamelClosedC2
 import ShenWork.PDE.IntervalSourceCoefficientTimeC1
 import ShenWork.PDE.IntervalRestartDerivJointContinuity
+import ShenWork.PDE.IntervalMildTimeDerivContinuity
 import ShenWork.PDE.IntervalCosineSliceRegularity
 import ShenWork.PDE.IntervalLogisticLipschitz
 import ShenWork.PDE.IntervalGradDuhamelBound
