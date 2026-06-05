@@ -262,6 +262,94 @@ theorem intervalDomainPaper2_Theorems_1_2_and_1_3_of_frontierDataFact
   intervalDomainPaper2_Theorems_1_2_and_1_3_of_frontierData
     p C S hData.out
 
+/-! ## Main theorem bundles -/
+
+/-- Concrete interval-domain Paper 2 main theorem targets. -/
+def IntervalDomainPaper2MainTheoremTargets
+    (p : CM2Params) (C : Paper2Constants p) : Prop :=
+  Theorem_1_1 intervalDomain p ∧
+    Theorem_1_2 intervalDomain p ∧
+      Theorem_1_3 intervalDomain p C
+
+/-- Main-theorem frontier record using the half-step H2-source Theorem 1.1
+route. -/
+structure IntervalDomainPaper2MainTheoremH2SourceFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain) : Prop where
+  theorem11 :
+    IntervalDomainPaper2GradientMildHalfStepH2SourceFrontierCoreContinuationData
+      p
+  theorem12And13 :
+    IntervalDomainPaper2Theorem12And13FrontierData p C S
+
+/-- Assemble interval-domain Paper 2 Theorems 1.1--1.3 from the H2-source
+local-existence route plus the existing Theorem 1.2/1.3 frontiers. -/
+theorem intervalDomainPaper2_mainTheoremTargets_of_H2SourceFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2MainTheoremH2SourceFrontierData p C S) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  ⟨intervalDomainPaper2_Theorem_1_1_of_halfStepH2SourceFrontierData
+      p hχ ha hb hγ_ge_one hData.theorem11,
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_frontierData
+      p C S hData.theorem12And13⟩
+
+/-- Instance-facing interval-domain main-theorem bundle from the H2-source
+route. -/
+theorem intervalDomainPaper2_mainTheoremTargets_of_H2SourceFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2MainTheoremH2SourceFrontierData p C S)] :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_H2SourceFrontierData
+    p C S hχ ha hb hγ_ge_one hData.out
+
+/-- Main-theorem frontier record using the half-step logistic-source Theorem
+1.1 route. -/
+structure IntervalDomainPaper2MainTheoremLogisticSourceFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain) : Prop where
+  theorem11 :
+    IntervalDomainPaper2GradientMildHalfStepLogisticSourceFrontierCoreContinuationData
+      p
+  theorem12And13 :
+    IntervalDomainPaper2Theorem12And13FrontierData p C S
+
+/-- Assemble interval-domain Paper 2 Theorems 1.1--1.3 from the
+logistic-source local-existence route plus the existing Theorem 1.2/1.3
+frontiers. -/
+theorem intervalDomainPaper2_mainTheoremTargets_of_logisticSourceFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2MainTheoremLogisticSourceFrontierData p C S) :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  ⟨intervalDomainPaper2_Theorem_1_1_of_halfStepLogisticSourceFrontierData
+      p hχ ha hb hγ_ge_one hData.theorem11,
+    intervalDomainPaper2_Theorems_1_2_and_1_3_of_frontierData
+      p C S hData.theorem12And13⟩
+
+/-- Instance-facing interval-domain main-theorem bundle from the
+logistic-source route. -/
+theorem intervalDomainPaper2_mainTheoremTargets_of_logisticSourceFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2MainTheoremLogisticSourceFrontierData p C S)] :
+    IntervalDomainPaper2MainTheoremTargets p C :=
+  intervalDomainPaper2_mainTheoremTargets_of_logisticSourceFrontierData
+    p C S hχ ha hb hγ_ge_one hData.out
+
 end
 
 end ShenWork.Paper2
