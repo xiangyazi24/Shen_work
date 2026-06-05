@@ -294,4 +294,41 @@ theorem duhamelSpectralCoeff_deriv_abs_summable
         rw [abs_mul, abs_of_nonneg hlam_nn]
         linarith
 
+/-- **IBP simplification: the spectral derivative equals exponential + integral.**
+From `duhamelCoeff_eigenvalue_mul`, the derivative `a(t,n) − λₙ bₙ(t)` equals
+`e^{−tλₙ} a(0,n) + ∫₀ᵗ e^{−(t−s)λₙ} adot(s,n) ds`. -/
+theorem duhamelSpectralCoeff_deriv_eq_ibp
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a)
+    (t : ℝ) (n : ℕ) :
+    a t n - unitIntervalCosineEigenvalue n *
+      duhamelSpectralCoeff a t n =
+    Real.exp (-t * unitIntervalCosineEigenvalue n) * a 0 n +
+      ∫ s in (0:ℝ)..t,
+        Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) *
+          src.adot s n := by
+  have hIBP := ShenWork.IntervalDuhamelClosedC2.duhamelCoeff_eigenvalue_mul
+    (lam := unitIntervalCosineEigenvalue n)
+    (fun s => src.hderiv s n) (src.hadotcont n) (t := t)
+  simp only [duhamelSpectralCoeff] at hIBP ⊢
+  linarith
+
+/-- **Uniform bound on the exponential piece.**  `|e^{−tλ} a(0,n)| ≤ envelope(n)`
+for `t ≥ 0`, `λ ≥ 0`, from `e^{−tλ} ≤ 1` and `|a(0,n)| ≤ envelope(n)`. -/
+theorem duhamelSpectralCoeff_exp_piece_bound
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a)
+    {t : ℝ} (ht : 0 ≤ t) (n : ℕ) :
+    |Real.exp (-t * unitIntervalCosineEigenvalue n) * a 0 n| ≤
+      src.envelope n := by
+  rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+  have hlam_nn : 0 ≤ unitIntervalCosineEigenvalue n := by
+    unfold unitIntervalCosineEigenvalue; positivity
+  have henv_nn : 0 ≤ src.envelope n :=
+    le_trans (abs_nonneg _) (src.henv_bound 0 le_rfl n)
+  calc Real.exp (-t * unitIntervalCosineEigenvalue n) * |a 0 n|
+      ≤ 1 * src.envelope n := by
+        apply mul_le_mul _ (src.henv_bound 0 le_rfl n)
+          (abs_nonneg _) (by linarith)
+        exact Real.exp_le_one_iff.2 (by nlinarith)
+    _ = src.envelope n := one_mul _
+
 end ShenWork.IntervalSourceCoefficientTimeC1
