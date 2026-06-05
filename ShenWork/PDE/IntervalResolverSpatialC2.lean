@@ -134,6 +134,54 @@ theorem resolverR_contDiffOn_Icc
       (Set.Icc (0 : ℝ) 1) :=
   (resolverR_contDiff_two hdecay).contDiffOn
 
+/-! ## ℓ¹ summability of the resolver weights -/
+
+/-- **Resolver weights are ℓ¹ summable**: `∑ 1/(μ+λₖ) < ∞`.
+
+Since `wₖ = 1/(μ + (kπ)²) ~ 1/k²π²` for large `k`, this follows from
+comparison with the convergent p-series `∑ 1/k²`.  For `k ≥ 1` the denominator
+satisfies `μ + λₖ ≥ (kπ)²`, so `wₖ ≤ 1/(kπ)² = (1/π²)·(1/k²)`.  The `k = 0`
+term `w₀ = 1/μ` is handled by restricting the comparison to `k ≥ 1` via
+`summable_nat_add_iff`. -/
+theorem resolverWeight_summable (p : CM2Params) :
+    Summable (fun k : ℕ => intervalNeumannResolverWeight p k) := by
+  -- Reduce to summability from index 1 onward (the k=0 term is a single
+  -- finite value and does not affect summability).
+  rw [← summable_nat_add_iff 1]
+  have hlam : ∀ k : ℕ,
+      unitIntervalNeumannSpectrum.eigenvalue k = (k : ℝ) ^ 2 * Real.pi ^ 2 := fun k => rfl
+  have hpi : (0 : ℝ) < Real.pi := Real.pi_pos
+  -- The majorant: `(1/π²) · 1/(k+1)²`, summable by the p-series `∑ 1/k²`.
+  have hmaj : Summable fun k : ℕ =>
+      (1 / Real.pi ^ 2) * (1 / ((k : ℝ) + 1) ^ 2) := by
+    have hp2 : Summable fun k : ℕ => 1 / ((k : ℝ) + 1) ^ 2 := by
+      have := (Real.summable_one_div_nat_pow (p := 2)).mpr (by norm_num)
+      simpa using (summable_nat_add_iff (f := fun k : ℕ => 1 / (k : ℝ) ^ 2) 1).2 this
+    exact hp2.mul_left _
+  refine Summable.of_nonneg_of_le
+    (fun k => (intervalNeumannResolverWeight_nonneg p (k + 1)))
+    ?_ hmaj
+  intro k
+  -- The denominator at `k+1` is positive.
+  have hden_pos : 0 < p.μ + unitIntervalNeumannSpectrum.eigenvalue (k + 1) :=
+    intervalNeumannResolver_denom_pos p (k + 1)
+  have hk1pos : (0 : ℝ) < (k : ℝ) + 1 := by positivity
+  -- Lower bound: `μ + λ_{k+1} ≥ ((k+1)π)²`.
+  have hlow : ((k : ℝ) + 1) ^ 2 * Real.pi ^ 2 ≤
+      p.μ + unitIntervalNeumannSpectrum.eigenvalue (k + 1) := by
+    rw [hlam (k + 1)]
+    push_cast
+    nlinarith [p.hμ.le, sq_nonneg ((k : ℝ) + 1), sq_nonneg Real.pi]
+  have hbase_pos : (0 : ℝ) < ((k : ℝ) + 1) ^ 2 * Real.pi ^ 2 := by positivity
+  -- Therefore `w_{k+1} = 1/(μ+λ_{k+1}) ≤ 1/((k+1)²π²) = (1/π²)·1/(k+1)²`.
+  show intervalNeumannResolverWeight p (k + 1) ≤ _
+  unfold intervalNeumannResolverWeight
+  have hineq := one_div_le_one_div_of_le hbase_pos hlow
+  have heq : 1 / (((k : ℝ) + 1) ^ 2 * Real.pi ^ 2) =
+      1 / Real.pi ^ 2 * (1 / ((k : ℝ) + 1) ^ 2) := by
+    rw [div_mul_div_comm, one_mul, mul_comm]
+  linarith
+
 end
 
 end ShenWork.IntervalResolverSpatialC2
