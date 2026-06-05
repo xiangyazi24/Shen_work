@@ -180,6 +180,86 @@ theorem paper3_uniformPersistenceTargets_of_rawDataFact
     Paper3UniformPersistenceTargets D p C :=
   paper3_uniformPersistenceTargets_of_rawData hData.out
 
+/-- Single-target wrapper for Paper3 Theorem 2.1. -/
+theorem paper3_Theorem_2_1_of_rawData
+    {D : BoundedDomainData} {p : CM2Params}
+    {C : Paper3Constants D p}
+    (hData : Paper3UniformPersistenceRawData D p C) :
+    Theorem_2_1 D p C :=
+  (paper3_uniformPersistenceTargets_of_rawData hData).1
+
+/-- Instance-facing wrapper for Paper3 Theorem 2.1. -/
+theorem paper3_Theorem_2_1_of_rawDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper3Constants D p)
+    [hData : Fact (Paper3UniformPersistenceRawData D p C)] :
+    Theorem_2_1 D p C :=
+  paper3_Theorem_2_1_of_rawData hData.out
+
+/-- Single-target wrapper for Paper3 Theorem 2.1 part 1. -/
+theorem paper3_Theorem_2_1_part1_of_rawData
+    {D : BoundedDomainData} {p : CM2Params}
+    {C : Paper3Constants D p}
+    (hData : Paper3UniformPersistenceRawData D p C) :
+    Theorem_2_1_part1 D p :=
+  (paper3_uniformPersistenceTargets_of_rawData hData).2.1
+
+/-- Instance-facing wrapper for Paper3 Theorem 2.1 part 1. -/
+theorem paper3_Theorem_2_1_part1_of_rawDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper3Constants D p)
+    [hData : Fact (Paper3UniformPersistenceRawData D p C)] :
+    Theorem_2_1_part1 D p :=
+  paper3_Theorem_2_1_part1_of_rawData hData.out
+
+/-- Single-target wrapper for Paper3 Theorem 2.1 part 2. -/
+theorem paper3_Theorem_2_1_part2_of_rawData
+    {D : BoundedDomainData} {p : CM2Params}
+    {C : Paper3Constants D p}
+    (hData : Paper3UniformPersistenceRawData D p C) :
+    Theorem_2_1_part2 D p :=
+  (paper3_uniformPersistenceTargets_of_rawData hData).2.2.1
+
+/-- Instance-facing wrapper for Paper3 Theorem 2.1 part 2. -/
+theorem paper3_Theorem_2_1_part2_of_rawDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper3Constants D p)
+    [hData : Fact (Paper3UniformPersistenceRawData D p C)] :
+    Theorem_2_1_part2 D p :=
+  paper3_Theorem_2_1_part2_of_rawData hData.out
+
+/-- Single-target wrapper for Paper3 Theorem 2.1 part 3. -/
+theorem paper3_Theorem_2_1_part3_of_rawData
+    {D : BoundedDomainData} {p : CM2Params}
+    {C : Paper3Constants D p}
+    (hData : Paper3UniformPersistenceRawData D p C) :
+    Theorem_2_1_part3 D p :=
+  (paper3_uniformPersistenceTargets_of_rawData hData).2.2.2.1
+
+/-- Instance-facing wrapper for Paper3 Theorem 2.1 part 3. -/
+theorem paper3_Theorem_2_1_part3_of_rawDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper3Constants D p)
+    [hData : Fact (Paper3UniformPersistenceRawData D p C)] :
+    Theorem_2_1_part3 D p :=
+  paper3_Theorem_2_1_part3_of_rawData hData.out
+
+/-- Single-target wrapper for Paper3 Theorem 2.1 part 4. -/
+theorem paper3_Theorem_2_1_part4_of_rawData
+    {D : BoundedDomainData} {p : CM2Params}
+    {C : Paper3Constants D p}
+    (hData : Paper3UniformPersistenceRawData D p C) :
+    Theorem_2_1_part4 D p C :=
+  (paper3_uniformPersistenceTargets_of_rawData hData).2.2.2.2
+
+/-- Instance-facing wrapper for Paper3 Theorem 2.1 part 4. -/
+theorem paper3_Theorem_2_1_part4_of_rawDataFact
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper3Constants D p)
+    [hData : Fact (Paper3UniformPersistenceRawData D p C)] :
+    Theorem_2_1_part4 D p C :=
+  paper3_Theorem_2_1_part4_of_rawData hData.out
+
 /-! ## Theorem 2.2 stability-threshold target -/
 
 /-- Paper3 Theorem 2.2 from its branch-data package. -/
@@ -263,6 +343,54 @@ theorem paper3_stability23To25Targets_of_branchDataFact
     [hData : Fact (Paper3Stability23To25BranchData D p N C)] :
     Paper3Stability23To25Targets D p N C :=
   paper3_stability23To25Targets_of_branchData hData.out
+
+/-- Single-target wrapper for Paper3 Theorem 2.3. -/
+theorem paper3_Theorem_2_3_of_branchData
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (hData : Paper3Stability23To25BranchData D p N C) :
+    Theorem_2_3 D p N :=
+  (paper3_stability23To25Targets_of_branchData hData).1
+
+/-- Instance-facing wrapper for Paper3 Theorem 2.3. -/
+theorem paper3_Theorem_2_3_of_branchDataFact
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (C : Paper3Constants D p)
+    [hData : Fact (Paper3Stability23To25BranchData D p N C)] :
+    Theorem_2_3 D p N :=
+  paper3_Theorem_2_3_of_branchData hData.out
+
+/-- Single-target wrapper for Paper3 Theorem 2.4. -/
+theorem paper3_Theorem_2_4_of_branchData
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (hData : Paper3Stability23To25BranchData D p N C) :
+    Theorem_2_4 D p N C :=
+  (paper3_stability23To25Targets_of_branchData hData).2.1
+
+/-- Instance-facing wrapper for Paper3 Theorem 2.4. -/
+theorem paper3_Theorem_2_4_of_branchDataFact
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (C : Paper3Constants D p)
+    [hData : Fact (Paper3Stability23To25BranchData D p N C)] :
+    Theorem_2_4 D p N C :=
+  paper3_Theorem_2_4_of_branchData hData.out
+
+/-- Single-target wrapper for Paper3 Theorem 2.5. -/
+theorem paper3_Theorem_2_5_of_branchData
+    {D : BoundedDomainData} {p : CM2Params} {N : StabilityNorms D}
+    {C : Paper3Constants D p}
+    (hData : Paper3Stability23To25BranchData D p N C) :
+    Theorem_2_5 D p N C :=
+  (paper3_stability23To25Targets_of_branchData hData).2.2
+
+/-- Instance-facing wrapper for Paper3 Theorem 2.5. -/
+theorem paper3_Theorem_2_5_of_branchDataFact
+    (D : BoundedDomainData) (p : CM2Params) (N : StabilityNorms D)
+    (C : Paper3Constants D p)
+    [hData : Fact (Paper3Stability23To25BranchData D p N C)] :
+    Theorem_2_5 D p N C :=
+  paper3_Theorem_2_5_of_branchData hData.out
 
 /-! ## Mainline umbrella targets -/
 
