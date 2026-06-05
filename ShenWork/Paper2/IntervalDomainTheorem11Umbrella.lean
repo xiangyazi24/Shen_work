@@ -1273,6 +1273,16 @@ theorem Theorem_1_1_intervalDomain_via_regime_and_continuationDataFact
   Theorem_1_1_intervalDomain_via_regime_and_continuationData
     p hχ ha hb hData.out
 
+/-- Fully instance-facing bundled continuation-data wrapper for the full Paper
+2 interval-domain umbrella. -/
+theorem Theorem_1_1_intervalDomain_via_regime_and_continuationDataAllFact
+    (p : CM2Params)
+    [hχ : Fact (p.χ₀ ≤ 0)] [ha : Fact (0 < p.a)] [hb : Fact (0 < p.b)]
+    [hData : Fact (IntervalDomainPaper2ContinuationData p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_and_continuationData
+    p hχ.out ha.out hb.out hData.out
+
 /-! ## Refined umbrella: `extend_finite` eliminated
 
 The next umbrella variant drops the `hextend_of_not_finiteAlternative` textbook
@@ -1477,6 +1487,17 @@ theorem
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_and_continuationData_no_extend_finite
     p hχ ha hb hData.out
+
+/-- Fully instance-facing bundled continuation-data wrapper with
+`extend_finite` eliminated. -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_and_continuationData_no_extend_finiteAllFact
+    (p : CM2Params)
+    [hχ : Fact (p.χ₀ ≤ 0)] [ha : Fact (0 < p.a)] [hb : Fact (0 < p.b)]
+    [hData : Fact (IntervalDomainPaper2ContinuationData_no_extend_finite p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_and_continuationData_no_extend_finite
+    p hχ.out ha.out hb.out hData.out
 
 /-- Forgetful map: every old continuation-data bundle (6 fields) gives rise to
 the new leaner bundle (5 fields) by simply dropping `extend_finite`.  This
@@ -1726,6 +1747,17 @@ theorem
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_and_continuationData_bundled
     p hχ ha hb hγ_ge_one hData.out
+
+/-- Fully instance-facing bundled continuation-data wrapper (γ ≥ 1). -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_and_continuationData_bundledAllFact
+    (p : CM2Params)
+    [hχ : Fact (p.χ₀ ≤ 0)] [ha : Fact (0 < p.a)] [hb : Fact (0 < p.b)]
+    [hγ_ge_one : Fact (1 ≤ p.γ)]
+    [hData : Fact (IntervalDomainPaper2ContinuationDataGammaGeOne p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_and_continuationData_bundled
+    p hχ.out ha.out hb.out hγ_ge_one.out hData.out
 
 /-! ## `hrealize` discharged internally for the γ≥1 regime
 
@@ -2117,6 +2149,19 @@ theorem
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge_bundled
     p hχ ha hb hγ_ge_one hData.out
+
+/-- Fully instance-facing bundled continuation-data wrapper (γ ≥ 1,
+`hextend_mge` eliminated). -/
+theorem
+    Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge_bundledAllFact
+    (p : CM2Params)
+    [hχ : Fact (p.χ₀ ≤ 0)] [ha : Fact (0 < p.a)] [hb : Fact (0 < p.b)]
+    [hγ_ge_one : Fact (1 ≤ p.γ)]
+    [hData : Fact
+      (IntervalDomainPaper2ContinuationDataGammaGeOne_no_hextend_mge p)] :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge_bundled
+    p hχ.out ha.out hb.out hγ_ge_one.out hData.out
 
 /-- **Paper 2-aligned umbrella via Picard gradient-mild local data.**
 
