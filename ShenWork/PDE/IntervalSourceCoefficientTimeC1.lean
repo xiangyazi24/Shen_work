@@ -176,4 +176,77 @@ noncomputable def duhamelSourceTimeC1_sub
   rw [this]
   exact duhamelSourceTimeC1_add ha (duhamelSourceTimeC1_const_mul hb (-1))
 
+/-! ## G4: Spectral Duhamel ODE and time differentiation of cosine series
+
+The **spectral Duhamel ODE** says that the Duhamel spectral coefficient
+`bₙ(t) = ∫₀ᵗ e^{−(t−s)λₙ} aₙ(s) ds` satisfies
+`HasDerivAt bₙ (aₙ(t) − λₙ · bₙ(t)) t`.
+
+Combined with term-by-term differentiation for the cosine series, this gives
+the **PDE from the mild equation**: `∂ₜu = Δu + source`.
+-/
+
+open ShenWork.IntervalDuhamelClosedC2 (duhamelSpectralCoeff)
+
+/-- **Spectral Duhamel ODE.**  If the source coefficient `s ↦ a s n` is
+continuous (implied by `DuhamelSourceTimeC1`), then the spectral Duhamel
+coefficient `bₙ(t) = ∫₀ᵗ e^{−(t−s)λₙ} aₙ(s) ds` satisfies
+`d/dt bₙ(t) = aₙ(t) − λₙ · bₙ(t)`.
+
+Proof: factor `bₙ(t) = e^{−tλ} · ∫₀ᵗ e^{sλ} aₙ(s) ds`, then apply the
+product rule and FTC. -/
+theorem duhamelSpectralCoeff_hasDerivAt
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a)
+    (t : ℝ) (n : ℕ) :
+    HasDerivAt (fun r => duhamelSpectralCoeff a r n)
+      (a t n - unitIntervalCosineEigenvalue n *
+        duhamelSpectralCoeff a t n) t := by
+  set lam := unitIntervalCosineEigenvalue n
+  have hcont_an : Continuous (fun s => a s n) :=
+    continuous_iff_continuousAt.2 (fun s => (src.hderiv s n).continuousAt)
+  -- Factor: b(r) = e^{-rλ} · G(r) where G(r) = ∫₀ʳ e^{sλ} a(s,n) ds.
+  set G : ℝ → ℝ := fun r =>
+    ∫ s in (0 : ℝ)..r, Real.exp (s * lam) * a s n
+  have hfactor : ∀ r, duhamelSpectralCoeff a r n =
+      Real.exp (-r * lam) * G r := by
+    intro r; show (∫ s in (0:ℝ)..r, _) = _
+    rw [← intervalIntegral.integral_const_mul]
+    exact intervalIntegral.integral_congr (fun s _ => by
+      rw [show -(r - s) * lam = -r * lam + s * lam from by ring,
+        Real.exp_add, mul_assoc])
+  -- HasDerivAt of e^{-rλ} at r = t.
+  have hd_exp : HasDerivAt (fun r => Real.exp (-r * lam))
+      (-lam * Real.exp (-t * lam)) t := by
+    have h1 : HasDerivAt (fun r : ℝ => -r * lam) (-1 * lam) t := by
+      exact (hasDerivAt_id t).neg.mul_const lam
+    have h2 := h1.exp
+    simp only [neg_mul, one_mul] at h2 ⊢
+    convert h2 using 1; ring
+  -- HasDerivAt of G at r = t (FTC).
+  have hG_cont : Continuous (fun s => Real.exp (s * lam) * a s n) := by
+    exact (Real.continuous_exp.comp (continuous_id.mul continuous_const)).mul
+      hcont_an
+  have hd_G : HasDerivAt G (Real.exp (t * lam) * a t n) t :=
+    intervalIntegral.integral_hasDerivAt_right
+      (hG_cont.intervalIntegrable 0 t)
+      hG_cont.aestronglyMeasurable.stronglyMeasurableAtFilter
+      hG_cont.continuousAt
+  -- Product rule + simplification: e^{-tλ} * e^{tλ} = 1.
+  have hexp_cancel : Real.exp (-t * lam) * Real.exp (t * lam) = 1 := by
+    rw [← Real.exp_add, show -t * lam + t * lam = 0 from by ring,
+      Real.exp_zero]
+  have hderiv_val :
+      -lam * Real.exp (-t * lam) * G t +
+        Real.exp (-t * lam) * (Real.exp (t * lam) * a t n) =
+      a t n - lam * (Real.exp (-t * lam) * G t) := by
+    rw [← mul_assoc (Real.exp _), hexp_cancel, one_mul]; ring
+  have hprod : HasDerivAt (fun r => Real.exp (-r * lam) * G r)
+      (a t n - lam * (Real.exp (-t * lam) * G t)) t :=
+    (hd_exp.mul hd_G).congr_deriv hderiv_val
+  -- Rewrite to duhamelSpectralCoeff form.
+  rw [show (fun r => duhamelSpectralCoeff a r n) =
+      (fun r => Real.exp (-r * lam) * G r) from funext hfactor,
+    hfactor t]
+  exact hprod
+
 end ShenWork.IntervalSourceCoefficientTimeC1
