@@ -4873,6 +4873,96 @@ theorem lemma_2_6_2_7_and_propositions_2_2_to_2_5_of_branchDataFact
         Proposition_2_4 D p ∧ Proposition_2_5 D p :=
   lemma_2_6_2_7_and_propositions_2_2_to_2_5_of_branchData hData.out
 
+/-- Single-target wrapper for Lemma 2.6 from the bundled bootstrap branch
+data. -/
+theorem Lemma_2_6.of_branchData
+    {D : BoundedDomainData} {p : CM2Params}
+    (hData : Paper2BootstrapEstimateBranchData D p) :
+    Lemma_2_6 D :=
+  Lemma_2_6.of_assumed_bound_branch hData.lemma26
+
+/-- Instance-facing single-target wrapper for Lemma 2.6. -/
+theorem Lemma_2_6.of_branchDataFact
+    {D : BoundedDomainData} {p : CM2Params}
+    [hData : Fact (Paper2BootstrapEstimateBranchData D p)] :
+    Lemma_2_6 D :=
+  Lemma_2_6.of_branchData hData.out
+
+/-- Single-target wrapper for Lemma 2.7 from the bundled bootstrap branch
+data. -/
+theorem Lemma_2_7.of_branchData
+    {D : BoundedDomainData} {p : CM2Params}
+    (hData : Paper2BootstrapEstimateBranchData D p) :
+    Lemma_2_7 D :=
+  Lemma_2_7.of_assumed_bound_branch hData.lemma27
+
+/-- Instance-facing single-target wrapper for Lemma 2.7. -/
+theorem Lemma_2_7.of_branchDataFact
+    {D : BoundedDomainData} {p : CM2Params}
+    [hData : Fact (Paper2BootstrapEstimateBranchData D p)] :
+    Lemma_2_7 D :=
+  Lemma_2_7.of_branchData hData.out
+
+/-- Single-target wrapper for Proposition 2.2 from the bundled bootstrap
+branch data. -/
+theorem Proposition_2_2.of_branchData
+    {D : BoundedDomainData} {p : CM2Params}
+    (hData : Paper2BootstrapEstimateBranchData D p) :
+    Proposition_2_2 D p :=
+  Proposition_2_2.of_assumed_estimate_branch hData.prop22
+
+/-- Instance-facing single-target wrapper for Proposition 2.2. -/
+theorem Proposition_2_2.of_branchDataFact
+    {D : BoundedDomainData} {p : CM2Params}
+    [hData : Fact (Paper2BootstrapEstimateBranchData D p)] :
+    Proposition_2_2 D p :=
+  Proposition_2_2.of_branchData hData.out
+
+/-- Single-target wrapper for Proposition 2.3 from the bundled bootstrap
+branch data. -/
+theorem Proposition_2_3.of_branchData
+    {D : BoundedDomainData} {p : CM2Params}
+    (hData : Paper2BootstrapEstimateBranchData D p) :
+    Proposition_2_3 D p :=
+  Proposition_2_3.of_assumed_estimate_branch hData.prop23
+
+/-- Instance-facing single-target wrapper for Proposition 2.3. -/
+theorem Proposition_2_3.of_branchDataFact
+    {D : BoundedDomainData} {p : CM2Params}
+    [hData : Fact (Paper2BootstrapEstimateBranchData D p)] :
+    Proposition_2_3 D p :=
+  Proposition_2_3.of_branchData hData.out
+
+/-- Single-target wrapper for Proposition 2.4 from the bundled bootstrap
+branch data. -/
+theorem Proposition_2_4.of_branchData
+    {D : BoundedDomainData} {p : CM2Params}
+    (hData : Paper2BootstrapEstimateBranchData D p) :
+    Proposition_2_4 D p :=
+  Proposition_2_4.of_assumed_mass_branch hData.prop24
+
+/-- Instance-facing single-target wrapper for Proposition 2.4. -/
+theorem Proposition_2_4.of_branchDataFact
+    {D : BoundedDomainData} {p : CM2Params}
+    [hData : Fact (Paper2BootstrapEstimateBranchData D p)] :
+    Proposition_2_4 D p :=
+  Proposition_2_4.of_branchData hData.out
+
+/-- Single-target wrapper for Proposition 2.5 from the bundled bootstrap
+branch data. -/
+theorem Proposition_2_5.of_branchData
+    {D : BoundedDomainData} {p : CM2Params}
+    (hData : Paper2BootstrapEstimateBranchData D p) :
+    Proposition_2_5 D p :=
+  Proposition_2_5.of_assumed_bound_branch hData.prop25
+
+/-- Instance-facing single-target wrapper for Proposition 2.5. -/
+theorem Proposition_2_5.of_branchDataFact
+    {D : BoundedDomainData} {p : CM2Params}
+    [hData : Fact (Paper2BootstrapEstimateBranchData D p)] :
+    Proposition_2_5 D p :=
+  Proposition_2_5.of_branchData hData.out
+
 /-- Generic existence-hypothesis closure for Paper 2 Theorem 1.1.
 Given that the relevant Cauchy solution exists with the required `L∞` bound
 and the global criterion `1 ≤ p.m` in both branches, `Theorem_1_1` follows. -/
