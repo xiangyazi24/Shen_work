@@ -50,6 +50,11 @@ import ShenWork.Paper2.IntervalMildPicardLimitRegularity
 import ShenWork.Paper2.IntervalMildTimeRegularity
 import ShenWork.Paper2.IntervalMildToLocalExistence
 import ShenWork.Paper2.IntervalMildRegularityFrontierAssembly
+import ShenWork.Paper2.IntervalDomainRestartExtension
+import ShenWork.Paper2.IntervalDomainTimeShift
+import ShenWork.Paper2.IntervalQuantitativePicard
+import ShenWork.Paper2.IntervalDomainSupNormBridge
+import ShenWork.Paper2.IntervalRegularityFrontierWiring
 import ShenWork.PDE.IntervalRestartDerivJointContinuity
 import ShenWork.PDE.IntervalMildTimeDerivContinuity
 
