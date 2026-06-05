@@ -79,6 +79,37 @@ theorem unitPointPaper3_Theorem_2_1_when_a_pos_beta_lt_one
     Theorem_2_1 unitPointDomain p C :=
   unitPointDomain.Theorem_2_1_when_a_pos_beta_lt_one p ha hβ C
 
+/-! ## Unit-point combined branch targets -/
+
+/-- Unit-point Paper3 Proposition 1.x targets together with Theorem 2.1. -/
+def UnitPointPaper3Proposition1AndTheorem21Targets
+    (p : CM2Params) (C1 : Paper2Constants p)
+    (C3 : Paper3Constants unitPointDomain p) : Prop :=
+  UnitPointPaper3Proposition1Targets p C1 ∧
+    Theorem_2_1 unitPointDomain p C3
+
+/-- Assemble unit-point Proposition 1.x and Theorem 2.1 in the positive-`a`,
+nonpositive-sensitivity branch. -/
+theorem unitPointPaper3_proposition1AndTheorem21Targets_when_a_pos_chi_nonpos
+    (p : CM2Params) (C1 : Paper2Constants p)
+    (C3 : Paper3Constants unitPointDomain p)
+    (hnot : ¬ (0 < p.a ∧ p.b = 0))
+    (ha : 0 < p.a) (hχ : p.χ₀ ≤ 0) :
+    UnitPointPaper3Proposition1AndTheorem21Targets p C1 C3 :=
+  ⟨unitPointPaper3_proposition1Targets p C1 hnot,
+    unitPointPaper3_Theorem_2_1_when_a_pos_chi_nonpos p C3 ha hχ⟩
+
+/-- Assemble unit-point Proposition 1.x and Theorem 2.1 in the positive-`a`,
+`β < 1` branch. -/
+theorem unitPointPaper3_proposition1AndTheorem21Targets_when_a_pos_beta_lt_one
+    (p : CM2Params) (C1 : Paper2Constants p)
+    (C3 : Paper3Constants unitPointDomain p)
+    (hnot : ¬ (0 < p.a ∧ p.b = 0))
+    (ha : 0 < p.a) (hβ : p.β < 1) :
+    UnitPointPaper3Proposition1AndTheorem21Targets p C1 C3 :=
+  ⟨unitPointPaper3_proposition1Targets p C1 hnot,
+    unitPointPaper3_Theorem_2_1_when_a_pos_beta_lt_one p C3 ha hβ⟩
+
 end
 
 end ShenWork.Paper3
