@@ -6,9 +6,59 @@
 -/
 import ShenWork.Paper3.Statements
 
+open ShenWork.Paper2
+
 namespace ShenWork.Paper3
 
 noncomputable section
+
+/-! ## Proposition 1.x targets -/
+
+/-- Paper3 Proposition 1.2, Proposition 1.3, and Proposition 1.4 targets. -/
+def Paper3Proposition1Targets
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper2Constants p) : Prop :=
+  Proposition_1_2 D p ∧ Proposition_1_3 D p C ∧ Proposition_1_4 D p
+
+/-- Frontier data for Paper3 Proposition 1.2--1.4. -/
+structure Paper3Proposition1FrontierData
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper2Constants p) : Prop where
+  negativeBound : NegativeSensitivityGlobalEventualBound D p
+  proposition13 :
+    0 < p.a → 0 < p.b → 1 ≤ p.m → StrongLogisticCondition p C →
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        ∃ u v : ℝ → D.Point → ℝ,
+          IsPaper2GlobalClassicalSolution D p u v ∧
+          InitialTrace D u₀ u ∧
+          IsPaper2Bounded D u
+  proposition14 :
+    p.m = 1 → 1 ≤ p.β →
+      ((p.a = 0 ∧ p.b = 0) ∨ (0 ≤ p.a ∧ 0 < p.b)) →
+        p.χ₀ < chiBeta p →
+          ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+            ∃ u v : ℝ → D.Point → ℝ,
+              IsPaper2GlobalClassicalSolution D p u v ∧
+              InitialTrace D u₀ u ∧
+              IsPaper2Bounded D u
+
+/-- Assemble Paper3 Propositions 1.2--1.4 from their statement-layer frontier
+data. -/
+theorem paper3_proposition1Targets_of_frontierData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hData : Paper3Proposition1FrontierData D p C) :
+    Paper3Proposition1Targets D p C :=
+  ⟨Proposition_1_2_of_negativeSensitivityGlobalEventualBound
+      D p hData.negativeBound,
+    Proposition_1_3.of_assumed_existence_branch hData.proposition13,
+    Proposition_1_4.of_assumed_existence_branch hData.proposition14⟩
+
+/-- Instance-facing wrapper for Paper3 Propositions 1.2--1.4. -/
+theorem paper3_proposition1Targets_of_frontierDataFact
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p)
+    [hData : Fact (Paper3Proposition1FrontierData D p C)] :
+    Paper3Proposition1Targets D p C :=
+  paper3_proposition1Targets_of_frontierData hData.out
 
 /-! ## Theorem 2.1 persistence targets -/
 
