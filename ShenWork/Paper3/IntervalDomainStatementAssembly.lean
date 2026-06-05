@@ -128,6 +128,111 @@ theorem intervalDomain_paper3_compactnessRegularizationTargets_of_frontiersFact
   intervalDomain_paper3_compactnessRegularizationTargets_of_frontiers
     p K N C hData.out
 
+/-- Single-target wrapper for Paper3 Lemma 3.2 from the compactness bundle. -/
+theorem intervalDomain_paper3_Lemma_3_2_of_compactnessRegularizationData
+    (p : CM2Params) (K : CompactnessData intervalDomain)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hData : IntervalDomainPaper3CompactnessRegularizationData p K N C) :
+    Lemma_3_2 intervalDomain p K :=
+  (intervalDomain_paper3_compactnessRegularizationTargets_of_frontiers
+    p K N C hData).2.1
+
+/-- Instance-facing single-target wrapper for Paper3 Lemma 3.2. -/
+theorem intervalDomain_paper3_Lemma_3_2_of_compactnessRegularizationDataFact
+    (p : CM2Params) (K : CompactnessData intervalDomain)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    [hData : Fact
+      (IntervalDomainPaper3CompactnessRegularizationData p K N C)] :
+    Lemma_3_2 intervalDomain p K :=
+  intervalDomain_paper3_Lemma_3_2_of_compactnessRegularizationData
+    p K N C hData.out
+
+/-- Single-target wrapper for Paper3 Lemma 3.3 from the compactness bundle. -/
+theorem intervalDomain_paper3_Lemma_3_3_of_compactnessRegularizationData
+    (p : CM2Params) (K : CompactnessData intervalDomain)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hData : IntervalDomainPaper3CompactnessRegularizationData p K N C) :
+    Lemma_3_3 intervalDomain p N :=
+  (intervalDomain_paper3_compactnessRegularizationTargets_of_frontiers
+    p K N C hData).2.2.1
+
+/-- Instance-facing single-target wrapper for Paper3 Lemma 3.3. -/
+theorem intervalDomain_paper3_Lemma_3_3_of_compactnessRegularizationDataFact
+    (p : CM2Params) (K : CompactnessData intervalDomain)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    [hData : Fact
+      (IntervalDomainPaper3CompactnessRegularizationData p K N C)] :
+    Lemma_3_3 intervalDomain p N :=
+  intervalDomain_paper3_Lemma_3_3_of_compactnessRegularizationData
+    p K N C hData.out
+
+/-- Single-target wrapper for Paper3 Lemma 3.4 from the compactness bundle. -/
+theorem intervalDomain_paper3_Lemma_3_4_of_compactnessRegularizationData
+    (p : CM2Params) (K : CompactnessData intervalDomain)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hData : IntervalDomainPaper3CompactnessRegularizationData p K N C) :
+    Lemma_3_4 intervalDomain p K :=
+  (intervalDomain_paper3_compactnessRegularizationTargets_of_frontiers
+    p K N C hData).2.2.2.1
+
+/-- Instance-facing single-target wrapper for Paper3 Lemma 3.4. -/
+theorem intervalDomain_paper3_Lemma_3_4_of_compactnessRegularizationDataFact
+    (p : CM2Params) (K : CompactnessData intervalDomain)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    [hData : Fact
+      (IntervalDomainPaper3CompactnessRegularizationData p K N C)] :
+    Lemma_3_4 intervalDomain p K :=
+  intervalDomain_paper3_Lemma_3_4_of_compactnessRegularizationData
+    p K N C hData.out
+
+/-- Single-target wrapper for Paper3 Lemma 3.5 from the compactness bundle. -/
+theorem intervalDomain_paper3_Lemma_3_5_of_compactnessRegularizationData
+    (p : CM2Params) (K : CompactnessData intervalDomain)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hData : IntervalDomainPaper3CompactnessRegularizationData p K N C) :
+    Lemma_3_5 intervalDomain p C :=
+  (intervalDomain_paper3_compactnessRegularizationTargets_of_frontiers
+    p K N C hData).2.2.2.2.1
+
+/-- Instance-facing single-target wrapper for Paper3 Lemma 3.5. -/
+theorem intervalDomain_paper3_Lemma_3_5_of_compactnessRegularizationDataFact
+    (p : CM2Params) (K : CompactnessData intervalDomain)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    [hData : Fact
+      (IntervalDomainPaper3CompactnessRegularizationData p K N C)] :
+    Lemma_3_5 intervalDomain p C :=
+  intervalDomain_paper3_Lemma_3_5_of_compactnessRegularizationData
+    p K N C hData.out
+
+/-- Single-target wrapper for Paper3 Lemma 7.1 from the compactness bundle. -/
+theorem intervalDomain_paper3_Lemma_7_1_of_compactnessRegularizationData
+    (p : CM2Params) (K : CompactnessData intervalDomain)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    (hData : IntervalDomainPaper3CompactnessRegularizationData p K N C) :
+    Lemma_7_1 intervalDomain K :=
+  (intervalDomain_paper3_compactnessRegularizationTargets_of_frontiers
+    p K N C hData).2.2.2.2.2
+
+/-- Instance-facing single-target wrapper for Paper3 Lemma 7.1. -/
+theorem intervalDomain_paper3_Lemma_7_1_of_compactnessRegularizationDataFact
+    (p : CM2Params) (K : CompactnessData intervalDomain)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    [hData : Fact
+      (IntervalDomainPaper3CompactnessRegularizationData p K N C)] :
+    Lemma_7_1 intervalDomain K :=
+  intervalDomain_paper3_Lemma_7_1_of_compactnessRegularizationData
+    p K N C hData.out
+
 /-- Bundled raw frontiers for the concrete interval constants and concrete
 interval stability norms. -/
 structure IntervalDomainPaper3ConcreteCompactnessRegularizationData
