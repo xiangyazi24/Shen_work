@@ -765,17 +765,30 @@ theorem mildSolution_classicalRegularity_of_restartCosineRepresentations_and_fro
           D H t ht.1 ht.2,
         F.vClosedSpatial t ht⟩
 
-/-- Same classical-regularity bridge, with restart representations produced
-from the half-step restart package. -/
+/-- Same classical-regularity bridge, using the half-step closed-C²/Neumann
+package directly for the mild component. -/
 theorem mildSolution_classicalRegularity_of_halfStepRestartData_and_frontier
     (p : CM2Params) {u₀ : intervalDomainPoint -> ℝ}
     (D : GradientMildSolutionData p u₀)
     (R : GradientMildHalfStepRestartData D)
     (F : GradientMildClassicalRegularityFrontierData p D) :
     intervalDomainClassicalRegularity D.T D.u
-      (mildChemicalConcentration p D.u) :=
-  mildSolution_classicalRegularity_of_restartCosineRepresentations_and_frontier
-    p D (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R) F
+      (mildChemicalConcentration p D.u) := by
+  unfold intervalDomainClassicalRegularity
+  let HN := gradientMild_closedC2_neumann_of_halfStepRestartData D R
+  refine ⟨F.supnormLogistic, F.supnormZero, ?_, F.timeSlices,
+    F.jointTimeDerivInterior, ?_, ?_, F.jointTimeDerivClosed,
+    F.jointSolutionClosed⟩
+  · intro t ht
+    exact ⟨(HN.1 t ht.1 ht.2).mono Set.Ioo_subset_Icc_self,
+      F.vSpatialInterior t ht⟩
+  · intro t ht
+    exact ⟨⟨HN.2.1 t ht.1 ht.2, HN.2.2 t ht.1 ht.2⟩,
+      F.vNeumannLimits t ht⟩
+  · intro t ht
+    exact ⟨gradientMild_closedC2_endpointDerivs_of_halfStepRestartData
+        D R t ht.1 ht.2,
+      F.vClosedSpatial t ht⟩
 
 /-- Same classical-regularity bridge, with restart representations produced
 from H²-Neumann half-step source data and quadratic source-coefficient decay. -/

@@ -211,9 +211,11 @@ theorem gradientMildClassicalCoreData_of_halfStepRestartData_and_frontierCore
     (D : GradientMildSolutionData p u0)
     (R : GradientMildHalfStepRestartData D)
     (C : GradientMildClassicalFrontierCoreData p D) :
-    GradientMildClassicalCoreData p D :=
-  gradientMildClassicalCoreData_of_restartCosineRepresentations_and_frontierCore
-    p D (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R) C
+    GradientMildClassicalCoreData p D where
+  hpde_u := C.hpde_u
+  hclassicalRegularity :=
+    mildSolution_classicalRegularity_of_halfStepRestartData_and_frontier
+      p D R C.hregularityFrontier
 
 /-- H²-source variant of
 `gradientMildClassicalCoreData_of_restartCosineRepresentations_and_frontierCore`. -/
