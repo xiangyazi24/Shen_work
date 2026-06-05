@@ -566,4 +566,134 @@ theorem duhamelSpectralCosineSeries_hasDerivAt_time
     isPreconnected_Ioi hg hg' (Set.mem_Ioi.2 ht₀) hg0
     (Set.mem_Ioi.2 ht₀)
 
+/-- `∑ₙ λₙ e^{−τλₙ} < ∞` for `τ > 0`.  Comparison with `n² e^{-cn}`. -/
+private theorem eigenvalue_mul_exp_summable {τ : ℝ} (hτ : 0 < τ) :
+    Summable (fun n : ℕ =>
+      unitIntervalCosineEigenvalue n *
+        Real.exp (-τ * unitIntervalCosineEigenvalue n)) := by
+  have hc : 0 < τ * Real.pi ^ 2 := by positivity
+  have hbase := (Real.summable_pow_mul_exp_neg_nat_mul 2 hc).mul_left
+    (Real.pi ^ 2)
+  refine Summable.of_nonneg_of_le
+    (fun n => mul_nonneg (by unfold unitIntervalCosineEigenvalue; positivity)
+      (Real.exp_nonneg _)) (fun n => ?_) hbase
+  simp only [unitIntervalCosineEigenvalue]
+  calc ((n : ℝ) * Real.pi) ^ 2 *
+        Real.exp (-τ * ((n : ℝ) * Real.pi) ^ 2)
+      = (n : ℝ) ^ 2 * Real.pi ^ 2 *
+          Real.exp (-(τ * Real.pi ^ 2) * (n : ℝ) ^ 2) := by ring_nf
+    _ ≤ (n : ℝ) ^ 2 * Real.pi ^ 2 *
+          Real.exp (-(τ * Real.pi ^ 2) * (n : ℝ)) := by
+        apply mul_le_mul_of_nonneg_left _ (by positivity)
+        apply Real.exp_le_exp_of_le
+        have : (n : ℝ) ≤ (n : ℝ) ^ 2 := by
+          rcases Nat.eq_zero_or_pos n with h | h
+          · simp [h]
+          · exact le_self_pow₀ (Nat.one_le_cast.2 h) (by norm_num)
+        nlinarith
+    _ = Real.pi ^ 2 * ((n : ℝ) ^ 2 *
+          Real.exp (-(τ * Real.pi ^ 2) * (n : ℝ))) := by ring
+
+open ShenWork.CosineSpectrum (cosineMode) in
+/-- **G4h: Time derivative of the homogeneous cosine-heat series.**
+For bounded `a₀` and `t₀ > 0`, `t ↦ ∑' n, e^{−tλₙ} a₀ₙ cos(nπx)` has
+time derivative `∑' n, (−λₙ e^{−t₀λₙ}) a₀ₙ cos(nπx)` at `t₀`. -/
+theorem homogeneousCosineSeries_hasDerivAt_time
+    {a₀ : ℕ → ℝ} {M : ℝ} (hM : 0 ≤ M) (ha₀ : ∀ n, |a₀ n| ≤ M)
+    {t₀ : ℝ} (ht₀ : 0 < t₀) (x : ℝ) :
+    HasDerivAt
+      (fun t => ∑' n, Real.exp (-t * unitIntervalCosineEigenvalue n) *
+        a₀ n * cosineMode n x)
+      (∑' n, -(unitIntervalCosineEigenvalue n *
+        Real.exp (-t₀ * unitIntervalCosineEigenvalue n)) *
+          a₀ n * cosineMode n x) t₀ := by
+  have hcos_le : ∀ n, |cosineMode n x| ≤ 1 := fun n => by
+    simp only [cosineMode]; exact Real.abs_cos_le_one _
+  have ht₀2 : 0 < t₀ / 2 := by linarith
+  set u : ℕ → ℝ := fun n =>
+    unitIntervalCosineEigenvalue n *
+      Real.exp (-(t₀ / 2) * unitIntervalCosineEigenvalue n) * M
+  have hu : Summable u := (eigenvalue_mul_exp_summable ht₀2).mul_right _
+  have hu_nn : ∀ n, 0 ≤ u n := fun n =>
+    mul_nonneg (mul_nonneg (by unfold unitIntervalCosineEigenvalue; positivity)
+      (Real.exp_nonneg _)) hM
+  -- Per-mode HasDerivAt.
+  have hg : ∀ n (t : ℝ), t ∈ Set.Ioi (t₀ / 2) → HasDerivAt
+      (fun t => Real.exp (-t * unitIntervalCosineEigenvalue n) *
+        a₀ n * cosineMode n x)
+      (-(unitIntervalCosineEigenvalue n *
+        Real.exp (-t * unitIntervalCosineEigenvalue n)) *
+          a₀ n * cosineMode n x) t := by
+    intro n t _
+    set lam := unitIntervalCosineEigenvalue n
+    rw [show (fun t => Real.exp (-t * lam) * a₀ n * cosineMode n x) =
+        (fun t => Real.exp (-t * lam) * (a₀ n * cosineMode n x))
+        from funext (fun _ => by ring)]
+    have harg : HasDerivAt (fun r : ℝ => -r * lam) (-lam) t := by
+      simpa using (hasDerivAt_id t).neg.mul_const lam
+    exact (harg.exp.mul_const _).congr_deriv (by ring)
+  -- Derivative bound on (t₀/2, ∞).
+  have hg' : ∀ n (t : ℝ), t ∈ Set.Ioi (t₀ / 2) →
+      ‖-(unitIntervalCosineEigenvalue n *
+        Real.exp (-t * unitIntervalCosineEigenvalue n)) *
+          a₀ n * cosineMode n x‖ ≤ u n := by
+    intro n t ht
+    have ht2 : t₀ / 2 ≤ t := le_of_lt (Set.mem_Ioi.1 ht)
+    have hlam_nn : (0 : ℝ) ≤ unitIntervalCosineEigenvalue n := by
+      unfold unitIntervalCosineEigenvalue; positivity
+    rw [Real.norm_eq_abs]
+    set lam := unitIntervalCosineEigenvalue n
+    set e := Real.exp (-t * lam)
+    have he_nn : 0 ≤ e := Real.exp_nonneg _
+    -- Unfold: |-(lam*e) * a₀ n * cos| = lam * e * |a₀ n| * |cos|
+    have habs_eq :
+        |-(lam * e) * a₀ n * cosineMode n x| =
+          lam * e * |a₀ n| * |cosineMode n x| := by
+      rw [show -(lam * e) * a₀ n * cosineMode n x =
+          -(lam * e * a₀ n * cosineMode n x) from by ring,
+        abs_neg, abs_mul, abs_mul, abs_mul,
+        abs_of_nonneg hlam_nn, abs_of_nonneg he_nn]
+    rw [habs_eq]
+    -- Step 1: lam * e * |a₀ n| * |cos| ≤ lam * e * M (using |a₀ n| ≤ M, |cos| ≤ 1)
+    have hstep1 : lam * e * |a₀ n| * |cosineMode n x| ≤ lam * e * M :=
+      calc lam * e * |a₀ n| * |cosineMode n x|
+          ≤ lam * e * M * 1 :=
+            mul_le_mul
+              (mul_le_mul_of_nonneg_left (ha₀ n) (mul_nonneg hlam_nn he_nn))
+              (hcos_le n) (abs_nonneg _)
+              (mul_nonneg (mul_nonneg hlam_nn he_nn) hM)
+        _ = lam * e * M := mul_one _
+    -- Step 2: e = exp(-t*lam) ≤ exp(-(t₀/2)*lam) since t ≥ t₀/2
+    calc lam * e * |a₀ n| * |cosineMode n x|
+        ≤ lam * e * M := hstep1
+      _ ≤ lam * Real.exp (-(t₀ / 2) * lam) * M := by
+          apply mul_le_mul_of_nonneg_right _ hM
+          exact mul_le_mul_of_nonneg_left
+            (Real.exp_le_exp_of_le (by nlinarith)) hlam_nn
+      _ = u n := rfl
+  -- Pointwise summability at t₀.
+  -- Majorant: exp(-t₀*lam) * M, summable by unitIntervalCosineHeatTrace_single_exp_summable.
+  have hg0 : Summable (fun n =>
+      Real.exp (-t₀ * unitIntervalCosineEigenvalue n) *
+        a₀ n * cosineMode n x) := by
+    refine Summable.of_norm_bounded
+      (g := fun n => Real.exp (-t₀ * unitIntervalCosineEigenvalue n) * M)
+      ((ShenWork.HeatKernelGradientEstimates.unitIntervalCosineHeatTrace_single_exp_summable
+        ht₀).mul_right M)
+      (fun n => ?_)
+    rw [Real.norm_eq_abs,
+      show Real.exp (-t₀ * unitIntervalCosineEigenvalue n) * a₀ n * cosineMode n x =
+        Real.exp (-t₀ * unitIntervalCosineEigenvalue n) *
+          (a₀ n * cosineMode n x) from by ring,
+      abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+    exact mul_le_mul_of_nonneg_left
+      (by rw [abs_mul];
+          calc |a₀ n| * |cosineMode n x|
+              ≤ M * 1 := mul_le_mul (ha₀ n) (hcos_le n) (abs_nonneg _) hM
+            _ = M := mul_one _)
+      (Real.exp_nonneg _)
+  exact hasDerivAt_tsum_of_isPreconnected hu isOpen_Ioi
+    isPreconnected_Ioi hg hg' (Set.mem_Ioi.2 (by linarith : t₀ / 2 < t₀))
+    hg0 (Set.mem_Ioi.2 (by linarith : t₀ / 2 < t₀))
+
 end ShenWork.IntervalSourceCoefficientTimeC1
