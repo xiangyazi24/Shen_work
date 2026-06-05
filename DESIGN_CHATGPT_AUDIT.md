@@ -85,3 +85,27 @@ Self-inflicted showstoppers to avoid:
 Paper assumes inf u0 > 0 and positivity is preserved. Formal proof should
 consistently work on compact positive ranges. Do not rely on rpow behavior
 at zero. Route through positive lower bound hypotheses.
+
+---
+
+## R3/R4 Follow-up: G2 Decoupling Confirmed
+
+ChatGPT confirms gradient-to-standard IBP does NOT require DuhamelSourceTimeC1.
+
+Required hypotheses for G2 (only):
+- Q(s,.) in C1([0,1]) for each s (spatial regularity)
+- boundary term vanishes (Neumann)
+- Q time-continuous or dominated enough to integrate in s
+
+Clean dependency graph:
+  spatial C1(Q) + boundary vanish + time integrability
+  => gradient Duhamel = standard source Duhamel  [G2]
+
+Then separately:
+  standard source Duhamel + source time regularity
+  => classical t-regularity/PDE  [G3/G4]
+
+Neumann kernel caveat: d_x K_N may involve companion kernel / signs.
+Check boundary terms against Neumann BC. Does not change dependency conclusion.
+
+This decoupling lets G2 be done BEFORE G3 in the dependency order.
