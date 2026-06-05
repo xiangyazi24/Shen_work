@@ -797,6 +797,52 @@ theorem mildSolution_classicalRegularity_of_halfStepLogisticSourceData_and_front
   mildSolution_classicalRegularity_of_halfStepRestartData_and_frontier
     p D (gradientMildHalfStepRestartData_of_logisticSourceData D S) F
 
+/-! ### Instance-facing classical-regularity wrappers -/
+
+/-- Instance-facing wrapper for restart-cosine classical regularity. -/
+theorem mildSolution_classicalRegularity_of_restartCosineRepresentations_and_frontierFact
+    (p : CM2Params) {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations D.T D.u)
+    [F : Fact (GradientMildClassicalRegularityFrontierData p D)] :
+    intervalDomainClassicalRegularity D.T D.u
+      (mildChemicalConcentration p D.u) :=
+  mildSolution_classicalRegularity_of_restartCosineRepresentations_and_frontier
+    p D H F.out
+
+/-- Instance-facing wrapper for half-step restart classical regularity. -/
+theorem mildSolution_classicalRegularity_of_halfStepRestartData_and_frontierFact
+    (p : CM2Params) {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (R : GradientMildHalfStepRestartData D)
+    [F : Fact (GradientMildClassicalRegularityFrontierData p D)] :
+    intervalDomainClassicalRegularity D.T D.u
+      (mildChemicalConcentration p D.u) :=
+  mildSolution_classicalRegularity_of_halfStepRestartData_and_frontier
+    p D R F.out
+
+/-- Instance-facing wrapper for H²-source classical regularity. -/
+theorem mildSolution_classicalRegularity_of_halfStepH2SourceData_and_frontierFact
+    (p : CM2Params) {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepH2SourceData D)
+    [F : Fact (GradientMildClassicalRegularityFrontierData p D)] :
+    intervalDomainClassicalRegularity D.T D.u
+      (mildChemicalConcentration p D.u) :=
+  mildSolution_classicalRegularity_of_halfStepH2SourceData_and_frontier
+    p D S F.out
+
+/-- Instance-facing wrapper for logistic-source classical regularity. -/
+theorem mildSolution_classicalRegularity_of_halfStepLogisticSourceData_and_frontierFact
+    (p : CM2Params) {u₀ : intervalDomainPoint -> ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepLogisticSourceData D)
+    [F : Fact (GradientMildClassicalRegularityFrontierData p D)] :
+    intervalDomainClassicalRegularity D.T D.u
+      (mildChemicalConcentration p D.u) :=
+  mildSolution_classicalRegularity_of_halfStepLogisticSourceData_and_frontier
+    p D S F.out
+
 theorem mildSolution_classicalRegularity (p : CM2Params)
     {u₀ : intervalDomainPoint -> ℝ}
     (D : GradientMildSolutionData p u₀)
