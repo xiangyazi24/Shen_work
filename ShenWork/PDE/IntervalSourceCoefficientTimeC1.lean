@@ -108,4 +108,72 @@ noncomputable def duhamelSourceTimeC1_mul_weight
       _ ≤ Cw * src.derivBound :=
         mul_le_mul (hCw n) (src.hderivBound s hs n) (abs_nonneg _) hCw_nn
 
+/-! ## Stage 3: Addition and scalar multiplication for DuhamelSourceTimeC1
+
+The total PDE source is `−χ₀ · chemotaxisDiv + logisticSource`.  Once
+each piece satisfies `DuhamelSourceTimeC1`, the total source inherits it
+via addition and scalar multiplication.
+-/
+
+/-- **Scalar multiplication preserves `DuhamelSourceTimeC1`.**
+`(fun s n => c * a s n)` inherits time-C¹ coefficient structure from `a`. -/
+noncomputable def duhamelSourceTimeC1_const_mul
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a) (c : ℝ) :
+    DuhamelSourceTimeC1 (fun s n => c * a s n) where
+  adot := fun s n => c * src.adot s n
+  hderiv := fun s n => (src.hderiv s n).const_mul c
+  hadotcont := fun n => continuous_const.mul (src.hadotcont n)
+  envelope := fun n => |c| * src.envelope n
+  henv_summable := src.henv_summable.mul_left |c|
+  henv_bound := fun s hs n => by
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (src.henv_bound s hs n)
+      (abs_nonneg c)
+  derivBound := |c| * src.derivBound
+  hderivBound := fun s hs n => by
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (src.hderivBound s hs n)
+      (abs_nonneg c)
+
+/-- **Addition preserves `DuhamelSourceTimeC1`.**
+`(fun s n => a s n + b s n)` inherits time-C¹ coefficient structure from
+`a` and `b` independently. -/
+noncomputable def duhamelSourceTimeC1_add
+    {a b : ℝ → ℕ → ℝ}
+    (ha : DuhamelSourceTimeC1 a) (hb : DuhamelSourceTimeC1 b) :
+    DuhamelSourceTimeC1 (fun s n => a s n + b s n) where
+  adot := fun s n => ha.adot s n + hb.adot s n
+  hderiv := fun s n => (ha.hderiv s n).add (hb.hderiv s n)
+  hadotcont := fun n => (ha.hadotcont n).add (hb.hadotcont n)
+  envelope := fun n => ha.envelope n + hb.envelope n
+  henv_summable := ha.henv_summable.add hb.henv_summable
+  henv_bound := fun s hs n =>
+    (abs_add_le _ _).trans
+      (add_le_add (ha.henv_bound s hs n) (hb.henv_bound s hs n))
+  derivBound := ha.derivBound + hb.derivBound
+  hderivBound := fun s hs n =>
+    (abs_add_le _ _).trans
+      (add_le_add (ha.hderivBound s hs n) (hb.hderivBound s hs n))
+
+/-- **Negation preserves `DuhamelSourceTimeC1`.**  Corollary of scalar
+multiplication with `c = −1`. -/
+noncomputable def duhamelSourceTimeC1_neg
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a) :
+    DuhamelSourceTimeC1 (fun s n => -a s n) := by
+  have : (fun s n => -a s n) = fun s n => (-1 : ℝ) * a s n := by
+    ext s n; ring
+  rw [this]
+  exact duhamelSourceTimeC1_const_mul src (-1)
+
+/-- **Subtraction preserves `DuhamelSourceTimeC1`.**  Combines negation
+and addition. -/
+noncomputable def duhamelSourceTimeC1_sub
+    {a b : ℝ → ℕ → ℝ}
+    (ha : DuhamelSourceTimeC1 a) (hb : DuhamelSourceTimeC1 b) :
+    DuhamelSourceTimeC1 (fun s n => a s n - b s n) := by
+  have : (fun s n => a s n - b s n) = fun s n => a s n + (-1 : ℝ) * b s n := by
+    ext s n; ring
+  rw [this]
+  exact duhamelSourceTimeC1_add ha (duhamelSourceTimeC1_const_mul hb (-1))
+
 end ShenWork.IntervalSourceCoefficientTimeC1
