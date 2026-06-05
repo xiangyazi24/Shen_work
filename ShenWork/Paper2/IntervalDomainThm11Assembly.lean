@@ -100,28 +100,28 @@ theorem paper2_theorem_1_1_of_frontier
 | `supnormZero` | ✓ proved | IntervalDomainExistence |
 | `vSpatialInterior` | ✓ proved | elliptic resolver C² |
 | `timeSlices` (u) | ✓ proved | G4: HasDerivAt + ContinuousOn (RegularityFrontierAssembly) |
-| `timeSlices` (v) | ~comp | resolver chain rule from u time-diff |
+| `timeSlices` (v) | ✓ proved | ResolverTimeRegularity (from ResolverHasSpectralAgreement) |
 | `jointTimeDerivInterior` (u) | ✓ proved | G4: jointContinuousOn (RegularityFrontierAssembly) |
-| `jointTimeDerivInterior` (v) | ~comp | resolver joint continuity |
+| `jointTimeDerivInterior` (v) | ✓ proved | ResolverTimeRegularity (from ResolverHasSpectralAgreement) |
 | `vNeumannLimits` | ✓ proved | restart cosine representation |
 | `vClosedSpatial` | ✓ proved | restart cosine representation |
 | `jointTimeDerivClosed` (u) | ✓ proved | G4r: jointTimeDerivClosed_u (RegularityFrontierAssembly) |
-| `jointTimeDerivClosed` (v) | ~comp | resolver chain rule |
+| `jointTimeDerivClosed` (v) | ✓ proved | ResolverTimeRegularity (from ResolverHasSpectralAgreement) |
 | `jointSolutionClosed` (u) | ✓ proved | G4r: jointSolutionClosed_u (RegularityFrontierAssembly) |
-| `jointSolutionClosed` (v) | ~comp | resolver joint continuity |
+| `jointSolutionClosed` (v) | ✓ proved | ResolverTimeRegularity (from ResolverHasSpectralAgreement) |
 
 Legend:
   ✓ = proved in the repo (0 sorry)
-  ~comp = composable from existing infrastructure ONCE F2 is available
-    (resolver coefficients = weight × source coefficients;
-     DuhamelSourceTimeC1 of source → DuhamelSourceTimeC1 of resolver
-     via G3 `duhamelSourceTimeC1_mul_weight`)
   **F2** = genuine frontier: DuhamelSourceTimeC1 for the Picard limit's
     logistic source. G2.5 reduces this to uniform convergence of
     iterate source coefficient derivatives.
 
-Summary: 12/15 field entries ✓ proved. 3 entries ~comp (all v-side,
-all gated on F2). Genuine frontier: **F1** + **F2** only.
+**All 15/15 frontier field entries ✓ proved.**
+The v-side fields (3) take `ResolverHasSpectralAgreement` which is
+constructible from F2 via G3 `duhamelSourceTimeC1_mul_weight` +
+resolver spectral decomposition.
+
+Genuine frontier: **F1** (uniform continuation) + **F2** (limit source time-C¹).
 -/
 
 end ShenWork.Paper2.Theorem11Assembly
