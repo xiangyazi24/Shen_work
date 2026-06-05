@@ -5110,6 +5110,121 @@ theorem paper2_main_results_of_assumed_solutions_branches
     Theorem_1_3.of_assumed_solutions_branch hlocal hglobal
   exact ⟨h11, h12, h13⟩
 
+/-- Bundled solution-branch frontiers for the three Paper 2 main theorems. -/
+structure Paper2MainSolutionBranchData
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p) :
+    Prop where
+  nonminimal :
+    p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+          IsPaper2ClassicalSolution D p Tmax u v ∧
+          InitialTrace D u₀ u ∧
+          (∀ t, 0 < t → t < Tmax →
+            D.supNorm (u t) ≤ max (D.supNorm u₀)
+              ((p.a / p.b) ^ (1 / p.α))) ∧
+          (1 ≤ p.m → IsPaper2GlobalClassicalSolution D p u v)
+  minimal :
+    p.χ₀ ≤ 0 → p.a = 0 → p.b = 0 →
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+          IsPaper2ClassicalSolution D p Tmax u v ∧
+          InitialTrace D u₀ u ∧
+          (∀ t, 0 < t → t < Tmax → D.supNorm (u t) ≤ D.supNorm u₀) ∧
+          (1 ≤ p.m → IsPaper2GlobalClassicalSolution D p u v)
+  slowDiffusion :
+    0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
+      0 < p.m → p.m < 1 →
+        ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+            IsPaper2ClassicalSolution D p Tmax u v ∧
+              InitialTrace D u₀ u ∧
+              IsPaper2BoundedBefore D Tmax u
+  critical :
+    0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
+      p.m = 1 → p.χ₀ < chiBeta p →
+        ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+          ∃ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v ∧
+              InitialTrace D u₀ u ∧
+              IsPaper2Bounded D u
+  localBranch :
+    0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
+      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
+          IsPaper2ClassicalSolution D p Tmax u v ∧
+            InitialTrace D u₀ u ∧
+            IsPaper2BoundedBefore D Tmax u
+  globalBranch :
+    0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
+      1 ≤ p.m →
+        ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+          ∃ u v : ℝ → D.Point → ℝ,
+            IsPaper2GlobalClassicalSolution D p u v ∧
+              InitialTrace D u₀ u ∧
+              IsPaper2Bounded D u
+
+/-- Bundle-facing Paper 2 main-result bridge. -/
+theorem paper2_main_results_of_solutionBranchData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hData : Paper2MainSolutionBranchData D p C) :
+    Theorem_1_1 D p ∧ Theorem_1_2 D p ∧ Theorem_1_3 D p C :=
+  paper2_main_results_of_assumed_solutions_branches hData.nonminimal
+    hData.minimal hData.slowDiffusion hData.critical hData.localBranch
+    hData.globalBranch
+
+/-- Instance-facing Paper 2 main-result bridge. -/
+theorem paper2_main_results_of_solutionBranchDataFact
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    [hData : Fact (Paper2MainSolutionBranchData D p C)] :
+    Theorem_1_1 D p ∧ Theorem_1_2 D p ∧ Theorem_1_3 D p C :=
+  paper2_main_results_of_solutionBranchData hData.out
+
+/-- Single-target wrapper for Paper 2 Theorem 1.1 from the main branch
+bundle. -/
+theorem Theorem_1_1.of_solutionBranchData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hData : Paper2MainSolutionBranchData D p C) :
+    Theorem_1_1 D p :=
+  (paper2_main_results_of_solutionBranchData hData).1
+
+/-- Instance-facing single-target wrapper for Paper 2 Theorem 1.1. -/
+theorem Theorem_1_1.of_solutionBranchDataFact
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    [hData : Fact (Paper2MainSolutionBranchData D p C)] :
+    Theorem_1_1 D p :=
+  Theorem_1_1.of_solutionBranchData hData.out
+
+/-- Single-target wrapper for Paper 2 Theorem 1.2 from the main branch
+bundle. -/
+theorem Theorem_1_2.of_solutionBranchData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hData : Paper2MainSolutionBranchData D p C) :
+    Theorem_1_2 D p :=
+  (paper2_main_results_of_solutionBranchData hData).2.1
+
+/-- Instance-facing single-target wrapper for Paper 2 Theorem 1.2. -/
+theorem Theorem_1_2.of_solutionBranchDataFact
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    [hData : Fact (Paper2MainSolutionBranchData D p C)] :
+    Theorem_1_2 D p :=
+  Theorem_1_2.of_solutionBranchData hData.out
+
+/-- Single-target wrapper for Paper 2 Theorem 1.3 from the main branch
+bundle. -/
+theorem Theorem_1_3.of_solutionBranchData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hData : Paper2MainSolutionBranchData D p C) :
+    Theorem_1_3 D p C :=
+  (paper2_main_results_of_solutionBranchData hData).2.2
+
+/-- Instance-facing single-target wrapper for Paper 2 Theorem 1.3. -/
+theorem Theorem_1_3.of_solutionBranchDataFact
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    [hData : Fact (Paper2MainSolutionBranchData D p C)] :
+    Theorem_1_3 D p C :=
+  Theorem_1_3.of_solutionBranchData hData.out
+
 /-! ### Concrete unit-point bounded domain
 
 Single-point spatial domain `Unit`.  Every classical solution `u` is
