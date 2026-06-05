@@ -137,6 +137,52 @@ theorem intervalDomainPaper2_corollary21BootstrapTargets_of_frontierDataFact
   intervalDomainPaper2_corollary21BootstrapTargets_of_frontierData
     p hData.out
 
+/-! ## Section 3 and 4 a priori statement targets -/
+
+/-- Interval-domain Paper 2 a priori statement targets already available from
+the maximum-principle branch and the interval GN frontier. -/
+def IntervalDomainPaper2AprioriTargets (p : CM2Params) : Prop :=
+  Lemma_3_1 intervalDomain p ∧ Lemma_4_1 intervalDomain p
+
+/-- Single-target interval-domain wrapper for Lemma 3.1. -/
+theorem intervalDomainPaper2_Lemma_3_1
+    (p : CM2Params) :
+    Lemma_3_1 intervalDomain p :=
+  Lemma_3_1_intervalDomain p
+
+/-- Single-target interval-domain wrapper for Lemma 4.1 from the concrete GN
+frontier. -/
+theorem intervalDomainPaper2_Lemma_4_1_of_GN_frontier
+    (p : CM2Params)
+    (hGN : IntervalDomainLemma41.IntervalDomainInterpolation) :
+    Lemma_4_1 intervalDomain p :=
+  IntervalDomainTheorem11Composite.Lemma_4_1_intervalDomain_of_GN_frontier
+    p hGN
+
+/-- Instance-facing interval-domain wrapper for Lemma 4.1. -/
+theorem intervalDomainPaper2_Lemma_4_1_of_GN_frontierFact
+    (p : CM2Params)
+    [hGN : Fact IntervalDomainLemma41.IntervalDomainInterpolation] :
+    Lemma_4_1 intervalDomain p :=
+  intervalDomainPaper2_Lemma_4_1_of_GN_frontier p hGN.out
+
+/-- Assemble the interval-domain Lemma 3.1 and Lemma 4.1 targets from the GN
+frontier. -/
+theorem intervalDomainPaper2_aprioriTargets_of_GN_frontier
+    (p : CM2Params)
+    (hGN : IntervalDomainLemma41.IntervalDomainInterpolation) :
+    IntervalDomainPaper2AprioriTargets p :=
+  ⟨intervalDomainPaper2_Lemma_3_1 p,
+    intervalDomainPaper2_Lemma_4_1_of_GN_frontier p hGN⟩
+
+/-- Instance-facing assembly wrapper for interval-domain Lemma 3.1 and Lemma
+4.1. -/
+theorem intervalDomainPaper2_aprioriTargets_of_GN_frontierFact
+    (p : CM2Params)
+    [hGN : Fact IntervalDomainLemma41.IntervalDomainInterpolation] :
+    IntervalDomainPaper2AprioriTargets p :=
+  intervalDomainPaper2_aprioriTargets_of_GN_frontier p hGN.out
+
 /-! ## Theorem 1.1 statement targets -/
 
 /-- Paper 2 Theorem 1.1 from half-step H2-source Picard data, routed through
