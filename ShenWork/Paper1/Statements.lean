@@ -17803,6 +17803,48 @@ theorem paper1_main_results_bundledFact
     Theorem_1_1 ∧ Theorem_1_2 ∧ Theorem_1_3 :=
   paper1_main_results_bundled cStarStarFn hData.out
 
+/-- Single-target wrapper for Paper1 Theorem 1.1 from the main data bundle. -/
+theorem Theorem_1_1.of_mainResultsData
+    {cStarStarFn : CMParams → ℝ → ℝ}
+    (hData : Paper1MainResultsData cStarStarFn) :
+    Theorem_1_1 :=
+  (paper1_main_results_bundled cStarStarFn hData).1
+
+/-- Instance-facing single-target wrapper for Paper1 Theorem 1.1. -/
+theorem Theorem_1_1.of_mainResultsDataFact
+    (cStarStarFn : CMParams → ℝ → ℝ)
+    [hData : Fact (Paper1MainResultsData cStarStarFn)] :
+    Theorem_1_1 :=
+  Theorem_1_1.of_mainResultsData hData.out
+
+/-- Single-target wrapper for Paper1 Theorem 1.2 from the main data bundle. -/
+theorem Theorem_1_2.of_mainResultsData
+    {cStarStarFn : CMParams → ℝ → ℝ}
+    (hData : Paper1MainResultsData cStarStarFn) :
+    Theorem_1_2 :=
+  (paper1_main_results_bundled cStarStarFn hData).2.1
+
+/-- Instance-facing single-target wrapper for Paper1 Theorem 1.2. -/
+theorem Theorem_1_2.of_mainResultsDataFact
+    (cStarStarFn : CMParams → ℝ → ℝ)
+    [hData : Fact (Paper1MainResultsData cStarStarFn)] :
+    Theorem_1_2 :=
+  Theorem_1_2.of_mainResultsData hData.out
+
+/-- Single-target wrapper for Paper1 Theorem 1.3 from the main data bundle. -/
+theorem Theorem_1_3.of_mainResultsData
+    {cStarStarFn : CMParams → ℝ → ℝ}
+    (hData : Paper1MainResultsData cStarStarFn) :
+    Theorem_1_3 :=
+  (paper1_main_results_bundled cStarStarFn hData).2.2
+
+/-- Instance-facing single-target wrapper for Paper1 Theorem 1.3. -/
+theorem Theorem_1_3.of_mainResultsDataFact
+    (cStarStarFn : CMParams → ℝ → ℝ)
+    [hData : Fact (Paper1MainResultsData cStarStarFn)] :
+    Theorem_1_3 :=
+  Theorem_1_3.of_mainResultsData hData.out
+
 end
 
 end ShenWork.Paper1
