@@ -1978,6 +1978,57 @@ theorem extend_of_not_mgeAlternative_of_uniformLocalExistence
     -- T_star + δ > 0
     linarith
 
+/-- **Reachable arbitrarily long from local existence + uniform continuation.**
+
+Given short-time local existence (`hlocal`) and the textbook uniform parabolic
+continuation theorem (`hUniform`), every positive admissible initial datum
+`u₀` admits classical solutions on arbitrarily long horizons.  The argument
+iterates `hUniform` with the fixed bound `M` from `u₀`'s admissibility:
+Lemma 3.1 (sup-norm monotonicity) ensures `M` does not grow, so the same
+`δ(M) > 0` applies at every step. -/
+theorem reachableArbitrarilyLong_of_local_and_uniform
+    (p : CM2Params)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hUniform : IntervalDomainUniformLocalExistence p)
+    {u₀ : intervalDomain.Point → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀) :
+    ShenWork.IntervalDomainExistence.ReachableArbitrarilyLong p u₀ := by
+  intro T hT
+  obtain ⟨M, hM_pos, hM_bound⟩ := exists_supBound_of_positiveInitialDatum hu₀
+  obtain ⟨δ, hδ_pos, hExtend⟩ := hUniform M hM_pos
+  obtain ⟨T₀, hT₀_pos, u₀sol, v₀sol, hsol₀, htrace₀⟩ := hlocal u₀ hu₀
+  suffices h : ∀ n : ℕ, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p (T₀ + n * δ) u v ∧
+      InitialTrace intervalDomain u₀ u by
+    have hn : ∃ n : ℕ, T ≤ T₀ + n * δ := by
+      use ⌈(T - T₀) / δ⌉₊
+      have hle : (T - T₀) / δ ≤ ↑⌈(T - T₀) / δ⌉₊ := Nat.le_ceil _
+      have := mul_le_mul_of_nonneg_right hle hδ_pos.le
+      rw [div_mul_cancel₀ (T - T₀) (ne_of_gt hδ_pos)] at this
+      linarith
+    obtain ⟨n, hn⟩ := hn
+    obtain ⟨un, vn, hsoln, htracen⟩ := h n
+    exact ⟨hT, un, vn, hsoln.restrict_horizon hT (by linarith), htracen⟩
+  intro n
+  induction n with
+  | zero =>
+    simp only [Nat.zero_eq, Nat.cast_zero, zero_mul, add_zero]
+    exact ⟨u₀sol, v₀sol, hsol₀, htrace₀⟩
+  | succ n ih =>
+    obtain ⟨un, vn, hsoln, htracen⟩ := ih
+    have hTn_pos : 0 < T₀ + ↑n * δ := by positivity
+    obtain ⟨u', v', hsol', htrace'⟩ :=
+      hExtend hu₀ hM_bound hTn_pos hsoln htracen
+    refine ⟨u', v', ?_, htrace'⟩
+    convert hsol' using 1
+    push_cast
+    ring
+
 /-- **Paper 2-aligned umbrella theorem (γ ≥ 1), `hextend_mge` eliminated.**
 
 The umbrella's `hextend_of_not_mgeAlternative` hypothesis is discharged
