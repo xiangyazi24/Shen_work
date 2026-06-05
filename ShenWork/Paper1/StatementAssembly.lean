@@ -99,6 +99,92 @@ theorem paper1_Lemma_2_5_JensenStep : Lemma_2_5_JensenStep :=
 theorem paper1_lemma25Targets : Paper1Lemma25Targets :=
   ⟨paper1_Lemma_2_5, paper1_Lemma_2_5_JensenStep⟩
 
+/-! ## Lemma 5.1 and 5.2 targets -/
+
+/-- Frontier record for the Paper1 Lemma 5.1 resolvent and derivative-bound
+inputs. -/
+structure Paper1Lemma51FrontierData : Prop where
+  resolvent :
+    ∀ p : CMParams, ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V → V = frozenElliptic p U
+  continuous :
+    ∀ p : CMParams, ∀ c : ℝ, ∀ U V : ℝ → ℝ,
+      IsTravelingWave p c U V → Continuous U
+  deriv_tends :
+    ∀ p : CMParams, ∀ c : ℝ, 2 < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        WaveDerivativeTendsZero U
+  deriv_bound :
+    ∀ p : CMParams, ∀ c : ℝ, 2 < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        c > p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1) →
+          ∃ B > 0, ∀ x, |deriv U x| ≤ B
+  deriv_exp :
+    ∀ p : CMParams, ∀ c : ℝ, 2 < c →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        c > max (p.γ + p.γ⁻¹)
+          (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+          ∃ B1 B2, ∀ x,
+            |deriv U x| ≤
+              B1 * Real.exp (-(kappa c) * x) +
+                B2 * Real.exp (-(kappa c) * p.γ * x)
+
+/-- Frontier record for the Paper1 Lemma 5.2 monotonicity input. -/
+structure Paper1Lemma52FrontierData : Prop where
+  monotone :
+    ∀ p : CMParams, ∀ c : ℝ,
+      c > max (p.γ + p.γ⁻¹)
+        (p.m * |p.χ| * (MChi p) ^ (p.m + p.γ - 1)) →
+      ∀ U V : ℝ → ℝ,
+        IsTravelingWave p c U V →
+        HasWaveUpperTailBound p c U →
+        ∀ x, deriv U x ≤ 0
+
+/-- Paper1 Lemma 5.1, Lemma 5.2 explicit, and Lemma 5.2 targets. -/
+def Paper1Lemma51And52Targets : Prop :=
+  Lemma_5_1 ∧ Lemma_5_2_explicit ∧ Lemma_5_2
+
+/-- Single-target wrapper for Paper1 Lemma 5.1. -/
+theorem paper1_Lemma_5_1_of_frontierData
+    (hData : Paper1Lemma51FrontierData) :
+    Lemma_5_1 :=
+  Lemma_5_1.of_resolvent_derivative_bounds hData.resolvent
+    hData.continuous hData.deriv_tends hData.deriv_bound hData.deriv_exp
+
+/-- Single-target wrapper for Paper1 Lemma 5.2 explicit. -/
+theorem paper1_Lemma_5_2_explicit_of_frontierData
+    (hData : Paper1Lemma52FrontierData) :
+    Lemma_5_2_explicit :=
+  Lemma_5_2_explicit_under_monotone hData.monotone
+
+/-- Single-target wrapper for Paper1 Lemma 5.2. -/
+theorem paper1_Lemma_5_2_of_frontierData
+    (hData : Paper1Lemma52FrontierData) :
+    Lemma_5_2 :=
+  Lemma_5_2_under_monotone hData.monotone
+
+/-- Bundle wrapper for Paper1 Lemma 5.1 and Lemma 5.2 targets. -/
+theorem paper1_lemma51And52Targets_of_frontierData
+    (h51 : Paper1Lemma51FrontierData)
+    (h52 : Paper1Lemma52FrontierData) :
+    Paper1Lemma51And52Targets :=
+  ⟨paper1_Lemma_5_1_of_frontierData h51,
+    paper1_Lemma_5_2_explicit_of_frontierData h52,
+    paper1_Lemma_5_2_of_frontierData h52⟩
+
+/-- Instance-facing wrapper for Paper1 Lemma 5.1 and Lemma 5.2 targets. -/
+theorem paper1_lemma51And52Targets_of_frontierDataFact
+    [h51 : Fact Paper1Lemma51FrontierData]
+    [h52 : Fact Paper1Lemma52FrontierData] :
+    Paper1Lemma51And52Targets :=
+  paper1_lemma51And52Targets_of_frontierData h51.out h52.out
+
 /-! ## Proposition 1.x targets -/
 
 /-- Paper1 Proposition 1.1 and Proposition 1.2 targets. -/
