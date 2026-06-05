@@ -18,6 +18,7 @@
   No `sorry`, no `admit`, no custom `axiom`.
 -/
 import ShenWork.PDE.IntervalDuhamelClosedC2
+import Mathlib.Analysis.Real.Pi.Bounds
 
 open MeasureTheory
 open scoped Topology
@@ -433,5 +434,73 @@ theorem duhamelSpectralCoeff_integral_piece_bound
     _ = src.derivBound * ∫ s in (0:ℝ)..t,
           Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) := by
         rw [← intervalIntegral.integral_const_mul]
+
+open ShenWork.IntervalDomainRegularityBootstrap
+  (reciprocalSquareTerm reciprocalSquareTerm_summable) in
+/-- **Summable uniform-in-time bound on the spectral derivative.**
+For all `t ≥ 0` and all `n`,
+`|a(t,n) − λₙ bₙ(t)| ≤ envelope(n) + derivBound · (1/n²)`.
+
+For `n = 0` (λ₀ = 0): the derivative is just `a(t,0)` bounded by
+`envelope(0)`; `reciprocalSquareTerm 0 = 0` so the bound is tight.
+For `n ≥ 1`: the IBP decomposition + `parabolicGain_le_one` gives
+`|integral piece| ≤ derivBound / λₙ ≤ derivBound / n²`. -/
+theorem duhamelSpectralCoeff_deriv_summable_uniform_bound
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a)
+    {t : ℝ} (ht : 0 ≤ t) (n : ℕ) :
+    |a t n - unitIntervalCosineEigenvalue n *
+      duhamelSpectralCoeff a t n| ≤
+      src.envelope n + src.derivBound * reciprocalSquareTerm n := by
+  have hdb_nn : 0 ≤ src.derivBound :=
+    le_trans (abs_nonneg _) (src.hderivBound 0 le_rfl 0)
+  rcases Nat.eq_zero_or_pos n with hn0 | hn
+  · -- n = 0: λ₀ = 0, so the derivative is just a(t,0).
+    subst hn0
+    have : unitIntervalCosineEigenvalue 0 = 0 := by
+      simp [unitIntervalCosineEigenvalue]
+    have : reciprocalSquareTerm 0 = 0 := by
+      simp [reciprocalSquareTerm]
+    simp only [this, mul_zero, add_zero, ‹unitIntervalCosineEigenvalue 0 = 0›,
+      zero_mul, sub_zero]
+    exact src.henv_bound t ht 0
+  · -- n ≥ 1: use IBP decomposition + parabolic gain.
+    rw [duhamelSpectralCoeff_deriv_eq_ibp src t n]
+    have hlam_nn : (0 : ℝ) ≤ unitIntervalCosineEigenvalue n := by
+      unfold unitIntervalCosineEigenvalue; positivity
+    have hlam_pos : 0 < unitIntervalCosineEigenvalue n := by
+      unfold unitIntervalCosineEigenvalue
+      have : (0 : ℝ) < n := Nat.cast_pos.2 hn
+      positivity
+    have h1 := duhamelSpectralCoeff_exp_piece_bound src ht n
+    have h2 := duhamelSpectralCoeff_integral_piece_bound src ht n
+    have hgain := ShenWork.IntervalDuhamelRegularity.parabolicGain_le_one
+      hlam_nn ht
+    -- From parabolic gain: λ · ∫ ≤ 1 and λ > 0 gives ∫ ≤ 1/λ.
+    have hint_le_inv : ∫ s in (0:ℝ)..t,
+        Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) ≤
+        1 / unitIntervalCosineEigenvalue n := by
+      rw [le_div_iff₀ hlam_pos]; linarith
+    -- 1/λ_n = 1/(nπ)² ≤ 1/n² since π ≥ 1.
+    have hinv_le_recip :
+        1 / unitIntervalCosineEigenvalue n ≤ reciprocalSquareTerm n := by
+      rw [reciprocalSquareTerm, unitIntervalCosineEigenvalue]
+      apply div_le_div_of_nonneg_left (by linarith) (by positivity)
+      calc ((n : ℝ) * Real.pi) ^ 2
+          = (n : ℝ) ^ 2 * Real.pi ^ 2 := by ring
+        _ ≥ (n : ℝ) ^ 2 * 1 := by
+            apply mul_le_mul_of_nonneg_left _ (by positivity)
+            nlinarith [Real.pi_gt_three]
+        _ = (n : ℝ) ^ 2 := mul_one _
+    -- Combine: derivBound · ∫ ≤ derivBound · 1/n².
+    have hint_bound : src.derivBound *
+        ∫ s in (0:ℝ)..t,
+          Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) ≤
+        src.derivBound * reciprocalSquareTerm n :=
+      mul_le_mul_of_nonneg_left (hint_le_inv.trans hinv_le_recip) hdb_nn
+    linarith [abs_add_le
+      (Real.exp (-t * unitIntervalCosineEigenvalue n) * a 0 n)
+      (∫ s in (0:ℝ)..t,
+        Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) *
+          src.adot s n)]
 
 end ShenWork.IntervalSourceCoefficientTimeC1
