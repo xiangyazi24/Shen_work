@@ -879,6 +879,160 @@ theorem duhamelSpectralDerivSeries_continuousOn
       calc _ ≤ _ * 1 := mul_le_mul h1 h2 (abs_nonneg _) hnn
         _ = _ := mul_one _)
 
+/-- **G4k-deriv: Joint continuity of the Duhamel derivative cosine series.**
+`(τ, x) ↦ ∑' n, (aₙ(τ) − λₙ bₙ(τ)) cos(nπx)` is jointly continuous on
+`(0,∞) × ℝ`.  Uses `continuousOn_tsum` with the summable uniform majorant
+`envelope(n) + derivBound · reciprocalSquareTerm n`. -/
+theorem duhamelDerivSeries_jointContinuousOn
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a) :
+    ContinuousOn
+      (Function.uncurry
+        (fun (τ : ℝ) (x : ℝ) =>
+          ∑' n, (a τ n - unitIntervalCosineEigenvalue n *
+            duhamelSpectralCoeff a τ n) * cosineMode n x))
+      (Set.Ioi (0 : ℝ) ×ˢ Set.univ) := by
+  -- Unfold uncurry to the form expected by continuousOn_tsum
+  change ContinuousOn
+    (fun p : ℝ × ℝ => ∑' n,
+      (a p.1 n - unitIntervalCosineEigenvalue n * duhamelSpectralCoeff a p.1 n) *
+        cosineMode n p.2)
+    (Set.Ioi 0 ×ˢ Set.univ)
+  apply continuousOn_tsum
+  · -- Each summand is jointly continuous on the product space.
+    intro n
+    apply ContinuousOn.mul
+    · -- (a τ n − λₙ bₙ(τ)) is continuous in τ (from G4c), hence in (τ, x).
+      exact ((duhamelSpectralCoeff_deriv_continuous src n).comp
+        continuous_fst).continuousOn
+    · -- cos(nπx) is continuous in x, hence in (τ, x).
+      exact ((Real.continuous_cos.comp
+        (continuous_const.mul continuous_snd)).continuousOn)
+  · -- Summable majorant.
+    exact src.henv_summable.add (reciprocalSquareTerm_summable.mul_left src.derivBound)
+  · -- Norm bound at each point of the product set.
+    intro n p hp
+    obtain ⟨hτ, _⟩ := Set.mem_prod.mp hp
+    rw [Real.norm_eq_abs, abs_mul]
+    have h1 := duhamelSpectralCoeff_deriv_summable_uniform_bound src
+      (Set.mem_Ioi.mp hτ).le n
+    have h2 : |cosineMode n p.2| ≤ 1 := by
+      unfold cosineMode; exact Real.abs_cos_le_one _
+    have hnn : 0 ≤ src.envelope n + src.derivBound * reciprocalSquareTerm n :=
+      add_nonneg (le_trans (abs_nonneg _) (src.henv_bound 0 le_rfl n))
+        (mul_nonneg (le_trans (abs_nonneg _) (src.hderivBound 0 le_rfl 0))
+          (by unfold reciprocalSquareTerm; positivity))
+    calc |a p.1 n - unitIntervalCosineEigenvalue n * duhamelSpectralCoeff a p.1 n| *
+          |cosineMode n p.2|
+        ≤ (src.envelope n + src.derivBound * reciprocalSquareTerm n) * 1 :=
+          mul_le_mul h1 h2 (abs_nonneg _) hnn
+      _ = src.envelope n + src.derivBound * reciprocalSquareTerm n := mul_one _
+
+/-- **G4k-value: Joint continuity of the Duhamel value cosine series.**
+`(τ, x) ↦ ∑' n, bₙ(τ) cos(nπx)` is jointly continuous on `(0,∞) × ℝ`.
+Proved via local `continuousOn_tsum` on each compact-in-time neighborhood:
+for `τ ∈ (τ₀/2, τ₀+1)` the bound `|bₙ(τ)| ≤ (τ₀+1) · envelope n` is
+summable, so the series converges uniformly near `(τ₀, x₀)`. -/
+theorem duhamelSeries_jointContinuousOn
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a) :
+    ContinuousOn
+      (Function.uncurry
+        (fun (τ : ℝ) (x : ℝ) =>
+          ∑' n, duhamelSpectralCoeff a τ n * cosineMode n x))
+      (Set.Ioi (0 : ℝ) ×ˢ Set.univ) := by
+  change ContinuousOn
+    (fun p : ℝ × ℝ => ∑' n, duhamelSpectralCoeff a p.1 n * cosineMode n p.2)
+    (Set.Ioi 0 ×ˢ Set.univ)
+  apply continuousOn_of_forall_continuousAt
+  intro p hp
+  obtain ⟨hτ₀, _⟩ := Set.mem_prod.mp hp
+  -- τ₀ = p.1, which is > 0.
+  have hτ₀ : 0 < p.1 := Set.mem_Ioi.mp hτ₀
+  -- Work on the open neighborhood Ioo (p.1/2) (p.1+1) ×ˢ univ.
+  set T := p.1 + 1 with hT_def
+  have hT_pos : 0 < T := by linarith
+  -- On Ioo (p.1/2) T ×ˢ univ, use continuousOn_tsum.
+  -- Summable majorant: T * envelope n (works for all τ ∈ [0, T]).
+  have henv_nn : ∀ n, 0 ≤ src.envelope n := fun n =>
+    le_trans (abs_nonneg _) (src.henv_bound 0 le_rfl n)
+  have hu : Summable (fun n => T * src.envelope n) :=
+    src.henv_summable.mul_left T
+  -- On the open product set, the tsum is continuous.
+  have hcont_on : ContinuousOn
+      (fun q : ℝ × ℝ => ∑' n, duhamelSpectralCoeff a q.1 n * cosineMode n q.2)
+      (Set.Ioo (p.1 / 2) T ×ˢ Set.univ) := by
+    apply continuousOn_tsum
+    · intro n
+      apply ContinuousOn.mul
+      · -- duhamelSpectralCoeff a · n is continuous in the time coordinate.
+        have hb_cont : Continuous (fun τ => duhamelSpectralCoeff a τ n) :=
+          continuous_iff_continuousAt.2
+            (fun τ => (duhamelSpectralCoeff_hasDerivAt src τ n).continuousAt)
+        exact (hb_cont.comp continuous_fst).continuousOn
+      · exact ((Real.continuous_cos.comp
+          (continuous_const.mul continuous_snd)).continuousOn)
+    · exact hu
+    · intro n q hq
+      obtain ⟨hτ, _⟩ := Set.mem_prod.mp hq
+      rw [Real.norm_eq_abs, abs_mul]
+      -- Bound |bₙ(τ)| ≤ τ * envelope n ≤ T * envelope n.
+      have hτ_pos : 0 < q.1 := lt_trans (by linarith [hτ₀]) (Set.mem_Ioo.mp hτ).1
+      have hτ_le_T : q.1 ≤ T := (Set.mem_Ioo.mp hτ).2.le
+      have hcoef_bound : |duhamelSpectralCoeff a q.1 n| ≤ T * src.envelope n := by
+        have hintegrand_cont : ContinuousOn
+            (fun s => Real.exp (-(q.1 - s) * unitIntervalCosineEigenvalue n) * a s n)
+            (Set.Icc 0 q.1) :=
+          ((Real.continuous_exp.comp
+            (by fun_prop : Continuous (fun s => -(q.1 - s) * unitIntervalCosineEigenvalue n))).mul
+            (continuous_iff_continuousAt.2
+              (fun s => (src.hderiv s n).continuousAt))).continuousOn
+        have hint : |duhamelSpectralCoeff a q.1 n| ≤
+            ∫ s in (0:ℝ)..q.1, src.envelope n := by
+          simp only [duhamelSpectralCoeff]
+          calc |∫ s in (0:ℝ)..q.1,
+                  Real.exp (-(q.1 - s) * unitIntervalCosineEigenvalue n) * a s n|
+              ≤ ∫ s in (0:ℝ)..q.1,
+                  |Real.exp (-(q.1 - s) * unitIntervalCosineEigenvalue n) * a s n| :=
+                intervalIntegral.abs_integral_le_integral_abs hτ_pos.le
+            _ ≤ ∫ s in (0:ℝ)..q.1, src.envelope n := by
+                apply intervalIntegral.integral_mono_on hτ_pos.le
+                · exact hintegrand_cont.abs.intervalIntegrable_of_Icc hτ_pos.le
+                · exact continuous_const.intervalIntegrable 0 q.1
+                · intro s hs
+                  rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+                  calc Real.exp (-(q.1 - s) * unitIntervalCosineEigenvalue n) * |a s n|
+                      ≤ 1 * src.envelope n := by
+                        apply mul_le_mul
+                        · exact Real.exp_le_one_iff.2 (by
+                            have hlam_nn : (0 : ℝ) ≤ unitIntervalCosineEigenvalue n := by
+                              unfold unitIntervalCosineEigenvalue; positivity
+                            nlinarith [hs.1, hs.2])
+                        · exact src.henv_bound s (by linarith [hs.1]) n
+                        · exact abs_nonneg _
+                        · linarith
+                    _ = src.envelope n := one_mul _
+        calc |duhamelSpectralCoeff a q.1 n|
+            ≤ ∫ s in (0:ℝ)..q.1, src.envelope n := hint
+          _ = src.envelope n * q.1 := by
+              rw [intervalIntegral.integral_const, smul_eq_mul]; ring
+          _ ≤ src.envelope n * T :=
+              mul_le_mul_of_nonneg_left hτ_le_T (henv_nn n)
+          _ = T * src.envelope n := mul_comm _ _
+      have hcos : |cosineMode n q.2| ≤ 1 := by
+        unfold cosineMode; exact Real.abs_cos_le_one _
+      calc |duhamelSpectralCoeff a q.1 n| * |cosineMode n q.2|
+          ≤ T * src.envelope n * 1 :=
+            mul_le_mul hcoef_bound hcos (abs_nonneg _)
+              (mul_nonneg hT_pos.le (henv_nn n))
+        _ = T * src.envelope n := mul_one _
+  -- The open set Ioo (p.1/2) T ×ˢ univ is a neighborhood of p.
+  have hmem : p ∈ Set.Ioo (p.1 / 2) T ×ˢ Set.univ := by
+    constructor
+    · exact Set.mem_Ioo.mpr ⟨by linarith, by simp [hT_def]⟩
+    · exact Set.mem_univ _
+  have hopen : IsOpen (Set.Ioo (p.1 / 2) T ×ˢ (Set.univ : Set ℝ)) :=
+    IsOpen.prod isOpen_Ioo isOpen_univ
+  exact hcont_on.continuousAt (hopen.mem_nhds hmem)
+
 end RestartSeries
 
 end ShenWork.IntervalSourceCoefficientTimeC1
