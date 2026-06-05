@@ -704,7 +704,7 @@ open ShenWork.IntervalDomainRegularityBootstrap
   (reciprocalSquareTerm reciprocalSquareTerm_summable)
 
 /-- The restart coefficient: `e^{−τλₙ} a₀ₙ + bₙ(τ)`. -/
-private noncomputable def localRestartCoeff
+noncomputable def localRestartCoeff
     (a₀ : ℕ → ℝ) (a : ℝ → ℕ → ℝ) (τ : ℝ) (n : ℕ) : ℝ :=
   Real.exp (-τ * unitIntervalCosineEigenvalue n) * a₀ n +
     duhamelSpectralCoeff a τ n
@@ -838,6 +838,46 @@ theorem restartCosineSeries_hasDerivAt_time
       rw [← hsum1.tsum_add hsum2]
       congr 1; ext n; simp only [localRestartCoeff]; ring]
   exact hstep1
+
+/-- **G4j: Time differentiability of the restart cosine series.**
+Corollary of `restartCosineSeries_hasDerivAt_time`. -/
+theorem restartCosineSeries_differentiableAt_time
+    {a₀ : ℕ → ℝ} {M : ℝ} (hM : 0 ≤ M) (ha₀ : ∀ n, |a₀ n| ≤ M)
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a)
+    {τ₀ : ℝ} (hτ₀ : 0 < τ₀) (x : ℝ) :
+    DifferentiableAt ℝ
+      (fun τ => ∑' n, localRestartCoeff a₀ a τ n *
+        cosineMode n x) τ₀ :=
+  (restartCosineSeries_hasDerivAt_time hM ha₀ src hτ₀ x).differentiableAt
+
+/-- **G4j': Continuity of the Duhamel derivative tsum on `(0,∞)`.**
+`τ ↦ ∑' n, (aₙ(τ) − λₙ bₙ(τ)) cos(nπx)` is continuous on `(0,∞)` from
+the summable majorant `envelope(n) + derivBound/n²`. -/
+theorem duhamelSpectralDerivSeries_continuousOn
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a) (x : ℝ) :
+    ContinuousOn
+      (fun τ => ∑' n, (a τ n -
+        unitIntervalCosineEigenvalue n *
+          duhamelSpectralCoeff a τ n) * cosineMode n x)
+      (Set.Ioi (0 : ℝ)) := by
+  exact continuousOn_tsum
+    (fun n => ((duhamelSpectralCoeff_deriv_continuous src n).mul
+      continuous_const).continuousOn)
+    (src.henv_summable.add
+      (reciprocalSquareTerm_summable.mul_left src.derivBound))
+    (fun n τ hτ => by
+      rw [Real.norm_eq_abs, abs_mul]
+      have h1 := duhamelSpectralCoeff_deriv_summable_uniform_bound src
+        (le_of_lt (Set.mem_Ioi.1 hτ)) n
+      have h2 : |cosineMode n x| ≤ 1 := by
+        unfold cosineMode; exact Real.abs_cos_le_one _
+      have hnn : 0 ≤ src.envelope n + src.derivBound *
+          reciprocalSquareTerm n :=
+        add_nonneg (le_trans (abs_nonneg _) (src.henv_bound 0 le_rfl n))
+          (mul_nonneg (le_trans (abs_nonneg _) (src.hderivBound 0 le_rfl 0))
+            (by unfold reciprocalSquareTerm; positivity))
+      calc _ ≤ _ * 1 := mul_le_mul h1 h2 (abs_nonneg _) hnn
+        _ = _ := mul_one _)
 
 end RestartSeries
 
