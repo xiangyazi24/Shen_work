@@ -186,7 +186,8 @@ Combined with term-by-term differentiation for the cosine series, this gives
 the **PDE from the mild equation**: `∂ₜu = Δu + source`.
 -/
 
-open ShenWork.IntervalDuhamelClosedC2 (duhamelSpectralCoeff)
+open ShenWork.IntervalDuhamelClosedC2
+  (duhamelSpectralCoeff duhamelSpectralCoeff_eigenvalue_summable)
 
 /-- **Spectral Duhamel ODE.**  If the source coefficient `s ↦ a s n` is
 continuous (implied by `DuhamelSourceTimeC1`), then the spectral Duhamel
@@ -248,5 +249,49 @@ theorem duhamelSpectralCoeff_hasDerivAt
       (fun r => Real.exp (-r * lam) * G r) from funext hfactor,
     hfactor t]
   exact hprod
+
+/-- **Continuity of the spectral Duhamel derivative.**  The derivative
+`t ↦ a(t,n) − λₙ · bₙ(t)` is continuous in `t`.  This follows from
+continuity of the source coefficient (from `DuhamelSourceTimeC1`) and
+continuity of `bₙ` (itself continuous as an integral of a continuous
+integrand with moving upper limit). -/
+theorem duhamelSpectralCoeff_deriv_continuous
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a) (n : ℕ) :
+    Continuous (fun t =>
+      a t n - unitIntervalCosineEigenvalue n *
+        duhamelSpectralCoeff a t n) := by
+  have hcont_an : Continuous (fun s => a s n) :=
+    continuous_iff_continuousAt.2
+      (fun s => (src.hderiv s n).continuousAt)
+  have hcont_b : Continuous (fun t => duhamelSpectralCoeff a t n) :=
+    continuous_iff_continuousAt.2
+      (fun t => (duhamelSpectralCoeff_hasDerivAt src t n).continuousAt)
+  exact hcont_an.sub (continuous_const.mul hcont_b)
+
+/-- **Summability of spectral Duhamel derivative coefficients.**
+`∑ₙ |a(t,n) − λₙ bₙ(t)| < ∞` for `t > 0`, from the ℓ¹ envelope of
+`DuhamelSourceTimeC1` and the eigenvalue-weighted summability of the
+Duhamel coefficients. -/
+theorem duhamelSpectralCoeff_deriv_abs_summable
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a) {t : ℝ} (ht : 0 < t) :
+    Summable (fun n => |a t n - unitIntervalCosineEigenvalue n *
+      duhamelSpectralCoeff a t n|) := by
+  have heig := duhamelSpectralCoeff_eigenvalue_summable src ht
+  refine Summable.of_nonneg_of_le (fun n => abs_nonneg _)
+    (fun n => ?_) (src.henv_summable.add heig)
+  have henv : |a t n| ≤ src.envelope n := src.henv_bound t ht.le n
+  have hlam_nn : (0 : ℝ) ≤ unitIntervalCosineEigenvalue n := by
+    unfold unitIntervalCosineEigenvalue; positivity
+  calc |a t n - unitIntervalCosineEigenvalue n *
+        duhamelSpectralCoeff a t n|
+      ≤ |a t n| + |unitIntervalCosineEigenvalue n *
+          duhamelSpectralCoeff a t n| := by
+        calc |a t n - _| = |a t n + (-_)| := by rw [sub_eq_add_neg]
+          _ ≤ |a t n| + |-_| := abs_add_le _ _
+          _ = _ := by rw [abs_neg]
+    _ ≤ src.envelope n + unitIntervalCosineEigenvalue n *
+          |duhamelSpectralCoeff a t n| := by
+        rw [abs_mul, abs_of_nonneg hlam_nn]
+        linarith
 
 end ShenWork.IntervalSourceCoefficientTimeC1
