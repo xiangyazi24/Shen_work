@@ -209,4 +209,15 @@ theorem restartAndGlueWorks_of_hypotheses
     rw [hfun_eq]
     exact hδ₁ t ht0 (lt_of_lt_of_le htδ (min_le_left _ _))
 
+/-- **OverlapUniqueForPID from the L² energy method (regime-conditional).**
+Constructs `OverlapUniqueForPID p` from the L² energy chain which is
+unconditional in the γ≥1 negative-sensitivity regime. -/
+theorem overlapUniqueForPID_of_l2EnergyMethod
+    {p : CM2Params}
+    (hmethod : ShenWork.Paper2.IntervalDomainClassicalUniquenessL2EnergyMethod p) :
+    OverlapUniqueForPID p := by
+  intro u₀ hu₀ T₁ T₂ u₁ v₁ u₂ v₂ hsol₁ hsol₂ htrace₁ htrace₂ t ht0 ht_overlap x
+  exact ShenWork.Paper2.intervalDomain_classicalSolution_overlap_unique_of_l2EnergyMethod
+    hmethod hu₀ hsol₁ hsol₂ htrace₁ htrace₂ t ht0 ht_overlap x
+
 end ShenWork.Paper2.GlueExtension
