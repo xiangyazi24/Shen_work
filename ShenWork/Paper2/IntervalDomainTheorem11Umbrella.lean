@@ -646,6 +646,203 @@ theorem localExistence_of_gradientMildHalfStepRestartChiZeroDuhamelLocalData
     localExistence_of_gradientMildSolutionData_chi_zero_via_intervalDuhamel_of_halfStepRestartData
       p hu₀ D R hχ hzero hinit hlog hInitialApproach hclassical
 
+/-! ### Instance-facing local-existence wrappers -/
+
+/-- Instance-facing wrapper for gradient-mild local data. -/
+theorem localExistence_of_gradientMildLocalDataFact
+    (p : CM2Params)
+    [hMildLocal : Fact (IntervalDomainGradientMildLocalData p)] :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  localExistence_of_gradientMildLocalData p hMildLocal.out
+
+/-- Instance-facing wrapper for gradient-mild core local data. -/
+theorem localExistence_of_gradientMildCoreLocalDataFact
+    (p : CM2Params)
+    [hMildLocal : Fact (IntervalDomainGradientMildCoreLocalData p)] :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  localExistence_of_gradientMildCoreLocalData p hMildLocal.out
+
+/-- Instance-facing wrapper for restart gradient-mild local data. -/
+theorem localExistence_of_gradientMildRestartLocalDataFact
+    (p : CM2Params)
+    [hMildLocal : Fact (IntervalDomainGradientMildRestartLocalData p)] :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  localExistence_of_gradientMildRestartLocalData p hMildLocal.out
+
+/-- Instance-facing wrapper for restart gradient-mild core local data. -/
+theorem localExistence_of_gradientMildRestartCoreLocalDataFact
+    (p : CM2Params)
+    [hMildLocal : Fact (IntervalDomainGradientMildRestartCoreLocalData p)] :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  localExistence_of_gradientMildRestartCoreLocalData p hMildLocal.out
+
+/-- Instance-facing wrapper for restart gradient-mild frontier-core local data. -/
+theorem localExistence_of_gradientMildRestartFrontierCoreLocalDataFact
+    (p : CM2Params)
+    [hMildLocal :
+      Fact (IntervalDomainGradientMildRestartFrontierCoreLocalData p)] :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  localExistence_of_gradientMildRestartFrontierCoreLocalData p hMildLocal.out
+
+/-- Instance-facing wrapper for half-step restart gradient-mild local data. -/
+theorem localExistence_of_gradientMildHalfStepRestartLocalDataFact
+    (p : CM2Params)
+    [hMildLocal : Fact (IntervalDomainGradientMildHalfStepRestartLocalData p)] :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  localExistence_of_gradientMildHalfStepRestartLocalData p hMildLocal.out
+
+/-- Instance-facing wrapper for half-step restart gradient-mild core local data. -/
+theorem localExistence_of_gradientMildHalfStepRestartCoreLocalDataFact
+    (p : CM2Params)
+    [hMildLocal :
+      Fact (IntervalDomainGradientMildHalfStepRestartCoreLocalData p)] :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  localExistence_of_gradientMildHalfStepRestartCoreLocalData p hMildLocal.out
+
+/-- Instance-facing wrapper for half-step restart frontier-core local data. -/
+theorem localExistence_of_gradientMildHalfStepRestartFrontierCoreLocalDataFact
+    (p : CM2Params)
+    [hMildLocal :
+      Fact (IntervalDomainGradientMildHalfStepRestartFrontierCoreLocalData p)] :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  localExistence_of_gradientMildHalfStepRestartFrontierCoreLocalData
+    p hMildLocal.out
+
+/-- Instance-facing wrapper for half-step H²-source frontier-core local data. -/
+theorem localExistence_of_gradientMildHalfStepH2SourceFrontierCoreLocalDataFact
+    (p : CM2Params)
+    [hMildLocal :
+      Fact (IntervalDomainGradientMildHalfStepH2SourceFrontierCoreLocalData p)] :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  localExistence_of_gradientMildHalfStepH2SourceFrontierCoreLocalData
+    p hMildLocal.out
+
+/-- Instance-facing wrapper for half-step logistic-source frontier-core local data. -/
+theorem
+    localExistence_of_gradientMildHalfStepLogisticSourceFrontierCoreLocalDataFact
+    (p : CM2Params)
+    [hMildLocal :
+      Fact
+        (IntervalDomainGradientMildHalfStepLogisticSourceFrontierCoreLocalData p)] :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  localExistence_of_gradientMildHalfStepLogisticSourceFrontierCoreLocalData
+    p hMildLocal.out
+
+/-- Instance-facing wrapper for interval-Duhamel gradient-mild local data. -/
+theorem localExistence_of_gradientMildIntervalDuhamelLocalDataFact
+    (p : CM2Params)
+    [hMildLocal : Fact (IntervalDomainGradientMildIntervalDuhamelLocalData p)] :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  localExistence_of_gradientMildIntervalDuhamelLocalData p hMildLocal.out
+
+/-- Instance-facing wrapper for restart interval-Duhamel local data. -/
+theorem localExistence_of_gradientMildRestartIntervalDuhamelLocalDataFact
+    (p : CM2Params)
+    [hMildLocal :
+      Fact (IntervalDomainGradientMildRestartIntervalDuhamelLocalData p)] :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  localExistence_of_gradientMildRestartIntervalDuhamelLocalData
+    p hMildLocal.out
+
+/-- Instance-facing wrapper for half-step restart interval-Duhamel local data. -/
+theorem localExistence_of_gradientMildHalfStepRestartIntervalDuhamelLocalDataFact
+    (p : CM2Params)
+    [hMildLocal :
+      Fact (IntervalDomainGradientMildHalfStepRestartIntervalDuhamelLocalData p)] :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  localExistence_of_gradientMildHalfStepRestartIntervalDuhamelLocalData
+    p hMildLocal.out
+
+/-- Instance-facing wrapper for zero-sensitivity Duhamel local data. -/
+theorem localExistence_of_gradientMildChiZeroDuhamelLocalDataFact
+    (p : CM2Params) [hχ : Fact (p.χ₀ = 0)]
+    [hMildLocal : Fact (IntervalDomainGradientMildChiZeroDuhamelLocalData p)] :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  localExistence_of_gradientMildChiZeroDuhamelLocalData
+    p hχ.out hMildLocal.out
+
+/-- Instance-facing wrapper for zero-sensitivity restart Duhamel local data. -/
+theorem localExistence_of_gradientMildRestartChiZeroDuhamelLocalDataFact
+    (p : CM2Params) [hχ : Fact (p.χ₀ = 0)]
+    [hMildLocal :
+      Fact (IntervalDomainGradientMildRestartChiZeroDuhamelLocalData p)] :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  localExistence_of_gradientMildRestartChiZeroDuhamelLocalData
+    p hχ.out hMildLocal.out
+
+/-- Instance-facing wrapper for zero-sensitivity half-step restart Duhamel data. -/
+theorem localExistence_of_gradientMildHalfStepRestartChiZeroDuhamelLocalDataFact
+    (p : CM2Params) [hχ : Fact (p.χ₀ = 0)]
+    [hMildLocal :
+      Fact (IntervalDomainGradientMildHalfStepRestartChiZeroDuhamelLocalData p)] :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  localExistence_of_gradientMildHalfStepRestartChiZeroDuhamelLocalData
+    p hχ.out hMildLocal.out
+
 /-- **Umbrella theorem.**  Paper 2 Theorem 1.1 on the interval domain follows
 from the negative-sensitivity regime (`χ₀ ≤ 0`, `0 < a`, `0 < b`) together with
 honest PDE-textbook inputs and book-keeping pass-throughs about initial data:
