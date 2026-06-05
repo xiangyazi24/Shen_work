@@ -3011,6 +3011,29 @@ theorem intervalDomain_C51_nonminimalExponential_of_sectorialRaw
     (N := intervalDomainSectorialStabilityNorms)
     hraw hm ha hb hχ huv hconv
 
+/-- Instance-facing concrete C5.1 nonminimal exponential upgrade from the
+sectorial raw convergence-to-exponential frontier. -/
+theorem intervalDomain_C51_nonminimalExponential_of_sectorialRawFact
+    {p : CM2Params}
+    [hraw : Fact (IntervalDomainSectorialConvergenceToExponentialNonminimalRaw p)]
+    (hm : 1 ≤ p.m) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (positiveEquilibrium p ⟨ha, hb⟩).1
+          (positiveEquilibrium p ⟨ha, hb⟩).2)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hconv :
+      UniformConvergesInSup intervalDomain u
+        (positiveEquilibrium p ⟨ha, hb⟩).1) :
+    ExponentialC1Convergence intervalDomain
+      intervalDomainSectorialStabilityNorms u v
+      (positiveEquilibrium p ⟨ha, hb⟩).1
+      (positiveEquilibrium p ⟨ha, hb⟩).2 :=
+  intervalDomain_C51_nonminimalExponential_of_sectorialRaw
+    hraw.out hm ha hb hχ huv hconv
+
 /-- Concrete C5.1 minimal exponential upgrade with no abstract
 `StabilityNorms.c1Distance` projection in the hypothesis. -/
 theorem intervalDomain_C51_minimalExponential_of_sectorialRaw
@@ -3036,6 +3059,31 @@ theorem intervalDomain_C51_minimalExponential_of_sectorialRaw
   intervalDomain_C51_minimalExponential_of_raw
     (N := intervalDomainSectorialStabilityNorms)
     hraw hm ha hb huStar hχ huv hmass hconv
+
+/-- Instance-facing concrete C5.1 minimal exponential upgrade from the
+sectorial raw convergence-to-exponential frontier. -/
+theorem intervalDomain_C51_minimalExponential_of_sectorialRawFact
+    {p : CM2Params}
+    [hraw : Fact (IntervalDomainSectorialConvergenceToExponentialMinimalRaw p)]
+    (hm : 1 ≤ p.m) (ha : p.a = 0) (hb : p.b = 0)
+    {uStar : ℝ} (huStar : 0 < uStar)
+    (hχ :
+      p.χ₀ <
+        paperCriticalSensitivity unitIntervalNeumannSpectrum p
+          (minimalEquilibrium p uStar).1
+          (minimalEquilibrium p uStar).2)
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (huv : PositiveGlobalBoundedSolution intervalDomain p u v)
+    (hmass : HasInitialMass intervalDomain u uStar)
+    (hconv :
+      UniformConvergesInSup intervalDomain u
+        (minimalEquilibrium p uStar).1) :
+    ExponentialC1Convergence intervalDomain
+      intervalDomainSectorialStabilityNorms u v
+      (minimalEquilibrium p uStar).1
+      (minimalEquilibrium p uStar).2 :=
+  intervalDomain_C51_minimalExponential_of_sectorialRaw
+    hraw.out hm ha hb huStar hχ huv hmass hconv
 
 /-- Concrete sectorial mainline: Theorem 2.1 persistence, nonminimal global
 convergence, and the concrete raw C5.1 frontier give persistence plus

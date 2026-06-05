@@ -10832,6 +10832,14 @@ theorem Lemma_3_2.of_timeTranslateCompactnessRaw
   intro hm hγ u v huv times htimes
   exact hcompact hm hγ u v huv times htimes
 
+/-- Instance-facing Paper3 Lemma 3.2 from the exposed time-translate
+compactness raw predicate. -/
+theorem Lemma_3_2.of_timeTranslateCompactnessRawFact
+    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
+    [hcompact : Fact (TimeTranslateCompactnessRaw D p K.locallyConverges)] :
+    Lemma_3_2 D p K :=
+  Lemma_3_2.of_timeTranslateCompactnessRaw hcompact.out
+
 /-- **TAUTOLOGY (no math content)**: body is `:= hcont`, definitionally
 equal to `Lemma_3_3 D p N`.  Target signature only. -/
 theorem Lemma_3_3.of_assumed_continuity_branch
@@ -10858,6 +10866,14 @@ theorem Lemma_3_4.of_upperEnvelopeMonotonicityRaw
     Lemma_3_4 D p K := by
   intro u v huv
   exact henv u v huv
+
+/-- Instance-facing Paper3 Lemma 3.4 from the exposed upper-envelope
+monotonicity raw predicate. -/
+theorem Lemma_3_4.of_upperEnvelopeMonotonicityRawFact
+    {D : BoundedDomainData} {p : CM2Params} {K : CompactnessData D}
+    [henv : Fact (UpperEnvelopeMonotonicityRaw D p K.upperEnvelope)] :
+    Lemma_3_4 D p K :=
+  Lemma_3_4.of_upperEnvelopeMonotonicityRaw henv.out
 
 /-- Primitive analytic axioms for the parabolic max principle of
 `K.upperEnvelope`.  Parallel to `ParabolicMaxPrincipleData` for `D.supNorm`,
@@ -11050,6 +11066,16 @@ theorem Lemma_7_1.of_neumannResolventGradientBoundExistsRaw
       NeumannResolventGradientBoundExistsRaw D K.neumannResolventGradientBound) :
     Lemma_7_1 D K :=
   hbound
+
+/-- Instance-facing Paper3 Lemma 7.1 from the exposed Neumann-resolvent bound
+raw predicate. -/
+theorem Lemma_7_1.of_neumannResolventGradientBoundExistsRawFact
+    {D : BoundedDomainData} {K : CompactnessData D}
+    [hbound :
+      Fact (NeumannResolventGradientBoundExistsRaw D
+        K.neumannResolventGradientBound)] :
+    Lemma_7_1 D K :=
+  Lemma_7_1.of_neumannResolventGradientBoundExistsRaw hbound.out
 
 /-- Compactness/regularity support package from the exposed raw frontiers.
 

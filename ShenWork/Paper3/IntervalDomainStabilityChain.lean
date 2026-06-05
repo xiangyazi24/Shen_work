@@ -933,6 +933,23 @@ theorem intervalDomain_Theorem_2_2_of_linearStabilityInstabilityRaw
     exact hC.minimalEquilibrium_linearlyUnstable
       unitIntervalNeumannSpectrum_hasNeumannSpectrum huStar hχcrit
 
+/-- Instance-facing interval-domain Paper3 Theorem 2.2 from the two raw
+linear-stability branches plus the audited critical-spectrum identity. -/
+theorem intervalDomain_Theorem_2_2_of_linearStabilityInstabilityRawFact
+    (p : CM2Params)
+    (N : StabilityNorms intervalDomain)
+    (C : Paper3Constants intervalDomain p)
+    [hC : Fact (Paper3ConstantsUsesCriticalSpectrum unitIntervalNeumannSpectrum p C)]
+    [hNonminimal :
+      Fact (LinearStabilityInstabilityNonminimalRaw intervalDomain p
+        unitIntervalNeumannSpectrum N.c1Distance C.chiCritical)]
+    [hMinimal :
+      Fact (LinearStabilityInstabilityMinimalRaw intervalDomain p
+        unitIntervalNeumannSpectrum N.c1Distance C.chiCritical)] :
+    Theorem_2_2 intervalDomain p unitIntervalNeumannSpectrum N C :=
+  intervalDomain_Theorem_2_2_of_linearStabilityInstabilityRaw
+    p N C hC.out hNonminimal.out hMinimal.out
+
 /-- Constants-package interval-domain Paper3 Theorem 2.2 assembled through
 branch-specific H3.1 frontiers.
 
