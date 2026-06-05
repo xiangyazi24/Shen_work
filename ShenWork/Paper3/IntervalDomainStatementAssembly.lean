@@ -65,6 +65,108 @@ theorem intervalDomain_paper3_coreStatementTargets_of_coreExistenceFact
   intervalDomain_paper3_coreStatementTargets_of_coreExistence
     p M0 uBar vLower hcont.out hcore.out
 
+/-- Single-target wrapper for Paper3 Lemma 3.1 from the core existence
+bundle. -/
+theorem intervalDomain_paper3_Lemma_3_1_of_coreExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcont : IntervalDomainInitialContinuityRaw p)
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    Lemma_3_1 intervalDomain p :=
+  (intervalDomain_paper3_coreStatementTargets_of_coreExistence
+    p M0 uBar vLower hcont hcore).1
+
+/-- Instance-facing single-target wrapper for Paper3 Lemma 3.1. -/
+theorem intervalDomain_paper3_Lemma_3_1_of_coreExistenceFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hcont : Fact (IntervalDomainInitialContinuityRaw p)]
+    [hcore : Fact (IntervalDomainSectorialMainlineCoreExistence p uBar)] :
+    Lemma_3_1 intervalDomain p :=
+  intervalDomain_paper3_Lemma_3_1_of_coreExistence
+    p M0 uBar vLower hcont.out hcore.out
+
+/-- Single-target wrapper for Paper3 Lemma 3.3 from the core existence
+bundle. -/
+theorem intervalDomain_paper3_Lemma_3_3_of_coreExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcont : IntervalDomainInitialContinuityRaw p)
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    Lemma_3_3 intervalDomain p intervalDomainStabilityNorms :=
+  (intervalDomain_paper3_coreStatementTargets_of_coreExistence
+    p M0 uBar vLower hcont hcore).2.1
+
+/-- Instance-facing single-target wrapper for Paper3 Lemma 3.3. -/
+theorem intervalDomain_paper3_Lemma_3_3_of_coreExistenceFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hcont : Fact (IntervalDomainInitialContinuityRaw p)]
+    [hcore : Fact (IntervalDomainSectorialMainlineCoreExistence p uBar)] :
+    Lemma_3_3 intervalDomain p intervalDomainStabilityNorms :=
+  intervalDomain_paper3_Lemma_3_3_of_coreExistence
+    p M0 uBar vLower hcont.out hcore.out
+
+/-- Single-target wrapper for interval upper-envelope monotonicity from the
+core existence bundle. -/
+theorem intervalDomain_paper3_upperEnvelopeMonotonicity_of_coreExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcont : IntervalDomainInitialContinuityRaw p)
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    UpperEnvelopeMonotonicityRaw intervalDomain p intervalDomain.supNorm :=
+  (intervalDomain_paper3_coreStatementTargets_of_coreExistence
+    p M0 uBar vLower hcont hcore).2.2.1
+
+/-- Instance-facing single-target wrapper for interval upper-envelope
+monotonicity. -/
+theorem intervalDomain_paper3_upperEnvelopeMonotonicity_of_coreExistenceFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hcont : Fact (IntervalDomainInitialContinuityRaw p)]
+    [hcore : Fact (IntervalDomainSectorialMainlineCoreExistence p uBar)] :
+    UpperEnvelopeMonotonicityRaw intervalDomain p intervalDomain.supNorm :=
+  intervalDomain_paper3_upperEnvelopeMonotonicity_of_coreExistence
+    p M0 uBar vLower hcont.out hcore.out
+
+/-- Single-target wrapper for the StabilityChain Theorem 2.1 target from the
+core existence bundle. -/
+theorem intervalDomain_paper3_stabilityChainTheorem21Target_of_coreExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcont : IntervalDomainInitialContinuityRaw p)
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    IntervalDomainStabilityChainTheorem21Target p M0 uBar vLower :=
+  (intervalDomain_paper3_coreStatementTargets_of_coreExistence
+    p M0 uBar vLower hcont hcore).2.2.2.1
+
+/-- Instance-facing single-target wrapper for the StabilityChain Theorem 2.1
+target. -/
+theorem
+    intervalDomain_paper3_stabilityChainTheorem21Target_of_coreExistenceFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hcont : Fact (IntervalDomainInitialContinuityRaw p)]
+    [hcore : Fact (IntervalDomainSectorialMainlineCoreExistence p uBar)] :
+    IntervalDomainStabilityChainTheorem21Target p M0 uBar vLower :=
+  intervalDomain_paper3_stabilityChainTheorem21Target_of_coreExistence
+    p M0 uBar vLower hcont.out hcore.out
+
+/-- Single-target wrapper for the sectorial Theorem 2.1/2.2 target from the
+core existence bundle. -/
+theorem intervalDomain_paper3_sectorialTheorem21And22Target_of_coreExistence
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hcont : IntervalDomainInitialContinuityRaw p)
+    (hcore : IntervalDomainSectorialMainlineCoreExistence p uBar) :
+    IntervalDomainSectorialTheorem21And22UnconditionalTarget
+      p M0 uBar vLower :=
+  (intervalDomain_paper3_coreStatementTargets_of_coreExistence
+    p M0 uBar vLower hcont hcore).2.2.2.2
+
+/-- Instance-facing single-target wrapper for the sectorial Theorem 2.1/2.2
+target. -/
+theorem
+    intervalDomain_paper3_sectorialTheorem21And22Target_of_coreExistenceFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hcont : Fact (IntervalDomainInitialContinuityRaw p)]
+    [hcore : Fact (IntervalDomainSectorialMainlineCoreExistence p uBar)] :
+    IntervalDomainSectorialTheorem21And22UnconditionalTarget
+      p M0 uBar vLower :=
+  intervalDomain_paper3_sectorialTheorem21And22Target_of_coreExistence
+    p M0 uBar vLower hcont.out hcore.out
+
 /-- Concrete interval-domain compactness/regularization targets closed by the
 raw compactness, initial-continuity, minimal upper-bound, and Neumann-resolvent
 frontiers. -/
@@ -297,6 +399,123 @@ theorem
   intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_frontiers
     p M0 uBar vLower K hData.out
 
+/-- Single-target wrapper for concrete Paper3 Lemma 3.2 from the concrete
+compactness bundle. -/
+theorem intervalDomain_paper3_Lemma_3_2_of_concreteCompactnessData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (hData :
+      IntervalDomainPaper3ConcreteCompactnessRegularizationData
+        p M0 uBar vLower K) :
+    Lemma_3_2 intervalDomain p K :=
+  (intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_frontiers
+    p M0 uBar vLower K hData).2.1
+
+/-- Instance-facing single-target wrapper for concrete Paper3 Lemma 3.2. -/
+theorem intervalDomain_paper3_Lemma_3_2_of_concreteCompactnessDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    [hData : Fact
+      (IntervalDomainPaper3ConcreteCompactnessRegularizationData
+        p M0 uBar vLower K)] :
+    Lemma_3_2 intervalDomain p K :=
+  intervalDomain_paper3_Lemma_3_2_of_concreteCompactnessData
+    p M0 uBar vLower K hData.out
+
+/-- Single-target wrapper for concrete Paper3 Lemma 3.3 from the concrete
+compactness bundle. -/
+theorem intervalDomain_paper3_Lemma_3_3_of_concreteCompactnessData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (hData :
+      IntervalDomainPaper3ConcreteCompactnessRegularizationData
+        p M0 uBar vLower K) :
+    Lemma_3_3 intervalDomain p intervalDomainStabilityNorms :=
+  (intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_frontiers
+    p M0 uBar vLower K hData).2.2.1
+
+/-- Instance-facing single-target wrapper for concrete Paper3 Lemma 3.3. -/
+theorem intervalDomain_paper3_Lemma_3_3_of_concreteCompactnessDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    [hData : Fact
+      (IntervalDomainPaper3ConcreteCompactnessRegularizationData
+        p M0 uBar vLower K)] :
+    Lemma_3_3 intervalDomain p intervalDomainStabilityNorms :=
+  intervalDomain_paper3_Lemma_3_3_of_concreteCompactnessData
+    p M0 uBar vLower K hData.out
+
+/-- Single-target wrapper for concrete Paper3 Lemma 3.4 from the concrete
+compactness bundle. -/
+theorem intervalDomain_paper3_Lemma_3_4_of_concreteCompactnessData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (hData :
+      IntervalDomainPaper3ConcreteCompactnessRegularizationData
+        p M0 uBar vLower K) :
+    Lemma_3_4 intervalDomain p K :=
+  (intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_frontiers
+    p M0 uBar vLower K hData).2.2.2.1
+
+/-- Instance-facing single-target wrapper for concrete Paper3 Lemma 3.4. -/
+theorem intervalDomain_paper3_Lemma_3_4_of_concreteCompactnessDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    [hData : Fact
+      (IntervalDomainPaper3ConcreteCompactnessRegularizationData
+        p M0 uBar vLower K)] :
+    Lemma_3_4 intervalDomain p K :=
+  intervalDomain_paper3_Lemma_3_4_of_concreteCompactnessData
+    p M0 uBar vLower K hData.out
+
+/-- Single-target wrapper for concrete Paper3 Lemma 3.5 from the concrete
+compactness bundle. -/
+theorem intervalDomain_paper3_Lemma_3_5_of_concreteCompactnessData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (hData :
+      IntervalDomainPaper3ConcreteCompactnessRegularizationData
+        p M0 uBar vLower K) :
+    Lemma_3_5 intervalDomain p
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  (intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_frontiers
+    p M0 uBar vLower K hData).2.2.2.2.1
+
+/-- Instance-facing single-target wrapper for concrete Paper3 Lemma 3.5. -/
+theorem intervalDomain_paper3_Lemma_3_5_of_concreteCompactnessDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    [hData : Fact
+      (IntervalDomainPaper3ConcreteCompactnessRegularizationData
+        p M0 uBar vLower K)] :
+    Lemma_3_5 intervalDomain p
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_paper3_Lemma_3_5_of_concreteCompactnessData
+    p M0 uBar vLower K hData.out
+
+/-- Single-target wrapper for concrete Paper3 Lemma 7.1 from the concrete
+compactness bundle. -/
+theorem intervalDomain_paper3_Lemma_7_1_of_concreteCompactnessData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (hData :
+      IntervalDomainPaper3ConcreteCompactnessRegularizationData
+        p M0 uBar vLower K) :
+    Lemma_7_1 intervalDomain K :=
+  (intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_frontiers
+    p M0 uBar vLower K hData).2.2.2.2.2
+
+/-- Instance-facing single-target wrapper for concrete Paper3 Lemma 7.1. -/
+theorem intervalDomain_paper3_Lemma_7_1_of_concreteCompactnessDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    [hData : Fact
+      (IntervalDomainPaper3ConcreteCompactnessRegularizationData
+        p M0 uBar vLower K)] :
+    Lemma_7_1 intervalDomain K :=
+  intervalDomain_paper3_Lemma_7_1_of_concreteCompactnessData
+    p M0 uBar vLower K hData.out
+
 /-- Concrete-norm Paper3 stability targets currently closed by the
 global-convergence and exponential-upgrade frontiers. -/
 def IntervalDomainPaper3Stability23To25Targets
@@ -397,6 +616,54 @@ theorem intervalDomain_paper3_stability23To25Targets_of_frontiersFact
     IntervalDomainPaper3Stability23To25Targets p C :=
   intervalDomain_paper3_stability23To25Targets_of_frontiers p C hData.out
 
+/-- Single-target wrapper for Paper3 Theorem 2.3 from the stability bundle. -/
+theorem intervalDomain_paper3_Theorem_2_3_of_stability23To25Data
+    (p : CM2Params) (C : Paper3Constants intervalDomain p)
+    (hData : IntervalDomainPaper3Stability23To25FrontierData p C) :
+    Theorem_2_3 intervalDomain p intervalDomainStabilityNorms :=
+  (intervalDomain_paper3_stability23To25Targets_of_frontiers
+    p C hData).1
+
+/-- Instance-facing single-target wrapper for Paper3 Theorem 2.3. -/
+theorem intervalDomain_paper3_Theorem_2_3_of_stability23To25DataFact
+    (p : CM2Params) (C : Paper3Constants intervalDomain p)
+    [hData : Fact (IntervalDomainPaper3Stability23To25FrontierData p C)] :
+    Theorem_2_3 intervalDomain p intervalDomainStabilityNorms :=
+  intervalDomain_paper3_Theorem_2_3_of_stability23To25Data
+    p C hData.out
+
+/-- Single-target wrapper for Paper3 Theorem 2.4 from the stability bundle. -/
+theorem intervalDomain_paper3_Theorem_2_4_of_stability23To25Data
+    (p : CM2Params) (C : Paper3Constants intervalDomain p)
+    (hData : IntervalDomainPaper3Stability23To25FrontierData p C) :
+    Theorem_2_4 intervalDomain p intervalDomainStabilityNorms C :=
+  (intervalDomain_paper3_stability23To25Targets_of_frontiers
+    p C hData).2.1
+
+/-- Instance-facing single-target wrapper for Paper3 Theorem 2.4. -/
+theorem intervalDomain_paper3_Theorem_2_4_of_stability23To25DataFact
+    (p : CM2Params) (C : Paper3Constants intervalDomain p)
+    [hData : Fact (IntervalDomainPaper3Stability23To25FrontierData p C)] :
+    Theorem_2_4 intervalDomain p intervalDomainStabilityNorms C :=
+  intervalDomain_paper3_Theorem_2_4_of_stability23To25Data
+    p C hData.out
+
+/-- Single-target wrapper for Paper3 Theorem 2.5 from the stability bundle. -/
+theorem intervalDomain_paper3_Theorem_2_5_of_stability23To25Data
+    (p : CM2Params) (C : Paper3Constants intervalDomain p)
+    (hData : IntervalDomainPaper3Stability23To25FrontierData p C) :
+    Theorem_2_5 intervalDomain p intervalDomainStabilityNorms C :=
+  (intervalDomain_paper3_stability23To25Targets_of_frontiers
+    p C hData).2.2
+
+/-- Instance-facing single-target wrapper for Paper3 Theorem 2.5. -/
+theorem intervalDomain_paper3_Theorem_2_5_of_stability23To25DataFact
+    (p : CM2Params) (C : Paper3Constants intervalDomain p)
+    [hData : Fact (IntervalDomainPaper3Stability23To25FrontierData p C)] :
+    Theorem_2_5 intervalDomain p intervalDomainStabilityNorms C :=
+  intervalDomain_paper3_Theorem_2_5_of_stability23To25Data
+    p C hData.out
+
 /-- Concrete-constants Paper3 Theorem 2.3--2.5 target package. -/
 def IntervalDomainPaper3ConcreteStability23To25Targets
     (p : CM2Params) (M0 uBar vLower : ℝ) : Prop :=
@@ -423,6 +690,73 @@ theorem intervalDomain_paper3_concreteStability23To25Targets_of_frontiersFact
     IntervalDomainPaper3ConcreteStability23To25Targets
       p M0 uBar vLower :=
   intervalDomain_paper3_concreteStability23To25Targets_of_frontiers
+    p M0 uBar vLower hData.out
+
+/-- Single-target wrapper for concrete Paper3 Theorem 2.3 from the stability
+bundle. -/
+theorem intervalDomain_paper3_Theorem_2_3_of_concreteStabilityData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hData :
+      IntervalDomainPaper3Stability23To25FrontierData p
+        (intervalDomainPaper3Constants p M0 uBar vLower)) :
+    Theorem_2_3 intervalDomain p intervalDomainStabilityNorms :=
+  (intervalDomain_paper3_concreteStability23To25Targets_of_frontiers
+    p M0 uBar vLower hData).1
+
+/-- Instance-facing single-target wrapper for concrete Paper3 Theorem 2.3. -/
+theorem intervalDomain_paper3_Theorem_2_3_of_concreteStabilityDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hData : Fact
+      (IntervalDomainPaper3Stability23To25FrontierData p
+        (intervalDomainPaper3Constants p M0 uBar vLower))] :
+    Theorem_2_3 intervalDomain p intervalDomainStabilityNorms :=
+  intervalDomain_paper3_Theorem_2_3_of_concreteStabilityData
+    p M0 uBar vLower hData.out
+
+/-- Single-target wrapper for concrete Paper3 Theorem 2.4 from the stability
+bundle. -/
+theorem intervalDomain_paper3_Theorem_2_4_of_concreteStabilityData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hData :
+      IntervalDomainPaper3Stability23To25FrontierData p
+        (intervalDomainPaper3Constants p M0 uBar vLower)) :
+    Theorem_2_4 intervalDomain p intervalDomainStabilityNorms
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  (intervalDomain_paper3_concreteStability23To25Targets_of_frontiers
+    p M0 uBar vLower hData).2.1
+
+/-- Instance-facing single-target wrapper for concrete Paper3 Theorem 2.4. -/
+theorem intervalDomain_paper3_Theorem_2_4_of_concreteStabilityDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hData : Fact
+      (IntervalDomainPaper3Stability23To25FrontierData p
+        (intervalDomainPaper3Constants p M0 uBar vLower))] :
+    Theorem_2_4 intervalDomain p intervalDomainStabilityNorms
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_paper3_Theorem_2_4_of_concreteStabilityData
+    p M0 uBar vLower hData.out
+
+/-- Single-target wrapper for concrete Paper3 Theorem 2.5 from the stability
+bundle. -/
+theorem intervalDomain_paper3_Theorem_2_5_of_concreteStabilityData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (hData :
+      IntervalDomainPaper3Stability23To25FrontierData p
+        (intervalDomainPaper3Constants p M0 uBar vLower)) :
+    Theorem_2_5 intervalDomain p intervalDomainStabilityNorms
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  (intervalDomain_paper3_concreteStability23To25Targets_of_frontiers
+    p M0 uBar vLower hData).2.2
+
+/-- Instance-facing single-target wrapper for concrete Paper3 Theorem 2.5. -/
+theorem intervalDomain_paper3_Theorem_2_5_of_concreteStabilityDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [hData : Fact
+      (IntervalDomainPaper3Stability23To25FrontierData p
+        (intervalDomainPaper3Constants p M0 uBar vLower))] :
+    Theorem_2_5 intervalDomain p intervalDomainStabilityNorms
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_paper3_Theorem_2_5_of_concreteStabilityData
     p M0 uBar vLower hData.out
 
 end
