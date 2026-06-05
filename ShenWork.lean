@@ -91,6 +91,7 @@ import ShenWork.Paper2.IntervalDomainL2UEnergyUniform
 import ShenWork.Paper2.IntervalDomainL2UEnergyUniformGammaGeOne
 import ShenWork.Paper2.IntervalDomainL2USubHorizonGluing
 import ShenWork.Paper2.IntervalDomainTheorem11Umbrella
+import ShenWork.Paper2.IntervalDomainStatementAssembly
 import ShenWork.PDE.IntervalDomainExistence
 import ShenWork.PDE.IntervalEllipticCharacterization
 import ShenWork.PDE.IntervalCosineCoeffDecay
