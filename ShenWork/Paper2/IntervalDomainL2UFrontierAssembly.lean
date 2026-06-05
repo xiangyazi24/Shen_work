@@ -526,20 +526,24 @@ step — is PROVED unconditionally above. -/
 structure IntervalDomainL2UBoundedDatumUniform
     (p : CM2Params) where
   bdd₀ :
-    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
-        BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|))
+    ∀ {u₀ : intervalDomainPoint → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|))
   Kunif :
-    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
+    ∀ {u₀ : intervalDomainPoint → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
         ∃ K : ℝ, 0 ≤ K ∧ ∀ τ, 0 < τ → τ < min T₁ T₂ →
           (∫ y in (0:ℝ)..1, intervalDomainUEnergyIntegrandDeriv u₁ u₂ τ y)
             ≤ K * intervalDomainClassicalL2DifferenceEnergyU u₁ u₂ τ
@@ -554,10 +558,11 @@ def intervalDomainL2UJointTimeRegularity_of_boundedDatumUniform
     {p : CM2Params}
     (hres : IntervalDomainL2UBoundedDatumUniform p) :
     IntervalDomainL2UJointTimeRegularity p where
-  frontier := fun hsol₁ hsol₂ htr₁ htr₂ =>
+  frontier := fun {_u₀} hu₀ {_T₁} {_T₂} {_u₁} {_v₁} {_u₂} {_v₂}
+      hsol₁ hsol₂ htr₁ htr₂ =>
     intervalDomainL2UDifferenceEnergyFrontier_of_solution hsol₁ hsol₂ htr₁ htr₂
-      (hres.bdd₀ hsol₁ hsol₂ htr₁ htr₂)
-      (hres.Kunif hsol₁ hsol₂ htr₁ htr₂)
+      (hres.bdd₀ hu₀ hsol₁ hsol₂ htr₁ htr₂)
+      (hres.Kunif hu₀ hsol₁ hsol₂ htr₁ htr₂)
 
 /-- **The L²-energy uniqueness method from the bounded-datum + uniform obligation.** -/
 theorem intervalDomainClassicalUniquenessL2EnergyMethod_of_boundedDatumUniform

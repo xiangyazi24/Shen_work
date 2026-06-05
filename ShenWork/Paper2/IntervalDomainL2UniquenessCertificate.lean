@@ -241,7 +241,7 @@ def intervalDomainClassicalUniquenessL2EnergyMethod_of_frontier
     (hbuilder : IntervalDomainL2DifferenceEnergyFrontierBuilder p) :
     IntervalDomainClassicalUniquenessL2EnergyMethod p where
   certificate := by
-    intro u₀ T₁ T₂ u₁ v₁ u₂ v₂ hsol₁ hsol₂ htr₁ htr₂
+    intro u₀ _hu₀ T₁ T₂ u₁ v₁ u₂ v₂ hsol₁ hsol₂ htr₁ htr₂
     -- Restrict each solution to the overlap horizon `min T₁ T₂`.
     have hsol₁' :
         IsPaper2ClassicalSolution intervalDomain p (min T₁ T₂) u₁ v₁ := by

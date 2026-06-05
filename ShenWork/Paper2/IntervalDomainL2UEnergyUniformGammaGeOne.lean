@@ -856,8 +856,10 @@ made possible by `γ ≥ 1` (the source `x↦x^γ` Lipschitz constant `γ·M^{γ
 require δ>0). -/
 structure IntervalDomainUniformLiftBoundZeroM (p : CM2Params) : Prop where
   bound :
-    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+    ∀ {u₀ : intervalDomainPoint → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
       IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
       IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
       InitialTrace intervalDomain u₀ u₁ →
@@ -917,10 +919,12 @@ def boundednessHypothesis_of_uniformSupBoundZeroM
         InitialTrace intervalDomain u₀ u₂ →
           BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|))) :
     IntervalDomainL2UBoundednessHypothesis p where
-  datumBdd := fun hsol₁ hsol₂ htr₁ htr₂ => hdatum hsol₁ hsol₂ htr₁ htr₂
+  datumBdd := fun {_u₀} hu₀ {_T₁} {_T₂} {_u₁} {_v₁} {_u₂} {_v₂}
+      hsol₁ hsol₂ htr₁ htr₂ =>
+    hdatum hsol₁ hsol₂ htr₁ htr₂
   gronwall := by
-    intro u₀ T₁ T₂ u₁ v₁ u₂ v₂ hsol₁ hsol₂ htr₁ htr₂
-    obtain ⟨M, hMnn, hb⟩ := hbnd.bound hsol₁ hsol₂ htr₁ htr₂
+    intro u₀ hu₀ T₁ T₂ u₁ v₁ u₂ v₂ hsol₁ hsol₂ htr₁ htr₂
+    obtain ⟨M, hMnn, hb⟩ := hbnd.bound hu₀ hsol₁ hsol₂ htr₁ htr₂
     exact gronwall_const_of_uniformLiftBoundZeroM hsol₁ hsol₂ hγ_ge_one hMnn hb
 
 /-- Instance-facing γ≥1 upper-only lift-bound to boundedness-hypothesis bridge. -/
@@ -967,8 +971,7 @@ theorem uniformLiftBoundZeroM_of_regime
           BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|))) :
     IntervalDomainUniformLiftBoundZeroM p where
   bound := by
-    intro u₀ T₁ T₂ u₁ v₁ u₂ v₂ hsol₁ hsol₂ htr₁ htr₂
-    have hu₀ : PositiveInitialDatum intervalDomain u₀ := hpos hsol₁ hsol₂ htr₁ htr₂
+    intro u₀ hu₀ T₁ T₂ u₁ v₁ u₂ v₂ hsol₁ hsol₂ htr₁ htr₂
     have hbddu₀ : BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|)) :=
       hdatum hsol₁ hsol₂ htr₁ htr₂
     set M : ℝ := max (intervalDomainSupNorm u₀) ((p.a / p.b) ^ (1 / p.α)) with hMdef

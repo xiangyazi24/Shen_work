@@ -4844,7 +4844,9 @@ noncomputable def reachableClassicalSolutionDataOfReach
 /-- PDE uniqueness frontier needed for gluing: two finite interval solutions
 with the same initial datum agree on the overlap of their horizons. -/
 def IntervalClassicalSolutionOverlapUnique (p : CM2Params) : Prop :=
-  ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+  ∀ {u₀ : intervalDomainPoint → ℝ},
+    PositiveInitialDatum intervalDomain u₀ →
+  ∀ {T₁ T₂ : ℝ}
     (d₁ : ReachableClassicalSolutionData p u₀ T₁)
     (d₂ : ReachableClassicalSolutionData p u₀ T₂),
       ∀ t, 0 < t → t < min T₁ T₂ →
@@ -5225,6 +5227,7 @@ with any chosen reachable witness on horizon `T`. -/
 theorem reachableArbitrarilyLongGlued_eq_reachableData_of_overlapUnique
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hreach : ReachableArbitrarilyLong p u₀)
     {T : ℝ} (d : ReachableClassicalSolutionData p u₀ T) :
     ∀ t, 0 < t → t < T → ∀ x : intervalDomainPoint,
@@ -5235,7 +5238,7 @@ theorem reachableArbitrarilyLongGlued_eq_reachableData_of_overlapUnique
     reachableClassicalSolutionDataOfReach (hreach (t + 1) (by linarith))
   have ht_overlap : t < min (t + 1) T := by
     exact lt_min (by linarith) htT
-  have hsame := huniq dshort d t ht0 ht_overlap x
+  have hsame := huniq hu₀ dshort d t ht0 ht_overlap x
   constructor
   · simpa [reachableArbitrarilyLongGluedU, ht0, dshort] using hsame.1
   · simpa [reachableArbitrarilyLongGluedV, ht0, dshort] using hsame.2
@@ -5245,6 +5248,7 @@ witness, using overlap uniqueness for small positive times. -/
 theorem reachableArbitrarilyLongGlued_initialTrace_of_overlapUnique
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hreach : ReachableArbitrarilyLong p u₀) :
     InitialTrace intervalDomain u₀ (reachableArbitrarilyLongGluedU hreach) := by
   let d₁ : ReachableClassicalSolutionData p u₀ 1 :=
@@ -5257,7 +5261,7 @@ theorem reachableArbitrarilyLongGlued_initialTrace_of_overlapUnique
   have ht1 : t < (1 : ℝ) := lt_of_lt_of_le ht_lt (min_le_right _ _)
   have hsame :=
     reachableArbitrarilyLongGlued_eq_reachableData_of_overlapUnique
-      huniq hreach d₁ t ht0 ht1
+      huniq hu₀ hreach d₁ t ht0 ht1
   have hfun :
       (fun x : intervalDomainPoint => reachableArbitrarilyLongGluedU hreach t x - u₀ x) =
         (fun x : intervalDomainPoint => d₁.u t x - u₀ x) := by
@@ -5277,7 +5281,7 @@ theorem GlobalSolutionGluingFromReachability_of_overlapUnique_and_locality
     (huniq : IntervalClassicalSolutionOverlapUnique p)
     (hlocality : ClassicalSolutionLocalityUnderIooAgreement p) :
     GlobalSolutionGluingFromReachability p := by
-  intro u₀ _hu₀ hreach
+  intro u₀ hu₀ hreach
   let u : ℝ → intervalDomainPoint → ℝ :=
     reachableArbitrarilyLongGluedU hreach
   let v : ℝ → intervalDomainPoint → ℝ :=
@@ -5289,9 +5293,9 @@ theorem GlobalSolutionGluingFromReachability_of_overlapUnique_and_locality
     refine hlocality hT dT.sol ?_
     intro t ht0 htT x
     exact reachableArbitrarilyLongGlued_eq_reachableData_of_overlapUnique
-      huniq hreach dT t ht0 htT x
+      huniq hu₀ hreach dT t ht0 htT x
   · exact reachableArbitrarilyLongGlued_initialTrace_of_overlapUnique
-      huniq hreach
+      huniq hu₀ hreach
 
 /-- The remaining gluing frontier is exactly overlap uniqueness.  The
 calculus/locality layer for the concrete interval-domain classical predicate
@@ -5309,9 +5313,9 @@ theorem IntervalClassicalSolutionOverlapUnique_of_energyMethod
     {p : CM2Params}
     (hmethod : IntervalDomainClassicalUniquenessEnergyMethod p) :
     IntervalClassicalSolutionOverlapUnique p := by
-  intro u₀ T₁ T₂ d₁ d₂ t ht0 ht_overlap x
+  intro u₀ _hu₀ T₁ T₂ d₁ d₂ t ht0 ht_overlap x
   exact intervalDomain_classicalSolution_overlap_unique_of_energyMethod
-    hmethod d₁.sol d₂.sol d₁.trace d₂.trace t ht0 ht_overlap x
+    hmethod _hu₀ d₁.sol d₂.sol d₁.trace d₂.trace t ht0 ht_overlap x
 
 /-- Arbitrarily long finite reachable solutions glue to a global solution once
 the sb-lyap energy method supplies classical overlap uniqueness. -/
@@ -5328,9 +5332,9 @@ theorem IntervalClassicalSolutionOverlapUnique_of_l2EnergyMethod
     {p : CM2Params}
     (hmethod : IntervalDomainClassicalUniquenessL2EnergyMethod p) :
     IntervalClassicalSolutionOverlapUnique p := by
-  intro u₀ T₁ T₂ d₁ d₂ t ht0 ht_overlap x
+  intro u₀ hu₀ T₁ T₂ d₁ d₂ t ht0 ht_overlap x
   exact intervalDomain_classicalSolution_overlap_unique_of_l2EnergyMethod
-    hmethod d₁.sol d₂.sol d₁.trace d₂.trace t ht0 ht_overlap x
+    hmethod hu₀ d₁.sol d₂.sol d₁.trace d₂.trace t ht0 ht_overlap x
 
 /-- Arbitrarily long finite reachable solutions glue to a global solution once
 the L2 uniqueness handoff supplies equality on overlapping horizons. -/
@@ -5436,6 +5440,7 @@ noncomputable def boundedReachableGluedV
 theorem boundedReachableGlued_eq_reachableData_of_overlapUnique
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
     (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
     {T : ℝ} (d : ReachableClassicalSolutionData p u₀ T) :
@@ -5457,7 +5462,7 @@ theorem boundedReachableGlued_eq_reachableData_of_overlapUnique
     pickReachableAbove_lt hbdd hne ht_lt_Tmax
   have ht_overlap : t < min (pickReachableAbove hbdd hne ht_lt_Tmax).1 T :=
     lt_min ht_lt_pick htT
-  have hsame := huniq dpick d t ht0 ht_overlap x
+  have hsame := huniq hu₀ dpick d t ht0 ht_overlap x
   refine ⟨?_, ?_⟩
   · -- `boundedReachableGluedU t x = dpick.u t x = d.u t x`.
     have h_if : boundedReachableGluedU hbdd hne t x = dpick.u t x := by
@@ -5497,6 +5502,7 @@ direct use by the `_congr_Ioo` regularity transfer. -/
 private lemma boundedReachableGlued_eq_on_subSlab
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
     (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
     {T : ℝ} (d : ReachableClassicalSolutionData p u₀ T) :
@@ -5506,11 +5512,11 @@ private lemma boundedReachableGlued_eq_on_subSlab
   · intro t ht0 htT
     funext x
     exact (boundedReachableGlued_eq_reachableData_of_overlapUnique
-      huniq hbdd hne d t ht0 htT x).1
+      huniq hu₀ hbdd hne d t ht0 htT x).1
   · intro t ht0 htT
     funext x
     exact (boundedReachableGlued_eq_reachableData_of_overlapUnique
-      huniq hbdd hne d t ht0 htT x).2
+      huniq hu₀ hbdd hne d t ht0 htT x).2
 
 /-- The glued branch inherits the initial trace from any chosen reachable
 witness, using overlap uniqueness for small positive times.  Picks the witness
@@ -5518,6 +5524,7 @@ on the unique smallest reachable horizon via `hne`. -/
 theorem boundedReachableGlued_initialTrace_of_overlapUnique
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
     (hne : (reachableClassicalHorizonSet p u₀).Nonempty) :
     InitialTrace intervalDomain u₀ (boundedReachableGluedU hbdd hne) := by
@@ -5534,7 +5541,7 @@ theorem boundedReachableGlued_initialTrace_of_overlapUnique
   have htT₀ : t < T₀ := lt_of_lt_of_le ht_lt (min_le_right _ _)
   have hsame :=
     boundedReachableGlued_eq_reachableData_of_overlapUnique
-      huniq hbdd hne d t ht0 htT₀
+      huniq hu₀ hbdd hne d t ht0 htT₀
   have hfun :
       (fun x : intervalDomainPoint =>
           boundedReachableGluedU hbdd hne t x - u₀ x) =
@@ -5553,6 +5560,7 @@ interior time `t ∈ (0, T)`. -/
 private lemma boundedReachableGluedU_lift_eq
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
     (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
     {T : ℝ} (d : ReachableClassicalSolutionData p u₀ T) :
@@ -5560,13 +5568,14 @@ private lemma boundedReachableGluedU_lift_eq
       intervalDomainLift (boundedReachableGluedU hbdd hne t) =
         intervalDomainLift (d.u t) := by
   intro t ht0 htT
-  have hEq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne d).1
+  have hEq := (boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne d).1
     t ht0 htT
   rw [hEq]
 
 private lemma boundedReachableGluedV_lift_eq
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
     (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
     {T : ℝ} (d : ReachableClassicalSolutionData p u₀ T) :
@@ -5574,7 +5583,7 @@ private lemma boundedReachableGluedV_lift_eq
       intervalDomainLift (boundedReachableGluedV hbdd hne t) =
         intervalDomainLift (d.v t) := by
   intro t ht0 htT
-  have hEq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne d).2
+  have hEq := (boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne d).2
     t ht0 htT
   rw [hEq]
 
@@ -5585,6 +5594,7 @@ private lemma boundedReachableGluedV_lift_eq
 theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
     (hne : (reachableClassicalHorizonSet p u₀).Nonempty) :
     intervalDomainClassicalRegularity
@@ -5605,7 +5615,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
       pickReachableAbove_lt hbdd hne htmax
     -- Apply `intervalDomainClassicalRegularity_congr_Ioo` style transfer
     -- on the slab `Ioo 0 Tpick`.
-    have hEq := boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick
+    have hEq := boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne dpick
     -- Translate the `hsup` from glued to dpick.
     have hsup' :
         (q.a / q.b) ^ (1 / q.α) <
@@ -5658,7 +5668,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
       rintro s ⟨_hs1, hs2⟩
       have hs0 : 0 < s := hs2.1
       have hsT : s < Tpick := hs2.2
-      have hgl_eq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).1
+      have hgl_eq := (boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne dpick).1
         s hs0 hsT
       change intervalDomainSupNorm (boundedReachableGluedU hbdd hne s) =
         intervalDomainSupNorm (dpick.u s)
@@ -5695,7 +5705,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
         refine Set.EqOn.eventuallyEq_of_mem ?_
           (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick) ⟨ht.1, hT_gt⟩)
         intro s hs
-        have := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).1
+        have := (boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne dpick).1
           s hs.1 hs.2
         change intervalDomainSupNorm (boundedReachableGluedU hbdd hne s) =
           intervalDomainSupNorm (dpick.u s)
@@ -5721,7 +5731,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
         refine Set.EqOn.eventuallyEq_of_mem ?_
           (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick) ⟨ht.1, hT_gt⟩)
         intro s hs
-        have := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).1
+        have := (boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne dpick).1
           s hs.1 hs.2
         change intervalDomainSupNorm (boundedReachableGluedU hbdd hne s) =
           intervalDomainSupNorm (dpick.u s)
@@ -5735,8 +5745,8 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
     let dpick := pickReachableAboveData hbdd hne ht.2
     let Tpick : ℝ := (pickReachableAbove hbdd hne ht.2).1
     have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne ht.2
-    have huL := boundedReachableGluedU_lift_eq huniq hbdd hne dpick t ht.1 hT_gt
-    have hvL := boundedReachableGluedV_lift_eq huniq hbdd hne dpick t ht.1 hT_gt
+    have huL := boundedReachableGluedU_lift_eq huniq hu₀ hbdd hne dpick t ht.1 hT_gt
+    have hvL := boundedReachableGluedV_lift_eq huniq hu₀ hbdd hne dpick t ht.1 hT_gt
     rw [huL, hvL]
     exact dpick.sol.regularity.2.2.1 t ⟨ht.1, hT_gt⟩
   · -- (4) Per-point time differentiability + ∂ₜ continuity on Ioo 0 T*.
@@ -5745,8 +5755,8 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
     let Tpick : ℝ := (pickReachableAbove hbdd hne ht.2).1
     have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne ht.2
     have hreg4 := dpick.sol.regularity.2.2.2.1 x t ⟨ht.1, hT_gt⟩
-    have hEqU := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).1
-    have hEqV := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).2
+    have hEqU := (boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne dpick).1
+    have hEqV := (boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne dpick).2
     -- EventuallyEq for time slices.
     have huEv : (fun s : ℝ => boundedReachableGluedU hbdd hne s x) =ᶠ[nhds t]
         (fun s : ℝ => dpick.u s x) := by
@@ -5792,14 +5802,14 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
       have hs0 : 0 < s := hs2.1
       have hsT : s < Tpick' := hs2.2
       have hsame :=
-        (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick').1 s hs0 hsT
+        (boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne dpick').1 s hs0 hsT
       have hEv : (fun r : ℝ => boundedReachableGluedU hbdd hne r x) =ᶠ[nhds s]
           (fun r : ℝ => dpick'.u r x) := by
         refine Set.EqOn.eventuallyEq_of_mem ?_
           (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick') hs2)
         intro r hr
         have := (boundedReachableGlued_eq_on_subSlab
-          huniq hbdd hne dpick').1 r hr.1 hr.2
+          huniq hu₀ hbdd hne dpick').1 r hr.1 hr.2
         change boundedReachableGluedU hbdd hne r x = dpick'.u r x
         rw [this]
       simp only [hEv.deriv_eq]
@@ -5832,7 +5842,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
           (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick') hs2)
         intro r hr
         have := (boundedReachableGlued_eq_on_subSlab
-          huniq hbdd hne dpick').2 r hr.1 hr.2
+          huniq hu₀ hbdd hne dpick').2 r hr.1 hr.2
         change boundedReachableGluedV hbdd hne r x = dpick'.v r x
         rw [this]
       simp only [hEv.deriv_eq]
@@ -5859,14 +5869,14 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
       rintro ⟨s, y⟩ ⟨⟨hs1, hy1⟩, hs2, _⟩
       simp only [Function.uncurry]
       have hLiftEq := boundedReachableGluedU_lift_eq
-        huniq hbdd hne dpick s hs2.1 hs2.2
+        huniq hu₀ hbdd hne dpick s hs2.1 hs2.2
       have hEv : (fun r : ℝ => intervalDomainLift
           (boundedReachableGluedU hbdd hne r) y) =ᶠ[nhds s]
             (fun r : ℝ => intervalDomainLift (dpick.u r) y) := by
         refine Set.EqOn.eventuallyEq_of_mem ?_
           (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick) hs2)
         intro r hr
-        have hle := boundedReachableGluedU_lift_eq huniq hbdd hne dpick
+        have hle := boundedReachableGluedU_lift_eq huniq hu₀ hbdd hne dpick
           r hr.1 hr.2
         change intervalDomainLift (boundedReachableGluedU hbdd hne r) y =
           intervalDomainLift (dpick.u r) y
@@ -5897,7 +5907,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
         refine Set.EqOn.eventuallyEq_of_mem ?_
           (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick) hs2)
         intro r hr
-        have hle := boundedReachableGluedV_lift_eq huniq hbdd hne dpick
+        have hle := boundedReachableGluedV_lift_eq huniq hu₀ hbdd hne dpick
           r hr.1 hr.2
         change intervalDomainLift (boundedReachableGluedV hbdd hne r) y =
           intervalDomainLift (dpick.v r) y
@@ -5908,8 +5918,8 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
     let dpick := pickReachableAboveData hbdd hne ht.2
     let Tpick : ℝ := (pickReachableAbove hbdd hne ht.2).1
     have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne ht.2
-    have huL := boundedReachableGluedU_lift_eq huniq hbdd hne dpick t ht.1 hT_gt
-    have hvL := boundedReachableGluedV_lift_eq huniq hbdd hne dpick t ht.1 hT_gt
+    have huL := boundedReachableGluedU_lift_eq huniq hu₀ hbdd hne dpick t ht.1 hT_gt
+    have hvL := boundedReachableGluedV_lift_eq huniq hu₀ hbdd hne dpick t ht.1 hT_gt
     rw [huL, hvL]
     exact dpick.sol.regularity.2.2.2.2.2.1 t ⟨ht.1, hT_gt⟩
   · -- (7) Closed Icc C² + endpoint Neumann (per fixed interior t).
@@ -5917,8 +5927,8 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
     let dpick := pickReachableAboveData hbdd hne ht.2
     let Tpick : ℝ := (pickReachableAbove hbdd hne ht.2).1
     have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne ht.2
-    have huL := boundedReachableGluedU_lift_eq huniq hbdd hne dpick t ht.1 hT_gt
-    have hvL := boundedReachableGluedV_lift_eq huniq hbdd hne dpick t ht.1 hT_gt
+    have huL := boundedReachableGluedU_lift_eq huniq hu₀ hbdd hne dpick t ht.1 hT_gt
+    have hvL := boundedReachableGluedV_lift_eq huniq hu₀ hbdd hne dpick t ht.1 hT_gt
     rw [huL, hvL]
     exact dpick.sol.regularity.2.2.2.2.2.2.1 t ⟨ht.1, hT_gt⟩
   · -- (8) Closed-slab joint ∂ₜ continuity on `Ioo 0 T* × Icc 0 1`.
@@ -5948,7 +5958,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
         refine Set.EqOn.eventuallyEq_of_mem ?_
           (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick) hs2)
         intro r hr
-        have hle := boundedReachableGluedU_lift_eq huniq hbdd hne dpick
+        have hle := boundedReachableGluedU_lift_eq huniq hu₀ hbdd hne dpick
           r hr.1 hr.2
         change intervalDomainLift (boundedReachableGluedU hbdd hne r) y =
           intervalDomainLift (dpick.u r) y
@@ -5979,7 +5989,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
         refine Set.EqOn.eventuallyEq_of_mem ?_
           (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick) hs2)
         intro r hr
-        have hle := boundedReachableGluedV_lift_eq huniq hbdd hne dpick
+        have hle := boundedReachableGluedV_lift_eq huniq hu₀ hbdd hne dpick
           r hr.1 hr.2
         change intervalDomainLift (boundedReachableGluedV hbdd hne r) y =
           intervalDomainLift (dpick.v r) y
@@ -6006,7 +6016,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
       apply hcontPick'.congr
       rintro ⟨s, y⟩ ⟨⟨hs1, hy1⟩, hs2, _⟩
       simp only [Function.uncurry]
-      have hle := boundedReachableGluedU_lift_eq huniq hbdd hne dpick
+      have hle := boundedReachableGluedU_lift_eq huniq hu₀ hbdd hne dpick
         s hs2.1 hs2.2
       change intervalDomainLift (boundedReachableGluedU hbdd hne s) y =
         intervalDomainLift (dpick.u s) y
@@ -6030,7 +6040,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
       apply hcontPick'.congr
       rintro ⟨s, y⟩ ⟨⟨hs1, hy1⟩, hs2, _⟩
       simp only [Function.uncurry]
-      have hle := boundedReachableGluedV_lift_eq huniq hbdd hne dpick
+      have hle := boundedReachableGluedV_lift_eq huniq hu₀ hbdd hne dpick
         s hs2.1 hs2.2
       change intervalDomainLift (boundedReachableGluedV hbdd hne s) y =
         intervalDomainLift (dpick.v s) y
@@ -6040,6 +6050,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
 theorem boundedReachableGlued_isPaper2ClassicalSolution_of_overlapUnique
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     (huniq : IntervalClassicalSolutionOverlapUnique p)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (hbdd : BddAbove (reachableClassicalHorizonSet p u₀))
     (hne : (reachableClassicalHorizonSet p u₀).Nonempty)
     (hTmax_pos : 0 < finiteMaximalReachableHorizon p u₀) :
@@ -6050,7 +6061,7 @@ theorem boundedReachableGlued_isPaper2ClassicalSolution_of_overlapUnique
   set Tmax : ℝ := finiteMaximalReachableHorizon p u₀ with hTmaxDef
   refine IsPaper2ClassicalSolution.of_components hTmax_pos
     (boundedReachableGlued_classicalRegularity_of_overlapUnique
-      huniq hbdd hne)
+      huniq hu₀ hbdd hne)
     ?hpos ?hv_nonneg ?hpde_u ?hpde_v ?hneumann
   case hpos =>
     intro t x ht0 htT
@@ -6059,7 +6070,7 @@ theorem boundedReachableGlued_isPaper2ClassicalSolution_of_overlapUnique
     have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne htT
     have heq :=
       (boundedReachableGlued_eq_reachableData_of_overlapUnique
-        huniq hbdd hne dpick t ht0 hT_gt x).1
+        huniq hu₀ hbdd hne dpick t ht0 hT_gt x).1
     rw [heq]
     exact dpick.sol.u_pos' ht0 hT_gt
   case hv_nonneg =>
@@ -6069,7 +6080,7 @@ theorem boundedReachableGlued_isPaper2ClassicalSolution_of_overlapUnique
     have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne htT
     have heq :=
       (boundedReachableGlued_eq_reachableData_of_overlapUnique
-        huniq hbdd hne dpick t ht0 hT_gt x).2
+        huniq hu₀ hbdd hne dpick t ht0 hT_gt x).2
     rw [heq]
     exact dpick.sol.v_nonneg ht0 hT_gt
   case hpde_u =>
@@ -6077,8 +6088,8 @@ theorem boundedReachableGlued_isPaper2ClassicalSolution_of_overlapUnique
     let dpick := pickReachableAboveData hbdd hne htT
     let Tpick : ℝ := (pickReachableAbove hbdd hne htT).1
     have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne htT
-    have huEq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).1
-    have hvEq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).2
+    have huEq := (boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne dpick).1
+    have hvEq := (boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne dpick).2
     have htime :=
       intervalDomainTimeDeriv_eq_of_Ioo_eq (T := Tpick) huEq ht0 hT_gt x
     have hlap :=
@@ -6108,8 +6119,8 @@ theorem boundedReachableGlued_isPaper2ClassicalSolution_of_overlapUnique
     let dpick := pickReachableAboveData hbdd hne htT
     let Tpick : ℝ := (pickReachableAbove hbdd hne htT).1
     have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne htT
-    have huEq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).1
-    have hvEq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).2
+    have huEq := (boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne dpick).1
+    have hvEq := (boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne dpick).2
     have hlap :=
       intervalDomainLaplacian_eq_of_pointwise_eq
         (fun y => congrFun (hvEq t ht0 hT_gt) y) hx
@@ -6129,8 +6140,8 @@ theorem boundedReachableGlued_isPaper2ClassicalSolution_of_overlapUnique
     let dpick := pickReachableAboveData hbdd hne htT
     have hT_gt : t < (pickReachableAbove hbdd hne htT).1 :=
       pickReachableAbove_lt hbdd hne htT
-    have huEq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).1
-    have hvEq := (boundedReachableGlued_eq_on_subSlab huniq hbdd hne dpick).2
+    have huEq := (boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne dpick).1
+    have hvEq := (boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne dpick).2
     -- The glued solution agrees with the picked finite-horizon solution as full
     -- functions on the sub-slab, so the genuine Neumann conjunct transfers.
     rw [huEq t ht0 hT_gt, hvEq t ht0 hT_gt]
@@ -6160,8 +6171,8 @@ theorem realize_at_finiteMaximalReachableHorizon_of_overlapUnique
     finiteMaximalReachableHorizon_pos_of_localExistence p hlocal hu₀ hbdd
   refine ⟨boundedReachableGluedU hbdd hne, boundedReachableGluedV hbdd hne,
     boundedReachableGlued_isPaper2ClassicalSolution_of_overlapUnique
-      huniq hbdd hne hTmax_pos,
-    boundedReachableGlued_initialTrace_of_overlapUnique huniq hbdd hne⟩
+      huniq hu₀ hbdd hne hTmax_pos,
+    boundedReachableGlued_initialTrace_of_overlapUnique huniq hu₀ hbdd hne⟩
 
 /-! #### Blow-up exclusion from an a priori bound
 

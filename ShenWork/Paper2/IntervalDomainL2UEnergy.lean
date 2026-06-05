@@ -251,14 +251,16 @@ of the standard parabolic–elliptic uniqueness method. -/
 structure IntervalDomainL2UDifferenceEnergyFrontierBuilder
     (p : CM2Params) where
   frontier :
-    ∀ {u₀ : intervalDomain.Point → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
-        IntervalDomainL2UDifferenceEnergyFrontier
-          p (min T₁ T₂) u₁ v₁ u₂ v₂
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          IntervalDomainL2UDifferenceEnergyFrontier
+              p (min T₁ T₂) u₁ v₁ u₂ v₂
 
 /-- **From the `u`-only frontier builder to the JOINT L²-energy uniqueness
 method (PROVED).**
@@ -277,7 +279,7 @@ def intervalDomainClassicalUniquenessL2EnergyMethod_of_uFrontier
     (hbuilder : IntervalDomainL2UDifferenceEnergyFrontierBuilder p) :
     IntervalDomainClassicalUniquenessL2EnergyMethod p where
   certificate := by
-    intro u₀ T₁ T₂ u₁ v₁ u₂ v₂ hsol₁ hsol₂ htr₁ htr₂
+    intro u₀ hu₀ T₁ T₂ u₁ v₁ u₂ v₂ hsol₁ hsol₂ htr₁ htr₂
     -- Restrict each solution to the overlap horizon `min T₁ T₂`.
     have hsol₁' :
         IsPaper2ClassicalSolution intervalDomain p (min T₁ T₂) u₁ v₁ := by
@@ -315,7 +317,7 @@ def intervalDomainClassicalUniquenessL2EnergyMethod_of_uFrontier
           p (min T₁ T₂) u₁ v₁ u₂ v₂ :=
       intervalDomainClassicalOverlapL2UEnergyCertificate_of_diffIneqFrontier
         hsol₁' hsol₂'
-        (hbuilder.frontier hsol₁ hsol₂ htr₁ htr₂)
+        (hbuilder.frontier hu₀ hsol₁ hsol₂ htr₁ htr₂)
     have hoverlap :
         ∀ t, 0 < t → t < min T₁ T₂ →
           ∀ x : intervalDomain.Point, u₁ t x = u₂ t x ∧ v₁ t x = v₂ t x :=
@@ -388,22 +390,25 @@ derivative of `v−V`. -/
 structure IntervalDomainL2UJointTimeRegularity
     (p : CM2Params) where
   frontier :
-    ∀ {u₀ : intervalDomain.Point → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
-        IntervalDomainL2UDifferenceEnergyFrontier
-          p (min T₁ T₂) u₁ v₁ u₂ v₂
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          IntervalDomainL2UDifferenceEnergyFrontier
+              p (min T₁ T₂) u₁ v₁ u₂ v₂
 
 /-- **Builder from the named `u`-only obligation.** -/
 def intervalDomainL2UDifferenceEnergyFrontierBuilder_of_uJointTimeRegularity
     {p : CM2Params}
     (hjoint : IntervalDomainL2UJointTimeRegularity p) :
     IntervalDomainL2UDifferenceEnergyFrontierBuilder p where
-  frontier := fun hsol₁ hsol₂ htr₁ htr₂ =>
-    hjoint.frontier hsol₁ hsol₂ htr₁ htr₂
+  frontier := fun {_u₀} hu₀ {_T₁} {_T₂} {_u₁} {_v₁} {_u₂} {_v₂}
+      hsol₁ hsol₂ htr₁ htr₂ =>
+    hjoint.frontier hu₀ hsol₁ hsol₂ htr₁ htr₂
 
 /-- **Uniqueness method from the `u`-only obligation (PROVED).**
 

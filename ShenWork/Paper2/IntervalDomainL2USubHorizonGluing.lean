@@ -224,7 +224,7 @@ def intervalDomainClassicalUniquenessL2EnergyMethod_of_subHorizonUniformBound
     IntervalDomainClassicalUniquenessL2EnergyMethod p where
   certificate := by
     classical
-    intro u₀ T₁ T₂ u₁ v₁ u₂ v₂ hsol₁ hsol₂ htr₁ htr₂
+    intro u₀ _hu₀ T₁ T₂ u₁ v₁ u₂ v₂ hsol₁ hsol₂ htr₁ htr₂
     set Tm : ℝ := min T₁ T₂ with hTm
     have hTm_pos : 0 < Tm := lt_min hsol₁.T_pos hsol₂.T_pos
     have hsol₁' : IsPaper2ClassicalSolution intervalDomain p Tm u₁ v₁ :=

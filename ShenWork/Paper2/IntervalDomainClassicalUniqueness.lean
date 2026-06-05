@@ -198,8 +198,10 @@ instead of pretending that `InitialTrace` for `u` alone determines `v`. -/
 structure IntervalDomainClassicalUniquenessEnergyMethod
     (p : CM2Params) where
   certificate :
-    ∀ {u₀ : intervalDomain.Point → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ},
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ},
       IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
       IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
       InitialTrace intervalDomain u₀ u₁ →
@@ -216,7 +218,9 @@ with the same initial trace. -/
 theorem intervalDomain_classicalSolution_overlap_unique_of_energyMethod
     {p : CM2Params}
     (hmethod : IntervalDomainClassicalUniquenessEnergyMethod p)
-    {u₀ : intervalDomain.Point → ℝ} {T₁ T₂ : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {T₁ T₂ : ℝ}
     {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ}
     (hsol₁ : IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁)
     (hsol₂ : IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂)
@@ -225,7 +229,7 @@ theorem intervalDomain_classicalSolution_overlap_unique_of_energyMethod
     ∀ t, 0 < t → t < min T₁ T₂ →
       ∀ x : intervalDomain.Point, u₁ t x = u₂ t x ∧ v₁ t x = v₂ t x :=
   intervalDomain_classicalSolution_overlap_unique_of_energyCertificate
-    (hmethod.certificate hsol₁ hsol₂ htrace₁ htrace₂)
+    (hmethod.certificate hu₀ hsol₁ hsol₂ htrace₁ htrace₂)
 
 /-- L2-energy-method frontier for overlap uniqueness of interval-domain
 classical solutions with the same initial `u` trace.
@@ -237,8 +241,10 @@ identity plus Gronwall. -/
 structure IntervalDomainClassicalUniquenessL2EnergyMethod
     (p : CM2Params) where
   certificate :
-    ∀ {u₀ : intervalDomain.Point → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ},
+    ∀ {u₀ : intervalDomain.Point → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ},
       IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
       IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
       InitialTrace intervalDomain u₀ u₁ →
@@ -251,7 +257,9 @@ certificate builder. -/
 theorem intervalDomain_classicalSolution_overlap_unique_of_l2EnergyMethod
     {p : CM2Params}
     (hmethod : IntervalDomainClassicalUniquenessL2EnergyMethod p)
-    {u₀ : intervalDomain.Point → ℝ} {T₁ T₂ : ℝ}
+    {u₀ : intervalDomain.Point → ℝ}
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {T₁ T₂ : ℝ}
     {u₁ v₁ u₂ v₂ : ℝ → intervalDomain.Point → ℝ}
     (hsol₁ : IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁)
     (hsol₂ : IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂)
@@ -260,7 +268,7 @@ theorem intervalDomain_classicalSolution_overlap_unique_of_l2EnergyMethod
     ∀ t, 0 < t → t < min T₁ T₂ →
       ∀ x : intervalDomain.Point, u₁ t x = u₂ t x ∧ v₁ t x = v₂ t x :=
   intervalDomain_classicalSolution_overlap_unique_of_l2EnergyCertificate
-    (hmethod.certificate hsol₁ hsol₂ htrace₁ htrace₂)
+    (hmethod.certificate hu₀ hsol₁ hsol₂ htrace₁ htrace₂)
 
 end
 

@@ -82,20 +82,24 @@ stated as a hypothesis; it is the single clean boundedness assumption to which t
 whole gluing chain reduces. -/
 structure IntervalDomainL2UBoundednessHypothesis (p : CM2Params) : Prop where
   datumBdd :
-    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
-        BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|))
+    ∀ {u₀ : intervalDomainPoint → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|))
   gronwall :
-    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
+    ∀ {u₀ : intervalDomainPoint → ℝ},
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
         ∃ K : ℝ, 0 ≤ K ∧ ∀ τ, 0 < τ → τ < min T₁ T₂ →
           (∫ y in (0:ℝ)..1, intervalDomainUEnergyIntegrandDeriv u₁ u₂ τ y)
             ≤ K * intervalDomainClassicalL2DifferenceEnergyU u₁ u₂ τ
@@ -112,8 +116,12 @@ def intervalDomainL2UBoundedDatumUniform_of_bounded
     {p : CM2Params}
     (h : IntervalDomainL2UBoundednessHypothesis p) :
     IntervalDomainL2UBoundedDatumUniform p where
-  bdd₀ := fun hsol₁ hsol₂ htr₁ htr₂ => h.datumBdd hsol₁ hsol₂ htr₁ htr₂
-  Kunif := fun hsol₁ hsol₂ htr₁ htr₂ => h.gronwall hsol₁ hsol₂ htr₁ htr₂
+  bdd₀ := fun {_u₀} hu₀ {_T₁} {_T₂} {_u₁} {_v₁} {_u₂} {_v₂}
+      hsol₁ hsol₂ htr₁ htr₂ =>
+    h.datumBdd hu₀ hsol₁ hsol₂ htr₁ htr₂
+  Kunif := fun {_u₀} hu₀ {_T₁} {_T₂} {_u₁} {_v₁} {_u₂} {_v₂}
+      hsol₁ hsol₂ htr₁ htr₂ =>
+    h.gronwall hu₀ hsol₁ hsol₂ htr₁ htr₂
 
 /-- **Global-solution gluing from reachability, reduced to the explicit boundedness
 hypothesis.**
