@@ -112,6 +112,7 @@ import ShenWork.PDE.IntervalFullKernelGradientLinfty
 import ShenWork.PDE.IntervalFullKernelGradEstimate
 import ShenWork.PDE.IntervalFullKernelMass
 import ShenWork.PDE.IntervalFullKernelInitialIBP
+import ShenWork.PDE.IntervalFullKernelSourceIBP
 import ShenWork.PDE.IntervalFullKernelGradEstimateFull
 import ShenWork.PDE.IntervalFullKernelSupBound
 import ShenWork.PDE.IntervalFullKernelDuhamelSup
