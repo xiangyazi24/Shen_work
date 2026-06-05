@@ -108,20 +108,24 @@ theorem paper2_theorem_1_1_of_frontier
 | `jointTimeDerivClosed` (u) | ✓ proved | G4r: jointTimeDerivClosed_u (RegularityFrontierAssembly) |
 | `jointTimeDerivClosed` (v) | ✓ proved | ResolverTimeRegularity (from ResolverHasSpectralAgreement) |
 | `jointSolutionClosed` (u) | ✓ proved | G4r: jointSolutionClosed_u (RegularityFrontierAssembly) |
-| `jointSolutionClosed` (v) | ✓ proved | ResolverTimeRegularity (from ResolverHasSpectralAgreement) |
+| `jointSolutionClosed` (v) | ✓ proved | F2: ResolverDirectTimeRegularity (from HasResolverDirectSpectralData) |
 
 Legend:
   ✓ = proved in the repo (0 sorry)
-  **F2** = genuine frontier: DuhamelSourceTimeC1 for the Picard limit's
-    logistic source. G2.5 reduces this to uniform convergence of
-    iterate source coefficient derivatives.
 
 **All 15/15 frontier field entries ✓ proved.**
-The v-side fields (3) take `ResolverHasSpectralAgreement` which is
-constructible from F2 via G3 `duhamelSourceTimeC1_mul_weight` +
-resolver spectral decomposition.
 
-Genuine frontier: **F1** (uniform continuation) + **F2** (limit source time-C¹).
+The v-side fields (4 entries) now have TWO independent proof paths:
+  1. Original: `ResolverHasSpectralAgreement` (restart form, from IntervalResolverTimeRegularity)
+  2. **New (F2)**: `HasResolverDirectSpectralData` (direct spectral, from
+     IntervalResolverDirectTimeRegularity) — avoids parabolic restart form,
+     uses resolver weight summability ∑ 1/(μ+λ_k) < ∞ directly.
+
+Both paths are wired into RegularityFrontierAssembly (u-side + v-side).
+
+Genuine frontier: **F1** (uniform continuation) only.
+F2 (limit source DuhamelSourceTimeC1) feeds into
+`HasResolverDirectSpectralData`, which is the remaining link.
 -/
 
 end ShenWork.Paper2.Theorem11Assembly
