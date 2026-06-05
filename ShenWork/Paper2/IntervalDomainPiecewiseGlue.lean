@@ -21,7 +21,7 @@ def PiecewiseClassicalWorks (p : CM2Params) : Prop :=
     (∀ s, τ < s → s < T₁ → ∀ x, v₁ s x = v₂ (s - τ) x) →
     ∀ T', 0 < T' → T' ≤ τ + T₂ →
       IsPaper2ClassicalSolution intervalDomain p T'
-        (fun t x => if t ≤ T₁ then u₁ t x else u₂ (t - τ) x)
-        (fun t x => if t ≤ T₁ then v₁ t x else v₂ (t - τ) x)
+        (fun t x => if t < T₁ then u₁ t x else u₂ (t - τ) x)
+        (fun t x => if t < T₁ then v₁ t x else v₂ (t - τ) x)
 
 end ShenWork.Paper2.PiecewiseGlue

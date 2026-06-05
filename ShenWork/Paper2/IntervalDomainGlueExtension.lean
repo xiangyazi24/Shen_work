@@ -7,6 +7,7 @@
 import ShenWork.Paper2.IntervalDomainUniformContinuation
 import ShenWork.Paper2.IntervalDomainTimeShift
 import ShenWork.Paper2.IntervalDomainRestartExtension
+import ShenWork.Paper2.IntervalDomainPiecewiseGlue
 
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
@@ -63,7 +64,8 @@ theorem restartAndGlueWorks_of_hypotheses
     (p : CM2Params)
     (hRegShift : TimeShift.RegularityTimeShiftWorks)
     (hOverlap : OverlapUniqueForPID p)
-    (hTraceShift : TimeShiftInitialTraceWorks) :
+    (hTraceShift : TimeShiftInitialTraceWorks)
+    (hPR : PiecewiseGlue.PiecewiseClassicalWorks p) :
     RestartAndGlueWorks p := by
   intro M δ hM hδ hfactory u₀ hu₀ hbound T₀ hT₀ u v hsol htrace hSupBound
   by_cases hsmall : T₀ ≤ δ / 2
@@ -120,8 +122,11 @@ theorem restartAndGlueWorks_of_hypotheses
   refine ⟨u', v', ?_, ?_⟩
   · refine IsPaper2ClassicalSolution.of_components (by linarith) ?_ ?_ ?_
       ?_ ?_ ?_
-    · -- regularity (9 conjuncts, local transfer)
-      sorry
+    · -- regularity via PiecewiseClassicalWorks
+      exact (hPR hT₀ hsol_w.T_pos hτ_pos hτ_lt hsol hsol_w
+        (fun s hs hst x => (hov s hs hst x).1)
+        (fun s hs hst x => (hov s hs hst x).2)
+        (T₀ + δ / 2) (by linarith) (by simp only [hτ_eq]; linarith)).2.1
     · -- u > 0
       intro t x ht0 htT'
       by_cases h : t < T₀
