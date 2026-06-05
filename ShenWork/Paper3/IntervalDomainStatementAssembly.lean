@@ -945,6 +945,62 @@ theorem intervalDomain_paper3_Theorem_2_5_of_concreteStabilityDataFact
   intervalDomain_paper3_Theorem_2_5_of_concreteStabilityData
     p M0 uBar vLower hData.out
 
+/-! ## Mainline umbrella targets -/
+
+/-- Concrete interval-domain Paper3 mainline targets assembled from the
+existing core-existence, compactness/regularization, and stability-frontier
+packages. -/
+def IntervalDomainPaper3MainlineTargets
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain) : Prop :=
+  IntervalDomainPaper3CoreStatementTargets p M0 uBar vLower ∧
+    IntervalDomainPaper3Theorem21PartTargets p M0 uBar vLower ∧
+      IntervalDomainPaper3CompactnessRegularizationTargets p K
+        intervalDomainStabilityNorms
+        (intervalDomainPaper3Constants p M0 uBar vLower) ∧
+        IntervalDomainPaper3ConcreteStability23To25Targets
+          p M0 uBar vLower
+
+/-- Bundled frontiers for the concrete interval-domain Paper3 mainline
+umbrella. -/
+structure IntervalDomainPaper3MainlineFrontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain) : Prop where
+  core : IntervalDomainSectorialMainlineCoreExistence p uBar
+  compactness :
+    IntervalDomainPaper3ConcreteCompactnessRegularizationData
+      p M0 uBar vLower K
+  stability :
+    IntervalDomainPaper3Stability23To25FrontierData p
+      (intervalDomainPaper3Constants p M0 uBar vLower)
+
+/-- Assemble the concrete interval-domain Paper3 mainline umbrella from the
+existing frontier records. -/
+theorem intervalDomain_paper3_mainlineTargets_of_frontierData
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    (hData :
+      IntervalDomainPaper3MainlineFrontierData p M0 uBar vLower K) :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_coreStatementTargets_of_coreExistence
+      p M0 uBar vLower hData.compactness.initialContinuity hData.core,
+    intervalDomain_paper3_Theorem_2_1_partTargets_of_coreExistence
+      p M0 uBar vLower hData.compactness.initialContinuity hData.core,
+    intervalDomain_paper3_concreteCompactnessRegularizationTargets_of_frontiers
+      p M0 uBar vLower K hData.compactness,
+    intervalDomain_paper3_concreteStability23To25Targets_of_frontiers
+      p M0 uBar vLower hData.stability⟩
+
+/-- Instance-facing concrete interval-domain Paper3 mainline umbrella. -/
+theorem intervalDomain_paper3_mainlineTargets_of_frontierDataFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    (K : CompactnessData intervalDomain)
+    [hData : Fact
+      (IntervalDomainPaper3MainlineFrontierData p M0 uBar vLower K)] :
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
+  intervalDomain_paper3_mainlineTargets_of_frontierData
+    p M0 uBar vLower K hData.out
+
 end
 
 end ShenWork.Paper3
