@@ -814,6 +814,81 @@ theorem unitPointDomain.Theorem_2_1_when_a_pos_m_le_one_chi_nonpos
     unitPointDomain.Theorem_2_1_part3_vacuous_when_m_le_one p hm,
     unitPointDomain.Theorem_2_1_part4_vacuous_when_a_nonzero p (ne_of_gt ha) C⟩
 
+/-! ### Instance-facing unit-point wrappers -/
+
+/-- Instance-facing unit-point Proposition 1.2 in the logistic slice. -/
+theorem unitPointDomain.Proposition_1_2_when_a_pos_b_posFact
+    (p : CM2Params)
+    [ha : Fact (0 < p.a)] [hb : Fact (0 < p.b)] :
+    Proposition_1_2 ShenWork.Paper2.unitPointDomain p :=
+  unitPointDomain.Proposition_1_2_when_a_pos_b_pos p ha.out hb.out
+
+/-- Instance-facing unit-point Proposition 1.2 in the decay slice. -/
+theorem unitPointDomain.Proposition_1_2_when_a_zero_b_posFact
+    (p : CM2Params)
+    [ha : Fact (p.a = 0)] [hb : Fact (0 < p.b)] :
+    Proposition_1_2 ShenWork.Paper2.unitPointDomain p :=
+  unitPointDomain.Proposition_1_2_when_a_zero_b_pos p ha.out hb.out
+
+/-- Instance-facing unit-point Proposition 1.2 away from the exponential-growth
+slice. -/
+theorem unitPointDomain.Proposition_1_2_when_not_a_pos_b_zeroFact
+    (p : CM2Params)
+    [hnot : Fact (¬ (0 < p.a ∧ p.b = 0))] :
+    Proposition_1_2 ShenWork.Paper2.unitPointDomain p :=
+  unitPointDomain.Proposition_1_2_when_not_a_pos_b_zero p hnot.out
+
+/-- Instance-facing unit-point Proposition 1.4 in the logistic slice. -/
+theorem unitPointDomain.Proposition_1_4_when_a_pos_b_posFact
+    (p : CM2Params)
+    [ha : Fact (0 < p.a)] [hb : Fact (0 < p.b)] :
+    Proposition_1_4 ShenWork.Paper2.unitPointDomain p :=
+  unitPointDomain.Proposition_1_4_when_a_pos_b_pos p ha.out hb.out
+
+/-- Instance-facing unit-point Proposition 1.4 in the decay slice. -/
+theorem unitPointDomain.Proposition_1_4_when_a_zero_b_posFact
+    (p : CM2Params)
+    [ha : Fact (p.a = 0)] [hb : Fact (0 < p.b)] :
+    Proposition_1_4 ShenWork.Paper2.unitPointDomain p :=
+  unitPointDomain.Proposition_1_4_when_a_zero_b_pos p ha.out hb.out
+
+/-- Instance-facing unit-point Theorem 2.1 in the
+`0 < a ∧ χ₀ ≤ 0` slice. -/
+theorem unitPointDomain.Theorem_2_1_when_a_pos_chi_nonposFact
+    (p : CM2Params)
+    [ha : Fact (0 < p.a)] [hχ : Fact (p.χ₀ ≤ 0)]
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  unitPointDomain.Theorem_2_1_when_a_pos_chi_nonpos p ha.out hχ.out C
+
+/-- Instance-facing unit-point Theorem 2.1 in the `0 < a ∧ β < 1` slice. -/
+theorem unitPointDomain.Theorem_2_1_when_a_pos_beta_lt_oneFact
+    (p : CM2Params)
+    [ha : Fact (0 < p.a)] [hβ : Fact (p.β < 1)]
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  unitPointDomain.Theorem_2_1_when_a_pos_beta_lt_one p ha.out hβ.out C
+
+/-- Instance-facing unit-point Theorem 2.1 in the
+`0 < a ∧ m ≠ 1 ∧ χ₀ ≤ 0` slice. -/
+theorem unitPointDomain.Theorem_2_1_when_a_pos_m_ne_one_chi_nonposFact
+    (p : CM2Params)
+    [ha : Fact (0 < p.a)] [hm : Fact (p.m ≠ 1)] [hχ : Fact (p.χ₀ ≤ 0)]
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  unitPointDomain.Theorem_2_1_when_a_pos_m_ne_one_chi_nonpos
+    p ha.out hm.out hχ.out C
+
+/-- Instance-facing unit-point Theorem 2.1 in the
+`0 < a ∧ m ≤ 1 ∧ χ₀ ≤ 0` slice. -/
+theorem unitPointDomain.Theorem_2_1_when_a_pos_m_le_one_chi_nonposFact
+    (p : CM2Params)
+    [ha : Fact (0 < p.a)] [hm : Fact (p.m ≤ 1)] [hχ : Fact (p.χ₀ ≤ 0)]
+    (C : Paper3Constants ShenWork.Paper2.unitPointDomain p) :
+    Theorem_2_1 ShenWork.Paper2.unitPointDomain p C :=
+  unitPointDomain.Theorem_2_1_when_a_pos_m_le_one_chi_nonpos
+    p ha.out hm.out hχ.out C
+
 end ShenWork.Paper3
 
 end
