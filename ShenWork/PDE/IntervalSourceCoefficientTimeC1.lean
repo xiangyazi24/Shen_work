@@ -503,4 +503,67 @@ theorem duhamelSpectralCoeff_deriv_summable_uniform_bound
         Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) *
           src.adot s n)]
 
+open ShenWork.CosineSpectrum (cosineMode) in
+open ShenWork.IntervalDuhamelClosedC2
+  (cosineCoeff_summable_of_eigenvalue_summable) in
+open ShenWork.IntervalDomainRegularityBootstrap
+  (reciprocalSquareTerm reciprocalSquareTerm_summable) in
+/-- **G4g: Term-by-term time differentiation of the Duhamel cosine series.**
+
+For fixed `x` and any `t₀ > 0`, the cosine series
+`t ↦ ∑' n, bₙ(t) · cos(nπx)` has time derivative
+`∑' n, (aₙ(t₀) − λₙ bₙ(t₀)) · cos(nπx)`.
+
+Uses `hasDerivAt_tsum_of_isPreconnected` on `(0,∞)` with the summable
+uniform bound `envelope(n) + derivBound/n²` from G4f. -/
+theorem duhamelSpectralCosineSeries_hasDerivAt_time
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a)
+    {t₀ : ℝ} (ht₀ : 0 < t₀) (x : ℝ) :
+    HasDerivAt
+      (fun t => ∑' n, duhamelSpectralCoeff a t n * cosineMode n x)
+      (∑' n, (a t₀ n - unitIntervalCosineEigenvalue n *
+        duhamelSpectralCoeff a t₀ n) * cosineMode n x) t₀ := by
+  have hcos_le : ∀ n, |cosineMode n x| ≤ 1 := fun n => by
+    simp only [cosineMode]; exact Real.abs_cos_le_one _
+  -- Summable uniform bound.
+  set u : ℕ → ℝ := fun n =>
+    src.envelope n + src.derivBound * reciprocalSquareTerm n
+  have henv_nn : ∀ n, 0 ≤ src.envelope n := fun n =>
+    le_trans (abs_nonneg _) (src.henv_bound 0 le_rfl n)
+  have hdb_nn : 0 ≤ src.derivBound :=
+    le_trans (abs_nonneg _) (src.hderivBound 0 le_rfl 0)
+  have hu : Summable u := src.henv_summable.add
+    (reciprocalSquareTerm_summable.mul_left src.derivBound)
+  have hu_nn : ∀ n, 0 ≤ u n := fun n => add_nonneg (henv_nn n)
+    (mul_nonneg hdb_nn (by unfold reciprocalSquareTerm; positivity))
+  -- Per-mode HasDerivAt.
+  have hg : ∀ n (t : ℝ), t ∈ Set.Ioi (0 : ℝ) → HasDerivAt
+      (fun t => duhamelSpectralCoeff a t n * cosineMode n x)
+      ((a t n - unitIntervalCosineEigenvalue n *
+        duhamelSpectralCoeff a t n) * cosineMode n x) t :=
+    fun n t _ => (duhamelSpectralCoeff_hasDerivAt src t n).mul_const _
+  -- Derivative norm bound.
+  have hg' : ∀ n (t : ℝ), t ∈ Set.Ioi (0 : ℝ) →
+      ‖(a t n - unitIntervalCosineEigenvalue n *
+        duhamelSpectralCoeff a t n) * cosineMode n x‖ ≤ u n := by
+    intro n t ht
+    rw [Real.norm_eq_abs, abs_mul]
+    calc _ ≤ u n * 1 := mul_le_mul
+          (duhamelSpectralCoeff_deriv_summable_uniform_bound src
+            (le_of_lt ht) n)
+          (hcos_le n) (abs_nonneg _) (hu_nn n)
+      _ = u n := mul_one _
+  -- Pointwise summability.
+  have hg0 : Summable (fun n =>
+      duhamelSpectralCoeff a t₀ n * cosineMode n x) := by
+    have ⟨_, habs⟩ := cosineCoeff_summable_of_eigenvalue_summable
+      (duhamelSpectralCoeff_eigenvalue_summable src ht₀)
+    apply Summable.of_norm
+    refine habs.of_nonneg_of_le (fun _ => abs_nonneg _) (fun n => ?_)
+    rw [Real.norm_eq_abs, abs_mul]
+    exact mul_le_of_le_one_right (abs_nonneg _) (hcos_le n)
+  exact hasDerivAt_tsum_of_isPreconnected hu isOpen_Ioi
+    isPreconnected_Ioi hg hg' (Set.mem_Ioi.2 ht₀) hg0
+    (Set.mem_Ioi.2 ht₀)
+
 end ShenWork.IntervalSourceCoefficientTimeC1
