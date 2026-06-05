@@ -10176,6 +10176,65 @@ theorem Theorem_2_2.of_parts
     Theorem_2_2 D p S N C :=
   ⟨hpos_stable, hpos_unstable, hmin_stable, hmin_unstable⟩
 
+/-- Bundled branch frontiers for Paper3 Theorem 2.2. -/
+structure Paper3Theorem22BranchData
+    (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
+    (N : StabilityNorms D) (C : Paper3Constants D p) : Prop where
+  positiveStable :
+    ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      p.χ₀ < C.chiCritical eq.1 →
+        LinearlyStable S p eq.1 eq.2 ∧
+        ∃ δ > 0, ∃ A > 0, ∃ rate > 0,
+          ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+            SupCloseToConstant D u₀ eq.1 δ →
+              ∃ u v : ℝ → D.Point → ℝ,
+                IsPaper2GlobalClassicalSolution D p u v ∧
+                InitialTrace D u₀ u ∧
+                ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate
+  positiveUnstable :
+    ∀ (ha : 0 < p.a) (hb : 0 < p.b),
+      let eq := positiveEquilibrium p ⟨ha, hb⟩
+      C.chiCritical eq.1 < p.χ₀ →
+        LinearlyUnstable S p eq.1 eq.2
+  minimalStable :
+    p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        p.χ₀ < C.chiCritical uStar →
+          LinearlyStable S p eq.1 eq.2 ∧
+          ∃ δ > 0, ∃ A > 0, ∃ rate > 0,
+            ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+              SupCloseToConstant D u₀ eq.1 δ →
+              D.integral u₀ = D.volume * uStar →
+                ∃ u v : ℝ → D.Point → ℝ,
+                  IsPaper2GlobalClassicalSolution D p u v ∧
+                  InitialTrace D u₀ u ∧
+                  ExponentialC1ConvergenceWith D N u v eq.1 eq.2 A rate
+  minimalUnstable :
+    p.a = 0 → p.b = 0 →
+      ∀ uStar > 0,
+        let eq := minimalEquilibrium p uStar
+        C.chiCritical uStar < p.χ₀ →
+          LinearlyUnstable S p eq.1 eq.2
+
+/-- Bundle-facing Paper3 Theorem 2.2 from its four branch frontiers. -/
+theorem Theorem_2_2.of_branchData
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    (hData : Paper3Theorem22BranchData D p S N C) :
+    Theorem_2_2 D p S N C :=
+  Theorem_2_2.of_parts hData.positiveStable hData.positiveUnstable
+    hData.minimalStable hData.minimalUnstable
+
+/-- Instance-facing Paper3 Theorem 2.2 from bundled branch frontiers. -/
+theorem Theorem_2_2.of_branchDataFact
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {N : StabilityNorms D} {C : Paper3Constants D p}
+    [hData : Fact (Paper3Theorem22BranchData D p S N C)] :
+    Theorem_2_2 D p S N C :=
+  Theorem_2_2.of_branchData hData.out
+
 /-- Full Theorem 2.2 composite on the `a = 0` slice.  The two
 positive-equilibrium branches are vacuous; the minimal branches remain as
 the explicit inputs. -/
