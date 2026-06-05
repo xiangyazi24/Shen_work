@@ -15,6 +15,75 @@ namespace ShenWork.Paper3
 
 noncomputable section
 
+/-! ## Proposition 1.x targets -/
+
+/-- Interval-domain Paper3 Proposition 1.2 and Proposition 1.4 targets. -/
+def IntervalDomainPaper3Proposition1Targets (p : CM2Params) : Prop :=
+  Proposition_1_2 intervalDomain p ∧ Proposition_1_4 intervalDomain p
+
+/-- Frontier data for the interval-domain Proposition 1.2 and Proposition 1.4
+targets. -/
+structure IntervalDomainPaper3Proposition1FrontierData
+    (p : CM2Params) : Prop where
+  negativeBound : NegativeSensitivityGlobalEventualBound intervalDomain p
+  criticalExistence :
+    p.m = 1 → 1 ≤ p.β →
+      ((p.a = 0 ∧ p.b = 0) ∨ (0 ≤ p.a ∧ 0 < p.b)) →
+        p.χ₀ < chiBeta p →
+          ∀ u₀ : intervalDomain.Point → ℝ,
+            PositiveInitialDatum intervalDomain u₀ →
+              ∃ u v : ℝ → intervalDomain.Point → ℝ,
+                IsPaper2GlobalClassicalSolution intervalDomain p u v ∧
+                InitialTrace intervalDomain u₀ u ∧
+                IsPaper2Bounded intervalDomain u
+
+/-- Interval-domain Proposition 1.2 and Proposition 1.4 from their frontier
+data. -/
+theorem intervalDomain_paper3_proposition1Targets_of_frontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper3Proposition1FrontierData p) :
+    IntervalDomainPaper3Proposition1Targets p :=
+  ⟨Proposition_1_2_of_negativeSensitivityGlobalEventualBound
+      intervalDomain p hData.negativeBound,
+    Proposition_1_4.of_assumed_existence_branch hData.criticalExistence⟩
+
+/-- Instance-facing interval-domain Proposition 1.2/1.4 wrapper. -/
+theorem intervalDomain_paper3_proposition1Targets_of_frontierDataFact
+    (p : CM2Params)
+    [hData : Fact (IntervalDomainPaper3Proposition1FrontierData p)] :
+    IntervalDomainPaper3Proposition1Targets p :=
+  intervalDomain_paper3_proposition1Targets_of_frontierData p hData.out
+
+/-- Single-target wrapper for Paper3 Proposition 1.2. -/
+theorem intervalDomain_paper3_Proposition_1_2_of_frontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper3Proposition1FrontierData p) :
+    Proposition_1_2 intervalDomain p :=
+  (intervalDomain_paper3_proposition1Targets_of_frontierData p hData).1
+
+/-- Instance-facing wrapper for Paper3 Proposition 1.2. -/
+theorem intervalDomain_paper3_Proposition_1_2_of_frontierDataFact
+    (p : CM2Params)
+    [hData : Fact (IntervalDomainPaper3Proposition1FrontierData p)] :
+    Proposition_1_2 intervalDomain p :=
+  intervalDomain_paper3_Proposition_1_2_of_frontierData p hData.out
+
+/-- Single-target wrapper for Paper3 Proposition 1.4. -/
+theorem intervalDomain_paper3_Proposition_1_4_of_frontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper3Proposition1FrontierData p) :
+    Proposition_1_4 intervalDomain p :=
+  (intervalDomain_paper3_proposition1Targets_of_frontierData p hData).2
+
+/-- Instance-facing wrapper for Paper3 Proposition 1.4. -/
+theorem intervalDomain_paper3_Proposition_1_4_of_frontierDataFact
+    (p : CM2Params)
+    [hData : Fact (IntervalDomainPaper3Proposition1FrontierData p)] :
+    Proposition_1_4 intervalDomain p :=
+  intervalDomain_paper3_Proposition_1_4_of_frontierData p hData.out
+
+/-! ## Theorem 2.x and compactness targets -/
+
 /-- Concrete interval-domain Paper3 targets currently closed by the existing
 StabilityChain/Sectorial infrastructure once the canonical core existence and
 initial-continuity frontiers are supplied. -/
