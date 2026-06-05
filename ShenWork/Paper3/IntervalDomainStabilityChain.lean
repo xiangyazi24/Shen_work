@@ -230,6 +230,14 @@ theorem intervalDomain_Theorem_2_1_part1_of_uniformPersistenceRaw
     Theorem_2_1_part1 intervalDomain p :=
   h
 
+/-- Instance-facing interval-domain Paper3 Theorem 2.1(1) from the raw
+persistence frontier. -/
+theorem intervalDomain_Theorem_2_1_part1_of_uniformPersistenceRawFact
+    (p : CM2Params)
+    [h : Fact (UniformPersistencePart1Raw intervalDomain p)] :
+    Theorem_2_1_part1 intervalDomain p :=
+  intervalDomain_Theorem_2_1_part1_of_uniformPersistenceRaw p h.out
+
 /-- Paper3 Theorem 2.1(2) on the interval, routed from the exposed raw
 persistence frontier. -/
 theorem intervalDomain_Theorem_2_1_part2_of_uniformPersistenceRaw
@@ -238,6 +246,14 @@ theorem intervalDomain_Theorem_2_1_part2_of_uniformPersistenceRaw
     Theorem_2_1_part2 intervalDomain p :=
   h
 
+/-- Instance-facing interval-domain Paper3 Theorem 2.1(2) from the raw
+persistence frontier. -/
+theorem intervalDomain_Theorem_2_1_part2_of_uniformPersistenceRawFact
+    (p : CM2Params)
+    [h : Fact (UniformPersistencePart2Raw intervalDomain p)] :
+    Theorem_2_1_part2 intervalDomain p :=
+  intervalDomain_Theorem_2_1_part2_of_uniformPersistenceRaw p h.out
+
 /-- Paper3 Theorem 2.1(3) on the interval, routed from the exposed raw
 persistence frontier. -/
 theorem intervalDomain_Theorem_2_1_part3_of_uniformPersistenceRaw
@@ -245,6 +261,14 @@ theorem intervalDomain_Theorem_2_1_part3_of_uniformPersistenceRaw
     (h : UniformPersistencePart3Raw intervalDomain p) :
     Theorem_2_1_part3 intervalDomain p :=
   h
+
+/-- Instance-facing interval-domain Paper3 Theorem 2.1(3) from the raw
+persistence frontier. -/
+theorem intervalDomain_Theorem_2_1_part3_of_uniformPersistenceRawFact
+    (p : CM2Params)
+    [h : Fact (UniformPersistencePart3Raw intervalDomain p)] :
+    Theorem_2_1_part3 intervalDomain p :=
+  intervalDomain_Theorem_2_1_part3_of_uniformPersistenceRaw p h.out
 
 /-- Paper3 Theorem 2.1(4) for the concrete interval constants, routed from the
 exposed raw minimal persistence frontier with `eventualMinimalUBound = uBar`
@@ -259,6 +283,17 @@ theorem intervalDomain_Theorem_2_1_part4_for_concrete_constants_of_uniformPersis
     h (by norm_num : (0 : ℝ) < 1) ha hb hm hβ hχ0 hχ
       uStar huStar u v huv hmass
   simpa [intervalDomainPaper3Constants, minimalVLowerFormula] using hbound
+
+/-- Instance-facing Paper3 Theorem 2.1(4) for the concrete interval constants
+from the raw minimal persistence frontier. -/
+theorem
+    intervalDomain_Theorem_2_1_part4_for_concrete_constants_of_uniformPersistenceRawFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [h : Fact (UniformPersistencePart4Raw intervalDomain p (fun _ => uBar) 1)] :
+    Theorem_2_1_part4 intervalDomain p
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_1_part4_for_concrete_constants_of_uniformPersistenceRaw
+    p M0 uBar vLower h.out
 
 /-- Concrete-constants Paper3 Theorem 2.1 on the interval from the four
 exposed persistence frontiers.  This removes the constants-package projection:
@@ -278,6 +313,20 @@ theorem intervalDomain_Theorem_2_1_for_concrete_constants_of_uniformPersistence_
     (intervalDomain_Theorem_2_1_part3_of_uniformPersistenceRaw p h3)
     (intervalDomain_Theorem_2_1_part4_for_concrete_constants_of_uniformPersistenceRaw
       p M0 uBar vLower h4)
+
+/-- Instance-facing concrete-constants Paper3 Theorem 2.1 on the interval from
+the four raw persistence frontiers. -/
+theorem
+    intervalDomain_Theorem_2_1_for_concrete_constants_of_uniformPersistence_frontiersFact
+    (p : CM2Params) (M0 uBar vLower : ℝ)
+    [h1 : Fact (UniformPersistencePart1Raw intervalDomain p)]
+    [h2 : Fact (UniformPersistencePart2Raw intervalDomain p)]
+    [h3 : Fact (UniformPersistencePart3Raw intervalDomain p)]
+    [h4 : Fact (UniformPersistencePart4Raw intervalDomain p (fun _ => uBar) 1)] :
+    Theorem_2_1 intervalDomain p
+      (intervalDomainPaper3Constants p M0 uBar vLower) :=
+  intervalDomain_Theorem_2_1_for_concrete_constants_of_uniformPersistence_frontiers
+    p M0 uBar vLower h1.out h2.out h3.out h4.out
 
 /-- Paper2-style existence/frontier package for the StabilityChain Theorem 2.1
 mainline.
