@@ -10034,6 +10034,20 @@ theorem Theorem_2_1.of_uniformPersistenceRaw_parts
       h4 C.gaussianLowerConst_pos ha hb hm hβ hχ hχ_bound
         uStar huStar u v huv hmass)
 
+/-- Instance-facing Paper3 Theorem 2.1 from the four raw
+uniform-persistence interfaces. -/
+theorem Theorem_2_1.of_uniformPersistenceRaw_partsFact
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper3Constants D p}
+    [h1 : Fact (UniformPersistencePart1Raw D p)]
+    [h2 : Fact (UniformPersistencePart2Raw D p)]
+    [h3 : Fact (UniformPersistencePart3Raw D p)]
+    [h4 :
+      Fact (UniformPersistencePart4Raw D p
+        C.eventualMinimalUBound C.gaussianLowerConst)] :
+    Theorem_2_1 D p C :=
+  Theorem_2_1.of_uniformPersistenceRaw_parts
+    h1.out h2.out h3.out h4.out
+
 /-- Generic closure: Paper3 Theorem 2.2 from the four branches. -/
 theorem Theorem_2_2.of_parts
     {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}

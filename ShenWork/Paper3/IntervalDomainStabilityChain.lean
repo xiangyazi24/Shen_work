@@ -185,6 +185,15 @@ theorem intervalDomain_Lemma_3_3_for_concreteStabilityNorms_of_initialContinuity
   simpa [IntervalDomainInitialContinuityRaw, InitialContinuityRaw,
     InitialContinuityConclusion] using hcont uStar huStar
 
+/-- Instance-facing Paper3 `Lemma_3_3` for the concrete interval stability
+norms from the exposed raw initial-continuity frontier. -/
+theorem intervalDomain_Lemma_3_3_for_concreteStabilityNorms_of_initialContinuityRawFact
+    (p : CM2Params)
+    [hcont : Fact (IntervalDomainInitialContinuityRaw p)] :
+    Lemma_3_3 intervalDomain p intervalDomainStabilityNorms :=
+  intervalDomain_Lemma_3_3_for_concreteStabilityNorms_of_initialContinuityRaw
+    p hcont.out
+
 /-- Interval-domain compactness/regularization support from the exposed
 frontiers, with the upper-envelope component discharged by the concrete
 interval sup-norm max principle.
