@@ -105,13 +105,23 @@ theorem paper2_theorem_1_1_of_frontier
 | `jointTimeDerivInterior` (v) | ~comp | resolver joint continuity |
 | `vNeumannLimits` | ✓ proved | restart cosine representation |
 | `vClosedSpatial` | ✓ proved | restart cosine representation |
-| `jointTimeDerivClosed` | ~comp | extension from interior to closed (standard) |
-| `jointSolutionClosed` (u) | ✓ proved | G4l: restartSeries_jointContinuousOn |
+| `jointTimeDerivClosed` (u) | ✓ proved | G4r: jointTimeDerivClosed_u (RegularityFrontierAssembly) |
+| `jointTimeDerivClosed` (v) | ~comp | resolver chain rule |
+| `jointSolutionClosed` (u) | ✓ proved | G4r: jointSolutionClosed_u (RegularityFrontierAssembly) |
 | `jointSolutionClosed` (v) | ~comp | resolver joint continuity |
 
-Legend: ✓ = proved in the repo, ~comp = composable from existing
-infrastructure (resolver chain rule, standard extensions),
-**F2** = genuine frontier.
+Legend:
+  ✓ = proved in the repo (0 sorry)
+  ~comp = composable from existing infrastructure ONCE F2 is available
+    (resolver coefficients = weight × source coefficients;
+     DuhamelSourceTimeC1 of source → DuhamelSourceTimeC1 of resolver
+     via G3 `duhamelSourceTimeC1_mul_weight`)
+  **F2** = genuine frontier: DuhamelSourceTimeC1 for the Picard limit's
+    logistic source. G2.5 reduces this to uniform convergence of
+    iterate source coefficient derivatives.
+
+Summary: 12/15 field entries ✓ proved. 3 entries ~comp (all v-side,
+all gated on F2). Genuine frontier: **F1** + **F2** only.
 -/
 
 end ShenWork.Paper2.Theorem11Assembly
