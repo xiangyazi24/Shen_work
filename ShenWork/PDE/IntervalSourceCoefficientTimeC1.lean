@@ -696,4 +696,149 @@ theorem homogeneousCosineSeries_hasDerivAt_time
     isPreconnected_Ioi hg hg' (Set.mem_Ioi.2 (by linarith : t₀ / 2 < t₀))
     hg0 (Set.mem_Ioi.2 (by linarith : t₀ / 2 < t₀))
 
+section RestartSeries
+open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.IntervalDuhamelClosedC2
+  (cosineCoeff_summable_of_eigenvalue_summable)
+open ShenWork.IntervalDomainRegularityBootstrap
+  (reciprocalSquareTerm reciprocalSquareTerm_summable)
+
+/-- The restart coefficient: `e^{−τλₙ} a₀ₙ + bₙ(τ)`. -/
+private noncomputable def localRestartCoeff
+    (a₀ : ℕ → ℝ) (a : ℝ → ℕ → ℝ) (τ : ℝ) (n : ℕ) : ℝ :=
+  Real.exp (-τ * unitIntervalCosineEigenvalue n) * a₀ n +
+    duhamelSpectralCoeff a τ n
+
+/-- **G4i: Time derivative of the full restart cosine series.**
+For the restart coefficient `cₙ(τ) = e^{−τλₙ} a₀ₙ + bₙ(τ)`, the series
+`τ ↦ ∑' n, cₙ(τ) cos(nπx)` has time derivative
+`∑' n, (aₙ(τ₀) − λₙ cₙ(τ₀)) cos(nπx)` at every `τ₀ > 0`.
+
+This is the **spectral PDE identity**: since `Δu = −∑ λₙ cₙ cos` and
+`source = ∑ aₙ cos`, the derivative equals `source + Δu`, i.e., `∂ₜu = Δu + f`. -/
+theorem restartCosineSeries_hasDerivAt_time
+    {a₀ : ℕ → ℝ} {M : ℝ} (hM : 0 ≤ M) (ha₀ : ∀ n, |a₀ n| ≤ M)
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a)
+    {τ₀ : ℝ} (hτ₀ : 0 < τ₀) (x : ℝ) :
+    HasDerivAt
+      (fun τ => ∑' n, localRestartCoeff a₀ a τ n * cosineMode n x)
+      (∑' n, (a τ₀ n - unitIntervalCosineEigenvalue n *
+        localRestartCoeff a₀ a τ₀ n) * cosineMode n x) τ₀ := by
+  have hcos_le : ∀ n, |cosineMode n x| ≤ 1 := fun n => by
+    simp only [cosineMode]; exact Real.abs_cos_le_one _
+  have ht₀2 : 0 < τ₀ / 2 := by linarith
+  -- Helper: summability of homogeneous term at any τ > 0
+  have hsum_hom_at : ∀ τ : ℝ, 0 < τ → Summable (fun n =>
+      Real.exp (-τ * unitIntervalCosineEigenvalue n) * a₀ n * cosineMode n x) := by
+    intro τ hτ
+    refine Summable.of_norm_bounded
+      (g := fun n => Real.exp (-τ * unitIntervalCosineEigenvalue n) * M)
+      ((ShenWork.HeatKernelGradientEstimates.unitIntervalCosineHeatTrace_single_exp_summable
+        hτ).mul_right M) (fun n => ?_)
+    rw [Real.norm_eq_abs,
+      show Real.exp (-τ * unitIntervalCosineEigenvalue n) * a₀ n * cosineMode n x =
+        Real.exp (-τ * unitIntervalCosineEigenvalue n) *
+          (a₀ n * cosineMode n x) from by ring,
+      abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+    exact mul_le_mul_of_nonneg_left
+      (by rw [abs_mul];
+          calc |a₀ n| * |cosineMode n x|
+              ≤ M * 1 := mul_le_mul (ha₀ n) (hcos_le n) (abs_nonneg _) hM
+            _ = M := mul_one _)
+      (Real.exp_nonneg _)
+  -- Helper: summability of Duhamel term at any τ > 0
+  have hsum_duh_at : ∀ τ : ℝ, 0 < τ → Summable (fun n =>
+      duhamelSpectralCoeff a τ n * cosineMode n x) := by
+    intro τ hτ
+    have ⟨_, habs⟩ := cosineCoeff_summable_of_eigenvalue_summable
+      (duhamelSpectralCoeff_eigenvalue_summable src hτ)
+    exact Summable.of_norm (habs.of_nonneg_of_le (fun _ => abs_nonneg _) (fun n => by
+      rw [Real.norm_eq_abs, abs_mul]
+      exact mul_le_of_le_one_right (abs_nonneg _) (hcos_le n)))
+  -- The localRestartCoeff series splits into homogeneous + Duhamel at every τ > 0.
+  have hfun_eq : ∀ τ ∈ Set.Ioi (0 : ℝ),
+      ∑' n, localRestartCoeff a₀ a τ n * cosineMode n x =
+      (∑' n, Real.exp (-τ * unitIntervalCosineEigenvalue n) * a₀ n * cosineMode n x) +
+        (∑' n, duhamelSpectralCoeff a τ n * cosineMode n x) := by
+    intro τ hτ
+    have hτ' : 0 < τ := Set.mem_Ioi.1 hτ
+    rw [show (fun n => localRestartCoeff a₀ a τ n * cosineMode n x) =
+        fun n => Real.exp (-τ * unitIntervalCosineEigenvalue n) * a₀ n * cosineMode n x +
+          duhamelSpectralCoeff a τ n * cosineMode n x from funext (fun n => by
+            simp only [localRestartCoeff]; ring)]
+    exact (hsum_hom_at τ hτ').tsum_add (hsum_duh_at τ hτ')
+  -- HasDerivAt of each piece.
+  have hd1 := homogeneousCosineSeries_hasDerivAt_time hM ha₀ hτ₀ x
+  have hd2 := duhamelSpectralCosineSeries_hasDerivAt_time src hτ₀ x
+  -- Combine via HasDerivAt.add + congr_of_eventuallyEq.
+  have hcombine := hd1.add hd2
+  -- hcombine : HasDerivAt (fun τ => ∑' hom + ∑' duh) (d1 + d2) τ₀
+  -- We need HasDerivAt (fun τ => ∑' restart) (∑' a - λ·restart) τ₀
+  -- Step 1: change the function via eventuallyEq on Ioi 0.
+  have hfun_ev : (fun τ => ∑' n, localRestartCoeff a₀ a τ n * cosineMode n x) =ᶠ[𝓝 τ₀]
+      (fun τ => ∑' n, Real.exp (-τ * unitIntervalCosineEigenvalue n) * a₀ n * cosineMode n x +
+        ∑' n, duhamelSpectralCoeff a τ n * cosineMode n x) := by
+    apply Filter.eventuallyEq_of_mem (s := Set.Ioi 0)
+    · exact Ioi_mem_nhds hτ₀
+    · intro τ hτ; exact hfun_eq τ hτ
+  have hstep1 : HasDerivAt
+      (fun τ => ∑' n, localRestartCoeff a₀ a τ n * cosineMode n x)
+      (∑' n, -(unitIntervalCosineEigenvalue n *
+        Real.exp (-τ₀ * unitIntervalCosineEigenvalue n)) *
+          a₀ n * cosineMode n x +
+        ∑' n, (a τ₀ n - unitIntervalCosineEigenvalue n *
+          duhamelSpectralCoeff a τ₀ n) * cosineMode n x) τ₀ :=
+    hcombine.congr_of_eventuallyEq hfun_ev
+  -- Step 2: simplify the derivative value using tsum_add + tsum_congr.
+  -- Summability of hsum1 and hsum2 for tsum_add.
+  have hsum1 : Summable (fun n =>
+      -(unitIntervalCosineEigenvalue n *
+        Real.exp (-τ₀ * unitIntervalCosineEigenvalue n)) *
+          a₀ n * cosineMode n x) := by
+    apply Summable.of_norm
+    refine ((eigenvalue_mul_exp_summable ht₀2).mul_right M).of_nonneg_of_le
+      (fun _ => norm_nonneg _) (fun n => ?_)
+    have hlam_nn : (0 : ℝ) ≤ unitIntervalCosineEigenvalue n := by
+      unfold unitIntervalCosineEigenvalue; positivity
+    rw [Real.norm_eq_abs, show -(unitIntervalCosineEigenvalue n *
+        Real.exp (-τ₀ * unitIntervalCosineEigenvalue n)) * a₀ n * cosineMode n x =
+        -(unitIntervalCosineEigenvalue n *
+          Real.exp (-τ₀ * unitIntervalCosineEigenvalue n) * a₀ n * cosineMode n x) from by ring,
+      abs_neg, abs_mul, abs_mul, abs_mul,
+      abs_of_nonneg hlam_nn, abs_of_nonneg (Real.exp_nonneg _)]
+    have hexp_mono : Real.exp (-τ₀ * unitIntervalCosineEigenvalue n) ≤
+        Real.exp (-(τ₀ / 2) * unitIntervalCosineEigenvalue n) :=
+      Real.exp_le_exp_of_le (by nlinarith)
+    calc unitIntervalCosineEigenvalue n *
+          Real.exp (-τ₀ * unitIntervalCosineEigenvalue n) *
+            |a₀ n| * |cosineMode n x|
+        ≤ unitIntervalCosineEigenvalue n *
+            Real.exp (-(τ₀ / 2) * unitIntervalCosineEigenvalue n) * M * 1 := by
+          apply mul_le_mul (mul_le_mul ?_ (ha₀ n) (abs_nonneg _) (by positivity))
+            (hcos_le n) (abs_nonneg _) (by positivity)
+          exact mul_le_mul_of_nonneg_left hexp_mono hlam_nn
+      _ = unitIntervalCosineEigenvalue n *
+            Real.exp (-(τ₀ / 2) * unitIntervalCosineEigenvalue n) * M := mul_one _
+  have hsum2 : Summable (fun n =>
+      (a τ₀ n - unitIntervalCosineEigenvalue n *
+        duhamelSpectralCoeff a τ₀ n) * cosineMode n x) := by
+    apply Summable.of_norm
+    exact (duhamelSpectralCoeff_deriv_abs_summable src hτ₀).of_nonneg_of_le
+      (fun _ => norm_nonneg _) (fun n => by
+        rw [Real.norm_eq_abs, abs_mul]
+        exact mul_le_of_le_one_right (abs_nonneg _) (hcos_le n))
+  -- Rewrite derivative sum using tsum_add + tsum_congr (localRestartCoeff = hom + duh).
+  rw [show (∑' n, (a τ₀ n - unitIntervalCosineEigenvalue n *
+        localRestartCoeff a₀ a τ₀ n) * cosineMode n x) =
+      ∑' n, -(unitIntervalCosineEigenvalue n *
+        Real.exp (-τ₀ * unitIntervalCosineEigenvalue n)) *
+          a₀ n * cosineMode n x +
+      ∑' n, (a τ₀ n - unitIntervalCosineEigenvalue n *
+        duhamelSpectralCoeff a τ₀ n) * cosineMode n x from by
+      rw [← hsum1.tsum_add hsum2]
+      congr 1; ext n; simp only [localRestartCoeff]; ring]
+  exact hstep1
+
+end RestartSeries
+
 end ShenWork.IntervalSourceCoefficientTimeC1
