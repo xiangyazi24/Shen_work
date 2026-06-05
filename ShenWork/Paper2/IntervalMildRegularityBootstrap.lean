@@ -654,4 +654,38 @@ theorem gradientMild_closedC2_neumann_of_restartCosineRepresentations
     gradientMild_neumann_left_of_restartCosineRepresentations D H,
     gradientMild_neumann_right_of_restartCosineRepresentations D H⟩
 
+/-- Half-step restart data gives the exact closed-`C²`/Neumann triple consumed
+downstream by the mild-to-classical bridge. -/
+theorem gradientMild_closedC2_neumann_of_halfStepRestartData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (R : GradientMildHalfStepRestartData D) :
+    (∀ t, 0 < t → t < D.T →
+      ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1))
+    ∧ (∀ t, 0 < t → t < D.T →
+      Filter.Tendsto (deriv (intervalDomainLift (D.u t)))
+        (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
+    ∧ (∀ t, 0 < t → t < D.T →
+      Filter.Tendsto (deriv (intervalDomainLift (D.u t)))
+        (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)) :=
+  gradientMild_closedC2_neumann_of_restartCosineRepresentations D
+    (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
+
+/-- H²/time-`C¹` half-step source data gives the exact closed-`C²`/Neumann
+triple consumed downstream by the mild-to-classical bridge. -/
+theorem gradientMild_closedC2_neumann_of_halfStepH2SourceData
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (S : GradientMildHalfStepH2SourceData D) :
+    (∀ t, 0 < t → t < D.T →
+      ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1))
+    ∧ (∀ t, 0 < t → t < D.T →
+      Filter.Tendsto (deriv (intervalDomainLift (D.u t)))
+        (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0))
+    ∧ (∀ t, 0 < t → t < D.T →
+      Filter.Tendsto (deriv (intervalDomainLift (D.u t)))
+        (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0)) :=
+  gradientMild_closedC2_neumann_of_halfStepRestartData D
+    (gradientMildHalfStepRestartData_of_H2SourceData D S)
+
 end ShenWork.IntervalMildRegularityBootstrap
