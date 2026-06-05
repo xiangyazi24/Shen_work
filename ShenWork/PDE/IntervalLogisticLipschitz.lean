@@ -127,4 +127,70 @@ theorem intervalLogisticReaction_lipschitz_on_bounded
     _ = C * |u₁ - u₂| := by rw [Real.norm_eq_abs]
     _ ≤ (C + 1) * |u₁ - u₂| := hCle
 
+/-- **One-sided logistic Lipschitz for α > 0 on [0,M].**  For any `CM2Params` (so
+`0 < p.α`), the reaction `x ↦ x·(p.a − p.b·x^α)` is Lipschitz on `[0,M]`.
+The key is rewriting as `a·x − b·x^{1+α}` which is C¹ everywhere since
+`1 + α > 1`, bypassing the `1 ≤ α` requirement of the two-sided version. -/
+theorem intervalLogisticReaction_lipschitz_on_nonneg_bounded
+    (p : CM2Params) {M : ℝ} (hM : 0 < M) :
+    ∃ L > 0, ∀ u₁ u₂ : ℝ, 0 ≤ u₁ → u₁ ≤ M → 0 ≤ u₂ → u₂ ≤ M →
+      |u₁ * (p.a - p.b * u₁ ^ p.α) - u₂ * (p.a - p.b * u₂ ^ p.α)|
+        ≤ L * |u₁ - u₂| := by
+  set α := p.α with hα_def
+  have hα : 0 < α := p.hα
+  have h1α : 1 ≤ 1 + α := by linarith
+  have h1α_ne : (1 : ℝ) + α ≠ 0 := by linarith
+  have hα0 : 0 ≤ α := hα.le
+  have hM0 : 0 ≤ M := hM.le
+  set C : ℝ := p.a + p.b * ((1 + α) * M ^ α) with hC_def
+  have hMα_nn : 0 ≤ M ^ α := Real.rpow_nonneg hM0 α
+  have hC_nn : 0 ≤ C := by
+    have : 0 ≤ p.b * ((1 + α) * M ^ α) :=
+      mul_nonneg p.hb (mul_nonneg (by linarith) hMα_nn)
+    linarith [p.ha]
+  refine ⟨C + 1, by linarith, ?_⟩
+  intro u₁ u₂ hu₁_nn hu₁_le hu₂_nn hu₂_le
+  set g : ℝ → ℝ := fun x => p.a * x - p.b * x ^ (1 + α) with hg_def
+  set gp : ℝ → ℝ := fun x => p.a - p.b * ((1 + α) * x ^ α) with hgp_def
+  have hu₁s : u₁ ∈ Set.Icc 0 M := ⟨hu₁_nn, hu₁_le⟩
+  have hu₂s : u₂ ∈ Set.Icc 0 M := ⟨hu₂_nn, hu₂_le⟩
+  have hder : ∀ x ∈ Set.Icc 0 M,
+      HasDerivWithinAt g (gp x) (Set.Icc 0 M) x := by
+    intro x _hx
+    have hpow : HasDerivAt (fun y => y ^ (1 + α)) ((1 + α) * x ^ ((1 + α) - 1)) x :=
+      Real.hasDerivAt_rpow_const (x := x) (p := 1 + α) (Or.inr h1α)
+    have hpow' : HasDerivAt (fun y => y ^ (1 + α)) ((1 + α) * x ^ α) x := by
+      convert hpow using 2; ring
+    have h1 : HasDerivAt (fun y => p.a * y) p.a x := by
+      simpa using (hasDerivAt_id x).const_mul p.a
+    have h2 : HasDerivAt (fun y => p.b * y ^ (1 + α)) (p.b * ((1 + α) * x ^ α)) x :=
+      hpow'.const_mul p.b
+    exact (h1.sub h2).hasDerivWithinAt
+  have hbound : ∀ x ∈ Set.Icc 0 M, ‖gp x‖ ≤ C := by
+    intro x hx
+    have hx_nn : 0 ≤ x := hx.1
+    have hxα_nn : 0 ≤ x ^ α := Real.rpow_nonneg hx_nn α
+    have hxα_le : x ^ α ≤ M ^ α := Real.rpow_le_rpow hx_nn hx.2 hα0
+    have hterm_nn : 0 ≤ p.b * ((1 + α) * x ^ α) :=
+      mul_nonneg p.hb (mul_nonneg (by linarith) hxα_nn)
+    have hterm_le : p.b * ((1 + α) * x ^ α) ≤ p.b * ((1 + α) * M ^ α) :=
+      mul_le_mul_of_nonneg_left
+        (mul_le_mul_of_nonneg_left hxα_le (by linarith)) p.hb
+    have hMterm_nn : 0 ≤ p.b * ((1 + α) * M ^ α) :=
+      mul_nonneg p.hb (mul_nonneg (by linarith) hMα_nn)
+    rw [Real.norm_eq_abs, hgp_def, abs_le]
+    exact ⟨by linarith [p.ha], by linarith⟩
+  have hmv : ‖g u₁ - g u₂‖ ≤ C * ‖u₁ - u₂‖ :=
+    Convex.norm_image_sub_le_of_norm_hasDerivWithin_le
+      hder hbound (convex_Icc 0 M) hu₂s hu₁s
+  have heq : ∀ x, 0 ≤ x → x * (p.a - p.b * x ^ α) = g x := by
+    intro x hx
+    simp only [hg_def]
+    rw [Real.rpow_one_add' hx h1α_ne, mul_sub, mul_comm x p.a, mul_left_comm x p.b]
+  rw [heq u₁ hu₁_nn, heq u₂ hu₂_nn]
+  calc |g u₁ - g u₂| = ‖g u₁ - g u₂‖ := (Real.norm_eq_abs _).symm
+    _ ≤ C * ‖u₁ - u₂‖ := hmv
+    _ = C * |u₁ - u₂| := by rw [Real.norm_eq_abs]
+    _ ≤ (C + 1) * |u₁ - u₂| := by nlinarith [abs_nonneg (u₁ - u₂)]
+
 end ShenWork.IntervalLogisticLipschitz
