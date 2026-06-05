@@ -470,6 +470,96 @@ theorem
   intervalDomainPaper2_localAndMainTheoremTargets_of_logisticSourceFrontierData
     p C S hχ ha hb hγ_ge_one hData.out
 
+/-! ## Combined interval-domain statement targets -/
+
+/-- Concrete interval-domain Paper 2 statement targets assembled from the
+section-2 bootstrap/corollary package, the section-3/4 a priori package, and
+the local-plus-main theorem package. -/
+def IntervalDomainPaper2StatementTargets
+    (p : CM2Params) (C : Paper2Constants p) : Prop :=
+  IntervalDomainPaper2Corollary21BootstrapTargets p ∧
+    IntervalDomainPaper2AprioriTargets p ∧
+      IntervalDomainPaper2LocalAndMainTheoremTargets p C
+
+/-- Interval-domain Paper 2 statement-frontier record using the half-step
+H2-source local-existence route. -/
+structure IntervalDomainPaper2StatementH2SourceFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain) : Prop where
+  corollary : IntervalDomainPaper2Corollary21FrontierData p
+  interpolation : IntervalDomainLemma41.IntervalDomainInterpolation
+  localAndMain : IntervalDomainPaper2LocalAndMainH2SourceFrontierData p C S
+
+/-- Assemble the concrete interval-domain Paper 2 statement targets from the
+H2-source local-existence route. -/
+theorem intervalDomainPaper2_statementTargets_of_H2SourceFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementH2SourceFrontierData p C S) :
+    IntervalDomainPaper2StatementTargets p C :=
+  ⟨intervalDomainPaper2_corollary21BootstrapTargets_of_frontierData
+      p hData.corollary,
+    intervalDomainPaper2_aprioriTargets_of_GN_frontier
+      p hData.interpolation,
+    intervalDomainPaper2_localAndMainTheoremTargets_of_H2SourceFrontierData
+      p C S hχ ha hb hγ_ge_one hData.localAndMain⟩
+
+/-- Instance-facing concrete interval-domain Paper 2 statement wrapper from
+the H2-source local-existence route. -/
+theorem intervalDomainPaper2_statementTargets_of_H2SourceFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementH2SourceFrontierData p C S)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_H2SourceFrontierData
+    p C S hχ ha hb hγ_ge_one hData.out
+
+/-- Interval-domain Paper 2 statement-frontier record using the half-step
+logistic-source local-existence route. -/
+structure IntervalDomainPaper2StatementLogisticSourceFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain) : Prop where
+  corollary : IntervalDomainPaper2Corollary21FrontierData p
+  interpolation : IntervalDomainLemma41.IntervalDomainInterpolation
+  localAndMain :
+    IntervalDomainPaper2LocalAndMainLogisticSourceFrontierData p C S
+
+/-- Assemble the concrete interval-domain Paper 2 statement targets from the
+logistic-source local-existence route. -/
+theorem intervalDomainPaper2_statementTargets_of_logisticSourceFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hData :
+      IntervalDomainPaper2StatementLogisticSourceFrontierData p C S) :
+    IntervalDomainPaper2StatementTargets p C :=
+  ⟨intervalDomainPaper2_corollary21BootstrapTargets_of_frontierData
+      p hData.corollary,
+    intervalDomainPaper2_aprioriTargets_of_GN_frontier
+      p hData.interpolation,
+    intervalDomainPaper2_localAndMainTheoremTargets_of_logisticSourceFrontierData
+      p C S hχ ha hb hγ_ge_one hData.localAndMain⟩
+
+/-- Instance-facing concrete interval-domain Paper 2 statement wrapper from
+the logistic-source local-existence route. -/
+theorem intervalDomainPaper2_statementTargets_of_logisticSourceFrontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    [hData : Fact
+      (IntervalDomainPaper2StatementLogisticSourceFrontierData p C S)] :
+    IntervalDomainPaper2StatementTargets p C :=
+  intervalDomainPaper2_statementTargets_of_logisticSourceFrontierData
+    p C S hχ ha hb hγ_ge_one hData.out
+
 end
 
 end ShenWork.Paper2
