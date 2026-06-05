@@ -41,6 +41,7 @@ import ShenWork.PDE.ParabolicMaxPrinciple
 import ShenWork.Paper1.Lemma25Helpers
 import ShenWork.Paper1.StatementAssembly
 import ShenWork.Paper2.UnitPointLogisticBridge
+import ShenWork.Paper2.UnitPointStatementAssembly
 import ShenWork.Paper2.IntervalDomainLemma21
 import ShenWork.Paper2.IntervalDomainLemma41
 import ShenWork.Paper2.IntervalDomainBootstrap
