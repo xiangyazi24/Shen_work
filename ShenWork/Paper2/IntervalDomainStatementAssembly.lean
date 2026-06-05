@@ -85,6 +85,58 @@ theorem intervalDomainPaper2_Proposition_2_5_of_branchData
     Proposition_2_5 intervalDomain p :=
   Proposition_2_5.of_branchData hData
 
+/-- Frontier data for interval-domain Corollary 2.1 assembled from the
+statement-layer Moser branch and the PDE energy derivation. -/
+structure IntervalDomainPaper2Corollary21FrontierData
+    (p : CM2Params) : Prop where
+  bootstrap : Paper2BootstrapEstimateBranchData intervalDomain p
+  energyFromCrossDiffusion :
+    ∀ {T rho p0 : ℝ} {u v : ℝ → intervalDomain.Point → ℝ},
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      CrossDiffusionBootstrapEstimate intervalDomain p T rho u v →
+      AbstractLpBootstrapHypothesis intervalDomain u (p.N : ℝ) T rho p0 →
+        LpBootstrapEnergyInequality intervalDomain u T rho p0
+
+/-- Interval-domain Corollary 2.1 from the Moser branch and PDE energy
+frontier. -/
+theorem intervalDomainPaper2_Corollary_2_1_of_frontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2Corollary21FrontierData p) :
+    Corollary_2_1 intervalDomain p :=
+  IntervalDomainCorollary21.Corollary_2_1_intervalDomain_of_Lemma_2_6_and_energy
+    p (Lemma_2_6.of_branchData hData.bootstrap)
+    hData.energyFromCrossDiffusion
+
+/-- Instance-facing interval-domain Corollary 2.1 wrapper. -/
+theorem intervalDomainPaper2_Corollary_2_1_of_frontierDataFact
+    (p : CM2Params)
+    [hData : Fact (IntervalDomainPaper2Corollary21FrontierData p)] :
+    Corollary_2_1 intervalDomain p :=
+  intervalDomainPaper2_Corollary_2_1_of_frontierData p hData.out
+
+/-- Bundle of interval-domain Corollary 2.1 with the section-2 targets already
+available from the same bootstrap/estimate data. -/
+def IntervalDomainPaper2Corollary21BootstrapTargets (p : CM2Params) : Prop :=
+  Corollary_2_1 intervalDomain p ∧
+    IntervalDomainPaper2BootstrapEstimateTargets p
+
+/-- Combined interval-domain section-2 target wrapper including Corollary 2.1. -/
+theorem intervalDomainPaper2_corollary21BootstrapTargets_of_frontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2Corollary21FrontierData p) :
+    IntervalDomainPaper2Corollary21BootstrapTargets p :=
+  ⟨intervalDomainPaper2_Corollary_2_1_of_frontierData p hData,
+    intervalDomainPaper2_bootstrapEstimateTargets_of_branchData
+      p hData.bootstrap⟩
+
+/-- Instance-facing combined section-2 target wrapper including Corollary 2.1. -/
+theorem intervalDomainPaper2_corollary21BootstrapTargets_of_frontierDataFact
+    (p : CM2Params)
+    [hData : Fact (IntervalDomainPaper2Corollary21FrontierData p)] :
+    IntervalDomainPaper2Corollary21BootstrapTargets p :=
+  intervalDomainPaper2_corollary21BootstrapTargets_of_frontierData
+    p hData.out
+
 /-! ## Theorem 1.1 statement targets -/
 
 /-- Paper 2 Theorem 1.1 from half-step H2-source Picard data, routed through
