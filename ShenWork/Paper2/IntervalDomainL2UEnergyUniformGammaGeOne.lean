@@ -909,19 +909,11 @@ genuinely-independent bounded shared initial datum `hdatum`. -/
 def boundednessHypothesis_of_uniformSupBoundZeroM
     {p : CM2Params}
     (hγ_ge_one : 1 ≤ p.γ)
-    (hbnd : IntervalDomainUniformLiftBoundZeroM p)
-    (hdatum :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|))) :
+    (hbnd : IntervalDomainUniformLiftBoundZeroM p) :
     IntervalDomainL2UBoundednessHypothesis p where
   datumBdd := fun {_u₀} hu₀ {_T₁} {_T₂} {_u₁} {_v₁} {_u₂} {_v₂}
-      hsol₁ hsol₂ htr₁ htr₂ =>
-    hdatum hsol₁ hsol₂ htr₁ htr₂
+      _hsol₁ _hsol₂ _htr₁ _htr₂ =>
+    hu₀.admissible.1
   gronwall := by
     intro u₀ hu₀ T₁ T₂ u₁ v₁ u₂ v₂ hsol₁ hsol₂ htr₁ htr₂
     obtain ⟨M, hMnn, hb⟩ := hbnd.bound hu₀ hsol₁ hsol₂ htr₁ htr₂
@@ -931,17 +923,9 @@ def boundednessHypothesis_of_uniformSupBoundZeroM
 def boundednessHypothesis_of_uniformSupBoundZeroMFact
     {p : CM2Params}
     [hγ_ge_one : Fact (1 ≤ p.γ)]
-    [hbnd : Fact (IntervalDomainUniformLiftBoundZeroM p)]
-    (hdatum :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|))) :
+    [hbnd : Fact (IntervalDomainUniformLiftBoundZeroM p)] :
     IntervalDomainL2UBoundednessHypothesis p :=
-  boundednessHypothesis_of_uniformSupBoundZeroM hγ_ge_one.out hbnd.out hdatum
+  boundednessHypothesis_of_uniformSupBoundZeroM hγ_ge_one.out hbnd.out
 
 /-- **The γ≥1 upper-only lift bound from the Theorem-1.1 regime + bounded datum.**
 Under the negative-sensitivity regime (`χ₀ ≤ 0`, `0 < a`, `0 < b`), with a positive
@@ -952,28 +936,12 @@ bound is just `0` (strict positivity is only used for the membership, not for th
 constant `L_γ`). -/
 theorem uniformLiftBoundZeroM_of_regime
     (p : CM2Params)
-    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
-    (hpos :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀)
-    (hdatum :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|))) :
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b) :
     IntervalDomainUniformLiftBoundZeroM p where
   bound := by
     intro u₀ hu₀ T₁ T₂ u₁ v₁ u₂ v₂ hsol₁ hsol₂ htr₁ htr₂
     have hbddu₀ : BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|)) :=
-      hdatum hsol₁ hsol₂ htr₁ htr₂
+      hu₀.admissible.1
     set M : ℝ := max (intervalDomainSupNorm u₀) ((p.a / p.b) ^ (1 / p.α)) with hMdef
     have hub₁ := uniform_lift_upper_bound_of_regime p hχ ha hb hu₀ hbddu₀
       hsol₁.T_pos hsol₁ htr₁
@@ -996,25 +964,9 @@ theorem uniformLiftBoundZeroM_of_regime
 /-- Instance-facing regime-to-γ≥1-upper-only-lift-bound bridge. -/
 theorem uniformLiftBoundZeroM_of_regimeFact
     (p : CM2Params)
-    [hχ : Fact (p.χ₀ ≤ 0)] [ha : Fact (0 < p.a)] [hb : Fact (0 < p.b)]
-    (hpos :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀)
-    (hdatum :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|))) :
+    [hχ : Fact (p.χ₀ ≤ 0)] [ha : Fact (0 < p.a)] [hb : Fact (0 < p.b)] :
     IntervalDomainUniformLiftBoundZeroM p :=
-  uniformLiftBoundZeroM_of_regime p hχ.out ha.out hb.out hpos hdatum
+  uniformLiftBoundZeroM_of_regime p hχ.out ha.out hb.out
 
 /-- **Global-solution gluing from reachability, fully unconditional for `γ ≥ 1` modulo
 the parameter regime + positive initial datum.**
@@ -1033,38 +985,20 @@ NO `δ>0` lower bound is required: the source `x↦x^γ` Lipschitz constant on `
 `M = max (supNorm u₀, (a/b)^{1/α})` is DERIVED from the proven sup-norm bound. -/
 theorem GlobalSolutionGluingFromReachability_of_regime_gammaGeOne
     (p : CM2Params)
-    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b) (hγ_ge_one : 1 ≤ p.γ)
-    (hpos :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀) :
+    (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b) (hγ_ge_one : 1 ≤ p.γ) :
     ShenWork.IntervalDomainExistence.GlobalSolutionGluingFromReachability p :=
   GlobalSolutionGluingFromReachability_of_bounded p
     (boundednessHypothesis_of_uniformSupBoundZeroM hγ_ge_one
-      (uniformLiftBoundZeroM_of_regime p hχ ha hb hpos
-        (fun hsol₁ hsol₂ htr₁ htr₂ => (hpos hsol₁ hsol₂ htr₁ htr₂).admissible.1))
-      (fun hsol₁ hsol₂ htr₁ htr₂ => (hpos hsol₁ hsol₂ htr₁ htr₂).admissible.1))
+      (uniformLiftBoundZeroM_of_regime p hχ ha hb))
 
 /-- Instance-facing γ≥1 regime gluing theorem. -/
 theorem GlobalSolutionGluingFromReachability_of_regime_gammaGeOneFact
     (p : CM2Params)
     [hχ : Fact (p.χ₀ ≤ 0)] [ha : Fact (0 < p.a)] [hb : Fact (0 < p.b)]
-    [hγ_ge_one : Fact (1 ≤ p.γ)]
-    (hpos :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀) :
+    [hγ_ge_one : Fact (1 ≤ p.γ)] :
     ShenWork.IntervalDomainExistence.GlobalSolutionGluingFromReachability p :=
   GlobalSolutionGluingFromReachability_of_regime_gammaGeOne
-    p hχ.out ha.out hb.out hγ_ge_one.out hpos
+    p hχ.out ha.out hb.out hγ_ge_one.out
 
 end
 

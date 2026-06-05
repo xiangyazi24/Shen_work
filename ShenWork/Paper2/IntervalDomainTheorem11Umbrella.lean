@@ -1536,8 +1536,7 @@ case addressed by Paper 2 (Chen-Ruau-Shen, confirmed with author Liang
 2026-05-27) — Paper 2 Theorem 1.1 on the interval domain follows from
 the textbook PDE continuation inputs (`hlocal`, `hrealize`,
 `hextend_of_not_finiteAlternative`, `hextend_of_not_mgeAlternative`) and
-the **single** book-keeping pass-through `hposWit` (per-pair positive
-initial datum of any classical-solution pair).  **No
+**No per-pair `hposWit` witness is required**.  **No
 `IntervalDomainPosDatumLowerBound` is required**: the γ≥1 gluing chain
 discharges its δ-free analogue uniformly via `L_γ = γ·M^{γ-1}`.
 
@@ -1597,14 +1596,7 @@ theorem
           ShenWork.IntervalDomainExistence.ReachablePast p u₀
             (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
               p u₀))
-    (hposWit :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀) :
+ :
     Theorem_1_1 intervalDomain p := by
   -- Step 1. Bounded-initial from positive-admissibility.
   have hboundedInitial :
@@ -1640,7 +1632,7 @@ theorem
   have hglue :
       ShenWork.IntervalDomainExistence.GlobalSolutionGluingFromReachability p :=
     GlobalSolutionGluingFromReachability_of_regime_gammaGeOne
-      p hχ ha hb hγ_ge_one hposWit
+      p hχ ha hb hγ_ge_one
   -- Step 5. Existential-global package via the nonminimal continuation+gluing assembler.
   have hexist :
       ShenWork.IntervalDomainExistence.IntervalDomainGlobalSolutionExists p :=
@@ -1714,14 +1706,6 @@ structure IntervalDomainPaper2ContinuationDataGammaGeOne (p : CM2Params) :
         ShenWork.IntervalDomainExistence.ReachablePast p u₀
           (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
             p u₀)
-  posWit :
-    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
-        PositiveInitialDatum intervalDomain u₀
 
 /-- **Paper 2-aligned bundled-input wrapper (γ ≥ 1).**
 
@@ -1736,7 +1720,7 @@ theorem Theorem_1_1_intervalDomain_via_regime_gammaGeOne_and_continuationData_bu
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_and_continuationData
     p hχ ha hb hγ_ge_one hData.localExistence hData.realize
-    hData.extend_finite hData.extend_mge hData.posWit
+    hData.extend_finite hData.extend_mge
 
 /-- Instance-facing bundled continuation-data wrapper (γ ≥ 1). -/
 theorem
@@ -1781,14 +1765,7 @@ theorem realize_of_regime_gammaGeOne
           ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
             IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
             InitialTrace intervalDomain u₀ u)
-    (hposWit :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀) :
+ :
     ∀ u₀ : intervalDomain.Point → ℝ,
       PositiveInitialDatum intervalDomain u₀ →
     ∀ _hbdd : BddAbove
@@ -1802,9 +1779,7 @@ theorem realize_of_regime_gammaGeOne
   have hbdd_uniform :
       IntervalDomainL2UBoundednessHypothesis p :=
     boundednessHypothesis_of_uniformSupBoundZeroM hγ_ge_one
-      (uniformLiftBoundZeroM_of_regime p hχ ha hb hposWit
-        (fun hsol₁ hsol₂ htr₁ htr₂ => (hposWit hsol₁ hsol₂ htr₁ htr₂).admissible.1))
-      (fun hsol₁ hsol₂ htr₁ htr₂ => (hposWit hsol₁ hsol₂ htr₁ htr₂).admissible.1)
+      (uniformLiftBoundZeroM_of_regime p hχ ha hb)
   have hbdd_datum :
       IntervalDomainL2UBoundedDatumUniform p :=
     intervalDomainL2UBoundedDatumUniform_of_bounded hbdd_uniform
@@ -1825,7 +1800,7 @@ theorem realize_of_regime_gammaGeOne
 
 Same conclusion as `Theorem_1_1_intervalDomain_via_regime_gammaGeOne_and_continuationData`
 but with `hrealize` discharged internally — only `hlocal`, `hextend_of_not_finiteAlternative`,
-`hextend_of_not_mgeAlternative`, and `hposWit` remain as textbook PDE inputs. -/
+and `hextend_of_not_mgeAlternative` remain as textbook PDE inputs. -/
 theorem
     Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hrealize
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
@@ -1869,19 +1844,12 @@ theorem
           ShenWork.IntervalDomainExistence.ReachablePast p u₀
             (ShenWork.IntervalDomainExistence.finiteMaximalReachableHorizon
               p u₀))
-    (hposWit :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀) :
+ :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_and_continuationData
     p hχ ha hb hγ_ge_one hlocal
-    (realize_of_regime_gammaGeOne p hχ ha hb hγ_ge_one hlocal hposWit)
-    hextend_of_not_finiteAlternative hextend_of_not_mgeAlternative hposWit
+    (realize_of_regime_gammaGeOne p hχ ha hb hγ_ge_one hlocal)
+    hextend_of_not_finiteAlternative hextend_of_not_mgeAlternative
 
 /-! ## `hextend_mge` discharged via uniform local existence
 
@@ -2021,7 +1989,7 @@ eliminated in `_no_extend_finite`) and `hrealize` (already eliminated in
 The remaining textbook PDE inputs for the γ ≥ 1 regime are exactly:
 * `hlocal` — standard short-time local existence;
 * `hUniform` — textbook uniform parabolic continuation (`δ(M)`);
-* `hposWit` — book-keeping pass-through (per-pair positive initial datum). -/
+The former `hposWit` book-keeping pass-through has been eliminated. -/
 theorem
     Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
@@ -2033,14 +2001,7 @@ theorem
             IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
             InitialTrace intervalDomain u₀ u)
     (hUniform : IntervalDomainUniformLocalExistence p)
-    (hposWit :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀) :
+ :
     Theorem_1_1 intervalDomain p := by
   -- Build `hextend_of_not_mgeAlternative` from `hUniform`.
   have hextend_mge :
@@ -2098,13 +2059,13 @@ theorem
       linarith
   -- Compose with the existing γ ≥ 1 + no_hrealize umbrella.
   exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hrealize
-    p hχ ha hb hγ_ge_one hlocal hextend_finite hextend_mge hposWit
+    p hχ ha hb hγ_ge_one hlocal hextend_finite hextend_mge
 
 /-- **Paper 2-aligned bundled continuation data (γ ≥ 1), `hextend_mge`
 eliminated.**
 
 Packages the three textbook PDE inputs (`localExistence`, `uniformLocal`,
-`hposWit`) into a single record.  This is the leanest textbook PDE input
+the former `hposWit` eliminated) into a single record.  This is the leanest textbook PDE input
 surface for Paper 2 Theorem 1.1 in the γ ≥ 1 regime: TWO genuine textbook PDE
 inputs (local + uniform continuation) plus ONE book-keeping pass-through. -/
 structure IntervalDomainPaper2ContinuationDataGammaGeOne_no_hextend_mge
@@ -2116,14 +2077,6 @@ structure IntervalDomainPaper2ContinuationDataGammaGeOne_no_hextend_mge
           IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
           InitialTrace intervalDomain u₀ u
   uniformLocal : IntervalDomainUniformLocalExistence p
-  posWit :
-    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
-        PositiveInitialDatum intervalDomain u₀
 
 /-- **Bundled-input wrapper (γ ≥ 1, `hextend_mge` eliminated).**
 
@@ -2135,7 +2088,7 @@ theorem Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge_bundled
     (hData : IntervalDomainPaper2ContinuationDataGammaGeOne_no_hextend_mge p) :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
-    p hχ ha hb hγ_ge_one hData.localExistence hData.uniformLocal hData.posWit
+    p hχ ha hb hγ_ge_one hData.localExistence hData.uniformLocal
 
 /-- Instance-facing bundled continuation-data wrapper (γ ≥ 1,
 `hextend_mge` eliminated). -/
@@ -2177,19 +2130,12 @@ theorem
     (hγ_ge_one : 1 ≤ p.γ)
     (hMildLocal : IntervalDomainGradientMildLocalData p)
     (hUniform : IntervalDomainUniformLocalExistence p)
-    (hposWit :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀) :
+ :
     Theorem_1_1 intervalDomain p := by
   exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
     p hχ ha hb hγ_ge_one
     (localExistence_of_gradientMildLocalData p hMildLocal)
-    hUniform hposWit
+    hUniform
 
 /-- Paper 2-aligned umbrella via Picard gradient-mild local data whose
 elliptic/Neumann regularity is supplied by restart-cosine representations. -/
@@ -2199,19 +2145,12 @@ theorem
     (hγ_ge_one : 1 ≤ p.γ)
     (hMildLocal : IntervalDomainGradientMildRestartLocalData p)
     (hUniform : IntervalDomainUniformLocalExistence p)
-    (hposWit :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀) :
+ :
     Theorem_1_1 intervalDomain p := by
   exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
     p hχ ha hb hγ_ge_one
     (localExistence_of_gradientMildRestartLocalData p hMildLocal)
-    hUniform hposWit
+    hUniform
 
 /-- Paper 2-aligned umbrella via restart-cosine Picard gradient-mild local data
 using only the reduced regularity frontier. -/
@@ -2221,19 +2160,12 @@ theorem
     (hγ_ge_one : 1 ≤ p.γ)
     (hMildLocal : IntervalDomainGradientMildRestartFrontierCoreLocalData p)
     (hUniform : IntervalDomainUniformLocalExistence p)
-    (hposWit :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀) :
+ :
     Theorem_1_1 intervalDomain p := by
   exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
     p hχ ha hb hγ_ge_one
     (localExistence_of_gradientMildRestartFrontierCoreLocalData p hMildLocal)
-    hUniform hposWit
+    hUniform
 
 /-- Paper 2-aligned umbrella via half-step restart Picard gradient-mild local
 data using only the reduced regularity frontier. -/
@@ -2244,20 +2176,13 @@ theorem
     (hMildLocal :
       IntervalDomainGradientMildHalfStepRestartFrontierCoreLocalData p)
     (hUniform : IntervalDomainUniformLocalExistence p)
-    (hposWit :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀) :
+ :
     Theorem_1_1 intervalDomain p := by
   exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
     p hχ ha hb hγ_ge_one
     (localExistence_of_gradientMildHalfStepRestartFrontierCoreLocalData
       p hMildLocal)
-    hUniform hposWit
+    hUniform
 
 /-- Paper 2-aligned umbrella via H²-source half-step Picard gradient-mild local
 data using only the reduced regularity frontier. -/
@@ -2268,20 +2193,13 @@ theorem
     (hMildLocal :
       IntervalDomainGradientMildHalfStepH2SourceFrontierCoreLocalData p)
     (hUniform : IntervalDomainUniformLocalExistence p)
-    (hposWit :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀) :
+ :
     Theorem_1_1 intervalDomain p := by
   exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
     p hχ ha hb hγ_ge_one
     (localExistence_of_gradientMildHalfStepH2SourceFrontierCoreLocalData
       p hMildLocal)
-    hUniform hposWit
+    hUniform
 
 /-- Paper 2-aligned umbrella via logistic-source half-step Picard
 gradient-mild local data using only the reduced regularity frontier. -/
@@ -2292,20 +2210,13 @@ theorem
     (hMildLocal :
       IntervalDomainGradientMildHalfStepLogisticSourceFrontierCoreLocalData p)
     (hUniform : IntervalDomainUniformLocalExistence p)
-    (hposWit :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀) :
+ :
     Theorem_1_1 intervalDomain p := by
   exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
     p hχ ha hb hγ_ge_one
     (localExistence_of_gradientMildHalfStepLogisticSourceFrontierCoreLocalData
       p hMildLocal)
-    hUniform hposWit
+    hUniform
 
 /-- Paper 2-aligned umbrella via Picard gradient-mild local data, explicitly
 routed through the older `localExistence_of_fp_and_regularity` interface.
@@ -2323,19 +2234,12 @@ theorem
     (hγ_ge_one : 1 ≤ p.γ)
     (hMildLocal : IntervalDomainGradientMildIntervalDuhamelLocalData p)
     (hUniform : IntervalDomainUniformLocalExistence p)
-    (hposWit :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀) :
+ :
     Theorem_1_1 intervalDomain p := by
   exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
     p hχ ha hb hγ_ge_one
     (localExistence_of_gradientMildIntervalDuhamelLocalData p hMildLocal)
-    hUniform hposWit
+    hUniform
 
 /-- Old-Duhamel-routed Paper 2 umbrella with restart-cosine regularity
 discharge for the elliptic and Neumann conjuncts. -/
@@ -2345,19 +2249,12 @@ theorem
     (hγ_ge_one : 1 ≤ p.γ)
     (hMildLocal : IntervalDomainGradientMildRestartIntervalDuhamelLocalData p)
     (hUniform : IntervalDomainUniformLocalExistence p)
-    (hposWit :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀) :
+ :
     Theorem_1_1 intervalDomain p := by
   exact Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
     p hχ ha hb hγ_ge_one
     (localExistence_of_gradientMildRestartIntervalDuhamelLocalData p hMildLocal)
-    hUniform hposWit
+    hUniform
 
 /-- Zero-sensitivity version of the old-Duhamel-routed Paper 2 umbrella.
 
@@ -2371,14 +2268,7 @@ theorem
     (hγ_ge_one : 1 ≤ p.γ)
     (hMildLocal : IntervalDomainGradientMildChiZeroDuhamelLocalData p)
     (hUniform : IntervalDomainUniformLocalExistence p)
-    (hposWit :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀) :
+ :
     Theorem_1_1 intervalDomain p := by
   have hχ : p.χ₀ ≤ 0 := by
     simp [hχ_zero]
@@ -2386,7 +2276,7 @@ theorem
     p hχ ha hb hγ_ge_one
     (localExistence_of_gradientMildChiZeroDuhamelLocalData
       p hχ_zero hMildLocal)
-    hUniform hposWit
+    hUniform
 
 /-- Zero-sensitivity old-Duhamel Paper 2 umbrella with restart-cosine
 regularity discharge for the elliptic and Neumann conjuncts. -/
@@ -2396,14 +2286,7 @@ theorem
     (hγ_ge_one : 1 ≤ p.γ)
     (hMildLocal : IntervalDomainGradientMildRestartChiZeroDuhamelLocalData p)
     (hUniform : IntervalDomainUniformLocalExistence p)
-    (hposWit :
-      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-        InitialTrace intervalDomain u₀ u₁ →
-        InitialTrace intervalDomain u₀ u₂ →
-          PositiveInitialDatum intervalDomain u₀) :
+ :
     Theorem_1_1 intervalDomain p := by
   have hχ : p.χ₀ ≤ 0 := by
     simp [hχ_zero]
@@ -2411,21 +2294,13 @@ theorem
     p hχ ha hb hγ_ge_one
     (localExistence_of_gradientMildRestartChiZeroDuhamelLocalData
       p hχ_zero hMildLocal)
-    hUniform hposWit
+    hUniform
 
 /-- Bundled input for the Picard-gradient-mild version of the γ≥1 umbrella. -/
 structure IntervalDomainPaper2GradientMildContinuationData (p : CM2Params) :
     Prop where
   mildLocal : IntervalDomainGradientMildLocalData p
   uniformLocal : IntervalDomainUniformLocalExistence p
-  posWit :
-    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
-        PositiveInitialDatum intervalDomain u₀
 
 /-- Bundled-input wrapper for the Picard-gradient-mild γ≥1 umbrella. -/
 theorem Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildLocalData_bundled
@@ -2434,7 +2309,7 @@ theorem Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildLocalData_b
     (hData : IntervalDomainPaper2GradientMildContinuationData p) :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildLocalData
-    p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+    p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal
 
 /-- Instance-facing bundled-input wrapper for the Picard-gradient-mild γ≥1
 umbrella. -/
@@ -2452,14 +2327,6 @@ structure IntervalDomainPaper2GradientMildRestartContinuationData
     (p : CM2Params) : Prop where
   mildLocal : IntervalDomainGradientMildRestartLocalData p
   uniformLocal : IntervalDomainUniformLocalExistence p
-  posWit :
-    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
-        PositiveInitialDatum intervalDomain u₀
 
 /-- Bundled-input wrapper for the restart-cosine Picard-gradient-mild γ≥1
 umbrella. -/
@@ -2470,7 +2337,7 @@ theorem
     (hData : IntervalDomainPaper2GradientMildRestartContinuationData p) :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildRestartLocalData
-    p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+    p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal
 
 /-- Instance-facing bundled-input wrapper for the restart-cosine
 Picard-gradient-mild γ≥1 umbrella. -/
@@ -2490,14 +2357,6 @@ structure
     (p : CM2Params) : Prop where
   mildLocal : IntervalDomainGradientMildHalfStepRestartFrontierCoreLocalData p
   uniformLocal : IntervalDomainUniformLocalExistence p
-  posWit :
-    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
-        PositiveInitialDatum intervalDomain u₀
 
 /-- Bundled-input wrapper for the half-step restart Picard-gradient-mild γ≥1
 umbrella using only the frontier classical core. -/
@@ -2510,7 +2369,7 @@ theorem
         p) :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildHalfStepRestartFrontierCoreLocalData
-    p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+    p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal
 
 /-- Instance-facing bundled wrapper for the half-step restart
 Picard-gradient-mild γ≥1 umbrella. -/
@@ -2532,14 +2391,6 @@ structure
     (p : CM2Params) : Prop where
   mildLocal : IntervalDomainGradientMildHalfStepH2SourceFrontierCoreLocalData p
   uniformLocal : IntervalDomainUniformLocalExistence p
-  posWit :
-    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
-        PositiveInitialDatum intervalDomain u₀
 
 /-- Bundled-input wrapper for the half-step H2-source Picard-gradient-mild γ≥1
 umbrella using only the frontier classical core. -/
@@ -2552,7 +2403,7 @@ theorem
         p) :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildHalfStepH2SourceFrontierCoreLocalData
-    p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+    p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal
 
 /-- Instance-facing bundled wrapper for the half-step H2-source
 Picard-gradient-mild γ≥1 umbrella. -/
@@ -2575,14 +2426,6 @@ structure
   mildLocal :
     IntervalDomainGradientMildHalfStepLogisticSourceFrontierCoreLocalData p
   uniformLocal : IntervalDomainUniformLocalExistence p
-  posWit :
-    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
-        PositiveInitialDatum intervalDomain u₀
 
 /-- Bundled-input wrapper for the half-step logistic-source Picard-gradient-mild
 γ≥1 umbrella using only the frontier classical core. -/
@@ -2595,7 +2438,7 @@ theorem
         p) :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildHalfStepLogisticSourceFrontierCoreLocalData
-    p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+    p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal
 
 /-- Instance-facing bundled wrapper for the half-step logistic-source
 Picard-gradient-mild γ≥1 umbrella. -/
@@ -2616,14 +2459,6 @@ structure IntervalDomainPaper2GradientMildIntervalDuhamelContinuationData
     (p : CM2Params) : Prop where
   mildLocal : IntervalDomainGradientMildIntervalDuhamelLocalData p
   uniformLocal : IntervalDomainUniformLocalExistence p
-  posWit :
-    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
-        PositiveInitialDatum intervalDomain u₀
 
 /-- Bundled-input wrapper for the old-Duhamel-routed Picard-gradient-mild γ≥1
 umbrella. -/
@@ -2634,7 +2469,7 @@ theorem
     (hData : IntervalDomainPaper2GradientMildIntervalDuhamelContinuationData p) :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildIntervalDuhamelLocalData
-    p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+    p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal
 
 /-- Instance-facing bundled-input wrapper for the old-Duhamel-routed
 Picard-gradient-mild γ≥1 umbrella. -/
@@ -2654,14 +2489,6 @@ structure IntervalDomainPaper2GradientMildRestartIntervalDuhamelContinuationData
     (p : CM2Params) : Prop where
   mildLocal : IntervalDomainGradientMildRestartIntervalDuhamelLocalData p
   uniformLocal : IntervalDomainUniformLocalExistence p
-  posWit :
-    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
-        PositiveInitialDatum intervalDomain u₀
 
 /-- Bundled-input wrapper for the old-Duhamel-routed restart-cosine
 Picard-gradient-mild γ≥1 umbrella. -/
@@ -2672,7 +2499,7 @@ theorem
     (hData : IntervalDomainPaper2GradientMildRestartIntervalDuhamelContinuationData p) :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_regime_gammaGeOne_gradientMildRestartIntervalDuhamelLocalData
-    p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+    p hχ ha hb hγ_ge_one hData.mildLocal hData.uniformLocal
 
 /-- Instance-facing bundled-input wrapper for the old-Duhamel-routed
 restart-cosine Picard-gradient-mild γ≥1 umbrella. -/
@@ -2693,14 +2520,6 @@ structure IntervalDomainPaper2GradientMildChiZeroDuhamelContinuationData
     (p : CM2Params) : Prop where
   mildLocal : IntervalDomainGradientMildChiZeroDuhamelLocalData p
   uniformLocal : IntervalDomainUniformLocalExistence p
-  posWit :
-    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
-        PositiveInitialDatum intervalDomain u₀
 
 /-- Bundled-input wrapper for the zero-sensitivity component-frontier Duhamel
 γ≥1 umbrella. -/
@@ -2711,7 +2530,7 @@ theorem
     (hData : IntervalDomainPaper2GradientMildChiZeroDuhamelContinuationData p) :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_chiZero_gammaGeOne_gradientMildDuhamelLocalData
-    p hχ_zero ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+    p hχ_zero ha hb hγ_ge_one hData.mildLocal hData.uniformLocal
 
 /-- Instance-facing bundled-input wrapper for the zero-sensitivity
 component-frontier Duhamel γ≥1 umbrella. -/
@@ -2731,14 +2550,6 @@ structure IntervalDomainPaper2GradientMildRestartChiZeroDuhamelContinuationData
     (p : CM2Params) : Prop where
   mildLocal : IntervalDomainGradientMildRestartChiZeroDuhamelLocalData p
   uniformLocal : IntervalDomainUniformLocalExistence p
-  posWit :
-    ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
-      {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
-      IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
-      IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
-      InitialTrace intervalDomain u₀ u₁ →
-      InitialTrace intervalDomain u₀ u₂ →
-        PositiveInitialDatum intervalDomain u₀
 
 /-- Bundled-input wrapper for the zero-sensitivity restart-cosine
 component-frontier Duhamel γ≥1 umbrella. -/
@@ -2749,7 +2560,7 @@ theorem
     (hData : IntervalDomainPaper2GradientMildRestartChiZeroDuhamelContinuationData p) :
     Theorem_1_1 intervalDomain p :=
   Theorem_1_1_intervalDomain_via_chiZero_gammaGeOne_gradientMildRestartDuhamelLocalData
-    p hχ_zero ha hb hγ_ge_one hData.mildLocal hData.uniformLocal hData.posWit
+    p hχ_zero ha hb hγ_ge_one hData.mildLocal hData.uniformLocal
 
 /-- Instance-facing bundled-input wrapper for the zero-sensitivity
 restart-cosine component-frontier Duhamel γ≥1 umbrella. -/
