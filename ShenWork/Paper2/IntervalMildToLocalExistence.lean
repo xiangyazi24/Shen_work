@@ -309,7 +309,8 @@ theorem regularityBootstrap_of_gradientMildSolutionData_of_restartCosineRepresen
   · exact mildSolution_initialTrace p D hInitialApproach
 
 /-- Assemble `RegularityBootstrap` from the half-step source regularity and
-series-agreement package, first turning it into restart-cosine representations. -/
+series-agreement package.  The elliptic and Neumann conjuncts are discharged
+directly from the half-step closed-C²/Neumann bridge. -/
 theorem regularityBootstrap_of_gradientMildSolutionData_of_halfStepRestartData
     (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
     (D : GradientMildSolutionData p u0)
@@ -320,10 +321,20 @@ theorem regularityBootstrap_of_gradientMildSolutionData_of_halfStepRestartData
           |intervalGradientDuhamelMap p u0 D.u t x - u0 x| < ε)
     (hclassical : IsPaper2ClassicalSolution intervalDomain p D.T D.u
       (mildChemicalConcentration p D.u)) :
-    RegularityBootstrap p D.T u0 D.u :=
-  regularityBootstrap_of_gradientMildSolutionData_of_restartCosineRepresentations
-    p D (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
-    hInitialApproach hclassical
+    RegularityBootstrap p D.T u0 D.u := by
+  let v : ℝ → intervalDomainPoint → ℝ := mildChemicalConcentration p D.u
+  refine ⟨v, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · intro t x ht0 htT
+    exact mildSolution_strictlyPositive p D ht0 (le_of_lt htT) x
+  · intro t x ht0 htT
+    exact mildChemical_nonneg p D.hnonneg D.hcont ht0 (le_of_lt htT) x
+  · simpa [v] using mildSolution_parabolicPDE p D hclassical
+  · simpa [v] using
+      mildChemical_ellipticPDE_of_gradientMildHalfStepRestartData p D R
+  · simpa [v] using
+      mildSolution_neumannBC_of_gradientMildHalfStepRestartData p D R
+  · simpa [v] using mildSolution_classicalRegularity p D hclassical
+  · exact mildSolution_initialTrace p D hInitialApproach
 
 /-- Assemble `RegularityBootstrap` from H²-Neumann half-step source data,
 quadratic source-coefficient decay, and series agreement. -/
@@ -439,16 +450,25 @@ theorem isPaper2ClassicalSolution_of_gradientMildSolutionData_of_restartCosineRe
   · exact mildSolution_neumannBC_of_restartCosineRepresentations p D H
 
 /-- Build the full classical-solution package from the half-step restart data,
-which first produces restart-cosine representations. -/
+using the half-step elliptic and Neumann bridges directly. -/
 theorem isPaper2ClassicalSolution_of_gradientMildSolutionData_of_halfStepRestartData
     (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
     (D : GradientMildSolutionData p u0)
     (R : GradientMildHalfStepRestartData D)
     (C : GradientMildClassicalCoreData p D) :
     IsPaper2ClassicalSolution intervalDomain p D.T D.u
-      (mildChemicalConcentration p D.u) :=
-  isPaper2ClassicalSolution_of_gradientMildSolutionData_of_restartCosineRepresentations
-    p D (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R) C
+      (mildChemicalConcentration p D.u) := by
+  refine IsPaper2ClassicalSolution.of_components
+    (D := intervalDomain) (p := p) (T := D.T)
+    (u := D.u) (v := mildChemicalConcentration p D.u)
+    D.hT C.hclassicalRegularity ?hpos ?hv_nonneg ?hpde_u ?hpde_v ?hneumann
+  · intro t x ht0 htT
+    exact mildSolution_strictlyPositive p D ht0 (le_of_lt htT) x
+  · intro t x ht0 htT
+    exact mildChemical_nonneg p D.hnonneg D.hcont ht0 (le_of_lt htT) x
+  · exact C.hpde_u
+  · exact mildChemical_ellipticPDE_of_gradientMildHalfStepRestartData p D R
+  · exact mildSolution_neumannBC_of_gradientMildHalfStepRestartData p D R
 
 /-- Full classical-solution package from H²-source half-step data plus the
 remaining classical core. -/
@@ -813,10 +833,14 @@ theorem localExistence_of_gradientMildSolutionData_of_halfStepRestartData_and_co
     (C : GradientMildClassicalCoreData p D) :
     ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
       IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
-      InitialTrace intervalDomain u0 u :=
-  localExistence_of_gradientMildSolutionData_of_restartCosineRepresentations_and_coreData
-    p hu0 D (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
-    hInitialApproach C
+      InitialTrace intervalDomain u0 u := by
+  have hclassical :
+      IsPaper2ClassicalSolution intervalDomain p D.T D.u
+        (mildChemicalConcentration p D.u) :=
+    isPaper2ClassicalSolution_of_gradientMildSolutionData_of_halfStepRestartData
+      p D R C
+  exact localExistence_of_gradientMildSolutionData_of_halfStepRestartData
+    p hu0 D R hInitialApproach hclassical
 
 /-- Direct local existence from H²-source half-step data using only the
 remaining classical core. -/
@@ -1159,8 +1183,8 @@ theorem
       p D H hInitialApproach hclassical
   exact localExistence_of_fp_and_regularity p u0 hu0 D.hT hfp hreg
 
-/-- Route through `localExistence_of_fp_and_regularity`, with restart-cosine
-regularity produced from the half-step source and series package. -/
+/-- Route through `localExistence_of_fp_and_regularity`, with regularity
+produced directly from the half-step source and series package. -/
 theorem localExistence_of_gradientMildSolutionData_and_intervalDuhamel_eq_of_halfStepRestartData
     (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
     (hu0 : PositiveInitialDatum intervalDomain u0)
@@ -1179,10 +1203,15 @@ theorem localExistence_of_gradientMildSolutionData_and_intervalDuhamel_eq_of_hal
       (mildChemicalConcentration p D.u)) :
     ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
       IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
-      InitialTrace intervalDomain u0 u :=
-  localExistence_of_gradientMildSolutionData_and_intervalDuhamel_eq_of_restartCosineRepresentations
-    p hu0 D (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
-    hzero hDuhamelEq hInitialApproach hclassical
+      InitialTrace intervalDomain u0 u := by
+  have hfp : ∀ t x, 0 ≤ t → t ≤ D.T →
+      D.u t x = intervalDuhamelOperator p u0 D.u t x :=
+    intervalDuhamel_fixedPoint_of_gradientMildSolutionData
+      p D hzero hDuhamelEq
+  have hreg : RegularityBootstrap p D.T u0 D.u :=
+    regularityBootstrap_of_gradientMildSolutionData_of_halfStepRestartData
+      p D R hInitialApproach hclassical
+  exact localExistence_of_fp_and_regularity p u0 hu0 D.hT hfp hreg
 
 /-- Route through `localExistence_of_fp_and_regularity`, with restart-cosine
 regularity produced from H²-source half-step data. -/
@@ -1313,7 +1342,7 @@ theorem
   exact localExistence_of_fp_and_regularity p u0 hu0 D.hT hfp hreg
 
 /-- Zero-sensitivity route through `localExistence_of_fp_and_regularity`, with
-restart-cosine regularity produced from the half-step source and series package. -/
+regularity produced directly from the half-step source and series package. -/
 theorem localExistence_of_gradientMildSolutionData_chi_zero_via_intervalDuhamel_of_halfStepRestartData
     (p : CM2Params) {u0 : intervalDomainPoint → ℝ}
     (hu0 : PositiveInitialDatum intervalDomain u0)
@@ -1340,10 +1369,15 @@ theorem localExistence_of_gradientMildSolutionData_chi_zero_via_intervalDuhamel_
       (mildChemicalConcentration p D.u)) :
     ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
       IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
-      InitialTrace intervalDomain u0 u :=
-  localExistence_of_gradientMildSolutionData_chi_zero_via_intervalDuhamel_of_restartCosineRepresentations
-    p hu0 D (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
-    hχ hzero hinit hlog hInitialApproach hclassical
+      InitialTrace intervalDomain u0 u := by
+  have hfp : ∀ t x, 0 ≤ t → t ≤ D.T →
+      D.u t x = intervalDuhamelOperator p u0 D.u t x :=
+    intervalDuhamel_fixedPoint_of_gradientMildSolutionData_chi_zero
+      p D hχ hzero hinit hlog
+  have hreg : RegularityBootstrap p D.T u0 D.u :=
+    regularityBootstrap_of_gradientMildSolutionData_of_halfStepRestartData
+      p D R hInitialApproach hclassical
+  exact localExistence_of_fp_and_regularity p u0 hu0 D.hT hfp hreg
 
 /-- Zero-sensitivity route through `localExistence_of_fp_and_regularity`, with
 restart-cosine regularity produced from H²-source half-step data. -/
