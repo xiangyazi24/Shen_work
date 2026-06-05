@@ -1353,6 +1353,33 @@ theorem restartDerivSeries_jointContinuousOn
   simp only [Pi.add_apply]
   exact hfun_tsum p hp
 
+/-- **G4n: Spectral-to-pointwise PDE identity.**
+If `intervalDomainLift (u s)` agrees with the restart cosine series
+`∑ cₙ(s) cos(nπ·)` on `[0,1]` for all `s` near `t₀`, and the series
+has DuhamelSourceTimeC1, then at interior `x ∈ (0,1)`:
+  `deriv (fun s => intervalDomainLift (u s) x) t₀ =
+     ∑ (aₙ − λₙ cₙ(t₀)) cos(nπx)` -/
+theorem restartCosine_timeDeriv_eq_spectralDeriv
+    {u : ℝ → ShenWork.IntervalDomain.intervalDomainPoint → ℝ}
+    {a₀ : ℕ → ℝ} {M : ℝ} (hM : 0 ≤ M) (ha₀ : ∀ n, |a₀ n| ≤ M)
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a)
+    {t₀ : ℝ} (ht₀ : 0 < t₀) {x : ℝ}
+    (hagree : ∀ᶠ s in 𝓝 t₀,
+      ShenWork.IntervalDomain.intervalDomainLift (u s) x =
+        ∑' n, localRestartCoeff a₀ a s n * cosineMode n x) :
+    deriv (fun s => ShenWork.IntervalDomain.intervalDomainLift (u s) x) t₀ =
+      ∑' n, (a t₀ n - unitIntervalCosineEigenvalue n *
+        localRestartCoeff a₀ a t₀ n) * cosineMode n x := by
+  -- Step 1: the two functions are eventually equal near t₀
+  have hev : (fun s => ShenWork.IntervalDomain.intervalDomainLift (u s) x)
+      =ᶠ[𝓝 t₀]
+      (fun s => ∑' n, localRestartCoeff a₀ a s n * cosineMode n x) :=
+    hagree
+  -- Step 2: deriv of the lift function equals deriv of the cosine series
+  rw [hev.deriv_eq]
+  -- Step 3: the cosine series has derivative given by restartCosineSeries_hasDerivAt_time
+  exact (restartCosineSeries_hasDerivAt_time hM ha₀ src ht₀ x).deriv
+
 end RestartSeries
 
 end ShenWork.IntervalSourceCoefficientTimeC1
