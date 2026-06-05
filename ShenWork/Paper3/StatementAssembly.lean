@@ -60,6 +60,52 @@ theorem paper3_proposition1Targets_of_frontierDataFact
     Paper3Proposition1Targets D p C :=
   paper3_proposition1Targets_of_frontierData hData.out
 
+/-- Bridge Paper2 Theorem 1.3's global bounded branch to Paper3 Proposition
+1.3. -/
+theorem paper3_Proposition_1_3_of_Paper2_Theorem_1_3
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (h13 : Paper2.Theorem_1_3 D p C) :
+    Proposition_1_3 D p C := by
+  intro ha hb hm hstrong u₀ hu₀
+  have hm_pos : 0 < p.m := lt_of_lt_of_le zero_lt_one hm
+  exact (h13 ha hb hm_pos hstrong).2 hm u₀ hu₀
+
+/-- Alternative frontier data for Paper3 Propositions 1.2--1.4 when
+Proposition 1.3 is supplied by Paper2 Theorem 1.3. -/
+structure Paper3Proposition1FromPaper2Theorem13Data
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper2Constants p) : Prop where
+  negativeBound : NegativeSensitivityGlobalEventualBound D p
+  theorem13 : Paper2.Theorem_1_3 D p C
+  proposition14 :
+    p.m = 1 → 1 ≤ p.β →
+      ((p.a = 0 ∧ p.b = 0) ∨ (0 ≤ p.a ∧ 0 < p.b)) →
+        p.χ₀ < chiBeta p →
+          ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+            ∃ u v : ℝ → D.Point → ℝ,
+              IsPaper2GlobalClassicalSolution D p u v ∧
+              InitialTrace D u₀ u ∧
+              IsPaper2Bounded D u
+
+/-- Assemble Paper3 Propositions 1.2--1.4, deriving Proposition 1.3 from
+Paper2 Theorem 1.3. -/
+theorem paper3_proposition1Targets_of_paper2Theorem13Data
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hData : Paper3Proposition1FromPaper2Theorem13Data D p C) :
+    Paper3Proposition1Targets D p C :=
+  ⟨Proposition_1_2_of_negativeSensitivityGlobalEventualBound
+      D p hData.negativeBound,
+    paper3_Proposition_1_3_of_Paper2_Theorem_1_3 hData.theorem13,
+    Proposition_1_4.of_assumed_existence_branch hData.proposition14⟩
+
+/-- Instance-facing wrapper for the Paper2-Theorem-1.3 route to Paper3
+Propositions 1.2--1.4. -/
+theorem paper3_proposition1Targets_of_paper2Theorem13DataFact
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p)
+    [hData : Fact (Paper3Proposition1FromPaper2Theorem13Data D p C)] :
+    Paper3Proposition1Targets D p C :=
+  paper3_proposition1Targets_of_paper2Theorem13Data hData.out
+
 /-! ## Theorem 2.1 persistence targets -/
 
 /-- Paper3 Theorem 2.1 together with its four part statements from the same

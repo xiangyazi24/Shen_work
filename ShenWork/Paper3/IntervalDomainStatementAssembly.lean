@@ -6,6 +6,7 @@
   hypotheses are the canonical core existence package and the concrete
   initial-continuity frontier already exposed downstream.
 -/
+import ShenWork.Paper3.StatementAssembly
 import ShenWork.Paper3.IntervalDomainStabilityChain
 
 open ShenWork.IntervalDomain
@@ -81,6 +82,43 @@ theorem intervalDomain_paper3_Proposition_1_4_of_frontierDataFact
     [hData : Fact (IntervalDomainPaper3Proposition1FrontierData p)] :
     Proposition_1_4 intervalDomain p :=
   intervalDomain_paper3_Proposition_1_4_of_frontierData p hData.out
+
+/-- Interval-domain Paper3 Proposition 1.x targets, with Proposition 1.3
+supplied by Paper2 Theorem 1.3. -/
+def IntervalDomainPaper3Proposition1WithTheorem13Targets
+    (p : CM2Params) (C : Paper2Constants p) : Prop :=
+  Paper3Proposition1Targets intervalDomain p C
+
+/-- Frontier data for the interval-domain Proposition 1.x target package when
+the Proposition 1.3 branch is supplied by Paper2 Theorem 1.3. -/
+structure IntervalDomainPaper3Proposition1WithTheorem13FrontierData
+    (p : CM2Params) (C : Paper2Constants p) : Prop where
+  proposition12And14 : IntervalDomainPaper3Proposition1FrontierData p
+  theorem13 : Theorem_1_3 intervalDomain p C
+
+/-- Assemble interval-domain Paper3 Propositions 1.2--1.4, routing
+Proposition 1.3 through Paper2 Theorem 1.3. -/
+theorem
+    intervalDomain_paper3_proposition1WithTheorem13Targets_of_frontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (hData :
+      IntervalDomainPaper3Proposition1WithTheorem13FrontierData p C) :
+    IntervalDomainPaper3Proposition1WithTheorem13Targets p C :=
+  paper3_proposition1Targets_of_paper2Theorem13Data
+    { negativeBound := hData.proposition12And14.negativeBound
+      theorem13 := hData.theorem13
+      proposition14 := hData.proposition12And14.criticalExistence }
+
+/-- Instance-facing interval-domain Paper3 Proposition 1.x wrapper using
+Paper2 Theorem 1.3 for Proposition 1.3. -/
+theorem
+    intervalDomain_paper3_proposition1WithTheorem13Targets_of_frontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    [hData : Fact
+      (IntervalDomainPaper3Proposition1WithTheorem13FrontierData p C)] :
+    IntervalDomainPaper3Proposition1WithTheorem13Targets p C :=
+  intervalDomain_paper3_proposition1WithTheorem13Targets_of_frontierData
+    p C hData.out
 
 /-! ## Theorem 2.x and compactness targets -/
 
@@ -1000,6 +1038,47 @@ theorem intervalDomain_paper3_mainlineTargets_of_frontierDataFact
     IntervalDomainPaper3MainlineTargets p M0 uBar vLower K :=
   intervalDomain_paper3_mainlineTargets_of_frontierData
     p M0 uBar vLower K hData.out
+
+/-! ## Full interval-domain statement targets -/
+
+/-- Concrete interval-domain Paper3 statement targets combining the
+Proposition 1.x package with the existing mainline umbrella. -/
+def IntervalDomainPaper3StatementTargets
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop :=
+  IntervalDomainPaper3Proposition1WithTheorem13Targets p C ∧
+    IntervalDomainPaper3MainlineTargets p M0 uBar vLower K
+
+/-- Bundled interval-domain Paper3 frontiers for the Proposition 1.x package
+and the mainline umbrella. -/
+structure IntervalDomainPaper3StatementFrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain) : Prop where
+  propositions : IntervalDomainPaper3Proposition1WithTheorem13FrontierData p C
+  mainline : IntervalDomainPaper3MainlineFrontierData p M0 uBar vLower K
+
+/-- Assemble the concrete interval-domain Paper3 statement targets from the
+existing Proposition 1.x and mainline frontier records. -/
+theorem intervalDomain_paper3_statementTargets_of_frontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    (hData :
+      IntervalDomainPaper3StatementFrontierData p C M0 uBar vLower K) :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  ⟨intervalDomain_paper3_proposition1WithTheorem13Targets_of_frontierData
+      p C hData.propositions,
+    intervalDomain_paper3_mainlineTargets_of_frontierData
+      p M0 uBar vLower K hData.mainline⟩
+
+/-- Instance-facing concrete interval-domain Paper3 statement-target wrapper. -/
+theorem intervalDomain_paper3_statementTargets_of_frontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (M0 uBar vLower : ℝ) (K : CompactnessData intervalDomain)
+    [hData : Fact
+      (IntervalDomainPaper3StatementFrontierData p C M0 uBar vLower K)] :
+    IntervalDomainPaper3StatementTargets p C M0 uBar vLower K :=
+  intervalDomain_paper3_statementTargets_of_frontierData
+    p C M0 uBar vLower K hData.out
 
 end
 
