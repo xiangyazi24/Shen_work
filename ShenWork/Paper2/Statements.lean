@@ -4801,6 +4801,78 @@ theorem lemma_2_6_2_7_and_propositions_2_2_to_2_5_of_assumed_branches
   exact ⟨hlemmas.1, hlemmas.2, hprops.1, hprops.2.1,
     hprops.2.2.1, hprops.2.2.2⟩
 
+/-- Bundled branch data for Paper 2 Lemmas 2.6--2.7 and
+Propositions 2.2--2.5.
+
+This is only a packaging interface for the exact statement-layer branch
+hypotheses above; it adds no new analytic estimate. -/
+structure Paper2BootstrapEstimateBranchData
+    (D : BoundedDomainData) (p : CM2Params) : Prop where
+  lemma26 :
+    ∀ N > 0, ∀ u : ℝ → D.Point → ℝ, ∀ T rho p0,
+      AbstractLpBootstrapHypothesis D u N T rho p0 →
+        LpBootstrapEnergyInequality D u T rho p0 →
+          ∀ pExp > 1, LpPowerBoundedBefore D pExp T u
+  lemma27 :
+    ∀ u : ℝ → D.Point → ℝ, ∀ T pExp C1 C2 C3 C4 eps alpha,
+      0 < T → 1 < pExp →
+        0 ≤ C1 → 0 ≤ C2 → 0 ≤ C3 → 0 < C4 →
+          0 < eps → eps ≤ alpha →
+            (∀ t, 0 < t → t < T →
+              deriv (fun τ => D.integral (fun x => (u τ x) ^ pExp)) t +
+                  C3 * D.integral (fun x => (u t x) ^ (pExp + alpha - eps)) ≤
+                C1 + C2 * D.integral (fun x => (u t x) ^ pExp) -
+                  C4 * D.integral (fun x => (u t x) ^ (pExp + alpha))) →
+              LpPowerBoundedBefore D pExp T u
+  prop22 :
+    ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p T u v →
+        ∀ pExp > 1, ∃ Mstar > 0,
+          WeightedGradientEstimate D pExp p.β p.γ Mstar T u v
+  prop23 :
+    ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+      IsPaper2ClassicalSolution D p T u v →
+        ∀ pExp, max 1 p.β < pExp →
+          ∀ eps > 0, ∃ Ceps > 0,
+            WeightedSignalEstimate D pExp p.β p.γ eps Ceps T u v
+  prop24 :
+    ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+      ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+        IsPaper2ClassicalSolution D p T u v →
+        InitialTrace D u₀ u →
+          (p.a = 0 → p.b = 0 → MassConservedBefore D T u₀ u) ∧
+            (0 < p.a → 0 < p.b → LogisticMassUpperBoundBefore D p T u₀ u)
+  prop25 :
+    ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+      ∀ Tmax > 0, ∀ u v : ℝ → D.Point → ℝ,
+        IsPaper2ClassicalSolution D p Tmax u v →
+        InitialTrace D u₀ u →
+          ∀ pExp,
+            max (p.N : ℝ) (max (p.m * (p.N : ℝ)) (p.γ * (p.N : ℝ))) < pExp →
+              LpPowerBoundedBefore D pExp Tmax u →
+                IsPaper2BoundedBefore D Tmax u
+
+/-- Data-record wrapper for Lemmas 2.6--2.7 and Propositions 2.2--2.5. -/
+theorem lemma_2_6_2_7_and_propositions_2_2_to_2_5_of_branchData
+    {D : BoundedDomainData} {p : CM2Params}
+    (hData : Paper2BootstrapEstimateBranchData D p) :
+    Lemma_2_6 D ∧ Lemma_2_7 D ∧
+      Proposition_2_2 D p ∧ Proposition_2_3 D p ∧
+        Proposition_2_4 D p ∧ Proposition_2_5 D p :=
+  lemma_2_6_2_7_and_propositions_2_2_to_2_5_of_assumed_branches
+    hData.lemma26 hData.lemma27 hData.prop22 hData.prop23
+    hData.prop24 hData.prop25
+
+/-- Instance-facing data-record wrapper for Lemmas 2.6--2.7 and
+Propositions 2.2--2.5. -/
+theorem lemma_2_6_2_7_and_propositions_2_2_to_2_5_of_branchDataFact
+    {D : BoundedDomainData} {p : CM2Params}
+    [hData : Fact (Paper2BootstrapEstimateBranchData D p)] :
+    Lemma_2_6 D ∧ Lemma_2_7 D ∧
+      Proposition_2_2 D p ∧ Proposition_2_3 D p ∧
+        Proposition_2_4 D p ∧ Proposition_2_5 D p :=
+  lemma_2_6_2_7_and_propositions_2_2_to_2_5_of_branchData hData.out
+
 /-- Generic existence-hypothesis closure for Paper 2 Theorem 1.1.
 Given that the relevant Cauchy solution exists with the required `L∞` bound
 and the global criterion `1 ≤ p.m` in both branches, `Theorem_1_1` follows. -/
