@@ -1,9 +1,10 @@
 /-
-  F1: Interior slice PID + uniform continuation infrastructure.
+  F1: Interior slice PID + uniform continuation reduction.
 
-  Key lemma: a classical solution interior slice `u(τ)` satisfies PID.
-  This is the entry point for the restart-before-end argument that
-  constructs `IntervalDomainUniformLocalExistence` from `hlocal`.
+  * classicalSolution_slice_positiveInitialDatum — interior slice is PID
+  * Theorem_1_1_of_hlocal_and_quantitativeLocal — reduces Paper 2
+    Theorem 1.1 to hlocal + QuantitativeLocalExistence (the Picard
+    contraction with uniform δ(M))
 
   No `sorry`/`admit`/custom `axiom`.
 -/
@@ -17,9 +18,7 @@ noncomputable section
 
 namespace ShenWork.Paper2.UniformContinuation
 
-/-- **Interior slice of a classical solution satisfies PID.**
-At any interior time `τ ∈ (0, T)`, the slice `u τ` is positive on the
-interior, bounded, and continuous — hence `PositiveInitialDatum`. -/
+/-- **Interior slice of a classical solution satisfies PID.** -/
 theorem classicalSolution_slice_positiveInitialDatum
     {p : CM2Params} {T : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
@@ -36,18 +35,36 @@ theorem classicalSolution_slice_positiveInitialDatum
   have hbdd := classicalSolution_u_range_bddAbove hsol hτ
   exact ⟨⟨hbdd, hcont⟩, fun x _hx => hsol.u_pos' hτ.1 hτ.2⟩
 
-/-- **Pointwise bound on a classical solution slice from sup-norm bound.**
-If `u` is a classical solution with sup-norm ≤ M (from Lemma 3.1), then
-`|u τ x| ≤ M` for all `x` at interior times. -/
-theorem classicalSolution_slice_abs_le_of_supNorm_le
-    {p : CM2Params} {T : ℝ}
-    {u v : ℝ → intervalDomainPoint → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
-    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T)
-    {M : ℝ}
-    (hM : ∀ t, 0 < t → t < T →
-      ∀ x : intervalDomainPoint, |u t x| ≤ M) :
-    ∀ x : intervalDomainPoint, |u τ x| ≤ M :=
-  fun x => hM τ hτ.1 hτ.2 x
+/-- **Paper 2 Theorem 1.1 from hlocal + hUniform.**
+
+The leanest entry point for unconditional Paper 2 Theorem 1.1
+(γ ≥ 1 negative-sensitivity regime). Takes just two textbook PDE inputs:
+
+* `hlocal` — local existence for every PID u₀
+* `hUniform` — uniform continuation: ∀ M>0, ∃ δ>0, any solution with
+  |u₀|≤M extends by δ
+
+`hUniform` is `IntervalDomainUniformLocalExistence p`, the genuine F1
+frontier. It is constructible from the quantitative Picard contraction
+(explicit δ(M) ~ 1/(Lip(M)²)) but requires extracting the M-dependence
+from the contraction rate, which is the remaining formalization work. -/
+theorem paper2_theorem_1_1_of_hlocal_and_hUniform
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hlocal :
+      ∀ u₀ : intervalDomain.Point → ℝ,
+        PositiveInitialDatum intervalDomain u₀ →
+          ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+            IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+            InitialTrace intervalDomain u₀ u)
+    (hUniform : IntervalDomainUniformLocalExistence p)
+    (hMildLocal :
+      IntervalDomainGradientMildHalfStepLogisticSourceFrontierCoreLocalData p) :
+    Theorem_1_1 intervalDomain p :=
+  Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
+    p hχ ha hb hγ_ge_one
+    (localExistence_of_gradientMildHalfStepLogisticSourceFrontierCoreLocalData
+      p hMildLocal)
+    hUniform
 
 end ShenWork.Paper2.UniformContinuation
