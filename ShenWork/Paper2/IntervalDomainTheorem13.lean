@@ -878,6 +878,74 @@ theorem Theorem_1_3_intervalDomain
     p C hCor21 hProp25 hlocal hglobalExtension hstrongBootstrap
     hstrongGlobalBound
 
+/-- Bundled frontier data for the exact interval-domain Theorem 1.3 assembly. -/
+structure IntervalDomainTheorem13FrontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain) : Prop where
+  lemma21 : Lemma_2_1 intervalDomain p S
+  lemma26 : Lemma_2_6 intervalDomain
+  lemma41 : Lemma_4_1 intervalDomain p
+  cor21 : Corollary_2_1 intervalDomain p
+  prop25 : Proposition_2_5 intervalDomain p
+  localExistence :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u
+  globalExtension :
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ Tmax > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+      InitialTrace intervalDomain u₀ u →
+        IsPaper2BoundedBefore intervalDomain Tmax u →
+          1 ≤ p.m →
+            IsPaper2GlobalClassicalSolution intervalDomain p u v
+  strongBootstrap :
+    0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ T > 0, ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p T u v →
+      InitialTrace intervalDomain u₀ u →
+        ∃ rho > 0,
+          CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+            ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+              LpPowerBoundedBefore intervalDomain p0 T u
+  strongGlobalBound :
+    0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
+    1 ≤ p.m →
+    ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ u v : ℝ → intervalDomain.Point → ℝ,
+      IsPaper2GlobalClassicalSolution intervalDomain p u v →
+      InitialTrace intervalDomain u₀ u →
+      (∀ T > 0,
+        ∃ rho > 0,
+          CrossDiffusionBootstrapEstimate intervalDomain p T rho u v ∧
+            ∃ p0 > max 1 (rho * (p.N : ℝ) / 2),
+              LpPowerBoundedBefore intervalDomain p0 T u) →
+        IsPaper2Bounded intervalDomain u
+
+/-- Data-record wrapper for the exact interval-domain Theorem 1.3 assembly. -/
+theorem Theorem_1_3_intervalDomain_of_frontierData
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    (hData : IntervalDomainTheorem13FrontierData p C S) :
+    Theorem_1_3 intervalDomain p C :=
+  Theorem_1_3_intervalDomain p C S hData.lemma21 hData.lemma26 hData.lemma41
+    hData.cor21 hData.prop25 hData.localExistence hData.globalExtension
+    hData.strongBootstrap hData.strongGlobalBound
+
+/-- Instance-facing data-record wrapper for the exact interval-domain Theorem 1.3. -/
+theorem Theorem_1_3_intervalDomain_of_frontierDataFact
+    (p : CM2Params) (C : Paper2Constants p)
+    (S : SemigroupEstimateData intervalDomain)
+    [hData : Fact (IntervalDomainTheorem13FrontierData p C S)] :
+    Theorem_1_3 intervalDomain p C :=
+  Theorem_1_3_intervalDomain_of_frontierData p C S hData.out
+
 /-- Variant of `Theorem_1_3_intervalDomain` that derives Corollary 2.1 from
 `Lemma_2_6 intervalDomain` and the explicit PDE energy derivation before
 assembling the full strong-logistic theorem. -/
