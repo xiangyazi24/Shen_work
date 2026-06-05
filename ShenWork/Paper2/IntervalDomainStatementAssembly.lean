@@ -50,12 +50,26 @@ theorem intervalDomainPaper2_Lemma_2_6_of_branchData
     Lemma_2_6 intervalDomain :=
   Lemma_2_6.of_branchData hData
 
+/-- Instance-facing single-target interval-domain wrapper for Lemma 2.6. -/
+theorem intervalDomainPaper2_Lemma_2_6_of_branchDataFact
+    (p : CM2Params)
+    [hData : Fact (Paper2BootstrapEstimateBranchData intervalDomain p)] :
+    Lemma_2_6 intervalDomain :=
+  intervalDomainPaper2_Lemma_2_6_of_branchData p hData.out
+
 /-- Single-target interval-domain wrapper for Lemma 2.7. -/
 theorem intervalDomainPaper2_Lemma_2_7_of_branchData
     (p : CM2Params)
     (hData : Paper2BootstrapEstimateBranchData intervalDomain p) :
     Lemma_2_7 intervalDomain :=
   Lemma_2_7.of_branchData hData
+
+/-- Instance-facing single-target interval-domain wrapper for Lemma 2.7. -/
+theorem intervalDomainPaper2_Lemma_2_7_of_branchDataFact
+    (p : CM2Params)
+    [hData : Fact (Paper2BootstrapEstimateBranchData intervalDomain p)] :
+    Lemma_2_7 intervalDomain :=
+  intervalDomainPaper2_Lemma_2_7_of_branchData p hData.out
 
 /-- Single-target interval-domain wrapper for Proposition 2.2. -/
 theorem intervalDomainPaper2_Proposition_2_2_of_branchData
@@ -64,12 +78,28 @@ theorem intervalDomainPaper2_Proposition_2_2_of_branchData
     Proposition_2_2 intervalDomain p :=
   Proposition_2_2.of_branchData hData
 
+/-- Instance-facing single-target interval-domain wrapper for Proposition
+2.2. -/
+theorem intervalDomainPaper2_Proposition_2_2_of_branchDataFact
+    (p : CM2Params)
+    [hData : Fact (Paper2BootstrapEstimateBranchData intervalDomain p)] :
+    Proposition_2_2 intervalDomain p :=
+  intervalDomainPaper2_Proposition_2_2_of_branchData p hData.out
+
 /-- Single-target interval-domain wrapper for Proposition 2.3. -/
 theorem intervalDomainPaper2_Proposition_2_3_of_branchData
     (p : CM2Params)
     (hData : Paper2BootstrapEstimateBranchData intervalDomain p) :
     Proposition_2_3 intervalDomain p :=
   Proposition_2_3.of_branchData hData
+
+/-- Instance-facing single-target interval-domain wrapper for Proposition
+2.3. -/
+theorem intervalDomainPaper2_Proposition_2_3_of_branchDataFact
+    (p : CM2Params)
+    [hData : Fact (Paper2BootstrapEstimateBranchData intervalDomain p)] :
+    Proposition_2_3 intervalDomain p :=
+  intervalDomainPaper2_Proposition_2_3_of_branchData p hData.out
 
 /-- Single-target interval-domain wrapper for Proposition 2.4. -/
 theorem intervalDomainPaper2_Proposition_2_4_of_branchData
@@ -78,12 +108,28 @@ theorem intervalDomainPaper2_Proposition_2_4_of_branchData
     Proposition_2_4 intervalDomain p :=
   Proposition_2_4.of_branchData hData
 
+/-- Instance-facing single-target interval-domain wrapper for Proposition
+2.4. -/
+theorem intervalDomainPaper2_Proposition_2_4_of_branchDataFact
+    (p : CM2Params)
+    [hData : Fact (Paper2BootstrapEstimateBranchData intervalDomain p)] :
+    Proposition_2_4 intervalDomain p :=
+  intervalDomainPaper2_Proposition_2_4_of_branchData p hData.out
+
 /-- Single-target interval-domain wrapper for Proposition 2.5. -/
 theorem intervalDomainPaper2_Proposition_2_5_of_branchData
     (p : CM2Params)
     (hData : Paper2BootstrapEstimateBranchData intervalDomain p) :
     Proposition_2_5 intervalDomain p :=
   Proposition_2_5.of_branchData hData
+
+/-- Instance-facing single-target interval-domain wrapper for Proposition
+2.5. -/
+theorem intervalDomainPaper2_Proposition_2_5_of_branchDataFact
+    (p : CM2Params)
+    [hData : Fact (Paper2BootstrapEstimateBranchData intervalDomain p)] :
+    Proposition_2_5 intervalDomain p :=
+  intervalDomainPaper2_Proposition_2_5_of_branchData p hData.out
 
 /-- Frontier data for interval-domain Corollary 2.1 assembled from the
 statement-layer Moser branch and the PDE energy derivation. -/
