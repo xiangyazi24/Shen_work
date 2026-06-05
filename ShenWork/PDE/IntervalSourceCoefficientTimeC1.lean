@@ -331,4 +331,59 @@ theorem duhamelSpectralCoeff_exp_piece_bound
         exact Real.exp_le_one_iff.2 (by nlinarith)
     _ = src.envelope n := one_mul _
 
+/-- **Uniform bound on spectral derivative for bounded time.**
+For `0 ≤ t ≤ T`, `|a(t,n) − λₙ bₙ(t)| ≤ envelope(n) + derivBound · T`.
+Uses the IBP decomposition and `e^{−x} ≤ 1`. -/
+theorem duhamelSpectralCoeff_deriv_bounded_time
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a)
+    {t T : ℝ} (ht : 0 ≤ t) (htT : t ≤ T) (n : ℕ) :
+    |a t n - unitIntervalCosineEigenvalue n *
+      duhamelSpectralCoeff a t n| ≤
+      src.envelope n + |src.derivBound| * T := by
+  rw [duhamelSpectralCoeff_deriv_eq_ibp src t n]
+  have hlam_nn : (0 : ℝ) ≤ unitIntervalCosineEigenvalue n := by
+    unfold unitIntervalCosineEigenvalue; positivity
+  have hdb_nn : 0 ≤ |src.derivBound| := abs_nonneg _
+  -- Bound exponential piece.
+  have h1 := duhamelSpectralCoeff_exp_piece_bound src ht n
+  -- Bound integral piece: each integrand ≤ derivBound, integrate over [0,t] ⊂ [0,T].
+  have h2 : |∫ s in (0:ℝ)..t,
+      Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) *
+        src.adot s n| ≤ |src.derivBound| * T := by
+    have hii : IntervalIntegrable
+        (fun s => Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) *
+          src.adot s n) MeasureTheory.volume 0 t := by
+      apply ContinuousOn.intervalIntegrable
+      apply ContinuousOn.mul
+      · exact (Real.continuous_exp.comp (by fun_prop)).continuousOn
+      · exact (src.hadotcont n).continuousOn
+    have hpt : ∀ s, s ∈ Set.Icc (0 : ℝ) t →
+        |Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) *
+          src.adot s n| ≤ |src.derivBound| := by
+      intro s hs
+      rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+      calc _ ≤ 1 * |src.adot s n| := by
+            apply mul_le_mul_of_nonneg_right
+              (Real.exp_le_one_iff.2 (by nlinarith [hs.1, hs.2]))
+              (abs_nonneg _)
+        _ = |src.adot s n| := one_mul _
+        _ ≤ |src.derivBound| :=
+            (src.hderivBound s (by linarith [hs.1]) n).trans
+              (le_abs_self _)
+    calc |∫ s in (0:ℝ)..t, _|
+        ≤ ∫ s in (0:ℝ)..t, |Real.exp (-(t - s) *
+            unitIntervalCosineEigenvalue n) * src.adot s n| :=
+          intervalIntegral.abs_integral_le_integral_abs ht
+      _ ≤ ∫ _s in (0:ℝ)..t, |src.derivBound| := by
+          exact intervalIntegral.integral_mono_on ht hii.abs
+            (continuous_const.intervalIntegrable 0 t) hpt
+      _ = |src.derivBound| * t := by
+          rw [intervalIntegral.integral_const, smul_eq_mul]; ring
+      _ ≤ |src.derivBound| * T :=
+          mul_le_mul_of_nonneg_left htT hdb_nn
+  linarith [abs_add_le
+    (Real.exp (-t * unitIntervalCosineEigenvalue n) * a 0 n)
+    (∫ s in (0:ℝ)..t,
+      Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * src.adot s n)]
+
 end ShenWork.IntervalSourceCoefficientTimeC1
