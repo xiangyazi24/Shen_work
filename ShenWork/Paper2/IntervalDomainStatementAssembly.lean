@@ -183,6 +183,44 @@ theorem intervalDomainPaper2_aprioriTargets_of_GN_frontierFact
     IntervalDomainPaper2AprioriTargets p :=
   intervalDomainPaper2_aprioriTargets_of_GN_frontier p hGN.out
 
+/-! ## Proposition 1.1 local-existence target -/
+
+/-- Frontier data for interval-domain Paper 2 Proposition 1.1.  The first
+field is the closed local-existence branch; the second is the genuine
+maximal-time finite-horizon alternative. -/
+structure IntervalDomainPaper2Proposition11FrontierData
+    (p : CM2Params) : Prop where
+  localExistence :
+    ∀ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u
+  finiteHorizonAlternative :
+    ∀ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+    ∀ Tmax > 0, ∀ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v →
+      InitialTrace intervalDomain u₀ u →
+        FiniteHorizonAlternative intervalDomain Tmax u ∧
+        (1 ≤ p.m → MGeOneFiniteHorizonAlternative intervalDomain Tmax u)
+
+/-- Interval-domain Paper 2 Proposition 1.1 from local existence plus the
+finite-horizon alternative frontier. -/
+theorem intervalDomainPaper2_Proposition_1_1_of_frontierData
+    (p : CM2Params)
+    (hData : IntervalDomainPaper2Proposition11FrontierData p) :
+    Proposition_1_1 intervalDomain p :=
+  ShenWork.IntervalDomainExistence.Proposition_1_1_intervalDomain_of_localExistence_and_finiteHorizonAlternative
+    p hData.localExistence hData.finiteHorizonAlternative
+
+/-- Instance-facing interval-domain Paper 2 Proposition 1.1 wrapper. -/
+theorem intervalDomainPaper2_Proposition_1_1_of_frontierDataFact
+    (p : CM2Params)
+    [hData : Fact (IntervalDomainPaper2Proposition11FrontierData p)] :
+    Proposition_1_1 intervalDomain p :=
+  intervalDomainPaper2_Proposition_1_1_of_frontierData p hData.out
+
 /-! ## Theorem 1.1 statement targets -/
 
 /-- Paper 2 Theorem 1.1 from half-step H2-source Picard data, routed through
