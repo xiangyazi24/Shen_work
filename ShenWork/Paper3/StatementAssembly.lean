@@ -176,6 +176,55 @@ theorem paper3_stability23To25Targets_of_branchDataFact
     Paper3Stability23To25Targets D p N C :=
   paper3_stability23To25Targets_of_branchData hData.out
 
+/-! ## Mainline umbrella targets -/
+
+/-- Generic Paper3 mainline targets assembled from the existing proposition,
+persistence, threshold-stability, compactness/regularization, and stability
+branch-data packages. -/
+def Paper3MainlineTargets
+    (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
+    (K : CompactnessData D) (N : StabilityNorms D)
+    (C1 : Paper2Constants p) (C3 : Paper3Constants D p) : Prop :=
+  Paper3Proposition1Targets D p C1 ∧
+    Paper3UniformPersistenceTargets D p C3 ∧
+      Paper3Theorem22Target D p S N C3 ∧
+        Paper3CompactnessRegularizationTargets D p K N C3 ∧
+          Paper3Stability23To25Targets D p N C3
+
+/-- Bundled generic Paper3 mainline frontier data. -/
+structure Paper3MainlineData
+    (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
+    (K : CompactnessData D) (N : StabilityNorms D)
+    (C1 : Paper2Constants p) (C3 : Paper3Constants D p) : Prop where
+  propositions : Paper3Proposition1FrontierData D p C1
+  persistence : Paper3UniformPersistenceRawData D p C3
+  theorem22 : Paper3Theorem22BranchData D p S N C3
+  compactness : Paper3CompactnessRegularizationRawData D p K N C3
+  stability : Paper3Stability23To25BranchData D p N C3
+
+/-- Assemble the generic Paper3 mainline umbrella from the existing
+statement-layer data records. -/
+theorem paper3_mainlineTargets_of_data
+    {D : BoundedDomainData} {p : CM2Params} {S : SpectralData}
+    {K : CompactnessData D} {N : StabilityNorms D}
+    {C1 : Paper2Constants p} {C3 : Paper3Constants D p}
+    (hData : Paper3MainlineData D p S K N C1 C3) :
+    Paper3MainlineTargets D p S K N C1 C3 :=
+  ⟨paper3_proposition1Targets_of_frontierData hData.propositions,
+    paper3_uniformPersistenceTargets_of_rawData hData.persistence,
+    paper3_Theorem_2_2_of_branchData hData.theorem22,
+    paper3_compactnessRegularizationTargets_of_rawData hData.compactness,
+    paper3_stability23To25Targets_of_branchData hData.stability⟩
+
+/-- Instance-facing wrapper for the generic Paper3 mainline umbrella. -/
+theorem paper3_mainlineTargets_of_dataFact
+    (D : BoundedDomainData) (p : CM2Params) (S : SpectralData)
+    (K : CompactnessData D) (N : StabilityNorms D)
+    (C1 : Paper2Constants p) (C3 : Paper3Constants D p)
+    [hData : Fact (Paper3MainlineData D p S K N C1 C3)] :
+    Paper3MainlineTargets D p S K N C1 C3 :=
+  paper3_mainlineTargets_of_data hData.out
+
 end
 
 end ShenWork.Paper3
