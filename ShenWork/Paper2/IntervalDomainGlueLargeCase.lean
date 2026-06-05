@@ -157,7 +157,7 @@ theorem restartAndGlueWorks_of_piecewise
   intro M δ hM hδ hfactory u₀ hu₀ hbound T₀ hT₀ u v hsol htrace hSupBound
   by_cases hsmall : T₀ ≤ δ / 2
   · exact GlueExtension.restartAndGlue_small_T₀ hM hδ hfactory hu₀ hbound hT₀
-      hsol htrace hSupBound hsmall
+      hsmall
   · push Not at hsmall
     exact restartAndGlue_large_T₀_of_piecewise p hPiecewise hRegShift hOverlap
       hTraceShift hM hδ hfactory hu₀ hbound hT₀ hsmall hsol htrace hSupBound
