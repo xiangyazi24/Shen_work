@@ -109,3 +109,21 @@ Neumann kernel caveat: d_x K_N may involve companion kernel / signs.
 Check boundary terms against Neumann BC. Does not change dependency conclusion.
 
 This decoupling lets G2 be done BEFORE G3 in the dependency order.
+
+---
+
+## R4 Follow-up: Critical Kernel Identity Correction
+
+ChatGPT identified a critical detail all previous design docs missed:
+
+d_x K_N != -d_y K_N on [0,1]. Full-line kernel has this symmetry, Neumann interval does not.
+
+Correct identities:
+1. d_x S_N(t) Q = S_D(t) Q' (DIRICHLET semigroup, not Neumann)
+2. -integral d_y K_N Q = S_N Q' when Q(0)=Q(1)=0
+
+Current code uses d_x S_N form -> IBP lands on Dirichlet S_D, not Neumann S_N.
+
+G2 split: G2a (kernel convention) + G2b (spatial IBP, no time-C1).
+
+Lean obligations: Dirichlet kernel if keeping d_x S_N; Q in C1; time integrability; agreement with existing regularity package.
