@@ -125,6 +125,39 @@ theorem paper2_localAndMainTheoremTargets_of_dataFact
     Paper2LocalAndMainTheoremTargets D p C :=
   paper2_localAndMainTheoremTargets_of_data hData.out
 
+/-! ## Combined statement targets -/
+
+/-- Generic Paper2 statement targets currently covered by the existing
+statement-layer branch-data packages. -/
+def Paper2StatementTargets
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper2Constants p) : Prop :=
+  Paper2BootstrapEstimateTargets D p ∧
+    Paper2LocalAndMainTheoremTargets D p C
+
+/-- Bundled generic Paper2 statement-target data. -/
+structure Paper2StatementData
+    (D : BoundedDomainData) (p : CM2Params)
+    (C : Paper2Constants p) : Prop where
+  bootstrap : Paper2BootstrapEstimateBranchData D p
+  localAndMain : Paper2LocalAndMainTheoremData D p C
+
+/-- Assemble generic Paper2 statement targets from the existing branch-data
+records. -/
+theorem paper2_statementTargets_of_data
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hData : Paper2StatementData D p C) :
+    Paper2StatementTargets D p C :=
+  ⟨paper2_bootstrapEstimateTargets_of_branchData hData.bootstrap,
+    paper2_localAndMainTheoremTargets_of_data hData.localAndMain⟩
+
+/-- Instance-facing wrapper for generic Paper2 statement targets. -/
+theorem paper2_statementTargets_of_dataFact
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p)
+    [hData : Fact (Paper2StatementData D p C)] :
+    Paper2StatementTargets D p C :=
+  paper2_statementTargets_of_data hData.out
+
 end
 
 end ShenWork.Paper2
