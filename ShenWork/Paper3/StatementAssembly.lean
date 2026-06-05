@@ -60,6 +60,48 @@ theorem paper3_proposition1Targets_of_frontierDataFact
     Paper3Proposition1Targets D p C :=
   paper3_proposition1Targets_of_frontierData hData.out
 
+/-- Single-target wrapper for Paper3 Proposition 1.2. -/
+theorem paper3_Proposition_1_2_of_frontierData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hData : Paper3Proposition1FrontierData D p C) :
+    Proposition_1_2 D p :=
+  (paper3_proposition1Targets_of_frontierData hData).1
+
+/-- Instance-facing wrapper for Paper3 Proposition 1.2. -/
+theorem paper3_Proposition_1_2_of_frontierDataFact
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p)
+    [hData : Fact (Paper3Proposition1FrontierData D p C)] :
+    Proposition_1_2 D p :=
+  paper3_Proposition_1_2_of_frontierData hData.out
+
+/-- Single-target wrapper for Paper3 Proposition 1.3. -/
+theorem paper3_Proposition_1_3_of_frontierData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hData : Paper3Proposition1FrontierData D p C) :
+    Proposition_1_3 D p C :=
+  (paper3_proposition1Targets_of_frontierData hData).2.1
+
+/-- Instance-facing wrapper for Paper3 Proposition 1.3. -/
+theorem paper3_Proposition_1_3_of_frontierDataFact
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p)
+    [hData : Fact (Paper3Proposition1FrontierData D p C)] :
+    Proposition_1_3 D p C :=
+  paper3_Proposition_1_3_of_frontierData hData.out
+
+/-- Single-target wrapper for Paper3 Proposition 1.4. -/
+theorem paper3_Proposition_1_4_of_frontierData
+    {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
+    (hData : Paper3Proposition1FrontierData D p C) :
+    Proposition_1_4 D p :=
+  (paper3_proposition1Targets_of_frontierData hData).2.2
+
+/-- Instance-facing wrapper for Paper3 Proposition 1.4. -/
+theorem paper3_Proposition_1_4_of_frontierDataFact
+    (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p)
+    [hData : Fact (Paper3Proposition1FrontierData D p C)] :
+    Proposition_1_4 D p :=
+  paper3_Proposition_1_4_of_frontierData hData.out
+
 /-- Bridge Paper2 Theorem 1.3's global bounded branch to Paper3 Proposition
 1.3. -/
 theorem paper3_Proposition_1_3_of_Paper2_Theorem_1_3
