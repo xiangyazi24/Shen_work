@@ -132,6 +132,13 @@ theorem GlobalSolutionGluingFromReachability_of_bounded
   GlobalSolutionGluingFromReachability_of_boundedDatumUniform p
     (intervalDomainL2UBoundedDatumUniform_of_bounded h)
 
+/-- Instance-facing gluing theorem from the explicit boundedness hypothesis. -/
+theorem GlobalSolutionGluingFromReachability_of_boundedFact
+    (p : CM2Params)
+    [h : Fact (IntervalDomainL2UBoundednessHypothesis p)] :
+    ShenWork.IntervalDomainExistence.GlobalSolutionGluingFromReachability p :=
+  GlobalSolutionGluingFromReachability_of_bounded p h.out
+
 /-! ## Concrete uniformization of the τ-dependent constant (the `x↦x^γ` Lipschitz)
 
 The only τ-dependence in the static `v`-control constants `Cv,Cg = (∑W_k)²·4·(ν·L_γ)²`

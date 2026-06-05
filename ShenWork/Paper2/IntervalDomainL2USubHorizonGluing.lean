@@ -309,6 +309,22 @@ theorem GlobalSolutionGluingFromReachability_of_subHorizonUniformBound
     (intervalDomainClassicalUniquenessL2EnergyMethod_of_subHorizonUniformBound
       hbnd hdatum)
 
+/-- Instance-facing gluing theorem from the per-sub-horizon uniform lift bound. -/
+theorem GlobalSolutionGluingFromReachability_of_subHorizonUniformBoundFact
+    (p : CM2Params)
+    [hbnd : Fact (IntervalDomainSubHorizonUniformLiftBound p)]
+    (hdatum :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|))) :
+    ShenWork.IntervalDomainExistence.GlobalSolutionGluingFromReachability p :=
+  GlobalSolutionGluingFromReachability_of_subHorizonUniformBound
+    p hbnd.out hdatum
+
 /-! ## Discharge of the per-sub-horizon datum from regime + positive-datum
 lower bound
 

@@ -619,6 +619,21 @@ def boundednessHypothesis_of_uniformSupBound
     obtain ⟨δ, M, hδ, hb⟩ := hbnd.bound hsol₁ hsol₂ htr₁ htr₂
     exact gronwall_const_of_uniformLiftBound hsol₁ hsol₂ hδ hb
 
+/-- Instance-facing boundedness hypothesis from a uniform two-sided lift bound. -/
+def boundednessHypothesis_of_uniformSupBoundFact
+    {p : CM2Params}
+    [hbnd : Fact (IntervalDomainUniformLiftBound p)]
+    (hdatum :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|))) :
+    IntervalDomainL2UBoundednessHypothesis p :=
+  boundednessHypothesis_of_uniformSupBound hbnd.out hdatum
+
 /-- **Global-solution gluing from reachability, reduced to a CLEAN uniform-sup-bound
 hypothesis.**  The remaining gluing obligation is the natural "solutions uniformly
 bounded" datum `IntervalDomainUniformLiftBound p` (a uniform two-sided lift bound
@@ -645,6 +660,22 @@ theorem GlobalSolutionGluingFromReachability_of_uniformSupBound
     ShenWork.IntervalDomainExistence.GlobalSolutionGluingFromReachability p :=
   GlobalSolutionGluingFromReachability_of_bounded p
     (boundednessHypothesis_of_uniformSupBound hbnd hdatum)
+
+/-- Instance-facing gluing theorem from a uniform two-sided lift bound. -/
+theorem GlobalSolutionGluingFromReachability_of_uniformSupBoundFact
+    (p : CM2Params)
+    [hbnd : Fact (IntervalDomainUniformLiftBound p)]
+    (hdatum :
+      ∀ {u₀ : intervalDomainPoint → ℝ} {T₁ T₂ : ℝ}
+        {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
+        IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁ →
+        IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂ →
+        InitialTrace intervalDomain u₀ u₁ →
+        InitialTrace intervalDomain u₀ u₂ →
+          BddAbove (Set.range (fun x : intervalDomainPoint => |u₀ x|))) :
+    ShenWork.IntervalDomainExistence.GlobalSolutionGluingFromReachability p :=
+  GlobalSolutionGluingFromReachability_of_uniformSupBound
+    p hbnd.out hdatum
 
 /-! ## Discharging the UPPER bound `M` from the proven sup-norm bound (Lemma 3.1)
 
