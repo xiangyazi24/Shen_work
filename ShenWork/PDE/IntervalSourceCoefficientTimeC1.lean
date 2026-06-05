@@ -1399,6 +1399,60 @@ theorem restartCosineSeries_laplacian_eq
   ext n
   ring
 
+/-- **G4p: Spectral PDE identity.**
+The time derivative of the restart cosine series equals the spatial Laplacian
+plus the source series, i.e., `∂ₜu = Δu + f` in spectral form. -/
+theorem restartCosineSeries_pde_identity
+    {a₀ : ℕ → ℝ} {M : ℝ} (hM : 0 ≤ M) (ha₀ : ∀ n, |a₀ n| ≤ M)
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a)
+    {τ₀ : ℝ} (hτ₀ : 0 < τ₀)
+    (heig : Summable (fun n => unitIntervalCosineEigenvalue n *
+      |localRestartCoeff a₀ a τ₀ n|))
+    (y : ℝ) :
+    deriv (fun τ => ∑' n, localRestartCoeff a₀ a τ n * cosineMode n y) τ₀ =
+    deriv (deriv (fun x => ∑' n, localRestartCoeff a₀ a τ₀ n * cosineMode n x)) y +
+    ∑' n, a τ₀ n * cosineMode n y := by
+  rw [(restartCosineSeries_hasDerivAt_time hM ha₀ src hτ₀ y).deriv]
+  rw [restartCosineSeries_laplacian_eq heig y]
+  have hcos_le : ∀ n, |cosineMode n y| ≤ 1 := fun n => by
+    simp only [cosineMode]; exact Real.abs_cos_le_one _
+  have henv_nn : ∀ n, 0 ≤ src.envelope n := fun n =>
+    le_trans (abs_nonneg _) (src.henv_bound 0 le_rfl n)
+  have hsum_a : Summable (fun n => a τ₀ n * cosineMode n y) :=
+    Summable.of_norm (src.henv_summable.of_nonneg_of_le (fun _ => norm_nonneg _) (fun n => by
+      rw [Real.norm_eq_abs, abs_mul]
+      calc |a τ₀ n| * |cosineMode n y|
+          ≤ src.envelope n * 1 :=
+            mul_le_mul (src.henv_bound τ₀ hτ₀.le n) (hcos_le n) (abs_nonneg _) (henv_nn n)
+        _ = src.envelope n := mul_one _))
+  have hsum_lam : Summable (fun n =>
+      unitIntervalCosineEigenvalue n * localRestartCoeff a₀ a τ₀ n * cosineMode n y) :=
+    Summable.of_norm (heig.of_nonneg_of_le (fun _ => norm_nonneg _) (fun n => by
+      rw [Real.norm_eq_abs, abs_mul, abs_mul]
+      have hlam_nn : (0 : ℝ) ≤ unitIntervalCosineEigenvalue n := by
+        unfold unitIntervalCosineEigenvalue; positivity
+      rw [abs_of_nonneg hlam_nn]
+      calc unitIntervalCosineEigenvalue n * |localRestartCoeff a₀ a τ₀ n| * |cosineMode n y|
+          ≤ unitIntervalCosineEigenvalue n * |localRestartCoeff a₀ a τ₀ n| * 1 :=
+            mul_le_mul_of_nonneg_left (hcos_le n) (mul_nonneg hlam_nn (abs_nonneg _))
+        _ = unitIntervalCosineEigenvalue n * |localRestartCoeff a₀ a τ₀ n| := mul_one _))
+  -- -(∑ λcos) + ∑ acos = ∑ acos - ∑ λcos = ∑ (a - λc)cos
+  -- Use HasSum.sub: ∑ acos - ∑ λcos = ∑ (a - λc)cos; then rearrange with linarith.
+  have hhas_a := hsum_a.hasSum
+  have hhas_lam := hsum_lam.hasSum
+  have hhas_sub : HasSum (fun n => a τ₀ n * cosineMode n y -
+      unitIntervalCosineEigenvalue n * localRestartCoeff a₀ a τ₀ n * cosineMode n y)
+      (∑' n, a τ₀ n * cosineMode n y -
+        ∑' n, unitIntervalCosineEigenvalue n * localRestartCoeff a₀ a τ₀ n * cosineMode n y) :=
+    hhas_a.sub hhas_lam
+  have hfun_eq : (fun n => a τ₀ n * cosineMode n y -
+      unitIntervalCosineEigenvalue n * localRestartCoeff a₀ a τ₀ n * cosineMode n y) =
+      (fun n => (a τ₀ n - unitIntervalCosineEigenvalue n * localRestartCoeff a₀ a τ₀ n) *
+        cosineMode n y) := funext (fun n => by ring)
+  rw [hfun_eq] at hhas_sub
+  have heq := hhas_sub.tsum_eq
+  linarith [heq]
+
 end RestartSeries
 
 end ShenWork.IntervalSourceCoefficientTimeC1
