@@ -212,3 +212,10 @@ Two Claude sessions are working this repo in parallel. File ownership:
    IntervalDomainGradientMildHalfStepRestartFrontierCoreLocalData (χ₀=0) →
    localExistence → hlocal.
 5. Final merge with Q-line: paper2_theorem_1_1_of_threshold_persistence_hlocal.
+
+## Session B (~05:10): MinPersistence PHASE A COMPLETE at 4764601
+- 4 atoms green + axiom-clean in IntervalDomainMinPersistenceAtoms.lean:
+  2nd-derivative tests (min/max), elliptic_sup_bound (1-d elliptic max
+  principle w ≤ B/μ), elliptic_deriv_bound (|w'| ≤ μMw+B via Neumann+FTC).
+- These give the slab-uniform K(M) for the Hamilton/Gronwall step
+  (minpersistence-design.md Phase B, fully specced, signs verified).

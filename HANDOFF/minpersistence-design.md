@@ -75,5 +75,9 @@ strict), so Phase B can use the identical pattern.
   principle, interior + both Neumann endpoints, via the strict trick)
   + pivot helpers deriv_pos_right/deriv_neg_left_of_deriv2_pos_of_pivot
   (these are exactly the Hamilton-side adjacency lemmas too).
-- Next: A(iv) |v_x| FTC bound (small); B Hamilton slope + Gronwall
-  (the crux; pivot helpers ready); C assembly per the plan above.
+- Phase A(iv) DONE (4764601): elliptic_deriv_bound — |w'| ≤ μ·Mw + B on
+  the interior from the Neumann endpoint via FTC + the pivot limit.
+- PHASE A COMPLETE (4 atoms, all green + axiom-clean).
+- Next: Phase B Hamilton slope + Gronwall (the crux; the pivot helpers
+  deriv_pos_right/deriv_neg_left_of_deriv2_pos_of_pivot are exactly the
+  adjacency lemmas the by_contra needs); then C assembly.
