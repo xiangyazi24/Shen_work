@@ -313,3 +313,33 @@ The sequential-compactness Dini argument (flagged as the true crux) is CLOSED:
 
 Session-A B2/MinPersistence atoms: 18 this campaign, all axiom-clean. The two
 genuine analysis cruxes (interior min-point chain + the Dini wrapper) are DONE.
+
+## UPDATE 8 (Session A): per-solution persistence from conjuncts — DONE
+- `solution_minPersist_core` (IntervalDomainMinPersistCore.lean): Hamilton bound
+  applied to a solution's lift-slices ⟹ u(t,x) ≥ m_u(a)·e^{−Kp(t−a)}, GREEN+ac.
+- `solution_minPersist_of_conjuncts` (IntervalDomainMinPersistSolution.lean):
+  extracts the Hamilton regularity inputs from IsPaper2ClassicalSolution
+  conjuncts 9 (hF, closed-slab solution cont), 8 (hdF_cont, ∂ₜ cont), 4
+  (hslice_diff, time slices) on [a,b]⊆(0,T); from the min-point bound hbound
+  ⟹ u(t,x) ≥ m_u(a)·e^{−Kp(t−a)}. GREEN + axiom-clean.
+
+### ClassicalMinPersistence — remaining (precise):
+The per-solution persistence is COMPLETE modulo `hbound`. To finish:
+(a) **hbound at all argmins**: ∀ s∈[a,b], ∀ argmin ys of lift(u s),
+    −Kp·m ≤ ∂ₛ(lift(u ·) ys) s.
+    - interior ys (ys∈(0,1)): `interior_min_point_of_solution` (need to bridge
+      its `intervalDomain.timeDeriv u s ⟨ys⟩` = `deriv (fun r => lift(u r) ys) s`
+      and Kp := |χ₀|·fluxCoeffConst β (νM'^γ) + b·M'^α, with hbound's regimeBound
+      sup |u|≤M' from hSupNorm).
+    - boundary ys∈{0,1}: the boundary assembly (have boundary_min_deriv2_rlimit_
+      nonneg; still need u_t(0)=lim RHS via chemDiv up-to-boundary continuity).
+(b) **m_u(a) > 0**: a:=t₁/2 interior; u(a,·)>0 (positivity conjunct) continuous
+    on compact [0,1] ⟹ min attained > 0 ⟹ m_u(t₁/2) > 0.
+(c) **uniform c across solutions**: c := m_{u*}(t₁/2)·e^{−Kp(δ−t₁/2)} for a chosen
+    solution u*; overlap uniqueness (OverlapUniqueForPID, proved) ⟹ all
+    solutions with trace u₀ agree at t₁/2 ⟹ same m ⟹ uniform c. Moderate wiring.
+
+Session-A MinPersistence campaign: 20 axiom-clean atoms. BOTH analysis cruxes
+(interior min-point full chain + the seq-compactness Dini/Hamilton wrapper) +
+per-solution persistence from conjuncts are DONE. Remaining = hbound bridge
+(interior wiring + boundary chemDiv-continuity) + c-construction/uniformity.
