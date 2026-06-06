@@ -343,3 +343,28 @@ Session-A MinPersistence campaign: 20 axiom-clean atoms. BOTH analysis cruxes
 (interior min-point full chain + the seq-compactness Dini/Hamilton wrapper) +
 per-solution persistence from conjuncts are DONE. Remaining = hbound bridge
 (interior wiring + boundary chemDiv-continuity) + c-construction/uniformity.
+
+## UPDATE 9 (Session A): PER-SOLUTION ClassicalMinPersistence COMPLETE
+- `sliceMin_pos_of_solution`: m_u(t)>0 at interior times (positivity + min attained).
+- `solution_persist_exists_c` (IntervalDomainPersistExistsC.lean): from hsol +
+  hbound on [t₁/2,T) ⟹ ∃ c>0, ∀ t∈[t₁,T), ∀ x, c ≤ u(t,x).
+  c := m_u(t₁/2)·e^{−Kp(δ−t₁/2)}. GREEN + axiom-clean.
+This IS ClassicalMinPersistence for a FIXED solution.
+
+### Full ClassicalMinPersistence (∃c BEFORE ∀solution) — 2 remaining:
+1. **hbound** (the min-point bound, the input to solution_persist_exists_c):
+   - interior argmins: bridge `interior_min_point_of_solution`
+     (timeDeriv u s ⟨ys⟩ = deriv(fun r=>lift(u r) ys) s defeq; Kp :=
+     |χ₀|·fluxCoeffConst β (νM'^γ)+b·M'^α; M' from hSupNorm).
+   - boundary argmins ys∈{0,1}: boundary assembly (have
+     boundary_min_deriv2_rlimit_nonneg; need u_t(0)=lim RHS via chemDiv
+     up-to-boundary continuity — the one hard analytic gap left).
+2. **Cross-solution uniformity**: swap ∀solution,∃c → ∃c,∀solution. c is
+   datum-determined: overlap uniqueness (OverlapUniqueForPID, proved) ⟹ all
+   solutions with trace u₀ agree at t₁/2 ⟹ same m_u(t₁/2) ⟹ uniform c.
+   Chosen-solution trick (vacuous c:=1 if no solution). Moderate wiring.
+
+CAMPAIGN TOTAL (Session A, MinPersistence): 22 axiom-clean atoms. BOTH analysis
+cruxes (interior min-point chain, seq-compactness Dini/Hamilton) + per-solution
+persistence assembly = DONE. Only the hbound boundary-continuity gap + the
+uniqueness wiring remain for the literal predicate.
