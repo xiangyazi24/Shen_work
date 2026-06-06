@@ -152,7 +152,7 @@ private theorem deriv_pos_right_of_deriv2_pos_of_pivot
     have := hy.1
     simp only [hy'_def]; linarith
   have hy'_nonneg : 0 ≤ deriv w y' := by
-    apply ge_of_tendsto hpivot
+    apply le_of_tendsto hpivot
     filter_upwards [Ioo_mem_nhdsGT hay'] with z hz
     exact (hmono z y' hz.1 hz.2 (lt_trans hy'y hy.2)).le
   exact lt_of_le_of_lt hy'_nonneg (hmono y' y hay' hy'y hy.2)
@@ -186,7 +186,7 @@ private theorem deriv_neg_left_of_deriv2_pos_of_pivot
     have := hy.2
     simp only [hy'_def]; linarith
   have hy'_nonpos : deriv w y' ≤ 0 := by
-    apply le_of_tendsto hpivot
+    apply ge_of_tendsto hpivot
     filter_upwards [Ioo_mem_nhdsLT hy'b] with z hz
     exact (hmono y' z (lt_trans hy.1 hyy') hz.1 hz.2).le
   exact lt_of_lt_of_le (hmono y y' hy.1 hyy' hy'b) hy'_nonpos
