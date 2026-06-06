@@ -123,3 +123,15 @@ Two Claude sessions are working this repo in parallel. File ownership:
   cone_preserved + your iterate machinery compose directly).
 - Also note: IntervalMildPicardThreshold now exposes public
   logisticLifted_joint_measurable' / logisticLifted_time_cutoff_measurable'.
+
+## Session A status (02:50) — M3 + M2-uniform landed; gate-3 + M3b in flight
+- M3 GREEN (09666db): picardIterate_source_duhamelSourceTimeC1 — output =
+  M1's H2 verbatim; envelope max(2·B_log, M(a+bM^α)), derivBound Mdot.
+- M2-uniform GREEN (668e287): abstract ℓ¹-cosine-series deriv sup bounds +
+  iterate corollaries with E₁/E₂ + τ^{1/4} constants.
+- Claims: ShenWork/PDE/IntervalWeightPowerBound.lean (M-gate-3: explicit
+  power-law bounds on E₁/E₂) and ShenWork/Paper2/IntervalPicardIterateTimeC1.lean
+  (M3b: K1 discharge). Both agents in flight.
+- Next after those: M-final joint induction (PicardIterateUniformData with
+  the Ē-profile trick: G2*(s) := 2M₁Ē₂(s/2), gate condition
+  C·(T/2)^{1/4}·(a+b(1+α)M^α)·2^{5/2-ish} < 1), then M4 assembly → hlocal(χ₀=0).
