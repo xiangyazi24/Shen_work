@@ -368,3 +368,28 @@ CAMPAIGN TOTAL (Session A, MinPersistence): 22 axiom-clean atoms. BOTH analysis
 cruxes (interior min-point chain, seq-compactness Dini/Hamilton) + per-solution
 persistence assembly = DONE. Only the hbound boundary-continuity gap + the
 uniqueness wiring remain for the literal predicate.
+
+## UPDATE 10 (Session A): per-solution persistence FULLY ASSEMBLED — residual minimal
+- `hbound_interior` (IntervalDomainHboundInterior.lean): interior min-point
+  bound in exact hbound shape (bridges interior_min_point_of_solution;
+  argmin→hmin + timeDeriv/deriv-lift defeq). GREEN + axiom-clean.
+- `hbound_full` + `solution_persist_of_supNorm` (IntervalDomainPersistAssembly.lean):
+  interior/boundary by_cases (interior PROVED) → full hbound → per-solution
+  persistence `∃c>0, u≥c on [t₁,T)`. GREEN + axiom-clean.
+
+### LITERAL ClassicalMinPersistence — residual now MINIMAL (3 items):
+1. **boundary hbound** `hbdry` (ys∈{0,1}): u_t(0)=lim RHS (conjunct 8) with
+   chemDiv up-to-boundary continuity (C¹ of flux F=lift u·P on Icc) + the
+   2nd-deriv test `boundary_min_deriv2_rlimit_nonneg`. THE one hard analytic gap.
+2. **hSupNorm** `|lift(u s)| ≤ M'` on [t₁/2,T): = regimeBound/Lemma 3.1
+   (SupNormBridge.interiorSupNorm_le_regimeBound, PROVED) — wiring (the bound
+   is for x interior; extend to the lift on all of ℝ via the [0,1]-restriction +
+   0-outside). Moderate.
+3. **cross-solution uniformity** (∃c BEFORE ∀solution): per-solution c =
+   m_u(t₁/2)·e^{−K(δ−t₁/2)}; overlap uniqueness (OverlapUniqueForPID, PROVED)
+   ⟹ all solutions with trace u₀ share m_u(t₁/2). Chosen-solution + vacuous
+   branch. Moderate wiring.
+
+CAMPAIGN TOTAL (Session A, MinPersistence): 24 axiom-clean atoms. The two
+genuine analysis cruxes + the full per-solution persistence assembly are DONE.
+Only #1 (hard, chemDiv-boundary-continuity) + #2/#3 (wiring) remain.
