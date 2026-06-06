@@ -32,6 +32,7 @@ open MeasureTheory Set Filter
 open ShenWork.IntervalDomain (intervalDomain intervalDomainLift
   intervalDomainPoint intervalMeasure)
 open ShenWork.IntervalMildToClassical
+open ShenWork.IntervalMildToLocalExistence
 open ShenWork.IntervalGradientDuhamelMap
 open ShenWork.IntervalMildPicard
 open ShenWork.IntervalMildPicardThreshold
@@ -90,6 +91,7 @@ theorem positiveInitialDatum_nonneg
   intro x
   have hx_eq : u₀ x = f₀ x.1 := by
     simp only [hf₀_def, unitClip_of_mem x.2]
+    rfl
   rw [hx_eq]
   rcases lt_or_eq_of_le x.2.1 with h0x | h0x
   · rcases lt_or_eq_of_le x.2.2 with hx1 | hx1
