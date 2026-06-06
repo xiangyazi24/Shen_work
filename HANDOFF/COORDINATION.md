@@ -44,3 +44,22 @@ Two Claude sessions are working this repo in parallel. File ownership:
   (χ₀=0, inf-independent), mine threshold δ(M,c) + ClassicalMinPersistence
   restart iteration (general χ₀≤0). The threshold Picard file serves both
   (it IS Q2's data layer with the crude positivity gate).
+
+## Session B status (01:15) — Q-line landed, axiom-clean
+- GREEN at 7112135 (build-thr5, 3572 jobs): IntervalMildPicardThreshold.lean
+  + IntervalDomainThresholdQuantBridge.lean + IntervalDomainQuantFromThreshold.lean.
+- #print axioms: all 9 head theorems = {propext, Classical.choice, Quot.sound}.
+- PROVED: thresholdMildExistenceData_exists — uniform Picard horizon
+  δ(p,M,c) (Q2 in threshold form); gradientMildSolutionData_initialApproach —
+  hInitialApproach discharged GENERICALLY for any GradientMildSolutionData
+  with continuous datum (G5 + O(√t) universal Duhamel bounds at horizon t).
+  → you can DROP the approach conjunct from your hMildLocal interfaces /
+  S-construction target if convenient.
+- hQuant now = [Picard δ(M,c): PROVED] + PicardRestartFrontier (R+core only,
+  = your F2/S-construction target quantified over MildExistenceData) +
+  ClassicalMinPersistence (named min-principle hypothesis) + hlocal.
+  End-to-end: ThresholdQuantBridge.paper2_theorem_1_1_of_picardFrontier_persistence.
+- Q1 note: cone invariance needs S(t−s)∘S(s)=S(t); blocked on S1 coefficient
+  extraction. If your S1 lands cosineCoeffs (S(s)f) k = e^{−sλ_k}·cosineCoeffs f k,
+  ping here — Session B will take the cone-invariance file (χ₀=0, kills both
+  the c-threshold and MinPersistence for that sub-regime).
