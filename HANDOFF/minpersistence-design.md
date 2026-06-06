@@ -234,3 +234,35 @@ ClassicalMinPersistence ⟹ general-χ₀ hQuant via the threshold route.
 
 The K-constant is fully explicit & slab-independent:
   K = |χ₀|·(β(2νM'^γ)² + 2νM'^γ) + b·M'^α,  M' = regimeBound p M (hSupNorm).
+
+## UPDATE 5 (Session A): Phase-C slope-step landed; B + C-limit are the irreducible crux
+- `sliceMin_diff_le_slope` (IntervalDomainSliceMinSlope.lean) GREEN+axiom-clean:
+  m x − m z ≤ (x−z)·∂ₛF(ξ,x_z), x_z=argmin(z), ξ∈(x,z) — the per-step time-MVT
+  bound the Dini hypothesis is built from. Abstract F (matches sliceMin_isMinOn).
+
+### Exact remaining recipe (single coherent hard proofs — for worker-3):
+**C (Dini wrapper)** assembles into hamilton_lower_bound's hDini:
+  For x∈[a,b), r > Kp·m(x): want ∃ᶠ z→x⁺, (z−x)⁻¹(m x − m z) < r.
+  From sliceMin_diff_le_slope: (z−x)⁻¹(m x − m z) ≤ −∂ₛF(ξ_z, x_z)
+  [since (x−z)·d/(z−x) = −d]. Take z→x⁺:
+  - x_z ∈ [0,1] compact ⇒ subsequence x_{z_n} → x* (isCompact_Icc.isSeqCompact);
+  - x* is an argmin of F x (F z_n x_{z_n}=m z_n → F x x* by joint cont;
+    m z_n → m x by sliceMin_continuousOn ⇒ F x x* = m x);
+  - ξ_{z_n} → x (squeeze in (x,z_n)); ∂ₛF(ξ_{z_n},x_{z_n}) → ∂ₛF(x,x*)
+    [joint ∂ₜ continuity, conjunct 8];
+  - min-point estimate at x*: ∂ₛF(x,x*) = u_t(x,x*) ≥ −Kp·m(x)
+    [interior_min_point_of_solution if x* interior; **Phase B if x*∈{0,1}**];
+  ⇒ −∂ₛF(ξ_{z_n},x_{z_n}) → −u_t(x,x*) ≤ Kp·m(x) < r, so eventually < r. ∎
+**B (boundary min-point)** x*∈{0,1}: the lift is DISCONTINUOUS at the endpoint
+  (zero-extension jump), so the two-sided HasDerivAt inputs of
+  min_point_estimate_interior FAIL there. Need one-sided reformulation:
+  u_t(0) = lim_{x→0⁺} u_t(x) [conjunct 8 closed-slab ∂ₜ cont] = lim RHS(x)
+  [pde_u interior] = RHS(0) [laplacian cont via conjunct 7 closed C², chemDiv
+  cont, reaction cont], with u_x(0)=0 [conjunct 7 endpoint deriv=0] and
+  u_xx(0)≥0 [boundary 2nd-deriv test via the pivot helpers]. ~150-250 ln.
+
+All Session-A B2 atoms (14 total incl. slope-step) lake-env-lean green +
+axiom-clean. Phase A interior estimate is the single callable
+interior_min_point_of_solution. B + C-limit are the irreducible coupled
+hard-analysis remaining; recommend one focused worker-3 push (file owner,
+has sliceMin + pivot machinery).
