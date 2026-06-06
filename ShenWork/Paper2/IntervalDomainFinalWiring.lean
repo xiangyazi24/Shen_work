@@ -4,6 +4,7 @@
 -/
 import ShenWork.Paper2.IntervalDomainTheorem11Umbrella
 import ShenWork.Paper2.IntervalDomainPiecewiseGlue
+import ShenWork.Paper2.IntervalDomainPiecewiseClassical
 import ShenWork.Paper2.IntervalDomainGlueExtension
 import ShenWork.Paper2.IntervalDomainTimeShift
 import ShenWork.Paper2.IntervalDomainSupNormBridge
@@ -67,5 +68,23 @@ theorem paper2_theorem_1_1_from_three
           InitialTrace intervalDomain w uw := fun hw hbw => hex hw hbw
     -- Apply RestartAndGlueWorks
     exact hRestart hM' hδ hfactory hu₀ hbound' hT₀ hsol htrace hSupBound
+
+/-- **Paper 2 Theorem 1.1 from regime + 2 hypotheses** — `hPCW` is now
+discharged unconditionally by `PiecewiseClassical.piecewiseClassicalWorks`. -/
+theorem paper2_theorem_1_1_from_two
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hQuant : ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+        (∀ x, |u₀ x| ≤ M) →
+        ∃ u v,
+          IsPaper2ClassicalSolution intervalDomain p δ u v ∧
+          InitialTrace intervalDomain u₀ u)
+    (hMildLocal :
+      IntervalDomainGradientMildHalfStepLogisticSourceFrontierCoreLocalData p) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_from_three p hχ ha hb hγ_ge_one hQuant
+    (PiecewiseClassical.piecewiseClassicalWorks p) hMildLocal
 
 end ShenWork.Paper2.FinalWiring
