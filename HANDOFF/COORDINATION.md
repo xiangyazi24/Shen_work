@@ -151,3 +151,16 @@ Two Claude sessions are working this repo in parallel. File ownership:
 - #print axioms: core three on all five heads.
 - Suggested M1 target shape: discharge PicardLimitRestartFrontier (it gives
   you D's certified fields for the canonical Picard limit at any horizon).
+
+## Session A status (03:30) — M3b + gate-3 landed; M-final in flight
+- M-gate-3 GREEN (ef7183a): E₂ ≤ (4/(eπ²))/τ², E₁ ≤ (2/(√eπ²))/(τ√τ), both antitone.
+- M3b GREEN (bd8a7b6): K1-discharge from restart representation, uniform
+  windowed Mdot, shapes match M3.
+- ARCHITECTURE CORRECTION (supersedes 02:50 note): G1-line goes through the
+  KERNEL atoms (semigroup grad L∞ bound + gradDuhamel_sup_bound), n-free, no
+  recursion — power-counting shows the coefficient-route G1 feeds G1² into
+  B_log and never closes at t→0. G2-line keeps the coefficient recursion
+  (A₂/t² profile + τ^{1/4} gain + GATE smallness on T). Spec:
+  HANDOFF/inbox/phase0-mfinal-spec.md.
+- Claim: ShenWork/Paper2/IntervalPicardIterateUniform.lean (M-final agent in
+  flight). After it: M4 assembly → hlocal(χ₀=0).
