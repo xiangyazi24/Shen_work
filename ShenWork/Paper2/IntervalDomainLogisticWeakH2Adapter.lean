@@ -33,6 +33,7 @@ open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.PDE.IntervalMildSourceDecayHelper (IntervalWeakH2Neumann)
+open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
 open ShenWork.IntervalMildPicardRegularity
   (logisticSourceFun logisticSourceFun_intervalWeakH2Neumann)
 
@@ -101,5 +102,46 @@ theorem logisticSource_cosineCoeff_quadratic_decay_of_representation
         ≤ C / ((k : ℝ) * Real.pi) ^ 2 :=
   ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_cosineCoeff_quadratic_decay
     (logisticSource_intervalWeakH2Neumann_of_eigenvalue_summable hbsum hagree hpos)
+
+/-- **Representation-based logistic-source `DuhamelSourceTimeC1` producer.**
+
+The additive, representation-fed analogue of
+`logisticSource_duhamelSourceTimeC1`: it replaces the global-`C²` spatial data
+`(hC2, hN0, hN1)` — which on the zero-extension lift is UNSATISFIABLE — by the
+cosine representation `(hbsum, hagree, hpos)` per time slice, supplying the
+weak-H²/Neumann certificate through
+`logisticSource_intervalWeakH2Neumann_of_eigenvalue_summable`.  The coefficient
+decay/zeroth-bound and K1 time-`C¹` data are carried unchanged.
+
+This lets a ledger build the logistic source's `DuhamelSourceTimeC1` from data the
+restart cosine representation genuinely supplies, with no global-`C²` hypothesis. -/
+noncomputable def logisticSource_duhamelSourceTimeC1_of_representation
+    {p : CM2Params} {w : ℝ → intervalDomainPoint → ℝ}
+    (bc : ℝ → ℕ → ℝ)
+    (hbsum : ∀ σ, Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|))
+    (hagree : ∀ σ, Set.EqOn (intervalDomainLift (w σ))
+        (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1))
+    (hpos : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (w σ) x)
+    {C : ℝ} (hC : 0 ≤ C)
+    (hdecay : ∀ σ, 0 ≤ σ → ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs (logisticSourceFun p.a p.b p.α (intervalDomainLift (w σ))) k|
+        ≤ C / ((k : ℝ) * Real.pi) ^ 2)
+    (ha0 : ∀ σ, 0 ≤ σ →
+      |cosineCoeffs (logisticSourceFun p.a p.b p.α (intervalDomainLift (w σ))) 0| ≤ C)
+    {adot : ℝ → ℕ → ℝ}
+    (hderiv : ∀ σ n, HasDerivAt
+      (fun r => cosineCoeffs
+        (logisticSourceFun p.a p.b p.α (intervalDomainLift (w r))) n) (adot σ n) σ)
+    (hadotcont : ∀ n, Continuous (fun σ => adot σ n))
+    {Mdot : ℝ}
+    (hMdot : ∀ σ, 0 ≤ σ → ∀ n, |adot σ n| ≤ Mdot) :
+    DuhamelSourceTimeC1
+      (fun σ n =>
+        cosineCoeffs (logisticSourceFun p.a p.b p.α (intervalDomainLift (w σ))) n) :=
+  ShenWork.IntervalSemigroupNeumann.duhamelSourceTimeC1_of_H2Neumann_timeC1
+    (fun σ _hσ =>
+      logisticSource_intervalWeakH2Neumann_of_eigenvalue_summable
+        (hbsum σ) (hagree σ) (hpos σ))
+    hC hdecay hderiv hadotcont hMdot ha0
 
 end ShenWork.IntervalDomainLogisticWeakH2Adapter
