@@ -137,7 +137,7 @@ theorem cosineCoeffs_unitIntervalCosineHeatValue
           exact Filter.Eventually.of_forall fun x => hF_bound k x
       _ = (Real.exp (-t * unitIntervalCosineEigenvalue k) * M) *
             (volume.restrict (Set.Ioc (0 : ℝ) 1) Set.univ).toReal := by
-          rw [integral_const, smul_eq_mul]
+          rw [integral_const, smul_eq_mul, MeasureTheory.measureReal_def]
           ring
       _ = Real.exp (-t * unitIntervalCosineEigenvalue k) * M := by
           rw [Measure.restrict_apply_univ, Real.volume_Ioc]
