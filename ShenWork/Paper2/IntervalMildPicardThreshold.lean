@@ -2342,7 +2342,7 @@ theorem gradientMildSolutionData_initialApproach (p : CM2Params)
     apply MeasureTheory.integral_congr_ae
     have : ∀ᵐ y ∂(ShenWork.IntervalDomain.intervalMeasure 1),
         y ∈ Set.Icc (0:ℝ) 1 := by
-      rw [ShenWork.IntervalDomain.intervalMeasure,
+      simp only [ShenWork.IntervalDomain.intervalMeasure,
         ShenWork.IntervalDomain.intervalSet]
       exact (MeasureTheory.ae_restrict_iff' measurableSet_Icc).mpr
         (Filter.Eventually.of_forall fun y hy => hy)
@@ -2422,9 +2422,9 @@ theorem gradientMildSolutionData_initialApproach (p : CM2Params)
           (logisticLifted p (D.u s)) x.1)| < ε / 2 := by
     have hsqrt_le : Real.sqrt t ≤ Real.sqrt δ₂ := Real.sqrt_le_sqrt htδ₂.le
     have hAB : A_corr * Real.sqrt t + B_corr * t
-        ≤ A_corr * Real.sqrt δ₂ + B_corr * δ₂ := by
-      gcongr
-      exact htδ₂.le
+        ≤ A_corr * Real.sqrt δ₂ + B_corr * δ₂ :=
+      add_le_add (mul_le_mul_of_nonneg_left hsqrt_le hA_nn)
+        (mul_le_mul_of_nonneg_left htδ₂.le hB_nn)
     calc |(-p.χ₀) * (∫ s in (0:ℝ)..t,
           deriv (fun z => intervalFullSemigroupOperator (t - s)
             (chemFluxLifted p (D.u s)) z) x.1)
