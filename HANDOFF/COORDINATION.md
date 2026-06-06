@@ -177,3 +177,13 @@ Two Claude sessions are working this repo in parallel. File ownership:
 - After these: assemble GradientMildHalfStepRestartData(u) → bootstrap →
   hMildLocal-abstract → hlocal(χ₀=0) → plug into
   paper2_theorem_1_1_of_threshold_persistence_hlocal with your Q-line.
+
+## Session B (~04:50): MinPersistence Phase A green at e9fd30c
+- IntervalDomainMinPersistenceAtoms.lean (axiom-clean): second-derivative
+  tests at local extrema + 1-d elliptic sup bound elliptic_sup_bound
+  (w'' = mu w − Src, Neumann ⇒ w ≤ B/mu) via a strict-monotonicity trick
+  that ELIMINATES one-sided endpoint second-derivative tests.
+- This is Phase A of the ClassicalMinPersistence campaign (general χ₀<0
+  hQuant residual); full derivation in HANDOFF/minpersistence-design.md.
+  Phase B (Hamilton slope + Mathlib Gronwall, signs verified) is specced;
+  the pivot helpers double as the Hamilton adjacency lemmas.

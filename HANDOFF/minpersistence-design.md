@@ -59,8 +59,21 @@ from the same m*(t₁) > 0 (positivity field + compactness + slice
 continuity).  K is slab-independent (that is the point of the elliptic
 coefficient bounds), so no open-endpoint compactness issue.
 
-## Status
-- Phase A(i) deriv2_nonneg_of_isLocalMin / deriv2_nonpos_of_isLocalMax:
-  IntervalDomainMinPersistenceAtoms.lean (committed; iterating to green).
-- Next: A(ii) one-sided endpoint test; A(iii) elliptic v-bounds;
-  B Hamilton; C assembly.
+## KEY SIMPLIFICATION (discovered during A(iii))
+One-sided second-derivative tests (the old A(ii)) are UNNECESSARY:
+the "strict trick" — `w(x*) > B/μ` forces `w'' > 0 on a NEIGHBOURHOOD,
+so `w'` is strictly monotone there; with a pivot (`w'(x*) = 0` interior
+via deriv-continuity-from-C², or `w' → 0` at a Neumann endpoint), `w'`
+is one-signed adjacent to the extremum, so `w` strictly moves — beats
+the extremum.  The same ε-room exists inside the Hamilton by_contra
+(the Gronwall hypothesis `∀ r > f' x, frequently slope < r` is already
+strict), so Phase B can use the identical pattern.
+
+## Status (all green + axiom-clean)
+- Phase A(i) DONE: deriv2_nonneg_of_isLocalMin / deriv2_nonpos_of_isLocalMax.
+- Phase A(iii) DONE (e9fd30c): elliptic_sup_bound (1-d elliptic max
+  principle, interior + both Neumann endpoints, via the strict trick)
+  + pivot helpers deriv_pos_right/deriv_neg_left_of_deriv2_pos_of_pivot
+  (these are exactly the Hamilton-side adjacency lemmas too).
+- Next: A(iv) |v_x| FTC bound (small); B Hamilton slope + Gronwall
+  (the crux; pivot helpers ready); C assembly per the plan above.
