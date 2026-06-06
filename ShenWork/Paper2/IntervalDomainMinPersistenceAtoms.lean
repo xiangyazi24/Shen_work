@@ -15,6 +15,7 @@ import Mathlib.Analysis.Calculus.MeanValue
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
 import Mathlib.Analysis.Calculus.LocalExtr.Basic
 import Mathlib.MeasureTheory.Integral.IntervalIntegral.FundThmCalculus
+import Mathlib.Analysis.ODE.Gronwall
 
 noncomputable section
 
@@ -581,5 +582,52 @@ theorem sliceMax_continuousOn {F : ℝ → ℝ → ℝ} {a b : ℝ}
   have hbwd := hkey s t hs ht hst
   rw [Real.dist_eq, abs_sub_lt_iff]
   constructor <;> linarith
+
+/-! ## Phase B3: the Hamilton/Grönwall lower-bound core (pure analysis)
+
+If a continuous `m` on `[a,b]` cannot drop faster than `−Kₚ·m` (a
+right-lower-Dini condition), then `m(t) ≥ m(a)·e^{−Kₚ(t−a)}`.  This is
+the parabolic minimum-principle conclusion stripped of all PDE content:
+the PDE only enters through the Dini hypothesis (B2). -/
+
+set_option maxHeartbeats 800000 in
+/-- **Hamilton lower bound.**  `m` continuous on `[a,b]`; for every
+`x ∈ [a,b)` and every `r` exceeding `Kₚ·m(x)`, the forward difference
+quotient `(m(x) − m(z))/(z − x)` is `< r` arbitrarily close to the
+right of `x` (i.e. `m` does not decrease faster than the rate `−Kₚ·m`).
+Then `m(a)·e^{−Kₚ(t−a)} ≤ m(t)` on `[a,b]`. -/
+theorem hamilton_lower_bound {m : ℝ → ℝ} {a b Kp : ℝ}
+    (hcont : ContinuousOn m (Set.Icc a b))
+    (hDini : ∀ x ∈ Set.Ico a b, ∀ r : ℝ, Kp * m x < r →
+      ∃ᶠ z in nhdsWithin x (Set.Ioi x), (z - x)⁻¹ * (m x - m z) < r) :
+    ∀ x ∈ Set.Icc a b, m a * Real.exp (-Kp * (x - a)) ≤ m x := by
+  -- Apply the Grönwall inequality to `f := −m`.
+  set f : ℝ → ℝ := fun y => -m y with hf_def
+  set f' : ℝ → ℝ := fun y => Kp * m y with hf'_def
+  have hf_cont : ContinuousOn f (Set.Icc a b) := hcont.neg
+  have hf'_freq : ∀ x ∈ Set.Ico a b, ∀ r, f' x < r →
+      ∃ᶠ z in nhdsWithin x (Set.Ioi x), (z - x)⁻¹ * (f z - f x) < r := by
+    intro x hx r hr
+    have := hDini x hx r hr
+    refine this.mono (fun z hz => ?_)
+    have heq : f z - f x = m x - m z := by simp only [hf_def]; ring
+    rw [heq]
+    exact hz
+  have hbound : ∀ x ∈ Set.Ico a b, f' x ≤ (-Kp) * f x + 0 := by
+    intro x _hx
+    simp only [hf_def, hf'_def]
+    ring_nf
+  have hfa : f a ≤ -m a := le_of_eq (by simp [hf_def])
+  have hgron := le_gronwallBound_of_liminf_deriv_right_le
+    hf_cont hf'_freq hfa hbound
+  intro x hx
+  have hbx := hgron x hx
+  rw [gronwallBound_ε0] at hbx
+  -- `f x ≤ (−m a)·e^{−Kp(x−a)}`  ⇒  `m a·e^{−Kp(x−a)} ≤ m x`.
+  simp only [hf_def] at hbx
+  have : m a * Real.exp (-Kp * (x - a)) = -((-m a) * Real.exp (-Kp * (x - a))) := by
+    ring
+  rw [this]
+  linarith [hbx]
 
 end ShenWork.MinPersistenceAtoms
