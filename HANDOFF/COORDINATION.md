@@ -227,3 +227,19 @@ Two Claude sessions are working this repo in parallel. File ownership:
   Mathlib APIs identified: le_gronwallBound_of_liminf_deriv_right_le,
   isSeqCompact, conjuncts 4/6/8/9). Next Session B block executes it.
 - Session B signing off this shift; all pushed to uisai1 + GitHub.
+
+## Session A status (06:30) — χ₀=0 wired end-to-end; explicit residual ledger
+- Step 2 (e01f32e): gradientMildHalfStepRestartData_for_limit (K1/H2 forward).
+- Step 4 (54b7dba): hMildLocal_chi0_zero_of_inputs +
+  paper2_theorem_1_1_chiZero_of_inputs — Theorem 1.1 (χ₀=0) ⟸
+  LimitRegularityInputs (THE explicit ledger) + cone-bridge hQuant.
+- Ledger discharge routes (pickup): K1/K2 families = n→∞ images of M-final
+  Data (+ M3b window output); Hu — NOTE: ★-weak's rep(u) IS a
+  time-neighborhood spectral agreement (restart identity at every t, window
+  form via restartDuhamelCoeff = localRestartCoeff rfl-bridge) — likely a
+  short wiring, try first; Hvsrc — resolver source TimeC1 (M3-style on the
+  resolver side); HsupNorm — parabolic max principle (worker-3's
+  MinPersistence atoms are adjacent); Hvpos — elliptic strong min principle
+  (resolver positivity machinery exists: IntervalResolverPositivity);
+  hpde_u — the G4n-p spectral→pointwise bridge consumed rep-data, re-examine
+  with rep(u) in hand.
