@@ -116,3 +116,29 @@ Mechanical but large. Zero-data branches proved.
 
 ## Build
 On uisai1: `PATH=$HOME/.elan/bin:$PATH lake build`
+
+## 2026-06-06 night update — hQuant driven to a single shared residual
+
+The "Two genuine remaining hypotheses" section above is STALE. Current map:
+
+### hQuant (uniform δ(M) local existence) — Session B campaign, all green/axiom-clean
+- **χ₀ = 0 (cone route, COMPLETE modulo one hypothesis):**
+  `ConeQuantBridge.quantitativeLocalExistence_chiZero` — Picard contraction
+  AND positivity proved (exponential cone invariance, uniform δ(p,M),
+  no inf-threshold). Residual: `PicardLimitRestartFrontier` only.
+  End-to-end: `paper2_theorem_1_1_chiZero_of_frontier` (+ hlocal).
+- **General χ₀ ≤ 0 (threshold route, conditional):**
+  `QuantFromThreshold` + `ThresholdQuantBridge`: hQuant ⟸ proved-δ(M,c)
+  threshold Picard + `ClassicalMinPersistence` (min principle, open) +
+  `PicardLimitRestartFrontier` + hlocal.
+- **Key new infrastructure** (axiom-clean): Chapman–Kolmogorov
+  `IntervalSemigroupComposition` (S(s)S(t)=S(s+t) via S1 spectral identity),
+  cone atoms (mono/Duhamel-eval/kernel strict positivity), generic
+  `gradientMildSolutionData_initialApproach` (hInitialApproach is no longer
+  part of any per-datum frontier for continuous data).
+
+### Unified residual
+`PicardLimitRestartFrontier p` (ConeQuantBridge): restart source data +
+frontier core for every packaged D with `D.u = picardLimit p u₀ D.T`.
+One S-construction discharge (Session A's M-line, in flight) closes
+hQuant(χ₀=0), the threshold route's Picard half, and hlocal(χ₀=0).
