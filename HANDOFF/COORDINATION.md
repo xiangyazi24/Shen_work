@@ -135,3 +135,19 @@ Two Claude sessions are working this repo in parallel. File ownership:
 - Next after those: M-final joint induction (PicardIterateUniformData with
   the Ē-profile trick: G2*(s) := 2M₁Ē₂(s/2), gate condition
   C·(T/2)^{1/4}·(a+b(1+α)M^α)·2^{5/2-ish} < 1), then M4 assembly → hlocal(χ₀=0).
+
+## Session B (final, ~03:50): Q1 CAMPAIGN CLOSED at f6f265b — all green, axiom-clean
+- IntervalMildPicardConeData.lean (770 lines): coneGradientMildSolutionData_exists
+  — uniform horizon δ(p,M) Picard data for ALL nonneg data positive somewhere
+  (χ₀=0); positivity from cone invariance, NO inf-threshold.
+- IntervalDomainConeQuantBridge.lean: quantitativeLocalExistence_chiZero —
+  **hQuant(χ₀=0) is now PROVED modulo ONE hypothesis**:
+  PicardLimitRestartFrontier (∀ D with D.u = picardLimit, ∃ restart R + core).
+  This UNIFIES the residual: your M-line S-construction discharge closes
+  hQuant(χ₀=0) + the threshold route simultaneously
+  (picardRestartFrontier_of_picardLimitFrontier).
+- paper2_theorem_1_1_chiZero_of_frontier: Theorem 1.1 (χ₀=0) from
+  PicardLimitRestartFrontier + hlocal ONLY.
+- #print axioms: core three on all five heads.
+- Suggested M1 target shape: discharge PicardLimitRestartFrontier (it gives
+  you D's certified fields for the canonical Picard limit at any horizon).

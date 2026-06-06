@@ -37,19 +37,20 @@ boundary — phrase everything through f₀).
    0 ≤ w ≤ e^{as}·S(s)f₀, Ke ≥ b·Mw^α, I = envelopeIntegral.
    Note 1 + a·I(t) = e^{at} (FTC, for the caller), so upper cone is exactly
    invariant; nonneg-preservation needs Ke·I(T) ≤ 1 (uniform small T).
-3. Iterate induction: picardIter n ∈ Cone for all n (base: iterate 0 =
-   S(t)u₀ = 1·S(t)f₀ ∈ Cone since θ ≤ 1 ≤ e^{at}; step: preservation).
-4. Limit: picardLimit ∈ Cone (pointwise limit of cone members; cone is
-   closed under pointwise limits — le_of_tendsto).
-5. Positivity: u(t,x) ≥ ½·S(t)f₀(x) > 0 via strict positivity atom
-   (PID gives f₀ ≥ 0 on [0,1], f₀(½) = u₀(½) > 0).
-6. Cone-augmented MildExistenceData: hmapsTo_pos quantifies over the
-   WHOLE ball — either (a) restrict the trajectory class in a cone-indexed
-   variant of the Picard run, or (b) keep MildExistenceData but discharge
-   hpos of the final GradientMildSolutionData record directly from 4+5
-   (build the record by hand as in gradientMildSolutionData_of_data,
-   replacing the hpos field; everything else forwards).  (b) is lighter.
-7. hQuant(χ₀=0) assembly: uniform horizon δ(M) + frontier (same
-   PicardRestartFrontier shape) → QuantitativeLocalExistence for the
-   χ₀ = 0 sub-regime via the ThresholdQuantBridge pattern (no threshold,
-   no persistence).
+3–7. ✅ ALL DONE (f6f265b, GREEN, axiom-clean):
+   - IntervalMildPicardConeData.coneGradientMildSolutionData_exists:
+     route (b) executed — χ₀=0-specialised construction (value-Duhamel-only
+     ball/contraction/continuity/measurability blocks, ~770 lines), cone
+     induction over iterates, limit via ge_of_tendsto, hpos from the cone
+     lower output (1−Ke·I(t) ≥ ½) × kernel strict positivity.  Horizon
+     δ(p,M) = 1/(2(C_L + C_L_val + Ke·e^a + 1)), fully datum-free.
+   - IntervalDomainConeQuantBridge:
+     positiveInitialDatum_nonneg (closed-interval nonneg by one-sided
+     limits), PicardLimitRestartFrontier (UNIFIED residual — subsumes
+     PicardRestartFrontier), quantitativeLocalExistence_chiZero (hQuant
+     for χ₀=0 modulo the frontier only — no threshold, no MinPersistence),
+     paper2_theorem_1_1_chiZero_of_frontier.
+
+## CAMPAIGN CLOSED. Residual for hQuant(χ₀=0): PicardLimitRestartFrontier
+   (= the F2/S-construction, Session A's M-line). General χ₀ ≤ 0 still
+   goes through Threshold + ClassicalMinPersistence (Q3 deferred).
