@@ -65,3 +65,41 @@ olean: `lake env lean -o ...olean file.lean`. BLOCKED while codex + rfl-build
 lake run (clobber/cache-corruption risk). Run when uisai1 idle.
 Audit after: `#print axioms` + re-run the vacuity False-proof (must now FAIL to
 typecheck = structure satisfiable).
+
+---
+
+## UPDATE (2026-06-06): ADDITIVE ADAPTER LANDED — the right fix, no shared edits
+
+The retype-the-shared-structures approach was abandoned (cascades + breaks the
+auto-pushed shared main). New working approach per Xiang: ADDITIVE adapters that
+consume the COSINE REPRESENTATION instead of the unsatisfiable global-C²-of-lift.
+
+KEY: the restart cosine representation gives `lift w =ᴵᶜᶜ (x ↦ ∑ₙ bₙ cos(nπx))`,
+and the cosine series IS genuinely globally C² (`cosineCoeffSeries_contDiff_two`,
+from `∑ₙ λₙ|bₙ| < ∞`). That series is the honest global-C² witness (the role the
+clamp was meant to play — and it's truly C², not the clamp's mere C¹). Feed it to
+the EXISTING global-C² constructors, transfer to the lift via [0,1]-agreement.
+
+LANDED (axiom-clean, verified via single-file `lake env lean` on uisai1 — safe,
+read-only, no interference with codex; committed + pushed):
+- `ShenWork/Paper2/IntervalDomainLogisticWeakH2Adapter.lean`:
+  * `IntervalWeakH2Neumann.congr_on_Icc` — transfer the weak certificate across
+    [0,1]-agreement (it uses f only via ∫₀¹cos·f).
+  * `logisticSource_intervalWeakH2Neumann_of_eigenvalue_summable` — logistic
+    source `u(a−bu^α)` weak-H² from (eigenvalue-summable coeffs + EqOn-Icc repr +
+    positivity). NO global-C² of lift.
+  * `logisticSource_cosineCoeff_quadratic_decay_of_representation` — the |ĉₖ| ≤
+    C/(kπ)² decay corollary.
+
+ALREADY PRESENT (power source νu^γ, mirror — discovered in
+IntervalMildSourceDecayHelper.lean):
+- `intervalWeakH2Neumann_of_eigenvalue_summable` (same recipe, junk-deriv route
+  works there since νu^γ>0 strictly at endpoints).
+- `powerSource_cosineCoeff_quadratic_decay_of_chain_rule`.
+
+NEXT: build representation-based DuhamelSourceTimeC1 producers (logistic + power)
+using these decay results + the K1 time-C¹ data, additively; then a
+representation-based `limitSource_duhamelSourceTimeC1` / `Hu` / the ledger fields
+restated to carry the cosine representation (`hagree` + summable coeffs) instead
+of `hC2t` global. The ledger then becomes SATISFIABLE (the real restart rep
+supplies hagree) — all additively, no breaking edits to the shared chain.
