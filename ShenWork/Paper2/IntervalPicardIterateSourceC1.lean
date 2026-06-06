@@ -128,7 +128,7 @@ noncomputable def picardIterate_source_duhamelSourceTimeC1
     (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
     -- K2 spatial slice bounds (profile g σ = lift (picardIter p u₀ n σ))
     {M G1 G2 : ℝ}
-    (hC2 : ∀ σ, ContDiff ℝ 2 (intervalDomainLift (picardIter p u₀ n σ)))
+    (hC2 : ∀ σ, ContDiffOn ℝ 2 (intervalDomainLift (picardIter p u₀ n σ)) (Set.Icc (0 : ℝ) 1))
     (hpos : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1,
       0 < intervalDomainLift (picardIter p u₀ n σ) x)
     (hub : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1,
