@@ -44,6 +44,7 @@ import ShenWork.Paper2.IntervalMildPicardThreshold
 import ShenWork.Paper2.IntervalDomainRestartLocalWiring
 
 open ShenWork.IntervalDomain
+open ShenWork.IntervalDomainExistence
 open ShenWork.IntervalGradientDuhamelMap
 open ShenWork.IntervalMildPicard
 open ShenWork.IntervalMildPicardThreshold
