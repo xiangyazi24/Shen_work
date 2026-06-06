@@ -504,4 +504,82 @@ theorem sliceMin_continuousOn {F : ℝ → ℝ → ℝ} {a b : ℝ}
   rw [Real.dist_eq, abs_sub_lt_iff]
   constructor <;> linarith
 
+/-! ## Phase B1-max: the spatial-MAXIMUM trajectory (sup-side mirror)
+
+The exact mirror of `sliceMin_*` with `sSup`/`csSup` in place of
+`sInf`/`csInf`.  This is the handle for `HsupNorm`
+(`IntervalDomainSupNormDerivativeNonposOn`): `intervalDomainSupNorm
+(F t) = sSup (|F t| '' [0,1])`, so the sup-norm trajectory inherits
+continuity and attainment from these. -/
+
+/-- The spatial maximum is attained and bounds slices from above. -/
+theorem sliceMax_isMaxOn {F : ℝ → ℝ → ℝ} {a b t : ℝ}
+    (ht : t ∈ Set.Icc a b)
+    (hF : ContinuousOn (Function.uncurry F)
+      (Set.Icc a b ×ˢ Set.Icc (0:ℝ) 1)) :
+    ∃ x ∈ Set.Icc (0:ℝ) 1,
+      F t x = sSup (F t '' Set.Icc (0:ℝ) 1) := by
+  have hslice : ContinuousOn (F t) (Set.Icc (0:ℝ) 1) := by
+    intro x hx
+    exact ((hF (t, x) ⟨ht, hx⟩).comp
+      (Continuous.continuousWithinAt (by fun_prop))
+      (fun y hy => ⟨ht, hy⟩) : ContinuousWithinAt (fun y => F t y) _ x)
+  have himg : IsCompact (F t '' Set.Icc (0:ℝ) 1) :=
+    isCompact_Icc.image_of_continuousOn hslice
+  have hne : (F t '' Set.Icc (0:ℝ) 1).Nonempty :=
+    ⟨F t 0, Set.mem_image_of_mem _ (Set.left_mem_Icc.mpr zero_le_one)⟩
+  obtain ⟨x, hx, hxeq⟩ := himg.sSup_mem hne
+  exact ⟨x, hx, hxeq⟩
+
+set_option maxHeartbeats 800000 in
+/-- **Continuity of the maximum trajectory** on a compact slab. -/
+theorem sliceMax_continuousOn {F : ℝ → ℝ → ℝ} {a b : ℝ}
+    (hF : ContinuousOn (Function.uncurry F)
+      (Set.Icc a b ×ˢ Set.Icc (0:ℝ) 1)) :
+    ContinuousOn (fun t => sSup (F t '' Set.Icc (0:ℝ) 1))
+      (Set.Icc a b) := by
+  have hcpt : IsCompact (Set.Icc a b ×ˢ Set.Icc (0:ℝ) 1) :=
+    isCompact_Icc.prod isCompact_Icc
+  have huc := hcpt.uniformContinuousOn_of_continuous hF
+  rw [Metric.uniformContinuousOn_iff] at huc
+  rw [Metric.continuousOn_iff]
+  intro t ht ε hε
+  obtain ⟨δ, hδ, hmod⟩ := huc (ε / 2) (by linarith)
+  refine ⟨δ, hδ, ?_⟩
+  intro s hs hst
+  have hkey : ∀ r r' : ℝ, r ∈ Set.Icc a b → r' ∈ Set.Icc a b →
+      dist r r' < δ →
+      sSup (F r' '' Set.Icc (0:ℝ) 1)
+        ≤ sSup (F r '' Set.Icc (0:ℝ) 1) + ε / 2 := by
+    intro r r' hr hr' hrr'
+    obtain ⟨x', hx', hx'eq⟩ := sliceMax_isMaxOn hr' hF
+    have hbdd : BddAbove (F r '' Set.Icc (0:ℝ) 1) := by
+      have hslice : ContinuousOn (F r) (Set.Icc (0:ℝ) 1) := by
+        intro x hx
+        exact ((hF (r, x) ⟨hr, hx⟩).comp
+          (Continuous.continuousWithinAt (by fun_prop))
+          (fun y hy => ⟨hr, hy⟩) :
+            ContinuousWithinAt (fun y => F r y) _ x)
+      exact (isCompact_Icc.image_of_continuousOn hslice).bddAbove
+    have hmem : F r x' ∈ F r '' Set.Icc (0:ℝ) 1 :=
+      Set.mem_image_of_mem _ hx'
+    have h1 : F r x' ≤ sSup (F r '' Set.Icc (0:ℝ) 1) := le_csSup hbdd hmem
+    have h2 : dist (F r' x') (F r x') < ε / 2 := by
+      have := hmod (r', x') ⟨hr', hx'⟩ (r, x') ⟨hr, hx'⟩ ?_
+      · simpa [Function.uncurry] using this
+      · rw [Prod.dist_eq]
+        simp only [dist_self]
+        rw [max_eq_left dist_nonneg, dist_comm]
+        exact hrr'
+    rw [Real.dist_eq] at h2
+    have h3 : F r' x' ≤ F r x' + ε / 2 := by
+      have := (abs_lt.mp h2).2
+      linarith
+    rw [← hx'eq]
+    linarith
+  have hfwd := hkey t s ht hs (by rwa [dist_comm])
+  have hbwd := hkey s t hs ht hst
+  rw [Real.dist_eq, abs_sub_lt_iff]
+  constructor <;> linarith
+
 end ShenWork.MinPersistenceAtoms
