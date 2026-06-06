@@ -103,3 +103,43 @@ representation-based `limitSource_duhamelSourceTimeC1` / `Hu` / the ledger field
 restated to carry the cosine representation (`hagree` + summable coeffs) instead
 of `hC2t` global. The ledger then becomes SATISFIABLE (the real restart rep
 supplies hagree) — all additively, no breaking edits to the shared chain.
+
+---
+
+## UPDATE (2026-06-06): adapter layer COMPLETE — Hvsrc dischargeable from representation
+
+`ShenWork/Paper2/IntervalDomainLogisticWeakH2Adapter.lean` now contains the full
+additive adapter layer (all axiom-clean, verified via single-file `lake env lean`
+on uisai1, committed + pushed origin+uisai1):
+
+  1. `IntervalWeakH2Neumann.congr_on_Icc` — weak-cert transfer across [0,1]-agreement.
+  2. `logisticSource_intervalWeakH2Neumann_of_eigenvalue_summable` — logistic weak-H²
+     from cosine representation.
+  3. `logisticSource_cosineCoeff_quadratic_decay_of_representation` — logistic decay.
+  4. `logisticSource_duhamelSourceTimeC1_of_representation` — logistic
+     `DuhamelSourceTimeC1` from representation (swaps hC2/hN0/hN1 for hbsum/hagree/hpos).
+  5. `powerSource_duhamelSourceTimeC1_of_representation` — power `νu^γ` version.
+  6. `resolverSourceCoeff_re_eq_cosineCoeffs` — bridge
+     `(intervalNeumannResolverSourceCoeff p u k).re = cosineCoeffs (νu^γ) k`.
+  7. `resolverSource_duhamelSourceTimeC1_of_representation` — produces the EXACT
+     ledger `Hvsrc` shape
+     `DuhamelSourceTimeC1 (fun s k => (intervalNeumannResolverSourceCoeff p (w s) k).re)`
+     from the cosine representation. **Hvsrc is now dischargeable from satisfiable
+     data (the restart cosine representation), with NO global-C² of the lift.**
+
+Engine throughout: the cosine series `∑ₙ bₙcos(nπx)` from the restart representation
+IS genuinely globally C² (`cosineCoeffSeries_contDiff_two`); feed it to the existing
+global-C² constructors, transfer to the lift via [0,1]-agreement.
+
+### Remaining to a fully satisfiable χ₀=0 ledger
+- `Hvsrc` — DONE (adapter #7 above; the ledger field can be filled from the slice's
+  cosine representation + K1 time-C¹ data the ledger already carries).
+- `Hvpos` — resolver strict positivity `0 < mildChemicalConcentration`. Route from
+  earlier scoping: source `νu^γ ≥ c₀ = ν·m^γ` ⟹ `R(u) ≥ c₀/μ` (spectral
+  decomposition / heat-Laplace lower bound). Additive, standalone.
+- `HsupNorm` — sup-norm max principle on D.u (mirror of MinPersistence min-principle).
+- `hpde_u` — spectral→pointwise PDE bridge (the hardest).
+- Then: a new SATISFIABLE ledger struct carrying per-slice cosine representations
+  (hbsum+hagree) instead of `hC2t` global; fill its source field via adapter #7;
+  re-run the vacuity False-proof (must FAIL = satisfiable); re-thread
+  `paper2_theorem_1_1_chiZero_*` onto it.
