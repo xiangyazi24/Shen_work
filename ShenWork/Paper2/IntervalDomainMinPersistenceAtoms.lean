@@ -12,6 +12,7 @@
   No `sorry`/`admit`/custom `axiom`.
 -/
 import Mathlib.Analysis.Calculus.MeanValue
+import Mathlib.Analysis.Calculus.Deriv.MeanValue
 import Mathlib.Analysis.Calculus.LocalExtr.Basic
 
 noncomputable section
