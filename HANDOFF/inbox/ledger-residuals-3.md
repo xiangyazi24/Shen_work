@@ -58,3 +58,35 @@ ReducedLimitRegularityInputs fully built ⟹
 paper2_theorem_1_1_chiZero_of_reduced_inputs gives Theorem_1_1(χ₀=0)
 unconditionally. Then χ₀<0: extend the source with the IBP-conjugate flux
 term (architecture in DESIGN_F2_CONSENSUS.md obstruction-2 resolution).
+
+## Hvpos — CLEANER ROUTE (positive operator + constant lower bound)
+Session A insight (2026-06-06): avoid approx-identity + integral strict
+positivity entirely. The resolver is a LINEAR, positivity-preserving operator,
+and the source has a positive CONSTANT lower bound:
+  f := ν·(u t)^γ ≥ ν·m^γ =: c₀ > 0  on [0,1]   (m = inf_{[0,1]} u t > 0, from
+       the K2 floor field; inf attained: u t continuous on compact [0,1]).
+Then for every x (incl. endpoints):
+  R(u)(x) = ResolverOf(f)(x)
+          = ResolverOf(f − c₀·1)(x) + ResolverOf(c₀·1)(x)
+          ≥ 0 + c₀/μ  > 0.
+Pieces:
+  (a) ResolverOf(c₀·1)(x) = c₀/μ — resolver of a constant: only the k=0 mode
+      survives (cosineCoeffs(const c₀) 0 = ∫₀¹c₀ = c₀; k≥1 ⟹ ∫₀¹cos(kπy)dy=0),
+      mode_0(x)=cos(0)=1, eigenvalue λ₀=0 ⟹ term = c₀·1/(μ+0) = c₀/μ.
+  (b) ResolverOf(f − c₀·1)(x) ≥ 0 — the difference function is ≥0 on [0,1];
+      apply the SAME spectral nonneg machinery (laplaceHeatTrunc_nonneg +
+      laplaceHeatTrunc_tendsto, or intervalNeumannResolverR_nonneg_of_nonneg_source
+      generalized to an arbitrary continuous nonneg function's cosine coeffs).
+  (c) additivity: cosineCoeffs is ℝ-linear (cosineCoeffs_sub_eq exists in
+      ShenWork/Paper2/IntervalPicardLimitCoeffConv.lean), tsum_add with the
+      ℓ¹ majorant (summable_resolverTarget) splits the series.
+CAVEAT (representative): the nonneg machinery wants a continuous ∀ℝ-nonneg
+representative of (f − c₀·1). Since cosineCoeffs only sees [0,1], take the
+representative ĥ := fun y => max 0 (ν·(liftPos u t y)^γ − c₀) where liftPos
+extends u t continuously & positively (or just clamp); ĥ ≥ 0 everywhere,
+continuous, agrees with f−c₀ on [0,1] up to the cosineCoeffs integral (verify
+the [0,1] agreement suffices — cosineCoeffs_eq_factor_mul_integral). This
+clamping is the only fiddly bit; ~80 lines total.
+Endpoints x∈{0,1} are handled UNIFORMLY by this route (no interior restriction
+needed — the constant lower bound c₀/μ holds at every x), which is the main
+advantage over the approx-identity route.
