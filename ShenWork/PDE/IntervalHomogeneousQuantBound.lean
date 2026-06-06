@@ -37,7 +37,7 @@ def sqrtEigExpWeight (τ : ℝ) : ℝ :=
 /-- `√x ≤ max 1 x` for `x ≥ 0` (used with `x = λₙ`). -/
 theorem sqrt_le_max_one (x : ℝ) (hx : 0 ≤ x) :
     Real.sqrt x ≤ max 1 x := by
-  rcases le_or_lt x 1 with h | h
+  rcases le_or_gt x 1 with h | h
   · calc Real.sqrt x ≤ Real.sqrt 1 := Real.sqrt_le_sqrt h
       _ = 1 := Real.sqrt_one
       _ ≤ max 1 _ := le_max_left _ _
@@ -122,7 +122,8 @@ theorem homogeneous_eigenvalue_tsum_le {τ M : ℝ} (hτ : 0 < τ)
         |Real.exp (-τ * unitIntervalCosineEigenvalue n) * a₀ n|)
       ≤ ∑' n : ℕ, M * (unitIntervalCosineEigenvalue n *
           Real.exp (-τ * unitIntervalCosineEigenvalue n)) :=
-        tsum_le_tsum hle (restartHomogeneousCoeff_eigenvalue_summable hτ ha₀)
+        Summable.tsum_le_tsum hle
+          (restartHomogeneousCoeff_eigenvalue_summable hτ ha₀)
           (hwt.mul_left M)
     _ = M * eigExpWeight τ := by
         simp only [eigExpWeight]
@@ -178,7 +179,7 @@ theorem homogeneous_sqrtEigenvalue_tsum_le {τ M : ℝ} (hτ : 0 < τ)
         |Real.exp (-τ * unitIntervalCosineEigenvalue n) * a₀ n|)
       ≤ ∑' n : ℕ, M * (Real.sqrt (unitIntervalCosineEigenvalue n) *
           Real.exp (-τ * unitIntervalCosineEigenvalue n)) :=
-        tsum_le_tsum hle hsummand (hwt.mul_left M)
+        Summable.tsum_le_tsum hle hsummand (hwt.mul_left M)
     _ = M * sqrtEigExpWeight τ := by
         simp only [sqrtEigExpWeight]
         exact tsum_mul_left
