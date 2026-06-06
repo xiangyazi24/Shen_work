@@ -168,3 +168,15 @@ the logistic package faithfully.
   S(t')u₀ ≲ S(t)u₀ comparability. Hard; defer until χ₀=0 closed.
 - **Q4. hQuant assembly**: Q2 + S6 (classical bridge per datum on the fixed
   horizon δ(M)) → hQuant.
+
+### Status update 2026-06-06 (build-verified on uisai1, axiom-clean)
+
+- hPCW **PROVED + BUILT** (piecewiseClassicalWorks, 62e2456).
+- paper2_theorem_1_1_from_two / from_two_restart / from_quant_and_hlocal:
+  BUILT, axioms = [propext, Classical.choice, Quot.sound].
+- QuantFromThreshold (session B + linarith fix 11b1689): BUILT.
+- S1 (IntervalFullKernelSpectralClean): BUILT.
+- Residual stack for Theorem 1.1:
+  {ThresholdQuantitativeLocalExistence, ClassicalMinPersistence, hlocal}.
+- codex quota exhausted till 2026-06-10; F2 design round running on two
+  independent Opus subagents instead (blind, then adjudication).
