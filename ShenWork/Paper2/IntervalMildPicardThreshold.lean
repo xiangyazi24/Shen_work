@@ -2213,4 +2213,33 @@ theorem thresholdMildExistenceData_exists (p : CM2Params)
         hinside measurable_const
   }, rfl⟩
 
+/-! ## Gradient mild solution data at the uniform horizon -/
+
+/-- `gradientMildSolutionData_of_data` preserves the horizon (the `T`
+field of the packaged record is definitionally `E.T`). -/
+theorem gradientMildSolutionData_of_data_T {p : CM2Params}
+    {u₀ : intervalDomainPoint → ℝ} (E : MildExistenceData p u₀) :
+    (gradientMildSolutionData_of_data E).T = E.T := rfl
+
+/-- **Threshold-uniform Picard solution data**: one horizon
+`δ = δ(p, M_in, c) > 0` such that every continuous datum with
+`|u₀| ≤ M_in` and `c ≤ u₀` has a packaged Picard mild solution
+(`GradientMildSolutionData`) on exactly `[0, δ]`. -/
+theorem thresholdGradientMildSolutionData_exists (p : CM2Params)
+    {M_in c : ℝ} (hM_in : 0 < M_in) (hc : 0 < c)
+    (hα_ge : 1 ≤ p.α) (hγ_ge : 1 ≤ p.γ) :
+    ∃ δ : ℝ, 0 < δ ∧
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        Continuous u₀ →
+        (∀ x, |u₀ x| ≤ M_in) →
+        (∀ x, c ≤ u₀ x) →
+        ∃ D : GradientMildSolutionData p u₀, D.T = δ := by
+  obtain ⟨δ, hδ, h⟩ :=
+    thresholdMildExistenceData_exists p hM_in hc hα_ge hγ_ge
+  refine ⟨δ, hδ, ?_⟩
+  intro u₀ hcont hbound hlb
+  obtain ⟨E, hET⟩ := h u₀ hcont hbound hlb
+  exact ⟨gradientMildSolutionData_of_data E,
+    by rw [gradientMildSolutionData_of_data_T, hET]⟩
+
 end ShenWork.IntervalMildPicardThreshold
