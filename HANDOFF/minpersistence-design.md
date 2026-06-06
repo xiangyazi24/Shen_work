@@ -522,3 +522,36 @@ content being constructed — NOT dischargeable by the iterate-level templates
 these 5; everything that was WIRING or a min/max-principle is now closed.
 This matches the cone route (paper2_theorem_1_1_chiZero_of_inputs /
 _of_reduced_inputs) — both routes now bottom out at the same ledger.
+
+---
+
+## UPDATE 15 (2026-06-06): ⚠ LEDGER VACUITY — the 5 residuals live in an unsatisfiable structure
+
+Attempting to discharge the 5 ledger residuals (hpde_u, Hvsrc, HsupNorm, Hvpos
++ Hu) surfaced a faithfulness bug: `LimitRegularityInputs` and
+`ReducedLimitRegularityInputs` are PROVABLY VACUOUS. Derived `False` from each
+(both proofs compiled green):
+  hC2t : ∀ σ, ContDiff ℝ 2 (intervalDomainLift (D.u σ))   -- GLOBAL C²
+  hpost: ∀ σ, ∀ x∈Icc 0 1, 0 < intervalDomainLift (D.u σ) x -- >0 at endpoints
+  intervalDomainLift = 0-extension ⟹ global-C² forces lift 0 = 0 ⊥ hpost.
+Load-bearing: consumers limitSource_duhamelSourceTimeC1 + Hu_of_restart also
+demand global ContDiff; the genuine regularity lemmas correctly use
+ContDiffOn-Icc. global-C²-of-0-extension is the wrong model (Neumann solutions
+ARE positive at the boundary).
+
+CONSEQUENCE:
+- VACUOUS (no content): paper2_theorem_1_1_chiZero_of_inputs (cone),
+  LedgerSweep _of_reduced_inputs, and the new
+  paper2_theorem_1_1_chiZero_threshold_of_ledger.
+- SOUND: classicalMinPersistence_chiZero (unconditional); and the threshold
+  reductions to hPF+hlocal / hPLF (PicardLimitRestartFrontier is satisfiable —
+  no global-C²⊥positivity clash). hPLF IS the honest χ₀=0 frontier.
+- RISK: the same global-ContDiff pattern appears in IntervalPicardIterateSourceC1
+  (iterate M3) — investigate whether Phase-0/iterate results are vacuous too.
+
+FIX (real refactor, needs go-ahead — shared files): retype all 6 global
+`ContDiff ℝ 2 (intervalDomainLift ·)` occurrences (5 files) to
+`ContDiffOn ℝ 2 (intervalDomainLift ·) (Icc 0 1)` and re-prove
+limitSource_duhamelSourceTimeC1 / Hu_of_restart / M3 with the closed-interval
+hypothesis (cosineCoeffs only integrate over [0,1], so it should suffice).
+See memory [[project-shen-work-ledger-vacuity]].
