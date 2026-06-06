@@ -353,4 +353,73 @@ theorem elliptic_sup_bound
       hx₀_max (hicc_sub (Set.right_mem_Icc.mpr (by linarith)))
     linarith
 
+/-! ## Phase A(iv): the gradient bound from the Neumann endpoint
+
+`w'(y) = lim_{z→0⁺} (w'(y) − w'(z)) = lim ∫_z^y w''`, and the integrand
+is bounded by `μ·Mw + B`, so `|w'| ≤ μ·Mw + B` on the interior. -/
+
+theorem elliptic_deriv_bound
+    {w Src : ℝ → ℝ} {μ B Mw : ℝ} (hμ : 0 ≤ μ) (hB : 0 ≤ B) (hMw : 0 ≤ Mw)
+    (hd2 : ∀ y ∈ Set.Ioo (0:ℝ) 1, DifferentiableAt ℝ (deriv w) y)
+    (hd2c : ContinuousOn (deriv (deriv w)) (Set.Ioo (0:ℝ) 1))
+    (hPDE : ∀ y ∈ Set.Ioo (0:ℝ) 1, deriv (deriv w) y = μ * w y - Src y)
+    (hSrc : ∀ y ∈ Set.Ioo (0:ℝ) 1, |Src y| ≤ B)
+    (hw_bd : ∀ y ∈ Set.Ioo (0:ℝ) 1, |w y| ≤ Mw)
+    (hNeu0 : Filter.Tendsto (deriv w) (nhdsWithin 0 (Set.Ioi 0)) (nhds 0)) :
+    ∀ y ∈ Set.Ioo (0:ℝ) 1, |deriv w y| ≤ μ * Mw + B := by
+  intro y hy
+  -- The second derivative is bounded on the interior.
+  have hbd2 : ∀ r ∈ Set.Ioo (0:ℝ) 1, |deriv (deriv w) r| ≤ μ * Mw + B := by
+    intro r hr
+    rw [hPDE r hr]
+    calc |μ * w r - Src r| ≤ |μ * w r| + |Src r| := abs_sub _ _
+      _ ≤ μ * Mw + B := by
+          rw [abs_mul, abs_of_nonneg hμ]
+          exact add_le_add
+            (mul_le_mul_of_nonneg_left (hw_bd r hr) hμ) (hSrc r hr)
+  -- FTC on `[z, y] ⊂ (0,1)`: `w'(y) − w'(z) = ∫_z^y w''`.
+  have hFTC : ∀ z ∈ Set.Ioo (0:ℝ) y,
+      |deriv w y - deriv w z| ≤ μ * Mw + B := by
+    intro z hz
+    have hzy : z < y := hz.2
+    have hsub : Set.uIcc z y ⊆ Set.Ioo (0:ℝ) 1 := by
+      rw [Set.uIcc_of_le hzy.le]
+      intro r hr
+      exact ⟨lt_of_lt_of_le hz.1 hr.1, lt_of_le_of_lt hr.2 hy.2⟩
+    have hderiv : ∀ r ∈ Set.uIcc z y,
+        HasDerivAt (deriv w) (deriv (deriv w) r) r := fun r hr =>
+      (hd2 r (hsub hr)).hasDerivAt
+    have hint : IntervalIntegrable (deriv (deriv w)) MeasureTheory.volume z y := by
+      apply ContinuousOn.intervalIntegrable
+      exact hd2c.mono hsub
+    have heq := intervalIntegral.integral_eq_sub_of_hasDerivAt hderiv hint
+    rw [← heq]
+    calc |∫ r in z..y, deriv (deriv w) r|
+        ≤ (μ * Mw + B) * |y - z| := by
+          apply intervalIntegral.norm_integral_le_of_norm_le_const
+          intro r hr
+          rw [Set.uIoc_of_le hzy.le] at hr
+          rw [Real.norm_eq_abs]
+          exact hbd2 r ⟨lt_trans hz.1 hr.1, lt_of_le_of_lt hr.2 hy.2⟩
+      _ ≤ (μ * Mw + B) * 1 := by
+          apply mul_le_mul_of_nonneg_left _ (by positivity)
+          rw [abs_of_pos (sub_pos.mpr hzy)]
+          linarith [hz.1, hy.2]
+      _ = μ * Mw + B := mul_one _
+  -- Send `z → 0⁺` along the Neumann pivot.
+  have hclose : ∀ z ∈ Set.Ioo (0:ℝ) y,
+      |deriv w y| ≤ μ * Mw + B + |deriv w z| := by
+    intro z hz
+    calc |deriv w y| = |(deriv w y - deriv w z) + deriv w z| := by ring_nf
+      _ ≤ |deriv w y - deriv w z| + |deriv w z| := abs_add_le _ _
+      _ ≤ μ * Mw + B + |deriv w z| := by linarith [hFTC z hz]
+  have htends : Filter.Tendsto (fun z => μ * Mw + B + |deriv w z|)
+      (nhdsWithin 0 (Set.Ioi 0)) (nhds (μ * Mw + B + |(0:ℝ)|)) :=
+    (tendsto_const_nhds.add (hNeu0.abs))
+  have hlim : |deriv w y| ≤ μ * Mw + B + |(0:ℝ)| := by
+    apply le_of_tendsto htends
+    filter_upwards [Ioo_mem_nhdsGT hy.1] with z hz
+    exact hclose z hz
+  simpa using hlim
+
 end ShenWork.MinPersistenceAtoms
