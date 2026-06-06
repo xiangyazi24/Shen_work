@@ -156,3 +156,26 @@ C. **Dini wrapper** (the true crux, ~250-400 ln): hamilton_lower_bound's hDini
    isCompact_Icc.isSeqCompact on argmins x_h + joint ∂ₜ continuity (conjunct 8)
    + sliceMin_continuousOn. Then C-assembly closes ClassicalMinPersistence
    ⟹ general-χ₀ hQuant via the threshold route.
+
+## UPDATE 2 (Session A): interior min-point machinery = single entry point + first A-atom
+- `min_point_estimate_interior` (IntervalDomainMinPointInterior.lean):
+  ONE callable `−K·u(x*) ≤ u_t(x*)` from HasDerivAt data + B4 bounds + u''≥0
+  + 0≤u(x*)≤M' + the PDE value relation. K = |χ₀|·fluxCoeffConst β (νM'^γ) + b·M'^α.
+- `interior_argmin_deriv_zero` + `intervalDomainLift_isLocalMin_of_argmin`
+  (IntervalDomainInteriorArgmin.lean): the `hux : u_x=0` input, via Fermat on
+  the lift (interior argmin ⟹ IsLocalMin ⟹ deriv 0).
+Remaining Phase-A plumbing to feed min_point_estimate_interior from
+IsPaper2ClassicalSolution (all worker-3-area, mechanical):
+  - hv/hvxx: ContDiffOn ℝ 2 (conjunct 3) on Ioo → DifferentiableAt of lift(v t)
+    and of deriv(lift(v t)) at interior x* (ContDiffOn.differentiableAt on the
+    open set; deriv of a C² fn is C¹ hence differentiable).
+  - huxx: deriv2_nonneg_of_isLocalMin on lift(u t) at x* (have the IsLocalMin
+    from intervalDomainLift_isLocalMin_of_argmin; needs the HasDerivAt(deriv) + 
+    DifferentiableAt-near from ContDiffOn 2).
+  - hvx_bd/hvxx_bd: elliptic_coeff_bounds (B4) instantiated for the v-slice
+    (Src=ν·u^γ via pde_v rewritten to deriv²(lift v)=μ·v−ν u^γ; |Src|≤νM'^γ from
+    hSupNorm |u|≤M'=regimeBound; Neumann conjunct 6; C² conjunct 7; v≥0), then
+    evaluate at x*.
+  - PDE relation: pde_u conjunct at interior x* (timeDeriv=deriv(s↦u s x*) t,
+    laplacian=deriv²(lift(u t))).
+Then B (boundary x*∈{0,1}) + C (Dini wrapper) per UPDATE-1 close it.
