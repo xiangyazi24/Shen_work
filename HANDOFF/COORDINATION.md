@@ -219,3 +219,11 @@ Two Claude sessions are working this repo in parallel. File ownership:
   principle w ≤ B/μ), elliptic_deriv_bound (|w'| ≤ μMw+B via Neumann+FTC).
 - These give the slab-uniform K(M) for the Hamilton/Gronwall step
   (minpersistence-design.md Phase B, fully specced, signs verified).
+
+## Session B (close, ~05:30): MinPersistence B1 also green at be2a1c8
+- sliceMin_isMinOn + sliceMin_continuousOn (m-trajectory continuity),
+  axiom-clean. Phase A complete + B1: 6 green atoms total.
+- B2–B5 fully specced in minpersistence-design.md (signs verified,
+  Mathlib APIs identified: le_gronwallBound_of_liminf_deriv_right_le,
+  isSeqCompact, conjuncts 4/6/8/9). Next Session B block executes it.
+- Session B signing off this shift; all pushed to uisai1 + GitHub.

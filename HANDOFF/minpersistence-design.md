@@ -78,6 +78,24 @@ strict), so Phase B can use the identical pattern.
 - Phase A(iv) DONE (4764601): elliptic_deriv_bound — |w'| ≤ μ·Mw + B on
   the interior from the Neumann endpoint via FTC + the pivot limit.
 - PHASE A COMPLETE (4 atoms, all green + axiom-clean).
-- Next: Phase B Hamilton slope + Gronwall (the crux; the pivot helpers
-  deriv_pos_right/deriv_neg_left_of_deriv2_pos_of_pivot are exactly the
-  adjacency lemmas the by_contra needs); then C assembly.
+- Phase B1 DONE (be2a1c8): sliceMin_isMinOn (attainment) +
+  sliceMin_continuousOn (m-trajectory continuity via Heine–Cantor on
+  compact slabs) — first-try green, axiom-clean.
+- Next session executes B2–B5:
+  B2. The slope estimate at fixed t: m(t+h) − m(t) ≥ u(t+h,x_h) − u(t,x_h)
+      (x_h := sliceMin argmin at t+h), time-MVT (conjunct 4), and the
+      by_contra subsequence: if ∀h∈(0,η) slope ≥ r > (−K)f(t), then
+      x_{1/n} has a convergent subsequence → x* (Bolzano–Weierstrass =
+      isCompact_Icc.isSeqCompact), x* is an argmin of m(t)
+      (sliceMin continuity + joint continuity), u_t(ξ_h,x_h) → u_t(t,x*)
+      (conjunct 8), and the min-point PDE estimate (interior: Phase A
+      lemmas; boundary: pivot helpers + conjunct 6 Neumann tendsto +
+      closed-slab u_t continuity) contradicts r > K·m(t).
+  B3. `le_gronwallBound_of_liminf_deriv_right_le` with f := −m,
+      f' := (−K)·f, K_g := −K, ε := 0, δ := −m(t₁)  ⇒
+      m(t) ≥ m(t₁)e^{−K(t−t₁)}.
+  B4. K(M) from the elliptic atoms: |g| ≤ β(2νM'^γ)² + 2νM'^γ via
+      elliptic_sup_bound (w := lift v, Src := ν·u^γ lift, B := νM'^γ)
+      and elliptic_deriv_bound; K := |χ₀|·K₁ + b·M'^α.
+  C.  Assembly: c := m*(t₁)·e^{−K(δ−t₁)} with the chosen-solution trick
+      + overlap uniqueness (see above).
