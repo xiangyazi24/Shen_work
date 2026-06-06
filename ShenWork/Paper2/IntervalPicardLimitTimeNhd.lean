@@ -259,7 +259,7 @@ theorem Hu_of_restart
       (fun s k => cosineCoeffs (logisticLifted p (u s)) k))
     -- K2 spatial slice bounds (per time slice)
     {Msup G1 G2 : ℝ}
-    (hC2t : ∀ σ, ContDiffOn ℝ 2 (intervalDomainLift (u σ)) (Set.Icc (0 : ℝ) 1))
+    (hC2t : ∀ σ, ContDiff ℝ 2 (intervalDomainLift (u σ)))
     (hpost : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (u σ) x)
     (hubt : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (u σ) x ≤ Msup)
     (hG1t : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1,
