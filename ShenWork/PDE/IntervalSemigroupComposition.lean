@@ -114,12 +114,12 @@ theorem cosineCoeffs_unitIntervalCosineHeatValue
             abs_of_pos (Real.exp_pos _)]
           ring
       _ ≤ 1 * (Real.exp (-t * unitIntervalCosineEigenvalue k) * (1 * M)) := by
-          gcongr
+          refine mul_le_mul (Real.abs_cos_le_one _) ?_ ?_ zero_le_one
+          · exact mul_le_mul_of_nonneg_left
+              (mul_le_mul (Real.abs_cos_le_one _) (hM k)
+                (abs_nonneg _) zero_le_one)
+              (Real.exp_pos _).le
           · positivity
-          · exact (Real.exp_pos _).le
-          · exact Real.abs_cos_le_one _
-          · exact mul_le_mul (Real.abs_cos_le_one _) (hM k)
-              (abs_nonneg _) zero_le_one
       _ = Real.exp (-t * unitIntervalCosineEigenvalue k) * M := by ring
   -- Summability of the integral norms.
   have hF_sum : Summable (fun k =>
@@ -137,7 +137,8 @@ theorem cosineCoeffs_unitIntervalCosineHeatValue
           exact Filter.Eventually.of_forall fun x => hF_bound k x
       _ = (Real.exp (-t * unitIntervalCosineEigenvalue k) * M) *
             (volume.restrict (Set.Ioc (0 : ℝ) 1) Set.univ).toReal := by
-          rw [integral_const, smul_eq_mul, mul_comm]
+          rw [integral_const, smul_eq_mul]
+          ring
       _ = Real.exp (-t * unitIntervalCosineEigenvalue k) * M := by
           rw [Measure.restrict_apply_univ, Real.volume_Ioc]
           norm_num
@@ -149,9 +150,12 @@ theorem cosineCoeffs_unitIntervalCosineHeatValue
         Real.cos ((n : ℝ) * Real.pi * x) * unitIntervalCosineHeatValue t a x)
       = ∑' k, ∫ x, F k x ∂(volume.restrict (Set.Ioc (0 : ℝ) 1)) := by
     rw [intervalIntegral.integral_of_le (by norm_num : (0:ℝ) ≤ 1)]
-    rw [hswap]
-    apply integral_congr_ae
-    exact Filter.Eventually.of_forall fun x => hpt x
+    have h1 : (∫ x in Set.Ioc (0:ℝ) 1,
+          Real.cos ((n : ℝ) * Real.pi * x) *
+            unitIntervalCosineHeatValue t a x ∂volume)
+        = ∫ x, (∑' k, F k x) ∂(volume.restrict (Set.Ioc (0 : ℝ) 1)) :=
+      integral_congr_ae (Filter.Eventually.of_forall fun x => hpt x)
+    rw [h1, ← hswap]
   rw [hIoc]
   -- Each term is a scaled orthogonality integral.
   have hterm : ∀ k, (∫ x, F k x ∂(volume.restrict (Set.Ioc (0 : ℝ) 1)))
