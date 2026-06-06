@@ -490,3 +490,35 @@ CAMPAIGN TOTAL (MinPersistence): 34 axiom-clean atoms.
   (hpde_u, Hvsrc, Hvpos, Hu, HsupNorm) in MildLocalChi0.lean. These are the
   genuine remaining deep Picard-limit-regularity residuals (research-hard;
   best for codex post Jun-10 reset or worker-3).
+
+---
+
+## UPDATE 14 (2026-06-06): threshold route wired to the frontier — χ₀=0 Thm 1.1 ⟸ ledger alone
+
+Discovery: hPF AND hlocal both collapse to ONE unified residual hPLF
+(ConeQuantBridge.PicardLimitRestartFrontier), and hPLF collapses to the
+LimitRegularityInputs ledger H:
+- `picardRestartFrontier_of_picardLimitFrontier hPLF : PicardRestartFrontier`
+  (= hPF, threshold route's restart frontier).
+- `quantitativeLocalExistence_chiZero ... hPLF` ⟹ hlocal (bound the datum).
+- hPLF ⟸ H via `restartData_of_inputs` + `frontierCore_of_inputs`.
+
+Three new axiom-clean threshold-route capstones (ns ThresholdQuantBridge):
+- `paper2_theorem_1_1_chiZero_of_picardFrontier_hlocal` (hPF + hlocal).
+- `paper2_theorem_1_1_chiZero_of_picardLimitFrontier` (hPLF alone).
+- `paper2_theorem_1_1_chiZero_threshold_of_ledger` (the 5 residuals alone).
+Files: IntervalDomainThm11ChiZero{Threshold,Frontier,Ledger}.lean.
+
+### Bottom line after UPDATE 14
+χ₀=0 Theorem 1.1, via the FULL threshold route (Picard δ(M,c) contraction +
+ClassicalMinPersistence + overlap uniqueness + hPCW + restart-and-glue +
+initial-approach), is PROVED + axiom-clean modulo EXACTLY the 5 named analytic
+residuals of LimitRegularityInputs:
+  hpde_u, Hu, Hvsrc, HsupNorm, Hvpos.
+These are the genuine deep Picard-LIMIT regularity (iterate→limit passage):
+they operate on the mild limit slice D.u, whose spatial regularity is the
+content being constructed — NOT dischargeable by the iterate-level templates
+(logistic M3 etc.) without circularity. "Unconditional" χ₀=0 Thm 1.1 is exactly
+these 5; everything that was WIRING or a min/max-principle is now closed.
+This matches the cone route (paper2_theorem_1_1_chiZero_of_inputs /
+_of_reduced_inputs) — both routes now bottom out at the same ledger.
