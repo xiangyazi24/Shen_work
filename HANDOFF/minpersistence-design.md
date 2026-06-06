@@ -101,3 +101,31 @@ strict), so Phase B can use the identical pattern.
       and elliptic_deriv_bound; K := |χ₀|·K₁ + b·M'^α.
   C.  Assembly: c := m*(t₁)·e^{−K(δ−t₁)} with the chosen-solution trick
       + overlap uniqueness (see above).
+
+## Session A contribution (2026-06-06, on credits) — B2/B4 arithmetic core landed
+
+Three axiom-clean atoms added (separate files, Session-A-owned, importing
+worker-3's IntervalDomainMinPersistenceAtoms):
+- `IntervalDomainEllipticCoeffBounds.lean` — `elliptic_coeff_bounds`:
+  combines worker-3's elliptic_sup_bound + elliptic_deriv_bound into
+  `w ≤ B/μ`, `|w'| ≤ 2B`, `|w''| ≤ 2B` (the v-field bounds, B4).
+- `IntervalDomainMinPointEstimate.lean` — `min_point_estimate`: the PDE
+  inequality `−K·m ≤ u_t` at an argmin (K := |χ₀|K₁ + b·M^α), abstract form
+  taking (u''≥0, chemDiv = m·G, |G|≤K₁) as inputs.
+- `IntervalDomainFluxCoeffBound.lean` — `flux_coeff_bound` + `fluxCoeffConst`:
+  `|φ'v_x² + φv_xx| ≤ K₁ := β(2B)²+2B` from the B4 bounds (φ=(1+v)^{−β}).
+
+These close the ARITHMETIC of B2's min-point step. The two REMAINING B2 pieces
+(both genuine analysis, for worker-3 / next):
+1. **chemDiv critical-point HasDerivAt expansion**: prove
+   `intervalDomainChemotaxisDiv p (u t) (v t) x* = (u t x*)·g` with
+   `g = −β(1+v)^{−β−1}v_x² + (1+v)^{−β}v_xx` at a spatial critical point
+   (u_x(x*)=0), via deriv_mul (lift u · D, D=φ·v_x) + the φ chain/quotient
+   rule (rpow HasDerivAt). Then |chemDiv| side = flux_coeff_bound.
+   ⟹ feeds min_point_estimate's `hcd`/`hG`.
+2. **Dini wrapper** (the true crux): produce hamilton_lower_bound's hDini
+   from min_point_estimate via time-MVT (conjunct 4) + the by_contra
+   sequential-compactness argument (isCompact_Icc.isSeqCompact on argmins
+   x_h, joint ∂ₜ continuity conjunct 8, sliceMin_continuousOn). ~250-400 ln.
+Then B4-instantiation (elliptic_coeff_bounds at Src=ν u^γ, B=νM'^γ via
+hSupNorm regimeBound) + C assembly closes ClassicalMinPersistence.
