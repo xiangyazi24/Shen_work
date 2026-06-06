@@ -129,3 +129,30 @@ These close the ARITHMETIC of B2's min-point step. The two REMAINING B2 pieces
    x_h, joint ∂ₜ continuity conjunct 8, sliceMin_continuousOn). ~250-400 ln.
 Then B4-instantiation (elliptic_coeff_bounds at Src=ν u^γ, B=νM'^γ via
 hSupNorm regimeBound) + C assembly closes ClassicalMinPersistence.
+
+## UPDATE (Session A, on credits): min-point estimate chain COMPLETE (5 atoms)
+
+The full interior min-point estimate `u_t(t,x*) ≥ −K·m` is now assemblable
+from axiom-clean atoms (all green, separate Session-A files):
+  elliptic_coeff_bounds  (B4: v ≤ B/μ, |v'|,|v''| ≤ 2B)
+    → flux_coeff_bound    (|P'| ≤ K₁ := β(2B)²+2B, fluxCoeffConst)
+    → flux_integrand_hasDerivAt  (P' = −β(1+v)^{−β−1}v_x² + (1+v)^{−β}v_xx)
+    → chemDiv_at_critical (chemDiv = u(x*)·P', via u_x=0 + product rule)
+    → min_point_estimate  (u_t ≥ −(|χ₀|K₁+b·M^α)·m at argmin)
+K := |χ₀|·K₁ + b·M^α is slab-independent. ✅
+
+### Remaining for ClassicalMinPersistence (worker-3 / next):
+A. **Conjunct-extraction wrapper** (mechanical): from IsPaper2ClassicalSolution
+   at interior x*, produce the HasDerivAt inputs (hux: u_x=0 from
+   IsLocalMin.deriv_eq_zero on the lift over a small interior nbhd; hv/hvxx
+   from the C² conjunct 3/7; u''≥0 from deriv2_nonneg_of_isLocalMin; v≥0 from
+   the v-nonneg conjunct; the elliptic identity v''=μv−νu^γ from pde_v) →
+   feed chemDiv_at_critical + min_point_estimate. The B4 instantiation uses
+   Src:=ν·u^γ, B:=νM'^γ (M':=regimeBound via hSupNorm).
+B. **Boundary case** x*∈{0,1}: one-sided via Neumann conjunct 6 + the pivot
+   helpers deriv_pos_right/deriv_neg_left_of_deriv2_pos_of_pivot.
+C. **Dini wrapper** (the true crux, ~250-400 ln): hamilton_lower_bound's hDini
+   from min_point_estimate via time-MVT (conjunct 4) + by_contra +
+   isCompact_Icc.isSeqCompact on argmins x_h + joint ∂ₜ continuity (conjunct 8)
+   + sliceMin_continuousOn. Then C-assembly closes ClassicalMinPersistence
+   ⟹ general-χ₀ hQuant via the threshold route.
