@@ -126,14 +126,14 @@ theorem restartAndGlue_large_T₀_of_piecewise
     hoverlap_u hoverlap_v (T₀ + δ / 2) hT'_pos hT'_le
   -- Step 7: initial trace.
   have htrace' : InitialTrace intervalDomain u₀
-      (fun t x => if t ≤ T₀ then u t x else w (t - τ) x) := by
+      (fun t x => if t < T₀ then u t x else w (t - τ) x) := by
     intro ε hε
     obtain ⟨δ₁, hδ₁_pos, hδ₁⟩ := htrace ε hε
     refine ⟨min δ₁ T₀, lt_min hδ₁_pos hT₀, ?_⟩
     intro t ht0 htδ
-    have htT₀ : t ≤ T₀ := le_of_lt (lt_of_lt_of_le htδ (min_le_right _ _))
+    have htT₀ : t < T₀ := lt_of_lt_of_le htδ (min_le_right _ _)
     have htδ₁ : t < δ₁ := lt_of_lt_of_le htδ (min_le_left _ _)
-    have hfun_eq : (fun x => (if t ≤ T₀ then u t x else w (t - τ) x) - u₀ x) =
+    have hfun_eq : (fun x => (if t < T₀ then u t x else w (t - τ) x) - u₀ x) =
         (fun x => u t x - u₀ x) := by
       funext x; rw [if_pos htT₀]
     simp only [intervalDomain] at hδ₁ ⊢

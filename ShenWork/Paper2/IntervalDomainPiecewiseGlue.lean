@@ -1,17 +1,15 @@
 /-
-  PiecewiseClassicalWorks: the splice-is-classical hypothesis.
+  PiecewiseClassicalWorks: splice is classical.
   No `sorry`/`admit`/custom `axiom`.
 -/
 import ShenWork.Paper2.IntervalDomainRestartExtension
 
-open ShenWork.IntervalDomain
-open ShenWork.Paper2
+open ShenWork.IntervalDomain ShenWork.Paper2 Set Filter Topology
 
 noncomputable section
 
 namespace ShenWork.Paper2.PiecewiseGlue
 
-/-- The splice of two overlapping classical solutions is classical. -/
 def PiecewiseClassicalWorks (p : CM2Params) : Prop :=
   ∀ {T₁ T₂ τ : ℝ}, 0 < T₁ → 0 < T₂ → 0 < τ → τ < T₁ →
   ∀ {u₁ v₁ u₂ v₂ : ℝ → intervalDomainPoint → ℝ},
