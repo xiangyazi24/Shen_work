@@ -399,6 +399,7 @@ theorem elliptic_deriv_bound
     rw [← heq]
     calc |∫ r in z..y, deriv (deriv w) r|
         ≤ (μ * Mw + B) * |y - z| := by
+          rw [← Real.norm_eq_abs]
           apply intervalIntegral.norm_integral_le_of_norm_le_const
           intro r hr
           rw [Set.uIoc_of_le hzy.le] at hr
@@ -420,7 +421,7 @@ theorem elliptic_deriv_bound
       (nhdsWithin 0 (Set.Ioi 0)) (nhds (μ * Mw + B + |(0:ℝ)|)) :=
     (tendsto_const_nhds.add (hNeu0.abs))
   have hlim : |deriv w y| ≤ μ * Mw + B + |(0:ℝ)| := by
-    apply le_of_tendsto htends
+    apply ge_of_tendsto htends
     filter_upwards [Ioo_mem_nhdsGT hy.1] with z hz
     exact hclose z hz
   simpa using hlim
