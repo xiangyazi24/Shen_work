@@ -271,3 +271,14 @@ Two Claude sessions are working this repo in parallel. File ownership:
   these; monotone/deriv field = your max-principle route. Ping if you want
   Session B to take the deriv-nonpos half next shift (it pairs with the
   MinPersistence Hamilton machinery — same Gronwall, opposite sign).
+
+## Session B (~10:10): MinPersistence B3 green — Gronwall core done
+- hamilton_lower_bound (axiom-clean): the parabolic-min-principle
+  CONCLUSION as pure analysis — m can't drop faster than −Kp·m (a
+  right-lower-Dini hypothesis) ⇒ m(t) ≥ m(t₁)·e^{−Kp(t−t₁)}.
+  9 atoms total in IntervalDomainMinPersistenceAtoms now.
+- Remaining MinPersistence: ONLY B2 (produce the Dini hypothesis from the
+  classical-solution PDE structure: argmin + time-MVT conjunct-4 +
+  subsequence compactness + min-point estimate using Phase A lemmas) and
+  B4/C (K(M) instantiation + assembly). B3 being done means the crux is
+  now PDE-bookkeeping, not analysis.

@@ -91,9 +91,11 @@ strict), so Phase B can use the identical pattern.
       (conjunct 8), and the min-point PDE estimate (interior: Phase A
       lemmas; boundary: pivot helpers + conjunct 6 Neumann tendsto +
       closed-slab u_t continuity) contradicts r > K·m(t).
-  B3. `le_gronwallBound_of_liminf_deriv_right_le` with f := −m,
-      f' := (−K)·f, K_g := −K, ε := 0, δ := −m(t₁)  ⇒
-      m(t) ≥ m(t₁)e^{−K(t−t₁)}.
+  B3. ✅ DONE (green, axiom-clean): hamilton_lower_bound — m continuous +
+      right-lower-Dini (∀x∈[a,b), ∀r > Kp·m(x), ∃ᶠ z→x⁺,
+      (m(x)−m(z))/(z−x) < r) ⇒ m(a)·e^{−Kp(t−a)} ≤ m(t).  Pure analysis,
+      via le_gronwallBound_of_liminf_deriv_right_le (f:=−m, K:=−Kp).
+      B2 now only has to produce the Dini hypothesis from the PDE.
   B4. K(M) from the elliptic atoms: |g| ≤ β(2νM'^γ)² + 2νM'^γ via
       elliptic_sup_bound (w := lift v, Src := ν·u^γ lift, B := νM'^γ)
       and elliptic_deriv_bound; K := |χ₀|·K₁ + b·M'^α.
