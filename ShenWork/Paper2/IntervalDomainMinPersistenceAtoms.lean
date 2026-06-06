@@ -426,4 +426,82 @@ theorem elliptic_deriv_bound
     exact hclose z hz
   simpa using hlim
 
+/-! ## Phase B1: continuity of the spatial-minimum trajectory
+
+`m(t) := sInf (F t '' [0,1])` is continuous in `t` whenever `F` is
+jointly continuous on a compact slab — by Heine–Cantor uniform
+continuity, `|m(t) − m(s)| ≤ sup_x |F(t,x) − F(s,x)|`. -/
+
+/-- The spatial minimum is attained and bounds slices from below. -/
+theorem sliceMin_isMinOn {F : ℝ → ℝ → ℝ} {a b t : ℝ}
+    (ht : t ∈ Set.Icc a b)
+    (hF : ContinuousOn (Function.uncurry F)
+      (Set.Icc a b ×ˢ Set.Icc (0:ℝ) 1)) :
+    ∃ x ∈ Set.Icc (0:ℝ) 1,
+      F t x = sInf (F t '' Set.Icc (0:ℝ) 1) := by
+  have hslice : ContinuousOn (F t) (Set.Icc (0:ℝ) 1) := by
+    intro x hx
+    have := hF (t, x) ⟨ht, hx⟩
+    exact (this.comp (Continuous.continuousWithinAt (by fun_prop))
+      (fun y hy => ⟨ht, hy⟩) : ContinuousWithinAt (fun y => F t y) _ x)
+  have himg : IsCompact (F t '' Set.Icc (0:ℝ) 1) :=
+    isCompact_Icc.image_of_continuousOn hslice
+  have hne : (F t '' Set.Icc (0:ℝ) 1).Nonempty :=
+    ⟨F t 0, Set.mem_image_of_mem _ (Set.left_mem_Icc.mpr zero_le_one)⟩
+  obtain ⟨x, hx, hxeq⟩ := himg.sInf_mem hne
+  exact ⟨x, hx, hxeq⟩
+
+set_option maxHeartbeats 800000 in
+/-- **Continuity of the minimum trajectory** on a compact slab. -/
+theorem sliceMin_continuousOn {F : ℝ → ℝ → ℝ} {a b : ℝ}
+    (hF : ContinuousOn (Function.uncurry F)
+      (Set.Icc a b ×ˢ Set.Icc (0:ℝ) 1)) :
+    ContinuousOn (fun t => sInf (F t '' Set.Icc (0:ℝ) 1))
+      (Set.Icc a b) := by
+  -- Uniform continuity on the compact slab.
+  have hcpt : IsCompact (Set.Icc a b ×ˢ Set.Icc (0:ℝ) 1) :=
+    isCompact_Icc.prod isCompact_Icc
+  have huc := hcpt.uniformContinuousOn_of_continuous hF
+  rw [Metric.uniformContinuousOn_iff] at huc
+  rw [Metric.continuousOn_iff]
+  intro t ht ε hε
+  obtain ⟨δ, hδ, hmod⟩ := huc (ε / 2) (by linarith)
+  refine ⟨δ, hδ, ?_⟩
+  intro s hs hst
+  -- One-sided estimate `m s ≤ m t + ε/2` (and symmetrically).
+  have hkey : ∀ r r' : ℝ, r ∈ Set.Icc a b → r' ∈ Set.Icc a b →
+      dist r r' < δ →
+      sInf (F r '' Set.Icc (0:ℝ) 1)
+        ≤ sInf (F r' '' Set.Icc (0:ℝ) 1) + ε / 2 := by
+    intro r r' hr hr' hrr'
+    obtain ⟨x', hx', hx'eq⟩ := sliceMin_isMinOn hr' hF
+    have hbdd : BddBelow (F r '' Set.Icc (0:ℝ) 1) := by
+      have hslice : ContinuousOn (F r) (Set.Icc (0:ℝ) 1) := by
+        intro x hx
+        exact ((hF (r, x) ⟨hr, hx⟩).comp
+          (Continuous.continuousWithinAt (by fun_prop))
+          (fun y hy => ⟨hr, hy⟩) :
+            ContinuousWithinAt (fun y => F r y) _ x)
+      exact (isCompact_Icc.image_of_continuousOn hslice).bddBelow
+    have hmem : F r x' ∈ F r '' Set.Icc (0:ℝ) 1 :=
+      Set.mem_image_of_mem _ hx'
+    have h1 : sInf (F r '' Set.Icc (0:ℝ) 1) ≤ F r x' := csInf_le hbdd hmem
+    have h2 : dist (F r x') (F r' x') < ε / 2 := by
+      have := hmod (r, x') ⟨hr, hx'⟩ (r', x') ⟨hr', hx'⟩ ?_
+      · simpa [Function.uncurry] using this
+      · rw [Prod.dist_eq]
+        simp only [dist_self]
+        rw [max_eq_left dist_nonneg]
+        exact hrr'
+    rw [Real.dist_eq] at h2
+    have h3 : F r x' ≤ F r' x' + ε / 2 := by
+      have := (abs_lt.mp h2).2
+      linarith
+    rw [← hx'eq]
+    linarith
+  have hfwd := hkey s t hs ht hst
+  have hbwd := hkey t s ht hs (by rwa [dist_comm])
+  rw [Real.dist_eq, abs_sub_lt_iff]
+  constructor <;> linarith
+
 end ShenWork.MinPersistenceAtoms
