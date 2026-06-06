@@ -393,3 +393,32 @@ uniqueness wiring remain for the literal predicate.
 CAMPAIGN TOTAL (Session A, MinPersistence): 24 axiom-clean atoms. The two
 genuine analysis cruxes + the full per-solution persistence assembly are DONE.
 Only #1 (hard, chemDiv-boundary-continuity) + #2/#3 (wiring) remain.
+
+## UPDATE 11 (Session A): residual #2 closed, uniformity core landed
+- `lift_abs_le_of_slice_bound` + `hSupNorm_of_regime` (IntervalDomainHSupNorm.lean):
+  RESIDUAL #2 CLOSED — wires SupNormBridge.interiorSupNorm_le_regimeBound
+  (Lemma 3.1) to the hSupNorm shape (M' := regimeBound p M).
+- `intervalDomainLift_congr` + `sliceMin_eq_of_slices_eq` (IntervalDomainSliceMinEq.lean):
+  uniformity core — equal slices ⟹ equal spatial minima. OverlapUniqueForPID
+  (GlueExtension.lean:41) gives u₁(s)=u₂(s) on (0,min T₁ T₂) ⟹ same m at t₁/2.
+
+### Literal ClassicalMinPersistence — final assembly recipe (2 items left):
+1. **boundary hbound** `hbdry` (ys∈{0,1}) — the ONE hard analytic gap:
+   u_t(0)=lim_{x→0⁺} RHS [conjunct 8] with chemDiv up-to-boundary continuity
+   (C¹ of flux F=lift u·P on Icc) + boundary_min_deriv2_rlimit_nonneg.
+2. **uniformity assembly** (∃c-before-∀solution), ~200 ln intricate but all
+   pieces exist:
+   - M from PID: hu₀.1.1 : BddAbove (range |u₀|) ⟹ ∃M>0, |u₀|≤M; M':=regimeBound.
+   - Kp := |χ₀|·fluxCoeffConst β (νM'^γ) + b·M'^α.
+   - by_cases ∃ solution on (t₁,δ]: NO ⟹ c:=1 vacuous; YES ⟹ chosen u*,
+     c := sInf(lift(u* (t₁/2)) '' [0,1])·e^{−Kp(δ−t₁/2)} (>0 via
+     sliceMin_pos_of_solution).
+   - ∀ solution u: solution_minPersist_of_conjuncts (a:=t₁/2,b:=t) ⟹
+     u t x ≥ m_u(t₁/2)·e^{−Kp(t−t₁/2)}; OverlapUniqueForPID + sliceMin_eq_of_slices_eq
+     ⟹ m_u(t₁/2)=m_{u*}(t₁/2); exp monotone (t≤δ) ⟹ ≥ c.
+     [hbound for each u via hbound_full + hSupNorm_of_regime + hbdry(u).]
+
+CAMPAIGN TOTAL (Session A, MinPersistence): 26 axiom-clean atoms. Both cruxes +
+per-solution persistence + interior hbound bridge + hSupNorm + uniformity core
+DONE. Only the boundary chemDiv-continuity gap (hard) + the uniformity assembly
+wiring (intricate, all pieces present) remain for the literal predicate.
