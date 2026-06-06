@@ -2472,4 +2472,27 @@ theorem gradientMildSolutionData_initialApproach (p : CM2Params)
     _ < ε / 2 + ε / 2 := add_lt_add hSg_close hcorr
     _ = ε := by ring
 
+/-! ## Public re-exports of the file-private measurability lemmas
+
+The cone-invariance development (IntervalMildPicardCone) needs these; the
+originals are `private` in IntervalMildPicard.lean (and re-copied privately
+above), so we expose public wrappers here. -/
+
+/-- Joint measurability of the lifted logistic source (public). -/
+theorem logisticLifted_joint_measurable'
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hum : HasJointMeasurability u) :
+    Measurable (fun q : ℝ × ℝ => logisticLifted p (u q.1) q.2) :=
+  logisticLifted_joint_measurable hum
+
+/-- Joint measurability of the time-cutoff lifted logistic source
+(public). -/
+theorem logisticLifted_time_cutoff_measurable'
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (hum : HasJointMeasurability u) :
+    Measurable
+      (fun q : ℝ × ℝ =>
+        if 0 < q.1 ∧ q.1 ≤ T then logisticLifted p (u q.1) q.2 else 0) :=
+  logisticLifted_time_cutoff_measurable hum
+
 end ShenWork.IntervalMildPicardThreshold
