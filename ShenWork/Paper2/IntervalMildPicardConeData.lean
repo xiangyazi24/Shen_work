@@ -137,8 +137,7 @@ theorem coneGradientMildSolutionData_exists (p : CM2Params) (hχ : p.χ₀ = 0)
     have hDn_ge_1 : 1 ≤ Dn := by
       have h1 : 0 ≤ Ke * Real.exp p.a := mul_nonneg hKe_nn (Real.exp_pos _).le
       simp only [hDn_def]; linarith [hC_L_pos.le, hC_L_val_nn]
-    rw [div_le_div_iff (by linarith) (by norm_num)]
-    linarith
+    exact one_div_le_one_div_of_le (by norm_num) (by linarith)
   have hT₀_le_one : T₀ ≤ 1 := le_trans hT₀_le_half (by norm_num)
   have hK_lt : C_L * T₀ < 1 := by
     rw [hT₀_def, mul_one_div, div_lt_one (by linarith)]
@@ -516,6 +515,8 @@ theorem coneGradientMildSolutionData_exists (p : CM2Params) (hχ : p.χ₀ = 0)
                   intervalFullSemigroupOperator (t - s)
                     (logisticLifted p (w s)) x.1 :=
       funext (hΦ_eq w t)
+    show Continuous (fun x : intervalDomainPoint =>
+      intervalGradientDuhamelMap p u₀ w t x)
     rw [hslice_eq]
     exact (hSg_cont t ht).add hVal_cont
   -- Joint measurability preservation (value Duhamel only).
