@@ -36,6 +36,7 @@ theorem sliceMin_diff_le_slope
     (hslice_diff : ∀ y ∈ Set.Icc (0:ℝ) 1, ∀ s ∈ Set.Ioo x z,
       HasDerivAt (fun r => F r y) (deriv (fun r => F r y) s) s) :
     ∃ ξ ∈ Set.Ioo x z, ∃ xz ∈ Set.Icc (0:ℝ) 1,
+      F z xz = sInf (F z '' Set.Icc (0:ℝ) 1) ∧
       sInf (F x '' Set.Icc (0:ℝ) 1) - sInf (F z '' Set.Icc (0:ℝ) 1)
         ≤ (x - z) * deriv (fun r => F r xz) ξ := by
   -- Argmin at `z`.
@@ -44,7 +45,7 @@ theorem sliceMin_diff_le_slope
   obtain ⟨ξ, hξ_mem, hξ_eq⟩ := exists_hasDerivAt_eq_slope
     (fun r => F r xz) (deriv (fun r => F r xz)) hxz
     (hslice_cont xz hxz_mem) (fun s hs => hslice_diff xz hxz_mem s hs)
-  refine ⟨ξ, hξ_mem, xz, hxz_mem, ?_⟩
+  refine ⟨ξ, hξ_mem, xz, hxz_mem, hFz_eq, ?_⟩
   -- `m z = F z xz`; `m x ≤ F x xz`.
   have hmz : sInf (F z '' Set.Icc (0:ℝ) 1) = F z xz := hFz_eq.symm
   -- `F x '' [0,1]` is compact ⇒ bdd below.
