@@ -294,11 +294,13 @@ theorem reaches_fixed_horizon
         rw [hcast]
         linarith
       have hT'_le : min δ (T₀ + ((n : ℕ) + 1 : ℕ) * (δc / 2)) ≤ τ + δc := by
+        -- Keep the `min`-term atomic (rewriting inside it would decouple it
+        -- from the goal's `min`-atom for `linarith`); feed `hcast` as a
+        -- linear equation instead.
         have h1 : min δ (T₀ + ((n : ℕ) + 1 : ℕ) * (δc / 2))
             ≤ T₀ + ((n : ℕ) + 1 : ℕ) * (δc / 2) := min_le_right _ _
-        rw [hcast] at h1
         simp only [hτ_def]
-        linarith
+        linarith [h1, hcast, hm_le_δc4]
       obtain ⟨u', v', hsol', htrace'⟩ :=
         restartAndGlue_at_slice p hPiecewise hRegShift hOverlap hTraceShift
           hu₀ hTn_pos hδc hτ_pos hτ_lt
