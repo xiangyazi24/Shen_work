@@ -896,3 +896,52 @@ Full theorem-shaped accessors from assumption components should not be named
 `_proved`.  Direct theorem names should use `_direct`, and conditional results
 should say `branch`, `raw`, `of_...`, or otherwise expose their remaining
 inputs in the declaration name and theorem type.
+
+---
+
+## 2026-06-06 — F2 interface faithfulness finding (χ₀ ≠ 0)
+
+**Finding**: `IntervalDomainGradientMildHalfStepLogisticSourceFrontierCoreLocalData`
+(the hMildLocal hypothesis of `paper2_theorem_1_1_from_three`/`_from_two`)
+requires `GradientMildHalfStepLogisticSourceData`, whose `hagree` field
+represents every mild slice `u(t)` as a restart cosine series whose Duhamel
+source family is the cosine coefficients of a *pure logistic* source
+`L(profile t σ) = g(a − b·g^α)`.  The gradient mild map
+(`intervalGradientDuhamelMap`) contains the chemotaxis flux term
+`−χ₀ ∫₀ᵗ ∂ₓ[S(t−s) Q(u s)] ds`; for `χ₀ ≠ 0` the effective restart source
+contains a flux-divergence component that is in general NOT realizable as
+`L(g)` for positive C² `g` (for `α ≥ 1` the logistic range is bounded above
+by `max_{z>0} z(a−bz^α)`, the flux component is not).  **The logistic-only
+hMildLocal interface is expected to be satisfiable only when the flux term
+vanishes (`χ₀ = 0`)** — proving it for `χ₀ < 0` is likely impossible, and any
+"close hMildLocal" plan routed through the logistic package is a dead end for
+the general regime.
+
+**Fix (committed)**: `IntervalDomainRestartLocalWiring.lean` defines the
+faithful abstract-restart interface
+`IntervalDomainGradientMildHalfStepRestartFrontierCoreLocalData` (uses
+`GradientMildHalfStepRestartData`: arbitrary `DuhamelSourceTimeC1` source
+family — accommodates flux) + `paper2_theorem_1_1_from_two_restart`.
+The logistic interface remains usable for the `χ₀ = 0` sub-regime and implies
+the abstract one (`restartLocalData_of_logisticLocalData`).
+
+**Remaining genuine math core behind the abstract interface** (the real F2):
+construct, for the Picard-limit mild solution, a half-step restart source
+family `a t : ℝ → ℕ → ℝ` with (i) the restart cosine agreement and (ii) the
+`DuhamelSourceTimeC1` envelope `∑ₙ supₛ |aₙ(s)| < ∞`.  The envelope for the
+flux part needs the cosine coefficients of `∂ₓQ(u(s))` to be absolutely
+summable — i.e. slightly more than C² regularity of `Q` (Wiener-algebra /
+Hölder-C² class).  This requires a second bootstrap round (or Lᵖ-smoothing
+Schauder-type estimates), and is the true mathematical frontier of Paper 2
+Theorem 1.1; it was previously hidden inside the unsatisfiable logistic
+interface.
+
+**hQuant note**: the current Picard existence
+(`intervalMildSolution_exists_picard`) picks the horizon via
+`A√T + BT < min(1, inf u₀)` — the `inf u₀` dependence (crude positivity)
+breaks the uniform-in-datum δ(M) needed by hQuant.  Design for the fix:
+two-sided cone invariance `θ(s)·S(s)u₀ ≤ w(s) ≤ e^{as}·S(s)u₀` through the
+mild map (uses semigroup property `S(t−s)S(s) = S(t)` and positivity of the
+semigroup); for `χ₀ = 0` this gives an inf-independent horizon directly; for
+`χ₀ ≠ 0` the flux term additionally needs a pointwise kernel-derivative
+comparison `|∂ₓK(r,x,y)| ≤ C r^{−1/2} K(2r,x,y)`-type estimate.
