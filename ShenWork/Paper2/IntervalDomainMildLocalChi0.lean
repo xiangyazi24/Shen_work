@@ -157,7 +157,7 @@ structure LimitRegularityInputs
   Msup : ℝ
   G1 : ℝ
   G2 : ℝ
-  hC2t : ∀ σ, ContDiff ℝ 2 (intervalDomainLift (D.u σ))
+  hC2t : ∀ σ, ContDiffOn ℝ 2 (intervalDomainLift (D.u σ)) (Set.Icc (0 : ℝ) 1)
   hpost : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (D.u σ) x
   hubt : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (D.u σ) x ≤ Msup
   hG1t : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1,
