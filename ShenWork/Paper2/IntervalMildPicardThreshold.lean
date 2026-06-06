@@ -2323,7 +2323,7 @@ theorem gradientMildSolutionData_initialApproach (p : CM2Params)
       f hf_cont
   rw [Metric.tendstoUniformlyOn_iff] at hG5
   have hev := hG5 (ε / 2) (by linarith)
-  rw [Filter.eventually_iff, mem_nhdsWithin_Ioi_iff_exists_Ioo_subset] at hev
+  rw [Filter.eventually_iff, mem_nhdsGT_iff_exists_Ioo_subset] at hev
   obtain ⟨δ₁, hδ₁mem, hδ₁sub⟩ := hev
   have hδ₁ : 0 < δ₁ := hδ₁mem
   -- The combined horizon.
