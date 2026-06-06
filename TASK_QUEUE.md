@@ -180,3 +180,22 @@ the logistic package faithfully.
   {ThresholdQuantitativeLocalExistence, ClassicalMinPersistence, hlocal}.
 - codex quota exhausted till 2026-06-10; F2 design round running on two
   independent Opus subagents instead (blind, then adjudication).
+
+### Phase-0 status 2026-06-06 ~04:00 (session A)
+
+R2′ Phase-0 modules ALL LANDED (each lake-env-lean green + axiom-clean):
+quant decay atom, B_log, τ^{1/4}/τ-free Duhamel gains, E₁/E₂ weights +
+power laws + antitone, M1 (iterate restart cosine identity, χ₀=0),
+M2-uniform (series deriv sup bounds), M3 (source TimeC1, explicit envelope),
+M3b (K1 discharge, uniform Mdot), M-final (joint induction:
+PicardIterateUniformData + GateCondition; g2_step_closes + g1_kernel_bound
+PROVED — the gate recursion genuinely closes; anti-vacuity audited).
+
+Honest residual of Phase-0: UniformWiring's 3 field hyps (hG1all, hG2base,
+hG2step — M1-bridge wirings) — discharge agent in flight
+(IntervalPicardUniformWiring.lean). After that: M4 assembly
+(Data → GradientMildHalfStepH2SourceData → G2.5 limit → hlocal(χ₀=0)).
+
+Architecture correction recorded: G1-line via kernel atoms (n-free),
+NOT via coefficient sums (G1² feedback never closes; power-counting in
+HANDOFF/inbox/phase0-mfinal-spec.md).
