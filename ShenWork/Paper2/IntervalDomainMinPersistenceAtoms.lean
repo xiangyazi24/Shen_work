@@ -111,4 +111,246 @@ theorem deriv2_nonpos_of_isLocalMax {f : ℝ → ℝ} {x D : ℝ}
     exact hf''.neg
   linarith [deriv2_nonneg_of_isLocalMin hminneg hdiffneg hf''neg]
 
+/-! ## Phase A(iii): the one-dimensional elliptic sup bound
+
+`w'' = μ·w − Src` on `(0,1)` with `|Src| ≤ B`, Neumann limits at the
+endpoints, and `w` continuous on `[0,1]` force `w ≤ B/μ`.
+
+The proof avoids one-sided second-derivative tests entirely: if
+`w(x*) > B/μ` at an argmax `x*`, the PDE forces `w'' > 0` on a
+neighbourhood, so `w'` is strictly increasing there; the pivot
+(`w'(x*) = 0` at an interior argmax, `w' → 0` at a Neumann endpoint)
+then makes `w'` one-signed adjacent to `x*`, so `w` strictly
+increases/decreases away from the maximum — a contradiction. -/
+
+/-- `w'` is strictly positive just RIGHT of `a` when `w'' > 0` on
+`(a, a+η)` and `w' → 0` along `a⁺`. -/
+private theorem deriv_pos_right_of_deriv2_pos_of_pivot
+    {w : ℝ → ℝ} {a η : ℝ} (_hη : 0 < η)
+    (hd1 : ∀ y ∈ Set.Ioo a (a + η), DifferentiableAt ℝ (deriv w) y)
+    (hd2pos : ∀ y ∈ Set.Ioo a (a + η), 0 < deriv (deriv w) y)
+    (hpivot : Filter.Tendsto (deriv w) (nhdsWithin a (Set.Ioi a)) (nhds 0)) :
+    ∀ y ∈ Set.Ioo a (a + η), 0 < deriv w y := by
+  have hmono : ∀ z y, a < z → z < y → y < a + η → deriv w z < deriv w y := by
+    intro z y hz hzy hy
+    have hstrict : StrictMonoOn (deriv w) (Set.Icc z y) := by
+      apply strictMonoOn_of_deriv_pos (convex_Icc _ _)
+      · intro r hr
+        exact ((hd1 r ⟨lt_of_lt_of_le hz hr.1,
+          lt_of_le_of_lt hr.2 hy⟩).continuousAt).continuousWithinAt
+      · intro r hr
+        rw [interior_Icc] at hr
+        exact hd2pos r ⟨lt_trans hz hr.1, lt_trans hr.2 hy⟩
+    exact hstrict (Set.left_mem_Icc.mpr hzy.le)
+      (Set.right_mem_Icc.mpr hzy.le) hzy
+  intro y hy
+  set y' : ℝ := a + (y - a) / 2 with hy'_def
+  have hay' : a < y' := by
+    have := hy.1
+    simp only [hy'_def]; linarith
+  have hy'y : y' < y := by
+    have := hy.1
+    simp only [hy'_def]; linarith
+  have hy'_nonneg : 0 ≤ deriv w y' := by
+    apply ge_of_tendsto hpivot
+    filter_upwards [Ioo_mem_nhdsGT hay'] with z hz
+    exact (hmono z y' hz.1 hz.2 (lt_trans hy'y hy.2)).le
+  exact lt_of_le_of_lt hy'_nonneg (hmono y' y hay' hy'y hy.2)
+
+/-- `w'` is strictly negative just LEFT of `b` when `w'' > 0` on
+`(b−η, b)` and `w' → 0` along `b⁻`. -/
+private theorem deriv_neg_left_of_deriv2_pos_of_pivot
+    {w : ℝ → ℝ} {b η : ℝ} (_hη : 0 < η)
+    (hd1 : ∀ y ∈ Set.Ioo (b - η) b, DifferentiableAt ℝ (deriv w) y)
+    (hd2pos : ∀ y ∈ Set.Ioo (b - η) b, 0 < deriv (deriv w) y)
+    (hpivot : Filter.Tendsto (deriv w) (nhdsWithin b (Set.Iio b)) (nhds 0)) :
+    ∀ y ∈ Set.Ioo (b - η) b, deriv w y < 0 := by
+  have hmono : ∀ z y, b - η < z → z < y → y < b → deriv w z < deriv w y := by
+    intro z y hz hzy hy
+    have hstrict : StrictMonoOn (deriv w) (Set.Icc z y) := by
+      apply strictMonoOn_of_deriv_pos (convex_Icc _ _)
+      · intro r hr
+        exact ((hd1 r ⟨lt_of_lt_of_le hz hr.1,
+          lt_of_le_of_lt hr.2 hy⟩).continuousAt).continuousWithinAt
+      · intro r hr
+        rw [interior_Icc] at hr
+        exact hd2pos r ⟨lt_trans hz hr.1, lt_trans hr.2 hy⟩
+    exact hstrict (Set.left_mem_Icc.mpr hzy.le)
+      (Set.right_mem_Icc.mpr hzy.le) hzy
+  intro y hy
+  set y' : ℝ := b - (b - y) / 2 with hy'_def
+  have hyy' : y < y' := by
+    have := hy.2
+    simp only [hy'_def]; linarith
+  have hy'b : y' < b := by
+    have := hy.2
+    simp only [hy'_def]; linarith
+  have hy'_nonpos : deriv w y' ≤ 0 := by
+    apply le_of_tendsto hpivot
+    filter_upwards [Ioo_mem_nhdsLT hy'b] with z hz
+    exact (hmono y' z (lt_trans hy.1 hyy') hz.1 hz.2).le
+  exact lt_of_lt_of_le (hmono y y' hy.1 hyy' hy'b) hy'_nonpos
+
+set_option maxHeartbeats 800000 in
+/-- **One-dimensional elliptic sup bound.**  If `w` is continuous on
+`[0,1]`, `C²` on `(0,1)` with `w'' = μ·w − Src` there, `|Src| ≤ B` on
+the interior, and `w'` has Neumann limits `0` at both endpoints, then
+`w ≤ B/μ` on `[0,1]`. -/
+theorem elliptic_sup_bound
+    {w Src : ℝ → ℝ} {μ B : ℝ} (hμ : 0 < μ)
+    (hcont : ContinuousOn w (Set.Icc (0:ℝ) 1))
+    (hd1 : ∀ y ∈ Set.Ioo (0:ℝ) 1, DifferentiableAt ℝ w y)
+    (hd2 : ∀ y ∈ Set.Ioo (0:ℝ) 1, DifferentiableAt ℝ (deriv w) y)
+    (hPDE : ∀ y ∈ Set.Ioo (0:ℝ) 1, deriv (deriv w) y = μ * w y - Src y)
+    (hSrc : ∀ y ∈ Set.Ioo (0:ℝ) 1, |Src y| ≤ B)
+    (hNeu0 : Filter.Tendsto (deriv w) (nhdsWithin 0 (Set.Ioi 0)) (nhds 0))
+    (hNeu1 : Filter.Tendsto (deriv w) (nhdsWithin 1 (Set.Iio 1)) (nhds 0)) :
+    ∀ x ∈ Set.Icc (0:ℝ) 1, w x ≤ B / μ := by
+  obtain ⟨x₀, hx₀_mem, hx₀_max⟩ :=
+    isCompact_Icc.exists_isMaxOn ⟨0, Set.left_mem_Icc.mpr zero_le_one⟩ hcont
+  suffices hmax : w x₀ ≤ B / μ by
+    intro x hx
+    exact le_trans (hx₀_max hx) hmax
+  by_contra hgt
+  push_neg at hgt
+  -- The PDE forces `w'' > 0` wherever `w > B/μ`.
+  have hpos_at : ∀ y ∈ Set.Ioo (0:ℝ) 1, B / μ < w y →
+      0 < deriv (deriv w) y := by
+    intro y hy hwy
+    rw [hPDE y hy]
+    have h1 : B < μ * w y := by
+      have := (div_lt_iff₀ hμ).mp hwy
+      linarith
+    have h2 := (abs_le.mp (hSrc y hy)).2
+    linarith
+  -- A one-sided neighbourhood of the argmax where `w > B/μ`.
+  have hev : ∀ᶠ y in nhdsWithin x₀ (Set.Icc (0:ℝ) 1), B / μ < w y :=
+    (hcont x₀ hx₀_mem).eventually_const_lt hgt
+  rw [Filter.eventually_iff, mem_nhdsWithin] at hev
+  obtain ⟨U, hU_open, hx₀U, hUsub⟩ := hev
+  obtain ⟨ε, hε, hball⟩ := Metric.isOpen_iff.mp hU_open x₀ hx₀U
+  have hgt_near : ∀ y, |y - x₀| < ε → y ∈ Set.Icc (0:ℝ) 1 → B / μ < w y := by
+    intro y hyε hy01
+    apply hUsub
+    refine ⟨hball ?_, hy01⟩
+    rw [Metric.mem_ball, Real.dist_eq]
+    exact hyε
+  rcases lt_or_eq_of_le hx₀_mem.1 with h0x | h0x
+  · rcases lt_or_eq_of_le hx₀_mem.2 with hx1 | hx1
+    · -- Interior argmax.
+      have hx₀_in : x₀ ∈ Set.Ioo (0:ℝ) 1 := ⟨h0x, hx1⟩
+      set η : ℝ := min (ε / 2) ((1 - x₀) / 2) with hη_def
+      have hη : 0 < η := lt_min (by linarith) (by linarith)
+      have hsub : Set.Ioo x₀ (x₀ + η) ⊆ Set.Ioo (0:ℝ) 1 := by
+        intro y hy
+        have h1 : η ≤ (1 - x₀) / 2 := min_le_right _ _
+        exact ⟨lt_trans h0x hy.1, by linarith [hy.2]⟩
+      have hd2pos : ∀ y ∈ Set.Ioo x₀ (x₀ + η), 0 < deriv (deriv w) y := by
+        intro y hy
+        apply hpos_at y (hsub hy)
+        apply hgt_near
+        · rw [abs_sub_lt_iff]
+          have h1 : η ≤ ε / 2 := min_le_left _ _
+          constructor <;> linarith [hy.1, hy.2, hε]
+        · exact Set.Ioo_subset_Icc_self (hsub hy)
+      -- Pivot: `deriv w x₀ = 0` and `deriv w` continuous at `x₀`.
+      have hmax_loc : IsLocalMax w x₀ := by
+        have hnhds : Set.Icc (0:ℝ) 1 ∈ nhds x₀ := Icc_mem_nhds h0x hx1
+        exact Filter.eventually_of_mem hnhds (fun y hy => hx₀_max hy)
+      have hderiv0 : deriv w x₀ = 0 := hmax_loc.deriv_eq_zero
+      have hpivot : Filter.Tendsto (deriv w) (nhdsWithin x₀ (Set.Ioi x₀))
+          (nhds 0) := by
+        rw [← hderiv0]
+        exact ((hd2 x₀ hx₀_in).continuousAt.tendsto).mono_left
+          nhdsWithin_le_nhds
+      have hdpos := deriv_pos_right_of_deriv2_pos_of_pivot hη
+        (fun y hy => hd2 y (hsub hy)) hd2pos hpivot
+      -- `w` strictly increases on `[x₀, x₀ + η/2]` — contradiction.
+      have hicc_sub : Set.Icc x₀ (x₀ + η / 2) ⊆ Set.Icc (0:ℝ) 1 := by
+        intro y hy
+        have h1 : η ≤ (1 - x₀) / 2 := min_le_right _ _
+        exact ⟨le_trans hx₀_mem.1 hy.1, by linarith [hy.2]⟩
+      have hmono_w : StrictMonoOn w (Set.Icc x₀ (x₀ + η / 2)) := by
+        apply strictMonoOn_of_deriv_pos (convex_Icc _ _)
+          (hcont.mono hicc_sub)
+        intro y hy
+        rw [interior_Icc] at hy
+        exact hdpos y ⟨hy.1, by linarith [hy.2]⟩
+      have hlt : w x₀ < w (x₀ + η / 2) :=
+        hmono_w (Set.left_mem_Icc.mpr (by linarith))
+          (Set.right_mem_Icc.mpr (by linarith)) (by linarith)
+      have hge : w (x₀ + η / 2) ≤ w x₀ :=
+        hx₀_max (hicc_sub (Set.right_mem_Icc.mpr (by linarith)))
+      linarith
+    · -- Argmax at the RIGHT endpoint `x₀ = 1`.
+      subst hx1
+      set η : ℝ := min (ε / 2) ((1:ℝ) / 2) with hη_def
+      have hη : 0 < η := lt_min (by linarith) (by norm_num)
+      have hsub : Set.Ioo (1 - η) 1 ⊆ Set.Ioo (0:ℝ) 1 := by
+        intro y hy
+        have h1 : η ≤ (1:ℝ) / 2 := min_le_right _ _
+        exact ⟨by linarith [hy.1], hy.2⟩
+      have hd2pos : ∀ y ∈ Set.Ioo (1 - η) 1, 0 < deriv (deriv w) y := by
+        intro y hy
+        apply hpos_at y (hsub hy)
+        apply hgt_near
+        · rw [abs_sub_lt_iff]
+          have h1 : η ≤ ε / 2 := min_le_left _ _
+          constructor <;> linarith [hy.1, hy.2, hε]
+        · exact Set.Ioo_subset_Icc_self (hsub hy)
+      have hdneg := deriv_neg_left_of_deriv2_pos_of_pivot hη
+        (fun y hy => hd2 y (hsub hy)) hd2pos hNeu1
+      -- `w` strictly decreases on `[1 − η/2, 1]` — contradiction.
+      have hicc_sub : Set.Icc (1 - η / 2) 1 ⊆ Set.Icc (0:ℝ) 1 := by
+        intro y hy
+        have h1 : η ≤ (1:ℝ) / 2 := min_le_right _ _
+        exact ⟨by linarith [hy.1], hy.2⟩
+      have hanti_w : StrictAntiOn w (Set.Icc (1 - η / 2) 1) := by
+        apply strictAntiOn_of_deriv_neg (convex_Icc _ _)
+          (hcont.mono hicc_sub)
+        intro y hy
+        rw [interior_Icc] at hy
+        exact hdneg y ⟨by linarith [hy.1], hy.2⟩
+      have hlt : w 1 < w (1 - η / 2) :=
+        hanti_w (Set.left_mem_Icc.mpr (by linarith))
+          (Set.right_mem_Icc.mpr (by linarith)) (by linarith)
+      have hge : w (1 - η / 2) ≤ w 1 :=
+        hx₀_max (hicc_sub (Set.left_mem_Icc.mpr (by linarith)))
+      linarith
+  · -- Argmax at the LEFT endpoint `x₀ = 0`.
+    have h0x' : x₀ = 0 := h0x.symm
+    subst h0x'
+    set η : ℝ := min (ε / 2) ((1:ℝ) / 2) with hη_def
+    have hη : 0 < η := lt_min (by linarith) (by norm_num)
+    have hsub : Set.Ioo (0:ℝ) (0 + η) ⊆ Set.Ioo (0:ℝ) 1 := by
+      intro y hy
+      have h1 : η ≤ (1:ℝ) / 2 := min_le_right _ _
+      exact ⟨hy.1, by linarith [hy.2]⟩
+    have hd2pos : ∀ y ∈ Set.Ioo (0:ℝ) (0 + η), 0 < deriv (deriv w) y := by
+      intro y hy
+      apply hpos_at y (hsub hy)
+      apply hgt_near
+      · rw [abs_sub_lt_iff]
+        have h1 : η ≤ ε / 2 := min_le_left _ _
+        constructor <;> linarith [hy.1, hy.2, hε]
+      · exact Set.Ioo_subset_Icc_self (hsub hy)
+    have hdpos := deriv_pos_right_of_deriv2_pos_of_pivot hη
+      (fun y hy => hd2 y (hsub hy)) hd2pos hNeu0
+    have hicc_sub : Set.Icc (0:ℝ) (0 + η / 2) ⊆ Set.Icc (0:ℝ) 1 := by
+      intro y hy
+      have h1 : η ≤ (1:ℝ) / 2 := min_le_right _ _
+      exact ⟨hy.1, by linarith [hy.2]⟩
+    have hmono_w : StrictMonoOn w (Set.Icc (0:ℝ) (0 + η / 2)) := by
+      apply strictMonoOn_of_deriv_pos (convex_Icc _ _)
+        (hcont.mono hicc_sub)
+      intro y hy
+      rw [interior_Icc] at hy
+      exact hdpos y ⟨hy.1, by linarith [hy.2]⟩
+    have hlt : w 0 < w (0 + η / 2) :=
+      hmono_w (Set.left_mem_Icc.mpr (by linarith))
+        (Set.right_mem_Icc.mpr (by linarith)) (by linarith)
+    have hge : w (0 + η / 2) ≤ w 0 :=
+      hx₀_max (hicc_sub (Set.right_mem_Icc.mpr (by linarith)))
+    linarith
+
 end ShenWork.MinPersistenceAtoms
