@@ -144,4 +144,38 @@ noncomputable def logisticSource_duhamelSourceTimeC1_of_representation
         (hbsum σ) (hagree σ) (hpos σ))
     hC hdecay hderiv hadotcont hMdot ha0
 
+/-- **Representation-based POWER-source `DuhamelSourceTimeC1` producer.**
+
+The `ν·u^γ` analogue (the resolver-source family behind the ledger's `Hvsrc`
+residual), built additively from the cosine representation via the existing
+power-source weak-H² adapter `intervalWeakH2Neumann_of_eigenvalue_summable`.
+No global-`C²` hypothesis on the lift. -/
+noncomputable def powerSource_duhamelSourceTimeC1_of_representation
+    {ν γ : ℝ} (hν : 0 < ν) (hγ : 0 < γ) {w : ℝ → intervalDomainPoint → ℝ}
+    (bc : ℝ → ℕ → ℝ)
+    (hbsum : ∀ σ, Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|))
+    (hagree : ∀ σ, Set.EqOn (intervalDomainLift (w σ))
+        (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1))
+    (hpos : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (w σ) x)
+    {C : ℝ} (hC : 0 ≤ C)
+    (hdecay : ∀ σ, 0 ≤ σ → ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs (fun x => ν * intervalDomainLift (w σ) x ^ γ) k|
+        ≤ C / ((k : ℝ) * Real.pi) ^ 2)
+    (ha0 : ∀ σ, 0 ≤ σ →
+      |cosineCoeffs (fun x => ν * intervalDomainLift (w σ) x ^ γ) 0| ≤ C)
+    {adot : ℝ → ℕ → ℝ}
+    (hderiv : ∀ σ n, HasDerivAt
+      (fun r => cosineCoeffs (fun x => ν * intervalDomainLift (w r) x ^ γ) n)
+      (adot σ n) σ)
+    (hadotcont : ∀ n, Continuous (fun σ => adot σ n))
+    {Mdot : ℝ}
+    (hMdot : ∀ σ, 0 ≤ σ → ∀ n, |adot σ n| ≤ Mdot) :
+    DuhamelSourceTimeC1
+      (fun σ n => cosineCoeffs (fun x => ν * intervalDomainLift (w σ) x ^ γ) n) :=
+  ShenWork.IntervalSemigroupNeumann.duhamelSourceTimeC1_of_H2Neumann_timeC1
+    (fun σ _hσ =>
+      ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_eigenvalue_summable
+        hν hγ (hbsum σ) (hagree σ) (hpos σ))
+    hC hdecay hderiv hadotcont hMdot ha0
+
 end ShenWork.IntervalDomainLogisticWeakH2Adapter
