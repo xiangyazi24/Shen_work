@@ -288,3 +288,28 @@ The rlimit/continuity bookkeeping (conjuncts 6/7/8 → the limits) is the
 remaining ~150 ln. C-limit (sequential-compactness Dini) unchanged (UPDATE 5).
 
 Session-A B2/MinPersistence atoms: 15 this campaign, all axiom-clean.
+
+## UPDATE 7 (Session A): PHASE C CRUX DONE — Hamilton trick packaged + axiom-clean
+The sequential-compactness Dini argument (flagged as the true crux) is CLOSED:
+- `sliceMin_cluster_argmin` — cluster pt of argmins is an argmin (seq-compactness).
+- `sliceMin_diff_le_slope` (+ exposed argmin) — per-step time-MVT.
+- `sliceMin_dini_of_argmin_bound` — Dini hypothesis from the min-point bound
+  (by_contra + cluster + joint-∂ₜ-cont limit). GREEN + axiom-clean.
+- `sliceMin_hamilton_bound` — packaged: `m(a)·e^{−Kp(t−a)} ≤ m(t)` from the
+  min-point bound (Dini ∘ hamilton_lower_bound). GREEN + axiom-clean.
+
+### ONLY 2 pieces remain for ClassicalMinPersistence:
+1. **Boundary min-point assembly (Phase B full)**: feed `hbound` at boundary
+   argmins x*∈{0,1}. Have `boundary_min_deriv2_rlimit_nonneg` (the 2nd-deriv
+   test). Still need: u_t(0)=lim RHS (conjunct 8) with chemDiv up-to-boundary
+   continuity (C¹ of the flux F=lift u·P on Icc) ⟹ −K·u(0) ≤ u_t(0). The
+   chemDiv-continuity-to-boundary is the remaining hard sub-piece. [Interior
+   argmins already done: interior_min_point_of_solution.]
+2. **Final assembly**: instantiate sliceMin_hamilton_bound with F := the
+   solution slices (Kp := K(M'), bound from interior_min_point_of_solution ∪
+   boundary), then the c := m*(t₁)·e^{−K(δ−t₁)} construction + overlap
+   uniqueness (chosen-solution trick) ⟹ ClassicalMinPersistence. Mostly
+   wiring once hbound covers all argmins.
+
+Session-A B2/MinPersistence atoms: 18 this campaign, all axiom-clean. The two
+genuine analysis cruxes (interior min-point chain + the Dini wrapper) are DONE.
