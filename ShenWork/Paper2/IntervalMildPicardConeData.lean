@@ -109,7 +109,8 @@ theorem coneGradientMildSolutionData_exists (p : CM2Params) (hχ : p.χ₀ = 0)
         (∀ x, |u₀ x| ≤ M_in) →
         (∀ x, 0 ≤ u₀ x) →
         (∃ x₀, 0 < u₀ x₀) →
-        ∃ D : GradientMildSolutionData p u₀, D.T = δ := by
+        ∃ D : GradientMildSolutionData p u₀,
+          D.T = δ ∧ D.u = picardLimit p u₀ δ := by
   set M := 2 * max M_in 1 with hMdef
   have hM : 0 < M := by positivity
   have hM_ge_2 : (2 : ℝ) ≤ M := by
@@ -773,6 +774,6 @@ theorem coneGradientMildSolutionData_exists (p : CM2Params) (hχ : p.χ₀ = 0)
     hpos := hpos_limit
     hcont := hcont_limit
     hmeas := hmeas_limit
-  }, rfl⟩
+  }, rfl, rfl⟩
 
 end ShenWork.IntervalMildPicardConeData
