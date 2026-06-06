@@ -32,6 +32,7 @@
   No `sorry`/`admit`/custom `axiom`.
 -/
 import ShenWork.Paper2.IntervalMildPicard
+import ShenWork.PDE.IntervalSemigroupUniform
 
 open MeasureTheory Set Filter
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalMeasure)
