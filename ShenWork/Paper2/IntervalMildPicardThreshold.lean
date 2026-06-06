@@ -2253,17 +2253,17 @@ GENERICALLY for any `GradientMildSolutionData`, with no reference to
 how the data was constructed. -/
 
 /-- Clamp a real to the unit-interval subtype. -/
-private def unitClip (y : ℝ) : intervalDomainPoint :=
+def unitClip (y : ℝ) : intervalDomainPoint :=
   ⟨max 0 (min y 1), le_max_left 0 _,
     max_le (by norm_num) (min_le_right y 1)⟩
 
-private theorem unitClip_continuous :
+theorem unitClip_continuous :
     Continuous fun y : ℝ => unitClip y := by
   unfold unitClip
   exact Continuous.subtype_mk
     (continuous_const.max (continuous_id.min continuous_const)) _
 
-private theorem unitClip_of_mem {y : ℝ} (hy : y ∈ Set.Icc (0 : ℝ) 1) :
+theorem unitClip_of_mem {y : ℝ} (hy : y ∈ Set.Icc (0 : ℝ) 1) :
     unitClip y = ⟨y, hy⟩ := by
   apply Subtype.ext
   simp only [unitClip]
@@ -2494,5 +2494,33 @@ theorem logisticLifted_time_cutoff_measurable'
       (fun q : ℝ × ℝ =>
         if 0 < q.1 ∧ q.1 ≤ T then logisticLifted p (u q.1) q.2 else 0) :=
   logisticLifted_time_cutoff_measurable hum
+
+/-- Measurability of the lift of a continuous function (public). -/
+theorem intervalDomainLift_measurable_of_continuous'
+    {f : intervalDomainPoint → ℝ} (hf : Continuous f) :
+    Measurable (intervalDomainLift f) :=
+  intervalDomainLift_measurable_of_continuous hf
+
+/-- Joint measurability of the propagator applied to a fixed measurable
+input (public). -/
+theorem intervalFullSemigroupOperator_joint_measurable'
+    {f : ℝ → ℝ} (hf : Measurable f) :
+    Measurable (fun q : ℝ × ℝ => intervalFullSemigroupOperator q.1 f q.2) :=
+  intervalFullSemigroupOperator_joint_measurable hf
+
+/-- Measurability of a variable-endpoint interval integral of a jointly
+measurable integrand (public). -/
+theorem variable_interval_integral_measurable'
+    {G : (ℝ × ℝ) × ℝ → ℝ} (hG : Measurable G) :
+    Measurable (fun q : ℝ × ℝ => ∫ s in (0 : ℝ)..q.1, G (q, s)) :=
+  variable_interval_integral_measurable hG
+
+/-- Joint measurability of the s-parameterised propagator of a jointly
+measurable source family (public). -/
+theorem intervalFullSemigroupOperator_s_param_joint_measurable'
+    {F : ℝ → ℝ → ℝ} (hF : Measurable (Function.uncurry F)) :
+    Measurable (fun r : (ℝ × ℝ) × ℝ =>
+      intervalFullSemigroupOperator (r.1.1 - r.2) (F r.2) r.1.2) :=
+  intervalFullSemigroupOperator_s_param_joint_measurable hF
 
 end ShenWork.IntervalMildPicardThreshold
