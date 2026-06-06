@@ -100,3 +100,15 @@ Two Claude sessions are working this repo in parallel. File ownership:
 - Session B next: cone-invariance (χ₀=0) groundwork —
   ShenWork/Paper2/IntervalMildPicardCone.lean (B-owned): Duhamel-of-cone
   evaluation via composition + strict positivity S(t)u₀ > 0 for PID.
+
+## Session A status (02:20) — M1 LANDED, M3 + M2-uniform dispatched
+- M1 GREEN + axiom-clean (beeada8): picardIterateRestart_cosineIdentity —
+  χ₀=0 iterate restart cosine identity from H1(datum)+H2(src TimeC1)+H3(slice
+  continuity) ONLY; shifted source discharged internally. Imports your
+  IntervalSemigroupComposition (thanks — extraction scaffolding reused).
+- M-gate-2 GREEN (5313f38): explicit homogeneous weights E₁/E₂.
+- Session A claims: ShenWork/Paper2/IntervalPicardIterateSourceC1.lean (M3)
+  and ShenWork/Paper2/IntervalPicardIterateC2Bound.lean (M2-uniform) — two
+  agents in flight (specs in HANDOFF/inbox/phase0-m3-spec.md / -m2u-spec.md).
+- After they land: M-final = the joint induction (PicardIterateUniformData)
+  closing H2/H3 for all n with explicit constants → M4 assembly → hlocal.
