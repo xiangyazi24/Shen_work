@@ -43,14 +43,23 @@
   ## Output
 
   * `quantitativeLocalExistence_of_threshold_persistence_seed` — the
-    hQuant statement from the three hypotheses (+ regime).
-  * `paper2_theorem_1_1_of_threshold_persistence` — Theorem 1.1 with
-    hQuant replaced by Threshold + MinPersistence.
+    hQuant statement from the three hypotheses (+ regime + hPCW).
+  * `paper2_theorem_1_1_of_threshold_persistence_hlocal` — Theorem 1.1
+    with hQuant replaced by Threshold + MinPersistence.
+
+  `hPCW : PiecewiseGlue.PiecewiseClassicalWorks p` is taken as a
+  hypothesis here (rather than discharged by
+  `PiecewiseClassical.piecewiseClassicalWorks`) to keep this file's
+  import closure green: IntervalDomainPiecewiseClassical.lean is
+  committed but does not currently compile (af551f2 was committed
+  unbuilt; ~25 elaboration errors).  Once it is repaired, a one-line
+  wiring discharges `hPCW`.
 
   No `sorry`/`admit`/custom `axiom`.
 -/
-import ShenWork.Paper2.IntervalDomainFinalWiring
-import ShenWork.Paper2.IntervalDomainRestartLocalWiring
+import ShenWork.Paper2.IntervalDomainTheorem11Umbrella
+import ShenWork.Paper2.IntervalDomainGlueExtension
+import ShenWork.Paper2.IntervalDomainSupNormBridge
 
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
@@ -321,6 +330,7 @@ sup-norm bound) are proved in the repo from the regime hypotheses. -/
 theorem quantitativeLocalExistence_of_threshold_persistence_seed
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hγ_ge_one : 1 ≤ p.γ)
+    (hPCW : PiecewiseGlue.PiecewiseClassicalWorks p)
     (hThreshold : ThresholdQuantitativeLocalExistence p)
     (hPersist : ClassicalMinPersistence p)
     (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
@@ -338,9 +348,7 @@ theorem quantitativeLocalExistence_of_threshold_persistence_seed
   intro M hM
   refine ⟨1, one_pos, ?_⟩
   intro u₀ hu₀ hbound
-  -- Glue ingredients (all proved from the regime).
-  have hPCW : PiecewiseGlue.PiecewiseClassicalWorks p :=
-    PiecewiseClassical.piecewiseClassicalWorks p
+  -- Glue ingredients (proved from the regime; hPCW is a hypothesis).
   have hOverlap : GlueExtension.OverlapUniqueForPID p :=
     GlueExtension.overlapUniqueForPID_of_l2EnergyMethod
       (intervalDomainClassicalUniquenessL2EnergyMethod_of_boundedDatumUniform p
@@ -392,41 +400,20 @@ theorem quantitativeLocalExistence_of_threshold_persistence_seed
 
 /-! ## End-to-end wiring -/
 
-/-- **Paper 2 Theorem 1.1 with hQuant replaced by
-Threshold + MinPersistence.**
+/-- **Paper 2 Theorem 1.1 from regime + hPCW + Threshold +
+MinPersistence + `hlocal`.**
 
-Compared to `FinalWiring.paper2_theorem_1_1_from_two`, the uniform-δ(M)
+Compared to the `hQuant`-based final wirings, the uniform-δ(M)
 quantitative local existence hypothesis is replaced by its two genuine
 ingredients: the Picard threshold existence `δ(M, c)` and the
-quantitative strong minimum principle. -/
-theorem paper2_theorem_1_1_of_threshold_persistence
-    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
-    (hγ_ge_one : 1 ≤ p.γ)
-    (hThreshold : ThresholdQuantitativeLocalExistence p)
-    (hPersist : ClassicalMinPersistence p)
-    (hMildLocal :
-      IntervalDomainGradientMildHalfStepLogisticSourceFrontierCoreLocalData p) :
-    Theorem_1_1 intervalDomain p :=
-  FinalWiring.paper2_theorem_1_1_from_two p hχ ha hb hγ_ge_one
-    (quantitativeLocalExistence_of_threshold_persistence_seed
-      p hχ ha hb hγ_ge_one hThreshold hPersist
-      (localExistence_of_gradientMildHalfStepLogisticSourceFrontierCoreLocalData
-        p hMildLocal))
-    hMildLocal
-
-/-- **Paper 2 Theorem 1.1 from regime + Threshold + MinPersistence +
-`hlocal` (faithful interface).**
-
-This is the factored form: `hlocal` (per-datum classical local
-existence) is the only mild-machinery input, consumed twice — once as
-the seed of the restart iteration that builds hQuant, once directly by
-`paper2_theorem_1_1_from_quant_and_hlocal`.  Unlike
-`paper2_theorem_1_1_of_threshold_persistence`, this does not route
-through the logistic-only half-step package (which is generically
-unsatisfiable for `χ₀ ≠ 0`; see INTEGRITY_GAPS.md 2026-06-06). -/
+quantitative strong minimum principle.  The `hUniform` input of the
+umbrella theorem is assembled from the derived hQuant via the proved
+restart-and-glue machinery (as in
+`FinalWiring.paper2_theorem_1_1_from_three`). -/
 theorem paper2_theorem_1_1_of_threshold_persistence_hlocal
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hγ_ge_one : 1 ≤ p.γ)
+    (hPCW : PiecewiseGlue.PiecewiseClassicalWorks p)
     (hThreshold : ThresholdQuantitativeLocalExistence p)
     (hPersist : ClassicalMinPersistence p)
     (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
@@ -434,11 +421,39 @@ theorem paper2_theorem_1_1_of_threshold_persistence_hlocal
         ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
           IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
           InitialTrace intervalDomain u₀ u) :
-    Theorem_1_1 intervalDomain p :=
-  RestartLocalWiring.paper2_theorem_1_1_from_quant_and_hlocal
+    Theorem_1_1 intervalDomain p := by
+  apply Theorem_1_1_intervalDomain_via_regime_gammaGeOne_no_hextend_mge
     p hχ ha hb hγ_ge_one
-    (quantitativeLocalExistence_of_threshold_persistence_seed
-      p hχ ha hb hγ_ge_one hThreshold hPersist hlocal)
-    hlocal
+  · exact hlocal
+  · -- hUniform from the derived hQuant + restart-and-glue machinery.
+    have hQuant := quantitativeLocalExistence_of_threshold_persistence_seed
+      p hχ ha hb hγ_ge_one hPCW hThreshold hPersist hlocal
+    intro M hM
+    set M' := SupNormBridge.regimeBound p M
+    have hM' := SupNormBridge.regimeBound_pos p hM
+    obtain ⟨δ, hδ, hex⟩ := hQuant M' hM'
+    have hRestart : RestartExtension.RestartAndGlueWorks p :=
+      GlueExtension.restartAndGlueWorks_of_hypotheses p
+        TimeShift.regularityTimeShiftWorks
+        (GlueExtension.overlapUniqueForPID_of_l2EnergyMethod
+          (intervalDomainClassicalUniquenessL2EnergyMethod_of_boundedDatumUniform p
+            (intervalDomainL2UBoundedDatumUniform_of_bounded
+              (boundednessHypothesis_of_uniformSupBoundZeroM hγ_ge_one
+                (uniformLiftBoundZeroM_of_regime p hχ ha hb)))))
+        GlueExtension.timeShiftInitialTraceWorks
+        hPCW
+    refine ⟨δ / 2, by linarith, ?_⟩
+    intro u₀ hu₀ hbound T₀ hT₀ u v hsol htrace
+    have hSupBound : ∀ t, 0 < t → t < T₀ →
+        ∀ x : intervalDomainPoint, |u t x| ≤ M' :=
+      SupNormBridge.interiorSupNorm_le_regimeBound p hχ ha hb hu₀ hM hbound
+        hT₀ hsol htrace
+    have hbound' : ∀ x, |u₀ x| ≤ M' := fun x =>
+      le_trans (hbound x) (SupNormBridge.regimeBound_ge_M p M)
+    have hfactory : ∀ {w : intervalDomainPoint → ℝ},
+        PositiveInitialDatum intervalDomain w → (∀ x, |w x| ≤ M') →
+        ∃ uw vw, IsPaper2ClassicalSolution intervalDomain p δ uw vw ∧
+          InitialTrace intervalDomain w uw := fun hw hbw => hex hw hbw
+    exact hRestart hM' hδ hfactory hu₀ hbound' hT₀ hsol htrace hSupBound
 
 end ShenWork.Paper2.QuantFromThreshold
