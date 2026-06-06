@@ -47,19 +47,18 @@
   * `paper2_theorem_1_1_of_threshold_persistence_hlocal` — Theorem 1.1
     with hQuant replaced by Threshold + MinPersistence.
 
-  `hPCW : PiecewiseGlue.PiecewiseClassicalWorks p` is taken as a
-  hypothesis here (rather than discharged by
-  `PiecewiseClassical.piecewiseClassicalWorks`) to keep this file's
-  import closure green: IntervalDomainPiecewiseClassical.lean is
-  committed but does not currently compile (af551f2 was committed
-  unbuilt; ~25 elaboration errors).  Once it is repaired, a one-line
-  wiring discharges `hPCW`.
+  The working theorems take
+  `hPCW : PiecewiseGlue.PiecewiseClassicalWorks p` as a hypothesis; the
+  final corollaries discharge it via
+  `PiecewiseClassical.piecewiseClassicalWorks` (proved, green since
+  62e2456).
 
   No `sorry`/`admit`/custom `axiom`.
 -/
 import ShenWork.Paper2.IntervalDomainTheorem11Umbrella
 import ShenWork.Paper2.IntervalDomainGlueExtension
 import ShenWork.Paper2.IntervalDomainSupNormBridge
+import ShenWork.Paper2.IntervalDomainPiecewiseClassical
 
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
@@ -455,5 +454,47 @@ theorem paper2_theorem_1_1_of_threshold_persistence_hlocal
         ∃ uw vw, IsPaper2ClassicalSolution intervalDomain p δ uw vw ∧
           InitialTrace intervalDomain w uw := fun hw hbw => hex hw hbw
     exact hRestart hM' hδ hfactory hu₀ hbound' hT₀ hsol htrace hSupBound
+
+/-! ## hPCW discharged (PiecewiseClassical.piecewiseClassicalWorks, proved) -/
+
+/-- **hQuant from Threshold + MinPersistence + seed** with `hPCW`
+discharged by the proved splice-regularity theorem. -/
+theorem quantitativeLocalExistence_of_threshold_persistence_seed'
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hThreshold : ThresholdQuantitativeLocalExistence p)
+    (hPersist : ClassicalMinPersistence p)
+    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+        (∀ x, |u₀ x| ≤ M) →
+        ∃ u v,
+          IsPaper2ClassicalSolution intervalDomain p δ u v ∧
+          InitialTrace intervalDomain u₀ u :=
+  quantitativeLocalExistence_of_threshold_persistence_seed p hχ ha hb
+    hγ_ge_one (PiecewiseClassical.piecewiseClassicalWorks p)
+    hThreshold hPersist hlocal
+
+/-- **Paper 2 Theorem 1.1 from regime + Threshold + MinPersistence +
+`hlocal`** with `hPCW` discharged. -/
+theorem paper2_theorem_1_1_of_threshold_persistence_hlocal'
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hThreshold : ThresholdQuantitativeLocalExistence p)
+    (hPersist : ClassicalMinPersistence p)
+    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    Theorem_1_1 intervalDomain p :=
+  paper2_theorem_1_1_of_threshold_persistence_hlocal p hχ ha hb hγ_ge_one
+    (PiecewiseClassical.piecewiseClassicalWorks p)
+    hThreshold hPersist hlocal
 
 end ShenWork.Paper2.QuantFromThreshold
