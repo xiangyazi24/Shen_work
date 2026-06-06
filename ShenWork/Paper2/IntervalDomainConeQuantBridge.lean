@@ -29,7 +29,9 @@ import ShenWork.Paper2.IntervalMildPicardConeData
 import ShenWork.Paper2.IntervalDomainThresholdQuantBridge
 
 open MeasureTheory Set Filter
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalMeasure)
+open ShenWork.IntervalDomain (intervalDomain intervalDomainLift
+  intervalDomainPoint intervalMeasure)
+open ShenWork.IntervalMildToClassical
 open ShenWork.IntervalGradientDuhamelMap
 open ShenWork.IntervalMildPicard
 open ShenWork.IntervalMildPicardThreshold
@@ -87,8 +89,7 @@ theorem positiveInitialDatum_nonneg
   -- Trichotomy on the coordinate.
   intro x
   have hx_eq : u₀ x = f₀ x.1 := by
-    rw [hf₀_def]
-    simp only [unitClip_of_mem x.2]
+    simp only [hf₀_def, unitClip_of_mem x.2]
   rw [hx_eq]
   rcases lt_or_eq_of_le x.2.1 with h0x | h0x
   · rcases lt_or_eq_of_le x.2.2 with hx1 | hx1
@@ -101,9 +102,11 @@ theorem positiveInitialDatum_pos_somewhere
     {u₀ : intervalDomainPoint → ℝ}
     (hu₀ : PositiveInitialDatum intervalDomain u₀) :
     ∃ x₀, 0 < u₀ x₀ := by
-  refine ⟨⟨1/2, by constructor <;> norm_num⟩, hu₀.pos ?_⟩
-  show ((1:ℝ)/2) ∈ Set.Ioo (0:ℝ) 1
-  constructor <;> norm_num
+  have hmem : ((1:ℝ)/2) ∈ Set.Icc (0:ℝ) 1 := by constructor <;> norm_num
+  have hins : (⟨1/2, hmem⟩ : intervalDomainPoint) ∈ intervalDomain.inside := by
+    show ((1:ℝ)/2) ∈ Set.Ioo (0:ℝ) 1
+    constructor <;> norm_num
+  exact ⟨⟨1/2, hmem⟩, hu₀.pos hins⟩
 
 /-! ## The Picard-limit restart frontier (unified residual) -/
 
