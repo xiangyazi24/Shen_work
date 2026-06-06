@@ -266,3 +266,25 @@ axiom-clean. Phase A interior estimate is the single callable
 interior_min_point_of_solution. B + C-limit are the irreducible coupled
 hard-analysis remaining; recommend one focused worker-3 push (file owner,
 has sliceMin + pivot machinery).
+
+## UPDATE 6 (Session A): Phase-B 2nd-deriv test landed (junk-value-free)
+- `boundary_min_deriv2_rlimit_nonneg` (IntervalDomainBoundaryDeriv2.lean)
+  GREEN+axiom-clean: right-boundary min + w'→0 + w''→V along 0⁺ ⟹ 0 ≤ V.
+  Works ENTIRELY with the interior derivative + right-limits (the zero-extension
+  lift's two-sided endpoint derivative is junk — this avoids it). The hard
+  calculus core of Phase B. (Mirror at x=1 is the analogous left-limit version,
+  not yet written — same proof reflected.)
+
+### Phase B remaining (boundary min-point assembly):
+At a boundary argmin x*=0: u_t(t,0) = lim_{x→0⁺} u_t-field(t,x) [conjunct 8
+closed-slab ∂ₜ continuity] = lim_{x→0⁺} RHS(x) [pde_u interior]. Need:
+  - the RHS right-limit = deriv²-rlimit − χ₀·chemDiv-rlimit + reaction(0), with
+    deriv²-rlimit ≥ 0 from boundary_min_deriv2_rlimit_nonneg (V := the rlimit),
+    chemDiv-rlimit = u(0)·P'-rlimit (critical-pt structure, u'(0⁺)=0 Neumann),
+    |P'-rlimit| ≤ K₁ (v-bounds extend to boundary by continuity);
+  - assemble via min_point_estimate (abstract, sign analysis) with the rlimit
+    quantities ⟹ −K·u(0) ≤ u_t(0).
+The rlimit/continuity bookkeeping (conjuncts 6/7/8 → the limits) is the
+remaining ~150 ln. C-limit (sequential-compactness Dini) unchanged (UPDATE 5).
+
+Session-A B2/MinPersistence atoms: 15 this campaign, all axiom-clean.
