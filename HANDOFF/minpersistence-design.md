@@ -179,3 +179,34 @@ IsPaper2ClassicalSolution (all worker-3-area, mechanical):
   - PDE relation: pde_u conjunct at interior x* (timeDeriv=deriv(s↦u s x*) t,
     laplacian=deriv²(lift(u t))).
 Then B (boundary x*∈{0,1}) + C (Dini wrapper) per UPDATE-1 close it.
+
+## UPDATE 3 (Session A): A-plumbing atoms COMPLETE — only the conjunct-bridge + assembly remain
+All min-point inputs now have axiom-clean producer atoms:
+  hux       interior_argmin_deriv_zero            (IntervalDomainInteriorArgmin)
+  huxx      interior_argmin_deriv2_nonneg         (IntervalDomainInteriorDeriv2)
+  hv,hvxx   contDiffOn_two_hasDerivAt_pair        (IntervalDomainC2Extraction)
+  Src bd    power_source_abs_le                   (IntervalDomainPowerSourceBound)
+  B4        elliptic_coeff_bounds                 (IntervalDomainEllipticCoeffBounds)
+  chain     min_point_estimate_interior           (IntervalDomainMinPointInterior)
+
+REMAINING to close the interior min-point estimate from IsPaper2ClassicalSolution
+(the only genuinely-new work is the conjunct→lift/real bridge; subtype plumbing):
+1. **v-slice B4 instantiation**: feed elliptic_coeff_bounds with
+   w := intervalDomainLift (v t), Src := fun y => p.ν*(intervalDomainLift (u t) y)^p.γ,
+   μ := p.μ, B := p.ν*M'^p.γ. Hypotheses from the conjuncts:
+   - hPDE: pde_v says `0 = laplacian(v t) x − μ·v + ν·u^γ` for x∈inside, with
+     laplacian = deriv(deriv(lift(v t))) x.1; bridge to `∀ y∈Ioo,
+     deriv²(lift(v t)) y = μ·lift(v t) y − ν·(lift(u t) y)^γ` via the subtype
+     y↦⟨y,·⟩ and lift(u/v t) y = (u/v t)⟨y⟩ for y∈[0,1]. ⚠ the rpow base:
+     ν·u^γ uses (u t x) — confirm it equals (lift(u t) y)^γ at interior.
+   - hSrc: power_source_abs_le with 0≤lift(u t)≤M' (hSupNorm/positivity).
+   - hcont/hd1/hd2/hd2c: conjunct 7 (ContDiffOn 2 Icc) + contDiffOn_two_hasDerivAt_pair.
+   - hwnn: v-nonneg conjunct. hNeu0/hNeu1: conjunct 6 Neumann tendsto.
+   ⟹ |v_x|,|v_xx| ≤ 2νM'^γ on Ioo; evaluate at x*.
+2. **PDE relation**: pde_u conjunct at interior x* gives uT := deriv(s↦u s x*) t
+   = deriv²(lift(u t)) x*.1 − χ₀·chemDiv + reaction (laplacian/timeDeriv defs).
+3. **Capstone**: feed (1)+(2)+hux+huxx+hv+hvxx into min_point_estimate_interior.
+Then B (boundary x*∈{0,1}) + C (Dini wrapper) close ClassicalMinPersistence.
+
+The 10 Session-A atoms are all `lake env lean` green + axiom-clean
+([propext, Classical.choice, Quot.sound]); committed a1c3df9..(this).
