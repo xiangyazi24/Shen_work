@@ -27,6 +27,7 @@
 import ShenWork.Paper2.IntervalMildPicardRegularity
 import ShenWork.PDE.IntervalMildSourceDecayHelper
 import ShenWork.PDE.IntervalDuhamelClosedC2
+import ShenWork.PDE.IntervalNeumannEllipticResolverR
 
 open Set Filter Topology
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
@@ -177,5 +178,48 @@ noncomputable def powerSource_duhamelSourceTimeC1_of_representation
       ShenWork.PDE.IntervalMildSourceDecayHelper.intervalWeakH2Neumann_of_eigenvalue_summable
         hν hγ (hbsum σ) (hagree σ) (hpos σ))
     hC hdecay hderiv hadotcont hMdot ha0
+
+/-- The resolver source coefficient's real part IS the cosine coefficient of the
+power source `ν·u^γ` (both are `unitIntervalNeumannCosineCoeff` of the same lifted
+function). -/
+theorem resolverSourceCoeff_re_eq_cosineCoeffs
+    (p : CM2Params) (u : intervalDomainPoint → ℝ) (k : ℕ) :
+    (ShenWork.PDE.intervalNeumannResolverSourceCoeff p u k).re
+      = cosineCoeffs (fun x => p.ν * intervalDomainLift u x ^ p.γ) k := by
+  simp only [ShenWork.PDE.intervalNeumannResolverSourceCoeff, cosineCoeffs,
+    Complex.ofReal_re]
+
+/-- **Representation-based resolver-source `DuhamelSourceTimeC1` (the `Hvsrc`
+shape).**  The ledger's `Hvsrc` residual
+`DuhamelSourceTimeC1 (fun s k => (intervalNeumannResolverSourceCoeff p (D.u s) k).re)`
+produced from the cosine representation — no global `C²` of the lift. -/
+noncomputable def resolverSource_duhamelSourceTimeC1_of_representation
+    (p : CM2Params) {w : ℝ → intervalDomainPoint → ℝ}
+    (bc : ℝ → ℕ → ℝ)
+    (hbsum : ∀ σ, Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|))
+    (hagree : ∀ σ, Set.EqOn (intervalDomainLift (w σ))
+        (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1))
+    (hpos : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (w σ) x)
+    {C : ℝ} (hC : 0 ≤ C)
+    (hdecay : ∀ σ, 0 ≤ σ → ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs (fun x => p.ν * intervalDomainLift (w σ) x ^ p.γ) k|
+        ≤ C / ((k : ℝ) * Real.pi) ^ 2)
+    (ha0 : ∀ σ, 0 ≤ σ →
+      |cosineCoeffs (fun x => p.ν * intervalDomainLift (w σ) x ^ p.γ) 0| ≤ C)
+    {adot : ℝ → ℕ → ℝ}
+    (hderiv : ∀ σ n, HasDerivAt
+      (fun r => cosineCoeffs (fun x => p.ν * intervalDomainLift (w r) x ^ p.γ) n)
+      (adot σ n) σ)
+    (hadotcont : ∀ n, Continuous (fun σ => adot σ n))
+    {Mdot : ℝ}
+    (hMdot : ∀ σ, 0 ≤ σ → ∀ n, |adot σ n| ≤ Mdot) :
+    DuhamelSourceTimeC1
+      (fun s k => (ShenWork.PDE.intervalNeumannResolverSourceCoeff p (w s) k).re) := by
+  have hfam : (fun s k => (ShenWork.PDE.intervalNeumannResolverSourceCoeff p (w s) k).re)
+      = (fun σ n => cosineCoeffs (fun x => p.ν * intervalDomainLift (w σ) x ^ p.γ) n) := by
+    funext s k; exact resolverSourceCoeff_re_eq_cosineCoeffs p (w s) k
+  rw [hfam]
+  exact powerSource_duhamelSourceTimeC1_of_representation p.hν p.hγ bc hbsum hagree hpos
+    hC hdecay ha0 hderiv hadotcont hMdot
 
 end ShenWork.IntervalDomainLogisticWeakH2Adapter
