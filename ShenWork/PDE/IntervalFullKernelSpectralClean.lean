@@ -100,4 +100,29 @@ theorem intervalFullSemigroupOperator_contDiff_two_clean
     t ht f hf hM
     (fun x y => intervalNeumannFullKernel_eq_cosineKernel_clean t ht x y)
 
+/-- **Closed-interval extension of Theorem 3.**  Both sides are continuous in
+`x` (the propagator via the hypothesis-free `C²` corollary; the spectral heat
+value via the smoothing engine), and they agree on the dense open `Ioo 0 1`,
+hence on its closure `Icc 0 1`.  This is the form the restart-agreement
+(`hagree : EqOn … (Set.Icc 0 1)`) obligations consume. -/
+theorem intervalFullSemigroupOperator_eq_cosineHeatValue_Icc
+    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} (hf : Continuous f) {M : ℝ}
+    (hM : ∀ n, |cosineCoeffs f n| ≤ M) {x : ℝ}
+    (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    intervalFullSemigroupOperator t f x =
+      unitIntervalCosineHeatValue t (cosineCoeffs f) x := by
+  have hL : Continuous (fun x => intervalFullSemigroupOperator t f x) :=
+    (intervalFullSemigroupOperator_contDiff_two_clean ht hf hM).continuous
+  have hR : Continuous
+      (fun x => unitIntervalCosineHeatValue t (cosineCoeffs f) x) :=
+    (ShenWork.IntervalDomainRegularityBootstrap.unitIntervalCosineHeatValue_contDiff_two
+      ht hM).continuous
+  have heq : Set.EqOn (fun x => intervalFullSemigroupOperator t f x)
+      (fun x => unitIntervalCosineHeatValue t (cosineCoeffs f) x)
+      (Set.Ioo (0 : ℝ) 1) := fun y hy =>
+    intervalFullSemigroupOperator_eq_cosineHeatValue_clean ht hf hy
+  have hclos := heq.closure hL hR
+  rw [closure_Ioo (by norm_num : (0:ℝ) ≠ 1)] at hclos
+  exact hclos hx
+
 end ShenWork.IntervalFullKernelSpectralClean
