@@ -113,3 +113,58 @@ Whole-line (not bounded-domain), built on the proved whole-line heat kernel.
 B1 → B2 → B3 → B4 (B3 is the long pole). B5 runs in parallel (whole-line, independent).
 Within B3, items 1–3 are independent and parallelizable; item 4 (Moser) needs 1–3;
 item 5 needs 4.
+
+---
+
+## 2026-06-06 — Paper2 Thm 1.1 residual roadmap (post-hPCW, post-interface-fix)
+
+Residual after `paper2_theorem_1_1_from_two_restart` (RestartLocalWiring):
+**hQuant** + **hMildLocal-abstract**. Both funnel into the same core:
+constructing the half-step restart source data for the Picard solution.
+
+### Critical finding (recorded in INTEGRITY_GAPS.md 2026-06-06)
+The logistic-only `GradientMildHalfStepLogisticSourceData.hagree` is generically
+unsatisfiable for χ₀ ≠ 0 (flux term outside logistic range). Use the abstract
+`GradientMildHalfStepRestartData` interface. χ₀ = 0 sub-regime CAN go through
+the logistic package faithfully.
+
+### S-construction roadmap, χ₀ = 0 first (modules, dependency order)
+
+- **S1. Clean semigroup spectral identity**: assemble
+  `intervalFullSemigroupOperator t f x = unitIntervalCosineHeatValue t (cosineCoeffs f) x`
+  for continuous f, t > 0, from `intervalNeumannFullKernel_eq_cosineKernel`
+  (proved) + `FullKernelIntegralInterchange` instance (proved,
+  IntervalFullKernelInterchange.lean:78). Check whether the assembled clean
+  version already exists (IntervalFullKernelCleanFull/CleanerFull).
+- **S2. Iterate cocycle (χ₀=0)**: `picardIter (n+1)` restart identity
+  u_{n+1}(t) = S(τ)u_{n+1}(t/2) + ∫₀^τ S(τ−σ)L(u_n(t/2+σ))dσ at the SPECTRAL
+  level (coefficient algebra e^{−tλ}=e^{−τλ}e^{−(t−τ)λ} + integral splitting;
+  no kernel Chapman–Kolmogorov needed). Atoms: S1 +
+  `duhamelSpectral_eq_cosineSeries` (proved, IntervalDuhamelClosedC2:1393) +
+  cosine-coefficient extraction (orthogonality, CosineSpectrum).
+- **S3. Iterate time-C¹ induction**: σ-differentiability of
+  `cosineCoeffs (L(u_n(t/2+σ)))` via `cosineCoeffs_hasDerivAt_of_smooth_param`
+  (proved) — needs iterate time-regularity carried through the induction.
+- **S4. Quantitative uniform-in-n bounds**: C² constants and coefficient decay
+  constants of iterates must be n-uniform (for limit decayConst + envelope).
+  Strengthen `PicardIterateHasC2Slices` to carry explicit constants.
+- **S5. Derivative convergence**: uniform convergence of σ-derivatives of
+  iterate source coefficients (needs contraction estimate on ∂ₜ iterates).
+- **S6. Limit assembly**: `PicardIterateConvergenceData` → existing chain
+  (IntervalPicardLimitLogisticSource, all forwarding proved).
+
+### hQuant roadmap (uniform δ(M), independent of inf u₀)
+
+- **Q1. Cone invariance**: two-sided cone
+  `θ(s)·S(s)u₀ ≤ w(s) ≤ e^{as}·S(s)u₀` is preserved by the χ₀=0 mild map
+  (uses S(t−s)S(s) = S(t) at spectral level + semigroup positivity +
+  monotonicity). Gives inf-independent positivity on δ(M) with
+  θ(t) = 1 − C_M(e^{at}−1)/a.
+- **Q2. Quantitative MildExistenceData**: rebuild
+  `intervalMildSolution_exists_picard`'s data with T = δ(M) (drop the
+  min(1, inf u₀) horizon), positivity from Q1.
+- **Q3. χ₀ ≠ 0 extension**: needs pointwise kernel-derivative comparison
+  `|∂ₓK(r,x,y)| ≤ C r^{−1/2} K(2r,x,y)` + parabolic Harnack-type
+  S(t')u₀ ≲ S(t)u₀ comparability. Hard; defer until χ₀=0 closed.
+- **Q4. hQuant assembly**: Q2 + S6 (classical bridge per datum on the fixed
+  horizon δ(M)) → hQuant.
