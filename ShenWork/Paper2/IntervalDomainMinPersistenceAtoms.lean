@@ -615,8 +615,8 @@ theorem hamilton_lower_bound {m : ℝ → ℝ} {a b Kp : ℝ}
     exact hz
   have hbound : ∀ x ∈ Set.Ico a b, f' x ≤ (-Kp) * f x + 0 := by
     intro x _hx
-    simp only [hf_def, hf'_def]
-    ring_nf
+    have : f' x = (-Kp) * f x + 0 := by simp only [hf_def, hf'_def]; ring
+    exact le_of_eq this
   have hfa : f a ≤ -m a := le_of_eq (by simp [hf_def])
   have hgron := le_gronwallBound_of_liminf_deriv_right_le
     hf_cont hf'_freq hfa hbound
