@@ -28,6 +28,7 @@ import ShenWork.Paper2.IntervalMildPicardThreshold
 open MeasureTheory
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalMeasure)
 open ShenWork.IntervalNeumannFullKernel
+open ShenWork.IntervalFullKernelSpectralClean
 open ShenWork.IntervalGradientDuhamelMap
 open ShenWork.IntervalMildPicard
 open ShenWork.IntervalMildPicardThreshold
@@ -190,7 +191,7 @@ theorem cone_preserved
     rw [hlift_eq]
     -- L(z) ≥ −b·z^α·z ≥ −b·Mw^α·z ≥ −Ke·z ≥ −Ke·e^{as}·S(s)f₀(y).
     have hpow_le : (w s ⟨y, hy⟩) ^ p.α ≤ Mw ^ p.α :=
-      Real.rpow_le_rpow hz_nn hz_bdd p.hα
+      Real.rpow_le_rpow hz_nn hz_bdd p.hα.le
     have h1 : -(Ke * w s ⟨y, hy⟩)
         ≤ w s ⟨y, hy⟩ * (p.a - p.b * (w s ⟨y, hy⟩) ^ p.α) := by
       have hb_pow_le : p.b * (w s ⟨y, hy⟩) ^ p.α ≤ Ke :=
@@ -215,15 +216,22 @@ theorem cone_preserved
           intervalFullSemigroupOperator t f₀ x.1 := by
     intro s hs hst
     have hts : 0 < t - s := sub_pos.mpr hst
-    have hcmp := intervalFullSemigroupOperator_mono_of_le_on_Icc hts
-      (hr_slice_meas s)
-      (((continuous_const.mul (hSf₀_cont hs)) :
-        Continuous fun y => (p.a * Real.exp (p.a * s)) *
-          intervalFullSemigroupOperator s f₀ y).aestronglyMeasurable)
-      (hr_bdd s)
-      (fun y => by
-        rw [abs_mul]
-        exact mul_le_mul_of_nonneg_left (hSf₀_bdd hs y) (abs_nonneg _))
+    have hg_cont : Continuous (fun y => (p.a * Real.exp (p.a * s)) *
+        intervalFullSemigroupOperator s f₀ y) :=
+      Continuous.mul continuous_const (hSf₀_cont hs)
+    have hg_meas : AEStronglyMeasurable
+        (fun y => (p.a * Real.exp (p.a * s)) *
+          intervalFullSemigroupOperator s f₀ y) (intervalMeasure 1) :=
+      hg_cont.aestronglyMeasurable
+    have hg_bdd : ∀ y, |(p.a * Real.exp (p.a * s)) *
+        intervalFullSemigroupOperator s f₀ y|
+        ≤ |p.a * Real.exp (p.a * s)| * Mf₀ := fun y => by
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hSf₀_bdd hs y) (abs_nonneg _)
+    have hcmp := intervalFullSemigroupOperator_mono_of_le_on_Icc
+      (g := fun y => (p.a * Real.exp (p.a * s)) *
+        intervalFullSemigroupOperator s f₀ y)
+      hts (hr_slice_meas s) hg_meas (hr_bdd s) hg_bdd
       (hsource_hi s hs hst) x.1
     calc intervalFullSemigroupOperator (t - s) (r s) x.1
         ≤ intervalFullSemigroupOperator (t - s)
@@ -239,21 +247,26 @@ theorem cone_preserved
         ≤ intervalFullSemigroupOperator (t - s) (r s) x.1 := by
     intro s hs hst
     have hts : 0 < t - s := sub_pos.mpr hst
-    have hcmp := intervalFullSemigroupOperator_mono_of_le_on_Icc hts
-      (((continuous_const.mul (hSf₀_cont hs)) :
-        Continuous fun y => (-(Ke * Real.exp (p.a * s))) *
-          intervalFullSemigroupOperator s f₀ y).aestronglyMeasurable)
-      (hr_slice_meas s)
-      (fun y => by
-        rw [abs_mul]
-        exact mul_le_mul_of_nonneg_left (hSf₀_bdd hs y) (abs_nonneg _))
-      (hr_bdd s)
+    have hg_cont : Continuous (fun y => (-(Ke * Real.exp (p.a * s))) *
+        intervalFullSemigroupOperator s f₀ y) :=
+      Continuous.mul continuous_const (hSf₀_cont hs)
+    have hg_meas : AEStronglyMeasurable
+        (fun y => (-(Ke * Real.exp (p.a * s))) *
+          intervalFullSemigroupOperator s f₀ y) (intervalMeasure 1) :=
+      hg_cont.aestronglyMeasurable
+    have hg_bdd : ∀ y, |(-(Ke * Real.exp (p.a * s))) *
+        intervalFullSemigroupOperator s f₀ y|
+        ≤ |(-(Ke * Real.exp (p.a * s)))| * Mf₀ := fun y => by
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hSf₀_bdd hs y) (abs_nonneg _)
+    have hcmp := intervalFullSemigroupOperator_mono_of_le_on_Icc
+      (f := fun y => (-(Ke * Real.exp (p.a * s))) *
+        intervalFullSemigroupOperator s f₀ y)
+      hts hg_meas (hr_slice_meas s) hg_bdd (hr_bdd s)
       (hsource_lo s hs hst) x.1
     calc (-(Ke * Real.exp (p.a * s))) *
           intervalFullSemigroupOperator t f₀ x.1
-        = (-(Ke * Real.exp (p.a * s))) *
-            intervalFullSemigroupOperator t f₀ x.1 := rfl
-      _ = intervalFullSemigroupOperator (t - s)
+        = intervalFullSemigroupOperator (t - s)
             (fun y => (-(Ke * Real.exp (p.a * s))) *
               intervalFullSemigroupOperator s f₀ y) x.1 :=
           (intervalFullSemigroupOperator_comp_const_mul hs hst hf₀_cont hMc
