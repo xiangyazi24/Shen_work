@@ -14,6 +14,7 @@
 import Mathlib.Analysis.Calculus.MeanValue
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
 import Mathlib.Analysis.Calculus.LocalExtr.Basic
+import Mathlib.MeasureTheory.Integral.FundThmCalculus
 
 noncomputable section
 
@@ -372,7 +373,9 @@ theorem elliptic_deriv_bound
   have hbd2 : ∀ r ∈ Set.Ioo (0:ℝ) 1, |deriv (deriv w) r| ≤ μ * Mw + B := by
     intro r hr
     rw [hPDE r hr]
-    calc |μ * w r - Src r| ≤ |μ * w r| + |Src r| := abs_sub _ _
+    calc |μ * w r - Src r| = |μ * w r + -(Src r)| := by ring_nf
+      _ ≤ |μ * w r| + |-(Src r)| := abs_add_le _ _
+      _ = |μ * w r| + |Src r| := by rw [abs_neg]
       _ ≤ μ * Mw + B := by
           rw [abs_mul, abs_of_nonneg hμ]
           exact add_le_add
