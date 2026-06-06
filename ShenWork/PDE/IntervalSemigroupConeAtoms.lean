@@ -123,6 +123,41 @@ theorem intervalFullSemigroupOperator_mono_of_le
   exact mul_le_mul_of_nonneg_left (hfg y)
     (ShenWork.IntervalNeumannFullKernel.intervalNeumannFullKernel_nonneg ht x y)
 
+/-- Icc-relative monotonicity: the propagator only sees `[0,1]`, so the
+comparison hypothesis is only needed there.  This is the form the cone
+preservation uses (the cone inequalities hold on `[0,1]` only). -/
+theorem intervalFullSemigroupOperator_mono_of_le_on_Icc
+    {t : ℝ} (ht : 0 < t) {f g : ℝ → ℝ}
+    (hf_meas : AEStronglyMeasurable f
+      (ShenWork.IntervalDomain.intervalMeasure 1))
+    (hg_meas : AEStronglyMeasurable g
+      (ShenWork.IntervalDomain.intervalMeasure 1))
+    {Mf Mg : ℝ} (hf_bdd : ∀ y, |f y| ≤ Mf) (hg_bdd : ∀ y, |g y| ≤ Mg)
+    (hfg : ∀ y ∈ Set.Icc (0 : ℝ) 1, f y ≤ g y) (x : ℝ) :
+    intervalFullSemigroupOperator t f x
+      ≤ intervalFullSemigroupOperator t g x := by
+  unfold intervalFullSemigroupOperator
+  have hK_int := ShenWork.IntervalNeumannFullKernel.intervalNeumannFullKernel_integrable ht x
+  have hint : ∀ {h : ℝ → ℝ} {Mh : ℝ},
+      AEStronglyMeasurable h (ShenWork.IntervalDomain.intervalMeasure 1) →
+      (∀ y, |h y| ≤ Mh) →
+      Integrable (fun y => intervalNeumannFullKernel t x y * h y)
+        (ShenWork.IntervalDomain.intervalMeasure 1) := by
+    intro h Mh hh_meas hh_bdd
+    have hmul : Integrable (fun y => h y * intervalNeumannFullKernel t x y)
+        (ShenWork.IntervalDomain.intervalMeasure 1) :=
+      hK_int.bdd_mul hh_meas
+        (Filter.Eventually.of_forall fun y => by
+          rw [Real.norm_eq_abs]; exact hh_bdd y)
+    exact hmul.congr (Filter.Eventually.of_forall fun y => mul_comm _ _)
+  apply integral_mono_ae (hint hf_meas hf_bdd) (hint hg_meas hg_bdd)
+  simp only [ShenWork.IntervalDomain.intervalMeasure,
+    ShenWork.IntervalDomain.intervalSet]
+  refine (ae_restrict_iff' measurableSet_Icc).mpr
+    (Filter.Eventually.of_forall fun y hy => ?_)
+  exact mul_le_mul_of_nonneg_left (hfg y hy)
+    (ShenWork.IntervalNeumannFullKernel.intervalNeumannFullKernel_nonneg ht x y)
+
 /-! ## Strict positivity -/
 
 /-- Strict pointwise positivity of the full Neumann kernel (copy of the
