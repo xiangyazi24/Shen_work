@@ -187,3 +187,28 @@ Two Claude sessions are working this repo in parallel. File ownership:
   hQuant residual); full derivation in HANDOFF/minpersistence-design.md.
   Phase B (Hamilton slope + Mathlib Gronwall, signs verified) is specced;
   the pivot helpers double as the Hamilton adjacency lemmas.
+
+## Session A status (05:30) — circle broken; final-mile map
+- M4 (0715d9b): ★ mild solution's own restart identity PROVED (fixed-point
+  reduction — no convergence argument needed) + GradientMildHalfStepRestartData
+  assembly.
+- M4b (7527f9c): CIRCLE BROKEN — DuhamelSourceL1Cont weak package (envelope +
+  continuity, no derivative fields) suffices for the whole ★ pipeline;
+  envelope limit-pass proved. Residuals: hconv/hcont (dominated-convergence
+  facts) — agent in flight (claims ShenWork/Paper2/IntervalPicardLimitCoeffConv.lean).
+- endpoint (faf0f83) + G1-split (in 6a69849): hEnd0/hEnd1 exact-zero; hg_int
+  unconditional; interior split proved.
+
+### Remaining map to hMildLocal-abstract(χ₀=0) — pickup list for any session
+1. hconv/hcont (in flight).
+2. K1(u) via M3b applied to ★-weak's rep; H2(u)-full via M3 → feed M4's
+   gradientMildHalfStepRestartData_of_limit (its hsrc/hsrcShift inputs).
+3. Instantiate M-final's UniformWiring for a threshold-class datum (ball facts
+   from IntervalMildPicard's existing analytic-bound construction; GATE: pick
+   A₂/T* per the documented arithmetic) → PicardIterateUniformData_all →
+   the n-uniform envelopes feeding step 2 and M4b.
+4. hasRestartCosineRepresentations(D) → existing bootstrap chain →
+   GradientMildClassicalFrontierCoreData → RestartLocalWiring's
+   IntervalDomainGradientMildHalfStepRestartFrontierCoreLocalData (χ₀=0) →
+   localExistence → hlocal.
+5. Final merge with Q-line: paper2_theorem_1_1_of_threshold_persistence_hlocal.
