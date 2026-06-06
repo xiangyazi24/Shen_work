@@ -173,7 +173,7 @@ noncomputable def limitSource_duhamelSourceTimeC1
     (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
     -- K2 spatial slice bounds (profile g σ = lift (w σ))
     {M G1 G2 : ℝ}
-    (hC2 : ∀ σ, ContDiffOn ℝ 2 (intervalDomainLift (w σ)) (Set.Icc (0 : ℝ) 1))
+    (hC2 : ∀ σ, ContDiff ℝ 2 (intervalDomainLift (w σ)))
     (hpos : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1,
       0 < intervalDomainLift (w σ) x)
     (hub : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1,
@@ -351,7 +351,7 @@ noncomputable def gradientMildHalfStepRestartData_for_limit
       intervalDomainLift (D.u t) x = intervalGradientDuhamelMap p u₀ D.u t ⟨x, hx⟩)
     -- ===== H2 for the limit source family (per t): K2 slice bounds + K1 fields =====
     {Msup G1 G2 : ℝ}
-    (hC2t : ∀ σ, ContDiffOn ℝ 2 (intervalDomainLift (D.u σ)) (Set.Icc (0 : ℝ) 1))
+    (hC2t : ∀ σ, ContDiff ℝ 2 (intervalDomainLift (D.u σ)))
     (hpost : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (D.u σ) x)
     (hubt : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (D.u σ) x ≤ Msup)
     (hG1t : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1,
