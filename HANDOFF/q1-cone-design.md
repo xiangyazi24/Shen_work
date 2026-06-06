@@ -31,14 +31,12 @@ boundary — phrase everything through f₀).
   S(t)f₀·θ(t) ≤ Φ(w)(t) ≤ e^{at}·S(t)f₀.  EXACT invariance.
 
 ## TODO list (in order)
-1. Icc-relative mono variant (current `_mono_of_le` takes ∀ y global;
-   the comparisons only hold on [0,1] — integral only sees [0,1]).
-2. Cone preservation lemma for the mild map at χ₀ = 0
-   (`intervalGradientDuhamelMap` with hχ : p.χ₀ = 0 — the flux term is
-   0·junk; kill with zero_mul).
-   Side conditions for mono/eval: L(w s) lifted is bounded measurable ✓
-   (existing logistic bounds); S(s)f₀ continuous + coeffs bounded
-   (cosineCoeffs_abs_le_of_continuous_bounded + cosineCoeffs_semigroup_abs_le).
+1. ✅ DONE (76c1451): `intervalFullSemigroupOperator_mono_of_le_on_Icc`.
+2. ✅ DONE (a675cb6, GREEN, axiom-clean): `IntervalMildPicardCone.cone_preserved`
+   — (1 − Ke·I(t))·S(t)f₀ ≤ Φ(u₀,w)(t) ≤ (1 + a·I(t))·S(t)f₀ on the cone
+   0 ≤ w ≤ e^{as}·S(s)f₀, Ke ≥ b·Mw^α, I = envelopeIntegral.
+   Note 1 + a·I(t) = e^{at} (FTC, for the caller), so upper cone is exactly
+   invariant; nonneg-preservation needs Ke·I(T) ≤ 1 (uniform small T).
 3. Iterate induction: picardIter n ∈ Cone for all n (base: iterate 0 =
    S(t)u₀ = 1·S(t)f₀ ∈ Cone since θ ≤ 1 ≤ e^{at}; step: preservation).
 4. Limit: picardLimit ∈ Cone (pointwise limit of cone members; cone is

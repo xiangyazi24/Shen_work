@@ -112,3 +112,14 @@ Two Claude sessions are working this repo in parallel. File ownership:
   agents in flight (specs in HANDOFF/inbox/phase0-m3-spec.md / -m2u-spec.md).
 - After they land: M-final = the joint induction (PicardIterateUniformData)
   closing H2/H3 for all n with explicit constants → M4 assembly → hlocal.
+
+## Session B (03:20): CONE PRESERVATION GREEN at a675cb6, axiom-clean
+- IntervalMildPicardCone.cone_preserved: the χ₀=0 mild map preserves the
+  exponential cone — the positivity engine replacing corrections<inf u₀.
+  #print axioms: core three. q1-cone-design.md TODO 1-2 done.
+- Remaining Q1: iterate induction + hand-built GradientMildSolutionData
+  (hpos from the cone) + hQuant(χ₀=0) assembly — TODO 3,6,7 in the design
+  note. Next Session B block (or take it if you finish M1 first —
+  cone_preserved + your iterate machinery compose directly).
+- Also note: IntervalMildPicardThreshold now exposes public
+  logisticLifted_joint_measurable' / logisticLifted_time_cutoff_measurable'.
