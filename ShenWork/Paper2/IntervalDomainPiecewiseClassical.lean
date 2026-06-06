@@ -18,6 +18,11 @@
   threshold back through the overlap, which re-triggers `u₁`'s own decay
   hypothesis at an overlap time.
 
+  Implementation note: the splice is proved classical for ABSTRACT `u' v'`
+  satisfying the pointwise if-characterisation (`hu'def`/`hv'def`), so all
+  goals mention genuine local constants and slice rewriting is syntactic;
+  the wrapper instantiates with the literal lambdas via `rfl`.
+
   No `sorry`/`admit`/custom `axiom`.
 -/
 import ShenWork.Paper2.IntervalDomainPiecewiseGlue
@@ -53,7 +58,7 @@ private lemma supNormNonposOn_congr
 
 /-- Local gluing of joint continuity on time-product slabs: if `F` agrees
 with `F₁` for times `< T₁` and with the `τ`-delay of `F₂` for times `> τ`,
-where `0 < τ < T₁` and `T' ≤ τ + T₂`, then continuity of the pieces glues to
+where `τ < T₁` and `T' ≤ τ + T₂`, then continuity of the pieces glues to
 continuity of `F` on `Ioo 0 T' ×ˢ S`. -/
 private lemma continuousOn_prod_glue
     {F F₁ F₂ : ℝ × ℝ → ℝ} {T' T₁ T₂ τ : ℝ} {S : Set ℝ}
@@ -101,33 +106,39 @@ private lemma continuousOn_prod_glue
     exact hagreeR (r, z) hrτ
 
 set_option maxHeartbeats 1600000 in
-/-- **hPCW: the splice of two classical solutions agreeing on the overlap
-`(τ, T₁)` is a classical solution on any horizon `T' ≤ τ + T₂`.** -/
-theorem piecewiseClassicalWorks (p : CM2Params) :
-    PiecewiseGlue.PiecewiseClassicalWorks p := by
-  intro T₁ T₂ τ hT₁ hT₂ hτ hτT₁ u₁ v₁ u₂ v₂ hsol₁ hsol₂ hovU hovV T' hT' hT'le
+/-- **Core splice theorem (abstract form).**  If `u'`/`v'` are pointwise the
+if-splices of two classical solutions agreeing on the overlap `(τ, T₁)`,
+then `(u', v')` is a classical solution on any horizon `T' ≤ τ + T₂`. -/
+private theorem splice_isClassical
+    (p : CM2Params) {T₁ T₂ τ : ℝ} (hT₁ : 0 < T₁) (hT₂ : 0 < T₂)
+    (hτ : 0 < τ) (hτT₁ : τ < T₁)
+    {u₁ v₁ u₂ v₂ u' v' : ℝ → intervalDomainPoint → ℝ}
+    (hsol₁ : IsPaper2ClassicalSolution intervalDomain p T₁ u₁ v₁)
+    (hsol₂ : IsPaper2ClassicalSolution intervalDomain p T₂ u₂ v₂)
+    (hovU : ∀ s, τ < s → s < T₁ → ∀ x, u₁ s x = u₂ (s - τ) x)
+    (hovV : ∀ s, τ < s → s < T₁ → ∀ x, v₁ s x = v₂ (s - τ) x)
+    (hu'def : ∀ t x, u' t x = if t < T₁ then u₁ t x else u₂ (t - τ) x)
+    (hv'def : ∀ t x, v' t x = if t < T₁ then v₁ t x else v₂ (t - τ) x)
+    {T' : ℝ} (hT' : 0 < T') (hT'le : T' ≤ τ + T₂) :
+    IsPaper2ClassicalSolution intervalDomain p T' u' v' := by
   obtain ⟨-, hreg₁, hposU₁, hnnV₁, hpdeU₁, hpdeV₁, hbc₁⟩ := hsol₁
   obtain ⟨-, hreg₂, hposU₂, hnnV₂, hpdeU₂, hpdeV₂, hbc₂⟩ := hsol₂
   obtain ⟨h1₁, h2₁, h3₁, h4₁, h5₁, h6₁, h7₁, h8₁, h9₁⟩ := hreg₁
   obtain ⟨h1₂, h2₂, h3₂, h4₂, h5₂, h6₂, h7₂, h8₂, h9₂⟩ := hreg₂
-  set u' : ℝ → intervalDomainPoint → ℝ :=
-    fun t x => if t < T₁ then u₁ t x else u₂ (t - τ) x with hu'def
-  set v' : ℝ → intervalDomainPoint → ℝ :=
-    fun t x => if t < T₁ then v₁ t x else v₂ (t - τ) x with hv'def
   -- ## Slice agreement
   have hsliceUL : ∀ t : ℝ, t < T₁ → u' t = u₁ t := by
-    intro t h; funext x; simp only [hu'def]; exact if_pos h
+    intro t h; funext x; rw [hu'def t x]; exact if_pos h
   have hsliceVL : ∀ t : ℝ, t < T₁ → v' t = v₁ t := by
-    intro t h; funext x; simp only [hv'def]; exact if_pos h
+    intro t h; funext x; rw [hv'def t x]; exact if_pos h
   have hsliceUR : ∀ t : ℝ, τ < t → u' t = u₂ (t - τ) := by
     intro t h
-    funext x; simp only [hu'def]
+    funext x; rw [hu'def t x]
     by_cases h' : t < T₁
     · rw [if_pos h']; exact hovU t h h' x
     · rw [if_neg h']
   have hsliceVR : ∀ t : ℝ, τ < t → v' t = v₂ (t - τ) := by
     intro t h
-    funext x; simp only [hv'def]
+    funext x; rw [hv'def t x]
     by_cases h' : t < T₁
     · rw [if_pos h']; exact hovV t h h' x
     · rw [if_neg h']
@@ -278,7 +289,7 @@ theorem piecewiseClassicalWorks (p : CM2Params) :
         · -- continuity of the spliced sup-norm trajectory
           intro s hs
           rcases lt_or_eq_of_le hs.2 with hst₀ | hseq
-          · rcases lt_or_le s s₀ with hss₀ | hss₀
+          · rcases lt_or_ge s s₀ with hss₀ | hss₀
             · -- left piece, full continuity at interior point
               have hsT₁ : s < T₁ := lt_trans hss₀ hs₀T₁
               have hmemInt : s ∈ interior (Set.Ioc (0:ℝ) s₀) := by
@@ -295,8 +306,10 @@ theorem piecewiseClassicalWorks (p : CM2Params) :
                 (isOpen_interior.mem_nhds hmemInt)
               have hCA : ContinuousAt
                   (fun r : ℝ => intervalDomainSupNorm (u₂ (r - τ))) s :=
-                ContinuousAt.comp (hDA.continuousAt)
-                  ((continuous_sub_right τ).continuousAt)
+                ContinuousAt.comp (x := s)
+                  (g := fun σ : ℝ => intervalDomainSupNorm (u₂ σ))
+                  (f := fun r : ℝ => r - τ)
+                  hDA.continuousAt ((continuous_sub_right τ).continuousAt)
               exact (hCA.congr_of_eventuallyEq
                 (hsupevR hτs)).continuousWithinAt
             -- right endpoint `s = t₀`
@@ -334,7 +347,7 @@ theorem piecewiseClassicalWorks (p : CM2Params) :
         · -- differentiability of the spliced sup-norm trajectory
           intro s hs
           rw [interior_Ioc] at hs
-          rcases lt_or_le s s₀ with hss₀ | hss₀
+          rcases lt_or_ge s s₀ with hss₀ | hss₀
           · have hsT₁ : s < T₁ := lt_trans hss₀ hs₀T₁
             have hmemInt : s ∈ interior (Set.Ioc (0:ℝ) s₀) := by
               rw [interior_Ioc]; exact ⟨hs.1, hss₀⟩
@@ -349,13 +362,15 @@ theorem piecewiseClassicalWorks (p : CM2Params) :
               (isOpen_interior.mem_nhds hmemInt)
             have hDAcomp : DifferentiableAt ℝ
                 (fun r : ℝ => intervalDomainSupNorm (u₂ (r - τ))) s :=
-              differentiableAt_comp_sub_const.mpr hDA
+              (differentiableAt_comp_sub_const
+                (f := fun σ : ℝ => intervalDomainSupNorm (u₂ σ))
+                (a := s) (b := τ)).mpr hDA
             exact (((hsupevR hτs).differentiableAt_iff).mpr
               hDAcomp).differentiableWithinAt
         · -- nonpositive derivative of the spliced sup-norm trajectory
           intro s hs
           rw [interior_Ioc] at hs
-          rcases lt_or_le s s₀ with hss₀ | hss₀
+          rcases lt_or_ge s s₀ with hss₀ | hss₀
           · have hsT₁ : s < T₁ := lt_trans hss₀ hs₀T₁
             rw [(hsupevL hsT₁).deriv_eq]
             exact h₁.deriv_nonpos s
@@ -381,7 +396,10 @@ theorem piecewiseClassicalWorks (p : CM2Params) :
             (isOpen_Ioo.mem_nhds (hmemR hs hτs))
           have hCAcomp : ContinuousAt
               (fun r : ℝ => intervalDomainSupNorm (u₂ (r - τ))) s :=
-            ContinuousAt.comp hCA ((continuous_sub_right τ).continuousAt)
+            ContinuousAt.comp (x := s)
+              (g := fun σ : ℝ => intervalDomainSupNorm (u₂ σ))
+              (f := fun r : ℝ => r - τ)
+              hCA ((continuous_sub_right τ).continuousAt)
           exact (hCAcomp.congr_of_eventuallyEq
             (hsupevR hτs)).continuousWithinAt
       · intro s hs
@@ -400,7 +418,9 @@ theorem piecewiseClassicalWorks (p : CM2Params) :
             (isOpen_interior.mem_nhds hmemInt)
           have hDAcomp : DifferentiableAt ℝ
               (fun r : ℝ => intervalDomainSupNorm (u₂ (r - τ))) s :=
-            differentiableAt_comp_sub_const.mpr hDA
+            (differentiableAt_comp_sub_const
+              (f := fun σ : ℝ => intervalDomainSupNorm (u₂ σ))
+              (a := s) (b := τ)).mpr hDA
           exact (((hsupevR hτs).differentiableAt_iff).mpr
             hDAcomp).differentiableWithinAt
       · intro s hs
@@ -433,10 +453,12 @@ theorem piecewiseClassicalWorks (p : CM2Params) :
                  ((hVtimeL x hcase).differentiableAt_iff).mpr hdV⟩
         · have hτt : τ < t := hnotL hcase
           obtain ⟨⟨hdU, hdV⟩, -, -⟩ := h4₂ x (t - τ) (hmemR ht hτt)
-          exact ⟨((hUtimeR x hτt).differentiableAt_iff).mpr
-                   (differentiableAt_comp_sub_const.mpr hdU),
-                 ((hVtimeR x hτt).differentiableAt_iff).mpr
-                   (differentiableAt_comp_sub_const.mpr hdV)⟩
+          refine ⟨((hUtimeR x hτt).differentiableAt_iff).mpr ?_,
+                  ((hVtimeR x hτt).differentiableAt_iff).mpr ?_⟩
+          · exact (differentiableAt_comp_sub_const
+              (f := fun r => u₂ r x) (a := t) (b := τ)).mpr hdU
+          · exact (differentiableAt_comp_sub_const
+              (f := fun r => v₂ r x) (a := t) (b := τ)).mpr hdV
       · -- ContinuousOn of the time-derivative trajectories on `Ioo 0 T'`
         constructor
         · intro s hs
@@ -453,7 +475,10 @@ theorem piecewiseClassicalWorks (p : CM2Params) :
               (isOpen_Ioo.mem_nhds (hmemR hs hτs))
             have hCAcomp : ContinuousAt
                 (fun r : ℝ => deriv (fun q => u₂ q x) (r - τ)) s :=
-              ContinuousAt.comp hCA ((continuous_sub_right τ).continuousAt)
+              ContinuousAt.comp (x := s)
+                (g := fun σ : ℝ => deriv (fun q => u₂ q x) σ)
+                (f := fun r : ℝ => r - τ)
+                hCA ((continuous_sub_right τ).continuousAt)
             have hev : (fun r => deriv (fun q => u' q x) r) =ᶠ[nhds s]
                 fun r => deriv (fun q => u₂ q x) (r - τ) :=
               Set.EqOn.eventuallyEq_of_mem (fun r hr => hderivUR x hr)
@@ -473,7 +498,10 @@ theorem piecewiseClassicalWorks (p : CM2Params) :
               (isOpen_Ioo.mem_nhds (hmemR hs hτs))
             have hCAcomp : ContinuousAt
                 (fun r : ℝ => deriv (fun q => v₂ q x) (r - τ)) s :=
-              ContinuousAt.comp hCA ((continuous_sub_right τ).continuousAt)
+              ContinuousAt.comp (x := s)
+                (g := fun σ : ℝ => deriv (fun q => v₂ q x) σ)
+                (f := fun r : ℝ => r - τ)
+                hCA ((continuous_sub_right τ).continuousAt)
             have hev : (fun r => deriv (fun q => v' q x) r) =ᶠ[nhds s]
                 fun r => deriv (fun q => v₂ q x) (r - τ) :=
               Set.EqOn.eventuallyEq_of_mem (fun r hr => hderivVR x hr)
@@ -575,5 +603,13 @@ theorem piecewiseClassicalWorks (p : CM2Params) :
     · have hτt : τ < t := hnotL hcase
       rw [hsliceUR t hτt, hsliceVR t hτt]
       exact hbc₂ (t - τ) x (by linarith) (by linarith) hx
+
+/-- **hPCW: the splice of two classical solutions agreeing on the overlap
+`(τ, T₁)` is a classical solution on any horizon `T' ≤ τ + T₂`.** -/
+theorem piecewiseClassicalWorks (p : CM2Params) :
+    PiecewiseGlue.PiecewiseClassicalWorks p := by
+  intro T₁ T₂ τ hT₁ hT₂ hτ hτT₁ u₁ v₁ u₂ v₂ hsol₁ hsol₂ hovU hovV T' hT' hT'le
+  exact splice_isClassical p hT₁ hT₂ hτ hτT₁ hsol₁ hsol₂ hovU hovV
+    (fun _ _ => rfl) (fun _ _ => rfl) hT' hT'le
 
 end ShenWork.Paper2.PiecewiseClassical
