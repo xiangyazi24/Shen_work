@@ -50,6 +50,7 @@
   No `sorry`/`admit`/custom `axiom`.
 -/
 import ShenWork.Paper2.IntervalDomainFinalWiring
+import ShenWork.Paper2.IntervalDomainRestartLocalWiring
 
 open ShenWork.IntervalDomain
 open ShenWork.Paper2
@@ -410,5 +411,32 @@ theorem paper2_theorem_1_1_of_threshold_persistence
       (localExistence_of_gradientMildHalfStepLogisticSourceFrontierCoreLocalData
         p hMildLocal))
     hMildLocal
+
+/-- **Paper 2 Theorem 1.1 from regime + Threshold + MinPersistence +
+`hlocal` (faithful interface).**
+
+This is the factored form: `hlocal` (per-datum classical local
+existence) is the only mild-machinery input, consumed twice — once as
+the seed of the restart iteration that builds hQuant, once directly by
+`paper2_theorem_1_1_from_quant_and_hlocal`.  Unlike
+`paper2_theorem_1_1_of_threshold_persistence`, this does not route
+through the logistic-only half-step package (which is generically
+unsatisfiable for `χ₀ ≠ 0`; see INTEGRITY_GAPS.md 2026-06-06). -/
+theorem paper2_theorem_1_1_of_threshold_persistence_hlocal
+    (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hγ_ge_one : 1 ≤ p.γ)
+    (hThreshold : ThresholdQuantitativeLocalExistence p)
+    (hPersist : ClassicalMinPersistence p)
+    (hlocal : ∀ u₀ : intervalDomain.Point → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+        ∃ Tmax > 0, ∃ u v : ℝ → intervalDomain.Point → ℝ,
+          IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+          InitialTrace intervalDomain u₀ u) :
+    Theorem_1_1 intervalDomain p :=
+  RestartLocalWiring.paper2_theorem_1_1_from_quant_and_hlocal
+    p hχ ha hb hγ_ge_one
+    (quantitativeLocalExistence_of_threshold_persistence_seed
+      p hχ ha hb hγ_ge_one hThreshold hPersist hlocal)
+    hlocal
 
 end ShenWork.Paper2.QuantFromThreshold
