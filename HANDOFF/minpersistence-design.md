@@ -449,3 +449,44 @@ CAMPAIGN TOTAL (Session A, MinPersistence): 29 axiom-clean atoms.
 ClassicalMinPersistence is now ONE named hypothesis (hbdry) away from
 unconditional — every other piece (both cruxes, per-solution persistence,
 uniformity, hSupNorm, M-extraction) is PROVED + axiom-clean.
+
+---
+
+## UPDATE 13 (2026-06-06, Session continuation): hbdry CLOSED for χ₀=0 — ClassicalMinPersistence UNCONDITIONAL for χ₀=0
+
+Xiang's insight: at χ₀=0 the chemotaxis flux drops out entirely, so the
+hard chemDiv up-to-boundary continuity sub-piece VANISHES. At a boundary
+spatial argmin the PDE is just u_t = u_xx + reaction; with the boundary
+2nd-deriv test V := u_t − reaction = u_xx-limit ≥ 0, we get
+u_t ≥ reaction = m(a−b·m^α) ≥ −K·m. No flux term to bound.
+
+New axiom-clean atoms (all GREEN, [propext, Classical.choice, Quot.sound]):
+- `hbdry_left_chi0`  (IntervalDomainBoundaryHbound.lean)      — ys=0.
+- `boundary_min_deriv2_llimit_nonneg` (IntervalDomainBoundaryDeriv2Right.lean)
+                                                              — right-endpoint
+  2nd-deriv test, mirror of rlimit, along 𝓝[<]1.
+- `hbdry_right_chi0` (IntervalDomainBoundaryHboundRight.lean) — ys=1.
+- `classicalMinPersistence_chiZero` (IntervalDomainMinPersistChiZero.lean)
+  — **UNCONDITIONAL `QuantFromThreshold.ClassicalMinPersistence p` for χ₀=0.**
+  Inlines the minPersist_existsC_uniform assembly (does NOT route through
+  classicalMinPersistence_of_boundary, whose hbdry field is generic in t₁ and
+  so cannot expose 0<t₁); inside the assembly t₁ is fixed with 0<t₁ in scope,
+  so every s∈Ico(t₁/2)T has 0<s — the interior-time hypothesis the endpoint
+  bounds need. hu_le from hSupNorm_of_regime; hOverlap from caller.
+- `paper2_theorem_1_1_chiZero_of_picardFrontier_hlocal`
+  (IntervalDomainThm11ChiZeroThreshold.lean, ns ThresholdQuantBridge)
+  — Theorem 1.1 (χ₀=0) via the threshold route, reduced to EXACTLY hPF +
+  hlocal; hOverlap built from the regime L²-energy method.
+
+CAMPAIGN TOTAL (MinPersistence): 34 axiom-clean atoms.
+
+### Status after UPDATE 13
+- ClassicalMinPersistence: PROVEN unconditionally for χ₀=0. (general χ₀<0
+  still open — the flux-free argument does NOT extend; needs the chemDiv
+  up-to-boundary continuity of UPDATE 12.)
+- χ₀=0 Theorem 1.1 (threshold route): reduced to hPF (PicardRestartFrontier)
+  + hlocal (per-datum local existence) — the two F2/S-construction frontiers,
+  SHARED with the cone/limit route's LimitRegularityInputs ledger
+  (hpde_u, Hvsrc, Hvpos, Hu, HsupNorm) in MildLocalChi0.lean. These are the
+  genuine remaining deep Picard-limit-regularity residuals (research-hard;
+  best for codex post Jun-10 reset or worker-3).
