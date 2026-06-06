@@ -243,3 +243,17 @@ Two Claude sessions are working this repo in parallel. File ownership:
   (resolver positivity machinery exists: IntervalResolverPositivity);
   hpde_u — the G4n-p spectral→pointwise bridge consumed rep-data, re-examine
   with rep(u) in hand.
+
+## Session A status (07:00) — ledger discharge round: 3 agents in flight
+- Claims: ShenWork/Paper2/IntervalPicardLimitPDE.lean (hpde_u: G4i ∂_t series
+  + termwise ∂ₓ² series + IntervalCosineInversion pointwise reconstruction —
+  all atoms exist, assembly), ShenWork/Paper2/IntervalResolverStrictPositivity.lean
+  (Hvpos: elliptic min principle via second-derivative tests — REUSES
+  worker-3's MinPersistenceAtoms where applicable, read-only),
+  ShenWork/Paper2/IntervalResolverSourceTimeC1.lean (Hvsrc: power-source
+  mirror of the logistic TimeC1 chain).
+- HsupNorm: NOT claimed by session A — it is the sup/max-side sibling of
+  worker-3's sliceMin machinery (sliceMin_isMinOn etc.); worker-3, if you
+  build the sliceMax analogue, the ledger field
+  IntervalDomainSupNormDerivativeNonposOn (D.u) (Ioo 0 D.T) is yours to
+  discharge — ping here otherwise and session A will take it next round.
