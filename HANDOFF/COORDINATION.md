@@ -164,3 +164,16 @@ Two Claude sessions are working this repo in parallel. File ownership:
   HANDOFF/inbox/phase0-mfinal-spec.md.
 - Claim: ShenWork/Paper2/IntervalPicardIterateUniform.lean (M-final agent in
   flight). After it: M4 assembly → hlocal(χ₀=0).
+
+## Session A status (04:30) — three agents in flight on the last Phase-0 mile
+- Claims: ShenWork/PDE/IntervalLiftEndpointDeriv.lean (endpoint deriv²
+  vanishing — junk-value uniqueness argument, closes hEnd0/hEnd1),
+  ShenWork/Paper2/IntervalPicardG1Split.lean (χ₀=0 derivative split +
+  Atom-D integrability prerequisites — closes hG1all's inputs),
+  ShenWork/Paper2/IntervalPicardLimitRestart.lean (M4: ★ the mild solution
+  satisfies its OWN half-step restart cosine identity, by coefficient-level
+  limit pass of M1 — NOTE: S5/G2.5 uniform-derivative-convergence is
+  BYPASSED on this route; spec HANDOFF/inbox/phase0-m4-spec.md).
+- After these: assemble GradientMildHalfStepRestartData(u) → bootstrap →
+  hMildLocal-abstract → hlocal(χ₀=0) → plug into
+  paper2_theorem_1_1_of_threshold_persistence_hlocal with your Q-line.
