@@ -210,3 +210,27 @@ Then B (boundary x*∈{0,1}) + C (Dini wrapper) close ClassicalMinPersistence.
 
 The 10 Session-A atoms are all `lake env lean` green + axiom-clean
 ([propext, Classical.choice, Quot.sound]); committed a1c3df9..(this).
+
+## UPDATE 4 (Session A): PHASE A COMPLETE — interior_min_point_of_solution GREEN
+`interior_min_point_of_solution` (IntervalDomainMinPointSolution.lean) — GREEN +
+axiom-clean — takes IsPaper2ClassicalSolution + interior time t + interior
+spatial argmin x* + |u(t,·)|≤M', returns:
+  −(|χ₀|·fluxCoeffConst β (νM'^γ) + b·M'^α)·u(t,x*) ≤ intervalDomain.timeDeriv u t x*.
+All conjunct plumbing done: regularity 9-tuple projection (C² Ioo/Icc, Neumann,
+positivity, v≥0), pde_v→elliptic identity (subtype/lift bridge), pde_u→PDE
+relation. 12 Session-A atoms total, all axiom-clean.
+
+### Only B + C remain for ClassicalMinPersistence:
+B. **Boundary argmin** x*∈{0,1}: the min over [0,1] may sit at an endpoint.
+   Same conclusion −K·u(0) ≤ u_t(0) via Neumann u_x(0)=0 (conjunct 6) + the
+   one-sided second-derivative pivot helpers (deriv_pos_right/_neg_left_of_
+   deriv2_pos_of_pivot, already in MinPersistenceAtoms). ~150 ln.
+C. **Dini wrapper** (the true crux): assemble interior_min_point_of_solution +
+   B into hamilton_lower_bound's hDini, via time-MVT (conjunct 4) + the
+   by_contra sequential-compactness on argmins x_h (isCompact_Icc.isSeqCompact)
+   + joint ∂ₜ continuity (conjunct 8) + sliceMin_continuousOn. ~250-400 ln.
+Then C-assembly (c := m*(t₁)e^{−K(δ−t₁)} + overlap uniqueness) closes
+ClassicalMinPersistence ⟹ general-χ₀ hQuant via the threshold route.
+
+The K-constant is fully explicit & slab-independent:
+  K = |χ₀|·(β(2νM'^γ)² + 2νM'^γ) + b·M'^α,  M' = regimeBound p M (hSupNorm).
