@@ -422,3 +422,30 @@ CAMPAIGN TOTAL (Session A, MinPersistence): 26 axiom-clean atoms. Both cruxes +
 per-solution persistence + interior hbound bridge + hSupNorm + uniformity core
 DONE. Only the boundary chemDiv-continuity gap (hard) + the uniformity assembly
 wiring (intricate, all pieces present) remain for the literal predicate.
+
+## UPDATE 12 (Session A): ★ MILESTONE — ClassicalMinPersistence from hbdry ALONE
+- `pid_exists_bound` (IntervalDomainPIDBound.lean): M>0 from PID admissibility.
+- `minPersist_existsC_uniform` (IntervalDomainMinPersistUniform.lean): the
+  ∃c-before-∀solution body via OverlapUniqueForPID + sliceMin_eq + the Hamilton
+  floor. GREEN + axiom-clean.
+- `classicalMinPersistence_of_boundary` (IntervalDomainMinPersistFinal.lean):
+  **the literal QuantFromThreshold.ClassicalMinPersistence p, proved from
+  `hbdry` (boundary min-point bound) + `hOverlap` (proved) ALONE.**
+  GREEN + axiom-clean.
+
+### THE SINGLE REMAINING GAP for general-χ₀ ClassicalMinPersistence:
+`hbdry` — the boundary (ys∈{0,1}) min-point bound:
+  `−K·sInf ≤ deriv(fun r => lift(u r) ys) s` at a boundary spatial argmin.
+Route (have boundary_min_deriv2_rlimit_nonneg for the V≥0 part):
+  u_t(0) = lim_{x→0⁺} u_t-field(t,x) [conjunct 8 closed-slab ∂ₜ cont]
+         = lim_{x→0⁺} RHS(x) [pde_u interior]
+         = deriv²-rlimit − χ₀·chemDiv-rlimit + reaction(0),
+  with deriv²-rlimit ≥ 0 (boundary_min_deriv2_rlimit_nonneg), chemDiv-rlimit =
+  u(0)·P'-rlimit (critical-pt, u'(0⁺)=0 Neumann conjunct 6), |P'-rlimit| ≤ K₁
+  (v-bounds extend to boundary by continuity). The chemDiv up-to-boundary
+  continuity (C¹ of flux F=lift u·P on Icc) is the hard analytic sub-piece.
+
+CAMPAIGN TOTAL (Session A, MinPersistence): 29 axiom-clean atoms.
+ClassicalMinPersistence is now ONE named hypothesis (hbdry) away from
+unconditional — every other piece (both cruxes, per-solution persistence,
+uniformity, hSupNorm, M-extraction) is PROVED + axiom-clean.
