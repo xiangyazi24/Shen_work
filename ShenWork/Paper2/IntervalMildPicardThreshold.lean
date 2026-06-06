@@ -2353,6 +2353,7 @@ theorem gradientMildSolutionData_initialApproach (p : CM2Params)
     rw [hSg_eq]
     have hfx : f x.1 = u₀ x := by
       simp only [hfdef, unitClip_of_mem x.2]
+      rfl
     have hdist := hδ₁sub ⟨ht, htδ₁⟩ x.1 x.2
     rw [Real.dist_eq] at hdist
     calc |intervalFullSemigroupOperator t f x.1 - u₀ x|
