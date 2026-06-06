@@ -945,3 +945,21 @@ mild map (uses semigroup property `S(t−s)S(s) = S(t)` and positivity of the
 semigroup); for `χ₀ = 0` this gives an inf-independent horizon directly; for
 `χ₀ ≠ 0` the flux term additionally needs a pointwise kernel-derivative
 comparison `|∂ₓK(r,x,y)| ≤ C r^{−1/2} K(2r,x,y)`-type estimate.
+
+## 2026-06-06 — Doc-vs-reality: Thm11Assembly hpde_u claim
+
+The IntervalDomainThm11Assembly.lean status table marks "hpde_u ✓ proved |
+G4n-p (spectral PDE identity + bridge)". Ledger-sweep archaeology (commit
+1e6903f) found this is ROUTE-LEVEL only: the sole producer
+(mildSolution_parabolicPDE) delegates circularly to IsPaper2ClassicalSolution;
+no theorem concludes the pointwise parabolic identity from
+HasTimeNeighborhoodSpectralAgreement. The genuine spectral→pointwise PDE
+bridge (laplacian-of-cosine-series identity + reaction coefficient identity)
+remains to be built. Do not cite the table row as a proof.
+
+Final χ₀=0 residual ledger (ReducedLimitRegularityInputs +
+paper2_theorem_1_1_chiZero_of_reduced_inputs, IntervalDomainLedgerSweep.lean):
+K1/K2 families (n→∞ images of M-final Data) + 4 analytic modules:
+hpde_u (spectral→pointwise PDE bridge), Hvsrc (power-source TimeC1 analogue
+of logisticSource_duhamelSourceTimeC1), Hvpos (elliptic strict min principle),
+HsupNorm (parabolic max principle producer).
