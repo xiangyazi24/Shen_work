@@ -122,24 +122,25 @@ theorem thresholdQuantitativeLocalExistence_of_factory
 /-- **Residual frontier: restart package for the canonical Picard-limit
 solutions.**  For `gradientMildSolutionData_of_data E` the solution
 field is `picardLimit p u₀ E.T` by construction, so this quantifies the
-F2/S-construction target over the admissible Picard horizons. -/
+F2/S-construction target over the admissible Picard horizons.
+
+Note the initial-approach component is NOT part of the residual: it is
+proved generically (`gradientMildSolutionData_initialApproach`, G5 +
+O(√t) Duhamel corrections). -/
 def PicardRestartFrontier (p : CM2Params) : Prop :=
   ∀ (u₀ : intervalDomainPoint → ℝ),
     PositiveInitialDatum intervalDomain u₀ →
   ∀ (E : MildExistenceData p u₀),
     ∃ _R : GradientMildHalfStepRestartData
         (gradientMildSolutionData_of_data E),
-      (∀ ε, 0 < ε →
-        ∃ δ' > 0, ∀ t, 0 < t → t < δ' →
-          ∀ x : intervalDomainPoint,
-            |intervalGradientDuhamelMap p u₀
-              (gradientMildSolutionData_of_data E).u t x - u₀ x| < ε) ∧
       GradientMildClassicalFrontierCoreData p
         (gradientMildSolutionData_of_data E)
 
 /-- **The factory from the threshold-uniform Picard horizon +
-`PicardRestartFrontier`.**  The Picard half is PROVED
-(`thresholdMildExistenceData_exists`); only the frontier half remains. -/
+`PicardRestartFrontier`.**  The Picard half and the initial-approach
+half are PROVED (`thresholdMildExistenceData_exists`,
+`gradientMildSolutionData_initialApproach`); only the restart-source +
+frontier-core half remains. -/
 theorem thresholdRestartFrontierFactory_of_picardFrontier
     (p : CM2Params) (hα_ge : 1 ≤ p.α) (hγ_ge : 1 ≤ p.γ)
     (hPF : PicardRestartFrontier p) :
@@ -150,8 +151,10 @@ theorem thresholdRestartFrontierFactory_of_picardFrontier
   refine ⟨δ, hδ, ?_⟩
   intro u₀ hu₀ hb hl
   obtain ⟨E, hET⟩ := h u₀ hu₀.admissible.2 hb hl
-  obtain ⟨R, happ, hcore⟩ := hPF u₀ hu₀ E
-  refine ⟨gradientMildSolutionData_of_data E, ?_, R, happ, hcore⟩
+  obtain ⟨R, hcore⟩ := hPF u₀ hu₀ E
+  refine ⟨gradientMildSolutionData_of_data E, ?_, R,
+    gradientMildSolutionData_initialApproach p hu₀.admissible.2
+      (gradientMildSolutionData_of_data E), hcore⟩
   rw [gradientMildSolutionData_of_data_T, hET]
 
 /-! ## Q-line assembly -/
