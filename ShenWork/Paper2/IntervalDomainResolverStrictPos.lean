@@ -24,6 +24,8 @@ open ShenWork.IntervalResolverPositivity (intervalNeumannFullKernel_cosineKernel
 open ShenWork.IntervalFullKernelInterchange
   (intervalFullSemigroupOperator_eq_cosineHeatValue_unconditional)
 open ShenWork.IntervalDomain (intervalMeasure)
+open ShenWork.IntervalResolverPositivity
+  (laplaceHeatTrunc_tendsto laplaceHeatTrunc_nonneg summable_resolverTarget)
 open ShenWork.IntervalMildPicardRegularity (cosineCoeffs_eq_factor_mul_integral)
 
 noncomputable section
@@ -100,5 +102,28 @@ theorem heatValue_ge_const {f : ℝ → ℝ} {c₀ M : ℝ}
   calc c₀ = unitIntervalCosineHeatValue t (cosineCoeffs (fun _ => c₀)) x := hConst.symm
     _ = intervalFullSemigroupOperator t (fun _ => c₀) x := hSc.symm
     _ ≤ intervalFullSemigroupOperator t f x := hmono
+
+/-- **Standalone cosine reconstruction nonnegativity** (the `u`-tie-free core of
+`intervalNeumannResolverR_nonneg_interior`): for `g ≥ 0` continuous with `ℓ²`
+coefficients, the resolved cosine series is `≥ 0` at interior `x`. -/
+theorem cosineReconstruction_nonneg (p : CM2Params) {g : ℝ → ℝ}
+    (hg_cont : Continuous g) (hg_nonneg : ∀ y, 0 ≤ g y)
+    (hĝ : Summable (fun k => (cosineCoeffs g k) ^ 2))
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    0 ≤ ∑' k, cosineCoeffs g k * unitIntervalCosineMode k x
+          / (p.μ + unitIntervalCosineEigenvalue k) := by
+  refine isClosed_Ici.mem_of_tendsto (laplaceHeatTrunc_tendsto (p := p) hĝ x) ?_
+  filter_upwards [Filter.eventually_ge_atTop (0 : ℝ)] with T hT
+  exact laplaceHeatTrunc_nonneg hg_cont hg_nonneg hx hT
+
+/-- **Constant-source reconstruction** `= c₀/μ` (only the `k = 0` mode survives;
+`mode₀ = 1`, `λ₀ = 0`). -/
+theorem const_reconstruction (p : CM2Params) (c₀ x : ℝ) :
+    (∑' k, cosineCoeffs (fun _ => c₀) k * unitIntervalCosineMode k x
+        / (p.μ + unitIntervalCosineEigenvalue k)) = c₀ / p.μ := by
+  rw [tsum_eq_single 0
+    (fun n hn => by rw [cosineCoeffs_const, if_neg hn, zero_mul, zero_div])]
+  rw [cosineCoeffs_const, if_pos rfl]
+  simp [unitIntervalCosineMode, unitIntervalCosineEigenvalue]
 
 end ShenWork.IntervalDomainResolverStrictPos
