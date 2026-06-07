@@ -57,6 +57,7 @@
 -/
 import ShenWork.Paper2.IntervalDomainMildLocalChi0
 import ShenWork.Paper2.IntervalPicardLimitTimeNhd
+import ShenWork.Paper2.IntervalDomainLimitSourceRepresentation
 
 open MeasureTheory Set Filter Topology
 open ShenWork.IntervalDomain
@@ -72,6 +73,8 @@ open ShenWork.IntervalMildTimeDerivContinuity (HasTimeNeighborhoodSpectralAgreem
 open ShenWork.PDE (intervalNeumannResolverSourceCoeff)
 open ShenWork.IntervalPicardLimitRestartWeak (DuhamelSourceL1Cont)
 open ShenWork.IntervalPicardLimitSourceData (limitSource_duhamelSourceTimeC1)
+open ShenWork.IntervalDomainLimitSourceRepresentation
+  (limitSource_duhamelSourceTimeC1_of_representation)
 open ShenWork.IntervalPicardLimitTimeNhd (Hu_of_restart)
 open ShenWork.Paper2
 open ShenWork.Paper2.MildLocalChi0 (LimitRegularityInputs)
@@ -109,7 +112,13 @@ structure ReducedLimitRegularityInputs
   Msup : ℝ
   G1 : ℝ
   G2 : ℝ
-  hC2t : ∀ σ, ContDiff ℝ 2 (intervalDomainLift (D.u σ))
+  -- per-slice cosine representation (replaces the unsatisfiable global-`C²` field
+  -- `hC2t`; fed into the source-decay machinery via
+  -- `IntervalDomainLimitSourceRepresentation`)
+  bc : ℝ → ℕ → ℝ
+  hbsum : ∀ σ, Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|)
+  hagree : ∀ σ, Set.EqOn (intervalDomainLift (D.u σ))
+    (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1)
   hpost : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (D.u σ) x
   hubt : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (D.u σ) x ≤ Msup
   hG1t : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1,
@@ -166,8 +175,8 @@ def weakSource_of_reduced
     DuhamelSourceL1Cont
       (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) :=
   DuhamelSourceL1Cont.ofTimeC1
-    (limitSource_duhamelSourceTimeC1 p D.u I.hα I.ha I.hb
-      I.hC2t I.hpost I.hubt I.hG1t I.hG2t I.hN0t I.hN1t
+    (limitSource_duhamelSourceTimeC1_of_representation p D.u I.hα I.ha I.hb
+      I.bc I.hbsum I.hagree I.hpost I.hubt I.hG1t I.hG2t
       I.adott I.hderivt I.hadotcontt I.hMdott)
 
 /-- **`Hu` from the reduced ledger.**  Discharges
@@ -182,7 +191,7 @@ theorem Hu_of_reduced
     HasTimeNeighborhoodSpectralAgreement D.T D.u :=
   Hu_of_restart hχ0 D.u I.hα I.ha I.hb I.hu₀_cont I.hu₀_bound I.hfix
     (weakSource_of_reduced I)
-    I.hC2t I.hpost I.hubt I.hG1t I.hG2t I.hN0t I.hN1t
+    I.bc I.hbsum I.hagree I.hpost I.hubt I.hG1t I.hG2t
     I.adotS I.hderivS I.hadotcontS I.hMdotS I.hLc
 
 /-! ## Reduced ledger ⟹ full ledger -/
@@ -206,7 +215,9 @@ def limitRegularityInputs_of_reduced
   Msup := I.Msup
   G1 := I.G1
   G2 := I.G2
-  hC2t := I.hC2t
+  bc := I.bc
+  hbsum := I.hbsum
+  hagree := I.hagree
   hpost := I.hpost
   hubt := I.hubt
   hG1t := I.hG1t

@@ -73,7 +73,13 @@ structure LimitRegularityInputsCore
   Msup : ℝ
   G1 : ℝ
   G2 : ℝ
-  hC2t : ∀ σ, ContDiff ℝ 2 (intervalDomainLift (D.u σ))
+  -- per-slice cosine representation (replaces the unsatisfiable global-`C²` field
+  -- `hC2t`; see `IntervalDomainThm11ChiZeroCoreProvider` for the vacuity, and
+  -- `IntervalDomainLimitSourceRepresentation` for how it feeds every consumer)
+  bc : ℝ → ℕ → ℝ
+  hbsum : ∀ σ, Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|)
+  hagree : ∀ σ, Set.EqOn (intervalDomainLift (D.u σ))
+    (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1)
   hpost : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (D.u σ) x
   hubt : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (D.u σ) x ≤ Msup
   hG1t : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1,
@@ -184,7 +190,9 @@ def limitRegularityInputs_of_core
   Msup := C.Msup
   G1 := C.G1
   G2 := C.G2
-  hC2t := C.hC2t
+  bc := C.bc
+  hbsum := C.hbsum
+  hagree := C.hagree
   hpost := C.hpost
   hubt := C.hubt
   hG1t := C.hG1t

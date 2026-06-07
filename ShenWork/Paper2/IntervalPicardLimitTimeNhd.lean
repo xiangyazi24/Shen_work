@@ -71,6 +71,7 @@
 -/
 import ShenWork.Paper2.IntervalPicardLimitRestartWeak
 import ShenWork.Paper2.IntervalPicardLimitSourceData
+import ShenWork.Paper2.IntervalDomainLimitSourceRepresentation
 import ShenWork.PDE.IntervalMildTimeDerivContinuity
 
 open MeasureTheory Filter Topology Set
@@ -90,6 +91,8 @@ open ShenWork.IntervalPicardLimitRestartWeak
    cosineCoeffs_halfstep_eq_limitCoeff_weak)
 open ShenWork.IntervalPicardLimitSourceData
   (restartDuhamelCoeff_eq_localRestartCoeff limitSource_duhamelSourceTimeC1)
+open ShenWork.IntervalDomainLimitSourceRepresentation
+  (limitSource_duhamelSourceTimeC1_of_representation)
 
 noncomputable section
 
@@ -259,15 +262,17 @@ theorem Hu_of_restart
       (fun s k => cosineCoeffs (logisticLifted p (u s)) k))
     -- K2 spatial slice bounds (per time slice)
     {Msup G1 G2 : ℝ}
-    (hC2t : ∀ σ, ContDiff ℝ 2 (intervalDomainLift (u σ)))
+    -- per-slice cosine representation (replaces the unsatisfiable global-`C²` field)
+    (bc : ℝ → ℕ → ℝ)
+    (hbsum : ∀ σ, Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|))
+    (hagree : ∀ σ, Set.EqOn (intervalDomainLift (u σ))
+      (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1))
     (hpost : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (u σ) x)
     (hubt : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (u σ) x ≤ Msup)
     (hG1t : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1,
       |deriv (intervalDomainLift (u σ)) x| ≤ G1)
     (hG2t : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1,
       |deriv (deriv (intervalDomainLift (u σ))) x| ≤ G2)
-    (hN0t : ∀ σ, deriv (intervalDomainLift (u σ)) 0 = 0)
-    (hN1t : ∀ σ, deriv (intervalDomainLift (u σ)) 1 = 0)
     -- K1 for the t/2-SHIFTED limit source family
     (adotS : ℝ → ℝ → ℕ → ℝ)
     (hderivS : ∀ t, ∀ σ k, HasDerivAt
@@ -302,7 +307,8 @@ theorem Hu_of_restart
       linarith
     intro k
     refine cosineCoeffs_abs_le_of_continuous_bounded
-      (hC2t τ).continuous.continuousOn hMnn ?_ k
+      (((ShenWork.IntervalDuhamelClosedC2.cosineCoeffSeries_contDiff_two
+        (hbsum τ)).continuous.continuousOn).congr (hagree τ)) hMnn ?_ k
     intro x hx
     rw [abs_of_pos (hpost τ x hx)]; exact hubt τ x hx
   · -- DuhamelSourceTimeC1 of the τ-shifted source family, via ledger's own H2(u)
@@ -310,14 +316,14 @@ theorem Hu_of_restart
         = fun σ k => cosineCoeffs (logisticLifted p ((fun s => u (t₀/2 + s)) σ)) k := by
       funext σ k; rw [hτdef]
     rw [hshift]
-    exact limitSource_duhamelSourceTimeC1 p (fun s => u (t₀/2 + s)) hα ha hb
-      (fun σ => hC2t (t₀/2 + σ))
+    exact limitSource_duhamelSourceTimeC1_of_representation p (fun s => u (t₀/2 + s)) hα ha hb
+      (fun σ => bc (t₀/2 + σ))
+      (fun σ => hbsum (t₀/2 + σ))
+      (fun σ => hagree (t₀/2 + σ))
       (fun σ => hpost (t₀/2 + σ))
       (fun σ => hubt (t₀/2 + σ))
       (fun σ => hG1t (t₀/2 + σ))
       (fun σ => hG2t (t₀/2 + σ))
-      (fun σ => hN0t (t₀/2 + σ))
-      (fun σ => hN1t (t₀/2 + σ))
       (adotS t₀) (hderivS t₀) (hadotcontS t₀) (hMdotS t₀)
   · -- 0 < t₀ − offset = τ
     rw [hτdef]; linarith

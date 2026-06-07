@@ -86,38 +86,23 @@ noncomputable section
 
 namespace ShenWork.Paper2.Thm11ChiZeroCoreProvider
 
-/-- **The two ledger fields `hC2t` and `hpost` are mutually contradictory.**
+/-! ## FIX LANDED — the vacuity is gone (2026-06-07)
 
-`hC2t 0` makes the zero-extension lift of `D.u 0` globally continuous, which
-forces its value at the endpoint `x = 0` to equal the (identically zero) left
-limit; `hpost 0` makes that same value strictly positive.  Hence the Core is
-uninhabited for every `GradientMildSolutionData D` — so the intended
-`limitRegularityInputsCore_unconditional` producer cannot exist.  Nothing about
-`D`, the regime, the PID, or `χ₀` is used. -/
-theorem limitRegularityInputsCore_uninhabited
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    {D : GradientMildSolutionData p u₀}
-    (C : Thm11ChiZeroFinal.LimitRegularityInputsCore p u₀ D) : False := by
-  -- `hC2t` at `σ = 0` makes the lift globally continuous.
-  have hcont : Continuous (intervalDomainLift (D.u 0)) := (C.hC2t 0).continuous
-  -- The lift is identically `0` to the left of `0` (those points are off `[0,1]`).
-  have hEq : (intervalDomainLift (D.u 0))
-      =ᶠ[nhdsWithin (0 : ℝ) (Set.Iio 0)] (fun _ => (0 : ℝ)) := by
-    filter_upwards [self_mem_nhdsWithin] with x hx
-    have hx0 : x < 0 := hx
-    have hx' : x ∉ Set.Icc (0 : ℝ) 1 := fun hmem => absurd hmem.1 (not_le.mpr hx0)
-    simp only [intervalDomainLift, dif_neg hx']
-  -- Continuity ⟹ the endpoint value equals the left limit, which is `0`.
-  haveI : (nhdsWithin (0 : ℝ) (Set.Iio 0)).NeBot := nhdsWithin_Iio_self_neBot 0
-  have hlim : Filter.Tendsto (intervalDomainLift (D.u 0))
-      (nhdsWithin (0 : ℝ) (Set.Iio 0)) (nhds (intervalDomainLift (D.u 0) 0)) :=
-    hcont.continuousAt.continuousWithinAt
-  have h0 : intervalDomainLift (D.u 0) 0 = 0 :=
-    tendsto_nhds_unique (hlim.congr' hEq) tendsto_const_nhds
-  -- `hpost` at the endpoint `x = 0` contradicts that.
-  have hpos : 0 < intervalDomainLift (D.u 0) 0 :=
-    C.hpost 0 0 (by norm_num : (0 : ℝ) ∈ Set.Icc (0 : ℝ) 1)
-  rw [h0] at hpos
-  exact lt_irrefl 0 hpos
+The contradictory `hC2t` field (global `C²` of the zero-extension lift) has been
+REMOVED from `LimitRegularityInputsCore` and replaced by the per-slice cosine
+representation `(bc, hbsum, hagree)` — exactly the additive-adapter route flagged
+above.  The representation is consistent with endpoint positivity (`cs σ` is the
+genuinely-`C²` cosine series that agrees with the lift on `[0,1]`), so the Core is
+no longer uninhabited, and the former machine-checked vacuity theorem
+`limitRegularityInputsCore_uninhabited` no longer typechecks (its `(C.hC2t 0)`
+projection is gone) — which is the intended outcome.
+
+The representation is wired into every former `hC2t` consumer by
+`ShenWork.IntervalDomainLimitSourceRepresentation.limitSource_duhamelSourceTimeC1_of_representation`,
+which feeds the genuinely-`C²` series into the existing explicit quadratic-decay
+machinery (uniform constant `2·B_log(M,G1,G2)`) and transports the resulting cosine
+coefficients to the lift via `[0,1]`-agreement.  The remaining genuine analytic
+estimates listed above (`hubt`/`hG1t`/`hG2t`/`Hvpos`/`Hvsrc`/`hLc`/`hpdeData`) are
+unaffected by the retype and remain to be produced. -/
 
 end ShenWork.Paper2.Thm11ChiZeroCoreProvider

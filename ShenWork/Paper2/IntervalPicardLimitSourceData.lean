@@ -99,6 +99,7 @@
 import ShenWork.Paper2.IntervalPicardLimitRestart
 import ShenWork.Paper2.IntervalPicardIterateSourceC1
 import ShenWork.Paper2.IntervalPicardIterateTimeC1
+import ShenWork.Paper2.IntervalDomainLimitSourceRepresentation
 
 open MeasureTheory Filter Topology
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
@@ -121,6 +122,8 @@ open ShenWork.IntervalPicardIterateTimeC1
   (logisticSourceDot logisticSourceMdot restartFieldDerivBoundUnif
    picardIterate_K1_from_restart)
 open ShenWork.Paper2 (cosineCoeffs_congr_on_Icc)
+open ShenWork.IntervalDomainLimitSourceRepresentation
+  (limitSource_duhamelSourceTimeC1_of_representation)
 
 noncomputable section
 
@@ -351,15 +354,17 @@ noncomputable def gradientMildHalfStepRestartData_for_limit
       intervalDomainLift (D.u t) x = intervalGradientDuhamelMap p u₀ D.u t ⟨x, hx⟩)
     -- ===== H2 for the limit source family (per t): K2 slice bounds + K1 fields =====
     {Msup G1 G2 : ℝ}
-    (hC2t : ∀ σ, ContDiff ℝ 2 (intervalDomainLift (D.u σ)))
+    -- per-slice cosine representation (replaces the unsatisfiable global-`C²` field)
+    (bc : ℝ → ℕ → ℝ)
+    (hbsum : ∀ σ, Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|))
+    (hagree : ∀ σ, Set.EqOn (intervalDomainLift (D.u σ))
+      (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1))
     (hpost : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (D.u σ) x)
     (hubt : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (D.u σ) x ≤ Msup)
     (hG1t : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1,
       |deriv (intervalDomainLift (D.u σ)) x| ≤ G1)
     (hG2t : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1,
       |deriv (deriv (intervalDomainLift (D.u σ))) x| ≤ G2)
-    (hN0t : ∀ σ, deriv (intervalDomainLift (D.u σ)) 0 = 0)
-    (hN1t : ∀ σ, deriv (intervalDomainLift (D.u σ)) 1 = 0)
     -- K1 for the (unshifted) limit source family
     (adott : ℝ → ℕ → ℝ)
     (hderivt : ∀ σ k, HasDerivAt
@@ -386,18 +391,18 @@ noncomputable def gradientMildHalfStepRestartData_for_limit
     hχ0 D hu₀_cont hu₀_bound hfix
     -- hsrc : FULL DuhamelSourceTimeC1 for the limit source family (per t)
     (fun _t _ht _htT =>
-      limitSource_duhamelSourceTimeC1 p D.u hα ha hb
-        hC2t hpost hubt hG1t hG2t hN0t hN1t adott hderivt hadotcontt hMdott)
+      limitSource_duhamelSourceTimeC1_of_representation p D.u hα ha hb
+        bc hbsum hagree hpost hubt hG1t hG2t adott hderivt hadotcontt hMdott)
     -- hsrcShift : FULL DuhamelSourceTimeC1 for the t/2-shifted limit source (per t)
     (fun t _ht _htT =>
-      limitSource_duhamelSourceTimeC1 p (fun s => D.u (t/2 + s)) hα ha hb
-        (fun σ => hC2t (t/2 + σ))
+      limitSource_duhamelSourceTimeC1_of_representation p (fun s => D.u (t/2 + s)) hα ha hb
+        (fun σ => bc (t/2 + σ))
+        (fun σ => hbsum (t/2 + σ))
+        (fun σ => hagree (t/2 + σ))
         (fun σ => hpost (t/2 + σ))
         (fun σ => hubt (t/2 + σ))
         (fun σ => hG1t (t/2 + σ))
         (fun σ => hG2t (t/2 + σ))
-        (fun σ => hN0t (t/2 + σ))
-        (fun σ => hN1t (t/2 + σ))
         (adotS t) (hderivS t) (hadotcontS t) (hMdotS t))
     hLc
 

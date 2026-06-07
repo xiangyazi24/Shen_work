@@ -157,7 +157,13 @@ structure LimitRegularityInputs
   Msup : ℝ
   G1 : ℝ
   G2 : ℝ
-  hC2t : ∀ σ, ContDiff ℝ 2 (intervalDomainLift (D.u σ))
+  -- per-slice cosine representation (replaces the unsatisfiable global-`C²` field
+  -- `hC2t`; fed into the source-decay machinery via
+  -- `IntervalDomainLimitSourceRepresentation`)
+  bc : ℝ → ℕ → ℝ
+  hbsum : ∀ σ, Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|)
+  hagree : ∀ σ, Set.EqOn (intervalDomainLift (D.u σ))
+    (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1)
   hpost : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (D.u σ) x
   hubt : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (D.u σ) x ≤ Msup
   hG1t : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1,
@@ -211,7 +217,7 @@ noncomputable def restartData_of_inputs
     GradientMildHalfStepRestartData D :=
   ShenWork.IntervalPicardLimitSourceData.gradientMildHalfStepRestartData_for_limit
     hχ0 D I.hα I.ha I.hb I.hu₀_cont I.hu₀_bound I.hfix
-    I.hC2t I.hpost I.hubt I.hG1t I.hG2t I.hN0t I.hN1t
+    I.bc I.hbsum I.hagree I.hpost I.hubt I.hG1t I.hG2t
     I.adott I.hderivt I.hadotcontt I.hMdott
     I.adotS I.hderivS I.hadotcontS I.hMdotS I.hLc
 
