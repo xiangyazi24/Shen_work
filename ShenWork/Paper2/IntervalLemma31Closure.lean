@@ -886,6 +886,9 @@ theorem lemma31_above_capacity
         exact absurd this (not_le.mpr (lt_of_lt_of_le hτ.1 hρ.1))
       exact hmono_win τ t₀ hτt₀ hge_τ τ ⟨le_refl _, hτ.2.le⟩ t₀ ⟨hτ.2.le, le_refl _⟩ hτ.2.le
     have hMt₀_le_tstar : M t₀ ≤ M tstar := by
+      haveI : (nhdsWithin tstar (Set.Ioo tstar t₀)).NeBot :=
+        mem_closure_iff_nhdsWithin_neBot.mp (by
+          rw [closure_Ioo (ne_of_lt htstar_lt)]; exact ⟨le_refl _, htstar_lt.le⟩)
       have hcont_r : Tendsto M (nhdsWithin tstar (Set.Ioo tstar t₀)) (nhds (M tstar)) :=
         (hMcont_st₀ tstar htstar_mem).mono_left
           (nhdsWithin_mono tstar (fun ρ hρ =>

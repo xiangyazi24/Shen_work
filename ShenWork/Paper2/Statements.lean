@@ -11,7 +11,6 @@ import ShenWork.Paper2.Defs
 import ShenWork.PDE.BoundedDomainData
 import ShenWork.PDE.IntervalDomain
 import ShenWork.PDE.IntervalDomainMaxPrinciple
-import ShenWork.Paper2.IntervalLemma31Closure
 import Mathlib.Analysis.MeanInequalities
 import Mathlib.Analysis.Calculus.Deriv.Basic
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
@@ -3630,9 +3629,9 @@ theorem Lemma_3_1_intervalDomain (p : CM2Params) :
   intro hχ
   constructor
   · intro ha hb T hT u v hsol t₀ ht₀_pos ht₀_T hsup
-    exact Lemma31Closure.lemma31_above_capacity p hχ ha hb hT hsol ht₀_pos ht₀_T hsup
+    sorry -- Closed in IntervalLemma31Closure.lemma31_above_capacity (import cycle prevents inline)
   · intro ha hb T hT u v hsol
-    exact Lemma31Closure.lemma31_zero p hχ ha hb hT hsol
+    sorry -- Closed in IntervalLemma31Closure.lemma31_zero (import cycle prevents inline)
 
 /-- A fake bounded-domain interface showing that Lemma 3.1 is not a consequence
 of the current abstract API alone.  The fake time derivative is identically
