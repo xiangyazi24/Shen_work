@@ -37,13 +37,37 @@
   interior/boundary argmax, `u_t ≤ 0` for the pure-heat operator).  It is
   the max-side mirror of `MinPersistenceAtoms.hamilton_lower_bound`.
 
+  ## Consumer audit (for the `χ₀ = 0` narrowing)
+
+  Who consumes `(Lemma_3_1_intervalDomain p hχ).2` (the a=b=0 branch)?
+    * `IntervalDomainStabilityChain.lean:143` — with only `hχ : χ₀ ≤ 0`.
+    * `IntervalDomainChain.lean` (minimal branch) — likewise `χ₀ ≤ 0`.
+  NEITHER restricts to `χ₀ = 0`.  Their `a=b=0` paths ARE dead in the real
+  theorems (`0 < a`, `0 < b`), so narrowing the branch to `χ₀ = 0` is
+  SOUND — but it is not a local edit: a `χ₀ = 0` hypothesis must cascade
+  through both consumer files (their `a=b=0` paths discharge via the
+  `a>0`-contradiction in the real theorems, or thread `χ₀ = 0`).
+
   ## Conclusion
 
-  The `a = b = 0` sorry is NOT closed here: it is too strong as stated
-  (`χ₀ ≤ 0`) and even its true `χ₀ = 0` narrowing needs the deferred
-  max-principle Dini input.  The branch should be narrowed to `χ₀ = 0`
-  (or proved through the full chemotaxis maximum principle).  This file
-  delivers the reusable reduction and records the obstruction.
+  The `a = b = 0` sorry is NOT closed here.  Three compounding reasons:
+    1. TOO STRONG as stated (`χ₀ ≤ 0`): chemotaxis survives for `χ₀ < 0`,
+       sup-norm can grow (finding above).
+    2. The true `χ₀ = 0` narrowing still needs the max-principle DINI
+       input for an ARBITRARY classical solution (`supNorm_nonincreasing_
+       of_dini` reduces to it).  The sub-Markov semigroup bound applies
+       only to `u = S(t)u₀` (heat uniqueness, not wired); the direct max
+       principle is the deferred Hamilton-max machinery
+       (`MinPersistenceAtoms` B2).  `ParabolicMaxPrinciple.
+       parabolic_maximum_principle` is whole-line, needs even-reflection.
+    3. The narrowing cascade touches `IntervalDomainChain` /
+       `IntervalDomainStabilityChain`, currently under active concurrent
+       refactor — editing them now would collide.
+
+  RECOMMENDATION: once the refactor converges, narrow the branch to
+  `χ₀ = 0`, thread it through the two consumers, and discharge the Dini
+  via the Hamilton-max lane; `supNorm_nonincreasing_of_dini` is the
+  drop-in final step.
 
   No `sorry`/`admit`/custom `axiom`.
 -/
