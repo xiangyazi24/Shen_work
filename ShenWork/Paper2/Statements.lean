@@ -11,6 +11,7 @@ import ShenWork.Paper2.Defs
 import ShenWork.PDE.BoundedDomainData
 import ShenWork.PDE.IntervalDomain
 import ShenWork.PDE.IntervalDomainMaxPrinciple
+import ShenWork.Paper2.IntervalLemma31Closure
 import Mathlib.Analysis.MeanInequalities
 import Mathlib.Analysis.Calculus.Deriv.Basic
 import Mathlib.Analysis.Calculus.Deriv.MeanValue
@@ -3629,22 +3630,9 @@ theorem Lemma_3_1_intervalDomain (p : CM2Params) :
   intro hχ
   constructor
   · intro ha hb T hT u v hsol t₀ ht₀_pos ht₀_T hsup
-    -- Sup-norm monotonicity ABOVE carrying capacity is the genuine parabolic
-    -- maximum principle (Hamilton trick: `M' ≤ M(a − bM^α) ≤ 0` when
-    -- `M ≥ (a/b)^{1/α}`).  It was previously CIRCULARLY extracted from the
-    -- `classicalRegularity` supnorm conjunct, which has now been removed (it was
-    -- `∀ p`-quantified and hence equivalent to the FALSE unconditional bound).
-    -- DEFERRED to the dedicated sup-norm max-principle proof (the
-    -- `IntervalHsupNorm*` / `sliceMax` lane).  This `sorry` is STATEMENT-LEVEL
-    -- (Paper2 Lemma 3.1 / Paper3 stability); it is NOT in the χ₀ = 0 Theorem 1.1
-    -- chain (`paper2_theorem_1_1_chiZero_*` does not consume `Lemma_3_1`).
-    sorry
+    exact Lemma31Closure.lemma31_above_capacity p hχ ha hb hT hsol ht₀_pos ht₀_T hsup
   · intro ha hb T hT u v hsol
-    -- a = b = 0 (pure-heat) case: sup-norm non-increasing by sub-Markov.
-    -- Same deferral as the above-capacity branch: the genuine proof lives in the
-    -- sup-norm max-principle lane (`IntervalHsupNormHeat`).  STATEMENT-LEVEL,
-    -- NOT in the χ₀ = 0 Theorem 1.1 chain.
-    sorry
+    exact Lemma31Closure.lemma31_zero p hχ ha hb hT hsol
 
 /-- A fake bounded-domain interface showing that Lemma 3.1 is not a consequence
 of the current abstract API alone.  The fake time derivative is identically
