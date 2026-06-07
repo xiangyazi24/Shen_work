@@ -14,6 +14,7 @@
 import ShenWork.PDE.IntervalDomain
 import ShenWork.Paper2.IntervalMildToClassical
 import ShenWork.PDE.CosineSpectrum
+import ShenWork.PDE.IntervalDuhamelClosedC2
 
 open Set Filter Topology
 open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift intervalDomain)
@@ -56,5 +57,25 @@ theorem hpde_u_core (p : CM2Params) (hχ0 : p.χ₀ = 0)
     exact tsum_congr (fun n => by
       simp only [unitIntervalCosineEigenvalue, cosineMode]; ring)
   rw [hχ0, zero_mul, sub_zero, htime, hlap, hsplit, hreact, hlap_eq]; ring
+
+/-- **Laplacian identity from the representation.**  If `lift (u t₀)` agrees on
+`[0,1]` with the cosine series `∑ bₙ cosineMode n`, then at interior `x` the
+laplacian is the spectral 2nd derivative (`cosineCoeffSeries_deriv2_eq`). -/
+theorem laplacian_eq_of_rep {u : ℝ → intervalDomainPoint → ℝ} {t₀ : ℝ} {b : ℕ → ℝ}
+    (hsum_b : Summable (fun n => unitIntervalCosineEigenvalue n * |b n|))
+    (hrep : ∀ y ∈ Set.Icc (0:ℝ) 1,
+      intervalDomainLift (u t₀) y = ∑' n, b n * cosineMode n y)
+    {x : intervalDomainPoint} (hx : x.1 ∈ Set.Ioo (0:ℝ) 1) :
+    intervalDomain.laplacian (u t₀) x
+      = ∑' n, b n * (-(((n : ℝ) * Real.pi) ^ 2)
+          * Real.cos ((n : ℝ) * Real.pi * x.1)) := by
+  show deriv (fun y => deriv (intervalDomainLift (u t₀)) y) x.1 = _
+  have hd1eq : Set.EqOn (deriv (intervalDomainLift (u t₀)))
+      (deriv (fun y => ∑' n, b n * cosineMode n y)) (Set.Ioo (0:ℝ) 1) := fun z hz =>
+    Filter.EventuallyEq.deriv_eq (Filter.eventuallyEq_of_mem (isOpen_Ioo.mem_nhds hz)
+      (fun w hw => hrep w (Set.Ioo_subset_Icc_self hw)))
+  rw [Filter.EventuallyEq.deriv_eq
+    (Filter.eventuallyEq_of_mem (isOpen_Ioo.mem_nhds hx) hd1eq)]
+  exact ShenWork.IntervalDuhamelClosedC2.cosineCoeffSeries_deriv2_eq hsum_b x.1
 
 end ShenWork.IntervalDomainPdeUChiZero
