@@ -3620,12 +3620,8 @@ theorem Lemma_3_1_of_parabolicMaxPrinciple
       (Set.right_mem_Icc.mpr ht_le)
       ht_le
 
-/-- Paper2 Lemma 3.1 on the certified unit interval domain.  The interval
-regularity component supplies the nonpositive derivative certificate for the
-sup-norm profile, and `ParabolicMaxPrincipleData` turns that certificate into
-monotonicity. -/
--- `Lemma_3_1_intervalDomain` moved to IntervalLemma31Closure.lean to break import cycle.
--- Re-exported as `ShenWork.Paper2.Lemma31Closure.Lemma_3_1_intervalDomain`.
+-- Paper2 Lemma 3.1: moved to IntervalLemma31Closure.lean (import cycle).
+-- Use `ShenWork.Paper2.Lemma31Closure.Lemma_3_1_intervalDomain`.
 
 /-- A fake bounded-domain interface showing that Lemma 3.1 is not a consequence
 of the current abstract API alone.  The fake time derivative is identically
