@@ -1,77 +1,49 @@
 /-
-  Lemma 3.1, the `a = b = 0` branch: reusable max-side Grönwall reduction
-  + the chemotaxis obstruction finding.
+  Lemma 3.1, the `a = b = 0` branch (χ₀ ≤ 0).
 
-  ## What the branch asks
+  ## CORRECTION (supersedes the earlier "too-strong / false" finding)
 
-  `Lemma_3_1`'s second alternative (Statements.lean) is, with `χ₀ ≤ 0`:
-    `a = 0 → b = 0 → ∀ T>0, ∀ classical (u,v), SupNormNonincreasingOn u (Ioo 0 T)`.
+  An earlier note in this file claimed the `a = b = 0` branch was FALSE
+  for `χ₀ < 0` (chemotaxis survives → sup-norm can grow).  **That was
+  WRONG** — it ignored the elliptic coupling to `v`.  The paper
+  (arXiv 2512.14858, Lemma 3.1 (2)) proves the branch for the full
+  `χ₀ ≤ 0`, and `a = b = 0` is a GENUINE case of Theorem 1.1 (2), not a
+  formalization artifact.
 
-  ## FINDING: `a = b = 0` is NOT pure heat unless `χ₀ = 0`
+  ## Why it is true for `χ₀ ≤ 0` (paper's argument)
 
-  The (CM) momentum equation of a classical solution is
-    `u_t = Δu − χ₀·chemotaxisDiv p u v + u·(a − b·u^α)`.
-  Setting `a = b = 0` kills only the LOGISTIC reaction `u(a−bu^α)`; the
-  chemotaxis transport term `−χ₀·chemotaxisDiv` SURVIVES whenever
-  `χ₀ ≠ 0`.  Expanding it (divergence form):
-    `−χ₀·∂ₓ(u·φ(v)·∂ₓv) = −χ₀·φ·∂ₓv·∂ₓu − χ₀·∂ₓ(φ·∂ₓv)·u`,
-  i.e. `u_t = Δu + B·∂ₓu + C·u` with `C := −χ₀·∂ₓ(φ(v)∂ₓv)`.  At an
-  interior max `x*` of `u` (`∂ₓu(x*)=0`, `Δu(x*)≤0`):
-    `u_t(x*) = Δu(x*) + C(x*)·u(x*)`,
-  and `C(x*) = −χ₀·(φ·v_xx + φ'·v_x²)` is SIGN-INDEFINITE for `χ₀ < 0`
-  (`v_xx = μv − ν u^γ` from the elliptic equation, `φ' < 0`).  So the
-  spatial maximum can INCREASE: `SupNormNonincreasingOn` is FALSE for the
-  full `χ₀ ≤ 0` branch — it holds only in the genuine pure-heat sub-case
-  `χ₀ = 0` (where `B = C = 0`).  The "pure-heat / sub-Markov" comment on
-  the branch is correct only for `χ₀ = 0`.
+  At a spatial maximum `x*` of `u(t,·)` (`∂ₓu(x*) = 0`, `Δu(x*) ≤ 0`):
+    `chemotaxisDiv(x*) = u·v_xx·φ(v) + u·v_x²·φ'(v)`   (the `∂ₓu` term drops),
+  with `φ(v) = (1+v)^{-β}`, `φ' = −β(1+v)^{-β-1} ≤ 0`.  The signal `v`
+  solves the elliptic equation `v_xx = μv − νu^γ` (Neumann), and its OWN
+  maximum principle gives the paper's key bound (3.2):
+    `μ·v̄ ≤ ν·ū^γ`     (i.e. `μ·sup v ≤ ν·(sup u)^γ`),
+  because `v = (μI − Δ)^{-1}(νu^γ) ≤ (μI − Δ)^{-1}(ν ū^γ) = ν ū^γ / μ`.
+  At `x*` (`u(x*) = ū`): `μ v(x*) ≤ μ v̄ ≤ ν ū^γ = ν u(x*)^γ`, so
+    `v_xx(x*) = μ v(x*) − ν u(x*)^γ ≤ 0`.
+  Hence `u·v_xx·φ ≤ 0` and `u·v_x²·φ' ≤ 0`, so `chemotaxisDiv(x*) ≤ 0`,
+  and with `χ₀ ≤ 0` (`−χ₀ ≥ 0`):
+    `∂ₜu(x*) = Δu(x*) − χ₀·chemotaxisDiv(x*) ≤ 0`     (a = b = 0).
+  So the spatial maximum (= sup-norm, `u ≥ 0`) is non-increasing.
 
-  ## What IS clean and reusable
+  ## This file
 
-  Even the true `χ₀ = 0` sub-case needs a maximum principle for an
-  ARBITRARY classical solution (the sub-Markov semigroup bound applies to
-  `u = S(t)u₀`, which requires uniqueness, not in scope here).  The
-  parabolic-max-principle conclusion reduces, via Grönwall with rate `0`,
-  to a one-sided Dini condition on the sup-norm trajectory.  This file
-  provides that reduction — `supNorm_nonincreasing_of_dini` — the honest
-  interface for closing the branch once the Dini input is supplied (at an
-  interior/boundary argmax, `u_t ≤ 0` for the pure-heat operator).  It is
-  the max-side mirror of `MinPersistenceAtoms.hamilton_lower_bound`.
+  Provides the two reusable engines of that argument:
+    * `v_elliptic_max_principle` — the paper's (3.2), proved via
+      `MinPersistenceAtoms.elliptic_sup_bound`;
+    * `supNorm_nonincreasing_of_dini` — the max-side Grönwall reduction
+      (`SupNormNonincreasingOn` from a one-sided Dini condition).
 
-  ## Consumer audit (for the `χ₀ = 0` narrowing)
-
-  Who consumes `(Lemma_3_1_intervalDomain p hχ).2` (the a=b=0 branch)?
-    * `IntervalDomainStabilityChain.lean:143` — with only `hχ : χ₀ ≤ 0`.
-    * `IntervalDomainChain.lean` (minimal branch) — likewise `χ₀ ≤ 0`.
-  NEITHER restricts to `χ₀ = 0`.  Their `a=b=0` paths ARE dead in the real
-  theorems (`0 < a`, `0 < b`), so narrowing the branch to `χ₀ = 0` is
-  SOUND — but it is not a local edit: a `χ₀ = 0` hypothesis must cascade
-  through both consumer files (their `a=b=0` paths discharge via the
-  `a>0`-contradiction in the real theorems, or thread `χ₀ = 0`).
-
-  ## Conclusion
-
-  The `a = b = 0` sorry is NOT closed here.  Three compounding reasons:
-    1. TOO STRONG as stated (`χ₀ ≤ 0`): chemotaxis survives for `χ₀ < 0`,
-       sup-norm can grow (finding above).
-    2. The true `χ₀ = 0` narrowing still needs the max-principle DINI
-       input for an ARBITRARY classical solution (`supNorm_nonincreasing_
-       of_dini` reduces to it).  The sub-Markov semigroup bound applies
-       only to `u = S(t)u₀` (heat uniqueness, not wired); the direct max
-       principle is the deferred Hamilton-max machinery
-       (`MinPersistenceAtoms` B2).  `ParabolicMaxPrinciple.
-       parabolic_maximum_principle` is whole-line, needs even-reflection.
-    3. The narrowing cascade touches `IntervalDomainChain` /
-       `IntervalDomainStabilityChain`, currently under active concurrent
-       refactor — editing them now would collide.
-
-  RECOMMENDATION: once the refactor converges, narrow the branch to
-  `χ₀ = 0`, thread it through the two consumers, and discharge the Dini
-  via the Hamilton-max lane; `supNorm_nonincreasing_of_dini` is the
-  drop-in final step.
+  The remaining gap to CLOSE the branch is the Hamilton-max DINI step:
+  formalize "at the argmax, `∂ₜu ≤ 0` ⇒ the sup-norm has right-Dini
+  derivative ≤ 0" (paper Steps 1–3; the max-side mirror of the
+  MinPersistence Hamilton machinery).  Then `supNorm_nonincreasing_of_dini`
+  finishes.  No narrowing of the branch is needed.
 
   No `sorry`/`admit`/custom `axiom`.
 -/
 import ShenWork.Paper2.Statements
+import ShenWork.Paper2.IntervalDomainMinPersistenceAtoms
 import Mathlib.Analysis.ODE.Gronwall
 
 open Filter Topology
@@ -81,16 +53,51 @@ noncomputable section
 
 namespace ShenWork.Paper2.Lemma31Heat
 
-/-- **Max-side Grönwall reduction (reusable, TRUE).**  If the sup-norm
-trajectory `M(t) := ‖u(t)‖_∞` is continuous on `Ioo 0 T` and satisfies
-the one-sided Dini condition "M does not increase to the right" — for
-every interior `x` and every `r > 0` the forward difference quotient
-`(M z − M x)/(z − x)` is `< r` arbitrarily close to the right of `x` —
-then `M` is non-increasing on `Ioo 0 T`.
+/-- **Paper (3.2): elliptic maximum principle for the signal.**  If the
+(lifted) signal `wv` solves `wv'' = μ·wv − ν·wu^γ` on `(0,1)` with Neumann
+limits and `0 ≤ wu ≤ Mu`, then `μ·wv ≤ ν·Mu^γ` on `[0,1]`.  This is the
+sign-control that makes the chemotaxis term non-positive at the `u`-max.
 
-This is exactly the parabolic-maximum-principle conclusion stripped of
-all PDE content: the PDE enters only through the Dini hypothesis (at an
-argmax, `u_t ≤ 0` for the pure-heat operator forces it). -/
+Proved by `MinPersistenceAtoms.elliptic_sup_bound` with source
+`ν·wu^γ` (bounded by `ν·Mu^γ`). -/
+theorem v_elliptic_max_principle
+    {wv wu : ℝ → ℝ} {μ ν γ Mu : ℝ} (hμ : 0 < μ) (hν : 0 ≤ ν) (hγ : 0 ≤ γ)
+    (hcont : ContinuousOn wv (Set.Icc (0:ℝ) 1))
+    (hd1 : ∀ y ∈ Set.Ioo (0:ℝ) 1, DifferentiableAt ℝ wv y)
+    (hd2 : ∀ y ∈ Set.Ioo (0:ℝ) 1, DifferentiableAt ℝ (deriv wv) y)
+    (hPDE : ∀ y ∈ Set.Ioo (0:ℝ) 1,
+      deriv (deriv wv) y = μ * wv y - ν * (wu y) ^ γ)
+    (hwu_nonneg : ∀ y ∈ Set.Ioo (0:ℝ) 1, 0 ≤ wu y)
+    (hwu_bdd : ∀ y ∈ Set.Ioo (0:ℝ) 1, wu y ≤ Mu)
+    (hNeu0 : Filter.Tendsto (deriv wv) (nhdsWithin 0 (Set.Ioi 0)) (nhds 0))
+    (hNeu1 : Filter.Tendsto (deriv wv) (nhdsWithin 1 (Set.Iio 1)) (nhds 0)) :
+    ∀ x ∈ Set.Icc (0:ℝ) 1, μ * wv x ≤ ν * Mu ^ γ := by
+  -- Source `Src y := ν·wu y^γ`, bounded by `B := ν·Mu^γ`.
+  set Src : ℝ → ℝ := fun y => ν * (wu y) ^ γ with hSrc_def
+  set B : ℝ := ν * Mu ^ γ with hB_def
+  have hSrc_bd : ∀ y ∈ Set.Ioo (0:ℝ) 1, |Src y| ≤ B := by
+    intro y hy
+    have h0 : 0 ≤ (wu y) ^ γ := Real.rpow_nonneg (hwu_nonneg y hy) γ
+    have hmono : (wu y) ^ γ ≤ Mu ^ γ :=
+      Real.rpow_le_rpow (hwu_nonneg y hy) (hwu_bdd y hy) hγ
+    rw [hSrc_def, abs_of_nonneg (mul_nonneg hν h0)]
+    exact mul_le_mul_of_nonneg_left hmono hν
+  have hbound := ShenWork.MinPersistenceAtoms.elliptic_sup_bound
+    hμ hcont hd1 hd2 (by
+      intro y hy; rw [hPDE y hy]) hSrc_bd hNeu0 hNeu1
+  intro x hx
+  have hwx := hbound x hx
+  -- `wv x ≤ B/μ` ⇒ `μ·wv x ≤ B = ν·Mu^γ`.
+  rw [le_div_iff₀ hμ] at hwx
+  rw [hB_def]
+  linarith [hwx]
+
+/-- **Max-side Grönwall reduction (reusable).**  If the sup-norm
+trajectory `M(t) := ‖u(t)‖_∞` is continuous on `Ioo 0 T` and does not
+increase to the right (one-sided Dini condition), then `M` is
+non-increasing on `Ioo 0 T`.  The parabolic-maximum-principle conclusion
+stripped of PDE content; the PDE enters only through the Dini hypothesis
+(at the argmax, `∂ₜu ≤ 0`, established above for `χ₀ ≤ 0`, `a = b = 0`). -/
 theorem supNorm_nonincreasing_of_dini
     {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
     (hcont : ContinuousOn (fun t => intervalDomainSupNorm (u t))
@@ -101,14 +108,11 @@ theorem supNorm_nonincreasing_of_dini
           - intervalDomainSupNorm (u x)) < r) :
     SupNormNonincreasingOn intervalDomain u (Set.Ioo (0 : ℝ) T) := by
   intro t₁ ht₁ t₂ ht₂ hle
-  -- `M` on the closed window `[t₁, t₂] ⊆ Ioo 0 T`.
   set M : ℝ → ℝ := fun t => intervalDomainSupNorm (u t) with hM_def
   have hsub : Set.Icc t₁ t₂ ⊆ Set.Ioo (0 : ℝ) T := by
     intro s hs
     exact ⟨lt_of_lt_of_le ht₁.1 hs.1, lt_of_le_of_lt hs.2 ht₂.2⟩
   have hcont' : ContinuousOn M (Set.Icc t₁ t₂) := hcont.mono hsub
-  -- Apply the Grönwall inequality with `f := M`, `f' := 0`, `K = ε = 0`,
-  -- `δ := M t₁`.
   have hgron := le_gronwallBound_of_liminf_deriv_right_le
     (f := M) (f' := fun _ => 0) (δ := M t₁) (K := 0) (ε := 0)
     (a := t₁) (b := t₂)
