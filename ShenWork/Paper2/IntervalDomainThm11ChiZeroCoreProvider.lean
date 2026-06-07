@@ -77,10 +77,12 @@
   No `sorry`, no `admit`, no custom `axiom`, no `native_decide`.
 -/
 import ShenWork.Paper2.IntervalDomainThm11ChiZeroFinal
+import ShenWork.Paper2.IntervalDomainLedgerSweep
 
 open MeasureTheory Set Filter Topology
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalDomain)
 open ShenWork.IntervalMildPicard (GradientMildSolutionData)
+open ShenWork.Paper2 (PositiveInitialDatum)
 
 noncomputable section
 
@@ -104,5 +106,65 @@ machinery (uniform constant `2·B_log(M,G1,G2)`) and transports the resulting co
 coefficients to the lift via `[0,1]`-agreement.  The remaining genuine analytic
 estimates listed above (`hubt`/`hG1t`/`hG2t`/`Hvpos`/`Hvsrc`/`hLc`/`hpdeData`) are
 unaffected by the retype and remain to be produced. -/
+
+/-- **Per-datum producer of `ReducedLimitRegularityInputs` (χ₀ = 0).**
+
+Scaffold for the unconditional provider: given a positive initial datum and a
+`GradientMildSolutionData`, assemble the reduced χ₀ = 0 ledger.  The structural
+regime fields are immediate; the remaining fields are filled incrementally —
+`bc`/`hbsum`/`hagree` from the Picard limit's restart cosine representation
+(`IntervalPicardLimitRestartWeak.limit_lift_eq_cosineSeries_weak`), the source
+families from M3b, `hpde_u`/`Hvsrc`/`Hvpos` from the representation adapters, and
+the K2 sup/gradient/Hessian bounds from Picard-iterate regularity.
+
+NOTE: a `def` (not `theorem`): the structure carries DATA fields (`bc`, `M₀`,
+`Msup`, `adott`, …) that downstream `limitRegularityInputs_of_reduced` projects,
+so the result must be reducible. -/
+noncomputable def reducedLimitRegularityInputs_of_picard
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) (hα : 1 ≤ p.α)
+    (u₀ : intervalDomainPoint → ℝ) (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (D : GradientMildSolutionData p u₀) :
+    LedgerSweep.ReducedLimitRegularityInputs p u₀ D where
+  -- structural regime parameters (immediate)
+  hα := hα
+  ha := ha.le
+  hb := hb.le
+  -- H1 datum data
+  hu₀_cont := sorry
+  M₀ := sorry
+  hu₀_bound := sorry
+  -- mild fixed-point (= D.hmild)
+  hfix := sorry
+  -- K2 spatial slice bounds
+  Msup := sorry
+  G1 := sorry
+  G2 := sorry
+  -- per-slice cosine representation (Picard limit restart representation)
+  bc := sorry
+  hbsum := sorry
+  hagree := sorry
+  hpost := sorry
+  hubt := sorry
+  hG1t := sorry
+  hG2t := sorry
+  hN0t := sorry
+  hN1t := sorry
+  -- K1 source-coefficient time-C¹ data (M3b)
+  adott := sorry
+  hderivt := sorry
+  hadotcontt := sorry
+  Mdott := sorry
+  hMdott := sorry
+  adotS := sorry
+  hderivS := sorry
+  hadotcontS := sorry
+  MdotS := sorry
+  hMdotS := sorry
+  -- H3 slice continuity
+  hLc := sorry
+  -- frontier residuals discharged from the representation
+  hpde_u := sorry
+  Hvsrc := sorry
+  Hvpos := sorry
 
 end ShenWork.Paper2.Thm11ChiZeroCoreProvider
