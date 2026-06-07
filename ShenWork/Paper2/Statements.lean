@@ -3629,61 +3629,22 @@ theorem Lemma_3_1_intervalDomain (p : CM2Params) :
   intro hχ
   constructor
   · intro ha hb T hT u v hsol t₀ ht₀_pos ht₀_T hsup
-    have hreg :
-        ShenWork.IntervalDomain.intervalDomainClassicalRegularity T u v := by
-      simpa [ShenWork.IntervalDomain.intervalDomain] using hsol.2.1
-    have hcert :=
-      hreg.1 p hχ ha hb t₀ ht₀_pos ht₀_T (by
-        simpa [ShenWork.IntervalDomain.intervalDomain] using hsup)
-    have hcont :
-        ContinuousOn
-          (fun t => ShenWork.IntervalDomain.intervalDomain.supNorm (u t))
-          (Set.Ioc (0 : ℝ) t₀) := by
-      simpa [ShenWork.IntervalDomain.intervalDomain] using hcert.continuousOn
-    have hdiff :
-        DifferentiableOn ℝ
-          (fun t => ShenWork.IntervalDomain.intervalDomain.supNorm (u t))
-          (interior (Set.Ioc (0 : ℝ) t₀)) := by
-      simpa [ShenWork.IntervalDomain.intervalDomain] using hcert.differentiableOn
-    have hderiv :
-        ∀ t, t ∈ interior (Set.Ioc (0 : ℝ) t₀) →
-          deriv
-            (fun s => ShenWork.IntervalDomain.intervalDomain.supNorm (u s)) t ≤
-            0 := by
-      intro t ht
-      simpa [ShenWork.IntervalDomain.intervalDomain] using hcert.deriv_nonpos t ht
-    exact
-      SupNormAntitoneData.supNorm_nonincreasing_of_deriv_nonpos
-        (D := ShenWork.IntervalDomain.intervalDomain)
-        (u := u) (I := Set.Ioc (0 : ℝ) t₀)
-        (convex_Ioc (0 : ℝ) t₀) hcont hdiff hderiv
+    -- Sup-norm monotonicity ABOVE carrying capacity is the genuine parabolic
+    -- maximum principle (Hamilton trick: `M' ≤ M(a − bM^α) ≤ 0` when
+    -- `M ≥ (a/b)^{1/α}`).  It was previously CIRCULARLY extracted from the
+    -- `classicalRegularity` supnorm conjunct, which has now been removed (it was
+    -- `∀ p`-quantified and hence equivalent to the FALSE unconditional bound).
+    -- DEFERRED to the dedicated sup-norm max-principle proof (the
+    -- `IntervalHsupNorm*` / `sliceMax` lane).  This `sorry` is STATEMENT-LEVEL
+    -- (Paper2 Lemma 3.1 / Paper3 stability); it is NOT in the χ₀ = 0 Theorem 1.1
+    -- chain (`paper2_theorem_1_1_chiZero_*` does not consume `Lemma_3_1`).
+    sorry
   · intro ha hb T hT u v hsol
-    have hreg :
-        ShenWork.IntervalDomain.intervalDomainClassicalRegularity T u v := by
-      simpa [ShenWork.IntervalDomain.intervalDomain] using hsol.2.1
-    have hcert := hreg.2.1 p hχ ha hb
-    have hcont :
-        ContinuousOn
-          (fun t => ShenWork.IntervalDomain.intervalDomain.supNorm (u t))
-          (Set.Ioo (0 : ℝ) T) := by
-      simpa [ShenWork.IntervalDomain.intervalDomain] using hcert.continuousOn
-    have hdiff :
-        DifferentiableOn ℝ
-          (fun t => ShenWork.IntervalDomain.intervalDomain.supNorm (u t))
-          (interior (Set.Ioo (0 : ℝ) T)) := by
-      simpa [ShenWork.IntervalDomain.intervalDomain] using hcert.differentiableOn
-    have hderiv :
-        ∀ t, t ∈ interior (Set.Ioo (0 : ℝ) T) →
-          deriv
-            (fun s => ShenWork.IntervalDomain.intervalDomain.supNorm (u s)) t ≤
-            0 := by
-      intro t ht
-      simpa [ShenWork.IntervalDomain.intervalDomain] using hcert.deriv_nonpos t ht
-    exact
-      SupNormAntitoneData.supNorm_nonincreasing_of_deriv_nonpos
-        (D := ShenWork.IntervalDomain.intervalDomain)
-        (u := u) (I := Set.Ioo (0 : ℝ) T)
-        (convex_Ioo (0 : ℝ) T) hcont hdiff hderiv
+    -- a = b = 0 (pure-heat) case: sup-norm non-increasing by sub-Markov.
+    -- Same deferral as the above-capacity branch: the genuine proof lives in the
+    -- sup-norm max-principle lane (`IntervalHsupNormHeat`).  STATEMENT-LEVEL,
+    -- NOT in the χ₀ = 0 Theorem 1.1 chain.
+    sorry
 
 /-- A fake bounded-domain interface showing that Lemma 3.1 is not a consequence
 of the current abstract API alone.  The fake time derivative is identically

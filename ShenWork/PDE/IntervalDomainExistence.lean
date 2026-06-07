@@ -4351,8 +4351,7 @@ theorem not_intervalDomainTheorem11_globalExtension_constant_bad_tail
     · -- Regularity for `u ≡ c`, `v t = if t < 1 then ellipticV p c else 0`.
       -- The sup-norm conjuncts depend only on `u`; the C² conjunct needs the
       -- lift of `v t` on `(0,1)`, where `t < 1` forces `v t = fun _ => ellipticV p c`.
-      have hbase := constantInTime_classicalRegularity hc one_pos p
-      refine ⟨hbase.1, hbase.2.1, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+      refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
       · intro t ht
         have hvt : v t = fun _ : intervalDomainPoint => ellipticV p c := by
           funext y
