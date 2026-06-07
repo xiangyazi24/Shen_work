@@ -233,3 +233,31 @@ REMAINING for the Hvpos ledger field: supply the witness `f` to
   - hâ, hĝ: ℓ² of cosineCoeffs(f), cosineCoeffs(f−c₀) — from f continuous bounded
     (need/locate a cosineCoeffs∈ℓ² lemma, e.g. unitIntervalNeumannCosineCoeff_l2_bound).
 ~50-line wrapper. Then Hvpos field done; HsupNorm + hpde_u remain.
+
+---
+
+## UPDATE (2026-06-06): Hvpos COMPLETE; ledger residual status
+
+`resolverR_pos_of_representation` (IntervalDomainResolverStrictPos.lean) — axiom-clean,
+verified — produces `0 < intervalNeumannResolverR p u xp` (= Hvpos, since
+`mildChemicalConcentration p u t = intervalNeumannResolverR p (u t)`) from:
+cosine representation (lift u =ᴵᶜᶜ cs, cs continuous, m ≤ cs ≤ M, m>0) + source-coeff
+match + ℓ² of source. Clamp witness `f := ν(max m (min cs M))^γ` (≥c₀ everywhere,
+=νu^γ on [0,1]) — the clamp's honest use: bound the source BELOW by m.
+
+### χ₀=0 ledger residual scorecard (all from the representation, no global-C²):
+- Hu     — DONE (pre-existing Hu_of_reduced, LedgerSweep).
+- Hvsrc  — DONE (resolverSource_duhamelSourceTimeC1_of_representation, adapter file).
+- Hvpos  — DONE (resolverR_pos_of_representation).
+- HsupNorm — OPEN. `IntervalDomainSupNormDerivativeNonposOn D.u (Ioo 0 D.T)`: the
+  sup-norm max principle. Mirror of the PROVEN MinPersistence min-principle atoms
+  (ShenWork.MinPersistenceAtoms, IntervalDomainMinPersist*); sliceMax version of
+  sliceMin_hamilton_bound etc. Operates on the classical solution slices.
+- hpde_u — OPEN (hardest). Spectral→pointwise PDE bridge for the mild slice D.u:
+  ∂ₜu = Δu − χ₀·chemDiv + reaction pointwise. For χ₀=0 the chemDiv term drops.
+  Route: differentiate the Duhamel/cosine representation in t (G4i ∂ₜ series) +
+  cosine inversion + tsum_sub; needs the joint space-time series differentiability.
+
+Then: satisfiable ledger struct carrying the representation, filled by the 3 DONE
+producers + (HsupNorm, hpde_u); re-run vacuity False-proof (must FAIL); re-thread
+paper2_theorem_1_1_chiZero_*.
