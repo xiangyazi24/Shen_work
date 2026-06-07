@@ -136,15 +136,21 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   -- mild fixed-point (= D.hmild)
   hfix := sorry
   -- K2 spatial slice bounds
-  Msup := sorry
+  Msup := D.M
   G1 := sorry
   G2 := sorry
   -- per-slice cosine representation (Picard limit restart representation)
   bc := sorry
   hbsum := sorry
   hagree := sorry
-  hpost := sorry
-  hubt := sorry
+  -- positivity: direct projection of `D.hpos` (now that σ is bounded to (0,D.T))
+  hpost := fun σ hσ hσT x hx => by
+    simp only [intervalDomainLift, dif_pos hx]
+    exact D.hpos σ hσ hσT.le ⟨x, hx⟩
+  -- sup bound: `D.hbound` gives `|D.u σ x| ≤ D.M`; drop the abs via `le_abs_self`
+  hubt := fun σ hσ hσT x hx => by
+    simp only [intervalDomainLift, dif_pos hx]
+    exact le_trans (le_abs_self _) (D.hbound σ hσ hσT.le ⟨x, hx⟩)
   hG1t := sorry
   hG2t := sorry
   hN0t := sorry
