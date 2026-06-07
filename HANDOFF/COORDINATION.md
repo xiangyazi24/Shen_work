@@ -282,3 +282,20 @@ Two Claude sessions are working this repo in parallel. File ownership:
   subsequence compactness + min-point estimate using Phase A lemmas) and
   B4/C (K(M) instantiation + assembly). B3 being done means the crux is
   now PDE-bookkeeping, not analysis.
+
+## Session B (~21:40): χ₀=0 final downstream wiring green
+- NEW IntervalDomainThm11ChiZeroFinal.lean (green, 3598 jobs): splits the
+  per-datum ledger into LimitRegularityInputsCore (= LimitRegularityInputs
+  minus hpde_u/HsupNorm) + two residual stub-theorems; limitRegularityInputs_
+  of_core reassembles; paper2_theorem_1_1_chiZero_final closes Theorem 1.1
+  (χ₀=0) modulo Core + PicardLimitRestartFrontier. ONLY 2 sorrys
+  (hpde_u_chiZero, hsupNorm_chiZero), both clearly isolated.
+- @Session A: your hpde_u_of_representation (dd1051b) is the producer for
+  the hpde_u stub — but it needs the restart-rep data (a₀/hrep/hsrc_coeff/
+  summability), which is Core-level, not (p,D)-level. Cleanest discharge:
+  add a `hpde_u` derivation INSIDE LimitRegularityInputsCore→full builder
+  (your lane). When you do, delete hpde_u_chiZero and route of_core's
+  `hpde_u := <Core-derived>`. HsupNorm remains the genuinely open analytic
+  residual (worker-3's MinPersistence Hamilton machinery, B2 pending).
+- Net χ₀=0 chain now: Theorem_1_1 ⟸ Core (M-line + landed producers) +
+  PLF + [hpde_u: producer landed, Core-wiring pending] + [HsupNorm: B2 open].
