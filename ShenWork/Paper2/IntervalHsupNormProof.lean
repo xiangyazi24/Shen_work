@@ -98,12 +98,13 @@ theorem nonposOn_of_eq
     (hdiff : ∀ t ∈ I, DifferentiableAt ℝ g t)
     (hnonpos : ∀ t ∈ I, deriv g t ≤ 0) :
     IntervalDomainSupNormDerivativeNonposOn u I := by
-  have hint : interior I = I := hU.interior_eq
-  refine nonposOn_of_locally_eq hcont ?_ ?_ ?_
-  · intro t ht
-    rw [hint] at ht
+  have hloc : ∀ t ∈ interior I,
+      (fun s => intervalDomainSupNorm (u s)) =ᶠ[nhds t] g := by
+    intro t ht
+    rw [hU.interior_eq] at ht
     exact Filter.eventuallyEq_of_mem (hU.mem_nhds ht) (fun s hs => heq s hs)
-  · intro t ht; rw [hint] at ht; exact hdiff t ht
-  · intro t ht; rw [hint] at ht; exact hnonpos t ht
+  refine nonposOn_of_locally_eq hcont hloc (fun t ht => ?_) (fun t ht => ?_)
+  · rw [hU.interior_eq] at ht; exact hdiff t ht
+  · rw [hU.interior_eq] at ht; exact hnonpos t ht
 
 end ShenWork.Paper2.HsupNormProof
