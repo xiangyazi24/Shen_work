@@ -15,11 +15,15 @@ import ShenWork.PDE.IntervalDomain
 import ShenWork.Paper2.IntervalMildToClassical
 import ShenWork.PDE.CosineSpectrum
 import ShenWork.PDE.IntervalDuhamelClosedC2
+import ShenWork.PDE.IntervalSourceCoefficientTimeC1
 
 open Set Filter Topology
 open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift intervalDomain)
 open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.IntervalMildToClassical (mildChemicalConcentration)
+open ShenWork.IntervalSourceCoefficientTimeC1
+  (restartCosineSeries_hasDerivAt_time localRestartCoeff)
+open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
 
 noncomputable section
 
@@ -77,5 +81,29 @@ theorem laplacian_eq_of_rep {u : ℝ → intervalDomainPoint → ℝ} {t₀ : �
   rw [Filter.EventuallyEq.deriv_eq
     (Filter.eventuallyEq_of_mem (isOpen_Ioo.mem_nhds hx) hd1eq)]
   exact ShenWork.IntervalDuhamelClosedC2.cosineCoeffSeries_deriv2_eq hsum_b x.1
+
+/-- **Time-derivative identity from the representation.**  If `u s y` agrees near
+`t₀` with the restart cosine series `∑ localRestartCoeff a₀ a (s−offset) n cos`,
+the time derivative is the spectral series (`restartCosineSeries_hasDerivAt_time`
+through the `s ↦ s−offset` chain rule). -/
+theorem timeDeriv_eq_of_rep {u : ℝ → intervalDomainPoint → ℝ} {t₀ : ℝ}
+    {a₀ : ℕ → ℝ} {M : ℝ} (hM : 0 ≤ M) (ha₀ : ∀ n, |a₀ n| ≤ M)
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a) {offset : ℝ} (hoff : 0 < t₀ - offset)
+    (hrep : ∀ᶠ s in 𝓝 t₀, ∀ y : intervalDomainPoint,
+      u s y = ∑' n, localRestartCoeff a₀ a (s - offset) n * cosineMode n y.1)
+    (x : intervalDomainPoint) :
+    intervalDomain.timeDeriv u t₀ x
+      = ∑' n, (a (t₀ - offset) n - unitIntervalCosineEigenvalue n
+          * localRestartCoeff a₀ a (t₀ - offset) n) * cosineMode n x.1 := by
+  have hshift : HasDerivAt (fun s : ℝ => s - offset) 1 t₀ :=
+    (hasDerivAt_id t₀).sub_const offset
+  have hD := (restartCosineSeries_hasDerivAt_time hM ha₀ src hoff x.1).comp t₀ hshift
+  have heq : (fun s => u s x) =ᶠ[𝓝 t₀]
+      ((fun τ => ∑' n, localRestartCoeff a₀ a τ n * cosineMode n x.1)
+        ∘ fun s => s - offset) := by
+    filter_upwards [hrep] with s hs using hs x
+  have hd := hD.congr_of_eventuallyEq heq
+  show deriv (fun s => u s x) t₀ = _
+  rw [hd.deriv, mul_one]
 
 end ShenWork.IntervalDomainPdeUChiZero
