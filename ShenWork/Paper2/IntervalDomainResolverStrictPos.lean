@@ -17,6 +17,7 @@ import ShenWork.PDE.IntervalFullKernelInterchange
 import ShenWork.PDE.IntervalFullKernelSupBound
 import ShenWork.Paper2.IntervalPicardLimitCoeffConv
 import ShenWork.PDE.IntervalResolverGradientBridge
+import ShenWork.Paper2.IntervalDomainL2StaticVDifference
 
 open Set Filter Topology MeasureTheory
 open ShenWork.PDE (intervalNeumannResolverR intervalNeumannResolverCoeff
@@ -25,13 +26,14 @@ open ShenWork.PDE (intervalNeumannResolverR intervalNeumannResolverCoeff
 open ShenWork.IntervalResolverGradientBridge (resolverCoeff_re_eq)
 open ShenWork.IntervalResolverPositivity (summable_abs_sourceCoeff_mul_weight)
 open ShenWork.Paper3 (unitIntervalNeumannSpectrum)
+open ShenWork.Paper2 (cosineCoeffs_congr_on_Icc)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalNeumannFullKernel
   intervalFullSemigroupOperator intervalNeumannFullKernel_integrable
   intervalNeumannFullKernel_nonneg)
 open ShenWork.IntervalResolverPositivity (intervalNeumannFullKernel_cosineKernel_identity)
 open ShenWork.IntervalFullKernelInterchange
   (intervalFullSemigroupOperator_eq_cosineHeatValue_unconditional)
-open ShenWork.IntervalDomain (intervalMeasure intervalDomainPoint)
+open ShenWork.IntervalDomain (intervalMeasure intervalDomainPoint intervalDomainLift)
 open ShenWork.IntervalResolverPositivity
   (laplaceHeatTrunc_tendsto laplaceHeatTrunc_nonneg summable_resolverTarget)
 open ShenWork.IntervalPicardLimitCoeffConv (cosineCoeffs_sub_eq)
@@ -235,5 +237,54 @@ theorem intervalNeumannResolverR_pos_of_source_ge {p : CM2Params}
     0 < intervalNeumannResolverR p u xp :=
   lt_of_lt_of_le (div_pos hc₀ p.hμ)
     (intervalNeumannResolverR_ge_of_source_ge hf_cont hf_ge hf_coeff hâ hĝ xp)
+
+/-- **Hvpos from the cosine representation.**  `0 < intervalNeumannResolverR p u`
+(= `mildChemicalConcentration`) from: the profile `u`'s lift agreeing on `[0,1]`
+with a globally-continuous `cs` bounded in `[m, M]` with `m > 0`; the source
+coefficients matching; and `ℓ²` of the source (and source `− c₀`).  Witness
+`f := ν·(max m (min cs M))^γ` — clamped below by `m` so `f ≥ ν·m^γ` everywhere,
+yet `= ν·u^γ` on `[0,1]`. -/
+theorem resolverR_pos_of_representation (p : CM2Params)
+    {u : intervalDomainPoint → ℝ} {cs : ℝ → ℝ} {m M : ℝ}
+    (hcs_cont : Continuous cs)
+    (hagree : ∀ x ∈ Set.Icc (0:ℝ) 1, intervalDomainLift u x = cs x)
+    (hm_pos : 0 < m)
+    (hcs_lb : ∀ x ∈ Set.Icc (0:ℝ) 1, m ≤ cs x)
+    (hcs_ub : ∀ x ∈ Set.Icc (0:ℝ) 1, cs x ≤ M)
+    (hsrc_coeff : ∀ k, cosineCoeffs (fun x => p.ν * intervalDomainLift u x ^ p.γ) k
+        = (intervalNeumannResolverSourceCoeff p u k).re)
+    (hâ : Summable (fun k =>
+        (cosineCoeffs (fun x => p.ν * intervalDomainLift u x ^ p.γ) k) ^ 2))
+    (hĝ : Summable (fun k =>
+        (cosineCoeffs (fun x => p.ν * intervalDomainLift u x ^ p.γ - p.ν * m ^ p.γ) k) ^ 2))
+    (xp : intervalDomainPoint) :
+    0 < intervalNeumannResolverR p u xp := by
+  set c₀ : ℝ := p.ν * m ^ p.γ with hc₀
+  set f : ℝ → ℝ := fun y => p.ν * (max m (min (cs y) M)) ^ p.γ with hf
+  have hclamp_pos : ∀ y, 0 < max m (min (cs y) M) :=
+    fun y => lt_of_lt_of_le hm_pos (le_max_left _ _)
+  have hf_cont : Continuous f :=
+    continuous_const.mul ((continuous_const.max (hcs_cont.min continuous_const)).rpow_const
+      (fun y => Or.inl (ne_of_gt (hclamp_pos y))))
+  have hf_ge : ∀ y, c₀ ≤ f y := fun y => by
+    rw [hf, hc₀]
+    exact mul_le_mul_of_nonneg_left
+      (Real.rpow_le_rpow hm_pos.le (le_max_left _ _) p.hγ.le) p.hν.le
+  have hf_eq : ∀ x ∈ Set.Icc (0:ℝ) 1,
+      f x = p.ν * intervalDomainLift u x ^ p.γ := fun x hx => by
+    show p.ν * (max m (min (cs x) M)) ^ p.γ = p.ν * intervalDomainLift u x ^ p.γ
+    rw [hagree x hx, min_eq_left (hcs_ub x hx), max_eq_right (hcs_lb x hx)]
+  have hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re :=
+    fun k => by rw [cosineCoeffs_congr_on_Icc hf_eq k, hsrc_coeff k]
+  have hâ' : Summable (fun k => (cosineCoeffs f k) ^ 2) :=
+    hâ.congr (fun k => by rw [cosineCoeffs_congr_on_Icc hf_eq k])
+  have hĝ_eq : ∀ k, cosineCoeffs (fun x => p.ν * intervalDomainLift u x ^ p.γ - c₀) k
+      = cosineCoeffs (fun y => f y - c₀) k :=
+    fun k => cosineCoeffs_congr_on_Icc (fun x hx => by rw [hf_eq x hx]) k
+  have hĝ' : Summable (fun k => (cosineCoeffs (fun y => f y - c₀) k) ^ 2) :=
+    hĝ.congr (fun k => by rw [hĝ_eq k])
+  have hc₀_pos : 0 < c₀ := by rw [hc₀]; exact mul_pos p.hν (Real.rpow_pos_of_pos hm_pos _)
+  exact intervalNeumannResolverR_pos_of_source_ge hc₀_pos
+    hf_cont hf_ge hf_coeff hâ' hĝ' xp
 
 end ShenWork.IntervalDomainResolverStrictPos
