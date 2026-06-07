@@ -30,6 +30,7 @@
   file is unconditional with NO further edits.
 -/
 import ShenWork.Paper2.IntervalDomainMildLocalChi0
+import ShenWork.Paper2.IntervalDomainPdeUChiZero
 
 open MeasureTheory Set Filter Topology
 open ShenWork.IntervalDomain
@@ -41,6 +42,9 @@ open ShenWork.IntervalMildToClassical (mildChemicalConcentration)
 open ShenWork.IntervalMildPicardRegularity (logisticSourceFun)
 open ShenWork.IntervalMildTimeDerivContinuity (HasTimeNeighborhoodSpectralAgreement)
 open ShenWork.PDE (intervalNeumannResolverSourceCoeff)
+open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.IntervalSourceCoefficientTimeC1 (localRestartCoeff)
+open ShenWork.IntervalCosineInversion (reflCircle)
 open ShenWork.Paper2
 open ShenWork.Paper2.ConeQuantBridge
 open ShenWork.Paper2.MildLocalChi0
@@ -105,6 +109,27 @@ structure LimitRegularityInputsCore
     (fun s k => (intervalNeumannResolverSourceCoeff p (D.u s) k).re)
   Hvpos : ∀ t, 0 < t → t < D.T → ∀ x : intervalDomainPoint,
     0 < mildChemicalConcentration p D.u t x
+  -- restart-representation data feeding the proved `hpde_u` producer
+  -- (`IntervalDomainPdeUChiZero.hpde_u_of_representation`): the per-time-slice
+  -- cosine representation, the source-is-reaction coefficient identity, and the
+  -- spectral summabilities.  Strictly weaker than the `hpde_u` PDE conclusion,
+  -- which the producer derives from it.
+  hpdeData : ∀ t, 0 < t → t < D.T →
+    ∃ (a₀ : ℕ → ℝ) (M : ℝ) (_ : 0 ≤ M) (_ : ∀ n, |a₀ n| ≤ M) (a : ℝ → ℕ → ℝ)
+      (_ : DuhamelSourceTimeC1 a) (offset : ℝ) (_ : 0 < t - offset),
+      (∀ᶠ s in 𝓝 t, ∀ y : intervalDomainPoint,
+        D.u s y = ∑' n, localRestartCoeff a₀ a (s - offset) n * cosineMode n y.1) ∧
+      (∀ n, a (t - offset) n
+        = cosineCoeffs (logisticSourceFun p.a p.b p.α (intervalDomainLift (D.u t))) n) ∧
+      Continuous (logisticSourceFun p.a p.b p.α (intervalDomainLift (D.u t))) ∧
+      Summable (fun n : ℤ => fourierCoeff
+        (reflCircle (logisticSourceFun p.a p.b p.α (intervalDomainLift (D.u t)))) n) ∧
+      Summable (fun n => unitIntervalCosineEigenvalue n
+        * |localRestartCoeff a₀ a (t - offset) n|) ∧
+      (∀ x : intervalDomainPoint, x.1 ∈ Set.Ioo (0:ℝ) 1 →
+        Summable (fun n => a (t - offset) n * cosineMode n x.1) ∧
+        Summable (fun n => unitIntervalCosineEigenvalue n
+          * localRestartCoeff a₀ a (t - offset) n * cosineMode n x.1))
 
 /-! ## The two open analytic residuals (assumed proved; shen-local in progress)
 
@@ -118,23 +143,25 @@ For χ₀ = 0 the chemotaxis term drops, so this is the heat/logistic
 pointwise identity `u_t = Δu + u(a − b u^α)` on the interior.  Proof
 deferred to shen-local (G4n–p bridge with `rep(u)`).
 
-UPDATE: the producer has LANDED — `IntervalDomainPdeUChiZero.
-hpde_u_of_representation` (dd1051b).  It consumes the restart-
-representation data (`a₀`, `hrep`, `hsrc_coeff`, summability), which lives
-in `LimitRegularityInputsCore`, NOT in a standalone `(p, D)` stub.  The
-clean discharge therefore moves `hpde_u` OUT of this stub and INTO a
-`Core`-level field/derivation (Session A's active lane); this stub stays
-as the structural placeholder until that wiring lands. -/
+UPDATE (LANDED): discharged via the proved producer
+`IntervalDomainPdeUChiZero.hpde_u_of_representation` (dd1051b), fed the
+restart-representation data carried by `LimitRegularityInputsCore.hpdeData`. -/
 theorem hpde_u_chiZero
-    (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
-    (D : GradientMildSolutionData p u₀) :
+    {p : CM2Params} (hχ0 : p.χ₀ = 0) {u₀ : intervalDomainPoint → ℝ}
+    {D : GradientMildSolutionData p u₀}
+    (C : LimitRegularityInputsCore p u₀ D) :
     ∀ t x, 0 < t → t < D.T → x ∈ intervalDomain.inside →
       intervalDomain.timeDeriv D.u t x =
         intervalDomain.laplacian (D.u t) x
           - p.χ₀ * intervalDomain.chemotaxisDiv p (D.u t)
               (mildChemicalConcentration p D.u t) x
           + D.u t x * (p.a - p.b * (D.u t x) ^ p.α) := by
-  sorry
+  intro t x ht htT hx
+  obtain ⟨a₀, M, hM, ha₀, a, src, offset, hoff, hrep, hsrc_coeff, hcont,
+    hsum_fourier, hsum_b, hsumx⟩ := C.hpdeData t ht htT
+  obtain ⟨hsum_src, hsum_lb⟩ := hsumx x hx
+  exact IntervalDomainPdeUChiZero.hpde_u_of_representation p hχ0 hM ha₀ src hoff
+    hrep hsrc_coeff hcont hsum_fourier hsum_b hx hsum_src hsum_lb
 
 /-- **Residual 2 (open): interior sup-norm monotonicity (Lemma 3.1).**
 The parabolic maximum principle: `t ↦ ‖u(t)‖_∞` has non-positive
@@ -154,7 +181,7 @@ two residual theorems.**  Every field is forwarded from the core except
 `hpde_u` / `HsupNorm`, which come from the (currently stubbed) residual
 theorems. -/
 def limitRegularityInputs_of_core
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {p : CM2Params} (hχ0 : p.χ₀ = 0) {u₀ : intervalDomainPoint → ℝ}
     {D : GradientMildSolutionData p u₀}
     (C : LimitRegularityInputsCore p u₀ D) :
     MildLocalChi0.LimitRegularityInputs p u₀ D where
@@ -186,7 +213,7 @@ def limitRegularityInputs_of_core
   MdotS := C.MdotS
   hMdotS := C.hMdotS
   hLc := C.hLc
-  hpde_u := hpde_u_chiZero p D
+  hpde_u := hpde_u_chiZero hχ0 C
   Hu := C.Hu
   Hvsrc := C.Hvsrc
   HsupNorm := hsupNorm_chiZero p D
@@ -218,6 +245,6 @@ theorem paper2_theorem_1_1_chiZero_final
     Theorem_1_1 intervalDomain p :=
   MildLocalChi0.paper2_theorem_1_1_chiZero_of_inputs
     p hχ0 ha hb hα_ge hγ_ge_one hPLF
-    (fun u₀ hu₀ D => limitRegularityInputs_of_core (Hcore u₀ hu₀ D))
+    (fun u₀ hu₀ D => limitRegularityInputs_of_core hχ0 (Hcore u₀ hu₀ D))
 
 end ShenWork.Paper2.Thm11ChiZeroFinal
