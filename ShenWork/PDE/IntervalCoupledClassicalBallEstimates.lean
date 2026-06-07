@@ -1020,9 +1020,9 @@ theorem intervalDomainChemotaxisDiv_eq_chemDivRepr_interior
   have hy_Icc : y₀ ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hy_int
   -- C² interior regularity of `lift u` and `lift v` (conjunct 3).
   have hC2u : ContDiffOn ℝ 2 (intervalDomainLift (u τ)) (Set.Ioo (0:ℝ) 1) :=
-    (hsol.regularity.2.2.1 τ hτ).1
+    (hsol.regularity.1 τ hτ).1
   have hC2v : ContDiffOn ℝ 2 (intervalDomainLift (v τ)) (Set.Ioo (0:ℝ) 1) :=
-    (hsol.regularity.2.2.1 τ hτ).2
+    (hsol.regularity.1 τ hτ).2
   -- HasDerivAt for `lift u` at `y₀`.
   have hU_diff : DifferentiableAt ℝ (intervalDomainLift (u τ)) y₀ :=
     (hC2u.differentiableOn (by norm_num)).differentiableAt
@@ -4873,7 +4873,7 @@ theorem intervalDomainLift_u_joint_continuous_on_Ioo_Icc
       (Function.uncurry
         (fun (s : ℝ) (y : ℝ) => intervalDomainLift (u s) y))
       (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
-  (hsnap.isSolution.regularity.2.2.2.2.2.2.2.2).1
+  (hsnap.isSolution.regularity.2.2.2.2.2.2).1
 
 /-- **Joint measurability of `(s,y) ↦ intervalDomainLift (u s) y` on `ℝ²`**
 from the snapshot's joint continuity on `Ioo 0 T ×ˢ Icc 0 1`, plus the
@@ -4993,7 +4993,7 @@ theorem intervalDomainLift_v_joint_continuous_on_Ioo_Icc
       (Function.uncurry
         (fun (s : ℝ) (y : ℝ) => intervalDomainLift (v s) y))
       (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
-  (hsnap.isSolution.regularity.2.2.2.2.2.2.2.2).2
+  (hsnap.isSolution.regularity.2.2.2.2.2.2).2
 
 /-- **Joint measurability of `(s,y) ↦ intervalDomainLift (v s) y` on `ℝ²`**
 from the snapshot's joint continuity on `Ioo 0 T ×ˢ Icc 0 1`, plus the

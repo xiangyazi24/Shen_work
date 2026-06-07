@@ -25,7 +25,7 @@ theorem classicalSolution_slice_positiveInitialDatum
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
     {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
     PositiveInitialDatum intervalDomain (u τ) := by
-  have hC2 := (hsol.regularity.2.2.2.2.2.2.1 τ hτ).1
+  have hC2 := (hsol.regularity.2.2.2.2.1 τ hτ).1
   have hcontOn : ContinuousOn (intervalDomainLift (u τ)) (Set.Icc (0:ℝ) 1) :=
     hC2.1.continuousOn
   have hcont : Continuous (u τ) := by

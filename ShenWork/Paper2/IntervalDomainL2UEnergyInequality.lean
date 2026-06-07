@@ -365,7 +365,7 @@ theorem source_continuousOn_Icc
     ContinuousOn (fun x : ℝ => p.ν * intervalDomainLift (u t) x ^ p.γ)
       (Set.Icc (0:ℝ) 1) := by
   have hreg : intervalDomainClassicalRegularity T u v := hsol.regularity
-  have hC2u := (hreg.2.2.2.2.2.2.1 t ht).1.1
+  have hC2u := (hreg.2.2.2.2.1 t ht).1.1
   have hUcont : ContinuousOn (intervalDomainLift (u t)) (Set.Icc (0:ℝ) 1) :=
     hC2u.continuousOn
   have hUpow : ContinuousOn (fun x : ℝ => intervalDomainLift (u t) x ^ p.γ)
@@ -491,7 +491,7 @@ theorem source_contDiffOn_Icc
     ContDiffOn ℝ 2 (fun x : ℝ => p.ν * intervalDomainLift (u t) x ^ p.γ)
       (Set.Icc (0:ℝ) 1) := by
   have hreg : intervalDomainClassicalRegularity T u v := hsol.regularity
-  have hC2u := (hreg.2.2.2.2.2.2.1 t ht).1.1
+  have hC2u := (hreg.2.2.2.2.1 t ht).1.1
   have hne : ∀ x ∈ Set.Icc (0:ℝ) 1, intervalDomainLift (u t) x ≠ 0 :=
     fun x hx => ne_of_gt (solution_lift_pos hsol ht x hx)
   have hpow : ContDiffOn ℝ 2 (fun x : ℝ => intervalDomainLift (u t) x ^ p.γ)
@@ -559,7 +559,7 @@ theorem source_deriv_interior
       p.ν * (p.γ * intervalDomainLift (u t) x ^ (p.γ - 1) *
         deriv (intervalDomainLift (u t)) x) := by
   have hreg : intervalDomainClassicalRegularity T u v := hsol.regularity
-  have hC2u := (hreg.2.2.2.2.2.2.1 t ht).1.1
+  have hC2u := (hreg.2.2.2.2.1 t ht).1.1
   have hxIcc : x ∈ Set.Icc (0:ℝ) 1 := Set.Ioo_subset_Icc_self hx
   -- `lift(u t)` is differentiable at the interior point `x`.
   have hmem : Set.Icc (0:ℝ) 1 ∈ nhds x := by
@@ -594,8 +594,8 @@ theorem source_deriv_tendsto_endpoint
       Filter.Tendsto (deriv (fun y : ℝ => p.ν * intervalDomainLift (u t) y ^ p.γ))
         (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) := by
   have hreg : intervalDomainClassicalRegularity T u v := hsol.regularity
-  have hC2u := (hreg.2.2.2.2.2.2.1 t ht).1.1
-  have h6u := (hreg.2.2.2.2.2.1 t ht).1
+  have hC2u := (hreg.2.2.2.2.1 t ht).1.1
+  have h6u := (hreg.2.2.2.1 t ht).1
   obtain ⟨htend0u, htend1u⟩ := h6u
   -- continuity of `y ↦ u^{γ-1}` on `[0,1]` (lift `C²` ⇒ continuous; positive ⇒ rpow ok).
   have hUcont : ContinuousOn (intervalDomainLift (u t)) (Set.Icc (0:ℝ) 1) :=

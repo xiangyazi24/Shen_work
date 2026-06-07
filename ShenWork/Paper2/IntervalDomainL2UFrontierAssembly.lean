@@ -69,7 +69,7 @@ theorem solution_lift_continuousOn_Icc
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
     {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
     ContinuousOn (intervalDomainLift (u τ)) (Set.Icc (0 : ℝ) 1) :=
-  ((hsol.regularity.2.2.2.2.2.2.1 τ hτ).1.1).continuousOn
+  ((hsol.regularity.2.2.2.2.1 τ hτ).1.1).continuousOn
 
 /-- The `u`-energy integrand `y ↦ (lift (u₁ s − u₂ s) y)²` is continuous on
 `Icc 0 1` at any interior slab time `s`, hence `AEStronglyMeasurable` on the
@@ -448,9 +448,9 @@ theorem intervalDomainL2UEnergy_zero_pointwise_of_solution
       (fun x => intervalDomainLift (v₁ t) x - intervalDomainLift (v₂ t) x)
       (Set.Icc (0:ℝ) 1) := by
     have hc1 : ContinuousOn (intervalDomainLift (v₁ t)) (Set.Icc (0:ℝ) 1) :=
-      ((hsol₁.regularity.2.2.2.2.2.2.1 t ht₁).2.1).continuousOn
+      ((hsol₁.regularity.2.2.2.2.1 t ht₁).2.1).continuousOn
     have hc2 : ContinuousOn (intervalDomainLift (v₂ t)) (Set.Icc (0:ℝ) 1) :=
-      ((hsol₂.regularity.2.2.2.2.2.2.1 t ht₂).2.1).continuousOn
+      ((hsol₂.regularity.2.2.2.2.1 t ht₂).2.1).continuousOn
     exact hc1.sub hc2
   have hv_pt := continuousOn_sq_integral_zero_eqOn_zero hvcont hvint_zero
   have hv_eq : ∀ x : intervalDomainPoint, v₁ t x = v₂ t x := by

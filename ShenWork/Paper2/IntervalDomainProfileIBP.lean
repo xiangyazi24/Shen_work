@@ -218,7 +218,7 @@ theorem intervalDomain_l2_half_energy_inequality_of_cosineProfile_interior
           intervalDomainL2LogisticIntegral params u t := by
   -- Conjunct (7): closed-`[0,1]` `C²` of the `u`-lift at the interior time `t`.
   have hreg7 : ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
-    (hsol.regularity.2.2.2.2.2.2.1 t ⟨ht0, htT⟩).1.1
+    (hsol.regularity.2.2.2.2.1 t ⟨ht0, htT⟩).1.1
   -- Density bridge: open-interior cosine agreement ⇒ closed-`Icc` agreement.
   have hrep : Set.EqOn (intervalDomainLift (u t))
       (fun x => unitIntervalCosineHeatValue τ b x) (Set.Icc (0 : ℝ) 1) :=

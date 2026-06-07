@@ -137,9 +137,9 @@ theorem source_integral_le_Eu_uniform_zeroM
       exact ((hc1.sub hc2).pow 2)
     exact this.intervalIntegrable
   · have hcu1 : ContinuousOn (intervalDomainLift (u₁ τ)) (Set.Icc (0:ℝ) 1) :=
-      ((hsol₁.regularity.2.2.2.2.2.2.1 τ hτ₁).1.1).continuousOn
+      ((hsol₁.regularity.2.2.2.2.1 τ hτ₁).1.1).continuousOn
     have hcu2 : ContinuousOn (intervalDomainLift (u₂ τ)) (Set.Icc (0:ℝ) 1) :=
-      ((hsol₂.regularity.2.2.2.2.2.2.1 τ hτ₂).1.1).continuousOn
+      ((hsol₂.regularity.2.2.2.2.1 τ hτ₂).1.1).continuousOn
     have : ContinuousOn (fun x => (p.ν * L) ^ 2 *
         (intervalDomainLift (u₁ τ) x - intervalDomainLift (u₂ τ) x) ^ 2)
         (Set.uIcc (0:ℝ) 1) := by
@@ -221,9 +221,9 @@ theorem static_v_value_L2_le_Eu_uniform_zeroM
   have hintLHS : IntervalIntegrable
       (fun x => (intervalDomainLift (v₁ τ) x - intervalDomainLift (v₂ τ) x) ^ 2) volume 0 1 := by
     have hc1 : ContinuousOn (intervalDomainLift (v₁ τ)) (Set.Icc (0:ℝ) 1) :=
-      ((hsol₁.regularity.2.2.2.2.2.2.1 τ hτ₁).2.1).continuousOn
+      ((hsol₁.regularity.2.2.2.2.1 τ hτ₁).2.1).continuousOn
     have hc2 : ContinuousOn (intervalDomainLift (v₂ τ)) (Set.Icc (0:ℝ) 1) :=
-      ((hsol₂.regularity.2.2.2.2.2.2.1 τ hτ₂).2.1).continuousOn
+      ((hsol₂.regularity.2.2.2.2.1 τ hτ₂).2.1).continuousOn
     have : ContinuousOn (fun x => (intervalDomainLift (v₁ τ) x -
         intervalDomainLift (v₂ τ) x) ^ 2) (Set.uIcc (0:ℝ) 1) := by
       rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)]; exact (hc1.sub hc2).pow 2
@@ -560,13 +560,13 @@ theorem flux_diff_L2_le_Eu_uniform_zeroM
   have hCgnn : 0 ≤ Cg := by rw [hCgdef]; positivity
   have hCvnn : 0 ≤ Cv := by rw [hCvdef]; positivity
   have hcont_u₁ : ContinuousOn (intervalDomainLift (u₁ τ)) (Set.Icc (0:ℝ) 1) :=
-    ((hsol₁.regularity.2.2.2.2.2.2.1 τ hτ₁).1.1).continuousOn
+    ((hsol₁.regularity.2.2.2.2.1 τ hτ₁).1.1).continuousOn
   have hcont_u₂ : ContinuousOn (intervalDomainLift (u₂ τ)) (Set.Icc (0:ℝ) 1) :=
-    ((hsol₂.regularity.2.2.2.2.2.2.1 τ hτ₂).1.1).continuousOn
+    ((hsol₂.regularity.2.2.2.2.1 τ hτ₂).1.1).continuousOn
   have hcont_v₁ : ContinuousOn (intervalDomainLift (v₁ τ)) (Set.Icc (0:ℝ) 1) :=
-    ((hsol₁.regularity.2.2.2.2.2.2.1 τ hτ₁).2.1).continuousOn
+    ((hsol₁.regularity.2.2.2.2.1 τ hτ₁).2.1).continuousOn
   have hcont_v₂ : ContinuousOn (intervalDomainLift (v₂ τ)) (Set.Icc (0:ℝ) 1) :=
-    ((hsol₂.regularity.2.2.2.2.2.2.1 τ hτ₂).2.1).continuousOn
+    ((hsol₂.regularity.2.2.2.2.1 τ hτ₂).2.1).continuousOn
   have hcg₁ := resolverGradReal_continuous hsol₁ hτ₁
   have hcg₂ := resolverGradReal_continuous hsol₂ hτ₂
   have hint_a : IntervalIntegrable (fun y => (a y)^2) volume 0 1 := by
@@ -694,8 +694,8 @@ theorem intervalDomainL2U_energy_diffIneq_bound_uniform_explicit_zeroM
       intervalDomainUEnergy_timeDeriv_pde hsol₁ hsol₂ hτ hy]
   have hwLcont : ContinuousOn wL (Set.uIcc (0:ℝ) 1) := by
     rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)]
-    exact (((hsol₁.regularity.2.2.2.2.2.2.1 τ hτ₁).1.1).continuousOn).sub
-      (((hsol₂.regularity.2.2.2.2.2.2.1 τ hτ₂).1.1).continuousOn)
+    exact (((hsol₁.regularity.2.2.2.2.1 τ hτ₁).1.1).continuousOn).sub
+      (((hsol₂.regularity.2.2.2.2.1 τ hτ₂).1.1).continuousOn)
   have hwLcontI : ContinuousOn wL (Set.Icc (0:ℝ) 1) := by
     rw [← Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)]; exact hwLcont
   have hdwLint : IntervalIntegrable dwL volume 0 1 := by
@@ -719,7 +719,7 @@ theorem intervalDomainL2U_energy_diffIneq_bound_uniform_explicit_zeroM
           * (p.a - p.b * intervalDomainLift (u τ) y ^ p.α)) (Set.Icc (0:ℝ) 1) := by
       intro u Tj vj hsolj htj
       have hc : ContinuousOn (intervalDomainLift (u τ)) (Set.Icc (0:ℝ) 1) :=
-        ((hsolj.regularity.2.2.2.2.2.2.1 τ htj).1.1).continuousOn
+        ((hsolj.regularity.2.2.2.2.1 τ htj).1.1).continuousOn
       have hpow : ContinuousOn (fun y => intervalDomainLift (u τ) y ^ p.α) (Set.Icc (0:ℝ) 1) :=
         hc.rpow_const (fun y hy => Or.inl (ne_of_gt (solution_lift_pos hsolj htj y hy)))
       exact hc.mul (continuousOn_const.sub (continuousOn_const.mul hpow))

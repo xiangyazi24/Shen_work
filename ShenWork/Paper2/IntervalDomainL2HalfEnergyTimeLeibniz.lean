@@ -300,12 +300,12 @@ theorem intervalDomainHalfEnergyIntegrandDeriv_continuousOn_of_regularity
   have hc9 : ContinuousOn
       (Function.uncurry (fun (t : ℝ) (x : ℝ) => intervalDomainLift (u t) x))
       (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
-    hreg.2.2.2.2.2.2.2.2.1
+    hreg.2.2.2.2.2.2.1
   have hc8 : ContinuousOn
       (Function.uncurry
         (fun (t : ℝ) (x : ℝ) => deriv (fun s : ℝ => intervalDomainLift (u s) x) t))
       (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
-    hreg.2.2.2.2.2.2.2.1.1
+    hreg.2.2.2.2.2.1.1
   exact hc9.mul hc8
 
 /-- **Continuity of the half-energy integrand at a fixed interior time.**  From
@@ -318,7 +318,7 @@ theorem intervalDomainHalfEnergyIntegrand_continuousOn_timeSlice
   have hc9 : ContinuousOn
       (Function.uncurry (fun (t : ℝ) (x : ℝ) => intervalDomainLift (u t) x))
       (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
-    hsol.regularity.2.2.2.2.2.2.2.2.1
+    hsol.regularity.2.2.2.2.2.2.1
   have hlift : ContinuousOn (fun x => intervalDomainLift (u t) x) (Set.Icc (0 : ℝ) 1) :=
     intervalDomain_continuousOn_timeSlice hc9 ht
   have : ContinuousOn (fun y => (intervalDomainLift (u t) y) ^ 2) (Set.Icc (0 : ℝ) 1) :=

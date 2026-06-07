@@ -67,11 +67,11 @@ theorem intervalDomain_l2_crossControl_of_regularity
   set F : ℝ → ℝ := intervalFlux params (u t) (v t) with hFdef
   -- conjunct (7): closed-`[0,1]` `C²` of the `u`- and `v`-lifts.
   have hCu : ContDiffOn ℝ 2 lu (Set.Icc (0 : ℝ) 1) :=
-    (hsol.regularity.2.2.2.2.2.2.1 t ht).1.1
+    (hsol.regularity.2.2.2.2.1 t ht).1.1
   have hCv : ContDiffOn ℝ 2 lv (Set.Icc (0 : ℝ) 1) :=
-    (hsol.regularity.2.2.2.2.2.2.1 t ht).2.1
+    (hsol.regularity.2.2.2.2.1 t ht).2.1
   -- conjunct (3): interior `C²`.
-  have hCuI : ContDiffOn ℝ 2 lu (Set.Ioo (0 : ℝ) 1) := (hsol.regularity.2.2.1 t ht).1
+  have hCuI : ContDiffOn ℝ 2 lu (Set.Ioo (0 : ℝ) 1) := (hsol.regularity.1 t ht).1
   -- ## Step 1.  The IBP identity for the chemotaxis integral.
   -- continuity on the closed interval.
   have hlu_cont : ContinuousOn lu (Set.uIcc (0 : ℝ) 1) := by
@@ -315,7 +315,7 @@ theorem intervalDomain_l2_half_energy_inequality_unconditional
   have ht : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
   -- conjunct (7): closed-`[0,1]` `C²` of the `u`-lift.
   have hCu : ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0:ℝ) 1) :=
-    (hsol.regularity.2.2.2.2.2.2.1 t ht).1.1
+    (hsol.regularity.2.2.2.2.1 t ht).1.1
   -- genuine endpoint Neumann values, as closed-`Icc` `derivWithin` zeros.
   have hset : (Set.Ici (0:ℝ)) =ᶠ[𝓝 (0:ℝ)] (Set.Icc (0:ℝ) 1) := by
     filter_upwards [Iio_mem_nhds (show (0:ℝ) < 1 by norm_num)] with x hx

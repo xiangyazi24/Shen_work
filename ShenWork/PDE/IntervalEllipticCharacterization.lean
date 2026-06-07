@@ -366,10 +366,10 @@ theorem solution_v_rawCoeff_elliptic
   classical
   have hreg : intervalDomainClassicalRegularity T u v := hsol.regularity
   -- conjunct (7): closed-`Icc` `C²` of `lift (v t)` + endpoint Neumann values.
-  have h7 := (hreg.2.2.2.2.2.2.1 t ht).2
+  have h7 := (hreg.2.2.2.2.1 t ht).2
   obtain ⟨hC2, hbc0, hbc1⟩ := h7
   -- conjunct (6): one-sided endpoint limits of `deriv (lift (v t))` vanish.
-  have h6 := (hreg.2.2.2.2.2.1 t ht).2
+  have h6 := (hreg.2.2.2.1 t ht).2
   obtain ⟨htend0, htend1⟩ := h6
   set V : ℝ → ℝ := intervalDomainLift (v t) with hV
   -- the eigenfunction IBP for `V`.
@@ -423,7 +423,7 @@ theorem solution_v_rawCoeff_elliptic
     -- hence interval-integrability of the cosine products.
     have hVcont : ContinuousOn V (Set.uIcc (0:ℝ) 1) := continuousOn_of_contDiffOn_two hC2
     have hUcont : ContinuousOn (intervalDomainLift (u t)) (Set.uIcc (0:ℝ) 1) := by
-      have hC2u := (hreg.2.2.2.2.2.2.1 t ht).1.1
+      have hC2u := (hreg.2.2.2.2.1 t ht).1.1
       exact continuousOn_of_contDiffOn_two hC2u
     have hcos_cont : ContinuousOn (fun x : ℝ => Real.cos ((k:ℝ) * Real.pi * x))
         (Set.uIcc (0:ℝ) 1) := (Real.continuous_cos.comp (by fun_prop)).continuousOn

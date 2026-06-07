@@ -259,17 +259,17 @@ theorem regularityBootstrap_of_gradientMildSolutionData
   have hC2 : ∀ t, 0 < t → t < D.T →
       ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1) := by
     intro t ht0 htT
-    exact (hclassical.regularity.2.2.2.2.2.2.1 t ⟨ht0, htT⟩).1.1
+    exact (hclassical.regularity.2.2.2.2.1 t ⟨ht0, htT⟩).1.1
   have hN0 : ∀ t, 0 < t → t < D.T →
       Filter.Tendsto (deriv (intervalDomainLift (D.u t)))
         (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) := by
     intro t ht0 htT
-    exact (hclassical.regularity.2.2.2.2.2.1 t ⟨ht0, htT⟩).1.1
+    exact (hclassical.regularity.2.2.2.1 t ⟨ht0, htT⟩).1.1
   have hN1 : ∀ t, 0 < t → t < D.T →
       Filter.Tendsto (deriv (intervalDomainLift (D.u t)))
         (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) := by
     intro t ht0 htT
-    exact (hclassical.regularity.2.2.2.2.2.1 t ⟨ht0, htT⟩).1.2
+    exact (hclassical.regularity.2.2.2.1 t ⟨ht0, htT⟩).1.2
   refine ⟨v, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro t x ht0 htT
     exact mildSolution_strictlyPositive p D ht0 (le_of_lt htT) x

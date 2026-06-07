@@ -70,9 +70,9 @@ theorem solution_chemotaxisFlux_hasDerivAt
   have hy_Icc : y₀ ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hy_int
   -- C² interior regularity (conjunct 3).
   have hC2u : ContDiffOn ℝ 2 (intervalDomainLift (u τ)) (Set.Ioo (0:ℝ) 1) :=
-    (hsol.regularity.2.2.1 τ hτ).1
+    (hsol.regularity.1 τ hτ).1
   have hC2v : ContDiffOn ℝ 2 (intervalDomainLift (v τ)) (Set.Ioo (0:ℝ) 1) :=
-    (hsol.regularity.2.2.1 τ hτ).2
+    (hsol.regularity.1 τ hτ).2
   -- `lift u` differentiable at `y₀`.
   have hU_diff : DifferentiableAt ℝ (intervalDomainLift (u τ)) y₀ :=
     (hC2u.differentiableOn (by norm_num)).differentiableAt
@@ -192,11 +192,11 @@ theorem intervalDomainChemDiv_v_lift_aestronglyMeasurable
   have hcontU : ContinuousOn
       (Function.uncurry (fun s y => intervalDomainLift (u s) y))
       (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
-    (hsol.regularity.2.2.2.2.2.2.2.2).1
+    (hsol.regularity.2.2.2.2.2.2).1
   have hcontV : ContinuousOn
       (Function.uncurry (fun s y => intervalDomainLift (v s) y))
       (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
-    (hsol.regularity.2.2.2.2.2.2.2.2).2
+    (hsol.regularity.2.2.2.2.2.2).2
   -- Measurable surrogate fields.
   have hUf : Measurable (liftSlab T u) := measurable_liftSlab hcontU
   have hVf : Measurable (liftSlab T v) := measurable_liftSlab hcontV
@@ -231,7 +231,7 @@ theorem intervalDomainChemDiv_v_lift_aestronglyMeasurable
         intro z hz
         exact liftSlab_eq_of_mem hs (Set.Ioo_subset_Icc_self hz)
       have hVdiff : DifferentiableAt ℝ (intervalDomainLift (v s)) y' :=
-        (((hsol.regularity.2.2.1 s hs).2).differentiableOn (by norm_num)).differentiableAt
+        (((hsol.regularity.1 s hs).2).differentiableOn (by norm_num)).differentiableAt
           (IsOpen.mem_nhds isOpen_Ioo hy')
       have hHas :
           HasDerivAt (fun z : ℝ => liftSlab T v (s, z))
@@ -546,7 +546,7 @@ theorem intervalDomainLift_u_aestronglyMeasurable_of_solution
   have hcontU : ContinuousOn
       (Function.uncurry (fun s y => intervalDomainLift (u s) y))
       (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
-    (hsol.regularity.2.2.2.2.2.2.2.2).1
+    (hsol.regularity.2.2.2.2.2.2).1
   refine aestronglyMeasurable_of_eqOn_interiorSlab ht htT
     (measurable_liftSlab hcontU).aestronglyMeasurable ?_
   rintro ⟨s, ycoord⟩ ⟨hs, hyc⟩

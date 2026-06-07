@@ -200,7 +200,7 @@ theorem intervalDomainLift_diffusion_intervalIntegrable_of_regularity
       (intervalDomainLift (fun x => u t x * intervalDomain.laplacian (u t) x))
       volume 0 1 :=
   intervalDomainLift_diffusion_intervalIntegrable_of_contDiffOn
-    (hsol.regularity.2.2.2.2.2.2.1 t ht).1.1
+    (hsol.regularity.2.2.2.2.1 t ht).1.1
 
 /-! ## Discharging `hC` (the logistic term) from regularity + positivity -/
 
@@ -220,7 +220,7 @@ theorem intervalDomainLift_logistic_intervalIntegrable_of_regularity
       volume 0 1 := by
   classical
   have hreg7 : ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
-    (hsol.regularity.2.2.2.2.2.2.1 t ⟨ht0, htT⟩).1.1
+    (hsol.regularity.2.2.2.2.1 t ⟨ht0, htT⟩).1.1
   have hcont_u : ContinuousOn (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
     hreg7.continuousOn
   -- `lift u` is strictly positive on `[0,1]` (positivity at every point).
@@ -282,7 +282,7 @@ theorem intervalDomainLift_chemotaxis_intervalIntegrable_of_chemDiv
       volume 0 1 := by
   have hcont_u : ContinuousOn (intervalDomainLift (u t)) (Set.uIcc (0 : ℝ) 1) := by
     rw [Set.uIcc_of_le (zero_le_one)]
-    exact (hsol.regularity.2.2.2.2.2.2.1 t ht).1.1.continuousOn
+    exact (hsol.regularity.2.2.2.2.1 t ht).1.1.continuousOn
   have hfun : intervalDomainLift
       (fun x => u t x * intervalDomain.chemotaxisDiv params (u t) (v t) x)
       = fun y => intervalDomainLift (u t) y *
@@ -313,9 +313,9 @@ theorem intervalDomainChemotaxisQuotient_contDiffOn_one_of_regularity
         (1 + intervalDomainLift (v t) y) ^ params.β) (Set.Icc (0 : ℝ) 1) := by
   have huniq : UniqueDiffOn ℝ (Set.Icc (0 : ℝ) 1) := uniqueDiffOn_Icc (by norm_num)
   have hu2 : ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
-    (hsol.regularity.2.2.2.2.2.2.1 t ⟨ht0, htT⟩).1.1
+    (hsol.regularity.2.2.2.2.1 t ⟨ht0, htT⟩).1.1
   have hv2 : ContDiffOn ℝ 2 (intervalDomainLift (v t)) (Set.Icc (0 : ℝ) 1) :=
-    (hsol.regularity.2.2.2.2.2.2.1 t ⟨ht0, htT⟩).2.1
+    (hsol.regularity.2.2.2.2.1 t ⟨ht0, htT⟩).2.1
   -- Numerator: `lift u · derivWithin (lift v) Icc`, a product of `C¹` factors.
   have hu1 : ContDiffOn ℝ 1 (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
     hu2.of_le (by norm_num)

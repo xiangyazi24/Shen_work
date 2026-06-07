@@ -224,9 +224,9 @@ theorem source_integral_le_Eu_uniform
       exact ((hc1.sub hc2).pow 2)
     exact this.intervalIntegrable
   · have hcu1 : ContinuousOn (intervalDomainLift (u₁ τ)) (Set.Icc (0:ℝ) 1) :=
-      ((hsol₁.regularity.2.2.2.2.2.2.1 τ hτ₁).1.1).continuousOn
+      ((hsol₁.regularity.2.2.2.2.1 τ hτ₁).1.1).continuousOn
     have hcu2 : ContinuousOn (intervalDomainLift (u₂ τ)) (Set.Icc (0:ℝ) 1) :=
-      ((hsol₂.regularity.2.2.2.2.2.2.1 τ hτ₂).1.1).continuousOn
+      ((hsol₂.regularity.2.2.2.2.1 τ hτ₂).1.1).continuousOn
     have : ContinuousOn (fun x => (p.ν * L) ^ 2 *
         (intervalDomainLift (u₁ τ) x - intervalDomainLift (u₂ τ) x) ^ 2)
         (Set.uIcc (0:ℝ) 1) := by

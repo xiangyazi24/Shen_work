@@ -228,7 +228,7 @@ theorem timeShiftInitialTraceWorks : TimeShiftInitialTraceWorks := by
   have hcont9 : ContinuousOn
       (Function.uncurry (fun (t : ℝ) (x : ℝ) => intervalDomainLift (u t) x))
       (Set.Ioo 0 T ×ˢ Set.Icc 0 1) :=
-    (hsol.regularity.2.2.2.2.2.2.2.2).1
+    (hsol.regularity.2.2.2.2.2.2).1
   have hτ_in : τ ∈ Set.Ioo (0 : ℝ) T := ⟨hτ_pos, hτ_lt⟩
   -- Heine-Cantor: uniform modulus over the compact fibre Icc 0 1
   obtain ⟨nbhd, hnbhd_mem, hnbhd⟩ :=

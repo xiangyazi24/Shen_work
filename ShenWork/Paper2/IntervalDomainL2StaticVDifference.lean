@@ -239,9 +239,9 @@ theorem solution_v_eq_resolver_pointwise_unconditional
   classical
   -- regularity conjuncts for `v(·,t)`.
   have hreg : intervalDomainClassicalRegularity T u v := hsol.regularity
-  have h7 := (hreg.2.2.2.2.2.2.1 t ht).2
+  have h7 := (hreg.2.2.2.2.1 t ht).2
   obtain ⟨hC2v, hbc0, hbc1⟩ := h7
-  have h6 := (hreg.2.2.2.2.2.1 t ht).2
+  have h6 := (hreg.2.2.2.1 t ht).2
   obtain ⟨htend0, htend1⟩ := h6
   -- the continuous global representative `F` of `lift (v t)`.
   set F : ℝ → ℝ := liftRepr (v t) with hFdef
@@ -334,7 +334,7 @@ theorem lift_u_bounded_pos
       ∀ x ∈ Set.Icc (0:ℝ) 1, intervalDomainLift (u t) x ∈ Set.Icc δ M := by
   classical
   have hreg : intervalDomainClassicalRegularity T u v := hsol.regularity
-  have hC2u := (hreg.2.2.2.2.2.2.1 t ht).1.1
+  have hC2u := (hreg.2.2.2.2.1 t ht).1.1
   have hcont : ContinuousOn (intervalDomainLift (u t)) (Set.Icc (0:ℝ) 1) :=
     hC2u.continuousOn
   have hne : (Set.Icc (0:ℝ) 1).Nonempty := ⟨0, by constructor <;> norm_num⟩
@@ -689,9 +689,9 @@ theorem static_v_value_L2_le_Eu
   have hintLHS : IntervalIntegrable
       (fun x => (intervalDomainLift (v₁ τ) x - intervalDomainLift (v₂ τ) x) ^ 2) volume 0 1 := by
     have hc1 : ContinuousOn (intervalDomainLift (v₁ τ)) (Set.Icc (0:ℝ) 1) :=
-      ((hsol₁.regularity.2.2.2.2.2.2.1 τ hτ₁).2.1).continuousOn
+      ((hsol₁.regularity.2.2.2.2.1 τ hτ₁).2.1).continuousOn
     have hc2 : ContinuousOn (intervalDomainLift (v₂ τ)) (Set.Icc (0:ℝ) 1) :=
-      ((hsol₂.regularity.2.2.2.2.2.2.1 τ hτ₂).2.1).continuousOn
+      ((hsol₂.regularity.2.2.2.2.1 τ hτ₂).2.1).continuousOn
     have : ContinuousOn (fun x => (intervalDomainLift (v₁ τ) x -
         intervalDomainLift (v₂ τ) x) ^ 2) (Set.uIcc (0:ℝ) 1) := by
       rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)]; exact (hc1.sub hc2).pow 2
@@ -906,7 +906,7 @@ theorem lift_u_uniformPositive_on_compact
   have hfield : ContinuousOn
       (Function.uncurry (fun (τ : ℝ) (x : ℝ) => intervalDomainLift (u τ) x))
       (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
-    (hsol.regularity.2.2.2.2.2.2.2.2).1
+    (hsol.regularity.2.2.2.2.2.2).1
   -- compact slab `Icc s t ×ˢ Icc 0 1`.
   have hKcompact : IsCompact (Set.Icc s t ×ˢ Set.Icc (0 : ℝ) 1) :=
     isCompact_Icc.prod isCompact_Icc
@@ -963,7 +963,7 @@ theorem lift_v_bounded_on_compact
   have hfield : ContinuousOn
       (Function.uncurry (fun (τ : ℝ) (x : ℝ) => intervalDomainLift (v τ) x))
       (Set.Ioo (0 : ℝ) T ×ˢ Set.Icc (0 : ℝ) 1) :=
-    (hsol.regularity.2.2.2.2.2.2.2.2).2
+    (hsol.regularity.2.2.2.2.2.2).2
   -- compact slab `Icc s t ×ˢ Icc 0 1`.
   have hKcompact : IsCompact (Set.Icc s t ×ˢ Set.Icc (0 : ℝ) 1) :=
     isCompact_Icc.prod isCompact_Icc
@@ -1064,7 +1064,7 @@ theorem lift_u_uniformPositive_on_halfHorizon
     have hτ_open : τ ∈ Set.Ioo (0 : ℝ) T :=
       ⟨hτ_pos, lt_of_le_of_lt (le_trans hcase hτ_a_le_t) htT⟩
     have hu_cont : ContinuousOn (intervalDomainLift (u τ)) (Set.Icc (0 : ℝ) 1) :=
-      ((hsol.regularity.2.2.2.2.2.2.1 τ hτ_open).1.1).continuousOn
+      ((hsol.regularity.2.2.2.2.1 τ hτ_open).1.1).continuousOn
     have hu_bddR : BddAbove (Set.range (fun z : intervalDomainPoint => |u τ z|)) := by
       have hcompact : IsCompact (Set.Icc (0:ℝ) 1) := isCompact_Icc
       obtain ⟨M, hM⟩ := (hcompact.image_of_continuousOn (hu_cont.abs)).bddAbove
@@ -1142,7 +1142,7 @@ theorem classicalSolution_u_range_bddAbove
   classical
   -- conjunct (7): closed-domain `C²` regularity of the lift on `Icc 0 1`.
   have hcont : ContinuousOn (intervalDomainLift (u t)) (Set.Icc (0:ℝ) 1) :=
-    ((hsol.regularity.2.2.2.2.2.2.1 t ht).1.1).continuousOn
+    ((hsol.regularity.2.2.2.2.1 t ht).1.1).continuousOn
   -- image of `|lift (u t)|` over the compact `Icc 0 1` is bounded above.
   obtain ⟨B, hB⟩ :=
     (isCompact_Icc.image_of_continuousOn hcont.abs).bddAbove
