@@ -167,4 +167,48 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   Hvsrc := sorry
   Hvpos := sorry
 
+/-- **FINAL WIRING — Paper 2 Theorem 1.1 (χ₀ = 0), hypothesis-unconditional.**
+
+Chains the per-datum reduced-ledger producer into the threshold-route capstone:
+
+    reducedLimitRegularityInputs_of_picard          -- per-datum reduced ledger
+      → limitRegularityInputs_of_reduced            -- reduced ⟹ full ledger
+      → restartData_of_inputs / frontierCore_of_inputs  -- ledger ⟹ hPLF
+      → paper2_theorem_1_1_chiZero_of_reduced_inputs    -- capstone
+      → Theorem_1_1 intervalDomain p
+
+The statement carries NO frontier hypothesis: `hPLF`
+(`PicardLimitRestartFrontier p`) is *not* an independent residual — it is
+derived here from the same reduced ledger via `restartData_of_inputs` +
+`frontierCore_of_inputs`, exactly as in
+`ThresholdQuantBridge.paper2_theorem_1_1_chiZero_threshold_of_ledger`.  So the
+only hypotheses are `p.χ₀ = 0` and the structural regime constants
+(`0 < a`, `0 < b`, `1 ≤ α`, `1 ≤ γ`).
+
+HONESTY NOTE — this is wiring, not a completed proof.  The chain bottoms out in
+`reducedLimitRegularityInputs_of_picard`, whose data/proof fields are still
+`sorry` (the genuine open analytic estimates: `hubt`/`hG1t`/`hG2t` uniform
+sup/gradient/Hessian bounds, `Hvpos`/`Hvsrc`/`hpde_u` resolver and PDE residuals,
+`hLc` slice continuity, the cosine representation `bc`/`hbsum`/`hagree`, …).  This
+theorem's PROOF therefore depends transitively on `sorryAx`
+(`#print axioms paper2_theorem_1_1_chiZero_unconditional` will report it); it is
+NOT yet an axiom-clean proof of Theorem 1.1.  Its value is structural: it pins
+down that *once* `reducedLimitRegularityInputs_of_picard` is discharged
+sorry-free, Theorem 1.1 (χ₀ = 0) follows with no further hypotheses — every
+remaining obligation is now localized to that single producer. -/
+theorem paper2_theorem_1_1_chiZero_unconditional
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ) :
+    Theorem_1_1 intervalDomain p :=
+  -- `hPLF` derived from the reduced ledger (no extra residual hypothesis).
+  have hPLF : ConeQuantBridge.PicardLimitRestartFrontier p :=
+    fun u₀ hu₀ D _hDu =>
+      let I := LedgerSweep.limitRegularityInputs_of_reduced hχ0
+        (reducedLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D)
+      ⟨MildLocalChi0.restartData_of_inputs hχ0 I,
+        MildLocalChi0.frontierCore_of_inputs hχ0 I⟩
+  LedgerSweep.paper2_theorem_1_1_chiZero_of_reduced_inputs
+    p hχ0 ha hb hα hγ hPLF
+    (fun u₀ hu₀ D => reducedLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D)
+
 end ShenWork.Paper2.Thm11ChiZeroCoreProvider

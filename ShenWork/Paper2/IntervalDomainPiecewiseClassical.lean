@@ -123,8 +123,10 @@ private theorem splice_isClassical
     IsPaper2ClassicalSolution intervalDomain p T' u' v' := by
   obtain ⟨-, hreg₁, hposU₁, hnnV₁, hpdeU₁, hpdeV₁, hbc₁⟩ := hsol₁
   obtain ⟨-, hreg₂, hposU₂, hnnV₂, hpdeU₂, hpdeV₂, hbc₂⟩ := hsol₂
-  obtain ⟨h1₁, h2₁, h3₁, h4₁, h5₁, h6₁, h7₁, h8₁, h9₁⟩ := hreg₁
-  obtain ⟨h1₂, h2₂, h3₂, h4₂, h5₂, h6₂, h7₂, h8₂, h9₂⟩ := hreg₂
+  -- `intervalDomainClassicalRegularity` is now 7 conjuncts (supnorm pair removed
+  -- 2026-06-06); old c3..c9 → new c1..c7, so the binders keep their h3..h9 names.
+  obtain ⟨h3₁, h4₁, h5₁, h6₁, h7₁, h8₁, h9₁⟩ := hreg₁
+  obtain ⟨h3₂, h4₂, h5₂, h6₂, h7₂, h8₂, h9₂⟩ := hreg₂
   -- ## Slice agreement
   have hsliceUL : ∀ t : ℝ, t < T₁ → u' t = u₁ t := by
     intro t h; funext x; rw [hu'def t x]; exact if_pos h
