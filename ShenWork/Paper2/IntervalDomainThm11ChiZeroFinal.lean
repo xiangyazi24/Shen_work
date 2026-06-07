@@ -163,11 +163,23 @@ theorem hpde_u_chiZero
   exact IntervalDomainPdeUChiZero.hpde_u_of_representation p hχ0 hM ha₀ src hoff
     hrep hsrc_coeff hcont hsum_fourier hsum_b hx hsum_src hsum_lb
 
-/-- **Residual 2 (open): interior sup-norm monotonicity (Lemma 3.1).**
-The parabolic maximum principle: `t ↦ ‖u(t)‖_∞` has non-positive
-derivative on the interior.  Proof deferred to shen-local (the
-MinPersistence atoms — second-derivative tests, sliceMax continuity,
-Hamilton/Grönwall — are the analytic substrate). -/
+/-- **Residual 2: DEFINITION ISSUE (not a proof gap).**
+
+`IntervalDomainSupNormDerivativeNonposOn D.u (Ioo 0 D.T)` is FALSE
+unconditionally — counterexample: flat `u₀ ≡ ε < (a/b)^{1/α}` gives
+`u'(t) > 0` (logistic growth below carrying capacity).
+
+Moreover, the `supnormLogistic` conjunct of `intervalDomainClassicalRegularity`
+is quantified `∀ q : CM2Params, 0 < q.a → 0 < q.b → ...` with threshold
+`(q.a/q.b)^{1/q.α}`.  By choosing `q.a → 0` the threshold → 0, so the
+hypothesis `threshold < ‖u(t₀)‖_∞` is trivially satisfied for any positive
+solution.  This makes `supnormLogistic` equivalent to unconditional NonposOn.
+
+**The paper's theorem is TRUE** — classical regularity does not require the
+sup-norm monotonicity conjuncts.  The fix is to narrow the definition of
+`intervalDomainClassicalRegularity` (remove or condition the supnorm
+conjuncts), then propagate.  This is a definition refactor, not a mathematical
+gap. -/
 theorem hsupNorm_chiZero
     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
     (D : GradientMildSolutionData p u₀) :
