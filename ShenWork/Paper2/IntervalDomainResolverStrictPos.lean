@@ -15,6 +15,7 @@ import ShenWork.PDE.IntervalResolverPositivity
 import ShenWork.PDE.IntervalNeumannEllipticResolverR
 import ShenWork.PDE.IntervalFullKernelInterchange
 import ShenWork.PDE.IntervalFullKernelSupBound
+import ShenWork.Paper2.IntervalPicardLimitCoeffConv
 
 open Set Filter Topology MeasureTheory
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalNeumannFullKernel
@@ -26,6 +27,7 @@ open ShenWork.IntervalFullKernelInterchange
 open ShenWork.IntervalDomain (intervalMeasure)
 open ShenWork.IntervalResolverPositivity
   (laplaceHeatTrunc_tendsto laplaceHeatTrunc_nonneg summable_resolverTarget)
+open ShenWork.IntervalPicardLimitCoeffConv (cosineCoeffs_sub_eq)
 open ShenWork.IntervalMildPicardRegularity (cosineCoeffs_eq_factor_mul_integral)
 
 noncomputable section
@@ -125,5 +127,40 @@ theorem const_reconstruction (p : CM2Params) (c₀ x : ℝ) :
     (fun n hn => by rw [cosineCoeffs_const, if_neg hn, zero_mul, zero_div])]
   rw [cosineCoeffs_const, if_pos rfl]
   simp [unitIntervalCosineMode, unitIntervalCosineEigenvalue]
+
+/-- **Reconstruction lower bound.**  For `f ≥ c₀` continuous with `ℓ²`
+coefficients (and `f − c₀` likewise), the resolved cosine series is `≥ c₀/μ` at
+interior `x`: split `f = (f − c₀) + c₀`, the first reconstruction is `≥ 0`, the
+constant one `= c₀/μ`. -/
+theorem reconstruction_ge_const (p : CM2Params) {f : ℝ → ℝ} {c₀ : ℝ}
+    (hf_cont : Continuous f) (hf_ge : ∀ y, c₀ ≤ f y)
+    (hĝ : Summable (fun k => (cosineCoeffs (fun y => f y - c₀) k) ^ 2))
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    c₀ / p.μ ≤ ∑' k, cosineCoeffs f k * unitIntervalCosineMode k x
+          / (p.μ + unitIntervalCosineEigenvalue k) := by
+  have hsplit : ∀ k, cosineCoeffs f k
+      = cosineCoeffs (fun y => f y - c₀) k + cosineCoeffs (fun _ => c₀) k := by
+    intro k
+    have hsub : cosineCoeffs (fun y => f y - c₀) k
+        = cosineCoeffs f k - cosineCoeffs (fun _ => c₀) k :=
+      cosineCoeffs_sub_eq hf_cont.continuousOn continuousOn_const k
+    linarith [hsub]
+  have hterm : ∀ k, cosineCoeffs f k * unitIntervalCosineMode k x
+        / (p.μ + unitIntervalCosineEigenvalue k)
+      = cosineCoeffs (fun y => f y - c₀) k * unitIntervalCosineMode k x
+          / (p.μ + unitIntervalCosineEigenvalue k)
+        + cosineCoeffs (fun _ => c₀) k * unitIntervalCosineMode k x
+          / (p.μ + unitIntervalCosineEigenvalue k) := by
+    intro k; rw [hsplit k]; ring
+  have hconst_summable : Summable (fun k => cosineCoeffs (fun _ => c₀) k
+      * unitIntervalCosineMode k x / (p.μ + unitIntervalCosineEigenvalue k)) := by
+    refine summable_of_ne_finset_zero (s := {0}) (fun k hk => ?_)
+    rw [cosineCoeffs_const, if_neg (by simpa using hk), zero_mul, zero_div]
+  rw [tsum_congr hterm,
+    (summable_resolverTarget (p := p) hĝ x).tsum_add hconst_summable,
+    const_reconstruction]
+  have hnn := cosineReconstruction_nonneg p (hf_cont.sub continuous_const)
+    (fun y => by linarith [hf_ge y]) hĝ hx
+  linarith [hnn]
 
 end ShenWork.IntervalDomainResolverStrictPos
