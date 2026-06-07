@@ -16,15 +16,22 @@ import ShenWork.PDE.IntervalNeumannEllipticResolverR
 import ShenWork.PDE.IntervalFullKernelInterchange
 import ShenWork.PDE.IntervalFullKernelSupBound
 import ShenWork.Paper2.IntervalPicardLimitCoeffConv
+import ShenWork.PDE.IntervalResolverGradientBridge
 
 open Set Filter Topology MeasureTheory
+open ShenWork.PDE (intervalNeumannResolverR intervalNeumannResolverCoeff
+  intervalNeumannResolverSourceCoeff intervalNeumannResolverWeight
+  intervalNeumannResolver_denom_pos)
+open ShenWork.IntervalResolverGradientBridge (resolverCoeff_re_eq)
+open ShenWork.IntervalResolverPositivity (summable_abs_sourceCoeff_mul_weight)
+open ShenWork.Paper3 (unitIntervalNeumannSpectrum)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalNeumannFullKernel
   intervalFullSemigroupOperator intervalNeumannFullKernel_integrable
   intervalNeumannFullKernel_nonneg)
 open ShenWork.IntervalResolverPositivity (intervalNeumannFullKernel_cosineKernel_identity)
 open ShenWork.IntervalFullKernelInterchange
   (intervalFullSemigroupOperator_eq_cosineHeatValue_unconditional)
-open ShenWork.IntervalDomain (intervalMeasure)
+open ShenWork.IntervalDomain (intervalMeasure intervalDomainPoint)
 open ShenWork.IntervalResolverPositivity
   (laplaceHeatTrunc_tendsto laplaceHeatTrunc_nonneg summable_resolverTarget)
 open ShenWork.IntervalPicardLimitCoeffConv (cosineCoeffs_sub_eq)
@@ -162,5 +169,54 @@ theorem reconstruction_ge_const (p : CM2Params) {f : ℝ → ℝ} {c₀ : ℝ}
   have hnn := cosineReconstruction_nonneg p (hf_cont.sub continuous_const)
     (fun y => by linarith [hf_ge y]) hĝ hx
   linarith [hnn]
+
+/-- **Resolver strict lower bound.**  If the source `f` is continuous, `≥ c₀`,
+`ℓ²` (and `f − c₀` too), and matches the resolver source coefficients of `u`,
+then `R(u) ≥ c₀/μ` on the closed interval.  (Mirror of
+`intervalNeumannResolverR_nonneg_of_nonneg_source` with the `c₀/μ` floor.) -/
+theorem intervalNeumannResolverR_ge_of_source_ge {p : CM2Params}
+    {u : intervalDomainPoint → ℝ} {f : ℝ → ℝ} {c₀ : ℝ}
+    (hf_cont : Continuous f) (hf_ge : ∀ y, c₀ ≤ f y)
+    (hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re)
+    (hâ : Summable (fun k => (cosineCoeffs f k) ^ 2))
+    (hĝ : Summable (fun k => (cosineCoeffs (fun y => f y - c₀) k) ^ 2))
+    (xp : intervalDomainPoint) :
+    c₀ / p.μ ≤ intervalNeumannResolverR p u xp := by
+  set g : ℝ → ℝ := fun x => ∑' k, (intervalNeumannResolverCoeff p u k).re
+    * unitIntervalCosineMode k x with hg
+  have hl1 : Summable (fun k => |(intervalNeumannResolverCoeff p u k).re|) := by
+    have hbase : Summable (fun k => |(intervalNeumannResolverSourceCoeff p u k).re|
+        * intervalNeumannResolverWeight p k) :=
+      summable_abs_sourceCoeff_mul_weight (p := p) (hâ.congr (fun k => by rw [hf_coeff]))
+    refine hbase.congr (fun k => ?_)
+    rw [resolverCoeff_re_eq, abs_div, abs_of_pos (intervalNeumannResolver_denom_pos p k),
+      intervalNeumannResolverWeight]; ring
+  have hg_cont : Continuous g := by
+    refine continuous_tsum (fun k => ?_) hl1 (fun k x => ?_)
+    · exact continuous_const.mul (by unfold unitIntervalCosineMode; fun_prop)
+    · rw [Real.norm_eq_abs, abs_mul]
+      calc |(intervalNeumannResolverCoeff p u k).re| * |unitIntervalCosineMode k x|
+          ≤ |(intervalNeumannResolverCoeff p u k).re| * 1 :=
+            mul_le_mul_of_nonneg_left
+              (by rw [unitIntervalCosineMode]; exact Real.abs_cos_le_one _) (abs_nonneg _)
+        _ = |(intervalNeumannResolverCoeff p u k).re| := mul_one _
+  have heig : ∀ k, p.μ + unitIntervalNeumannSpectrum.eigenvalue k
+      = p.μ + unitIntervalCosineEigenvalue k := by
+    intro k; congr 1
+    rw [show unitIntervalNeumannSpectrum.eigenvalue k = (k : ℝ) ^ 2 * Real.pi ^ 2 from rfl,
+      unitIntervalCosineEigenvalue]; ring
+  have hsub : Set.Ioo (0:ℝ) 1 ⊆ {x : ℝ | c₀ / p.μ ≤ g x} := by
+    intro x hx
+    have hrecon : g x = ∑' k, cosineCoeffs f k * unitIntervalCosineMode k x
+        / (p.μ + unitIntervalCosineEigenvalue k) := by
+      rw [hg]; refine tsum_congr (fun k => ?_)
+      rw [resolverCoeff_re_eq, hf_coeff k, heig k]; ring
+    show c₀ / p.μ ≤ g x
+    rw [hrecon]; exact reconstruction_ge_const p hf_cont hf_ge hĝ hx
+  have hIcc : Set.Icc (0:ℝ) 1 ⊆ {x : ℝ | c₀ / p.μ ≤ g x} := by
+    rw [← closure_Ioo (by norm_num : (0:ℝ) ≠ 1)]
+    exact (isClosed_le continuous_const hg_cont).closure_subset_iff.mpr hsub
+  show c₀ / p.μ ≤ g xp.1
+  exact hIcc xp.2
 
 end ShenWork.IntervalDomainResolverStrictPos
