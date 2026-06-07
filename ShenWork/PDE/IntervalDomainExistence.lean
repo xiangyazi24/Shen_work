@@ -334,28 +334,8 @@ lemma constantInTime_classicalRegularity
       (fun t : ℝ => intervalDomainSupNorm
         ((fun _s (_ : intervalDomainPoint) => c) t)) = fun _ => c := by
     ext _; exact hsup_eq
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · -- First conjunct: for any p' with a > 0, b > 0, if supNorm > equilibrium,
-    -- the sup-norm is nonincreasing on Ioc 0 t₀.
-    intro _p' _hχ _ha _hb t₀ _ht₀ _ht₀T _hsup_gt
-    exact {
-      continuousOn := by rw [hsup_fun_eq]; exact continuousOn_const
-      differentiableOn := by rw [hsup_fun_eq]; exact differentiableOn_const c
-      deriv_nonpos := by
-        intro t _ht
-        rw [hsup_fun_eq]; simp [deriv_const]
-    }
-  · -- Second conjunct: for any p' with a = 0, b = 0,
-    -- the sup-norm is nonincreasing on Ioo 0 T.
-    intro _p' _hχ _ha _hb
-    exact {
-      continuousOn := by rw [hsup_fun_eq]; exact continuousOn_const
-      differentiableOn := by rw [hsup_fun_eq]; exact differentiableOn_const c
-      deriv_nonpos := by
-        intro t _ht
-        rw [hsup_fun_eq]; simp [deriv_const]
-    }
-  · -- Third conjunct: spatial C² regularity on (0,1).  Both `u ≡ c` and
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · -- (1) spatial C² regularity on (0,1).  Both `u ≡ c` and
     -- `v ≡ ellipticV p c` are constant in space, so their lifts are C² there.
     intro _t _ht
     exact ⟨intervalDomainLift_const_contDiffOn c,
@@ -3832,23 +3812,8 @@ theorem classicalRegularity_of_spatially_constant_decreasing
     intervalDomainClassicalRegularity T
       (fun t (_ : intervalDomainPoint) => φ t) v := by
   unfold intervalDomainClassicalRegularity
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · -- First conjunct: for any p' with a > 0, b > 0, if supNorm > equilibrium,
-    -- the sup-norm is nonincreasing on Ioc 0 t₀.
-    intro _p' _hχ _ha _hb t₀ ht₀ ht₀T _hsup_gt
-    apply supNormDerivNonposOn_Ioc_of_decreasing ht₀ hφ_pos
-    · exact hφ_cont.mono (Set.Ioc_subset_Icc_self.trans
-        (Set.Icc_subset_Icc_right (le_of_lt ht₀T)))
-    · exact hφ_diff.mono (fun t ht => ⟨ht.1, lt_of_lt_of_le ht.2 (le_of_lt ht₀T)⟩)
-    · exact fun t ht => hφ_deriv_nonpos t ⟨ht.1, lt_of_lt_of_le ht.2 (le_of_lt ht₀T)⟩
-  · -- Second conjunct: for any p' with a = 0, b = 0,
-    -- the sup-norm is nonincreasing on Ioo 0 T.
-    intro _p' _hχ _ha _hb
-    apply supNormDerivNonposOn_Ioo_of_decreasing hT hφ_pos
-    · exact hφ_cont.mono Set.Ioo_subset_Icc_self
-    · exact hφ_diff
-    · exact hφ_deriv_nonpos
-  · -- Third conjunct: spatial C² regularity on (0,1).  `u t = fun _ => φ t`
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · -- (1) spatial C² regularity on (0,1).  `u t = fun _ => φ t`
     -- is spatially constant; `v` is C² by hypothesis.
     intro t ht
     exact ⟨intervalDomainLift_const_contDiffOn (φ t), hvC2 t ht⟩
@@ -5581,144 +5546,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
       (boundedReachableGluedU hbdd hne)
       (boundedReachableGluedV hbdd hne) := by
   set Tmax : ℝ := finiteMaximalReachableHorizon p u₀ with hTmaxDef
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · -- (1) Sup-norm derivative nonpos on `Ioc 0 t₀` (for `t₀ < T*`).
-    intro q hqχ hqa hqb t₀ ht₀ ht₀T hsup
-    -- Pick a reachable horizon `T > t₀` and reuse its conjunct-1.
-    have htmax : t₀ < Tmax := ht₀T
-    let dpick : ReachableClassicalSolutionData p u₀
-        (pickReachableAbove hbdd hne htmax).1 :=
-      pickReachableAboveData hbdd hne htmax
-    let Tpick : ℝ := (pickReachableAbove hbdd hne htmax).1
-    have hT_gt : t₀ < Tpick :=
-      pickReachableAbove_lt hbdd hne htmax
-    -- Apply `intervalDomainClassicalRegularity_congr_Ioo` style transfer
-    -- on the slab `Ioo 0 Tpick`.
-    have hEq := boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne dpick
-    -- Translate the `hsup` from glued to dpick.
-    have hsup' :
-        (q.a / q.b) ^ (1 / q.α) <
-          intervalDomainSupNorm (dpick.u t₀) := by
-      have : boundedReachableGluedU hbdd hne t₀ = dpick.u t₀ :=
-        hEq.1 t₀ ht₀ hT_gt
-      rw [this] at hsup; exact hsup
-    have hreg₀ := dpick.sol.regularity.1 q hqχ hqa hqb t₀ ht₀ hT_gt hsup'
-    -- Transfer non-pos derivative back to glued on `Ioc 0 t₀`.
-    refine intervalDomainSupNormDerivativeNonposOn_congr_of_eqOn hreg₀ ?_
-    intro s hs
-    have hs0 : 0 < s := hs.1
-    have hs_le : s ≤ t₀ := hs.2
-    have hs_lt_T : s < Tpick := lt_of_le_of_lt hs_le hT_gt
-    exact hEq.1 s hs0 hs_lt_T
-  · -- (2) Sup-norm derivative nonpos on `Ioo 0 T*` (when a = b = 0).
-    intro q hqχ hqa hqb
-    -- Argue per-point on Ioo 0 T* using a pick at each point.  But here the
-    -- structure asks for a SupNormDerivativeNonposOn on the whole open
-    -- interval — this is local in time so we use the locally-continuous /
-    -- locally-differentiable structure.
-    -- For each `t ∈ Ioo 0 T*`, glued = (pick at t).u, and (pick at t)'s
-    -- sup-norm-deriv is non-pos on a NEIGHBOURHOOD of `t` in Ioo 0 T*.
-    refine ⟨?_, ?_, ?_⟩
-    · -- continuity of sup-norm on `Ioo 0 T*`.
-      -- Directly use the local-to-global continuity lemma.
-      apply continuousOn_of_locally_continuousOn
-      intro t ht
-      have htmax : t < Tmax := ht.2
-      let dpick := pickReachableAboveData hbdd hne htmax
-      let Tpick : ℝ := (pickReachableAbove hbdd hne htmax).1
-      have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne htmax
-      refine ⟨Set.Ioo (0 : ℝ) Tpick, isOpen_Ioo,
-        ⟨ht.1, hT_gt⟩, ?_⟩
-      -- on Ioo 0 T* ∩ Ioo 0 Tpick = Ioo 0 (min T* Tpick),
-      -- glued = dpick.u, so continuity follows from dpick.sol's conjunct (2).
-      have hreg₂_dpick :=
-        dpick.sol.regularity.2.1 q hqχ hqa hqb
-      have hcontDpick : ContinuousOn
-          (fun s => intervalDomainSupNorm (dpick.u s))
-          (Set.Ioo (0 : ℝ) Tpick) :=
-        hreg₂_dpick.continuousOn
-      have hsub : Set.Ioo (0 : ℝ) Tmax ∩ Set.Ioo (0 : ℝ) Tpick ⊆
-          Set.Ioo (0 : ℝ) Tpick := Set.inter_subset_right
-      have hcont' : ContinuousOn
-          (fun s => intervalDomainSupNorm (dpick.u s))
-          (Set.Ioo (0 : ℝ) Tmax ∩ Set.Ioo (0 : ℝ) Tpick) :=
-        hcontDpick.mono hsub
-      apply hcont'.congr
-      rintro s ⟨_hs1, hs2⟩
-      have hs0 : 0 < s := hs2.1
-      have hsT : s < Tpick := hs2.2
-      have hgl_eq := (boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne dpick).1
-        s hs0 hsT
-      change intervalDomainSupNorm (boundedReachableGluedU hbdd hne s) =
-        intervalDomainSupNorm (dpick.u s)
-      rw [hgl_eq]
-    · -- differentiability on interior (Ioo 0 T*).
-      rw [interior_Ioo]
-      intro t ht
-      have htmax : t < Tmax := ht.2
-      let dpick := pickReachableAboveData hbdd hne htmax
-      let Tpick : ℝ := (pickReachableAbove hbdd hne htmax).1
-      have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne htmax
-      have hreg₂_dpick :=
-        dpick.sol.regularity.2.1 q hqχ hqa hqb
-      have hdiffDpick : DifferentiableOn ℝ
-          (fun s => intervalDomainSupNorm (dpick.u s))
-          (interior (Set.Ioo (0 : ℝ) Tpick)) :=
-        hreg₂_dpick.differentiableOn
-      -- On `Ioo 0 Tpick` (which is its own interior), glued sup-norm =
-      -- dpick sup-norm, so glued's differentiability at `t` follows.
-      have hdiffDpickAt : DifferentiableAt ℝ
-          (fun s => intervalDomainSupNorm (dpick.u s)) t := by
-        have hin_Ioo : t ∈ Set.Ioo (0 : ℝ) Tpick := ⟨ht.1, hT_gt⟩
-        have hin_int : t ∈ interior (Set.Ioo (0 : ℝ) Tpick) := by
-          rw [interior_Ioo]; exact hin_Ioo
-        have hisOpen_int : IsOpen (interior (Set.Ioo (0 : ℝ) Tpick)) :=
-          isOpen_interior
-        exact ((hdiffDpick t hin_int).differentiableAt
-          (hisOpen_int.mem_nhds hin_int))
-      -- transfer via EventuallyEq on neighborhood `Ioo 0 Tpick`.
-      have heventually :
-          (fun s => intervalDomainSupNorm
-              (boundedReachableGluedU hbdd hne s)) =ᶠ[nhds t]
-            (fun s => intervalDomainSupNorm (dpick.u s)) := by
-        refine Set.EqOn.eventuallyEq_of_mem ?_
-          (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick) ⟨ht.1, hT_gt⟩)
-        intro s hs
-        have := (boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne dpick).1
-          s hs.1 hs.2
-        change intervalDomainSupNorm (boundedReachableGluedU hbdd hne s) =
-          intervalDomainSupNorm (dpick.u s)
-        rw [this]
-      have hdiffGlued : DifferentiableAt ℝ
-          (fun s => intervalDomainSupNorm
-              (boundedReachableGluedU hbdd hne s)) t :=
-        (heventually.differentiableAt_iff).mpr hdiffDpickAt
-      exact hdiffGlued.differentiableWithinAt
-    · -- deriv ≤ 0 on interior of Ioo 0 T*.
-      rw [interior_Ioo]
-      intro t ht
-      have htmax : t < Tmax := ht.2
-      let dpick := pickReachableAboveData hbdd hne htmax
-      let Tpick : ℝ := (pickReachableAbove hbdd hne htmax).1
-      have hT_gt : t < Tpick := pickReachableAbove_lt hbdd hne htmax
-      have hreg₂_dpick :=
-        dpick.sol.regularity.2.1 q hqχ hqa hqb
-      have heventually :
-          (fun s => intervalDomainSupNorm
-              (boundedReachableGluedU hbdd hne s)) =ᶠ[nhds t]
-            (fun s => intervalDomainSupNorm (dpick.u s)) := by
-        refine Set.EqOn.eventuallyEq_of_mem ?_
-          (isOpen_Ioo.mem_nhds (s := Set.Ioo (0 : ℝ) Tpick) ⟨ht.1, hT_gt⟩)
-        intro s hs
-        have := (boundedReachableGlued_eq_on_subSlab huniq hu₀ hbdd hne dpick).1
-          s hs.1 hs.2
-        change intervalDomainSupNorm (boundedReachableGluedU hbdd hne s) =
-          intervalDomainSupNorm (dpick.u s)
-        rw [this]
-      rw [Filter.EventuallyEq.deriv_eq heventually]
-      have hin : t ∈ interior (Set.Ioo (0 : ℝ) Tpick) := by
-        rw [interior_Ioo]; exact ⟨ht.1, hT_gt⟩
-      exact hreg₂_dpick.deriv_nonpos t hin
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- (3) Spatial C² on Ioo 0 1 for u t, v t (per fixed interior t).
     intro t ht
     let dpick := pickReachableAboveData hbdd hne ht.2
