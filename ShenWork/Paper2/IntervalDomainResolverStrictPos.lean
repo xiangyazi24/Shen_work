@@ -219,4 +219,21 @@ theorem intervalNeumannResolverR_ge_of_source_ge {p : CM2Params}
   show c₀ / p.μ ≤ g xp.1
   exact hIcc xp.2
 
+/-- **Resolver strict positivity** (the `Hvpos` shape):
+`0 < intervalNeumannResolverR p u xp`, from a continuous source `f ≥ c₀ > 0`
+matching the resolver coefficients.  Since
+`mildChemicalConcentration p u t = intervalNeumannResolverR p (u t)`, this is
+exactly `Hvpos` once `f` (a continuous `≥ c₀` extension of `ν·u^γ`, e.g. from the
+cosine representation) is supplied. -/
+theorem intervalNeumannResolverR_pos_of_source_ge {p : CM2Params}
+    {u : intervalDomainPoint → ℝ} {f : ℝ → ℝ} {c₀ : ℝ}
+    (hc₀ : 0 < c₀) (hf_cont : Continuous f) (hf_ge : ∀ y, c₀ ≤ f y)
+    (hf_coeff : ∀ k, cosineCoeffs f k = (intervalNeumannResolverSourceCoeff p u k).re)
+    (hâ : Summable (fun k => (cosineCoeffs f k) ^ 2))
+    (hĝ : Summable (fun k => (cosineCoeffs (fun y => f y - c₀) k) ^ 2))
+    (xp : intervalDomainPoint) :
+    0 < intervalNeumannResolverR p u xp :=
+  lt_of_lt_of_le (div_pos hc₀ p.hμ)
+    (intervalNeumannResolverR_ge_of_source_ge hf_cont hf_ge hf_coeff hâ hĝ xp)
+
 end ShenWork.IntervalDomainResolverStrictPos
