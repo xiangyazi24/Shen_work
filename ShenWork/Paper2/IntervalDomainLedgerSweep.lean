@@ -116,17 +116,17 @@ structure ReducedLimitRegularityInputs
   -- `hC2t`; fed into the source-decay machinery via
   -- `IntervalDomainLimitSourceRepresentation`)
   bc : ℝ → ℕ → ℝ
-  hbsum : ∀ σ, Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|)
-  hagree : ∀ σ, Set.EqOn (intervalDomainLift (D.u σ))
+  hbsum : ∀ σ, 0 < σ → σ < D.T → Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|)
+  hagree : ∀ σ, 0 < σ → σ < D.T → Set.EqOn (intervalDomainLift (D.u σ))
     (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1)
-  hpost : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (D.u σ) x
-  hubt : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (D.u σ) x ≤ Msup
-  hG1t : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+  hpost : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (D.u σ) x
+  hubt : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (D.u σ) x ≤ Msup
+  hG1t : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
     |deriv (intervalDomainLift (D.u σ)) x| ≤ G1
-  hG2t : ∀ σ, ∀ x ∈ Set.Icc (0 : ℝ) 1,
+  hG2t : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
     |deriv (deriv (intervalDomainLift (D.u σ))) x| ≤ G2
-  hN0t : ∀ σ, deriv (intervalDomainLift (D.u σ)) 0 = 0
-  hN1t : ∀ σ, deriv (intervalDomainLift (D.u σ)) 1 = 0
+  hN0t : ∀ σ, 0 < σ → σ < D.T → deriv (intervalDomainLift (D.u σ)) 0 = 0
+  hN1t : ∀ σ, 0 < σ → σ < D.T → deriv (intervalDomainLift (D.u σ)) 1 = 0
   -- K1 source-coefficient time-C¹ data (unshifted)
   adott : ℝ → ℕ → ℝ
   hderivt : ∀ σ k, HasDerivAt
