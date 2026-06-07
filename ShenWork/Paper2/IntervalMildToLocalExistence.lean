@@ -389,17 +389,17 @@ theorem isPaper2ClassicalSolution_of_gradientMildSolutionData_and_coreData
   have hC2 : ∀ t, 0 < t → t < D.T →
       ContDiffOn ℝ 2 (intervalDomainLift (D.u t)) (Set.Icc (0 : ℝ) 1) := by
     intro t ht0 htT
-    exact (C.hclassicalRegularity.2.2.2.2.2.2.1 t ⟨ht0, htT⟩).1.1
+    exact (C.hclassicalRegularity.2.2.2.2.1 t ⟨ht0, htT⟩).1.1
   have hN0 : ∀ t, 0 < t → t < D.T →
       Filter.Tendsto (deriv (intervalDomainLift (D.u t)))
         (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) := by
     intro t ht0 htT
-    exact (C.hclassicalRegularity.2.2.2.2.2.1 t ⟨ht0, htT⟩).1.1
+    exact (C.hclassicalRegularity.2.2.2.1 t ⟨ht0, htT⟩).1.1
   have hN1 : ∀ t, 0 < t → t < D.T →
       Filter.Tendsto (deriv (intervalDomainLift (D.u t)))
         (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) := by
     intro t ht0 htT
-    exact (C.hclassicalRegularity.2.2.2.2.2.1 t ⟨ht0, htT⟩).1.2
+    exact (C.hclassicalRegularity.2.2.2.1 t ⟨ht0, htT⟩).1.2
   refine IsPaper2ClassicalSolution.of_components
     (D := intervalDomain) (p := p) (T := D.T)
     (u := D.u) (v := v)
