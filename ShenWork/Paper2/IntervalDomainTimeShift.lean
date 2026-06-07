@@ -51,27 +51,14 @@ def RegularityTimeShiftWorks : Prop :=
       (fun t x => u (t + τ) x) (fun t x => v (t + τ) x)
 
 /-- **Proof that `RegularityTimeShiftWorks`**: the time-shift `t ↦ t + τ`
-preserves all 9 conjuncts of `intervalDomainClassicalRegularity`. -/
+preserves all 7 conjuncts of `intervalDomainClassicalRegularity`. -/
 theorem regularityTimeShiftWorks : RegularityTimeShiftWorks := by
   intro T u v hreg τ hτ_pos hτ_lt
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9⟩ := hreg
+  obtain ⟨h3, h4, h5, h6, h7, h8, h9⟩ := hreg
   -- Membership translation: t ∈ Ioo 0 (T-τ) → t+τ ∈ Ioo 0 T
   have mem_shift : ∀ t, t ∈ Set.Ioo (0 : ℝ) (T - τ) → t + τ ∈ Set.Ioo (0 : ℝ) T := by
     intro t ht; exact ⟨by linarith [ht.1, hτ_pos], by linarith [ht.2]⟩
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · -- (1) supnormLogistic: Ioc
-    intro p hpχ ha hb t₀ ht₀_pos ht₀_lt hsup
-    have ht₀τ_lt : t₀ + τ < T := by linarith
-    have horig := h1 p hpχ ha hb (t₀ + τ) (by linarith) ht₀τ_lt (by simpa using hsup)
-    apply supNormDerivNonposOn_timeShift horig
-    · intro t ht; exact ⟨by linarith [ht.1, hτ_pos], by linarith [ht.2]⟩
-    · rw [interior_Ioc, interior_Ioc]
-      intro t ht; exact ⟨by linarith [ht.1, hτ_pos], by linarith [ht.2]⟩
-  · -- (2) supnormZero: Ioo
-    intro p hpχ ha hb
-    apply supNormDerivNonposOn_timeShift (h2 p hpχ ha hb)
-    · intro t ht; exact mem_shift t ht
-    · rw [interior_Ioo, interior_Ioo]; intro t ht; exact mem_shift t ht
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- (3) Spatial C² on Ioo 0 1
     intro t ht
     exact h3 (t + τ) (mem_shift t ht)

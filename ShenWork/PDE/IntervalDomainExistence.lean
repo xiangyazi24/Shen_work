@@ -2913,37 +2913,26 @@ lemma intervalDomainClassicalRegularity_mono
     (hTL : Tshort ≤ Tlong)
     (hreg : intervalDomainClassicalRegularity Tlong u v) :
     intervalDomainClassicalRegularity Tshort u v := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · intro p hpχ ha hb t₀ ht₀ ht₀T hsup
-    exact hreg.1 p hpχ ha hb t₀ ht₀ (lt_of_lt_of_le ht₀T hTL) hsup
-  · intro p hpχ ha hb
-    exact intervalDomainSupNormDerivativeNonposOn_mono
-      (hreg.2.1 p hpχ ha hb)
-      (fun t ht => ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩)
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro t ht
-    exact hreg.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
+    exact hreg.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
   · intro x t ht
     obtain ⟨hdiff, hcontU, hcontV⟩ :=
-      hreg.2.2.2.1 x t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
+      hreg.2.1 x t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
     exact ⟨hdiff,
       hcontU.mono (Set.Ioo_subset_Ioo_right hTL),
       hcontV.mono (Set.Ioo_subset_Ioo_right hTL)⟩
-  · -- Joint time-derivative continuity restricts to the shorter horizon slab.
-    obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2.1
+  · obtain ⟨hjU, hjV⟩ := hreg.2.2.1
     exact ⟨hjU.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTL) (le_refl _)),
       hjV.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTL) (le_refl _))⟩
   · intro t ht
-    exact hreg.2.2.2.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
-  · -- (7) Closed-`Icc` spatial `C²` + endpoint Neumann, restricted to the
-    -- shorter horizon.
-    intro t ht
-    exact hreg.2.2.2.2.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
-  · -- (8) Closed-slab joint `∂ₜ` continuity, restricted to the shorter slab.
-    obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2.2.2.2.1
+    exact hreg.2.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
+  · intro t ht
+    exact hreg.2.2.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
+  · obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2.2.1
     exact ⟨hjU.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTL) (le_refl _)),
       hjV.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTL) (le_refl _))⟩
-  · -- (9) Closed-slab joint SOLUTION-field continuity, restricted to the slab.
-    obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2.2.2.2.2
+  · obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2.2.2
     exact ⟨hjU.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTL) (le_refl _)),
       hjV.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTL) (le_refl _))⟩
 
@@ -4898,18 +4887,8 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
     (hEq : ∀ t, 0 < t → t < T → u t = U t)
     (hEqV : ∀ t, 0 < t → t < T → v t = V t) :
     intervalDomainClassicalRegularity T u v := by
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · intro q hqχ hqa hqb t₀ ht₀ ht₀T hsup
-    have hreg₀ := hreg.1 q hqχ hqa hqb t₀ ht₀ ht₀T ?_
-    · exact intervalDomainSupNormDerivativeNonposOn_congr_of_eqOn hreg₀
-        (fun s hs => hEq s hs.1 (lt_of_le_of_lt hs.2 ht₀T))
-    · rw [hEq t₀ ht₀ ht₀T] at hsup
-      exact hsup
-  · intro q hqχ hqa hqb
-    have hreg₀ := hreg.2.1 q hqχ hqa hqb
-    exact intervalDomainSupNormDerivativeNonposOn_congr_of_eqOn hreg₀
-      (fun s hs => hEq s hs.1 hs.2)
-  · -- Third conjunct: lifts of `u t, v t` equal lifts of `U t, V t` (pointwise
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · -- First conjunct: lifts of `u t, v t` equal lifts of `U t, V t` (pointwise
     -- function equality lifts to equal extensions), so C² transfers verbatim.
     intro t ht
     have huL : intervalDomainLift (u t) = intervalDomainLift (U t) := by
@@ -4917,8 +4896,8 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
     have hvL : intervalDomainLift (v t) = intervalDomainLift (V t) := by
       rw [hEqV t ht.1 ht.2]
     rw [huL, hvL]
-    exact hreg.2.2.1 t ht
-  · -- Fourth conjunct: the time slices `s ↦ u s x` and `s ↦ U s x` agree on the
+    exact hreg.1 t ht
+  · -- Second conjunct: the time slices `s ↦ u s x` and `s ↦ U s x` agree on the
     -- open `(0,T)`, hence are `EventuallyEq` near each interior `t`, so
     -- differentiability transfers.
     intro x t ht
@@ -4930,7 +4909,7 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
       Set.EqOn.eventuallyEq_of_mem
         (fun s hs => by rw [hEqV s hs.1 hs.2])
         (isOpen_Ioo.mem_nhds ht)
-    obtain ⟨⟨hU, hV⟩, hcontU, hcontV⟩ := hreg.2.2.2.1 x t ht
+    obtain ⟨⟨hU, hV⟩, hcontU, hcontV⟩ := hreg.2.1 x t ht
     -- For the continuity of `∂ₜ`: on the open `(0,T)` the slices agree, and
     -- `deriv` at an interior point depends only on a neighbourhood, so the two
     -- time-derivative fields agree pointwise on `(0,T)`.
@@ -4956,7 +4935,7 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
     -- equal extensions), so near each interior `t` the time slices agree and the
     -- joint derivative fields agree on the slab; `ContinuousOn.congr` transfers
     -- `hreg`'s joint continuity.
-    obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2.1
+    obtain ⟨hjU, hjV⟩ := hreg.2.2.1
     have hliftEq : ∀ s, 0 < s → s < T →
         intervalDomainLift (u s) = intervalDomainLift (U s) := by
       intro s hs0 hsT; rw [hEq s hs0 hsT]
@@ -4986,8 +4965,8 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
     have hvL : intervalDomainLift (v t) = intervalDomainLift (V t) := by
       rw [hEqV t ht.1 ht.2]
     rw [huL, hvL]
-    exact hreg.2.2.2.2.2.1 t ht
-  · -- Seventh conjunct: lifts of `u t, v t` equal lifts of `U t, V t`, so the
+    exact hreg.2.2.2.1 t ht
+  · -- Fifth conjunct: lifts of `u t, v t` equal lifts of `U t, V t`, so the
     -- closed-`Icc` `C²` + endpoint Neumann transfer verbatim.
     intro t ht
     have huL : intervalDomainLift (u t) = intervalDomainLift (U t) := by
@@ -4995,9 +4974,9 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
     have hvL : intervalDomainLift (v t) = intervalDomainLift (V t) := by
       rw [hEqV t ht.1 ht.2]
     rw [huL, hvL]
-    exact hreg.2.2.2.2.2.2.1 t ht
-  · -- Eighth conjunct: closed-slab joint `∂ₜ` continuity transfers via congr.
-    obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2.2.2.2.1
+    exact hreg.2.2.2.2.1 t ht
+  · -- Sixth conjunct: closed-slab joint `∂ₜ` continuity transfers via congr.
+    obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2.2.1
     have hliftEq : ∀ s, 0 < s → s < T →
         intervalDomainLift (u s) = intervalDomainLift (U s) := by
       intro s hs0 hsT; rw [hEq s hs0 hsT]
@@ -5024,7 +5003,7 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
     -- `(t,x) ↦ lift (u t) x` equals `(t,x) ↦ lift (U t) x` pointwise (since
     -- `u t = U t` for `t ∈ (0,T)`), so `ContinuousOn.congr` transfers `hreg`'s
     -- joint solution-field continuity.
-    obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2.2.2.2.2
+    obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2.2.2
     refine ⟨ContinuousOn.congr hjU ?_, ContinuousOn.congr hjV ?_⟩
     · rintro ⟨t, x⟩ ⟨ht, _hx⟩
       simp only [Function.uncurry]

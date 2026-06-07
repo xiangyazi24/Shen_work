@@ -228,7 +228,6 @@ def limitRegularityInputs_of_core
   hpde_u := hpde_u_chiZero hχ0 C
   Hu := C.Hu
   Hvsrc := C.Hvsrc
-  HsupNorm := hsupNorm_chiZero p D
   Hvpos := C.Hvpos
 
 /-! ## The final theorem -/

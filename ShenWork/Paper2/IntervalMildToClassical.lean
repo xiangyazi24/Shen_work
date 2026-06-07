@@ -658,14 +658,6 @@ spatial/Neumann package, time regularity, and joint slab continuity. -/
 structure GradientMildClassicalRegularityFrontierData
     (p : CM2Params) {u₀ : intervalDomainPoint -> ℝ}
     (D : GradientMildSolutionData p u₀) : Prop where
-  supnormLogistic :
-    ∀ q : CM2Params, q.χ₀ ≤ 0 -> 0 < q.a -> 0 < q.b ->
-      ∀ t₀, 0 < t₀ -> t₀ < D.T ->
-        (q.a / q.b) ^ (1 / q.α) < intervalDomainSupNorm (D.u t₀) ->
-          IntervalDomainSupNormDerivativeNonposOn D.u (Set.Ioc (0 : ℝ) t₀)
-  supnormZero :
-    ∀ q : CM2Params, q.χ₀ ≤ 0 -> q.a = 0 -> q.b = 0 ->
-      IntervalDomainSupNormDerivativeNonposOn D.u (Set.Ioo (0 : ℝ) D.T)
   vSpatialInterior :
     ∀ t : ℝ, t ∈ Set.Ioo (0 : ℝ) D.T ->
       ContDiffOn ℝ 2
@@ -745,7 +737,7 @@ theorem mildSolution_classicalRegularity_of_restartCosineRepresentations_and_fro
     intervalDomainClassicalRegularity D.T D.u
       (mildChemicalConcentration p D.u) := by
   unfold intervalDomainClassicalRegularity
-  refine ⟨F.supnormLogistic, F.supnormZero, ?_, F.timeSlices,
+  refine ⟨?_, F.timeSlices,
     F.jointTimeDerivInterior, ?_, ?_, F.jointTimeDerivClosed,
     F.jointSolutionClosed⟩
   · intro t ht
@@ -776,7 +768,7 @@ theorem mildSolution_classicalRegularity_of_halfStepRestartData_and_frontier
       (mildChemicalConcentration p D.u) := by
   unfold intervalDomainClassicalRegularity
   let HN := gradientMild_closedC2_neumann_of_halfStepRestartData D R
-  refine ⟨F.supnormLogistic, F.supnormZero, ?_, F.timeSlices,
+  refine ⟨?_, F.timeSlices,
     F.jointTimeDerivInterior, ?_, ?_, F.jointTimeDerivClosed,
     F.jointSolutionClosed⟩
   · intro t ht

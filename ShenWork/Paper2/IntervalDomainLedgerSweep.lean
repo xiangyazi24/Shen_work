@@ -149,7 +149,6 @@ structure ReducedLimitRegularityInputs
           + D.u t x * (p.a - p.b * (D.u t x) ^ p.α)
   Hvsrc : DuhamelSourceTimeC1
     (fun s k => (intervalNeumannResolverSourceCoeff p (D.u s) k).re)
-  HsupNorm : IntervalDomainSupNormDerivativeNonposOn D.u (Set.Ioo (0 : ℝ) D.T)
   Hvpos : ∀ t, 0 < t → t < D.T → ∀ x : intervalDomainPoint,
     0 < mildChemicalConcentration p D.u t x
 
@@ -228,7 +227,6 @@ def limitRegularityInputs_of_reduced
   hpde_u := I.hpde_u
   Hu := Hu_of_reduced hχ0 I
   Hvsrc := I.Hvsrc
-  HsupNorm := I.HsupNorm
   Hvpos := I.Hvpos
 
 /-! ## Tighter top-level statements on the reduced ledger -/

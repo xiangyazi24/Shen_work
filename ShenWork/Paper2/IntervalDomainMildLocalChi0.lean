@@ -198,7 +198,6 @@ structure LimitRegularityInputs
   Hu : HasTimeNeighborhoodSpectralAgreement D.T D.u
   Hvsrc : DuhamelSourceTimeC1
     (fun s k => (intervalNeumannResolverSourceCoeff p (D.u s) k).re)
-  HsupNorm : IntervalDomainSupNormDerivativeNonposOn D.u (Set.Ioo (0 : ℝ) D.T)
   Hvpos : ∀ t, 0 < t → t < D.T → ∀ x : intervalDomainPoint,
     0 < mildChemicalConcentration p D.u t x
 
@@ -235,7 +234,7 @@ theorem frontierCore_of_inputs
       RegularityFrontierAssembly.hasResolverDirectSpectralData_of_sourceCoeffTimeC1
         D.u I.Hvsrc
     exact RegularityFrontierWiring.gradientMildClassicalRegularityFrontierData_of_spectral
-      p D I.Hu Hv Hrestart I.HsupNorm I.Hvpos
+      p D I.Hu Hv Hrestart I.Hvpos
 
 /-! ## The top-level `hMildLocal`-abstract statement (χ₀ = 0) -/
 

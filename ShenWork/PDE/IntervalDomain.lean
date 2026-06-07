@@ -2768,12 +2768,6 @@ structure IntervalDomainSupNormDerivativeNonposOn
 def intervalDomainClassicalRegularity
     (T : ℝ) (u : ℝ → intervalDomainPoint → ℝ)
     (_v : ℝ → intervalDomainPoint → ℝ) : Prop :=
-  (∀ p : CM2Params, p.χ₀ ≤ 0 → 0 < p.a → 0 < p.b →
-    ∀ t₀, 0 < t₀ → t₀ < T →
-      (p.a / p.b) ^ (1 / p.α) < intervalDomainSupNorm (u t₀) →
-        IntervalDomainSupNormDerivativeNonposOn u (Set.Ioc (0 : ℝ) t₀)) ∧
-  (∀ p : CM2Params, p.χ₀ ≤ 0 → p.a = 0 → p.b = 0 →
-    IntervalDomainSupNormDerivativeNonposOn u (Set.Ioo (0 : ℝ) T)) ∧
   -- Spatial C² regularity on the interior of the unit interval.  The lift is
   -- the zero-extension to all of ℝ, which has jumps at the endpoints `0, 1`;
   -- the genuine `C^{2,1}` content lives on the open interior `(0,1)`, exactly

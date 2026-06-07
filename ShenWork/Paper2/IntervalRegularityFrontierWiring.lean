@@ -144,17 +144,9 @@ theorem gradientMildClassicalRegularityFrontierData_of_spectral
     (Hu : HasTimeNeighborhoodSpectralAgreement D.T D.u)
     (Hv : HasResolverDirectSpectralData D.T (mildChemicalConcentration p D.u) p)
     (Hrestart : HasRestartCosineRepresentations D.T D.u)
-    (HsupNorm : IntervalDomainSupNormDerivativeNonposOn D.u
-        (Set.Ioo (0 : ℝ) D.T))
     (Hvpos : ∀ t, 0 < t → t < D.T → ∀ x : intervalDomainPoint,
         0 < mildChemicalConcentration p D.u t x) :
     GradientMildClassicalRegularityFrontierData p D where
-  supnormLogistic := by
-    intro _q _hqχ _hqa _hqb t₀ ht₀ ht₀T _hsup
-    have hsub : Set.Ioc (0 : ℝ) t₀ ⊆ Set.Ioo (0 : ℝ) D.T :=
-      fun s hs => ⟨hs.1, lt_of_le_of_lt hs.2 ht₀T⟩
-    exact intervalDomainSupNormDerivativeNonposOn_mono hsub HsupNorm
-  supnormZero := fun _q _hqχ _hqa _hqb => HsupNorm
   vSpatialInterior := by
     intro t ht
     exact vSpatialInterior_of_sourceDecay
