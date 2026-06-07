@@ -261,3 +261,37 @@ match + ℓ² of source. Clamp witness `f := ν(max m (min cs M))^γ` (≥c₀ e
 Then: satisfiable ledger struct carrying the representation, filled by the 3 DONE
 producers + (HsupNorm, hpde_u); re-run vacuity False-proof (must FAIL); re-thread
 paper2_theorem_1_1_chiZero_*.
+
+---
+
+## UPDATE (2026-06-06): hpde_u FULLY MAPPED (all pieces exist); HsupNorm route
+
+### hpde_u (χ₀=0): ∂ₜu = u_xx + reaction — ASSEMBLABLE from existing lemmas
+Pieces (all present, verified existing):
+1. ∂ₜ half: `restartCosineSeries_hasDerivAt_time` (IntervalSourceCoefficientTimeC1:719):
+   `HasDerivAt (fun τ => ∑ₙ localRestartCoeff a₀ a τ n · cosineMode n x)
+     (∑ₙ (a τ₀ n − λₙ·localRestartCoeff a₀ a τ₀ n)·cosineMode n x) τ₀`.
+   ⟹ timeDeriv u τ₀ x = ∑ₙ a τ₀ n cos − ∑ₙ λₙ cₙ cos  (cₙ = localRestartCoeff).
+2. laplacian half: `cosineCoeffSeries_deriv2_eq` (IntervalDuhamelClosedC2:1288):
+   `deriv(deriv(∑ₙ bₙ cosineMode n ·)) y = ∑ₙ bₙ·(−(nπ)²·cos(nπy))` = −∑ₙ λₙ bₙ cos.
+   ⟹ laplacian(u τ₀) x = deriv²(lift u τ₀) x = −∑ₙ λₙ cₙ cos  (lift u = ∑cₙcos via rep).
+3. source inversion: `intervalCosine_hasSum_pointwise` (IntervalCosineInversion:212) +
+   `cosineCoeffs_eq` (:129): ∑ₙ cosineCoeffs(g) n cos(nπx) = g(x) for g continuous, x∈(0,1).
+   With a τ₀ n = cosineCoeffs(logisticSourceFun(u τ₀)) n ⟹ ∑ₙ a τ₀ n cos = logisticSourceFun(u τ₀)(x)
+   = u(τ₀,x)·(a − b·u(τ₀,x)^α) = reaction.
+ASSEMBLY: timeDeriv = [∑ a cos] − [∑ λ c cos] = reaction + laplacian. For χ₀=0 the
+chemDiv term is `χ₀·… = 0` (zero_mul). ~120-150 lines; main work = matching the
+representation (u τ x = ∑ localRestartCoeff cos) to timeDeriv/laplacian/lift forms +
+the per-step summability (Summable (λₙ·|coeffs|)). Inputs from the rep: the slice
+restart representation (hagree-style) + DuhamelSourceTimeC1 (have it: Hvsrc adapter).
+
+### HsupNorm: depends on the PDE (hpde_u) + max principle
+`IntervalDomainSupNormDerivativeNonposOn D.u (Ioo 0 D.T)` = {supNorm cont, diff'able,
+deriv ≤ 0}. NOTE: deriv ≤ 0 unconditional on (0,T) is the MAXIMUM principle — for the
+logistic reaction it holds only ABOVE threshold (a/b)^{1/α}, so this field is regime-
+specific (cone construction = large data above threshold; matches classicalRegularity
+conjunct 1 which conditions on threshold). Route: sliceMax mirror of the proven
+MinPersistence min-principle atoms (ShenWork.MinPersistenceAtoms) — sliceMax_hamilton
+upper bound from hpde_u at the spatial argmax. Build AFTER hpde_u.
+
+### Residual scorecard: Hu ✓ Hvsrc ✓ Hvpos ✓ | hpde_u (mapped) HsupNorm (needs hpde_u)
