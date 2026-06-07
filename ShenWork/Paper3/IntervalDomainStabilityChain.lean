@@ -1,3 +1,4 @@
+import ShenWork.Paper2.IntervalLemma31Closure
 /-
   Paper3 intervalDomain stability-chain composites.
 
@@ -122,7 +123,7 @@ theorem intervalDomain_upperEnvelopeMonotonicityRaw_supNorm
       huv.1 (t₀ + 1) hT
     have hmono :
         SupNormNonincreasingOn intervalDomain u (Set.Ioc (0 : ℝ) t₀) :=
-      (ShenWork.Paper2.Lemma_3_1_intervalDomain p hχ).1
+      (ShenWork.Paper2.Lemma31Closure.Lemma_3_1_intervalDomain p hχ).1
         ha hb (t₀ + 1) hT u v hsol t₀ ht₀ ht₀T hlarge
     have ht₂ : 0 < t₂ := lt_of_lt_of_le ht₁ h12
     exact hmono t₁ ⟨ht₁, le_trans h12 h2₀⟩ t₂ ⟨ht₂, h2₀⟩ h12
@@ -140,7 +141,7 @@ theorem intervalDomain_upperEnvelopeMonotonicityRaw_supNorm
       huv.1 T hT
     have hmono :
         SupNormNonincreasingOn intervalDomain u (Set.Ioo (0 : ℝ) T) :=
-      (ShenWork.Paper2.Lemma_3_1_intervalDomain p hχ).2
+      (ShenWork.Paper2.Lemma31Closure.Lemma_3_1_intervalDomain p hχ).2
         ha hb T hT u v hsol
     exact hmono t₁ ⟨ht₁, ht₁T⟩ t₂ ⟨ht₂, ht₂T⟩ h12
 

@@ -936,4 +936,15 @@ theorem lemma31_zero
   rw [htd, ha, hb] at hsl
   simpa using hsl
 
+/-- **Paper 2 Lemma 3.1 for the interval domain.**  Both branches
+(above-capacity and a=b=0) proved axiom-clean. -/
+theorem Lemma_3_1_intervalDomain (p : CM2Params) :
+    Lemma_3_1 ShenWork.IntervalDomain.intervalDomain p := by
+  intro hχ
+  constructor
+  · intro ha hb T hT u v hsol t₀ ht₀_pos ht₀_T hsup
+    exact lemma31_above_capacity p hχ ha hb hT hsol ht₀_pos ht₀_T hsup
+  · intro ha hb T hT u v hsol
+    exact lemma31_zero p hχ ha hb hT hsol
+
 end ShenWork.Paper2.Lemma31Closure

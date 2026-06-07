@@ -1,3 +1,4 @@
+import ShenWork.Paper2.IntervalLemma31Closure
 /-
   ShenWork/Paper2/IntervalDomainChain.lean
 
