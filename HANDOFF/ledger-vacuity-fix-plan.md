@@ -295,3 +295,28 @@ MinPersistence min-principle atoms (ShenWork.MinPersistenceAtoms) — sliceMax_h
 upper bound from hpde_u at the spatial argmax. Build AFTER hpde_u.
 
 ### Residual scorecard: Hu ✓ Hvsrc ✓ Hvpos ✓ | hpde_u (mapped) HsupNorm (needs hpde_u)
+
+---
+
+## UPDATE (2026-06-06): hpde_u COMPLETE — 4/5 residuals done; only HsupNorm left
+
+`IntervalDomainPdeUChiZero.lean` — 5 lemmas, all axiom-clean, verified:
+- `hpde_u_core` — algebraic combine of the 3 spectral identities.
+- `laplacian_eq_of_rep` — laplacian = spectral 2nd deriv (cosineCoeffSeries_deriv2_eq).
+- `timeDeriv_eq_of_rep` — ∂ₜ = restart series (restartCosineSeries_hasDerivAt_time + chain rule).
+- `source_inversion_eq_reaction` — ∑ srcₙcos = reaction (intervalCosine_hasSum_pointwise).
+- `hpde_u_of_representation` — **the exact ledger hpde_u shape (χ₀=0)** from the
+  restart representation + source-reaction coeff identity + summabilities.
+
+### Residual scorecard: Hu ✓ Hvsrc ✓ Hvpos ✓ hpde_u ✓ | HsupNorm (LAST)
+`HsupNorm = IntervalDomainSupNormDerivativeNonposOn D.u (Ioo 0 D.T)` = sup-norm
+non-increasing. Regime-specific (only above the logistic threshold (a/b)^{1/α}).
+Route: with hpde_u now available (∂ₜu = u_xx + reaction), the sup-norm max
+principle is the sliceMax mirror of the PROVEN MinPersistence min-principle atoms
+(ShenWork.MinPersistenceAtoms, IntervalDomainMinPersist*): at the spatial argmax
+x*, u_xx(x*) ≤ 0 and reaction ≤ 0 above threshold ⟹ ∂ₜ(supNorm) ≤ 0 (Hamilton/Dini).
+~15-atom sliceMax mirror; build directly (mirror sliceMin_hamilton_bound etc.).
+
+Then: satisfiable ledger struct (LimitRegularityInputsRepr) carrying the
+representation, filled by ALL 5 producers; re-run vacuity False-proof (must FAIL =
+satisfiable); re-thread paper2_theorem_1_1_chiZero_*.
