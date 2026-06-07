@@ -177,3 +177,30 @@ one-line-physics mass-conservation lemma, or (b) reusing cosineCoeffs_const.
 
 STILL OPEN after Hvpos: HsupNorm (sup-norm max principle — mirror MinPersistence),
 hpde_u (spectral→pointwise PDE bridge — hardest), then satisfiable ledger assembly.
+
+---
+
+## UPDATE (2026-06-06): Hvpos integrability recipe (concrete lemma names)
+
+Core `heatValue(cosineCoeffs f) x ≥ c₀` via the KERNEL route (cleaner than the
+heatValue-linearity route, which needs weight·coeffs summability):
+- `S(t)f := intervalFullSemigroupOperator t f x = ∫ K(t,x,y) f(y) ∂(intervalMeasure 1)`.
+- `intervalFullSemigroupOperator_eq_cosineHeatValue_unconditional t ht f hf_cont x hx hker`
+  (hker := `fun y => intervalNeumannFullKernel_cosineKernel_identity ht x y`)
+  ⟹ `heatValue(cosineCoeffs f) x = S(t)f`.
+- const value: same eq for `(fun _ => c₀)` (continuous) + `heatValue(cosineCoeffs(const c₀)) x = c₀`
+  via `cosineCoeffs_const` + `tsum_eq_single 0` (weight(t,x,0)=exp(-t·λ₀)·cos0 = 1; λ₀=0).
+- `S(t)(const c₀) ≤ S(t)f` via `MeasureTheory.integral_mono`:
+    integrability of `K·c₀`: `(intervalNeumannFullKernel_integrable ht x).mul_const c₀`;
+    integrability of `K·f`: `(intervalNeumannFullKernel_integrable ht x).bdd_mul' ...`
+       (K integrable + f bounded on the support; f=νu^γ bounded since u bounded);
+    pointwise `K·c₀ ≤ K·f`: `mul_le_mul_of_nonneg_left (hf_ge y) (intervalNeumannFullKernel_nonneg ht x y)`.
+  (`intervalNeumannFullKernel_integrable` is in ns `ShenWork.IntervalNeumannFullKernel`.)
+Then: `laplaceHeatTrunc T = ∫₀ᵀ e^{-μt}·heatValue dt ≥ ∫₀ᵀ e^{-μt}·c₀ dt`
+  (`intervalIntegral.integral_mono_on`, integrand `≥` from heatValue≥c₀) `= c₀(1-e^{-μT})/μ`
+  (`integral_exp_neg_mul` × c₀); and `c₀(1-e^{-μT})/μ → c₀/μ`; `laplaceHeatTrunc_tendsto`
+  gives `→ R(u)(x)` (= the reconstruction). `le_of_tendsto_of_tendsto'` ⟹ interior bound;
+  closed-domain extension by continuity (mirror `intervalNeumannResolverR_nonneg_of_nonneg_source`).
+Corollary Hvpos: f := νu^γ (continuous, bounded), c₀ := ν·(min_{[0,1]}u)^γ > 0
+  (min via `IsCompact.exists_isMinOn` + hpos), coeff match via `resolverSourceCoeff_re_eq_cosineCoeffs`.
+~120 lines, standalone additive in IntervalDomainResolverStrictPos.lean.
