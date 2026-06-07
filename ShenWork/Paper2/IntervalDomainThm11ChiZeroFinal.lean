@@ -116,7 +116,15 @@ checks against them with no coercion. -/
 /-- **Residual 1 (open): spectral→pointwise PDE identity for `u`.**
 For χ₀ = 0 the chemotaxis term drops, so this is the heat/logistic
 pointwise identity `u_t = Δu + u(a − b u^α)` on the interior.  Proof
-deferred to shen-local (G4n–p bridge with `rep(u)`). -/
+deferred to shen-local (G4n–p bridge with `rep(u)`).
+
+UPDATE: the producer has LANDED — `IntervalDomainPdeUChiZero.
+hpde_u_of_representation` (dd1051b).  It consumes the restart-
+representation data (`a₀`, `hrep`, `hsrc_coeff`, summability), which lives
+in `LimitRegularityInputsCore`, NOT in a standalone `(p, D)` stub.  The
+clean discharge therefore moves `hpde_u` OUT of this stub and INTO a
+`Core`-level field/derivation (Session A's active lane); this stub stays
+as the structural placeholder until that wiring lands. -/
 theorem hpde_u_chiZero
     (p : CM2Params) {u₀ : intervalDomainPoint → ℝ}
     (D : GradientMildSolutionData p u₀) :
