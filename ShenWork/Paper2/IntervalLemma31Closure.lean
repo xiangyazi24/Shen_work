@@ -692,7 +692,33 @@ theorem supNorm_nonincr_core
     exact hzlt
   exact ShenWork.Paper2.Lemma31Heat.supNorm_nonincreasing_of_dini hcont hDini
 
-/-- The above-capacity branch of Lemma 3.1 for the interval domain. -/
+/-- **Monotonicity from a one-sided Dini condition on a window `[α,β]`.**  The
+general-interval form of `supNorm_nonincreasing_of_dini`, via the same Grönwall
+reduction (`le_gronwallBound_of_liminf_deriv_right_le`). -/
+theorem mono_of_dini_window {M : ℝ → ℝ} {α β : ℝ}
+    (hcont : ContinuousOn M (Set.Icc α β))
+    (hDini : ∀ x ∈ Set.Ico α β, ∀ r : ℝ, 0 < r →
+      ∃ᶠ z in nhdsWithin x (Set.Ioi x), (z - x)⁻¹ * (M z - M x) < r)
+    {t₁ t₂ : ℝ} (h₁ : t₁ ∈ Set.Icc α β) (h₂ : t₂ ∈ Set.Icc α β) (hle : t₁ ≤ t₂) :
+    M t₂ ≤ M t₁ := by
+  have hsub : Set.Icc t₁ t₂ ⊆ Set.Icc α β := fun s hs =>
+    ⟨le_trans h₁.1 hs.1, le_trans hs.2 h₂.2⟩
+  have hcont' : ContinuousOn M (Set.Icc t₁ t₂) := hcont.mono hsub
+  have hgron := le_gronwallBound_of_liminf_deriv_right_le
+    (f := M) (f' := fun _ => 0) (δ := M t₁) (K := 0) (ε := 0) (a := t₁) (b := t₂)
+    hcont'
+    (by
+      intro x hx r hr
+      exact hDini x ⟨le_trans h₁.1 hx.1, lt_of_lt_of_le hx.2 h₂.2⟩ r hr)
+    (le_refl _) (by intro x _; simp)
+  have hbx := hgron t₂ (Set.right_mem_Icc.mpr hle)
+  rwa [gronwallBound_ε0, zero_mul, Real.exp_zero, mul_one] at hbx
+
+/-- The above-capacity branch of Lemma 3.1 for the interval domain.  The
+sup-norm `M(t)` stays above the carrying capacity `c = (a/b)^{1/α}` for all
+`t ≤ t₀` (threshold persistence, proved by a `sSup`-of-closed-set argument), so
+the reaction bound `M(a − bM^α) ≤ 0` holds, and the Dini/Grönwall machinery gives
+monotonicity on the whole `Ioc 0 t₀`. -/
 theorem lemma31_above_capacity
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
     {T : ℝ} (hT : 0 < T) {u v : ℝ → intervalDomainPoint → ℝ}
@@ -700,23 +726,181 @@ theorem lemma31_above_capacity
     {t₀ : ℝ} (ht₀ : 0 < t₀) (ht₀T : t₀ < T)
     (hsup : (p.a / p.b) ^ (1 / p.α) < intervalDomain.supNorm (u t₀)) :
     SupNormNonincreasingOn intervalDomain u (Set.Ioc (0 : ℝ) t₀) := by
-  -- Non-increasing on Ioo(0, t₀) via the same Dini argument as lemma31_zero,
-  -- using max_point_slope_bound with the above-capacity reaction bound.
-  have hIoo : SupNormNonincreasingOn intervalDomain u (Set.Ioo (0 : ℝ) t₀) :=
-    supNorm_nonincr_core p hχ hsol ht₀T
-  -- Extend from Ioo to Ioc: for t₁, t₂ ∈ Ioc with t₁ ≤ t₂, need supNorm(t₂) ≤ supNorm(t₁).
+  obtain ⟨_, hTimeReg, _, _, hClosed, hdF6, hSol7⟩ := hsol.regularity
+  set M : ℝ → ℝ := fun t => intervalDomain.supNorm (u t) with hM_def
+  set c : ℝ := (p.a / p.b) ^ (1 / p.α) with hc_def
+  have hMt₀ : c < M t₀ := hsup
+  -- Capacity algebra: `c ≤ m` ⟹ `a − b·m^α ≤ 0`.
+  have hca : (0:ℝ) ≤ p.a / p.b := div_nonneg ha.le hb.le
+  have hc_nonneg : 0 ≤ c := Real.rpow_nonneg hca _
+  have hcpow : c ^ p.α = p.a / p.b := by
+    rw [hc_def, ← Real.rpow_mul hca, one_div_mul_cancel (ne_of_gt p.hα), Real.rpow_one]
+  have hcap : ∀ m : ℝ, 0 ≤ m → c ≤ m → p.a - p.b * m ^ p.α ≤ 0 := by
+    intro m hm hcm
+    have h1 : c ^ p.α ≤ m ^ p.α := Real.rpow_le_rpow hc_nonneg hcm p.hα.le
+    rw [hcpow] at h1
+    have h2 := (div_le_iff₀ hb).mp h1
+    nlinarith [h2]
+  -- `M = sSup of the lift-image` on `(0,T)`.
+  have hsupeq : ∀ s ∈ Set.Ioo (0:ℝ) T,
+      M s = sSup (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1) :=
+    fun s hs => supNorm_eq_sSup_lift_image (fun q => (hsol.u_pos' hs.1 hs.2).le)
+  have hFwin : ∀ {a b : ℝ}, Set.Icc a b ⊆ Set.Ioo (0:ℝ) T →
+      ContinuousOn (Function.uncurry (fun t y => intervalDomainLift (u t) y))
+        (Set.Icc a b ×ˢ Set.Icc (0:ℝ) 1) :=
+    fun hsub => hSol7.1.mono (Set.prod_mono hsub (le_refl _))
+  -- Continuity of `M` on `(0,T)`.
+  have hMcont : ContinuousOn M (Set.Ioo (0:ℝ) T) := by
+    have hSSup : ContinuousOn (fun t => sSup (intervalDomainLift (u t) '' Set.Icc (0:ℝ) 1))
+        (Set.Ioo (0:ℝ) T) := by
+      intro x hx
+      have ha_pos : 0 < x / 2 := by linarith [hx.1]
+      have hb_T : (x + T) / 2 < T := by linarith [hx.2]
+      have hax : x / 2 < x := by linarith [hx.1]
+      have hxb : x < (x + T) / 2 := by linarith [hx.2]
+      have hsub : Set.Icc (x / 2) ((x + T) / 2) ⊆ Set.Ioo (0:ℝ) T := fun s hs =>
+        ⟨lt_of_lt_of_le ha_pos hs.1, lt_of_le_of_lt hs.2 hb_T⟩
+      exact ((sliceMax_continuousOn (hFwin hsub)) x ⟨hax.le, hxb.le⟩).mono_of_mem_nhdsWithin
+        (mem_nhdsWithin_of_mem_nhds (Icc_mem_nhds hax hxb))
+    exact hSSup.congr hsupeq
+  -- **Window monotonicity given `M ≥ c` on the window.**
+  have hmono_win : ∀ α β : ℝ, Set.Icc α β ⊆ Set.Ioo (0:ℝ) T →
+      (∀ s ∈ Set.Icc α β, c ≤ M s) →
+      ∀ t₁ ∈ Set.Icc α β, ∀ t₂ ∈ Set.Icc α β, t₁ ≤ t₂ → M t₂ ≤ M t₁ := by
+    intro α β hαβ hge
+    have hFab := hFwin hαβ
+    have hslice_cont : ∀ y ∈ Set.Icc (0:ℝ) 1,
+        ContinuousOn (fun r => intervalDomainLift (u r) y) (Set.Icc α β) := by
+      intro y hy
+      have hmaps : Set.MapsTo (fun r => (r, y)) (Set.Icc α β)
+          (Set.Icc α β ×ˢ Set.Icc (0:ℝ) 1) := fun w hw => ⟨hw, hy⟩
+      exact hFab.comp (Continuous.continuousOn (by fun_prop)) hmaps
+    have hslice_diff : ∀ y ∈ Set.Icc (0:ℝ) 1, ∀ s ∈ Set.Ioo α β,
+        HasDerivAt (fun r => intervalDomainLift (u r) y)
+          (deriv (fun r => intervalDomainLift (u r) y) s) s := by
+      intro y hy s hs
+      have hsInt : s ∈ Set.Ioo (0:ℝ) T := hαβ (Set.Ioo_subset_Icc_self hs)
+      have hfun : (fun r => intervalDomainLift (u r) y) = fun r => u r ⟨y, hy⟩ := by
+        funext r; rw [intervalDomainLift, dif_pos hy]
+      rw [hfun]; exact ((hTimeReg ⟨y, hy⟩ s hsInt).1.1).hasDerivAt
+    have hdFc : ContinuousOn
+        (Function.uncurry (fun s y => deriv (fun r => intervalDomainLift (u r) y) s))
+        (Set.Icc α β ×ˢ Set.Icc (0:ℝ) 1) := hdF6.1.mono (Set.prod_mono hαβ (le_refl _))
+    have hsupeqαβ : ∀ s ∈ Set.Icc α β,
+        M s = sSup (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1) :=
+      fun s hs => hsupeq s (hαβ hs)
+    have hbnd : ∀ s ∈ Set.Icc α β, ∀ xs ∈ Set.Icc (0:ℝ) 1,
+        intervalDomainLift (u s) xs
+            = sSup (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1) →
+        deriv (fun r => intervalDomainLift (u r) xs) s
+          ≤ (0:ℝ) * sSup (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1) := by
+      intro s hs xs hxs hargmax
+      rw [zero_mul]
+      have hsmem := hαβ hs
+      have hmax : ∀ y, u s y ≤ u s ⟨xs, hxs⟩ := by
+        intro y
+        have hcontU : ContinuousOn (intervalDomainLift (u s)) (Set.Icc (0:ℝ) 1) :=
+          (hClosed s hsmem).1.1.continuousOn
+        have hbdd : BddAbove (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1) :=
+          (isCompact_Icc.image_of_continuousOn hcontU).bddAbove
+        have huy : u s y = intervalDomainLift (u s) y.1 := by
+          rw [intervalDomainLift,
+            dif_pos (show (y.1 : ℝ) ∈ Set.Icc (0:ℝ) 1 from y.2), Subtype.coe_eta]
+        have huq : u s ⟨xs, hxs⟩ = intervalDomainLift (u s) xs := by
+          rw [intervalDomainLift, dif_pos hxs]
+        rw [huy, huq, hargmax]
+        exact le_csSup hbdd (Set.mem_image_of_mem _ y.2)
+      have hsl := max_point_slope_bound hχ hsol hsmem.1 hsmem.2 hmax
+      have htd : intervalDomain.timeDeriv u s ⟨xs, hxs⟩
+          = deriv (fun r => intervalDomainLift (u r) xs) s := by
+        show deriv (fun r => u r ⟨xs, hxs⟩) s
+          = deriv (fun r => intervalDomainLift (u r) xs) s
+        congr 1; funext r; rw [intervalDomainLift, dif_pos hxs]
+      rw [htd] at hsl
+      have hxs_eq : intervalDomainLift (u s) xs = M s := by rw [hsupeqαβ s hs, hargmax]
+      have hxs_nonneg : 0 ≤ intervalDomainLift (u s) xs := by
+        rw [intervalDomainLift, dif_pos hxs]; exact (hsol.u_pos' hsmem.1 hsmem.2).le
+      have hcap_s : p.a - p.b * (intervalDomainLift (u s) xs) ^ p.α ≤ 0 :=
+        hcap _ hxs_nonneg (by rw [hxs_eq]; exact hge s hs)
+      exact le_trans hsl (mul_nonpos_of_nonneg_of_nonpos hxs_nonneg hcap_s)
+    have hDini : ∀ x ∈ Set.Ico α β, ∀ r : ℝ, 0 < r →
+        ∃ᶠ z in nhdsWithin x (Set.Ioi x), (z - x)⁻¹ * (M z - M x) < r := by
+      intro x hx r hr
+      have hdini := sliceMax_dini_of_argmax_bound (Kp := 0) hFab hslice_cont hslice_diff
+        (sliceMax_continuousOn hFab) hdFc hbnd x hx r (by rw [zero_mul]; exact hr)
+      have hev : ∀ᶠ z in nhdsWithin x (Set.Ioi x), z ∈ Set.Icc α β := by
+        have hmem : Set.Ioo x β ∈ nhdsWithin x (Set.Ioi x) := by
+          rw [← Set.Ioi_inter_Iio]
+          exact inter_mem_nhdsWithin _ (Iio_mem_nhds hx.2)
+        filter_upwards [hmem] with z hz
+        exact ⟨le_trans hx.1 hz.1.le, hz.2.le⟩
+      refine (hdini.and_eventually hev).mono ?_
+      rintro z ⟨hzlt, hzmem⟩
+      rw [← hsupeqαβ z hzmem, ← hsupeqαβ x (Set.Ico_subset_Icc_self hx)] at hzlt
+      exact hzlt
+    have hcontM : ContinuousOn M (Set.Icc α β) :=
+      (sliceMax_continuousOn hFab).congr hsupeqαβ
+    exact fun t₁ h₁ t₂ h₂ hle => mono_of_dini_window hcontM hDini h₁ h₂ hle
+  -- **Threshold persistence:** `c ≤ M s` for `s ∈ Ioc 0 t₀`.
+  have hpersist : ∀ s ∈ Set.Ioc (0:ℝ) t₀, c ≤ M s := by
+    intro s hsmem
+    by_contra hlt
+    push_neg at hlt
+    have hs_pos : 0 < s := hsmem.1
+    have hst₀ : s ≤ t₀ := hsmem.2
+    have hsub_st₀ : Set.Icc s t₀ ⊆ Set.Ioo (0:ℝ) T := fun τ hτ =>
+      ⟨lt_of_lt_of_le hs_pos hτ.1, lt_of_le_of_lt hτ.2 ht₀T⟩
+    have hMcont_st₀ : ContinuousOn M (Set.Icc s t₀) := hMcont.mono hsub_st₀
+    set A : Set ℝ := {τ | τ ∈ Set.Icc s t₀ ∧ M τ ≤ c} with hA_def
+    have hsA : s ∈ A := ⟨⟨le_refl _, hst₀⟩, hlt.le⟩
+    have hAbdd : BddAbove A := ⟨t₀, fun τ hτ => hτ.1.2⟩
+    have hAne : A.Nonempty := ⟨s, hsA⟩
+    have hAeq : A = Set.Icc s t₀ ∩ M ⁻¹' Set.Iic c := by
+      ext τ; constructor
+      · rintro ⟨h1, h2⟩; exact ⟨h1, h2⟩
+      · rintro ⟨h1, h2⟩; exact ⟨h1, h2⟩
+    have hAclosed : IsClosed A := by
+      rw [hAeq]
+      exact hMcont_st₀.preimage_isClosed_of_isClosed isClosed_Icc isClosed_Iic
+    set tstar : ℝ := sSup A with htstar_def
+    have htstar_A : tstar ∈ A := hAclosed.csSup_mem hAne hAbdd
+    have htstar_mem : tstar ∈ Set.Icc s t₀ := htstar_A.1
+    have hMtstar_le : M tstar ≤ c := htstar_A.2
+    have hs_le_tstar : s ≤ tstar := htstar_mem.1
+    have htstar_le : tstar ≤ t₀ := htstar_mem.2
+    have htstar_lt : tstar < t₀ := by
+      rcases lt_or_eq_of_le htstar_le with h | h
+      · exact h
+      · exfalso; rw [h] at hMtstar_le; linarith [hMt₀]
+    have hMt₀_le : ∀ τ ∈ Set.Ioo tstar t₀, M t₀ ≤ M τ := by
+      intro τ hτ
+      have hτ_pos : 0 < τ := lt_of_lt_of_le hs_pos (le_trans hs_le_tstar hτ.1.le)
+      have hτt₀ : Set.Icc τ t₀ ⊆ Set.Ioo (0:ℝ) T := fun ρ hρ =>
+        ⟨lt_of_lt_of_le hτ_pos hρ.1, lt_of_le_of_lt hρ.2 ht₀T⟩
+      have hge_τ : ∀ ρ ∈ Set.Icc τ t₀, c ≤ M ρ := by
+        intro ρ hρ
+        by_contra hρlt; push_neg at hρlt
+        have hρA : ρ ∈ A :=
+          ⟨⟨le_trans hs_le_tstar (le_trans hτ.1.le hρ.1), hρ.2⟩, hρlt.le⟩
+        have : ρ ≤ tstar := le_csSup hAbdd hρA
+        exact absurd this (not_le.mpr (lt_of_lt_of_le hτ.1 hρ.1))
+      exact hmono_win τ t₀ hτt₀ hge_τ τ ⟨le_refl _, hτ.2.le⟩ t₀ ⟨hτ.2.le, le_refl _⟩ hτ.2.le
+    have hMt₀_le_tstar : M t₀ ≤ M tstar := by
+      have hcont_r : Tendsto M (nhdsWithin tstar (Set.Ioo tstar t₀)) (nhds (M tstar)) :=
+        (hMcont_st₀ tstar htstar_mem).mono_left
+          (nhdsWithin_mono tstar (fun ρ hρ =>
+            ⟨le_of_lt (lt_of_le_of_lt hs_le_tstar hρ.1), hρ.2.le⟩))
+      refine ge_of_tendsto hcont_r ?_
+      filter_upwards [self_mem_nhdsWithin] with τ hτ
+      exact hMt₀_le τ hτ
+    linarith [hMt₀_le_tstar, hMtstar_le, hMt₀]
+  -- **Final:** monotonicity on the closed `Ioc 0 t₀` via `hmono_win`.
   intro t₁ ht₁ t₂ ht₂ hle
-  rcases eq_or_lt_of_le ht₂.2 with ht₂eq | ht₂lt
-  · -- t₂ = t₀: limit argument.
-    rcases eq_or_lt_of_le ht₁.2 with ht₁eq | ht₁lt
-    · rw [← ht₂eq, ← ht₁eq]
-    · -- t₁ < t₀ = t₂: supNorm continuous on [t₁, t₀], non-increasing on (t₁, t₀).
-      -- By continuity at t₀, supNorm(t₀) ≤ supNorm(t₁).
-      sorry
-  · -- Both in Ioo.
-    rcases eq_or_lt_of_le ht₁.2 with ht₁eq | ht₁lt
-    · linarith
-    · exact hIoo t₁ ⟨ht₁.1, ht₁lt⟩ t₂ ⟨ht₂.1, ht₂lt⟩ hle
+  have hsub_t : Set.Icc t₁ t₂ ⊆ Set.Ioo (0:ℝ) T := fun ρ hρ =>
+    ⟨lt_of_lt_of_le ht₁.1 hρ.1, lt_of_le_of_lt (le_trans hρ.2 ht₂.2) ht₀T⟩
+  have hge_t : ∀ ρ ∈ Set.Icc t₁ t₂, c ≤ M ρ := fun ρ hρ =>
+    hpersist ρ ⟨lt_of_lt_of_le ht₁.1 hρ.1, le_trans hρ.2 ht₂.2⟩
+  exact hmono_win t₁ t₂ hsub_t hge_t t₁ ⟨le_refl _, hle⟩ t₂ ⟨hle, le_refl _⟩ hle
 
 /-- The a=b=0 branch of Lemma 3.1 for the interval domain. -/
 theorem lemma31_zero
