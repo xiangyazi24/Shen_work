@@ -317,3 +317,17 @@ Two Claude sessions are working this repo in parallel. File ownership:
   nonposOn_of_locally_eq / nonposOn_of_eq (axiom-clean constructors) as the
   honest interface for the conditional proof.
 - DID NOT fake a proof of the false statement (automode integrity).
+
+## Session B (~22:00): HsupNorm heat case (a=b=0) — finding + true content, green
+- IntervalHsupNormHeat.lean (green, axiom-clean): the suggested constant-g
+  route (g=‖u₀‖_∞ via nonposOn_of_eq) is INVALID for non-constant data —
+  nonposOn_of_eq needs EQUALITY ‖u t‖=g, but Neumann heat STRICTLY decreases
+  the sup-norm (flattening), so g constant ≠ ‖S(t)u₀‖ unless u₀ constant.
+- Proved the genuine true facts: heat_supNorm_le_initial (sub-Markov bound
+  ‖S(t)u₀‖_∞ ≤ B, leak-free) + nonposOn_of_const_in_time (the ONLY valid
+  constant-g case). Plus the second obstruction: the differentiable STRUCTURE
+  needs everywhere-differentiability the heat sup-norm lacks at argmax-tie
+  times → refactor target = monotone SupNormNonincreasingOn (Paper2).
+- NET: the a=b=0 case does NOT close via constant-g; same conclusion as the
+  unconditional finding — IntervalDomainSupNormDerivativeNonposOn is the wrong
+  (too-strong, differentiable) predicate. Ledger should switch to monotone.
