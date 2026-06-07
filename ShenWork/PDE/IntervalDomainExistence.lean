@@ -5590,7 +5590,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
       have hT_gt' : t' < Tpick' := pickReachableAbove_lt hbdd hne ht'.2
       refine ⟨Set.Ioo (0 : ℝ) Tpick', isOpen_Ioo,
         ⟨ht'.1, hT_gt'⟩, ?_⟩
-      have hreg4' := dpick'.sol.regularity.2.2.2.1 x
+      have hreg4' := dpick'.sol.regularity.2.1 x
       -- Continuity of dpick'.u derivative on Ioo 0 Tpick' (any point gives same field).
       -- Use one chosen `t''` in Ioo to extract continuity.
       obtain ⟨t'', ht''⟩ : (Set.Ioo (0 : ℝ) Tpick').Nonempty :=
@@ -5627,7 +5627,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
       have hT_gt' : t' < Tpick' := pickReachableAbove_lt hbdd hne ht'.2
       refine ⟨Set.Ioo (0 : ℝ) Tpick', isOpen_Ioo,
         ⟨ht'.1, hT_gt'⟩, ?_⟩
-      have hreg4' := dpick'.sol.regularity.2.2.2.1 x
+      have hreg4' := dpick'.sol.regularity.2.1 x
       obtain ⟨t'', ht''⟩ : (Set.Ioo (0 : ℝ) Tpick').Nonempty :=
         ⟨Tpick' / 2, by constructor <;> linarith [dpick'.T_pos]⟩
       have hcontPick := (hreg4' t'' ht'').2.2
