@@ -83,12 +83,11 @@ theorem nonposOn_of_const_in_time
     IntervalDomainSupNormDerivativeNonposOn u I := by
   refine HsupNormProof.nonposOn_of_eq (g := fun _ => intervalDomainSupNorm w)
     hU ?_ ?_ ?_ ?_
-  · -- continuity of a (locally) constant function
-    intro t ht
-    refine ContinuousWithinAt.congr (y := intervalDomainSupNorm w)
-      continuousWithinAt_const ?_ ?_
-    · intro s hs; rw [hconst s hs]
-    · rw [hconst t ht]
+  · -- the sup-norm trajectory equals a constant function on `I`
+    have heq : Set.EqOn (fun t => intervalDomainSupNorm (u t))
+        (fun _ => intervalDomainSupNorm w) I := by
+      intro s hs; simp only; rw [hconst s hs]
+    exact continuousOn_const.congr heq
   · intro t ht; rw [hconst t ht]
   · intro _ _; exact differentiableAt_const _
   · intro _ _; rw [deriv_const']
