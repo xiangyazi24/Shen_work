@@ -287,7 +287,7 @@ theorem Theorem_1_1_intervalDomain_conditional
       · -- Case 2: above the carrying capacity → use Lemma 3.1
         push Not at h_below
         -- Lemma 3.1 gives nonincreasing on (0, t]
-        have hL31 := Lemma_3_1_intervalDomain p
+        have hL31 := Lemma31Closure.Lemma_3_1_intervalDomain p
         have hmono := (hL31 hχ).1 ha hb Tmax hTmax u v hsol t ht_pos ht_lt h_below
         -- Initial approach gives supNorm(u s) ≤ supNorm u₀ + ε for small s
         have happroach := hexist.initialSupNormApproach u₀ hu₀ Tmax hTmax u v hsol htrace
@@ -308,7 +308,7 @@ theorem Theorem_1_1_intervalDomain_conditional
             intervalDomain.supNorm (u t) ≤ (p.a / p.b) ^ (1 / p.α)
         · exact le_trans h_below (le_max_right _ _)
         · push Not at h_below
-          have hL31 := Lemma_3_1_intervalDomain p
+          have hL31 := Lemma31Closure.Lemma_3_1_intervalDomain p
           have hmono :=
             (hL31 hχ).1 ha hb Tmax hTmax u v hsol t ht_pos ht_lt h_below
           have happroach :=
@@ -328,7 +328,7 @@ theorem Theorem_1_1_intervalDomain_conditional
     · -- Sup-norm bound: supNorm(u t) ≤ supNorm u₀
       intro t ht_pos ht_lt
       -- Lemma 3.1 minimal branch gives nonincreasing on (0, T)
-      have hL31 := Lemma_3_1_intervalDomain p
+      have hL31 := Lemma31Closure.Lemma_3_1_intervalDomain p
       have hmono := (hL31 hχ).2 ha hb Tmax hTmax u v hsol
       -- Initial approach
       have happroach :=
@@ -341,7 +341,7 @@ theorem Theorem_1_1_intervalDomain_conditional
       have hbounded : IsPaper2BoundedBefore intervalDomain Tmax u := by
         refine ⟨intervalDomain.supNorm u₀, ?_⟩
         intro t ht_pos ht_lt
-        have hL31 := Lemma_3_1_intervalDomain p
+        have hL31 := Lemma31Closure.Lemma_3_1_intervalDomain p
         have hmono := (hL31 hχ).2 ha hb Tmax hTmax u v hsol
         have happroach :=
           hexist.initialSupNormApproach u₀ hu₀ Tmax hTmax u v hsol htrace
