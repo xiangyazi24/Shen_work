@@ -112,35 +112,40 @@ theorem intervalDomainClassicalRegularity_mono_horizon
     (hreg : intervalDomain.classicalRegularity T u v) :
     intervalDomain.classicalRegularity T' u v := by
   have hreg' : intervalDomainClassicalRegularity T u v := hreg
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · intro p hχ ha hb t₀ ht₀0 ht₀T' hsup
+    exact hreg'.1 p hχ ha hb t₀ ht₀0 (lt_of_lt_of_le ht₀T' hTT') hsup
+  · intro p hχ ha hb
+    exact intervalDomainSupNormDerivativeNonposOn_mono
+      (Set.Ioo_subset_Ioo_right hTT') (hreg'.2.1 p hχ ha hb)
   · -- Spatial `C²` on the interior, restricted to the shorter horizon.
     intro t ht
-    exact hreg'.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
+    exact hreg'.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
   · -- Interior time `C¹`, restricted to the shorter horizon.  The pointwise
     -- differentiability transfers verbatim; the continuity of `∂ₜu` is over the
     -- longer interior `(0,T)`, so restrict it down to `(0,T')` via `.mono`.
     intro x t ht
     obtain ⟨hdiff, hcontU, hcontV⟩ :=
-      hreg'.2.1 x t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
+      hreg'.2.2.2.1 x t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
     exact ⟨hdiff,
       hcontU.mono (Set.Ioo_subset_Ioo_right hTT'),
       hcontV.mono (Set.Ioo_subset_Ioo_right hTT')⟩
   · -- Joint time-derivative continuity, restricted to the shorter-horizon slab.
-    obtain ⟨hjU, hjV⟩ := hreg'.1
+    obtain ⟨hjU, hjV⟩ := hreg'.2.2.2.2.1
     exact ⟨hjU.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTT') (le_refl _)),
       hjV.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTT') (le_refl _))⟩
   · -- Genuine interior-Neumann, restricted to the shorter horizon.
     intro t ht
-    exact hreg'.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
+    exact hreg'.2.2.2.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
   · -- (7) Closed-`Icc` `C²` + endpoint Neumann, restricted to shorter horizon.
     intro t ht
-    exact hreg'.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
+    exact hreg'.2.2.2.2.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTT'⟩
   · -- (8) Closed-slab joint `∂ₜ` continuity, restricted to the shorter slab.
-    obtain ⟨hjU, hjV⟩ := hreg'.2.2.2.1
+    obtain ⟨hjU, hjV⟩ := hreg'.2.2.2.2.2.2.2.1
     exact ⟨hjU.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTT') (le_refl _)),
       hjV.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTT') (le_refl _))⟩
   · -- (9) Closed-slab joint SOLUTION-field continuity, restricted to the slab.
-    obtain ⟨hjU, hjV⟩ := hreg'.2.2.2.2
+    obtain ⟨hjU, hjV⟩ := hreg'.2.2.2.2.2.2.2.2
     exact ⟨hjU.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTT') (le_refl _)),
       hjV.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTT') (le_refl _))⟩
 

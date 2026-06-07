@@ -2902,17 +2902,17 @@ lemma intervalDomainClassicalRegularity_mono
     exact ⟨hdiff,
       hcontU.mono (Set.Ioo_subset_Ioo_right hTL),
       hcontV.mono (Set.Ioo_subset_Ioo_right hTL)⟩
-  · obtain ⟨hjU, hjV⟩ := hreg.1
+  · obtain ⟨hjU, hjV⟩ := hreg.2.2.1
     exact ⟨hjU.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTL) (le_refl _)),
       hjV.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTL) (le_refl _))⟩
   · intro t ht
-    exact hreg.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
+    exact hreg.2.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
   · intro t ht
-    exact hreg.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
-  · obtain ⟨hjU, hjV⟩ := hreg.2.2.2.1
+    exact hreg.2.2.2.2.1 t ⟨ht.1, lt_of_lt_of_le ht.2 hTL⟩
+  · obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2.2.1
     exact ⟨hjU.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTL) (le_refl _)),
       hjV.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTL) (le_refl _))⟩
-  · obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2
+  · obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2.2.2
     exact ⟨hjU.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTL) (le_refl _)),
       hjV.mono (Set.prod_mono (Set.Ioo_subset_Ioo_right hTL) (le_refl _))⟩
 
@@ -4899,7 +4899,7 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
     -- equal extensions), so near each interior `t` the time slices agree and the
     -- joint derivative fields agree on the slab; `ContinuousOn.congr` transfers
     -- `hreg`'s joint continuity.
-    obtain ⟨hjU, hjV⟩ := hreg.1
+    obtain ⟨hjU, hjV⟩ := hreg.2.2.1
     have hliftEq : ∀ s, 0 < s → s < T →
         intervalDomainLift (u s) = intervalDomainLift (U s) := by
       intro s hs0 hsT; rw [hEq s hs0 hsT]
@@ -4929,7 +4929,7 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
     have hvL : intervalDomainLift (v t) = intervalDomainLift (V t) := by
       rw [hEqV t ht.1 ht.2]
     rw [huL, hvL]
-    exact hreg.2.1 t ht
+    exact hreg.2.2.2.1 t ht
   · -- Fifth conjunct: lifts of `u t, v t` equal lifts of `U t, V t`, so the
     -- closed-`Icc` `C²` + endpoint Neumann transfer verbatim.
     intro t ht
@@ -4938,9 +4938,9 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
     have hvL : intervalDomainLift (v t) = intervalDomainLift (V t) := by
       rw [hEqV t ht.1 ht.2]
     rw [huL, hvL]
-    exact hreg.2.2.1 t ht
+    exact hreg.2.2.2.2.1 t ht
   · -- Sixth conjunct: closed-slab joint `∂ₜ` continuity transfers via congr.
-    obtain ⟨hjU, hjV⟩ := hreg.2.2.2.1
+    obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2.2.1
     have hliftEq : ∀ s, 0 < s → s < T →
         intervalDomainLift (u s) = intervalDomainLift (U s) := by
       intro s hs0 hsT; rw [hEq s hs0 hsT]
@@ -4967,7 +4967,7 @@ private lemma intervalDomainClassicalRegularity_congr_Ioo
     -- `(t,x) ↦ lift (u t) x` equals `(t,x) ↦ lift (U t) x` pointwise (since
     -- `u t = U t` for `t ∈ (0,T)`), so `ContinuousOn.congr` transfers `hreg`'s
     -- joint solution-field continuity.
-    obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2
+    obtain ⟨hjU, hjV⟩ := hreg.2.2.2.2.2.2
     refine ⟨ContinuousOn.congr hjU ?_, ContinuousOn.congr hjV ?_⟩
     · rintro ⟨t, x⟩ ⟨ht, _hx⟩
       simp only [Function.uncurry]
@@ -5590,7 +5590,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
       have hT_gt' : t' < Tpick' := pickReachableAbove_lt hbdd hne ht'.2
       refine ⟨Set.Ioo (0 : ℝ) Tpick', isOpen_Ioo,
         ⟨ht'.1, hT_gt'⟩, ?_⟩
-      have hreg4' := dpick'.sol.regularity.2.1 x
+      have hreg4' := dpick'.sol.regularity.2.2.2.1 x
       -- Continuity of dpick'.u derivative on Ioo 0 Tpick' (any point gives same field).
       -- Use one chosen `t''` in Ioo to extract continuity.
       obtain ⟨t'', ht''⟩ : (Set.Ioo (0 : ℝ) Tpick').Nonempty :=
@@ -5627,7 +5627,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
       have hT_gt' : t' < Tpick' := pickReachableAbove_lt hbdd hne ht'.2
       refine ⟨Set.Ioo (0 : ℝ) Tpick', isOpen_Ioo,
         ⟨ht'.1, hT_gt'⟩, ?_⟩
-      have hreg4' := dpick'.sol.regularity.2.1 x
+      have hreg4' := dpick'.sol.regularity.2.2.2.1 x
       obtain ⟨t'', ht''⟩ : (Set.Ioo (0 : ℝ) Tpick').Nonempty :=
         ⟨Tpick' / 2, by constructor <;> linarith [dpick'.T_pos]⟩
       have hcontPick := (hreg4' t'' ht'').2.2
@@ -5662,7 +5662,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
       refine ⟨Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ,
         isOpen_Ioo.prod isOpen_univ,
         ⟨⟨ht.1, hT_gt⟩, Set.mem_univ _⟩, ?_⟩
-      have hcontPick := dpick.sol.regularity.1.1
+      have hcontPick := dpick.sol.regularity.2.2.1.1
       -- hcontPick : ContinuousOn (uncurry ∂ₜ lift) (Ioo 0 Tpick × Ioo 0 1)
       have hsub :
           ((Set.Ioo (0 : ℝ) Tmax ×ˢ Set.Ioo (0 : ℝ) 1) ∩
@@ -5696,7 +5696,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
       refine ⟨Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ,
         isOpen_Ioo.prod isOpen_univ,
         ⟨⟨ht.1, hT_gt⟩, Set.mem_univ _⟩, ?_⟩
-      have hcontPick := dpick.sol.regularity.1.2
+      have hcontPick := dpick.sol.regularity.2.2.1.2
       have hsub :
           ((Set.Ioo (0 : ℝ) Tmax ×ˢ Set.Ioo (0 : ℝ) 1) ∩
             (Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ))
@@ -5727,7 +5727,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
     have huL := boundedReachableGluedU_lift_eq huniq hu₀ hbdd hne dpick t ht.1 hT_gt
     have hvL := boundedReachableGluedV_lift_eq huniq hu₀ hbdd hne dpick t ht.1 hT_gt
     rw [huL, hvL]
-    exact dpick.sol.regularity.2.1 t ⟨ht.1, hT_gt⟩
+    exact dpick.sol.regularity.2.2.2.1 t ⟨ht.1, hT_gt⟩
   · -- (7) Closed Icc C² + endpoint Neumann (per fixed interior t).
     intro t ht
     let dpick := pickReachableAboveData hbdd hne ht.2
@@ -5736,7 +5736,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
     have huL := boundedReachableGluedU_lift_eq huniq hu₀ hbdd hne dpick t ht.1 hT_gt
     have hvL := boundedReachableGluedV_lift_eq huniq hu₀ hbdd hne dpick t ht.1 hT_gt
     rw [huL, hvL]
-    exact dpick.sol.regularity.2.2.1 t ⟨ht.1, hT_gt⟩
+    exact dpick.sol.regularity.2.2.2.2.1 t ⟨ht.1, hT_gt⟩
   · -- (8) Closed-slab joint ∂ₜ continuity on `Ioo 0 T* × Icc 0 1`.
     refine ⟨?_, ?_⟩
     · apply continuousOn_of_locally_continuousOn
@@ -5747,7 +5747,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
       refine ⟨Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ,
         isOpen_Ioo.prod isOpen_univ,
         ⟨⟨ht.1, hT_gt⟩, Set.mem_univ _⟩, ?_⟩
-      have hcontPick := dpick.sol.regularity.2.2.2.1.1
+      have hcontPick := dpick.sol.regularity.2.2.2.2.2.1.1
       have hsub :
           ((Set.Ioo (0 : ℝ) Tmax ×ˢ Set.Icc (0 : ℝ) 1) ∩
             (Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ))
@@ -5778,7 +5778,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
       refine ⟨Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ,
         isOpen_Ioo.prod isOpen_univ,
         ⟨⟨ht.1, hT_gt⟩, Set.mem_univ _⟩, ?_⟩
-      have hcontPick := dpick.sol.regularity.2.2.2.1.2
+      have hcontPick := dpick.sol.regularity.2.2.2.2.2.1.2
       have hsub :
           ((Set.Ioo (0 : ℝ) Tmax ×ˢ Set.Icc (0 : ℝ) 1) ∩
             (Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ))
@@ -5811,7 +5811,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
       refine ⟨Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ,
         isOpen_Ioo.prod isOpen_univ,
         ⟨⟨ht.1, hT_gt⟩, Set.mem_univ _⟩, ?_⟩
-      have hcontPick := dpick.sol.regularity.2.2.2.2.1
+      have hcontPick := dpick.sol.regularity.2.2.2.2.2.2.1
       have hsub :
           ((Set.Ioo (0 : ℝ) Tmax ×ˢ Set.Icc (0 : ℝ) 1) ∩
             (Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ))
@@ -5835,7 +5835,7 @@ theorem boundedReachableGlued_classicalRegularity_of_overlapUnique
       refine ⟨Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ,
         isOpen_Ioo.prod isOpen_univ,
         ⟨⟨ht.1, hT_gt⟩, Set.mem_univ _⟩, ?_⟩
-      have hcontPick := dpick.sol.regularity.2.2.2.2.2
+      have hcontPick := dpick.sol.regularity.2.2.2.2.2.2.2
       have hsub :
           ((Set.Ioo (0 : ℝ) Tmax ×ˢ Set.Icc (0 : ℝ) 1) ∩
             (Set.Ioo (0 : ℝ) Tpick ×ˢ Set.univ))
