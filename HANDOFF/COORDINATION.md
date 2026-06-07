@@ -299,3 +299,21 @@ Two Claude sessions are working this repo in parallel. File ownership:
   residual (worker-3's MinPersistence Hamilton machinery, B2 pending).
 - Net χ₀=0 chain now: Theorem_1_1 ⟸ Core (M-line + landed producers) +
   PLF + [hpde_u: producer landed, Core-wiring pending] + [HsupNorm: B2 open].
+
+## ⚠ Session B INTEGRITY FINDING (automode, ~22:10): HsupNorm is too-strong/FALSE
+- The ledger field HsupNorm: IntervalDomainSupNormDerivativeNonposOn D.u
+  (Ioo 0 D.T) is UNCONDITIONALLY non-positive sup-norm derivative — FALSE
+  for the cone D. Counterexample (airtight): flat datum u₀≡ε with
+  0<ε<(a/b)^{1/α} is a valid PID; at χ₀=0 it stays spatially constant and
+  solves u'=u(a−bu^α)>0, so ‖u(t)‖_∞ STRICTLY INCREASES on (0,δ). deriv>0.
+- Genuine max-principle: M' ≤ M(a−bM^α), ≤0 ONLY above carrying capacity.
+- Consumer check: gradientMildClassicalRegularityFrontierData_of_spectral
+  uses HsupNorm only for (1) supnormLogistic — which ALREADY carries
+  `_hsup : (a/b)^{1/α} < ‖u t₀‖_∞` (currently discarded!) so only needs the
+  above-capacity decay; (2) supnormZero — only the a=b=0 heat case.
+- ACTION REQUIRED (ledger refactor): replace the single HsupNorm field with
+  the two TRUE pieces. Then hsupNorm_chiZero in IntervalDomainThm11ChiZeroFinal
+  is no longer needed. New file IntervalHsupNormProof.lean provides
+  nonposOn_of_locally_eq / nonposOn_of_eq (axiom-clean constructors) as the
+  honest interface for the conditional proof.
+- DID NOT fake a proof of the false statement (automode integrity).
