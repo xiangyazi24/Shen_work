@@ -13,9 +13,17 @@
 import ShenWork.Paper2.IntervalMildPicardRegularity
 import ShenWork.PDE.IntervalResolverPositivity
 import ShenWork.PDE.IntervalNeumannEllipticResolverR
+import ShenWork.PDE.IntervalFullKernelInterchange
+import ShenWork.PDE.IntervalFullKernelSupBound
 
-open Set Filter Topology
-open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open Set Filter Topology MeasureTheory
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs intervalNeumannFullKernel
+  intervalFullSemigroupOperator intervalNeumannFullKernel_integrable
+  intervalNeumannFullKernel_nonneg)
+open ShenWork.IntervalResolverPositivity (intervalNeumannFullKernel_cosineKernel_identity)
+open ShenWork.IntervalFullKernelInterchange
+  (intervalFullSemigroupOperator_eq_cosineHeatValue_unconditional)
+open ShenWork.IntervalDomain (intervalMeasure)
 open ShenWork.IntervalMildPicardRegularity (cosineCoeffs_eq_factor_mul_integral)
 
 noncomputable section
@@ -53,5 +61,44 @@ theorem cosineCoeffs_const (c : ℝ) (n : ℕ) :
       have h1 : (n : ℝ) * Real.pi * 1 = (n : ℝ) * Real.pi := by ring
       rw [h1, Real.sin_nat_mul_pi]; simp
     rw [intervalIntegral.integral_mul_const, hcos_int, zero_mul, mul_zero]
+
+/-- **Heat value lower bound.**  If `f` is continuous, bounded, and `≥ c₀` on
+all of `ℝ`, then the cosine-spectral heat value is `≥ c₀` at interior `x`
+(`t > 0`): `S(t)f = ∫K·f ≥ ∫K·c₀ = S(t)(const c₀) = c₀`. -/
+theorem heatValue_ge_const {f : ℝ → ℝ} {c₀ M : ℝ}
+    (hf_cont : Continuous f) (hf_ge : ∀ y, c₀ ≤ f y) (hf_bdd : ∀ y, |f y| ≤ M)
+    {t : ℝ} (ht : 0 < t) {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    c₀ ≤ unitIntervalCosineHeatValue t (cosineCoeffs f) x := by
+  have hker : ∀ y, intervalNeumannFullKernel t x y
+      = ∑' m : ℤ, Real.exp (-t * ((m : ℝ) * Real.pi) ^ 2) *
+        (Real.cos ((m : ℝ) * Real.pi * x) * Real.cos ((m : ℝ) * Real.pi * y)) :=
+    fun y => intervalNeumannFullKernel_cosineKernel_identity ht x y
+  have hSf := intervalFullSemigroupOperator_eq_cosineHeatValue_unconditional t ht f hf_cont x hx hker
+  have hSc := intervalFullSemigroupOperator_eq_cosineHeatValue_unconditional t ht
+    (fun _ => c₀) continuous_const x hx hker
+  have hConst : unitIntervalCosineHeatValue t (cosineCoeffs (fun _ => c₀)) x = c₀ := by
+    rw [unitIntervalCosineHeatValue, tsum_eq_single 0
+      (fun n hn => by rw [cosineCoeffs_const, if_neg hn, mul_zero])]
+    rw [cosineCoeffs_const, if_pos rfl]
+    simp [unitIntervalCosineHeatPointWeight, unitIntervalCosineEigenvalue,
+      unitIntervalCosineMode]
+  have hKint : Integrable (fun y => intervalNeumannFullKernel t x y) (intervalMeasure 1) :=
+    intervalNeumannFullKernel_integrable ht x
+  have hKc : Integrable (fun y => intervalNeumannFullKernel t x y * c₀) (intervalMeasure 1) :=
+    hKint.mul_const c₀
+  have hKf : Integrable (fun y => intervalNeumannFullKernel t x y * f y) (intervalMeasure 1) := by
+    have h := hKint.bdd_mul hf_cont.aestronglyMeasurable
+      (Filter.Eventually.of_forall (fun y => by rw [Real.norm_eq_abs]; exact hf_bdd y))
+    refine h.congr ?_
+    filter_upwards with y using mul_comm (f y) (intervalNeumannFullKernel t x y)
+  have hmono : intervalFullSemigroupOperator t (fun _ => c₀) x
+      ≤ intervalFullSemigroupOperator t f x := by
+    simp only [intervalFullSemigroupOperator]
+    refine integral_mono hKc hKf (fun y => ?_)
+    exact mul_le_mul_of_nonneg_left (hf_ge y) (intervalNeumannFullKernel_nonneg ht x y)
+  rw [← hSf]
+  calc c₀ = unitIntervalCosineHeatValue t (cosineCoeffs (fun _ => c₀)) x := hConst.symm
+    _ = intervalFullSemigroupOperator t (fun _ => c₀) x := hSc.symm
+    _ ≤ intervalFullSemigroupOperator t f x := hmono
 
 end ShenWork.IntervalDomainResolverStrictPos
