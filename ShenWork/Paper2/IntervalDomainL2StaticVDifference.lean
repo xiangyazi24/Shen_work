@@ -599,9 +599,9 @@ theorem source_integral_le_Eu
     have hreg1 := hsol₁.regularity
     have hreg2 := hsol₂.regularity
     have hcu1 : ContinuousOn (intervalDomainLift (u₁ t)) (Set.Icc (0:ℝ) 1) :=
-      ((hreg1.2.2.2.2.2.2.1 t ht₁).1.1).continuousOn
+      ((hreg1.2.2.2.2.1 t ht₁).1.1).continuousOn
     have hcu2 : ContinuousOn (intervalDomainLift (u₂ t)) (Set.Icc (0:ℝ) 1) :=
-      ((hreg2.2.2.2.2.2.2.1 t ht₂).1.1).continuousOn
+      ((hreg2.2.2.2.2.1 t ht₂).1.1).continuousOn
     have : ContinuousOn (fun x => (p.ν * L) ^ 2 *
         (intervalDomainLift (u₁ t) x - intervalDomainLift (u₂ t) x) ^ 2)
         (Set.uIcc (0:ℝ) 1) := by
