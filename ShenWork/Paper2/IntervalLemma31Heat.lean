@@ -125,6 +125,6 @@ theorem supNorm_nonincreasing_of_dini
     (le_refl _)
     (by intro x _; simp)
   have hbx := hgron t₂ (Set.right_mem_Icc.mpr hle)
-  rwa [gronwallBound_ε0, mul_zero, Real.exp_zero, mul_one] at hbx
+  rwa [gronwallBound_ε0, zero_mul, Real.exp_zero, mul_one] at hbx
 
 end ShenWork.Paper2.Lemma31Heat
