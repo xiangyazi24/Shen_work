@@ -604,6 +604,91 @@ theorem max_point_slope_bound
     rw [hx10, htd]
     exact hbml
 
+/-- **Dini → monotonicity core.**  From a per-spatial-argmax nonpositive time
+slope on `(0,T)`, the sup-norm trajectory is nonincreasing on `(0,T)`.  Wires
+`sliceMax_dini_of_argmax_bound` (Kp = 0) → `supNorm_nonincreasing_of_dini`,
+discharging the slice-regularity hypotheses from the regularity conjuncts and
+the sup-norm/`sSup`-image bridge. -/
+theorem supNorm_nonincr_core
+    {p : CM2Params} {T : ℝ} {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    (hub : ∀ s ∈ Set.Ioo (0:ℝ) T, ∀ xs ∈ Set.Icc (0:ℝ) 1,
+      intervalDomainLift (u s) xs
+          = sSup (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1) →
+        deriv (fun r => intervalDomainLift (u r) xs) s ≤ 0) :
+    SupNormNonincreasingOn intervalDomain u (Set.Ioo (0:ℝ) T) := by
+  obtain ⟨_, hTimeReg, _, _, _, hdF6, hSol7⟩ := hsol.regularity
+  set F : ℝ → ℝ → ℝ := fun t y => intervalDomainLift (u t) y with hF_def
+  have hsupeq : ∀ s ∈ Set.Ioo (0:ℝ) T,
+      intervalDomainSupNorm (u s) = sSup (F s '' Set.Icc (0:ℝ) 1) :=
+    fun s hs => supNorm_eq_sSup_lift_image (fun q => (hsol.u_pos' hs.1 hs.2).le)
+  have hFwin : ∀ {a b : ℝ}, Set.Icc a b ⊆ Set.Ioo (0:ℝ) T →
+      ContinuousOn (Function.uncurry F) (Set.Icc a b ×ˢ Set.Icc (0:ℝ) 1) :=
+    fun hsub => hSol7.1.mono (Set.prod_mono hsub (le_refl _))
+  -- Continuity of the sup-norm on `(0,T)` via local `sliceMax_continuousOn`.
+  have hcont : ContinuousOn (fun t => intervalDomainSupNorm (u t)) (Set.Ioo (0:ℝ) T) := by
+    have hSSup : ContinuousOn (fun t => sSup (F t '' Set.Icc (0:ℝ) 1))
+        (Set.Ioo (0:ℝ) T) := by
+      intro x hx
+      have ha_pos : 0 < x / 2 := by linarith [hx.1]
+      have hb_T : (x + T) / 2 < T := by linarith [hx.2]
+      have hax : x / 2 < x := by linarith [hx.1]
+      have hxb : x < (x + T) / 2 := by linarith [hx.2]
+      have hsub : Set.Icc (x / 2) ((x + T) / 2) ⊆ Set.Ioo (0:ℝ) T := fun s hs =>
+        ⟨lt_of_lt_of_le ha_pos hs.1, lt_of_le_of_lt hs.2 hb_T⟩
+      exact ((sliceMax_continuousOn (hFwin hsub)) x ⟨hax.le, hxb.le⟩).mono_of_mem_nhdsWithin
+        (mem_nhdsWithin_of_mem_nhds (Icc_mem_nhds hax hxb))
+    exact hSSup.congr hsupeq
+  -- The one-sided Dini condition.
+  have hDini : ∀ x ∈ Set.Ioo (0:ℝ) T, ∀ r : ℝ, 0 < r →
+      ∃ᶠ z in nhdsWithin x (Set.Ioi x),
+        (z - x)⁻¹ * (intervalDomainSupNorm (u z) - intervalDomainSupNorm (u x)) < r := by
+    intro x hx r hr
+    have ha_pos : 0 < x / 2 := by linarith [hx.1]
+    have hb_T : (x + T) / 2 < T := by linarith [hx.2]
+    have hax : x / 2 ≤ x := by linarith [hx.1]
+    have hxb : x < (x + T) / 2 := by linarith [hx.2]
+    have hsub : Set.Icc (x / 2) ((x + T) / 2) ⊆ Set.Ioo (0:ℝ) T := fun s hs =>
+      ⟨lt_of_lt_of_le ha_pos hs.1, lt_of_le_of_lt hs.2 hb_T⟩
+    have hFab := hFwin hsub
+    have hslice_cont : ∀ y ∈ Set.Icc (0:ℝ) 1,
+        ContinuousOn (fun r => F r y) (Set.Icc (x / 2) ((x + T) / 2)) := by
+      intro y hy
+      have hmaps : Set.MapsTo (fun r => (r, y)) (Set.Icc (x / 2) ((x + T) / 2))
+          (Set.Icc (x / 2) ((x + T) / 2) ×ˢ Set.Icc (0:ℝ) 1) := fun w hw => ⟨hw, hy⟩
+      exact hFab.comp (Continuous.continuousOn (by fun_prop)) hmaps
+    have hslice_diff : ∀ y ∈ Set.Icc (0:ℝ) 1, ∀ s ∈ Set.Ioo (x / 2) ((x + T) / 2),
+        HasDerivAt (fun r => F r y) (deriv (fun r => F r y) s) s := by
+      intro y hy s hs
+      have hsInt : s ∈ Set.Ioo (0:ℝ) T := hsub (Set.Ioo_subset_Icc_self hs)
+      have hfun : (fun r => F r y) = fun r => u r ⟨y, hy⟩ := by
+        funext r; rw [hF_def, intervalDomainLift, dif_pos hy]
+      rw [hfun]
+      exact ((hTimeReg ⟨y, hy⟩ s hsInt).1.1).hasDerivAt
+    have hdFc : ContinuousOn
+        (Function.uncurry (fun s y => deriv (fun r => F r y) s))
+        (Set.Icc (x / 2) ((x + T) / 2) ×ˢ Set.Icc (0:ℝ) 1) :=
+      hdF6.1.mono (Set.prod_mono hsub (le_refl _))
+    have hbnd : ∀ s ∈ Set.Icc (x / 2) ((x + T) / 2), ∀ xs ∈ Set.Icc (0:ℝ) 1,
+        F s xs = sSup (F s '' Set.Icc (0:ℝ) 1) →
+        deriv (fun r => F r xs) s ≤ (0:ℝ) * sSup (F s '' Set.Icc (0:ℝ) 1) := by
+      intro s hs xs hxs hargmax
+      rw [zero_mul]
+      exact hub s (hsub hs) xs hxs hargmax
+    have hdini := sliceMax_dini_of_argmax_bound (Kp := 0) hFab hslice_cont hslice_diff
+      (sliceMax_continuousOn hFab) hdFc hbnd x ⟨hax, hxb⟩ r (by rw [zero_mul]; exact hr)
+    have hev : ∀ᶠ z in nhdsWithin x (Set.Ioi x), z ∈ Set.Ioo (0:ℝ) T := by
+      have hmem : Set.Ioo x T ∈ nhdsWithin x (Set.Ioi x) := by
+        rw [← Set.Ioi_inter_Iio]
+        exact inter_mem_nhdsWithin _ (Iio_mem_nhds hx.2)
+      filter_upwards [hmem] with z hz
+      exact ⟨lt_trans hx.1 hz.1, hz.2⟩
+    refine (hdini.and_eventually hev).mono ?_
+    rintro z ⟨hzlt, hzmem⟩
+    rw [← hsupeq z hzmem, ← hsupeq x hx] at hzlt
+    exact hzlt
+  exact ShenWork.Paper2.Lemma31Heat.supNorm_nonincreasing_of_dini hcont hDini
+
 /-- The above-capacity branch of Lemma 3.1 for the interval domain. -/
 theorem lemma31_above_capacity
     (p : CM2Params) (hχ : p.χ₀ ≤ 0) (ha : 0 < p.a) (hb : 0 < p.b)
@@ -620,6 +705,28 @@ theorem lemma31_zero
     {T : ℝ} (hT : 0 < T) {u v : ℝ → intervalDomainPoint → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v) :
     SupNormNonincreasingOn intervalDomain u (Set.Ioo (0 : ℝ) T) := by
-  sorry
+  refine supNorm_nonincr_core hsol ?_
+  intro s hs xs hxs hargmax
+  -- The spatial argmax point.
+  have hmax : ∀ y, u s y ≤ u s ⟨xs, hxs⟩ := by
+    intro y
+    have hcontU : ContinuousOn (intervalDomainLift (u s)) (Set.Icc (0:ℝ) 1) := by
+      obtain ⟨_, _, _, _, hClosed, _, _⟩ := hsol.regularity
+      exact (hClosed s hs).1.1.continuousOn
+    have hbdd : BddAbove (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1) :=
+      (isCompact_Icc.image_of_continuousOn hcontU).bddAbove
+    have huy : u s y = intervalDomainLift (u s) y.1 := by
+      rw [intervalDomainLift, dif_pos y.2]
+    have huq : u s ⟨xs, hxs⟩ = intervalDomainLift (u s) xs := by
+      rw [intervalDomainLift, dif_pos hxs]
+    rw [huy, huq, hargmax]
+    exact le_csSup hbdd (Set.mem_image_of_mem _ y.2)
+  have hsl := max_point_slope_bound hχ hsol hs.1 hs.2 hmax
+  have htd : intervalDomain.timeDeriv u s ⟨xs, hxs⟩
+      = deriv (fun r => intervalDomainLift (u r) xs) s := by
+    show deriv (fun r => u r ⟨xs, hxs⟩) s = deriv (fun r => intervalDomainLift (u r) xs) s
+    congr 1; funext r; rw [intervalDomainLift, dif_pos hxs]
+  rw [htd, ha, hb] at hsl
+  simpa using hsl
 
 end ShenWork.Paper2.Lemma31Closure
