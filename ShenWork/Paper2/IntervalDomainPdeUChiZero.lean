@@ -16,6 +16,8 @@ import ShenWork.Paper2.IntervalMildToClassical
 import ShenWork.PDE.CosineSpectrum
 import ShenWork.PDE.IntervalDuhamelClosedC2
 import ShenWork.PDE.IntervalSourceCoefficientTimeC1
+import ShenWork.PDE.IntervalCosineInversion
+import ShenWork.Paper2.IntervalMildPicardRegularity
 
 open Set Filter Topology
 open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainLift intervalDomain)
@@ -24,6 +26,9 @@ open ShenWork.IntervalMildToClassical (mildChemicalConcentration)
 open ShenWork.IntervalSourceCoefficientTimeC1
   (restartCosineSeries_hasDerivAt_time localRestartCoeff)
 open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.IntervalMildPicardRegularity (logisticSourceFun)
+open ShenWork.IntervalCosineInversion (intervalCosine_hasSum_pointwise reflCircle)
 
 noncomputable section
 
@@ -105,5 +110,29 @@ theorem timeDeriv_eq_of_rep {u : ℝ → intervalDomainPoint → ℝ} {t₀ : �
   have hd := hD.congr_of_eventuallyEq heq
   show deriv (fun s => u s x) t₀ = _
   rw [hd.deriv, mul_one]
+
+/-- **Source inversion = reaction.**  If the source coefficients are the cosine
+coefficients of the logistic source of `u t₀`, the source cosine series sums to
+the pointwise reaction (`intervalCosine_hasSum_pointwise`). -/
+theorem source_inversion_eq_reaction (p : CM2Params)
+    {u : ℝ → intervalDomainPoint → ℝ} {t₀ : ℝ} {src : ℕ → ℝ}
+    (hsrc_coeff : ∀ n, src n
+        = cosineCoeffs (logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀))) n)
+    (hcont : Continuous (logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀))))
+    (hsum_fourier : Summable (fun n : ℤ => fourierCoeff
+        (reflCircle (logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀)))) n))
+    {x : intervalDomainPoint} (hx : x.1 ∈ Set.Ioo (0:ℝ) 1) :
+    (∑' n, src n * cosineMode n x.1) = u t₀ x * (p.a - p.b * (u t₀ x) ^ p.α) := by
+  have hinv := intervalCosine_hasSum_pointwise
+    (logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀))) hcont hx hsum_fourier
+  have hux : intervalDomainLift (u t₀) x.1 = u t₀ x := by
+    simp only [intervalDomainLift]; exact dif_pos x.2
+  have hsum_eq : (∑' n, src n * cosineMode n x.1)
+      = logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀)) x.1 := by
+    rw [← hinv.tsum_eq]
+    refine tsum_congr (fun n => ?_)
+    rw [hsrc_coeff n]
+    simp only [cosineMode, unitIntervalCosineMode]; ring
+  rw [hsum_eq]; simp only [logisticSourceFun, hux]
 
 end ShenWork.IntervalDomainPdeUChiZero
