@@ -31,6 +31,7 @@ import ShenWork.Paper2.IntervalDomainSliceMaxDini
 import ShenWork.Paper2.IntervalLemma31Heat
 import ShenWork.Paper2.IntervalDomainSupNormMaxPrinciple
 import ShenWork.Paper2.IntervalDomainBoundaryDeriv2
+import ShenWork.Paper2.IntervalDomainBoundaryDeriv2Right
 import ShenWork.Paper2.IntervalDomainFluxIntegrandDeriv
 import ShenWork.Paper2.Statements
 
@@ -699,7 +700,23 @@ theorem lemma31_above_capacity
     {t₀ : ℝ} (ht₀ : 0 < t₀) (ht₀T : t₀ < T)
     (hsup : (p.a / p.b) ^ (1 / p.α) < intervalDomain.supNorm (u t₀)) :
     SupNormNonincreasingOn intervalDomain u (Set.Ioc (0 : ℝ) t₀) := by
-  sorry
+  -- Non-increasing on Ioo(0, t₀) via the same Dini argument as lemma31_zero,
+  -- using max_point_slope_bound with the above-capacity reaction bound.
+  have hIoo : SupNormNonincreasingOn intervalDomain u (Set.Ioo (0 : ℝ) t₀) :=
+    supNorm_nonincr_core p hχ hsol ht₀T
+  -- Extend from Ioo to Ioc: for t₁, t₂ ∈ Ioc with t₁ ≤ t₂, need supNorm(t₂) ≤ supNorm(t₁).
+  intro t₁ ht₁ t₂ ht₂ hle
+  rcases eq_or_lt_of_le ht₂.2 with ht₂eq | ht₂lt
+  · -- t₂ = t₀: limit argument.
+    rcases eq_or_lt_of_le ht₁.2 with ht₁eq | ht₁lt
+    · rw [← ht₂eq, ← ht₁eq]
+    · -- t₁ < t₀ = t₂: supNorm continuous on [t₁, t₀], non-increasing on (t₁, t₀).
+      -- By continuity at t₀, supNorm(t₀) ≤ supNorm(t₁).
+      sorry
+  · -- Both in Ioo.
+    rcases eq_or_lt_of_le ht₁.2 with ht₁eq | ht₁lt
+    · linarith
+    · exact hIoo t₁ ⟨ht₁.1, ht₁lt⟩ t₂ ⟨ht₂.1, ht₂lt⟩ hle
 
 /-- The a=b=0 branch of Lemma 3.1 for the interval domain. -/
 theorem lemma31_zero
