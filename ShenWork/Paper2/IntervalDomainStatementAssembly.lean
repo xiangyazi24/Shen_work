@@ -1,3 +1,4 @@
+import ShenWork.Paper2.IntervalLemma31Closure
 /-
   Paper2 interval-domain statement-target assembly.
 
@@ -194,7 +195,7 @@ def IntervalDomainPaper2AprioriTargets (p : CM2Params) : Prop :=
 theorem intervalDomainPaper2_Lemma_3_1
     (p : CM2Params) :
     Lemma_3_1 intervalDomain p :=
-  Lemma_3_1_intervalDomain p
+  Lemma31Closure.Lemma_3_1_intervalDomain p
 
 /-- Single-target interval-domain wrapper for Lemma 4.1 from the concrete GN
 frontier. -/

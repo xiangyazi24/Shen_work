@@ -1,3 +1,4 @@
+import ShenWork.Paper2.IntervalLemma31Closure
 /-
   ShenWork/Paper2/IntervalDomainMoserClosure.lean
 
@@ -603,7 +604,7 @@ private theorem nonminimal_supNorm_bound_of_negative_sensitivity_and_approach
       intervalDomain.supNorm (u t) ≤ (p.a / p.b) ^ (1 / p.α)
   · exact le_trans h_below (le_max_right _ _)
   · push Not at h_below
-    have hL31 := Lemma_3_1_intervalDomain p
+    have hL31 := Lemma31Closure.Lemma_3_1_intervalDomain p
     have hmono :=
       (hL31 hχ).1 ha hb T hT u v hsol t ht_pos ht_lt h_below
     have h_le_init :=
@@ -626,7 +627,7 @@ private theorem minimal_supNorm_bound_of_negative_sensitivity_and_approach
     ∀ t, 0 < t → t < T →
       intervalDomain.supNorm (u t) ≤ intervalDomain.supNorm u₀ := by
   intro t ht_pos ht_lt
-  have hL31 := Lemma_3_1_intervalDomain p
+  have hL31 := Lemma31Closure.Lemma_3_1_intervalDomain p
   have hmono := (hL31 hχ).2 ha hb T hT u v hsol
   exact supNorm_le_initial_of_Ioo_monotone_and_approach
     hT hmono happroach ht_pos ht_lt
@@ -651,7 +652,7 @@ theorem intervalDomain_boundedBefore_nonminimal_of_negative_sensitivity
       intervalDomain.supNorm (u t) ≤ (p.a / p.b) ^ (1 / p.α)
   · exact le_trans h_below (le_max_right _ _)
   · push Not at h_below
-    have hL31 := Lemma_3_1_intervalDomain p
+    have hL31 := Lemma31Closure.Lemma_3_1_intervalDomain p
     have hmono :=
       (hL31 hχ).1 ha hb T hT u v hsol t ht_pos ht_lt h_below
     have happroach :=
@@ -678,7 +679,7 @@ theorem intervalDomain_boundedBefore_minimal_of_negative_sensitivity
     IsPaper2BoundedBefore intervalDomain T u := by
   refine ⟨intervalDomain.supNorm u₀, ?_⟩
   intro t ht_pos ht_lt
-  have hL31 := Lemma_3_1_intervalDomain p
+  have hL31 := Lemma31Closure.Lemma_3_1_intervalDomain p
   have hmono := (hL31 hχ).2 ha hb T hT u v hsol
   have happroach :=
     hexist.initialSupNormApproach u₀ hu₀ T hT u v hsol htrace
