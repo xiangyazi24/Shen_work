@@ -135,4 +135,41 @@ theorem source_inversion_eq_reaction (p : CM2Params)
     simp only [cosineMode, unitIntervalCosineMode]; ring
   rw [hsum_eq]; simp only [logisticSourceFun, hux]
 
+/-- **`hpde_u` (χ₀=0) from the restart representation.**  Assembles the three
+identities: at interior `x`, `∂ₜu = u_xx + reaction` (the χ₀=0 ledger PDE). -/
+theorem hpde_u_of_representation (p : CM2Params) (hχ0 : p.χ₀ = 0)
+    {u : ℝ → intervalDomainPoint → ℝ} {t₀ : ℝ}
+    {a₀ : ℕ → ℝ} {M : ℝ} (hM : 0 ≤ M) (ha₀ : ∀ n, |a₀ n| ≤ M)
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a) {offset : ℝ} (hoff : 0 < t₀ - offset)
+    (hrep : ∀ᶠ s in 𝓝 t₀, ∀ y : intervalDomainPoint,
+      u s y = ∑' n, localRestartCoeff a₀ a (s - offset) n * cosineMode n y.1)
+    (hsrc_coeff : ∀ n, a (t₀ - offset) n
+        = cosineCoeffs (logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀))) n)
+    (hcont : Continuous (logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀))))
+    (hsum_fourier : Summable (fun n : ℤ => fourierCoeff
+        (reflCircle (logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀)))) n))
+    (hsum_b : Summable (fun n => unitIntervalCosineEigenvalue n
+        * |localRestartCoeff a₀ a (t₀ - offset) n|))
+    {x : intervalDomainPoint} (hx : x.1 ∈ Set.Ioo (0:ℝ) 1)
+    (hsum_src : Summable (fun n => a (t₀ - offset) n * cosineMode n x.1))
+    (hsum_lb : Summable (fun n => unitIntervalCosineEigenvalue n
+        * localRestartCoeff a₀ a (t₀ - offset) n * cosineMode n x.1)) :
+    intervalDomain.timeDeriv u t₀ x
+      = intervalDomain.laplacian (u t₀) x
+        - p.χ₀ * intervalDomain.chemotaxisDiv p (u t₀)
+            (mildChemicalConcentration p u t₀) x
+        + u t₀ x * (p.a - p.b * (u t₀ x) ^ p.α) := by
+  have hrep_real : ∀ z ∈ Set.Icc (0:ℝ) 1,
+      intervalDomainLift (u t₀) z
+        = ∑' n, localRestartCoeff a₀ a (t₀ - offset) n * cosineMode n z := by
+    intro z hz
+    rw [intervalDomainLift, dif_pos hz]
+    exact hrep.self_of_nhds ⟨z, hz⟩
+  exact hpde_u_core p hχ0
+    (b := fun n => localRestartCoeff a₀ a (t₀ - offset) n)
+    (src := fun n => a (t₀ - offset) n) hsum_src hsum_lb
+    (timeDeriv_eq_of_rep hM ha₀ src hoff hrep x)
+    (laplacian_eq_of_rep hsum_b hrep_real hx)
+    (source_inversion_eq_reaction p hsrc_coeff hcont hsum_fourier hx)
+
 end ShenWork.IntervalDomainPdeUChiZero
