@@ -59,7 +59,8 @@ noncomputable section
 
 namespace ShenWork.Paper2.HsupNormProof
 
-open ShenWork.IntervalDomain (intervalDomainSupNorm IntervalDomainSupNormDerivativeNonposOn)
+open ShenWork.IntervalDomain (intervalDomainPoint intervalDomainSupNorm
+  IntervalDomainSupNormDerivativeNonposOn)
 
 /-- **Reusable constructor.**  If the sup-norm trajectory is continuous on
 `I`, and near every interior point it agrees (`=ᶠ`) with a function `g`
@@ -97,9 +98,12 @@ theorem nonposOn_of_eq
     (hdiff : ∀ t ∈ I, DifferentiableAt ℝ g t)
     (hnonpos : ∀ t ∈ I, deriv g t ≤ 0) :
     IntervalDomainSupNormDerivativeNonposOn u I := by
-  rw [hU.interior_eq] at *
-  refine nonposOn_of_locally_eq hcont ?_ hdiff hnonpos
-  intro t ht
-  exact Filter.eventuallyEq_of_mem (hU.mem_nhds ht) (fun s hs => heq s hs)
+  have hint : interior I = I := hU.interior_eq
+  refine nonposOn_of_locally_eq hcont ?_ ?_ ?_
+  · intro t ht
+    rw [hint] at ht
+    exact Filter.eventuallyEq_of_mem (hU.mem_nhds ht) (fun s hs => heq s hs)
+  · intro t ht; rw [hint] at ht; exact hdiff t ht
+  · intro t ht; rw [hint] at ht; exact hnonpos t ht
 
 end ShenWork.Paper2.HsupNormProof
