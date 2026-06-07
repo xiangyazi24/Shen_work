@@ -662,7 +662,9 @@ theorem supNorm_nonincr_core
       intro y hy s hs
       have hsInt : s ∈ Set.Ioo (0:ℝ) T := hsub (Set.Ioo_subset_Icc_self hs)
       have hfun : (fun r => F r y) = fun r => u r ⟨y, hy⟩ := by
-        funext r; rw [hF_def, intervalDomainLift, dif_pos hy]
+        funext r
+        show intervalDomainLift (u r) y = u r ⟨y, hy⟩
+        rw [intervalDomainLift, dif_pos hy]
       rw [hfun]
       exact ((hTimeReg ⟨y, hy⟩ s hsInt).1.1).hasDerivAt
     have hdFc : ContinuousOn
@@ -716,7 +718,8 @@ theorem lemma31_zero
     have hbdd : BddAbove (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1) :=
       (isCompact_Icc.image_of_continuousOn hcontU).bddAbove
     have huy : u s y = intervalDomainLift (u s) y.1 := by
-      rw [intervalDomainLift, dif_pos y.2]
+      rw [intervalDomainLift,
+        dif_pos (show (y.1 : ℝ) ∈ Set.Icc (0:ℝ) 1 from y.2), Subtype.coe_eta]
     have huq : u s ⟨xs, hxs⟩ = intervalDomainLift (u s) xs := by
       rw [intervalDomainLift, dif_pos hxs]
     rw [huy, huq, hargmax]
