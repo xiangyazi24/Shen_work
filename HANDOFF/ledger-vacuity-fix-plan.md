@@ -143,3 +143,37 @@ global-C² constructors, transfer to the lift via [0,1]-agreement.
   (hbsum+hagree) instead of `hC2t` global; fill its source field via adapter #7;
   re-run the vacuity False-proof (must FAIL = satisfiable); re-thread
   `paper2_theorem_1_1_chiZero_*` onto it.
+
+---
+
+## UPDATE (2026-06-06): Hvpos route scoped; cosineCoeffs_const landed
+
+`cosineCoeffs_const` (IntervalDomainResolverStrictPos.lean) landed + axiom-clean:
+`cosineCoeffs (fun _ => c) n = if n = 0 then c else 0` (∫₀¹cos(nπx)dx = sin(nπ)/nπ = 0).
+
+REMAINING for Hvpos strict positivity `0 < mildChemicalConcentration p u t x`
+(= `0 < intervalNeumannResolverR p u x`), route fully scoped:
+1. Source `f := νu^γ` is continuous and `≥ c₀ := ν·m^γ > 0` on [0,1]
+   (m = min_{[0,1]} u > 0 by compactness + hpos).
+2. CORE: `unitIntervalCosineHeatValue t (cosineCoeffs f) x ≥ c₀` for t>0. Two routes:
+   (a) Semigroup: heatValue = `intervalFullSemigroupOperator t f x = ∫₀¹ K(t,x,y)f(y)dy`
+       (intervalFullSemigroupOperator_eq_cosineHeatValue_unconditional). Need mass
+       conservation `∫₀¹ K(t,x,·) = 1` (NOT yet in repo — would need proving; then
+       S(t)f − c₀ = ∫K(f−c₀) ≥ 0). CLEANEST if mass-conservation is added.
+   (b) Spectral: heatValue(cosineCoeffs f) − c₀ = heatValue(cosineCoeffs f − cosineCoeffs(const c₀))
+       [heatValue linear in coeffs, needs weight·coeffs summable] = heatValue(cosineCoeffs(f−c₀))
+       [cosineCoeffs_sub_eq] ≥ 0 [unitIntervalCosineHeatValue_nonneg_of_continuous, f−c₀≥0];
+       heatValue(cosineCoeffs(const c₀)) = c₀ [cosineCoeffs_const + tsum_eq_single 0,
+       weight(t,x,0)=e^0·cos0=1].
+3. `laplaceHeatTrunc T = ∫₀ᵀ e^{−μt}·heatValue dt ≥ ∫₀ᵀ e^{−μt}·c₀ dt = c₀(1−e^{−μT})/μ`.
+4. `R(u)(x) = lim_T laplaceHeatTrunc` (interior x, via laplaceHeatTrunc_tendsto +
+   the hrecon identity, as in intervalNeumannResolverR_nonneg_interior); and
+   `c₀(1−e^{−μT})/μ → c₀/μ`. So `le_of_tendsto_of_tendsto'` ⟹ `R(u)(x) ≥ c₀/μ > 0`
+   (interior); extend to closed [0,1] by continuity (as in
+   intervalNeumannResolverR_nonneg_of_nonneg_source).
+This is ~100 lines of summability/integral bookkeeping — a standalone additive
+lemma in IntervalDomainResolverStrictPos.lean. Recommend route (a) + adding the
+one-line-physics mass-conservation lemma, or (b) reusing cosineCoeffs_const.
+
+STILL OPEN after Hvpos: HsupNorm (sup-norm max principle — mirror MinPersistence),
+hpde_u (spectral→pointwise PDE bridge — hardest), then satisfiable ledger assembly.
