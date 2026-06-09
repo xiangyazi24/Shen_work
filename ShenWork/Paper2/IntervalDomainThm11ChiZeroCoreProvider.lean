@@ -219,8 +219,12 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   -- intervalLogisticSource p (D.u s) = fun x => (D.u s x) * (a - b * (D.u s x)^α).
   -- D.u s is continuous on the subtype (from D.hcont / HasContinuousSlices),
   -- and the logistic reaction is a composition of continuous operations.
-  hLc := fun _t _ht _htT s hs hsT => by
-    sorry -- Continuous (intervalLogisticSource p (D.u s)) from D.hcont + algebra
+  hLc := fun _t _ht htT s hs hsT => by
+    have hcu := D.hcont s hs (hsT.trans htT.le)
+    unfold ShenWork.IntervalDomainExistence.intervalLogisticSource
+    exact hcu.mul
+      (continuous_const.sub
+        (continuous_const.mul (hcu.rpow_const (fun _ => Or.inr p.hα.le))))
   -- frontier residuals discharged from the representation
   hpde_u := sorry
   Hvsrc := sorry
