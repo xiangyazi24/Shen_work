@@ -190,9 +190,26 @@ noncomputable def reducedLimitRegularityInputs_of_picard
         simp [intervalDomainLift, dif_pos (show (0:ℝ) ∈ Set.Icc 0 1 from ⟨le_refl _, zero_le_one⟩)]
         exact D.hpos σ hσ hσT.le _
       have hcont := hdiff.continuousAt
-      -- At x = -1/n → 0⁻, lift = 0 → limit = 0 by continuity. But lift(0) > 0.
-      have := hcont.tendsto
-      sorry -- Filter.Tendsto contradiction: nhds 0 sees x<0 where lift=0, but lift(0)>0
+      -- Restrict continuity to the left nhdsWithin:  nhdsWithin 0 (Iio 0) ≤ nhds 0.
+      have htleft : Filter.Tendsto (intervalDomainLift (D.u σ))
+          (nhdsWithin 0 (Set.Iio 0)) (nhds (intervalDomainLift (D.u σ) 0)) :=
+        hcont.tendsto.mono_left nhdsWithin_le_nhds
+      -- On Iio 0 the lift is identically 0 (x ∉ Icc 0 1).
+      have hlift0 : (intervalDomainLift (D.u σ)) =ᶠ[nhdsWithin 0 (Set.Iio 0)] (fun _ => 0) := by
+        filter_upwards [self_mem_nhdsWithin] with x (hx : x < 0)
+        simp [intervalDomainLift,
+          show ¬((x : ℝ) ∈ Set.Icc 0 1) from fun h => absurd h.1 (not_le.mpr hx)]
+      -- So 0 → lift(0) along the left filter, but also 0 → 0.
+      have htleft0 : Filter.Tendsto (fun _ : ℝ => (0 : ℝ))
+          (nhdsWithin 0 (Set.Iio 0)) (nhds (intervalDomainLift (D.u σ) 0)) :=
+        htleft.congr' hlift0
+      -- The left nhdsWithin is NeBot (ℝ has no min).
+      have hne : (nhdsWithin (0 : ℝ) (Set.Iio 0)).NeBot := inferInstance
+      -- By uniqueness of limits: lift(0) = 0.
+      have heq : intervalDomainLift (D.u σ) 0 = 0 :=
+        tendsto_nhds_unique htleft0 tendsto_const_nhds
+      -- But lift(0) > 0, contradiction.
+      linarith
     exact deriv_zero_of_not_differentiableAt hnotdiff
   hN1t := fun σ hσ hσT => by
     have hnotdiff : ¬ DifferentiableAt ℝ (intervalDomainLift (D.u σ)) 1 := by
@@ -201,7 +218,26 @@ noncomputable def reducedLimitRegularityInputs_of_picard
         simp [intervalDomainLift, dif_pos (show (1:ℝ) ∈ Set.Icc 0 1 from ⟨zero_le_one, le_refl _⟩)]
         exact D.hpos σ hσ hσT.le _
       have hcont := hdiff.continuousAt
-      sorry -- Same: x = 1+1/n → 1⁺ where lift=0, but lift(1)>0
+      -- Restrict continuity to the right nhdsWithin:  nhdsWithin 1 (Ioi 1) ≤ nhds 1.
+      have htright : Filter.Tendsto (intervalDomainLift (D.u σ))
+          (nhdsWithin 1 (Set.Ioi 1)) (nhds (intervalDomainLift (D.u σ) 1)) :=
+        hcont.tendsto.mono_left nhdsWithin_le_nhds
+      -- On Ioi 1 the lift is identically 0 (x ∉ Icc 0 1).
+      have hlift0 : (intervalDomainLift (D.u σ)) =ᶠ[nhdsWithin 1 (Set.Ioi 1)] (fun _ => 0) := by
+        filter_upwards [self_mem_nhdsWithin] with x (hx : (1 : ℝ) < x)
+        simp [intervalDomainLift,
+          show ¬((x : ℝ) ∈ Set.Icc 0 1) from fun h => absurd h.2 (not_le.mpr hx)]
+      -- So lift → lift(1) along the right filter, but also lift = 0 eventually.
+      have htright0 : Filter.Tendsto (fun _ : ℝ => (0 : ℝ))
+          (nhdsWithin 1 (Set.Ioi 1)) (nhds (intervalDomainLift (D.u σ) 1)) :=
+        htright.congr' hlift0
+      -- The right nhdsWithin is NeBot (ℝ has no max).
+      have hne : (nhdsWithin (1 : ℝ) (Set.Ioi 1)).NeBot := inferInstance
+      -- By uniqueness of limits: lift(1) = 0.
+      have heq : intervalDomainLift (D.u σ) 1 = 0 :=
+        tendsto_nhds_unique htright0 tendsto_const_nhds
+      -- But lift(1) > 0, contradiction.
+      linarith
     exact deriv_zero_of_not_differentiableAt hnotdiff
   -- K1 source-coefficient time-C¹ data (M3b)
   adott := sorry

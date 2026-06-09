@@ -65,7 +65,12 @@ theorem logisticSource_constExtend_continuous
     (D : GradientMildSolutionData p u₀)
     {s : ℝ} (hs : 0 < s) (hsT : s ≤ D.T) :
     Continuous (intervalDomainConstExtend (intervalLogisticSource p (D.u s))) := by
-  sorry -- constExtend_continuous applied to logisticSource continuous on subtype
+  apply constExtend_continuous
+  -- intervalLogisticSource p (D.u s) = fun x => (D.u s x) * (p.a - p.b * (D.u s x) ^ p.α)
+  have hcu : Continuous (D.u s) := D.hcont s hs hsT
+  unfold intervalLogisticSource
+  exact hcu.mul
+    (continuous_const.sub (continuous_const.mul (hcu.rpow_const (fun _ => Or.inr p.hα.le))))
 
 /-- **The comprehensive adapter: produce GradientMildHalfStepRestartData
 from subtype continuity via constant extension.**
