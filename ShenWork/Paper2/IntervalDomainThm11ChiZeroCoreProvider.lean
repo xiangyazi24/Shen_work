@@ -131,13 +131,29 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   hb := hb.le
   -- H1 datum data
   hu₀_cont := hu₀.admissible.2
-  -- M₀/hu₀_bound: cosine coefficient bound for initial datum.
-  -- lift u₀ on [0,1] = u₀ (subtype), bounded by D.M (from D.hbound at t→0+).
-  -- cosineCoeffs_abs_le_of_continuous_bounded: ContinuousOn + bounded → |aₙ| ≤ 2B.
-  M₀ := 2 * D.M  -- crude bound; tighter: use PID admissible BddAbove
-  hu₀_bound := sorry  -- needs: ContinuousOn (lift u₀) Icc (from Continuous u₀)
-                       -- + |lift u₀ x| ≤ D.M on Icc (from D.hbound limit as t→0+)
-                       -- + cosineCoeffs_abs_le_of_continuous_bounded
+  -- M₀/hu₀_bound: cosineCoeffs_abs_le_of_continuous_bounded needs
+  -- ContinuousOn (lift u₀) Icc + |lift u₀ x| ≤ B on Icc.
+  -- PID admissible gives BddAbove (range |u₀|); use its sSup as the bound B
+  -- (NOT D.M, which bounds the solution on (0,T], not u₀).
+  M₀ := 2 * sSup (Set.range fun x => |u₀ x|)
+  hu₀_bound := by
+    have hbdd : BddAbove (Set.range fun x => |u₀ x|) := hu₀.admissible.1
+    have hB0 : 0 ≤ sSup (Set.range fun x => |u₀ x|) :=
+      le_trans (abs_nonneg _)
+        (le_csSup hbdd ⟨⟨1 / 2, by norm_num [Set.mem_Icc]⟩, rfl⟩)
+    have hcont : ContinuousOn (intervalDomainLift u₀) (Set.Icc (0 : ℝ) 1) := by
+      rw [continuousOn_iff_continuous_restrict]
+      have heq : (Set.Icc (0 : ℝ) 1).restrict (intervalDomainLift u₀) = u₀ := by
+        funext x
+        simp only [Set.restrict_apply, intervalDomainLift, dif_pos x.2]
+      rw [heq]; exact hu₀.admissible.2
+    have hfb : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |intervalDomainLift u₀ x| ≤ sSup (Set.range fun x => |u₀ x|) := by
+      intro x hx
+      simp only [intervalDomainLift, dif_pos hx]
+      exact le_csSup hbdd ⟨⟨x, hx⟩, rfl⟩
+    exact ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
+      hcont hB0 hfb
   -- mild fixed-point: D.hmild gives ∀ t, 0 < t → t ≤ T → ∀ x, u t x = DuhamelMap ...
   -- The lift on [0,1] equals the subtype value.
   hfix := fun t ht htT x hx => by
@@ -165,14 +181,28 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   -- The lift is NOT differentiable at 0 or 1 (jumps from u(σ,0)>0 to 0).
   -- In Lean/Mathlib, deriv of a non-differentiable function = 0 (junk value).
   -- So deriv ... 0 = 0 is trivially true.
-  hN0t := fun σ _hσ _hσT => by
-    have : ¬ DifferentiableAt ℝ (intervalDomainLift (D.u σ)) 0 := by
-      sorry -- lift discontinuous at 0 (positive inside, 0 outside)
-    exact deriv_zero_of_not_differentiableAt this
-  hN1t := fun σ _hσ _hσT => by
-    have : ¬ DifferentiableAt ℝ (intervalDomainLift (D.u σ)) 1 := by
-      sorry -- lift discontinuous at 1 (positive inside, 0 outside)
-    exact deriv_zero_of_not_differentiableAt this
+  hN0t := fun σ hσ hσT => by
+    -- lift is discontinuous at 0: lift(0) = u(σ,0) > 0 but lift(x) = 0 for x < 0.
+    -- DifferentiableAt ⟹ ContinuousAt, but left limit = 0 ≠ lift(0) > 0. Contradiction.
+    have hnotdiff : ¬ DifferentiableAt ℝ (intervalDomainLift (D.u σ)) 0 := by
+      intro hdiff
+      have hval : 0 < intervalDomainLift (D.u σ) 0 := by
+        simp [intervalDomainLift, dif_pos (show (0:ℝ) ∈ Set.Icc 0 1 from ⟨le_refl _, zero_le_one⟩)]
+        exact D.hpos σ hσ hσT.le _
+      have hcont := hdiff.continuousAt
+      -- At x = -1/n → 0⁻, lift = 0 → limit = 0 by continuity. But lift(0) > 0.
+      have := hcont.tendsto
+      sorry -- Filter.Tendsto contradiction: nhds 0 sees x<0 where lift=0, but lift(0)>0
+    exact deriv_zero_of_not_differentiableAt hnotdiff
+  hN1t := fun σ hσ hσT => by
+    have hnotdiff : ¬ DifferentiableAt ℝ (intervalDomainLift (D.u σ)) 1 := by
+      intro hdiff
+      have hval : 0 < intervalDomainLift (D.u σ) 1 := by
+        simp [intervalDomainLift, dif_pos (show (1:ℝ) ∈ Set.Icc 0 1 from ⟨zero_le_one, le_refl _⟩)]
+        exact D.hpos σ hσ hσT.le _
+      have hcont := hdiff.continuousAt
+      sorry -- Same: x = 1+1/n → 1⁺ where lift=0, but lift(1)>0
+    exact deriv_zero_of_not_differentiableAt hnotdiff
   -- K1 source-coefficient time-C¹ data (M3b)
   adott := sorry
   hderivt := sorry
