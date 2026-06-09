@@ -20,14 +20,16 @@ noncomputable section
 
 namespace ShenWork.IntervalDomain
 
+instance : TopologicalSpace intervalDomainPoint := instTopologicalSpaceSubtype
+
 /-- Constant extension of a subtype function to ℝ: f(0) for x ≤ 0,
 f(1) for x ≥ 1, f(x) for x ∈ [0,1]. Globally continuous when f is
 continuous on the subtype. -/
 def intervalDomainConstExtend (f : intervalDomainPoint → ℝ) : ℝ → ℝ :=
   fun x =>
-    if x ≤ 0 then f ⟨0, ⟨le_refl _, zero_le_one⟩⟩
-    else if 1 ≤ x then f ⟨1, ⟨zero_le_one, le_refl _⟩⟩
-    else f ⟨x, ⟨le_of_not_le (by assumption), le_of_not_le (by assumption)⟩⟩
+    if h0 : x ≤ 0 then f ⟨0, ⟨le_refl _, zero_le_one⟩⟩
+    else if h1 : 1 ≤ x then f ⟨1, ⟨zero_le_one, le_refl _⟩⟩
+    else f ⟨x, ⟨(not_le.mp h0).le, (not_le.mp h1).le⟩⟩
 
 /-- The constant extension agrees with the lift on (0,1). -/
 theorem constExtend_eq_lift_on_Ioo {f : intervalDomainPoint → ℝ}
@@ -37,37 +39,39 @@ theorem constExtend_eq_lift_on_Ioo {f : intervalDomainPoint → ℝ}
     dif_pos (Ioo_subset_Icc_self hx)]
   have h0 : ¬ x ≤ 0 := not_le.mpr hx.1
   have h1 : ¬ 1 ≤ x := not_le.mpr hx.2
-  simp [h0, h1]
+  simp only [dif_neg h0, dif_neg h1]
 
 /-- The constant extension agrees with the lift on [0,1]. -/
 theorem constExtend_eq_lift_on_Icc {f : intervalDomainPoint → ℝ}
     {x : ℝ} (hx : x ∈ Icc (0 : ℝ) 1) :
     intervalDomainConstExtend f x = intervalDomainLift f x := by
   simp only [intervalDomainConstExtend, intervalDomainLift, dif_pos hx]
-  rcases le_or_lt x 0 with hle | hgt
-  · have : x = 0 := le_antisymm hle hx.1
-    subst this; simp [le_refl]
-  · simp [not_le.mpr hgt]
-    rcases le_or_lt 1 x with hle1 | hlt1
-    · have : x = 1 := le_antisymm hx.2 hle1
-      subst this; simp [le_refl]
-    · simp [not_le.mpr hlt1]
+  by_cases hle : x ≤ 0
+  · have hx0 : x = 0 := le_antisymm hle hx.1
+    subst hx0; simp
+  · simp only [dif_neg hle]
+    by_cases hle1 : 1 ≤ x
+    · have hx1 : x = 1 := le_antisymm hx.2 hle1
+      subst hx1; simp
+    · simp only [dif_neg hle1]
 
 /-- The constant extension is globally continuous when f is continuous
 on the subtype. This is the paper-faithful replacement for the false
 `Continuous (intervalDomainLift f)`. -/
 theorem constExtend_continuous {f : intervalDomainPoint → ℝ}
     (hf : Continuous f) : Continuous (intervalDomainConstExtend f) := by
-  -- Express as: Set.piecewise (Iic 0) (fun _ => f ⟨0, ...⟩)
-  --               (Set.piecewise (Ici 1) (fun _ => f ⟨1, ...⟩) (fun x => f ⟨x, ...⟩))
-  -- Use continuous_piecewise: frontier condition + ContinuousOn on closure.
-  -- For now, reduce to continuousAt at each point.
-  rw [continuous_def]
-  intro s hs
-  rw [isOpen_iff_forall_mem_open]
-  intro x hx
-  sorry -- Per-point continuity: case split on x < 0, 0 ≤ x ≤ 1, x > 1.
-         -- Each case: locally constant or locally equals f (continuous on subtype).
+  suffices h : intervalDomainConstExtend f = Set.IccExtend (zero_le_one (α := ℝ)) f by
+    rw [h]; exact hf.Icc_extend'
+  funext x
+  simp only [intervalDomainConstExtend, Set.IccExtend, Set.projIcc, Function.comp]
+  split_ifs with h0 h1
+  · congr 1; exact Subtype.ext (by
+      simp [min_eq_right (h0.trans zero_le_one), max_eq_left h0])
+  · congr 1; exact Subtype.ext (by
+      simp [min_eq_left h1])
+  · have h0' : 0 ≤ x := (not_le.mp h0).le
+    have h1' : x ≤ 1 := (not_le.mp h1).le
+    congr 1; exact Subtype.ext (by simp [min_eq_right h1', max_eq_right h0'])
 
 /-- The cosine coefficients of the constant extension equal those of the lift.
 Both integrate f against cos(nπy) over [0,1], where they agree. -/
@@ -84,16 +88,6 @@ theorem semigroupOperator_constExtend_eq_lift
       (intervalDomainConstExtend f) x =
     ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator t
       (intervalDomainLift f) x := by
-  -- S(t)g(x) = ∫ y, K(t,x,y)*g(y) d(volume.restrict (Icc 0 1)).
-  -- constExtend = lift on Icc 0 1 → integrands agree a.e. → integrals equal.
-  simp only [ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator]
-  congr 1; ext y
-  congr 1
-  -- Need: constExtend f y = lift f y when y ∈ support of intervalMeasure 1
-  -- But we're integrating over all y with the restricted measure.
-  -- The integrand K*constExtend = K*lift on Icc 0 1 (where the measure lives).
-  -- Use integral_congr_ae: ae (volume.restrict Icc) they agree.
-  sorry -- needs: ae_of_mem_restrict + constExtend_eq_lift_on_Icc
+  sorry -- S(t) integrates over [0,1] where constExtend = lift
 
 end ShenWork.IntervalDomain
-
