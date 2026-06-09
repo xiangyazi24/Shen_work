@@ -42,7 +42,18 @@ theorem cosineCoeffs_constExtend_eq_lift
     (f : intervalDomainPoint → ℝ) (n : ℕ) :
     cosineCoeffs (intervalDomainConstExtend f) n =
     cosineCoeffs (intervalDomainLift f) n := by
-  sorry -- Integral over [0,1] where constExtend = lift
+  -- cosineCoeffs is unitIntervalNeumannCosineCoeff which uses unitIntervalCosineRawCoeff
+  -- = ∫₀¹ cos(nπx) * f(x) dx. Both constExtend and lift agree on [[0,1]] = Icc 0 1.
+  simp only [cosineCoeffs,
+    ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff]
+  congr 1
+  -- Need: unitIntervalCosineRawCoeff (constExtend) = unitIntervalCosineRawCoeff (lift)
+  simp only [ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff]
+  congr 1
+  apply intervalIntegral.integral_congr
+  intro x hx
+  rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)] at hx
+  rw [constExtend_eq_lift_on_Icc hx]
 
 /-- **Constant extension of the logistic source is globally continuous.**
 `intervalLogisticSource p (D.u s)` is continuous on the compact subtype
