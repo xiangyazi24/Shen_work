@@ -61,6 +61,7 @@
   No `sorry`, no `admit`, no custom `axiom`, no `native_decide`.
 -/
 import ShenWork.Paper2.IntervalPicardLimitRestart
+import ShenWork.PDE.IntervalSpectralSubtypeAdapter
 
 open MeasureTheory Filter Topology
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
@@ -478,9 +479,94 @@ theorem limit_lift_eq_cosineSeries_of_subtypeCont
     {x : ℝ} (hx : x ∈ Set.Icc (0:ℝ) 1) :
     intervalDomainLift (u t) x
       = ∑' k, ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ u t k * cosineMode k x := by
-  -- Route through the constant extension of u₀ (globally continuous).
-  -- S(t)(constExtend u₀) = S(t)(lift u₀) by semigroup congr.
-  -- cosineCoeffs(constExtend u₀) = cosineCoeffs(lift u₀) by coefficient congr.
-  -- Then apply the existing `limit_lift_eq_cosineSeries_weak`.
-  sorry
+  -- Derive subtype continuity for logistic source from constExtend continuity.
+  have hL_subtype : ∀ s, 0 < s → s ≤ t →
+      Continuous (intervalLogisticSource p (u s)) := by
+    intro s hs hsT
+    have heq : intervalLogisticSource p (u s) =
+        (intervalDomainConstExtend (intervalLogisticSource p (u s))) ∘ Subtype.val := by
+      funext ⟨y, hy⟩
+      simp only [Function.comp, constExtend_eq_lift_on_Icc hy,
+        intervalDomainLift, dif_pos hy]
+    rw [heq]; exact (hL_cont s hs hsT).comp continuous_subtype_val
+  -- Rewrite via Duhamel formula (same first step as _weak).
+  rw [hfix t ht x hx,
+    intervalGradientDuhamelMap_eq_of_chi0_zero p hχ0 u₀ _ t ⟨x, hx⟩]
+  -- Homogeneous term: adapter replaces the false `Continuous (lift u₀)` with
+  -- the paper-faithful `Continuous u₀` (subtype).
+  have hhom : intervalFullSemigroupOperator t (intervalDomainLift u₀) x
+      = ∑' k, (Real.exp (-t * (λ_ k))
+          * cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k x := by
+    rw [intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
+          ht hu₀_cont hu₀_bound hx]
+    exact heatValue_eq_cosineSeries t _ x
+  -- Source coefficient family (same as _weak).
+  set a : ℝ → ℕ → ℝ := fun s k =>
+    cosineCoeffs (logisticLifted p (u s)) k with ha
+  have hMa : ∀ s, 0 ≤ s → ∀ k, |a s k| ≤ ∑' j, hsrc0.envelope j := by
+    intro s hs k
+    have hnn : ∀ j, 0 ≤ hsrc0.envelope j := fun j =>
+      le_trans (abs_nonneg _) (hsrc0.henv_bound 0 le_rfl j)
+    refine le_trans (hsrc0.henv_bound s hs k) ?_
+    have := hsrc0.henv_summable.sum_le_tsum {k} (fun j _ => hnn j)
+    simpa using this
+  -- Duhamel integrand: adapter with subtype continuity of logistic source.
+  -- `logisticLifted p (u s) = intervalDomainLift (intervalLogisticSource p (u s))`
+  -- by definition, so the adapter applies directly.
+  have hduh_integrand : ∀ s ∈ Set.Ioo (0:ℝ) t,
+      intervalFullSemigroupOperator (t - s) (logisticLifted p (u s)) x
+        = unitIntervalCosineHeatValue (t - s) (a s) x := by
+    intro s hs
+    have hts : 0 < t - s := by linarith [hs.2]
+    have hsub : Continuous (intervalLogisticSource p (u s)) :=
+      hL_subtype s hs.1 (le_of_lt hs.2)
+    have hMs : ∀ k, |cosineCoeffs (logisticLifted p (u s)) k|
+        ≤ ∑' j, hsrc0.envelope j := fun k => hMa s (le_of_lt hs.1) k
+    show intervalFullSemigroupOperator (t - s)
+        (intervalDomainLift (intervalLogisticSource p (u s))) x
+        = unitIntervalCosineHeatValue (t - s) (a s) x
+    exact intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
+        hts hsub hMs hx
+  -- Integral equality via ae congr (identical to _weak).
+  have hduh_eq : (∫ s in (0:ℝ)..t,
+        intervalFullSemigroupOperator (t - s) (logisticLifted p (u s)) x)
+      = ∫ s in (0:ℝ)..t, unitIntervalCosineHeatValue (t - s) (a s) x := by
+    refine intervalIntegral.integral_congr_ae ?_
+    rw [Set.uIoc_of_le ht.le]
+    have hmem : ∀ᵐ s ∂volume, s ∈ Set.Ioc (0:ℝ) t → s ∈ Set.Ioo (0:ℝ) t := by
+      have hnull : volume ({t} : Set ℝ) = 0 := by simp
+      filter_upwards [(MeasureTheory.compl_mem_ae_iff.mpr hnull)] with s hs hsmem
+      refine ⟨hsmem.1, lt_of_le_of_ne hsmem.2 ?_⟩
+      intro hst; exact hs (by simp [hst])
+    filter_upwards [hmem] with s hs hsIoc
+    exact hduh_integrand s (hs hsIoc)
+  rw [hhom, hduh_eq, duhamelSpectral_eq_cosineSeries_weak hsrc0 ht]
+  -- Summability + tsum algebra (identical to _weak).
+  have hcosbd : ∀ (c : ℕ → ℝ) (k : ℕ), ‖c k * cosineMode k x‖ ≤ |c k| := by
+    intro c k
+    rw [Real.norm_eq_abs, abs_mul]
+    calc |c k| * |cosineMode k x| ≤ |c k| * 1 := by
+          apply mul_le_mul_of_nonneg_left _ (abs_nonneg _)
+          simpa [cosineMode] using Real.abs_cos_le_one ((k : ℝ) * Real.pi * x)
+      _ = |c k| := mul_one _
+  have hM0 : 0 ≤ M₀ := le_trans (abs_nonneg _) (hu₀_bound 0)
+  have hsum_hom : Summable (fun k =>
+      (Real.exp (-t * (λ_ k)) * cosineCoeffs (intervalDomainLift u₀) k)
+        * cosineMode k x) := by
+    refine Summable.of_norm_bounded ?_ (hcosbd _)
+    refine Summable.of_nonneg_of_le (fun k => abs_nonneg _) (fun k => ?_)
+      ((expEigSummable ht).mul_right M₀)
+    rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+    exact mul_le_mul_of_nonneg_left (hu₀_bound k) (Real.exp_pos _).le
+  have hsum_duh : Summable (fun k =>
+      duhamelSpectralCoeff a t k * cosineMode k x) := by
+    refine Summable.of_norm_bounded ?_ (hcosbd _)
+    refine Summable.of_nonneg_of_le (fun k => abs_nonneg _) (fun k => ?_)
+      (hsrc0.henv_summable.mul_left t)
+    exact abs_duhamelSpectralCoeff_le_weak hsrc0 ht k
+  rw [← Summable.tsum_add hsum_hom hsum_duh]
+  refine tsum_congr (fun k => ?_)
+  unfold ShenWork.IntervalPicardLimitRestart.limitCoeff
+  rw [ha]
+  ring
 

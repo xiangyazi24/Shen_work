@@ -134,3 +134,24 @@ import ShenWork.Paper2.IntervalDomainL2HalfEnergyTimeLeibniz
 import ShenWork.Paper2.IntervalDomainL2PDEIntegral
 import ShenWork.Paper2.IntervalDomainL2CrossControl
 import ShenWork.Paper2.IntervalDuhamelIntegrability
+-- 2026-06-09: working-front modules added to the build closure.
+-- These 17 maximal orphans pull in all 92 previously-unbuilt files;
+-- before this, a green full build did NOT cover the Theorem 1.1 chain
+-- (provider/Final/RestartWeak/adapter were outside the root closure).
+import ShenWork.PDE.IntervalLiftEndpointDeriv
+import ShenWork.PDE.IntervalLogisticSourceTimeC1
+import ShenWork.PDE.IntervalSemigroupAtZero
+import ShenWork.PDE.IntervalWeakCosineIBP
+import ShenWork.PDE.PoincareInequality
+import ShenWork.Paper2.IntervalDomainConstExtendAdapter
+import ShenWork.Paper2.IntervalDomainF1Assembly
+import ShenWork.Paper2.IntervalDomainFinalWiring
+import ShenWork.Paper2.IntervalDomainMinPersistFinal
+import ShenWork.Paper2.IntervalDomainResolverStrictPos
+import ShenWork.Paper2.IntervalDomainThm11ChiZeroCoreProvider
+import ShenWork.Paper2.IntervalDomainThm11ChiZeroLedger
+import ShenWork.Paper2.IntervalHsupNormConsumers
+import ShenWork.Paper2.IntervalHsupNormHeat
+import ShenWork.Paper2.IntervalPicardG1Split
+import ShenWork.Paper2.IntervalPicardLimitLogisticSource
+import ShenWork.Paper2.IntervalResolverTimeRegularity
