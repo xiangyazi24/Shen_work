@@ -635,32 +635,3 @@ theorem intervalFullSemigroupOperator_contDiff_two
 
 end ShenWork.IntervalNeumannFullKernel
 
-/-- The semigroup operator depends on `f` only through its values on `[0,1]`.
-If `f₁ = f₂` on `[0,1]`, then `S(t)f₁ = S(t)f₂` at every point. -/
-theorem intervalFullSemigroupOperator_congr_Icc
-    {t : ℝ} {f₁ f₂ : ℝ → ℝ}
-    (heq : Set.EqOn f₁ f₂ (Set.Icc (0:ℝ) 1)) (x : ℝ) :
-    intervalFullSemigroupOperator t f₁ x = intervalFullSemigroupOperator t f₂ x := by
-  unfold intervalFullSemigroupOperator
-  congr 1
-  apply MeasureTheory.integral_congr_ae
-  rw [Filter.eventuallyEq_iff_exists_mem]
-  refine ⟨Set.Icc (0:ℝ) 1, ?_, fun y hy => by rw [heq hy]⟩
-  sorry -- ae_of_all: Icc 0 1 has full measure under intervalMeasure 1
-
-
-/-- **Spectral identity via cosine series proxy.**  If `f = cs` on `[0,1]`
-where `cs x = ∑ₙ aₙ cos(nπx)` with eigenvalue-summable coefficients,
-then `S(t)f(x) = ∑ₙ e^{-tλₙ} aₙ cos(nπx)` on `[0,1]`.
-This avoids the global `Continuous f` hypothesis by routing through the
-globally-C² cosine series. -/
-theorem intervalFullSemigroupOperator_eq_cosineHeatValue_of_representation
-    {t : ℝ} (ht : 0 < t) {f : ℝ → ℝ} {a : ℕ → ℝ}
-    (hsum : Summable (fun n => unitIntervalCosineEigenvalue n * |a n|))
-    (hagree : Set.EqOn f (fun x => ∑' n, a n * cosineMode n x) (Set.Icc (0:ℝ) 1))
-    (hcoeffs : ∀ n, cosineCoeffs f n = a n)
-    {x : ℝ} (hx : x ∈ Set.Icc (0:ℝ) 1) :
-    intervalFullSemigroupOperator t f x =
-      unitIntervalCosineHeatValue t (cosineCoeffs f) x := by
-  sorry
-

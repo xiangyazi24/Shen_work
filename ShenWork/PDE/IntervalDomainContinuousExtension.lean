@@ -80,25 +80,3 @@ theorem semigroupOperator_constExtend_eq_lift
 
 end ShenWork.IntervalDomain
 
-/-- The Duhamel map is the same whether we use the lift or the constant
-extension for u₀, because the semigroup integral only sees [0,1]. -/
-theorem intervalGradientDuhamelMap_constExtend_eq
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    {u : ℝ → intervalDomainPoint → ℝ} {t : ℝ} {x : intervalDomainPoint} :
-    ShenWork.IntervalGradientDuhamelMap.intervalGradientDuhamelMap
-      p u₀ u t x =
-    ShenWork.IntervalGradientDuhamelMap.intervalGradientDuhamelMap
-      p u₀ u t x := rfl
-
-/-- The mild fixed-point equation using the constant extension.
-Since S(t)(constExtend u₀) = S(t)(lift u₀) and the Duhamel integrals
-only use [0,1], the mild equation is equivalent. -/
-theorem mildFixedPoint_constExtend
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    {u : ℝ → intervalDomainPoint → ℝ}
-    (hmild : ShenWork.IntervalGradientDuhamelMap.IntervalMildSolution p T u₀ u)
-    {t : ℝ} (ht : 0 < t) (htT : t ≤ T) (x : intervalDomainPoint) :
-    u t x =
-      ShenWork.IntervalGradientDuhamelMap.intervalGradientDuhamelMap p u₀ u t x :=
-  hmild t ht htT x
-
