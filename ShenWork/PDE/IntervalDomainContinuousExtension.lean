@@ -58,8 +58,16 @@ on the subtype. This is the paper-faithful replacement for the false
 `Continuous (intervalDomainLift f)`. -/
 theorem constExtend_continuous {f : intervalDomainPoint → ℝ}
     (hf : Continuous f) : Continuous (intervalDomainConstExtend f) := by
-  sorry -- Piecewise continuity: constant on (-∞,0], f on [0,1], constant on [1,∞)
-         -- Each piece continuous, glue at 0 and 1 (values match).
+  -- Express as: Set.piecewise (Iic 0) (fun _ => f ⟨0, ...⟩)
+  --               (Set.piecewise (Ici 1) (fun _ => f ⟨1, ...⟩) (fun x => f ⟨x, ...⟩))
+  -- Use continuous_piecewise: frontier condition + ContinuousOn on closure.
+  -- For now, reduce to continuousAt at each point.
+  rw [continuous_def]
+  intro s hs
+  rw [isOpen_iff_forall_mem_open]
+  intro x hx
+  sorry -- Per-point continuity: case split on x < 0, 0 ≤ x ≤ 1, x > 1.
+         -- Each case: locally constant or locally equals f (continuous on subtype).
 
 /-- The cosine coefficients of the constant extension equal those of the lift.
 Both integrate f against cos(nπy) over [0,1], where they agree. -/
