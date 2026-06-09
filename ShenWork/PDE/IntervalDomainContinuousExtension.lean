@@ -12,9 +12,9 @@
 
   No `sorry`/`admit`/custom `axiom`.
 -/
-import ShenWork.PDE.IntervalDomain
+import ShenWork.PDE.IntervalNeumannFullKernel
 
-open Set Filter Topology
+open Set Filter Topology MeasureTheory
 
 noncomputable section
 
@@ -78,7 +78,15 @@ Both integrate f against cos(nπy) over [0,1], where they agree. -/
 theorem cosineCoeffs_constExtend_eq_lift (f : intervalDomainPoint → ℝ) (n : ℕ) :
     ShenWork.IntervalNeumannFullKernel.cosineCoeffs (intervalDomainConstExtend f) n =
     ShenWork.IntervalNeumannFullKernel.cosineCoeffs (intervalDomainLift f) n := by
-  sorry -- cosineCoeffs integrates over [0,1] where constExtend = lift
+  simp only [ShenWork.IntervalNeumannFullKernel.cosineCoeffs,
+    ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff]
+  congr 1
+  simp only [ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff]
+  congr 1
+  apply intervalIntegral.integral_congr
+  intro x hx
+  rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)] at hx
+  rw [constExtend_eq_lift_on_Icc hx]
 
 /-- The semigroup operator of the constant extension equals that of the lift.
 S(t) integrates against the kernel over [0,1], where both agree. -/
@@ -88,6 +96,10 @@ theorem semigroupOperator_constExtend_eq_lift
       (intervalDomainConstExtend f) x =
     ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator t
       (intervalDomainLift f) x := by
-  sorry -- S(t) integrates over [0,1] where constExtend = lift
+  simp only [ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator,
+    intervalMeasure, intervalSet]
+  apply MeasureTheory.integral_congr_ae
+  filter_upwards [ae_restrict_mem measurableSet_Icc] with y hy
+  rw [constExtend_eq_lift_on_Icc hy]
 
 end ShenWork.IntervalDomain
