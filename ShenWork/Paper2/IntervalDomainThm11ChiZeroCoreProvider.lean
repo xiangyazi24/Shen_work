@@ -215,7 +215,12 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   MdotS := sorry
   hMdotS := sorry
   -- H3 slice continuity
-  hLc := sorry
+  -- hLc: logistic source continuity on the subtype.
+  -- intervalLogisticSource p (D.u s) = fun x => (D.u s x) * (a - b * (D.u s x)^α).
+  -- D.u s is continuous on the subtype (from D.hcont / HasContinuousSlices),
+  -- and the logistic reaction is a composition of continuous operations.
+  hLc := fun _t _ht _htT s hs hsT => by
+    sorry -- Continuous (intervalLogisticSource p (D.u s)) from D.hcont + algebra
   -- frontier residuals discharged from the representation
   hpde_u := sorry
   Hvsrc := sorry

@@ -108,7 +108,7 @@ structure LimitRegularityInputsCore
   hMdotS : ∀ t, ∀ σ, 0 ≤ σ → ∀ k, |adotS t σ k| ≤ MdotS
   -- H3 slice continuity
   hLc : ∀ t, 0 < t → t < D.T →
-    ∀ s, 0 < s → s ≤ t → Continuous (logisticLifted p (D.u s))
+    ∀ s, 0 < s → s ≤ t → Continuous (intervalLogisticSource p (D.u s))
   -- ===== frontier residuals (not derivable from R/rep(u) here) =====
   Hu : HasTimeNeighborhoodSpectralAgreement D.T D.u
   Hvsrc : DuhamelSourceTimeC1

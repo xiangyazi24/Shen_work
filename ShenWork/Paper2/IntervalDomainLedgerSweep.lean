@@ -147,7 +147,7 @@ structure ReducedLimitRegularityInputs
   hMdotS : ∀ t, ∀ σ, 0 ≤ σ → ∀ k, |adotS t σ k| ≤ MdotS
   -- H3 slice continuity
   hLc : ∀ t, 0 < t → t < D.T →
-    ∀ s, 0 < s → s ≤ t → Continuous (logisticLifted p (D.u s))
+    ∀ s, 0 < s → s ≤ t → Continuous (intervalLogisticSource p (D.u s))
   -- ===== frontier residuals (Hu NO LONGER carried) =====
   hpde_u :
     ∀ t x, 0 < t → t < D.T → x ∈ intervalDomain.inside →
