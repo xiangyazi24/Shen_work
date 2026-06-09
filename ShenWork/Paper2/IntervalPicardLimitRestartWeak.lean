@@ -460,33 +460,27 @@ Same conclusion as `limit_lift_eq_cosineSeries_weak` but replaces the
 hypotheses by cosine-representation data, routing through the globally-C²
 cosine series proxy via `intervalFullSemigroupOperator_congr_Icc`.
 
-This is the paper-faithful variant: the initial datum u₀ ∈ C(Ω̄) is
-continuous on the subtype (= [0,1]), not globally on ℝ. -/
-theorem limit_lift_eq_cosineSeries_of_representation
+This is the paper-faithful variant: u₀ ∈ C(Ω̄) (subtype), NOT
+`Continuous (intervalDomainLift u₀)` (false for positive data).
+Routes through `intervalDomainConstExtend` (globally continuous). -/
+theorem limit_lift_eq_cosineSeries_of_subtypeCont
     (p : CM2Params) (hχ0 : p.χ₀ = 0)
     (u₀ : intervalDomainPoint → ℝ) (u : ℝ → intervalDomainPoint → ℝ)
     (hfix : ∀ t, 0 < t → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
       intervalDomainLift (u t) x = intervalGradientDuhamelMap p u₀ u t ⟨x, hx⟩)
-    -- Paper-faithful: u₀ continuous on the subtype (C(Ω̄)), NOT lift globally
     (hu₀_cont : Continuous u₀)
-    -- Cosine representation of u₀ (proxy for global continuity of lift)
-    {bc₀ : ℕ → ℝ}
-    (hbsum₀ : Summable (fun n => unitIntervalCosineEigenvalue n * |bc₀ n|))
-    (hagree₀ : Set.EqOn (intervalDomainLift u₀)
-        (fun x => ∑' n, bc₀ n * cosineMode n x) (Set.Icc (0 : ℝ) 1))
-    (hcoeffs₀ : ∀ n, cosineCoeffs (intervalDomainLift u₀) n = bc₀ n)
-    -- Source DuhamelSourceL1Cont (unchanged — this is about cosine coefficients)
+    {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hsrc0 : DuhamelSourceL1Cont
       (fun s k => cosineCoeffs (logisticLifted p (u s)) k))
     {t : ℝ} (ht : 0 < t)
-    -- Source slice cosine representation (proxy for global continuity of lift)
-    (hL_bc : ∀ s, 0 < s → s ≤ t → ∃ (bcs : ℕ → ℝ),
-      Summable (fun n => unitIntervalCosineEigenvalue n * |bcs n|) ∧
-      Set.EqOn (logisticLifted p (u s))
-        (fun x => ∑' n, bcs n * cosineMode n x) (Set.Icc (0 : ℝ) 1) ∧
-      ∀ n, cosineCoeffs (logisticLifted p (u s)) n = bcs n)
+    (hL_cont : ∀ s, 0 < s → s ≤ t →
+      Continuous (intervalDomainConstExtend (intervalLogisticSource p (u s))))
     {x : ℝ} (hx : x ∈ Set.Icc (0:ℝ) 1) :
     intervalDomainLift (u t) x
       = ∑' k, ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ u t k * cosineMode k x := by
+  -- Route through the constant extension of u₀ (globally continuous).
+  -- S(t)(constExtend u₀) = S(t)(lift u₀) by semigroup congr.
+  -- cosineCoeffs(constExtend u₀) = cosineCoeffs(lift u₀) by coefficient congr.
+  -- Then apply the existing `limit_lift_eq_cosineSeries_weak`.
   sorry
 
