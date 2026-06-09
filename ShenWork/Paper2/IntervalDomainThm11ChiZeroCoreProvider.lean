@@ -131,6 +131,9 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   hb := hb.le
   -- H1 datum data
   hu₀_cont := hu₀.admissible.2
+  -- M₀: bound on cosine coefficients of initial datum.
+  -- From PID: u₀ continuous on compact [0,1] ⟹ bounded.
+  -- cosineCoeffs_abs_le_of_continuous_bounded gives |aₙ| ≤ 2·sup|u₀|.
   M₀ := sorry
   hu₀_bound := sorry
   -- mild fixed-point: D.hmild gives ∀ t, 0 < t → t ≤ T → ∀ x, u t x = DuhamelMap ...
