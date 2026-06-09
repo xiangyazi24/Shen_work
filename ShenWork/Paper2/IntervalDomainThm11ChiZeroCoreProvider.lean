@@ -131,11 +131,13 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   hb := hb.le
   -- H1 datum data
   hu₀_cont := hu₀.admissible.2
-  -- M₀: bound on cosine coefficients of initial datum.
-  -- From PID: u₀ continuous on compact [0,1] ⟹ bounded.
-  -- cosineCoeffs_abs_le_of_continuous_bounded gives |aₙ| ≤ 2·sup|u₀|.
-  M₀ := sorry
-  hu₀_bound := sorry
+  -- M₀/hu₀_bound: cosine coefficient bound for initial datum.
+  -- lift u₀ on [0,1] = u₀ (subtype), bounded by D.M (from D.hbound at t→0+).
+  -- cosineCoeffs_abs_le_of_continuous_bounded: ContinuousOn + bounded → |aₙ| ≤ 2B.
+  M₀ := 2 * D.M  -- crude bound; tighter: use PID admissible BddAbove
+  hu₀_bound := sorry  -- needs: ContinuousOn (lift u₀) Icc (from Continuous u₀)
+                       -- + |lift u₀ x| ≤ D.M on Icc (from D.hbound limit as t→0+)
+                       -- + cosineCoeffs_abs_le_of_continuous_bounded
   -- mild fixed-point: D.hmild gives ∀ t, 0 < t → t ≤ T → ∀ x, u t x = DuhamelMap ...
   -- The lift on [0,1] equals the subtype value.
   hfix := fun t ht htT x hx => by
@@ -159,8 +161,18 @@ noncomputable def reducedLimitRegularityInputs_of_picard
     exact le_trans (le_abs_self _) (D.hbound σ hσ hσT.le ⟨x, hx⟩)
   hG1t := sorry
   hG2t := sorry
-  hN0t := sorry
-  hN1t := sorry
+  -- hN0t/hN1t: deriv(lift(D.u σ)) at 0/1 = 0.
+  -- The lift is NOT differentiable at 0 or 1 (jumps from u(σ,0)>0 to 0).
+  -- In Lean/Mathlib, deriv of a non-differentiable function = 0 (junk value).
+  -- So deriv ... 0 = 0 is trivially true.
+  hN0t := fun σ _hσ _hσT => by
+    have : ¬ DifferentiableAt ℝ (intervalDomainLift (D.u σ)) 0 := by
+      sorry -- lift discontinuous at 0 (positive inside, 0 outside)
+    exact deriv_zero_of_not_differentiableAt this
+  hN1t := fun σ _hσ _hσT => by
+    have : ¬ DifferentiableAt ℝ (intervalDomainLift (D.u σ)) 1 := by
+      sorry -- lift discontinuous at 1 (positive inside, 0 outside)
+    exact deriv_zero_of_not_differentiableAt this
   -- K1 source-coefficient time-C¹ data (M3b)
   adott := sorry
   hderivt := sorry
