@@ -147,7 +147,7 @@ structure LimitRegularityInputs
   ha : 0 ≤ p.a
   hb : 0 ≤ p.b
   -- H1 datum data
-  hu₀_cont : Continuous (intervalDomainLift u₀)
+  hu₀_cont : Continuous u₀
   M₀ : ℝ
   hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀
   -- mild fixed-point (= D.hmild)
