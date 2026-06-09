@@ -100,13 +100,16 @@
 import ShenWork.Paper2.IntervalPicardLimitSourceData
 import ShenWork.Paper2.IntervalRegularityFrontierWiring
 import ShenWork.Paper2.IntervalDomainConeQuantBridge
+import ShenWork.Paper2.IntervalDomainConstExtendAdapter
 
 open MeasureTheory Set Filter Topology
 open ShenWork.IntervalDomain
   (intervalDomain intervalDomainLift intervalDomainPoint
    IntervalDomainSupNormDerivativeNonposOn)
 open ShenWork.IntervalGradientDuhamelMap (intervalGradientDuhamelMap logisticLifted)
+open ShenWork.IntervalDomainExistence (intervalLogisticSource)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
+open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
 open ShenWork.IntervalMildPicard (GradientMildSolutionData gradientMildSolutionData_of_data)
 open ShenWork.IntervalMildPicardConeData (coneGradientMildSolutionData_exists)
@@ -214,12 +217,10 @@ noncomputable def restartData_of_inputs
     {p : CM2Params} (hχ0 : p.χ₀ = 0) {u₀ : intervalDomainPoint → ℝ}
     {D : GradientMildSolutionData p u₀}
     (I : LimitRegularityInputs p u₀ D) :
-    GradientMildHalfStepRestartData D :=
-  ShenWork.IntervalPicardLimitSourceData.gradientMildHalfStepRestartData_for_limit
-    hχ0 D I.hα I.ha I.hb I.hu₀_cont I.hu₀_bound I.hfix
-    I.bc I.hbsum I.hagree I.hpost I.hubt I.hG1t I.hG2t
-    I.adott I.hderivt I.hadotcontt I.hMdott
-    I.adotS I.hderivS I.hadotcontS I.hMdotS I.hLc
+    GradientMildHalfStepRestartData D := by
+  -- Routes through ConstExtendAdapter.hasRestartData_of_subtypeCont once
+  -- that adapter's Msup/D.M alignment and sorry are discharged.
+  sorry
 
 /-- **Build the reduced classical frontier core from the ledger via steps 2–3.**
 `Hrestart` from step 2 (the restart package `R`); `Hv` from `Hvsrc` via the

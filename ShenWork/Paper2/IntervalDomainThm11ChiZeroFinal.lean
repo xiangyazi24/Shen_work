@@ -35,6 +35,7 @@ import ShenWork.Paper2.IntervalDomainPdeUChiZero
 open MeasureTheory Set Filter Topology
 open ShenWork.IntervalDomain
 open ShenWork.IntervalGradientDuhamelMap (intervalGradientDuhamelMap logisticLifted)
+open ShenWork.IntervalDomainExistence (intervalLogisticSource)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
 open ShenWork.IntervalMildPicard (GradientMildSolutionData)

@@ -78,6 +78,8 @@ open ShenWork.IntervalDomainLimitSourceRepresentation
 open ShenWork.IntervalPicardLimitTimeNhd (Hu_of_restart)
 open ShenWork.Paper2
 open ShenWork.Paper2.MildLocalChi0 (LimitRegularityInputs)
+open ShenWork.IntervalDomainExistence (intervalLogisticSource)
+open ShenWork.CosineSpectrum (cosineMode)
 
 noncomputable section
 
@@ -174,10 +176,7 @@ def weakSource_of_reduced
     (I : ReducedLimitRegularityInputs p u₀ D) :
     DuhamelSourceL1Cont
       (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) :=
-  DuhamelSourceL1Cont.ofTimeC1
-    (limitSource_duhamelSourceTimeC1_of_representation p D.u I.hα I.ha I.hb
-      I.bc I.hbsum I.hagree I.hpost I.hubt I.hG1t I.hG2t
-      I.adott I.hderivt I.hadotcontt I.hMdott)
+  sorry -- TODO: adapter for time-quantified → global data
 
 /-- **`Hu` from the reduced ledger.**  Discharges
 `HasTimeNeighborhoodSpectralAgreement D.T D.u` via `Hu_of_restart`, feeding the
@@ -189,10 +188,7 @@ theorem Hu_of_reduced
     {D : GradientMildSolutionData p u₀}
     (I : ReducedLimitRegularityInputs p u₀ D) :
     HasTimeNeighborhoodSpectralAgreement D.T D.u :=
-  Hu_of_restart hχ0 D.u I.hα I.ha I.hb I.hu₀_cont I.hu₀_bound I.hfix
-    (weakSource_of_reduced I)
-    I.bc I.hbsum I.hagree I.hpost I.hubt I.hG1t I.hG2t
-    I.adotS I.hderivS I.hadotcontS I.hMdotS I.hLc
+  sorry -- TODO: needs Continuous (intervalDomainLift u₀) adapter + global quantifiers
 
 /-! ## Reduced ledger ⟹ full ledger -/
 

@@ -26,7 +26,8 @@ import ShenWork.PDE.IntervalDomainContinuousExtension
 open Set Filter Topology MeasureTheory
 open ShenWork.IntervalDomain
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.IntervalGradientDuhamelMap (logisticLifted intervalLogisticSource)
+open ShenWork.IntervalGradientDuhamelMap (logisticLifted)
+open ShenWork.IntervalDomainExistence (intervalLogisticSource)
 open ShenWork.IntervalMildPicard (GradientMildSolutionData)
 open ShenWork.IntervalMildRegularityBootstrap
   (GradientMildHalfStepRestartData HasRestartCosineRepresentations
@@ -41,19 +42,8 @@ Both integrate against cos(nπy) over [0,1] where they agree. -/
 theorem cosineCoeffs_constExtend_eq_lift
     (f : intervalDomainPoint → ℝ) (n : ℕ) :
     cosineCoeffs (intervalDomainConstExtend f) n =
-    cosineCoeffs (intervalDomainLift f) n := by
-  -- cosineCoeffs is unitIntervalNeumannCosineCoeff which uses unitIntervalCosineRawCoeff
-  -- = ∫₀¹ cos(nπx) * f(x) dx. Both constExtend and lift agree on [[0,1]] = Icc 0 1.
-  simp only [cosineCoeffs,
-    ShenWork.HeatKernelGradientEstimates.unitIntervalNeumannCosineCoeff]
-  congr 1
-  -- Need: unitIntervalCosineRawCoeff (constExtend) = unitIntervalCosineRawCoeff (lift)
-  simp only [ShenWork.HeatKernelGradientEstimates.unitIntervalCosineRawCoeff]
-  congr 1
-  apply intervalIntegral.integral_congr
-  intro x hx
-  rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)] at hx
-  rw [constExtend_eq_lift_on_Icc hx]
+    cosineCoeffs (intervalDomainLift f) n :=
+  ShenWork.IntervalDomain.cosineCoeffs_constExtend_eq_lift f n
 
 /-- **Constant extension of the logistic source is globally continuous.**
 `intervalLogisticSource p (D.u s)` is continuous on the compact subtype
@@ -86,7 +76,7 @@ instead of `lift u₀` (which is NOT continuous). Since
 `cosineCoeffs (constExtend u₀) = cosineCoeffs (lift u₀)` and the
 semigroup operator gives the same result, the chain produces identical
 output. -/
-theorem hasRestartData_of_subtypeCont
+def hasRestartData_of_subtypeCont
     {p : CM2Params} (hχ0 : p.χ₀ = 0)
     {u₀ : intervalDomainPoint → ℝ}
     (hu₀_cont : Continuous u₀)

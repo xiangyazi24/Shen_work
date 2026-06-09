@@ -78,11 +78,19 @@
 -/
 import ShenWork.Paper2.IntervalDomainThm11ChiZeroFinal
 import ShenWork.Paper2.IntervalDomainLedgerSweep
+import ShenWork.Paper2.IntervalPicardLimitRestartWeak
+import ShenWork.Paper2.IntervalDomainConstExtendAdapter
 
 open MeasureTheory Set Filter Topology
-open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalDomain)
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalDomain
+  intervalDomainConstExtend constExtend_continuous)
+open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.IntervalMildPicard (GradientMildSolutionData)
+open ShenWork.IntervalGradientDuhamelMap (logisticLifted intervalGradientDuhamelMap)
+open ShenWork.IntervalDomainExistence (intervalLogisticSource)
 open ShenWork.Paper2 (PositiveInitialDatum)
+open ShenWork.IntervalPicardLimitRestartWeak (DuhamelSourceL1Cont)
+open ShenWork.CosineSpectrum (cosineMode)
 
 noncomputable section
 
@@ -123,7 +131,9 @@ so the result must be reducible. -/
 noncomputable def reducedLimitRegularityInputs_of_picard
     (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) (hα : 1 ≤ p.α)
     (u₀ : intervalDomainPoint → ℝ) (hu₀ : PositiveInitialDatum intervalDomain u₀)
-    (D : GradientMildSolutionData p u₀) :
+    (D : GradientMildSolutionData p u₀)
+    (hsrc0 : DuhamelSourceL1Cont
+      (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k)) :
     LedgerSweep.ReducedLimitRegularityInputs p u₀ D where
   -- structural regime parameters (immediate)
   hα := hα
@@ -140,12 +150,14 @@ noncomputable def reducedLimitRegularityInputs_of_picard
     have hbdd : BddAbove (Set.range fun x => |u₀ x|) := hu₀.admissible.1
     have hB0 : 0 ≤ sSup (Set.range fun x => |u₀ x|) :=
       le_trans (abs_nonneg _)
-        (le_csSup hbdd ⟨⟨1 / 2, by norm_num [Set.mem_Icc]⟩, rfl⟩)
+        (le_csSup hbdd ⟨⟨1 / 2, ⟨by norm_num, by norm_num⟩⟩, rfl⟩)
     have hcont : ContinuousOn (intervalDomainLift u₀) (Set.Icc (0 : ℝ) 1) := by
       rw [continuousOn_iff_continuous_restrict]
       have heq : (Set.Icc (0 : ℝ) 1).restrict (intervalDomainLift u₀) = u₀ := by
-        funext x
-        simp only [Set.restrict_apply, intervalDomainLift, dif_pos x.2]
+        funext ⟨y, hy⟩
+        simp only [Set.restrict_apply, intervalDomainLift]
+        split_ifs
+        exact congr_arg u₀ (Subtype.ext rfl)
       rw [heq]; exact hu₀.admissible.2
     have hfb : ∀ x ∈ Set.Icc (0 : ℝ) 1,
         |intervalDomainLift u₀ x| ≤ sSup (Set.range fun x => |u₀ x|) := by
@@ -164,9 +176,60 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   G1 := sorry
   G2 := sorry
   -- per-slice cosine representation (Picard limit restart representation)
-  bc := sorry
-  hbsum := sorry
-  hagree := sorry
+  -- bc := limitCoeff = exp(-σλ_k)·ĉ₀_k + duhamelSpectralCoeff(L̂(u), σ, k)
+  bc := fun σ k => ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ D.u σ k
+  -- hbsum: eigenvalue-weighted summability of limitCoeff, from weak source alone.
+  -- Bottlenecks on eigenvalue_mul_abs_duhamelSpectralCoeff_le_envelope (1 sorry).
+  hbsum := fun σ hσ _hσT => by
+    have hbdd : BddAbove (Set.range fun x => |u₀ x|) := hu₀.admissible.1
+    have hB0 : 0 ≤ sSup (Set.range fun x => |u₀ x|) :=
+      le_trans (abs_nonneg _)
+        (le_csSup hbdd ⟨⟨1 / 2, ⟨by norm_num, by norm_num⟩⟩, rfl⟩)
+    have hcont : ContinuousOn (intervalDomainLift u₀) (Set.Icc (0 : ℝ) 1) := by
+      rw [continuousOn_iff_continuous_restrict]
+      have heq : (Set.Icc (0 : ℝ) 1).restrict (intervalDomainLift u₀) = u₀ := by
+        funext ⟨y, hy⟩
+        simp only [Set.restrict_apply, intervalDomainLift]
+        split_ifs
+        exact congr_arg u₀ (Subtype.ext rfl)
+      rw [heq]; exact hu₀.admissible.2
+    have hfb : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |intervalDomainLift u₀ x| ≤ sSup (Set.range fun x => |u₀ x|) := by
+      intro x hx; simp only [intervalDomainLift, dif_pos hx]
+      exact le_csSup hbdd ⟨⟨x, hx⟩, rfl⟩
+    have hu₀_bd := ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
+      hcont hB0 hfb
+    exact summable_eigenvalue_mul_abs_limitCoeff_weak p u₀ D.u
+      (by linarith) hu₀_bd hsrc0 hσ
+  -- hagree: on [0,1], lift(u σ) = ∑ limitCoeff(σ,k) · cos(kπ·)
+  -- from limit_lift_eq_cosineSeries_of_subtypeCont (the adapter theorem)
+  hagree := fun σ hσ hσT x hx => by
+    have hbdd : BddAbove (Set.range fun x => |u₀ x|) := hu₀.admissible.1
+    have hcont : ContinuousOn (intervalDomainLift u₀) (Set.Icc (0 : ℝ) 1) := by
+      rw [continuousOn_iff_continuous_restrict]
+      have heq : (Set.Icc (0 : ℝ) 1).restrict (intervalDomainLift u₀) = u₀ := by
+        funext ⟨y, hy⟩
+        simp only [Set.restrict_apply, intervalDomainLift]
+        split_ifs
+        exact congr_arg u₀ (Subtype.ext rfl)
+      rw [heq]; exact hu₀.admissible.2
+    have hB0 : 0 ≤ sSup (Set.range fun x => |u₀ x|) :=
+      le_trans (abs_nonneg _)
+        (le_csSup hbdd ⟨⟨1 / 2, ⟨by norm_num, by norm_num⟩⟩, rfl⟩)
+    have hfb : ∀ y ∈ Set.Icc (0 : ℝ) 1,
+        |intervalDomainLift u₀ y| ≤ sSup (Set.range fun x => |u₀ x|) := by
+      intro y hy; simp only [intervalDomainLift, dif_pos hy]
+      exact le_csSup hbdd ⟨⟨y, hy⟩, rfl⟩
+    exact limit_lift_eq_cosineSeries_of_subtypeCont p hχ0 u₀ D.u hu₀.admissible.2
+      (ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
+        hcont hB0 hfb)
+      hsrc0 hσ
+      (fun y hy => by simp only [intervalDomainLift, dif_pos hy]
+                      exact D.hmild σ hσ hσT.le ⟨y, hy⟩)
+      (fun s hs hsσ =>
+        ShenWork.Paper2.ConstExtendAdapter.logisticSource_constExtend_continuous D hs
+          (hsσ.trans hσT.le))
+      hx
   -- positivity: direct projection of `D.hpos` (now that σ is bounded to (0,D.T))
   hpost := fun σ hσ hσT x hx => by
     simp only [intervalDomainLift, dif_pos hx]
@@ -187,7 +250,7 @@ noncomputable def reducedLimitRegularityInputs_of_picard
     have hnotdiff : ¬ DifferentiableAt ℝ (intervalDomainLift (D.u σ)) 0 := by
       intro hdiff
       have hval : 0 < intervalDomainLift (D.u σ) 0 := by
-        simp [intervalDomainLift, dif_pos (show (0:ℝ) ∈ Set.Icc 0 1 from ⟨le_refl _, zero_le_one⟩)]
+        simp [intervalDomainLift]
         exact D.hpos σ hσ hσT.le _
       have hcont := hdiff.continuousAt
       -- Restrict continuity to the left nhdsWithin:  nhdsWithin 0 (Iio 0) ≤ nhds 0.
@@ -215,7 +278,7 @@ noncomputable def reducedLimitRegularityInputs_of_picard
     have hnotdiff : ¬ DifferentiableAt ℝ (intervalDomainLift (D.u σ)) 1 := by
       intro hdiff
       have hval : 0 < intervalDomainLift (D.u σ) 1 := by
-        simp [intervalDomainLift, dif_pos (show (1:ℝ) ∈ Set.Icc 0 1 from ⟨zero_le_one, le_refl _⟩)]
+        simp [intervalDomainLift]
         exact D.hpos σ hσ hσT.le _
       have hcont := hdiff.continuousAt
       -- Restrict continuity to the right nhdsWithin:  nhdsWithin 1 (Ioi 1) ≤ nhds 1.
@@ -302,12 +365,17 @@ theorem paper2_theorem_1_1_chiZero_unconditional
   -- `hPLF` derived from the reduced ledger (no extra residual hypothesis).
   have hPLF : ConeQuantBridge.PicardLimitRestartFrontier p :=
     fun u₀ hu₀ D _hDu =>
+      let hsrc0 : DuhamelSourceL1Cont
+          (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) := sorry
       let I := LedgerSweep.limitRegularityInputs_of_reduced hχ0
-        (reducedLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D)
+        (reducedLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D hsrc0)
       ⟨MildLocalChi0.restartData_of_inputs hχ0 I,
         MildLocalChi0.frontierCore_of_inputs hχ0 I⟩
   LedgerSweep.paper2_theorem_1_1_chiZero_of_reduced_inputs
     p hχ0 ha hb hα hγ hPLF
-    (fun u₀ hu₀ D => reducedLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D)
+    (fun u₀ hu₀ D =>
+      let hsrc0 : DuhamelSourceL1Cont
+          (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) := sorry
+      reducedLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D hsrc0)
 
 end ShenWork.Paper2.Thm11ChiZeroCoreProvider
