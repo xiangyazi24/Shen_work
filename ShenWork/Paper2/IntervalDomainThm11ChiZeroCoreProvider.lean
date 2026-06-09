@@ -130,11 +130,14 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   ha := ha.le
   hb := hb.le
   -- H1 datum data
-  hu₀_cont := sorry
+  hu₀_cont := hu₀.admissible.2
   M₀ := sorry
   hu₀_bound := sorry
-  -- mild fixed-point (= D.hmild)
-  hfix := sorry
+  -- mild fixed-point: D.hmild gives ∀ t, 0 < t → t ≤ T → ∀ x, u t x = DuhamelMap ...
+  -- The lift on [0,1] equals the subtype value.
+  hfix := fun t ht htT x hx => by
+    simp only [intervalDomainLift, dif_pos hx]
+    exact D.hmild t ht htT.le ⟨x, hx⟩
   -- K2 spatial slice bounds
   Msup := D.M
   G1 := sorry
