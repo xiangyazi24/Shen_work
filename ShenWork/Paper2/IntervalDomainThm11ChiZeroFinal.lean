@@ -67,7 +67,7 @@ structure LimitRegularityInputsCore
   M₀ : ℝ
   hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀
   -- mild fixed-point (= D.hmild)
-  hfix : ∀ t, 0 < t → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
+  hfix : ∀ t, 0 < t → t < D.T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
     intervalDomainLift (D.u t) x = intervalGradientDuhamelMap p u₀ D.u t ⟨x, hx⟩
   -- K2 spatial slice bounds (per time slice)
   Msup : ℝ
