@@ -142,3 +142,44 @@ The "Two genuine remaining hypotheses" section above is STALE. Current map:
 frontier core for every packaged D with `D.u = picardLimit p u₀ D.T`.
 One S-construction discharge (Session A's M-line, in flight) closes
 hQuant(χ₀=0), the threshold route's Picard half, and hlocal(χ₀=0).
+
+## 2026-06-09 — Thm 1.1 chain compilation green
+
+### Chain status (ContinuousExtension → … → Provider)
+Full 7-file chain compiles end-to-end on uisai2 (lake build green):
+```
+IntervalDomainContinuousExtension (0 sorry)
+→ IntervalPicardLimitRestartWeak (0 sorry, eigenvalue summability proved)
+→ IntervalDomainConstExtendAdapter (1 sorry: adapter body)
+→ IntervalDomainMildLocalChi0 (1 sorry: restartData_of_inputs)
+→ IntervalDomainThm11ChiZeroFinal (0 sorry)
+→ IntervalDomainLedgerSweep (2 sorry: time-quantified → global adapters)
+→ IntervalDomainThm11ChiZeroCoreProvider (17 sorry: analytic estimates)
+```
+
+### Key fix: namespace opens for `intervalLogisticSource` / `cosineMode`
+Six files needed `open ShenWork.IntervalDomainExistence (intervalLogisticSource)`
+and `open ShenWork.CosineSpectrum (cosineMode)`. Without these, all definitions
+using these names silently became autoImplicit variables, cascading "Function
+expected" errors.
+
+### RestartWeak eigenvalue summability (NEW, 0 sorry)
+`summable_eigenvalue_mul_abs_limitCoeff_weak`: proved via FTC envelope
+computation + triangle split + `Summable.of_nonneg_of_le`. The proof handles:
+`abs_add` → `abs_add_le` rename, `gcongr` → explicit `add_le_add` /
+`mul_le_mul_of_nonneg_left`, `continuous_const` domain inference in tactic mode,
+`-(t-s)*λ_k` parse order, `neg_zero` in simp set.
+
+### Provider sorry inventory (17 items)
+- G1, G2 — gradient/Hessian bound VALUES
+- hG1t, hG2t — gradient/Hessian bound PROOFS
+- adott family (5) + adotS family (5) — K1 time-C¹ data
+- hpde_u, Hvsrc, Hvpos — PDE/resolver residuals
+- hsrc0 (×2 in final wiring) — DuhamelSourceL1Cont
+
+### LedgerSweep interface gap
+`weakSource_of_reduced` / `Hu_of_reduced` need adapters from time-quantified
+(∀ σ, 0<σ→σ<T→...) to global (∀ σ, ...) data. The API functions
+`limitSource_duhamelSourceTimeC1_of_representation` and `Hu_of_restart` take
+global quantifiers; the reduced ledger carries time-localized data. Design
+decision pending: extend data vs modify API vs add adapter functions.

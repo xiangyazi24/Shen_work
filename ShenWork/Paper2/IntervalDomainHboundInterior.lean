@@ -42,7 +42,7 @@ theorem hbound_interior
     rw [← hlift_x]; exact hargmin
   -- Spatial slice continuous ⇒ image compact ⇒ bdd below.
   have hslice_cont : ContinuousOn (intervalDomainLift (u s)) (Set.Icc (0:ℝ) 1) := by
-    obtain ⟨_, _, _, _, _, _, h7, _, _⟩ := hsol.regularity
+    obtain ⟨_, _, _, _, h7, _, _⟩ := hsol.regularity
     exact (h7 s ⟨hs0, hsT⟩).1.1.continuousOn
   have hbdd : BddBelow (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1) :=
     (isCompact_Icc.image_of_continuousOn hslice_cont).bddBelow

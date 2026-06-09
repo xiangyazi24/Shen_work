@@ -37,8 +37,10 @@ theorem logisticReaction_hasDerivAt_of_pos
     (hdu : HasDerivAt (fun t => u) udot (0 : ℝ)) :
     HasDerivAt (fun t => logisticReaction a b α u)
       (udot * (a - b * (1 + α) * u ^ α)) (0 : ℝ) := by
-  simp only [logisticReaction]
-  exact hasDerivAt_const _ _
+  have hudot : udot = 0 := ((hasDerivAt_const (0 : ℝ) u).unique hdu).symm
+  subst hudot
+  simp only [logisticReaction, zero_mul]
+  exact hasDerivAt_const (0 : ℝ) (u * (a - b * u ^ α))
 
 /-- **HasDerivAt for the logistic reaction composed with a time-dependent u.**
 
@@ -48,9 +50,8 @@ theorem logisticReaction_comp_hasDerivAt
     (p : CM2Params) {u : ℝ → ℝ} {udot : ℝ} {t₀ : ℝ}
     (hdu : HasDerivAt u udot t₀) (hu_pos : 0 < u t₀) :
     HasDerivAt (fun t => u t * (p.a - p.b * (u t) ^ p.α))
-      (udot * (p.a - p.b * (1 + p.α) * (u t₀) ^ p.α)
-        + u t₀ * (-p.b * (p.α * (u t₀) ^ (p.α - 1) * udot))) t₀ := by
-  have h1α : 1 ≤ 1 + p.α := by linarith [p.hα]
+      (udot * (p.a - p.b * (u t₀) ^ p.α)
+        + u t₀ * (0 - p.b * (p.α * (u t₀) ^ (p.α - 1) * udot))) t₀ := by
   have hpow : HasDerivAt (fun t => (u t) ^ p.α) (p.α * (u t₀) ^ (p.α - 1) * udot) t₀ :=
     (hasDerivAt_rpow_const (Or.inl (ne_of_gt hu_pos))).comp t₀ hdu
   have hsub : HasDerivAt (fun t => p.a - p.b * (u t) ^ p.α)
@@ -78,7 +79,11 @@ theorem logisticReaction_deriv_continuous
   have h2 : Continuous (fun t => u t * (-p.b * (p.α * (u t) ^ (p.α - 1) * udot t))) := by
     apply hu_cont.mul
     show Continuous (fun t => -p.b * (p.α * (u t) ^ (p.α - 1) * udot t))
-    exact (((hpowm1.mul hudot_cont).const_mul p.α).const_mul (-p.b))
+    have key : (fun t => -p.b * (p.α * (u t) ^ (p.α - 1) * udot t))
+        = (fun t => -p.b * (p.α * ((u t) ^ (p.α - 1) * udot t))) :=
+      funext (fun t => by rw [mul_assoc])
+    rw [key]
+    exact ((hpowm1.mul hudot_cont).const_mul p.α).const_mul (-p.b)
   exact h1.add h2
 
 end ShenWork.IntervalLogisticSourceTimeC1

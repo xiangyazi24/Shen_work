@@ -43,7 +43,7 @@ theorem solution_minPersist_of_conjuncts
   have hsubprod : Set.Icc a b ×ˢ Set.Icc (0:ℝ) 1
       ⊆ Set.Ioo (0:ℝ) T ×ˢ Set.Icc (0:ℝ) 1 :=
     Set.prod_mono hsub (le_refl _)
-  obtain ⟨_, _, _, h4, _, _, _, h8, h9⟩ := hsol.regularity
+  obtain ⟨_, h4, _, _, _, h8, h9⟩ := hsol.regularity
   -- Conjunct 9: closed-slab solution-field continuity → `hF`.
   have hF : ContinuousOn
       (Function.uncurry (fun t y => intervalDomainLift (u t) y))

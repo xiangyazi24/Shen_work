@@ -26,7 +26,7 @@ theorem sliceMin_pos_of_solution
     0 < sInf (intervalDomainLift (u t) '' Set.Icc (0:ℝ) 1) := by
   -- The lifted slice is continuous on `[0,1]`.
   have hslice_cont : ContinuousOn (intervalDomainLift (u t)) (Set.Icc (0:ℝ) 1) := by
-    obtain ⟨_, _, _, _, _, _, h7, _, _⟩ := hsol.regularity
+    obtain ⟨_, _, _, _, h7, _, _⟩ := hsol.regularity
     exact (h7 t ⟨ht0, htT⟩).1.1.continuousOn
   -- The image is compact and nonempty; its inf is attained.
   have himg : IsCompact (intervalDomainLift (u t) '' Set.Icc (0:ℝ) 1) :=

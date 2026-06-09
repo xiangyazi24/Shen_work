@@ -44,7 +44,7 @@ theorem interior_min_point_of_solution
     -(|p.χ₀| * fluxCoeffConst p.β (p.ν * M' ^ p.γ) + p.b * M' ^ p.α) * (u t x)
       ≤ intervalDomain.timeDeriv u t x := by
   have htmem : t ∈ Set.Ioo (0:ℝ) T := ⟨ht0, htT⟩
-  obtain ⟨_, _, h3, _, _, h6, h7, _, _⟩ := hsol.regularity
+  obtain ⟨h3, _, _, h6, h7, _, _⟩ := hsol.regularity
   have hu_c2 : ContDiffOn ℝ 2 (intervalDomainLift (u t)) (Set.Ioo (0:ℝ) 1) :=
     (h3 t htmem).1
   have hv_c2 : ContDiffOn ℝ 2 (intervalDomainLift (v t)) (Set.Ioo (0:ℝ) 1) :=

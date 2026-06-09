@@ -38,7 +38,7 @@ theorem hbdry_left_chi0
         * sInf (intervalDomainLift (u s) '' Set.Icc (0:ℝ) 1)
       ≤ deriv (fun r => intervalDomainLift (u r) 0) s := by
   have htmem : s ∈ Set.Ioo (0:ℝ) T := ⟨hs0, hsT⟩
-  obtain ⟨_, _, _, _, _, h6, h7, h8, _⟩ := hsol.regularity
+  obtain ⟨_, _, _, h6, h7, h8, _⟩ := hsol.regularity
   have hu_c2 : ContDiffOn ℝ 2 (intervalDomainLift (u s)) (Set.Icc (0:ℝ) 1) :=
     (h7 s htmem).1.1
   have hu_c2_Ioo : ContDiffOn ℝ 2 (intervalDomainLift (u s)) (Set.Ioo (0:ℝ) 1) :=

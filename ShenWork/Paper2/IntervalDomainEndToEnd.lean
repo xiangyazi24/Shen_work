@@ -123,8 +123,6 @@ theorem gradientMildClassicalFrontierCoreData_of_perDatum
     (hTimeNhd : HasTimeNeighborhoodSpectralAgreement D.T D.u)
     (hResolverData : HasResolverDirectSpectralData D.T
       (mildChemicalConcentration p D.u) p)
-    (hSupNormDeriv : IntervalDomainSupNormDerivativeNonposOn D.u
-      (Set.Ioo (0 : ℝ) D.T))
     (hVpos : ∀ t, 0 < t → t < D.T → ∀ x : intervalDomainPoint,
       0 < mildChemicalConcentration p D.u t x)
     (hpde_u : ∀ t x, 0 < t → t < D.T →
@@ -141,7 +139,7 @@ theorem gradientMildClassicalFrontierCoreData_of_perDatum
       p D hTimeNhd hResolverData
       (hasRestartCosineRepresentations_of_gradientMildHalfStepLogisticSourceData
         D S)
-      hSupNormDeriv hVpos
+      hVpos
 
 /-- Construct the `hMildLocal` input consumed by the umbrella theorem
 from per-datum spectral frontier data.
@@ -157,11 +155,11 @@ theorem hMildLocal_of_perDatum
     IntervalDomainGradientMildHalfStepLogisticSourceFrontierCoreLocalData
       p := by
   intro u₀ hu₀
-  obtain ⟨D, S, hTimeNhd, hResolverData, hSupNormDeriv,
+  obtain ⟨D, S, hTimeNhd, hResolverData, _hSupNormDeriv,
     hVpos, hInitialApproach, hpde_u⟩ := hPerDatum u₀ hu₀
   exact ⟨D, S, hInitialApproach,
     gradientMildClassicalFrontierCoreData_of_perDatum
-      p D S hTimeNhd hResolverData hSupNormDeriv hVpos hpde_u⟩
+      p D S hTimeNhd hResolverData hVpos hpde_u⟩
 
 /-! ## The end-to-end theorem -/
 
