@@ -76,7 +76,16 @@ theorem semigroupOperator_constExtend_eq_lift
       (intervalDomainConstExtend f) x =
     ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator t
       (intervalDomainLift f) x := by
-  sorry -- Integral over [0,1] where both agree
+  -- S(t)g(x) = ∫ y, K(t,x,y)*g(y) d(volume.restrict (Icc 0 1)).
+  -- constExtend = lift on Icc 0 1 → integrands agree a.e. → integrals equal.
+  simp only [ShenWork.IntervalNeumannFullKernel.intervalFullSemigroupOperator]
+  congr 1; ext y
+  congr 1
+  -- Need: constExtend f y = lift f y when y ∈ support of intervalMeasure 1
+  -- But we're integrating over all y with the restricted measure.
+  -- The integrand K*constExtend = K*lift on Icc 0 1 (where the measure lives).
+  -- Use integral_congr_ae: ae (volume.restrict Icc) they agree.
+  sorry -- needs: ae_of_mem_restrict + constExtend_eq_lift_on_Icc
 
 end ShenWork.IntervalDomain
 
