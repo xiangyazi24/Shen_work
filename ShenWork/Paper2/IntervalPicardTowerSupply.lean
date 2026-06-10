@@ -35,9 +35,14 @@
       the half-step coefficient bound `M₁ ≤ 2M` is now DERIVED in-tower from this slice
       continuity + the ball sup `hub` via `cosineCoeffs_abs_le_of_continuous_bounded`
       (`IntervalPicardSourceTower.halfStep_coeff_le_twoM`).
+    * `hub` — per-iterate ball sup on `Icc 0 1` (n-uniform): DERIVED in-tower from the
+      cone-returned n-uniform SUBTYPE ball `hball` (`= PicardConvFacts.hball` with
+      `F.M = M`, genuinely returned by `coneGradientMildSolutionData_exists_with_gate_data`).
+      On `Icc 0 1` the lift collapses to the subtype value (`dif_pos`) and
+      `a ≤ |a| ≤ M`, so the former `hub` field is no longer an analytic residual.
 
   ## (b) Genuinely-open analytic legs — the per-iterate spatial-`C²` bootstrap.
-    `hub`, `hsrc0`, `hL_cont`, `hG1all`, `hG2base`, and the `adot`
+    `hsrc0`, `hL_cont`, `hG1all`, `hG2base`, and the `adot`
     K1 stack (`adot`/`hadot_deriv`/`hadot_cont`/`adotBound`/`hadot_bound`) ALL depend
     on the per-iterate spatial-`C²`/positivity/Neumann regularity of EVERY Picard
     level (`picardIterateHasC2Slices_all`), whose step data
@@ -49,6 +54,8 @@
     same family of facts `uniformWiring_closure` consumes — `hsrc0`/`hL_cont`/`hG1all`
     /`hG2base` — plus the `adot` K1 data
     the clamped source producer reads, restated at the cone datum's horizon).  The
+    former `hub` leg has been REMOVED from the residual (derived in-tower from the
+    cone-returned subtype ball `hball`; see (a)).  The
     former `witness` leg (the half-step shifted-source `ShiftedSourceWitness`) has
     been REMOVED from the residual: its `src`/`hagree_window` come WALL-FREE from the
     non-negative time-shift of `hsrc0`, and its `hdecay` is DERIVED in-tower from the
@@ -103,9 +110,6 @@ residual the cone construction does not already hand back. -/
 structure TowerConeAnalyticResidual
     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
     (D : GradientMildSolutionData p u₀) (M A₂ : ℝ) where
-  /-- Per-iterate ball sup bound on `Icc 0 1` (n-uniform). -/
-  hub : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
-    intervalDomainLift (picardIter p u₀ n σ) x ≤ M
   /-- The level-`n` canonical logistic source time-`C¹` package (deliverable B). -/
   hsrc0 : ∀ n : ℕ, ShenWork.IntervalDuhamelClosedC2.DuhamelSourceTimeC1
     (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
@@ -157,6 +161,11 @@ def towerInputs_of_cone
     -- analytic-wall): feeds the in-tower `M₁ ≤ 2M` derivation (`halfStep_coeff_le_twoM`),
     -- so the former `hM₁` field is no longer an analytic residual:
     (hcontSlice : ∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n))
+    -- the cone's per-iterate n-uniform ball bound (returned `PicardConvFacts.hball` with
+    -- `F.M = M`, NOT an analytic wall): feeds the in-tower `hub` derivation, so the former
+    -- `hub` field is no longer an analytic residual:
+    (hball : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ y : intervalDomainPoint,
+      |picardIter p u₀ n σ y| ≤ M)
     -- the genuinely-open per-iterate analytic surface:
     (H : TowerConeAnalyticResidual p u₀ D M A₂) :
     Σ' M A₂ : ℝ, TowerInputs p u₀ M A₂ D.T :=
@@ -185,7 +194,15 @@ def towerInputs_of_cone
       · rw [Set.mem_singleton_iff] at hx1; subst hx1
         exact hStepEnd1_proved hMnn n t ht htT
     hpos := hpos
-    hub := H.hub
+    -- `hub` DERIVED from the cone-returned n-uniform subtype ball `hball` (NOT residual):
+    -- on `Icc 0 1` the lift collapses to the subtype value (`dif_pos`), and
+    -- `a ≤ |a| ≤ M`.
+    hub := by
+      intro n σ hσ hσT x hx
+      have hsub := hball n σ hσ hσT ⟨x, hx⟩
+      have hle : picardIter p u₀ n σ ⟨x, hx⟩ ≤ M :=
+        le_trans (le_abs_self _) hsub
+      simpa only [intervalDomainLift, dif_pos hx] using hle
     adot := H.adot
     hadot_deriv := H.hadot_deriv
     hadot_cont := H.hadot_cont
@@ -214,6 +231,8 @@ def coneTowerSupply
           (∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
             0 < intervalDomainLift (picardIter p u₀ n σ) x) ×'
           (∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n)) ×'
+          (∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ y : intervalDomainPoint,
+            |picardIter p u₀ n σ y| ≤ M) ×'
           TowerConeAnalyticResidual p u₀ D M A₂) :
     ∀ u₀ : intervalDomainPoint → ℝ,
       ∀ D : GradientMildSolutionData p u₀,
@@ -224,7 +243,7 @@ def coneTowerSupply
     towerInputs_of_cone p hχ0 hα ha hb u₀ D
       S.2.2.1 S.2.2.2.1 S.2.2.2.2.1 S.2.2.2.2.2.1
       S.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.2.1
-      S.2.2.2.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.2.2.2
+      S.2.2.2.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.2.2.2.2
 
 /-- **`HWdata_of_coneSupply` — the capstone `HWdata` from the cone supply.** -/
 def HWdata_of_coneSupply
@@ -239,6 +258,8 @@ def HWdata_of_coneSupply
           (∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
             0 < intervalDomainLift (picardIter p u₀ n σ) x) ×'
           (∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n)) ×'
+          (∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ y : intervalDomainPoint,
+            |picardIter p u₀ n σ y| ≤ M) ×'
           TowerConeAnalyticResidual p u₀ D M A₂) :
     ∀ u₀ : intervalDomainPoint → ℝ,
       PositiveInitialDatum intervalDomain u₀ →
@@ -272,6 +293,8 @@ theorem paper2_theorem_1_1_chiZero_from_coneSupply
           (∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
             0 < intervalDomainLift (picardIter p u₀ n σ) x) ×'
           (∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n)) ×'
+          (∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ y : intervalDomainPoint,
+            |picardIter p u₀ n σ y| ≤ M) ×'
           TowerConeAnalyticResidual p u₀ D M A₂) :
     ShenWork.Paper2.Theorem_1_1 intervalDomain p :=
   ShenWork.Paper2.Thm11ChiZeroCoreProvider.paper2_theorem_1_1_chiZero_unconditional
