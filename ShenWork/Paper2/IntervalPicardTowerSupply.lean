@@ -73,6 +73,7 @@
   No `sorry`, no `admit`, no custom `axiom`, no `native_decide`.  New file only.
 -/
 import ShenWork.Paper2.IntervalPicardTowerProjection
+import ShenWork.Paper2.IntervalPicardG1All
 import ShenWork.Paper2.IntervalPicardUniformWiringDischarge
 import ShenWork.Paper2.IntervalMildPicardConeData
 import ShenWork.Paper2.IntervalDomainThm11ChiZeroCoreProvider
@@ -115,9 +116,6 @@ structure TowerConeAnalyticResidual
     (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
   /-- Value-family continuity of the canonical logistic source slices. -/
   hL_cont : ∀ (n : ℕ) (s : ℝ), 0 < s → Continuous (logisticLifted p (picardIter p u₀ n s))
-  /-- Kernel-G1 line, all levels (the `n`-free homogeneous-split bound). -/
-  hG1all : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ x : ℝ,
-    |deriv (intervalDomainLift (picardIter p u₀ n σ)) x| ≤ G1profile p M σ
   /-- The level-`n` source-derivative `adot` data on every window. -/
   adot : ℕ → ℝ → ℕ → ℝ
   hadot_deriv : ∀ (n : ℕ) (c' d' : ℝ), ∀ σ ∈ Set.Icc c' d', ∀ k, HasDerivAt
@@ -163,9 +161,22 @@ def towerInputs_of_cone
     -- `hub` field is no longer an analytic residual:
     (hball : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ y : intervalDomainPoint,
       |picardIter p u₀ n σ y| ≤ M)
+    -- the cone's LIMIT ball (returned `PicardConvFacts.hlim_ball` with `F.M = M`, NOT
+    -- an analytic wall): feeds the in-tower `hu₀_sup` derivation for `hG1all`:
+    (hlim_ball : ∀ (s : ℝ), 0 < s → s ≤ D.T → ∀ y : intervalDomainPoint,
+      |D.u s y| ≤ M)
     -- the genuinely-open per-iterate analytic surface:
     (H : TowerConeAnalyticResidual p u₀ D M A₂) :
     Σ' M A₂ : ℝ, TowerInputs p u₀ M A₂ D.T :=
+  have h0mem : (0:ℝ) ∈ Set.Icc (0:ℝ) 1 := by norm_num
+  have hMpos : 0 < M := by
+    have hp := hpos 0 D.T D.hT le_rfl 0 h0mem
+    have hb := hball 0 D.T D.hT le_rfl ⟨0, h0mem⟩
+    have hlift : intervalDomainLift (picardIter p u₀ 0 D.T) 0
+        = picardIter p u₀ 0 D.T ⟨0, h0mem⟩ := by
+      simp [intervalDomainLift, h0mem]
+    rw [hlift] at hp
+    exact lt_of_lt_of_le hp (le_trans (le_abs_self _) hb)
   ⟨M, A₂,
   { hχ0 := hχ0
     hα := hα
@@ -180,7 +191,10 @@ def towerInputs_of_cone
     hu₀_bound := hu₀_bound
     hsrc0 := H.hsrc0
     hL_cont := H.hL_cont
-    hG1all := H.hG1all
+    -- `hG1all` DERIVED (hand-written kernel line, windowed source family):
+    hG1all := ShenWork.IntervalPicardG1All.hG1all_of_cone p hχ0 u₀ hMpos hu₀_cont
+      (ShenWork.IntervalPicardG1All.u₀_lift_abs_le p hMpos.le hu₀_cont D hlim_ball)
+      hball
     hcontSlice := hcontSlice
     -- endpoint G2-step budgets: PROVED (zero-extension junk-derivative), per `x∈{0,1}`.
     hG2end := by
@@ -229,6 +243,8 @@ def coneTowerSupply
           (∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n)) ×'
           (∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ y : intervalDomainPoint,
             |picardIter p u₀ n σ y| ≤ M) ×'
+          (∀ (s : ℝ), 0 < s → s ≤ D.T → ∀ y : intervalDomainPoint,
+            |D.u s y| ≤ M) ×'
           TowerConeAnalyticResidual p u₀ D M A₂) :
     ∀ u₀ : intervalDomainPoint → ℝ,
       ∀ D : GradientMildSolutionData p u₀,
@@ -239,7 +255,8 @@ def coneTowerSupply
     towerInputs_of_cone p hχ0 hα ha hb u₀ D
       S.2.2.1 S.2.2.2.1 S.2.2.2.2.1 S.2.2.2.2.2.1
       S.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.2.1
-      S.2.2.2.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.2.2.2.2
+      S.2.2.2.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.2.2.2.1
+      S.2.2.2.2.2.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.2.2.2.2.2
 
 /-- **`iterCoeffTimeCont_of_coneSupply` — the capstone `Hiter` from the cone supply.**
 
@@ -262,6 +279,8 @@ def iterCoeffTimeCont_of_coneSupply
           (∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n)) ×'
           (∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ y : intervalDomainPoint,
             |picardIter p u₀ n σ y| ≤ M) ×'
+          (∀ (s : ℝ), 0 < s → s ≤ D.T → ∀ y : intervalDomainPoint,
+            |D.u s y| ≤ M) ×'
           TowerConeAnalyticResidual p u₀ D M A₂) :
     ShenWork.Paper2.Thm11ChiZeroCoreProvider.IterCoeffTimeContProvider p :=
   fun u₀ _hu₀ D hDu =>
@@ -283,6 +302,8 @@ def HWdata_of_coneSupply
           (∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n)) ×'
           (∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ y : intervalDomainPoint,
             |picardIter p u₀ n σ y| ≤ M) ×'
+          (∀ (s : ℝ), 0 < s → s ≤ D.T → ∀ y : intervalDomainPoint,
+            |D.u s y| ≤ M) ×'
           TowerConeAnalyticResidual p u₀ D M A₂) :
     ∀ u₀ : intervalDomainPoint → ℝ,
       PositiveInitialDatum intervalDomain u₀ →
@@ -318,6 +339,8 @@ theorem paper2_theorem_1_1_chiZero_from_coneSupply
           (∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n)) ×'
           (∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ y : intervalDomainPoint,
             |picardIter p u₀ n σ y| ≤ M) ×'
+          (∀ (s : ℝ), 0 < s → s ≤ D.T → ∀ y : intervalDomainPoint,
+            |D.u s y| ≤ M) ×'
           TowerConeAnalyticResidual p u₀ D M A₂) :
     ShenWork.Paper2.Theorem_1_1 intervalDomain p :=
   ShenWork.Paper2.Thm11ChiZeroCoreProvider.paper2_theorem_1_1_chiZero_unconditional
