@@ -1,3 +1,20 @@
+# UPDATE 2026-06-10 ~12:10 — both walls dissolved; 7 routed residuals.
+#
+# hsrc0F: FILLED via the iterate-side bootstrap producer (ce2ba39) — the
+# Provider circularity broken (hM direct from D fields; env via le_of_tendsto
+# from n-uniform iterate envelopes). Residuals: R-src0F-1a/1b (trivial datum
+# bounds), R-src0F-2 (n-uniform iterate window envelope — THE analytic core),
+# R-src0F-3 (D.u = picardLimit mild-uniqueness bridge; coefficient convergence
+# ALREADY PROVED in IntervalPicardLimitCoeffConv), R-src0F-4 (hcontP — proof
+# sketch in chatgpt-hvsrc-and-inclusive-verdicts.md).
+# Hvsrc: field retyped per-t0 (HasResolverDirectSpectralData exists-inside-
+# forall, 6 consumers re-proved) + clamped power-source witness wired
+# (e2211ee). Residuals: R-Hvsrc-1 (window power decay), R-Hvsrc-2 (power K1,
+# clone of the logistic spine, HasDerivAt.rpow_const Or.inl positivity).
+#
+# ZERO unsatisfiable-typed sorries remain anywhere in the chain.
+# Full build 8535 jobs green, pushed through e2211ee.
+#
 # UPDATE 2026-06-10 ~00:20 — NIGHT FINAL: sorry 21 → 2. Build 8530 jobs green.
 #
 # Closed since the 00:15 note: restart packaging BOTH killed (2069c27 —
