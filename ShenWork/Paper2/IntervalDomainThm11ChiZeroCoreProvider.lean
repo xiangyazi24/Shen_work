@@ -81,6 +81,7 @@ import ShenWork.Paper2.IntervalDomainLedgerSweep
 import ShenWork.Paper2.IntervalPicardLimitRestartWeak
 import ShenWork.Paper2.IntervalDomainConstExtendAdapter
 import ShenWork.Paper2.IntervalCompactSliceGradientBounds
+import ShenWork.Paper2.IntervalPicardLimitBddAdapterPatched
 import ShenWork.Paper2.IntervalResolverStrictPositivity
 import ShenWork.Paper2.IntervalDomainPdeUWiring
 import ShenWork.Paper2.IntervalPicardLimitK1Weak
@@ -140,8 +141,8 @@ noncomputable def reducedLimitRegularityInputs_of_picard
     LedgerSweep.ReducedLimitRegularityInputs p u₀ D :=
   -- the weak limit-source package (F2 campaign produces it; one shared sorry,
   -- consumed by the `hsrc0` field AND by `hbsum`/`hagree`)
-  have hsrc0F : DuhamelSourceL1ContOn
-      (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) D.T := sorry
+  have hsrc0F : ShenWork.IntervalPicardLimitRestartBdd.DuhamelSourceBddOn
+      (ShenWork.IntervalPicardLimitBddProducer.patchedSource p u₀ D.u) D.T := sorry
   -- hoisted facts shared by several fields (H1 coefficient bound, K2 slice
   -- positivity, the limitCoeff cosine representation)
   have hu₀_bdF : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k|
@@ -165,40 +166,45 @@ noncomputable def reducedLimitRegularityInputs_of_picard
       exact le_csSup hbdd ⟨⟨x, hx⟩, rfl⟩
     exact ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
       hcont hB0 hfb
-  have hpostF : ∀ σ, 0 < σ → σ < D.T →
+  have hpostF : ∀ σ, 0 < σ → σ ≤ D.T →
       ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (D.u σ) x :=
     fun σ hσ hσT x hx => by
       simp only [intervalDomainLift, dif_pos hx]
-      exact D.hpos σ hσ hσT.le ⟨x, hx⟩
-  have hagreeF : ∀ σ, 0 < σ → σ < D.T → Set.EqOn (intervalDomainLift (D.u σ))
+      exact D.hpos σ hσ hσT ⟨x, hx⟩
+  have hagreeF : ∀ σ, 0 < σ → σ ≤ D.T → Set.EqOn (intervalDomainLift (D.u σ))
       (fun x => ∑' n, ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ D.u σ n
         * cosineMode n x) (Set.Icc (0 : ℝ) 1) :=
     fun σ hσ hσT x hx => by
-      exact limit_lift_eq_cosineSeries_of_subtypeCont p hχ0 u₀ D.u hu₀.admissible.2
-        hu₀_bdF hsrc0F hσ hσT.le
+      exact ShenWork.Paper2.TimeNhdSubtype.limit_lift_eq_cosineSeries_of_subtypeCont_patched
+        p hχ0 u₀ D.u hu₀.admissible.2
+        hu₀_bdF hsrc0F hσ hσT
         (fun y hy => by simp only [intervalDomainLift, dif_pos hy]
-                        exact D.hmild σ hσ hσT.le ⟨y, hy⟩)
+                        exact D.hmild σ hσ hσT ⟨y, hy⟩)
         (fun s hs hsσ =>
           ShenWork.Paper2.ConstExtendAdapter.logisticSource_constExtend_continuous D hs
-            (hsσ.trans hσT.le))
+            (hsσ.trans hσT))
         hx
   -- hoisted K2 / fixed-point / slice-continuity facts shared by the K1 bundle
   -- (the SUBTYPE-continuity K1 producer) and the hpde_u representation route.
-  have hbsumF : ∀ σ, 0 < σ → σ < D.T →
+  have hM₀nn : (0:ℝ) ≤ 2 * sSup (Set.range fun x => |u₀ x|) :=
+    le_trans (abs_nonneg _) (hu₀_bdF 0)
+  have hbsumF : ∀ σ, 0 < σ → σ ≤ D.T →
       Summable (fun n => unitIntervalCosineEigenvalue n
-        * |ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ D.u σ n|) := by
-    have hbdd : BddAbove (Set.range fun x => |u₀ x|) := hu₀.admissible.1
-    have hB0 : 0 ≤ sSup (Set.range fun x => |u₀ x|) :=
-      le_trans (abs_nonneg _)
-        (le_csSup hbdd ⟨⟨1 / 2, ⟨by norm_num, by norm_num⟩⟩, rfl⟩)
-    exact fun σ hσ hσT =>
-      summable_eigenvalue_mul_abs_limitCoeff_weak
-        p u₀ D.u (by linarith) hu₀_bdF hsrc0F hσ hσT.le
-  have hubtF : ∀ σ, 0 < σ → σ < D.T →
+        * |ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ D.u σ n|) :=
+    fun σ hσ hσT =>
+      Summable.of_nonneg_of_le
+        (fun k => mul_nonneg
+          (by unfold unitIntervalCosineEigenvalue; positivity) (abs_nonneg _))
+        (fun k =>
+          ShenWork.Paper2.BddAdapterPatched.eigenvalue_mul_abs_limitCoeff_le_uniform_patched
+            p u₀ D.u hM₀nn hu₀_bdF hsrc0F hσ le_rfl hσT k)
+        (ShenWork.IntervalPicardLimitBddAdapter.windowEigEnv_summable hσ
+          (hsrc0F.henv_summable (σ / 2) (by linarith) (by linarith)))
+  have hubtF : ∀ σ, 0 < σ → σ ≤ D.T →
       ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (D.u σ) x ≤ D.M :=
     fun σ hσ hσT x hx => by
       simp only [intervalDomainLift, dif_pos hx]
-      exact le_trans (le_abs_self _) (D.hbound σ hσ hσT.le ⟨x, hx⟩)
+      exact le_trans (le_abs_self _) (D.hbound σ hσ hσT ⟨x, hx⟩)
   have hfixF : ∀ s, 0 < s → s < D.T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
       intervalDomainLift (D.u s) x = intervalGradientDuhamelMap p u₀ D.u s ⟨x, hx⟩ :=
     fun s hs hsT x hx => by
@@ -207,19 +213,15 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   have hG1tF : ∀ a' b', 0 < a' → b' < D.T → ∃ G1, ∀ σ ∈ Set.Icc a' b',
       ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (intervalDomainLift (D.u σ)) x| ≤ G1 :=
     fun a' b' ha' hb'T =>
-      (ShenWork.Paper2.CompactSliceGradientBounds.deriv_lift_bound_on_compact
-        p u₀ D.u
-        (le_sup_right : (0:ℝ) ≤ 2 * sSup (Set.range fun x => |u₀ x|) ⊔ 0)
-        (fun k => le_trans (hu₀_bdF k) le_sup_left)
-        hsrc0F hagreeF hpostF ha' hb'T).imp (fun _ h => h.2)
+      (ShenWork.Paper2.BddAdapterPatched.deriv_lift_bound_on_compact_patched
+        p u₀ D.u hM₀nn hu₀_bdF hsrc0F hbsumF hagreeF hpostF ha' hb'T.le).imp
+        (fun _ h => h.2)
   have hG2tF : ∀ a' b', 0 < a' → b' < D.T → ∃ G2, ∀ σ ∈ Set.Icc a' b',
       ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (deriv (intervalDomainLift (D.u σ))) x| ≤ G2 :=
     fun a' b' ha' hb'T =>
-      (ShenWork.Paper2.CompactSliceGradientBounds.deriv2_lift_bound_on_compact
-        p u₀ D.u
-        (le_sup_right : (0:ℝ) ≤ 2 * sSup (Set.range fun x => |u₀ x|) ⊔ 0)
-        (fun k => le_trans (hu₀_bdF k) le_sup_left)
-        hsrc0F hagreeF ha' hb'T).imp (fun _ h => h.2)
+      (ShenWork.Paper2.BddAdapterPatched.deriv2_lift_bound_on_compact_patched
+        p u₀ D.u hM₀nn hu₀_bdF hsrc0F hbsumF hagreeF ha' hb'T.le).imp
+        (fun _ h => h.2)
   have hLc_ceF : ∀ t, 0 < t → t < D.T →
       ∀ s, 0 < s → s ≤ t →
         Continuous (intervalDomainConstExtend (intervalLogisticSource p (D.u s))) :=
@@ -234,7 +236,11 @@ noncomputable def reducedLimitRegularityInputs_of_picard
     (p := p) hχ0 D.u hα ha.le hb.le hu₀.admissible.2 hu₀_bdF hfixF hsrc0F
     (Msup := D.M)
     (bc := fun σ k => ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ D.u σ k)
-    hbsumF hagreeF hpostF hubtF hG1tF hG2tF hLc_ceF
+    (fun σ hσ hσT => hbsumF σ hσ hσT.le)
+    (fun σ hσ hσT => hagreeF σ hσ hσT.le)
+    (fun σ hσ hσT => hpostF σ hσ hσT.le)
+    (fun σ hσ hσT => hubtF σ hσ hσT.le)
+    hG1tF hG2tF hLc_ceF
   { -- structural regime parameters (immediate)
   hα := hα
   ha := ha.le
@@ -261,38 +267,20 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   bc := fun σ k => ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ D.u σ k
   -- hbsum: eigenvalue-weighted summability of limitCoeff, from weak source alone.
   -- Bottlenecks on eigenvalue_mul_abs_duhamelSpectralCoeff_le_envelope (1 sorry).
-  hbsum := fun σ hσ hσT => by
-    have hbdd : BddAbove (Set.range fun x => |u₀ x|) := hu₀.admissible.1
-    have hB0 : 0 ≤ sSup (Set.range fun x => |u₀ x|) :=
-      le_trans (abs_nonneg _)
-        (le_csSup hbdd ⟨⟨1 / 2, ⟨by norm_num, by norm_num⟩⟩, rfl⟩)
-    exact summable_eigenvalue_mul_abs_limitCoeff_weak p u₀ D.u
-      (by linarith) hu₀_bdF hsrc0F hσ hσT.le
+  hbsum := fun σ hσ hσT => hbsumF σ hσ hσT.le
   -- hagree: on [0,1], lift(u σ) = ∑ limitCoeff(σ,k) · cos(kπ·)
   -- from limit_lift_eq_cosineSeries_of_subtypeCont (the adapter theorem)
-  hagree := hagreeF
+  hagree := fun σ hσ hσT => hagreeF σ hσ hσT.le
   -- positivity: direct projection of `D.hpos` (now that σ is bounded to (0,D.T))
-  hpost := hpostF
+  hpost := fun σ hσ hσT => hpostF σ hσ hσT.le
   -- sup bound: `D.hbound` gives `|D.u σ x| ≤ D.M`; drop the abs via `le_abs_self`
   hubt := fun σ hσ hσT x hx => by
     simp only [intervalDomainLift, dif_pos hx]
     exact le_trans (le_abs_self _) (D.hbound σ hσ hσT.le ⟨x, hx⟩)
   -- K2 gradient/Hessian bounds: the per-compact producers from the σ-uniform
   -- eigenvalue envelope (CompactSliceGradientBounds)
-  hG1t := fun a' b' ha' hb'T =>
-    (ShenWork.Paper2.CompactSliceGradientBounds.deriv_lift_bound_on_compact
-      p u₀ D.u
-      (le_sup_right :
-        (0:ℝ) ≤ 2 * sSup (Set.range fun x => |u₀ x|) ⊔ 0)
-      (fun k => le_trans (hu₀_bdF k) le_sup_left)
-      hsrc0F hagreeF hpostF ha' hb'T).imp (fun _ h => h.2)
-  hG2t := fun a' b' ha' hb'T =>
-    (ShenWork.Paper2.CompactSliceGradientBounds.deriv2_lift_bound_on_compact
-      p u₀ D.u
-      (le_sup_right :
-        (0:ℝ) ≤ 2 * sSup (Set.range fun x => |u₀ x|) ⊔ 0)
-      (fun k => le_trans (hu₀_bdF k) le_sup_left)
-      hsrc0F hagreeF ha' hb'T).imp (fun _ h => h.2)
+  hG1t := hG1tF
+  hG2t := hG2tF
   -- hN0t/hN1t: deriv(lift(D.u σ)) at 0/1 = 0.
   -- The lift is NOT differentiable at 0 or 1 (jumps from u(σ,0)>0 to 0).
   -- In Lean/Mathlib, deriv of a non-differentiable function = 0 (junk value).
@@ -393,7 +381,11 @@ noncomputable def reducedLimitRegularityInputs_of_picard
       (ShenWork.Paper2.PdeUWiring.hasSpectralPdeAgreement_of_localized_data hχ0 D.u
         hα ha.le hb.le hu₀.admissible.2 hu₀_bdF hfixF hsrc0F
         (fun σ k => ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ D.u σ k)
-        hbsumF hagreeF hpostF hubtF hG1tF hG2tF
+        (fun σ hσ hσT => hbsumF σ hσ hσT.le)
+        (fun σ hσ hσT => hagreeF σ hσ hσT.le)
+        (fun σ hσ hσT => hpostF σ hσ hσT.le)
+        (fun σ hσ hσT => hubtF σ hσ hσT.le)
+        hG1tF hG2tF
         (ShenWork.Paper2.PicardLimitK1.adottOf p D.u) hK1.1 hK1.2.1 hK1.2.2 hLc_ceF)
   -- Hvsrc: resolver power-source `ν·u^γ` time-`C¹` package.  The producer EXISTS
   -- (`ResolverSourceTimeC1.resolverSource_timeC1_of_global_representation`, a

@@ -115,8 +115,8 @@ structure ReducedLimitRegularityInputs
   hfix : ∀ t, 0 < t → t < D.T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
     intervalDomainLift (D.u t) x = intervalGradientDuhamelMap p u₀ D.u t ⟨x, hx⟩
   -- weak limit-source package (horizon-bounded; feeds the localized restart route)
-  hsrc0 : DuhamelSourceL1ContOn
-    (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) D.T
+  hsrc0 : ShenWork.IntervalPicardLimitRestartBdd.DuhamelSourceBddOn
+    (ShenWork.IntervalPicardLimitBddProducer.patchedSource p u₀ D.u) D.T
   -- K2 spatial slice bounds (per time slice)
   Msup : ℝ
   -- per-slice cosine representation (replaces the unsatisfiable global-`C²` field

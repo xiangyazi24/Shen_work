@@ -92,8 +92,8 @@ def hasRestartData_of_subtypeCont
     (hfix : ∀ s, 0 < s → s < D.T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
       intervalDomainLift (D.u s) x = intervalGradientDuhamelMap p u₀ D.u s ⟨x, hx⟩)
     -- weak limit-source package (horizon-bounded)
-    (hsrc0 : DuhamelSourceL1ContOn
-      (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) D.T)
+    (hsrc0 : ShenWork.IntervalPicardLimitRestartBdd.DuhamelSourceBddOn
+      (ShenWork.IntervalPicardLimitBddProducer.patchedSource p u₀ D.u) D.T)
     -- K2: per-slice cosine representation + sup/positivity bounds (time-localized)
     {Msup : ℝ}
     (bc : ℝ → ℕ → ℝ)
