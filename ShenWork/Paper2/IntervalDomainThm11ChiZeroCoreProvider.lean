@@ -139,8 +139,31 @@ noncomputable def reducedLimitRegularityInputs_of_picard
     (u₀ : intervalDomainPoint → ℝ) (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (D : GradientMildSolutionData p u₀) :
     LedgerSweep.ReducedLimitRegularityInputs p u₀ D :=
-  -- the weak limit-source package (F2 campaign produces it; one shared sorry,
-  -- consumed by the `hsrc0` field AND by `hbsum`/`hagree`)
+  -- the weak limit-source package (one shared sorry, consumed by the `hsrc0`
+  -- field AND by `hbsum`/`hagree`/`hG1tF`/`hG2tF`).
+  --
+  -- INTENDED FILLER: `IntervalPicardLimitBddProducer.duhamelSourceBddOn_of_mildData_inclusive`
+  -- (NEW, `IntervalPicardLimitBddProducerInclusive.lean`, 0-sorry, builds green) —
+  -- the closed-horizon clone of the strict producer `duhamelSourceBddOn_of_mildData`,
+  -- with every window hypothesis retyped strict→inclusive (`< D.T` ⟶ `≤ D.T`).  Its
+  -- `hM` and `env` ingredients are fully discharged inside the producer (the env's
+  -- per-window quadratic-decay envelope on the CLOSED `[a', D.T]` from
+  -- `patchedSource_windowEnv_bound_inclusive`, taking window-uniform K2 bounds on the
+  -- closed `Set.Icc a' D.T` as inputs).
+  --
+  -- WHY STILL `sorry` (residual is NOT `hcontP`): wiring the inclusive producer here
+  -- is blocked by a STRUCTURAL CIRCULARITY, not by the continuity field.  The producer
+  -- consumes `bc`/`hbsum`/`hagree`/`hG1t`/`hG2t`; but every limit-source representation
+  -- (`limit_lift_eq_cosineSeries_of_subtypeCont_patched`, `summable_*_limitCoeff_*`) is
+  -- itself PROVEN FROM a `DuhamelSourceBddOn (patchedSource …)` package — so the
+  -- Provider's `hagreeF`/`hbsumF`/`hG1tF`/`hG2tF` all consume `hsrc0F` (see lines below:
+  -- `hagreeF` literally passes `hsrc0F`).  Feeding them back into the producer that
+  -- builds `hsrc0F` is an unsatisfiable `have`-ordering (`hsrc0F ← hagreeF ← hsrc0F`).
+  -- The genuine open input is therefore the package's `env` proven DIRECTLY from `D`
+  -- (the per-compact K2 / PDE-smoothing estimate), NOT the right-continuity `hcontP`
+  -- (which the inclusive producer takes as its own named-satisfiable hypothesis).  No
+  -- patched `DuhamelSourceL1ContOn` producer exists either (the global ℓ¹ envelope is
+  -- unfillable for merely-continuous `u₀` as `s → 0⁺`; see `HANDOFF/hsrc0-splitenv-design.md`).
   have hsrc0F : ShenWork.IntervalPicardLimitRestartBdd.DuhamelSourceBddOn
       (ShenWork.IntervalPicardLimitBddProducer.patchedSource p u₀ D.u) D.T := sorry
   -- hoisted facts shared by several fields (H1 coefficient bound, K2 slice

@@ -150,6 +150,7 @@ import ShenWork.Paper2.IntervalDomainMinPersistFinal
 import ShenWork.Paper2.IntervalDomainResolverStrictPos
 import ShenWork.Paper2.IntervalDomainThm11ChiZeroCoreProvider
 import ShenWork.Paper2.IntervalDomainThm11ChiZeroLedger
+import ShenWork.Paper2.IntervalPicardLimitBddProducerInclusive
 import ShenWork.Paper2.IntervalHsupNormConsumers
 import ShenWork.Paper2.IntervalHsupNormHeat
 import ShenWork.Paper2.IntervalPicardG1Split
