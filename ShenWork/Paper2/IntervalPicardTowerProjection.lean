@@ -32,11 +32,15 @@ open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalDom
 open ShenWork.Paper2 (PositiveInitialDatum)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.IntervalGradientDuhamelMap (logisticLifted)
 open ShenWork.IntervalMildPicard (picardIter picardLimit GradientMildSolutionData)
 open ShenWork.IntervalPicardIterateUniform
   (G1profile G2profile G1profile_nonneg)
 open ShenWork.IntervalPicardIterateRepresentation (iterateReprCoeff)
-open ShenWork.IntervalPicardWeightedC2Bootstrap (IterateWindowC2Data)
+open ShenWork.IntervalPicardWeightedC2Bootstrap
+  (IterateWindowC2Data windowSourceConst windowSourceConst_nonneg
+   iterate_source_windowEnv source_coeff_window_uniform)
+open ShenWork.IntervalPicardLimitBddProducer (windowEnv)
 open ShenWork.IntervalPicardWdataAssembly
   (G1win G2win G1win_nonneg G2win_nonneg G1profile_le_G1win G2profile_le_G2win)
 open ShenWork.IntervalPicardSourceTower (TowerLevel TowerInputs tower_all)
@@ -113,6 +117,67 @@ def wdata_all_of_tower
         hbsum := ?_, hagree := ?_, hpos := ?_, hub := ?_, hG1 := ?_, hG2 := ?_ } <;>
     · intro n σ haσ hσT
       exact absurd (le_trans haσ hσT) haT
+
+/-! ## §2b — The two iterate-side obligations for the hinterior closure.
+
+The hinterior / `duhamelSourceBddOn_of_iterates` closure consumes two iterate-side
+facts about the canonical Picard iterates (both n-UNIFORM):
+
+  (1) `henv_iter` — the n-uniform per-window source-coefficient envelope
+      `|coeffs(logistic(uₙ(s))) k| ≤ windowEnv (Cwin a') k` on `[a',T]`;
+  (2) `hiter_cont` — the per-iterate, per-mode source-coefficient time continuity
+      on `[a',τ]`.
+
+Both are produced DIRECTLY from the tower input bundle `TowerInputs`:
+
+  * (1) is the window-uniform envelope theorem `source_coeff_window_uniform`
+    (stage F) applied to the tower's window-data family `wdata_all_of_tower`.  The
+    explicit constant `Cwin a' = windowSourceConst p M (G1win p M a' T) (G2win A₂ a')`
+    is read off the tower's per-window K2 data — *n-uniform* because the window K2
+    scalars `G1win`/`G2win` are themselves n-free (the tower's `hG1`/`hG2` profiles
+    are n-uniform).  The `windowEnv` head (`k = 0`) is handled by `windowEnv`'s
+    constant head and `slice_source_coeff_zero` inside `iterate_source_windowEnv`.
+
+  * (2) needs NO induction: the tower carries, for every level `n`, the canonical
+    logistic-source `DuhamelSourceTimeC1` package `H.hsrc0 n`, whose `hderiv`
+    witnesses each coefficient `s ↦ cosineCoeffs (logisticLifted p (uₙ(s))) k` is
+    `C¹` in time, hence continuous, hence `ContinuousOn` on any `[a',τ]`.  (The bc
+    coefficient-uniqueness / Weierstrass induction route is therefore unnecessary;
+    `hsrc0` already pins the C¹ time-dependence.)
+-/
+
+/-- **`henv_iter_of_tower` — obligation (1).**  The n-UNIFORM per-window
+source-coefficient envelope, with the explicit window constant `Cwin a'` read off the
+tower's window K2 data.  Consumed verbatim by `duhamelSourceBddOn_of_iterates`'s
+`henv_iter` leg.  The constant is given by the existential witness of
+`source_coeff_window_uniform`; here it is exposed via the same definitional dependent
+`Cwin`. -/
+theorem henv_iter_of_tower
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {M A₂ T : ℝ}
+    (H : TowerInputs p u₀ M A₂ T) :
+    ∃ Cwin : ℝ → ℝ, (∀ a', 0 ≤ Cwin a') ∧
+      (∀ a', 0 < a' → ∀ s, a' ≤ s → s ≤ T → ∀ (n k : ℕ),
+        |cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k|
+          ≤ windowEnv (Cwin a') k) :=
+  source_coeff_window_uniform p u₀ H.hα (wdata_all_of_tower p u₀ H)
+
+/-- **`hiter_cont_of_tower` — obligation (2).**  Per-iterate, per-mode
+source-coefficient time continuity on any window `[a',τ] ⊆ (0,T]`.  Derived directly
+from the tower's canonical logistic-source `C¹` package `H.hsrc0 n` (no induction over
+`n`, no bc-uniqueness): the `hderiv` field gives `HasDerivAt`, hence `ContinuousAt`,
+hence global `Continuous`, restricted to `[a',τ]`. -/
+theorem hiter_cont_of_tower
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {M A₂ T : ℝ}
+    (H : TowerInputs p u₀ M A₂ T) :
+    ∀ (a' τ : ℝ), 0 < a' → a' ≤ τ → τ ≤ T → ∀ (n k : ℕ),
+      ContinuousOn
+        (fun s => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
+        (Set.Icc a' τ) := by
+  intro a' τ _ha' _haτ _hτT n k
+  have hcont : Continuous
+      (fun s => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k) :=
+    continuous_iff_continuousAt.2 (fun s => ((H.hsrc0 n).hderiv s k).continuousAt)
+  exact hcont.continuousOn
 
 /-! ## §3 — The `WdataProvider` projection (item 15). -/
 
