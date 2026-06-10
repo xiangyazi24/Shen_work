@@ -79,6 +79,33 @@ structure PicardIterateResidualCore
   /-- The per-window uniform K2 data for the Picard iterates. -/
   Wdata : ∀ a', 0 < a' → IterateWindowC2Data p u₀ a' D.T
 
+/-- **The narrowed (Wdata-only) iterate-side residual provider.**
+
+After the cone-facts narrowing pass, `hFacts`/`hFacts_T`/`hcont_iter` are no longer
+provider obligations — they are RETURNED by the cone construction
+(`coneGradientMildSolutionData_exists_with_data`) at the construction site (where
+`D.T = δ`), so only the genuinely-open per-window K2 leg `Wdata` remains a residual.
+This is the per-datum payload the capstone's narrowed hypothesis quantifies. -/
+def WdataProvider (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (D : GradientMildSolutionData p u₀) : Type :=
+  ∀ a', 0 < a' → IterateWindowC2Data p u₀ a' D.T
+
+/-- **Assemble the cone-specific core from the cone-returned facts + the
+Wdata-only residual.**  `hFacts`/`hcont_iter` are supplied by the cone
+construction at the construction site (`D.T = δ`); `Wdata` is the single remaining
+provider obligation. -/
+def picardIterateResidualCore_of_wdata
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {D : GradientMildSolutionData p u₀}
+    (hcont_iter : ∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n))
+    (hFacts : PicardConvFacts p u₀) (hFacts_T : hFacts.T = D.T)
+    (Wdata : WdataProvider p u₀ D) :
+    PicardIterateResidualCore p u₀ D where
+  hFacts := hFacts
+  hFacts_T := hFacts_T
+  hcont_iter := hcont_iter
+  Wdata := Wdata
+
 /-- **Combine the cone-specific core with the universally-derived legs.**
 
 `hsliceTC` is `hsliceTC_of_mild_restart` (needs only `hχ0`, `Continuous u₀`, `D`,

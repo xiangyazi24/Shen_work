@@ -106,7 +106,13 @@ open ShenWork.IntervalPicardLimitRestartWeak (DuhamelSourceL1Cont DuhamelSourceL
 open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.Paper2.Thm11ChiZeroResidual
   (PicardIterateResidualData hconv_of_residual hCwin_ex_of_residual)
-open ShenWork.IntervalMildPicard (picardLimit)
+open ShenWork.IntervalMildPicard
+  (picardLimit picardIter HasContinuousSlices)
+open ShenWork.IntervalMildPicardThreshold (gradientMildSolutionData_initialApproach)
+open ShenWork.IntervalMildPicardConeData (coneGradientMildSolutionData_exists_with_data)
+open ShenWork.IntervalPicardLimitCoeffConv (PicardConvFacts)
+open ShenWork.Paper2.HresWiring
+  (WdataProvider picardIterateResidualCore_of_wdata picardIterateResidualData_of_core)
 
 noncomputable section
 
@@ -685,73 +691,180 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   -- strong-maximum-principle producer (now landed).
   Hvpos := ShenWork.IntervalResolverStrictPositivity.mildChemicalConcentration_pos p D }
 
-/-- **FINAL WIRING — Paper 2 Theorem 1.1 (χ₀ = 0), hypothesis-unconditional.**
+/-! ## Wdata-only narrowing: cone facts supplied at the construction site
 
-Chains the per-datum reduced-ledger producer into the threshold-route capstone:
+The provider's residual surface is shrunk from the THREE-leg
+`HresWiring.PicardIterateResidualCore` (`hFacts`, `hcont_iter`, `Wdata`) to the
+single genuinely-open per-window K2 leg `Wdata`.  The other two legs
+(`hFacts`/`hcont_iter`) are NOT open residuals — they are RETURNED by the cone
+construction `coneGradientMildSolutionData_exists_with_data` at the construction
+site (where `D.T = δ`, so the cone's `∀ n, HasContinuousSlices δ (picardIter …)`
+and `∃ F : PicardConvFacts, F.T = δ` transport verbatim to `D.T`).  They cannot be
+recovered from a bare canonical-Picard-limit datum of *arbitrary* horizon, so they
+must be wired in WHERE the datum is freshly cone-constructed — which is what the
+two helpers below do (replacing the fact-stripping plain-cone bridge
+`ConeQuantBridge.quantitativeLocalExistence_chiZero` with a fact-carrying one). -/
 
-    reducedLimitRegularityInputs_of_picard          -- per-datum reduced ledger
-      → limitRegularityInputs_of_reduced            -- reduced ⟹ full ledger
-      → restartData_of_inputs / frontierCore_of_inputs  -- ledger ⟹ hPLF
-      → paper2_theorem_1_1_chiZero_of_reduced_inputs    -- capstone
+/-- **Per-datum reduced ledger from the cone facts + the Wdata-only residual.**
+Assembles `PicardIterateResidualCore` from the cone-returned `hcont_iter`/`hFacts`
+(`hFacts_T : hFacts.T = D.T`) and the single residual `Wdata`, lifts it to the full
+`PicardIterateResidualData` via the universally-derived legs
+(`picardIterateResidualData_of_core`), then runs the existing reduced-ledger
+producer. -/
+noncomputable def reducedLimitRegularityInputs_of_wdata
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) (hα : 1 ≤ p.α)
+    (u₀ : intervalDomainPoint → ℝ) (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (D : GradientMildSolutionData p u₀)
+    (hDu : D.u = picardLimit p u₀ D.T)
+    (hcont_iter : ∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n))
+    (hFacts : PicardConvFacts p u₀) (hFacts_T : hFacts.T = D.T)
+    (Wdata : WdataProvider p u₀ D) :
+    LedgerSweep.ReducedLimitRegularityInputs p u₀ D :=
+  reducedLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D hDu
+    (picardIterateResidualData_of_core hχ0 hu₀.admissible.2 hDu
+      (picardIterateResidualCore_of_wdata hcont_iter hFacts hFacts_T Wdata))
+
+/-- **The reduced classical frontier core from the cone facts + Wdata.**
+The per-datum `⟨R, frontierCore⟩` package the quantitative- and local-side
+assemblers need, built from the reduced ledger via the existing
+`LedgerSweep`/`MildLocalChi0` machinery. -/
+noncomputable def restartAndFrontierCore_of_wdata
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) (hα : 1 ≤ p.α)
+    (u₀ : intervalDomainPoint → ℝ) (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    (D : GradientMildSolutionData p u₀)
+    (hDu : D.u = picardLimit p u₀ D.T)
+    (hcont_iter : ∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n))
+    (hFacts : PicardConvFacts p u₀) (hFacts_T : hFacts.T = D.T)
+    (Wdata : WdataProvider p u₀ D) :
+    (ShenWork.IntervalMildRegularityBootstrap.GradientMildHalfStepRestartData D) ×'
+      (ShenWork.IntervalMildToLocalExistence.GradientMildClassicalFrontierCoreData p D) :=
+  let I := LedgerSweep.limitRegularityInputs_of_reduced hχ0
+    (reducedLimitRegularityInputs_of_wdata p hχ0 ha hb hα u₀ hu₀ D hDu
+      hcont_iter hFacts hFacts_T Wdata)
+  ⟨MildLocalChi0.restartData_of_inputs hχ0 I,
+   MildLocalChi0.frontierCore_of_inputs hχ0 I⟩
+
+/-- **Quantitative local existence (χ₀ = 0) from the Wdata-only provider.**
+Replaces `ConeQuantBridge.quantitativeLocalExistence_chiZero` (which strips the
+cone facts by using the PLAIN cone) with a fact-carrying bridge: the cone datum is
+built by `coneGradientMildSolutionData_exists_with_data`, exposing `hcont_iter` and
+the `PicardConvFacts`, which together with the per-datum `Wdata` residual discharge
+the reduced ledger and hence the frontier core (`classicalSolution_at_horizon`). -/
+theorem quantitativeLocalExistence_chiZero_wdata
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) (hα_ge : 1 ≤ p.α)
+    (HWdata : ∀ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ D : GradientMildSolutionData p u₀,
+        D.u = picardLimit p u₀ D.T → WdataProvider p u₀ D) :
+    ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+        (∀ x, |u₀ x| ≤ M) →
+        ∃ u v,
+          IsPaper2ClassicalSolution intervalDomain p δ u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro M hM
+  obtain ⟨δ, hδ, h⟩ := coneGradientMildSolutionData_exists_with_data p hχ0 hM hα_ge
+  refine ⟨δ, hδ, ?_⟩
+  intro u₀ hu₀ hbound
+  obtain ⟨D, hDT, hDu, hcont_iter, hFacts_ex, _hpos_iter⟩ :=
+    h u₀ hu₀.admissible.2 hbound
+      (ShenWork.Paper2.ConeQuantBridge.positiveInitialDatum_nonneg hu₀)
+      (ShenWork.Paper2.ConeQuantBridge.positiveInitialDatum_pos_somewhere hu₀)
+  -- the canonical Picard-limit identity at this datum's horizon
+  have hDu' : D.u = picardLimit p u₀ D.T := by rw [hDT]; exact hDu
+  -- the cone facts package, with its horizon transported to `D.T`
+  obtain ⟨hFacts, hFactsT⟩ := hFacts_ex
+  have hFacts_T : hFacts.T = D.T := by rw [hFactsT, hDT]
+  -- assemble `⟨R, hCore⟩` from {cone facts + Wdata}
+  obtain ⟨R, hCore⟩ :=
+    restartAndFrontierCore_of_wdata p hχ0 ha hb hα_ge u₀ hu₀ D hDu'
+      hcont_iter hFacts hFacts_T (HWdata u₀ hu₀ D hDu')
+  obtain ⟨v, hsol, htrace⟩ :=
+    ShenWork.Paper2.ThresholdQuantBridge.classicalSolution_at_horizon p D R
+      (gradientMildSolutionData_initialApproach p hu₀.admissible.2 D) hCore
+  exact ⟨D.u, v, hsol.restrict_horizon hδ (le_of_eq hDT.symm), htrace⟩
+
+/-- **Local existence (χ₀ = 0) from the Wdata-only provider.**  Same as
+`MildLocalChi0.hMildLocal_chi0_zero_of_inputs`, but the cone datum is built with
+the `_with_data` cone (exposing `hcont_iter`/`hFacts`), so the reduced ledger is
+discharged from {cone facts + the single `Wdata` residual} rather than from a full
+residual provider. -/
+theorem hMildLocal_chi0_zero_of_wdata
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) (hα_ge : 1 ≤ p.α)
+    (HWdata : ∀ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ D : GradientMildSolutionData p u₀,
+        D.u = picardLimit p u₀ D.T → WdataProvider p u₀ D) :
+    RestartLocalWiring.IntervalDomainGradientMildHalfStepRestartFrontierCoreLocalData p := by
+  intro u₀ hu₀
+  obtain ⟨B, hB⟩ := hu₀.admissible.1
+  set M := max B 1 with hMdef
+  have hM : 0 < M := lt_of_lt_of_le one_pos (le_max_right B 1)
+  have hbound : ∀ x, |u₀ x| ≤ M := fun x =>
+    le_trans (hB (Set.mem_range_self x)) (le_max_left B 1)
+  obtain ⟨δ, _hδ, hD⟩ := coneGradientMildSolutionData_exists_with_data p hχ0 hM hα_ge
+  obtain ⟨D, hDT, hDu, hcont_iter, hFacts_ex, _hpos_iter⟩ := hD u₀ hu₀.admissible.2 hbound
+    (ShenWork.Paper2.ConeQuantBridge.positiveInitialDatum_nonneg hu₀)
+    (ShenWork.Paper2.ConeQuantBridge.positiveInitialDatum_pos_somewhere hu₀)
+  have hDu' : D.u = picardLimit p u₀ D.T := by rw [hDT]; exact hDu
+  obtain ⟨hFacts, hFactsT⟩ := hFacts_ex
+  have hFacts_T : hFacts.T = D.T := by rw [hFactsT, hDT]
+  obtain ⟨R, hCore⟩ :=
+    restartAndFrontierCore_of_wdata p hχ0 ha hb hα_ge u₀ hu₀ D hDu'
+      hcont_iter hFacts hFacts_T (HWdata u₀ hu₀ D hDu')
+  exact ⟨D, R, gradientMildSolutionData_initialApproach p hu₀.admissible.2 D, hCore⟩
+
+/-- **FINAL WIRING — Paper 2 Theorem 1.1 (χ₀ = 0), Wdata-only residual surface.**
+
+Assembles Theorem 1.1 (χ₀ = 0) directly from the regime constants and the
+SINGLE-leg residual provider `HWdata`, via `paper2_theorem_1_1_from_quant_and_hlocal`:
+
+    quantitativeLocalExistence_chiZero_wdata HWdata   -- hQuant (fact-carrying cone)
+      ⊕ hMildLocal_chi0_zero_of_wdata HWdata          -- hlocal (fact-carrying cone)
+      → paper2_theorem_1_1_from_quant_and_hlocal
       → Theorem_1_1 intervalDomain p
 
-The statement carries NO frontier hypothesis: `hPLF`
-(`PicardLimitRestartFrontier p`) is *not* an independent residual — it is
-derived here from the same reduced ledger via `restartData_of_inputs` +
-`frontierCore_of_inputs`, exactly as in
-`ThresholdQuantBridge.paper2_theorem_1_1_chiZero_threshold_of_ledger`.  So the
-only hypotheses are `p.χ₀ = 0` and the structural regime constants
-(`0 < a`, `0 < b`, `1 ≤ α`, `1 ≤ γ`).
+**The residual surface is now `Wdata`-only.**  Compared with the former
+three-leg `HresWiring.PicardIterateResidualCore` provider (`hFacts`, `hcont_iter`,
+`Wdata`), the cone facts `hFacts`/`hcont_iter` are NO LONGER hypotheses: both the
+quantitative- and local-side bridges build their cone datum with
+`coneGradientMildSolutionData_exists_with_data`, which RETURNS the iterate
+slice-continuity bundle `hcont_iter` and the ball/geometric `PicardConvFacts`
+package at the construction horizon `D.T = δ`.  These two legs are therefore
+discharged at the point of construction — they are not open residuals — leaving
+the genuinely-open per-window K2 leg `Wdata` as the only provider obligation.
+(`hsliceTC` and `hLcont_lim` remain discharged universally inside
+`picardIterateResidualData_of_core`.)
 
-HONESTY NOTE — after the `hDu` threading pass and the residual-bundle isolation,
-the χ₀ = 0 chain is `sorry`-FREE: every former `sorry` in
-`reducedLimitRegularityInputs_of_picard` is now discharged from the precisely-named
-iterate-side residual bundle `PicardIterateResidualData` (R-src0F-2 via
-`source_coeff_window_uniform`; R-src0F-3 via `picardIter_logisticCoeff_tendsto_limit`
-+ `hDu`; the patched-slice time continuity `hsliceTC` carried as the single genuine
-analytic field).  The bundle is supplied as the hypothesis `Hres`: a universal
-provider of the residual data for every canonical Picard-limit datum.  Hence
-`#print axioms paper2_theorem_1_1_chiZero_unconditional` no longer reports `sorryAx`
-— Theorem 1.1 (χ₀ = 0) is now UNCONDITIONAL modulo the explicit, satisfiable
-hypothesis `Hres` (whose fields are TRUE statements about the canonical Picard
-limit, dischargeable from the cone construction's internal iterate data). -/
+The narrowing replaces the fact-stripping plain-cone bridge
+`ConeQuantBridge.quantitativeLocalExistence_chiZero` with the fact-carrying
+`quantitativeLocalExistence_chiZero_wdata`; the universal frontier residual `hPLF`
+(`PicardLimitRestartFrontier p`, a `∀ D` Prop applied to the plain-cone datum after
+its facts were stripped) is no longer used.
+
+The only hypotheses are `p.χ₀ = 0`, the structural regime constants
+(`0 < a`, `0 < b`, `1 ≤ α`, `1 ≤ γ`), and `HWdata`.  `#print axioms` reports only
+the inherited `sorryAx` from `hinterior` (in
+`IntervalPicardLimitSliceTimeContinuity`, consumed via `hsliceTC`). -/
 theorem paper2_theorem_1_1_chiZero_unconditional
     (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
-    -- the NARROWED iterate-side residual provider for every canonical Picard-limit
-    -- datum.  `PicardIterateResidualCore` carries only the THREE genuinely
-    -- cone-specific legs (`hFacts`, `hcont_iter`, `Wdata` — properties of the
-    -- iteration AT `D.T`); the patched-slice time continuity `hsliceTC` and the
-    -- limit logistic-source continuity `hLcont_lim` are NO LONGER hypotheses — they
-    -- are discharged universally inside `picardIterateResidualData_of_core`
-    -- (`hsliceTC_of_mild_restart` + `D.hcont`).  See `IntervalDomainHresWiring`.
-    (HresCore : ∀ u₀ : intervalDomainPoint → ℝ,
+    -- the NARROWED (Wdata-only) iterate-side residual provider for every canonical
+    -- Picard-limit datum.  Carries ONLY the genuinely-open per-window K2 leg
+    -- `WdataProvider`; the cone facts `hFacts`/`hcont_iter` are returned by the
+    -- `_with_data` cone at the construction site (see the helpers above), and
+    -- `hsliceTC`/`hLcont_lim` are discharged universally.
+    (HWdata : ∀ u₀ : intervalDomainPoint → ℝ,
       PositiveInitialDatum intervalDomain u₀ →
       ∀ D : GradientMildSolutionData p u₀,
         D.u = picardLimit p u₀ D.T →
-        HresWiring.PicardIterateResidualCore p u₀ D) :
+        WdataProvider p u₀ D) :
     Theorem_1_1 intervalDomain p :=
-  -- assemble the full residual bundle from the core + the universally-derived legs.
-  have Hres : ∀ u₀ : intervalDomainPoint → ℝ,
-      PositiveInitialDatum intervalDomain u₀ →
-      ∀ D : GradientMildSolutionData p u₀,
-        D.u = picardLimit p u₀ D.T →
-        PicardIterateResidualData p u₀ D :=
-    fun u₀ hu₀ D hDu =>
-      HresWiring.picardIterateResidualData_of_core hχ0 hu₀.admissible.2 hDu
-        (HresCore u₀ hu₀ D hDu)
-  -- `hPLF` derived from the reduced ledger (using the threaded `hDu` + `Hres`).
-  have hPLF : ConeQuantBridge.PicardLimitRestartFrontier p :=
-    fun u₀ hu₀ D hDu =>
-      let I := LedgerSweep.limitRegularityInputs_of_reduced hχ0
-        (reducedLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D hDu
-          (Hres u₀ hu₀ D hDu))
-      ⟨MildLocalChi0.restartData_of_inputs hχ0 I,
-        MildLocalChi0.frontierCore_of_inputs hχ0 I⟩
-  LedgerSweep.paper2_theorem_1_1_chiZero_of_reduced_inputs
-    p hχ0 ha hb hα hγ hPLF
-    (fun u₀ hu₀ D hDu =>
-      reducedLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D hDu
-        (Hres u₀ hu₀ D hDu))
+  RestartLocalWiring.paper2_theorem_1_1_from_quant_and_hlocal
+    p (le_of_eq hχ0) ha hb hγ
+    (quantitativeLocalExistence_chiZero_wdata p hχ0 ha hb hα HWdata)
+    (RestartLocalWiring.localExistence_of_gradientMildHalfStepRestartFrontierCoreLocalData
+      p (hMildLocal_chi0_zero_of_wdata p hχ0 ha hb hα HWdata))
 
 end ShenWork.Paper2.Thm11ChiZeroCoreProvider
