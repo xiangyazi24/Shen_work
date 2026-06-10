@@ -1,3 +1,19 @@
+# UPDATE 2026-06-10 ~00:15 — FINAL ledger: sorry 21 → 4.
+#
+# K1 CLOSED: k1_quadruple_weak (BddOn spine, fixed-split majorant) +
+# _of_subtypeCont variant, wired into the Provider's four K1 fields AND the
+# hpde_u bundle (commits 55a52c0, 0417630). Full build 8528 jobs green.
+#
+# Remaining 4:
+# 1. Provider hsrc0F — BddOn patched-family migration (design:
+#    hsrc0-splitenv-design.md; producer DONE in IntervalPicardLimitBddProducer;
+#    remaining: adapter patched↔canonical + ledger field/consumer swap)
+# 2. Provider Hvsrc — resolver power-source TimeC1
+#    (powerSource_intervalWeakH2Neumann is the base)
+# 3. restartData_of_inputs (MildLocalChi0)
+# 4. hasRestartData_of_subtypeCont (ConstExtendAdapter)
+#
+# ---- earlier same-night notes ----
 # UPDATE 2026-06-09 ~23:45 — sorry 21 → 8, all satisfiable types.
 #
 # Additional commits: 84dc5ff Hu_of_reduced via subtype variant (-1),
