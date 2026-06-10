@@ -83,6 +83,7 @@ import ShenWork.Paper2.IntervalDomainConstExtendAdapter
 import ShenWork.Paper2.IntervalCompactSliceGradientBounds
 import ShenWork.Paper2.IntervalResolverStrictPositivity
 import ShenWork.Paper2.IntervalDomainPdeUWiring
+import ShenWork.Paper2.IntervalPicardLimitK1Weak
 
 open MeasureTheory Set Filter Topology
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalDomain
@@ -180,6 +181,59 @@ noncomputable def reducedLimitRegularityInputs_of_picard
           ShenWork.Paper2.ConstExtendAdapter.logisticSource_constExtend_continuous D hs
             (hsσ.trans hσT.le))
         hx
+  -- hoisted K2 / fixed-point / slice-continuity facts shared by the K1 bundle
+  -- (the SUBTYPE-continuity K1 producer) and the hpde_u representation route.
+  have hbsumF : ∀ σ, 0 < σ → σ < D.T →
+      Summable (fun n => unitIntervalCosineEigenvalue n
+        * |ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ D.u σ n|) := by
+    have hbdd : BddAbove (Set.range fun x => |u₀ x|) := hu₀.admissible.1
+    have hB0 : 0 ≤ sSup (Set.range fun x => |u₀ x|) :=
+      le_trans (abs_nonneg _)
+        (le_csSup hbdd ⟨⟨1 / 2, ⟨by norm_num, by norm_num⟩⟩, rfl⟩)
+    exact fun σ hσ hσT =>
+      summable_eigenvalue_mul_abs_limitCoeff_weak
+        p u₀ D.u (by linarith) hu₀_bdF hsrc0F hσ hσT.le
+  have hubtF : ∀ σ, 0 < σ → σ < D.T →
+      ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (D.u σ) x ≤ D.M :=
+    fun σ hσ hσT x hx => by
+      simp only [intervalDomainLift, dif_pos hx]
+      exact le_trans (le_abs_self _) (D.hbound σ hσ hσT.le ⟨x, hx⟩)
+  have hfixF : ∀ s, 0 < s → s < D.T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
+      intervalDomainLift (D.u s) x = intervalGradientDuhamelMap p u₀ D.u s ⟨x, hx⟩ :=
+    fun s hs hsT x hx => by
+      simp only [intervalDomainLift, dif_pos hx]
+      exact D.hmild s hs hsT.le ⟨x, hx⟩
+  have hG1tF : ∀ a' b', 0 < a' → b' < D.T → ∃ G1, ∀ σ ∈ Set.Icc a' b',
+      ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (intervalDomainLift (D.u σ)) x| ≤ G1 :=
+    fun a' b' ha' hb'T =>
+      (ShenWork.Paper2.CompactSliceGradientBounds.deriv_lift_bound_on_compact
+        p u₀ D.u
+        (le_sup_right : (0:ℝ) ≤ 2 * sSup (Set.range fun x => |u₀ x|) ⊔ 0)
+        (fun k => le_trans (hu₀_bdF k) le_sup_left)
+        hsrc0F hagreeF hpostF ha' hb'T).imp (fun _ h => h.2)
+  have hG2tF : ∀ a' b', 0 < a' → b' < D.T → ∃ G2, ∀ σ ∈ Set.Icc a' b',
+      ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (deriv (intervalDomainLift (D.u σ))) x| ≤ G2 :=
+    fun a' b' ha' hb'T =>
+      (ShenWork.Paper2.CompactSliceGradientBounds.deriv2_lift_bound_on_compact
+        p u₀ D.u
+        (le_sup_right : (0:ℝ) ≤ 2 * sSup (Set.range fun x => |u₀ x|) ⊔ 0)
+        (fun k => le_trans (hu₀_bdF k) le_sup_left)
+        hsrc0F hagreeF ha' hb'T).imp (fun _ h => h.2)
+  have hLc_ceF : ∀ t, 0 < t → t < D.T →
+      ∀ s, 0 < s → s ≤ t →
+        Continuous (intervalDomainConstExtend (intervalLogisticSource p (D.u s))) :=
+    fun _t _ht htT s hs hsT =>
+      ShenWork.Paper2.ConstExtendAdapter.logisticSource_constExtend_continuous D hs
+        (hsT.trans htT.le)
+  -- **K1 source-coefficient time-`C¹` quadruple — de-circularized, SUBTYPE form.**
+  -- `k1_quadruple_weak_of_subtypeCont` consumes only the satisfiable ledger data
+  -- (subtype `Continuous u₀` + constExtend slice continuity); its conclusion is
+  -- exactly the four ledger K1 fields (`adott`/`hderivt`/`hadotcontt`/`hMdott`).
+  have hK1 := ShenWork.Paper2.PicardLimitK1Weak.k1_quadruple_weak_of_subtypeCont
+    (p := p) hχ0 D.u hα ha.le hb.le hu₀.admissible.2 hu₀_bdF hfixF hsrc0F
+    (Msup := D.M)
+    (bc := fun σ k => ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ D.u σ k)
+    hbsumF hagreeF hpostF hubtF hG1tF hG2tF hLc_ceF
   { -- structural regime parameters (immediate)
   hα := hα
   ha := ha.le
@@ -300,11 +354,12 @@ noncomputable def reducedLimitRegularityInputs_of_picard
       -- But lift(1) > 0, contradiction.
       linarith
     exact deriv_zero_of_not_differentiableAt hnotdiff
-  -- K1 source-coefficient time-C¹ data (M3b), UNSHIFTED localized form
-  adott := sorry
-  hderivt := sorry
-  hadotcontt := sorry
-  hMdott := sorry
+  -- K1 source-coefficient time-C¹ data (M3b), UNSHIFTED localized form —
+  -- produced by the de-circularized SUBTYPE-continuity weak K1 quadruple `hK1`.
+  adott := ShenWork.Paper2.PicardLimitK1.adottOf p D.u
+  hderivt := hK1.1
+  hadotcontt := hK1.2.1
+  hMdott := hK1.2.2
   -- H3 slice continuity
   -- hLc: logistic source continuity on the subtype.
   -- intervalLogisticSource p (D.u s) = fun x => (D.u s x) * (a - b * (D.u s x)^α).
@@ -329,66 +384,16 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   -- discontinuous lift of positive data) is now DISCHARGED: `HasSpectralPdeAgreement`
   -- consumes a continuous surrogate `g := constExtend (intervalLogisticSource …)`
   -- (continuity from `hLc_ceF`, Fourier-summability from the cosine-decay envelope).
-  hpde_u := by
-    have hbsumF : ∀ σ, 0 < σ → σ < D.T →
-        Summable (fun n => unitIntervalCosineEigenvalue n
-          * |ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ D.u σ n|) := by
-      have hbdd : BddAbove (Set.range fun x => |u₀ x|) := hu₀.admissible.1
-      have hB0 : 0 ≤ sSup (Set.range fun x => |u₀ x|) :=
-        le_trans (abs_nonneg _)
-          (le_csSup hbdd ⟨⟨1 / 2, ⟨by norm_num, by norm_num⟩⟩, rfl⟩)
-      exact fun σ hσ hσT =>
-        summable_eigenvalue_mul_abs_limitCoeff_weak
-          p u₀ D.u (by linarith) hu₀_bdF hsrc0F hσ hσT.le
-    have hubtF : ∀ σ, 0 < σ → σ < D.T →
-        ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (D.u σ) x ≤ D.M :=
-      fun σ hσ hσT x hx => by
-        simp only [intervalDomainLift, dif_pos hx]
-        exact le_trans (le_abs_self _) (D.hbound σ hσ hσT.le ⟨x, hx⟩)
-    have hG1tF : ∀ a' b', 0 < a' → b' < D.T → ∃ G1, ∀ σ ∈ Set.Icc a' b',
-        ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (intervalDomainLift (D.u σ)) x| ≤ G1 :=
-      fun a' b' ha' hb'T =>
-        (ShenWork.Paper2.CompactSliceGradientBounds.deriv_lift_bound_on_compact
-          p u₀ D.u
-          (le_sup_right : (0:ℝ) ≤ 2 * sSup (Set.range fun x => |u₀ x|) ⊔ 0)
-          (fun k => le_trans (hu₀_bdF k) le_sup_left)
-          hsrc0F hagreeF hpostF ha' hb'T).imp (fun _ h => h.2)
-    have hG2tF : ∀ a' b', 0 < a' → b' < D.T → ∃ G2, ∀ σ ∈ Set.Icc a' b',
-        ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (deriv (intervalDomainLift (D.u σ))) x| ≤ G2 :=
-      fun a' b' ha' hb'T =>
-        (ShenWork.Paper2.CompactSliceGradientBounds.deriv2_lift_bound_on_compact
-          p u₀ D.u
-          (le_sup_right : (0:ℝ) ≤ 2 * sSup (Set.range fun x => |u₀ x|) ⊔ 0)
-          (fun k => le_trans (hu₀_bdF k) le_sup_left)
-          hsrc0F hagreeF ha' hb'T).imp (fun _ h => h.2)
-    have hfixF : ∀ s, 0 < s → s < D.T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
-        intervalDomainLift (D.u s) x = intervalGradientDuhamelMap p u₀ D.u s ⟨x, hx⟩ :=
-      fun s hs hsT x hx => by
-        simp only [intervalDomainLift, dif_pos hx]
-        exact D.hmild s hs hsT.le ⟨x, hx⟩
-    have hLc_ceF : ∀ t, 0 < t → t < D.T →
-        ∀ s, 0 < s → s ≤ t →
-          Continuous (intervalDomainConstExtend (intervalLogisticSource p (D.u s))) :=
-      fun _t _ht htT s hs hsT =>
-        ShenWork.Paper2.ConstExtendAdapter.logisticSource_constExtend_continuous D hs
-          (hsT.trans htT.le)
-    -- K1 source-coefficient time-`C¹` data — the SAME open frontier as the
-    -- structure's own sorried `adott`/`hderivt`/`hadotcontt`/`hMdott` fields
-    -- (no independent producer exists in the current codebase).
-    obtain ⟨adott, hderivt, hadotcontt, hMdott⟩ :
-        ∃ adott : ℝ → ℕ → ℝ,
-          (∀ σ, 0 < σ → σ < D.T → ∀ k, HasDerivAt
-            (fun r => cosineCoeffs (ShenWork.IntervalMildPicardRegularity.logisticSourceFun
-              p.a p.b p.α (intervalDomainLift (D.u r))) k) (adott σ k) σ) ∧
-          (∀ k, ContinuousOn (fun σ => adott σ k) (Set.Ioo 0 D.T)) ∧
-          (∀ a' b', 0 < a' → b' < D.T → ∃ Mdot, ∀ σ ∈ Set.Icc a' b',
-            ∀ k, |adott σ k| ≤ Mdot) := sorry
-    exact ShenWork.IntervalDomainPdeUProducer.mildSolution_pde_u_of_spectral p hχ0 D
+  -- The K1 source-coefficient time-`C¹` quadruple consumed here is the SAME
+  -- hoisted `hK1` data (de-circularized SUBTYPE-continuity producer); the former
+  -- K1 `sorry` in the hpde_u path is therefore discharged.
+  hpde_u :=
+    ShenWork.IntervalDomainPdeUProducer.mildSolution_pde_u_of_spectral p hχ0 D
       (ShenWork.Paper2.PdeUWiring.hasSpectralPdeAgreement_of_localized_data hχ0 D.u
         hα ha.le hb.le hu₀.admissible.2 hu₀_bdF hfixF hsrc0F
         (fun σ k => ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ D.u σ k)
         hbsumF hagreeF hpostF hubtF hG1tF hG2tF
-        adott hderivt hadotcontt hMdott hLc_ceF)
+        (ShenWork.Paper2.PicardLimitK1.adottOf p D.u) hK1.1 hK1.2.1 hK1.2.2 hLc_ceF)
   Hvsrc := sorry
   -- Hvpos: strict boundary positivity of the resolver, from the elliptic
   -- strong-maximum-principle producer (now landed).

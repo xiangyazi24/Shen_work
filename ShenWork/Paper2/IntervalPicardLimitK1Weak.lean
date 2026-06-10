@@ -31,6 +31,7 @@
 -/
 import ShenWork.Paper2.IntervalPicardLimitK1
 import ShenWork.Paper2.IntervalPicardLimitBddProducer
+import ShenWork.Paper2.IntervalPicardLimitTimeNhdSubtype
 
 open MeasureTheory Filter Topology Set
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
@@ -58,6 +59,9 @@ open ShenWork.IntervalPicardLimitTimeNhd (picardLimitRestart_general)
 open ShenWork.Paper2.ClampedSourceRepresentation (clampedFamily_eq_on)
 open ShenWork.IntervalTimeSoftClamp (φ)
 open ShenWork.Paper2 (cosineCoeffs_congr_on_Icc)
+open ShenWork.IntervalDomain (intervalDomainConstExtend)
+open ShenWork.IntervalDomainExistence (intervalLogisticSource)
+open ShenWork.Paper2.TimeNhdSubtype (picardLimitRestart_general_of_subtypeCont)
 
 noncomputable section
 
@@ -841,6 +845,171 @@ def localRestartWeak_of_ledger
   rw [clampedFamily_eq_on p u hc' hd' hmem_cd k]
   exact congrFun (congrFun (source_family_eq_w p u) (τ + ρ)) k
 
+set_option maxHeartbeats 3200000 in
+/-- **Subtype-continuity variant of `localRestartWeak_of_ledger`.**
+
+Identical to `localRestartWeak_of_ledger` except the lift-continuity hypothesis
+`hu₀_cont : Continuous (intervalDomainLift u₀)` (FALSE for positive boundary
+data — the zero-extension lift jumps to 0 outside `[0,1]`) is replaced by the
+subtype form `Continuous u₀`, and the slice-continuity hypothesis `hLc`
+(`Continuous (logisticLifted p (u s))`, likewise false) is replaced by the
+`constExtend` form `hLc_ce`.  The only consumer of those two hypotheses is the
+restart representation `picardLimitRestart_general`, which we swap for
+`picardLimitRestart_general_of_subtypeCont`.  Everything else (the BddOn package,
+the window envelope, the integral congr) is independent of lift continuity. -/
+def localRestartWeak_of_ledger_of_subtypeCont
+    {p : CM2Params} (hχ0 : p.χ₀ = 0)
+    {u₀ : intervalDomainPoint → ℝ} (u : ℝ → intervalDomainPoint → ℝ)
+    {T : ℝ}
+    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    (hu₀_cont : Continuous u₀)
+    {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hfix : ∀ s, 0 < s → s < T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
+      intervalDomainLift (u s) x = intervalGradientDuhamelMap p u₀ u s ⟨x, hx⟩)
+    (hsrc0 : DuhamelSourceL1ContOn
+      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
+    {Msup : ℝ}
+    (bc : ℝ → ℕ → ℝ)
+    (hbsum : ∀ σ, 0 < σ → σ < T →
+      Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|))
+    (hagree : ∀ σ, 0 < σ → σ < T → Set.EqOn (intervalDomainLift (u σ))
+      (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1))
+    (hpost : ∀ σ, 0 < σ → σ < T →
+      ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (u σ) x)
+    (hubt : ∀ σ, 0 < σ → σ < T →
+      ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (u σ) x ≤ Msup)
+    (hG1t : ∀ a' b', 0 < a' → b' < T → ∃ G1, ∀ σ ∈ Set.Icc a' b',
+      ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (intervalDomainLift (u σ)) x| ≤ G1)
+    (hG2t : ∀ a' b', 0 < a' → b' < T → ∃ G2, ∀ σ ∈ Set.Icc a' b',
+      ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (deriv (intervalDomainLift (u σ))) x| ≤ G2)
+    (hLc_ce : ∀ t, 0 < t → t < T →
+      ∀ s, 0 < s → s ≤ t →
+        Continuous (intervalDomainConstExtend (intervalLogisticSource p (u s))))
+    {σ : ℝ} (hσ0 : 0 < σ) (hσT : σ < T) :
+    LocalRestartWeak p u T σ := by
+  set τ : ℝ := σ / 2 with hτdef
+  have hτpos : 0 < τ := by rw [hτdef]; linarith
+  have hτσ : τ < σ := by rw [hτdef]; linarith
+  have hτT : τ < T := lt_trans hτσ hσT
+  set c' : ℝ := σ / 4 with hc'def
+  set d : ℝ := (σ + T) / 2 with hddef
+  set d' : ℝ := (σ + 3 * T) / 4 with hd'def
+  have hc' : c' < τ := by rw [hc'def, hτdef]; linarith
+  have hcd : τ ≤ d := by rw [hddef, hτdef]; linarith
+  have hd' : d < d' := by rw [hddef, hd'def]; linarith
+  have hc'pos : 0 < c' := by rw [hc'def]; linarith
+  have hd'T : d' < T := by rw [hd'def]; linarith
+  have hσd : σ < d := by rw [hddef]; linarith
+  have hdT : d < T := lt_trans hd' hd'T
+  have hwin : ∀ s ∈ Set.Icc c' d', 0 < s ∧ s < T := fun s hs =>
+    ⟨lt_of_lt_of_le hc'pos hs.1, lt_of_le_of_lt hs.2 hd'T⟩
+  set G1 := (hG1t c' d' hc'pos hd'T).choose with hG1def
+  have hG1 := (hG1t c' d' hc'pos hd'T).choose_spec
+  set G2 := (hG2t c' d' hc'pos hd'T).choose with hG2def
+  have hG2 := (hG2t c' d' hc'pos hd'T).choose_spec
+  -- restart-base bound (same as K1)
+  have hMnn : 0 ≤ Msup := by
+    have h1 := hubt τ hτpos hτT 0 ⟨le_rfl, zero_le_one⟩
+    have h2 := hpost τ hτpos hτT 0 ⟨le_rfl, zero_le_one⟩
+    linarith
+  have ha₀ : ∀ k, |cosineCoeffs (intervalDomainLift (u τ)) k| ≤ 2 * Msup := by
+    intro k
+    refine ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
+      (((ShenWork.IntervalDuhamelClosedC2.cosineCoeffSeries_contDiff_two
+        (hbsum τ hτpos hτT)).continuous.continuousOn).congr
+          (hagree τ hτpos hτT)) (by linarith) ?_ k
+    intro x hx
+    rw [abs_of_pos (hpost τ hτpos hτT x hx)]
+    exact hubt τ hτpos hτT x hx
+  -- The clamped family.
+  set aC : ℝ → ℕ → ℝ := fun ρ k => cosineCoeffs (logisticSourceFun p.a p.b p.α
+    (intervalDomainLift (u (φ c' τ d d' (τ + ρ))))) k with haCdef
+  -- window envelope constant.
+  set Cval : ℝ := max (2 * B_log p.a p.b p.α Msup G1 G2)
+    (Msup * (p.a + p.b * Msup ^ p.α)) with hCvaldef
+  have hCval_nn : 0 ≤ Cval := by
+    rw [hCvaldef]
+    refine le_trans ?_ (le_max_right _ _)
+    have hαpos : 0 < p.α := lt_of_lt_of_le one_pos hα
+    positivity
+  -- envelope/bound on the clamp window via patchedSource_windowEnv_bound.
+  have hΦmem : ∀ ρ : ℝ, φ c' τ d d' (τ + ρ) ∈ Set.Icc c' d' :=
+    fun ρ => φ_mem_range hc' hcd hd' (τ + ρ)
+  -- |aC ρ k| ≤ windowEnv Cval k for ALL ρ.
+  have haC_env : ∀ ρ : ℝ, ∀ k, |aC ρ k| ≤ windowEnv Cval k := by
+    intro ρ k
+    set s := φ c' τ d d' (τ + ρ) with hsdef
+    have hsmem := hΦmem ρ
+    have hspos : 0 < s := (hwin s hsmem).1
+    have hsT : s < T := (hwin s hsmem).2
+    have hbound := logisticSource_slice_windowEnv_bound p u hα ha hb
+      (bc := bc) (s := s) (G1 := G1) (G2 := G2)
+      (hbsum s hspos hsT) (hagree s hspos hsT) (hpost s hspos hsT) (hubt s hspos hsT)
+      (fun x hx => hG1 s hsmem x hx) (fun x hx => hG2 s hsmem x hx) k
+    simpa only [haCdef, hsdef, hCvaldef] using hbound
+  -- global continuity of the clamped family (from hsrc0.hcont ∘ clamp).
+  have hΦcont : Continuous (fun s : ℝ => φ c' τ d d' (τ + s)) :=
+    φ_continuous.comp (continuous_const.add continuous_id)
+  have hcontC : ∀ n, Continuous (fun s => aC s n) := by
+    intro n
+    have hcanon : (fun s => aC s n)
+        = (fun s => cosineCoeffs (logisticLifted p (u (φ c' τ d d' (τ + s)))) n) := by
+      funext s
+      exact (cosineCoeffs_congr_on_Icc
+        (logisticLifted_eq_logisticSourceFun_on_Icc p (u (φ c' τ d d' (τ + s)))) n).symm
+    rw [hcanon]
+    have hmaps : Set.MapsTo (fun s : ℝ => φ c' τ d d' (τ + s)) Set.univ (Set.Icc 0 T) :=
+      fun s _ => ⟨le_trans hc'pos.le (hΦmem s).1, le_of_lt (hwin _ (hΦmem s)).2⟩
+    have := (hsrc0.hcont n).comp_continuous hΦcont (fun s => (hmaps (Set.mem_univ s)))
+    exact this
+  -- the bounded source package.
+  have hWnn : (0:ℝ) ≤ d - τ := by linarith
+  have hsrcC : DuhamelSourceBddOn aC (d - τ) :=
+    { M := Cval
+      hM_nonneg := hCval_nn
+      hM := fun s _ _ k => le_trans (haC_env s k) (windowEnv_le_const hCval_nn k)
+      hcont := fun k => (hcontC k).continuousOn
+      env := fun _ => windowEnv Cval
+      henv_summable := fun _ _ _ => windowEnv_summable
+      henv_bound := fun _ _ s _ _ k => haC_env s k }
+  refine
+    { τ := τ, d := d, W := d - τ
+      hτpos := hτpos, hστ := hτσ, hσd := hσd, hdT := hdT, hdτW := le_rfl
+      a₀ := cosineCoeffs (intervalDomainLift (u τ)), M := 2 * Msup
+      hM_nonneg := by linarith, ha₀ := ha₀
+      aC := aC
+      srcC := hsrcC
+      hcontC := hcontC
+      hpos := fun r hr x hx =>
+        hpost r (lt_trans hτpos hr.1) (lt_trans hr.2 hdT) x hx
+      hα := hα, hrep := ?_ }
+  -- restart representation on Ioo τ d (subtype-continuity variant).
+  intro r hr x hx
+  have hτr : τ < r := hr.1
+  have hrd : r < d := hr.2
+  have hrT : r < T := lt_trans hrd hdT
+  have hrpos : 0 < r := lt_trans hτpos hτr
+  have heqon := picardLimitRestart_general_of_subtypeCont p hχ0 u₀ u
+    (fun s hs hsr => hfix s hs (lt_of_le_of_lt hsr hrT))
+    hu₀_cont hu₀_bound hsrc0 hτpos hτr hrT.le
+    (fun s hs hsr => hLc_ce r hrpos hrT s hs hsr)
+  rw [heqon hx]
+  refine tsum_congr (fun k => ?_)
+  congr 1
+  rw [restartDuhamelCoeff_eq_localRestartCoeff]
+  unfold localRestartCoeff
+  congr 1
+  unfold duhamelSpectralCoeff
+  apply intervalIntegral.integral_congr
+  intro ρ hρ
+  rw [Set.uIcc_of_le (by linarith : (0:ℝ) ≤ r - τ)] at hρ
+  have hmem_cd : τ + ρ ∈ Set.Icc τ d :=
+    ⟨by linarith [hρ.1], by linarith [hρ.2, hrd.le]⟩
+  simp only [haCdef]
+  congr 1
+  rw [clampedFamily_eq_on p u hc' hd' hmem_cd k]
+  exact congrFun (congrFun (source_family_eq_w p u) (τ + ρ)) k
+
 namespace LocalRestartWeak
 
 open ShenWork.Paper2.PicardLimitK1 (slopeSlice sourceDerivSlice adottOf)
@@ -1091,6 +1260,198 @@ theorem k1_quadruple_weak
       (adottOf p u σ k) σ :=
     fun σ hσ0 hσT k => (mkL σ hσ0 hσT).hasDerivAt_sourceCoeff k
   -- Global joint continuity of the chain-rule slice on Ioo 0 T ×ˢ Icc 0 1.
+  have hslice_cont : ContinuousOn (Function.uncurry (sourceDerivSlice p u))
+      (Set.Ioo 0 T ×ˢ Set.Icc (0:ℝ) 1) := by
+    intro q hq
+    obtain ⟨hq1, hq2⟩ := Set.mem_prod.mp hq
+    set σ₀ := q.1 with hσ₀
+    have hσ₀0 : 0 < σ₀ := hq1.1
+    have hσ₀T : σ₀ < T := hq1.2
+    set L := mkL σ₀ hσ₀0 hσ₀T with hLdef
+    set δ : ℝ := min (σ₀ - L.τ) (L.d - σ₀) / 2 with hδdef
+    have hδ1 : 0 < σ₀ - L.τ := by have := L.hστ; linarith
+    have hδ2 : 0 < L.d - σ₀ := by have := L.hσd; linarith
+    have hδ : 0 < δ := by rw [hδdef]; have := lt_min hδ1 hδ2; linarith
+    have hδle1 : δ ≤ (σ₀ - L.τ) / 2 := by
+      rw [hδdef]; have := min_le_left (σ₀ - L.τ) (L.d - σ₀); linarith
+    have hδle2 : δ ≤ (L.d - σ₀) / 2 := by
+      rw [hδdef]; have := min_le_right (σ₀ - L.τ) (L.d - σ₀); linarith
+    have hslab_sub : Set.Icc (σ₀ - δ) (σ₀ + δ) ⊆ Set.Ioo L.τ L.d := fun s hs =>
+      ⟨by linarith [hs.1, hδle1], by linarith [hs.2, hδle2]⟩
+    have hslabcont := L.sourceDerivSlice_continuousOn_slab hslab_sub
+    have hmem : q ∈ Set.Icc (σ₀ - δ) (σ₀ + δ) ×ˢ Set.Icc (0:ℝ) 1 :=
+      Set.mem_prod.mpr ⟨⟨by linarith, by linarith⟩, hq2⟩
+    have hnhds : Set.Icc (σ₀ - δ) (σ₀ + δ) ×ˢ Set.Icc (0:ℝ) 1
+        ∈ 𝓝[Set.Ioo 0 T ×ˢ Set.Icc (0:ℝ) 1] q := by
+      have hopen : Set.Ioo (σ₀ - δ) (σ₀ + δ) ×ˢ (Set.univ : Set ℝ) ∈ 𝓝 q := by
+        apply (isOpen_Ioo.prod isOpen_univ).mem_nhds
+        exact Set.mem_prod.mpr ⟨⟨by linarith, by linarith⟩, Set.mem_univ _⟩
+      have hinter := Filter.inter_mem (Filter.mem_inf_of_left hopen)
+        (self_mem_nhdsWithin (a := q) (s := Set.Ioo 0 T ×ˢ Set.Icc (0:ℝ) 1))
+      refine Filter.mem_of_superset hinter ?_
+      intro y hy
+      obtain ⟨hy1, hy2⟩ := hy
+      exact Set.mem_prod.mpr ⟨⟨(Set.mem_prod.mp hy1).1.1.le,
+        (Set.mem_prod.mp hy1).1.2.le⟩, (Set.mem_prod.mp hy2).2⟩
+    exact (hslabcont.continuousWithinAt hmem).mono_of_mem_nhdsWithin hnhds
+  have hcont : ∀ k, ContinuousOn (fun σ => adottOf p u σ k) (Set.Ioo 0 T) := by
+    intro k σ₀ hσ₀
+    have hσ₀0 : 0 < σ₀ := hσ₀.1
+    have hσ₀T : σ₀ < T := hσ₀.2
+    set L := mkL σ₀ hσ₀0 hσ₀T with hLdef
+    set δ : ℝ := min (σ₀ - L.τ) (L.d - σ₀) / 2 with hδdef
+    have hδ1 : 0 < σ₀ - L.τ := by have := L.hστ; linarith
+    have hδ2 : 0 < L.d - σ₀ := by have := L.hσd; linarith
+    have hδ : 0 < δ := by rw [hδdef]; have := lt_min hδ1 hδ2; linarith
+    have hδle1 : δ ≤ (σ₀ - L.τ) / 2 := by
+      rw [hδdef]; have := min_le_left (σ₀ - L.τ) (L.d - σ₀); linarith
+    have hδle2 : δ ≤ (L.d - σ₀) / 2 := by
+      rw [hδdef]; have := min_le_right (σ₀ - L.τ) (L.d - σ₀); linarith
+    set I : Set ℝ := Set.Icc (σ₀ - δ) (σ₀ + δ) with hIdef
+    have hIsub : I ⊆ Set.Ioo L.τ L.d := fun s hs =>
+      ⟨by linarith [hs.1, hδle1], by linarith [hs.2, hδle2]⟩
+    have hσ₀mem : σ₀ ∈ I := ⟨by linarith, by linarith⟩
+    have hslabcont := L.sourceDerivSlice_continuousOn_slab hIsub
+    set F : ℝ → ℝ → ℝ := fun σ x =>
+      Real.cos ((k : ℝ) * Real.pi * x) * sourceDerivSlice p u σ x with hFdef
+    have hcos_cont : Continuous (fun x : ℝ => Real.cos ((k : ℝ) * Real.pi * x)) :=
+      Real.continuous_cos.comp (continuous_const.mul continuous_id')
+    have hFcont : ContinuousOn (Function.uncurry F) (I ×ˢ Set.Icc (0:ℝ) 1) :=
+      (hcos_cont.comp continuous_snd).continuousOn.mul hslabcont
+    have hKcompact : IsCompact (I ×ˢ Set.Icc (0:ℝ) 1) := isCompact_Icc.prod isCompact_Icc
+    obtain ⟨B, hB⟩ := (hKcompact.bddAbove_image hFcont.norm)
+    set B' := max B 0 with hB'def
+    have hB'nn : 0 ≤ B' := le_max_right _ _
+    have hFbd : ∀ σ ∈ I, ∀ x ∈ Set.Icc (0:ℝ) 1, ‖F σ x‖ ≤ B' := by
+      intro σ hσ x hx
+      have : ‖Function.uncurry F (σ, x)‖ ≤ B :=
+        hB (Set.mem_image_of_mem _ (Set.mem_prod.mpr ⟨hσ, hx⟩))
+      exact le_trans this (le_max_left _ _)
+    have hsec_cont : ∀ σ ∈ I, ContinuousOn (F σ) (Set.Icc (0:ℝ) 1) := by
+      intro σ hσ
+      have hsslice : ContinuousOn (sourceDerivSlice p u σ) (Set.Icc (0:ℝ) 1) :=
+        hslabcont.comp (continuousOn_const.prodMk continuousOn_id)
+          (fun x hx => Set.mem_prod.mpr ⟨hσ, hx⟩)
+      exact (hcos_cont.continuousOn).mul hsslice
+    have hInhds : I ∈ 𝓝 σ₀ := by
+      have : Set.Ioo (σ₀ - δ) (σ₀ + δ) ⊆ I := fun y hy => ⟨hy.1.le, hy.2.le⟩
+      exact Filter.mem_of_superset
+        (isOpen_Ioo.mem_nhds ⟨by linarith, by linarith⟩) this
+    have hint_cont : ContinuousAt (fun σ => ∫ x in (0:ℝ)..1, F σ x) σ₀ := by
+      refine intervalIntegral.continuousAt_of_dominated_interval
+        (bound := fun _ => B') ?_ ?_ intervalIntegrable_const ?_
+      · filter_upwards [hInhds] with σ hσ
+        have : ContinuousOn (F σ) (Set.uIcc (0:ℝ) 1) := by
+          rw [Set.uIcc_of_le (by norm_num : (0:ℝ) ≤ 1)]; exact hsec_cont σ hσ
+        exact (this.mono Set.uIoc_subset_uIcc).aestronglyMeasurable measurableSet_uIoc
+      · filter_upwards [hInhds] with σ hσ
+        refine Filter.Eventually.of_forall (fun x hx => ?_)
+        rw [Set.uIoc_of_le (by norm_num : (0:ℝ) ≤ 1)] at hx
+        exact hFbd σ hσ x ⟨hx.1.le, hx.2⟩
+      · refine Filter.Eventually.of_forall (fun x hx => ?_)
+        rw [Set.uIoc_of_le (by norm_num : (0:ℝ) ≤ 1)] at hx
+        have hxIcc : x ∈ Set.Icc (0:ℝ) 1 := ⟨hx.1.le, hx.2⟩
+        have hpt : (σ₀, x) ∈ I ×ˢ Set.Icc (0:ℝ) 1 :=
+          Set.mem_prod.mpr ⟨hσ₀mem, hxIcc⟩
+        have hcwa : ContinuousWithinAt (fun σ => F σ x) I σ₀ := by
+          have := (hFcont.comp (continuousOn_id.prodMk continuousOn_const)
+            (fun σ hσ => Set.mem_prod.mpr ⟨hσ, hxIcc⟩)).continuousWithinAt hσ₀mem
+          simpa [Function.uncurry] using this
+        exact hcwa.continuousAt hInhds
+    have hadeq : ∀ σ, adottOf p u σ k =
+        (if k = 0 then (1:ℝ) else 2) * ∫ x in (0:ℝ)..1, F σ x := by
+      intro σ; unfold adottOf; rw [cosineCoeffs_eq_factor_mul_integral]
+    have hcont_at : ContinuousAt (fun σ => adottOf p u σ k) σ₀ := by
+      have hfun : (fun σ => adottOf p u σ k)
+          = (fun σ => (if k = 0 then (1:ℝ) else 2) * ∫ x in (0:ℝ)..1, F σ x) :=
+        funext hadeq
+      rw [hfun]
+      exact hint_cont.const_mul _
+    exact hcont_at.continuousWithinAt
+  have hbound : ∀ a' b', 0 < a' → b' < T → ∃ Mdot, ∀ σ ∈ Set.Icc a' b',
+      ∀ k, |adottOf p u σ k| ≤ Mdot := by
+    intro a' b' ha' hb'
+    set K := Set.Icc a' b' ×ˢ Set.Icc (0:ℝ) 1 with hKdef
+    have hKsub : K ⊆ Set.Ioo 0 T ×ˢ Set.Icc (0:ℝ) 1 := by
+      intro q hq
+      obtain ⟨hq1, hq2⟩ := Set.mem_prod.mp hq
+      exact Set.mem_prod.mpr ⟨⟨lt_of_lt_of_le ha' hq1.1, lt_of_le_of_lt hq1.2 hb'⟩, hq2⟩
+    have hKcompact : IsCompact K := (isCompact_Icc).prod (isCompact_Icc)
+    have hcontK : ContinuousOn (Function.uncurry (sourceDerivSlice p u)) K :=
+      hslice_cont.mono hKsub
+    obtain ⟨B, hB⟩ := (hKcompact.bddAbove_image (hcontK.norm)).imp (fun B hB => hB)
+    set B' := max B 0 with hB'def
+    have hB'nn : 0 ≤ B' := le_max_right _ _
+    have hbd : ∀ σ ∈ Set.Icc a' b', ∀ x ∈ Set.Icc (0:ℝ) 1,
+        |sourceDerivSlice p u σ x| ≤ B' := by
+      intro σ hσ x hx
+      have hmem : (σ, x) ∈ K := Set.mem_prod.mpr ⟨hσ, hx⟩
+      have : ‖Function.uncurry (sourceDerivSlice p u) (σ, x)‖ ≤ B :=
+        hB (Set.mem_image_of_mem _ hmem)
+      simp only [Function.uncurry, Real.norm_eq_abs] at this
+      exact le_trans this (le_max_left _ _)
+    refine ⟨2 * B', fun σ hσ k => ?_⟩
+    have hsec : ContinuousOn (sourceDerivSlice p u σ) (Set.Icc (0:ℝ) 1) := by
+      have hmaps : Set.MapsTo (fun x : ℝ => ((σ, x) : ℝ × ℝ))
+          (Set.Icc (0:ℝ) 1) K :=
+        fun x hx => Set.mem_prod.mpr ⟨hσ, hx⟩
+      exact hcontK.comp (continuousOn_const.prodMk continuousOn_id) hmaps
+    exact cosineCoeffs_abs_le_of_continuous_bounded hsec hB'nn
+      (fun x hx => hbd σ hσ x hx) k
+  exact ⟨hderiv, hcont, hbound⟩
+
+set_option maxHeartbeats 1600000 in
+set_option linter.style.maxHeartbeats false in
+/-- **Subtype-continuity variant of `k1_quadruple_weak`.**  Same conclusion, but
+the lift-continuity hypothesis `hu₀_cont : Continuous (intervalDomainLift u₀)`
+(FALSE for positive boundary data) is replaced by the subtype form
+`Continuous u₀`, and the slice-continuity hypothesis `hLc`
+(`Continuous (logisticLifted p (u s))`) by the `constExtend` form `hLc_ce`.  The
+only change in the proof is driving the restart engine via
+`localRestartWeak_of_ledger_of_subtypeCont`. -/
+theorem k1_quadruple_weak_of_subtypeCont
+    {p : CM2Params} (hχ0 : p.χ₀ = 0)
+    {u₀ : intervalDomainPoint → ℝ} (u : ℝ → intervalDomainPoint → ℝ)
+    {T : ℝ}
+    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    (hu₀_cont : Continuous u₀)
+    {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    (hfix : ∀ s, 0 < s → s < T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
+      intervalDomainLift (u s) x = intervalGradientDuhamelMap p u₀ u s ⟨x, hx⟩)
+    (hsrc0 : DuhamelSourceL1ContOn
+      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
+    {Msup : ℝ}
+    (bc : ℝ → ℕ → ℝ)
+    (hbsum : ∀ σ, 0 < σ → σ < T →
+      Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|))
+    (hagree : ∀ σ, 0 < σ → σ < T → Set.EqOn (intervalDomainLift (u σ))
+      (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1))
+    (hpost : ∀ σ, 0 < σ → σ < T →
+      ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (u σ) x)
+    (hubt : ∀ σ, 0 < σ → σ < T →
+      ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (u σ) x ≤ Msup)
+    (hG1t : ∀ a' b', 0 < a' → b' < T → ∃ G1, ∀ σ ∈ Set.Icc a' b',
+      ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (intervalDomainLift (u σ)) x| ≤ G1)
+    (hG2t : ∀ a' b', 0 < a' → b' < T → ∃ G2, ∀ σ ∈ Set.Icc a' b',
+      ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (deriv (intervalDomainLift (u σ))) x| ≤ G2)
+    (hLc_ce : ∀ t, 0 < t → t < T →
+      ∀ s, 0 < s → s ≤ t →
+        Continuous (intervalDomainConstExtend (intervalLogisticSource p (u s)))) :
+    (∀ σ, 0 < σ → σ < T → ∀ k, HasDerivAt
+        (fun r => cosineCoeffs
+          (logisticSourceFun p.a p.b p.α (intervalDomainLift (u r))) k)
+        (adottOf p u σ k) σ)
+      ∧ (∀ k, ContinuousOn (fun σ => adottOf p u σ k) (Set.Ioo 0 T))
+      ∧ (∀ a' b', 0 < a' → b' < T → ∃ Mdot, ∀ σ ∈ Set.Icc a' b',
+          ∀ k, |adottOf p u σ k| ≤ Mdot) := by
+  have mkL : ∀ σ, 0 < σ → σ < T → LocalRestartWeak p u T σ := fun σ hσ0 hσT =>
+    localRestartWeak_of_ledger_of_subtypeCont hχ0 u hα ha hb hu₀_cont hu₀_bound hfix
+      hsrc0 bc hbsum hagree hpost hubt hG1t hG2t hLc_ce hσ0 hσT
+  have hderiv : ∀ σ, 0 < σ → σ < T → ∀ k, HasDerivAt
+      (fun r => cosineCoeffs
+        (logisticSourceFun p.a p.b p.α (intervalDomainLift (u r))) k)
+      (adottOf p u σ k) σ :=
+    fun σ hσ0 hσT k => (mkL σ hσ0 hσT).hasDerivAt_sourceCoeff k
   have hslice_cont : ContinuousOn (Function.uncurry (sourceDerivSlice p u))
       (Set.Ioo 0 T ×ˢ Set.Icc (0:ℝ) 1) := by
     intro q hq
