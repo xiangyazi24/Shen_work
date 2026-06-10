@@ -522,7 +522,15 @@ set_option linter.style.maxHeartbeats false in
 `hG1t/hG2t`, weak `hsrc0`, `hfix`, slice continuity `hLc`, and the UNSHIFTED
 source K1 data), the source-coefficient family `adottOf p u` satisfies the
 Provider's K1 quadruple: pointwise time `HasDerivAt` on `(0,T)`, per-`k`
-`ContinuousOn` on `Ioo 0 T`, and the per-compact uniform bound. -/
+`ContinuousOn` on `Ioo 0 T`, and the per-compact uniform bound.
+
+⚠️ **CIRCULAR — do NOT use to bootstrap the Provider's K1 fields.**  Its
+hypotheses `adott0/hderivt0/hadotcontt0/hMdott0` are IDENTICAL in shape to its
+conclusion (they feed `clampedSource_duhamelSourceTimeC1`'s derivative fields).
+The de-circularized producer is `ShenWork.Paper2.PicardLimitK1Weak.k1_quadruple_weak`
+(`IntervalPicardLimitK1Weak.lean`), whose hypothesis set is ONLY the ledger-V2
+satisfiable data — no derivative inputs.  This circular version is kept as a
+reference/sanity check only. -/
 theorem k1_quadruple
     {p : CM2Params} (hχ0 : p.χ₀ = 0)
     {u₀ : intervalDomainPoint → ℝ} (u : ℝ → intervalDomainPoint → ℝ)
