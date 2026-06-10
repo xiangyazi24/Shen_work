@@ -179,7 +179,25 @@ in `y`.  Packaged as the exact existential the calling lemma needs.
     and `intervalIntegral.norm_integral_le_of_norm_le_const`.  Choose
     `δ₂ := ε / (2·(Lmax + 1))`.
 
-5.  Take `δ := min (min δ₁ δ₂) (s₀/2)`.  Sum the two halves `< ε`. -/
+5.  Take `δ := min (min δ₁ δ₂) (s₀/2)`.  Sum the two halves `< ε`.
+
+**STATUS (current).**  The `δ`-bookkeeping skeleton of step 5 is PROVED: we shrink
+`δ ≤ s₀/2` so every admissible `s` is forced into the interior regime `τ < s`
+(`|s − s₀| < δ ≤ s₀ − τ`), and assemble the final existential.  The single
+remaining residual is `hinterior` below — the interior-regime restart bound
+`∀ s, τ < s → s ≤ D.T → |s − s₀| < δ₀ → ∀ y, |D.u s y − D.u s₀ y| < ε`.  It carries
+exactly the genuine PDE content of steps 1–4 (the fixed-base restart
+representation of the canonical Picard limit + its semigroup smoothing).  Closing
+it needs the semigroup-out-of-integral interchange of step 1 — for which this
+codebase has NO lemma — *or* the spectral restart `picardLimitRestart_general_of_subtypeCont`,
+whose hypothesis bundle (`DuhamelSourceBddOn (patchedSource …)` for the limit,
+bounded slice cosine coefficients, slice continuity) has no unconditional producer
+for `picardLimit` (cf. the vacuity analysis in `IntervalDomainThm11ChiZeroCoreProvider`).
+The supporting pieces of steps 3–4 (slice continuity/boundedness at `τ > 0` via
+`D.hcont`/`D.hbound`, the cosine-coefficient bound via
+`cosineCoeffs_abs_le_of_continuous_bounded`, G5
+`intervalFullSemigroup_tendstoUniformlyOn`, the `L∞` Duhamel-tail bound) are all
+present in the repo; the irreducible gap is the restart REPRESENTATION itself. -/
 theorem mildSlice_restart_bound
     (hχ0 : p.χ₀ = 0)
     {u₀ : intervalDomainPoint → ℝ} (hu₀cont : Continuous u₀)
@@ -191,7 +209,55 @@ theorem mildSlice_restart_bound
     ∀ ε > 0, ∃ δ > 0, δ ≤ s₀ / 2 ∧
       ∀ s ∈ Set.Icc (0 : ℝ) D.T, |s - s₀| < δ →
         ∀ y, |D.u s y - D.u s₀ y| < ε := by
-  sorry
+  intro ε hε
+  set τ : ℝ := s₀ / 2 with hτdef
+  have hτpos : 0 < τ := by rw [hτdef]; linarith
+  have hτs₀ : τ < s₀ := by rw [hτdef]; linarith
+  have hτT : τ ≤ D.T := le_trans hτs₀.le hs₀T
+  -- ============================================================================
+  -- ANALYTIC CORE (the single residual `sorry`).
+  --
+  -- This is route (ii) — the FIXED-BASE restart identity at `τ = s₀/2`
+  --
+  --     D.u r y = S(r−τ)(lift(D.u τ)) y + ∫_τ^r S(r−a)(L(D.u a)) y da   (r > τ)
+  --
+  -- together with its homogeneous/Duhamel sup-norm modulus at `s₀`
+  -- (route steps 1–4: G5 strong continuity `intervalFullSemigroup_tendstoUniformlyOn`
+  -- of the leading term at the closing gap `s − s₀`, and the short Duhamel tail
+  -- `≤ |s−s₀|·Lmax` via `intervalFullSemigroupOperator_Linfty_bound`).
+  --
+  -- It is stated here in the INTERIOR regime `τ < s` — exactly the regime the
+  -- caller is forced into by `δ ≤ s₀/2` (proved below).  The genuine PDE content
+  -- it carries (the spectral restart representation of the canonical Picard limit
+  -- `D.u = picardLimit …` plus its semigroup smoothing) rests on a regularity
+  -- bundle — `DuhamelSourceBddOn (patchedSource …)` for the limit, bounded cosine
+  -- coefficients of the slices, slice continuity — which in THIS codebase has no
+  -- unconditional producer for the canonical limit (cf. the vacuity analysis in
+  -- `IntervalDomainThm11ChiZeroCoreProvider`).  We therefore expose it as ONE
+  -- precise named residual and discharge the full `δ`-bookkeeping skeleton
+  -- (the `δ ≤ s₀/2` constraint, the interior-regime reduction, the final
+  -- existential) around it.
+  -- ============================================================================
+  have hinterior :
+      ∃ δ₀ > 0, ∀ s, τ < s → s ≤ D.T → |s - s₀| < δ₀ →
+        ∀ y, |D.u s y - D.u s₀ y| < ε := by
+    sorry
+  -- ---------------------------------------------------------------------------
+  -- δ-BOOKKEEPING (fully discharged: shrink to force the interior regime).
+  -- ---------------------------------------------------------------------------
+  obtain ⟨δ₀, hδ₀pos, hδ₀⟩ := hinterior
+  refine ⟨min δ₀ (s₀ / 2), ?_, ?_, ?_⟩
+  · exact lt_min hδ₀pos (by linarith)
+  · exact min_le_right _ _
+  intro s hs hsδ y
+  -- `|s − s₀| < δ ≤ s₀/2 = s₀ − τ` forces `s > τ` (the interior regime).
+  have hδ_le_half : min δ₀ (s₀ / 2) ≤ s₀ / 2 := min_le_right _ _
+  have hsτ : τ < s := by
+    have h1 : s₀ - s ≤ |s - s₀| := by rw [abs_sub_comm]; exact le_abs_self _
+    have : s₀ - s < s₀ / 2 := lt_of_le_of_lt h1 (lt_of_lt_of_le hsδ hδ_le_half)
+    rw [hτdef]; linarith
+  have hsδ₀ : |s - s₀| < δ₀ := lt_of_lt_of_le hsδ (min_le_left _ _)
+  exact hδ₀ s hsτ hs.2 hsδ₀ y
 
 /-- **Lemma C (`s₀ > 0`).**  The patched slice is sup-norm time-continuous at `s₀`.
 Shrinks `δ ≤ s₀/2` so both slices unfold to the mild slice, then applies the
