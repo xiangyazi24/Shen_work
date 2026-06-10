@@ -42,7 +42,7 @@
       `a ≤ |a| ≤ M`, so the former `hub` field is no longer an analytic residual.
 
   ## (b) Genuinely-open analytic legs — the per-iterate spatial-`C²` bootstrap.
-    `hsrc0`, `hL_cont`, `hG1all`, `hG2base`, and the `adot`
+    `hsrc0`, `hL_cont`, `hG1all`, and the `adot`
     K1 stack (`adot`/`hadot_deriv`/`hadot_cont`/`adotBound`/`hadot_bound`) ALL depend
     on the per-iterate spatial-`C²`/positivity/Neumann regularity of EVERY Picard
     level (`picardIterateHasC2Slices_all`), whose step data
@@ -52,7 +52,7 @@
     They are NOT faked: they are carried as ONE explicit named hypothesis package
     `TowerConeAnalyticResidual`, which IS the exact remaining analytic surface (the
     same family of facts `uniformWiring_closure` consumes — `hsrc0`/`hL_cont`/`hG1all`
-    /`hG2base` — plus the `adot` K1 data
+    — plus the `adot` K1 data
     the clamped source producer reads, restated at the cone datum's horizon).  The
     former `hub` leg has been REMOVED from the residual (derived in-tower from the
     cone-returned subtype ball `hball`; see (a)).  The
@@ -118,9 +118,6 @@ structure TowerConeAnalyticResidual
   /-- Kernel-G1 line, all levels (the `n`-free homogeneous-split bound). -/
   hG1all : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ x : ℝ,
     |deriv (intervalDomainLift (picardIter p u₀ n σ)) x| ≤ G1profile p M σ
-  /-- Homogeneous-heat G2 base bound (`n = 0`). -/
-  hG2base : ∀ (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ x : ℝ,
-    |deriv (deriv (intervalDomainLift (picardIter p u₀ 0 σ))) x| ≤ G2profile A₂ σ
   /-- The level-`n` source-derivative `adot` data on every window. -/
   adot : ℕ → ℝ → ℕ → ℝ
   hadot_deriv : ∀ (n : ℕ) (c' d' : ℝ), ∀ σ ∈ Set.Icc c' d', ∀ k, HasDerivAt
@@ -184,7 +181,6 @@ def towerInputs_of_cone
     hsrc0 := H.hsrc0
     hL_cont := H.hL_cont
     hG1all := H.hG1all
-    hG2base := H.hG2base
     hcontSlice := hcontSlice
     -- endpoint G2-step budgets: PROVED (zero-extension junk-derivative), per `x∈{0,1}`.
     hG2end := by

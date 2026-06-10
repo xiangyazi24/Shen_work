@@ -38,6 +38,7 @@ import ShenWork.Paper2.IntervalPicardIterateC2BoundLocal
 import ShenWork.Paper2.IntervalPicardSliceWitnessSupply
 import ShenWork.Paper2.IntervalPicardIterateTimeC1Full
 import ShenWork.Paper2.IntervalPicardIterateRepresentation
+import ShenWork.Paper2.IntervalHomogeneousG2Base
 import ShenWork.Paper2.IntervalPicardIterateUniform
 import ShenWork.Paper2.IntervalPicardUniformWiringClosure
 import ShenWork.Paper2.IntervalPicardUniformWiring
@@ -163,9 +164,6 @@ structure TowerInputs (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   /-- Kernel-G1 line, all levels (the `n`-free homogeneous-split bound). -/
   hG1all : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ T → ∀ x : ℝ,
     |deriv (intervalDomainLift (picardIter p u₀ n σ)) x| ≤ G1profile p M σ
-  /-- Homogeneous-heat G2 base bound (`n = 0`). -/
-  hG2base : ∀ (σ : ℝ), 0 < σ → σ ≤ T → ∀ x : ℝ,
-    |deriv (deriv (intervalDomainLift (picardIter p u₀ 0 σ))) x| ≤ G2profile A₂ σ
   /-- Per-iterate slice continuity (cone-returned `HasContinuousSlices`, n-uniform).
   Replaces the former `hM₁` coefficient field: the half-step coefficient bound
   `M₁ ≤ 2M` (verdict trap 7) is now DERIVED in-tower from this slice continuity plus
@@ -340,7 +338,7 @@ def srcWin_of_levelData
 
 /-- **Base case `tower_zero`.**  The level-0 carrier holds: representation from
 `hbsum_zero`/`hagree_zero` (homogeneous heat slice); G1 from the `n`-free kernel
-line (`H.hG1all 0`); G2 from the homogeneous-heat base (`H.hG2base`); `srcWin` from
+line (`H.hG1all 0`); G2 DERIVED from the gate (`hG2base_of_gate`); `srcWin` from
 the level-0 repr triple via `srcWin_of_levelData`. -/
 def tower_zero
     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {M A₂ T : ℝ}
@@ -349,11 +347,14 @@ def tower_zero
   hrepr_sum := fun _ hσ _ => hbsum_zero p u₀ hσ H.hu₀_bound
   hrepr_agree := fun _ hσ _ => hagree_zero p u₀ hσ H.hu₀_cont H.hu₀_bound
   hG1 := H.hG1all 0
-  hG2 := H.hG2base
+  hG2 := ShenWork.IntervalHomogeneousG2Base.hG2base_of_gate p u₀
+    H.hMnn H.hA₂nn H.hu₀_cont H.hu₀_bound H.hgate
   srcWin := srcWin_of_levelData p u₀ 0 H (iterateReprCoeff p u₀ 0)
     (fun _ hσ _ => hbsum_zero p u₀ hσ H.hu₀_bound)
     (fun _ hσ _ => hagree_zero p u₀ hσ H.hu₀_cont H.hu₀_bound)
-    (H.hG1all 0) H.hG2base
+    (H.hG1all 0)
+    (ShenWork.IntervalHomogeneousG2Base.hG2base_of_gate p u₀
+      H.hMnn H.hA₂nn H.hu₀_cont H.hu₀_bound H.hgate)
 
 /-- **Inductive step `tower_succ` (under the GATE).**  `TowerLevel … n →
 TowerLevel … (n+1)`:
