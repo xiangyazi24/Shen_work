@@ -849,6 +849,135 @@ theorem duhamelValue_adot_eq_tsum
           unitIntervalCosineHeatPointWeight (t - s) x n * adot s n := by
         exact tsum_congr (fun n => (intervalIntegral.integral_of_le hb0).symm)
 
+/-- **Horizon-bounded variant of `duhamelMode_integralNorm_summable`.**  Same
+conclusion, but the bound and continuity of `adot` are required only on `[0, T]`
+(with `t ≤ T`).  The integrals live on `[0, t] ⊆ [0, T]`, so `ContinuousOn`
+restricted to subintervals supplies all integrability facts. -/
+theorem duhamelMode_integralNorm_summable_on
+    {t x T : ℝ} {adot : ℝ → ℕ → ℝ} {Mdot : ℝ} (ht : 0 < t) (htT : t ≤ T)
+    (hbound' : ∀ s, 0 ≤ s → s ≤ T → ∀ n, |adot s n| ≤ Mdot)
+    (hadotcont : ∀ n, ContinuousOn (fun s : ℝ => adot s n) (Set.Icc 0 T)) :
+    Summable (fun n => ∫ s in (0:ℝ)..t,
+      ‖unitIntervalCosineHeatPointWeight (t - s) x n * adot s n‖) := by
+  have hMdotnn : 0 ≤ Mdot := le_trans (abs_nonneg _) (hbound' 0 le_rfl (le_trans ht.le htT) 0)
+  have hsub_t : Set.uIcc (0:ℝ) t ⊆ Set.Icc 0 T := by
+    rw [Set.uIcc_of_le ht.le]; exact Set.Icc_subset_Icc le_rfl htT
+  set E : ℕ → ℝ := fun n => ∫ s in (0:ℝ)..t,
+    Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) with hE_def
+  have hEnn : ∀ n, 0 ≤ E n := by
+    intro n
+    apply intervalIntegral.integral_nonneg (le_of_lt ht)
+    intro s _; exact (Real.exp_nonneg _)
+  have hcn_le : ∀ n, (∫ s in (0:ℝ)..t,
+      ‖unitIntervalCosineHeatPointWeight (t - s) x n * adot s n‖) ≤ Mdot * E n := by
+    intro n
+    have hkernel : Continuous
+        (fun s : ℝ => unitIntervalCosineHeatPointWeight (t - s) x n) := by
+      unfold unitIntervalCosineHeatPointWeight unitIntervalCosineMode; fun_prop
+    have hII1 : IntervalIntegrable
+        (fun s => ‖unitIntervalCosineHeatPointWeight (t - s) x n * adot s n‖) volume 0 t :=
+      ((((hkernel.continuousOn.mul ((hadotcont n).mono hsub_t)).norm)).intervalIntegrable)
+    have hII2 : IntervalIntegrable
+        (fun s => Mdot * Real.exp (-(t - s) * unitIntervalCosineEigenvalue n)) volume 0 t := by
+      apply Continuous.intervalIntegrable; fun_prop
+    rw [hE_def, ← intervalIntegral.integral_const_mul]
+    apply intervalIntegral.integral_mono_on (le_of_lt ht) hII1 hII2
+    intro s hs
+    rw [Real.norm_eq_abs, abs_mul]
+    have hpw : |unitIntervalCosineHeatPointWeight (t - s) x n|
+        ≤ Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) := by
+      unfold unitIntervalCosineHeatPointWeight unitIntervalCosineMode
+      rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+      calc Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) *
+              |Real.cos ((n : ℝ) * Real.pi * x)|
+          ≤ Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * 1 :=
+            mul_le_mul_of_nonneg_left (Real.abs_cos_le_one _) (Real.exp_nonneg _)
+        _ = Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) := by ring
+    calc |unitIntervalCosineHeatPointWeight (t - s) x n| * |adot s n|
+        ≤ Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) * Mdot :=
+          mul_le_mul hpw (hbound' s hs.1 (le_trans hs.2 htT) n) (abs_nonneg _) (Real.exp_nonneg _)
+      _ = Mdot * Real.exp (-(t - s) * unitIntervalCosineEigenvalue n) := by ring
+  have hmaj : Summable (fun n => Mdot * E n) := by
+    have hgsum : Summable
+        (fun n : ℕ => Mdot * (1 / Real.pi ^ 2) * (1 / ((n : ℝ) + 1) ^ 2)) := by
+      have hp2 : Summable fun n : ℕ => 1 / ((n : ℝ) + 1) ^ 2 := by
+        have := (Real.summable_one_div_nat_pow (p := 2)).mpr (by norm_num)
+        simpa using (summable_nat_add_iff (f := fun n : ℕ => 1 / (n : ℝ) ^ 2) 1).2 this
+      exact hp2.mul_left (Mdot * (1 / Real.pi ^ 2))
+    have htail : Summable (fun n => Mdot * E (n + 1)) := by
+      refine Summable.of_nonneg_of_le
+        (fun n => mul_nonneg hMdotnn (hEnn (n + 1))) (fun n => ?_) hgsum
+      have hlam_pos : 0 < unitIntervalCosineEigenvalue (n + 1) := by
+        unfold unitIntervalCosineEigenvalue
+        have : (0:ℝ) < ((n : ℝ) + 1) := by positivity
+        positivity
+      have hgain := ShenWork.IntervalDuhamelRegularity.parabolicGain_le_one (lam := unitIntervalCosineEigenvalue (n + 1))
+        (t := t) hlam_pos.le ht.le
+      have hElt : E (n + 1) ≤ 1 / unitIntervalCosineEigenvalue (n + 1) := by
+        rw [le_div_iff₀ hlam_pos]
+        calc E (n + 1) * unitIntervalCosineEigenvalue (n + 1)
+            = unitIntervalCosineEigenvalue (n + 1) * E (n + 1) := by ring
+          _ ≤ 1 := hgain
+      have hlam_eq : unitIntervalCosineEigenvalue (n + 1)
+          = ((n : ℝ) + 1) ^ 2 * Real.pi ^ 2 := by
+        unfold unitIntervalCosineEigenvalue; push_cast; ring
+      calc Mdot * E (n + 1) ≤ Mdot * (1 / unitIntervalCosineEigenvalue (n + 1)) :=
+            mul_le_mul_of_nonneg_left hElt hMdotnn
+        _ = Mdot * (1 / Real.pi ^ 2) * (1 / ((n : ℝ) + 1) ^ 2) := by
+            rw [hlam_eq]; field_simp; try ring
+    exact (summable_nat_add_iff (f := fun n => Mdot * E n) 1).mp htail
+  exact Summable.of_nonneg_of_le
+    (fun n => intervalIntegral.integral_nonneg (le_of_lt ht) (fun s _ => norm_nonneg _))
+    hcn_le hmaj
+
+/-- **Horizon-bounded variant of `duhamelValue_adot_eq_tsum`.**  The `∑∫ = ∫∑`
+swap on `[0, b]` (`0 ≤ b ≤ t ≤ T`), with the bound and continuity of `adot`
+required only on `[0, T]`. -/
+theorem duhamelValue_adot_eq_tsum_on
+    {t x T : ℝ} {adot : ℝ → ℕ → ℝ} {Mdot : ℝ} (ht : 0 < t) (htT : t ≤ T)
+    (hbound' : ∀ s, 0 ≤ s → s ≤ T → ∀ n, |adot s n| ≤ Mdot)
+    (hadotcont : ∀ n, ContinuousOn (fun s : ℝ => adot s n) (Set.Icc 0 T))
+    {b : ℝ} (hb0 : 0 ≤ b) (hbt : b ≤ t) :
+    (∫ s in (0:ℝ)..b, unitIntervalCosineHeatValue (t - s) (adot s) x)
+      = ∑' n, ∫ s in (0:ℝ)..b,
+        unitIntervalCosineHeatPointWeight (t - s) x n * adot s n := by
+  have hsub_b : Set.uIcc (0:ℝ) b ⊆ Set.Icc 0 T := by
+    rw [Set.uIcc_of_le hb0]; exact Set.Icc_subset_Icc le_rfl (le_trans hbt htT)
+  have hsub_t : Set.uIcc (0:ℝ) t ⊆ Set.Icc 0 T := by
+    rw [Set.uIcc_of_le ht.le]; exact Set.Icc_subset_Icc le_rfl htT
+  have hfcontOn : ∀ n, ContinuousOn
+      (fun s : ℝ => unitIntervalCosineHeatPointWeight (t - s) x n * adot s n) (Set.Icc 0 T) := by
+    intro n
+    have hk : Continuous (fun s : ℝ => unitIntervalCosineHeatPointWeight (t - s) x n) := by
+      unfold unitIntervalCosineHeatPointWeight unitIntervalCosineMode; fun_prop
+    exact hk.continuousOn.mul (hadotcont n)
+  have hint : ∀ n, Integrable
+      (fun s => unitIntervalCosineHeatPointWeight (t - s) x n * adot s n)
+      (volume.restrict (Set.Ioc 0 b)) :=
+    fun n => (intervalIntegrable_iff_integrableOn_Ioc_of_le hb0).1
+      (((hfcontOn n).mono hsub_b).intervalIntegrable)
+  have hsum : Summable (fun n => ∫ s,
+      ‖unitIntervalCosineHeatPointWeight (t - s) x n * adot s n‖
+      ∂(volume.restrict (Set.Ioc 0 b))) := by
+    refine Summable.of_nonneg_of_le
+      (fun n => integral_nonneg (fun s => norm_nonneg _)) (fun n => ?_)
+      (duhamelMode_integralNorm_summable_on (x := x) ht htT hbound' hadotcont)
+    rw [← intervalIntegral.integral_of_le hb0]
+    refine intervalIntegral.integral_mono_interval (le_refl 0) hb0 hbt ?_ ?_
+    · filter_upwards with s using norm_nonneg _
+    · exact (((hfcontOn n).mono hsub_t).norm).intervalIntegrable
+  have hswap := integral_tsum_of_summable_integral_norm hint hsum
+  calc (∫ s in (0:ℝ)..b, unitIntervalCosineHeatValue (t - s) (adot s) x)
+      = ∫ s in Set.Ioc 0 b, unitIntervalCosineHeatValue (t - s) (adot s) x :=
+        intervalIntegral.integral_of_le hb0
+    _ = ∫ s in Set.Ioc 0 b,
+          ∑' n, unitIntervalCosineHeatPointWeight (t - s) x n * adot s n := rfl
+    _ = ∑' n, ∫ s in Set.Ioc 0 b,
+          unitIntervalCosineHeatPointWeight (t - s) x n * adot s n := hswap.symm
+    _ = ∑' n, ∫ s in (0:ℝ)..b,
+          unitIntervalCosineHeatPointWeight (t - s) x n * adot s n := by
+        exact tsum_congr (fun n => (intervalIntegral.integral_of_le hb0).symm)
+
 /-- **`hconv2` discharged.**  The improper Duhamel `∂ₛg`-integral converges
 (spectral form): `∫₀^{t−ε} S(t−s)∂ₛg(s)(x) ds → ∑'ₙ ∫₀ᵗ fₙ` as `ε↓0`.  Tannery's
 theorem (`tendsto_tsum_of_dominated_convergence`) over the per-mode primitive limits

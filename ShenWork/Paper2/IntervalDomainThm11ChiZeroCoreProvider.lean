@@ -89,7 +89,7 @@ open ShenWork.IntervalMildPicard (GradientMildSolutionData)
 open ShenWork.IntervalGradientDuhamelMap (logisticLifted intervalGradientDuhamelMap)
 open ShenWork.IntervalDomainExistence (intervalLogisticSource)
 open ShenWork.Paper2 (PositiveInitialDatum)
-open ShenWork.IntervalPicardLimitRestartWeak (DuhamelSourceL1Cont)
+open ShenWork.IntervalPicardLimitRestartWeak (DuhamelSourceL1Cont DuhamelSourceL1ContOn)
 open ShenWork.CosineSpectrum (cosineMode)
 
 noncomputable section
@@ -132,8 +132,8 @@ noncomputable def reducedLimitRegularityInputs_of_picard
     (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) (hα : 1 ≤ p.α)
     (u₀ : intervalDomainPoint → ℝ) (hu₀ : PositiveInitialDatum intervalDomain u₀)
     (D : GradientMildSolutionData p u₀)
-    (hsrc0 : DuhamelSourceL1Cont
-      (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k)) :
+    (hsrc0 : DuhamelSourceL1ContOn
+      (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) D.T) :
     LedgerSweep.ReducedLimitRegularityInputs p u₀ D where
   -- structural regime parameters (immediate)
   hα := hα
@@ -180,7 +180,7 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   bc := fun σ k => ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ D.u σ k
   -- hbsum: eigenvalue-weighted summability of limitCoeff, from weak source alone.
   -- Bottlenecks on eigenvalue_mul_abs_duhamelSpectralCoeff_le_envelope (1 sorry).
-  hbsum := fun σ hσ _hσT => by
+  hbsum := fun σ hσ hσT => by
     have hbdd : BddAbove (Set.range fun x => |u₀ x|) := hu₀.admissible.1
     have hB0 : 0 ≤ sSup (Set.range fun x => |u₀ x|) :=
       le_trans (abs_nonneg _)
@@ -200,7 +200,7 @@ noncomputable def reducedLimitRegularityInputs_of_picard
     have hu₀_bd := ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
       hcont hB0 hfb
     exact summable_eigenvalue_mul_abs_limitCoeff_weak p u₀ D.u
-      (by linarith) hu₀_bd hsrc0 hσ
+      (by linarith) hu₀_bd hsrc0 hσ hσT.le
   -- hagree: on [0,1], lift(u σ) = ∑ limitCoeff(σ,k) · cos(kπ·)
   -- from limit_lift_eq_cosineSeries_of_subtypeCont (the adapter theorem)
   hagree := fun σ hσ hσT x hx => by
@@ -223,7 +223,7 @@ noncomputable def reducedLimitRegularityInputs_of_picard
     exact limit_lift_eq_cosineSeries_of_subtypeCont p hχ0 u₀ D.u hu₀.admissible.2
       (ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
         hcont hB0 hfb)
-      hsrc0 hσ
+      hsrc0 hσ hσT.le
       (fun y hy => by simp only [intervalDomainLift, dif_pos hy]
                       exact D.hmild σ hσ hσT.le ⟨y, hy⟩)
       (fun s hs hsσ =>
@@ -365,8 +365,8 @@ theorem paper2_theorem_1_1_chiZero_unconditional
   -- `hPLF` derived from the reduced ledger (no extra residual hypothesis).
   have hPLF : ConeQuantBridge.PicardLimitRestartFrontier p :=
     fun u₀ hu₀ D _hDu =>
-      let hsrc0 : DuhamelSourceL1Cont
-          (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) := sorry
+      let hsrc0 : DuhamelSourceL1ContOn
+          (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) D.T := sorry
       let I := LedgerSweep.limitRegularityInputs_of_reduced hχ0
         (reducedLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D hsrc0)
       ⟨MildLocalChi0.restartData_of_inputs hχ0 I,
@@ -374,8 +374,8 @@ theorem paper2_theorem_1_1_chiZero_unconditional
   LedgerSweep.paper2_theorem_1_1_chiZero_of_reduced_inputs
     p hχ0 ha hb hα hγ hPLF
     (fun u₀ hu₀ D =>
-      let hsrc0 : DuhamelSourceL1Cont
-          (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) := sorry
+      let hsrc0 : DuhamelSourceL1ContOn
+          (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) D.T := sorry
       reducedLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D hsrc0)
 
 end ShenWork.Paper2.Thm11ChiZeroCoreProvider

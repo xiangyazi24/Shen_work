@@ -73,7 +73,7 @@ open ShenWork.IntervalGradientDuhamelMap (intervalGradientDuhamelMap logisticLif
 open ShenWork.IntervalMildPicard (picardIter picardLimit GradientMildSolutionData)
 open ShenWork.IntervalDuhamelClosedC2
   (duhamelSpectralCoeff DuhamelSourceTimeC1 duhamelSpectral_eq_cosineSeries
-    duhamelValue_adot_eq_tsum)
+    duhamelValue_adot_eq_tsum duhamelValue_adot_eq_tsum_on)
 open ShenWork.IntervalMildRegularityBootstrap
   (restartDuhamelCoeff GradientMildHalfStepRestartData gradientMildHalfStepInitialCoeff)
 open ShenWork.IntervalMildPicardRegularity (cosineCoeffs_eq_factor_mul_integral)
@@ -121,6 +121,23 @@ def DuhamelSourceL1Cont.ofTimeC1 {a : ℝ → ℕ → ℝ} (src : DuhamelSourceT
   hcont := fun n =>
     continuous_iff_continuousAt.2 (fun s => (src.hderiv s n).continuousAt)
 
+/-- Horizon-bounded weak source package: envelope + bound + continuity required
+only on `[0, T]`.  This is the satisfiable retype of `DuhamelSourceL1Cont` for
+families read off a `GradientMildSolutionData` with horizon `T`. -/
+structure DuhamelSourceL1ContOn (a : ℝ → ℕ → ℝ) (T : ℝ) where
+  envelope : ℕ → ℝ
+  henv_summable : Summable envelope
+  henv_bound : ∀ s, 0 ≤ s → s ≤ T → ∀ n, |a s n| ≤ envelope n
+  hcont : ∀ n, ContinuousOn (fun s : ℝ => a s n) (Set.Icc 0 T)
+
+/-- Forgetful map: a global package restricts to any horizon. -/
+def DuhamelSourceL1Cont.toOn {a : ℝ → ℕ → ℝ} (src : DuhamelSourceL1Cont a) (T : ℝ) :
+    DuhamelSourceL1ContOn a T where
+  envelope := src.envelope
+  henv_summable := src.henv_summable
+  henv_bound := fun s hs _ n => src.henv_bound s hs n
+  hcont := fun n => (src.hcont n).continuousOn
+
 /-! ## 2. Weak variants of the pipeline lemmas.
 
 These are thin re-proofs of M1's `abs_duhamelSpectralCoeff_le` and
@@ -131,7 +148,8 @@ package.  We verified (by reading the originals) that each uses only
 /-- **Weak coefficient bound.**  `|duhamelSpectralCoeff a t k| ≤ t · envelope k`.
 Copy of M1's `abs_duhamelSpectralCoeff_le` proof; uses only `henv_bound`. -/
 theorem abs_duhamelSpectralCoeff_le_weak
-    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceL1Cont a) {t : ℝ} (ht : 0 < t) (k : ℕ) :
+    {a : ℝ → ℕ → ℝ} {T : ℝ} (src : DuhamelSourceL1ContOn a T)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ T) (k : ℕ) :
     |duhamelSpectralCoeff a t k| ≤ t * src.envelope k := by
   unfold duhamelSpectralCoeff
   have hb : ∀ s ∈ Set.uIcc (0:ℝ) t,
@@ -150,7 +168,7 @@ theorem abs_duhamelSpectralCoeff_le_weak
         ≤ 1 * |a s k| := by
           apply mul_le_mul_of_nonneg_right hexp_le (abs_nonneg _)
       _ = |a s k| := one_mul _
-      _ ≤ src.envelope k := src.henv_bound s hs0 k
+      _ ≤ src.envelope k := src.henv_bound s hs0 (le_trans hs.2 htT) k
   rw [← Real.norm_eq_abs]
   calc ‖∫ s in (0:ℝ)..t, Real.exp (-(t - s) * (λ_ k)) * a s k‖
       ≤ src.envelope k * |t - 0| := by
@@ -164,19 +182,19 @@ theorem abs_duhamelSpectralCoeff_le_weak
 /-- **Weak spectral Duhamel series.**  `∫₀ᵗ S(t−s)g(s)(x) ds = ∑'ₙ bₙ(t) cos(nπx)`.
 Copy of `IntervalDuhamelClosedC2.duhamelSpectral_eq_cosineSeries` proof; the
 continuity it derives there from `hderiv` is taken directly from `src.hcont`. -/
-theorem duhamelSpectral_eq_cosineSeries_weak {t x : ℝ} {a : ℝ → ℕ → ℝ}
-    (src : DuhamelSourceL1Cont a) (ht : 0 < t) :
+theorem duhamelSpectral_eq_cosineSeries_weak {t x T : ℝ} {a : ℝ → ℕ → ℝ}
+    (src : DuhamelSourceL1ContOn a T) (ht : 0 < t) (htT : t ≤ T) :
     (∫ s in (0:ℝ)..t, unitIntervalCosineHeatValue (t - s) (a s) x)
       = ∑' n, duhamelSpectralCoeff a t n * cosineMode n x := by
   have hnn : ∀ n, 0 ≤ src.envelope n :=
-    fun n => le_trans (abs_nonneg _) (src.henv_bound 0 le_rfl n)
-  have hunif : ∀ s, 0 ≤ s → ∀ i, |a s i| ≤ ∑' k, src.envelope k := by
-    intro s hs i
-    refine le_trans (src.henv_bound s hs i) ?_
+    fun n => le_trans (abs_nonneg _) (src.henv_bound 0 le_rfl (le_trans ht.le htT) n)
+  have hunif : ∀ s, 0 ≤ s → s ≤ T → ∀ i, |a s i| ≤ ∑' k, src.envelope k := by
+    intro s hs hsT i
+    refine le_trans (src.henv_bound s hs hsT i) ?_
     have := src.henv_summable.sum_le_tsum {i} (fun j _ => hnn j)
     simpa using this
-  rw [duhamelValue_adot_eq_tsum (adot := a) (Mdot := ∑' k, src.envelope k)
-      ht hunif src.hcont (b := t) ht.le (le_refl t)]
+  rw [duhamelValue_adot_eq_tsum_on (adot := a) (Mdot := ∑' k, src.envelope k)
+      ht htT hunif src.hcont (b := t) ht.le (le_refl t)]
   refine tsum_congr (fun n => ?_)
   calc (∫ s in (0:ℝ)..t, unitIntervalCosineHeatPointWeight (t - s) x n * a s n)
       = ∫ s in (0:ℝ)..t,
@@ -187,6 +205,55 @@ theorem duhamelSpectral_eq_cosineSeries_weak {t x : ℝ} {a : ℝ → ℕ → �
           * cosineMode n x := intervalIntegral.integral_mul_const _ _
     _ = duhamelSpectralCoeff a t n * cosineMode n x := rfl
 
+/-- **Horizon-bounded general split of the source Duhamel coefficient.**
+`duhamelSpectralCoeff a t k = e^{−(t−τ)λₖ}·duhamelSpectralCoeff a τ k
+  + duhamelSpectralCoeff (σ ↦ a (τ+σ)) (t−τ) k` for `0 ≤ τ ≤ t ≤ T`, requiring
+only `ContinuousOn … (Icc 0 T)` (the integrals read `a` on `[0,t] ⊆ [0,T]`).
+Horizon retype of `IntervalPicardLimitTimeNhd.duhamelSpectralCoeff_general_split`. -/
+theorem duhamelSpectralCoeff_general_split_on
+    {a : ℝ → ℕ → ℝ} {T : ℝ}
+    (ha_cont : ∀ k, ContinuousOn (fun s => a s k) (Set.Icc 0 T))
+    {τ t : ℝ} (h0τ : 0 ≤ τ) (hτt : τ ≤ t) (htT : t ≤ T) (k : ℕ) :
+    duhamelSpectralCoeff a t k
+      = Real.exp (-(t - τ) * (λ_ k)) * duhamelSpectralCoeff a τ k
+        + duhamelSpectralCoeff (fun σ k => a (τ + σ) k) (t - τ) k := by
+  unfold duhamelSpectralCoeff
+  have hexp_cont : Continuous (fun s : ℝ => Real.exp (-(t - s) * (λ_ k))) := by
+    apply Continuous.comp Real.continuous_exp
+    exact (continuous_const.sub continuous_id).neg.mul continuous_const
+  -- integrability on the two specific segments inside [0, T]
+  have hint : ∀ b c : ℝ, 0 ≤ b → b ≤ c → c ≤ T → IntervalIntegrable
+      (fun s => Real.exp (-(t - s) * (λ_ k)) * a s k) volume b c := by
+    intro b c hb hbc hcT
+    apply ContinuousOn.intervalIntegrable
+    rw [Set.uIcc_of_le hbc]
+    exact (hexp_cont.continuousOn).mul
+      ((ha_cont k).mono (Set.Icc_subset_Icc hb hcT))
+  rw [← intervalIntegral.integral_add_adjacent_intervals
+        (hint 0 τ le_rfl h0τ (le_trans hτt htT)) (hint τ t h0τ hτt htT)]
+  congr 1
+  · rw [← intervalIntegral.integral_const_mul]
+    apply intervalIntegral.integral_congr
+    intro s _hs
+    show Real.exp (-(t - s) * (λ_ k)) * a s k
+      = Real.exp (-(t - τ) * (λ_ k)) * (Real.exp (-(τ - s) * (λ_ k)) * a s k)
+    rw [← mul_assoc, ← Real.exp_add]
+    congr 2
+    ring
+  · have hcv := intervalIntegral.integral_comp_add_left
+      (a := (0:ℝ)) (b := t - τ)
+      (fun s => Real.exp (-(t - s) * (λ_ k)) * a s k) τ
+    simp only [add_zero] at hcv
+    have hbnd : τ + (t - τ) = t := by ring
+    rw [hbnd] at hcv
+    rw [← hcv]
+    apply intervalIntegral.integral_congr
+    intro σ _hσ
+    show Real.exp (-(t - (τ + σ)) * (λ_ k)) * a (τ + σ) k
+      = Real.exp (-(t - τ - σ) * (λ_ k)) * a (τ + σ) k
+    congr 2
+    ring
+
 /-! ## Weak versions of M4's intermediate lemmas (verbatim re-proofs against the
 weak package). -/
 
@@ -195,9 +262,10 @@ theorem summable_abs_limitCoeff_weak
     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
     (u : ℝ → intervalDomainPoint → ℝ)
     {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hsrc0 : DuhamelSourceL1Cont
-      (fun s k => cosineCoeffs (logisticLifted p (u s)) k))
-    {t : ℝ} (ht : 0 < t) :
+    {T : ℝ}
+    (hsrc0 : DuhamelSourceL1ContOn
+      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ T) :
     Summable (fun k =>
       |ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ u t k|) := by
   have hhom : Summable (fun k =>
@@ -211,7 +279,7 @@ theorem summable_abs_limitCoeff_weak
           (fun s k => cosineCoeffs (logisticLifted p (u s)) k) t k|) := by
     refine Summable.of_nonneg_of_le (fun k => abs_nonneg _) (fun k => ?_)
       (hsrc0.henv_summable.mul_left t)
-    exact abs_duhamelSpectralCoeff_le_weak hsrc0 ht k
+    exact abs_duhamelSpectralCoeff_le_weak hsrc0 ht htT k
   refine (hhom.add hduh).of_nonneg_of_le (fun k => abs_nonneg _) (fun k => ?_)
   unfold ShenWork.IntervalPicardLimitRestart.limitCoeff
   exact abs_add_le _ _
@@ -220,18 +288,19 @@ theorem summable_abs_limitCoeff_weak
 theorem limit_lift_eq_cosineSeries_weak
     (p : CM2Params) (hχ0 : p.χ₀ = 0)
     (u₀ : intervalDomainPoint → ℝ) (u : ℝ → intervalDomainPoint → ℝ)
-    (hfix : ∀ t, 0 < t → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
-      intervalDomainLift (u t) x = intervalGradientDuhamelMap p u₀ u t ⟨x, hx⟩)
+    {T t : ℝ}
+    (hfix : ∀ s, 0 < s → s ≤ t → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
+      intervalDomainLift (u s) x = intervalGradientDuhamelMap p u₀ u s ⟨x, hx⟩)
     (hu₀_cont : Continuous (intervalDomainLift u₀))
     {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hsrc0 : DuhamelSourceL1Cont
-      (fun s k => cosineCoeffs (logisticLifted p (u s)) k))
-    {t : ℝ} (ht : 0 < t)
+    (hsrc0 : DuhamelSourceL1ContOn
+      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
+    (ht : 0 < t) (htT : t ≤ T)
     (hL_cont : ∀ s, 0 < s → s ≤ t → Continuous (logisticLifted p (u s)))
     {x : ℝ} (hx : x ∈ Set.Icc (0:ℝ) 1) :
     intervalDomainLift (u t) x
       = ∑' k, ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ u t k * cosineMode k x := by
-  rw [hfix t ht x hx,
+  rw [hfix t ht le_rfl x hx,
     intervalGradientDuhamelMap_eq_of_chi0_zero p hχ0 u₀ _ t ⟨x, hx⟩]
   have hhom : intervalFullSemigroupOperator t (intervalDomainLift u₀) x
       = ∑' k, (Real.exp (-t * (λ_ k))
@@ -240,11 +309,11 @@ theorem limit_lift_eq_cosineSeries_weak
     exact heatValue_eq_cosineSeries t _ x
   set a : ℝ → ℕ → ℝ := fun s k =>
     cosineCoeffs (logisticLifted p (u s)) k with ha
-  have hMa : ∀ s, 0 ≤ s → ∀ k, |a s k| ≤ ∑' j, hsrc0.envelope j := by
-    intro s hs k
+  have hMa : ∀ s, 0 ≤ s → s ≤ T → ∀ k, |a s k| ≤ ∑' j, hsrc0.envelope j := by
+    intro s hs hsT k
     have hnn : ∀ j, 0 ≤ hsrc0.envelope j := fun j =>
-      le_trans (abs_nonneg _) (hsrc0.henv_bound 0 le_rfl j)
-    refine le_trans (hsrc0.henv_bound s hs k) ?_
+      le_trans (abs_nonneg _) (hsrc0.henv_bound 0 le_rfl (le_trans ht.le htT) j)
+    refine le_trans (hsrc0.henv_bound s hs hsT k) ?_
     have := hsrc0.henv_summable.sum_le_tsum {k} (fun j _ => hnn j)
     simpa using this
   have hduh_integrand : ∀ s ∈ Set.Ioo (0:ℝ) t,
@@ -255,7 +324,8 @@ theorem limit_lift_eq_cosineSeries_weak
     have hcont : Continuous (logisticLifted p (u s)) :=
       hL_cont s hs.1 (le_of_lt hs.2)
     have hMs : ∀ k, |cosineCoeffs (logisticLifted p (u s)) k|
-        ≤ ∑' j, hsrc0.envelope j := fun k => hMa s (le_of_lt hs.1) k
+        ≤ ∑' j, hsrc0.envelope j :=
+      fun k => hMa s (le_of_lt hs.1) (le_trans (le_of_lt hs.2) htT) k
     exact intervalFullSemigroupOperator_eq_cosineHeatValue_Icc hts hcont hMs hx
   have hduh_eq : (∫ s in (0:ℝ)..t,
         intervalFullSemigroupOperator (t - s) (logisticLifted p (u s)) x)
@@ -269,7 +339,7 @@ theorem limit_lift_eq_cosineSeries_weak
       intro hst; exact hs (by simp [hst])
     filter_upwards [hmem] with s hs hsIoc
     exact hduh_integrand s (hs hsIoc)
-  rw [hhom, hduh_eq, duhamelSpectral_eq_cosineSeries_weak hsrc0 ht]
+  rw [hhom, hduh_eq, duhamelSpectral_eq_cosineSeries_weak hsrc0 ht htT]
   have hcosbd : ∀ (c : ℕ → ℝ) (k : ℕ), ‖c k * cosineMode k x‖ ≤ |c k| := by
     intro c k
     rw [Real.norm_eq_abs, abs_mul]
@@ -291,7 +361,7 @@ theorem limit_lift_eq_cosineSeries_weak
     refine Summable.of_norm_bounded ?_ (hcosbd _)
     refine Summable.of_nonneg_of_le (fun k => abs_nonneg _) (fun k => ?_)
       (hsrc0.henv_summable.mul_left t)
-    exact abs_duhamelSpectralCoeff_le_weak hsrc0 ht k
+    exact abs_duhamelSpectralCoeff_le_weak hsrc0 ht htT k
   rw [← Summable.tsum_add hsum_hom hsum_duh]
   refine tsum_congr (fun k => ?_)
   unfold ShenWork.IntervalPicardLimitRestart.limitCoeff
@@ -302,13 +372,14 @@ theorem limit_lift_eq_cosineSeries_weak
 theorem cosineCoeffs_halfstep_eq_limitCoeff_weak
     (p : CM2Params) (hχ0 : p.χ₀ = 0)
     (u₀ : intervalDomainPoint → ℝ) (u : ℝ → intervalDomainPoint → ℝ)
-    (hfix : ∀ t, 0 < t → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
-      intervalDomainLift (u t) x = intervalGradientDuhamelMap p u₀ u t ⟨x, hx⟩)
+    {T τ : ℝ}
+    (hfix : ∀ s, 0 < s → s ≤ τ → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
+      intervalDomainLift (u s) x = intervalGradientDuhamelMap p u₀ u s ⟨x, hx⟩)
     (hu₀_cont : Continuous (intervalDomainLift u₀))
     {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hsrc0 : DuhamelSourceL1Cont
-      (fun s k => cosineCoeffs (logisticLifted p (u s)) k))
-    {τ : ℝ} (hτ : 0 < τ)
+    (hsrc0 : DuhamelSourceL1ContOn
+      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
+    (hτ : 0 < τ) (hτT : τ ≤ T)
     (hL_cont : ∀ s, 0 < s → s ≤ τ → Continuous (logisticLifted p (u s)))
     (k : ℕ) :
     cosineCoeffs (intervalDomainLift (u τ)) k
@@ -317,10 +388,10 @@ theorem cosineCoeffs_halfstep_eq_limitCoeff_weak
       intervalDomainLift (u τ) x
         = ∑' j, ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ u τ j
             * cosineMode j x := fun x hx =>
-    limit_lift_eq_cosineSeries_weak p hχ0 u₀ u hfix hu₀_cont hu₀_bound hsrc0 hτ hL_cont hx
+    limit_lift_eq_cosineSeries_weak p hχ0 u₀ u hfix hu₀_cont hu₀_bound hsrc0 hτ hτT hL_cont hx
   rw [cosineCoeffs_congr_on_Icc hrepr k]
   exact cosineCoeffs_of_l1_cosineSeries
-    (summable_abs_limitCoeff_weak p u₀ u hu₀_bound hsrc0 hτ) k
+    (summable_abs_limitCoeff_weak p u₀ u hu₀_bound hsrc0 hτ hτT) k
 
 /-! ## 3. ★-weak — the half-step restart cosine identity for the LIMIT, with the
 weak source package. -/
@@ -333,13 +404,14 @@ alone (no K1(u)/M3b needed), so this ★ no longer depends on rep(u). -/
 theorem picardLimitRestart_cosineIdentity_weak
     (p : CM2Params) (hχ0 : p.χ₀ = 0)
     (u₀ : intervalDomainPoint → ℝ) (u : ℝ → intervalDomainPoint → ℝ)
-    (hfix : ∀ t, 0 < t → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
-      intervalDomainLift (u t) x = intervalGradientDuhamelMap p u₀ u t ⟨x, hx⟩)
+    {T t : ℝ}
+    (hfix : ∀ s, 0 < s → s ≤ t → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
+      intervalDomainLift (u s) x = intervalGradientDuhamelMap p u₀ u s ⟨x, hx⟩)
     (hu₀_cont : Continuous (intervalDomainLift u₀))
     {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hsrc0 : DuhamelSourceL1Cont
-      (fun s k => cosineCoeffs (logisticLifted p (u s)) k))
-    {t : ℝ} (ht : 0 < t)
+    (hsrc0 : DuhamelSourceL1ContOn
+      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
+    (ht : 0 < t) (htT : t ≤ T)
     (hL_cont : ∀ s, 0 < s → s ≤ t → Continuous (logisticLifted p (u s))) :
     Set.EqOn (intervalDomainLift (u t))
       (fun x => ∑' k : ℕ,
@@ -352,21 +424,26 @@ theorem picardLimitRestart_cosineIdentity_weak
   set τ : ℝ := t / 2 with hτdef
   have hτ : 0 < τ := by rw [hτdef]; linarith
   have htτ : t = τ + τ := by rw [hτdef]; ring
-  -- continuity of the limit source family (now directly from hsrc0.hcont)
-  have ha_cont : ∀ k, Continuous
-      (fun s => cosineCoeffs (logisticLifted p (u s)) k) := hsrc0.hcont
-  rw [limit_lift_eq_cosineSeries_weak p hχ0 u₀ u hfix hu₀_cont hu₀_bound hsrc0 ht hL_cont hx]
+  have hτt : τ ≤ t := by rw [hτdef]; linarith
+  have hτT : τ ≤ T := le_trans hτt htT
+  rw [limit_lift_eq_cosineSeries_weak p hχ0 u₀ u hfix hu₀_cont hu₀_bound hsrc0 ht htT
+    hL_cont hx]
   refine tsum_congr (fun k => ?_)
   congr 1
   unfold ShenWork.IntervalPicardLimitRestart.limitCoeff restartDuhamelCoeff
   have hext : cosineCoeffs (intervalDomainLift (u τ)) k
       = ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ u τ k :=
-    cosineCoeffs_halfstep_eq_limitCoeff_weak p hχ0 u₀ u hfix hu₀_cont hu₀_bound hsrc0 hτ
-      (fun s hs hsτ => hL_cont s hs (by rw [htτ]; linarith)) k
+    cosineCoeffs_halfstep_eq_limitCoeff_weak p hχ0 u₀ u
+      (fun s hs hsτ => hfix s hs (le_trans hsτ hτt))
+      hu₀_cont hu₀_bound hsrc0 hτ hτT
+      (fun s hs hsτ => hL_cont s hs (le_trans hsτ hτt)) k
   rw [hext]
   unfold ShenWork.IntervalPicardLimitRestart.limitCoeff
-  have hsplit := duhamelSpectralCoeff_halfstep_split (a :=
-      fun s k => cosineCoeffs (logisticLifted p (u s)) k) ha_cont τ k
+  have hsplit := duhamelSpectralCoeff_general_split_on (a :=
+      fun s k => cosineCoeffs (logisticLifted p (u s)) k) hsrc0.hcont
+      hτ.le hτt htT k
+  have hτsub : t - τ = τ := by rw [htτ]; ring
+  rw [hτsub, htτ] at hsplit
   have hexp : Real.exp (-t * (λ_ k))
       = Real.exp (-τ * (λ_ k)) * Real.exp (-τ * (λ_ k)) := by
     rw [← Real.exp_add]; congr 1; rw [htτ]; ring
@@ -450,13 +527,15 @@ theorem picardLimitRestart_cosineIdentity_of_iterateData
           (fun σ k => cosineCoeffs (logisticLifted p (u (t/2 + σ))) k)
           (t/2) k * cosineMode k x)
       (Set.Icc (0:ℝ) 1) :=
-  picardLimitRestart_cosineIdentity_weak p hχ0 u₀ u hfix hu₀_cont hu₀_bound
-    (limitSource_l1cont p u₀ u envFn henv_summable henv_iter hconv hcoeff_cont) ht hL_cont
+  picardLimitRestart_cosineIdentity_weak p hχ0 u₀ u
+    (fun s hs _hst x hx => hfix s hs x hx) hu₀_cont hu₀_bound
+    ((limitSource_l1cont p u₀ u envFn henv_summable henv_iter hconv
+      hcoeff_cont).toOn t) ht le_rfl hL_cont
 
 end ShenWork.IntervalPicardLimitRestartWeak
 
 open ShenWork.IntervalPicardLimitRestartWeak
-  (DuhamelSourceL1Cont abs_duhamelSpectralCoeff_le_weak
+  (DuhamelSourceL1Cont DuhamelSourceL1ContOn abs_duhamelSpectralCoeff_le_weak
    duhamelSpectral_eq_cosineSeries_weak)
 open ShenWork.IntervalSpectralSubtypeAdapter
   (intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont)
@@ -477,9 +556,10 @@ theorem limit_lift_eq_cosineSeries_of_subtypeCont
     (u₀ : intervalDomainPoint → ℝ) (u : ℝ → intervalDomainPoint → ℝ)
     (hu₀_cont : Continuous u₀)
     {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hsrc0 : DuhamelSourceL1Cont
-      (fun s k => cosineCoeffs (logisticLifted p (u s)) k))
-    {t : ℝ} (ht : 0 < t)
+    {T : ℝ}
+    (hsrc0 : DuhamelSourceL1ContOn
+      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ T)
     (hfix_t : ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
       intervalDomainLift (u t) x = intervalGradientDuhamelMap p u₀ u t ⟨x, hx⟩)
     (hL_cont : ∀ s, 0 < s → s ≤ t →
@@ -515,11 +595,11 @@ theorem limit_lift_eq_cosineSeries_of_subtypeCont
   -- Source coefficient family (same as _weak).
   set a : ℝ → ℕ → ℝ := fun s k =>
     cosineCoeffs (logisticLifted p (u s)) k with ha
-  have hMa : ∀ s, 0 ≤ s → ∀ k, |a s k| ≤ ∑' j, hsrc0.envelope j := by
-    intro s hs k
+  have hMa : ∀ s, 0 ≤ s → s ≤ T → ∀ k, |a s k| ≤ ∑' j, hsrc0.envelope j := by
+    intro s hs hsT k
     have hnn : ∀ j, 0 ≤ hsrc0.envelope j := fun j =>
-      le_trans (abs_nonneg _) (hsrc0.henv_bound 0 le_rfl j)
-    refine le_trans (hsrc0.henv_bound s hs k) ?_
+      le_trans (abs_nonneg _) (hsrc0.henv_bound 0 le_rfl (le_trans ht.le htT) j)
+    refine le_trans (hsrc0.henv_bound s hs hsT k) ?_
     have := hsrc0.henv_summable.sum_le_tsum {k} (fun j _ => hnn j)
     simpa using this
   -- Duhamel integrand: adapter with subtype continuity of logistic source.
@@ -533,7 +613,8 @@ theorem limit_lift_eq_cosineSeries_of_subtypeCont
     have hsub : Continuous (intervalLogisticSource p (u s)) :=
       hL_subtype s hs.1 (le_of_lt hs.2)
     have hMs : ∀ k, |cosineCoeffs (logisticLifted p (u s)) k|
-        ≤ ∑' j, hsrc0.envelope j := fun k => hMa s (le_of_lt hs.1) k
+        ≤ ∑' j, hsrc0.envelope j :=
+      fun k => hMa s (le_of_lt hs.1) (le_trans (le_of_lt hs.2) htT) k
     show intervalFullSemigroupOperator (t - s)
         (intervalDomainLift (intervalLogisticSource p (u s))) x
         = unitIntervalCosineHeatValue (t - s) (a s) x
@@ -552,7 +633,7 @@ theorem limit_lift_eq_cosineSeries_of_subtypeCont
       intro hst; exact hs (by simp [hst])
     filter_upwards [hmem] with s hs hsIoc
     exact hduh_integrand s (hs hsIoc)
-  rw [hhom, hduh_eq, duhamelSpectral_eq_cosineSeries_weak hsrc0 ht]
+  rw [hhom, hduh_eq, duhamelSpectral_eq_cosineSeries_weak hsrc0 ht htT]
   -- Summability + tsum algebra (identical to _weak).
   have hcosbd : ∀ (c : ℕ → ℝ) (k : ℕ), ‖c k * cosineMode k x‖ ≤ |c k| := by
     intro c k
@@ -575,7 +656,7 @@ theorem limit_lift_eq_cosineSeries_of_subtypeCont
     refine Summable.of_norm_bounded ?_ (hcosbd _)
     refine Summable.of_nonneg_of_le (fun k => abs_nonneg _) (fun k => ?_)
       (hsrc0.henv_summable.mul_left t)
-    exact abs_duhamelSpectralCoeff_le_weak hsrc0 ht k
+    exact abs_duhamelSpectralCoeff_le_weak hsrc0 ht htT k
   rw [← Summable.tsum_add hsum_hom hsum_duh]
   refine tsum_congr (fun k => ?_)
   unfold ShenWork.IntervalPicardLimitRestart.limitCoeff
@@ -600,7 +681,7 @@ parabolic smoothing (`expEigSummable`-type estimate).
 section EigenvalueWeighted
 
 open ShenWork.IntervalPicardLimitRestartWeak (DuhamelSourceL1Cont
-  abs_duhamelSpectralCoeff_le_weak)
+  DuhamelSourceL1ContOn abs_duhamelSpectralCoeff_le_weak)
 
 local notation "λ_" n => unitIntervalCosineEigenvalue n
 
@@ -610,12 +691,14 @@ Uses: `∫₀ᵗ exp(-(t-s)λ) ds = (1-exp(-tλ))/λ` for λ > 0, giving
 `λ * envelope * (1-exp(-tλ))/λ = envelope * (1-exp(-tλ)) ≤ envelope`.
 For k = 0 (λ₀ = 0): trivially `0 ≤ envelope₀`. -/
 theorem eigenvalue_mul_abs_duhamelSpectralCoeff_le_envelope
-    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceL1Cont a) {t : ℝ} (ht : 0 < t) (k : ℕ) :
+    {a : ℝ → ℕ → ℝ} {T : ℝ} (src : DuhamelSourceL1ContOn a T)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ T) (k : ℕ) :
     unitIntervalCosineEigenvalue k * |duhamelSpectralCoeff a t k| ≤ src.envelope k := by
+  have h0T : (0:ℝ) ≤ T := le_trans ht.le htT
   by_cases hk : k = 0
   · -- k = 0: λ₀ = 0, so 0 * |...| = 0 ≤ envelope 0
     simp [hk, unitIntervalCosineEigenvalue]
-    exact le_trans (abs_nonneg _) (src.henv_bound 0 le_rfl 0)
+    exact le_trans (abs_nonneg _) (src.henv_bound 0 le_rfl h0T 0)
   · -- k ≥ 1: use ∫₀ᵗ λ exp(-(t-s)λ) ds = 1 - exp(-tλ) ≤ 1
     set eigk := (λ_ k) with heigk_def
     have heigk_pos : 0 < eigk := by
@@ -624,7 +707,7 @@ theorem eigenvalue_mul_abs_duhamelSpectralCoeff_le_envelope
       have : 0 < (k : ℝ) := Nat.cast_pos.mpr (Nat.pos_of_ne_zero hk)
       positivity
     have henv_nn : 0 ≤ src.envelope k :=
-      le_trans (abs_nonneg _) (src.henv_bound 0 le_rfl k)
+      le_trans (abs_nonneg _) (src.henv_bound 0 le_rfl h0T k)
     -- Move eigk inside the integral and bound |a(s,k)| by envelope
     -- eigk * |∫₀ᵗ exp(-(t-s)eigk) a(s,k) ds|
     -- ≤ ∫₀ᵗ eigk * exp(-(t-s)eigk) * envelope_k ds  (by abs under integral + envelope)
@@ -656,8 +739,11 @@ theorem eigenvalue_mul_abs_duhamelSpectralCoeff_le_envelope
     -- Step 3: Bound |duhamelSpectralCoeff| via signed integral comparison + FTC.
     unfold duhamelSpectralCoeff
     have h_fa_int : IntervalIntegrable (fun s => Real.exp (-(t - s) * eigk) * a s k)
-        volume 0 t :=
-      (hexp_cont.mul (src.hcont k)).continuousOn.intervalIntegrable
+        volume 0 t := by
+      apply ContinuousOn.intervalIntegrable
+      rw [Set.uIcc_of_le ht.le]
+      exact hexp_cont.continuousOn.mul
+        ((src.hcont k).mono (Set.Icc_subset_Icc le_rfl htT))
     have h_fe_int : IntervalIntegrable (fun s => Real.exp (-(t - s) * eigk) * src.envelope k)
         volume 0 t :=
       (hexp_cont.mul continuous_const).continuousOn.intervalIntegrable
@@ -670,13 +756,13 @@ theorem eigenvalue_mul_abs_duhamelSpectralCoeff_le_envelope
             ≤ ∫ s in (0:ℝ)..t, Real.exp (-(t - s) * eigk) * a s k :=
           intervalIntegral.integral_mono_on ht.le h_fe_int.neg h_fa_int (fun s hs => by
             have hexp := (Real.exp_pos (-(t - s) * eigk)).le
-            have henv := (abs_le.mp (src.henv_bound s hs.1 k)).1
+            have henv := (abs_le.mp (src.henv_bound s hs.1 (le_trans hs.2 htT) k)).1
             nlinarith)
         rwa [intervalIntegral.integral_neg] at h1
       · -- upper: ∫ exp·a ≤ ∫ exp·env
         exact intervalIntegral.integral_mono_on ht.le h_fa_int h_fe_int (fun s hs =>
           mul_le_mul_of_nonneg_left
-            (le_trans (le_abs_self _) (src.henv_bound s hs.1 k))
+            (le_trans (le_abs_self _) (src.henv_bound s hs.1 (le_trans hs.2 htT) k))
             (Real.exp_pos _).le)
     -- ∫ exp·env = env · (1 - exp(-tλ))/λ   [factor constant + FTC]
     have hne : eigk ≠ 0 := ne_of_gt heigk_pos
@@ -703,8 +789,10 @@ theorem summable_eigenvalue_mul_abs_limitCoeff_weak
     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (u : ℝ → intervalDomainPoint → ℝ)
     {M₀ : ℝ} (hM0 : 0 ≤ M₀)
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hsrc0 : DuhamelSourceL1Cont (fun s k => cosineCoeffs (logisticLifted p (u s)) k))
-    {t : ℝ} (ht : 0 < t) :
+    {T : ℝ}
+    (hsrc0 : DuhamelSourceL1ContOn
+      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
+    {t : ℝ} (ht : 0 < t) (htT : t ≤ T) :
     Summable (fun k => (λ_ k) *
       |ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ u t k|) := by
   set a' : ℝ → ℕ → ℝ := fun s k => cosineCoeffs (logisticLifted p (u s)) k
@@ -731,7 +819,7 @@ theorem summable_eigenvalue_mul_abs_limitCoeff_weak
                   apply mul_le_mul_of_nonneg_left _ (by unfold unitIntervalCosineEigenvalue; positivity)
                   exact mul_le_mul_of_nonneg_left (hu₀_bound k) (Real.exp_pos _).le
               _ = M₀ * ((λ_ k) * Real.exp (-t * (λ_ k))) := by ring
-          · exact eigenvalue_mul_abs_duhamelSpectralCoeff_le_envelope hsrc0 ht k
+          · exact eigenvalue_mul_abs_duhamelSpectralCoeff_le_envelope hsrc0 ht htT k
   · exact (ShenWork.IntervalMildRegularityBootstrap.unitIntervalCosineEigenvalue_mul_exp_summable
       ht).mul_left M₀ |>.add hsrc0.henv_summable
 

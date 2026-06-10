@@ -71,7 +71,7 @@ open ShenWork.IntervalMildToClassical (mildChemicalConcentration)
 open ShenWork.IntervalMildPicardRegularity (logisticSourceFun)
 open ShenWork.IntervalMildTimeDerivContinuity (HasTimeNeighborhoodSpectralAgreement)
 open ShenWork.PDE (intervalNeumannResolverSourceCoeff)
-open ShenWork.IntervalPicardLimitRestartWeak (DuhamelSourceL1Cont)
+open ShenWork.IntervalPicardLimitRestartWeak (DuhamelSourceL1Cont DuhamelSourceL1ContOn)
 open ShenWork.IntervalPicardLimitSourceData (limitSource_duhamelSourceTimeC1)
 open ShenWork.IntervalDomainLimitSourceRepresentation
   (limitSource_duhamelSourceTimeC1_of_representation)
@@ -166,17 +166,17 @@ structure ReducedLimitRegularityInputs
 /-! ## Discharging `Hu` from the reduced ledger families -/
 
 /-- **The weak limit source package from the reduced ledger.**  Build
-`DuhamelSourceL1Cont (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k)` from
-the K2 slice bounds and the K1 unshifted source-coefficient time-`C¹` data via the
-forgetful map `DuhamelSourceL1Cont.ofTimeC1` applied to
+`DuhamelSourceL1ContOn (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) D.T`
+(horizon-bounded: envelope/continuity only on `[0, D.T]`) from the K2 slice bounds
+and the K1 unshifted source-coefficient time-`C¹` data via
 `limitSource_duhamelSourceTimeC1`.  No hypothesis beyond the reduced ledger. -/
 def weakSource_of_reduced
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     {D : GradientMildSolutionData p u₀}
     (I : ReducedLimitRegularityInputs p u₀ D) :
-    DuhamelSourceL1Cont
-      (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) :=
-  sorry -- TODO: adapter for time-quantified → global data
+    DuhamelSourceL1ContOn
+      (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) D.T :=
+  sorry -- TODO: adapter for time-quantified → horizon-bounded data
 
 /-- **`Hu` from the reduced ledger.**  Discharges
 `HasTimeNeighborhoodSpectralAgreement D.T D.u` via `Hu_of_restart`, feeding the

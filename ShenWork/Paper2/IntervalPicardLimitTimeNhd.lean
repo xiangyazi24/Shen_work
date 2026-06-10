@@ -87,8 +87,8 @@ open ShenWork.IntervalMildPicardRegularity
   (logisticSourceFun cosineCoeffs_abs_le_of_continuous_bounded)
 open ShenWork.IntervalMildTimeDerivContinuity (HasTimeNeighborhoodSpectralAgreement)
 open ShenWork.IntervalPicardLimitRestartWeak
-  (DuhamelSourceL1Cont limit_lift_eq_cosineSeries_weak
-   cosineCoeffs_halfstep_eq_limitCoeff_weak)
+  (DuhamelSourceL1Cont DuhamelSourceL1ContOn limit_lift_eq_cosineSeries_weak
+   cosineCoeffs_halfstep_eq_limitCoeff_weak duhamelSpectralCoeff_general_split_on)
 open ShenWork.IntervalPicardLimitSourceData
   (restartDuhamelCoeff_eq_localRestartCoeff limitSource_duhamelSourceTimeC1)
 open ShenWork.IntervalDomainLimitSourceRepresentation
@@ -163,13 +163,14 @@ is re-expressed via `duhamelSpectralCoeff_general_split`. -/
 theorem limitCoeff_eq_restartDuhamelCoeff_general
     (p : CM2Params) (hχ0 : p.χ₀ = 0)
     (u₀ : intervalDomainPoint → ℝ) (u : ℝ → intervalDomainPoint → ℝ)
-    (hfix : ∀ t, 0 < t → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
-      intervalDomainLift (u t) x = intervalGradientDuhamelMap p u₀ u t ⟨x, hx⟩)
+    {T τ t : ℝ}
+    (hfix : ∀ s, 0 < s → s ≤ τ → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
+      intervalDomainLift (u s) x = intervalGradientDuhamelMap p u₀ u s ⟨x, hx⟩)
     (hu₀_cont : Continuous (intervalDomainLift u₀))
     {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hsrc0 : DuhamelSourceL1Cont
-      (fun s k => cosineCoeffs (logisticLifted p (u s)) k))
-    {τ t : ℝ} (hτ : 0 < τ) (_hτt : τ < t)
+    (hsrc0 : DuhamelSourceL1ContOn
+      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
+    (hτ : 0 < τ) (hτt : τ < t) (htT : t ≤ T)
     (hL_cont : ∀ s, 0 < s → s ≤ τ → Continuous (logisticLifted p (u s)))
     (k : ℕ) :
     ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ u t k
@@ -177,19 +178,18 @@ theorem limitCoeff_eq_restartDuhamelCoeff_general
           (cosineCoeffs (intervalDomainLift (u τ)))
           (fun σ k => cosineCoeffs (logisticLifted p (u (τ + σ))) k)
           (t - τ) k := by
-  have ha_cont : ∀ k, Continuous
-      (fun s => cosineCoeffs (logisticLifted p (u s)) k) := hsrc0.hcont
   -- restart-base coefficient: coeffs u(τ) = limitCoeff τ
   have hbase : cosineCoeffs (intervalDomainLift (u τ)) k
       = ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ u τ k :=
     cosineCoeffs_halfstep_eq_limitCoeff_weak p hχ0 u₀ u hfix hu₀_cont hu₀_bound
-      hsrc0 hτ hL_cont k
+      hsrc0 hτ (le_trans hτt.le htT) hL_cont k
   unfold restartDuhamelCoeff
   rw [hbase]
   unfold ShenWork.IntervalPicardLimitRestart.limitCoeff
-  -- general split of the source Duhamel coefficient at base τ
-  have hsplit := duhamelSpectralCoeff_general_split (a :=
-      fun s k => cosineCoeffs (logisticLifted p (u s)) k) ha_cont τ t k
+  -- general split of the source Duhamel coefficient at base τ (horizon-bounded)
+  have hsplit := duhamelSpectralCoeff_general_split_on (a :=
+      fun s k => cosineCoeffs (logisticLifted p (u s)) k) hsrc0.hcont
+      hτ.le hτt.le htT k
   -- factor the homogeneous part: e^{−tλ} = e^{−(t−τ)λ}·e^{−τλ}
   have hexp : Real.exp (-t * (λ_ k))
       = Real.exp (-(t - τ) * (λ_ k)) * Real.exp (-τ * (λ_ k)) := by
@@ -206,13 +206,14 @@ to ★-weak's conclusion but with restart base `τ` an arbitrary point of `(0,t)
 theorem picardLimitRestart_general
     (p : CM2Params) (hχ0 : p.χ₀ = 0)
     (u₀ : intervalDomainPoint → ℝ) (u : ℝ → intervalDomainPoint → ℝ)
-    (hfix : ∀ t, 0 < t → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
-      intervalDomainLift (u t) x = intervalGradientDuhamelMap p u₀ u t ⟨x, hx⟩)
+    {T τ t : ℝ}
+    (hfix : ∀ s, 0 < s → s ≤ t → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
+      intervalDomainLift (u s) x = intervalGradientDuhamelMap p u₀ u s ⟨x, hx⟩)
     (hu₀_cont : Continuous (intervalDomainLift u₀))
     {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hsrc0 : DuhamelSourceL1Cont
-      (fun s k => cosineCoeffs (logisticLifted p (u s)) k))
-    {τ t : ℝ} (hτ : 0 < τ) (hτt : τ < t)
+    (hsrc0 : DuhamelSourceL1ContOn
+      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
+    (hτ : 0 < τ) (hτt : τ < t) (htT : t ≤ T)
     (hL_cont : ∀ s, 0 < s → s ≤ t → Continuous (logisticLifted p (u s))) :
     Set.EqOn (intervalDomainLift (u t))
       (fun x => ∑' k : ℕ,
@@ -223,12 +224,14 @@ theorem picardLimitRestart_general
       (Set.Icc (0:ℝ) 1) := by
   have ht : 0 < t := lt_trans hτ hτt
   intro x hx
-  rw [limit_lift_eq_cosineSeries_weak p hχ0 u₀ u hfix hu₀_cont hu₀_bound hsrc0 ht
+  rw [limit_lift_eq_cosineSeries_weak p hχ0 u₀ u hfix hu₀_cont hu₀_bound hsrc0 ht htT
         hL_cont hx]
   refine tsum_congr (fun k => ?_)
   congr 1
-  exact limitCoeff_eq_restartDuhamelCoeff_general p hχ0 u₀ u hfix hu₀_cont hu₀_bound
-    hsrc0 hτ hτt (fun s hs hsτ => hL_cont s hs (le_of_lt (lt_of_le_of_lt hsτ hτt))) k
+  exact limitCoeff_eq_restartDuhamelCoeff_general p hχ0 u₀ u
+    (fun s hs hsτ => hfix s hs (le_trans hsτ hτt.le)) hu₀_cont hu₀_bound
+    hsrc0 hτ hτt htT
+    (fun s hs hsτ => hL_cont s hs (le_of_lt (lt_of_le_of_lt hsτ hτt))) k
 
 /-! ## 4. Discharging `Hu` from the ledger families. -/
 
@@ -256,10 +259,10 @@ theorem Hu_of_restart
     (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
     (hu₀_cont : Continuous (intervalDomainLift u₀))
     {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hfix : ∀ t, 0 < t → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
-      intervalDomainLift (u t) x = intervalGradientDuhamelMap p u₀ u t ⟨x, hx⟩)
-    (hsrc0 : DuhamelSourceL1Cont
-      (fun s k => cosineCoeffs (logisticLifted p (u s)) k))
+    (hfix : ∀ s, 0 < s → s < T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
+      intervalDomainLift (u s) x = intervalGradientDuhamelMap p u₀ u s ⟨x, hx⟩)
+    (hsrc0 : DuhamelSourceL1ContOn
+      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
     -- K2 spatial slice bounds (per time slice)
     {Msup G1 G2 : ℝ}
     -- per-slice cosine representation (replaces the unsatisfiable global-`C²` field)
@@ -336,8 +339,10 @@ theorem Hu_of_restart
     have hτs : τ < s := hs.1
     have hsT : s < T := hs.2
     have hspos : 0 < s := lt_trans hτpos hτs
-    have heqon := picardLimitRestart_general p hχ0 u₀ u hfix hu₀_cont hu₀_bound
-      hsrc0 hτpos hτs
+    have heqon := picardLimitRestart_general p hχ0 u₀ u
+      (fun r hr hrs => hfix r hr (lt_of_le_of_lt hrs hsT))
+      hu₀_cont hu₀_bound
+      hsrc0 hτpos hτs hsT.le
       (fun r hr hrs => hLc s hspos hsT r hr hrs)
     intro x
     have hx1 : x.1 ∈ Set.Icc (0:ℝ) 1 := x.2
