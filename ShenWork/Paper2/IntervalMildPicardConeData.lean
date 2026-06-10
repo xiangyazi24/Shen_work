@@ -135,7 +135,14 @@ theorem coneGradientMildSolutionData_exists_with_data (p : CM2Params) (hχ : p.�
         ∃ D : GradientMildSolutionData p u₀,
           D.T = δ ∧ D.u = picardLimit p u₀ δ ∧
           (∀ n, HasContinuousSlices D.T (picardIter p u₀ n)) ∧
-          (∃ F : ShenWork.IntervalPicardLimitCoeffConv.PicardConvFacts p u₀, F.T = δ) := by
+          (∃ F : ShenWork.IntervalPicardLimitCoeffConv.PicardConvFacts p u₀, F.T = δ) ∧
+          -- ROUND 3: strict iterate positivity on the window `(0, δ]`, in the
+          -- exact `intervalDomainLift`-on-`Icc 0 1` shape the `Wdata` assembler
+          -- (`wdata_of_wiring`'s `hpos`) consumes.  Every iterate `n` (including
+          -- `n = 0`, the heat slice) is strictly positive at every interior point
+          -- because the cone keeps the iterates above `½·S(σ)f₀ > 0`.
+          (∀ n σ, 0 < σ → σ ≤ δ → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+            0 < intervalDomainLift (picardIter p u₀ n σ) x) := by
   set M := 2 * max M_in 1 with hMdef
   have hM : 0 < M := by positivity
   have hM_ge_2 : (2 : ℝ) ≤ M := by
@@ -743,6 +750,38 @@ theorem coneGradientMildSolutionData_exists_with_data (p : CM2Params) (hχ : p.�
       exact hx₀
     exact intervalFullSemigroupOperator_pos ht hf₀_cont.continuousOn
       (fun y _ => hf₀_nonneg y) x₀.2 hf₀_pos_at x.1
+  -- Strict positivity of EVERY iterate (round-3 export for the Wdata assembler).
+  -- For `n = 0` the iterate is the heat slice `S(t)f₀ x` (`> 0` by the strict
+  -- propagator); for `n + 1` the cone's lower output bound
+  -- `(1 − Ke·I(t))·S(t)f₀ ≤ picardIter (n+1)` with `(1 − Ke·I(t)) ≥ ½ > 0`.
+  have hpos_iter : ∀ n : ℕ, ∀ t, 0 < t → t ≤ T₀ → ∀ x : intervalDomainPoint,
+      0 < picardIter p u₀ n t x := by
+    intro n t ht htT x
+    have hSpos := hSf₀_pos ht x
+    cases n with
+    | zero =>
+      -- `picardIter 0 t x = S(t)(lift u₀) x.1 = S(t)f₀ x.1`
+      have hzero_eq : picardIter p u₀ 0 t x
+          = intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1 := rfl
+      rw [hzero_eq, hS_eq t x]; exact hSpos
+    | succ m =>
+      have hcp := cone_preserved p hχ hf₀_cont hf₀_eq
+        (le_of_lt hM_in) hf₀_bdd hMc hT₀ hM
+        (le_of_eq hKe_def.symm) (hmeas_iterates m) (hball m) (hball_nn m)
+        (hcone_iterates m)
+      have hlow : (1 - Ke * envelopeIntegral p.a t) *
+          intervalFullSemigroupOperator t f₀ x.1
+          ≤ picardIter p u₀ (m + 1) t x := (hcp t ht htT x).1
+      have hfac : (1:ℝ)/2 ≤ 1 - Ke * envelopeIntegral p.a t := by
+        have hmono : envelopeIntegral p.a t ≤ envelopeIntegral p.a T₀ :=
+          envelopeIntegral_mono p.a ht.le htT
+        have h1 : Ke * envelopeIntegral p.a t ≤ Ke * envelopeIntegral p.a T₀ :=
+          mul_le_mul_of_nonneg_left hmono hKe_nn
+        linarith [hcone_small]
+      have hfac_pos : 0 < 1 - Ke * envelopeIntegral p.a t := by linarith
+      have hprod_pos : 0 < (1 - Ke * envelopeIntegral p.a t) *
+          intervalFullSemigroupOperator t f₀ x.1 := mul_pos hfac_pos hSpos
+      linarith
   have hpos_limit : ∀ t, 0 < t → t ≤ T₀ → ∀ x : intervalDomainPoint,
       0 < picardLimit p u₀ T₀ t x := by
     intro t ht htT x
@@ -817,7 +856,13 @@ theorem coneGradientMildSolutionData_exists_with_data (p : CM2Params) (hχ : p.�
     hgeom := fun n => hgeom n
     hlim_ball := picardLimit_bounded p u₀ hK_lt hK_nn hC₀ (fun n => hgeom n) hball
     hlim_nn := picardLimit_nonneg p u₀ hK_lt hK_nn hC₀ (fun n => hgeom n) hball_nn
-  }, rfl⟩⟩
+  }, rfl⟩,
+  -- ROUND 3: lift the subtype strict positivity `hpos_iter` to the
+  -- `intervalDomainLift`-on-`Icc 0 1` shape (`dif_pos` collapses the lift to the
+  -- subtype value for interior `x`).
+  fun n σ hσ hσT x hx => by
+    have hsub := hpos_iter n σ hσ hσT ⟨x, hx⟩
+    simpa only [intervalDomainLift, dif_pos hx] using hsub⟩
 
 /-- **Cone-uniform Picard data (χ₀ = 0)**: one horizon
 `δ = δ(p, M_in) > 0` such that EVERY continuous nonnegative datum with
@@ -840,7 +885,7 @@ theorem coneGradientMildSolutionData_exists (p : CM2Params) (hχ : p.χ₀ = 0)
           D.T = δ ∧ D.u = picardLimit p u₀ δ := by
   obtain ⟨δ, hδ, h⟩ := coneGradientMildSolutionData_exists_with_data p hχ hM_in hα_ge
   refine ⟨δ, hδ, fun u₀ hc hb hnn hpos => ?_⟩
-  obtain ⟨D, hDT, hDu, _hcont_iter, _hF⟩ := h u₀ hc hb hnn hpos
+  obtain ⟨D, hDT, hDu, _hcont_iter, _hF, _hpos_iter⟩ := h u₀ hc hb hnn hpos
   exact ⟨D, hDT, hDu⟩
 
 end ShenWork.IntervalMildPicardConeData

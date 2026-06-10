@@ -62,8 +62,20 @@
   equals the restart cosine series `∑'ₙ localRestartCoeff a₀ a (s−offset) n·cos`,
   whose summands are jointly continuous in `(s,x)` and which is locally uniformly
   summable on `Ioi 0 ×ˢ univ` (the same machinery as the derivative field in
-  `IntervalRestartDerivJointContinuity`).  We mark it explicitly rather than
-  reproving the value-field joint continuity.
+  `IntervalRestartDerivJointContinuity`).
+
+  STATUS (DISCHARGED).  `hprofile_joint` is no longer a genuine residual.  The
+  value-field joint continuity is now proved here as
+  `restartValueSeries_continuousOn_joint` (offset-shift of the value-series atom
+  `ShenWork.IntervalSourceCoefficientTimeC1.restartSeries_jointContinuousOn`, the
+  exact analogue of `restartDerivField_continuousOn_joint`), and the slab-level
+  `hprofile_joint` is constructed from the restart agreement `(R)` in
+  `restartProfile_jointContinuousOn`.  The master theorem
+  `picardIterate_K1_from_restart_of_representation` takes ONLY Front A's
+  satisfiable inputs (the `(R)` triple + `(K2)` slice data) and discharges
+  `hprofile_joint` internally; the original `picardIterate_K1_from_restart`
+  (which still names `hprofile_joint` as an explicit input) is kept additively so
+  its existing consumers are unchanged.
 
   No `sorry`, no `admit`, no custom `axiom`, no `native_decide`.
 -/
@@ -319,6 +331,68 @@ theorem restartFieldTimeDeriv_continuousOn_joint
   have hcomp := hbase.comp hshift hmaps
   refine hcomp.congr (fun p hp => ?_)
   rfl
+
+/-- **Joint continuity of the restart VALUE series field.**  The offset-shifted
+restart cosine series `(σ,x) ↦ ∑'ₙ localRestartCoeff a₀ a (σ−offset) n·cos(nπx)`
+is jointly continuous on `Ioi offset ×ˢ univ`, by composing the value-series
+joint-continuity atom
+`ShenWork.IntervalSourceCoefficientTimeC1.restartSeries_jointContinuousOn`
+(the value-field analogue of `restartDerivField_continuousOn_joint`) with the
+affine shift `σ ↦ σ − offset`.  This is the same machinery as the derivative
+field, exactly as anticipated in the header §"Named satisfiable hypothesis". -/
+theorem restartValueSeries_continuousOn_joint
+    {a₀ : ℕ → ℝ} {M₀ : ℝ} (hM₀ : 0 ≤ M₀) (ha₀ : ∀ n, |a₀ n| ≤ M₀)
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a) (offset : ℝ) :
+    ContinuousOn (Function.uncurry (fun σ x =>
+        ∑' n, localRestartCoeff a₀ a (σ - offset) n * cosineMode n x))
+      (Set.Ioi offset ×ˢ Set.univ) := by
+  have hbase :=
+    ShenWork.IntervalSourceCoefficientTimeC1.restartSeries_jointContinuousOn hM₀ ha₀ src
+  -- shift map (σ,x) ↦ (σ-offset, x)
+  have hshift : ContinuousOn
+      (fun p : ℝ × ℝ => ((p.1 - offset, p.2) : ℝ × ℝ))
+      (Set.Ioi offset ×ˢ Set.univ) :=
+    ((continuous_fst.sub continuous_const).prodMk continuous_snd).continuousOn
+  have hmaps : Set.MapsTo (fun p : ℝ × ℝ => ((p.1 - offset, p.2) : ℝ × ℝ))
+      (Set.Ioi offset ×ˢ Set.univ) (Set.Ioi (0 : ℝ) ×ˢ Set.univ) := by
+    intro p hp
+    refine Set.mk_mem_prod ?_ (Set.mem_univ _)
+    exact Set.mem_Ioi.2 (by have := (Set.mem_prod.1 hp).1; simp only [Set.mem_Ioi] at this ⊢; linarith)
+  have hcomp := hbase.comp hshift hmaps
+  refine hcomp.congr (fun p hp => ?_)
+  rfl
+
+/-- **Discharge of `hprofile_joint`.**  On a closed slab `Icc (σ-δ) (σ+δ) ⊆ U`
+inside an open restart window `U ⊆ Ioi offset`, the lifted profile slice
+`(s,x) ↦ intervalDomainLift (w s) x` is jointly continuous on
+`Icc (σ-δ) (σ+δ) ×ˢ Icc 0 1`.  This is the previously named hypothesis
+`hprofile_joint`, now proved: the restart agreement `(R)` rewrites the lifted
+slice to the value series on the slab, whose joint continuity is
+`restartValueSeries_continuousOn_joint`. -/
+theorem restartProfile_jointContinuousOn
+    {a₀ : ℕ → ℝ} {M₀ : ℝ} (hM₀ : 0 ≤ M₀) (ha₀ : ∀ n, |a₀ n| ≤ M₀)
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a)
+    {w : ℝ → intervalDomainPoint → ℝ} {offset σ δ : ℝ}
+    (hslab_off : Set.Icc (σ - δ) (σ + δ) ⊆ Set.Ioi offset)
+    (hagree : ∀ s ∈ Set.Icc (σ - δ) (σ + δ), ∀ x : intervalDomainPoint,
+      intervalDomainLift (w s) x.1 = ∑' n,
+        localRestartCoeff a₀ a (s - offset) n * cosineMode n x.1) :
+    ContinuousOn
+      (Function.uncurry (fun s x => intervalDomainLift (w s) x))
+      (Set.Icc (σ - δ) (σ + δ) ×ˢ Set.Icc (0 : ℝ) 1) := by
+  -- restrict the value-series joint continuity to the slab×[0,1]
+  have hseries : ContinuousOn
+      (Function.uncurry (fun s x =>
+        ∑' n, localRestartCoeff a₀ a (s - offset) n * cosineMode n x))
+      (Set.Icc (σ - δ) (σ + δ) ×ˢ Set.Icc (0 : ℝ) 1) := by
+    refine (restartValueSeries_continuousOn_joint hM₀ ha₀ src offset).mono ?_
+    intro q hq
+    obtain ⟨hq1, _⟩ := Set.mem_prod.1 hq
+    exact Set.mk_mem_prod (hslab_off hq1) (Set.mem_univ _)
+  -- congr: on the slab×[0,1], the lifted slice equals the series (via `hagree`)
+  refine hseries.congr (fun q hq => ?_)
+  obtain ⟨hq1, hq2⟩ := Set.mem_prod.1 hq
+  simpa only [Function.uncurry] using hagree q.1 hq1 ⟨q.2, hq2⟩
 
 /-! ## Step 4 — the logistic `K1` package via the chain rule. -/
 
@@ -644,5 +718,74 @@ theorem picardIterate_K1_from_restart
       hoff hσIcc (hpos σ hσU) (hub σ hσU) hδ hσδ
       (hslab.trans hU_off)
       (hprofile_joint.mono (Set.prod_mono hslab (subset_refl _))) k
+
+/-- **M3b master, `hprofile_joint`-free.**  Identical to
+`picardIterate_K1_from_restart` but with the previously-named profile
+joint-continuity hypothesis DISCHARGED internally: on each open-window point `σ`
+we build the slab and obtain `hprofile_joint` on the slab from the restart
+agreement via `restartProfile_jointContinuousOn` (Step 3).  This is the
+additive `_of_representation` form taking only Front A's satisfiable inputs
+(the restart representation `(R)` + the `(K2)` slice data); the global
+`U ×ˢ Icc 0 1` joint-continuity input is no longer required. -/
+theorem picardIterate_K1_from_restart_of_representation
+    {p : CM2Params} (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    {w : ℝ → intervalDomainPoint → ℝ}
+    {a₀ : ℕ → ℝ} {M₀ : ℝ} (hM₀ : 0 ≤ M₀) (ha₀ : ∀ n, |a₀ n| ≤ M₀)
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a)
+    {B : ℝ} (hB : 0 ≤ B)
+    (hdecay : ∀ s, 0 ≤ s → ∀ k : ℕ, 1 ≤ k → |a s k| ≤ 2 * B / ((k : ℝ) * Real.pi) ^ 2)
+    (hcont : ∀ k, Continuous (fun s => a s k))
+    {offset t₁ t₂ : ℝ} (hoff : offset < t₁) (_ht : t₁ ≤ t₂)
+    {U : Set ℝ} (hU_open : IsOpen U) (hU_sub : U ⊆ Set.Ioo t₁ t₂)
+    (hU_off : U ⊆ Set.Ioi offset)
+    (hagree : ∀ s ∈ U, ∀ x : intervalDomainPoint,
+      intervalDomainLift (w s) x.1 = ∑' n,
+        localRestartCoeff a₀ a (s - offset) n * cosineMode n x.1)
+    {M : ℝ}
+    (hpos : ∀ s ∈ U, ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (w s) x)
+    (hub : ∀ s ∈ U, ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (w s) x ≤ M)
+    (hC2cont : ∀ s ∈ U, ContinuousOn (intervalDomainLift (w s)) (Set.Icc (0 : ℝ) 1)) :
+    (∀ σ ∈ U, ∀ k, HasDerivAt
+      (fun r => cosineCoeffs
+        (logisticSourceFun p.a p.b p.α (intervalDomainLift (w r))) k)
+      (cosineCoeffs (fun x => logisticSourceDot a₀ a p w offset σ x) k) σ)
+    ∧ (∀ σ ∈ U, ∀ k,
+        |cosineCoeffs (fun x => logisticSourceDot a₀ a p w offset σ x) k|
+          ≤ logisticSourceMdot p M
+              (restartFieldDerivBoundUnif (∑' j, src.envelope j) M₀ B
+                (t₁ - offset) (t₂ - offset))) := by
+  have hαpos : 0 < p.α := lt_of_lt_of_le one_pos hα
+  -- per-σ slab + the discharged profile joint-continuity on that slab
+  have hslab_of : ∀ σ ∈ U, ∃ δ : ℝ, 0 < δ ∧
+      Metric.ball σ δ ⊆ U ∧ Set.Icc (σ - δ) (σ + δ) ⊆ U ∧
+      ContinuousOn (Function.uncurry (fun s x => intervalDomainLift (w s) x))
+        (Set.Icc (σ - δ) (σ + δ) ×ˢ Set.Icc (0 : ℝ) 1) := by
+    intro σ hσU
+    obtain ⟨ε, hεpos, hball_ε⟩ := Metric.isOpen_iff.1 hU_open σ hσU
+    refine ⟨ε / 2, by positivity, ?_, ?_, ?_⟩
+    · exact (Metric.ball_subset_ball (by linarith)).trans hball_ε
+    · intro y hy
+      apply hball_ε
+      rw [Metric.mem_ball, Real.dist_eq]
+      obtain ⟨hy1, hy2⟩ := hy; rw [abs_lt]; constructor <;> linarith
+    · have hslab : Set.Icc (σ - ε / 2) (σ + ε / 2) ⊆ U := by
+        intro y hy
+        apply hball_ε
+        rw [Metric.mem_ball, Real.dist_eq]
+        obtain ⟨hy1, hy2⟩ := hy; rw [abs_lt]; constructor <;> linarith
+      exact restartProfile_jointContinuousOn hM₀ ha₀ src (hslab.trans hU_off)
+        (fun s hs x => hagree s (hslab hs) x)
+  refine ⟨?_, ?_⟩
+  · intro σ hσU k
+    obtain ⟨δ, hδ, hball, hslab, hpj⟩ := hslab_of σ hσU
+    exact logisticSource_adot_hasDerivAt hαpos hM₀ ha₀ src hU_open hσU hU_off
+      hagree hpos hC2cont hδ hball hslab hpj k
+  · intro σ hσU k
+    obtain ⟨δ, hδ, _hball, hslab, hpj⟩ := hslab_of σ hσU
+    have hσδ : σ ∈ Set.Icc (σ - δ) (σ + δ) := ⟨by linarith, by linarith⟩
+    have hσIcc : σ ∈ Set.Icc t₁ t₂ := by
+      have := hU_sub hσU; exact ⟨le_of_lt this.1, le_of_lt this.2⟩
+    exact logisticSource_adot_abs_le hα ha hb hM₀ ha₀ src hB hdecay hcont
+      hoff hσIcc (hpos σ hσU) (hub σ hσU) hδ hσδ (hslab.trans hU_off) hpj k
 
 end ShenWork.IntervalPicardIterateTimeC1
