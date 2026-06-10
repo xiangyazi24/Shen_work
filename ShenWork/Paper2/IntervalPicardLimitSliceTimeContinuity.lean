@@ -47,14 +47,17 @@ import ShenWork.Paper2.IntervalMildPicardThreshold
 import ShenWork.PDE.IntervalSemigroupUniform
 import ShenWork.PDE.IntervalSemigroupComposition
 import ShenWork.PDE.IntervalFullKernelSupBound
+import ShenWork.Paper2.IntervalRestartSliceLipschitz
 
 open MeasureTheory Filter Topology Set
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
-open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator)
+open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator cosineCoeffs)
 open ShenWork.IntervalGradientDuhamelMap
   (logisticLifted intervalGradientDuhamelMap IntervalMildSolution)
 open ShenWork.IntervalMildPicard (GradientMildSolutionData picardLimit)
 open ShenWork.IntervalPicardLimitBddHcontP (patchedSlice patchedSlice_of_nonpos patchedSlice_of_pos)
+open ShenWork.IntervalPicardLimitBddProducer (patchedSource)
+open ShenWork.IntervalPicardLimitRestartBdd (DuhamelSourceBddOn)
 
 noncomputable section
 
@@ -203,6 +206,12 @@ theorem mildSlice_restart_bound
     {u₀ : intervalDomainPoint → ℝ} (hu₀cont : Continuous u₀)
     (D : GradientMildSolutionData p u₀)
     (hDu : D.u = picardLimit p u₀ D.T)
+    -- ITERATE-SIDE package: the limit-source bounded-Duhamel data, produced from the
+    -- cone iterate data via `duhamelSourceBddOn_of_iterates` (Stage-A `hcontP` +
+    -- `henv_iter` + `hconv`); NON-circular (does not depend on patched-slice continuity).
+    (hsrc0 : DuhamelSourceBddOn (patchedSource p u₀ D.u) D.T)
+    -- D-SIDE: initial-datum cosine-coefficient bound (satisfiable from `Continuous u₀`).
+    {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     {Lmax : ℝ} (hLmax0 : 0 ≤ Lmax)
     (hLmax : ∀ s, 0 < s → s ≤ D.T → ∀ y : ℝ, |logisticLifted p (D.u s) y| ≤ Lmax)
     {s₀ : ℝ} (hs₀ : 0 < s₀) (hs₀T : s₀ ≤ D.T) :
@@ -241,7 +250,19 @@ theorem mildSlice_restart_bound
   have hinterior :
       ∃ δ₀ > 0, ∀ s, τ < s → s ≤ D.T → |s - s₀| < δ₀ →
         ∀ y, |D.u s y - D.u s₀ y| < ε := by
-    sorry
+    -- Route (ii), CLOSED: the fixed-base spectral restart at `τ = s₀/2`, with the
+    -- iterate-side `DuhamelSourceBddOn` package `hsrc0` feeding the NON-circular
+    -- representation `picardLimitRestart_general_of_subtypeCont`; the two cosine
+    -- series at horizons `s`, `s₀` (same base `τ`) subtract to a `|s − s₀|`-Lipschitz
+    -- sup bound (homogeneous heat-damped sum + λ-cancelling Duhamel envelope), and
+    -- `δ₀ = min (s₀/4) (ε/(C+1))` closes the `ε` while forcing the interior regime.
+    have h := ShenWork.IntervalRestartSliceLipschitz.hinterior_of_src0
+      hχ0 hu₀cont D hsrc0 hu₀_bound hs₀ hs₀T hε
+    obtain ⟨δ₀, hδ₀pos, hδ₀⟩ := h
+    refine ⟨δ₀, hδ₀pos, ?_⟩
+    intro s hsτ hsT hsδ y
+    -- `hsτ : τ < s` is exactly `s₀/2 < s`.
+    exact hδ₀ s (by rw [hτdef] at hsτ; exact hsτ) hsT hsδ y
   -- ---------------------------------------------------------------------------
   -- δ-BOOKKEEPING (fully discharged: shrink to force the interior regime).
   -- ---------------------------------------------------------------------------
@@ -267,6 +288,8 @@ theorem patchedSlice_timeContinuousAt_pos
     {u₀ : intervalDomainPoint → ℝ} (hu₀cont : Continuous u₀)
     (D : GradientMildSolutionData p u₀)
     (hDu : D.u = picardLimit p u₀ D.T)
+    (hsrc0 : DuhamelSourceBddOn (patchedSource p u₀ D.u) D.T)
+    {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     {s₀ : ℝ} (hs₀ : 0 < s₀) (hs₀T : s₀ ≤ D.T) :
     ∀ ε > 0, ∃ δ > 0,
       ∀ s ∈ Set.Icc (0 : ℝ) D.T, |s - s₀| < δ →
@@ -274,7 +297,7 @@ theorem patchedSlice_timeContinuousAt_pos
   intro ε hε
   obtain ⟨Lmax, hLmax0, hLmax⟩ := logisticLifted_mildSlice_abs_le D
   obtain ⟨δ, hδpos, hδhalf, hδ⟩ :=
-    mildSlice_restart_bound hχ0 hu₀cont D hDu hLmax0 hLmax hs₀ hs₀T ε hε
+    mildSlice_restart_bound hχ0 hu₀cont D hDu hsrc0 hu₀_bound hLmax0 hLmax hs₀ hs₀T ε hε
   refine ⟨δ, hδpos, ?_⟩
   intro s hs hsδ y
   -- `s` is positive: `|s − s₀| < δ ≤ s₀/2` forces `s > s₀/2 > 0`.
@@ -298,7 +321,9 @@ theorem hsliceTC_of_mild_restart
     (hχ0 : p.χ₀ = 0)
     {u₀ : intervalDomainPoint → ℝ} (hu₀cont : Continuous u₀)
     (D : GradientMildSolutionData p u₀)
-    (hDu : D.u = picardLimit p u₀ D.T) :
+    (hDu : D.u = picardLimit p u₀ D.T)
+    (hsrc0 : DuhamelSourceBddOn (patchedSource p u₀ D.u) D.T)
+    {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
     ∀ s₀ ∈ Set.Icc (0 : ℝ) D.T, ∀ ε > 0, ∃ δ > 0,
       ∀ s ∈ Set.Icc (0 : ℝ) D.T, |s - s₀| < δ →
         ∀ y, |patchedSlice u₀ D.u s y - patchedSlice u₀ D.u s₀ y| < ε := by
@@ -307,6 +332,7 @@ theorem hsliceTC_of_mild_restart
   · subst h0
     exact patchedSlice_timeContinuousAt_zero hu₀cont D ε hε
   · have hs₀pos : 0 < s₀ := lt_of_le_of_ne hs₀mem.1 (Ne.symm h0)
-    exact patchedSlice_timeContinuousAt_pos hχ0 hu₀cont D hDu hs₀pos hs₀mem.2 ε hε
+    exact patchedSlice_timeContinuousAt_pos hχ0 hu₀cont D hDu hsrc0 hu₀_bound
+      hs₀pos hs₀mem.2 ε hε
 
 end ShenWork.IntervalPicardLimitSliceTimeContinuity

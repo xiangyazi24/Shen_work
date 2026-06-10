@@ -1,3 +1,108 @@
+# ===================================================================
+# FINAL WIRING COMPLETE 2026-06-10 — capstone sorryAx ELIMINATED.
+# ===================================================================
+#
+# Both capstones now depend on EXACTLY [propext, Classical.choice, Quot.sound]
+# — NO sorryAx — verified by remote `#print axioms` on uisai2:/dev/shm/shen_work:
+#
+#   ShenWork.Paper2.Thm11ChiZeroCoreProvider.paper2_theorem_1_1_chiZero_unconditional
+#       depends on axioms: [propext, Classical.choice, Quot.sound]
+#   ShenWork.IntervalPicardTowerSupply.paper2_theorem_1_1_chiZero_from_coneSupply
+#       depends on axioms: [propext, Classical.choice, Quot.sound]
+#
+# Full remote `lake build ShenWork` = 8547 jobs, EXIT 0.  0 sorry / 0 admit /
+# 0 custom axiom / 0 native_decide in the edited files (only doc-comment mentions).
+#
+# WIRING ROUTE (the broken call site at CoreProvider:724 is now closed):
+#   The grown `picardIterateResidualData_of_core` (hsrc0 + hu₀_bound params) is now
+#   fed a REAL `hsrc0`, built NON-circularly at the call site via the new helper
+#   `HresWiring.duhamelSourceBddOn_of_core` (spatial Stage-A `hcontP` route —
+#   `patchedSource_coeff_continuousOn_of_iterate_data` — which NEVER appeals to the
+#   patched-slice sup-norm time continuity `hsliceTC`, so feeding the result into
+#   `hsliceTC_of_mild_restart` is non-circular).  `hu₀_bound` is the D-side
+#   `u₀_cosineCoeff_bound hu₀.admissible.2` (no new hypothesis).
+#
+# HYPOTHESIS GROWTH (smallest honest growth, all discharged):
+#   * NEW helper `HresWiring.duhamelSourceBddOn_of_core` (IntervalDomainHresWiring.lean):
+#     PicardIterateResidualCore + hiter_cont (cosine-coeff TIME continuity) → hsrc0.
+#     Ingredients: datum bound (datum_source_coeff_bound), n-uniform envelope
+#     (source_coeff_window_uniform C.Wdata, via .choose since target is Type),
+#     hconv (picardIter_logisticCoeff_tendsto_limit_of_facts C.hFacts), Stage-A hcontP
+#     (patched ball/nn from D + hiter_cont).  → duhamelSourceBddOn_of_iterates.
+#   * `reducedLimitRegularityInputs_of_wdata` / `restartAndFrontierCore_of_wdata`
+#     (CoreProvider) gained ONE param `hiter_cont` (the cosine-coeff time continuity),
+#     and build hsrc0/hu₀_bound inline.
+#   * NEW provider type `IterCoeffTimeContProvider p` (CoreProvider): the per-datum
+#     cosine-coeff TIME continuity — the SINGLE ingredient the spatial cone does not
+#     return.  The capstone `paper2_theorem_1_1_chiZero_unconditional` and both feeders
+#     (`quantitativeLocalExistence_chiZero_wdata`, `hMildLocal_chi0_zero_of_wdata`)
+#     gained a `Hiter : IterCoeffTimeContProvider p` hypothesis BEFORE `HWdata`.
+#   * DISCHARGE in `from_coneSupply` (TowerSupply, signature UNCHANGED): new
+#     `iterCoeffTimeCont_of_coneSupply` builds `Hiter` from `HCone` via
+#     `coneTowerSupply` (→ TowerInputs) + `hiter_cont_of_tower` (reads time continuity
+#     off the tower's canonical logistic-source C¹ packages `H.hsrc0 n`).  NO new field
+#     of TowerConeAnalyticResidual was needed — the tower bundle already carries hsrc0.
+#
+# RESIDUAL FIELD LIST (from_coneSupply's HCone bundle, UNCHANGED):
+#   Σ' M A₂, (0≤M) ×' (D.T≤1) ×' (0≤A₂) ×' GateCondition ×' Continuous u₀ ×'
+#   hu₀_bound ×' hpos ×' hcontSlice ×' hball ×' TowerConeAnalyticResidual.
+#   TowerConeAnalyticResidual fields: hsrc0, hL_cont, hG1all, hG2base,
+#   adot/hadot_deriv/hadot_cont/adotBound/hadot_bound.
+#
+# FILES TOUCHED: IntervalDomainHresWiring.lean (new helper + 3 imports),
+#   IntervalDomainThm11ChiZeroCoreProvider.lean (provider type + 3 threaded sigs +
+#   capstone), IntervalPicardTowerSupply.lean (discharge helper + from_coneSupply).
+#   No just-landed slice/tower files needed signature changes.
+#
+# ===================================================================
+#
+# hinterior CLOSED 2026-06-10 — spectral restart route, 0 sorry in slice chain.
+#
+# The last `sorry` (hinterior inside mildSlice_restart_bound,
+# IntervalPicardLimitSliceTimeContinuity.lean:241) is GONE — replaced by a real
+# proof via the now-non-circular spectral restart route.
+#
+# NEW FILES (both 0-sorry, lake env lean EXIT 0 on uisai2):
+#  1. ShenWork/Paper2/IntervalRestartSeriesLipschitz.lean
+#     The analytic engine: restartSeries_sup_diff_le proves
+#       |∑ₙ (restartDuhamelCoeff a₀ a x − …(y)) · cosineMode n z| ≤ |x−y|·C
+#     uniformly in z, via: MVT exp diff (abs_exp_diff_le), λ-cancelling Duhamel
+#     bound (abs_duhamelSpectralCoeff_diff_le, 2|x−y|env), heat-damped homogeneous
+#     sum (∑λe^{-λm} via unitIntervalCosineEigenvalue_mul_exp_summable), and
+#     per-horizon summability (restartCosineSeries_summable via
+#     exp_neg_eigenvalue_summable).
+#  2. ShenWork/Paper2/IntervalRestartSliceLipschitz.lean
+#     The wiring: restartSlice_sup_lipschitz takes hsrc0 (DuhamelSourceBddOn),
+#     runs picardLimitRestart_general_of_subtypeCont at fixed base τ=s₀/2 for
+#     horizons s and s₀, subtracts the two cosine series, applies the engine →
+#     sup_y|D.u s y − D.u s₀ y| ≤ |s−s₀|·C in the interior regime s ≥ 3s₀/4.
+#     hinterior_of_src0 packages it as the exact hinterior existential (δ₀ =
+#     min(s₀/4, ε/(C+1))).
+#
+# GROWN SIGNATURES (iterate-side hypotheses, per Signature policy):
+#   mildSlice_restart_bound, patchedSlice_timeContinuousAt_pos,
+#   hsliceTC_of_mild_restart, and HresWiring.picardIterateResidualData_of_core
+#   all gained TWO params:
+#     hsrc0 : DuhamelSourceBddOn (patchedSource p u₀ D.u) D.T   [iterate-side]
+#     hu₀_bound : ∀ k, |cosineCoeffs (lift u₀) k| ≤ M₀          [D-side, satisfiable
+#                 from Continuous u₀ via u₀_cosineCoeff_bound]
+#
+# REMAINING WIRING (in the FORBIDDEN capstone file — STOPPED at layer below):
+#   IntervalDomainThm11ChiZeroCoreProvider.lean:724, inside
+#   reducedLimitRegularityInputs_of_wdata, the call
+#     picardIterateResidualData_of_core hχ0 hu₀.admissible.2 hDu (core…)
+#   now needs hsrc0 and hu₀_bound inserted between hDu and the core arg.
+#   PRODUCER for hsrc0: IntervalPicardLimitBddBootstrap.duhamelSourceBddOn_of_iterates,
+#   fed by Stage-A hcontP (IntervalPicardLimitCoeffTimeCont.
+#   patchedSource_coeff_continuousOn_of_iterate_data) + the tower-produced
+#   hiter_cont (cosine-coeff TIME continuity) and henv_iter (n-uniform envelope) —
+#   these two are NOT carried by the spatial HasContinuousSlices core; they come
+#   from IntervalPicardTowerProjection (other agent). hconv from hconv_of_residual.
+#   PRODUCER for hu₀_bound: u₀_cosineCoeff_bound hu₀.admissible.2 (or .1/.2 fields).
+#   Once the capstone supplies these two args (threading hsrc0 from the tower via
+#   duhamelSourceBddOn_of_iterates), the slice chain's sorryAx vanishes capstone-wide.
+#
+# ---- prior status below ----
 # TOWER LANDED 2026-06-10 ~17:10 (latest = 3aaeab2 + self-feeding pass in flight)
 #
 # Stage 1 (lemma layer, 4 files) + Stage 2 (tower zero/succ/all + projections)

@@ -245,6 +245,33 @@ def coneTowerSupply
       S.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.2.1
       S.2.2.2.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.2.2.2.2
 
+/-- **`iterCoeffTimeCont_of_coneSupply` — the capstone `Hiter` from the cone supply.**
+
+The per-datum cosine-coefficient TIME continuity (`IterCoeffTimeContProvider`) is
+discharged from the same per-datum `TowerInputs` bundle the `WdataProvider` uses, via
+`IntervalPicardTowerProjection.hiter_cont_of_tower` (which reads the time continuity
+off the tower's canonical logistic-source `C¹` packages `H.hsrc0 n`).  No new field of
+`HCone` is needed — the tower bundle already carries `hsrc0`. -/
+def iterCoeffTimeCont_of_coneSupply
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    (HCone : ∀ (u₀ : intervalDomainPoint → ℝ),
+      ∀ D : GradientMildSolutionData p u₀,
+        D.u = picardLimit p u₀ D.T →
+        Σ' (M A₂ : ℝ),
+          (0 ≤ M) ×' (D.T ≤ 1) ×' (0 ≤ A₂) ×' (GateCondition p M A₂ D.T) ×'
+          (Continuous u₀) ×'
+          (∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M) ×'
+          (∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+            0 < intervalDomainLift (picardIter p u₀ n σ) x) ×'
+          (∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n)) ×'
+          (∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ y : intervalDomainPoint,
+            |picardIter p u₀ n σ y| ≤ M) ×'
+          TowerConeAnalyticResidual p u₀ D M A₂) :
+    ShenWork.Paper2.Thm11ChiZeroCoreProvider.IterCoeffTimeContProvider p :=
+  fun u₀ _hu₀ D hDu =>
+    ShenWork.IntervalPicardTowerProjection.hiter_cont_of_tower p u₀
+      (coneTowerSupply p hχ0 hα ha hb HCone u₀ D hDu).2.2
+
 /-- **`HWdata_of_coneSupply` — the capstone `HWdata` from the cone supply.** -/
 def HWdata_of_coneSupply
     (p : CM2Params) (hχ0 : p.χ₀ = 0) (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
@@ -299,6 +326,7 @@ theorem paper2_theorem_1_1_chiZero_from_coneSupply
     ShenWork.Paper2.Theorem_1_1 intervalDomain p :=
   ShenWork.Paper2.Thm11ChiZeroCoreProvider.paper2_theorem_1_1_chiZero_unconditional
     p hχ0 ha hb hα hγ
+    (iterCoeffTimeCont_of_coneSupply p hχ0 hα ha.le hb.le HCone)
     (HWdata_of_coneSupply p hχ0 hα ha.le hb.le HCone)
 
 end ShenWork.IntervalPicardTowerSupply

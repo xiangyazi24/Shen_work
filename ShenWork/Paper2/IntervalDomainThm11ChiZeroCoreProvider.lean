@@ -118,6 +118,28 @@ noncomputable section
 
 namespace ShenWork.Paper2.Thm11ChiZeroCoreProvider
 
+/-- **The per-datum cosine-coefficient TIME-continuity provider.**
+
+For every canonical Picard-limit datum `D`, the cosine coefficients of the iterate
+logistic sources are continuous in time on every window `[a', τ] ⊆ (0, D.T]`.  This
+is the SINGLE iterate-side ingredient the spatial cone construction does not return
+(it is the time-direction continuity, not the spatial `HasContinuousSlices`); it is
+discharged from the tower via
+`IntervalPicardTowerProjection.hiter_cont_of_tower` (see `IntervalPicardTowerSupply`).
+Feeding it discharges the `hsrc0` argument of `picardIterateResidualData_of_core`
+through the non-circular spatial Stage-A route. -/
+def IterCoeffTimeContProvider (p : CM2Params) : Prop :=
+  ∀ u₀ : intervalDomainPoint → ℝ,
+    PositiveInitialDatum intervalDomain u₀ →
+    ∀ D : GradientMildSolutionData p u₀,
+      D.u = picardLimit p u₀ D.T →
+      ∀ (a' τ : ℝ), 0 < a' → a' ≤ τ → τ ≤ D.T → ∀ (n k : ℕ),
+        ContinuousOn
+          (fun s => ShenWork.IntervalNeumannFullKernel.cosineCoeffs
+            (ShenWork.IntervalGradientDuhamelMap.logisticLifted p
+              (picardIter p u₀ n s)) k)
+          (Set.Icc a' τ)
+
 /-! ## FIX LANDED — the vacuity is gone (2026-06-07)
 
 The contradictory `hC2t` field (global `C²` of the zero-extension lift) has been
@@ -718,11 +740,28 @@ noncomputable def reducedLimitRegularityInputs_of_wdata
     (hDu : D.u = picardLimit p u₀ D.T)
     (hcont_iter : ∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n))
     (hFacts : PicardConvFacts p u₀) (hFacts_T : hFacts.T = D.T)
+    -- cosine-coefficient TIME continuity on windows `[a',τ] ⊆ (0, D.T]`, the single
+    -- ingredient the spatial cone core does not carry; supplied from the tower
+    -- (`IntervalPicardTowerProjection.hiter_cont_of_tower`).
+    (hiter_cont : ∀ (a' τ : ℝ), 0 < a' → a' ≤ τ → τ ≤ D.T → ∀ (n k : ℕ),
+      ContinuousOn
+        (fun s => ShenWork.IntervalNeumannFullKernel.cosineCoeffs
+          (ShenWork.IntervalGradientDuhamelMap.logisticLifted p (picardIter p u₀ n s)) k)
+        (Set.Icc a' τ))
     (Wdata : WdataProvider p u₀ D) :
     LedgerSweep.ReducedLimitRegularityInputs p u₀ D :=
+  -- the cone-specific iterate residual core.
+  let C := picardIterateResidualCore_of_wdata hcont_iter hFacts hFacts_T Wdata
+  -- the limit-source bounded-Duhamel package, built NON-circularly (spatial Stage-A
+  -- `hcontP`, never `hsliceTC`) from the core + the tower `hiter_cont`.
+  let hsrc0 := ShenWork.Paper2.HresWiring.duhamelSourceBddOn_of_core hα ha.le hb.le
+    hu₀ hDu C hiter_cont
+  -- the D-side initial-datum cosine-coefficient bound, from `Continuous u₀`.
+  let hu₀_bnd := ShenWork.IntervalRestartSliceLipschitz.u₀_cosineCoeff_bound
+    hu₀.admissible.2
   reducedLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D hDu
-    (picardIterateResidualData_of_core hχ0 hu₀.admissible.2 hDu
-      (picardIterateResidualCore_of_wdata hcont_iter hFacts hFacts_T Wdata))
+    (picardIterateResidualData_of_core hχ0 hu₀.admissible.2 hDu hsrc0
+      hu₀_bnd.choose_spec.2 C)
 
 /-- **The reduced classical frontier core from the cone facts + Wdata.**
 The per-datum `⟨R, frontierCore⟩` package the quantitative- and local-side
@@ -735,12 +774,17 @@ noncomputable def restartAndFrontierCore_of_wdata
     (hDu : D.u = picardLimit p u₀ D.T)
     (hcont_iter : ∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n))
     (hFacts : PicardConvFacts p u₀) (hFacts_T : hFacts.T = D.T)
+    (hiter_cont : ∀ (a' τ : ℝ), 0 < a' → a' ≤ τ → τ ≤ D.T → ∀ (n k : ℕ),
+      ContinuousOn
+        (fun s => ShenWork.IntervalNeumannFullKernel.cosineCoeffs
+          (ShenWork.IntervalGradientDuhamelMap.logisticLifted p (picardIter p u₀ n s)) k)
+        (Set.Icc a' τ))
     (Wdata : WdataProvider p u₀ D) :
     (ShenWork.IntervalMildRegularityBootstrap.GradientMildHalfStepRestartData D) ×'
       (ShenWork.IntervalMildToLocalExistence.GradientMildClassicalFrontierCoreData p D) :=
   let I := LedgerSweep.limitRegularityInputs_of_reduced hχ0
     (reducedLimitRegularityInputs_of_wdata p hχ0 ha hb hα u₀ hu₀ D hDu
-      hcont_iter hFacts hFacts_T Wdata)
+      hcont_iter hFacts hFacts_T hiter_cont Wdata)
   ⟨MildLocalChi0.restartData_of_inputs hχ0 I,
    MildLocalChi0.frontierCore_of_inputs hχ0 I⟩
 
@@ -752,6 +796,7 @@ the `PicardConvFacts`, which together with the per-datum `Wdata` residual discha
 the reduced ledger and hence the frontier core (`classicalSolution_at_horizon`). -/
 theorem quantitativeLocalExistence_chiZero_wdata
     (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) (hα_ge : 1 ≤ p.α)
+    (Hiter : IterCoeffTimeContProvider p)
     (HWdata : ∀ u₀ : intervalDomainPoint → ℝ,
       PositiveInitialDatum intervalDomain u₀ →
       ∀ D : GradientMildSolutionData p u₀,
@@ -779,7 +824,7 @@ theorem quantitativeLocalExistence_chiZero_wdata
   -- assemble `⟨R, hCore⟩` from {cone facts + Wdata}
   obtain ⟨R, hCore⟩ :=
     restartAndFrontierCore_of_wdata p hχ0 ha hb hα_ge u₀ hu₀ D hDu'
-      hcont_iter hFacts hFacts_T (HWdata u₀ hu₀ D hDu')
+      hcont_iter hFacts hFacts_T (Hiter u₀ hu₀ D hDu') (HWdata u₀ hu₀ D hDu')
   obtain ⟨v, hsol, htrace⟩ :=
     ShenWork.Paper2.ThresholdQuantBridge.classicalSolution_at_horizon p D R
       (gradientMildSolutionData_initialApproach p hu₀.admissible.2 D) hCore
@@ -792,6 +837,7 @@ discharged from {cone facts + the single `Wdata` residual} rather than from a fu
 residual provider. -/
 theorem hMildLocal_chi0_zero_of_wdata
     (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) (hα_ge : 1 ≤ p.α)
+    (Hiter : IterCoeffTimeContProvider p)
     (HWdata : ∀ u₀ : intervalDomainPoint → ℝ,
       PositiveInitialDatum intervalDomain u₀ →
       ∀ D : GradientMildSolutionData p u₀,
@@ -812,7 +858,7 @@ theorem hMildLocal_chi0_zero_of_wdata
   have hFacts_T : hFacts.T = D.T := by rw [hFactsT, hDT]
   obtain ⟨R, hCore⟩ :=
     restartAndFrontierCore_of_wdata p hχ0 ha hb hα_ge u₀ hu₀ D hDu'
-      hcont_iter hFacts hFacts_T (HWdata u₀ hu₀ D hDu')
+      hcont_iter hFacts hFacts_T (Hiter u₀ hu₀ D hDu') (HWdata u₀ hu₀ D hDu')
   exact ⟨D, R, gradientMildSolutionData_initialApproach p hu₀.admissible.2 D, hCore⟩
 
 /-- **FINAL WIRING — Paper 2 Theorem 1.1 (χ₀ = 0), Wdata-only residual surface.**
@@ -850,6 +896,11 @@ the inherited `sorryAx` from `hinterior` (in
 theorem paper2_theorem_1_1_chiZero_unconditional
     (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    -- the per-datum cosine-coefficient TIME-continuity provider (the single
+    -- iterate-side ingredient the spatial cone does NOT return, supplying the `hsrc0`
+    -- argument of the slice-continuity chain through the non-circular spatial route).
+    -- Discharged from the tower in `IntervalPicardTowerSupply.…_from_coneSupply`.
+    (Hiter : IterCoeffTimeContProvider p)
     -- the NARROWED (Wdata-only) iterate-side residual provider for every canonical
     -- Picard-limit datum.  Carries ONLY the genuinely-open per-window K2 leg
     -- `WdataProvider`; the cone facts `hFacts`/`hcont_iter` are returned by the
@@ -863,8 +914,8 @@ theorem paper2_theorem_1_1_chiZero_unconditional
     Theorem_1_1 intervalDomain p :=
   RestartLocalWiring.paper2_theorem_1_1_from_quant_and_hlocal
     p (le_of_eq hχ0) ha hb hγ
-    (quantitativeLocalExistence_chiZero_wdata p hχ0 ha hb hα HWdata)
+    (quantitativeLocalExistence_chiZero_wdata p hχ0 ha hb hα Hiter HWdata)
     (RestartLocalWiring.localExistence_of_gradientMildHalfStepRestartFrontierCoreLocalData
-      p (hMildLocal_chi0_zero_of_wdata p hχ0 ha hb hα HWdata))
+      p (hMildLocal_chi0_zero_of_wdata p hχ0 ha hb hα Hiter HWdata))
 
 end ShenWork.Paper2.Thm11ChiZeroCoreProvider
