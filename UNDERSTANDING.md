@@ -1,4 +1,45 @@
-# UNDERSTANDING.md — Shen_work current state (updated 2026-06-05)
+# UNDERSTANDING.md — Shen_work (campaign handoff to Codex, 2026-06-10 ~15:45)
+
+## START HERE
+Read `HANDOFF/CODEX-HANDOFF.md` — the complete execution handoff for the
+Tower campaign (environment rules, current state, stage 1/2 plans, verdict
+index). Build is REMOTE ONLY (uisai2:/dev/shm/shen_work; local builds are
+blocked and would kernel-panic the mini). Acceptance = #print axioms.
+
+## THE CURRENT STATE (one paragraph)
+Paper 2 Theorem 1.1 (χ₀ = 0) capstone
+`paper2_theorem_1_1_chiZero_unconditional`:
+regime constants (χ₀=0, a>0, b>0, α≥1, γ≥1) + HWdata ⟹ Theorem_1_1,
+axioms [propext, sorryAx, Classical.choice, Quot.sound]; the single sorryAx
+is `hinterior` (IntervalPicardLimitSliceTimeContinuity). HWdata (per-datum
+window iterate-C² provider) and hinterior share ONE root: the per-iterate
+source-package production tower. The tower is fully designed and externally
+audited (HANDOFF/chatgpt-tower-verdict.md); stage 1 (lemma layer, 4 files)
+may already be landed by an in-flight agent — CHECK git log/status first.
+Tower lands ⟹ both close ⟹ capstone carries regime constants only.
+
+## What the 2026-06-09/10 campaign did (~40h, ~70 commits, all pushed)
+Started at 21 sorries, 14 UNSATISFIABLE AS TYPED (global time quantifiers
+vs (0,T]-only data; uniform gradient bounds false at t→0 by parabolic
+smoothing; no ℓ¹ envelope at s=0 for continuous data; the s=T jump; two
+genuine circularities). Dissolved via: C¹ soft clamp + existential clamped
+witnesses; weak-chain horizon retype (DuhamelSourceL1ContOn) then the final
+DuhamelSourceBddOn patched-family interface; ledger V2 (per-compact K2,
+(0,T) K1, shifted fields deleted); K1 proved WITHOUT new analysis (weak
+restart identity + per-mode FTC + fixed-split series differentiation);
+iterate-side bootstrap breaking the hsrc0 circularity; hybrid weighted C²
+(kernel G1 + t²-weighted spectral G2, gate SOLVED explicitly in
+IntervalPicardGateSolve); cone _with_gate_data (returns exact hDu,
+discharged GateCondition, hcont_iterates, PicardConvFacts, strict iterate
+positivity); Hvsrc per-t₀ retype + clamped ν·u^γ witness; hpde_u via the
+continuous-surrogate retype; Hvpos proved; capstone narrowed to
+HWdata-only via fact-carrying bridges (the hPLF ∀-D route superseded).
+Six external design audits (HANDOFF/chatgpt-*-verdict.md); three caught
+real errors (the G1 spectral recursion non-closure, a circular k1_quadruple,
+the hDu EqOn trap).
+
+## Historical notes below (pre-campaign architecture, mostly still accurate
+## for layers 1-2; the Paper2 layer-3 description is superseded by the above)
 
 ## Build invariant
 
