@@ -174,6 +174,55 @@ def deriveFacts {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
   · exact picardLimit_bounded p u₀ D.hK D.hK_nn D.hC₀ hgeom hball
   · exact picardLimit_nonneg p u₀ D.hK D.hK_nn D.hC₀ hgeom hball_nn
 
+/-! ## 3b. Self-contained convergence facts (cone-satisfiable).
+
+`DerivedPicardFacts` is indexed by a `MildExistenceData p u₀ D`, so merely *stating*
+it requires a full `MildExistenceData` — which the threshold-free cone construction
+(`coneGradientMildSolutionData_exists`) CANNOT build (`MildExistenceData.hmapsTo_nn`
+/ `hmapsTo_pos` are FALSE in the cone regime; see
+`IntervalMildPicardConeData` header).
+
+`PicardConvFacts` is the standalone facts package the convergence proof actually
+consumes: it carries its OWN horizon/ball scalars `T M K C₀` (+ positivity) and the
+five ball/geometric facts, with NO `MildExistenceData` index.  It is satisfiable
+purely from the cone construction's internal ball/geometric data — the `MapsTo`
+fields never appear.  `picardConvFacts_of_mildExistenceData` shows the old route
+still produces one, so the `MildExistenceData` path is preserved (additive). -/
+
+/-- Standalone (cone-satisfiable) bundle of the ball / geometric facts the
+coefficient-convergence proof consumes.  Carries its own scalars; no
+`MildExistenceData` index, so it is constructible from the cone's internal iterate
+ball/geometric data without the (false-in-cone) `hmapsTo_nn`/`hmapsTo_pos`. -/
+structure PicardConvFacts (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) where
+  T : ℝ
+  M : ℝ
+  K : ℝ
+  C₀ : ℝ
+  hM : 0 < M
+  hK : K < 1
+  hK_nn : 0 ≤ K
+  hC₀ : 0 ≤ C₀
+  hball : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+    |picardIter p u₀ n t x| ≤ M
+  hball_nn : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+    0 ≤ picardIter p u₀ n t x
+  hgeom : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+    |picardIter p u₀ (n + 1) t x - picardIter p u₀ n t x| ≤ K ^ n * C₀
+  hlim_ball : ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+    |picardLimit p u₀ T t x| ≤ M
+  hlim_nn : ∀ t, 0 < t → t ≤ T → ∀ x : intervalDomainPoint,
+    0 ≤ picardLimit p u₀ T t x
+
+/-- The `MildExistenceData` route still produces a `PicardConvFacts` (additive:
+nothing on the old path changes). -/
+def picardConvFacts_of_mildExistenceData {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (D : MildExistenceData p u₀) : PicardConvFacts p u₀ :=
+  let F := deriveFacts D
+  { T := D.T, M := D.M, K := D.K, C₀ := D.C₀
+    hM := D.hM, hK := D.hK, hK_nn := D.hK_nn, hC₀ := D.hC₀
+    hball := F.hball, hball_nn := F.hball_nn, hgeom := F.hgeom
+    hlim_ball := F.hlim_ball, hlim_nn := F.hlim_nn }
+
 /-! ## 4. `hconv` — pointwise coefficient convergence for the Picard limit. -/
 
 /-- **`hconv` for the Picard limit.**  At each interior time `σ ∈ (0,T]` and each
@@ -241,6 +290,71 @@ theorem picardIter_logisticCoeff_tendsto_limit
       (hLcont_lim σ hσ hσT) hB_nn hsup k
     simpa [hc] using this
   -- squeeze: distance → 0 hence Tendsto.
+  rw [tendsto_iff_dist_tendsto_zero]
+  apply squeeze_zero (fun n => dist_nonneg) _ hc_tendsto
+  intro n
+  rw [Real.dist_eq]
+  exact hdist n
+
+/-- **`hconv` for the Picard limit, from the cone-satisfiable facts package.**
+
+Identical content to `picardIter_logisticCoeff_tendsto_limit`, but consuming the
+standalone `PicardConvFacts` (which the cone construction CAN produce) instead of a
+`MildExistenceData` (which it cannot — see `PicardConvFacts`' docstring).  The
+`MildExistenceData` version reduces to this one via
+`picardConvFacts_of_mildExistenceData`. -/
+theorem picardIter_logisticCoeff_tendsto_limit_of_facts
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    (F : PicardConvFacts p u₀)
+    (hLcont_iter : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ F.T →
+      ContinuousOn (logisticLifted p (picardIter p u₀ n σ)) (Set.Icc (0 : ℝ) 1))
+    (hLcont_lim : ∀ (σ : ℝ), 0 < σ → σ ≤ F.T →
+      ContinuousOn (logisticLifted p (picardLimit p u₀ F.T σ)) (Set.Icc (0 : ℝ) 1))
+    {σ : ℝ} (hσ : 0 < σ) (hσT : σ ≤ F.T) (k : ℕ) :
+    Tendsto
+      (fun n => cosineCoeffs (logisticLifted p (picardIter p u₀ n σ)) k)
+      atTop (nhds (cosineCoeffs (logisticLifted p (picardLimit p u₀ F.T σ)) k)) := by
+  obtain ⟨Lc, hLc_pos, hLip⟩ := logisticLifted_slice_dist_le p F.hM
+  have h1K : (0 : ℝ) < 1 - F.K := by linarith [F.hK]
+  set c : ℕ → ℝ := fun n => 2 * (Lc * (F.K ^ n * F.C₀ / (1 - F.K))) with hc
+  have hc_tendsto : Tendsto c atTop (nhds 0) := by
+    have hpow : Tendsto (fun n => F.K ^ n) atTop (nhds 0) :=
+      tendsto_pow_atTop_nhds_zero_of_lt_one F.hK_nn F.hK
+    have : Tendsto (fun n => 2 * (Lc * (F.K ^ n * F.C₀ / (1 - F.K))))
+        atTop (nhds (2 * (Lc * (0 * F.C₀ / (1 - F.K))))) := by
+      apply Tendsto.const_mul
+      apply Tendsto.const_mul
+      apply Tendsto.div_const
+      exact (hpow.mul_const F.C₀)
+    simpa [hc] using (by simpa using this)
+  have hdist : ∀ n,
+      |cosineCoeffs (logisticLifted p (picardIter p u₀ n σ)) k
+        - cosineCoeffs (logisticLifted p (picardLimit p u₀ F.T σ)) k| ≤ c n := by
+    intro n
+    have hB_nn : (0 : ℝ) ≤ Lc * (F.K ^ n * F.C₀ / (1 - F.K)) :=
+      mul_nonneg hLc_pos.le
+        (div_nonneg (mul_nonneg (pow_nonneg F.hK_nn n) F.hC₀) h1K.le)
+    have hsup : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        |logisticLifted p (picardIter p u₀ n σ) x
+          - logisticLifted p (picardLimit p u₀ F.T σ) x|
+          ≤ Lc * (F.K ^ n * F.C₀ / (1 - F.K)) := by
+      intro x hx
+      have htail : |picardIter p u₀ n σ ⟨x, hx⟩
+          - picardLimit p u₀ F.T σ ⟨x, hx⟩| ≤ F.K ^ n * F.C₀ / (1 - F.K) :=
+        picardIter_pointwise_tail_bound p u₀ F.hK F.hK_nn F.hC₀ F.hgeom σ hσ hσT
+          ⟨x, hx⟩ n
+      calc |logisticLifted p (picardIter p u₀ n σ) x
+              - logisticLifted p (picardLimit p u₀ F.T σ) x|
+          ≤ Lc * |picardIter p u₀ n σ ⟨x, hx⟩
+                  - picardLimit p u₀ F.T σ ⟨x, hx⟩| :=
+            hLip (picardIter p u₀ n σ) (picardLimit p u₀ F.T σ)
+              (fun y => F.hball n σ hσ hσT y) (fun y => F.hball_nn n σ hσ hσT y)
+              (fun y => F.hlim_ball σ hσ hσT y) (fun y => F.hlim_nn σ hσ hσT y) hx
+        _ ≤ Lc * (F.K ^ n * F.C₀ / (1 - F.K)) :=
+            mul_le_mul_of_nonneg_left htail hLc_pos.le
+    have := cosineCoeffs_dist_le_of_sup (hLcont_iter n σ hσ hσT)
+      (hLcont_lim σ hσ hσT) hB_nn hsup k
+    simpa [hc] using this
   rw [tendsto_iff_dist_tendsto_zero]
   apply squeeze_zero (fun n => dist_nonneg) _ hc_tendsto
   intro n

@@ -46,6 +46,7 @@ open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.IntervalGradientDuhamelMap (logisticLifted)
 open ShenWork.IntervalMildPicard (GradientMildSolutionData MildExistenceData picardIter picardLimit)
+open ShenWork.IntervalPicardLimitCoeffConv (PicardConvFacts)
 open ShenWork.IntervalPicardLimitBddProducer (windowEnv)
 open ShenWork.IntervalPicardWeightedC2Bootstrap (IterateWindowC2Data source_coeff_window_uniform)
 
@@ -61,13 +62,16 @@ data the χ₀ = 0 Provider cannot recover from `D` alone. -/
 structure PicardIterateResidualData
     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
     (D : GradientMildSolutionData p u₀) where
-  /-- The `MildExistenceData` whose Picard iterates underlie `D`'s trajectory.
-  Its horizon matches `D.T`; it supplies the ball / geometric-tail data that
-  `picardIter_logisticCoeff_tendsto_limit` consumes.  Satisfiable: the cone
-  construction (`coneGradientMildSolutionData_exists`) builds `D` from exactly
-  such iterate data. -/
-  hME : MildExistenceData p u₀
-  hME_T : hME.T = D.T
+  /-- The standalone ball / geometric-tail facts package whose Picard iterates
+  underlie `D`'s trajectory.  Its horizon matches `D.T`; it supplies exactly the
+  ball / geometric-tail data that `picardIter_logisticCoeff_tendsto_limit_of_facts`
+  consumes.  Unlike the former `MildExistenceData` field, `PicardConvFacts` carries
+  NO (false-in-cone) `hmapsTo_nn`/`hmapsTo_pos` obligations, so it IS satisfiable
+  from the cone construction's internal ball/geometric iterate data.  Exposing it
+  from `coneGradientMildSolutionData_exists` is the follow-up `_with_data`
+  extension (same additive pattern as `hcont_iterates` in commit 088d520). -/
+  hFacts : PicardConvFacts p u₀
+  hFacts_T : hFacts.T = D.T
   /-- `[0,1]`-continuity of each iterate's logistic source (genuinely C² slices). -/
   hLcont_iter : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T →
     ContinuousOn (logisticLifted p (picardIter p u₀ n σ)) (Set.Icc (0 : ℝ) 1)
@@ -85,8 +89,8 @@ structure PicardIterateResidualData
 
 /-- **R-src0F-3 (hconv), proved from the bundle.**  Rewriting the limit slice
 through `hDu` reduces the convergence to the canonical Picard-limit statement,
-discharged by `picardIter_logisticCoeff_tendsto_limit` with the bundle's
-`MildExistenceData` and `[0,1]`-continuity data. -/
+discharged by `picardIter_logisticCoeff_tendsto_limit_of_facts` with the bundle's
+`PicardConvFacts` and `[0,1]`-continuity data. -/
 theorem hconv_of_residual
     {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
     {D : GradientMildSolutionData p u₀}
@@ -99,18 +103,18 @@ theorem hconv_of_residual
   -- rewrite the limit slice `D.u s = picardLimit p u₀ D.T s`
   have hslice : D.u s = picardLimit p u₀ D.T s := by rw [hDu]
   rw [hslice]
-  -- transport the `MildExistenceData`'s horizon to `D.T`
-  have hLcont_iter' : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ R.hME.T →
+  -- transport the facts package's horizon to `D.T`
+  have hLcont_iter' : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ R.hFacts.T →
       ContinuousOn (logisticLifted p (picardIter p u₀ n σ)) (Set.Icc (0 : ℝ) 1) := by
-    rw [R.hME_T]; exact R.hLcont_iter
-  have hLcont_lim' : ∀ (σ : ℝ), 0 < σ → σ ≤ R.hME.T →
-      ContinuousOn (logisticLifted p (picardLimit p u₀ R.hME.T σ)) (Set.Icc (0 : ℝ) 1) := by
-    rw [R.hME_T]; exact R.hLcont_lim
-  have hsT' : s ≤ R.hME.T := by rw [R.hME_T]; exact hsT
-  have h := ShenWork.IntervalPicardLimitCoeffConv.picardIter_logisticCoeff_tendsto_limit
-    R.hME hLcont_iter' hLcont_lim' hs hsT' k
-  -- the limit slice's horizon is `R.hME.T = D.T`
-  rw [R.hME_T] at h
+    rw [R.hFacts_T]; exact R.hLcont_iter
+  have hLcont_lim' : ∀ (σ : ℝ), 0 < σ → σ ≤ R.hFacts.T →
+      ContinuousOn (logisticLifted p (picardLimit p u₀ R.hFacts.T σ)) (Set.Icc (0 : ℝ) 1) := by
+    rw [R.hFacts_T]; exact R.hLcont_lim
+  have hsT' : s ≤ R.hFacts.T := by rw [R.hFacts_T]; exact hsT
+  have h := ShenWork.IntervalPicardLimitCoeffConv.picardIter_logisticCoeff_tendsto_limit_of_facts
+    R.hFacts hLcont_iter' hLcont_lim' hs hsT' k
+  -- the limit slice's horizon is `R.hFacts.T = D.T`
+  rw [R.hFacts_T] at h
   exact h
 
 /-- **R-src0F-2 (hCwin_ex), proved from the bundle.**  The per-window
