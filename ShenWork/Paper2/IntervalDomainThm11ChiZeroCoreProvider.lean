@@ -92,6 +92,7 @@ import ShenWork.Paper2.IntervalResolverPowerDecay
 import ShenWork.Paper2.IntervalPicardLimitBddBootstrap
 import ShenWork.Paper2.IntervalPicardLimitBddHcontP
 import ShenWork.Paper2.IntervalDomainThm11ChiZeroResidual
+import ShenWork.Paper2.IntervalDomainHresWiring
 
 open MeasureTheory Set Filter Topology
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalDomain
@@ -717,14 +718,28 @@ limit, dischargeable from the cone construction's internal iterate data). -/
 theorem paper2_theorem_1_1_chiZero_unconditional
     (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
-    -- the precisely-named iterate-side residual provider for every canonical
-    -- Picard-limit datum (the sole remaining hypothesis; see the HONESTY NOTE).
-    (Hres : ∀ u₀ : intervalDomainPoint → ℝ,
+    -- the NARROWED iterate-side residual provider for every canonical Picard-limit
+    -- datum.  `PicardIterateResidualCore` carries only the THREE genuinely
+    -- cone-specific legs (`hFacts`, `hcont_iter`, `Wdata` — properties of the
+    -- iteration AT `D.T`); the patched-slice time continuity `hsliceTC` and the
+    -- limit logistic-source continuity `hLcont_lim` are NO LONGER hypotheses — they
+    -- are discharged universally inside `picardIterateResidualData_of_core`
+    -- (`hsliceTC_of_mild_restart` + `D.hcont`).  See `IntervalDomainHresWiring`.
+    (HresCore : ∀ u₀ : intervalDomainPoint → ℝ,
       PositiveInitialDatum intervalDomain u₀ →
       ∀ D : GradientMildSolutionData p u₀,
         D.u = picardLimit p u₀ D.T →
-        PicardIterateResidualData p u₀ D) :
+        HresWiring.PicardIterateResidualCore p u₀ D) :
     Theorem_1_1 intervalDomain p :=
+  -- assemble the full residual bundle from the core + the universally-derived legs.
+  have Hres : ∀ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ D : GradientMildSolutionData p u₀,
+        D.u = picardLimit p u₀ D.T →
+        PicardIterateResidualData p u₀ D :=
+    fun u₀ hu₀ D hDu =>
+      HresWiring.picardIterateResidualData_of_core hχ0 hu₀.admissible.2 hDu
+        (HresCore u₀ hu₀ D hDu)
   -- `hPLF` derived from the reduced ledger (using the threaded `hDu` + `Hres`).
   have hPLF : ConeQuantBridge.PicardLimitRestartFrontier p :=
     fun u₀ hu₀ D hDu =>
