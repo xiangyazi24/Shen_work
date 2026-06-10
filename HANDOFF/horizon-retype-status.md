@@ -1,3 +1,26 @@
+# TOWER LANDED 2026-06-10 ~17:10 (latest = 3aaeab2 + self-feeding pass in flight)
+#
+# Stage 1 (lemma layer, 4 files) + Stage 2 (tower zero/succ/all + projections)
+# + ENDGAME (towerInputs_of_cone, axiom-clean) ALL COMMITTED.
+# New corollary paper2_theorem_1_1_chiZero_from_coneSupply:
+#   regime constants + ONE named package TowerConeAnalyticResidual
+#   (= hub/hsrc0/hL_cont/hG1all/hG2base/witness/hM1/adot-K1 legs).
+# towerInputs_of_cone: [propext, Classical.choice, Quot.sound] — CLEAN.
+# Capstone sorryAx = inherited hinterior only. Full build 8544 green.
+#
+# IN FLIGHT: the self-feeding strengthening (tower_succ derives the
+# per-level witness/source/K1 data from L.srcWin per the original verdict
+# design, instead of taking them as inputs) — expected to shrink
+# TowerConeAnalyticResidual to the truly-external legs (homogeneous G2
+# base + kernel-G1 integrability inputs + ball, mostly cone-returned).
+#
+# REMAINING AFTER THAT: hinterior (the fixed-base restart bound in
+# IntervalPicardLimitSliceTimeContinuity — route: the spectral restart via
+# limit-side BddOn inputs projected from the tower, see
+# chatgpt-hslicetc-verdict.md + the bonus item limitBddOn_inputs_of_tower
+# which stage 2 did NOT deliver — still open).
+#
+# ---- earlier snapshots below ----
 # CAMPAIGN STATE 2026-06-10 ~15:00 (latest = df91175, build 8544 green)
 #
 # Capstone paper2_theorem_1_1_chiZero_unconditional final form:
