@@ -251,10 +251,11 @@ theorem hMildLocal_chi0_zero_of_reduced_inputs
     (H : ∀ u₀ : intervalDomainPoint → ℝ,
       PositiveInitialDatum intervalDomain u₀ →
       ∀ D : GradientMildSolutionData p u₀,
+        D.u = ShenWork.IntervalMildPicard.picardLimit p u₀ D.T →
         ReducedLimitRegularityInputs p u₀ D) :
     RestartLocalWiring.IntervalDomainGradientMildHalfStepRestartFrontierCoreLocalData p :=
   MildLocalChi0.hMildLocal_chi0_zero_of_inputs p hχ0 hα_ge
-    (fun u₀ hu₀ D => limitRegularityInputs_of_reduced hχ0 (H u₀ hu₀ D))
+    (fun u₀ hu₀ D hDu => limitRegularityInputs_of_reduced hχ0 (H u₀ hu₀ D hDu))
 
 /-- **Paper 2 Theorem 1.1 (χ₀ = 0) from the REDUCED residual ledger.**
 
@@ -268,10 +269,11 @@ theorem paper2_theorem_1_1_chiZero_of_reduced_inputs
     (H : ∀ u₀ : intervalDomainPoint → ℝ,
       PositiveInitialDatum intervalDomain u₀ →
       ∀ D : GradientMildSolutionData p u₀,
+        D.u = ShenWork.IntervalMildPicard.picardLimit p u₀ D.T →
         ReducedLimitRegularityInputs p u₀ D) :
     Theorem_1_1 intervalDomain p :=
   MildLocalChi0.paper2_theorem_1_1_chiZero_of_inputs
     p hχ0 ha hb hα_ge hγ_ge_one hPLF
-    (fun u₀ hu₀ D => limitRegularityInputs_of_reduced hχ0 (H u₀ hu₀ D))
+    (fun u₀ hu₀ D hDu => limitRegularityInputs_of_reduced hχ0 (H u₀ hu₀ D hDu))
 
 end ShenWork.Paper2.LedgerSweep

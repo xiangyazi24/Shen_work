@@ -233,6 +233,6 @@ theorem paper2_theorem_1_1_chiZero_final
     Theorem_1_1 intervalDomain p :=
   MildLocalChi0.paper2_theorem_1_1_chiZero_of_inputs
     p hχ0 ha hb hα_ge hγ_ge_one hPLF
-    (fun u₀ hu₀ D => limitRegularityInputs_of_core hχ0 (Hcore u₀ hu₀ D))
+    (fun u₀ hu₀ D _hDu => limitRegularityInputs_of_core hχ0 (Hcore u₀ hu₀ D))
 
 end ShenWork.Paper2.Thm11ChiZeroFinal

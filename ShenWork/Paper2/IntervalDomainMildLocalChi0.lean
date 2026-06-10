@@ -282,6 +282,7 @@ theorem hMildLocal_chi0_zero_of_inputs
     (H : ∀ u₀ : intervalDomainPoint → ℝ,
       PositiveInitialDatum intervalDomain u₀ →
       ∀ D : GradientMildSolutionData p u₀,
+        D.u = ShenWork.IntervalMildPicard.picardLimit p u₀ D.T →
         LimitRegularityInputs p u₀ D) :
     RestartLocalWiring.IntervalDomainGradientMildHalfStepRestartFrontierCoreLocalData p := by
   intro u₀ hu₀
@@ -296,10 +297,13 @@ theorem hMildLocal_chi0_zero_of_inputs
   -- (writing `Continuous u₀` on the unreduced `intervalDomain.Point` would block
   -- topology-instance synthesis).
   obtain ⟨δ, _hδ, hD⟩ := coneGradientMildSolutionData_exists p hχ0 hM hα_ge
-  obtain ⟨D, _hDT, _hDu⟩ := hD u₀ hu₀.admissible.2 hbound
+  obtain ⟨D, hDT, hDu⟩ := hD u₀ hu₀.admissible.2 hbound
     (positiveInitialDatum_nonneg hu₀) (positiveInitialDatum_pos_somewhere hu₀)
+  -- the canonical Picard-limit identity at this `D`'s horizon (un-discarded)
+  have hDu' : D.u = ShenWork.IntervalMildPicard.picardLimit p u₀ D.T := by
+    rw [hDT]; exact hDu
   -- the named ledger for this D
-  have I : LimitRegularityInputs p u₀ D := H u₀ hu₀ D
+  have I : LimitRegularityInputs p u₀ D := H u₀ hu₀ D hDu'
   refine ⟨D, restartData_of_inputs hχ0 I, ?_, frontierCore_of_inputs hχ0 I⟩
   -- initial approach: proved generically for continuous data
   exact gradientMildSolutionData_initialApproach p hu₀.admissible.2 D
@@ -320,6 +324,7 @@ theorem paper2_theorem_1_1_chiZero_of_inputs
     (H : ∀ u₀ : intervalDomainPoint → ℝ,
       PositiveInitialDatum intervalDomain u₀ →
       ∀ D : GradientMildSolutionData p u₀,
+        D.u = ShenWork.IntervalMildPicard.picardLimit p u₀ D.T →
         LimitRegularityInputs p u₀ D) :
     Theorem_1_1 intervalDomain p :=
   RestartLocalWiring.paper2_theorem_1_1_from_quant_and_hlocal
