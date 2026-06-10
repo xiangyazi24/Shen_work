@@ -816,7 +816,8 @@ theorem summable_eigenvalue_mul_abs_limitCoeff_weak
             calc (λ_ k) * (Real.exp (-t * (λ_ k)) *
                     |cosineCoeffs (intervalDomainLift u₀) k|)
                 ≤ (λ_ k) * (Real.exp (-t * (λ_ k)) * M₀) := by
-                  apply mul_le_mul_of_nonneg_left _ (by unfold unitIntervalCosineEigenvalue; positivity)
+                  apply mul_le_mul_of_nonneg_left _
+                    (by unfold unitIntervalCosineEigenvalue; positivity)
                   exact mul_le_mul_of_nonneg_left (hu₀_bound k) (Real.exp_pos _).le
               _ = M₀ * ((λ_ k) * Real.exp (-t * (λ_ k))) := by ring
           · exact eigenvalue_mul_abs_duhamelSpectralCoeff_le_envelope hsrc0 ht htT k

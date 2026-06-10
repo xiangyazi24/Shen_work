@@ -15,9 +15,9 @@
   Since commit `d079763`, `Hu` is no longer a frontier residual: it is DERIVABLE
   from the families the ledger ALREADY carries, via
   `IntervalPicardLimitTimeNhd.Hu_of_restart` (the general restart identity), whose
-  weak-source hypothesis `hsrc0 : DuhamelSourceL1Cont …` is itself produced from
-  the SAME K2/K1-unshifted families by
-  `DuhamelSourceL1Cont.ofTimeC1 ∘ limitSource_duhamelSourceTimeC1`.
+  weak-source hypothesis `hsrc0 : DuhamelSourceL1ContOn … D.T` is itself produced
+  from the SAME K2/K1-unshifted families (horizon-bounded retype of the former
+  `DuhamelSourceL1Cont.ofTimeC1 ∘ limitSource_duhamelSourceTimeC1` route).
 
   We therefore introduce the **reduced ledger**
 
@@ -92,8 +92,8 @@ namespace ShenWork.Paper2.LedgerSweep
 
 `Hu` is no longer a frontier residual: it is derivable from the remaining fields
 via the general restart identity (`Hu_of_restart`), with the weak-source package
-`hsrc0` reconstructed from the K2/K1-unshifted families by
-`DuhamelSourceL1Cont.ofTimeC1 ∘ limitSource_duhamelSourceTimeC1`.  Every field
+`hsrc0 : DuhamelSourceL1ContOn … D.T` reconstructed from the K2/K1-unshifted
+families (`weakSource_of_reduced`, horizon-bounded).  Every field
 below also appears verbatim in `LimitRegularityInputs`; this structure is strictly
 smaller (one fewer named hypothesis). -/
 structure ReducedLimitRegularityInputs
