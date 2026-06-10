@@ -88,6 +88,7 @@ import ShenWork.Paper2.IntervalPicardLimitK1Weak
 import ShenWork.Paper2.IntervalResolverSourceTimeC1
 import ShenWork.Paper2.IntervalResolverSourceClampedWitness
 import ShenWork.Paper2.IntervalPicardLimitBddBootstrap
+import ShenWork.Paper2.IntervalPicardLimitBddHcontP
 
 open MeasureTheory Set Filter Topology
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalDomain
@@ -181,13 +182,15 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   -- `hu₀_src_bound`.  (`u₀` need not be positive away from `s>0`; if the s≤0 branch is
   -- never exercised by the genuine `[a',τ]⋐(0,T)` pipeline, any finite `M₀'` works.)
   -- concrete datum-side witness `M₀' := 2·sup|u₀|`; the bound is the named residual.
-  let M₀' : ℝ := 2 * sSup (Set.range fun x => |u₀ x|)
-  have hM₀'_nonneg : (0 : ℝ) ≤ M₀' := by
-    -- satisfiable analytic input (datum-side, `0 ≤ sup|u₀|`); named residual.
-    sorry
-  have hu₀_src_bound : ∀ k, |cosineCoeffs (logisticLifted p u₀) k| ≤ M₀' := by
-    -- satisfiable analytic input (datum-side); left as a named residual.
-    sorry
+  -- (R-src0F-1a/1b) DISCHARGED: datum-side source bound via the closed helper
+  -- `IntervalPicardLimitBddHcontP.datum_source_coeff_bound`.  Witness
+  -- `M₀' := datumBound p u₀ = 2·(B·(a + b·Bᵅ))`, `B = sSup (range |u₀|)`.
+  let M₀' : ℝ := ShenWork.IntervalPicardLimitBddHcontP.datumBound p u₀
+  have hM₀'_nonneg : (0 : ℝ) ≤ M₀' :=
+    ShenWork.IntervalPicardLimitBddHcontP.datumBound_nonneg p hu₀.admissible.1
+  have hu₀_src_bound : ∀ k, |cosineCoeffs (logisticLifted p u₀) k| ≤ M₀' :=
+    ShenWork.IntervalPicardLimitBddHcontP.datum_source_coeff_bound p
+      hu₀.admissible.2 hu₀.admissible.1 hu₀.2
   -- (R-src0F-2) per-window decay constant + n-UNIFORM iterate envelope.  ROUTE: each
   -- iterate slice `intervalDomainLift (picardIter p u₀ n s)` is genuinely `ContDiff ℝ 2`
   -- (spatial bootstrap `picardIterateHasC2Slices_all`) with K2 constants `(M,G1,G2)`
@@ -226,15 +229,60 @@ noncomputable def reducedLimitRegularityInputs_of_picard
         Filter.atTop (nhds (cosineCoeffs (logisticLifted p (D.u s)) k)) := by
     -- satisfiable iterate-side input (convergence to the limit slice); named residual.
     sorry
-  -- (R-src0F-4) time-continuity of the patched coefficient family.  NAMED satisfiable
-  -- exactly as `IntervalPicardLimitBddProducer.duhamelSourceBddOn_of_mildData`'s
-  -- `hcontP`: on `(0,τ]` from slice time-continuity (mild/restart); right-continuity
-  -- at `0` from the initial-approach `gradientMildSolutionData_initialApproach` +
-  -- coefficient Lipschitz.  Threaded as a named residual.
+  -- (R-src0F-4) time-continuity of the patched coefficient family.  DISCHARGED via
+  -- `IntervalPicardLimitBddHcontP.patchedSource_continuousOn_Icc`: the coefficient
+  -- functional is `2`-Lipschitz in the slice sup norm and the lifted logistic source
+  -- is locally Lipschitz on bounded nonnegative slices, so continuity reduces to the
+  -- sup-norm time-continuity `hsliceTC` of the patched slice profile.  The ball/nonneg
+  -- inputs are discharged from `D.hbound`/`D.hnonneg` (for `s > 0`) and the datum facts
+  -- (for `s ≤ 0`).  `hsliceTC` is the SINGLE remaining genuine analytic input (interior
+  -- mild-slice time continuity + the `s = 0⁺` initial approach
+  -- `gradientMildSolutionData_initialApproach`), isolated below as a named residual.
+  let M_patch : ℝ := max D.M (sSup (Set.range fun x => |u₀ x|))
+  have hMpatch_pos : (0 : ℝ) < M_patch :=
+    lt_of_lt_of_le D.hM (le_max_left _ _)
+  -- `u₀` nonneg on the whole subtype domain (interior positivity + continuity)
+  have hu₀_nn : ∀ y : intervalDomainPoint, 0 ≤ u₀ y := by
+    intro y
+    have h := ShenWork.IntervalPicardLimitBddHcontP.lift_nonneg_of_pos_interior
+      hu₀.admissible.2 hu₀.2 y.1 y.2
+    have huy : u₀ y = intervalDomainLift u₀ y.1 := by
+      simp only [intervalDomainLift,
+        dif_pos (show (y.1 : ℝ) ∈ Set.Icc (0:ℝ) 1 from y.2), Subtype.coe_eta]
+    rw [huy]; exact h
+  have hu₀_bd : ∀ y : intervalDomainPoint,
+      |u₀ y| ≤ sSup (Set.range fun x => |u₀ x|) :=
+    fun y => le_csSup hu₀.admissible.1 ⟨y, rfl⟩
+  have hball_patch : ∀ s ∈ Set.Icc (0 : ℝ) D.T,
+      ∀ y, |ShenWork.IntervalPicardLimitBddHcontP.patchedSlice u₀ D.u s y| ≤ M_patch := by
+    intro s hs y
+    rcases eq_or_lt_of_le hs.1 with hs0 | hs0
+    · rw [ShenWork.IntervalPicardLimitBddHcontP.patchedSlice_of_nonpos u₀ D.u
+        (le_of_eq hs0.symm)]
+      exact le_trans (hu₀_bd y) (le_max_right _ _)
+    · rw [ShenWork.IntervalPicardLimitBddHcontP.patchedSlice_of_pos u₀ D.u hs0]
+      exact le_trans (D.hbound s hs0 hs.2 y) (le_max_left _ _)
+  have hnn_patch : ∀ s ∈ Set.Icc (0 : ℝ) D.T,
+      ∀ y, 0 ≤ ShenWork.IntervalPicardLimitBddHcontP.patchedSlice u₀ D.u s y := by
+    intro s hs y
+    rcases eq_or_lt_of_le hs.1 with hs0 | hs0
+    · rw [ShenWork.IntervalPicardLimitBddHcontP.patchedSlice_of_nonpos u₀ D.u
+        (le_of_eq hs0.symm)]
+      exact hu₀_nn y
+    · rw [ShenWork.IntervalPicardLimitBddHcontP.patchedSlice_of_pos u₀ D.u hs0]
+      exact D.hnonneg s hs0 hs.2 y
+  -- The single genuine analytic residual: sup-norm time continuity of the patched
+  -- slice profile on `[0,T]` (interior mild-slice time continuity + `s=0⁺` approach).
+  have hsliceTC : ∀ s₀ ∈ Set.Icc (0 : ℝ) D.T, ∀ ε > 0, ∃ δ > 0,
+      ∀ s ∈ Set.Icc (0 : ℝ) D.T, |s - s₀| < δ →
+        ∀ y, |ShenWork.IntervalPicardLimitBddHcontP.patchedSlice u₀ D.u s y
+              - ShenWork.IntervalPicardLimitBddHcontP.patchedSlice u₀ D.u s₀ y| < ε := by
+    sorry
   have hcontP : ∀ k, ContinuousOn
       (fun s => ShenWork.IntervalPicardLimitBddProducer.patchedSource p u₀ D.u s k)
-      (Set.Icc 0 D.T) := by
-    sorry
+      (Set.Icc 0 D.T) :=
+    ShenWork.IntervalPicardLimitBddHcontP.patchedSource_continuousOn_Icc p D
+      hu₀.admissible.2 hMpatch_pos hball_patch hnn_patch hsliceTC
   have hsrc0F : ShenWork.IntervalPicardLimitRestartBdd.DuhamelSourceBddOn
       (ShenWork.IntervalPicardLimitBddProducer.patchedSource p u₀ D.u) D.T :=
     ShenWork.IntervalPicardLimitBddBootstrap.duhamelSourceBddOn_of_iterates
