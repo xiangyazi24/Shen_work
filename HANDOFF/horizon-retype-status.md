@@ -1,3 +1,22 @@
+# CAMPAIGN CLOSED 2026-06-10 ~13:00 — sorryAx ELIMINATED (commit ee8fd7e).
+#
+# paper2_theorem_1_1_chiZero_unconditional depends on
+# [propext, Classical.choice, Quot.sound] — independently verified.
+# Repo-wide Paper2: 0 sorry / 0 admit / 0 custom axiom / 0 native_decide.
+# Full build 8540 jobs green. 40+ commits, all pushed.
+#
+# The honest residue: the capstone carries ONE explicitly-typed hypothesis
+# Hres : PicardIterateResidualData p u₀ D (IntervalDomainThm11ChiZeroResidual)
+# bundling iterate-side facts about the canonical Picard limit:
+# MildExistenceData + iterate/limit [0,1]-continuity (feeds hconv),
+# per-window IterateWindowC2Data (feeds the source envelope), and hsliceTC
+# (patched-slice sup-norm time continuity). All fields are TRUE of the cone
+# construction's Picard limit; discharge routes documented in the file.
+# NEXT CAMPAIGN: discharge Hres from the cone construction's internal
+# iterate data (IntervalMildPicard / cone files / picardIterateUniformData_all
+# UniformWiring).
+#
+# ---- earlier ledger snapshots below ----
 # UPDATE 2026-06-10 ~12:10 — both walls dissolved; 7 routed residuals.
 #
 # hsrc0F: FILLED via the iterate-side bootstrap producer (ce2ba39) — the
