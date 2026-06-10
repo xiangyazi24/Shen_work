@@ -1,0 +1,67 @@
+# Horizon retype — resume state (2026-06-09 ~18:30, agents died at usage limit, resets 21:40)
+
+Design: HANDOFF/horizon-localization-design.md. Committed so far (main):
+- a484556 wave 1: IntervalTimeSoftClamp (0s), IntervalDomainPdeUProducer (0s),
+  IntervalResolverStrictPositivity (0s)
+- d3d99d2 IntervalDomainClampedSourceRepresentation (0s)
+
+## Working tree (UNCOMMITTED, partially-retyped, likely does NOT compile)
+
+`git status`: M IntervalDuhamelClosedC2.lean, M IntervalPicardLimitRestartWeak.lean,
+?? IntervalCompactSliceGradientBounds.lean (broken orphan, see below).
+
+### Retype agent progress (Step 2 of 5, half done)
+DONE (claimed 0-sorry, NOT remotely verified):
+- IntervalDuhamelClosedC2.lean: NEW `duhamelMode_integralNorm_summable_on`,
+  `duhamelValue_adot_eq_tsum_on` (horizon t ≤ T, ContinuousOn Icc 0 T) — needed
+  because `duhamelSpectral_eq_cosineSeries_weak` feeds `src.hcont` wholesale into
+  `duhamelValue_adot_eq_tsum` (global Continuous), a consumption point the spec
+  missed.
+- IntervalPicardLimitRestartWeak.lean: `DuhamelSourceL1ContOn` structure +
+  `DuhamelSourceL1Cont.toOn`; retyped: abs_duhamelSpectralCoeff_le_weak,
+  duhamelSpectral_eq_cosineSeries_weak, summable_abs_limitCoeff_weak,
+  limit_lift_eq_cosineSeries_weak (hfix → ∀ s, 0<s→s≤t→…),
+  cosineCoeffs_halfstep_eq_limitCoeff_weak.
+
+IN PROGRESS at death: `picardLimitRestart_cosineIdentity_weak` — its body uses
+hsrc0.hcont (global) to feed `duhamelSpectralCoeff_halfstep_split`
+(IntervalPicardIterateRestart.lean, demands global Continuous). Needs an
+On-variant of the halfstep split (same pattern as the ClosedC2 On-variants).
+
+REMAINING:
+- Step 2 rest: picardLimitRestart_cosineIdentity_weak,
+  picardLimitRestart_cosineIdentity_of_iterateData,
+  limit_lift_eq_cosineSeries_of_subtypeCont,
+  eigenvalue_mul_abs_duhamelSpectralCoeff_le_envelope,
+  summable_eigenvalue_mul_abs_limitCoeff_weak
+- Step 3: TimeNhd — duhamelSpectralCoeff_general_split (global ha_cont → On),
+  limitCoeff_eq_restartDuhamelCoeff_general, picardLimitRestart_general,
+  Hu_of_restart (hfix strict-<T form; K2/K1 hypotheses untouched this pass)
+- Step 4 call sites: IntervalPicardLimitCoeffConv.lean (calls
+  picardLimitRestart_cosineIdentity_of_iterateData — survey found this, spec
+  missed it), LedgerSweep weakSource_of_reduced result type → On D.T,
+  Provider hsrc0 hypothesis + 2 sorried lets + threading at the
+  summable/limit_lift call sites (hσT.le in context).
+- Step 5: remote verify per file (rsync each file, lake env lean), then remote
+  lake build of Provider target.
+
+### K2 agent file (IntervalCompactSliceGradientBounds.lean)
+Half-written, references undefined `summable_eig_abs_bc` — does NOT compile.
+At resume: either repair (the intended content is deliverables 1-3 of its brief:
+σ-uniform envelope on Ici τa via monotone exp; summable envelope; G1/G2 via
+term-wise series derivative + junk-deriv endpoints) or delete and re-brief.
+
+## Wave 3 (after retype lands)
+`Hu_of_restart_localized`: clamped TimeC1 witness via
+`clampedSource_duhamelSourceTimeC1` (window [c',d']=[τ/2,(t₀+3T)/4], id-zone
+[c,d]=[τ,(t₀+T)/2]) + `clampedFamily_eq_on` to transfer localRestartCoeff via
+intervalIntegral.integral_congr + the retyped picardLimitRestart_general.
+Then ledger V2 (delete 5 shifted-K1 fields; K1/K2 per-compact) + LedgerSweep
+adapters + Provider refill (hpde_u via HasSpectralPdeAgreement producer,
+Hvpos via mildChemicalConcentration_pos — both committed).
+
+## Frontier remaining after all that
+K1 producer (adott on (0,T) for the Picard limit): F2 instantiation —
+uniform convergence of iterate source-coefficient derivatives into
+`duhamelSourceTimeC1_of_uniform_limit` (IntervalMildPicardLimitRegularity).
+Iterate-side files: IntervalPicardIterateSourceC1/TimeC1/Uniform (Paper2/).
