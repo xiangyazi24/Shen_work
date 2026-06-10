@@ -22,13 +22,17 @@
 import ShenWork.Paper2.IntervalPicardLimitSourceData
 import ShenWork.Paper2.IntervalDomainLimitSourceRepresentation
 import ShenWork.PDE.IntervalDomainContinuousExtension
+import ShenWork.Paper2.IntervalDomainRestartPackaging
 
 open Set Filter Topology MeasureTheory
 open ShenWork.IntervalDomain
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
-open ShenWork.IntervalGradientDuhamelMap (logisticLifted)
+open ShenWork.IntervalGradientDuhamelMap (logisticLifted intervalGradientDuhamelMap)
 open ShenWork.IntervalDomainExistence (intervalLogisticSource)
 open ShenWork.IntervalMildPicard (GradientMildSolutionData)
+open ShenWork.IntervalMildPicardRegularity (logisticSourceFun)
+open ShenWork.CosineSpectrum (cosineMode)
+open ShenWork.IntervalPicardLimitRestartWeak (DuhamelSourceL1ContOn)
 open ShenWork.IntervalMildRegularityBootstrap
   (GradientMildHalfStepRestartData HasRestartCosineRepresentations
    hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData)
@@ -82,41 +86,54 @@ def hasRestartData_of_subtypeCont
     (hu₀_cont : Continuous u₀)
     (D : GradientMildSolutionData p u₀)
     (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
-    -- cosine representation of D.u (from iterate convergence)
+    -- H1 datum (subtype continuity + bounded cosine coefficients)
+    {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    -- mild fixed-point (time-localized)
+    (hfix : ∀ s, 0 < s → s < D.T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
+      intervalDomainLift (D.u s) x = intervalGradientDuhamelMap p u₀ D.u s ⟨x, hx⟩)
+    -- weak limit-source package (horizon-bounded)
+    (hsrc0 : DuhamelSourceL1ContOn
+      (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) D.T)
+    -- K2: per-slice cosine representation + sup/positivity bounds (time-localized)
+    {Msup : ℝ}
     (bc : ℝ → ℕ → ℝ)
     (hbsum : ∀ σ, 0 < σ → σ < D.T →
       Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|))
     (hagree : ∀ σ, 0 < σ → σ < D.T → Set.EqOn (intervalDomainLift (D.u σ))
-      (fun x => ∑' n, bc σ n * ShenWork.CosineSpectrum.cosineMode n x) (Icc 0 1))
-    -- K2 bounds (time-restricted)
+      (fun x => ∑' n, bc σ n * cosineMode n x) (Icc 0 1))
     (hpost : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Icc (0:ℝ) 1, 0 < intervalDomainLift (D.u σ) x)
-    (hubt : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Icc (0:ℝ) 1, intervalDomainLift (D.u σ) x ≤ D.M)
-    (hG1t : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Icc (0:ℝ) 1,
-      |deriv (intervalDomainLift (D.u σ)) x| ≤ G1)
-    (hG2t : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Icc (0:ℝ) 1,
-      |deriv (deriv (intervalDomainLift (D.u σ))) x| ≤ G2)
-    -- K1 source-coefficient time-C¹ data
+    (hubt : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Icc (0:ℝ) 1, intervalDomainLift (D.u σ) x ≤ Msup)
+    -- K2: gradient/Hessian bounds, PER-COMPACT (the satisfiable form)
+    (hG1t : ∀ a' b', 0 < a' → b' < D.T → ∃ G1, ∀ σ ∈ Set.Icc a' b',
+      ∀ x ∈ Icc (0:ℝ) 1, |deriv (intervalDomainLift (D.u σ)) x| ≤ G1)
+    (hG2t : ∀ a' b', 0 < a' → b' < D.T → ∃ G2, ∀ σ ∈ Set.Icc a' b',
+      ∀ x ∈ Icc (0:ℝ) 1, |deriv (deriv (intervalDomainLift (D.u σ))) x| ≤ G2)
+    -- K1: UNSHIFTED source-coefficient time-C¹ data on (0,T), per-compact bound
     (adott : ℝ → ℕ → ℝ)
-    (hderivt : ∀ σ k, HasDerivAt
-      (fun r => cosineCoeffs
-        (ShenWork.IntervalMildPicardRegularity.logisticSourceFun p.a p.b p.α
-          (intervalDomainLift (D.u r))) k) (adott σ k) σ)
-    (hadotcontt : ∀ k, Continuous (fun σ => adott σ k))
-    (Mdott : ℝ)
-    (hMdott : ∀ σ, 0 ≤ σ → ∀ k, |adott σ k| ≤ Mdott)
-    -- shifted K1
-    (adotS : ℝ → ℝ → ℕ → ℝ)
-    (hderivS : ∀ t, ∀ σ k, HasDerivAt
-      (fun r => cosineCoeffs
-        (ShenWork.IntervalMildPicardRegularity.logisticSourceFun p.a p.b p.α
-          (intervalDomainLift (D.u (t/2 + r)))) k) (adotS t σ k) σ)
-    (hadotcontS : ∀ t, ∀ k, Continuous (fun σ => adotS t σ k))
-    (MdotS : ℝ)
-    (hMdotS : ∀ t, ∀ σ, 0 ≤ σ → ∀ k, |adotS t σ k| ≤ MdotS)
+    (hderivt : ∀ σ, 0 < σ → σ < D.T → ∀ k, HasDerivAt
+      (fun r => cosineCoeffs (logisticSourceFun p.a p.b p.α
+        (intervalDomainLift (D.u r))) k) (adott σ k) σ)
+    (hadotcontt : ∀ k, ContinuousOn (fun σ => adott σ k) (Set.Ioo 0 D.T))
+    (hMdott : ∀ a' b', 0 < a' → b' < D.T → ∃ Mdot, ∀ σ ∈ Set.Icc a' b',
+      ∀ k, |adott σ k| ≤ Mdot)
     -- slice continuity (subtype, per paper)
     (hLc : ∀ t, 0 < t → t < D.T →
       ∀ s, 0 < s → s ≤ t → Continuous (intervalLogisticSource p (D.u s))) :
-    GradientMildHalfStepRestartData D := by
-  sorry
+    GradientMildHalfStepRestartData D :=
+  -- Delegated to the time-localized subtype producer.  The original (pre-V2)
+  -- hypothesis list — global-`σ` `bc/hbsum/hpost/hubt`, a global `D.M` sup bound,
+  -- global-σ K1 with the `t/2`-shifted family, and a single `Continuous (fun σ =>
+  -- adott σ k)` — was UNSATISFIABLE for positive data on `(0, D.T)` (the genuine
+  -- families are regular only on compact windows; the `t/2`-shifted block is
+  -- redundant — the clamped engine supplies the shift internally).  Retyped to the
+  -- V2 ledger shapes (no callers; verified by grep), it is the same data
+  -- `RestartPackaging.gradientMildHalfStepRestartData_localized_of_subtypeCont`
+  -- consumes, bridging `hLc` to the constExtend slice-continuity form.
+  RestartPackaging.gradientMildHalfStepRestartData_localized_of_subtypeCont
+    hχ0 D hα ha hb hu₀_cont hu₀_bound hfix hsrc0
+    bc hbsum hagree hpost hubt hG1t hG2t
+    adott hderivt hadotcontt hMdott
+    (fun t ht htT s hs hst =>
+      constExtend_continuous (hLc t ht htT s hs hst))
 
 end ShenWork.Paper2.ConstExtendAdapter
