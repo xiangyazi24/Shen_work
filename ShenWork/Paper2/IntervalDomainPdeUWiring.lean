@@ -162,8 +162,8 @@ theorem hasSpectralPdeAgreement_of_localized_data
     {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hfix : ∀ s, 0 < s → s < T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
       intervalDomainLift (u s) x = intervalGradientDuhamelMap p u₀ u s ⟨x, hx⟩)
-    (hsrc0 : DuhamelSourceL1ContOn
-      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
+    (hsrc0 : ShenWork.IntervalPicardLimitRestartBdd.DuhamelSourceBddOn
+      (ShenWork.IntervalPicardLimitBddProducer.patchedSource p u₀ u) T)
     {Msup : ℝ}
     (bc : ℝ → ℕ → ℝ)
     (hbsum : ∀ σ, 0 < σ → σ < T →

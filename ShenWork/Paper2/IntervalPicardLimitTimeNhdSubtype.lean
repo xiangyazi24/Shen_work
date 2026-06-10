@@ -28,6 +28,8 @@
   No `sorry`, no `admit`, no custom `axiom`, no `native_decide`.
 -/
 import ShenWork.Paper2.IntervalPicardLimitTimeNhdLocalized
+import ShenWork.Paper2.IntervalPicardLimitRestartBdd
+import ShenWork.Paper2.IntervalPicardLimitBddProducer
 
 open MeasureTheory Filter Topology Set
 open ShenWork.IntervalDomain
@@ -54,12 +56,191 @@ open ShenWork.Paper2 (cosineCoeffs_congr_on_Icc)
 open ShenWork.IntervalPicardIterateRestart (cosineCoeffs_of_l1_cosineSeries)
 open ShenWork.IntervalDomainExistence (intervalLogisticSource)
 open ShenWork.IntervalTimeSoftClamp (φ)
+open ShenWork.IntervalPicardLimitRestartBdd
+  (DuhamelSourceBddOn summable_abs_duhamelSpectralCoeff_bdd
+    limit_lift_eq_cosineSeries_of_subtypeCont_bdd summable_abs_limitCoeff_bdd
+    duhamelSpectral_eq_cosineSeries_bdd)
+open ShenWork.IntervalPicardLimitBddProducer (patchedSource patchedSource_eq_of_pos)
+open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator)
+open ShenWork.IntervalPicardIterateRestart
+  (heatValue_eq_cosineSeries intervalGradientDuhamelMap_eq_of_chi0_zero)
+open ShenWork.IntervalSpectralSubtypeAdapter
+  (intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont)
+open ShenWork.IntervalDomain (constExtend_eq_lift_on_Icc)
 
 noncomputable section
 
 namespace ShenWork.Paper2.TimeNhdSubtype
 
 local notation "λ_" n => unitIntervalCosineEigenvalue n
+
+/-! ## 0. Patched-to-canonical bridge.
+
+The Provider can only build a `DuhamelSourceBddOn` for the PATCHED family
+`patchedSource p u₀ u` (the canonical limit-source family is genuinely unbounded
+at `s = 0` for merely-continuous `u₀`).  Since `patchedSource = canonical` on
+`s > 0` (`patchedSource_eq_of_pos`) and every Duhamel integral runs over `(0, t]`
+where the `s = 0` endpoint is measure-null, the per-mode Duhamel coefficients of
+the two families coincide for `t > 0`.  This bridge lets the bounded-source
+entry points (keyed on the canonical family) be driven by the patched package. -/
+
+/-- For `0 < t` the patched and canonical Duhamel coefficients agree (the families
+differ only at the measure-null endpoint `s = 0`). -/
+theorem duhamelSpectralCoeff_patched_eq_canonical
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (u : ℝ → intervalDomainPoint → ℝ)
+    {t : ℝ} (ht : 0 < t) (k : ℕ) :
+    duhamelSpectralCoeff (patchedSource p u₀ u) t k
+      = duhamelSpectralCoeff (fun s k => cosineCoeffs (logisticLifted p (u s)) k) t k := by
+  unfold duhamelSpectralCoeff
+  refine intervalIntegral.integral_congr_ae ?_
+  rw [Set.uIoc_of_le ht.le]
+  refine Filter.Eventually.of_forall (fun s hsIoc => ?_)
+  rw [patchedSource_eq_of_pos p u₀ u hsIoc.1 k]
+
+/-- The `limitCoeff` of the canonical family equals the same expression with the
+patched Duhamel coefficient (for `0 < t`). -/
+theorem limitCoeff_eq_patched
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (u : ℝ → intervalDomainPoint → ℝ)
+    {t : ℝ} (ht : 0 < t) (k : ℕ) :
+    ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ u t k
+      = Real.exp (-t * (λ_ k)) * cosineCoeffs (intervalDomainLift u₀) k
+        + duhamelSpectralCoeff (patchedSource p u₀ u) t k := by
+  unfold ShenWork.IntervalPicardLimitRestart.limitCoeff
+  rw [duhamelSpectralCoeff_patched_eq_canonical p u₀ u ht k]
+
+/-- **`ℓ¹` summability of `limitCoeff` from the PATCHED bounded package.**
+Mirror of `IntervalPicardLimitRestartBdd.summable_abs_limitCoeff_bdd` but driven
+by the patched package (the canonical Duhamel part is rewritten to the patched one
+through the measure-null endpoint). -/
+theorem summable_abs_limitCoeff_patched
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (u : ℝ → intervalDomainPoint → ℝ)
+    {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    {τ : ℝ} (src : DuhamelSourceBddOn (patchedSource p u₀ u) τ)
+    {t : ℝ} (ht : 0 < t) (htτ : t ≤ τ) :
+    Summable (fun k =>
+      |ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ u t k|) := by
+  have hhom : Summable (fun k =>
+      |Real.exp (-t * (λ_ k)) * cosineCoeffs (intervalDomainLift u₀) k|) := by
+    refine Summable.of_nonneg_of_le (fun k => abs_nonneg _) (fun k => ?_)
+      ((ShenWork.IntervalSemigroupComposition.expEigSummable ht).mul_right M₀)
+    rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+    exact mul_le_mul_of_nonneg_left (hu₀_bound k) (Real.exp_pos _).le
+  have hduh : Summable (fun k => |duhamelSpectralCoeff (patchedSource p u₀ u) t k|) :=
+    summable_abs_duhamelSpectralCoeff_bdd src ht htτ
+  refine (hhom.add hduh).of_nonneg_of_le (fun k => abs_nonneg _) (fun k => ?_)
+  rw [limitCoeff_eq_patched p u₀ u ht k]
+  exact abs_add_le _ _
+
+/-- **Cosine representation of the Picard limit (subtype-continuity, PATCHED
+bounded source).**  Mirror of
+`IntervalPicardLimitRestartBdd.limit_lift_eq_cosineSeries_of_subtypeCont_bdd`
+driven by the patched package: the Duhamel integral reads the patched family on
+`(0, t]` (where it equals the canonical one), the spectral swap and the
+final-summability run on the patched package, and the resulting coefficients are
+bridged back to `limitCoeff` (canonical) via `limitCoeff_eq_patched`. -/
+theorem limit_lift_eq_cosineSeries_of_subtypeCont_patched
+    (p : CM2Params) (hχ0 : p.χ₀ = 0)
+    (u₀ : intervalDomainPoint → ℝ) (u : ℝ → intervalDomainPoint → ℝ)
+    (hu₀_cont : Continuous u₀)
+    {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
+    {τ : ℝ} (src : DuhamelSourceBddOn (patchedSource p u₀ u) τ)
+    {t : ℝ} (ht : 0 < t) (htτ : t ≤ τ)
+    (hfix_t : ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
+      intervalDomainLift (u t) x = intervalGradientDuhamelMap p u₀ u t ⟨x, hx⟩)
+    (hL_cont : ∀ s, 0 < s → s ≤ t →
+      Continuous (intervalDomainConstExtend (intervalLogisticSource p (u s))))
+    {x : ℝ} (hx : x ∈ Set.Icc (0:ℝ) 1) :
+    intervalDomainLift (u t) x
+      = ∑' k, ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ u t k * cosineMode k x := by
+  -- Subtype continuity of the logistic source from constExtend continuity.
+  have hL_subtype : ∀ s, 0 < s → s ≤ t →
+      Continuous (intervalLogisticSource p (u s)) := by
+    intro s hs hsT
+    have heq : intervalLogisticSource p (u s) =
+        (intervalDomainConstExtend (intervalLogisticSource p (u s))) ∘ Subtype.val := by
+      funext ⟨y, hy⟩
+      simp only [Function.comp]
+      rw [constExtend_eq_lift_on_Icc hy]
+      simp only [intervalDomainLift]
+      split_ifs with h
+      · exact congr_arg _ (Subtype.ext rfl)
+      · exact absurd hy h
+    rw [heq]; exact (hL_cont s hs hsT).comp continuous_subtype_val
+  rw [hfix_t x hx,
+    intervalGradientDuhamelMap_eq_of_chi0_zero
+      p hχ0 u₀ _ t ⟨x, hx⟩]
+  have hhom : intervalFullSemigroupOperator t
+        (intervalDomainLift u₀) x
+      = ∑' k, (Real.exp (-t * unitIntervalCosineEigenvalue k)
+          * cosineCoeffs (intervalDomainLift u₀) k) * cosineMode k x := by
+    rw [intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
+          ht hu₀_cont hu₀_bound hx]
+    exact heatValue_eq_cosineSeries t _ x
+  -- the Duhamel integrand reads the PATCHED family on (0,t] (= canonical there)
+  have hduh_integrand : ∀ s ∈ Set.Ioo (0:ℝ) t,
+      intervalFullSemigroupOperator (t - s)
+        (logisticLifted p (u s)) x
+        = unitIntervalCosineHeatValue (t - s)
+            (patchedSource p u₀ u s) x := by
+    intro s hs
+    have hts : 0 < t - s := by linarith [hs.2]
+    have hsub : Continuous (intervalLogisticSource p (u s)) :=
+      hL_subtype s hs.1 (le_of_lt hs.2)
+    have hMs : ∀ k, |cosineCoeffs (logisticLifted p (u s)) k| ≤ src.M := by
+      intro k
+      have := src.hM s (le_of_lt hs.1) (le_trans (le_of_lt hs.2) htτ) k
+      rwa [patchedSource_eq_of_pos p u₀ u hs.1 k] at this
+    have hcanon : unitIntervalCosineHeatValue
+          (t - s) (patchedSource p u₀ u s) x
+        = unitIntervalCosineHeatValue (t - s)
+            (fun k => cosineCoeffs (logisticLifted p (u s)) k) x := by
+      congr 1; funext k; exact patchedSource_eq_of_pos p u₀ u hs.1 k
+    rw [hcanon]
+    show intervalFullSemigroupOperator (t - s)
+        (intervalDomainLift (intervalLogisticSource p (u s))) x
+        = unitIntervalCosineHeatValue (t - s)
+            (fun k => cosineCoeffs (logisticLifted p (u s)) k) x
+    exact intervalFullSemigroupOperator_eq_cosineHeatValue_Icc_of_subtypeCont
+        hts hsub hMs hx
+  have hduh_eq : (∫ s in (0:ℝ)..t,
+        intervalFullSemigroupOperator (t - s)
+          (logisticLifted p (u s)) x)
+      = ∫ s in (0:ℝ)..t,
+          unitIntervalCosineHeatValue (t - s)
+            (patchedSource p u₀ u s) x := by
+    refine intervalIntegral.integral_congr_ae ?_
+    rw [Set.uIoc_of_le ht.le]
+    have hmem : ∀ᵐ s ∂volume, s ∈ Set.Ioc (0:ℝ) t → s ∈ Set.Ioo (0:ℝ) t := by
+      have hnull : volume ({t} : Set ℝ) = 0 := by simp
+      filter_upwards [(MeasureTheory.compl_mem_ae_iff.mpr hnull)] with s hs hsmem
+      refine ⟨hsmem.1, lt_of_le_of_ne hsmem.2 ?_⟩
+      intro hst; exact hs (by simp [hst])
+    filter_upwards [hmem] with s hs hsIoc
+    exact hduh_integrand s (hs hsIoc)
+  rw [hhom, hduh_eq, duhamelSpectral_eq_cosineSeries_bdd src ht htτ]
+  have hcosbd : ∀ (c : ℕ → ℝ) (k : ℕ), ‖c k * cosineMode k x‖ ≤ |c k| := by
+    intro c k
+    rw [Real.norm_eq_abs, abs_mul]
+    calc |c k| * |cosineMode k x| ≤ |c k| * 1 := by
+          apply mul_le_mul_of_nonneg_left _ (abs_nonneg _)
+          simpa [cosineMode] using Real.abs_cos_le_one ((k : ℝ) * Real.pi * x)
+      _ = |c k| := mul_one _
+  have hsum_hom : Summable (fun k =>
+      (Real.exp (-t * unitIntervalCosineEigenvalue k) * cosineCoeffs (intervalDomainLift u₀) k)
+        * cosineMode k x) := by
+    refine Summable.of_norm_bounded ?_ (hcosbd _)
+    refine Summable.of_nonneg_of_le (fun k => abs_nonneg _) (fun k => ?_)
+      ((ShenWork.IntervalSemigroupComposition.expEigSummable ht).mul_right M₀)
+    rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+    exact mul_le_mul_of_nonneg_left (hu₀_bound k) (Real.exp_pos _).le
+  have hsum_duh : Summable (fun k =>
+      duhamelSpectralCoeff (patchedSource p u₀ u) t k * cosineMode k x) := by
+    refine Summable.of_norm_bounded ?_ (hcosbd _)
+    exact summable_abs_duhamelSpectralCoeff_bdd src ht htτ
+  rw [← Summable.tsum_add hsum_hom hsum_duh]
+  refine tsum_congr (fun k => ?_)
+  rw [limitCoeff_eq_patched p u₀ u ht k]
+  ring
 
 /-! ## 1. Coefficient identity at the restart base — subtype variant.
 
@@ -75,8 +256,7 @@ theorem cosineCoeffs_halfstep_eq_limitCoeff_of_subtypeCont
     {T τ : ℝ}
     (hu₀_cont : Continuous u₀)
     {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hsrc0 : DuhamelSourceL1ContOn
-      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
+    (hsrc0 : DuhamelSourceBddOn (patchedSource p u₀ u) T)
     (hτ : 0 < τ) (hτT : τ ≤ T)
     (hfix_τ : ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
       intervalDomainLift (u τ) x = intervalGradientDuhamelMap p u₀ u τ ⟨x, hx⟩)
@@ -89,11 +269,11 @@ theorem cosineCoeffs_halfstep_eq_limitCoeff_of_subtypeCont
       intervalDomainLift (u τ) x
         = ∑' j, ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ u τ j
             * cosineMode j x := fun x hx =>
-    limit_lift_eq_cosineSeries_of_subtypeCont p hχ0 u₀ u hu₀_cont hu₀_bound hsrc0
+    limit_lift_eq_cosineSeries_of_subtypeCont_patched p hχ0 u₀ u hu₀_cont hu₀_bound hsrc0
       hτ hτT hfix_τ hLc_ce hx
   rw [cosineCoeffs_congr_on_Icc hrepr k]
   exact cosineCoeffs_of_l1_cosineSeries
-    (summable_abs_limitCoeff_weak p u₀ u hu₀_bound hsrc0 hτ hτT) k
+    (summable_abs_limitCoeff_patched p u₀ u hu₀_bound hsrc0 hτ hτT) k
 
 /-! ## 2. General restart coefficient identity — subtype variant.
 
@@ -108,8 +288,7 @@ theorem limitCoeff_eq_restartDuhamelCoeff_general_of_subtypeCont
     {T τ t : ℝ}
     (hu₀_cont : Continuous u₀)
     {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hsrc0 : DuhamelSourceL1ContOn
-      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
+    (hsrc0 : DuhamelSourceBddOn (patchedSource p u₀ u) T)
     (hτ : 0 < τ) (hτt : τ < t) (htT : t ≤ T)
     (hfix_τ : ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
       intervalDomainLift (u τ) x = intervalGradientDuhamelMap p u₀ u τ ⟨x, hx⟩)
@@ -121,6 +300,7 @@ theorem limitCoeff_eq_restartDuhamelCoeff_general_of_subtypeCont
           (cosineCoeffs (intervalDomainLift (u τ)))
           (fun σ k => cosineCoeffs (logisticLifted p (u (τ + σ))) k)
           (t - τ) k := by
+  have ht : 0 < t := lt_trans hτ hτt
   -- restart-base coefficient: coeffs u(τ) = limitCoeff τ (subtype variant)
   have hbase : cosineCoeffs (intervalDomainLift (u τ)) k
       = ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ u τ k :=
@@ -128,16 +308,27 @@ theorem limitCoeff_eq_restartDuhamelCoeff_general_of_subtypeCont
       hsrc0 hτ (le_trans hτt.le htT) hfix_τ hLc_ce k
   unfold restartDuhamelCoeff
   rw [hbase]
-  unfold ShenWork.IntervalPicardLimitRestart.limitCoeff
-  -- general split of the source Duhamel coefficient at base τ (horizon-bounded)
-  have hsplit := duhamelSpectralCoeff_general_split_on (a :=
-      fun s k => cosineCoeffs (logisticLifted p (u s)) k) hsrc0.hcont
-      hτ.le hτt.le htT k
+  -- express both limitCoeffs (target t, base τ) through the patched Duhamel part
+  rw [limitCoeff_eq_patched p u₀ u ht k, limitCoeff_eq_patched p u₀ u hτ k]
+  -- general split of the PATCHED source Duhamel coefficient at base τ
+  have hsplit := duhamelSpectralCoeff_general_split_on (a := patchedSource p u₀ u)
+      hsrc0.hcont hτ.le hτt.le htT k
+  -- the shifted patched family equals the canonical shifted one pointwise
+  -- (τ + σ ≥ τ > 0), so their Duhamel coefficients agree.
+  have hshift : duhamelSpectralCoeff (fun σ k => patchedSource p u₀ u (τ + σ) k) (t - τ) k
+      = duhamelSpectralCoeff (fun σ k => cosineCoeffs (logisticLifted p (u (τ + σ))) k)
+          (t - τ) k := by
+    unfold duhamelSpectralCoeff
+    apply intervalIntegral.integral_congr
+    intro σ hσ
+    rw [Set.uIcc_of_le (by linarith : (0:ℝ) ≤ t - τ)] at hσ
+    simp only
+    rw [patchedSource_eq_of_pos p u₀ u (by linarith [hτ, hσ.1] : 0 < τ + σ) k]
   -- factor the homogeneous part: e^{−tλ} = e^{−(t−τ)λ}·e^{−τλ}
   have hexp : Real.exp (-t * (λ_ k))
       = Real.exp (-(t - τ) * (λ_ k)) * Real.exp (-τ * (λ_ k)) := by
     rw [← Real.exp_add]; congr 1; ring
-  rw [hexp, hsplit]
+  rw [hexp, hsplit, hshift]
   ring
 
 /-! ## 3. General restart representation (EqOn) — subtype variant.
@@ -156,8 +347,7 @@ theorem picardLimitRestart_general_of_subtypeCont
       intervalDomainLift (u s) x = intervalGradientDuhamelMap p u₀ u s ⟨x, hx⟩)
     (hu₀_cont : Continuous u₀)
     {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
-    (hsrc0 : DuhamelSourceL1ContOn
-      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
+    (hsrc0 : DuhamelSourceBddOn (patchedSource p u₀ u) T)
     (hτ : 0 < τ) (hτt : τ < t) (htT : t ≤ T)
     (hLc_ce : ∀ s, 0 < s → s ≤ t →
       Continuous (intervalDomainConstExtend (intervalLogisticSource p (u s)))) :
@@ -170,7 +360,7 @@ theorem picardLimitRestart_general_of_subtypeCont
       (Set.Icc (0:ℝ) 1) := by
   have ht : 0 < t := lt_trans hτ hτt
   intro x hx
-  rw [limit_lift_eq_cosineSeries_of_subtypeCont p hχ0 u₀ u hu₀_cont hu₀_bound hsrc0
+  rw [limit_lift_eq_cosineSeries_of_subtypeCont_patched p hχ0 u₀ u hu₀_cont hu₀_bound hsrc0
         ht htT (fun y hy => hfix t ht le_rfl y hy) hLc_ce hx]
   refine tsum_congr (fun k => ?_)
   congr 1
@@ -198,8 +388,7 @@ theorem Hu_of_restart_localized_of_subtypeCont
     {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hfix : ∀ s, 0 < s → s < T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
       intervalDomainLift (u s) x = intervalGradientDuhamelMap p u₀ u s ⟨x, hx⟩)
-    (hsrc0 : DuhamelSourceL1ContOn
-      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
+    (hsrc0 : DuhamelSourceBddOn (patchedSource p u₀ u) T)
     -- K2: per-slice representation and bounds, time-localized
     {Msup : ℝ}
     (bc : ℝ → ℕ → ℝ)

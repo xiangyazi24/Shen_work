@@ -866,8 +866,7 @@ def localRestartWeak_of_ledger_of_subtypeCont
     {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hfix : ∀ s, 0 < s → s < T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
       intervalDomainLift (u s) x = intervalGradientDuhamelMap p u₀ u s ⟨x, hx⟩)
-    (hsrc0 : DuhamelSourceL1ContOn
-      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
+    (hsrc0 : DuhamelSourceBddOn (patchedSource p u₀ u) T)
     {Msup : ℝ}
     (bc : ℝ → ℕ → ℝ)
     (hbsum : ∀ σ, 0 < σ → σ < T →
@@ -958,6 +957,13 @@ def localRestartWeak_of_ledger_of_subtypeCont
       exact (cosineCoeffs_congr_on_Icc
         (logisticLifted_eq_logisticSourceFun_on_Icc p (u (φ c' τ d d' (τ + s)))) n).symm
     rw [hcanon]
+    -- bridge patched → canonical: the clamp lands in [c',d'] ⊂ (0,T), where
+    -- patchedSource = canonical, so the canonical mode equals the patched one.
+    have hpatch : (fun s => cosineCoeffs (logisticLifted p (u (φ c' τ d d' (τ + s)))) n)
+        = (fun s => patchedSource p u₀ u (φ c' τ d d' (τ + s)) n) := by
+      funext s
+      exact (patchedSource_eq_of_pos p u₀ u (hwin _ (hΦmem s)).1 n).symm
+    rw [hpatch]
     have hmaps : Set.MapsTo (fun s : ℝ => φ c' τ d d' (τ + s)) Set.univ (Set.Icc 0 T) :=
       fun s _ => ⟨le_trans hc'pos.le (hΦmem s).1, le_of_lt (hwin _ (hΦmem s)).2⟩
     have := (hsrc0.hcont n).comp_continuous hΦcont (fun s => (hmaps (Set.mem_univ s)))
@@ -1418,8 +1424,7 @@ theorem k1_quadruple_weak_of_subtypeCont
     {M₀ : ℝ} (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀)
     (hfix : ∀ s, 0 < s → s < T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
       intervalDomainLift (u s) x = intervalGradientDuhamelMap p u₀ u s ⟨x, hx⟩)
-    (hsrc0 : DuhamelSourceL1ContOn
-      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) T)
+    (hsrc0 : DuhamelSourceBddOn (patchedSource p u₀ u) T)
     {Msup : ℝ}
     (bc : ℝ → ℕ → ℝ)
     (hbsum : ∀ σ, 0 < σ → σ < T →
