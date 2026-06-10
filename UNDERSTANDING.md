@@ -1,5 +1,28 @@
 # UNDERSTANDING.md — Shen_work (campaign handoff to Codex, 2026-06-10 ~15:45)
 
+## ⭐⭐ RESIDUAL SHRINK UPDATE (2026-06-10 19:30 — newest)
+After the sorry-free capstone (32c8fee), two more residual legs fell — both
+previously reported as BLOCKED by agents, both blockers shown ILLUSORY,
+both proofs hand-written:
+* **hG2base** (7083684, IntervalHomogeneousG2Base.lean): the gate at t := σ
+  already forces homWeightBound = 32M/(eπ²σ²) ≤ A₂/σ², and the homogeneous
+  slice's true spectral bound M·eigExpWeight σ ≤ 4M/(eπ²σ²) is 8× smaller —
+  the gate's A₂ ≥ 64M/(eπ²) head-room was designed for this. No calibration
+  hypothesis needed.
+* **hG1all** (8f7987f, IntervalPicardG1All.lean): the split machinery's
+  ∀ s : ℝ source sup is over-quantified — the Duhamel integrand reads
+  s ∈ Ioc 0 t only. The windowed family wSrc satisfies the global sup by
+  construction and the same value EqOn by integral congruence; the existing
+  interior split + g1_kernel_bound apply verbatim. Bonus infrastructure:
+  picardIter_hasJointMeasurability_all, u₀_lift_abs_le. HCone gained the
+  cone-returned hlim_ball conjunct (precedent: hub's hball).
+**TowerConeAnalyticResidual is now 7 fields: hsrc0, hL_cont, adot,
+hadot_deriv, hadot_cont, adotBound, hadot_bound — ALL rooted in per-iterate
+source K1 regularity (the project's one genuine remaining analytic wall;
+see UNPROVED_TARGETS.md for the documented producer circularity).**
+Axioms unchanged: both capstone theorems = [propext, Classical.choice,
+Quot.sound].
+
 ## ⭐ FINAL STATE (2026-06-10 18:15 — supersedes everything below)
 **THE CAPSTONE IS SORRY-FREE.** Commit 32c8fee:
 `#print axioms` on BOTH `paper2_theorem_1_1_chiZero_unconditional` and
