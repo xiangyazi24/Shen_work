@@ -1,3 +1,30 @@
+# CAMPAIGN STATE 2026-06-10 ~15:00 (latest = df91175, build 8544 green)
+#
+# Capstone paper2_theorem_1_1_chiZero_unconditional final form:
+#   regime constants (chi0=0, a>0, b>0, alpha>=1, gamma>=1) + HresCore
+#   axioms: [propext, sorryAx, Classical.choice, Quot.sound]
+#
+# HresCore = {hFacts (cone-returned, round 2), hcont_iter (cone-returned,
+# round 2), Wdata (OPEN)}. hsliceTC + hLcont_lim discharged universally;
+# GateCondition fully SOLVED (exists_gate_solution, explicit numerics) and
+# cone round 4 returns it discharged; strict iterate positivity (round 3);
+# hprofile_joint DISCHARGED; hDu threading exact (cone-internal horizon
+# shrink, no EqOn needed).
+#
+# THE ONE ROOT that remains (two visible holes, same root):
+# 1. Wdata — the per-level UniformWiring analytic stack (per-iterate
+#    source packages hsrc0/srcsigma/hdecay/hsigcont + K1 quadruples +
+#    joint measurability, mutually recursive with representation triples).
+#    Route: IntervalDomainHresWiring header.
+# 2. hinterior (inside mildSlice_restart_bound) — the interior-regime slice
+#    continuity, blocked on the SAME stack: either the semigroup-out-of-
+#    integral interchange tower (absent from the repo) or the limit-side
+#    BddOn producer (= the iterate bootstrap inputs = Wdata-class).
+# NEXT CAMPAIGN: build the per-level source-package production tower once;
+# both holes close together; then sorryAx vanishes and the capstone carries
+# regime constants + nothing.
+#
+# ---- earlier snapshots below ----
 # CAMPAIGN CLOSED 2026-06-10 ~13:00 — sorryAx ELIMINATED (commit ee8fd7e).
 #
 # paper2_theorem_1_1_chiZero_unconditional depends on
