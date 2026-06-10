@@ -35,6 +35,7 @@
 import ShenWork.Paper2.IntervalDuhamelSourceShift
 import ShenWork.Paper2.IntervalPicardIterateRestartLocal
 import ShenWork.Paper2.IntervalPicardIterateC2BoundLocal
+import ShenWork.Paper2.IntervalPicardSliceWitnessSupply
 import ShenWork.Paper2.IntervalPicardIterateTimeC1Full
 import ShenWork.Paper2.IntervalPicardIterateRepresentation
 import ShenWork.Paper2.IntervalPicardIterateUniform
@@ -58,6 +59,9 @@ open ShenWork.IntervalPicardIterateUniform
 open ShenWork.IntervalPicardIterateRepresentation
   (iterateReprCoeff hbsum_zero hagree_zero)
 open ShenWork.IntervalPicardIterateC2BoundLocal (iterate_abs_deriv2_le_of_shiftedWitness)
+open ShenWork.IntervalPicardSliceWitnessSupply
+  (iterate_abs_deriv2_le_of_windowDecay shiftedSource_timeC1 shifted_source_windowDecay)
+open ShenWork.IntervalPicardIterateRepresentation (hbsum_succ)
 open ShenWork.IntervalPicardIterateRestartLocal
   (ShiftedSourceWitness canonicalShiftedSource hagree_succ_of_subtypeCont)
 open ShenWork.IntervalPicardIterateTimeC1Full (clampedIterateSource_duhamelSourceTimeC1)
@@ -162,9 +166,6 @@ structure TowerInputs (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   /-- Homogeneous-heat G2 base bound (`n = 0`). -/
   hG2base : ∀ (σ : ℝ), 0 < σ → σ ≤ T → ∀ x : ℝ,
     |deriv (deriv (intervalDomainLift (picardIter p u₀ 0 σ))) x| ≤ G2profile A₂ σ
-  /-- The per-level half-step shifted-source witness (stage-1 File B/C), supplying
-  the M2-uniform G2-step budget through `iterate_abs_deriv2_le_of_shiftedWitness`. -/
-  witness : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ShiftedSourceWitness p u₀ n t M A₂
   /-- Per-iterate slice continuity (cone-returned `HasContinuousSlices`, n-uniform).
   Replaces the former `hM₁` coefficient field: the half-step coefficient bound
   `M₁ ≤ 2M` (verdict trap 7) is now DERIVED in-tower from this slice continuity plus
@@ -368,7 +369,7 @@ TowerLevel … (n+1)`:
 def tower_succ
     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {M A₂ T : ℝ}
     (H : TowerInputs p u₀ M A₂ T) {n : ℕ}
-    (_L : TowerLevel p u₀ M A₂ T n) :
+    (L : TowerLevel p u₀ M A₂ T n) :
     TowerLevel p u₀ M A₂ T (n + 1) := by
   -- The half-step coefficient bound `M₁ ≤ 2M` is now DERIVED in-tower (no longer an
   -- external `TowerInputs` field) from the cone-returned slice continuity + ball sup.
@@ -377,12 +378,34 @@ def tower_succ
     intro σ hσ hσT k
     exact halfStep_coeff_le_twoM p u₀ H (n + 1) (by positivity)
       (by linarith) k
-  -- representation summability via the shifted-source witness.
+  -- The σ-shifted canonical source time-`C¹` package, WALL-FREE: the non-negative
+  -- `σ/2`-shift of the level-`n` canonical source `H.hsrc0 n` (stage F supply,
+  -- `shiftedSource_timeC1`).  `canonicalShiftedSource p u₀ n σ` is definitionally this.
+  have hsrcσ : ∀ σ, 0 < σ → DuhamelSourceTimeC1
+      (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n (σ / 2 + s))) k) :=
+    fun σ hσ => shiftedSource_timeC1 p u₀ n hσ (H.hsrc0 n)
+  -- The WALL-FREE windowed decay of the shifted source on `[0, σ/2]`, DERIVED in-tower
+  -- from the level-`n` representation triple + ball + K2 facts (`L.hrepr_*`/`L.hG1`/
+  -- `L.hG2`, ball from `H.hpos`/`H.hub`) via stage F (`shifted_source_windowDecay`).
+  -- This REPLACES the former `H.witness` residual `hdecay` field.
+  have hdecayW : ∀ σ, 0 < σ → σ ≤ T →
+      ∀ s ∈ Set.Icc (0 : ℝ) (σ / 2), ∀ k : ℕ, 1 ≤ k →
+        |cosineCoeffs (logisticLifted p (picardIter p u₀ n (σ / 2 + s))) k|
+          ≤ 2 * Benv p M A₂ σ / ((k : ℝ) * Real.pi) ^ 2 :=
+    fun σ hσ hσT => shifted_source_windowDecay p u₀ n H.hα H.hMnn H.hA₂nn hσ hσT
+      (iterateReprCoeff p u₀ n)
+      (fun s hs hsT => L.hrepr_sum s hs hsT)
+      (fun s hs hsT => L.hrepr_agree s hs hsT)
+      (fun s hs hsT => H.hpos n s hs hsT)
+      (fun s hs hsT => H.hub n s hs hsT)
+      (fun s hs hsT => L.hG1 s hs hsT)
+      (fun s hs hsT => L.hG2 s hs hsT)
+  -- representation summability via the shifted-source package (no witness needed:
+  -- `hbsum_succ` reads only the `DuhamelSourceTimeC1` package).
   have hrepr_sum : ∀ σ, 0 < σ → σ ≤ T →
       Summable (fun k => (λ_ k) * |iterateReprCoeff p u₀ (n + 1) σ k|) := by
     intro σ hσ hσT
-    exact ShenWork.IntervalPicardIterateRestartLocal.hbsum_succ_of_shiftedWitness
-      p u₀ n hσ (fun k => hM₁ σ hσ hσT k) (H.witness n σ hσ hσT)
+    exact hbsum_succ p u₀ n hσ (fun k => hM₁ σ hσ hσT k) (hsrcσ σ hσ)
   -- representation agreement via the subtype-continuity variant.
   have hrepr_agree : ∀ σ, 0 < σ → σ ≤ T →
       Set.EqOn (intervalDomainLift (picardIter p u₀ (n + 1) σ))
@@ -415,10 +438,12 @@ def tower_succ
         · -- right endpoint x = 1
           obtain ⟨M₁', h1, h2⟩ := H.hG2end n σ hσ hσT 1 (by simp)
           exact ⟨M₁', h1, by rw [hx1]; exact h2⟩
-        · -- interior x ∈ Ioo 0 1: witness deriv² on the restart series + Ioo transport
+        · -- interior x ∈ Ioo 0 1: window-decay deriv² on the restart series + Ioo
+          -- transport.  WALL-FREE: the bound comes from the σ-shifted source package
+          -- (`hsrcσ`) + the stage-F windowed decay (`hdecayW`), NOT a residual witness.
           refine ⟨2 * M, le_refl _, ?_⟩
-          have hbound := iterate_abs_deriv2_le_of_shiftedWitness p u₀ n hσ hBenv
-            (fun k => hM₁ σ hσ hσT k) (H.witness n σ hσ hσT) x
+          have hbound := iterate_abs_deriv2_le_of_windowDecay p u₀ n hσ hBenv
+            (fun k => hM₁ σ hσ hσT k) (hsrcσ σ hσ) (hdecayW σ hσ hσT) x
           -- the witness gives the bound with the half-step coefficient `M₁`; here we
           -- absorb `M₁ ≤ 2M`'s slack into the leading `2M·eig` term.
           have hM₁le : ∀ k, |cosineCoeffs

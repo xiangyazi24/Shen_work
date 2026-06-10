@@ -37,7 +37,7 @@
       (`IntervalPicardSourceTower.halfStep_coeff_le_twoM`).
 
   ## (b) Genuinely-open analytic legs — the per-iterate spatial-`C²` bootstrap.
-    `hub`, `hsrc0`, `hL_cont`, `hG1all`, `hG2base`, `witness`, and the `adot`
+    `hub`, `hsrc0`, `hL_cont`, `hG1all`, `hG2base`, and the `adot`
     K1 stack (`adot`/`hadot_deriv`/`hadot_cont`/`adotBound`/`hadot_bound`) ALL depend
     on the per-iterate spatial-`C²`/positivity/Neumann regularity of EVERY Picard
     level (`picardIterateHasC2Slices_all`), whose step data
@@ -47,9 +47,15 @@
     They are NOT faked: they are carried as ONE explicit named hypothesis package
     `TowerConeAnalyticResidual`, which IS the exact remaining analytic surface (the
     same family of facts `uniformWiring_closure` consumes — `hsrc0`/`hL_cont`/`hG1all`
-    /`hG2base`/the G2-step shifted-source witnesses — plus the `adot` K1 data
+    /`hG2base` — plus the `adot` K1 data
     the clamped source producer reads, restated at the cone datum's horizon).  The
-    former `hM₁` leg has been REMOVED from the residual (derived in-tower from the
+    former `witness` leg (the half-step shifted-source `ShiftedSourceWitness`) has
+    been REMOVED from the residual: its `src`/`hagree_window` come WALL-FREE from the
+    non-negative time-shift of `hsrc0`, and its `hdecay` is DERIVED in-tower from the
+    level's representation triple + ball + K2 facts via the stage-F per-slice source
+    decay (`IntervalPicardSliceWitnessSupply.shifted_source_windowDecay`), the
+    downstream G2 bound only reading the decay on the integration window `[0,t/2]`.
+    The former `hM₁` leg has been REMOVED from the residual (derived in-tower from the
     cone-returned slice continuity; see (a)).
 
   This is the project's standing discipline (TASK_QUEUE group C): a theorem that
@@ -111,8 +117,6 @@ structure TowerConeAnalyticResidual
   /-- Homogeneous-heat G2 base bound (`n = 0`). -/
   hG2base : ∀ (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ x : ℝ,
     |deriv (deriv (intervalDomainLift (picardIter p u₀ 0 σ))) x| ≤ G2profile A₂ σ
-  /-- The per-level half-step shifted-source witness (stage-1 File B/C). -/
-  witness : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ D.T → ShiftedSourceWitness p u₀ n t M A₂
   /-- The level-`n` source-derivative `adot` data on every window. -/
   adot : ℕ → ℝ → ℕ → ℝ
   hadot_deriv : ∀ (n : ℕ) (c' d' : ℝ), ∀ σ ∈ Set.Icc c' d', ∀ k, HasDerivAt
@@ -172,7 +176,6 @@ def towerInputs_of_cone
     hL_cont := H.hL_cont
     hG1all := H.hG1all
     hG2base := H.hG2base
-    witness := H.witness
     hcontSlice := hcontSlice
     -- endpoint G2-step budgets: PROVED (zero-extension junk-derivative), per `x∈{0,1}`.
     hG2end := by
