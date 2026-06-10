@@ -177,9 +177,18 @@ computation + triangle split + `Summable.of_nonneg_of_le`. The proof handles:
 - hpde_u, Hvsrc, Hvpos — PDE/resolver residuals
 - hsrc0 (×2 in final wiring) — DuhamelSourceL1Cont
 
-### LedgerSweep interface gap
-`weakSource_of_reduced` / `Hu_of_reduced` need adapters from time-quantified
-(∀ σ, 0<σ→σ<T→...) to global (∀ σ, ...) data. The API functions
-`limitSource_duhamelSourceTimeC1_of_representation` and `Hu_of_restart` take
-global quantifiers; the reduced ledger carries time-localized data. Design
-decision pending: extend data vs modify API vs add adapter functions.
+### LedgerSweep interface gap — RESOLVED 2026-06-09 night (horizon localization)
+See HANDOFF/horizon-localization-design.md + HANDOFF/horizon-retype-status.md.
+Landed (all green, 8521 jobs): C¹ soft clamp (IntervalTimeSoftClamp) +
+clamped-witness TimeC1 producer (IntervalDomainClampedSourceRepresentation) +
+weak-chain horizon retype (DuhamelSourceL1ContOn) + Hu_of_restart_localized
+(0 sorry) + ledger V2 (per-compact hG1t/hG2t/hMdott, (0,T) K1, 5 shifted-K1
+fields deleted, hsrc0 field) + K2 gradient producers wired + Hvpos proved
+(mildChemicalConcentration_pos) + hpde_u producer (IntervalDomainPdeUProducer).
+
+Sorry inventory after the campaign (10, all satisfiable types):
+- Provider 7: hsrc0F + K1 quadruple (F2: iterate-derivative uniform
+  convergence into duhamelSourceTimeC1_of_uniform_limit), hpde_u (data
+  wiring), Hvsrc (power-source analogue)
+- Hu_of_reduced 1 (subtype-continuity variant of the localized restart)
+- restartData_of_inputs 1 + hasRestartData_of_subtypeCont 1 (restart packaging)

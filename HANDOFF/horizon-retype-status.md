@@ -1,4 +1,25 @@
-# Horizon retype — resume state (2026-06-09 ~18:30, agents died at usage limit, resets 21:40)
+# Horizon retype — COMPLETE (2026-06-09 ~22:45). Sections below are the
+# historical resume notes; current state:
+#
+# Committed (all build-green, 8521 jobs): c9b3f6b horizon retype,
+# 440ebc6 Hu_of_restart_localized, 583b6b5 SpectralSubtypeAdapter,
+# 9d93703 K2 producers, 3d3afd0 ledger V2 (-10 sorry), 15a550b K2 wiring (-2).
+#
+# Remaining sorries (10 total, ALL satisfiable types now):
+# Provider (7): hsrc0F + adott/hderivt/hadotcontt/hMdott (K1/F2 campaign:
+#   instantiate uniform convergence of iterate source-coeff derivatives into
+#   duhamelSourceTimeC1_of_uniform_limit, then window-restrict);
+#   hpde_u (wire HasSpectralPdeAgreement data — mirrors the localized Hu
+#   witness construction + IntervalDomainPdeUProducer); Hvsrc (power-source
+#   analogue; powerSource_intervalWeakH2Neumann exists as base).
+# LedgerSweep (1): Hu_of_reduced — needs subtype-continuity variant of
+#   Hu_of_restart_localized (replace limit_lift_eq_cosineSeries_weak inside
+#   picardLimitRestart_general with the _of_subtypeCont adapter; same surgery
+#   pattern as the existing adapter theorem).
+# MildLocalChi0 (1): restartData_of_inputs (restart packaging via
+#   ConstExtendAdapter). ConstExtendAdapter (1): hasRestartData_of_subtypeCont.
+#
+# ---- historical notes below ----
 
 Design: HANDOFF/horizon-localization-design.md. Committed so far (main):
 - a484556 wave 1: IntervalTimeSoftClamp (0s), IntervalDomainPdeUProducer (0s),
