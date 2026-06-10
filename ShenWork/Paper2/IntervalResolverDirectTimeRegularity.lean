@@ -51,11 +51,18 @@ namespace ShenWork.IntervalResolverDirectTimeRegularity
 `∑ a(t,k) · w_k · cos(kπx)` in a time neighborhood of each interior point,
 where `a` has `DuhamelSourceTimeC1` and `w_k = 1/(μ+λ_k)`.
 
-No restart form, no offset, no homogeneous piece. -/
+No restart form, no offset, no homogeneous piece.
+
+**Per-`t₀` form** (mirrors `HasTimeNeighborhoodSpectralAgreement`): the spectral
+family `a` and its `DuhamelSourceTimeC1` package are chosen PER interior time
+`t₀ ∈ (0,T)`, so a soft-clamped witness (agreeing with the canonical resolver
+source coefficients only on a window around `t₀`) suffices.  This dissolves the
+global-quantifier obstruction: the canonical source `ν·u^γ` jumps at `s = T`, so
+no single GLOBAL `DuhamelSourceTimeC1` exists, but a per-`t₀` clamped one does. -/
 def HasResolverDirectSpectralData
     (T : ℝ) (v : ℝ → intervalDomainPoint → ℝ) (p : CM2Params) : Prop :=
-  ∃ (a : ℝ → ℕ → ℝ) (_ : DuhamelSourceTimeC1 a),
-    ∀ t₀, 0 < t₀ → t₀ < T →
+  ∀ t₀, 0 < t₀ → t₀ < T →
+    ∃ (a : ℝ → ℕ → ℝ) (_ : DuhamelSourceTimeC1 a),
       ∀ᶠ s in 𝓝 t₀, ∀ x : intervalDomainPoint,
         v s x = ∑' k, a s k *
           intervalNeumannResolverWeight p k * cosineMode k x.1
@@ -181,21 +188,20 @@ theorem resolverSeries_hasDerivAt_time
 
 /-! ## Part 2: transfer HasDerivAt to the function v via eventuallyEq -/
 
-/-- **HasDerivAt for v** at each interior point. -/
+/-- **HasDerivAt for v** at each interior point, given the per-`t₀` spectral data. -/
 theorem resolver_direct_hasDerivAt_time
-    {T : ℝ} {v : ℝ → intervalDomainPoint → ℝ} {p : CM2Params}
+    {v : ℝ → intervalDomainPoint → ℝ} {p : CM2Params}
     {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a)
-    (hagrees : ∀ t₀, 0 < t₀ → t₀ < T →
-      ∀ᶠ s in 𝓝 t₀, ∀ x : intervalDomainPoint,
-        v s x = ∑' k, a s k *
-          intervalNeumannResolverWeight p k * cosineMode k x.1)
-    {t₀ : ℝ} (ht₀ : 0 < t₀) (ht₀T : t₀ < T)
+    {t₀ : ℝ} (ht₀ : 0 < t₀)
+    (hagree : ∀ᶠ s in 𝓝 t₀, ∀ x : intervalDomainPoint,
+      v s x = ∑' k, a s k *
+        intervalNeumannResolverWeight p k * cosineMode k x.1)
     (x : intervalDomainPoint) :
     HasDerivAt (fun s => v s x)
       (∑' k, src.adot t₀ k *
         intervalNeumannResolverWeight p k * cosineMode k x.1) t₀ :=
   (resolverSeries_hasDerivAt_time src p ht₀ x.1).congr_of_eventuallyEq
-    ((hagrees t₀ ht₀ ht₀T).mono (fun _ hs => hs x))
+    (hagree.mono (fun _ hs => hs x))
 
 /-- **DifferentiableAt** for the resolver in time. -/
 theorem resolver_direct_differentiableAt_time
@@ -204,8 +210,8 @@ theorem resolver_direct_differentiableAt_time
     {t₀ : ℝ} (ht₀ : 0 < t₀) (ht₀T : t₀ < T)
     (x : intervalDomainPoint) :
     DifferentiableAt ℝ (fun s => v s x) t₀ := by
-  obtain ⟨a, src, hagrees⟩ := H
-  exact (resolver_direct_hasDerivAt_time src hagrees ht₀ ht₀T x).differentiableAt
+  obtain ⟨a, src, hagree⟩ := H t₀ ht₀ ht₀T
+  exact (resolver_direct_hasDerivAt_time src ht₀ hagree x).differentiableAt
 
 /-! ## Part 3: ContinuousOn of the time derivative -/
 
@@ -248,12 +254,12 @@ theorem resolver_direct_timeDeriv_continuousOn
     (H : HasResolverDirectSpectralData T v p)
     (x : intervalDomainPoint) :
     ContinuousOn (fun s => deriv (fun r => v r x) s) (Ioo (0 : ℝ) T) := by
-  obtain ⟨a, src, hagrees⟩ := H
   rw [isOpen_Ioo.continuousOn_iff]
   intro t₀ ht₀
   obtain ⟨ht₀_pos, ht₀_lt⟩ := mem_Ioo.1 ht₀
+  obtain ⟨a, src, hagrees⟩ := H t₀ ht₀_pos ht₀_lt
   obtain ⟨V, hV_agree, hV_open, hV_mem⟩ :=
-    eventually_nhds_iff.1 (hagrees t₀ ht₀_pos ht₀_lt)
+    eventually_nhds_iff.1 hagrees
   set W := V ∩ Ioi (0 : ℝ)
   have hW_open : IsOpen W := hV_open.inter isOpen_Ioi
   have hW_mem : t₀ ∈ W := ⟨hV_mem, mem_Ioi.2 ht₀_pos⟩
@@ -387,12 +393,12 @@ theorem resolver_direct_jointTimeDerivInterior
         (fun (t : ℝ) (x : ℝ) =>
           deriv (fun s => intervalDomainLift (v s) x) t))
       (Ioo (0 : ℝ) T ×ˢ Ioo (0 : ℝ) 1) := by
-  obtain ⟨a, src, hagrees⟩ := H
   intro ⟨t₀, x₀⟩ hp
   obtain ⟨ht₀, hx₀⟩ := mem_prod.1 hp
   obtain ⟨ht₀_pos, ht₀_lt⟩ := mem_Ioo.1 ht₀
+  obtain ⟨a, src, hagrees⟩ := H t₀ ht₀_pos ht₀_lt
   obtain ⟨V, hV_agree, hV_open, hV_mem⟩ :=
-    eventually_nhds_iff.1 (hagrees t₀ ht₀_pos ht₀_lt)
+    eventually_nhds_iff.1 hagrees
   set Wt := V ∩ Ioi (0 : ℝ)
   have hWt_open : IsOpen Wt := hV_open.inter isOpen_Ioi
   have hWt_mem : t₀ ∈ Wt := ⟨hV_mem, mem_Ioi.2 ht₀_pos⟩
@@ -444,12 +450,12 @@ theorem resolver_direct_jointTimeDerivClosed
         (fun (t : ℝ) (x : ℝ) =>
           deriv (fun s => intervalDomainLift (v s) x) t))
       (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1) := by
-  obtain ⟨a, src, hagrees⟩ := H
   intro ⟨t₀, x₀⟩ hp
   obtain ⟨ht₀, hx₀⟩ := mem_prod.1 hp
   obtain ⟨ht₀_pos, ht₀_lt⟩ := mem_Ioo.1 ht₀
+  obtain ⟨a, src, hagrees⟩ := H t₀ ht₀_pos ht₀_lt
   obtain ⟨V, hV_agree, hV_open, hV_mem⟩ :=
-    eventually_nhds_iff.1 (hagrees t₀ ht₀_pos ht₀_lt)
+    eventually_nhds_iff.1 hagrees
   set Wt := V ∩ Ioi (0 : ℝ)
   have hWt_open : IsOpen Wt := hV_open.inter isOpen_Ioi
   have hWt_mem : t₀ ∈ Wt := ⟨hV_mem, mem_Ioi.2 ht₀_pos⟩
@@ -496,12 +502,12 @@ theorem resolver_direct_jointSolutionClosed
       (Function.uncurry
         (fun (t : ℝ) (x : ℝ) => intervalDomainLift (v t) x))
       (Ioo (0 : ℝ) T ×ˢ Icc (0 : ℝ) 1) := by
-  obtain ⟨a, src, hagrees⟩ := H
   intro ⟨t₀, x₀⟩ hp
   obtain ⟨ht₀, hx₀⟩ := mem_prod.1 hp
   obtain ⟨ht₀_pos, ht₀_lt⟩ := mem_Ioo.1 ht₀
+  obtain ⟨a, src, hagrees⟩ := H t₀ ht₀_pos ht₀_lt
   obtain ⟨V, hV_agree, hV_open, hV_mem⟩ :=
-    eventually_nhds_iff.1 (hagrees t₀ ht₀_pos ht₀_lt)
+    eventually_nhds_iff.1 hagrees
   set Wt := V ∩ Ioi (0 : ℝ)
   have hWt_open : IsOpen Wt := hV_open.inter isOpen_Ioi
   have hWt_mem : t₀ ∈ Wt := ⟨hV_mem, mem_Ioi.2 ht₀_pos⟩

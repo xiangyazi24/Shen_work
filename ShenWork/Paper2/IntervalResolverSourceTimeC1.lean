@@ -90,13 +90,21 @@
       data via the soft-clamp transfer used by
       `ClampedSourceRepresentation.clampedSource_duhamelSourceTimeC1`.
 
-  Those edits live in the CONSUMER files (`IntervalResolverDirectTimeRegularity`,
-  `IntervalMildRegularityFrontierAssembly`, `IntervalDomainMildLocalChi0`,
-  `IntervalDomainLedgerSweep`, `IntervalDomainThm11ChiZeroFinal`), not in this file
-  or the provider, so they are out of scope here.  Until that retype lands, the
-  provider's `Hvsrc` field stays `sorry` (a single named obligation), and the
-  global producer below is the proof that the field is fillable the MOMENT the
-  inputs are available on a window rather than globally.
+  **UPDATE (retype LANDED).**  The `…On T` / per-`t₀` retype described above has now
+  been executed across the consumer files: `HasResolverDirectSpectralData`
+  (`IntervalResolverDirectTimeRegularity`) was retyped to the per-`t₀` existential
+  (the `∃ a` moved INSIDE `∀ t₀`), the ledger `Hvsrc` field
+  (`IntervalDomainMildLocalChi0` + `IntervalDomainLedgerSweep` +
+  `IntervalDomainThm11ChiZeroFinal`) was retyped to a per-`t₀` CLAMPED witness
+  (`∀ t₀, ∃ aC, ∃ _ : DuhamelSourceTimeC1 aC, ∃ W ∈ 𝓝 t₀, agreement-on-`W`), and the
+  per-`t₀` packaging theorem `hasResolverDirectSpectralData_of_clamped_perT0` was
+  added (`IntervalMildRegularityFrontierAssembly`).  The Provider's `Hvsrc` field is
+  now FILLED via the soft-clamped resolver-source producer
+  `ResolverSourceClampedWitness.clampedResolverSource_duhamelSourceTimeC1` (the
+  `ν·u^γ` mirror of `ClampedSourceRepresentation.clampedSource_duhamelSourceTimeC1`),
+  modulo two precisely-named power-source residuals (the `ν·r^γ` quadratic-decay
+  envelope `R-Hvsrc-1` and the `ν·r^γ` K1 time-`C¹` quadruple `R-Hvsrc-2`).  The
+  global producer below remains as the GLOBAL-input proof of fillability.
 
   No `sorry`/`admit`/custom `axiom`/`native_decide` in this file.
 -/

@@ -106,8 +106,12 @@ structure LimitRegularityInputsCore
     ∀ s, 0 < s → s ≤ t → Continuous (intervalLogisticSource p (D.u s))
   -- ===== frontier residuals (not derivable from R/rep(u) here) =====
   Hu : HasTimeNeighborhoodSpectralAgreement D.T D.u
-  Hvsrc : DuhamelSourceTimeC1
-    (fun s k => (intervalNeumannResolverSourceCoeff p (D.u s) k).re)
+  -- per-`t₀` clamped resolver-source witness (retyped from the unsatisfiable global
+  -- `DuhamelSourceTimeC1`; see `IntervalDomainMildLocalChi0.Hvsrc` field doc)
+  Hvsrc : ∀ t₀, 0 < t₀ → t₀ < D.T →
+    ∃ (aC : ℝ → ℕ → ℝ) (_ : DuhamelSourceTimeC1 aC) (W : Set ℝ),
+      W ∈ 𝓝 t₀ ∧
+      (∀ s ∈ W, ∀ k, aC s k = (intervalNeumannResolverSourceCoeff p (D.u s) k).re)
   Hvpos : ∀ t, 0 < t → t < D.T → ∀ x : intervalDomainPoint,
     0 < mildChemicalConcentration p D.u t x
   -- restart-representation data feeding the proved `hpde_u` producer

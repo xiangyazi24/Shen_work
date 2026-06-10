@@ -213,10 +213,45 @@ theorem hasResolverDirectSpectralData_of_sourceCoeffTimeC1
     {T : ℝ} {p : CM2Params} (u : ℝ → intervalDomainPoint → ℝ)
     (hsrc : DuhamelSourceTimeC1
       (fun s k => (intervalNeumannResolverSourceCoeff p (u s) k).re)) :
-    HasResolverDirectSpectralData T (mildChemicalConcentration p u) p :=
-  ⟨fun s k => (intervalNeumannResolverSourceCoeff p (u s) k).re, hsrc,
-   fun _t₀ _ht₀ _ht₀T =>
+    HasResolverDirectSpectralData T (mildChemicalConcentration p u) p := by
+  unfold HasResolverDirectSpectralData
+  intro _t₀ _ht₀ _ht₀T
+  exact ⟨fun s k => (intervalNeumannResolverSourceCoeff p (u s) k).re, hsrc,
      Eventually.of_forall (fun s x =>
        mildChemicalConcentration_eq_sourceWeight_series p u s x)⟩
+
+/-- **Per-`t₀` packaging theorem (clamped-witness form).**
+
+Given, for each interior time `t₀ ∈ (0,T)`, a spectral family `aC` together with a
+`DuhamelSourceTimeC1 aC` package and a time NEIGHBORHOOD `W ∈ 𝓝 t₀` on which `aC`
+agrees with the canonical resolver source coefficients
+`(s,k) ↦ (intervalNeumannResolverSourceCoeff p (u s) k).re`, construct
+`HasResolverDirectSpectralData T (mildChemicalConcentration p u) p`.
+
+This is the consumer-facing entry point for the soft-clamped witness: the canonical
+`DuhamelSourceTimeC1` is unsatisfiable globally (the source jumps at `s = T`), but a
+clamped family agreeing with it on a window around each interior `t₀` IS satisfiable,
+and the per-`t₀` retyped `HasResolverDirectSpectralData` consumes exactly that.
+
+The agreement on `𝓝 t₀` follows because the resolver value equals the canonical
+weighted source series for ALL `s` (`mildChemicalConcentration_eq_sourceWeight_series`,
+purely algebraic), and on `W` the clamped `aC` equals the canonical coefficient.
+
+No `sorry`. -/
+theorem hasResolverDirectSpectralData_of_clamped_perT0
+    {T : ℝ} {p : CM2Params} (u : ℝ → intervalDomainPoint → ℝ)
+    (H : ∀ t₀, 0 < t₀ → t₀ < T →
+      ∃ (aC : ℝ → ℕ → ℝ) (_ : DuhamelSourceTimeC1 aC) (W : Set ℝ),
+        W ∈ 𝓝 t₀ ∧
+        (∀ s ∈ W, ∀ k, aC s k = (intervalNeumannResolverSourceCoeff p (u s) k).re)) :
+    HasResolverDirectSpectralData T (mildChemicalConcentration p u) p := by
+  unfold HasResolverDirectSpectralData
+  intro t₀ ht₀ ht₀T
+  obtain ⟨aC, src, W, hW_nhds, hW_agree⟩ := H t₀ ht₀ ht₀T
+  refine ⟨aC, src, ?_⟩
+  filter_upwards [hW_nhds] with s hs x
+  rw [mildChemicalConcentration_eq_sourceWeight_series p u s x]
+  refine tsum_congr (fun k => ?_)
+  rw [hW_agree s hs k]
 
 end ShenWork.Paper2.RegularityFrontierAssembly

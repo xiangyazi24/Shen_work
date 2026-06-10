@@ -88,8 +88,11 @@
                 producer here).
     `Hu`      — `HasTimeNeighborhoodSpectralAgreement D.T D.u` (genuine residual;
                 u-side time regularity).
-    `Hvsrc`   — `DuhamelSourceTimeC1` of the resolver source coefficients
-                (yields `Hv` via the proved packaging theorem).
+    `Hvsrc`   — PER-`t₀` clamped resolver-source `DuhamelSourceTimeC1` witness
+                (a window-agreeing family per interior `t₀`; yields `Hv` via the
+                proved packaging theorem `hasResolverDirectSpectralData_of_clamped_perT0`).
+                Retyped from the unsatisfiable GLOBAL `DuhamelSourceTimeC1` (jump at
+                `s = D.T`); see field doc + `IntervalResolverSourceTimeC1.lean`.
     `HsupNorm`— `IntervalDomainSupNormDerivativeNonposOn D.u (Ioo 0 D.T)`
                 (genuine residual; parabolic maximum-principle output).
     `Hvpos`   — boundary positivity of `mildChemicalConcentration` (genuine
@@ -202,8 +205,21 @@ structure LimitRegularityInputs
               (mildChemicalConcentration p D.u t) x
           + D.u t x * (p.a - p.b * (D.u t x) ^ p.α)
   Hu : HasTimeNeighborhoodSpectralAgreement D.T D.u
-  Hvsrc : DuhamelSourceTimeC1
-    (fun s k => (intervalNeumannResolverSourceCoeff p (D.u s) k).re)
+  -- **`Hvsrc` (per-`t₀` clamped form).**  Retyped from the unsatisfiable GLOBAL
+  -- `DuhamelSourceTimeC1` (the canonical resolver source `ν·(D.u s)^γ` jumps at
+  -- `s = D.T` because `picardLimit = 0` off `(0,T]`, so the global `hderiv` there is
+  -- FALSE — see `IntervalResolverSourceTimeC1.lean` header).  The downstream
+  -- consumer (`HasResolverDirectSpectralData`, now per-`t₀`) reads the package only
+  -- at interior times, so the faithful field is a PER-`t₀` clamped witness: for each
+  -- interior `t₀` a family `aC` with a `DuhamelSourceTimeC1 aC` package agreeing with
+  -- the canonical resolver source coefficients on a window `W ∈ 𝓝 t₀`.  This IS
+  -- satisfiable (soft-clamp the trajectory into a compact window `⊂ (0,T)`; see the
+  -- Provider's witness producer), unlike the global field.  Fed to `Hv` via
+  -- `RegularityFrontierAssembly.hasResolverDirectSpectralData_of_clamped_perT0`.
+  Hvsrc : ∀ t₀, 0 < t₀ → t₀ < D.T →
+    ∃ (aC : ℝ → ℕ → ℝ) (_ : DuhamelSourceTimeC1 aC) (W : Set ℝ),
+      W ∈ 𝓝 t₀ ∧
+      (∀ s ∈ W, ∀ k, aC s k = (intervalNeumannResolverSourceCoeff p (D.u s) k).re)
   Hvpos : ∀ t, 0 < t → t < D.T → ∀ x : intervalDomainPoint,
     0 < mildChemicalConcentration p D.u t x
 
@@ -245,7 +261,7 @@ theorem frontierCore_of_inputs
         (restartData_of_inputs hχ0 I)
     have Hv : HasResolverDirectSpectralData D.T
         (mildChemicalConcentration p D.u) p :=
-      RegularityFrontierAssembly.hasResolverDirectSpectralData_of_sourceCoeffTimeC1
+      RegularityFrontierAssembly.hasResolverDirectSpectralData_of_clamped_perT0
         D.u I.Hvsrc
     exact RegularityFrontierWiring.gradientMildClassicalRegularityFrontierData_of_spectral
       p D I.Hu Hv Hrestart I.Hvpos

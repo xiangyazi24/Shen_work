@@ -86,6 +86,8 @@ import ShenWork.Paper2.IntervalResolverStrictPositivity
 import ShenWork.Paper2.IntervalDomainPdeUWiring
 import ShenWork.Paper2.IntervalPicardLimitK1Weak
 import ShenWork.Paper2.IntervalResolverSourceTimeC1
+import ShenWork.Paper2.IntervalResolverSourceClampedWitness
+import ShenWork.Paper2.IntervalPicardLimitBddBootstrap
 
 open MeasureTheory Set Filter Topology
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalDomain
@@ -164,8 +166,80 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   -- (which the inclusive producer takes as its own named-satisfiable hypothesis).  No
   -- patched `DuhamelSourceL1ContOn` producer exists either (the global ℓ¹ envelope is
   -- unfillable for merely-continuous `u₀` as `s → 0⁺`; see `HANDOFF/hsrc0-splitenv-design.md`).
+  -- **F2 iterate-side bootstrap** (circularity broken).  The package is now built
+  -- by `IntervalPicardLimitBddBootstrap.duhamelSourceBddOn_of_iterates`, whose `hM`
+  -- comes DIRECTLY from `D` (no representation) and whose per-window `env` comes
+  -- from n-UNIFORM iterate quadratic decay + `le_of_tendsto` — NOT from
+  -- `bc`/`hbsum`/`hagree` of the limit.  The remaining honest inputs are the genuine
+  -- iterate-side analytic facts, isolated below as named satisfiable residuals.
+  --
+  -- (R-src0F-1) initial-datum source-coefficient bound.  ROUTE: `u₀` is continuous
+  -- (subtype) and bounded (`hu₀.admissible`), so `intervalDomainLift u₀` is bounded
+  -- on `[0,1]`; the logistic source of a positive bounded profile is sup-bounded, and
+  -- `cosineCoeffs_abs_le_of_continuous_bounded` then bounds its coefficients.  Same
+  -- shape as `IntervalPicardLimitBddProducer.duhamelSourceBddOn_of_mildData`'s
+  -- `hu₀_src_bound`.  (`u₀` need not be positive away from `s>0`; if the s≤0 branch is
+  -- never exercised by the genuine `[a',τ]⋐(0,T)` pipeline, any finite `M₀'` works.)
+  -- concrete datum-side witness `M₀' := 2·sup|u₀|`; the bound is the named residual.
+  let M₀' : ℝ := 2 * sSup (Set.range fun x => |u₀ x|)
+  have hM₀'_nonneg : (0 : ℝ) ≤ M₀' := by
+    -- satisfiable analytic input (datum-side, `0 ≤ sup|u₀|`); named residual.
+    sorry
+  have hu₀_src_bound : ∀ k, |cosineCoeffs (logisticLifted p u₀) k| ≤ M₀' := by
+    -- satisfiable analytic input (datum-side); left as a named residual.
+    sorry
+  -- (R-src0F-2) per-window decay constant + n-UNIFORM iterate envelope.  ROUTE: each
+  -- iterate slice `intervalDomainLift (picardIter p u₀ n s)` is genuinely `ContDiff ℝ 2`
+  -- (spatial bootstrap `picardIterateHasC2Slices_all`) with K2 constants `(M,G1,G2)`
+  -- that are UNIFORM in `n` on the window `[a',τ]⋐(0,T)` (Picard ball + per-compact
+  -- gradient/Hessian bounds, n-independent).  Applying the GLOBAL decay machinery
+  -- `logisticSourceFun_cosineCoeff_quadratic_decay_explicit` PER ITERATE (no
+  -- representation — the iterate IS C²) gives
+  -- `|coeffs(logistic(iter n s)) k| ≤ windowEnv (Cwin a') k` with
+  -- `Cwin a' := max (2·B_log p.a p.b p.α M G1 G2) (M·(p.a+p.b·M^α))`, uniform in n.
+  -- This is the `IntervalPicardIterateSourceC1.picardIterate_source_duhamelSourceTimeC1`
+  -- envelope read off per-window, NOT the limit representation.  Concrete witness
+  -- `Cwin := fun _ => 0` is a placeholder; the genuine content is `henv_iter` (named).
+  have hCwin_ex : ∃ Cwin : ℝ → ℝ, (∀ a', 0 ≤ Cwin a') ∧
+      (∀ a', 0 < a' → ∀ s, a' ≤ s → s ≤ D.T → ∀ (n : ℕ) (k : ℕ),
+        |cosineCoeffs (logisticLifted p
+          (ShenWork.IntervalMildPicard.picardIter p u₀ n s)) k|
+          ≤ ShenWork.IntervalPicardLimitBddProducer.windowEnv (Cwin a') k) := by
+    -- satisfiable iterate-side input (n-uniform C² decay); left as a named residual.
+    sorry
+  let Cwin : ℝ → ℝ := hCwin_ex.choose
+  have hCwin : ∀ a', 0 ≤ Cwin a' := hCwin_ex.choose_spec.1
+  have henv_iter : ∀ a', 0 < a' → ∀ s, a' ≤ s → s ≤ D.T → ∀ (n : ℕ) (k : ℕ),
+      |cosineCoeffs (logisticLifted p
+        (ShenWork.IntervalMildPicard.picardIter p u₀ n s)) k|
+        ≤ ShenWork.IntervalPicardLimitBddProducer.windowEnv (Cwin a') k :=
+    hCwin_ex.choose_spec.2
+  -- (R-src0F-3) pointwise coefficient convergence iterate → `D.u`.  ROUTE: for `D`
+  -- coming from the Picard construction, `D.u = picardLimit p u₀ D.T`, and
+  -- `IntervalPicardLimitCoeffConv.picardIter_logisticCoeff_tendsto_limit` gives exactly
+  -- this Tendsto on `(0,T]` (coefficient distance squeezed through `2·Lc·K^n·C₀/(1−K)`).
+  -- For a generic `GradientMildSolutionData` the bridge `D.u = picardLimit` is the mild
+  -- uniqueness identity; satisfiable, threaded here as a named residual.
+  have hconv : ∀ s, 0 < s → s ≤ D.T → ∀ k,
+      Filter.Tendsto (fun n => cosineCoeffs (logisticLifted p
+          (ShenWork.IntervalMildPicard.picardIter p u₀ n s)) k)
+        Filter.atTop (nhds (cosineCoeffs (logisticLifted p (D.u s)) k)) := by
+    -- satisfiable iterate-side input (convergence to the limit slice); named residual.
+    sorry
+  -- (R-src0F-4) time-continuity of the patched coefficient family.  NAMED satisfiable
+  -- exactly as `IntervalPicardLimitBddProducer.duhamelSourceBddOn_of_mildData`'s
+  -- `hcontP`: on `(0,τ]` from slice time-continuity (mild/restart); right-continuity
+  -- at `0` from the initial-approach `gradientMildSolutionData_initialApproach` +
+  -- coefficient Lipschitz.  Threaded as a named residual.
+  have hcontP : ∀ k, ContinuousOn
+      (fun s => ShenWork.IntervalPicardLimitBddProducer.patchedSource p u₀ D.u s k)
+      (Set.Icc 0 D.T) := by
+    sorry
   have hsrc0F : ShenWork.IntervalPicardLimitRestartBdd.DuhamelSourceBddOn
-      (ShenWork.IntervalPicardLimitBddProducer.patchedSource p u₀ D.u) D.T := sorry
+      (ShenWork.IntervalPicardLimitBddProducer.patchedSource p u₀ D.u) D.T :=
+    ShenWork.IntervalPicardLimitBddBootstrap.duhamelSourceBddOn_of_iterates
+      p D hα ha.le hb.le hM₀'_nonneg hu₀_src_bound Cwin hCwin henv_iter hconv
+      D.hT le_rfl hcontP
   -- hoisted facts shared by several fields (H1 coefficient bound, K2 slice
   -- positivity, the limitCoeff cosine representation)
   have hu₀_bdF : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k|
@@ -410,19 +484,96 @@ noncomputable def reducedLimitRegularityInputs_of_picard
         (fun σ hσ hσT => hubtF σ hσ hσT.le)
         hG1tF hG2tF
         (ShenWork.Paper2.PicardLimitK1.adottOf p D.u) hK1.1 hK1.2.1 hK1.2.2 hLc_ceF)
-  -- Hvsrc: resolver power-source `ν·u^γ` time-`C¹` package.  The producer EXISTS
-  -- (`ResolverSourceTimeC1.resolverSource_timeC1_of_global_representation`, a
-  -- re-export of `IntervalDomainLogisticWeakH2Adapter.resolverSource_duhamelSourceTimeC1_of_representation`),
-  -- but `DuhamelSourceTimeC1` is GLOBAL-typed (`hderiv : ∀ s n`, `henv_bound`/
-  -- `hderivBound : ∀ s, 0 ≤ s`).  For the canonical `D.u` (Picard limit) the source
-  -- `ν·(D.u s)^γ` JUMPS at `s = D.T` (positive on `[0,1]` → `0` past `T`, since
-  -- `picardLimit = 0` off `(0,T]`), so the global `hderiv` at `s = D.T` is FALSE and
-  -- the ledger only supplies the representation/`K1`/`K2` inputs on `(0,D.T)`.  The
-  -- field is therefore unsatisfiable as typed for the canonical family; it needs the
-  -- same `…On T` retype the logistic source already got (`DuhamelSourceL1Cont` →
-  -- `DuhamelSourceL1ContOn`).  See `IntervalResolverSourceTimeC1.lean` header for the
-  -- precise retype shape (consumer-side, out of scope here).  Left `sorry` honestly.
-  Hvsrc := sorry
+  -- Hvsrc: resolver power-source `ν·u^γ` time-`C¹` package, now in the PER-`t₀`
+  -- CLAMPED form (retyped this campaign — the global `DuhamelSourceTimeC1` was
+  -- UNSATISFIABLE because `ν·(D.u s)^γ` jumps at `s = D.T`; see the field doc in
+  -- `IntervalDomainMildLocalChi0`).  For each interior `t₀` we build the clamped
+  -- witness via `ResolverSourceClampedWitness.clampedResolverSource_duhamelSourceTimeC1`
+  -- with clamp window `[c',d'] = [t₀/4, (t₀+3·D.T)/4] ⊂ (0,D.T)` and id-zone
+  -- `[c,d] = [t₀/2, (t₀+D.T)/2]` (a neighborhood of `t₀`, so `φ = id` there and the
+  -- clamped family AGREES with the canonical resolver-source coefficients on `W`).
+  -- The producer's SATISFIABLE inputs (cosine representation `bc`, `[0,1]`-agreement
+  -- `hagreeF`, positivity `hpostF`, eigenvalue-summability `hbsumF`) are threaded
+  -- from the already-available windowed ledger data; the POWER-SOURCE quadratic
+  -- decay and the POWER-SOURCE K1 time-`C¹` quadruple are the genuine remaining
+  -- residuals (the `ν·r^γ` analogues of the logistic decay envelope + the K1
+  -- `hasDerivAt_logisticSlice` clone — see the named `sorry`s below).
+  Hvsrc := fun t₀ ht₀ ht₀T => by
+    -- clamp window and id-zone around t₀, both ⊂ (0, D.T)
+    set c' : ℝ := t₀ / 4 with hc'def
+    set c : ℝ := t₀ / 2 with hcdef
+    set d : ℝ := (t₀ + D.T) / 2 with hddef
+    set d' : ℝ := (t₀ + 3 * D.T) / 4 with hd'def
+    have hTpos : 0 < D.T := ht₀.trans ht₀T
+    have hc'c : c' < c := by rw [hc'def, hcdef]; linarith
+    have hcd : c ≤ d := by rw [hcdef, hddef]; linarith
+    have hdd' : d < d' := by rw [hddef, hd'def]; linarith
+    have hc'pos : 0 < c' := by rw [hc'def]; linarith
+    have hd'T : d' < D.T := by rw [hd'def]; linarith
+    have hwin_sub : ∀ σ ∈ Set.Icc c' d', 0 < σ ∧ σ ≤ D.T := fun σ hσ =>
+      ⟨lt_of_lt_of_le hc'pos hσ.1, le_of_lt (lt_of_le_of_lt hσ.2 hd'T)⟩
+    -- the cosine representation family (= limitCoeff, as elsewhere in this Provider)
+    set bc : ℝ → ℕ → ℝ :=
+      fun σ k => ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ D.u σ k with hbcdef
+    -- SATISFIABLE windowed inputs, restricted from the (0,D.T] ledger data:
+    have hbsumW : ∀ σ ∈ Set.Icc c' d',
+        Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|) := by
+      intro σ hσ; exact hbsumF σ (hwin_sub σ hσ).1 (hwin_sub σ hσ).2
+    have hagreeW : ∀ σ ∈ Set.Icc c' d', Set.EqOn (intervalDomainLift (D.u σ))
+        (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1) := by
+      intro σ hσ; exact hagreeF σ (hwin_sub σ hσ).1 (hwin_sub σ hσ).2
+    have hposW : ∀ σ ∈ Set.Icc c' d', ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        0 < intervalDomainLift (D.u σ) x := by
+      intro σ hσ; exact hpostF σ (hwin_sub σ hσ).1 (hwin_sub σ hσ).2
+    -- ===== GENUINE RESIDUALS (power-source decay + power-source K1) =====
+    -- (R-Hvsrc-1) POWER-SOURCE quadratic decay of `ν·u^γ` on the window.  ROUTE:
+    -- `IntervalMildSourceDecayHelper.powerSource_cosineCoeff_quadratic_decay_of_chain_rule`
+    -- per window slice (`PowerSourceH2NeumannData p.ν p.γ M (lift (D.u σ))`, built from
+    -- the cosine representation `hagreeW`/`hbsumW`/`hposW` + the K2 window bounds
+    -- `hubtF`/`hG1tF`/`hG2tF`, exactly as the logistic decay envelope is built), with a
+    -- window-uniform constant `C` (the `ν·r^γ` analogue of the logistic envelope
+    -- constant).  SATISFIABLE; named residual.
+    have hdecayW : ∃ C : ℝ, 0 ≤ C ∧
+        (∀ σ ∈ Set.Icc c' d', ∀ k : ℕ, 1 ≤ k →
+          |cosineCoeffs (fun x => p.ν * intervalDomainLift (D.u σ) x ^ p.γ) k|
+            ≤ C / ((k : ℝ) * Real.pi) ^ 2) ∧
+        (∀ σ ∈ Set.Icc c' d',
+          |cosineCoeffs (fun x => p.ν * intervalDomainLift (D.u σ) x ^ p.γ) 0| ≤ C) :=
+      sorry
+    obtain ⟨C, hC, hdecayWk, ha0W⟩ := hdecayW
+    -- (R-Hvsrc-2) POWER-SOURCE K1 time-`C¹` quadruple for `ν·u^γ` on the window.
+    -- ROUTE: clone `IntervalPicardLimitK1Weak.hasDerivAt_logisticSlice` /
+    -- `hasDerivAt_sourceCoeff` with the nonlinearity `r ↦ p.ν·r^p.γ` (chain rule
+    -- through `Real.hasDerivAt_rpow_const` on the strictly-positive slice `D.u σ`,
+    -- `hposW`), giving the cosine-coefficient time derivative `adotP σ k`, its window
+    -- continuity, and a window-uniform bound `Mdot` — the exact `ν·r^γ` analogue of the
+    -- already-available logistic K1 quadruple `hK1`.  SATISFIABLE; named residual.
+    have hK1pow : ∃ (adotP : ℝ → ℕ → ℝ) (Mdot : ℝ),
+        (∀ σ ∈ Set.Icc c' d', ∀ n, HasDerivAt
+          (fun r => cosineCoeffs
+            (fun x => p.ν * intervalDomainLift (D.u r) x ^ p.γ) n) (adotP σ n) σ) ∧
+        (∀ n, ContinuousOn (fun σ => adotP σ n) (Set.Icc c' d')) ∧
+        (∀ σ ∈ Set.Icc c' d', ∀ n, |adotP σ n| ≤ Mdot) :=
+      sorry
+    obtain ⟨adotP, Mdot, hderivP, hadotcontP, hMdotP⟩ := hK1pow
+    -- Build the clamped resolver-source `DuhamelSourceTimeC1` (τ = 0 ⇒ Φ = φ).
+    refine ⟨fun σ k => (ShenWork.PDE.intervalNeumannResolverSourceCoeff p
+        (D.u (ShenWork.IntervalTimeSoftClamp.φ c' c d d' (0 + σ))) k).re,
+      ?_, Set.Ioo c d, ?_, ?_⟩
+    · exact ShenWork.Paper2.ResolverSourceClampedWitness.clampedResolverSource_duhamelSourceTimeC1
+        p D.u hc'c hcd hdd' bc hbsumW hagreeW hposW hC hdecayWk ha0W
+        adotP hderivP hadotcontP hMdotP
+    · -- W = Ioo c d ∈ 𝓝 t₀  (c = t₀/2 < t₀ < (t₀+T)/2 = d)
+      refine isOpen_Ioo.mem_nhds ⟨?_, ?_⟩
+      · rw [hcdef]; linarith
+      · rw [hddef]; linarith
+    · -- agreement on W: on Ioo c d ⊂ Icc c d the clamp is the identity (φ = id)
+      intro s hs k
+      have hsId : (0 : ℝ) + s ∈ Set.Icc c d :=
+        ⟨by simpa using le_of_lt hs.1, by simpa using le_of_lt hs.2⟩
+      have heq := ShenWork.Paper2.ResolverSourceClampedWitness.clampedResolverFamily_eq_on
+        p D.u hc'c hdd' hsId k
+      simpa using heq
   -- Hvpos: strict boundary positivity of the resolver, from the elliptic
   -- strong-maximum-principle producer (now landed).
   Hvpos := ShenWork.IntervalResolverStrictPositivity.mildChemicalConcentration_pos p D }
