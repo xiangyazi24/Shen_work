@@ -58,6 +58,7 @@
 import ShenWork.Paper2.IntervalDomainMildLocalChi0
 import ShenWork.Paper2.IntervalPicardLimitTimeNhd
 import ShenWork.Paper2.IntervalPicardLimitTimeNhdLocalized
+import ShenWork.Paper2.IntervalPicardLimitTimeNhdSubtype
 import ShenWork.Paper2.IntervalDomainLimitSourceRepresentation
 
 open MeasureTheory Set Filter Topology
@@ -77,6 +78,8 @@ open ShenWork.IntervalPicardLimitSourceData (limitSource_duhamelSourceTimeC1)
 open ShenWork.IntervalDomainLimitSourceRepresentation
   (limitSource_duhamelSourceTimeC1_of_representation)
 open ShenWork.IntervalPicardLimitTimeNhd (Hu_of_restart)
+open ShenWork.Paper2.TimeNhdSubtype (Hu_of_restart_localized_of_subtypeCont)
+open ShenWork.IntervalDomain (intervalDomainConstExtend constExtend_continuous)
 open ShenWork.Paper2
 open ShenWork.Paper2.MildLocalChi0 (LimitRegularityInputs)
 open ShenWork.IntervalDomainExistence (intervalLogisticSource)
@@ -161,34 +164,37 @@ structure ReducedLimitRegularityInputs
 
 /-- **`Hu` from the reduced ledger.**  Discharges
 `HasTimeNeighborhoodSpectralAgreement D.T D.u` from the TIME-LOCALIZED ledger data
-via `TimeNhdLocalized.Hu_of_restart_localized`.
+via the SUBTYPE-CONTINUITY variant
+`TimeNhdSubtype.Hu_of_restart_localized_of_subtypeCont`.
 
-DEVIATION (one residual `sorry`): `Hu_of_restart_localized` requires
+`TimeNhdLocalized.Hu_of_restart_localized` requires
 `hu₀_cont : Continuous (intervalDomainLift u₀)` — continuity of the ZERO-extension
 lift — which is FALSE for positive initial data (the lift jumps from `u₀ > 0` at
 the Neumann endpoints to `0` outside `[0,1]`).  The ledger carries only SUBTYPE
-continuity `Continuous u₀` (`I.hu₀_cont`).  The localized theorem is therefore not
-directly applicable; the `intervalDomainConstExtend` adapter does not help because
-the lift appears literally inside `Hu_of_restart_localized`'s homogeneous-term
-representation (not only in the coefficient bounds, which would be fine).
+continuity `Continuous u₀` (`I.hu₀_cont`), so that localized theorem is not
+directly applicable.
 
-The proper route is the SUBTYPE-CONTINUITY variant of the localized restart
-theorem — the same adapter already used by
-`limit_lift_eq_cosineSeries_of_subtypeCont`
-(`IntervalPicardLimitRestartWeak`, line 554), which replaces the false
-`Continuous (intervalDomainLift u₀)` by the paper-faithful `Continuous u₀`.  Until
-that subtype variant of `Hu_of_restart_localized` is provided, this field stays a
-single, precisely-localized `sorry`. -/
+The subtype variant `Hu_of_restart_localized_of_subtypeCont` routes the whole
+restart chain through the adapter `limit_lift_eq_cosineSeries_of_subtypeCont`
+(`IntervalPicardLimitRestartWeak`), which replaces the false
+`Continuous (intervalDomainLift u₀)` by the paper-faithful `Continuous u₀` plus
+the globally-continuous `intervalDomainConstExtend` slice continuity.  The
+ledger's `I.hLc` (subtype continuity of `intervalLogisticSource p (D.u s)`) is
+bridged to that constExtend form via `constExtend_continuous`.  No residual
+`sorry`. -/
 theorem Hu_of_reduced
     {p : CM2Params} (hχ0 : p.χ₀ = 0) {u₀ : intervalDomainPoint → ℝ}
     {D : GradientMildSolutionData p u₀}
     (I : ReducedLimitRegularityInputs p u₀ D) :
     HasTimeNeighborhoodSpectralAgreement D.T D.u :=
-  sorry -- DEVIATION: needs the subtype-continuity variant of
-        -- Hu_of_restart_localized — same adapter as
-        -- limit_lift_eq_cosineSeries_of_subtypeCont; ledger carries
-        -- Continuous u₀ (subtype) but the localized theorem demands
-        -- Continuous (intervalDomainLift u₀), false for positive data.
+  -- subtype-continuity variant: ledger carries `Continuous u₀` (subtype) and
+  -- subtype continuity of `intervalLogisticSource p (D.u s)`; the latter is
+  -- bridged to the globally-continuous constExtend form via `constExtend_continuous`.
+  Hu_of_restart_localized_of_subtypeCont hχ0 D.u I.hα I.ha I.hb I.hu₀_cont
+    I.hu₀_bound I.hfix I.hsrc0 I.bc I.hbsum I.hagree I.hpost I.hubt
+    I.hG1t I.hG2t I.adott I.hderivt I.hadotcontt I.hMdott
+    (fun t ht htT s hs hst =>
+      constExtend_continuous (I.hLc t ht htT s hs hst))
 
 /-! ## Reduced ledger ⟹ full ledger -/
 
