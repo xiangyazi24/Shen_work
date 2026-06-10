@@ -96,12 +96,34 @@ theorem one_add_mul_envelopeIntegral (a t : ℝ) :
 /-! ## The χ₀ = 0 uniform-horizon construction -/
 
 set_option maxHeartbeats 3200000 in
-/-- **Cone-uniform Picard data (χ₀ = 0)**: one horizon
-`δ = δ(p, M_in) > 0` such that EVERY continuous nonnegative datum with
-`|u₀| ≤ M_in` that is positive somewhere has a packaged Picard mild
-solution on exactly `[0, δ]` — no positive lower threshold on the datum.
-Positivity of the limit comes from the exponential cone invariance. -/
-theorem coneGradientMildSolutionData_exists (p : CM2Params) (hχ : p.χ₀ = 0)
+/-- **Cone-uniform Picard data (χ₀ = 0), strengthened output.**  Same one
+horizon `δ = δ(p, M_in) > 0` and same packaged `GradientMildSolutionData D`
+as `coneGradientMildSolutionData_exists`, but ALSO returns the cone
+construction's internal iterate slice-continuity bundle
+`∀ n, HasContinuousSlices D.T (picardIter p u₀ n)` (the in-proof
+`hcont_iterates`).  This is exactly the `hcont_iter` input that the
+`Hres` producer `picardIterateResidualData_of_cone` needs — and which a
+bare `GradientMildSolutionData` does not expose.
+
+ADDITIVE: the plain `coneGradientMildSolutionData_exists` is re-derived from
+this in one line below, so no consumer of the old shape changes.
+
+NOTE (cross-file ask resolution).  The `Hres` producer's `hME`
+(`MildExistenceData p u₀`) is NOT returned here, and is in fact NOT
+cone-constructible: `MildExistenceData.hmapsTo_nn` / `hmapsTo_pos` are
+universally quantified over ALL bounded-nonneg-continuous trajectories `w`,
+and are FALSE in the threshold-free cone regime for boundary-vanishing data
+(e.g. `w ≡ M` gives `L(w) = M(a − bM^α) < 0`, whose Duhamel correction
+dominates `S(t)u₀(x)` near a boundary point where `u₀ → 0`; the strict
+positivity of `S(t)u₀` is non-uniform in `t` and vanishes as `t → 0⁺`).
+The threshold construction (`thresholdMildExistenceData_exists`) only proves
+those fields under a uniform lower threshold `c ≤ u₀`, exactly what the cone
+route drops.  Every OTHER `MildExistenceData` field IS cone-constructible
+(verified): `hbase_ball/hbase_nonneg/hbase_cont` from the base semigroup,
+`hmapsTo/hcont_preserved/hmeas_preserved` from the inline `*_proof` lemmas,
+`hcontr` from `hcontr_proof` (with `K = C_L·T₀`), `hbase_diff/hbase_meas`
+from the geometric/measurability data. -/
+theorem coneGradientMildSolutionData_exists_with_data (p : CM2Params) (hχ : p.χ₀ = 0)
     {M_in : ℝ} (hM_in : 0 < M_in) (hα_ge : 1 ≤ p.α) :
     ∃ δ : ℝ, 0 < δ ∧
       ∀ u₀ : intervalDomainPoint → ℝ,
@@ -110,7 +132,8 @@ theorem coneGradientMildSolutionData_exists (p : CM2Params) (hχ : p.χ₀ = 0)
         (∀ x, 0 ≤ u₀ x) →
         (∃ x₀, 0 < u₀ x₀) →
         ∃ D : GradientMildSolutionData p u₀,
-          D.T = δ ∧ D.u = picardLimit p u₀ δ := by
+          D.T = δ ∧ D.u = picardLimit p u₀ δ ∧
+          (∀ n, HasContinuousSlices D.T (picardIter p u₀ n)) := by
   set M := 2 * max M_in 1 with hMdef
   have hM : 0 < M := by positivity
   have hM_ge_2 : (2 : ℝ) ≤ M := by
@@ -774,6 +797,30 @@ theorem coneGradientMildSolutionData_exists (p : CM2Params) (hχ : p.χ₀ = 0)
     hpos := hpos_limit
     hcont := hcont_limit
     hmeas := hmeas_limit
-  }, rfl, rfl⟩
+  }, rfl, rfl, hcont_iterates⟩
+
+/-- **Cone-uniform Picard data (χ₀ = 0)**: one horizon
+`δ = δ(p, M_in) > 0` such that EVERY continuous nonnegative datum with
+`|u₀| ≤ M_in` that is positive somewhere has a packaged Picard mild
+solution on exactly `[0, δ]` — no positive lower threshold on the datum.
+Positivity of the limit comes from the exponential cone invariance.
+
+Thin projection of `coneGradientMildSolutionData_exists_with_data` (drops the
+extra iterate slice-continuity bundle), kept so existing consumers are
+unchanged. -/
+theorem coneGradientMildSolutionData_exists (p : CM2Params) (hχ : p.χ₀ = 0)
+    {M_in : ℝ} (hM_in : 0 < M_in) (hα_ge : 1 ≤ p.α) :
+    ∃ δ : ℝ, 0 < δ ∧
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        Continuous u₀ →
+        (∀ x, |u₀ x| ≤ M_in) →
+        (∀ x, 0 ≤ u₀ x) →
+        (∃ x₀, 0 < u₀ x₀) →
+        ∃ D : GradientMildSolutionData p u₀,
+          D.T = δ ∧ D.u = picardLimit p u₀ δ := by
+  obtain ⟨δ, hδ, h⟩ := coneGradientMildSolutionData_exists_with_data p hχ hM_in hα_ge
+  refine ⟨δ, hδ, fun u₀ hc hb hnn hpos => ?_⟩
+  obtain ⟨D, hDT, hDu, _hcont_iter⟩ := h u₀ hc hb hnn hpos
+  exact ⟨D, hDT, hDu⟩
 
 end ShenWork.IntervalMildPicardConeData
