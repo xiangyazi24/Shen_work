@@ -1,3 +1,23 @@
+# UPDATE 2026-06-10 ~00:20 — NIGHT FINAL: sorry 21 → 2. Build 8530 jobs green.
+#
+# Closed since the 00:15 note: restart packaging BOTH killed (2069c27 —
+# the target structure was per-t₀ all along; only the old producer was
+# global-diseased); Hvsrc resolved as a documented FINDING (2f96ba3 — the
+# ledger field demands global TimeC1, but picardLimit is junk 0 off (0,T]
+# so hderiv at s=T is FALSE; the would-be filler + the DuhamelSourceTimeC1On
+# retype plan are in IntervalResolverSourceTimeC1.lean's header).
+#
+# THE LAST 2 (both Provider, both with complete designs):
+# 1. hsrc0F — BddOn patched-family migration (producer 0-sorry in
+#    IntervalPicardLimitBddProducer; design hsrc0-splitenv-design.md;
+#    work: patched↔canonical adapter + ledger field swap + weak-chain
+#    consumer entry swap to the Bdd lemmas)
+# 2. Hvsrc — DuhamelSourceTimeC1On retype through the resolver consumer
+#    chain (IntervalResolverDirectTimeRegularity →
+#    IntervalMildRegularityFrontierAssembly → ledgers), then apply the
+#    existing producer via the soft-clamp witness.
+#
+# ---- earlier ledger snapshots ----
 # UPDATE 2026-06-10 ~00:15 — FINAL ledger: sorry 21 → 4.
 #
 # K1 CLOSED: k1_quadruple_weak (BddOn spine, fixed-split majorant) +
