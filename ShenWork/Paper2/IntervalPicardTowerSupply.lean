@@ -29,9 +29,15 @@
     * `hG2end` — the two endpoint G2-step budgets (`x ∈ {0,1}`): PROVED
       unconditionally by `hStepEnd0_proved`/`hStepEnd1_proved` (the zero-extension
       junk-derivative fact — `∂ₓₓ lift = 0` at `0`/`1`), so they are NOT residual.
+    * `hcontSlice` — per-iterate slice continuity (`HasContinuousSlices`, n-uniform):
+      RETURNED by `coneGradientMildSolutionData_exists_with_gate_data`, so it is a
+      cone leg, NOT an analytic residual.  It REPLACES the former `hM₁` residual field:
+      the half-step coefficient bound `M₁ ≤ 2M` is now DERIVED in-tower from this slice
+      continuity + the ball sup `hub` via `cosineCoeffs_abs_le_of_continuous_bounded`
+      (`IntervalPicardSourceTower.halfStep_coeff_le_twoM`).
 
   ## (b) Genuinely-open analytic legs — the per-iterate spatial-`C²` bootstrap.
-    `hub`, `hsrc0`, `hL_cont`, `hG1all`, `hG2base`, `witness`, `hM₁`, and the `adot`
+    `hub`, `hsrc0`, `hL_cont`, `hG1all`, `hG2base`, `witness`, and the `adot`
     K1 stack (`adot`/`hadot_deriv`/`hadot_cont`/`adotBound`/`hadot_bound`) ALL depend
     on the per-iterate spatial-`C²`/positivity/Neumann regularity of EVERY Picard
     level (`picardIterateHasC2Slices_all`), whose step data
@@ -41,8 +47,10 @@
     They are NOT faked: they are carried as ONE explicit named hypothesis package
     `TowerConeAnalyticResidual`, which IS the exact remaining analytic surface (the
     same family of facts `uniformWiring_closure` consumes — `hsrc0`/`hL_cont`/`hG1all`
-    /`hG2base`/the G2-step shifted-source witnesses/`hM₁` — plus the `adot` K1 data
-    the clamped source producer reads, restated at the cone datum's horizon).
+    /`hG2base`/the G2-step shifted-source witnesses — plus the `adot` K1 data
+    the clamped source producer reads, restated at the cone datum's horizon).  The
+    former `hM₁` leg has been REMOVED from the residual (derived in-tower from the
+    cone-returned slice continuity; see (a)).
 
   This is the project's standing discipline (TASK_QUEUE group C): a theorem that
   projects from an assumption package is honest IFF the field is the EXACT remaining
@@ -63,6 +71,7 @@ open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.IntervalGradientDuhamelMap (logisticLifted)
 open ShenWork.IntervalMildPicard
   (picardIter picardLimit GradientMildSolutionData HasContinuousSlices)
+open ShenWork.IntervalPicardSourceTower (halfStep_coeff_le_twoM)
 open ShenWork.IntervalMildPicardRegularity (logisticSourceFun)
 open ShenWork.IntervalHomogeneousQuantBound (eigExpWeight)
 open ShenWork.IntervalPicardIterateUniform
@@ -104,9 +113,6 @@ structure TowerConeAnalyticResidual
     |deriv (deriv (intervalDomainLift (picardIter p u₀ 0 σ))) x| ≤ G2profile A₂ σ
   /-- The per-level half-step shifted-source witness (stage-1 File B/C). -/
   witness : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ D.T → ShiftedSourceWitness p u₀ n t M A₂
-  /-- The half-step coefficient bound `M₁ ≤ 2M`. -/
-  hM₁ : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ D.T →
-    ∀ k, |cosineCoeffs (intervalDomainLift (picardIter p u₀ (n + 1) (t / 2))) k| ≤ 2 * M
   /-- The level-`n` source-derivative `adot` data on every window. -/
   adot : ℕ → ℝ → ℕ → ℝ
   hadot_deriv : ∀ (n : ℕ) (c' d' : ℝ), ∀ σ ∈ Set.Icc c' d', ∀ k, HasDerivAt
@@ -143,6 +149,10 @@ def towerInputs_of_cone
     -- the cone's ROUND-3 per-iterate strict positivity (returned by the gate cone):
     (hpos : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
       0 < intervalDomainLift (picardIter p u₀ n σ) x)
+    -- the cone's per-iterate slice continuity (returned `HasContinuousSlices`, NOT
+    -- analytic-wall): feeds the in-tower `M₁ ≤ 2M` derivation (`halfStep_coeff_le_twoM`),
+    -- so the former `hM₁` field is no longer an analytic residual:
+    (hcontSlice : ∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n))
     -- the genuinely-open per-iterate analytic surface:
     (H : TowerConeAnalyticResidual p u₀ D M A₂) :
     Σ' M A₂ : ℝ, TowerInputs p u₀ M A₂ D.T :=
@@ -163,7 +173,7 @@ def towerInputs_of_cone
     hG1all := H.hG1all
     hG2base := H.hG2base
     witness := H.witness
-    hM₁ := H.hM₁
+    hcontSlice := hcontSlice
     -- endpoint G2-step budgets: PROVED (zero-extension junk-derivative), per `x∈{0,1}`.
     hG2end := by
       intro n t ht htT x hx
@@ -200,6 +210,7 @@ def coneTowerSupply
           (∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M) ×'
           (∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
             0 < intervalDomainLift (picardIter p u₀ n σ) x) ×'
+          (∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n)) ×'
           TowerConeAnalyticResidual p u₀ D M A₂) :
     ∀ u₀ : intervalDomainPoint → ℝ,
       ∀ D : GradientMildSolutionData p u₀,
@@ -209,7 +220,8 @@ def coneTowerSupply
     let S := HCone u₀ D hDu
     towerInputs_of_cone p hχ0 hα ha hb u₀ D
       S.2.2.1 S.2.2.2.1 S.2.2.2.2.1 S.2.2.2.2.2.1
-      S.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.2.2
+      S.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.2.1
+      S.2.2.2.2.2.2.2.2.2.1 S.2.2.2.2.2.2.2.2.2.2
 
 /-- **`HWdata_of_coneSupply` — the capstone `HWdata` from the cone supply.** -/
 def HWdata_of_coneSupply
@@ -223,6 +235,7 @@ def HWdata_of_coneSupply
           (∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M) ×'
           (∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
             0 < intervalDomainLift (picardIter p u₀ n σ) x) ×'
+          (∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n)) ×'
           TowerConeAnalyticResidual p u₀ D M A₂) :
     ∀ u₀ : intervalDomainPoint → ℝ,
       PositiveInitialDatum intervalDomain u₀ →
@@ -255,6 +268,7 @@ theorem paper2_theorem_1_1_chiZero_from_coneSupply
           (∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M) ×'
           (∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
             0 < intervalDomainLift (picardIter p u₀ n σ) x) ×'
+          (∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n)) ×'
           TowerConeAnalyticResidual p u₀ D M A₂) :
     ShenWork.Paper2.Theorem_1_1 intervalDomain p :=
   ShenWork.Paper2.Thm11ChiZeroCoreProvider.paper2_theorem_1_1_chiZero_unconditional

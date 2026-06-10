@@ -47,9 +47,10 @@ open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.IntervalGradientDuhamelMap (logisticLifted)
-open ShenWork.IntervalMildPicard (picardIter)
+open ShenWork.IntervalMildPicard (picardIter HasContinuousSlices)
 open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
-open ShenWork.IntervalMildPicardRegularity (logisticSourceFun)
+open ShenWork.IntervalMildPicardRegularity
+  (logisticSourceFun cosineCoeffs_abs_le_of_continuous_bounded)
 open ShenWork.IntervalHomogeneousQuantBound (eigExpWeight)
 open ShenWork.IntervalPicardIterateUniform
   (G1profile G2profile Benv GateCondition CL g2_step_closes
@@ -164,9 +165,13 @@ structure TowerInputs (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   /-- The per-level half-step shifted-source witness (stage-1 File B/C), supplying
   the M2-uniform G2-step budget through `iterate_abs_deriv2_le_of_shiftedWitness`. -/
   witness : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ShiftedSourceWitness p u₀ n t M A₂
-  /-- The half-step coefficient bound `M₁ ≤ 2M` (verdict trap 7). -/
-  hM₁ : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T →
-    ∀ k, |cosineCoeffs (intervalDomainLift (picardIter p u₀ (n + 1) (t / 2))) k| ≤ 2 * M
+  /-- Per-iterate slice continuity (cone-returned `HasContinuousSlices`, n-uniform).
+  Replaces the former `hM₁` coefficient field: the half-step coefficient bound
+  `M₁ ≤ 2M` (verdict trap 7) is now DERIVED in-tower from this slice continuity plus
+  the ball sup `hub` via `cosineCoeffs_abs_le_of_continuous_bounded` — see
+  `halfStep_coeff_le_twoM`.  This is NOT an analytic-wall leg: it is exactly the
+  `HasContinuousSlices` data returned by the gate-data cone. -/
+  hcontSlice : ∀ n : ℕ, HasContinuousSlices T (picardIter p u₀ n)
   /-- The two endpoint G2-step budgets (`x ∈ {0,1}`), carried as the honest
   endpoint residual exactly as `hEnd0`/`hEnd1` in the discharge stack: the
   slice↔restart-series agreement only transports the second derivative on the OPEN
@@ -197,6 +202,36 @@ structure TowerInputs (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   adotBound : ℕ → ℝ → ℝ → ℝ
   hadot_bound : ∀ (n : ℕ) (c' d' : ℝ), ∀ σ ∈ Set.Icc c' d', ∀ k,
     |adot n σ k| ≤ adotBound n c' d'
+
+/-- **In-tower derivation of the half-step coefficient bound `M₁ ≤ 2M`.**
+For any level `m` and time `s ∈ (0,T]`, the slice `picardIter p u₀ m s` is
+continuous on the subtype (`hcontSlice`), hence its zero-extension lift is
+`ContinuousOn (Icc 0 1)`; bounded there by the ball sup `hub … ≤ M`, so each cosine
+coefficient is `≤ 2M` by `cosineCoeffs_abs_le_of_continuous_bounded`.  This replaces
+the former external `hM₁` field of `TowerInputs`. -/
+theorem halfStep_coeff_le_twoM
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (H : TowerInputs p u₀ M A₂ T) (m : ℕ) {s : ℝ} (hs : 0 < s) (hsT : s ≤ T) :
+    ∀ k, |cosineCoeffs (intervalDomainLift (picardIter p u₀ m s)) k| ≤ 2 * M := by
+  have hcont_s : Continuous (picardIter p u₀ m s) := H.hcontSlice m s hs hsT
+  -- The lift restricted to `Icc 0 1` is the subtype slice, hence `ContinuousOn`.
+  have hgc : ContinuousOn (intervalDomainLift (picardIter p u₀ m s)) (Set.Icc (0 : ℝ) 1) := by
+    rw [continuousOn_iff_continuous_restrict]
+    have heq : (Set.Icc (0 : ℝ) 1).restrict (intervalDomainLift (picardIter p u₀ m s))
+        = picardIter p u₀ m s := by
+      funext y
+      simp only [Set.restrict_apply, intervalDomainLift]
+      rw [dif_pos y.2]
+      exact congr_arg (picardIter p u₀ m s) (Subtype.ext rfl)
+    rw [heq]; exact hcont_s
+  -- Bounded by `M` on `Icc 0 1` from the ball sup.
+  have hbd : ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |intervalDomainLift (picardIter p u₀ m s) x| ≤ M := by
+    intro x hx
+    have hpos := H.hpos m s hs hsT x hx
+    have hub := H.hub m s hs hsT x hx
+    rw [abs_of_pos hpos]; exact hub
+  exact cosineCoeffs_abs_le_of_continuous_bounded hgc H.hMnn hbd
 
 /-! ## §4 — The window source package builder.
 
@@ -335,12 +370,19 @@ def tower_succ
     (H : TowerInputs p u₀ M A₂ T) {n : ℕ}
     (_L : TowerLevel p u₀ M A₂ T n) :
     TowerLevel p u₀ M A₂ T (n + 1) := by
+  -- The half-step coefficient bound `M₁ ≤ 2M` is now DERIVED in-tower (no longer an
+  -- external `TowerInputs` field) from the cone-returned slice continuity + ball sup.
+  have hM₁ : ∀ σ, 0 < σ → σ ≤ T → ∀ k,
+      |cosineCoeffs (intervalDomainLift (picardIter p u₀ (n + 1) (σ / 2))) k| ≤ 2 * M := by
+    intro σ hσ hσT k
+    exact halfStep_coeff_le_twoM p u₀ H (n + 1) (by positivity)
+      (by linarith) k
   -- representation summability via the shifted-source witness.
   have hrepr_sum : ∀ σ, 0 < σ → σ ≤ T →
       Summable (fun k => (λ_ k) * |iterateReprCoeff p u₀ (n + 1) σ k|) := by
     intro σ hσ hσT
     exact ShenWork.IntervalPicardIterateRestartLocal.hbsum_succ_of_shiftedWitness
-      p u₀ n hσ (fun k => H.hM₁ n σ hσ hσT k) (H.witness n σ hσ hσT)
+      p u₀ n hσ (fun k => hM₁ σ hσ hσT k) (H.witness n σ hσ hσT)
   -- representation agreement via the subtype-continuity variant.
   have hrepr_agree : ∀ σ, 0 < σ → σ ≤ T →
       Set.EqOn (intervalDomainLift (picardIter p u₀ (n + 1) σ))
@@ -376,12 +418,12 @@ def tower_succ
         · -- interior x ∈ Ioo 0 1: witness deriv² on the restart series + Ioo transport
           refine ⟨2 * M, le_refl _, ?_⟩
           have hbound := iterate_abs_deriv2_le_of_shiftedWitness p u₀ n hσ hBenv
-            (fun k => H.hM₁ n σ hσ hσT k) (H.witness n σ hσ hσT) x
+            (fun k => hM₁ σ hσ hσT k) (H.witness n σ hσ hσT) x
           -- the witness gives the bound with the half-step coefficient `M₁`; here we
           -- absorb `M₁ ≤ 2M`'s slack into the leading `2M·eig` term.
           have hM₁le : ∀ k, |cosineCoeffs
               (intervalDomainLift (picardIter p u₀ (n + 1) (σ / 2))) k| ≤ 2 * M :=
-            fun k => H.hM₁ n σ hσ hσT k
+            fun k => hM₁ σ hσ hσT k
           -- restart-series ↔ slice agreement on the open interior.
           have hEq : Set.EqOn (intervalDomainLift (picardIter p u₀ (n + 1) σ))
               (fun z => ∑' k, restartIterateCoeff p u₀ n σ k * cosineMode k z)
