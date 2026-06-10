@@ -84,6 +84,7 @@ import ShenWork.Paper2.IntervalCompactSliceGradientBounds
 import ShenWork.Paper2.IntervalResolverStrictPositivity
 import ShenWork.Paper2.IntervalDomainPdeUWiring
 import ShenWork.Paper2.IntervalPicardLimitK1Weak
+import ShenWork.Paper2.IntervalResolverSourceTimeC1
 
 open MeasureTheory Set Filter Topology
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalDomain
@@ -394,6 +395,18 @@ noncomputable def reducedLimitRegularityInputs_of_picard
         (fun σ k => ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ D.u σ k)
         hbsumF hagreeF hpostF hubtF hG1tF hG2tF
         (ShenWork.Paper2.PicardLimitK1.adottOf p D.u) hK1.1 hK1.2.1 hK1.2.2 hLc_ceF)
+  -- Hvsrc: resolver power-source `ν·u^γ` time-`C¹` package.  The producer EXISTS
+  -- (`ResolverSourceTimeC1.resolverSource_timeC1_of_global_representation`, a
+  -- re-export of `IntervalDomainLogisticWeakH2Adapter.resolverSource_duhamelSourceTimeC1_of_representation`),
+  -- but `DuhamelSourceTimeC1` is GLOBAL-typed (`hderiv : ∀ s n`, `henv_bound`/
+  -- `hderivBound : ∀ s, 0 ≤ s`).  For the canonical `D.u` (Picard limit) the source
+  -- `ν·(D.u s)^γ` JUMPS at `s = D.T` (positive on `[0,1]` → `0` past `T`, since
+  -- `picardLimit = 0` off `(0,T]`), so the global `hderiv` at `s = D.T` is FALSE and
+  -- the ledger only supplies the representation/`K1`/`K2` inputs on `(0,D.T)`.  The
+  -- field is therefore unsatisfiable as typed for the canonical family; it needs the
+  -- same `…On T` retype the logistic source already got (`DuhamelSourceL1Cont` →
+  -- `DuhamelSourceL1ContOn`).  See `IntervalResolverSourceTimeC1.lean` header for the
+  -- precise retype shape (consumer-side, out of scope here).  Left `sorry` honestly.
   Hvsrc := sorry
   -- Hvpos: strict boundary positivity of the resolver, from the elliptic
   -- strong-maximum-principle producer (now landed).
