@@ -20,36 +20,35 @@
   `τ = t₀/2`, exactly as in the localized `Hu` witness; the restart representation
   `hrep` is transferred verbatim through `picardLimitRestart_general_of_subtypeCont`.
 
-  ## The one genuine obstruction (isolated as a single named `sorry`)
+  ## The former obstruction, now resolved by the continuous surrogate
 
-  Two fields of `HasSpectralPdeAgreement` —
+  Earlier, two fields of `HasSpectralPdeAgreement` pinned the GLOBAL zero-extension
+  `intervalDomainLift (u t₀)`, which JUMPS from `u t₀ > 0` at the Neumann endpoints
+  to `0` outside `[0,1]` (the `hpost` positivity).  `logisticSourceFun … (lift
+  (u t₀))` is therefore GENUINELY DISCONTINUOUS, and the cosine-inversion engine it
+  fed (`intervalCosine_hasSum_pointwise`, which bundles `reflCircle f` into a
+  *continuous* map `C(AddCircle 2, ℂ)`) needed that global continuity essentially —
+  an unprovable `Continuous (lift (u t₀))`.
 
-  * `Continuous (logisticSourceFun … (intervalDomainLift (u t₀)))`, and
-  * `Summable (fun n : ℤ => fourierCoeff (reflCircle (logisticSourceFun …
-      (intervalDomainLift (u t₀)))) n)` —
+  `HasSpectralPdeAgreement` has since been retyped (in `IntervalDomainPdeUProducer`)
+  to consume an EXISTENTIALLY QUANTIFIED CONTINUOUS SURROGATE `g` that agrees with
+  the lift's logistic source on `[0,1]`, together with the `[0,1]` agreement, the
+  surrogate's `reflCircle` Fourier-summability, and `hsrc_coeff` restated against
+  `cosineCoeffs g`.  Here the surrogate is the CONSTANT EXTENSION of the per-slice
+  logistic source, `g := intervalDomainConstExtend (intervalLogisticSource p (u t₀))`:
 
-  pin the GLOBAL zero-extension `intervalDomainLift (u t₀)`, which JUMPS from
-  `u t₀ > 0` at the Neumann endpoints to `0` outside `[0,1]` (the `hpost`
-  positivity).  Hence `logisticSourceFun … (lift (u t₀))` is GENUINELY
-  DISCONTINUOUS, and the cosine-inversion engine it feeds
-  (`intervalCosine_hasSum_pointwise`, which bundles `reflCircle f` into a
-  *continuous* map `C(AddCircle 2, ℂ)`) needs that global continuity essentially.
+  * continuity of `g` is the in-scope hypothesis `hLc_ce` (instantiated at the slice
+    `s = t = t₀`);
+  * `[0,1]` agreement is `constExtend_eq_lift_on_Icc` composed with
+    `logisticLifted_eq_logisticSourceFun_on_Icc`;
+  * the `reflCircle` Fourier-summability of `g` comes from the converse bridge
+    `fourierCoeff_reflCircle_summable_of_cosineCoeff_abs`, fed by the quadratic-decay
+    envelope of the clamped source family (`|cosineCoeffs g n| = |aC (t₀−τ) n| ≤
+    envelope n`, summable) — no continuity of the discontinuous lift is ever invoked.
 
-  These two facts are NOT among the data the existential lets us choose: the
-  structure pins `u`, and `lift` is applied to `u t₀`.  The constExtend cosine
-  series `cs t₀` IS globally continuous and shares the cosine coefficients
-  (`cosineCoeffs` integrates only over `[0,1]`), but the structure as typed in
-  `IntervalDomainPdeUProducer` requires the LIFT function itself, not its `[0,1]`
-  cosine surrogate — so the surrogate cannot be substituted without editing that
-  (off-limits) structure.  This is the SAME wall documented as the residual `sorry`
-  in `LedgerSweep.Hu_of_reduced` (false `Continuous (intervalDomainLift u₀)`),
-  pushed one level up to the logistic source of `u t₀`.
+  Thus EVERY field of `HasSpectralPdeAgreement` is now produced sorry-free.
 
-  It is therefore isolated here as the SINGLE named hypothesis-lemma
-  `logisticSourceLift_cont_and_fourierSummable`, with its exact statement; every
-  other field of `HasSpectralPdeAgreement` is produced sorry-free below.
-
-  No `admit`, no custom `axiom`, no `native_decide`.
+  No `sorry`, no `admit`, no custom `axiom`, no `native_decide`.
 -/
 import ShenWork.Paper2.IntervalDomainPdeUProducer
 import ShenWork.Paper2.IntervalPicardLimitTimeNhdSubtype
@@ -79,27 +78,59 @@ namespace ShenWork.Paper2.PdeUWiring
 
 local notation "λ_" n => unitIntervalCosineEigenvalue n
 
-/-- **The single genuine obstruction (isolated `sorry`).**
+/-- **Converse summability bridge: cosine-`ℓ¹` ⟹ `reflCircle` Fourier-`ℓ¹`.**
 
-`Continuous (logisticSourceFun … (lift (u t₀)))` and the matching `reflCircle`
-Fourier-summability.  Both are FALSE for the zero-extension lift of strictly
-positive boundary data (the lift jumps to `0` outside `[0,1]`), and the
-cosine-inversion engine `intervalCosine_hasSum_pointwise` consumes the global
-continuity essentially (it bundles `reflCircle f` into `C(AddCircle 2, ℂ)`).  This
-is the only fact of `HasSpectralPdeAgreement` not produced sorry-free below; it is
-the same wall as `LedgerSweep.Hu_of_reduced`'s residual `sorry`, here on the
-logistic source of `u t₀`.
+For a CONTINUOUS `g`, the even-reflection Fourier coefficient `fourierCoeff
+(reflCircle g) n` is real and (up to the `1/2` mode factor) equals `cosineCoeffs g
+|n|`; in particular `‖fourierCoeff (reflCircle g) (±n)‖ ≤ |cosineCoeffs g n|`.  Hence
+absolute summability of the `ℕ`-indexed cosine coefficients of `g` forces
+summability of the `ℤ`-indexed `reflCircle` Fourier coefficients.
 
-The honest fix requires retyping `HasSpectralPdeAgreement` (in the off-limits
-`IntervalDomainPdeUProducer`) to consume the `[0,1]`-cosine surrogate `cs t₀` —
-which IS globally continuous and shares all cosine coefficients — instead of the
-discontinuous lift.  Until then this stays a single, precisely-localized hole. -/
-theorem logisticSourceLift_cont_and_fourierSummable
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (t₀ : ℝ) :
-    Continuous (logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀))) ∧
-    Summable (fun n : ℤ => fourierCoeff
-      (reflCircle (logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀)))) n) :=
-  sorry
+This is the converse direction of `intervalCosineCoeff_summable_abs`, and it is what
+lets us discharge the inversion engine's regularity input from the quadratic-decay
+envelope of the (clamped) source family — no continuity of the discontinuous lift is
+ever needed; only the continuous surrogate `g`. -/
+theorem fourierCoeff_reflCircle_summable_of_cosineCoeff_abs
+    {g : ℝ → ℝ} (hg : Continuous g)
+    (hcos : Summable (fun n : ℕ => |cosineCoeffs g n|)) :
+    Summable (fun n : ℤ => fourierCoeff (reflCircle g) n) := by
+  classical
+  -- `‖fourierCoeff (reflCircle g) (n:ℤ)‖ ≤ |cosineCoeffs g n|` for `n : ℕ`.
+  have hbnd : ∀ n : ℕ,
+      ‖fourierCoeff (reflCircle g) (n : ℤ)‖ ≤ |cosineCoeffs g n| := by
+    intro n
+    -- the coefficient is real, so its norm is the abs of its real part.
+    have hre : ‖fourierCoeff (reflCircle g) (n : ℤ)‖
+        = |(fourierCoeff (reflCircle g) (n : ℤ)).re| := by
+      rw [← ShenWork.IntervalCosineInversion.fourierCoeff_ofReal_re g hg (n : ℤ),
+        Complex.norm_real, Real.norm_eq_abs, Complex.ofReal_re]
+    -- `cosineCoeffs g n = (1 or 2) · (fourierCoeff (reflCircle g) n).re`.
+    have hcoeff : cosineCoeffs g n
+        = (if n = 0 then (1 : ℝ) else 2)
+            * (fourierCoeff (reflCircle g) (n : ℤ)).re := by
+      rw [ShenWork.IntervalCosineInversion.cosineCoeffs_eq g hg n,
+        ShenWork.IntervalCosineInversion.fourierCoeff_reflCircle]
+    rw [hre, hcoeff, abs_mul]
+    -- `|if n=0 then 1 else 2| ≥ 1`, so `|re| ≤ |if…| · |re|`.
+    have hfac : (1 : ℝ) ≤ |(if n = 0 then (1 : ℝ) else 2)| := by
+      rcases eq_or_ne n 0 with h | h <;> simp [h]
+    nlinarith [hfac, abs_nonneg ((fourierCoeff (reflCircle g) (n : ℤ)).re)]
+  -- evenness of the coefficient in the frequency.
+  have heven : ∀ n : ℤ,
+      fourierCoeff (reflCircle g) (-n) = fourierCoeff (reflCircle g) n := by
+    intro n
+    rw [ShenWork.IntervalCosineInversion.fourierCoeff_reflCircle,
+      ShenWork.IntervalCosineInversion.fourierCoeff_reflCircle,
+      ShenWork.IntervalCosineInversion.fco_neg g hg]
+  rw [← summable_norm_iff]
+  apply Summable.of_nat_of_neg_add_one
+  · -- positive part: `‖fourierCoeff (reflCircle g) (n:ℤ)‖`
+    exact Summable.of_nonneg_of_le (fun n => norm_nonneg _) hbnd hcos
+  · -- negative part: `‖fourierCoeff (reflCircle g) (-(n+1))‖`, even ⇒ same bound
+    refine Summable.of_nonneg_of_le (fun n => norm_nonneg _)
+      (fun n => ?_) (hcos.comp_injective (add_left_injective 1))
+    rw [show (-((n : ℤ) + 1)) = -((n + 1 : ℕ) : ℤ) by push_cast; ring, heven]
+    simpa using hbnd (n + 1)
 
 /-- **`HasSpectralPdeAgreement` from time-localized data (subtype-continuity
 form).**
@@ -110,10 +141,13 @@ tuple (`a₀ = coeffs (lift (u τ))`, `M = 2·Msup`, the soft-clamped family `aC
 restart representation `hrep` are IDENTICAL.  In addition this produces, per
 `(t₀,x)`:
 
-* `hsrc_coeff`: `aC (t₀−τ) n = coeffs (logisticSourceFun … (lift (u t₀))) n`, via
-  `clampedFamily_eq_on` (`τ + (t₀−τ) = t₀ ∈ [τ,d]` where `φ = id`);
-* the source continuity / `reflCircle` Fourier-summability — the single isolated
-  obstruction `logisticSourceLift_cont_and_fourierSummable`;
+* the continuous surrogate `g := constExtend (intervalLogisticSource p (u t₀))`,
+  its continuity (`hLc_ce` at the slice `t₀`), its `[0,1]` agreement with the lift's
+  logistic source, and `hsrc_coeff`: `aC (t₀−τ) n = cosineCoeffs g n` — via
+  `clampedFamily_eq_on` (`τ + (t₀−τ) = t₀ ∈ [τ,d]` where `φ = id`) plus
+  `cosineCoeffs_congr_on_Icc`;
+* the surrogate's `reflCircle` Fourier-summability — from the cosine-envelope
+  bound through `fourierCoeff_reflCircle_summable_of_cosineCoeff_abs`;
 * the eigenvalue-weighted summability of `localRestartCoeff` (`hsum_b`) — from the
   homogeneous geometric tail (`unitIntervalCosineEigenvalue_mul_exp_summable`) plus
   the Duhamel envelope (`eigenvalue_mul_abs_duhamelSpectralCoeff_le_envelope`);
@@ -251,20 +285,53 @@ theorem hasSpectralPdeAgreement_of_localized_data
     rw [clampedFamily_eq_on p u hc' hd' hmem_cd k]
     exact congrFun (congrFun (ShenWork.IntervalPicardLimitSourceData.source_family_eq_w p u)
       (τ + σ)) k
-  -- hsrc_coeff: aC (t₀−τ) n = coeffs (logisticSourceFun … (lift (u t₀))) n
+  -- aC (t₀−τ) n = coeffs (logisticSourceFun … (lift (u t₀))) n
   have hmem_t₀ : τ + (t₀ - τ) ∈ Set.Icc τ d :=
     ⟨by linarith, by rw [hddef]; linarith⟩
-  have hsrc_coeff : ∀ n, aC (t₀ - τ) n
+  have hsrc_lift : ∀ n, aC (t₀ - τ) n
       = cosineCoeffs (logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀))) n := by
     intro n
     simp only [aC]
     rw [clampedFamily_eq_on p u hc' hd' hmem_t₀ n]
     rw [show τ + (t₀ - τ) = t₀ by ring]
-  -- continuity + reflCircle Fourier-summability (the single isolated obstruction)
-  obtain ⟨hcont, hsum_fourier⟩ :=
-    logisticSourceLift_cont_and_fourierSummable p u t₀
   -- envelope of the clamped Duhamel source restricted to horizon τ
   have hsrcOn : DuhamelSourceL1ContOn aC τ := (DuhamelSourceL1Cont.ofTimeC1 srcC).toOn τ
+  -- ════════ continuous surrogate `g` for the discontinuous lift's logistic source ════════
+  -- `g` is the CONSTANT EXTENSION of the per-slice logistic source; it is globally
+  -- continuous (hLc_ce, instantiated at s = t = t₀) and agrees with the lift's
+  -- logistic source on [0,1].
+  set g : ℝ → ℝ := intervalDomainConstExtend (intervalLogisticSource p (u t₀)) with hgdef
+  -- continuity of g from the constExtend slice-continuity hypothesis at t₀
+  have hcont : Continuous g := hLc_ce t₀ ht₀ ht₀T t₀ ht₀ le_rfl
+  -- g agrees with the lift's logistic source on [0,1]:
+  --   constExtend f = lift f on [0,1]; lift (intervalLogisticSource …) = logisticLifted;
+  --   logisticLifted ≈ logisticSourceFun … (lift (u t₀)) on [0,1].
+  have hgeq : Set.EqOn g
+      (logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀)))
+      (Set.Icc (0:ℝ) 1) := by
+    intro y hy
+    rw [hgdef,
+      ShenWork.IntervalDomain.constExtend_eq_lift_on_Icc hy]
+    have hLL : intervalDomainLift (intervalLogisticSource p (u t₀)) y
+        = logisticLifted p (u t₀) y := rfl
+    rw [hLL]
+    exact ShenWork.IntervalMildPicardRegularity.logisticLifted_eq_logisticSourceFun_on_Icc
+      p (u t₀) hy
+  -- hsrc_coeff (against g): cosineCoeffs g = cosineCoeffs (lift's source) on [0,1].
+  have hsrc_coeff : ∀ n, aC (t₀ - τ) n = cosineCoeffs g n := by
+    intro n
+    rw [hsrc_lift n]
+    exact ShenWork.Paper2.cosineCoeffs_congr_on_Icc
+      (fun y hy => (hgeq hy).symm) n
+  -- |cosineCoeffs g n| ≤ envelope n, hence ℓ¹-summable cosine coefficients of g.
+  have hcos_sum : Summable (fun n : ℕ => |cosineCoeffs g n|) := by
+    refine Summable.of_nonneg_of_le (fun n => abs_nonneg _) (fun n => ?_)
+      hsrcOn.henv_summable
+    rw [← hsrc_coeff n, htmτ]
+    exact hsrcOn.henv_bound τ hτpos.le le_rfl n
+  -- reflCircle Fourier-summability of g via the converse bridge (NO discontinuous lift).
+  have hsum_fourier : Summable (fun n : ℤ => fourierCoeff (reflCircle g) n) :=
+    fourierCoeff_reflCircle_summable_of_cosineCoeff_abs hcont hcos_sum
   -- hsum_b: eigenvalue-weighted summability of localRestartCoeff a₀ aC (t₀−τ)
   have hsum_b : Summable (fun n => unitIntervalCosineEigenvalue n
       * |localRestartCoeff a₀ aC (t₀ - τ) n|) := by
@@ -325,7 +392,7 @@ theorem hasSpectralPdeAgreement_of_localized_data
     refine le_trans (mul_le_mul_of_nonneg_left hcos (abs_nonneg _)) ?_
     rw [mul_one]
   -- assemble the witness tuple
-  exact ⟨a₀, 2 * Msup, by linarith, ha₀_bd, aC, srcC, τ, hoff,
-    hrep, hsrc_coeff, hcont, hsum_fourier, hsum_b, hsum_src, hsum_lb⟩
+  exact ⟨a₀, 2 * Msup, by linarith, ha₀_bd, aC, srcC, τ, hoff, g,
+    hrep, hcont, hgeq, hsum_fourier, hsrc_coeff, hsum_b, hsum_src, hsum_lb⟩
 
 end ShenWork.Paper2.PdeUWiring

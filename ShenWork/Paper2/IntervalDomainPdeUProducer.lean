@@ -86,17 +86,23 @@ structure HasSpectralPdeAgreement
     ∀ {x : intervalDomainPoint}, x.1 ∈ Set.Ioo (0 : ℝ) 1 →
     ∃ (a₀ : ℕ → ℝ) (M : ℝ) (_ : 0 ≤ M) (_ : ∀ n, |a₀ n| ≤ M)
       (a : ℝ → ℕ → ℝ) (src : DuhamelSourceTimeC1 a)
-      (offset : ℝ) (_ : 0 < t₀ - offset),
+      (offset : ℝ) (_ : 0 < t₀ - offset)
+      -- a CONTINUOUS surrogate `g` agreeing with the (discontinuous) zero-extension
+      -- lift's logistic source on `[0,1]`; the inversion engine consumes `g`.
+      (g : ℝ → ℝ),
       -- restart cosine representation in a time-neighbourhood of t₀
       (∀ᶠ s in 𝓝 t₀, ∀ y : intervalDomainPoint,
         u s y = ∑' n, localRestartCoeff a₀ a (s - offset) n * cosineMode n y.1) ∧
-      -- the source coefficients ARE the logistic cosine coefficients of `u t₀`
-      (∀ n, a (t₀ - offset) n
-        = cosineCoeffs (logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀))) n) ∧
-      -- continuity + Fourier-summability of the logistic source (for inversion)
-      Continuous (logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀))) ∧
-      Summable (fun n : ℤ => fourierCoeff
-        (reflCircle (logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀)))) n) ∧
+      -- continuity of the surrogate (for inversion)
+      Continuous g ∧
+      -- the surrogate agrees with the lift's logistic source on `[0,1]`
+      Set.EqOn g (logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀)))
+        (Set.Icc (0 : ℝ) 1) ∧
+      -- Fourier-summability of the surrogate's even reflection (for inversion)
+      Summable (fun n : ℤ => fourierCoeff (reflCircle g) n) ∧
+      -- the source coefficients ARE the surrogate's cosine coefficients (which, by
+      -- the `[0,1]` agreement, equal those of the lift's logistic source)
+      (∀ n, a (t₀ - offset) n = cosineCoeffs g n) ∧
       -- eigenvalue-weighted summability of the restart coefficients (laplacian)
       Summable (fun n => unitIntervalCosineEigenvalue n
         * |localRestartCoeff a₀ a (t₀ - offset) n|) ∧
@@ -130,10 +136,10 @@ theorem mildSolution_pde_u_of_spectral
   intro t x ht htT hx
   -- `x ∈ intervalDomain.inside` unfolds to `x.1 ∈ Ioo 0 1`.
   have hx' : x.1 ∈ Set.Ioo (0 : ℝ) 1 := hx
-  obtain ⟨a₀, M, hM, ha₀, a, src, offset, hoff,
-      hrep, hsrc_coeff, hcont, hsum_fourier, hsum_b, hsum_src, hsum_lb⟩ :=
+  obtain ⟨a₀, M, hM, ha₀, a, src, offset, hoff, g,
+      hrep, hcont, hgeq, hsum_fourier, hsrc_coeff, hsum_b, hsum_src, hsum_lb⟩ :=
     Hpde.exists_data t ht htT hx'
-  exact ShenWork.IntervalDomainPdeUChiZero.hpde_u_of_representation
-    p hχ0 hM ha₀ src hoff hrep hsrc_coeff hcont hsum_fourier hsum_b hx' hsum_src hsum_lb
+  exact ShenWork.IntervalDomainPdeUChiZero.hpde_u_of_representation_surrogate
+    p hχ0 hM ha₀ src hoff hrep hcont hgeq hsum_fourier hsrc_coeff hsum_b hx' hsum_src hsum_lb
 
 end ShenWork.IntervalDomainPdeUProducer

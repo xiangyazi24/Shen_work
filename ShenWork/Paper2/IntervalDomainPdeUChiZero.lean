@@ -111,9 +111,12 @@ theorem timeDeriv_eq_of_rep {u : ℝ → intervalDomainPoint → ℝ} {t₀ : �
   show deriv (fun s => u s x) t₀ = _
   rw [hd.deriv, mul_one]
 
-/-- **Source inversion = reaction.**  If the source coefficients are the cosine
-coefficients of the logistic source of `u t₀`, the source cosine series sums to
-the pointwise reaction (`intervalCosine_hasSum_pointwise`). -/
+/-- **Source inversion = reaction (lift-pinned form).**  If the source coefficients
+are the cosine coefficients of the logistic source of `u t₀` and that source is
+continuous with summable `reflCircle` Fourier coefficients, the source cosine series
+sums to the pointwise reaction (`intervalCosine_hasSum_pointwise`).  (Retained for
+the downstream `Thm11ChiZeroFinal` consumer whose `hpdeData` carries those facts as
+assumed fields.) -/
 theorem source_inversion_eq_reaction (p : CM2Params)
     {u : ℝ → intervalDomainPoint → ℝ} {t₀ : ℝ} {src : ℕ → ℝ}
     (hsrc_coeff : ∀ n, src n
@@ -135,8 +138,38 @@ theorem source_inversion_eq_reaction (p : CM2Params)
     simp only [cosineMode, unitIntervalCosineMode]; ring
   rw [hsum_eq]; simp only [logisticSourceFun, hux]
 
-/-- **`hpde_u` (χ₀=0) from the restart representation.**  Assembles the three
-identities: at interior `x`, `∂ₜu = u_xx + reaction` (the χ₀=0 ledger PDE). -/
+/-- **Source inversion = reaction (continuous-surrogate form).**  Same conclusion
+from a CONTINUOUS surrogate `g` that agrees on `[0,1]` with the logistic source of
+`u t₀`.  The inversion `intervalCosine_hasSum_pointwise` for the continuous `g` gives
+`∑ cosineCoeffs g · cos = g x`; the `[0,1]` agreement (interior `x ∈ (0,1) ⊂ [0,1]`)
+turns `g x` into the lift's logistic source value `= reaction`.  This is the honest
+form that avoids the FALSE `Continuous (lift)`. -/
+theorem source_inversion_eq_reaction_surrogate (p : CM2Params)
+    {u : ℝ → intervalDomainPoint → ℝ} {t₀ : ℝ} {src : ℕ → ℝ} {g : ℝ → ℝ}
+    (hcont : Continuous g)
+    (hgeq : Set.EqOn g (logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀)))
+        (Set.Icc (0:ℝ) 1))
+    (hsum_fourier : Summable (fun n : ℤ => fourierCoeff (reflCircle g) n))
+    (hsrc_coeff : ∀ n, src n = cosineCoeffs g n)
+    {x : intervalDomainPoint} (hx : x.1 ∈ Set.Ioo (0:ℝ) 1) :
+    (∑' n, src n * cosineMode n x.1) = u t₀ x * (p.a - p.b * (u t₀ x) ^ p.α) := by
+  have hinv := intervalCosine_hasSum_pointwise g hcont hx hsum_fourier
+  have hux : intervalDomainLift (u t₀) x.1 = u t₀ x := by
+    simp only [intervalDomainLift]; exact dif_pos x.2
+  -- `g x = logisticSourceFun … (lift (u t₀)) x.1` at interior `x` (⊂ [0,1])
+  have hgx : g x.1
+      = logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀)) x.1 :=
+    hgeq (Set.Ioo_subset_Icc_self hx)
+  have hsum_eq : (∑' n, src n * cosineMode n x.1) = g x.1 := by
+    rw [← hinv.tsum_eq]
+    refine tsum_congr (fun n => ?_)
+    rw [hsrc_coeff n]
+    simp only [cosineMode, unitIntervalCosineMode]; ring
+  rw [hsum_eq, hgx]; simp only [logisticSourceFun, hux]
+
+/-- **`hpde_u` (χ₀=0) from the restart representation (lift-pinned form).**
+Assembles the three identities: at interior `x`, `∂ₜu = u_xx + reaction` (the χ₀=0
+ledger PDE).  Retained with the original signature for `Thm11ChiZeroFinal`. -/
 theorem hpde_u_of_representation (p : CM2Params) (hχ0 : p.χ₀ = 0)
     {u : ℝ → intervalDomainPoint → ℝ} {t₀ : ℝ}
     {a₀ : ℕ → ℝ} {M : ℝ} (hM : 0 ≤ M) (ha₀ : ∀ n, |a₀ n| ≤ M)
@@ -171,5 +204,45 @@ theorem hpde_u_of_representation (p : CM2Params) (hχ0 : p.χ₀ = 0)
     (timeDeriv_eq_of_rep hM ha₀ src hoff hrep x)
     (laplacian_eq_of_rep hsum_b hrep_real hx)
     (source_inversion_eq_reaction p hsrc_coeff hcont hsum_fourier hx)
+
+/-- **`hpde_u` (χ₀=0) from the restart representation (continuous-surrogate form).**
+Same conclusion, but the source inversion is fed a CONTINUOUS surrogate `g` agreeing
+with the logistic source on `[0,1]` (no FALSE `Continuous (lift)`).  This is the form
+consumed by `IntervalDomainPdeUProducer.mildSolution_pde_u_of_spectral`. -/
+theorem hpde_u_of_representation_surrogate (p : CM2Params) (hχ0 : p.χ₀ = 0)
+    {u : ℝ → intervalDomainPoint → ℝ} {t₀ : ℝ}
+    {a₀ : ℕ → ℝ} {M : ℝ} (hM : 0 ≤ M) (ha₀ : ∀ n, |a₀ n| ≤ M)
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC1 a) {offset : ℝ} (hoff : 0 < t₀ - offset)
+    (hrep : ∀ᶠ s in 𝓝 t₀, ∀ y : intervalDomainPoint,
+      u s y = ∑' n, localRestartCoeff a₀ a (s - offset) n * cosineMode n y.1)
+    {g : ℝ → ℝ}
+    (hcont : Continuous g)
+    (hgeq : Set.EqOn g (logisticSourceFun p.a p.b p.α (intervalDomainLift (u t₀)))
+        (Set.Icc (0:ℝ) 1))
+    (hsum_fourier : Summable (fun n : ℤ => fourierCoeff (reflCircle g) n))
+    (hsrc_coeff : ∀ n, a (t₀ - offset) n = cosineCoeffs g n)
+    (hsum_b : Summable (fun n => unitIntervalCosineEigenvalue n
+        * |localRestartCoeff a₀ a (t₀ - offset) n|))
+    {x : intervalDomainPoint} (hx : x.1 ∈ Set.Ioo (0:ℝ) 1)
+    (hsum_src : Summable (fun n => a (t₀ - offset) n * cosineMode n x.1))
+    (hsum_lb : Summable (fun n => unitIntervalCosineEigenvalue n
+        * localRestartCoeff a₀ a (t₀ - offset) n * cosineMode n x.1)) :
+    intervalDomain.timeDeriv u t₀ x
+      = intervalDomain.laplacian (u t₀) x
+        - p.χ₀ * intervalDomain.chemotaxisDiv p (u t₀)
+            (mildChemicalConcentration p u t₀) x
+        + u t₀ x * (p.a - p.b * (u t₀ x) ^ p.α) := by
+  have hrep_real : ∀ z ∈ Set.Icc (0:ℝ) 1,
+      intervalDomainLift (u t₀) z
+        = ∑' n, localRestartCoeff a₀ a (t₀ - offset) n * cosineMode n z := by
+    intro z hz
+    rw [intervalDomainLift, dif_pos hz]
+    exact hrep.self_of_nhds ⟨z, hz⟩
+  exact hpde_u_core p hχ0
+    (b := fun n => localRestartCoeff a₀ a (t₀ - offset) n)
+    (src := fun n => a (t₀ - offset) n) hsum_src hsum_lb
+    (timeDeriv_eq_of_rep hM ha₀ src hoff hrep x)
+    (laplacian_eq_of_rep hsum_b hrep_real hx)
+    (source_inversion_eq_reaction_surrogate p hcont hgeq hsum_fourier hsrc_coeff hx)
 
 end ShenWork.IntervalDomainPdeUChiZero

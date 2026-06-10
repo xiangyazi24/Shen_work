@@ -324,10 +324,11 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   -- representation / source-coefficient fields are produced sorry-free inside the
   -- producer; the K1 source-coefficient time-`C¹` data (`adott`/`hderivt`/
   -- `hadotcontt`/`hMdott`) is the SAME genuinely-open frontier already carried as
-  -- the structure's own sorried `adott`/… fields (no independent producer exists),
-  -- and the single remaining analytic wall — global continuity / `reflCircle`
-  -- Fourier-summability of `logisticSourceFun ∘ lift (u t₀)` (FALSE for positive
-  -- data) — is isolated in `PdeUWiring.logisticSourceLift_cont_and_fourierSummable`.
+  -- the structure's own sorried `adott`/… fields (no independent producer exists).
+  -- The former continuity / `reflCircle` Fourier-summability wall (FALSE for the
+  -- discontinuous lift of positive data) is now DISCHARGED: `HasSpectralPdeAgreement`
+  -- consumes a continuous surrogate `g := constExtend (intervalLogisticSource …)`
+  -- (continuity from `hLc_ceF`, Fourier-summability from the cosine-decay envelope).
   hpde_u := by
     have hbsumF : ∀ σ, 0 < σ → σ < D.T →
         Summable (fun n => unitIntervalCosineEigenvalue n
