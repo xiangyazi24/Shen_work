@@ -87,6 +87,8 @@ import ShenWork.Paper2.IntervalDomainPdeUWiring
 import ShenWork.Paper2.IntervalPicardLimitK1Weak
 import ShenWork.Paper2.IntervalResolverSourceTimeC1
 import ShenWork.Paper2.IntervalResolverSourceClampedWitness
+import ShenWork.Paper2.IntervalResolverPowerK1
+import ShenWork.Paper2.IntervalResolverPowerDecay
 import ShenWork.Paper2.IntervalPicardLimitBddBootstrap
 import ShenWork.Paper2.IntervalPicardLimitBddHcontP
 
@@ -581,13 +583,35 @@ noncomputable def reducedLimitRegularityInputs_of_picard
     -- `hubtF`/`hG1tF`/`hG2tF`, exactly as the logistic decay envelope is built), with a
     -- window-uniform constant `C` (the `ν·r^γ` analogue of the logistic envelope
     -- constant).  SATISFIABLE; named residual.
+    -- window gradient / Hessian K2 constants (Classical.choose on the per-compact data)
+    obtain ⟨G1w, hG1w⟩ := hG1tF c' d' hc'pos hd'T
+    obtain ⟨G2w, hG2w⟩ := hG2tF c' d' hc'pos hd'T
+    -- window-uniform UPPER bound `D.M` (from `hubtF`), restricted to the window.
+    have hubW : ∀ σ ∈ Set.Icc c' d', ∀ x ∈ Set.Icc (0 : ℝ) 1,
+        intervalDomainLift (D.u σ) x ≤ D.M :=
+      fun σ hσ x hx => hubtF σ (hwin_sub σ hσ).1 (hwin_sub σ hσ).2 x hx
+    -- window-uniform positive LOWER bound `m` (joint continuity + compactness).
+    obtain ⟨mLow, hmLow_pos, hlbW⟩ :=
+      ShenWork.Paper2.ResolverPowerK1.lift_window_uniformPositive_of_subtypeCont
+        (p := p) hχ0 D.u hα ha.le hb.le hu₀.admissible.2 hu₀_bdF hfixF hsrc0F
+        (Msup := D.M)
+        (bc := fun σ k => ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ D.u σ k)
+        (fun σ hσ hσT => hbsumF σ hσ hσT.le)
+        (fun σ hσ hσT => hagreeF σ hσ hσT.le)
+        (fun σ hσ hσT => hpostF σ hσ hσT.le)
+        (fun σ hσ hσT => hubtF σ hσ hσT.le)
+        hG1tF hG2tF hLc_ceF hc'pos (le_of_lt (lt_trans hc'c (lt_of_le_of_lt hcd hdd'))) hd'T
     have hdecayW : ∃ C : ℝ, 0 ≤ C ∧
         (∀ σ ∈ Set.Icc c' d', ∀ k : ℕ, 1 ≤ k →
           |cosineCoeffs (fun x => p.ν * intervalDomainLift (D.u σ) x ^ p.γ) k|
             ≤ C / ((k : ℝ) * Real.pi) ^ 2) ∧
         (∀ σ ∈ Set.Icc c' d',
           |cosineCoeffs (fun x => p.ν * intervalDomainLift (D.u σ) x ^ p.γ) 0| ≤ C) :=
-      sorry
+      ShenWork.Paper2.ResolverPowerDecay.powerSource_window_uniform_decay
+        (ν := p.ν) (γ := p.γ) (M := D.M) (m := mLow) p.hν.le p.hγ hmLow_pos
+        (w := D.u) (c' := c') (d' := d')
+        (le_of_lt (lt_trans hc'c (lt_of_le_of_lt hcd hdd'))) bc hbsumW hagreeW
+        hlbW hubW (G1 := G1w) (G2 := G2w) hG1w hG2w
     obtain ⟨C, hC, hdecayWk, ha0W⟩ := hdecayW
     -- (R-Hvsrc-2) POWER-SOURCE K1 time-`C¹` quadruple for `ν·u^γ` on the window.
     -- ROUTE: clone `IntervalPicardLimitK1Weak.hasDerivAt_logisticSlice` /
@@ -601,8 +625,27 @@ noncomputable def reducedLimitRegularityInputs_of_picard
           (fun r => cosineCoeffs
             (fun x => p.ν * intervalDomainLift (D.u r) x ^ p.γ) n) (adotP σ n) σ) ∧
         (∀ n, ContinuousOn (fun σ => adotP σ n) (Set.Icc c' d')) ∧
-        (∀ σ ∈ Set.Icc c' d', ∀ n, |adotP σ n| ≤ Mdot) :=
-      sorry
+        (∀ σ ∈ Set.Icc c' d', ∀ n, |adotP σ n| ≤ Mdot) := by
+      -- power-source K1 quadruple on `Ioo 0 D.T`, restricted to the window `[c',d']`.
+      obtain ⟨hderivG, hcontG, hboundG⟩ :=
+        ShenWork.Paper2.ResolverPowerK1.powerK1_quadruple_of_subtypeCont
+          (p := p) hχ0 D.u hα ha.le hb.le hu₀.admissible.2 hu₀_bdF hfixF hsrc0F
+          (Msup := D.M)
+          (bc := fun σ k => ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ D.u σ k)
+          (fun σ hσ hσT => hbsumF σ hσ hσT.le)
+          (fun σ hσ hσT => hagreeF σ hσ hσT.le)
+          (fun σ hσ hσT => hpostF σ hσ hσT.le)
+          (fun σ hσ hσT => hubtF σ hσ hσT.le)
+          hG1tF hG2tF hLc_ceF
+      -- window inclusion `[c',d'] ⊆ Ioo 0 D.T`.
+      have hwin_open : Set.Icc c' d' ⊆ Set.Ioo (0 : ℝ) D.T := fun σ hσ =>
+        ⟨lt_of_lt_of_le hc'pos hσ.1, lt_of_le_of_lt hσ.2 hd'T⟩
+      obtain ⟨Mdot, hMdot⟩ := hboundG c' d' hc'pos hd'T
+      refine ⟨ShenWork.Paper2.ResolverPowerK1.adotPowOf p D.u, Mdot, ?_, ?_, hMdot⟩
+      · intro σ hσ n
+        exact hderivG σ (hwin_open hσ).1 (hwin_open hσ).2 n
+      · intro n
+        exact (hcontG n).mono hwin_open
     obtain ⟨adotP, Mdot, hderivP, hadotcontP, hMdotP⟩ := hK1pow
     -- Build the clamped resolver-source `DuhamelSourceTimeC1` (τ = 0 ⇒ Φ = φ).
     refine ⟨fun σ k => (ShenWork.PDE.intervalNeumannResolverSourceCoeff p
