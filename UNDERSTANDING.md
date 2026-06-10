@@ -1,5 +1,27 @@
 # UNDERSTANDING.md — Shen_work (campaign handoff to Codex, 2026-06-10 ~15:45)
 
+## ⭐ FINAL STATE (2026-06-10 18:15 — supersedes everything below)
+**THE CAPSTONE IS SORRY-FREE.** Commit 32c8fee:
+`#print axioms` on BOTH `paper2_theorem_1_1_chiZero_unconditional` and
+`paper2_theorem_1_1_chiZero_from_coneSupply` = `[propext, Classical.choice,
+Quot.sound]` — NO sorryAx (independently re-verified on uisai2; full build
+8547 jobs EXIT 0; md5 local=remote). The `hinterior` circularity (hcontP →
+hsliceTC → restart-rep → BddOn → hcontP) was broken on the iterate side:
+s-uniform geometric convergence (PicardConvFacts.hgeom) transfers per-iterate
+coefficient time-continuity to the limit (IntervalPicardLimitCoeffTimeCont);
+hinterior itself proved via the spectral restart series subtraction with the
+λ-cancelling Duhamel bound + heat-damped homogeneous sum
+(IntervalRestartSeriesLipschitz / IntervalRestartSliceLipschitz). The capstone
+gained ONE hypothesis (`IterCoeffTimeContProvider`), discharged inside
+`from_coneSupply` from the tower (`hiter_cont_of_tower`) — the acceptance
+surface `from_coneSupply` is UNCHANGED. Tower residual
+(`TowerConeAnalyticResidual`, the from_coneSupply hypothesis surface) is now
+9 fields: hsrc0, hL_cont, hG1all, hG2base, adot(+4 legs). Honest blockers
+recorded: hG1all needs a global all-s iterate source sup (truncated-source
+rebuild = new analytic content); hG2base needs a homogeneous heat ∂²ₓ estimate
+calibrated to the gate budget A₂. Design verdicts in
+HANDOFF/chatgpt-hinterior-break-verdict.md.
+
 ## START HERE
 Read `HANDOFF/CODEX-HANDOFF.md` — the complete execution handoff for the
 Tower campaign (environment rules, current state, stage 1/2 plans, verdict
