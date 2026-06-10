@@ -1,3 +1,23 @@
+# UPDATE 2026-06-09 ~23:45 — sorry 21 → 8, all satisfiable types.
+#
+# Additional commits: 84dc5ff Hu_of_reduced via subtype variant (-1),
+# 206f604 DuhamelSourceBddOn + K1 R2 plan, b051d20 hpde_u wired,
+# c71ea2b BddOn producer (patched family, 0s), 38b45eb PdeU surrogate
+# retype (killed the false lift-continuity field), bed2dff K1 machinery
+# (WARNING: k1_quadruple circular — input hypotheses = conclusion; weak-spine
+# fix agent dispatched: c_k' = −λc_k + A_k from the weak package via
+# product rule + FTC, envelope via Bdd split + windowEnv).
+#
+# Remaining 8: Provider hsrc0F (BddOn migration pass: ledger field
+# DuhamelSourceL1ContOn → DuhamelSourceBddOn patched family + adapter
+# patched↔canonical on (0,τ] + weak-chain consumer entry swap — design in
+# hsrc0-splitenv-design.md; the Bdd file already has consumer lemmas);
+# K1 quadruple ×4 (weak-spine fix in flight) + the K1 bundle in PdeUWiring's
+# hpde_u (same data, wire adottOf once weak spine lands);
+# Hvsrc (powerSource_intervalWeakH2Neumann base); restartData_of_inputs +
+# hasRestartData_of_subtypeCont (restart packaging via ConstExtendAdapter).
+#
+# ---- earlier notes ----
 # Horizon retype — COMPLETE (2026-06-09 ~22:45). Sections below are the
 # historical resume notes; current state:
 #

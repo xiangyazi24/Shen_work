@@ -186,9 +186,14 @@ weak-chain horizon retype (DuhamelSourceL1ContOn) + Hu_of_restart_localized
 fields deleted, hsrc0 field) + K2 gradient producers wired + Hvpos proved
 (mildChemicalConcentration_pos) + hpde_u producer (IntervalDomainPdeUProducer).
 
-Sorry inventory after the campaign (10, all satisfiable types):
-- Provider 7: hsrc0F + K1 quadruple (F2: iterate-derivative uniform
-  convergence into duhamelSourceTimeC1_of_uniform_limit), hpde_u (data
-  wiring), Hvsrc (power-source analogue)
-- Hu_of_reduced 1 (subtype-continuity variant of the localized restart)
-- restartData_of_inputs 1 + hasRestartData_of_subtypeCont 1 (restart packaging)
+Sorry inventory end of 2026-06-09 (8, all satisfiable types; see
+HANDOFF/horizon-retype-status.md header for the live ledger):
+- Provider: hsrc0F (BddOn patched-family migration pass; producer is DONE
+  0-sorry in IntervalPicardLimitBddProducer), K1 quadruple ×4 (R2 weak spine
+  — NOT uniform-convergence/F2 after all; ChatGPT-verified route: weak
+  restart identity → c_k' = −λ_k c_k + A_k by FTC → term-wise diff; first
+  attempt was circular, fix in flight), Hvsrc
+- PdeUWiring: 1 K1 bundle (same data as the quadruple)
+- restartData_of_inputs + hasRestartData_of_subtypeCont (restart packaging)
+Discharged today beyond the 10-list: Hu_of_reduced (subtype variant),
+hpde_u (surrogate retype killed the false lift-continuity field).
