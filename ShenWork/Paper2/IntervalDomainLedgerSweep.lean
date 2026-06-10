@@ -57,6 +57,7 @@
 -/
 import ShenWork.Paper2.IntervalDomainMildLocalChi0
 import ShenWork.Paper2.IntervalPicardLimitTimeNhd
+import ShenWork.Paper2.IntervalPicardLimitTimeNhdLocalized
 import ShenWork.Paper2.IntervalDomainLimitSourceRepresentation
 
 open MeasureTheory Set Filter Topology
@@ -91,11 +92,11 @@ namespace ShenWork.Paper2.LedgerSweep
 `Hu : HasTimeNeighborhoodSpectralAgreement D.T D.u` field deleted.
 
 `Hu` is no longer a frontier residual: it is derivable from the remaining fields
-via the general restart identity (`Hu_of_restart`), with the weak-source package
-`hsrc0 : DuhamelSourceL1ContOn … D.T` reconstructed from the K2/K1-unshifted
-families (`weakSource_of_reduced`, horizon-bounded).  Every field
-below also appears verbatim in `LimitRegularityInputs`; this structure is strictly
-smaller (one fewer named hypothesis). -/
+via the time-localized restart identity (`TimeNhdLocalized.Hu_of_restart_localized`),
+with the weak-source package `hsrc0 : DuhamelSourceL1ContOn … D.T` now carried
+directly as a ledger field.  Every field below also appears verbatim in
+`LimitRegularityInputs`; this structure is strictly smaller (one fewer named
+hypothesis). -/
 structure ReducedLimitRegularityInputs
     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
     (D : GradientMildSolutionData p u₀) where
@@ -110,10 +111,11 @@ structure ReducedLimitRegularityInputs
   -- mild fixed-point (= D.hmild)
   hfix : ∀ t, 0 < t → t < D.T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
     intervalDomainLift (D.u t) x = intervalGradientDuhamelMap p u₀ D.u t ⟨x, hx⟩
+  -- weak limit-source package (horizon-bounded; feeds the localized restart route)
+  hsrc0 : DuhamelSourceL1ContOn
+    (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) D.T
   -- K2 spatial slice bounds (per time slice)
   Msup : ℝ
-  G1 : ℝ
-  G2 : ℝ
   -- per-slice cosine representation (replaces the unsatisfiable global-`C²` field
   -- `hC2t`; fed into the source-decay machinery via
   -- `IntervalDomainLimitSourceRepresentation`)
@@ -123,30 +125,22 @@ structure ReducedLimitRegularityInputs
     (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1)
   hpost : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (D.u σ) x
   hubt : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (D.u σ) x ≤ Msup
-  hG1t : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
-    |deriv (intervalDomainLift (D.u σ)) x| ≤ G1
-  hG2t : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
-    |deriv (deriv (intervalDomainLift (D.u σ))) x| ≤ G2
+  -- K2 gradient/Hessian bounds, PER-COMPACT (the satisfiable form)
+  hG1t : ∀ a' b', 0 < a' → b' < D.T → ∃ G1, ∀ σ ∈ Set.Icc a' b',
+    ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (intervalDomainLift (D.u σ)) x| ≤ G1
+  hG2t : ∀ a' b', 0 < a' → b' < D.T → ∃ G2, ∀ σ ∈ Set.Icc a' b',
+    ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (deriv (intervalDomainLift (D.u σ))) x| ≤ G2
   hN0t : ∀ σ, 0 < σ → σ < D.T → deriv (intervalDomainLift (D.u σ)) 0 = 0
   hN1t : ∀ σ, 0 < σ → σ < D.T → deriv (intervalDomainLift (D.u σ)) 1 = 0
-  -- K1 source-coefficient time-C¹ data (unshifted)
+  -- K1 source-coefficient time-C¹ data (UNSHIFTED, localized to (0,T))
   adott : ℝ → ℕ → ℝ
-  hderivt : ∀ σ k, HasDerivAt
+  hderivt : ∀ σ, 0 < σ → σ < D.T → ∀ k, HasDerivAt
     (fun r => cosineCoeffs
       (logisticSourceFun p.a p.b p.α (intervalDomainLift (D.u r))) k)
     (adott σ k) σ
-  hadotcontt : ∀ k, Continuous (fun σ => adott σ k)
-  Mdott : ℝ
-  hMdott : ∀ σ, 0 ≤ σ → ∀ k, |adott σ k| ≤ Mdott
-  -- K1 for the t/2-shifted source family
-  adotS : ℝ → ℝ → ℕ → ℝ
-  hderivS : ∀ t, ∀ σ k, HasDerivAt
-    (fun r => cosineCoeffs
-      (logisticSourceFun p.a p.b p.α (intervalDomainLift (D.u (t/2 + r)))) k)
-    (adotS t σ k) σ
-  hadotcontS : ∀ t, ∀ k, Continuous (fun σ => adotS t σ k)
-  MdotS : ℝ
-  hMdotS : ∀ t, ∀ σ, 0 ≤ σ → ∀ k, |adotS t σ k| ≤ MdotS
+  hadotcontt : ∀ k, ContinuousOn (fun σ => adott σ k) (Set.Ioo 0 D.T)
+  hMdott : ∀ a' b', 0 < a' → b' < D.T → ∃ Mdot, ∀ σ ∈ Set.Icc a' b',
+    ∀ k, |adott σ k| ≤ Mdot
   -- H3 slice continuity
   hLc : ∀ t, 0 < t → t < D.T →
     ∀ s, 0 < s → s ≤ t → Continuous (intervalLogisticSource p (D.u s))
@@ -165,30 +159,36 @@ structure ReducedLimitRegularityInputs
 
 /-! ## Discharging `Hu` from the reduced ledger families -/
 
-/-- **The weak limit source package from the reduced ledger.**  Build
-`DuhamelSourceL1ContOn (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) D.T`
-(horizon-bounded: envelope/continuity only on `[0, D.T]`) from the K2 slice bounds
-and the K1 unshifted source-coefficient time-`C¹` data via
-`limitSource_duhamelSourceTimeC1`.  No hypothesis beyond the reduced ledger. -/
-def weakSource_of_reduced
-    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
-    {D : GradientMildSolutionData p u₀}
-    (I : ReducedLimitRegularityInputs p u₀ D) :
-    DuhamelSourceL1ContOn
-      (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) D.T :=
-  sorry -- TODO: adapter for time-quantified → horizon-bounded data
-
 /-- **`Hu` from the reduced ledger.**  Discharges
-`HasTimeNeighborhoodSpectralAgreement D.T D.u` via `Hu_of_restart`, feeding the
-weak-source package produced by `weakSource_of_reduced` and the remaining reduced
-families (K2 slice bounds, the `t/2`-shifted K1 family, and the H3 slice
-continuity). -/
+`HasTimeNeighborhoodSpectralAgreement D.T D.u` from the TIME-LOCALIZED ledger data
+via `TimeNhdLocalized.Hu_of_restart_localized`.
+
+DEVIATION (one residual `sorry`): `Hu_of_restart_localized` requires
+`hu₀_cont : Continuous (intervalDomainLift u₀)` — continuity of the ZERO-extension
+lift — which is FALSE for positive initial data (the lift jumps from `u₀ > 0` at
+the Neumann endpoints to `0` outside `[0,1]`).  The ledger carries only SUBTYPE
+continuity `Continuous u₀` (`I.hu₀_cont`).  The localized theorem is therefore not
+directly applicable; the `intervalDomainConstExtend` adapter does not help because
+the lift appears literally inside `Hu_of_restart_localized`'s homogeneous-term
+representation (not only in the coefficient bounds, which would be fine).
+
+The proper route is the SUBTYPE-CONTINUITY variant of the localized restart
+theorem — the same adapter already used by
+`limit_lift_eq_cosineSeries_of_subtypeCont`
+(`IntervalPicardLimitRestartWeak`, line 554), which replaces the false
+`Continuous (intervalDomainLift u₀)` by the paper-faithful `Continuous u₀`.  Until
+that subtype variant of `Hu_of_restart_localized` is provided, this field stays a
+single, precisely-localized `sorry`. -/
 theorem Hu_of_reduced
     {p : CM2Params} (hχ0 : p.χ₀ = 0) {u₀ : intervalDomainPoint → ℝ}
     {D : GradientMildSolutionData p u₀}
     (I : ReducedLimitRegularityInputs p u₀ D) :
     HasTimeNeighborhoodSpectralAgreement D.T D.u :=
-  sorry -- TODO: needs Continuous (intervalDomainLift u₀) adapter + global quantifiers
+  sorry -- DEVIATION: needs the subtype-continuity variant of
+        -- Hu_of_restart_localized — same adapter as
+        -- limit_lift_eq_cosineSeries_of_subtypeCont; ledger carries
+        -- Continuous u₀ (subtype) but the localized theorem demands
+        -- Continuous (intervalDomainLift u₀), false for positive data.
 
 /-! ## Reduced ledger ⟹ full ledger -/
 
@@ -208,9 +208,8 @@ def limitRegularityInputs_of_reduced
   M₀ := I.M₀
   hu₀_bound := I.hu₀_bound
   hfix := I.hfix
+  hsrc0 := I.hsrc0
   Msup := I.Msup
-  G1 := I.G1
-  G2 := I.G2
   bc := I.bc
   hbsum := I.hbsum
   hagree := I.hagree
@@ -223,13 +222,7 @@ def limitRegularityInputs_of_reduced
   adott := I.adott
   hderivt := I.hderivt
   hadotcontt := I.hadotcontt
-  Mdott := I.Mdott
   hMdott := I.hMdott
-  adotS := I.adotS
-  hderivS := I.hderivS
-  hadotcontS := I.hadotcontS
-  MdotS := I.MdotS
-  hMdotS := I.hMdotS
   hLc := I.hLc
   hpde_u := I.hpde_u
   Hu := Hu_of_reduced hχ0 I

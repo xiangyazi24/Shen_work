@@ -42,6 +42,7 @@ open ShenWork.IntervalMildPicard (GradientMildSolutionData)
 open ShenWork.IntervalMildToClassical (mildChemicalConcentration)
 open ShenWork.IntervalMildPicardRegularity (logisticSourceFun)
 open ShenWork.IntervalMildTimeDerivContinuity (HasTimeNeighborhoodSpectralAgreement)
+open ShenWork.IntervalPicardLimitRestartWeak (DuhamelSourceL1ContOn)
 open ShenWork.PDE (intervalNeumannResolverSourceCoeff)
 open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.IntervalSourceCoefficientTimeC1 (localRestartCoeff)
@@ -70,10 +71,11 @@ structure LimitRegularityInputsCore
   -- mild fixed-point (= D.hmild)
   hfix : ∀ t, 0 < t → t < D.T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
     intervalDomainLift (D.u t) x = intervalGradientDuhamelMap p u₀ D.u t ⟨x, hx⟩
+  -- weak limit-source package (horizon-bounded; feeds the localized restart route)
+  hsrc0 : DuhamelSourceL1ContOn
+    (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) D.T
   -- K2 spatial slice bounds (per time slice)
   Msup : ℝ
-  G1 : ℝ
-  G2 : ℝ
   -- per-slice cosine representation (replaces the unsatisfiable global-`C²` field
   -- `hC2t`; see `IntervalDomainThm11ChiZeroCoreProvider` for the vacuity, and
   -- `IntervalDomainLimitSourceRepresentation` for how it feeds every consumer)
@@ -83,30 +85,22 @@ structure LimitRegularityInputsCore
     (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1)
   hpost : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (D.u σ) x
   hubt : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (D.u σ) x ≤ Msup
-  hG1t : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
-    |deriv (intervalDomainLift (D.u σ)) x| ≤ G1
-  hG2t : ∀ σ, 0 < σ → σ < D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
-    |deriv (deriv (intervalDomainLift (D.u σ))) x| ≤ G2
+  -- K2 gradient/Hessian bounds, PER-COMPACT (the satisfiable form)
+  hG1t : ∀ a' b', 0 < a' → b' < D.T → ∃ G1, ∀ σ ∈ Set.Icc a' b',
+    ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (intervalDomainLift (D.u σ)) x| ≤ G1
+  hG2t : ∀ a' b', 0 < a' → b' < D.T → ∃ G2, ∀ σ ∈ Set.Icc a' b',
+    ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (deriv (intervalDomainLift (D.u σ))) x| ≤ G2
   hN0t : ∀ σ, 0 < σ → σ < D.T → deriv (intervalDomainLift (D.u σ)) 0 = 0
   hN1t : ∀ σ, 0 < σ → σ < D.T → deriv (intervalDomainLift (D.u σ)) 1 = 0
-  -- K1 source-coefficient time-C¹ data (unshifted)
+  -- K1 source-coefficient time-C¹ data (UNSHIFTED, localized to (0,T))
   adott : ℝ → ℕ → ℝ
-  hderivt : ∀ σ k, HasDerivAt
+  hderivt : ∀ σ, 0 < σ → σ < D.T → ∀ k, HasDerivAt
     (fun r => cosineCoeffs
       (logisticSourceFun p.a p.b p.α (intervalDomainLift (D.u r))) k)
     (adott σ k) σ
-  hadotcontt : ∀ k, Continuous (fun σ => adott σ k)
-  Mdott : ℝ
-  hMdott : ∀ σ, 0 ≤ σ → ∀ k, |adott σ k| ≤ Mdott
-  -- K1 for the t/2-shifted source family
-  adotS : ℝ → ℝ → ℕ → ℝ
-  hderivS : ∀ t, ∀ σ k, HasDerivAt
-    (fun r => cosineCoeffs
-      (logisticSourceFun p.a p.b p.α (intervalDomainLift (D.u (t/2 + r)))) k)
-    (adotS t σ k) σ
-  hadotcontS : ∀ t, ∀ k, Continuous (fun σ => adotS t σ k)
-  MdotS : ℝ
-  hMdotS : ∀ t, ∀ σ, 0 ≤ σ → ∀ k, |adotS t σ k| ≤ MdotS
+  hadotcontt : ∀ k, ContinuousOn (fun σ => adott σ k) (Set.Ioo 0 D.T)
+  hMdott : ∀ a' b', 0 < a' → b' < D.T → ∃ Mdot, ∀ σ ∈ Set.Icc a' b',
+    ∀ k, |adott σ k| ≤ Mdot
   -- H3 slice continuity
   hLc : ∀ t, 0 < t → t < D.T →
     ∀ s, 0 < s → s ≤ t → Continuous (intervalLogisticSource p (D.u s))
@@ -188,9 +182,8 @@ def limitRegularityInputs_of_core
   M₀ := C.M₀
   hu₀_bound := C.hu₀_bound
   hfix := C.hfix
+  hsrc0 := C.hsrc0
   Msup := C.Msup
-  G1 := C.G1
-  G2 := C.G2
   bc := C.bc
   hbsum := C.hbsum
   hagree := C.hagree
@@ -203,13 +196,7 @@ def limitRegularityInputs_of_core
   adott := C.adott
   hderivt := C.hderivt
   hadotcontt := C.hadotcontt
-  Mdott := C.Mdott
   hMdott := C.hMdott
-  adotS := C.adotS
-  hderivS := C.hderivS
-  hadotcontS := C.hadotcontS
-  MdotS := C.MdotS
-  hMdotS := C.hMdotS
   hLc := C.hLc
   hpde_u := hpde_u_chiZero hχ0 C
   Hu := C.Hu

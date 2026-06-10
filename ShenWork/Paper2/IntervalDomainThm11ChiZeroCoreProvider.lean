@@ -80,6 +80,7 @@ import ShenWork.Paper2.IntervalDomainThm11ChiZeroFinal
 import ShenWork.Paper2.IntervalDomainLedgerSweep
 import ShenWork.Paper2.IntervalPicardLimitRestartWeak
 import ShenWork.Paper2.IntervalDomainConstExtendAdapter
+import ShenWork.Paper2.IntervalResolverStrictPositivity
 
 open MeasureTheory Set Filter Topology
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint intervalDomain
@@ -131,14 +132,18 @@ so the result must be reducible. -/
 noncomputable def reducedLimitRegularityInputs_of_picard
     (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) (hα : 1 ≤ p.α)
     (u₀ : intervalDomainPoint → ℝ) (hu₀ : PositiveInitialDatum intervalDomain u₀)
-    (D : GradientMildSolutionData p u₀)
-    (hsrc0 : DuhamelSourceL1ContOn
-      (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) D.T) :
-    LedgerSweep.ReducedLimitRegularityInputs p u₀ D where
-  -- structural regime parameters (immediate)
+    (D : GradientMildSolutionData p u₀) :
+    LedgerSweep.ReducedLimitRegularityInputs p u₀ D :=
+  -- the weak limit-source package (F2 campaign produces it; one shared sorry,
+  -- consumed by the `hsrc0` field AND by `hbsum`/`hagree`)
+  have hsrc0F : DuhamelSourceL1ContOn
+      (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) D.T := sorry
+  { -- structural regime parameters (immediate)
   hα := hα
   ha := ha.le
   hb := hb.le
+  -- weak limit-source package
+  hsrc0 := hsrc0F
   -- H1 datum data
   hu₀_cont := hu₀.admissible.2
   -- M₀/hu₀_bound: cosineCoeffs_abs_le_of_continuous_bounded needs
@@ -173,8 +178,6 @@ noncomputable def reducedLimitRegularityInputs_of_picard
     exact D.hmild t ht htT.le ⟨x, hx⟩
   -- K2 spatial slice bounds
   Msup := D.M
-  G1 := sorry
-  G2 := sorry
   -- per-slice cosine representation (Picard limit restart representation)
   -- bc := limitCoeff = exp(-σλ_k)·ĉ₀_k + duhamelSpectralCoeff(L̂(u), σ, k)
   bc := fun σ k => ShenWork.IntervalPicardLimitRestart.limitCoeff p u₀ D.u σ k
@@ -200,7 +203,7 @@ noncomputable def reducedLimitRegularityInputs_of_picard
     have hu₀_bd := ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
       hcont hB0 hfb
     exact summable_eigenvalue_mul_abs_limitCoeff_weak p u₀ D.u
-      (by linarith) hu₀_bd hsrc0 hσ hσT.le
+      (by linarith) hu₀_bd hsrc0F hσ hσT.le
   -- hagree: on [0,1], lift(u σ) = ∑ limitCoeff(σ,k) · cos(kπ·)
   -- from limit_lift_eq_cosineSeries_of_subtypeCont (the adapter theorem)
   hagree := fun σ hσ hσT x hx => by
@@ -223,7 +226,7 @@ noncomputable def reducedLimitRegularityInputs_of_picard
     exact limit_lift_eq_cosineSeries_of_subtypeCont p hχ0 u₀ D.u hu₀.admissible.2
       (ShenWork.IntervalMildPicardRegularity.cosineCoeffs_abs_le_of_continuous_bounded
         hcont hB0 hfb)
-      hsrc0 hσ hσT.le
+      hsrc0F hσ hσT.le
       (fun y hy => by simp only [intervalDomainLift, dif_pos hy]
                       exact D.hmild σ hσ hσT.le ⟨y, hy⟩)
       (fun s hs hsσ =>
@@ -302,17 +305,11 @@ noncomputable def reducedLimitRegularityInputs_of_picard
       -- But lift(1) > 0, contradiction.
       linarith
     exact deriv_zero_of_not_differentiableAt hnotdiff
-  -- K1 source-coefficient time-C¹ data (M3b)
+  -- K1 source-coefficient time-C¹ data (M3b), UNSHIFTED localized form
   adott := sorry
   hderivt := sorry
   hadotcontt := sorry
-  Mdott := sorry
   hMdott := sorry
-  adotS := sorry
-  hderivS := sorry
-  hadotcontS := sorry
-  MdotS := sorry
-  hMdotS := sorry
   -- H3 slice continuity
   -- hLc: logistic source continuity on the subtype.
   -- intervalLogisticSource p (D.u s) = fun x => (D.u s x) * (a - b * (D.u s x)^α).
@@ -327,7 +324,9 @@ noncomputable def reducedLimitRegularityInputs_of_picard
   -- frontier residuals discharged from the representation
   hpde_u := sorry
   Hvsrc := sorry
-  Hvpos := sorry
+  -- Hvpos: strict boundary positivity of the resolver, from the elliptic
+  -- strong-maximum-principle producer (now landed).
+  Hvpos := ShenWork.IntervalResolverStrictPositivity.mildChemicalConcentration_pos p D }
 
 /-- **FINAL WIRING — Paper 2 Theorem 1.1 (χ₀ = 0), hypothesis-unconditional.**
 
@@ -365,17 +364,13 @@ theorem paper2_theorem_1_1_chiZero_unconditional
   -- `hPLF` derived from the reduced ledger (no extra residual hypothesis).
   have hPLF : ConeQuantBridge.PicardLimitRestartFrontier p :=
     fun u₀ hu₀ D _hDu =>
-      let hsrc0 : DuhamelSourceL1ContOn
-          (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) D.T := sorry
       let I := LedgerSweep.limitRegularityInputs_of_reduced hχ0
-        (reducedLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D hsrc0)
+        (reducedLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D)
       ⟨MildLocalChi0.restartData_of_inputs hχ0 I,
         MildLocalChi0.frontierCore_of_inputs hχ0 I⟩
   LedgerSweep.paper2_theorem_1_1_chiZero_of_reduced_inputs
     p hχ0 ha hb hα hγ hPLF
     (fun u₀ hu₀ D =>
-      let hsrc0 : DuhamelSourceL1ContOn
-          (fun s k => cosineCoeffs (logisticLifted p (D.u s)) k) D.T := sorry
-      reducedLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D hsrc0)
+      reducedLimitRegularityInputs_of_picard p hχ0 ha hb hα u₀ hu₀ D)
 
 end ShenWork.Paper2.Thm11ChiZeroCoreProvider
