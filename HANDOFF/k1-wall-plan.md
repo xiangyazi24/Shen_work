@@ -153,6 +153,52 @@ Plan:
 4. Delete hsrc0 from TowerInputs + residual → RESIDUAL EMPTY (or report the
    honest leftover).
 
+## W3 STATUS (@8df3583 base) — BRICK + CONSUMER VARIANTS + TOWER LEGS LANDED
+
+Three NEW files, tree GREEN on uisai2:/dev/shm/shen_work, all five head theorems
+axiom-clean `[propext, Classical.choice, Quot.sound]` (no sorryAx):
+
+1. `IntervalPicardShiftedClampedSupply.clampedShiftedSource_duhamelSourceTimeC1` —
+   THE BRICK.  GLOBAL clamped `DuhamelSourceTimeC1 asrc` of the σ/2-shifted level-`n`
+   source from `winAdot` data only (NO hsrc0), AGREEING with the canonical shifted
+   family `s ↦ coeff(logistic(iter n (σ/2+s)))` on the read window `[0, σ/2]`.
+   Instantiates the existing generic producer `clampedSource_duhamelSourceTimeC1`
+   with `τ := σ/2`, id-zone `[c,d] := [σ/2, σ]`, pad `[σ/4, (σ+T)/2] ⊂ (0,T)`.
+   Window data fed via the `G1win`/`G2win` pattern (mirror `windowAdotLegs_step`);
+   `winAdot` legs choice-extracted.  HONEST: needs `σ < T` STRICT (pad room above
+   id-zone exists only when `σ < T`); `σ = T` is the (D)-class terminal residual.
+
+2. `IntervalPicardSuccLegsOfWinAdot` — the two CONSUMER VARIANTS:
+   * `hbsum_succ_of_window` — variant of `hbsum_succ` (site A).  Reads the clamped
+     package `srcC` for `asrc` + the `[0,σ/2]` agreement; transports
+     `restartSeries_eigenvalue_summable`'s clamped summability to the canonical
+     `iterateReprCoeff (n+1)` via `restartDuhamelCoeff_clamped_eq`
+     (`duhamelSpectralCoeff_congr_on_Icc` on `[0,σ/2]`; `restartDuhamelCoeff` ≡
+     `localRestartCoeff` definitionally).
+   * `iterate_abs_deriv2_le_of_window` — variant of the G2 engine
+     `iterate_abs_deriv2_le_of_windowDecay` (site B).  Same `[0,σ/2]` bridge: the
+     clamped restart series coincides coefficient-wise with the canonical
+     `restartIterateCoeff` series, so their deriv² bounds agree.
+
+3. `IntervalPicardSuccTowerLegs` — DELIVERABLE 2, the assembled `tower_succ`
+   replacements (`SuccLegData` bundle = TowerLevel n / TowerInputs facts MINUS hsrc0
+   + winAdot legs):
+   * `hrepr_sum_succ_of_winAdot` : ∀σ, 0<σ → σ<T → Summable(λ-weighted
+     iterateReprCoeff (n+1) σ).  EXACT shape of tower_succ's `hrepr_sum` site.
+   * `hG2_succ_engine_of_winAdot` : ∀σ, 0<σ → σ<T → ∀x, the deriv² restart-series
+     bound `≤ 2M·eigExpWeight(σ/2) + duhamelGainConst·(σ/2)^{1/4}·Benv` — the EXACT
+     `hbound` (with M₁=2M) the G2 interior branch consumes (`duhamelGainConst` =
+     `2·(∑'…)/π^{3/2}` by `rfl`, matching the explicit constant).
+
+W4 WIRING (pure pass, scoped): in `tower_succ`, replace
+  * `hsrcσ`/`hbsum_succ` → `hrepr_sum_succ_of_winAdot` for `σ < T`;
+  * G2 interior `hbound`/`iterate_abs_deriv2_le_of_windowDecay` →
+    `hG2_succ_engine_of_winAdot` (after `rw [hgain_eq]`) for `σ < T`.
+  Both legs need the `SuccLegData` bundle (L.hrepr_*/H.hpos/H.hub/L.hG1/L.hG2 +
+  L.winAdot) — all already in tower_succ's scope.  The `σ = T` slice still needs a
+  route (terminal (D) leftover): either carry `σ=T` through the surviving canonical
+  `hsrc0` path, or supply level-`n` facts on a horizon `Tpad > T` so the pad fits.
+
 ## W2 STATUS (partial, post-recon) — RESIDUAL NOT EMPTIED; honest minimum reported
 
 What landed (tree GREEN, root build 8547 jobs EXIT 0, axiom probe clean
