@@ -158,3 +158,4 @@ import ShenWork.Paper2.IntervalHsupNormHeat
 import ShenWork.Paper2.IntervalPicardG1Split
 import ShenWork.Paper2.IntervalPicardLimitLogisticSource
 import ShenWork.Paper2.IntervalResolverTimeRegularity
+import ShenWork.Paper2.IntervalPicardSourceTimeC1OnRecursion
