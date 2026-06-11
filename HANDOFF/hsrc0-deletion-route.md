@@ -315,3 +315,16 @@ PIX (codex) determined the discharge route decisively:
      semigroup calculus, NO self-fix needed. This is the key tractable remaining brick.
 THEN: the tower's predecessor-indexed winAdot recursion (made endpoint-inclusive) extends the
 base to all levels → discharges the per-iterate source TimeC1On → CanonicalSourceLedgerBeyond.
+
+## WIRE STALL (precise) — endpoint-inclusive iterate Bdd package needed (the last gap)
+
+WIRE (codex) honestly stalled at the final wiring (no production edits). All per-iterate source
+TimeC1On machinery (L0 base + REC step + induction) is built+audited, but wiring it into the tower
+to drop the residual needs: the REC step's closed-window `hrestart` + `hprofile_joint` at the
+ENDPOINT, while the available iterate Bdd producer `iterateBddOn_of_facts`
+(IntervalPicardIterateBddPackage.lean:320) is STRICT-INTERIOR (τ<T) — no τ=T horizon package.
+⇒ THE LAST GAP: an ENDPOINT-INCLUSIVE iterate Bdd/representation package (τ≤T). The iterate
+picardIter n IS bounded at τ=T (the gate `∀ t, 0<t→t≤T` covers τ=T) and has a representation
+there, so the strict-interior τ<T is an over-restriction relaxable to τ≤T. With that, the REC step
+gets its endpoint input and the wiring (L0+REC production → drop CanonicalSourceLedgerBeyond/
+ResidualAtDatum → from_cone_construction unconditional) completes.
