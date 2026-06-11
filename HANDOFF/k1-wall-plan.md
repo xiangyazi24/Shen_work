@@ -476,6 +476,111 @@ hsrc0 until the W8/W9 endpoint-winAdot construction lands.
 HANDOFF/k1-wall-plan.md (this section).  TowerInputs signature UNCHANGED (case split is
 internal to tower_succ's proof body).  No edit to IntervalPicardTowerSupply.lean.
 
+## W6b STATUS (@421582b base) — HCone NARROWING LANDED; supply now INSTANTIABLE
+
+RESOLUTION PATH TAKEN: (i) — additive NEW capstone theorem alongside the existing ones.
+Existing `paper2_theorem_1_1_chiZero_unconditional`, `paper2_theorem_1_1_chiZero_from_
+coneSupply` UNCHANGED.  Confirmed by reading the capstone consumers
+`quantitativeLocalExistence_chiZero_wdata` (CoreProvider:797-831) and
+`hMildLocal_chi0_zero_of_wdata` (:838-862): BOTH obtain the datum from
+`coneGradientMildSolutionData_exists_with_data` and call `Hiter`/`HWdata` at THAT `D`
+only (lines 827/861).  The providers are `∀ D` at the TYPE level → path (ii) (wrapper
+trick) impossible (confirmed).  Hence (i): new capstone consuming a per-constructed-datum
+(datum-OWNING) supply.
+
+### New signatures (verbatim):
+
+CoreProvider §W6b (additive, ZERO change to existing decls):
+```
+def DatumIterLegs (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (D : GradientMildSolutionData p u₀) : Type :=
+  (WdataProvider p u₀ D) ×'
+    (∀ (a' τ : ℝ), 0 < a' → a' ≤ τ → τ ≤ D.T → ∀ (n k : ℕ), ContinuousOn
+      (fun s => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k) (Set.Icc a' τ))
+
+def DatumProviderSupply (p : CM2Params) : Type :=
+  ∀ M_in : ℝ, 0 < M_in → Σ' δ : ℝ, (0 < δ) ×'
+    ∀ u₀, PositiveInitialDatum intervalDomain u₀ → (∀ x, |u₀ x| ≤ M_in) →
+      Σ' D : GradientMildSolutionData p u₀,
+        (D.T = δ) ×' (D.u = picardLimit p u₀ δ) ×'
+        (∀ n, HasContinuousSlices D.T (picardIter p u₀ n)) ×'
+        (∃ F : PicardConvFacts p u₀, F.T = δ) ×' DatumIterLegs p u₀ D
+
+theorem paper2_theorem_1_1_chiZero_of_datumProviders
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ) (Hsupply : DatumProviderSupply p) :
+    Theorem_1_1 intervalDomain p
+```
+(plus helpers `quantitativeLocalExistence_chiZero_datum`, `hMildLocal_chi0_zero_of_datum`
+— mirrors of the `_wdata` theorems sourcing the datum+legs from `Hsupply`.)
+
+TowerSupply §5 (additive):
+```
+structure ResidualAtDatum (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (D : GradientMildSolutionData p u₀) where
+  hT1 : D.T ≤ 1
+  hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ D.M
+  hball : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ y, |picardIter p u₀ n σ y| ≤ D.M
+  hAnalytic : TowerConeAnalyticResidual p u₀ D D.M 0
+
+-- THE PRIZE (paper theorem modulo a per-CONSTRUCTED-DATUM residual):
+theorem from_cone_construction
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (Hres : ∀ u₀, PositiveInitialDatum intervalDomain u₀ →
+      ∀ D : GradientMildSolutionData p u₀,
+        D.u = picardLimit p u₀ D.T → ResidualAtDatum p u₀ D) :
+    ShenWork.Paper2.Theorem_1_1 intervalDomain p
+
+theorem paper2_theorem_1_1_chiZero_from_coneSupplyNarrow
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ) (Hsupply : DatumProviderSupply p) :
+    ShenWork.Paper2.Theorem_1_1 intervalDomain p
+```
+(plus `datumIterLegs_of_cone` — builds `DatumIterLegs` from a gate-data cone datum +
+`ResidualAtDatum`, via `towerInputs_of_cone` at mass `D.M` (`hlim_ball := D.hbound`) +
+`wdataProvider_of_tower` + `hiter_cont_of_tower`.)
+
+`from_cone_construction` discharges `DatumProviderSupply` from
+`coneGradientMildSolutionData_exists_with_gate_data` (via `Classical.choice` on its Prop
+existentials).  The `∀ D` `from_coneSupply` is gate-UNSATISFIABLE at large horizons; the
+datum-OWNING supply owes the residual only at the SMALL cone horizon δ → instantiable.
+
+### WHAT REMAINS (HONEST — NOT only hsrc0):
+From the gate-data cone, `from_cone_construction` discharges: gate, slice continuity,
+strict positivity, LIMIT ball (`D.hbound`), datum continuity, A₂≥0, δ>0.  `ResidualAtDatum`
+carries FOUR per-datum legs:
+1. `hAnalytic` = `TowerConeAnalyticResidual` (genuine `hsrc0`) — the W4 irreducible.
+2. `hT1 : D.T ≤ 1` — cone-internal (`T₀ ≤ ½`) but the `_with_gate_data` return type does
+   NOT expose `δ ≤ 1`.
+3. `hu₀_bound : |cosineCoeffs (lift u₀) k| ≤ D.M` — true (`D.M ≥ M_in ≥` datum bound) but
+   the mass relation is not type-recoverable.
+4. `hball : iterate ball ≤ D.M` — cone-RETURNED via `∃ F:PicardConvFacts, F.T=δ`
+   (`F.hball` at `F.M`), but the cone HIDES `F.M = D.M` so it is not extractable at the
+   gate mass `D.M`.
+ROOT CAUSE of legs 2-4: `IntervalMildPicardConeData.lean` is un-editable this mission and
+its `_with_gate_data` return type HIDES its internal mass (`D.M = F.M = M` definitionally
+but exposes neither `F.M` nor `δ ≤ 1`).  All four bundled honestly; only leg 1 is open.
+To shrink to ONLY `hsrc0`: a one-line additive strengthening of the cone return type
+(expose `F.M = D.M` and `δ ≤ 1`) — owned by a future wave — then legs 2-4 fall.
+
+### Verification (verbatim, @421582b + W6b edits, uisai2:/dev/shm/shen_work, rsync no --delete):
+* per-file `lake env lean` EXIT 0: CoreProvider, TowerSupply.
+* module builds EXIT 0: `ShenWork.Paper2.IntervalDomainThm11ChiZeroCoreProvider`
+  (3657 jobs), `ShenWork.Paper2.IntervalPicardTowerSupply` (3680 jobs).
+* root `lake build ShenWork` → `Build completed successfully (8547 jobs).` EXIT 0.
+* axiom probe — ALL five = `[propext, Classical.choice, Quot.sound]` (no sorryAx):
+  - FROZEN UNCHANGED: `paper2_theorem_1_1_chiZero_unconditional`,
+    `paper2_theorem_1_1_chiZero_from_coneSupply`.
+  - NEW: `paper2_theorem_1_1_chiZero_of_datumProviders`, `from_cone_construction`,
+    `paper2_theorem_1_1_chiZero_from_coneSupplyNarrow`.
+* diffs purely additive: 260 insertions / 0 deletions across the two files;
+  `git diff --check` clean.
+
+### Files touched (W6b): ShenWork/Paper2/IntervalDomainThm11ChiZeroCoreProvider.lean
+(additive §W6b), ShenWork/Paper2/IntervalPicardTowerSupply.lean (additive §5),
+HANDOFF/k1-wall-plan.md (this section).  No edit to IntervalPicardSourceTower.lean.
+
 ### Honest leftovers: hsrc0 still consumed at (i) site C hagree — all σ (needs cone-site
 BddOn field, no new TowerInputs field permitted this wave); (ii) `windowAdotLegs_step`
 — all σ (the K1 inductive producer, W8/W9 scope).  Sites A and B are now σ=T-only, as

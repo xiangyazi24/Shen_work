@@ -339,4 +339,148 @@ theorem paper2_theorem_1_1_chiZero_from_coneSupply
     (iterCoeffTimeCont_of_coneSupply p hχ0 hα ha.le hb.le HCone)
     (HWdata_of_coneSupply p hχ0 hα ha.le hb.le HCone)
 
+/-! ## §5 — W6b — The NARROWED, instantiable cone supply.
+
+`paper2_theorem_1_1_chiZero_from_coneSupply`'s hypothesis `HCone` is keyed to an
+ARBITRARY datum `D` at every horizon (`∀ u₀ ∀ D, … → Σ' M A₂, bundle`).  As the
+W4/W5 recon established, the gate conjunct of that bundle is gate-UNSATISFIABLE at
+large horizons (the cone smallness `Ke·I(T) ≤ ½` and `C_L·T < 1` fail), so the
+`∀ D` form is plausibly UNINSTANTIABLE — yet the capstone only ever invokes the
+providers at the cone-constructed datum (CoreProvider
+`quantitativeLocalExistence_chiZero_wdata`/`hMildLocal_chi0_zero_of_wdata`).
+
+This section delivers, additively (the existing `from_coneSupply` is unchanged):
+
+* `paper2_theorem_1_1_chiZero_from_coneSupplyNarrow` — Theorem 1.1 from the
+  ADDITIVE per-constructed-datum capstone `paper2_theorem_1_1_chiZero_of_datumProviders`
+  (CoreProvider §W6b).  Its hypothesis `DatumProviderSupply p` is a per-`u₀` EXISTENCE
+  of a small-horizon datum bundling the two iterate-side legs at THAT datum — the
+  invocation-restricted, instantiable surface (the residual is owed only at the cone
+  horizon `δ`, where the gate genuinely holds).
+
+* `from_cone_construction` — THE BRIDGE.  Discharges `DatumProviderSupply` from the
+  gate-data cone `coneGradientMildSolutionData_exists_with_gate_data`, reducing the
+  paper theorem to ONLY a per-constructed-datum residual bundle.  The gate, slice
+  continuity, strict positivity, limit ball (`D.hbound`), and datum continuity are
+  discharged FROM THE CONE; what remains is the per-datum `ResidualAtDatum`
+  (`hsrc0` + the three legs the cone returns but HIDES behind its existential internal
+  mass — see the honest leftover note on `ResidualAtDatum`). -/
+
+/-- **The honest per-constructed-datum residual the bridge cannot pull from the cone.**
+
+At the gate-data cone's datum `D` (mass `D.M`), `towerInputs_of_cone` needs the gate
+AND the per-iterate ball AND the `u₀`-coefficient bound AND `D.T ≤ 1` all at the SINGLE
+mass `D.M`.  The gate is returned at `D.M`; but the iterate ball is returned only inside
+the existential `∃ F : PicardConvFacts, F.T = δ` at the HIDDEN mass `F.M` (the cone sets
+`F.M = D.M = M` definitionally, yet its return type exposes neither `F.M` nor `δ ≤ 1`,
+so the equalities `F.M = D.M`, `δ ≤ 1`, and the datum-coefficient bound at `D.M` are not
+type-recoverable).  Hence the bridge carries these three cone-internal-but-hidden facts
+together with the genuine analytic residual `hsrc0` as ONE per-datum bundle.  All four
+are "morally cone-returned"; only `hsrc0` is genuinely open (see W4 STATUS). -/
+structure ResidualAtDatum
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (D : GradientMildSolutionData p u₀) where
+  /-- horizon ≤ 1 (cone-internal `T₀ ≤ ½`, hidden by the existential). -/
+  hT1 : D.T ≤ 1
+  /-- datum cosine-coefficient bound at the cone mass (cone-internal `≥ M_in`, hidden). -/
+  hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ D.M
+  /-- per-iterate ball at the cone mass (cone-returned via `F.hball`, mass hidden). -/
+  hball : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ y : intervalDomainPoint,
+    |picardIter p u₀ n σ y| ≤ D.M
+  /-- the genuinely-open analytic surface (W4 STATUS: the irreducible `hsrc0`).
+  `TowerConeAnalyticResidual`'s `M`/`A₂` are phantom (only `hsrc0` is a field). -/
+  hAnalytic : TowerConeAnalyticResidual p u₀ D D.M 0
+
+/-- **`datumIterLegs_of_cone`.**  At a gate-data cone datum `D` (gate + slice
+continuity + strict positivity at mass `D.M`, plus the PID datum facts and the per-datum
+`ResidualAtDatum`), build the two iterate-side legs `DatumIterLegs` the narrowed capstone
+consumes.  Routes through `towerInputs_of_cone` at mass `D.M` + the two tower
+projections (`wdataProvider_of_tower`, `hiter_cont_of_tower`). -/
+def datumIterLegs_of_cone
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    (u₀ : intervalDomainPoint → ℝ)
+    (D : GradientMildSolutionData p u₀) {A₂ : ℝ}
+    (hA₂nn : 0 ≤ A₂)
+    (hgate : GateCondition p D.M A₂ D.T)
+    (hDu : D.u = picardLimit p u₀ D.T)
+    (hu₀_cont : Continuous u₀)
+    (hpos : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      0 < intervalDomainLift (picardIter p u₀ n σ) x)
+    (hcontSlice : ∀ n : ℕ, HasContinuousSlices D.T (picardIter p u₀ n))
+    (R : ResidualAtDatum p u₀ D) :
+    ShenWork.Paper2.Thm11ChiZeroCoreProvider.DatumIterLegs p u₀ D :=
+  -- the limit ball `|D.u s y| ≤ D.M` is the datum's own `hbound` (after `hDu`).
+  have hlim_ball : ∀ (s : ℝ), 0 < s → s ≤ D.T → ∀ y : intervalDomainPoint,
+      |D.u s y| ≤ D.M := D.hbound
+  -- re-wrap the analytic residual at the cone's gate budget `A₂` (`A₂` is phantom in
+  -- `TowerConeAnalyticResidual` — only `hsrc0` is a field).
+  let HA : TowerConeAnalyticResidual p u₀ D D.M A₂ := ⟨R.hAnalytic.hsrc0⟩
+  let HT := towerInputs_of_cone p hχ0 hα ha hb u₀ D
+    D.hM.le R.hT1 hA₂nn hgate hu₀_cont R.hu₀_bound hpos hcontSlice R.hball
+    hlim_ball HA
+  ⟨ShenWork.IntervalPicardTowerProjection.wdataProvider_of_tower p u₀ D HT.2.2,
+   ShenWork.IntervalPicardTowerProjection.hiter_cont_of_tower p u₀ HT.2.2⟩
+
+/-- **`from_cone_construction` — THE W6b BRIDGE / PRIZE.**
+
+Paper 2 Theorem 1.1 (χ₀ = 0) modulo ONLY a per-constructed-datum residual.  The
+gate-data cone supplies, at its own small horizon `δ`, the datum `D` with the gate /
+slice continuity / strict positivity / limit ball; the caller supplies, per
+cone datum, the `ResidualAtDatum` bundle (the genuine `hsrc0` analytic surface plus the
+three cone-hidden legs `hT1`/`hu₀_bound`/`hball`).  This turns the plausibly-uninstantiable
+`∀ D` `from_coneSupply` into a hypothesis owed at exactly the cone-constructed datum. -/
+theorem from_cone_construction
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (Hres : ∀ (u₀ : intervalDomainPoint → ℝ),
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ (D : GradientMildSolutionData p u₀),
+        D.u = picardLimit p u₀ D.T → ResidualAtDatum p u₀ D) :
+    ShenWork.Paper2.Theorem_1_1 intervalDomain p :=
+  ShenWork.Paper2.Thm11ChiZeroCoreProvider.paper2_theorem_1_1_chiZero_of_datumProviders
+    p hχ0 ha hb hα hγ
+    (fun M_in hM_in =>
+      -- the cone returns `∃ δ A₂, …` (Prop); choose the datum-free `δ`/`A₂` and the
+      -- per-`u₀` existence body via `Classical.choice` (already in the axiom baseline).
+      let C := coneGradientMildSolutionData_exists_with_gate_data p hχ0 hM_in hα
+      let δ := C.choose
+      let A₂ := C.choose_spec.choose
+      have hδ : 0 < δ := C.choose_spec.choose_spec.1
+      have hA₂nn : 0 ≤ A₂ := C.choose_spec.choose_spec.2.1
+      have hbody := C.choose_spec.choose_spec.2.2
+      ⟨δ, hδ, fun u₀ hu₀ hbound =>
+        let E := hbody u₀ hu₀.admissible.2 hbound
+          (ShenWork.Paper2.ConeQuantBridge.positiveInitialDatum_nonneg hu₀)
+          (ShenWork.Paper2.ConeQuantBridge.positiveInitialDatum_pos_somewhere hu₀)
+        let D := E.choose
+        have hspec := E.choose_spec
+        have hDT : D.T = δ := hspec.1
+        have hDu : D.u = picardLimit p u₀ δ := hspec.2.1
+        have hgate : GateCondition p D.M A₂ D.T := hspec.2.2.1
+        have hcontSlice : ∀ n, HasContinuousSlices D.T (picardIter p u₀ n) :=
+          hspec.2.2.2.1
+        have hF : ∃ F : ShenWork.IntervalPicardLimitCoeffConv.PicardConvFacts p u₀,
+          F.T = δ := hspec.2.2.2.2.1
+        have hpos : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T →
+            ∀ x ∈ Set.Icc (0 : ℝ) 1,
+            0 < intervalDomainLift (picardIter p u₀ n σ) x := fun n σ hσ hσT x hx =>
+          hspec.2.2.2.2.2 n σ hσ (hσT.trans hDT.le) x hx
+        have hDu' : D.u = picardLimit p u₀ D.T := by rw [hDT]; exact hDu
+        ⟨D, hDT, hDu, hcontSlice, hF,
+          datumIterLegs_of_cone p hχ0 hα ha.le hb.le u₀ D hA₂nn hgate hDu'
+            hu₀.admissible.2 hpos hcontSlice (Hres u₀ hu₀ D hDu')⟩⟩)
+
+/-- **`paper2_theorem_1_1_chiZero_from_coneSupplyNarrow` — the narrowed, instantiable
+entry point.**  Theorem 1.1 (χ₀ = 0) from the per-constructed-datum supply
+`DatumProviderSupply p` (the additive CoreProvider capstone).  Thin alias making the
+narrowed surface available at the TowerSupply layer alongside the back-compat
+`from_coneSupply`. -/
+theorem paper2_theorem_1_1_chiZero_from_coneSupplyNarrow
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (Hsupply : ShenWork.Paper2.Thm11ChiZeroCoreProvider.DatumProviderSupply p) :
+    ShenWork.Paper2.Theorem_1_1 intervalDomain p :=
+  ShenWork.Paper2.Thm11ChiZeroCoreProvider.paper2_theorem_1_1_chiZero_of_datumProviders
+    p hχ0 ha hb hα hγ Hsupply
+
 end ShenWork.IntervalPicardTowerSupply

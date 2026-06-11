@@ -918,4 +918,120 @@ theorem paper2_theorem_1_1_chiZero_unconditional
     (RestartLocalWiring.localExistence_of_gradientMildHalfStepRestartFrontierCoreLocalData
       p (hMildLocal_chi0_zero_of_wdata p hχ0 ha hb hα Hiter HWdata))
 
+/-! ## §W6b — Per-constructed-datum provider surface (additive, narrowed).
+
+`paper2_theorem_1_1_chiZero_unconditional` consumes the two `∀ D` providers
+`IterCoeffTimeContProvider`/`HWdata` and invokes them ONLY at the cone-constructed
+datum (see `quantitativeLocalExistence_chiZero_wdata` / `hMildLocal_chi0_zero_of_wdata`:
+the datum is obtained from `coneGradientMildSolutionData_exists_with_data` and the
+providers are called at exactly that `D`).  The `∀ D` form is therefore stronger than
+the consumption pattern requires.  This section adds — ADDITIVELY, with ZERO change to
+the existing declarations — a capstone whose provider OWNS the datum: a per-`u₀`
+existence of a small-horizon datum bundling the two iterate-side legs at THAT datum.
+This is the invocation-restricted surface; it is what the cone construction can
+actually instantiate (the gate/positivity facts hold only at the cone horizon). -/
+
+/-- The two iterate-side legs (`WdataProvider` + per-window cosine-coefficient TIME
+continuity) bundled at a SINGLE datum `D` — the exact pair the reduced-ledger
+assembler `restartAndFrontierCore_of_wdata` consumes. -/
+def DatumIterLegs (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (D : GradientMildSolutionData p u₀) : Type :=
+  (WdataProvider p u₀ D) ×'
+    (∀ (a' τ : ℝ), 0 < a' → a' ≤ τ → τ ≤ D.T → ∀ (n k : ℕ),
+      ContinuousOn
+        (fun s => ShenWork.IntervalNeumannFullKernel.cosineCoeffs
+          (ShenWork.IntervalGradientDuhamelMap.logisticLifted p (picardIter p u₀ n s)) k)
+        (Set.Icc a' τ))
+
+/-- **The narrowed, per-constructed-datum supply.**
+
+For every mass `M_in > 0` there is a horizon `δ > 0` such that every admissible datum
+`u₀` (continuous, `|u₀| ≤ M_in`, nonnegative, positive somewhere) admits a packaged
+`GradientMildSolutionData` on `[0, δ]` carrying the cone-returned slice-continuity and
+`PicardConvFacts` AND the two iterate-side legs `DatumIterLegs` at that datum.  This is
+the EXACT return shape of `coneGradientMildSolutionData_exists_with_data` augmented with
+`DatumIterLegs` (and minus the unused strict-positivity conjunct).  Crucially the datum
+`D` is supplied here, so the iterate-side residual is owed only at the cone horizon. -/
+def DatumProviderSupply (p : CM2Params) : Type :=
+  ∀ M_in : ℝ, 0 < M_in → Σ' δ : ℝ, (0 < δ) ×'
+    ∀ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
+      (∀ x, |u₀ x| ≤ M_in) →
+      Σ' D : GradientMildSolutionData p u₀,
+        (D.T = δ) ×' (D.u = picardLimit p u₀ δ) ×'
+        (∀ n, HasContinuousSlices D.T (picardIter p u₀ n)) ×'
+        (∃ F : ShenWork.IntervalPicardLimitCoeffConv.PicardConvFacts p u₀, F.T = δ) ×'
+        DatumIterLegs p u₀ D
+
+/-- **Quantitative local existence (χ₀ = 0) from the narrowed datum supply.**
+Identical conclusion to `quantitativeLocalExistence_chiZero_wdata`, but the cone datum
+and its two iterate-side legs are taken from `Hsupply` (which OWNS the datum) rather
+than rebuilt + fed `∀ D` providers. -/
+theorem quantitativeLocalExistence_chiZero_datum
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) (hα_ge : 1 ≤ p.α)
+    (Hsupply : DatumProviderSupply p) :
+    ∀ M : ℝ, 0 < M → ∃ δ : ℝ, 0 < δ ∧
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+        (∀ x, |u₀ x| ≤ M) →
+        ∃ u v,
+          IsPaper2ClassicalSolution intervalDomain p δ u v ∧
+          InitialTrace intervalDomain u₀ u := by
+  intro M hM
+  obtain ⟨δ, hδ, h⟩ := Hsupply M hM
+  refine ⟨δ, hδ, ?_⟩
+  intro u₀ hu₀ hbound
+  obtain ⟨D, hDT, hDu, _hcont_iter, hFacts_ex, hWdata, hiter_cont⟩ := h u₀ hu₀ hbound
+  have hDu' : D.u = picardLimit p u₀ D.T := by rw [hDT]; exact hDu
+  obtain ⟨hFacts, hFactsT⟩ := hFacts_ex
+  have hFacts_T : hFacts.T = D.T := by rw [hFactsT, hDT]
+  obtain ⟨R, hCore⟩ :=
+    restartAndFrontierCore_of_wdata p hχ0 ha hb hα_ge u₀ hu₀ D hDu'
+      _hcont_iter hFacts hFacts_T hiter_cont hWdata
+  obtain ⟨v, hsol, htrace⟩ :=
+    ShenWork.Paper2.ThresholdQuantBridge.classicalSolution_at_horizon p D R
+      (gradientMildSolutionData_initialApproach p hu₀.admissible.2 D) hCore
+  exact ⟨D.u, v, hsol.restrict_horizon hδ (le_of_eq hDT.symm), htrace⟩
+
+/-- **Local existence (χ₀ = 0) from the narrowed datum supply.**  Mirror of
+`hMildLocal_chi0_zero_of_wdata`, sourcing the datum + legs from `Hsupply`. -/
+theorem hMildLocal_chi0_zero_of_datum
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b) (hα_ge : 1 ≤ p.α)
+    (Hsupply : DatumProviderSupply p) :
+    RestartLocalWiring.IntervalDomainGradientMildHalfStepRestartFrontierCoreLocalData p := by
+  intro u₀ hu₀
+  obtain ⟨B, hB⟩ := hu₀.admissible.1
+  set M := max B 1 with hMdef
+  have hM : 0 < M := lt_of_lt_of_le one_pos (le_max_right B 1)
+  have hbound : ∀ x, |u₀ x| ≤ M := fun x =>
+    le_trans (hB (Set.mem_range_self x)) (le_max_left B 1)
+  obtain ⟨δ, _hδ, h⟩ := Hsupply M hM
+  obtain ⟨D, hDT, hDu, _hcont_iter, hFacts_ex, hWdata, hiter_cont⟩ := h u₀ hu₀ hbound
+  have hDu' : D.u = picardLimit p u₀ D.T := by rw [hDT]; exact hDu
+  obtain ⟨hFacts, hFactsT⟩ := hFacts_ex
+  have hFacts_T : hFacts.T = D.T := by rw [hFactsT, hDT]
+  obtain ⟨R, hCore⟩ :=
+    restartAndFrontierCore_of_wdata p hχ0 ha hb hα_ge u₀ hu₀ D hDu'
+      _hcont_iter hFacts hFacts_T hiter_cont hWdata
+  exact ⟨D, R, gradientMildSolutionData_initialApproach p hu₀.admissible.2 D, hCore⟩
+
+/-- **FINAL WIRING — Paper 2 Theorem 1.1 (χ₀ = 0) from the narrowed datum supply.**
+
+ADDITIVE companion to `paper2_theorem_1_1_chiZero_unconditional`.  Same conclusion
+(`Theorem_1_1 intervalDomain p`), same regime hypotheses, but the iterate-side residual
+is a SINGLE narrowed supply `Hsupply : DatumProviderSupply p` that owns the
+cone-constructed datum and bundles the two iterate-side legs at exactly that datum —
+the invocation-restricted surface the capstone actually consumes.  No existing
+declaration changes. -/
+theorem paper2_theorem_1_1_chiZero_of_datumProviders
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (Hsupply : DatumProviderSupply p) :
+    Theorem_1_1 intervalDomain p :=
+  RestartLocalWiring.paper2_theorem_1_1_from_quant_and_hlocal
+    p (le_of_eq hχ0) ha hb hγ
+    (quantitativeLocalExistence_chiZero_datum p hχ0 ha hb hα Hsupply)
+    (RestartLocalWiring.localExistence_of_gradientMildHalfStepRestartFrontierCoreLocalData
+      p (hMildLocal_chi0_zero_of_datum p hχ0 ha hb hα Hsupply))
+
 end ShenWork.Paper2.Thm11ChiZeroCoreProvider
