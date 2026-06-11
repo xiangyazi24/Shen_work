@@ -54,8 +54,8 @@ mostly DISJOINT from our χ₀=0 semigroup tower (low reuse).
 
 ## PRIORITIZED ATTACK LIST (dependency order)
 **(D2/D3) cheap adapters — quick wins.**
-- D3. Inhabit GN frontier `IntervalDomainInterpolation` from proved `gagliardoNirenberg_interval` (adapter; unlocks Lemma 4.1). LOW.
-- D2. Wire real `HeatKernelLpEstimates` into `Lemma_2_1…2_4 D p S` for the actual interval semigroup (kill the vacuous zero_data IMPOSTORs). LOW-MED.
+- D3. GN frontier `IntervalDomainInterpolation` — RECLASSIFIED (opus 2026-06-11): NOT a low adapter. The proved `gagliardoNirenberg_interval` is only the p=2, r=4 endpoint; the frontier needs the general-p Agmon→Young chain (the bulk of the Lᵖ proof). Belongs to avenue C, not a quick win.
+- D2. DONE (banners, commit abcb884): the zero_data + of_assumed_solutions IMPOSTORs are now banner-flagged in-source. Wiring the REAL HeatKernelLpEstimates into Lemma_2_1..2_4 D p S remains (LOW-MED, route-independent).
 
 **(A) finish the χ₀=0 fragment — make it unconditional (IN PROGRESS, codex W7→W9).**
 - A1. Discharge `hsrc0` — the σ=T endpoint via Route A (W7 hasDerivWithinAt_tsum
