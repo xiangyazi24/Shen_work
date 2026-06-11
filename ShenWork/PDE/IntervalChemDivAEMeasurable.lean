@@ -580,10 +580,11 @@ source-field joint-measurability obligation (the former
 internally by `intervalCoupledSource_resolver_lift_aestronglyMeasurable` in the
 faithful a.e. form the (now AE-refactored) consumer chain consumes.
 
-Only the genuine residuals of `..._cleaner` remain: `hSol` (Schauder
-PDE-solution content) and `hGradEq` (the Dirichlet endpoint derivative-matching
-bridge), plus the natural `u₀`/source data and integrability hypotheses.  No
-measurability hypothesis on the chemotaxis divergence is needed. -/
+Only the genuine residual of `..._cleaner` remains: `hSol` (Schauder
+PDE-solution content), plus the natural `u₀`/source data and integrability
+hypotheses.  No measurability hypothesis on the chemotaxis divergence is
+needed, and the invalid global endpoint `hGradEq` bridge is no longer part of
+the API. -/
 theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_resolver
     {p : CM2Params}
     {u₀ : intervalDomainPoint → ℝ}
@@ -648,22 +649,7 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_resolver
             MeasureTheory.Integrable
               (intervalDomainLift
                 (intervalCoupledSource p (u s) (intervalNeumannResolverR p (u s))))
-              (ShenWork.IntervalDomain.intervalMeasure 1))
-    (hGradEq :
-      ∀ u v : ℝ → intervalDomainPoint → ℝ,
-        IntervalDomainClassicalC1Snapshot p T M G_u u v →
-          ∀ (τ : ℝ) (x : ℝ), τ ∈ Set.Ioo (0 : ℝ) T → x ∈ Set.Icc (0 : ℝ) 1 →
-            deriv
-              (intervalDomainLift
-                (fun y : intervalDomainPoint =>
-                  intervalCoupledDuhamelOperator p (intervalNeumannResolverR p) u₀ u τ y)) x =
-            deriv (fun z : ℝ =>
-              intervalSemigroupOperator 1 τ (intervalDomainLift u₀) z +
-              ∫ s in (0 : ℝ)..τ,
-                intervalSemigroupOperator 1 (τ - s)
-                  (intervalDomainLift
-                    (intervalCoupledSource p (u s) (intervalNeumannResolverR p (u s))))
-                  z) x) :
+              (ShenWork.IntervalDomain.intervalMeasure 1)) :
     ∀ u v : ℝ → intervalDomainPoint → ℝ,
       IntervalDomainClassicalC1Snapshot p T M G_u u v →
         IntervalDomainClassicalC1Snapshot p T M G_u
@@ -677,7 +663,6 @@ theorem intervalCoupledClassicalC1BallEstimates_hmap_dirichlet_initial_resolver
     (fun u v hsnap τ hτ =>
       intervalCoupledSource_resolver_lift_aestronglyMeasurable
         hsnap.isSolution hτ.1 (le_of_lt hτ.2))
-    hGradEq
 
 /-! ### `hGradEq` endpoint analysis (diagnosis lemmas)
 
