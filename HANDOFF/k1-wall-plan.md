@@ -153,6 +153,97 @@ Plan:
 4. Delete hsrc0 from TowerInputs + residual → RESIDUAL EMPTY (or report the
    honest leftover).
 
+## W4 STATUS (@7b424e2 base) — σ=T RESOLVED; hsrc0 IRREDUCIBLE; HONEST MINIMUM
+
+FINAL PASS verdict: **`hsrc0` CANNOT be deleted.**  The residual
+`TowerConeAnalyticResidual = { hsrc0 }` is the honest minimum — it is the σ=T
+(closed right endpoint) slice, and that slice is genuinely consumed by the FROZEN
+limit-side capstone.  No churn landed (re-routing σ<T through W3 while σ=T survives
+on hsrc0 changes neither the field type nor the acceptance surface — pure cosmetic
+risk).  Tree left GREEN, verified.
+
+### The σ = T question — RESOLVED: σ=T IS genuinely consumed (Option B, not A).
+
+Traced every consumer of the tower facts at σ=T; THREE genuine closed-T demands,
+all feeding the FROZEN limit-side capstone, all irreducible:
+
+| consumer | site | demand at σ=T | hsrc0-free route? |
+|---|---|---|---|
+| `IterateWindowC2Data.hbsum/hagree/hG1/hG2` | WeightedC2Bootstrap:259-272 | `a' ≤ σ ≤ T` CLOSED | NO — fed by `TowerLevel.hrepr_*/hG2` at σ=T |
+| `source_coeff_window_uniform`/`henv_iter` | HresWiring:172-176 | iterate src coeff env at `s ≤ D.T` closed | NO — same TowerLevel facts |
+| `hiter_cont_of_tower`→`patchedSource_coeff_continuousOn_of_iterate_data` | HresWiring:256, CoeffTimeCont:310-321 | canonical iterate src coeff TIME-continuity on `[a', D.T]` closed (when s₀=D.T it sets a'=D.T/2 and calls hiter_cont a' D.T) | NO — reads `(H.hsrc0 n).hderiv` |
+
+`wdata_of_tower` (TowerProjection:81-98) calls `(tower_all H n).hrepr_sum/hagree σ
+… hσT` with `hσT : σ ≤ T` — closed.  So `TowerLevel.hrepr_sum/hrepr_agree/hG2` at
+σ=T are genuinely consumed; in `tower_succ` they are produced via `hsrc0` (`hsrcσ` =
+`shiftedSource_timeC1 … (H.hsrc0 n)`; `hagree_succ_of_sourceSubtypeCont … (H.hsrc0 n)`).
+
+Why every hsrc0-free route is STRUCTURALLY σ<T STRICT (no T-endpoint reach):
+* `WindowAdotLegs` is defined on `[lo,hi]` with `hi < T` STRICT — its builders
+  (`windowAdotLegs_zero/_step`) pad to `[lo/2,(hi+T)/2]` / id-zones that need room
+  above; both quantify `hi < T`.
+* `clampedShiftedSource_duhamelSourceTimeC1` (W3 brick) needs `σ < T` STRICT: the
+  soft clamp φ requires id-zone `[σ/2,σ]` STRICTLY inside the pad `[σ/4,(σ+T)/2]`,
+  i.e. `d=σ < d'=(σ+T)/2`, which fails at σ=T.  The clamp CANNOT reach σ=T.
+* `hagree_succ_of_sourceBdd` (W2 brick) DOES cover σ≤T closed, BUT building its
+  `DuhamelSourceBddOn (patchedSource …) T` inside `tower_succ` needs PID pointwise
+  data (`0 < M`, patched-slice ball/nn at s=0) NOT in `TowerInputs` (W2 blocker C);
+  and it only gives the *agree* leg, not the λ-weighted summability / G2 legs, which
+  genuinely need `DuhamelSourceTimeC1` (integration-by-parts/adot), not BddOn.
+
+T-pad escape CLOSED: `from_coneSupply`'s `HCone` is keyed to the datum horizon
+`D.T`; `TowerConeAnalyticResidual.hsrc0` is at `D.T`.  The cone returns a datum at
+a FIXED `D.T`; there is no mechanism to obtain tower facts at `T' > D.T`, and the
+acceptance surface may only SHRINK (HCone may not gain analytic conjuncts).  So a
+T-pad above the id-zone is genuinely unavailable.
+
+### FINAL residual state — NOT EMPTY; exact type:
+
+`TowerConeAnalyticResidual p u₀ D M A₂ = { hsrc0 : ∀ n, DuhamelSourceTimeC1
+  (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k) }`
+(unchanged).  Cannot shrink in TYPE either: the σ=T consumers read the global
+envelopes (`hbsum_succ`, `shiftedSource_timeC1`, `hagree_succ_of_sourceSubtypeCont`
+all consume the full global `DuhamelSourceTimeC1`, not a T-slice fact), and
+`hiter_cont_of_tower` reads `(H.hsrc0 n).hderiv s k` at every `s`.  `DuhamelSourceTimeC1`
+is the minimal interface those σ=T consumers can read.
+
+The documented honesty flag (HANDOFF "FINAL BRICK") stands: hsrc0 as typed demands an
+ℓ¹ envelope UNIFORM down to s=0 — the "no ℓ¹ envelope at s=0 for merely-continuous u₀"
+disease.  But note: hsrc0 is consumed ONLY at the σ=T slice now structurally; the
+honest fix is the limit-side patched pattern (DuhamelSourceBddOn + patchedSource on a
+TowerInputs BddOn field built at the cone site where PID lives) for the *agree* leg,
+PLUS a separate σ=T λ-weighted route for hbsum/G2 (the missing T-endpoint
+DuhamelSourceTimeC1 of the (T/2)-shifted source — satisfiable in spirit since times
+≥ T/2 > 0, but the W3 clamp can't build it; needs a NON-clamp T-endpoint construction
+or a BddOn→λ-weighted upgrade lemma).  Neither exists yet → residual survives.
+
+### Files touched: HANDOFF/k1-wall-plan.md ONLY (this W4 STATUS).  No .lean change.
+
+### Verification (verbatim, @7b424e2 + rsync, uisai2:/dev/shm/shen_work):
+* root `lake build ShenWork` → `Build completed successfully (8547 jobs).` EXIT 0.
+* explicit module targets, all `Build completed successfully`:
+  - ShenWork.Paper2.IntervalPicardTowerSupply (3677 jobs)
+  - ShenWork.Paper2.IntervalDomainThm11ChiZeroCoreProvider (3657 jobs)
+  - ShenWork.Paper2.IntervalPicardTowerProjection (3632 jobs)
+  - ShenWork.Paper2.IntervalPicardWindowAdot (3605 jobs)
+  - ShenWork.Paper2.IntervalPicardSourceTower (3615 jobs)
+* axiom probe BOTH acceptance theorems = `[propext, Classical.choice, Quot.sound]`:
+  - ShenWork.Paper2.Thm11ChiZeroCoreProvider.paper2_theorem_1_1_chiZero_unconditional
+  - ShenWork.IntervalPicardTowerSupply.paper2_theorem_1_1_chiZero_from_coneSupply
+* W2/W3 bricks still axiom-clean: hrepr_sum_succ_of_winAdot, hG2_succ_engine_of_winAdot,
+  hagree_succ_of_sourceBdd all = [propext, Classical.choice, Quot.sound].
+
+### Honest leftover (the genuine next attack, NOT this session's scope):
+Empty the residual requires producing the σ=T slice hsrc0-FREE.  Two pieces:
+(i) the *agree* leg via a TowerInputs `bddOn : ∀ n τ, 0<τ→τ≤T→ DuhamelSourceBddOn
+    (patchedSource …) τ` field built at `towerInputs_of_cone` (PID lives there) +
+    `hagree_succ_of_sourceBdd` — closed-T OK;
+(ii) the λ-weighted hbsum/G2 legs + `hiter_cont` at closed T — needs a T-endpoint
+    `DuhamelSourceTimeC1` of the (T/2)-shifted source built WITHOUT the soft clamp
+    (the clamp structurally can't reach the endpoint), e.g. a one-sided/left-limit
+    construction at s=T, or a BddOn→λ-weighted upgrade.  This is the genuine wall;
+    until it exists the field is honest and irreducible.
+
 ## W3 STATUS (@8df3583 base) — BRICK + CONSUMER VARIANTS + TOWER LEGS LANDED
 
 Three NEW files, tree GREEN on uisai2:/dev/shm/shen_work, all five head theorems

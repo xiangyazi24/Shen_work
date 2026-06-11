@@ -1,5 +1,29 @@
 # UNDERSTANDING.md — Shen_work (campaign handoff to Codex, 2026-06-10 ~15:45)
 
+## ⭐⭐⭐ K1 ENDGAME STATE (2026-06-11 00:4x — NEWEST)
+The hsrc0 endgame (waves W1a/W1b/W2/W3/W4, commits 085a3ad…7b424e2) built the
+COMPLETE satisfiable replacement stack for the per-level source K1 package:
+iterate initial approach (hand-written, χ₀=0), patched-coefficient continuity
++ per-level DuhamelSourceBddOn (no t→0 disease), the σ/2-shifted clamped
+DuhamelSourceTimeC1 from winAdot data, consumer variants (hbsum/G2/hagree
+_of_window/_of_sourceBdd), and assembled tower replacement legs — all
+axiom-clean, all σ < T.
+
+W4 verdict (rigorous): **σ = T is genuinely consumed** by three FROZEN
+limit-side capstone feeders (IterateWindowC2Data closed-T quantifiers,
+henv_iter at s ≤ D.T, hiter_cont at [D.T/2, D.T]), and every hsrc0-free route
+is structurally σ < T strict (clamp pad headroom; WindowAdotLegs hi < T).
+**TowerConeAnalyticResidual = { hsrc0 } is the honest irreducible minimum**
+under the current frozen capstone surface.  Emptying it needs ONE of:
+(i) a T-endpoint one-sided DuhamelSourceTimeC1 construction (the soft clamp
+structurally cannot reach the endpoint), or (ii) a BddOn→λ-weighted upgrade
+lemma, or (iii) unfreezing the capstone feeders to σ < T quantifiers.
+Recorded in HANDOFF/k1-wall-plan.md W4 STATUS.
+
+Also this campaign: the hL_cont VACUITY BUG (false zero-extension global
+continuity field — residual was unsatisfiable as published) found and fixed
+(c09aaca); hG2base + hG1all fake walls demolished by hand (7083684, 8f7987f).
+
 ## ⭐⭐ RESIDUAL SHRINK UPDATE (2026-06-10 19:30 — newest)
 After the sorry-free capstone (32c8fee), two more residual legs fell — both
 previously reported as BLOCKED by agents, both blockers shown ILLUSORY,
