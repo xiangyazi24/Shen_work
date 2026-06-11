@@ -6,5 +6,7 @@
 - starting avenue: (a) A-line endpoint stack — codex W8d in flight; (b) D2/D3 — opus in flight; route 2nd-opinion — ChatGPT Pro in flight
 - 06-11 05:40 avenue (b) CLOSED: D2 IMPOSTOR banners landed (abcb884); D3 + semigroup-wiring reclassified as Lᵖ mountain (avenue C), not quick wins. Only genuine quick win was D2 banners.
 - 06-11 05:40 route validated: ChatGPT Pro (cron) rejected the hi↑T density shortcut ("hides the same endpoint derivative proof behind limits, more painful in Lean") — STAY Route A. codex W8d actively grinding the one-sided endpoint stack.
+- 06-11 06:1x endpoint sub-lemma foundation COMPLETE + audited: W7/W7b/W8-D1/W8e(crux)/W8g(cosineCoeffs bridge)/W8h(joint-cont _On) all independent-adversarial-audit PASS, committed (8ce81dd). Crux (per-mode endpoint left-deriv, W8e) Fable-broken + codex-executed.
+- 06-11 06:2x BIG SWING (codex reset window, xhigh): W9 (A-line total: adot assembly→endpoint legs→wire→DELETE hsrc0 @shen_codex), D2 (vacuous semigroup→real heat-kernel @shen_codex4), C1 (L²energy sorries @shen_codex3) — 3 parallel xhigh codex. Fable holds the high-care W9 step-3 (delete hsrc0 + Σ' fix).
 - end: <open>
 - final result: <open>
