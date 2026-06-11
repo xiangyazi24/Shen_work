@@ -138,3 +138,28 @@ Path B. If genuine s=0 C1 is needed: the patchedSource must be shown C1 at 0 (a 
 patch on [0,ε] is), or this is a deeper wall. Trace path: W8e → `derivMajorant src a'` /
 `deriv_term_abs_le src` (K1WeakEndpoint.lean ~384-400) — check if they touch src.hderiv/
 src.adot at s<a' or only src.derivBound/src.envelope.
+
+## RESOLUTION located (Fable, run 2) — the SHIFTED source closes s=0
+
+Trace confirms W8e's IBP (`duhamelCoeff_eigenvalue_mul_on`, needs `∀ s ∈ Icc lo t`)
+DOES use `src.hderiv` over [0,τ₀] incl. s=0 (K1WeakEndpoint.lean:194), and
+`src.hderivBound 0` at s=0 (l.173). The bound helpers (derivMajorant/deriv_term_abs_le/
+summable_*) use ONLY src.derivBound+src.envelope (patchable), but the IBP genuinely needs
+the source DERIVATIVE on [0,τ₀]. The canonical/patched source is NOT C1 at physical s=0
+(u₀ merely continuous → L(u₀) coeffs lack the (kπ)² decay, let alone time-C1 at 0).
+
+THE FIX — feed W9-endpoint the SHIFTED source (the tower's existing `hsrcσ` /
+`shiftedSource_timeC1` mechanism, SourceTower.lean:443): the shifted source
+`fun s => canonical(σ/2 + s)` has physical time `σ/2 + s ∈ [σ/2, σ/2+W]`, BOUNDED BELOW
+by σ/2 > 0 — so it IS C1 on its OWN [0,W] (no physical s=0). W9-endpoint already carries
+an `offset` parameter (EndpointAdot.lean:26, `localRestartCoeff a₀ a (s-offset)`) exactly
+for this. So: build `DuhamelSourceTimeC1On (shiftedSource) 0 W` (inhabitable because
+physical-positive), feed W9-endpoint with offset = σ/2 → get the canonical field's σ=T
+endpoint derivative. The σ=T branch in tower_succ ALREADY uses `hsrcσ` (the shifted
+package); the On-version mirrors it.
+
+⇒ Path B closes. Next brick (codex-specifiable now): build the shifted-source On-package
+`DuhamelSourceTimeC1On (fun s k => cosineCoeffs(logisticLifted p (picardIter n (σ/2+s))) k) 0 W`
+from the interior k1 on the SHIFTED (positive) window + the shift bookkeeping, then feed
+W9's adapter. The s=0 wall was an artifact of targeting the UNSHIFTED source; the tower
+never needs that (it always shifts away from 0).
