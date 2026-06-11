@@ -274,3 +274,26 @@ COMMITTED this campaign: FTC endpoint crux (c408114), WAL On-consumer (4a32c08),
 infra/interior/TE, the route docs. RSA linchpin (ResolverHasSpectralAgreement from interior k1
 + BddOn ledger, NO global residual) built + under hostile audit. hsrc0 endpoint wall CLOSED;
 the deletion is down to capstone/tower wiring (brick-1(b) strict-gate T+ε + brick-3 surgery).
+
+## brick-1(b) STALL (precise) — the hfix self-fix vs iterate mismatch
+
+B1B (codex) found the precise remaining gap for FULL discharge: `CanonicalSourceLedger.hfix`
+(IntervalCanonicalSourceOnFromLedger.lean:26) demands the field be a SELF-FIXED mild solution
+`u s = intervalGradientDuhamelMap p u₀ u s` — TRUE only for the LIMIT D.u, FALSE for the Picard
+ITERATES. But the TWR tower residual is `∀ n, CanonicalSourceLedgerBeyond p u₀ (picardIter n) T`
+(per iterate). The iterate satisfies the PREDECESSOR-indexed fix
+`picardIter (n+1) s = intervalGradientDuhamelMap p u₀ (picardIter n) s`
+(proved: `picardIter_succ_previousSourceFix`, IntervalCanonicalSourceLedgerBeyondAudit.lean:29),
+NOT self-fix. Strict-gate T+ε extends all the horizon-local facts (bounds/representation/
+positivity/ball/K1-K2) but CANNOT turn an iterate into a self-fixed solution.
+
+⇒ THE REFINEMENT: change `CanonicalSourceLedger.hfix` from self-fix to the PREDECESSOR-indexed
+fix (parametrized by the predecessor field picardIter (n-1)), and propagate through RSA/CMP (which
+use hfix to relate the field to its Duhamel representation). Then the per-iterate ledger is
+dischargeable. This is a structural refinement of the CanonicalSourceLedger + RSA chain (the
+iterate-vs-limit fix shape), the precise remaining work for full hsrc0 deletion.
+
+NOTE: the TWR HEADLINE STANDS — the global DuhamelSourceTimeC1 residual (the months-long
+global-derivative obstruction) IS deleted from the tower (audited "genuinely eliminated"). The
+fragment is conditional on CanonicalSourceLedgerBeyond, whose hfix shape needs this predecessor
+refinement to be dischargeable for iterates.
