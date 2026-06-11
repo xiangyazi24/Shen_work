@@ -328,3 +328,26 @@ picardIter n IS bounded at τ=T (the gate `∀ t, 0<t→t≤T` covers τ=T) and 
 there, so the strict-interior τ<T is an over-restriction relaxable to τ≤T. With that, the REC step
 gets its endpoint input and the wiring (L0+REC production → drop CanonicalSourceLedgerBeyond/
 ResidualAtDatum → from_cone_construction unconditional) completes.
+
+## ✅ CAMPAIGN COMPLETE — hsrc0 FULLY DELETED, χ₀=0 Theorem 1.1 UNCONDITIONAL (9c7151f)
+
+`from_cone_construction : Theorem_1_1 intervalDomain p` (TowerSupply:337) is UNCONDITIONAL — no
+residual hypothesis, `#print axioms = [propext, Classical.choice, Quot.sound]`. The per-iterate
+source TimeC1On is PRODUCED in-tower (TowerLevel.srcOn/srcBdd via tower_all: L0 heat-slice base +
+REC recursion). TowerInputs.hsrc0 / CanonicalSourceLedgerBeyond / TowerConeAnalyticResidual /
+ResidualAtDatumCore all GONE. Deepest hostile audit: all 6 load-bearing checks PASS ("the
+UNCONDITIONAL χ₀=0 Theorem 1.1 headline is real").
+
+### The full arc (all hostile-audited + committed)
+Path A rejected (rpow s≤0 wall, RSA self-source) → Path B: FTC endpoint (c408114) + RSA linchpin
+(ce7bbfa, "deletion is REAL") + WAL On-consumer (4a32c08) + CMP bridge (5aed112) + TWR tower
+surgery (90dceed, global residual→ledger) + L0 heat-slice base (02758a8) + REC recursion engine
+(910cc2c) + FIN in-tower wiring (9c7151f, UNCONDITIONAL).
+
+### HONEST CAVEATS (no proof effect, axioms clean)
+1. STALE doc-comments in IntervalDomainThm11ChiZeroFinal.lean + the changed files still describe
+   the old hsrc0/"sorry-stubbed" state — STALE NARRATION only, zero proof effect, to be refreshed.
+2. The SEPARATE, UNUSED alternate capstone `paper2_theorem_1_1_chiZero_final` still carries
+   hPLF/Hcore params — NOT on from_cone_construction's path (the used path is residual-free).
+3. SCOPE (unchanged, faithful): this is the χ₀=0 fragment, interval domain (N=1), Theorem 1.1.
+   χ₀<0 (Path B project, B1 reduction), Theorems 1.2/1.3 (Lᵖ Moser, C2), Prop 1.1 (D1) remain.
