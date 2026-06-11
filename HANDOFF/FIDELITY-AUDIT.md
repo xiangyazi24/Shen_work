@@ -30,6 +30,6 @@ own Telegram reports and commit messages) OVERSTATED reality.
 
 ## ACTIONS
 1. [done] Fidelity banner on the capstone docstring; corrected stale sorryAx/Hiter claims.
-2. [running] Clean-tree #print axioms certification (/dev/shm/shen_verify, fresh f93cbda build).
+2. [DONE] Clean-tree certification: full ShenWork 8547 jobs EXIT 0 on fresh f93cbda + capstone axioms all [propext, Classical.choice, Quot.sound], no sorryAx. Mechanically sound end-to-end.
 3. [next] hsrc0 go/no-go: prove satisfiable OR finish the BddOn replacement (W7-W9). Until then NO unconditional claim, even for the χ₀=0 fragment.
 4. [standing] Independent adversarial audit before ANY headline claim. Verification env must be a clean checkout, not a rsync-patched cache.
