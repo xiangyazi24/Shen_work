@@ -153,6 +153,88 @@ Plan:
 4. Delete hsrc0 from TowerInputs + residual → RESIDUAL EMPTY (or report the
    honest leftover).
 
+## W2 STATUS (partial, post-recon) — RESIDUAL NOT EMPTIED; honest minimum reported
+
+What landed (tree GREEN, root build 8547 jobs EXIT 0, axiom probe clean
+[propext, Classical.choice, Quot.sound] on BOTH acceptance theorems):
+
+1. `IntervalPicardSourceTower.sourceWin_of_level:~301` — the σ-continuity of the
+   canonical source coefficient on `[lo,hi]` is now WALL-FREE: derived from the
+   `winAdot` legs already in scope (`hlegs.choose_spec.1` → `HasDerivAt` →
+   `ContinuousAt` on `[lo,hi] ⊆ [c',d']`, bridged `logisticSourceFun∘lift` →
+   `logisticLifted` via `cosineCoeffs_congr_on_Icc`).  This deletes ONE of the four
+   `hsrc0` consumptions inside SourceTower (was the only one in `sourceWin_of_level`).
+
+2. NEW file `IntervalPicardShiftedBddSupply.lean` —
+   `hagree_succ_of_sourceBdd`: the BddOn mirror of
+   `IntervalPicardSourceSubtypeCont.hagree_succ_of_sourceSubtypeCont`.  Produces the
+   `(n+1)` representation agreement `EqOn (lift(iter(n+1) σ)) (∑' iterateReprCoeff (n+1)
+   σ · cos)` from `DuhamelSourceBddOn (patchedSource …) T` + `hLs_cont` + `σ ≤ T`,
+   via the half-step (`τ=σ/2`, `s=σ`) specialisation of
+   `picardIterateRestart_general_of_sourceBdd`.  Coefficient bridge is definitional
+   (`iterateReprCoeff (n+1) ≡ restartIterateCoeff ≡ restartDuhamelCoeff ≡
+   localRestartCoeff`, `σ−σ/2 = σ/2`).  STANDALONE, compiles, axiom-clean — NOT yet
+   wired into `tower_succ` (see blocker below).
+
+HONEST MINIMUM — residual `hsrc0` could NOT be deleted this session.  The four
+surviving `hsrc0` consumptions and why each resists, AFTER recon:
+
+  (A) `tower_succ` `hsrcσ` → `hbsum_succ` (λ-WEIGHTED summability of
+      `iterateReprCoeff (n+1)`).  `hbsum_succ` → `restartSeries_eigenvalue_summable`
+      → `duh_eig_summable` → `IntervalDuhamelClosedC2.duhamelSpectralCoeff_eigenvalue_summable`,
+      which uses `src.adot` + `src.hderiv` (INTEGRATION-BY-PARTS / `duhamelCoeff_
+      eigenvalue_mul`) — the λ-weight genuinely needs the time-DERIVATIVE structure of
+      a `DuhamelSourceTimeC1`, NOT the BddOn envelopes.  `summable_abs_duhamelSpectralCoeff_bdd`
+      only gives `|·|`-summability, not `λ·|·|`.  BLOCKER: needs a global
+      `DuhamelSourceTimeC1` of the σ/2-SHIFTED canonical source.  The shift keeps
+      times `≥ σ/2 > 0` (no t→0 disease, so satisfiable in principle), but building it
+      requires a CLAMPED-SHIFTED `DuhamelSourceTimeC1` construction from `winAdot` data
+      (mirror of `clampedIterateSource_duhamelSourceTimeC1` in the shifted frame).
+      That is the missing major brick — a NEW file.
+
+  (B) `tower_succ` G2 line → `iterate_abs_deriv2_le_of_windowDecay` → `restartSeries_
+      abs_deriv2_le_on` → `restartDuhamelCoeff_eigenvalue_summable hτ ha₀ src` +
+      `duh_eig_summable src` — SAME blocker as (A): full `DuhamelSourceTimeC1` of the
+      shifted source (λ-weighted route).  Same clamped-shifted brick unblocks it.
+
+  (C) `tower_succ` `hagree_succ` (`:451`).  HAS a working BddOn mirror now
+      (`hagree_succ_of_sourceBdd`, deliverable 2).  But to USE it in `tower_succ` we
+      must BUILD the level-n `DuhamelSourceBddOn` package there via
+      `iterateBddOn_of_facts`, which needs POINTWISE datum facts NOT in `TowerInputs`:
+      `hMpos : 0 < M` (only `hMnn : 0 ≤ M` present) and the patched-slice ball/nn
+      `hpball/hpnn : ∀ s ∈ Icc 0 T, ∀ y, |patchedSlice u₀ (iter n) s y| ≤ M ∧ 0 ≤ …`
+      (the `s=0` branch needs `|u₀ y| ≤ M`, `0 ≤ u₀ y` — `PositiveInitialDatum`
+      pointwise data, available ONLY at the cone site `towerInputs_of_cone`, not in
+      `TowerInputs`).  CLEAN NEXT STEP: add a per-level BddOn field to `TowerInputs`
+      (shape `∀ n τ, 0<τ → τ<T → DuhamelSourceBddOn (patchedSource …) τ`), built at the
+      cone site where `PositiveInitialDatum` lives, replacing `hsrc0` for (C) +
+      `windowAdotLegs_step`.  This is the architecturally-correct field swap.
+
+  (D) `TowerProjection.hiter_cont_of_tower` — canonical coeff continuity on the
+      CLOSED window `[a', τ]` with τ that can equal `T` (the top call in
+      `IntervalDomainHresWiring.duhamelSourceBddOn_of_core:256` passes `τ = D.T`,
+      `le_rfl`).  `winAdot` legs are STRICT interior (`hi < T`) and the BddOn package
+      `hcont` is on `[0,τ]`, `τ < T` STRICT — NEITHER reaches the closed right
+      endpoint `T`.  Continuity AT `s = T` from the left would need a "terminal
+      approach" (mirror of the `s=0` initial approach) which the cone does not return
+      (`HasContinuousSlices` is SPATIAL only, no joint/temporal slice continuity).
+      This is the genuinely hardest leftover; it is the limit-side feed consumed by
+      the FROZEN capstone.
+
+NEXT-SESSION PLAN (to actually empty the residual):
+  * Brick X: `clampedShiftedSource_duhamelSourceTimeC1` (NEW file) — global clamped
+    `DuhamelSourceTimeC1` of the σ/2-shifted level-n source from `winAdot` legs (mirror
+    `clampedIterateSource_duhamelSourceTimeC1` in the shifted frame).  Unblocks (A)+(B).
+  * Field swap: `TowerInputs.hsrc0` → `bddOn : ∀ n τ, 0<τ → τ<T → DuhamelSourceBddOn
+    (patchedSource …) τ`, built at `towerInputs_of_cone` via `iterateBddOn_of_facts`
+    (PID pointwise data available there).  Wire `hagree_succ_of_sourceBdd` (deliverable
+    2) + `windowAdotLegs_step`'s `picardIterateRestart_general` → `_of_sourceBdd`.
+    Unblocks (C).
+  * (D): produce a left-continuity-at-`T` leg for the canonical coeff, or retype
+    `hiter_cont_of_tower` to τ<T and verify HresWiring tolerates τ<T (it currently
+    forces τ=D.T).  This is the honest hard residual; may stay as a shrunken
+    `TowerInputs` hypothesis if the terminal approach can't be produced.
+
 ## W1 STATUS (@085a3ad)
 - W1a DONE (hand-written, IntervalPicardIterateInitialApproach.lean):
   `picardIter_initialApproach` — ∀ n, iterate → u₀ sup-norm as s → 0⁺

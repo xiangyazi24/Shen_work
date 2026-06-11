@@ -299,12 +299,30 @@ def sourceWin_of_level
   · intro σ hσ k
     exact hwin σ hσ k
   · -- value continuity on `[lo,hi]`: equal to the canonical source coeff there,
-    -- which is `σ`-continuous (from the canonical source package `hsrc0`).
+    -- which is `σ`-continuous on `[lo,hi] ⊆ [c',d']` from the `winAdot` legs
+    -- (`HasDerivAt ⟹ ContinuousAt`), WALL-FREE (no canonical `hsrc0` package).
     intro k
-    have hcanon : Continuous
-        (fun σ => cosineCoeffs (logisticLifted p (picardIter p u₀ n σ)) k) :=
-      continuous_iff_continuousAt.2 (fun σ => ((H.hsrc0 n).hderiv σ k).continuousAt)
-    refine (hcanon.continuousOn).congr ?_
+    -- the `[lo,hi] ⊆ [c',d']` inclusion (`c' < lo ≤ hi < d'`).
+    have hsubLoHi : Set.Icc lo hi ⊆ Set.Icc c' d' :=
+      Set.Icc_subset_Icc (le_of_lt hc') (le_of_lt hd')
+    -- the source-function-form coefficient is `σ`-continuous on `[c',d']` via the legs.
+    have hderivCD := hderiv
+    have hcontSF : ContinuousOn
+        (fun σ => cosineCoeffs
+          (logisticSourceFun p.a p.b p.α (intervalDomainLift (picardIter p u₀ n σ))) k)
+        (Set.Icc lo hi) := by
+      intro σ hσ
+      exact ((hderivCD σ (hsubLoHi hσ) k).continuousAt).continuousWithinAt
+    -- bridge `logisticSourceFun ∘ lift` → `logisticLifted` (pointwise on ℝ).
+    have hbridge : (fun σ => cosineCoeffs
+          (logisticSourceFun p.a p.b p.α (intervalDomainLift (picardIter p u₀ n σ))) k)
+        = (fun σ => cosineCoeffs (logisticLifted p (picardIter p u₀ n σ)) k) := by
+      funext σ
+      refine ShenWork.Paper2.cosineCoeffs_congr_on_Icc (fun x hx => ?_) k
+      exact (ShenWork.IntervalMildPicardRegularity.logisticLifted_eq_logisticSourceFun_on_Icc
+        p (picardIter p u₀ n σ) hx).symm
+    rw [hbridge] at hcontSF
+    refine hcontSF.congr ?_
     intro σ hσ
     exact hwin σ hσ k
 
