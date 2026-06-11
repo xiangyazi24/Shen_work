@@ -235,3 +235,22 @@ coeff `HasDerivWithinAt` at T → positive-window On-package's d=T endpoint → 
 tower consumers → delete hsrc0. The ONLY remaining work is STRUCTURAL WIRING (thread the
 T+ε horizon through the cone/tower construction + the FTC endpoint assembly + brick-3 tower
 surgery) — NO unbounded analytic wall remains. hsrc0 is de-risked end-to-end.
+
+## FEASIBILITY CONFIRMED — the FTC route genuinely DELETES hsrc0 (not circular/moving)
+
+Checked `ResolverHasSpectralAgreement T v` (IntervalResolverTimeRegularity.lean:38): its
+`exists_data` provides, for each INTERIOR t₀ ∈ (0,T), a LOCAL restart representation with a
+`DuhamelSourceTimeC1 a` for the SHIFTED/restart source (positive offset, positive time) — the
+same local restart engine the interior k1 (`k1_quadruple_weak`) already uses and PROVES on
+(0,T). The Assembly (IntervalDomainThm11Assembly.lean:108-124) records this is "✓ proved" for
+the canonical field at horizon T.
+
+⇒ `ResolverHasSpectralAgreement (T+ε) v` is DISCHARGEABLE: the construction is
+horizon-parametrized and the restart packages are LOCAL/positive-time (proved), so building it
+at T+ε is the same proved machinery + the OPEN gate (holds at T+ε for small ε). The larger-
+horizon agreement the FTC endpoint route takes as a hypothesis is therefore genuinely available,
+NOT a new residual. The FTC route REPLACES the global hsrc0 residual (DuhamelSourceTimeC1 at
+every level, two-sided everywhere) with LOCAL positive-time restart packages (proved) + the
+endpoint via the larger horizon — so it genuinely DELETES hsrc0, it does not move or assume it.
+hsrc0 deletion is SOUND end-to-end; remaining = the wiring (FTC endpoint + WAL consumer + the
+T+ε cone construction + brick-3 tower surgery).
