@@ -75,5 +75,26 @@ correct, and W7–W9 are precisely its endpoint machinery.**
    `TowerConeAnalyticResidual.hsrc0` + the Σ' projection chain (TowerSupply ~240).
 4. Clean-tree verify `from_cone_construction` #print axioms loses the residual.
 
-(ChatGPT Pro fired in background on the same fork as an independent cross-check;
-source evidence above is already decisive.)
+## ChatGPT Pro cross-check — CONVERGES on Path B (independent), + 2 refinements
+
+1. **Deeper reason Path A is a real wall (stronger than the gating point):** the
+   nonlinear `L(u)=u·(a−b·u^α)` differentiates through `Real.rpow`, which NEEDS a
+   positivity floor (real powers aren't polynomial). Outside the positive-time
+   window there's no positivity ⇒ global two-sided C¹ is a genuine ANALYTIC
+   obstruction in the non-integer-α setting, not just missing lemmas. (Also: the
+   global envelope `∀ s≥0` exceeds what the finite-horizon construction supplies.)
+2. **Payload-splitting refinement for the On interface (do NOT over-size it):**
+   - consumers needing only restart-representation / summability / envelope /
+     coeff-continuity → the lighter `DuhamelSourceL1ContOn` (NO adot field);
+   - only consumers that genuinely need `adot` → full `DuhamelSourceTimeC1On`.
+   Mirrors the repo's existing weak-source move (`DuhamelSourceBddOn`/L1ContOn).
+
+## On-infrastructure that already exists (for the brick-① spec)
+- `DuhamelSourceTimeC1On a lo hi` (IntervalDuhamelSourceTimeC1On.lean:20):
+  `hderiv = HasDerivWithinAt … (Icc lo hi)`, `hadotcont = ContinuousOn (Icc lo hi)`,
+  bounds on the window — exactly W9's σ=T within-endpoint shape.
+- `DuhamelSourceTimeC1.toOn` (l.33) forgets global→On; we need the REVERSE
+  (build On directly from interior-(0,T) K1 + W9 endpoint, since no global exists).
+- W9 endpoint adot: `logisticSource_adot_hasDerivWithinAt_endpoint[_window]`
+  (IntervalPicardIterateTimeC1EndpointAdot.lean:26/119), namespace
+  `ShenWork.IntervalPicardIterateTimeC1Endpoint`.
