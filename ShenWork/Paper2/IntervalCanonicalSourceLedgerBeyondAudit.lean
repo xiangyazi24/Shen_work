@@ -35,4 +35,38 @@ theorem picardIter_succ_previousSourceFix
   intro s _hs _hU x hx
   simp only [picardIter, intervalDomainLift, dif_pos hx]
 
+/-- Predecessor-indexed Duhamel representation.  This is the shape actually
+available for Picard successors. -/
+def PredecessorFix
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (u prev : ℝ → intervalDomainPoint → ℝ) (U : ℝ) : Prop :=
+  ∀ s, 0 < s → s < U → ∀ x : ℝ,
+    (hx : x ∈ Set.Icc (0 : ℝ) 1) →
+      intervalDomainLift (u s) x =
+        intervalGradientDuhamelMap p u₀ prev s ⟨x, hx⟩
+
+/-- A predecessor fix becomes the old self-fix only after an extra agreement of
+the two Duhamel maps.  This is the missing bridge for path A. -/
+theorem PredecessorFix.to_selfFix_of_duhamelMap_eq
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {u prev : ℝ → intervalDomainPoint → ℝ} {U : ℝ}
+    (hprev : PredecessorFix p u₀ u prev U)
+    (hmap : ∀ s, 0 < s → s < U → ∀ x : intervalDomainPoint,
+      intervalGradientDuhamelMap p u₀ prev s x =
+        intervalGradientDuhamelMap p u₀ u s x) :
+    ∀ s, 0 < s → s < U → ∀ x : ℝ,
+      (hx : x ∈ Set.Icc (0 : ℝ) 1) →
+        intervalDomainLift (u s) x =
+          intervalGradientDuhamelMap p u₀ u s ⟨x, hx⟩ := by
+  intro s hs hU x hx
+  rw [hprev s hs hU x hx]
+  exact hmap s hs hU ⟨x, hx⟩
+
+/-- The successor iterate has the predecessor-indexed representation with the
+previous Picard level as source. -/
+theorem picardIter_succ_predecessorFix
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (n : ℕ) {U : ℝ} :
+    PredecessorFix p u₀ (picardIter p u₀ (n + 1)) (picardIter p u₀ n) U :=
+  picardIter_succ_previousSourceFix p u₀ n
+
 end ShenWork.Paper2.CanonicalSourceLedgerBeyondAudit

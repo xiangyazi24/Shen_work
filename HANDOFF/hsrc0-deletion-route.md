@@ -297,3 +297,21 @@ NOTE: the TWR HEADLINE STANDS — the global DuhamelSourceTimeC1 residual (the m
 global-derivative obstruction) IS deleted from the tower (audited "genuinely eliminated"). The
 fragment is conditional on CanonicalSourceLedgerBeyond, whose hfix shape needs this predecessor
 refinement to be dischargeable for iterates.
+
+## PIX result — Path A DEAD, Path B route precise (level-0 heat-slice base + endpoint recursion)
+
+PIX (codex) determined the discharge route decisively:
+- **Path A (predecessor-RSA) REJECTED.** The RSA/K1 chain `picardLimitRestart_general_of_subtypeCont`
+  (IntervalPicardLimitTimeNhdSubtype.lean:342) requires `u = DuhamelMap u` (SELF-source identity)
+  and returns restart source `logisticLifted p (u (τ+σ))` — the field's OWN source. Predecessor-fix
+  gives `DuhamelMap prev`, NOT u's canonical source. RSA fundamentally needs self-source; cannot
+  thread predecessor-fix. (Proved `PredecessorFix` + `picardIter_succ_predecessorFix` as diagnostics.)
+- **Path B (tower recursion) is the route**, needing exactly:
+  1. an ENDPOINT-INCLUSIVE replacement for `H.hsrc0 n` (IntervalPicardSourceTower.lean:440 needs
+     shifted `TimeC1On` through σ=T; current `WindowAdotLegs` recursion is strict-interior);
+  2. the BASE CASE: level-0 heat-slice source `TimeC1On` for `logistic(picardIter 0)` on the shifted
+     closed window. picardIter 0 = S(·)u₀ (heat semigroup) is EXPLICIT (∑ e^{-sλ}ĉ₀ cos), smooth in
+     time (∂_s = ∑ -λ e^{-sλ}ĉ₀ cos) — so this base TimeC1On is DIRECTLY constructible by heat-
+     semigroup calculus, NO self-fix needed. This is the key tractable remaining brick.
+THEN: the tower's predecessor-indexed winAdot recursion (made endpoint-inclusive) extends the
+base to all levels → discharges the per-iterate source TimeC1On → CanonicalSourceLedgerBeyond.
