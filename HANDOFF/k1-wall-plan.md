@@ -152,3 +152,23 @@ Plan:
    variants; TowerProjection.hiter_cont_of_tower → winAdot-derived continuity.
 4. Delete hsrc0 from TowerInputs + residual → RESIDUAL EMPTY (or report the
    honest leftover).
+
+## W1 STATUS (@085a3ad)
+- W1a DONE (hand-written, IntervalPicardIterateInitialApproach.lean):
+  `picardIter_initialApproach` — ∀ n, iterate → u₀ sup-norm as s → 0⁺
+  (χ₀ = 0; G5 homogeneous block + Duhamel ≤ t·C_L; level 0 homogeneous only).
+- W1b TODO: `patchedIterateSource_coeff_continuousOn` (s=0 via W1a +
+  logisticLifted_slice_dist_le + cosineCoeffs_dist_le_of_sup, mirror
+  IntervalPicardLimitCoeffTimeCont.patchedSource_continuousWithinAt_zero;
+  interior via winAdot legs + patchedSource_eq_of_pos congruence; mind the
+  right-endpoint τ < T vs ≤ T per duhamelSourceBddOn_of_slices's horizon
+  genericity) + `iterateBddOn_of_tower` (feed duhamelSourceBddOn_of_slices,
+  IntervalPicardIterateBddProducer.lean).
+- W2 TODO: wire the BddOn package + the _of_sourceBdd chain
+  (IntervalPicardIterateBddRepr.lean) into windowAdotLegs_step + the two
+  tower_succ sites (hsrcσ / hagree_succ — each needs its own BddOn
+  re-derivation of the half-step machinery), retype
+  sourceWin_of_level:287 + hiter_cont_of_tower to winAdot-derived continuity,
+  delete hsrc0 from TowerInputs + TowerConeAnalyticResidual (→ residual EMPTY),
+  fix the HCone Σ' projections, full verify (explicit module targets +
+  axiom probe), update docs.
