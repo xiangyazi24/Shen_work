@@ -216,3 +216,22 @@ HasDerivWithinAt at T → the positive-window On-package's d=T endpoint → feed
 adapter → the full On-package → switch the 4 tower consumers (W9 SuccLegsOn done for 2) →
 delete hsrc0 + the tower/Σ' surgery (brick 3). hsrc0 is now ONE well-defined regularity
 brick + mechanical wiring from deletion — no unbounded wall remains.
+
+## ENDPOINT RESOLVED structurally (run 3 close) — larger-horizon construction
+
+TE brick (committed): `IntervalResolverTimeEndpoint.lean` — 5 clean theorems giving the
+field time-derivative continuity on the CLOSED window `Icc c T` (reaching the endpoint T),
+CONDITIONAL on a spectral horizon `U` with `T < U` (the existing interior machinery then
+covers [c,T] ⊂ (0,U)). Honest stall: the LITERAL endpoint with only
+`ResolverHasSpectralAgreement T v` needs agreement AT t=T (IntervalMildFrontierFromSpectral:63
+extracts t₀<T) — a hypothesis gap, NOT an analytic failure.
+
+⇒ FINAL RESOLUTION (no analytic wall): supply the larger-horizon agreement `U = T+ε`. The
+Picard construction is HORIZON-AGNOSTIC (works on any finite [0,U]) and the gate smallness
+is OPEN (holds for T+ε, small ε, when it holds at T). So: construct the canonical field on
+`[0, T+ε]` → `ResolverHasSpectralAgreement (T+ε) v` → TE theorem gives time-deriv continuity
+on `[c,T]` (endpoint T included) → adottOf cont up to T → FTC (ChatGPT-validated) → source
+coeff `HasDerivWithinAt` at T → positive-window On-package's d=T endpoint → adapter → switch
+tower consumers → delete hsrc0. The ONLY remaining work is STRUCTURAL WIRING (thread the
+T+ε horizon through the cone/tower construction + the FTC endpoint assembly + brick-3 tower
+surgery) — NO unbounded analytic wall remains. hsrc0 is de-risked end-to-end.
