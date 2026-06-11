@@ -3,13 +3,11 @@
 
   **W1b — the per-level patched-iterate-source `DuhamelSourceBddOn` package.**
 
-  The `hsrc0` endgame's last analytic gap was a `DuhamelSourceTimeC1` for the
-  CANONICAL level-`n` source coefficients, demanding a GLOBAL ℓ¹ envelope uniform
-  down to `s = 0` — the documented "no ℓ¹ envelope at `s = 0` for merely-continuous
-  `u₀`" disease.  The fix mirrors the limit side: never produce the global-C¹
-  package; instead produce the satisfiable bounded-source package
+  The old canonical-source route asked for a global `DuhamelSourceTimeC1` with an
+  ℓ¹ envelope uniform down to `s = 0`, which is not the tower-produced object.
+  This file uses the in-tower replacement: the satisfiable bounded-source package
   `DuhamelSourceBddOn (patchedSource p u₀ (picardIter p u₀ n)) τ`, whose
-  time-continuity input lives on the CLOSED window `[0, τ]` with the boundary
+  time-continuity input lives on the closed window `[0, τ]` with the boundary
   handled by the unconditional initial approach.
 
   This file delivers the two W1b bricks:
@@ -374,8 +372,8 @@ For `0 < τ < T`, the patched level-`n` iterate source family is a satisfiable
   adapters above;
 * deliverable 1 (`patchedIterateSource_coeff_continuousOn`) as the `hcontP` input.
 
-All hypotheses are tower-internal — none is the unfillable global ℓ¹-at-`s=0`
-package `hsrc0`. -/
+  All hypotheses are tower-internal; no global ℓ¹-at-`s=0` source package is
+  assumed. -/
 noncomputable def iterateBddOn_of_facts
     (p : CM2Params) (hχ0 : p.χ₀ = 0)
     {u₀ : intervalDomainPoint → ℝ} (n : ℕ)

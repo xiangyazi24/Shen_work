@@ -17,9 +17,10 @@
     * the patched-coefficient time continuity on `[0,τ]` (`hcontP`, satisfiable from
       `HasContinuousSlices`) → `hcont`.
 
-  This is the iterate-side replacement for the canonical `DuhamelSourceTimeC1`
-  residual `hsrc0`: every input is tower-internal data (`TowerLevel`/`TowerInputs`
-  cone-returned facts), none is the unfillable global ℓ¹-at-`s=0` package.
+  This is the iterate-side replacement for the old canonical global
+  `DuhamelSourceTimeC1` route: every input is tower-internal data
+  (`TowerLevel`/`TowerInputs` cone-returned facts), and no global ℓ¹-at-`s=0`
+  package is assumed.
 
   No `sorry`, no `admit`, no custom `axiom`, no `native_decide`.  New file only.
 -/

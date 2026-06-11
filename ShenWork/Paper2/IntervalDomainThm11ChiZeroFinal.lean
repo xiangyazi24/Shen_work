@@ -1,33 +1,20 @@
 /-
-  Paper 2 Theorem 1.1 (χ₀ = 0): unconditional-modulo-two-residuals
-  final wiring.
+  Paper 2 Theorem 1.1 (χ₀ = 0): legacy ledger-level final wiring.
 
-  `MildLocalChi0.paper2_theorem_1_1_chiZero_of_inputs` reduces
-  Theorem 1.1 (χ₀ = 0) to (a) the full per-datum ledger
-  `LimitRegularityInputs` and (b) `PicardLimitRestartFrontier`.  Of the
-  ledger's residual fields, three (`Hu`, `Hvsrc`, `Hvpos`) have landed
-  producers; only TWO remain genuinely open:
+  This file keeps the older `paper2_theorem_1_1_chiZero_final` interface, which
+  still closes Theorem 1.1 from external `Hcore` and `hPLF` hypotheses.  It is
+  separate from the tower/cone path:
 
-    * `hpde_u`   — the spectral→pointwise PDE identity for `u`
-                   (G4n–p bridge with `rep(u)` in hand);
-    * `HsupNorm` — interior sup-norm monotonicity (Lemma 3.1 /
-                   parabolic maximum principle).
+      IntervalPicardTowerSupply.from_cone_construction
 
-  Both are being proved separately (shen-local).  This file isolates
-  them as the named theorems `hpde_u_chiZero` / `hsupNorm_chiZero`
-  (currently `sorry`-stubbed — the ONLY two `sorry`s in the χ₀ = 0
-  chain), splits the ledger into its proved remainder
-  `LimitRegularityInputsCore` (everything except those two) plus the two
-  residual theorems, and reassembles the full ledger via
-  `limitRegularityInputs_of_core`.  The final theorem
-  `paper2_theorem_1_1_chiZero_final` then closes Theorem 1.1 (χ₀ = 0)
-  modulo only `LimitRegularityInputsCore` (the genuine M-line remainder)
-  and `PicardLimitRestartFrontier` — with the two analytic residuals
-  routed through the stubbed theorems, ready to flip to fully
-  unconditional the moment shen-local lands them.
+  That path is now unconditional: the former analytic-source `hsrc0` residual has
+  been eliminated, with the bounded patched source package and positive-window
+  `TimeC1On` source data produced in-tower from L0 + REC.
 
-  When `hpde_u_chiZero` / `hsupNorm_chiZero` lose their `sorry`, this
-  file is unconditional with NO further edits.
+  In this legacy interface, `LimitRegularityInputsCore.hsrc0` is just the retained
+  bounded patched-source field consumed by the restart route, not a `sorry`-stubbed
+  analytic-source obligation.  The `hpde_u` field is supplied by the proved
+  representation producer `hpde_u_chiZero`.
 -/
 import ShenWork.Paper2.IntervalDomainMildLocalChi0
 import ShenWork.Paper2.IntervalDomainPdeUChiZero
@@ -55,7 +42,7 @@ noncomputable section
 
 namespace ShenWork.Paper2.Thm11ChiZeroFinal
 
-/-! ## The ledger minus the two open analytic residuals -/
+/-! ## The legacy core ledger -/
 
 structure LimitRegularityInputsCore
     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
@@ -71,7 +58,7 @@ structure LimitRegularityInputsCore
   -- mild fixed-point (= D.hmild)
   hfix : ∀ t, 0 < t → t < D.T → ∀ x : ℝ, (hx : x ∈ Set.Icc (0:ℝ) 1) →
     intervalDomainLift (D.u t) x = intervalGradientDuhamelMap p u₀ D.u t ⟨x, hx⟩
-  -- weak limit-source package (horizon-bounded; feeds the localized restart route)
+  -- bounded patched source package; on the cone path this is produced in-tower
   hsrc0 : ShenWork.IntervalPicardLimitRestartBdd.DuhamelSourceBddOn
     (ShenWork.IntervalPicardLimitBddProducer.patchedSource p u₀ D.u) D.T
   -- K2 spatial slice bounds (per time slice)
@@ -104,7 +91,7 @@ structure LimitRegularityInputsCore
   -- H3 slice continuity
   hLc : ∀ t, 0 < t → t < D.T →
     ∀ s, 0 < s → s ≤ t → Continuous (intervalLogisticSource p (D.u s))
-  -- ===== frontier residuals (not derivable from R/rep(u) here) =====
+  -- ===== frontier fields supplied to the older ledger interface =====
   Hu : HasTimeNeighborhoodSpectralAgreement D.T D.u
   -- per-`t₀` clamped resolver-source witness (retyped from the unsatisfiable global
   -- `DuhamelSourceTimeC1`; see `IntervalDomainMildLocalChi0.Hvsrc` field doc)
@@ -136,19 +123,12 @@ structure LimitRegularityInputsCore
         Summable (fun n => unitIntervalCosineEigenvalue n
           * localRestartCoeff a₀ a (t - offset) n * cosineMode n x.1))
 
-/-! ## The two open analytic residuals (assumed proved; shen-local in progress)
+/-! ## The proved PDE producer used by the legacy ledger -/
 
-These are the ONLY two `sorry`s in the entire χ₀ = 0 chain.  Their
-statements are field-for-field identical to the `hpde_u` / `HsupNorm`
-fields of `MildLocalChi0.LimitRegularityInputs`, so `of_core` below type-
-checks against them with no coercion. -/
-
-/-- **Residual 1 (open): spectral→pointwise PDE identity for `u`.**
+/-- **Spectral→pointwise PDE identity for `u`.**
 For χ₀ = 0 the chemotaxis term drops, so this is the heat/logistic
-pointwise identity `u_t = Δu + u(a − b u^α)` on the interior.  Proof
-deferred to shen-local (G4n–p bridge with `rep(u)`).
-
-UPDATE (LANDED): discharged via the proved producer
+pointwise identity `u_t = Δu + u(a − b u^α)` on the interior.  It is
+discharged via the proved producer
 `IntervalDomainPdeUChiZero.hpde_u_of_representation` (dd1051b), fed the
 restart-representation data carried by `LimitRegularityInputsCore.hpdeData`. -/
 theorem hpde_u_chiZero
@@ -170,10 +150,9 @@ theorem hpde_u_chiZero
 
 /-! ## Reassembling the full ledger -/
 
-/-- **Build the full `LimitRegularityInputs` from the proved core + the
-two residual theorems.**  Every field is forwarded from the core except
-`hpde_u` / `HsupNorm`, which come from the (currently stubbed) residual
-theorems. -/
+/-- **Build the full `LimitRegularityInputs` from the legacy core.**
+Every field is forwarded from the core except `hpde_u`, which is produced
+from the core's restart-representation data by `hpde_u_chiZero`. -/
 def limitRegularityInputs_of_core
     {p : CM2Params} (hχ0 : p.χ₀ = 0) {u₀ : intervalDomainPoint → ℝ}
     {D : GradientMildSolutionData p u₀}
@@ -211,17 +190,17 @@ def limitRegularityInputs_of_core
 
 /-- **Paper 2 Theorem 1.1 (χ₀ = 0), final wiring.**
 
-Closes Theorem 1.1 (χ₀ = 0) from exactly:
+This older theorem closes Theorem 1.1 (χ₀ = 0) from exactly:
   * `Hcore` — the per-datum proved-ledger remainder
     `LimitRegularityInputsCore` (the M-line images: K1/K2 bounds + the
     landed Hu/Hvsrc/Hvpos producers), and
   * `hPLF` — `PicardLimitRestartFrontier p` (the shared quantitative-side
-    residual),
-with the two analytic residuals `hpde_u` / `HsupNorm` supplied internally
-through `hpde_u_chiZero` / `hsupNorm_chiZero`.
+    provider),
+with `hpde_u` supplied internally through `hpde_u_chiZero`.
 
-Once those two theorems lose their `sorry`, this is the unconditional
-Theorem 1.1 for the χ₀ = 0 regime modulo only `Hcore` + `hPLF`. -/
+The unconditional χ₀ = 0 theorem is now the separate cone/tower entry point
+`IntervalPicardTowerSupply.from_cone_construction`, where the old analytic-source
+package is produced in-tower rather than assumed. -/
 theorem paper2_theorem_1_1_chiZero_final
     (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hα_ge : 1 ≤ p.α) (hγ_ge_one : 1 ≤ p.γ)

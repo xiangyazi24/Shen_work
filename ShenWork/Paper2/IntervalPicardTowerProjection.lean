@@ -4,7 +4,7 @@
   **Tower campaign stage 2 — the tower projections (items 14–16).**
 
   Projects the per-level `TowerLevel` carrier (`IntervalPicardSourceTower`) into the
-  capstone's residual surface:
+  capstone's provider surface:
 
     * `wdata_of_tower` / `wdata_all_of_tower` (item 14) — a DIRECT fill of
       `IterateWindowC2Data p u₀ a' T` (and the `∀ a', 0 < a' →` family, i.e. exactly
@@ -15,10 +15,10 @@
       `a' > T` are filled vacuously (verdict trap 9).
 
     * `wdataProvider_of_tower` (item 15) — the `WdataProvider p u₀ D` form, the exact
-      single residual leg consumed by `paper2_theorem_1_1_chiZero_unconditional`.
+      provider leg consumed by `paper2_theorem_1_1_chiZero_unconditional`.
 
     * `HWdata_of_tower` — the universal `HWdata` shape: given `TowerInputs` for every
-      cone-constructed datum, the capstone's residual hypothesis is discharged.  The
+      cone-constructed datum, the capstone's provider hypothesis is discharged.  The
       one-line final wiring into `paper2_theorem_1_1_chiZero_unconditional` is noted
       in the closing doc-comment (it consumes `HWdata_of_tower` directly).
 
@@ -186,7 +186,7 @@ theorem hiter_cont_of_tower
 /-- **`wdataProvider_of_tower` (item 15).**  When the horizon `T` equals `D.T`, the
 `wdata_all_of_tower` family is *definitionally* the `WdataProvider p u₀ D` leg (recall
 `WdataProvider p u₀ D := ∀ a', 0 < a' → IterateWindowC2Data p u₀ a' D.T`).  This is the
-single residual obligation of `paper2_theorem_1_1_chiZero_unconditional`. -/
+single provider obligation of `paper2_theorem_1_1_chiZero_unconditional`. -/
 def wdataProvider_of_tower
     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {M A₂ : ℝ}
     (D : GradientMildSolutionData p u₀)
@@ -194,7 +194,7 @@ def wdataProvider_of_tower
     WdataProvider p u₀ D :=
   wdata_all_of_tower p u₀ H
 
-/-! ## §4 — The capstone residual `HWdata` (final wiring).
+/-! ## §4 — The capstone provider `HWdata` (final wiring).
 
 `paper2_theorem_1_1_chiZero_unconditional` consumes a single hypothesis
 
@@ -202,12 +202,11 @@ def wdataProvider_of_tower
              D.u = picardLimit p u₀ D.T → WdataProvider p u₀ D
 
 `HWdata_of_tower` discharges it from a per-datum `TowerInputs` supply: at each
-cone-constructed datum `D`, the tower bundle (gate ∧ ball ∧ witness packages ∧
-kernel-G1 ∧ G2-base/endpoint ∧ adot data) — the cone-exposable surface returned by
-`coneGradientMildSolutionData_exists_with_gate_data` plus the discharge-stack
-witness packages — yields `WdataProvider p u₀ D` via `wdataProvider_of_tower`. -/
+cone-constructed datum `D`, the tower bundle (gate, ball, in-tower source packages,
+kernel-G1, G2 endpoints, and adot data) yields `WdataProvider p u₀ D` via
+`wdataProvider_of_tower`. -/
 
-/-- **`HWdata_of_tower` — the capstone residual from a per-datum tower supply.**
+/-- **`HWdata_of_tower` — the capstone provider from a per-datum tower supply.**
 
 `HTower` supplies, for every datum `D` (with the canonical-Picard-limit identity),
 the `TowerInputs` bundle at the datum's horizon `D.T` (with a per-datum mass `M` and
@@ -215,8 +214,9 @@ budget `A₂`).  The capstone's `WdataProvider` leg follows by `wdataProvider_of
 
 This is the **final wiring shape**: feeding `HWdata_of_tower HTower` to
 `paper2_theorem_1_1_chiZero_unconditional` closes Paper 2 Theorem 1.1 (χ₀ = 0)
-modulo only the per-datum tower bundle (the analytic surface the cone + discharge
-stack already produces). -/
+from the per-datum tower bundle.  The cone/tower entry point
+`IntervalPicardTowerSupply.from_cone_construction` supplies that bundle
+unconditionally. -/
 def HWdata_of_tower
     (p : CM2Params)
     (HTower : ∀ u₀ : intervalDomainPoint → ℝ,

@@ -207,10 +207,9 @@ structure TowerInputs (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   `halfStep_coeff_le_twoM`.  This is NOT an analytic-wall leg: it is exactly the
   `HasContinuousSlices` data returned by the gate-data cone. -/
   hcontSlice : ∀ n : ℕ, HasContinuousSlices T (picardIter p u₀ n)
-  /-- The two endpoint G2-step budgets (`x ∈ {0,1}`), carried as the honest
-  endpoint residual exactly as `hEnd0`/`hEnd1` in the discharge stack: the
-  slice↔restart-series agreement only transports the second derivative on the OPEN
-  interior `Ioo 0 1`, so the boundary points need the per-endpoint budget facts.
+  /-- The two endpoint G2-step budgets (`x ∈ {0,1}`), carried in the tower input:
+  slice↔restart-series agreement only transports the second derivative on the
+  OPEN interior `Ioo 0 1`, so the boundary points need the per-endpoint budget facts.
   Each is in the `g2_step_closes`-consumable shape (`M₁' ≤ 2M ∧ |∂ₓₓ| ≤ budget`). -/
   hG2end : ∀ (n : ℕ) (t : ℝ), 0 < t → t ≤ T → ∀ x ∈ ({0, 1} : Set ℝ),
     ∃ M₁' : ℝ, M₁' ≤ 2 * M ∧
@@ -607,7 +606,7 @@ def tower_succ
   -- The WALL-FREE windowed decay of the shifted source on `[0, σ/2]`, DERIVED in-tower
   -- from the level-`n` representation triple + ball + K2 facts (`L.hrepr_*`/`L.hG1`/
   -- `L.hG2`, ball from `H.hpos`/`H.hub`) via stage F (`shifted_source_windowDecay`).
-  -- This REPLACES the former `H.witness` residual `hdecay` field.
+  -- This replaces the former external `H.witness.hdecay` field.
   have hdecayW : ∀ σ, 0 < σ → σ ≤ T →
       ∀ s ∈ Set.Icc (0 : ℝ) (σ / 2), ∀ k : ℕ, 1 ≤ k →
         |cosineCoeffs (logisticLifted p (picardIter p u₀ n (σ / 2 + s))) k|
@@ -666,7 +665,7 @@ def tower_succ
           exact ⟨M₁', h1, by rw [hx1]; exact h2⟩
         · -- interior x ∈ Ioo 0 1: window-decay deriv² on the restart series + Ioo
           -- transport.  WALL-FREE: the bound comes from the σ-shifted source package
-          -- (`hsrcσ`) + the stage-F windowed decay (`hdecayW`), NOT a residual witness.
+          -- (`hsrcσ`) + the stage-F windowed decay (`hdecayW`), not an external witness.
           refine ⟨2 * M, le_refl _, ?_⟩
           -- restart-series ↔ slice agreement on the open interior.
           have hEq : Set.EqOn (intervalDomainLift (picardIter p u₀ (n + 1) σ))
