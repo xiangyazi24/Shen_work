@@ -63,6 +63,16 @@ sided) derivative — which is the RIGHT object for a closed-window `On` package
 NOT the two-sided global one. ⇒ **Path A's global target is wrong; Path B is
 correct, and W7–W9 are precisely its endpoint machinery.**
 
+## Consumer triage (source-verified — what each actually pulls from the pkg)
+- `hagree_succ_of_sourceSubtypeCont` (IntervalPicardSourceSubtypeCont.lean:138-142):
+  `.envelope` + `.henv_bound` ONLY → **no adot** → lighter `L1ContOn`/`BddOn` suffices.
+- `windowAdotLegs_step` (IntervalPicardWindowAdot.lean:229): `.hderiv` → **needs adot**.
+- `hbsum_succ` / `iterate_abs_deriv2_le_of_windowDecay`: go through the eigenvalue
+  IBP (`duhamelSpectralCoeff_eigenvalue_summable` uses `src.adot`) → **need adot**.
+⇒ 3 of 4 need adot (fed by W9's σ=T within-endpoint — confirms W9 was the right
+investment); only hagree_succ can drop to the lighter package. So brick ① (full
+On-producer WITH adot) is genuinely required; the payload-split is a minor win.
+
 ## Path B — the remaining bricks (codex grind, Fable-specified)
 1. `DuhamelSourceTimeC1On`-analogue of the line-128 producer: consume the
    interior-(0,T) K1 quadruple + W9's σ=T within-endpoint adot → produce
