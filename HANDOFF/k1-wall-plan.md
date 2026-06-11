@@ -115,3 +115,40 @@ Theorems:
    CAUTION: hiter_cont_of_tower (TowerProjection) reads (H.hsrc0 n).hderiv —
    retype to window continuity from winAdot.  hu₀_bound/coeff machinery
    unaffected.
+
+## FINAL BRICK (post-surgery state @786afc4, residual = {hsrc0} ONLY)
+
+`hsrc0 : ∀ n, DuhamelSourceTimeC1 (canonical level-n source coeffs)` survives
+because the from-zero restart-base coefficient reads the source on (0,τ) — no
+clamp covers it (verified by the WindowAdot builder).  HONESTY FLAG: hsrc0 as
+typed demands an ℓ¹ envelope UNIFORM down to s = 0 — the documented "no ℓ¹
+envelope at s=0 for merely-continuous u₀" disease suggests it is unprovable or
+worse as typed; the consumers must be retyped to a PATCHED package, mirroring
+the limit side's solved pattern (DuhamelSourceBddOn + patchedSource +
+limit_lift_eq_cosineSeries_of_subtypeCont_patched — all EXISTING machinery).
+
+Plan:
+1. Define the patched ITERATE source family (constant below a positive base
+   s₀, canonical above — exact mirror of patchedSource for picardIter n).
+2. Iterate from-zero representation with the patched family: mirror
+   limit_lift_eq_cosineSeries_of_subtypeCont_patched's proof for the iterate
+   (u_{n+1} = Φ(u_n), not the fixed point — the Duhamel integral splits at s₀;
+   below s₀ the patched family is constant and the heat damping at horizon
+   σ − s ≥ σ − s₀ > 0 controls the series; above s₀ canonical).
+   Alternatively: BddOn-style bounded package (hM + per-window env) suffices
+   for the series manipulations — check which interface the consumers
+   (hbsum_succ / hagree chains / windowAdotLegs_step's K1-full src input)
+   minimally need; K1-full's src : DuhamelSourceTimeC1 is the hard one — its
+   FTC differentiation reads src VALUES on the window only, but its envelope
+   legs are global: build the PATCHED DuhamelSourceTimeC1 (patched family IS
+   globally time-C¹: constant below s₀ — C¹ across the seam needs the soft
+   clamp φ on the time argument, NOT a hard cutoff — reuse IntervalTimeSoftClamp
+   exactly as clampedSource_duhamelSourceTimeC1 does; the existing clamp
+   producer ALREADY outputs a global package — the only gap is the from-zero
+   representation consuming the CLAMPED family below the id-zone).
+3. Retype: windowAdotLegs_step's hsrc0_n input → the clamped/patched package
+   (level-n, produced from winAdot(n) via clampedIterateSource — ALREADY
+   tower-internal!); tower_succ's hsrcσ/hbsum_succ/hagree chains → patched
+   variants; TowerProjection.hiter_cont_of_tower → winAdot-derived continuity.
+4. Delete hsrc0 from TowerInputs + residual → RESIDUAL EMPTY (or report the
+   honest leftover).
