@@ -163,3 +163,31 @@ package); the On-version mirrors it.
 from the interior k1 on the SHIFTED (positive) window + the shift bookkeeping, then feed
 W9's adapter. The s=0 wall was an artifact of targeting the UNSHIFTED source; the tower
 never needs that (it always shifts away from 0).
+
+## IRREDUCIBLE CORE located (Fable + ChatGPT Pro, run 3 close)
+
+The endpoint crux is now traced ALL THE WAY DOWN. ChatGPT Pro verdict on the FTC route:
+SOUND + Lean-feasible (recipe: `intervalIntegral.integral_eq_sub_of_hasDerivAt` →
+`integral_hasDerivWithinAt_right` → `HasDerivWithinAt.congr_of_eventuallyEq`), BUT it
+moves the burden from the endpoint DERIVATIVE to the endpoint CONTINUITY of the derivative
+candidate `adottOf` at T. That continuity is NOT free from k1 (k1 gives only Ioo 0 T).
+
+Tracing `adottOf` continuity-at-T to its core (IntervalPicardLimitK1.lean:95-108):
+- `adottOf p u σ k = cosineCoeffs (sourceDerivSlice p u σ) k` (explicit).
+- `sourceDerivSlice p u σ x = slopeSlice u σ x * (a − b(1+α)(lift(u σ) x)^α)` (explicit;
+  the rpow factor is continuous at T via u(σ) continuity + positivity floor).
+- `slopeSlice u σ x = deriv (fun r => lift(u r) x) σ` — the FIELD's TIME-DERIVATIVE ∂_σ u(σ,x).
+
+⇒ **The hsrc0 deletion reduces, at its irreducible core, to: the mild solution's
+time-derivative `σ ↦ deriv (lift(u ·) x) σ` is CONTINUOUS up to physical T.** This is a
+genuine parabolic regularity fact (true for t>0 by smoothing), NOT a wiring gap — it is
+the real analytic content the hsrc0 residual encodes, and exactly why it was left as a
+residual. The full chain: Path A rejected (rpow s≤0 wall) → Path B → s=0 (shifted) →
+shifted-endpoint recursion → FTC route → adottOf cont@T → slopeSlice cont@T → **∂_t u
+continuous up to T**.
+
+NEXT CHECK (before any further endpoint dispatch): does the cone/tower ALREADY carry
+∂_t u (time-derivative) continuity up to T, or only spatial regularity (G1/G2/hcontSlice)?
+If the cone returns time-C¹-up-to-T, the FTC route closes hsrc0; if not, this is a new
+parabolic endpoint-regularity theorem (the genuine residual core). Built so far (committed):
+the entire route DOWN TO this core + the positive-window interior On-package.
