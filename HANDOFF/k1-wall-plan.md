@@ -415,3 +415,69 @@ Wave plan:
 - W9: final wiring + hsrc0 deletion + HConeNarrow bridge to the cone
   existence theorem → from_coneSupply actually instantiable → the χ₀=0
   Theorem 1.1 unconditional (interval domain).  χ₀<0 branch remains future.
+
+## W6a STATUS (@421582b base) — DEAD W3 BRICKS WIRED; hsrc0 σ=T-ONLY at SITES A+B
+
+The σ<T / σ=T case split is LIVE in `tower_succ` (IntervalPicardSourceTower).
+A level-`n` `SuccLegData` bundle `D` is built once (from `H.hα/ha/hb/hMnn/hA₂nn`,
+`L.hrepr_sum/hrepr_agree/hG1/hG2/winAdot`, `H.hpos n`/`H.hub n` — all in scope, NO
+hsrc0), feeding the W3 legs on the σ<T branch.  Split tactic: `rcases lt_or_ge σ T`.
+
+| site | location | σ < T branch (hsrc0-FREE) | σ = T branch | hsrc0 now? |
+|---|---|---|---|---|
+| A `hrepr_sum` | SourceTower ~:460 | `hrepr_sum_succ_of_winAdot p u₀ n D hM₁ σ hσ hσlt` | `hbsum_succ … (hsrcσ σ hσ)` | σ=T ONLY |
+| B G2 interior | SourceTower ~:537 (inside `hser`, post-`hgain_eq`) | `hG2_succ_engine_of_winAdot p u₀ n D hM₁ σ hσ hσlt x` | `iterate_abs_deriv2_le_of_windowDecay … (hsrcσ σ hσ) (hdecayW …) x` | σ=T ONLY |
+| C `hrepr_agree` | SourceTower ~:475 | (NOT split) `hagree_succ_of_sourceSubtypeCont … (H.hsrc0 n) hLs` | (same) | ALL σ — documented |
+
+W3 brick wiring detail (site B): the W3 `hG2_succ_engine_of_winAdot` produces the
+bound in the EXPLICIT-constant form (`2·(∑'…)/π^{3/2}`), i.e. exactly the post-
+`rw [hgain_eq]` shape of `hser`, so the split lives inside `hser`'s proof (after the
+`hgain_eq` rewrite); the surrounding `hEq` (Ioo agreement) + `lift_deriv2_abs_le_of_
+eqOn_Ioo` transport are shared (factored out of the branch).
+
+### Site C (hagree) — left on hsrc0, HONEST REASON (no new TowerInputs fields):
+The BddOn mirror `hagree_succ_of_sourceBdd` (IntervalPicardShiftedBddSupply) needs a
+`DuhamelSourceBddOn (patchedSource …) T` package.  Building it in-tower via
+`iterateBddOn_of_facts` (IntervalPicardIterateBddPackage:320) requires hypotheses NOT
+derivable from `TowerInputs`:
+  * `hMpos : 0 < M` — TowerInputs has only `hMnn : 0 ≤ M`;
+  * `hpball/hpnn : ∀ s ∈ Icc 0 T, ∀ y, |patchedSlice u₀ (iter n) s y| ≤ M ∧ 0 ≤ …` —
+    `patchedSlice` at `s ≤ 0` IS `u₀` (verified, IntervalPicardLimitBddHcontP:217), so
+    these demand a POINTWISE u₀ sup-ball `|u₀ y| ≤ M` / `0 ≤ u₀ y`.  TowerInputs carries
+    only the COEFFICIENT bound `hu₀_bound : |cosineCoeffs (lift u₀) k| ≤ M`, NOT a sup-
+    ball.  The PID pointwise data lives at the cone site (`towerInputs_of_cone`), not in
+    TowerInputs.
+  * `iterateBddOn_of_facts` also needs `τ < T` STRICT — structurally cannot reach σ=T.
+Per the W6a brief (DO NOT add TowerInputs fields), hagree stays on hsrc0.  The field
+swap (add a per-level `bddOn` field at the cone site) is the W2-STATUS-(C) leftover,
+deferred to a later wave.
+
+### Other surviving hsrc0 consumer (out of W4-table scope, unchanged):
+`wA1 = windowAdotLegs_step … (H.hsrc0 n) …` (SourceTower ~:556) — the K1 induction
+step itself consumes the canonical level-`n` package at all σ.  This is the inductive
+producer of `winAdot (n+1)`, not one of the three W4-table consumer sites; it stays on
+hsrc0 until the W8/W9 endpoint-winAdot construction lands.
+
+### Verification (verbatim, @421582b + edits, uisai2:/dev/shm/shen_work, rsync no --delete):
+* per-file `lake env lean ShenWork/Paper2/IntervalPicardSourceTower.lean` → EXIT 0.
+* explicit module targets `lake build ShenWork.Paper2.IntervalPicardSourceTower
+  ShenWork.Paper2.IntervalPicardTowerSupply
+  ShenWork.Paper2.IntervalDomainThm11ChiZeroCoreProvider` →
+  `Build completed successfully (3680 jobs).` EXIT 0
+  (`Built ShenWork.Paper2.IntervalPicardSourceTower (5.2s)`).
+* root `lake build ShenWork` → `Build completed successfully (8547 jobs).` EXIT 0.
+* axiom probe BOTH acceptance theorems = `[propext, Classical.choice, Quot.sound]`:
+  - ShenWork.Paper2.Thm11ChiZeroCoreProvider.paper2_theorem_1_1_chiZero_unconditional
+  - ShenWork.IntervalPicardTowerSupply.paper2_theorem_1_1_chiZero_from_coneSupply
+  UNCHANGED from W4.  No sorryAx, no custom axioms.
+
+### Files touched: ShenWork/Paper2/IntervalPicardSourceTower.lean (import + 2 opens +
+`SuccLegData` bundle `D` + site-A split + site-B split inside `hser`);
+HANDOFF/k1-wall-plan.md (this section).  TowerInputs signature UNCHANGED (case split is
+internal to tower_succ's proof body).  No edit to IntervalPicardTowerSupply.lean.
+
+### Honest leftovers: hsrc0 still consumed at (i) site C hagree — all σ (needs cone-site
+BddOn field, no new TowerInputs field permitted this wave); (ii) `windowAdotLegs_step`
+— all σ (the K1 inductive producer, W8/W9 scope).  Sites A and B are now σ=T-only, as
+required.  The σ=T endpoint itself is the genuine wall (W5 Route A: one-sided/windowed-
+C¹ endpoint interface, W7–W9).

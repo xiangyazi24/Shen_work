@@ -45,6 +45,7 @@ import ShenWork.Paper2.IntervalPicardUniformWiringClosure
 import ShenWork.Paper2.IntervalPicardUniformWiring
 import ShenWork.Paper2.IntervalPicardWdataAssembly
 import ShenWork.Paper2.IntervalPicardSourceSubtypeCont
+import ShenWork.Paper2.IntervalPicardSuccTowerLegs
 
 open MeasureTheory Filter Topology Set
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
@@ -79,6 +80,8 @@ open ShenWork.IntervalPicardUniformWiring
   (lift_deriv2_abs_le_of_eqOn_Ioo lift_deriv2_eq_zero_of_not_mem)
 open ShenWork.IntervalPicardUniformWiringDischarge (Benv_nonneg)
 open ShenWork.IntervalPicardIterateC2Bound (restartIterateCoeff)
+open ShenWork.IntervalPicardSuccTowerLegs
+  (SuccLegData hrepr_sum_succ_of_winAdot hG2_succ_engine_of_winAdot)
 
 noncomputable section
 
@@ -425,6 +428,13 @@ def tower_succ
     intro σ hσ hσT k
     exact halfStep_coeff_le_twoM p u₀ H (n + 1) (by positivity)
       (by linarith) k
+  -- W6a: the level-`n` `SuccLegData` bundle (TowerLevel n / TowerInputs facts MINUS
+  -- `hsrc0`, plus `winAdot`), feeding the `hsrc0`-FREE W3 legs on the `σ < T` branch.
+  have D : SuccLegData p u₀ n M A₂ T :=
+    { hα := H.hα, ha := H.ha, hb := H.hb, hMnn := H.hMnn, hA₂nn := H.hA₂nn
+      hrepr_sum := L.hrepr_sum, hrepr_agree := L.hrepr_agree
+      hpos := H.hpos n, hub := H.hub n, hG1 := L.hG1, hG2 := L.hG2
+      winAdot := L.winAdot }
   -- The σ-shifted canonical source time-`C¹` package, WALL-FREE: the non-negative
   -- `σ/2`-shift of the level-`n` canonical source `H.hsrc0 n` (stage F supply,
   -- `shiftedSource_timeC1`).  `canonicalShiftedSource p u₀ n σ` is definitionally this.
@@ -452,7 +462,12 @@ def tower_succ
   have hrepr_sum : ∀ σ, 0 < σ → σ ≤ T →
       Summable (fun k => (λ_ k) * |iterateReprCoeff p u₀ (n + 1) σ k|) := by
     intro σ hσ hσT
-    exact hbsum_succ p u₀ n hσ (fun k => hM₁ σ hσ hσT k) (hsrcσ σ hσ)
+    -- W6a SITE A: honest `σ < T` / `σ = T` split.  `σ < T` is `hsrc0`-FREE (the W3
+    -- brick `hrepr_sum_succ_of_winAdot` from the `winAdot`-derived clamped package);
+    -- only the literal `σ = T` endpoint stays on the surviving `hsrc0` route (`hsrcσ`).
+    rcases lt_or_ge σ T with hσlt | hσge
+    · exact hrepr_sum_succ_of_winAdot p u₀ n D hM₁ σ hσ hσlt
+    · exact hbsum_succ p u₀ n hσ (fun k => hM₁ σ hσ hσT k) (hsrcσ σ hσ)
   -- representation agreement via the subtype-continuity variant.
   have hrepr_agree : ∀ σ, 0 < σ → σ ≤ T →
       Set.EqOn (intervalDomainLift (picardIter p u₀ (n + 1) σ))
@@ -495,13 +510,6 @@ def tower_succ
           -- transport.  WALL-FREE: the bound comes from the σ-shifted source package
           -- (`hsrcσ`) + the stage-F windowed decay (`hdecayW`), NOT a residual witness.
           refine ⟨2 * M, le_refl _, ?_⟩
-          have hbound := iterate_abs_deriv2_le_of_windowDecay p u₀ n hσ hBenv
-            (fun k => hM₁ σ hσ hσT k) (hsrcσ σ hσ) (hdecayW σ hσ hσT) x
-          -- the witness gives the bound with the half-step coefficient `M₁`; here we
-          -- absorb `M₁ ≤ 2M`'s slack into the leading `2M·eig` term.
-          have hM₁le : ∀ k, |cosineCoeffs
-              (intervalDomainLift (picardIter p u₀ (n + 1) (σ / 2))) k| ≤ 2 * M :=
-            fun k => hM₁ σ hσ hσT k
           -- restart-series ↔ slice agreement on the open interior.
           have hEq : Set.EqOn (intervalDomainLift (picardIter p u₀ (n + 1) σ))
               (fun z => ∑' k, restartIterateCoeff p u₀ n σ k * cosineMode k z)
@@ -509,7 +517,11 @@ def tower_succ
             intro z hz
             have := hrepr_agree σ hσ hσT (Set.Ioo_subset_Icc_self hz)
             simpa only [iterateReprCoeff] using this
-          -- the witness's explicit Cgain constant is `duhamelGainConst` (definitional).
+          -- W6a SITE B: honest `σ < T` / `σ = T` split of the restart-series deriv²
+          -- bound `hser` (the explicit-constant `hgain_eq` form).  `σ < T` is
+          -- `hsrc0`-FREE (the W3 G2 engine `hG2_succ_engine_of_winAdot`); only the
+          -- literal `σ = T` endpoint stays on the surviving `hsrc0` route
+          -- (`hsrcσ`/`hdecayW` via `iterate_abs_deriv2_le_of_windowDecay`).
           have hser : |deriv (deriv
                 (fun z => ∑' k, restartIterateCoeff p u₀ n σ k * cosineMode k z)) x|
               ≤ 2 * M * eigExpWeight (σ / 2)
@@ -519,11 +531,12 @@ def tower_succ
                 = 2 * (∑' k : ℕ, 1 / ((k : ℝ) + 1) ^ ((3 : ℝ) / 2))
                     / Real.pi ^ ((3 : ℝ) / 2) := rfl
             rw [hgain_eq]
-            -- the witness bound has leading `M₁·eig`; bound `M₁·eig ≤ 2M·eig` needs
-            -- `M₁ ≤ 2M`, but the witness uses the SUP `M₁`-form already with `2M`.
-            -- `iterate_abs_deriv2_le_of_shiftedWitness` is stated with `M₁` as the
-            -- explicit hypothesis bound, which here is `2M`.
-            exact hbound
+            rcases lt_or_ge σ T with hσlt | hσge
+            · exact hG2_succ_engine_of_winAdot p u₀ n D hM₁ σ hσ hσlt x
+            · -- σ = T endpoint: the surviving canonical `hsrc0` route.  The witness
+              -- bound carries the half-step coefficient `M₁`, already in `2M` SUP-form.
+              exact iterate_abs_deriv2_le_of_windowDecay p u₀ n hσ hBenv
+                (fun k => hM₁ σ hσ hσT k) (hsrcσ σ hσ) (hdecayW σ hσ hσT) x
           exact lift_deriv2_abs_le_of_eqOn_Ioo hEq ⟨hx0, hx1⟩ hser
       · -- exterior x ∉ Icc 0 1: slice deriv² = 0
         refine ⟨0, by linarith [H.hMnn], ?_⟩
