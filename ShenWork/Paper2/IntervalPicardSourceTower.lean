@@ -38,6 +38,7 @@ import ShenWork.Paper2.IntervalPicardIterateC2BoundLocal
 import ShenWork.Paper2.IntervalPicardSliceWitnessSupply
 import ShenWork.Paper2.IntervalPicardIterateTimeC1Full
 import ShenWork.Paper2.IntervalPicardIterateRepresentation
+import ShenWork.Paper2.IntervalPicardWindowAdot
 import ShenWork.Paper2.IntervalHomogeneousG2Base
 import ShenWork.Paper2.IntervalPicardIterateUniform
 import ShenWork.Paper2.IntervalPicardUniformWiringClosure
@@ -70,6 +71,8 @@ open ShenWork.IntervalPicardIterateRestartLocal
 open ShenWork.IntervalPicardSourceSubtypeCont
   (logisticSource_subtypeCont hagree_succ_of_sourceSubtypeCont)
 open ShenWork.IntervalPicardIterateTimeC1Full (clampedIterateSource_duhamelSourceTimeC1)
+open ShenWork.IntervalPicardWindowAdot
+  (WindowAdotLegs windowAdotLegs_zero windowAdotLegs_step)
 open ShenWork.IntervalPicardWdataAssembly
   (G1win G2win G1profile_le_G1win G2profile_le_G2win)
 open ShenWork.IntervalPicardUniformWiring
@@ -131,6 +134,10 @@ structure TowerLevel (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   `(0,T)` (`0 < lo ≤ hi < T`).  Strictness in `hi < T` is what the clamped global
   producer needs (it pads to `[c',d']` with `c' < lo ≤ hi < d' ≤ T`). -/
   srcWin : ∀ lo hi, 0 < lo → lo ≤ hi → hi < T → SourceWin p u₀ n lo hi
+  /-- The window `adot` legs (time-`C¹` of the level's source coefficients) on every
+  read window strictly inside `(0,T)` — PRODUCED level-by-level (K1 wall closure):
+  base via `windowAdotLegs_zero`, step via `windowAdotLegs_step`. -/
+  winAdot : ∀ lo hi, 0 < lo → lo ≤ hi → hi < T → WindowAdotLegs p u₀ n lo hi
 
 /-! ## §3 — The carrier's analytic input bundle `TowerInputs`.
 
@@ -189,20 +196,6 @@ structure TowerInputs (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
     0 < intervalDomainLift (picardIter p u₀ n σ) x
   hub : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
     intervalDomainLift (picardIter p u₀ n σ) x ≤ M
-  /-- The level-`n` source-derivative `adot` data on every window (for the clamped
-  source producer's K1 leg): derivative-has + window continuity + uniform bound. -/
-  adot : ℕ → ℝ → ℕ → ℝ
-  hadot_deriv : ∀ (n : ℕ) (c' d' : ℝ), ∀ σ ∈ Set.Icc c' d', ∀ k, HasDerivAt
-    (fun r => cosineCoeffs
-      (logisticSourceFun p.a p.b p.α (intervalDomainLift (picardIter p u₀ n r))) k)
-    (adot n σ k) σ
-  hadot_cont : ∀ (n : ℕ) (c' d' : ℝ), ∀ k,
-    ContinuousOn (fun σ => adot n σ k) (Set.Icc c' d')
-  /-- The per-window uniform `adot` bound constant (data, so it is usable in the
-  data-valued `sourceWin_of_level`). -/
-  adotBound : ℕ → ℝ → ℝ → ℝ
-  hadot_bound : ∀ (n : ℕ) (c' d' : ℝ), ∀ σ ∈ Set.Icc c' d', ∀ k,
-    |adot n σ k| ≤ adotBound n c' d'
 
 /-- **In-tower derivation of the half-step coefficient bound `M₁ ≤ 2M`.**
 For any level `m` and time `s ∈ (0,T]`, the slice `picardIter p u₀ m s` is
@@ -234,6 +227,24 @@ theorem halfStep_coeff_le_twoM
     rw [abs_of_pos hpos]; exact hub
   exact cosineCoeffs_abs_le_of_continuous_bounded hgc H.hMnn hbd
 
+/-- **Subtype slice continuity ⟹ lift `ContinuousOn (Icc 0 1)`** (the `hgc`
+pattern of `halfStep_coeff_le_twoM`, extracted for the `winAdot` builders). -/
+theorem lift_slice_continuousOn
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (H : TowerInputs p u₀ M A₂ T) (m : ℕ) :
+    ∀ σ, 0 < σ → σ ≤ T →
+      ContinuousOn (intervalDomainLift (picardIter p u₀ m σ)) (Set.Icc (0 : ℝ) 1) := by
+  intro s hs hsT
+  have hcont_s : Continuous (picardIter p u₀ m s) := H.hcontSlice m s hs hsT
+  rw [continuousOn_iff_continuous_restrict]
+  have heq : (Set.Icc (0 : ℝ) 1).restrict (intervalDomainLift (picardIter p u₀ m s))
+      = picardIter p u₀ m s := by
+    funext y
+    simp only [Set.restrict_apply, intervalDomainLift]
+    rw [dif_pos y.2]
+    exact congr_arg (picardIter p u₀ m s) (Subtype.ext rfl)
+  rw [heq]; exact hcont_s
+
 /-! ## §4 — The window source package builder.
 
 The verdict's `srcWin` construction: from the level-`n` repr triple + ball + K2
@@ -261,9 +272,15 @@ def sourceWin_of_level
     (hG1 : ∀ σ ∈ Set.Icc c' d', ∀ x ∈ Set.Icc (0 : ℝ) 1,
       |deriv (intervalDomainLift (picardIter p u₀ n σ)) x| ≤ G1s)
     (hG2 : ∀ σ ∈ Set.Icc c' d', ∀ x ∈ Set.Icc (0 : ℝ) 1,
-      |deriv (deriv (intervalDomainLift (picardIter p u₀ n σ))) x| ≤ G2s) :
+      |deriv (deriv (intervalDomainLift (picardIter p u₀ n σ))) x| ≤ G2s)
+    (hlegs : WindowAdotLegs p u₀ n c' d') :
     SourceWin p u₀ n lo hi := by
   classical
+  -- extract the legs via choice (the goal `SourceWin` is data-valued).
+  have hspec := hlegs.choose_spec
+  have hderiv := hspec.1
+  have hadotcont := hspec.2.2
+  have hMdot := hspec.2.1.choose_spec
   -- The producer returns an existential `∃ asrc, ∃ _ : DuhamelSourceTimeC1 asrc, …`;
   -- extract the data via choice (the whole carrier is noncomputable).
   have hex := clampedIterateSource_duhamelSourceTimeC1
@@ -273,7 +290,7 @@ def sourceWin_of_level
     (fun σ hσ x hx => H.hpos n σ (lt_of_lt_of_le hc'pos hσ.1) (le_trans hσ.2 hd'T) x hx)
     (fun σ hσ x hx => H.hub n σ (lt_of_lt_of_le hc'pos hσ.1) (le_trans hσ.2 hd'T) x hx)
     hG1 hG2
-    (H.adot n) (H.hadot_deriv n c' d') (H.hadot_cont n c' d') (H.hadot_bound n c' d')
+    hlegs.choose hderiv hadotcont hMdot
   set asrc := hex.choose with hasrc
   have hspec := hex.choose_spec
   set hsrc := hspec.choose with hhsrc
@@ -313,7 +330,8 @@ def srcWin_of_levelData
     (hG1 : ∀ σ, 0 < σ → σ ≤ T → ∀ x : ℝ,
       |deriv (intervalDomainLift (picardIter p u₀ n σ)) x| ≤ G1profile p M σ)
     (hG2 : ∀ σ, 0 < σ → σ ≤ T → ∀ x : ℝ,
-      |deriv (deriv (intervalDomainLift (picardIter p u₀ n σ))) x| ≤ G2profile A₂ σ) :
+      |deriv (deriv (intervalDomainLift (picardIter p u₀ n σ))) x| ≤ G2profile A₂ σ)
+    (hwin : ∀ lo hi, 0 < lo → lo ≤ hi → hi < T → WindowAdotLegs p u₀ n lo hi) :
     ∀ lo hi, 0 < lo → lo ≤ hi → hi < T → SourceWin p u₀ n lo hi := by
   intro lo hi hlo hlohi hhiT
   set c' := lo / 2 with hc'def
@@ -325,10 +343,13 @@ def srcWin_of_levelData
   -- on `[c',d']`: `0 < c' ≤ σ` and `σ ≤ d' ≤ T`.
   have hσpos : ∀ σ ∈ Set.Icc c' d', 0 < σ := fun σ hσ => lt_of_lt_of_le hc'pos hσ.1
   have hσT : ∀ σ ∈ Set.Icc c' d', σ ≤ T := fun σ hσ => le_trans hσ.2 hd'T
+  have hc'd' : c' ≤ d' := by rw [hc'def, hd'def]; linarith
+  have hd'Tlt : d' < T := by rw [hd'def]; linarith
   refine sourceWin_of_level p u₀ n H hc'pos hc' hlohi hd' hd'T bcfun
     (fun σ hσ => hbsum σ (hσpos σ hσ) (hσT σ hσ))
     (fun σ hσ => hagree σ (hσpos σ hσ) (hσT σ hσ))
     (G1s := G1win p M c' d') (G2s := G2win A₂ c') ?_ ?_
+    (hwin c' d' hc'pos hc'd' hd'Tlt)
   · intro σ hσ x _hx
     exact le_trans (hG1 σ (hσpos σ hσ) (hσT σ hσ) x)
       (G1profile_le_G1win H.hMnn hc'pos hσ.1 hσ.2)
@@ -345,18 +366,23 @@ the level-0 repr triple via `srcWin_of_levelData`. -/
 def tower_zero
     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {M A₂ T : ℝ}
     (H : TowerInputs p u₀ M A₂ T) :
-    TowerLevel p u₀ M A₂ T 0 where
-  hrepr_sum := fun _ hσ _ => hbsum_zero p u₀ hσ H.hu₀_bound
-  hrepr_agree := fun _ hσ _ => hagree_zero p u₀ hσ H.hu₀_cont H.hu₀_bound
-  hG1 := H.hG1all 0
-  hG2 := ShenWork.IntervalHomogeneousG2Base.hG2base_of_gate p u₀
-    H.hMnn H.hA₂nn H.hu₀_cont H.hu₀_bound H.hgate
-  srcWin := srcWin_of_levelData p u₀ 0 H (iterateReprCoeff p u₀ 0)
-    (fun _ hσ _ => hbsum_zero p u₀ hσ H.hu₀_bound)
-    (fun _ hσ _ => hagree_zero p u₀ hσ H.hu₀_cont H.hu₀_bound)
-    (H.hG1all 0)
-    (ShenWork.IntervalHomogeneousG2Base.hG2base_of_gate p u₀
-      H.hMnn H.hA₂nn H.hu₀_cont H.hu₀_bound H.hgate)
+    TowerLevel p u₀ M A₂ T 0 :=
+  let wA : ∀ lo hi, 0 < lo → lo ≤ hi → hi < T → WindowAdotLegs p u₀ 0 lo hi :=
+    windowAdotLegs_zero p u₀ H.hα H.ha H.hb H.hMnn H.hu₀_cont H.hu₀_bound
+      (H.hpos 0) (H.hub 0) (lift_slice_continuousOn p u₀ H 0)
+  { hrepr_sum := fun _ hσ _ => hbsum_zero p u₀ hσ H.hu₀_bound
+    hrepr_agree := fun _ hσ _ => hagree_zero p u₀ hσ H.hu₀_cont H.hu₀_bound
+    hG1 := H.hG1all 0
+    hG2 := ShenWork.IntervalHomogeneousG2Base.hG2base_of_gate p u₀
+      H.hMnn H.hA₂nn H.hu₀_cont H.hu₀_bound H.hgate
+    srcWin := srcWin_of_levelData p u₀ 0 H (iterateReprCoeff p u₀ 0)
+      (fun _ hσ _ => hbsum_zero p u₀ hσ H.hu₀_bound)
+      (fun _ hσ _ => hagree_zero p u₀ hσ H.hu₀_cont H.hu₀_bound)
+      (H.hG1all 0)
+      (ShenWork.IntervalHomogeneousG2Base.hG2base_of_gate p u₀
+        H.hMnn H.hA₂nn H.hu₀_cont H.hu₀_bound H.hgate)
+      wA
+    winAdot := wA }
 
 /-- **Inductive step `tower_succ` (under the GATE).**  `TowerLevel … n →
 TowerLevel … (n+1)`:
@@ -493,13 +519,28 @@ def tower_succ
         simpa using this
     obtain ⟨M₁', hM₁'le, hM₁'bound⟩ := hbudget
     exact g2_step_closes H.hMnn hσ hσT hM₁'le H.hgate hM₁'bound
+  -- the level-(n+1) window adot legs — the K1 induction step (the wall closure):
+  -- the step consumes the level-n canonical package (H.hsrc0 n), the level-n
+  -- representation/K2 facts (L.*), and the level-n legs (L.winAdot).
+  have hLsT : ∀ r, 0 < r → r ≤ T →
+      Continuous (intervalLogisticSource p (picardIter p u₀ n r)) := fun r hr hrT =>
+    logisticSource_subtypeCont p u₀ n H.hα (H.hcontSlice n) r hr hrT
+  have wA1 : ∀ lo hi, 0 < lo → lo ≤ hi → hi < T →
+      WindowAdotLegs p u₀ (n + 1) lo hi :=
+    windowAdotLegs_step p H.hχ0 u₀ n H.hα H.ha H.hb H.hMnn H.hA₂nn H.hu₀_cont
+      H.hu₀_bound (H.hsrc0 n) hLsT L.hrepr_sum L.hrepr_agree
+      (H.hpos n) (H.hub n) L.hG1 L.hG2
+      (H.hpos (n + 1)) (H.hub (n + 1))
+      (lift_slice_continuousOn p u₀ H (n + 1))
+      L.winAdot
   refine
     { hrepr_sum := hrepr_sum
       hrepr_agree := hrepr_agree
       hG1 := H.hG1all (n + 1)
       hG2 := hG2
       srcWin := srcWin_of_levelData p u₀ (n + 1) H (iterateReprCoeff p u₀ (n + 1))
-        hrepr_sum hrepr_agree (H.hG1all (n + 1)) hG2 }
+        hrepr_sum hrepr_agree (H.hG1all (n + 1)) hG2 wA1
+      winAdot := wA1 }
 
 /-- **The full tower induction (under the GATE).**  For every `n`, the carrier
 holds. -/

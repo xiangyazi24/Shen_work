@@ -42,8 +42,8 @@
       `a ≤ |a| ≤ M`, so the former `hub` field is no longer an analytic residual.
 
   ## (b) Genuinely-open analytic legs — the per-iterate spatial-`C²` bootstrap.
-    `hsrc0`, `hG1all`, and the `adot`
-    K1 stack (`adot`/`hadot_deriv`/`hadot_cont`/`adotBound`/`hadot_bound`) ALL depend
+    `hsrc0` (the `adot` K1 stack has been DERIVED in-tower via the
+    `WindowAdotLegs` induction — see IntervalPicardWindowAdot) ALL depend
     on the per-iterate spatial-`C²`/positivity/Neumann regularity of EVERY Picard
     level (`picardIterateHasC2Slices_all`), whose step data
     (`PicardRegularityStepData`) is itself a `DuhamelSourceTimeC1`-plus-spectral-
@@ -52,7 +52,7 @@
     They are NOT faked: they are carried as ONE explicit named hypothesis package
     `TowerConeAnalyticResidual`, which IS the exact remaining analytic surface (the
     same family of facts `uniformWiring_closure` consumes — `hsrc0`/`hG1all`
-    — plus the `adot` K1 data
+    — the `adot` K1 data now derived in-tower
     the clamped source producer reads, restated at the cone datum's horizon).  The
     former `hub` leg has been REMOVED from the residual (derived in-tower from the
     cone-returned subtype ball `hball`; see (a)).  The
@@ -123,17 +123,6 @@ structure TowerConeAnalyticResidual
   /-- The level-`n` canonical logistic source time-`C¹` package (deliverable B). -/
   hsrc0 : ∀ n : ℕ, ShenWork.IntervalDuhamelClosedC2.DuhamelSourceTimeC1
     (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
-  /-- The level-`n` source-derivative `adot` data on every window. -/
-  adot : ℕ → ℝ → ℕ → ℝ
-  hadot_deriv : ∀ (n : ℕ) (c' d' : ℝ), ∀ σ ∈ Set.Icc c' d', ∀ k, HasDerivAt
-    (fun r => cosineCoeffs
-      (logisticSourceFun p.a p.b p.α (intervalDomainLift (picardIter p u₀ n r))) k)
-    (adot n σ k) σ
-  hadot_cont : ∀ (n : ℕ) (c' d' : ℝ), ∀ k,
-    ContinuousOn (fun σ => adot n σ k) (Set.Icc c' d')
-  adotBound : ℕ → ℝ → ℝ → ℝ
-  hadot_bound : ∀ (n : ℕ) (c' d' : ℝ), ∀ σ ∈ Set.Icc c' d', ∀ k,
-    |adot n σ k| ≤ adotBound n c' d'
 
 /-! ## §2 — `towerInputs_of_cone` — assembling `TowerInputs` at the cone datum.
 
@@ -219,11 +208,7 @@ def towerInputs_of_cone
       have hle : picardIter p u₀ n σ ⟨x, hx⟩ ≤ M :=
         le_trans (le_abs_self _) hsub
       simpa only [intervalDomainLift, dif_pos hx] using hle
-    adot := H.adot
-    hadot_deriv := H.hadot_deriv
-    hadot_cont := H.hadot_cont
-    adotBound := H.adotBound
-    hadot_bound := H.hadot_bound }⟩
+    }⟩
 
 /-! ## §3 — The capstone residual `HWdata` from a per-datum cone supply.
 
