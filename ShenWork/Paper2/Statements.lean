@@ -1416,6 +1416,12 @@ def zeroSemigroupEstimateData (D : BoundedDomainData) : SemigroupEstimateData D 
   divergenceSemigroup := fun _ _ _ => 0
   embeddingNorm := fun _ _ _ _ => 0
 
+/-- ⚠️ IMPOSTOR / VACUOUS: this is NOT a proof of Lemma 2.1 (the semigroup
+Lᵖ–Lq smoothing estimate of the paper).  It only proves the estimate for
+`zeroSemigroupEstimateData`, which zeros every semigroup/norm output, so each
+inequality degenerates to `0 ≤ 0`.  The real heat-kernel bounds live in
+`PDE/HeatKernelLpEstimates` but are NOT wired into this statement layer.  Do not
+mistake this for the analytic content of Lemma 2.1.  (Roadmap D2; FIDELITY-AUDIT.) -/
 theorem Lemma_2_1_zero_data (D : BoundedDomainData) (p : CM2Params) :
     Lemma_2_1 D p (zeroSemigroupEstimateData D) := by
   apply Lemma_2_1_zero_output_branch
@@ -1428,6 +1434,9 @@ theorem Lemma_2_1_zero_data (D : BoundedDomainData) (p : CM2Params) :
   · intro t u
     norm_num [zeroSemigroupEstimateData]
 
+/-- ⚠️ IMPOSTOR / VACUOUS: NOT a proof of Lemma 2.2.  Only proves it for the
+zeroed `zeroSemigroupEstimateData` (every embedding/norm output is `0`), so the
+estimate is the trivial `0 ≤ 0`.  No analytic content.  (Roadmap D2.) -/
 theorem Lemma_2_2_zero_data (D : BoundedDomainData) :
     Lemma_2_2 D (zeroSemigroupEstimateData D) := by
   apply Lemma_2_2_zero_embedding_branch
@@ -1438,6 +1447,9 @@ theorem Lemma_2_2_zero_data (D : BoundedDomainData) :
   · intro theta q sigma u
     norm_num [zeroSemigroupEstimateData]
 
+/-- ⚠️ IMPOSTOR / VACUOUS: NOT a proof of Lemma 2.3.  Only proves it for the
+zeroed `zeroSemigroupEstimateData` (divergence-semigroup output is `0`), so the
+estimate is the trivial `0 ≤ 0`.  No analytic content.  (Roadmap D2.) -/
 theorem Lemma_2_3_zero_data (D : BoundedDomainData) (p : CM2Params) :
     Lemma_2_3 D p (zeroSemigroupEstimateData D) := by
   apply Lemma_2_3_zero_divergence_branch
@@ -1446,6 +1458,9 @@ theorem Lemma_2_3_zero_data (D : BoundedDomainData) (p : CM2Params) :
   · intro q t phi
     norm_num [zeroSemigroupEstimateData]
 
+/-- ⚠️ IMPOSTOR / VACUOUS: NOT a proof of Lemma 2.4.  Only proves it for the
+zeroed `zeroSemigroupEstimateData` (fractional divergence-semigroup output is
+`0`), so the estimate is the trivial `0 ≤ 0`.  No analytic content.  (Roadmap D2.) -/
 theorem Lemma_2_4_zero_data (D : BoundedDomainData) (p : CM2Params) :
     Lemma_2_4 D p (zeroSemigroupEstimateData D) := by
   apply Lemma_2_4_zero_fractional_divergence_branch
@@ -1454,7 +1469,9 @@ theorem Lemma_2_4_zero_data (D : BoundedDomainData) (p : CM2Params) :
   · intro sigma q t phi
     norm_num [zeroSemigroupEstimateData]
 
-/-- Degenerate semigroup package for Lemmas 2.1-2.4. -/
+/-- ⚠️ IMPOSTOR / VACUOUS: bundles the four zeroed Lemma_2_X_zero_data above.
+This is NOT a proof of Lemmas 2.1–2.4; every estimate holds only because
+`zeroSemigroupEstimateData` zeros the semigroup (`0 ≤ 0`).  (Roadmap D2.) -/
 theorem lemmas_2_1_to_2_4_zero_data
     (D : BoundedDomainData) (p : CM2Params) :
     Lemma_2_1 D p (zeroSemigroupEstimateData D) ∧
@@ -4901,7 +4918,14 @@ theorem Proposition_2_5.of_branchDataFact
     Proposition_2_5 D p :=
   Proposition_2_5.of_branchData hData.out
 
-/-- Generic existence-hypothesis closure for Paper 2 Theorem 1.1.
+/-- ⚠️ IMPOSTOR / TAUTOLOGICAL: this is NOT a proof of Theorem 1.1.  Its two
+hypotheses `hnonminimal`/`hminimal` ARE the full conclusion of Theorem 1.1
+(existence of the classical solution + the L∞ bound + the global criterion) in
+each branch; the body just unpacks them.  Zero analytic content — it proves
+`(conclusion) → (conclusion)`.  Do not mistake for a discharge of Theorem 1.1.
+(Roadmap D2; FIDELITY-AUDIT.)
+
+Generic existence-hypothesis closure for Paper 2 Theorem 1.1.
 Given that the relevant Cauchy solution exists with the required `L∞` bound
 and the global criterion `1 ≤ p.m` in both branches, `Theorem_1_1` follows. -/
 theorem Theorem_1_1.of_assumed_solutions_branch
@@ -4931,7 +4955,12 @@ theorem Theorem_1_1.of_assumed_solutions_branch
   · intro ha hb u₀ hu₀
     exact hminimal hχ ha hb u₀ hu₀
 
-/-- Generic existence-hypothesis closure for Paper 2 Theorem 1.2. -/
+/-- ⚠️ IMPOSTOR / TAUTOLOGICAL: NOT a proof of Theorem 1.2.  The hypotheses
+`hslow_diffusion`/`hcritical` are the full per-branch conclusion of Theorem 1.2
+(solution existence + boundedness); the body merely unpacks them.  Proves
+`(conclusion) → (conclusion)`; zero analytic content.  (Roadmap D2.)
+
+Generic existence-hypothesis closure for Paper 2 Theorem 1.2. -/
 theorem Theorem_1_2.of_assumed_solutions_branch
     {D : BoundedDomainData} {p : CM2Params}
     (hslow_diffusion :
@@ -4958,7 +4987,12 @@ theorem Theorem_1_2.of_assumed_solutions_branch
   · intro hm_eq hχ u₀ hu₀
     exact hcritical ha hb hβ hm_eq hχ u₀ hu₀
 
-/-- Generic existence-hypothesis closure for Paper 2 Theorem 1.3. -/
+/-- ⚠️ IMPOSTOR / TAUTOLOGICAL: NOT a proof of Theorem 1.3.  The hypotheses
+`hlocal`/`hglobal` are the full per-regime conclusion of Theorem 1.3 (solution
+existence + boundedness); the body merely unpacks them.  Proves
+`(conclusion) → (conclusion)`; zero analytic content.  (Roadmap D2.)
+
+Generic existence-hypothesis closure for Paper 2 Theorem 1.3. -/
 theorem Theorem_1_3.of_assumed_solutions_branch
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
     (hlocal :
@@ -4984,7 +5018,12 @@ theorem Theorem_1_3.of_assumed_solutions_branch
   · intro hm_one u₀ hu₀
     exact hglobal ha hb hm hcond hm_one u₀ hu₀
 
-/-- Paper 2 main result bridge from the three independent solution branches.
+/-- ⚠️ IMPOSTOR / TAUTOLOGICAL: NOT a proof of the Paper 2 main results.  Every
+hypothesis here is the full conclusion of the corresponding theorem; each
+component is discharged by its `.of_assumed_solutions_branch` impostor above.
+Proves `(conclusions) → (conclusions)`; zero analytic content.  (Roadmap D2.)
+
+Paper 2 main result bridge from the three independent solution branches.
 
 This packages the paper-level statements `Theorem_1_1`, `Theorem_1_2`, and
 `Theorem_1_3` without adding analytical content: each component is discharged
