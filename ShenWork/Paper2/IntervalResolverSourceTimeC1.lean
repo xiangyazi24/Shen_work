@@ -30,7 +30,7 @@
   and a `K1` time-`C¹` quadruple.  This file wraps it as
   `resolverSource_timeC1_of_global_representation`: GIVEN the GLOBAL
   representation/positivity/decay/`K1` inputs, the `Hvsrc` field is filled
-  sorry-free.
+  without proof placeholders.
 
   ## The obstruction — why the canonical family cannot feed it
 
