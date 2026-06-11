@@ -586,3 +586,125 @@ BddOn field, no new TowerInputs field permitted this wave); (ii) `windowAdotLegs
 — all σ (the K1 inductive producer, W8/W9 scope).  Sites A and B are now σ=T-only, as
 required.  The σ=T endpoint itself is the genuine wall (W5 Route A: one-sided/windowed-
 C¹ endpoint interface, W7–W9).
+
+## W6c STATUS (@34d1a04 base) — RESIDUAL SHRUNK TO ONLY hsrc0; legs 2-4 EXPOSED
+
+The W6b `ResidualAtDatum` bundled the genuine analytic surface `hAnalytic` (= hsrc0)
+together with THREE cone-internal bookkeeping legs (`hT1 : D.T ≤ 1`, `hu₀_bound`, `hball`)
+that were TRUE of the cone construction but TYPE-HIDDEN by the original
+`coneGradientMildSolutionData_exists_with_gate_data` return.  W6c exposes all three at the
+gate mass `D.M` via an ADDITIVE strengthening of the cone return, so the per-datum residual
+hypothesis of `from_cone_construction'` shrinks to ONLY the analytic field.  RESOLUTION:
+copy (wrap impossible — the three facts are construction-internal, not type-recoverable
+from `_with_gate_data`'s return; confirmed) the cone proof body verbatim and add the three
+conjuncts at the final record (`hT₀_le_one`; `hMc`+`cosineCoeffs_congr_on_Icc hf₀_eq`+
+`2·M_in ≤ M`; `hball`).  ALL existing decls byte-for-byte unchanged; new decls only.
+
+### New signatures (verbatim):
+
+ConeData (additive, ZERO change to existing decls):
+```
+theorem coneGradientMildSolutionData_exists_with_gate_data' (p : CM2Params)
+    (hχ : p.χ₀ = 0) {M_in : ℝ} (hM_in : 0 < M_in) (hα_ge : 1 ≤ p.α) :
+    ∃ δ A₂ : ℝ, 0 < δ ∧ 0 ≤ A₂ ∧
+      ∀ u₀ : intervalDomainPoint → ℝ,
+        Continuous u₀ → (∀ x, |u₀ x| ≤ M_in) → (∀ x, 0 ≤ u₀ x) → (∃ x₀, 0 < u₀ x₀) →
+        ∃ D : GradientMildSolutionData p u₀,
+          D.T = δ ∧ D.u = picardLimit p u₀ δ ∧
+          ShenWork.IntervalPicardIterateUniform.GateCondition p D.M A₂ D.T ∧
+          (∀ n, HasContinuousSlices D.T (picardIter p u₀ n)) ∧
+          (∃ F : ShenWork.IntervalPicardLimitCoeffConv.PicardConvFacts p u₀, F.T = δ) ∧
+          (∀ n σ, 0 < σ → σ ≤ δ → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+            0 < intervalDomainLift (picardIter p u₀ n σ) x) ∧
+          D.T ≤ 1 ∧
+          (∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ D.M) ∧
+          (∀ n σ, 0 < σ → σ ≤ D.T → ∀ y : intervalDomainPoint,
+            |picardIter p u₀ n σ y| ≤ D.M)
+```
+(the last three conjuncts are the W6c additions; first six byte-identical to
+`_with_gate_data`.)
+
+TowerSupply §6 (additive):
+```
+structure ResidualAtDatumCore (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (D : GradientMildSolutionData p u₀) where
+  hAnalytic : TowerConeAnalyticResidual p u₀ D D.M 0
+
+theorem from_cone_construction'
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (Hres : ∀ (u₀ : intervalDomainPoint → ℝ),
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ (D : GradientMildSolutionData p u₀),
+        D.u = picardLimit p u₀ D.T → ResidualAtDatumCore p u₀ D) :
+    ShenWork.Paper2.Theorem_1_1 intervalDomain p
+```
+
+### FINAL residual hypothesis of `from_cone_construction'` — EXACTLY hsrc0:
+`Hres … → ResidualAtDatumCore p u₀ D`, a single-field structure whose only field is
+`hAnalytic : TowerConeAnalyticResidual p u₀ D D.M 0` — i.e. the genuine `hsrc0` analytic
+surface (W4 STATUS irreducible), NOTHING else.  Legs `hT1`/`hu₀_bound`/`hball` are now
+CONE-RETURNED by `_with_gate_data'` at the gate mass `D.M` and consumed internally; the
+caller no longer owes them.  Honest accounting: hsrc0 itself remains the genuine open wall
+(W7–W9, σ=T endpoint), unchanged by this wave — W6c only removed the THREE type-hidden
+bookkeeping legs, exactly as the mission specified.
+
+### Files touched (W6c): ShenWork/Paper2/IntervalMildPicardConeData.lean (additive
+`_with_gate_data'`, +793 lines, copy of `_with_gate_data` body + 3 conjuncts);
+ShenWork/Paper2/IntervalPicardTowerSupply.lean (additive `ResidualAtDatumCore` +
+`from_cone_construction'`, +83 lines); HANDOFF/k1-wall-plan.md (this section).  Diffs
+PURELY additive: 876 insertions / 0 deletions; `git diff --check` clean.  No edit to
+IntervalMildPicardConeData's existing theorems, no edit to TowerSupply's frozen/W6b decls.
+
+### Verification (verbatim, @34d1a04 + W6c edits, uisai2:/dev/shm/shen_work, rsync no --delete):
+* per-file `lake env lean` EXIT 0: IntervalMildPicardConeData (only pre-existing linter
+  warnings), IntervalPicardTowerSupply.
+* module builds EXIT 0:
+  - `lake build ShenWork.Paper2.IntervalMildPicardConeData` → `Build completed
+    successfully (3593 jobs).`
+  - `lake build ShenWork.Paper2.IntervalMildPicardConeData
+    ShenWork.Paper2.IntervalPicardTowerSupply
+    ShenWork.Paper2.IntervalDomainThm11ChiZeroCoreProvider` → `Build completed
+    successfully (3680 jobs).`
+* root `lake build ShenWork` → `Build completed successfully (8547 jobs).` EXIT 0.
+* axiom probe — ALL SEVEN = `[propext, Classical.choice, Quot.sound]` (no sorryAx):
+  - FROZEN UNCHANGED: `paper2_theorem_1_1_chiZero_unconditional`,
+    `paper2_theorem_1_1_chiZero_from_coneSupply`.
+  - W6b UNCHANGED: `from_cone_construction`,
+    `paper2_theorem_1_1_chiZero_from_coneSupplyNarrow`,
+    `paper2_theorem_1_1_chiZero_of_datumProviders`.
+  - W6c NEW: `from_cone_construction'`,
+    `coneGradientMildSolutionData_exists_with_gate_data'`.
+
+## W6b ADDENDUM — STATEMENT-FIDELITY AUDIT (playbook pass, post-hoc)
+
+Run AFTER the W6b report, on review demand.  Verdict: every "unconditional"/"prize"
+claim in this campaign MUST carry the slice qualifier.  Ledger (Lean `Theorem_1_1`
+Prop, Statements.lean:4342, vs what the chiZero chain proves):
+
+| dimension | paper / `Theorem_1_1` Prop | what we actually prove |
+|---|---|---|
+| sensitivity | premise `p.χ₀ ≤ 0` (the paper's case is NEGATIVE sensitivity) | ONLY `p.χ₀ = 0` — the DEGENERATE slice: the chemotaxis coupling χ₀∇·(u∇v) VANISHES from the u-equation (decoupled heat+logistic).  χ₀ < 0 — the paper's actual content — is untouched by the whole tower/cone campaign. |
+| reaction | both branches: `a,b>0` AND `a=b=0` | only `0 < a, 0 < b` hypotheses; for our parameters the `a=b=0` branch is VACUOUSLY true; the paper's claim AT `a=b=0` parameters is not covered. |
+| α, γ | `CM2Params` standing assumptions: `0 < α`, `0 < γ` only | EXTRA hypotheses `1 ≤ α`, `1 ≤ γ` — regime narrowing beyond the paper. |
+| domain | any `BoundedDomainData` (paper: smooth bounded Ω ⊂ ℝ^N) | `intervalDomain` only (1-D). |
+| conditionality | — | conditional on the residual (`Hiter`+`HWdata`, or W6b's `DatumProviderSupply`/`ResidualAtDatum`). |
+
+VACUITY RISK FLAG (playbook "vacuous conditional theorem" class): `hsrc0`
+(`TowerConeAnalyticResidual`) carries the DOCUMENTED satisfiability question (W4/FINAL
+BRICK: ℓ¹ envelope uniform down to s=0 — "no ℓ¹ envelope at s=0 for merely-continuous
+u₀" disease; plausibly unsatisfiable AS TYPED).  If unsatisfiable, every theorem
+conditioned on it — including `from_cone_construction` and the existing
+`from_coneSupply`/`_unconditional` — is operationally vacuous despite clean axioms.
+`#print axioms` cannot detect this.  Resolving hsrc0's satisfiability (or retyping per
+the W4 honest-fix sketch) is a PREREQUISITE for any headline claim, not an optional
+polish.
+
+Also: the repo contains NO paper source (no PDF/tex), so the audit above aligns the
+proofs against the Lean `Theorem_1_1` Prop only; a literal paper-text ↔ Prop
+comparison (α/γ/m conditions, exact sup-norm bound shape, domain generality) is STILL
+OWED and needs the paper source.  Naming caveat: `paper2_theorem_1_1_chiZero_
+unconditional` is conditional (on Hiter+HWdata); "unconditional" refers only to the
+other legs' discharge.  Correct headline phrasing: "Paper 2 Theorem 1.1, restricted to
+the χ₀=0 / a,b>0 / α≥1 / γ≥1 / interval-domain slice, modulo the per-datum residual
+whose satisfiability is open."

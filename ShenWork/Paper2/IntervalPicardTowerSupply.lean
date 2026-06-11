@@ -483,4 +483,87 @@ theorem paper2_theorem_1_1_chiZero_from_coneSupplyNarrow
   ShenWork.Paper2.Thm11ChiZeroCoreProvider.paper2_theorem_1_1_chiZero_of_datumProviders
     p hχ0 ha hb hα hγ Hsupply
 
+/-! ## §6 (W6c) — residual shrunk to ONLY the analytic surface `hsrc0`.
+
+`ResidualAtDatum` (§5) bundled the genuine analytic surface `hAnalytic` together with
+THREE cone-internal bookkeeping legs (`hT1 : D.T ≤ 1`, `hu₀_bound`, `hball`) that were
+TRUE of the cone construction but type-hidden by the original
+`coneGradientMildSolutionData_exists_with_gate_data` return.  W6c added the additive
+strengthening `coneGradientMildSolutionData_exists_with_gate_data'`, whose per-datum
+return EXPOSES all three legs at the gate mass `D.M`.  Consuming that strengthened cone,
+`from_cone_construction'` shrinks the per-datum residual hypothesis to ONLY the analytic
+field (`ResidualAtDatumCore`, = `TowerConeAnalyticResidual` = the irreducible `hsrc0`). -/
+
+/-- **`ResidualAtDatumCore` — the slimmed per-datum residual: ONLY `hsrc0`.**
+`ResidualAtDatum` minus the three cone-returned bookkeeping legs.  Single field:
+the genuine analytic surface `TowerConeAnalyticResidual` (W4 STATUS: the irreducible
+`hsrc0`; its `M`/`A₂` are phantom). -/
+structure ResidualAtDatumCore
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (D : GradientMildSolutionData p u₀) where
+  /-- the genuinely-open analytic surface (W4 STATUS: the irreducible `hsrc0`). -/
+  hAnalytic : TowerConeAnalyticResidual p u₀ D D.M 0
+
+/-- **`from_cone_construction'` — THE W6c BRIDGE.**
+
+Identical conclusion to `from_cone_construction` (Paper 2 Theorem 1.1, χ₀ = 0), but the
+per-constructed-datum residual hypothesis is shrunk to ONLY the analytic surface
+`ResidualAtDatumCore` (= `TowerConeAnalyticResidual` = the irreducible `hsrc0`).  The
+three previously-bundled bookkeeping legs `hT1`/`hu₀_bound`/`hball` are now supplied BY
+the strengthened cone construction `coneGradientMildSolutionData_exists_with_gate_data'`
+at the gate mass `D.M`, so the caller no longer owes them.  Internally we reconstruct the
+full `ResidualAtDatum` from the cone legs + the core analytic field and route through
+`datumIterLegs_of_cone` exactly as `from_cone_construction` does. -/
+theorem from_cone_construction'
+    (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
+    (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
+    (Hres : ∀ (u₀ : intervalDomainPoint → ℝ),
+      PositiveInitialDatum intervalDomain u₀ →
+      ∀ (D : GradientMildSolutionData p u₀),
+        D.u = picardLimit p u₀ D.T → ResidualAtDatumCore p u₀ D) :
+    ShenWork.Paper2.Theorem_1_1 intervalDomain p :=
+  ShenWork.Paper2.Thm11ChiZeroCoreProvider.paper2_theorem_1_1_chiZero_of_datumProviders
+    p hχ0 ha hb hα hγ
+    (fun M_in hM_in =>
+      -- the STRENGTHENED cone returns `∃ δ A₂, …` (Prop) exposing the three legs;
+      -- choose the datum-free `δ`/`A₂` and the per-`u₀` body via `Classical.choice`.
+      let C := ShenWork.IntervalMildPicardConeData.coneGradientMildSolutionData_exists_with_gate_data'
+        p hχ0 hM_in hα
+      let δ := C.choose
+      let A₂ := C.choose_spec.choose
+      have hδ : 0 < δ := C.choose_spec.choose_spec.1
+      have hA₂nn : 0 ≤ A₂ := C.choose_spec.choose_spec.2.1
+      have hbody := C.choose_spec.choose_spec.2.2
+      ⟨δ, hδ, fun u₀ hu₀ hbound =>
+        let E := hbody u₀ hu₀.admissible.2 hbound
+          (ShenWork.Paper2.ConeQuantBridge.positiveInitialDatum_nonneg hu₀)
+          (ShenWork.Paper2.ConeQuantBridge.positiveInitialDatum_pos_somewhere hu₀)
+        let D := E.choose
+        have hspec := E.choose_spec
+        have hDT : D.T = δ := hspec.1
+        have hDu : D.u = picardLimit p u₀ δ := hspec.2.1
+        have hgate : GateCondition p D.M A₂ D.T := hspec.2.2.1
+        have hcontSlice : ∀ n, HasContinuousSlices D.T (picardIter p u₀ n) :=
+          hspec.2.2.2.1
+        have hF : ∃ F : ShenWork.IntervalPicardLimitCoeffConv.PicardConvFacts p u₀,
+          F.T = δ := hspec.2.2.2.2.1
+        have hpos : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T →
+            ∀ x ∈ Set.Icc (0 : ℝ) 1,
+            0 < intervalDomainLift (picardIter p u₀ n σ) x := fun n σ hσ hσT x hx =>
+          hspec.2.2.2.2.2.1 n σ hσ (hσT.trans hDT.le) x hx
+        -- W6c: the three legs are now CONE-RETURNED (at the gate mass `D.M`).
+        have hT1 : D.T ≤ 1 := hspec.2.2.2.2.2.2.1
+        have hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ D.M :=
+          hspec.2.2.2.2.2.2.2.1
+        have hball : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ y : intervalDomainPoint,
+          |picardIter p u₀ n σ y| ≤ D.M := hspec.2.2.2.2.2.2.2.2
+        have hDu' : D.u = picardLimit p u₀ D.T := by rw [hDT]; exact hDu
+        -- reassemble the full `ResidualAtDatum` from the cone legs + the core residual.
+        let R : ResidualAtDatum p u₀ D :=
+          { hT1 := hT1, hu₀_bound := hu₀_bound, hball := hball,
+            hAnalytic := (Hres u₀ hu₀ D hDu').hAnalytic }
+        ⟨D, hDT, hDu, hcontSlice, hF,
+          datumIterLegs_of_cone p hχ0 hα ha.le hb.le u₀ D hA₂nn hgate hDu'
+            hu₀.admissible.2 hpos hcontSlice R⟩⟩)
+
 end ShenWork.IntervalPicardTowerSupply
