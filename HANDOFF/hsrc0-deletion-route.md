@@ -108,3 +108,33 @@ On-producer WITH adot) is genuinely required; the payload-split is a minor win.
 - W9 endpoint adot: `logisticSource_adot_hasDerivWithinAt_endpoint[_window]`
   (IntervalPicardIterateTimeC1EndpointAdot.lean:26/119), namespace
   `ShenWork.IntervalPicardIterateTimeC1Endpoint`.
+
+## UPDATE 2026-06-11 (run 2) — the crux re-hits s=0 at the SOURCE level
+
+W9 (codex xhigh) built genuine clean Path B infrastructure (committed 7856c08):
+`limitSource_duhamelSourceTimeC1On_of_representation` (faithful On-mirror of the
+line-71 producer) + On-variants of hbsum_succ / iterate_abs_deriv2. But the CRUX —
+assembling the adapter's `hderiv` input on [lo,T] — is NOT done, and it re-hits s=0:
+
+- The adapter (correctly, like the global line-71 producer) TAKES `hderiv`/`hadotcont`/
+  `hMdot` as inputs. Feeding it requires PRODUCING the window K1 quadruple.
+- The σ=T endpoint piece is the committed `logisticSource_adot_hasDerivWithinAt_endpoint`
+  (EndpointAdot.lean:26) — which itself REQUIRES `src : DuhamelSourceTimeC1On a 0 W`
+  (source-side On-pkg INCLUDING s=0), because it calls W8e
+  `restartCosineSeries_hasDerivWithinAt_time_bdd_on` (K1WeakEndpoint.lean:372), whose
+  `localRestartCoeff a₀ a τ` carries the restart Duhamel integral ∫₀^τ — pulling in
+  source values for s near 0.
+- The STRUCTURE `DuhamelSourceTimeC1On a 0 W` has `hderiv`/`hadotcont` as FIELDS on the
+  WHOLE [0,W] incl. s=0. So inhabiting it for the canonical source needs source-side
+  hderiv at s=0 — exactly the wall (canonical source not C1 at physical 0 for merely-
+  continuous u₀; the repo patches the s=0 VALUE for the envelope, not the derivative).
+
+OPEN QUESTION (route decision, → ChatGPT Pro + trace): does W8e genuinely NEED
+source-side `hderiv`/`adot` at s=0, or only the ENVELOPE there (patchable via the
+established `patchedSource`/`DuhamelSourceBddOn` that already feeds interior k1)? If
+only envelope: RE-STATE W9-endpoint + W8e with a lighter source hypothesis (envelope on
+[0,W] + C1 on the positive window [a',W] only) — then patchedSource + interior-k1 close
+Path B. If genuine s=0 C1 is needed: the patchedSource must be shown C1 at 0 (a const
+patch on [0,ε] is), or this is a deeper wall. Trace path: W8e → `derivMajorant src a'` /
+`deriv_term_abs_le src` (K1WeakEndpoint.lean ~384-400) — check if they touch src.hderiv/
+src.adot at s<a' or only src.derivBound/src.envelope.
