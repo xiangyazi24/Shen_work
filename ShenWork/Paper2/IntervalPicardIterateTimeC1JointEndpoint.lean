@@ -2,6 +2,7 @@ import ShenWork.Paper2.IntervalPicardIterateTimeC1Endpoint
 
 open MeasureTheory Filter Topology Set
 open scoped Topology
+open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 
 noncomputable section
 
@@ -230,6 +231,177 @@ private theorem localRestartCoeff_continuousOn_Icc
     rw [hcos0, mul_one]
   simpa [hfun] using hcont_mul
 
+private def valueMajorant (src : DuhamelSourceTimeC1On a 0 W) (a' M : ℝ)
+    (n : ℕ) : ℝ :=
+  M * Real.exp (-a' * (λ_ n)) + W * src.envelope n
+
+private theorem valueMajorant_summable
+    (src : DuhamelSourceTimeC1On a 0 W) {a' M : ℝ} (ha' : 0 < a') :
+    Summable (fun n => valueMajorant src a' M n) := by
+  unfold valueMajorant
+  have hexp := ShenWork.IntervalSemigroupComposition.expEigSummable ha'
+  exact (hexp.mul_left M).add (src.henv_summable.mul_left W)
+
+private theorem localRestartCoeff_mul_cos_abs_le_valueMajorant
+    {a₀ : ℕ → ℝ} {M : ℝ} {a : ℝ → ℕ → ℝ} {W a' τ : ℝ}
+    (src : DuhamelSourceTimeC1On a 0 W) (ha₀ : ∀ n, |a₀ n| ≤ M)
+    (ha'pos : 0 < a') (hτ : τ ∈ Set.Icc a' W) (x : ℝ) (n : ℕ) :
+    ‖localRestartCoeff a₀ a τ n * cosineMode n x‖
+      ≤ valueMajorant src a' M n := by
+  have hcos_le : |cosineMode n x| ≤ 1 := by
+    simp only [cosineMode]
+    exact Real.abs_cos_le_one _
+  have hM0 : 0 ≤ M := le_trans (abs_nonneg _) (ha₀ 0)
+  have hτ0 : 0 ≤ τ := le_trans ha'pos.le hτ.1
+  have hW0 : 0 ≤ W := le_trans hτ0 hτ.2
+  have hlam_nn : (0 : ℝ) ≤ (λ_ n) := by
+    unfold unitIntervalCosineEigenvalue
+    positivity
+  have henvnn : 0 ≤ src.envelope n :=
+    le_trans (abs_nonneg _) (src.henv_bound 0 ⟨le_rfl, hW0⟩ n)
+  have hhom :
+      |Real.exp (-τ * (λ_ n)) * a₀ n| ≤ M * Real.exp (-a' * (λ_ n)) := by
+    rw [abs_mul, abs_of_nonneg (Real.exp_nonneg _), mul_comm]
+    have hexp_mono : Real.exp (-τ * (λ_ n)) ≤ Real.exp (-a' * (λ_ n)) :=
+      Real.exp_le_exp_of_le (by nlinarith [hτ.1, hlam_nn])
+    exact mul_le_mul (ha₀ n) hexp_mono (Real.exp_nonneg _) hM0
+  have hduh :
+      |duhamelSpectralCoeff a τ n| ≤ W * src.envelope n := by
+    have hkernel : Continuous
+        (fun s : ℝ => Real.exp (-(τ - s) * (λ_ n))) := by
+      fun_prop
+    have hconta : ContinuousOn (fun s : ℝ => a s n) (Set.Icc (0 : ℝ) τ) := by
+      intro s hs
+      exact ((src.hderiv s ⟨hs.1, le_trans hs.2 hτ.2⟩ n).continuousWithinAt).mono
+        (fun y hy => ⟨hy.1, le_trans hy.2 hτ.2⟩)
+    have hII : IntervalIntegrable
+        (fun s => Real.exp (-(τ - s) * (λ_ n)) * a s n) volume 0 τ :=
+      (hkernel.continuousOn.mul hconta).intervalIntegrable_of_Icc hτ0
+    have hker_le_one : ∀ s ∈ Set.Icc (0 : ℝ) τ,
+        Real.exp (-(τ - s) * (λ_ n)) ≤ 1 := by
+      intro s hs
+      rw [← Real.exp_zero]
+      apply Real.exp_le_exp.mpr
+      have : 0 ≤ (τ - s) * (λ_ n) := mul_nonneg (by linarith [hs.2]) hlam_nn
+      linarith
+    unfold duhamelSpectralCoeff
+    calc |∫ s in (0 : ℝ)..τ, Real.exp (-(τ - s) * (λ_ n)) * a s n|
+        = ‖∫ s in (0 : ℝ)..τ, Real.exp (-(τ - s) * (λ_ n)) * a s n‖ :=
+          (Real.norm_eq_abs _).symm
+      _ ≤ ∫ s in (0 : ℝ)..τ,
+            ‖Real.exp (-(τ - s) * (λ_ n)) * a s n‖ :=
+          intervalIntegral.norm_integral_le_integral_norm hτ0
+      _ ≤ ∫ s in (0 : ℝ)..τ, src.envelope n := by
+          apply intervalIntegral.integral_mono_on hτ0 hII.norm
+            (by apply Continuous.intervalIntegrable; fun_prop)
+          intro s hs
+          have hsI : s ∈ Set.Icc (0 : ℝ) τ := by
+            simpa [Set.uIcc_of_le hτ0] using hs
+          rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (Real.exp_nonneg _)]
+          calc Real.exp (-(τ - s) * (λ_ n)) * |a s n|
+              ≤ 1 * src.envelope n :=
+                mul_le_mul (hker_le_one s hsI)
+                  (src.henv_bound s ⟨hsI.1, le_trans hsI.2 hτ.2⟩ n)
+                  (abs_nonneg _) (by norm_num)
+            _ = src.envelope n := one_mul _
+      _ = (τ - 0) • src.envelope n := by
+          rw [intervalIntegral.integral_const]
+      _ = τ * src.envelope n := by
+          simp [smul_eq_mul]
+      _ ≤ W * src.envelope n :=
+          mul_le_mul_of_nonneg_right hτ.2 henvnn
+  rw [Real.norm_eq_abs, abs_mul]
+  calc |localRestartCoeff a₀ a τ n| * |cosineMode n x|
+      ≤ |localRestartCoeff a₀ a τ n| * 1 :=
+        mul_le_mul_of_nonneg_left hcos_le (abs_nonneg _)
+    _ = |localRestartCoeff a₀ a τ n| := mul_one _
+    _ ≤ |Real.exp (-τ * (λ_ n)) * a₀ n| + |duhamelSpectralCoeff a τ n| := by
+        simp only [localRestartCoeff]
+        exact abs_add_le _ _
+    _ ≤ M * Real.exp (-a' * (λ_ n)) + W * src.envelope n :=
+        add_le_add hhom hduh
+    _ = valueMajorant src a' M n := by
+        rfl
+
+set_option maxHeartbeats 1600000 in
+-- Closed-window value-series joint continuity for the endpoint restart profile.
+theorem restartValueSeries_continuousOn_joint_On
+    {a₀ : ℕ → ℝ} {M₀ : ℝ} (_hM₀ : 0 ≤ M₀) (ha₀ : ∀ n, |a₀ n| ≤ M₀)
+    {a : ℝ → ℕ → ℝ} {W a' : ℝ} (src : DuhamelSourceTimeC1On a 0 W)
+    (ha'pos : 0 < a') (_ha'W : a' ≤ W) :
+    ContinuousOn
+      (fun p : ℝ × ℝ =>
+        ∑' n, localRestartCoeff a₀ a p.1 n * cosineMode n p.2)
+      (Set.Icc a' W ×ˢ Set.Icc (0 : ℝ) 1) := by
+  have hcont_a : ∀ n, ContinuousOn (fun s : ℝ => a s n) (Set.Icc 0 W) :=
+    source_coeff_continuousOn_of_timeC1On src
+  apply continuousOn_tsum
+  · intro n
+    have hlc_cont : ContinuousOn (fun p : ℝ × ℝ => localRestartCoeff a₀ a p.1 n)
+        (Set.Icc a' W ×ˢ Set.Icc (0 : ℝ) 1) := by
+      exact (localRestartCoeff_continuousOn_Icc src hcont_a ha'pos n).comp
+        continuous_fst.continuousOn (fun p hp => (Set.mem_prod.1 hp).1)
+    have hcos : ContinuousOn (fun p : ℝ × ℝ => cosineMode n p.2)
+        (Set.Icc a' W ×ˢ Set.Icc (0 : ℝ) 1) := by
+      change ContinuousOn
+        (fun p : ℝ × ℝ => Real.cos ((n : ℝ) * Real.pi * p.2))
+        (Set.Icc a' W ×ˢ Set.Icc (0 : ℝ) 1)
+      exact ((Real.continuous_cos.comp
+        (continuous_const.mul continuous_snd)).continuousOn)
+    exact hlc_cont.mul hcos
+  · exact valueMajorant_summable src (M := M₀) ha'pos
+  · intro n p hp
+    exact localRestartCoeff_mul_cos_abs_le_valueMajorant
+      src ha₀ ha'pos (Set.mem_prod.1 hp).1 p.2 n
+
+/-- Closed-window restart value profile with a physical/coefficient shift. -/
+theorem restartValueSeries_continuousOn_joint_On_shift
+    {a₀ : ℕ → ℝ} {M₀ : ℝ} (hM₀ : 0 ≤ M₀) (ha₀ : ∀ n, |a₀ n| ≤ M₀)
+    {a : ℝ → ℕ → ℝ} {offset W : ℝ} (src : DuhamelSourceTimeC1On a 0 W)
+    {lo hi aτ : ℝ} (haτpos : 0 < aτ) (haτW : aτ ≤ W)
+    (hshift : Set.MapsTo (fun s : ℝ => s - offset)
+      (Set.Icc lo hi) (Set.Icc aτ W)) :
+    ContinuousOn
+      (Function.uncurry (fun σ x =>
+        ∑' n, localRestartCoeff a₀ a (σ - offset) n * cosineMode n x))
+      (Set.Icc lo hi ×ˢ Set.Icc (0 : ℝ) 1) := by
+  have hbase := restartValueSeries_continuousOn_joint_On
+    (a₀ := a₀) (M₀ := M₀) hM₀ ha₀ src haτpos haτW
+  have hmap : Set.MapsTo
+      (fun p : ℝ × ℝ => ((p.1 - offset, p.2) : ℝ × ℝ))
+      (Set.Icc lo hi ×ˢ Set.Icc (0 : ℝ) 1)
+      (Set.Icc aτ W ×ˢ Set.Icc (0 : ℝ) 1) := by
+    intro p hp
+    exact Set.mk_mem_prod (hshift (Set.mem_prod.1 hp).1) (Set.mem_prod.1 hp).2
+  have hcont_shift : ContinuousOn
+      (fun p : ℝ × ℝ => ((p.1 - offset, p.2) : ℝ × ℝ))
+      (Set.Icc lo hi ×ˢ Set.Icc (0 : ℝ) 1) :=
+    ((continuous_fst.sub continuous_const).prodMk continuous_snd).continuousOn
+  have hcomp := hbase.comp hcont_shift hmap
+  refine hcomp.congr (fun p hp => ?_)
+  rfl
+
+/-- Closed-window profile joint continuity from endpoint restart agreement. -/
+theorem restartProfile_jointContinuousOn_On_shift
+    {a₀ : ℕ → ℝ} {M₀ : ℝ} (hM₀ : 0 ≤ M₀) (ha₀ : ∀ n, |a₀ n| ≤ M₀)
+    {a : ℝ → ℕ → ℝ} {offset W lo hi aτ : ℝ}
+    (src : DuhamelSourceTimeC1On a 0 W)
+    (haτpos : 0 < aτ) (haτW : aτ ≤ W)
+    (hshift : Set.MapsTo (fun s : ℝ => s - offset)
+      (Set.Icc lo hi) (Set.Icc aτ W))
+    {w : ℝ → intervalDomainPoint → ℝ}
+    (hagree : ∀ s ∈ Set.Icc lo hi, ∀ x : intervalDomainPoint,
+      intervalDomainLift (w s) x.1 = ∑' n,
+        localRestartCoeff a₀ a (s - offset) n * cosineMode n x.1) :
+    ContinuousOn
+      (Function.uncurry (fun s x => intervalDomainLift (w s) x))
+      (Set.Icc lo hi ×ˢ Set.Icc (0 : ℝ) 1) := by
+  have hseries := restartValueSeries_continuousOn_joint_On_shift
+    hM₀ ha₀ src haτpos haτW hshift
+  refine hseries.congr (fun q hq => ?_)
+  obtain ⟨hq1, hq2⟩ := Set.mem_prod.1 hq
+  simpa only [Function.uncurry] using hagree q.1 hq1 ⟨q.2, hq2⟩
+
 set_option maxHeartbeats 1600000 in
 -- The closed-window tsum proof elaborates the per-mode continuity and majorant blocks.
 /-- Closed-window `_On` mirror of `restartDerivField_continuousOn_joint`. -/
@@ -293,6 +465,35 @@ theorem restartFieldTimeDeriv_continuousOn_joint_On
   have hcont_shift : ContinuousOn
       (fun p : ℝ × ℝ => ((p.1 - offset, p.2) : ℝ × ℝ))
       (Set.Icc a' Wf ×ˢ Set.Icc (0 : ℝ) 1) :=
+    ((continuous_fst.sub continuous_const).prodMk continuous_snd).continuousOn
+  have hcomp := hbase.comp hcont_shift hmap
+  refine hcomp.congr (fun p hp => ?_)
+  rfl
+
+/-- Closed-window `_On` mirror of
+`restartFieldTimeDeriv_continuousOn_joint`, with distinct physical and coefficient
+windows.  The affine shift `σ ↦ σ - offset` maps the physical window `[lo, hi]`
+into the positive coefficient-time window `[aτ, W]`. -/
+theorem restartFieldTimeDeriv_continuousOn_joint_On_shift
+    {a₀ : ℕ → ℝ} {M₀ : ℝ} (hM₀ : 0 ≤ M₀) (ha₀ : ∀ n, |a₀ n| ≤ M₀)
+    {a : ℝ → ℕ → ℝ} {offset W : ℝ} (src : DuhamelSourceTimeC1On a 0 W)
+    {lo hi aτ : ℝ} (haτpos : 0 < aτ)
+    (hshift : Set.MapsTo (fun s : ℝ => s - offset)
+      (Set.Icc lo hi) (Set.Icc aτ W)) :
+    ContinuousOn
+      (Function.uncurry (fun σ x => restartFieldTimeDeriv a₀ a offset σ x))
+      (Set.Icc lo hi ×ˢ Set.Icc (0 : ℝ) 1) := by
+  have hbase := restartDerivField_continuousOn_joint_On
+    (a₀ := a₀) (M₀ := M₀) hM₀ ha₀ src haτpos
+  have hmap : Set.MapsTo
+      (fun p : ℝ × ℝ => ((p.1 - offset, p.2) : ℝ × ℝ))
+      (Set.Icc lo hi ×ˢ Set.Icc (0 : ℝ) 1)
+      (Set.Icc aτ W ×ˢ Set.Icc (0 : ℝ) 1) := by
+    intro p hp
+    exact Set.mk_mem_prod (hshift (Set.mem_prod.1 hp).1) (Set.mem_prod.1 hp).2
+  have hcont_shift : ContinuousOn
+      (fun p : ℝ × ℝ => ((p.1 - offset, p.2) : ℝ × ℝ))
+      (Set.Icc lo hi ×ˢ Set.Icc (0 : ℝ) 1) :=
     ((continuous_fst.sub continuous_const).prodMk continuous_snd).continuousOn
   have hcomp := hbase.comp hcont_shift hmap
   refine hcomp.congr (fun p hp => ?_)

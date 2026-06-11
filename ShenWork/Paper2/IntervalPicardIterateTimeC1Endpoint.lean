@@ -92,4 +92,59 @@ theorem restartField_hasDerivWithinAt_endpoint_shift
     simpa [one_mul] using hseries.comp σ hlin hshift
   exact hcomp.congr_of_mem (fun r hr => hagree r hr ⟨x, hx⟩) hσ
 
+/-- Shifted closed-window field derivative with distinct physical and coefficient
+windows.
+
+The coefficient time `τ = σ - offset` is differentiated on `[aτ, W]`, while the
+represented physical field is restricted to `[lo, hi]`. -/
+theorem restartField_hasDerivWithinAt_endpoint_shift_window
+    {w : ℝ → intervalDomainPoint → ℝ}
+    {a₀ : ℕ → ℝ} {M₀ : ℝ} (_hM₀ : 0 ≤ M₀) (ha₀ : ∀ n, |a₀ n| ≤ M₀)
+    {a : ℝ → ℕ → ℝ} {offset W lo hi aτ σ : ℝ}
+    (src : DuhamelSourceTimeC1On a 0 W)
+    (haτpos : 0 < aτ) (hτmem : σ - offset ∈ Set.Icc aτ W)
+    (hσ : σ ∈ Set.Icc lo hi)
+    (hshift : Set.MapsTo (fun s : ℝ => s - offset)
+      (Set.Icc lo hi) (Set.Icc aτ W))
+    (hagree : ∀ s ∈ Set.Icc lo hi, ∀ x : intervalDomainPoint,
+      intervalDomainLift (w s) x.1 = ∑' n,
+        localRestartCoeff a₀ a (s - offset) n * cosineMode n x.1)
+    (x : ℝ) (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    HasDerivWithinAt (fun r => intervalDomainLift (w r) x)
+      (restartFieldTimeDeriv a₀ a offset σ x) (Set.Icc lo hi) σ := by
+  have hcont_a : ∀ n, ContinuousOn (fun s : ℝ => a s n) (Set.Icc 0 W) :=
+    source_coeff_continuousOn_of_timeC1On src
+  have hseries : HasDerivWithinAt
+      (fun τ => ∑' n, localRestartCoeff a₀ a τ n * cosineMode n x)
+      (restartFieldTimeDeriv a₀ a offset σ x)
+      (Set.Icc aτ W) (σ - offset) := by
+    simpa [restartFieldTimeDeriv] using
+      restartCosineSeries_hasDerivWithinAt_time_bdd_on
+        (a₀ := a₀) (M := M₀) ha₀ src hcont_a haτpos hτmem.1 hτmem.2 x
+  have hlin : HasDerivWithinAt (fun r : ℝ => r - offset) 1
+      (Set.Icc lo hi) σ :=
+    ((hasDerivAt_id σ).sub_const offset).hasDerivWithinAt
+  have hcomp : HasDerivWithinAt
+      ((fun τ => ∑' n, localRestartCoeff a₀ a τ n * cosineMode n x) ∘
+        fun r : ℝ => r - offset)
+      (restartFieldTimeDeriv a₀ a offset σ x) (Set.Icc lo hi) σ := by
+    simpa [one_mul] using hseries.comp σ hlin hshift
+  exact hcomp.congr_of_mem (fun r hr => hagree r hr ⟨x, hx⟩) hσ
+
+/-!
+The requested theorem
+`logisticSource_adot_hasDerivWithinAt_endpoint` cannot be proved from the stated
+hypotheses as written.  The endpoint series atom
+`restartCosineSeries_hasDerivWithinAt_time_bdd_on` applies to the coefficient
+time variable `τ` with assumptions `0 < a'`, `a' ≤ τ`, and `τ ≤ W`.
+
+In the requested statement, the represented field is evaluated at coefficient
+time `τ = s - offset`, but the closed window assumptions only give
+`s ∈ Icc a' W`.  They do not imply `0 ≤ s - offset`, `a' ≤ s - offset`, or
+`s - offset ≤ W`.  Consequently the field derivative step cannot be assembled
+without an additional shifted-window hypothesis such as
+`Set.MapsTo (fun s => s - offset) (Set.Icc a' W) (Set.Icc a' W)`, or the
+special case `offset = 0`.
+-/
+
 end ShenWork.IntervalPicardIterateTimeC1Endpoint
