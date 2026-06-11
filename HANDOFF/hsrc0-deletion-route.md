@@ -254,3 +254,23 @@ every level, two-sided everywhere) with LOCAL positive-time restart packages (pr
 endpoint via the larger horizon — so it genuinely DELETES hsrc0, it does not move or assume it.
 hsrc0 deletion is SOUND end-to-end; remaining = the wiring (FTC endpoint + WAL consumer + the
 T+ε cone construction + brick-3 tower surgery).
+
+## GATE subtlety (brick-1(b) feasibility) — needs STRICT gate at T
+
+`GateCondition p M A₂ T := ∀ t, 0<t → t≤T → homWeightBound M t + gain·(t/2)^{1/4}·Benv ≤ A₂/t²`
+(IntervalPicardIterateUniform.lean:238) is MONOTONE-HARDER in T (T+ε must additionally cover
+(T,T+ε], where A₂/t² is SMALLER). So GateCondition(T+ε) does NOT follow from GateCondition(T)
+for free. BUT the bound + A₂/t² are CONTINUOUS in t, so if the gate is STRICT at t=T
+(bound(T) < A₂/T²), then for small ε it extends to (T,T+ε] ⇒ GateCondition(T+ε) holds.
+⇒ brick-1(b) (the (0,T+ε) ledger for the larger-horizon endpoint) is feasible when T is
+STRICTLY inside the gate region. HONEST SCOPE NOTE: the hsrc0-free χ₀=0 fragment holds for T
+strictly inside the gate (not the exact gate boundary) — a mild, faithful refinement. The
+RSA producer (committed) + this strict-gate T+ε construction discharge the FTC endpoint's
+`ResolverHasSpectralAgreement U` hypothesis. Remaining after RSA audit: brick-1(b) (strict-gate
+T+ε ledger wiring) + brick-3 (tower hsrc0-field surgery) — both capstone/tower, Fable's.
+
+## STATUS (run 3 + goal continuation)
+COMMITTED this campaign: FTC endpoint crux (c408114), WAL On-consumer (4a32c08), W9
+infra/interior/TE, the route docs. RSA linchpin (ResolverHasSpectralAgreement from interior k1
++ BddOn ledger, NO global residual) built + under hostile audit. hsrc0 endpoint wall CLOSED;
+the deletion is down to capstone/tower wiring (brick-1(b) strict-gate T+ε + brick-3 surgery).
