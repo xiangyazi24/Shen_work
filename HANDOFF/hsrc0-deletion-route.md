@@ -191,3 +191,28 @@ NEXT CHECK (before any further endpoint dispatch): does the cone/tower ALREADY c
 If the cone returns time-C¹-up-to-T, the FTC route closes hsrc0; if not, this is a new
 parabolic endpoint-regularity theorem (the genuine residual core). Built so far (committed):
 the entire route DOWN TO this core + the positive-window interior On-package.
+
+## THE EXACT REMAINING BRICK (run 3 final — hsrc0 is ONE bounded brick away)
+
+Checked the repo's time-regularity machinery (IntervalResolverTimeRegularity.lean):
+- `resolver_timeDeriv_continuousOn` (:72): `ContinuousOn (deriv (v · x)) (Ioo 0 T)` — INTERIOR time.
+- `resolver_timeDeriv_jointContinuousOn` (:81): joint, `Ioo 0 T ×ˢ Ioo 0 1`.
+- `resolver_jointContinuousOn_closed` (:93) + `resolver_timeDeriv_jointContinuousOn_closed`
+  (:104): the "closed" is the SPATIAL endpoint `Icc 0 1` — TIME is still `Ioo 0 T` (OPEN).
+
+⇒ The field time-derivative continuity exists on INTERIOR time (0,T), NOT up to the time
+endpoint T. The time-endpoint T is the ONLY gap. So `adottOf` continuity-at-T (= slopeSlice
+= field time-deriv continuity at T) reduces to:
+
+**THE BRICK:** extend `resolver_timeDeriv_jointContinuousOn` from `Ioo 0 T` (open time) to
+`Ioc 0 T` / up to the time endpoint T — a parabolic TIME-endpoint regularity, mirroring the
+existing spectral-agreement machinery (`IntervalMildTimeDerivContinuity` /
+`IntervalMildFrontierFromSpectral`) that already closed the SPATIAL endpoint. Underlying:
+`mildSolution_timeDeriv_jointContinuousOn_closed` (currently spatial-closed / time-open).
+
+THEN: adottOf cont up to T → (ChatGPT-validated FTC: `integral_eq_sub_of_hasDerivAt` →
+`integral_hasDerivWithinAt_right` → `congr_of_eventuallyEq`) → the source coeff's
+HasDerivWithinAt at T → the positive-window On-package's d=T endpoint → feed the committed
+adapter → the full On-package → switch the 4 tower consumers (W9 SuccLegsOn done for 2) →
+delete hsrc0 + the tower/Σ' surgery (brick 3). hsrc0 is now ONE well-defined regularity
+brick + mechanical wiring from deletion — no unbounded wall remains.
