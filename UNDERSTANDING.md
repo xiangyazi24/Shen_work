@@ -1,6 +1,24 @@
 # UNDERSTANDING.md — Shen_work (campaign handoff to Codex, 2026-06-10 ~15:45)
 
-## ⭐⭐⭐ K1 ENDGAME STATE (2026-06-11 00:4x — NEWEST)
+## ⛔ FIDELITY CORRECTION (2026-06-11 ~04:00 — READ FIRST, supersedes all "done"/"unconditional"/"sorry-free" language below)
+An independent adversarial audit (HANDOFF/FIDELITY-AUDIT.md) found this campaign
+OVERSTATED its results. The honest status:
+- What is in Lean is a **FRAGMENT** of the paper's Theorem 1.1: only χ₀=0 (the
+  degenerate decoupled slice — NOT a chemotaxis system), N=1 (intervalDomain),
+  a,b>0, 1≤α, 1≤γ. Untouched: χ₀<0 (the real case), a=b=0, N≥2, Thms 1.2/1.3.
+- It is **CONDITIONAL** on `hsrc0` (TowerConeAnalyticResidual), which is the
+  paper's hard analytic content relocated into a hypothesis AND plausibly
+  unsatisfiable as typed (the s=0 ℓ¹-envelope t→0 disease). So there is NO
+  unconditional result yet, even for the χ₀=0 fragment.
+- The "#print axioms = clean" claims below were run on a DIVERGENT remote olean
+  tree (/dev/shm/shen_work @ 6d2f95a, dirty), never on a clean f93cbda checkout.
+  Clean-tree certification is in progress.
+- Genuine positive: the STATEMENT layer is FAITHFUL (non-hollow) — the PDE, both
+  equations, Neumann BC, real C² regularity, exact (1.21) bound.
+The strong-language sections below describe real engineering progress on the
+fragment, but their "done"/"prize"/"unconditional" framing is corrected here.
+
+## ⭐⭐⭐ K1 ENDGAME STATE (2026-06-11 00:4x — engineering log, see FIDELITY CORRECTION above)
 The hsrc0 endgame (waves W1a/W1b/W2/W3/W4, commits 085a3ad…7b424e2) built the
 COMPLETE satisfiable replacement stack for the per-level source K1 package:
 iterate initial approach (hand-written, χ₀=0), patched-coefficient continuity

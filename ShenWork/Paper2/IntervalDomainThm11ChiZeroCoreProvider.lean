@@ -863,6 +863,29 @@ theorem hMildLocal_chi0_zero_of_wdata
 
 /-- **FINAL WIRING — Paper 2 Theorem 1.1 (χ₀ = 0), Wdata-only residual surface.**
 
+⚠️ **FIDELITY / SCOPE BANNER (read before citing this as "Theorem 1.1").**
+The name says `unconditional` but this theorem is NOT the paper's Theorem 1.1.
+It is a FRAGMENT, restricted on FIVE axes, and is CONDITIONAL:
+  1. `p.χ₀ = 0` — the paper's Theorem 1.1 assumes `χ₀ ≤ 0`.  At `χ₀ = 0` the
+     chemotaxis term `−χ₀∇·(uᵐχ(v)∇v)` vanishes identically and the u-equation
+     DECOUPLES into the scalar reaction–diffusion equation `uₜ = Δu + u(a−buᵅ)`
+     — i.e. this is the degenerate slice where the model is no longer a
+     chemotaxis system.  The genuine case `χ₀ < 0` is untouched.
+  2. `intervalDomain` is N = 1 (`Subtype (Icc 0 1)`); the paper is `Ω ⊂ ℝᴺ`,
+     and its analytic core is the N-dimensional elliptic regularity it dodges.
+  3. `0 < a` AND `0 < b` hardwired; the paper's part (2) `a = b = 0` is only
+     discharged vacuously under the contradictory `0 < a ∧ a = 0`.
+  4. `1 ≤ α`, `1 ≤ γ` are blanket hypotheses; the paper assumes only `α, γ > 0`.
+  5. CONDITIONAL on the providers `Hiter` + `HWdata`, which bottom out at the
+     residual `TowerConeAnalyticResidual = { hsrc0 }`.  `hsrc0` is the paper's
+     genuine analytic content (time-C¹ / ℓ¹ Duhamel-source regularity) carried
+     as a HYPOTHESIS, and its as-typed satisfiability (an ℓ¹ envelope at `s = 0`
+     for merely-continuous `u₀`) is OPEN — see HANDOFF/k1-wall-plan.md.  Until
+     `hsrc0` is discharged or shown satisfiable, this is a conditional theorem.
+Per the formalization-playbook verdict labels: statement layer FAITHFUL (the
+PDE, both equations, Neumann BC, genuine C² regularity, the exact (1.21) bound
+are all real, not hollow), parameter coverage FRAGMENT, residual CONDITIONAL.
+
 Assembles Theorem 1.1 (χ₀ = 0) directly from the regime constants and the
 SINGLE-leg residual provider `HWdata`, via `paper2_theorem_1_1_from_quant_and_hlocal`:
 
@@ -889,10 +912,17 @@ The narrowing replaces the fact-stripping plain-cone bridge
 (`PicardLimitRestartFrontier p`, a `∀ D` Prop applied to the plain-cone datum after
 its facts were stripped) is no longer used.
 
-The only hypotheses are `p.χ₀ = 0`, the structural regime constants
-(`0 < a`, `0 < b`, `1 ≤ α`, `1 ≤ γ`), and `HWdata`.  `#print axioms` reports only
-the inherited `sorryAx` from `hinterior` (in
-`IntervalPicardLimitSliceTimeContinuity`, consumed via `hsliceTC`). -/
+The hypotheses are `p.χ₀ = 0`, the structural regime constants
+(`0 < a`, `0 < b`, `1 ≤ α`, `1 ≤ γ`), and the two providers `Hiter` + `HWdata`
+(see the FIDELITY BANNER above).  As of commit 32c8fee the `hinterior` analytic
+core is no longer a raw `sorry`: it is discharged by
+`IntervalRestartSliceLipschitz.hinterior_of_src0`, CONDITIONAL on the `hsrc0`
+package threaded through the providers.  `#print axioms` therefore reports
+`[propext, Classical.choice, Quot.sound]` (no `sorryAx`) — but this is a
+CONDITIONAL theorem (the analytic content lives in the `Hiter`/`HWdata` →
+`hsrc0` hypothesis), NOT an unconditional proof; and the clean-tree
+certification of that `#print axioms` is tracked separately (the earlier
+"clean" reports were run on a divergent remote olean tree). -/
 theorem paper2_theorem_1_1_chiZero_unconditional
     (p : CM2Params) (hχ0 : p.χ₀ = 0) (ha : 0 < p.a) (hb : 0 < p.b)
     (hα : 1 ≤ p.α) (hγ : 1 ≤ p.γ)
