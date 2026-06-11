@@ -42,7 +42,7 @@
       `a ≤ |a| ≤ M`, so the former `hub` field is no longer an analytic residual.
 
   ## (b) Genuinely-open analytic legs — the per-iterate spatial-`C²` bootstrap.
-    `hsrc0`, `hL_cont`, `hG1all`, and the `adot`
+    `hsrc0`, `hG1all`, and the `adot`
     K1 stack (`adot`/`hadot_deriv`/`hadot_cont`/`adotBound`/`hadot_bound`) ALL depend
     on the per-iterate spatial-`C²`/positivity/Neumann regularity of EVERY Picard
     level (`picardIterateHasC2Slices_all`), whose step data
@@ -51,7 +51,7 @@
     producers (the project's standing analytic wall — see `UNPROVED_TARGETS.md`).
     They are NOT faked: they are carried as ONE explicit named hypothesis package
     `TowerConeAnalyticResidual`, which IS the exact remaining analytic surface (the
-    same family of facts `uniformWiring_closure` consumes — `hsrc0`/`hL_cont`/`hG1all`
+    same family of facts `uniformWiring_closure` consumes — `hsrc0`/`hG1all`
     — plus the `adot` K1 data
     the clamped source producer reads, restated at the cone datum's horizon).  The
     former `hub` leg has been REMOVED from the residual (derived in-tower from the
@@ -64,6 +64,15 @@
     downstream G2 bound only reading the decay on the integration window `[0,t/2]`.
     The former `hM₁` leg has been REMOVED from the residual (derived in-tower from the
     cone-returned slice continuity; see (a)).
+    The former `hL_cont` leg has been REMOVED from the residual: it demanded GLOBAL
+    ℝ-continuity of the ZERO-EXTENSION `logisticLifted = intervalDomainLift ∘
+    intervalLogisticSource`, which is FALSE (UNSATISFIABLE) because the cone returns
+    strict iterate positivity on ALL of `Icc 0 1` (endpoints included), so the source
+    is generically nonzero at `0`/`1` and the zero-extension JUMPS.  It is replaced
+    in-tower by the SATISFIABLE source-slice SUBTYPE continuity, derived from the
+    cone-returned per-iterate slice continuity `hcontSlice` + `1 ≤ p.α` via
+    `IntervalPicardSourceSubtypeCont.logisticSource_subtypeCont`, and consumed through
+    the source-subtype agreement clone `hagree_succ_of_sourceSubtypeCont`.
 
   This is the project's standing discipline (TASK_QUEUE group C): a theorem that
   projects from an assumption package is honest IFF the field is the EXACT remaining
@@ -114,8 +123,6 @@ structure TowerConeAnalyticResidual
   /-- The level-`n` canonical logistic source time-`C¹` package (deliverable B). -/
   hsrc0 : ∀ n : ℕ, ShenWork.IntervalDuhamelClosedC2.DuhamelSourceTimeC1
     (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
-  /-- Value-family continuity of the canonical logistic source slices. -/
-  hL_cont : ∀ (n : ℕ) (s : ℝ), 0 < s → Continuous (logisticLifted p (picardIter p u₀ n s))
   /-- The level-`n` source-derivative `adot` data on every window. -/
   adot : ℕ → ℝ → ℕ → ℝ
   hadot_deriv : ∀ (n : ℕ) (c' d' : ℝ), ∀ σ ∈ Set.Icc c' d', ∀ k, HasDerivAt
@@ -190,7 +197,6 @@ def towerInputs_of_cone
     hu₀_cont := hu₀_cont
     hu₀_bound := hu₀_bound
     hsrc0 := H.hsrc0
-    hL_cont := H.hL_cont
     -- `hG1all` DERIVED (hand-written kernel line, windowed source family):
     hG1all := ShenWork.IntervalPicardG1All.hG1all_of_cone p hχ0 u₀ hMpos hu₀_cont
       (ShenWork.IntervalPicardG1All.u₀_lift_abs_le p hMpos.le hu₀_cont D hlim_ball)

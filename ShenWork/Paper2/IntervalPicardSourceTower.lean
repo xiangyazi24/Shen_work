@@ -43,12 +43,14 @@ import ShenWork.Paper2.IntervalPicardIterateUniform
 import ShenWork.Paper2.IntervalPicardUniformWiringClosure
 import ShenWork.Paper2.IntervalPicardUniformWiring
 import ShenWork.Paper2.IntervalPicardWdataAssembly
+import ShenWork.Paper2.IntervalPicardSourceSubtypeCont
 
 open MeasureTheory Filter Topology Set
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
 open ShenWork.IntervalNeumannFullKernel (cosineCoeffs)
 open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.IntervalGradientDuhamelMap (logisticLifted)
+open ShenWork.IntervalDomainExistence (intervalLogisticSource)
 open ShenWork.IntervalMildPicard (picardIter HasContinuousSlices)
 open ShenWork.IntervalDuhamelClosedC2 (DuhamelSourceTimeC1)
 open ShenWork.IntervalMildPicardRegularity
@@ -65,6 +67,8 @@ open ShenWork.IntervalPicardSliceWitnessSupply
 open ShenWork.IntervalPicardIterateRepresentation (hbsum_succ)
 open ShenWork.IntervalPicardIterateRestartLocal
   (ShiftedSourceWitness canonicalShiftedSource hagree_succ_of_subtypeCont)
+open ShenWork.IntervalPicardSourceSubtypeCont
+  (logisticSource_subtypeCont hagree_succ_of_sourceSubtypeCont)
 open ShenWork.IntervalPicardIterateTimeC1Full (clampedIterateSource_duhamelSourceTimeC1)
 open ShenWork.IntervalPicardWdataAssembly
   (G1win G2win G1profile_le_G1win G2profile_le_G2win)
@@ -159,8 +163,6 @@ structure TowerInputs (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   /-- The level-0 source package (needed by `hagree_succ` chains and `srcWin`). -/
   hsrc0 : ∀ n : ℕ, DuhamelSourceTimeC1
     (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
-  /-- Value-family continuity of the canonical logistic source slices. -/
-  hL_cont : ∀ (n : ℕ) (s : ℝ), 0 < s → Continuous (logisticLifted p (picardIter p u₀ n s))
   /-- Kernel-G1 line, all levels (the `n`-free homogeneous-split bound). -/
   hG1all : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ T → ∀ x : ℝ,
     |deriv (intervalDomainLift (picardIter p u₀ n σ)) x| ≤ G1profile p M σ
@@ -413,8 +415,14 @@ def tower_succ
         (fun x => ∑' k, iterateReprCoeff p u₀ (n + 1) σ k * cosineMode k x)
         (Set.Icc (0 : ℝ) 1) := by
     intro σ hσ hσT
-    exact hagree_succ_of_subtypeCont p H.hχ0 u₀ n hσ H.hu₀_cont H.hu₀_bound
-      (H.hsrc0 n) (fun s hs _ => H.hL_cont n s hs)
+    -- The SATISFIABLE source-slice subtype continuity (replacing the false `hL_cont`
+    -- lift-continuity): from the cone-returned per-iterate slice continuity
+    -- `H.hcontSlice n` + `1 ≤ p.α` via `logisticSource_subtypeCont`, on `s ≤ σ ≤ T`.
+    have hLs : ∀ s, 0 < s → s ≤ σ →
+        Continuous (intervalLogisticSource p (picardIter p u₀ n s)) := fun s hs hsσ =>
+      logisticSource_subtypeCont p u₀ n H.hα (H.hcontSlice n) s hs (le_trans hsσ hσT)
+    exact hagree_succ_of_sourceSubtypeCont p H.hχ0 u₀ n hσ H.hu₀_cont H.hu₀_bound
+      (H.hsrc0 n) hLs
   -- G2 line: witness deriv² bound on the restart series, transported to the slice
   -- (interior via the Ioo agreement, endpoints via the carried budget, exterior
   -- trivially zero), then closed into `A₂/σ²` by `g2_step_closes`.
