@@ -33,3 +33,26 @@ own Telegram reports and commit messages) OVERSTATED reality.
 2. [DONE] Clean-tree certification: full ShenWork 8547 jobs EXIT 0 on fresh f93cbda + capstone axioms all [propext, Classical.choice, Quot.sound], no sorryAx. Mechanically sound end-to-end.
 3. [next] hsrc0 go/no-go: prove satisfiable OR finish the BddOn replacement (W7-W9). Until then NO unconditional claim, even for the χ₀=0 fragment.
 4. [standing] Independent adversarial audit before ANY headline claim. Verification env must be a clean checkout, not a rsync-patched cache.
+
+## ⭐ MAJOR CORRECTION (2026-06-11 ~11:30) — the repo is 0-REAL-SORRY; "173 sorries" was a docstring artifact
+Robust check (`:= sorry` / `by sorry` / `exact sorry` / standalone, excluding docstrings) + full-tree build:
+**ZERO real proof-term sorries across all of ShenWork. Full build 8547 jobs EXIT 0.**
+The earlier "~173 sorries" (inventory) and "L²energy 6 sorries" (C1) were `\bsorry\b` word-grep
+artifacts counting DOCSTRING mentions ("no sorry", "NOT a sorry", "named sorry [residual]",
+"0-sorry", "sorry-free"). NOT proof terms.
+
+The repo's actual design: **NO sorries — every theorem is either genuinely proved OR explicitly
+CONDITIONAL on a named residual obligation** (a hypothesis / structure field / Prop), e.g.
+`hsrc0` (TowerConeAnalyticResidual), `Hcore` (ChiZeroFinal), `Paper2BootstrapEstimateBranchData`,
+the L²energy named frontier residual, `IntervalDomainInterpolation`. So:
+- Foundation (heat kernel Lᵖ, GN, Agmon, resolvent, Poincaré, Lemma 3.1 max principle): genuinely
+  proved, 0 sorry. ✓
+- Headline theorems (Thm 1.1 χ₀=0, the 1.2/1.3 wrappers, Props 2.x): CONDITIONAL on the residual
+  bundles. The fragment/conditional verdicts STAND — but the conditionality lives in named
+  hypotheses, NOT hidden sorries.
+- **The completion work is DISCHARGING the named residuals** (inhabit the bundles from the
+  foundation), which turns conditional theorems unconditional. This is exactly what the hsrc0
+  elimination (A-line) and the C2/D3/A2 residual-inhabitation tasks are doing.
+LESSON (enforced): count sorries as PROOF TERMS, never `\bsorry\b`. The acceptance signal is the
+clean-tree full build + the residual's type (is the discharged hypothesis genuinely satisfiable),
+not a sorry count.
