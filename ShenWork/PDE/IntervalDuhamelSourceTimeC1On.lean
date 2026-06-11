@@ -78,6 +78,28 @@ def DuhamelSourceTimeC1On.shift_zero {a : ℝ → ℕ → ℝ} {offset W : ℝ}
     exact src.hderivBound (offset + s)
       ⟨by linarith [hs.1], by linarith [hs.2]⟩ n
 
+/-- Restrict a closed-window source package to a smaller upper endpoint. -/
+def DuhamelSourceTimeC1On.restrict_hi {a : ℝ → ℕ → ℝ} {lo hi hi' : ℝ}
+    (src : DuhamelSourceTimeC1On a lo hi) (hhi' : hi' ≤ hi) :
+    DuhamelSourceTimeC1On a lo hi' where
+  adot := src.adot
+  hderiv := by
+    intro s hs n
+    exact (src.hderiv s ⟨hs.1, le_trans hs.2 hhi'⟩ n).mono
+      (Set.Icc_subset_Icc le_rfl hhi')
+  hadotcont := by
+    intro n
+    exact (src.hadotcont n).mono (Set.Icc_subset_Icc le_rfl hhi')
+  envelope := src.envelope
+  henv_summable := src.henv_summable
+  henv_bound := by
+    intro s hs n
+    exact src.henv_bound s ⟨hs.1, le_trans hs.2 hhi'⟩ n
+  derivBound := src.derivBound
+  hderivBound := by
+    intro s hs n
+    exact src.hderivBound s ⟨hs.1, le_trans hs.2 hhi'⟩ n
+
 /-- Per-mode time integration by parts from one-sided closed-window derivative data. -/
 theorem duhamelCoeff_eigenvalue_mul_on
     {lo hi t lam : ℝ} {a adot : ℝ → ℝ} (_hlohi : lo ≤ hi)

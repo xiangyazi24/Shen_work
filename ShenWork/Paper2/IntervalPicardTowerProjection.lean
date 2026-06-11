@@ -138,10 +138,9 @@ Both are produced DIRECTLY from the tower input bundle `TowerInputs`:
     are n-uniform).  The `windowEnv` head (`k = 0`) is handled by `windowEnv`'s
     constant head and `slice_source_coeff_zero` inside `iterate_source_windowEnv`.
 
-  * (2) needs NO global source package: the tower carries, for every level `n`,
-    a larger-horizon canonical-source ledger.  CMP turns that ledger into a
-    positive-window `TimeC1On` package on `[a',τ]`, whose derivative field gives
-    coefficient continuity there.
+  * (2) needs NO global source package: `tower_all` now carries, for every level `n`,
+    a positive-window `TimeC1On` package up to the endpoint.  Its derivative field
+    gives coefficient continuity on `[a',τ]`.
 -/
 
 /-- **`henv_iter_of_tower` — obligation (1).**  The n-UNIFORM per-window
@@ -161,7 +160,7 @@ theorem henv_iter_of_tower
 
 /-- **`hiter_cont_of_tower` — obligation (2).**  Per-iterate, per-mode
 source-coefficient time continuity on any window `[a',τ] ⊆ (0,T]`, derived from
-the tower's positive-window canonical-source ledger. -/
+the tower-produced positive-window source package. -/
 theorem hiter_cont_of_tower
     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {M A₂ T : ℝ}
     (H : TowerInputs p u₀ M A₂ T) :
@@ -171,10 +170,11 @@ theorem hiter_cont_of_tower
         (Set.Icc a' τ) := by
   intro a' τ ha' haτ hτT n k
   by_cases hlt : a' < τ
-  · have src := (H.hsrc0 n).timeC1On H.hχ0 ha' hlt hτT
-      H.hα H.ha H.hb H.hu₀_cont H.hu₀_bound
+  · have ha'T : a' < T := lt_of_lt_of_le hlt hτT
+    have src := (tower_all p u₀ H n).srcOn a' ha' ha'T
     intro s hs
-    exact (src.hderiv s hs k).continuousWithinAt
+    exact ((src.hderiv s ⟨hs.1, le_trans hs.2 hτT⟩ k).continuousWithinAt).mono
+      (Set.Icc_subset_Icc le_rfl hτT)
   · have hτa : τ = a' := le_antisymm (le_of_not_gt hlt) haτ
     have hIcc : Set.Icc a' τ = ({a'} : Set ℝ) := by
       rw [hτa, Set.Icc_self]
@@ -220,6 +220,7 @@ stack already produces). -/
 def HWdata_of_tower
     (p : CM2Params)
     (HTower : ∀ u₀ : intervalDomainPoint → ℝ,
+      PositiveInitialDatum intervalDomain u₀ →
       ∀ D : GradientMildSolutionData p u₀,
         D.u = picardLimit p u₀ D.T →
         Σ' M A₂ : ℝ, TowerInputs p u₀ M A₂ D.T) :
@@ -227,7 +228,7 @@ def HWdata_of_tower
       PositiveInitialDatum intervalDomain u₀ →
       ∀ D : GradientMildSolutionData p u₀,
         D.u = picardLimit p u₀ D.T → WdataProvider p u₀ D :=
-  fun u₀ _hu₀ D hDu =>
-    wdataProvider_of_tower p u₀ D (HTower u₀ D hDu).2.2
+  fun u₀ hu₀ D hDu =>
+    wdataProvider_of_tower p u₀ D (HTower u₀ hu₀ D hDu).2.2
 
 end ShenWork.IntervalPicardTowerProjection

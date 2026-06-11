@@ -36,7 +36,8 @@ open ShenWork.IntervalMildPicardRegularity
   (logisticSourceFun logisticLifted_eq_logisticSourceFun_on_Icc
    cosineCoeffs_abs_le_of_continuous_bounded cosineCoeffs_zero_abs_le_of_bound
    logisticSourceFun_abs_le_of_bound)
-open ShenWork.IntervalLogisticSourceQuantBound (B_log)
+open ShenWork.IntervalLogisticSourceQuantBound
+  (B_log logisticSourceFun_cosineCoeff_quadratic_decay_explicit)
 open ShenWork.Paper2 (cosineCoeffs_congr_on_Icc)
 open ShenWork.IntervalPicardLimitBddProducer
   (patchedSource patchedSource_eq_of_pos windowEnv windowEnv_summable
@@ -60,7 +61,7 @@ no positivity); `cosineCoeffs_abs_le_of_continuous_bounded` bounds the coefficie
 No `PositiveInitialDatum` data is consumed. -/
 theorem exists_datum_source_coeff_bound
     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
-    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    (hα : 1 ≤ p.α) (_ha : 0 ≤ p.a) (_hb : 0 ≤ p.b)
     (hu₀_cont : Continuous u₀) :
     ∃ M₀' : ℝ, 0 ≤ M₀' ∧ ∀ k, |cosineCoeffs (logisticLifted p u₀) k| ≤ M₀' := by
   have hαnn : (0 : ℝ) ≤ p.α := le_trans zero_le_one hα
@@ -221,8 +222,9 @@ theorem patchedSource_windowEnv_bound_on
       have hkpos' : (0 : ℝ) < (k : ℝ) := by exact_mod_cast hkpos
       positivity
     refine le_trans
-      (ShenWork.IntervalLogisticSourceQuantBound.logisticSourceFun_cosineCoeff_quadratic_decay_explicit
-        hcsC2 hα ha hb hpos_cs hub_cs hG1_cs hG2_cs hN0_cs hN1_cs k hk1) ?_
+      (logisticSourceFun_cosineCoeff_quadratic_decay_explicit
+        hcsC2 hα ha hb hpos_cs hub_cs hG1_cs hG2_cs hN0_cs hN1_cs k hk1)
+      ?_
     gcongr
     exact le_max_left _ _
 
@@ -250,13 +252,13 @@ noncomputable def duhamelSourceBddOn_of_slices
         (fun x => ∑' n, bc σ n * cosineMode n x) (Set.Icc (0 : ℝ) 1))
     (hpost : ∀ σ, 0 < σ → σ ≤ T → ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (u σ) x)
     (hubt : ∀ σ, 0 < σ → σ ≤ T → ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (u σ) x ≤ Msup)
-    -- K2 gradient/Hessian bounds, PER-COMPACT (within (0,T))
-    (hG1t : ∀ a' b', 0 < a' → b' < T → ∃ G1, ∀ σ ∈ Set.Icc a' b',
+    -- K2 gradient/Hessian bounds, PER-COMPACT (within (0,T])
+    (hG1t : ∀ a' b', 0 < a' → b' ≤ T → ∃ G1, ∀ σ ∈ Set.Icc a' b',
       ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (intervalDomainLift (u σ)) x| ≤ G1)
-    (hG2t : ∀ a' b', 0 < a' → b' < T → ∃ G2, ∀ σ ∈ Set.Icc a' b',
+    (hG2t : ∀ a' b', 0 < a' → b' ≤ T → ∃ G2, ∀ σ ∈ Set.Icc a' b',
       ∀ x ∈ Set.Icc (0 : ℝ) 1, |deriv (deriv (intervalDomainLift (u σ))) x| ≤ G2)
     -- time continuity of the patched coefficient family
-    {τ : ℝ} (_hτ0 : 0 < τ) (hτT : τ < T)
+    {τ : ℝ} (_hτ0 : 0 < τ) (hτT : τ ≤ T)
     (hcontP : ∀ k, ContinuousOn
       (fun s => patchedSource p u₀ u s k) (Set.Icc 0 τ)) :
     DuhamelSourceBddOn (patchedSource p u₀ u) τ where
@@ -264,7 +266,7 @@ noncomputable def duhamelSourceBddOn_of_slices
   hM_nonneg := le_trans hM₀'_nonneg (le_max_left _ _)
   hM := by
     intro s hs hsτ k
-    have hsT : s ≤ T := le_trans hsτ hτT.le
+    have hsT : s ≤ T := le_trans hsτ hτT
     rcases eq_or_lt_of_le hs with hs0 | hspos
     · -- s = 0: patched value is the initial-datum source.
       simp only [patchedSource, ← hs0, le_refl, if_pos]
@@ -324,6 +326,6 @@ noncomputable def duhamelSourceBddOn_of_slices
     have hspecG1 := Classical.choose_spec (hG1t a' τ ha' hτT)
     have hspecG2 := Classical.choose_spec (hG2t a' τ ha' hτT)
     exact patchedSource_windowEnv_bound_on p u hα ha hb bc hbsum hagree hpost hubt
-      ha' hτT.le hspecG1 hspecG2 s ha's hsτ k
+      ha' hτT hspecG1 hspecG2 s ha's hsτ k
 
 end ShenWork.IntervalPicardIterateBddProducer

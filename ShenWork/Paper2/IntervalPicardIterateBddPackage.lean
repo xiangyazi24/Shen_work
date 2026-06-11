@@ -44,6 +44,7 @@ import ShenWork.Paper2.IntervalPicardIterateInitialApproach
 import ShenWork.Paper2.IntervalPicardWindowAdot
 import ShenWork.Paper2.IntervalPicardLimitCoeffConv
 import ShenWork.Paper2.IntervalPicardWdataAssembly
+import ShenWork.PDE.IntervalDuhamelSourceTimeC1On
 
 open MeasureTheory Filter Topology Set
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
@@ -64,6 +65,7 @@ open ShenWork.IntervalPicardWindowAdot (WindowAdotLegs)
 open ShenWork.IntervalPicardIterateInitialApproach (picardIter_initialApproach)
 open ShenWork.IntervalPicardIterateBddProducer
   (duhamelSourceBddOn_of_slices exists_datum_source_coeff_bound)
+open ShenWork.IntervalDuhamelSourceTimeC1On (DuhamelSourceTimeC1On)
 
 noncomputable section
 
@@ -266,6 +268,63 @@ theorem patchedIterateSource_coeff_continuousOn
     rw [mem_nhdsWithin]
     exact ⟨Set.Ioi lo, isOpen_Ioi, hlos₀, fun x hx => hx.1⟩
 
+/-- Endpoint-inclusive patched source coefficient continuity on `[0, τ]`.
+
+The positive-time points use the already-produced closed-window source
+`TimeC1On` package on `[s₀ / 2, T]`; the `s₀ = 0` boundary is the same initial
+approach leg as the strict-interior package. -/
+theorem patchedIterateSource_coeff_continuousOn_endpoint
+    (p : CM2Params) (hχ0 : p.χ₀ = 0)
+    {u₀ : intervalDomainPoint → ℝ} (n : ℕ)
+    (hu₀cont : Continuous u₀)
+    {M T : ℝ} (hTpos : 0 < T) (hMpos : 0 < M)
+    (hball : ∀ (m : ℕ) (s : ℝ), 0 < s → s ≤ T → ∀ y : intervalDomainPoint,
+      |picardIter p u₀ m s y| ≤ M)
+    (hpball : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ y,
+      |patchedSlice u₀ (picardIter p u₀ n) s y| ≤ M)
+    (hpnn : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ y,
+      0 ≤ patchedSlice u₀ (picardIter p u₀ n) s y)
+    (hcontSlice : ∀ (σ : ℝ), 0 < σ → σ ≤ T →
+      ContinuousOn (intervalDomainLift (picardIter p u₀ n σ)) (Set.Icc (0 : ℝ) 1))
+    (srcOn : ∀ c, 0 < c → c < T →
+      DuhamelSourceTimeC1On
+        (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
+        c T)
+    {τ : ℝ} (_hτ : 0 < τ) (hτT : τ ≤ T) (k : ℕ) :
+    ContinuousOn (fun s => patchedSource p u₀ (picardIter p u₀ n) s k)
+      (Set.Icc 0 τ) := by
+  intro s₀ hs₀
+  rcases eq_or_lt_of_le hs₀.1 with hs₀0 | hs₀pos
+  · subst hs₀0
+    exact patchedIterateSource_continuousWithinAt_zero p hχ0 n hu₀cont hTpos hMpos
+      hball hpball hpnn hcontSlice hτT k
+  · set c : ℝ := s₀ / 2 with hcdef
+    have hcpos : 0 < c := by rw [hcdef]; linarith
+    have hcs₀ : c < s₀ := by rw [hcdef]; linarith
+    have hs₀T : s₀ ≤ T := le_trans hs₀.2 hτT
+    have hcT : c < T := lt_of_lt_of_le hcs₀ hs₀T
+    have src := srcOn c hcpos hcT
+    have hs₀cT : s₀ ∈ Set.Icc c T := ⟨hcs₀.le, hs₀T⟩
+    have hcanon : ContinuousWithinAt
+        (fun s => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
+        (Set.Icc c T) s₀ :=
+      (src.hderiv s₀ hs₀cT k).continuousWithinAt
+    have hpatch : ContinuousWithinAt
+        (fun s => patchedSource p u₀ (picardIter p u₀ n) s k)
+        (Set.Icc c T) s₀ := by
+      have hEq : Set.EqOn
+          (fun s => patchedSource p u₀ (picardIter p u₀ n) s k)
+          (fun s => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
+          (Set.Icc c T) := by
+        intro s hs
+        exact patchedSource_eq_of_pos p u₀ (picardIter p u₀ n)
+          (lt_of_lt_of_le hcpos hs.1) k
+      exact hcanon.congr (fun s hs => hEq hs) (hEq hs₀cT)
+    refine hpatch.mono_of_mem_nhdsWithin ?_
+    rw [mem_nhdsWithin]
+    exact ⟨Set.Ioi c, isOpen_Ioi, hcs₀, fun x hx =>
+      ⟨hx.1.le, le_trans hx.2.2 hτT⟩⟩
+
 /-! ## §3 — Deliverable 2: the `DuhamelSourceBddOn` package. -/
 
 /-- **Per-compact `K2` adapter (gradient).**  Turns the `G1profile`-shaped tower
@@ -276,12 +335,12 @@ theorem hG1t_of_profile
     (hG1 : ∀ (σ : ℝ), 0 < σ → σ ≤ T → ∀ x : ℝ,
       |deriv (intervalDomainLift (picardIter p u₀ n σ)) x|
         ≤ ShenWork.IntervalPicardIterateUniform.G1profile p M σ)
-    (a' b' : ℝ) (ha' : 0 < a') (hb'T : b' < T) :
+    (a' b' : ℝ) (ha' : 0 < a') (hb'T : b' ≤ T) :
     ∃ G1, ∀ σ ∈ Set.Icc a' b', ∀ x ∈ Set.Icc (0 : ℝ) 1,
       |deriv (intervalDomainLift (picardIter p u₀ n σ)) x| ≤ G1 := by
   refine ⟨ShenWork.IntervalPicardWdataAssembly.G1win p M a' b', fun σ hσ x _hx => ?_⟩
   have hσpos : 0 < σ := lt_of_lt_of_le ha' hσ.1
-  have hσT : σ ≤ T := le_trans hσ.2 hb'T.le
+  have hσT : σ ≤ T := le_trans hσ.2 hb'T
   exact le_trans (hG1 σ hσpos hσT x)
     (ShenWork.IntervalPicardWdataAssembly.G1profile_le_G1win hMnn ha' hσ.1 hσ.2)
 
@@ -293,12 +352,12 @@ theorem hG2t_of_profile
     (hG2 : ∀ (σ : ℝ), 0 < σ → σ ≤ T → ∀ x : ℝ,
       |deriv (deriv (intervalDomainLift (picardIter p u₀ n σ))) x|
         ≤ ShenWork.IntervalPicardIterateUniform.G2profile A₂ σ)
-    (a' b' : ℝ) (ha' : 0 < a') (hb'T : b' < T) :
+    (a' b' : ℝ) (ha' : 0 < a') (hb'T : b' ≤ T) :
     ∃ G2, ∀ σ ∈ Set.Icc a' b', ∀ x ∈ Set.Icc (0 : ℝ) 1,
       |deriv (deriv (intervalDomainLift (picardIter p u₀ n σ))) x| ≤ G2 := by
   refine ⟨ShenWork.IntervalPicardWdataAssembly.G2win A₂ a', fun σ hσ x _hx => ?_⟩
   have hσpos : 0 < σ := lt_of_lt_of_le ha' hσ.1
-  have hσT : σ ≤ T := le_trans hσ.2 hb'T.le
+  have hσT : σ ≤ T := le_trans hσ.2 hb'T
   exact le_trans (hG2 σ hσpos hσT x)
     (ShenWork.IntervalPicardWdataAssembly.G2profile_le_G2win hA₂nn ha' hσ.1)
 
@@ -362,9 +421,61 @@ noncomputable def iterateBddOn_of_facts
     bc hbsum hagree hpost hubt
     (hG1t_of_profile p n hMsup_nn hG1)
     (hG2t_of_profile p n hA₂nn hG2)
-    hτ hτT
+    hτ hτT.le
     -- deliverable 1: the patched-coefficient time-continuity on `[0,τ]`.
     (fun k => patchedIterateSource_coeff_continuousOn p hχ0 n hu₀cont hTpos hMpos
       hball hpball hpnn hcontSlice winAdot hτ hτT k)
+
+/-- **Endpoint-inclusive per-level iterate `DuhamelSourceBddOn` package.**
+
+This variant reaches `τ = T`.  Its positive-time coefficient continuity is read
+from the in-tower `TimeC1On` source package on `[c,T]`; all bounds and
+representation inputs are the same closed-horizon tower facts as
+`iterateBddOn_of_facts`. -/
+noncomputable def iterateBddOn_endpoint_of_facts
+    (p : CM2Params) (hχ0 : p.χ₀ = 0)
+    {u₀ : intervalDomainPoint → ℝ} (n : ℕ)
+    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    (hu₀cont : Continuous u₀)
+    {M T A₂ Msup : ℝ} (hTpos : 0 < T) (hMpos : 0 < M)
+    (hMsup_nn : 0 ≤ Msup) (hA₂nn : 0 ≤ A₂)
+    (hball : ∀ (m : ℕ) (s : ℝ), 0 < s → s ≤ T → ∀ y : intervalDomainPoint,
+      |picardIter p u₀ m s y| ≤ M)
+    (hpball : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ y,
+      |patchedSlice u₀ (picardIter p u₀ n) s y| ≤ M)
+    (hpnn : ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ y,
+      0 ≤ patchedSlice u₀ (picardIter p u₀ n) s y)
+    (hcontSlice : ∀ (σ : ℝ), 0 < σ → σ ≤ T →
+      ContinuousOn (intervalDomainLift (picardIter p u₀ n σ)) (Set.Icc (0 : ℝ) 1))
+    (srcOn : ∀ c, 0 < c → c < T →
+      DuhamelSourceTimeC1On
+        (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
+        c T)
+    (bc : ℝ → ℕ → ℝ)
+    (hbsum : ∀ σ, 0 < σ → σ ≤ T →
+      Summable (fun m => unitIntervalCosineEigenvalue m * |bc σ m|))
+    (hagree : ∀ σ, 0 < σ → σ ≤ T → Set.EqOn (intervalDomainLift (picardIter p u₀ n σ))
+        (fun x => ∑' m, bc σ m * cosineMode m x) (Set.Icc (0 : ℝ) 1))
+    (hpost : ∀ σ, 0 < σ → σ ≤ T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      0 < intervalDomainLift (picardIter p u₀ n σ) x)
+    (hubt : ∀ σ, 0 < σ → σ ≤ T → ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      intervalDomainLift (picardIter p u₀ n σ) x ≤ Msup)
+    (hG1 : ∀ (σ : ℝ), 0 < σ → σ ≤ T → ∀ x : ℝ,
+      |deriv (intervalDomainLift (picardIter p u₀ n σ)) x|
+        ≤ ShenWork.IntervalPicardIterateUniform.G1profile p Msup σ)
+    (hG2 : ∀ (σ : ℝ), 0 < σ → σ ≤ T → ∀ x : ℝ,
+      |deriv (deriv (intervalDomainLift (picardIter p u₀ n σ))) x|
+        ≤ ShenWork.IntervalPicardIterateUniform.G2profile A₂ σ)
+    {τ : ℝ} (hτ : 0 < τ) (hτT : τ ≤ T) :
+    DuhamelSourceBddOn (patchedSource p u₀ (picardIter p u₀ n)) τ :=
+  duhamelSourceBddOn_of_slices p u₀ (picardIter p u₀ n) hα ha hb
+    (Classical.choose_spec (exists_datum_source_coeff_bound p u₀ hα ha hb hu₀cont)).1
+    (Classical.choose_spec (exists_datum_source_coeff_bound p u₀ hα ha hb hu₀cont)).2
+    bc hbsum hagree hpost hubt
+    (hG1t_of_profile p n hMsup_nn hG1)
+    (hG2t_of_profile p n hA₂nn hG2)
+    hτ hτT
+    (fun k => patchedIterateSource_coeff_continuousOn_endpoint p hχ0 n hu₀cont
+      hTpos hMpos hball hpball hpnn hcontSlice srcOn hτ hτT k)
 
 end ShenWork.IntervalPicardIterateBddPackage

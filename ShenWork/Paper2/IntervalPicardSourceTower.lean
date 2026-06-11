@@ -48,7 +48,9 @@ import ShenWork.Paper2.IntervalPicardSourceSubtypeCont
 import ShenWork.Paper2.IntervalPicardWindowAdotOn
 import ShenWork.Paper2.IntervalPicardSuccLegsOn
 import ShenWork.Paper2.IntervalPicardShiftedBddSupply
-import ShenWork.Paper2.IntervalCanonicalSourceOnFromLedger
+import ShenWork.Paper2.IntervalPicardIterateBddPackage
+import ShenWork.Paper2.IntervalPicardSourceTimeC1OnRecursion
+import ShenWork.Paper2.IntervalPicardIterateTimeC1JointEndpoint
 
 open MeasureTheory Filter Topology Set
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
@@ -86,9 +88,19 @@ open ShenWork.IntervalPicardUniformWiring
   (lift_deriv2_abs_le_of_eqOn_Ioo lift_deriv2_eq_zero_of_not_mem)
 open ShenWork.IntervalPicardUniformWiringDischarge (Benv_nonneg)
 open ShenWork.IntervalPicardIterateC2Bound (restartIterateCoeff)
-open ShenWork.Paper2.CanonicalSourceOnFromLedger
-  (CanonicalSourceLedgerBeyond)
 open ShenWork.IntervalDuhamelSourceTimeC1On (DuhamelSourceTimeC1On)
+open ShenWork.IntervalPicardLimitRestartBdd (DuhamelSourceBddOn)
+open ShenWork.IntervalPicardLimitBddProducer (patchedSource)
+open ShenWork.IntervalPicardLimitBddHcontP
+  (patchedSlice patchedSlice_of_nonpos patchedSlice_of_pos)
+open ShenWork.IntervalPicardIterateBddPackage (iterateBddOn_endpoint_of_facts)
+open ShenWork.IntervalPicardSourceTimeC1OnRecursion
+  (LevelSourceTimeC1OnUpTo sourceTimeC1On_succ_of_sourceTimeC1On)
+open ShenWork.IntervalPicardLevel0SourceTimeC1On
+  (heatCoeff level0Source_timeC1On)
+open ShenWork.IntervalPicardIterateBddRepr (picardIterateRestart_general_of_sourceBdd)
+open ShenWork.IntervalPicardIterateTimeC1JointEndpoint
+  (restartProfile_jointContinuousOn_On_shift)
 
 noncomputable section
 
@@ -148,6 +160,10 @@ structure TowerLevel (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   read window strictly inside `(0,T)` — PRODUCED level-by-level (K1 wall closure):
   base via `windowAdotLegs_zero`, step via `windowAdotLegs_step`. -/
   winAdot : ∀ lo hi, 0 < lo → lo ≤ hi → hi < T → WindowAdotLegs p u₀ n lo hi
+  /-- Endpoint-inclusive positive-window source package, produced in tower. -/
+  srcOn : LevelSourceTimeC1OnUpTo p u₀ n T
+  /-- Endpoint-inclusive patched bounded-source package on the full horizon. -/
+  srcBdd : DuhamelSourceBddOn (patchedSource p u₀ (picardIter p u₀ n)) T
 
 /-! ## §3 — The carrier's analytic input bundle `TowerInputs`.
 
@@ -156,8 +172,8 @@ in exactly the shapes the stage-1 machinery and `uniformWiring_closure` already 
 Bundling them as one hypothesis record keeps `tower_zero`/`tower_succ`/`tower_all`
 clean implications. -/
 
-/-- The analytic input bundle the tower induction consumes.  Carries data fields
-(`hsrc0`/`witness`/`adot`), so it is `Type`-valued. -/
+/-- The analytic input bundle the tower induction consumes.  Carries data fields and
+proof-producing windows, so it is `Type`-valued. -/
 structure TowerInputs (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
     (M A₂ T : ℝ) where
   /-- `χ₀ = 0` (the homogeneous-propagator regime). -/
@@ -177,9 +193,10 @@ structure TowerInputs (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   hu₀_cont : Continuous u₀
   /-- Datum coefficient sup. -/
   hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M
-  /-- The level-`n` canonical-source ledger on a strict larger horizon. -/
-  hsrc0 : ∀ n : ℕ,
-    CanonicalSourceLedgerBeyond p u₀ (picardIter p u₀ n) T
+  /-- Datum nonnegativity on the closed interval. -/
+  hu₀_nonneg : ∀ y : intervalDomainPoint, 0 ≤ u₀ y
+  /-- Datum pointwise bound at the tower mass. -/
+  hu₀_abs_bound : ∀ y : intervalDomainPoint, |u₀ y| ≤ M
   /-- Kernel-G1 line, all levels (the `n`-free homogeneous-split bound). -/
   hG1all : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ T → ∀ x : ℝ,
     |deriv (intervalDomainLift (picardIter p u₀ n σ)) x| ≤ G1profile p M σ
@@ -255,6 +272,124 @@ theorem lift_slice_continuousOn
     exact congr_arg (picardIter p u₀ m s) (Subtype.ext rfl)
   rw [heq]; exact hcont_s
 
+/-- The tower mass is positive once the positive-time ball is nonempty. -/
+theorem towerInputs_Mpos
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (H : TowerInputs p u₀ M A₂ T) : 0 < M := by
+  have h0mem : (0 : ℝ) ∈ Set.Icc (0 : ℝ) 1 := by norm_num
+  have hp := H.hpos 0 T H.hTpos le_rfl 0 h0mem
+  have hu := H.hub 0 T H.hTpos le_rfl 0 h0mem
+  exact lt_of_lt_of_le hp hu
+
+/-- Patched iterate slices are bounded by the tower mass on `[0,T]`. -/
+theorem patchedIterateSlice_abs_bound_of_tower
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (H : TowerInputs p u₀ M A₂ T) (n : ℕ) :
+    ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ y : intervalDomainPoint,
+      |patchedSlice u₀ (picardIter p u₀ n) s y| ≤ M := by
+  intro s hs y
+  rcases eq_or_lt_of_le hs.1 with hs0 | hspos
+  · rw [← hs0, patchedSlice_of_nonpos u₀ (picardIter p u₀ n) (le_refl 0)]
+    exact H.hu₀_abs_bound y
+  · rw [patchedSlice_of_pos u₀ (picardIter p u₀ n) hspos]
+    have hp := H.hpos n s hspos hs.2 y.1 y.2
+    have hu := H.hub n s hspos hs.2 y.1 y.2
+    have hp' : 0 < picardIter p u₀ n s y := by
+      simpa [intervalDomainLift, y.2] using hp
+    have hu' : picardIter p u₀ n s y ≤ M := by
+      simpa [intervalDomainLift, y.2] using hu
+    rw [abs_of_pos hp']
+    exact hu'
+
+/-- Patched iterate slices are nonnegative on `[0,T]`. -/
+theorem patchedIterateSlice_nonneg_of_tower
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (H : TowerInputs p u₀ M A₂ T) (n : ℕ) :
+    ∀ s ∈ Set.Icc (0 : ℝ) T, ∀ y : intervalDomainPoint,
+      0 ≤ patchedSlice u₀ (picardIter p u₀ n) s y := by
+  intro s hs y
+  rcases eq_or_lt_of_le hs.1 with hs0 | hspos
+  · rw [← hs0, patchedSlice_of_nonpos u₀ (picardIter p u₀ n) (le_refl 0)]
+    exact H.hu₀_nonneg y
+  · rw [patchedSlice_of_pos u₀ (picardIter p u₀ n) hspos]
+    have hp := H.hpos n s hspos hs.2 y.1 y.2
+    have hp' : 0 < picardIter p u₀ n s y := by
+      simpa [intervalDomainLift, y.2] using hp
+    exact hp'.le
+
+/-- Level-0 endpoint-inclusive source package on all positive windows. -/
+noncomputable def level0SourceOnUpTo_of_tower
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {M A₂ T : ℝ}
+    (H : TowerInputs p u₀ M A₂ T) :
+    LevelSourceTimeC1OnUpTo p u₀ 0 T := by
+  intro c hc hcT
+  refine level0Source_timeC1On p (M := M) (G1 := G1win p M c T)
+    (G2 := G2win A₂ c) (Udot := A₂ / c ^ 2) (M₀ := M)
+    hc hcT H.hα H.ha H.hb
+    H.hu₀_cont H.hu₀_bound ?_ ?_ ?_ ?_ ?_
+  · intro σ hσ x hx
+    exact H.hpos 0 σ (lt_of_lt_of_le hc hσ.1) hσ.2 x hx
+  · intro σ hσ x hx
+    exact H.hub 0 σ (lt_of_lt_of_le hc hσ.1) hσ.2 x hx
+  · intro σ hσ x _hx
+    exact le_trans (H.hG1all 0 σ (lt_of_lt_of_le hc hσ.1) hσ.2 x)
+      (G1profile_le_G1win H.hMnn hc hσ.1 hσ.2)
+  · intro σ hσ x _hx
+    exact le_trans
+      (ShenWork.IntervalHomogeneousG2Base.hG2base_of_gate p u₀
+        H.hMnn H.hA₂nn H.hu₀_cont H.hu₀_bound H.hgate
+        σ (lt_of_lt_of_le hc hσ.1) hσ.2 x)
+      (G2profile_le_G2win H.hA₂nn hc hσ.1)
+  · intro σ hσ x _hx
+    have hσpos : 0 < σ := lt_of_lt_of_le hc hσ.1
+    calc |ShenWork.IntervalDomainRegularityBootstrap.unitIntervalCosineHeatSecondValue
+            σ (heatCoeff u₀) x|
+        ≤ M * eigExpWeight σ :=
+          ShenWork.IntervalHomogeneousG2Base.secondValue_abs_le hσpos H.hu₀_bound x
+      _ ≤ homWeightBound M σ :=
+          ShenWork.IntervalHomogeneousG2Base.eigExpWeight_le_homWeightBound
+            H.hMnn hσpos
+      _ ≤ A₂ / σ ^ 2 :=
+          ShenWork.IntervalHomogeneousG2Base.homWeightBound_le_of_gate
+            H.hMnn hσpos hσ.2 H.hgate
+      _ ≤ A₂ / c ^ 2 := by
+          have hc2 : 0 < c ^ 2 := by positivity
+          have hσ2 : 0 < σ ^ 2 := by positivity
+          have hcσ2 : c ^ 2 ≤ σ ^ 2 := by nlinarith [hσ.1]
+          field_simp [hc2.ne', hσ2.ne']
+          nlinarith [H.hA₂nn, hcσ2]
+
+/-- Endpoint `DuhamelSourceBddOn` package assembled from tower facts. -/
+noncomputable def sourceBdd_of_levelData
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) (n : ℕ)
+    {M A₂ T : ℝ} (H : TowerInputs p u₀ M A₂ T)
+    (srcOn : LevelSourceTimeC1OnUpTo p u₀ n T)
+    (bcfun : ℝ → ℕ → ℝ)
+    (hbsum : ∀ σ, 0 < σ → σ ≤ T →
+      Summable (fun k => unitIntervalCosineEigenvalue k * |bcfun σ k|))
+    (hagree : ∀ σ, 0 < σ → σ ≤ T →
+      Set.EqOn (intervalDomainLift (picardIter p u₀ n σ))
+        (fun x => ∑' k, bcfun σ k * cosineMode k x) (Set.Icc (0 : ℝ) 1))
+    (hG1 : ∀ σ, 0 < σ → σ ≤ T → ∀ x : ℝ,
+      |deriv (intervalDomainLift (picardIter p u₀ n σ)) x| ≤ G1profile p M σ)
+    (hG2 : ∀ σ, 0 < σ → σ ≤ T → ∀ x : ℝ,
+      |deriv (deriv (intervalDomainLift (picardIter p u₀ n σ))) x| ≤ G2profile A₂ σ) :
+    DuhamelSourceBddOn (patchedSource p u₀ (picardIter p u₀ n)) T :=
+  iterateBddOn_endpoint_of_facts p H.hχ0 n H.hα H.ha H.hb H.hu₀_cont
+    H.hTpos (towerInputs_Mpos p u₀ H) H.hMnn H.hA₂nn
+    (fun m s hs hsT y => by
+      have hp := H.hpos m s hs hsT y.1 y.2
+      have hu := H.hub m s hs hsT y.1 y.2
+      have hp' : 0 < picardIter p u₀ m s y := by
+        simpa [intervalDomainLift, y.2] using hp
+      have hu' : picardIter p u₀ m s y ≤ M := by
+        simpa [intervalDomainLift, y.2] using hu
+      rw [abs_of_pos hp']; exact hu')
+    (patchedIterateSlice_abs_bound_of_tower p u₀ H n)
+    (patchedIterateSlice_nonneg_of_tower p u₀ H n)
+    (lift_slice_continuousOn p u₀ H n)
+    srcOn bcfun hbsum hagree (H.hpos n) (H.hub n) hG1 hG2 H.hTpos le_rfl
+
 /-! ## §4 — The window source package builder.
 
 The verdict's `srcWin` construction: from the level-`n` repr triple + ball + K2
@@ -310,7 +445,7 @@ def sourceWin_of_level
     exact hwin σ hσ k
   · -- value continuity on `[lo,hi]`: equal to the canonical source coeff there,
     -- which is `σ`-continuous on `[lo,hi] ⊆ [c',d']` from the `winAdot` legs
-    -- (`HasDerivAt ⟹ ContinuousAt`), WALL-FREE (no canonical `hsrc0` package).
+    -- (`HasDerivAt ⟹ ContinuousAt`), without a global canonical source package.
     intro k
     -- the `[lo,hi] ⊆ [c',d']` inclusion (`c' < lo ≤ hi < d'`).
     have hsubLoHi : Set.Icc lo hi ⊆ Set.Icc c' d' :=
@@ -398,6 +533,15 @@ def tower_zero
   let wA : ∀ lo hi, 0 < lo → lo ≤ hi → hi < T → WindowAdotLegs p u₀ 0 lo hi :=
     windowAdotLegs_zero p u₀ H.hα H.ha H.hb H.hMnn H.hu₀_cont H.hu₀_bound
       (H.hpos 0) (H.hub 0) (lift_slice_continuousOn p u₀ H 0)
+  let src0 : LevelSourceTimeC1OnUpTo p u₀ 0 T :=
+    level0SourceOnUpTo_of_tower p u₀ H
+  let bdd0 : DuhamelSourceBddOn (patchedSource p u₀ (picardIter p u₀ 0)) T :=
+    sourceBdd_of_levelData p u₀ 0 H src0 (iterateReprCoeff p u₀ 0)
+      (fun _ hσ _ => hbsum_zero p u₀ hσ H.hu₀_bound)
+      (fun _ hσ _ => hagree_zero p u₀ hσ H.hu₀_cont H.hu₀_bound)
+      (H.hG1all 0)
+      (ShenWork.IntervalHomogeneousG2Base.hG2base_of_gate p u₀
+        H.hMnn H.hA₂nn H.hu₀_cont H.hu₀_bound H.hgate)
   { hrepr_sum := fun _ hσ _ => hbsum_zero p u₀ hσ H.hu₀_bound
     hrepr_agree := fun _ hσ _ => hagree_zero p u₀ hσ H.hu₀_cont H.hu₀_bound
     hG1 := H.hG1all 0
@@ -410,7 +554,9 @@ def tower_zero
       (ShenWork.IntervalHomogeneousG2Base.hG2base_of_gate p u₀
         H.hMnn H.hA₂nn H.hu₀_cont H.hu₀_bound H.hgate)
       wA
-    winAdot := wA }
+    winAdot := wA
+    srcOn := src0
+    srcBdd := bdd0 }
 
 /-- **Inductive step `tower_succ` (under the GATE).**  `TowerLevel … n →
 TowerLevel … (n+1)`:
@@ -440,9 +586,24 @@ def tower_succ
   have hsrcσ : ∀ σ, 0 < σ → σ ≤ T → DuhamelSourceTimeC1On
       (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n (σ / 2 + s))) k)
       0 (σ / 2) :=
-    fun σ hσ hσT =>
-      (H.hsrc0 n).shiftedTimeC1On H.hχ0 hσ hσT
-        H.hα H.ha H.hb H.hu₀_cont H.hu₀_bound
+    fun σ hσ hσT => by
+      have hhalf : 0 < σ / 2 := by positivity
+      have hhalfσ : σ / 2 < σ := by linarith
+      have hhalfT : σ / 2 < T := lt_of_lt_of_le hhalfσ hσT
+      have hphysT := L.srcOn (σ / 2) hhalf hhalfT
+      have hphys : DuhamelSourceTimeC1On
+          (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
+          (σ / 2) σ :=
+        hphysT.restrict_hi hσT
+      have hsum : σ / 2 + σ / 2 = σ := by ring
+      have hphys' : DuhamelSourceTimeC1On
+          (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
+          (σ / 2) (σ / 2 + σ / 2) := by
+        rw [hsum]
+        exact hphys
+      simpa [add_comm] using
+        ShenWork.IntervalDuhamelSourceTimeC1On.DuhamelSourceTimeC1On.shift_zero
+          (offset := σ / 2) (W := σ / 2) hphys'
   -- The WALL-FREE windowed decay of the shifted source on `[0, σ/2]`, DERIVED in-tower
   -- from the level-`n` representation triple + ball + K2 facts (`L.hrepr_*`/`L.hG1`/
   -- `L.hG2`, ball from `H.hpos`/`H.hub`) via stage F (`shifted_source_windowDecay`).
@@ -478,7 +639,7 @@ def tower_succ
         Continuous (intervalLogisticSource p (picardIter p u₀ n s)) := fun s hs hsσ =>
       logisticSource_subtypeCont p u₀ n H.hα (H.hcontSlice n) s hs (le_trans hsσ hσT)
     exact hagree_succ_of_sourceBdd p H.hχ0 u₀ n hσ H.hu₀_cont H.hu₀_bound
-      ((H.hsrc0 n).bddOnHorizon) hσT hLs
+      L.srcBdd hσT hLs
   -- G2 line: witness deriv² bound on the restart series, transported to the slice
   -- (interior via the Ioo agreement, endpoints via the carried budget, exterior
   -- trivially zero), then closed into `A₂/σ²` by `g2_step_closes`.
@@ -547,11 +708,95 @@ def tower_succ
   have wA1 : ∀ lo hi, 0 < lo → lo ≤ hi → hi < T →
       WindowAdotLegs p u₀ (n + 1) lo hi :=
     windowAdotLegs_step_on p H.hχ0 u₀ n H.hα H.ha H.hb H.hMnn H.hA₂nn H.hu₀_cont
-      H.hu₀_bound ((H.hsrc0 n).bddOnHorizon) hLsT L.hrepr_sum L.hrepr_agree
+      H.hu₀_bound L.srcBdd hLsT L.hrepr_sum L.hrepr_agree
       (H.hpos n) (H.hub n) L.hG1 L.hG2
       (H.hpos (n + 1)) (H.hub (n + 1))
       (lift_slice_continuousOn p u₀ H (n + 1))
       L.winAdot
+  have srcOn1 : LevelSourceTimeC1OnUpTo p u₀ (n + 1) T := by
+    intro c hc hcT
+    set offset : ℝ := c / 2 with hoffdef
+    set W : ℝ := T - offset with hWdef
+    have hoffpos : 0 < offset := by rw [hoffdef]; linarith
+    have hoffc : offset < c := by rw [hoffdef]; linarith
+    have hoffT : offset < T := lt_trans hoffc hcT
+    have hWpos : 0 < W := by rw [hWdef]; linarith
+    have hoffW : offset ≤ W := by rw [hoffdef, hWdef]; linarith
+    have hprevT := L.srcOn offset hoffpos hoffT
+    have hsumTW : offset + W = T := by rw [hWdef]; ring
+    have hprevTW : DuhamelSourceTimeC1On
+        (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
+        offset (offset + W) := by
+      rw [hsumTW]
+      exact hprevT
+    have srcPrev : DuhamelSourceTimeC1On
+        (fun s k =>
+          cosineCoeffs (logisticLifted p (picardIter p u₀ n (offset + s))) k)
+        0 W := by
+      simpa [add_comm] using
+        ShenWork.IntervalDuhamelSourceTimeC1On.DuhamelSourceTimeC1On.shift_zero
+          (offset := offset) (W := W) hprevTW
+    have ha₀ : ∀ k,
+        |cosineCoeffs (intervalDomainLift (picardIter p u₀ (n + 1) offset)) k|
+          ≤ 2 * M :=
+      halfStep_coeff_le_twoM p u₀ H (n + 1) hoffpos (le_of_lt hoffT)
+    have hshift : Set.MapsTo (fun s : ℝ => s - offset)
+        (Set.Icc c T) (Set.Icc offset W) := by
+      intro s hs
+      exact ⟨by linarith [hs.1, hoffdef], by rw [hWdef]; linarith [hs.2]⟩
+    have hrestart : ∀ s ∈ Set.Icc c T, ∀ x : intervalDomainPoint,
+        intervalDomainLift (picardIter p u₀ (n + 1) s) x.1 =
+          ∑' k, ShenWork.IntervalSourceCoefficientTimeC1.localRestartCoeff
+            (cosineCoeffs (intervalDomainLift
+              (picardIter p u₀ (n + 1) offset)))
+            (fun σ k =>
+              cosineCoeffs (logisticLifted p
+                (picardIter p u₀ n (offset + σ))) k)
+            (s - offset) k * cosineMode k x.1 := by
+      intro s hs x
+      have hτs : offset < s := lt_of_lt_of_le hoffc hs.1
+      have hLs_s : ∀ r, 0 < r → r ≤ s →
+          Continuous (intervalLogisticSource p (picardIter p u₀ n r)) := by
+        intro r hr hrs
+        exact logisticSource_subtypeCont p u₀ n H.hα (H.hcontSlice n)
+          r hr (le_trans hrs hs.2)
+      have hgen := picardIterateRestart_general_of_sourceBdd p H.hχ0 u₀ n
+        H.hu₀_cont H.hu₀_bound L.srcBdd hoffpos hτs hs.2 hLs_s
+      exact hgen x.2
+    have hprofile_joint : ContinuousOn
+        (Function.uncurry
+          (fun s x => intervalDomainLift (picardIter p u₀ (n + 1) s) x))
+        (Set.Icc c T ×ˢ Set.Icc (0 : ℝ) 1) :=
+      restartProfile_jointContinuousOn_On_shift
+        (M₀ := 2 * M) (by linarith [H.hMnn]) ha₀ srcPrev
+        hoffpos hoffW hshift hrestart
+    refine sourceTimeC1On_succ_of_sourceTimeC1On H.hα H.ha H.hb
+      (M := M) (G1 := G1win p M c T) (G2 := G2win A₂ c)
+      (M₀ := 2 * M) (by linarith [H.hMnn]) ha₀ srcPrev
+      hcT.le hoffpos hshift (iterateReprCoeff p u₀ (n + 1)) ?_ ?_ ?_ ?_ ?_ ?_
+      hrestart ?_ hprofile_joint
+    · intro σ hσ
+      exact hrepr_sum σ (lt_of_lt_of_le hc hσ.1) hσ.2
+    · intro σ hσ
+      exact hrepr_agree σ (lt_of_lt_of_le hc hσ.1) hσ.2
+    · intro σ hσ x hx
+      exact H.hpos (n + 1) σ (lt_of_lt_of_le hc hσ.1) hσ.2 x hx
+    · intro σ hσ x hx
+      exact H.hub (n + 1) σ (lt_of_lt_of_le hc hσ.1) hσ.2 x hx
+    · intro σ hσ x _hx
+      exact le_trans (H.hG1all (n + 1) σ (lt_of_lt_of_le hc hσ.1) hσ.2 x)
+        (G1profile_le_G1win H.hMnn hc hσ.1 hσ.2)
+    · intro σ hσ x _hx
+      exact le_trans (hG2 σ (lt_of_lt_of_le hc hσ.1) hσ.2 x)
+        (G2profile_le_G2win H.hA₂nn hc hσ.1)
+    · intro σ hσ
+      exact lift_slice_continuousOn p u₀ H (n + 1) σ
+        (lt_of_lt_of_le hc hσ.1) hσ.2
+  have srcBdd1 : DuhamelSourceBddOn
+      (patchedSource p u₀ (picardIter p u₀ (n + 1))) T :=
+    sourceBdd_of_levelData p u₀ (n + 1) H srcOn1
+      (iterateReprCoeff p u₀ (n + 1)) hrepr_sum hrepr_agree
+      (H.hG1all (n + 1)) hG2
   refine
     { hrepr_sum := hrepr_sum
       hrepr_agree := hrepr_agree
@@ -559,7 +804,9 @@ def tower_succ
       hG2 := hG2
       srcWin := srcWin_of_levelData p u₀ (n + 1) H (iterateReprCoeff p u₀ (n + 1))
         hrepr_sum hrepr_agree (H.hG1all (n + 1)) hG2 wA1
-      winAdot := wA1 }
+      winAdot := wA1
+      srcOn := srcOn1
+      srcBdd := srcBdd1 }
 
 /-- **The full tower induction (under the GATE).**  For every `n`, the carrier
 holds. -/
