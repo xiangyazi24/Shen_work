@@ -391,3 +391,27 @@ NEXT-SESSION PLAN (to actually empty the residual):
   delete hsrc0 from TowerInputs + TowerConeAnalyticResidual (→ residual EMPTY),
   fix the HCone Σ' projections, full verify (explicit module targets +
   axiom probe), update docs.
+
+## W5 DESIGN DECISION (@7866720, Zinan 拍板)
+Route A ACCEPTED (one-sided/windowed-C¹ endpoint interface; eliminates the
+σ=T demand without touching the frozen capstone).  Route B REJECTED (relocates
+the closed endpoint into the at-horizon limit-side construction, B1/B2/B3).
+Full recon in the W5 agent report (ground truths: G1 final theorem open at
+Tmax; G2 W3 bricks are dead code — σ<T wiring undone; G3 Mathlib lacks
+hasDerivWithinAt_tsum).
+
+Wave plan:
+- W6a (SourceTower): wire the dead W3 bricks into tower_succ with an honest
+  σ<T / σ=T case split — hsrc0 consumption shrinks to the literal σ=T branch.
+- W6b (TowerSupply): HCone narrowing to the constructed datum (HConeNarrow,
+  ~6 signatures, ~250 lines) — makes from_coneSupply instantiable; the ∀-D
+  form is gate-unsatisfiable at large horizons.  Independent of σ=T.
+- W7: hasDerivWithinAt_tsum port (~250 lines, the bounded Mathlib gap;
+  substrate hasDerivWithinAt_of_tendstoUniformlyOn).  STOP-AND-REPORT if it
+  balloons; do NOT switch to Route B mid-flight.
+- W8: DuhamelSourceTimeC1On interface + one-sided IBP
+  (duhamelCoeff_eigenvalue_mul via integral_eq_sub_of_hasDeriv_right_of_le)
+  + endpoint winAdot builder (IntervalPicardWindowAdotEndpoint.lean).
+- W9: final wiring + hsrc0 deletion + HConeNarrow bridge to the cone
+  existence theorem → from_coneSupply actually instantiable → the χ₀=0
+  Theorem 1.1 unconditional (interval domain).  χ₀<0 branch remains future.
