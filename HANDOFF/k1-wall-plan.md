@@ -64,3 +64,54 @@ induction shape the tower already runs for hrepr/hG1/hG2/srcWin.
 ## Rules
 No axiom, no local lake build, no fake satisfaction; remote = rsync (never
 --delete) → uisai2:/dev/shm/shen_work; acceptance = #print axioms only.
+
+## REFINED DESIGN (post-recon, 2026-06-10 ~20:00) — the induction CLOSES
+
+Recon findings:
+* `picardIterate_K1_full_from_restart_of_representation` (TimeC1Full:100) IS the
+  induction step: input = level-n source GLOBAL package `src : DuhamelSourceTimeC1 a`
+  + restart representation of iter(n+1) via `localRestartCoeff a₀ a` on open U +
+  ball/pos/C0 facts; output = the THREE window legs at level n+1 (hderiv with
+  explicit adot = coeff(logisticSourceDot…), window bound, window continuity).
+* `clampedIterateSource_duhamelSourceTimeC1` (TimeC1Full:241) is the upgrade:
+  window legs (bc repr + ball + G1/G2 + adot legs on [c',d']) → GLOBAL clamped
+  `DuhamelSourceTimeC1 asrc` agreeing with canonical on id-zone [lo,hi].
+* The tower's `SourceWin` ALREADY carries ⟨asrc, hsrc : DuhamelSourceTimeC1, …⟩
+  per window — i.e. the step's `src` input is level-n's srcWin package!
+* The residual enters ONLY at SourceTower:274 (H.adot/hadot_deriv/hadot_cont/
+  hadot_bound fed to the clamp) and :287 ((H.hsrc0 n).hderiv used ONLY for
+  global σ-continuity of the canonical coeff — window continuity from the adot
+  legs suffices after a minor retype).
+
+The closing loop:
+  winAdot(n) --[clamp, already wired in sourceWin_of_level]--> srcWin(n)
+  srcWin(n).hsrc --[K1-full step]--> winAdot(n+1)
+  base: winAdot(0) via K1-full with the TRIVIAL ZERO source package
+  (level 0 = restart with zero source; a₀ = û₀ damped coeffs).
+
+## Brick spec: new file IntervalPicardWindowAdot.lean
+Define `WindowAdot p u₀ n T : Prop` (or structure) =
+  ∀ lo hi, 0 < lo → lo ≤ hi → hi < T → ∃ adot : ℝ → ℕ → ℝ,
+    (∀ σ ∈ Icc lo hi, ∀ k, HasDerivAt (fun r => cosineCoeffs
+       (logisticSourceFun p.a p.b p.α (lift (picardIter p u₀ n r))) k) (adot σ k) σ)
+    ∧ (∃ Mdot, ∀ σ ∈ Icc lo hi, ∀ k, |adot σ k| ≤ Mdot)
+    ∧ (∀ k, ContinuousOn (fun σ => adot σ k) (Icc lo hi)).
+Theorems:
+1. `windowAdot_zero` — K1-full with zero source package; hagree from the level-0
+   restart form (check localRestartCoeff a₀ 0 = e^{-sλ}a₀; bridge to hagree_zero/
+   iterateReprCoeff 0).  hdecay for zero family trivial.
+2. `windowAdot_succ` — from TowerLevel n (srcWin at the padded window gives the
+   step's src package; window bookkeeping: target [lo,hi], offset := lo/2,
+   level-n id-zone ⊇ [offset, hi]); hagree: canonical M1 restart identity
+   (picardIterateRestart_cosineIdentity / the hbsum_succ-hagree_succ machinery)
+   + congruence canonical↔clamped on the read range (srcWin's agreement);
+   hdecay of the clamped family: clamped values = canonical at clamped times
+   ∈ id-zone ⊆ (0,T] → stage-F slice decay with window constants (pattern:
+   IntervalPicardSliceWitnessSupply.shifted_source_windowDecay).
+3. Surgery (after bricks): TowerLevel gains winAdot field (or tower carries it
+   via a parallel induction); sourceWin_of_level consumes it instead of
+   H.adot/H.hsrc0; delete residual fields hsrc0/adot/hadot_deriv/hadot_cont/
+   adotBound/hadot_bound (+audit hL_cont consumers — likely falls too).
+   CAUTION: hiter_cont_of_tower (TowerProjection) reads (H.hsrc0 n).hderiv —
+   retype to window continuity from winAdot.  hu₀_bound/coeff machinery
+   unaffected.
