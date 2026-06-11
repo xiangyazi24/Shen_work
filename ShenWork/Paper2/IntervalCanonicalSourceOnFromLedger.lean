@@ -21,6 +21,47 @@ noncomputable section
 
 namespace ShenWork.Paper2.CanonicalSourceOnFromLedger
 
+/-- The non-global ledger data from which the canonical source is produced on
+positive closed windows. -/
+structure CanonicalSourceLedger
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ) (U : ℝ) where
+  hfix : ∀ s, 0 < s → s < U → ∀ x : ℝ,
+    (hx : x ∈ Set.Icc (0 : ℝ) 1) →
+      intervalDomainLift (u s) x =
+        intervalGradientDuhamelMap p u₀ u s ⟨x, hx⟩
+  hsrc0 : DuhamelSourceBddOn (patchedSource p u₀ u) U
+  Msup : ℝ
+  bc : ℝ → ℕ → ℝ
+  hbsum : ∀ σ, 0 < σ → σ < U →
+    Summable (fun n => unitIntervalCosineEigenvalue n * |bc σ n|)
+  hagree : ∀ σ, 0 < σ → σ < U →
+    Set.EqOn (intervalDomainLift (u σ))
+      (fun x => ∑' n, bc σ n * cosineMode n x)
+      (Set.Icc (0 : ℝ) 1)
+  hpost : ∀ σ, 0 < σ → σ < U →
+    ∀ x ∈ Set.Icc (0 : ℝ) 1, 0 < intervalDomainLift (u σ) x
+  hubt : ∀ σ, 0 < σ → σ < U →
+    ∀ x ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (u σ) x ≤ Msup
+  hG1t : ∀ a' b', 0 < a' → b' < U → ∃ G1,
+    ∀ σ ∈ Set.Icc a' b', ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |deriv (intervalDomainLift (u σ)) x| ≤ G1
+  hG2t : ∀ a' b', 0 < a' → b' < U → ∃ G2,
+    ∀ σ ∈ Set.Icc a' b', ∀ x ∈ Set.Icc (0 : ℝ) 1,
+      |deriv (deriv (intervalDomainLift (u σ))) x| ≤ G2
+  hLc_ce : ∀ t, 0 < t → t < U →
+    ∀ s, 0 < s → s ≤ t →
+      Continuous (intervalDomainConstExtend (intervalLogisticSource p (u s)))
+
+/-- A ledger available beyond the tower horizon.  This is the tower-level form of
+the strict larger-horizon endpoint fact. -/
+structure CanonicalSourceLedgerBeyond
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (u : ℝ → intervalDomainPoint → ℝ) (T : ℝ) where
+  U : ℝ
+  hTU : T < U
+  ledger : CanonicalSourceLedger p u₀ u U
+
 /-- Restrict a bounded-source package from a larger horizon to a smaller one. -/
 def DuhamelSourceBddOn.restrict_horizon {a : ℝ → ℕ → ℝ} {T U : ℝ}
     (src : DuhamelSourceBddOn a U) (hTU : T ≤ U) :
@@ -155,5 +196,79 @@ noncomputable def canonicalSource_duhamelSourceTimeC1On_of_ledger
       hχ0 H hα ha hb hu₀_cont hu₀_bound hfixT hsrc0T bc
       hbsumT hagreeT hpostT hubtT hG1tT hG2tT hLc_ceT
       hc hcT hTU hbsumC hagreeC hposC hubC hG1C hG2C
+
+/-- Build the canonical source `TimeC1On` package on a positive subwindow from a
+ledger. -/
+noncomputable def CanonicalSourceLedger.timeC1On
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ} {U c T : ℝ}
+    (L : CanonicalSourceLedger p u₀ u U)
+    (hχ0 : p.χ₀ = 0)
+    (hc : 0 < c) (hcT : c < T) (hTU : T < U)
+    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    (hu₀_cont : Continuous u₀)
+    {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
+    DuhamelSourceTimeC1On
+      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) c T :=
+  canonicalSource_duhamelSourceTimeC1On_of_ledger
+    hχ0 u hc hcT hTU hα ha hb hu₀_cont hu₀_bound
+    L.hfix L.hsrc0 L.bc L.hbsum L.hagree L.hpost L.hubt
+    L.hG1t L.hG2t L.hLc_ce
+
+/-- Restrict the bounded source part of a beyond-horizon ledger to the tower
+horizon. -/
+def CanonicalSourceLedgerBeyond.bddOnHorizon
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (L : CanonicalSourceLedgerBeyond p u₀ u T) :
+    DuhamelSourceBddOn (patchedSource p u₀ u) T :=
+  DuhamelSourceBddOn.restrict_horizon L.ledger.hsrc0 L.hTU.le
+
+/-- Build the canonical source package on a positive subwindow of the tower
+horizon. -/
+noncomputable def CanonicalSourceLedgerBeyond.timeC1On
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ} {Ttop c T : ℝ}
+    (L : CanonicalSourceLedgerBeyond p u₀ u Ttop)
+    (hχ0 : p.χ₀ = 0)
+    (hc : 0 < c) (hcT : c < T) (hTT : T ≤ Ttop)
+    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    (hu₀_cont : Continuous u₀)
+    {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
+    DuhamelSourceTimeC1On
+      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) c T :=
+  L.ledger.timeC1On hχ0 hc hcT (lt_of_le_of_lt hTT L.hTU)
+    hα ha hb hu₀_cont hu₀_bound
+
+/-- Build the shifted source package on `[0, σ/2]` from a larger-horizon ledger. -/
+noncomputable def CanonicalSourceLedgerBeyond.shiftedTimeC1On
+    {p : CM2Params} {u₀ : intervalDomainPoint → ℝ}
+    {u : ℝ → intervalDomainPoint → ℝ} {T σ : ℝ}
+    (L : CanonicalSourceLedgerBeyond p u₀ u T)
+    (hχ0 : p.χ₀ = 0)
+    (hσ : 0 < σ) (hσT : σ ≤ T)
+    (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
+    (hu₀_cont : Continuous u₀)
+    {M₀ : ℝ}
+    (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M₀) :
+    DuhamelSourceTimeC1On
+      (fun s k => cosineCoeffs (logisticLifted p (u (σ / 2 + s))) k)
+      0 (σ / 2) := by
+  have hhalf : 0 < σ / 2 := by positivity
+  have hhalfσ : σ / 2 < σ := by linarith
+  have hphys : DuhamelSourceTimeC1On
+      (fun s k => cosineCoeffs (logisticLifted p (u s)) k) (σ / 2) σ :=
+    L.timeC1On hχ0 hhalf hhalfσ hσT hα ha hb hu₀_cont hu₀_bound
+  have hsum : σ / 2 + σ / 2 = σ := by ring
+  have hphys' : DuhamelSourceTimeC1On
+      (fun s k => cosineCoeffs (logisticLifted p (u s)) k)
+      (σ / 2) (σ / 2 + σ / 2) := by
+    rw [hsum]
+    exact hphys
+  simpa [add_comm] using
+    ShenWork.IntervalDuhamelSourceTimeC1On.DuhamelSourceTimeC1On.shift_zero
+      (offset := σ / 2) (W := σ / 2) hphys'
 
 end ShenWork.Paper2.CanonicalSourceOnFromLedger

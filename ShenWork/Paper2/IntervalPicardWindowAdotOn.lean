@@ -1,6 +1,7 @@
 import ShenWork.Paper2.IntervalPicardWindowAdot
 import ShenWork.PDE.IntervalDuhamelSourceTimeC1On
 import ShenWork.Paper2.IntervalPicardLimitRestartWeak
+import ShenWork.Paper2.IntervalPicardIterateBddRepr
 
 open MeasureTheory Filter Topology Set
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
@@ -29,6 +30,11 @@ open ShenWork.IntervalDuhamelSourceTimeC1On (DuhamelSourceTimeC1On)
 open ShenWork.IntervalPicardLimitRestartWeak
   (DuhamelSourceL1ContOn duhamelSpectral_eq_cosineSeries_weak
    abs_duhamelSpectralCoeff_le_weak duhamelSpectralCoeff_general_split_on)
+open ShenWork.IntervalPicardLimitRestartBdd (DuhamelSourceBddOn)
+open ShenWork.IntervalPicardLimitBddProducer (patchedSource)
+open ShenWork.IntervalPicardIterateBddRepr
+  (picardIterateRestart_general_of_sourceBdd
+   cosineCoeffs_halfstep_eq_iterateCoeff_of_sourceBdd)
 open ShenWork.Paper2 (cosineCoeffs_congr_on_Icc)
 
 noncomputable section
@@ -239,7 +245,8 @@ theorem picardIterateRestart_general_on
   rw [hexp, hsplit]
   ring
 
-/-- `windowAdotLegs_step` with the residual source package localized to `[0,T]`. -/
+/-- `windowAdotLegs_step` with from-zero representation driven by the patched
+bounded source on `[0,T]`. -/
 theorem windowAdotLegs_step_on
     (p : CM2Params) (hχ0 : p.χ₀ = 0) (u₀ : intervalDomainPoint → ℝ) (n : ℕ)
     {M T A₂ : ℝ}
@@ -247,8 +254,8 @@ theorem windowAdotLegs_step_on
     (hMnn : 0 ≤ M) (hA₂nn : 0 ≤ A₂)
     (hu₀_cont : Continuous u₀)
     (hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M)
-    (hsrc0_n : DuhamelSourceTimeC1On
-      (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k) 0 T)
+    (hsrc0_n : DuhamelSourceBddOn
+      (patchedSource p u₀ (picardIter p u₀ n)) T)
     (hLs_cont : ∀ r, 0 < r → r ≤ T →
       Continuous (intervalLogisticSource p (picardIter p u₀ n r)))
     (hrepr_sum : ∀ σ, 0 < σ → σ ≤ T →
@@ -377,7 +384,7 @@ theorem windowAdotLegs_step_on
     have hτs : τ < s := lt_trans hτt₁ hs.1
     have hsd : s < d := hs.2
     have hx : x.1 ∈ Set.Icc (0 : ℝ) 1 := x.2
-    have hgen := picardIterateRestart_general_on p hχ0 u₀ n hu₀_cont hu₀_bound
+    have hgen := picardIterateRestart_general_of_sourceBdd p hχ0 u₀ n hu₀_cont hu₀_bound
       hsrc0_n hτpos hτs hsmem.2
       (fun r hr hrs => hLs_cont r hr (le_trans hrs hsmem.2)) hx
     rw [hgen]

@@ -41,24 +41,15 @@
       On `Icc 0 1` the lift collapses to the subtype value (`dif_pos`) and
       `a ≤ |a| ≤ M`, so the former `hub` field is no longer an analytic residual.
 
-  ## (b) Genuinely-open analytic legs — the per-iterate spatial-`C²` bootstrap.
-    `hsrc0` (the `adot` K1 stack has been DERIVED in-tower via the
-    `WindowAdotLegs` induction — see IntervalPicardWindowAdot) ALL depend
-    on the per-iterate spatial-`C²`/positivity/Neumann regularity of EVERY Picard
-    level (`picardIterateHasC2Slices_all`), whose step data
-    (`PicardRegularityStepData`) is itself a `DuhamelSourceTimeC1`-plus-spectral-
-    agreement bundle: the bootstrap is circular at the level of the existing
-    producers (the project's standing analytic wall — see `UNPROVED_TARGETS.md`).
-    They are NOT faked: they are carried as ONE explicit named hypothesis package
-    `TowerConeAnalyticResidual`, which IS the exact remaining analytic surface (the
-    same family of facts `uniformWiring_closure` consumes — `hsrc0`/`hG1all`
-    — the `adot` K1 data now derived in-tower
-    the clamped source producer reads, restated at the cone datum's horizon).  The
-    former `hub` leg has been REMOVED from the residual (derived in-tower from the
-    cone-returned subtype ball `hball`; see (a)).  The
+  ## (b) Remaining ledger leg — larger-horizon canonical-source data.
+    `hsrc0` is no longer a global `DuhamelSourceTimeC1` package.  It is the
+    satisfiable CMP ledger for each Picard level, available on a strict larger
+    horizon.  The tower uses its bounded patched source for from-zero
+    representation and its positive-window `TimeC1On` output for the shifted
+    endpoint consumers.  The former `hub` leg has been REMOVED from the residual
+    (derived in-tower from the cone-returned subtype ball `hball`; see (a)).  The
     former `witness` leg (the half-step shifted-source `ShiftedSourceWitness`) has
-    been REMOVED from the residual: its `src`/`hagree_window` come WALL-FREE from the
-    non-negative time-shift of `hsrc0`, and its `hdecay` is DERIVED in-tower from the
+    been REMOVED from the residual: its `hdecay` is DERIVED in-tower from the
     level's representation triple + ball + K2 facts via the stage-F per-slice source
     decay (`IntervalPicardSliceWitnessSupply.shifted_source_windowDecay`), the
     downstream G2 bound only reading the decay on the integration window `[0,t/2]`.
@@ -72,7 +63,7 @@
     in-tower by the SATISFIABLE source-slice SUBTYPE continuity, derived from the
     cone-returned per-iterate slice continuity `hcontSlice` + `1 ≤ p.α` via
     `IntervalPicardSourceSubtypeCont.logisticSource_subtypeCont`, and consumed through
-    the source-subtype agreement clone `hagree_succ_of_sourceSubtypeCont`.
+    the bounded-source agreement clone `hagree_succ_of_sourceBdd`.
 
   This is the project's standing discipline (TASK_QUEUE group C): a theorem that
   projects from an assumption package is honest IFF the field is the EXACT remaining
@@ -102,6 +93,8 @@ open ShenWork.IntervalPicardIterateUniform
 open ShenWork.IntervalPicardIterateRestartLocal (ShiftedSourceWitness)
 open ShenWork.IntervalPicardIterateTimeC1 (duhamelGainConst)
 open ShenWork.IntervalPicardSourceTower (TowerInputs)
+open ShenWork.Paper2.CanonicalSourceOnFromLedger
+  (CanonicalSourceLedgerBeyond)
 open ShenWork.IntervalPicardUniformWiringDischarge (hStepEnd0_proved hStepEnd1_proved)
 open ShenWork.Paper2 (PositiveInitialDatum)
 open ShenWork.Paper2.HresWiring (WdataProvider)
@@ -120,9 +113,9 @@ residual the cone construction does not already hand back. -/
 structure TowerConeAnalyticResidual
     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
     (D : GradientMildSolutionData p u₀) (M A₂ : ℝ) where
-  /-- The level-`n` canonical logistic source time-`C¹` package (deliverable B). -/
-  hsrc0 : ∀ n : ℕ, ShenWork.IntervalDuhamelClosedC2.DuhamelSourceTimeC1
-    (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
+  /-- The level-`n` canonical-source ledger on a strict larger horizon. -/
+  hsrc0 : ∀ n : ℕ,
+    CanonicalSourceLedgerBeyond p u₀ (picardIter p u₀ n) D.T
 
 /-! ## §2 — `towerInputs_of_cone` — assembling `TowerInputs` at the cone datum.
 
@@ -254,8 +247,8 @@ def coneTowerSupply
 The per-datum cosine-coefficient TIME continuity (`IterCoeffTimeContProvider`) is
 discharged from the same per-datum `TowerInputs` bundle the `WdataProvider` uses, via
 `IntervalPicardTowerProjection.hiter_cont_of_tower` (which reads the time continuity
-off the tower's canonical logistic-source `C¹` packages `H.hsrc0 n`).  No new field of
-`HCone` is needed — the tower bundle already carries `hsrc0`. -/
+off the tower's larger-horizon canonical-source ledgers `H.hsrc0 n`).  No new field
+of `HCone` is needed — the tower bundle already carries `hsrc0`. -/
 def iterCoeffTimeCont_of_coneSupply
     (p : CM2Params) (hχ0 : p.χ₀ = 0) (hα : 1 ≤ p.α) (ha : 0 ≤ p.a) (hb : 0 ≤ p.b)
     (HCone : ∀ (u₀ : intervalDomainPoint → ℝ),
@@ -387,7 +380,7 @@ structure ResidualAtDatum
   /-- per-iterate ball at the cone mass (cone-returned via `F.hball`, mass hidden). -/
   hball : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ D.T → ∀ y : intervalDomainPoint,
     |picardIter p u₀ n σ y| ≤ D.M
-  /-- the genuinely-open analytic surface (W4 STATUS: the irreducible `hsrc0`).
+  /-- the remaining larger-horizon canonical-source ledger surface.
   `TowerConeAnalyticResidual`'s `M`/`A₂` are phantom (only `hsrc0` is a field). -/
   hAnalytic : TowerConeAnalyticResidual p u₀ D D.M 0
 
@@ -483,7 +476,7 @@ theorem paper2_theorem_1_1_chiZero_from_coneSupplyNarrow
   ShenWork.Paper2.Thm11ChiZeroCoreProvider.paper2_theorem_1_1_chiZero_of_datumProviders
     p hχ0 ha hb hα hγ Hsupply
 
-/-! ## §6 (W6c) — residual shrunk to ONLY the analytic surface `hsrc0`.
+/-! ## §6 (W6c) — residual shrunk to ONLY the ledger surface `hsrc0`.
 
 `ResidualAtDatum` (§5) bundled the genuine analytic surface `hAnalytic` together with
 THREE cone-internal bookkeeping legs (`hT1 : D.T ≤ 1`, `hu₀_bound`, `hball`) that were
@@ -491,24 +484,24 @@ TRUE of the cone construction but type-hidden by the original
 `coneGradientMildSolutionData_exists_with_gate_data` return.  W6c added the additive
 strengthening `coneGradientMildSolutionData_exists_with_gate_data'`, whose per-datum
 return EXPOSES all three legs at the gate mass `D.M`.  Consuming that strengthened cone,
-`from_cone_construction'` shrinks the per-datum residual hypothesis to ONLY the analytic
-field (`ResidualAtDatumCore`, = `TowerConeAnalyticResidual` = the irreducible `hsrc0`). -/
+`from_cone_construction'` shrinks the per-datum residual hypothesis to ONLY the ledger
+field (`ResidualAtDatumCore`, = `TowerConeAnalyticResidual` = the ledger `hsrc0`). -/
 
 /-- **`ResidualAtDatumCore` — the slimmed per-datum residual: ONLY `hsrc0`.**
 `ResidualAtDatum` minus the three cone-returned bookkeeping legs.  Single field:
-the genuine analytic surface `TowerConeAnalyticResidual` (W4 STATUS: the irreducible
-`hsrc0`; its `M`/`A₂` are phantom). -/
+the larger-horizon ledger surface `TowerConeAnalyticResidual`; its `M`/`A₂` are
+phantom. -/
 structure ResidualAtDatumCore
     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
     (D : GradientMildSolutionData p u₀) where
-  /-- the genuinely-open analytic surface (W4 STATUS: the irreducible `hsrc0`). -/
+  /-- the remaining larger-horizon canonical-source ledger surface. -/
   hAnalytic : TowerConeAnalyticResidual p u₀ D D.M 0
 
 /-- **`from_cone_construction'` — THE W6c BRIDGE.**
 
 Identical conclusion to `from_cone_construction` (Paper 2 Theorem 1.1, χ₀ = 0), but the
 per-constructed-datum residual hypothesis is shrunk to ONLY the analytic surface
-`ResidualAtDatumCore` (= `TowerConeAnalyticResidual` = the irreducible `hsrc0`).  The
+`ResidualAtDatumCore` (= `TowerConeAnalyticResidual` = the ledger `hsrc0`).  The
 three previously-bundled bookkeeping legs `hT1`/`hu₀_bound`/`hball` are now supplied BY
 the strengthened cone construction `coneGradientMildSolutionData_exists_with_gate_data'`
 at the gate mass `D.M`, so the caller no longer owes them.  Internally we reconstruct the
@@ -527,8 +520,9 @@ theorem from_cone_construction'
     (fun M_in hM_in =>
       -- the STRENGTHENED cone returns `∃ δ A₂, …` (Prop) exposing the three legs;
       -- choose the datum-free `δ`/`A₂` and the per-`u₀` body via `Classical.choice`.
-      let C := ShenWork.IntervalMildPicardConeData.coneGradientMildSolutionData_exists_with_gate_data'
-        p hχ0 hM_in hα
+      let C :=
+        ShenWork.IntervalMildPicardConeData.coneGradientMildSolutionData_exists_with_gate_data'
+          p hχ0 hM_in hα
       let δ := C.choose
       let A₂ := C.choose_spec.choose
       have hδ : 0 < δ := C.choose_spec.choose_spec.1

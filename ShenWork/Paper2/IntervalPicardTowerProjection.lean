@@ -138,12 +138,10 @@ Both are produced DIRECTLY from the tower input bundle `TowerInputs`:
     are n-uniform).  The `windowEnv` head (`k = 0`) is handled by `windowEnv`'s
     constant head and `slice_source_coeff_zero` inside `iterate_source_windowEnv`.
 
-  * (2) needs NO induction: the tower carries, for every level `n`, the canonical
-    logistic-source `DuhamelSourceTimeC1` package `H.hsrc0 n`, whose `hderiv`
-    witnesses each coefficient `s ↦ cosineCoeffs (logisticLifted p (uₙ(s))) k` is
-    `C¹` in time, hence continuous, hence `ContinuousOn` on any `[a',τ]`.  (The bc
-    coefficient-uniqueness / Weierstrass induction route is therefore unnecessary;
-    `hsrc0` already pins the C¹ time-dependence.)
+  * (2) needs NO global source package: the tower carries, for every level `n`,
+    a larger-horizon canonical-source ledger.  CMP turns that ledger into a
+    positive-window `TimeC1On` package on `[a',τ]`, whose derivative field gives
+    coefficient continuity there.
 -/
 
 /-- **`henv_iter_of_tower` — obligation (1).**  The n-UNIFORM per-window
@@ -162,10 +160,8 @@ theorem henv_iter_of_tower
   source_coeff_window_uniform p u₀ H.hα (wdata_all_of_tower p u₀ H)
 
 /-- **`hiter_cont_of_tower` — obligation (2).**  Per-iterate, per-mode
-source-coefficient time continuity on any window `[a',τ] ⊆ (0,T]`.  Derived directly
-from the tower's canonical logistic-source `C¹` package `H.hsrc0 n` (no induction over
-`n`, no bc-uniqueness): the `hderiv` field gives `HasDerivAt`, hence `ContinuousAt`,
-hence global `Continuous`, restricted to `[a',τ]`. -/
+source-coefficient time continuity on any window `[a',τ] ⊆ (0,T]`, derived from
+the tower's positive-window canonical-source ledger. -/
 theorem hiter_cont_of_tower
     (p : CM2Params) (u₀ : intervalDomainPoint → ℝ) {M A₂ T : ℝ}
     (H : TowerInputs p u₀ M A₂ T) :
@@ -173,11 +169,17 @@ theorem hiter_cont_of_tower
       ContinuousOn
         (fun s => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
         (Set.Icc a' τ) := by
-  intro a' τ _ha' _haτ _hτT n k
-  have hcont : Continuous
-      (fun s => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k) :=
-    continuous_iff_continuousAt.2 (fun s => ((H.hsrc0 n).hderiv s k).continuousAt)
-  exact hcont.continuousOn
+  intro a' τ ha' haτ hτT n k
+  by_cases hlt : a' < τ
+  · have src := (H.hsrc0 n).timeC1On H.hχ0 ha' hlt hτT
+      H.hα H.ha H.hb H.hu₀_cont H.hu₀_bound
+    intro s hs
+    exact (src.hderiv s hs k).continuousWithinAt
+  · have hτa : τ = a' := le_antisymm (le_of_not_gt hlt) haτ
+    have hIcc : Set.Icc a' τ = ({a'} : Set ℝ) := by
+      rw [hτa, Set.Icc_self]
+    rw [hIcc]
+    exact continuousOn_singleton _ a'
 
 /-! ## §3 — The `WdataProvider` projection (item 15). -/
 

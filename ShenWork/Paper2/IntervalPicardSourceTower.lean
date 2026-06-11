@@ -45,7 +45,10 @@ import ShenWork.Paper2.IntervalPicardUniformWiringClosure
 import ShenWork.Paper2.IntervalPicardUniformWiring
 import ShenWork.Paper2.IntervalPicardWdataAssembly
 import ShenWork.Paper2.IntervalPicardSourceSubtypeCont
-import ShenWork.Paper2.IntervalPicardSuccTowerLegs
+import ShenWork.Paper2.IntervalPicardWindowAdotOn
+import ShenWork.Paper2.IntervalPicardSuccLegsOn
+import ShenWork.Paper2.IntervalPicardShiftedBddSupply
+import ShenWork.Paper2.IntervalCanonicalSourceOnFromLedger
 
 open MeasureTheory Filter Topology Set
 open ShenWork.IntervalDomain (intervalDomainLift intervalDomainPoint)
@@ -71,17 +74,21 @@ open ShenWork.IntervalPicardIterateRestartLocal
   (ShiftedSourceWitness canonicalShiftedSource hagree_succ_of_subtypeCont)
 open ShenWork.IntervalPicardSourceSubtypeCont
   (logisticSource_subtypeCont hagree_succ_of_sourceSubtypeCont)
+open ShenWork.IntervalPicardShiftedBddSupply (hagree_succ_of_sourceBdd)
 open ShenWork.IntervalPicardIterateTimeC1Full (clampedIterateSource_duhamelSourceTimeC1)
 open ShenWork.IntervalPicardWindowAdot
-  (WindowAdotLegs windowAdotLegs_zero windowAdotLegs_step)
+  (WindowAdotLegs windowAdotLegs_zero windowAdotLegs_step_on)
+open ShenWork.IntervalPicardSuccLegsOn
+  (hbsum_succ_on iterate_abs_deriv2_le_of_windowDecay_on)
 open ShenWork.IntervalPicardWdataAssembly
   (G1win G2win G1profile_le_G1win G2profile_le_G2win)
 open ShenWork.IntervalPicardUniformWiring
   (lift_deriv2_abs_le_of_eqOn_Ioo lift_deriv2_eq_zero_of_not_mem)
 open ShenWork.IntervalPicardUniformWiringDischarge (Benv_nonneg)
 open ShenWork.IntervalPicardIterateC2Bound (restartIterateCoeff)
-open ShenWork.IntervalPicardSuccTowerLegs
-  (SuccLegData hrepr_sum_succ_of_winAdot hG2_succ_engine_of_winAdot)
+open ShenWork.Paper2.CanonicalSourceOnFromLedger
+  (CanonicalSourceLedgerBeyond)
+open ShenWork.IntervalDuhamelSourceTimeC1On (DuhamelSourceTimeC1On)
 
 noncomputable section
 
@@ -170,9 +177,9 @@ structure TowerInputs (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
   hu₀_cont : Continuous u₀
   /-- Datum coefficient sup. -/
   hu₀_bound : ∀ k, |cosineCoeffs (intervalDomainLift u₀) k| ≤ M
-  /-- The level-0 source package (needed by `hagree_succ` chains and `srcWin`). -/
-  hsrc0 : ∀ n : ℕ, DuhamelSourceTimeC1
-    (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n s)) k)
+  /-- The level-`n` canonical-source ledger on a strict larger horizon. -/
+  hsrc0 : ∀ n : ℕ,
+    CanonicalSourceLedgerBeyond p u₀ (picardIter p u₀ n) T
   /-- Kernel-G1 line, all levels (the `n`-free homogeneous-split bound). -/
   hG1all : ∀ (n : ℕ) (σ : ℝ), 0 < σ → σ ≤ T → ∀ x : ℝ,
     |deriv (intervalDomainLift (picardIter p u₀ n σ)) x| ≤ G1profile p M σ
@@ -428,19 +435,14 @@ def tower_succ
     intro σ hσ hσT k
     exact halfStep_coeff_le_twoM p u₀ H (n + 1) (by positivity)
       (by linarith) k
-  -- W6a: the level-`n` `SuccLegData` bundle (TowerLevel n / TowerInputs facts MINUS
-  -- `hsrc0`, plus `winAdot`), feeding the `hsrc0`-FREE W3 legs on the `σ < T` branch.
-  have D : SuccLegData p u₀ n M A₂ T :=
-    { hα := H.hα, ha := H.ha, hb := H.hb, hMnn := H.hMnn, hA₂nn := H.hA₂nn
-      hrepr_sum := L.hrepr_sum, hrepr_agree := L.hrepr_agree
-      hpos := H.hpos n, hub := H.hub n, hG1 := L.hG1, hG2 := L.hG2
-      winAdot := L.winAdot }
-  -- The σ-shifted canonical source time-`C¹` package, WALL-FREE: the non-negative
-  -- `σ/2`-shift of the level-`n` canonical source `H.hsrc0 n` (stage F supply,
-  -- `shiftedSource_timeC1`).  `canonicalShiftedSource p u₀ n σ` is definitionally this.
-  have hsrcσ : ∀ σ, 0 < σ → DuhamelSourceTimeC1
-      (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n (σ / 2 + s))) k) :=
-    fun σ hσ => shiftedSource_timeC1 p u₀ n hσ (H.hsrc0 n)
+  -- The σ-shifted canonical source time-`C¹` package on `[0, σ/2]`, produced from
+  -- the level-`n` ledger on a strict larger horizon.
+  have hsrcσ : ∀ σ, 0 < σ → σ ≤ T → DuhamelSourceTimeC1On
+      (fun s k => cosineCoeffs (logisticLifted p (picardIter p u₀ n (σ / 2 + s))) k)
+      0 (σ / 2) :=
+    fun σ hσ hσT =>
+      (H.hsrc0 n).shiftedTimeC1On H.hχ0 hσ hσT
+        H.hα H.ha H.hb H.hu₀_cont H.hu₀_bound
   -- The WALL-FREE windowed decay of the shifted source on `[0, σ/2]`, DERIVED in-tower
   -- from the level-`n` representation triple + ball + K2 facts (`L.hrepr_*`/`L.hG1`/
   -- `L.hG2`, ball from `H.hpos`/`H.hub`) via stage F (`shifted_source_windowDecay`).
@@ -457,17 +459,12 @@ def tower_succ
       (fun s hs hsT => H.hub n s hs hsT)
       (fun s hs hsT => L.hG1 s hs hsT)
       (fun s hs hsT => L.hG2 s hs hsT)
-  -- representation summability via the shifted-source package (no witness needed:
-  -- `hbsum_succ` reads only the `DuhamelSourceTimeC1` package).
+  -- representation summability via the shifted-source `TimeC1On` package.
   have hrepr_sum : ∀ σ, 0 < σ → σ ≤ T →
       Summable (fun k => (λ_ k) * |iterateReprCoeff p u₀ (n + 1) σ k|) := by
     intro σ hσ hσT
-    -- W6a SITE A: honest `σ < T` / `σ = T` split.  `σ < T` is `hsrc0`-FREE (the W3
-    -- brick `hrepr_sum_succ_of_winAdot` from the `winAdot`-derived clamped package);
-    -- only the literal `σ = T` endpoint stays on the surviving `hsrc0` route (`hsrcσ`).
-    rcases lt_or_ge σ T with hσlt | hσge
-    · exact hrepr_sum_succ_of_winAdot p u₀ n D hM₁ σ hσ hσlt
-    · exact hbsum_succ p u₀ n hσ (fun k => hM₁ σ hσ hσT k) (hsrcσ σ hσ)
+    exact hbsum_succ_on p u₀ n hσ (fun k => hM₁ σ hσ hσT k)
+      (hsrcσ σ hσ hσT)
   -- representation agreement via the subtype-continuity variant.
   have hrepr_agree : ∀ σ, 0 < σ → σ ≤ T →
       Set.EqOn (intervalDomainLift (picardIter p u₀ (n + 1) σ))
@@ -480,8 +477,8 @@ def tower_succ
     have hLs : ∀ s, 0 < s → s ≤ σ →
         Continuous (intervalLogisticSource p (picardIter p u₀ n s)) := fun s hs hsσ =>
       logisticSource_subtypeCont p u₀ n H.hα (H.hcontSlice n) s hs (le_trans hsσ hσT)
-    exact hagree_succ_of_sourceSubtypeCont p H.hχ0 u₀ n hσ H.hu₀_cont H.hu₀_bound
-      (H.hsrc0 n) hLs
+    exact hagree_succ_of_sourceBdd p H.hχ0 u₀ n hσ H.hu₀_cont H.hu₀_bound
+      ((H.hsrc0 n).bddOnHorizon) hσT hLs
   -- G2 line: witness deriv² bound on the restart series, transported to the slice
   -- (interior via the Ioo agreement, endpoints via the carried budget, exterior
   -- trivially zero), then closed into `A₂/σ²` by `g2_step_closes`.
@@ -517,11 +514,6 @@ def tower_succ
             intro z hz
             have := hrepr_agree σ hσ hσT (Set.Ioo_subset_Icc_self hz)
             simpa only [iterateReprCoeff] using this
-          -- W6a SITE B: honest `σ < T` / `σ = T` split of the restart-series deriv²
-          -- bound `hser` (the explicit-constant `hgain_eq` form).  `σ < T` is
-          -- `hsrc0`-FREE (the W3 G2 engine `hG2_succ_engine_of_winAdot`); only the
-          -- literal `σ = T` endpoint stays on the surviving `hsrc0` route
-          -- (`hsrcσ`/`hdecayW` via `iterate_abs_deriv2_le_of_windowDecay`).
           have hser : |deriv (deriv
                 (fun z => ∑' k, restartIterateCoeff p u₀ n σ k * cosineMode k z)) x|
               ≤ 2 * M * eigExpWeight (σ / 2)
@@ -531,12 +523,9 @@ def tower_succ
                 = 2 * (∑' k : ℕ, 1 / ((k : ℝ) + 1) ^ ((3 : ℝ) / 2))
                     / Real.pi ^ ((3 : ℝ) / 2) := rfl
             rw [hgain_eq]
-            rcases lt_or_ge σ T with hσlt | hσge
-            · exact hG2_succ_engine_of_winAdot p u₀ n D hM₁ σ hσ hσlt x
-            · -- σ = T endpoint: the surviving canonical `hsrc0` route.  The witness
-              -- bound carries the half-step coefficient `M₁`, already in `2M` SUP-form.
-              exact iterate_abs_deriv2_le_of_windowDecay p u₀ n hσ hBenv
-                (fun k => hM₁ σ hσ hσT k) (hsrcσ σ hσ) (hdecayW σ hσ hσT) x
+            exact iterate_abs_deriv2_le_of_windowDecay_on p u₀ n hσ hBenv
+              (fun k => hM₁ σ hσ hσT k) (hsrcσ σ hσ hσT)
+              (hdecayW σ hσ hσT) x
           exact lift_deriv2_abs_le_of_eqOn_Ioo hEq ⟨hx0, hx1⟩ hser
       · -- exterior x ∉ Icc 0 1: slice deriv² = 0
         refine ⟨0, by linarith [H.hMnn], ?_⟩
@@ -550,16 +539,15 @@ def tower_succ
         simpa using this
     obtain ⟨M₁', hM₁'le, hM₁'bound⟩ := hbudget
     exact g2_step_closes H.hMnn hσ hσT hM₁'le H.hgate hM₁'bound
-  -- the level-(n+1) window adot legs — the K1 induction step (the wall closure):
-  -- the step consumes the level-n canonical package (H.hsrc0 n), the level-n
-  -- representation/K2 facts (L.*), and the level-n legs (L.winAdot).
+  -- the level-(n+1) window adot legs — the K1 induction step.  The from-zero
+  -- representation substep consumes only the ledger's bounded source package.
   have hLsT : ∀ r, 0 < r → r ≤ T →
       Continuous (intervalLogisticSource p (picardIter p u₀ n r)) := fun r hr hrT =>
     logisticSource_subtypeCont p u₀ n H.hα (H.hcontSlice n) r hr hrT
   have wA1 : ∀ lo hi, 0 < lo → lo ≤ hi → hi < T →
       WindowAdotLegs p u₀ (n + 1) lo hi :=
-    windowAdotLegs_step p H.hχ0 u₀ n H.hα H.ha H.hb H.hMnn H.hA₂nn H.hu₀_cont
-      H.hu₀_bound (H.hsrc0 n) hLsT L.hrepr_sum L.hrepr_agree
+    windowAdotLegs_step_on p H.hχ0 u₀ n H.hα H.ha H.hb H.hMnn H.hA₂nn H.hu₀_cont
+      H.hu₀_bound ((H.hsrc0 n).bddOnHorizon) hLsT L.hrepr_sum L.hrepr_agree
       (H.hpos n) (H.hub n) L.hG1 L.hG2
       (H.hpos (n + 1)) (H.hub (n + 1))
       (lift_slice_continuousOn p u₀ H (n + 1))

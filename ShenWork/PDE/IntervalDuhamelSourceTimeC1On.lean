@@ -41,6 +41,43 @@ def DuhamelSourceTimeC1.toOn {a : ℝ → ℕ → ℝ} (src : DuhamelSourceTimeC
   derivBound := src.derivBound
   hderivBound := fun s hs n => src.hderivBound s (le_trans hlo hs.1) n
 
+/-- Shift a closed-window source on `[offset, offset + W]` to `[0, W]`. -/
+def DuhamelSourceTimeC1On.shift_zero {a : ℝ → ℕ → ℝ} {offset W : ℝ}
+    (src : DuhamelSourceTimeC1On a offset (offset + W)) :
+    DuhamelSourceTimeC1On (fun s n => a (offset + s) n) 0 W where
+  adot := fun s n => src.adot (offset + s) n
+  hderiv := by
+    intro s hs n
+    have hmap : Set.MapsTo (fun r : ℝ => offset + r)
+        (Set.Icc (0 : ℝ) W) (Set.Icc offset (offset + W)) := by
+      intro r hr
+      exact ⟨by linarith [hr.1], by linarith [hr.2]⟩
+    have hlin : HasDerivWithinAt (fun r : ℝ => offset + r) 1
+        (Set.Icc (0 : ℝ) W) s :=
+      ((hasDerivAt_id s).const_add offset).hasDerivWithinAt
+    have hsrc := src.hderiv (offset + s) (hmap hs) n
+    have hcomp := hsrc.comp s hlin hmap
+    simpa [Function.comp] using hcomp
+  hadotcont := by
+    intro n
+    have hmap : Set.MapsTo (fun r : ℝ => offset + r)
+        (Set.Icc (0 : ℝ) W) (Set.Icc offset (offset + W)) := by
+      intro r hr
+      exact ⟨by linarith [hr.1], by linarith [hr.2]⟩
+    exact (src.hadotcont n).comp
+      ((continuous_const.add continuous_id).continuousOn) hmap
+  envelope := src.envelope
+  henv_summable := src.henv_summable
+  henv_bound := by
+    intro s hs n
+    exact src.henv_bound (offset + s)
+      ⟨by linarith [hs.1], by linarith [hs.2]⟩ n
+  derivBound := src.derivBound
+  hderivBound := by
+    intro s hs n
+    exact src.hderivBound (offset + s)
+      ⟨by linarith [hs.1], by linarith [hs.2]⟩ n
+
 /-- Per-mode time integration by parts from one-sided closed-window derivative data. -/
 theorem duhamelCoeff_eigenvalue_mul_on
     {lo hi t lam : ℝ} {a adot : ℝ → ℝ} (_hlohi : lo ≤ hi)
