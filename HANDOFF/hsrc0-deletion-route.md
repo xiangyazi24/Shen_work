@@ -42,9 +42,38 @@ Change `hsrc0` to a closed-window `DuhamelSourceTimeC1On` on [0,T]; re-derive
 - PRO: localizes to [0,T] where positivity + windows hold.
 - CON: cascade through 4+ consumers.
 
-## Decision pending
-The crux feasibility = "is the canonical Picard source GLOBALLY two-sided
-time-C1 (all ℝ), or is s≤0 / s>T a real obstruction forcing the On-weakening?"
-→ ChatGPT Pro (background long-think) + source check, BEFORE committing codex.
-If Path A's global truth holds: cleanest, and W7–W9 were not the bottleneck.
-If not: Path B, and W7–W9 land as the On-machinery.
+## VERDICT (source-verified 2026-06-11) — Path B. Path A rejected.
+
+Two existing lemmas pin the route decisively:
+- `picardIterate_source_duhamelSourceTimeC1_of_representation`
+  (IntervalPicardIterateSourceRepresentation.lean:128) ALREADY produces the
+  global `DuhamelSourceTimeC1` (= hsrc0's type) — but it consumes a FULL global
+  K1 quadruple: `hderiv : ∀ σ k, HasDerivAt … σ` (EVERY σ) + `hadotcont`
+  (Continuous on all ℝ).
+- The only K1 producer, `k1_quadruple_weak_of_subtypeCont`
+  (IntervalPicardLimitK1Weak.lean:1418), delivers `hderiv` ONLY on the **open
+  interior `0 < σ < T`** (l.1445), `hadotcont` only on `Set.Ioo 0 T` (l.1449),
+  `hMdot` only on `[a',b']` with `b' < T` (l.1450).
+
+So the gap between produced (interior `(0,T)`) and required-by-Path-A (all ℝ,
+two-sided) is exactly **σ ≤ 0, σ = T, σ > T**. The σ=T two-sided `HasDerivAt`
+needs σ>T data the interior machinery is fundamentally gated against; W9's
+`logisticSource_adot_hasDerivWithinAt_endpoint` gives the σ=T **within** (one-
+sided) derivative — which is the RIGHT object for a closed-window `On` package,
+NOT the two-sided global one. ⇒ **Path A's global target is wrong; Path B is
+correct, and W7–W9 are precisely its endpoint machinery.**
+
+## Path B — the remaining bricks (codex grind, Fable-specified)
+1. `DuhamelSourceTimeC1On`-analogue of the line-128 producer: consume the
+   interior-(0,T) K1 quadruple + W9's σ=T within-endpoint adot → produce
+   `DuhamelSourceTimeC1On (canonical source) 0 T`.
+2. Switch the 4 tower_succ consumers to the On package (the W7–W9 `…On`/
+   `…Endpoint` variants): `hagree_succ` → On, `hbsum_succ` → On,
+   `iterate_abs_deriv2_le_of_windowDecay` → On, `windowAdotLegs_step` → On.
+3. Change `TowerInputs.hsrc0`'s type to the On package (or DELETE it if the
+   On package is now in-tower-producible from the cone K1 data); fix the
+   `TowerConeAnalyticResidual.hsrc0` + the Σ' projection chain (TowerSupply ~240).
+4. Clean-tree verify `from_cone_construction` #print axioms loses the residual.
+
+(ChatGPT Pro fired in background on the same fork as an independent cross-check;
+source evidence above is already decisive.)
