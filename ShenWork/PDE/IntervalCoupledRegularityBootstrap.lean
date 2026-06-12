@@ -535,4 +535,37 @@ theorem regularityBootstrap_of_coupledDuhamel_core
   · exact C.classicalRegularity
   · exact C.initialTrace
 
+/-- Concrete-resolver local existence from the reduced classical core. -/
+theorem localExistence_of_coupledDuhamel_concreteResolver_estimates_and_classical_core
+    (p : CM2Params) (u₀ : intervalDomainPoint → ℝ)
+    (hu₀ : PositiveInitialDatum intervalDomain u₀)
+    {A L K T M : ℝ} (hA : 0 < A) (hL : 0 ≤ L) (hK : 0 ≤ K)
+    (hT : 0 < T) (hAT : A * T < 1) (hM : 0 ≤ M)
+    (hA_bound : |p.χ₀| * K + L ≤ A)
+    (hL_lip : ∀ a b : ℝ, |a| ≤ M → |b| ≤ M →
+      |a * (p.a - p.b * a ^ p.α) - b * (p.a - p.b * b ^ p.α)| ≤
+        L * |a - b|)
+    (hest :
+      IntervalCoupledResolverBallEstimates p
+        (fun w : intervalDomainPoint → ℝ => intervalNeumannResolverR p w)
+        u₀ T M K)
+    (hcore :
+      ∀ u : ℝ → intervalDomainPoint → ℝ,
+        intervalTrajectoryBoundedOn T M u →
+        (∀ t x, 0 ≤ t → t ≤ T →
+          u t x =
+            intervalCoupledDuhamelOperator p
+              (fun w : intervalDomainPoint → ℝ => intervalNeumannResolverR p w)
+              u₀ u t x) →
+        CoupledDuhamelClassicalCore p T u₀ u) :
+    ∃ Tmax > 0, ∃ u v : ℝ → intervalDomainPoint → ℝ,
+      IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧
+      InitialTrace intervalDomain u₀ u := by
+  refine
+    localExistence_of_coupledDuhamel_resolver_estimates_and_regularization
+      p (fun w : intervalDomainPoint → ℝ => intervalNeumannResolverR p w) u₀
+      hu₀ hA hL hK hT hAT hM hA_bound hL_lip hest ?_
+  intro u _v hu_bound hfp _hv
+  exact regularityBootstrap_of_coupledDuhamel_core p (hcore u hu_bound hfp)
+
 end ShenWork.IntervalCoupledRegularityBootstrap
