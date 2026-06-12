@@ -16,23 +16,6 @@ noncomputable section
 
 namespace ShenWork.IntervalCoupledRegularityBootstrap
 
-/-- FAC-side lift from the `C¹` coefficient package stored in spectral
-agreement to the strengthened `C²` coefficient package used by the concrete
-resolver series producer. -/
-def FACResolverSourceC2Lift
-    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) (U : ℝ) : Prop :=
-  ∀ {s : ℝ}, 0 < s → s < U →
-    ∀ (a₀ : ℕ → ℝ) (M : ℝ) (_hM : 0 ≤ M)
-      (_ha₀ : ∀ n, |a₀ n| ≤ M)
-      (a : ℝ → ℕ → ℝ)
-      (_src : ShenWork.IntervalDuhamelClosedC2.DuhamelSourceTimeC1 a)
-      (offset : ℝ) (_hτ : 0 < s - offset),
-      (∀ᶠ r in 𝓝 s, ∀ y : intervalDomainPoint,
-        coupledChemicalConcentration p u r y =
-          ∑' n, localRestartCoeff a₀ a (r - offset) n *
-            cosineMode n y.1) →
-      Nonempty (DuhamelSourceTimeC2Coeff a)
-
 /-- Non-resolver local FAC inputs on a slab already contained in the spectral
 agreement time window. -/
 def FACLocalSlabInputs
@@ -58,8 +41,8 @@ def FACLocalSlabInputs
 
 /-- Non-circular local inputs for the FAC lane.
 
-The Picard joint `C²` field, the source-coefficient `C²` lift, and the
-time-partial bridge remain explicit analytic hypotheses.  The resolver value
+The Picard joint `C²` field and the time-partial bridge remain explicit
+analytic hypotheses.  The resolver value
 and gradient `C²` fields are derived from spectral agreement and the concrete
 compact-support restart theorem below.  The positivity floor is deliberately
 absent: it is proved from the committed Neumann resolver positivity theorem. -/
@@ -67,9 +50,8 @@ structure CoupledChemDivFluxFactorFACInputs
     (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) : Prop where
   resolver_package :
     ∃ U : ℝ,
-      ShenWork.IntervalResolverTimeRegularity.ResolverHasSpectralAgreement U
+      ShenWork.IntervalResolverJointC2.ResolverHasSpectralAgreementC2Coeff U
         (coupledChemicalConcentration p u) ∧
-      FACResolverSourceC2Lift p u U ∧
       ∀ τ : ℝ, ∃ δ : ℝ, FACLocalSlabInputs p u U τ δ
 
 /-- The concrete resolver floor: `1 + v` is strictly positive because the
@@ -100,7 +82,7 @@ theorem coupledChemDivFluxFactorJointC2Inputs_of_FACInputs
     {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
     (H : CoupledChemDivFluxFactorFACInputs p u) :
     CoupledChemDivFluxFactorJointC2Inputs p u := by
-  rcases H.resolver_package with ⟨U, HR, hlift, hslabs⟩
+  rcases H.resolver_package with ⟨U, HRc2, hslabs⟩
   refine ⟨fun τ => ?_⟩
   rcases hslabs τ with
     ⟨δ, hδ, htime_window, hsource, hu_cont, hu_nonneg, hu_c2,
@@ -118,18 +100,14 @@ theorem coupledChemDivFluxFactorJointC2Inputs_of_FACInputs
           (s, x) := by
     intro x hx s hs
     rcases htime_window s hs with ⟨hs0, hsU⟩
-    exact coupledChemicalConcentration_resolver_jointC2At_c2Coeff
+    exact coupledChemicalConcentration_resolver_jointC2At_c2Data
       (p := p) (u := u) (U := U) (s := s) (x := x)
-      HR hs0 hsU hx
+      HRc2 hs0 hsU hx
       (by
         intro a₀ M _hM ha₀ a src offset hτ _hagree
         exact resolverSpectralJointC2At_of_restartSmoothCutoff
           (a₀ := a₀) (M := M) (a := a)
           (offset := offset) (s := s) (x := x) hτ ha₀ src)
-      (by
-        intro a₀ M hM ha₀ a src offset hτ hagree
-        exact Classical.choice
-          (hlift hs0 hsU a₀ M hM ha₀ a src offset hτ hagree))
   have hv_c2 :
       ∀ x ∈ Ioo (0 : ℝ) 1, ∀ s ∈ Metric.ball τ δ,
         ContDiffAt ℝ 2
@@ -158,7 +136,10 @@ theorem FAC_resolver_jointContinuousOn_closed
       (Function.uncurry
         (fun t x => intervalDomainLift (coupledChemicalConcentration p u t) x))
       (Ioo (0 : ℝ) U ×ˢ Icc (0 : ℝ) 1) := by
-  rcases H.resolver_package with ⟨U, HR, _hlift, _hslabs⟩
-  exact ⟨U, ShenWork.IntervalResolverTimeRegularity.resolver_jointContinuousOn_closed HR⟩
+  rcases H.resolver_package with ⟨U, HRc2, _hslabs⟩
+  exact
+    ⟨U,
+      ShenWork.IntervalResolverTimeRegularity.resolver_jointContinuousOn_closed
+        HRc2.toSpectralAgreement⟩
 
 end ShenWork.IntervalCoupledRegularityBootstrap
