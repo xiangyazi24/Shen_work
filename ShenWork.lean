@@ -78,7 +78,9 @@ import ShenWork.PDE.IntervalMildFrontierFromSpectral
 import ShenWork.PDE.IntervalResolverJointC2
 import ShenWork.PDE.IntervalResolverSpectralJointC2Producer
 import ShenWork.PDE.IntervalResolverSpectralTimeC2
+import ShenWork.PDE.IntervalResolverJointC2C2Coeff
 import ShenWork.PDE.IntervalResolverSpectralJointC2Closed
+import ShenWork.PDE.IntervalResolverSpectralJointC2Cutoff
 import ShenWork.PDE.IntervalResolverSpectralJointC2Assemble
 import ShenWork.PDE.IntervalCoupledResolverJointC2
 import ShenWork.PDE.IntervalCosineSliceRegularity

@@ -16,6 +16,12 @@ def localRestartCoeffAdot
   (a₀ : ℕ → ℝ) (a : ℝ → ℕ → ℝ) (τ : ℝ) (n : ℕ) : ℝ :=
   a τ n - unitIntervalCosineEigenvalue n * localRestartCoeff a₀ a τ n
 
+/-- The concrete second time derivative of the restart coefficient. -/
+def localRestartCoeffAddot
+  (a₀ : ℕ → ℝ) (a adot : ℝ → ℕ → ℝ) (τ : ℝ) (n : ℕ) : ℝ :=
+  adot τ n -
+    unitIntervalCosineEigenvalue n * localRestartCoeffAdot a₀ a τ n
+
 /-- Concrete source regularity strong enough to differentiate the restart
 coefficients with one eigenvalue weight.  This strengthens
 `DuhamelSourceTimeC1` by adding summable λ-weighted envelopes for the source
@@ -27,12 +33,26 @@ structure DuhamelSourceTimeC2Coeff (a : ℝ → ℕ → ℝ) where
   sourceEigen_summable : Summable sourceEigenEnvelope
   sourceEigen_bound : ∀ s, 0 ≤ s → ∀ n,
     unitIntervalCosineEigenvalue n * |a s n| ≤ sourceEigenEnvelope n
+  sourceEigenSqEnvelope : ℕ → ℝ
+  sourceEigenSq_nonneg : ∀ n, 0 ≤ sourceEigenSqEnvelope n
+  sourceEigenSq_summable : Summable sourceEigenSqEnvelope
+  sourceEigenSq_bound : ∀ s, 0 ≤ s → ∀ n,
+    unitIntervalCosineEigenvalue n *
+      (unitIntervalCosineEigenvalue n * |a s n|) ≤
+        sourceEigenSqEnvelope n
   adotEigenEnvelope : ℕ → ℝ
   adotEigen_nonneg : ∀ n, 0 ≤ adotEigenEnvelope n
   adotEigen_summable : Summable adotEigenEnvelope
   adotEigen_bound : ∀ s, 0 ≤ s → ∀ n,
     unitIntervalCosineEigenvalue n * |toTimeC1.adot s n| ≤
       adotEigenEnvelope n
+  adotEigenSqEnvelope : ℕ → ℝ
+  adotEigenSq_nonneg : ∀ n, 0 ≤ adotEigenSqEnvelope n
+  adotEigenSq_summable : Summable adotEigenSqEnvelope
+  adotEigenSq_bound : ∀ s, 0 ≤ s → ∀ n,
+    unitIntervalCosineEigenvalue n *
+      (unitIntervalCosineEigenvalue n * |toTimeC1.adot s n|) ≤
+        adotEigenSqEnvelope n
 
 /-- The polynomially weighted homogeneous heat tail needed by the concrete
 coefficient-derivative estimate: `∑ λₙ² e^{-τλₙ}` for `τ > 0`. -/
@@ -77,6 +97,58 @@ theorem eigenvalue_sq_mul_exp_summable {τ : ℝ} (hτ : 0 < τ) :
           rw [hlam_eq]
           ring
       _ ≤ Real.pi ^ 4 * ((n : ℝ) ^ 4 *
+            Real.exp (-(τ * Real.pi ^ 2) * (n : ℝ))) := by
+          exact mul_le_mul_of_nonneg_left
+            (mul_le_mul_of_nonneg_left hexp_le (by positivity))
+            (by positivity)
+
+/-- One higher polynomial heat tail:
+`∑ λₙ³ e^{-τλₙ}` for `τ > 0`. -/
+theorem eigenvalue_cube_mul_exp_summable {τ : ℝ} (hτ : 0 < τ) :
+    Summable (fun n : ℕ =>
+      unitIntervalCosineEigenvalue n *
+        (unitIntervalCosineEigenvalue n *
+          (unitIntervalCosineEigenvalue n *
+            Real.exp (-τ * unitIntervalCosineEigenvalue n)))) := by
+  have hc : 0 < τ * Real.pi ^ 2 := by positivity
+  have hbase : Summable (fun n : ℕ =>
+      Real.pi ^ 6 * ((n : ℝ) ^ 6 *
+        Real.exp (-(τ * Real.pi ^ 2) * (n : ℝ)))) := by
+    simpa [mul_assoc] using
+      (Real.summable_pow_mul_exp_neg_nat_mul 6 hc).mul_left
+        (Real.pi ^ 6)
+  refine Summable.of_nonneg_of_le (fun n => ?_) (fun n => ?_) hbase
+  · exact mul_nonneg
+      (by unfold unitIntervalCosineEigenvalue; positivity)
+      (mul_nonneg
+        (by unfold unitIntervalCosineEigenvalue; positivity)
+        (mul_nonneg
+          (by unfold unitIntervalCosineEigenvalue; positivity)
+          (Real.exp_nonneg _)))
+  · have hn_sq_ge : (n : ℝ) ≤ (n : ℝ) ^ 2 := by
+      rcases Nat.eq_zero_or_pos n with hn | hn
+      · subst n
+        norm_num
+      · exact le_self_pow₀ (by exact_mod_cast hn) (by norm_num)
+    have hlam_eq :
+        unitIntervalCosineEigenvalue n = (n : ℝ) ^ 2 * Real.pi ^ 2 := by
+      unfold unitIntervalCosineEigenvalue
+      ring
+    have hexp_le :
+        Real.exp (-τ * unitIntervalCosineEigenvalue n) ≤
+          Real.exp (-(τ * Real.pi ^ 2) * (n : ℝ)) := by
+      apply Real.exp_le_exp.mpr
+      rw [hlam_eq]
+      nlinarith [mul_nonneg hτ.le (sq_nonneg Real.pi), hn_sq_ge]
+    calc unitIntervalCosineEigenvalue n *
+          (unitIntervalCosineEigenvalue n *
+            (unitIntervalCosineEigenvalue n *
+              Real.exp (-τ * unitIntervalCosineEigenvalue n)))
+        = Real.pi ^ 6 * ((n : ℝ) ^ 6 *
+            Real.exp (-τ * unitIntervalCosineEigenvalue n)) := by
+          rw [hlam_eq]
+          ring
+      _ ≤ Real.pi ^ 6 * ((n : ℝ) ^ 6 *
             Real.exp (-(τ * Real.pi ^ 2) * (n : ℝ))) := by
           exact mul_le_mul_of_nonneg_left
             (mul_le_mul_of_nonneg_left hexp_le (by positivity))
@@ -281,6 +353,91 @@ theorem localRestartCoeff_hasDerivAt
   convert hhom.add hduh using 1
   simp [localRestartCoeffAdot, localRestartCoeff, lam]
   ring
+
+/-- The restart coefficient time derivative is differentiable once more:
+`cₙ'' = aₙ' - λₙ cₙ'`. -/
+theorem localRestartCoeffAdot_hasDerivAt
+    {a₀ : ℕ → ℝ} {a : ℝ → ℕ → ℝ}
+    (src : DuhamelSourceTimeC2Coeff a) (τ : ℝ) (n : ℕ) :
+    HasDerivAt (fun r : ℝ => localRestartCoeffAdot a₀ a r n)
+      (src.toTimeC1.adot τ n -
+        unitIntervalCosineEigenvalue n *
+          localRestartCoeffAdot a₀ a τ n) τ := by
+  simpa [localRestartCoeffAdot] using
+    (src.toTimeC1.hderiv τ n).sub
+      ((localRestartCoeff_hasDerivAt
+        (a₀ := a₀) (a := a) src τ n).const_mul
+          (unitIntervalCosineEigenvalue n))
+
+theorem localRestartCoeffAdot_hasDerivAt_addot
+    {a₀ : ℕ → ℝ} {a : ℝ → ℕ → ℝ}
+    (src : DuhamelSourceTimeC2Coeff a) (τ : ℝ) (n : ℕ) :
+    HasDerivAt (fun r : ℝ => localRestartCoeffAdot a₀ a r n)
+      (localRestartCoeffAddot a₀ a src.toTimeC1.adot τ n) τ := by
+  simpa [localRestartCoeffAddot] using
+    localRestartCoeffAdot_hasDerivAt (a₀ := a₀) (a := a) src τ n
+
+/-- Continuity of the concrete restart-coefficient time derivative. -/
+theorem localRestartCoeffAdot_continuous
+    {a₀ : ℕ → ℝ} {a : ℝ → ℕ → ℝ}
+    (src : DuhamelSourceTimeC2Coeff a) (n : ℕ) :
+    Continuous (fun τ : ℝ => localRestartCoeffAdot a₀ a τ n) := by
+  have ha : Continuous (fun τ : ℝ => a τ n) :=
+    continuous_iff_continuousAt.2
+      (fun τ => (src.toTimeC1.hderiv τ n).continuousAt)
+  have hc : Continuous (fun τ : ℝ => localRestartCoeff a₀ a τ n) :=
+    continuous_iff_continuousAt.2
+      (fun τ => (localRestartCoeff_hasDerivAt
+        (a₀ := a₀) (a := a) src τ n).continuousAt)
+  simpa [localRestartCoeffAdot] using
+    ha.sub (continuous_const.mul hc)
+
+/-- The concrete restart-coefficient time derivative is `C¹`. -/
+theorem localRestartCoeffAdot_contDiff_one
+    {a₀ : ℕ → ℝ} {a : ℝ → ℕ → ℝ}
+    (src : DuhamelSourceTimeC2Coeff a) (n : ℕ) :
+    ContDiff ℝ 1 (fun τ : ℝ => localRestartCoeffAdot a₀ a τ n) := by
+  rw [contDiff_one_iff_deriv]
+  constructor
+  · intro τ
+    exact (localRestartCoeffAdot_hasDerivAt
+      (a₀ := a₀) (a := a) src τ n).differentiableAt
+  · have hderiv :
+        deriv (fun τ : ℝ => localRestartCoeffAdot a₀ a τ n) =
+          fun τ : ℝ =>
+            src.toTimeC1.adot τ n -
+              unitIntervalCosineEigenvalue n *
+                localRestartCoeffAdot a₀ a τ n := by
+      funext τ
+      exact (localRestartCoeffAdot_hasDerivAt
+        (a₀ := a₀) (a := a) src τ n).deriv
+    rw [hderiv]
+    exact (src.toTimeC1.hadotcont n).sub
+      (continuous_const.mul
+        (localRestartCoeffAdot_continuous (a₀ := a₀) src n))
+
+/-- Every concrete restart coefficient is globally `C²` in the time parameter. -/
+theorem localRestartCoeff_contDiff_two
+    {a₀ : ℕ → ℝ} {a : ℝ → ℕ → ℝ}
+    (src : DuhamelSourceTimeC2Coeff a) (n : ℕ) :
+    ContDiff ℝ 2 (fun τ : ℝ => localRestartCoeff a₀ a τ n) := by
+  change ContDiff ℝ ((1 : ℕ∞) + 1)
+    (fun τ : ℝ => localRestartCoeff a₀ a τ n)
+  rw [contDiff_succ_iff_deriv]
+  refine ⟨?_, ?_, ?_⟩
+  · intro τ
+    exact (localRestartCoeff_hasDerivAt
+      (a₀ := a₀) (a := a) src τ n).differentiableAt
+  · intro htop
+    simp at htop
+  · have hderiv :
+        deriv (fun τ : ℝ => localRestartCoeff a₀ a τ n) =
+          fun τ : ℝ => localRestartCoeffAdot a₀ a τ n := by
+      funext τ
+      exact (localRestartCoeff_hasDerivAt
+        (a₀ := a₀) (a := a) src τ n).deriv
+    rw [hderiv]
+    exact localRestartCoeffAdot_contDiff_one (a₀ := a₀) src n
 
 /-- The full local restart coefficient has summable λ-weighted time derivative.
 This is the time analogue of
