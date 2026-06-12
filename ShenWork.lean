@@ -78,6 +78,7 @@ import ShenWork.PDE.IntervalMildFrontierFromSpectral
 import ShenWork.PDE.IntervalResolverJointC2
 import ShenWork.PDE.IntervalResolverSpectralJointC2Producer
 import ShenWork.PDE.IntervalResolverSpectralTimeC2
+import ShenWork.PDE.IntervalResolverSpectralJointC2Closed
 import ShenWork.PDE.IntervalCoupledResolverJointC2
 import ShenWork.PDE.IntervalCosineSliceRegularity
 import ShenWork.PDE.IntervalLogisticLipschitz
