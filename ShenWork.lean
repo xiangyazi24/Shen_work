@@ -138,6 +138,7 @@ import ShenWork.PDE.IntervalFullKernelResolverFull
 import ShenWork.PDE.IntervalFullKernelBoundaryRegularity
 import ShenWork.PDE.IntervalProfileBoundaryRegularity
 import ShenWork.Paper2.IntervalDomainNeumannIBP
+import ShenWork.Paper2.IntervalClampedK1SourceC2CoeffEnvelope
 import ShenWork.Paper2.IntervalDomainSemigroupIBP
 import ShenWork.Paper2.IntervalDomainProfileIBP
 import ShenWork.Paper2.IntervalDomainL2HalfEnergyTimeLeibniz
