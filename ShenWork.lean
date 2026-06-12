@@ -164,3 +164,4 @@ import ShenWork.PDE.IntervalCoupledClassicalCoreDischarge
 import ShenWork.PDE.IntervalChemDivTimeDerivative
 import ShenWork.PDE.IntervalCoupledClassicalCorePAR
 import ShenWork.PDE.IntervalCoupledSourceTimeC1
+import ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
