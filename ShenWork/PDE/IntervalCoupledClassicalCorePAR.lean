@@ -1,4 +1,5 @@
 import ShenWork.PDE.IntervalCoupledClassicalCoreDischarge
+import ShenWork.PDE.IntervalCoupledSourceTimeC1
 import ShenWork.PDE.IntervalProfileBoundaryRegularity
 import ShenWork.PDE.IntervalSemigroupNeumann
 
@@ -16,6 +17,7 @@ open ShenWork.IntervalFullKernelInterchange
 open ShenWork.IntervalNeumannFullKernel
 open ShenWork.IntervalSemigroupNeumann
 open ShenWork.Paper2
+open ShenWork.PDE.IntervalMildSourceDecayHelper
 
 /-- The seven explicit conjuncts of `intervalDomainClassicalRegularity`.
 This is the PAR decomposition of the `classicalRegularity` field. -/
@@ -172,5 +174,49 @@ theorem duhamelProfile_closedC2_neumann_of_timeC1_source
       neumann_limit_right_of_eqOn_C1 hS1 hpack.2.2.1 hEq,
       deriv_intervalDomainLift_eq_zero_at_zero w,
       deriv_intervalDomainLift_eq_zero_at_one w⟩
+
+/-- Coupled-source specialization of the Duhamel closed-C2/Neumann slice. -/
+theorem duhamelProfile_closedC2_neumann_of_coupledChemicalSource
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    {t : ℝ} {w : intervalDomainPoint → ℝ}
+    (hlog : DuhamelSourceTimeC1 (coupledLogisticSourceCoeffs p u))
+    (hcoeffSplit : coupledChemicalSourceCoeffs p u =
+      fun s n => -(p.χ₀ * coupledChemDivSourceCoeffs p u s n)
+        + coupledLogisticSourceCoeffs p u s n)
+    (hchemH2 : ∀ s, 0 ≤ s →
+      IntervalWeakH2Neumann (coupledChemDivSourceLift p u s))
+    {Cchem : ℝ} (hCchem : 0 ≤ Cchem)
+    (hchemDecay : ∀ s, 0 ≤ s → ∀ k : ℕ, 1 ≤ k →
+      |cosineCoeffs (coupledChemDivSourceLift p u s) k|
+        ≤ Cchem / ((k : ℝ) * Real.pi) ^ 2)
+    (hchem0 : ∀ s, 0 ≤ s →
+      |cosineCoeffs (coupledChemDivSourceLift p u s) 0| ≤ Cchem)
+    {chemAdot : ℝ → ℕ → ℝ}
+    (hchemDeriv : ∀ s n,
+      HasDerivAt
+        (fun r => cosineCoeffs (coupledChemDivSourceLift p u r) n)
+        (chemAdot s n) s)
+    (hchemAdotcont : ∀ n, Continuous (fun s => chemAdot s n))
+    {MchemDot : ℝ}
+    (hchemMdot : ∀ s, 0 ≤ s → ∀ n, |chemAdot s n| ≤ MchemDot)
+    (ht : 0 < t)
+    (hEq : Set.EqOn (intervalDomainLift w)
+      (fun x => ∫ s in (0 : ℝ)..t,
+        unitIntervalCosineHeatValue (t - s)
+          (coupledChemicalSourceCoeffs p u s) x)
+      (Set.Icc (0 : ℝ) 1)) :
+    ContDiffOn ℝ 2 (intervalDomainLift w) (Set.Icc (0 : ℝ) 1) ∧
+      Filter.Tendsto (deriv (intervalDomainLift w))
+        (nhdsWithin (0 : ℝ) (Set.Ioi 0)) (nhds 0) ∧
+      Filter.Tendsto (deriv (intervalDomainLift w))
+        (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) ∧
+      deriv (intervalDomainLift w) 0 = 0 ∧
+      deriv (intervalDomainLift w) 1 = 0 := by
+  have hchem : DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p u) :=
+    coupledChemDivSource_duhamelSourceTimeC1 hchemH2 hCchem hchemDecay
+      hchem0 hchemDeriv hchemAdotcont hchemMdot
+  exact duhamelProfile_closedC2_neumann_of_timeC1_source
+    (coupledChemicalSource_duhamelSourceTimeC1 hlog hchem hcoeffSplit)
+    ht hEq
 
 end ShenWork.IntervalCoupledRegularityBootstrap
