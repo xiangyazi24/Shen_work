@@ -50,6 +50,18 @@ theorem restartSmoothCutoff_eventually_eq_one {offset s : ℝ}
   smoothRightCutoff_eventually_eq_one
     (restartCutoffLeft_lt_right hτ) (restartCutoffRight_lt hτ)
 
+theorem restartSmoothCutoff_eq_zero_of_le_left {offset s t : ℝ}
+    (hτ : 0 < s - offset) (ht : t ≤ restartCutoffLeft offset s) :
+    restartSmoothCutoff offset s t = 0 :=
+  smoothRightCutoff_eq_zero_of_le
+    (restartCutoffLeft_lt_right hτ) ht
+
+theorem restartSmoothCutoff_eq_one_of_right_le {offset s t : ℝ}
+    (hτ : 0 < s - offset) (ht : restartCutoffRight offset s ≤ t) :
+    restartSmoothCutoff offset s t = 1 :=
+  smoothRightCutoff_eq_one_of_ge
+    (restartCutoffLeft_lt_right hτ) ht
+
 /-- Concrete spatial-gradient summand for the restart resolver series. -/
 def resolverSpectralConcreteGradTerm
     (a₀ : ℕ → ℝ) (a : ℝ → ℕ → ℝ) (offset : ℝ)
