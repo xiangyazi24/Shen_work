@@ -162,6 +162,9 @@ import ShenWork.Paper2.IntervalPicardSourceTimeC1OnRecursion
 import ShenWork.PDE.IntervalCHCDischarge
 import ShenWork.PDE.IntervalCoupledClassicalCoreDischarge
 import ShenWork.PDE.IntervalChemDivTimeDerivative
+import ShenWork.PDE.IntervalChemDivLocalChainRule
+import ShenWork.PDE.IntervalChemDivFluxChain
+import ShenWork.PDE.IntervalChemDivOuterCommute
 import ShenWork.PDE.IntervalCoupledClassicalCorePAR
 import ShenWork.PDE.IntervalCoupledSourceTimeC1
 import ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
