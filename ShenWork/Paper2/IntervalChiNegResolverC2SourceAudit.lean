@@ -22,6 +22,18 @@ soft-clamped local source family; it agrees with the genuine source on the
 active window, but the C2 coefficient envelopes are demanded for the clamped
 family itself.
 
+The restart branch is positively shifted: in the K1 local restart the target
+time `σ` is represented from `τ = σ / 2`, so `σ - τ > 0`, and the represented
+solution coefficients are `localRestartCoeff a₀ aC (σ - τ)`.  This gives the
+expected heat factor on the homogeneous term.
+
+However, `DuhamelSourceTimeC2Coeff` and hence `SourceC2CoeffFields` are attached
+to the raw source family `aC`, not to `localRestartCoeff a₀ aC (·)`.  The source
+fields explicitly demand summable envelopes for `λₖ |aC s k|` and
+`λₖ² |aC s k|`, plus the corresponding `adot` fields.  The positive shifted
+evaluation of the solution coefficients therefore does not by itself reduce
+the current source obligation to merely bounded source coefficients.
+
 `IsPaper2ClassicalSolution` supplies `D.classicalRegularity`.  On the interval,
 that is spatial `ContDiffOn R 2` plus time differentiability/continuity and
 closed-slab continuity.  It does not carry spatial order 3 or 4, nor any source
@@ -29,13 +41,14 @@ lambda-squared coefficient envelope.  The coupled chem-div source constructors
 thread `IntervalWeakH2Neumann` and quadratic `C/(k*pi)^2` coefficient decay into
 `DuhamelSourceTimeC1`; they do not upgrade it to `DuhamelSourceTimeC2Coeff`.
 
-Verdict: the current resolver-C2 path is wired to the clamped K1 restart source,
-not to an unclamped smooth classical-solution source.  Rewiring would require a
-new smooth-source spectral-agreement/C2Coeff bridge.  The existing classical
-solution predicate alone does not prove the needed source envelopes, so the
-minimal honest close is a higher-regularity bootstrap producing the
-`sourceEigenEnvelope`, `sourceEigenSqEnvelope`, and matching `adot` envelopes
-for the actual source family used by the resolver-C2 package.
+Verdict: the heat-factor route closes the model family whose coefficients are
+already `exp (-ε λₖ)`-weighted, but not the actual clamped K1 source family.
+The current resolver-C2 path is wired to the clamped K1 restart source, not to
+an unclamped smooth classical-solution source.  Closing it requires either a
+new C2 producer that exploits the positive Duhamel heat factor directly, or a
+higher-regularity bootstrap producing the `sourceEigenEnvelope`,
+`sourceEigenSqEnvelope`, and matching `adot` envelopes for the actual source
+family used by the resolver-C2 package.
 -/
 
 noncomputable section

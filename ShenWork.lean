@@ -184,6 +184,7 @@ import ShenWork.PDE.IntervalDuhamelDirectC2Coeff
 import ShenWork.Paper2.IntervalPicardLimitK1C2Coeff
 import ShenWork.Paper2.IntervalResolverSpectralAgreementC2CoeffFromK1
 import ShenWork.Paper2.IntervalPicardLimitK1C2Heat
+import ShenWork.Paper2.IntervalChiNegResolverC2HeatFactor
 import ShenWork.PDE.IntervalChemDivFluxFactorFAC
 import ShenWork.PDE.IntervalChemDivFluxFactorFACSource
 import ShenWork.PDE.IntervalCoupledClassicalCorePAR
@@ -191,4 +192,3 @@ import ShenWork.PDE.IntervalCoupledSourceTimeC1
 import ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
 import ShenWork.Paper2.IntervalDomainMCL
 import ShenWork.Paper2.IntervalDomainGNYObstruction
-import ShenWork.Paper2.IntervalChiNegResolverC2SourceAudit
