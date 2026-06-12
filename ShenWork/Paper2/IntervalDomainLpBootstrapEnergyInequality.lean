@@ -1,4 +1,5 @@
 import ShenWork.Paper2.IntervalDomainLpEnergyFrontiers
+import ShenWork.Paper2.IntervalDomainLpMonotonicity
 
 open ShenWork.Paper2
 open ShenWork.Paper2.IntervalDomainEnergyStep
@@ -32,6 +33,294 @@ def IntervalDomainLpLowerOrderControl
               intervalDomain.integral
                 (fun x => (u t x) ^ (pExp + rho)) +
             Llow
+
+/-- Powers of positive classical solution slices are interval-integrable on
+the concrete unit interval. -/
+theorem intervalDomain_u_rpow_intervalIntegrable_of_regularity
+    {params : CM2Params} {T t q : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) :
+    IntervalIntegrable
+      (intervalDomainLift (fun x : intervalDomain.Point => (u t x) ^ q))
+      MeasureTheory.volume 0 1 := by
+  have hCu : ContDiffOn ℝ 2
+      (intervalDomainLift (u t)) (Set.Icc (0 : ℝ) 1) :=
+    (hsol.regularity.2.2.2.2.1 t ⟨ht0, htT⟩).1.1
+  have hne :
+      ∀ y ∈ Set.Icc (0 : ℝ) 1, intervalDomainLift (u t) y ≠ 0 := by
+    intro y hy
+    exact ne_of_gt (intervalDomain_solution_lift_u_pos hsol ht0 htT hy)
+  have hcont_power : ContinuousOn
+      (fun y => (intervalDomainLift (u t) y) ^ q)
+      (Set.uIcc (0 : ℝ) 1) := by
+    rw [Set.uIcc_of_le zero_le_one]
+    exact hCu.continuousOn.rpow_const
+      (fun y hy => Or.inl (hne y hy))
+  have hcont_lift : ContinuousOn
+      (intervalDomainLift
+        (fun x : intervalDomain.Point => (u t x) ^ q))
+      (Set.uIcc (0 : ℝ) 1) := by
+    rw [Set.uIcc_of_le zero_le_one] at hcont_power ⊢
+    refine hcont_power.congr ?_
+    intro y hy
+    simp [intervalDomainLift, hy]
+  exact hcont_lift.intervalIntegrable
+
+/-- The lower-order comparison frontier follows from positivity, finite unit
+volume, and the bootstrap hypothesis `rho > 0`.  The constants are
+`Klow = params.a + 1` and `Llow = params.a + 1`. -/
+theorem intervalDomainLpLowerOrderControl_of_regularity
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hboot :
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0) :
+    IntervalDomainLpLowerOrderControl params u T rho p0 := by
+  intro pExp hp
+  refine ⟨params.a + 1, by linarith [params.ha], params.a + 1, ?_⟩
+  intro t ht0 htT
+  have hrho_nonneg : 0 ≤ rho :=
+    (AbstractLpBootstrapHypothesis.rho_pos hboot).le
+  have hpExp_pos : 0 < pExp := by
+    have hp0_gt_one : 1 < p0 := by
+      have hthreshold := AbstractLpBootstrapHypothesis.p0_gt_threshold hboot
+      have hone_le :
+          (1 : ℝ) ≤ max 1 (rho * (params.N : ℝ) / 2) :=
+        le_max_left _ _
+      linarith
+    linarith
+  have hpExp_nonneg : 0 ≤ pExp := hpExp_pos.le
+  have hpq : pExp ≤ pExp + rho := by linarith
+  have hp_int :
+      IntervalIntegrable
+        (intervalDomainLift
+          (fun x : intervalDomain.Point => (u t x) ^ pExp))
+        MeasureTheory.volume 0 1 :=
+    intervalDomain_u_rpow_intervalIntegrable_of_regularity
+      (q := pExp) hsol ht0 htT
+  have hq_int :
+      IntervalIntegrable
+        (intervalDomainLift
+          (fun x : intervalDomain.Point => (u t x) ^ (pExp + rho)))
+        MeasureTheory.volume 0 1 :=
+    intervalDomain_u_rpow_intervalIntegrable_of_regularity
+      (q := pExp + rho) hsol ht0 htT
+  have hpoint :
+      ∀ y ∈ Set.Icc (0 : ℝ) 1,
+        intervalDomainLift
+            (fun x : intervalDomain.Point => (u t x) ^ pExp) y ≤
+          intervalDomainLift
+              (fun x : intervalDomain.Point => (u t x) ^ (pExp + rho)) y +
+            1 := by
+    intro y hy
+    have hu_nonneg : 0 ≤ u t (⟨y, hy⟩ : intervalDomain.Point) :=
+      (hsol.u_pos' ht0 htT).le
+    simp only [intervalDomainLift, dif_pos hy]
+    exact
+      IntervalDomainLpMonotonicity.rpow_le_one_add_rpow_of_nonneg_of_le
+        hu_nonneg hpExp_nonneg hpq
+  have hintegral :
+      intervalDomain.integral
+          (fun x : intervalDomain.Point => (u t x) ^ pExp) ≤
+        intervalDomain.integral
+            (fun x : intervalDomain.Point => (u t x) ^ (pExp + rho)) +
+          1 := by
+    change intervalDomainIntegral _ ≤ intervalDomainIntegral _ + 1
+    unfold intervalDomainIntegral
+    have hle :=
+      intervalIntegral.integral_mono_on (by norm_num : (0 : ℝ) ≤ 1)
+        hp_int (hq_int.add intervalIntegrable_const) hpoint
+    have hadd :
+        (∫ y in (0 : ℝ)..1,
+            intervalDomainLift
+                (fun x : intervalDomain.Point =>
+                  (u t x) ^ (pExp + rho)) y +
+              1) =
+          (∫ y in (0 : ℝ)..1,
+            intervalDomainLift
+                (fun x : intervalDomain.Point =>
+                  (u t x) ^ (pExp + rho)) y) +
+            1 := by
+      rw [intervalIntegral.integral_add hq_int intervalIntegrable_const,
+        intervalIntegral.integral_const]
+      norm_num [smul_eq_mul]
+    simpa [hadd] using hle
+  have henergy_eq :
+      intervalDomainLpEnergy pExp u t =
+        intervalDomain.integral
+          (fun x : intervalDomain.Point => (u t x) ^ pExp) :=
+    by
+      unfold intervalDomainLpEnergy
+      change intervalDomainIntegral _ = intervalDomainIntegral _
+      unfold intervalDomainIntegral
+      refine intervalIntegral.integral_congr (fun y hy => ?_)
+      rw [Set.uIcc_of_le zero_le_one] at hy
+      have hu_pos : 0 < u t (⟨y, hy⟩ : intervalDomain.Point) :=
+        hsol.u_pos' ht0 htT
+      simp [intervalDomainLift, hy, abs_of_pos hu_pos]
+  have hscale_nonneg : 0 ≤ params.a + 1 := by linarith [params.ha]
+  rw [henergy_eq]
+  have hscaled :=
+    mul_le_mul_of_nonneg_left hintegral hscale_nonneg
+  linarith
+
+/-- On positive solution slices, the diffusion test with exponent `p/2 + 1`
+is exactly the Moser power `u^(p/2)`. -/
+theorem intervalDomainLpDiffusionTest_moser_power_lift_eq_of_regularity
+    {params : CM2Params} {T t pExp : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) :
+    intervalDomainLift
+        (fun x : intervalDomain.Point => (u t x) ^ (pExp / 2)) =
+      intervalDomainLift
+        (intervalDomainLpDiffusionTest (pExp / 2 + 1) u t) := by
+  funext y
+  by_cases hy : y ∈ Set.Icc (0 : ℝ) 1
+  · let x : intervalDomain.Point := ⟨y, hy⟩
+    have hu_pos : 0 < u t x := hsol.u_pos' ht0 htT
+    have hpow :
+        (u t x) ^ (pExp / 2 + 1 - 2) * u t x =
+          (u t x) ^ (pExp / 2) := by
+      calc
+        (u t x) ^ (pExp / 2 + 1 - 2) * u t x =
+            (u t x) ^ (pExp / 2 + 1 - 2) * (u t x) ^ (1 : ℝ) := by
+              rw [Real.rpow_one]
+        _ = (u t x) ^ ((pExp / 2 + 1 - 2) + 1) := by
+              rw [Real.rpow_add hu_pos]
+        _ = (u t x) ^ (pExp / 2) := by
+              congr 1
+              ring
+    simp [intervalDomainLift, intervalDomainLpDiffusionTest, hy, x,
+      abs_of_pos hu_pos, hpow]
+  · simp [intervalDomainLift, hy]
+
+/-- Pointwise chain rule for the Moser power on the interval lift. -/
+theorem intervalDomain_moser_power_deriv_eq_of_regularity
+    {params : CM2Params} {T t pExp y : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) (hy : y ∈ Set.Icc (0 : ℝ) 1) :
+    deriv
+        (intervalDomainLift
+          (fun x : intervalDomain.Point => (u t x) ^ (pExp / 2))) y =
+      (pExp / 2) * (intervalDomainLift (u t) y) ^ (pExp / 2 - 1) *
+        deriv (intervalDomainLift (u t)) y := by
+  have hfun :=
+    intervalDomainLpDiffusionTest_moser_power_lift_eq_of_regularity
+      (pExp := pExp) hsol ht0 htT
+  rw [hfun]
+  have htest :=
+    intervalDomain_lp_diffusion_test_deriv_eq
+      (pExp := pExp / 2 + 1) hsol ht0 htT hy
+  rw [show pExp / 2 + 1 - 1 = pExp / 2 by ring,
+    show pExp / 2 + 1 - 2 = pExp / 2 - 1 by ring] at htest
+  simpa [sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using htest
+
+/-- Pointwise algebraic identity behind the Moser-gradient conversion. -/
+theorem intervalDomain_moser_gradNorm_sq_eq_weighted_of_regularity
+    {params : CM2Params} {T t pExp : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T)
+    (x : intervalDomain.Point) :
+    (intervalDomain.gradNorm
+        (fun y : intervalDomain.Point => (u t y) ^ (pExp / 2)) x) ^ 2 =
+      (pExp / 2) ^ 2 *
+        ((u t x) ^ (pExp - 2) *
+          (intervalDomain.gradNorm (u t) x) ^ 2) := by
+  let y : ℝ := x.1
+  have hy : y ∈ Set.Icc (0 : ℝ) 1 := x.2
+  have hu_pos : 0 < u t x := hsol.u_pos' ht0 htT
+  have hderiv :=
+    intervalDomain_moser_power_deriv_eq_of_regularity
+      (pExp := pExp) hsol ht0 htT hy
+  have hpow : ((u t x) ^ (pExp / 2 - 1)) ^ 2 =
+      (u t x) ^ (pExp - 2) := by
+    calc
+      ((u t x) ^ (pExp / 2 - 1)) ^ 2 =
+          (u t x) ^ (pExp / 2 - 1) *
+            (u t x) ^ (pExp / 2 - 1) := by
+            ring
+      _ = (u t x) ^ ((pExp / 2 - 1) + (pExp / 2 - 1)) := by
+            rw [Real.rpow_add hu_pos]
+      _ = (u t x) ^ (pExp - 2) := by
+            congr 1
+            ring
+  change
+    |deriv
+      (intervalDomainLift
+        (fun y : intervalDomain.Point => (u t y) ^ (pExp / 2))) x.1| ^ 2 =
+      (pExp / 2) ^ 2 *
+        ((u t x) ^ (pExp - 2) *
+          |deriv (intervalDomainLift (u t)) x.1| ^ 2)
+  rw [hderiv]
+  have hlift : intervalDomainLift (u t) y = u t x := by
+    simp [intervalDomainLift, hy, y]
+  rw [hlift]
+  calc
+    |pExp / 2 * (u t x) ^ (pExp / 2 - 1) *
+        deriv (intervalDomainLift (u t)) x.1| ^ 2 =
+        (pExp / 2) ^ 2 *
+          (((u t x) ^ (pExp / 2 - 1)) ^ 2 *
+            |deriv (intervalDomainLift (u t)) x.1| ^ 2) := by
+          rw [sq_abs, sq_abs (deriv (intervalDomainLift (u t)) x.1)]
+          ring
+    _ =
+        (pExp / 2) ^ 2 *
+          ((u t x) ^ (pExp - 2) *
+            |deriv (intervalDomainLift (u t)) x.1| ^ 2) := by
+          rw [hpow]
+
+/-- Integrated Moser-gradient identity on positive classical solution slices. -/
+theorem intervalDomain_moser_gradient_integral_eq_weighted_of_regularity
+    {params : CM2Params} {T t pExp : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) :
+    intervalDomain.integral
+        (fun x =>
+          (intervalDomain.gradNorm
+            (fun y : intervalDomain.Point => (u t y) ^ (pExp / 2)) x) ^ 2) =
+      (pExp / 2) ^ 2 *
+        intervalDomainLpWeightedGradientDissipation pExp u t := by
+  unfold intervalDomainLpWeightedGradientDissipation
+  change intervalDomainIntegral _ = (pExp / 2) ^ 2 * intervalDomainIntegral _
+  unfold intervalDomainIntegral
+  rw [← intervalIntegral.integral_const_mul]
+  refine intervalIntegral.integral_congr (fun y hy => ?_)
+  rw [Set.uIcc_of_le zero_le_one] at hy
+  let x : intervalDomain.Point := ⟨y, hy⟩
+  have hpoint :=
+    intervalDomain_moser_gradNorm_sq_eq_weighted_of_regularity
+      (pExp := pExp) hsol ht0 htT x
+  simpa [intervalDomainLift, hy, x] using hpoint
+
+/-- The Moser-gradient conversion frontier follows from the real-power chain
+rule on positive classical solution slices.  Since the committed weighted
+dissipation is the plain integral, `cGrad = (pExp / 2)^2`. -/
+theorem intervalDomainLpMoserGradientControl_of_regularity
+    {params : CM2Params} {T rho p0 : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (hboot :
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0) :
+    IntervalDomainLpMoserGradientControl u T p0 := by
+  intro pExp hp
+  have hp0_gt_one : 1 < p0 := by
+    have hthreshold := AbstractLpBootstrapHypothesis.p0_gt_threshold hboot
+    have hone_le :
+        (1 : ℝ) ≤ max 1 (rho * (params.N : ℝ) / 2) :=
+      le_max_left _ _
+    linarith
+  have hpExp_pos : 0 < pExp := by linarith
+  refine ⟨(pExp / 2) ^ 2, ?_, ?_⟩
+  · exact sq_pos_of_pos (by linarith)
+  · intro t ht0 htT
+    rw [intervalDomain_moser_gradient_integral_eq_weighted_of_regularity
+      (params := params) (T := T) (pExp := pExp)
+      (u := u) (v := v) hsol ht0 htT]
 
 /-- Positivity of the classical solution makes every interval-domain power
 integral nonnegative. -/
@@ -113,21 +402,21 @@ theorem intervalDomain_lp_bootstrap_energy_assembly_skeleton
 /-- Assemble `LpBootstrapEnergyInequality` from the committed interval-domain
 energy identity, cross-control, logistic upper bound, and diffusion coercivity.
 
-The two explicit extra assumptions are the remaining non-circular analytic
-frontiers in the current API: the chain-rule comparison to the Moser gradient,
-and the lower-order comparison that absorbs `(a+1) * ∫u^p` into
-`K * ∫u^(p+rho) + L`. -/
+The Moser-gradient chain-rule comparison and the lower-order interpolation
+comparison are discharged locally from solution regularity and `hboot`. -/
 theorem intervalDomain_LpBootstrapEnergyInequality_of_regularity
     {params : CM2Params} {T rho p0 : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
     (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
     (hboot :
-      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
-    (hgrad : IntervalDomainLpMoserGradientControl u T p0)
-    (hlower : IntervalDomainLpLowerOrderControl params u T rho p0) :
+      AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0) :
     LpBootstrapEnergyInequality intervalDomain u T rho p0 := by
   intro pExp hp
+  have hgrad : IntervalDomainLpMoserGradientControl u T p0 :=
+    intervalDomainLpMoserGradientControl_of_regularity hsol hboot
+  have hlower : IntervalDomainLpLowerOrderControl params u T rho p0 :=
+    intervalDomainLpLowerOrderControl_of_regularity hsol hboot
   have hp0_gt_one : 1 < p0 := by
     have hthreshold := AbstractLpBootstrapHypothesis.p0_gt_threshold hboot
     have hone_le :
@@ -309,8 +598,6 @@ def intervalDomain_structuredMoserBootstrapData_of_regularity
     (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
     (hboot :
       AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
-    (hgrad : IntervalDomainLpMoserGradientControl u T p0)
-    (hlower : IntervalDomainLpLowerOrderControl params u T rho p0)
     (hdiss :
       IntervalDomainMoserClosure.MoserDissipationDropBefore
         intervalDomain u T rho p0)
@@ -329,7 +616,7 @@ def intervalDomain_structuredMoserBootstrapData_of_regularity
   intervalDomain_structuredMoserBootstrapData_of_energy_interfaces
     hboot
     (intervalDomain_LpBootstrapEnergyInequality_of_regularity
-      hsol hcross hboot hgrad hlower)
+      hsol hcross hboot)
     hdiss hrel hLpMono hEndpoint
 
 end ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
