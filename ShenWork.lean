@@ -161,3 +161,4 @@ import ShenWork.Paper2.IntervalResolverTimeRegularity
 import ShenWork.Paper2.IntervalPicardSourceTimeC1OnRecursion
 import ShenWork.PDE.IntervalCHCDischarge
 import ShenWork.PDE.IntervalCoupledClassicalCoreDischarge
+import ShenWork.PDE.IntervalCoupledClassicalCorePAR
