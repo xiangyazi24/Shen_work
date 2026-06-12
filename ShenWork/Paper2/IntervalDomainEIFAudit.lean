@@ -1,0 +1,9 @@
+import ShenWork.Paper2.IntervalDomainLpEnergyFrontiers
+import ShenWork.Paper2.IntervalDomainStructuredMoserPower
+
+open ShenWork.Paper2
+open ShenWork.Paper2.IntervalDomainStructuredMoserData
+
+#print axioms intervalDomain_lp_energy_balance_of_regularity
+#print axioms intervalDomain_lp_energy_hDiffusionCoercive_of_regularity
+#print axioms prop25MoserFrontiers_of_energy_dissipation_relative_endpoint
