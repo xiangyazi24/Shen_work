@@ -179,6 +179,7 @@ import ShenWork.PDE.IntervalChemDivOuterCommuteProducer
 import ShenWork.PDE.IntervalChemDivFluxJointC2Producer
 import ShenWork.PDE.IntervalDuhamelSourceTimeC2Coeff
 import ShenWork.Paper2.IntervalPicardLimitK1C2Coeff
+import ShenWork.Paper2.IntervalPicardLimitK1C2Heat
 import ShenWork.PDE.IntervalChemDivFluxFactorFAC
 import ShenWork.PDE.IntervalChemDivFluxFactorFACSource
 import ShenWork.PDE.IntervalCoupledClassicalCorePAR
