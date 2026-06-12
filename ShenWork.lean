@@ -82,6 +82,7 @@ import ShenWork.PDE.IntervalResolverJointC2C2Coeff
 import ShenWork.PDE.IntervalResolverSpectralJointC2Closed
 import ShenWork.PDE.IntervalResolverSpectralJointC2Cutoff
 import ShenWork.PDE.IntervalResolverSpectralJointC2CutoffBounds
+import ShenWork.PDE.IntervalResolverSpectralJointC2Concrete
 import ShenWork.PDE.IntervalResolverSpectralJointC2Assemble
 import ShenWork.PDE.IntervalCoupledResolverJointC2
 import ShenWork.PDE.IntervalCosineSliceRegularity
