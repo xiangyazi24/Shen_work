@@ -498,6 +498,129 @@ theorem intervalDomain_lp_energy_hIBP_frontier
   intro t ht0 htT
   exact intervalDomain_lp_energy_hIBP_of_regularity hsol ht0 htT
 
+theorem intervalDomain_lp_diffusion_test_deriv_mul_deriv_eq
+    {params : CM2Params} {T t pExp y : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) (hy : y ∈ Set.Icc (0 : ℝ) 1) :
+    deriv (intervalDomainLift (intervalDomainLpDiffusionTest pExp u t)) y *
+        deriv (intervalDomainLift (u t)) y =
+      (pExp - 1) *
+        ((intervalDomainLift (u t) y) ^ (pExp - 2) *
+          |deriv (intervalDomainLift (u t)) y| ^ 2) := by
+  have ht : t ∈ Set.Ioo (0 : ℝ) T := ⟨ht0, htT⟩
+  have hclosed := (hsol.regularity.2.2.2.2.1 t ht).1
+  by_cases hy0 : y = 0
+  · subst y
+    rw [hclosed.2.1]
+    ring
+  by_cases hy1 : y = 1
+  · subst y
+    rw [hclosed.2.2]
+    ring
+  have hyIoo : y ∈ Set.Ioo (0 : ℝ) 1 := by
+    exact ⟨lt_of_le_of_ne hy.1 (fun h => hy0 h.symm),
+      lt_of_le_of_ne hy.2 hy1⟩
+  have hu_has :
+      HasDerivAt (intervalDomainLift (u t))
+        (deriv (intervalDomainLift (u t)) y) y :=
+    hasDerivAt_of_contDiffOn_two_interior hclosed.1 hyIoo
+  have hu_pos : 0 < intervalDomainLift (u t) y := by
+    have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hyIoo
+    have hpos : 0 < u t (⟨y, hyIcc⟩ : intervalDomain.Point) :=
+      hsol.u_pos' ht0 htT
+    simpa [intervalDomainLift, hyIcc] using hpos
+  have hpow0 :=
+    hu_has.rpow_const (p := pExp - 1) (Or.inl (ne_of_gt hu_pos))
+  have hpow :
+      HasDerivAt (fun z => (intervalDomainLift (u t) z) ^ (pExp - 1))
+        (deriv (intervalDomainLift (u t)) y *
+          (pExp - 1) * (intervalDomainLift (u t) y) ^ (pExp - 2)) y := by
+    refine hpow0.congr_deriv ?_
+    ring_nf
+  have htest_eq :
+      intervalDomainLift (intervalDomainLpDiffusionTest pExp u t)
+        =ᶠ[𝓝 y]
+      fun z => (intervalDomainLift (u t) z) ^ (pExp - 1) := by
+    filter_upwards
+      [Ioo_mem_nhds hyIoo.1 hyIoo.2] with z hz
+    have hzIcc : z ∈ Set.Icc (0 : ℝ) 1 := Set.Ioo_subset_Icc_self hz
+    have hpos : 0 < u t (⟨z, hzIcc⟩ : intervalDomain.Point) :=
+      hsol.u_pos' ht0 htT
+    simp [intervalDomainLift, intervalDomainLpDiffusionTest, hzIcc,
+      abs_of_pos hpos]
+    calc
+      u t (⟨z, hzIcc⟩ : intervalDomain.Point) ^ (pExp - 2) *
+          u t (⟨z, hzIcc⟩ : intervalDomain.Point) =
+        u t (⟨z, hzIcc⟩ : intervalDomain.Point) ^ (pExp - 2) *
+          u t (⟨z, hzIcc⟩ : intervalDomain.Point) ^ (1 : ℝ) := by
+          rw [Real.rpow_one]
+      _ = u t (⟨z, hzIcc⟩ : intervalDomain.Point) ^
+            ((pExp - 2) + 1) := by
+          rw [Real.rpow_add hpos]
+      _ = u t (⟨z, hzIcc⟩ : intervalDomain.Point) ^ (pExp - 1) := by
+          congr 1
+          ring
+  have htest_has := hpow.congr_of_eventuallyEq htest_eq
+  have hderiv_test :
+      deriv (intervalDomainLift (intervalDomainLpDiffusionTest pExp u t)) y =
+        deriv (intervalDomainLift (u t)) y *
+          (pExp - 1) * (intervalDomainLift (u t) y) ^ (pExp - 2) :=
+    htest_has.deriv
+  rw [hderiv_test]
+  ring_nf
+  rw [sq_abs]
+  ring
+
+theorem intervalDomain_lp_diffusion_dissipation_eq_weighted_gradient
+    {params : CM2Params} {T t pExp : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) :
+    intervalDomainLpDiffusionDissipation pExp u t =
+      (pExp - 1) * intervalDomainLpWeightedGradientDissipation pExp u t := by
+  unfold intervalDomainLpDiffusionDissipation
+  unfold intervalDomainDerivativePairIntegral
+  unfold intervalDomainLpWeightedGradientDissipation
+  change (∫ y in (0 : ℝ)..1, _) =
+    (pExp - 1) * intervalDomainIntegral _
+  unfold intervalDomainIntegral
+  rw [← intervalIntegral.integral_const_mul]
+  refine intervalIntegral.integral_congr (fun y hy => ?_)
+  rw [Set.uIcc_of_le zero_le_one] at hy
+  have hpoint :=
+    intervalDomain_lp_diffusion_test_deriv_mul_deriv_eq
+      (pExp := pExp) hsol ht0 htT hy
+  simpa [intervalDomainLift, hy, intervalDomain, intervalDomainGradNorm,
+    sq_abs, mul_assoc]
+    using hpoint
+
+theorem intervalDomain_lp_weighted_gradient_dissipation_nonneg_of_regularity
+    {params : CM2Params} {T t pExp : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v)
+    (ht0 : 0 < t) (htT : t < T) :
+    0 ≤ intervalDomainLpWeightedGradientDissipation pExp u t := by
+  unfold intervalDomainLpWeightedGradientDissipation
+  change 0 ≤ intervalDomainIntegral _
+  unfold intervalDomainIntegral
+  refine intervalIntegral.integral_nonneg (by norm_num) (fun y hy => ?_)
+  have hu_pos : 0 < u t (⟨y, hy⟩ : intervalDomain.Point) :=
+    hsol.u_pos' ht0 htT
+  simp [intervalDomainLift, hy, intervalDomain, intervalDomainGradNorm]
+  exact mul_nonneg (Real.rpow_nonneg hu_pos.le _) (sq_nonneg _)
+
+theorem intervalDomain_lp_energy_hDiffusionCoercive_of_regularity
+    {params : CM2Params} {T pExp : ℝ}
+    {u v : ℝ → intervalDomain.Point → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain params T u v) :
+    ∀ t, 0 < t → t < T →
+      (pExp - 1) * intervalDomainLpWeightedGradientDissipation pExp u t ≤
+        intervalDomainLpDiffusionDissipation pExp u t := by
+  intro t ht0 htT
+  rw [intervalDomain_lp_diffusion_dissipation_eq_weighted_gradient
+    (pExp := pExp) hsol ht0 htT]
+
 theorem intervalDomain_lp_energy_balance_of_regularity
     {params : CM2Params} {T t pExp : ℝ}
     {u v : ℝ → intervalDomain.Point → ℝ}
