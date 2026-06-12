@@ -177,6 +177,7 @@ import ShenWork.PDE.IntervalChemDivFluxChain
 import ShenWork.PDE.IntervalChemDivOuterCommute
 import ShenWork.PDE.IntervalChemDivOuterCommuteProducer
 import ShenWork.PDE.IntervalChemDivFluxJointC2Producer
+import ShenWork.PDE.IntervalFACResolverSourceC2Lift
 import ShenWork.PDE.IntervalChemDivFluxFactorFAC
 import ShenWork.PDE.IntervalChemDivFluxFactorFACSource
 import ShenWork.PDE.IntervalCoupledClassicalCorePAR
