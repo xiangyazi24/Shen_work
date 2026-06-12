@@ -173,3 +173,4 @@ import ShenWork.PDE.IntervalCoupledClassicalCorePAR
 import ShenWork.PDE.IntervalCoupledSourceTimeC1
 import ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
 import ShenWork.Paper2.IntervalDomainMCL
+import ShenWork.Paper2.IntervalDomainGNYObstruction

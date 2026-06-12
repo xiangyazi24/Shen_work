@@ -54,7 +54,7 @@ theorem relativeMoserInterpolationBefore_of_unitIntervalPowerGNYoung
     (fun x => (IsPaper2ClassicalSolution.u_pos' hsol ht0 htT (x := x)).le)
 
 /-- Regularity now supplies energy, power-integrability, and Lp monotonicity.
-The remaining inputs are the general GN/Young estimate, the committed
+The remaining inputs are the committed relative interpolation, the committed
 dissipation/drop condition, and the quantitative root-tower endpoint. -/
 def structuredMoserBootstrapData_of_regularity_MCL
     {params : CM2Params} {T rho p0 : ℝ}
@@ -63,15 +63,14 @@ def structuredMoserBootstrapData_of_regularity_MCL
     (hcross : CrossDiffusionBootstrapEstimate intervalDomain params T rho u v)
     (hboot :
       AbstractLpBootstrapHypothesis intervalDomain u (params.N : ℝ) T rho p0)
-    (hGN : UnitIntervalPowerGNYoungForMoser)
+    (hrel : RelativeMoserInterpolationBefore intervalDomain u T rho p0)
     (hdiss : MoserDissipationDropBefore intervalDomain u T rho p0)
     (hEndpoint :
       (∀ pExp > 1, LpPowerBoundedBefore intervalDomain pExp T u) →
         IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
     IntervalDomainStructuredMoserBootstrapData u T :=
   intervalDomain_structuredMoserBootstrapData_of_regularity hsol hcross hboot
-    hdiss
-    (relativeMoserInterpolationBefore_of_unitIntervalPowerGNYoung hsol hboot hGN)
+    hdiss hrel
     (lpMono_of_classical_solution_power_integrable hsol
       (intervalDomain_classical_solution_powerIntegrable hsol))
     hEndpoint
