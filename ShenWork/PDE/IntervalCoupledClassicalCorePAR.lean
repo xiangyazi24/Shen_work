@@ -1,5 +1,5 @@
 import ShenWork.PDE.IntervalCoupledClassicalCoreDischarge
-import ShenWork.PDE.IntervalCoupledSourceTimeC1
+import ShenWork.PDE.IntervalChemDivTimeDerivative
 import ShenWork.PDE.IntervalProfileBoundaryRegularity
 import ShenWork.PDE.IntervalSemigroupNeumann
 
@@ -183,22 +183,7 @@ theorem duhamelProfile_closedC2_neumann_of_coupledChemicalSource
     (hcoeffSplit : coupledChemicalSourceCoeffs p u =
       fun s n => -(p.χ₀ * coupledChemDivSourceCoeffs p u s n)
         + coupledLogisticSourceCoeffs p u s n)
-    (hchemH2 : ∀ s, 0 ≤ s →
-      IntervalWeakH2Neumann (coupledChemDivSourceLift p u s))
-    {Cchem : ℝ} (hCchem : 0 ≤ Cchem)
-    (hchemDecay : ∀ s, 0 ≤ s → ∀ k : ℕ, 1 ≤ k →
-      |cosineCoeffs (coupledChemDivSourceLift p u s) k|
-        ≤ Cchem / ((k : ℝ) * Real.pi) ^ 2)
-    (hchem0 : ∀ s, 0 ≤ s →
-      |cosineCoeffs (coupledChemDivSourceLift p u s) 0| ≤ Cchem)
-    {chemAdot : ℝ → ℕ → ℝ}
-    (hchemDeriv : ∀ s n,
-      HasDerivAt
-        (fun r => cosineCoeffs (coupledChemDivSourceLift p u r) n)
-        (chemAdot s n) s)
-    (hchemAdotcont : ∀ n, Continuous (fun s => chemAdot s n))
-    {MchemDot : ℝ}
-    (hchemMdot : ∀ s, 0 ≤ s → ∀ n, |chemAdot s n| ≤ MchemDot)
+    (hchem : CoupledChemDivTimeC1Fields p u)
     (ht : 0 < t)
     (hEq : Set.EqOn (intervalDomainLift w)
       (fun x => ∫ s in (0 : ℝ)..t,
@@ -212,11 +197,10 @@ theorem duhamelProfile_closedC2_neumann_of_coupledChemicalSource
         (nhdsWithin (1 : ℝ) (Set.Iio 1)) (nhds 0) ∧
       deriv (intervalDomainLift w) 0 = 0 ∧
       deriv (intervalDomainLift w) 1 = 0 := by
-  have hchem : DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p u) :=
-    coupledChemDivSource_duhamelSourceTimeC1 hchemH2 hCchem hchemDecay
-      hchem0 hchemDeriv hchemAdotcont hchemMdot
+  have hchemSrc : DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p u) :=
+    coupledChemDivSource_timeC1_of_fields hchem
   exact duhamelProfile_closedC2_neumann_of_timeC1_source
-    (coupledChemicalSource_duhamelSourceTimeC1 hlog hchem hcoeffSplit)
+    (coupledChemicalSource_duhamelSourceTimeC1 hlog hchemSrc hcoeffSplit)
     ht hEq
 
 end ShenWork.IntervalCoupledRegularityBootstrap
