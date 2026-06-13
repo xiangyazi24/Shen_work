@@ -213,6 +213,8 @@ import ShenWork.Paper2.IntervalNeumannTowerOfC6
 import ShenWork.Paper2.IntervalSourceRepresentative
 import ShenWork.PDE.IntervalChemDivFluxFactorFAC
 import ShenWork.PDE.IntervalChemDivFluxFactorFACSource
+import ShenWork.PDE.IntervalChemDivFluxTimeBridge
+import ShenWork.PDE.IntervalChemDivFluxFACSourceDecay
 import ShenWork.PDE.IntervalCoupledClassicalCorePAR
 import ShenWork.PDE.IntervalCoupledSourceTimeC1
 import ShenWork.Paper2.IntervalDomainLpBootstrapEnergyInequality
