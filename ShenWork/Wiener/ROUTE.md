@@ -36,11 +36,33 @@ Real PDE data sits as conjugate-symmetric (a_{−n} = conj a_n); cosine = even, 
      Then f^γ = f^m·f^{−(m−γ)} ∈ A¹ (m>γ). Gives WL1 (u^γ∈A¹, u≥δ>0) and WL2 ((1+v)^{−β}∈A¹).
 6. Adapters: cos/sin ℕ-coeff ↔ even/odd bilateral; connect to the committed duhamelSpectral source-ℓ¹.
 
-## OPEN — the gating closure question (ChatGPT cron2, PENDING as of 2026-06-13 17:xx)
-Does the whole route CLOSE? (1b) does the heat-Duhamel ∫S_N(t−s)∂ₓB ds return to A¹ (self-map in
-C([0,T];A¹), contraction for small T)? (2) is the weight ladder FINITE (work in A^r for r large
-enough) or a derivative-loss REGRESS (fatal)? (3) after WL1/WL2+product+∂ₓ+resolver, are there
-remaining unproven inputs? If cron2 says it does NOT close, do NOT build bricks 2–6 — reassess.
+## CLOSURE VERDICT (ChatGPT cron2 RUN, 2026-06-13) — ROUTE IS SOUND, with two corrections
+GREEN: the divergence-Duhamel self-map CLOSES — ‖∫S_N(t−s)∂ₓB ds‖_{A^r} ≤ C√T·sup‖B‖_{A^r} at
+EVERY finite r (sup_{y>0} y·e^{−τy²} = 1/√(2eτ) ⇒ t^{−1/2} kernel, integrable). Contraction for
+small T. NO fatal derivative-loss regress. Logistic term: ≤ T·sup‖G(u)‖_{A^r}.
+
+CORRECTION 1 — finite weight ladder (build A^r ONCE, parameterized; pick r per leg):
+  ∂ₓB∈A^q ⟺ B∈A^{q+1}.  U_xx leg: ∂ₓB∈A⁰ ⟸ B∈A¹.  gradient leg: ∂ₓB∈A¹ ⟸ B∈A².
+  chemDiv mixed time-chain (coupledChemDivTimeDerivativeLift differentiates a flux with u_t):
+  safe at u∈A³ (u_t=u_xx−χ₀∂ₓB+G(u) ⇒ u∈A³ ⇒ u_t∈A¹ ⇒ time-flux∈A¹ ⇒ ∂ₓ∈A⁰), unless refactored.
+  Also: need u₀∈A^r (committed S_N(t)u₀∈C²_x for t>0 does NOT put the path in C_tA¹ at t=0).
+
+CORRECTION 2 — THE REAL CATCH (coefficient-envelope mismatch): C_t A^r does NOT imply
+  Σ_k w_k^r·sup_t|F̂_k(t)| < ∞  (sup INSIDE the sum). C_t A^r only gives sup_t Σ_k w_k^r|F̂_k| (sup
+  OUTSIDE). Counterexample: f̂_n(t)=(1/(n w_n^r))φ_n(t), disjoint bumps near t=2^{−n} — continuous
+  into A^r but Σ w_n^r sup_t|f̂_n| = Σ1/n = ∞. MY COMMITTED duhamelSpectral bricks consume the
+  sup-INSIDE version. FIX (chosen): build the fixed point in the COEFFICIENT-ENVELOPE time space
+    E_T^r = { f(t,x)=Σ_k a_k(t)e_k(x) : Σ_k w_k^r·sup_{t∈[0,T]}|a_k(t)| < ∞ } + continuity into A^r.
+  Product/WL/resolver/divergence-Duhamel all still close in E_T^r. (Alt: re-prove the source lemmas
+  for sup-outside hyps — more disruptive; prefer E_T^r.)
+
+Parity-split (refinement on top of the ℤ-bilateral algebra): A_c^r (cosine, even), A_s^r (sine, odd);
+∂ₓ:A_c^{r+1}→A_s^r, A_s^{r+1}→A_c^r; B=u·v_x·(1+v)^{−β} ∈ A_s^1 ⇒ ∂ₓB∈A_c^0. v=R_μ(νu^γ)∈A_c, v_x∈A_s.
+
+NEXT (green-lit): brick 3 = Banach-algebra structure of W^r (‖aⁿ‖≤‖a‖ⁿ, completeness) + the algebra
+exponential exp(a)=Σaⁿ/n!, eval_x(exp a)=exp(eval_x a), D(exp(−tf))=−(Df)exp(−tf). brick 4 = the
+decisive estimate. brick 5 = Gamma/Laplace Wiener–Lévy. Then E_T^r envelope + the A^r heat semigroup
++ divergence-Duhamel smoothing + resolver multipliers + flux bounds + the C_tE^r fixed point.
 
 ## Honest status discipline (user feedback 2026-06-13)
 Report only proved-unconditional commits, never "reduced to N residuals" / "快收口". A conditional
