@@ -200,6 +200,7 @@ import ShenWork.Paper2.IntervalChiNegSourceTail
 import ShenWork.Paper2.IntervalParabolicDuhamelGains
 import ShenWork.Paper2.IntervalParabolicDuhamelGainNonCircular
 import ShenWork.Paper2.IntervalChiNegConcreteConnectors
+import ShenWork.Paper2.IntervalSoftClampFloorAudit
 import ShenWork.PDE.IntervalChemDivFluxFactorFAC
 import ShenWork.PDE.IntervalChemDivFluxFactorFACSource
 import ShenWork.PDE.IntervalCoupledClassicalCorePAR
