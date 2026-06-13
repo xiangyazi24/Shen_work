@@ -191,6 +191,9 @@ import ShenWork.Paper2.IntervalBC2H3EResolverAudit
 import ShenWork.Paper2.IntervalACBRouteAudit
 import ShenWork.Paper2.IntervalACBPolynomialEnvelope
 import ShenWork.Paper2.IntervalACBPolynomialBridge
+import ShenWork.Paper2.IntervalCD6Tail
+import ShenWork.Paper2.IntervalCD6HeatSmoothness
+import ShenWork.Paper2.IntervalCD6SpectralTail
 import ShenWork.PDE.IntervalChemDivFluxFactorFAC
 import ShenWork.PDE.IntervalChemDivFluxFactorFACSource
 import ShenWork.PDE.IntervalCoupledClassicalCorePAR
