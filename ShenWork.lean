@@ -186,6 +186,7 @@ import ShenWork.Paper2.IntervalResolverSpectralAgreementC2CoeffFromK1
 import ShenWork.Paper2.IntervalPicardLimitK1C2Heat
 import ShenWork.Paper2.IntervalChiNegResolverC2HeatFactor
 import ShenWork.Paper2.IntervalChiNegResolverC2RestartAudit
+import ShenWork.PDE.IntervalH3E
 import ShenWork.PDE.IntervalChemDivFluxFactorFAC
 import ShenWork.PDE.IntervalChemDivFluxFactorFACSource
 import ShenWork.PDE.IntervalCoupledClassicalCorePAR
