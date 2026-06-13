@@ -217,3 +217,5 @@ import ShenWork.Paper2.IntervalEllipticResolverC2Audit
 import ShenWork.Paper2.IntervalChiNegUnconditionalClose
 import ShenWork.Paper2.IntervalConcreteIterateC7
 import ShenWork.Paper2.IntervalSourceC6Representative
+import ShenWork.Paper2.IntervalNeumannTowerOfC8
+import ShenWork.Paper2.IntervalEigenCubeSummability
