@@ -59,10 +59,27 @@ CORRECTION 2 — THE REAL CATCH (coefficient-envelope mismatch): C_t A^r does NO
 Parity-split (refinement on top of the ℤ-bilateral algebra): A_c^r (cosine, even), A_s^r (sine, odd);
 ∂ₓ:A_c^{r+1}→A_s^r, A_s^{r+1}→A_c^r; B=u·v_x·(1+v)^{−β} ∈ A_s^1 ⇒ ∂ₓB∈A_c^0. v=R_μ(νu^γ)∈A_c, v_x∈A_s.
 
-NEXT (green-lit): brick 3 = Banach-algebra structure of W^r (‖aⁿ‖≤‖a‖ⁿ, completeness) + the algebra
-exponential exp(a)=Σaⁿ/n!, eval_x(exp a)=exp(eval_x a), D(exp(−tf))=−(Df)exp(−tf). brick 4 = the
-decisive estimate. brick 5 = Gamma/Laplace Wiener–Lévy. Then E_T^r envelope + the A^r heat semigroup
-+ divergence-Duhamel smoothing + resolver multipliers + flux bounds + the C_tE^r fixed point.
+## brick-4 sub-plan — the algebra exponential + decisive estimate (ChatGPT cron RUN, 2026-06-13)
+DECISION: do NOT hand-roll coefficient-wise exp. Package A^r as a proper NormedCommRing + CompleteSpace
+(via LinearIsometryEquiv to Mathlib `lp (fun _:ℤ => ℂ) 1`, storing the WEIGHTED sequence n↦(1+|n|)^r·a_n
+so the weighted norm = lp-1 norm), then REUSE `NormedSpace.exp` + `NormedSpace.map_exp` + the `AddCircle 2`
+Fourier API. Function-level bricks 1–3c are the ingredients (submult ← wNorm_conv_le; completeness ← lp).
+Sub-bricks:
+  4a [NEXT] convolution ring laws on functions: wConv_comm, wConv_assoc, wConv_wOne (unit) — prereq for CommRing.
+  4b  bundle type A r (subtype/structure) + NormedAddCommGroup + CompleteSpace (lp isometry) + NormedCommRing
+      (mul=wConv, one=wOne, submult from wNorm_conv_le). incl10:A¹→A⁰ ring hom (continuous).
+  4c  evalC : A⁰ →A[ℂ] C(AddCircle 2,ℂ) (Fourier synthesis, ‖evalC a‖≤‖a‖, mult via finite-support density);
+      evalAt x : A⁰ →+* ℂ; evalAt_exp via NormedSpace.map_exp; fourierCoeff recovery
+      norm_coeff_le_of_eval_bound (|a_n|≤‖evalC a‖, via AddCircle.fourierCoeff — NO raw interval integral).
+  4d  D : A¹ →L[ℂ] A⁰ (coeff_D = iπn·a_n); D_mul (Leibniz cross-space); D_exp via series; D_exp_neg_t.
+  4e  THE DECISIVE ESTIMATE: coeff_decay_exp_neg_t (|coeff e^{−tf}_n|≤e^{−δt} from eval≤e^{−δt}); the mode
+      split (A0_split + absorb_half, N=⌈2tM/π⌉ isolated as a standalone Archimedean lemma); A1_split ⇒
+      ‖e^{−tf}‖_{A¹} ≤ C(1+t‖Df‖)²e^{−δt}. Loose/existential C (do NOT chase sharp constants).
+Mathlib reuse: lp, lp.completeSpace, NormedSpace.exp/exp_eq_tsum/map_exp, Complex.exp_eq_exp_ℂ,
+  AddCircle.fourier/fourierCoeff/fourierCoeff_fourier. Hand-roll: the A^r wrapper/isometry, evalC, D_exp, mode split.
+THEN brick 5 = Gamma/Laplace Wiener–Lévy (f^{−s}=∫t^{s−1}e^{−tf}/Γ(s); Real.integral_rpow_mul_exp_neg_mul_Ioi
+  + ContinuousLinearMap.integral_comp_comm); brick 6 = E_T^r envelope + A^r heat semigroup + divergence-Duhamel
+  smoothing + flux bounds + cos/sin↔ℤ adapters + the C_tE^r fixed point connecting to the committed PDE bricks.
 
 ## Honest status discipline (user feedback 2026-06-13)
 Report only proved-unconditional commits, never "reduced to N residuals" / "快收口". A conditional
