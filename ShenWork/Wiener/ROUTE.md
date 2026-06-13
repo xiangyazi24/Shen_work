@@ -77,6 +77,21 @@ Sub-bricks:
       ‖e^{−tf}‖_{A¹} ≤ C(1+t‖Df‖)²e^{−δt}. Loose/existential C (do NOT chase sharp constants).
 Mathlib reuse: lp, lp.completeSpace, NormedSpace.exp/exp_eq_tsum/map_exp, Complex.exp_eq_exp_ℂ,
   AddCircle.fourier/fourierCoeff/fourierCoeff_fourier. Hand-roll: the A^r wrapper/isometry, evalC, D_exp, mode split.
+
+## brick-4c–4e exp-drill (ChatGPT cron RUN, 2026-06-13) — full code-level skeleton at /tmp/exp_drill_ref.md
+KEY DECISION: coefficient recovery + eval multiplicativity via FINITE-SUPPORT DENSITY, NOT MeasureTheory.
+integral_tsum (the fragile path — avoid). FS := AddMonoidAlgebra ℂ ℤ (its mul IS convolution = wConv).
+4c: coeff0CLM (a↦a.toFun n, ‖·‖≤‖a‖); evalLin : WA 0 →L C(AddCircle 2,ℂ) (a↦∑'n a_n•fourier n x,
+  ‖evalLin a‖≤‖a‖ via fourier_norm=1 + norm_tsum_le_tsum_norm); ofFS:FS→ₐWA 0 + dense_ofFS (truncations
+  dense in weighted ℓ¹) + coeff_ofFS; evalLin_mul via DenseRange.induction_on₂; evalC (AlgHom); evalAt x
+  via ContinuousMap.evalAlgHom; evalAt_exp via NormedSpace.map_exp + Complex.exp_eq_exp_ℂ; coefficient
+  recovery fourierCoeff_evalC_eq_coeff via DenseRange.equalizer + (fourierCoeff_norm_le via
+  norm_integral_le_of_norm_le_const on normalized Haar) ⇒ norm_coeff_le_of_eval_bound (|a_n|≤sup|evalC a|).
+4d: D:A¹→L A⁰, coeff_D=iπn·a_n; D_mul Leibniz; D_pow_succ induction; D_exp via D.map_tsum(expSeries_summable')
+  + Summable.tsum_eq_zero_add (factorial shift) + Summable.tsum_mul_right. (map_tsum is NOT the risky part.)
+4e: exists_nat_good (Int.ceil), absorb_le_half (nlinarith), mode_absorb_skeleton ⇒ ‖e^{−tf}‖_{A¹}≤C(1+t‖Df‖)²e^{−δt}.
+MOST LIKELY TO BREAK: the integral_tsum route (avoided); next: the fourierCoeff finite-support simp
+  [fourierCoeff.sum, fourierCoeff.const_smul, fourierCoeff_fourier] + dense_ofFS.
 THEN brick 5 = Gamma/Laplace Wiener–Lévy (f^{−s}=∫t^{s−1}e^{−tf}/Γ(s); Real.integral_rpow_mul_exp_neg_mul_Ioi
   + ContinuousLinearMap.integral_comp_comm); brick 6 = E_T^r envelope + A^r heat semigroup + divergence-Duhamel
   smoothing + flux bounds + cos/sin↔ℤ adapters + the C_tE^r fixed point connecting to the committed PDE bricks.
