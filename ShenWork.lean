@@ -231,3 +231,4 @@ import ShenWork.PDE.IntervalIteratePicardJointC2
 import ShenWork.PDE.IntervalChemDivFACCommuteDischarge
 import ShenWork.PDE.IntervalChemDivTimeDerivClosed
 import ShenWork.PDE.IntervalChemDivMixedReprConstruct
+import ShenWork.PDE.IntervalChemDivFluxHDgWiring
