@@ -54,6 +54,28 @@ structure DuhamelSourceSpatialWeightTwo (a : ℝ → ℕ → ℝ) where
       (unitIntervalCosineEigenvalue n * |toTimeC1.adot s n|) ≤
         adotEigenSqEnvelope n
 
+/-- A time-`C¹` Duhamel source with three eigenvalue weights of spatial
+coefficient summability.  This is the coefficient form needed for the
+`k = 6` gain step in the `C⁷` ladder. -/
+structure DuhamelSourceSpatialWeightThree (a : ℝ → ℕ → ℝ) where
+  toTimeC1 : DuhamelSourceTimeC1 a
+  sourceEigenCubeEnvelope : ℕ → ℝ
+  sourceEigenCube_nonneg : ∀ n, 0 ≤ sourceEigenCubeEnvelope n
+  sourceEigenCube_summable : Summable sourceEigenCubeEnvelope
+  sourceEigenCube_bound : ∀ s, 0 ≤ s → ∀ n,
+    unitIntervalCosineEigenvalue n *
+      (unitIntervalCosineEigenvalue n *
+        (unitIntervalCosineEigenvalue n * |a s n|)) ≤
+          sourceEigenCubeEnvelope n
+  adotEigenCubeEnvelope : ℕ → ℝ
+  adotEigenCube_nonneg : ∀ n, 0 ≤ adotEigenCubeEnvelope n
+  adotEigenCube_summable : Summable adotEigenCubeEnvelope
+  adotEigenCube_bound : ∀ s, 0 ≤ s → ∀ n,
+    unitIntervalCosineEigenvalue n *
+      (unitIntervalCosineEigenvalue n *
+        (unitIntervalCosineEigenvalue n * |toTimeC1.adot s n|)) ≤
+          adotEigenCubeEnvelope n
+
 /-- Concrete Duhamel representation for one closed interval slice.  The two
 producer fields consume the spatial slice hypothesis, so the gain atom does not
 ask for any coefficient-`C²` package. -/
@@ -73,6 +95,28 @@ structure DuhamelGainSliceData
   highSource :
     k = 4 ∨ k = 5 →
       SpatialSlice (k - 1) g → DuhamelSourceSpatialWeightTwo a
+
+/-- Concrete Duhamel representation for one closed interval slice, widened by
+one gain step so the non-circular ladder can reach `C⁷`. -/
+structure DuhamelGainSliceDataC7
+    (k : ℕ) (g w : intervalDomainPoint → ℝ) where
+  a : ℝ → ℕ → ℝ
+  τ : ℝ
+  hτ : 0 < τ
+  eqOn :
+    Set.EqOn (intervalDomainLift w)
+      (fun x : ℝ =>
+        ∫ s in (0 : ℝ)..τ, unitIntervalCosineHeatValue (τ - s) (a s) x)
+      (Set.Icc (0 : ℝ) 1)
+  lowSource :
+    k = 2 ∨ k = 3 →
+      SpatialSlice (k - 1) g → DuhamelSourceSpatialWeightOne a
+  highSource :
+    k = 4 ∨ k = 5 →
+      SpatialSlice (k - 1) g → DuhamelSourceSpatialWeightTwo a
+  topSource :
+    k = 6 →
+      SpatialSlice (k - 1) g → DuhamelSourceSpatialWeightThree a
 
 private theorem eigenEnvelope_le_tsum
     {E : ℕ → ℝ} (hE : Summable E) (hEnn : ∀ n, 0 ≤ E n) (n : ℕ) :
@@ -151,6 +195,51 @@ def DuhamelSourceSpatialWeightTwo.toWeightedTimeC1
     exact le_trans (src.adotEigenSq_bound s hs n)
       (eigenEnvelope_le_tsum src.adotEigenSq_summable src.adotEigenSq_nonneg n)
 
+def DuhamelSourceSpatialWeightThree.toWeightedTimeC1
+    {a : ℝ → ℕ → ℝ} (src : DuhamelSourceSpatialWeightThree a) :
+    DuhamelSourceTimeC1
+      (fun s n =>
+        unitIntervalCosineEigenvalue n *
+          (unitIntervalCosineEigenvalue n *
+            (unitIntervalCosineEigenvalue n * a s n))) where
+  adot := fun s n =>
+    unitIntervalCosineEigenvalue n *
+      (unitIntervalCosineEigenvalue n *
+        (unitIntervalCosineEigenvalue n * src.toTimeC1.adot s n))
+  hderiv := by
+    intro s n
+    exact (((src.toTimeC1.hderiv s n).const_mul
+      (unitIntervalCosineEigenvalue n)).const_mul
+      (unitIntervalCosineEigenvalue n)).const_mul
+      (unitIntervalCosineEigenvalue n)
+  hadotcont := by
+    intro n
+    exact (((src.toTimeC1.hadotcont n).const_mul
+      (unitIntervalCosineEigenvalue n)).const_mul
+      (unitIntervalCosineEigenvalue n)).const_mul
+      (unitIntervalCosineEigenvalue n)
+  envelope := src.sourceEigenCubeEnvelope
+  henv_summable := src.sourceEigenCube_summable
+  henv_bound := by
+    intro s hs n
+    have hlam : 0 ≤ unitIntervalCosineEigenvalue n := by
+      unfold unitIntervalCosineEigenvalue
+      positivity
+    rw [abs_mul, abs_of_nonneg hlam, abs_mul, abs_of_nonneg hlam,
+      abs_mul, abs_of_nonneg hlam]
+    exact src.sourceEigenCube_bound s hs n
+  derivBound := ∑' n, src.adotEigenCubeEnvelope n
+  hderivBound := by
+    intro s hs n
+    have hlam : 0 ≤ unitIntervalCosineEigenvalue n := by
+      unfold unitIntervalCosineEigenvalue
+      positivity
+    rw [abs_mul, abs_of_nonneg hlam, abs_mul, abs_of_nonneg hlam,
+      abs_mul, abs_of_nonneg hlam]
+    exact le_trans (src.adotEigenCube_bound s hs n)
+      (eigenEnvelope_le_tsum src.adotEigenCube_summable
+        src.adotEigenCube_nonneg n)
+
 private theorem duhamelSpectralCoeff_weight_one
     {a : ℝ → ℕ → ℝ} (τ : ℝ) (n : ℕ) :
     duhamelSpectralCoeff
@@ -173,6 +262,26 @@ private theorem duhamelSpectralCoeff_weight_two
     unitIntervalCosineEigenvalue n *
       (unitIntervalCosineEigenvalue n * duhamelSpectralCoeff a τ n) := by
   unfold duhamelSpectralCoeff
+  rw [← intervalIntegral.integral_const_mul]
+  rw [← intervalIntegral.integral_const_mul]
+  apply intervalIntegral.integral_congr
+  intro s _hs
+  ring
+
+private theorem duhamelSpectralCoeff_weight_three
+    {a : ℝ → ℕ → ℝ} (τ : ℝ) (n : ℕ) :
+    duhamelSpectralCoeff
+        (fun s n =>
+          unitIntervalCosineEigenvalue n *
+            (unitIntervalCosineEigenvalue n *
+              (unitIntervalCosineEigenvalue n * a s n))) τ n
+      =
+    unitIntervalCosineEigenvalue n *
+      (unitIntervalCosineEigenvalue n *
+        (unitIntervalCosineEigenvalue n *
+          duhamelSpectralCoeff a τ n)) := by
+  unfold duhamelSpectralCoeff
+  rw [← intervalIntegral.integral_const_mul]
   rw [← intervalIntegral.integral_const_mul]
   rw [← intervalIntegral.integral_const_mul]
   apply intervalIntegral.integral_congr
@@ -217,6 +326,30 @@ theorem duhamelSpectralCoeff_eigenvalue_cube_summable_of_spatialWeightTwo
     positivity
   rw [duhamelSpectralCoeff_weight_two τ n]
   rw [abs_mul, abs_of_nonneg hlam, abs_mul, abs_of_nonneg hlam]
+
+theorem duhamelSpectralCoeff_eigenvalue_fourth_summable_of_spatialWeightThree
+    {τ : ℝ} {a : ℝ → ℕ → ℝ}
+    (src : DuhamelSourceSpatialWeightThree a) (hτ : 0 < τ) :
+    Summable (fun n : ℕ =>
+      unitIntervalCosineEigenvalue n *
+        (unitIntervalCosineEigenvalue n *
+          (unitIntervalCosineEigenvalue n *
+            (unitIntervalCosineEigenvalue n *
+              |duhamelSpectralCoeff a τ n|)))) := by
+  have hS :=
+    ShenWork.IntervalDuhamelClosedC2.duhamelSpectralCoeff_eigenvalue_summable
+      (a := fun s n =>
+        unitIntervalCosineEigenvalue n *
+          (unitIntervalCosineEigenvalue n *
+            (unitIntervalCosineEigenvalue n * a s n)))
+      src.toWeightedTimeC1 hτ
+  refine hS.congr (fun n => ?_)
+  have hlam : 0 ≤ unitIntervalCosineEigenvalue n := by
+    unfold unitIntervalCosineEigenvalue
+    positivity
+  rw [duhamelSpectralCoeff_weight_three τ n]
+  rw [abs_mul, abs_of_nonneg hlam, abs_mul, abs_of_nonneg hlam,
+    abs_mul, abs_of_nonneg hlam]
 
 theorem cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable
     {b : ℕ → ℝ}
@@ -264,6 +397,62 @@ theorem cosineCoeffSeries_contDiff_four_of_eigenvalue_sq_summable
         ≤ |b n| * |(n : ℝ) * Real.pi| ^ k :=
           mul_le_mul_of_nonneg_left hmode (abs_nonneg _)
       _ ≤ |b n| * |(n : ℝ) * Real.pi| ^ (4 : ℕ) :=
+          mul_le_mul_of_nonneg_left hpow (abs_nonneg _)
+      _ = v k n := by
+          dsimp [v]
+          rw [hlam]
+          ring
+
+theorem cosineCoeffSeries_contDiff_eight_of_eigenvalue_fourth_summable
+    {b : ℕ → ℝ}
+    (hb : Summable (fun n : ℕ =>
+      unitIntervalCosineEigenvalue n *
+        (unitIntervalCosineEigenvalue n *
+          (unitIntervalCosineEigenvalue n *
+            (unitIntervalCosineEigenvalue n * |b n|))))) :
+    ContDiff ℝ 8 (fun x : ℝ => ∑' n : ℕ, b n * cosineMode n x) := by
+  let v : ℕ → ℕ → ℝ := fun _ n =>
+    unitIntervalCosineEigenvalue n *
+      (unitIntervalCosineEigenvalue n *
+        (unitIntervalCosineEigenvalue n *
+          (unitIntervalCosineEigenvalue n * |b n|)))
+  refine contDiff_tsum_of_eventually
+    (f := fun n x => b n * cosineMode n x) (v := v)
+    (N := (8 : ℕ∞)) ?_ ?_ ?_
+  · intro n
+    unfold cosineMode
+    fun_prop
+  · intro k _hk
+    simpa [v] using hb
+  · intro k hk
+    filter_upwards [Filter.eventually_cofinite_ne 0] with n hn x
+    have hk_nat : k ≤ 8 := by exact_mod_cast hk
+    have hcd : ContDiffAt ℝ (k : WithTop ℕ∞) (cosineMode n) x := by
+      unfold cosineMode
+      fun_prop
+    rw [norm_iteratedFDeriv_eq_norm_iteratedDeriv,
+      iteratedDeriv_const_mul (b n) hcd, Real.norm_eq_abs, abs_mul]
+    have hmode : |iteratedDeriv k (cosineMode n) x| ≤
+        |(n : ℝ) * Real.pi| ^ k := by
+      simpa [cosineMode, unitIntervalCosineMode,
+        norm_iteratedFDeriv_eq_norm_iteratedDeriv, Real.norm_eq_abs]
+        using unitIntervalCosineMode_iteratedFDeriv_bound k n x
+    have hfreq1 : (1 : ℝ) ≤ |(n : ℝ) * Real.pi| := by
+      have hn1 : (1 : ℝ) ≤ n := by
+        exact_mod_cast Nat.succ_le_of_lt (Nat.pos_of_ne_zero hn)
+      rw [abs_of_nonneg (mul_nonneg (Nat.cast_nonneg n) Real.pi_pos.le)]
+      nlinarith [Real.two_le_pi, hn1]
+    have hpow : |(n : ℝ) * Real.pi| ^ k ≤
+        |(n : ℝ) * Real.pi| ^ (8 : ℕ) :=
+      pow_le_pow_right₀ hfreq1 hk_nat
+    have hlam : unitIntervalCosineEigenvalue n =
+        |(n : ℝ) * Real.pi| ^ (2 : ℕ) := by
+      unfold unitIntervalCosineEigenvalue
+      rw [sq_abs]
+    calc |b n| * |iteratedDeriv k (cosineMode n) x|
+        ≤ |b n| * |(n : ℝ) * Real.pi| ^ k :=
+          mul_le_mul_of_nonneg_left hmode (abs_nonneg _)
+      _ ≤ |b n| * |(n : ℝ) * Real.pi| ^ (8 : ℕ) :=
           mul_le_mul_of_nonneg_left hpow (abs_nonneg _)
       _ = v k n := by
           dsimp [v]
@@ -318,6 +507,30 @@ theorem intervalDuhamelTerm_contDiff_six_of_spatialWeightTwo_timeC1
     exact duhamelSpectral_eq_cosineSeries src.toTimeC1 hτ
   rwa [hEq]
 
+theorem intervalDuhamelTerm_contDiff_eight_of_spatialWeightThree_timeC1
+    {τ : ℝ} {a : ℝ → ℕ → ℝ}
+    (src : DuhamelSourceSpatialWeightThree a) (hτ : 0 < τ) :
+    ContDiff ℝ 8
+      (fun x : ℝ =>
+        ∫ s in (0 : ℝ)..τ,
+          unitIntervalCosineHeatValue (τ - s) (a s) x) := by
+  have hseries : ContDiff ℝ 8
+      (fun x : ℝ =>
+        ∑' n : ℕ, duhamelSpectralCoeff a τ n * cosineMode n x) :=
+    cosineCoeffSeries_contDiff_eight_of_eigenvalue_fourth_summable
+      (duhamelSpectralCoeff_eigenvalue_fourth_summable_of_spatialWeightThree
+        src hτ)
+  have hEq :
+      (fun x : ℝ =>
+        ∫ s in (0 : ℝ)..τ,
+          unitIntervalCosineHeatValue (τ - s) (a s) x)
+        =
+      (fun x : ℝ =>
+        ∑' n : ℕ, duhamelSpectralCoeff a τ n * cosineMode n x) := by
+    funext x
+    exact duhamelSpectral_eq_cosineSeries src.toTimeC1 hτ
+  rwa [hEq]
+
 theorem duhamelTerm_spatial_contDiff_three_of_spatialC1_timeC1
     {τ : ℝ} {a : ℝ → ℕ → ℝ}
     (src : DuhamelSourceSpatialWeightOne a) (hτ : 0 < τ) :
@@ -356,6 +569,16 @@ theorem duhamelTerm_spatial_contDiff_six_of_spatialC4_timeC1
           unitIntervalCosineHeatValue (τ - s) (a s) x) :=
   intervalDuhamelTerm_contDiff_six_of_spatialWeightTwo_timeC1 src hτ
 
+theorem duhamelTerm_spatial_contDiff_seven_of_spatialC5_timeC1
+    {τ : ℝ} {a : ℝ → ℕ → ℝ}
+    (src : DuhamelSourceSpatialWeightThree a) (hτ : 0 < τ) :
+    ContDiff ℝ 7
+      (fun x : ℝ =>
+        ∫ s in (0 : ℝ)..τ,
+          unitIntervalCosineHeatValue (τ - s) (a s) x) :=
+  (intervalDuhamelTerm_contDiff_eight_of_spatialWeightThree_timeC1
+    src hτ).of_le (by norm_num)
+
 theorem duhamelGainsTwo
     {U F : ℕ → intervalDomainPoint → ℝ}
     (data : ∀ k, 2 ≤ k → k < 6 →
@@ -384,6 +607,41 @@ theorem duhamelGainsTwo
     have hcd :=
       duhamelTerm_spatial_contDiff_six_of_spatialC4_timeC1
         (D.highSource (Or.inr rfl) hF) D.hτ
+    simpa [SpatialSlice] using hcd.contDiffOn.congr D.eqOn
+
+theorem duhamelGainsTwoC7
+    {U F : ℕ → intervalDomainPoint → ℝ}
+    (data : ∀ k, 2 ≤ k → k < 7 →
+      DuhamelGainSliceDataC7 k (F k) (U (k + 1))) :
+    ∀ k, 2 ≤ k → k < 7 →
+      SpatialSlice (k - 1) (F k) → SpatialSlice (k + 1) (U (k + 1)) := by
+  intro k hk2 hk7 hF
+  have hk : k = 2 ∨ k = 3 ∨ k = 4 ∨ k = 5 ∨ k = 6 := by omega
+  rcases hk with rfl | rfl | rfl | rfl | rfl
+  · let D := data 2 (by norm_num) (by norm_num)
+    have hcd :=
+      duhamelTerm_spatial_contDiff_three_of_spatialC1_timeC1
+        (D.lowSource (Or.inl rfl) hF) D.hτ
+    simpa [SpatialSlice] using hcd.contDiffOn.congr D.eqOn
+  · let D := data 3 (by norm_num) (by norm_num)
+    have hcd :=
+      duhamelTerm_spatial_contDiff_four_of_spatialC2_timeC1
+        (D.lowSource (Or.inr rfl) hF) D.hτ
+    simpa [SpatialSlice] using hcd.contDiffOn.congr D.eqOn
+  · let D := data 4 (by norm_num) (by norm_num)
+    have hcd :=
+      duhamelTerm_spatial_contDiff_five_of_spatialC3_timeC1
+        (D.highSource (Or.inl rfl) hF) D.hτ
+    simpa [SpatialSlice] using hcd.contDiffOn.congr D.eqOn
+  · let D := data 5 (by norm_num) (by norm_num)
+    have hcd :=
+      duhamelTerm_spatial_contDiff_six_of_spatialC4_timeC1
+        (D.highSource (Or.inr rfl) hF) D.hτ
+    simpa [SpatialSlice] using hcd.contDiffOn.congr D.eqOn
+  · let D := data 6 (by norm_num) (by norm_num)
+    have hcd :=
+      duhamelTerm_spatial_contDiff_seven_of_spatialC5_timeC1
+        (D.topSource rfl hF) D.hτ
     simpa [SpatialSlice] using hcd.contDiffOn.congr D.eqOn
 
 def assembleParabolicGainAtomsNonCircular
@@ -417,6 +675,49 @@ theorem assembledAtoms_climb_C2_to_C6_nonCircular
     (assembleParabolicGainAtomsNonCircular
       baseC2 resolverAhead chemDivLosesOne data)
 
+theorem assembledAtoms_climb_C2_to_C7_nonCircular
+    {U V F : ℕ → intervalDomainPoint → ℝ}
+    (baseC2 : SpatialSlice 2 (U 2))
+    (resolverAhead :
+      ∀ k, 2 ≤ k → k < 7 → SpatialSlice (k + 1) (V k))
+    (chemDivLosesOne :
+      ∀ k, 2 ≤ k → k < 7 →
+        CoupledSlice k (U k) (V k) → SpatialSlice (k - 1) (F k))
+    (data : ∀ k, 2 ≤ k → k < 7 →
+      DuhamelGainSliceDataC7 k (F k) (U (k + 1))) :
+    SpatialSlice 7 (U 7) := by
+  have h3 : SpatialSlice 3 (U 3) := by
+    have hF : SpatialSlice 1 (F 2) :=
+      chemDivLosesOne 2 (by norm_num) (by norm_num)
+        ⟨baseC2, resolverAhead 2 (by norm_num) (by norm_num)⟩
+    simpa using
+      duhamelGainsTwoC7 data 2 (by norm_num) (by norm_num) hF
+  have h4 : SpatialSlice 4 (U 4) := by
+    have hF : SpatialSlice 2 (F 3) :=
+      chemDivLosesOne 3 (by norm_num) (by norm_num)
+        ⟨h3, resolverAhead 3 (by norm_num) (by norm_num)⟩
+    simpa using
+      duhamelGainsTwoC7 data 3 (by norm_num) (by norm_num) hF
+  have h5 : SpatialSlice 5 (U 5) := by
+    have hF : SpatialSlice 3 (F 4) :=
+      chemDivLosesOne 4 (by norm_num) (by norm_num)
+        ⟨h4, resolverAhead 4 (by norm_num) (by norm_num)⟩
+    simpa using
+      duhamelGainsTwoC7 data 4 (by norm_num) (by norm_num) hF
+  have h6 : SpatialSlice 6 (U 6) := by
+    have hF : SpatialSlice 4 (F 5) :=
+      chemDivLosesOne 5 (by norm_num) (by norm_num)
+        ⟨h5, resolverAhead 5 (by norm_num) (by norm_num)⟩
+    simpa using
+      duhamelGainsTwoC7 data 5 (by norm_num) (by norm_num) hF
+  have h7 : SpatialSlice 7 (U 7) := by
+    have hF : SpatialSlice 5 (F 6) :=
+      chemDivLosesOne 6 (by norm_num) (by norm_num)
+        ⟨h6, resolverAhead 6 (by norm_num) (by norm_num)⟩
+    simpa using
+      duhamelGainsTwoC7 data 6 (by norm_num) (by norm_num) hF
+  exact h7
+
 theorem chiNeg_close_of_nonCircular_climb
     {U V F : ℕ → intervalDomainPoint → ℝ}
     {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
@@ -444,8 +745,38 @@ theorem chiNeg_close_of_nonCircular_climb
   exact resolverHasSpectralAgreementC2Coeff_of_eigenCubeTail
     H mkL C0 C C0dot Cdot hC6 hCdot6 (tailOfC6 hU6)
 
+theorem chiNeg_close_of_nonCircular_climb_C7
+    {U V F : ℕ → intervalDomainPoint → ℝ}
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ} {T : ℝ}
+    (baseC2 : SpatialSlice 2 (U 2))
+    (resolverAhead :
+      ∀ k, 2 ≤ k → k < 7 → SpatialSlice (k + 1) (V k))
+    (chemDivLosesOne :
+      ∀ k, 2 ≤ k → k < 7 →
+        CoupledSlice k (U k) (V k) → SpatialSlice (k - 1) (F k))
+    (data : ∀ k, 2 ≤ k → k < 7 →
+      DuhamelGainSliceDataC7 k (F k) (U (k + 1)))
+    (H : ResolverHasSpectralAgreement T u)
+    (mkL : ∀ σ, 0 < σ → σ < T → LocalRestart p u T σ)
+    (C0 C C0dot Cdot : ℝ → ℝ)
+    (hC6 : ∀ σ, 0 ≤ max (C0 σ) (64 * C σ))
+    (hCdot6 : ∀ σ, 0 ≤ max (C0dot σ) (64 * Cdot σ))
+    (tailOfC7 : SpatialSlice 7 (U 7) →
+      ∀ σ (hσ0 : 0 < σ) (hσT : σ < T),
+        SourceEigenCubeTailFields
+          (mkL σ hσ0 hσT) (C0 σ) (C σ) (C0dot σ) (Cdot σ)) :
+    ResolverHasSpectralAgreementC2Coeff T u := by
+  have hU7 : SpatialSlice 7 (U 7) :=
+    assembledAtoms_climb_C2_to_C7_nonCircular
+      baseC2 resolverAhead chemDivLosesOne data
+  exact resolverHasSpectralAgreementC2Coeff_of_eigenCubeTail
+    H mkL C0 C C0dot Cdot hC6 hCdot6 (tailOfC7 hU7)
+
 #print axioms duhamelGainsTwo
+#print axioms duhamelGainsTwoC7
 #print axioms assembledAtoms_climb_C2_to_C6_nonCircular
+#print axioms assembledAtoms_climb_C2_to_C7_nonCircular
 #print axioms chiNeg_close_of_nonCircular_climb
+#print axioms chiNeg_close_of_nonCircular_climb_C7
 
 end ShenWork.Paper2.ParabolicDuhamelGainNonCircular
