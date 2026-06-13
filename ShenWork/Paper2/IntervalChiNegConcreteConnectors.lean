@@ -1,4 +1,4 @@
-import ShenWork.Paper2.IntervalParabolicDuhamelGainNonCircular
+import ShenWork.Paper2.IntervalChiNegConcreteSpectralAdapters
 import ShenWork.PDE.IntervalDomainExistence
 import ShenWork.PDE.IntervalNeumannEllipticResolverR
 import ShenWork.PDE.IntervalResolverSpatialC2
@@ -9,6 +9,7 @@ open ShenWork.PDE (intervalNeumannResolverCoeff intervalNeumannResolverR)
 open ShenWork.CosineSpectrum (cosineMode)
 open ShenWork.Paper2.ParabolicGainInduction
 open ShenWork.Paper2.ParabolicDuhamelGainNonCircular
+open ShenWork.Paper2.ChiNegConcreteSpectralAdapters
 open ShenWork.Paper2.ChiNegSourceTail
 open ShenWork.Paper2.PicardLimitK1 (LocalRestart)
 
@@ -95,6 +96,59 @@ theorem committed_resolver_spatialC2
     exact (ShenWork.IntervalResolverSpatialC2.resolverR_eq_cosineSeries
       (p := p) (u := u) ⟨x, hx⟩).symm)
 
+/-- Concrete resolver-ahead from the exact sixth-order resolved-coefficient tail.
+This is the spectral elliptic-gain input still missing from the concrete source
+regularity side. -/
+theorem concreteResolverAhead_of_resolverCoeff_eigenCube_summable
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hcube : Summable fun n : ℕ =>
+      unitIntervalCosineEigenvalue n *
+        (unitIntervalCosineEigenvalue n *
+          (unitIntervalCosineEigenvalue n *
+            |(intervalNeumannResolverCoeff p u n).re|))) :
+    ConcreteResolverAheadAtom p u := by
+  simpa [ConcreteResolverAheadAtom, concreteV] using
+    resolverAhead_of_resolverCoeff_eigenCube_summable
+      (p := p) (u := u) hcube
+
+/-- Concrete resolver-ahead after the elliptic gain has converted source
+two-weight summability into resolved coefficient cube summability. -/
+theorem concreteResolverAhead_of_sourceEigenSq_summable
+    {p : CM2Params} {u : intervalDomainPoint → ℝ}
+    (hsrc : Summable fun n : ℕ =>
+      unitIntervalCosineEigenvalue n *
+        (unitIntervalCosineEigenvalue n *
+          |(ShenWork.PDE.intervalNeumannResolverSourceCoeff p u n).re|)) :
+    ConcreteResolverAheadAtom p u :=
+  concreteResolverAhead_of_resolverCoeff_eigenCube_summable
+    (resolverCoeff_eigenCube_summable_of_sourceEigenSq_summable
+      (p := p) (u := u) hsrc)
+
+/-- The closed χ-negative branch once the four concrete atom families have been
+supplied for the fixed-slice `concreteU`, `concreteV`, and `concreteF` objects. -/
+theorem chiNeg_concrete_close_of_nonCircular_atoms
+    {p : CM2Params} {T : ℝ}
+    {utraj : ℝ → intervalDomainPoint → ℝ}
+    {u : intervalDomainPoint → ℝ}
+    (baseC2 : SpatialSlice 2 ((concreteU u) 2))
+    (resolverAhead : ConcreteResolverAheadAtom p u)
+    (chemDivLosesOne : ConcreteChemDivLosesOneAtom p u)
+    (data : ConcreteDuhamelDataAtom p u)
+    (H : ShenWork.IntervalResolverTimeRegularity.ResolverHasSpectralAgreement
+      T utraj)
+    (mkL : ∀ σ, 0 < σ → σ < T → LocalRestart p utraj T σ)
+    (C0 C C0dot Cdot : ℝ → ℝ)
+    (hC6 : ∀ σ, 0 ≤ max (C0 σ) (64 * C σ))
+    (hCdot6 : ∀ σ, 0 ≤ max (C0dot σ) (64 * Cdot σ))
+    (tailOfC6 :
+      ConcreteTailOfC6Atom p u utraj mkL C0 C C0dot Cdot) :
+    ShenWork.IntervalResolverJointC2.ResolverHasSpectralAgreementC2Coeff
+      T utraj :=
+  chiNeg_close_of_nonCircular_climb
+    (U := concreteU u) (V := concreteV p u) (F := concreteF p u)
+    baseC2 resolverAhead chemDivLosesOne data
+    H mkL C0 C C0dot Cdot hC6 hCdot6 tailOfC6
+
 /-- The first concrete `resolverAhead` subgoal, exposed as a named target for
 the current stall report. -/
 abbrev ResolverAheadK2Goal (p : CM2Params)
@@ -103,5 +157,8 @@ abbrev ResolverAheadK2Goal (p : CM2Params)
 
 #print axioms baseC2_of_intervalDomainClassicalRegularity
 #print axioms committed_resolver_spatialC2
+#print axioms concreteResolverAhead_of_resolverCoeff_eigenCube_summable
+#print axioms concreteResolverAhead_of_sourceEigenSq_summable
+#print axioms chiNeg_concrete_close_of_nonCircular_atoms
 
 end ShenWork.Paper2.ChiNegConcreteConnectors
