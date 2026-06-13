@@ -194,6 +194,7 @@ import ShenWork.Paper2.IntervalACBPolynomialBridge
 import ShenWork.Paper2.IntervalCD6Tail
 import ShenWork.Paper2.IntervalCD6HeatSmoothness
 import ShenWork.Paper2.IntervalCD6SpectralTail
+import ShenWork.Paper2.IntervalSpatialC6Certificate
 import ShenWork.PDE.IntervalChemDivFluxFactorFAC
 import ShenWork.PDE.IntervalChemDivFluxFactorFACSource
 import ShenWork.PDE.IntervalCoupledClassicalCorePAR
