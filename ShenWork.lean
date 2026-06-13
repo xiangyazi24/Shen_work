@@ -203,6 +203,7 @@ import ShenWork.Paper2.IntervalChiNegConcreteConnectors
 import ShenWork.Paper2.IntervalSoftClampFloorAudit
 import ShenWork.Paper2.IntervalChiNegFloorClosure
 import ShenWork.Paper2.IntervalIBPCoeffExtraction
+import ShenWork.Paper2.IntervalEigenCubeTailFromTower
 import ShenWork.PDE.IntervalChemDivFluxFactorFAC
 import ShenWork.PDE.IntervalChemDivFluxFactorFACSource
 import ShenWork.PDE.IntervalCoupledClassicalCorePAR
