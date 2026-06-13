@@ -205,6 +205,7 @@ import ShenWork.Paper2.IntervalChiNegFloorClosure
 import ShenWork.Paper2.IntervalIBPCoeffExtraction
 import ShenWork.Paper2.IntervalEigenCubeTailFromTower
 import ShenWork.Paper2.IntervalNeumannTowerOfC6
+import ShenWork.Paper2.IntervalSourceRepresentative
 import ShenWork.PDE.IntervalChemDivFluxFactorFAC
 import ShenWork.PDE.IntervalChemDivFluxFactorFACSource
 import ShenWork.PDE.IntervalCoupledClassicalCorePAR
