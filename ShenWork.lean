@@ -216,3 +216,4 @@ import ShenWork.Paper2.IntervalDomainGNYObstruction
 import ShenWork.Paper2.IntervalEllipticResolverC2Audit
 import ShenWork.Paper2.IntervalChiNegUnconditionalClose
 import ShenWork.Paper2.IntervalConcreteIterateC7
+import ShenWork.Paper2.IntervalSourceC6Representative
