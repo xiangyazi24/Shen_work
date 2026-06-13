@@ -224,3 +224,4 @@ import ShenWork.Paper2.IntervalConcreteIterateC7
 import ShenWork.Paper2.IntervalSourceC6Representative
 import ShenWork.Paper2.IntervalNeumannTowerOfC8
 import ShenWork.Paper2.IntervalEigenCubeSummability
+import ShenWork.PDE.IntervalFlooredSourceTimeDataIterate
