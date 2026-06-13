@@ -198,6 +198,7 @@ import ShenWork.Paper2.IntervalSpatialC6Certificate
 import ShenWork.Paper2.IntervalParabolicGainInduction
 import ShenWork.Paper2.IntervalChiNegSourceTail
 import ShenWork.Paper2.IntervalParabolicDuhamelGains
+import ShenWork.Paper2.IntervalParabolicDuhamelGainNonCircular
 import ShenWork.PDE.IntervalChemDivFluxFactorFAC
 import ShenWork.PDE.IntervalChemDivFluxFactorFACSource
 import ShenWork.PDE.IntervalCoupledClassicalCorePAR
