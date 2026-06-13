@@ -117,6 +117,7 @@ import ShenWork.PDE.IntervalCosineCoeffDecay
 import ShenWork.PDE.IntervalResolverGradientBridge
 import ShenWork.PDE.IntervalResolverLaplacianBridge
 import ShenWork.PDE.IntervalResolverSpatialC2
+import ShenWork.PDE.IntervalResolverPhysicalC2
 import ShenWork.PDE.IntervalParamDerivMeasurable
 import ShenWork.PDE.IntervalFullSemigroupNeumann
 import ShenWork.PDE.IntervalCoupledClassicalBallEstimates
