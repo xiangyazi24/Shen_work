@@ -121,6 +121,7 @@ import ShenWork.PDE.IntervalResolverPhysicalC2
 import ShenWork.PDE.IntervalResolverJointC2Physical
 import ShenWork.PDE.IntervalResolverJointC2PhysicalConcrete
 import ShenWork.PDE.IntervalPhysicalResolverDataConcrete
+import ShenWork.PDE.IntervalPhysicalSourceTimeC2Concrete
 import ShenWork.PDE.IntervalParamDerivMeasurable
 import ShenWork.PDE.IntervalFullSemigroupNeumann
 import ShenWork.PDE.IntervalCoupledClassicalBallEstimates
