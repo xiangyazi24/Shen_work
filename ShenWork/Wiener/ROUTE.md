@@ -667,3 +667,27 @@ THE REAL F1 GAP (precise, the actionable frontier — but genuine analytic work 
 STATE: non-F1 closeable work DONE (threshold ordering). F1 statement-layer needs the transport+redefinition
 (substantial, design-gated) then the sectorial theory. Honest frontier reached.
 ## ============================================================================================================
+
+## ★ χ₀<0 ROUTE DECISION (2026-06-14, ChatGPT-Pro cron ccdea958) — Route A′: source-form fixed point in EWA E_T^3
+DECISION (Xiang delegated to ChatGPT): build the χ₀<0 coupled-chemotaxis STRONG-DATA LOCAL CLASSICAL solution
+directly as a SOURCE-FORM fixed point in the bilateral Wiener coefficient-envelope space E_T^r (= the committed
+EWA T r machinery from the capstone), then project to cosine + cosineCoeffSeries_contDiff_two C² route.
+  - ABANDON Route B (gradient-form weak→classical upgrade): circular (W_x(endpoint)=0 ⟺ the regularity sought),
+    strategically misaligned (gradient term not eigenvalue-ℓ¹, the Hilbert-transform/off-diagonal trap).
+  - AVOID Route C (parabolic Schauder / sectorial D(A^σ)): Mathlib-absent, overkill; the coefficient route already
+    does what it would.
+THE PLAN (Phase 1, strong-data u₀∈A^3, u₀≥δ>0 ⟹ ∃T>0 u∈E_T^3 solving source-form classically):
+  Φ(u) = S_N(t)u₀ + D_∂ₓ(Q(u)) + D_0(G(u)); Q=u·v_x·(1+v)^{-β}, v=R_μ(νu^γ), G=u(a−bu^α).
+  Targets: u∈E_T^3, v∈E_T^5, v_x∈E_T^4, Q∈E_T^3, ∂ₓQ∈E_T^2.
+  KEY estimates: ‖D_∂ₓB‖_{E_T^r} ≤ C√T‖B‖ (|k|(1−e^{−ck²t})/(ck²)≤C√T — divergence-Duhamel √T self-map);
+    ‖D_0F‖≤T‖F‖. Contraction const C|χ₀|L_Q√T + L_G T < 1 (committed small-time A√T+BT<1 lemma).
+  CRUX A (the E_T^r Lipschitz package, via the Wiener algebra — NOT pointwise): u↦u^γ (my RealPowLipschitz),
+    v↦(1+v)^{-β} (my FnegLipschitz/Wiener-Lévy), R_μ bounded multiplier E_T^r→E_T^{r+2} (gResolver), v↦v_x bounded
+    (gDeriv), multiplication continuous (Banach algebra). PARITY: A_c(even/cos)/A_s(odd/sin), ∂ₓ flips (ConvParity/
+    EvenRealClosure) — avoids the gradient-form trap.
+  Phase 2 (later, separate): positivity/denominator safety (resolver positivity v≥0, A^0→C^0 eval) + lower-regularity
+    data via a time-weighted space sup_{0<t≤T} t^θ‖u‖_{A^3}. Do NOT mix into Phase 1.
+KEY: this LEVERAGES the autonomous-built EWA capstone machinery (E_T^r space, the Lipschitz package, gResolver/gDeriv,
+parity, the Duhamel) — a large fraction is COMMITTED. Scope a089fa4 inventories committed-vs-gaps for the build.
+This is the concrete buildable χ₀<0 subcampaign — Mathlib-feasible, NOT the deep Schauder wall.
+## ============================================================================================================
