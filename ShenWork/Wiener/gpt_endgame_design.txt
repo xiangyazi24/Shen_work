@@ -1,0 +1,633 @@
+## Verdict
+
+The shortest sound endgame is **not** to fill `CoupledChemDivTimeC1Fields.hdecay`.
+
+Your `SourceEnvelope` gives exactly the envelope needed by `DuhamelSourceTimeC1`, but `CoupledChemDivTimeC1Fields` asks for a **quadratic pointwise decay** field:
+
+\[
+|\widehat{\mathrm{chemDiv}}_k(s)|\le C_{\rm chem}/(k\pi)^2.
+\]
+
+That is strictly stronger than a summable ℓ¹ envelope and does **not** follow from `SourceEnvelope`. The current struct really has that quadratic field hard-coded. fileciteturn79file0L9-L23
+
+The right target is therefore:
+
+```lean
+DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p u)
+```
+
+or, on a finite window,
+
+```lean
+DuhamelSourceTimeC1On (coupledChemDivSourceCoeffs p u) 0 T
+```
+
+using a new ℓ¹-field constructor, and then add a sibling of the current PAR theorem that accepts the chem-div `DuhamelSourceTimeC1` directly instead of `CoupledChemDivTimeC1Fields`. The existing PAR theorem only uses `hchem` to manufacture `hchemSrc` and then combines it with the logistic source. fileciteturn81file0L21-L47
+
+So the shortest path is:
+
+```lean
+SourceEnvelope
+  → chemDiv source coefficient envelope
+  → DuhamelSourceTimeC1 / DuhamelSourceTimeC1On
+  → new PAR sibling consuming hchemSrc directly
+```
+
+not:
+
+```lean
+SourceEnvelope
+  → CoupledChemDivTimeC1Fields.hdecay
+```
+
+because that route is false unless you prove a higher weighted bound such as `chemDivEWA ∈ E_T^2`.
+
+---
+
+# 1. The `hdecay` issue is decisive
+
+A pure summable envelope
+
+\[
+\sum_k E_k<\infty,\qquad |\hat f_k|\le E_k
+\]
+
+does **not** imply
+
+\[
+|\hat f_k|\le C/k^2.
+\]
+
+A sparse summable sequence can have spikes with \(k^2E_k\to\infty\). So `SourceEnvelope` cannot fill
+
+```lean
+hdecay :
+  |cosineCoeffs ... k| ≤ Cchem / ((k : ℝ) * Real.pi)^2
+```
+
+in `CoupledChemDivTimeC1Fields`.
+
+If you insist on constructing the old struct, you need something like:
+
+```lean
+chemDivEWA ∈ E_T^2
+```
+
+because then each coefficient has a uniform \(k^{-2}\) bound. But that is a much stronger target and will push the weight requirement up.
+
+The clean move is to bypass the old struct.
+
+You already have the generic constructor:
+
+```lean
+duhamelSourceTimeC1_of_data
+```
+
+which packages `adot`, coefficient differentiability, `hadotcont`, an arbitrary summable `envelope`, `henv_bound`, and a single `derivBound`. fileciteturn91file0L59-L79
+
+And the actual `DuhamelSourceTimeC1` structure only asks for the ℓ¹ envelope, not quadratic decay. fileciteturn83file0L15-L31
+
+Build this:
+
+```lean
+noncomputable def coupledChemDivSource_timeC1_of_l1Envelope
+    {p : CM2Params} {u : ℝ → intervalDomainPoint → ℝ}
+    (hchain : CoupledChemDivLocalChainRule p u)
+    (hadotcont : ∀ n, Continuous (fun s => coupledChemDivAdot p u s n))
+    {MchemDot : ℝ}
+    (hMdot : ∀ s, 0 ≤ s → ∀ n,
+      |coupledChemDivAdot p u s n| ≤ MchemDot)
+    (envelope : ℕ → ℝ)
+    (henv_summable : Summable envelope)
+    (henv_bound : ∀ s, 0 ≤ s → ∀ n,
+      |coupledChemDivSourceCoeffs p u s n| ≤ envelope n) :
+    DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p u)
+```
+
+Inside, derive `hderiv` exactly as `coupledChemDivCoeff_hasDerivAt_of_fields` currently does, but from `hchain` directly instead of from the full `CoupledChemDivTimeC1Fields` record. The current proof already extracts `hderiv` from the local chain package using `cosineCoeffs_hasDerivAt_of_smooth_param`. fileciteturn79file0L25-L39
+
+Then package with `duhamelSourceTimeC1_of_data`.
+
+Also add:
+
+```lean
+theorem duhamelProfile_closedC2_neumann_of_coupledChemicalSource_l1
+    (hlog : DuhamelSourceTimeC1 (coupledLogisticSourceCoeffs p u))
+    (hchemSrc : DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p u))
+    ...
+```
+
+Its body is the same as the current theorem after line 43, skipping the old `CoupledChemDivTimeC1Fields → DuhamelSourceTimeC1` conversion. fileciteturn81file0L43-L47
+
+That is the shortest surgical join.
+
+---
+
+# 2. Q1 — non-circular coefficient bridge
+
+Do **not** use the current `EWARealizesOn` as the primitive for this final envelope bridge.
+
+`EWARealizesOn` currently contains
+
+```lean
+summable_cos :
+  ∀ τ, Summable (fun k => |cosineCoeffs ... k|)
+```
+
+as a field. fileciteturn69file0L127-L142
+
+That is circular for your purpose.
+
+The replacement should be a theorem where summability is a **conclusion from the EWA norm**, not an input.
+
+## Recommended theorem
+
+Build:
+
+```lean
+theorem ewaCosCoeffAt_eq_cosineCoeffs_of_even_real_eval_ae
+    {F : EWA T 0} {f : ℝ → ℝ} (τ : TimeDom T)
+    (heven : ∀ n : ℤ,
+      (sliceWA τ F).toFun (-n) = (sliceWA τ F).toFun n)
+    (hreal : ∀ n : ℤ,
+      ((sliceWA τ F).toFun n).im = 0)
+    (heval : ∀ x ∈ Set.Ioo (0 : ℝ) 1,
+      evalST τ (x : WA.Circ) F = ((f x : ℝ) : ℂ)) :
+    ewaCosCoeffAt F τ k = cosineCoeffs f k
+```
+
+Use `Ioo` plus an a.e. congruence for cosine coefficients, because your committed source eval bridge is interior-only. The current `evalST_sourceEWA_eq_intervalCoupledSource` proves the source equality at every \(x\in(0,1)\), not on the closed endpoints. fileciteturn88file0L11-L26
+
+Proof plan:
+
+1. Let
+
+   ```lean
+   c k := ewaCosCoeffAt F τ k
+   ```
+
+2. From `heven` and `hreal`, prove
+
+   ```lean
+   (sliceWA τ F).toFun = ofCosineCoeffs c
+   ```
+
+   coefficientwise.
+
+3. From the already-built intrinsic envelope:
+
+   ```lean
+   ewaCosCoeffAt_abs_le_envelope F τ k
+   sourceEnvelope_summable F
+   ```
+
+   prove
+
+   ```lean
+   Summable (fun k => |c k|)
+   ```
+
+   The `SourceEnvelope` file gives exactly this unconditional envelope and bound for any `F : EWA T 0`. fileciteturn85file0L39-L66
+
+4. Use `evalC_ofCosineCoeffs_all` to show the EWA synthesis is the cosine series with coefficients `c`.
+
+5. Use `heval` on `Ioo 0 1` and an endpoint-null/a.e. congruence to transfer cosine coefficients.
+
+This theorem replaces the circular bridge.
+
+## Is full parity propagation needed?
+
+Yes, in some form.
+
+You cannot get the coefficient identity from “real-valued eval” or conjugate symmetry alone. A real sine series is conjugate-symmetric as a Fourier series, but its paired extractor is not the Neumann cosine coefficient family of its restriction to `[0,1]`.
+
+So you need either:
+
+```lean
+(sliceWA τ F).toFun = ofCosineCoeffs c
+```
+
+or enough to prove it: evenness plus real coefficients.
+
+For the chem-div source, the parity chain is:
+
+\[
+u\ \text{even},\quad
+u^\gamma\ \text{even},\quad
+v=R_\mu(u^\gamma)\ \text{even},
+\]
+
+\[
+v_x\ \text{odd},\quad
+q=(1+v)^{-\beta}\ \text{even},
+\]
+
+\[
+B=u\,v_x\,q\ \text{odd},
+\qquad
+\partial_xB\ \text{even},
+\qquad
+G(u)\ \text{even}.
+\]
+
+You do not need to prove a huge bespoke parity theorem for every final coefficient identity, but you do need reusable parity lemmas for the EWA operations or a direct theorem proving `sourceEWA` is even/real from `U` even/real.
+
+A good minimal record is:
+
+```lean
+structure EvenRealEWA (U : EWA T r) : Prop where
+  even : ∀ τ n, (sliceWA τ U).toFun (-n) = (sliceWA τ U).toFun n
+  real : ∀ τ n, ((sliceWA τ U).toFun n).im = 0
+```
+
+Then prove closure:
+
+```lean
+EvenRealEWA.realPowEWA
+EvenRealEWA.gResolver
+EvenRealEWA.qFactor
+EvenRealEWA.growthEWA
+
+OddImagEWA.gDeriv_of_even
+OddImagEWA.chemFluxEWA
+EvenRealEWA.gDeriv_of_odd
+EvenRealEWA.chemDivEWA
+```
+
+This is less brittle than threading `EWARealizesOn`.
+
+---
+
+# 3. Q2 — slice-wise even embedding of the committed iterate
+
+For the **source envelope**, yes: the slice-wise even-embedding shortcut is sound and it sidesteps the gradient-form/source-form evolution mismatch.
+
+You do **not** need an EWA element that is known to be produced by the same mild fixed-point map. To bound
+
+```lean
+cosineCoeffs (coupledChemDivSourceLift p u s) k
+```
+
+you only need:
+
+1. an EWA slice/time-lift `U` realizing the given slice \(u(s)\);
+2. enough regularity, specifically `U : EWA T 1`;
+3. the factor eval bridges so `chemFluxEWA U` realizes the committed flux;
+4. the coefficient bridge above.
+
+The evolution equation is irrelevant for this **pointwise-in-time source coefficient bound**.
+
+So the map-form obstruction evaporates for the envelope.
+
+However, do not construct merely independent `WA` slices
+
+```lean
+U_s : WA 1
+```
+
+unless you only want per-time estimates. `SourceEnvelope` is for
+
+```lean
+F : EWA T 0
+```
+
+and uses the `CT T` coefficient sup norm. It gives a uniform-in-time envelope and a summability estimate:
+
+```lean
+sourceEnvelope_summable
+ewaCosCoeffAt_abs_le_envelope
+sourceEnvelope_tsum_le_norm
+```
+
+fileciteturn85file0L57-L66 fileciteturn85file0L95-L108
+
+So the shortcut must produce an honest time-lift:
+
+```lean
+U : EWA T 1
+```
+
+with
+
+```lean
+(sliceWA τ U).toFun =
+  ofCosineCoeffs (fun k => cosineCoeffs (intervalDomainLift (u τ.1)) k)
+```
+
+or with equivalent even/real/eval data.
+
+The map-form mismatch only matters if you try to prove that `U` is generated by the committed Picard recursion. For source envelopes, you can ignore it.
+
+For the time-derivative fields of `DuhamelSourceTimeC1`, the map-form still is not the input. You can continue to use the existing pointwise chemDiv time-chain machinery, or an EWA post-regularity theorem. The envelope does not provide `adot`.
+
+---
+
+# 4. Q3 — is `u ∈ A¹` truly required?
+
+For the current Wiener product route, yes.
+
+To get
+
+\[
+\partial_xB\in A^0
+\]
+
+through
+
+\[
+B=u\,v_x\,q,
+\]
+
+your construction uses
+
+\[
+B\in A^1.
+\]
+
+The bare factor \(u\) is the bottleneck. Resolver smoothing of \(v\) does not remove the high frequencies of \(u\) when multiplying by a nontrivial low mode of \(v_xq\).
+
+A Fourier obstruction is simple: if \(h=v_xq\) has some nonzero low mode, then the high modes of \(u h\) contain shifted copies of the high modes of \(u\). Differentiating then costs one power of \(k\). So without a first moment
+
+\[
+\sum_k k|\hat u_k|<\infty,
+\]
+
+you cannot generally force
+
+\[
+\partial_x(uh)\in A^0.
+\]
+
+Thus a paraproduct/commutator shortcut is not the shortest sound Lean path. It would be a new analytic route, not a small bridge.
+
+## Positive-time restart
+
+A positive-time restart is the right device **if** the committed development exposes enough regularity to produce
+
+\[
+\sum_k (1+k)\sup_{s\in[\tau_0,T]}
+|\widehat u_k(s)|<\infty.
+\]
+
+But the currently exposed joint iterate data is only `C²`-level. It explicitly records the iterate coefficient family as `C²` in time and the spatial regularity route as joint `C²`, not a higher `C³`/smooth package. fileciteturn93file0L5-L23
+
+Plain spatial `C²` gives roughly
+
+\[
+|\hat u_k|\lesssim k^{-2},
+\]
+
+which yields
+
+\[
+\sum_k k|\hat u_k|\sim\sum_k 1/k,
+\]
+
+not enough.
+
+You need one of:
+
+1. a committed or new positive-time smoothing theorem giving `EWA T 1` directly;
+2. a uniform `C³`/bounded-variation style coefficient decay theorem on `[τ₀,T]`;
+3. an EWA fixed-point/shadow construction started from already `A¹` data;
+4. a stronger weighted source/bootstrap theorem.
+
+If the repo only exposes the current `C²` layer, then the positive-time restart still requires a new brick:
+
+```lean
+positiveTime_EWA1_of_classicalSolution
+```
+
+or
+
+```lean
+picardLimit_coeff_envelope_A1_on_Icc_pos
+```
+
+This is now the real analytic join brick if your initial data is not already in `A¹`.
+
+---
+
+# 5. The cleanest Lean target
+
+## Step 1 — define a pure ℓ¹ chem-div time-C¹ field interface
+
+Do not touch `CoupledChemDivTimeC1Fields`.
+
+Define:
+
+```lean
+structure CoupledChemDivTimeC1L1Fields
+    (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ) where
+  envelope : ℕ → ℝ
+  henv_summable : Summable envelope
+  henv_bound :
+    ∀ s, 0 ≤ s → ∀ n,
+      |coupledChemDivSourceCoeffs p u s n| ≤ envelope n
+  hchain : CoupledChemDivLocalChainRule p u
+  hadotcont : ∀ n, Continuous (fun s => coupledChemDivAdot p u s n)
+  MchemDot : ℝ
+  hMdot : ∀ s, 0 ≤ s → ∀ n,
+    |coupledChemDivAdot p u s n| ≤ MchemDot
+```
+
+Then:
+
+```lean
+noncomputable def coupledChemDivSource_timeC1_of_l1Fields
+    (F : CoupledChemDivTimeC1L1Fields p u) :
+    DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p u)
+```
+
+This is a thin wrapper around `duhamelSourceTimeC1_of_data`.
+
+If working on `[0,T]`, make the analogous:
+
+```lean
+CoupledChemDivTimeC1L1FieldsOn p u 0 T
+```
+
+and output `DuhamelSourceTimeC1On`.
+
+## Step 2 — add a PAR sibling consuming the pure source package
+
+Add:
+
+```lean
+theorem duhamelProfile_closedC2_neumann_of_coupledChemicalSource_l1
+    (hlog : DuhamelSourceTimeC1 (coupledLogisticSourceCoeffs p u))
+    (hchemSrc : DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p u))
+    (hcoeffSplit : coupledChemicalSourceCoeffs p u =
+      fun s n => -(p.χ₀ * coupledChemDivSourceCoeffs p u s n)
+        + coupledLogisticSourceCoeffs p u s n)
+    ...
+```
+
+The proof should be exactly:
+
+```lean
+exact duhamelProfile_closedC2_neumann_of_timeC1_source
+  (coupledChemicalSource_duhamelSourceTimeC1 hlog hchemSrc hcoeffSplit)
+  ht hEq
+```
+
+This duplicates the current theorem but replaces `hchem : CoupledChemDivTimeC1Fields p u` with `hchemSrc`.
+
+## Step 3 — build the EWA envelope theorem
+
+Define the chem-div EWA source separately from the total source:
+
+```lean
+def chemDivEWA (μ ν γ : ℝ) (hμ : 0 < μ)
+    (p : CM2Params) (U : EWA T 1) : EWA T 0 :=
+  GWA.gDeriv (chemFluxEWA μ ν p.β γ hμ U)
+```
+
+Then prove:
+
+```lean
+theorem chemDiv_coeff_bound_of_EWA
+    (HU : U realizes u on [0,T] in the even-real sense)
+    (hFactorRealization ... )
+    :
+    ∀ τ k,
+      |cosineCoeffs (coupledChemDivSourceLift p u τ.1) k|
+        ≤ sourceEnvelope (chemDivEWA μ ν γ hμ p U) k
+```
+
+Use:
+
+1. `evalST_gDeriv_chemFlux_eq_deriv`;
+2. `deriv_chemFluxLifted_eq_chemDiv`;
+3. the non-circular even-real coefficient bridge;
+4. `ewaCosCoeffAt_abs_le_envelope`.
+
+The eval bridge already proves the hard interior equality from `sourceEWA` to the committed `intervalCoupledSource`, with the divergence leg routed through `gDeriv chemFluxEWA`. fileciteturn87file0L29-L45
+
+For chem-div alone, factor out the corresponding sublemma:
+
+```lean
+evalST_chemDivEWA_eq_coupledChemDivSourceLift
+```
+
+from the proof of `evalST_sourceEWA_eq_intervalCoupledSource`.
+
+## Step 4 — prove the envelope fields
+
+Set:
+
+```lean
+envelope := sourceEnvelope (chemDivEWA μ ν γ hμ p U)
+```
+
+Then:
+
+```lean
+henv_summable := sourceEnvelope_summable ...
+henv_bound := chemDiv_coeff_bound_of_EWA ...
+```
+
+This gives the value-envelope half of `DuhamelSourceTimeC1`.
+
+## Step 5 — supply time derivative fields separately
+
+`SourceEnvelope` does not supply:
+
+```lean
+adot
+hderiv
+hadotcont
+derivBound
+```
+
+Use the existing chemDiv time-chain route, or a post-fixed-point EWA time-chain.
+
+The current committed `coupledChemDivAdot` is already fixed as the cosine coefficient of `coupledChemDivTimeDerivativeLift`. fileciteturn79file0L20-L23
+
+So the pure ℓ¹ constructor should reuse:
+
+```lean
+coupledChemDivAdot p u
+```
+
+and the existing local chain machinery for `hderiv`.
+
+---
+
+# 6. Global vs windowed warning
+
+Your `SourceEnvelope` is for `F : EWA T 0`, hence a finite time window. It naturally gives:
+
+```lean
+∀ s ∈ [0,T], |a s n| ≤ envelope n
+```
+
+The global `DuhamelSourceTimeC1` wants:
+
+```lean
+∀ s, 0 ≤ s → ...
+```
+
+fileciteturn83file0L22-L31
+
+So the most faithful endpoint is the windowed package:
+
+```lean
+DuhamelSourceTimeC1On a 0 T
+```
+
+If a downstream theorem still insists on global `DuhamelSourceTimeC1`, you have two choices:
+
+1. Add a windowed PAR theorem.
+2. Use a soft-clamp/extension trick to create a global source package that agrees with the real source on `[0,T]`.
+
+Do not silently use a finite-window envelope as a global one.
+
+---
+
+# Final answer to (a), (b), (c)
+
+## (a) Q2 shortcut: confirmed, with one condition
+
+Yes, for the chem-div **source envelope**, you may construct `U` slice-wise/time-wise as the even embedding of the committed solution or iterate coefficients. You do not need to prove that `U` is generated by the same mild map. The gradient-form/source-form mismatch is irrelevant for a pointwise-in-time source bound.
+
+The condition is that the slice-wise construction must actually give an `EWA T 1` element, not just a family of `WA 1` slices.
+
+## (b) Q1 non-circular coefficient route
+
+Drop `EWARealizesOn` as the primitive. Replace it with:
+
+```lean
+ewaCosCoeffAt_eq_cosineCoeffs_of_even_real_eval_ae
+```
+
+where summability comes from the intrinsic EWA norm via `SourceEnvelope`, not from a `summable_cos` hypothesis.
+
+Real-valuedness/conjugate symmetry alone is not enough. You need evenness of the source EWA element, or a direct coefficient identity.
+
+## (c) Q3 regularity
+
+For this Wiener route, `u ∈ A¹` is genuinely required. Resolver smoothing does not remove the bare high-frequency factor `u` in `u·v_x·q`.
+
+A positive-time restart is the right analytic device, but only if you expose an actual `E_T^1` coefficient envelope on `[τ₀,T]`. The currently visible committed C² layer is not enough; C² only gives \(k^{-2}\)-type decay, which does not imply \(A^1\).
+
+## Quadratic `hdecay`
+
+Your pure ℓ¹ envelope does **not** satisfy the old `hdecay`. Do not try to fill that field.
+
+Either:
+
+```lean
+-- shortest
+DuhamelSourceTimeC1 / DuhamelSourceTimeC1On from SourceEnvelope
+```
+
+or, if you insist on the old struct:
+
+```lean
+prove chemDivEWA ∈ E_T^2
+```
+
+and derive quadratic decay from the weight-2 coefficient bound.
+
+For the final 合龙, the first route is the shortest and cleanest.

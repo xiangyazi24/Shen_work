@@ -366,3 +366,36 @@ ENDGAME (fill CoupledChemDivTimeC1Fields / build DuhamelSourceTimeC1 for the che
   Discharge the carried B5e factor hyps (hgrad, h_flux_nbhd, h_growth) of evalST_sourceEWA_eq_intervalCoupledSource.
 NOTE: E1's "U realizes the solution" + the regularity/weight + the map-form are entangled — the genuinely hard 合龙.
 ## ============================================================================================================
+
+## 🎯 ENDGAME DESIGN (ChatGPT cron2 endgame consult, 2026-06-14, captured gpt_endgame.out) — REROUTE: ℓ¹ not hdecay
+DECISIVE: do NOT fill CoupledChemDivTimeC1Fields.hdecay — it demands QUADRATIC decay |chemDiv_k|≤C/(kπ)² (STRONGER
+than ℓ¹; a sparse summable seq can have k²E_k→∞). My SourceEnvelope is pure ℓ¹, NOT quadratic. So target instead:
+  build DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs p u) via a NEW ℓ¹-field constructor (duhamelSourceTimeC1_
+  of_data takes an ARBITRARY summable envelope) + a PAR SIBLING duhamelProfile_closedC2_neumann_of_coupled
+  ChemicalSource_l1 consuming the chemDiv DuhamelSourceTimeC1 directly (body = current thm after line 43).
+ENDGAME STEPS (cleanest Lean target):
+  S1 struct CoupledChemDivTimeC1L1Fields (ℓ¹ envelope+summable+bound + hchain + adotcont + Mdot) +
+     coupledChemDivSource_timeC1_of_l1Fields (wrapper over duhamelSourceTimeC1_of_data). [windowed ...On / [0,T]]
+  S2 PAR sibling ..._l1 (hlog + hchemSrc:DuhamelSourceTimeC1(chemDiv) + hcoeffSplit). thin surgical join.
+  S3 chemDivEWA := gDeriv(chemFluxEWA U) : EWA T 0; chemDiv_coeff_bound_of_EWA : |cosineCoeffs(coupledChemDiv
+     SourceLift u) k| ≤ sourceEnvelope(chemDivEWA U) k — via evalST_gDeriv_chemFlux_eq_deriv + deriv_chemFluxLifted
+     _eq_chemDiv + the NON-CIRCULAR coeff bridge + ewaCosCoeffAt_abs_le_envelope. (factor sublemma evalST_chemDivEWA
+     _eq_coupledChemDivSourceLift from SourceEvalBridge.)
+  S4 envelope fields := sourceEnvelope(chemDivEWA U), henv_summable/henv_bound from SourceEnvelope.
+  S5 adot fields — STILL the hard B8: reuse committed coupledChemDivAdot (cosineCoeff of coupledChemDivTime
+     DerivativeLift) + local chain for hderiv, OR a post-fixed-point EWA time-chain. SourceEnvelope does NOT give adot.
+NON-CIRCULAR COEFF BRIDGE (Q1, drop EWARealizesOn): ewaCosCoeffAt_eq_cosineCoeffs_of_even_real_eval_ae {F}{f}(τ)
+  (heven : slice toFun even)(hreal : slice toFun im=0)(heval : evalST=f on Ioo 0 1) : ewaCosCoeffAt F τ k =
+  cosineCoeffs f k. Summability from SourceEnvelope (INTRINSIC, not assumed). Interior-only eval → a.e./endpoint-null
+  congruence. PARITY IS NEEDED (real-valued alone insufficient): EvenRealEWA struct (even+real slice) + closure
+  realPowEWA/gResolver/qFactor/growthEWA preserve; gDeriv even↔odd; chemFluxEWA odd; chemDivEWA even. USES my
+  committed ConvParity + ParityFoundations atoms.
+Q2 SLICE-EMBEDDING SHORTCUT CONFIRMED: construct U slice-wise = even-embed of the committed solution's cosineCoeffs
+  — sidesteps the gradient-vs-source map-form ENTIRELY (source bound is pointwise-in-time, evolution irrelevant).
+  Condition: must be an honest EWA T 1 element (CT-continuous in t), not just WA 1 slices.
+⚠️ Q3 REMAINING OBSTRUCTION (the real analytic gap): the Wiener product route NEEDS u∈A¹ (Σ(1+k)|cosineCoeffs(u)|<∞;
+  the bare u factor in B=u·v_x·q is the bottleneck, resolver smoothing does NOT help). The committed solution is only
+  C² ⟹ |û_k|~k^{-2} ⟹ Σk|û_k|~Σ1/k DIVERGES, NOT A¹. Need a NEW positive-time-restart/smoothing brick exposing E_T^1
+  on [τ₀,T] (positiveTime_EWA1_of_classicalSolution), OR leave u∈A¹ as a hypothesis. The EWA reduces the χ₀≠0
+  chemotaxis source-ℓ¹ to the solution's A¹ regularity (a cleaner/standard parabolic fact than the full estimate).
+## ============================================================================================================
