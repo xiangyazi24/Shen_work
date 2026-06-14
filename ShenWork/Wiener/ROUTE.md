@@ -585,3 +585,26 @@ the gradient-form (hard, boundary-term obstruction) or consolidate capstone as a
 result. The capstone stands as correct mathematics (χ₀≠0 source-form chemotaxis spectral ℓ¹, 0 sorry/0 axiom,
 hostile-audited) but is NOT the Thm 1.1 wiring ingredient.
 ## ============================================================================================================
+
+## ★★★★ MAP-FORM RIGOROUSLY RESOLVED (2026-06-14, ChatGPT Pro cron 9ae355d3) — capstone controls the CORRECT term
+ChatGPT Pro gave a RIGOROUS resolution with an explicit smooth counterexample + the decisive structural point:
+(1) GRADIENT-form ∂ₓS_N·g is NOT eigenvalue-ℓ¹ summable in general. Counterexample g=x(1-x) (C^∞, no-flux):
+    W=∫∂ₓS_N(t-s)g ds is Dirichlet-in-Neumann-basis; W_x(t,0)=S_N(t)g(0)>0 (heat-kernel positivity) ⟹ λ_n W_n(t)
+    → -4a(t)≠0 along odd n ⟹ Σλ_n|W_n|=∞. Regularity does NOT fix it; it's a Neumann BOUNDARY-COMPATIBILITY issue.
+(2) The recon's bdy_n=2((-1)ⁿS(τ)g(1)-S(τ)g(0))=O(1) MECHANISM is WRONG — bulk cancels it to O(1/n²); but the
+    obstruction survives one order up: λ_n·coeff_n → boundary trace of W_xx (= W_x endpoint). Necessary condition for
+    Σλ_n|W_n|<∞ is W_x(t,0)=W_x(t,1)=0, NOT forced by g(endpoint)=0.
+(3) ★ DECISIVE (§6): the CORRECT Neumann variation-of-constants for divergence forcing u_t=u_xx-∂ₓg is the
+    SOURCE form  -∫₀ᵗ S_N(t-s)∂ₓg ds  — NOT the gradient form ∂ₓS_N·g. Its cosine coeffs are DIAGONAL:
+    -2nπ∫₀ᵗ e^{-λ_n(t-s)}∫₀¹ sin(nπx)g(s,x)dx ds = EXACTLY the object coupledChemDivSourceCoeffs / the capstone
+    controls, and IS eigenvalue-ℓ¹ summable. So the CAPSTONE IS ABOUT THE CORRECT (source-form) DIVERGENCE TERM.
+CORRECTION TO 67e5677 (B5-fails framing): the capstone is NOT tangential/wrong-target. It controls the CORRECT
+Neumann divergence term. The non-summable object is the COMMITTED MAP's gradient-form ∂ₓS_N·chemFlux
+(IntervalGradientDuhamelMap.lean:61-62), which ChatGPT flags as NOT the natural variation-of-constants.
+NEW OPEN QUESTION (committed-dev FAITHFULNESS — Xiang's call): does intervalGradientDuhamelMap (gradient-form)
+faithfully represent the chemotaxis PDE? Either (a) it should be SOURCE-form (then capstone wires directly + the
+committed map needs a faithfulness fix), or (b) gradient & source forms agree on the genuine classical solution via
+boundary cancellation (then a reconciliation lemma at the solution wires the capstone). This touches committed-dev
+correctness — surfaced to Xiang, not auto-decided. The capstone (chemDiv_eigenvalueSummableOn_uncond, source-form,
+0 sorry/0 axiom, audited) stands as the control of the CORRECT divergence term.
+## ============================================================================================================
