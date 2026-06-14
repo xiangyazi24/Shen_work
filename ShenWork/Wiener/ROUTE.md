@@ -608,3 +608,23 @@ boundary cancellation (then a reconciliation lemma at the solution wires the cap
 correctness — surfaced to Xiang, not auto-decided. The capstone (chemDiv_eigenvalueSummableOn_uncond, source-form,
 0 sorry/0 axiom, audited) stands as the control of the CORRECT divergence term.
 ## ============================================================================================================
+
+## FAITHFULNESS RESOLVED + reconciliation reframed (2026-06-14, read IntervalGradientDuhamelMap.lean:1-73)
+The committed gradient form is INTENTIONAL + FAITHFUL, NOT a bug. Docstring (:4-13): "the route's mild map is the
+gradient-Duhamel (divergence) form — ∂ₓ lives on the semigroup S(t−s), NOT on the source — so it consumes only the
+C⁰ flux Q (not its divergence chemDiv)". Φ = S(t)u₀ − χ₀∫∂ₓ[S(t−s)Q]ds + ∫S(t−s)L ds. Deliberate WEAK formulation
+at C⁰ flux regularity (Q=u·∂ₓR/(1+R)^β), avoiding chemDiv (the source form the capstone controls).
+RECONCILIATION REFRAMED (the capstone is RELEVANT after all, for the bulk): ChatGPT's counterexample (g=x(1-x))
+shows gradient-form W NOT eigenvalue-ℓ¹ summable for ARBITRARY flux, because W_x(t,endpoint)=S_N(t)g(endpoint)≠0.
+BUT for the GENUINE Neumann solution W=u−heat−logistic, and u,heat,logistic are ALL Neumann (∂ₓ=0 at endpoints) ⟹
+W_x(t,endpoint)=u_x−heat_x−logistic_x=0 ⟹ the boundary obstruction VANISHES ⟹ gradient-form W IS eigenvalue-ℓ¹
+summable for the solution (capstone supplies the bulk; W_x=0 kills the boundary term). The counterexample g=x(1-x)
+fails ONLY because it is not a solution's flux.
+THE CATCH (bootstrap): W_x(endpoint)=0 ⟺ u Neumann ⟺ the regularity being proven — intertwined with the
+weak→classical upgrade. So: NOT a dead end, NOT a clean win — a well-characterized bootstrappy brick. The capstone
+(source-form ∂ₓB∈A eigenvalue-ℓ¹, 0 sorry/0 axiom, audited) is the genuine BULK ingredient.
+STRATEGIC FORK (benefits from Xiang's read of the paper's χ₀≠0 regularity argument): (a) drive the bootstrap
+reconciliation (W_x=0 from the solution's Neumann regularity + capstone bulk ⟹ χ₀≠0 hbsumF) — reachable but
+intertwined; or (b) the paper's actual χ₀≠0 regularity may use gradient-Duhamel sup/Hölder (Atom D) + Schauder, NOT
+the spectral hbsumF — a different method bypassing eigenvalue-ℓ¹ entirely. Which the paper uses decides the path.
+## ============================================================================================================
