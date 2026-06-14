@@ -339,3 +339,30 @@ Remaining bricks to the milestone: flux eval (auditing) → growth eval → sour
 → source coeff (B6) + ℓ¹ envelope → B8 time-chain (adot uniform bound, hardest) → B5e realization discharge
 (EWARealizesOn full-circle) → B9 package DuhamelSourceTimeC1On → feed the generic spectral machinery.
 ## ============================================================================================================
+
+## ✅✅ DECISIVE: GAP CONFIRMED, EWA IS THE GAP-FILLER (recon a1e94177, 2026-06-14)
+The chemDiv ℓ¹ bound Summable(cosineCoeffs(intervalDomainChemotaxisDiv)) = ∂ₓB∈A is NOT proven in committed dev —
+it's the `hdecay` field of CoupledChemDivTimeC1Fields (IntervalChemDivTimeDerivative.lean:96-104), a struct that is
+NEVER CONSTRUCTED (grep: no .mk/⟨⟩). The χ₀-general node duhamelProfile_closedC2_neumann_of_coupledChemicalSource
+(IntervalCoupledClassicalCorePAR.lean:179, sorry-free) TAKES it as hypothesis hchem. = the real undischarged gap
+("zero sorry ≠ complete"). Only the final paper2_theorem_1_1_chiZero_final (IntervalDomainThm11ChiZeroFinal.lean:204)
+is χ₀=0-restricted; the machinery below it is χ₀-GENERAL.
+THE LIVE CONSUMER needs a PURE summable ℓ¹ envelope: DuhamelSourceTimeC1 (IntervalDuhamelClosedC2.lean:1502) fields
+envelope/henv_summable/henv_bound — NOT quadratic decay (that's the H²-elliptic constructor's artifact,
+IntervalSemigroupNeumann.lean:828). EWA SourceEnvelope (sourceEnvelope/_summable/_abs_le) maps FIELD-FOR-FIELD onto
+it, from the Wiener norm — bypassing H²/elliptic. ⟹ THE 15 EWA BRICKS PLUG INTO THE REAL χ₀≠0 PATH. Not orthogonal.
+
+ENDGAME (fill CoupledChemDivTimeC1Fields / build DuhamelSourceTimeC1 for the chemDiv source via the EWA):
+  E1 [B5e parity, non-circular] ewaCosCoeffAt(sourceEWA) = cosineCoeffs(intervalCoupledSource): needs the source
+     even-embedded (parity propagation: realPowEWA/gResolver/gHeat preserve even, gDeriv even↔odd, products) +
+     the realization; CRUCIAL fix: supply EWARealizesOn.summable_cos from the EWA intrinsic summable_coeff_norm
+     (NOT assume it — recon caught the circularity). Caveat: U must realize the SOLUTION u; regularity/weight
+     ladder (u∈A^r) + the gradient-vs-source map-form both bear here.
+  E2 [B8 adot] the time-derivative data (adot/hderiv/derivBound) for DuhamelSourceTimeC1 — mirror
+     coupledChemDivSource_duhamelSourceTimeC1 (IntervalCoupledSourceTimeC1.lean:52) / the logistic uniform-limit
+     constructor (IntervalPicardLimitLogisticSource.lean:187). The head risk all along.
+  E3 [assembly] build DuhamelSourceTimeC1 (coupledChemDivSourceCoeffs) from SourceEnvelope (henv triple) + E2 adot
+     → discharge hchem → duhamelProfile_closedC2_neumann_of_coupledChemicalSource (χ₀≠0) → generalize Thm 1.1.
+  Discharge the carried B5e factor hyps (hgrad, h_flux_nbhd, h_growth) of evalST_sourceEWA_eq_intervalCoupledSource.
+NOTE: E1's "U realizes the solution" + the regularity/weight + the map-form are entangled — the genuinely hard 合龙.
+## ============================================================================================================
