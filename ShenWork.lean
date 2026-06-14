@@ -24,6 +24,7 @@ import ShenWork.Paper3.Defs
 import ShenWork.Paper3.Statements
 import ShenWork.Paper3.CriticalSensitivityExactValue
 import ShenWork.Paper3.LyapunovFunction
+import ShenWork.Paper3.ThresholdOrdering
 import ShenWork.PDE.CosineSpectrum
 import ShenWork.PDE.UnitPointLogisticODE
 import ShenWork.PDE.UnitPointDecayODE
