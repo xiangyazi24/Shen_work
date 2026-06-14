@@ -221,3 +221,23 @@ REMAINING BRICKS (precise):
 Circularity-safe order: value maps → contraction (value Lipschitz only) → lift Picard → EWA limit → fixed-point
 identity → time-chain (post-fixed-point readout) → package. Source derivative NOT a contraction input.
 ## ============================================================================================================
+
+## JOIN INTERFACE MAP (recon a8c7e1a, 2026-06-14) — exact committed file:line for B5-B9
+COEFF (B6): cosineCoeffs (PDE/IntervalNeumannFullKernel.lean:83, =unitIntervalNeumannCosineCoeff, 0th unscaled,
+  k≥1 ×2); fourierCoeff_evalC_eq_coeff (Wiener/WeightedL1Eval.lean:478: fourierCoeff(evalC a) n = a.toFun n, T=2);
+  ofCosineCoeffs (Wiener/WeightedL1CosineAdapter.lean:24: n=0↦c₀, else c_{|n|}/2); evalC_ofCosineCoeffs
+  (Wiener/WeightedL1CosineEval.lean:58: synth of even embed = ∑c_k cos(kπx) on [0,1]); cosineMode
+  (PDE/CosineSpectrum.lean:21 = cos(nπx)); intervalDomainLift (PDE/IntervalDomain.lean:2750, extend-by-0).
+  ⟹ fourierCoeff(cosine-series w) = ofCosineCoeffs(cosineCoeffs w) ⟹ (a_k+a_{-k}).re = cosineCoeffs_k.
+DUHAMEL/HEAT (B5/PhiEWA): valDuhamelEWA (EWA/Duhamel.lean:472, bound T), divDuhamelEWA (:478, bound C₀√T),
+  duhValMode/duhDivMode (:217/:260). gHeat (GWA/Operators.lean:324, scalar exp(-τ(nπ)²)), gHeatDeriv (:344).
+  NO heatEWA — B5 must build the time-dependent heat flow as an EWA element (coeff_n(t)=exp(-t(nπ)²)û₀_n).
+EVAL TARGET (B5): intervalGradientDuhamelMap (Paper2/IntervalGradientDuhamelMap.lean:58) = S(t)u₀ -χ₀∫∂ₓS(t-s)Q
+  +∫S(t-s)L; Q=chemFluxLifted (:47 = lift w·resolverGradReal/(1+lift(R w))^β), L=logisticLifted (:52). picardIter
+  (Paper2/IntervalMildPicard.lean:863, base S(t)u₀ / step Φ). intervalFullSemigroupOperator (PDE/...FullKernel:78).
+EVAL(gDeriv v) (B5 HARD): resolverGradReal (Paper2/IntervalDomainL2StaticVDifference.lean:748) =
+  intervalNeumannResolverRGrad (PDE/IntervalNeumannEllipticResolverR.lean:463 = ∑(v̂_k).re·(-kπ sin(kπx))) — a
+  SINE series ⟹ B5 needs ofSineCoeffs (odd embedding, the held parity sibling). intervalNeumannResolverR (:102).
+  Floor: intervalNeumannResolverR_nonneg_of_nonneg_source (PDE/IntervalResolverPositivity.lean:489).
+NEXT: B6 coeff bridge first (self-contained); then B5 eval bridge (needs ofSineCoeffs for the gradient leg).
+## ============================================================================================================
