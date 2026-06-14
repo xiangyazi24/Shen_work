@@ -32,3 +32,10 @@
   - B6 coefficient bridge (EWARealizesOn struct + ewaCosCoeffAt + ewaCosCoeffAt_eq_cosineCoeffs_of_eval) — opus
     aa385ea IN FLIGHT, spec /tmp/shen_B6.md (honest-stall instruction on the interval↔period-2-circle step).
     Running join bricks ONE at a time (合龙处慢点细审) — B6 outcome informs B5 design.
+
+  - B6 coeff bridge — opus aa385ea, green 8281, resolved the even-extension subtlety (full-circle eval_eq =
+    cosine SYNTHESIS not extend-by-0; re-derived evalC_ofCosineCoeffs_all). Hostile audit a2b761a = CONDITIONAL
+    (math sound + satisfiable + clean axioms; only an over-optimistic docstring). FIXED docstring → COMMITTED
+    effaf73. AUDIT-DISCOVERED B5 OBLIGATION: B5 must prove (sliceWA τ U).toFun = ofCosineCoeffs(cosineCoeffs(lift))
+    (route through evalC_ofCosineCoeffs_all), NOT just iterate_lift_eq_cosineSeries ([0,1]-only).
+  - Sine adapter ofSineCoeffs (B5 prereq, eval(gDeriv v)=resolverGradReal sine series) — opus adad45c IN FLIGHT.

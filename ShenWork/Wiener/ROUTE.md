@@ -241,3 +241,9 @@ EVAL(gDeriv v) (B5 HARD): resolverGradReal (Paper2/IntervalDomainL2StaticVDiffer
   Floor: intervalNeumannResolverR_nonneg_of_nonneg_source (PDE/IntervalResolverPositivity.lean:489).
 NEXT: B6 coeff bridge first (self-contained); then B5 eval bridge (needs ofSineCoeffs for the gradient leg).
 ## ============================================================================================================
+
+## B5 FULL-CIRCLE OBLIGATION (discovered by B6 audit a2b761a, 2026-06-14)
+B6's EWARealizesOn.eval_eq is FULL-CIRCLE (eval = cosine synthesis ∑ c_k cos(kπx) for all x). To discharge it,
+B5 cannot just cite iterate_lift_eq_cosineSeries (that's [0,1]-only, = the is_cosine_series field). B5 must prove
+the coefficient-embedding identity (sliceWA τ (picardEWA-shadow)).toFun = ofCosineCoeffs(cosineCoeffs(lift picardIter))
+and route the realized slice through evalC_ofCosineCoeffs_all for the full-circle synthesis. Track B5 against this.
