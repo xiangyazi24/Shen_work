@@ -516,3 +516,23 @@ Mdot genuinely bypassed at the wiring. Remaining wiring cost (NOT Mdot): (1) add
 NEXT: build the Mdot-free combined-source summability scaffold (ChemDivWiring.lean), then the open-window-hyp
 instantiation at D.u (the genuine remaining PDE-regularity content for χ₀≠0 Thm 1.1).
 ## ============================================================================================================
+
+## WIRING SCAFFOLD AUDIT (2026-06-14, audit a57014c): SOUND-BUT-MISTARGETED — trashed; real wiring is deeper
+The additive scaffold (combinedDuhamel_eigenvalueSummable) was mathematically sound + Mdot-free, BUT the audit
+caught it MIS-TARGETED + dead code: its conclusion |∫₀ᵗ exp·(Glog+c·Gchem)| puts everything INSIDE one integral,
+whereas the provider's actual hbsumF (ChiZeroCoreProvider.lean:382-393) is Summable(λ_n·|limitCoeff p u₀ D.u σ n|)
+with limitCoeff = exp(-σλ_n)·û₀_n + duhamelSpectralCoeff(logistic) (IntervalPicardLimitRestart.lean:102-106) — a
+HEAT TERM OUTSIDE the integral + the Duhamel source. The integral-form abstract lemma is the WRONG SHAPE to produce
+that; hlog was mis-advertised as "committed hbsumF" (it's heat-free). Trashed (untracked, not committed).
+THE REAL WIRING (corrected understanding): right shape = BARE-coefficient additive lemma
+  Summable(λ|a|) + Summable(λ|b|) ⟹ Summable(λ|a + c·b|), instantiated a := limitCoeff_logistic (=hbsumF, heat+
+  Duhamel), b := chemDiv Duhamel coeff (=capstone). BUT a+(-χ₀)·b must = the χ₀≠0 solution's spectral coeff — which
+  requires a χ₀≠0 MILD SOLUTION whose coeff splits as heat + Duhamel(logistic+(-χ₀)chemDiv) = limitCoeff_logistic +
+  (-χ₀)·chemDiv-Duhamel. That χ₀≠0 solution does NOT exist in the committed χ₀=0-restricted dev. So the wiring needs
+  the χ₀≠0 PICARD/mild-solution construction (+ its per-coeff Duhamel split) — NOT a trivial add. Route A (Mdot-free)
+  still holds, but the wiring is the χ₀≠0 solution sub-campaign (F1-class), not plumbing.
+HONEST STATE: capstone chemDiv_eigenvalueSummableOn_uncond (χ₀≠0 source-ℓ¹, the campaign's STATED goal) DONE +
+  audited. It is the KEY INGREDIENT the χ₀≠0 Picard source-regularity step needs. Full wiring to Thm 1.1 = build the
+  χ₀≠0 solution (generalize the χ₀=0 Picard machinery, the capstone supplies its source-ℓ¹) + open-window hyps at
+  D.u. Large continued effort (shares F1-class strong-solution content).
+## ============================================================================================================
