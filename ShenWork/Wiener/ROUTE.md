@@ -560,3 +560,28 @@ ONCE B5 split exists: A¹ window de-gates (solution_A1_on_pos hbridge SolutionA1
 NEXT: build the B5 χ₀≠0 per-coeff Duhamel split (first reconcile gradient-form vs source-form for the chemotaxis
   term), then de-gate the A¹ window, assemble the additive summability into the χ₀≠0 hbsumF, lift the χ₀=0 provider.
 ## ============================================================================================================
+
+## ★★★ B5 RECONCILIATION FAILS (2026-06-14, recon a6dbf74) — capstone (source-form) does NOT wire to Thm 1.1
+HONEST SETBACK: the source-form capstone does NOT transfer to the gradient-form (Picard map / Thm 1.1) coefficient.
+TWO independent obstructions, both verified (explicit IBP + numerical to 1e-6):
+(A) MAP-FORM DIFFERENCE. Picard map chemotaxis term = gradient-form (-χ₀)∂ₓ[S(t-s)chemFlux] (IntervalGradient
+    DuhamelMap.lean:61-62, ∂ₓ OUTSIDE S). Capstone = source-form S·∂ₓchemFlux (∂ₓ inside). On Neumann [0,1] IBP:
+    gradient cosine coeff_n = bulk_n (off-diagonal Hilbert-transform mixing ~1/(k-n)) + bdy_n where
+    bdy_n = 2((-1)ⁿ S(τ)g(1) - S(τ)g(0)). bdy_n is O(1) NON-DECAYING in n (chemFlux g violates Neumann BC, so
+    S(τ)g(0/1)≠0). Duhamel eigenvalue kernel λ_n∫e^{-(t-s)λ_n}ds=1-e^{-tλ_n}→1 (no decay) ⟹ Σλ_n|gradDuhamel_n|
+    terms→O(1) ⟹ DIVERGES. Source-form summability CANNOT bound gradient-form. No honest equality/≤ lemma exists.
+(B) STRUCTURAL χ₀=0-ONLY. limitCoeff (IntervalPicardLimitRestart.lean:102-106) = e^{-tλ_k}û₀_k +
+    duhamelSpectralCoeff(LOGISTIC) — NO chemotaxis term. The fixed-point→spectral bridge cosineCoeffs_halfstep_eq_
+    limitCoeff_weak gated on hχ0, applies intervalGradientDuhamelMap_eq_of_chi0_zero (IntervalPicardIterateRestart.
+    lean:85: rw[hχ0];ring) DELETING the chemotaxis term. capstone has NO consumer outside ChemDiv*; limitCoeff/
+    hbsumF NEVER reference coupledChemDivSourceCoeffs/chemDivEWA/chemFluxLifted (grep empty intersection).
+CORRECTION TO PRIOR ROUTE.md: the "route A / capstone is the key ingredient / drop-in additive summand" framing was
+WRONG. The capstone is a CORRECT source-form theorem but targets the WRONG map-form for Thm 1.1. The map-form
+distinction (flagged campaign-early) is a GENUINE mathematical obstruction, not bookkeeping.
+WHAT THM 1.1 χ₀≠0 ACTUALLY NEEDS: gradient-form chemotaxis coefficient eigenvalue-ℓ¹ summability — control the
+boundary term 2((-1)ⁿSg(1)-Sg(0)) + the off-diagonal bulk mixing, requiring EXTRA solution regularity (flux endpoint
+decay), NOT available from the source-form bound. A NEW, harder target. DECISION POINT (surfaced to Xiang): pursue
+the gradient-form (hard, boundary-term obstruction) or consolidate capstone as a standalone correct source-form
+result. The capstone stands as correct mathematics (χ₀≠0 source-form chemotaxis spectral ℓ¹, 0 sorry/0 axiom,
+hostile-audited) but is NOT the Thm 1.1 wiring ingredient.
+## ============================================================================================================
