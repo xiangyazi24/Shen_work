@@ -399,3 +399,19 @@ Q2 SLICE-EMBEDDING SHORTCUT CONFIRMED: construct U slice-wise = even-embed of th
   on [τ₀,T] (positiveTime_EWA1_of_classicalSolution), OR leave u∈A¹ as a hypothesis. The EWA reduces the χ₀≠0
   chemotaxis source-ℓ¹ to the solution's A¹ regularity (a cleaner/standard parabolic fact than the full estimate).
 ## ============================================================================================================
+
+## ★★ CAMPAIGN CLOSE (2026-06-14, commit c027ff2) — Wiener-algebra value content COMPLETE; 2 gaps scoped
+DELIVERED (29 bricks, 0 sorry/0 axiom, all hostile-audited): chemDiv_eigenvalueSummableOn_of_solution (the
+assembled theorem — χ₀≠0 chemotaxis-divergence eigenvalue-ℓ¹ via ∂ₓB∈A) + the full machinery (WA→EWA→WL→eval
+bridges→parity→SourceEnvelope→realization chain h_u/h_v/h_vx→assembly node→top-level) + adot/h_deriv/h_adotcont.
+The Wiener algebra SOLVED the hard nonlinear χ₀≠0 source VALUE-ℓ¹ the committed χ₀=0 dev couldn't pass.
+TWO REMAINING GAPS to fully unconditional (precisely scoped, substantial NEW constructions — NOT mechanical):
+  (1) A¹ regularity (Q3): committed solution is C²=A⁰; A¹ needs Σ(1+k)/k²<∞ (diverges). Needs a NEW positive-time
+      parabolic-smoothing brick (committed dev exposes only C²). Separate standard analysis.
+  (2) Mdot/B8 time-chain: Mdot reduces EXACTLY (chemDivAdot_Mdot_residual) to a summable cosine-coeff envelope on
+      the TIME-DERIVATIVE field ∂_t(∂ₓB)=∂ₓ(B_t). No time-derivative EWA element exists (gDeriv is spatial only).
+      Needs the EWA-T-3 time-chain: mirror the WL/Lipschitz/eval-bridge layer at weight 3 for B_t, build a B_t
+      EWA element realizing ∂ₓ(B_t)∈A⁰, then SourceEnvelope supplies Mdot (exactly as it supplied the value bound).
+RECOMMENDED NEXT CAMPAIGN: the EWA-T-3 time-chain for Mdot (clearest path — the value layer is the template).
+Then the A¹ positive-time smoothing. Both reduce the FINAL theorem to fully unconditional.
+## ============================================================================================================
