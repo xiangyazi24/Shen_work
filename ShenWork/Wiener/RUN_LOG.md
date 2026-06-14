@@ -15,9 +15,14 @@
     uniform along segment, no diamond/junk-exp). COMMITTED 2da7934.
   - FnegLipschitz (FnegEWA_norm_le + FnegEWA_lipschitz, integrate t-shifted Γ-majorant) — opus a42fd8e,
     green 8268, clean. Hostile audit a744f65 IN FLIGHT. (bonus: integral_lip_majorantEWA = explicit Γ-combo.)
-  - RealPowLipschitz (realPowEWA/qFactor norm+Lipschitz on a ball, targets committed maps) — opus ab8ddd6,
-    IN FLIGHT. spec /tmp/shen_RealPowLip.md.
-  - E8/E12 join strategy — ChatGPT cron2 consult IN FLIGHT (approach A fresh-fixed-point+agreement vs B
-    lift-committed-picardIter; floor propagation; cos-coeff↔EWA bridge object; /tmp/gpt_e8.out).
+  - RealPowLipschitz (realPowEWA/qFactor norm+Lipschitz on a ball) — opus ab8ddd6, green 8270, clean. Hostile
+    audit a03ce3e = FAITHFUL (real committed maps, correct product split, NormOneClass-free induction sound).
+    COMMITTED a135e0d. ⇒ LIPSCHITZ LAYER COMPLETE (Exp→Fneg→RealPow).
+  - E8/E12 join strategy — ChatGPT cron2 RETURNED. STRATEGY = B′ (EWA-shadow-Picard). Blueprint captured
+    (gpt_e8_join_strategy.txt) + ROUTE.md Phase C-2 (bricks B5 eval-bridge/B6 coeff-bridge/B7 contraction/
+    B8 time-chain@EWA3/B9 package). Committed a19ba4e.
+  - Bridge-interface recon — Explore a8c7e1a IN FLIGHT (committed cosineCoeffs/fourierCoeff_evalC/cos-adapter/
+    intervalGradientDuhamelMap body/picardIter recursion/intervalNeumannResolverR — for designing B5/B6).
 - end: <in progress>
-- final result: <in progress, Phase C bricks 1-2 committed (Flux, ExpLipschitz), 3 built+auditing, 4 in flight>
+- final result: <in progress, Phase C bricks 1-4 COMMITTED (Lipschitz layer done @a135e0d); join blueprint B′
+  obtained @a19ba4e; recon for B5/B6 in flight. NOTE: B8 time-chain needs EWA T 3 (high-weight WL or restart).>
