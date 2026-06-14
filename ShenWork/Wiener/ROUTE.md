@@ -35,6 +35,32 @@ Picard iterate — discharging the source-ℓ¹ hypotheses my committed duhamelS
 User decision (2026-06-13): build the unconditional Wiener–Lévy path, 稳打稳扎, one audited brick
 at a time. Lean on ChatGPT (cron + cron2) for route design + adversarial check each brick.
 
+## ===== CONSOLIDATED E_T^r PLAN (cron EWA-strategy + cron2 soundness, 2026-06-13) — awaiting sign-off =====
+SOUNDNESS (cron2): architecture CAN close, NO circularity (fixed point uses source VALUES only; the adot/
+time-chain is a POST-fixed-point regularity theorem, NOT an input to the contraction), NO hidden regress.
+CONSTRUCTION (cron): build GENERIC `GWA K r` over [NormedCommRing K][NormedAlgebra ℂ K][CompleteSpace K];
+WA r stays committed; EWA T r := GWA (C([0,T],ℂ)) r; bridge `sliceWA τ : EWA T r →A[ℂ] WA r` reuses committed
+WA eval/decisive/recovery pointwise-in-t via NormedSpace.map_exp. Algebra layer transfers VERBATIM-generic.
+r=3 for the chemDiv time-chain; use the committed WINDOWED interface DuhamelSourceTimeC1On + ..._on (shortest).
+THE 12-BRICK SEQUENCE (3 phases):
+  A (mechanical/generic): E1 GWA Basic (weighted-ℓ¹+lp completeness) · E2 GWA convolution Banach algebra ·
+    E3 GWA coeffwiseCLM (∂ₓ/multipliers/R_μ/∂ₓR_μ/heat as one-liners + D_mul/D_exp) · E4 EWA + sliceWA bridge.
+  B (genuinely-new analytic): E5 EWA Duhamel value+√T divergence (sup_t INSIDE the sum, short) ·
+    E6 EWA decisive estimate (only new step: EWA_coeff_decay = sup_τ static-WA-coeff-decay ≤ e^{−δs}) ·
+    E7 EWA Gamma/Laplace WL realPow (BIGGEST) · E9 coefficient-ODE time-regularity (c_n'=−λc+F, c_n''=λ²c−λF+F').
+  C (the join — mandatory bridges): E7' EWA flux B + G maps & Lipschitz in EWA³ · E8 EWA fixed point
+    (contraction + agreement eval(Φ_EWA)=intervalGradientDuhamelMap) · E10 chemDiv time-chain B_t (HIGHEST RISK)
+    · E11 package as DuhamelSourceTimeC1On · E12 PICARD BRIDGE (eval(u_n^EWA)=picardIter + cosine-coeff
+    agreement c_k = cosineCoeffs(lift(picardIter)); MANDATORY, "most likely to be forgotten").
+TWO HIGHEST-RISK BRICKS: (1) E10 chemDiv time-chain — hardest sublemma realPow_timeDerivative
+  ∂_t(u^γ)=γu^{γ−1}u_t with envelope bounds (≠ realPow_eval membership). (2) E12/E7' the Picard eval-agreement
+  bridge — EWA fixed point must be proven = committed picardIter/IteratePicardJointC2Data object.
+FALLBACK ladder if E10 fails: (a) window-local coefficient-derivative package (scalar chain rules + uniform EWA
+  envelopes) → DuhamelSourceTimeC1On; (b) weakest: mild local existence in EWA³ + source VALUE envelopes — a
+  valid PARTIAL theorem (does NOT discharge the committed joint-C²/adot, but real). CAVEAT: needs u₀∈WA³ (if the
+  paper assumes it, sound; else add a positive-time restart/smoothing on [τ,T]).
+## ============================================================================================================
+
 ## The algebra
 Bilateral coefficients ℤ→ℂ (exponential basis e^{inπx} → products are plain convolution, NO |j−k|
 folding). Weighted norms:
