@@ -169,6 +169,7 @@ import ShenWork.Paper2.IntervalPicardGateSolve
 import ShenWork.Paper2.IntervalDomainHresWiring
 import ShenWork.Paper2.IntervalDomainThm11ChiZeroCoreProvider
 import ShenWork.Paper2.IntervalDomainThm11ChiZeroLedger
+import ShenWork.Paper2.IntervalPicardTowerSupply
 import ShenWork.Paper2.IntervalPicardLimitBddProducerInclusive
 import ShenWork.Paper2.IntervalHsupNormConsumers
 import ShenWork.Paper2.IntervalHsupNormHeat
