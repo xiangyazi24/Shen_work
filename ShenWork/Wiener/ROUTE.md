@@ -247,3 +247,26 @@ B6's EWARealizesOn.eval_eq is FULL-CIRCLE (eval = cosine synthesis ∑ c_k cos(k
 B5 cannot just cite iterate_lift_eq_cosineSeries (that's [0,1]-only, = the is_cosine_series field). B5 must prove
 the coefficient-embedding identity (sliceWA τ (picardEWA-shadow)).toFun = ofCosineCoeffs(cosineCoeffs(lift picardIter))
 and route the realized slice through evalC_ofCosineCoeffs_all for the full-circle synthesis. Track B5 against this.
+
+## B5 EVAL-BRIDGE DECOMPOSITION (recon a5e50de, 2026-06-14) — coefficient-level route
+Q1 RESOLVER: intervalNeumannResolverCoeff (IntervalNeumannEllipticResolverR.lean:89) = (μ+λ_k)⁻¹·source;
+  intervalNeumannResolverCoeff_elliptic (:141): (μ+λ_k)·v̂_k=â_k; source = cosine coeff of ν·u^γ (:76). Matches
+  EWA gResolver 1/(μ+(nπ)²). PREREQ: confirm unitIntervalNeumannSpectrum.eigenvalue k = (kπ)².
+Q2 EVAL-OF-MULTIPLIER: NO committed lemma (eval(scalarMultiplier)=symbol action). Template = eval_gConv
+  (EWA/Basic.lean:112, evalCLM.map_tsum). BUT coeff-level route avoids pointwise: scalarMultiplier_toFun
+  (Operators.lean:122, (mult m a).toFun n = m n•a.toFun n) gives the COEFFICIENT action FREE. New work = per-op
+  termwise-symbol↔real-operator match (gDeriv→∂ₓ via SINE adapter; gResolver→resolver; gHeat→semigroup).
+Q3 HEAT: intervalFullSemigroupOperator_eq_cosineHeatValue (IntervalNeumannFullKernel.lean:604) EXISTS, gated on
+  hkernel (=intervalNeumannFullKernel_eq_cosineKernel) + hinterchange (FullKernelIntegralInterchange:593, a Prop
+  obligation). heatEWA eval = MODERATE. Related: IntervalSemigroupSpectralForm.lean:44.
+Q4 [KEY] COEFF-LEVEL DUHAMEL: iterateCoeff (IntervalPicardIterateRestart.lean:212) = e^{-tλ_k}û₀_k +
+  duhamelSpectralCoeff(logistic source) — committed but χ₀=0 ONLY. cosineCoeffs_halfstep_eq_iterateCoeff (:434):
+  cosineCoeffs(lift(picardIter(n+1))) = iterateCoeff (χ₀=0). The χ₀≠0 CHEMOTAXIS coeff is NOT committed → THE EWA
+  divDuhamelEWA LAYER PROVIDES IT (the raison d'être of the Wiener algebra). B5 EXTENDS the χ₀=0 coeff identity to
+  χ₀≠0 by adding the EWA chemotaxis Duhamel coefficient. (variants: ..._of_sourceTimeC1On
+  IntervalPicardWindowAdotOn.lean:182; restartIterateCoeff IntervalPicardIterateC2Bound.lean:415.)
+B5 SUB-BRICKS: B5a heatEWA + eval (Q3 gated); B5b eval(gResolver)=resolverR (Q1); B5c eval(gDeriv vField)=
+  resolverGradReal (SINE adapter); B5d eval(divDuhamelEWA)=chemotaxis Duhamel term + eval(valDuhamelEWA)=logistic;
+  B5e PhiEWA + coeff identity extending iterateCoeff to χ₀≠0 (discharge EWARealizesOn.eval_eq full-circle obligation).
+NOTE: do coeff-level (match EWA coeffs to cosineCoeffs via B6), NOT pointwise eval — Q4 + B6 make this the short path.
+## ============================================================================================================
