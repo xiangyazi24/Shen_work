@@ -457,3 +457,22 @@ TWO construction routes (both NEW work, recon-confirmed): (1) EWA-T-3: build B_t
 ASYMMETRY (vs A¹): A¹ value gap = TRACTABLE (R2 window+heat-tail, r=1 directly from committed bound). Mdot time gap
   = DEEP (the parabolic bootstrap u∈A³, the highest-risk brick from day 1). The honest hard core of the campaign.
 ## ============================================================================================================
+
+## ★★★ R2 BREAKTHROUGH (2026-06-14, cron2 verified SOUND) — direct route BYPASSES Mdot/B8 entirely
+ChatGPT Pro cron2 (1fe23ad5, 344s) verified R2 SOUND: the FINAL conclusion Summable(λ_n·|∫₀ᵗ e^{-(t-s)λ_n}·G_n ds|)
+at FIXED t∈(0,T] is proven DIRECTLY by the split estimate, NOT via the committed DuhamelSourceTimeC1On consumer.
+  (I) [τ₀,t]: λ_n∫_{τ₀}^t e^{-(t-s)λ_n}ds = 1−e^{-(t−τ₀)λ_n} ≤ 1, so Σλ_n|∫_{τ₀}^t …| ≤ Σ E_n < ∞ (window A⁰
+      source envelope E_n, ΣE_n<∞). VERIFIED exact.
+  (II) [0,τ₀]: |G_n|≤C(1+n) (poly, from u,v bounded — NOT A¹), heat gap t−τ₀>0 ⟹ Σλ_n·Cn·τ₀·e^{-(t−τ₀)λ_n}
+      = Cτ₀Σ n³π²e^{-(t−τ₀)(nπ)²} < ∞ (super-poly beats poly). VERIFIED.
+KEY CONSEQUENCE: the DuhamelSourceTimeC1On package is the ONLY thing that demanded Mdot/adot. R2 proves the
+  conclusion WITHOUT it ⟹ Mdot/B8 (the deep parabolic-bootstrap gap) is BYPASSED, NOT needed. Also bypasses all-s
+  A¹ (only window A¹ + poly early bound). The two "deep" gaps are both routed around by the direct fixed-time proof.
+R2 inputs to build: (I) window source ℓ¹ envelope on [τ₀,t] (from solution_A1_on_pos window Bv — slice-wise A¹
+  Banach-algebra estimate OR windowed embedEWA; decide which avoids the t=0 embedEWA wall); (II) poly bound
+  |coupledChemDivSourceCoeffs s n|≤C(1+n) on [0,τ₀] (|B_n| bounded ⟹ |∂ₓB coeff|=nπ|B_n^sin|≤Cn, from u,v∈L∞
+  committed); + the heat-tail summable lemma Σ n³e^{-cn²}<∞ (near-committed: unitIntervalCosineEigenvalue_mul_exp).
+NEW TARGET THEOREM: chemDiv_eigenvalueSummableOn_viaR2 — proves the FINAL conclusion from (I)+(II)+elementary, NO
+  Mdot, NO all-s A¹. This is the route to UNCONDITIONAL. 合龙处慢审: verify the split integrability + the slice-wise
+  envelope at the join.
+## ============================================================================================================
