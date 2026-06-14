@@ -694,4 +694,19 @@ theorem Theorem_2_4_linear_stability_formula_unconditional
   h.linearlyStable_of_max_threshold_le_critical S p H ha hb
     (chiStrongMax_le_paperCriticalSensitivity S p H ⟨ha, hb⟩ hm M0 hαγ hαmγ)
 
+/-- **Unit-interval specialization.**  The concrete `λ_n = n²π²` Neumann spectrum
+discharges `HasNeumannSpectrum`, so on the unit interval the nonminimal linear
+stability of the positive equilibrium holds under the A.7 parameter regime alone. -/
+theorem Theorem_2_4_linear_stability_formula_unconditional_interval
+    (p : CM2Params) (ha : 0 < p.a) (hb : 0 < p.b) {M0 : ℝ}
+    (hm : 1 ≤ p.m) (hαγ : 2 * p.γ ≤ p.α + 1) (hαmγ : p.m + p.γ ≤ p.α + 1)
+    (h : NonminimalGlobalStabilityFormulaCondition p
+           (positiveEquilibrium p ⟨ha, hb⟩).1
+           (positiveEquilibrium p ⟨ha, hb⟩).2 M0) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyStable unitIntervalNeumannSpectrum p eq.1 eq.2 :=
+  Theorem_2_4_linear_stability_formula_unconditional
+    unitIntervalNeumannSpectrum p unitIntervalNeumannSpectrum_hasNeumannSpectrum
+    ha hb hm hαγ hαmγ h
+
 end ShenWork.Paper3
