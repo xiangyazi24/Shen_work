@@ -173,3 +173,21 @@ C-phase brick order + current dispatch:
   E10 [HIGHEST RISK] chemDiv time-chain B_t; sublemma realPow_timeDerivative ∂_t(u^γ)=γu^{γ-1}u_t + envelopes.
   E11 package DuhamelSourceTimeC1On.  E12 [MANDATORY] Picard bridge eval(u_n^EWA)=picardIter + cosine-coeff align.
 ## ============================================================================================================
+
+## JOIN-TARGET RECON (2026-06-14) — exact committed焊接点 signatures (细审 prep)
+Read the two structures E10/E11/E12 must witness:
+* DuhamelSourceTimeC1On (a:ℝ→ℕ→ℝ)(lo hi) [PDE/IntervalDuhamelSourceTimeC1On.lean:20] — the WINDOWED path
+  (ROUTE's "shortest"). Fields: adot (time-deriv of coeffs); hderiv (HasDerivWithinAt a·n = adot on [lo,hi]);
+  hadotcont; envelope:ℕ→ℝ + henv_summable (Σ envelope<∞) + henv_bound (|a s n|≤envelope n); derivBound:ℝ (a
+  SINGLE uniform const) + hderivBound (|adot s n|≤derivBound ∀ s n). KEY: envelope is weighted-summable (=
+  E_T⁰ VALUE source-ℓ¹, have machinery), but derivBound is just UNIFORM-in-(n,t), NOT summable. ⟹ E10 only needs
+  B_t to have uniformly-bounded coeffs (follows from B_t∈A⁰), MUCH weaker than the C² joint majorant. De-risks E10/E11.
+* IteratePicardJointC2Data (u)(c)(Bt) [PDE/IntervalIteratePicardJointC2.lean:41] — the HEAVIER alt (NOT taking):
+  lift_eq_series (u-lift=Σ c_k(t)cos kπx); coeff_contDiff (each c_k C² in t); coeff_bound (‖iteratedFDeriv i c_k‖≤Bt
+  i k, i≤2); value_summable (boundedWeightJointMajorant Bt m, m≤2). Full C² joint — only needed if windowed path fails.
+* intervalGradientDuhamelMap (p:CM2Params)(u₀) [Paper2/IntervalGradientDuhamelMap.lean:58] — E8 agreement target.
+* picardIter (p:CM2Params)(u₀) [Paper2/IntervalMildPicard.lean:863] — E12 equality target.
+* duhamelSpectral_eigenvalueSummable_of_sourceL1 [PDE/IntervalDuhamelSpectralC2FromSourceL1.lean:67] — consumer.
+DECISION: E11 targets DuhamelSourceTimeC1On (windowed, uniform-derivBound) — confirmed the shortest sound path.
+## NOTE: codex usage-limited until 2026-06-18; Lean grind re-routed to opus subagents (C1 in flight via Agent),
+## ChatGPT (cron) for design/audit only. Resume codex dispatch after 06-18.
