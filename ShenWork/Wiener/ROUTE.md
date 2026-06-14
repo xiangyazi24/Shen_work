@@ -327,3 +327,15 @@ OPEN (for Xiang): does the EWA layer also owe the SOLUTION existence (fixed poin
 the committed iterate? The source-ℓ¹ target is clear regardless; the existence-structure connection to the paper
 theorem is the architectural question. Proceeding with the source-control eval bridges (valid either way).
 ## ============================================================================================================
+
+## 🎯 ARCHITECTURAL DECISION (Xiang delegated the call, 2026-06-14) — TARGET = SOURCE-ℓ¹, DEFER EXISTENCE
+The EWA layer's theorem: for u in the floored EWA ball, the χ₀≠0 chemotaxis source -χ₀∂ₓB(u)+G(u) has the
+DuhamelSourceTimeC1On structure — ℓ¹ value envelope (Σ_k sup_t|coeff| ≤ ‖S(U)‖_{EWA⁰}, intrinsic to the EWA
+element's norm) + uniform time-derivative bound (B8) — REALIZING the real chemotaxis source (B5e: ewaCosCoeffAt
+= cosineCoeffs of the real source). This discharges the GENERIC committed duhamelSpectral_eigenvalueSummable_
+of_sourceL1 hypothesis for χ₀≠0 (the gap the committed χ₀=0 chain leaves). = the Wiener-algebra content (∂ₓB∈A).
+EXISTENCE / fixed-point (B7) DEFERRED — committed local-existence chain or future piece; not conflated here.
+Remaining bricks to the milestone: flux eval (auditing) → growth eval → source assembly (S(U) + eval=-χ₀∂ₓB+G)
+→ source coeff (B6) + ℓ¹ envelope → B8 time-chain (adot uniform bound, hardest) → B5e realization discharge
+(EWARealizesOn full-circle) → B9 package DuhamelSourceTimeC1On → feed the generic spectral machinery.
+## ============================================================================================================
