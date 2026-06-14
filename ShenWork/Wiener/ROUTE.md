@@ -628,3 +628,18 @@ reconciliation (W_x=0 from the solution's Neumann regularity + capstone bulk ⟹
 intertwined; or (b) the paper's actual χ₀≠0 regularity may use gradient-Duhamel sup/Hölder (Atom D) + Schauder, NOT
 the spectral hbsumF — a different method bypassing eigenvalue-ℓ¹ entirely. Which the paper uses decides the path.
 ## ============================================================================================================
+
+## CORRECTION (2026-06-14, same session) — reconciliation "W_x=0 free" was PREMATURE; genuinely uncertain
+Self-correction to ea4d17d's optimism: W_x(endpoint)=0 is NOT free. Tracing: committed weak u = heat − χ₀V +
+L_Duhamel, V=∫∂ₓS_N Q. So u_x(endpoint) = −χ₀·V_x(endpoint), and V_x(t,endpoint) = S_N(t)Q(0)(endpoint) +
+∫S_N(t−s)Q_s(endpoint)ds — GENERICALLY ≠0 even though Q(endpoint)=0 (the heat-smoothed S_N(t)Q(0) at the endpoint
+is nonzero). So the committed WEAK gradient-Duhamel solution does NOT obviously satisfy pointwise ∂ₓu(endpoint)=0,
+hence W_x(endpoint)=0 is NOT automatic, hence the gradient-form eigenvalue-ℓ¹ summability for the weak solution is
+GENUINELY UNCERTAIN (not the clean win sketched). Flip-flopped dead-end→rescued→uncertain on a deep PDE-boundary
+subtlety ⟹ stop hand-deriving, surface to Xiang.
+SOLID + DURABLE: chemDiv_eigenvalueSummableOn_uncond (source-form ℓ¹, both deep gaps retired, audited) stands.
+Faithfulness resolved (gradient form intentional weak C⁰). OPEN: is the committed weak solution's chemotaxis term
+eigenvalue-ℓ¹ summable? — turns on V_x(endpoint), tied to the paper's χ₀≠0 regularity method (spectral-with-
+reconciliation vs Schauder/gradient-Duhamel-sup). NEEDS Xiang's read of the paper to pick the path; autonomous
+grinding of the boundary bootstrap = guessing.
+## ============================================================================================================
