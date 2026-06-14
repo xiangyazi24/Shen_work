@@ -28,8 +28,10 @@ realizations `h_u`/`h_v`/`h_vx` plus the `qFactor` floor/reality + `hβpos`.  We
   `evalC_gResolver_eq_intervalNeumannResolverR` on the source slice, whose source-coeff
   hypothesis is the crux identity
   `(sliceWA τ (ν • realPowEWA U γ)).toFun = ofCosineCoeffs (resolverSourceReCoeff p (u τ.1))`.
-* **h_vx** — the gradient leg, carried as a HYPOTHESIS (residual link — see
-  `flux_nbhd_of_embed` for the precise per-link stall report).
+* **h_vx** — the gradient leg, DISCHARGED via the relaxed gradient bridge
+  `evalC_gDeriv_vField_eq_resolverGradReal` (per-slice `hreal`) fed the SAME slice-level
+  resolver-value realization (`resolver_value_of_slice` + `evalST_inclincl_eq_evalC_toZero`)
+  plus the resolver gradient ℓ¹ majorant `hgrad`.
 
 `flux_nbhd_of_realized` states this for an abstract realized `U`; `flux_nbhd_of_embed`
 specializes to `U := embedEWA u …` (naming `U` via a single equation `hUeq` so the giant
@@ -202,6 +204,24 @@ theorem resolver_value_of_embed
   have hWslice := slice_smul_realPow_eq_source p u U τ hER hRealize
   exact resolver_value_of_slice p u ((p.ν : ℂ) • realPowEWA U p.γ) τ x hxIcc hsum hWslice
 
+/-- **The `evalST = evalC ∘ toZero ∘ sliceWA` link through a double inclusion.**
+For `D : EWA T m` (with `1 ≤ m`), the Wiener synthesis of the doubly-included
+`incl (0≤1) (incl (h:1≤m) D)`, sliced at `τ` and evaluated at `x`, equals the
+slice-level `evalC (toZero (sliceWA τ D)) ↑x`.  Both inclusions preserve `toFun`
+coefficientwise (`coeff_sliceWA_incl`), so the sliced `WA 0` element and
+`toZero (sliceWA τ D)` share the same `toFun`, and `evalC` depends only on `toFun`.
+This is the bridge between the `h_v`/`h_vx` `evalST`-form realizations carried/derived
+here and the `evalC (toZero (sliceWA τ ·))` form the gradient bridge consumes/produces. -/
+theorem evalST_inclincl_eq_evalC_toZero {m : ℕ} (h : 1 ≤ m) (D : EWA T m)
+    (τ : TimeDom T) (x : ℝ) :
+    evalST τ (x : WA.Circ) (GWA.incl (by omega : (0 : ℕ) ≤ 1) (GWA.incl h D))
+      = (WA.evalC (WA.toZero (sliceWA τ D)) (x : WA.Circ) : ℂ) := by
+  rw [evalST_apply, WA.evalAt_apply, ← WA.evalC_apply]
+  refine congrArg (fun a : WA 0 => WA.evalC a (x : WA.Circ)) ?_
+  apply WA.ext
+  funext n
+  rw [WA.toZero_toFun, coeff_sliceWA_incl, coeff_sliceWA_incl]
+
 /-! ### 3. The flux value-realization (`h_flux_nbhd`) for the embedded element. -/
 
 /-- **`flux_nbhd_of_realized` — the discharged flux value bridge (abstract `U`).**
@@ -212,10 +232,14 @@ and evaluated at an interior point `x ∈ (0,1)`, equals the committed real-spac
 flux `chemFluxLifted p uR x`, cast to `ℂ`.
 
 The resolver value leg `h_v` is DISCHARGED here from the committed resolver bridge
-(`resolver_value_of_slice` + the crux source-coeff identity carried as `hWslice`); the
-base realization `h_u` and the gradient leg `h_vx` are factor hypotheses (the gradient
-leg is the residual link — see `flux_nbhd_of_embed`).  Keeping `U` abstract (no
-`embedEWA`/`realPowEWA` giant term in the binders) keeps elaboration `whnf`-free. -/
+(`resolver_value_of_slice` + the crux source-coeff identity carried as `hWslice`).  The
+gradient leg `h_vx` is now ALSO DISCHARGED: the relaxed gradient bridge
+`evalC_gDeriv_vField_eq_resolverGradReal` (whose `hreal` is per-slice, not `∀σ`) is fed
+the SAME resolver-value realization — taken at the slice level via `resolver_value_of_slice`
++ `evalST_inclincl_eq_evalC_toZero` for every `y ∈ [0,1]` — together with the resolver
+gradient ℓ¹ majorant `hgrad`.  Only the base realization `h_u` remains a factor hypothesis.
+Keeping `U` abstract (no `embedEWA`/`realPowEWA` giant term in the binders) keeps
+elaboration `whnf`-free. -/
 theorem flux_nbhd_of_realized
     (p : CM2Params) (U : EWA T 1) (uR : intervalDomainPoint → ℝ)
     (hβpos : 0 < p.β)
@@ -229,11 +253,9 @@ theorem flux_nbhd_of_realized
     (hWslice : (sliceWA τ (GWA.incl (by omega : (0 : ℕ) ≤ 1)
         ((p.ν : ℂ) • realPowEWA U p.γ))).toFun
       = ofCosineCoeffs (resolverSourceReCoeff p uR))
-    -- gradient leg (h_vx), carried as a hypothesis (residual link):
-    (h_vx : evalST τ (x : WA.Circ) (GWA.incl (by omega : (0 : ℕ) ≤ 1)
-        (GWA.incl (by omega : (1 : ℕ) ≤ 2)
-          (GWA.gDeriv (vFieldEWA p.μ p.ν p.γ p.hμ U))))
-      = (resolverGradReal p uR x : ℂ))
+    -- resolver gradient ℓ¹ majorant (feeds the relaxed gradient bridge for h_vx):
+    (hgrad : Summable fun k : ℕ =>
+      |(intervalNeumannResolverCoeff p uR k).re| * ((k : ℝ) * Real.pi))
     -- qFactor floor + reality, and the resolver floor:
     (hqfloor : UniformFloor (1 + GWA.incl (by omega : (1 : ℕ) ≤ 3)
         (vFieldEWA p.μ p.ν p.γ p.hμ U)) p.μ)
@@ -252,6 +274,26 @@ theorem flux_nbhd_of_realized
     rw [vFieldEWA]
     exact resolver_value_of_slice p (fun _ => uR) ((p.ν : ℂ) • realPowEWA U p.γ)
       τ x hxIcc hsum hWslice
+  -- The slice-level resolver-value realization (the relaxed bridge's per-slice `hreal`):
+  -- ∀ `y ∈ [0,1]`, `evalC (toZero (sliceWA τ (vFieldEWA … U))) ↑y = R p uR ⟨y,_⟩`.
+  have hreal : ∀ (y : ℝ) (hy : y ∈ Set.Icc (0 : ℝ) 1),
+      (WA.evalC (WA.toZero (sliceWA τ (vFieldEWA p.μ p.ν p.γ p.hμ U))) (y : WA.Circ) : ℂ)
+        = ((intervalNeumannResolverR p uR ⟨y, hy⟩ : ℝ) : ℂ) := by
+    intro y hy
+    rw [← evalST_inclincl_eq_evalC_toZero (by omega : (1 : ℕ) ≤ 3)
+      (vFieldEWA p.μ p.ν p.γ p.hμ U) τ y]
+    rw [vFieldEWA]
+    exact resolver_value_of_slice p (fun _ => uR) ((p.ν : ℂ) • realPowEWA U p.γ)
+      τ y hy hsum hWslice
+  -- h_vx : DISCHARGED from the relaxed gradient bridge (per-slice `hreal` + `hgrad`).
+  have h_vx : evalST τ (x : WA.Circ) (GWA.incl (by omega : (0 : ℕ) ≤ 1)
+        (GWA.incl (by omega : (1 : ℕ) ≤ 2)
+          (GWA.gDeriv (vFieldEWA p.μ p.ν p.γ p.hμ U))))
+      = (resolverGradReal p uR x : ℂ) := by
+    rw [evalST_inclincl_eq_evalC_toZero (by omega : (1 : ℕ) ≤ 2)
+      (GWA.gDeriv (vFieldEWA p.μ p.ν p.γ p.hμ U)) τ x]
+    exact evalC_gDeriv_vField_eq_resolverGradReal p uR (vFieldEWA p.μ p.ν p.γ p.hμ U)
+      τ hreal hgrad x hx
   -- Compose the three factor realizations through the committed FluxEvalBridge.
   exact evalST_chemFluxEWA_eq_chemFluxLifted p.μ p.ν p.γ p.hμ p U uR τ x hx hxIcc
     h_u h_vx h_v hqfloor hqreal hβpos h_floor
@@ -268,16 +310,19 @@ The embedded field is named via the single small equation `hUeq : U = embedEWA u
 so the giant `embedEWA`/`realPowEWA` term never appears inside the heavy floor/parity
 binders (which forced a `whnf` blow-up when written out explicitly).
 
-## Residual link (the gradient leg `h_vx`)
+## The gradient leg `h_vx` is now DISCHARGED
 
-The committed gradient bridge `evalC_gDeriv_vField_eq_resolverGradReal` quantifies its
-value realization `hreal` over ALL times `σ` for a SINGLE fixed `uR`.  The embedded field
-realizes the resolver of the TIME-VARYING slice `u σ.1` at slice `σ`, so that `hreal` is
-satisfiable only at `σ = τ`, not for all `σ` with one fixed `uR`.  Its proof internally
-uses only `hreal τ`, so the over-quantification is vestigial — but, not being allowed to
-edit that file, `h_vx` is carried as a hypothesis.  Relaxing the bridge's `hreal` to its
-slice `σ = τ` (or letting `u` depend on `σ`) would let `resolver_value_of_slice` discharge
-it via the same `evalST = evalC ∘ sliceWA` reduction. -/
+The committed gradient bridge `evalC_gDeriv_vField_eq_resolverGradReal` was relaxed so its
+value realization `hreal` is per-slice (at the theorem's `τ`), not `∀σ` with a single fixed
+`uR`.  The embedded field realizes the resolver of the slice `u τ.1` at `τ`, which is
+exactly that per-slice `hreal` — so `flux_nbhd_of_realized` discharges `h_vx` internally
+(relaxed gradient bridge + the resolver-value realization at the slice + the gradient ℓ¹
+majorant `hgrad`).  No `h_vx` hypothesis is carried any more; only the resolver gradient
+majorant `hgrad` is added.
+
+The embedded field is named via the single small equation `hUeq : U = embedEWA u …`
+so the giant `embedEWA`/`realPowEWA` term never appears inside the heavy floor/parity
+binders (which forced a `whnf` blow-up when written out explicitly). -/
 theorem flux_nbhd_of_embed
     (p : CM2Params) (u : ℝ → intervalDomainPoint → ℝ)
     {Bv : ℕ → ℝ}
@@ -300,10 +345,9 @@ theorem flux_nbhd_of_embed
       evalST τ (y : WA.Circ) (GWA.incl (by omega : (0 : ℕ) ≤ 1)
           ((p.ν : ℂ) • realPowEWA U p.γ))
         = ((p.ν * intervalDomainLift (u τ.1) y ^ p.γ : ℝ) : ℂ))
-    (h_vx : evalST τ (x : WA.Circ) (GWA.incl (by omega : (0 : ℕ) ≤ 1)
-        (GWA.incl (by omega : (1 : ℕ) ≤ 2)
-          (GWA.gDeriv (vFieldEWA p.μ p.ν p.γ p.hμ U))))
-      = (resolverGradReal p (u τ.1) x : ℂ))
+    -- resolver gradient ℓ¹ majorant (feeds the relaxed gradient bridge for h_vx):
+    (hgrad : Summable fun k : ℕ =>
+      |(intervalNeumannResolverCoeff p (u τ.1) k).re| * ((k : ℝ) * Real.pi))
     (hqfloor : UniformFloor (1 + GWA.incl (by omega : (1 : ℕ) ≤ 3)
         (vFieldEWA p.μ p.ν p.γ p.hμ U)) p.μ)
     (hqreal : ∀ (σ : TimeDom T) (y : WA.Circ),
@@ -321,7 +365,7 @@ theorem flux_nbhd_of_embed
   -- the crux slice-coefficient identity (the intricate resolver-source link).
   have hWslice := slice_smul_realPow_eq_source p u U τ hER hRealize
   exact flux_nbhd_of_realized p U (u τ.1) hβpos τ x hx hxIcc
-    h_u hsum hWslice h_vx hqfloor hqreal h_floor
+    h_u hsum hWslice hgrad hqfloor hqreal h_floor
 
 end ShenWork.EWA
 
