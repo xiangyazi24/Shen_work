@@ -305,3 +305,25 @@ ChatGPT recommended target: intervalFullKernelCoupledDuhamelOperator (source-for
 NOTE: the per-op coeff bridges (OpCoeffBridge), adapters, heatEWA, Lipschitz layer are ALL still valid — they're
 operator-level, independent of this map-form question. Only the B5 ASSEMBLY target is affected.
 ## ============================================================================================================
+
+## ✅ MAP-FORM RISK RESOLVED — RETARGET TO SOURCE-FORM (recon a506cb18, 2026-06-14)
+DECISIVE: the committed chain runs ENTIRELY in χ₀=0 (a:=cosineCoeffs(logisticLifted), the gradient↔source bridges
+:972/:1019 only fire via hchem=0/χ₀=0). The χ₀≠0 chemotaxis is the gap the EWA work FILLS. My divDuhamelEWA
+(source-form S_N∂ₓB) matches the committed SOURCE-form operator intervalFullKernelCoupledDuhamelOperator
+(IntervalFullKernelDuhamelGradEq.lean:39 = S_N(t-s)·intervalCoupledSource), NOT the gradient-form
+intervalGradientDuhamelMap. The source-ℓ¹ consumer (duhamelSpectral_..._of_sourceL1) is GENERIC (any source-ℓ¹
+family); committed dev only fed it χ₀=0 logistic; EWA feeds the χ₀≠0 source -χ₀∂ₓB+G.
+IBP bridge deriv_intervalFullSemigroupOperator...source_integral (IntervalFullKernelSourceIBP.lean:69) proves
+∂ₓS_N Q = S_D Q' (Dirichlet kernel, ORPHAN/unimported) — confirms ∂ₓS_N≠S_N∂ₓ, so do NOT chase gradient-form.
+RETARGETED B5/B-phase (source-form): the EWA layer provides the SOURCE cosine-coeff family for DuhamelSourceTimeC1On:
+  source S(U) := -χ₀•gDeriv(chemFluxEWA U) + growthEWA U : EWA T 0 (∂ₓB even/cosine via OpCoeffBridge gDeriv of the
+  sine flux); ewaCosCoeffAt(S(U)) = cosineCoeffs(-χ₀∂ₓB+G) via B6; source-ℓ¹ envelope from EWA⁰ membership; time-C1
+  (B8) → DuhamelSourceTimeC1On → feed the generic spectral machinery. NO gradient-form picardIter realization.
+  Key committed targets: intervalCoupledSource (IntervalDomainExistence.lean:1481 = -χ₀·intervalDomainChemotaxisDiv
+  + logistic), intervalDomainChemotaxisDiv (IntervalDomain.lean:2923 = ∂ₓB the divergence).
+SALVAGED: OpCoeffBridge, adapters, B6, heatEWA, Lipschitz layer ALL valid. Still needed: flux eval bridges
+(eval chemFluxEWA = chemFluxLifted via resolver/gradient eval) + eval(gDeriv F)=∂ₓ(evalC F) + the source pkg + B8.
+OPEN (for Xiang): does the EWA layer also owe the SOLUTION existence (fixed point B7), or only source-control given
+the committed iterate? The source-ℓ¹ target is clear regardless; the existence-structure connection to the paper
+theorem is the architectural question. Proceeding with the source-control eval bridges (valid either way).
+## ============================================================================================================
