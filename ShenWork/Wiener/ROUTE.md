@@ -495,3 +495,24 @@ These have NO committed general-solution lemma (the dev provides them for Picard
 "strong solution" inputs. NEXT: (a) wire FluxRealizeEmbed → discharge eval-bridge (I); (b) assess what higher paper
 theorem consumes the eigenvalue-ℓ¹ summability (is this lemma the paper's target, or feeds a global-existence thm?).
 ## ============================================================================================================
+
+## WIRING VERDICT (2026-06-14, recon ae7349d): ROUTE (A) — R2 summability wires into Thm 1.1, Mdot stays bypassed
+The χ₀=0 FrontierCore provider (IntervalDomainThm11ChiZeroCoreProvider.lean:332-440) consumes hsrc0F :
+DuhamelSourceBddOn (NOT TimeC1On) — only .henv_summable/.henv_bound/.hcont (envelope + eigenvalue-ℓ¹ summability),
+NO adot/derivBound. Consumed fields hbsumF (:382-393 bare Summable), hG1tF/hG2tF (gradient/C² via
+deriv_lift_bound_on_compact, IntervalCompactSliceGradientBounds.lean:411,482 — consume only hbsum), hagreeF, K1
+quadruple. Mdot/adot demand is ONLY on the logistic-iterate TimeC1On leg (K1WeakEndpoint restartCosineSeries_
+hasDerivWithinAt + IntervalPicardSourceTower) — ORTHOGONAL to the chemDiv source.
+χ₀=0 hard-coding: intervalGradientDuhamelMap (IntervalGradientDuhamelMap.lean:58-64) = heat(u₀) +
+(-χ₀)·∫∂ₓS(t-s)chemFlux + ∫S(t-s)logistic. At χ₀=0 the chemotaxis term vanishes ⟹ source = pure logistic
+patchedSource. χ₀≠0 lift: source coeff = logistic + (-χ₀)·chemDiv (LINEAR, additive — the Duhamel map is literally
+that sum). ADDITIVE SPLIT FEASIBLE (Summable.add; consumers bound via of_nonneg_of_le against envelope).
+VERDICT ROUTE (A): chemDiv_eigenvalueSummableOn_uncond (R2, NO Mdot) is a DROP-IN additive summand to the committed
+logistic eigenvalue-summability. NO provider field changes type; the χ₀≠0 version supplies the augmented summand.
+Mdot genuinely bypassed at the wiring. Remaining wiring cost (NOT Mdot): (1) additive-coeff-split lemma
+(Duhamel-integrated combined coeff = logistic + (-χ₀)·chemDiv); (2) instantiate R2's 3 open-window hyps
+(shifted-window A¹/eval-bridge + early-slice L∞ + hGcont) at the CONE datum D.u — genuine strong-solution inputs
+(dev has them for Picard iterates, not abstractly; F1-class, shared with the mild→classical bridge gap).
+NEXT: build the Mdot-free combined-source summability scaffold (ChemDivWiring.lean), then the open-window-hyp
+instantiation at D.u (the genuine remaining PDE-regularity content for χ₀≠0 Thm 1.1).
+## ============================================================================================================
