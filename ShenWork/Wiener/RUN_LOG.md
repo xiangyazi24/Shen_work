@@ -39,3 +39,8 @@
     effaf73. AUDIT-DISCOVERED B5 OBLIGATION: B5 must prove (sliceWA τ U).toFun = ofCosineCoeffs(cosineCoeffs(lift))
     (route through evalC_ofCosineCoeffs_all), NOT just iterate_lift_eq_cosineSeries ([0,1]-only).
   - Sine adapter ofSineCoeffs (B5 prereq, eval(gDeriv v)=resolverGradReal sine series) — opus adad45c IN FLIGHT.
+
+  - Sine adapter ofSineCoeffs — opus adad45c, green 8263, full mirror + all-x synthesis (sine pairing
+    unrestricted in x), honest wNorm divergence (a₀=0). Hostile audit a741745 IN FLIGHT.
+  - B5 recon — Explore a5e50de IN FLIGHT (Q: resolver-coeff def, eval-of-multiplier lemma exists?, spectral↔kernel
+    heat bridge committed?, coefficient-level eval-bridge feasible? — decides B5 cheap-vs-expensive + decomposition).
