@@ -14,9 +14,11 @@ So build E_T^r = {a:ℤ→C([0,T],ℂ) : Σ_n(1+|n|)^r·sup_t‖a_n(t)‖<∞}, 
 the decisive estimate (sup_t|coeff(e^{−su(t)})_n|≤e^{−δs}, mode-split identical) + Gamma WL (realPow_EWA)
 + the √t Duhamel + the flux time-chain (B_t = u_t·v_x·q + u·(v_t)_x·q + u·v_x·q_t). Finite weight ladder:
 ∂ₓB∈A⁰⟸B∈A¹; gradient leg⟸B∈A²; chemDiv time-chain safe at u∈E_T³ (u_t=u_xx−χ₀∂ₓB+G(u)∈A¹).
-POSSIBLE ANALYTIC GAP (red, under check a3df669): floor/positivity of 1+v. R_μ's bounded Fourier multiplier
-does NOT give 0≤eval(v); need committed elliptic-resolver positivity (max principle / positive kernel) OR
-take 1+v≥η>0 as a faithful hypothesis (if the paper assumes it).
+1+v FLOOR — RESOLVED, NOT A GAP (Explore a3df669): committed TWO ways. (1) intervalNeumannResolverR_nonneg_of_nonneg_source
+(IntervalResolverPositivity.lean:489) PROVES 0≤R_μ(νu^γ)=v via heat-Laplace rep + positive Neumann kernel + closed
+cone Ici 0. (2) 0≤v is a faithful STANDING hypothesis in IsPaper2ClassicalSolution (Paper2/Statements.lean:91,
+the Chen–Ruau–Shen positive classical solution). ⇒ 1+v≥1>0. So the 合龙 has NO residual analytic gap; what
+remains (E_T^r layer + flux time-chain) is PURE CONSTRUCTION (a mirror of the WA bricks + the flux assembly).
 brick-6 map: 6a cos↔ℤ adapter [building] · 6b EWA Banach algebra · 6c EWA operators (∂ₓ,R_μ,√t Duhamel)
 · 6d EWA realPow/WL [biggest] · 6e flux + time-chain · 6f feed duhamelSpectral_eigenvalueSummable_of_sourceL1.
 Honest closure: WA(done)+E_T^r lift+E_T³ WL+floor(u,1+v)+flux time-chain+cos adapter ⇒ committed bricks close.
