@@ -49,9 +49,11 @@
                  `logisticSource_duhamelSourceTimeC1` for `ν·uᵞ` plus the
                  coefficient bridge `cosineCoeffs (ν·uᵞ) = resolverSourceCoeff.re`;
                  not a pure reduction from the present ledger families.
-  * `HsupNorm` — RESIDUAL.  The two `IntervalDomainSupNormDerivativeNonposOn`
-                 lemmas in `IntervalDomainExistence` are transport/`congr` lemmas,
-                 not genuine parabolic-maximum-principle producers.
+  * `HsupNorm` — NO LONGER A LEDGER FIELD.  Removed from `LimitRegularityInputs`
+                 (the unconditional `…DerivativeNonposOn` predicate is FALSE below
+                 carrying capacity).  The genuine ABOVE-CAPACITY max principle is now
+                 committed: `lemma31_above_capacity` (`IntervalLemma31Closure.lean`),
+                 consumed via `Lemma_3_1_intervalDomain`.
 
   No `sorry`, no `admit`, no custom `axiom`, no `native_decide`.
 -/

@@ -93,8 +93,6 @@
                 proved packaging theorem `hasResolverDirectSpectralData_of_clamped_perT0`).
                 Retyped from the unsatisfiable GLOBAL `DuhamelSourceTimeC1` (jump at
                 `s = D.T`); see field doc + `IntervalResolverSourceTimeC1.lean`.
-    `HsupNorm`— `IntervalDomainSupNormDerivativeNonposOn D.u (Ioo 0 D.T)`
-                (genuine residual; parabolic maximum-principle output).
     `Hvpos`   — boundary positivity of `mildChemicalConcentration` (genuine
                 residual; elliptic strong maximum principle).
 
@@ -146,7 +144,7 @@ the `χ₀ = 0` mild-local wiring.  It bundles (i) the named K1/K2 "limit
 regularity" families that build the half-step restart package `R` via step 1
 (`gradientMildHalfStepRestartData_for_limit`), together with (ii) the frontier
 residuals not derivable from `R`/`rep(u)` at this layer (`hpde_u`, `Hu`, `Hvsrc`,
-`HsupNorm`, `Hvpos`).  Everything in this structure is a named, satisfiable
+`Hvpos`).  Everything in this structure is a named, satisfiable
 hypothesis (see the file header §"Satisfiability audit"); the structure IS the
 project's honest residual frontier for the χ₀ = 0 sub-regime. -/
 structure LimitRegularityInputs
