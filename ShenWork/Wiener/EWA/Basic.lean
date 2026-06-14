@@ -1,4 +1,5 @@
 import ShenWork.Wiener.GWA.Operators
+import ShenWork.Wiener.GWA.Deriv
 import ShenWork.Wiener.WeightedL1Eval
 
 /-!
@@ -197,24 +198,11 @@ theorem sliceWA_continuous (τ : TimeDom T) :
 /-! #### `ℚ`-algebra structures needed for `NormedSpace.map_exp`.
 
 `NormedSpace.map_exp` requires `[NormedAlgebra ℚ 𝔸]` on the source and
-`[Algebra ℚ 𝔹]` on the target.  We supply these generically (via `ℚ →+* ℂ →+*
-·`) for `EWA T r` and `WA r`. -/
-
-/-- `EWA T r` is a `ℚ`-algebra (via `ℚ →+* ℂ →+* EWA T r`). -/
-noncomputable instance ewaAlgebraRat : Algebra ℚ (EWA T r) :=
-  RingHom.toAlgebra ((algebraMap ℂ (EWA T r)).comp (algebraMap ℚ ℂ))
-
-/-- The `ℚ`-action on `EWA T r` factors through `ℂ`. -/
-instance : IsScalarTower ℚ ℂ (EWA T r) :=
-  IsScalarTower.of_algebraMap_eq (fun q => by
-    show (algebraMap ℚ (EWA T r)) q = _
-    rw [RingHom.algebraMap_toAlgebra, RingHom.comp_apply])
-
-/-- `EWA T r` is a `ℚ`-normed algebra. -/
-noncomputable instance ewaNormedAlgebraRat : NormedAlgebra ℚ (EWA T r) where
-  norm_smul_le q a := by
-    rw [← smul_one_smul ℂ q a, Rat.smul_one_eq_cast, norm_smul, Complex.norm_ratCast,
-      ← Real.norm_eq_abs, Rat.norm_cast_real]
+`[Algebra ℚ 𝔹]` on the target.  For `EWA T r := GWA (CT T) r` these are now
+inherited verbatim from the **generic** `GWA K r` `ℚ`-algebra instances
+(`ShenWork.GWA.GWA.algebraRatInst` / `isScalarTowerRat` / `normedAlgebraRatInst`
+in `GWA/Deriv.lean`), so there is a single `Algebra ℚ (GWA (CT T) r)` instance
+and no diamond.  We still supply the `WA r` (committed concrete `ℂ`) version. -/
 
 /-- `WA r` is a `ℚ`-algebra (via `ℚ →+* ℂ →+* WA r`). -/
 noncomputable instance waAlgebraRat : Algebra ℚ (WA r) :=
