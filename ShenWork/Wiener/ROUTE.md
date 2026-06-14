@@ -476,3 +476,22 @@ NEW TARGET THEOREM: chemDiv_eigenvalueSummableOn_viaR2 — proves the FINAL conc
   Mdot, NO all-s A¹. This is the route to UNCONDITIONAL. 合龙处慢审: verify the split integrability + the slice-wise
   envelope at the join.
 ## ============================================================================================================
+
+## ★★★★ CAPSTONE (2026-06-14, commit 6f4771a) — both DEEP gaps ELIMINATED; eigenvalue-ℓ¹ on standard open-window regularity
+chemDiv_eigenvalueSummableOn_uncond (ChemDivUncond.lean): the chemDiv eigenvalue-ℓ¹ spectral summability (conclusion
+char-for-char = of_solution, about the ORIGINAL u), proven by discharging the three R2 hypotheses. Clean-tree EXIT 0
+(8400 jobs), #print axioms clean, HOSTILE-AUDITED FAITHFUL+SOUND (conclusion exact; rfl time-shift genuine — source
+slice-local verified layer-by-layer; (I)+(II) transport correct; hyps standard+satisfiable+non-smuggling).
+ELIMINATED (vs of_solution): Mdot/adot/h_deriv/h_adotcont/h_Mdot (B8 parabolic-bootstrap time-chain, the day-1
+highest-risk brick) + all-s A¹ over closed [0,T] (the t=0 wall). Route: R2 direct fixed-time split (ChatGPT-Pro
+cron/cron2 verified) bypasses the DuhamelSourceTimeC1On consumer (sole Mdot demander).
+REMAINING CONDITIONALITY = standard solution regularity, ALL on the OPEN window (off the wall):
+  (I) shifted-window A¹/eval-bridge for ũ=u(·+τ₀): Bv/hBv/hBvnn/hBvsum (A¹ via solution_A1_on_pos) +
+      hgrad/h_flux_nbhd/h_flux_diff (the eval-bridge realizations — SAME shape of_solution carried; FurtherReduce:
+      wire FluxRealizeEmbed.flux_nbhd_of_embed under floor/positivity to discharge h_flux_nbhd).
+  (II) early-slice L∞: M/hLiftCont/hLiftBd (C⁰ sup-bound of source lift on [0,τ₀]×[0,1]).
+  (III) hGcont: per-mode C⁰ time-continuity of coupledChemDivSourceCoeffs.
+These have NO committed general-solution lemma (the dev provides them for Picard iterates, not abstractly) — genuine
+"strong solution" inputs. NEXT: (a) wire FluxRealizeEmbed → discharge eval-bridge (I); (b) assess what higher paper
+theorem consumes the eigenvalue-ℓ¹ summability (is this lemma the paper's target, or feeds a global-existence thm?).
+## ============================================================================================================
