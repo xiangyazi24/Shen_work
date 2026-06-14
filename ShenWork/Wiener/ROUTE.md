@@ -270,3 +270,11 @@ B5 SUB-BRICKS: B5a heatEWA + eval (Q3 gated); B5b eval(gResolver)=resolverR (Q1)
   B5e PhiEWA + coeff identity extending iterateCoeff to χ₀≠0 (discharge EWARealizesOn.eval_eq full-circle obligation).
 NOTE: do coeff-level (match EWA coeffs to cosineCoeffs via B6), NOT pointwise eval — Q4 + B6 make this the short path.
 ## ============================================================================================================
+
+## B5 DE-RISK FINDINGS (2026-06-14)
+* λ_k=(kπ)² is `rfl`: unitIntervalNeumannSpectrum.eigenvalue k = (k:ℝ)^2*Real.pi^2 (committed everywhere, e.g.
+  IntervalNeumannEllipticResolverR.lean:493). ⟹ EWA symbols 1/(μ+(nπ)²), exp(-τ(nπ)²), iπn match committed λ_k FREE.
+* COMMITTED IntervalResolverGradientBridge.lean (lines 231/352/368: (μ+λ_m)·(mπ)² resolver-grad algebra) — likely
+  supplies much of B5c eval(gDeriv vField)=resolverGradReal. RECON this file before building B5c.
+* B5 core-formulation consult fired to ChatGPT cron2 (/tmp/gpt_b5.out): per-op coeff bridges, the χ₀≠0 extension
+  of iterateCoeff (option A fresh cosineCoeffs_of_intervalGradientDuhamelMap vs B), spectral↔kernel need, induction.
