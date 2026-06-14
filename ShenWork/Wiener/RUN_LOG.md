@@ -8,6 +8,9 @@
 - starting state: Phase A+B complete & audited, HEAD e351e79; codex usage-limited to 06-18 → opus subagents.
 - starting avenue: (a) the 12-brick Phase C pipeline.
 - brick log:
-  - C1 Flux skeleton — opus ab3b4e1, green 8267 jobs, clean axioms, no stalls. PENDING hostile audit → commit.
+  - C1 Flux skeleton — opus ab3b4e1, green 8267 jobs, clean axioms. Hostile audit af3297 = FAITHFUL
+    (md5-verified, flux shape intact, eval-agreement genuine, no smuggled PDE hyps). COMMITTED dba4c7a.
+  - ExpLipschitz (route-B exp-difference mean-value lemma) — opus ac963f, IN FLIGHT. FnegLipschitz spec
+    pre-staged at /tmp/shen_FnegLip.md, fires on ExpLipschitz land.
 - end: <in progress>
 - final result: <in progress>
