@@ -60,3 +60,18 @@ HCoeffDischarge → ChemDivEval → EmbedEWA → ChemDivFinal (the capstone).
 REMAINING to UNCONDITIONAL: discharge h_flux_nbhd (eval chain, mechanical) + A¹ regularity (Q3, positive-time
 smoothing — the real remaining analysis) + adot (B8). The Wiener-algebra content is COMPLETE.
 ## ============================================================================================================
+
+## ★ REALIZATION CHAIN DISCHARGED (2026-06-14, commit b818b14) — 28 bricks
+The full eval-realization chain h_u→h_v→h_vx is discharged (h_vx closed after relaxing the committed gradient
+bridge's vestigial ∀τ over-quantification, 6ba4caa). So the FINAL theorem's h_flux_nbhd reduces to the committed
+floor/positivity (intervalNeumannResolverR_nonneg) + resolver-regularity (hgrad) inputs. The Wiener-algebra
+content is COMPLETE: chemDiv_eigenvalueSummableOn_of_solution (the assembled theorem) + the full realization
+machinery, 0 sorry/0 axiom, all hostile-audited.
+CONDITIONALITY now = exactly two documented analytic inputs the Wiener algebra REDUCED the problem to:
+  1. A¹ regularity (Q3, deep — committed solution is C²=A⁰, needs a NEW positive-time parabolic-smoothing brick
+     the committed dev does not expose; separate standard analysis).
+  2. adot/B8 (the chemDiv source time-derivative + uniform bound — HAS committed support: coupledChemDivAdot +
+     the DuhamelSourceTimeC1 time-chain constructors; the more tractable gap).
+NEXT: adot (B8) via the committed time-chain machinery; then A¹ regularity (the deep separate analysis) for fully
+unconditional; + the mechanical wiring of flux_nbhd_of_embed into ChemDivFinal.
+## ============================================================================================================
