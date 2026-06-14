@@ -643,3 +643,27 @@ eigenvalue-ℓ¹ summable? — turns on V_x(endpoint), tied to the paper's χ₀
 reconciliation vs Schauder/gradient-Duhamel-sup). NEEDS Xiang's read of the paper to pick the path; autonomous
 grinding of the boundary bootstrap = guessing.
 ## ============================================================================================================
+
+## F1 FRACTIONAL-SMOOTHING CHIPPING — honest dead-end (2026-06-14, assessment acacc85)
+This session closed the threshold ordering (GENUINE: 94306d5/27e053a A.7/A.8 all 6 + aggregate; 79f7143/7ec5436
+Theorem 2.4 unconditional + unit-interval) — the one open non-F1 target. THEN chipped F1 fractional smoothing
+(174aa34 scalar core, 79e7bf8 norm level). HONEST FINDING (assessment): those 2 chips are STRANDED / foundational-
+below-the-frontier — they discharge NO statement-layer field:
+  - SemigroupEstimateData fields (Statements.lean:1266) are all abstract D.Point→ℝ, not coefficient-ℓ²; no bridge.
+  - The concrete intervalDomainSemigroupEstimateData.fractionalNorm (IntervalDomainLemma21.lean:204) uses the
+    σ-INDEPENDENT L^q contraction (t^0, not sharp t^{-σ}); Lemma 2.1-2.4 route AROUND the A^σ smoothing.
+  - My chips' σ≤1 content ALREADY EXISTS (IntervalDomainLemma21: heat_time_multiplier_smoothing_le:669,
+    unitIntervalCosineFractionalHeatLpFromCoeffs_norm_le:1408 — with a STRONGER Lp ℂ 2 reconstruction) and is ITSELF
+    stranded (zero consumers). My chips add only general-σ + sharp (σ/e)^σ — generalizing an already-stranded lemma.
+LESSON: check the statement-layer CONNECTION before chipping foundational lemmas (the assessment should precede the
+chip). The chips are correct/clean/audited but low-value (left in repo, parallel to the existing stranded sibling).
+THE REAL F1 GAP (precise, the actionable frontier — but genuine analytic work + a DESIGN change, Xiang's call):
+  (i) redefine concrete fractionalNorm: lpNorm → weighted spectralCoeffFractionalNorm∘repr (the X^σ_q norm);
+  (ii) prove the intertwining repr(semigroup t u) = spectralFractionalHeatCoeff (heat acts diagonally on cosine
+       eigenmodes) + the Parseval identity intervalDomainLpNorm 2 u = spectralCoeffL2Norm(repr u) (pieces exist:
+       unitIntervalCosineLpFromCoeffs_norm_sq:1104, CosineParsevalBridge.lean — intertwining + redefinition NOT done).
+  This redefinition touches the Lemma 2.1-2.4 proofs (currently the σ-independent contraction route), so it's a
+  design decision, not an autonomous edit. Beyond it: the sectorial-generation/Duhamel nonlinear theory (deep).
+STATE: non-F1 closeable work DONE (threshold ordering). F1 statement-layer needs the transport+redefinition
+(substantial, design-gated) then the sectorial theory. Honest frontier reached.
+## ============================================================================================================
