@@ -288,3 +288,20 @@ cosineSeries_hasDerivAt_of_gradSummable (:74). Also 2nd-deriv: sineSeries_hasDer
   [COMMITTED: ∂ₓ resolverR=resolverGrad, :159]. The hard real-space gradient is DONE; new piece is the EWA
   termwise-derivative-commutes-with-eval, a clean mirror of committed technique.
 ## ============================================================================================================
+
+## ⚠️ CRITICAL JOIN RISK (B5 consult cron2 + independent check, 2026-06-14) — MAP-FORM MISMATCH
+ChatGPT cron2 (gpt_e8/gpt_b5) flags + my independent derivation CONFIRMS: the committed intervalGradientDuhamelMap
+chemotaxis term is ∂ₓS_N(t-s)B (gradient-OF-semigroup: deriv(intervalFullSemigroupOperator (t-s) (chemFluxLifted)),
+verified in earlier recon), whereas the EWA divDuhamelEWA computes S_N(t-s)∂ₓB (semigroup-OF-divergence, symbol
+inπ INSIDE the Volterra integral). On [0,1] with the method-of-images Neumann kernel, ∂ₓ does NOT commute with S_N
+(it intertwines Neumann↔Dirichlet ∂ₓe^{tΔ_N}=e^{tΔ_D}∂ₓ); the two forms differ by the image-term contribution
+∑∫G'(x+y-2m)B(y)dy (IBP boundary vanishes since B is a sine/Dirichlet series, but the +y image term survives).
+Diagnostic (ChatGPT): B=sin(πy) ⟹ S_N∂B=πe^{-π²t}cos vs ∂S_N B is sine-valued — different parity.
+⟹ B5 CANNOT naively prove "committed ∂ₓS_N B map = EWA divDuhamelEWA". RESOLUTION PENDING recon: does the committed
+dev prove intervalGradientDuhamelMap = a SOURCE-form operator (intervalFullKernelCoupledDuhamelOperator, S(t-s)·
+source)? If YES (gradient=source proven for the actual flux) the issue dissolves; if NO, B5 must target the
+source-form map + a separate equivalence (the bigger architectural path). DO NOT BUILD B5 UNTIL RESOLVED.
+ChatGPT recommended target: intervalFullKernelCoupledDuhamelOperator (source-form) + connect to paper separately.
+NOTE: the per-op coeff bridges (OpCoeffBridge), adapters, heatEWA, Lipschitz layer are ALL still valid — they're
+operator-level, independent of this map-form question. Only the B5 ASSEMBLY target is affected.
+## ============================================================================================================
