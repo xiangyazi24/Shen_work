@@ -672,4 +672,26 @@ Bernoulli step `(1+β̃v*) ≤ (1+v*)^{2β}` of A.7(1).  At the positive equilib
 *unconditionally*.  Chaining `X ≤ floor ≤ χ*` then closes both S2 and S4, and the
 four-way `max_le` aggregate `max(max S1 S2)(max S3 S4) ≤ χ*` is immediate. -/
 
+/-! ## Theorem 2.4 — unconditional linear-stability branch (A.7-regime only)
+
+With the four-way aggregate `chiStrong* ≤ χ*` (`chiStrongMax_le_paperCriticalSensitivity`)
+committed, the strong linear-stability bridge
+`NonminimalGlobalStabilityFormulaCondition.linearlyStable_of_max_threshold_le_critical`
+no longer needs the threshold comparison as a hypothesis — it is discharged spectrum-free.
+The result is `LinearlyStable` (the genuine spectral notion `BelowAllLinearCriticalThresholds`)
+conditioned ONLY on the paper's Appendix-A.7 parameter regime (`m ≥ 1`, `2γ ≤ α+1`,
+`m+γ ≤ α+1`) plus the nonminimal formula condition — no threshold-comparison hypothesis,
+no F1/PDE input. -/
+theorem Theorem_2_4_linear_stability_formula_unconditional
+    (S : SpectralData) (p : CM2Params) (H : HasNeumannSpectrum S)
+    (ha : 0 < p.a) (hb : 0 < p.b) {M0 : ℝ}
+    (hm : 1 ≤ p.m) (hαγ : 2 * p.γ ≤ p.α + 1) (hαmγ : p.m + p.γ ≤ p.α + 1)
+    (h : NonminimalGlobalStabilityFormulaCondition p
+           (positiveEquilibrium p ⟨ha, hb⟩).1
+           (positiveEquilibrium p ⟨ha, hb⟩).2 M0) :
+    let eq := positiveEquilibrium p ⟨ha, hb⟩
+    LinearlyStable S p eq.1 eq.2 :=
+  h.linearlyStable_of_max_threshold_le_critical S p H ha hb
+    (chiStrongMax_le_paperCriticalSensitivity S p H ⟨ha, hb⟩ hm M0 hαγ hαmγ)
+
 end ShenWork.Paper3
