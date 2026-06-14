@@ -98,13 +98,13 @@ PROOF (compose):
    then `resolverGradReal_eq` casts to `resolverGradReal p u x`. -/
 theorem evalC_gDeriv_vField_eq_resolverGradReal
     {r : ℕ} (p : CM2Params) (u : intervalDomainPoint → ℝ)
-    (vField : EWA T (r + 1))
-    (hreal : ∀ (τ : TimeDom T) (y : ℝ) (hy : y ∈ Set.Icc (0 : ℝ) 1),
+    (vField : EWA T (r + 1)) (τ : TimeDom T)
+    (hreal : ∀ (y : ℝ) (hy : y ∈ Set.Icc (0 : ℝ) 1),
       (WA.evalC (WA.toZero (sliceWA τ vField)) (y : WA.Circ) : ℂ)
         = ((intervalNeumannResolverR p u ⟨y, hy⟩ : ℝ) : ℂ))
     (hgrad : Summable fun k : ℕ =>
       |(intervalNeumannResolverCoeff p u k).re| * ((k : ℝ) * Real.pi))
-    (τ : TimeDom T) (x : ℝ) (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    (x : ℝ) (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
     (WA.evalC (WA.toZero (sliceWA τ (GWA.gDeriv vField))) (x : WA.Circ) : ℂ)
       = ((resolverGradReal p u x : ℝ) : ℂ) := by
   -- The interior point lies in the closed interval, and `Ioo 0 1 ∈ 𝓝 x`.
@@ -132,7 +132,7 @@ theorem evalC_gDeriv_vField_eq_resolverGradReal
     have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 :=
       Set.mem_Icc.2 ⟨le_of_lt hy.1, le_of_lt hy.2⟩
     -- `evalC … ↑y = (intervalNeumannResolverR p u ⟨y,_⟩ : ℂ)`, then unfold to the series.
-    rw [hreal τ y hyIcc]
+    rw [hreal y hyIcc]
     -- `intervalNeumannResolverR p u ⟨y,_⟩ = g y` (cosine-series unfolding).
     have hval : intervalNeumannResolverR p u ⟨y, hyIcc⟩ = g y := by
       rw [hg_def, resolverR_apply_eq]
