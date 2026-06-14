@@ -44,3 +44,19 @@
     unrestricted in x), honest wNorm divergence (a₀=0). Hostile audit a741745 IN FLIGHT.
   - B5 recon — Explore a5e50de IN FLIGHT (Q: resolver-coeff def, eval-of-multiplier lemma exists?, spectral↔kernel
     heat bridge committed?, coefficient-level eval-bridge feasible? — decides B5 cheap-vs-expensive + decomposition).
+
+## ★ ASSEMBLY MILESTONE (2026-06-14) — the theorem is assembled (conditional form)
+chemDiv_eigenvalueSummableOn_of_solution (ChemDivFinal.lean, commit 6d08f13) — 26 Phase C bricks, 0 sorry/0 axiom,
+every step hostile-audited. PROVES the χ₀≠0 chemotaxis-divergence eigenvalue-weighted ℓ¹ spectral summability via
+the weighted Wiener algebra (∂ₓB∈A) — the hard nonlinear content the committed χ₀=0 dev could not reach.
+CONDITIONAL on the documented analytic inputs: A¹ regularity (the deep gap — committed solution is only C²=A⁰),
+the flux eval-realization h_flux_nbhd (mechanical, ← embedEWA_realizes + eval bridges), hgrad/h_flux_diff (regularity),
+adot (B8). The Wiener algebra REDUCED the χ₀≠0 source-ℓ¹ to standard parabolic regularity + a time-derivative.
+THE BRICK CHAIN (26): A-phase E1-E4 (GWA+EWA+sliceWA) → B-phase B1-B3 (Duhamel√T, decisive, WL) → Lipschitz layer
+(Exp/Fneg/RealPow) → adapters (cos/sin) → B6 CoeffBridge → heatEWA → OpCoeffBridge → eval_gDeriv → resolver/gradient/
+flux/growth/source eval bridges → SourceEnvelope → assembly node (DuhamelSourceTimeC1On) → top-level (eigenvalue-ℓ¹)
+→ ParityFoundations/ConvParity/EvenRealClosure/WLEvenReal (parity, unconditional) → NonCircularCoeffBridge →
+HCoeffDischarge → ChemDivEval → EmbedEWA → ChemDivFinal (the capstone).
+REMAINING to UNCONDITIONAL: discharge h_flux_nbhd (eval chain, mechanical) + A¹ regularity (Q3, positive-time
+smoothing — the real remaining analysis) + adot (B8). The Wiener-algebra content is COMPLETE.
+## ============================================================================================================
