@@ -439,3 +439,21 @@ NOTE: chemDiv_eigenvalueSummableOn_of_solution is HONEST as a conditional on (al
   build solution_A1_uniform as the satisfiability witness under u₀∈A¹. Mdot/B8 recon died on server rate-limit —
   re-dispatch (does committed dev bound the time-derivative coeffs uniformly, like windowEigEnv for u?).
 ## ============================================================================================================
+
+## Mdot/B8 VERDICT (2026-06-14, recon aeeaff0): (B) DEEP — needs a parabolic regularity BOOTSTRAP, not assembly
+The committed dev ISOLATES this gap: every chemDiv producer (CoupledChemDivTimeC1Fields.MchemDot/hMdot @
+IntervalChemDivTimeDerivative.lean:109-110; ChemDivSourceAssembly.lean:63; etc.) carries Mdot/hMdot as an UNFILLED
+hypothesis. ChemDivAdot.lean discharges adot/h_deriv/h_adotcont but explicitly leaves Mdot = EWA-T-3 residual.
+NO committed lemma bounds |coupledChemDivAdot s n| uniformly in n (neither [0,T] nor window [τ₀,T]).
+WHY the window doesn't auto-unlock it (my analysis): committed (kπ)²-bound gives λ_k|û_k|≤windowEigEnv_k, but
+  windowEigEnv_k ~ 1/k² (the source env(a'/2) term DOMINATES the super-poly heads λ_k·e^{-a'λ_k}). So on the window
+  u∈A² but NOT A³ ⟹ Δu∈A⁰ not A¹ ⟹ ∂ₜu=Δu+F∈A⁰ not A¹ ⟹ B_t=∂ₜu·∂ₓv·q+…∈A⁰ ⟹ ∂ₓB_t∈A^{-1} (envelope diverges).
+  Mdot needs ∂ₜu∈A¹ needs u∈A³ — one PARABOLIC BOOTSTRAP level above the committed env (which did ONE level).
+TWO construction routes (both NEW work, recon-confirmed): (1) EWA-T-3: build B_t as a weight-3 EWA element (needs
+  embedEWA(∂ₜu)∈EWA T 1 i.e. ∂ₜu∈A¹), gDeriv, sourceEnvelope → Mdot via chemDivAdot_Mdot_residual. (2) Compactness:
+  prove ChemDivMixedTimeDerivClosedRepr (Gmix, needs weighted-ℓ¹ on ∂ₜu/∂ₓ∂ₜv) then mirror
+  exists_Mdot_adottOf_bound_Icc_of_lt_horizon (IntervalDomainPositiveWindowK1OnEndpoint.lean:228 — the LOGISTIC
+  source's window-Mdot via joint-continuity+compactness+cosineCoeffs_abs_le). Both hinge on the bootstrap input.
+ASYMMETRY (vs A¹): A¹ value gap = TRACTABLE (R2 window+heat-tail, r=1 directly from committed bound). Mdot time gap
+  = DEEP (the parabolic bootstrap u∈A³, the highest-risk brick from day 1). The honest hard core of the campaign.
+## ============================================================================================================
