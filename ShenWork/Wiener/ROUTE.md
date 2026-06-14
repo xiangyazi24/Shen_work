@@ -154,3 +154,22 @@ THEN brick 5 = Gamma/Laplace Wiener–Lévy (f^{−s}=∫t^{s−1}e^{−tf}/Γ(s
 ## Honest status discipline (user feedback 2026-06-13)
 Report only proved-unconditional commits, never "reduced to N residuals" / "快收口". A conditional
 theorem is conditional; name its hypotheses. See feedback_no_residual_framing.
+
+## ============================================================================================================
+## PHASE C KICKOFF (2026-06-14) — B complete @09da750, the join begins
+B-phase closed: B1 Duhamel √T (24c660f), E3d D_exp (e018f39), B2 decisive (1912e08), B3 Wiener-Lévy (09da750),
+all hostile-audited FAITHFUL, clean-tree 8266 jobs EXIT 0. 149 commits.
+Clean verify/codex tree: /dev/shm/shen_C (git clone @09da750 + mathlib symlink + warm oleans). shen_work is the
+LIVE-SIMS dir at OLD commit 6d2f95a — NEVER verify there (the dirty-tree trap).
+C-phase brick order + current dispatch:
+  C1 [codex, in flight] E7'a flux/source MAP skeleton ShenWork/Wiener/EWA/Flux.lean — realPowEWA (explicit
+     f^m·FnegEWA), qFactor=(1+v)^{-β}, chemFluxEWA=u·incl(gDeriv vField)·qFactor, growthEWA, vField=gResolver(ν•u^γ);
+     + eval-agreement factoring (defs+eval ONLY, no norm/Lipschitz). spec /dev/shm/shen_specs/shen_C1.md.
+  C2 [ChatGPT cron, long-thinking] E7'b Lipschitz of u↦u^γ, v↦(1+v)^{-β} in EWA norm (contraction constant).
+     Route candidates: (A) segment integral f^γ-g^γ=γ∫(g+θ(f-g))^{γ-1}(f-g)dθ; (B) Laplace-difference
+     f^{-s}-g^{-s}=(1/Γs)∫t^{s-1}(e^{-tf}-e^{-tg})dt with ‖e^{-tf}-e^{-tg}‖≤t‖f-g‖·majorant. Awaiting verdict.
+  C1b [pending] norm bounds ‖FnegEWA‖≤Γ-combo, ‖realPowEWA‖, ‖chemFluxEWA‖, ‖growthEWA‖ (self-map into ball).
+  E8 EWA fixed point (contraction via C1+C1b+C2, ×C√T Duhamel) + agreement eval(Φ_EWA)=intervalGradientDuhamelMap.
+  E10 [HIGHEST RISK] chemDiv time-chain B_t; sublemma realPow_timeDerivative ∂_t(u^γ)=γu^{γ-1}u_t + envelopes.
+  E11 package DuhamelSourceTimeC1On.  E12 [MANDATORY] Picard bridge eval(u_n^EWA)=picardIter + cosine-coeff align.
+## ============================================================================================================
