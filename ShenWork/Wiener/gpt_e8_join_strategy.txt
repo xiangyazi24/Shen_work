@@ -1,0 +1,532 @@
+## Recommendation: choose **B′**, not pure A and not pure B
+
+Use the committed `picardIter` sequence as the spine, but shadow it by EWA elements.
+
+So the clean strategy is:
+
+\[
+\boxed{
+\text{B′ = “EWA shadow Picard”: lift each committed Picard iterate to EWA, prove the EWA shadow is Cauchy, then pass to the EWA limit.}
+}
+\]
+
+This is shorter than A because you do **not** create an independent EWA fixed point and then prove a separate uniqueness/agreement theorem. But it is stronger than pure B: **uniform-in-`n` EWA bounds are not enough to pass to the limit**. You need an actual EWA Cauchy/geometric-difference estimate.
+
+The committed `picardIter` is recursively defined by the real-space gradient-Duhamel map:
+
+```lean
+| 0 => fun t x => intervalFullSemigroupOperator t (intervalDomainLift u₀) x.1
+| n + 1 => fun t x => intervalGradientDuhamelMap p u₀ (picardIter p u₀ n) t x
+```
+
+so the natural Lean join is stepwise, not uniqueness-based. fileciteturn35file0L35-L39
+
+The committed map itself is exactly the divergence-form mild map with the chemotaxis term as `∂ₓS(t-s)Q`, not as a pre-differentiated source. fileciteturn36file0L10-L19
+
+---
+
+# 1. A vs B: least infrastructure
+
+## Pure A is not the shortest join
+
+A would require:
+
+1. define a fresh `Φ_EWA`;
+2. prove contraction and existence;
+3. prove `eval Φ_EWA = intervalGradientDuhamelMap`;
+4. prove the EWA fixed point agrees with the committed `picardIter` limit;
+5. then transfer source bounds.
+
+That last agreement is not free. You would likely need either a real-space uniqueness theorem or a “limit of the committed Picard sequence equals the EWA fixed point” theorem. That is extra infrastructure.
+
+## Pure B has one trap
+
+The trap is this phrase:
+
+> “with uniform-in-`n` E_T^1 bounds, pass to the limit”
+
+Uniform bounds do **not** give convergence in `E_T^r`. You need:
+
+\[
+\|U_{n+1}-U_n\|_{E_T^r}\le K^n C_0,\qquad K<1.
+\]
+
+So B is correct only after strengthening it to:
+
+\[
+\boxed{\text{B′: committed Picard sequence + EWA shadow recurrence + EWA Cauchy convergence.}}
+\]
+
+This avoids a separate fixed-point uniqueness theorem while still producing an EWA limit.
+
+---
+
+# 2. The precise bridge object
+
+Use two bridge layers.
+
+## Bridge 1: evaluation realization
+
+Define something like:
+
+```lean
+structure EWARealizesOn
+    (T : ℝ) (r : ℕ)
+    (U : EWA T r)
+    (w : ℝ → intervalDomainPoint → ℝ) : Prop where
+  eval_eq :
+    ∀ τ : TimeDom T, ∀ x : intervalDomainPoint,
+      evalST τ (unitIntervalToCirc x.1)
+        (GWA.incl (by omega : (0:ℕ) ≤ r) U)
+        =
+      ((intervalDomainLift (w τ.1) x.1 : ℝ) : ℂ)
+```
+
+Then prove:
+
+```lean
+ewaPicard0_realizes :
+  EWARealizesOn T r U0 (picardIter p u₀ 0)
+
+ewaPicardStep_realizes :
+  EWARealizesOn T r U (picardIter p u₀ n) →
+  EWARealizesOn T r (PhiEWA p u₀ U) (picardIter p u₀ (n+1))
+```
+
+This step lemma is the main join to `intervalGradientDuhamelMap`.
+
+Your `Flux.lean` already has the algebraic eval skeleton for `chemFluxEWA` and `growthEWA`: `chemFluxEWA` is defined as \(u\cdot v_x\cdot(1+v)^{-\beta}\), and `growthEWA` as \(u(a-bu^\alpha)\). fileciteturn40file0L98-L110
+
+It also has eval factorization lemmas for those products. fileciteturn40file0L120-L129 fileciteturn40file0L144-L163
+
+But one sub-bridge is still load-bearing if not already built elsewhere:
+
+```lean
+eval_gDeriv_vFieldEWA_eq_resolverGradReal
+```
+
+and similarly:
+
+```lean
+eval_vFieldEWA_eq_intervalNeumannResolverR
+```
+
+`chemFluxEWA_eval` currently factors the product but leaves the `eval(gDeriv v)` piece opaque. The file header explicitly says that `eval(gDeriv v)` is left opaque. fileciteturn40file0L21-L23
+
+So the real eval bridge is:
+
+```lean
+chemFluxEWA_eval_eq_chemFluxLifted
+growthEWA_eval_eq_logisticLifted
+PhiEWA_eval_eq_intervalGradientDuhamelMap
+```
+
+Then the committed Picard recursion follows by definitional unfolding.
+
+## Bridge 2: coefficient realization
+
+For `DuhamelSourceTimeC1On`, the coefficient bridge is the load-bearing one.
+
+The committed source package wants a family
+
+```lean
+a : ℝ → ℕ → ℝ
+```
+
+plus `adot`, coefficient differentiability, an ℓ¹ envelope, and a single uniform derivative bound. fileciteturn37file0L3-L12
+
+So define a coefficient extractor from an EWA source element:
+
+```lean
+def ewaCosCoeffAt (F : EWA T 0) (τ : TimeDom T) : ℕ → ℝ
+| 0     => ((sliceWA τ F).toFun 0).re
+| k + 1 => (((sliceWA τ F).toFun ((k+1 : ℕ) : ℤ)
+             + (sliceWA τ F).toFun (-((k+1 : ℕ) : ℤ))).re)
+```
+
+This “sum of ± modes” version is better than `2 * coeff k`: it avoids needing evenness at the envelope stage.
+
+Then prove:
+
+```lean
+ewaCosCoeffAt_eq_cosineCoeffs_of_eval
+```
+
+roughly:
+
+\[
+\texttt{ewaCosCoeffAt F τ k}
+=
+\texttt{cosineCoeffs}(\texttt{intervalDomainLift }(w τ))\,k.
+\]
+
+This is the actual source bridge.
+
+The forward cosine adapter already exists:
+
+* `ofCosineCoeffs` embeds cosine coefficients into bilateral coefficients. fileciteturn49file0L24-L31
+* `wNorm_ofCosineCoeffs` proves the weighted norm identity. fileciteturn49file0L115-L120
+* `evalC_ofCosineCoeffs` proves the Wiener synthesis equals the committed cosine series. fileciteturn50file0L58-L64
+
+For the reverse direction, use the WA Fourier recovery theorem:
+
+```lean
+fourierCoeff_evalC_eq_coeff
+```
+
+which says Fourier coefficients of `evalC a` recover `a.toFun n`. fileciteturn55file0L200-L202
+
+If there is not already a named theorem converting this into committed `cosineCoeffs`, build exactly this one:
+
+```lean
+cosineCoeffs_evalST_eq_ewaCosCoeffAt
+```
+
+That is the bridge the PDE side actually consumes.
+
+---
+
+# 3. Concrete B′ sequence
+
+Build these in order.
+
+## Step B′1 — EWA shadow sequence
+
+Define:
+
+```lean
+def picardEWA (p : CM2Params) (u₀E : EWA T r) : ℕ → EWA T r
+| 0     => heatEWA u₀E
+| n + 1 => PhiEWA p u₀E (picardEWA p u₀E n)
+```
+
+Then prove:
+
+```lean
+picardEWA_realizes_picardIter :
+  ∀ n, EWARealizesOn T r (picardEWA p u₀E n) (picardIter p u₀ n)
+```
+
+This proof is induction using `PhiEWA_eval_eq_intervalGradientDuhamelMap`.
+
+## Step B′2 — EWA Cauchy, not merely bounded
+
+Prove:
+
+```lean
+picardEWA_geometric :
+  ‖picardEWA p u₀E (n+1) - picardEWA p u₀E n‖ ≤ K^n * C0
+```
+
+Then:
+
+```lean
+picardEWA_cauchy
+picardEWA_tendsto
+```
+
+The existing real-space file has a pointwise geometric-to-Cauchy theorem for real values. fileciteturn35file0L43-L59
+
+You need the analogous EWA version. It is standard normed-space work, but this is the thing that pure B was missing.
+
+## Step B′3 — EWA limit realizes committed limit
+
+Let:
+
+```lean
+U∞ : EWA T r
+```
+
+be the EWA limit.
+
+Then prove:
+
+```lean
+eval_picardEWA_limit_eq_pointwise_picard_limit
+```
+
+by continuity of `evalST` and `picardEWA_realizes_picardIter`.
+
+You do **not** need real-space uniqueness. The limit agrees because it is literally the limit of the same committed sequence after evaluation.
+
+## Step B′4 — fixed-point identity as a consequence, not an input
+
+Pass the recurrence
+
+\[
+U_{n+1}=\Phi_{\mathrm{EWA}}(U_n)
+\]
+
+to the limit:
+
+```lean
+picardEWA_limit_fixed :
+  U∞ = PhiEWA p u₀E U∞
+```
+
+This gives the post-fixed-point PDE identity needed for `u_t`.
+
+This is not circular because the contraction used only value Lipschitz/source bounds, not the source time derivative.
+
+---
+
+# 4. Floor propagation
+
+Use a **closed floored invariant ball**, not a bare positivity theorem.
+
+Define:
+
+```lean
+structure FlooredBall (T : ℝ) (r : ℕ) (δ R : ℝ) (center : EWA T r) where
+  U : EWA T r
+  hball : ‖U - center‖ ≤ R
+  hfloor : UniformFloor U δ
+  hreal : RealValuedEWA U
+  -- optional parity/evenness if needed
+```
+
+The space is complete because:
+
+* norm-closed balls are closed;
+* `UniformFloor U δ` is closed, since every point evaluation `evalST τ x` is continuous;
+* real/even constraints are coefficientwise closed.
+
+The invariant-ball proof should be by **small-time closeness**, not by trying to make the full chemotaxis map positivity-preserving. The chemotaxis divergence term has no pointwise sign, so positivity-preserving is not the right primitive.
+
+The proof should look like:
+
+\[
+\Phi(U)
+=
+S(t)u_0
++
+\text{small chemotaxis Duhamel}
++
+\text{small growth Duhamel}.
+\]
+
+If \(u_0\ge 2\delta\), heat positivity gives \(S(t)u_0\ge 2\delta\). Then choose \(T\) so that the two Duhamel perturbations have sup norm at most \(\delta\). Hence:
+
+\[
+\Phi(U)\ge\delta.
+\]
+
+For the \(1+v\) floor, use the committed resolver positivity. The repo has `intervalNeumannResolverR_nonneg_of_nonneg_source`, proving \(0\le R(u)\) on the closed interval under a nonnegative source. fileciteturn58file0L17-L28
+
+Then:
+
+\[
+1+v\ge1,
+\]
+
+so `qFactor` is safe. This floor invariant interacts well with contraction: run Banach’s theorem on the complete closed floored ball, after proving `Φ` maps the ball into itself.
+
+---
+
+# 5. Which bridge is load-bearing: eval or coefficient?
+
+For the fixed-point/Picard join, **eval-level** is necessary:
+
+```lean
+evalST (PhiEWA U) = intervalGradientDuhamelMap p u₀ w
+```
+
+Without it you cannot show the EWA shadow sequence is the committed `picardIter`.
+
+For `DuhamelSourceTimeC1On`, **coefficient-level** is load-bearing:
+
+```lean
+a s k = ewaCosCoeffAt (sourceEWA U∞) s k
+      = cosineCoeffs (committed source at time s) k
+```
+
+So the right bridge object should contain eval equality, but the final source package should be built from coefficient equality.
+
+The minimal bridge stack is:
+
+```lean
+EWARealizesOn.eval_eq
+    ↓
+PhiEWA_eval_eq_intervalGradientDuhamelMap
+    ↓
+picardEWA_realizes_picardIter
+    ↓
+ewaCosCoeffAt_eq_cosineCoeffs_of_eval
+    ↓
+DuhamelSourceTimeC1On
+```
+
+---
+
+# 6. Uniform `derivBound`: use post-fixed-point flux time-chain, not coefficient ODE
+
+Use the post-fixed-point time-chain.
+
+Define the EWA source:
+
+\[
+F(U)
+=
+-\chi_0\partial_xB(U)+G(U).
+\]
+
+For the fixed-point limit \(U\), prove:
+
+\[
+U_t
+=
+U_{xx}
+-\chi_0\partial_xB(U)
++
+G(U).
+\]
+
+Then:
+
+\[
+v_t=R_\mu(\nu\gamma U^{\gamma-1}U_t),
+\]
+
+\[
+q_t=-\beta(1+v)^{-\beta-1}v_t,
+\]
+
+\[
+B_t
+=
+U_t v_xq
++
+U(v_t)_xq
+-
+\beta Uv_xv_t(1+v)^{-\beta-1}.
+\]
+
+Then:
+
+\[
+F_t
+=
+-\chi_0\partial_xB_t+G_t.
+\]
+
+From \(F_t\in EWA^0\), define:
+
+```lean
+adot s k := ewaCosCoeffAt Ft s k
+```
+
+and get the single uniform bound:
+
+\[
+|adot(s,k)|
+\le
+C\|F_t\|_{EWA^0}.
+\]
+
+This matches the windowed structure, which only asks for one `derivBound`, not a summable derivative envelope. fileciteturn37file0L3-L12
+
+Do **not** use the coefficient ODE as the primary route. The coefficient ODE gives derivatives of the solution coefficients:
+
+\[
+c_n'=-\lambda_nc_n+F_n.
+\]
+
+But `DuhamelSourceTimeC1On` needs derivatives of the **source coefficients** \(F_n\), i.e. \(F_n'\). Using the coefficient ODE to get \(F_n'\) would require \(c_n''\), which is basically the same regularity problem in disguise.
+
+So the clean lemma is:
+
+```lean
+sourceEWA_timeC1On_of_fixedPoint_EWA3
+```
+
+or more specifically:
+
+```lean
+chemotaxisGrowthSource_timeC1On_of_EWA3_fixedPoint
+```
+
+Input:
+
+```lean
+U∞ : EWA T 3
+hfixed : U∞ = PhiEWA p u₀E U∞
+hfloor : UniformFloor U∞ δ
+```
+
+Output:
+
+```lean
+DuhamelSourceTimeC1On
+  (fun s k => ewaCosCoeffAt (sourceEWA U∞) ⟨s, hs⟩ k)
+  0 T
+```
+
+Then use coefficient equality to rewrite the source family into the committed `cosineCoeffs (...)` shape.
+
+Important: an `EWA T 1` fixed point is enough for value envelopes, but **not** enough for this post-fixed-point time-chain. For the final `adot` join, run the shadow/fixed-point argument in `EWA T 3`, or add a positive-time restart. The same divergence-Duhamel estimate works at every finite `r`; the missing piece is only making the nonlinear maps/Lipschitz lemmas available at `r=3`.
+
+---
+
+# 7. Circularity check
+
+The dependency is well-founded if you keep this order:
+
+1. Build value nonlinear maps:
+   \[
+   U\mapsto B(U),\quad U\mapsto G(U).
+   \]
+
+2. Prove contraction/invariance using only:
+   \[
+   B(U),G(U)\in EWA^r,
+   \]
+   their Lipschitz bounds, and the `√T`/`T` Duhamel estimates.
+
+3. Construct/lift the committed Picard sequence in EWA.
+
+4. Take the EWA limit and prove:
+   \[
+   U=\Phi_{\mathrm{EWA}}(U).
+   \]
+
+5. Only now prove:
+   \[
+   U_t=U_{xx}-\chi_0\partial_xB(U)+G(U).
+   \]
+
+6. Only now prove the source time-chain:
+   \[
+   F_t=-\chi_0\partial_xB_t+G_t.
+   \]
+
+7. Only now package `DuhamelSourceTimeC1On`.
+
+So the source derivative is a **post-fixed-point readout**, not an input to the contraction. No circularity.
+
+---
+
+# Final concrete answer
+
+Choose **B′**:
+
+> Lift the committed `picardIter` sequence into EWA step-by-step, prove the EWA shadow sequence is Cauchy by the EWA contraction estimate, pass to an EWA limit, and derive the fixed-point identity by passing the recurrence to the limit.
+
+Do **not** build a separate unrelated EWA fixed point and then prove uniqueness against the committed PDE solution unless B′ fails.
+
+The precise bridge object is:
+
+```lean
+EWARealizesOn T r U w
+```
+
+with eval agreement as a field, plus a derived coefficient bridge:
+
+```lean
+ewaCosCoeffAt_eq_cosineCoeffs_of_eval
+```
+
+The coefficient bridge is the load-bearing one for `DuhamelSourceTimeC1On`; the eval bridge is load-bearing for connecting the EWA Picard shadow to `picardIter`.
+
+Floor propagation should be a **closed floored invariant ball**, with small-time closeness to the heat evolution preserving \(u\ge\delta\), and resolver positivity giving \(1+v\ge1\).
+
+For `derivBound`, use the **post-fixed-point flux time-chain** from \(U_t\), not the solution coefficient ODE. But run this at `EWA T 3`, not merely `EWA T 1`, unless you switch to a positive-time restart strategy.

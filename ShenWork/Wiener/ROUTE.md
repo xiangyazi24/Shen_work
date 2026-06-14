@@ -191,3 +191,33 @@ Read the two structures E10/E11/E12 must witness:
 DECISION: E11 targets DuhamelSourceTimeC1On (windowed, uniform-derivBound) — confirmed the shortest sound path.
 ## NOTE: codex usage-limited until 2026-06-18; Lean grind re-routed to opus subagents (C1 in flight via Agent),
 ## ChatGPT (cron) for design/audit only. Resume codex dispatch after 06-18.
+
+## ============================================================================================================
+## PHASE C-2 JOIN BLUEPRINT (ChatGPT cron2, 2026-06-14) — captured gpt_e8_join_strategy.txt. STRATEGY = B′.
+Lipschitz layer COMPLETE (bricks 1-4 committed @a135e0d): Flux skeleton, ExpLipschitz, FnegLipschitz,
+RealPowLipschitz — the full contraction machinery in E_T^1.
+B′ = "EWA shadow Picard": lift each committed picardIter iterate to an EWA shadow, prove the shadow is CAUCHY
+(geometric ‖U_{n+1}-U_n‖≤K^n C0, K<1 — uniform bounds ALONE insufficient, the trap in pure B), pass to EWA
+limit, fixed-point identity as a CONSEQUENCE. NOT pure-A (no separate fixed point + uniqueness/agreement).
+picardIter (IntervalMildPicard.lean:863) is recursively intervalGradientDuhamelMap — join is stepwise/definitional.
+
+REMAINING BRICKS (precise):
+  B5 [eval bridge — HARD] PhiEWA := heatEWA u₀ + divDuhamelEWA(-χ₀ chemFluxEWA u) + valDuhamelEWA(growthEWA u)
+     (committed B1 Duhamel ops); EWARealizesOn structure (eval_eq: evalST U = intervalDomainLift w);
+     PhiEWA_eval_eq_intervalGradientDuhamelMap. NEEDS resolving the currently-OPAQUE eval(gDeriv v):
+     eval_vFieldEWA_eq_intervalNeumannResolverR + eval_gDeriv_vFieldEWA_eq_resolverGradReal. Hardest brick.
+  B6 [coeff bridge] ewaCosCoeffAt F τ k := ((sliceWA τ F).toFun k + .toFun(-k)).re (sum-of-±-modes, avoids
+     evenness); ewaCosCoeffAt_eq_cosineCoeffs_of_eval (given EWARealizesOn) via committed fourierCoeff_evalC_eq_coeff
+     + ofCosineCoeffs/evalC_ofCosineCoeffs (CosineAdapter). Load-bearing for DuhamelSourceTimeC1On.
+  B7 [B′ contraction] FlooredBall struct (‖U-center‖≤R + UniformFloor U δ + RealValued, complete: norm-closed +
+     floor-closed via continuous evalST); invariant by SMALL-TIME (S(t)u₀≥2δ + Duhamel perturb ≤δ ⟹ Φ(U)≥δ;
+     1+v≥1 via committed intervalNeumannResolverR_nonneg_of_nonneg_source); picardEWA shadow def;
+     picardEWA_realizes_picardIter (induction via B5); picardEWA_geometric→cauchy→tendsto→limit_fixed.
+  B8 [time-chain @ EWA T 3 — HIGHEST RISK] U_t=U_xx-χ₀∂ₓB+G ⟹ v_t,q_t,B_t,F_t=-χ₀∂ₓB_t+G_t ∈ EWA⁰;
+     adot_k=ewaCosCoeffAt F_t, |adot|≤C‖F_t‖_{EWA⁰} (single uniform derivBound). CAVEAT: needs EWA T 3 (not T 1)
+     — either re-run WL/Lipschitz at r=3 (high-weight WL, new), or positive-time restart on [τ,T]. DECIDE AT B8.
+  B9 [package] DuhamelSourceTimeC1On (fun s k => ewaCosCoeffAt (sourceEWA U∞) ⟨s,hs⟩ k) 0 T, rewrite via coeff
+     equality to committed cosineCoeffs shape → feed duhamelSpectral_eigenvalueSummable_of_sourceL1.
+Circularity-safe order: value maps → contraction (value Lipschitz only) → lift Picard → EWA limit → fixed-point
+identity → time-chain (post-fixed-point readout) → package. Source derivative NOT a contraction input.
+## ============================================================================================================
