@@ -1,0 +1,583 @@
+## Pick route B
+
+Use **B: direct Laplace-difference**, with a small mean-value lemma for the Banach-algebra exponential along the segment.
+
+It is the least new Lean infrastructure because it extends the file you already have:
+
+```lean
+FnegEWA f s :=
+  ((1 / Real.Gamma s : ℝ) : ℂ) •
+    ∫ t in Ioi 0, gammaIntegrandEWA f s t
+```
+
+where `gammaIntegrandEWA f s t = t^(s-1) • exp(-t f)`. That is already committed in `WienerLevy.lean`. fileciteturn13file0L52-L55 fileciteturn13file0L126-L128
+
+Route A is mathematically fine, but it asks Lean to handle the segment integral of the **real-power map** itself. Since your current `realPow_eval_EWA` is existential, not a definitional map, route A forces you to first refactor real powers into a deterministic function and then prove θ-continuity/integrability of that selected function. Route B only differentiates `NormedSpace.exp`, and Mathlib already has Banach-algebra exponential derivative lemmas such as `hasFDerivAt_exp`; the mean-value file also has segment Lipschitz lemmas such as `norm_image_sub_le_of_norm_deriv_le_segment_01` and the convex-set variants. citeturn455783view0 citeturn706631view0
+
+Route C is not the shortest path. The available Mathlib API here is the Banach-algebra exponential and mean-value inequality, not a ready-made “Wiener–Lévy power map is Lipschitz on a spectral sector” theorem.
+
+---
+
+# Constants
+
+Let
+
+```lean
+def Cdec : ℝ :=
+  8 * (1 + 1 / Real.pi) ^ 2
+```
+
+This is exactly the committed decisive constant:
+
+```lean
+‖NormedSpace.exp (((-s:ℝ):ℂ) • f)‖
+  ≤ Cdec * (1 + s * ‖GWA.gDeriv f‖)^2 * Real.exp (-δ * s)
+```
+
+under `UniformFloor f δ`. fileciteturn17file0L87-L93 fileciteturn18file0L3-L5
+
+For a derivative bound parameter `Md ≥ 0`, define:
+
+```lean
+def negNormConst (s δ Md : ℝ) : ℝ :=
+  (1 / Real.Gamma s) * Cdec *
+    ((1 / δ) ^ s * Real.Gamma s
+      + 2 * Md * (1 / δ) ^ (s + 1) * Real.Gamma (s + 1)
+      + Md ^ 2 * (1 / δ) ^ (s + 2) * Real.Gamma (s + 2))
+
+def negLipConst (s δ Md : ℝ) : ℝ :=
+  (1 / Real.Gamma s) * Cdec *
+    ((1 / δ) ^ (s + 1) * Real.Gamma (s + 1)
+      + 2 * Md * (1 / δ) ^ (s + 2) * Real.Gamma (s + 2)
+      + Md ^ 2 * (1 / δ) ^ (s + 3) * Real.Gamma (s + 3))
+```
+
+The first bounds `‖FnegEWA f s‖`. The second bounds the Lipschitz constant of `FnegEWA · s`.
+
+The only reason `negLipConst` has powers `s+1`, `s+2`, `s+3` is the extra factor `t` from differentiating `exp(-t f)`.
+
+---
+
+# Core estimate for route B
+
+Let
+
+```lean
+seg f g θ := ((1 - θ : ℝ) : ℂ) • g + ((θ : ℝ) : ℂ) • f
+```
+
+Then for `0 ≤ θ ≤ 1`,
+
+```lean
+seg f g θ = g + ((θ : ℝ) : ℂ) • (f - g)
+```
+
+and
+
+```lean
+seg f g 0 = g
+seg f g 1 = f
+```
+
+If both endpoints have the same floor,
+
+```lean
+UniformFloor f δ
+UniformFloor g δ
+```
+
+then every segment point has the same floor:
+
+```lean
+UniformFloor (seg f g θ) δ
+```
+
+because evaluation is linear and
+
+```lean
+δ ≤ Re(eval f)
+δ ≤ Re(eval g)
+0 ≤ θ
+θ ≤ 1
+```
+
+imply
+
+```lean
+δ ≤ (1 - θ) * Re(eval g) + θ * Re(eval f).
+```
+
+No extra “interaction” condition is needed. A single common floor `δ` is enough.
+
+Now fix `t ≥ 0`. Define
+
+```lean
+φ θ := NormedSpace.exp (((-t : ℝ) : ℂ) • seg f g θ)
+```
+
+Then
+
+```lean
+φ 1 - φ 0 = exp(-t f) - exp(-t g)
+```
+
+and Mathlib’s Banach-algebra exponential derivative gives
+
+```lean
+φ' θ =
+  (((-t : ℝ) : ℂ) • (f - g))
+    * NormedSpace.exp (((-t : ℝ) : ℂ) • seg f g θ)
+```
+
+up to commuted multiplication. Since the algebra is commutative, the order does not matter.
+
+Assume
+
+```lean
+‖GWA.gDeriv f‖ ≤ Md
+‖GWA.gDeriv g‖ ≤ Md
+```
+
+Then for `θ ∈ [0,1]`,
+
+```lean
+‖GWA.gDeriv (seg f g θ)‖ ≤ Md.
+```
+
+Therefore the committed decisive estimate gives
+
+```lean
+‖NormedSpace.exp (((-t : ℝ) : ℂ) • seg f g θ)‖
+  ≤ Cdec * (1 + t * Md)^2 * Real.exp (-δ * t).
+```
+
+So the derivative of `φ` satisfies
+
+```lean
+‖φ' θ‖
+  ≤ t * ‖f - g‖
+      * Cdec * (1 + t * Md)^2 * Real.exp (-δ * t).
+```
+
+The mean-value inequality on `[0,1]` then gives the key lemma:
+
+```lean
+theorem expNeg_sub_expNeg_norm_le
+    {f g : EWA T 1} {t δ Md : ℝ}
+    (ht : 0 ≤ t)
+    (hMd : 0 ≤ Md)
+    (hf_floor : UniformFloor f δ)
+    (hg_floor : UniformFloor g δ)
+    (hfD : ‖GWA.gDeriv f‖ ≤ Md)
+    (hgD : ‖GWA.gDeriv g‖ ≤ Md) :
+    ‖NormedSpace.exp (((-t : ℝ) : ℂ) • f)
+        - NormedSpace.exp (((-t : ℝ) : ℂ) • g)‖
+      ≤
+    t * ‖f - g‖
+      * Cdec * (1 + t * Md) ^ 2 * Real.exp (-δ * t) := by
+  -- 1. define φ θ
+  -- 2. prove derivative using `hasFDerivAt_exp` + affine chain rule
+  -- 3. bound derivative by the decisive estimate along the segment
+  -- 4. apply `norm_image_sub_le_of_norm_deriv_le_segment_01`
+  sorry
+```
+
+This is the only new “calculus” lemma you need.
+
+---
+
+# Negative-power Lipschitz
+
+For `s > 0`, `δ > 0`, and common floor/derivative bounds,
+
+```lean
+‖FnegEWA f s - FnegEWA g s‖
+  ≤ negLipConst s δ Md * ‖f - g‖.
+```
+
+Proof:
+
+```lean
+FnegEWA f s - FnegEWA g s
+=
+(1 / Γ s) • ∫ t in Ioi 0,
+  ((t ^ (s - 1) : ℝ) : ℂ) •
+    (exp(-t f) - exp(-t g)).
+```
+
+Then
+
+```lean
+‖FnegEWA f s - FnegEWA g s‖
+≤
+(1 / Γ s) *
+  ∫₀∞ t^(s-1) *
+    ‖exp(-t f) - exp(-t g)‖ dt
+```
+
+and by the exponential-difference lemma,
+
+```lean
+≤
+(1 / Γ s) *
+  ∫₀∞ t^(s-1) *
+    (t * ‖f-g‖ * Cdec * (1+t Md)^2 * exp(-δt)) dt
+```
+
+so
+
+```lean
+≤
+negLipConst s δ Md * ‖f - g‖.
+```
+
+Lean skeleton:
+
+```lean
+theorem FnegEWA_lipschitz
+    {f g : EWA T 1} {s δ Md : ℝ}
+    (hs : 0 < s)
+    (hδ : 0 < δ)
+    (hMd : 0 ≤ Md)
+    (hf_floor : UniformFloor f δ)
+    (hg_floor : UniformFloor g δ)
+    (hfD : ‖GWA.gDeriv f‖ ≤ Md)
+    (hgD : ‖GWA.gDeriv g‖ ≤ Md) :
+    ‖FnegEWA f s - FnegEWA g s‖
+      ≤ negLipConst s δ Md * ‖f - g‖ := by
+  -- rewrite `FnegEWA`, distribute subtraction across the Bochner integral
+  -- use `integrable_gammaIntegrandEWA` for each side
+  -- use `norm_integral_le_integral_norm`
+  -- dominate by `expNeg_sub_expNeg_norm_le`
+  -- evaluate the three scalar Gamma integrals
+  sorry
+```
+
+You already have the integrability template in `integrable_gammaIntegrandEWA`, which uses the decisive bound as the majorant. fileciteturn13file0L106-L122 For this Lipschitz version, add the same proof with the shifted majorant
+
+```lean
+t ^ s * Cdec * (1 + t * Md)^2 * Real.exp (-δ * t).
+```
+
+The extra `t` is harmless: near `0`, the integrand is `t^s`, and `s > 0`; at infinity, the exponential decay dominates the polynomial.
+
+---
+
+# Norm bound for `FnegEWA`
+
+You also want a norm bound, because positive powers are implemented as
+
+```lean
+f^m * FnegEWA f (m - γ)
+```
+
+as in your committed `realPow_eval_EWA` witness. fileciteturn14file0L37-L50
+
+Add:
+
+```lean
+theorem FnegEWA_norm_le
+    {f : EWA T 1} {s δ Md : ℝ}
+    (hs : 0 < s)
+    (hδ : 0 < δ)
+    (hMd : 0 ≤ Md)
+    (hf_floor : UniformFloor f δ)
+    (hfD : ‖GWA.gDeriv f‖ ≤ Md) :
+    ‖FnegEWA f s‖ ≤ negNormConst s δ Md := by
+  -- same as `integrable_gammaIntegrandEWA`,
+  -- but conclude a norm estimate instead of just integrability.
+  sorry
+```
+
+This is not analytically new; it is the quantitative version of your existing integrability proof.
+
+---
+
+# Deterministic real-power map
+
+For Lipschitz, do not use the existential theorem directly. Add a definitional map.
+
+```lean
+def realPowLaplaceEWA
+    (γ : ℝ) (m : ℕ) (f : EWA T 1) : EWA T 1 :=
+  f ^ m * FnegEWA f ((m : ℝ) - γ)
+```
+
+Use a fixed `m` for the whole map, with
+
+```lean
+1 ≤ m
+γ < (m : ℝ)
+```
+
+Then `s := (m : ℝ) - γ > 0`.
+
+The eval theorem is just the existing `realPow_eval_EWA` proof refactored from existential to definitional:
+
+```lean
+theorem eval_realPowLaplaceEWA
+    {f : EWA T 1} {γ δ : ℝ} {m : ℕ}
+    (hm_pos : 1 ≤ m)
+    (hmγ : γ < (m : ℝ))
+    (hδpos : 0 < δ)
+    (hfloor : UniformFloor f δ)
+    (hreal : ∀ τ x,
+      (evalST τ x (GWA.incl (by omega : (0:ℕ) ≤ 1) f)).im = 0) :
+    ∀ τ x,
+      evalST τ x (GWA.incl (by omega : (0:ℕ) ≤ 1)
+        (realPowLaplaceEWA γ m f))
+        =
+      (((evalST τ x
+        (GWA.incl (by omega : (0:ℕ) ≤ 1) f)).re ^ γ : ℝ) : ℂ) := by
+  -- same proof as lines 50–71 of `realPow_eval_EWA`
+  sorry
+```
+
+This avoids any choice-induced Lipschitz nightmare.
+
+---
+
+# Polynomial-power Lipschitz
+
+On a ball `‖f‖, ‖g‖ ≤ R`, prove once:
+
+```lean
+theorem pow_nat_lipschitz_on_ball
+    {A : Type*} [NormedCommRing A]
+    {f g : A} {R : ℝ} {m : ℕ}
+    (hm : 1 ≤ m)
+    (hR : 0 ≤ R)
+    (hfR : ‖f‖ ≤ R)
+    (hgR : ‖g‖ ≤ R) :
+    ‖f ^ m - g ^ m‖
+      ≤ (m : ℝ) * R ^ (m - 1) * ‖f - g‖ := by
+  -- induction on m is easiest:
+  -- f^(n+1)-g^(n+1) = (f^n-g^n)*f + g^n*(f-g)
+  sorry
+```
+
+Then the real-power Lipschitz bound is:
+
+```lean
+theorem realPowLaplaceEWA_lipschitz
+    {f g : EWA T 1} {γ δ Md R : ℝ} {m : ℕ}
+    (hm_pos : 1 ≤ m)
+    (hmγ : γ < (m : ℝ))
+    (hδ : 0 < δ)
+    (hMd : 0 ≤ Md)
+    (hR : 0 ≤ R)
+    (hf_floor : UniformFloor f δ)
+    (hg_floor : UniformFloor g δ)
+    (hfD : ‖GWA.gDeriv f‖ ≤ Md)
+    (hgD : ‖GWA.gDeriv g‖ ≤ Md)
+    (hfR : ‖f‖ ≤ R)
+    (hgR : ‖g‖ ≤ R) :
+    ‖realPowLaplaceEWA γ m f - realPowLaplaceEWA γ m g‖
+      ≤
+    ((m : ℝ) * R ^ (m - 1) * negNormConst ((m : ℝ) - γ) δ Md
+      + R ^ m * negLipConst ((m : ℝ) - γ) δ Md)
+      * ‖f - g‖ := by
+  let s : ℝ := (m : ℝ) - γ
+
+  -- Expand:
+  -- f^m*N(f) - g^m*N(g)
+  -- = (f^m-g^m)*N(f) + g^m*(N(f)-N(g))
+
+  have hNf :
+      ‖FnegEWA f s‖ ≤ negNormConst s δ Md :=
+    FnegEWA_norm_le
+      (s := s) (δ := δ) (Md := Md)
+      (by dsimp [s]; linarith)
+      hδ hMd hf_floor hfD
+
+  have hNLip :
+      ‖FnegEWA f s - FnegEWA g s‖
+        ≤ negLipConst s δ Md * ‖f - g‖ :=
+    FnegEWA_lipschitz
+      (s := s) (δ := δ) (Md := Md)
+      (by dsimp [s]; linarith)
+      hδ hMd hf_floor hg_floor hfD hgD
+
+  have hpowLip :
+      ‖f ^ m - g ^ m‖
+        ≤ (m : ℝ) * R ^ (m - 1) * ‖f - g‖ :=
+    pow_nat_lipschitz_on_ball hm_pos hR hfR hgR
+
+  have hgpow : ‖g ^ m‖ ≤ R ^ m := by
+    -- from `norm_pow_le` plus `hgR`
+    sorry
+
+  -- product bound twice, then `nlinarith`/ring cleanup
+  sorry
+```
+
+That is the cleanest `Φγ` theorem.
+
+---
+
+# The `(1+f)^(-β)` map
+
+Do **not** route this through the general `realPowLaplaceEWA` with `γ = -β`. Define it directly by `FnegEWA`.
+
+```lean
+def PsiBetaEWA (β : ℝ) (f : EWA T 1) : EWA T 1 :=
+  FnegEWA (1 + f) β
+```
+
+Then:
+
+```lean
+theorem PsiBetaEWA_lipschitz
+    {f g : EWA T 1} {β δ Md : ℝ}
+    (hβ : 0 < β)
+    (hδ : 0 < δ)
+    (hMd : 0 ≤ Md)
+    (hf_floor : UniformFloor (1 + f) δ)
+    (hg_floor : UniformFloor (1 + g) δ)
+    (hfD : ‖GWA.gDeriv f‖ ≤ Md)
+    (hgD : ‖GWA.gDeriv g‖ ≤ Md) :
+    ‖PsiBetaEWA β f - PsiBetaEWA β g‖
+      ≤ negLipConst β δ Md * ‖f - g‖ := by
+  -- apply `FnegEWA_lipschitz` to `1+f`, `1+g`
+  -- use:
+  --   (1+f) - (1+g) = f - g
+  --   gDeriv (1+f) = gDeriv f
+  --   gDeriv (1+g) = gDeriv g
+  simpa [PsiBetaEWA, sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using
+    FnegEWA_lipschitz
+      (f := 1 + f) (g := 1 + g)
+      (s := β) (δ := δ) (Md := Md)
+      hβ hδ hMd hf_floor hg_floor
+      (by simpa using hfD)
+      (by simpa using hgD)
+```
+
+This is the shortest path for the chemotactic denominator.
+
+---
+
+# What new Lean bricks to add
+
+I would add three small files/bricks.
+
+## 1. `EWA/ExpLipschitz.lean`
+
+Core lemmas:
+
+```lean
+seg
+UniformFloor_seg
+gDeriv_seg_le
+expNeg_sub_expNeg_norm_le
+```
+
+This is the only place using Mathlib calculus:
+
+```lean
+hasFDerivAt_exp
+norm_image_sub_le_of_norm_deriv_le_segment_01
+```
+
+Mathlib’s exponential derivative theorem is for commutative Banach algebras, exactly your `EWA T 1` situation. citeturn455783view0
+
+## 2. `EWA/FnegLipschitz.lean`
+
+Core lemmas:
+
+```lean
+negNormConst
+negLipConst
+integrable_lip_majorantEWA
+FnegEWA_norm_le
+FnegEWA_lipschitz
+```
+
+This mostly duplicates the structure of `integrable_gammaIntegrandEWA`, whose current proof already has the right decisive-bound pattern. fileciteturn13file0L78-L122
+
+## 3. `EWA/RealPowLipschitz.lean`
+
+Core definitions and lemmas:
+
+```lean
+realPowLaplaceEWA
+eval_realPowLaplaceEWA
+pow_nat_lipschitz_on_ball
+realPowLaplaceEWA_lipschitz
+PsiBetaEWA
+PsiBetaEWA_lipschitz
+```
+
+This file should not redo Gamma/Laplace analysis; it should only combine `FnegEWA_norm_le`, `FnegEWA_lipschitz`, and the algebra product bound.
+
+---
+
+# Hidden obstructions
+
+The main obstruction is not analytic. It is **definition management**.
+
+Your current `realPow_eval_EWA` proves an existential witness:
+
+```lean
+∃ F : EWA T 1, eval F = ...
+```
+
+fileciteturn14file0L37-L47
+
+For Lipschitz, you need a named map. Add:
+
+```lean
+realPowLaplaceEWA γ m f := f^m * FnegEWA f ((m:ℝ)-γ)
+```
+
+and prove eval for that map. Do not formulate Lipschitz for an existentially chosen `F`.
+
+The second obstruction is weight level. The committed WL file is specifically `EWA T 1`; its `evalSTCLM` and `FnegEWA` live at `EWA T 1`. fileciteturn13file0L33-L45 If your contraction is in `E_T^r` for `r > 1`, this route must be rerun at that `r`, or you need a high-weight theorem reducing `E_T^r` Lipschitz to finitely many derivative-level `E_T^1` estimates. For the theorem as stated in `E_T^1`, route B closes.
+
+The third obstruction is the floor. Route B requires a **common floor along the segment**, but endpoint floors with the same `δ` are enough. For `Ψβ`, the needed assumption is not `UniformFloor f δ`; it is:
+
+```lean
+UniformFloor (1 + f) δ
+UniformFloor (1 + g) δ
+```
+
+Then the segment of `1+f` and `1+g` keeps the same floor.
+
+No hidden blow-up occurs in the Laplace integral. The extra factor from the difference estimate is exactly one factor of `t`, so the majorant is
+
+```lean
+t^s * (1 + t Md)^2 * exp(-δt),
+```
+
+which is integrable for `s > 0`, `δ > 0`.
+
+---
+
+# Final answer
+
+Use **route B**.
+
+The contraction-ready estimates should be:
+
+```lean
+‖FnegEWA f s - FnegEWA g s‖
+  ≤ negLipConst s δ Md * ‖f - g‖
+```
+
+and, for `γ < m`, `1 ≤ m`,
+
+```lean
+‖realPowLaplaceEWA γ m f - realPowLaplaceEWA γ m g‖
+  ≤
+((m : ℝ) * R ^ (m - 1) * negNormConst ((m : ℝ) - γ) δ Md
+  + R ^ m * negLipConst ((m : ℝ) - γ) δ Md)
+* ‖f - g‖.
+```
+
+For the denominator:
+
+```lean
+‖PsiBetaEWA β f - PsiBetaEWA β g‖
+  ≤ negLipConst β δ Md * ‖f - g‖.
+```
+
+The constants do **not** directly depend on `T`; all time dependence is already absorbed into the `E_T` norm and the uniform floor. The small factor for contraction still comes from the divergence-Duhamel `C√T`, not from the nonlinear Wiener–Lévy Lipschitz constants.
