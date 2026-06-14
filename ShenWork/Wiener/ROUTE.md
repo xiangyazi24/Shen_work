@@ -415,3 +415,27 @@ TWO REMAINING GAPS to fully unconditional (precisely scoped, substantial NEW con
 RECOMMENDED NEXT CAMPAIGN: the EWA-T-3 time-chain for Mdot (clearest path — the value layer is the template).
 Then the A¹ positive-time smoothing. Both reduce the FINAL theorem to fully unconditional.
 ## ============================================================================================================
+
+## A¹ RESOLVED (2026-06-14, commit 83839f4) — not a wall; precise remaining brick identified
+THREE independent confirmations A¹ is sound (not a wall):
+  - Committed (kπ)²-weighted ℓ¹ SOLUTION bound (eigenvalue_mul_abs_limitCoeff_le_uniform_bdd,
+    IntervalPicardLimitBddAdapter.lean:84) σ-uniform on windows [a',τ]⊂(0,T], dominates A¹ via (1+k)≤(kπ)².
+  - ChatGPT Pro: F∈A⁰ + heat smoothing ⟹ Duhamel∈A¹ on [τ₀,T] (per-coeff |U_k^D|≤B_k/(kπ)², Σ(1+k)|U_k^D|≤
+    (T+1/π²)ΣB_k). Flags: (3) t→0 unbounded for A⁰ initial data; (4) circularity — F∈A⁰ proof must not use u∈A¹.
+  - Built+verified brick solution_A1_on_pos (SolutionA1.lean, clean-tree 3579 jobs, clean axioms, hostile-audited
+    FAITHFUL): A¹ on positive-time window [a',b'].
+AUDIT KILL (why not yet wired): FINAL theorem's hBv is ALL-s (embedEWA time domain TimeDom T=Icc 0 T INCLUDES 0);
+  A¹ is FALSE at s=0 for A⁰ initial data (Σ(1+k)/k² diverges). Committed window bound's windowEigEnv → Σλ_k
+  (divergent) as a'→0, so NO uniform-to-0 envelope from the generic A⁰-smoothing route.
+RESOLUTION (the math, worked through): assume u₀∈A¹ (smooth initial data — natural regularity class). Then
+  S(t)u₀∈A¹ UNIFORMLY on [0,T] (heat semigroup contracts A¹, e^{-tλ_k}≤1, NO t^{-1/2} blow-up) + Duhamel A¹-norm
+  ≤2√T·sup‖F‖_{A⁰} uniformly ⟹ u∈A¹ uniformly on ALL [0,T] incl 0 ⟹ all-s hBv SATISFIABLE.
+PRECISE REMAINING BRICK (A¹): solution_A1_uniform — extend solution_A1_on_pos to include t=0 under an u₀∈A¹
+  hypothesis, giving a SINGLE Bv valid on all [0,T]. t>0 via the committed window bound (shrink a''→t/2 for any t);
+  t=0 via u(0)=u₀∈A¹ directly; uniform glue via the mild formula (S(t)u₀ A¹-contraction + Duhamel 2√T bound).
+  Breaks ChatGPT's circularity flag (4) because u∈A¹ for t>0 comes from the committed Picard (kπ)²-bound, NOT from
+  F∈A⁰. Committed shift/restrict lemmas (IntervalDuhamelSourceTimeC1On.lean:38-101) available for window algebra.
+NOTE: chemDiv_eigenvalueSummableOn_of_solution is HONEST as a conditional on (all-s hBv); making it unconditional =
+  build solution_A1_uniform as the satisfiability witness under u₀∈A¹. Mdot/B8 recon died on server rate-limit —
+  re-dispatch (does committed dev bound the time-derivative coeffs uniformly, like windowEigEnv for u?).
+## ============================================================================================================
