@@ -278,3 +278,13 @@ NOTE: do coeff-level (match EWA coeffs to cosineCoeffs via B6), NOT pointwise ev
   supplies much of B5c eval(gDeriv vField)=resolverGradReal. RECON this file before building B5c.
 * B5 core-formulation consult fired to ChatGPT cron2 (/tmp/gpt_b5.out): per-op coeff bridges, the χ₀≠0 extension
   of iterateCoeff (option A fresh cosineCoeffs_of_intervalGradientDuhamelMap vs B), spectral↔kernel need, induction.
+
+## B5c DE-RISK (recon of IntervalResolverGradientBridge.lean, 2026-06-14)
+COMMITTED real-space termwise-diff: resolverR_apply_eq (:132 R=∑v̂_k.re cos), resolverRGrad_apply_eq (:141 =
+∑v̂_k.re(-kπ)sin), resolverR_hasDerivAt_grad (:159: ∂ₓ(intervalNeumannResolverR) = resolverGradReal via
+hasDerivAt_tsum + gradient ℓ¹ majorant resolverGrad_majorant_summable_of_sourceDecay:207). Template
+cosineSeries_hasDerivAt_of_gradSummable (:74). Also 2nd-deriv: sineSeries_hasDerivAt (:288), resolverGrad2 (:330,387).
+⟹ B5c = [NEW EWA: eval(gDeriv F)=∂ₓ(evalC F), mirror :74's hasDerivAt_tsum for the e^{inπx} series] ∘
+  [COMMITTED: ∂ₓ resolverR=resolverGrad, :159]. The hard real-space gradient is DONE; new piece is the EWA
+  termwise-derivative-commutes-with-eval, a clean mirror of committed technique.
+## ============================================================================================================
