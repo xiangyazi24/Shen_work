@@ -26,3 +26,9 @@
 - end: <in progress>
 - final result: <in progress, Phase C bricks 1-4 COMMITTED (Lipschitz layer done @a135e0d); join blueprint B′
   obtained @a19ba4e; recon for B5/B6 in flight. NOTE: B8 time-chain needs EWA T 3 (high-weight WL or restart).>
+
+  - Join interface recon a8c7e1a = COMPLETE (committed file:line map in ROUTE.md @0f675f6). Source is COSINE
+    (∂ₓB even) so B6 cosine extractor is the right one; eval(gDeriv v) is a SINE series → B5 needs ofSineCoeffs.
+  - B6 coefficient bridge (EWARealizesOn struct + ewaCosCoeffAt + ewaCosCoeffAt_eq_cosineCoeffs_of_eval) — opus
+    aa385ea IN FLIGHT, spec /tmp/shen_B6.md (honest-stall instruction on the interval↔period-2-circle step).
+    Running join bricks ONE at a time (合龙处慢点细审) — B6 outcome informs B5 design.
