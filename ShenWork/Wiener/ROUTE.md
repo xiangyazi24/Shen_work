@@ -1,5 +1,27 @@
 # Wiener-algebra build — route & doctrine (χ₀<0 unconditional regularity)
 
+## ===== 合龙 VERDICT (ChatGPT cron RUN#278, 2026-06-13) — the join CLOSES in strategy but needs E_T^r =====
+STATUS of the WA bottom layer: COMPLETE + hostile-audited (bricks 1..5: convolution alg, ring axioms,
+∂ₓ, multipliers, resolver +2 gain, t^{-1/2} smoothing, √t self-map, eval+map_exp+recovery, D_exp,
+DECISIVE estimate, Gamma Wiener–Lévy realPow_eval). 136 commits.
+NOT a gap: (1) eval-vs-coefficient (realPow_eval returns a genuine WA 1 element, not an AddCircle function
+— product/resolver act on the real element). (2) cos/sin↔ℤ adapter = plumbing (cos_k=a_k+a_{−k},
+sin_k=i(a_k−a_{−k}), match ½-factor + zero mode). [brick 6a builds this]
+THE REAL REMAINING THEOREM (yellow): the E_T^r COEFFICIENT-ENVELOPE layer. Committed PDE bricks consume
+Σ_k sup_t|·| (sup INSIDE); static WA gives sup_t Σ_k (sup OUTSIDE) — implication FALSE (disjoint-bumps).
+So build E_T^r = {a:ℤ→C([0,T],ℂ) : Σ_n(1+|n|)^r·sup_t‖a_n(t)‖<∞}, a Banach algebra under convolution
+(product/resolver/∂ₓ are EASY lifts — rerun the coeff majorant with sup-norm coeffs), and RE-PROVE in it:
+the decisive estimate (sup_t|coeff(e^{−su(t)})_n|≤e^{−δs}, mode-split identical) + Gamma WL (realPow_EWA)
++ the √t Duhamel + the flux time-chain (B_t = u_t·v_x·q + u·(v_t)_x·q + u·v_x·q_t). Finite weight ladder:
+∂ₓB∈A⁰⟸B∈A¹; gradient leg⟸B∈A²; chemDiv time-chain safe at u∈E_T³ (u_t=u_xx−χ₀∂ₓB+G(u)∈A¹).
+POSSIBLE ANALYTIC GAP (red, under check a3df669): floor/positivity of 1+v. R_μ's bounded Fourier multiplier
+does NOT give 0≤eval(v); need committed elliptic-resolver positivity (max principle / positive kernel) OR
+take 1+v≥η>0 as a faithful hypothesis (if the paper assumes it).
+brick-6 map: 6a cos↔ℤ adapter [building] · 6b EWA Banach algebra · 6c EWA operators (∂ₓ,R_μ,√t Duhamel)
+· 6d EWA realPow/WL [biggest] · 6e flux + time-chain · 6f feed duhamelSpectral_eigenvalueSummable_of_sourceL1.
+Honest closure: WA(done)+E_T^r lift+E_T³ WL+floor(u,1+v)+flux time-chain+cos adapter ⇒ committed bricks close.
+## ====================================================================================================
+
 Goal: build, from scratch (Mathlib has NONE of this), the weighted Wiener algebra needed to
 prove the chemotaxis divergence source `∂ₓB ∈ A` (B = u·v_x/(1+v)^β) for the actual nonlinear
 Picard iterate — discharging the source-ℓ¹ hypotheses my committed duhamelSpectral bricks consume.
