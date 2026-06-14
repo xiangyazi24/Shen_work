@@ -22,6 +22,11 @@ remains (E_T^r layer + flux time-chain) is PURE CONSTRUCTION (a mirror of the WA
 brick-6 map: 6a cos↔ℤ adapter [building] · 6b EWA Banach algebra · 6c EWA operators (∂ₓ,R_μ,√t Duhamel)
 · 6d EWA realPow/WL [biggest] · 6e flux + time-chain · 6f feed duhamelSpectral_eigenvalueSummable_of_sourceL1.
 Honest closure: WA(done)+E_T^r lift+E_T³ WL+floor(u,1+v)+flux time-chain+cos adapter ⇒ committed bricks close.
+TWO INPUT/STRUCTURE conditions (from re-reading the A¹-closure audit,钉死): (i) u₀∈A¹ — the fixed point in
+C([0,T];A¹) needs the initial data in A¹ at t=0 (committed S_N(t)u₀∈C²_x for t>0 does NOT give it); carry as
+honest input. (ii) PARITY — ofCosineCoeffs (6a) is the EVEN/cosine embedding; but B=u·v_x·q is SINE/ODD
+(even·odd·even), ∂ₓB back to cosine. So the adapter ALSO needs an ODD embedding ofSineCoeffs
+(a_k=ĉ_k^sin/(2i), a_{−k}=−ĉ_k^sin/(2i)) to extract v_x/B coefficients — a 6a-sibling brick.
 ## ====================================================================================================
 
 Goal: build, from scratch (Mathlib has NONE of this), the weighted Wiener algebra needed to
