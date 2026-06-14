@@ -536,3 +536,27 @@ HONEST STATE: capstone chemDiv_eigenvalueSummableOn_uncond (χ₀≠0 source-ℓ
   χ₀≠0 solution (generalize the χ₀=0 Picard machinery, the capstone supplies its source-ℓ¹) + open-window hyps at
   D.u. Large continued effort (shares F1-class strong-solution content).
 ## ============================================================================================================
+
+## ★★★ χ₀≠0 Thm 1.1 REACHABLE (2026-06-14, recon af9c54f) — solution EXISTS committed; blocker is ONE B5 brick, NOT F1
+MAJOR CORRECTION: the χ₀≠0 mild solution ALREADY EXISTS, committed + 0-sorry. intervalMildSolution_exists_picard
+(IntervalMildPicard.lean:1486) builds the FULL χ₀≠0 fixed point — intervalGradientDuhamelMap (IntervalGradient
+DuhamelMap.lean:58-64) literally contains (-χ₀)·∫∂ₓS(t-s)chemFlux; contraction closes with |χ₀| in the constant
+(glue1 chemFlux_div_lipschitz IntervalChemFluxLipschitz.lean:111 + Atom D gradDuhamel_sup_bound + gradientDuhamel_
+contraction_pointwise :152, invoked IntervalMildPicard.lean:2602/2733). NO F1 wall for existence (gradient-Duhamel
+form consumes only C⁰ flux Q; capstone source-ℓ¹ not even needed for existence).
+THE SINGLE HARD BLOCKER (NOT F1, it's B5 EWA coefficient-bridge): the χ₀≠0 PER-COEFF DUHAMEL SPLIT
+  cosineCoeffs(solution σ)_n = exp(-σλ_n)û₀_n + duhamelSpectralCoeff(logistic)_n + (-χ₀)·chemDiv-Duhamel-coeff_n.
+  Committed ONLY under hχ0=0: limitCoeff (IntervalPicardLimitRestart.lean:102-106) is logistic-only; the bridge
+  cosineCoeffs_halfstep_eq_limitCoeff_weak (IntervalPicardLimitRestartWeak.lean:372) gated on hχ0 (:373), routes
+  through intervalGradientDuhamelMap_eq_of_chi0_zero (IntervalPicardIterateRestart.lean:85) killing chemotaxis.
+SUBTLETY (the map-form distinction): the Picard map uses GRADIENT-form (-χ₀)∂ₓS·chemFlux (∂ₓ-of-semigroup, sine
+  coeffs / Dirichlet kernel via IBP); the capstone is SOURCE-form coupledChemDivSourceCoeffs = cosine coeff of
+  ∂ₓB (S·∂ₓB). These DIFFER on Neumann [0,1] (boundary/IBP terms). The B5 brick must reconcile them (gradient-Duhamel
+  chemotaxis coeff ↔ source-form summability).
+ONCE B5 split exists: A¹ window de-gates (solution_A1_on_pos hbridge SolutionA1.lean:190 = the SAME χ₀=0 split,
+  collapses to one blocker); capstone supplies chemDiv ℓ¹; additive summability assembles (Route A). Residue: hGcont
+  (per-mode time-cont of chemDiv coeff, genuinely carried) + L∞/continuity (committed-suppliable, picardLimit_
+  hasContinuousSlices). VERDICT: χ₀≠0 Thm 1.1 REACHABLE — reduces to the B5 per-coeff split + small residue.
+NEXT: build the B5 χ₀≠0 per-coeff Duhamel split (first reconcile gradient-form vs source-form for the chemotaxis
+  term), then de-gate the A¹ window, assemble the additive summability into the χ₀≠0 hbsumF, lift the χ₀=0 provider.
+## ============================================================================================================
