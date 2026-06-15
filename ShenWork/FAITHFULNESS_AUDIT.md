@@ -39,8 +39,23 @@ The fix was applied to P2 Theorem_1_1 ONLY and not propagated. Pre-screen of all
   KNOWS arbitrary D is unfaithful; headlines are meant to be the `intervalDomain` instantiation. (Worth a
   one-line confirmation that the claimed headline is the intervalDomain instance, not the ∀D form.)
 
-## Fix plan
-1. [in flight acbefcef] P2 Theorem_1_1: `PaperPositiveInitialDatum` + projection + rewire + floor-preservation.
-2. Propagate the SAME fix (once the pattern lands) to P2 Th_1_2/1_3.
-3. Add a Paper3 floor predicate (mirror `PaperPositiveInitialDatum`) for P3 Prop_1_2/1_3/1_4.
-4. P3 Theorem_2_x: per cron's paper-check, either confirm faithful (Neumann max principle) or fix the open→closed positivity hypothesis.
+## cron PAPER-CHECK verdict (2026-06-15) — the 🟡 P3 cases are REAL gaps
+- P3 Prop 1.2/1.3/1.4 initial data = condition (1.8): `u₀∈C(Ω̄) ∧ inf_Ω u₀>0`. Our open `PositiveInitialDatum`
+  is TOO WEAK → needs the uniform floor (same fix as P2). CONFIRMED 🔴.
+- P3 Theorem 2.1 (persistence) + 2.3/2.4/2.5 (stability): the paper's "positive global classical solution"
+  (Def 2.1) means a PER-TIME SPATIAL FLOOR `inf_Ω u(t,·) > 0` for each t∈(0,∞) — NOT pointwise interior
+  positivity. Our `PositiveGlobalBoundedSolution` (positivity on open D.inside) is too weak UNLESS paired
+  with a proved Neumann strong-max-principle upgrade (open-interior positivity + continuity on Ω̄ ⟹ per-time
+  floor on compact time slabs). So either (a) strengthen `PositiveGlobalBoundedSolution` to carry the per-time
+  floor, or (b) prove the max-principle upgrade lemma and keep the weak hypothesis. CONFIRMED real gap.
+  Note: the persistence CONCLUSION (uniform-in-t lower envelope as t→∞) is what Thm 2.1 PROVES — don't put
+  that in the hypothesis; the hypothesis is per-time floor + global + bounded.
+
+## Fix plan (acbefcef DONE for P2 Th_1_1; pattern established)
+1. ✅ [acbefcef] P2 Theorem_1_1: `PaperPositiveInitialDatum` (floor) + `.toPositive`/`.floor` + rewire 5 producer
+   bridges. χ₀<0 floor obstruction dissolved (chain only needs interior positivity; solution supplies any floor).
+   No floor-preservation stall. Full library builds 8671 jobs, χ₀=0 closer axiom-clean. [verify in flight]
+2. Propagate `PaperPositiveInitialDatum` (templated) → P2 Theorem_1_2/1_3 + Proposition_1_1.
+3. Add Paper3 floor predicate (mirror) → P3 Proposition_1_2/1_3/1_4 (initial data).
+4. P3 Theorem_2_1/2_3/2_4/2_5: strengthen `PositiveGlobalBoundedSolution` to the per-time spatial floor
+   (or add a Neumann max-principle upgrade lemma). The distinct, solution-level fix.
