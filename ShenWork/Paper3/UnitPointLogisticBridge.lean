@@ -19,7 +19,7 @@ theorem unitPointDomain.Proposition_1_3_holds
     Proposition_1_3 ShenWork.Paper2.unitPointDomain p C := by
   intro ha hb _hm _hcond u₀ hu₀
   rcases ShenWork.Paper2.unitPointLogistic_globalExistence_with_attractor
-      p ha hb u₀ hu₀ with
+      p ha hb u₀ hu₀.toPositive with
     ⟨u, v, hglobal, htrace, hbound, _hlim⟩
   refine ⟨u, v, hglobal, htrace, ?_⟩
   refine ⟨max (ShenWork.Paper2.unitPointDomain.supNorm u₀)
@@ -34,7 +34,7 @@ theorem unitPointDomain.Proposition_1_2_when_a_pos_b_pos
     Proposition_1_2 ShenWork.Paper2.unitPointDomain p := by
   intro _hχ _hm u₀ hu₀
   rcases ShenWork.Paper2.unitPointLogistic_globalExistence_with_attractor
-      p ha hb u₀ hu₀ with
+      p ha hb u₀ hu₀.toPositive with
     ⟨u, v, hglobal, htrace, hbound, _hlim⟩
   refine ⟨u, v, hglobal, htrace, ?_⟩
   refine ⟨max (ShenWork.Paper2.unitPointDomain.supNorm u₀)
@@ -49,7 +49,7 @@ theorem unitPointDomain.Proposition_1_4_when_a_pos_b_pos
     Proposition_1_4 ShenWork.Paper2.unitPointDomain p := by
   intro _hm _hβ _hor _hχ u₀ hu₀
   rcases ShenWork.Paper2.unitPointLogistic_globalExistence_with_attractor
-      p ha hb u₀ hu₀ with
+      p ha hb u₀ hu₀.toPositive with
     ⟨u, v, hglobal, htrace, hbound, _hlim⟩
   refine ⟨u, v, hglobal, htrace, ?_⟩
   refine ⟨max (ShenWork.Paper2.unitPointDomain.supNorm u₀)
@@ -74,7 +74,7 @@ theorem unitPointDomain.Proposition_1_4_when_a_zero_b_pos
     Proposition_1_4 ShenWork.Paper2.unitPointDomain p := by
   intro _hm _hβ _hor _hχ u₀ hu₀
   rcases ShenWork.Paper2.unitPointDecay_globalExistence_with_bound
-      p ha hb u₀ hu₀ with
+      p ha hb u₀ hu₀.toPositive with
     ⟨u, v, hglobal, htrace, hbound⟩
   refine ⟨u, v, hglobal, htrace, ?_⟩
   refine ⟨ShenWork.Paper2.unitPointDomain.supNorm u₀, ?_⟩
@@ -105,7 +105,7 @@ theorem unitPointDomain.Proposition_1_2_when_a_zero_b_pos
     Proposition_1_2 ShenWork.Paper2.unitPointDomain p := by
   intro _hχ _hm u₀ hu₀
   rcases ShenWork.Paper2.unitPointDecay_globalExistence_with_bound
-      p ha hb u₀ hu₀ with
+      p ha hb u₀ hu₀.toPositive with
     ⟨u, v, hglobal, htrace, hbound⟩
   refine ⟨u, v, hglobal, htrace, ?_⟩
   refine ⟨ShenWork.Paper2.unitPointDomain.supNorm u₀, ?_⟩

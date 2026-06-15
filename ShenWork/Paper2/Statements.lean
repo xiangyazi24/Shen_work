@@ -4325,7 +4325,7 @@ lemma StrongLogisticCondition.alpha_ge_two_mul_m_add_gamma_sub_two_of_m_le_one
 
 /-- Paper2 Proposition 1.1: local existence and blow-up alternative. -/
 def Proposition_1_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
-  ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+  ∀ u₀ : D.Point → ℝ, PaperPositiveInitialDatum D u₀ →
     ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
       IsPaper2ClassicalSolution D p Tmax u v ∧
       InitialTrace D u₀ u ∧
@@ -4380,11 +4380,10 @@ lemma not_forall_Proposition_1_1 :
   let D := proposition11NoRegularityDomain
   let p := proposition11CounterParams
   let u₀ : D.Point → ℝ := fun _ => 1
-  have hu₀ : PositiveInitialDatum D u₀ := by
-    constructor
-    · trivial
-    · intro x hx
-      exact False.elim (by simpa [D, proposition11NoRegularityDomain] using hx)
+  have hu₀ : PaperPositiveInitialDatum D u₀ := by
+    refine ⟨trivial, 1, by norm_num, ?_⟩
+    intro x
+    simp [u₀]
   rcases h D p u₀ hu₀ with ⟨Tmax, _hTmax, u, v, hsol, _htrace, _halt⟩
   exact hsol.regularity
 
@@ -4446,13 +4445,13 @@ def theorem12NoRegularityParams : CM2Params :=
 def Theorem_1_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   0 ≤ p.a → 0 ≤ p.b → 1 ≤ p.β →
     ((0 < p.m → p.m < 1 →
-      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+      ∀ u₀ : D.Point → ℝ, PaperPositiveInitialDatum D u₀ →
         ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
           IsPaper2ClassicalSolution D p Tmax u v ∧
             InitialTrace D u₀ u ∧
             IsPaper2BoundedBefore D Tmax u) ∧
     (p.m = 1 → p.χ₀ < chiBeta p →
-      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+      ∀ u₀ : D.Point → ℝ, PaperPositiveInitialDatum D u₀ →
         ∃ u v : ℝ → D.Point → ℝ,
           IsPaper2GlobalClassicalSolution D p u v ∧
             InitialTrace D u₀ u ∧
@@ -4464,11 +4463,10 @@ lemma not_forall_Theorem_1_2 :
   let D := proposition11NoRegularityDomain
   let p := theorem12NoRegularityParams
   let u₀ : D.Point → ℝ := fun _ => 1
-  have hu₀ : PositiveInitialDatum D u₀ := by
-    constructor
-    · trivial
-    · intro x hx
-      exact False.elim (by simpa [D, proposition11NoRegularityDomain] using hx)
+  have hu₀ : PaperPositiveInitialDatum D u₀ := by
+    refine ⟨trivial, 1, by norm_num, ?_⟩
+    intro x
+    simp [u₀]
   have hχ : p.χ₀ < chiBeta p := by
     norm_num [p, theorem12NoRegularityParams, chiBeta]
   rcases (h D p (by norm_num [p, theorem12NoRegularityParams])
@@ -4506,13 +4504,13 @@ def theorem13NoRegularityConstants : Paper2Constants theorem13NoRegularityParams
 /-- Paper2 Theorem 1.3: boundedness/global existence under a strong logistic source. -/
 def Theorem_1_3 (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p) : Prop :=
   0 < p.a → 0 < p.b → 0 < p.m → StrongLogisticCondition p C →
-    (∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+    (∀ u₀ : D.Point → ℝ, PaperPositiveInitialDatum D u₀ →
       ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
         IsPaper2ClassicalSolution D p Tmax u v ∧
           InitialTrace D u₀ u ∧
           IsPaper2BoundedBefore D Tmax u) ∧
     (1 ≤ p.m →
-      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+      ∀ u₀ : D.Point → ℝ, PaperPositiveInitialDatum D u₀ →
         ∃ u v : ℝ → D.Point → ℝ,
           IsPaper2GlobalClassicalSolution D p u v ∧
             InitialTrace D u₀ u ∧
@@ -4526,11 +4524,10 @@ lemma not_forall_Theorem_1_3 :
   let p := theorem13NoRegularityParams
   let C := theorem13NoRegularityConstants
   let u₀ : D.Point → ℝ := fun _ => 1
-  have hu₀ : PositiveInitialDatum D u₀ := by
-    constructor
-    · trivial
-    · intro x hx
-      exact False.elim (by simpa [D, proposition11NoRegularityDomain] using hx)
+  have hu₀ : PaperPositiveInitialDatum D u₀ := by
+    refine ⟨trivial, 1, by norm_num, ?_⟩
+    intro x
+    simp [u₀]
   have hcond : StrongLogisticCondition p C :=
     StrongLogisticCondition.of_alpha_gt_m_add_gamma_sub_one
       (by norm_num [p, theorem13NoRegularityParams])
@@ -4557,7 +4554,7 @@ theorem Proposition_1_1.of_assumed_existence_branch
         FiniteHorizonAlternative D Tmax u ∧
         (1 ≤ p.m → MGeOneFiniteHorizonAlternative D Tmax u)) :
     Proposition_1_1 D p :=
-  hexist
+  fun u₀ hu₀ => hexist u₀ hu₀.toPositive
 
 /-- **TAUTOLOGY (no math content)**: body is `:= hest`, definitionally equal
 to `Lemma_4_1 D p`.  Target signature only; do NOT cite as math progress. -/
@@ -5015,9 +5012,9 @@ theorem Theorem_1_2.of_assumed_solutions_branch
   intro ha hb hβ
   refine ⟨?_, ?_⟩
   · intro hm_pos hm_lt u₀ hu₀
-    exact hslow_diffusion ha hb hβ hm_pos hm_lt u₀ hu₀
+    exact hslow_diffusion ha hb hβ hm_pos hm_lt u₀ hu₀.toPositive
   · intro hm_eq hχ u₀ hu₀
-    exact hcritical ha hb hβ hm_eq hχ u₀ hu₀
+    exact hcritical ha hb hβ hm_eq hχ u₀ hu₀.toPositive
 
 /-- ⚠️ IMPOSTOR / TAUTOLOGICAL: NOT a proof of Theorem 1.3.  The hypotheses
 `hlocal`/`hglobal` are the full per-regime conclusion of Theorem 1.3 (solution
@@ -5046,9 +5043,9 @@ theorem Theorem_1_3.of_assumed_solutions_branch
   intro ha hb hm hcond
   refine ⟨?_, ?_⟩
   · intro u₀ hu₀
-    exact hlocal ha hb hm hcond u₀ hu₀
+    exact hlocal ha hb hm hcond u₀ hu₀.toPositive
   · intro hm_one u₀ hu₀
-    exact hglobal ha hb hm hcond hm_one u₀ hu₀
+    exact hglobal ha hb hm hcond hm_one u₀ hu₀.toPositive
 
 /-- ⚠️ IMPOSTOR / TAUTOLOGICAL: NOT a proof of the Paper 2 main results.  Every
 hypothesis here is the full conclusion of the corresponding theorem; each
@@ -6013,6 +6010,7 @@ theorem unitPointDomain.Theorem_1_3_from_logistic_nonminimal
   intro ha hb _hm _hcond
   refine ⟨?_, ?_⟩
   · intro u₀ hu₀
+    replace hu₀ := hu₀.toPositive
     rcases hlogistic ha hb u₀ hu₀ with
       ⟨u, v, hglobal, htrace, hbound, _hlim⟩
     refine ⟨1, by norm_num, u, v, ?_, htrace, ?_⟩
@@ -6022,6 +6020,7 @@ theorem unitPointDomain.Theorem_1_3_from_logistic_nonminimal
       intro t ht_pos _ht_lt
       exact hbound t ht_pos.le
   · intro _hm_one u₀ hu₀
+    replace hu₀ := hu₀.toPositive
     rcases hlogistic ha hb u₀ hu₀ with
       ⟨u, v, hglobal, htrace, hbound, _hlim⟩
     refine ⟨u, v, hglobal, htrace, ?_⟩
@@ -6040,6 +6039,7 @@ theorem unitPointDomain.Theorem_1_2_minimal_only
   refine ⟨?_, ?_⟩
   · -- Slow-diffusion branch: ∃ Tmax > 0, local bounded
     intro _hm_pos _hm_lt u₀ hu₀
+    replace hu₀ := hu₀.toPositive
     set ustar : ℝ := (p.ν / p.μ) * (u₀ ()) ^ p.γ with hustar_def
     refine ⟨1, by norm_num, fun _ => u₀, fun _ _ => ustar, ?_, ?_, ?_⟩
     · -- classical solution on (0, 1)
@@ -6077,6 +6077,7 @@ theorem unitPointDomain.Theorem_1_2_minimal_only
       intro t _ _; exact le_refl _
   · -- Critical branch p.m = 1: global + bounded
     intro _hm_eq _hχ u₀ hu₀
+    replace hu₀ := hu₀.toPositive
     set ustar : ℝ := (p.ν / p.μ) * (u₀ ()) ^ p.γ with hustar_def
     refine ⟨fun _ => u₀, fun _ _ => ustar, ?_, ?_, ?_⟩
     · -- IsPaper2GlobalClassicalSolution
@@ -6128,6 +6129,7 @@ theorem unitPointDomain.Theorem_1_2_from_logistic_nonminimal
   · intro _ha_nn _hb_nn _hβ
     refine ⟨?_, ?_⟩
     · intro _hm_pos _hm_lt u₀ hu₀
+      replace hu₀ := hu₀.toPositive
       rcases hlogistic hnonminimal.1 hnonminimal.2 u₀ hu₀ with
         ⟨u, v, hglobal, htrace, hbound, _hlim⟩
       refine ⟨1, by norm_num, u, v, ?_, htrace, ?_⟩
@@ -6137,6 +6139,7 @@ theorem unitPointDomain.Theorem_1_2_from_logistic_nonminimal
         intro t ht_pos _ht_lt
         exact hbound t ht_pos.le
     · intro _hm_eq _hχ u₀ hu₀
+      replace hu₀ := hu₀.toPositive
       rcases hlogistic hnonminimal.1 hnonminimal.2 u₀ hu₀ with
         ⟨u, v, hglobal, htrace, hbound, _hlim⟩
       refine ⟨u, v, hglobal, htrace, ?_⟩
@@ -6207,8 +6210,8 @@ theorem unitPointDomain.not_Proposition_1_1 :
   intro h
   -- Use initial datum u₀ ≡ 1
   let u₀ : unitPointDomain.Point → ℝ := fun _ => 1
-  have hu₀ : PositiveInitialDatum unitPointDomain u₀ :=
-    ⟨trivial, fun _ _ => one_pos⟩
+  have hu₀ : PaperPositiveInitialDatum unitPointDomain u₀ :=
+    ⟨trivial, 1, by norm_num, fun _ => le_refl _⟩
   rcases h u₀ hu₀ with ⟨Tmax, hTmax, u, v, hsol, htrace, halt, _⟩
   -- The PDE forces u'(t) = 0 on (0, Tmax)
   have hpde_zero : ∀ t, t ∈ Set.Ioo (0 : ℝ) Tmax →

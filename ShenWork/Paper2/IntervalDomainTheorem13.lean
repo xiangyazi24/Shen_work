@@ -614,6 +614,7 @@ theorem Theorem_1_3_intervalDomain_of_local_global_and_eventual_sup_bound
   intro ha hb hm_pos hstrong
   constructor
   · intro u₀ hu₀
+    replace hu₀ := hu₀.toPositive
     obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ := hlocal u₀ hu₀
     have hbootstrap :=
       hstrongBootstrap ha hb hm_pos hstrong
@@ -623,6 +624,7 @@ theorem Theorem_1_3_intervalDomain_of_local_global_and_eventual_sup_bound
         p hCor21 hProp25 hu₀ hTmax hsol htrace hbootstrap
     exact ⟨Tmax, hTmax, u, v, hsol, htrace, hbounded⟩
   · intro hm_ge u₀ hu₀
+    replace hu₀ := hu₀.toPositive
     obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ := hlocal u₀ hu₀
     have hbootstrap :=
       hstrongBootstrap ha hb hm_pos hstrong

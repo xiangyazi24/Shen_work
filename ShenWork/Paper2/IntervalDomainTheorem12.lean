@@ -1211,6 +1211,7 @@ theorem Theorem_1_2_intervalDomain_of_local_global_and_eventual_sup_bound
   intro ha_nonneg hb_nonneg hβ
   constructor
   · intro hm_pos hm_lt u₀ hu₀
+    replace hu₀ := hu₀.toPositive
     obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ := hlocal u₀ hu₀
     have hbootstrap :=
       hslowBootstrap ha_nonneg hb_nonneg hβ hm_pos hm_lt
@@ -1220,6 +1221,7 @@ theorem Theorem_1_2_intervalDomain_of_local_global_and_eventual_sup_bound
         hu₀ hTmax hsol htrace hbootstrap
     exact ⟨Tmax, hTmax, u, v, hsol, htrace, hbounded⟩
   · intro hm_eq hχ u₀ hu₀
+    replace hu₀ := hu₀.toPositive
     obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ := hlocal u₀ hu₀
     have hbootstrap :=
       hcriticalBootstrap ha_nonneg hb_nonneg hβ hm_eq hχ

@@ -18,6 +18,7 @@ theorem unitPointDomain.Theorem_1_3_holds
   intro ha hb _hm _hcond
   refine ⟨?_, ?_⟩
   · intro u₀ hu₀
+    replace hu₀ := hu₀.toPositive
     rcases unitPointLogistic_globalExistence_with_attractor p ha hb u₀ hu₀ with
       ⟨u, v, hglobal, htrace, hbound, _hlim⟩
     refine ⟨1, by norm_num, u, v, ?_, htrace, ?_⟩
@@ -27,6 +28,7 @@ theorem unitPointDomain.Theorem_1_3_holds
       intro t ht_pos _ht_lt
       exact hbound t ht_pos.le
   · intro _hm_one u₀ hu₀
+    replace hu₀ := hu₀.toPositive
     rcases unitPointLogistic_globalExistence_with_attractor p ha hb u₀ hu₀ with
       ⟨u, v, hglobal, htrace, hbound, _hlim⟩
     refine ⟨u, v, hglobal, htrace, ?_⟩
@@ -44,6 +46,7 @@ theorem unitPointDomain.Theorem_1_2_when_a_pos_b_pos
   intro _ha_nn _hb_nn _hβ
   refine ⟨?_, ?_⟩
   · intro _hm_pos _hm_lt u₀ hu₀
+    replace hu₀ := hu₀.toPositive
     rcases unitPointLogistic_globalExistence_with_attractor p ha hb u₀ hu₀ with
       ⟨u, v, hglobal, htrace, hbound, _hlim⟩
     refine ⟨1, by norm_num, u, v, ?_, htrace, ?_⟩
@@ -53,6 +56,7 @@ theorem unitPointDomain.Theorem_1_2_when_a_pos_b_pos
       intro t ht_pos _ht_lt
       exact hbound t ht_pos.le
   · intro _hm_eq _hχ u₀ hu₀
+    replace hu₀ := hu₀.toPositive
     rcases unitPointLogistic_globalExistence_with_attractor p ha hb u₀ hu₀ with
       ⟨u, v, hglobal, htrace, hbound, _hlim⟩
     refine ⟨u, v, hglobal, htrace, ?_⟩
@@ -80,6 +84,7 @@ theorem unitPointDomain.Theorem_1_2_when_a_zero_b_pos
   intro _ha_nn _hb_nn _hβ
   refine ⟨?_, ?_⟩
   · intro _hm_pos _hm_lt u₀ hu₀
+    replace hu₀ := hu₀.toPositive
     rcases unitPointDecay_globalExistence_with_bound p ha hb u₀ hu₀ with
       ⟨u, v, hglobal, htrace, hbound⟩
     refine ⟨1, by norm_num, u, v, ?_, htrace, ?_⟩
@@ -88,6 +93,7 @@ theorem unitPointDomain.Theorem_1_2_when_a_zero_b_pos
       intro t ht_pos _ht_lt
       exact hbound t ht_pos.le
   · intro _hm_eq _hχ u₀ hu₀
+    replace hu₀ := hu₀.toPositive
     rcases unitPointDecay_globalExistence_with_bound p ha hb u₀ hu₀ with
       ⟨u, v, hglobal, htrace, hbound⟩
     refine ⟨u, v, hglobal, htrace, ?_⟩
@@ -183,8 +189,8 @@ theorem not_Theorem_1_2_unitPointDomain_when_a_pos_b_zero :
     norm_num [theorem12RefutationParams, chiBeta]
   -- Initial datum u₀ = 1
   set u₀ : Unit → ℝ := fun _ => 1 with hu₀_def
-  have hu₀ : PositiveInitialDatum unitPointDomain u₀ := by
-    exact ⟨trivial, fun _ _ => by norm_num⟩
+  have hu₀ : PaperPositiveInitialDatum unitPointDomain u₀ := by
+    exact ⟨trivial, 1, by norm_num, fun _ => by norm_num⟩
   -- Apply second branch: m = 1, χ₀ < chiBeta
   obtain ⟨u, v, hglobal, _htrace, hbounded⟩ :=
     hbranch.2 (by norm_num [theorem12RefutationParams] : theorem12RefutationParams.m = 1)

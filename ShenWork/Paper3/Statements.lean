@@ -116,6 +116,34 @@ lemma minimalEquilibrium_reaction_zero_of_a_b_zero
       (p.a - p.b * (minimalEquilibrium p uStar).1 ^ p.α) = 0 := by
   simp [minimalEquilibrium, ha, hb]
 
+/-- FAITHFULNESS NOTE (2026-06-15, deferred — see `FAITHFULNESS_AUDIT.md` §PART 2).
+The paper's "positive global classical solution" (Def 2.1) carries, for each
+time `t ∈ (0, ∞)`, a *per-time spatial floor* `inf_{Ω} u(t, ·) > 0`
+(`∃ η > 0, ∀ x, η ≤ u t x`).  The conjunct below only records pointwise
+positivity on the *open* interior `D.inside`, which is strictly weaker.
+
+The stronger per-time floor is intentionally NOT encoded here, for two
+independent reasons:
+
+* It is *unprovable* from the committed abstract interface.  `BoundedDomainData.Point`
+  is a bare `Type` with no topology/compactness, and `infValue : (Point → ℝ) → ℝ`
+  is an abstract functional with no axiom linking it to `⨅ x, f x`.  Upgrading
+  open-interior positivity + continuity-on-`Ω̄` to a uniform floor is the Neumann
+  strong-maximum-principle on compact time slabs — a genuine analytic theorem
+  that this abstract layer deliberately does not carry (witness the `not_forall_*`
+  no-go counterexamples below on degenerate domains where `infValue ≡ 0`).
+
+* It is *unneeded* by the consumers.  Every `Theorem_2_x` proof (persistence
+  2.1, stability 2.3/2.4/2.5) consumes the positivity field only pointwise, via
+  `PositiveGlobalBoundedSolution.pos`; none uses a uniform spatial floor.
+
+Strengthening the conjunct (option (a)) would break all 15+ producers — the
+canonical `of_global_bounded` plus every constant-witness counterexample —
+across this file and the 5 downstream proof files, and `of_global_bounded`
+itself cannot supply the floor (same compactness gap).  Hence the statement is
+kept at pointwise positivity and the faithfulness upgrade is deferred to a
+future PDE-interface layer that equips `Point` with a compact topology and ties
+`infValue` to the pointwise infimum. -/
 def PositiveGlobalBoundedSolution
     (D : BoundedDomainData) (p : CM2Params)
     (u v : ℝ → D.Point → ℝ) : Prop :=
@@ -1133,7 +1161,7 @@ lemma MassConstrainedLocallyExponentiallyStableFromSup.exponential_convergence
 
 def Proposition_1_2 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   p.χ₀ ≤ 0 → 1 ≤ p.m →
-    ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+    ∀ u₀ : D.Point → ℝ, PaperPositiveInitialDatum D u₀ →
       ∃ u v : ℝ → D.Point → ℝ,
         IsPaper2GlobalClassicalSolution D p u v ∧
         InitialTrace D u₀ u ∧
@@ -1150,7 +1178,7 @@ lemma Proposition_1_2_of_negativeSensitivityGlobalEventualBound
             ∃ M : ℝ, ∀ᶠ t in atTop, D.supNorm (u t) ≤ M) :
     Proposition_1_2 D p := by
   intro hχ hm u₀ hu₀
-  rcases h hχ hm u₀ hu₀ with ⟨u, v, hglobal, htrace, M, hM⟩
+  rcases h hχ hm u₀ hu₀.toPositive with ⟨u, v, hglobal, htrace, M, hM⟩
   exact ⟨u, v, hglobal, htrace, ⟨M, hM⟩⟩
 
 def NegativeSensitivityGlobalEventualBound
@@ -1271,11 +1299,10 @@ theorem not_paper2_theorem_1_1_implies_paper3_proposition_1_2 :
     h proposition12CounterDomain proposition12CounterParams
       proposition12Counter_paper2_theorem_1_1
   have hu₀ :
-      PositiveInitialDatum proposition12CounterDomain (fun _ => 1) := by
-    constructor
-    · rfl
-    · intro x hx
-      cases hx
+      PaperPositiveInitialDatum proposition12CounterDomain (fun _ => 1) := by
+    refine ⟨rfl, 1, by norm_num, ?_⟩
+    intro x
+    norm_num
   rcases hprop (by norm_num [proposition12CounterParams])
       (by norm_num [proposition12CounterParams]) (fun _ => 1) hu₀ with
     ⟨u, v, hglobal, _htrace, hbdd⟩
@@ -1316,7 +1343,7 @@ theorem not_paper2_theorem_1_1_implies_paper3_proposition_1_2 :
 def Proposition_1_3
     (D : BoundedDomainData) (p : CM2Params) (C : Paper2Constants p) : Prop :=
   0 < p.a → 0 < p.b → 1 ≤ p.m → StrongLogisticCondition p C →
-    ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+    ∀ u₀ : D.Point → ℝ, PaperPositiveInitialDatum D u₀ →
       ∃ u v : ℝ → D.Point → ℝ,
         IsPaper2GlobalClassicalSolution D p u v ∧
         InitialTrace D u₀ u ∧
@@ -1356,11 +1383,10 @@ lemma not_forall_Proposition_1_3 :
   let p := proposition13NoRegularityParams
   let C := proposition13NoRegularityConstants
   let u₀ : D.Point → ℝ := fun _ => 1
-  have hu₀ : PositiveInitialDatum D u₀ := by
-    constructor
-    · trivial
-    · intro x hx
-      exact False.elim (by simpa [D, proposition11NoRegularityDomain] using hx)
+  have hu₀ : PaperPositiveInitialDatum D u₀ := by
+    refine ⟨trivial, 1, by norm_num, ?_⟩
+    intro x
+    simp [u₀]
   have hcond : StrongLogisticCondition p C := by
     exact StrongLogisticCondition.of_alpha_gt_m_add_gamma_sub_one
       (by norm_num [p, proposition13NoRegularityParams])
@@ -1379,7 +1405,7 @@ def Proposition_1_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   p.m = 1 → 1 ≤ p.β →
     ((p.a = 0 ∧ p.b = 0) ∨ (0 ≤ p.a ∧ 0 < p.b)) →
       p.χ₀ < chiBeta p →
-        ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+        ∀ u₀ : D.Point → ℝ, PaperPositiveInitialDatum D u₀ →
           ∃ u v : ℝ → D.Point → ℝ,
             IsPaper2GlobalClassicalSolution D p u v ∧
             InitialTrace D u₀ u ∧
@@ -1412,11 +1438,10 @@ lemma not_forall_Proposition_1_4 :
   let D := proposition11NoRegularityDomain
   let p := proposition14NoRegularityParams
   let u₀ : D.Point → ℝ := fun _ => 1
-  have hu₀ : PositiveInitialDatum D u₀ := by
-    constructor
-    · trivial
-    · intro x hx
-      exact False.elim (by simpa [D, proposition11NoRegularityDomain] using hx)
+  have hu₀ : PaperPositiveInitialDatum D u₀ := by
+    refine ⟨trivial, 1, by norm_num, ?_⟩
+    intro x
+    simp [u₀]
   have hχ : p.χ₀ < chiBeta p := by
     norm_num [p, proposition14NoRegularityParams, chiBeta]
   rcases h D p
@@ -9918,8 +9943,9 @@ lemma Corollary_5_1.minimal_exponential_of_chiMinimal2_of_Lemma_A_8
   h.minimal_exponential_of_Lemma_A_8 hA8 hm_le ha hb hm hβ huStar
     (MinimalGlobalStabilityCondition.of_chiMinimal2 hγ hχ0 hχ) huv hmass hconv
 
-/-- **TAUTOLOGY (no math content)**: body is `:= hexist`, definitionally
-equal to `Proposition_1_3 D p C`.  Target signature only. -/
+/-- **TAUTOLOGY (no math content)**: body precomposes the weaker
+interior-positivity datum via `.toPositive`; the chain only needs interior
+positivity, so the paper-faithful floor datum projects onto `hexist`'s input. -/
 theorem Proposition_1_3.of_assumed_existence_branch
     {D : BoundedDomainData} {p : CM2Params} {C : Paper2Constants p}
     (hexist : 0 < p.a → 0 < p.b → 1 ≤ p.m → StrongLogisticCondition p C →
@@ -9928,11 +9954,13 @@ theorem Proposition_1_3.of_assumed_existence_branch
           IsPaper2GlobalClassicalSolution D p u v ∧
           InitialTrace D u₀ u ∧
           IsPaper2Bounded D u) :
-    Proposition_1_3 D p C :=
-  hexist
+    Proposition_1_3 D p C := by
+  intro ha hb hm hcond u₀ hu₀
+  exact hexist ha hb hm hcond u₀ hu₀.toPositive
 
-/-- **TAUTOLOGY (no math content)**: body is `:= hexist`, definitionally
-equal to `Proposition_1_4 D p`.  Target signature only. -/
+/-- **TAUTOLOGY (no math content)**: body precomposes the weaker
+interior-positivity datum via `.toPositive`; the chain only needs interior
+positivity, so the paper-faithful floor datum projects onto `hexist`'s input. -/
 theorem Proposition_1_4.of_assumed_existence_branch
     {D : BoundedDomainData} {p : CM2Params}
     (hexist : p.m = 1 → 1 ≤ p.β →
@@ -9943,8 +9971,9 @@ theorem Proposition_1_4.of_assumed_existence_branch
               IsPaper2GlobalClassicalSolution D p u v ∧
               InitialTrace D u₀ u ∧
               IsPaper2Bounded D u) :
-    Proposition_1_4 D p :=
-  hexist
+    Proposition_1_4 D p := by
+  intro hm hβ hcase hχ u₀ hu₀
+  exact hexist hm hβ hcase hχ u₀ hu₀.toPositive
 
 /-- Generic closure: Paper3 Theorem 2.1 (full composite) from the four parts. -/
 theorem Theorem_2_1.of_parts
@@ -11810,9 +11839,9 @@ theorem unitPointDomain.Proposition_1_4_minimal_only
     intro T hT
     refine ⟨hT, ⟨differentiable_const _, continuous_const⟩,
       ?_, ?_, ?_, ?_, ?_⟩
-    · intro t x _ _; exact hu₀.pos trivial
+    · intro t x _ _; exact hu₀.toPositive.pos trivial
     · intro t x _ _
-      have hu₀pos : 0 < u₀ () := hu₀.pos trivial
+      have hu₀pos : 0 < u₀ () := hu₀.toPositive.pos trivial
       have : 0 < ustar := by
         rw [hustar_def]; exact mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos hu₀pos _)
       exact this.le
@@ -11858,9 +11887,9 @@ theorem unitPointDomain.Proposition_1_2_minimal_only
     intro T hT
     refine ⟨hT, ⟨differentiable_const _, continuous_const⟩,
       ?_, ?_, ?_, ?_, ?_⟩
-    · intro t x _ _; exact hu₀.pos trivial
+    · intro t x _ _; exact hu₀.toPositive.pos trivial
     · intro t x _ _
-      have hu₀pos : 0 < u₀ () := hu₀.pos trivial
+      have hu₀pos : 0 < u₀ () := hu₀.toPositive.pos trivial
       have : 0 < ustar := by
         rw [hustar_def]; exact mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos hu₀pos _)
       exact this.le

@@ -2710,9 +2710,9 @@ theorem Proposition_1_1_intervalDomain_of_localExistence_and_finiteHorizonAltern
           (1 ≤ p.m → MGeOneFiniteHorizonAlternative intervalDomain Tmax u)) :
     Proposition_1_1 intervalDomain p := by
   intro u₀ hu₀
-  obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ := hlocal u₀ hu₀
+  obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ := hlocal u₀ hu₀.toPositive
   obtain ⟨halt, hmge⟩ :=
-    halternative u₀ hu₀ Tmax hTmax u v hsol htrace
+    halternative u₀ hu₀.toPositive Tmax hTmax u v hsol htrace
   exact ⟨Tmax, hTmax, u, v, hsol, htrace, halt, hmge⟩
 
 /-- Conditional `Proposition_1_1` assembly from the concrete interval-Duhamel
@@ -2754,11 +2754,11 @@ theorem Proposition_1_1_intervalDomain_of_intervalDuhamel_contraction_regulariza
     Proposition_1_1 intervalDomain p := by
   intro u₀ hu₀
   obtain ⟨L, hL, D₀, hD₀, T, hT, hLT, hcontr, hbase, hregularize⟩ :=
-    hmild u₀ hu₀
+    hmild u₀ hu₀.toPositive
   obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ :=
-    localExistence_of_intervalDuhamel_contraction_and_regularization p u₀ hu₀
+    localExistence_of_intervalDuhamel_contraction_and_regularization p u₀ hu₀.toPositive
       hL hD₀ hT hLT hcontr hbase hregularize
-  obtain ⟨halt, hmge⟩ := hmaximal u₀ hu₀ Tmax hTmax u v hsol htrace
+  obtain ⟨halt, hmge⟩ := hmaximal u₀ hu₀.toPositive Tmax hTmax u v hsol htrace
   exact ⟨Tmax, hTmax, u, v, hsol, htrace, halt, hmge⟩
 
 /-! ### Maximal-continuation order skeleton
