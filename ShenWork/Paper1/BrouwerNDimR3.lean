@@ -142,6 +142,109 @@ theorem door_injOn_of_card {n : ℕ} {L : (Fin (n + 1) → ℤ) → Fin (n + 1)}
   have hle : (F.image L).card = F.card := by rw [himgcard, hcard]
   exact Finset.injOn_of_card_image_eq hle
 
+/-! ## The endpoint (face-end) partner base-shift, coordinatewise
+
+The boundary doors live at the `t = last` end of cells with `p (Fin.last n) = n` (the chain
+just reaches the face `{q (Fin.last n) = 0}` at its lowest vertex).  The relevant partner there
+is `endpointInv`, which shifts the base by `-stepVec ((σ·(finRotate n)⁻¹) 0)`: it *raises* the
+last coordinate by `1` (the chain would need an `(n+1)`-st step that exits `Δⁿ` through the face)
+and lowers exactly one non-last coordinate by `1`.  These coordinatewise identities pin the
+off-mesh condition (a base coordinate driven negative) that makes the partner invalid. -/
+
+/-- The face-end partner raises the base's last coordinate by exactly `1`: the `endpointInv`
+shift's last component is `-stepVec(...) (last) = -(-1) = +1`. -/
+theorem endpointInv_base_last {n : ℕ} (hn : 0 < n) (c : KCell n) :
+    (endpointInv hn c).1 (Fin.last n) = c.1 (Fin.last n) + 1 := by
+  simp only [endpointInv]
+  have hstep : stepVec ((c.2 * (finRotate n)⁻¹) ⟨0, hn⟩) (Fin.last n) = -1 := stepVec_last _
+  rw [hstep]; ring
+
+/-- Off the affected non-last coordinate, the `endpointInv` shift is identity.  Concretely, at
+the coordinate `i = ((σ·(finRotate n)⁻¹) 0).castSucc` the base drops by `1`; everywhere else
+(other than `last`, handled by `endpointInv_base_last`) it is unchanged. -/
+theorem endpointInv_base_castSucc {n : ℕ} (hn : 0 < n) (c : KCell n) :
+    (endpointInv hn c).1 ((c.2 * (finRotate n)⁻¹) ⟨0, hn⟩).castSucc
+      = c.1 ((c.2 * (finRotate n)⁻¹) ⟨0, hn⟩).castSucc - 1 := by
+  set a := (c.2 * (finRotate n)⁻¹) ⟨0, hn⟩ with ha
+  simp only [endpointInv]
+  have hstep : stepVec a a.castSucc = 1 := by
+    unfold stepVec
+    have hne : a.castSucc ≠ Fin.last n := by
+      intro hc'; have := congrArg Fin.val hc'
+      simp only [Fin.val_castSucc, Fin.val_last] at this; omega
+    rw [if_pos rfl, if_neg hne]; ring
+  rw [hstep]
+
+/-- **Face-end off-mesh criterion.**  If the `endpointInv` shift lowers a base coordinate that
+is already `0` (the affected non-last coordinate `a.castSucc` has `c.1 (a.castSucc) = 0`), then
+the partner `endpointInv hn c` is INVALID at mesh `k`: its base (the `t = 0` chain vertex) is
+negative there, violating nonnegativity.  This is the boundary-face condition — the partner
+exits `Δⁿ` through `{q (Fin.last n) = 0}`. -/
+theorem endpointInv_invalid_of_base_zero {n k : ℕ} (hn : 0 < n) (c : KCell n)
+    (hzero : c.1 ((c.2 * (finRotate n)⁻¹) ⟨0, hn⟩).castSucc = 0) :
+    ¬ cellMemN k (endpointInv hn c) := by
+  set a := (c.2 * (finRotate n)⁻¹) ⟨0, hn⟩ with ha
+  intro hv
+  -- the base of `endpointInv c` is its `t = 0` chain vertex, which must be nonnegative
+  have hbase : ∀ j, chainVZ (endpointInv hn c).1 (endpointInv hn c).2 0 j
+      = (endpointInv hn c).1 j := by
+    intro j
+    rw [chainVZ_apply]
+    have he : (Finset.univ.filter (fun s : Fin n => s.val < (0 : Fin (n + 1)).val)) = ∅ := by
+      apply Finset.filter_eq_empty_iff.mpr; intro s _; simp
+    rw [he, Finset.sum_empty, add_zero]
+  have hnn : 0 ≤ chainVZ (endpointInv hn c).1 (endpointInv hn c).2 0 a.castSucc :=
+    cellValid_nonneg hv 0 a.castSucc
+  rw [hbase a.castSucc, endpointInv_base_castSucc hn c, hzero] at hnn
+  -- now `0 ≤ 0 - 1`, contradiction
+  norm_num at hnn
+
+/-! ## The top-end (`t = 0`) partner base-shift, coordinatewise
+
+Symmetrically, the `t = 0` drop's partner is `endpointFwd`, shifting the base by
+`+stepVec (σ 0)`: it *lowers* the last coordinate by `1` and raises one non-last coordinate by
+`1`.  The top-end off-mesh condition is the partner's chain reaching a negative last coordinate
+(it tries to take an extra step out of the last coordinate when it is already exhausted). -/
+
+/-- The top-end partner lowers the base's last coordinate by exactly `1`. -/
+theorem endpointFwd_base_last {n : ℕ} (hn : 0 < n) (c : KCell n) :
+    (endpointFwd hn c).1 (Fin.last n) = c.1 (Fin.last n) - 1 := by
+  simp only [endpointFwd]
+  have hstep : stepVec (c.2 ⟨0, hn⟩) (Fin.last n) = -1 := stepVec_last _
+  rw [hstep]; ring
+
+/-- The top-end partner raises the base at the affected non-last coordinate by exactly `1`. -/
+theorem endpointFwd_base_castSucc {n : ℕ} (hn : 0 < n) (c : KCell n) :
+    (endpointFwd hn c).1 (c.2 ⟨0, hn⟩).castSucc = c.1 (c.2 ⟨0, hn⟩).castSucc + 1 := by
+  simp only [endpointFwd]
+  have hstep : stepVec (c.2 ⟨0, hn⟩) (c.2 ⟨0, hn⟩).castSucc = 1 := by
+    unfold stepVec
+    have hne : (c.2 ⟨0, hn⟩).castSucc ≠ Fin.last n := by
+      intro hc'; have := congrArg Fin.val hc'
+      simp only [Fin.val_castSucc, Fin.val_last] at this; omega
+    rw [if_pos rfl, if_neg hne]; ring
+  rw [hstep]
+
+/-- **Top-end off-mesh criterion.**  If a cell has `c.1 (Fin.last n) = 0` (its base already lies
+on the face `{q (Fin.last n) = 0}`), then the top-end partner `endpointFwd hn c` is INVALID:
+its base last coordinate is `-1 < 0`.  This is the geometric `∂Δⁿ` condition at the top end —
+the top vertex of the partner's chain exits `Δⁿ` through `{q (Fin.last n) = 0}`. -/
+theorem endpointFwd_invalid_of_base_last_zero {n k : ℕ} (hn : 0 < n) (c : KCell n)
+    (hzero : c.1 (Fin.last n) = 0) :
+    ¬ cellMemN k (endpointFwd hn c) := by
+  intro hv
+  have hbase : ∀ j, chainVZ (endpointFwd hn c).1 (endpointFwd hn c).2 0 j
+      = (endpointFwd hn c).1 j := by
+    intro j
+    rw [chainVZ_apply]
+    have he : (Finset.univ.filter (fun s : Fin n => s.val < (0 : Fin (n + 1)).val)) = ∅ := by
+      apply Finset.filter_eq_empty_iff.mpr; intro s _; simp
+    rw [he, Finset.sum_empty, add_zero]
+  have hnn : 0 ≤ chainVZ (endpointFwd hn c).1 (endpointFwd hn c).2 0 (Fin.last n) :=
+    cellValid_nonneg hv 0 (Fin.last n)
+  rw [hbase (Fin.last n), endpointFwd_base_last hn c, hzero] at hnn
+  norm_num at hnn
+
 /-! ## Precise stall report — `BrouwerNDimR3`
 
 **What is fully closed here (axiom-clean: `[propext, Classical.choice, Quot.sound]`).**
@@ -171,6 +274,34 @@ theorem door_injOn_of_card {n : ℕ} {L : (Fin (n + 1) → ℤ) → Fin (n + 1)}
   each lower colour `{0,…,n-1}` exactly once, i.e. it is a *rainbow* `(n-1)`-cell of the face
   complex.  This is the colour half of the door ↔ rainbow correspondence.
 
+* `endpointInv_base_last`, `endpointInv_base_castSucc`, `endpointFwd_base_last`,
+  `endpointFwd_base_castSucc` — **the endpoint partner base-shift, coordinatewise.**  At the face
+  end (`t = last`), `endpointInv` *raises* the base's last coordinate by `1` and *lowers* one
+  non-last coordinate `a.castSucc` (`a := (σ·(finRotate n)⁻¹) 0`) by `1`.  At the top end
+  (`t = 0`), `endpointFwd` *lowers* the last coordinate by `1` and raises one non-last coordinate
+  by `1`.  These pin exactly which base coordinate the off-mesh test reads.
+
+* **`endpointFwd_invalid_of_base_last_zero`**, **`endpointInv_invalid_of_base_zero`** — **the
+  off-mesh criteria (R2/boundary geometry, NOW CLOSED).**  The top-end partner `endpointFwd hn c`
+  is INVALID whenever `c.1 (Fin.last n) = 0` (the base already on the face, so the shifted base
+  last coordinate is `-1`).  The face-end partner `endpointInv hn c` is INVALID whenever the
+  affected non-last coordinate is already exhausted, `c.1 a.castSucc = 0` (the shifted base is
+  `-1` there).  Each is proved by reading the `t = 0` chain vertex (= the base) and contradicting
+  `cellValid_nonneg`.  These are the genuine `∂Δⁿ` invalidity facts that drive `hsingle` (R2).
+
+**Geometry correction (important).**  For `n ≥ 2` a boundary door is **NOT** a sub-simplex lying
+*in* the face `{q (Fin.last n) = 0}`: by `chainVZ_last` the `n+1` chain vertices of a single cell
+carry *distinct* last coordinates `p(last), …, p(last)−n`, so at most ONE chain vertex sits on
+`{last = 0}`; a `facetSet … t` (drop one of the `n+1`) can never have all `n` of its vertices on
+the face.  The boundary doors counted by `hR3` are therefore the facets that are (a) *rainbow on
+the lower colours* (`image L = univ.erase last`, the top colour forbidden by the labelling, not
+the geometry) and (b) `isBoundaryN` (a bounding cell's endpoint partner is off the mesh, via the
+two criteria above).  The reduction to `(n-1)`-Sperner is consequently a **base-projection /
+generating-path** argument (the 2-D `diag`-hypotenuse bijection of `hboundaryCount` is the
+`n = 2` shadow), NOT a literal face-restriction of vertices.  The earlier `dropLast`/`appendZero`
+layer is still the right vertex bookkeeping for the projected base, but the on-face-vertex framing
+it suggested does not hold for the *door facets themselves*.
+
 **The remaining frontier (the genuine `(n-1)`-Sperner induction — the heaviest brick).**
 
   (R3) BOUNDARY-DOOR COUNT.  The target consumed by `exists_rainbow_cellN` is
@@ -178,21 +309,20 @@ theorem door_injOn_of_card {n : ℕ} {L : (Fin (n + 1) → ℤ) → Fin (n + 1)}
          `Odd ((facetsN n k).filter
             (fun F => F.image L = univ.erase (Fin.last n) ∧ isBoundaryN hn k F)).card`.
 
-       By `isBoundaryN_endpoint` every such `F` is an *endpoint*-drop facet; the face-bearing end
-       is `t = last` of the minimal valid cells (`p (Fin.last n) = n`, `cellValid_last_ge`), where
-       the `endpointInv` shift leaves the mesh (no squeeze at `∂Δⁿ`).  The remaining construction,
-       *from scratch*, is:
+       By `isBoundaryN_endpoint` every such `F` is an *endpoint*-drop facet, and the off-mesh
+       criteria pin the boundary side to a base coordinate hitting `0`.  The remaining
+       construction, *from scratch*, is:
 
-       (i)   the `(n-1)`-face Kuhn complex re-encoding: identify the boundary doors with the
-             facets of the induced `(n-1)`-dimensional Kuhn subdivision of the face, via
-             `dropLast`/`appendZero` on the vertices and the base/step-order restriction
-             `(p, σ) ↦ (dropLast p, σ|Fin (n-1))` (dropping the now-fixed last Kuhn step);
+       (i)   the `(n-1)`-face Kuhn complex re-encoding: build the induced `(n-1)`-dimensional
+             Kuhn subdivision via the base/step-order restriction `(p, σ) ↦ (dropLast p, σ')`
+             (`σ' : Perm (Fin (n-1))` restricting `σ` once the boundary fixes the last Kuhn step);
+             the vertex bookkeeping `dropLast`/`appendZero` is in place;
 
-       (ii)  the door ↔ rainbow bijection on the face: a boundary door (carrying the lower colours
-             `{0,…,n-1}` once each by `door_injOn_of_card`, with the top colour forbidden by
-             `labelN_ne_last_on_face`) corresponds to a rainbow cell of the `(n-1)` complex under
-             the restricted labelling — a `Finset.card_nbij'` matching the 2-D `hboundaryCount`'s
-             hypotenuse bijection, but at general `n`;
+       (ii)  the door ↔ rainbow bijection: a boundary door (lower colours `{0,…,n-1}` once each by
+             `door_injOn_of_card`, top colour forbidden by `labelN_ne_last_on_face`) corresponds —
+             through the *base projection*, NOT a vertex restriction (see the geometry correction
+             above) — to a rainbow cell of the `(n-1)` complex; a `Finset.card_nbij'` matching the
+             2-D `hboundaryCount`'s `diag`-hypotenuse bijection at symbolic `n`;
 
        (iii) the dimension-drop induction: the rainbow-cell count of the `(n-1)` complex is odd by
              the `(n-1)` instance of `exists_rainbow_cellN` (the inductive hypothesis), base
@@ -203,10 +333,14 @@ theorem door_injOn_of_card {n : ℕ} {L : (Fin (n + 1) → ℤ) → Fin (n + 1)}
 
   (R2) PER-DOOR SINGLETON INVALID PARTNER.  `hR2`: a boundary door bounds exactly ONE present
        cell with an invalid partner.  By `isBoundaryN_endpoint` that cell drops at an endpoint;
-       the uniqueness is reconstruction (the converse of `dropOf_eq` across distinct cells,
-       restricted to the face end), with the single invalid side the `endpointInv` shift.  The
-       backbone (`chainVZ_last`, `card_facetSet`, `facetSet_injective`, `isBoundaryN_endpoint`)
-       is in place; the at-most-one-crossing argument over the two endpoint sides remains.
+       the *invalidity* of the single side is now CLOSED by the two off-mesh criteria
+       (`endpointFwd_invalid_of_base_last_zero` / `endpointInv_invalid_of_base_zero`: the partner
+       is off the mesh exactly when the relevant base coordinate is already `0`).  What remains is
+       the *uniqueness*: reconstruction (the converse of `dropOf_eq` across distinct cells) showing
+       only ONE bounding cell sits at the off-mesh endpoint.  The backbone (`chainVZ_last`,
+       `card_facetSet`, `facetSet_injective`, `isBoundaryN_endpoint`, and now the coordinatewise
+       base-shifts) is in place; the at-most-one-crossing count over the two endpoint sides
+       remains.
 
   Then `brouwer_stdSimplex_n {n} (f) (hf) (hmaps) : ∃ x ∈ stdSimplex ℝ (Fin (n+1)), f x = x` is
   `exists_rainbow_cellN` (with R2, R3, `L := labelN f k`) producing a rainbow cell at every mesh,
@@ -216,11 +350,14 @@ theorem door_injOn_of_card {n : ℕ} {L : (Fin (n + 1) → ℤ) → Fin (n + 1)}
 **Summary.**  This file closes — axiom-clean — the face re-encoding (`dropLast`/`appendZero` and
 its injectivity on `{last = 0}`), the structural reduction of boundary facets to endpoint drops
 (`isBoundaryN_endpoint`, via the committed internal squeeze), the face labelling restriction
-(`labelN_ne_last_on_face`, the top colour is forbidden on the face), and the door-is-rainbow
-colour identity (`door_injOn_of_card`).  These are exactly the substrate lemmas the `(n-1)`-
-Sperner induction consumes.  What remains is the genuine dimension-drop construction R3 (the
-`(n-1)`-face complex, the door ↔ rainbow bijection, and the induction wiring) together with the
-reconstruction-uniqueness R2 — each a from-scratch geometric brick on the scale of a second 2-D
-file, not finite bookkeeping. -/
+(`labelN_ne_last_on_face`, the top colour is forbidden on the face), the door-is-rainbow colour
+identity (`door_injOn_of_card`), and now the **endpoint partner base-shifts**
+(`endpointInv/Fwd_base_last/castSucc`) together with the **two off-mesh invalidity criteria**
+(`endpointFwd_invalid_of_base_last_zero`, `endpointInv_invalid_of_base_zero`) — the genuine
+`∂Δⁿ`-invalidity facts that supply the *invalid side* of R2's singleton.  What remains is the
+genuine dimension-drop construction R3 (the `(n-1)`-face complex, the door ↔ rainbow bijection
+*through the base projection* — see the geometry correction — and the induction wiring) together
+with the reconstruction-*uniqueness* half of R2 — each a from-scratch geometric brick on the scale
+of a second 2-D file, not finite bookkeeping. -/
 
 end ShenWork.Paper1
