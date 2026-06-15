@@ -21,17 +21,31 @@ Produces `Theorem_1_1 intervalDomain p` for χ₀=0, carrying `hPLF` (PicardLimi
 - ✅ time C¹ classical slice / u_t (`isClassicalTimeSlice`, 7606541)
 - 🔧 pointwise PDE (`fullSourceCoeff_pde_u`, 4f) — bricks 4a-4e committed (bb97141/f9a74de/4d4e),
       4f assembling. = the PDE field of IsPaper2ClassicalSolution.
-- ⬜ POSITIVITY `0 < u t x` of the SOLUTION (distinct from the 1+v floor we discharged — VERIFY:
-      the fixed point u* close-to-heat in the ball; heat ≥ δ floor ⇒ u>0? needs the argument).
-- ✅ `0 ≤ v` (resolver of nonneg source ≥ 0, O1).
-- ⬜ InitialTrace (t→0 limit = u₀: heat leg → u₀, Duhamel legs → 0).
-- ⬜ supNorm boundedness `≤ max(‖u₀‖,(a/b)^{1/α})` — logistic-damping / maximum principle. HARD.
-- ⬜ global existence (`m≥1`) — boundedness ⇒ no blowup ⇒ global. HARD.
-- ⬜ ASSEMBLE `Theorem_1_1 intervalDomain p` for χ₀<0 (mirror A1, carrying the analogous inputs).
+- ✅ POSITIVITY `0 < u` (`realSlice_pos`, 6f35363) via uniformFloor_on_ball
+- ✅ `0 ≤ v` (resolver nonneg, O1)
+- ✅ pointwise PDE (`fullSourceCoeff_pde_u`, dbb7197) — 4a-4f
+- ✅ joint (t,x)-regularity (`jointSolutionClosed`/`jointTimeDerivClosed`, 5326a04)
+- ✅ classicalRegularity all 7 fields (`realSlice_classicalRegularity`, 701005e)
+- ✅ InitialTrace (`realSlice_initialTrace`)
+- ✅ **PER-DATUM LOCAL CLASSICAL SOLUTION** (`realSlice_localClassicalSolution`, 5250b21):
+      `∃ Tmax>0, ∃ u v, IsPaper2ClassicalSolution intervalDomain p Tmax u v ∧ InitialTrace`,
+      via reduced core (generic in u) → RegularityBootstrap → localExistence. All regularity/PDE/
+      positivity supplied; the v-side resolver machinery is χ₀-agnostic (reused).
 
-  Carried analytic atoms in the χ₀<0 local solution (the frontier, same kind χ₀=0 carries):
-  `ResolverSourceSummary` (ℓ¹), the realized-source flux atoms, the continuous-surrogate +
-  Fourier-ℓ¹ for the source-inversions, the `hrep` representations (← realizes_clean).
+  ⬜ **FULL `Theorem_1_1` (the headline) — the genuine remaining frontier**: wired via
+     `theorem_1_1_chiNeg_of_…Residual` (ChiNegResidual:199; boundedness Lemma 3.1 + global are
+     χ₀-agnostic, REUSABLE) modulo the DATUM-UNIFORM residual
+     `CoupledFluxClassicalLocalExistenceResidual` = `∀M>0 ∃δ>0 ∀u0(|u0|≤M), local-solution-on-δ`.
+     Two genuine pieces remain (NOT plug-ins):
+     (1) datum-uniform lifespan δ(M) — the EWA `hK` smallness is uniform over `|u0|≤M` (constants
+         bounded), but not yet extracted into the `∀M ∃δ ∀u0` order; + exact-horizon vs ∃Tmax.
+     (2) per-datum discharge of the carried χ₀<0 frontier atoms (`realizes_clean` ← the realized-
+         track frontier ResolverSourceSummable/surrogate/hrep; `hfp` EWA↔real-space FP identity;
+         `htrace`) for each `u_star(u0)` — the realized-track frontier, ∀-datum.
+
+  HONEST: the per-datum local classical solution is DONE modulo the standard χ₀<0 frontier atoms.
+  The full `Theorem_1_1` carries that frontier ∀-datum + the uniform construction — a real
+  analytic frontier (bottoms at ResolverSourceSummable etc.), not a quick assembly.
 
 ---
 
