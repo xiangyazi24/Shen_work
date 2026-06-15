@@ -140,6 +140,24 @@ committed contract. This is a structural/architecture change to the committed sc
 (the stationary map yields the exact same traveling wave + hstat), but a route choice that is the SENIOR
 AUTHOR'S call (method-flexibility rule). FLAG FOR XIANG before implementing. Until decided, G2 is the gate.
 
+## G1 ROUTE — cron verdict: FINITE-NET SCHAUDER (not Galerkin/Tychonoff/Helly)
+Target: `monotoneWaveTrap_schauderPrinciple : LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet (kappa c) 1)`.
+(NB the bare principle is FALSE for empty trap — prove it AT the concrete monotone trap, using its
+nonempty+convex facts; Helly/Tarski ruled out since Tmap is not order-preserving.) Chain:
+- Step0/A trap structure: `monotoneWaveTrap_nonempty` (lowerBarrierPlateau member, committed
+  exists_D_gt_…:4968) + `monotoneWaveTrap_finite_convex_combo` (convex combo of antitone/≤Ū/≥0 stays in trap — easy).
+- Step1 `localUniform_image_finiteNet_on_box` (∀R ε, finite ε-net of image points cᵢ=Tmap vᵢ on [−R,R]):
+  via committed `exists_finite_eps_net` (Mathlib finite_cover_balls_of_compact) + `LocalUniformSequentiallyCompactRange`
+  (contradiction: ε-separated images can't have a loc-unif-convergent subsequence).
+- Step3 barycentric map C(a)=Σ aᵢ cᵢ on stdSimplex ι → Φ:stdSimplex→stdSimplex (continuous via finite sum +
+  LocalUniformContinuousOn) → **`brouwer_stdSimplex_n`** [the ONLY new external input — Brouwer subagent
+  a6a3c8ae building it] → approx fixed pt xₙ=C(aₙ) with |xₙ−Tmap xₙ|≤εₙ on [−Rₙ,Rₙ], Rₙ=N+1, εₙ=1/(N+1).
+- Step4 `locallyUniform_of_approx_on_exhaustion`: extract subseq via LocalUniformSequentiallyCompactRange,
+  Tmap(x_{Nⱼ})→U + approx ⟹ x_{Nⱼ}→U loc-unif.
+- Step5 committed `LocalUniformContinuousOn.fixed_of_common_limit` (seq→U ∧ Tmap seq→U ∧ cont ⟹ Tmap U=U) ⟹ Tmap U=U.
+ALL infinite-dim infra committed; G1 = brouwer_stdSimplex_n [in flight] + the finite-net assembly brick.
+This G1 principle is route-AGNOSTIC (serves both the orbit and the stationary G2; reusable for B2/B4).
+
 ## PAUSE 2026-06-15: uisai2 down for admin disk expansion (only build machine; Mac kernel-panics on lake
 build; Codex also on uisai2 + out of credits till Jun 18). Build-work + Codex-dispatch HALTED by Xiang's
 explicit instruction. Design advanced (this G2 verdict) is git-only. RESUME from commit after uisai2 returns:
