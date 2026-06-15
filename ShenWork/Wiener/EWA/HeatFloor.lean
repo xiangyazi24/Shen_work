@@ -144,6 +144,23 @@ theorem cosineHeatValue_reflect_one (c₀ : ℕ → ℝ) (t x : ℝ) :
     unitIntervalCosineHeatValue t c₀ (2 - x) = unitIntervalCosineHeatValue t c₀ x := by
   rw [show (2 : ℝ) - x = (-x) + 2 from by ring, cosineHeatValue_add_two, cosineHeatValue_neg]
 
+/-- `cosineMode k` is invariant under integer shifts of period `2`:
+`cos(kπ(x+2m)) = cos(kπx)`. -/
+theorem cosineMode_add_int_two (k : ℕ) (m : ℤ) (x : ℝ) :
+    ShenWork.CosineSpectrum.cosineMode k (x + 2 * m) = ShenWork.CosineSpectrum.cosineMode k x := by
+  unfold ShenWork.CosineSpectrum.cosineMode
+  rw [show (k : ℝ) * Real.pi * (x + 2 * m)
+        = (k : ℝ) * Real.pi * x + ((k * m : ℤ) : ℝ) * (2 * Real.pi) from by push_cast; ring,
+    Real.cos_add_int_mul_two_pi _ (k * m)]
+
+/-- The cosine heat value is invariant under integer shifts of period `2`:
+`V(x + 2m) = V(x)`. -/
+theorem cosineHeatValue_add_int_two (c₀ : ℕ → ℝ) (t : ℝ) (m : ℤ) (x : ℝ) :
+    unitIntervalCosineHeatValue t c₀ (x + 2 * m) = unitIntervalCosineHeatValue t c₀ x := by
+  rw [← cosineHeatSynthesis_eq_cosineHeatValue c₀ t (x + 2 * m),
+    ← cosineHeatSynthesis_eq_cosineHeatValue c₀ t x]
+  exact tsum_congr (fun k => by rw [cosineMode_add_int_two])
+
 /-- **THE HEAT EVAL BRIDGE (A).**  For the realized cosine datum
 `u₀E = ⟨ofCosineCoeffs c₀, _⟩` (with `c₀` absolutely summable), the EWA point evaluation
 of the heat element equals the committed cosine spectral heat value at every time `τ`
@@ -236,5 +253,164 @@ theorem cosineHeatValue_ge_floor {t : ℝ} (ht : 0 < t)
   rw [← intervalFullSemigroupOperator_eq_cosineHeatValue_unconditional t ht u₀ hu₀ x hx
         (fun y => intervalNeumannFullKernel_cosineKernel_identity ht x y)]
   exact intervalFullSemigroupOperator_ge_floor ht hu₀ hfloor x
+
+/-! ### (C) CONTINUITY of the cosine heat value — uniformly summable cosine series.
+
+Each term `exp(−t(kπ)²)·c₀ k·cosineMode k ·` is bounded in sup-norm by `|c₀ k|` for `t ≥ 0`
+(`|exp(−t(kπ)²)| ≤ 1`, `|cos| ≤ 1`), so `continuous_tsum` against the summable majorant
+`|c₀ k|` gives continuity of the synthesis, hence of `unitIntervalCosineHeatValue t c₀ ·`. -/
+
+/-- Per-mode sup bound for the heat synthesis term at `t ≥ 0`:
+`‖exp(−t(kπ)²)·c₀ k·cosineMode k x‖ ≤ |c₀ k|`. -/
+theorem heatSynthesisTerm_norm_le (c₀ : ℕ → ℝ) {t : ℝ} (ht : 0 ≤ t) (k : ℕ) (x : ℝ) :
+    ‖(Real.exp (-t * ((k : ℝ) * Real.pi) ^ 2) * c₀ k)
+        * ShenWork.CosineSpectrum.cosineMode k x‖ ≤ |c₀ k| := by
+  rw [Real.norm_eq_abs, abs_mul, abs_mul, Real.abs_exp]
+  have hfac : Real.exp (-t * ((k : ℝ) * Real.pi) ^ 2) ≤ 1 := by
+    rw [Real.exp_le_one_iff]; nlinarith [sq_nonneg ((k : ℝ) * Real.pi)]
+  have hcos : |ShenWork.CosineSpectrum.cosineMode k x| ≤ 1 := by
+    unfold ShenWork.CosineSpectrum.cosineMode; exact Real.abs_cos_le_one _
+  calc Real.exp (-t * ((k : ℝ) * Real.pi) ^ 2) * |c₀ k|
+          * |ShenWork.CosineSpectrum.cosineMode k x|
+      ≤ 1 * |c₀ k| * 1 := by
+        apply mul_le_mul (mul_le_mul hfac le_rfl (abs_nonneg _) (by positivity)) hcos
+          (abs_nonneg _) (by positivity)
+    _ = |c₀ k| := by ring
+
+/-- **(C) Continuity in `x`.**  For `t ≥ 0` and `|c₀|` summable, the cosine heat value
+`x ↦ unitIntervalCosineHeatValue t c₀ x` is continuous. -/
+theorem cosineHeatValue_continuous {c₀ : ℕ → ℝ} (hsum : Summable (fun k => |c₀ k|))
+    {t : ℝ} (ht : 0 ≤ t) :
+    Continuous (fun x => unitIntervalCosineHeatValue t c₀ x) := by
+  have heq : (fun x => unitIntervalCosineHeatValue t c₀ x)
+      = fun x => ∑' k : ℕ, (Real.exp (-t * ((k : ℝ) * Real.pi) ^ 2) * c₀ k)
+          * ShenWork.CosineSpectrum.cosineMode k x := by
+    funext x; rw [← cosineHeatSynthesis_eq_cosineHeatValue c₀ t x]
+  rw [heq]
+  refine continuous_tsum (fun k => continuous_const.mul ?_) hsum
+    (fun k x => heatSynthesisTerm_norm_le c₀ ht k x)
+  unfold ShenWork.CosineSpectrum.cosineMode
+  exact Real.continuous_cos.comp (by fun_prop)
+
+/-- **(C) Continuity in `t` on `Ici 0`** (fixed `x`).  Same majorant `|c₀ k|`. -/
+theorem cosineHeatValue_continuousOn_t {c₀ : ℕ → ℝ} (hsum : Summable (fun k => |c₀ k|))
+    (x : ℝ) :
+    ContinuousOn (fun t => unitIntervalCosineHeatValue t c₀ x) (Set.Ici 0) := by
+  have heq : (fun t => unitIntervalCosineHeatValue t c₀ x)
+      = fun t => ∑' k : ℕ, (Real.exp (-t * ((k : ℝ) * Real.pi) ^ 2) * c₀ k)
+          * ShenWork.CosineSpectrum.cosineMode k x := by
+    funext t; rw [← cosineHeatSynthesis_eq_cosineHeatValue c₀ t x]
+  rw [heq]
+  refine continuousOn_tsum
+    (fun k => (Continuous.continuousOn (by fun_prop)))
+    hsum (fun k t ht => ?_)
+  exact heatSynthesisTerm_norm_le c₀ ht k x
+
+/-! ### (D) FLOOR on `Icc 0 1` for `t ≥ 0` via CLOSED PREIMAGE. -/
+
+/-- **(D1) Floor on `Icc 0 1` for `t > 0`.**  The set `{x | δ ≤ V t c₀ x}` is the closed
+preimage `(V t c₀ ·)⁻¹' (Ici δ)`; it contains `Ioo 0 1` (the interior floor), so it
+contains `closure (Ioo 0 1) = Icc 0 1`. -/
+theorem cosineHeatValue_ge_floor_Icc_pos {t : ℝ} (ht : 0 < t)
+    {u₀ : ℝ → ℝ} (hu₀ : Continuous u₀) {δ : ℝ} (hfloor : ∀ y, δ ≤ u₀ y)
+    (hsum : Summable (fun k => |cosineCoeffs u₀ k|))
+    {x : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    δ ≤ unitIntervalCosineHeatValue t (cosineCoeffs u₀) x := by
+  have hcont : Continuous (fun x => unitIntervalCosineHeatValue t (cosineCoeffs u₀) x) :=
+    cosineHeatValue_continuous hsum ht.le
+  have hclosed : IsClosed
+      ((fun x => unitIntervalCosineHeatValue t (cosineCoeffs u₀) x) ⁻¹' Set.Ici δ) :=
+    isClosed_Ici.preimage hcont
+  have hsub : Set.Ioo (0 : ℝ) 1 ⊆
+      (fun x => unitIntervalCosineHeatValue t (cosineCoeffs u₀) x) ⁻¹' Set.Ici δ :=
+    fun y hy => cosineHeatValue_ge_floor ht hu₀ hfloor hy
+  have hIcc : Set.Icc (0 : ℝ) 1 ⊆
+      (fun x => unitIntervalCosineHeatValue t (cosineCoeffs u₀) x) ⁻¹' Set.Ici δ := by
+    rw [← closure_Ioo (by norm_num : (0 : ℝ) ≠ 1)]
+    exact hclosed.closure_subset_iff.mpr hsub
+  exact hIcc hx
+
+/-- **(D2) Floor on `Icc 0 1` for ALL `t ≥ 0`.**  Fix `x ∈ Icc 0 1`.  The set
+`{t | δ ≤ V t c₀ x}` is the closed preimage (in `t`, restricted to `Ici 0`); it contains
+`Ioi 0` (D1), so it contains `closure (Ioi 0) ∩ Ici 0 ⊇ {0}`, i.e. `t = 0` too. -/
+theorem cosineHeatValue_ge_floor_Icc {t : ℝ} (ht : 0 ≤ t)
+    {u₀ : ℝ → ℝ} (hu₀ : Continuous u₀) {δ : ℝ} (hfloor : ∀ y, δ ≤ u₀ y)
+    (hsum : Summable (fun k => |cosineCoeffs u₀ k|))
+    {x : ℝ} (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    δ ≤ unitIntervalCosineHeatValue t (cosineCoeffs u₀) x := by
+  rcases lt_or_eq_of_le ht with htpos | hteq
+  · exact cosineHeatValue_ge_floor_Icc_pos htpos hu₀ hfloor hsum hx
+  · -- `t = 0`: extend from `t > 0` via continuity in `t` on `Ici 0`, taking the limit
+    -- along `𝓝[>] 0` where the floor holds pointwise (D1).
+    subst hteq
+    have hcontOn : ContinuousOn (fun s => unitIntervalCosineHeatValue s (cosineCoeffs u₀) x)
+        (Set.Ici 0) := cosineHeatValue_continuousOn_t hsum x
+    have hcwa : ContinuousWithinAt
+        (fun s => unitIntervalCosineHeatValue s (cosineCoeffs u₀) x) (Set.Ici 0) 0 :=
+      hcontOn 0 Set.self_mem_Ici
+    have htend : Filter.Tendsto
+        (fun s => unitIntervalCosineHeatValue s (cosineCoeffs u₀) x)
+        (nhdsWithin 0 (Set.Ioi 0))
+        (nhds (unitIntervalCosineHeatValue 0 (cosineCoeffs u₀) x)) :=
+      hcwa.tendsto.mono_left (nhdsWithin_mono 0 Set.Ioi_subset_Ici_self)
+    refine ge_of_tendsto htend ?_
+    -- on `Ioi 0` we are at strictly positive time; D1 applies.
+    filter_upwards [self_mem_nhdsWithin] with s hs
+    exact cosineHeatValue_ge_floor_Icc_pos hs hu₀ hfloor hsum hx
+
+/-- **(E) FLOOR for ALL real `x` and ALL `t ≥ 0`.**  Reduce arbitrary `x` to a fundamental
+representative in `[0,1]` by an integer period-`2` shift (`round (x/2)` lands `x` within
+`[-1,1]`) followed by evenness (`|·|`), then apply (D2). -/
+theorem cosineHeatValue_ge_floor_all {t : ℝ} (ht : 0 ≤ t)
+    {u₀ : ℝ → ℝ} (hu₀ : Continuous u₀) {δ : ℝ} (hfloor : ∀ y, δ ≤ u₀ y)
+    (hsum : Summable (fun k => |cosineCoeffs u₀ k|)) (x : ℝ) :
+    δ ≤ unitIntervalCosineHeatValue t (cosineCoeffs u₀) x := by
+  -- `y = x - 2*round(x/2) ∈ [-1,1]`, and `V x = V y` (period-2 integer shift).
+  set m : ℤ := round (x / 2) with hm
+  set y : ℝ := x - 2 * m with hy
+  have hVxy : unitIntervalCosineHeatValue t (cosineCoeffs u₀) x
+      = unitIntervalCosineHeatValue t (cosineCoeffs u₀) y := by
+    rw [hy, ← cosineHeatValue_add_int_two (cosineCoeffs u₀) t m (x - 2 * m)]
+    congr 1; ring
+  have hyabs : |y| ∈ Set.Icc (0 : ℝ) 1 := by
+    refine ⟨abs_nonneg _, ?_⟩
+    have hround : |x / 2 - (m : ℝ)| ≤ 1 / 2 := by rw [hm]; exact abs_sub_round (x / 2)
+    rw [hy]
+    have hb : |x - 2 * (m : ℝ)| ≤ 1 := by
+      rw [show x - 2 * (m : ℝ) = 2 * (x / 2 - (m : ℝ)) from by ring, abs_mul,
+        abs_of_nonneg (by norm_num : (0:ℝ) ≤ 2)]
+      nlinarith [hround]
+    exact hb
+  -- `V y = V |y|` (evenness), and `|y| ∈ [0,1]` → apply (D2).
+  have hVy : unitIntervalCosineHeatValue t (cosineCoeffs u₀) y
+      = unitIntervalCosineHeatValue t (cosineCoeffs u₀) |y| := by
+    rcases abs_choice y with h | h
+    · rw [h]
+    · rw [h, cosineHeatValue_neg]
+  rw [hVxy, hVy]
+  exact cosineHeatValue_ge_floor_Icc ht hu₀ hfloor hsum hyabs
+
+/-! ### (F) THE FINAL `UniformFloor` — assembling the eval bridge with the heat floor. -/
+
+/-- **THE HEAT-FLOOR (F).**  For the realized cosine datum `u₀E = ⟨ofCosineCoeffs c₀, _⟩`
+with `c₀ = cosineCoeffs u₀` (absolutely summable) of a continuous source `u₀ ≥ δ`, the
+heat element satisfies the uniform spectral floor `UniformFloor (heatEWA u₀E) δ`.
+
+This discharges the `hheat` gap of `picardEWA_abs_fixedPoint`: at every time `τ ∈ [0,T]`
+and every circle point `x`, the included heat symbol has real part `≥ δ`.  Via the eval
+bridge (A) the value is the real cast `unitIntervalCosineHeatValue τ.1 c₀ x`, whose real
+part is itself; the floor (E) on all real `x` and `τ.1 ≥ 0` closes it. -/
+theorem heatEWA_uniformFloor {u₀ : ℝ → ℝ} (hu₀ : Continuous u₀) {δ : ℝ}
+    (hfloor : ∀ y, δ ≤ u₀ y) (hsum : Summable (fun k => |cosineCoeffs u₀ k|))
+    (hmem : MemW 1 (ofCosineCoeffs (cosineCoeffs u₀))) :
+    UniformFloor (heatEWA (T := T)
+      (⟨ofCosineCoeffs (cosineCoeffs u₀), hmem⟩ : WA 1)) δ := by
+  intro τ x
+  -- lift the circle point `x : WA.Circ = AddCircle 2` to a real representative.
+  induction x using QuotientAddGroup.induction_on with
+  | _ x =>
+    rw [heatEWA_evalST_eq_cosineHeatValue (cosineCoeffs u₀) hsum hmem τ x,
+      Complex.ofReal_re]
+    exact cosineHeatValue_ge_floor_all τ.2.1 hu₀ hfloor hsum x
 
 end ShenWork.EWA
