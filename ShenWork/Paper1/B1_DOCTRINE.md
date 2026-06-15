@@ -140,6 +140,25 @@ committed contract. This is a structural/architecture change to the committed sc
 (the stationary map yields the exact same traveling wave + hstat), but a route choice that is the SENIOR
 AUTHOR'S call (method-flexibility rule). FLAG FOR XIANG before implementing. Until decided, G2 is the gate.
 
+## ★★★ G2 FINAL (cron orbit2, definitive) — no shortcut; faithful route = Rothe MILD cross-frozen orbit
+ROUTE A (unique cross-frozen stationary solve W*(u)) is STRUCTURALLY DEAD: the cross-frozen stationary
+BVP F_u(W)=0 is NOT uniquely solvable in the order interval. The linearized difference equation for
+δ=W₁−W₂ has zero-order coefficient b_α=1−(α+1)W^α which is POSITIVE near the right tail (W small) → no
+maximum-principle uniqueness; the operator is not "proper". Confirmed by the paper: Shen uses uniqueness
+ONLY at a stricter speed c**>c* (not the existence threshold c*). Perron sub/super gives a SET of
+solutions, not a single continuous map → no single-valued Tmap for the outer Schauder. So route A cannot
+found G2.
+ROUTE B (Rothe / implicit-Euler → cross-frozen orbit) is the FAITHFUL route: z_{k+1}−hF_u(z_{k+1})=z_k
+(each step a cross-frozen ELLIPTIC solve, (I−hF_u) better-behaved for small h), trapped U^−≤z_{k+1}≤z_k≤U^+
+by elliptic comparison at each step (barriers), monotone-in-k → limit. BUT recovering the EXACT pointwise
+t-derivative of `FrozenAuxiliarySolutionFrom` is a classical parabolic regularity theorem. Tractable only
+if the contract is WEAKENED to a MILD/integral orbit form, then upgraded to stationary at the fixed point
+via the committed Green smoothing (auxMap/GreenIdentity gives classical regularity of the LIMIT).
+⟹ G2 = the genuine deepest gate of B1: a from-scratch parabolic-lite (Rothe mild-orbit) construction, no
+Mathlib support, no clean shortcut. RECOMMENDATION: drive B1 to "headline REACHED modulo the single honest
+FrozenAuxiliaryLimitOutput construction" (the A2-style clean conditional milestone — G1 + bridge wrappers
+discharge everything ELSE), then attack the Rothe mild-orbit as the dedicated deepest effort. Pending Xiang.
+
 ## ★★ G2 RESOLUTION (cron G2a, read the actual Shen paper) — PARABOLIC ORBIT is faithful; diagonal auxMap fails invariance
 DECISIVE: Shen's Section 4.2 construction is the CROSS-FROZEN PARABOLIC map `T(u)=lim_{t→∞} z(t;Ū,u)`,
 `z_t = A(z;u)` with V=V_u frozen but the flux on the EVOLVING z (z^m V_u'). Invariance = parabolic
