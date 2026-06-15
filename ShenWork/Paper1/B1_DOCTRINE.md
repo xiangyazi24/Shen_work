@@ -126,7 +126,14 @@ Lean chain (each MUCH smaller than parabolic global existence):
 - L5' Schauder fixed point — existing `LocalUniformSchauderFixedPointPrinciple trap` [K2/G1] + a NEW conversion
       theorem `FrozenWaveMapConstruction'.of_stationary_schauderData` (parallel to the committed orbit one).
 
-⚠️ COST / DECISION: the committed bridge chain (`FrozenWaveMapConstruction` → …
+✅ DECISION 2026-06-15: Xiang approved the STATIONARY resolvent route ("G2 走 stationary resolvent，
+别等我") — proceed autonomously, build the parallel stationary bridge (do NOT swap/break the committed
+orbit chain; add `FrozenStationaryMapSchauderData` + `FrozenWaveMapConstruction'.of_stationary_schauderData`
+alongside). L1' inner-solve subtlety to resolve: the chemotaxis term ∂ₓ(W^m V_u') depends on W' (frozen
+V_u but iterate-derivative W'), so naive pointwise monotone iteration on the order interval [sub-barrier,Ū]
+may not be order-preserving — needs the precise construction route (cron2 G2-L1' design in flight).
+
+⚠️ COST / NOTE: the committed bridge chain (`FrozenWaveMapConstruction` → …
 `of_assumed_fixed_point_construction_branches`) is wired to the ORBIT contract `FrozenAuxiliaryLimitOutput`.
 The stationary route needs EITHER (a) a parallel stationary bridge added alongside, OR (b) swapping the
 committed contract. This is a structural/architecture change to the committed scaffold — NOT a weakening
