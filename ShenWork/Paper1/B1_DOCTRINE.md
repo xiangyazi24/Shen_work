@@ -140,6 +140,24 @@ committed contract. This is a structural/architecture change to the committed sc
 (the stationary map yields the exact same traveling wave + hstat), but a route choice that is the SENIOR
 AUTHOR'S call (method-flexibility rule). FLAG FOR XIANG before implementing. Until decided, G2 is the gate.
 
+## ★★★★ G2 BREAKTHROUGH (cron Rothe design) — implicit Green orbit, per-step CONTRACTION (tractable!)
+The "no parabolic theory" gate is RESOLVED into tractable discrete bricks. Build a FIXED-STEP implicit
+Green orbit (NOT continuous-time): large λ, h=1/λ, step `z_{k+1}−hF_u(z_{k+1})=z_k`. Each step is a Green
+fixed point `W=Φ_{λ,u,Z}(W)` that is a CONTRACTION for large λ (small nonlinear perturbation of identity
+after A_λ^{-1}) → UNIQUELY solvable (unlike the stationary problem — different mechanism). Discrete limit
+z_k→U gives U=auxMap_λ(U) → committed `fixedPoint_stationary` → frozenWaveOperator=0. Contract = fixed-step
+Rothe (discrete), NOT Duhamel — avoids parabolic semigroup entirely.
+BRICK DECOMPOSITION (cron):
+ STEP (per-step contraction, self-contained, FOUNDATIONAL): reaction_lipschitz_on_Icc · rpow_m_lipschitz_on_Icc
+  · greenKernelDeriv_integrable · greenKernelDeriv_l1_bound · crossImplicitMap_contracting_large_lambda
+  (ContractingWith.exists_fixedPoint in BoundedContinuousFunction) · crossImplicitStep_exists_unique.
+ TRAP (new max-principle, the real order content): implicitStep_le_of_supersolution (F_u(B)≤0 ∧ Z≤B ∧
+  W−hF_u(W)=Z ⟹ W≤B) · implicitStep_ge_of_subsolution · implicitStep_preserves_antitone (sliding/
+  differentiated max-principle, K_λ' sign-changes so NOT automatic). Discrete monotone induction: F_u(z_k)≤0
+  (k=0 = committed super-barrier) ⟹ z_{k+1}≤z_k ⟹ F_u(z_{k+1})=λ(z_{k+1}−z_k)≤0 closes; U^−≤z_{k+1}≤z_k≤Ū.
+ LIMIT+CONTRACT: weakened fixed-step Rothe contract (discrete) → z_k→U loc-unif → U=auxMap_λ U → fixedPoint_stationary.
+[Rothe first-brick (STEP 1-6 per-step contraction) DISPATCHED. TRAP 7-9 + limit follow.]
+
 ## ★★★ G2 FINAL (cron orbit2, definitive) — no shortcut; faithful route = Rothe MILD cross-frozen orbit
 ROUTE A (unique cross-frozen stationary solve W*(u)) is STRUCTURALLY DEAD: the cross-frozen stationary
 BVP F_u(W)=0 is NOT uniquely solvable in the order interval. The linearized difference equation for
