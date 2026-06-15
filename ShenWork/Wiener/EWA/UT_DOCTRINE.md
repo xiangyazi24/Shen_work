@@ -52,7 +52,20 @@ Biggest risk: weight-1-vs-resolver bookkeeping (redo majorants against λₙ|b̂
 - doctrine: 7ce2fef (avenue a′ verdict + 3-brick plan)
 - approval: Xiang "继续推, 把 u_t 三块都搞定" + /automode
 - avenue: (a′) weight-1 re-instantiation
-- brick 1: dispatched a3846aa6 (fullSourceCoeffDot + per-mode HasDerivAt)
-- brick 2: <pending brick 1> summable majorant
-- brick 3: <pending brick 2> tsum HasDerivAt + isClassicalTimeSlice
+- brick 1: 2f58702 fullSourceCoeffDot + per-mode HasDerivAt ✓
+- brick 2: 9d15223 fullSourceCoeffDot_abs_summable (interior majorant) ✓
+- brick 3: 7606541 fullSourceCoeff_hasDerivAt_time + isClassicalTimeSlice ✓
+- u_t 3 bricks: DONE — χ₀<0 has spatial-C² AND time-C¹ classical slices (interior Ioo 0 T).
+
+## NEXT AVENUE — PDE-satisfaction (the full CLASSICAL SOLUTION, beyond regularity)
+cron2 verdict: C²ₓ+C¹ₜ is the REGULARITY half; "u solves the PDE classically" needs the
+mild-to-classical identification `u_t = u_xx − χ₀∂ₓ(u·v_x/(1+v)^β) + u(a−bu^α)`. The χ₀=0 side
+has this architecture (IntervalMildToClassical.lean — the hpde_u/3-spectral-identities pattern).
+χ₀<0 mirrors it. Coefficient core = the spectral ODE `fullSourceCoeffDot = −λₙ·fullSourceCoeff +
+((−χ₀)chemSrc + logSrc)` [brick 4a, dispatched ae7675a1]. Then 3 bridges:
+  (i) TIME u_t = ∑ fullSourceCoeffDot·cos — fullSourceCoeff_hasDerivAt_time (7606541) + nbhd realization
+  (ii) LAPLACIAN u_xx = ∑ −λₙ·fullSourceCoeff·cos — from the C² spatial slice
+  (iii) SOURCE-INVERSION ∑((−χ₀)chemSrc+logSrc)·cos = physical source — G1/G2 coeff identities
+       (SourceDuhamelCoeffIdentity) + cosine reconstruction. THE chemotaxis-specific burden.
+Then assemble the pointwise PDE (mirror χ₀=0 hpde_u).
 - end: <fill on close>
