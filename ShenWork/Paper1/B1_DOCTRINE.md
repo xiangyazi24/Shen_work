@@ -140,6 +140,26 @@ committed contract. This is a structural/architecture change to the committed sc
 (the stationary map yields the exact same traveling wave + hstat), but a route choice that is the SENIOR
 AUTHOR'S call (method-flexibility rule). FLAG FOR XIANG before implementing. Until decided, G2 is the gate.
 
+## ★★ G2 RESOLUTION (cron G2a, read the actual Shen paper) — PARABOLIC ORBIT is faithful; diagonal auxMap fails invariance
+DECISIVE: Shen's Section 4.2 construction is the CROSS-FROZEN PARABOLIC map `T(u)=lim_{t→∞} z(t;Ū,u)`,
+`z_t = A(z;u)` with V=V_u frozen but the flux on the EVOLVING z (z^m V_u'). Invariance = parabolic
+comparison with cross-frozen barriers: testing W=Ū (or e^{−κx}, M) the derivative term is the BARRIER's
+explicit W_x=−κW, NEVER u_x — THIS defeats the obstruction (Shen Lemma 4.1 super, 4.2 sub). Key barrier
+inequality A(e^{−κx};u)≤0 absorbs −κm|χ|V_x+|χ|V ≤ |χ|(1+mγκ²)/(1−γ²κ²)e^{−γκx} via the explicit V kernel
++ u≤e^{−κx} + speed condition. Convergence = z antitone IN TIME (z_t≤0 from Ū super-solution) bounded below
+by sub-barrier → monotone limit ∈ trap. z_x≤0 by differentiating the parabolic eqn + comparison on w=z_x.
+⟹ the diagonal `auxMap` (my "collapse") is the WRONG map: fixed-points stationary but NO barrier-invariance.
+⟹ the repo's ORIGINAL `FrozenAuxiliaryLimitOutput` (parabolic orbit) contract is the FAITHFUL formalization.
+The invariant set is the pointwise order interval U^−≤u≤U^+ + nonincreasing (NOT a weaker norm class).
+CLARIFICATION of Xiang's "G2走stationary": cron's route-1 "stationary resolvent" meant the CROSS-frozen
+solve A(W;u)=0 (invariance OK via barriers) — NOT the diagonal auxMap. But constructing that W*(u)
+continuously-in-u itself reduces to the parabolic time-limit (cron2: monotone-iter fails, Schauder-selection
+not continuous). So BOTH faithful routes go through the parabolic orbit. hstat still free via auxMap at the
+END (the limit profile is a fixed point of the diagonal too), but the MAP for the Schauder/invariance must be
+the parabolic T(u). NEXT: design the Lean construction of the parabolic orbit (time-monotone / implicit-Euler;
+the convergence is time-monotonicity, NOT map-order-preservation) — the genuine deepest gate, cron in flight.
+
+## ~~G2 COLLAPSE~~ (SUPERSEDED by G2 RESOLUTION above — kept for the auxMap/hstat facts, which still hold)
 ## ★ G2 COLLAPSE (2026-06-15, source-verified) — the stationary resolver IS the committed auxMap
 The parabolic-orbit `FrozenAuxiliaryLimitOutput` contract is BYPASSED. The committed
 `auxMap p c lam u` (WaveAuxMap.lean:234) = `∫ Kλ(x−y)(reaction+λu) − χ∫ Kλ'(x−y)·auxFlux` IS exactly
