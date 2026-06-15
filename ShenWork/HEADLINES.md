@@ -44,8 +44,14 @@ Produces `Theorem_1_1 intervalDomain p` for χ₀=0, carrying `hPLF` (PicardLimi
          `htrace`) for each `u_star(u0)` — the realized-track frontier, ∀-datum.
 
   HONEST: the per-datum local classical solution is DONE modulo the standard χ₀<0 frontier atoms.
-  The full `Theorem_1_1` carries that frontier ∀-datum + the uniform construction — a real
-  analytic frontier (bottoms at ResolverSourceSummable etc.), not a quick assembly.
+
+- ✅ **χ₀<0 `Theorem_1_1 intervalDomain p` REACHED modulo ONE honest hyp** (`chiNeg_theorem_1_1`, 29a076c):
+     produces the full boundedness+global headline for χ₀<0 modulo the single packaged
+     `ChiNegDatumUniformConstruction p` (the datum-uniform EWA construction + the realized-track
+     frontier atoms). The χ₀<0 Theorem_1_1 CONSTRUCTION is closed; sole remaining obligation = that
+     one atom. To make it UNCONDITIONAL: discharge the realized-track frontier (`ResolverSourceSummable`,
+     surrogate continuity + Fourier-ℓ¹, the realizes↔Duhamel bridge, hfp) datum-uniformly — the deep
+     analytic floor (real PDE source-regularity estimates), the same floor the whole χ₀<0 track carries.
 
 ---
 
