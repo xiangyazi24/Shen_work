@@ -46,3 +46,13 @@ Committed per-mode ∂_t atoms (all of them):
 
 Biggest risk: weight-1-vs-resolver bookkeeping (redo majorants against λₙ|b̂ₙ| not wₖ) — mechanical.
 - Codex out of credits till Jun 18 → Opus carries labor.
+
+## RUN_LOG
+## Run 2026-06-15 (automode, u_t 3 bricks)
+- doctrine: 7ce2fef (avenue a′ verdict + 3-brick plan)
+- approval: Xiang "继续推, 把 u_t 三块都搞定" + /automode
+- avenue: (a′) weight-1 re-instantiation
+- brick 1: dispatched a3846aa6 (fullSourceCoeffDot + per-mode HasDerivAt)
+- brick 2: <pending brick 1> summable majorant
+- brick 3: <pending brick 2> tsum HasDerivAt + isClassicalTimeSlice
+- end: <fill on close>
