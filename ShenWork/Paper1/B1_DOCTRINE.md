@@ -140,6 +140,30 @@ committed contract. This is a structural/architecture change to the committed sc
 (the stationary map yields the exact same traveling wave + hstat), but a route choice that is the SENIOR
 AUTHOR'S call (method-flexibility rule). FLAG FOR XIANG before implementing. Until decided, G2 is the gate.
 
+## ★ G2 COLLAPSE (2026-06-15, source-verified) — the stationary resolver IS the committed auxMap
+The parabolic-orbit `FrozenAuxiliaryLimitOutput` contract is BYPASSED. The committed
+`auxMap p c lam u` (WaveAuxMap.lean:234) = `∫ Kλ(x−y)(reaction+λu) − χ∫ Kλ'(x−y)·auxFlux` IS exactly
+the divergence-form stationary Green-resolver (chemotaxis folded into greenKernelDeriv via IBP — the
+integral form with NO explicit W'). Its FIXED POINTS are stationary:
+  `fixedPoint_stationary` (WaveAuxMap:279): `GreenIdentity p c lam u ∧ auxMap…u=u ⟹ ∀x frozenWaveOperator p c u u x=0`. COMMITTED, linarith-clean.
+  `fixedPoint_paper_stationary` (:297): same → `paperWaveOperator=0` under trap diff hyps. COMMITTED.
+  `GreenIdentity` discharged end-to-end by `greenIdentity_of_convRepr` (WaveConvRepr:242) = auxMap_eq_negGreenConv
+  + **flux_ibp** (committed THIS session) + decay tails. So GreenIdentity holds on the trap modulo the
+  per-u C¹/decay hyps flux_ibp carries.
+⟹ **hstat is essentially COMMITTED** (fixedPoint_paper_stationary), not a frontier. No parabolic existence,
+no nested solve, no separate L1' construction — auxMap is Tmap and stationarity is automatic at the fixed point.
+
+### Real remaining G2 obligations (the auxMap analytic core = old L2, NOT a new gate):
+- **G2a invariance**: `∀u, trap u → trap (auxMap p c lam u)` — uses committed cross-frozen super-barrier
+  frozenWaveOperator(p,c,u,Ū)≤0 (3643/4804/4832) + sub-barrier + the Green-resolver order structure.
+- **G2b** `LocalUniformContinuousOn trap (auxMap …)` — auxMap continuity under loc-unif convergence (Kλ kernel + dominated conv).
+- **G2c** `LocalUniformSequentiallyCompactRange trap (auxMap …)` — uniform local C¹/C² bounds on auxMap u + Helly/Arzelà.
+- **G2d GreenIdentity trap-discharge**: the per-u flux_ibp C¹/decay hyps (auxFlux C¹, ±∞ decay) for trap u.
+- **G2e** new `FrozenStationaryMapSchauderData` contract (= G2a+G2b+G2c) + parallel bridge
+  `FrozenWaveMapConstruction'.of_stationary_schauderData` → NegativeSensitivityWaveFixedPointConstruction,
+  using the G1 principle to extract the fixed point, then fixedPoint_paper_stationary for hstat.
+(cron2 G2-L1' design in flight will confirm/refine; the auxMap=integral-form was exactly its question's hypothesis.)
+
 ## G1 ROUTE — cron verdict: FINITE-NET SCHAUDER (not Galerkin/Tychonoff/Helly)
 Target: `monotoneWaveTrap_schauderPrinciple : LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet (kappa c) 1)`.
 (NB the bare principle is FALSE for empty trap — prove it AT the concrete monotone trap, using its
