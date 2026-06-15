@@ -153,6 +153,18 @@ integral form with NO explicit W'). Its FIXED POINTS are stationary:
 ⟹ **hstat is essentially COMMITTED** (fixedPoint_paper_stationary), not a frontier. No parabolic existence,
 no nested solve, no separate L1' construction — auxMap is Tmap and stationarity is automatic at the fixed point.
 
+### ⚠️ CORRECTION (cron2 G2-L1' verdict): the collapse is PARTIAL — invariance crux REMAINS.
+hstat IS free (auxMap explicit, fixedPoint_stationary committed). BUT cron2 confirms the chemotaxis
+integral −χ∫Kλ'(x−y)W^m V' is NOT order-preserving (Kλ' sign-changes at y=x → opposite-sign half-lines;
+no pointwise sign). So `auxMap(u) ≤ Ū` does NOT follow from the committed super-barrier: the super-barrier
+frozenWaveOperator(p,c,u,Ū)≤0 uses the Ū-flux (Ū^m V_u'), while auxMap(u) uses the u-flux (u^m V_u'); the
+elliptic-max-principle reduction needs source_u(u) ≤ source_u(Ū) = chemotaxis monotonicity = the false sign
+lemma. The orbit route got invariance from the PARABOLIC max principle (comparison on the evolution, no
+order-preservation of a map needed) — which the stationary auxMap-direct route LACKS. So G2a invariance is
+the genuine deep crux (= ChemotaxisSandwich) in BOTH routes; the stationary route trades parabolic-existence
+for this invariance gate. Monotone iteration is doubly blocked (not order-preserving + regularity needs a
+separate smoothing pass). [cron G2a invariance design in flight — the real mathematical heart of B1.]
+
 ### Real remaining G2 obligations (the auxMap analytic core = old L2, NOT a new gate):
 - **G2a invariance**: `∀u, trap u → trap (auxMap p c lam u)` — uses committed cross-frozen super-barrier
   frozenWaveOperator(p,c,u,Ū)≤0 (3643/4804/4832) + sub-barrier + the Green-resolver order structure.
