@@ -59,3 +59,17 @@ The fix was applied to P2 Theorem_1_1 ONLY and not propagated. Pre-screen of all
 3. Add Paper3 floor predicate (mirror) → P3 Proposition_1_2/1_3/1_4 (initial data).
 4. P3 Theorem_2_1/2_3/2_4/2_5: strengthen `PositiveGlobalBoundedSolution` to the per-time spatial floor
    (or add a Neumann max-principle upgrade lemma). The distinct, solution-level fix.
+
+## RESOLUTION STATUS (2026-06-15)
+1. ✅ P2 Theorem_1_1 — fixed + committed (PaperPositiveInitialDatum).
+2. 🔧 P2 Theorem_1_2/1_3 + Prop_1_1 — propagation in flight (a029d261).
+3. ✅ P3 Proposition_1_2/1_3/1_4 — fixed (ac399cad PART 1, reuse Paper2's PaperPositiveInitialDatum); pending joint verify+commit.
+4. ⚠️ P3 Theorem_2_1/2_3/2_4/2_5 (solution-level per-time floor) — DEFERRED, documented in-code note above
+   `PositiveGlobalBoundedSolution` (Paper3/Statements.lean:119). REASON (infra-level, cron couldn't see it):
+   `BoundedDomainData.Point` is a BARE TYPE (no topology/compactness) and `infValue` is an abstract functional
+   with NO axiom `infValue f = ⨅ x, f x`. So the Neumann max-principle upgrade (interior positivity + continuity
+   ⟹ per-time floor) is UNPROVABLE from committed facts, and strengthening the def is impossible (`of_global_bounded`
+   built from global∧bounded alone can't supply the floor — same gap; 308 refs, 16 producers ripple). AND the floor
+   is UNNEEDED: every Th 2.1/2.3/2.4/2.5 proof consumes positivity only POINTWISE (`huv.pos`), never a spatial floor.
+   ⟹ no theorem weakened; the faithful fix needs a future PDE-interface upgrade (add a topology/compactness +
+   `infValue = ⨅` axiom to `BoundedDomainData`). Tracked, not a fakeable gap.
