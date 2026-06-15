@@ -152,10 +152,17 @@ MISSING:  BOTH inequalities must be STRICT, and the trap gives only `≤`:
     fixed-point structure (a stationary profile is `< 1` for finite `x`), again
     not exposed by `trap`/`aux`.
 
-Closest committed lemmas: none produce `ShenUpperBoundNegative` from trap/aux —
-grep shows `ShenUpperBoundNegative` appears in the codebase ONLY as a hypothesis
-or as an explicit fixed-point obligation, never as a conclusion derived from
-`InWaveTrapSet`/`InMonotoneWaveTrapSet`/`FrozenAuxiliaryLimitOutput` (verified).
+Closest committed lemma: `logisticProfile_shenUpperBoundNegative`
+(`ShenWork/PDE/TravelingWaveConstruction.lean:369`) produces
+`ShenUpperBoundNegative c (logisticProfile (kappa c))` — but ONLY for the
+specific `logisticProfile`, via `logisticProfile_pos` and
+`logisticProfile_strict_exp_bound`.  It cannot be wired to an arbitrary `U`
+coming from `trap`/`aux`: the strict positivity and strict exponential bound are
+properties of that explicit profile, not of trap membership.  Apart from this
+profile-specific producer, `ShenUpperBoundNegative` appears in the codebase ONLY
+as a hypothesis or as an explicit fixed-point obligation, never as a conclusion
+derived from `InWaveTrapSet`/`InMonotoneWaveTrapSet`/`FrozenAuxiliaryLimitOutput`
+(verified).
 (Contrast the positive branch, where `ShenUpperBoundPositive.inWaveTrapSet`
 goes trap→tailbound, the OPPOSITE direction.)
 
