@@ -101,3 +101,40 @@ derives HasWaveUpperTailBound from hupper's ShenUpperBoundNegative.pos. (So Wave
 ### 统筹 streams (2026-06-15): K2(G1 Schauder principle,critical) · cron(G2 orbit construction,deepest) ·
 bw(a79d7361 the 5 bridge wrappers + stall-locate). Committed this run: hIBP(flux_ibp) · V'≤0 · trap-props×2.
 Codex out till Jun 18 → Opus carries.
+
+## G2 REDESIGN — cron verdict (orbit contract is over-strong; use STATIONARY resolvent) ⚠️DECISION FOR XIANG
+cron's analysis of the `FrozenAuxiliaryLimitOutput` orbit contract: field (b) demands a GENUINE
+continuous-time parabolic solution `deriv(τ↦z τ x) t = frozenWaveOperator(p,c,u,z t) x` — that is a
+full global nonlinear parabolic existence theorem on ℝ, which Mathlib v4.29.1 does NOT give and a
+Banach-space Picard–Lindelöf CANNOT (the operator has the unbounded `W''+cW'`; C² vector field lands
+in C⁰, not back in C²). The mild/semigroup form (route 2) still needs whole-line parabolic semigroup
+estimates. Direct-formula (route 5) is circular. So the orbit route is the WRONG, hardest gate.
+
+**RECOMMENDED (route 1): replace the parabolic-orbit map by a STATIONARY Green-resolvent map.**
+Define `Tmap u` = solution of the cross-frozen STATIONARY equation `frozenWaveOperator(p,c,u,Tmap u)=0`
+in the trap (an elliptic/ODE Green map, no time). New contract (parallel to the committed orbit one):
+  `FrozenStationaryMapOutput p c κ M trap u (Tmap u)` := `trap(Tmap u) ∧ ∀x frozenWaveOperator p c u (Tmap u) x=0
+       ∧ ContDiff ℝ 2 (Tmap u)` ; and
+  `FrozenStationaryMapSchauderData` := `(∀u trap u→FrozenStationaryMapOutput…) ∧ LocalUniformContinuousOn ∧
+       LocalUniformSequentiallyCompactRange`.
+At a fixed point `Tmap U = U` the stationarity field gives `frozenWaveOperator(p,c,U,U)=0` = **hstat FOR FREE**.
+Lean chain (each MUCH smaller than parabolic global existence):
+- L1' cross-frozen stationary resolvent exists (elliptic/ODE Green map; order-interval or Green-fixed-point subroute)
+- L2' stationary barrier invariance — committed super-barrier(3643/4804/4832) + sub-barrier + STATIONARY max principle
+- L3' local-uniform continuity of the stationary solver (frozenElliptic continuous-dependence V_{uₙ}→V_u, V'→V')
+- L4' local-uniform compactness — uniform local C¹/C² bounds + existing `LocalUniformSequentiallyCompactRange`
+- L5' Schauder fixed point — existing `LocalUniformSchauderFixedPointPrinciple trap` [K2/G1] + a NEW conversion
+      theorem `FrozenWaveMapConstruction'.of_stationary_schauderData` (parallel to the committed orbit one).
+
+⚠️ COST / DECISION: the committed bridge chain (`FrozenWaveMapConstruction` → …
+`of_assumed_fixed_point_construction_branches`) is wired to the ORBIT contract `FrozenAuxiliaryLimitOutput`.
+The stationary route needs EITHER (a) a parallel stationary bridge added alongside, OR (b) swapping the
+committed contract. This is a structural/architecture change to the committed scaffold — NOT a weakening
+(the stationary map yields the exact same traveling wave + hstat), but a route choice that is the SENIOR
+AUTHOR'S call (method-flexibility rule). FLAG FOR XIANG before implementing. Until decided, G2 is the gate.
+
+## PAUSE 2026-06-15: uisai2 down for admin disk expansion (only build machine; Mac kernel-panics on lake
+build; Codex also on uisai2 + out of credits till Jun 18). Build-work + Codex-dispatch HALTED by Xiang's
+explicit instruction. Design advanced (this G2 verdict) is git-only. RESUME from commit after uisai2 returns:
+re-`lake build`-verify the 2 WIP files (WaveBridgeWrappers, PDE/EigenvalueL1Space), then per Xiang's G2
+decision either build the stationary-resolvent route (L1'-L5') or the parallel bridge.
