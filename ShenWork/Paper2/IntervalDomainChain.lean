@@ -274,7 +274,10 @@ theorem Theorem_1_1_intervalDomain_conditional
   intro hχ
   constructor
   · -- Non-minimal branch: 0 < p.a → 0 < p.b → ...
-    intro ha hb u₀ hu₀
+    intro ha hb u₀ hu₀paper
+    -- `Theorem_1_1` now carries the paper-faithful floor datum; existence only
+    -- needs interior positivity, so project down.
+    have hu₀ : PositiveInitialDatum intervalDomain u₀ := hu₀paper.toPositive
     -- Get the classical solution from the existence hypothesis
     obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ :=
       hexist.localExistence u₀ hu₀
@@ -321,7 +324,8 @@ theorem Theorem_1_1_intervalDomain_conditional
           exact le_trans h_le_init (le_max_left _ _)
       exact hexist.globalExtension u₀ hu₀ Tmax hTmax u v hsol htrace hbounded hm
   · -- Minimal branch: p.a = 0 → p.b = 0 → ...
-    intro ha hb u₀ hu₀
+    intro ha hb u₀ hu₀paper
+    have hu₀ : PositiveInitialDatum intervalDomain u₀ := hu₀paper.toPositive
     obtain ⟨Tmax, hTmax, u, v, hsol, htrace⟩ :=
       hexist.localExistence u₀ hu₀
     refine ⟨Tmax, hTmax, u, v, hsol, htrace, ?_, ?_⟩

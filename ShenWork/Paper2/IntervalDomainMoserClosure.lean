@@ -750,7 +750,10 @@ theorem Theorem_1_1_intervalDomain_of_corrected_existence
     Theorem_1_1 intervalDomain p := by
   intro hχ
   constructor
-  · intro ha hb u₀ hu₀
+  · intro ha hb u₀ hu₀paper
+    -- `Theorem_1_1` now quantifies over the paper-faithful datum (uniform floor);
+    -- the existence package only needs interior positivity, so project down.
+    have hu₀ : PositiveInitialDatum intervalDomain u₀ := hu₀paper.toPositive
     by_cases hm : 1 ≤ p.m
     · rcases hexist.globalSolutionExists u₀ hu₀ hm with
         ⟨u, v, hglobal, htrace⟩
@@ -775,7 +778,8 @@ theorem Theorem_1_1_intervalDomain_of_corrected_existence
             p hχ ha hb hTmax hsol happroach
       · intro hm'
         exact False.elim (hm hm')
-  · intro ha hb u₀ hu₀
+  · intro ha hb u₀ hu₀paper
+    have hu₀ : PositiveInitialDatum intervalDomain u₀ := hu₀paper.toPositive
     by_cases hm : 1 ≤ p.m
     · rcases hexist.globalSolutionExists u₀ hu₀ hm with
         ⟨u, v, hglobal, htrace⟩

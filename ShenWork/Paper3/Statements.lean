@@ -1253,7 +1253,7 @@ lemma proposition12Counter_paper2_theorem_1_1 :
     refine ⟨1 / 2, by norm_num, proposition12CounterU,
       proposition12CounterV, ?_, ?_, ?_, ?_⟩
     · exact proposition12Counter_classical (1 / 2) (by norm_num)
-    · exact proposition12Counter_initialTrace hu₀
+    · exact proposition12Counter_initialTrace hu₀.toPositive
     · intro t ht0 htT
       have ht1 : t < 1 := by nlinarith
       have hu0 : u₀ () = 1 := hu₀.1

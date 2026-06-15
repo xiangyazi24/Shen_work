@@ -289,6 +289,39 @@ lemma PositiveInitialDatum.pos
     0 < u₀ x :=
   h.2 x hx
 
+/-- Paper-faithful positive initial datum (Shen Paper 2, Prop 1.1 / eq. (1.11)):
+admissible data together with a *uniform* positive floor on the *closed* domain,
+i.e. `inf_{x} u₀(x) > 0`.  This is strictly stronger than `PositiveInitialDatum`,
+which only asks for positivity on the open interior `D.inside` and would wrongly
+admit data like `x(1−x)` whose infimum is `0` (data the paper excludes). -/
+def PaperPositiveInitialDatum (D : BoundedDomainData) (u₀ : D.Point → ℝ) : Prop :=
+  D.initialAdmissible u₀ ∧ ∃ η : ℝ, 0 < η ∧ ∀ x : D.Point, η ≤ u₀ x
+
+lemma PaperPositiveInitialDatum.admissible
+    {D : BoundedDomainData} {u₀ : D.Point → ℝ}
+    (h : PaperPositiveInitialDatum D u₀) :
+    D.initialAdmissible u₀ :=
+  h.1
+
+/-- The uniform floor witness: `∃ η > 0, ∀ x, η ≤ u₀ x`. -/
+lemma PaperPositiveInitialDatum.floor
+    {D : BoundedDomainData} {u₀ : D.Point → ℝ}
+    (h : PaperPositiveInitialDatum D u₀) :
+    ∃ η : ℝ, 0 < η ∧ ∀ x : D.Point, η ≤ u₀ x :=
+  h.2
+
+/-- The paper-faithful datum projects onto the weaker interior-positivity datum:
+the uniform floor `η ≤ u₀ x` with `0 < η` gives `0 < u₀ x` everywhere, in
+particular on `D.inside`. -/
+lemma PaperPositiveInitialDatum.toPositive
+    {D : BoundedDomainData} {u₀ : D.Point → ℝ}
+    (h : PaperPositiveInitialDatum D u₀) :
+    PositiveInitialDatum D u₀ := by
+  refine ⟨h.1, ?_⟩
+  obtain ⟨η, hη, hfloor⟩ := h.2
+  intro x _hx
+  exact lt_of_lt_of_le hη (hfloor x)
+
 def IsPaper2Bounded (D : BoundedDomainData) (u : ℝ → D.Point → ℝ) : Prop :=
   ∃ M, ∀ᶠ t in atTop, D.supNorm (u t) ≤ M
 
@@ -4359,7 +4392,7 @@ lemma not_forall_Proposition_1_1 :
 def Theorem_1_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
   p.χ₀ ≤ 0 →
     (0 < p.a → 0 < p.b →
-      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+      ∀ u₀ : D.Point → ℝ, PaperPositiveInitialDatum D u₀ →
         ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
           IsPaper2ClassicalSolution D p Tmax u v ∧
           InitialTrace D u₀ u ∧
@@ -4367,7 +4400,7 @@ def Theorem_1_1 (D : BoundedDomainData) (p : CM2Params) : Prop :=
             D.supNorm (u t) ≤ max (D.supNorm u₀) ((p.a / p.b) ^ (1 / p.α))) ∧
           (1 ≤ p.m → IsPaper2GlobalClassicalSolution D p u v)) ∧
     (p.a = 0 → p.b = 0 →
-      ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+      ∀ u₀ : D.Point → ℝ, PaperPositiveInitialDatum D u₀ →
         ∃ Tmax > 0, ∃ u v : ℝ → D.Point → ℝ,
           IsPaper2ClassicalSolution D p Tmax u v ∧
           InitialTrace D u₀ u ∧
@@ -4380,11 +4413,10 @@ lemma not_forall_Theorem_1_1 :
   let D := proposition11NoRegularityDomain
   let p := proposition11CounterParams
   let u₀ : D.Point → ℝ := fun _ => 1
-  have hu₀ : PositiveInitialDatum D u₀ := by
-    constructor
-    · trivial
-    · intro x hx
-      exact False.elim (by simpa [D, proposition11NoRegularityDomain] using hx)
+  have hu₀ : PaperPositiveInitialDatum D u₀ := by
+    refine ⟨trivial, 1, by norm_num, ?_⟩
+    intro x
+    simp [u₀]
   rcases (h D p (by norm_num [p, proposition11CounterParams])).2 rfl rfl u₀ hu₀ with
     ⟨Tmax, _hTmax, u, v, hsol, _htrace, _hbound, _hglobal⟩
   exact hsol.regularity
@@ -4951,9 +4983,9 @@ theorem Theorem_1_1.of_assumed_solutions_branch
   intro hχ
   refine ⟨?_, ?_⟩
   · intro ha hb u₀ hu₀
-    exact hnonminimal hχ ha hb u₀ hu₀
+    exact hnonminimal hχ ha hb u₀ hu₀.toPositive
   · intro ha hb u₀ hu₀
-    exact hminimal hχ ha hb u₀ hu₀
+    exact hminimal hχ ha hb u₀ hu₀.toPositive
 
 /-- ⚠️ IMPOSTOR / TAUTOLOGICAL: NOT a proof of Theorem 1.2.  The hypotheses
 `hslow_diffusion`/`hcritical` are the full per-branch conclusion of Theorem 1.2
@@ -5682,7 +5714,10 @@ theorem unitPointDomain.Theorem_1_1_minimal_only
     intro ha' _ _ _
     exact absurd ha' (by rw [ha]; exact lt_irrefl 0)
   · -- Minimal branch: a = b = 0
-    intro _ _ u₀ hu₀
+    intro _ _ u₀ hu₀paper
+    -- `Theorem_1_1` now carries the paper-faithful floor datum; the constant
+    -- solution only needs interior positivity, so project down.
+    have hu₀ : PositiveInitialDatum unitPointDomain u₀ := hu₀paper.toPositive
     set ustar : ℝ := (p.ν / p.μ) * (u₀ ()) ^ p.γ with hustar_def
     refine ⟨1, by norm_num, fun _ => u₀, fun _ _ => ustar, ?_, ?_, ?_, ?_⟩
     · -- IsPaper2ClassicalSolution unitPointDomain p 1 (fun _ => u₀) (fun _ _ => ustar)
@@ -5867,7 +5902,7 @@ theorem unitPointDomain.Theorem_1_1_from_logistic_nonminimal
   intro hχ
   refine ⟨?_, ?_⟩
   · intro ha hb u₀ hu₀
-    rcases hlogistic ha hb u₀ hu₀ with
+    rcases hlogistic ha hb u₀ hu₀.toPositive with
       ⟨u, v, hglobal, htrace, hbound, _hlim⟩
     refine ⟨1, by norm_num, u, v, ?_, htrace, ?_, ?_⟩
     · exact hglobal.classical (T := 1) (by norm_num)
