@@ -269,3 +269,18 @@ ac2041be, ad951994-input) and each time caught + finally discharged. REMAINING =
 instantiation: feed (a)(b)(c) from the committed lemmas to get a fully unconditional chemMild_C1eta over the concrete u
 ⟹ Summable cosineCoeffs ⟹ the mapped hQuant chain ⟹ P2-T11 χ₀<0. This is multi-file ENGINEERING (no new analytic
 content); it has resisted ~5 one-shot agent dispatches (each defers it) — likely a Codex-Jun-18 patient-wiring task.
+
+## P2-T11 step (ii) concrete instantiation — CORRECTION (a124c25, source-verified): NOT pure wiring
+My "concrete instantiation = wiring, all committed" premise was WRONG (a124c25 read the source). Two genuine analytic
+bricks are NOT committed:
+- **Gap 1 (substantive): resolverGradReal spatial θ-Hölder on [0,1], i.e. V_x ∈ C^{1+θ}.** chemFlux_Ctheta
+  (ChemMildC1etaAssembly:73) is an ABSTRACT product-algebra lemma TAKING the g-factor Hölder modulus Hg as a hypothesis;
+  the repo has only resolverGrad_sup_le_of_bounded (sup) + Lipschitz-in-u, NO spatial θ-Hölder-in-y. V solves -V''+V=u^γ
+  (Neumann); u∈C^θ (committed mild_orderBox) ⟹ u^γ∈C^θ ⟹ V∈C^{2+θ} (elliptic) ⟹ V_x∈C^{1+θ}⊂C^θ. The elliptic gain
+  (Green-kernel ½e^{-|x-y|} derivative Hölder) is the missing brick. Needed at ChemMildC1etaUncond:144 (chemData arg).
+- **Gap 2 (bounded): reaction-leg gradient Hölder** [∫₀^{t₀}∂ₓS(t₀-s)L ds]_η — analogous to the committed chemotaxis
+  discharge chemLeg_holder_of_brick4 (integrate neumannHeatGradient_Linf_to_Ctheta over s, ∫(t₀-s)^{-(1+η)/2}<∞ for η<1).
+- Gap 3 (easy): init_diff = Differentiable initLeg from the committed DUI.
+⟹ concrete chemMild_C1eta_concrete = Gap 1 (elliptic V_x∈C^θ brick) + Gap 2 (reaction Duhamel discharge) + Gap 3 + the
+instantiation. NOT multi-day, but NOT wiring either — a few bricks, Gap 1 the real one. Repo has 74 git stashes (heavy
+parallel-work residue — ask Xiang re uisai1 coordination).
