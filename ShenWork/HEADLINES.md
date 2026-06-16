@@ -298,3 +298,22 @@ concrete instantiation is multi-layer STRUCTURAL PLUMBING (resolver-regularity h
 reaction-leg gradient Hölder + Gap 3 init_diff + the GradientMildSolutionData wiring) — well-scoped, no new hard analysis,
 but a patient multi-file architectural grind. Best suited for Codex (Jun 18) or a fresh-context session, NOT one-shot
 opus dispatches (which have correctly refused to fake it 6×).
+
+## P2-T11 step (ii) — TERMINAL VERDICT (a9a24805, source-verified): the concrete floor = the χ₀-SHARED Picard frontier
+Decisive: the concrete instantiation does NOT bottom out in trivial plumbing — it bottoms out in a GENUINE deep regularity
+certificate, the SAME one χ₀=0 is "mod". The resolver-Hölder mild bridge carries HasRestartCosineRepresentations /
+GradientMildHalfStepRestartData; these are NOT realizable from GradientMildSolutionData alone. Their load-bearing field
+DuhamelSourceTimeC1 (source ν·u^γ time-C¹ + uniform cosine-coeff bounds) is a REGULARITY conclusion, and its GLOBAL form
+is PROVABLY FALSE (u^γ jumps at s=T since picardLimit=0 off (0,T]; documented at IntervalDomainMildLocalChi0:206-216 +
+ChiZeroCoreProvider:198-210). Only per-compact-window/clamped witnesses hold, needing window-uniform spatial C²/gradient/
+Hessian estimates. hagree (the cosine identity) is gated on DuhamelSourceTimeC1 via a documented STRUCTURAL CIRCULARITY
+(hsrc0 ← hagree ← hsrc0), broken only by descending to n-uniform PICARD ITERATE-SIDE C² facts (each picardIter slice is
+genuinely ContDiff 2 with n-uniform K2 on compact windows) — PDE-smoothing content external to GradientMildSolutionData.
+⟹ STRUCTURAL UNIFICATION: P2-T11 χ₀<0's concrete realization and the χ₀=0 PicardLimitRestartFrontier are the SAME floor —
+the Picard iterate-side n-uniform spatial-C²/time-C¹ source-regularity certificate (LimitRegularityInputs /
+PicardIterateConvergenceData). The abstract Hölder-Schauder machinery (brick 4, interchange, DifferentiableOn, cosine
+decay, resolver gen) is COMPLETE+committed+reusable and CONSUMES this certificate as input.
+NET CONCLUSION for the avenue: the χ₀<0 Hölder-bootstrap is fully built down to the genuine PDE floor, which is the
+paper's real remaining hard theorem (shared with χ₀=0), NOT plumbing — a dedicated Picard-iterate-regularity campaign
+(Codex Jun 18 / fresh context), not one-shot dispatches. This is a TERMINAL verdict, not a stall: the floor is named,
+evidenced, and unified across the two χ₀ regimes.
