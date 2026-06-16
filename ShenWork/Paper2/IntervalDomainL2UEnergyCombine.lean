@@ -295,13 +295,10 @@ theorem chemQuotient_lipschitz
 /-- **(A)-helper (i): `resolverGradReal p (u τ)` is continuous on ℝ** (exported from
 the inline argument inside `static_v_grad_L2_le_Eu`).  Uniform-limit of continuous
 terms under the summable gradient majorant `∑ₖ |coeffₖ.re|·kπ` from source decay. -/
-theorem resolverGradReal_continuous
-    {p : CM2Params} {T : ℝ}
-    {u v : ℝ → intervalDomainPoint → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
-    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
-    Continuous (fun x : ℝ => resolverGradReal p (u τ) x) := by
-  have hdecay := sourceCoeffQuadraticDecay_of_solution hsol hτ
+theorem resolverGradReal_continuous_of_sourceDecay
+    {p : CM2Params} {w : intervalDomainPoint → ℝ}
+    (hdecay : SourceCoeffQuadraticDecay p w) :
+    Continuous (fun x : ℝ => resolverGradReal p w x) := by
   have hmaj := resolverGrad_majorant_summable_of_sourceDecay hdecay.C_nonneg hdecay.decay
   refine continuous_tsum (fun k => ?_) hmaj (fun k x => ?_)
   · exact continuous_const.mul (continuous_const.mul
@@ -316,6 +313,15 @@ theorem resolverGradReal_continuous
         (Real.sin ((k : ℝ) * Real.pi * x)), h1]
     exact mul_le_mul_of_nonneg_left hsin (abs_nonneg _)
 
+/-- Classical-solution corollary of `resolverGradReal_continuous_of_sourceDecay`. -/
+theorem resolverGradReal_continuous
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    Continuous (fun x : ℝ => resolverGradReal p (u τ) x) :=
+  resolverGradReal_continuous_of_sourceDecay (sourceCoeffQuadraticDecay_of_solution hsol hτ)
+
 /-- The termwise SECOND-derivative cosine series of the resolver gradient:
 `z ↦ ∑ₖ (v̂_k).re · (−(kπ)² · cos(kπ z))`.  This is the derivative of
 `resolverGradReal p u` once the gradient `ℓ¹` (second-derivative) majorant
@@ -327,13 +333,10 @@ noncomputable def resolverGrad2Real (p : CM2Params) (u : intervalDomainPoint →
 /-- **(B)-helper: `resolverGrad2Real p (u τ)` is continuous on ℝ.**  Uniform-limit
 of continuous terms under the summable second-derivative majorant
 `∑ₖ |(v̂_k).re|·(kπ)²` (from source quadratic decay). -/
-theorem resolverGrad2Real_continuous
-    {p : CM2Params} {T : ℝ}
-    {u v : ℝ → intervalDomainPoint → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
-    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
-    Continuous (fun z : ℝ => resolverGrad2Real p (u τ) z) := by
-  have hdecay := sourceCoeffQuadraticDecay_of_solution hsol hτ
+theorem resolverGrad2Real_continuous_of_sourceDecay
+    {p : CM2Params} {w : intervalDomainPoint → ℝ}
+    (hdecay : SourceCoeffQuadraticDecay p w) :
+    Continuous (fun z : ℝ => resolverGrad2Real p w z) := by
   have hmaj :=
     ShenWork.IntervalResolverGradientBridge.resolverGrad2_majorant_summable_of_sourceDecay
       hdecay.C_nonneg hdecay.decay
@@ -348,84 +351,121 @@ theorem resolverGrad2Real_continuous
       nlinarith [sq_nonneg ((k:ℝ) * Real.pi), abs_nonneg (Real.cos ((k : ℝ) * Real.pi * z)), h1]
     exact mul_le_mul_of_nonneg_left hcos (abs_nonneg _)
 
+/-- Classical-solution corollary of `resolverGrad2Real_continuous_of_sourceDecay`. -/
+theorem resolverGrad2Real_continuous
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    Continuous (fun z : ℝ => resolverGrad2Real p (u τ) z) :=
+  resolverGrad2Real_continuous_of_sourceDecay (sourceCoeffQuadraticDecay_of_solution hsol hτ)
+
 /-- **(B): `resolverGradReal p (u τ)` has derivative `resolverGrad2Real p (u τ)` at
 every real point**, for a positive classical solution.  Via the second-derivative
 bridge `resolverGrad_hasDerivAt_grad2` fed the summable `∑ |(v̂_k).re|·(kπ)²` from
 source decay.  (`resolverGradReal` is definitionally the sine series.) -/
+theorem resolverGradReal_hasDerivAt_of_sourceDecay
+    {p : CM2Params} {w : intervalDomainPoint → ℝ}
+    (hdecay : SourceCoeffQuadraticDecay p w) (z : ℝ) :
+    HasDerivAt (fun y : ℝ => resolverGradReal p w y) (resolverGrad2Real p w z) z := by
+  have hmaj :=
+    ShenWork.IntervalResolverGradientBridge.resolverGrad2_majorant_summable_of_sourceDecay
+      hdecay.C_nonneg hdecay.decay
+  -- `resolverGradReal p w` is definitionally the sine series; `resolverGrad2Real`
+  -- is the termwise second-derivative cosine series — exactly the bridge conclusion.
+  exact ShenWork.IntervalResolverGradientBridge.resolverGrad_hasDerivAt_grad2 hmaj z
+
+/-- Classical-solution corollary of `resolverGradReal_hasDerivAt_of_sourceDecay`. -/
 theorem resolverGradReal_hasDerivAt
     {p : CM2Params} {T : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
     {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) (z : ℝ) :
-    HasDerivAt (fun w : ℝ => resolverGradReal p (u τ) w) (resolverGrad2Real p (u τ) z) z := by
-  have hdecay := sourceCoeffQuadraticDecay_of_solution hsol hτ
-  have hmaj :=
-    ShenWork.IntervalResolverGradientBridge.resolverGrad2_majorant_summable_of_sourceDecay
-      hdecay.C_nonneg hdecay.decay
-  -- `resolverGradReal p (u τ)` is definitionally the sine series; `resolverGrad2Real`
-  -- is the termwise second-derivative cosine series — exactly the bridge conclusion.
-  exact ShenWork.IntervalResolverGradientBridge.resolverGrad_hasDerivAt_grad2 hmaj z
+    HasDerivAt (fun w : ℝ => resolverGradReal p (u τ) w) (resolverGrad2Real p (u τ) z) z :=
+  resolverGradReal_hasDerivAt_of_sourceDecay (sourceCoeffQuadraticDecay_of_solution hsol hτ) z
 
 /-- **(B): `resolverGradReal p (u τ)` is `C¹` on `Icc 0 1`.**  It is differentiable
 everywhere with derivative `resolverGrad2Real p (u τ)` (a uniformly-convergent
 continuous series), so by `contDiff_one_iff_deriv` it is `C¹` on all of ℝ, hence on
 the closed `[0,1]`.  This is the missing closed-interval input for the flux factor
 `∂ₓ(lift v) = resolverGradReal` of `flux_contDiffOn_Icc`. -/
+theorem resolverGradReal_contDiffOn_Icc_of_sourceDecay
+    {p : CM2Params} {w : intervalDomainPoint → ℝ}
+    (hdecay : SourceCoeffQuadraticDecay p w) :
+    ContDiffOn ℝ 1 (fun x : ℝ => resolverGradReal p w x) (Set.Icc (0:ℝ) 1) := by
+  have hderiv : ∀ z : ℝ,
+      HasDerivAt (fun y : ℝ => resolverGradReal p w y) (resolverGrad2Real p w z) z :=
+    fun z => resolverGradReal_hasDerivAt_of_sourceDecay hdecay z
+  have hdiff : Differentiable ℝ (fun x : ℝ => resolverGradReal p w x) :=
+    fun z => (hderiv z).differentiableAt
+  -- `deriv (resolverGradReal …) = resolverGrad2Real …`, which is continuous.
+  have hderiv_eq : deriv (fun y : ℝ => resolverGradReal p w y)
+      = fun z => resolverGrad2Real p w z := by
+    funext z; exact (hderiv z).deriv
+  have hcontD : Continuous (deriv (fun y : ℝ => resolverGradReal p w y)) := by
+    rw [hderiv_eq]; exact resolverGrad2Real_continuous_of_sourceDecay hdecay
+  have hC1 : ContDiff ℝ 1 (fun x : ℝ => resolverGradReal p w x) :=
+    contDiff_one_iff_deriv.2 ⟨hdiff, hcontD⟩
+  exact hC1.contDiffOn
+
+/-- Classical-solution corollary of `resolverGradReal_contDiffOn_Icc_of_sourceDecay`. -/
 theorem resolverGradReal_contDiffOn_Icc
     {p : CM2Params} {T : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
     {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
-    ContDiffOn ℝ 1 (fun x : ℝ => resolverGradReal p (u τ) x) (Set.Icc (0:ℝ) 1) := by
-  have hderiv : ∀ z : ℝ,
-      HasDerivAt (fun w : ℝ => resolverGradReal p (u τ) w) (resolverGrad2Real p (u τ) z) z :=
-    fun z => resolverGradReal_hasDerivAt hsol hτ z
-  have hdiff : Differentiable ℝ (fun x : ℝ => resolverGradReal p (u τ) x) :=
-    fun z => (hderiv z).differentiableAt
-  -- `deriv (resolverGradReal …) = resolverGrad2Real …`, which is continuous.
-  have hderiv_eq : deriv (fun w : ℝ => resolverGradReal p (u τ) w)
-      = fun z => resolverGrad2Real p (u τ) z := by
-    funext z; exact (hderiv z).deriv
-  have hcontD : Continuous (deriv (fun w : ℝ => resolverGradReal p (u τ) w)) := by
-    rw [hderiv_eq]; exact resolverGrad2Real_continuous hsol hτ
-  have hC1 : ContDiff ℝ 1 (fun x : ℝ => resolverGradReal p (u τ) x) :=
-    contDiff_one_iff_deriv.2 ⟨hdiff, hcontD⟩
-  exact hC1.contDiffOn
+    ContDiffOn ℝ 1 (fun x : ℝ => resolverGradReal p (u τ) x) (Set.Icc (0:ℝ) 1) :=
+  resolverGradReal_contDiffOn_Icc_of_sourceDecay (sourceCoeffQuadraticDecay_of_solution hsol hτ)
 
 /-- **(A)-helper (i): uniform L∞ bound on `resolverGradReal p (u τ)` over `[0,1]`.**
 Continuity on the compact `[0,1]`. -/
-theorem resolverGradReal_bounded
-    {p : CM2Params} {T : ℝ}
-    {u v : ℝ → intervalDomainPoint → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
-    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+theorem resolverGradReal_bounded_of_sourceDecay
+    {p : CM2Params} {w : intervalDomainPoint → ℝ}
+    (hdecay : SourceCoeffQuadraticDecay p w) :
     ∃ G : ℝ, 0 ≤ G ∧
-      ∀ x ∈ Set.Icc (0:ℝ) 1, |resolverGradReal p (u τ) x| ≤ G := by
-  have hcont : Continuous (fun x : ℝ => resolverGradReal p (u τ) x) :=
-    resolverGradReal_continuous hsol hτ
-  have hne : (Set.Icc (0:ℝ) 1).Nonempty := ⟨0, by constructor <;> norm_num⟩
+      ∀ x ∈ Set.Icc (0:ℝ) 1, |resolverGradReal p w x| ≤ G := by
+  have hcont : Continuous (fun x : ℝ => resolverGradReal p w x) :=
+    resolverGradReal_continuous_of_sourceDecay hdecay
   obtain ⟨G, hG⟩ :=
     (isCompact_Icc.image_of_continuousOn
       (hcont.continuousOn.abs)).bddAbove
   refine ⟨max G 0, le_max_right _ _, fun x hx => ?_⟩
   exact le_trans (hG ⟨x, hx, rfl⟩) (le_max_left _ _)
 
+/-- Classical-solution corollary of `resolverGradReal_bounded_of_sourceDecay`. -/
+theorem resolverGradReal_bounded
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    ∃ G : ℝ, 0 ≤ G ∧
+      ∀ x ∈ Set.Icc (0:ℝ) 1, |resolverGradReal p (u τ) x| ≤ G :=
+  resolverGradReal_bounded_of_sourceDecay (sourceCoeffQuadraticDecay_of_solution hsol hτ)
+
 /-- **(Gap 1)-helper: uniform L∞ bound on the resolver second derivative
 `resolverGrad2Real p (u τ)` over `[0,1]`.**  The second-derivative cosine series is
 continuous (`resolverGrad2Real_continuous`), so it is bounded on the compact `[0,1]`. -/
+theorem resolverGrad2Real_bounded_of_sourceDecay
+    {p : CM2Params} {w : intervalDomainPoint → ℝ}
+    (hdecay : SourceCoeffQuadraticDecay p w) :
+    ∃ G : ℝ, 0 ≤ G ∧
+      ∀ x ∈ Set.Icc (0:ℝ) 1, |resolverGrad2Real p w x| ≤ G := by
+  have hcont : Continuous (fun x : ℝ => resolverGrad2Real p w x) :=
+    resolverGrad2Real_continuous_of_sourceDecay hdecay
+  obtain ⟨G, hG⟩ :=
+    (isCompact_Icc.image_of_continuousOn (hcont.continuousOn.abs)).bddAbove
+  refine ⟨max G 0, le_max_right _ _, fun x hx => ?_⟩
+  exact le_trans (hG ⟨x, hx, rfl⟩) (le_max_left _ _)
+
+/-- Classical-solution corollary of `resolverGrad2Real_bounded_of_sourceDecay`. -/
 theorem resolverGrad2Real_bounded
     {p : CM2Params} {T : ℝ}
     {u v : ℝ → intervalDomainPoint → ℝ}
     (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
     {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
     ∃ G : ℝ, 0 ≤ G ∧
-      ∀ x ∈ Set.Icc (0:ℝ) 1, |resolverGrad2Real p (u τ) x| ≤ G := by
-  have hcont : Continuous (fun x : ℝ => resolverGrad2Real p (u τ) x) :=
-    resolverGrad2Real_continuous hsol hτ
-  obtain ⟨G, hG⟩ :=
-    (isCompact_Icc.image_of_continuousOn (hcont.continuousOn.abs)).bddAbove
-  refine ⟨max G 0, le_max_right _ _, fun x hx => ?_⟩
-  exact le_trans (hG ⟨x, hx, rfl⟩) (le_max_left _ _)
+      ∀ x ∈ Set.Icc (0:ℝ) 1, |resolverGrad2Real p (u τ) x| ≤ G :=
+  resolverGrad2Real_bounded_of_sourceDecay (sourceCoeffQuadraticDecay_of_solution hsol hτ)
 
 /-- **(Gap 1) `resolverGradReal` is `θ`-Hölder in `x` on `[0,1]`.**
 
@@ -437,37 +477,35 @@ The chemotaxis multiplier's core `V_x = resolverGradReal p (u τ)` is `C¹` on `
 and on `[0,1]` (where `|x−y| ≤ 1`) Lipschitz upgrades to `θ`-Hölder for `0 < θ ≤ 1`
 via `|x−y| = |x−y|^1 ≤ |x−y|^θ`.  This supplies the `Hg` modulus (with `Hg = G`)
 that `chemFlux_Ctheta` takes as a hypothesis. -/
-theorem resolverGradReal_holder_Icc
-    {p : CM2Params} {T : ℝ}
-    {u v : ℝ → intervalDomainPoint → ℝ}
-    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
-    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T)
+theorem resolverGradReal_holder_Icc_of_sourceDecay
+    {p : CM2Params} {w : intervalDomainPoint → ℝ}
+    (hdecay : SourceCoeffQuadraticDecay p w)
     {θ : ℝ} (hθ0 : 0 < θ) (hθ1 : θ ≤ 1) :
     ∃ Hg : ℝ, 0 ≤ Hg ∧
       ∀ x y, x ∈ Set.Icc (0:ℝ) 1 → y ∈ Set.Icc (0:ℝ) 1 →
-        |resolverGradReal p (u τ) x - resolverGradReal p (u τ) y|
+        |resolverGradReal p w x - resolverGradReal p w y|
           ≤ Hg * |x - y| ^ θ := by
-  obtain ⟨G, hGnn, hGb⟩ := resolverGrad2Real_bounded hsol hτ
+  obtain ⟨G, hGnn, hGb⟩ := resolverGrad2Real_bounded_of_sourceDecay hdecay
   refine ⟨G, hGnn, fun x y hx hy => ?_⟩
   -- `V_x` is differentiable everywhere with derivative `V_xx = resolverGrad2Real`.
-  have hderiv : ∀ z : ℝ, HasDerivAt (fun w : ℝ => resolverGradReal p (u τ) w)
-      (resolverGrad2Real p (u τ) z) z := fun z => resolverGradReal_hasDerivAt hsol hτ z
+  have hderiv : ∀ z : ℝ, HasDerivAt (fun y : ℝ => resolverGradReal p w y)
+      (resolverGrad2Real p w z) z := fun z => resolverGradReal_hasDerivAt_of_sourceDecay hdecay z
   have hdiffAt : ∀ z ∈ Set.Icc (0:ℝ) 1,
-      DifferentiableAt ℝ (fun w : ℝ => resolverGradReal p (u τ) w) z :=
+      DifferentiableAt ℝ (fun y : ℝ => resolverGradReal p w y) z :=
     fun z _ => (hderiv z).differentiableAt
   have hderiv_eq : ∀ z : ℝ,
-      deriv (fun w : ℝ => resolverGradReal p (u τ) w) z = resolverGrad2Real p (u τ) z :=
+      deriv (fun y : ℝ => resolverGradReal p w y) z = resolverGrad2Real p w z :=
     fun z => (hderiv z).deriv
   -- bound on `‖deriv V_x‖ = |V_xx| ≤ G` over `[0,1]`.
   have hbound : ∀ z ∈ Set.Icc (0:ℝ) 1,
-      ‖deriv (fun w : ℝ => resolverGradReal p (u τ) w) z‖ ≤ G := by
+      ‖deriv (fun y : ℝ => resolverGradReal p w y) z‖ ≤ G := by
     intro z hz; rw [Real.norm_eq_abs, hderiv_eq z]; exact hGb z hz
   -- mean-value Lipschitz on the convex `[0,1]`.
-  have hlip : |resolverGradReal p (u τ) x - resolverGradReal p (u τ) y| ≤ G * |x - y| := by
+  have hlip : |resolverGradReal p w x - resolverGradReal p w y| ≤ G * |x - y| := by
     have hmv := Convex.norm_image_sub_le_of_norm_deriv_le
-      (f := fun w => resolverGradReal p (u τ) w) hdiffAt hbound (convex_Icc 0 1) hx hy
+      (f := fun y => resolverGradReal p w y) hdiffAt hbound (convex_Icc 0 1) hx hy
     simp only [Real.norm_eq_abs] at hmv
-    rw [abs_sub_comm (resolverGradReal p (u τ) x), abs_sub_comm x y]
+    rw [abs_sub_comm (resolverGradReal p w x), abs_sub_comm x y]
     exact hmv
   -- `|x−y| ≤ 1` on `[0,1]`, so `|x−y| = |x−y|^1 ≤ |x−y|^θ`.
   have hle1 : |x - y| ≤ 1 := by
@@ -477,9 +515,24 @@ theorem resolverGradReal_holder_Icc
     · rw [← hz]; simp [Real.zero_rpow (ne_of_gt hθ0)]
     · calc |x - y| = |x - y| ^ (1:ℝ) := (Real.rpow_one _).symm
         _ ≤ |x - y| ^ θ := Real.rpow_le_rpow_of_exponent_ge hpos hle1 hθ1
-  calc |resolverGradReal p (u τ) x - resolverGradReal p (u τ) y|
+  calc |resolverGradReal p w x - resolverGradReal p w y|
       ≤ G * |x - y| := hlip
     _ ≤ G * |x - y| ^ θ := mul_le_mul_of_nonneg_left hupg hGnn
+
+/-- Classical-solution corollary of `resolverGradReal_holder_Icc_of_sourceDecay`:
+the original `IsPaper2ClassicalSolution` statement, now a thin instantiation. -/
+theorem resolverGradReal_holder_Icc
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T)
+    {θ : ℝ} (hθ0 : 0 < θ) (hθ1 : θ ≤ 1) :
+    ∃ Hg : ℝ, 0 ≤ Hg ∧
+      ∀ x y, x ∈ Set.Icc (0:ℝ) 1 → y ∈ Set.Icc (0:ℝ) 1 →
+        |resolverGradReal p (u τ) x - resolverGradReal p (u τ) y|
+          ≤ Hg * |x - y| ^ θ :=
+  resolverGradReal_holder_Icc_of_sourceDecay
+    (sourceCoeffQuadraticDecay_of_solution hsol hτ) hθ0 hθ1
 
 /-- **(A)-helper (ii): uniform L∞ bound on `intervalDomainLift (v τ)` over `[0,1]`.**
 Conjunct-7 `C²` ⇒ continuous on the compact `[0,1]` ⇒ bounded. -/

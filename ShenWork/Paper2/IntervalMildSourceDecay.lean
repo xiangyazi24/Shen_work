@@ -21,6 +21,7 @@ import ShenWork.PDE.IntervalCosineSliceRegularity
 import ShenWork.Paper2.IntervalDomainL2UEnergyInequality
 import ShenWork.PDE.IntervalMildSourceDecayHelper
 import ShenWork.Paper2.IntervalMildRegularityBootstrap
+import ShenWork.Paper2.IntervalDomainL2UEnergyCombine
 
 open MeasureTheory
 open scoped Topology
@@ -416,5 +417,46 @@ def sourceCoeffQuadraticDecay_of_gradientMildHalfStepRestartData (p : CM2Params)
   sourceCoeffQuadraticDecay_of_mildSolution p D
     (hasRestartCosineRepresentations_of_gradientMildHalfStepRestartData D R)
     ht htT
+
+/-! ## Resolver-gradient `θ`-Hölder modulus for the mild snapshot
+
+The chemotaxis multiplier core `V_x = resolverGradReal p (D.u τ)` is `θ`-Hölder on
+`[0,1]` for the mild snapshot, with NO appeal to `IsPaper2ClassicalSolution`.  The
+generalized `resolverGradReal_holder_Icc_of_sourceDecay` (in `ShenWork.Paper2`) needs
+only `SourceCoeffQuadraticDecay p (D.u τ)`, which the mild data already supplies via
+the committed `sourceCoeffQuadraticDecay_of_mildSolution` (closed `C²`+Neumann from the
+restart-cosine representations).  This is the `Hg` modulus that `chemFlux_Ctheta`
+takes as a hypothesis — now realizable from the mild fixed point alone. -/
+
+/-- **`V_x` of the mild snapshot is `θ`-Hölder on `[0,1]` (the `Hg` modulus).**
+From `GradientMildSolutionData` + restart-cosine representations + `0 < τ < T`, with
+no classical-existence hypothesis. -/
+theorem resolverGradReal_holder_Icc_mild (p : CM2Params)
+    {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (H : HasRestartCosineRepresentations D.T D.u)
+    {τ : ℝ} (hτ : 0 < τ) (hτT : τ < D.T)
+    {θ : ℝ} (hθ0 : 0 < θ) (hθ1 : θ ≤ 1) :
+    ∃ Hg : ℝ, 0 ≤ Hg ∧
+      ∀ x y, x ∈ Set.Icc (0:ℝ) 1 → y ∈ Set.Icc (0:ℝ) 1 →
+        |resolverGradReal p (D.u τ) x - resolverGradReal p (D.u τ) y|
+          ≤ Hg * |x - y| ^ θ :=
+  resolverGradReal_holder_Icc_of_sourceDecay
+    (sourceCoeffQuadraticDecay_of_mildSolution p D H hτ hτT) hθ0 hθ1
+
+/-- Same `Hg` modulus, taking the half-step restart-data route to the source decay
+(so the restart-cosine representations are bootstrapped from the mild data itself). -/
+theorem resolverGradReal_holder_Icc_mild_of_halfStepRestart (p : CM2Params)
+    {u₀ : intervalDomainPoint → ℝ}
+    (D : GradientMildSolutionData p u₀)
+    (R : GradientMildHalfStepRestartData D)
+    {τ : ℝ} (hτ : 0 < τ) (hτT : τ < D.T)
+    {θ : ℝ} (hθ0 : 0 < θ) (hθ1 : θ ≤ 1) :
+    ∃ Hg : ℝ, 0 ≤ Hg ∧
+      ∀ x y, x ∈ Set.Icc (0:ℝ) 1 → y ∈ Set.Icc (0:ℝ) 1 →
+        |resolverGradReal p (D.u τ) x - resolverGradReal p (D.u τ) y|
+          ≤ Hg * |x - y| ^ θ :=
+  resolverGradReal_holder_Icc_of_sourceDecay
+    (sourceCoeffQuadraticDecay_of_gradientMildHalfStepRestartData p D R hτ hτT) hθ0 hθ1
 
 end ShenWork.IntervalMildSourceDecay
