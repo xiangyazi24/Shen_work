@@ -5314,6 +5314,13 @@ theorem LocalUniformContinuousOn.comp_strictMono
       (fun n => Tmap (seq (subseq n))) (Tmap u) :=
   hcont (fun n => seq (subseq n)) u (fun n => hseq (subseq n)) hu hconv
 
+/-- A sequence is locally-uniformly asymptotically fixed by `Tmap`. -/
+def LocallyUniformApproxFixed
+    (Tmap : (ℝ → ℝ) → ℝ → ℝ) (seq : ℕ → ℝ → ℝ) : Prop :=
+  ∀ R > 0, ∀ ε > 0,
+    ∀ᶠ n in atTop, ∀ x : ℝ, x ∈ Set.Icc (-R) R →
+      |Tmap (seq n) x - seq n x| < ε
+
 /-- Sequential compactness of the range of a wave map in the local-uniform
 topology, restricted to a trapping set. -/
 def LocalUniformSequentiallyCompactRange
@@ -5346,6 +5353,46 @@ theorem LocalUniformSequentiallyCompactRange.exists_fixed_subseq_limit
   exact
     ⟨subseq, hsubseq, U, hU, hconv_seq,
       hcont.fixed_of_subseq_fixed_limit hsubseq hseq hU hconv_seq hfix⟩
+
+theorem LocalUniformSequentiallyCompactRange.exists_fixed_of_approx_fixed
+    {trap : (ℝ → ℝ) → Prop} {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hcompact : LocalUniformSequentiallyCompactRange trap Tmap)
+    (hcont : LocalUniformContinuousOn trap Tmap)
+    {seq : ℕ → ℝ → ℝ}
+    (hseq : ∀ n, trap (seq n))
+    (happrox : LocallyUniformApproxFixed Tmap seq) :
+    ∃ U : ℝ → ℝ, trap U ∧ Tmap U = U := by
+  rcases hcompact seq hseq with ⟨subseq, hsubseq, U, hU, hconv_image⟩
+  have hconv_seq :
+      LocallyUniformConverges (fun n => seq (subseq n)) U := by
+    intro R hR ε hε
+    have hε2 : 0 < ε / 2 := by linarith
+    have happrox_sub :
+        ∀ᶠ n in atTop, ∀ x : ℝ, x ∈ Set.Icc (-R) R →
+          |Tmap (seq (subseq n)) x - seq (subseq n) x| < ε / 2 :=
+      hsubseq.tendsto_atTop.eventually (happrox R hR (ε / 2) hε2)
+    filter_upwards [hconv_image R hR (ε / 2) hε2, happrox_sub] with n himg happ
+    intro x hx
+    have hsplit :
+        seq (subseq n) x - U x =
+          (seq (subseq n) x - Tmap (seq (subseq n)) x) +
+            (Tmap (seq (subseq n)) x - U x) := by
+      ring_nf
+    have hleft :
+        |seq (subseq n) x - Tmap (seq (subseq n)) x| < ε / 2 := by
+      simpa [abs_sub_comm] using happ x hx
+    have hsum :
+        |seq (subseq n) x - U x| <
+          ε / 2 + ε / 2 := by
+      rw [hsplit]
+      exact lt_of_le_of_lt (abs_add_le _ _)
+        (add_lt_add hleft (himg x hx))
+    simpa using hsum
+  exact
+    ⟨U, hU,
+      hcont.fixed_of_common_limit
+        (seq := fun n => seq (subseq n)) (u := U)
+        (fun n => hseq (subseq n)) hU hconv_seq hconv_image⟩
 
 /-- The frozen auxiliary parabolic equation used in Section 4.2/4.3.
 The frozen profile supplies the elliptic response; the orbit starts from the
@@ -5552,6 +5599,27 @@ def LocalUniformSchauderFixedPointPrinciple
       LocalUniformContinuousOn trap Tmap →
         LocalUniformSequentiallyCompactRange trap Tmap →
           ∃ U : ℝ → ℝ, trap U ∧ Tmap U = U
+
+/-- The finite-net/Brouwer output needed before the compactness limit step:
+for every admissible self-map, produce locally-uniform approximate fixed
+points inside the trap. -/
+def LocalUniformApproxFixedPointSequences
+    (trap : (ℝ → ℝ) → Prop) : Prop :=
+  ∀ Tmap : (ℝ → ℝ) → ℝ → ℝ,
+    (∀ u, trap u → trap (Tmap u)) →
+      LocalUniformContinuousOn trap Tmap →
+        LocalUniformSequentiallyCompactRange trap Tmap →
+          ∃ seq : ℕ → ℝ → ℝ,
+            (∀ n, trap (seq n)) ∧ LocallyUniformApproxFixed Tmap seq
+
+theorem localUniformSchauderFixedPointPrinciple_of_approx_fixed_sequences
+    {trap : (ℝ → ℝ) → Prop}
+    (happroxSeq : LocalUniformApproxFixedPointSequences trap) :
+    LocalUniformSchauderFixedPointPrinciple trap := by
+  intro Tmap hmap hcont hcompact
+  rcases happroxSeq Tmap hmap hcont hcompact with
+    ⟨seq, hseq, happrox⟩
+  exact hcompact.exists_fixed_of_approx_fixed hcont hseq happrox
 
 theorem FrozenWaveMapSchauderData.exists_fixed_of_principle
     {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
