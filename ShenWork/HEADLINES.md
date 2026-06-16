@@ -256,3 +256,16 @@ integrates over [0,1], so it needs only DifferentiableOn (Icc 0 1), NOT Differen
       derivative variant of HolderCosineDecay (the IBP ∫₀¹ f cos = −1/(nπ)∫₀¹ f' sin only needs f differentiable ON [0,1]).
   (3) assemble chemMild_C1eta_unconditional over [0,1] feeding (1)(2) + the committed gradient legs + chemFlux_Ctheta.
 This avoids the global-ℝ differentiability entirely. ⟹ then step (ii) is UNCONDITIONAL → mapped hQuant chain → P2-T11 χ₀<0.
+
+## P2-T11 step (ii) — chem_holder DISCHARGED (cef9af2); abstract content COMPLETE
+ALL abstract analytic content of step (ii) proved + committed + axiom-clean:
+brick 4 C^θ→C^η Schauder [8efb838] · interior interchange [a5e1584] · DifferentiableOn [0,1] extension [45a77d2] ·
+DifferentiableOn cosine decay [cfbb50a] · literal=spectral bridge chemLitLeg₂=chemDuhamelLeg on Icc + chem_holder
+DISCHARGED [cef9af2]. chemMild_C1eta_slice_diffOn now carries ONLY representation/realizable items (NOT regularity
+conclusions): (a) w_split (differentiated mild representation; interior = committed chemLeg_interior_hasDerivAt),
+(b) Q-data (realizable from chemFlux_Ctheta + mild_orderBox_positiveTime_holder), (c) init/react gradient-leg Hölder
+(realizable from gradLeg_holder_global). The chemotaxis-Hölder conclusion was re-carried 3× across attempts (a99909856,
+ac2041be, ad951994-input) and each time caught + finally discharged. REMAINING = the concrete GradientMildSolutionData
+instantiation: feed (a)(b)(c) from the committed lemmas to get a fully unconditional chemMild_C1eta over the concrete u
+⟹ Summable cosineCoeffs ⟹ the mapped hQuant chain ⟹ P2-T11 χ₀<0. This is multi-file ENGINEERING (no new analytic
+content); it has resisted ~5 one-shot agent dispatches (each defers it) — likely a Codex-Jun-18 patient-wiring task.
