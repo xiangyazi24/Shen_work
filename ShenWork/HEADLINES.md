@@ -193,3 +193,16 @@ step (iii) C^{1+η}⟹Wiener ℓ¹ [9e91dee] ✓ · step (ii) u∈C^θ→C^{1+η
 When step (ii) lands, the chain composes: mild fixed point → C^θ → C^{1+η} → Wiener ℓ¹ → feeds the EWA hQuant engine ⟹
 P2-T11 χ₀<0 local classical existence. Remaining after that = wiring C1eta_slice+HolderCosineDecay into hQuant + the
 hMildLocal restart plumbing.
+
+## P1-T11pos (χ≥0 positive-sensitivity branch) — SCOPED next-frontier target (2026-06-16)
+Theorem_1_1 = hneg (χ≤0, NOW non-vacuous via B1) + hpos (χ≥0). The positive branch is carried as
+`PositiveSensitivityWaveFixedPointConstruction` (Statements:9020) — the EXACT analog of what B1 χ≤0 discharged for
+the negative branch — and combined in `Theorem_1_1.of_assumed_frozenStationaryProfile_branches` (Statements:16304,
+takes hneg + hpos with hχ_nonneg + hχ<chiStar). Scaffolding present: positiveSensitivityExtendedThreshold (:202),
+chiStar / MChi positivity lemmas (:8948+), the construction structure (:9020) + chi_nonneg field (:9202).
+⟹ P1-T11pos = discharge PositiveSensitivityWaveFixedPointConstruction by building the positive-sensitivity Rothe
++ Schauder construction (REUSE the whole B1 machinery — Rothe orbit, supersolution-invariant producer, max-principle,
+Schauder — with the χ≥0 barriers/trap, different signs; the paper's 0≤χ<min(½,chiStar) barrier is the new input).
+This is a FULL parallel construction (~B1 scale), NOT a quick brick — a dedicated-context job. Hold until P2-T11
+step (ii) lands + fresh context. When taken: first scope the paper's positive-sensitivity upper/lower barriers, prove
+the analog super-barrier (whole_line_super_barrier for χ≥0), then transcribe the orbit/producer/Schauder chain.
