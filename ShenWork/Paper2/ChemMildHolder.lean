@@ -50,12 +50,16 @@
 import ShenWork.Paper2.IntervalHeatGradient
 import ShenWork.PDE.IntervalFullKernelSupBound
 import ShenWork.PDE.IntervalFullKernelGradientLinfty
+import ShenWork.PDE.IntervalFullKernelSecondDerivLinfty
 import Mathlib.Analysis.Calculus.MeanValue
 import Mathlib.Analysis.SpecialFunctions.Pow.Deriv
 import Mathlib.Analysis.SpecialFunctions.Integrability.Basic
 
 open MeasureTheory
 open ShenWork.IntervalDomain (intervalMeasure)
+open ShenWork.IntervalNeumannFullKernel
+  (intervalFullSemigroupOperator_hasDerivAt_deriv_fst
+    intervalFullSemigroupOperator_secondDeriv_Linfty_pointwise_inv_t)
 
 namespace ShenWork.Paper2
 
@@ -328,6 +332,48 @@ theorem neumannHeatGradient_Linf_to_Ctheta_of_second_deriv {t θ : ℝ} (ht : 0 
     rw [hexp, hCfc]
   rw [hfinal] at hchain
   exact hchain
+
+/-- The committed second-derivative `L∞→L∞` smoothing constant `C∇∇ = 5√2/2`. -/
+noncomputable def secondDerivSmoothingConst : ℝ := 5 * Real.sqrt 2 / 2
+
+theorem secondDerivSmoothingConst_nonneg : 0 ≤ secondDerivSmoothingConst := by
+  unfold secondDerivSmoothingConst; positivity
+
+/-- **The named second-derivative input, now PROVED (UNCONDITIONAL).**  The
+interval-Neumann heat semigroup obeys the `t^{−1}` second-derivative sup bound
+`‖∂ₓₓS(t)f‖∞ ≤ (5√2/2)·t^{−1}·Cf`, discharging `neumannHeatSecondDeriv_Linfty_bound`.
+
+Both parts come from the committed PDE second-derivative layer: the
+`HasDerivAt`-of-`∂ₓS(t)f` part from `intervalFullSemigroupOperator_hasDerivAt_deriv_fst`
+and the sup bound from `intervalFullSemigroupOperator_secondDeriv_Linfty_pointwise_inv_t`. -/
+theorem intervalNeumann_heat_secondDeriv_bound {t : ℝ} (ht : 0 < t)
+    {f : ℝ → ℝ} (hf_meas : AEStronglyMeasurable f (intervalMeasure 1))
+    {Cf : ℝ} (hf : ∀ y, |f y| ≤ Cf) :
+    neumannHeatSecondDeriv_Linfty_bound t f Cf secondDerivSmoothingConst := by
+  unfold neumannHeatSecondDeriv_Linfty_bound secondDerivSmoothingConst
+  refine ⟨fun z => ?_, fun z => ?_⟩
+  · have h := intervalFullSemigroupOperator_hasDerivAt_deriv_fst ht hf_meas hf z
+    exact h.deriv ▸ h
+  · exact intervalFullSemigroupOperator_secondDeriv_Linfty_pointwise_inv_t ht hf_meas hf z
+
+/-- **Pass-1 GRADIENT Hölder-smoothing bound (`L∞ → C^θ` for `∂ₓS(t)f`),
+UNCONDITIONAL.**  Discharges the named second-derivative input of
+`neumannHeatGradient_Linf_to_Ctheta_of_second_deriv` via the committed PDE
+second-derivative layer (`intervalNeumann_heat_secondDeriv_bound`, `C∇∇ = 5√2/2`):
+
+  `|∂ₓS(t)f x − ∂ₓS(t)f y|
+      ≤ 2^{1−θ} ((5√2/2)^θ C∇^{1−θ}) · t^{−(1+θ)/2} · Cf · |x−y|^θ`. -/
+theorem neumannHeatGradient_Linf_to_Ctheta {t θ : ℝ} (ht : 0 < t)
+    (hθ0 : 0 < θ) (hθ1 : θ < 1)
+    {f : ℝ → ℝ} (hf_meas : AEStronglyMeasurable f (intervalMeasure 1))
+    {Cf : ℝ} (hf : ∀ y, |f y| ≤ Cf) (x y : ℝ) :
+    |deriv (fun w : ℝ => intervalNeumannHeatSemigroup t f w) x
+        - deriv (fun w : ℝ => intervalNeumannHeatSemigroup t f w) y|
+      ≤ (2 : ℝ) ^ (1 - θ) * (secondDerivSmoothingConst ^ θ * gradSmoothingConst ^ (1 - θ))
+          * t ^ (-((1 + θ) / 2) : ℝ) * Cf * |x - y| ^ θ :=
+  neumannHeatGradient_Linf_to_Ctheta_of_second_deriv ht hθ0 hθ1 hf_meas hf
+    secondDerivSmoothingConst_nonneg
+    (intervalNeumann_heat_secondDeriv_bound ht hf_meas hf) x y
 
 /-! ## Mild-representation Hölder bootstrap: the integrability fact -/
 
