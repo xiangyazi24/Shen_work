@@ -222,3 +222,22 @@ C^{1+η} of u must be pushed through the source map (u ↦ u^γ preserves C^{1+�
 Hölder algebra; chemflux Q=u·V_x already handled by chemFlux_Ctheta). Plus the hMildLocal restart plumbing (the per-restart
 C(Ω̄)+floor → mild → C^{1+η} → summable re-entry; IntervalDomainRestartPackaging is the per-t structure). These two are the
 remaining wiring after step (ii) closes — NOT new analytic content.
+
+## P2-T11 step (ii) STATUS (2026-06-16, ebde809) — analytically complete MODULO the interchange
+The whole Hölder-bootstrap is now built + committed + axiom-clean, with the chemotaxis-leg Hölder GENUINELY DISCHARGED:
+- bricks 1-3 [17c6093] C^θ-cancellation kernel estimates · brick 4 [8efb838] C^θ→C^η via spectral commutation ·
+  Ioo→Icc [ebde809] · chemFlux_Ctheta [ebde809] · chemLeg_holder_of_brick4 [ebde809] = the chemotaxis Duhamel leg is
+  η-Hölder, PROVED by applying brick 4 per-slice + integral-Minkowski (NOT carried — a prior attempt carried it as a free
+  chem_holder field and FALSELY claimed complete+green; caught, rejected, re-dispatched, discharged) ·
+  differentiatedMildSlice_of_brick4_chem [ebde809] discharges chem_holder · chemMild_positiveTime_C1eta_slice +
+  _wiener_l1 [ebde809] chain to HolderCosineDecay.
+ONLY REMAINING CARRIED HYPOTHESIS = the deriv-under-the-integral INTERCHANGE (hasDeriv w (Dw x) + deriv_split
+Dw = initLeg − χ₀·chemDuhamelLeg + reactLeg): the derivative of the mild rep EXISTS and EQUALS the leg sum (Leibniz
+under the singular Duhamel integral). A representation fact, never a regularity conclusion. To make step (ii)
+UNCONDITIONAL for the concrete mild solution, remaining: (a) prove the interchange for the concrete mild u (differentiation
+under the integral via the committed DUI + dominated convergence, dominators t^{−1/2} / t^{−1+(θ−η)/2}); (b) wire Q =
+chemFluxLifted u(s) properties from chemFlux_Ctheta + concrete u; (c) wire gradient-leg Hölder from gradLeg_holder_global.
+(b)(c) are wiring; (a) is the last analytic brick. Then the mapped hQuant chain ⟹ P2-T11 χ₀<0.
+NOTE on verification: BOTH stale-olean directions bit us — a99909856 claimed green from a stale build (false positive),
+and the orchestrator's first re-check hit a stale-olean false NEGATIVE (266/290 phantom). LESSON: clear the module's
+oleans before trusting a build verdict, in BOTH directions.
