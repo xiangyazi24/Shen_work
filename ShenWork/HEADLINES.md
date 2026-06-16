@@ -1,70 +1,77 @@
-# Shen_work — HEADLINE THEOREMS 清单 (authoritative, audited 2026-06-15)
+# Shen_work — HEADLINE THEOREM 清单 (authoritative 按图索骥 map, 2026-06-15)
 
-The repo formalizes the **Chen–Ruau–Shen trilogy** on one chemotaxis-growth system.
-THREE papers. Models: `CMParams` (traveling waves, Paper1), `CM2Params` + `BoundedDomainData`
-(bounded-domain dynamics, Paper2 & Paper3).
+Chen–Ruau–Shen TRILOGY on one chemotaxis-growth system. Models: `CMParams` (traveling waves, Paper1);
+`CM2Params`+`BoundedDomainData` (bounded-domain, Paper2 existence & Paper3 long-time dynamics).
 
-## ⚠️ HONEST BOTTOM LINE (verified audit, no build)
-**0 of 28 headline Props are UNCONDITIONAL.** Every headline closer is an `of_assumed_*_branch` /
-`of_*Data` reduction that ASSUMES the headline's hard content as a hypothesis; several are literal
-tautologies (`:= hexist`, source-tagged "TAUTOLOGY (no math content)"). The repo is **0 sorry / 0 axiom /
-0 native_decide** — but 0-sorry ≠ proven: the genuine unconditional content is the **shared PDE
-infrastructure** (below) and linear-spectral sub-claims, NOT the headlines. The only "unconditional"
-headline-shaped results are on the **degenerate `unitPointDomain`** (Point=Unit, gradNorm=0, boundary=∅
-— a 0-d ODE that discards the PDE); those do NOT establish the bounded-domain headline.
+## BOTTOM LINE (verified)
+**0 of 28 headline Props are UNCONDITIONAL.** All are conditional. But they are NOT all equal — there's a
+gradient of how much real mechanism stands behind each. 0 sorry / 0 axiom / 0 native_decide everywhere; the
+gap is unfilled assumed-branches, not sorries. Many closers are honest reductions; several are tautologies
+(`:= hexist`, source-tagged "IMPOSTOR/TAUTOLOGICAL") that assume the conclusion (no math).
 
-Legend: **B** = conditional (assumed branch). No headline is A (unconditional) or C (stub) right now.
-
----
-
-## Paper2 — bounded-domain classical solutions (existence/boundedness) — CLOSEST to a real headline
-| Thm | what | status | remaining hard content |
-|---|---|---|---|
-| Theorem_1_1 | χ₀≤0 positive classical solution + InitialTrace + sup-bound + (m≥1 global) | **B** | reduced to exactly **2 named frontier hyps**: `hQuant` (χ₀<0 datum-uniform local classical existence = the EWA real-PDE source-regularity floor) + `hMildLocal`. χ₀=0 hQuant wired (ConeQuantBridge, modulo PicardLimitRestartFrontier). 🔧 ACTIVE |
-| Theorem_1_2 | slow/critical-regime time-decay | **B** | Lp-energy / eventual-sup-bound frontier |
-| Theorem_1_3 | m-regime decay | **B** | Lp/mass-gradient frontier |
-| Prop_1_1, Prop_2_1..2_5 | local existence + the resolvent/gradient/mass/Moser estimates | **B** | several are tautology-closers (`:= hbound`/`hest`) needing real reductions |
-
-## Paper1 — traveling waves — FARTHEST (least mechanism behind the branches)
-| Thm | what | status | remaining hard content |
-|---|---|---|---|
-| Theorem_1_1 (B1) | monotone traveling-wave existence + Shen upper bounds + right-tail asymptotics | **B** | the wave-profile CONSTRUCTION. 🔧 ACTIVE: G1 (Brouwer→Schauder principle, near done) + G2 (Rothe implicit-Green orbit — deepest gate, now decomposed into tractable bricks) + 5 bridge wrappers (hVmono done; rest ride on the orbit) |
-| Theorem_1_2 (B?) | nonlinear orbital STABILITY of the wave | **B** | weighted-L² + uniform moving-frame convergence (Section 5) — essentially stubbed |
-| Theorem_1_3 (B2) | profile UNIQUENESS | **B** | reduces to Theorem_1_2 + cauchy-unique + resolvent + tail |
-| Prop_1_1, Prop_1_2 | global existence + bounds/convergence | **B** | global Cauchy existence (Section 3) — essentially stubbed |
-
-## Paper3 — long-time dynamics (stability / persistence / critical sensitivity) — MIDDLE
-Sits ON TOP of Paper2's solution objects (imports Paper2.Statements/Defs; inherits Paper2's existence floor).
-| Thm | what | status | remaining hard content |
-|---|---|---|---|
-| Theorem_2_1 (+4 parts) | uniform PERSISTENCE / lower-envelope bounds | **B** | persistence lower bounds (pointwise + boundary) |
-| Theorem_2_2 | nonlinear local exponential C¹ convergence to equilibrium | **B** | the nonlinear half (linear dichotomy IS unconditional, but only that half) |
-| Theorem_2_3 | negative-sensitivity convergence-rate formula (sectorial) | **B** | sectorial-operator stability analysis |
-| Theorem_2_4 | full nonlinear stability + critical-sensitivity threshold | **B** | (linear stability formula unconditional but carries a condition) |
-| Theorem_2_5 | full nonlinear stability (companion regime) | **B** | |
-| Prop_1_2/1_3/1_4 | global bounded solutions | **B** | (Prop_1_4 unconditional only on the 0-d unitPointDomain) |
+Status legend:
+- 🟢 **REAL MECHANISM** — reduced to a small number of NAMED, well-defined obligations; most of the construction is committed & axiom-clean.
+- 🟡 **SCAFFOLDED** — the architecture/assembly is wired, but the math content sits as an assumed branch with little/no mechanism behind it.
+- 🔴 **STUB / TAUTOLOGY** — closer assumes the conclusion, or the section is a placeholder.
+- ✦ **statement faithfulness-FIXED today** (the *statement* now matches the paper; the proof is still owed).
 
 ---
 
-## Shared infrastructure (the genuine UNCONDITIONAL proven base — Paper2 built it)
-`ShenWork.PDE.Interval*` — bounded-interval Neumann backbone: `IntervalNeumannEllipticResolverR`,
-`IntervalFullKernel*` (Green-kernel mass/gradient/boundary regularity), `IntervalDuhamel*`/`IntervalCosine*`/
-`IntervalSemigroupNeumann`/`SpectralDecay`, `IntervalResolverPositivity`. **Paper3 imports this + 4 Paper2
-modules directly** (its whole stability layer rides on `IsPaper2GlobalClassicalSolution`/`IsPaper2Bounded`).
-**Paper1** shares only `PDE.HeatSemigroup`/`ResolventEstimate`/`HeatKernelLpEstimates` + its own
-Brouwer/Sperner/Schauder fixed-point stack. The `Wiener/EWA` weighted-ℓ¹ algebra (intended engine for the
-χ₀<0 `hQuant`) is **standalone scaffolding, imported by NO Paper file yet** — the unbuilt floor under Paper2 Th_1_1.
+## PAPER 2 — bounded-domain classical solutions (existence/boundedness). CLOSEST paper.
+| # | Theorem | status | the ONE remaining thing |
+|---|---|---|---|
+| P2-T11 | **Theorem_1_1** (χ₀≤0 positive classical soln + InitialTrace + sup-bound + m≥1 global) | 🟢✦ | χ₀=0 wired (mod `PicardLimitRestartFrontier`). χ₀<0 = **`hQuant`** (datum-uniform local classical existence = the EWA real-PDE source-regularity floor: ResolverSourceSummable + Fourier-ℓ¹ surrogate + realizes↔Duhamel) + `hMildLocal`. The deepest real-analysis floor. |
+| P2-T12 | Theorem_1_2 (slow/critical-regime time-decay) | 🟡✦ | Lp-energy / eventual-sup-bound frontier (feeds the decay) |
+| P2-T13 | Theorem_1_3 (m-regime decay) | 🟡✦ | Lp / mass-gradient frontier |
+| P2-P11 | Proposition_1_1 (per-datum local classical soln + finite-horizon alt) | 🟡✦ | the local-existence engine (closer is a tautology) |
+| P2-P21 | Proposition_2_1 (Lᵖ signal-vs-source resolvent estimate) | 🔴 | tautology closer → real Lᵖ resolvent estimate |
+| P2-P22 | Proposition_2_2 (weighted gradient estimate) | 🔴 | tautology / real estimate |
+| P2-P23 | Proposition_2_3 (weighted signal estimate, ε-Young) | 🔴 | tautology / real estimate |
+| P2-P24 | Proposition_2_4 (mass conservation / logistic mass bound) | 🔴 | tautology / real estimate |
+| P2-P25 | Proposition_2_5 (Moser iteration Lᵖ⇒L∞) | 🔴 | tautology / the Moser bootstrap |
 
-## "Will the later papers go faster?" — half yes, half no
-- **Faster (the shared base is paid once):** resolver/Green-kernel/cosine-spectral/regularity + the
-  `of_assumed_branch` assembly architecture are reused → assembly/wrappers/scaffolding go fast.
-- **NOT faster (each paper's own deep analytic gate is new):** Paper1/B1 = Rothe parabolic orbit;
-  Paper3 = Lyapunov/energy/sectorial stability. Unconditionalizing = discharging the assumed branches =
-  the real PDE analysis, paper-specific.
+## PAPER 1 — traveling waves. Theorem_1_1 has TWO branches (χ≤0 AND χ≥0).
+| # | Theorem | status | the ONE remaining thing |
+|---|---|---|---|
+| P1-T11neg | **Theorem_1_1 χ≤0** (monotone wave existence + Shen bound + tail) | 🟢 | **TODAY**: whole Rothe parabolic-orbit construction built & axiom-clean → reduced to **G1** `LocalUniformSchauderFixedPointPrinciple` (= n-D Brouwer, gated on **R3** Freudenthal model rebuild) + committed profile lemmas. |
+| P1-T11pos | **Theorem_1_1 χ≥0** (0≤χ<min(½,chiStar), positive sensitivity) | 🟡 | UNTOUCHED branch — the positive-sensitivity wave construction (its own barriers/trap; analogous Rothe/Schauder but different signs) |
+| P1-T12 | Theorem_1_2 (nonlinear orbital STABILITY of the wave) | 🔴 | Section-5 weighted-L²+uniform moving-frame convergence — essentially stubbed (`StabilityUniqueness.lean`) |
+| P1-T13 | Theorem_1_3 (profile UNIQUENESS) | 🟡 | reduces to Theorem_1_2 + Cauchy-unique + resolvent + tail |
+| P1-P11 | Proposition_1_1 (global existence + sup/limsup bounds) | 🔴 | Section-3 global Cauchy existence — essentially stubbed (`GlobalExistence.lean`); `constant_one_branch` only covers u₀≡1 |
+| P1-P12 | Proposition_1_2 (global existence + long-time convergence) | 🔴 | same Section-3 global existence |
 
-## Grind order (active, 并进 2026-06-15)
-- **Paper2 Th_1_1 (closest):** discharge χ₀<0 `hQuant`/`hMildLocal` (EWA floor) → first genuinely-unconditional headline + unlocks Paper3's existence base.
-- **Paper1 B1 (parallel):** finish G1 Schauder principle (Brouwer K2′/K3) + G2 Rothe orbit (per-step contraction → trapping → limit) + bridge wrappers → B1 modulo nothing.
-- Then B2 (uniqueness, rides on B1) · Paper3 stability · Paper1/Paper2 remaining decay/energy theorems.
+## PAPER 3 — long-time dynamics (stability / persistence / critical sensitivity). Sits ON Paper2's existence.
+| # | Theorem | status | the ONE remaining thing |
+|---|---|---|---|
+| P3-P12 | Proposition_1_2 (χ₀≤0,m≥1 global bounded) | 🟡✦ | global bounded existence (inherits Paper2's floor) |
+| P3-P13 | Proposition_1_3 (strong-logistic global) | 🟡✦ | same |
+| P3-P14 | Proposition_1_4 (m=1 global) | 🟡✦ | same |
+| P3-T21 | Theorem_2_1 (+parts 1-4) (uniform PERSISTENCE / lower-envelope) | 🟡 | persistence lower bounds; + the per-time spatial-floor positivity (deferred: needs a `BoundedDomainData` topology/`infValue=⨅` interface upgrade) |
+| P3-T22 | Theorem_2_2 (nonlinear local exp C¹ convergence) | 🟡 | the nonlinear half (linear dichotomy IS unconditional) |
+| P3-T23 | Theorem_2_3 (neg-sensitivity convergence-rate, sectorial) | 🟡 | sectorial-operator stability analysis |
+| P3-T24 | Theorem_2_4 (full nonlinear stability + critical-sensitivity threshold) | 🟡 | full nonlinear stability (linear formula carries a condition) |
+| P3-T25 | Theorem_2_5 (full nonlinear stability, companion regime) | 🟡 | same |
 
-Codex out of credits till Jun 18 → Opus carries all subagents.
+---
+
+## SHARED INFRASTRUCTURE (the genuine unconditional proven base — reused across papers)
+`ShenWork.PDE.Interval*` (Neumann resolver / Green-kernel regularity / cosine-spectral Duhamel / semigroup),
+the `Wiener/EWA` weighted-ℓ¹ algebra (the χ₀<0 hQuant engine), and now the whole **B1 Rothe + Brouwer-Sperner
+stack** (Paper1). Paper3 imports Paper2's solution objects directly.
+
+## GRIND ORDER (按图索骥)
+1. **P1-T11neg** (closest to a genuine headline): finish **R3** (Freudenthal model — Codex Jun 18) → G1 Schauder
+   principle → B1 χ≤0 UNCONDITIONAL. The entire analytic edifice is already committed & axiom-clean.
+2. **P2-T11 χ₀<0** (the other near-headline): discharge **`hQuant`** (the EWA real-PDE source-regularity floor).
+   Deep but well-localized; unlocks Paper3's existence base.
+3. **P1-T11pos**: the positive-sensitivity wave branch (reuse the Rothe/Schauder machinery, flip signs).
+4. **P1-T13** (uniqueness, rides on T12) · **P2-T12/T13** (decay frontiers) · **P3-P12/13/14** (global, on Paper2 floor).
+5. **P3-T21..25** (persistence/stability/sectorial — the deepest paper-level analysis) + the `BoundedDomainData`
+   topology interface upgrade (unblocks P3 per-time-floor positivity).
+6. The 🔴 a-priori-estimate Props (P2-P21..25, P1-P11/12) + the stubbed Sections (P1 §3 global, P1 §5 stability).
+
+## TODAY'S DELTAS (2026-06-15)
+- Statement-faithfulness sweep: P2-T11/T12/T13 + P3-P12/13/14 fixed to `PaperPositiveInitialDatum` (paper eq 1.11
+  uniform floor); was open-interior positivity admitting paper-excluded inf=0 data. Verified 8671 jobs.
+- P1-T11neg: built the entire Rothe parabolic-orbit construction from scratch (no Mathlib parabolic theory;
+  no Mathlib Brouwer) → reduced to G1/R3. ~26 commits.
