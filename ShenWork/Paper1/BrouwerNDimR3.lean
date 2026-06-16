@@ -590,6 +590,43 @@ theorem exists_rainbow_cellN_R2 {n : ℕ} (hn : 0 < n) (k : ℕ)
   exists_rainbow_cellN hn k L
     (fun F _ _ hbF => boundary_singleton_invalid hn k hbF) hR3
 
+/-- The boundary-door parity cannot be discharged at the fully generic `L` level:
+if every labelling had odd boundary-door count, the constant top-colour labelling in
+dimension `1` and mesh `1` would give an empty door set.  The genuine R3 theorem must
+therefore be stated for the Sperner labelling (or for labellings satisfying the matching
+boundary conditions), not for arbitrary `L`. -/
+theorem not_forall_boundaryDoor_card_odd :
+    ¬ (∀ {n : ℕ} (hn : 0 < n) (k : ℕ)
+      (L : (Fin (n + 1) → ℤ) → Fin (n + 1)),
+        Odd ((facetsN n k).filter
+          (fun F => (F.image L = Finset.univ.erase (Fin.last n)) ∧
+            isBoundaryN hn k F)).card) := by
+  classical
+  intro hall
+  let L : (Fin (1 + 1) → ℤ) → Fin (1 + 1) := fun _ => Fin.last 1
+  have hempty : ((facetsN 1 1).filter
+      (fun F => (F.image L = Finset.univ.erase (Fin.last 1)) ∧
+        isBoundaryN (n := 1) (by norm_num) 1 F)) = ∅ := by
+    ext F
+    constructor
+    · intro hF
+      rw [Finset.mem_filter] at hF
+      obtain ⟨hFmem, hdoor, _hb⟩ := hF
+      have hcard : F.card = 1 := by
+        obtain ⟨c, _hc, hb⟩ := mem_facetsN_iff.mp hFmem
+        obtain ⟨t, ht⟩ := hb
+        rw [← ht, card_facetSet]
+      have hnonempty : F.Nonempty := Finset.card_pos.mp (by omega)
+      obtain ⟨v, hv⟩ := hnonempty
+      have hlast_mem : Fin.last 1 ∈ F.image L := Finset.mem_image.mpr ⟨v, hv, rfl⟩
+      rw [hdoor] at hlast_mem
+      exact False.elim ((Finset.mem_erase.mp hlast_mem).1 rfl)
+    · simp
+  have hodd := hall (n := 1) (by norm_num) 1 L
+  rw [hempty, Finset.card_empty] at hodd
+  obtain ⟨m, hm⟩ := hodd
+  omega
+
 /-! ## Step 1 — the `(n-1)`-face Kuhn re-encoding (base projection)
 
 This block builds the genuine *dimension-drop* re-encoding the boundary-door count `hR3` needs.

@@ -235,3 +235,4 @@ import ShenWork.PDE.IntervalChemDivTimeDerivClosed
 import ShenWork.PDE.IntervalChemDivMixedReprConstruct
 import ShenWork.PDE.IntervalChemDivFluxHDgWiring
 import ShenWork.PDE.IntervalIterateGradMajorant
+import ShenWork.Paper1.BrouwerNDimFreudenthal
