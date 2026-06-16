@@ -277,3 +277,18 @@ ASSEMBLY BRICKS: ✅ rotheLimit+trap (WaveRotheLimit) · 🔧 rotheLimit_station
   🔧 equicont/uniform-C¹ → continuity+compactness+limit-continuity (cron2 design) ·
   ⬜ the FrozenStationaryMapSchauderData def + exists_self_frozen_stationary bridge (Statements scaffold) ·
   ⬜ final wiring to Theorem_1_1. Gated ultimately on G1 (R3) for the Schauder principle.
+
+## ⚠️⚠️ R3 BASE-PROJECTION IS DEAD (cron, 2026-06-15) — model mismatch, NOT a bijection
+cron verdict: the `dropLast` base-projection reduction {rainbow boundary doors}↔{(n-1)-rainbow cells}
+CANNOT EXIST in the committed fixed-last-chain Kuhn model. Reason: `chainVZ_last` ⟹ a boundary endpoint
+facet's n vertices have DISTINCT last coords, so ≤1 vertex on `{last=0}`; the Sperner label (coordinate
+inequalities f(v)_i≤v_i) is NOT invariant under base projection, and `labelN_ne_last_on_face` applies only
+to literal-last=0 vertices. So no `card_nbij'` preserves rainbow-ness through dropLast. The dropLast
+substrate (dropLast_chainVZ_count etc.) is committed but the BIJECTION on top of it is a dead end.
+TWO CORRECT PATHS:
+- Path 1: switch to a boundary-compatible Kuhn/Freudenthal triangulation (face = literal (n-1)-subcomplex)
+  ⟹ standard Sperner induction. BUT requires rebuilding chainVZ/facetSet/partnerCell/hinterior on the new model.
+- Path 2 (LIKELY): keep the model, prove R3 by a DIRECT endpoint-boundary PARITY (boundary-partner involution
+  on the face leaving rainbow doors unpaired), NOT dimension-drop. STRONG HINT: committed brouwer_stdSimplex_two
+  closes the n=2 boundary count IN this exact model (the "diag/hypotenuse" argument) — if that's a direct parity
+  it GENERALIZES. [cron R3-path design in flight: which path + the general-n construction.]
