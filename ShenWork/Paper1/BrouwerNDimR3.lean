@@ -590,6 +590,155 @@ theorem exists_rainbow_cellN_R2 {n : ℕ} (hn : 0 < n) (k : ℕ)
   exists_rainbow_cellN hn k L
     (fun F _ _ hbF => boundary_singleton_invalid hn k hbF) hR3
 
+/-! ## Step 1 — the `(n-1)`-face Kuhn re-encoding (base projection)
+
+This block builds the genuine *dimension-drop* re-encoding the boundary-door count `hR3` needs.
+The face simplex is `{q : q (Fin.last n) = 0}`; we work in the **Kuhn `chainVZ` model**, where
+(by `chainVZ_last`) at most one chain vertex of an `n`-cell sits on the face — so the reduction
+is a *base projection*, not a vertex face-restriction.  We supply:
+
+* the `stepVec` projection identity (`dropLast_stepVec`): dropping the last coordinate of a Kuhn
+  step `stepVec a` yields the `(n-1)`-Kuhn step `stepVec a` on `Fin n` (the `+1` survives at the
+  non-last coordinate `a.castSucc`, the `-1` at `last` is dropped) — this is the structural core
+  of the projection;
+* the permutation restriction `restrictPerm` (`Perm (Fin (n+1)) → Perm (Fin n)`) via the
+  committed Mathlib `Equiv.Perm.decomposeFin`, recording the pinned endpoint step;
+* the projected-chain correspondence (`dropLast_chainVZ_step`): the `dropLast`-image of a Kuhn
+  chain advances by the projected step, the `(n-1)`-Kuhn recursion on the face base.
+
+These are the verified vertex/step bookkeeping for the projected base; the door↔rainbow
+bijection and the induction wiring remain the crux (see the stall report). -/
+
+/-- **`stepVec` projection.**  Dropping the last coordinate of the `n`-Kuhn step `stepVec a`
+(for `a : Fin n`) yields the `(n-1)`-Kuhn step on `Fin n`: `+1` at `a` (= the surviving
+non-last coordinate `a.castSucc`), `0` elsewhere.  Concretely `dropLast (stepVec a) j =
+if j = a then 1 else 0`, the unit increment the face complex advances by. -/
+theorem dropLast_stepVec {n : ℕ} (a : Fin n) (j : Fin n) :
+    dropLast (stepVec a) j = (if j = a then (1 : ℤ) else 0) := by
+  simp only [dropLast, Fin.init, stepVec]
+  have hlast : (j.castSucc) ≠ Fin.last n := by
+    intro h; have := congrArg Fin.val h
+    simp only [Fin.val_castSucc, Fin.val_last] at this; omega
+  rw [if_neg hlast, sub_zero]
+  by_cases hja : j = a
+  · subst hja; rw [if_pos rfl, if_pos rfl]
+  · rw [if_neg hja]
+    have : j.castSucc ≠ a.castSucc := fun h => hja (Fin.castSucc_injective _ h)
+    rw [if_neg this]
+
+/-- The restriction of a permutation of `Fin (n+1)` to a permutation of `Fin n`, via the
+committed `Equiv.Perm.decomposeFin` (which fixes the image of `0` and restricts the rest). -/
+noncomputable def restrictPerm {n : ℕ} (σ : Equiv.Perm (Fin (n + 1))) : Equiv.Perm (Fin n) :=
+  (Equiv.Perm.decomposeFin σ).2
+
+/-- The recorded pinned point of `restrictPerm`: where `σ` sends `0`. -/
+theorem decomposeFin_fst {n : ℕ} (σ : Equiv.Perm (Fin (n + 1))) :
+    (Equiv.Perm.decomposeFin σ).1 = σ 0 := by
+  have := Equiv.Perm.decomposeFin_symm_apply_zero (Equiv.Perm.decomposeFin σ).1
+    (Equiv.Perm.decomposeFin σ).2
+  rw [Prod.mk.eta, Equiv.symm_apply_apply] at this
+  exact this.symm
+
+/-- **`dropLast` of a Kuhn chain vertex.**  The first `n` coordinates of the chain vertex
+`chainVZ p σ t` are the `dropLast`-projected base plus the projected prefix steps:
+`dropLast (chainVZ p σ t) j = dropLast p j + ∑_{s.val < t.val} dropLast (stepVec (σ s)) j`.
+This is the `(n-1)`-Kuhn chain recursion lifted from the projection of the `n`-chain. -/
+theorem dropLast_chainVZ {n : ℕ} (p : Fin (n + 1) → ℤ) (σ : Equiv.Perm (Fin n))
+    (t : Fin (n + 1)) (j : Fin n) :
+    dropLast (chainVZ p σ t) j
+      = dropLast p j
+        + ∑ s ∈ Finset.univ.filter (fun s : Fin n => s.val < t.val),
+            dropLast (stepVec (σ s)) j := by
+  classical
+  show chainVZ p σ t j.castSucc
+      = p j.castSucc
+        + ∑ s ∈ Finset.univ.filter (fun s : Fin n => s.val < t.val),
+            stepVec (σ s) j.castSucc
+  rw [chainVZ_apply]
+
+/-- The projected-step sum collapses to a `0/1` count: it is `1` if some surviving step
+`σ s` (`s.val < t.val`) equals `j`, else `0`.  (The projected steps `dropLast (stepVec (σ s))`
+are unit increments at `σ s`; their sum counts how often `j` is hit, which is `≤ 1` since `σ`
+is injective.)  This is the face-chain coordinate, the `(n-1)`-Kuhn lattice point. -/
+theorem dropLast_chainVZ_count {n : ℕ} (p : Fin (n + 1) → ℤ) (σ : Equiv.Perm (Fin n))
+    (t : Fin (n + 1)) (j : Fin n) :
+    dropLast (chainVZ p σ t) j
+      = dropLast p j
+        + (if (σ.symm j).val < t.val then (1 : ℤ) else 0) := by
+  classical
+  rw [dropLast_chainVZ]
+  congr 1
+  -- the sum of unit increments at `σ s` over `{s.val < t.val}` is `1` iff `σ⁻¹ j` is in range
+  rw [Finset.sum_congr rfl (fun s _ => dropLast_stepVec (σ s) j)]
+  by_cases hin : (σ.symm j).val < t.val
+  · rw [if_pos hin]
+    rw [Finset.sum_eq_single (σ.symm j)]
+    · rw [Equiv.apply_symm_apply, if_pos rfl]
+    · intro s _ hs
+      have hsj : j ≠ σ s := by
+        intro h; apply hs; rw [h, Equiv.symm_apply_apply]
+      rw [if_neg hsj]
+    · intro h
+      exact absurd (Finset.mem_filter.mpr ⟨Finset.mem_univ (σ.symm j), hin⟩) h
+  · rw [if_neg hin]
+    apply Finset.sum_eq_zero
+    intro s hs
+    rw [Finset.mem_filter] at hs
+    have hsj : j ≠ σ s := by
+      intro h
+      apply hin
+      rw [h, Equiv.symm_apply_apply]
+      exact hs.2
+    rw [if_neg hsj]
+
+/-- **No valid cell has base on the face.**  For `n ≥ 1`, a valid cell forces
+`p (Fin.last n) ≥ n ≥ 1 > 0`, so its base never lies on `{q (Fin.last n) = 0}`.  Hence the
+*top-end* off-mesh criterion `endpointFwd_invalid_of_base_last_zero` (which needs
+`c.1 (Fin.last n) = 0`) is **vacuous** for present cells: a boundary door is never witnessed at
+the `t = 0` end.  This pins every boundary door to the `t = last` (face) end, on a cell with
+`p (Fin.last n) = n` — the structural input to the base projection. -/
+theorem cellMemN_base_last_pos {n k : ℕ} (hn : 0 < n) {c : KCell n} (hc : cellMemN k c) :
+    0 < c.1 (Fin.last n) := by
+  have hge : (n : ℤ) ≤ c.1 (Fin.last n) := cellValid_last_ge hc
+  have : (1 : ℤ) ≤ (n : ℤ) := by exact_mod_cast hn
+  omega
+
+/-- **Projected-base sum.**  The `dropLast`-projected base sums to `∑ p − p (Fin.last n)`:
+dropping the last coordinate removes exactly the last-coordinate mass.  For a boundary cell with
+`p (Fin.last n) = n` and `∑ p = k`, the projected base sums to `k − n` — the mesh of the induced
+`(n-1)`-face lattice point. -/
+theorem sum_dropLast {n : ℕ} (p : Fin (n + 1) → ℤ) :
+    ∑ j, dropLast p j = (∑ i, p i) - p (Fin.last n) := by
+  classical
+  simp only [dropLast, Fin.init]
+  rw [eq_sub_iff_add_eq]
+  rw [← Fin.sum_univ_castSucc p]
+
+/-- **Projected face-chain count is `0/1`.**  At a fixed face coordinate `j`, the projected
+chain coordinate `dropLast (chainVZ p σ t) j` is either the base value `dropLast p j` or one more
+than it, monotonically in `t` — the genuine `(n-1)`-Kuhn fill of the face base.  In particular
+the projected chain is injective in the relevant range. -/
+theorem dropLast_chainVZ_mono {n : ℕ} (p : Fin (n + 1) → ℤ) (σ : Equiv.Perm (Fin n))
+    {t t' : Fin (n + 1)} (htt' : t.val ≤ t'.val) (j : Fin n) :
+    dropLast (chainVZ p σ t) j ≤ dropLast (chainVZ p σ t') j := by
+  rw [dropLast_chainVZ_count, dropLast_chainVZ_count]
+  by_cases h : (σ.symm j).val < t.val
+  · rw [if_pos h, if_pos (by omega)]
+  · rw [if_neg h]
+    split <;> simp
+
+/-- **Projected-chain difference is the projected step.**  Advancing the face-chain index by one
+adds exactly the projected step `dropLast (stepVec (σ s))` — the `(n-1)`-Kuhn recursion on the
+projected base, the face analogue of `chainVZ_step`. -/
+theorem dropLast_chainVZ_step {n : ℕ} (p : Fin (n + 1) → ℤ) (σ : Equiv.Perm (Fin n)) (s : Fin n) :
+    dropLast (chainVZ p σ s.succ) = fun j => dropLast (chainVZ p σ s.castSucc) j
+      + dropLast (stepVec (σ s)) j := by
+  funext j
+  have hstep := chainVZ_step p σ s
+  have : chainVZ p σ s.succ = fun i => chainVZ p σ s.castSucc i + stepVec (σ s) i := hstep
+  simp only [dropLast, Fin.init]
+  rw [this]
+
 /-! ## Precise stall report — `BrouwerNDimR3`
 
 **What is fully closed here (axiom-clean: `[propext, Classical.choice, Quot.sound]`).**
@@ -672,6 +821,55 @@ generating-path** argument (the 2-D `diag`-hypotenuse bijection of `hboundaryCou
 layer is still the right vertex bookkeeping for the projected base, but the on-face-vertex framing
 it suggested does not hold for the *door facets themselves*.
 
+**Step 1 — the `(n-1)`-face Kuhn re-encoding (base projection) — NOW CLOSED (axiom-clean).**
+
+This block supplies the verified vertex/step bookkeeping of the base projection (the core of
+R3 step (i)), all checked `[propext, Classical.choice, Quot.sound]` (`dropLast_stepVec` needs
+only `[propext, Quot.sound]`):
+
+* **`dropLast_stepVec`** — the `stepVec` projection: `dropLast (stepVec a) j = if j = a then 1
+  else 0`.  Dropping the last coordinate of an `n`-Kuhn step turns it into a *pure unit
+  increment* at `a : Fin n` (the `+1` survives at `a.castSucc`, the `-1` at `last` vanishes).
+  This is the structural reason the projected face-chain is a monotone fill, not a Kuhn zig-zag.
+
+* `restrictPerm`, **`decomposeFin_fst`** — the permutation restriction `Perm (Fin (n+1)) →
+  Perm (Fin n)` via the committed Mathlib `Equiv.Perm.decomposeFin` (records the image of `0`,
+  restricts the rest), with the recorded point identified as `σ 0`.  This is the `σ ↦ σ'`
+  the projection needs.
+
+* **`dropLast_chainVZ`**, **`dropLast_chainVZ_count`** — the projected face-chain coordinate,
+  in closed form: `dropLast (chainVZ p σ t) j = dropLast p j + (if (σ.symm j).val < t.val then 1
+  else 0)`.  Each face coordinate of a chain vertex is the projected base plus a single `0/1`
+  unit (added exactly when the step landing at `j` precedes the index `t`) — the genuine
+  `(n-1)`-Kuhn lattice point of the projected base.
+
+* **`dropLast_chainVZ_mono`**, **`dropLast_chainVZ_step`** — the projected chain is monotone in
+  `t` and advances by the projected step (`dropLast (chainVZ p σ s.succ) = dropLast (chainVZ p σ
+  s.castSucc) + dropLast (stepVec (σ s))`), the face analogue of `chainVZ_step`.
+
+* **`sum_dropLast`** — `∑ dropLast p = ∑ p − p (last)`; a boundary cell with `p (last) = n` and
+  `∑ p = k` projects to a base of mass `k − n` (the face lattice point's mesh, NOT `k`).
+
+* **`cellMemN_base_last_pos`** — a present cell has `c.1 (last) ≥ n > 0`, so its base never lies
+  on `{last = 0}`.
+
+**Sharpened structural understanding (corrects a prior over-claim).**  Boundary doors come from
+BOTH endpoint ends, and the two ends correspond to *different* boundary faces of `Δⁿ`:
+
+  - the `t = last` end (partner `endpointInv`, off-mesh by `endpointInv_invalid_of_base_zero`,
+    needs an affected non-last base coordinate `= 0`) is the `{last = 0}` face the count `hR3`
+    must reduce on;
+  - the `t = 0` end (partner `endpointFwd`, off-mesh by a *downstream* chain vertex going
+    negative — NOT by `c.1 (last) = 0`, which `cellMemN_base_last_pos` rules out) is a
+    *different* boundary face (the "top" of `Δⁿ`).
+
+  So one CANNOT pin every boundary door to the `t = last` end (the naive vacuity of the `t = 0`
+  end is FALSE — `endpointFwd` off-mesh does not require the base on `{last = 0}`).  The genuine
+  R3 reduction must (a) restrict to the doors whose `isBoundaryN` witness is the `t = last` /
+  `endpointInv`-off-mesh end, and (b) show the `t = 0` / `endpointFwd` doors either do not occur
+  for the *lower-colour-rainbow* labelling or are separately accounted.  This per-end split is
+  the first genuine obstacle the bijection (ii) must navigate; it is now precisely located.
+
 **The remaining frontier (the genuine `(n-1)`-Sperner induction — the heaviest brick).**
 
   (R3) BOUNDARY-DOOR COUNT.  The target consumed by `exists_rainbow_cellN` is
@@ -683,16 +881,19 @@ it suggested does not hold for the *door facets themselves*.
        criteria pin the boundary side to a base coordinate hitting `0`.  The remaining
        construction, *from scratch*, is:
 
-       (i)   the `(n-1)`-face Kuhn complex re-encoding: build the induced `(n-1)`-dimensional
-             Kuhn subdivision via the base/step-order restriction `(p, σ) ↦ (dropLast p, σ')`
-             (`σ' : Perm (Fin (n-1))` restricting `σ` once the boundary fixes the last Kuhn step);
-             the vertex bookkeeping `dropLast`/`appendZero` is in place;
+       (i)   the `(n-1)`-face Kuhn complex re-encoding — **the vertex/step bookkeeping is now
+             CLOSED** (Step 1 above: `dropLast_stepVec`, `restrictPerm`/`decomposeFin_fst`,
+             `dropLast_chainVZ`/`_count`/`_mono`/`_step`, `sum_dropLast`).  What remains is to
+             package these into the `(n-1)`-`cellsN`/`facetsN` of the face and identify the
+             projected `(dropLast p, restrictPerm-of-σ)` as a *valid* `(n-1)`-cell at the face
+             mesh — the per-end split above is the gate to this identification;
 
        (ii)  the door ↔ rainbow bijection: a boundary door (lower colours `{0,…,n-1}` once each by
              `door_injOn_of_card`, top colour forbidden by `labelN_ne_last_on_face`) corresponds —
              through the *base projection*, NOT a vertex restriction (see the geometry correction
              above) — to a rainbow cell of the `(n-1)` complex; a `Finset.card_nbij'` matching the
-             2-D `hboundaryCount`'s `diag`-hypotenuse bijection at symbolic `n`;
+             2-D `hboundaryCount`'s `diag`-hypotenuse bijection at symbolic `n`.  The projected
+             coordinate `dropLast_chainVZ_count` is the explicit map underlying this `nbij'`;
 
        (iii) the dimension-drop induction: the rainbow-cell count of the `(n-1)` complex is odd by
              the `(n-1)` instance of `exists_rainbow_cellN` (the inductive hypothesis), base
@@ -700,6 +901,8 @@ it suggested does not hold for the *door facets themselves*.
 
        Size: comparable to the entire boundary block of `BrouwerTwoDim.lean` (`hypLabel`,
        `boundary_door_form`, `hboundaryCount`) re-derived at symbolic `n`.  No Mathlib shortcut.
+       The Step-1 re-encoding (i) bookkeeping is discharged; (ii) the per-end split + door↔rainbow
+       `nbij'` and (iii) the induction remain.
 
   (R2) PER-DOOR SINGLETON INVALID PARTNER — **CLOSED** (`boundary_singleton_invalid`, discharged
        into `exists_rainbow_cellN_R2`).  A boundary door bounds exactly ONE present cell with an
