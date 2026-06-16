@@ -65,14 +65,20 @@ import ShenWork.Paper2.ChemMildHolderBootstrap
 import ShenWork.PDE.IntervalFullKernelSecondDerivCtheta
 import ShenWork.Paper2.ChemMildC1etaComm
 import ShenWork.Paper2.ChemMildHolder
+import ShenWork.Paper2.IntervalDomainL2StaticVDifference
 import ShenWork.Wiener.EWA.HolderCosineDecay
 
 open MeasureTheory
 open ShenWork.IntervalDomain (intervalMeasure)
 open ShenWork.IntervalNeumannFullKernel (intervalFullSemigroupOperator
-  neumannHeatSecondDeriv_Ctheta_to_Linfty weightedHeatHessConst weightedHeatHessConst_nonneg)
+  neumannHeatSecondDeriv_Ctheta_to_Linfty weightedHeatHessConst weightedHeatHessConst_nonneg
+  cosineCoeffs)
+open ShenWork.IntervalDomainRegularityBootstrap (unitIntervalCosineHeatSecondValue
+  unitIntervalCosineHeatSecondValue_continuous)
 open ShenWork.Paper2 (intervalNeumannHeatSemigroup neumannHeat_Linf_to_Ctheta
-  gradSmoothingConst gradSmoothingConst_nonneg)
+  gradSmoothingConst gradSmoothingConst_nonneg
+  intervalFullSemigroupOperator_secondDeriv_eq_secondValue_Ioo)
+open ShenWork.IntervalMildPicardRegularity (cosineCoeffs_abs_le_of_continuous_bounded)
 
 namespace ShenWork.Paper2
 
@@ -221,6 +227,237 @@ theorem neumannHeatSecondDerivCthetaToCeta_routeB {σ θ η : ℝ} (hσ : 0 < σ
           * ((2 : ℝ) ^ (1 + η / 2 - θ / 2 : ℝ) * weightedHeatHessConst θ)
           * σ ^ (-1 + (θ - η) / 2 : ℝ) * Hh * |x₁ - x₂| ^ η := by rw [hrate]; ring
 
+/-! ## RESIDUAL 1 — `Ioo → Icc` upgrade of brick 4 (spectral continuity closure) -/
+
+/-- The propagator's second `x`-derivative `∂ₓₓS(σ)h`, written as the spectral second
+value `unitIntervalCosineHeatSecondValue σ ĥ` — a globally `C²` cosine series, hence
+CONTINUOUS on all of `ℝ` (incl. the endpoints `0,1`).  On the OPEN interior the two
+agree (`intervalFullSemigroupOperator_secondDeriv_eq_secondValue_Ioo`); this spectral
+form is the endpoint-robust representative used to close the `Icc` estimate. -/
+theorem neumannHeatSecondValue_continuous {σ : ℝ} (hσ : 0 < σ) {h : ℝ → ℝ}
+    {M : ℝ} (hM : ∀ n, |cosineCoeffs h n| ≤ M) :
+    Continuous (fun x : ℝ => unitIntervalCosineHeatSecondValue σ (cosineCoeffs h) x) :=
+  unitIntervalCosineHeatSecondValue_continuous hσ hM
+
+/-- A real-valued Hölder bound on `[0,1]` gives continuity on `[0,1]`. -/
+theorem holderBound_continuousOn_Icc {θ H : ℝ} (hθ0 : 0 < θ) (hH_nn : 0 ≤ H)
+    {h : ℝ → ℝ}
+    (hHolder : ∀ a b, a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+      |h a - h b| ≤ H * |a - b| ^ θ) :
+    ContinuousOn h (Set.Icc (0 : ℝ) 1) := by
+  rw [Metric.continuousOn_iff]
+  intro b hb ε hε
+  set A : ℝ := H + 1 with hA
+  have hApos : 0 < A := by rw [hA]; linarith
+  set δ : ℝ := ((ε / A) ^ (1 / θ : ℝ)) with hδ
+  have hδpos : 0 < δ := by
+    rw [hδ]
+    exact Real.rpow_pos_of_pos (by positivity) _
+  refine ⟨δ, hδpos, ?_⟩
+  intro a ha hab
+  rw [Real.dist_eq]
+  have hdist_nonneg : 0 ≤ |a - b| := abs_nonneg _
+  have hdist_lt : |a - b| < δ := by simpa [Real.dist_eq] using hab
+  have hpow_lt : |a - b| ^ θ < ε / A := by
+    have hpow := Real.rpow_lt_rpow hdist_nonneg hdist_lt hθ0
+    have hcollapse : δ ^ θ = ε / A := by
+      rw [hδ]
+      rw [show (1 / θ : ℝ) = θ⁻¹ by rw [one_div]]
+      have hθne : θ ≠ 0 := ne_of_gt hθ0
+      rw [Real.rpow_inv_rpow (by positivity : 0 ≤ ε / A) hθne]
+    rwa [hcollapse] at hpow
+  have hle : |h a - h b| ≤ H * |a - b| ^ θ := hHolder a b ha hb
+  have hmul_le : H * |a - b| ^ θ ≤ A * |a - b| ^ θ := by
+    gcongr
+    rw [hA]
+    linarith
+  have hmul_lt : A * |a - b| ^ θ < ε := by
+    have := mul_lt_mul_of_pos_left hpow_lt hApos
+    rwa [mul_div_cancel₀ ε (ne_of_gt hApos)] at this
+  exact lt_of_le_of_lt (hle.trans hmul_le) hmul_lt
+
+/-- The full Neumann semigroup only sees source values on `[0,1]`. -/
+theorem intervalFullSemigroupOperator_congr_on_Icc {t : ℝ} {f g : ℝ → ℝ}
+    (hfg : ∀ y ∈ Set.Icc (0 : ℝ) 1, f y = g y) (x : ℝ) :
+    intervalFullSemigroupOperator t f x = intervalFullSemigroupOperator t g x := by
+  unfold intervalFullSemigroupOperator
+  refine MeasureTheory.integral_congr_ae ?_
+  rw [ShenWork.IntervalDomain.intervalMeasure]
+  refine (MeasureTheory.ae_restrict_iff' (by
+    simp [ShenWork.IntervalDomain.intervalSet])).mpr ?_
+  refine Filter.Eventually.of_forall (fun y hy => ?_)
+  have hyIcc : y ∈ Set.Icc (0 : ℝ) 1 := by
+    simpa [ShenWork.IntervalDomain.intervalSet] using hy
+  simp [hfg y hyIcc]
+
+/-- The literal second derivative of the propagator equals the spectral second value
+on the closed interval. -/
+theorem intervalFullSemigroupOperator_secondDeriv_eq_secondValue_Icc
+    {σ : ℝ} (hσ : 0 < σ) {h : ℝ → ℝ} (hh : Continuous h) {M : ℝ}
+    (hM : ∀ n, |cosineCoeffs h n| ≤ M) {x : ℝ}
+    (hx : x ∈ Set.Icc (0 : ℝ) 1) :
+    deriv (fun z : ℝ => deriv
+        (fun w : ℝ => intervalFullSemigroupOperator σ h w) z) x
+      = unitIntervalCosineHeatSecondValue σ (cosineCoeffs h) x := by
+  set S : ℝ → ℝ := fun w => intervalFullSemigroupOperator σ h w with hS
+  set F : ℝ → ℝ := fun w => unitIntervalCosineHeatSecondValue σ (cosineCoeffs h) w with hF
+  have hS2 : ContDiff ℝ 2 S := by
+    rw [hS]
+    exact ShenWork.IntervalFullKernelSpectralClean.intervalFullSemigroupOperator_contDiff_two_clean
+      hσ hh hM
+  have hSderiv : ContDiff ℝ 1 (deriv S) := by
+    simpa using (hS2.deriv' : ContDiff ℝ 1 (deriv S))
+  have hLcont : Continuous (fun w : ℝ => deriv (fun z : ℝ => deriv S z) w) :=
+    hSderiv.continuous_deriv (by norm_num : (1 : WithTop ℕ∞) ≤ 1)
+  have hFcont : Continuous F := by
+    rw [hF]
+    exact neumannHeatSecondValue_continuous hσ hM
+  have hEqOn : Set.EqOn
+      (fun w : ℝ => deriv (fun z : ℝ => deriv S z) w) F
+      (Set.Ioo (0 : ℝ) 1) := by
+    intro y hy
+    rw [hS, hF]
+    exact intervalFullSemigroupOperator_secondDeriv_eq_secondValue_Ioo hσ hh hM hy
+  have hclos := hEqOn.closure hLcont hFcont
+  rw [closure_Ioo (by norm_num : (0 : ℝ) ≠ 1)] at hclos
+  simpa [hS, hF] using hclos hx
+
+/-- **Brick 4, Route B — the `C^θ → C^η` second-derivative estimate on the CLOSED
+interval `Icc 0 1`.**  Stated on the spectral second value
+`F := unitIntervalCosineHeatSecondValue σ ĥ` (which equals `∂ₓₓS(σ)h` on the interior,
+`neumannHeatSecondValue_eq_secondDeriv_Ioo` below):
+
+  `|F x₁ − F x₂| ≤ brick4Const θ η · σ^{−1+(θ−η)/2} · Hh · |x₁−x₂|^η`,  `x₁,x₂∈[0,1]`.
+
+PROOF: `F` is continuous on `ℝ` (`neumannHeatSecondValue_continuous`), the RHS is
+continuous in `(x₁,x₂)`, and the `Ioo` inequality (`neumannHeatSecondDerivCthetaToCeta_routeB`
+transported through the interior pinning) holds on the dense `Ioo×Ioo`.  The bound set
+`{p | |F p.1 − F p.2| ≤ RHS p.1 p.2}` is closed and contains `Ioo×Ioo`, hence contains
+its closure `Icc×Icc = closure (Ioo×Ioo)`. -/
+theorem neumannHeatSecondDerivCthetaToCeta_routeB_Icc {σ θ η : ℝ} (hσ : 0 < σ)
+    (hθ0 : 0 < θ) (hθ1 : θ < 1) (hη0 : 0 < η) (hη1 : η < 1)
+    {h : ℝ → ℝ} (hh : Continuous h)
+    {M : ℝ} (hM : ∀ n, |ShenWork.IntervalNeumannFullKernel.cosineCoeffs h n| ≤ M)
+    {Ch : ℝ} (hhb : ∀ y, |h y| ≤ Ch) {Hh : ℝ} (hHh_nn : 0 ≤ Hh)
+    (hHh : ∀ a b, a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+      |h a - h b| ≤ Hh * |a - b| ^ θ)
+    {x₁ x₂ : ℝ} (hx₁ : x₁ ∈ Set.Icc (0 : ℝ) 1)
+    (hx₂ : x₂ ∈ Set.Icc (0 : ℝ) 1) :
+    |unitIntervalCosineHeatSecondValue σ (cosineCoeffs h) x₁
+      - unitIntervalCosineHeatSecondValue σ (cosineCoeffs h) x₂|
+      ≤ brick4Const θ η * σ ^ (-1 + (θ - η) / 2 : ℝ) * Hh * |x₁ - x₂| ^ η := by
+  classical
+  set F : ℝ → ℝ := fun x => unitIntervalCosineHeatSecondValue σ (cosineCoeffs h) x with hF
+  set R : ℝ × ℝ → ℝ := fun p =>
+    brick4Const θ η * σ ^ (-1 + (θ - η) / 2 : ℝ) * Hh * |p.1 - p.2| ^ η with hR
+  -- both sides as continuous functions on `ℝ × ℝ`
+  have hFcont : Continuous F := neumannHeatSecondValue_continuous hσ hM
+  have hLHS : Continuous (fun p : ℝ × ℝ => |F p.1 - F p.2|) :=
+    (continuous_abs.comp ((hFcont.comp continuous_fst).sub (hFcont.comp continuous_snd)))
+  have hRHS : Continuous R := by
+    rw [hR]
+    exact continuous_const.mul
+      ((continuous_fst.sub continuous_snd).abs.rpow_const (fun _ => Or.inr hη0.le))
+  -- the bound set is closed and contains the open square `Ioo × Ioo`
+  set Sset : Set (ℝ × ℝ) := {p | |F p.1 - F p.2| ≤ R p} with hSset
+  have hclosed : IsClosed Sset := isClosed_le hLHS hRHS
+  have hsub : Set.Ioo (0 : ℝ) 1 ×ˢ Set.Ioo (0 : ℝ) 1 ⊆ Sset := by
+    rintro ⟨a, b⟩ ⟨ha, hb⟩
+    have hFa : F a = deriv (fun z : ℝ =>
+        deriv (fun w : ℝ => intervalFullSemigroupOperator σ h w) z) a :=
+      (intervalFullSemigroupOperator_secondDeriv_eq_secondValue_Ioo hσ hh hM ha).symm
+    have hFb : F b = deriv (fun z : ℝ =>
+        deriv (fun w : ℝ => intervalFullSemigroupOperator σ h w) z) b :=
+      (intervalFullSemigroupOperator_secondDeriv_eq_secondValue_Ioo hσ hh hM hb).symm
+    change |F a - F b| ≤ R (a, b)
+    rw [hFa, hFb, hR]
+    exact neumannHeatSecondDerivCthetaToCeta_routeB hσ hθ0 hθ1 hη0 hη1 hh hM hhb hHh_nn hHh ha hb
+  -- close the inequality on `Icc × Icc = closure (Ioo × Ioo)`
+  have hmem : (x₁, x₂) ∈ Sset := by
+    have hclo : (x₁, x₂) ∈ closure (Set.Ioo (0 : ℝ) 1 ×ˢ Set.Ioo (0 : ℝ) 1) := by
+      rw [closure_prod_eq, closure_Ioo (by norm_num : (0 : ℝ) ≠ 1)]
+      exact ⟨hx₁, hx₂⟩
+    exact (hclosed.closure_subset_iff.mpr hsub) hclo
+  exact hmem
+
+/-- **Brick 4, Route B — literal closed-interval form.**  This is the same estimate
+as `neumannHeatSecondDerivCthetaToCeta_routeB_Icc`, transported through the closed
+pinning between the literal second derivative and the spectral second value. -/
+theorem neumannHeatSecondDerivCthetaToCeta_routeB_literal_Icc {σ θ η : ℝ}
+    (hσ : 0 < σ) (hθ0 : 0 < θ) (hθ1 : θ < 1) (hη0 : 0 < η)
+    (hη1 : η < 1) {h : ℝ → ℝ} (hh : Continuous h)
+    {M : ℝ} (hM : ∀ n, |cosineCoeffs h n| ≤ M)
+    {Ch : ℝ} (hhb : ∀ y, |h y| ≤ Ch) {Hh : ℝ} (hHh_nn : 0 ≤ Hh)
+    (hHh : ∀ a b, a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+      |h a - h b| ≤ Hh * |a - b| ^ θ)
+    {x₁ x₂ : ℝ} (hx₁ : x₁ ∈ Set.Icc (0 : ℝ) 1)
+    (hx₂ : x₂ ∈ Set.Icc (0 : ℝ) 1) :
+    |deriv (fun z : ℝ => deriv
+          (fun w : ℝ => intervalFullSemigroupOperator σ h w) z) x₁
+        - deriv (fun z : ℝ => deriv
+          (fun w : ℝ => intervalFullSemigroupOperator σ h w) z) x₂|
+      ≤ brick4Const θ η * σ ^ (-1 + (θ - η) / 2 : ℝ) * Hh
+        * |x₁ - x₂| ^ η := by
+  rw [intervalFullSemigroupOperator_secondDeriv_eq_secondValue_Icc hσ hh hM hx₁,
+    intervalFullSemigroupOperator_secondDeriv_eq_secondValue_Icc hσ hh hM hx₂]
+  exact neumannHeatSecondDerivCthetaToCeta_routeB_Icc hσ hθ0 hθ1 hη0 hη1
+    hh hM hhb hHh_nn hHh hx₁ hx₂
+
+/-- **Brick 4 exact witness.**  The conclusion-shaped Schauder hypothesis is
+discharged with the explicit Route-B constant `brick4Const θ η`.  The source in the
+packaged hypothesis is only measurable and bounded; the proof replaces it by its
+continuous clamped representative on `[0,1]`, which has the same propagator. -/
+theorem neumannHeatSecondDeriv_Ctheta_to_Ceta {θ η : ℝ}
+    (hθ0 : 0 < θ) (hθ1 : θ < 1) (hη0 : 0 < η) (hη1 : η < 1) :
+    NeumannHeatSecondDerivCthetaToCeta θ η (brick4Const θ η) := by
+  classical
+  intro σ hσ h _hmeas Ch hhb Hh hHh_nn hHh x₁ x₂ hx₁ hx₂
+  set hc : ℝ → ℝ := fun x => h (clamp01 x) with hhc_def
+  have hcontOn : ContinuousOn h (Set.Icc (0 : ℝ) 1) :=
+    holderBound_continuousOn_Icc hθ0 hHh_nn hHh
+  have hhc_cont : Continuous hc := by
+    have hmaps : Set.MapsTo clamp01 Set.univ (Set.Icc (0 : ℝ) 1) :=
+      fun x _ => clamp01_mem x
+    have hcomp : ContinuousOn hc Set.univ := by
+      rw [hhc_def]
+      exact hcontOn.comp clamp01_continuous.continuousOn hmaps
+    exact continuousOn_univ.mp hcomp
+  have hhc_eq : ∀ x ∈ Set.Icc (0 : ℝ) 1, hc x = h x := by
+    intro x hx
+    rw [hhc_def]
+    change h (clamp01 x) = h x
+    rw [clamp01_eq_self hx]
+  have hS_eq : (fun w : ℝ => intervalFullSemigroupOperator σ h w)
+      = fun w : ℝ => intervalFullSemigroupOperator σ hc w := by
+    funext w
+    exact intervalFullSemigroupOperator_congr_on_Icc
+      (fun y hy => (hhc_eq y hy).symm) w
+  have hCh_nn : 0 ≤ Ch := le_trans (abs_nonneg (h 0)) (hhb 0)
+  have hhc_bound : ∀ y, |hc y| ≤ Ch := by
+    intro y
+    rw [hhc_def]
+    exact hhb (clamp01 y)
+  have hM : ∀ n, |cosineCoeffs hc n| ≤ 2 * Ch :=
+    cosineCoeffs_abs_le_of_continuous_bounded hhc_cont.continuousOn hCh_nn
+      (fun y _hy => hhc_bound y)
+  have hhc_holder : ∀ a b, a ∈ Set.Icc (0 : ℝ) 1 → b ∈ Set.Icc (0 : ℝ) 1 →
+      |hc a - hc b| ≤ Hh * |a - b| ^ θ := by
+    intro a b ha hb
+    rw [hhc_eq a ha, hhc_eq b hb]
+    exact hHh a b ha hb
+  rw [hS_eq]
+  exact neumannHeatSecondDerivCthetaToCeta_routeB_literal_Icc hσ hθ0 hθ1 hη0
+    hη1 hhc_cont hM hhc_bound hHh_nn hhc_holder hx₁ hx₂
+
+/-- `∂ₓₓS(σ)h` (literal second derivative) equals the spectral second value `F` on the
+OPEN interior, packaging the pinning for downstream chemotaxis-leg integrands. -/
+theorem neumannHeatSecondValue_eq_secondDeriv_Ioo {σ : ℝ} (hσ : 0 < σ) {h : ℝ → ℝ}
+    (hh : Continuous h) {M : ℝ} (hM : ∀ n, |cosineCoeffs h n| ≤ M)
+    {x : ℝ} (hx : x ∈ Set.Ioo (0 : ℝ) 1) :
+    deriv (fun z : ℝ => deriv (fun w : ℝ => intervalFullSemigroupOperator σ h w) z) x
+      = unitIntervalCosineHeatSecondValue σ (cosineCoeffs h) x :=
+  intervalFullSemigroupOperator_secondDeriv_eq_secondValue_Ioo hσ hh hM hx
+
 /-! ## Brick 5 — the product-Hölder algebra (`chemFlux Q = u·V_x ∈ C^θ`) -/
 
 /-- **Product Hölder seminorm algebra.**  For `f, g` bounded on `[0,1]`
@@ -265,6 +502,108 @@ theorem brick4_time_integrand_integrable {t₀ θ η : ℝ} (_ht : 0 < t₀)
   have hshift := hcomp.comp_sub_left t₀
   simp only [sub_zero, sub_self] at hshift
   exact hshift.symm
+
+/-! ## DISCHARGE of the chemotaxis-leg Hölder: `chemLeg_holder_of_brick4`
+
+The chemotaxis Duhamel leg
+  `chemLeg(x) = ∫₀^{t₀} (∂ₓₓ S(t₀−s) Q(s))(x) ds`
+is the integral over `[0,t₀]` of the brick-4 second-derivative integrand, applied to the
+chemotaxis flux `Q(s) = chemFluxLifted u(s)`.  We DISCHARGE its `η`-Hölder bound by
+applying brick 4 (Route B, `neumannHeatSecondDerivCthetaToCeta_routeB_Icc`) per slice and
+integrating with the integral-Minkowski core `holder_of_duhamel_integral`, the brick-4 time
+integrand `(t₀−s)^{−1+(θ−η)/2}` being integrable (`brick4_time_integrand_integrable`).
+
+The leg integrand is taken in the spectral second-value form
+`F s x = unitIntervalCosineHeatSecondValue (t₀−s) (cosineCoeffs (Q s)) (clamp01 x)`, equal to
+`∂ₓₓS(t₀−s)Q(s)` on `(0,1)` (`neumannHeatSecondValue_eq_secondDeriv_Ioo`); the `clamp01`
+makes the bound GLOBAL in `x` (the brick is on `[0,1]`, and `clamp01` is `1`-Lipschitz, so
+the `Icc` modulus transports to all of `ℝ` with the same constant — exactly the global shape
+the downstream `holderCosineCoeff_summable` needs).  The per-slice integrability of the leg
+integrand is the only carried datum (representation well-definedness of the Duhamel integral
+defining `chemLeg`), NOT a Hölder/Neumann/bound conclusion. -/
+
+/-- `clamp01` is `1`-Lipschitz: `|clamp01 x − clamp01 y| ≤ |x − y|`.  Used to transport the
+brick-4 `Icc`-Hölder of the second-derivative integrand to a GLOBAL Hölder of the clamped
+integrand. -/
+theorem clamp01_abs_sub_le (x y : ℝ) : |clamp01 x - clamp01 y| ≤ |x - y| := by
+  have hlip : LipschitzWith 1 clamp01 :=
+    ((LipschitzWith.id.const_min (1 : ℝ)).const_max (0 : ℝ))
+  have := hlip.dist_le_mul x y
+  simpa only [Real.dist_eq, NNReal.coe_one, one_mul] using this
+
+/-- **`chemLeg_holder_of_brick4` — the chemotaxis-leg Hölder bound, DISCHARGED.**
+
+For a per-slice source family `Q : ℝ → ℝ → ℝ` whose slices `Q s` are continuous with
+uniformly bounded cosine coefficients (`|ĉₙ(Q s)| ≤ M`), uniformly sup-bounded
+(`|Q s y| ≤ CQ`) and uniformly `θ`-Hölder on `[0,1]` (`[Q s]_θ ≤ HQ`), the clamped
+chemotaxis Duhamel leg
+  `chemLeg(x) = ∫₀^{t₀} unitIntervalCosineHeatSecondValue (t₀−s) (ĉ(Q s)) (clamp01 x) ds`
+is GLOBALLY `η`-Hölder with constant
+  `Achem = ∫₀^{t₀} brick4Const θ η · (t₀−s)^{−1+(θ−η)/2} · HQ ds`:
+
+  `|chemLeg x₁ − chemLeg x₂| ≤ Achem · |x₁ − x₂|^η`,   `x₁,x₂ ∈ ℝ`.
+
+PROOF: per slice, brick 4 (Route B, `neumannHeatSecondDerivCthetaToCeta_routeB_Icc`) bounds
+the integrand difference at `clamp01 x₁, clamp01 x₂ ∈ [0,1]`; `clamp01` `1`-Lipschitz turns
+`|clamp01 x₁ − clamp01 x₂|^η ≤ |x₁ − x₂|^η` into the global modulus; integrate with
+`holder_of_duhamel_integral`, the time integrand integrable by `brick4_time_integrand_integrable`.
+The per-slice integrability of the leg integrand (`hG_int`/`hH_int`) is the representation
+datum (the Duhamel integral defining `chemLeg` is well-defined). -/
+theorem chemLeg_holder_of_brick4 {t₀ θ η M CQ HQ : ℝ} {Q : ℝ → ℝ → ℝ}
+    (ht₀ : 0 < t₀) (hθ0 : 0 < θ) (hθ1 : θ < 1) (hη0 : 0 < η) (hη1 : η < 1) (hθη : η < θ)
+    (hHQ_nn : 0 ≤ HQ)
+    (hQcont : ∀ s ∈ Set.Ioo (0:ℝ) t₀, Continuous (Q s))
+    (hQcoeff : ∀ s ∈ Set.Ioo (0:ℝ) t₀, ∀ n, |cosineCoeffs (Q s) n| ≤ M)
+    (hQbdd : ∀ s ∈ Set.Ioo (0:ℝ) t₀, ∀ y, |Q s y| ≤ CQ)
+    (hQholder : ∀ s ∈ Set.Ioo (0:ℝ) t₀, ∀ a b, a ∈ Set.Icc (0:ℝ) 1 →
+      b ∈ Set.Icc (0:ℝ) 1 → |Q s a - Q s b| ≤ HQ * |a - b| ^ θ)
+    (x₁ x₂ : ℝ)
+    (hG_int : IntervalIntegrable
+      (fun s => unitIntervalCosineHeatSecondValue (t₀ - s) (cosineCoeffs (Q s)) (clamp01 x₁))
+      volume 0 t₀)
+    (hH_int : IntervalIntegrable
+      (fun s => unitIntervalCosineHeatSecondValue (t₀ - s) (cosineCoeffs (Q s)) (clamp01 x₂))
+      volume 0 t₀) :
+    |(∫ s in (0:ℝ)..t₀,
+        unitIntervalCosineHeatSecondValue (t₀ - s) (cosineCoeffs (Q s)) (clamp01 x₁))
+      - (∫ s in (0:ℝ)..t₀,
+        unitIntervalCosineHeatSecondValue (t₀ - s) (cosineCoeffs (Q s)) (clamp01 x₂))|
+      ≤ (∫ s in (0:ℝ)..t₀, brick4Const θ η * (t₀ - s) ^ (-1 + (θ - η) / 2 : ℝ) * HQ)
+        * |x₁ - x₂| ^ η := by
+  classical
+  -- the time integrand `φ s = brick4Const · (t₀−s)^{−1+(θ−η)/2} · HQ` is integrable
+  have hφ_int : IntervalIntegrable
+      (fun s : ℝ => brick4Const θ η * (t₀ - s) ^ (-1 + (θ - η) / 2 : ℝ) * HQ) volume 0 t₀ := by
+    have h0 := brick4_time_integrand_integrable (θ := θ) (η := η) ht₀ hθη
+    have h1 := h0.const_mul (brick4Const θ η)
+    have h2 := h1.mul_const HQ
+    exact h2.congr (fun s _ => by ring)
+  refine holder_of_duhamel_integral ht₀.le hG_int hH_int hφ_int ?_
+  -- a.e. on `[0,t₀]`: the per-slice brick-4 bound transported through `clamp01`
+  have hne : ∀ᵐ s ∂volume, s ≠ (0:ℝ) ∧ s ≠ t₀ := by
+    have h0 : ∀ᵐ s ∂volume, s ≠ (0:ℝ) := by
+      rw [ae_iff]; simp only [not_not, Set.setOf_eq_eq_singleton]; exact Real.volume_singleton
+    have ht : ∀ᵐ s ∂volume, s ≠ t₀ := by
+      rw [ae_iff]; simp only [not_not, Set.setOf_eq_eq_singleton]; exact Real.volume_singleton
+    filter_upwards [h0, ht] with s hs0 hst using ⟨hs0, hst⟩
+  refine (ae_restrict_iff' measurableSet_Icc).mpr ?_
+  filter_upwards [hne] with s hs hs_mem
+  have hsIoo : s ∈ Set.Ioo (0:ℝ) t₀ :=
+    ⟨lt_of_le_of_ne hs_mem.1 (Ne.symm hs.1), lt_of_le_of_ne hs_mem.2 hs.2⟩
+  have hts : 0 < t₀ - s := sub_pos.mpr hsIoo.2
+  -- brick 4 (Route B, Icc) on the clamped arguments
+  have hbrick := neumannHeatSecondDerivCthetaToCeta_routeB_Icc hts hθ0 hθ1 hη0 hη1
+    (hQcont s hsIoo) (hQcoeff s hsIoo) (hQbdd s hsIoo) hHQ_nn (hQholder s hsIoo)
+    (clamp01_mem x₁) (clamp01_mem x₂)
+  -- `|clamp01 x₁ − clamp01 x₂|^η ≤ |x₁ − x₂|^η` (clamp01 `1`-Lipschitz, `rpow` monotone)
+  have hclamp : |clamp01 x₁ - clamp01 x₂| ^ η ≤ |x₁ - x₂| ^ η :=
+    Real.rpow_le_rpow (abs_nonneg _) (clamp01_abs_sub_le x₁ x₂) hη0.le
+  refine hbrick.trans ?_
+  have hcoef_nn : 0 ≤ brick4Const θ η * (t₀ - s) ^ (-1 + (θ - η) / 2 : ℝ) * HQ := by
+    have := brick4Const_nonneg θ η
+    have : (0:ℝ) ≤ (t₀ - s) ^ (-1 + (θ - η) / 2 : ℝ) := (Real.rpow_pos_of_pos hts _).le
+    positivity
+  exact mul_le_mul_of_nonneg_left hclamp hcoef_nn
 
 /-! ## Assembly → Wiener ℓ¹: the `C^{1+η}`-slice ⟹ summable cosine coefficients -/
 
