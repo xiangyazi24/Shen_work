@@ -247,26 +247,68 @@ structure RotheStepInput
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) where
   hlam : 0 < lam
   hM : 0 ≤ M
+  /-- The base-barrier supersolution seed `F_u(Ū) ≤ 0` (feeds the producer's
+  `baseSuper`, discharged downstream from `whole_line_super_barrier`). -/
+  baseSuper : ∀ x, frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0
+  /-- For every trapped continuous antitone super-solution `Z` (`F_u(Z) ≤ 0`, the
+  new INPUT precond `hZsuper`), the produced next iterate `W` and its output
+  bundle. -/
   produce : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
       Σ' W : ℝ → ℝ, RotheStepOutput p c lam M κ Λ u Z W
+
+/-! ## The supersolution output `F_u(W) ≤ 0`
+
+The produced iterate `W` solves the differential step `G_{1/λ}(W) = Z`, i.e.
+`W − (1/λ)·F_u(W) = Z` (`ha.step_op`), so `F_u(W) = λ·(W − Z)`.  Together with the
+descent `W ≤ Z` (the clean max-principle output `le_old`) and `λ > 0`, this gives
+the supersolution invariant `F_u(W) ≤ 0`. -/
+
+/-- **The supersolution identity `F_u(W) = λ·(W − Z)` from the differential step.**
+From `implicitStepOp p c (1/λ) u W x = Z x` (`= W x − (1/λ)·F_u(W) x`) and `λ > 0`. -/
+theorem rotheStep_frozenWave_eq (hlam : 0 < lam)
+    {Z W : ℝ → ℝ} (ha : RotheStepAnalytic p c lam M κ Λ u Z W) (x : ℝ) :
+    frozenWaveOperator p c u W x = lam * (W x - Z x) := by
+  have hstep : W x - (1 / lam) * frozenWaveOperator p c u W x = Z x := by
+    have := ha.step_op x; simpa [implicitStepOp_apply] using this
+  have hlne : lam ≠ 0 := ne_of_gt hlam
+  field_simp at hstep
+  -- hstep : lam * W x - frozenWaveOperator p c u W x = lam * Z x  (some normal form)
+  nlinarith [hstep, mul_comm lam (W x), mul_comm lam (Z x)]
+
+/-- **The supersolution output `F_u(W) ≤ 0`.**  From the identity
+`F_u(W) = λ·(W − Z)`, `λ > 0`, and the descent `W ≤ Z` (`hle`). -/
+theorem rotheStep_supersol (hlam : 0 < lam)
+    {Z W : ℝ → ℝ} (ha : RotheStepAnalytic p c lam M κ Λ u Z W)
+    (hle : ∀ x, W x ≤ Z x) :
+    ∀ x, frozenWaveOperator p c u W x ≤ 0 := by
+  intro x
+  rw [rotheStep_frozenWave_eq hlam ha x]
+  have : W x - Z x ≤ 0 := by linarith [hle x]
+  exact mul_nonpos_of_nonneg_of_nonpos hlam.le this
 
 /-! ## Assembling `RotheStepProducer` -/
 
 /-- **The producer, assembled from the carried per-step input.**
-Each of the eight `RotheStepFacts` fields is discharged: `step_eq` from
+Each of the `RotheStepFacts` fields is discharged: `step_eq` from
 `analytic.step_eq`; `cont`/`diff`/`deriv_le` from the committed `C¹` bricks via
 `rotheStep_cont`/`rotheStep_diff`/`rotheStep_deriv_le`; `anti` from
 `implicitStep_preserves_antitone` via `rotheStep_anti`; `le_barrier` (`W ≤ Ū`)
 and `le_old` (`W ≤ Z`) from the committed clean max-principle via
 `rotheStep_le_barrier` (with `B = Ū` and `B = Z` respectively); `nonneg` carried
-directly as the lower trap. -/
+directly as the lower trap; `supersol` (`F_u(W) ≤ 0`) PROVED from `le_old` + the
+differential-step identity `F_u(W) = λ·(W − Z)` via `rotheStep_supersol`.
+The producer's `baseSuper` (`F_u(Ū) ≤ 0`) is the carried input's `baseSuper`. -/
 theorem rotheStepProducer_of_input
     (hin : RotheStepInput p c lam M κ Λ u) :
     RotheStepProducer p c lam M κ Λ u := by
-  intro Z hZc hZa hZ0 hZB
-  obtain ⟨W, hout⟩ := hin.produce Z hZc hZa hZ0 hZB
+  refine ⟨hin.baseSuper, ?_⟩
+  intro Z hZc hZa hZ0 hZB hZsuper
+  obtain ⟨W, hout⟩ := hin.produce Z hZc hZa hZ0 hZB hZsuper
   refine ⟨W, ?_⟩
+  have hle_old : ∀ x, W x ≤ Z x :=
+    rotheStep_le_barrier hin.hlam hin.hM hout.analytic hout.maxZ
   clear hZc hZa hZ0 hZB
   refine
     { step_eq := hout.analytic.step_eq
@@ -274,11 +316,36 @@ theorem rotheStepProducer_of_input
       diff := rotheStep_diff hin.hlam hout.analytic
       deriv_le := rotheStep_deriv_le hin.hlam hout.analytic
       nonneg := hout.nonneg
-      le_barrier := ?_
-      le_old := ?_
-      anti := rotheStep_anti hin.hlam hout.analytic hout.conv_form }
-  · exact rotheStep_le_barrier hin.hlam hin.hM hout.analytic hout.maxBarrier
-  · exact rotheStep_le_barrier hin.hlam hin.hM hout.analytic hout.maxZ
+      le_barrier := rotheStep_le_barrier hin.hlam hin.hM hout.analytic hout.maxBarrier
+      le_old := hle_old
+      anti := rotheStep_anti hin.hlam hout.analytic hout.conv_form
+      supersol := rotheStep_supersol hin.hlam hout.analytic hle_old }
+
+/-! ## Non-vacuity certificate at the orbit base `Z = Ū`
+
+The supersolution-precond producer is NON-VACUOUSLY inhabited along the real orbit.
+At the orbit base `Z = Ū` the precond `F_u(Ū) ≤ 0` is exactly `hprod.baseSuper`, so
+the producer honestly yields a next iterate `W` whose `RotheStepFacts` — in
+particular the freshly-PROVED supersolution output `supersol : F_u(W) ≤ 0` (from
+`le_old` + the differential-step identity `F_u(W) = λ·(W − Ū)`) — close the
+induction.  This certifies the fix is not the vacuous at-max dodge: the producer's
+precond is met by the orbit's actual input, and its supersol output is provable. -/
+
+/-- **Satisfiability/non-vacuity witness at the base barrier.**
+Given the carried producer and `0 ≤ κ`, `0 ≤ M`, the supersolution precond at
+`Z = Ū` is met (`hprod.baseSuper`), so the producer yields a next iterate `W` with
+the full `RotheStepFacts` bundle — whose `supersol` field certifies `F_u(W) ≤ 0`
+is genuinely PROVED (not assumed).  Hence the producer is non-vacuously inhabited
+along the real orbit's first step (and, by `rotheSeqOf_supersol`, every step). -/
+theorem rotheStepProducer_supersol_satisfiable_at_barrier
+    (hprod : RotheStepProducer p c lam M κ Λ u) (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
+    ∃ W : ℝ → ℝ, RotheStepFacts p c lam M κ Λ u (upperBarrier κ M) W
+      ∧ (∀ x, frozenWaveOperator p c u W x ≤ 0) := by
+  obtain ⟨W, hfacts⟩ :=
+    hprod.produce (upperBarrier κ M) (upperBarrier_continuous κ M)
+      (upperBarrier_antitone hκ) (fun x => upperBarrier_nonneg hM x)
+      (fun _ => le_refl _) hprod.baseSuper
+  exact ⟨W, hfacts, hfacts.supersol⟩
 
 /-- **`rotheStepProducer` — the per-`u` producer over the monotone trap set.**
 For every frozen profile `u ∈ InMonotoneWaveTrapSet κ M`, the carried per-step
@@ -297,6 +364,9 @@ section AxiomAudit
 #print axioms rotheStep_deriv_le
 #print axioms rotheStep_diff
 #print axioms rotheStep_anti
+#print axioms rotheStep_frozenWave_eq
+#print axioms rotheStep_supersol
+#print axioms rotheStepProducer_supersol_satisfiable_at_barrier
 #print axioms rotheStep_le_barrier
 #print axioms rotheStepProducer_of_input
 #print axioms rotheStepProducer

@@ -246,6 +246,7 @@ structure RotheFloorResidualCore
   order fields (`Z ≤ Z`, `Z ≤ Ū`), which the builder supplies. -/
   produceCore : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
       Σ' (W : ℝ → ℝ) (R : ℝ → ℝ) (C_chem LaZ LbZ LaB LbB : ℝ),
         ((W = fun x => greenConv c lam R x) ∧
         (W = fun x => ∫ y, greenKernel c lam (x - y) * R y) ∧
@@ -260,8 +261,8 @@ structure RotheFloorResidualCore
         (W = crossImplicitMap p c lam u Z W) ∧
         (0 ≤ C_chem) ∧
         ((1 / lam) * (reactionLip p.α M + C_chem) < 1) ∧
-        -- the descent-barrier super-solution `F_u(Z) ≤ 0` (Z-specific, NOT
-        -- the committed Ū super-barrier) stays carried:
+        -- the descent-barrier super-solution `F_u(Z) ≤ 0` (now the INPUT precond
+        -- `hZsuper`; re-emitted here so the floor payload shape is preserved):
         (∀ x, frozenWaveOperator p c u Z x ≤ 0) ∧
         Continuous (fun x => W x - Z x) ∧
         Tendsto (fun x => W x - Z x) atBot (𝓝 LaZ) ∧ (LaZ ≤ 0) ∧
@@ -297,15 +298,16 @@ def rotheFloorResidual_of_core
     RotheFloorResidual p c lam M κ Λ u where
   hlam := h.hlam
   hM := h.hM
+  baseSuper := h.hSuper
   produce := by
-    intro Z hZc hZa hZ0 hZB
+    intro Z hZc hZa hZ0 hZB hZsuper
     obtain ⟨W, R, C_chem, LaZ, LbZ, LaB, LbB,
         ⟨hgr, hcf, hRc, hRb, hRhi, hRlo, hRanti, hRint, hstepop, hnonneg,
           hstepeq, hCnn, hCB, hBsupZ,
           hφcZ, hbotZ, hLaZ, htopZ, hLbZ, hBC2Z, hrangeZ,
           hφcB, hbotB, hLaB, htopB, hLbB, hBC2B, hrangeB⟩,
         hchemZ, hchemB⟩ :=
-      h.produceCore Z hZc hZa hZ0 hZB
+      h.produceCore Z hZc hZa hZ0 hZB hZsuper
     exact ⟨W, R, C_chem, LaZ, LbZ, LaB, LbB,
       ⟨hgr, hcf, hRc, hRb, hRhi, hRlo, hRanti, hRint, hstepop, hnonneg,
         hstepeq, hCnn, hCB,
@@ -347,6 +349,7 @@ def rotheFloorResidual_of_trap
     -- committed bricks for arbitrary `u`):
     (hcore : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
         (∀ x, Z x ≤ upperBarrier κ M x) →
+        (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
         Σ' (W : ℝ → ℝ) (R : ℝ → ℝ) (C_chem LaZ LbZ LaB LbB : ℝ),
           ((W = fun x => greenConv c lam R x) ∧
           (W = fun x => ∫ y, greenKernel c lam (x - y) * R y) ∧

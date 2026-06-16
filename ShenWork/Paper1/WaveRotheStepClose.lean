@@ -281,8 +281,16 @@ structure RotheStepFloor
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) where
   hlam : 0 < lam
   hM : 0 ≤ M
+  /-- The base-barrier supersolution seed `F_u(Ū) ≤ 0` (the orbit seed, feeding
+  the producer's `baseSuper`; discharged downstream from
+  `whole_line_super_barrier`). -/
+  baseSuper : ∀ x, frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0
+  /-- For every trapped continuous antitone super-solution `Z` (`F_u(Z) ≤ 0`, the
+  new INPUT precond making the floor SATISFIABLE — the descent orbit only feeds
+  supersolution barriers), the produced iterate `W` and its full payload. -/
   produce : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
       -- the produced iterate + all data binders front-loaded into one nested Σ',
       -- then a flat ∧-conjunction of every Prop in the original order:
       Σ' (W : ℝ → ℝ) (R : ℝ → ℝ) (C_chem LaZ LbZ LaB LbB : ℝ),
@@ -340,15 +348,16 @@ def rotheStepInput_of_trap
     RotheStepInput p c lam M κ Λ u where
   hlam := hfloor.hlam
   hM := hfloor.hM
+  baseSuper := hfloor.baseSuper
   produce := by
-    intro Z hZc hZa hZ0 hZB
+    intro Z hZc hZa hZ0 hZB hZsuper
     obtain ⟨W, R, C_chem, LaZ, LbZ, LaB, LbB,
         ⟨hgr, hcf, hRc, hRb, hRhi, hRlo, hRanti, hRint, hstepop, hnonneg,
           hstepeq, hCnn, hCB,
           hBsupZ, hZZ, hφcZ, hbotZ, hLaZ, htopZ, hLbZ, hBC2Z, hrangeZ,
           hBsupB, hZleB, hφcB, hbotB, hLaB, htopB, hLbB, hBC2B, hrangeB⟩,
         hchemZ, hchemB⟩ :=
-      hfloor.produce Z hZc hZa hZ0 hZB
+      hfloor.produce Z hZc hZa hZ0 hZB hZsuper
     -- the analytic bundle: c2 from the Green C² brick, step_eq from the floor's
     -- flux-IBP output, rest from the floor's source-regularity data
     have hc2 : ∀ y, ContDiffAt ℝ 2 W y := by

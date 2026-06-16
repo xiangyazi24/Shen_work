@@ -105,15 +105,35 @@ structure RotheStepFacts (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → �
   le_old : ∀ x, W x ≤ Z x
   /-- Antitone-in-`x` (monotone wave profile preserved by the step). -/
   anti : Antitone W
+  /-- **The supersolution orbit invariant (output):** the produced iterate `W` is
+  again a super-solution, `F_u(W) ≤ 0`.  Proved inside the producers from `le_old`
+  (`W ≤ Z`) and the identity `F_u(W) = lam·(W − Z)` (since `lam > 0`).  This is the
+  inductive carrier making the descent never leave the supersolution orbit. -/
+  supersol : ∀ x, frozenWaveOperator p c u W x ≤ 0
 
 /-- **The per-step producer (carried hypothesis).**
-For every trapped continuous antitone `Z` with `0 ≤ Z`, `Z ≤ Ū`, there is a next
-iterate `W` satisfying the full per-step fact bundle.  This is the single named
-container for the per-step bridge content described in the file header; it is
-satisfiable from the committed step/trap/C¹ bricks. -/
-def RotheStepProducer (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Prop :=
-  ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
+For every trapped continuous antitone `Z` with `0 ≤ Z`, `Z ≤ Ū`, **and `Z` a
+super-solution** (`F_u(Z) ≤ 0`), there is a next iterate `W` satisfying the full
+per-step fact bundle.  This is the single named container for the per-step bridge
+content described in the file header.
+
+The supersolution precond `(∀ x, F_u(Z) x ≤ 0)` is what makes this SATISFIABLE: for
+a non-supersolution trapped antitone `Z` the unique implicit step overshoots
+(`W > Z` at a positive max), so `le_old` would be false; the descent orbit only
+ever feeds supersolution barriers (base `Ū` via `whole_line_super_barrier`, step
+via the output `supersol`), so the precond is honestly met along the real orbit.
+
+The `baseSuper` field carries the base-barrier supersolution `F_u(Ū) ≤ 0` (the
+orbit seed, discharged downstream from `whole_line_super_barrier`); it is what
+lets the recursion feed the supersolution precond at `k = 0` WITHOUT enlarging
+`rotheSeqOf`'s argument list — the invariant is internal to the carried producer. -/
+structure RotheStepProducer (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Prop where
+  /-- The base-barrier supersolution `F_u(Ū) ≤ 0` (the orbit seed). -/
+  baseSuper : ∀ x, frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0
+  /-- For every trapped continuous antitone super-solution `Z`, the next iterate. -/
+  produce : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
       ∃ W : ℝ → ℝ, RotheStepFacts p c lam M κ Λ u Z W
 
 /-! ## The concrete Rothe sequence
@@ -125,36 +145,44 @@ fixed producer witness, so the sequence is a genuine `ℕ → ℝ → ℝ`. -/
 variable {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
 
 /-- The "trapped continuous antitone" base data for an iterate, the input shape
-the producer consumes. -/
-structure IterateBase (κ M : ℝ) (Z : ℝ → ℝ) : Prop where
+the producer consumes.  It now ALSO carries the supersolution invariant
+`F_u(Z) ≤ 0` (the per-`u` frozen wave super-solution), so the recursion can feed
+the producer's supersolution precond at every step. -/
+structure IterateBase (p : CMParams) (c κ M : ℝ) (u Z : ℝ → ℝ) : Prop where
   cont : Continuous Z
   anti : Antitone Z
   nonneg : ∀ x, 0 ≤ Z x
   le_barrier : ∀ x, Z x ≤ upperBarrier κ M x
+  supersol : ∀ x, frozenWaveOperator p c u Z x ≤ 0
 
-/-- The super-barrier `Ū` satisfies the base data. -/
-theorem upperBarrier_iterateBase {κ M : ℝ} (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
-    IterateBase κ M (upperBarrier κ M) :=
+/-- The super-barrier `Ū` satisfies the base data, given its supersolution seed
+`hUbarSuper : F_u(Ū) ≤ 0` (carried by the producer as `baseSuper`). -/
+theorem upperBarrier_iterateBase {p : CMParams} {c κ M : ℝ} {u : ℝ → ℝ}
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+    (hUbarSuper : ∀ x, frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0) :
+    IterateBase p c κ M u (upperBarrier κ M) :=
   ⟨upperBarrier_continuous κ M, upperBarrier_antitone hκ,
-   fun x => upperBarrier_nonneg hM x, fun _ => le_refl _⟩
+   fun x => upperBarrier_nonneg hM x, fun _ => le_refl _, hUbarSuper⟩
 
 /-- The per-step facts entail the base data for the produced iterate (so the
-recursion can continue). -/
+recursion can continue) — including the supersolution invariant from `supersol`. -/
 theorem RotheStepFacts.toBase {p : CMParams} {c lam M κ Λ : ℝ} {u Z W : ℝ → ℝ}
-    (h : RotheStepFacts p c lam M κ Λ u Z W) : IterateBase κ M W :=
-  ⟨h.cont, h.anti, h.nonneg, h.le_barrier⟩
+    (h : RotheStepFacts p c lam M κ Λ u Z W) : IterateBase p c κ M u W :=
+  ⟨h.cont, h.anti, h.nonneg, h.le_barrier, h.supersol⟩
 
 /-- The concrete Rothe orbit packaged as a dependent recursion: at each `k` we
-return the iterate together with a proof of its base data, so the producer can be
-fed at the next step.  The function value is `(rotheStep …).1`. -/
+return the iterate together with a proof of its base data (incl. the supersolution
+invariant), so the producer can be fed at the next step.  The function value is
+`(rotheStep …).1`. -/
 def rotheStep (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ)
     (hprod : RotheStepProducer p c lam M κ Λ u)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
-    ∀ k : ℕ, { Z : ℝ → ℝ // IterateBase κ M Z }
-  | 0 => ⟨upperBarrier κ M, upperBarrier_iterateBase hκ hM⟩
+    ∀ k : ℕ, { Z : ℝ → ℝ // IterateBase p c κ M u Z }
+  | 0 => ⟨upperBarrier κ M, upperBarrier_iterateBase hκ hM hprod.baseSuper⟩
   | (k+1) =>
     let prev := rotheStep p c lam M κ Λ u hprod hκ hM k
-    let hex := hprod prev.1 prev.2.cont prev.2.anti prev.2.nonneg prev.2.le_barrier
+    let hex := hprod.produce prev.1 prev.2.cont prev.2.anti prev.2.nonneg
+      prev.2.le_barrier prev.2.supersol
     ⟨Classical.choose hex, (Classical.choose_spec hex).toBase⟩
 
 /-- The concrete Rothe sequence: the function values of `rotheStep`. -/
@@ -174,14 +202,16 @@ theorem rotheSeqOf_stepFacts
       (rotheSeqOf p c lam M κ Λ u hprod hκ hM k)
       (rotheSeqOf p c lam M κ Λ u hprod hκ hM (k+1)) := by
   let prev := rotheStep p c lam M κ Λ u hprod hκ hM k
-  have hex := hprod prev.1 prev.2.cont prev.2.anti prev.2.nonneg prev.2.le_barrier
+  have hex := hprod.produce prev.1 prev.2.cont prev.2.anti prev.2.nonneg
+    prev.2.le_barrier prev.2.supersol
   -- `rotheSeqOf … (k+1) = Classical.choose hex` and `rotheSeqOf … k = prev.1`
   exact Classical.choose_spec hex
 
-/-- Base data (continuity/antitone/nonneg/≤Ū) at every `k`, from `rotheStep`. -/
+/-- Base data (continuity/antitone/nonneg/≤Ū/supersol) at every `k`, from
+`rotheStep`. -/
 theorem rotheSeqOf_base
     (hprod : RotheStepProducer p c lam M κ Λ u) (hκ : 0 ≤ κ) (hM : 0 ≤ M) (k : ℕ) :
-    IterateBase κ M (rotheSeqOf p c lam M κ Λ u hprod hκ hM k) :=
+    IterateBase p c κ M u (rotheSeqOf p c lam M κ Λ u hprod hκ hM k) :=
   (rotheStep p c lam M κ Λ u hprod hκ hM k).2
 
 /-! ## Per-`k` field extraction (by the step bundle) -/
@@ -208,6 +238,14 @@ theorem rotheSeqOf_nonneg (k : ℕ) (x : ℝ) :
 theorem rotheSeqOf_le_barrier (k : ℕ) (x : ℝ) :
     rotheSeqOf p c lam M κ Λ u hprod hκ hM k x ≤ upperBarrier κ M x :=
   (rotheSeqOf_base hprod hκ hM k).le_barrier x
+
+/-- **The supersolution orbit invariant:** every iterate is a super-solution,
+`F_u(rotheSeq k) ≤ 0`.  This is carried inductively in `IterateBase` — base
+`k = 0` is `Ū`'s supersolution seed (`hprod.baseSuper`), and the step is the
+produced iterate's `RotheStepFacts.supersol` (`F_u(W) = lam·(W − Z) ≤ 0`). -/
+theorem rotheSeqOf_supersol (k : ℕ) (x : ℝ) :
+    frozenWaveOperator p c u (rotheSeqOf p c lam M κ Λ u hprod hκ hM k) x ≤ 0 :=
+  (rotheSeqOf_base hprod hκ hM k).supersol x
 
 /-- Each iterate is `≤ M`. -/
 theorem rotheSeqOf_le_M (k : ℕ) (x : ℝ) :
@@ -417,6 +455,7 @@ theorem b1_chiNeg_existence
 section AxiomAudit
 
 #print axioms rotheSeqOf
+#print axioms rotheSeqOf_supersol
 #print axioms rotheSeqOf_step_rec
 #print axioms rotheSeqOf_equiLip
 #print axioms rotheSeqOf_limitLip

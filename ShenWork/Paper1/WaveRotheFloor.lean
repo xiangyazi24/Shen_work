@@ -75,12 +75,17 @@ structure RotheFloorResidual
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) where
   hlam : 0 < lam
   hM : 0 ≤ M
-  /-- For each trapped antitone `Z`, the produced iterate `W`, its Green source `R`,
-  the chem constant `C_chem`, the four tail limits, and the full flat `∧`-chain of
-  analytic obligations + two `RotheStepChemData` data slots — exactly the
-  `RotheStepFloor.produce` payload. -/
+  /-- The base-barrier supersolution seed `F_u(Ū) ≤ 0` (orbit seed; discharged
+  downstream from `whole_line_super_barrier`). -/
+  baseSuper : ∀ x, frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0
+  /-- For each trapped antitone super-solution `Z` (`F_u(Z) ≤ 0`, the new INPUT
+  precond making the residual SATISFIABLE), the produced iterate `W`, its Green
+  source `R`, the chem constant `C_chem`, the four tail limits, and the full flat
+  `∧`-chain of analytic obligations + two `RotheStepChemData` data slots — exactly
+  the `RotheStepFloor.produce` payload. -/
   produce : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
       Σ' (W : ℝ → ℝ) (R : ℝ → ℝ) (C_chem LaZ LbZ LaB LbB : ℝ),
         ((W = fun x => greenConv c lam R x) ∧
         (W = fun x => ∫ y, greenKernel c lam (x - y) * R y) ∧
@@ -130,6 +135,7 @@ def rotheStepFloor_of_residual
     RotheStepFloor p c lam M κ Λ u where
   hlam := h.hlam
   hM := h.hM
+  baseSuper := h.baseSuper
   produce := h.produce
 
 /-- **`rotheStepFloor_of_trap` — the per-step Green-regularity floor for every
