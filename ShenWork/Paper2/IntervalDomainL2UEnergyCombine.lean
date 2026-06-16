@@ -410,6 +410,77 @@ theorem resolverGradReal_bounded
   refine ⟨max G 0, le_max_right _ _, fun x hx => ?_⟩
   exact le_trans (hG ⟨x, hx, rfl⟩) (le_max_left _ _)
 
+/-- **(Gap 1)-helper: uniform L∞ bound on the resolver second derivative
+`resolverGrad2Real p (u τ)` over `[0,1]`.**  The second-derivative cosine series is
+continuous (`resolverGrad2Real_continuous`), so it is bounded on the compact `[0,1]`. -/
+theorem resolverGrad2Real_bounded
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T) :
+    ∃ G : ℝ, 0 ≤ G ∧
+      ∀ x ∈ Set.Icc (0:ℝ) 1, |resolverGrad2Real p (u τ) x| ≤ G := by
+  have hcont : Continuous (fun x : ℝ => resolverGrad2Real p (u τ) x) :=
+    resolverGrad2Real_continuous hsol hτ
+  obtain ⟨G, hG⟩ :=
+    (isCompact_Icc.image_of_continuousOn (hcont.continuousOn.abs)).bddAbove
+  refine ⟨max G 0, le_max_right _ _, fun x hx => ?_⟩
+  exact le_trans (hG ⟨x, hx, rfl⟩) (le_max_left _ _)
+
+/-- **(Gap 1) `resolverGradReal` is `θ`-Hölder in `x` on `[0,1]`.**
+
+The chemotaxis multiplier's core `V_x = resolverGradReal p (u τ)` is `C¹` on `ℝ`
+(`resolverGradReal_hasDerivAt`, derivative `V_xx = resolverGrad2Real p (u τ)`), and
+`V_xx` is continuous hence bounded by some `G ≥ 0` on the compact `[0,1]`
+(`resolverGrad2Real_bounded`).  The 1-D mean-value inequality on the convex `[0,1]`
+(`norm_image_sub_le_of_norm_deriv_le`) then gives `V_x` Lipschitz with constant `G`,
+and on `[0,1]` (where `|x−y| ≤ 1`) Lipschitz upgrades to `θ`-Hölder for `0 < θ ≤ 1`
+via `|x−y| = |x−y|^1 ≤ |x−y|^θ`.  This supplies the `Hg` modulus (with `Hg = G`)
+that `chemFlux_Ctheta` takes as a hypothesis. -/
+theorem resolverGradReal_holder_Icc
+    {p : CM2Params} {T : ℝ}
+    {u v : ℝ → intervalDomainPoint → ℝ}
+    (hsol : IsPaper2ClassicalSolution intervalDomain p T u v)
+    {τ : ℝ} (hτ : τ ∈ Set.Ioo (0 : ℝ) T)
+    {θ : ℝ} (hθ0 : 0 < θ) (hθ1 : θ ≤ 1) :
+    ∃ Hg : ℝ, 0 ≤ Hg ∧
+      ∀ x y, x ∈ Set.Icc (0:ℝ) 1 → y ∈ Set.Icc (0:ℝ) 1 →
+        |resolverGradReal p (u τ) x - resolverGradReal p (u τ) y|
+          ≤ Hg * |x - y| ^ θ := by
+  obtain ⟨G, hGnn, hGb⟩ := resolverGrad2Real_bounded hsol hτ
+  refine ⟨G, hGnn, fun x y hx hy => ?_⟩
+  -- `V_x` is differentiable everywhere with derivative `V_xx = resolverGrad2Real`.
+  have hderiv : ∀ z : ℝ, HasDerivAt (fun w : ℝ => resolverGradReal p (u τ) w)
+      (resolverGrad2Real p (u τ) z) z := fun z => resolverGradReal_hasDerivAt hsol hτ z
+  have hdiffAt : ∀ z ∈ Set.Icc (0:ℝ) 1,
+      DifferentiableAt ℝ (fun w : ℝ => resolverGradReal p (u τ) w) z :=
+    fun z _ => (hderiv z).differentiableAt
+  have hderiv_eq : ∀ z : ℝ,
+      deriv (fun w : ℝ => resolverGradReal p (u τ) w) z = resolverGrad2Real p (u τ) z :=
+    fun z => (hderiv z).deriv
+  -- bound on `‖deriv V_x‖ = |V_xx| ≤ G` over `[0,1]`.
+  have hbound : ∀ z ∈ Set.Icc (0:ℝ) 1,
+      ‖deriv (fun w : ℝ => resolverGradReal p (u τ) w) z‖ ≤ G := by
+    intro z hz; rw [Real.norm_eq_abs, hderiv_eq z]; exact hGb z hz
+  -- mean-value Lipschitz on the convex `[0,1]`.
+  have hlip : |resolverGradReal p (u τ) x - resolverGradReal p (u τ) y| ≤ G * |x - y| := by
+    have hmv := Convex.norm_image_sub_le_of_norm_deriv_le
+      (f := fun w => resolverGradReal p (u τ) w) hdiffAt hbound (convex_Icc 0 1) hx hy
+    simp only [Real.norm_eq_abs] at hmv
+    rw [abs_sub_comm (resolverGradReal p (u τ) x), abs_sub_comm x y]
+    exact hmv
+  -- `|x−y| ≤ 1` on `[0,1]`, so `|x−y| = |x−y|^1 ≤ |x−y|^θ`.
+  have hle1 : |x - y| ≤ 1 := by
+    rw [abs_le]; constructor <;> [linarith [hx.1, hy.2]; linarith [hx.2, hy.1]]
+  have hupg : |x - y| ≤ |x - y| ^ θ := by
+    rcases eq_or_lt_of_le (abs_nonneg (x - y)) with hz | hpos
+    · rw [← hz]; simp [Real.zero_rpow (ne_of_gt hθ0)]
+    · calc |x - y| = |x - y| ^ (1:ℝ) := (Real.rpow_one _).symm
+        _ ≤ |x - y| ^ θ := Real.rpow_le_rpow_of_exponent_ge hpos hle1 hθ1
+  calc |resolverGradReal p (u τ) x - resolverGradReal p (u τ) y|
+      ≤ G * |x - y| := hlip
+    _ ≤ G * |x - y| ^ θ := mul_le_mul_of_nonneg_left hupg hGnn
+
 /-- **(A)-helper (ii): uniform L∞ bound on `intervalDomainLift (v τ)` over `[0,1]`.**
 Conjunct-7 `C²` ⇒ continuous on the compact `[0,1]` ⇒ bounded. -/
 theorem lift_v_bounded
@@ -1809,3 +1880,5 @@ theorem intervalDomainUEnergyIntegrandDeriv_continuousOn_closedSlab
 end
 
 end ShenWork.Paper2
+
+#print axioms ShenWork.Paper2.resolverGradReal_holder_Icc
