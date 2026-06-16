@@ -256,3 +256,24 @@ build; Codex also on uisai2 + out of credits till Jun 18). Build-work + Codex-di
 explicit instruction. Design advanced (this G2 verdict) is git-only. RESUME from commit after uisai2 returns:
 re-`lake build`-verify the 2 WIP files (WaveBridgeWrappers, PDE/EigenvalueL1Space), then per Xiang's G2
 decision either build the stationary-resolvent route (L1'-L5') or the parallel bridge.
+
+## ★★★★★ B1 FINAL ASSEMBLY ROUTE (cron2, 2026-06-15) — parallel STATIONARY-MAP bridge (bypass orbit contract)
+The Rothe construction is NOT forced into the committed continuous-time `FrozenAuxiliaryLimitOutput`
+(which demands deriv(z τ)=frozenWaveOp…). Instead Tmap u := `rotheLimit (z(u))` (the monotone-limit of the
+implicit-Euler Green orbit, committed WaveRotheLimit), fed through a NEW parallel bridge:
+  def FrozenStationaryMapSchauderData (Tmap) :=
+    (∀u, trap u → trap (Tmap u))                        -- invariance: max-principle trap (WaveRotheMaxPrinciple) + rotheLimit_mem_trap
+    ∧ (∀u, trap u → crossAuxMap p c lam u (Tmap u) = Tmap u)  -- stationary fixed pt [abd71a43: rotheLimit_stationary]
+    ∧ LocalUniformContinuousOn trap Tmap                -- continuity-in-u [cron2 equicont design]
+    ∧ LocalUniformSequentiallyCompactRange trap Tmap    -- compactness (Helly/Arzelà) [cron2 equicont design]
+  theorem FrozenStationaryMapSchauderData.exists_self_frozen_stationary
+    (hprinciple : LocalUniformSchauderFixedPointPrinciple trap)  -- = G1 [needs R3]
+    (hdata) : ∃ U, trap U ∧ crossAuxMap p c lam U U = U
+  → crossImplicitMap_self_eq_auxMap ⟹ auxMap p c lam U = U ⟹ committed fixedPoint_stationary
+  ⟹ ∀x frozenWaveOperator p c U U x = 0. Then feed U into the committed raw/profile bridges
+  (+ U→1 atBot, V'≤0 [committed frozenElliptic_deriv_nonpos], Shen bound [committed], tail [committed])
+  → B1 Theorem_1_1. THIS replaces the FrozenWaveMapConstruction/orbit-contract path entirely.
+ASSEMBLY BRICKS: ✅ rotheLimit+trap (WaveRotheLimit) · 🔧 rotheLimit_stationary (abd71a43) ·
+  🔧 equicont/uniform-C¹ → continuity+compactness+limit-continuity (cron2 design) ·
+  ⬜ the FrozenStationaryMapSchauderData def + exists_self_frozen_stationary bridge (Statements scaffold) ·
+  ⬜ final wiring to Theorem_1_1. Gated ultimately on G1 (R3) for the Schauder principle.
