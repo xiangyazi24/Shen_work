@@ -284,3 +284,17 @@ bricks are NOT committed:
 ⟹ concrete chemMild_C1eta_concrete = Gap 1 (elliptic V_x∈C^θ brick) + Gap 2 (reaction Duhamel discharge) + Gap 3 + the
 instantiation. NOT multi-day, but NOT wiring either — a few bricks, Gap 1 the real one. Repo has 74 git stashes (heavy
 parallel-work residue — ask Xiang re uisai1 coordination).
+
+## P2-T11 concrete instantiation — STRUCTURAL MISMATCH (f5749fc) = the real remaining shape
+Gap 1 (resolverGradReal_holder_Icc, V_x∈C^θ) is PROVED+committed but for IsPaper2ClassicalSolution. The chemMild chain
+provides the WEAKER GradientMildSolutionData (the mild fixed point) — and IsPaper2ClassicalSolution is the very
+conclusion (classical existence) we're constructing, so it can't be assumed. The resolver regularity (V_x C¹) actually
+needs only the snapshot u(τ) bounded (V = elliptic-solve of u^γ; the resolver smooths), which BOTH structures provide —
+so resolverGradReal_holder_Icc is over-wrapped in IsPaper2ClassicalSolution; generalizing its hypothesis (+ the committed
+resolverGradReal_hasDerivAt / resolverGrad2Real_continuous it uses) to "snapshot + boundedness" is the bridge. This is
+the onion the concrete instantiation has revealed layer by layer (chem_holder ×3 → wiring-vs-analytic → 5 gaps →
+mild-vs-classical resolver regularity). NET: P2-T11 step (ii) ABSTRACT Schauder machinery is COMPLETE+committed; the
+concrete instantiation is multi-layer STRUCTURAL PLUMBING (resolver-regularity hypothesis generalization + Gap 2
+reaction-leg gradient Hölder + Gap 3 init_diff + the GradientMildSolutionData wiring) — well-scoped, no new hard analysis,
+but a patient multi-file architectural grind. Best suited for Codex (Jun 18) or a fresh-context session, NOT one-shot
+opus dispatches (which have correctly refused to fake it 6×).
