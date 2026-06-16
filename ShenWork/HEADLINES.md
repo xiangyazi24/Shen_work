@@ -156,3 +156,21 @@ hypothesis is unsatisfiable is VACUOUS; we do not ship that. Both now CORRECTLY 
 LESSON: "0-sorry + green build + a single-instance witness" ≠ "proves the theorem". A carried hypothesis must be shown
 INHABITED (satisfiable for ALL inputs it quantifies over), not just non-contradictory at one seed. Audit carried
 obligations for ∀-quantified properties that hold only for a sub-class (supersolutions/iterates), not all inputs.
+
+## P2-T11 endpoint route — SHORTCUT (ChatGPT cron RUN#527, 2026-06-16): stop at C^{1+η}, skip full C²
+ChatGPT confirmed the pass-1 scaling (∫|∂ₓₓp_σ||z|^θ = C_θ σ^{−1+θ/2}; Neumann ∫₀¹∂ₓₓK_N dy=0 EXACT since the
+semigroup preserves constants — no boundary correction; double-DUI via the integrable (t₀−s)^{−1+θ/2} dominator) AND
+flagged a shortcut that AVOIDS the one hard lemma:
+- The chemotaxis DIVERGENCE leg needs Q∈C^{1+θ} (NOT just C^θ) for full C²: rewrite ∂ₓS(t−s)Q = S(t−s)(Q_x) using
+  Q=0 at the Neumann boundary, then the value-source C^θ→C² lemma on Q_x. That extra derivative is a whole rung.
+- BUT P2-T11's downstream need is the WIENER ℓ¹ output, and **C^{1+η} ⟹ summable cosine coefficients** (Neumann BC +
+  one IBP ⟹ c_n ~ n^{−(1+η)}, summable). So the MINIMAL route stops at **u(t₀)∈C^{1+η}** — ONE Hölder rung past pass-1
+  (apply the committed gradient Hölder smoothing to the mild solution) — sidestepping the hard full-C² endpoint lemma
+  neumannDuhamel_positiveTime_C2_slice AND the C^{1+θ}-chemotaxis complication.
+REVISED pass-2 minimal stack (for the Wiener output; full C²/classical is a SEPARATE later goal for Prop 1.1):
+  (i) mild_orderBox_positiveTime_holder : u(t)∈C^θ, t≥τ  [a55eb09 in flight].
+  (ii) mild_orderBox_positiveTime_C1theta : u(t)∈C^{1+η}, t≥τ  (one more rung: gradient Hölder smoothing of the mild rep;
+       chemotaxis leg via the gradient-of-gradient = the committed t^{−1} second-deriv bound, value leg via t^{−1/2}).
+  (iii) C1theta_implies_wiener_l1 : f∈C^{1+η} ⟹ Σ|cosineCoeff f n| < ∞ ⟹ wienerNorm bound. Feeds the EWA hQuant engine.
+This makes P2-T11 χ₀<0 a stack of Hölder-smoothing rungs + one cosine-coefficient-decay lemma — no full-C² endpoint
+needed for the headline. (Keep neumannDuhamel_positiveTime_C2_slice on the board for the separate full-classical Prop 1.1.)
