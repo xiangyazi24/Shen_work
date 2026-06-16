@@ -245,6 +245,351 @@ theorem endpointFwd_invalid_of_base_last_zero {n k : ℕ} (hn : 0 < n) (c : KCel
   rw [hbase (Fin.last n), endpointFwd_base_last hn c, hzero] at hnn
   norm_num at hnn
 
+/-! ## R2 — reconstruction-uniqueness: a facet pins its bounding cells
+
+The remaining half of R2 is the *uniqueness* of the bounding cell at a fixed drop endpoint.
+The backbone is `chainVZ_last`: the `n+1` chain vertices of a cell carry the *distinct,
+consecutive* last coordinates `p(last), …, p(last)-n`.  Hence a facet `F` determines, point by
+point, which chain index each of its vertices came from — and from that, the base `p` and the
+step order `σ` are recovered.  Below we make this canonical reconstruction precise and conclude
+that a boundary door bounds **exactly one** present cell with an off-mesh partner. -/
+
+/-- `stepVec` is injective: the step vector `stepVec a` is `+1` exactly at coordinate
+`a.castSucc` (and `-1` at `last`), so it determines `a`. -/
+theorem stepVec_injective {n : ℕ} : Function.Injective (stepVec (n := n)) := by
+  intro a b hab
+  have hval := congrFun hab a.castSucc
+  -- stepVec a (a.castSucc) = 1 ; stepVec b (a.castSucc) = 1 ⟹ a.castSucc = b.castSucc
+  have hane : a.castSucc ≠ Fin.last n := by
+    intro h; have := congrArg Fin.val h
+    simp only [Fin.val_castSucc, Fin.val_last] at this; omega
+  have ha1 : stepVec a a.castSucc = 1 := by
+    unfold stepVec; rw [if_pos rfl, if_neg hane]; ring
+  rw [ha1] at hval
+  -- now stepVec b (a.castSucc) = 1 forces the +1 coordinate, i.e. a.castSucc = b.castSucc
+  unfold stepVec at hval
+  by_cases hbc : a.castSucc = b.castSucc
+  · exact Fin.castSucc_injective _ hbc
+  · rw [if_neg hbc] at hval
+    by_cases hbl : a.castSucc = Fin.last n
+    · exact absurd hbl hane
+    · rw [if_neg hbl] at hval; simp at hval
+
+/-- A permutation is determined by its values away from a single point: if `σ` and `σ'` agree
+on every `s ≠ s₀`, they agree everywhere (the remaining value is forced by bijectivity). -/
+theorem perm_eq_of_eq_off_point {n : ℕ} {σ σ' : Equiv.Perm (Fin n)} {s₀ : Fin n}
+    (h : ∀ s, s ≠ s₀ → σ s = σ' s) : σ = σ' := by
+  have hs0 : σ s₀ = σ' s₀ := by
+    by_contra hne
+    -- σ s₀ ≠ σ' s₀.  σ' s₀ = σ s for some s (σ surjective); that s ≠ s₀ (else σ s₀ = σ' s₀)
+    obtain ⟨s, hs⟩ := σ.surjective (σ' s₀)
+    have hss0 : s ≠ s₀ := by
+      intro he; rw [he] at hs; exact hne hs
+    -- then σ' s = σ s = σ' s₀ ⟹ s = s₀ by injectivity of σ', contradiction
+    have : σ' s = σ' s₀ := by rw [← h s hss0, hs]
+    exact hss0 (σ'.injective this)
+  refine Equiv.ext (fun s => ?_)
+  by_cases hs : s = s₀
+  · rw [hs]; exact hs0
+  · exact h s hs
+
+/-- A member of `facetSet p σ t` is exactly a chain vertex of `(p,σ)` at an index `u ≠ t`. -/
+theorem mem_facetSet_exists {n : ℕ} (p : Fin (n + 1) → ℤ) (σ : Equiv.Perm (Fin n))
+    (t : Fin (n + 1)) {v : Fin (n + 1) → ℤ} (hv : v ∈ facetSet p σ t) :
+    ∃ u : Fin (n + 1), u ≠ t ∧ chainVZ p σ u = v := by
+  unfold facetSet at hv
+  rw [Finset.mem_image] at hv
+  obtain ⟨u, hu, huv⟩ := hv
+  rw [Finset.mem_erase] at hu
+  exact ⟨u, hu.1, huv⟩
+
+/-- **One Kuhn step.**  `chainVZ p σ (s.succ) = chainVZ p σ (s.castSucc) + stepVec (σ s)`:
+advancing the chain index by one adds exactly the `s`-th step. -/
+theorem chainVZ_step {n : ℕ} (p : Fin (n + 1) → ℤ) (σ : Equiv.Perm (Fin n)) (s : Fin n) :
+    chainVZ p σ s.succ = fun i => chainVZ p σ s.castSucc i + stepVec (σ s) i := by
+  classical
+  funext i
+  rw [chainVZ_apply, chainVZ_apply]
+  have hset : (Finset.univ.filter (fun s' : Fin n => s'.val < s.succ.val))
+      = insert s (Finset.univ.filter (fun s' : Fin n => s'.val < s.castSucc.val)) := by
+    ext s'
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and, Finset.mem_insert,
+      Fin.val_succ, Fin.val_castSucc]
+    constructor
+    · intro h
+      rcases Nat.lt_or_ge s'.val s.val with h' | h'
+      · exact Or.inr h'
+      · left; exact Fin.ext (by omega)
+    · rintro (rfl | h') <;> omega
+  have hnotmem : s ∉ Finset.univ.filter (fun s' : Fin n => s'.val < s.castSucc.val) := by
+    simp only [Finset.mem_filter, Finset.mem_univ, true_and, Fin.val_castSucc, not_lt,
+      le_refl]
+  rw [hset, Finset.sum_insert hnotmem]
+  ring
+
+/-- The sum of last coordinates over `facetSet p σ t` equals
+`(n+1)·p(last) - (0+1+…+n) + t.val`: it is the full chain sum minus the dropped vertex's last
+coordinate.  This is an `F`-invariant pinning `p(last)` once the drop *type* (`t.val`) is fixed. -/
+theorem sum_last_facetSet {n : ℕ} (p : Fin (n + 1) → ℤ) (σ : Equiv.Perm (Fin n))
+    (t : Fin (n + 1)) :
+    ∑ v ∈ facetSet p σ t, v (Fin.last n)
+      = (∑ u : Fin (n + 1), (p (Fin.last n) - (u.val : ℤ))) - (p (Fin.last n) - (t.val : ℤ)) := by
+  classical
+  unfold facetSet
+  rw [Finset.sum_image (by
+    intro a _ b _ hab
+    exact chainVZ_injective p σ hab)]
+  have hfun : ∀ u : Fin (n + 1), chainVZ p σ u (Fin.last n) = p (Fin.last n) - (u.val : ℤ) :=
+    fun u => chainVZ_last p σ u
+  rw [Finset.sum_congr rfl (fun u _ => hfun u)]
+  have hsplit : (∑ u : Fin (n + 1), (p (Fin.last n) - (u.val : ℤ)))
+      = (∑ u ∈ Finset.univ.erase t, (p (Fin.last n) - (u.val : ℤ)))
+        + (p (Fin.last n) - (t.val : ℤ)) :=
+    (Finset.sum_erase_add _ _ (Finset.mem_univ t)).symm
+  rw [hsplit]; ring
+
+/-- **Index-for-index matching.**  If two cells `(p,σ)` and `(p',σ')` produce the *same* facet
+`F` by dropping the *same* index `t`, their chain vertices match at every surviving index:
+`chainVZ p σ u = chainVZ p' σ' u` for all `u ≠ t`.  (The last-coordinate sum invariant forces
+`p(last)=p'(last)`, then last coordinates being injective pin `u = u'`.) -/
+theorem chainVZ_match_off {n : ℕ} (hn : 0 < n) {p p' : Fin (n + 1) → ℤ}
+    {σ σ' : Equiv.Perm (Fin n)} {t : Fin (n + 1)}
+    (hF : facetSet p σ t = facetSet p' σ' t) :
+    ∀ u : Fin (n + 1), u ≠ t → chainVZ p σ u = chainVZ p' σ' u := by
+  classical
+  have hsum := sum_last_facetSet p σ t
+  have hsum' := sum_last_facetSet p' σ' t
+  rw [hF] at hsum
+  have htel : ∀ q : ℤ, (∑ u : Fin (n + 1), (q - (u.val : ℤ)))
+      = (n + 1 : ℤ) * q - (∑ u : Fin (n + 1), (u.val : ℤ)) := by
+    intro q
+    rw [Finset.sum_sub_distrib, Finset.sum_const, Finset.card_univ, Fintype.card_fin,
+      nsmul_eq_mul]
+    push_cast; ring
+  rw [htel (p (Fin.last n))] at hsum
+  rw [htel (p' (Fin.last n))] at hsum'
+  have hlasteq : p (Fin.last n) = p' (Fin.last n) := by
+    have h := hsum.symm.trans hsum'
+    have hnpos : (1 : ℤ) ≤ (n : ℤ) := by exact_mod_cast hn
+    nlinarith [h, hnpos]
+  intro u hu
+  have hmem : chainVZ p σ u ∈ facetSet p' σ' t := by
+    rw [← hF]; unfold facetSet; rw [Finset.mem_image]
+    exact ⟨u, Finset.mem_erase.mpr ⟨hu, Finset.mem_univ _⟩, rfl⟩
+  obtain ⟨u', _, hu'eq⟩ := mem_facetSet_exists p' σ' t hmem
+  have hlu : chainVZ p σ u (Fin.last n) = chainVZ p' σ' u' (Fin.last n) := by rw [hu'eq]
+  rw [chainVZ_last, chainVZ_last, hlasteq] at hlu
+  have huu' : u = u' := Fin.ext (by exact_mod_cast (by omega : (u.val : ℤ) = (u'.val : ℤ)))
+  rw [← hu'eq, huu']
+
+/-- **Reconstruction at drop `0`.**  Two cells with the same drop-`0` facet are identical: the
+surviving indices `{1,…,n}` are consecutive, so all steps `σ s` for `s ≠ 0` are recovered from
+matched consecutive vertices; bijectivity forces `σ 0 = σ' 0` too, and the `u = 1` vertex then
+pins `p = p'`. -/
+theorem cell_eq_of_facetSet_eq_zero {n : ℕ} (hn : 0 < n) {p p' : Fin (n + 1) → ℤ}
+    {σ σ' : Equiv.Perm (Fin n)} (hF : facetSet p σ 0 = facetSet p' σ' 0) :
+    p = p' ∧ σ = σ' := by
+  have hmatch := chainVZ_match_off hn hF
+  -- step recovery: for s ≠ 0, both s.castSucc and s.succ are ≠ 0
+  have hstep : ∀ s : Fin n, s ≠ ⟨0, hn⟩ → σ s = σ' s := by
+    intro s hs
+    have hsc0 : s.castSucc ≠ (0 : Fin (n + 1)) := by
+      intro h; apply hs
+      have hv : s.castSucc.val = (0 : Fin (n + 1)).val := congrArg Fin.val h
+      rw [Fin.val_castSucc, Fin.val_zero] at hv
+      exact Fin.ext hv
+    have hss0 : s.succ ≠ (0 : Fin (n + 1)) := by
+      intro h
+      have hv : s.succ.val = (0 : Fin (n + 1)).val := congrArg Fin.val h
+      rw [Fin.val_succ, Fin.val_zero] at hv
+      omega
+    have h1 := hmatch s.castSucc hsc0
+    have h2 := hmatch s.succ hss0
+    have hstepeq : stepVec (σ s) = stepVec (σ' s) := by
+      have e1 := chainVZ_step p σ s
+      have e2 := chainVZ_step p' σ' s
+      funext i
+      have := congrFun (e1 ▸ h2 : (fun i => chainVZ p σ s.castSucc i + stepVec (σ s) i)
+        = chainVZ p' σ' s.succ) i
+      rw [e2, h1] at this
+      simp only at this ⊢; linarith
+    exact stepVec_injective hstepeq
+  have hσ : σ = σ' := perm_eq_of_eq_off_point hstep
+  refine ⟨?_, hσ⟩
+  -- p = p' from the u = 1 vertex (1 ≠ 0)
+  have h1ne : (⟨1, by omega⟩ : Fin (n + 1)) ≠ (0 : Fin (n + 1)) := by
+    intro h; have := congrArg Fin.val h; simp at this
+  have hm := hmatch ⟨1, by omega⟩ h1ne
+  funext i
+  have hc : chainVZ p σ ⟨1, by omega⟩ i = chainVZ p' σ' ⟨1, by omega⟩ i := congrFun hm i
+  rw [chainVZ_apply, chainVZ_apply, hσ] at hc
+  -- the prefix sums {s.val < 1} coincide (same σ' now), so p i = p' i
+  linarith [hc]
+
+/-- **Reconstruction at drop `last`.**  Two cells with the same drop-`last` facet are identical:
+the surviving indices `{0,…,n-1}` are consecutive, so `p = p'` directly (`u = 0`) and all steps
+`σ s` for `s ≠ ⟨n-1⟩` are recovered; bijectivity forces the last step too. -/
+theorem cell_eq_of_facetSet_eq_last {n : ℕ} (hn : 0 < n) {p p' : Fin (n + 1) → ℤ}
+    {σ σ' : Equiv.Perm (Fin n)} (hF : facetSet p σ (Fin.last n) = facetSet p' σ' (Fin.last n)) :
+    p = p' ∧ σ = σ' := by
+  have hmatch := chainVZ_match_off hn hF
+  -- p = p' from u = 0 (0 ≠ last for n ≥ 1)
+  have h0ne : (0 : Fin (n + 1)) ≠ Fin.last n := by
+    intro h; have := congrArg Fin.val h
+    simp only [Fin.val_zero, Fin.val_last] at this; omega
+  have hp : p = p' := by
+    have hm := hmatch 0 h0ne
+    funext i
+    have hc := congrFun hm i
+    rw [chainVZ_apply, chainVZ_apply] at hc
+    have he : (Finset.univ.filter (fun s : Fin n => s.val < (0 : Fin (n + 1)).val)) = ∅ := by
+      apply Finset.filter_eq_empty_iff.mpr; intro s _; simp
+    rw [he, Finset.sum_empty, add_zero, Finset.sum_empty, add_zero] at hc
+    exact hc
+  refine ⟨hp, ?_⟩
+  -- step recovery for s ≠ ⟨n-1⟩: both s.castSucc and s.succ are ≠ last
+  have hstep : ∀ s : Fin n, s ≠ ⟨n - 1, by omega⟩ → σ s = σ' s := by
+    intro s hs
+    have hsc : s.castSucc ≠ Fin.last n := by
+      intro h
+      have hv : s.castSucc.val = (Fin.last n).val := congrArg Fin.val h
+      rw [Fin.val_castSucc, Fin.val_last] at hv
+      have := s.isLt; omega
+    have hss : s.succ ≠ Fin.last n := by
+      intro h; apply hs
+      have hv : s.succ.val = (Fin.last n).val := congrArg Fin.val h
+      rw [Fin.val_succ, Fin.val_last] at hv
+      apply Fin.ext
+      show s.val = n - 1
+      omega
+    have h1 := hmatch s.castSucc hsc
+    have h2 := hmatch s.succ hss
+    have hstepeq : stepVec (σ s) = stepVec (σ' s) := by
+      have e1 := chainVZ_step p σ s
+      have e2 := chainVZ_step p' σ' s
+      funext i
+      have := congrFun (e1 ▸ h2 : (fun i => chainVZ p σ s.castSucc i + stepVec (σ s) i)
+        = chainVZ p' σ' s.succ) i
+      rw [e2, h1] at this
+      simp only at this ⊢; linarith
+    exact stepVec_injective hstepeq
+  exact perm_eq_of_eq_off_point hstep
+
+/-- A bounding cell realises `F` as its `dropOf`-facet. -/
+theorem facetSet_dropOf {n : ℕ} {c : KCell n} {F : Finset (Fin (n + 1) → ℤ)}
+    (hb : cellBounds c F) : facetSet c.1 c.2 (dropOf c F) = F := by
+  obtain ⟨t, ht⟩ := hb
+  rw [dropOf_eq c ht]; exact ht
+
+/-- `(dropOf c F).val = 0` means the drop index is `0`. -/
+theorem dropOf_eq_zero {n : ℕ} {c : KCell n} {F : Finset (Fin (n + 1) → ℤ)}
+    (h : (dropOf c F).val = 0) : dropOf c F = 0 := Fin.ext (by simpa using h)
+
+/-- `(dropOf c F).val = n` means the drop index is `Fin.last n`. -/
+theorem dropOf_eq_last {n : ℕ} {c : KCell n} {F : Finset (Fin (n + 1) → ℤ)}
+    (h : (dropOf c F).val = n) : dropOf c F = Fin.last n := Fin.ext (by simpa [Fin.val_last])
+
+/-- **Endpoint reconstruction dichotomy.**  If two cells `c, c'` both bound `F` at an *endpoint*
+drop (`(dropOf · F).val ∈ {0, n}`), then `c'` is either `c` itself or its `partnerCell`.  The
+four endpoint-pair cases reduce — via the same-endpoint reconstruction lemmas
+(`cell_eq_of_facetSet_eq_zero/last`) applied after pushing one cell through the committed
+endpoint facet-sharing (`endpointFwd_facet`/`endpointInv_facet`) — to `c = c'` (same end) or
+`c' = endpointFwd/Inv c = partnerCell hn c F` (opposite ends). -/
+theorem bounds_endpoint_dichotomy {n : ℕ} (hn : 0 < n) {c c' : KCell n}
+    {F : Finset (Fin (n + 1) → ℤ)} (hcb : cellBounds c F) (hcb' : cellBounds c' F)
+    (he : (dropOf c F).val = 0 ∨ (dropOf c F).val = n)
+    (he' : (dropOf c' F).val = 0 ∨ (dropOf c' F).val = n) :
+    c' = c ∨ c' = partnerCell hn c F := by
+  have hfc : facetSet c.1 c.2 (dropOf c F) = F := facetSet_dropOf hcb
+  have hfc' : facetSet c'.1 c'.2 (dropOf c' F) = F := facetSet_dropOf hcb'
+  rcases he with h0 | hl
+  · -- c drops at 0
+    rw [dropOf_eq_zero h0] at hfc
+    rcases he' with h0' | hl'
+    · -- c' drops at 0 too ⟹ c = c'
+      rw [dropOf_eq_zero h0'] at hfc'
+      have heq := cell_eq_of_facetSet_eq_zero hn (hfc.trans hfc'.symm)
+      exact Or.inl (Prod.ext heq.1.symm heq.2.symm)
+    · -- c' drops at last; partnerCell c F = endpointFwd c, which also drops F at last
+      rw [dropOf_eq_last hl'] at hfc'
+      have hfwd : facetSet (endpointFwd hn c).1 (endpointFwd hn c).2 (Fin.last n) = F := by
+        rw [endpointFwd_facet hn c]; exact hfc
+      have heq := cell_eq_of_facetSet_eq_last hn (hfc'.trans hfwd.symm)
+      right
+      rw [partnerCell_of_zero hn c h0]
+      exact Prod.ext heq.1 heq.2
+  · -- c drops at last
+    rw [dropOf_eq_last hl] at hfc
+    rcases he' with h0' | hl'
+    · -- c' drops at 0; partnerCell c F = endpointInv c, which drops F at 0
+      rw [dropOf_eq_zero h0'] at hfc'
+      have hinv : facetSet (endpointInv hn c).1 (endpointInv hn c).2 0 = F := by
+        rw [endpointInv_facet hn c]; exact hfc
+      have heq := cell_eq_of_facetSet_eq_zero hn (hfc'.trans hinv.symm)
+      right
+      rw [partnerCell_of_last hn c (by rw [hl]; omega) hl]
+      exact Prod.ext heq.1 heq.2
+    · -- both drop at last ⟹ c = c'
+      rw [dropOf_eq_last hl'] at hfc'
+      have heq := cell_eq_of_facetSet_eq_last hn (hfc.trans hfc'.symm)
+      exact Or.inl (Prod.ext heq.1.symm heq.2.symm)
+
+/-- **R2 — per-door singleton invalid partner.**  A boundary facet `F` (`isBoundaryN`) bounds
+*exactly one* present cell whose `partnerCell` is off the mesh.  Existence is the `isBoundaryN`
+witness (`isBoundaryN_endpoint`); uniqueness is the endpoint reconstruction dichotomy: any other
+present invalid-partner cell drops `F` at an endpoint, hence equals `c₀` or its partner — but the
+partner is off the mesh (not present), so it must equal `c₀`. -/
+theorem boundary_singleton_invalid {n : ℕ} (hn : 0 < n) (k : ℕ)
+    {F : Finset (Fin (n + 1) → ℤ)} (hb : isBoundaryN hn k F) :
+    ((cellsN n k).filter
+        (fun c => cellBounds c F ∧ ¬ cellMemN k (partnerCell hn c F))).card = 1 := by
+  classical
+  obtain ⟨c₀, hc₀k, hc₀b, hc₀inv, hc₀end⟩ := isBoundaryN_endpoint hn k hb
+  rw [Finset.card_eq_one]
+  refine ⟨c₀, ?_⟩
+  apply Finset.eq_singleton_iff_unique_mem.mpr
+  refine ⟨?_, ?_⟩
+  · rw [Finset.mem_filter]
+    exact ⟨mem_cellsN.mpr hc₀k, hc₀b, hc₀inv⟩
+  · intro c hc
+    rw [Finset.mem_filter] at hc
+    obtain ⟨hck, hcb, hcinv⟩ := hc
+    -- c drops F at an endpoint (else internal squeeze gives a valid partner)
+    have hcend : (dropOf c F).val = 0 ∨ (dropOf c F).val = n := by
+      by_contra hcon
+      push_neg at hcon
+      obtain ⟨h0, hn'⟩ := hcon
+      have hlt : (dropOf c F).val < n := by have := (dropOf c F).isLt; omega
+      have h0' : 0 < (dropOf c F).val := by omega
+      apply hcinv
+      rw [partnerCell_of_internal hn c (by omega) (by omega)]
+      unfold cellMemN at *
+      exact cellValid_swapAround h0' hlt (mem_cellsN.mp hck)
+    -- by the dichotomy, c = c₀ or c = partnerCell c₀ F; the latter is off the mesh, excluded
+    rcases bounds_endpoint_dichotomy hn hc₀b hcb hc₀end hcend with h | h
+    · exact h
+    · exfalso; apply hc₀inv
+      rw [← h]; exact mem_cellsN.mp hck
+
+/-- **`hboundaryOddN`, unconditional on R2.**  A boundary facet `F` (`isBoundaryN`) bounds an
+*odd* number of present cells, with the singleton invalid-partner crux now discharged by
+`boundary_singleton_invalid`. -/
+theorem hboundaryOddN_uncond {n : ℕ} (hn : 0 < n) (k : ℕ) {F : Finset (Fin (n + 1) → ℤ)}
+    (hb : isBoundaryN hn k F) :
+    Odd ((cellsN n k).filter (fun c => cellBounds c F)).card :=
+  hboundaryOddN hn k F (boundary_singleton_invalid hn k hb)
+
+/-- **n-D Sperner output with R2 discharged.**  Identical to `exists_rainbow_cellN` but with the
+per-door singleton hypothesis `hR2` now *proved* (`boundary_singleton_invalid`); only the
+boundary-door count `hR3` remains as a hypothesis. -/
+theorem exists_rainbow_cellN_R2 {n : ℕ} (hn : 0 < n) (k : ℕ)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1))
+    (hR3 : Odd ((facetsN n k).filter
+      (fun F => (F.image L = Finset.univ.erase (Fin.last n)) ∧ isBoundaryN hn k F)).card) :
+    Odd ((cellsN n k).filter (fun c => Function.Bijective (cellColorN L c))).card :=
+  exists_rainbow_cellN hn k L
+    (fun F _ _ hbF => boundary_singleton_invalid hn k hbF) hR3
+
 /-! ## Precise stall report — `BrouwerNDimR3`
 
 **What is fully closed here (axiom-clean: `[propext, Classical.choice, Quot.sound]`).**
@@ -289,6 +634,31 @@ theorem endpointFwd_invalid_of_base_last_zero {n k : ℕ} (hn : 0 < n) (c : KCel
   `-1` there).  Each is proved by reading the `t = 0` chain vertex (= the base) and contradicting
   `cellValid_nonneg`.  These are the genuine `∂Δⁿ` invalidity facts that drive `hsingle` (R2).
 
+* `stepVec_injective`, `perm_eq_of_eq_off_point`, `chainVZ_step`, `mem_facetSet_exists`,
+  `sum_last_facetSet`, `chainVZ_match_off`, **`cell_eq_of_facetSet_eq_zero`**,
+  **`cell_eq_of_facetSet_eq_last`** — **the reconstruction backbone (R2 uniqueness).**  The
+  `n+1` chain vertices carry the distinct, consecutive last coordinates `p(last), …, p(last)-n`
+  (`chainVZ_last`), so a facet's points match index-for-index across two cells dropping the same
+  index (`chainVZ_match_off`, pinning `p(last)=p'(last)` by the last-coordinate sum invariant
+  `sum_last_facetSet`).  The single Kuhn step `chainVZ_step` then recovers each `stepVec(σ s)`
+  from matched consecutive vertices; `stepVec_injective` gives `σ s = σ' s` for all but one step,
+  and `perm_eq_of_eq_off_point` (a permutation is pinned by its values off one point) forces the
+  last step too.  Hence two cells dropping the *same* endpoint to the *same* facet coincide.
+
+* **`facetSet_dropOf`, `dropOf_eq_zero`, `dropOf_eq_last`, `bounds_endpoint_dichotomy`,
+  `boundary_singleton_invalid`** — **R2, NOW FULLY CLOSED.**  Any two cells bounding `F` at
+  endpoint drops are either equal or `partnerCell`-partners (`bounds_endpoint_dichotomy`: the
+  four endpoint-pair cases collapse via the same-endpoint reconstruction after pushing one cell
+  through the committed `endpointFwd_facet`/`endpointInv_facet`).  Combined with the off-mesh
+  criteria and `isBoundaryN_endpoint`, a boundary facet bounds *exactly one* present cell with an
+  off-mesh partner (`boundary_singleton_invalid`): existence is the `isBoundaryN` witness, and any
+  other such cell equals it or its partner — but the partner is off the mesh, so it equals the
+  witness.  This discharges the `hR2` hypothesis of `exists_rainbow_cellN`.
+
+* **`hboundaryOddN_uncond`, `exists_rainbow_cellN_R2`** — **the R2 discharge.**  Boundary parity
+  is now unconditional (`hboundaryOddN_uncond`), and `exists_rainbow_cellN_R2` is the n-D Sperner
+  output with `hR2` proved — only the boundary-door count `hR3` remains a hypothesis.
+
 **Geometry correction (important).**  For `n ≥ 2` a boundary door is **NOT** a sub-simplex lying
 *in* the face `{q (Fin.last n) = 0}`: by `chainVZ_last` the `n+1` chain vertices of a single cell
 carry *distinct* last coordinates `p(last), …, p(last)−n`, so at most ONE chain vertex sits on
@@ -331,19 +701,17 @@ it suggested does not hold for the *door facets themselves*.
        Size: comparable to the entire boundary block of `BrouwerTwoDim.lean` (`hypLabel`,
        `boundary_door_form`, `hboundaryCount`) re-derived at symbolic `n`.  No Mathlib shortcut.
 
-  (R2) PER-DOOR SINGLETON INVALID PARTNER.  `hR2`: a boundary door bounds exactly ONE present
-       cell with an invalid partner.  By `isBoundaryN_endpoint` that cell drops at an endpoint;
-       the *invalidity* of the single side is now CLOSED by the two off-mesh criteria
-       (`endpointFwd_invalid_of_base_last_zero` / `endpointInv_invalid_of_base_zero`: the partner
-       is off the mesh exactly when the relevant base coordinate is already `0`).  What remains is
-       the *uniqueness*: reconstruction (the converse of `dropOf_eq` across distinct cells) showing
-       only ONE bounding cell sits at the off-mesh endpoint.  The backbone (`chainVZ_last`,
-       `card_facetSet`, `facetSet_injective`, `isBoundaryN_endpoint`, and now the coordinatewise
-       base-shifts) is in place; the at-most-one-crossing count over the two endpoint sides
-       remains.
+  (R2) PER-DOOR SINGLETON INVALID PARTNER — **CLOSED** (`boundary_singleton_invalid`, discharged
+       into `exists_rainbow_cellN_R2`).  A boundary door bounds exactly ONE present cell with an
+       invalid partner.  Existence is `isBoundaryN_endpoint`; the invalid side is the two off-mesh
+       criteria; and the uniqueness — the converse of `dropOf_eq` across distinct cells — is now
+       proved via the reconstruction backbone (`chainVZ_match_off` + `stepVec_injective` +
+       `perm_eq_of_eq_off_point` ⟹ `cell_eq_of_facetSet_eq_zero/last`) and the endpoint dichotomy
+       `bounds_endpoint_dichotomy` (any second bounding endpoint cell is the partner, which is off
+       the mesh, hence not present).  Only R3 remains as a hypothesis of `exists_rainbow_cellN_R2`.
 
   Then `brouwer_stdSimplex_n {n} (f) (hf) (hmaps) : ∃ x ∈ stdSimplex ℝ (Fin (n+1)), f x = x` is
-  `exists_rainbow_cellN` (with R2, R3, `L := labelN f k`) producing a rainbow cell at every mesh,
+  `exists_rainbow_cellN_R2` (with R3, `L := labelN f k`) producing a rainbow cell at every mesh,
   fed through the committed `brouwer_of_rainbow_meshes`; `brouwer_compact_convex` then transports
   it to a compact convex `K ⊆ ℝⁿ` via the nearest-point retraction.
 
@@ -354,10 +722,14 @@ its injectivity on `{last = 0}`), the structural reduction of boundary facets to
 identity (`door_injOn_of_card`), and now the **endpoint partner base-shifts**
 (`endpointInv/Fwd_base_last/castSucc`) together with the **two off-mesh invalidity criteria**
 (`endpointFwd_invalid_of_base_last_zero`, `endpointInv_invalid_of_base_zero`) — the genuine
-`∂Δⁿ`-invalidity facts that supply the *invalid side* of R2's singleton.  What remains is the
-genuine dimension-drop construction R3 (the `(n-1)`-face complex, the door ↔ rainbow bijection
-*through the base projection* — see the geometry correction — and the induction wiring) together
-with the reconstruction-*uniqueness* half of R2 — each a from-scratch geometric brick on the scale
-of a second 2-D file, not finite bookkeeping. -/
+`∂Δⁿ`-invalidity facts that supply the *invalid side* of R2's singleton — and **the full R2
+singleton itself** (`boundary_singleton_invalid`, discharged into `exists_rainbow_cellN_R2`): the
+reconstruction-uniqueness backbone (`chainVZ_match_off`, `stepVec_injective`,
+`perm_eq_of_eq_off_point`, `cell_eq_of_facetSet_eq_zero/last`) plus the endpoint dichotomy
+(`bounds_endpoint_dichotomy`) prove that a boundary door bounds exactly one present cell with an
+off-mesh partner.  The ONLY remaining frontier is the genuine dimension-drop construction R3 (the
+`(n-1)`-face complex, the door ↔ rainbow bijection *through the base projection* — see the geometry
+correction — and the induction wiring) — a from-scratch geometric brick on the scale of a second
+2-D file, not finite bookkeeping. -/
 
 end ShenWork.Paper1
