@@ -241,3 +241,18 @@ chemFluxLifted u(s) properties from chemFlux_Ctheta + concrete u; (c) wire gradi
 NOTE on verification: BOTH stale-olean directions bit us — a99909856 claimed green from a stale build (false positive),
 and the orchestrator's first re-check hit a stale-olean false NEGATIVE (266/290 phantom). LESSON: clear the module's
 oleans before trusting a build verdict, in BOTH directions.
+
+## P2-T11 step (ii) FINAL STATE (a5e1584) + the DifferentiableOn closing route
+PROVED + committed: whole Hölder bootstrap, chem_holder discharged, AND the INTERIOR interchange
+(chemLeg_interior_hasDerivAt, on (0,1), real Mathlib-DUI + brick-3 integrable dominator). SINGLE residual = the
+chemotaxis leg's differentiability AT/ACROSS the endpoints {0,1}. The global-ℝ route is hard/likely-false (the leg's
+spectral coeffs b_n ≤ M don't decay ⟹ not globally C¹). CLEANER ROUTE (the closing plan): HolderCosineDecay's IBP only
+integrates over [0,1], so it needs only DifferentiableOn (Icc 0 1), NOT Differentiable ℝ. Close step (ii) by:
+  (1) extend chemLeg_interior_hasDerivAt to the endpoints: the derivative value chemLitLeg₂ = ∫∂ₓₓS(t₀−s)Q is CONTINUOUS
+      on [0,1] (dominated convergence, brick-3 dominator), so it extends continuously to {0,1}; HasDerivWithinAt at the
+      endpoints from the one-sided limit ⟹ DifferentiableOn ℝ (chemLitLeg) (Icc 0 1) + continuous deriv on [0,1] +
+      Neumann endpoint values 0 (no-flux / cosine deriv-zero).
+  (2) prove holderCosineCoeff_summable_of_differentiableOn : a DifferentiableOn(Icc 0 1) + [0,1]-Neumann + [0,1]-Hölder-
+      derivative variant of HolderCosineDecay (the IBP ∫₀¹ f cos = −1/(nπ)∫₀¹ f' sin only needs f differentiable ON [0,1]).
+  (3) assemble chemMild_C1eta_unconditional over [0,1] feeding (1)(2) + the committed gradient legs + chemFlux_Ctheta.
+This avoids the global-ℝ differentiability entirely. ⟹ then step (ii) is UNCONDITIONAL → mapped hQuant chain → P2-T11 χ₀<0.
