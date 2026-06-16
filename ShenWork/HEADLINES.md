@@ -99,3 +99,20 @@ WeakBounds (value/gradient sup bounds for 0≤u≤M ~committed), power-Lipschitz
 (1) the heat-gradient bound t^{−1/2} L∞→L∞ [a14c058d in flight — committed layer may only give spectral t^{−1};
     the t^{−1/2} needs the Gaussian-kernel-derivative route ∫|∂ₓp_t|~t^{−1/2}], (2) chemMildLocal_orderBox_exists
 (the contraction), (3) mild→classical regularity with the chemotaxis Duhamel source + floor preservation.
+
+## P2-T11 hregularize — route-(c) TERMINAL VERDICT (opus audit, 2026-06-16, HEAD ea68a4e)
+Route (c) "derive u(t₀)∈C² at a single positive time from the merely-continuous mild fixed point using COMMITTED
+estimates" is **DEAD** — and the committed code already proves WHY (IntervalDuhamelRegularity.lean:199-236):
+- Leg 1  S(t₀)u₀         : ✅ C^∞ via intervalFullSemigroupOperator_contDiff_two_unconditional (IntervalFullKernelInterchange.lean:392).
+- Leg 2  reaction value-Duhamel ∫S(t−s)L(u(s))ds : ❌ positive-time C² is FALSE for a merely-bounded source —
+  the bounded-coeff heat-value rep forces bₙ=cₙe^{τλₙ} UNBOUNDED at the s=t singularity (parabolicGain only
+  gives |cₙ|~1/n² ⟹ H^{s<3/2}, C⁰ not C²). This is classical Schauder: bounded source → C^{1,α}, need Hölder source for C².
+- Leg 3  chemotaxis grad-Duhamel : ❌ a 2nd x-deriv needs ∂ₓₓS, kernel ~(t−s)^{−3/2} NON-integrable at s=t.
+FIRST missing estimate = positive-time C²/H² smoothing of the inhomogeneous Duhamel term of a bounded source
+(the s≈t time-singularity). Only two honest routes, BOTH coupled back to the solution's own regularity (anti-circular):
+  (i) source spatial-regularity (decaying cosine coeffs of L(u),Q(u)) — = brick-3 conclusion C²⇒Wiener;
+      the committed bootstrap IntervalCoupledRegularityBootstrap.lean:60 TAKES hC2:ContDiffOn ℝ 2 u as hypothesis (circular).
+  (ii) TIME integration-by-parts moving a deriv onto ∂_s g_s — needs s↦L(u(s)) C¹-in-s, = the deep brick-1 content.
+⟹ P2-T11 χ₀<0 has NO committed-estimate shortcut; the mild solution is faithful but mild→classical = brick-1
+(deep parabolic local existence producing a time-C¹ source, enabling the time-IBP). Codex-scale; analogous to B1's Rothe.
+DO NOT re-attempt route (c) C²-from-bounded-source — it is mathematically false, not just hard.
