@@ -292,3 +292,17 @@ TWO CORRECT PATHS:
   on the face leaving rainbow doors unpaired), NOT dimension-drop. STRONG HINT: committed brouwer_stdSimplex_two
   closes the n=2 boundary count IN this exact model (the "diag/hypotenuse" argument) — if that's a direct parity
   it GENERALIZES. [cron R3-path design in flight: which path + the general-n construction.]
+
+## ★★★ R3 DECISION: PATH 1 (Freudenthal model) — cron 2026-06-15
+Path 2 (direct parity) DOES NOT generalize: the committed brouwer_stdSimplex_two is NOT direct parity — it's
+the STANDARD boundary-face reduction to 1-D Sperner, possible because the 2-D up/down triangular-grid model
+is ITSELF boundary-compatible (its hypotenuse doors are LITERAL face edges with last-coord 0). That's a
+DIFFERENT model from the fixed-last-chain one (chainVZ_last gives distinct last coords → no face sub-simplex).
+DECISION: rebuild the symbolic-n concrete triangulation as a boundary-compatible FREUDENTHAL/type-A model
+(the n-D generalization of the committed 2-D up/down model = the correct template). SURVIVES UNCHANGED (abstract,
+geometry-free): sperner_n_dim_combinatorial, heart_count_n, the labelling layer (+ labelN_ne_last_on_face),
+the mesh-limit/Brouwer glue (brouwer_of_rainbow_meshes). MUST BE REDONE on the new model: concrete cell
+carrier, facet representation, validity/membership, partner incidence (hinterior), interior/boundary count
+(hR3 becomes standard (n-1)-Sperner on the literal face). Substantial but well-defined; the fixed-last-chain
+BrouwerNDim/Complete/Boundary/R3 concrete machinery is superseded by the Freudenthal model. Codex (Jun 18)
+ideal for this grind. The abstract+analytic B1 stack (G2 fully assembled, the Schauder bridge) is UNAFFECTED.
