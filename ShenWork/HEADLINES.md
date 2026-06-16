@@ -206,3 +206,19 @@ Schauder — with the χ≥0 barriers/trap, different signs; the paper's 0≤χ<
 This is a FULL parallel construction (~B1 scale), NOT a quick brick — a dedicated-context job. Hold until P2-T11
 step (ii) lands + fresh context. When taken: first scope the paper's positive-sensitivity upper/lower barriers, prove
 the analog super-barrier (whole_line_super_barrier for χ≥0), then transcribe the orbit/producer/Schauder chain.
+
+## P2-T11 hQuant WIRING MAP (2026-06-16) — the post-step-(ii) chain into the EWA engine
+Once step (ii) lands (chemMild_positiveTime_C1eta_slice: u(t_0)∈C^{1+η} ⟹ Summable |cosineCoeffs u(t_0)|), the wiring to
+the committed χ₀<0 spatial-existence engine is:
+  Summable |cosineCoeffs u(t_0)|  [HolderCosineDecay.holderCosineCoeff_summable, committed 9e91dee]
+   → reflected-circle Fourier summability  [fourierCoeff_reflCircle_summable_of_cosineCoeff_abs,
+                                            ShenWork/Paper2/IntervalDomainPdeUWiring.lean:93, COMMITTED]
+   → ResolverSourceSummable p u  [ShenWork/Wiener/EWA/ResolverEvalBridge.lean:99, the EWA source-summability Prop]
+   → sourceClassical_spatial_existence_chi0_neg / _of_fixedPoint / _clean
+                                  [ShenWork/Wiener/EWA/SourceClassicalExistence.lean:193,247 + Clean.lean:44]
+   → the χ₀<0 positive-time C² source-regularity floor that P2-T11 Theorem_1_1's hQuant branch needs.
+CAVEAT to check at wiring time: ResolverSourceSummable is about the SOURCE coefficient envelope (u^γ / chemflux), so the
+C^{1+η} of u must be pushed through the source map (u ↦ u^γ preserves C^{1+η} on the floor r≤u≤R via the power-rule
+Hölder algebra; chemflux Q=u·V_x already handled by chemFlux_Ctheta). Plus the hMildLocal restart plumbing (the per-restart
+C(Ω̄)+floor → mild → C^{1+η} → summable re-entry; IntervalDomainRestartPackaging is the per-t structure). These two are the
+remaining wiring after step (ii) closes — NOT new analytic content.
