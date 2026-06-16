@@ -33,7 +33,7 @@ Status legend:
 ## PAPER 1 — traveling waves. Theorem_1_1 has TWO branches (χ≤0 AND χ≥0).
 | # | Theorem | status | the ONE remaining thing |
 |---|---|---|---|
-| P1-T11neg | **Theorem_1_1 χ≤0** (monotone wave existence + Shen bound + tail) | 🟢 | **TODAY**: whole Rothe parabolic-orbit construction built & axiom-clean → reduced to **G1** `LocalUniformSchauderFixedPointPrinciple` (= n-D Brouwer, gated on **R3** Freudenthal model rebuild) + committed profile lemmas. |
+| P1-T11neg | **Theorem_1_1 χ≤0** (monotone wave existence + Shen bound + tail) | 🟢 | Whole Rothe parabolic-orbit construction built & axiom-clean → reduced to **G1** `LocalUniformSchauderFixedPointPrinciple` (= n-D Brouwer, gated on **R3** Freudenthal rebuild) + the **satisfiable** named per-step producer + profile lemmas. **06-16: TWO vacuity bugs found & CORRECTLY fixed** (the carried obligations were unsatisfiable, vacuously carried — caught by satisfiability audit, NOT by sorries; all stayed axiom-clean). See vacuity-fix log below. Reduction is now genuinely NON-VACUOUS. |
 | P1-T11pos | **Theorem_1_1 χ≥0** (0≤χ<min(½,chiStar), positive sensitivity) | 🟡 | UNTOUCHED branch — the positive-sensitivity wave construction (its own barriers/trap; analogous Rothe/Schauder but different signs) |
 | P1-T12 | Theorem_1_2 (nonlinear orbital STABILITY of the wave) | 🔴 | Section-5 weighted-L²+uniform moving-frame convergence — essentially stubbed (`StabilityUniqueness.lean`) |
 | P1-T13 | Theorem_1_3 (profile UNIQUENESS) | 🟡 | reduces to Theorem_1_2 + Cauchy-unique + resolvent + tail |
@@ -138,3 +138,21 @@ Named brick stack (ChatGPT, by feasibility):
              neumannDuhamel_classical_regularize (the full C^{1,2} bridge = natural extension of the same lemma).
 ⟹ P2-T11 route (c) is a WELL-LOCALIZED stack of mostly-easy interpolation/elliptic bricks + ONE hard endpoint lemma —
 NOT a full brick-1 Rothe rebuild. This UNBLOCKS P2-T11 at Opus/Codex scale. Pursue this, not the "dead" framing above.
+
+## B1 χ≤0 VACUITY-FIX LOG (2026-06-16) — the satisfiability discipline at work
+Two carried obligations in the Rothe reduction were UNSATISFIABLE (vacuously carried) — both caught by satisfiability
+audit, NOT by sorries (everything stayed 0-sorry / axiom-clean throughout). A 0-sorry CONDITIONAL theorem whose carried
+hypothesis is unsatisfiable is VACUOUS; we do not ship that. Both now CORRECTLY fixed:
+- **Bug #1 (BC2-everywhere)** [ea68a4e]: produce demanded `∀y, ContDiffAt 2 (upperBarrier κ M) y` — FALSE at the
+  e^{−κx}=M kink. Fix = weaken to BC2-AT-MAX (the max-principle only consumes it at its internally-chosen max, which is
+  never the kink), witnessed by `upperBarrier_BC2_atMax_dischargeable`. Barrier Ū is FIXED, so at-max is provable.
+- **Bug #2 (descent-Z supersolution)** [d644070]: produce carried `∀x, F_u(Z) x ≤ 0` as an OUTPUT conjunct for the
+  ∀-quantified trapped antitone Z — false for non-supersolution Z (e.g. ½Ū); and `RotheStepProducer.le_old` (W≤Z) is
+  likewise false there (the implicit step of a non-supersolution overshoots). An at-max weakening does NOT fix this
+  (unlike #1, Z is ∀-quantified and F_u(Z)(x₀)=λ(W−Z)(x₀)>0 at a positive max for large λ — a first agent attempt took
+  the at-max dodge and was REJECTED as still-vacuous). Correct fix = supersolution ORBIT INVARIANT: input precond
+  F_u(Z)≤0 on produce + output field F_u(W)≤0 on RotheStepFacts (PROVED via F_u(W)=λ(W−Z) and W≤Z), threaded
+  inductively from the Ū base (whole_line_super_barrier) so it's internal — public statements byte-identical.
+LESSON: "0-sorry + green build + a single-instance witness" ≠ "proves the theorem". A carried hypothesis must be shown
+INHABITED (satisfiable for ALL inputs it quantifies over), not just non-contradictory at one seed. Audit carried
+obligations for ∀-quantified properties that hold only for a sub-class (supersolutions/iterates), not all inputs.
