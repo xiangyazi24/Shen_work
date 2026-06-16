@@ -75,3 +75,17 @@ stack** (Paper1). Paper3 imports Paper2's solution objects directly.
   uniform floor); was open-interior positivity admitting paper-excluded inf=0 data. Verified 8671 jobs.
 - P1-T11neg: built the entire Rothe parabolic-orbit construction from scratch (no Mathlib parabolic theory;
   no Mathlib Brouwer) → reduced to G1/R3. ~26 commits.
+
+## P2-T11 χ₀<0 hQuant — cron Wiener-route verdict (2026-06-15)
+Obstruction (b) positivity floor: DISCHARGED (HeatFloorIcc, from the faithfulness floor). Obstruction (a)
+Wiener-ℓ¹: the SOUND route is to make the Wiener bound an OUTPUT of parabolic smoothing, NOT a datum hyp.
+Faithful route = STANDARD PARABOLIC-SEMIGROUP local existence from C(Ω̄)+floor data (NOT EWA-from-Wiener;
+EWA is a convenience tool that should be FED by a short C-compatible first leg). 3 bricks:
+- **brick 1 (the deep core)**: faithful χ₀<0 local existence from C(Ω̄)+floor via parabolic semigroup —
+  the chemotaxis-term parabolic IVP local existence (Mathlib lacks the framework; substantial, analogous
+  to B1's construction). The χ₀=0 cone/Duhamel route does NOT carry the chemotaxis term.
+- brick 2: positive-time smoothing (cData_solution_C2_smoothing, u(t₀) is C²).
+- brick 3: C²⇒Wiener (wienerNorm f ≤ C_W(C)) — makes the Wiener bound an output; feeds EWA.
+Option A (smoothing prelude at every restart) closes the continuation-reentry gap; m≥1 blow-up alternative +
+global L∞ bound gives global continuation w/o a uniform floor. ⟹ P2-T11 χ₀<0 core = brick 1 (deep parabolic
+local existence). Density route rejected (approximant Wiener norms blow up).
