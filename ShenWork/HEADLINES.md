@@ -116,3 +116,25 @@ FIRST missing estimate = positive-time C²/H² smoothing of the inhomogeneous Du
 ⟹ P2-T11 χ₀<0 has NO committed-estimate shortcut; the mild solution is faithful but mild→classical = brick-1
 (deep parabolic local existence producing a time-C¹ source, enabling the time-IBP). Codex-scale; analogous to B1's Rothe.
 DO NOT re-attempt route (c) C²-from-bounded-source — it is mathematically false, not just hard.
+
+## P2-T11 hregularize — CORRECTION + LIVE ROUTE (ChatGPT cron RUN#517, 2026-06-16)
+The opus terminal verdict above OVERSTATED. "Bounded source → C² in ONE heat application" is indeed false ((t−s)^{−3/2}
+non-integrable). BUT route (c) is NOT dead — the standard parabolic HÖLDER BOOTSTRAP (which the opus pass missed) closes it,
+and it is NON-circular: the first pass gains only a FRACTIONAL derivative (θ/2<1), so it needs no pre-existing C².
+LIVE 2-pass stack (ChatGPT, verified sound):
+  pass 1 (L∞ → C^θ, non-circular): heat Hölder-smoothing  ‖S(t)f‖_{C^θ} ≤ C t^{−θ/2}‖f‖∞  and
+        ‖∂ₓS(t)f‖_{C^θ} ≤ C t^{−(1+θ)/2}‖f‖∞  (pure INTERPOLATION of the committed sup-bound (θ=0) and the
+        committed t^{−1/2} gradient bound (θ=1)) ⟹ ∫₀ᵗ(t−s)^{−θ/2}‖f‖∞ ds converges ⟹ u(t,·)∈C^θ for t≥τ>0.
+  pass 2 (C^θ → C²): u∈C^θ ⟹ V[u]∈C^{2+θ} (elliptic resolver, resolverR already C²) ⟹ chemFlux/reaction source ∈ C^θ
+        ⟹ the Duhamel slice ∫S(t−s)[C^θ source] is C² — the (t−s)^{−3/2} kernel is now tamed by the source's Hölder
+        modulus to an INTEGRABLE (t−s)^{−1+θ/2}. THE one genuinely hard lemma = neumannDuhamel_positiveTime_C2_slice.
+The key distinction the opus pass conflated: BOUNDED source → C² is FALSE (non-integrable); C^θ source → C² is TRUE
+(integrable). The bootstrap manufactures the C^θ that the agent assumed had to come from circular C².
+Named brick stack (ChatGPT, by feasibility):
+  EASIEST  : neumannHeat_Linf_to_Ctheta, neumannHeatGradient_Linf_to_Ctheta (interpolation of 2 committed bounds).
+  MODERATE : mild_orderBox_positiveTime_holder (u∈C^θ at t≥τ); intervalResolver_Ctheta_to_C2theta (elliptic gain);
+             chemFlux_Ctheta_of_holder_orderBox, reaction_Ctheta_of_holder_orderBox.
+  HARDEST  : neumannDuhamel_positiveTime_C2_slice (the single s=t-endpoint Schauder Duhamel lemma; route (c) / Wiener).
+             neumannDuhamel_classical_regularize (the full C^{1,2} bridge = natural extension of the same lemma).
+⟹ P2-T11 route (c) is a WELL-LOCALIZED stack of mostly-easy interpolation/elliptic bricks + ONE hard endpoint lemma —
+NOT a full brick-1 Rothe rebuild. This UNBLOCKS P2-T11 at Opus/Codex scale. Pursue this, not the "dead" framing above.
