@@ -191,6 +191,25 @@ theorem maxSub_upperBarrier_ne_interface {κ M : ℝ} {W : ℝ → ℝ} {x : ℝ
   have hκM : 0 < κ * M := mul_pos hκ hM
   nlinarith [hRfderiv, hLfderiv, hκM]
 
+/-- **The super-barrier `BC2`-at-max field IS dischargeable — the defect is closed.**
+This is the witness that the weakened (at-max) `BC2`-of-`Ū` obligation carried by
+`RotheFloorResidualCore`/`RotheFloorResidual` is honestly SATISFIABLE (not vacuous):
+given the produced iterate `W` differentiable at the chosen max (which the
+Green-convolution iterate always is) and `0 < κ`, `0 < M`, at any point that IS an
+`IsMaxOn`-max of `φ = W − Ū`, `Ū` is `C²` there.  Combines the two committed
+enablers: `maxSub_upperBarrier_ne_interface` (the max is never the kink) feeds
+`upperBarrier_contDiffAt_two_of_ne_interface` (`Ū` is `C²` off the kink). -/
+theorem upperBarrier_BC2_atMax_dischargeable {κ M : ℝ} {W : ℝ → ℝ}
+    (hκ : 0 < κ) (hM : 0 < M) (hWdiff : Differentiable ℝ W) :
+    ∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
+      ContDiffAt ℝ 2 (upperBarrier κ M) x₀ := by
+  intro x₀ hmax
+  have hloc : IsLocalMax (fun x => W x - upperBarrier κ M x) x₀ :=
+    hmax.isLocalMax Filter.univ_mem
+  have hne : Real.exp (-κ * x₀) ≠ M :=
+    maxSub_upperBarrier_ne_interface hκ hM (hWdiff x₀) hloc
+  exact upperBarrier_contDiffAt_two_of_ne_interface hne
+
 /-! ## 3. The genuinely-deep whole-line Green-convolution core (carried)
 
 `RotheFloorResidualCore p c lam M κ Λ u` carries exactly the fields of the
@@ -247,13 +266,15 @@ structure RotheFloorResidualCore
         Continuous (fun x => W x - Z x) ∧
         Tendsto (fun x => W x - Z x) atBot (𝓝 LaZ) ∧ (LaZ ≤ 0) ∧
         Tendsto (fun x => W x - Z x) atTop (𝓝 LbZ) ∧ (LbZ ≤ 0) ∧
-        (∀ y, ContDiffAt ℝ 2 Z y) ∧
+        (∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
+          ContDiffAt ℝ 2 Z x₀) ∧
         (∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
           W x₀ ∈ Set.Icc (0 : ℝ) M ∧ Z x₀ ∈ Set.Icc (0 : ℝ) M) ∧
         Continuous (fun x => W x - upperBarrier κ M x) ∧
         Tendsto (fun x => W x - upperBarrier κ M x) atBot (𝓝 LaB) ∧ (LaB ≤ 0) ∧
         Tendsto (fun x => W x - upperBarrier κ M x) atTop (𝓝 LbB) ∧ (LbB ≤ 0) ∧
-        (∀ y, ContDiffAt ℝ 2 (upperBarrier κ M) y) ∧
+        (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
+          ContDiffAt ℝ 2 (upperBarrier κ M) x₀) ∧
         (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
           W x₀ ∈ Set.Icc (0 : ℝ) M ∧ upperBarrier κ M x₀ ∈ Set.Icc (0 : ℝ) M)) ×'
         ((∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
@@ -344,13 +365,15 @@ def rotheFloorResidual_of_trap
           Continuous (fun x => W x - Z x) ∧
           Tendsto (fun x => W x - Z x) atBot (𝓝 LaZ) ∧ (LaZ ≤ 0) ∧
           Tendsto (fun x => W x - Z x) atTop (𝓝 LbZ) ∧ (LbZ ≤ 0) ∧
-          (∀ y, ContDiffAt ℝ 2 Z y) ∧
+          (∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
+            ContDiffAt ℝ 2 Z x₀) ∧
           (∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
             W x₀ ∈ Set.Icc (0 : ℝ) M ∧ Z x₀ ∈ Set.Icc (0 : ℝ) M) ∧
           Continuous (fun x => W x - upperBarrier κ M x) ∧
           Tendsto (fun x => W x - upperBarrier κ M x) atBot (𝓝 LaB) ∧ (LaB ≤ 0) ∧
           Tendsto (fun x => W x - upperBarrier κ M x) atTop (𝓝 LbB) ∧ (LbB ≤ 0) ∧
-          (∀ y, ContDiffAt ℝ 2 (upperBarrier κ M) y) ∧
+          (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
+            ContDiffAt ℝ 2 (upperBarrier κ M) x₀) ∧
           (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
             W x₀ ∈ Set.Icc (0 : ℝ) M ∧ upperBarrier κ M x₀ ∈ Set.Icc (0 : ℝ) M)) ×'
           ((∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
@@ -425,6 +448,7 @@ theorem b1_chiNeg_existence_residualClean
 section AxiomAudit
 #print axioms upperBarrier_contDiffAt_two_of_ne_interface
 #print axioms maxSub_upperBarrier_ne_interface
+#print axioms upperBarrier_BC2_atMax_dischargeable
 #print axioms rotheFloorResidual_of_core
 #print axioms rotheFloorResidual_of_trap
 #print axioms b1_chiNeg_existence_residualClean

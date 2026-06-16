@@ -234,8 +234,12 @@ theorem implicitStep_le_of_barrier_maxPrinciple_clean
     (hφcont : Continuous (fun x => W x - B x))
     (hbot : Tendsto (fun x => W x - B x) atBot (𝓝 La)) (hLa : La ≤ 0)
     (htop : Tendsto (fun x => W x - B x) atTop (𝓝 Lb)) (hLb : Lb ≤ 0)
-    -- C²-regularity of W, B at *every* point (so we can name the max point internally):
-    (hWC2 : ∀ y, ContDiffAt ℝ 2 W y) (hBC2 : ∀ y, ContDiffAt ℝ 2 B y)
+    -- C²-regularity of `W` at *every* point (the Green-smoothed iterate is C²);
+    -- C²-regularity of the barrier `B` only AT THE INTERNALLY-CHOSEN MAX of
+    -- `φ = W − B` (the honest, satisfiable form: for `B = upperBarrier κ M` the
+    -- everywhere-C² is FALSE at the kink, but the max never lands on the kink):
+    (hWC2 : ∀ y, ContDiffAt ℝ 2 W y)
+    (hBC2 : ∀ x₀, IsMaxOn (fun x => W x - B x) Set.univ x₀ → ContDiffAt ℝ 2 B x₀)
     -- range membership and the carried chemotaxis bound, at the (internally chosen) max:
     (hrange : ∀ x₀, IsMaxOn (fun x => W x - B x) Set.univ x₀ →
         W x₀ ∈ Set.Icc (0 : ℝ) M ∧ B x₀ ∈ Set.Icc (0 : ℝ) M)
@@ -256,9 +260,11 @@ theorem implicitStep_le_of_barrier_maxPrinciple_clean
   -- the max on `univ` is in particular a LOCAL max (`univ ∈ 𝓝 x₀`).
   have hloc : IsLocalMax (fun x => W x - B x) x₀ :=
     hattain.isLocalMax Filter.univ_mem
+  -- `B` is C² at this (internally-chosen) max point, from the at-max field:
+  have hBC2₀ : ContDiffAt ℝ 2 B x₀ := hBC2 x₀ hattain
   -- (a) 2nd-derivative test, discharged from C² + local max
   have hderiv2 : iteratedDeriv 2 W x₀ ≤ iteratedDeriv 2 B x₀ :=
-    iteratedDeriv2_le_of_isLocalMax_sub (hWC2 x₀) (hBC2 x₀) hloc
+    iteratedDeriv2_le_of_isLocalMax_sub (hWC2 x₀) hBC2₀ hloc
   -- range + chem at this x₀
   obtain ⟨hWmem, hBmem⟩ := hrange x₀ hattain
   have hchem₀ := hchem x₀ hattain
@@ -266,7 +272,7 @@ theorem implicitStep_le_of_barrier_maxPrinciple_clean
   have hWdiff : DifferentiableAt ℝ W x₀ :=
     (hWC2 x₀).differentiableAt (by norm_num)
   have hBdiff : DifferentiableAt ℝ B x₀ :=
-    (hBC2 x₀).differentiableAt (by norm_num)
+    hBC2₀.differentiableAt (by norm_num)
   -- now invoke the carried maximum principle: it concludes φ ≤ 0 everywhere,
   -- contradicting the positive value at x₁'.
   have hle :=

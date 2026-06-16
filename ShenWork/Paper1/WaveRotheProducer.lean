@@ -130,7 +130,11 @@ structure RotheMaxData
   hLa : La ≤ 0
   htop : Tendsto (fun x => W x - B x) atTop (𝓝 Lb)
   hLb : Lb ≤ 0
-  BC2 : ∀ y, ContDiffAt ℝ 2 B y
+  /-- `C²`-regularity of the barrier `B` only AT THE INTERNALLY-CHOSEN MAX of
+  `φ = W − B`.  For `B = upperBarrier κ M` the everywhere-`C²` form is FALSE at the
+  free-interface kink; this at-max form is the honest, satisfiable obligation the
+  clean max-principle actually consumes (the max point is never the kink). -/
+  BC2 : ∀ x₀, IsMaxOn (fun x => W x - B x) Set.univ x₀ → ContDiffAt ℝ 2 B x₀
   range : ∀ x₀, IsMaxOn (fun x => W x - B x) Set.univ x₀ →
     W x₀ ∈ Set.Icc (0 : ℝ) M ∧ B x₀ ∈ Set.Icc (0 : ℝ) M
   chem : ∀ x₀, IsMaxOn (fun x => W x - B x) Set.univ x₀ →

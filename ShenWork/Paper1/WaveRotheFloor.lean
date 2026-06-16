@@ -100,7 +100,8 @@ structure RotheFloorResidual
         Continuous (fun x => W x - Z x) ∧
         Tendsto (fun x => W x - Z x) atBot (𝓝 LaZ) ∧ (LaZ ≤ 0) ∧
         Tendsto (fun x => W x - Z x) atTop (𝓝 LbZ) ∧ (LbZ ≤ 0) ∧
-        (∀ y, ContDiffAt ℝ 2 Z y) ∧
+        (∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
+          ContDiffAt ℝ 2 Z x₀) ∧
         (∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
           W x₀ ∈ Set.Icc (0 : ℝ) M ∧ Z x₀ ∈ Set.Icc (0 : ℝ) M) ∧
         (∀ x, frozenWaveOperator p c u (upperBarrier κ M) x ≤ 0) ∧
@@ -108,7 +109,8 @@ structure RotheFloorResidual
         Continuous (fun x => W x - upperBarrier κ M x) ∧
         Tendsto (fun x => W x - upperBarrier κ M x) atBot (𝓝 LaB) ∧ (LaB ≤ 0) ∧
         Tendsto (fun x => W x - upperBarrier κ M x) atTop (𝓝 LbB) ∧ (LbB ≤ 0) ∧
-        (∀ y, ContDiffAt ℝ 2 (upperBarrier κ M) y) ∧
+        (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
+          ContDiffAt ℝ 2 (upperBarrier κ M) x₀) ∧
         (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
           W x₀ ∈ Set.Icc (0 : ℝ) M ∧ upperBarrier κ M x₀ ∈ Set.Icc (0 : ℝ) M)) ×'
         ((∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
