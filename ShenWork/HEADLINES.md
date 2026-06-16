@@ -174,3 +174,22 @@ REVISED pass-2 minimal stack (for the Wiener output; full C²/classical is a SEP
   (iii) C1theta_implies_wiener_l1 : f∈C^{1+η} ⟹ Σ|cosineCoeff f n| < ∞ ⟹ wienerNorm bound. Feeds the EWA hQuant engine.
 This makes P2-T11 χ₀<0 a stack of Hölder-smoothing rungs + one cosine-coefficient-decay lemma — no full-C² endpoint
 needed for the headline. (Keep neumannDuhamel_positiveTime_C2_slice on the board for the separate full-classical Prop 1.1.)
+
+## P2-T11 step (ii) ROUTE (ChatGPT cron PID64540, 2026-06-16): divergence-form Schauder, C^θ-cancellation
+Getting u∈C^{1+η} from u∈C^θ: the chemotaxis leg of u_x is ∫∂_xx S(t-s)Q ds. The naive sup bound (t-s)^{-1}‖Q‖∞ is
+NON-integrable and the WRONG estimate. CORRECT: test ∂_xx S against the HÖLDER MODULUS [Q]_{C^θ} (we HAVE Q∈C^θ since
+u∈C^θ ⟹ Q=u·V_x∈C^θ), using the mean-zero cancellation ∫∂_xx K_σ(x,·)=0 (exact — Neumann semigroup preserves
+constants): ∂_xx S(σ)h(x)=∫∂_xx K_σ(x,y)[h(y)-h(x)]dy ⟹ ‖∂_xx S(σ)h‖∞ ≤ Cσ^{-1+θ/2}[h]_{C^θ} (integrable for θ>0)
+and [∂_xx S(σ)h]_{C^η} ≤ Cσ^{-1+(θ-η)/2}[h]_{C^θ} (integrable for 0<η<θ). u_x(t_0)=∂_xS(t_0-τ)u(τ)−χ_0∫∂_xx S(t_0-s)Q
++∫∂_xS(t_0-s)L, each leg C^η. NO singular Gronwall, NO Q_x rewrite, NO circularity — the C^θ from step (i) is exactly
+the regularity the cancellation estimate consumes. Same mechanism as the endpoint lemma (∫|∂_xx p_σ||z|^θ=Cσ^{-1+θ/2}).
+6-brick stack [a410f837 in flight]: (1) ∫∂_xx K_σ=0 mean-zero; (2) |z|^θ-weighted mass Cσ^{-1+θ/2}; (3) C^θ→L∞ op
+bound; (4) C^θ→C^η op bound [the hard one — split |Δx|≷√σ, needs ∂_xxx K]; (5) chemFlux_Ctheta (Q=u·V_x∈C^θ);
+(6) assembly chemMild_positiveTime_C1eta_slice. Composes with HolderCosineDecay (step iii) ⟹ Wiener ℓ¹.
+
+## P2-T11 ROUTE STATUS (2026-06-16) — 3 of 4 rungs committed
+pass-1 value+gradient Hölder smoothing [f697610,706e34b unconditional] ✓ · step (i) u∈C^θ [2d28cb8] ✓ ·
+step (iii) C^{1+η}⟹Wiener ℓ¹ [9e91dee] ✓ · step (ii) u∈C^θ→C^{1+η} [a410f837 IN FLIGHT, divergence-form Schauder].
+When step (ii) lands, the chain composes: mild fixed point → C^θ → C^{1+η} → Wiener ℓ¹ → feeds the EWA hQuant engine ⟹
+P2-T11 χ₀<0 local classical existence. Remaining after that = wiring C1eta_slice+HolderCosineDecay into hQuant + the
+hMildLocal restart plumbing.
