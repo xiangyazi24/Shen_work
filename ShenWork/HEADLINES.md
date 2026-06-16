@@ -89,3 +89,13 @@ EWA is a convenience tool that should be FED by a short C-compatible first leg).
 Option A (smoothing prelude at every restart) closes the continuation-reentry gap; m≥1 blow-up alternative +
 global L∞ bound gives global continuation w/o a uniform floor. ⟹ P2-T11 χ₀<0 core = brick 1 (deep parabolic
 local existence). Density route rejected (approximant Wiener norms blow up).
+
+## P2-T11 brick-1 ROUTE (cron, 2026-06-16) — mild-solution contraction, heat-gradient smoothing
+Faithful χ₀<0 local existence from C(Ω̄)+floor = standard MILD-SOLUTION CONTRACTION: u(t)=S(t)u₀ +
+∫₀ᵗ S(t−s)[−χ₀∂ₓ(flux) + reaction] ds, chemotaxis in DIVERGENCE Duhamel form estimated by the heat-gradient
+bound ‖∂ₓS(t)g‖∞ ≤ C∇·t^{−1/2}‖g‖∞ ⟹ ∫₀ᵗ(t−s)^{−1/2}ds=2√t→0 short-time contraction (ContractingWith) in
+the order box [r,R]. REUSES: committed χ₀=0 cone/Picard infra (GradientMildSolutionData), IntervalResolver
+WeakBounds (value/gradient sup bounds for 0≤u≤M ~committed), power-Lipschitz on [r,R]. NEW bricks:
+(1) the heat-gradient bound t^{−1/2} L∞→L∞ [a14c058d in flight — committed layer may only give spectral t^{−1};
+    the t^{−1/2} needs the Gaussian-kernel-derivative route ∫|∂ₓp_t|~t^{−1/2}], (2) chemMildLocal_orderBox_exists
+(the contraction), (3) mild→classical regularity with the chemotaxis Duhamel source + floor preservation.
