@@ -35,6 +35,8 @@
 import ShenWork.Paper1.WaveRotheStep
 import ShenWork.Paper1.WaveRotheLimit
 import ShenWork.Paper1.WaveFluxIBP
+import ShenWork.Paper1.WaveStepFluxId
+import ShenWork.Paper1.WaveRotheC1
 import Mathlib.MeasureTheory.Integral.DominatedConvergence
 
 open Filter Topology MeasureTheory Real Set
@@ -326,5 +328,508 @@ theorem rotheLimit_stationary
   have hfix : auxMap p c lam U = U :=
     rotheLimit_auxMap_fixed_at_diagonal p c lam U hcross
   exact fixedPoint_stationary p c lam U hgreen hfix
+
+/-! ## Stationary Green representation bridge -/
+
+/-- Bounded homogeneous solutions of
+`W'' + c W' - lam W = 0` on the line vanish.  The proof uses the two
+characteristic-root invariants and kills their constants by boundedness at the
+two spatial infinities. -/
+theorem bounded_solution_unique_of_linear_homogeneous
+    (hlam : 0 < lam) {W : ℝ → ℝ}
+    (hW_diff : Differentiable ℝ W)
+    (hW'_diff : Differentiable ℝ (deriv W))
+    (hW_eq : ∀ x, deriv (deriv W) x + c * deriv W x - lam * W x = 0)
+    (hW_bdd : ∃ M : ℝ, ∀ x, |W x| ≤ M)
+    (hW'_bdd : ∃ M : ℝ, ∀ x, |deriv W x| ≤ M) :
+    ∀ x, W x = 0 := by
+  let rp : ℝ := greenRootPlus c lam
+  let rm : ℝ := greenRootMinus c lam
+  have hrp_pos : 0 < rp := by
+    simpa [rp] using greenRootPlus_pos (c := c) (lam := lam) hlam
+  have hrm_neg : rm < 0 := by
+    simpa [rm] using greenRootMinus_neg (c := c) (lam := lam) hlam
+  have hsum : rp + rm = -c := by
+    simpa [rp, rm] using greenRoots_add (c := c) (lam := lam)
+  have hmul : rp * rm = -lam := by
+    simpa [rp, rm] using greenRoots_mul (c := c) (lam := lam) hlam
+  let A : ℝ → ℝ := fun x => deriv W x - rm * W x
+  let u : ℝ → ℝ := fun x => A x * Real.exp (-(rp * x))
+  have hexp_rp : ∀ x, HasDerivAt (fun y : ℝ => Real.exp (-(rp * y)))
+      (-(rp) * Real.exp (-(rp * x))) x := by
+    intro x
+    have hlin : HasDerivAt (fun y : ℝ => -(rp) * y) (-(rp)) x := by
+      simpa [neg_mul] using (hasDerivAt_id x).const_mul (-(rp))
+    convert hlin.exp using 1
+    · ext y; ring
+    · ring
+  have hA_deriv : ∀ x, HasDerivAt A (rp * A x) x := by
+    intro x
+    have hA0 : HasDerivAt A (deriv (deriv W) x - rm * deriv W x) x := by
+      simpa [A] using
+        (hW'_diff x).hasDerivAt.sub ((hW_diff x).hasDerivAt.const_mul rm)
+    convert hA0 using 1
+    dsimp [A]
+    have hc_eq : c = -(rp + rm) := by linarith
+    have hlam_eq : lam = -(rp * rm) := by linarith
+    have hval :
+        deriv (deriv W) x - rm * deriv W x
+          = rp * (deriv W x - rm * W x) := by
+      calc
+        deriv (deriv W) x - rm * deriv W x
+          = (-c * deriv W x + lam * W x) - rm * deriv W x := by
+              linarith [hW_eq x]
+        _ = rp * (deriv W x - rm * W x) := by
+              rw [hc_eq, hlam_eq]
+              ring
+    exact hval.symm
+  have hu_diff : Differentiable ℝ u := by
+    intro x
+    exact ((hA_deriv x).mul (hexp_rp x)).differentiableAt
+  have hu_deriv : ∀ x, deriv u x = 0 := by
+    intro x
+    have hu_at : HasDerivAt u
+        (rp * A x * Real.exp (-(rp * x))
+          + A x * (-rp * Real.exp (-(rp * x)))) x := by
+      simpa [u] using (hA_deriv x).mul (hexp_rp x)
+    rw [hu_at.deriv]
+    ring
+  have hu_const : ∀ x, u x = u 0 :=
+    fun x => is_const_of_deriv_eq_zero hu_diff hu_deriv x 0
+  have hA_exp : ∀ x, A x = u 0 * Real.exp (rp * x) := by
+    intro x
+    have h_eq : A x * Real.exp (-(rp * x)) = u 0 := hu_const x
+    have hexp_inv : Real.exp (-(rp * x)) * Real.exp (rp * x) = 1 := by
+      rw [← Real.exp_add]
+      ring_nf
+      simp
+    calc
+      A x = A x * 1 := by ring
+      _ = A x * (Real.exp (-(rp * x)) * Real.exp (rp * x)) := by rw [hexp_inv]
+      _ = (A x * Real.exp (-(rp * x))) * Real.exp (rp * x) := by ring
+      _ = u 0 * Real.exp (rp * x) := by rw [h_eq]
+  have hA0 : u 0 = 0 := by
+    by_contra hne
+    obtain ⟨MW, hMW⟩ := hW_bdd
+    obtain ⟨MW', hMW'⟩ := hW'_bdd
+    have hMW_nonneg : 0 ≤ MW := le_trans (abs_nonneg (W 0)) (hMW 0)
+    have hMW'_nonneg : 0 ≤ MW' := le_trans (abs_nonneg (deriv W 0)) (hMW' 0)
+    have hA_bdd : ∀ x, |A x| ≤ MW' + |rm| * MW := by
+      intro x
+      calc
+        |A x| = |deriv W x - rm * W x| := rfl
+        _ ≤ |deriv W x| + |rm * W x| := abs_sub _ _
+        _ = |deriv W x| + |rm| * |W x| := by rw [abs_mul]
+        _ ≤ MW' + |rm| * MW := by
+          exact add_le_add (hMW' x)
+            (mul_le_mul_of_nonneg_left (hMW x) (abs_nonneg rm))
+    have hbound_nonneg : 0 ≤ MW' + |rm| * MW := by positivity
+    have hu0_pos : 0 < |u 0| := abs_pos.mpr hne
+    have h_exp_atTop :
+        Tendsto (fun x : ℝ => Real.exp (rp * x)) atTop atTop :=
+      Real.tendsto_exp_atTop.comp (tendsto_id.const_mul_atTop hrp_pos)
+    obtain ⟨x, hx⟩ :=
+      (h_exp_atTop.eventually_gt_atTop ((MW' + |rm| * MW) / |u 0|)).exists
+    have hbig : MW' + |rm| * MW < |u 0| * Real.exp (rp * x) := by
+      rw [div_lt_iff₀ hu0_pos] at hx
+      linarith
+    have hA_abs : |A x| = |u 0| * Real.exp (rp * x) := by
+      rw [hA_exp x, abs_mul, abs_of_pos (Real.exp_pos _)]
+    linarith [hA_bdd x, hA_abs, hbig]
+  have hA_zero : ∀ x, A x = 0 := by
+    intro x
+    rw [hA_exp x, hA0]
+    simp
+  let B : ℝ → ℝ := fun x => deriv W x - rp * W x
+  let v : ℝ → ℝ := fun x => B x * Real.exp (-(rm * x))
+  have hexp_rm : ∀ x, HasDerivAt (fun y : ℝ => Real.exp (-(rm * y)))
+      (-(rm) * Real.exp (-(rm * x))) x := by
+    intro x
+    have hlin : HasDerivAt (fun y : ℝ => -(rm) * y) (-(rm)) x := by
+      simpa [neg_mul] using (hasDerivAt_id x).const_mul (-(rm))
+    convert hlin.exp using 1
+    · ext y; ring
+    · ring
+  have hB_deriv : ∀ x, HasDerivAt B (rm * B x) x := by
+    intro x
+    have hB0 : HasDerivAt B (deriv (deriv W) x - rp * deriv W x) x := by
+      simpa [B] using
+        (hW'_diff x).hasDerivAt.sub ((hW_diff x).hasDerivAt.const_mul rp)
+    convert hB0 using 1
+    dsimp [B]
+    have hc_eq : c = -(rp + rm) := by linarith
+    have hlam_eq : lam = -(rp * rm) := by linarith
+    have hval :
+        deriv (deriv W) x - rp * deriv W x
+          = rm * (deriv W x - rp * W x) := by
+      calc
+        deriv (deriv W) x - rp * deriv W x
+          = (-c * deriv W x + lam * W x) - rp * deriv W x := by
+              linarith [hW_eq x]
+        _ = rm * (deriv W x - rp * W x) := by
+              rw [hc_eq, hlam_eq]
+              ring
+    exact hval.symm
+  have hv_diff : Differentiable ℝ v := by
+    intro x
+    exact ((hB_deriv x).mul (hexp_rm x)).differentiableAt
+  have hv_deriv : ∀ x, deriv v x = 0 := by
+    intro x
+    have hv_at : HasDerivAt v
+        (rm * B x * Real.exp (-(rm * x))
+          + B x * (-rm * Real.exp (-(rm * x)))) x := by
+      simpa [v] using (hB_deriv x).mul (hexp_rm x)
+    rw [hv_at.deriv]
+    ring
+  have hv_const : ∀ x, v x = v 0 :=
+    fun x => is_const_of_deriv_eq_zero hv_diff hv_deriv x 0
+  have hB_exp : ∀ x, B x = v 0 * Real.exp (rm * x) := by
+    intro x
+    have h_eq : B x * Real.exp (-(rm * x)) = v 0 := hv_const x
+    have hexp_inv : Real.exp (-(rm * x)) * Real.exp (rm * x) = 1 := by
+      rw [← Real.exp_add]
+      ring_nf
+      simp
+    calc
+      B x = B x * 1 := by ring
+      _ = B x * (Real.exp (-(rm * x)) * Real.exp (rm * x)) := by rw [hexp_inv]
+      _ = (B x * Real.exp (-(rm * x))) * Real.exp (rm * x) := by ring
+      _ = v 0 * Real.exp (rm * x) := by rw [h_eq]
+  have hB0 : v 0 = 0 := by
+    by_contra hne
+    obtain ⟨MW, hMW⟩ := hW_bdd
+    obtain ⟨MW', hMW'⟩ := hW'_bdd
+    have hMW_nonneg : 0 ≤ MW := le_trans (abs_nonneg (W 0)) (hMW 0)
+    have hMW'_nonneg : 0 ≤ MW' := le_trans (abs_nonneg (deriv W 0)) (hMW' 0)
+    have hB_bdd : ∀ x, |B x| ≤ MW' + |rp| * MW := by
+      intro x
+      calc
+        |B x| = |deriv W x - rp * W x| := rfl
+        _ ≤ |deriv W x| + |rp * W x| := abs_sub _ _
+        _ = |deriv W x| + |rp| * |W x| := by rw [abs_mul]
+        _ ≤ MW' + |rp| * MW := by
+          exact add_le_add (hMW' x)
+            (mul_le_mul_of_nonneg_left (hMW x) (abs_nonneg rp))
+    have hbound_nonneg : 0 ≤ MW' + |rp| * MW := by positivity
+    have hv0_pos : 0 < |v 0| := abs_pos.mpr hne
+    have h_exp_atBot :
+        Tendsto (fun x : ℝ => Real.exp (rm * x)) atBot atTop :=
+      Real.tendsto_exp_atTop.comp
+        ((tendsto_const_mul_atTop_of_neg (f := fun x : ℝ => x) hrm_neg).2 tendsto_id)
+    obtain ⟨x, hx⟩ :=
+      (h_exp_atBot.eventually_gt_atTop ((MW' + |rp| * MW) / |v 0|)).exists
+    have hbig : MW' + |rp| * MW < |v 0| * Real.exp (rm * x) := by
+      rw [div_lt_iff₀ hv0_pos] at hx
+      linarith
+    have hB_abs : |B x| = |v 0| * Real.exp (rm * x) := by
+      rw [hB_exp x, abs_mul, abs_of_pos (Real.exp_pos _)]
+    linarith [hB_bdd x, hB_abs, hbig]
+  have hB_zero : ∀ x, B x = 0 := by
+    intro x
+    rw [hB_exp x, hB0]
+    simp
+  intro x
+  have hroot_ne : rp - rm ≠ 0 := by
+    have : rm < rp := lt_trans hrm_neg hrp_pos
+    linarith
+  have hlin : (rp - rm) * W x = 0 := by
+    have hA := hA_zero x
+    have hB := hB_zero x
+    dsimp [A, B] at hA hB
+    linarith
+  exact (mul_eq_zero.mp hlin).resolve_left hroot_ne
+
+/-- `greenConv` solves the negative-source resolvent equation, expressed with
+the actual `deriv` and `iteratedDeriv` operators. -/
+theorem greenConv_variation_negative_stationary
+    (hlam : 0 < lam) {R : ℝ → ℝ} (hR : Continuous R)
+    (hRhi : ∀ x,
+      IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi x))
+    (hRlo : ∀ x,
+      IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic x))
+    (x : ℝ) :
+    iteratedDeriv 2 (greenConv c lam R) x
+        + c * deriv (greenConv c lam R) x
+        - lam * greenConv c lam R x
+      = -R x := by
+  have hw' : ∀ y, HasDerivAt (greenConv c lam R)
+      (greenConvDeriv c lam R y) y := fun y =>
+    greenConv_hasDerivAt (c := c) (lam := lam) hR hRhi hRlo y
+  have hderiv_eq :
+      deriv (greenConv c lam R) = fun y => greenConvDeriv c lam R y :=
+    funext fun y => (hw' y).deriv
+  have hw'' : HasDerivAt (deriv (greenConv c lam R))
+      (greenConvDeriv2 c lam R x) x := by
+    rw [hderiv_eq]
+    exact greenConvDeriv_hasDerivAt (c := c) (lam := lam) hR hRhi hRlo x
+  have hiter : iteratedDeriv 2 (greenConv c lam R) x =
+      greenConvDeriv2 c lam R x := by
+    rw [iteratedDeriv_succ, iteratedDeriv_one]
+    exact hw''.deriv
+  rw [hiter, hderiv_eq]
+  exact greenConv_solves (c := c) (lam := lam) hlam (H := R) x
+
+/-- A bounded source gives a bounded Green convolution.  The bound is written
+in the two-tail constants used by the explicit `greenConv` formula. -/
+theorem greenConv_abs_le_of_source_bound
+    (hlam : 0 < lam) {H : ℝ → ℝ} {B : ℝ}
+    (hB : ∀ y, |H y| ≤ B)
+    (hHi : ∀ x, IntegrableOn (gWeight (greenRootPlus c lam) H) (Ioi x))
+    (hLo : ∀ x, IntegrableOn (gWeight (greenRootMinus c lam) H) (Iic x))
+    (x : ℝ) :
+    |greenConv c lam H x| ≤
+      (greenDelta c lam)⁻¹ *
+        (B / greenRootPlus c lam + B / (-greenRootMinus c lam)) := by
+  have hrp : 0 < greenRootPlus c lam := greenRootPlus_pos (c := c) (lam := lam) hlam
+  have hrm : greenRootMinus c lam < 0 := greenRootMinus_neg (c := c) (lam := lam) hlam
+  have hδ : 0 < (greenDelta c lam)⁻¹ :=
+    inv_pos.mpr (greenDelta_pos (c := c) hlam)
+  have hHi_bd :=
+    tailHi_weighted_abs_le
+      (r := greenRootPlus c lam) hrp hHi hB x
+  have hLo_bd :=
+    tailLo_weighted_abs_le
+      (r := greenRootMinus c lam) hrm hLo hB x
+  have hHi' :
+      Real.exp (greenRootPlus c lam * x) *
+          |tailHi (greenRootPlus c lam) H x|
+        ≤ B / greenRootPlus c lam := by
+    rw [le_div_iff₀ hrp]
+    simpa [mul_assoc, mul_comm, mul_left_comm] using hHi_bd
+  have hLo' :
+      Real.exp (greenRootMinus c lam * x) *
+          |tailLo (greenRootMinus c lam) H x|
+        ≤ B / (-greenRootMinus c lam) := by
+    rw [le_div_iff₀ (neg_pos.mpr hrm)]
+    simpa [mul_assoc, mul_comm, mul_left_comm] using hLo_bd
+  rw [greenConv, abs_mul, abs_of_pos hδ]
+  have hsum :
+      |Real.exp (greenRootPlus c lam * x) *
+            tailHi (greenRootPlus c lam) H x
+        + Real.exp (greenRootMinus c lam * x) *
+            tailLo (greenRootMinus c lam) H x|
+        ≤ B / greenRootPlus c lam + B / (-greenRootMinus c lam) := by
+    have hA :
+        |Real.exp (greenRootPlus c lam * x) *
+            tailHi (greenRootPlus c lam) H x|
+          =
+        Real.exp (greenRootPlus c lam * x) *
+            |tailHi (greenRootPlus c lam) H x| := by
+      rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+    have hBtail :
+        |Real.exp (greenRootMinus c lam * x) *
+            tailLo (greenRootMinus c lam) H x|
+          =
+        Real.exp (greenRootMinus c lam * x) *
+            |tailLo (greenRootMinus c lam) H x| := by
+      rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+    calc
+      |Real.exp (greenRootPlus c lam * x) *
+            tailHi (greenRootPlus c lam) H x
+        + Real.exp (greenRootMinus c lam * x) *
+            tailLo (greenRootMinus c lam) H x|
+          ≤ |Real.exp (greenRootPlus c lam * x) *
+              tailHi (greenRootPlus c lam) H x|
+            + |Real.exp (greenRootMinus c lam * x) *
+              tailLo (greenRootMinus c lam) H x| := abs_add_le _ _
+      _ = Real.exp (greenRootPlus c lam * x) *
+              |tailHi (greenRootPlus c lam) H x|
+            + Real.exp (greenRootMinus c lam * x) *
+              |tailLo (greenRootMinus c lam) H x| := by rw [hA, hBtail]
+      _ ≤ B / greenRootPlus c lam + B / (-greenRootMinus c lam) :=
+            add_le_add hHi' hLo'
+  exact mul_le_mul_of_nonneg_left hsum hδ.le
+
+/-- The source in the diagonal cross map, rewritten by stationary operator
+zero as the linear resolvent source. -/
+theorem crossSource_eq_linear_of_frozenWaveOperator_zero
+    (p : CMParams) (c lam : ℝ) (U : ℝ → ℝ)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0) :
+    ∀ x, crossSource p lam U U U x =
+      lam * U x - (iteratedDeriv 2 U x + c * deriv U x) := by
+  intro x
+  have hx := hstat x
+  unfold frozenWaveOperator at hx
+  unfold crossSource reactionFun
+  linarith
+
+/-- The flux/IBP hypotheses needed to identify the raw diagonal cross map with
+the Green convolution of its differential source.  These are exactly the
+non-algebraic inputs consumed by `crossImplicitMap_eq_greenConv_crossSource`,
+specialized to `u = Z = W = U`. -/
+structure StationaryCrossGreenData
+    (p : CMParams) (c lam : ℝ) (U : ℝ → ℝ) : Prop where
+  hSmIic : ∀ x, IntegrableOn (fun y => greenKernel c lam (x - y)
+      * (reactionFun p.α (U y) + lam * U y)) (Set.Iic x)
+  hSmIoi : ∀ x, IntegrableOn (fun y => greenKernel c lam (x - y)
+      * (reactionFun p.α (U y) + lam * U y)) (Set.Ioi x)
+  hFlIic : ∀ x, IntegrableOn (fun y => greenKernel c lam (x - y)
+      * (-p.χ * deriv (stepFlux p U U) y)) (Set.Iic x)
+  hFlIoi : ∀ x, IntegrableOn (fun y => greenKernel c lam (x - y)
+      * (-p.χ * deriv (stepFlux p U U) y)) (Set.Ioi x)
+  hG_C1 : ∀ y, HasDerivAt (stepFlux p U U) (deriv (stepFlux p U U) y) y
+  hKv'_Ioi : ∀ x, IntegrableOn
+      ((fun y => greenKernel c lam (x - y)) * deriv (stepFlux p U U)) (Ioi x)
+  hKv'_Iic : ∀ x, IntegrableOn
+      ((fun y => greenKernel c lam (x - y)) * deriv (stepFlux p U U)) (Iic x)
+  hK'v_Ioi : ∀ x, IntegrableOn
+      ((fun y => -greenKernelDeriv c lam (x - y)) * stepFlux p U U) (Ioi x)
+  hK'v_Iic : ∀ x, IntegrableOn
+      ((fun y => -greenKernelDeriv c lam (x - y)) * stepFlux p U U) (Iic x)
+  hKG_Iic : ∀ x, IntegrableOn
+      (fun y => greenKernel c lam (x - y)
+        * (-p.χ * deriv (stepFlux p U U) y)) (Iic x)
+  hKG_Ioi : ∀ x, IntegrableOn
+      (fun y => greenKernel c lam (x - y)
+        * (-p.χ * deriv (stepFlux p U U) y)) (Ioi x)
+  hdecay_top : ∀ x, Tendsto
+      ((fun y => greenKernel c lam (x - y)) * stepFlux p U U) atTop (𝓝 0)
+  hdecay_bot : ∀ x, Tendsto
+      ((fun y => greenKernel c lam (x - y)) * stepFlux p U U) atBot (𝓝 0)
+
+theorem StationaryCrossGreenData.crossImplicitMap_eq_greenConv_crossSource
+    {p : CMParams} {c lam : ℝ} {U : ℝ → ℝ}
+    (hlam : 0 < lam) (hdata : StationaryCrossGreenData p c lam U) :
+    crossImplicitMap p c lam U U U =
+      fun x => greenConv c lam (crossSource p lam U U U) x := by
+  funext x
+  exact ShenWork.Paper1.crossImplicitMap_eq_greenConv_crossSource p hlam U U U x
+    (hdata.hSmIic x) (hdata.hSmIoi x) (hdata.hFlIic x) (hdata.hFlIoi x)
+    hdata.hG_C1 (hdata.hKv'_Ioi x) (hdata.hKv'_Iic x)
+    (hdata.hK'v_Ioi x) (hdata.hK'v_Iic x)
+    (hdata.hKG_Iic x) (hdata.hKG_Ioi x)
+    (hdata.hdecay_top x) (hdata.hdecay_bot x)
+
+/-- Resolvent inversion for a stationary diagonal profile: operator-zero and
+the source/IBP hypotheses force the diagonal cross implicit map to fix `U`. -/
+theorem frozenWaveOperator_zero_crossImplicitMap_fixed
+    {p : CMParams} {c lam : ℝ} {U : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hdata : StationaryCrossGreenData p c lam U)
+    (hR_cont : Continuous (crossSource p lam U U U))
+    (hR_bound : ∃ B : ℝ, ∀ y, |crossSource p lam U U U y| ≤ B)
+    (hRhi : ∀ x,
+      IntegrableOn (gWeight (greenRootPlus c lam) (crossSource p lam U U U)) (Ioi x))
+    (hRlo : ∀ x,
+      IntegrableOn (gWeight (greenRootMinus c lam) (crossSource p lam U U U)) (Iic x))
+    (hU_diff : Differentiable ℝ U)
+    (hU'_diff : Differentiable ℝ (deriv U))
+    (hU_bdd : ∃ M : ℝ, ∀ x, |U x| ≤ M)
+    (hU'_bdd : ∃ M : ℝ, ∀ x, |deriv U x| ≤ M)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0) :
+    crossImplicitMap p c lam U U U = U := by
+  let R : ℝ → ℝ := crossSource p lam U U U
+  obtain ⟨BR, hBR⟩ := hR_bound
+  have hcross_green :
+      crossImplicitMap p c lam U U U = fun x => greenConv c lam R x := by
+    simpa [R] using
+      StationaryCrossGreenData.crossImplicitMap_eq_greenConv_crossSource
+        (p := p) (c := c) (lam := lam) (U := U) hlam hdata
+  have hU_linear : ∀ x,
+      iteratedDeriv 2 U x + c * deriv U x - lam * U x = -R x := by
+    intro x
+    have hsrc := crossSource_eq_linear_of_frozenWaveOperator_zero
+      p c lam U hstat x
+    dsimp [R] at hsrc ⊢
+    linarith
+  have hG_linear : ∀ x,
+      iteratedDeriv 2 (greenConv c lam R) x
+        + c * deriv (greenConv c lam R) x
+        - lam * greenConv c lam R x = -R x := by
+    intro x
+    exact greenConv_variation_negative_stationary
+      (c := c) (lam := lam) hlam (R := R) (by simpa [R] using hR_cont)
+      (by simpa [R] using hRhi) (by simpa [R] using hRlo) x
+  have hG_diff : Differentiable ℝ (greenConv c lam R) := by
+    intro x
+    exact (greenConv_hasDerivAt
+      (c := c) (lam := lam) (H := R) (by simpa [R] using hR_cont)
+      (by simpa [R] using hRhi) (by simpa [R] using hRlo) x).differentiableAt
+  have hG_deriv_eq :
+      deriv (greenConv c lam R) = fun y => greenConvDeriv c lam R y :=
+    funext fun y =>
+      (greenConv_hasDerivAt
+        (c := c) (lam := lam) (H := R) (by simpa [R] using hR_cont)
+        (by simpa [R] using hRhi) (by simpa [R] using hRlo) y).deriv
+  have hG'_diff : Differentiable ℝ (deriv (greenConv c lam R)) := by
+    rw [hG_deriv_eq]
+    intro x
+    exact (greenConvDeriv_hasDerivAt
+      (c := c) (lam := lam) (H := R) (by simpa [R] using hR_cont)
+      (by simpa [R] using hRhi) (by simpa [R] using hRlo) x).differentiableAt
+  have hG_bdd : ∃ M : ℝ, ∀ x, |greenConv c lam R x| ≤ M := by
+    refine ⟨(greenDelta c lam)⁻¹ *
+        (BR / greenRootPlus c lam + BR / (-greenRootMinus c lam)), ?_⟩
+    intro x
+    exact greenConv_abs_le_of_source_bound
+      (c := c) (lam := lam) hlam (H := R) (B := BR)
+      (by simpa [R] using hBR)
+      (by simpa [R] using hRhi) (by simpa [R] using hRlo) x
+  have hG'_bdd : ∃ M : ℝ, ∀ x, |deriv (greenConv c lam R) x| ≤ M := by
+    refine ⟨2 * (greenDelta c lam)⁻¹ * BR, ?_⟩
+    intro x
+    rw [hG_deriv_eq]
+    exact greenConvDeriv_abs_le
+      (c := c) (lam := lam) hlam (H := R) (B := BR)
+      (by simpa [R] using hBR)
+      (by simpa [R] using hRhi) (by simpa [R] using hRlo) x
+  let W : ℝ → ℝ := fun x => U x - greenConv c lam R x
+  have hW_diff : Differentiable ℝ W := by
+    intro x
+    exact ((hU_diff x).sub (hG_diff x))
+  have hW_deriv_eq :
+      deriv W = fun x => deriv U x - deriv (greenConv c lam R) x := by
+    funext x
+    exact ((hU_diff x).hasDerivAt.sub (hG_diff x).hasDerivAt).deriv
+  have hW'_diff : Differentiable ℝ (deriv W) := by
+    rw [hW_deriv_eq]
+    intro x
+    exact (hU'_diff x).sub (hG'_diff x)
+  have hW_eq : ∀ x, deriv (deriv W) x + c * deriv W x - lam * W x = 0 := by
+    intro x
+    have hsecond : deriv (deriv W) x =
+        deriv (deriv U) x - deriv (deriv (greenConv c lam R)) x := by
+      rw [hW_deriv_eq]
+      exact ((hU'_diff x).hasDerivAt.sub (hG'_diff x).hasDerivAt).deriv
+    have hiterU : iteratedDeriv 2 U x = deriv (deriv U) x := by
+      rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one]
+    have hiterG : iteratedDeriv 2 (greenConv c lam R) x =
+        deriv (deriv (greenConv c lam R)) x := by
+      rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one]
+    rw [hsecond]
+    rw [hW_deriv_eq]
+    dsimp [W]
+    have hUeq := hU_linear x
+    have hGeq := hG_linear x
+    rw [hiterU] at hUeq
+    rw [hiterG] at hGeq
+    linarith
+  have hW_bdd : ∃ M : ℝ, ∀ x, |W x| ≤ M := by
+    obtain ⟨MU, hMU⟩ := hU_bdd
+    obtain ⟨MG, hMG⟩ := hG_bdd
+    refine ⟨MU + MG, ?_⟩
+    intro x
+    have htri : |W x| ≤ |U x| + |greenConv c lam R x| := by
+      dsimp [W]
+      exact abs_sub _ _
+    linarith [htri, hMU x, hMG x]
+  have hW'_bdd : ∃ M : ℝ, ∀ x, |deriv W x| ≤ M := by
+    obtain ⟨MU', hMU'⟩ := hU'_bdd
+    obtain ⟨MG', hMG'⟩ := hG'_bdd
+    refine ⟨MU' + MG', ?_⟩
+    intro x
+    rw [hW_deriv_eq]
+    have htri : |deriv U x - deriv (greenConv c lam R) x| ≤
+        |deriv U x| + |deriv (greenConv c lam R) x| := abs_sub _ _
+    linarith [htri, hMU' x, hMG' x]
+  have hW_zero : ∀ x, W x = 0 :=
+    bounded_solution_unique_of_linear_homogeneous
+      (c := c) (lam := lam) hlam hW_diff hW'_diff hW_eq hW_bdd hW'_bdd
+  have hU_green : U = fun x => greenConv c lam R x := by
+    funext x
+    have hx := hW_zero x
+    dsimp [W] at hx
+    linarith
+  rw [hcross_green, ← hU_green]
 
 end ShenWork.Paper1

@@ -1,4 +1,5 @@
 import ShenWork.Paper1.WavePaperTermConvergence
+import ShenWork.Paper1.WaveRotheStationary
 import Mathlib.Topology.Order.MonotoneConvergence
 
 namespace ShenWork.Paper1
@@ -273,6 +274,83 @@ def FrozenStationaryGreenSourceTail (c lam : ℝ) (U : ℝ → ℝ) : Prop :=
     Continuous R ∧ (∀ y, |R y| ≤ B) ∧ Tendsto R atBot (𝓝 L) ∧
       U = fun x => greenConv c lam R x
 
+theorem frozenStationaryGreenSourceTail_of_crossImplicitMap_fixed
+    {p : CMParams} {c lam : ℝ} {U : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hdata : StationaryCrossGreenData p c lam U)
+    (hR_cont : Continuous (crossSource p lam U U U))
+    (hR_bound : ∃ B : ℝ, ∀ y, |crossSource p lam U U U y| ≤ B)
+    (hR_tail : ∃ L : ℝ, Tendsto (crossSource p lam U U U) atBot (𝓝 L))
+    (hcross : crossImplicitMap p c lam U U U = U) :
+    FrozenStationaryGreenSourceTail c lam U := by
+  rcases hR_bound with ⟨B, hB⟩
+  rcases hR_tail with ⟨L, hL⟩
+  refine ⟨crossSource p lam U U U, B, L, hR_cont, hB, hL, ?_⟩
+  calc
+    U = crossImplicitMap p c lam U U U := hcross.symm
+    _ = fun x => greenConv c lam (crossSource p lam U U U) x :=
+        StationaryCrossGreenData.crossImplicitMap_eq_greenConv_crossSource
+          (p := p) (c := c) (lam := lam) (U := U) hlam hdata
+
+theorem frozenStationaryGreenSourceTail_of_frozenWaveOperator_zero
+    {p : CMParams} {c lam : ℝ} {U : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hdata : StationaryCrossGreenData p c lam U)
+    (hR_cont : Continuous (crossSource p lam U U U))
+    (hR_bound : ∃ B : ℝ, ∀ y, |crossSource p lam U U U y| ≤ B)
+    (hR_tail : ∃ L : ℝ, Tendsto (crossSource p lam U U U) atBot (𝓝 L))
+    (hU_diff : Differentiable ℝ U)
+    (hU'_diff : Differentiable ℝ (deriv U))
+    (hU_bdd : ∃ M : ℝ, ∀ x, |U x| ≤ M)
+    (hU'_bdd : ∃ M : ℝ, ∀ x, |deriv U x| ≤ M)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0) :
+    FrozenStationaryGreenSourceTail c lam U := by
+  rcases hR_bound with ⟨BR, hBR⟩
+  have hRhi : ∀ x,
+      IntegrableOn (gWeight (greenRootPlus c lam) (crossSource p lam U U U)) (Ioi x) :=
+    fun x => gWeight_integrableOn_Ioi_of_bounded
+      (greenRootPlus_pos (c := c) hlam) hR_cont hBR x
+  have hRlo : ∀ x,
+      IntegrableOn (gWeight (greenRootMinus c lam) (crossSource p lam U U U)) (Iic x) :=
+    fun x => gWeight_integrableOn_Iic_of_bounded
+      (greenRootMinus_neg (c := c) hlam) hR_cont hBR x
+  have hcross : crossImplicitMap p c lam U U U = U :=
+    frozenWaveOperator_zero_crossImplicitMap_fixed
+      (p := p) (c := c) (lam := lam) (U := U) hlam hdata
+      hR_cont ⟨BR, hBR⟩ hRhi hRlo hU_diff hU'_diff hU_bdd hU'_bdd
+      hstat
+  exact frozenStationaryGreenSourceTail_of_crossImplicitMap_fixed
+    (p := p) (c := c) (lam := lam) (U := U)
+    hlam hdata hR_cont ⟨BR, hBR⟩ hR_tail hcross
+
+theorem lowerPinnedStationaryGreenSourceTail_of_frozenWaveOperator_zero
+    {p : CMParams} {c lam κ M : ℝ} {φ U : ℝ → ℝ} {z : ℕ → ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hU : InLowerPinnedMonotoneTrap κ M φ U)
+    (hc3 : PaperC3BootstrapData U z)
+    (hdata : StationaryCrossGreenData p c lam U)
+    (hR_cont : Continuous (crossSource p lam U U U))
+    (hR_bound : ∃ B : ℝ, ∀ y, |crossSource p lam U U U y| ≤ B)
+    (hR_tail : ∃ L : ℝ, Tendsto (crossSource p lam U U U) atBot (𝓝 L))
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0) :
+    FrozenStationaryGreenSourceTail c lam U := by
+  have hU_diff : Differentiable ℝ U := fun x =>
+    (hc3.limit_hasDeriv_value x).differentiableAt
+  have hU'_diff : Differentiable ℝ (deriv U) := fun x =>
+    (hc3.limit_hasDeriv_deriv x).differentiableAt
+  have hU_bdd : ∃ C : ℝ, ∀ x, |U x| ≤ C := by
+    refine ⟨M, ?_⟩
+    intro x
+    rw [abs_of_nonneg (hU.bare.nonneg x)]
+    exact hU.bare.le_M x
+  obtain ⟨CU', _hCU'_nonneg, hCU'⟩ := hc3.limit_deriv_bound
+  have hU'_bdd : ∃ C : ℝ, ∀ x, |deriv U x| ≤ C := ⟨CU', hCU'⟩
+  exact frozenStationaryGreenSourceTail_of_frozenWaveOperator_zero
+    (p := p) (c := c) (lam := lam) (U := U)
+    hlam hdata hR_cont hR_bound hR_tail
+    hU_diff hU'_diff hU_bdd hU'_bdd
+    hstat
+
 /-- A bounded antitone real profile has finite limits at both spatial tails. -/
 theorem antitone_tendsto_atBot_atTop_of_bdd
     {U : ℝ → ℝ}
@@ -303,6 +381,118 @@ theorem inLowerPinnedMonotoneTrap_profile_tail_limits
     exact hbare.nonneg x
   exact antitone_tendsto_atBot_atTop_of_bdd
     hbare.antitone hbddAbove hbddBelow
+
+/-- Barbalat-type one-sided tail lemma used for monotone trap profiles: an
+antitone `C²` profile with a finite left limit and bounded second derivative has
+first derivative tending to zero at `-∞`. -/
+theorem antitone_deriv_tendsto_atBot_zero_of_tail_of_second_bound
+    {U : ℝ → ℝ} {L C : ℝ}
+    (hanti : Antitone U)
+    (hlim : Tendsto U atBot (𝓝 L))
+    (hU_diff : Differentiable ℝ U)
+    (hU'_diff : Differentiable ℝ (deriv U))
+    (hC_nonneg : 0 ≤ C)
+    (hU''_bound : ∀ x, |deriv (deriv U) x| ≤ C) :
+    Tendsto (fun x => deriv U x) atBot (𝓝 0) := by
+  rw [Metric.tendsto_nhds]
+  intro ε hε
+  set δ : ℝ := ε / (2 * (C + 1)) with hδ_def
+  have hC1_pos : 0 < C + 1 := by linarith
+  have hden_pos : 0 < 2 * (C + 1) := by positivity
+  have hδ_pos : 0 < δ := by
+    rw [hδ_def]
+    exact div_pos hε hden_pos
+  have hCδ_le : C * δ ≤ ε / 2 := by
+    rw [hδ_def]
+    have hden_ne : 2 * (C + 1) ≠ 0 := ne_of_gt hden_pos
+    field_simp [hden_ne]
+    nlinarith [hC_nonneg, hε.le]
+  set drop : ℝ := (ε / 2) * δ with hdrop_def
+  have hdrop_pos : 0 < drop := by
+    rw [hdrop_def]
+    positivity
+  set η : ℝ := drop / 4 with hη_def
+  have hη_pos : 0 < η := by
+    rw [hη_def]
+    positivity
+  have htail_event :
+      ∀ᶠ x in atBot, dist (U x) L < η :=
+    Metric.tendsto_nhds.mp hlim η hη_pos
+  rcases Filter.eventually_atBot.mp htail_event with ⟨A, hA⟩
+  rw [Filter.eventually_atBot]
+  refine ⟨A - δ, ?_⟩
+  intro x hx
+  rw [Real.dist_eq, sub_zero]
+  have hnonpos : deriv U x ≤ 0 := hanti.deriv_nonpos
+  have hgt : -ε < deriv U x := by
+    by_contra hnot
+    have hxder : deriv U x ≤ -ε := le_of_not_gt hnot
+    have hderiv_lip : ∀ y,
+        |deriv U y - deriv U x| ≤ C * |y - x| := by
+      intro y
+      have hmv := Convex.norm_image_sub_le_of_norm_deriv_le
+        (s := Set.univ) (f := deriv U) (C := C)
+        (fun z _hz => hU'_diff z)
+        (fun z _hz => by
+          simpa [Real.norm_eq_abs] using hU''_bound z)
+        convex_univ (by simp : y ∈ (Set.univ : Set ℝ))
+        (by simp : x ∈ (Set.univ : Set ℝ))
+      have hmv' : |deriv U x - deriv U y| ≤ C * |x - y| := by
+        simpa [Real.norm_eq_abs, dist_eq_norm] using hmv
+      simpa [abs_sub_comm] using hmv'
+    have hderiv_le : ∀ y, x ≤ y → y ≤ x + δ → deriv U y ≤ -(ε / 2) := by
+      intro y hxy hyδ
+      have hyabs : |y - x| ≤ δ := by
+        rw [abs_of_nonneg (sub_nonneg.mpr hxy)]
+        linarith
+      have hlip := hderiv_lip y
+      have hdiff_le : deriv U y - deriv U x ≤ ε / 2 := by
+        have hCabs : C * |y - x| ≤ C * δ :=
+          mul_le_mul_of_nonneg_left hyabs hC_nonneg
+        have hle_abs : deriv U y - deriv U x ≤ |deriv U y - deriv U x| :=
+          le_abs_self _
+        linarith
+      linarith
+    have hdrop_le : U (x + δ) - U x ≤ -drop := by
+      have hseg := (convex_Icc x (x + δ)).image_sub_le_mul_sub_of_deriv_le
+        hU_diff.continuous.continuousOn hU_diff.differentiableOn
+        (C := -(ε / 2))
+        (fun y hy => by
+          have hyIoo : y ∈ Ioo x (x + δ) := by
+            simpa [interior_Icc] using hy
+          exact hderiv_le y hyIoo.1.le hyIoo.2.le)
+        x (by simp [hδ_pos.le])
+        (x + δ) (by simp [hδ_pos.le])
+        (by linarith : x ≤ x + δ)
+      have hsub : x + δ - x = δ := by ring
+      rw [hsub] at hseg
+      rw [hdrop_def]
+      linarith
+    have habs_ge : drop ≤ |U (x + δ) - U x| := by
+      have hnonpos_drop : U (x + δ) - U x ≤ 0 := by linarith [hdrop_le, hdrop_pos]
+      rw [abs_of_nonpos hnonpos_drop]
+      linarith
+    have hxA : x ≤ A := by linarith [hx, hδ_pos.le]
+    have hxδA : x + δ ≤ A := by linarith [hx]
+    have hx_tail : dist (U x) L < η := hA x hxA
+    have hxδ_tail : dist (U (x + δ)) L < η := hA (x + δ) hxδA
+    have hx_abs : |U x - L| < η := by
+      simpa [Real.dist_eq] using hx_tail
+    have hxδ_abs : |U (x + δ) - L| < η := by
+      simpa [Real.dist_eq] using hxδ_tail
+    have habs_lt : |U (x + δ) - U x| < drop := by
+      calc
+        |U (x + δ) - U x|
+            = |(U (x + δ) - L) + (L - U x)| := by ring_nf
+        _ ≤ |U (x + δ) - L| + |L - U x| := abs_add_le _ _
+        _ = |U (x + δ) - L| + |U x - L| := by rw [abs_sub_comm L (U x)]
+        _ < η + η := add_lt_add hxδ_abs hx_abs
+        _ < drop := by
+          rw [hη_def]
+          linarith [hdrop_pos]
+    exact (not_lt_of_ge habs_ge habs_lt).elim
+  rw [abs_lt]
+  exact ⟨hgt, lt_of_le_of_lt hnonpos hε⟩
 
 theorem frozenElliptic_tendsto_atBot_of_profile_tendsto
     (p : CMParams) {U : ℝ → ℝ} {L : ℝ}
@@ -538,6 +728,214 @@ theorem frozenChemFlux_deriv_tendsto_atBot_zero_of_profile_tails
       simp [Pi.mul_apply]
     rw [hfun_eq, hprod.deriv]
   simpa [hflux_eq] using hterm1.add hterm2
+
+theorem crossSource_tendsto_atBot_of_profile_tail_and_deriv_tail
+    {p : CMParams} {lam κ M : ℝ} {φ U : ℝ → ℝ} {L : ℝ}
+    (hM : 0 < M)
+    (hU : InLowerPinnedMonotoneTrap κ M φ U)
+    (hdiff : PaperDiagonalDifferentiabilityFloor p κ M φ)
+    (hUlim : Tendsto U atBot (𝓝 L))
+    (hD1 : Tendsto (fun x => deriv U x) atBot (𝓝 0)) :
+    ∃ LR, Tendsto (crossSource p lam U U U) atBot (𝓝 LR) := by
+  have hbare : InMonotoneWaveTrapSet κ M U := hU.bare
+  have hVlim :
+      Tendsto (frozenElliptic p U) atBot (𝓝 (L ^ p.γ)) :=
+    frozenElliptic_tendsto_atBot_of_profile_tendsto p
+      hbare.trap.cunif_bdd hbare.nonneg hUlim
+  have hflux :
+      Tendsto
+        (fun x => deriv
+          (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) x)
+        atBot (𝓝 0) :=
+    frozenChemFlux_deriv_tendsto_atBot_zero_of_profile_tails
+      (p := p) (κ := κ) (M := M) (φ := φ) (U := U) (L := L)
+      hM hU hdiff hUlim hVlim hD1
+  have hα_nonneg : 0 ≤ p.α := le_trans zero_le_one p.hα
+  have hpow :
+      Tendsto (fun x => (U x) ^ p.α) atBot (𝓝 (L ^ p.α)) :=
+    hUlim.rpow_const (Or.inr hα_nonneg)
+  have hreact :
+      Tendsto (fun x => reactionFun p.α (U x)) atBot
+        (𝓝 (reactionFun p.α L)) := by
+    unfold reactionFun
+    exact hUlim.mul (tendsto_const_nhds.sub hpow)
+  refine ⟨reactionFun p.α L + lam * L, ?_⟩
+  have hmain :
+      Tendsto
+        (fun x =>
+          reactionFun p.α (U x) + lam * U x
+            - p.χ *
+              deriv
+                (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) x)
+        atBot (𝓝 (reactionFun p.α L + lam * L)) := by
+    have hflux_scaled :
+        Tendsto
+          (fun x =>
+            p.χ *
+              deriv
+                (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) x)
+          atBot (𝓝 0) := by
+      simpa using hflux.const_mul p.χ
+    simpa using (hreact.add (hUlim.const_mul lam)).sub hflux_scaled
+  simpa [crossSource] using hmain
+
+theorem lowerPinned_crossSource_tendsto_atBot_of_c3
+    {p : CMParams} {lam κ M : ℝ} {φ U : ℝ → ℝ} {z : ℕ → ℝ → ℝ}
+    (hM : 0 < M)
+    (hU : InLowerPinnedMonotoneTrap κ M φ U)
+    (hc3 : PaperC3BootstrapData U z)
+    (hdiff : PaperDiagonalDifferentiabilityFloor p κ M φ) :
+    ∃ LR, Tendsto (crossSource p lam U U U) atBot (𝓝 LR) := by
+  rcases (inLowerPinnedMonotoneTrap_profile_tail_limits hU).1 with
+    ⟨LU, hUlim⟩
+  have hU_diff : Differentiable ℝ U := fun x =>
+    (hc3.limit_hasDeriv_value x).differentiableAt
+  have hU'_diff : Differentiable ℝ (deriv U) := fun x =>
+    (hc3.limit_hasDeriv_deriv x).differentiableAt
+  obtain ⟨C2, hC2_nonneg, hC2⟩ := hc3.limit_second_bound
+  have hsecond_bound : ∀ x, |deriv (deriv U) x| ≤ C2 := by
+    intro x
+    rw [(hc3.limit_hasDeriv_deriv x).deriv]
+    exact hC2 x
+  have hD1 :
+      Tendsto (fun x => deriv U x) atBot (𝓝 0) :=
+    antitone_deriv_tendsto_atBot_zero_of_tail_of_second_bound
+      hU.bare.antitone hUlim hU_diff hU'_diff hC2_nonneg hsecond_bound
+  exact crossSource_tendsto_atBot_of_profile_tail_and_deriv_tail
+    (p := p) (lam := lam) (κ := κ) (M := M) (φ := φ) (U := U)
+    (L := LU) hM hU hdiff hUlim hD1
+
+theorem lowerPinned_crossSource_continuous_of_c3
+    {p : CMParams} {lam κ M : ℝ} {φ U : ℝ → ℝ} {z : ℕ → ℝ → ℝ}
+    (hU : InLowerPinnedMonotoneTrap κ M φ U)
+    (hc3 : PaperC3BootstrapData U z) :
+    Continuous (crossSource p lam U U U) := by
+  have hU_cont : Continuous U :=
+    continuous_iff_continuousAt.2 fun x =>
+      (hc3.limit_hasDeriv_value x).continuousAt
+  have hDU_cont : Continuous (fun x => deriv U x) :=
+    continuous_iff_continuousAt.2 fun x =>
+      (hc3.limit_hasDeriv_deriv x).continuousAt
+  have hV_cont : Continuous (frozenElliptic p U) :=
+    frozenElliptic_continuous p hU.bare.trap.cunif_bdd hU.bare.nonneg
+  have hDV_cont : Continuous (fun x => deriv (frozenElliptic p U) x) :=
+    continuous_iff_continuousAt.2 fun x =>
+      (frozenElliptic_deriv_differentiableAt p
+        hU.bare.trap.cunif_bdd hU.bare.nonneg x).continuousAt
+  have hflux_eq :
+      (fun x => deriv
+        (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) x)
+      =
+      fun x =>
+        deriv U x * p.m * (U x) ^ (p.m - 1) *
+            deriv (frozenElliptic p U) x +
+          (U x) ^ p.m * (frozenElliptic p U x - (U x) ^ p.γ) := by
+    funext x
+    have hU_pow_deriv : HasDerivAt (fun y => (U y) ^ p.m)
+        (deriv U x * p.m * (U x) ^ (p.m - 1)) x :=
+      (hc3.limit_hasDeriv_value x).rpow_const (Or.inr p.hm)
+    have hV'' := frozenElliptic_deriv_deriv_eq p
+      hU.bare.trap.cunif_bdd hU.bare.nonneg x
+    have hV_deriv : HasDerivAt (deriv (frozenElliptic p U))
+        (frozenElliptic p U x - (U x) ^ p.γ) x := by
+      convert (frozenElliptic_deriv_differentiableAt p
+        hU.bare.trap.cunif_bdd hU.bare.nonneg x).hasDerivAt using 1
+      exact hV''.symm
+    have hprod := hU_pow_deriv.mul hV_deriv
+    have hfun_eq :
+        (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) =
+        (fun y => (U y) ^ p.m) * deriv (frozenElliptic p U) := by
+      ext y
+      simp [Pi.mul_apply]
+    rw [hfun_eq, hprod.deriv]
+  have hm1_nonneg : 0 ≤ p.m - 1 := by linarith [p.hm]
+  have hm_nonneg : 0 ≤ p.m := le_trans zero_le_one p.hm
+  have hγ_nonneg : 0 ≤ p.γ := le_trans zero_le_one p.hγ
+  have hflux_cont :
+      Continuous
+        (fun x =>
+          deriv
+            (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) x) := by
+    have hterm1 :
+        Continuous
+          (fun x =>
+            deriv U x * p.m * (U x) ^ (p.m - 1) *
+              deriv (frozenElliptic p U) x) :=
+      (((hDU_cont.mul continuous_const).mul
+        ((Real.continuous_rpow_const hm1_nonneg).comp hU_cont)).mul hDV_cont)
+    have hterm2 :
+        Continuous
+          (fun x => (U x) ^ p.m *
+            (frozenElliptic p U x - (U x) ^ p.γ)) :=
+      ((Real.continuous_rpow_const hm_nonneg).comp hU_cont).mul
+        (hV_cont.sub ((Real.continuous_rpow_const hγ_nonneg).comp hU_cont))
+    simpa [hflux_eq] using hterm1.add hterm2
+  have hα_nonneg : 0 ≤ p.α := le_trans zero_le_one p.hα
+  simpa [crossSource] using
+    ((continuous_reactionFun hα_nonneg).comp hU_cont).add
+      (continuous_const.mul hU_cont) |>.sub
+        (continuous_const.mul hflux_cont)
+
+theorem lowerPinnedStationaryGreenSourceTail_of_frozenWaveOperator_zero_from_c3
+    {p : CMParams} {c lam κ M : ℝ} {φ U : ℝ → ℝ} {z : ℕ → ℝ → ℝ}
+    (hlam : 0 < lam) (hM : 0 < M)
+    (hU : InLowerPinnedMonotoneTrap κ M φ U)
+    (hc3 : PaperC3BootstrapData U z)
+    (hdiff : PaperDiagonalDifferentiabilityFloor p κ M φ)
+    (hdata : StationaryCrossGreenData p c lam U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0) :
+    FrozenStationaryGreenSourceTail c lam U := by
+  have hR_cont : Continuous (crossSource p lam U U U) :=
+    lowerPinned_crossSource_continuous_of_c3
+      (p := p) (lam := lam) (κ := κ) (M := M) (φ := φ)
+      (U := U) (z := z) hU hc3
+  have hR_tail :
+      ∃ L : ℝ, Tendsto (crossSource p lam U U U) atBot (𝓝 L) :=
+    lowerPinned_crossSource_tendsto_atBot_of_c3
+      (p := p) (lam := lam) (κ := κ) (M := M) (φ := φ) (U := U)
+      (z := z) hM hU hc3 hdiff
+  have hR_bound : ∃ B : ℝ, ∀ y, |crossSource p lam U U U y| ≤ B := by
+    obtain ⟨C1, _hC1_nonneg, hC1⟩ := hc3.limit_deriv_bound
+    obtain ⟨C2, _hC2_nonneg, hC2⟩ := hc3.limit_second_bound
+    refine ⟨|lam| * M + (C2 + |c| * C1), ?_⟩
+    intro y
+    have hU_abs : |U y| ≤ M := by
+      rw [abs_of_nonneg (hU.bare.nonneg y)]
+      exact hU.bare.le_M y
+    have hsrc := crossSource_eq_linear_of_frozenWaveOperator_zero
+      p c lam U hstat y
+    rw [hsrc]
+    have hlamU : |lam * U y| ≤ |lam| * M := by
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left hU_abs (abs_nonneg lam)
+    have hcDU : |c * deriv U y| ≤ |c| * C1 := by
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hC1 y) (abs_nonneg c)
+    have hlin :
+        |iteratedDeriv 2 U y + c * deriv U y| ≤ C2 + |c| * C1 := by
+      calc
+        |iteratedDeriv 2 U y + c * deriv U y|
+            ≤ |iteratedDeriv 2 U y| + |c * deriv U y| := abs_add_le _ _
+        _ ≤ C2 + |c| * C1 := add_le_add (hC2 y) hcDU
+    calc
+      |lam * U y - (iteratedDeriv 2 U y + c * deriv U y)|
+          ≤ |lam * U y| + |iteratedDeriv 2 U y + c * deriv U y| := abs_sub _ _
+      _ ≤ |lam| * M + (C2 + |c| * C1) := add_le_add hlamU hlin
+  have hU_diff : Differentiable ℝ U := fun x =>
+    (hc3.limit_hasDeriv_value x).differentiableAt
+  have hU'_diff : Differentiable ℝ (deriv U) := fun x =>
+    (hc3.limit_hasDeriv_deriv x).differentiableAt
+  have hU_bdd : ∃ C : ℝ, ∀ x, |U x| ≤ C := by
+    refine ⟨M, ?_⟩
+    intro x
+    rw [abs_of_nonneg (hU.bare.nonneg x)]
+    exact hU.bare.le_M x
+  obtain ⟨CU', _hCU'_nonneg, hCU'⟩ := hc3.limit_deriv_bound
+  have hU'_bdd : ∃ C : ℝ, ∀ x, |deriv U x| ≤ C := ⟨CU', hCU'⟩
+  exact frozenStationaryGreenSourceTail_of_frozenWaveOperator_zero
+    (p := p) (c := c) (lam := lam) (U := U)
+    hlam hdata hR_cont hR_bound hR_tail
+    hU_diff hU'_diff hU_bdd hU'_bdd hstat
 
 theorem frozenStationaryFlatAtLeft_of_green_source_tail
     {p : CMParams} {c lam κ M : ℝ} {φ U : ℝ → ℝ}
@@ -789,9 +1187,8 @@ theorem paperLowerPinnedStationaryFlatFloor_of_greenStep
       ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
         PaperC3BootstrapData U (rotheSeq U))
     (hdiff : PaperDiagonalDifferentiabilityFloor p κ M φ)
-    (hsourceTail : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
-      (∀ x, frozenWaveOperator p c U U x = 0) →
-        FrozenStationaryGreenSourceTail c lam U) :
+    (hdata : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      StationaryCrossGreenData p c lam U) :
     PaperLowerPinnedStationaryFlatFloor p c κ M φ rotheSeq :=
   paperLowerPinnedStationaryFlatFloor_of_uniformBounds
     (p := p) (c := c) (lam := lam) (κ := κ) (M := M) (φ := φ)
@@ -806,7 +1203,12 @@ theorem paperLowerPinnedStationaryFlatFloor_of_greenStep
     (fun U hU hstat =>
       frozenStationaryFlatAtLeft_of_green_source_tail
         (p := p) (c := c) (lam := lam) (κ := κ) (M := M) (φ := φ)
-        (U := U) hlam hM hU hdiff (hsourceTail U hU hstat))
+        (U := U) hlam hM hU hdiff
+        (lowerPinnedStationaryGreenSourceTail_of_frozenWaveOperator_zero_from_c3
+          (p := p) (c := c) (lam := lam) (κ := κ) (M := M)
+          (φ := φ) (U := U) (z := rotheSeq U)
+          hlam hM hU (hc3 U hU) hdiff (hdata U hU)
+          hstat))
 
 #print axioms paperImplicitStep_fixed_paperWaveOperator_zero
 #print axioms paperImplicitStep_fixed_frozenWaveOperator_zero
