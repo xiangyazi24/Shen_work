@@ -1541,6 +1541,66 @@ def paperStepAnalyticCore_of_fixed_source
     R_bound := hRbound
     R_bound_eq := hΛ }
 
+/-- The exact fixed-source payload needed after the Banach step.
+
+This is deliberately only the nonlinear fixed-source conclusion:
+`R = paperStepSource ... (greenConv R)`, plus the continuous bounded source data
+needed by `paperStepAnalyticCore_of_fixed_source`.  Barrier and Route-A data are
+assembled in `WavePaperRouteA.lean`. -/
+structure PaperStepFixedSourceCore
+    (p : CMParams) (c lam M κ Λ : ℝ) (u Z : ℝ → ℝ) where
+  R : ℝ → ℝ
+  source_eq : R = paperStepSource p c lam u Z (fun x => greenConv c lam R x)
+  R_cont : Continuous R
+  R_bound_const : ℝ
+  R_bound : ∀ y, |R y| ≤ R_bound_const
+  R_bound_eq : Λ = 2 * (greenDelta c lam)⁻¹ * R_bound_const
+
+namespace PaperStepFixedSourceCore
+
+/-- The Green profile produced by a fixed source. -/
+def W
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    (h : PaperStepFixedSourceCore p c lam M κ Λ u Z) : ℝ → ℝ :=
+  fun x => greenConv c lam h.R x
+
+/-- A fixed source immediately gives the analytic core consumed downstream. -/
+def analyticCore
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    (h : PaperStepFixedSourceCore p c lam M κ Λ u Z) :
+    PaperStepAnalyticCore p c lam M κ Λ u Z h.W :=
+  paperStepAnalyticCore_of_fixed_source
+    (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+    (u := u) (Z := Z) (R := h.R)
+    h.source_eq h.R_cont h.R_bound_const h.R_bound h.R_bound_eq
+
+end PaperStepFixedSourceCore
+
+/-- Fixed-source existence in the signature required by the current paper
+producer interface.  Proving this is the Banach contraction step for
+`R ↦ paperStepSource p c lam u Z (greenConv c lam R)`. -/
+def PaperStepFixedSourceProvider
+    (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Type :=
+  ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
+    (∀ x, Z x ≤ upperBarrier κ M x) →
+      PaperStepFixedSourceCore p c lam M κ Λ u Z
+
+/-- The stronger super-solution version matching the frozen Rothe step input.
+The current `PaperGreenStepInputRouteACore.produce` does not expose this
+precondition, but this is the precise fixed-source existence statement needed
+when the old iterate is carried with `frozenWaveOperator p c u Z ≤ 0`. -/
+def PaperStepFixedSourceExistsForSuperTrap
+    (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Prop :=
+  ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
+    (∀ x, Z x ≤ upperBarrier κ M x) →
+    (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
+      ∃ R : ℝ → ℝ,
+        Continuous R ∧
+        (∃ B : ℝ, (∀ y, |R y| ≤ B) ∧
+          Λ = 2 * (greenDelta c lam)⁻¹ * B) ∧
+        R = paperStepSource p c lam u Z
+          (fun x => greenConv c lam R x)
+
 /-- Close the Green bookkeeping fields of `PaperStepAnalytic` from bounded
 continuous source data. -/
 def paperStepAnalytic_of_core

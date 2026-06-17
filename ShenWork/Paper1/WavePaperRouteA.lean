@@ -987,6 +987,51 @@ structure PaperStepOutputRouteACore
   routeA : PaperStepRouteAStructuralData p c lam Cmono u Z W
   approx : PaperStepRouteAApproximationData p c lam Cmono M κ Λ u Z W
 
+/-- The non-Banach data needed to turn a fixed source into the Route-A paper
+step output.  The `fixed` field supplies `W = greenConv R` and the analytic
+core; the remaining fields are exactly the trap-barrier and Route-A payloads
+consumed by `paperRotheStepProducer_of_routeA_greenCore`. -/
+structure PaperStepOutputRouteAAssemblyData
+    (p : CMParams) (c lam M κ Λ : ℝ) (u Z : ℝ → ℝ) where
+  fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z
+  C_chem : ℝ
+  lowerZero :
+    PaperStepLowerData p c lam M C_chem u Z fixed.W (fun _ => 0)
+  upperOld :
+    PaperStepUpperData p c lam M C_chem u Z fixed.W Z
+  upperBarrier :
+    PaperStepUpperData p c lam M C_chem u Z fixed.W (upperBarrier κ M)
+  Cmono : ℝ
+  routeA : PaperStepRouteAStructuralData p c lam Cmono u Z fixed.W
+  approx : PaperStepRouteAApproximationData p c lam Cmono M κ Λ u Z fixed.W
+
+namespace PaperStepOutputRouteAAssemblyData
+
+/-- Assemble the dependent output pair from fixed-source, barrier, and Route-A
+data. -/
+def toOutputRouteACore
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z : ℝ → ℝ}
+    (h : PaperStepOutputRouteAAssemblyData p c lam M κ Λ u Z) :
+    Σ' W : ℝ → ℝ, PaperStepOutputRouteACore p c lam M κ Λ u Z W :=
+  ⟨h.fixed.W,
+    { analytic := h.fixed.analyticCore
+      C_chem := h.C_chem
+      lowerZero := h.lowerZero
+      upperOld := h.upperOld
+      upperBarrier := h.upperBarrier
+      Cmono := h.Cmono
+      routeA := h.routeA
+      approx := h.approx }⟩
+
+end PaperStepOutputRouteAAssemblyData
+
+/-- Per-`Z` assembly provider for the current Route-A Green core interface. -/
+def PaperGreenStepInputRouteAAssemblyProvider
+    (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Type :=
+  ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
+    (∀ x, Z x ≤ upperBarrier κ M x) →
+      PaperStepOutputRouteAAssemblyData p c lam M κ Λ u Z
+
 /-- Per-step Green input using Route-A antitonicity data instead of
 `PaperStepAntitoneData.shiftedOneSided`. -/
 structure PaperGreenStepInputRouteACore
@@ -995,6 +1040,33 @@ structure PaperGreenStepInputRouteACore
   produce : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
       Σ' W : ℝ → ℝ, PaperStepOutputRouteACore p c lam M κ Λ u Z W
+
+/-- Assemble a Route-A Green core once the fixed-source, barrier, and Route-A
+payload has been supplied for each trapped old iterate. -/
+def paperGreenStepInputRouteACore_of_assembly
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hstep : PaperGreenStepInputRouteAAssemblyProvider p c lam M κ Λ u) :
+    PaperGreenStepInputRouteACore p c lam M κ Λ u where
+  hlam := hlam
+  produce := by
+    intro Z hZc hZa hZ0 hZB
+    exact (hstep Z hZc hZa hZ0 hZB).toOutputRouteACore
+
+/-- Trap-indexed Route-A Green core assembly.
+
+The trap hypothesis identifies the intended regime for the frozen profile `u`;
+all analytic obligations still enter through the concrete per-step assembly
+provider, so this theorem does not hide the Banach fixed-source or barrier
+comparison work. -/
+def paperGreenStepInputRouteACore_of_trap
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (_hu : InMonotoneWaveTrapSet κ M u)
+    (hlam : 0 < lam)
+    (hstep : PaperGreenStepInputRouteAAssemblyProvider p c lam M κ Λ u) :
+    PaperGreenStepInputRouteACore p c lam M κ Λ u :=
+  paperGreenStepInputRouteACore_of_assembly (p := p) (c := c) (lam := lam)
+    (M := M) (κ := κ) (Λ := Λ) (u := u) hlam hstep
 
 /-- Assemble the standard `PaperRotheStepProducer` from a Route-A Green core.
 The `anti` field is produced by `paperStep_antitone_by_routeA`, not by
