@@ -1717,6 +1717,114 @@ theorem rotheSeqOfPaper_profileNontrivial_of_lowerBarrierRaw
     (fun u hu => rotheSeqOfPaper_lowerPinned_base (hprodAll u) hκ hM hu)
     hstep
 
+/-- The paper-step Rothe sequence with the scalar proofs bundled by
+`PaperLemma42ExactConditions`.  This keeps the final paper wrapper's hypotheses
+readable while still using the exact paper conditions, including `hα_le`. -/
+def rotheSeqOfPaperFromCond
+    (p : CMParams) (c lam M κ κtilde Λ : ℝ)
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hprodAll : ∀ u, PaperRotheStepProducer p c lam M κ Λ u) :
+    (ℝ → ℝ) → ℕ → ℝ → ℝ :=
+  fun u => rotheSeqOfPaper p c lam M κ Λ u (hprodAll u)
+    hcond.hκ0.le (le_trans zero_le_one hcond.hM)
+
+/-- Paper-step χ≤0 existence on the raw lower-pinned trap.
+
+The Schauder fixed point is selected inside
+`InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D)`, so
+non-triviality is discharged here from the genuine lower pin.  Positivity then
+comes from the stationary strong maximum principle, and the left endpoint from
+the flat/root-pin route. -/
+theorem b1_chiNeg_existence_paper
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hprodAll : ∀ u, PaperRotheStepProducer p c lam M κ Λ u)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
+      (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond hprodAll))
+    (hauxData : ∀ u,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+        ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
+          rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond hprodAll u k x) →
+          ∃ C_chem La Lb,
+            PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+              (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond hprodAll u
+                (k + 1)))
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple
+        (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D)))
+    (hstationary : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        rotheLimit
+          (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond hprodAll U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hsmp : StationaryStrongMaxPrinciple p c κ M)
+    (hflat : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U := by
+  let zseq :=
+    rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond hprodAll
+  have hM0 : 0 ≤ M := le_trans zero_le_one hcond.hM
+  have hcpos : 0 < c := by
+    rw [hcond.hc]
+    have hinv : 0 < κ⁻¹ := inv_pos.mpr hcond.hκ0
+    nlinarith [hcond.hκ0, hinv]
+  have hstep :
+      RotheStepLowerInvariant κ M (lowerBarrierRaw κ κtilde D) zseq := by
+    have haux' : ∀ u,
+        InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+          ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
+            rotheSeqOfPaper p c lam M κ Λ u (hprodAll u) hcond.hκ0.le hM0 k x) →
+            ∃ C_chem La Lb,
+              PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+                (rotheSeqOfPaper p c lam M κ Λ u (hprodAll u)
+                  hcond.hκ0.le hM0 (k + 1)) := by
+      simpa [zseq, rotheSeqOfPaperFromCond, hM0] using hauxData
+    simpa [zseq, rotheSeqOfPaperFromCond, hM0] using
+      rotheSeqOfPaper_lowerBarrierRaw_stepInvariant hcond hD hD_ge_one
+        hprodAll hcond.hκ0.le hM0 haux'
+  have hlower :
+      RotheOrbitLowerBound κ M (lowerBarrierRaw κ κtilde D) zseq :=
+    rotheOrbitLowerBound_of_stepLowerInvariant
+      (fun u hu => by
+        simpa [zseq, rotheSeqOfPaperFromCond, hM0] using
+          rotheSeqOfPaper_lowerPinned_base (hprodAll u) hcond.hκ0.le hM0 hu)
+      hstep
+  have hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
+      PaperRotheOrbitData p c lam M κ zseq u := by
+    intro u _hu
+    simpa [zseq, rotheSeqOfPaperFromCond, hM0] using
+      paperRotheOrbitData (p := p) (c := c) (lam := lam) (M := M)
+        (κ := κ) (Λ := Λ) (u := u) hprodAll hcond.hκ0.le hM0
+        hΛ0 hΛM hbarLip
+  obtain ⟨U, hU, hfix⟩ :=
+    paperLowerPinnedSchauder_fixedPoint p c lam M κ
+      (lowerBarrierRaw κ κtilde D) hM0 zseq hŪbdd
+      (helly_pointwise_selection M) hdep hdata hlower hprinciple
+  have hstat : ∀ x, frozenWaveOperator p c U U x = 0 :=
+    hstationary U hU (by simpa [zseq] using hfix)
+  have hnontriv : ProfileNontrivial U :=
+    profileNontrivial_of_lowerBarrierRaw_tail_bound hcond hD
+      (fun x _hx => hU.lower x)
+  have hpos : ∀ x, 0 < U x :=
+    hsmp U hU.bare hstat hnontriv
+  have hlim_neg : Tendsto U atBot (𝓝 1) :=
+    InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_nontrivial
+      hU.bare hsmp hnontriv (hflat U hU hstat) hstat
+  have hlim_pos : Tendsto U atTop (𝓝 0) :=
+    hU.bare.tendsto_atTop_zero hcond.hκ0
+  exact ⟨U, hU,
+    FrozenStationaryWaveProfile.mk_auto_limits hcpos hpos
+      hU.bare.trap.cunif_bdd hstat hlim_neg hlim_pos⟩
+
 /-! ## Axiom audit -/
 
 section AxiomAudit
@@ -1742,9 +1850,11 @@ section AxiomAudit
 #print axioms profileNontrivial_of_lowerBarrierRaw_tail_bound
 #print axioms rotheOrbit_profileNontrivial_of_lowerBarrierRaw_stepInvariant
 #print axioms rotheSeqOfPaper_profileNontrivial_of_lowerBarrierRaw
+#print axioms rotheSeqOfPaperFromCond
 end AxiomAudit
 
 end ShenWork.Paper1
 
 #print axioms ShenWork.Paper1.rotheOrbit_profileNontrivial_of_lowerBarrierRaw_stepInvariant
 #print axioms ShenWork.Paper1.rotheSeqOfPaper_profileNontrivial_of_lowerBarrierRaw
+#print axioms ShenWork.Paper1.b1_chiNeg_existence_paper

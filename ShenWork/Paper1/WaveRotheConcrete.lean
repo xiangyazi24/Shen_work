@@ -253,8 +253,11 @@ structure PaperRotheStepFacts
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) : Prop where
   step_op : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x
   cont : Continuous W
+  diff : Differentiable ℝ W
+  deriv_le : ∀ x, |deriv W x| ≤ Λ
   nonneg : ∀ x, 0 ≤ W x
   le_barrier : ∀ x, W x ≤ upperBarrier κ M x
+  le_old : ∀ x, W x ≤ Z x
   anti : Antitone W
 
 /-- The base shape needed to keep producing paper iterates. -/
@@ -333,6 +336,270 @@ theorem rotheSeqOfPaper_lowerPinned_base
   intro x
   rw [rotheSeqOfPaper_zero]
   exact le_trans (hu.lower x) (hu.bare.le_upperBarrier x)
+
+/-! ## Paper-step orbit data -/
+
+/-- Per-`u` orbit data for the paper implicit-Euler sequence.  This is the
+common subset of `RotheOrbitData` needed by the Schauder fixed-point argument:
+trap invariance, compactness, local-uniform convergence and lower-pin transfer.
+The stationary equation is supplied separately at the final fixed point. -/
+structure PaperRotheOrbitData (p : CMParams) (c lam M κ : ℝ)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ) (u : ℝ → ℝ) : Prop where
+  iterate_cont : ∀ k, Continuous (rotheSeq u k)
+  anti_k : ∀ x, Antitone (fun k => rotheSeq u k x)
+  anti_x : ∀ k, Antitone (rotheSeq u k)
+  nonneg : ∀ k x, 0 ≤ rotheSeq u k x
+  le_M : ∀ k x, rotheSeq u k x ≤ M
+  le_upperBarrier : ∀ k x, rotheSeq u k x ≤ upperBarrier κ M x
+  bddBelow : ∀ x, BddBelow (Set.range (fun k => rotheSeq u k x))
+  equiLip : ∀ k, ∀ x y, |rotheSeq u k x - rotheSeq u k y| ≤ M * |x - y|
+  limitLip : ∀ x y,
+    |rotheLimit (rotheSeq u) x - rotheLimit (rotheSeq u) y| ≤ M * |x - y|
+
+namespace PaperRotheOrbitData
+
+variable {p : CMParams} {c lam M κ : ℝ}
+  {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ} {u : ℝ → ℝ}
+
+theorem locallyUniform (hM : 0 ≤ M)
+    (h : PaperRotheOrbitData p c lam M κ rotheSeq u) :
+    LocallyUniformConverges (rotheSeq u) (rotheLimit (rotheSeq u)) :=
+  rotheLimit_locallyUniform hM h.anti_k h.bddBelow h.equiLip h.limitLip
+
+theorem limit_continuous (hM : 0 ≤ M)
+    (h : PaperRotheOrbitData p c lam M κ rotheSeq u) :
+    Continuous (rotheLimit (rotheSeq u)) :=
+  rotheLimit_continuous h.iterate_cont (h.locallyUniform hM)
+
+theorem limit_nonneg (h : PaperRotheOrbitData p c lam M κ rotheSeq u) :
+    ∀ y, 0 ≤ rotheLimit (rotheSeq u) y :=
+  fun y => rotheLimit_nonneg h.nonneg y
+
+theorem limit_le_M (h : PaperRotheOrbitData p c lam M κ rotheSeq u) :
+    ∀ y, rotheLimit (rotheSeq u) y ≤ M :=
+  fun y => rotheLimit_le_of_le h.bddBelow h.le_M y
+
+end PaperRotheOrbitData
+
+section PaperPerK
+variable (hprod : PaperRotheStepProducer p c lam M κ Λ u)
+  (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+
+theorem rotheSeqOfPaper_cont (k : ℕ) :
+    Continuous (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k) :=
+  (rotheSeqOfPaper_base hprod hκ hM k).cont
+
+theorem rotheSeqOfPaper_anti_x (k : ℕ) :
+    Antitone (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k) :=
+  (rotheSeqOfPaper_base hprod hκ hM k).anti
+
+theorem rotheSeqOfPaper_nonneg (k : ℕ) (x : ℝ) :
+    0 ≤ rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k x :=
+  (rotheSeqOfPaper_base hprod hκ hM k).nonneg x
+
+theorem rotheSeqOfPaper_le_barrier (k : ℕ) (x : ℝ) :
+    rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k x ≤ upperBarrier κ M x :=
+  (rotheSeqOfPaper_base hprod hκ hM k).le_barrier x
+
+theorem rotheSeqOfPaper_le_M (k : ℕ) (x : ℝ) :
+    rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k x ≤ M :=
+  le_trans (rotheSeqOfPaper_le_barrier hprod hκ hM k x)
+    (upperBarrier_le_M κ M x)
+
+theorem rotheSeqOfPaper_succ_le (k : ℕ) (x : ℝ) :
+    rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM (k + 1) x
+      ≤ rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k x :=
+  (rotheSeqOfPaper_stepFacts hprod hκ hM k).le_old x
+
+theorem rotheSeqOfPaper_anti_k (x : ℝ) :
+    Antitone (fun k => rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k x) :=
+  antitone_nat_of_succ_le (fun k => rotheSeqOfPaper_succ_le hprod hκ hM k x)
+
+theorem rotheSeqOfPaper_bddBelow (x : ℝ) :
+    BddBelow
+      (Set.range (fun k => rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k x)) := by
+  refine ⟨0, ?_⟩
+  rintro _ ⟨k, rfl⟩
+  exact rotheSeqOfPaper_nonneg hprod hκ hM k x
+
+theorem rotheSeqOfPaper_succ_lipschitz (hΛ : 0 ≤ Λ) (k : ℕ) :
+    ∀ x y, |rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM (k + 1) x
+        - rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM (k + 1) y|
+          ≤ Λ * |x - y| := by
+  intro x y
+  have hfacts := rotheSeqOfPaper_stepFacts hprod hκ hM k
+  have hLip : LipschitzWith (Real.toNNReal Λ)
+      (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM (k + 1)) :=
+    crossImplicitStep_lipschitz hΛ hfacts.diff hfacts.deriv_le
+  have := hLip.dist_le_mul x y
+  rw [Real.dist_eq, Real.dist_eq, Real.coe_toNNReal _ hΛ] at this
+  exact this
+
+theorem rotheSeqOfPaper_equiLip (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hbarLip : ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (k : ℕ) :
+    ∀ x y, |rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k x
+        - rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k y|
+          ≤ M * |x - y| := by
+  cases k with
+  | zero =>
+      intro x y
+      rw [rotheSeqOfPaper_zero]
+      exact hbarLip x y
+  | succ k =>
+      intro x y
+      have hΛ := rotheSeqOfPaper_succ_lipschitz hprod hκ hM hΛ0 k x y
+      exact le_trans hΛ
+        (mul_le_mul_of_nonneg_right hΛM (abs_nonneg _))
+
+theorem rotheSeqOfPaper_limitLip (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hbarLip : ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (x y : ℝ) :
+    |rotheLimit (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM) x
+        - rotheLimit (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM) y|
+          ≤ M * |x - y| := by
+  set z := rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM with hz
+  have hax : Tendsto (fun k => z k x) atTop (𝓝 (rotheLimit z x)) :=
+    rotheLimit_tendsto (rotheSeqOfPaper_anti_k hprod hκ hM)
+      (rotheSeqOfPaper_bddBelow hprod hκ hM) x
+  have hay : Tendsto (fun k => z k y) atTop (𝓝 (rotheLimit z y)) :=
+    rotheLimit_tendsto (rotheSeqOfPaper_anti_k hprod hκ hM)
+      (rotheSeqOfPaper_bddBelow hprod hκ hM) y
+  have htend : Tendsto (fun k => |z k x - z k y|) atTop
+      (𝓝 (|rotheLimit z x - rotheLimit z y|)) :=
+    (hax.sub hay).abs
+  refine le_of_tendsto htend ?_
+  filter_upwards with k
+  exact rotheSeqOfPaper_equiLip hprod hκ hM hΛ0 hΛM hbarLip k x y
+
+end PaperPerK
+
+theorem paperRotheOrbitData
+    (hprodAll : ∀ v, PaperRotheStepProducer p c lam M κ Λ v)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hbarLip : ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|) :
+    PaperRotheOrbitData p c lam M κ
+      (fun v => rotheSeqOfPaper p c lam M κ Λ v (hprodAll v) hκ hM) u := by
+  refine
+    { iterate_cont := rotheSeqOfPaper_cont (hprodAll u) hκ hM
+      anti_k := rotheSeqOfPaper_anti_k (hprodAll u) hκ hM
+      anti_x := rotheSeqOfPaper_anti_x (hprodAll u) hκ hM
+      nonneg := rotheSeqOfPaper_nonneg (hprodAll u) hκ hM
+      le_M := rotheSeqOfPaper_le_M (hprodAll u) hκ hM
+      le_upperBarrier := rotheSeqOfPaper_le_barrier (hprodAll u) hκ hM
+      bddBelow := rotheSeqOfPaper_bddBelow (hprodAll u) hκ hM
+      equiLip := rotheSeqOfPaper_equiLip (hprodAll u) hκ hM hΛ0 hΛM hbarLip
+      limitLip := ?_ }
+  intro x y
+  exact rotheSeqOfPaper_limitLip (hprodAll u) hκ hM hΛ0 hΛM hbarLip x y
+
+theorem paperTmap_maps_trap
+    (p : CMParams) (c lam M κ : ℝ) (hM : 0 ≤ M)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
+        PaperRotheOrbitData p c lam M κ rotheSeq u) :
+    ∀ u, InMonotoneWaveTrapSet κ M u →
+      InMonotoneWaveTrapSet κ M (rotheLimit (rotheSeq u)) := by
+  intro u hu
+  have h := hdata u hu
+  exact rotheLimit_mem_trap (h.limit_continuous hM) h.bddBelow h.anti_x
+    h.nonneg h.le_upperBarrier hŪbdd
+
+theorem paperTmap_compactRange
+    (p : CMParams) (c lam M κ : ℝ) (hM : 0 ≤ M)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
+    (hHelly : HellyPointwiseSelection M)
+    (hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
+        PaperRotheOrbitData p c lam M κ rotheSeq u) :
+    LocalUniformSequentiallyCompactRange
+      (InMonotoneWaveTrapSet κ M) (fun u => rotheLimit (rotheSeq u)) := by
+  intro seq hseq
+  set gs : ℕ → ℝ → ℝ := fun n => rotheLimit (rotheSeq (seq n)) with hgs
+  have hdat : ∀ n, PaperRotheOrbitData p c lam M κ rotheSeq (seq n) :=
+    fun n => hdata (seq n) (hseq n)
+  have hgsL : ∀ k, ∀ x y, |gs k x - gs k y| ≤ M * |x - y| := by
+    intro k x y; exact (hdat k).limitLip x y
+  have hgsB : ∀ k x, |gs k x| ≤ M := by
+    intro k x
+    rw [abs_le]
+    exact ⟨by linarith [(hdat k).limit_nonneg x], (hdat k).limit_le_M x⟩
+  obtain ⟨subseq, hsub, g, hpt, hgL⟩ := hHelly gs hgsL hgsB
+  have hLU : LocallyUniformConverges (fun n => gs (subseq n)) g :=
+    locallyUniform_of_helly_pointwise hM hpt hgsL hgL
+  have hanti : Antitone g :=
+    hLU.antitone_of_forall_antitone
+      (fun n => rotheLimit_antitone (hdat (subseq n)).anti_x
+        (hdat (subseq n)).bddBelow)
+  have hnn : ∀ x, 0 ≤ g x :=
+    fun x => hLU.nonneg_of_forall_nonneg
+      (fun n => (hdat (subseq n)).limit_nonneg x)
+  have hbar : ∀ x, g x ≤ upperBarrier κ M x :=
+    fun x => hLU.le_of_forall_le
+      (fun n => rotheLimit_le_of_le (hdat (subseq n)).bddBelow
+        (hdat (subseq n)).le_upperBarrier x)
+  have hleM : ∀ x, g x ≤ M :=
+    fun x => hLU.le_of_forall_le (fun n => (hdat (subseq n)).limit_le_M x)
+  have hgcont : Continuous g :=
+    continuous_of_locallyUniform
+      (fun n => (hdat (subseq n)).limit_continuous hM) hLU
+  have hgbdd : IsBddFun g := by
+    refine ⟨M, fun x => ?_⟩
+    rw [abs_le]
+    exact ⟨by linarith [hnn x], hleM x⟩
+  refine ⟨subseq, hsub, g, ?_, ?_⟩
+  · exact ⟨⟨⟨hgcont, hgbdd⟩, fun x => ⟨hnn x, hbar x⟩⟩, hanti⟩
+  · simpa [hgs] using hLU
+
+theorem paperLowerPinnedSchauder_fixedPoint
+    (p : CMParams) (c lam M κ : ℝ) (φ : ℝ → ℝ)
+    (hM : 0 ≤ M)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hHelly : HellyPointwiseSelection M)
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
+        rotheSeq)
+    (hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
+        PaperRotheOrbitData p c lam M κ rotheSeq u)
+    (hlower : RotheOrbitLowerBound κ M φ rotheSeq)
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple
+        (InLowerPinnedMonotoneTrap κ M φ)) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M φ U ∧
+      rotheLimit (rotheSeq U) = U := by
+  let Tmap : (ℝ → ℝ) → ℝ → ℝ := fun u => rotheLimit (rotheSeq u)
+  have hbareInv :
+      ∀ u, InMonotoneWaveTrapSet κ M u → InMonotoneWaveTrapSet κ M (Tmap u) :=
+    paperTmap_maps_trap p c lam M κ hM rotheSeq hŪbdd hdata
+  have hlowerT :
+      ∀ u, InLowerPinnedMonotoneTrap κ M φ u → ∀ x, φ x ≤ Tmap u x :=
+    Tmap_lowerInvariant_of_rotheOrbitLowerBound hlower
+  have hinv :
+      ∀ u, InLowerPinnedMonotoneTrap κ M φ u →
+        InLowerPinnedMonotoneTrap κ M φ (Tmap u) := by
+    intro u hu
+    exact ⟨hbareInv u hu.bare, hlowerT u hu⟩
+  have hcont : LocalUniformContinuousOn (InLowerPinnedMonotoneTrap κ M φ) Tmap := by
+    intro seq u hseq hu hconv
+    exact hdep seq u (fun n => (hseq n).bare) hu.bare hconv
+  have hcompactBare :
+      LocalUniformSequentiallyCompactRange (InMonotoneWaveTrapSet κ M) Tmap :=
+    paperTmap_compactRange p c lam M κ hM rotheSeq hHelly hdata
+  have hcompact :
+      LocalUniformSequentiallyCompactRange
+        (InLowerPinnedMonotoneTrap κ M φ) Tmap := by
+    intro seq hseq
+    obtain ⟨subseq, hsubseq, U, hUbare, hconv⟩ :=
+      hcompactBare seq (fun n => (hseq n).bare)
+    refine ⟨subseq, hsubseq, U, ⟨hUbare, ?_⟩, hconv⟩
+    intro x
+    have hlimit :
+        Tendsto (fun n => Tmap (seq (subseq n)) x) atTop (𝓝 (U x)) :=
+      hconv.tendsto_at x
+    exact le_of_tendsto_of_tendsto tendsto_const_nhds hlimit
+      (Filter.Eventually.of_forall fun n =>
+        hlowerT (seq (subseq n)) (hseq (subseq n)) x)
+  exact hprinciple Tmap hinv hcont hcompact
 
 /-- Lower-bound orbit for the concrete Rothe sequence, reduced to the honest
 one-step lower-invariance obligation.  The base case is discharged here. -/
@@ -1054,6 +1321,10 @@ section AxiomAudit
 #print axioms rotheSeqOfPaper
 #print axioms rotheSeqOfPaper_stepFacts
 #print axioms rotheSeqOfPaper_lowerPinned_base
+#print axioms paperRotheOrbitData
+#print axioms paperTmap_maps_trap
+#print axioms paperTmap_compactRange
+#print axioms paperLowerPinnedSchauder_fixedPoint
 #print axioms rotheSeqOf_supersol
 #print axioms rotheSeqOf_step_rec
 #print axioms rotheSeqOf_equiLip
