@@ -1744,6 +1744,36 @@ structure PaperLowerRawStepProducer
           PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
             (rotheSeqOfPaper p c lam M κ Λ u producer hκ hM (k + 1))
 
+/-- The paper Rothe parabolic floor: strengthened one-step production, the
+base-barrier Lipschitz bound, fixed-step dependence, and uniform tail. -/
+structure PaperLowerRawParabolicFloor
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Prop where
+  producer :
+    ∀ u, PaperLowerRawStepProducer p c lam M κ κtilde D Λ hκ hM u
+  barLip :
+    ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|
+  step :
+    PaperRotheSeqStepDependence p c lam M κ Λ
+      (fun u => (producer u).producer) hκ hM
+  tail :
+    PaperRotheTailUniform p c lam M κ Λ
+      (fun u => (producer u).producer) hκ hM
+
+/-- The shared stationary-limit and left-flat convergence floor for a pinned
+paper Rothe map. -/
+structure PaperLowerPinnedStationaryFlatFloor
+    (p : CMParams) (c κ M : ℝ) (φ : ℝ → ℝ)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ) : Prop where
+  stationary :
+    ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      rotheLimit (rotheSeq U) = U →
+        ∀ x, frozenWaveOperator p c U U x = 0
+  flat :
+    ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U
+
 /-- Project the bulky per-step lower comparison data from the strengthened
 paper-step producer.  Lemma 4.2 is then consumed by
 `rotheSeqOfPaper_lowerBarrierRaw_stepInvariant`. -/
@@ -1961,6 +1991,40 @@ theorem b1_chiNeg_existence_paper_clean
           (le_trans zero_le_one hcond.hM) hstep htail)
     hprinciple hstationary
     hrealize hflat
+
+/-- Minimal χ≤0 paper wrapper: the Rothe producer, fixed-step dependence,
+uniform tail, and base-barrier Lipschitz bound are a single parabolic floor; the
+stationary-limit and flat-left obligations are the shared convergence floor. -/
+theorem b1_chiNeg_existence_paper_min
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hpar :
+      PaperLowerRawParabolicFloor p c lam M κ κtilde D Λ
+        hcond.hκ0.le (le_trans zero_le_one hcond.hM))
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple
+        (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D)))
+    (hconv :
+      PaperLowerPinnedStationaryFlatFloor p c κ M
+        (lowerBarrierRaw κ κtilde D)
+        (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond
+          (fun u => (hpar.producer u).producer)))
+    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiNeg_existence_paper p c lam M κ κtilde D Λ hcond hD
+    hD_ge_one hΛ0 hΛM (fun u => (hpar.producer u).producer)
+    hpar.barLip (upperBarrier_isBddFun (le_trans zero_le_one hcond.hM))
+    (by
+      simpa [rotheSeqOfPaperFromCond] using
+        paperRotheContinuousDependence p c lam M κ Λ
+          (fun u => (hpar.producer u).producer) hcond.hκ0.le
+          (le_trans zero_le_one hcond.hM) hpar.step hpar.tail)
+    (hauxData_of_conditions hcond hD hD_ge_one hpar.producer)
+    hprinciple hconv.stationary hsmp hconv.flat
 
 /-! ## Positive-sensitivity paper branch -/
 
@@ -2991,6 +3055,39 @@ theorem b1_chiPos_existence_paper_clean
     hprinciple hstationary
     hrealize hflat
 
+/-- Minimal χ≥0 paper wrapper with the same carried floor shape as the χ≤0
+branch. -/
+theorem b1_chiPos_existence_paper_min
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hpar :
+      PaperLowerRawParabolicFloor p c lam M κ κtilde D Λ
+        hcond.hκ0.le (le_trans zero_le_one hcond.hM))
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple
+        (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D)))
+    (hconv :
+      PaperLowerPinnedStationaryFlatFloor p c κ M
+        (lowerBarrierRaw κ κtilde D)
+        (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+          (fun u => (hpar.producer u).producer)))
+    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiPos_existence_paper p c lam M κ κtilde D Λ hcond hD
+    hD_ge_one hΛ0 hΛM (fun u => (hpar.producer u).producer)
+    hpar.barLip (upperBarrier_isBddFun (le_trans zero_le_one hcond.hM))
+    (by
+      simpa [rotheSeqOfPaperFromPositiveCond] using
+        paperRotheContinuousDependence p c lam M κ Λ
+          (fun u => (hpar.producer u).producer) hcond.hκ0.le
+          (le_trans zero_le_one hcond.hM) hpar.step hpar.tail)
+    (hauxData_of_positive_conditions hcond hD hD_ge_one hpar.producer)
+    hprinciple hconv.stationary hsmp hconv.flat
+
 /-! ## Axiom audit -/
 
 section AxiomAudit
@@ -3022,6 +3119,7 @@ section AxiomAudit
 #print axioms ShenWork.Paper1.b1_chiNeg_existence_paper
 #print axioms b1_chiNeg_existence_paper'
 #print axioms b1_chiNeg_existence_paper_clean
+#print axioms b1_chiNeg_existence_paper_min
 #print axioms PaperLemma42EllipticVEstimate_of_positive_conditions
 #print axioms PaperLemma42EllipticVxEstimate_of_positive_conditions
 #print axioms PaperLemma42LogisticEstimate_of_positive_conditions
@@ -3036,6 +3134,7 @@ section AxiomAudit
 #print axioms b1_chiPos_existence_paper
 #print axioms b1_chiPos_existence_paper'
 #print axioms b1_chiPos_existence_paper_clean
+#print axioms b1_chiPos_existence_paper_min
 end AxiomAudit
 
 end ShenWork.Paper1
@@ -3049,8 +3148,10 @@ end ShenWork.Paper1
 #print axioms ShenWork.Paper1.b1_chiNeg_existence_paper
 
 #print axioms ShenWork.Paper1.b1_chiNeg_existence_paper_clean
+#print axioms ShenWork.Paper1.b1_chiNeg_existence_paper_min
 
 #print axioms ShenWork.Paper1.b1_chiPos_existence_paper
 #print axioms ShenWork.Paper1.b1_chiPos_existence_paper_clean
+#print axioms ShenWork.Paper1.b1_chiPos_existence_paper_min
 
 #print axioms ShenWork.Paper1.b1_chiPos_existence_paper_clean
