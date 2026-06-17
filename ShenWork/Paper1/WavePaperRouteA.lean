@@ -113,6 +113,38 @@ theorem smooth_paperStep_step_op_of_core
   exact paperStep_step_op (c := c) (lam := lam) hlam
     (paperStepAnalytic_of_core hlam hc)
 
+/-- Differentiate the paper implicit-step identity.
+
+This is the wiring lemma that turns the Green/Banach fixed-step equation
+`W - (1 / lam) A(W) = Z` into the differentiated equation consumed by the
+Route-A maximum principle. -/
+theorem paperStep_stepDeriv_of_implicit
+    {p : CMParams} {c lam : ℝ} {u Z W : ℝ → ℝ}
+    (hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x)
+    (hWdiff : Differentiable ℝ W)
+    (hAdiff : Differentiable ℝ (fun y => paperWaveOperator p c u W y)) :
+    ∀ x,
+      deriv W x - (1 / lam) *
+          deriv (fun y => paperWaveOperator p c u W y) x = deriv Z x := by
+  intro x
+  let A : ℝ → ℝ := fun y => paperWaveOperator p c u W y
+  have hfun : (fun y => W y - (1 / lam) * A y) = Z := by
+    funext y
+    simpa [paperImplicitStepOp_apply, A] using hstep y
+  have hleft :
+      deriv (fun y => W y - (1 / lam) * A y) x =
+        deriv W x - (1 / lam) * deriv A x := by
+    have hW' : HasDerivAt W (deriv W x) x := (hWdiff x).hasDerivAt
+    have hA' : HasDerivAt (fun y => (1 / lam) * A y)
+        ((1 / lam) * deriv A x) x :=
+      (hAdiff x).hasDerivAt.const_mul (1 / lam)
+    exact (hW'.sub hA').deriv
+  calc
+    deriv W x - (1 / lam) * deriv (fun y => paperWaveOperator p c u W y) x
+        = deriv W x - (1 / lam) * deriv A x := rfl
+    _ = deriv (fun y => W y - (1 / lam) * A y) x := hleft.symm
+    _ = deriv Z x := by rw [hfun]
+
 /-- Analytic regularity and the `C¹` bound supplied by the existing paper
 Green layer.  Higher smoothness for a smooth fixed source is handled upstream;
 Route A only needs this bridge to avoid using the older sliding monotonicity
@@ -664,6 +696,54 @@ def paperStepRouteAData_of_structural
       (u := u) (W := W) (x₀ := x₀)
       ha hχ hWreg hVreg hWrange hVderiv_nonpos hVbound hV2bound hmax hqpos
 
+/-- Structural Route-A input with the differentiated step equation removed.
+
+The producer obtains `step_deriv` by differentiating the implicit step equation
+with `paperStep_stepDeriv_of_implicit`.  The derivative tails are still explicit:
+they are analytic Green-tail data, not antitonicity data. -/
+structure PaperStepRouteAStructuralData
+    (p : CMParams) (c lam Cmono : ℝ) (u Z W : ℝ → ℝ) where
+  hsmall : (1 / lam) * Cmono < 1
+  a : ℝ
+  M : ℝ
+  BV : ℝ
+  BV2 : ℝ
+  ha : a = -p.χ
+  hχ : p.χ ≤ 0
+  W_reg : ContDiff ℝ 3 W
+  V_reg : ContDiff ℝ 2 (frozenElliptic p u)
+  waveOperator_diff : Differentiable ℝ (fun y => paperWaveOperator p c u W y)
+  W_range : ∀ x, W x ∈ Set.Icc (0:ℝ) M
+  V_deriv_nonpos : ∀ x, deriv (frozenElliptic p u) x ≤ 0
+  V_bound : ∀ x, |frozenElliptic p u x| ≤ BV
+  V2_bound : ∀ x, |deriv (deriv (frozenElliptic p u)) x| ≤ BV2
+  La : ℝ
+  Lb : ℝ
+  hbot : Tendsto (fun x => deriv W x) atBot (𝓝 La)
+  hLa : La ≤ 0
+  htop : Tendsto (fun x => deriv W x) atTop (𝓝 Lb)
+  hLb : Lb ≤ 0
+  Cmono_bound : paperCmono p a M BV BV2 ≤ Cmono
+
+/-- Fill the older Route-A data record from structural data and the implicit
+step equation. -/
+def PaperStepRouteAStructuralData.toRouteAData
+    {p : CMParams} {c lam Cmono : ℝ} {u Z W : ℝ → ℝ}
+    (hd : PaperStepRouteAStructuralData p c lam Cmono u Z W)
+    (hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x)
+    (hZderiv : ∀ x, deriv Z x ≤ 0) :
+    PaperStepRouteAData p c lam Cmono u Z W :=
+  paperStepRouteAData_of_structural
+    (p := p) (c := c) (lam := lam) (Cmono := Cmono)
+    (a := hd.a) (M := hd.M) (BV := hd.BV) (BV2 := hd.BV2)
+    (u := u) (Z := Z) (W := W) (La := hd.La) (Lb := hd.Lb)
+    hd.ha hd.hχ hd.W_reg hd.V_reg hd.W_range hd.V_deriv_nonpos
+    hd.V_bound hd.V2_bound hd.hsmall
+    (paperStep_stepDeriv_of_implicit
+      (p := p) (c := c) (lam := lam) (u := u) (Z := Z) (W := W)
+      hstep (hd.W_reg.differentiable (by norm_num)) hd.waveOperator_diff)
+    hZderiv hd.hbot hd.hLa hd.htop hd.hLb hd.Cmono_bound
+
 /-- One smooth paper step is antitone from Route-A derivative data. -/
 theorem paperStep_antitone_by_routeA
     {p : CMParams} {c lam Cmono : ℝ} {u Z W : ℝ → ℝ}
@@ -721,6 +801,22 @@ theorem paperStep_antitone_by_routeA_of_structural
       ha hχ hWreg hVreg hWrange hVderiv_nonpos hVbound hV2bound
       hsmall hstep_deriv hZderiv hbot hLa htop hLb hCmono)
 
+/-- Smooth paper-expanded implicit steps preserve antitonicity from structural
+Route-A data plus the implicit step equation.  The differentiated step equation
+is not a caller hypothesis. -/
+theorem paperStep_antitone_by_routeA_of_structuralData
+    {p : CMParams} {c lam Cmono : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x)
+    (hZderiv : ∀ x, deriv Z x ≤ 0)
+    (hd : PaperStepRouteAStructuralData p c lam Cmono u Z W) :
+    Antitone W := by
+  exact paperStep_antitone_by_routeA
+    (p := p) (c := c) (lam := lam) (Cmono := Cmono)
+    (u := u) (Z := Z) (W := W) hlam
+    (hd.W_reg.differentiable (by norm_num))
+    (hd.toRouteAData hstep hZderiv)
+
 /-- A paper-step output core whose antitonicity is supplied by Route A rather
 than the shifted sliding wrapper. -/
 structure PaperStepOutputRouteACore
@@ -732,7 +828,7 @@ structure PaperStepOutputRouteACore
   upperBarrier :
     PaperStepUpperData p c lam M C_chem u Z W (upperBarrier κ M)
   Cmono : ℝ
-  routeA : PaperStepRouteAData p c lam Cmono u Z W
+  routeA : PaperStepRouteAStructuralData p c lam Cmono u Z W
 
 /-- Per-step Green input using Route-A antitonicity data instead of
 `PaperStepAntitoneData.shiftedOneSided`. -/
@@ -782,15 +878,40 @@ def paperRotheStepProducer_of_routeA_greenCore
         nonneg := hnonneg
         le_barrier := hle_barrier
         le_old := hle_old
-        anti := paperStep_antitone_by_routeA
+        anti := paperStep_antitone_by_routeA_of_structuralData
           (p := p) (c := c) (lam := lam) (Cmono := hout.Cmono)
-          (u := u) (Z := Z) (W := W) hin.hlam hbasic.2.1 hout.routeA }
+          (u := u) (Z := Z) (W := W) hin.hlam hstep
+          (fun x => hZa.deriv_nonpos) hout.routeA }
 
 theorem paperRotheStepProducer_all_of_routeA_greenCore
     {p : CMParams} {c lam M κ Λ : ℝ}
     (hinput : ∀ u : ℝ → ℝ, PaperGreenStepInputRouteACore p c lam M κ Λ u) :
     ∀ u : ℝ → ℝ, PaperRotheStepProducer p c lam M κ Λ u :=
   fun u => paperRotheStepProducer_of_routeA_greenCore (hinput u)
+
+/-- Route-A version of the per-step parabolic floor.
+
+Unlike `PaperPerStepParabolicFloor`, this floor does not carry
+`PaperStepAntitoneData` or an already-differentiated step equation.  Antitonicity
+is produced by Route A from the implicit step equation, previous-iterate
+antitonicity, structural paper-operator data, and derivative tails. -/
+abbrev PaperPerStepParabolicFloorRouteA
+    (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Type :=
+  PaperGreenStepInputRouteACore p c lam M κ Λ u
+
+/-- `PaperRotheStepProducer` from the Route-A per-step parabolic floor. -/
+theorem paperRotheStepProducer_of_routeA_parabolicFloor
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (hin : PaperPerStepParabolicFloorRouteA p c lam M κ Λ u) :
+    PaperRotheStepProducer p c lam M κ Λ u :=
+  paperRotheStepProducer_of_routeA_greenCore hin
+
+/-- All paper-step producers from the Route-A per-step parabolic floor. -/
+theorem paperRotheStepProducer_all_of_routeA_parabolicFloor
+    {p : CMParams} {c lam M κ Λ : ℝ}
+    (hfloor : ∀ u : ℝ → ℝ, PaperPerStepParabolicFloorRouteA p c lam M κ Λ u) :
+    ∀ u : ℝ → ℝ, PaperRotheStepProducer p c lam M κ Λ u :=
+  fun u => paperRotheStepProducer_of_routeA_parabolicFloor (hfloor u)
 
 /-! ## Step D: pointwise limits of antitone approximating steps -/
 
@@ -828,6 +949,7 @@ section AxiomAudit
 #print axioms bump_mollify_contDiff
 #print axioms bump_mollify_tendsto_right_of_continuous
 #print axioms smooth_paperStep_step_op_of_core
+#print axioms paperStep_stepDeriv_of_implicit
 #print axioms smooth_paperStep_basic_regular_of_core
 #print axioms paperCmono
 #print axioms PaperWaveOperatorPosMaxBookkeeping
@@ -838,10 +960,16 @@ section AxiomAudit
 #print axioms smooth_paperStep_deriv_nonpos_of_quasiMonotone
 #print axioms smooth_paperStep_preserves_antitone_of_quasiMonotone
 #print axioms paperStepRouteAData_of_structural
+#print axioms PaperStepRouteAStructuralData
+#print axioms PaperStepRouteAStructuralData.toRouteAData
 #print axioms paperStep_antitone_by_routeA
 #print axioms paperStep_antitone_by_routeA_of_structural
+#print axioms paperStep_antitone_by_routeA_of_structuralData
 #print axioms paperRotheStepProducer_of_routeA_greenCore
 #print axioms paperRotheStepProducer_all_of_routeA_greenCore
+#print axioms PaperPerStepParabolicFloorRouteA
+#print axioms paperRotheStepProducer_of_routeA_parabolicFloor
+#print axioms paperRotheStepProducer_all_of_routeA_parabolicFloor
 #print axioms antitone_of_eventual_pointwise_limit
 #print axioms routeA_antitone_of_smooth_paper_steps
 
