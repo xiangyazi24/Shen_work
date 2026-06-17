@@ -124,6 +124,27 @@ theorem limit_le_M (h : RotheOrbitData p c lam M Bv κ rotheSeq u) :
 
 end RotheOrbitData
 
+/-! ## Lower-pinned refinement of the Rothe Schauder data -/
+
+/-- Per-orbit lower-barrier invariant: every iterate in the frozen Rothe orbit
+stays above the lower pin `φ`, for pinned frozen inputs. -/
+def RotheOrbitLowerBound
+    (κ M : ℝ) (φ : ℝ → ℝ)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ) : Prop :=
+  ∀ u, InLowerPinnedMonotoneTrap κ M φ u →
+    ∀ k x, φ x ≤ rotheSeq u k x
+
+/-- If every Rothe iterate stays above `φ`, then the Rothe limit stays above
+`φ`, since `rotheLimit` is the pointwise infimum of the iterates. -/
+theorem Tmap_lowerInvariant_of_rotheOrbitLowerBound
+    {κ M : ℝ} {φ : ℝ → ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hlower : RotheOrbitLowerBound κ M φ rotheSeq) :
+    ∀ u, InLowerPinnedMonotoneTrap κ M φ u →
+      ∀ x, φ x ≤ rotheLimit (rotheSeq u) x := by
+  intro u hu x
+  exact rotheLimit_ge_of_ge (z := rotheSeq u) (A := φ) (hlower u hu) x
+
 /-! ## Field 1 — invariance: `Tmap` maps the trap into itself
 
 The image `Tmap u = rotheLimit (rotheSeq u)` lands in `InMonotoneWaveTrapSet κ M`
@@ -405,6 +426,30 @@ theorem rotheSchauderData
   · exact Tmap_continuousOn p c lam (InMonotoneWaveTrapSet κ M) rotheSeq hdep
   · exact Tmap_compactRange p c lam M Bv κ hM rotheSeq hHelly hdata
 
+/-- **Lower-pinned concrete Schauder data for the Rothe map.**
+
+This is the honest pinned refinement of `rotheSchauderData`: the ordinary bare
+Rothe data supply the underlying monotone-trap map, continuity, compactness and
+cross-diagonal fields; the additional lower-barrier invariant is the concrete
+claim that every Rothe iterate remains above `φ`, which then passes to the Rothe
+limit. -/
+theorem rotheSchauderData_lowerPinned
+    (p : CMParams) (c lam M Bv κ : ℝ) (φ : ℝ → ℝ)
+    (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hHelly : HellyPointwiseSelection M)
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M) rotheSeq)
+    (hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
+        RotheOrbitData p c lam M Bv κ rotheSeq u)
+    (hlower : RotheOrbitLowerBound κ M φ rotheSeq) :
+    FrozenStationaryMapSchauderData p c lam
+      (InLowerPinnedMonotoneTrap κ M φ)
+      (fun u => rotheLimit (rotheSeq u)) :=
+  (rotheSchauderData p c lam M Bv κ hlam hM hBv rotheSeq
+    hŪbdd hHelly hdep hdata).lowerPinned
+      (Tmap_lowerInvariant_of_rotheOrbitLowerBound hlower)
+
 /-- **B1 χ≤0 existence from the concrete Rothe Schauder data.**
 Feeds the assembled `rotheSchauderData` into the committed bridge
 `b1_chiNeg_existence_of_schauderData`, producing a trapped self-frozen
@@ -518,6 +563,69 @@ theorem b1_chiNeg_existence_rothe_stationary_floor_rootPin
       hŪbdd hHelly hdep hdata)
     hstationary hfloor hbdd hflat hlim_pos
 
+/-- Rothe-Schauder B1 wrapper with non-trivial fixed-point selection and the
+strong maximum principle, instead of a vacuous whole-trap paper floor. -/
+theorem b1_chiNeg_existence_rothe_stationary_nontrivial_rootPin
+    (p : CMParams) (c lam M Bv κ : ℝ)
+    (hc : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hHelly : HellyPointwiseSelection M)
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M) rotheSeq)
+    (hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
+        RotheOrbitData p c lam M Bv κ rotheSeq u)
+    (hprinciple :
+      LocalUniformNontrivialSchauderFixedPointPrinciple
+        (InMonotoneWaveTrapSet κ M))
+    (hstationary : ∀ U, InMonotoneWaveTrapSet κ M U →
+        rotheLimit (rotheSeq U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hsmp : StationaryStrongMaxPrinciple p c κ M)
+    (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
+    (hflat : ∀ U, InMonotoneWaveTrapSet κ M U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U)
+    (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
+    ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
+  b1_chiNeg_existence_of_schauderData_stationary_nontrivial_rootPin
+    hc hprinciple
+    (rotheSchauderData p c lam M Bv κ hlam hM hBv rotheSeq
+      hŪbdd hHelly hdep hdata)
+    hstationary hsmp hbdd hflat hlim_pos
+
+/-- Rothe-Schauder B1 wrapper on a lower-pinned trap.  It consumes the ordinary
+Schauder principle on the pinned trap and a proved Rothe lower-bound invariant
+`φ ≤ z_k`; non-triviality and positivity are then consequences of the trap. -/
+theorem b1_chiNeg_existence_rothe_lowerPinned_stationary_rootPin
+    (p : CMParams) (c lam M Bv κ : ℝ) (φ : ℝ → ℝ)
+    (hc : 0 < c) (hκ : 0 < κ) (hlam : 0 < lam)
+    (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hHelly : HellyPointwiseSelection M)
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M) rotheSeq)
+    (hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
+        RotheOrbitData p c lam M Bv κ rotheSeq u)
+    (hlower : RotheOrbitLowerBound κ M φ rotheSeq)
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple
+        (InLowerPinnedMonotoneTrap κ M φ))
+    (hstationary : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        rotheLimit (rotheSeq U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hφpos : ∀ x, 0 < φ x)
+    (hsmp : StationaryStrongMaxPrinciple p c κ M)
+    (hflat : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M φ U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiNeg_existence_of_lowerPinnedSchauderData_stationary_rootPin
+    hc hκ hprinciple
+    (rotheSchauderData_lowerPinned p c lam M Bv κ φ hlam hM hBv
+      rotheSeq hŪbdd hHelly hdep hdata hlower)
+    hstationary hφpos hsmp hflat
+
 /-! ## Axiom audit -/
 
 section AxiomAudit
@@ -528,10 +636,14 @@ section AxiomAudit
 #print axioms Tmap_compactRange
 #print axioms Tmap_continuousOn
 #print axioms rotheSchauderData
+#print axioms Tmap_lowerInvariant_of_rotheOrbitLowerBound
+#print axioms rotheSchauderData_lowerPinned
 #print axioms b1_chiNeg_existence_rothe
 #print axioms b1_chiNeg_existence_rothe_rootPin
 #print axioms b1_chiNeg_existence_rothe_stationary_floor
 #print axioms b1_chiNeg_existence_rothe_stationary_floor_rootPin
+#print axioms b1_chiNeg_existence_rothe_stationary_nontrivial_rootPin
+#print axioms b1_chiNeg_existence_rothe_lowerPinned_stationary_rootPin
 
 end AxiomAudit
 

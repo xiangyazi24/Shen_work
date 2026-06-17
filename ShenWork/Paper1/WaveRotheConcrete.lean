@@ -701,6 +701,51 @@ theorem b1_chiNeg_existence_stationary_floor_rootPin
       (hVcont u hu) (hVbound u hu))
     hprinciple hstationary hfloor hbdd hflat hlim_pos
 
+/-- **AUDIT BANNER: vacuous on the bare monotone trap.**
+
+This theorem carries
+`LocalUniformNontrivialSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M)`.
+That principle is false whenever the zero profile belongs to the bare trap; see
+`not_localUniformNontrivialSchauderFixedPointPrinciple_bareTrap`.  Therefore this
+wrapper is retained only as an audit artifact for the old non-trivial route.  Use
+the lower-barrier pinned version below, where non-triviality comes from trap
+membership rather than from a strengthened Schauder principle. -/
+theorem b1_chiNeg_existence_stationary_nontrivial_rootPin
+    (p : CMParams) (c lam M Bv κ Λ : ℝ)
+    (hc : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
+    (hκ : 0 ≤ κ) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hprodAll : ∀ u, RotheStepProducer p c lam M κ Λ u)
+    (hbarLip : ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hVcont : ∀ u, InMonotoneWaveTrapSet κ M u →
+        Continuous (deriv (frozenElliptic p u)))
+    (hVbound : ∀ u, InMonotoneWaveTrapSet κ M u →
+        ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
+        (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκ hM))
+    (hprinciple :
+      LocalUniformNontrivialSchauderFixedPointPrinciple
+        (InMonotoneWaveTrapSet κ M))
+    (hstationary : ∀ U, InMonotoneWaveTrapSet κ M U →
+        rotheLimit (rotheSeqOf p c lam M κ Λ U (hprodAll U) hκ hM) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hsmp : StationaryStrongMaxPrinciple p c κ M)
+    (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
+    (hflat : ∀ U, InMonotoneWaveTrapSet κ M U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U)
+    (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
+    ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
+  b1_chiNeg_existence_rothe_stationary_nontrivial_rootPin p c lam M Bv κ
+    hc hlam hM hBv
+    (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκ hM)
+    hŪbdd
+    (helly_pointwise_selection M)
+    hdep
+    (fun u hu => rotheOrbitData hprodAll hκ hM hΛ0 hΛM Bv hbarLip
+      (hVcont u hu) (hVbound u hu))
+    hprinciple hstationary hsmp hbdd hflat hlim_pos
+
 /-- Profile-clean χ≤0 B1 existence with `hGreen` and `hpos` removed:
 stationarity is the fixed-point stationary obligation, and positivity comes
 from the floor. -/
@@ -735,9 +780,15 @@ theorem b1_chiNeg_existence_profileClean_stationary_floor
     hlim_neg
     (fun _U hU => hU.tendsto_atTop_zero hκpos)
 
-/-- Profile-clean χ≤0 B1 existence with route-b left endpoint and with
-`hGreen`/`hpos` removed under the floor. -/
-theorem b1_chiNeg_existence_profileClean_stationary_floor_rootPin
+/-- **AUDIT BANNER: vacuous on the bare monotone trap.**
+
+This profile-clean wrapper still carries the false bare-trap principle
+`LocalUniformNontrivialSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M)`.
+The constant-zero map refutes that principle.  It is superseded by
+`b1_chiNeg_existence_profileClean_stationary_lowerBarrierPinned_rootPin`, whose
+fixed point is selected by the ordinary Schauder principle on a pinned trap and
+is non-trivial because it lies above the positive plateau lower barrier. -/
+theorem b1_chiNeg_existence_profileClean_stationary_nontrivial_rootPin
     (p : CMParams) (c lam M Bv κ Λ : ℝ)
     (hc : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
     (hκpos : 0 < κ) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
@@ -752,22 +803,127 @@ theorem b1_chiNeg_existence_profileClean_stationary_floor_rootPin
     (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
         (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκpos.le hM))
     (hprinciple :
-      LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
+      LocalUniformNontrivialSchauderFixedPointPrinciple
+        (InMonotoneWaveTrapSet κ M))
     (hstationary : ∀ U, InMonotoneWaveTrapSet κ M U →
         rotheLimit (rotheSeqOf p c lam M κ Λ U
           (hprodAll U) hκpos.le hM) = U →
           ∀ x, frozenWaveOperator p c U U x = 0)
-    (hfloor : ∀ U, InMonotoneWaveTrapSet κ M U → PaperPositiveInitialDatum U)
+    (hsmp : StationaryStrongMaxPrinciple p c κ M)
     (hflat : ∀ U, InMonotoneWaveTrapSet κ M U →
       (∀ x, frozenWaveOperator p c U U x = 0) →
         FrozenStationaryFlatAtLeft p U) :
     ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
-  b1_chiNeg_existence_stationary_floor_rootPin p c lam M Bv κ Λ hc hlam hM hBv
-    hκpos.le hΛ0 hΛM hprodAll hbarLip hŪbdd hVcont hVbound
-    hdep hprinciple hstationary hfloor
+  b1_chiNeg_existence_stationary_nontrivial_rootPin
+    p c lam M Bv κ Λ hc hlam hM hBv hκpos.le hΛ0 hΛM hprodAll
+    hbarLip hŪbdd hVcont hVbound hdep hprinciple hstationary hsmp
     (fun _U hU => hU.trap.cunif_bdd)
     hflat
     (fun _U hU => hU.tendsto_atTop_zero hκpos)
+
+/-- Concrete lower-barrier pinned χ≤0 B1 existence.
+
+This is the corrected non-triviality route.  It uses the ordinary Schauder
+principle on
+`InLowerPinnedMonotoneTrap κ M (lowerBarrierPlateau κ κtilde D)`.  The zero
+profile is excluded by the pinned trap, and the produced fixed point is
+pointwise positive because it lies above `lowerBarrierPlateau`.
+
+The remaining frontier is the concrete Rothe lower-bound invariant
+`hrotheLower`: every frozen Rothe iterate stays above the plateau lower barrier.
+This is the exact place where the lower-barrier subsolution and the
+order-preserving implicit-step comparison must be supplied. -/
+theorem b1_chiNeg_existence_stationary_lowerBarrierPinned_rootPin
+    (p : CMParams) (c lam M Bv κ κtilde D Λ : ℝ)
+    (hc : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
+    (hκpos : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hprodAll : ∀ u, RotheStepProducer p c lam M κ Λ u)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hVcont : ∀ u, InMonotoneWaveTrapSet κ M u →
+        Continuous (deriv (frozenElliptic p u)))
+    (hVbound : ∀ u, InMonotoneWaveTrapSet κ M u →
+        ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
+        (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκpos.le hM))
+    (hrotheLower :
+      RotheOrbitLowerBound κ M (lowerBarrierPlateau κ κtilde D)
+        (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκpos.le hM))
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple
+        (InLowerPinnedMonotoneTrap κ M
+          (lowerBarrierPlateau κ κtilde D)))
+    (hstationary : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierPlateau κ κtilde D) U →
+        rotheLimit (rotheSeqOf p c lam M κ Λ U
+          (hprodAll U) hκpos.le hM) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hsmp : StationaryStrongMaxPrinciple p c κ M)
+    (hflat : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierPlateau κ κtilde D) U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M
+        (lowerBarrierPlateau κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiNeg_existence_rothe_lowerPinned_stationary_rootPin
+    p c lam M Bv κ (lowerBarrierPlateau κ κtilde D)
+    hc hκpos hlam hM hBv
+    (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκpos.le hM)
+    hŪbdd
+    (helly_pointwise_selection M)
+    hdep
+    (fun u hu => rotheOrbitData hprodAll hκpos.le hM hΛ0 hΛM Bv
+      hbarLip (hVcont u hu) (hVbound u hu))
+    hrotheLower hprinciple hstationary
+    (lowerBarrierPlateau_pos hκpos hgap hD) hsmp hflat
+
+/-- Profile-clean entry point for the lower-barrier pinned route.
+
+This is the public replacement for
+`b1_chiNeg_existence_profileClean_stationary_nontrivial_rootPin`: it carries no
+bare-trap non-trivial Schauder principle. -/
+theorem b1_chiNeg_existence_profileClean_stationary_lowerBarrierPinned_rootPin
+    (p : CMParams) (c lam M Bv κ κtilde D Λ : ℝ)
+    (hc : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
+    (hκpos : 0 < κ) (hgap : 0 < κtilde - κ) (hD : 0 < D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hprodAll : ∀ u, RotheStepProducer p c lam M κ Λ u)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hVcont : ∀ u, InMonotoneWaveTrapSet κ M u →
+        Continuous (deriv (frozenElliptic p u)))
+    (hVbound : ∀ u, InMonotoneWaveTrapSet κ M u →
+        ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
+        (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκpos.le hM))
+    (hrotheLower :
+      RotheOrbitLowerBound κ M (lowerBarrierPlateau κ κtilde D)
+        (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκpos.le hM))
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple
+        (InLowerPinnedMonotoneTrap κ M
+          (lowerBarrierPlateau κ κtilde D)))
+    (hstationary : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierPlateau κ κtilde D) U →
+        rotheLimit (rotheSeqOf p c lam M κ Λ U
+          (hprodAll U) hκpos.le hM) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hsmp : StationaryStrongMaxPrinciple p c κ M)
+    (hflat : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierPlateau κ κtilde D) U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M
+        (lowerBarrierPlateau κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiNeg_existence_stationary_lowerBarrierPinned_rootPin
+    p c lam M Bv κ κtilde D Λ hc hlam hM hBv hκpos hgap hD
+    hΛ0 hΛM hprodAll hbarLip hŪbdd hVcont hVbound hdep
+    hrotheLower hprinciple hstationary hsmp hflat
 
 /-! ## Axiom audit -/
 
@@ -786,8 +942,11 @@ section AxiomAudit
 #print axioms b1_chiNeg_existence_profileClean_rootPin
 #print axioms b1_chiNeg_existence_stationary_floor
 #print axioms b1_chiNeg_existence_stationary_floor_rootPin
+#print axioms b1_chiNeg_existence_stationary_nontrivial_rootPin
 #print axioms b1_chiNeg_existence_profileClean_stationary_floor
-#print axioms b1_chiNeg_existence_profileClean_stationary_floor_rootPin
+#print axioms b1_chiNeg_existence_profileClean_stationary_nontrivial_rootPin
+#print axioms b1_chiNeg_existence_stationary_lowerBarrierPinned_rootPin
+#print axioms b1_chiNeg_existence_profileClean_stationary_lowerBarrierPinned_rootPin
 
 end AxiomAudit
 

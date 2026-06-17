@@ -264,6 +264,36 @@ theorem implicitStep_subOrdering_of_barrier
     barrierSource_le_crossSource_pointwise p hα hM hlamL
       (hArange y) (hWrange y) (hAW y) (hres.residual_nonneg y)
 
+/-- **End-to-end lower trap from the sub-barrier ordering.**
+
+Combine `implicitStep_subOrdering_of_barrier` with the committed lower
+comparison theorem `implicitStep_ge_of_subsolution`: under the Green
+representations of the implicit step `W` and the sub-barrier `A`, the discharged
+sub-ordering, and the convergent-tail hypotheses, the implicit step is trapped
+from below, `A ≤ W`. -/
+theorem implicitStep_ge_of_barrier
+    (hlam : 0 < lam)
+    (p : CMParams) {c M : ℝ} {u Z W A : ℝ → ℝ}
+    (hα : 1 ≤ p.α) (hM : 0 ≤ M) (hlamL : reactionLip p.α M ≤ lam)
+    (hArange : ∀ y, A y ∈ Set.Icc (0 : ℝ) M)
+    (hWrange : ∀ y, W y ∈ Set.Icc (0 : ℝ) M)
+    (hAW : ∀ y, A y ≤ W y)
+    (hres : RotheChemoMonotoneResidualSub p lam u Z W A)
+    (hW : W = fun x => greenConv c lam (crossSource p lam u Z W) x)
+    (hA : A = fun x => greenConv c lam (barrierSource p lam u A) x)
+    (hHiA : ∀ x, IntegrableOn
+      (gWeight (greenRootPlus c lam) (barrierSource p lam u A)) (Ioi x))
+    (hHiW : ∀ x, IntegrableOn
+      (gWeight (greenRootPlus c lam) (crossSource p lam u Z W)) (Ioi x))
+    (hLoA : ∀ x, IntegrableOn
+      (gWeight (greenRootMinus c lam) (barrierSource p lam u A)) (Iic x))
+    (hLoW : ∀ x, IntegrableOn
+      (gWeight (greenRootMinus c lam) (crossSource p lam u Z W)) (Iic x)) :
+    ∀ x, A x ≤ W x :=
+  implicitStep_ge_of_subsolution hlam p hW hA
+    (implicitStep_subOrdering_of_barrier p hα hM hlamL hArange hWrange hAW hres)
+    hHiA hHiW hLoA hLoW
+
 /-! ## Axiom audit -/
 
 section AxiomAudit
@@ -275,6 +305,7 @@ section AxiomAudit
 #print axioms implicitStep_le_of_barrier
 #print axioms barrierSource_le_crossSource_pointwise
 #print axioms implicitStep_subOrdering_of_barrier
+#print axioms implicitStep_ge_of_barrier
 
 end AxiomAudit
 

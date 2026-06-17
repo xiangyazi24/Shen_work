@@ -60,6 +60,52 @@ theorem PaperPositiveInitialDatum.pos {U : ℝ → ℝ}
     ∀ x, 0 < U x :=
   hfloor.floor.pos
 
+/-- Non-triviality of a nonnegative wave profile: positive somewhere.
+
+This is the non-vacuous pin needed before applying the strong maximum
+principle.  The zero profile does not satisfy it, while a positive decaying
+traveling wave does. -/
+def ProfileNontrivial (U : ℝ → ℝ) : Prop :=
+  ∃ x : ℝ, 0 < U x
+
+theorem not_profileNontrivial_zero :
+    ¬ ProfileNontrivial (fun _ : ℝ => (0 : ℝ)) := by
+  rintro ⟨x, hx⟩
+  exact (lt_irrefl (0 : ℝ)) hx
+
+/-- The zero profile is a stationary solution of the frozen wave operator. -/
+theorem frozenWaveOperator_zero_eq_zero (p : CMParams) (c x : ℝ) :
+    frozenWaveOperator p c (fun _ : ℝ => (0 : ℝ))
+      (fun _ : ℝ => (0 : ℝ)) x = 0 := by
+  unfold frozenWaveOperator
+  have hm_ne : p.m ≠ 0 := by linarith [p.hm]
+  have hα_ne : p.α ≠ 0 := by linarith [p.hα]
+  simp [Real.zero_rpow hm_ne, Real.zero_rpow hα_ne]
+
+/-- A stationary strong-maximum-principle frontier for trapped profiles.
+
+It is intentionally conditional on `ProfileNontrivial U`; hence the zero
+stationary solution is excluded by a satisfiable hypothesis, not by a uniform
+floor on the whole trap. -/
+def StationaryStrongMaxPrinciple
+    (p : CMParams) (c κ M : ℝ) : Prop :=
+  ∀ U : ℝ → ℝ,
+    InMonotoneWaveTrapSet κ M U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        ProfileNontrivial U →
+          ∀ x, 0 < U x
+
+/-- The paper-positive floor cannot be carried for every trapped profile:
+the zero trapped profile refutes it. -/
+theorem not_monotoneTrap_profile_paperPositiveInitialDatum
+    {κ M : ℝ} (hM : 0 ≤ M) :
+    ¬ (∀ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet κ M U → PaperPositiveInitialDatum U) := by
+  intro hfloor
+  exact not_profileNontrivial_zero
+    ⟨0, (hfloor (fun _ : ℝ => (0 : ℝ))
+      (InMonotoneWaveTrapSet.zero (κ := κ) (M := M) hM)).pos 0⟩
+
 /-- Exact universal `hpos` profile obligation discharged from the
 paper-positive floor carried for each trapped profile. -/
 theorem monotoneTrap_profile_hpos_of_floor {κ M : ℝ}
@@ -237,6 +283,35 @@ theorem InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_floor
   exact reactionFun_root_of_stationary_flat_limit hlim
     hflat.1 hflat.2.1 hflat.2.2 hstat
 
+/-- Single-profile route (b) with pointwise positivity instead of the vacuous
+whole-trap paper floor. -/
+theorem InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_pos
+    {κ M : ℝ} {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hpos : ∀ x, 0 < U x)
+    (hflat : FrozenStationaryFlatAtLeft p U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0) :
+    Tendsto U atBot (𝓝 1) := by
+  refine InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_pos
+    p hU hpos ?_
+  intro L hlim
+  exact reactionFun_root_of_stationary_flat_limit hlim
+    hflat.1 hflat.2.1 hflat.2.2 hstat
+
+/-- Strong-maximum-principle route: non-trivial stationary nonnegative trapped
+profiles are strictly positive; then the flat left endpoint pins the left
+limit to `1`. -/
+theorem InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_nontrivial
+    {κ M : ℝ} {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hsmp : StationaryStrongMaxPrinciple p c κ M)
+    (hnontriv : ProfileNontrivial U)
+    (hflat : FrozenStationaryFlatAtLeft p U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0) :
+    Tendsto U atBot (𝓝 1) := by
+  exact InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_pos
+    hU (hsmp U hU hstat hnontriv) hflat hstat
+
 /-- Formal route (b): monotone left limit + reaction-root + lower-pin. -/
 theorem monotoneTrap_profile_hlim_neg_of_limit_root_and_pin
     {κ M : ℝ} (p : CMParams)
@@ -381,6 +456,9 @@ section AxiomAudit
 #print axioms monotoneTrap_profile_hbdd
 #print axioms monotoneTrap_profile_hlim_pos
 #print axioms PaperPositiveInitialDatum.pos
+#print axioms not_profileNontrivial_zero
+#print axioms frozenWaveOperator_zero_eq_zero
+#print axioms not_monotoneTrap_profile_paperPositiveInitialDatum
 #print axioms monotoneTrap_profile_hpos_of_floor
 #print axioms monotoneTrap_left_limit_exists
 #print axioms StrictlyPositiveAtLeft.limit_pos
@@ -391,6 +469,8 @@ section AxiomAudit
 #print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_floor
 #print axioms reactionFun_root_of_stationary_flat_limit
 #print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_floor
+#print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_pos
+#print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_nontrivial
 #print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_pin
 #print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_pos
 #print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_floor

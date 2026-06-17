@@ -60,6 +60,152 @@ def FrozenStationaryMapSchauderData
     ∧ LocalUniformContinuousOn trap Tmap
     ∧ LocalUniformSequentiallyCompactRange trap Tmap
 
+/-- Schauder fixed-point principle strengthened by a non-triviality conclusion.
+
+This is the missing frontier for the present trap: it selects a fixed point
+which is positive somewhere.  The ordinary `LocalUniformSchauderFixedPointPrinciple`
+does not exclude the zero stationary solution. -/
+def LocalUniformNontrivialSchauderFixedPointPrinciple
+    (trap : (ℝ → ℝ) → Prop) : Prop :=
+  ∀ Tmap : (ℝ → ℝ) → ℝ → ℝ,
+    (∀ u, trap u → trap (Tmap u)) →
+      LocalUniformContinuousOn trap Tmap →
+        LocalUniformSequentiallyCompactRange trap Tmap →
+          ∃ U : ℝ → ℝ, trap U ∧ Tmap U = U ∧ ProfileNontrivial U
+
+/-- The constant-zero self-map on profiles. -/
+def constantZeroProfileMap : (ℝ → ℝ) → ℝ → ℝ :=
+  fun _ _ => 0
+
+/-- The constant-zero self-map is locally-uniformly continuous on every trap. -/
+theorem localUniformContinuousOn_constantZeroProfileMap
+    (trap : (ℝ → ℝ) → Prop) :
+    LocalUniformContinuousOn trap constantZeroProfileMap := by
+  intro seq u _hseq _hu _hconv R _hR ε hε
+  exact Filter.Eventually.of_forall fun _n x _hx => by
+    simpa [constantZeroProfileMap] using hε
+
+/-- The constant-zero self-map has singleton compact range when zero lies in the trap. -/
+theorem localUniformSequentiallyCompactRange_constantZeroProfileMap
+    {trap : (ℝ → ℝ) → Prop}
+    (h0 : trap (fun _ : ℝ => (0 : ℝ))) :
+    LocalUniformSequentiallyCompactRange trap constantZeroProfileMap := by
+  intro _seq _hseq
+  refine ⟨id, strictMono_id, fun _ : ℝ => (0 : ℝ), h0, ?_⟩
+  intro R _hR ε hε
+  exact Filter.Eventually.of_forall fun _n x _hx => by
+    simpa [constantZeroProfileMap] using hε
+
+/-- The strengthened non-trivial Schauder principle is false on the bare monotone
+wave trap whenever the zero profile belongs to that trap.
+
+The refuting map is the constant-zero map.  It is trap-invariant, continuous in the
+local-uniform topology, and has singleton range.  Its only fixed point is zero,
+which fails `ProfileNontrivial`. -/
+theorem not_localUniformNontrivialSchauderFixedPointPrinciple_bareTrap
+    (κ M : ℝ) (h0 : InMonotoneWaveTrapSet κ M (fun _ : ℝ => (0 : ℝ))) :
+    ¬ LocalUniformNontrivialSchauderFixedPointPrinciple
+      (InMonotoneWaveTrapSet κ M) := by
+  intro hprinciple
+  let Tmap0 := constantZeroProfileMap
+  have hinv :
+      ∀ u, InMonotoneWaveTrapSet κ M u →
+        InMonotoneWaveTrapSet κ M (Tmap0 u) := by
+    intro _u _hu
+    simpa [Tmap0, constantZeroProfileMap] using h0
+  have hcont : LocalUniformContinuousOn (InMonotoneWaveTrapSet κ M) Tmap0 := by
+    simpa [Tmap0] using
+      localUniformContinuousOn_constantZeroProfileMap
+        (InMonotoneWaveTrapSet κ M)
+  have hcompact :
+      LocalUniformSequentiallyCompactRange (InMonotoneWaveTrapSet κ M) Tmap0 := by
+    simpa [Tmap0] using
+      localUniformSequentiallyCompactRange_constantZeroProfileMap
+        (trap := InMonotoneWaveTrapSet κ M) h0
+  obtain ⟨U, _hU, hfix, hnontriv⟩ :=
+    hprinciple Tmap0 hinv hcont hcompact
+  have hnontriv0 : ProfileNontrivial (fun _ : ℝ => (0 : ℝ)) := by
+    simpa [Tmap0, constantZeroProfileMap] using
+      (show ProfileNontrivial (Tmap0 U) from by
+        rw [hfix]
+        exact hnontriv)
+  exact not_profileNontrivial_zero hnontriv0
+
+/-- Convenient zero-profile refutation under the standard scalar side condition
+`0 ≤ M`, using the committed bare-trap membership lemma. -/
+theorem not_localUniformNontrivialSchauderFixedPointPrinciple_bareTrap_of_nonneg_M
+    (κ M : ℝ) (hM : 0 ≤ M) :
+    ¬ LocalUniformNontrivialSchauderFixedPointPrinciple
+      (InMonotoneWaveTrapSet κ M) :=
+  not_localUniformNontrivialSchauderFixedPointPrinciple_bareTrap κ M
+    (InMonotoneWaveTrapSet.zero (κ := κ) (M := M) hM)
+
+/-- Lower-pinned monotone trap: the usual monotone wave trap plus a pointwise
+positive lower barrier `φ ≤ U`. -/
+def InLowerPinnedMonotoneTrap
+    (κ M : ℝ) (φ : ℝ → ℝ) (U : ℝ → ℝ) : Prop :=
+  InMonotoneWaveTrapSet κ M U ∧ ∀ x, φ x ≤ U x
+
+namespace InLowerPinnedMonotoneTrap
+
+theorem bare {κ M : ℝ} {φ U : ℝ → ℝ}
+    (hU : InLowerPinnedMonotoneTrap κ M φ U) :
+    InMonotoneWaveTrapSet κ M U :=
+  hU.1
+
+theorem lower {κ M : ℝ} {φ U : ℝ → ℝ}
+    (hU : InLowerPinnedMonotoneTrap κ M φ U) :
+    ∀ x, φ x ≤ U x :=
+  hU.2
+
+/-- A strictly positive lower pin makes every pinned profile non-trivial. -/
+theorem profileNontrivial {κ M : ℝ} {φ U : ℝ → ℝ}
+    (hφpos : ∀ x, 0 < φ x)
+    (hU : InLowerPinnedMonotoneTrap κ M φ U) :
+    ProfileNontrivial U :=
+  ⟨0, lt_of_lt_of_le (hφpos 0) (hU.lower 0)⟩
+
+/-- A strictly positive lower pin gives pointwise positivity. -/
+theorem pos {κ M : ℝ} {φ U : ℝ → ℝ}
+    (hφpos : ∀ x, 0 < φ x)
+    (hU : InLowerPinnedMonotoneTrap κ M φ U) :
+    ∀ x, 0 < U x :=
+  fun x => lt_of_lt_of_le (hφpos x) (hU.lower x)
+
+end InLowerPinnedMonotoneTrap
+
+/-- A positive lower pin excludes the zero profile from the pinned trap. -/
+theorem not_zero_mem_InLowerPinnedMonotoneTrap
+    {κ M : ℝ} {φ : ℝ → ℝ} {x₀ : ℝ}
+    (hφpos : 0 < φ x₀) :
+    ¬ InLowerPinnedMonotoneTrap κ M φ (fun _ : ℝ => (0 : ℝ)) := by
+  intro h0
+  have hle0 : φ x₀ ≤ 0 := by
+    simpa using h0.lower x₀
+  exact not_lt_of_ge hle0 hφpos
+
+/-- The lower-barrier plateau itself is an inhabitant of its pinned trap whenever
+it is already a member of the underlying monotone wave trap. -/
+theorem lowerBarrierPlateau_mem_InLowerPinnedMonotoneTrap_of_exp_xplus_le
+    {κ κtilde D M : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hD : 0 < D)
+    (hM : Real.exp (-κ * lowerBarrierXPlus κ κtilde D) ≤ M) :
+    InLowerPinnedMonotoneTrap κ M
+      (lowerBarrierPlateau κ κtilde D)
+      (lowerBarrierPlateau κ κtilde D) :=
+  ⟨lowerBarrierPlateau_mem_InMonotoneWaveTrapSet_of_exp_xplus_le
+      hκ hgap hD hM,
+    fun _ => le_rfl⟩
+
+/-- The lower-barrier pinned trap excludes zero. -/
+theorem lowerBarrierPlateau_not_zero_mem_InLowerPinnedMonotoneTrap
+    {κ κtilde D M : ℝ} (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hD : 0 < D) :
+    ¬ InLowerPinnedMonotoneTrap κ M
+      (lowerBarrierPlateau κ κtilde D) (fun _ : ℝ => (0 : ℝ)) :=
+  not_zero_mem_InLowerPinnedMonotoneTrap
+    (x₀ := 0) (lowerBarrierPlateau_pos hκ hgap hD 0)
+
 namespace FrozenStationaryMapSchauderData
 
 variable {p : CMParams} {c lam : ℝ} {trap : (ℝ → ℝ) → Prop} {Tmap : (ℝ → ℝ) → ℝ → ℝ}
@@ -80,6 +226,43 @@ theorem continuousOn (h : FrozenStationaryMapSchauderData p c lam trap Tmap) :
 /-- Local-uniform sequentially-compact-range field. -/
 theorem compactRange (h : FrozenStationaryMapSchauderData p c lam trap Tmap) :
     LocalUniformSequentiallyCompactRange trap Tmap := h.2.2.2
+
+/-- Restrict bare monotone-trap Schauder data to a lower-pinned trap, provided the
+map is genuinely lower-barrier invariant on pinned inputs.
+
+The compact-range field is not merely restricted: the bare compactness gives a
+locally-uniform limit in the bare trap, and the lower pin passes to that limit
+pointwise. -/
+theorem lowerPinned
+    {κ M : ℝ} {φ : ℝ → ℝ}
+    (hdata :
+      FrozenStationaryMapSchauderData p c lam
+        (InMonotoneWaveTrapSet κ M) Tmap)
+    (hlower : ∀ u, InLowerPinnedMonotoneTrap κ M φ u →
+      ∀ x, φ x ≤ Tmap u x) :
+    FrozenStationaryMapSchauderData p c lam
+      (InLowerPinnedMonotoneTrap κ M φ) Tmap := by
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · intro u hu
+    exact ⟨hdata.invariant u hu.bare, hlower u hu⟩
+  · intro u hu
+    exact hdata.crossDiagonal u hu.bare
+  · intro seq u hseq hu hconv
+    exact hdata.continuousOn seq u
+      (fun n => (hseq n).bare) hu.bare hconv
+  · intro seq hseq
+    obtain ⟨subseq, hsubseq, U, hUbare, hconv⟩ :=
+      hdata.compactRange seq (fun n => (hseq n).bare)
+    refine ⟨subseq, hsubseq, U, ⟨hUbare, ?_⟩, hconv⟩
+    intro x
+    have hlimit :
+        Tendsto (fun n => Tmap (seq (subseq n)) x) atTop (𝓝 (U x)) :=
+      hconv.tendsto_at x
+    have hconst : Tendsto (fun _ : ℕ => φ x) atTop (𝓝 (φ x)) :=
+      tendsto_const_nhds
+    exact le_of_tendsto_of_tendsto hconst hlimit
+      (Filter.Eventually.of_forall fun n => hlower (seq (subseq n))
+        (hseq (subseq n)) x)
 
 /-! ## The headline: a trapped self-frozen stationary profile -/
 
@@ -237,10 +420,129 @@ theorem b1_chiNeg_existence_of_schauderData_stationary_floor_rootPin
   exact FrozenStationaryWaveProfile.mk_auto_limits hc
     ((hfloor U hU).pos) (hbdd U hU) hstat hlim_neg (hlim_pos U hU)
 
+/-- Non-vacuous root-pin wrapper: a non-trivial fixed point plus the strong
+maximum principle supplies pointwise positivity; the flat stationary equation
+then pins the left endpoint to `1`.
+
+This theorem carries only satisfiable profile hypotheses.  The zero profile
+fails `ProfileNontrivial`, and a genuine positive decaying wave satisfies it.
+The strengthened non-trivial fixed-point principle is the exact construction
+frontier not provided by the current trap/Schauder data. -/
+theorem b1_chiNeg_existence_of_schauderData_stationary_nontrivial_rootPin
+    {p : CMParams} {c lam κ M : ℝ} {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hc : 0 < c)
+    (hprinciple :
+      LocalUniformNontrivialSchauderFixedPointPrinciple
+        (InMonotoneWaveTrapSet κ M))
+    (hdata :
+      FrozenStationaryMapSchauderData p c lam
+        (InMonotoneWaveTrapSet κ M) Tmap)
+    (hstationary : ∀ U, InMonotoneWaveTrapSet κ M U → Tmap U = U →
+      ∀ x, frozenWaveOperator p c U U x = 0)
+    (hsmp : StationaryStrongMaxPrinciple p c κ M)
+    (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
+    (hflat : ∀ U, InMonotoneWaveTrapSet κ M U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U)
+    (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
+    ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U := by
+  obtain ⟨U, hU, hfix, hnontriv⟩ :=
+    hprinciple Tmap hdata.invariant hdata.continuousOn hdata.compactRange
+  have hstat : ∀ x, frozenWaveOperator p c U U x = 0 :=
+    hstationary U hU hfix
+  have hpos : ∀ x, 0 < U x := hsmp U hU hstat hnontriv
+  have hlim_neg : Tendsto U atBot (𝓝 1) :=
+    InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_pos
+      hU hpos (hflat U hU hstat) hstat
+  refine ⟨U, hU, ?_⟩
+  exact FrozenStationaryWaveProfile.mk_auto_limits hc
+    hpos (hbdd U hU) hstat hlim_neg (hlim_pos U hU)
+
+/-- Lower-pinned monotone-trap wrapper.
+
+This is the non-vacuous replacement for the bare-trap non-trivial Schauder route.
+It uses the ordinary local-uniform Schauder fixed-point principle on the pinned
+trap `InLowerPinnedMonotoneTrap κ M φ`.  Non-triviality and pointwise positivity
+come from the trap field `φ ≤ U` plus `0 < φ`, not from a strengthened Schauder
+principle.  The left endpoint is still pinned by the honest
+`tendsto_atBot_one_of_stationary_flat_and_nontrivial` route. -/
+theorem b1_chiNeg_existence_of_lowerPinnedSchauderData_stationary_rootPin
+    {p : CMParams} {c lam κ M : ℝ} {φ : ℝ → ℝ}
+    {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hc : 0 < c) (hκ : 0 < κ)
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple
+        (InLowerPinnedMonotoneTrap κ M φ))
+    (hdata :
+      FrozenStationaryMapSchauderData p c lam
+        (InLowerPinnedMonotoneTrap κ M φ) Tmap)
+    (hstationary : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      Tmap U = U → ∀ x, frozenWaveOperator p c U U x = 0)
+    (hφpos : ∀ x, 0 < φ x)
+    (hsmp : StationaryStrongMaxPrinciple p c κ M)
+    (hflat : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M φ U ∧
+      FrozenStationaryWaveProfile p c U := by
+  obtain ⟨U, hU, hfix⟩ :=
+    hprinciple Tmap hdata.invariant hdata.continuousOn hdata.compactRange
+  have hstat : ∀ x, frozenWaveOperator p c U U x = 0 :=
+    hstationary U hU hfix
+  have hpos : ∀ x, 0 < U x :=
+    hU.pos hφpos
+  have hnontriv : ProfileNontrivial U :=
+    hU.profileNontrivial hφpos
+  have hlim_neg : Tendsto U atBot (𝓝 1) :=
+    InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_nontrivial
+      hU.bare hsmp hnontriv (hflat U hU hstat) hstat
+  have hlim_pos : Tendsto U atTop (𝓝 0) :=
+    hU.bare.tendsto_atTop_zero hκ
+  refine ⟨U, hU, ?_⟩
+  exact FrozenStationaryWaveProfile.mk_auto_limits hc
+    hpos hU.bare.trap.cunif_bdd hstat hlim_neg hlim_pos
+
+/-- Specialization of the lower-pinned wrapper to the committed plateau lower
+barrier. -/
+theorem b1_chiNeg_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin
+    {p : CMParams} {c lam κ κtilde D M : ℝ}
+    {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hc : 0 < c) (hκ : 0 < κ) (hgap : 0 < κtilde - κ)
+    (hD : 0 < D)
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple
+        (InLowerPinnedMonotoneTrap κ M
+          (lowerBarrierPlateau κ κtilde D)))
+    (hdata :
+      FrozenStationaryMapSchauderData p c lam
+        (InLowerPinnedMonotoneTrap κ M
+          (lowerBarrierPlateau κ κtilde D)) Tmap)
+    (hstationary : ∀ U,
+      InLowerPinnedMonotoneTrap κ M
+        (lowerBarrierPlateau κ κtilde D) U →
+      Tmap U = U → ∀ x, frozenWaveOperator p c U U x = 0)
+    (hsmp : StationaryStrongMaxPrinciple p c κ M)
+    (hflat : ∀ U,
+      InLowerPinnedMonotoneTrap κ M
+        (lowerBarrierPlateau κ κtilde D) U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M
+        (lowerBarrierPlateau κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiNeg_existence_of_lowerPinnedSchauderData_stationary_rootPin
+    hc hκ hprinciple hdata hstationary
+    (lowerBarrierPlateau_pos hκ hgap hD) hsmp hflat
+
 section AxiomAudit
+#print axioms not_localUniformNontrivialSchauderFixedPointPrinciple_bareTrap
+#print axioms lowerBarrierPlateau_not_zero_mem_InLowerPinnedMonotoneTrap
+#print axioms lowerBarrierPlateau_mem_InLowerPinnedMonotoneTrap_of_exp_xplus_le
+#print axioms b1_chiNeg_existence_of_lowerPinnedSchauderData_stationary_rootPin
 #print axioms b1_chiNeg_existence_of_schauderData_rootPin
 #print axioms b1_chiNeg_existence_of_schauderData_stationary_floor
 #print axioms b1_chiNeg_existence_of_schauderData_stationary_floor_rootPin
+#print axioms b1_chiNeg_existence_of_schauderData_stationary_nontrivial_rootPin
 end AxiomAudit
 
 end ShenWork.Paper1
