@@ -252,6 +252,104 @@ def LipschitzOnCompacts (f : ℝ → ℝ) : Prop :=
     ∀ x y, x ∈ Set.Icc (-R) R → y ∈ Set.Icc (-R) R →
       |f x - f y| ≤ L * |x - y|
 
+namespace LocallyBoundedOnCompacts
+
+theorem of_global_bound {f : ℝ → ℝ} {B : ℝ}
+    (hB0 : 0 ≤ B) (hB : ∀ x, |f x| ≤ B) :
+    LocallyBoundedOnCompacts f := by
+  intro R hR
+  exact ⟨B, hB0, fun x _ => hB x⟩
+
+end LocallyBoundedOnCompacts
+
+namespace UniformLipschitzOnCompacts
+
+theorem of_global {fs : ℕ → ℝ → ℝ} {L : ℝ}
+    (hL0 : 0 ≤ L)
+    (hLip : ∀ n x y, |fs n x - fs n y| ≤ L * |x - y|) :
+    UniformLipschitzOnCompacts fs := by
+  intro R hR
+  exact ⟨L, hL0, fun n x y _ _ => hLip n x y⟩
+
+theorem of_hasDerivAt_bound {fs dfs : ℕ → ℝ → ℝ} {L : ℝ}
+    (hL0 : 0 ≤ L)
+    (hderiv : ∀ n x, HasDerivAt (fs n) (dfs n x) x)
+    (hbound : ∀ n x, |dfs n x| ≤ L) :
+    UniformLipschitzOnCompacts fs := by
+  refine of_global hL0 ?_
+  intro n x y
+  have hdiff : Differentiable ℝ (fs n) := fun t => (hderiv n t).differentiableAt
+  have hderiv_bound : ∀ t, |deriv (fs n) t| ≤ L := by
+    intro t
+    rw [(hderiv n t).deriv]
+    exact hbound n t
+  have hLip : LipschitzWith (Real.toNNReal L) (fs n) :=
+    crossImplicitStep_lipschitz hL0 hdiff hderiv_bound
+  have hd := hLip.dist_le_mul x y
+  rw [Real.dist_eq, Real.dist_eq, Real.coe_toNNReal _ hL0] at hd
+  exact hd
+
+end UniformLipschitzOnCompacts
+
+namespace LipschitzOnCompacts
+
+theorem of_global {f : ℝ → ℝ} {L : ℝ}
+    (hL0 : 0 ≤ L)
+    (hLip : ∀ x y, |f x - f y| ≤ L * |x - y|) :
+    LipschitzOnCompacts f := by
+  intro R hR
+  exact ⟨L, hL0, fun x y _ _ => hLip x y⟩
+
+theorem of_hasDerivAt_bound {f df : ℝ → ℝ} {L : ℝ}
+    (hL0 : 0 ≤ L)
+    (hderiv : ∀ x, HasDerivAt f (df x) x)
+    (hbound : ∀ x, |df x| ≤ L) :
+    LipschitzOnCompacts f := by
+  refine of_global hL0 ?_
+  intro x y
+  have hdiff : Differentiable ℝ f := fun t => (hderiv t).differentiableAt
+  have hderiv_bound : ∀ t, |deriv f t| ≤ L := by
+    intro t
+    rw [(hderiv t).deriv]
+    exact hbound t
+  have hLip : LipschitzWith (Real.toNNReal L) f :=
+    crossImplicitStep_lipschitz hL0 hdiff hderiv_bound
+  have hd := hLip.dist_le_mul x y
+  rw [Real.dist_eq, Real.dist_eq, Real.coe_toNNReal _ hL0] at hd
+  exact hd
+
+end LipschitzOnCompacts
+
+namespace LocallyUniformConverges
+
+theorem rpow_of_nonneg_le
+    {fs : ℕ → ℝ → ℝ} {f : ℝ → ℝ} {a M : ℝ}
+    (ha : 0 ≤ a) (_hM : 0 ≤ M)
+    (h : LocallyUniformConverges fs f)
+    (hfs0 : ∀ n x, 0 ≤ fs n x) (hfsM : ∀ n x, fs n x ≤ M)
+    (hf0 : ∀ x, 0 ≤ f x) (hfM : ∀ x, f x ≤ M) :
+    LocallyUniformConverges
+      (fun n x => (fs n x) ^ a) (fun x => (f x) ^ a) := by
+  intro R hR ε hε
+  have hcont : Continuous (fun s : ℝ => s ^ a) :=
+    Real.continuous_rpow_const ha
+  have huc := isCompact_Icc.uniformContinuousOn_of_continuous
+    (s := Set.Icc (0 : ℝ) M) hcont.continuousOn
+  rw [Metric.uniformContinuousOn_iff] at huc
+  obtain ⟨δ, hδ, hδpow⟩ := huc ε hε
+  filter_upwards [h R hR δ hδ] with n hn
+  intro x hx
+  have hfs_mem : fs n x ∈ Set.Icc (0 : ℝ) M :=
+    ⟨hfs0 n x, hfsM n x⟩
+  have hf_mem : f x ∈ Set.Icc (0 : ℝ) M :=
+    ⟨hf0 x, hfM x⟩
+  have hdist : dist (fs n x) (f x) < δ := by
+    simpa [Real.dist_eq] using hn x hx
+  have hpow := hδpow (fs n x) hfs_mem (f x) hf_mem hdist
+  simpa [Real.dist_eq] using hpow
+
+end LocallyUniformConverges
+
 /-- Uniform local Lipschitz control of the residual `fs n - f`.  This is the
 compact Green/ODE regularity input used by the interpolation step; it is not a
 convergence hypothesis. -/
@@ -509,6 +607,313 @@ structure PaperC2CompactUniformBounds
   bdd_reaction_bracket :
     LocallyBoundedOnCompacts (paperWaveReactionBracket p U U)
 
+def paperStepRBoundFromLambda (c lam Λ : ℝ) : ℝ :=
+  Λ / (2 * (greenDelta c lam)⁻¹)
+
+def paperStepC2Bound (c lam M Λ : ℝ) : ℝ :=
+  paperStepRBoundFromLambda c lam Λ + |c| * Λ + |lam| * M
+
+theorem paperStepRBoundFromLambda_nonneg
+    {c lam Λ : ℝ} (hlam : 0 < lam) (hΛ : 0 ≤ Λ) :
+    0 ≤ paperStepRBoundFromLambda c lam Λ := by
+  unfold paperStepRBoundFromLambda
+  have hD : 0 < 2 * (greenDelta c lam)⁻¹ :=
+    mul_pos (by norm_num) (inv_pos.mpr (greenDelta_pos (c := c) hlam))
+  exact div_nonneg hΛ hD.le
+
+theorem paperStepC2Bound_nonneg
+    {c lam M Λ : ℝ} (hlam : 0 < lam) (hM : 0 ≤ M) (hΛ : 0 ≤ Λ) :
+    0 ≤ paperStepC2Bound c lam M Λ := by
+  unfold paperStepC2Bound
+  have hR := paperStepRBoundFromLambda_nonneg (c := c) (lam := lam) hlam hΛ
+  have hc : 0 ≤ |c| * Λ := mul_nonneg (abs_nonneg c) hΛ
+  have hl : 0 ≤ |lam| * M := mul_nonneg (abs_nonneg lam) hM
+  linarith
+
+theorem paperStep_R_abs_le_from_lambda
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (ha : PaperStepAnalytic p c lam M κ Λ u Z W) :
+    ∀ y, |ha.R y| ≤ paperStepRBoundFromLambda c lam Λ := by
+  obtain ⟨B, hB, hΛeq⟩ := ha.R_bound
+  let D : ℝ := 2 * (greenDelta c lam)⁻¹
+  have hDpos : 0 < D := by
+    dsimp [D]
+    exact mul_pos (by norm_num) (inv_pos.mpr (greenDelta_pos (c := c) hlam))
+  have hDne : D ≠ 0 := ne_of_gt hDpos
+  have hBeq : B = Λ / D := by
+    rw [eq_div_iff hDne]
+    rw [hΛeq]
+    ring
+  intro y
+  simpa [paperStepRBoundFromLambda, D, hBeq] using hB y
+
+theorem paperStep_hasDerivAt_value
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z W : ℝ → ℝ}
+    (ha : PaperStepAnalytic p c lam M κ Λ u Z W) :
+    ∀ x, HasDerivAt W (deriv W x) x := by
+  intro x
+  have hgc := greenConv_hasDerivAt
+    (c := c) (lam := lam) ha.R_cont ha.R_hi ha.R_lo x
+  rw [ha.green_repr]
+  simpa [hgc.deriv] using hgc
+
+theorem paperStep_hasDerivAt_deriv
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z W : ℝ → ℝ}
+    (ha : PaperStepAnalytic p c lam M κ Λ u Z W) :
+    ∀ x,
+      HasDerivAt (fun y => deriv W y) (iteratedDeriv 2 W x) x := by
+  intro x
+  have hderiv_fun :
+      (fun y => deriv W y) = fun y => greenConvDeriv c lam ha.R y := by
+    funext y
+    have hgc := greenConv_hasDerivAt
+      (c := c) (lam := lam) ha.R_cont ha.R_hi ha.R_lo y
+    have hrepr := congrArg (fun f : ℝ → ℝ => deriv f y) ha.green_repr
+    have hrepr' : deriv W y = deriv (fun x => greenConv c lam ha.R x) y := by
+      simpa using hrepr
+    rw [hrepr', hgc.deriv]
+  have hgc2 := greenConvDeriv_hasDerivAt
+    (c := c) (lam := lam) ha.R_cont ha.R_hi ha.R_lo x
+  have hiter : iteratedDeriv 2 W x = greenConvDeriv2 c lam ha.R x := by
+    rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one]
+    change deriv (fun y => deriv W y) x = greenConvDeriv2 c lam ha.R x
+    rw [hderiv_fun]
+    exact hgc2.deriv
+  rw [hderiv_fun, hiter]
+  exact hgc2
+
+theorem paperStep_iteratedDeriv_two_eq
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (ha : PaperStepAnalytic p c lam M κ Λ u Z W) :
+    ∀ x,
+      iteratedDeriv 2 W x =
+        -ha.R x - c * deriv W x + lam * W x := by
+  intro x
+  have hL :
+      iteratedDeriv 2 W x + c * deriv W x - lam * W x = -ha.R x := by
+    have h2 :
+        iteratedDeriv 2 W x =
+          iteratedDeriv 2 (fun y => greenConv c lam ha.R y) x :=
+      congrArg (fun f : ℝ → ℝ => iteratedDeriv 2 f x) ha.green_repr
+    have h1 :
+        deriv W x = deriv (fun y => greenConv c lam ha.R y) x :=
+      congrArg (fun f : ℝ → ℝ => deriv f x) ha.green_repr
+    have h0 : W x = greenConv c lam ha.R x := congrFun ha.green_repr x
+    calc
+      iteratedDeriv 2 W x + c * deriv W x - lam * W x
+          = iteratedDeriv 2 (fun y => greenConv c lam ha.R y) x
+              + c * deriv (fun y => greenConv c lam ha.R y) x
+              - lam * (fun y => greenConv c lam ha.R y) x := by
+            rw [h2, h1, h0]
+      _ = -ha.R x :=
+        greenConv_variation_negative
+          (c := c) (lam := lam) hlam ha.R_cont ha.R_hi ha.R_lo x
+  linarith
+
+theorem paperStep_second_deriv_le
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam) (_hM : 0 ≤ M) (_hΛ : 0 ≤ Λ)
+    (hW : ∀ x, |W x| ≤ M)
+    (ha : PaperStepAnalytic p c lam M κ Λ u Z W) :
+    ∀ x, |iteratedDeriv 2 W x| ≤ paperStepC2Bound c lam M Λ := by
+  intro x
+  have hEq := paperStep_iteratedDeriv_two_eq (c := c) (lam := lam) hlam ha x
+  have hR := paperStep_R_abs_le_from_lambda (c := c) (lam := lam) hlam ha x
+  have hD := paperStep_deriv_le (c := c) (lam := lam) hlam ha x
+  have hDmul : |c| * |deriv W x| ≤ |c| * Λ :=
+    mul_le_mul_of_nonneg_left hD (abs_nonneg c)
+  have hWmul : |lam| * |W x| ≤ |lam| * M :=
+    mul_le_mul_of_nonneg_left (hW x) (abs_nonneg lam)
+  rw [hEq]
+  have htri₁ :
+      |-ha.R x - c * deriv W x + lam * W x|
+        ≤ |-ha.R x - c * deriv W x| + |lam * W x| :=
+    abs_add_le _ _
+  have htri₂ :
+      |-ha.R x - c * deriv W x| ≤ |-ha.R x| + |-(c * deriv W x)| :=
+    abs_add_le _ _
+  calc
+    |-ha.R x - c * deriv W x + lam * W x|
+        ≤ |-ha.R x - c * deriv W x| + |lam * W x| := htri₁
+    _ ≤ (|-ha.R x| + |-(c * deriv W x)|) + |lam * W x| := by
+      exact add_le_add htri₂ le_rfl
+    _ = |ha.R x| + |c| * |deriv W x| + |lam| * |W x| := by
+      rw [abs_neg, abs_neg, abs_mul, abs_mul]
+    _ ≤ paperStepC2Bound c lam M Λ := by
+      unfold paperStepC2Bound
+      linarith
+
+/-- C³ bootstrap data used only to turn the already-produced Green C² bounds
+into Lipschitz moduli for the second-derivative family and for the limit. -/
+structure PaperC3BootstrapData
+    (U : ℝ → ℝ) (z : ℕ → ℝ → ℝ) : Prop where
+  limit_hasDeriv_value :
+    ∀ x, HasDerivAt U (deriv U x) x
+  limit_hasDeriv_deriv :
+    ∀ x, HasDerivAt (fun y => deriv U y) (iteratedDeriv 2 U x) x
+  step_hasDeriv_deriv2 :
+    ∀ k x,
+      HasDerivAt (fun y => iteratedDeriv 2 (z (k + 1)) y)
+        (deriv (fun y => iteratedDeriv 2 (z (k + 1)) y) x) x
+  limit_hasDeriv_deriv2 :
+    ∀ x,
+      HasDerivAt (fun y => iteratedDeriv 2 U y)
+        (deriv (fun y => iteratedDeriv 2 U y) x) x
+  limit_deriv_bound :
+    ∃ C, 0 ≤ C ∧ ∀ x, |deriv U x| ≤ C
+  limit_second_bound :
+    ∃ C, 0 ≤ C ∧ ∀ x, |iteratedDeriv 2 U x| ≤ C
+  step_third_bound :
+    ∃ C, 0 ≤ C ∧
+      ∀ k x, |deriv (fun y => iteratedDeriv 2 (z (k + 1)) y) x| ≤ C
+  limit_third_bound :
+    ∃ C, 0 ≤ C ∧
+      ∀ x, |deriv (fun y => iteratedDeriv 2 U y) x| ≤ C
+
+theorem paperC2CompactUniformBounds_of_greenStep
+    {p : CMParams} {c lam κ M Λ : ℝ} {φ U : ℝ → ℝ}
+    {z : ℕ → ℝ → ℝ}
+    (hlam : 0 < lam) (hM : 0 < M) (hΛ : 0 ≤ Λ)
+    (hU : InLowerPinnedMonotoneTrap κ M φ U)
+    (hLU : LocallyUniformConverges z U)
+    (hz_nonneg : ∀ k x, 0 ≤ z k x)
+    (hz_le_M : ∀ k x, z k x ≤ M)
+    (hstep :
+      ∀ k, PaperStepAnalytic p c lam M κ Λ U (z k) (z (k + 1)))
+    (hc3 : PaperC3BootstrapData U z) :
+    PaperC2CompactUniformBounds p U z := by
+  have hM0 : 0 ≤ M := hM.le
+  have hbare : InMonotoneWaveTrapSet κ M U := hU.bare
+  have hU_nonneg : ∀ x, 0 ≤ U x := hbare.nonneg
+  have hU_le_M : ∀ x, U x ≤ M := hbare.le_M
+  have hz_abs : ∀ k x, |z k x| ≤ M := by
+    intro k x
+    rw [abs_of_nonneg (hz_nonneg k x)]
+    exact hz_le_M k x
+  have hU_abs : ∀ x, |U x| ≤ M := by
+    intro x
+    rw [abs_of_nonneg (hU_nonneg x)]
+    exact hU_le_M x
+  have hshift :
+      LocallyUniformConverges (fun k => z (k + 1)) U :=
+    hLU.comp_strictMono
+      (strictMono_nat_of_lt_succ fun n => Nat.lt_succ_self (n + 1))
+  have hC2_nonneg : 0 ≤ paperStepC2Bound c lam M Λ :=
+    paperStepC2Bound_nonneg (c := c) (lam := lam) hlam hM0 hΛ
+  obtain ⟨CU1, hCU1_nonneg, hCU1⟩ := hc3.limit_deriv_bound
+  obtain ⟨CU2, hCU2_nonneg, hCU2⟩ := hc3.limit_second_bound
+  obtain ⟨CZ3, hCZ3_nonneg, hCZ3⟩ := hc3.step_third_bound
+  obtain ⟨CU3, hCU3_nonneg, hCU3⟩ := hc3.limit_third_bound
+  have hpow_m_sub_one :
+      LocallyUniformConverges
+        (fun k x => (z (k + 1) x) ^ (p.m - 1))
+        (fun x => (U x) ^ (p.m - 1)) :=
+    hshift.rpow_of_nonneg_le (by linarith [p.hm]) hM0
+      (fun k x => hz_nonneg (k + 1) x)
+      (fun k x => hz_le_M (k + 1) x)
+      hU_nonneg hU_le_M
+  have hpow_alpha :
+      LocallyUniformConverges
+        (fun k x => (z (k + 1) x) ^ p.α)
+        (fun x => (U x) ^ p.α) :=
+    hshift.rpow_of_nonneg_le (by linarith [p.hα]) hM0
+      (fun k x => hz_nonneg (k + 1) x)
+      (fun k x => hz_le_M (k + 1) x)
+      hU_nonneg hU_le_M
+  have hpow_m_gamma_sub_one :
+      LocallyUniformConverges
+        (fun k x => (z (k + 1) x) ^ (p.m + p.γ - 1))
+        (fun x => (U x) ^ (p.m + p.γ - 1)) :=
+    hshift.rpow_of_nonneg_le (by linarith [p.hm, p.hγ]) hM0
+      (fun k x => hz_nonneg (k + 1) x)
+      (fun k x => hz_le_M (k + 1) x)
+      hU_nonneg hU_le_M
+  have hbdd_U : LocallyBoundedOnCompacts U :=
+    LocallyBoundedOnCompacts.of_global_bound hM0 hU_abs
+  have hbdd_derivU : LocallyBoundedOnCompacts (fun x => deriv U x) :=
+    LocallyBoundedOnCompacts.of_global_bound hCU1_nonneg hCU1
+  have hMγ_nonneg : 0 ≤ M ^ p.γ := Real.rpow_nonneg hM0 p.γ
+  have hbdd_V : LocallyBoundedOnCompacts (frozenElliptic p U) := by
+    refine LocallyBoundedOnCompacts.of_global_bound hMγ_nonneg ?_
+    intro x
+    rw [abs_of_nonneg (frozenElliptic_nonneg p hU_nonneg x)]
+    exact frozenElliptic_le_rpow_of_inWaveTrapSet p hM hbare.trap x
+  have hbdd_derivV :
+      LocallyBoundedOnCompacts (fun x => deriv (frozenElliptic p U) x) := by
+    refine LocallyBoundedOnCompacts.of_global_bound hMγ_nonneg ?_
+    intro x
+    calc
+      |deriv (frozenElliptic p U) x| ≤ frozenElliptic p U x :=
+        frozenElliptic_deriv_abs_le p hbare.trap.cunif_bdd hU_nonneg x
+      _ ≤ M ^ p.γ :=
+        frozenElliptic_le_rpow_of_inWaveTrapSet p hM hbare.trap x
+  have hMm1_nonneg : 0 ≤ M ^ (p.m - 1) :=
+    Real.rpow_nonneg hM0 (p.m - 1)
+  have hbdd_pow_m_sub_one :
+      LocallyBoundedOnCompacts (fun x => (U x) ^ (p.m - 1)) := by
+    refine LocallyBoundedOnCompacts.of_global_bound hMm1_nonneg ?_
+    intro x
+    rw [abs_of_nonneg (Real.rpow_nonneg (hU_nonneg x) (p.m - 1))]
+    exact Real.rpow_le_rpow (hU_nonneg x) (hU_le_M x) (by linarith [p.hm])
+  have hMα_nonneg : 0 ≤ M ^ p.α := Real.rpow_nonneg hM0 p.α
+  have hbdd_pow_alpha :
+      LocallyBoundedOnCompacts (fun x => (U x) ^ p.α) := by
+    refine LocallyBoundedOnCompacts.of_global_bound hMα_nonneg ?_
+    intro x
+    rw [abs_of_nonneg (Real.rpow_nonneg (hU_nonneg x) p.α)]
+    exact Real.rpow_le_rpow (hU_nonneg x) (hU_le_M x) (by linarith [p.hα])
+  have hMmg_nonneg : 0 ≤ M ^ (p.m + p.γ - 1) :=
+    Real.rpow_nonneg hM0 (p.m + p.γ - 1)
+  have hbdd_pow_m_gamma_sub_one :
+      LocallyBoundedOnCompacts (fun x => (U x) ^ (p.m + p.γ - 1)) := by
+    refine LocallyBoundedOnCompacts.of_global_bound hMmg_nonneg ?_
+    intro x
+    rw [abs_of_nonneg (Real.rpow_nonneg (hU_nonneg x) (p.m + p.γ - 1))]
+    exact Real.rpow_le_rpow (hU_nonneg x) (hU_le_M x)
+      (by linarith [p.hm, p.hγ])
+  have hbdd_reaction_bracket :
+      LocallyBoundedOnCompacts (paperWaveReactionBracket p U U) := by
+    have hpowV := hbdd_pow_m_sub_one.mul hbdd_V
+    have hleft := (hpowV.const_mul p.χ).const_sub 1
+    have hright := hbdd_pow_alpha.sub
+      (hbdd_pow_m_gamma_sub_one.const_mul p.χ)
+    have hbr := hleft.sub hright
+    simpa [paperWaveReactionBracket, mul_assoc] using hbr
+  exact
+    { hasDeriv_value := fun k x =>
+        paperStep_hasDerivAt_value (hstep k) x
+      hasDeriv_U := hc3.limit_hasDeriv_value
+      hasDeriv_deriv := fun k x =>
+        paperStep_hasDerivAt_deriv (hstep k) x
+      hasDeriv_deriv_U := hc3.limit_hasDeriv_deriv
+      deriv1_uniform_lipschitz :=
+        UniformLipschitzOnCompacts.of_hasDerivAt_bound hC2_nonneg
+          (fun k x => paperStep_hasDerivAt_deriv (hstep k) x)
+          (fun k x =>
+            paperStep_second_deriv_le
+              (c := c) (lam := lam) hlam hM0 hΛ
+              (fun y => hz_abs (k + 1) y) (hstep k) x)
+      deriv1_limit_lipschitz :=
+        LipschitzOnCompacts.of_hasDerivAt_bound hCU2_nonneg
+          hc3.limit_hasDeriv_deriv hCU2
+      deriv2_uniform_lipschitz :=
+        UniformLipschitzOnCompacts.of_hasDerivAt_bound hCZ3_nonneg
+          hc3.step_hasDeriv_deriv2 hCZ3
+      deriv2_limit_lipschitz :=
+        LipschitzOnCompacts.of_hasDerivAt_bound hCU3_nonneg
+          hc3.limit_hasDeriv_deriv2 hCU3
+      pow_m_sub_one := hpow_m_sub_one
+      pow_alpha := hpow_alpha
+      pow_m_gamma_sub_one := hpow_m_gamma_sub_one
+      bdd_U := hbdd_U
+      bdd_derivU := hbdd_derivU
+      bdd_V := hbdd_V
+      bdd_derivV := hbdd_derivV
+      bdd_pow_m_sub_one := hbdd_pow_m_sub_one
+      bdd_reaction_bracket := hbdd_reaction_bracket }
+
 /-- Produce paper `C²` compact convergence from zeroth-order local-uniform
 convergence plus uniform Green/ODE bounds. -/
 def paperC2CompactConvergence_of_uniformBounds
@@ -686,6 +1091,8 @@ theorem operator
 #print axioms LocallyUniformConverges.add
 #print axioms LocallyUniformConverges.const_mul
 #print axioms paperWaveOperator_eq_terms
+#print axioms paperStep_second_deriv_le
+#print axioms paperC2CompactUniformBounds_of_greenStep
 #print axioms PaperWaveOperatorTermConvergence.of_c2CompactConvergence
 #print axioms PaperWaveOperatorTermConvergence.operator
 
