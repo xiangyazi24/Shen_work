@@ -1890,31 +1890,1132 @@ theorem exists_rainbow_cellF_of_boundaryData {n k : ℕ} (hk : 0 < k)
   rw [Finset.mem_filter] at hc
   exact ⟨c, hc.1, hc.2⟩
 
+/-! ## Transport to the barycentric Kuhn carrier
+
+The finite-dimensional Brouwer layer uses barycentric Kuhn cells
+`KCell n = (Fin (n+1) → ℤ) × Perm (Fin n)`: one coordinate is the slack
+coordinate removed by `dropLast`.  A Freudenthal `Cell n` represents the first
+`n` barycentric coordinates; the missing coordinate is `k - ∑ i, p i`.
+-/
+
+/-- Add the barycentric slack coordinate to a Freudenthal base. -/
+def appendSlack {n : ℕ} (k : ℕ) (p : Fin n → ℤ) : Fin (n + 1) → ℤ :=
+  Fin.snoc p ((k : ℤ) - ∑ i, p i)
+
+@[simp] theorem appendSlack_castSucc {n k : ℕ} (p : Fin n → ℤ) (i : Fin n) :
+    appendSlack k p i.castSucc = p i := by
+  simp [appendSlack]
+
+@[simp] theorem appendSlack_last {n k : ℕ} (p : Fin n → ℤ) :
+    appendSlack k p (Fin.last n) = (k : ℤ) - ∑ i, p i := by
+  simp [appendSlack]
+
+theorem sum_appendSlack {n k : ℕ} (p : Fin n → ℤ) :
+    ∑ i : Fin (n + 1), appendSlack k p i = (k : ℤ) := by
+  rw [Fin.sum_univ_castSucc]
+  simp [appendSlack]
+
+/-- Freudenthal cells lying in the standard simplex alcove at mesh `k`. -/
+def simplexCellValid {n k : ℕ} (c : Cell n) : Prop :=
+  cellValid k c ∧ (∑ i, c.1 i) + (n : ℤ) ≤ (k : ℤ)
+
+instance {n k : ℕ} (c : Cell n) : Decidable (simplexCellValid (k := k) c) := by
+  unfold simplexCellValid
+  infer_instance
+
+theorem chainVZ_nonneg_of_cellValid {n k : ℕ} {c : Cell n}
+    (hc : cellValid k c) (t : Fin (n + 1)) (i : Fin n) :
+    0 ≤ chainVZ c.1 c.2 t i := by
+  unfold chainVZ
+  by_cases h : (c.2.symm i).val < t.val
+  · rw [if_pos h]
+    have hi := (hc i).1
+    omega
+  · rw [if_neg h]
+    simpa using (hc i).1
+
+theorem old_stepVec_castSucc {n : ℕ} (a j : Fin n) :
+    ShenWork.Paper1.stepVec a j.castSucc = unitVec a j := by
+  unfold ShenWork.Paper1.stepVec unitVec
+  have hlast : j.castSucc ≠ Fin.last n := Fin.castSucc_ne_last j
+  by_cases hja : j = a
+  · subst hja
+    rw [if_pos rfl, if_pos rfl, if_neg hlast]
+    ring
+  · have hcast : j.castSucc ≠ a.castSucc := fun h => hja (Fin.castSucc_injective _ h)
+    rw [if_neg hcast, if_neg hja, if_neg hlast]
+    ring
+
+/-- Dropping the slack coordinate from the old barycentric Kuhn chain gives the
+Freudenthal chain on the first `n` coordinates. -/
+theorem dropLast_old_chainVZ_appendSlack {n k : ℕ} (p : Fin n → ℤ)
+    (σ : Equiv.Perm (Fin n)) (t : Fin (n + 1)) :
+    dropLast (ShenWork.Paper1.chainVZ (appendSlack k p) σ t) = chainVZ p σ t := by
+  classical
+  funext j
+  change ShenWork.Paper1.chainVZ (appendSlack k p) σ t j.castSucc = chainVZ p σ t j
+  unfold ShenWork.Paper1.chainVZ chainVZ
+  rw [appendSlack_castSucc]
+  congr 1
+  have hfilter :
+      (Finset.univ.filter (fun s : Fin n => s.castSucc.val < t.val))
+        = (Finset.univ.filter (fun s : Fin n => s.val < t.val)) := by
+    apply Finset.filter_congr
+    intro s _
+    rfl
+  rw [hfilter]
+  rw [Finset.sum_congr rfl (fun s _hs => old_stepVec_castSucc (σ s) j)]
+  by_cases hin : (σ.symm j).val < t.val
+  · rw [if_pos hin]
+    rw [Finset.sum_eq_single (σ.symm j)]
+    · rw [Equiv.apply_symm_apply]
+      unfold unitVec
+      rw [if_pos rfl]
+    · intro s _hs hs
+      unfold unitVec
+      have hne : j ≠ σ s := by
+        intro h
+        have hsymm : σ.symm j = s := by
+          rw [h, Equiv.symm_apply_apply]
+        exact hs hsymm.symm
+      rw [if_neg hne]
+    · intro hnot
+      exact absurd
+        (Finset.mem_filter.mpr ⟨Finset.mem_univ (σ.symm j), hin⟩) hnot
+  · rw [if_neg hin]
+    rw [Finset.sum_eq_zero]
+    intro s hs
+    unfold unitVec
+    have hne : j ≠ σ s := by
+      intro h
+      apply hin
+      have hsymm : σ.symm j = s := by
+        rw [h, Equiv.symm_apply_apply]
+      rw [hsymm]
+      exact (Finset.mem_filter.mp hs).2
+    rw [if_neg hne]
+
+theorem old_chainVZ_last_appendSlack {n k : ℕ} (p : Fin n → ℤ)
+    (σ : Equiv.Perm (Fin n)) (t : Fin (n + 1)) :
+    ShenWork.Paper1.chainVZ (appendSlack k p) σ t (Fin.last n)
+      = (k : ℤ) - ∑ i, p i - (t.val : ℤ) := by
+  rw [ShenWork.Paper1.chainVZ_last, appendSlack_last]
+
+/-- A Freudenthal simplex-alcove cell gives a valid old barycentric Kuhn cell. -/
+theorem old_cellValid_of_simplexCellValid {n k : ℕ} {c : Cell n}
+    (hc : simplexCellValid (k := k) c) :
+    ShenWork.Paper1.cellValid k (appendSlack k c.1) c.2 := by
+  constructor
+  · exact sum_appendSlack c.1
+  · intro t i
+    refine Fin.lastCases ?_ ?_ i
+    · rw [old_chainVZ_last_appendSlack]
+      have ht : (t.val : ℤ) ≤ (n : ℤ) := by
+        exact_mod_cast (Nat.le_of_lt_succ t.isLt)
+      linarith [hc.2, ht]
+    · intro j
+      have hdrop := congrFun (dropLast_old_chainVZ_appendSlack (k := k) c.1 c.2 t) j
+      rw [dropLast_apply] at hdrop
+      rw [hdrop]
+      exact chainVZ_nonneg_of_cellValid hc.1 t j
+
+theorem simplexCellValid_of_old_cellValid {n k : ℕ} (hn : 0 < n)
+    {p : Fin (n + 1) → ℤ} {σ : Equiv.Perm (Fin n)}
+    (hc : ShenWork.Paper1.cellValid k p σ) :
+    simplexCellValid (k := k) (dropLast p, σ) := by
+  constructor
+  · intro i
+    have hbox := ShenWork.Paper1.cellValid_base_mem_box hc i.castSucc
+    refine ⟨hbox.1, ?_⟩
+    have hlast_ge := ShenWork.Paper1.cellValid_last_ge hc
+    have hsum :
+        (∑ j : Fin n, p j.castSucc) + p (Fin.last n) = (k : ℤ) := by
+      simpa [Fin.sum_univ_castSucc] using hc.1
+    have hpi_le : p i.castSucc ≤ (k : ℤ) - (n : ℤ) := by
+      have hle_first : p i.castSucc ≤ ∑ j : Fin n, p j.castSucc := by
+        refine Finset.single_le_sum (f := fun j : Fin n => p j.castSucc) ?_
+          (Finset.mem_univ i)
+        intro j _hj
+        exact (ShenWork.Paper1.cellValid_base_mem_box hc j.castSucc).1
+      linarith
+    have hnZ : (0 : ℤ) < n := by exact_mod_cast hn
+    simpa [dropLast] using (lt_of_le_of_lt hpi_le (by linarith))
+  · have hsum_drop :
+        (∑ i : Fin n, dropLast p i) + p (Fin.last n) = (k : ℤ) := by
+      have hsum :
+          (∑ i : Fin n, p i.castSucc) + p (Fin.last n) = (k : ℤ) := by
+        simpa [Fin.sum_univ_castSucc] using hc.1
+      simpa [dropLast] using hsum
+    have hlast_ge := ShenWork.Paper1.cellValid_last_ge hc
+    linarith
+
+/-- Valid Freudenthal cells in the simplex alcove, as a finite set. -/
+noncomputable def simplexCells (n k : ℕ) : Finset (Cell n) :=
+  (cells n k).filter (fun c => (∑ i, c.1 i) + (n : ℤ) ≤ (k : ℤ))
+
+theorem mem_simplexCells {n k : ℕ} {c : Cell n} :
+    c ∈ simplexCells n k ↔ simplexCellValid (k := k) c := by
+  rw [simplexCells, Finset.mem_filter, mem_cells]
+  rfl
+
+/-- The old barycentric carrier associated to a Freudenthal simplex cell. -/
+def toKCell {n : ℕ} (k : ℕ) (c : Cell n) : ShenWork.Paper1.KCell n :=
+  (appendSlack k c.1, c.2)
+
+theorem appendSlack_dropLast_of_sum {n k : ℕ} {p : Fin (n + 1) → ℤ}
+    (hsum : ∑ i, p i = (k : ℤ)) : appendSlack k (dropLast p) = p := by
+  funext i
+  refine Fin.lastCases ?_ ?_ i
+  · have hsum' :
+        (∑ j : Fin n, p j.castSucc) + p (Fin.last n) = (k : ℤ) := by
+      simpa [Fin.sum_univ_castSucc] using hsum
+    rw [appendSlack_last]
+    change (k : ℤ) - ∑ x : Fin n, p x.castSucc = p (Fin.last n)
+    linarith
+  · intro j
+    rw [appendSlack_castSucc, dropLast_apply]
+
+theorem image_simplexCells_toKCell_eq_cellsN {n k : ℕ} (hn : 0 < n) :
+    (simplexCells n k).image (toKCell k) = ShenWork.Paper1.cellsN n k := by
+  classical
+  ext c
+  constructor
+  · intro hc
+    rw [Finset.mem_image] at hc
+    obtain ⟨d, hd, rfl⟩ := hc
+    rw [ShenWork.Paper1.mem_cellsN]
+    exact old_cellValid_of_simplexCellValid (mem_simplexCells.mp hd)
+  · intro hc
+    have hcvalid := ShenWork.Paper1.mem_cellsN.mp hc
+    let d : Cell n := (dropLast c.1, c.2)
+    have hdvalid : simplexCellValid (k := k) d :=
+      simplexCellValid_of_old_cellValid hn hcvalid
+    rw [Finset.mem_image]
+    refine ⟨d, mem_simplexCells.mpr hdvalid, ?_⟩
+    unfold toKCell d
+    apply Prod.ext
+    · exact appendSlack_dropLast_of_sum hcvalid.1
+    · rfl
+
+theorem old_chainVZ_appendSlack_eq {n k : ℕ} (p : Fin n → ℤ)
+    (σ : Equiv.Perm (Fin n)) (t : Fin (n + 1)) :
+    ShenWork.Paper1.chainVZ (appendSlack k p) σ t = appendSlack k (chainVZ p σ t) := by
+  funext i
+  refine Fin.lastCases ?_ ?_ i
+  · rw [old_chainVZ_last_appendSlack, appendSlack_last, sum_chainVZ]
+    ring
+  · intro j
+    have hdrop := congrFun (dropLast_old_chainVZ_appendSlack (k := k) p σ t) j
+    rw [dropLast_apply] at hdrop
+    simpa [appendSlack] using hdrop
+
+theorem old_facetSet_appendSlack_eq {n k : ℕ} (p : Fin n → ℤ)
+    (σ : Equiv.Perm (Fin n)) (t : Fin (n + 1)) :
+    ShenWork.Paper1.facetSet (appendSlack k p) σ t =
+      (facetSet p σ t).image (appendSlack k) := by
+  classical
+  unfold ShenWork.Paper1.facetSet facetSet
+  rw [Finset.image_image]
+  apply Finset.image_congr
+  intro u _hu
+  exact old_chainVZ_appendSlack_eq p σ u
+
+/-! ### Slack-face audit for the current simplex-alcove carrier
+
+The current `simplexCells` carrier is the first-coordinate chart transported to the older
+barycentric Kuhn cells.  Its codimension-one facets are not literal facets of the slack face
+`appendSlack k v (Fin.last n) = 0` once `2 ≤ n`: the vertices of a Freudenthal facet have
+different coordinate sums.  The real simplex slack-face recursion therefore needs a different
+boundary-compatible type-A carrier, not just the `simplexCells` filter below.
+-/
+
+theorem appendSlack_chainVZ_last {n k : ℕ} (p : Fin n → ℤ)
+    (σ : Equiv.Perm (Fin n)) (t : Fin (n + 1)) :
+    appendSlack k (chainVZ p σ t) (Fin.last n) =
+      (k : ℤ) - ∑ i, p i - (t.val : ℤ) := by
+  rw [appendSlack_last, sum_chainVZ]
+  ring
+
+theorem no_simplexFacet_all_slack_zero_of_two_le {n k : ℕ} (hn : 2 ≤ n)
+    (c : Cell n) (t : Fin (n + 1)) :
+    ¬ (∀ v ∈ facetSet c.1 c.2 t, appendSlack k v (Fin.last n) = 0) := by
+  classical
+  intro hslack
+  let z : Fin (n + 1) := ⟨0, by omega⟩
+  let o : Fin (n + 1) := ⟨1, by omega⟩
+  let tw : Fin (n + 1) := ⟨2, by omega⟩
+  have hzo : z.val ≠ o.val := by simp [z, o]
+  have hzt : z.val ≠ tw.val := by simp [z, tw]
+  have hot : o.val ≠ tw.val := by simp [o, tw]
+  have vertex_slack_eq :
+      ∀ u : Fin (n + 1), u ≠ t →
+        (k : ℤ) - ∑ i, c.1 i - (u.val : ℤ) = 0 := by
+    intro u hut
+    have hu : chainVZ c.1 c.2 u ∈ facetSet c.1 c.2 t :=
+      (mem_facetSet_iff c.1 c.2 t u).mpr hut
+    have hs := hslack (chainVZ c.1 c.2 u) hu
+    rw [appendSlack_chainVZ_last] at hs
+    exact hs
+  have pair_equal :
+      ∀ u v : Fin (n + 1), u ≠ t → v ≠ t → (u.val : ℤ) = (v.val : ℤ) := by
+    intro u v hut hvt
+    have hu := vertex_slack_eq u hut
+    have hv := vertex_slack_eq v hvt
+    linarith
+  by_cases ht0 : t.val = 0
+  · have ho_ne : o ≠ t := fun h => by
+      have hv := congrArg Fin.val h
+      simp [o] at hv
+      omega
+    have htw_ne : tw ≠ t := fun h => by
+      have hv := congrArg Fin.val h
+      simp [tw] at hv
+      omega
+    have hvals := pair_equal o tw ho_ne htw_ne
+    have hNat : o.val = tw.val := by exact_mod_cast hvals
+    exact hot hNat
+  · by_cases ht1 : t.val = 1
+    · have hz_ne : z ≠ t := fun h => by
+        have hv := congrArg Fin.val h
+        simp [z] at hv
+        omega
+      have htw_ne : tw ≠ t := fun h => by
+        have hv := congrArg Fin.val h
+        simp [tw] at hv
+        omega
+      have hvals := pair_equal z tw hz_ne htw_ne
+      have hNat : z.val = tw.val := by exact_mod_cast hvals
+      exact hzt hNat
+    · have hz_ne : z ≠ t := fun h => by
+        have hv := congrArg Fin.val h
+        simp [z] at hv
+        omega
+      have ho_ne : o ≠ t := fun h => by
+        have hv := congrArg Fin.val h
+        simp [o] at hv
+        omega
+      have hvals := pair_equal z o hz_ne ho_ne
+      have hNat : z.val = o.val := by exact_mod_cast hvals
+      exact hzo hNat
+
+/-! ## Pulling old barycentric colours back to simplex alcoves -/
+
+theorem toKCell_injective {n k : ℕ} :
+    Function.Injective (toKCell (n := n) k) := by
+  intro c d hcd
+  apply Prod.ext
+  · funext i
+    have hp := congrArg Prod.fst hcd
+    have hi := congrFun hp i.castSucc
+    simpa [toKCell] using hi
+  · exact congrArg (fun x : ShenWork.Paper1.KCell n => x.2) hcd
+
+/-- Pull an old barycentric labelling back to the Freudenthal simplex chart. -/
+def pullLabel {n : ℕ} (k : ℕ)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1)) : Label n :=
+  fun v => L (appendSlack k v)
+
+theorem cellColorN_toKCell {n k : ℕ}
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1)) (c : Cell n) :
+    ShenWork.Paper1.cellColorN L (toKCell k c) =
+      cellColor (pullLabel k L) c := by
+  funext t
+  unfold ShenWork.Paper1.cellColorN cellColor pullLabel toKCell
+  rw [old_chainVZ_appendSlack_eq]
+
+theorem rainbow_toKCell_iff {n k : ℕ}
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1)) (c : Cell n) :
+    Function.Bijective (ShenWork.Paper1.cellColorN L (toKCell k c))
+      ↔ isRainbow (pullLabel k L) c := by
+  rw [cellColorN_toKCell]
+  rfl
+
+theorem image_simplex_rainbow_eq_cellsN_rainbow {n k : ℕ} (hn : 0 < n)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1)) :
+    ((simplexCells n k).filter (fun c => isRainbow (pullLabel k L) c)).image
+        (toKCell k)
+      =
+    (ShenWork.Paper1.cellsN n k).filter
+        (fun c => Function.Bijective (ShenWork.Paper1.cellColorN L c)) := by
+  classical
+  ext c
+  constructor
+  · intro hc
+    rw [Finset.mem_image] at hc
+    obtain ⟨d, hd, hdc⟩ := hc
+    rw [Finset.mem_filter] at hd
+    rw [Finset.mem_filter]
+    refine ⟨?_, ?_⟩
+    · rw [← image_simplexCells_toKCell_eq_cellsN hn]
+      exact Finset.mem_image.mpr ⟨d, hd.1, hdc⟩
+    · rw [← hdc]
+      exact (rainbow_toKCell_iff L d).mpr hd.2
+  · intro hc
+    rw [Finset.mem_filter] at hc
+    rw [← image_simplexCells_toKCell_eq_cellsN hn] at hc
+    rw [Finset.mem_image] at hc
+    obtain ⟨d, hd, hdc⟩ := hc.1
+    rw [Finset.mem_image]
+    refine ⟨d, ?_, hdc⟩
+    rw [Finset.mem_filter]
+    refine ⟨hd, ?_⟩
+    rw [← hdc] at hc
+    exact (rainbow_toKCell_iff L d).mp hc.2
+
+theorem card_simplex_rainbow_eq_cellsN_rainbow {n k : ℕ} (hn : 0 < n)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1)) :
+    ((simplexCells n k).filter (fun c => isRainbow (pullLabel k L) c)).card =
+      ((ShenWork.Paper1.cellsN n k).filter
+        (fun c => Function.Bijective (ShenWork.Paper1.cellColorN L c))).card := by
+  rw [← image_simplex_rainbow_eq_cellsN_rainbow hn L]
+  exact (Finset.card_image_of_injective _ toKCell_injective).symm
+
+theorem cellsN_rainbow_odd_of_simplex_rainbow_odd {n k : ℕ} (hn : 0 < n)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1))
+    (hodd : Odd ((simplexCells n k).filter
+      (fun c => isRainbow (pullLabel k L) c)).card) :
+    Odd ((ShenWork.Paper1.cellsN n k).filter
+      (fun c => Function.Bijective (ShenWork.Paper1.cellColorN L c))).card := by
+  rw [← card_simplex_rainbow_eq_cellsN_rainbow hn L]
+  exact hodd
+
+theorem exists_cellsN_rainbow_of_simplex_rainbow_odd {n k : ℕ} (hn : 0 < n)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1))
+    (hodd : Odd ((simplexCells n k).filter
+      (fun c => isRainbow (pullLabel k L) c)).card) :
+    ∃ c ∈ ShenWork.Paper1.cellsN n k,
+      Function.Bijective (ShenWork.Paper1.cellColorN L c) := by
+  classical
+  have hold := cellsN_rainbow_odd_of_simplex_rainbow_odd hn L hodd
+  obtain ⟨c, hc⟩ := Finset.card_pos.mp hold.pos
+  rw [Finset.mem_filter] at hc
+  exact ⟨c, hc.1, hc.2⟩
+
+/-! ## Transporting simplex-alcove facets to the old barycentric carrier -/
+
+theorem appendSlack_injective {n k : ℕ} :
+    Function.Injective (appendSlack (n := n) k) := by
+  intro v w hvw
+  funext i
+  have hi := congrFun hvw i.castSucc
+  simpa [appendSlack] using hi
+
+@[simp] theorem dropLast_appendSlack {n k : ℕ} (v : Fin n → ℤ) :
+    dropLast (appendSlack k v) = v := by
+  funext i
+  rw [dropLast_apply, appendSlack_castSucc]
+
+/-- Facets of the Freudenthal simplex-alcove subcomplex. -/
+noncomputable def simplexFacets (n k : ℕ) : Finset (Finset (Fin n → ℤ)) :=
+  ((simplexCells n k).product Finset.univ).image
+    (fun ct : Cell n × Fin (n + 1) => facetSet ct.1.1 ct.1.2 ct.2)
+
+theorem mem_simplexFacets_of_bounds {n k : ℕ} {c : Cell n}
+    {F : Finset (Fin n → ℤ)} (hc : c ∈ simplexCells n k)
+    (hb : cellBounds c F) :
+    F ∈ simplexFacets n k := by
+  classical
+  obtain ⟨t, rfl⟩ := hb
+  unfold simplexFacets
+  rw [Finset.mem_image]
+  exact ⟨(c, t), Finset.mem_product.mpr ⟨hc, Finset.mem_univ _⟩, rfl⟩
+
+theorem mem_simplexFacets_iff {n k : ℕ} {F : Finset (Fin n → ℤ)} :
+    F ∈ simplexFacets n k ↔ ∃ c ∈ simplexCells n k, cellBounds c F := by
+  classical
+  constructor
+  · intro hF
+    unfold simplexFacets at hF
+    rw [Finset.mem_image] at hF
+    obtain ⟨ct, hct, hF⟩ := hF
+    have hctp := Finset.mem_product.mp hct
+    refine ⟨ct.1, hctp.1, ct.2, hF⟩
+  · rintro ⟨c, hc, hb⟩
+    exact mem_simplexFacets_of_bounds hc hb
+
+/-- The old barycentric facet represented by a Freudenthal simplex-alcove facet. -/
+def toKFacet {n : ℕ} (k : ℕ) (F : Finset (Fin n → ℤ)) :
+    Finset (Fin (n + 1) → ℤ) :=
+  F.image (appendSlack k)
+
+theorem mem_toKFacet_iff {n k : ℕ} {F : Finset (Fin n → ℤ)}
+    {v : Fin n → ℤ} :
+    appendSlack k v ∈ toKFacet k F ↔ v ∈ F := by
+  classical
+  unfold toKFacet
+  constructor
+  · intro hv
+    rw [Finset.mem_image] at hv
+    obtain ⟨w, hw, hwv⟩ := hv
+    have h : w = v := appendSlack_injective hwv
+    rwa [h] at hw
+  · intro hv
+    exact Finset.mem_image.mpr ⟨v, hv, rfl⟩
+
+theorem toKFacet_injective {n k : ℕ} :
+    Function.Injective (toKFacet (n := n) k) := by
+  intro F G hFG
+  ext v
+  rw [← mem_toKFacet_iff (k := k) (F := F), hFG, mem_toKFacet_iff]
+
+theorem image_toKFacet_label {n k : ℕ}
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1)) (F : Finset (Fin n → ℤ)) :
+    (toKFacet k F).image L = F.image (pullLabel k L) := by
+  unfold toKFacet pullLabel
+  rw [Finset.image_image]
+  rfl
+
+theorem image_simplexFacets_toKFacet_eq_facetsN {n k : ℕ} (hn : 0 < n) :
+    (simplexFacets n k).image (toKFacet k) = ShenWork.Paper1.facetsN n k := by
+  classical
+  ext F
+  constructor
+  · intro hF
+    rw [Finset.mem_image] at hF
+    obtain ⟨G, hG, rfl⟩ := hF
+    rw [mem_simplexFacets_iff] at hG
+    obtain ⟨c, hc, t, ht⟩ := hG
+    rw [← ht]
+    have hvalid : ShenWork.Paper1.cellMemN k (toKCell k c) := by
+      simpa [toKCell, ShenWork.Paper1.cellMemN] using
+        old_cellValid_of_simplexCellValid (mem_simplexCells.mp hc)
+    have hfacet :
+        ShenWork.Paper1.facetSet (toKCell k c).1 (toKCell k c).2 t =
+          toKFacet k (facetSet c.1 c.2 t) := by
+      unfold toKCell toKFacet
+      exact old_facetSet_appendSlack_eq c.1 c.2 t
+    exact ShenWork.Paper1.mem_facetsN_of_bounds hvalid ⟨t, hfacet⟩
+  · intro hF
+    obtain ⟨c, hc, t, ht⟩ := ShenWork.Paper1.mem_facetsN_iff.mp hF
+    have hcMem : c ∈ ShenWork.Paper1.cellsN n k := ShenWork.Paper1.mem_cellsN.mpr hc
+    rw [← image_simplexCells_toKCell_eq_cellsN hn] at hcMem
+    rw [Finset.mem_image] at hcMem
+    obtain ⟨d, hd, hdc⟩ := hcMem
+    rw [Finset.mem_image]
+    refine ⟨facetSet d.1 d.2 t, ?_, ?_⟩
+    · exact mem_simplexFacets_of_bounds hd ⟨t, rfl⟩
+    · rw [← ht, ← hdc]
+      unfold toKFacet toKCell
+      exact (old_facetSet_appendSlack_eq d.1 d.2 t).symm
+
+/-! ## Sperner parity on the Freudenthal simplex-alcove subcomplex -/
+
+theorem simplex_doorFacets_filter_eq {n k : ℕ}
+    {L : (Fin n → ℤ) → Fin (n + 1)} {c : Cell n}
+    (hc : c ∈ simplexCells n k) :
+    (simplexFacets n k).filter
+        (fun F => cellBounds c F ∧ F.image L = Finset.univ.erase (Fin.last n))
+      = (cellFacets c).filter (fun F => F.image L = Finset.univ.erase (Fin.last n)) := by
+  classical
+  ext F
+  simp only [Finset.mem_filter, mem_cellFacets_iff]
+  constructor
+  · rintro ⟨_, hb, hd⟩
+    exact ⟨hb, hd⟩
+  · rintro ⟨hb, hd⟩
+    exact ⟨mem_simplexFacets_of_bounds hc hb, hb, hd⟩
+
+theorem simplex_hheart {n k : ℕ}
+    {L : (Fin n → ℤ) → Fin (n + 1)} {c : Cell n}
+    (hc : c ∈ simplexCells n k) :
+    Odd ((simplexFacets n k).filter
+        (fun F => cellBounds c F ∧ F.image L = Finset.univ.erase (Fin.last n))).card
+      ↔ isRainbow L c := by
+  classical
+  unfold isRainbow
+  rw [simplex_doorFacets_filter_eq hc, ← hheart_indexed (cellColor L c)]
+  have hcard : ((cellFacets c).filter
+        (fun F => F.image L = Finset.univ.erase (Fin.last n))).card
+      = (Finset.univ.filter (fun t : Fin (n + 1) => doorAt (cellColor L c) t)).card := by
+    unfold cellFacets
+    rw [Finset.filter_image,
+      Finset.card_image_of_injective _ (facetSet_injective c.1 c.2)]
+    congr 1
+    apply Finset.filter_congr
+    intro t _
+    rw [facetSet_isDoor_iff]
+  rw [hcard]
+
+/-- A simplex-alcove facet is on the subcomplex boundary if the partner leaves
+`simplexCells`. -/
+def simplexBoundary {n : ℕ} (hn : 0 < n) (k : ℕ)
+    (F : Finset (Fin n → ℤ)) : Prop :=
+  ∃ c ∈ simplexCells n k, cellBounds c F ∧
+    ¬ simplexCellValid (k := k) (partnerCell hn c F)
+
+noncomputable instance {n k : ℕ} (hn : 0 < n) (F : Finset (Fin n → ℤ)) :
+    Decidable (simplexBoundary hn k F) :=
+  Classical.propDecidable _
+
+theorem simplex_partner_valid_of_not_boundary {n k : ℕ} (hn : 0 < n)
+    {F : Finset (Fin n → ℤ)} (hnb : ¬ simplexBoundary hn k F)
+    {c : Cell n} (hc : c ∈ simplexCells n k) (hb : cellBounds c F) :
+    simplexCellValid (k := k) (partnerCell hn c F) := by
+  by_contra hbad
+  exact hnb ⟨c, hc, hb, hbad⟩
+
+theorem simplex_hinterior_of_not_boundary {n k : ℕ} (hn : 0 < n)
+    (F : Finset (Fin n → ℤ)) (hnb : ¬ simplexBoundary hn k F) :
+    Even ((simplexCells n k).filter (fun c => cellBounds c F)).card := by
+  classical
+  set S := (simplexCells n k).filter (fun c => cellBounds c F) with hS
+  have hmemS : ∀ c, c ∈ S → c ∈ simplexCells n k ∧ cellBounds c F := by
+    intro c hc
+    rw [hS, Finset.mem_filter] at hc
+    exact hc
+  have g_mem : ∀ c (_ : c ∈ S), partnerCell hn c F ∈ S := by
+    intro c hc
+    obtain ⟨hcell, hb⟩ := hmemS c hc
+    rw [hS, Finset.mem_filter]
+    exact ⟨mem_simplexCells.mpr
+      (simplex_partner_valid_of_not_boundary hn hnb hcell hb),
+      partnerCell_bounds hn c hb⟩
+  refine even_card_of_involution S (fun c _ => partnerCell hn c F) ?_ g_mem ?_
+  · intro c hc
+    exact partnerCell_ne hn c (hmemS c hc).2
+  · intro c hc
+    exact partnerCell_involutive hn c (hmemS c hc).2
+
+theorem simplex_even_validPartner_card {n k : ℕ} (hn : 0 < n)
+    (F : Finset (Fin n → ℤ)) :
+    Even ((simplexCells n k).filter
+      (fun c => cellBounds c F ∧
+        simplexCellValid (k := k) (partnerCell hn c F))).card := by
+  classical
+  set S := (simplexCells n k).filter
+    (fun c => cellBounds c F ∧
+      simplexCellValid (k := k) (partnerCell hn c F)) with hS
+  have hmemS : ∀ c, c ∈ S →
+      c ∈ simplexCells n k ∧ cellBounds c F ∧
+        simplexCellValid (k := k) (partnerCell hn c F) := by
+    intro c hc
+    rw [hS, Finset.mem_filter] at hc
+    exact ⟨hc.1, hc.2.1, hc.2.2⟩
+  have g_mem : ∀ c (_ : c ∈ S), partnerCell hn c F ∈ S := by
+    intro c hc
+    obtain ⟨hcell, hb, hpvalid⟩ := hmemS c hc
+    rw [hS, Finset.mem_filter]
+    refine ⟨mem_simplexCells.mpr hpvalid, partnerCell_bounds hn c hb, ?_⟩
+    rw [partnerCell_involutive hn c hb]
+    exact mem_simplexCells.mp hcell
+  refine even_card_of_involution S (fun c _ => partnerCell hn c F) ?_ g_mem ?_
+  · intro c hc
+    exact partnerCell_ne hn c (hmemS c hc).2.1
+  · intro c hc
+    exact partnerCell_involutive hn c (hmemS c hc).2.1
+
+theorem simplex_bounds_card_odd_iff_invalid {n k : ℕ} (hn : 0 < n)
+    (F : Finset (Fin n → ℤ)) :
+    Odd ((simplexCells n k).filter (fun c => cellBounds c F)).card
+      ↔ Odd ((simplexCells n k).filter
+          (fun c => cellBounds c F ∧
+            ¬ simplexCellValid (k := k) (partnerCell hn c F))).card := by
+  classical
+  have hdisj : Disjoint
+      ((simplexCells n k).filter
+        (fun c => cellBounds c F ∧
+          simplexCellValid (k := k) (partnerCell hn c F)))
+      ((simplexCells n k).filter
+        (fun c => cellBounds c F ∧
+          ¬ simplexCellValid (k := k) (partnerCell hn c F))) := by
+    rw [Finset.disjoint_left]
+    intro c hcv hci
+    rw [Finset.mem_filter] at hcv hci
+    exact hci.2.2 hcv.2.2
+  have hunion : (simplexCells n k).filter (fun c => cellBounds c F)
+      = ((simplexCells n k).filter
+          (fun c => cellBounds c F ∧
+            simplexCellValid (k := k) (partnerCell hn c F)))
+        ∪ ((simplexCells n k).filter
+          (fun c => cellBounds c F ∧
+            ¬ simplexCellValid (k := k) (partnerCell hn c F))) := by
+    rw [← Finset.filter_or]
+    apply Finset.filter_congr
+    intro c _
+    constructor
+    · intro hb
+      by_cases hp : simplexCellValid (k := k) (partnerCell hn c F)
+      · exact Or.inl ⟨hb, hp⟩
+      · exact Or.inr ⟨hb, hp⟩
+    · rintro (⟨hb, _⟩ | ⟨hb, _⟩) <;> exact hb
+  have hcard : ((simplexCells n k).filter (fun c => cellBounds c F)).card
+      = ((simplexCells n k).filter
+          (fun c => cellBounds c F ∧
+            simplexCellValid (k := k) (partnerCell hn c F))).card
+        + ((simplexCells n k).filter
+          (fun c => cellBounds c F ∧
+            ¬ simplexCellValid (k := k) (partnerCell hn c F))).card := by
+    rw [hunion, Finset.card_union_of_disjoint hdisj]
+  obtain ⟨m, hm⟩ := simplex_even_validPartner_card hn F
+  rw [hcard, hm]
+  rw [Nat.odd_iff, Nat.odd_iff]
+  omega
+
+theorem simplex_hboundaryOdd_of_singleton {n k : ℕ} (hn : 0 < n)
+    (F : Finset (Fin n → ℤ))
+    (hsingle : ((simplexCells n k).filter
+      (fun c => cellBounds c F ∧
+        ¬ simplexCellValid (k := k) (partnerCell hn c F))).card = 1) :
+    Odd ((simplexCells n k).filter (fun c => cellBounds c F)).card := by
+  rw [simplex_bounds_card_odd_iff_invalid hn F, hsingle]
+  exact ⟨0, rfl⟩
+
+/-- Freudenthal simplex-alcove Sperner output with R2 and R3 supplied. -/
+theorem exists_rainbow_simplex_R2 {n : ℕ} (hn : 0 < n) (k : ℕ)
+    (L : (Fin n → ℤ) → Fin (n + 1))
+    (hR2 : ∀ F ∈ simplexFacets n k,
+      (F.image L = Finset.univ.erase (Fin.last n)) → simplexBoundary hn k F →
+        ((simplexCells n k).filter
+          (fun c => cellBounds c F ∧
+            ¬ simplexCellValid (k := k) (partnerCell hn c F))).card = 1)
+    (hR3 : Odd ((simplexFacets n k).filter
+      (fun F => (F.image L = Finset.univ.erase (Fin.last n)) ∧
+        simplexBoundary hn k F)).card) :
+    Odd ((simplexCells n k).filter (fun c => isRainbow L c)).card := by
+  classical
+  refine sperner_n_dim_combinatorial (simplexCells n k) (simplexFacets n k)
+    (fun c F => cellBounds c F)
+    (fun F => F.image L = Finset.univ.erase (Fin.last n))
+    (simplexBoundary hn k)
+    (isRainbow L)
+    ?_ ?_ ?_ hR3
+  · intro c hc
+    exact simplex_hheart hc
+  · intro F _ _ hb
+    exact simplex_hinterior_of_not_boundary hn F hb
+  · intro F hF hd hb
+    exact simplex_hboundaryOdd_of_singleton hn F (hR2 F hF hd hb)
+
+/-! ## Partner transport between simplex alcoves and old barycentric cells -/
+
+theorem sum_unitVec {n : ℕ} (a : Fin n) :
+    ∑ i : Fin n, unitVec a i = 1 := by
+  classical
+  rw [Finset.sum_eq_single a]
+  · simp [unitVec]
+  · intro b _hb hba
+    simp [unitVec, hba]
+  · intro hnot
+    exact False.elim (hnot (Finset.mem_univ a))
+
+theorem appendSlack_add_unitVec {n k : ℕ} (p : Fin n → ℤ) (a : Fin n) :
+    appendSlack k (fun i => p i + unitVec a i) =
+      fun i => appendSlack k p i + ShenWork.Paper1.stepVec a i := by
+  funext i
+  refine Fin.lastCases ?_ ?_ i
+  · rw [appendSlack_last, appendSlack_last, Finset.sum_add_distrib, sum_unitVec,
+      ShenWork.Paper1.stepVec_last]
+    ring
+  · intro j
+    rw [appendSlack_castSucc, appendSlack_castSucc, old_stepVec_castSucc]
+
+theorem appendSlack_sub_unitVec {n k : ℕ} (p : Fin n → ℤ) (a : Fin n) :
+    appendSlack k (fun i => p i - unitVec a i) =
+      fun i => appendSlack k p i - ShenWork.Paper1.stepVec a i := by
+  funext i
+  refine Fin.lastCases ?_ ?_ i
+  · rw [appendSlack_last, appendSlack_last, Finset.sum_sub_distrib, sum_unitVec,
+      ShenWork.Paper1.stepVec_last]
+    ring
+  · intro j
+    rw [appendSlack_castSucc, appendSlack_castSucc, old_stepVec_castSucc]
+
+theorem toKCell_endpointFwd {n k : ℕ} (hn : 0 < n) (c : Cell n) :
+    toKCell k (endpointFwd hn c) =
+      ShenWork.Paper1.endpointFwd hn (toKCell k c) := by
+  apply Prod.ext
+  · exact appendSlack_add_unitVec c.1 (c.2 ⟨0, hn⟩)
+  · rfl
+
+theorem toKCell_endpointInv {n k : ℕ} (hn : 0 < n) (c : Cell n) :
+    toKCell k (endpointInv hn c) =
+      ShenWork.Paper1.endpointInv hn (toKCell k c) := by
+  apply Prod.ext
+  · exact appendSlack_sub_unitVec c.1 ((c.2 * (finRotate n)⁻¹) ⟨0, hn⟩)
+  · rfl
+
+theorem swapAround_eq_old {n : ℕ} (t : Fin (n + 1)) (σ : Equiv.Perm (Fin n)) :
+    swapAround t σ = ShenWork.Paper1.swapAround t σ := by
+  by_cases h : 0 < t.val ∧ t.val < n
+  · simp [swapAround, ShenWork.Paper1.swapAround, h]
+  · simp [swapAround, ShenWork.Paper1.swapAround]
+
+theorem cellMemN_toKCell_iff {n k : ℕ} (hn : 0 < n) (c : Cell n) :
+    ShenWork.Paper1.cellMemN k (toKCell k c) ↔ simplexCellValid (k := k) c := by
+  constructor
+  · intro hc
+    have hcValid : ShenWork.Paper1.cellValid k (toKCell k c).1 (toKCell k c).2 := by
+      simpa [ShenWork.Paper1.cellMemN] using hc
+    have hs := simplexCellValid_of_old_cellValid hn hcValid
+    simpa [toKCell] using hs
+  · intro hc
+    simpa [toKCell, ShenWork.Paper1.cellMemN] using
+      old_cellValid_of_simplexCellValid hc
+
+theorem old_dropOf_toKFacet_eq {n k : ℕ} {c : Cell n}
+    {F : Finset (Fin n → ℤ)} (hb : cellBounds c F) :
+    ShenWork.Paper1.dropOf (toKCell k c) (toKFacet k F) = dropOf c F := by
+  obtain ⟨t, ht⟩ := hb
+  have hdrop : dropOf c F = t := dropOf_eq c ht
+  have hfacet :
+      ShenWork.Paper1.facetSet (toKCell k c).1 (toKCell k c).2 t =
+        toKFacet k F := by
+    rw [← ht]
+    unfold toKCell toKFacet
+    exact old_facetSet_appendSlack_eq c.1 c.2 t
+  rw [hdrop]
+  exact ShenWork.Paper1.dropOf_eq (toKCell k c) hfacet
+
+theorem toKCell_partnerCell {n k : ℕ} (hn : 0 < n) {c : Cell n}
+    {F : Finset (Fin n → ℤ)} (hb : cellBounds c F) :
+    toKCell k (partnerCell hn c F) =
+      ShenWork.Paper1.partnerCell hn (toKCell k c) (toKFacet k F) := by
+  have hdrop := old_dropOf_toKFacet_eq (k := k) hb
+  by_cases h0 : (dropOf c F).val = 0
+  · rw [partnerCell_of_zero hn c h0,
+      ShenWork.Paper1.partnerCell_of_zero hn (toKCell k c) (by rw [hdrop]; exact h0)]
+    exact toKCell_endpointFwd hn c
+  · by_cases hlast : (dropOf c F).val = n
+    · rw [partnerCell_of_last hn c h0 hlast,
+        ShenWork.Paper1.partnerCell_of_last hn (toKCell k c)
+          (by rw [hdrop]; exact h0) (by rw [hdrop]; exact hlast)]
+      exact toKCell_endpointInv hn c
+    · rw [partnerCell_of_internal hn c h0 hlast,
+        ShenWork.Paper1.partnerCell_of_internal hn (toKCell k c)
+          (by rw [hdrop]; exact h0) (by rw [hdrop]; exact hlast)]
+      rw [hdrop]
+      simp only [toKCell]
+      apply Prod.ext
+      · rfl
+      · exact swapAround_eq_old (dropOf c F) c.2
+
+theorem simplexBoundary_iff_isBoundaryN_toKFacet {n k : ℕ} (hn : 0 < n)
+    (F : Finset (Fin n → ℤ)) :
+    simplexBoundary hn k F ↔
+      ShenWork.Paper1.isBoundaryN hn k (toKFacet k F) := by
+  constructor
+  · rintro ⟨c, hc, hb, hbad⟩
+    refine ⟨toKCell k c, ?_, ?_, ?_⟩
+    · exact (cellMemN_toKCell_iff hn c).mpr (mem_simplexCells.mp hc)
+    · obtain ⟨t, ht⟩ := hb
+      refine ⟨t, ?_⟩
+      rw [← ht]
+      unfold toKCell toKFacet
+      exact old_facetSet_appendSlack_eq c.1 c.2 t
+    · intro hp
+      apply hbad
+      have hp' : ShenWork.Paper1.cellMemN k (toKCell k (partnerCell hn c F)) := by
+        rwa [toKCell_partnerCell (k := k) hn hb]
+      exact (cellMemN_toKCell_iff hn (partnerCell hn c F)).mp hp'
+  · rintro ⟨c, hc, hb, hbad⟩
+    have hcMem : c ∈ ShenWork.Paper1.cellsN n k := ShenWork.Paper1.mem_cellsN.mpr hc
+    rw [← image_simplexCells_toKCell_eq_cellsN hn] at hcMem
+    rw [Finset.mem_image] at hcMem
+    obtain ⟨d, hd, hdc⟩ := hcMem
+    have hbD : cellBounds d F := by
+      obtain ⟨t, ht⟩ := hb
+      have hfacet :
+          ShenWork.Paper1.facetSet (toKCell k d).1 (toKCell k d).2 t =
+            toKFacet k (facetSet d.1 d.2 t) := by
+        unfold toKCell toKFacet
+        exact old_facetSet_appendSlack_eq d.1 d.2 t
+      have hto :
+          toKFacet k (facetSet d.1 d.2 t) = toKFacet k F := by
+        rw [← hfacet, hdc, ht]
+      exact ⟨t, toKFacet_injective hto⟩
+    refine ⟨d, hd, hbD, ?_⟩
+    intro hs
+    apply hbad
+    have hp : ShenWork.Paper1.cellMemN k (toKCell k (partnerCell hn d F)) :=
+      (cellMemN_toKCell_iff hn (partnerCell hn d F)).mpr hs
+    rwa [toKCell_partnerCell (k := k) hn hbD, hdc] at hp
+
+theorem image_simplexBoundaryDoors_toKFacet_eq_boundaryDoorsN {n k : ℕ} (hn : 0 < n)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1)) :
+    ((simplexFacets n k).filter
+        (fun F => (F.image (pullLabel k L) = Finset.univ.erase (Fin.last n)) ∧
+          simplexBoundary hn k F)).image (toKFacet k)
+      =
+    (ShenWork.Paper1.facetsN n k).filter
+        (fun F => (F.image L = Finset.univ.erase (Fin.last n)) ∧
+          ShenWork.Paper1.isBoundaryN hn k F) := by
+  classical
+  ext F
+  constructor
+  · intro hF
+    rw [Finset.mem_image] at hF
+    obtain ⟨G, hG, rfl⟩ := hF
+    rw [Finset.mem_filter] at hG
+    rw [Finset.mem_filter]
+    refine ⟨?_, ?_, ?_⟩
+    · rw [← image_simplexFacets_toKFacet_eq_facetsN hn]
+      exact Finset.mem_image.mpr ⟨G, hG.1, rfl⟩
+    · rw [image_toKFacet_label]
+      exact hG.2.1
+    · exact (simplexBoundary_iff_isBoundaryN_toKFacet hn G).mp hG.2.2
+  · intro hF
+    rw [Finset.mem_filter] at hF
+    rw [← image_simplexFacets_toKFacet_eq_facetsN hn] at hF
+    rw [Finset.mem_image] at hF
+    obtain ⟨G, hG, hGF⟩ := hF.1
+    rw [Finset.mem_image]
+    refine ⟨G, ?_, hGF⟩
+    rw [Finset.mem_filter]
+    refine ⟨hG, ?_, ?_⟩
+    · rw [← image_toKFacet_label, hGF]
+      exact hF.2.1
+    · rw [← hGF] at hF
+      exact (simplexBoundary_iff_isBoundaryN_toKFacet hn G).mpr hF.2.2
+
+theorem hR3N_of_simplex_hR3 {n k : ℕ} (hn : 0 < n)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1))
+    (hR3 : Odd ((simplexFacets n k).filter
+      (fun F => (F.image (pullLabel k L) = Finset.univ.erase (Fin.last n)) ∧
+        simplexBoundary hn k F)).card) :
+    Odd ((ShenWork.Paper1.facetsN n k).filter
+      (fun F => (F.image L = Finset.univ.erase (Fin.last n)) ∧
+        ShenWork.Paper1.isBoundaryN hn k F)).card := by
+  rw [← image_simplexBoundaryDoors_toKFacet_eq_boundaryDoorsN hn L]
+  rw [Finset.card_image_of_injective _ toKFacet_injective]
+  exact hR3
+
+theorem exists_rainbow_cellN_R2_of_simplex_hR3 {n : ℕ} (hn : 0 < n) (k : ℕ)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1))
+    (hR3 : Odd ((simplexFacets n k).filter
+      (fun F => (F.image (pullLabel k L) = Finset.univ.erase (Fin.last n)) ∧
+        simplexBoundary hn k F)).card) :
+    Odd ((ShenWork.Paper1.cellsN n k).filter
+      (fun c => Function.Bijective (ShenWork.Paper1.cellColorN L c))).card :=
+  ShenWork.Paper1.exists_rainbow_cellN_R2 hn k L
+    (hR3N_of_simplex_hR3 hn L hR3)
+
+theorem image_simplexInvalidPartners_toKCell_eq_invalidN {n k : ℕ} (hn : 0 < n)
+    (F : Finset (Fin n → ℤ)) :
+    ((simplexCells n k).filter
+        (fun c => cellBounds c F ∧
+          ¬ simplexCellValid (k := k) (partnerCell hn c F))).image (toKCell k)
+      =
+    (ShenWork.Paper1.cellsN n k).filter
+        (fun c => ShenWork.Paper1.cellBounds c (toKFacet k F) ∧
+          ¬ ShenWork.Paper1.cellMemN k
+            (ShenWork.Paper1.partnerCell hn c (toKFacet k F))) := by
+  classical
+  ext c
+  constructor
+  · intro hc
+    rw [Finset.mem_image] at hc
+    obtain ⟨d, hd, hdc⟩ := hc
+    rw [Finset.mem_filter] at hd
+    rw [Finset.mem_filter]
+    refine ⟨?_, ?_, ?_⟩
+    · rw [← image_simplexCells_toKCell_eq_cellsN hn]
+      exact Finset.mem_image.mpr ⟨d, hd.1, hdc⟩
+    · rw [← hdc]
+      obtain ⟨t, ht⟩ := hd.2.1
+      refine ⟨t, ?_⟩
+      rw [← ht]
+      unfold toKCell toKFacet
+      exact old_facetSet_appendSlack_eq d.1 d.2 t
+    · rw [← hdc]
+      intro hp
+      apply hd.2.2
+      have hp' : ShenWork.Paper1.cellMemN k (toKCell k (partnerCell hn d F)) := by
+        rwa [toKCell_partnerCell (k := k) hn hd.2.1]
+      exact (cellMemN_toKCell_iff hn (partnerCell hn d F)).mp hp'
+  · intro hc
+    rw [Finset.mem_filter] at hc
+    rw [← image_simplexCells_toKCell_eq_cellsN hn] at hc
+    rw [Finset.mem_image] at hc
+    obtain ⟨d, hd, hdc⟩ := hc.1
+    have hbD : cellBounds d F := by
+      obtain ⟨t, ht⟩ := hc.2.1
+      have hfacet :
+          ShenWork.Paper1.facetSet (toKCell k d).1 (toKCell k d).2 t =
+            toKFacet k (facetSet d.1 d.2 t) := by
+        unfold toKCell toKFacet
+        exact old_facetSet_appendSlack_eq d.1 d.2 t
+      have hto :
+          toKFacet k (facetSet d.1 d.2 t) = toKFacet k F := by
+        rw [← hfacet, hdc, ht]
+      exact ⟨t, toKFacet_injective hto⟩
+    rw [Finset.mem_image]
+    refine ⟨d, ?_, hdc⟩
+    rw [Finset.mem_filter]
+    refine ⟨hd, hbD, ?_⟩
+    intro hs
+    apply hc.2.2
+    have hp : ShenWork.Paper1.cellMemN k (toKCell k (partnerCell hn d F)) :=
+      (cellMemN_toKCell_iff hn (partnerCell hn d F)).mpr hs
+    rwa [toKCell_partnerCell (k := k) hn hbD, hdc] at hp
+
+theorem card_simplexInvalidPartners_eq_invalidN {n k : ℕ} (hn : 0 < n)
+    (F : Finset (Fin n → ℤ)) :
+    ((simplexCells n k).filter
+        (fun c => cellBounds c F ∧
+          ¬ simplexCellValid (k := k) (partnerCell hn c F))).card =
+    ((ShenWork.Paper1.cellsN n k).filter
+        (fun c => ShenWork.Paper1.cellBounds c (toKFacet k F) ∧
+          ¬ ShenWork.Paper1.cellMemN k
+            (ShenWork.Paper1.partnerCell hn c (toKFacet k F)))).card := by
+  rw [← image_simplexInvalidPartners_toKCell_eq_invalidN hn F]
+  exact (Finset.card_image_of_injective _ toKCell_injective).symm
+
+theorem simplex_boundary_singleton_invalid {n k : ℕ} (hn : 0 < n)
+    {F : Finset (Fin n → ℤ)} (hb : simplexBoundary hn k F) :
+    ((simplexCells n k).filter
+      (fun c => cellBounds c F ∧
+        ¬ simplexCellValid (k := k) (partnerCell hn c F))).card = 1 := by
+  rw [card_simplexInvalidPartners_eq_invalidN hn F]
+  exact ShenWork.Paper1.boundary_singleton_invalid hn k
+    ((simplexBoundary_iff_isBoundaryN_toKFacet hn F).mp hb)
+
+theorem exists_rainbow_simplex_of_hR3 {n : ℕ} (hn : 0 < n) (k : ℕ)
+    (L : (Fin n → ℤ) → Fin (n + 1))
+    (hR3 : Odd ((simplexFacets n k).filter
+      (fun F => (F.image L = Finset.univ.erase (Fin.last n)) ∧
+        simplexBoundary hn k F)).card) :
+  Odd ((simplexCells n k).filter (fun c => isRainbow L c)).card :=
+  exists_rainbow_simplex_R2 hn k L
+    (fun _ _ _ hb => simplex_boundary_singleton_invalid hn hb) hR3
+
+/-! ## Concrete Sperner labels on appended slack vertices -/
+
+/-- The old integer Sperner label avoids any zero barycentric coordinate. -/
+theorem labelN_ne_of_zero {n k : ℕ}
+    {f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ)} (hk : 0 < k)
+    (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (n + 1)))
+      (stdSimplex ℝ (Fin (n + 1))))
+    {q : Fin (n + 1) → ℤ} (hsum : ∑ i, (q i).toNat = k)
+    {t : Fin (n + 1)} (hzero : q t = 0) :
+    ShenWork.Paper1.labelN f k q ≠ t := by
+  let qNat : Fin (n + 1) → ℕ := fun i => (q i).toNat
+  have hv : embPt k qNat ∈ stdSimplex ℝ (Fin (n + 1)) :=
+    embPt_mem_stdSimplex hk hsum
+  have hfv : f (embPt k qNat) ∈ stdSimplex ℝ (Fin (n + 1)) := hmaps hv
+  have hcoord : embPt k qNat t = 0 := by
+    simp [embPt, qNat, hzero]
+  unfold ShenWork.Paper1.labelN
+  exact spernerLabelN_ne_of_zero hv hfv hcoord
+
+theorem appendSlack_toNat_sum_of_nonneg {n k : ℕ} {v : Fin n → ℤ}
+    (hnn : ∀ i : Fin (n + 1), 0 ≤ appendSlack k v i) :
+    ∑ i : Fin (n + 1), (appendSlack k v i).toNat = k := by
+  have hcast : ∑ i : Fin (n + 1), ((appendSlack k v i).toNat : ℤ) =
+      ∑ i : Fin (n + 1), appendSlack k v i := by
+    refine Finset.sum_congr rfl ?_
+    intro i _hi
+    exact Int.toNat_of_nonneg (hnn i)
+  have hsum : ∑ i : Fin (n + 1), ((appendSlack k v i).toNat : ℤ) = (k : ℤ) := by
+    rw [hcast, sum_appendSlack]
+  exact_mod_cast hsum
+
+/-- The Sperner label pulled back to the simplex chart. -/
+noncomputable def simplexLabelN {n : ℕ}
+    (f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ)) (k : ℕ) :
+    Label n :=
+  pullLabel k (ShenWork.Paper1.labelN f k)
+
+theorem simplexLabelN_ne_of_appendSlack_zero {n k : ℕ}
+    {f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ)} (hk : 0 < k)
+    (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (n + 1)))
+      (stdSimplex ℝ (Fin (n + 1))))
+    {v : Fin n → ℤ} (hnn : ∀ i : Fin (n + 1), 0 ≤ appendSlack k v i)
+    {t : Fin (n + 1)} (hzero : appendSlack k v t = 0) :
+    simplexLabelN f k v ≠ t := by
+  unfold simplexLabelN pullLabel
+  exact labelN_ne_of_zero hk hmaps (appendSlack_toNat_sum_of_nonneg hnn) hzero
+
+theorem simplexLabelN_ne_last_of_slack_zero {n k : ℕ}
+    {f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ)} (hk : 0 < k)
+    (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (n + 1)))
+      (stdSimplex ℝ (Fin (n + 1))))
+    {v : Fin n → ℤ} (hnn : ∀ i : Fin n, 0 ≤ v i)
+    (hsum : ∑ i : Fin n, v i = (k : ℤ)) :
+    simplexLabelN f k v ≠ Fin.last n := by
+  have hlast : appendSlack k v (Fin.last n) = 0 := by
+    rw [appendSlack_last, hsum]
+    ring
+  have hnn' : ∀ i : Fin (n + 1), 0 ≤ appendSlack k v i := by
+    intro i
+    refine Fin.lastCases ?_ ?_ i
+    · rw [hlast]
+    · intro j
+      rw [appendSlack_castSucc]
+      exact hnn j
+  exact simplexLabelN_ne_of_appendSlack_zero hk hmaps hnn' hlast
+
+theorem simplexLabelN_ne_castSucc_of_coord_zero {n k : ℕ}
+    {f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ)} (hk : 0 < k)
+    (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (n + 1)))
+      (stdSimplex ℝ (Fin (n + 1))))
+    {v : Fin n → ℤ} (hnn : ∀ i : Fin (n + 1), 0 ≤ appendSlack k v i)
+    {j : Fin n} (hzero : v j = 0) :
+    simplexLabelN f k v ≠ j.castSucc := by
+  refine simplexLabelN_ne_of_appendSlack_zero hk hmaps hnn ?_
+  rw [appendSlack_castSucc, hzero]
+
+theorem hR3N_labelN_of_simplexLabelN_hR3 {n k : ℕ} (hn : 0 < n)
+    (f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ))
+    (hR3 : Odd ((simplexFacets n k).filter
+      (fun F => (F.image (simplexLabelN f k) = Finset.univ.erase (Fin.last n)) ∧
+        simplexBoundary hn k F)).card) :
+    Odd ((ShenWork.Paper1.facetsN n k).filter
+      (fun F => (F.image (ShenWork.Paper1.labelN f k) =
+          Finset.univ.erase (Fin.last n)) ∧
+        ShenWork.Paper1.isBoundaryN hn k F)).card := by
+  simpa [simplexLabelN] using
+    hR3N_of_simplex_hR3 hn (ShenWork.Paper1.labelN f k) hR3
+
+theorem exists_rainbow_cellN_R2_labelN_of_simplexLabelN_hR3 {n : ℕ}
+    (hn : 0 < n) (k : ℕ)
+    (f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ))
+    (hR3 : Odd ((simplexFacets n k).filter
+      (fun F => (F.image (simplexLabelN f k) = Finset.univ.erase (Fin.last n)) ∧
+        simplexBoundary hn k F)).card) :
+    Odd ((ShenWork.Paper1.cellsN n k).filter
+      (fun c => Function.Bijective
+        (ShenWork.Paper1.cellColorN (ShenWork.Paper1.labelN f k) c))).card := by
+  simpa [simplexLabelN] using
+    exists_rainbow_cellN_R2_of_simplex_hR3 hn k (ShenWork.Paper1.labelN f k) hR3
+
 /-!
 Status for the full R3/G1 propagation:
 
-This file now has the boundary-compatible Freudenthal/type-A finite carrier, global facets,
-drop recovery, per-cell non-overlap (`chainSet_injective`), the partner-cell involution,
-the boundary predicate, the interior/boundary parity reduction, and the Freudenthal
-`exists_rainbow_cellF_R2` assembly.  It also turns bottom-face doors into lower-dimensional
-rainbow cells as global facet sets (`card_bottomDoorFacets_eq_rainbow`) and proves those
-bottom facets are genuine boundary facets.
+This file has the boundary-compatible Freudenthal/type-A finite carrier, global facets, drop
+recovery, per-cell non-overlap (`chainSet_injective`), the partner-cell involution, the boundary
+predicate, the interior/boundary parity reduction, and the Freudenthal `exists_rainbow_cellF_R2`
+assembly.  It also turns box bottom-face doors into lower-dimensional rainbow cells as global
+facet sets (`card_bottomDoorFacets_eq_rainbow`) and proves those bottom facets are genuine
+boundary facets.
 
-Closed here, with explicit boundary data:
-* if every boundary door has all vertices on `{last = 0}`, then it is geometrically the
-  final facet of an extended bottom cell (`bottom_geometry_of_facet_last_zero`), hence
-  the global boundary-door set equals `bottomDoorFacets`
-  (`boundaryDoors_eq_bottomDoorFacets_of_vertices_bottom`);
-* `BoundaryData` recursively packages the bottom-colour exclusion, the singleton invalid
-  partner input, and the bottom-only boundary-door exclusion in every dimension, and
-  `rainbow_count_odd_of_boundaryData` supplies the lower-dimensional odd count by induction.
+Closed here:
+* box bottom-face parity from recursive `BoundaryData`;
+* simplex-alcove carriers `simplexCells`/`simplexFacets`;
+* transport of cells, facets, labels, rainbow counts, partners, and boundary predicates between
+  `simplexCells` and the old barycentric `cellsN`/`facetsN`;
+* a slack-face audit for the transported `simplexCells` carrier:
+  `no_simplexFacet_all_slack_zero_of_two_le` proves that, in dimension at least two, its facets
+  cannot be literal facets of `appendSlack = 0`;
+* simplex-alcove heart/interior/boundaryOdd with R2 discharged by transport from
+  `boundary_singleton_invalid`;
+* old hR3 transport: `hR3N_of_simplex_hR3`;
+* old Sperner output from a simplex hR3 input:
+  `exists_rainbow_cellN_R2_of_simplex_hR3`;
+* concrete `labelN` wrappers:
+  `hR3N_labelN_of_simplexLabelN_hR3`,
+  `exists_rainbow_cellN_R2_labelN_of_simplexLabelN_hR3`;
+* concrete zero-coordinate exclusion for the pulled Sperner label (`labelN_ne_of_zero`,
+  `simplexLabelN_ne_of_appendSlack_zero`, `simplexLabelN_ne_last_of_slack_zero`).
 
 Still not closed here:
-* proving the `BoundaryData` fields for the concrete Sperner labelling used by
-  `BrouwerNDimFinal` (in particular the bottom-only boundary-door exclusion and the R2
-  singleton input in this Freudenthal carrier);
-* the mesh-limit/transport replacement from this cube/type-A model to the existing n-D
-  Brouwer/G1/wave statements.
+* the concrete recursive slack-face parity
+  `Odd ((simplexFacets n k).filter
+    (fun F => F.image (simplexLabelN f k) = univ.erase (Fin.last n)
+      ∧ simplexBoundary hn k F)).card)`.
+  The audit above shows this cannot be obtained by treating the current transported
+  `simplexCells` facets as a literal slack-face subcomplex.  A genuinely boundary-compatible
+  type-A simplex carrier must replace this filter before the recursive hR3 proof can close;
+  after that proof, `hR3N_of_simplex_hR3` feeds the old `cellsN` output.
 -/
 
 #print axioms image_dropLast_bottomFacet
@@ -1949,6 +3050,34 @@ Still not closed here:
 #print axioms rainbow_count_succ_odd_of_boundary_vertices_bottom
 #print axioms rainbow_count_odd_of_boundaryData
 #print axioms exists_rainbow_cellF_of_boundaryData
+#print axioms old_cellValid_of_simplexCellValid
+#print axioms simplexCellValid_of_old_cellValid
+#print axioms image_simplexCells_toKCell_eq_cellsN
+#print axioms old_chainVZ_appendSlack_eq
+#print axioms old_facetSet_appendSlack_eq
+#print axioms appendSlack_chainVZ_last
+#print axioms no_simplexFacet_all_slack_zero_of_two_le
+#print axioms image_simplex_rainbow_eq_cellsN_rainbow
+#print axioms card_simplex_rainbow_eq_cellsN_rainbow
+#print axioms cellsN_rainbow_odd_of_simplex_rainbow_odd
+#print axioms image_simplexFacets_toKFacet_eq_facetsN
+#print axioms image_toKFacet_label
+#print axioms simplex_hheart
+#print axioms simplex_hinterior_of_not_boundary
+#print axioms simplex_bounds_card_odd_iff_invalid
+#print axioms exists_rainbow_simplex_R2
+#print axioms toKCell_partnerCell
+#print axioms simplexBoundary_iff_isBoundaryN_toKFacet
+#print axioms image_simplexBoundaryDoors_toKFacet_eq_boundaryDoorsN
+#print axioms hR3N_of_simplex_hR3
+#print axioms exists_rainbow_cellN_R2_of_simplex_hR3
+#print axioms simplex_boundary_singleton_invalid
+#print axioms exists_rainbow_simplex_of_hR3
+#print axioms labelN_ne_of_zero
+#print axioms simplexLabelN_ne_of_appendSlack_zero
+#print axioms simplexLabelN_ne_last_of_slack_zero
+#print axioms hR3N_labelN_of_simplexLabelN_hR3
+#print axioms exists_rainbow_cellN_R2_labelN_of_simplexLabelN_hR3
 
 end Freudenthal
 
