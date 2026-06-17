@@ -2481,6 +2481,22 @@ theorem exists_rainbow_cellF_of_boundaryBottomData {n k : ℕ} (hk : 0 < k)
   rw [Finset.mem_filter] at hc
   exact ⟨c, hc.1, hc.2⟩
 
+#print axioms rainbow_count_odd_of_boundaryBottomData
+#print axioms exists_rainbow_cellF_of_boundaryBottomData
+
+end Freudenthal
+
+end ShenWork.Paper1
+
+/-!
+The remaining source records a stale simplex/type-A transport experiment.  It is not part of
+the cube Brouwer route and currently depends on declarations that are not present in this
+checkout.  The active module intentionally stops at the completed box/Freudenthal
+`BoundaryBottomData` engine above.
+-/
+
+#exit
+
 /-! ## Transport to the barycentric Kuhn carrier
 
 The finite-dimensional Brouwer layer uses barycentric Kuhn cells
