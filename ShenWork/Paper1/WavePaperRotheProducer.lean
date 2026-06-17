@@ -22,7 +22,7 @@
   Delivered here:
   * Green convolution + source identity -> `paperImplicitStepOp ... W = Z`;
   * Green convolution regularity -> continuity, differentiability, `C¹` bound;
-  * resolvent antitonicity -> antitone step;
+  * sliding comparison -> antitone step;
   * paper upper/lower clean max-principles -> `0 ≤ W`, `W ≤ Ū`, `W ≤ Z`;
   * assembly of `PaperRotheStepProducer` from `PaperGreenStepInput`.
 
@@ -89,6 +89,23 @@ theorem greenConv_variation_negative
   rw [hiter, hderiv_eq]
   exact greenConv_solves (c := c) (lam := lam) hlam (H := H) x
 
+/-- Linear resolvent solve from the explicit Green kernel: for any continuous
+source with the two exponential tails, `W = greenConv c lam R` solves
+`W'' + c W' - lam W = -R`. -/
+theorem greenConv_resolvent_solve
+    (hlam : 0 < lam) {R : ℝ → ℝ} (hR : Continuous R)
+    (hRhi : ∀ x,
+      IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi x))
+    (hRlo : ∀ x,
+      IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic x)) :
+    ∃ W : ℝ → ℝ,
+      W = (fun x => greenConv c lam R x) ∧
+      ∀ x,
+        iteratedDeriv 2 W x + c * deriv W x - lam * W x = -R x := by
+  refine ⟨fun x => greenConv c lam R x, rfl, ?_⟩
+  intro x
+  exact greenConv_variation_negative (c := c) (lam := lam) hlam hR hRhi hRlo x
+
 /-- A Green-represented paper source satisfies the paper implicit step equation. -/
 theorem paperImplicitStepOp_of_greenConv_source
     {p : CMParams} {u Z W R : ℝ → ℝ}
@@ -118,6 +135,146 @@ theorem paperImplicitStepOp_of_greenConv_source
   rw [paperImplicitStepOp_apply, hpaper]
   field_simp [ne_of_gt hlam]
   ring
+
+/-- If the paper source is already a fixed source for the Green convolution,
+the corresponding Green convolution is a paper implicit-step solution.  This is
+the linear-resolvent half of the per-step construction; the Banach argument has
+to supply `hRfix`. -/
+theorem paperImplicitStepOp_exists_of_green_fixed_source
+    {p : CMParams} {u Z R : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hRfix : R = paperStepSource p c lam u Z (fun x => greenConv c lam R x))
+    (hRcont : Continuous R)
+    (hRhi : ∀ x,
+      IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi x))
+    (hRlo : ∀ x,
+      IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic x)) :
+    ∃ W : ℝ → ℝ,
+      W = (fun x => greenConv c lam R x) ∧
+      ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x := by
+  refine ⟨fun x => greenConv c lam R x, rfl, ?_⟩
+  exact paperImplicitStepOp_of_greenConv_source
+    (c := c) (lam := lam) hlam hRfix rfl hRcont hRhi hRlo
+
+theorem IsBddFun.const (a : ℝ) : IsBddFun (fun _ : ℝ => a) :=
+  ⟨|a|, fun _ => le_rfl⟩
+
+theorem IsBddFun.add {f g : ℝ → ℝ}
+    (hf : IsBddFun f) (hg : IsBddFun g) :
+    IsBddFun (fun x => f x + g x) := by
+  rcases hf with ⟨Mf, hMf⟩
+  rcases hg with ⟨Mg, hMg⟩
+  refine ⟨|Mf| + |Mg|, fun x => ?_⟩
+  calc
+    |f x + g x| ≤ |f x| + |g x| := abs_add_le _ _
+    _ ≤ Mf + Mg := add_le_add (hMf x) (hMg x)
+    _ ≤ |Mf| + |Mg| := add_le_add (le_abs_self _) (le_abs_self _)
+
+theorem IsBddFun.neg {f : ℝ → ℝ} (hf : IsBddFun f) :
+    IsBddFun (fun x => -f x) := by
+  rcases hf with ⟨M, hM⟩
+  exact ⟨M, fun x => by simpa using hM x⟩
+
+theorem IsBddFun.sub {f g : ℝ → ℝ}
+    (hf : IsBddFun f) (hg : IsBddFun g) :
+    IsBddFun (fun x => f x - g x) := by
+  simpa [sub_eq_add_neg] using IsBddFun.add hf (IsBddFun.neg hg)
+
+theorem IsBddFun.mul {f g : ℝ → ℝ}
+    (hf : IsBddFun f) (hg : IsBddFun g) :
+    IsBddFun (fun x => f x * g x) := by
+  rcases hf with ⟨Mf, hMf⟩
+  rcases hg with ⟨Mg, hMg⟩
+  refine ⟨|Mf| * |Mg|, fun x => ?_⟩
+  rw [abs_mul]
+  exact mul_le_mul (le_trans (hMf x) (le_abs_self _))
+    (le_trans (hMg x) (le_abs_self _)) (abs_nonneg _) (abs_nonneg _)
+
+theorem IsBddFun.const_mul {f : ℝ → ℝ} (a : ℝ) (hf : IsBddFun f) :
+    IsBddFun (fun x => a * f x) :=
+  IsBddFun.mul (IsBddFun.const a) hf
+
+theorem IsBddFun.rpow_of_nonneg {f : ℝ → ℝ} {a : ℝ}
+    (hf : IsBddFun f) (ha : 0 ≤ a) (hfnn : ∀ x, 0 ≤ f x) :
+    IsBddFun (fun x => (f x) ^ a) := by
+  rcases hf with ⟨M, hM⟩
+  refine ⟨|M| ^ a, fun x => ?_⟩
+  rw [abs_of_nonneg (Real.rpow_nonneg (hfnn x) a)]
+  have hf_le : f x ≤ |M| := by
+    calc
+      f x = |f x| := (abs_of_nonneg (hfnn x)).symm
+      _ ≤ M := hM x
+      _ ≤ |M| := le_abs_self M
+  exact Real.rpow_le_rpow (hfnn x) hf_le ha
+
+/-- Continuity of the expanded paper step source from the expected per-step
+regularity data. -/
+theorem paperStepSource_continuous
+    (p : CMParams) (c lam : ℝ) {u Z W : ℝ → ℝ}
+    (hZ : Continuous Z) (hW : Continuous W)
+    (hWderiv : Continuous (deriv W))
+    (hV : Continuous (frozenElliptic p u))
+    (hVderiv : Continuous (deriv (frozenElliptic p u))) :
+    Continuous (paperStepSource p c lam u Z W) := by
+  have hm1 : 0 ≤ p.m - 1 := by linarith [p.hm]
+  have hα : 0 ≤ p.α := by linarith [p.hα]
+  have hmg1 : 0 ≤ p.m + p.γ - 1 := by linarith [p.hm, p.hγ]
+  have hWm1 : Continuous (fun x => (W x) ^ (p.m - 1)) :=
+    hW.rpow_const (fun _ => Or.inr hm1)
+  have hWα : Continuous (fun x => (W x) ^ p.α) :=
+    hW.rpow_const (fun _ => Or.inr hα)
+  have hWmg1 : Continuous (fun x => (W x) ^ (p.m + p.γ - 1)) :=
+    hW.rpow_const (fun _ => Or.inr hmg1)
+  have hterm1 : Continuous (fun x =>
+      (-p.χ * p.m) * (W x) ^ (p.m - 1) *
+        deriv (frozenElliptic p u) x * deriv W x) :=
+    ((continuous_const.mul hWm1).mul hVderiv).mul hWderiv
+  have hinner : Continuous (fun x =>
+      1 - p.χ * (W x) ^ (p.m - 1) * frozenElliptic p u x
+        - ((W x) ^ p.α - p.χ * (W x) ^ (p.m + p.γ - 1))) :=
+    (continuous_const.sub ((continuous_const.mul hWm1).mul hV)).sub
+      (hWα.sub (continuous_const.mul hWmg1))
+  have hnonlin : Continuous (paperStepNonlinearity p u W) := by
+    unfold paperStepNonlinearity
+    dsimp only
+    exact hterm1.add (hW.mul hinner)
+  unfold paperStepSource
+  exact hnonlin.add (continuous_const.mul hZ)
+
+/-- Boundedness of the expanded paper step source from bounded `Z`, `W`, `W'`,
+`V`, and `V'`, with the usual nonnegative trapped range for `W`. -/
+theorem paperStepSource_bddFun
+    (p : CMParams) (c lam : ℝ) {u Z W : ℝ → ℝ}
+    (hZ : IsBddFun Z) (hW : IsBddFun W) (hWnn : ∀ x, 0 ≤ W x)
+    (hWderiv : IsBddFun (deriv W))
+    (hV : IsBddFun (frozenElliptic p u))
+    (hVderiv : IsBddFun (deriv (frozenElliptic p u))) :
+    IsBddFun (paperStepSource p c lam u Z W) := by
+  have hm1 : 0 ≤ p.m - 1 := by linarith [p.hm]
+  have hα : 0 ≤ p.α := by linarith [p.hα]
+  have hmg1 : 0 ≤ p.m + p.γ - 1 := by linarith [p.hm, p.hγ]
+  have hWm1 := IsBddFun.rpow_of_nonneg hW hm1 hWnn
+  have hWα := IsBddFun.rpow_of_nonneg hW hα hWnn
+  have hWmg1 := IsBddFun.rpow_of_nonneg hW hmg1 hWnn
+  have hterm1 : IsBddFun (fun x =>
+      (-p.χ * p.m) * (W x) ^ (p.m - 1) *
+        deriv (frozenElliptic p u) x * deriv W x) :=
+    IsBddFun.mul
+      (IsBddFun.mul (IsBddFun.const_mul (-p.χ * p.m) hWm1) hVderiv)
+      hWderiv
+  have hinner : IsBddFun (fun x =>
+      1 - p.χ * (W x) ^ (p.m - 1) * frozenElliptic p u x
+        - ((W x) ^ p.α - p.χ * (W x) ^ (p.m + p.γ - 1))) := by
+    exact IsBddFun.sub
+      (IsBddFun.sub (IsBddFun.const 1)
+        (IsBddFun.mul (IsBddFun.const_mul p.χ hWm1) hV))
+      (IsBddFun.sub hWα (IsBddFun.const_mul p.χ hWmg1))
+  have hnonlin : IsBddFun (paperStepNonlinearity p u W) := by
+    unfold paperStepNonlinearity
+    dsimp only
+    exact IsBddFun.add hterm1 (IsBddFun.mul hW hinner)
+  unfold paperStepSource
+  exact IsBddFun.add hnonlin (IsBddFun.const_mul lam hZ)
 
 /-! ## Paper upper comparison -/
 
@@ -226,7 +383,6 @@ structure PaperStepAnalytic
     Λ = 2 * (greenDelta c lam)⁻¹ * B
   R_hi : ∀ x, IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi x)
   R_lo : ∀ x, IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic x)
-  R_anti : Antitone R
   R_int_trans : ∀ x, Integrable (fun t => greenKernel c lam (-t) * R (x + t))
 
 /-- Upper comparison data for a paper step against a barrier `B`. -/
@@ -267,6 +423,31 @@ structure PaperStepLowerData
     paperWaveOperator p c u A x₀ - paperWaveOperator p c u W x₀
       ≤ (reactionLip p.α M + C_chem) * (A x₀ - W x₀)
 
+/-- Sliding comparison data for proving `W` antitone.
+
+For every shift `s ≥ 0`, the shifted profile `A_s(x)=W(x+s)` is required to
+be a direct substep for the same implicit equation, up to the shifted old
+iterate `Z(x+s)`.  The theorem below combines this with `Antitone Z`, so no
+source-level antitonicity is assumed. -/
+structure PaperStepAntitoneData
+    (p : CMParams) (c lam M C_chem : ℝ)
+    (u Z W : ℝ → ℝ) where
+  hCB : (1 / lam) * (reactionLip p.α M + C_chem) < 1
+  shiftedStep : ∀ s, 0 ≤ s →
+    ∀ x, paperImplicitStepOp p c (1 / lam) u (fun y => W (y + s)) x ≤ Z (x + s)
+  φcont : ∀ s, 0 ≤ s → Continuous (fun x => W (x + s) - W x)
+  La : ℝ → ℝ
+  Lb : ℝ → ℝ
+  hbot : ∀ s, 0 ≤ s → Tendsto (fun x => W (x + s) - W x) atBot (𝓝 (La s))
+  hLa : ∀ s, 0 ≤ s → La s ≤ 0
+  htop : ∀ s, 0 ≤ s → Tendsto (fun x => W (x + s) - W x) atTop (𝓝 (Lb s))
+  hLb : ∀ s, 0 ≤ s → Lb s ≤ 0
+  paperDiff : ∀ s, 0 ≤ s → ∀ x₀,
+    IsMaxOn (fun x => W (x + s) - W x) Set.univ x₀ →
+      paperWaveOperator p c u (fun y => W (y + s)) x₀ -
+          paperWaveOperator p c u W x₀
+        ≤ (reactionLip p.α M + C_chem) * (W (x₀ + s) - W x₀)
+
 theorem paperStep_deriv_le
     {p : CMParams} {M κ Λ : ℝ} {u Z W : ℝ → ℝ}
     (hlam : 0 < lam) (ha : PaperStepAnalytic p c lam M κ Λ u Z W) :
@@ -299,13 +480,6 @@ theorem paperStep_cont
     Continuous W :=
   (paperStep_diff (c := c) (lam := lam) hlam ha).continuous
 
-theorem paperStep_anti
-    {p : CMParams} {M κ Λ : ℝ} {u Z W : ℝ → ℝ}
-    (hlam : 0 < lam) (ha : PaperStepAnalytic p c lam M κ Λ u Z W) :
-    Antitone W :=
-  implicitStep_preserves_antitone
-    (c := c) (lam := lam) hlam ha.conv_form ha.R_anti ha.R_int_trans
-
 theorem paperStep_step_op
     {p : CMParams} {M κ Λ : ℝ} {u Z W : ℝ → ℝ}
     (hlam : 0 < lam) (ha : PaperStepAnalytic p c lam M κ Λ u Z W) :
@@ -313,6 +487,89 @@ theorem paperStep_step_op
   paperImplicitStepOp_of_greenConv_source
     (c := c) (lam := lam) hlam ha.source_eq ha.green_repr
     ha.R_cont ha.R_hi ha.R_lo
+
+/-- Direct substep comparison for one paper implicit step.
+
+If `A` satisfies `G_h(A) ≤ Z = G_h(W)`, then the usual maximum-principle trap
+gives `A ≤ W`, provided the one-sided operator increment estimate holds at a
+positive maximum of `A-W`. -/
+theorem paperImplicitStep_le_of_directSubstep_maxPrinciple_clean
+    (p : CMParams) {c h M C_chem : ℝ} {u Z W A : ℝ → ℝ} {La Lb : ℝ}
+    (hh : 0 < h)
+    (hCB : h * (reactionLip p.α M + C_chem) < 1)
+    (hstep : ∀ x, paperImplicitStepOp p c h u W x = Z x)
+    (hAstep : ∀ x, paperImplicitStepOp p c h u A x ≤ Z x)
+    (hφcont : Continuous (fun x => A x - W x))
+    (hbot : Tendsto (fun x => A x - W x) atBot (𝓝 La)) (hLa : La ≤ 0)
+    (htop : Tendsto (fun x => A x - W x) atTop (𝓝 Lb)) (hLb : Lb ≤ 0)
+    (hpaperDiff : ∀ x₀, IsMaxOn (fun x => A x - W x) Set.univ x₀ →
+      paperWaveOperator p c u A x₀ - paperWaveOperator p c u W x₀
+        ≤ (reactionLip p.α M + C_chem) * (A x₀ - W x₀)) :
+    ∀ x, A x ≤ W x := by
+  by_contra hcon
+  push Not at hcon
+  obtain ⟨x₁, hx₁⟩ := hcon
+  have hpos₁ : 0 < A x₁ - W x₁ := by linarith
+  obtain ⟨x₀, hattain, _hx₀pos⟩ :=
+    exists_isMaxOn_pos_of_tendsto_nonpos (φ := fun x => A x - W x)
+      hφcont hbot hLa htop hLb hpos₁
+  have hmax : ∀ x, A x - W x ≤ A x₀ - W x₀ := by
+    intro x
+    have := hattain (Set.mem_univ x)
+    simpa using this
+  have hGW :
+      W x₀ - h * paperWaveOperator p c u W x₀ = Z x₀ := by
+    have := hstep x₀
+    simpa [paperImplicitStepOp_apply] using this
+  have hGA_le_Z :
+      A x₀ - h * paperWaveOperator p c u A x₀ ≤ Z x₀ := by
+    have := hAstep x₀
+    simpa [paperImplicitStepOp_apply] using this
+  have hGdiff :
+      (A x₀ - W x₀) - h *
+          (paperWaveOperator p c u A x₀ - paperWaveOperator p c u W x₀) ≤ 0 := by
+    linarith
+  set Δ := A x₀ - W x₀ with hΔ
+  set CB := reactionLip p.α M + C_chem with hCBdef
+  have hΔpos : 0 < Δ := lt_of_lt_of_le hpos₁ (by simpa [hΔ] using hmax x₁)
+  have hstep_le :
+      h * (paperWaveOperator p c u A x₀ - paperWaveOperator p c u W x₀)
+        ≤ h * (CB * Δ) :=
+    mul_le_mul_of_nonneg_left (hpaperDiff x₀ hattain) hh.le
+  have hcoef_pos : 0 < 1 - h * CB := by linarith [hCB]
+  have hbig_pos : 0 < (1 - h * CB) * Δ := mul_pos hcoef_pos hΔpos
+  nlinarith [hGdiff, hstep_le, hbig_pos]
+
+/-- Sliding maximum-principle proof of antitonicity for one paper step.
+
+For `s ≥ 0`, compare `A_s(x)=W(x+s)` against `W`.  The shifted substep data gives
+`G_h(A_s)(x) ≤ Z(x+s)`, and `Antitone Z` gives `Z(x+s) ≤ Z(x)`. -/
+theorem paperStep_antitone_by_sliding
+    {p : CMParams} {M C_chem : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x)
+    (hZanti : Antitone Z)
+    (hd : PaperStepAntitoneData p c lam M C_chem u Z W) :
+    Antitone W := by
+  intro x₁ x₂ hx
+  let s := x₂ - x₁
+  have hs : 0 ≤ s := sub_nonneg.mpr hx
+  have hAstep : ∀ x,
+      paperImplicitStepOp p c (1 / lam) u (fun y => W (y + s)) x ≤ Z x := by
+    intro x
+    exact le_trans (hd.shiftedStep s hs x) (hZanti (by linarith : x ≤ x + s))
+  have hshift_le : ∀ x, W (x + s) ≤ W x := by
+    exact paperImplicitStep_le_of_directSubstep_maxPrinciple_clean
+      (p := p) (c := c) (h := 1 / lam) (M := M) (C_chem := C_chem)
+      (u := u) (Z := Z) (W := W) (A := fun y => W (y + s))
+      (La := hd.La s) (Lb := hd.Lb s)
+      (one_div_pos.mpr hlam) hd.hCB hstep hAstep (hd.φcont s hs)
+      (hd.hbot s hs) (hd.hLa s hs) (hd.htop s hs) (hd.hLb s hs)
+      (hd.paperDiff s hs)
+  have hx₂ : x₁ + s = x₂ := by
+    dsimp [s]
+    ring
+  simpa [hx₂] using hshift_le x₁
 
 /-! ## Bounded-source Green bookkeeping
 
@@ -382,7 +639,7 @@ theorem greenKernel_neg_mul_translate_integrable_of_bounded
 /-- Paper-step analytic data with the bounded-source Green tails omitted.
 
 The omitted fields are closed by `paperStepAnalytic_of_core`; source existence,
-continuity, boundedness, and antitonicity remain explicit data. -/
+continuity, and boundedness remain explicit data. -/
 structure PaperStepAnalyticCore
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
   R : ℝ → ℝ
@@ -392,7 +649,25 @@ structure PaperStepAnalyticCore
   R_bound_const : ℝ
   R_bound : ∀ y, |R y| ≤ R_bound_const
   R_bound_eq : Λ = 2 * (greenDelta c lam)⁻¹ * R_bound_const
-  R_anti : Antitone R
+
+/-- Build the analytic core once the Banach fixed source has been produced.
+
+This is the exact interface between the nonlinear fixed-point step
+`R = source(u,Z,greenConv R)` and the Green/resolvent bookkeeping used by the
+paper producer. -/
+def paperStepAnalyticCore_of_fixed_source
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z R : ℝ → ℝ}
+    (hsource : R = paperStepSource p c lam u Z (fun x => greenConv c lam R x))
+    (hRcont : Continuous R) (B : ℝ) (hRbound : ∀ y, |R y| ≤ B)
+    (hΛ : Λ = 2 * (greenDelta c lam)⁻¹ * B) :
+    PaperStepAnalyticCore p c lam M κ Λ u Z (fun x => greenConv c lam R x) :=
+  { R := R
+    source_eq := hsource
+    green_repr := rfl
+    R_cont := hRcont
+    R_bound_const := B
+    R_bound := hRbound
+    R_bound_eq := hΛ }
 
 /-- Close the Green bookkeeping fields of `PaperStepAnalytic` from bounded
 continuous source data. -/
@@ -418,10 +693,22 @@ def paperStepAnalytic_of_core
     R_lo := fun x =>
       gWeight_integrableOn_Iic_of_bounded
         (greenRootMinus_neg (c := c) hlam) hc.R_cont hc.R_bound x
-    R_anti := hc.R_anti
     R_int_trans := fun x =>
       greenKernel_neg_mul_translate_integrable_of_bounded
         (c := c) (lam := lam) hlam hc.R_cont hc.R_bound x }
+
+/-- Build the full analytic record directly from a fixed Green source. -/
+def paperStepAnalytic_of_fixed_source
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z R : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hsource : R = paperStepSource p c lam u Z (fun x => greenConv c lam R x))
+    (hRcont : Continuous R) (B : ℝ) (hRbound : ∀ y, |R y| ≤ B)
+    (hΛ : Λ = 2 * (greenDelta c lam)⁻¹ * B) :
+    PaperStepAnalytic p c lam M κ Λ u Z (fun x => greenConv c lam R x) :=
+  paperStepAnalytic_of_core (c := c) (lam := lam) hlam
+    (paperStepAnalyticCore_of_fixed_source
+      (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+      (u := u) (Z := Z) hsource hRcont B hRbound hΛ)
 
 theorem paperStep_le_upper
     {p : CMParams} {M C_chem : ℝ} {u Z W B : ℝ → ℝ}
@@ -458,8 +745,9 @@ structure PaperStepOutput
   upperOld : PaperStepUpperData p c lam M C_chem u Z W Z
   upperBarrier :
     PaperStepUpperData p c lam M C_chem u Z W (upperBarrier κ M)
+  antitone : PaperStepAntitoneData p c lam M C_chem u Z W
 
-/-- Paper-step output with only the irreducible analytic source core carried. -/
+/-- Paper-step output with only the analytic source core carried. -/
 structure PaperStepOutputCore
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
   analytic : PaperStepAnalyticCore p c lam M κ Λ u Z W
@@ -468,6 +756,7 @@ structure PaperStepOutputCore
   upperOld : PaperStepUpperData p c lam M C_chem u Z W Z
   upperBarrier :
     PaperStepUpperData p c lam M C_chem u Z W (upperBarrier κ M)
+  antitone : PaperStepAntitoneData p c lam M C_chem u Z W
 
 /-- Close a paper-step output core by filling the bounded-source Green tails. -/
 def paperStepOutput_of_core
@@ -478,7 +767,8 @@ def paperStepOutput_of_core
     C_chem := hout.C_chem
     lowerZero := hout.lowerZero
     upperOld := hout.upperOld
-    upperBarrier := hout.upperBarrier }
+    upperBarrier := hout.upperBarrier
+    antitone := hout.antitone }
 
 /-- The precise remaining per-step Green fixed-point/trap package. -/
 structure PaperGreenStepInput
@@ -489,7 +779,7 @@ structure PaperGreenStepInput
       Σ' W : ℝ → ℝ, PaperStepOutput p c lam M κ Λ u Z W
 
 /-- Thinner paper Green-step input: the bounded-source Green tails are closed by
-`paperGreenStepInput_of_core`.  Source construction/monotonicity and the
+`paperGreenStepInput_of_core`.  Source construction, sliding data, and the
 max-principle comparison data remain explicit. -/
 structure PaperGreenStepInputCore
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) where
@@ -554,7 +844,8 @@ def paperRotheStepProducer_of_greenInput
         nonneg := hnonneg
         le_barrier := hle_barrier
         le_old := hle_old
-        anti := paperStep_anti (c := c) (lam := lam) hin.hlam hout.analytic }
+        anti := paperStep_antitone_by_sliding
+          (c := c) (lam := lam) hin.hlam hstep hZa hout.antitone }
 
 /-- All paper-step producers from the precise per-profile Green-step input. -/
 theorem paperRotheStepProducer_all_of_greenInput
@@ -596,13 +887,17 @@ section AxiomAudit
 #print axioms paperStepNonlinearity
 #print axioms paperStepSource
 #print axioms greenConv_variation_negative
+#print axioms greenConv_resolvent_solve
 #print axioms paperImplicitStepOp_of_greenConv_source
+#print axioms paperImplicitStepOp_exists_of_green_fixed_source
+#print axioms paperStepSource_continuous
 #print axioms paperImplicitStep_le_of_paperBarrier_maxPrinciple
 #print axioms paperImplicitStep_le_of_paperBarrier_maxPrinciple_clean
 #print axioms paperStep_deriv_le
 #print axioms paperStep_diff
-#print axioms paperStep_anti
 #print axioms paperStep_step_op
+#print axioms paperImplicitStep_le_of_directSubstep_maxPrinciple_clean
+#print axioms paperStep_antitone_by_sliding
 #print axioms paperStep_le_upper
 #print axioms paperStep_ge_lower
 #print axioms gWeight_integrableOn_Ioi_of_bounded

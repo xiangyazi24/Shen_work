@@ -637,6 +637,65 @@ theorem paperRotheContinuousDependence
           have := htailn; have := hmid; have := htailu; linarith
     _ = ε := by ring
 
+/-! ## Paper Rothe-limit stationary consistency frontier -/
+
+/-- The algebraic bridge from a self paper implicit step to paper stationarity. -/
+theorem paperWaveOperator_eq_zero_of_paperImplicitStepOp_self
+    (p : CMParams) (c lam : ℝ) (U : ℝ → ℝ)
+    (hlam : 0 < lam)
+    (hstep : ∀ x, paperImplicitStepOp p c (1 / lam) U U x = U x) :
+    ∀ x, paperWaveOperator p c U U x = 0 := by
+  intro x
+  have hx := hstep x
+  rw [paperImplicitStepOp_apply] at hx
+  have hmul : (1 / lam) * paperWaveOperator p c U U x = 0 := by
+    linarith
+  exact (mul_eq_zero.mp hmul).resolve_left (one_div_ne_zero (ne_of_gt hlam))
+
+/-- At `W = U`, paper stationarity transfers to the frozen operator by the
+committed paper=frozen identity. -/
+theorem frozenWaveOperator_eq_zero_of_paperImplicitStepOp_self
+    (p : CMParams) (c lam : ℝ) (U : ℝ → ℝ)
+    (hlam : 0 < lam)
+    (hU : IsCUnifBdd U) (hU_nonneg : ∀ x, 0 ≤ U x)
+    (hU_diff : ∀ x, DifferentiableAt ℝ U x)
+    (hV_diff : ∀ x, DifferentiableAt ℝ (deriv (frozenElliptic p U)) x)
+    (hU_rpow_diff : ∀ x, DifferentiableAt ℝ (fun y => (U y) ^ p.m) x)
+    (hstep : ∀ x, paperImplicitStepOp p c (1 / lam) U U x = U x) :
+    ∀ x, frozenWaveOperator p c U U x = 0 := by
+  intro x
+  rw [← paperWaveOperator_eq_frozenWaveOperator_at_fixed_point p x hU hU_nonneg
+    (hU_diff x) (hV_diff x) (hU_rpow_diff x)]
+  exact paperWaveOperator_eq_zero_of_paperImplicitStepOp_self p c lam U hlam hstep x
+
+/-- The exact convergence floor still missing for the paper Rothe scheme:
+the limit fixed point must satisfy the self paper implicit-step identity. -/
+def PaperRotheLimitStepConsistency
+    (p : CMParams) (c lam κ M : ℝ) (φ : ℝ → ℝ)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ) : Prop :=
+  ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+    rotheLimit (rotheSeq U) = U →
+      ∀ x, paperImplicitStepOp p c (1 / lam) U U x = U x
+
+theorem paperLowerPinned_stationary_of_stepConsistency
+    (p : CMParams) (c lam κ M : ℝ) (φ : ℝ → ℝ)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
+    (hlam : 0 < lam)
+    (hcons : PaperRotheLimitStepConsistency p c lam κ M φ rotheSeq)
+    (hU_diff : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      ∀ x, DifferentiableAt ℝ U x)
+    (hV_diff : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      ∀ x, DifferentiableAt ℝ (deriv (frozenElliptic p U)) x)
+    (hU_rpow_diff : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      ∀ x, DifferentiableAt ℝ (fun y => (U y) ^ p.m) x) :
+    ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      rotheLimit (rotheSeq U) = U →
+        ∀ x, frozenWaveOperator p c U U x = 0 := by
+  intro U hU hfix
+  exact frozenWaveOperator_eq_zero_of_paperImplicitStepOp_self p c lam U hlam
+    hU.bare.trap.cunif_bdd hU.bare.nonneg (hU_diff U hU)
+    (hV_diff U hU) (hU_rpow_diff U hU) (hcons U hU hfix)
+
 theorem paperLowerPinnedSchauder_fixedPoint
     (p : CMParams) (c lam M κ : ℝ) (φ : ℝ → ℝ)
     (hM : 0 ≤ M)
@@ -1411,6 +1470,9 @@ section AxiomAudit
 #print axioms paperTmap_maps_trap
 #print axioms paperTmap_compactRange
 #print axioms paperRotheContinuousDependence
+#print axioms paperWaveOperator_eq_zero_of_paperImplicitStepOp_self
+#print axioms frozenWaveOperator_eq_zero_of_paperImplicitStepOp_self
+#print axioms paperLowerPinned_stationary_of_stepConsistency
 #print axioms paperLowerPinnedSchauder_fixedPoint
 #print axioms rotheSeqOf_supersol
 #print axioms rotheSeqOf_step_rec

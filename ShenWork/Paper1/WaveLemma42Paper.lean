@@ -1789,8 +1789,8 @@ structure PaperLowerRawParabolicFloor
 
 /-- Thinner paper Rothe parabolic floor after closing bounded-source Green
 bookkeeping.  The remaining producer core still carries source construction,
-source antitonicity, comparison tails for the max principles, lower-raw aux data,
-and the step/tail dependence floors. -/
+sliding comparison data, comparison tails for the max principles, lower-raw aux
+data, and the step/tail dependence floors. -/
 structure PaperLowerRawParabolicFloorCore
     (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Type where
@@ -1828,6 +1828,29 @@ structure PaperLowerPinnedStationaryFlatFloor
     ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
       (∀ x, frozenWaveOperator p c U U x = 0) →
         FrozenStationaryFlatAtLeft p U
+
+/-- Build the existing stationary/flat floor from the sharper paper
+Rothe-limit step consistency floor plus the regularity needed for the
+committed paper=frozen operator identity. -/
+theorem PaperLowerPinnedStationaryFlatFloor.of_stepConsistency
+    (p : CMParams) (c lam κ M : ℝ) (φ : ℝ → ℝ)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
+    (hlam : 0 < lam)
+    (hcons : PaperRotheLimitStepConsistency p c lam κ M φ rotheSeq)
+    (hU_diff : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      ∀ x, DifferentiableAt ℝ U x)
+    (hV_diff : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      ∀ x, DifferentiableAt ℝ (deriv (frozenElliptic p U)) x)
+    (hU_rpow_diff : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      ∀ x, DifferentiableAt ℝ (fun y => (U y) ^ p.m) x)
+    (hflat : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
+    PaperLowerPinnedStationaryFlatFloor p c κ M φ rotheSeq where
+  stationary :=
+    paperLowerPinned_stationary_of_stepConsistency p c lam κ M φ rotheSeq
+      hlam hcons hU_diff hV_diff hU_rpow_diff
+  flat := hflat
 
 /-- Project the bulky per-step lower comparison data from the strengthened
 paper-step producer.  Lemma 4.2 is then consumed by
@@ -3171,6 +3194,7 @@ section AxiomAudit
 #print axioms rotheOrbit_profileNontrivial_of_lowerBarrierRaw_stepInvariant
 #print axioms rotheSeqOfPaper_profileNontrivial_of_lowerBarrierRaw
 #print axioms rotheSeqOfPaperFromCond
+#print axioms PaperLowerPinnedStationaryFlatFloor.of_stepConsistency
 #print axioms hauxData_of_conditions
 #print axioms hsmp_of_odeRealization
 #print axioms ShenWork.Paper1.b1_chiNeg_existence_paper
