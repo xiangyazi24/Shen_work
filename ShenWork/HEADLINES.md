@@ -351,3 +351,11 @@ hpos then = lt_of_lt_of_le (lowerBarrierPlateau_pos ..) (hU.2 x); hlim_neg via t
 kept). cx_pde redirected (biltdfd4b) to: PROVE ¬principle-on-bare-trap (zero map), KEEP the honest pieces (ProfileNontrivial,
 floor refutation, StationaryStrongMaxPrinciple, the nontrivial pin), build the pinned-trap version. LESSON: a vacuity FIX
 can introduce a NEW vacuity (over-strong universally-quantified principle false on a degenerate input) -- re-audit the fix.
+RESOLVED & COMMITTED (31d0d04): not_localUniformNontrivialSchauderFixedPointPrinciple_bareTrap PROVES the bare-trap
+principle false; b1_chiNeg_existence_rothe_lowerPinned_stationary_rootPin is the NON-VACUOUS wave existence on
+InLowerPinnedMonotoneTrap, carrying ONLY satisfiable frontiers (STANDARD G1 Schauder on the pinned convex-compact-nonempty
+trap [immune to zero map: 0∉pinned trap]; RotheOrbitLowerBound; StationaryStrongMaxPrinciple; producer/dependence) and
+yielding a non-trivial U≥φ>0. lowerBarrierPlateau is a proven member ⟹ jointly satisfiable. implicitStep_ge_of_barrier
+(the per-step comparison) PROVED. REMAINING to land headline 1: discharge RotheOrbitLowerBound (induction on the comparison,
+cx_pde bm6zf34hp) + StationaryStrongMaxPrinciple (1-D ODE uniqueness, same) + G1 (= R3 parity, cx_r3 bi2li17w4) +
+producer/dependence frontiers. Non-triviality is no longer the blocker -- it is reduced to satisfiable, in-reach bricks.
