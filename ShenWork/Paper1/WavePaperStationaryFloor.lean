@@ -254,6 +254,14 @@ theorem paperRotheLimitStepConsistency_of_uniformBounds
     (fun U hU hLU_U =>
       paperC2CompactConvergence_of_uniformBounds hLU_U (hbounds U hU hLU_U))
 
+theorem paperRotheLimitFixedStepIdentity_of_stepConsistency
+    {p : CMParams} {c lam κ M : ℝ} {φ : ℝ → ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hcons : PaperRotheLimitStepConsistency p c lam κ M φ rotheSeq) :
+    PaperRotheLimitFixedStepIdentity p c lam κ M φ rotheSeq := by
+  intro U hU hlim
+  exact funext (hcons U hU hlim)
+
 theorem paperLowerPinnedStationary_of_fixedStepIdentity
     {p : CMParams} {c lam κ M : ℝ} {φ : ℝ → ℝ}
     {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
@@ -266,6 +274,18 @@ theorem paperLowerPinnedStationary_of_fixedStepIdentity
   intro U hU hlim
   exact paperImplicitStep_fixed_frozenWaveOperator_zero hU hdiff
     (one_div_ne_zero (ne_of_gt hlam)) (hfixed U hU hlim)
+
+theorem paperLowerPinnedStationary_of_stepConsistency
+    {p : CMParams} {c lam κ M : ℝ} {φ : ℝ → ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hcons : PaperRotheLimitStepConsistency p c lam κ M φ rotheSeq)
+    (hdiff : PaperDiagonalDifferentiabilityFloor p κ M φ) :
+    ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      rotheLimit (rotheSeq U) = U →
+        ∀ x, frozenWaveOperator p c U U x = 0 :=
+  paperLowerPinnedStationary_of_fixedStepIdentity hlam
+    (paperRotheLimitFixedStepIdentity_of_stepConsistency hcons) hdiff
 
 /-- Explicit Green source-tail data for a stationary profile.  This is the
 non-flat analytic datum needed by the convolution-tail argument. -/
@@ -1656,9 +1676,8 @@ theorem paperLowerPinnedStationary_of_uniformBounds
     ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
       rotheLimit (rotheSeq U) = U →
         ∀ x, frozenWaveOperator p c U U x = 0 :=
-  paperLowerPinnedStationary_of_c2CompactConvergence hlam hLU hstep
-    (fun U hU hLU_U =>
-      paperC2CompactConvergence_of_uniformBounds hLU_U (hbounds U hU hLU_U))
+  paperLowerPinnedStationary_of_stepConsistency hlam
+    (paperRotheLimitStepConsistency_of_uniformBounds hLU hstep hbounds)
     hdiff
 
 theorem paperLowerPinnedStationary_of_greenStep
@@ -1699,6 +1718,138 @@ theorem paperLowerPinnedStationary_of_greenStep
         (hgreen U hU) (hc3 U hU))
     (paperDiagonalDifferentiabilityFloor_of_c3BootstrapData
       (p := p) (κ := κ) (M := M) (φ := φ) (rotheSeq := rotheSeq) hc3)
+
+theorem paperRotheLimit_stationary_of_producer
+    {p : CMParams} {c lam κ M Λ : ℝ} {φ : ℝ → ℝ}
+    (hprodAll : ∀ u, PaperRotheStepProducer p c lam M κ Λ u)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hbounds :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges
+          (rotheSeqOfPaper p c lam M κ Λ U (hprodAll U) hκ hM) U →
+          PaperC2CompactUniformBounds p U
+            (rotheSeqOfPaper p c lam M κ Λ U (hprodAll U) hκ hM)) :
+    ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      rotheLimit
+          (rotheSeqOfPaper p c lam M κ Λ U (hprodAll U) hκ hM) = U →
+        ∀ x, frozenWaveOperator p c U U x = 0 := by
+  let zseq : (ℝ → ℝ) → ℕ → ℝ → ℝ :=
+    fun U => rotheSeqOfPaper p c lam M κ Λ U (hprodAll U) hκ hM
+  have hLU :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges (zseq U) (rotheLimit (zseq U)) := by
+    intro U _hU
+    have hdata : PaperRotheOrbitData p c lam M κ zseq U := by
+      simpa [zseq] using
+        paperRotheOrbitData (p := p) (c := c) (lam := lam)
+          (M := M) (κ := κ) (Λ := Λ) (u := U)
+          hprodAll hκ hM hΛ0 hΛM hbarLip
+    exact hdata.locallyUniform hM
+  have hstep :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        ∀ k, paperImplicitStepOp p c (1 / lam) U (zseq U (k + 1)) =
+          zseq U k := by
+    intro U _hU k
+    funext x
+    simpa [zseq] using
+      (rotheSeqOfPaper_stepFacts (p := p) (c := c) (lam := lam)
+        (M := M) (κ := κ) (Λ := Λ) (u := U)
+        (hprod := hprodAll U) hκ hM k).step_op x
+  have hbounds_z :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges (zseq U) U →
+          PaperC2CompactUniformBounds p U (zseq U) := by
+    intro U hU hLU_U
+    simpa [zseq] using
+      hbounds U hU (by simpa [zseq] using hLU_U)
+  have hcons : PaperRotheLimitStepConsistency p c lam κ M φ zseq :=
+    paperRotheLimitStepConsistency_of_uniformBounds hLU hstep hbounds_z
+  have hfixed :
+      PaperRotheLimitFixedStepIdentity p c lam κ M φ zseq :=
+    paperRotheLimitFixedStepIdentity_of_stepConsistency hcons
+  intro U hU hlim x
+  have hlim_z : rotheLimit (zseq U) = U := by
+    simpa [zseq] using hlim
+  have hLU_U : LocallyUniformConverges (zseq U) U := by
+    simpa [hlim_z] using hLU U hU
+  have hboundsU : PaperC2CompactUniformBounds p U (zseq U) :=
+    hbounds_z U hU hLU_U
+  have hlam : 0 < lam := (hprodAll U).hlam
+  have hpaper : paperWaveOperator p c U U x = 0 :=
+    paperImplicitStep_fixed_paperWaveOperator_zero p c (1 / lam) U
+      (one_div_ne_zero (ne_of_gt hlam)) (hfixed U hU hlim_z) x
+  have hbare : InMonotoneWaveTrapSet κ M U := hU.bare
+  have hdiag :
+      paperWaveOperator p c U U x = frozenWaveOperator p c U U x :=
+    paperWaveOperator_eq_frozenWaveOperator_at_fixed_point p x
+      hbare.trap.cunif_bdd hbare.nonneg
+      ((hboundsU.hasDeriv_U x).differentiableAt)
+      (frozenElliptic_deriv_differentiableAt p
+        hbare.trap.cunif_bdd hbare.nonneg x)
+      (((hboundsU.hasDeriv_U x).differentiableAt).rpow_const
+        (Or.inr p.hm))
+  simpa [hdiag] using hpaper
+
+theorem paperRotheLimit_stationary_of_producer_fromCond
+    {p : CMParams} {c lam κ M κtilde D Λ : ℝ}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hprodAll : ∀ u, PaperRotheStepProducer p c lam M κ Λ u)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hbounds :
+      ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        LocallyUniformConverges
+          (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond hprodAll U) U →
+          PaperC2CompactUniformBounds p U
+            (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond hprodAll U)) :
+    ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      rotheLimit
+          (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond hprodAll U) = U →
+        ∀ x, frozenWaveOperator p c U U x = 0 := by
+  let hM0 : 0 ≤ M := le_trans zero_le_one hcond.hM
+  have hstat :=
+    paperRotheLimit_stationary_of_producer
+      (p := p) (c := c) (lam := lam) (κ := κ) (M := M)
+      (Λ := Λ) (φ := lowerBarrierRaw κ κtilde D)
+      hprodAll hcond.hκ0.le hM0 hΛ0 hΛM hbarLip
+      (fun U hU hLU_U => by
+        simpa [rotheSeqOfPaperFromCond, hM0] using
+          hbounds U hU (by
+            simpa [rotheSeqOfPaperFromCond, hM0] using hLU_U))
+  intro U hU hlim
+  exact hstat U hU (by
+    simpa [rotheSeqOfPaperFromCond, hM0] using hlim)
+
+theorem paperRotheLimit_stationary_of_lowerRawProducer_fromCond
+    {p : CMParams} {c lam κ M κtilde D Λ : ℝ}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hprodAll : ∀ u,
+      PaperLowerRawStepProducer p c lam M κ κtilde D Λ
+        hcond.hκ0.le (le_trans zero_le_one hcond.hM) u)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hbounds :
+      ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        LocallyUniformConverges
+          (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond
+            (fun u => (hprodAll u).producer) U) U →
+          PaperC2CompactUniformBounds p U
+            (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond
+              (fun u => (hprodAll u).producer) U)) :
+    ∀ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      rotheLimit
+          (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond
+            (fun u => (hprodAll u).producer) U) = U →
+        ∀ x, frozenWaveOperator p c U U x = 0 :=
+  paperRotheLimit_stationary_of_producer_fromCond
+    (p := p) (c := c) (lam := lam) (κ := κ) (M := M)
+    (κtilde := κtilde) (D := D) (Λ := Λ)
+    hcond (fun u => (hprodAll u).producer) hΛ0 hΛM hbarLip hbounds
 
 theorem paperLowerPinnedStationaryFlatFloor_of_termConvergence
     {p : CMParams} {c lam κ M : ℝ} {φ : ℝ → ℝ}
@@ -1841,8 +1992,13 @@ theorem paperLowerPinnedStationaryFlatFloor_of_greenStep
 #print axioms paperC2CompactConvergence_of_uniformBounds
 #print axioms paperRotheStepLimitPassage_of_uniformBounds
 #print axioms paperRotheLimitStepConsistency_of_uniformBounds
+#print axioms paperRotheLimitFixedStepIdentity_of_stepConsistency
+#print axioms paperLowerPinnedStationary_of_stepConsistency
 #print axioms paperLowerPinnedStationary_of_uniformBounds
 #print axioms paperLowerPinnedStationary_of_greenStep
+#print axioms paperRotheLimit_stationary_of_producer
+#print axioms paperRotheLimit_stationary_of_producer_fromCond
+#print axioms paperRotheLimit_stationary_of_lowerRawProducer_fromCond
 #print axioms paperLowerPinnedStationaryFlatFloor_of_uniformBounds
 #print axioms paperLowerPinnedStationaryFlatFloor_of_greenStep
 
