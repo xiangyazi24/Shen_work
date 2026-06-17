@@ -380,6 +380,12 @@ end PaperC2CompactConvergence
 
 namespace PaperWaveOperatorTermConvergence
 
+theorem of_c2CompactConvergence
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ} {z : ℕ → ℝ → ℝ}
+    (h : PaperC2CompactConvergence p U z) :
+    PaperWaveOperatorTermConvergence p c U z :=
+  h.termConvergence
+
 theorem operator
     {p : CMParams} {c : ℝ} {U : ℝ → ℝ} {z : ℕ → ℝ → ℝ}
     (h : PaperWaveOperatorTermConvergence p c U z) :
@@ -405,6 +411,7 @@ theorem operator
 #print axioms LocallyUniformConverges.add
 #print axioms LocallyUniformConverges.const_mul
 #print axioms paperWaveOperator_eq_terms
+#print axioms PaperWaveOperatorTermConvergence.of_c2CompactConvergence
 #print axioms PaperWaveOperatorTermConvergence.operator
 
 end PaperWaveOperatorTermConvergence

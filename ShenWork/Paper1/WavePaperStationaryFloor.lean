@@ -1,4 +1,4 @@
-import ShenWork.Paper1.WaveLemma42Paper
+import ShenWork.Paper1.WavePaperTermConvergence
 
 namespace ShenWork.Paper1
 
@@ -120,6 +120,86 @@ theorem paperRotheLimitFixedStepIdentity_of_stepLimitPassage
   exact paperLimit_fixedStepIdentity_of_stepLimitPassage hlim (hLU U hU)
     (hstep U hU) (hpass U hU hLU_U)
 
+theorem PaperWaveOperatorTermConvergence.implicitStepLimitPassage
+    {p : CMParams} {c lam : ℝ} {U : ℝ → ℝ} {z : ℕ → ℝ → ℝ}
+    (hterms : PaperWaveOperatorTermConvergence p c U z) :
+    PaperImplicitStepLimitPassage p c lam U z := by
+  intro hLU
+  have hshift :
+      LocallyUniformConverges (fun k => z (k + 1)) U := by
+    exact hLU.comp_strictMono
+      (strictMono_nat_of_lt_succ fun n => Nat.lt_succ_self (n + 1))
+  have hop := hterms.operator
+  have hres :
+      LocallyUniformConverges
+        (fun k x => z (k + 1) x
+          - (1 / lam) * paperWaveOperator p c U (z (k + 1)) x)
+        (fun x => U x - (1 / lam) * paperWaveOperator p c U U x) :=
+    hshift.sub (hop.const_mul (1 / lam))
+  simpa [paperImplicitStepOp_apply] using hres
+
+theorem paperRotheStepLimitPassage_of_termConvergence
+    {p : CMParams} {c lam κ M : ℝ} {φ : ℝ → ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hterms :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges (rotheSeq U) U →
+          PaperWaveOperatorTermConvergence p c U (rotheSeq U)) :
+    PaperRotheStepLimitPassage p c lam κ M φ rotheSeq := by
+  intro U hU hLU
+  exact (hterms U hU hLU).implicitStepLimitPassage
+
+theorem paperRotheStepLimitPassage_of_c2CompactConvergence
+    {p : CMParams} {c lam κ M : ℝ} {φ : ℝ → ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hc2 :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges (rotheSeq U) U →
+          PaperC2CompactConvergence p U (rotheSeq U)) :
+    PaperRotheStepLimitPassage p c lam κ M φ rotheSeq :=
+  paperRotheStepLimitPassage_of_termConvergence
+    (fun U hU hLU => (hc2 U hU hLU).termConvergence)
+
+theorem paperRotheLimitStepConsistency_of_termConvergence
+    {p : CMParams} {c lam κ M : ℝ} {φ : ℝ → ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hLU :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges (rotheSeq U) (rotheLimit (rotheSeq U)))
+    (hstep :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        ∀ k, paperImplicitStepOp p c (1 / lam) U (rotheSeq U (k + 1)) =
+          rotheSeq U k)
+    (hterms :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges (rotheSeq U) U →
+          PaperWaveOperatorTermConvergence p c U (rotheSeq U)) :
+    PaperRotheLimitStepConsistency p c lam κ M φ rotheSeq := by
+  intro U hU hlim x
+  have hpass : PaperRotheStepLimitPassage p c lam κ M φ rotheSeq :=
+    paperRotheStepLimitPassage_of_termConvergence hterms
+  have hfixed : PaperRotheLimitFixedStepIdentity p c lam κ M φ rotheSeq :=
+    paperRotheLimitFixedStepIdentity_of_stepLimitPassage hLU hstep hpass
+  exact congrFun (hfixed U hU hlim) x
+
+theorem paperRotheLimitStepConsistency_of_c2CompactConvergence
+    {p : CMParams} {c lam κ M : ℝ} {φ : ℝ → ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hLU :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges (rotheSeq U) (rotheLimit (rotheSeq U)))
+    (hstep :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        ∀ k, paperImplicitStepOp p c (1 / lam) U (rotheSeq U (k + 1)) =
+          rotheSeq U k)
+    (hc2 :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges (rotheSeq U) U →
+          PaperC2CompactConvergence p U (rotheSeq U)) :
+    PaperRotheLimitStepConsistency p c lam κ M φ rotheSeq :=
+  paperRotheLimitStepConsistency_of_termConvergence hLU hstep
+    (fun U hU hLU_U => (hc2 U hU hLU_U).termConvergence)
+
 theorem paperLowerPinnedStationary_of_fixedStepIdentity
     {p : CMParams} {c lam κ M : ℝ} {φ : ℝ → ℝ}
     {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
@@ -147,12 +227,115 @@ theorem paperLowerPinnedStationaryFlatFloor_of_fixedStepIdentity
     hlam hfixed hdiff
   flat := hflat
 
+theorem paperLowerPinnedStationary_of_termConvergence
+    {p : CMParams} {c lam κ M : ℝ} {φ : ℝ → ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hLU :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges (rotheSeq U) (rotheLimit (rotheSeq U)))
+    (hstep :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        ∀ k, paperImplicitStepOp p c (1 / lam) U (rotheSeq U (k + 1)) =
+          rotheSeq U k)
+    (hterms :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges (rotheSeq U) U →
+          PaperWaveOperatorTermConvergence p c U (rotheSeq U))
+    (hdiff : PaperDiagonalDifferentiabilityFloor p κ M φ) :
+    ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      rotheLimit (rotheSeq U) = U →
+        ∀ x, frozenWaveOperator p c U U x = 0 := by
+  have hpass : PaperRotheStepLimitPassage p c lam κ M φ rotheSeq :=
+    paperRotheStepLimitPassage_of_termConvergence hterms
+  have hfixed : PaperRotheLimitFixedStepIdentity p c lam κ M φ rotheSeq :=
+    paperRotheLimitFixedStepIdentity_of_stepLimitPassage hLU hstep hpass
+  exact paperLowerPinnedStationary_of_fixedStepIdentity hlam hfixed hdiff
+
+theorem paperLowerPinnedStationary_of_c2CompactConvergence
+    {p : CMParams} {c lam κ M : ℝ} {φ : ℝ → ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hLU :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges (rotheSeq U) (rotheLimit (rotheSeq U)))
+    (hstep :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        ∀ k, paperImplicitStepOp p c (1 / lam) U (rotheSeq U (k + 1)) =
+          rotheSeq U k)
+    (hc2 :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges (rotheSeq U) U →
+          PaperC2CompactConvergence p U (rotheSeq U))
+    (hdiff : PaperDiagonalDifferentiabilityFloor p κ M φ) :
+    ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      rotheLimit (rotheSeq U) = U →
+        ∀ x, frozenWaveOperator p c U U x = 0 :=
+  paperLowerPinnedStationary_of_termConvergence hlam hLU hstep
+    (fun U hU hLU_U => (hc2 U hU hLU_U).termConvergence) hdiff
+
+theorem paperLowerPinnedStationaryFlatFloor_of_termConvergence
+    {p : CMParams} {c lam κ M : ℝ} {φ : ℝ → ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hLU :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges (rotheSeq U) (rotheLimit (rotheSeq U)))
+    (hstep :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        ∀ k, paperImplicitStepOp p c (1 / lam) U (rotheSeq U (k + 1)) =
+          rotheSeq U k)
+    (hterms :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges (rotheSeq U) U →
+          PaperWaveOperatorTermConvergence p c U (rotheSeq U))
+    (hdiff : PaperDiagonalDifferentiabilityFloor p κ M φ)
+    (hflat : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
+    PaperLowerPinnedStationaryFlatFloor p c κ M φ rotheSeq where
+  stationary := paperLowerPinnedStationary_of_termConvergence
+    hlam hLU hstep hterms hdiff
+  flat := hflat
+
+theorem paperLowerPinnedStationaryFlatFloor_of_c2CompactConvergence
+    {p : CMParams} {c lam κ M : ℝ} {φ : ℝ → ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hLU :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges (rotheSeq U) (rotheLimit (rotheSeq U)))
+    (hstep :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        ∀ k, paperImplicitStepOp p c (1 / lam) U (rotheSeq U (k + 1)) =
+          rotheSeq U k)
+    (hc2 :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges (rotheSeq U) U →
+          PaperC2CompactConvergence p U (rotheSeq U))
+    (hdiff : PaperDiagonalDifferentiabilityFloor p κ M φ)
+    (hflat : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
+    PaperLowerPinnedStationaryFlatFloor p c κ M φ rotheSeq :=
+  paperLowerPinnedStationaryFlatFloor_of_termConvergence hlam hLU hstep
+    (fun U hU hLU_U => (hc2 U hU hLU_U).termConvergence) hdiff hflat
+
 #print axioms paperImplicitStep_fixed_paperWaveOperator_zero
 #print axioms paperImplicitStep_fixed_frozenWaveOperator_zero
 #print axioms paperLimit_fixedStepIdentity_of_stepLimitPassage
 #print axioms paperRotheLimitFixedStepIdentity_of_stepLimitPassage
+#print axioms PaperWaveOperatorTermConvergence.implicitStepLimitPassage
+#print axioms paperRotheStepLimitPassage_of_termConvergence
+#print axioms paperRotheStepLimitPassage_of_c2CompactConvergence
+#print axioms paperRotheLimitStepConsistency_of_termConvergence
+#print axioms paperRotheLimitStepConsistency_of_c2CompactConvergence
 #print axioms paperLowerPinnedStationary_of_fixedStepIdentity
 #print axioms paperLowerPinnedStationaryFlatFloor_of_fixedStepIdentity
+#print axioms paperLowerPinnedStationary_of_termConvergence
+#print axioms paperLowerPinnedStationary_of_c2CompactConvergence
+#print axioms paperLowerPinnedStationaryFlatFloor_of_termConvergence
+#print axioms paperLowerPinnedStationaryFlatFloor_of_c2CompactConvergence
 
 end
 
