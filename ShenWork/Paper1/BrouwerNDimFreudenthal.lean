@@ -456,6 +456,202 @@ theorem image_dropLast_extendCell_bottomFacet {n : ℕ} (c : Cell n) :
     image_dropLast_bottomFacet (appendZero c.1) (extendLast c.2)
       (extendLast_apply_last c.2)
 
+/-! ## A boundary-compatible type-A simplex carrier
+
+The old barycentric carrier fixes the donor coordinate to `last`.  A type-A cell instead lets
+the donor be the last entry of a full coordinate order `τ`; each step is a root
+`e_{τ s} - e_{τ last}`.  If the global bottom coordinate is the final increment, the final
+facet is literally contained in the bottom face.
+-/
+
+/-- The type-A root step `e_a - e_d`. -/
+def rootStep {n : ℕ} (a d : Fin (n + 1)) : Fin (n + 1) → ℤ :=
+  fun i => (if i = a then 1 else 0) - if i = d then 1 else 0
+
+/-- Type-A simplex chain with full coordinate order `τ`; `τ last` is the donor. -/
+def typeAChain {n : ℕ} (p : Fin (n + 1) → ℤ)
+    (τ : Equiv.Perm (Fin (n + 1))) (t : Fin (n + 1)) :
+    Fin (n + 1) → ℤ :=
+  fun i => p i + ∑ s ∈ Finset.univ.filter (fun s : Fin n => s.val < t.val),
+    rootStep (τ s.castSucc) (τ (Fin.last n)) i
+
+/-- The facet obtained by dropping one vertex from a type-A chain. -/
+def typeAFacetSet {n : ℕ} (p : Fin (n + 1) → ℤ)
+    (τ : Equiv.Perm (Fin (n + 1))) (t : Fin (n + 1)) :
+    Finset (Fin (n + 1) → ℤ) :=
+  (Finset.univ.erase t).image (typeAChain p τ)
+
+/-- Type-A cell carrier. -/
+abbrev TypeACell (n : ℕ) : Type :=
+  (Fin (n + 1) → ℤ) × Equiv.Perm (Fin (n + 1))
+
+@[simp] theorem typeAChain_zero {n : ℕ} (p : Fin (n + 1) → ℤ)
+    (τ : Equiv.Perm (Fin (n + 1))) :
+    typeAChain p τ 0 = p := by
+  funext i
+  unfold typeAChain
+  simp
+
+/-- Valid type-A cells in the mesh simplex: all chain vertices are nonnegative and the base
+has total mass `k`. -/
+def typeACellValid {n k : ℕ} (c : TypeACell n) : Prop :=
+  (∑ i, c.1 i = (k : ℤ)) ∧
+    ∀ t : Fin (n + 1), ∀ i : Fin (n + 1), 0 ≤ typeAChain c.1 c.2 t i
+
+instance {n k : ℕ} (c : TypeACell n) : Decidable (typeACellValid (k := k) c) := by
+  unfold typeACellValid
+  infer_instance
+
+theorem typeACellValid_base_nonneg {n k : ℕ} {c : TypeACell n}
+    (hc : typeACellValid (k := k) c) (i : Fin (n + 1)) :
+    0 ≤ c.1 i := by
+  simpa using hc.2 0 i
+
+theorem typeACellValid_base_le {n k : ℕ} {c : TypeACell n}
+    (hc : typeACellValid (k := k) c) (i : Fin (n + 1)) :
+    c.1 i ≤ (k : ℤ) := by
+  have hle : c.1 i ≤ ∑ j : Fin (n + 1), c.1 j := by
+    exact Finset.single_le_sum
+      (fun j _hj => typeACellValid_base_nonneg hc j) (Finset.mem_univ i)
+  rw [hc.1] at hle
+  exact hle
+
+/-- Finite set of valid type-A cells at mesh `k`. -/
+noncomputable def typeACells (n k : ℕ) : Finset (TypeACell n) :=
+  (Finset.univ.image
+      (fun (pτ : (Fin (n + 1) → Fin (k + 1)) × Equiv.Perm (Fin (n + 1))) =>
+        ((fun i => (pτ.1 i : ℤ)), pτ.2) : _ → TypeACell n)).filter
+    (typeACellValid (k := k))
+
+theorem mem_typeACells {n k : ℕ} {c : TypeACell n} :
+    c ∈ typeACells n k ↔ typeACellValid (k := k) c := by
+  classical
+  unfold typeACells
+  rw [Finset.mem_filter]
+  constructor
+  · intro h
+    exact h.2
+  · intro hc
+    refine ⟨?_, hc⟩
+    rw [Finset.mem_image]
+    refine ⟨(fun i => ⟨(c.1 i).toNat, ?_⟩, c.2), Finset.mem_univ _, ?_⟩
+    · have hle := typeACellValid_base_le hc i
+      have hnn := typeACellValid_base_nonneg hc i
+      omega
+    · apply Prod.ext
+      · funext i
+        have hnn := typeACellValid_base_nonneg hc i
+        simp only [Int.toNat_of_nonneg hnn]
+      · rfl
+
+/-- A type-A cell bounds a facet if one of its drop-one-vertex facets is that facet. -/
+def typeACellBounds {n : ℕ} (c : TypeACell n)
+    (F : Finset (Fin (n + 1) → ℤ)) : Prop :=
+  ∃ t : Fin (n + 1), typeAFacetSet c.1 c.2 t = F
+
+instance {n : ℕ} (c : TypeACell n) (F : Finset (Fin (n + 1) → ℤ)) :
+    Decidable (typeACellBounds c F) := by
+  unfold typeACellBounds
+  infer_instance
+
+/-- All facets appearing in valid type-A cells at mesh `k`. -/
+noncomputable def typeAFacets (n k : ℕ) :
+    Finset (Finset (Fin (n + 1) → ℤ)) :=
+  ((typeACells n k).product Finset.univ).image
+    (fun ct : TypeACell n × Fin (n + 1) => typeAFacetSet ct.1.1 ct.1.2 ct.2)
+
+theorem mem_typeAFacets_of_bounds {n k : ℕ} {c : TypeACell n}
+    {F : Finset (Fin (n + 1) → ℤ)}
+    (hc : c ∈ typeACells n k) (hb : typeACellBounds c F) :
+    F ∈ typeAFacets n k := by
+  classical
+  obtain ⟨t, ht⟩ := hb
+  unfold typeAFacets
+  rw [Finset.mem_image]
+  exact ⟨(c, t), Finset.mem_product.mpr ⟨hc, Finset.mem_univ _⟩, ht⟩
+
+theorem mem_typeAFacets_iff {n k : ℕ} {F : Finset (Fin (n + 1) → ℤ)} :
+    F ∈ typeAFacets n k ↔ ∃ c ∈ typeACells n k, typeACellBounds c F := by
+  classical
+  constructor
+  · intro hF
+    unfold typeAFacets at hF
+    rw [Finset.mem_image] at hF
+    obtain ⟨ct, hct, hF⟩ := hF
+    have hctp := Finset.mem_product.mp hct
+    exact ⟨ct.1, hctp.1, ct.2, hF⟩
+  · rintro ⟨c, hc, hb⟩
+    exact mem_typeAFacets_of_bounds hc hb
+
+/-- The colour of a type-A cell's vertices under a lattice labelling. -/
+noncomputable def typeACellColor {n : ℕ}
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1)) (c : TypeACell n) :
+    Fin (n + 1) → Fin (n + 1) :=
+  fun t => L (typeAChain c.1 c.2 t)
+
+/-- A type-A cell is rainbow when its vertex-colour map is bijective. -/
+def typeAIsRainbow {n : ℕ}
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1)) (c : TypeACell n) : Prop :=
+  Function.Bijective (typeACellColor L c)
+
+noncomputable instance {n : ℕ}
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1)) (c : TypeACell n) :
+    Decidable (typeAIsRainbow L c) :=
+  Classical.propDecidable _
+
+theorem typeAChain_bottom_last_zero {m : ℕ} {p : Fin (m + 2) → ℤ}
+    {τ : Equiv.Perm (Fin (m + 2))}
+    (hp : p (Fin.last (m + 1)) = 0)
+    (hτ : τ (Fin.castSucc (Fin.last m)) = Fin.last (m + 1))
+    {u : Fin (m + 2)} (hu : u.val ≤ m) :
+    typeAChain p τ u (Fin.last (m + 1)) = 0 := by
+  classical
+  unfold typeAChain
+  rw [hp]
+  have hdonor : Fin.last (m + 1) ≠ τ (Fin.last (m + 1)) := by
+    intro h
+    have heq : τ (Fin.castSucc (Fin.last m)) = τ (Fin.last (m + 1)) := by
+      exact hτ.trans h
+    have hpre := τ.injective heq
+    have hval := congrArg Fin.val hpre
+    simp [Fin.val_last] at hval
+  have hstep : ∀ s ∈ Finset.univ.filter (fun s : Fin (m + 1) => s.val < u.val),
+      rootStep (τ s.castSucc) (τ (Fin.last (m + 1))) (Fin.last (m + 1)) = 0 := by
+    intro s hs
+    have hslt : s.val < u.val := (Finset.mem_filter.mp hs).2
+    have hinc : Fin.last (m + 1) ≠ τ s.castSucc := by
+      intro h
+      have heq : τ s.castSucc = τ (Fin.castSucc (Fin.last m)) := by
+        exact h.symm.trans hτ.symm
+      have hpre := τ.injective heq
+      have hval := congrArg Fin.val hpre
+      simp [Fin.val_last] at hval
+      omega
+    unfold rootStep
+    rw [if_neg hinc, if_neg hdonor]
+    ring
+  rw [Finset.sum_congr rfl hstep, Finset.sum_const_zero, add_zero]
+
+/-- If the bottom coordinate is the last increment, the final type-A facet lies in the
+literal bottom face. -/
+theorem typeAFinalFacet_bottom_last_zero {m : ℕ} {p : Fin (m + 2) → ℤ}
+    {τ : Equiv.Perm (Fin (m + 2))}
+    (hp : p (Fin.last (m + 1)) = 0)
+    (hτ : τ (Fin.castSucc (Fin.last m)) = Fin.last (m + 1))
+    {v : Fin (m + 2) → ℤ}
+    (hv : v ∈ typeAFacetSet p τ (Fin.last (m + 1))) :
+    v (Fin.last (m + 1)) = 0 := by
+  unfold typeAFacetSet at hv
+  rw [Finset.mem_image] at hv
+  obtain ⟨u, hu, rfl⟩ := hv
+  rw [Finset.mem_erase] at hu
+  have huval : u.val ≤ m := by
+    have hne : u.val ≠ m + 1 := by
+      intro h
+      exact hu.1 (Fin.ext (by simpa [Fin.val_last] using h))
+    omega
+  exact typeAChain_bottom_last_zero hp hτ huval
+
 /-! ## Door on the upper bottom facet equals rainbow on the lower cell -/
 
 /-- The lower colour carried by a bottom-facet vertex whose upper colour avoids `last`. -/
@@ -615,6 +811,12 @@ instance {n : ℕ} (L : (Fin (n + 1) → ℤ) → Fin (n + 2)) (c : Cell (n + 1)
   unfold isBottomDoor
   infer_instance
 
+/-- Bottom cells whose final facet is a door.  This is the boundary-compatible
+bottom-door carrier; it is intentionally not the legacy `zeroDoorCellsN` carrier. -/
+noncomputable def bottomDoors (n k : ℕ)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 2)) : Finset (Cell (n + 1)) :=
+  (bottomCells n k).filter (fun c => isBottomDoor L c)
+
 /-- A lower Freudenthal cell is rainbow under `L`. -/
 def isRainbow {n : ℕ} (L : (Fin n → ℤ) → Fin (n + 1)) (c : Cell n) : Prop :=
   Function.Bijective (cellColor L c)
@@ -627,9 +829,10 @@ noncomputable instance {n : ℕ} (L : (Fin n → ℤ) → Fin (n + 1)) (c : Cell
 theorem card_bottomDoors_eq_rainbow {n k : ℕ} (hk : 0 < k)
     (L : (Fin (n + 1) → ℤ) → Fin (n + 2))
     (havoid : ∀ v : Fin n → ℤ, L (appendZero v) ≠ Fin.last (n + 1)) :
-    ((bottomCells n k).filter (fun c => isBottomDoor L c)).card =
+    (bottomDoors n k L).card =
       ((cells n k).filter (fun c => isRainbow (bottomLabel L havoid) c)).card := by
   classical
+  unfold bottomDoors
   rw [bottomCells_eq_image_extend hk]
   rw [Finset.filter_image]
   rw [Finset.card_image_of_injective _ extendCell_injective]
@@ -796,6 +999,104 @@ theorem sum_chainVZ {n : ℕ} (p : Fin n → ℤ) (σ : Equiv.Perm (Fin n))
             (fun i : Fin n => (σ.symm i).val < t.val)).card : ℤ) := by
           rw [Finset.sum_boole]
     _ = (t.val : ℤ) := by rw [hcard]
+
+theorem unitVec_injective {n : ℕ} : Function.Injective (unitVec (n := n)) := by
+  intro a b hab
+  have hcoord := congrFun hab a
+  unfold unitVec at hcoord
+  rw [if_pos rfl] at hcoord
+  by_cases hba : b = a
+  · exact hba.symm
+  · have hab' : a ≠ b := fun h => hba h.symm
+    rw [if_neg hab'] at hcoord
+    omega
+
+theorem chainVZ_step {n : ℕ} (p : Fin n → ℤ) (σ : Equiv.Perm (Fin n)) (s : Fin n) :
+    chainVZ p σ s.succ = fun i => chainVZ p σ s.castSucc i + unitVec (σ s) i := by
+  funext i
+  unfold chainVZ unitVec
+  by_cases hi : i = σ s
+  · subst i
+    rw [Equiv.symm_apply_apply]
+    have hsucc : s.val < (s.succ : Fin (n + 1)).val := by simp
+    have hcast : ¬ s.val < (s.castSucc : Fin (n + 1)).val := by simp
+    rw [if_pos hsucc, if_neg hcast, if_pos rfl]
+    ring
+  · have hne : σ.symm i ≠ s := by
+      intro h
+      apply hi
+      rw [← h, Equiv.apply_symm_apply]
+    have hneval : (σ.symm i).val ≠ s.val := fun h => hne (Fin.ext h)
+    have hiff :
+        (σ.symm i).val < (s.succ : Fin (n + 1)).val ↔
+          (σ.symm i).val < (s.castSucc : Fin (n + 1)).val := by
+      simp only [Fin.val_succ, Fin.val_castSucc]
+      constructor <;> intro h <;> omega
+    rw [if_neg hi]
+    by_cases hlt : (σ.symm i).val < (s.castSucc : Fin (n + 1)).val
+    · rw [if_pos (hiff.mpr hlt), if_pos hlt]
+      ring
+    · rw [if_neg (fun h => hlt (hiff.mp h)), if_neg hlt]
+      ring
+
+theorem mem_facetSet_exists {n : ℕ} (p : Fin n → ℤ) (σ : Equiv.Perm (Fin n))
+    (t : Fin (n + 1)) {v : Fin n → ℤ} (hv : v ∈ facetSet p σ t) :
+    ∃ u : Fin (n + 1), u ≠ t ∧ chainVZ p σ u = v := by
+  unfold facetSet at hv
+  rw [Finset.mem_image] at hv
+  obtain ⟨u, hu, huv⟩ := hv
+  rw [Finset.mem_erase] at hu
+  exact ⟨u, hu.1, huv⟩
+
+theorem sum_total_facetSet {n : ℕ} (p : Fin n → ℤ) (σ : Equiv.Perm (Fin n))
+    (t : Fin (n + 1)) :
+    ∑ v ∈ facetSet p σ t, ∑ i, v i =
+      (n : ℤ) * (∑ i, p i) +
+        ∑ u ∈ (Finset.univ.erase t), (u.val : ℤ) := by
+  classical
+  unfold facetSet
+  rw [Finset.sum_image (by
+    intro a _ b _ hab
+    exact chainVZ_injective p σ hab)]
+  calc
+    ∑ u ∈ Finset.univ.erase t, ∑ i, chainVZ p σ u i
+        = ∑ u ∈ Finset.univ.erase t, ((∑ i, p i) + (u.val : ℤ)) := by
+          refine Finset.sum_congr rfl ?_
+          intro u _hu
+          exact sum_chainVZ p σ u
+    _ = ∑ u ∈ Finset.univ.erase t, (∑ i, p i) +
+          ∑ u ∈ Finset.univ.erase t, (u.val : ℤ) := by
+          rw [Finset.sum_add_distrib]
+    _ = (n : ℤ) * (∑ i, p i) +
+          ∑ u ∈ Finset.univ.erase t, (u.val : ℤ) := by
+          rw [Finset.sum_const, nsmul_eq_mul,
+            Finset.card_erase_of_mem (Finset.mem_univ t), Finset.card_univ,
+            Fintype.card_fin]
+          have hcard : (n + 1 - 1 : ℕ) = n := by omega
+          rw [hcard]
+
+theorem chainVZ_match_off {n : ℕ} (hn : 0 < n) {p p' : Fin n → ℤ}
+    {σ σ' : Equiv.Perm (Fin n)} {t : Fin (n + 1)}
+    (hF : facetSet p σ t = facetSet p' σ' t) :
+    ∀ u : Fin (n + 1), u ≠ t → chainVZ p σ u = chainVZ p' σ' u := by
+  classical
+  have hsum := congrArg (fun F : Finset (Fin n → ℤ) => ∑ v ∈ F, ∑ i, v i) hF
+  change (∑ v ∈ facetSet p σ t, ∑ i, v i) =
+    (∑ v ∈ facetSet p' σ' t, ∑ i, v i) at hsum
+  rw [sum_total_facetSet p σ t, sum_total_facetSet p' σ' t] at hsum
+  have hbase : ∑ i, p i = ∑ i, p' i := by
+    have hnz : (n : ℤ) ≠ 0 := by exact_mod_cast Nat.ne_of_gt hn
+    nlinarith
+  intro u hu
+  have hmem : chainVZ p σ u ∈ facetSet p' σ' t := by
+    rw [← hF]
+    exact (mem_facetSet_iff p σ t u).mpr hu
+  obtain ⟨u', _hu't, hu'eq⟩ := mem_facetSet_exists p' σ' t hmem
+  have hsumv := congrArg (fun v : Fin n → ℤ => ∑ i, v i) hu'eq
+  change (∑ i, chainVZ p' σ' u' i) = (∑ i, chainVZ p σ u i) at hsumv
+  rw [sum_chainVZ, sum_chainVZ, hbase] at hsumv
+  have huu' : u = u' := Fin.ext (by exact_mod_cast (by omega : (u.val : ℤ) = u'.val))
+  simpa [huu'.symm] using hu'eq.symm
 
 theorem base_eq_of_chainSet_eq {n : ℕ} {p q : Fin n → ℤ}
     {σ τ : Equiv.Perm (Fin n)} (h : chainSet p σ = chainSet q τ) : p = q := by
@@ -997,6 +1298,109 @@ theorem dropOf_eq {n : ℕ} (c : Cell n) {F : Finset (Fin n → ℤ)}
     rw [ht]
     exact hchoose
   exact dropIdx_unique c.1 c.2 hchoose'
+
+theorem facetSet_dropOf {n : ℕ} {c : Cell n} {F : Finset (Fin n → ℤ)}
+    (hb : cellBounds c F) : facetSet c.1 c.2 (dropOf c F) = F := by
+  obtain ⟨t, ht⟩ := hb
+  rw [dropOf_eq c ht]
+  exact ht
+
+theorem dropOf_eq_zero {n : ℕ} {c : Cell n} {F : Finset (Fin n → ℤ)}
+    (h : (dropOf c F).val = 0) : dropOf c F = 0 :=
+  Fin.ext (by simpa using h)
+
+theorem dropOf_eq_last {n : ℕ} {c : Cell n} {F : Finset (Fin n → ℤ)}
+    (h : (dropOf c F).val = n) : dropOf c F = Fin.last n :=
+  Fin.ext (by simpa [Fin.val_last] using h)
+
+theorem cell_eq_of_facetSet_eq_zero {n : ℕ} (hn : 0 < n) {p p' : Fin n → ℤ}
+    {σ σ' : Equiv.Perm (Fin n)} (hF : facetSet p σ 0 = facetSet p' σ' 0) :
+    p = p' ∧ σ = σ' := by
+  have hmatch := chainVZ_match_off hn hF
+  have hstep : ∀ s : Fin n, s ≠ ⟨0, hn⟩ → σ s = σ' s := by
+    intro s hs
+    have hsc0 : s.castSucc ≠ (0 : Fin (n + 1)) := by
+      intro h
+      apply hs
+      exact Fin.ext (by simpa using congrArg Fin.val h)
+    have hss0 : s.succ ≠ (0 : Fin (n + 1)) := by
+      intro h
+      have hv := congrArg Fin.val h
+      simp at hv
+    have h1 := hmatch s.castSucc hsc0
+    have h2 := hmatch s.succ hss0
+    have hstepeq : unitVec (σ s) = unitVec (σ' s) := by
+      have e1 := chainVZ_step p σ s
+      have e2 := chainVZ_step p' σ' s
+      funext i
+      have := congrFun (e1 ▸ h2 :
+        (fun i => chainVZ p σ s.castSucc i + unitVec (σ s) i) =
+          chainVZ p' σ' s.succ) i
+      rw [e2, h1] at this
+      simp only at this ⊢
+      linarith
+    exact unitVec_injective hstepeq
+  have hσ : σ = σ' := ShenWork.Paper1.perm_eq_of_eq_off_point hstep
+  refine ⟨?_, hσ⟩
+  have h1ne : (⟨1, by omega⟩ : Fin (n + 1)) ≠ (0 : Fin (n + 1)) := by
+    intro h
+    have := congrArg Fin.val h
+    simp at this
+  have hm := hmatch ⟨1, by omega⟩ h1ne
+  funext i
+  have hc := congrFun hm i
+  let z : Fin n := ⟨0, hn⟩
+  have hone : (⟨1, by omega⟩ : Fin (n + 1)) = z.succ := by
+    apply Fin.ext
+    simp [z]
+  rw [hone, chainVZ_step p σ z, chainVZ_step p' σ' z, hσ] at hc
+  simp [z, chainVZ_zero] at hc
+  linarith
+
+theorem cell_eq_of_facetSet_eq_last {n : ℕ} (hn : 0 < n) {p p' : Fin n → ℤ}
+    {σ σ' : Equiv.Perm (Fin n)}
+    (hF : facetSet p σ (Fin.last n) = facetSet p' σ' (Fin.last n)) :
+    p = p' ∧ σ = σ' := by
+  have hmatch := chainVZ_match_off hn hF
+  have h0ne : (0 : Fin (n + 1)) ≠ Fin.last n := by
+    intro h
+    have := congrArg Fin.val h
+    simp [Fin.val_last] at this
+    omega
+  have hp : p = p' := by
+    have hm := hmatch 0 h0ne
+    simpa using hm
+  refine ⟨hp, ?_⟩
+  have hstep : ∀ s : Fin n, s ≠ ⟨n - 1, by omega⟩ → σ s = σ' s := by
+    intro s hs
+    have hsc : s.castSucc ≠ Fin.last n := by
+      intro h
+      have hv := congrArg Fin.val h
+      rw [Fin.val_castSucc, Fin.val_last] at hv
+      have := s.isLt
+      omega
+    have hss : s.succ ≠ Fin.last n := by
+      intro h
+      apply hs
+      have hv := congrArg Fin.val h
+      rw [Fin.val_succ, Fin.val_last] at hv
+      apply Fin.ext
+      show s.val = n - 1
+      omega
+    have h1 := hmatch s.castSucc hsc
+    have h2 := hmatch s.succ hss
+    have hstepeq : unitVec (σ s) = unitVec (σ' s) := by
+      have e1 := chainVZ_step p σ s
+      have e2 := chainVZ_step p' σ' s
+      funext i
+      have := congrFun (e1 ▸ h2 :
+        (fun i => chainVZ p σ s.castSucc i + unitVec (σ s) i) =
+          chainVZ p' σ' s.succ) i
+      rw [e2, h1] at this
+      simp only at this ⊢
+      linarith
+    exact unitVec_injective hstepeq
+  exact ShenWork.Paper1.perm_eq_of_eq_off_point hstep
 
 theorem chainVZ_swap_eq_of_prefix {n : ℕ} (p : Fin n → ℤ)
     (σ : Equiv.Perm (Fin n)) (a b : Fin n) (u : Fin (n + 1))
@@ -1382,6 +1786,41 @@ theorem partnerCell_ne {n : ℕ} (hn : 0 < n) (c : Cell n)
         simpa using this
       exact (swapAround_ne c.2 (by omega) (by omega)) hperm
 
+theorem bounds_endpoint_dichotomy {n : ℕ} (hn : 0 < n) {c c' : Cell n}
+    {F : Finset (Fin n → ℤ)} (hcb : cellBounds c F) (hcb' : cellBounds c' F)
+    (he : (dropOf c F).val = 0 ∨ (dropOf c F).val = n)
+    (he' : (dropOf c' F).val = 0 ∨ (dropOf c' F).val = n) :
+    c' = c ∨ c' = partnerCell hn c F := by
+  have hfc : facetSet c.1 c.2 (dropOf c F) = F := facetSet_dropOf hcb
+  have hfc' : facetSet c'.1 c'.2 (dropOf c' F) = F := facetSet_dropOf hcb'
+  rcases he with h0 | hl
+  · rw [dropOf_eq_zero h0] at hfc
+    rcases he' with h0' | hl'
+    · rw [dropOf_eq_zero h0'] at hfc'
+      have heq := cell_eq_of_facetSet_eq_zero hn (hfc.trans hfc'.symm)
+      exact Or.inl (Prod.ext heq.1.symm heq.2.symm)
+    · rw [dropOf_eq_last hl'] at hfc'
+      have hfwd : facetSet (endpointFwd hn c).1 (endpointFwd hn c).2 (Fin.last n) = F := by
+        rw [endpointFwd_facet hn c]
+        exact hfc
+      have heq := cell_eq_of_facetSet_eq_last hn (hfc'.trans hfwd.symm)
+      right
+      rw [partnerCell_of_zero hn c h0]
+      exact Prod.ext heq.1 heq.2
+  · rw [dropOf_eq_last hl] at hfc
+    rcases he' with h0' | hl'
+    · rw [dropOf_eq_zero h0'] at hfc'
+      have hinv : facetSet (endpointInv hn c).1 (endpointInv hn c).2 0 = F := by
+        rw [endpointInv_facet hn c]
+        exact hfc
+      have heq := cell_eq_of_facetSet_eq_zero hn (hfc'.trans hinv.symm)
+      right
+      rw [partnerCell_of_last hn c (by rw [hl]; omega) hl]
+      exact Prod.ext heq.1 heq.2
+    · rw [dropOf_eq_last hl'] at hfc'
+      have heq := cell_eq_of_facetSet_eq_last hn (hfc.trans hfc'.symm)
+      exact Or.inl (Prod.ext heq.1.symm heq.2.symm)
+
 /-- A facet is on the mesh boundary iff some valid bounding cell has an invalid partner. -/
 def isBoundary {n : ℕ} (hn : 0 < n) (k : ℕ) (F : Finset (Fin n → ℤ)) : Prop :=
   ∃ c ∈ cells n k, cellBounds c F ∧ ¬ cellValid k (partnerCell hn c F)
@@ -1389,6 +1828,51 @@ def isBoundary {n : ℕ} (hn : 0 < n) (k : ℕ) (F : Finset (Fin n → ℤ)) : P
 noncomputable instance {n k : ℕ} (hn : 0 < n) (F : Finset (Fin n → ℤ)) :
     Decidable (isBoundary hn k F) :=
   Classical.propDecidable _
+
+theorem isBoundary_endpoint {n k : ℕ} (hn : 0 < n) {F : Finset (Fin n → ℤ)}
+    (hb : isBoundary hn k F) :
+    ∃ c, c ∈ cells n k ∧ cellBounds c F ∧ ¬ cellValid k (partnerCell hn c F) ∧
+      ((dropOf c F).val = 0 ∨ (dropOf c F).val = n) := by
+  obtain ⟨c, hc, hcb, hpinv⟩ := hb
+  refine ⟨c, hc, hcb, hpinv, ?_⟩
+  by_contra hcon
+  push Not at hcon
+  obtain ⟨h0, hn'⟩ := hcon
+  have hlt : (dropOf c F).val < n := by
+    have := (dropOf c F).isLt
+    omega
+  apply hpinv
+  rw [partnerCell_of_internal hn c h0 hn']
+  simpa [cellValid] using mem_cells.mp hc
+
+theorem boundary_singleton_invalid {n k : ℕ} (hn : 0 < n)
+    {F : Finset (Fin n → ℤ)} (hb : isBoundary hn k F) :
+    ((cells n k).filter
+        (fun c => cellBounds c F ∧ ¬ cellValid k (partnerCell hn c F))).card = 1 := by
+  classical
+  obtain ⟨c₀, hc₀k, hc₀b, hc₀inv, hc₀end⟩ := isBoundary_endpoint hn hb
+  rw [Finset.card_eq_one]
+  refine ⟨c₀, ?_⟩
+  apply Finset.eq_singleton_iff_unique_mem.mpr
+  refine ⟨?_, ?_⟩
+  · rw [Finset.mem_filter]
+    exact ⟨hc₀k, hc₀b, hc₀inv⟩
+  · intro c hc
+    rw [Finset.mem_filter] at hc
+    obtain ⟨hck, hcb, hcinv⟩ := hc
+    have hcend : (dropOf c F).val = 0 ∨ (dropOf c F).val = n := by
+      by_contra hcon
+      push Not at hcon
+      obtain ⟨h0, hn'⟩ := hcon
+      apply hcinv
+      rw [partnerCell_of_internal hn c h0 hn']
+      simpa [cellValid] using mem_cells.mp hck
+    rcases bounds_endpoint_dichotomy hn hc₀b hcb hc₀end hcend with h | h
+    · exact h
+    · exfalso
+      apply hc₀inv
+      rw [← h]
+      exact mem_cells.mp hck
 
 theorem partner_valid_of_not_boundary {n k : ℕ} (hn : 0 < n)
     {F : Finset (Fin n → ℤ)} (hnb : ¬ isBoundary hn k F)
@@ -1849,6 +2333,20 @@ theorem rainbow_count_succ_odd_of_boundary_vertices_bottom {n k : ℕ} (hk : 0 <
   exact rainbow_count_succ_odd_of_boundary_data L havoid hR2
     (boundaryDoors_eq_bottomDoorFacets_of_vertices_bottom hk L hbottom) hlower
 
+theorem rainbow_count_succ_odd_of_boundary_vertices_bottom_R2 {n k : ℕ} (hk : 0 < k)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 2))
+    (havoid : ∀ v : Fin n → ℤ, L (appendZero v) ≠ Fin.last (n + 1))
+    (hbottom : ∀ F ∈ facets (n + 1) k,
+      (F.image L = Finset.univ.erase (Fin.last (n + 1))) →
+        isBoundary (Nat.succ_pos n) k F →
+          ∀ v ∈ F, v (Fin.last n) = 0)
+    (hlower : Odd ((cells n k).filter
+      (fun c => isRainbow (bottomLabel L havoid) c)).card) :
+    Odd ((cells (n + 1) k).filter (fun c => isRainbow L c)).card := by
+  exact rainbow_count_succ_odd_of_boundary_vertices_bottom hk L havoid
+    (fun _F _hF _hdoor hb => boundary_singleton_invalid (Nat.succ_pos n) hb)
+    hbottom hlower
+
 /-- Labellings for the `n`-dimensional Freudenthal model. -/
 abbrev Label (n : ℕ) : Type :=
   (Fin n → ℤ) → Fin (n + 1)
@@ -1870,6 +2368,17 @@ def BoundaryData : (n k : ℕ) → Label n → Prop
               ∀ v ∈ F, v (Fin.last n) = 0) ∧
         BoundaryData n k (bottomLabel L havoid)
 
+/-- Recursive boundary data after the Freudenthal R2 singleton has been proved internally. -/
+def BoundaryBottomData : (n k : ℕ) → Label n → Prop
+  | 0, _k, _L => True
+  | n + 1, k, L =>
+      ∃ havoid : ∀ v : Fin n → ℤ, L (appendZero v) ≠ Fin.last (n + 1),
+        (∀ F ∈ facets (n + 1) k,
+          (F.image L = Finset.univ.erase (Fin.last (n + 1))) →
+            isBoundary (Nat.succ_pos n) k F →
+              ∀ v ∈ F, v (Fin.last n) = 0) ∧
+        BoundaryBottomData n k (bottomLabel L havoid)
+
 theorem rainbow_count_odd_of_boundaryData {n k : ℕ} (hk : 0 < k)
     (L : Label n) (hdata : BoundaryData n k L) :
     Odd ((cells n k).filter (fun c => isRainbow L c)).card := by
@@ -1881,11 +2390,49 @@ theorem rainbow_count_odd_of_boundaryData {n k : ℕ} (hk : 0 < k)
       exact rainbow_count_succ_odd_of_boundary_vertices_bottom hk L havoid hR2
         hbottom (ih (bottomLabel L havoid) hlower)
 
+/-- Recursive rainbow parity using the Freudenthal R2 singleton internally. -/
+theorem rainbow_count_odd_of_boundaryBottomData {n k : ℕ} (hk : 0 < k)
+    (L : Label n) (hdata : BoundaryBottomData n k L) :
+    Odd ((cells n k).filter (fun c => isRainbow L c)).card := by
+  induction n with
+  | zero =>
+      exact rainbow_count_zero_odd k L
+  | succ n ih =>
+      rcases hdata with ⟨havoid, hbottom, hlower⟩
+      exact rainbow_count_succ_odd_of_boundary_vertices_bottom_R2 hk L havoid
+        hbottom (ih (bottomLabel L havoid) hlower)
+
+/-- Recursive parity for the boundary-compatible box bottom doors. -/
+theorem bottomDoors_odd_of_boundaryData {n k : ℕ} (hk : 0 < k)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 2))
+    (havoid : ∀ v : Fin n → ℤ, L (appendZero v) ≠ Fin.last (n + 1))
+    (hdata : BoundaryData n k (bottomLabel L havoid)) :
+    Odd (bottomDoors n k L).card := by
+  rw [card_bottomDoors_eq_rainbow hk L havoid]
+  exact rainbow_count_odd_of_boundaryData hk (bottomLabel L havoid) hdata
+
+theorem bottomDoors_odd_of_boundaryBottomData {n k : ℕ} (hk : 0 < k)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 2))
+    (havoid : ∀ v : Fin n → ℤ, L (appendZero v) ≠ Fin.last (n + 1))
+    (hdata : BoundaryBottomData n k (bottomLabel L havoid)) :
+    Odd (bottomDoors n k L).card := by
+  rw [card_bottomDoors_eq_rainbow hk L havoid]
+  exact rainbow_count_odd_of_boundaryBottomData hk (bottomLabel L havoid) hdata
+
 theorem exists_rainbow_cellF_of_boundaryData {n k : ℕ} (hk : 0 < k)
     (L : Label n) (hdata : BoundaryData n k L) :
     ∃ c ∈ cells n k, isRainbow L c := by
   classical
   have hodd := rainbow_count_odd_of_boundaryData hk L hdata
+  obtain ⟨c, hc⟩ := Finset.card_pos.mp hodd.pos
+  rw [Finset.mem_filter] at hc
+  exact ⟨c, hc.1, hc.2⟩
+
+theorem exists_rainbow_cellF_of_boundaryBottomData {n k : ℕ} (hk : 0 < k)
+    (L : Label n) (hdata : BoundaryBottomData n k L) :
+    ∃ c ∈ cells n k, isRainbow L c := by
+  classical
+  have hodd := rainbow_count_odd_of_boundaryBottomData hk L hdata
   obtain ⟨c, hc⟩ := Finset.card_pos.mp hodd.pos
   rw [Finset.mem_filter] at hc
   exact ⟨c, hc.1, hc.2⟩
@@ -1914,6 +2461,301 @@ theorem sum_appendSlack {n k : ℕ} (p : Fin n → ℤ) :
     ∑ i : Fin (n + 1), appendSlack k p i = (k : ℤ) := by
   rw [Fin.sum_univ_castSucc]
   simp [appendSlack]
+
+/-! ### The old zero-door base projection
+
+For an old barycentric zero-door cell in dimension `m + 1`, the first upper step becomes
+the slack coordinate of the lower Freudenthal chart.  The remaining tail steps, after the
+coordinate rotation `faceCoordPerm`, form a literal `m`-dimensional Freudenthal chain.
+-/
+
+/-- The lower Freudenthal base obtained from an old zero-door cell by deleting the first
+face step (the future slack coordinate) and the old last barycentric coordinate. -/
+def oldZeroDoorLowerBase {m : ℕ} (c : ShenWork.Paper1.KCell (m + 1)) :
+    Fin m → ℤ :=
+  fun i => c.1 ((c.2 i.succ).castSucc)
+
+/-- The lower Freudenthal cell underlying an old zero-door cell, in the rotated chart. -/
+def oldZeroDoorLowerCell {m : ℕ} (c : ShenWork.Paper1.KCell (m + 1)) :
+    Cell m :=
+  (oldZeroDoorLowerBase c, 1)
+
+/-- The post-projection colour set on an old drop-`0` door facet.
+
+Each old drop-`0` vertex first transfers its last-coordinate mass to the first face step, then
+is relabelled on the literal face `{last = 0}`.  This is the boundary label needed for the
+dimension-drop parity, unlike the legacy pre-transition door below. -/
+noncomputable def zeroDoorPostLabels {n : ℕ}
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1)) (c : ShenWork.Paper1.KCell n) :
+    Finset (Fin (n + 1)) :=
+  (Finset.univ : Finset (Fin n)).image
+    (fun u => L (appendZero (ShenWork.Paper1.zeroDoorFaceVertex c u)))
+
+/-- After transferring the old last-coordinate mass to the first face step and rotating
+coordinates, every non-slack coordinate is exactly the lower Freudenthal chain vertex. -/
+theorem zeroDoorFaceVertex_pull_castSucc {m : ℕ}
+    (c : ShenWork.Paper1.KCell (m + 1)) (u : Fin (m + 1)) (i : Fin m) :
+    ShenWork.Paper1.pullCoord (ShenWork.Paper1.faceCoordPerm c.2)
+      (ShenWork.Paper1.zeroDoorFaceVertex c u) i.castSucc =
+      chainVZ (oldZeroDoorLowerCell c).1 (oldZeroDoorLowerCell c).2 u i := by
+  classical
+  unfold ShenWork.Paper1.pullCoord ShenWork.Paper1.zeroDoorFaceVertex
+  rw [ShenWork.Paper1.faceCoordPerm_castSucc]
+  unfold ShenWork.Paper1.transferLastMass
+  have hneDonor : c.2 i.succ ≠ c.2 (ShenWork.Paper1.finZeroOf u) := by
+    intro h
+    have hpre := c.2.injective h
+    have hval := congrArg Fin.val hpre
+    simp [ShenWork.Paper1.finZeroOf_val, Fin.val_succ] at hval
+  rw [ShenWork.Paper1.faceUnitVec_apply_ne hneDonor]
+  simp only [mul_zero, add_zero]
+  rw [ShenWork.Paper1.dropLast_chainVZ_count]
+  unfold oldZeroDoorLowerCell oldZeroDoorLowerBase chainVZ
+  change c.1 ((c.2 i.succ).castSucc) +
+      (if ((c.2.symm (c.2 i.succ)).val : ℕ) < u.succ.val then (1 : ℤ) else 0) =
+    c.1 ((c.2 i.succ).castSucc) + if (i.val : ℕ) < u.val then 1 else 0
+  rw [Equiv.symm_apply_apply]
+  have hiff : ((i.succ).val < u.succ.val) ↔ (i.val < u.val) := by
+    change i.val + 1 < u.val + 1 ↔ i.val < u.val
+    omega
+  by_cases h : i.val < u.val
+  · rw [if_pos (hiff.mpr h), if_pos h]
+  · rw [if_neg (fun hlt => h (hiff.mp hlt)), if_neg h]
+
+/-- Coordinate pullback by a permutation preserves the coordinate sum. -/
+theorem sum_pullCoord {n : ℕ} (ρ : Equiv.Perm (Fin n)) (v : Fin n → ℤ) :
+    ∑ i : Fin n, ShenWork.Paper1.pullCoord ρ v i = ∑ i : Fin n, v i := by
+  unfold ShenWork.Paper1.pullCoord
+  exact Equiv.sum_comp ρ v
+
+/-- Undo `pullCoord ρ`; equivalently compose with `ρ.symm`. -/
+def unpullCoord {n : ℕ} (ρ : Equiv.Perm (Fin n)) (v : Fin n → ℤ) : Fin n → ℤ :=
+  fun i => v (ρ.symm i)
+
+theorem pullCoord_unpullCoord {n : ℕ} (ρ : Equiv.Perm (Fin n)) (v : Fin n → ℤ) :
+    ShenWork.Paper1.pullCoord ρ (unpullCoord ρ v) = v := by
+  funext i
+  unfold ShenWork.Paper1.pullCoord unpullCoord
+  rw [Equiv.symm_apply_apply]
+
+theorem unpullCoord_pullCoord {n : ℕ} (ρ : Equiv.Perm (Fin n)) (v : Fin n → ℤ) :
+    unpullCoord ρ (ShenWork.Paper1.pullCoord ρ v) = v := by
+  funext i
+  change v (ρ (ρ.symm i)) = v i
+  rw [Equiv.apply_symm_apply]
+
+/-- The lower face label obtained by rotating a face point back to the original upper
+coordinates and appending a zero last coordinate.  If the upper label accidentally returns the
+forbidden top colour, this total label defaults to `0`; on valid Sperner face vertices the
+forbidden case is proved impossible before this label is used. -/
+noncomputable def postProjectedLowerLabel {m : ℕ} (k : ℕ)
+    (L : (Fin (m + 2) → ℤ) → Fin (m + 2))
+    (ρ : Equiv.Perm (Fin (m + 1))) : Label m :=
+  fun v =>
+    if h : L (appendZero (unpullCoord ρ (appendSlack k v))) ≠ Fin.last (m + 1) then
+      (L (appendZero (unpullCoord ρ (appendSlack k v)))).castPred h
+    else 0
+
+theorem postProjectedLowerLabel_castSucc_of_ne {m k : ℕ}
+    (L : (Fin (m + 2) → ℤ) → Fin (m + 2))
+    (ρ : Equiv.Perm (Fin (m + 1))) {v : Fin m → ℤ}
+    (h : L (appendZero (unpullCoord ρ (appendSlack k v))) ≠ Fin.last (m + 1)) :
+    (postProjectedLowerLabel k L ρ v).castSucc =
+      L (appendZero (unpullCoord ρ (appendSlack k v))) := by
+  unfold postProjectedLowerLabel
+  rw [dif_pos h, Fin.castSucc_castPred]
+
+/-- The full post-projected zero-door vertex is the lower Freudenthal vertex plus slack,
+after rotating face coordinates by `faceCoordPerm`. -/
+theorem zeroDoorFaceVertex_pull_eq_appendSlack {m k : ℕ}
+    {c : ShenWork.Paper1.KCell (m + 1)}
+    (hc : ShenWork.Paper1.cellMemN k c) (u : Fin (m + 1)) :
+    ShenWork.Paper1.pullCoord (ShenWork.Paper1.faceCoordPerm c.2)
+        (ShenWork.Paper1.zeroDoorFaceVertex c u) =
+      appendSlack k (chainVZ (oldZeroDoorLowerCell c).1
+        (oldZeroDoorLowerCell c).2 u) := by
+  funext j
+  refine Fin.lastCases ?_ ?_ j
+  · have hsumL :
+        ∑ i : Fin (m + 1),
+            ShenWork.Paper1.pullCoord (ShenWork.Paper1.faceCoordPerm c.2)
+              (ShenWork.Paper1.zeroDoorFaceVertex c u) i = (k : ℤ) := by
+      rw [sum_pullCoord]
+      exact ShenWork.Paper1.zeroDoorFaceVertex_sum hc u
+    have hsumR :
+        ∑ i : Fin (m + 1),
+            appendSlack k (chainVZ (oldZeroDoorLowerCell c).1
+              (oldZeroDoorLowerCell c).2 u) i = (k : ℤ) := by
+      exact sum_appendSlack _
+    have hcast : ∀ i : Fin m,
+        ShenWork.Paper1.pullCoord (ShenWork.Paper1.faceCoordPerm c.2)
+            (ShenWork.Paper1.zeroDoorFaceVertex c u) i.castSucc =
+          appendSlack k (chainVZ (oldZeroDoorLowerCell c).1
+            (oldZeroDoorLowerCell c).2 u) i.castSucc := by
+      intro i
+      rw [zeroDoorFaceVertex_pull_castSucc, appendSlack_castSucc]
+    rw [Fin.sum_univ_castSucc] at hsumL
+    rw [Fin.sum_univ_castSucc] at hsumR
+    have hprefix :
+        (∑ i : Fin m,
+            ShenWork.Paper1.pullCoord (ShenWork.Paper1.faceCoordPerm c.2)
+              (ShenWork.Paper1.zeroDoorFaceVertex c u) i.castSucc)
+          =
+        (∑ i : Fin m,
+            appendSlack k (chainVZ (oldZeroDoorLowerCell c).1
+              (oldZeroDoorLowerCell c).2 u) i.castSucc) := by
+      exact Finset.sum_congr rfl (fun i _hi => hcast i)
+    rw [hprefix] at hsumL
+    linarith
+  · intro i
+    rw [appendSlack_castSucc]
+    exact zeroDoorFaceVertex_pull_castSucc c u i
+
+theorem postProjectedLowerLabel_cellColor_castSucc {m k : ℕ}
+    (L : (Fin (m + 2) → ℤ) → Fin (m + 2))
+    {c : ShenWork.Paper1.KCell (m + 1)}
+    (hc : ShenWork.Paper1.cellMemN k c) (u : Fin (m + 1))
+    (havoid :
+      L (appendZero
+        (unpullCoord (ShenWork.Paper1.faceCoordPerm c.2)
+          (appendSlack k (chainVZ (oldZeroDoorLowerCell c).1
+            (oldZeroDoorLowerCell c).2 u)))) ≠ Fin.last (m + 1)) :
+    (cellColor
+        (postProjectedLowerLabel k L (ShenWork.Paper1.faceCoordPerm c.2))
+        (oldZeroDoorLowerCell c) u).castSucc =
+      L (appendZero (ShenWork.Paper1.zeroDoorFaceVertex c u)) := by
+  unfold cellColor
+  rw [postProjectedLowerLabel_castSucc_of_ne L _ havoid]
+  have hproj := zeroDoorFaceVertex_pull_eq_appendSlack (c := c) hc u
+  have hunpull := congrArg (unpullCoord (ShenWork.Paper1.faceCoordPerm c.2)) hproj
+  rw [unpullCoord_pullCoord] at hunpull
+  rw [← hunpull]
+
+theorem image_castSucc_eq_erase_last_iff_bijective {n : ℕ}
+    (g : Fin n → Fin n) :
+    ((Finset.univ : Finset (Fin n)).image (fun u => (g u).castSucc) =
+        Finset.univ.erase (Fin.last n))
+      ↔ Function.Bijective g := by
+  classical
+  constructor
+  · intro h
+    have hsurj : Function.Surjective g := by
+      intro y
+      have hy : y.castSucc ∈ Finset.univ.erase (Fin.last n) := by
+        rw [Finset.mem_erase]
+        exact ⟨Fin.castSucc_ne_last y, Finset.mem_univ _⟩
+      rw [← h] at hy
+      rw [Finset.mem_image] at hy
+      obtain ⟨u, _hu, hgu⟩ := hy
+      exact ⟨u, Fin.castSucc_injective _ hgu⟩
+    exact ⟨Function.Surjective.injective_of_finite (Equiv.refl _) hsurj, hsurj⟩
+  · intro hbij
+    ext y
+    constructor
+    · intro hy
+      rw [Finset.mem_image] at hy
+      obtain ⟨u, _hu, rfl⟩ := hy
+      rw [Finset.mem_erase]
+      exact ⟨Fin.castSucc_ne_last (g u), Finset.mem_univ _⟩
+    · intro hy
+      rw [Finset.mem_erase] at hy
+      obtain ⟨hnelast, _⟩ := hy
+      obtain ⟨u, hu⟩ := hbij.2 (y.castPred hnelast)
+      rw [Finset.mem_image]
+      refine ⟨u, Finset.mem_univ _, ?_⟩
+      rw [hu, Fin.castSucc_castPred]
+
+theorem zeroDoorPostLabels_eq_lower_cellColor_image {m k : ℕ}
+    (L : (Fin (m + 2) → ℤ) → Fin (m + 2))
+    {c : ShenWork.Paper1.KCell (m + 1)}
+    (hc : ShenWork.Paper1.cellMemN k c)
+    (havoid : ∀ u : Fin (m + 1),
+      L (appendZero
+        (unpullCoord (ShenWork.Paper1.faceCoordPerm c.2)
+          (appendSlack k (chainVZ (oldZeroDoorLowerCell c).1
+            (oldZeroDoorLowerCell c).2 u)))) ≠ Fin.last (m + 1)) :
+    zeroDoorPostLabels L c =
+      (Finset.univ : Finset (Fin (m + 1))).image
+        (fun u =>
+          (cellColor
+            (postProjectedLowerLabel k L (ShenWork.Paper1.faceCoordPerm c.2))
+            (oldZeroDoorLowerCell c) u).castSucc) := by
+  unfold zeroDoorPostLabels
+  apply Finset.image_congr
+  intro u _hu
+  exact (postProjectedLowerLabel_cellColor_castSucc L hc u (havoid u)).symm
+
+theorem zeroDoorPostLabels_door_iff_lower_rainbow {m k : ℕ}
+    (L : (Fin (m + 2) → ℤ) → Fin (m + 2))
+    {c : ShenWork.Paper1.KCell (m + 1)}
+    (hc : ShenWork.Paper1.cellMemN k c)
+    (havoid : ∀ u : Fin (m + 1),
+      L (appendZero
+        (unpullCoord (ShenWork.Paper1.faceCoordPerm c.2)
+          (appendSlack k (chainVZ (oldZeroDoorLowerCell c).1
+            (oldZeroDoorLowerCell c).2 u)))) ≠ Fin.last (m + 1)) :
+    zeroDoorPostLabels L c = Finset.univ.erase (Fin.last (m + 1))
+      ↔ isRainbow
+        (postProjectedLowerLabel k L (ShenWork.Paper1.faceCoordPerm c.2))
+        (oldZeroDoorLowerCell c) := by
+  rw [zeroDoorPostLabels_eq_lower_cellColor_image L hc havoid]
+  unfold isRainbow
+  exact image_castSucc_eq_erase_last_iff_bijective
+    (cellColor
+      (postProjectedLowerLabel k L (ShenWork.Paper1.faceCoordPerm c.2))
+      (oldZeroDoorLowerCell c))
+
+theorem appendZero_toNat_sum_of_nonneg {n k : ℕ} {v : Fin n → ℤ}
+    (hnn : ∀ i, 0 ≤ v i) (hsum : ∑ i : Fin n, v i = (k : ℤ)) :
+    ∑ i : Fin (n + 1), (appendZero v i).toNat = k := by
+  rw [Fin.sum_univ_castSucc]
+  simp only [appendZero_castSucc, appendZero_last, Int.toNat_zero, add_zero]
+  have hcast : ∑ i : Fin n, ((v i).toNat : ℤ) = ∑ i : Fin n, v i := by
+    exact Finset.sum_congr rfl (fun i _hi => Int.toNat_of_nonneg (hnn i))
+  have hNat : ((∑ i : Fin n, (v i).toNat : ℕ) : ℤ) = (k : ℤ) := by
+    rw [Nat.cast_sum, hcast, hsum]
+  exact_mod_cast hNat
+
+theorem postProjectedLowerLabel_labelN_avoid {m k : ℕ}
+    {f : (Fin (m + 2) → ℝ) → (Fin (m + 2) → ℝ)} (hk : 0 < k)
+    (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (m + 2)))
+      (stdSimplex ℝ (Fin (m + 2))))
+    {c : ShenWork.Paper1.KCell (m + 1)}
+    (hc : ShenWork.Paper1.cellMemN k c) (u : Fin (m + 1)) :
+    ShenWork.Paper1.labelN f k
+        (appendZero
+          (unpullCoord (ShenWork.Paper1.faceCoordPerm c.2)
+            (appendSlack k (chainVZ (oldZeroDoorLowerCell c).1
+              (oldZeroDoorLowerCell c).2 u)))) ≠ Fin.last (m + 1) := by
+  have hproj := zeroDoorFaceVertex_pull_eq_appendSlack (c := c) hc u
+  have hunpull := congrArg (unpullCoord (ShenWork.Paper1.faceCoordPerm c.2)) hproj
+  rw [unpullCoord_pullCoord] at hunpull
+  rw [← hunpull]
+  let z : Fin (m + 1) → ℤ := ShenWork.Paper1.zeroDoorFaceVertex c u
+  have hsum : ∑ i : Fin (m + 2), (appendZero z i).toNat = k := by
+    exact appendZero_toNat_sum_of_nonneg
+      (fun i => ShenWork.Paper1.zeroDoorFaceVertex_nonneg hc u i)
+      (ShenWork.Paper1.zeroDoorFaceVertex_sum hc u)
+  have hzero : appendZero z (Fin.last (m + 1)) = 0 := by
+    simp [z]
+  exact ShenWork.Paper1.label_avoids_forbidden_coord_on_face
+    (n := m + 1) hk hmaps hsum hzero
+
+theorem zeroDoorPostLabels_labelN_door_iff_lower_rainbow {m k : ℕ}
+    {f : (Fin (m + 2) → ℝ) → (Fin (m + 2) → ℝ)} (hk : 0 < k)
+    (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (m + 2)))
+      (stdSimplex ℝ (Fin (m + 2))))
+    {c : ShenWork.Paper1.KCell (m + 1)}
+    (hc : ShenWork.Paper1.cellMemN k c) :
+    zeroDoorPostLabels (ShenWork.Paper1.labelN f k) c =
+        Finset.univ.erase (Fin.last (m + 1))
+      ↔ isRainbow
+        (postProjectedLowerLabel k (ShenWork.Paper1.labelN f k)
+          (ShenWork.Paper1.faceCoordPerm c.2))
+        (oldZeroDoorLowerCell c) := by
+  exact zeroDoorPostLabels_door_iff_lower_rainbow
+    (ShenWork.Paper1.labelN f k) hc
+    (postProjectedLowerLabel_labelN_avoid hk hmaps hc)
 
 /-- Freudenthal cells lying in the standard simplex alcove at mesh `k`. -/
 def simplexCellValid {n k : ℕ} (c : Cell n) : Prop :=
@@ -2048,6 +2890,25 @@ theorem simplexCellValid_of_old_cellValid {n k : ℕ} (hn : 0 < n)
       simpa [dropLast] using hsum
     have hlast_ge := ShenWork.Paper1.cellValid_last_ge hc
     linarith
+
+/-- The lower tail cell extracted from an old zero-door cell is a valid Freudenthal box cell. -/
+theorem oldZeroDoorLowerCell_cellValid {m k : ℕ}
+    {c : ShenWork.Paper1.KCell (m + 1)}
+    (hc : ShenWork.Paper1.cellMemN k c) :
+    cellValid k (oldZeroDoorLowerCell c) := by
+  have hsimple : simplexCellValid (k := k) (dropLast c.1, c.2) :=
+    simplexCellValid_of_old_cellValid (Nat.succ_pos m)
+      (by simpa [ShenWork.Paper1.cellMemN] using hc)
+  intro i
+  have hi := hsimple.1 (c.2 i.succ)
+  simpa [oldZeroDoorLowerCell, oldZeroDoorLowerBase, dropLast] using hi
+
+/-- Membership form of `oldZeroDoorLowerCell_cellValid`. -/
+theorem oldZeroDoorLowerCell_mem_cells {m k : ℕ}
+    {c : ShenWork.Paper1.KCell (m + 1)}
+    (hc : ShenWork.Paper1.cellMemN k c) :
+    oldZeroDoorLowerCell c ∈ cells m k :=
+  mem_cells.mpr (oldZeroDoorLowerCell_cellValid hc)
 
 /-- Valid Freudenthal cells in the simplex alcove, as a finite set. -/
 noncomputable def simplexCells (n k : ℕ) : Finset (Cell n) :=
@@ -2365,6 +3226,142 @@ theorem image_toKFacet_label {n k : ℕ}
   rw [Finset.image_image]
   rfl
 
+/-! ### Post-projection zero-door cells in the Freudenthal simplex chart -/
+
+/-- The post-projection colour set on the transported simplex-chart drop-`0` facet. -/
+noncomputable def simplexZeroDoorPostLabels (n k : ℕ)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1)) (c : Cell n) :
+    Finset (Fin (n + 1)) :=
+  zeroDoorPostLabels L (toKCell k c)
+
+/-- Freudenthal simplex-chart cells whose transported old cell has last base coordinate `n`
+and whose drop-`0` facet is a lower-colour door after post-projection by
+`transferLastMass`. -/
+noncomputable def simplexZeroDoorCells (n k : ℕ)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1)) : Finset (Cell n) :=
+  (simplexCells n k).filter
+    (fun c => appendSlack k c.1 (Fin.last n) = (n : ℤ) ∧
+      simplexZeroDoorPostLabels n k L c = Finset.univ.erase (Fin.last n))
+
+/-! ### The legacy pre-projection zero-door cells in the Freudenthal simplex chart -/
+
+/-- Legacy pre-projection door cells.  This is kept only for comparison with the old
+`zeroDoorCellsN`; it is false as the recursive parity target. -/
+noncomputable def simplexZeroDoorCellsOld (n k : ℕ)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1)) : Finset (Cell n) :=
+  (simplexCells n k).filter
+    (fun c => appendSlack k c.1 (Fin.last n) = (n : ℤ) ∧
+      (facetSet c.1 c.2 0).image (pullLabel k L) =
+        Finset.univ.erase (Fin.last n))
+
+/-- The discrete label induced by the sanity-check map
+`(x₀,x₁,x₂) ↦ (x₀,x₁+x₂,0)` at `n = 2`. -/
+def counterexampleLabelN2 (q : Fin 3 → ℤ) : Fin 3 :=
+  if 0 < q 0 then 0
+  else if 0 < q 1 ∧ q 2 = 0 then 1
+  else 2
+
+theorem counterexampleLabelN2_simplexZeroDoorCells_card :
+    (simplexZeroDoorCells 2 2 counterexampleLabelN2).card = 1 := by
+  decide
+
+theorem counterexampleLabelN2_simplexZeroDoorCellsOld_card :
+    (simplexZeroDoorCellsOld 2 2 counterexampleLabelN2).card = 0 := by
+  decide
+
+/-- The post-projection box label for the sanity-check map on the bottom face:
+`(a,b,2-a-b)` is relabelled after moving the slack mass to the middle coordinate. -/
+def counterexampleBoxPostLabelN2 (v : Fin 2 → ℤ) : Fin 3 :=
+  counterexampleLabelN2 ![v 0, (2 : ℤ) - v 0, 0]
+
+theorem counterexampleLabelN2_boxBottomDoors_card :
+    (bottomDoors 1 2 counterexampleBoxPostLabelN2).card = 1 := by
+  decide
+
+theorem counterexampleLabelN2_boxBottomDoors_odd :
+    Odd (bottomDoors 1 2 counterexampleBoxPostLabelN2).card := by
+  rw [counterexampleLabelN2_boxBottomDoors_card]
+  exact ⟨0, rfl⟩
+
+theorem image_simplexZeroDoorCellsOld_toKCell_eq_zeroDoorCellsN {n k : ℕ} (hn : 0 < n)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1)) :
+    (simplexZeroDoorCellsOld n k L).image (toKCell k) =
+      ShenWork.Paper1.zeroDoorCellsN n k L := by
+  classical
+  ext c
+  constructor
+  · intro hc
+    rw [Finset.mem_image] at hc
+    obtain ⟨d, hd, hdc⟩ := hc
+    rw [simplexZeroDoorCellsOld, Finset.mem_filter] at hd
+    rw [ShenWork.Paper1.zeroDoorCellsN, Finset.mem_filter]
+    refine ⟨?_, ?_, ?_⟩
+    · rw [← image_simplexCells_toKCell_eq_cellsN hn]
+      exact Finset.mem_image.mpr ⟨d, hd.1, hdc⟩
+    · rw [← hdc]
+      exact hd.2.1
+    · rw [← hdc]
+      unfold toKCell
+      change (ShenWork.Paper1.facetSet (appendSlack k d.1) d.2 0).image L =
+        Finset.univ.erase (Fin.last n)
+      rw [old_facetSet_appendSlack_eq]
+      change (toKFacet k (facetSet d.1 d.2 0)).image L =
+        Finset.univ.erase (Fin.last n)
+      rw [image_toKFacet_label]
+      exact hd.2.2
+  · intro hc
+    rw [ShenWork.Paper1.zeroDoorCellsN, Finset.mem_filter] at hc
+    rw [← image_simplexCells_toKCell_eq_cellsN hn] at hc
+    rw [Finset.mem_image] at hc
+    obtain ⟨d, hd, hdc⟩ := hc.1
+    rw [Finset.mem_image]
+    refine ⟨d, ?_, hdc⟩
+    rw [simplexZeroDoorCellsOld, Finset.mem_filter]
+    refine ⟨hd, ?_, ?_⟩
+    · rw [← hdc] at hc
+      exact hc.2.1
+    · rw [← hdc] at hc
+      have hdoorOld : (ShenWork.Paper1.facetSet (appendSlack k d.1) d.2 0).image L =
+          Finset.univ.erase (Fin.last n) := by
+        simpa [toKCell] using hc.2.2
+      rw [old_facetSet_appendSlack_eq] at hdoorOld
+      change (toKFacet k (facetSet d.1 d.2 0)).image L =
+        Finset.univ.erase (Fin.last n) at hdoorOld
+      rw [image_toKFacet_label] at hdoorOld
+      exact hdoorOld
+
+theorem card_simplexZeroDoorCellsOld_eq_zeroDoorCellsN {n k : ℕ} (hn : 0 < n)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1)) :
+    (simplexZeroDoorCellsOld n k L).card =
+      (ShenWork.Paper1.zeroDoorCellsN n k L).card := by
+  rw [← image_simplexZeroDoorCellsOld_toKCell_eq_zeroDoorCellsN hn L]
+  exact (Finset.card_image_of_injective _ toKCell_injective).symm
+
+theorem hR3_labelN_of_simplexZeroDoorCellsOld_odd {n k : ℕ} (hn : 0 < n)
+    {f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ)} (hk : 0 < k)
+    (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (n + 1)))
+      (stdSimplex ℝ (Fin (n + 1))))
+    (hodd : Odd (simplexZeroDoorCellsOld n k (ShenWork.Paper1.labelN f k)).card) :
+    Odd ((ShenWork.Paper1.facetsN n k).filter
+      (fun F => (F.image (ShenWork.Paper1.labelN f k) =
+          Finset.univ.erase (Fin.last n)) ∧
+        ShenWork.Paper1.isBoundaryN hn k F)).card := by
+  exact ShenWork.Paper1.hR3_labelN_of_zeroDoorCellsN_odd hn hk hmaps
+    (by rwa [← card_simplexZeroDoorCellsOld_eq_zeroDoorCellsN hn
+      (ShenWork.Paper1.labelN f k)])
+
+theorem exists_rainbow_cellN_R2_labelN_of_simplexZeroDoorCellsOld_odd {n k : ℕ}
+    (hn : 0 < n)
+    {f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ)} (hk : 0 < k)
+    (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (n + 1)))
+      (stdSimplex ℝ (Fin (n + 1))))
+    (hodd : Odd (simplexZeroDoorCellsOld n k (ShenWork.Paper1.labelN f k)).card) :
+    Odd ((ShenWork.Paper1.cellsN n k).filter
+      (fun c => Function.Bijective
+        (ShenWork.Paper1.cellColorN (ShenWork.Paper1.labelN f k) c))).card :=
+  ShenWork.Paper1.exists_rainbow_cellN_R2 hn k (ShenWork.Paper1.labelN f k)
+    (hR3_labelN_of_simplexZeroDoorCellsOld_odd hn hk hmaps hodd)
+
 theorem image_simplexFacets_toKFacet_eq_facetsN {n k : ℕ} (hn : 0 < n) :
     (simplexFacets n k).image (toKFacet k) = ShenWork.Paper1.facetsN n k := by
   classical
@@ -2651,6 +3648,47 @@ theorem cellMemN_toKCell_iff {n k : ℕ} (hn : 0 < n) (c : Cell n) :
   · intro hc
     simpa [toKCell, ShenWork.Paper1.cellMemN] using
       old_cellValid_of_simplexCellValid hc
+
+theorem simplexZeroDoorPostLabels_labelN_door_iff_lower_rainbow {m k : ℕ}
+    {f : (Fin (m + 2) → ℝ) → (Fin (m + 2) → ℝ)} (hk : 0 < k)
+    (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (m + 2)))
+      (stdSimplex ℝ (Fin (m + 2))))
+    {d : Cell (m + 1)} (hd : d ∈ simplexCells (m + 1) k) :
+    simplexZeroDoorPostLabels (m + 1) k (ShenWork.Paper1.labelN f k) d =
+        Finset.univ.erase (Fin.last (m + 1))
+      ↔ isRainbow
+        (postProjectedLowerLabel k (ShenWork.Paper1.labelN f k)
+          (ShenWork.Paper1.faceCoordPerm (toKCell k d).2))
+        (oldZeroDoorLowerCell (toKCell k d)) := by
+  have hcOld : ShenWork.Paper1.cellMemN k (toKCell k d) :=
+    (cellMemN_toKCell_iff (Nat.succ_pos m) d).mpr (mem_simplexCells.mp hd)
+  simpa [simplexZeroDoorPostLabels] using
+    zeroDoorPostLabels_labelN_door_iff_lower_rainbow
+      (m := m) (k := k) (f := f) hk hmaps (c := toKCell k d) hcOld
+
+theorem mem_simplexZeroDoorCells_labelN_iff_lower_rainbow {m k : ℕ}
+    {f : (Fin (m + 2) → ℝ) → (Fin (m + 2) → ℝ)} (hk : 0 < k)
+    (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (m + 2)))
+      (stdSimplex ℝ (Fin (m + 2))))
+    {d : Cell (m + 1)} :
+    d ∈ simplexZeroDoorCells (m + 1) k (ShenWork.Paper1.labelN f k)
+      ↔ d ∈ simplexCells (m + 1) k ∧
+        appendSlack k d.1 (Fin.last (m + 1)) = ((m + 1 : ℕ) : ℤ) ∧
+        isRainbow
+          (postProjectedLowerLabel k (ShenWork.Paper1.labelN f k)
+            (ShenWork.Paper1.faceCoordPerm (toKCell k d).2))
+          (oldZeroDoorLowerCell (toKCell k d)) := by
+  constructor
+  · intro hd
+    rw [simplexZeroDoorCells, Finset.mem_filter] at hd
+    exact ⟨hd.1, hd.2.1,
+      (simplexZeroDoorPostLabels_labelN_door_iff_lower_rainbow
+        hk hmaps hd.1).mp hd.2.2⟩
+  · rintro ⟨hd, hlast, hrain⟩
+    rw [simplexZeroDoorCells, Finset.mem_filter]
+    exact ⟨hd, hlast,
+      (simplexZeroDoorPostLabels_labelN_door_iff_lower_rainbow
+        hk hmaps hd).mpr hrain⟩
 
 theorem old_dropOf_toKFacet_eq {n k : ℕ} {c : Cell n}
     {F : Finset (Fin n → ℤ)} (hb : cellBounds c F) :
@@ -2989,7 +4027,10 @@ facet sets (`card_bottomDoorFacets_eq_rainbow`) and proves those bottom facets a
 boundary facets.
 
 Closed here:
-* box bottom-face parity from recursive `BoundaryData`;
+* Freudenthal endpoint reconstruction and R2 singleton invalid-partner:
+  `boundary_singleton_invalid`;
+* box bottom-face parity from recursive `BoundaryData`, and the stronger
+  `BoundaryBottomData` route where R2 is supplied internally;
 * simplex-alcove carriers `simplexCells`/`simplexFacets`;
 * transport of cells, facets, labels, rainbow counts, partners, and boundary predicates between
   `simplexCells` and the old barycentric `cellsN`/`facetsN`;
@@ -3006,16 +4047,26 @@ Closed here:
   `exists_rainbow_cellN_R2_labelN_of_simplexLabelN_hR3`;
 * concrete zero-coordinate exclusion for the pulled Sperner label (`labelN_ne_of_zero`,
   `simplexLabelN_ne_of_appendSlack_zero`, `simplexLabelN_ne_last_of_slack_zero`).
+* post-projection zero-door labelling:
+  `simplexZeroDoorCells` now uses `transferLastMass` before relabelling on the literal face;
+  the legacy pre-projection target is preserved as `simplexZeroDoorCellsOld`;
+* the `n=2,k=2` sanity check for
+  `(x₀,x₁,x₂) ↦ (x₀,x₁+x₂,0)`:
+  `counterexampleLabelN2_simplexZeroDoorCells_card = 1` and
+  `counterexampleLabelN2_simplexZeroDoorCellsOld_card = 0`; the matching
+  box post-projection bottom-door check is
+  `counterexampleLabelN2_boxBottomDoors_card = 1`;
+* the local post-projection bridge:
+  `zeroDoorPostLabels_labelN_door_iff_lower_rainbow` and
+  `mem_simplexZeroDoorCells_labelN_iff_lower_rainbow`.
 
 Still not closed here:
 * the concrete recursive slack-face parity
-  `Odd ((simplexFacets n k).filter
-    (fun F => F.image (simplexLabelN f k) = univ.erase (Fin.last n)
-      ∧ simplexBoundary hn k F)).card)`.
-  The audit above shows this cannot be obtained by treating the current transported
-  `simplexCells` facets as a literal slack-face subcomplex.  A genuinely boundary-compatible
-  type-A simplex carrier must replace this filter before the recursive hR3 proof can close;
-  after that proof, `hR3N_of_simplex_hR3` feeds the old `cellsN` output.
+  `Odd (simplexZeroDoorCells n k (labelN f k)).card)`.
+  The local bridge rewrites each post door as a rainbow lower cell, but the induced lower
+  label is rotated by the upper cell's `faceCoordPerm`; the remaining work is the global
+  type-A aggregation that turns these local lower-rainbow witnesses into a single
+  recursive parity count.
 -/
 
 #print axioms image_dropLast_bottomFacet
@@ -3024,13 +4075,26 @@ Still not closed here:
 #print axioms restrictCell_extendCell
 #print axioms bottomCells_eq_image_extend
 #print axioms card_bottomCells
+#print axioms mem_typeACells
+#print axioms mem_typeAFacets_iff
+#print axioms typeAChain_bottom_last_zero
+#print axioms typeAFinalFacet_bottom_last_zero
 #print axioms door_iff_bottomFaceColor_bijective
 #print axioms door_iff_extendCell_rainbow
 #print axioms card_bottomDoors_eq_rainbow
+#print axioms unitVec_injective
+#print axioms chainVZ_step
+#print axioms sum_total_facetSet
+#print axioms chainVZ_match_off
+#print axioms cell_eq_of_facetSet_eq_zero
+#print axioms cell_eq_of_facetSet_eq_last
 #print axioms chainSet_injective
 #print axioms hheart
 #print axioms partnerCell_involutive
 #print axioms partnerCell_bounds
+#print axioms bounds_endpoint_dichotomy
+#print axioms isBoundary_endpoint
+#print axioms boundary_singleton_invalid
 #print axioms hinterior_of_not_boundary
 #print axioms bounds_card_odd_iff_invalid
 #print axioms hboundaryOdd_of_singleton
@@ -3039,6 +4103,14 @@ Still not closed here:
 #print axioms finalFacet_extendCell_injective
 #print axioms card_bottomDoorFacets_eq_rainbow
 #print axioms bottomDoorFacets_odd_of_lower_rainbow_odd
+#print axioms zeroDoorFaceVertex_pull_eq_appendSlack
+#print axioms zeroDoorPostLabels_door_iff_lower_rainbow
+#print axioms zeroDoorPostLabels_labelN_door_iff_lower_rainbow
+#print axioms mem_simplexZeroDoorCells_labelN_iff_lower_rainbow
+#print axioms counterexampleLabelN2_simplexZeroDoorCells_card
+#print axioms counterexampleLabelN2_simplexZeroDoorCellsOld_card
+#print axioms counterexampleLabelN2_boxBottomDoors_card
+#print axioms counterexampleLabelN2_boxBottomDoors_odd
 #print axioms bottom_geometry_of_facet_last_zero
 #print axioms extendCell_finalFacet_boundary
 #print axioms bottomDoorFacets_subset_boundaryDoors
@@ -3048,8 +4120,15 @@ Still not closed here:
 #print axioms hR3_of_boundary_door_vertices_bottom
 #print axioms rainbow_count_succ_odd_of_boundary_data
 #print axioms rainbow_count_succ_odd_of_boundary_vertices_bottom
+#print axioms rainbow_count_succ_odd_of_boundary_vertices_bottom_R2
 #print axioms rainbow_count_odd_of_boundaryData
 #print axioms exists_rainbow_cellF_of_boundaryData
+#print axioms rainbow_count_odd_of_boundaryBottomData
+#print axioms bottomDoors_odd_of_boundaryBottomData
+#print axioms exists_rainbow_cellF_of_boundaryBottomData
+#print axioms zeroDoorFaceVertex_pull_castSucc
+#print axioms oldZeroDoorLowerCell_cellValid
+#print axioms oldZeroDoorLowerCell_mem_cells
 #print axioms old_cellValid_of_simplexCellValid
 #print axioms simplexCellValid_of_old_cellValid
 #print axioms image_simplexCells_toKCell_eq_cellsN
@@ -3073,6 +4152,10 @@ Still not closed here:
 #print axioms exists_rainbow_cellN_R2_of_simplex_hR3
 #print axioms simplex_boundary_singleton_invalid
 #print axioms exists_rainbow_simplex_of_hR3
+#print axioms image_simplexZeroDoorCellsOld_toKCell_eq_zeroDoorCellsN
+#print axioms card_simplexZeroDoorCellsOld_eq_zeroDoorCellsN
+#print axioms hR3_labelN_of_simplexZeroDoorCellsOld_odd
+#print axioms exists_rainbow_cellN_R2_labelN_of_simplexZeroDoorCellsOld_odd
 #print axioms labelN_ne_of_zero
 #print axioms simplexLabelN_ne_of_appendSlack_zero
 #print axioms simplexLabelN_ne_last_of_slack_zero
