@@ -453,15 +453,70 @@ theorem b1_chiNeg_existence_rothe_rootPin
     (hpos : ∀ U, InMonotoneWaveTrapSet κ M U → (∀ x, 0 < U x))
     (hfloor : ∀ U, InMonotoneWaveTrapSet κ M U → PaperPositiveInitialDatum U)
     (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
-    (hroot : ∀ U, InMonotoneWaveTrapSet κ M U →
+    (hflat : ∀ U, InMonotoneWaveTrapSet κ M U →
       (∀ x, frozenWaveOperator p c U U x = 0) →
-        ∀ L : ℝ, Tendsto U atBot (𝓝 L) → reactionFun p.α L = 0)
+        FrozenStationaryFlatAtLeft p U)
     (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
     ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
   b1_chiNeg_existence_of_schauderData_rootPin hc hprinciple
     (rotheSchauderData p c lam M Bv κ hlam hM hBv rotheSeq
       hŪbdd hHelly hdep hdata)
-    hGreen hpos hfloor hbdd hroot hlim_pos
+    hGreen hpos hfloor hbdd hflat hlim_pos
+
+/-- Rothe-Schauder B1 wrapper with direct fixed-point stationarity and floor
+positivity.  This removes the carried `hGreen` and `hpos` inputs from the
+profile surface. -/
+theorem b1_chiNeg_existence_rothe_stationary_floor
+    (p : CMParams) (c lam M Bv κ : ℝ)
+    (hc : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hHelly : HellyPointwiseSelection M)
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M) rotheSeq)
+    (hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
+        RotheOrbitData p c lam M Bv κ rotheSeq u)
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
+    (hstationary : ∀ U, InMonotoneWaveTrapSet κ M U →
+        rotheLimit (rotheSeq U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hfloor : ∀ U, InMonotoneWaveTrapSet κ M U → PaperPositiveInitialDatum U)
+    (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
+    (hlim_neg : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atBot (𝓝 1))
+    (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
+    ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
+  b1_chiNeg_existence_of_schauderData_stationary_floor hc hprinciple
+    (rotheSchauderData p c lam M Bv κ hlam hM hBv rotheSeq
+      hŪbdd hHelly hdep hdata)
+    hstationary hfloor hbdd hlim_neg hlim_pos
+
+/-- Rothe-Schauder B1 wrapper with direct fixed-point stationarity, floor
+positivity, and route-b left endpoint from stationary flatness. -/
+theorem b1_chiNeg_existence_rothe_stationary_floor_rootPin
+    (p : CMParams) (c lam M Bv κ : ℝ)
+    (hc : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hHelly : HellyPointwiseSelection M)
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M) rotheSeq)
+    (hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
+        RotheOrbitData p c lam M Bv κ rotheSeq u)
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
+    (hstationary : ∀ U, InMonotoneWaveTrapSet κ M U →
+        rotheLimit (rotheSeq U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hfloor : ∀ U, InMonotoneWaveTrapSet κ M U → PaperPositiveInitialDatum U)
+    (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
+    (hflat : ∀ U, InMonotoneWaveTrapSet κ M U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U)
+    (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
+    ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
+  b1_chiNeg_existence_of_schauderData_stationary_floor_rootPin hc hprinciple
+    (rotheSchauderData p c lam M Bv κ hlam hM hBv rotheSeq
+      hŪbdd hHelly hdep hdata)
+    hstationary hfloor hbdd hflat hlim_pos
 
 /-! ## Axiom audit -/
 
@@ -475,6 +530,8 @@ section AxiomAudit
 #print axioms rotheSchauderData
 #print axioms b1_chiNeg_existence_rothe
 #print axioms b1_chiNeg_existence_rothe_rootPin
+#print axioms b1_chiNeg_existence_rothe_stationary_floor
+#print axioms b1_chiNeg_existence_rothe_stationary_floor_rootPin
 
 end AxiomAudit
 

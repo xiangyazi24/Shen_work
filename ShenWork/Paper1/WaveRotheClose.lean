@@ -217,10 +217,16 @@ theorem b1_chiNeg_existence_clean
     (hlim_neg : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atBot (𝓝 1))
     (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
     ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
-  b1_chiNeg_existence p c lam M Bv κ Λ hc hlam hM hBv hκ hΛ0 hΛM
-    hprodTrap hbarLip hŪbdd
-    (frozenElliptic_deriv_continuous_trap p)
-    hVbound hdep hprinciple hGreen hpos hbdd hlim_neg hlim_pos
+  b1_chiNeg_existence_rothe p c lam M Bv κ hc hlam hM hBv
+    (rotheSeqFromTrap p c lam M κ Λ hprodTrap hκ hM)
+    hŪbdd
+    (helly_pointwise_selection M)
+    hdep
+    (fun u hu =>
+      rotheOrbitData_fromTrap hprodTrap hκ hM hΛ0 hΛM Bv hbarLip hu
+        (frozenElliptic_deriv_continuous_trap p u hu)
+        (hVbound u hu))
+    hprinciple hGreen hpos hbdd hlim_neg hlim_pos
 
 section AxiomAudit
 

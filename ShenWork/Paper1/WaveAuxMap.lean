@@ -289,6 +289,21 @@ theorem fixedPoint_stationary
   unfold auxRHS at hid
   linarith [hid]
 
+/-- Conversely, at an auxiliary fixed point, frozen stationarity is exactly the
+Green identity written for `auxMap`.  This is only algebraic: it does not produce
+stationarity from the fixed-point equation. -/
+theorem greenIdentity_of_stationary_fixedPoint
+    (p : CMParams) (c lam : ℝ) (u : ℝ → ℝ)
+    (hfix : auxMap p c lam u = u)
+    (hstat : ∀ x, frozenWaveOperator p c u u x = 0) :
+    GreenIdentity p c lam u := by
+  intro x
+  have hstatx := hstat x
+  rw [frozenWaveOperator_eq_aux] at hstatx
+  rw [hfix]
+  unfold auxRHS at *
+  linarith [hstatx]
+
 /-- **L4′ — fixed-point ⟹ paper-form stationarity.**
 Under the differentiability hypotheses that hold on the trap set, the
 frozen stationarity from L4 transfers to the paper's expanded
@@ -308,5 +323,11 @@ theorem fixedPoint_paper_stationary
   rw [paperWaveOperator_eq_frozenWaveOperator_at_fixed_point p x hU hU_nonneg
     (hU_diff x) (hV_diff x) (hU_rpow_diff x)]
   exact hstat
+
+section AxiomAudit
+
+#print axioms greenIdentity_of_stationary_fixedPoint
+
+end AxiomAudit
 
 end ShenWork.Paper1

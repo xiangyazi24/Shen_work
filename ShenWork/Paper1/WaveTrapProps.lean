@@ -53,6 +53,21 @@ theorem monotoneTrap_profile_hlim_pos {κ M : ℝ} (hκ : 0 < κ) :
       InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0) :=
   fun _U hU => hU.tendsto_atTop_zero hκ
 
+/-- A paper-positive datum is strictly positive at every point, by its uniform
+floor. -/
+theorem PaperPositiveInitialDatum.pos {U : ℝ → ℝ}
+    (hfloor : PaperPositiveInitialDatum U) :
+    ∀ x, 0 < U x :=
+  hfloor.floor.pos
+
+/-- Exact universal `hpos` profile obligation discharged from the
+paper-positive floor carried for each trapped profile. -/
+theorem monotoneTrap_profile_hpos_of_floor {κ M : ℝ}
+    (hfloor : ∀ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet κ M U → PaperPositiveInitialDatum U) :
+    ∀ U : ℝ → ℝ, InMonotoneWaveTrapSet κ M U → ∀ x, 0 < U x :=
+  fun U hU => (hfloor U hU).pos
+
 /-- A monotone-wave-trap profile has a finite left limit.
 
 This is the monotone-convergence part of the route to the left endpoint:
@@ -155,6 +170,16 @@ theorem InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_floor
   have hL : 0 < L := hleft.limit_pos hlim
   exact tendsto_atBot_one_of_reaction_root_pin hα hlim hL (hroot L hlim)
 
+/-- Flatness of a stationary frozen profile at the left endpoint: the two
+linear derivative terms and the chemotactic flux derivative vanish at `-∞`. -/
+def FrozenStationaryFlatAtLeft (p : CMParams) (U : ℝ → ℝ) : Prop :=
+  Tendsto (fun x => iteratedDeriv 2 U x) atBot (𝓝 0) ∧
+    Tendsto (fun x => deriv U x) atBot (𝓝 0) ∧
+      Tendsto
+        (fun x => deriv
+          (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) x)
+        atBot (𝓝 0)
+
 /-- Stationary-limit root step under the explicit flatness hypotheses at
 `-∞`.  This isolates the analytic input still needed to derive `hroot` from
 the stationary equation. -/
@@ -196,6 +221,21 @@ theorem reactionFun_root_of_stationary_flat_limit
   have hzero : Tendsto (fun x => frozenWaveOperator p c U U x) atBot (𝓝 0) := by
     simpa [hstat] using (tendsto_const_nhds : Tendsto (fun _ : ℝ => (0 : ℝ)) atBot (𝓝 0))
   exact tendsto_nhds_unique hop hzero
+
+/-- Single-profile route (b) with all analytic ingredients explicit:
+monotone bounded left limit, stationary-flat root, and paper floor pin. -/
+theorem InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_floor
+    {κ M : ℝ} {p : CMParams} {c : ℝ} {U : ℝ → ℝ}
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hfloor : PaperPositiveInitialDatum U)
+    (hflat : FrozenStationaryFlatAtLeft p U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0) :
+    Tendsto U atBot (𝓝 1) := by
+  refine InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_floor
+    p hU hfloor ?_
+  intro L hlim
+  exact reactionFun_root_of_stationary_flat_limit hlim
+    hflat.1 hflat.2.1 hflat.2.2 hstat
 
 /-- Formal route (b): monotone left limit + reaction-root + lower-pin. -/
 theorem monotoneTrap_profile_hlim_neg_of_limit_root_and_pin
@@ -340,6 +380,8 @@ theorem not_monotoneTrap_profile_hlim_neg {κ M : ℝ} (hM : 0 ≤ M) :
 section AxiomAudit
 #print axioms monotoneTrap_profile_hbdd
 #print axioms monotoneTrap_profile_hlim_pos
+#print axioms PaperPositiveInitialDatum.pos
+#print axioms monotoneTrap_profile_hpos_of_floor
 #print axioms monotoneTrap_left_limit_exists
 #print axioms StrictlyPositiveAtLeft.limit_pos
 #print axioms reactionFun_root_eq_one_of_pos
@@ -348,6 +390,7 @@ section AxiomAudit
 #print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_pos
 #print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_floor
 #print axioms reactionFun_root_of_stationary_flat_limit
+#print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_floor
 #print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_pin
 #print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_pos
 #print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_floor

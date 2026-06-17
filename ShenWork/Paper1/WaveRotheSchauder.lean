@@ -151,9 +151,9 @@ theorem b1_chiNeg_existence_of_schauderData
 /-- Monotone-trap Schauder wrapper with the left endpoint produced by route (b).
 
 Compared with `b1_chiNeg_existence_of_schauderData`, this removes the carried
-`hlim_neg` profile input.  It instead consumes the precise stationary-limit
-root statement for the produced profile; the paper uniform floor supplies the
-lower pin at `-∞`. -/
+`hlim_neg` profile input.  It instead consumes the flatness of the produced
+stationary profile at `-∞`; stationarity makes the left limit a reaction root,
+and the paper uniform floor rules out the zero root. -/
 theorem b1_chiNeg_existence_of_schauderData_rootPin
     {p : CMParams} {c lam κ M : ℝ} {Tmap : (ℝ → ℝ) → ℝ → ℝ}
     (hc : 0 < c)
@@ -167,22 +167,80 @@ theorem b1_chiNeg_existence_of_schauderData_rootPin
     (hpos : ∀ U, InMonotoneWaveTrapSet κ M U → (∀ x, 0 < U x))
     (hfloor : ∀ U, InMonotoneWaveTrapSet κ M U → PaperPositiveInitialDatum U)
     (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
-    (hroot : ∀ U, InMonotoneWaveTrapSet κ M U →
+    (hflat : ∀ U, InMonotoneWaveTrapSet κ M U →
       (∀ x, frozenWaveOperator p c U U x = 0) →
-        ∀ L : ℝ, Tendsto U atBot (𝓝 L) → reactionFun p.α L = 0)
+        FrozenStationaryFlatAtLeft p U)
     (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
     ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U := by
   obtain ⟨U, hU, hstat⟩ :=
     hdata.exists_self_frozen_stationary hprinciple hGreen
   have hlim_neg : Tendsto U atBot (𝓝 1) :=
-    InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_floor p hU
-      (hfloor U hU) (hroot U hU hstat)
+    InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_floor
+      (p := p) (c := c) hU (hfloor U hU) (hflat U hU hstat) hstat
   refine ⟨U, hU, ?_⟩
   exact FrozenStationaryWaveProfile.mk_auto_limits hc (hpos U hU) (hbdd U hU)
     hstat hlim_neg (hlim_pos U hU)
 
+/-- Schauder-data wrapper whose fixed-point stationarity is supplied directly,
+and whose strict positivity is supplied by the paper-positive floor.
+
+This removes the two profile-surface inputs `hGreen` and `hpos`: the theorem
+does not ask for a Green identity, and the pointwise positivity is discharged by
+`PaperPositiveInitialDatum.floor`. -/
+theorem b1_chiNeg_existence_of_schauderData_stationary_floor
+    {p : CMParams} {c lam : ℝ} {trap : (ℝ → ℝ) → Prop}
+    {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hc : 0 < c)
+    (hprinciple : LocalUniformSchauderFixedPointPrinciple trap)
+    (hdata : FrozenStationaryMapSchauderData p c lam trap Tmap)
+    (hstationary : ∀ U, trap U → Tmap U = U →
+      ∀ x, frozenWaveOperator p c U U x = 0)
+    (hfloor : ∀ U, trap U → PaperPositiveInitialDatum U)
+    (hbdd : ∀ U, trap U → IsCUnifBdd U)
+    (hlim_neg : ∀ U, trap U → Tendsto U atBot (𝓝 1))
+    (hlim_pos : ∀ U, trap U → Tendsto U atTop (𝓝 0)) :
+    ∃ U, trap U ∧ FrozenStationaryWaveProfile p c U := by
+  obtain ⟨U, hU, hfix⟩ :=
+    hprinciple Tmap hdata.invariant hdata.continuousOn hdata.compactRange
+  refine ⟨U, hU, ?_⟩
+  exact FrozenStationaryWaveProfile.mk_auto_limits hc
+    ((hfloor U hU).pos) (hbdd U hU)
+    (hstationary U hU hfix) (hlim_neg U hU) (hlim_pos U hU)
+
+/-- Monotone-trap Schauder wrapper with direct fixed-point stationarity, paper
+floor positivity, and route-b left endpoint from stationary flatness. -/
+theorem b1_chiNeg_existence_of_schauderData_stationary_floor_rootPin
+    {p : CMParams} {c lam κ M : ℝ} {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hc : 0 < c)
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
+    (hdata :
+      FrozenStationaryMapSchauderData p c lam
+        (InMonotoneWaveTrapSet κ M) Tmap)
+    (hstationary : ∀ U, InMonotoneWaveTrapSet κ M U → Tmap U = U →
+      ∀ x, frozenWaveOperator p c U U x = 0)
+    (hfloor : ∀ U, InMonotoneWaveTrapSet κ M U → PaperPositiveInitialDatum U)
+    (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
+    (hflat : ∀ U, InMonotoneWaveTrapSet κ M U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U)
+    (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
+    ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U := by
+  obtain ⟨U, hU, hfix⟩ :=
+    hprinciple Tmap hdata.invariant hdata.continuousOn hdata.compactRange
+  have hstat : ∀ x, frozenWaveOperator p c U U x = 0 :=
+    hstationary U hU hfix
+  have hlim_neg : Tendsto U atBot (𝓝 1) :=
+    InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_floor
+      (p := p) (c := c) hU (hfloor U hU) (hflat U hU hstat) hstat
+  refine ⟨U, hU, ?_⟩
+  exact FrozenStationaryWaveProfile.mk_auto_limits hc
+    ((hfloor U hU).pos) (hbdd U hU) hstat hlim_neg (hlim_pos U hU)
+
 section AxiomAudit
 #print axioms b1_chiNeg_existence_of_schauderData_rootPin
+#print axioms b1_chiNeg_existence_of_schauderData_stationary_floor
+#print axioms b1_chiNeg_existence_of_schauderData_stationary_floor_rootPin
 end AxiomAudit
 
 end ShenWork.Paper1

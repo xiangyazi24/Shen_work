@@ -160,18 +160,22 @@ theorem b1_chiPos_existence
         ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
     (hstep : RotheSeqStepDependence p c lam M κ Λ
         (rotheStepProducer_of_floor
-          (fun v => rotheStepFloor_of_residual (rotheFloorResidual_of_core (hcoreAll v))))
+          (fun v _hv =>
+            rotheStepFloor_of_residual (rotheFloorResidual_of_core (hcoreAll v))))
         hκ0 hM)
     (htail : RotheTailUniform p c lam M κ Λ
         (rotheStepProducer_of_floor
-          (fun v => rotheStepFloor_of_residual (rotheFloorResidual_of_core (hcoreAll v))))
+          (fun v _hv =>
+            rotheStepFloor_of_residual (rotheFloorResidual_of_core (hcoreAll v))))
         hκ0 hM)
     (hprinciple : LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
     (hGreen : ∀ U, InMonotoneWaveTrapSet κ M U →
-        rotheLimit (rotheSeqOf p c lam M κ Λ U
+        rotheLimit
+          ((rotheSeqFromTrap p c lam M κ Λ
           (rotheStepProducer_of_floor
-            (fun v => rotheStepFloor_of_residual
-              (rotheFloorResidual_of_core (hcoreAll v))) U) hκ0 hM) = U →
+            (fun v _hv => rotheStepFloor_of_residual
+              (rotheFloorResidual_of_core (hcoreAll v))))
+          hκ0 hM) U) = U →
           GreenIdentity p c lam U)
     (hpos : ∀ U, InMonotoneWaveTrapSet κ M U → (∀ x, 0 < U x))
     (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
@@ -180,11 +184,12 @@ theorem b1_chiPos_existence
     ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
   b1_chiNeg_existence_unconditional p c lam M Bv κ Λ
     hc0 hlam hM hBv hκ0 hΛ0 hΛM
-    (fun v => rotheFloorResidual_of_core (hcoreAll v))
+    (fun v _hv => rotheFloorResidual_of_core (hcoreAll v))
     hbarLip hŪbdd hVbound hstep htail hprinciple hGreen hpos hbdd hlim_neg hlim_pos
 
-/-- Positive-sensitivity B1 existence with `hlim_neg` replaced by the route-b
-reaction-root frontier. -/
+/-- Positive-sensitivity B1 existence with `hlim_neg` produced by route (b):
+the fixed point is stationary, the flat left limit makes the reaction vanish at
+the left limit, and the paper uniform floor pins that root to `1`. -/
 theorem b1_chiPos_existence_rootPin
     (p : CMParams) (c lam M Bv κ Λ : ℝ)
     (hc0 : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
@@ -196,33 +201,54 @@ theorem b1_chiPos_existence_rootPin
         ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
     (hstep : RotheSeqStepDependence p c lam M κ Λ
         (rotheStepProducer_of_floor
-          (fun v => rotheStepFloor_of_residual
+          (fun v _hv => rotheStepFloor_of_residual
             (rotheFloorResidual_of_core (hcoreAll v))))
         hκ0 hM)
     (htail : RotheTailUniform p c lam M κ Λ
         (rotheStepProducer_of_floor
-          (fun v => rotheStepFloor_of_residual
+          (fun v _hv => rotheStepFloor_of_residual
             (rotheFloorResidual_of_core (hcoreAll v))))
         hκ0 hM)
     (hprinciple : LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
     (hGreen : ∀ U, InMonotoneWaveTrapSet κ M U →
-        rotheLimit (rotheSeqOf p c lam M κ Λ U
+        rotheLimit
+          ((rotheSeqFromTrap p c lam M κ Λ
           (rotheStepProducer_of_floor
-            (fun v => rotheStepFloor_of_residual
-              (rotheFloorResidual_of_core (hcoreAll v))) U) hκ0 hM) = U →
+            (fun v _hv => rotheStepFloor_of_residual
+              (rotheFloorResidual_of_core (hcoreAll v))))
+          hκ0 hM) U) = U →
           GreenIdentity p c lam U)
     (hpos : ∀ U, InMonotoneWaveTrapSet κ M U → (∀ x, 0 < U x))
     (hfloor : ∀ U, InMonotoneWaveTrapSet κ M U → PaperPositiveInitialDatum U)
     (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
-    (hroot : ∀ U, InMonotoneWaveTrapSet κ M U →
-      ∀ L : ℝ, Tendsto U atBot (𝓝 L) → reactionFun p.α L = 0)
+    (hflat : ∀ U, InMonotoneWaveTrapSet κ M U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U)
     (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
-    ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
-  b1_chiPos_existence p c lam M Bv κ Λ hc0 hlam hM hBv
-    hκ0 hΛ0 hΛM hcoreAll hbarLip hŪbdd hVbound hstep htail
-    hprinciple hGreen hpos hbdd
-    (monotoneTrap_profile_hlim_neg_of_limit_root_and_floor p hroot hfloor)
-    hlim_pos
+    ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U := by
+  let hfloorTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      RotheStepFloor p c lam M κ Λ v :=
+    fun v _hv =>
+      rotheStepFloor_of_residual (rotheFloorResidual_of_core (hcoreAll v))
+  let hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      RotheStepProducer p c lam M κ Λ v :=
+    rotheStepProducer_of_floor hfloorTrap
+  exact b1_chiNeg_existence_rothe_rootPin p c lam M Bv κ hc0 hlam hM hBv
+    (rotheSeqFromTrap p c lam M κ Λ hprodTrap hκ0 hM)
+    hŪbdd
+    (helly_pointwise_selection M)
+    (by
+      simpa [hprodTrap, hfloorTrap] using
+        rotheContinuousDependence p c lam M κ Λ hprodTrap hκ0 hM hstep htail)
+    (fun u hu =>
+      rotheOrbitData_fromTrap hprodTrap hκ0 hM hΛ0 hΛM Bv hbarLip hu
+        (frozenElliptic_deriv_continuous_trap p u hu)
+        (hVbound u hu))
+    hprinciple
+    (by
+      intro U hU hfix
+      exact hGreen U hU (by simpa [hprodTrap, hfloorTrap] using hfix))
+    hpos hfloor hbdd hflat hlim_pos
 
 /-- Positive-sensitivity B1 existence with the trap-derived profile obligations
 `hbdd` and `hlim_pos` discharged.  The remaining profile inputs are the genuine
@@ -239,21 +265,23 @@ theorem b1_chiPos_existence_profileClean
         ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
     (hstep : RotheSeqStepDependence p c lam M κ Λ
         (rotheStepProducer_of_floor
-          (fun v => rotheStepFloor_of_residual
+          (fun v _hv => rotheStepFloor_of_residual
             (rotheFloorResidual_of_core (hcoreAll v))))
         hκpos.le hM)
     (htail : RotheTailUniform p c lam M κ Λ
         (rotheStepProducer_of_floor
-          (fun v => rotheStepFloor_of_residual
+          (fun v _hv => rotheStepFloor_of_residual
             (rotheFloorResidual_of_core (hcoreAll v))))
         hκpos.le hM)
     (hprinciple :
       LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
     (hGreen : ∀ U, InMonotoneWaveTrapSet κ M U →
-        rotheLimit (rotheSeqOf p c lam M κ Λ U
+        rotheLimit
+          ((rotheSeqFromTrap p c lam M κ Λ
           (rotheStepProducer_of_floor
-            (fun v => rotheStepFloor_of_residual
-              (rotheFloorResidual_of_core (hcoreAll v))) U) hκpos.le hM) = U →
+            (fun v _hv => rotheStepFloor_of_residual
+              (rotheFloorResidual_of_core (hcoreAll v))))
+          hκpos.le hM) U) = U →
           GreenIdentity p c lam U)
     (hpos : ∀ U, InMonotoneWaveTrapSet κ M U → (∀ x, 0 < U x))
     (hlim_neg :
@@ -266,8 +294,8 @@ theorem b1_chiPos_existence_profileClean
     hlim_neg
     (fun _U hU => hU.tendsto_atTop_zero hκpos)
 
-/-- Positive-sensitivity B1 existence with `hlim_neg` replaced by the route-b
-reaction-root frontier.  The lower pin is supplied by `hpos` and monotonicity. -/
+/-- Positive-sensitivity B1 existence with `hlim_neg` produced by route (b);
+`hbdd` and the right endpoint are trap-derived. -/
 theorem b1_chiPos_existence_profileClean_rootPin
     (p : CMParams) (c lam M Bv κ Λ : ℝ)
     (hc0 : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
@@ -280,31 +308,244 @@ theorem b1_chiPos_existence_profileClean_rootPin
         ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
     (hstep : RotheSeqStepDependence p c lam M κ Λ
         (rotheStepProducer_of_floor
-          (fun v => rotheStepFloor_of_residual
+          (fun v _hv => rotheStepFloor_of_residual
             (rotheFloorResidual_of_core (hcoreAll v))))
         hκpos.le hM)
     (htail : RotheTailUniform p c lam M κ Λ
         (rotheStepProducer_of_floor
-          (fun v => rotheStepFloor_of_residual
+          (fun v _hv => rotheStepFloor_of_residual
             (rotheFloorResidual_of_core (hcoreAll v))))
         hκpos.le hM)
     (hprinciple :
       LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
     (hGreen : ∀ U, InMonotoneWaveTrapSet κ M U →
-        rotheLimit (rotheSeqOf p c lam M κ Λ U
+        rotheLimit
+          ((rotheSeqFromTrap p c lam M κ Λ
           (rotheStepProducer_of_floor
-            (fun v => rotheStepFloor_of_residual
-              (rotheFloorResidual_of_core (hcoreAll v))) U) hκpos.le hM) = U →
+            (fun v _hv => rotheStepFloor_of_residual
+              (rotheFloorResidual_of_core (hcoreAll v))))
+          hκpos.le hM) U) = U →
           GreenIdentity p c lam U)
     (hpos : ∀ U, InMonotoneWaveTrapSet κ M U → (∀ x, 0 < U x))
     (hfloor : ∀ U, InMonotoneWaveTrapSet κ M U → PaperPositiveInitialDatum U)
-    (hroot : ∀ U, InMonotoneWaveTrapSet κ M U →
-      ∀ L : ℝ, Tendsto U atBot (𝓝 L) → reactionFun p.α L = 0) :
+    (hflat : ∀ U, InMonotoneWaveTrapSet κ M U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
     ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
-  b1_chiPos_existence_profileClean p c lam M Bv κ Λ
-    hc0 hlam hM hBv hκpos hΛ0 hΛM hcoreAll hbarLip hŪbdd
-    hVbound hstep htail hprinciple hGreen hpos
-    (monotoneTrap_profile_hlim_neg_of_limit_root_and_floor p hroot hfloor)
+  b1_chiPos_existence_rootPin p c lam M Bv κ Λ
+    hc0 hlam hM hBv hκpos.le hΛ0 hΛM hcoreAll hbarLip hŪbdd hVbound
+    hstep htail hprinciple hGreen hpos hfloor
+    (fun _U hU => hU.trap.cunif_bdd)
+    hflat
+    (fun _U hU => hU.tendsto_atTop_zero hκpos)
+
+/-- Positive-sensitivity B1 existence with fixed-point stationarity supplied
+directly and strict positivity discharged by the paper-positive floor. -/
+theorem b1_chiPos_existence_stationary_floor
+    (p : CMParams) (c lam M Bv κ Λ : ℝ)
+    (hc0 : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
+    (hκ0 : 0 ≤ κ) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hcoreAll : ∀ v, RotheFloorResidualCore p c lam M κ Λ v)
+    (hbarLip : ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hVbound : ∀ u, InMonotoneWaveTrapSet κ M u →
+        ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
+    (hstep : RotheSeqStepDependence p c lam M κ Λ
+        (rotheStepProducer_of_floor
+          (fun v _hv => rotheStepFloor_of_residual
+            (rotheFloorResidual_of_core (hcoreAll v))))
+        hκ0 hM)
+    (htail : RotheTailUniform p c lam M κ Λ
+        (rotheStepProducer_of_floor
+          (fun v _hv => rotheStepFloor_of_residual
+            (rotheFloorResidual_of_core (hcoreAll v))))
+        hκ0 hM)
+    (hprinciple : LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
+    (hstationary : ∀ U, InMonotoneWaveTrapSet κ M U →
+        rotheLimit
+          ((rotheSeqFromTrap p c lam M κ Λ
+          (rotheStepProducer_of_floor
+            (fun v _hv => rotheStepFloor_of_residual
+              (rotheFloorResidual_of_core (hcoreAll v))))
+          hκ0 hM) U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hfloor : ∀ U, InMonotoneWaveTrapSet κ M U → PaperPositiveInitialDatum U)
+    (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
+    (hlim_neg : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atBot (𝓝 1))
+    (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
+    ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U := by
+  let hfloorTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      RotheStepFloor p c lam M κ Λ v :=
+    fun v _hv =>
+      rotheStepFloor_of_residual (rotheFloorResidual_of_core (hcoreAll v))
+  let hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      RotheStepProducer p c lam M κ Λ v :=
+    rotheStepProducer_of_floor hfloorTrap
+  exact b1_chiNeg_existence_rothe_stationary_floor p c lam M Bv κ hc0 hlam hM hBv
+    (rotheSeqFromTrap p c lam M κ Λ hprodTrap hκ0 hM)
+    hŪbdd
+    (helly_pointwise_selection M)
+    (by
+      simpa [hprodTrap, hfloorTrap] using
+        rotheContinuousDependence p c lam M κ Λ hprodTrap hκ0 hM hstep htail)
+    (fun u hu =>
+      rotheOrbitData_fromTrap hprodTrap hκ0 hM hΛ0 hΛM Bv hbarLip hu
+        (frozenElliptic_deriv_continuous_trap p u hu)
+        (hVbound u hu))
+    hprinciple
+    (by
+      intro U hU hfix
+      exact hstationary U hU (by simpa [hprodTrap, hfloorTrap] using hfix))
+    hfloor hbdd hlim_neg hlim_pos
+
+/-- Positive-sensitivity B1 existence with fixed-point stationarity, floor
+positivity, and route-b left endpoint from stationary flatness. -/
+theorem b1_chiPos_existence_stationary_floor_rootPin
+    (p : CMParams) (c lam M Bv κ Λ : ℝ)
+    (hc0 : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
+    (hκ0 : 0 ≤ κ) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hcoreAll : ∀ v, RotheFloorResidualCore p c lam M κ Λ v)
+    (hbarLip : ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hVbound : ∀ u, InMonotoneWaveTrapSet κ M u →
+        ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
+    (hstep : RotheSeqStepDependence p c lam M κ Λ
+        (rotheStepProducer_of_floor
+          (fun v _hv => rotheStepFloor_of_residual
+            (rotheFloorResidual_of_core (hcoreAll v))))
+        hκ0 hM)
+    (htail : RotheTailUniform p c lam M κ Λ
+        (rotheStepProducer_of_floor
+          (fun v _hv => rotheStepFloor_of_residual
+            (rotheFloorResidual_of_core (hcoreAll v))))
+        hκ0 hM)
+    (hprinciple : LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
+    (hstationary : ∀ U, InMonotoneWaveTrapSet κ M U →
+        rotheLimit
+          ((rotheSeqFromTrap p c lam M κ Λ
+          (rotheStepProducer_of_floor
+            (fun v _hv => rotheStepFloor_of_residual
+              (rotheFloorResidual_of_core (hcoreAll v))))
+          hκ0 hM) U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hfloor : ∀ U, InMonotoneWaveTrapSet κ M U → PaperPositiveInitialDatum U)
+    (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
+    (hflat : ∀ U, InMonotoneWaveTrapSet κ M U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U)
+    (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
+    ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U := by
+  let hfloorTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      RotheStepFloor p c lam M κ Λ v :=
+    fun v _hv =>
+      rotheStepFloor_of_residual (rotheFloorResidual_of_core (hcoreAll v))
+  let hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      RotheStepProducer p c lam M κ Λ v :=
+    rotheStepProducer_of_floor hfloorTrap
+  exact b1_chiNeg_existence_rothe_stationary_floor_rootPin p c lam M Bv κ
+    hc0 hlam hM hBv
+    (rotheSeqFromTrap p c lam M κ Λ hprodTrap hκ0 hM)
+    hŪbdd
+    (helly_pointwise_selection M)
+    (by
+      simpa [hprodTrap, hfloorTrap] using
+        rotheContinuousDependence p c lam M κ Λ hprodTrap hκ0 hM hstep htail)
+    (fun u hu =>
+      rotheOrbitData_fromTrap hprodTrap hκ0 hM hΛ0 hΛM Bv hbarLip hu
+        (frozenElliptic_deriv_continuous_trap p u hu)
+        (hVbound u hu))
+    hprinciple
+    (by
+      intro U hU hfix
+      exact hstationary U hU (by simpa [hprodTrap, hfloorTrap] using hfix))
+    hfloor hbdd hflat hlim_pos
+
+/-- Profile-clean χ≥0 B1 existence with `hGreen` and `hpos` removed under the
+floor. -/
+theorem b1_chiPos_existence_profileClean_stationary_floor
+    (p : CMParams) (c lam M Bv κ Λ : ℝ)
+    (hc0 : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
+    (hκpos : 0 < κ) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hcoreAll : ∀ v, RotheFloorResidualCore p c lam M κ Λ v)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hVbound : ∀ u, InMonotoneWaveTrapSet κ M u →
+        ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
+    (hstep : RotheSeqStepDependence p c lam M κ Λ
+        (rotheStepProducer_of_floor
+          (fun v _hv => rotheStepFloor_of_residual
+            (rotheFloorResidual_of_core (hcoreAll v))))
+        hκpos.le hM)
+    (htail : RotheTailUniform p c lam M κ Λ
+        (rotheStepProducer_of_floor
+          (fun v _hv => rotheStepFloor_of_residual
+            (rotheFloorResidual_of_core (hcoreAll v))))
+        hκpos.le hM)
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
+    (hstationary : ∀ U, InMonotoneWaveTrapSet κ M U →
+        rotheLimit
+          ((rotheSeqFromTrap p c lam M κ Λ
+          (rotheStepProducer_of_floor
+            (fun v _hv => rotheStepFloor_of_residual
+              (rotheFloorResidual_of_core (hcoreAll v))))
+          hκpos.le hM) U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hfloor : ∀ U, InMonotoneWaveTrapSet κ M U → PaperPositiveInitialDatum U)
+    (hlim_neg :
+      ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atBot (𝓝 1)) :
+    ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
+  b1_chiPos_existence_stationary_floor p c lam M Bv κ Λ hc0 hlam hM hBv
+    hκpos.le hΛ0 hΛM hcoreAll hbarLip hŪbdd hVbound
+    hstep htail hprinciple hstationary hfloor
+    (fun _U hU => hU.trap.cunif_bdd)
+    hlim_neg
+    (fun _U hU => hU.tendsto_atTop_zero hκpos)
+
+/-- Profile-clean χ≥0 B1 existence with route-b left endpoint and with
+`hGreen`/`hpos` removed under the floor. -/
+theorem b1_chiPos_existence_profileClean_stationary_floor_rootPin
+    (p : CMParams) (c lam M Bv κ Λ : ℝ)
+    (hc0 : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
+    (hκpos : 0 < κ) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hcoreAll : ∀ v, RotheFloorResidualCore p c lam M κ Λ v)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hVbound : ∀ u, InMonotoneWaveTrapSet κ M u →
+        ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
+    (hstep : RotheSeqStepDependence p c lam M κ Λ
+        (rotheStepProducer_of_floor
+          (fun v _hv => rotheStepFloor_of_residual
+            (rotheFloorResidual_of_core (hcoreAll v))))
+        hκpos.le hM)
+    (htail : RotheTailUniform p c lam M κ Λ
+        (rotheStepProducer_of_floor
+          (fun v _hv => rotheStepFloor_of_residual
+            (rotheFloorResidual_of_core (hcoreAll v))))
+        hκpos.le hM)
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
+    (hstationary : ∀ U, InMonotoneWaveTrapSet κ M U →
+        rotheLimit
+          ((rotheSeqFromTrap p c lam M κ Λ
+          (rotheStepProducer_of_floor
+            (fun v _hv => rotheStepFloor_of_residual
+              (rotheFloorResidual_of_core (hcoreAll v))))
+          hκpos.le hM) U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hfloor : ∀ U, InMonotoneWaveTrapSet κ M U → PaperPositiveInitialDatum U)
+    (hflat : ∀ U, InMonotoneWaveTrapSet κ M U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
+    ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
+  b1_chiPos_existence_stationary_floor_rootPin p c lam M Bv κ Λ
+    hc0 hlam hM hBv hκpos.le hΛ0 hΛM hcoreAll hbarLip hŪbdd hVbound
+    hstep htail hprinciple hstationary hfloor
+    (fun _U hU => hU.trap.cunif_bdd)
+    hflat
+    (fun _U hU => hU.tendsto_atTop_zero hκpos)
 
 /-! ## 3. Axiom audit -/
 
@@ -314,6 +555,10 @@ section AxiomAudit
 #print axioms b1_chiPos_existence_rootPin
 #print axioms b1_chiPos_existence_profileClean
 #print axioms b1_chiPos_existence_profileClean_rootPin
+#print axioms b1_chiPos_existence_stationary_floor
+#print axioms b1_chiPos_existence_stationary_floor_rootPin
+#print axioms b1_chiPos_existence_profileClean_stationary_floor
+#print axioms b1_chiPos_existence_profileClean_stationary_floor_rootPin
 end AxiomAudit
 
 end ShenWork.Paper1
