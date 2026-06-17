@@ -241,6 +241,66 @@ theorem paperStepSource_continuous
   unfold paperStepSource
   exact hnonlin.add (continuous_const.mul hZ)
 
+/-- `C¹` regularity of the expanded paper-step source away from zeros of `W`.
+
+This is the smooth-source bootstrap used by the mollified approximants once a
+strict-positivity/nonzero input is available.  Without such an input, the real
+powers `W^r` at zeros are the remaining source-regularity frontier. -/
+theorem paperStepSource_contDiff_one_of_nonzero
+    (p : CMParams) (c lam : ℝ) {u Z W : ℝ → ℝ}
+    (hZ : ContDiff ℝ 1 Z)
+    (hW : ContDiff ℝ 2 W)
+    (hWnz : ∀ x, W x ≠ 0)
+    (hV : ContDiff ℝ 2 (frozenElliptic p u)) :
+    ContDiff ℝ 1 (paperStepSource p c lam u Z W) := by
+  let V := frozenElliptic p u
+  have hW1 : ContDiff ℝ 1 W := hW.of_le (by norm_num)
+  have hV1 : ContDiff ℝ 1 V := hV.of_le (by norm_num)
+  have hWd : ContDiff ℝ 1 (deriv W) := by
+    have hW2 : ContDiff ℝ ((1 : ℕ∞) + 1) W := by simpa using hW
+    exact (contDiff_succ_iff_deriv.mp hW2).2.2
+  have hVd : ContDiff ℝ 1 (deriv V) := by
+    have hV2 : ContDiff ℝ ((1 : ℕ∞) + 1) V := by simpa [V] using hV
+    exact (contDiff_succ_iff_deriv.mp hV2).2.2
+  have hWm1 : ContDiff ℝ 1 (fun x => W x ^ (p.m - 1)) :=
+    hW1.rpow_const_of_ne hWnz
+  have hWa : ContDiff ℝ 1 (fun x => W x ^ p.α) :=
+    hW1.rpow_const_of_ne hWnz
+  have hWmg : ContDiff ℝ 1 (fun x => W x ^ (p.m + p.γ - 1)) :=
+    hW1.rpow_const_of_ne hWnz
+  have hchem : ContDiff ℝ 1
+      (fun x => -p.χ * p.m * W x ^ (p.m - 1) * deriv V x * deriv W x) := by
+    exact (((contDiff_const :
+      ContDiff ℝ 1 (fun _ : ℝ => -p.χ * p.m)).mul hWm1).mul hVd).mul hWd
+  have hinner1 : ContDiff ℝ 1
+      (fun x => p.χ * W x ^ (p.m - 1) * V x) := by
+    exact (((contDiff_const :
+      ContDiff ℝ 1 (fun _ : ℝ => p.χ)).mul hWm1).mul hV1)
+  have hinner2 : ContDiff ℝ 1
+      (fun x => W x ^ p.α - p.χ * W x ^ (p.m + p.γ - 1)) := by
+    have hright : ContDiff ℝ 1
+        (fun x => p.χ * W x ^ (p.m + p.γ - 1)) := by
+      exact contDiff_const.mul hWmg
+    exact hWa.sub hright
+  have hbracket : ContDiff ℝ 1
+      (fun x => 1 - p.χ * W x ^ (p.m - 1) * V x -
+        (W x ^ p.α - p.χ * W x ^ (p.m + p.γ - 1))) := by
+    exact (contDiff_const.sub hinner1).sub hinner2
+  have hreac : ContDiff ℝ 1
+      (fun x => W x * (1 - p.χ * W x ^ (p.m - 1) * V x -
+        (W x ^ p.α - p.χ * W x ^ (p.m + p.γ - 1)))) :=
+    hW1.mul hbracket
+  have hlin : ContDiff ℝ 1 (fun x => lam * Z x) :=
+    contDiff_const.mul hZ
+  have htotal : ContDiff ℝ 1
+      (fun x =>
+        (-p.χ * p.m * W x ^ (p.m - 1) * deriv V x * deriv W x +
+          W x * (1 - p.χ * W x ^ (p.m - 1) * V x -
+            (W x ^ p.α - p.χ * W x ^ (p.m + p.γ - 1)))) +
+          lam * Z x) :=
+    (hchem.add hreac).add hlin
+  convert htotal using 1
+
 /-- Boundedness of the expanded paper step source from bounded `Z`, `W`, `W'`,
 `V`, and `V'`, with the usual nonnegative trapped range for `W`. -/
 theorem paperStepSource_bddFun
@@ -481,6 +541,89 @@ theorem paperStep_cont
     (hlam : 0 < lam) (ha : PaperStepAnalytic p c lam M κ Λ u Z W) :
     Continuous W :=
   (paperStep_diff (c := c) (lam := lam) hlam ha).continuous
+
+/-! ## Green regularity bootstrap
+
+The committed Green identity gives `W = greenConv c lam R`.  A continuous source
+gives `W ∈ C²`; if the source is `C¹`, the explicit tail formulas bootstrap the
+same representation to `W ∈ C³`.  The latter is the sharp interface for the
+paper Route-A maximum principle: `paperStepSource` contains the term `lam * Z`,
+so a merely continuous old iterate cannot yield a `C³` next step from the
+second-order resolvent alone. -/
+
+theorem tailHi_contDiff_one {r : ℝ} {H : ℝ → ℝ} (hH : Continuous H)
+    (hHi : ∀ t : ℝ, IntegrableOn (gWeight r H) (Ioi t)) :
+    ContDiff ℝ 1 (tailHi r H) := by
+  have hdiff : Differentiable ℝ (tailHi r H) :=
+    fun x => (tailHi_hasDerivAt hH hHi x).differentiableAt
+  have hderiv : deriv (tailHi r H) = fun x => -gWeight r H x := by
+    funext x
+    exact (tailHi_hasDerivAt hH hHi x).deriv
+  have hcont : Continuous (deriv (tailHi r H)) := by
+    rw [hderiv]
+    exact (gWeight_continuous (r := r) hH).neg
+  exact contDiff_one_iff_deriv.2 ⟨hdiff, hcont⟩
+
+theorem tailLo_contDiff_one {r : ℝ} {H : ℝ → ℝ} (hH : Continuous H)
+    (hLo : ∀ t : ℝ, IntegrableOn (gWeight r H) (Iic t)) :
+    ContDiff ℝ 1 (tailLo r H) := by
+  have hdiff : Differentiable ℝ (tailLo r H) :=
+    fun x => (tailLo_hasDerivAt hH hLo x).differentiableAt
+  have hderiv : deriv (tailLo r H) = fun x => gWeight r H x := by
+    funext x
+    exact (tailLo_hasDerivAt hH hLo x).deriv
+  have hcont : Continuous (deriv (tailLo r H)) := by
+    rw [hderiv]
+    exact gWeight_continuous (r := r) hH
+  exact contDiff_one_iff_deriv.2 ⟨hdiff, hcont⟩
+
+theorem greenConvDeriv2_contDiff_one {H : ℝ → ℝ} (hH : ContDiff ℝ 1 H)
+    (hHi : ∀ t : ℝ, IntegrableOn (gWeight (greenRootPlus c lam) H) (Ioi t))
+    (hLo : ∀ t : ℝ, IntegrableOn (gWeight (greenRootMinus c lam) H) (Iic t)) :
+    ContDiff ℝ 1 (greenConvDeriv2 c lam H) := by
+  unfold greenConvDeriv2
+  have hHc : Continuous H := hH.continuous
+  have hTH : ContDiff ℝ 1 (tailHi (greenRootPlus c lam) H) :=
+    tailHi_contDiff_one hHc hHi
+  have hTL : ContDiff ℝ 1 (tailLo (greenRootMinus c lam) H) :=
+    tailLo_contDiff_one hHc hLo
+  fun_prop
+
+theorem greenConvDeriv_contDiff_two {H : ℝ → ℝ} (hH : ContDiff ℝ 1 H)
+    (hHi : ∀ t : ℝ, IntegrableOn (gWeight (greenRootPlus c lam) H) (Ioi t))
+    (hLo : ∀ t : ℝ, IntegrableOn (gWeight (greenRootMinus c lam) H) (Iic t)) :
+    ContDiff ℝ 2 (greenConvDeriv c lam H) := by
+  have hHc : Continuous H := hH.continuous
+  have hdiff : Differentiable ℝ (greenConvDeriv c lam H) :=
+    fun x => (greenConvDeriv_hasDerivAt hHc hHi hLo x).differentiableAt
+  have hderiv : deriv (greenConvDeriv c lam H) = greenConvDeriv2 c lam H := by
+    funext x
+    exact (greenConvDeriv_hasDerivAt hHc hHi hLo x).deriv
+  have hone : ContDiff ℝ 1 (deriv (greenConvDeriv c lam H)) := by
+    rw [hderiv]
+    exact greenConvDeriv2_contDiff_one hH hHi hLo
+  rw [show (2 : WithTop ℕ∞) = 1 + 1 from rfl, contDiff_succ_iff_deriv]
+  refine ⟨hdiff, ?_, hone⟩
+  intro hω
+  exact absurd hω (by decide)
+
+theorem greenConv_contDiff_three {H : ℝ → ℝ} (hH : ContDiff ℝ 1 H)
+    (hHi : ∀ t : ℝ, IntegrableOn (gWeight (greenRootPlus c lam) H) (Ioi t))
+    (hLo : ∀ t : ℝ, IntegrableOn (gWeight (greenRootMinus c lam) H) (Iic t)) :
+    ContDiff ℝ 3 (greenConv c lam H) := by
+  have hHc : Continuous H := hH.continuous
+  have hdiff : Differentiable ℝ (greenConv c lam H) :=
+    fun x => (greenConv_hasDerivAt hHc hHi hLo x).differentiableAt
+  have hderiv : deriv (greenConv c lam H) = greenConvDeriv c lam H := by
+    funext x
+    exact (greenConv_hasDerivAt hHc hHi hLo x).deriv
+  have htwo : ContDiff ℝ 2 (deriv (greenConv c lam H)) := by
+    rw [hderiv]
+    exact greenConvDeriv_contDiff_two hH hHi hLo
+  rw [show (3 : WithTop ℕ∞) = 2 + 1 from rfl, contDiff_succ_iff_deriv]
+  refine ⟨hdiff, ?_, htwo⟩
+  intro hω
+  exact absurd hω (by decide)
 
 theorem paperStep_step_op
     {p : CMParams} {M κ Λ : ℝ} {u Z W : ℝ → ℝ}
@@ -765,6 +908,45 @@ def paperStepAnalytic_of_core
       greenKernel_neg_mul_translate_integrable_of_bounded
         (c := c) (lam := lam) hlam hc.R_cont hc.R_bound x }
 
+theorem paperStep_contDiff_two_of_core
+    {p : CMParams} {M κ Λ : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam) (hc : PaperStepAnalyticCore p c lam M κ Λ u Z W) :
+    ContDiff ℝ 2 W := by
+  let ha := paperStepAnalytic_of_core (c := c) (lam := lam) hlam hc
+  rw [ha.green_repr]
+  exact greenConv_contDiff_two ha.R_cont ha.R_hi ha.R_lo
+
+theorem paperStep_contDiff_three_of_core_reg
+    {p : CMParams} {M κ Λ : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam) (hc : PaperStepAnalyticCore p c lam M κ Λ u Z W)
+    (hRreg : ContDiff ℝ 1 hc.R) :
+    ContDiff ℝ 3 W := by
+  let ha := paperStepAnalytic_of_core (c := c) (lam := lam) hlam hc
+  rw [ha.green_repr]
+  exact greenConv_contDiff_three hRreg ha.R_hi ha.R_lo
+
+/-- Smooth-source C³ Green bootstrap away from zeros of the produced step.
+
+The unconditional C² Green bootstrap supplies `W ∈ C²`; the previous source
+regularity lemma gives `R ∈ C¹` under the displayed nonzero hypothesis, and the
+existing Green bootstrap then yields `W ∈ C³`. -/
+theorem paperStep_contDiff_three_of_core_smooth_nonzero
+    {p : CMParams} {M κ Λ : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hc : PaperStepAnalyticCore p c lam M κ Λ u Z W)
+    (hZ : ContDiff ℝ 1 Z)
+    (hV : ContDiff ℝ 2 (frozenElliptic p u))
+    (hWnz : ∀ x, W x ≠ 0) :
+    ContDiff ℝ 3 W := by
+  have hW2 : ContDiff ℝ 2 W :=
+    paperStep_contDiff_two_of_core (c := c) (lam := lam) hlam hc
+  have hRreg : ContDiff ℝ 1 hc.R := by
+    rw [hc.source_eq]
+    exact paperStepSource_contDiff_one_of_nonzero
+      (p := p) (c := c) (lam := lam) hZ hW2 hWnz hV
+  exact paperStep_contDiff_three_of_core_reg
+    (c := c) (lam := lam) hlam hc hRreg
+
 /-- Build the full analytic record directly from a fixed Green source. -/
 def paperStepAnalytic_of_fixed_source
     {p : CMParams} {c lam M κ Λ : ℝ} {u Z R : ℝ → ℝ}
@@ -959,10 +1141,19 @@ section AxiomAudit
 #print axioms paperImplicitStepOp_of_greenConv_source
 #print axioms paperImplicitStepOp_exists_of_green_fixed_source
 #print axioms paperStepSource_continuous
+#print axioms paperStepSource_contDiff_one_of_nonzero
 #print axioms paperImplicitStep_le_of_paperBarrier_maxPrinciple
 #print axioms paperImplicitStep_le_of_paperBarrier_maxPrinciple_clean
 #print axioms paperStep_deriv_le
 #print axioms paperStep_diff
+#print axioms paperStep_contDiff_two_of_core
+#print axioms tailHi_contDiff_one
+#print axioms tailLo_contDiff_one
+#print axioms greenConvDeriv2_contDiff_one
+#print axioms greenConvDeriv_contDiff_two
+#print axioms greenConv_contDiff_three
+#print axioms paperStep_contDiff_three_of_core_reg
+#print axioms paperStep_contDiff_three_of_core_smooth_nonzero
 #print axioms paperStep_step_op
 #print axioms paperImplicitStep_le_of_directSubstep_maxPrinciple_clean
 #print axioms paperStep_preserves_antitone_by_shift

@@ -64,6 +64,42 @@ theorem mollify_contDiff_of_hasCompactSupport
   unfold mollify
   exact hρc.contDiff_convolution_left (L := lsmul ℝ ℝ) hρs hZloc
 
+/-- Convolution against a nonnegative unit-mass kernel preserves boundedness. -/
+theorem mollify_isBddFun_of_nonneg_kernel
+    {ρ Z : ℝ → ℝ}
+    (hZB : IsBddFun Z)
+    (hρ : ∀ t, 0 ≤ ρ t)
+    (hρint : Integrable ρ volume)
+    (hρone : ∫ t, ρ t = 1)
+    (hint : ∀ x, Integrable (fun t => ρ t • Z (x - t)) volume) :
+    IsBddFun (mollify ρ Z) := by
+  rcases hZB with ⟨B, hB⟩
+  refine ⟨|B|, fun x => ?_⟩
+  unfold mollify
+  rw [convolution_lsmul]
+  have hnorm_le :
+      |∫ t, ρ t • Z (x - t)| ≤ ∫ t, |ρ t • Z (x - t)| := by
+    simpa [Real.norm_eq_abs] using
+      norm_integral_le_integral_norm (μ := volume)
+        (fun t => ρ t • Z (x - t))
+  have hbound_int : Integrable (fun t => |B| * ρ t) volume :=
+    hρint.const_mul |B|
+  have hmono :
+      (∫ t, |ρ t • Z (x - t)|) ≤ ∫ t, |B| * ρ t := by
+    refine integral_mono (hint x).norm hbound_int ?_
+    intro t
+    calc
+      |ρ t • Z (x - t)| = ρ t * |Z (x - t)| := by
+        simp [smul_eq_mul, abs_mul, abs_of_nonneg (hρ t)]
+      _ ≤ ρ t * |B| :=
+        mul_le_mul_of_nonneg_left
+          (le_trans (hB (x - t)) (le_abs_self B)) (hρ t)
+      _ = |B| * ρ t := by ring
+  calc
+    |∫ t, ρ t • Z (x - t)| ≤ ∫ t, |ρ t • Z (x - t)| := hnorm_le
+    _ ≤ ∫ t, |B| * ρ t := hmono
+    _ = |B| := by rw [integral_const_mul, hρone, mul_one]
+
 /-- Bump-kernel mollification is a direct instance of `mollify_antitone`: the
 kernel is nonnegative and compact support supplies the integrability of the
 convolution integrand. -/
@@ -88,6 +124,20 @@ theorem bump_mollify_contDiff
     (ρ := φ.normed volume) (Z := Z) φ.hasCompactSupport_normed
     φ.contDiff_normed hZloc
 
+/-- Bump-kernel mollification of a bounded profile is bounded. -/
+theorem bump_mollify_isBddFun
+    (φ : ContDiffBump (0 : ℝ)) {Z : ℝ → ℝ}
+    (hZB : IsBddFun Z) (hZloc : LocallyIntegrable Z volume) :
+    IsBddFun (mollify (φ.normed volume) Z) := by
+  refine mollify_isBddFun_of_nonneg_kernel
+    (ρ := φ.normed volume) (Z := Z) hZB
+    (fun t => φ.nonneg_normed t) φ.integrable_normed
+    φ.integral_normed ?_
+  have hconv : ConvolutionExists (φ.normed volume) Z (lsmul ℝ ℝ) volume :=
+    φ.hasCompactSupport_normed.convolutionExists_left
+      (L := lsmul ℝ ℝ) φ.continuous_normed hZloc
+  exact hconv
+
 /-- Local-uniform/pointwise approximation supplied by Mathlib's normalized bump
 convolution theorem, stated in the Route-A `mollify` notation. -/
 theorem bump_mollify_tendsto_right_of_continuous
@@ -99,6 +149,73 @@ theorem bump_mollify_tendsto_right_of_continuous
   simpa [mollify] using
     ContDiffBump.convolution_tendsto_right_of_continuous
       (μ := volume) (φ := φ) (g := Z) hφ hZ x₀
+
+/-! ## Step A' — finite tails for bounded antitone profiles -/
+
+/-- A bounded antitone real profile has a finite right tail limit. -/
+theorem antitone_isBddFun_tendsto_atTop
+    {Z : ℝ → ℝ} (hZ : Antitone Z) (hB : IsBddFun Z) :
+    ∃ L : ℝ, Tendsto Z atTop (𝓝 L) := by
+  rcases tendsto_atTop_of_antitone (f := Z) hZ with hbot | hfin
+  · exfalso
+    rcases hB with ⟨B, hB⟩
+    have hlower : ∀ x, -B ≤ Z x := by
+      intro x
+      have hx := hB x
+      rw [abs_le] at hx
+      exact hx.1
+    have hev : ∀ᶠ x in atTop, Z x < -B - 1 :=
+      hbot (Iio_mem_atBot (-B - 1))
+    have hboth : ∀ᶠ x in atTop, Z x < -B - 1 ∧ -B ≤ Z x :=
+      hev.and (Eventually.of_forall hlower)
+    rcases hboth.exists with ⟨x, hxlt, hxle⟩
+    linarith
+  · exact hfin
+
+/-- A bounded antitone real profile has a finite left tail limit. -/
+theorem antitone_isBddFun_tendsto_atBot
+    {Z : ℝ → ℝ} (hZ : Antitone Z) (hB : IsBddFun Z) :
+    ∃ L : ℝ, Tendsto Z atBot (𝓝 L) := by
+  rcases tendsto_atBot_of_antitone (f := Z) hZ with htop | hfin
+  · exfalso
+    rcases hB with ⟨B, hB⟩
+    have hupper : ∀ x, Z x ≤ B := by
+      intro x
+      exact le_trans (le_abs_self _) (hB x)
+    have hev : ∀ᶠ x in atBot, B + 1 < Z x :=
+      htop (Ioi_mem_atTop (B + 1))
+    have hboth : ∀ᶠ x in atBot, B + 1 < Z x ∧ Z x ≤ B :=
+      hev.and (Eventually.of_forall hupper)
+    rcases hboth.exists with ⟨x, hxlt, hxle⟩
+    linarith
+  · exact hfin
+
+/-- Bounded antitone real profiles have finite limits at both infinities. -/
+theorem antitone_isBddFun_has_tail_limits
+    {Z : ℝ → ℝ} (hZ : Antitone Z) (hB : IsBddFun Z) :
+    (∃ La : ℝ, Tendsto Z atBot (𝓝 La)) ∧
+      ∃ Lb : ℝ, Tendsto Z atTop (𝓝 Lb) :=
+  ⟨antitone_isBddFun_tendsto_atBot hZ hB,
+    antitone_isBddFun_tendsto_atTop hZ hB⟩
+
+/-- A bump-mollified bounded antitone profile is antitone, smooth, and has
+finite tail limits. -/
+theorem bump_mollify_antitone_contDiff_tail_limits
+    (φ : ContDiffBump (0 : ℝ)) {Z : ℝ → ℝ} {n : ℕ∞}
+    (hZanti : Antitone Z) (hZB : IsBddFun Z)
+    (hZloc : LocallyIntegrable Z volume) :
+    (Antitone (mollify (φ.normed volume) Z) ∧
+      ∀ x, deriv (mollify (φ.normed volume) Z) x ≤ 0) ∧
+    ContDiff ℝ n (mollify (φ.normed volume) Z) ∧
+    (∃ La : ℝ, Tendsto (mollify (φ.normed volume) Z) atBot (𝓝 La)) ∧
+      ∃ Lb : ℝ, Tendsto (mollify (φ.normed volume) Z) atTop (𝓝 Lb) := by
+  have hanti := bump_mollify_antitone φ hZanti hZloc
+  have hsmooth : ContDiff ℝ n (mollify (φ.normed volume) Z) :=
+    bump_mollify_contDiff φ hZloc
+  have hbdd : IsBddFun (mollify (φ.normed volume) Z) :=
+    bump_mollify_isBddFun φ hZB hZloc
+  exact ⟨hanti, hsmooth,
+    antitone_isBddFun_has_tail_limits hanti.1 hbdd⟩
 
 /-! ## Step B: smooth paper step through the existing Green layer -/
 
@@ -699,8 +816,9 @@ def paperStepRouteAData_of_structural
 /-- Structural Route-A input with the differentiated step equation removed.
 
 The producer obtains `step_deriv` by differentiating the implicit step equation
-with `paperStep_stepDeriv_of_implicit`.  The derivative tails are still explicit:
-they are analytic Green-tail data, not antitonicity data. -/
+with `paperStep_stepDeriv_of_implicit`.  This structure deliberately does not
+carry `C³ W` or derivative tails for the raw step; those data belong only to
+smooth approximants. -/
 structure PaperStepRouteAStructuralData
     (p : CMParams) (c lam Cmono : ℝ) (u Z W : ℝ → ℝ) where
   hsmall : (1 / lam) * Cmono < 1
@@ -710,19 +828,10 @@ structure PaperStepRouteAStructuralData
   BV2 : ℝ
   ha : a = -p.χ
   hχ : p.χ ≤ 0
-  W_reg : ContDiff ℝ 3 W
   V_reg : ContDiff ℝ 2 (frozenElliptic p u)
-  waveOperator_diff : Differentiable ℝ (fun y => paperWaveOperator p c u W y)
-  W_range : ∀ x, W x ∈ Set.Icc (0:ℝ) M
   V_deriv_nonpos : ∀ x, deriv (frozenElliptic p u) x ≤ 0
   V_bound : ∀ x, |frozenElliptic p u x| ≤ BV
   V2_bound : ∀ x, |deriv (deriv (frozenElliptic p u)) x| ≤ BV2
-  La : ℝ
-  Lb : ℝ
-  hbot : Tendsto (fun x => deriv W x) atBot (𝓝 La)
-  hLa : La ≤ 0
-  htop : Tendsto (fun x => deriv W x) atTop (𝓝 Lb)
-  hLb : Lb ≤ 0
   Cmono_bound : paperCmono p a M BV BV2 ≤ Cmono
 
 /-- Fill the older Route-A data record from structural data and the implicit
@@ -730,19 +839,25 @@ step equation. -/
 def PaperStepRouteAStructuralData.toRouteAData
     {p : CMParams} {c lam Cmono : ℝ} {u Z W : ℝ → ℝ}
     (hd : PaperStepRouteAStructuralData p c lam Cmono u Z W)
+    {La Lb : ℝ}
+    (hWreg : ContDiff ℝ 3 W)
+    (hwave : Differentiable ℝ (fun y => paperWaveOperator p c u W y))
+    (hWrange : ∀ x, W x ∈ Set.Icc (0:ℝ) hd.M)
     (hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x)
-    (hZderiv : ∀ x, deriv Z x ≤ 0) :
+    (hZderiv : ∀ x, deriv Z x ≤ 0)
+    (hbot : Tendsto (fun x => deriv W x) atBot (𝓝 La)) (hLa : La ≤ 0)
+    (htop : Tendsto (fun x => deriv W x) atTop (𝓝 Lb)) (hLb : Lb ≤ 0) :
     PaperStepRouteAData p c lam Cmono u Z W :=
   paperStepRouteAData_of_structural
     (p := p) (c := c) (lam := lam) (Cmono := Cmono)
     (a := hd.a) (M := hd.M) (BV := hd.BV) (BV2 := hd.BV2)
-    (u := u) (Z := Z) (W := W) (La := hd.La) (Lb := hd.Lb)
-    hd.ha hd.hχ hd.W_reg hd.V_reg hd.W_range hd.V_deriv_nonpos
+    (u := u) (Z := Z) (W := W) (La := La) (Lb := Lb)
+    hd.ha hd.hχ hWreg hd.V_reg hWrange hd.V_deriv_nonpos
     hd.V_bound hd.V2_bound hd.hsmall
     (paperStep_stepDeriv_of_implicit
       (p := p) (c := c) (lam := lam) (u := u) (Z := Z) (W := W)
-      hstep (hd.W_reg.differentiable (by norm_num)) hd.waveOperator_diff)
-    hZderiv hd.hbot hd.hLa hd.htop hd.hLb hd.Cmono_bound
+      hstep (hWreg.differentiable (by norm_num)) hwave)
+    hZderiv hbot hLa htop hLb hd.Cmono_bound
 
 /-- One smooth paper step is antitone from Route-A derivative data. -/
 theorem paperStep_antitone_by_routeA
@@ -806,16 +921,43 @@ Route-A data plus the implicit step equation.  The differentiated step equation
 is not a caller hypothesis. -/
 theorem paperStep_antitone_by_routeA_of_structuralData
     {p : CMParams} {c lam Cmono : ℝ} {u Z W : ℝ → ℝ}
+    {La Lb : ℝ}
     (hlam : 0 < lam)
+    (hd : PaperStepRouteAStructuralData p c lam Cmono u Z W)
+    (hWreg : ContDiff ℝ 3 W)
+    (hwave : Differentiable ℝ (fun y => paperWaveOperator p c u W y))
+    (hWrange : ∀ x, W x ∈ Set.Icc (0:ℝ) hd.M)
     (hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x)
     (hZderiv : ∀ x, deriv Z x ≤ 0)
-    (hd : PaperStepRouteAStructuralData p c lam Cmono u Z W) :
+    (hbot : Tendsto (fun x => deriv W x) atBot (𝓝 La)) (hLa : La ≤ 0)
+    (htop : Tendsto (fun x => deriv W x) atTop (𝓝 Lb)) (hLb : Lb ≤ 0) :
     Antitone W := by
   exact paperStep_antitone_by_routeA
     (p := p) (c := c) (lam := lam) (Cmono := Cmono)
     (u := u) (Z := Z) (W := W) hlam
-    (hd.W_reg.differentiable (by norm_num))
-    (hd.toRouteAData hstep hZderiv)
+    (hWreg.differentiable (by norm_num))
+    (hd.toRouteAData hWreg hwave hWrange hstep hZderiv hbot hLa htop hLb)
+
+/-- Route-A mollification/approximant data for a raw paper step.
+
+The raw step `W` is not required to be `C³` and no derivative tails for raw `W`
+are carried.  Antitonicity is obtained by passing to the pointwise limit of
+smooth approximating steps. -/
+structure PaperStepRouteAApproximationData (W : ℝ → ℝ) where
+  Wε : ℕ → ℝ → ℝ
+  anti_eventually : ∀ᶠ n in atTop, Antitone (Wε n)
+  pointwise_limit : ∀ x, Tendsto (fun n => Wε n x) atTop (𝓝 (W x))
+
+/-- Antitonicity of the raw step by the mollification-approximant route. -/
+theorem paperStep_antitone_of_trap_via_mollification
+    {W : ℝ → ℝ} (hd : PaperStepRouteAApproximationData W) :
+    Antitone W := by
+  intro x y hxy
+  have hevent : ∀ᶠ n in atTop, hd.Wε n y ≤ hd.Wε n x := by
+    filter_upwards [hd.anti_eventually] with n hn
+    exact hn hxy
+  exact le_of_tendsto_of_tendsto
+    (hd.pointwise_limit y) (hd.pointwise_limit x) hevent
 
 /-- A paper-step output core whose antitonicity is supplied by Route A rather
 than the shifted sliding wrapper. -/
@@ -829,6 +971,7 @@ structure PaperStepOutputRouteACore
     PaperStepUpperData p c lam M C_chem u Z W (upperBarrier κ M)
   Cmono : ℝ
   routeA : PaperStepRouteAStructuralData p c lam Cmono u Z W
+  approx : PaperStepRouteAApproximationData W
 
 /-- Per-step Green input using Route-A antitonicity data instead of
 `PaperStepAntitoneData.shiftedOneSided`. -/
@@ -878,10 +1021,7 @@ def paperRotheStepProducer_of_routeA_greenCore
         nonneg := hnonneg
         le_barrier := hle_barrier
         le_old := hle_old
-        anti := paperStep_antitone_by_routeA_of_structuralData
-          (p := p) (c := c) (lam := lam) (Cmono := hout.Cmono)
-          (u := u) (Z := Z) (W := W) hin.hlam hstep
-          (fun x => hZa.deriv_nonpos) hout.routeA }
+        anti := paperStep_antitone_of_trap_via_mollification hout.approx }
 
 theorem paperRotheStepProducer_all_of_routeA_greenCore
     {p : CMParams} {c lam M κ Λ : ℝ}
@@ -893,8 +1033,8 @@ theorem paperRotheStepProducer_all_of_routeA_greenCore
 
 Unlike `PaperPerStepParabolicFloor`, this floor does not carry
 `PaperStepAntitoneData` or an already-differentiated step equation.  Antitonicity
-is produced by Route A from the implicit step equation, previous-iterate
-antitonicity, structural paper-operator data, and derivative tails. -/
+is produced by Route A from smooth approximants and the pointwise limit passage;
+the raw step carries no `C³` or derivative-tail fields. -/
 abbrev PaperPerStepParabolicFloorRouteA
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Type :=
   PaperGreenStepInputRouteACore p c lam M κ Λ u
@@ -945,9 +1085,15 @@ section AxiomAudit
 
 #print axioms mollify_antitone_of_nonneg_kernel
 #print axioms mollify_antitone
+#print axioms mollify_isBddFun_of_nonneg_kernel
 #print axioms bump_mollify_antitone
 #print axioms bump_mollify_contDiff
+#print axioms bump_mollify_isBddFun
 #print axioms bump_mollify_tendsto_right_of_continuous
+#print axioms antitone_isBddFun_tendsto_atTop
+#print axioms antitone_isBddFun_tendsto_atBot
+#print axioms antitone_isBddFun_has_tail_limits
+#print axioms bump_mollify_antitone_contDiff_tail_limits
 #print axioms smooth_paperStep_step_op_of_core
 #print axioms paperStep_stepDeriv_of_implicit
 #print axioms smooth_paperStep_basic_regular_of_core
@@ -965,6 +1111,8 @@ section AxiomAudit
 #print axioms paperStep_antitone_by_routeA
 #print axioms paperStep_antitone_by_routeA_of_structural
 #print axioms paperStep_antitone_by_routeA_of_structuralData
+#print axioms PaperStepRouteAApproximationData
+#print axioms paperStep_antitone_of_trap_via_mollification
 #print axioms paperRotheStepProducer_of_routeA_greenCore
 #print axioms paperRotheStepProducer_all_of_routeA_greenCore
 #print axioms PaperPerStepParabolicFloorRouteA
