@@ -14,10 +14,13 @@
 -/
 import ShenWork.Paper1.Statements
 import ShenWork.Paper1.WaveRotheStep
+import ShenWork.PDE.TravelingWaveODE
 
 open Filter Topology
 
 namespace ShenWork.Paper1
+
+open ShenWork.PDE.TravelingWaveODE
 
 /-- A monotone-wave-trap profile is `C`-uniformly bounded.
 
@@ -324,6 +327,117 @@ def StationaryZeroPropagatesByODEUniqueness
     (∀ x, frozenWaveOperator p c U U x = 0) →
       ∀ x₀, U x₀ = 0 → ∀ x, U x = 0
 
+/-- The stationary equation has been realized as the autonomous traveling-wave
+ODE, with the first component equal to the trapped profile. -/
+def StationaryTravelingWaveODERealization
+    (p : Params) (κ M : ℝ) : Prop :=
+  ∀ U, InMonotoneWaveTrapSet κ M U →
+    (∀ x, frozenWaveOperator p.toCMParams p.c U U x = 0) →
+      ∃ z : ℝ → State, SolvesTWODE p z ∧ ∀ x, z x 0 = U x
+
+private noncomputable def zeroUFiber
+    (_p : Params) (a v₀ v₁ : ℝ) :
+    ℝ → State :=
+  fun t => ![
+    0,
+    0,
+    v₀ * Real.cosh (t - a) + v₁ * Real.sinh (t - a),
+    v₀ * Real.sinh (t - a) + v₁ * Real.cosh (t - a)]
+
+private theorem zeroUFiber_solves
+    (p : Params) (a v₀ v₁ : ℝ) :
+    SolvesTWODE p (zeroUFiber p a v₀ v₁) := by
+  intro t
+  rw [hasDerivAt_pi]
+  intro i
+  have hcosh :
+      HasDerivAt (fun s : ℝ => Real.cosh (s - a)) (Real.sinh (t - a)) t := by
+    simpa using (Real.hasDerivAt_cosh (t - a)).comp t
+      ((hasDerivAt_id t).sub_const a)
+  have hsinh :
+      HasDerivAt (fun s : ℝ => Real.sinh (s - a)) (Real.cosh (t - a)) t := by
+    simpa using (Real.hasDerivAt_sinh (t - a)).comp t
+      ((hasDerivAt_id t).sub_const a)
+  fin_cases i
+  · simpa [zeroUFiber, vectorField] using
+      (hasDerivAt_const (x := t) (c := (0 : ℝ)))
+  · simpa [zeroUFiber, vectorField,
+      Nat.ne_of_gt p.hm, Nat.ne_of_gt p.hgamma, zero_pow] using
+      (hasDerivAt_const (x := t) (c := (0 : ℝ)))
+  · simpa [zeroUFiber, vectorField, mul_comm, mul_left_comm, mul_assoc,
+      add_comm, add_left_comm, add_assoc] using
+      (hcosh.const_mul v₀).add (hsinh.const_mul v₁)
+  · simpa [zeroUFiber, vectorField, Nat.ne_of_gt p.hgamma, zero_pow, mul_comm,
+      mul_left_comm, mul_assoc, add_comm, add_left_comm, add_assoc] using
+      (hsinh.const_mul v₀).add (hcosh.const_mul v₁)
+
+/-- Once the stationary profile has been packaged as the traveling-wave ODE,
+local Cauchy uniqueness propagates a zero of `U` to all of `ℝ`.  The comparison
+solution keeps the actual `(V,V')` Cauchy data, so no false `E0` assumption on
+the elliptic component is used. -/
+theorem stationaryZeroPropagatesByODEUniqueness_of_ode
+    {p : Params} {κ M : ℝ}
+    (hrealize : StationaryTravelingWaveODERealization p κ M) :
+    StationaryZeroPropagatesByODEUniqueness p.toCMParams p.c κ M := by
+  intro U hU hstat x₀ hx₀
+  rcases hrealize U hU hstat with ⟨z, hz, hzU⟩
+  let S : Set ℝ := {x | z x 0 = 0 ∧ z x 1 = 0}
+  have hxS : x₀ ∈ S := by
+    have hmin : IsLocalMin U x₀ := by
+      dsimp [IsLocalMin, IsMinFilter]
+      exact Eventually.of_forall fun x => by simpa [hx₀] using hU.nonneg x
+    have hfun : (fun x => z x 0) = U := funext hzU
+    have hderiv : HasDerivAt U (z x₀ 1) x₀ := by
+      simpa [hfun] using hz.hasDerivAt_U x₀
+    exact ⟨by simp [hzU x₀, hx₀], hmin.hasDerivAt_eq_zero hderiv⟩
+  have hSopen : IsOpen S := by
+    rw [isOpen_iff_mem_nhds]
+    intro y hy
+    let g : ℝ → State := zeroUFiber p y (z y 2) (z y 3)
+    have hg : SolvesTWODE p g := zeroUFiber_solves p y (z y 2) (z y 3)
+    have hgy : g y = z y := by
+      ext i
+      fin_cases i
+      · exact hy.1.symm
+      · exact hy.2.symm
+      · simp [g, zeroUFiber]
+      · simp [g, zeroUFiber]
+    rcases (vectorField_contDiffAt p (z y)).exists_lipschitzOnWith with
+      ⟨K, s, hs, hLip⟩
+    have hv :
+        ∀ᶠ t in 𝓝 y,
+          LipschitzOnWith K ((fun _ : ℝ => vectorField p) t) s :=
+      Eventually.of_forall fun _ => hLip
+    have hzmem : ∀ᶠ t in 𝓝 y, z t ∈ s :=
+      hz.differentiable.continuous.continuousAt.eventually hs
+    have hgmem : ∀ᶠ t in 𝓝 y, g t ∈ s := by
+      have hgcont : Continuous g := hg.differentiable.continuous
+      have hs' : s ∈ 𝓝 (g y) := by simpa [hgy] using hs
+      exact hgcont.continuousAt.eventually hs'
+    have hzev :
+        ∀ᶠ t in 𝓝 y,
+          HasDerivAt z (((fun _ : ℝ => vectorField p) t) (z t)) t ∧ z t ∈ s :=
+      (Eventually.of_forall fun t => hz.hasDerivAt t).and hzmem
+    have hgev :
+        ∀ᶠ t in 𝓝 y,
+          HasDerivAt g (((fun _ : ℝ => vectorField p) t) (g t)) t ∧ g t ∈ s :=
+      (Eventually.of_forall fun t => hg.hasDerivAt t).and hgmem
+    have hEq : z =ᶠ[𝓝 y] g :=
+      ODE_solution_unique_of_eventually
+        (v := fun _ : ℝ => vectorField p) (s := fun _ : ℝ => s)
+        hv hzev hgev hgy.symm
+    filter_upwards [hEq] with t ht
+    constructor <;> rw [ht] <;> simp [g, zeroUFiber]
+  have hSclosed : IsClosed S := by
+    exact (isClosed_eq (hz.component_contDiff_two 0).continuous continuous_const).inter
+      (isClosed_eq (hz.component_contDiff_two 1).continuous continuous_const)
+  have hSuniv : S = Set.univ :=
+    IsClopen.eq_univ (s := S) ⟨hSclosed, hSopen⟩ ⟨x₀, hxS⟩
+  intro x
+  have hx : x ∈ S := by simp [hSuniv]
+  rw [← hzU x]
+  exact hx.1
+
 /-- The ODE-uniqueness bridge gives the stationary strong maximum principle:
 a nonnegative stationary trapped profile cannot touch zero unless it is the zero
 profile, contradicting `ProfileNontrivial`. -/
@@ -338,6 +452,13 @@ theorem stationaryStrongMaxPrinciple_of_odeUniqueness
   have hzero : ∀ y, U y = 0 := huniq U hU hstat x hx0
   have hUzero : U = fun _ : ℝ => (0 : ℝ) := funext hzero
   exact not_profileNontrivial_zero (by simpa [hUzero] using hnontriv)
+
+theorem stationaryStrongMaxPrinciple_of_odeRealization
+    {p : Params} {κ M : ℝ}
+    (hrealize : StationaryTravelingWaveODERealization p κ M) :
+    StationaryStrongMaxPrinciple p.toCMParams p.c κ M :=
+  stationaryStrongMaxPrinciple_of_odeUniqueness
+    (stationaryZeroPropagatesByODEUniqueness_of_ode hrealize)
 
 /-- Formal route (b): monotone left limit + reaction-root + lower-pin. -/
 theorem monotoneTrap_profile_hlim_neg_of_limit_root_and_pin
@@ -499,6 +620,8 @@ section AxiomAudit
 #print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_pos
 #print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_nontrivial
 #print axioms stationaryStrongMaxPrinciple_of_odeUniqueness
+#print axioms stationaryZeroPropagatesByODEUniqueness_of_ode
+#print axioms stationaryStrongMaxPrinciple_of_odeRealization
 #print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_pin
 #print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_pos
 #print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_floor
