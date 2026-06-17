@@ -551,6 +551,92 @@ theorem paperTmap_compactRange
   · exact ⟨⟨⟨hgcont, hgbdd⟩, fun x => ⟨hnn x, hbar x⟩⟩, hanti⟩
   · simpa [hgs] using hLU
 
+/-! ## Paper-step continuous-dependence frontier
+
+The frozen branch does not close `RotheContinuousDependence` from the committed
+producer alone: it names the fixed-step dependence and the uniform Rothe tail as
+the exact remaining analytic inputs.  The paper branch has the same status. -/
+
+/-- Fixed-step locally-uniform dependence of the paper Rothe orbit on the
+frozen profile. -/
+def PaperRotheSeqStepDependence
+    (p : CMParams) (c lam M κ Λ : ℝ)
+    (hprodAll : ∀ v, PaperRotheStepProducer p c lam M κ Λ v)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Prop :=
+  ∀ (seq : ℕ → ℝ → ℝ) (u : ℝ → ℝ),
+    (hseq : ∀ n, InMonotoneWaveTrapSet κ M (seq n)) →
+      (hu : InMonotoneWaveTrapSet κ M u) →
+      LocallyUniformConverges seq u →
+        ∀ k : ℕ,
+          LocallyUniformConverges
+            (fun n => rotheSeqOfPaper p c lam M κ Λ (seq n)
+              (hprodAll (seq n)) hκ hM k)
+            (rotheSeqOfPaper p c lam M κ Λ u (hprodAll u) hκ hM k)
+
+/-- Uniform-in-profile tail convergence of the paper Rothe orbit to its
+monotone `k`-limit on compact windows. -/
+def PaperRotheTailUniform
+    (p : CMParams) (c lam M κ Λ : ℝ)
+    (hprodAll : ∀ v, PaperRotheStepProducer p c lam M κ Λ v)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Prop :=
+  ∀ R > 0, ∀ ε > 0,
+    ∃ K : ℕ, ∀ v : ℝ → ℝ, InMonotoneWaveTrapSet κ M v →
+      ∀ k : ℕ, K ≤ k → ∀ x ∈ Set.Icc (-R) R,
+        |rotheSeqOfPaper p c lam M κ Λ v (hprodAll v) hκ hM k x
+            - rotheLimit
+              (rotheSeqOfPaper p c lam M κ Λ v (hprodAll v) hκ hM) x| < ε
+
+/-- Paper-step dependence plus uniform Rothe tail give the
+`RotheContinuousDependence` interface consumed by the Schauder wrapper. -/
+theorem paperRotheContinuousDependence
+    (p : CMParams) (c lam M κ Λ : ℝ)
+    (hprodAll : ∀ v, PaperRotheStepProducer p c lam M κ Λ v)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+    (hstep : PaperRotheSeqStepDependence p c lam M κ Λ hprodAll hκ hM)
+    (htail : PaperRotheTailUniform p c lam M κ Λ hprodAll hκ hM) :
+    RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
+      (fun v => rotheSeqOfPaper p c lam M κ Λ v (hprodAll v) hκ hM) := by
+  intro seq u hseq hu hconv
+  set Z : (ℝ → ℝ) → ℕ → ℝ → ℝ :=
+    fun v => rotheSeqOfPaper p c lam M κ Λ v (hprodAll v) hκ hM with hZ
+  set L : (ℝ → ℝ) → ℝ → ℝ := fun v => rotheLimit (Z v) with hL
+  intro R hR ε hε
+  obtain ⟨K, hK⟩ := htail R hR (ε / 3) (by linarith)
+  have hstepK :
+      LocallyUniformConverges (fun n => Z (seq n) K) (Z u K) := by
+    have hstepK' := hstep seq u hseq hu hconv K
+    simpa [hZ] using hstepK'
+  filter_upwards [hstepK R hR (ε / 3) (by linarith)] with n hn
+  intro x hx
+  have htailn : |Z (seq n) K x - L (seq n) x| < ε / 3 := by
+    have htailn' := hK (seq n) (hseq n) K (le_refl K) x hx
+    simpa [hZ, hL] using htailn'
+  have htailu : |Z u K x - L u x| < ε / 3 := by
+    have htailu' := hK u hu K (le_refl K) x hx
+    simpa [hZ, hL] using htailu'
+  have hmid : |Z (seq n) K x - Z u K x| < ε / 3 := hn x hx
+  have hdecomp :
+      L (seq n) x - L u x
+        = -(Z (seq n) K x - L (seq n) x)
+          + (Z (seq n) K x - Z u K x)
+          + (Z u K x - L u x) := by ring
+  calc |L (seq n) x - L u x|
+      = |-(Z (seq n) K x - L (seq n) x)
+          + (Z (seq n) K x - Z u K x)
+          + (Z u K x - L u x)| := by rw [hdecomp]
+    _ ≤ |-(Z (seq n) K x - L (seq n) x) + (Z (seq n) K x - Z u K x)|
+          + |Z u K x - L u x| := abs_add_le _ _
+    _ ≤ |-(Z (seq n) K x - L (seq n) x)| + |Z (seq n) K x - Z u K x|
+          + |Z u K x - L u x| := by
+          have := abs_add_le (-(Z (seq n) K x - L (seq n) x))
+            (Z (seq n) K x - Z u K x)
+          linarith
+    _ = |Z (seq n) K x - L (seq n) x| + |Z (seq n) K x - Z u K x|
+          + |Z u K x - L u x| := by rw [abs_neg]
+    _ < ε / 3 + ε / 3 + ε / 3 := by
+          have := htailn; have := hmid; have := htailu; linarith
+    _ = ε := by ring
+
 theorem paperLowerPinnedSchauder_fixedPoint
     (p : CMParams) (c lam M κ : ℝ) (φ : ℝ → ℝ)
     (hM : 0 ≤ M)
@@ -1324,6 +1410,7 @@ section AxiomAudit
 #print axioms paperRotheOrbitData
 #print axioms paperTmap_maps_trap
 #print axioms paperTmap_compactRange
+#print axioms paperRotheContinuousDependence
 #print axioms paperLowerPinnedSchauder_fixedPoint
 #print axioms rotheSeqOf_supersol
 #print axioms rotheSeqOf_step_rec

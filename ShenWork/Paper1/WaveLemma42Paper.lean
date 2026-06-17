@@ -1917,8 +1917,9 @@ theorem b1_chiNeg_existence_paper'
     (hauxData_of_conditions hcond hD hD_ge_one hprodAll) hprinciple
     hstationary (hsmp_of_odeRealization hrealize) hflat
 
-/-- Headline χ≤0 paper existence with the lower-raw comparison and stationary
-maximum principle routed through named producer/ODE frontiers. -/
+/-- Headline χ≤0 paper existence with the lower-raw comparison, the paper
+step/tail dependence frontier, and the stationary maximum principle routed
+through named producer/ODE frontiers. -/
 theorem b1_chiNeg_existence_paper_clean
     (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
     (hcond : PaperLemma42ExactConditions p c κ κtilde M)
@@ -1929,9 +1930,12 @@ theorem b1_chiNeg_existence_paper_clean
       hcond.hκ0.le (le_trans zero_le_one hcond.hM) u)
     (hbarLip :
       ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
-    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
-      (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond
-        (fun u => (hprodAll u).producer)))
+    (hstep : PaperRotheSeqStepDependence p c lam M κ Λ
+      (fun u => (hprodAll u).producer) hcond.hκ0.le
+      (le_trans zero_le_one hcond.hM))
+    (htail : PaperRotheTailUniform p c lam M κ Λ
+      (fun u => (hprodAll u).producer) hcond.hκ0.le
+      (le_trans zero_le_one hcond.hM))
     (hprinciple :
       LocalUniformSchauderFixedPointPrinciple
         (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D)))
@@ -1949,7 +1953,13 @@ theorem b1_chiNeg_existence_paper_clean
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U :=
   b1_chiNeg_existence_paper' p c lam M κ κtilde D Λ hcond hD
-    hD_ge_one hΛ0 hΛM hprodAll hbarLip hdep hprinciple hstationary
+    hD_ge_one hΛ0 hΛM hprodAll hbarLip
+    (by
+      simpa [rotheSeqOfPaperFromCond] using
+        paperRotheContinuousDependence p c lam M κ Λ
+          (fun u => (hprodAll u).producer) hcond.hκ0.le
+          (le_trans zero_le_one hcond.hM) hstep htail)
+    hprinciple hstationary
     hrealize hflat
 
 /-! ## Positive-sensitivity paper branch -/
@@ -2949,9 +2959,12 @@ theorem b1_chiPos_existence_paper_clean
       hcond.hκ0.le (le_trans zero_le_one hcond.hM) u)
     (hbarLip :
       ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
-    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
-      (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
-        (fun u => (hprodAll u).producer)))
+    (hstep : PaperRotheSeqStepDependence p c lam M κ Λ
+      (fun u => (hprodAll u).producer) hcond.hκ0.le
+      (le_trans zero_le_one hcond.hM))
+    (htail : PaperRotheTailUniform p c lam M κ Λ
+      (fun u => (hprodAll u).producer) hcond.hκ0.le
+      (le_trans zero_le_one hcond.hM))
     (hprinciple :
       LocalUniformSchauderFixedPointPrinciple
         (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D)))
@@ -2969,7 +2982,13 @@ theorem b1_chiPos_existence_paper_clean
     ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
       FrozenStationaryWaveProfile p c U :=
   b1_chiPos_existence_paper' p c lam M κ κtilde D Λ hcond hD
-    hD_ge_one hΛ0 hΛM hprodAll hbarLip hdep hprinciple hstationary
+    hD_ge_one hΛ0 hΛM hprodAll hbarLip
+    (by
+      simpa [rotheSeqOfPaperFromPositiveCond] using
+        paperRotheContinuousDependence p c lam M κ Λ
+          (fun u => (hprodAll u).producer) hcond.hκ0.le
+          (le_trans zero_le_one hcond.hM) hstep htail)
+    hprinciple hstationary
     hrealize hflat
 
 /-! ## Axiom audit -/
@@ -3032,3 +3051,6 @@ end ShenWork.Paper1
 #print axioms ShenWork.Paper1.b1_chiNeg_existence_paper_clean
 
 #print axioms ShenWork.Paper1.b1_chiPos_existence_paper
+#print axioms ShenWork.Paper1.b1_chiPos_existence_paper_clean
+
+#print axioms ShenWork.Paper1.b1_chiPos_existence_paper_clean
