@@ -75,6 +75,77 @@ def structuredMoserBootstrapData_of_regularity_MCL
       (intervalDomain_classical_solution_powerIntegrable hsol))
     hEndpoint
 
+/-- Proposition 2.5 on the concrete interval domain from the non-tautological
+Moser inputs.
+
+The proof constructs the bootstrap seed from the assumed `L^p` bound, derives
+the relative interpolation from the unit-interval GN/Young frontier, derives
+the `LpBootstrapEnergyInequality` through
+`intervalDomain_LpBootstrapEnergyInequality_of_regularity`, runs the exponent
+chain, and closes with the quantitative root-tower endpoint. -/
+theorem Proposition_2_5_intervalDomain_of_MCL_frontiers
+    {params : CM2Params}
+    (hcross :
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ {T : ℝ}, 0 < T →
+      ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain params T u v →
+        InitialTrace intervalDomain u₀ u →
+      ∀ pExp,
+        max (params.N : ℝ)
+            (max (params.m * (params.N : ℝ)) (params.γ * (params.N : ℝ))) <
+          pExp →
+        LpPowerBoundedBefore intervalDomain pExp T u →
+          CrossDiffusionBootstrapEstimate intervalDomain params T 1 u v)
+    (hdiss :
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ {T : ℝ}, 0 < T →
+      ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain params T u v →
+        InitialTrace intervalDomain u₀ u →
+      ∀ pExp,
+        max (params.N : ℝ)
+            (max (params.m * (params.N : ℝ)) (params.γ * (params.N : ℝ))) <
+          pExp →
+        LpPowerBoundedBefore intervalDomain pExp T u →
+          MoserDissipationDropBefore intervalDomain u T 1 pExp)
+    (hGN : UnitIntervalPowerGNYoungForMoser)
+    (hEndpoint :
+      ∀ {u₀ : intervalDomain.Point → ℝ},
+        PositiveInitialDatum intervalDomain u₀ →
+      ∀ {T : ℝ}, 0 < T →
+      ∀ {u v : ℝ → intervalDomain.Point → ℝ},
+        IsPaper2ClassicalSolution intervalDomain params T u v →
+        InitialTrace intervalDomain u₀ u →
+      ∀ pExp,
+        max (params.N : ℝ)
+            (max (params.m * (params.N : ℝ)) (params.γ * (params.N : ℝ))) <
+          pExp →
+        LpPowerBoundedBefore intervalDomain pExp T u →
+          ∃ pSeq rootBound : ℕ → ℝ,
+            (∀ r > 1, LpPowerBoundedBefore intervalDomain r T u) →
+              IntervalDomainMoserQuantitativeEndpoint u T pSeq rootBound) :
+    Proposition_2_5 intervalDomain params := by
+  intro u₀ hu₀ T hT u v hsol htrace pExp hpExp hLp
+  have hboot :
+      AbstractLpBootstrapHypothesis
+        intervalDomain u (params.N : ℝ) T 1 pExp :=
+    abstractBootstrapHypothesis_of_prop25_exponent hT hpExp hLp
+  have hrel : RelativeMoserInterpolationBefore intervalDomain u T 1 pExp :=
+    relativeMoserInterpolationBefore_of_unitIntervalPowerGNYoung
+      hsol hboot hGN
+  rcases hEndpoint hu₀ hT hsol htrace pExp hpExp hLp with
+    ⟨pSeq, rootBound, hend⟩
+  exact
+    (structuredMoserBootstrapData_of_regularity_MCL
+      hsol
+      (hcross hu₀ hT hsol htrace pExp hpExp hLp)
+      hboot hrel
+      (hdiss hu₀ hT hsol htrace pExp hpExp hLp)
+      hend).boundedBefore
+
 end ShenWork.Paper2.IntervalDomainMCL
 
 end
