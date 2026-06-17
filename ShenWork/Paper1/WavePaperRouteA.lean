@@ -938,23 +938,81 @@ theorem paperStep_antitone_by_routeA_of_structuralData
     (hWreg.differentiable (by norm_num))
     (hd.toRouteAData hWreg hwave hWrange hstep hZderiv hbot hLa htop hLb)
 
+/-- Data for one smooth Route-A approximating paper step.
+
+Antitonicity is deliberately not a field.  It is derived below from the smooth
+maximum principle, with the derivative tails supplied by the Green source-tail
+lemma in `paperStep_deriv_tendsto_zero_of_core`. -/
+structure PaperStepRouteASmoothApproximationData
+    (p : CMParams) (c lam Cmono M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
+  analytic : PaperStepAnalyticCore p c lam M κ Λ u Z W
+  routeA : PaperStepRouteAStructuralData p c lam Cmono u Z W
+  W_reg : ContDiff ℝ 3 W
+  wave_diff : Differentiable ℝ (fun y => paperWaveOperator p c u W y)
+  W_range : ∀ x, W x ∈ Set.Icc (0:ℝ) routeA.M
+  Z_deriv_nonpos : ∀ x, deriv Z x ≤ 0
+
+/-- Each smooth approximating paper step is antitone by Route A, not by a
+carried monotonicity field. -/
+theorem PaperStepRouteASmoothApproximationData.antitone
+    {p : CMParams} {c lam Cmono M κ Λ : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hd : PaperStepRouteASmoothApproximationData p c lam Cmono M κ Λ u Z W) :
+    Antitone W := by
+  have hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x :=
+    smooth_paperStep_step_op_of_core
+      (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+      hlam hd.analytic
+  have htails :
+      Tendsto (fun x => deriv W x) atBot (𝓝 0) ∧
+        Tendsto (fun x => deriv W x) atTop (𝓝 0) :=
+    paperStep_deriv_tendsto_zero_of_core
+      (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+      hlam hd.analytic
+  exact paperStep_antitone_by_routeA_of_structuralData
+    (p := p) (c := c) (lam := lam) (Cmono := Cmono)
+    (u := u) (Z := Z) (W := W)
+    hlam hd.routeA hd.W_reg hd.wave_diff hd.W_range hstep hd.Z_deriv_nonpos
+    htails.1 (show (0:ℝ) ≤ 0 from le_rfl)
+    htails.2 (show (0:ℝ) ≤ 0 from le_rfl)
+
 /-- Route-A mollification/approximant data for a raw paper step.
 
-The raw step `W` is not required to be `C³` and no derivative tails for raw `W`
-are carried.  Antitonicity is obtained by passing to the pointwise limit of
-smooth approximating steps. -/
-structure PaperStepRouteAApproximationData (W : ℝ → ℝ) where
+The raw step `W` is not required to be `C³`, and antitonicity of the approximants
+is not carried.  The source approximants are recorded as bump mollifications; the
+smooth paper-step data for `Wε n` are what prove eventual antitonicity. -/
+structure PaperStepRouteAApproximationData
+    (p : CMParams) (c lam Cmono M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
+  ρ : ℕ → ContDiffBump (0 : ℝ)
+  Zε : ℕ → ℝ → ℝ
+  Zε_eq : ∀ n, Zε n = mollify (((ρ n).normed volume)) Z
   Wε : ℕ → ℝ → ℝ
-  anti_eventually : ∀ᶠ n in atTop, Antitone (Wε n)
+  smooth : ∀ n,
+    PaperStepRouteASmoothApproximationData p c lam Cmono M κ Λ u (Zε n) (Wε n)
   pointwise_limit : ∀ x, Tendsto (fun n => Wε n x) atTop (𝓝 (W x))
+
+/-- Eventual antitonicity of the approximants, proved from their smooth Route-A
+data. -/
+theorem PaperStepRouteAApproximationData.anti_eventually
+    {p : CMParams} {c lam Cmono M κ Λ : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hd : PaperStepRouteAApproximationData p c lam Cmono M κ Λ u Z W) :
+    ∀ᶠ n in atTop, Antitone (hd.Wε n) := by
+  exact Eventually.of_forall fun n => (hd.smooth n).antitone hlam
 
 /-- Antitonicity of the raw step by the mollification-approximant route. -/
 theorem paperStep_antitone_of_trap_via_mollification
-    {W : ℝ → ℝ} (hd : PaperStepRouteAApproximationData W) :
+    {p : CMParams} {c lam Cmono M κ Λ : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hd : PaperStepRouteAApproximationData p c lam Cmono M κ Λ u Z W) :
     Antitone W := by
   intro x y hxy
+  have hanti_eventually :=
+    PaperStepRouteAApproximationData.anti_eventually
+      (p := p) (c := c) (lam := lam) (Cmono := Cmono)
+      (M := M) (κ := κ) (Λ := Λ) (u := u) (Z := Z) (W := W) hlam hd
   have hevent : ∀ᶠ n in atTop, hd.Wε n y ≤ hd.Wε n x := by
-    filter_upwards [hd.anti_eventually] with n hn
+    filter_upwards [hanti_eventually] with n hn
     exact hn hxy
   exact le_of_tendsto_of_tendsto
     (hd.pointwise_limit y) (hd.pointwise_limit x) hevent
@@ -971,7 +1029,7 @@ structure PaperStepOutputRouteACore
     PaperStepUpperData p c lam M C_chem u Z W (upperBarrier κ M)
   Cmono : ℝ
   routeA : PaperStepRouteAStructuralData p c lam Cmono u Z W
-  approx : PaperStepRouteAApproximationData W
+  approx : PaperStepRouteAApproximationData p c lam Cmono M κ Λ u Z W
 
 /-- Per-step Green input using Route-A antitonicity data instead of
 `PaperStepAntitoneData.shiftedOneSided`. -/
@@ -1021,7 +1079,10 @@ def paperRotheStepProducer_of_routeA_greenCore
         nonneg := hnonneg
         le_barrier := hle_barrier
         le_old := hle_old
-        anti := paperStep_antitone_of_trap_via_mollification hout.approx }
+        anti := paperStep_antitone_of_trap_via_mollification
+          (p := p) (c := c) (lam := lam) (Cmono := hout.Cmono)
+          (M := M) (κ := κ) (Λ := Λ) (u := u) (Z := Z) (W := W)
+          hin.hlam hout.approx }
 
 theorem paperRotheStepProducer_all_of_routeA_greenCore
     {p : CMParams} {c lam M κ Λ : ℝ}

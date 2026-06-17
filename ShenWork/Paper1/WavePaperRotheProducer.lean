@@ -26,7 +26,7 @@
   * paper upper/lower clean max-principles -> `0 ≤ W`, `W ≤ Ū`, `W ≤ Z`;
   * assembly of `PaperRotheStepProducer` from `PaperGreenStepInput`.
 
-  No `sorry`/`axiom`/`native_decide`/`admit`.
+  No placeholder proof commands.
 -/
 import ShenWork.Paper1.WaveRotheStepClose
 
@@ -818,6 +818,483 @@ theorem gWeight_integrableOn_Iic_of_bounded {r B : ℝ} {H : ℝ → ℝ}
         mul_le_mul_of_nonneg_left (hB y) (Real.exp_pos _).le
     _ = B * Real.exp (-r * y) := by ring
 
+theorem tailHi_weighted_abs_le_on {r B : ℝ} {H : ℝ → ℝ}
+    (hr : 0 < r)
+    (hHint : ∀ x, IntegrableOn (gWeight r H) (Ioi x))
+    {x : ℝ} (hB : ∀ y, x ≤ y → |H y| ≤ B) :
+    r * Real.exp (r * x) * |tailHi r H x| ≤ B := by
+  have hBnn : 0 ≤ B := by
+    have := hB x le_rfl
+    exact le_trans (abs_nonneg _) this
+  have hexp_int : IntegrableOn (fun y => B * Real.exp (-r * y)) (Ioi x) :=
+    ((integrableOn_exp_mul_Ioi (a := -r) (by linarith) x).const_mul B)
+  have hstep1 : |tailHi r H x| ≤ ∫ y in Ioi x, |gWeight r H y| := by
+    rw [tailHi]
+    have := norm_integral_le_integral_norm
+      (μ := (volume : Measure ℝ).restrict (Ioi x)) (gWeight r H)
+    simpa [Real.norm_eq_abs] using this
+  have hptbd : ∀ y ∈ Ioi x, |gWeight r H y| ≤ B * Real.exp (-r * y) := by
+    intro y hy
+    rw [Set.mem_Ioi] at hy
+    rw [gWeight, abs_mul, abs_of_pos (Real.exp_pos _)]
+    calc Real.exp (-r * y) * |H y|
+        ≤ Real.exp (-r * y) * B :=
+          mul_le_mul_of_nonneg_left (hB y hy.le) (Real.exp_pos _).le
+      _ = B * Real.exp (-r * y) := by ring
+  have hstep2 :
+      (∫ y in Ioi x, |gWeight r H y|) ≤ ∫ y in Ioi x, B * Real.exp (-r * y) :=
+    setIntegral_mono_on ((hHint x).abs) hexp_int measurableSet_Ioi hptbd
+  have hval : (∫ y in Ioi x, B * Real.exp (-r * y))
+      = B * Real.exp (-r * x) / r := by
+    rw [integral_const_mul, integral_exp_mul_Ioi (a := -r) (by linarith) x]
+    have hrne : r ≠ 0 := ne_of_gt hr
+    field_simp
+  have htail_abs : |tailHi r H x| ≤ B * Real.exp (-r * x) / r :=
+    le_trans hstep1 (le_trans hstep2 (le_of_eq hval))
+  have hmul := mul_le_mul_of_nonneg_left htail_abs
+    (by positivity : (0:ℝ) ≤ r * Real.exp (r * x))
+  refine le_trans hmul (le_of_eq ?_)
+  have hrne : r ≠ 0 := ne_of_gt hr
+  have hexp : Real.exp (r * x) * Real.exp (-r * x) = 1 := by
+    rw [← Real.exp_add, show r * x + -r * x = 0 from by ring, Real.exp_zero]
+  have key : r * Real.exp (r * x) * (B * Real.exp (-r * x) / r)
+      = B * (Real.exp (r * x) * Real.exp (-r * x)) := by
+    field_simp
+  rw [key, hexp, mul_one]
+
+theorem tailLo_weighted_abs_le_on {r B : ℝ} {H : ℝ → ℝ}
+    (hr : r < 0)
+    (hHint : ∀ x, IntegrableOn (gWeight r H) (Iic x))
+    {x : ℝ} (hB : ∀ y, y ≤ x → |H y| ≤ B) :
+    (-r) * Real.exp (r * x) * |tailLo r H x| ≤ B := by
+  have hBnn : 0 ≤ B := by
+    have := hB x le_rfl
+    exact le_trans (abs_nonneg _) this
+  have hexp_int : IntegrableOn (fun y => B * Real.exp (-r * y)) (Iic x) :=
+    ((integrableOn_exp_mul_Iic (a := -r) (by linarith) x).const_mul B)
+  have hstep1 : |tailLo r H x| ≤ ∫ y in Iic x, |gWeight r H y| := by
+    rw [tailLo]
+    simpa [Real.norm_eq_abs] using
+      norm_integral_le_integral_norm (μ := (volume : Measure ℝ).restrict (Iic x))
+        (gWeight r H)
+  have hptbd : ∀ y ∈ Iic x, |gWeight r H y| ≤ B * Real.exp (-r * y) := by
+    intro y hy
+    rw [Set.mem_Iic] at hy
+    rw [gWeight, abs_mul, abs_of_pos (Real.exp_pos _)]
+    calc Real.exp (-r * y) * |H y|
+        ≤ Real.exp (-r * y) * B :=
+          mul_le_mul_of_nonneg_left (hB y hy) (Real.exp_pos _).le
+      _ = B * Real.exp (-r * y) := by ring
+  have hstep2 :
+      (∫ y in Iic x, |gWeight r H y|) ≤ ∫ y in Iic x, B * Real.exp (-r * y) :=
+    setIntegral_mono_on ((hHint x).abs) hexp_int measurableSet_Iic hptbd
+  have hval : (∫ y in Iic x, B * Real.exp (-r * y))
+      = B * Real.exp (-r * x) / (-r) := by
+    rw [integral_const_mul, integral_exp_mul_Iic (a := -r) (by linarith) x]
+    have hrne : r ≠ 0 := ne_of_lt hr
+    field_simp
+  have htail_abs : |tailLo r H x| ≤ B * Real.exp (-r * x) / (-r) :=
+    le_trans hstep1 (le_trans hstep2 (le_of_eq hval))
+  have hnr : (0:ℝ) < -r := by linarith
+  have hmul := mul_le_mul_of_nonneg_left htail_abs
+    (le_of_lt (mul_pos hnr (Real.exp_pos (r * x))))
+  refine le_trans hmul (le_of_eq ?_)
+  have hnrne : (-r) ≠ 0 := ne_of_gt hnr
+  have hexp : Real.exp (r * x) * Real.exp (-r * x) = 1 := by
+    rw [← Real.exp_add, show r * x + -r * x = 0 from by ring, Real.exp_zero]
+  have key : (-r) * Real.exp (r * x) * (B * Real.exp (-r * x) / (-r))
+      = B * (Real.exp (r * x) * Real.exp (-r * x)) := by
+    have hrne : r ≠ 0 := ne_of_lt hr
+    field_simp [hrne]
+  rw [key, hexp, mul_one]
+
+theorem setIntegral_Ioi_add_right (x : ℝ) (f : ℝ → ℝ) :
+    (∫ y in Ioi x, f y) = ∫ s in Ioi (0:ℝ), f (s + x) := by
+  let T : ℝ → ℝ := fun s => s + x
+  have hpre : T ⁻¹' Ioi x = Ioi (0:ℝ) := by
+    ext s
+    simp [T]
+  have hmap : Measure.map T ((volume : Measure ℝ).restrict (Ioi (0:ℝ))) =
+      (volume : Measure ℝ).restrict (Ioi x) := by
+    have h := Measure.restrict_map (μ := (volume : Measure ℝ))
+      (f := T) (measurable_id.add_const x) (s := Ioi x) measurableSet_Ioi
+    rw [map_add_right_eq_self (volume : Measure ℝ) x] at h
+    rw [hpre] at h
+    exact h.symm
+  rw [← hmap]
+  exact (Homeomorph.addRight x).isClosedEmbedding.measurableEmbedding.integral_map f
+
+theorem setIntegral_Iic_sub_left (x : ℝ) (f : ℝ → ℝ) :
+    (∫ y in Iic x, f y) = ∫ s in Ici (0:ℝ), f (x - s) := by
+  let T : ℝ → ℝ := fun s => x - s
+  have hpre : T ⁻¹' Iic x = Ici (0:ℝ) := by
+    ext s
+    simp [T, sub_eq_add_neg]
+  have hmap : Measure.map T ((volume : Measure ℝ).restrict (Ici (0:ℝ))) =
+      (volume : Measure ℝ).restrict (Iic x) := by
+    have hmeas : Measurable T := by fun_prop
+    have h := Measure.restrict_map (μ := (volume : Measure ℝ))
+      (f := T) hmeas (s := Iic x) measurableSet_Iic
+    have hTmap : Measure.map T (volume : Measure ℝ) = volume := by
+      dsimp [T]
+      rw [show (fun s : ℝ => x - s) = (fun t => t + x) ∘ (fun s => -s) by
+        funext s
+        simp
+        ring]
+      rw [← Measure.map_map (μ := (volume : Measure ℝ))
+        (g := fun t : ℝ => t + x) (f := fun s : ℝ => -s)
+        (measurable_id.add_const x) measurable_neg]
+      rw [Measure.map_neg_eq_self, map_add_right_eq_self]
+    rw [hTmap] at h
+    rw [hpre] at h
+    exact h.symm
+  rw [← hmap]
+  have hme : MeasurableEmbedding T := by
+    dsimp [T]
+    convert ((Homeomorph.neg ℝ).trans (Homeomorph.addRight x)).isClosedEmbedding.measurableEmbedding using 1
+    ext s
+    simp
+    ring
+  exact hme.integral_map f
+
+theorem tailHi_weighted_tendsto_atTop
+    {r C L : ℝ} {H : ℝ → ℝ}
+    (hr : 0 < r) (hHcont : Continuous H) (hB : ∀ y, |H y| ≤ C)
+    (hlim : Tendsto H atTop (𝓝 L)) :
+    Tendsto (fun x => r * Real.exp (r * x) * tailHi r H x) atTop (𝓝 L) := by
+  have hCnonneg : 0 ≤ C := le_trans (abs_nonneg _) (hB 0)
+  have hDCT :
+      Tendsto (fun x : ℝ =>
+          ∫ s in Ioi (0:ℝ), r * Real.exp (-r * s) * H (s + x)) atTop
+        (𝓝 (∫ s in Ioi (0:ℝ), r * Real.exp (-r * s) * L)) := by
+    refine tendsto_integral_filter_of_dominated_convergence
+      (μ := (volume : Measure ℝ).restrict (Ioi (0:ℝ)))
+      (bound := fun s : ℝ => |r| * C * Real.exp (-r * s)) ?_ ?_ ?_ ?_
+    · exact Eventually.of_forall fun x =>
+        (((continuous_const.mul
+          (Real.continuous_exp.comp (continuous_const.mul continuous_id))).mul
+          (hHcont.comp (continuous_id.add continuous_const))).aestronglyMeasurable)
+    · refine Eventually.of_forall fun x => Eventually.of_forall fun s => ?_
+      rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_of_pos (Real.exp_pos _)]
+      calc |r| * Real.exp (-r * s) * |H (s + x)|
+          ≤ |r| * Real.exp (-r * s) * C := by
+            exact mul_le_mul_of_nonneg_left (hB (s + x))
+              (mul_nonneg (abs_nonneg _) (Real.exp_pos _).le)
+        _ = |r| * C * Real.exp (-r * s) := by ring
+    · exact ((integrableOn_exp_mul_Ioi (a := -r) (by linarith) 0).const_mul (|r| * C))
+    · refine Eventually.of_forall fun s => ?_
+      have hshift : Tendsto (fun x : ℝ => s + x) atTop atTop := by
+        simpa [add_comm] using tendsto_atTop_add_const_right atTop s tendsto_id
+      exact (hlim.comp hshift).const_mul (r * Real.exp (-r * s))
+  have hlim_eval :
+      (∫ s in Ioi (0:ℝ), r * Real.exp (-r * s) * L) = L := by
+    rw [show (fun s : ℝ => r * Real.exp (-r * s) * L) =
+        fun s => (r * L) * Real.exp (-r * s) by
+      funext s
+      ring]
+    rw [integral_const_mul, integral_exp_mul_Ioi (a := -r) (by linarith) 0]
+    have hrne : r ≠ 0 := ne_of_gt hr
+    field_simp [hrne]
+    simp
+  have heq : (fun x => r * Real.exp (r * x) * tailHi r H x) =
+      fun x => ∫ s in Ioi (0:ℝ), r * Real.exp (-r * s) * H (s + x) := by
+    funext x
+    unfold tailHi gWeight
+    rw [setIntegral_Ioi_add_right x (fun y => Real.exp (-r * y) * H y)]
+    rw [← integral_const_mul]
+    refine integral_congr_ae ?_
+    filter_upwards with s
+    have hexp : Real.exp (r * x) * Real.exp (-r * (s + x)) =
+        Real.exp (-r * s) := by
+      rw [← Real.exp_add]
+      have harg : r * x + -r * (s + x) = -r * s := by ring
+      rw [harg]
+    calc
+      r * Real.exp (r * x) * (Real.exp (-r * (s + x)) * H (s + x))
+          = r * (Real.exp (r * x) * Real.exp (-r * (s + x))) * H (s + x) := by
+            ring
+      _ = r * Real.exp (-r * s) * H (s + x) := by
+            rw [hexp]
+  rw [heq]
+  rw [hlim_eval] at hDCT
+  exact hDCT
+
+theorem tailHi_weighted_tendsto_atBot
+    {r C L : ℝ} {H : ℝ → ℝ}
+    (hr : 0 < r) (hHcont : Continuous H) (hB : ∀ y, |H y| ≤ C)
+    (hlim : Tendsto H atBot (𝓝 L)) :
+    Tendsto (fun x => r * Real.exp (r * x) * tailHi r H x) atBot (𝓝 L) := by
+  have hCnonneg : 0 ≤ C := le_trans (abs_nonneg _) (hB 0)
+  have hDCT :
+      Tendsto (fun x : ℝ =>
+          ∫ s in Ioi (0:ℝ), r * Real.exp (-r * s) * H (s + x)) atBot
+        (𝓝 (∫ s in Ioi (0:ℝ), r * Real.exp (-r * s) * L)) := by
+    refine tendsto_integral_filter_of_dominated_convergence
+      (μ := (volume : Measure ℝ).restrict (Ioi (0:ℝ)))
+      (bound := fun s : ℝ => |r| * C * Real.exp (-r * s)) ?_ ?_ ?_ ?_
+    · exact Eventually.of_forall fun x =>
+        (((continuous_const.mul
+          (Real.continuous_exp.comp (continuous_const.mul continuous_id))).mul
+          (hHcont.comp (continuous_id.add continuous_const))).aestronglyMeasurable)
+    · refine Eventually.of_forall fun x => Eventually.of_forall fun s => ?_
+      rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_of_pos (Real.exp_pos _)]
+      calc |r| * Real.exp (-r * s) * |H (s + x)|
+          ≤ |r| * Real.exp (-r * s) * C := by
+            exact mul_le_mul_of_nonneg_left (hB (s + x))
+              (mul_nonneg (abs_nonneg _) (Real.exp_pos _).le)
+        _ = |r| * C * Real.exp (-r * s) := by ring
+    · exact ((integrableOn_exp_mul_Ioi (a := -r) (by linarith) 0).const_mul (|r| * C))
+    · refine Eventually.of_forall fun s => ?_
+      have hshift : Tendsto (fun x : ℝ => s + x) atBot atBot := by
+        simpa [add_comm] using tendsto_atBot_add_const_right atBot s tendsto_id
+      exact (hlim.comp hshift).const_mul (r * Real.exp (-r * s))
+  have hlim_eval :
+      (∫ s in Ioi (0:ℝ), r * Real.exp (-r * s) * L) = L := by
+    rw [show (fun s : ℝ => r * Real.exp (-r * s) * L) =
+        fun s => (r * L) * Real.exp (-r * s) by
+      funext s
+      ring]
+    rw [integral_const_mul, integral_exp_mul_Ioi (a := -r) (by linarith) 0]
+    have hrne : r ≠ 0 := ne_of_gt hr
+    field_simp [hrne]
+    simp
+  have heq : (fun x => r * Real.exp (r * x) * tailHi r H x) =
+      fun x => ∫ s in Ioi (0:ℝ), r * Real.exp (-r * s) * H (s + x) := by
+    funext x
+    unfold tailHi gWeight
+    rw [setIntegral_Ioi_add_right x (fun y => Real.exp (-r * y) * H y)]
+    rw [← integral_const_mul]
+    refine integral_congr_ae ?_
+    filter_upwards with s
+    have hexp : Real.exp (r * x) * Real.exp (-r * (s + x)) =
+        Real.exp (-r * s) := by
+      rw [← Real.exp_add]
+      have harg : r * x + -r * (s + x) = -r * s := by ring
+      rw [harg]
+    calc
+      r * Real.exp (r * x) * (Real.exp (-r * (s + x)) * H (s + x))
+          = r * (Real.exp (r * x) * Real.exp (-r * (s + x))) * H (s + x) := by
+            ring
+      _ = r * Real.exp (-r * s) * H (s + x) := by
+            rw [hexp]
+  rw [heq]
+  rw [hlim_eval] at hDCT
+  exact hDCT
+
+theorem tailLo_weighted_tendsto_atTop
+    {r C L : ℝ} {H : ℝ → ℝ}
+    (hr : r < 0) (hHcont : Continuous H) (hB : ∀ y, |H y| ≤ C)
+    (hlim : Tendsto H atTop (𝓝 L)) :
+    Tendsto (fun x => r * Real.exp (r * x) * tailLo r H x) atTop (𝓝 (-L)) := by
+  have hCnonneg : 0 ≤ C := le_trans (abs_nonneg _) (hB 0)
+  have hDCT :
+      Tendsto (fun x : ℝ =>
+          ∫ s in Ici (0:ℝ), r * Real.exp (r * s) * H (x - s)) atTop
+        (𝓝 (∫ s in Ici (0:ℝ), r * Real.exp (r * s) * L)) := by
+    refine tendsto_integral_filter_of_dominated_convergence
+      (μ := (volume : Measure ℝ).restrict (Ici (0:ℝ)))
+      (bound := fun s : ℝ => |r| * C * Real.exp (r * s)) ?_ ?_ ?_ ?_
+    · exact Eventually.of_forall fun x =>
+        (((continuous_const.mul
+          (Real.continuous_exp.comp (continuous_const.mul continuous_id))).mul
+          (hHcont.comp (continuous_const.sub continuous_id))).aestronglyMeasurable)
+    · refine Eventually.of_forall fun x => Eventually.of_forall fun s => ?_
+      rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_of_pos (Real.exp_pos _)]
+      calc |r| * Real.exp (r * s) * |H (x - s)|
+          ≤ |r| * Real.exp (r * s) * C := by
+            exact mul_le_mul_of_nonneg_left (hB (x - s))
+              (mul_nonneg (abs_nonneg _) (Real.exp_pos _).le)
+        _ = |r| * C * Real.exp (r * s) := by ring
+    · exact Iff.mpr integrableOn_Ici_iff_integrableOn_Ioi
+        ((integrableOn_exp_mul_Ioi (a := r) hr 0).const_mul (|r| * C))
+    · refine Eventually.of_forall fun s => ?_
+      have hshift : Tendsto (fun x : ℝ => x - s) atTop atTop := by
+        simpa [sub_eq_add_neg] using tendsto_atTop_add_const_right atTop (-s) tendsto_id
+      exact (hlim.comp hshift).const_mul (r * Real.exp (r * s))
+  have hlim_eval :
+      (∫ s in Ici (0:ℝ), r * Real.exp (r * s) * L) = -L := by
+    have hIoi :
+        (∫ s in Ioi (0:ℝ), r * Real.exp (r * s) * L) = -L := by
+      rw [show (fun s : ℝ => r * Real.exp (r * s) * L) =
+          fun s => (r * L) * Real.exp (r * s) by
+        funext s
+        ring]
+      rw [integral_const_mul, integral_exp_mul_Ioi (a := r) hr 0]
+      have hrne : r ≠ 0 := ne_of_lt hr
+      field_simp [hrne]
+      simp
+    rw [← hIoi]
+    exact setIntegral_congr_set Ioi_ae_eq_Ici.symm
+  have heq : (fun x => r * Real.exp (r * x) * tailLo r H x) =
+      fun x => ∫ s in Ici (0:ℝ), r * Real.exp (r * s) * H (x - s) := by
+    funext x
+    unfold tailLo gWeight
+    rw [setIntegral_Iic_sub_left x (fun y => Real.exp (-r * y) * H y)]
+    rw [← integral_const_mul]
+    refine integral_congr_ae ?_
+    filter_upwards with s
+    have hexp : Real.exp (r * x) * Real.exp (-r * (x - s)) =
+        Real.exp (r * s) := by
+      rw [← Real.exp_add]
+      congr 1
+      ring
+    rw [show r * Real.exp (r * x) * (Real.exp (-r * (x - s)) * H (x - s))
+        = r * (Real.exp (r * x) * Real.exp (-r * (x - s))) * H (x - s) by ring,
+      hexp]
+  rw [heq]
+  simpa [hlim_eval] using hDCT
+
+theorem tailLo_weighted_tendsto_atBot
+    {r C L : ℝ} {H : ℝ → ℝ}
+    (hr : r < 0) (hHcont : Continuous H) (hB : ∀ y, |H y| ≤ C)
+    (hlim : Tendsto H atBot (𝓝 L)) :
+    Tendsto (fun x => r * Real.exp (r * x) * tailLo r H x) atBot (𝓝 (-L)) := by
+  have hCnonneg : 0 ≤ C := le_trans (abs_nonneg _) (hB 0)
+  have hDCT :
+      Tendsto (fun x : ℝ =>
+          ∫ s in Ici (0:ℝ), r * Real.exp (r * s) * H (x - s)) atBot
+        (𝓝 (∫ s in Ici (0:ℝ), r * Real.exp (r * s) * L)) := by
+    refine tendsto_integral_filter_of_dominated_convergence
+      (μ := (volume : Measure ℝ).restrict (Ici (0:ℝ)))
+      (bound := fun s : ℝ => |r| * C * Real.exp (r * s)) ?_ ?_ ?_ ?_
+    · exact Eventually.of_forall fun x =>
+        (((continuous_const.mul
+          (Real.continuous_exp.comp (continuous_const.mul continuous_id))).mul
+          (hHcont.comp (continuous_const.sub continuous_id))).aestronglyMeasurable)
+    · refine Eventually.of_forall fun x => Eventually.of_forall fun s => ?_
+      rw [Real.norm_eq_abs, abs_mul, abs_mul, abs_of_pos (Real.exp_pos _)]
+      calc |r| * Real.exp (r * s) * |H (x - s)|
+          ≤ |r| * Real.exp (r * s) * C := by
+            exact mul_le_mul_of_nonneg_left (hB (x - s))
+              (mul_nonneg (abs_nonneg _) (Real.exp_pos _).le)
+        _ = |r| * C * Real.exp (r * s) := by ring
+    · exact Iff.mpr integrableOn_Ici_iff_integrableOn_Ioi
+        ((integrableOn_exp_mul_Ioi (a := r) hr 0).const_mul (|r| * C))
+    · refine Eventually.of_forall fun s => ?_
+      have hshift : Tendsto (fun x : ℝ => x - s) atBot atBot := by
+        simpa [sub_eq_add_neg] using tendsto_atBot_add_const_right atBot (-s) tendsto_id
+      exact (hlim.comp hshift).const_mul (r * Real.exp (r * s))
+  have hlim_eval :
+      (∫ s in Ici (0:ℝ), r * Real.exp (r * s) * L) = -L := by
+    have hIoi :
+        (∫ s in Ioi (0:ℝ), r * Real.exp (r * s) * L) = -L := by
+      rw [show (fun s : ℝ => r * Real.exp (r * s) * L) =
+          fun s => (r * L) * Real.exp (r * s) by
+        funext s
+        ring]
+      rw [integral_const_mul, integral_exp_mul_Ioi (a := r) hr 0]
+      have hrne : r ≠ 0 := ne_of_lt hr
+      field_simp [hrne]
+      simp
+    rw [← hIoi]
+    exact setIntegral_congr_set Ioi_ae_eq_Ici.symm
+  have heq : (fun x => r * Real.exp (r * x) * tailLo r H x) =
+      fun x => ∫ s in Ici (0:ℝ), r * Real.exp (r * s) * H (x - s) := by
+    funext x
+    unfold tailLo gWeight
+    rw [setIntegral_Iic_sub_left x (fun y => Real.exp (-r * y) * H y)]
+    rw [← integral_const_mul]
+    refine integral_congr_ae ?_
+    filter_upwards with s
+    have hexp : Real.exp (r * x) * Real.exp (-r * (x - s)) =
+        Real.exp (r * s) := by
+      rw [← Real.exp_add]
+      congr 1
+      ring
+    rw [show r * Real.exp (r * x) * (Real.exp (-r * (x - s)) * H (x - s))
+        = r * (Real.exp (r * x) * Real.exp (-r * (x - s))) * H (x - s) by ring,
+      hexp]
+  rw [heq]
+  simpa [hlim_eval] using hDCT
+
+theorem greenConvDeriv_tendsto_zero_explicit_of_source_tail_limits
+    (hlam : 0 < lam) {R : ℝ → ℝ}
+    (hRcont : Continuous R) (hRbdd : IsBddFun R)
+    (hRbot : ∃ Ra : ℝ, Tendsto R atBot (𝓝 Ra))
+    (hRtop : ∃ Rb : ℝ, Tendsto R atTop (𝓝 Rb)) :
+    Tendsto (fun x => greenConvDeriv c lam R x) atBot (𝓝 0) ∧
+      Tendsto (fun x => greenConvDeriv c lam R x) atTop (𝓝 0) := by
+  rcases hRbdd with ⟨B, hB⟩
+  have hHi : ∀ x,
+      IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi x) :=
+    fun x => gWeight_integrableOn_Ioi_of_bounded
+      (greenRootPlus_pos (c := c) hlam) hRcont hB x
+  have hLo : ∀ x,
+      IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic x) :=
+    fun x => gWeight_integrableOn_Iic_of_bounded
+      (greenRootMinus_neg (c := c) hlam) hRcont hB x
+  rcases hRbot with ⟨Ra, hRa⟩
+  rcases hRtop with ⟨Rb, hRb⟩
+  have hplus_bot :
+      Tendsto
+        (fun x =>
+          greenRootPlus c lam * Real.exp (greenRootPlus c lam * x) *
+            tailHi (greenRootPlus c lam) R x) atBot (𝓝 Ra) :=
+    tailHi_weighted_tendsto_atBot
+      (r := greenRootPlus c lam) (C := |B|) (L := Ra)
+      (greenRootPlus_pos (c := c) hlam) hRcont
+      (fun y => le_trans (hB y) (le_abs_self B)) hRa
+  have hminus_top :
+      Tendsto
+        (fun x =>
+          greenRootMinus c lam * Real.exp (greenRootMinus c lam * x) *
+            tailLo (greenRootMinus c lam) R x) atTop (𝓝 (-Rb)) :=
+    tailLo_weighted_tendsto_atTop
+      (r := greenRootMinus c lam) (C := |B|) (L := Rb)
+      (greenRootMinus_neg (c := c) hlam) hRcont
+      (fun y => le_trans (hB y) (le_abs_self B)) hRb
+  have hminus_bot :
+      Tendsto
+        (fun x =>
+          greenRootMinus c lam * Real.exp (greenRootMinus c lam * x) *
+            tailLo (greenRootMinus c lam) R x) atBot (𝓝 (-Ra)) :=
+    tailLo_weighted_tendsto_atBot
+      (r := greenRootMinus c lam) (C := |B|) (L := Ra)
+      (greenRootMinus_neg (c := c) hlam) hRcont
+      (fun y => le_trans (hB y) (le_abs_self B)) hRa
+  have hplus_top :
+      Tendsto
+        (fun x =>
+          greenRootPlus c lam * Real.exp (greenRootPlus c lam * x) *
+            tailHi (greenRootPlus c lam) R x) atTop (𝓝 Rb) :=
+    tailHi_weighted_tendsto_atTop
+      (r := greenRootPlus c lam) (C := |B|) (L := Rb)
+      (greenRootPlus_pos (c := c) hlam) hRcont
+      (fun y => le_trans (hB y) (le_abs_self B)) hRb
+  constructor
+  · unfold greenConvDeriv
+    have hsum := hplus_bot.add hminus_bot
+    have hscale := hsum.const_mul (greenDelta c lam)⁻¹
+    simpa using hscale
+  · unfold greenConvDeriv
+    have hsum := hplus_top.add hminus_top
+    have hscale := hsum.const_mul (greenDelta c lam)⁻¹
+    simpa using hscale
+
+theorem greenConvDeriv_tendsto_zero_of_source_tail_limits
+    (hlam : 0 < lam) {R : ℝ → ℝ}
+    (hRcont : Continuous R) (hRbdd : IsBddFun R)
+    (hRbot : ∃ Ra : ℝ, Tendsto R atBot (𝓝 Ra))
+    (hRtop : ∃ Rb : ℝ, Tendsto R atTop (𝓝 Rb)) :
+    Tendsto (fun x => deriv (greenConv c lam R) x) atBot (𝓝 0) ∧
+      Tendsto (fun x => deriv (greenConv c lam R) x) atTop (𝓝 0) := by
+  rcases hRbdd with ⟨B, hB⟩
+  have hHi : ∀ x,
+      IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi x) :=
+    fun x => gWeight_integrableOn_Ioi_of_bounded
+      (greenRootPlus_pos (c := c) hlam) hRcont hB x
+  have hLo : ∀ x,
+      IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic x) :=
+    fun x => gWeight_integrableOn_Iic_of_bounded
+      (greenRootMinus_neg (c := c) hlam) hRcont hB x
+  have hderiv :
+      (fun x => deriv (greenConv c lam R) x) = fun x => greenConvDeriv c lam R x := by
+    funext x
+    exact (greenConv_hasDerivAt (c := c) (lam := lam) hRcont hHi hLo x).deriv
+  rw [hderiv]
+  exact greenConvDeriv_tendsto_zero_explicit_of_source_tail_limits
+    (c := c) (lam := lam) hlam hRcont ⟨B, hB⟩ hRbot hRtop
+
 theorem greenKernel_comp_const_sub_mul_integrable_of_bounded
     (hlam : 0 < lam) {H : ℝ → ℝ} {B : ℝ}
     (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) (x : ℝ) :
@@ -859,6 +1336,8 @@ structure PaperStepAnalyticCore
   R_cont : Continuous R
   R_bound_const : ℝ
   R_bound : ∀ y, |R y| ≤ R_bound_const
+  R_tail_bot : ∃ Ra : ℝ, Tendsto R atBot (𝓝 Ra)
+  R_tail_top : ∃ Rb : ℝ, Tendsto R atTop (𝓝 Rb)
   R_bound_eq : Λ = 2 * (greenDelta c lam)⁻¹ * R_bound_const
 
 /-- Build the analytic core once the Banach fixed source has been produced.
@@ -870,6 +1349,8 @@ def paperStepAnalyticCore_of_fixed_source
     {p : CMParams} {c lam M κ Λ : ℝ} {u Z R : ℝ → ℝ}
     (hsource : R = paperStepSource p c lam u Z (fun x => greenConv c lam R x))
     (hRcont : Continuous R) (B : ℝ) (hRbound : ∀ y, |R y| ≤ B)
+    (hRbot : ∃ Ra : ℝ, Tendsto R atBot (𝓝 Ra))
+    (hRtop : ∃ Rb : ℝ, Tendsto R atTop (𝓝 Rb))
     (hΛ : Λ = 2 * (greenDelta c lam)⁻¹ * B) :
     PaperStepAnalyticCore p c lam M κ Λ u Z (fun x => greenConv c lam R x) :=
   { R := R
@@ -878,6 +1359,8 @@ def paperStepAnalyticCore_of_fixed_source
     R_cont := hRcont
     R_bound_const := B
     R_bound := hRbound
+    R_tail_bot := hRbot
+    R_tail_top := hRtop
     R_bound_eq := hΛ }
 
 /-- Close the Green bookkeeping fields of `PaperStepAnalytic` from bounded
@@ -916,6 +1399,21 @@ theorem paperStep_contDiff_two_of_core
   rw [ha.green_repr]
   exact greenConv_contDiff_two ha.R_cont ha.R_hi ha.R_lo
 
+/-- The derivative tails of a Green-represented paper step vanish once the source
+has finite limits at both infinities. -/
+theorem paperStep_deriv_tendsto_zero_of_core
+    {p : CMParams} {M κ Λ : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam) (hc : PaperStepAnalyticCore p c lam M κ Λ u Z W) :
+    Tendsto (fun x => deriv W x) atBot (𝓝 0) ∧
+      Tendsto (fun x => deriv W x) atTop (𝓝 0) := by
+  have hRbdd : IsBddFun hc.R := ⟨hc.R_bound_const, hc.R_bound⟩
+  have htails :=
+    greenConvDeriv_tendsto_zero_of_source_tail_limits
+      (c := c) (lam := lam) hlam hc.R_cont hRbdd hc.R_tail_bot hc.R_tail_top
+  constructor
+  · simpa [hc.green_repr] using htails.1
+  · simpa [hc.green_repr] using htails.2
+
 theorem paperStep_contDiff_three_of_core_reg
     {p : CMParams} {M κ Λ : ℝ} {u Z W : ℝ → ℝ}
     (hlam : 0 < lam) (hc : PaperStepAnalyticCore p c lam M κ Λ u Z W)
@@ -953,12 +1451,14 @@ def paperStepAnalytic_of_fixed_source
     (hlam : 0 < lam)
     (hsource : R = paperStepSource p c lam u Z (fun x => greenConv c lam R x))
     (hRcont : Continuous R) (B : ℝ) (hRbound : ∀ y, |R y| ≤ B)
+    (hRbot : ∃ Ra : ℝ, Tendsto R atBot (𝓝 Ra))
+    (hRtop : ∃ Rb : ℝ, Tendsto R atTop (𝓝 Rb))
     (hΛ : Λ = 2 * (greenDelta c lam)⁻¹ * B) :
     PaperStepAnalytic p c lam M κ Λ u Z (fun x => greenConv c lam R x) :=
   paperStepAnalytic_of_core (c := c) (lam := lam) hlam
     (paperStepAnalyticCore_of_fixed_source
       (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
-      (u := u) (Z := Z) hsource hRcont B hRbound hΛ)
+      (u := u) (Z := Z) hsource hRcont B hRbound hRbot hRtop hΛ)
 
 theorem paperStep_le_upper
     {p : CMParams} {M C_chem : ℝ} {u Z W B : ℝ → ℝ}
