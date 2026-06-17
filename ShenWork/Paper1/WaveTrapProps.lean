@@ -40,6 +40,43 @@ theorem inMonotoneWaveTrapSet_tendsto_atTop_zero
     Filter.Tendsto U Filter.atTop (nhds 0) :=
   hU.trap.tendsto_atTop_zero hκ
 
+/-- Exact universal `hbdd` profile obligation discharged from trap membership. -/
+theorem monotoneTrap_profile_hbdd {κ M : ℝ} :
+    ∀ U : ℝ → ℝ, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U :=
+  fun _U hU => hU.trap.cunif_bdd
+
+/-- Exact universal `hlim_pos` profile obligation discharged from the trap
+upper barrier, assuming the exponential rate is strictly positive. -/
+theorem monotoneTrap_profile_hlim_pos {κ M : ℝ} (hκ : 0 < κ) :
+    ∀ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0) :=
+  fun _U hU => hU.tendsto_atTop_zero hκ
+
+/-- Strict positivity is not a consequence of monotone-trap membership:
+the zero profile is trapped whenever `0 ≤ M`. -/
+theorem not_monotoneTrap_profile_hpos {κ M : ℝ} (hM : 0 ≤ M) :
+    ¬ (∀ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet κ M U → ∀ x, 0 < U x) := by
+  intro h
+  have h0 : 0 < (0 : ℝ) := by
+    simpa using h (fun _ : ℝ => (0 : ℝ))
+      (InMonotoneWaveTrapSet.zero (κ := κ) (M := M) hM) 0
+  exact (lt_irrefl (0 : ℝ)) h0
+
+/-- The left endpoint limit `U → 1` at `-∞` is not a trap consequence:
+the same zero trapped profile would have to tend to both `0` and `1`. -/
+theorem not_monotoneTrap_profile_hlim_neg {κ M : ℝ} (hM : 0 ≤ M) :
+    ¬ (∀ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet κ M U → Tendsto U atBot (𝓝 1)) := by
+  intro h
+  have hzero : Tendsto (fun _ : ℝ => (0 : ℝ)) atBot (𝓝 1) :=
+    h (fun _ : ℝ => (0 : ℝ))
+      (InMonotoneWaveTrapSet.zero (κ := κ) (M := M) hM)
+  have hconst : Tendsto (fun _ : ℝ => (0 : ℝ)) atBot (𝓝 (0 : ℝ)) :=
+    tendsto_const_nhds
+  have h01 : (0 : ℝ) = 1 := tendsto_nhds_unique hconst hzero
+  norm_num at h01
+
 /-
   STALL REPORT — strict positivity `0 < U x` is NOT a trap-membership fact.
 
@@ -81,6 +118,30 @@ theorem inMonotoneWaveTrapSet_tendsto_atTop_zero
   `∀ x, lowerBarrierPlateau κ κtilde D x ≤ U x` together with the plateau
   positivity, or directly `∀ x, 0 < U x` from the construction.  None of these
   is available from `InMonotoneWaveTrapSet κ M U`.
+
+  STALL REPORT — `hGreen` is likewise not a trap-membership fact.
+
+  Target shape:
+
+      ∀ U, InMonotoneWaveTrapSet κ M U →
+        rotheLimit (rotheSeq U) = U → GreenIdentity p c lam U
+
+  The trap supplies only continuity, boundedness, nonnegativity, upper-barrier
+  control, and antitonicity.  `GreenIdentity` is the variation-of-parameters
+  identity for `auxMap`, and the committed closing theorem is
+  `greenIdentity_holds`, which additionally needs source continuity, the two
+  weighted Green-tail integrability hypotheses, and the convolution
+  representation of `auxMap`.  None of those data are fields of
+  `InMonotoneWaveTrapSet`, and the fixed-point equality of the Rothe limit is not
+  itself a convolution representation.  Thus `hGreen` remains the genuine
+  Green-representation frontier.
 -/
+
+section AxiomAudit
+#print axioms monotoneTrap_profile_hbdd
+#print axioms monotoneTrap_profile_hlim_pos
+#print axioms not_monotoneTrap_profile_hpos
+#print axioms not_monotoneTrap_profile_hlim_neg
+end AxiomAudit
 
 end ShenWork.Paper1

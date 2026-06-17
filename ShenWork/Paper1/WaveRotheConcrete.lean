@@ -450,6 +450,43 @@ theorem b1_chiNeg_existence
       (hVcont u hu) (hVbound u hu))
     hprinciple hGreen hpos hbdd hlim_neg hlim_pos
 
+/-- `b1_chiNeg_existence` with the trap-derived profile obligations discharged.
+
+The remaining profile surface is exactly strict positivity, the left endpoint
+connection, and the Green identity.  Uniform `C`-boundedness comes from
+`InMonotoneWaveTrapSet.trap.cunif_bdd`; right decay comes from the upper-barrier
+squeeze and the strict rate `0 < κ`. -/
+theorem b1_chiNeg_existence_profileClean
+    (p : CMParams) (c lam M Bv κ Λ : ℝ)
+    (hc : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
+    (hκpos : 0 < κ) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hprodAll : ∀ u, RotheStepProducer p c lam M κ Λ u)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hVcont : ∀ u, InMonotoneWaveTrapSet κ M u →
+        Continuous (deriv (frozenElliptic p u)))
+    (hVbound : ∀ u, InMonotoneWaveTrapSet κ M u →
+        ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
+        (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκpos.le hM))
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
+    (hGreen : ∀ U, InMonotoneWaveTrapSet κ M U →
+        rotheLimit (rotheSeqOf p c lam M κ Λ U
+          (hprodAll U) hκpos.le hM) = U →
+          GreenIdentity p c lam U)
+    (hpos : ∀ U, InMonotoneWaveTrapSet κ M U → (∀ x, 0 < U x))
+    (hlim_neg :
+      ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atBot (𝓝 1)) :
+    ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
+  b1_chiNeg_existence p c lam M Bv κ Λ hc hlam hM hBv
+    hκpos.le hΛ0 hΛM hprodAll hbarLip hŪbdd hVcont hVbound
+    hdep hprinciple hGreen hpos
+    (fun _U hU => hU.trap.cunif_bdd)
+    hlim_neg
+    (fun _U hU => hU.tendsto_atTop_zero hκpos)
+
 /-! ## Axiom audit -/
 
 section AxiomAudit
@@ -461,6 +498,7 @@ section AxiomAudit
 #print axioms rotheSeqOf_limitLip
 #print axioms rotheOrbitData
 #print axioms b1_chiNeg_existence
+#print axioms b1_chiNeg_existence_profileClean
 
 end AxiomAudit
 

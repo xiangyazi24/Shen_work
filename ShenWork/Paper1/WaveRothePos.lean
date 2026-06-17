@@ -183,11 +183,54 @@ theorem b1_chiPos_existence
     (fun v => rotheFloorResidual_of_core (hcoreAll v))
     hbarLip hŪbdd hVbound hstep htail hprinciple hGreen hpos hbdd hlim_neg hlim_pos
 
+/-- Positive-sensitivity B1 existence with the trap-derived profile obligations
+`hbdd` and `hlim_pos` discharged.  The remaining profile inputs are the genuine
+frontiers: Green identity, strict positivity, and the left endpoint connection. -/
+theorem b1_chiPos_existence_profileClean
+    (p : CMParams) (c lam M Bv κ Λ : ℝ)
+    (hc0 : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
+    (hκpos : 0 < κ) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hcoreAll : ∀ v, RotheFloorResidualCore p c lam M κ Λ v)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hVbound : ∀ u, InMonotoneWaveTrapSet κ M u →
+        ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
+    (hstep : RotheSeqStepDependence p c lam M κ Λ
+        (rotheStepProducer_of_floor
+          (fun v => rotheStepFloor_of_residual
+            (rotheFloorResidual_of_core (hcoreAll v))))
+        hκpos.le hM)
+    (htail : RotheTailUniform p c lam M κ Λ
+        (rotheStepProducer_of_floor
+          (fun v => rotheStepFloor_of_residual
+            (rotheFloorResidual_of_core (hcoreAll v))))
+        hκpos.le hM)
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
+    (hGreen : ∀ U, InMonotoneWaveTrapSet κ M U →
+        rotheLimit (rotheSeqOf p c lam M κ Λ U
+          (rotheStepProducer_of_floor
+            (fun v => rotheStepFloor_of_residual
+              (rotheFloorResidual_of_core (hcoreAll v))) U) hκpos.le hM) = U →
+          GreenIdentity p c lam U)
+    (hpos : ∀ U, InMonotoneWaveTrapSet κ M U → (∀ x, 0 < U x))
+    (hlim_neg :
+      ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atBot (𝓝 1)) :
+    ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
+  b1_chiPos_existence p c lam M Bv κ Λ hc0 hlam hM hBv
+    hκpos.le hΛ0 hΛM hcoreAll hbarLip hŪbdd hVbound
+    hstep htail hprinciple hGreen hpos
+    (fun _U hU => hU.trap.cunif_bdd)
+    hlim_neg
+    (fun _U hU => hU.tendsto_atTop_zero hκpos)
+
 /-! ## 3. Axiom audit -/
 
 section AxiomAudit
 #print axioms rotheFloorResidual_of_trap_pos
 #print axioms b1_chiPos_existence
+#print axioms b1_chiPos_existence_profileClean
 end AxiomAudit
 
 end ShenWork.Paper1
