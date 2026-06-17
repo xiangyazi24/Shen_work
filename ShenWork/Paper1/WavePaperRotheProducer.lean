@@ -425,16 +425,17 @@ structure PaperStepLowerData
 
 /-- Sliding comparison data for proving `W` antitone.
 
-For every shift `s ≥ 0`, the shifted profile `A_s(x)=W(x+s)` is required to
-be a direct substep for the same implicit equation, up to the shifted old
-iterate `Z(x+s)`.  The theorem below combines this with `Antitone Z`, so no
-source-level antitonicity is assumed. -/
+For every shift `s ≥ 0`, the shifted profile `W_s(x)=W(x+s)` is compared as the
+solution of the shifted-frozen paper step with `u_s(x)=u(x+s)` and old iterate
+`Z_s(x)=Z(x+s)`.  The only operator-specific residual is the local shifted
+one-sided estimate at a positive maximum of `W_s-W`. -/
 structure PaperStepAntitoneData
     (p : CMParams) (c lam M C_chem : ℝ)
     (u Z W : ℝ → ℝ) where
   hCB : (1 / lam) * (reactionLip p.α M + C_chem) < 1
-  shiftedStep : ∀ s, 0 ≤ s →
-    ∀ x, paperImplicitStepOp p c (1 / lam) u (fun y => W (y + s)) x ≤ Z (x + s)
+  shiftedStepEq : ∀ s, 0 ≤ s → ∀ x,
+    paperImplicitStepOp p c (1 / lam) (fun y => u (y + s)) (fun y => W (y + s)) x =
+      Z (x + s)
   φcont : ∀ s, 0 ≤ s → Continuous (fun x => W (x + s) - W x)
   La : ℝ → ℝ
   Lb : ℝ → ℝ
@@ -442,9 +443,10 @@ structure PaperStepAntitoneData
   hLa : ∀ s, 0 ≤ s → La s ≤ 0
   htop : ∀ s, 0 ≤ s → Tendsto (fun x => W (x + s) - W x) atTop (𝓝 (Lb s))
   hLb : ∀ s, 0 ≤ s → Lb s ≤ 0
-  paperDiff : ∀ s, 0 ≤ s → ∀ x₀,
+  shiftedOneSided : ∀ s, 0 ≤ s → ∀ x₀,
     IsMaxOn (fun x => W (x + s) - W x) Set.univ x₀ →
-      paperWaveOperator p c u (fun y => W (y + s)) x₀ -
+      0 < W (x₀ + s) - W x₀ →
+      paperWaveOperator p c (fun y => u (y + s)) (fun y => W (y + s)) x₀ -
           paperWaveOperator p c u W x₀
         ≤ (reactionLip p.α M + C_chem) * (W (x₀ + s) - W x₀)
 
@@ -540,10 +542,90 @@ theorem paperImplicitStep_le_of_directSubstep_maxPrinciple_clean
   have hbig_pos : 0 < (1 - h * CB) * Δ := mul_pos hcoef_pos hΔpos
   nlinarith [hGdiff, hstep_le, hbig_pos]
 
+/-- Sliding/max-principle wrapper for the genuine shifted-frozen paper step.
+
+For each `s ≥ 0`, the translated profile `W_s(x)=W(x+s)` solves the paper step
+with translated frozen profile `u_s(x)=u(x+s)` and old iterate `Z_s(x)=Z(x+s)`.
+At a positive maximum of `W_s-W`, the shifted one-sided paper-operator estimate
+and `Antitone Z` give the algebraic contradiction. -/
+theorem paperStep_preserves_antitone_by_shift
+    (p : CMParams) {c h M C_chem : ℝ} {u Z W : ℝ → ℝ}
+    (hh : 0 < h)
+    (hCB : h * (reactionLip p.α M + C_chem) < 1)
+    (hstep : ∀ x, paperImplicitStepOp p c h u W x = Z x)
+    (hZanti : Antitone Z)
+    (hshiftStep : ∀ s, 0 ≤ s → ∀ x,
+      paperImplicitStepOp p c h (fun y => u (y + s)) (fun y => W (y + s)) x =
+        Z (x + s))
+    (hφcont : ∀ s, 0 ≤ s → Continuous (fun x => W (x + s) - W x))
+    (La Lb : ℝ → ℝ)
+    (hbot : ∀ s, 0 ≤ s → Tendsto (fun x => W (x + s) - W x) atBot (𝓝 (La s)))
+    (hLa : ∀ s, 0 ≤ s → La s ≤ 0)
+    (htop : ∀ s, 0 ≤ s → Tendsto (fun x => W (x + s) - W x) atTop (𝓝 (Lb s)))
+    (hLb : ∀ s, 0 ≤ s → Lb s ≤ 0)
+    (hshift : ∀ s, 0 ≤ s → ∀ x₀,
+      IsMaxOn (fun x => W (x + s) - W x) Set.univ x₀ →
+        0 < W (x₀ + s) - W x₀ →
+          paperWaveOperator p c (fun y => u (y + s)) (fun y => W (y + s)) x₀ -
+              paperWaveOperator p c u W x₀
+            ≤ (reactionLip p.α M + C_chem) * (W (x₀ + s) - W x₀)) :
+    Antitone W := by
+  intro x₁ x₂ hx
+  let s := x₂ - x₁
+  have hs : 0 ≤ s := sub_nonneg.mpr hx
+  have hshift_le : ∀ x, W (x + s) ≤ W x := by
+    by_contra hcon
+    push Not at hcon
+    obtain ⟨x₁, hx₁⟩ := hcon
+    have hpos₁ : 0 < W (x₁ + s) - W x₁ := by linarith
+    obtain ⟨x₀, hattain, _hx₀pos⟩ :=
+      exists_isMaxOn_pos_of_tendsto_nonpos (φ := fun x => W (x + s) - W x)
+        (hφcont s hs) (hbot s hs) (hLa s hs) (htop s hs) (hLb s hs) hpos₁
+    have hmax : ∀ x, W (x + s) - W x ≤ W (x₀ + s) - W x₀ := by
+      intro x
+      have := hattain (Set.mem_univ x)
+      simpa using this
+    set Δ := W (x₀ + s) - W x₀ with hΔ
+    set CB := reactionLip p.α M + C_chem with hCBdef
+    have hΔpos : 0 < Δ := lt_of_lt_of_le hpos₁ (by simpa [hΔ] using hmax x₁)
+    have hGW :
+        W x₀ - h * paperWaveOperator p c u W x₀ = Z x₀ := by
+      have := hstep x₀
+      simpa [paperImplicitStepOp_apply] using this
+    have hGshift :
+        W (x₀ + s) -
+            h * paperWaveOperator p c (fun y => u (y + s)) (fun y => W (y + s)) x₀
+          = Z (x₀ + s) := by
+      have := hshiftStep s hs x₀
+      simpa [paperImplicitStepOp_apply] using this
+    have hZle : Z (x₀ + s) ≤ Z x₀ :=
+      hZanti (by linarith : x₀ ≤ x₀ + s)
+    have hGdiff :
+        Δ - h *
+            (paperWaveOperator p c (fun y => u (y + s)) (fun y => W (y + s)) x₀ -
+              paperWaveOperator p c u W x₀) ≤ 0 := by
+      rw [hΔ]
+      linarith
+    have hstep_le :
+        h *
+            (paperWaveOperator p c (fun y => u (y + s)) (fun y => W (y + s)) x₀ -
+              paperWaveOperator p c u W x₀)
+          ≤ h * (CB * Δ) := by
+      refine mul_le_mul_of_nonneg_left ?_ hh.le
+      rw [hCBdef, hΔ]
+      exact hshift s hs x₀ hattain hΔpos
+    have hcoef_pos : 0 < 1 - h * CB := by linarith [hCB]
+    have hbig_pos : 0 < (1 - h * CB) * Δ := mul_pos hcoef_pos hΔpos
+    nlinarith [hGdiff, hstep_le, hbig_pos]
+  have hx₂ : x₁ + s = x₂ := by
+    dsimp [s]
+    ring
+  simpa [hx₂] using hshift_le x₁
+
 /-- Sliding maximum-principle proof of antitonicity for one paper step.
 
-For `s ≥ 0`, compare `A_s(x)=W(x+s)` against `W`.  The shifted substep data gives
-`G_h(A_s)(x) ≤ Z(x+s)`, and `Antitone Z` gives `Z(x+s) ≤ Z(x)`. -/
+For `s ≥ 0`, compare `W_s(x)=W(x+s)` against `W`, using the shifted-frozen
+paper step equation and the shifted one-sided operator estimate. -/
 theorem paperStep_antitone_by_sliding
     {p : CMParams} {M C_chem : ℝ} {u Z W : ℝ → ℝ}
     (hlam : 0 < lam)
@@ -551,25 +633,11 @@ theorem paperStep_antitone_by_sliding
     (hZanti : Antitone Z)
     (hd : PaperStepAntitoneData p c lam M C_chem u Z W) :
     Antitone W := by
-  intro x₁ x₂ hx
-  let s := x₂ - x₁
-  have hs : 0 ≤ s := sub_nonneg.mpr hx
-  have hAstep : ∀ x,
-      paperImplicitStepOp p c (1 / lam) u (fun y => W (y + s)) x ≤ Z x := by
-    intro x
-    exact le_trans (hd.shiftedStep s hs x) (hZanti (by linarith : x ≤ x + s))
-  have hshift_le : ∀ x, W (x + s) ≤ W x := by
-    exact paperImplicitStep_le_of_directSubstep_maxPrinciple_clean
-      (p := p) (c := c) (h := 1 / lam) (M := M) (C_chem := C_chem)
-      (u := u) (Z := Z) (W := W) (A := fun y => W (y + s))
-      (La := hd.La s) (Lb := hd.Lb s)
-      (one_div_pos.mpr hlam) hd.hCB hstep hAstep (hd.φcont s hs)
-      (hd.hbot s hs) (hd.hLa s hs) (hd.htop s hs) (hd.hLb s hs)
-      (hd.paperDiff s hs)
-  have hx₂ : x₁ + s = x₂ := by
-    dsimp [s]
-    ring
-  simpa [hx₂] using hshift_le x₁
+  exact paperStep_preserves_antitone_by_shift
+    (p := p) (c := c) (h := 1 / lam) (M := M) (C_chem := C_chem)
+    (u := u) (Z := Z) (W := W) (one_div_pos.mpr hlam) hd.hCB hstep hZanti
+    hd.shiftedStepEq hd.φcont hd.La hd.Lb hd.hbot hd.hLa hd.htop hd.hLb
+    hd.shiftedOneSided
 
 /-! ## Bounded-source Green bookkeeping
 
@@ -897,6 +965,7 @@ section AxiomAudit
 #print axioms paperStep_diff
 #print axioms paperStep_step_op
 #print axioms paperImplicitStep_le_of_directSubstep_maxPrinciple_clean
+#print axioms paperStep_preserves_antitone_by_shift
 #print axioms paperStep_antitone_by_sliding
 #print axioms paperStep_le_upper
 #print axioms paperStep_ge_lower

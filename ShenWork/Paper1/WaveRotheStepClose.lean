@@ -135,7 +135,7 @@ theorem greenConv_contDiffAt_two {H : ℝ → ℝ} (hH : Continuous H)
     (hHi : ∀ t : ℝ, IntegrableOn (gWeight (greenRootPlus c lam) H) (Ioi t))
     (hLo : ∀ t : ℝ, IntegrableOn (gWeight (greenRootMinus c lam) H) (Iic t)) :
     ∀ y, ContDiffAt ℝ 2 (greenConv c lam H) y :=
-  fun y => (greenConv_contDiff_two hH hHi hLo).contDiffAt
+  fun _ => (greenConv_contDiff_two hH hHi hLo).contDiffAt
 
 /-! ## 2. The residual whole-line obligations (precisely named, satisfiable)
 
@@ -201,6 +201,40 @@ theorem rotheStep_selfMap_eq_crossImplicitMap
     hd.hG_C1 hd.hKv'_Ioi hd.hKv'_Iic hd.hK'v_Ioi hd.hK'v_Iic
     hd.hKG_Iic hd.hKG_Ioi hd.hdecay_top hd.hdecay_bot
 
+/-- **`crossSource` Green representation from the same flux data.**
+The raw `crossImplicitMap` is exactly `greenConv` of the differential source
+`crossSource`.  This is the Banach source bridge used after the bcf fixed point
+has been identified with `crossImplicitMap`. -/
+theorem rotheStep_crossImplicitMap_eq_greenConv_crossSource
+    {p : CMParams} {M : ℝ} (hlam : 0 < lam)
+    {u Z : ℝ → ℝ} {Zb Vu' W : ℝ →ᵇ ℝ}
+    (hd : RotheStepFluxData p c lam M u Z Zb Vu' W) :
+    crossImplicitMap p c lam u Z (fun y => (W y : ℝ)) =
+      fun x => greenConv c lam (crossSource p lam u Z (fun y => (W y : ℝ))) x := by
+  funext x
+  exact crossImplicitMap_eq_greenConv_crossSource p hlam u Z (fun y => (W y : ℝ)) x
+    (hd.hSmIic x) (hd.hSmIoi x) (hd.hFlIic x) (hd.hFlIoi x)
+    hd.hG_C1 (hd.hKv'_Ioi x) (hd.hKv'_Iic x) (hd.hK'v_Ioi x) (hd.hK'v_Iic x)
+    (hd.hKG_Iic x) (hd.hKG_Ioi x) (hd.hdecay_top x) (hd.hdecay_bot x)
+
+/-- If the produced bounded-continuous fixed point has already been identified
+with `crossImplicitMap`, the same flux data gives the canonical
+`W = greenConv(crossSource)` representation. -/
+theorem rotheStep_green_repr_crossSource_of_step_eq
+    {p : CMParams} {M : ℝ} (hlam : 0 < lam)
+    {u Z : ℝ → ℝ} {Zb Vu' W : ℝ →ᵇ ℝ}
+    (hd : RotheStepFluxData p c lam M u Z Zb Vu' W)
+    (hstep : (fun y => (W y : ℝ)) =
+      crossImplicitMap p c lam u Z (fun y => (W y : ℝ))) :
+    (fun y => (W y : ℝ)) =
+      fun x => greenConv c lam (crossSource p lam u Z (fun y => (W y : ℝ))) x := by
+  calc
+    (fun y => (W y : ℝ))
+        = crossImplicitMap p c lam u Z (fun y => (W y : ℝ)) := hstep
+    _ = fun x => greenConv c lam (crossSource p lam u Z (fun y => (W y : ℝ))) x :=
+        rotheStep_crossImplicitMap_eq_greenConv_crossSource (c := c) (lam := lam)
+          (M := M) hlam hd
+
 /-- **Chem-residual data** — the `chemFlux_increment_bound` analytic inputs at the
 internally chosen max `x₀`, for a comparison `W` vs `B`.  Each field is exactly an
 argument of that committed theorem; supplying this packet yields the
@@ -257,8 +291,8 @@ structure RotheStepTails (W B : ℝ → ℝ) where
 exactly the residual per-step data the committed bricks cannot synthesize:
 
   * the produced next iterate `W` and its Green source `R` (`green_repr`/`conv_form`);
-  * the source regularity facts the committed `C¹`/antitone bricks consume
-    (`R_cont`/`R_bound`/`R_hi`/`R_lo`/`R_anti`/`R_int_trans`);
+  * the source regularity facts the committed `C¹` bricks consume
+    (`R_cont`/`R_bound`/`R_hi`/`R_lo`/`R_int_trans`);
   * the differential step `step_op`;
   * the lower trap `nonneg`;
   * the flux-IBP data (`fluxZ`/`fluxBarrier` — for the two `step_eq`-shaped uses,
@@ -301,7 +335,6 @@ structure RotheStepFloor
         (∃ B : ℝ, (∀ y, |R y| ≤ B) ∧ Λ = 2 * (greenDelta c lam)⁻¹ * B) ∧
         (∀ x, IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi x)) ∧
         (∀ x, IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic x)) ∧
-        Antitone R ∧
         (∀ x, Integrable (fun t => greenKernel c lam (-t) * R (x + t))) ∧
         (∀ x, implicitStepOp p c (1 / lam) u W x = Z x) ∧
         (∀ x, 0 ≤ W x) ∧
@@ -333,10 +366,11 @@ structure RotheStepFloor
         -- the two chem-data slots are genuine DATA (`RotheStepChemData` is a
         -- `Type`-valued structure), so they sit after the Prop `∧`-chain, joined
         -- by `PProd` (`×'`, Sort-polymorphic) at the Prop/Type boundary:
+        (RotheStepAntitoneData p c lam M C_chem u Z W ×'
         ((∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
             RotheStepChemData p u W Z C_chem x₀) ×'
           (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
-            RotheStepChemData p u W (upperBarrier κ M) C_chem x₀))
+            RotheStepChemData p u W (upperBarrier κ M) C_chem x₀)))
 
 /-- **`rotheStepInput_of_trap` — assemble `RotheStepInput` from the residual
 floor.**  The `c2`/`step_eq`/`chem` fields are discharged from the C²/flux-IBP/
@@ -352,11 +386,11 @@ def rotheStepInput_of_trap
   produce := by
     intro Z hZc hZa hZ0 hZB hZsuper
     obtain ⟨W, R, C_chem, LaZ, LbZ, LaB, LbB,
-        ⟨hgr, hcf, hRc, hRb, hRhi, hRlo, hRanti, hRint, hstepop, hnonneg,
+        ⟨hgr, hcf, hRc, hRb, hRhi, hRlo, hRint, hstepop, hnonneg,
           hstepeq, hCnn, hCB,
           hBsupZ, hZZ, hφcZ, hbotZ, hLaZ, htopZ, hLbZ, hBC2Z, hrangeZ,
           hBsupB, hZleB, hφcB, hbotB, hLaB, htopB, hLbB, hBC2B, hrangeB⟩,
-        hchemZ, hchemB⟩ :=
+        hanti, hchemZ, hchemB⟩ :=
       hfloor.produce Z hZc hZa hZ0 hZB hZsuper
     -- the analytic bundle: c2 from the Green C² brick, step_eq from the floor's
     -- flux-IBP output, rest from the floor's source-regularity data
@@ -372,7 +406,6 @@ def rotheStepInput_of_trap
             R_bound := hRb
             R_hi := hRhi
             R_lo := hRlo
-            R_anti := hRanti
             R_int_trans := hRint
             step_op := hstepop
             c2 := hc2 }
@@ -408,7 +441,8 @@ def rotheStepInput_of_trap
             hLb := hLbB
             BC2 := hBC2B
             range := hrangeB
-            chem := fun x₀ hx₀ => rotheStep_chem_bound (hchemB x₀ hx₀) } }
+            chem := fun x₀ hx₀ => rotheStep_chem_bound (hchemB x₀ hx₀) }
+        antitone := hanti }
 
 /-- **`rotheStepProducer` modulo the residual floor, on trapped profiles.**
 The super-barrier input is only known for profiles in the wave trap, and the
@@ -473,6 +507,8 @@ section AxiomAudit
 #print axioms greenConv_contDiff_two
 #print axioms greenConv_contDiffAt_two
 #print axioms rotheStep_selfMap_eq_crossImplicitMap
+#print axioms rotheStep_crossImplicitMap_eq_greenConv_crossSource
+#print axioms rotheStep_green_repr_crossSource_of_step_eq
 #print axioms rotheStep_chem_bound
 #print axioms rotheStepInput_of_trap
 #print axioms rotheStepProducer_of_floor

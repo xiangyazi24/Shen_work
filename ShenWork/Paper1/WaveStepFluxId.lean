@@ -193,10 +193,123 @@ theorem crossStepSelfMap_apply_eq_crossImplicitMap
   simp only [stepFlux]
   ring
 
+/-- **Green source representation of the raw cross-frozen step.**
+The divergence-form implicit map is the Green convolution of the differential
+source
+
+`crossSource p lam u Z W = reaction(W) + lam*Z - χ * deriv(stepFlux p u W)`.
+
+This is the source-side half of the Banach construction: once a fixed point has
+been identified with `crossImplicitMap`, this lemma gives the committed
+`W = greenConv c lam (crossSource p lam u Z W)` representation, modulo exactly
+the same flux `C¹`/tail/decay hypotheses consumed by `flux_ibp_generic`. -/
+theorem crossImplicitMap_eq_greenConv_crossSource
+    (p : CMParams) (hlam : 0 < lam) (u Z W : ℝ → ℝ) (x : ℝ)
+    (hSmIic : IntegrableOn (fun y => greenKernel c lam (x - y)
+      * (reactionFun p.α (W y) + lam * Z y)) (Set.Iic x))
+    (hSmIoi : IntegrableOn (fun y => greenKernel c lam (x - y)
+      * (reactionFun p.α (W y) + lam * Z y)) (Set.Ioi x))
+    (hFlIic : IntegrableOn (fun y => greenKernel c lam (x - y)
+      * (-p.χ * deriv (stepFlux p u W) y)) (Set.Iic x))
+    (hFlIoi : IntegrableOn (fun y => greenKernel c lam (x - y)
+      * (-p.χ * deriv (stepFlux p u W) y)) (Set.Ioi x))
+    (hG_C1 : ∀ y, HasDerivAt (stepFlux p u W) (deriv (stepFlux p u W) y) y)
+    (hKv'_Ioi : IntegrableOn
+      ((fun y => greenKernel c lam (x - y)) * deriv (stepFlux p u W)) (Ioi x))
+    (hKv'_Iic : IntegrableOn
+      ((fun y => greenKernel c lam (x - y)) * deriv (stepFlux p u W)) (Iic x))
+    (hK'v_Ioi : IntegrableOn
+      ((fun y => -greenKernelDeriv c lam (x - y)) * stepFlux p u W) (Ioi x))
+    (hK'v_Iic : IntegrableOn
+      ((fun y => -greenKernelDeriv c lam (x - y)) * stepFlux p u W) (Iic x))
+    (hKG_Iic : IntegrableOn
+      (fun y => greenKernel c lam (x - y) * (-p.χ * deriv (stepFlux p u W) y)) (Iic x))
+    (hKG_Ioi : IntegrableOn
+      (fun y => greenKernel c lam (x - y) * (-p.χ * deriv (stepFlux p u W) y)) (Ioi x))
+    (hdecay_top : Tendsto ((fun y => greenKernel c lam (x - y)) * stepFlux p u W)
+      atTop (𝓝 0))
+    (hdecay_bot : Tendsto ((fun y => greenKernel c lam (x - y)) * stepFlux p u W)
+      atBot (𝓝 0)) :
+    crossImplicitMap p c lam u Z W x =
+      greenConv c lam (crossSource p lam u Z W) x := by
+  have hCrossIic : IntegrableOn (fun y => greenKernel c lam (x - y)
+      * crossSource p lam u Z W y) (Set.Iic x) := by
+    have hsum := hSmIic.add hFlIic
+    refine hsum.congr_fun ?_ measurableSet_Iic
+    intro y _hy
+    simp only [Pi.add_apply]
+    unfold crossSource stepFlux
+    ring_nf
+  have hCrossIoi : IntegrableOn (fun y => greenKernel c lam (x - y)
+      * crossSource p lam u Z W y) (Set.Ioi x) := by
+    have hsum := hSmIoi.add hFlIoi
+    refine hsum.congr_fun ?_ measurableSet_Ioi
+    intro y _hy
+    simp only [Pi.add_apply]
+    unfold crossSource stepFlux
+    ring_nf
+  have hsplit :
+      (∫ y, greenKernel c lam (x - y) * crossSource p lam u Z W y)
+        = (∫ y, greenKernel c lam (x - y) *
+              (reactionFun p.α (W y) + lam * Z y))
+          + ∫ y, greenKernel c lam (x - y) *
+              (-p.χ * deriv (stepFlux p u W) y) := by
+    have hint_sm : Integrable (fun y => greenKernel c lam (x - y)
+        * (reactionFun p.α (W y) + lam * Z y)) := by
+      rw [← integrableOn_univ,
+        show (Set.univ : Set ℝ) = Set.Iic x ∪ Set.Ioi x by
+          ext y; simp only [Set.mem_univ, Set.mem_union, Set.mem_Iic, Set.mem_Ioi,
+            true_iff]; exact le_or_gt y x]
+      exact hSmIic.union hSmIoi
+    have hint_fl : Integrable (fun y => greenKernel c lam (x - y)
+        * (-p.χ * deriv (stepFlux p u W) y)) := by
+      rw [← integrableOn_univ,
+        show (Set.univ : Set ℝ) = Set.Iic x ∪ Set.Ioi x by
+          ext y; simp only [Set.mem_univ, Set.mem_union, Set.mem_Iic, Set.mem_Ioi,
+            true_iff]; exact le_or_gt y x]
+      exact hFlIic.union hFlIoi
+    rw [← MeasureTheory.integral_add hint_sm hint_fl]
+    apply MeasureTheory.integral_congr_ae
+    refine Filter.Eventually.of_forall (fun y => ?_)
+    unfold crossSource stepFlux
+    ring
+  have hfluxConv :
+      (∫ y, greenKernel c lam (x - y) * (-p.χ * deriv (stepFlux p u W) y))
+        = greenConv c lam (fun y => -p.χ * deriv (stepFlux p u W) y) x :=
+    kernelConv_eq_greenConv (c := c) (lam := lam)
+      (fun y => -p.χ * deriv (stepFlux p u W) y) x hFlIic hFlIoi
+  have hIBP :
+      (-p.χ) * ∫ y, greenKernelDeriv c lam (x - y) * stepFlux p u W y
+        = greenConv c lam (fun y => -p.χ * deriv (stepFlux p u W) y) x :=
+    flux_ibp_generic c lam hlam (-p.χ) (stepFlux p u W) x hG_C1
+      hKv'_Ioi hKv'_Iic hK'v_Ioi hK'v_Iic hKG_Iic hKG_Ioi
+      hdecay_top hdecay_bot
+  calc
+    crossImplicitMap p c lam u Z W x
+        = (∫ y, greenKernel c lam (x - y) *
+              (reactionFun p.α (W y) + lam * Z y))
+          + (-p.χ) * ∫ y, greenKernelDeriv c lam (x - y) * stepFlux p u W y := by
+            unfold crossImplicitMap stepFlux
+            ring
+    _ = (∫ y, greenKernel c lam (x - y) *
+              (reactionFun p.α (W y) + lam * Z y))
+          + greenConv c lam (fun y => -p.χ * deriv (stepFlux p u W) y) x := by
+            rw [hIBP]
+    _ = (∫ y, greenKernel c lam (x - y) *
+              (reactionFun p.α (W y) + lam * Z y))
+          + ∫ y, greenKernel c lam (x - y) *
+              (-p.χ * deriv (stepFlux p u W) y) := by
+            rw [← hfluxConv]
+    _ = ∫ y, greenKernel c lam (x - y) * crossSource p lam u Z W y := hsplit.symm
+    _ = greenConv c lam (crossSource p lam u Z W) x :=
+            kernelConv_eq_greenConv (c := c) (lam := lam)
+              (crossSource p lam u Z W) x hCrossIic hCrossIoi
+
 /-! ## Axiom audit -/
 
 section AxiomAudit
 #print axioms crossStepSelfMap_apply_eq_crossImplicitMap
+#print axioms crossImplicitMap_eq_greenConv_crossSource
 end AxiomAudit
 
 end ShenWork.Paper1

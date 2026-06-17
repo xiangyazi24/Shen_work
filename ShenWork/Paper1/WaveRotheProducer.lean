@@ -26,8 +26,7 @@
       - `deriv_le` — `crossImplicitStep_deriv_bound` (committed `C¹` bound) applied
                      to the carried source sup-bound + tails, with `Λ` the uniform
                      `2/δ · B` constant.
-      - `anti`     — `implicitStep_preserves_antitone` (committed), from the carried
-                     antitone (+integrable-tail) source.
+      - `anti`     — sliding comparison for shifted profiles `W(·+s)` against `W`.
       - `nonneg`   — `implicitStep_le_of_barrier_maxPrinciple_clean` (committed clean
                      max-principle) applied to the lower sub-barrier `0` (constant
                      `F_u(0) = 0 ≤ 0`), with the carried regularity/tail/`hchem` data.
@@ -104,9 +103,7 @@ structure RotheStepAnalytic
   R_hi : ∀ x, IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi x)
   /-- Lower weighted tails integrable. -/
   R_lo : ∀ x, IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic x)
-  /-- The step source is antitone (for `implicitStep_preserves_antitone`). -/
-  R_anti : Antitone R
-  /-- Translated antitone-tail integrability (for `implicitStep_preserves_antitone`). -/
+  /-- Translated tail integrability for the raw Green source. -/
   R_int_trans : ∀ x, Integrable (fun t => greenKernel c lam (-t) * R (x + t))
   /-- The step solution solves the differential step `G_{1/λ}(W) = Z`. -/
   step_op : ∀ x, implicitStepOp p c (1 / lam) u W x = Z x
@@ -140,6 +137,28 @@ structure RotheMaxData
   chem : ∀ x₀, IsMaxOn (fun x => W x - B x) Set.univ x₀ →
     -p.χ * (deriv (chemFlux p u W) x₀ - deriv (chemFlux p u B) x₀)
       ≤ C_chem * (W x₀ - B x₀)
+
+/-- Sliding comparison data for proving the frozen step output is antitone. -/
+structure RotheStepAntitoneData
+    (p : CMParams) (c lam M C_chem : ℝ)
+    (u Z W : ℝ → ℝ) where
+  hCB : (1 / lam) * (reactionLip p.α M + C_chem) < 1
+  shiftedStepEq : ∀ s, 0 ≤ s → ∀ x,
+    implicitStepOp p c (1 / lam) (fun y => u (y + s)) (fun y => W (y + s)) x =
+      Z (x + s)
+  φcont : ∀ s, 0 ≤ s → Continuous (fun x => W (x + s) - W x)
+  La : ℝ → ℝ
+  Lb : ℝ → ℝ
+  hbot : ∀ s, 0 ≤ s → Tendsto (fun x => W (x + s) - W x) atBot (𝓝 (La s))
+  hLa : ∀ s, 0 ≤ s → La s ≤ 0
+  htop : ∀ s, 0 ≤ s → Tendsto (fun x => W (x + s) - W x) atTop (𝓝 (Lb s))
+  hLb : ∀ s, 0 ≤ s → Lb s ≤ 0
+  shiftedOneSided : ∀ s, 0 ≤ s → ∀ x₀,
+    IsMaxOn (fun x => W (x + s) - W x) Set.univ x₀ →
+      0 < W (x₀ + s) - W x₀ →
+      frozenWaveOperator p c (fun y => u (y + s)) (fun y => W (y + s)) x₀ -
+          frozenWaveOperator p c u W x₀
+        ≤ (reactionLip p.α M + C_chem) * (W (x₀ + s) - W x₀)
 
 /-! ## Discharging the `RotheStepFacts` fields from the analytic bundle -/
 
@@ -175,16 +194,147 @@ theorem rotheStep_cont (hlam : 0 < lam)
     Continuous W :=
   (rotheStep_diff hlam ha).continuous
 
-/-- **`anti` — antitone-in-`x`, discharged from committed
-`implicitStep_preserves_antitone`.**
+/-- Direct substep comparison for the frozen implicit step. -/
+theorem implicitStep_le_of_directSubstep_maxPrinciple_clean
+    (p : CMParams) {c h M C_chem : ℝ} {u Z W A : ℝ → ℝ} {La Lb : ℝ}
+    (hh : 0 < h)
+    (hCB : h * (reactionLip p.α M + C_chem) < 1)
+    (hstep : ∀ x, implicitStepOp p c h u W x = Z x)
+    (hAstep : ∀ x, implicitStepOp p c h u A x ≤ Z x)
+    (hφcont : Continuous (fun x => A x - W x))
+    (hbot : Tendsto (fun x => A x - W x) atBot (𝓝 La)) (hLa : La ≤ 0)
+    (htop : Tendsto (fun x => A x - W x) atTop (𝓝 Lb)) (hLb : Lb ≤ 0)
+    (hopDiff : ∀ x₀, IsMaxOn (fun x => A x - W x) Set.univ x₀ →
+      frozenWaveOperator p c u A x₀ - frozenWaveOperator p c u W x₀
+        ≤ (reactionLip p.α M + C_chem) * (A x₀ - W x₀)) :
+    ∀ x, A x ≤ W x := by
+  by_contra hcon
+  push Not at hcon
+  obtain ⟨x₁, hx₁⟩ := hcon
+  have hpos₁ : 0 < A x₁ - W x₁ := by linarith
+  obtain ⟨x₀, hattain, _hx₀pos⟩ :=
+    exists_isMaxOn_pos_of_tendsto_nonpos (φ := fun x => A x - W x)
+      hφcont hbot hLa htop hLb hpos₁
+  have hmax : ∀ x, A x - W x ≤ A x₀ - W x₀ := by
+    intro x
+    have := hattain (Set.mem_univ x)
+    simpa using this
+  have hGW :
+      W x₀ - h * frozenWaveOperator p c u W x₀ = Z x₀ := by
+    have := hstep x₀
+    simpa [implicitStepOp_apply] using this
+  have hGA_le_Z :
+      A x₀ - h * frozenWaveOperator p c u A x₀ ≤ Z x₀ := by
+    have := hAstep x₀
+    simpa [implicitStepOp_apply] using this
+  have hGdiff :
+      (A x₀ - W x₀) - h *
+          (frozenWaveOperator p c u A x₀ - frozenWaveOperator p c u W x₀) ≤ 0 := by
+    linarith
+  set Δ := A x₀ - W x₀ with hΔ
+  set CB := reactionLip p.α M + C_chem with hCBdef
+  have hΔpos : 0 < Δ := lt_of_lt_of_le hpos₁ (by simpa [hΔ] using hmax x₁)
+  have hstep_le :
+      h * (frozenWaveOperator p c u A x₀ - frozenWaveOperator p c u W x₀)
+        ≤ h * (CB * Δ) :=
+    mul_le_mul_of_nonneg_left (hopDiff x₀ hattain) hh.le
+  have hcoef_pos : 0 < 1 - h * CB := by linarith [hCB]
+  have hbig_pos : 0 < (1 - h * CB) * Δ := mul_pos hcoef_pos hΔpos
+  nlinarith [hGdiff, hstep_le, hbig_pos]
 
-`W = greenConv c lam R`; rewrite `greenConv` into the raw kernel-convolution form
-expected by `implicitStep_preserves_antitone`, then transfer antitonicity of `R`. -/
-theorem rotheStep_anti (hlam : 0 < lam)
-    {Z W : ℝ → ℝ} (ha : RotheStepAnalytic p c lam M κ Λ u Z W)
-    (hconv : W = fun x => ∫ y, greenKernel c lam (x - y) * ha.R y) :
-    Antitone W :=
-  implicitStep_preserves_antitone (c := c) (lam := lam) hlam hconv ha.R_anti ha.R_int_trans
+/-- Sliding/max-principle wrapper for the genuine shifted-frozen step.
+
+For each `s ≥ 0`, the translated profile `W_s(x)=W(x+s)` solves the step with
+the translated frozen profile `u_s(x)=u(x+s)` and old iterate `Z_s(x)=Z(x+s)`.
+At a positive maximum of `W_s-W`, the shifted one-sided operator estimate gives
+the same contradiction as the ordinary direct-substep comparison. -/
+theorem implicitStep_preserves_antitone_by_shift
+    (p : CMParams) {c h M C_chem : ℝ} {u Z W : ℝ → ℝ}
+    (hh : 0 < h)
+    (hCB : h * (reactionLip p.α M + C_chem) < 1)
+    (hstep : ∀ x, implicitStepOp p c h u W x = Z x)
+    (hZanti : Antitone Z)
+    (hshiftStep : ∀ s, 0 ≤ s → ∀ x,
+      implicitStepOp p c h (fun y => u (y + s)) (fun y => W (y + s)) x =
+        Z (x + s))
+    (hφcont : ∀ s, 0 ≤ s → Continuous (fun x => W (x + s) - W x))
+    (La Lb : ℝ → ℝ)
+    (hbot : ∀ s, 0 ≤ s → Tendsto (fun x => W (x + s) - W x) atBot (𝓝 (La s)))
+    (hLa : ∀ s, 0 ≤ s → La s ≤ 0)
+    (htop : ∀ s, 0 ≤ s → Tendsto (fun x => W (x + s) - W x) atTop (𝓝 (Lb s)))
+    (hLb : ∀ s, 0 ≤ s → Lb s ≤ 0)
+    (hshift : ∀ s, 0 ≤ s → ∀ x₀,
+      IsMaxOn (fun x => W (x + s) - W x) Set.univ x₀ →
+        0 < W (x₀ + s) - W x₀ →
+          frozenWaveOperator p c (fun y => u (y + s)) (fun y => W (y + s)) x₀ -
+              frozenWaveOperator p c u W x₀
+            ≤ (reactionLip p.α M + C_chem) * (W (x₀ + s) - W x₀)) :
+    Antitone W := by
+  intro x₁ x₂ hx
+  let s := x₂ - x₁
+  have hs : 0 ≤ s := sub_nonneg.mpr hx
+  have hshift_le : ∀ x, W (x + s) ≤ W x := by
+    by_contra hcon
+    push Not at hcon
+    obtain ⟨x₁, hx₁⟩ := hcon
+    have hpos₁ : 0 < W (x₁ + s) - W x₁ := by linarith
+    obtain ⟨x₀, hattain, _hx₀pos⟩ :=
+      exists_isMaxOn_pos_of_tendsto_nonpos (φ := fun x => W (x + s) - W x)
+        (hφcont s hs) (hbot s hs) (hLa s hs) (htop s hs) (hLb s hs) hpos₁
+    have hmax : ∀ x, W (x + s) - W x ≤ W (x₀ + s) - W x₀ := by
+      intro x
+      have := hattain (Set.mem_univ x)
+      simpa using this
+    set Δ := W (x₀ + s) - W x₀ with hΔ
+    set CB := reactionLip p.α M + C_chem with hCBdef
+    have hΔpos : 0 < Δ := lt_of_lt_of_le hpos₁ (by simpa [hΔ] using hmax x₁)
+    have hGW :
+        W x₀ - h * frozenWaveOperator p c u W x₀ = Z x₀ := by
+      have := hstep x₀
+      simpa [implicitStepOp_apply] using this
+    have hGshift :
+        W (x₀ + s) -
+            h * frozenWaveOperator p c (fun y => u (y + s)) (fun y => W (y + s)) x₀
+          = Z (x₀ + s) := by
+      have := hshiftStep s hs x₀
+      simpa [implicitStepOp_apply] using this
+    have hZle : Z (x₀ + s) ≤ Z x₀ :=
+      hZanti (by linarith : x₀ ≤ x₀ + s)
+    have hGdiff :
+        Δ - h *
+            (frozenWaveOperator p c (fun y => u (y + s)) (fun y => W (y + s)) x₀ -
+              frozenWaveOperator p c u W x₀) ≤ 0 := by
+      rw [hΔ]
+      linarith
+    have hstep_le :
+        h *
+            (frozenWaveOperator p c (fun y => u (y + s)) (fun y => W (y + s)) x₀ -
+              frozenWaveOperator p c u W x₀)
+          ≤ h * (CB * Δ) := by
+      refine mul_le_mul_of_nonneg_left ?_ hh.le
+      rw [hCBdef, hΔ]
+      exact hshift s hs x₀ hattain hΔpos
+    have hcoef_pos : 0 < 1 - h * CB := by linarith [hCB]
+    have hbig_pos : 0 < (1 - h * CB) * Δ := mul_pos hcoef_pos hΔpos
+    nlinarith [hGdiff, hstep_le, hbig_pos]
+  have hx₂ : x₁ + s = x₂ := by
+    dsimp [s]
+    ring
+  simpa [hx₂] using hshift_le x₁
+
+/-- Sliding maximum-principle proof of antitonicity for one frozen step. -/
+theorem rotheStep_antitone_by_sliding
+    {Z W : ℝ → ℝ} {C_chem : ℝ}
+    (hlam : 0 < lam)
+    (hstep : ∀ x, implicitStepOp p c (1 / lam) u W x = Z x)
+    (hZanti : Antitone Z)
+    (hd : RotheStepAntitoneData p c lam M C_chem u Z W) :
+    Antitone W := by
+  exact implicitStep_preserves_antitone_by_shift
+    (p := p) (c := c) (h := 1 / lam) (M := M) (C_chem := C_chem)
+    (u := u) (Z := Z) (W := W) (one_div_pos.mpr hlam) hd.hCB hstep hZanti
+    hd.shiftedStepEq hd.φcont hd.La hd.Lb hd.hbot hd.hLa hd.htop hd.hLb
+    hd.shiftedOneSided
 
 /-- **A single comparison `W ≤ B`, discharged from the committed clean
 max-principle `implicitStep_le_of_barrier_maxPrinciple_clean`.**
@@ -223,7 +373,7 @@ structure RotheStepOutput
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
   /-- The genuinely-uncommitted analytic bundle. -/
   analytic : RotheStepAnalytic p c lam M κ Λ u Z W
-  /-- The raw kernel-convolution form of `W` (for `implicitStep_preserves_antitone`). -/
+  /-- The raw kernel-convolution form of `W`. -/
   conv_form : W = fun x => ∫ y, greenKernel c lam (x - y) * analytic.R y
   /-- The chemotaxis residual constant. -/
   C_chem : ℝ
@@ -237,6 +387,8 @@ structure RotheStepOutput
   /-- Upper trap: clean max-principle data with `B = upperBarrier κ M` (gives
   `W ≤ Ū`). -/
   maxBarrier : RotheMaxData p c lam M C_chem u Z W (upperBarrier κ M)
+  /-- Sliding comparison data proving `W` is antitone. -/
+  antitone : RotheStepAntitoneData p c lam M C_chem u Z W
 
 /-- The carried per-step input for one frozen profile `u`: for every trapped
 continuous antitone `Z` (with `0 ≤ Z ≤ Ū`), it supplies the produced next iterate
@@ -294,7 +446,7 @@ theorem rotheStep_supersol (hlam : 0 < lam)
 Each of the `RotheStepFacts` fields is discharged: `step_eq` from
 `analytic.step_eq`; `cont`/`diff`/`deriv_le` from the committed `C¹` bricks via
 `rotheStep_cont`/`rotheStep_diff`/`rotheStep_deriv_le`; `anti` from
-`implicitStep_preserves_antitone` via `rotheStep_anti`; `le_barrier` (`W ≤ Ū`)
+sliding comparison via `rotheStep_antitone_by_sliding`; `le_barrier` (`W ≤ Ū`)
 and `le_old` (`W ≤ Z`) from the committed clean max-principle via
 `rotheStep_le_barrier` (with `B = Ū` and `B = Z` respectively); `nonneg` carried
 directly as the lower trap; `supersol` (`F_u(W) ≤ 0`) PROVED from `le_old` + the
@@ -309,6 +461,8 @@ theorem rotheStepProducer_of_input
   refine ⟨W, ?_⟩
   have hle_old : ∀ x, W x ≤ Z x :=
     rotheStep_le_barrier hin.hlam hin.hM hout.analytic hout.maxZ
+  have hanti : Antitone W :=
+    rotheStep_antitone_by_sliding hin.hlam hout.analytic.step_op hZa hout.antitone
   clear hZc hZa hZ0 hZB
   refine
     { step_eq := hout.analytic.step_eq
@@ -318,7 +472,7 @@ theorem rotheStepProducer_of_input
       nonneg := hout.nonneg
       le_barrier := rotheStep_le_barrier hin.hlam hin.hM hout.analytic hout.maxBarrier
       le_old := hle_old
-      anti := rotheStep_anti hin.hlam hout.analytic hout.conv_form
+      anti := hanti
       supersol := rotheStep_supersol hin.hlam hout.analytic hle_old }
 
 /-! ## Non-vacuity certificate at the orbit base `Z = Ū`
@@ -363,7 +517,9 @@ theorem rotheStepProducer
 section AxiomAudit
 #print axioms rotheStep_deriv_le
 #print axioms rotheStep_diff
-#print axioms rotheStep_anti
+#print axioms implicitStep_le_of_directSubstep_maxPrinciple_clean
+#print axioms implicitStep_preserves_antitone_by_shift
+#print axioms rotheStep_antitone_by_sliding
 #print axioms rotheStep_frozenWave_eq
 #print axioms rotheStep_supersol
 #print axioms rotheStepProducer_supersol_satisfiable_at_barrier
