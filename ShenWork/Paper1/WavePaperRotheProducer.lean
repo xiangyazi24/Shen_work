@@ -314,6 +314,115 @@ theorem paperStep_step_op
     (c := c) (lam := lam) hlam ha.source_eq ha.green_repr
     ha.R_cont ha.R_hi ha.R_lo
 
+/-! ## Bounded-source Green bookkeeping
+
+These lemmas close the Green-tail part of the paper per-step floor once the
+source has been produced as a continuous bounded function.  They do not construct
+the source or prove its monotonicity. -/
+
+theorem gWeight_integrableOn_Ioi_of_bounded {r B : ℝ} {H : ℝ → ℝ}
+    (hr : 0 < r) (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) (x : ℝ) :
+    IntegrableOn (gWeight r H) (Ioi x) := by
+  have hdom : IntegrableOn (fun y : ℝ => B * Real.exp (-r * y)) (Ioi x) :=
+    (integrableOn_exp_mul_Ioi (a := -r) (by linarith) x).const_mul B
+  refine hdom.mono'
+    (show AEStronglyMeasurable (gWeight r H) (volume.restrict (Ioi x)) from
+      (gWeight_continuous (r := r) hH).aestronglyMeasurable.restrict)
+    (Eventually.of_forall fun y => ?_)
+  rw [gWeight, Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _)]
+  calc Real.exp (-r * y) * |H y|
+      ≤ Real.exp (-r * y) * B :=
+        mul_le_mul_of_nonneg_left (hB y) (Real.exp_pos _).le
+    _ = B * Real.exp (-r * y) := by ring
+
+theorem gWeight_integrableOn_Iic_of_bounded {r B : ℝ} {H : ℝ → ℝ}
+    (hr : r < 0) (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) (x : ℝ) :
+    IntegrableOn (gWeight r H) (Iic x) := by
+  have hdom : IntegrableOn (fun y : ℝ => B * Real.exp (-r * y)) (Iic x) :=
+    (integrableOn_exp_mul_Iic (a := -r) (by linarith) x).const_mul B
+  refine hdom.mono'
+    (show AEStronglyMeasurable (gWeight r H) (volume.restrict (Iic x)) from
+      (gWeight_continuous (r := r) hH).aestronglyMeasurable.restrict)
+    (Eventually.of_forall fun y => ?_)
+  rw [gWeight, Real.norm_eq_abs, abs_mul, abs_of_pos (Real.exp_pos _)]
+  calc Real.exp (-r * y) * |H y|
+      ≤ Real.exp (-r * y) * B :=
+        mul_le_mul_of_nonneg_left (hB y) (Real.exp_pos _).le
+    _ = B * Real.exp (-r * y) := by ring
+
+theorem greenKernel_comp_const_sub_mul_integrable_of_bounded
+    (hlam : 0 < lam) {H : ℝ → ℝ} {B : ℝ}
+    (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) (x : ℝ) :
+    Integrable (fun y => greenKernel c lam (x - y) * H y) := by
+  have hK : Integrable (fun y => greenKernel c lam (x - y)) :=
+    (greenKernel_integrable (c := c) hlam).comp_sub_left x
+  exact hK.mul_bdd hH.aestronglyMeasurable
+    (Eventually.of_forall fun y => by simpa [Real.norm_eq_abs] using hB y)
+
+theorem greenConv_raw_eq_of_bounded
+    (hlam : 0 < lam) {H : ℝ → ℝ} {B : ℝ}
+    (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) (x : ℝ) :
+    (∫ y, greenKernel c lam (x - y) * H y) = greenConv c lam H x := by
+  have hfull := greenKernel_comp_const_sub_mul_integrable_of_bounded
+    (c := c) (lam := lam) hlam hH hB x
+  exact kernelConv_eq_greenConv (c := c) (lam := lam) H x
+    hfull.integrableOn hfull.integrableOn
+
+theorem greenKernel_neg_mul_translate_integrable_of_bounded
+    (hlam : 0 < lam) {H : ℝ → ℝ} {B : ℝ}
+    (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) (x : ℝ) :
+    Integrable (fun t => greenKernel c lam (-t) * H (x + t)) := by
+  have hK : Integrable (fun t => greenKernel c lam (-t)) :=
+    (greenKernel_integrable (c := c) hlam).comp_neg
+  have hshift : AEStronglyMeasurable (fun t : ℝ => H (x + t)) volume :=
+    (hH.comp (continuous_const.add continuous_id)).aestronglyMeasurable
+  exact hK.mul_bdd hshift
+    (Eventually.of_forall fun t => by simpa [Real.norm_eq_abs] using hB (x + t))
+
+/-- Paper-step analytic data with the bounded-source Green tails omitted.
+
+The omitted fields are closed by `paperStepAnalytic_of_core`; source existence,
+continuity, boundedness, and antitonicity remain explicit data. -/
+structure PaperStepAnalyticCore
+    (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
+  R : ℝ → ℝ
+  source_eq : R = paperStepSource p c lam u Z W
+  green_repr : W = fun x => greenConv c lam R x
+  R_cont : Continuous R
+  R_bound_const : ℝ
+  R_bound : ∀ y, |R y| ≤ R_bound_const
+  R_bound_eq : Λ = 2 * (greenDelta c lam)⁻¹ * R_bound_const
+  R_anti : Antitone R
+
+/-- Close the Green bookkeeping fields of `PaperStepAnalytic` from bounded
+continuous source data. -/
+def paperStepAnalytic_of_core
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam) (hc : PaperStepAnalyticCore p c lam M κ Λ u Z W) :
+    PaperStepAnalytic p c lam M κ Λ u Z W :=
+  { R := hc.R
+    source_eq := hc.source_eq
+    green_repr := hc.green_repr
+    conv_form := by
+      calc
+        W = fun x => greenConv c lam hc.R x := hc.green_repr
+        _ = fun x => ∫ y, greenKernel c lam (x - y) * hc.R y := by
+          funext x
+          exact (greenConv_raw_eq_of_bounded
+            (c := c) (lam := lam) hlam hc.R_cont hc.R_bound x).symm
+    R_cont := hc.R_cont
+    R_bound := ⟨hc.R_bound_const, hc.R_bound, hc.R_bound_eq⟩
+    R_hi := fun x =>
+      gWeight_integrableOn_Ioi_of_bounded
+        (greenRootPlus_pos (c := c) hlam) hc.R_cont hc.R_bound x
+    R_lo := fun x =>
+      gWeight_integrableOn_Iic_of_bounded
+        (greenRootMinus_neg (c := c) hlam) hc.R_cont hc.R_bound x
+    R_anti := hc.R_anti
+    R_int_trans := fun x =>
+      greenKernel_neg_mul_translate_integrable_of_bounded
+        (c := c) (lam := lam) hlam hc.R_cont hc.R_bound x }
+
 theorem paperStep_le_upper
     {p : CMParams} {M C_chem : ℝ} {u Z W B : ℝ → ℝ}
     (hlam : 0 < lam)
@@ -350,6 +459,27 @@ structure PaperStepOutput
   upperBarrier :
     PaperStepUpperData p c lam M C_chem u Z W (upperBarrier κ M)
 
+/-- Paper-step output with only the irreducible analytic source core carried. -/
+structure PaperStepOutputCore
+    (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
+  analytic : PaperStepAnalyticCore p c lam M κ Λ u Z W
+  C_chem : ℝ
+  lowerZero : PaperStepLowerData p c lam M C_chem u Z W (fun _ => 0)
+  upperOld : PaperStepUpperData p c lam M C_chem u Z W Z
+  upperBarrier :
+    PaperStepUpperData p c lam M C_chem u Z W (upperBarrier κ M)
+
+/-- Close a paper-step output core by filling the bounded-source Green tails. -/
+def paperStepOutput_of_core
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam) (hout : PaperStepOutputCore p c lam M κ Λ u Z W) :
+    PaperStepOutput p c lam M κ Λ u Z W :=
+  { analytic := paperStepAnalytic_of_core hlam hout.analytic
+    C_chem := hout.C_chem
+    lowerZero := hout.lowerZero
+    upperOld := hout.upperOld
+    upperBarrier := hout.upperBarrier }
+
 /-- The precise remaining per-step Green fixed-point/trap package. -/
 structure PaperGreenStepInput
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) where
@@ -357,6 +487,16 @@ structure PaperGreenStepInput
   produce : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
       (∀ x, Z x ≤ upperBarrier κ M x) →
       Σ' W : ℝ → ℝ, PaperStepOutput p c lam M κ Λ u Z W
+
+/-- Thinner paper Green-step input: the bounded-source Green tails are closed by
+`paperGreenStepInput_of_core`.  Source construction/monotonicity and the
+max-principle comparison data remain explicit. -/
+structure PaperGreenStepInputCore
+    (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) where
+  hlam : 0 < lam
+  produce : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
+      (∀ x, Z x ≤ upperBarrier κ M x) →
+      Σ' W : ℝ → ℝ, PaperStepOutputCore p c lam M κ Λ u Z W
 
 /-- Honest paper-side name for the shared per-step parabolic floor.
 
@@ -366,6 +506,22 @@ corresponding floor as `PaperGreenStepInput`. -/
 abbrev PaperPerStepParabolicFloor
     (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Type :=
   PaperGreenStepInput p c lam M κ Λ u
+
+/-- Honest paper-side name after closing bounded-source Green tails. -/
+abbrev PaperPerStepParabolicFloorCore
+    (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Type :=
+  PaperGreenStepInputCore p c lam M κ Λ u
+
+/-- Fill the full paper Green-step input from the thinner core. -/
+def paperGreenStepInput_of_core
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (hin : PaperGreenStepInputCore p c lam M κ Λ u) :
+    PaperGreenStepInput p c lam M κ Λ u where
+  hlam := hin.hlam
+  produce := by
+    intro Z hZc hZa hZ0 hZB
+    obtain ⟨W, hout⟩ := hin.produce Z hZc hZa hZ0 hZB
+    exact ⟨W, paperStepOutput_of_core hin.hlam hout⟩
 
 /-- `PaperRotheStepProducer` from the precise Green-step input. -/
 def paperRotheStepProducer_of_greenInput
@@ -421,6 +577,20 @@ theorem paperRotheStepProducer_all_of_parabolicFloor
     ∀ u : ℝ → ℝ, PaperRotheStepProducer p c lam M κ Λ u :=
   fun u => paperRotheStepProducer_of_parabolicFloor (hfloor u)
 
+/-- `PaperRotheStepProducer` from the thinner paper Green-step core. -/
+theorem paperRotheStepProducer_of_greenCore
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (hin : PaperGreenStepInputCore p c lam M κ Λ u) :
+    PaperRotheStepProducer p c lam M κ Λ u :=
+  paperRotheStepProducer_of_greenInput (paperGreenStepInput_of_core hin)
+
+/-- All paper-step producers from the thinner paper Green-step core. -/
+theorem paperRotheStepProducer_all_of_greenCore
+    {p : CMParams} {c lam M κ Λ : ℝ}
+    (hinput : ∀ u : ℝ → ℝ, PaperGreenStepInputCore p c lam M κ Λ u) :
+    ∀ u : ℝ → ℝ, PaperRotheStepProducer p c lam M κ Λ u :=
+  fun u => paperRotheStepProducer_of_greenCore (hinput u)
+
 section AxiomAudit
 
 #print axioms paperStepNonlinearity
@@ -435,10 +605,20 @@ section AxiomAudit
 #print axioms paperStep_step_op
 #print axioms paperStep_le_upper
 #print axioms paperStep_ge_lower
+#print axioms gWeight_integrableOn_Ioi_of_bounded
+#print axioms gWeight_integrableOn_Iic_of_bounded
+#print axioms greenKernel_comp_const_sub_mul_integrable_of_bounded
+#print axioms greenConv_raw_eq_of_bounded
+#print axioms greenKernel_neg_mul_translate_integrable_of_bounded
+#print axioms paperStepAnalytic_of_core
+#print axioms paperStepOutput_of_core
+#print axioms paperGreenStepInput_of_core
 #print axioms paperRotheStepProducer_of_greenInput
 #print axioms paperRotheStepProducer_all_of_greenInput
 #print axioms paperRotheStepProducer_of_parabolicFloor
 #print axioms paperRotheStepProducer_all_of_parabolicFloor
+#print axioms paperRotheStepProducer_of_greenCore
+#print axioms paperRotheStepProducer_all_of_greenCore
 
 end AxiomAudit
 

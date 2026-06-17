@@ -1,5 +1,6 @@
 import ShenWork.Paper1.WaveLowerBarrierData
 import ShenWork.Paper1.WaveRotheConcrete
+import ShenWork.Paper1.WavePaperRotheProducer
 
 open Filter Topology Set Real MeasureTheory intervalIntegral
 
@@ -1744,6 +1745,32 @@ structure PaperLowerRawStepProducer
           PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
             (rotheSeqOfPaper p c lam M κ Λ u producer hκ hM (k + 1))
 
+/-- Thinner lower-raw step producer: the paper Rothe step is supplied by the
+bounded-source Green core, so Green tails and raw-convolution bookkeeping are
+closed by `paperGreenStepInput_of_core`. -/
+structure PaperLowerRawStepProducerCore
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (u : ℝ → ℝ) : Type where
+  green : PaperGreenStepInputCore p c lam M κ Λ u
+  lowerRawAux :
+    InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+      ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
+        rotheSeqOfPaper p c lam M κ Λ u
+          (paperRotheStepProducer_of_greenCore green) hκ hM k x) →
+        ∃ C_chem La Lb,
+          PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+            (rotheSeqOfPaper p c lam M κ Λ u
+              (paperRotheStepProducer_of_greenCore green) hκ hM (k + 1))
+
+/-- Fill the old lower-raw step producer from the thinner Green core. -/
+def paperLowerRawStepProducer_of_core
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ} {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    {u : ℝ → ℝ}
+    (h : PaperLowerRawStepProducerCore p c lam M κ κtilde D Λ hκ hM u) :
+    PaperLowerRawStepProducer p c lam M κ κtilde D Λ hκ hM u where
+  producer := paperRotheStepProducer_of_greenCore h.green
+  lowerRawAux := h.lowerRawAux
+
 /-- The paper Rothe parabolic floor: strengthened one-step production, the
 base-barrier Lipschitz bound, fixed-step dependence, and uniform tail. -/
 structure PaperLowerRawParabolicFloor
@@ -1759,6 +1786,34 @@ structure PaperLowerRawParabolicFloor
   tail :
     PaperRotheTailUniform p c lam M κ Λ
       (fun u => (producer u).producer) hκ hM
+
+/-- Thinner paper Rothe parabolic floor after closing bounded-source Green
+bookkeeping.  The remaining producer core still carries source construction,
+source antitonicity, comparison tails for the max principles, lower-raw aux data,
+and the step/tail dependence floors. -/
+structure PaperLowerRawParabolicFloorCore
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Type where
+  producer :
+    ∀ u, PaperLowerRawStepProducerCore p c lam M κ κtilde D Λ hκ hM u
+  barLip :
+    ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|
+  step :
+    PaperRotheSeqStepDependence p c lam M κ Λ
+      (fun u => paperRotheStepProducer_of_greenCore ((producer u).green)) hκ hM
+  tail :
+    PaperRotheTailUniform p c lam M κ Λ
+      (fun u => paperRotheStepProducer_of_greenCore ((producer u).green)) hκ hM
+
+/-- Fill the old paper parabolic floor from the thinner core. -/
+def paperLowerRawParabolicFloor_of_core
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ} {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (h : PaperLowerRawParabolicFloorCore p c lam M κ κtilde D Λ hκ hM) :
+    PaperLowerRawParabolicFloor p c lam M κ κtilde D Λ hκ hM where
+  producer := fun u => paperLowerRawStepProducer_of_core (h.producer u)
+  barLip := h.barLip
+  step := h.step
+  tail := h.tail
 
 /-- The shared stationary-limit and left-flat convergence floor for a pinned
 paper Rothe map. -/
@@ -3108,6 +3163,8 @@ section AxiomAudit
 #print axioms PaperLemma_4_2_paperWaveOperator_from_components
 #print axioms PaperLemma_4_2_paperWaveOperator_of_conditions
 #print axioms paperLowerBarrierStepData_lowerBarrierRaw_of_paperStep
+#print axioms paperLowerRawStepProducer_of_core
+#print axioms paperLowerRawParabolicFloor_of_core
 #print axioms rotheStepLowerInvariant_lowerBarrierRaw_of_paperStepData
 #print axioms rotheSeqOfPaper_lowerBarrierRaw_stepInvariant
 #print axioms profileNontrivial_of_lowerBarrierRaw_tail_bound
