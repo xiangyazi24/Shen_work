@@ -8,10 +8,10 @@
   (`V'_u = deriv (frozenElliptic p u)` continuous in `u`, loc-unif) through the
   implicit-Euler (Rothe) map to obtain
 
-      `Tmap u = rotheLimit (rotheSeqOf … u …)` continuous in `u` (loc-unif),
+      `Tmap u = rotheLimit (rotheSeqFromTrap … u …)` continuous in `u` (loc-unif),
 
   i.e. `RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
-        (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκ hM)`.
+        (rotheSeqFromTrap p c lam M κ Λ hprodTrap hκ hM)`.
 
   ────────────────────────────────────────────────────────────────────────────
   WHAT IS GENUINELY DERIVABLE HERE vs. WHAT MUST BE CARRIED — the honest split.
@@ -22,12 +22,12 @@
   So *morally* each step solution depends continuously on `V'_u`, hence on `u`.
 
   But the concrete `rotheSeqOf u` is built by `Classical.choose` against the
-  ABSTRACT producer `hprodAll u : RotheStepProducer …`, which only asserts the
+  ABSTRACT producer `hprodTrap u hu : RotheStepProducer …`, which only asserts the
   EXISTENCE of a step solution with the `RotheStepFacts` bundle.  It carries no
   uniqueness, and — crucially — no link between the chosen step solution for a
   sequence `seq n` and the one for the limit `u`: `rotheSeqOf (seq n) k` and
   `rotheSeqOf u k` are produced by INDEPENDENT choices against the distinct
-  witnesses `hprodAll (seq n)` and `hprodAll u`.  Therefore the per-step
+  witnesses `hprodTrap (seq n) (hseq n)` and `hprodTrap u hu`.  Therefore the per-step
   continuous-dependence of the realized iterates on `u` does NOT follow from the
   committed bricks: it is the one genuinely-missing analytic propagation, and we
   carry it as the SINGLE precise named hypothesis
@@ -93,15 +93,19 @@ constants.  It is carried because the abstract `Classical.choose`-based producer
 solutions for `seq n` and for `u`. -/
 def RotheSeqStepDependence
     (p : CMParams) (c lam M κ Λ : ℝ)
-    (hprodAll : ∀ v, RotheStepProducer p c lam M κ Λ v)
+    (hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      RotheStepProducer p c lam M κ Λ v)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Prop :=
   ∀ (seq : ℕ → ℝ → ℝ) (u : ℝ → ℝ),
-    (∀ n, InMonotoneWaveTrapSet κ M (seq n)) → InMonotoneWaveTrapSet κ M u →
+    (hseq : ∀ n, InMonotoneWaveTrapSet κ M (seq n)) →
+      (hu : InMonotoneWaveTrapSet κ M u) →
       LocallyUniformConverges seq u →
         ∀ k : ℕ,
           LocallyUniformConverges
-            (fun n => rotheSeqOf p c lam M κ Λ (seq n) (hprodAll (seq n)) hκ hM k)
-            (rotheSeqOf p c lam M κ Λ u (hprodAll u) hκ hM k)
+            (fun n => rotheSeqOf p c lam M κ Λ (seq n)
+              (hprodTrap (seq n) (hseq n)) hκ hM k)
+            (rotheSeqOf p c lam M κ Λ u
+              (hprodTrap u hu) hκ hM k)
 
 /-- **Uniform Dini tail of the Rothe orbit across trapped profiles (the
 uniform-in-`k` subtlety).**
@@ -114,13 +118,15 @@ cutoff; uniformity across the family `{seq n} ∪ {u}` is the genuine uniform-in
 content, carried here. -/
 def RotheTailUniform
     (p : CMParams) (c lam M κ Λ : ℝ)
-    (hprodAll : ∀ v, RotheStepProducer p c lam M κ Λ v)
+    (hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      RotheStepProducer p c lam M κ Λ v)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Prop :=
   ∀ R > 0, ∀ ε > 0,
-    ∃ K : ℕ, ∀ v : ℝ → ℝ, InMonotoneWaveTrapSet κ M v →
+    ∃ K : ℕ, ∀ v : ℝ → ℝ, (hv : InMonotoneWaveTrapSet κ M v) →
       ∀ k : ℕ, K ≤ k → ∀ x ∈ Set.Icc (-R) R,
-        |rotheSeqOf p c lam M κ Λ v (hprodAll v) hκ hM k x
-            - rotheLimit (rotheSeqOf p c lam M κ Λ v (hprodAll v) hκ hM) x| < ε
+        |rotheSeqOf p c lam M κ Λ v (hprodTrap v hv) hκ hM k x
+            - rotheLimit
+              (rotheSeqOf p c lam M κ Λ v (hprodTrap v hv) hκ hM) x| < ε
 
 /-! ## The limit passage (fully built `ε/3`)
 
@@ -138,19 +144,21 @@ Per-step loc-unif convergence (`RotheSeqStepDependence`) + the uniform Dini tail
 
 where `K` is the common cutoff from `RotheTailUniform`. -/
 theorem rotheLimit_dep_of_step_and_tail
-    {hprodAll : ∀ v, RotheStepProducer p c lam M κ Λ v} {hκ : 0 ≤ κ} {hM : 0 ≤ M}
-    (hstep : RotheSeqStepDependence p c lam M κ Λ hprodAll hκ hM)
-    (htail : RotheTailUniform p c lam M κ Λ hprodAll hκ hM)
+    {hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      RotheStepProducer p c lam M κ Λ v} {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (hstep : RotheSeqStepDependence p c lam M κ Λ hprodTrap hκ hM)
+    (htail : RotheTailUniform p c lam M κ Λ hprodTrap hκ hM)
     (seq : ℕ → ℝ → ℝ) (u : ℝ → ℝ)
     (hseq : ∀ n, InMonotoneWaveTrapSet κ M (seq n))
     (hu : InMonotoneWaveTrapSet κ M u)
     (hconv : LocallyUniformConverges seq u) :
     LocallyUniformConverges
-      (fun n => rotheLimit (rotheSeqOf p c lam M κ Λ (seq n) (hprodAll (seq n)) hκ hM))
-      (rotheLimit (rotheSeqOf p c lam M κ Λ u (hprodAll u) hκ hM)) := by
+      (fun n =>
+        rotheLimit ((rotheSeqFromTrap p c lam M κ Λ hprodTrap hκ hM) (seq n)))
+      (rotheLimit ((rotheSeqFromTrap p c lam M κ Λ hprodTrap hκ hM) u)) := by
   -- abbreviations
   set Z : (ℝ → ℝ) → ℕ → ℝ → ℝ :=
-    fun v => rotheSeqOf p c lam M κ Λ v (hprodAll v) hκ hM with hZ
+    rotheSeqFromTrap p c lam M κ Λ hprodTrap hκ hM with hZ
   set L : (ℝ → ℝ) → ℝ → ℝ := fun v => rotheLimit (Z v) with hL
   intro R hR ε hε
   -- the common tail cutoff K for ε/3, over all trapped profiles
@@ -158,15 +166,21 @@ theorem rotheLimit_dep_of_step_and_tail
   -- per-step convergence at the single index K
   have hstepK :
       LocallyUniformConverges (fun n => Z (seq n) K) (Z u K) :=
-    hstep seq u hseq hu hconv K
+    by
+      have hstepK' := hstep seq u hseq hu hconv K
+      simpa [hZ, rotheSeqFromTrap, hseq, hu] using hstepK'
   -- large-n event: per-step within ε/3 on [−R,R]
   filter_upwards [hstepK R hR (ε / 3) (by linarith)] with n hn
   intro x hx
   -- tail for seq n (uniform K), tail for u, per-step at K
   have htailn : |Z (seq n) K x - L (seq n) x| < ε / 3 :=
-    hK (seq n) (hseq n) K (le_refl K) x hx
+    by
+      have htailn' := hK (seq n) (hseq n) K (le_refl K) x hx
+      simpa [hZ, hL, rotheSeqFromTrap, hseq] using htailn'
   have htailu : |Z u K x - L u x| < ε / 3 :=
-    hK u hu K (le_refl K) x hx
+    by
+      have htailu' := hK u hu K (le_refl K) x hx
+      simpa [hZ, hL, rotheSeqFromTrap, hu] using htailu'
   have hmid : |Z (seq n) K x - Z u K x| < ε / 3 := hn x hx
   -- triangle: |L (seq n) x − L u x|
   --   ≤ |L (seq n) x − Z (seq n) K x| + |Z (seq n) K x − Z u K x| + |Z u K x − L u x|
@@ -195,22 +209,31 @@ theorem rotheLimit_dep_of_step_and_tail
 
 /-- **`RotheContinuousDependence` for the concrete Rothe map — discharged.**
 
-Assembles the loc-unif continuity of `Tmap u = rotheLimit (rotheSeqOf … u …)`
+Assembles the loc-unif continuity of `Tmap u = rotheLimit (rotheSeqFromTrap … u …)`
 from the per-step continuous dependence `RotheSeqStepDependence` (fed by the
 PROVEN `frozenEllipticDerivDependence`) and the uniform Dini tail
 `RotheTailUniform`, via the `ε/3` limit passage `rotheLimit_dep_of_step_and_tail`.
 
 This is EXACTLY the shape consumed by `b1_chiNeg_existence_clean`'s `hdep`
-argument (with `rotheSeq u := rotheSeqOf p c lam M κ Λ u (hprodAll u) hκ hM`). -/
+argument, with `rotheSeq` supplied by
+`rotheSeqFromTrap p c lam M κ Λ hprodTrap hκ hM`. -/
 theorem rotheContinuousDependence
     (p : CMParams) (c lam M κ Λ : ℝ)
-    (hprodAll : ∀ v, RotheStepProducer p c lam M κ Λ v)
+    (hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      RotheStepProducer p c lam M κ Λ v)
     (hκ : 0 ≤ κ) (hM : 0 ≤ M)
-    (hstep : RotheSeqStepDependence p c lam M κ Λ hprodAll hκ hM)
-    (htail : RotheTailUniform p c lam M κ Λ hprodAll hκ hM) :
+    (hstep : RotheSeqStepDependence p c lam M κ Λ hprodTrap hκ hM)
+    (htail : RotheTailUniform p c lam M κ Λ hprodTrap hκ hM) :
     RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
-      (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκ hM) :=
+      (rotheSeqFromTrap p c lam M κ Λ hprodTrap hκ hM) :=
   fun seq u hseq hu hconv =>
     rotheLimit_dep_of_step_and_tail hstep htail seq u hseq hu hconv
+
+/-! ## Axiom audit -/
+
+section AxiomAudit
+#print axioms rotheLimit_dep_of_step_and_tail
+#print axioms rotheContinuousDependence
+end AxiomAudit
 
 end ShenWork.Paper1

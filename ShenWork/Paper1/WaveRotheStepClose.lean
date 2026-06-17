@@ -410,15 +410,15 @@ def rotheStepInput_of_trap
             range := hrangeB
             chem := fun x₀ hx₀ => rotheStep_chem_bound (hchemB x₀ hx₀) } }
 
-/-- **`rotheStepProducer` modulo the residual floor — UNCONDITIONAL in `u`.**
-The residual floor is stated for every profile `v` (its fields never use trap
-membership), so it yields `RotheStepProducer` for all `u` — exactly the
-`hprodAll : ∀ u, RotheStepProducer …` shape `b1_chiNeg_existence_clean` consumes. -/
+/-- **`rotheStepProducer` modulo the residual floor, on trapped profiles.**
+The super-barrier input is only known for profiles in the wave trap, and the
+Schauder assembly only consumes producers there. -/
 theorem rotheStepProducer_of_floor
     {p : CMParams} {c lam M κ Λ : ℝ}
-    (hfloorAll : ∀ v, RotheStepFloor p c lam M κ Λ v) :
-    ∀ u, RotheStepProducer p c lam M κ Λ u :=
-  fun u => rotheStepProducer_of_input (rotheStepInput_of_trap (hfloorAll u))
+    (hfloorTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      RotheStepFloor p c lam M κ Λ v) :
+    ∀ u, InMonotoneWaveTrapSet κ M u → RotheStepProducer p c lam M κ Λ u :=
+  fun u hu => rotheStepProducer_of_input (rotheStepInput_of_trap (hfloorTrap u hu))
 
 /-! ## 4. `b1_chiNeg_existence_final`
 
@@ -426,30 +426,33 @@ B1 χ≤0 existence, factored through the now-`C²` per step.  It carries EXACTL
   * the G1 abstract Schauder principle `hprinciple` (uncommitted; K2 in flight);
   * the committed profile lemmas `hGreen`/`hpos`/`hbdd`/`hlim_neg`/`hlim_pos`;
   * the scalar/Lipschitz side conditions;
-  * the residual per-step floor `hfloorAll` (the genuinely-uncommitted
+  * the residual per-step floor `hfloorTrap` (the genuinely-uncommitted
     Green-convolution tails + flux integrability/decay + source regularity; the
     `c2`/`step_eq`/`chem` fields are discharged inside `rotheStepInput_of_trap`);
   * the continuous-dependence inputs `hstep`/`htail` feeding
     `rotheContinuousDependence`;
   * the elliptic-derivative bound `hVbound`.
-Note `hprodAll` is now SUPPLIED internally from `hfloorAll`, not carried. -/
+Note the trapped producer is now supplied internally from `hfloorTrap`, not
+carried. -/
 theorem b1_chiNeg_existence_final
     (p : CMParams) (c lam M Bv κ Λ : ℝ)
     (hc : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
     (hκ : 0 ≤ κ) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
-    (hfloorAll : ∀ v, RotheStepFloor p c lam M κ Λ v)
+    (hfloorTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      RotheStepFloor p c lam M κ Λ v)
     (hbarLip : ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
     (hŪbdd : IsBddFun (upperBarrier κ M))
     (hVbound : ∀ u, InMonotoneWaveTrapSet κ M u →
         ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
     (hstep : RotheSeqStepDependence p c lam M κ Λ
-        (rotheStepProducer_of_floor hfloorAll) hκ hM)
+        (rotheStepProducer_of_floor hfloorTrap) hκ hM)
     (htail : RotheTailUniform p c lam M κ Λ
-        (rotheStepProducer_of_floor hfloorAll) hκ hM)
+        (rotheStepProducer_of_floor hfloorTrap) hκ hM)
     (hprinciple : LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
     (hGreen : ∀ U, InMonotoneWaveTrapSet κ M U →
-        rotheLimit (rotheSeqOf p c lam M κ Λ U
-          (rotheStepProducer_of_floor hfloorAll U) hκ hM) = U →
+        rotheLimit
+          ((rotheSeqFromTrap p c lam M κ Λ
+            (rotheStepProducer_of_floor hfloorTrap) hκ hM) U) = U →
           GreenIdentity p c lam U)
     (hpos : ∀ U, InMonotoneWaveTrapSet κ M U → (∀ x, 0 < U x))
     (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
@@ -457,9 +460,9 @@ theorem b1_chiNeg_existence_final
     (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
     ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
   b1_chiNeg_existence_clean p c lam M Bv κ Λ hc hlam hM hBv hκ hΛ0 hΛM
-    (rotheStepProducer_of_floor hfloorAll) hbarLip hŪbdd hVbound
+    (rotheStepProducer_of_floor hfloorTrap) hbarLip hŪbdd hVbound
     (rotheContinuousDependence p c lam M κ Λ
-      (rotheStepProducer_of_floor hfloorAll) hκ hM hstep htail)
+      (rotheStepProducer_of_floor hfloorTrap) hκ hM hstep htail)
     hprinciple hGreen hpos hbdd hlim_neg hlim_pos
 
 section AxiomAudit

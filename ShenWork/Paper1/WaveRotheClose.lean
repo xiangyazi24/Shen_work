@@ -8,7 +8,7 @@
   The three carried inputs of `b1_chiNeg_existence`:
 
     * `hVcont` : `∀ u, trap u → Continuous (deriv (frozenElliptic p u))`
-    * `hprodAll` : `∀ u, RotheStepProducer p c lam M κ Λ u`
+    * `hprodTrap` : `∀ u, trap u → RotheStepProducer p c lam M κ Λ u`
     * `hdep` : `RotheContinuousDependence p c lam (trap) rotheSeq`
 
   This file discharges what is closeable from the committed bricks.
@@ -151,19 +151,20 @@ theorem frozenElliptic_deriv_continuous_trap
     (p : CMParams) {κ M : ℝ} :
     ∀ u, InMonotoneWaveTrapSet κ M u →
       Continuous (deriv (frozenElliptic p u)) :=
-  fun u hu => frozenElliptic_deriv_continuous p hu.trap.cunif_bdd hu.nonneg
+  fun _ hu => frozenElliptic_deriv_continuous p hu.trap.cunif_bdd hu.nonneg
 
 /-! ## `b1_chiNeg_existence_clean` — `hVcont` discharged
 
-`b1_chiNeg_existence` carries three uncommitted inputs: `hVcont`, the per-step
-producer `hprodAll`, and the continuous dependence `hdep`.
+`b1_chiNeg_existence` carries three uncommitted inputs: `hVcont`, the trap-indexed
+per-step producer `hprodTrap`, and the continuous dependence `hdep`.
 
 Item 1 (`frozenElliptic_deriv_continuous_trap`) closes `hVcont` outright from the
 committed kernel representation, so it drops out of the signature below.
 
-The remaining carried inputs (`hprodAll`, `hdep`) are the genuinely-deep pieces:
+The remaining carried inputs (`hprodTrap`, `hdep`) are the genuinely-deep pieces:
 
-  * `hprodAll : ∀ u, RotheStepProducer p c lam M κ Λ u` — the per-step bridge.
+  * `hprodTrap : ∀ u, trap u → RotheStepProducer p c lam M κ Λ u` — the per-step
+    bridge on the only profiles inspected by the Schauder argument.
     The committed `crossStep_exists_unique_concrete` produces a unique
     *truncated* BCF step fixed point (`crossStepSelfMap` with the `[0,M]`
     truncated source `crossStepSourceConcrete`); the producer's
@@ -172,7 +173,7 @@ The remaining carried inputs (`hprodAll`, `hdep`) are the genuinely-deep pieces:
     (b) removal of the source truncation on the trapped range — and (b) rests on
     the max-principle trap bound, whose source-ordering obligations
     (`ImplicitStepSuperOrdering`) are themselves uncommitted, satisfiable
-    hypotheses.  So discharging `hprodAll` would *introduce* fresh carried
+    hypotheses.  So discharging `hprodTrap` would *introduce* fresh carried
     obligations rather than eliminate carried inputs; it is NOT closeable from
     the committed bricks without new satisfiable hypotheses.  Carried.
 
@@ -187,28 +188,29 @@ The remaining carried inputs (`hprodAll`, `hdep`) are the genuinely-deep pieces:
 `b1_chiNeg_existence_clean` therefore reduces B1 χ≤0 to EXACTLY:
 the G1 principle `hprinciple`, the committed profile lemmas
 (`hGreen`/`hpos`/`hbdd`/`hlim_neg`/`hlim_pos`), the scalar/trap side-conditions,
-PLUS the two carried inputs `hprodAll` and `hdep`. -/
+PLUS the two carried inputs `hprodTrap` and `hdep`. -/
 
 /-- **B1 χ≤0 existence — `hVcont` discharged.**
 Identical to `b1_chiNeg_existence` but with the `hVcont` continuity input
 supplied internally from item 1 (`frozenElliptic_deriv_continuous_trap`), so the
 signature no longer carries it.  The remaining carried inputs are exactly
-`hprodAll` (per-step producer) and `hdep` (continuous dependence). -/
+`hprodTrap` (per-step producer) and `hdep` (continuous dependence). -/
 theorem b1_chiNeg_existence_clean
     (p : CMParams) (c lam M Bv κ Λ : ℝ)
     (hc : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
     (hκ : 0 ≤ κ) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
-    (hprodAll : ∀ u, RotheStepProducer p c lam M κ Λ u)
+    (hprodTrap : ∀ u, InMonotoneWaveTrapSet κ M u →
+      RotheStepProducer p c lam M κ Λ u)
     (hbarLip : ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
     (hŪbdd : IsBddFun (upperBarrier κ M))
     -- only the bound stays carried; continuity is now internal (item 1):
     (hVbound : ∀ u, InMonotoneWaveTrapSet κ M u →
         ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
     (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
-        (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκ hM))
+        (rotheSeqFromTrap p c lam M κ Λ hprodTrap hκ hM))
     (hprinciple : LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
     (hGreen : ∀ U, InMonotoneWaveTrapSet κ M U →
-        rotheLimit (rotheSeqOf p c lam M κ Λ U (hprodAll U) hκ hM) = U →
+        rotheLimit ((rotheSeqFromTrap p c lam M κ Λ hprodTrap hκ hM) U) = U →
           GreenIdentity p c lam U)
     (hpos : ∀ U, InMonotoneWaveTrapSet κ M U → (∀ x, 0 < U x))
     (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
@@ -216,7 +218,7 @@ theorem b1_chiNeg_existence_clean
     (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
     ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
   b1_chiNeg_existence p c lam M Bv κ Λ hc hlam hM hBv hκ hΛ0 hΛM
-    hprodAll hbarLip hŪbdd
+    hprodTrap hbarLip hŪbdd
     (frozenElliptic_deriv_continuous_trap p)
     hVbound hdep hprinciple hGreen hpos hbdd hlim_neg hlim_pos
 

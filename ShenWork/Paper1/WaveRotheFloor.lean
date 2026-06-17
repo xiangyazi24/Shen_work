@@ -52,7 +52,7 @@
   abstract Schauder principle `hprinciple`, the committed profile lemmas
   (`hGreen`/`hpos`/`hbdd`/`hlim_neg`/`hlim_pos`), the continuous-dependence inputs
   `hstep`/`htail`, the scalar side-conditions, and the now-singular named per-step
-  residual `hresidAll`.  Touches only Paper1.
+  residual `hresidTrap`.  Touches only Paper1.
 -/
 import ShenWork.Paper1.WaveRotheStepClose
 
@@ -152,8 +152,8 @@ def rotheStepFloor_of_trap
 /-! ## 3. `b1_chiNeg_existence_unconditional`
 
 B1 χ≤0 existence factored through the now-`C²` per step, carrying the per-step
-content as the SINGLE named residual `hresidAll` (whole-profile, since its fields
-never use trap-membership), threaded through `rotheStepFloor_of_trap →
+content as the SINGLE named residual `hresidTrap`, available exactly on trapped
+profiles, threaded through `rotheStepFloor_of_trap →
 rotheStepProducer_of_floor → b1_chiNeg_existence_final`.
 
 It carries EXACTLY:
@@ -161,30 +161,35 @@ It carries EXACTLY:
   * the committed profile lemmas `hGreen`/`hpos`/`hbdd`/`hlim_neg`/`hlim_pos`;
   * the continuous-dependence inputs `hstep`/`htail`;
   * the scalar/Lipschitz side conditions + `hVbound`;
-  * the named per-step residual `hresidAll` (the genuinely-uncommitted
+  * the named per-step residual `hresidTrap` (the genuinely-uncommitted
     Green-convolution tails + flux integrability/decay + source antitonicity +
-    whole-line super-barrier; the `c2`/`step_eq`/`chem` discharges happen inside the
-    committed `rotheStepInput_of_trap`). -/
+    whole-line super-barrier; the `c2`/`step_eq`/`chem` discharges happen inside
+    the committed `rotheStepInput_of_trap`). -/
 theorem b1_chiNeg_existence_unconditional
     (p : CMParams) (c lam M Bv κ Λ : ℝ)
     (hc : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
     (hκ : 0 ≤ κ) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
-    (hresidAll : ∀ v, RotheFloorResidual p c lam M κ Λ v)
+    (hresidTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      RotheFloorResidual p c lam M κ Λ v)
     (hbarLip : ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
     (hŪbdd : IsBddFun (upperBarrier κ M))
     (hVbound : ∀ u, InMonotoneWaveTrapSet κ M u →
         ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
     (hstep : RotheSeqStepDependence p c lam M κ Λ
-        (rotheStepProducer_of_floor (fun v => rotheStepFloor_of_residual (hresidAll v)))
+        (rotheStepProducer_of_floor
+          (fun v hv => rotheStepFloor_of_residual (hresidTrap v hv)))
         hκ hM)
     (htail : RotheTailUniform p c lam M κ Λ
-        (rotheStepProducer_of_floor (fun v => rotheStepFloor_of_residual (hresidAll v)))
+        (rotheStepProducer_of_floor
+          (fun v hv => rotheStepFloor_of_residual (hresidTrap v hv)))
         hκ hM)
     (hprinciple : LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
     (hGreen : ∀ U, InMonotoneWaveTrapSet κ M U →
-        rotheLimit (rotheSeqOf p c lam M κ Λ U
-          (rotheStepProducer_of_floor
-            (fun v => rotheStepFloor_of_residual (hresidAll v)) U) hκ hM) = U →
+        rotheLimit
+          ((rotheSeqFromTrap p c lam M κ Λ
+            (rotheStepProducer_of_floor
+              (fun v hv => rotheStepFloor_of_residual (hresidTrap v hv)))
+            hκ hM) U) = U →
           GreenIdentity p c lam U)
     (hpos : ∀ U, InMonotoneWaveTrapSet κ M U → (∀ x, 0 < U x))
     (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
@@ -192,7 +197,7 @@ theorem b1_chiNeg_existence_unconditional
     (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
     ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
   b1_chiNeg_existence_final p c lam M Bv κ Λ hc hlam hM hBv hκ hΛ0 hΛM
-    (fun v => rotheStepFloor_of_residual (hresidAll v))
+    (fun v hv => rotheStepFloor_of_residual (hresidTrap v hv))
     hbarLip hŪbdd hVbound hstep htail hprinciple hGreen hpos hbdd hlim_neg hlim_pos
 
 section AxiomAudit

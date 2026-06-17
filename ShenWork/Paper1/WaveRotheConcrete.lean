@@ -195,6 +195,31 @@ def rotheSeqOf (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ)
     (hprod : RotheStepProducer p c lam M κ Λ u) (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
     rotheSeqOf p c lam M κ Λ u hprod hκ hM 0 = upperBarrier κ M := rfl
 
+/-- Total Rothe family built from a producer available only on trapped profiles.
+
+The Schauder assembly uses a total `(ℝ → ℝ) → ℕ → ℝ → ℝ`, but all its hypotheses
+and conclusions only inspect trapped profiles.  This wrapper keeps the actual
+producer trap-indexed; the non-trapped branch is an unreachable fallback. -/
+def rotheSeqFromTrap (p : CMParams) (c lam M κ Λ : ℝ)
+    (hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      RotheStepProducer p c lam M κ Λ v)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : (ℝ → ℝ) → ℕ → ℝ → ℝ := by
+  classical
+  exact fun v =>
+    if hv : InMonotoneWaveTrapSet κ M v then
+      rotheSeqOf p c lam M κ Λ v (hprodTrap v hv) hκ hM
+    else
+      fun _ => upperBarrier κ M
+
+@[simp] theorem rotheSeqFromTrap_of_mem
+    (hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      RotheStepProducer p c lam M κ Λ v)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+    {v : ℝ → ℝ} (hv : InMonotoneWaveTrapSet κ M v) :
+    rotheSeqFromTrap p c lam M κ Λ hprodTrap hκ hM v =
+      rotheSeqOf p c lam M κ Λ v (hprodTrap v hv) hκ hM := by
+  simp [rotheSeqFromTrap, hv]
+
 /-- The defining per-step fact bundle satisfied by `rotheSeqOf` at every `k+1`. -/
 theorem rotheSeqOf_stepFacts
     (hprod : RotheStepProducer p c lam M κ Λ u) (hκ : 0 ≤ κ) (hM : 0 ≤ M) (k : ℕ) :
@@ -357,36 +382,67 @@ Assembled from the per-step producer and the committed Rothe bricks, with the
 base-barrier `M`-Lipschitz bound `hbarLip`, the uniform-`C¹` constant data
 `hΛ0`/`hΛM`, and the trap-derived frozen-drift facts `hVcont`/`hVbound`. -/
 theorem rotheOrbitData
-    (hprodAll : ∀ v, RotheStepProducer p c lam M κ Λ v) (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+    (hprodTrap : ∀ v, InMonotoneWaveTrapSet κ M v →
+      RotheStepProducer p c lam M κ Λ v)
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M)
     (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M) (Bv : ℝ)
     (hbarLip : ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
     (hVcont : Continuous (deriv (frozenElliptic p u)))
     (hVbound : ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv) :
     RotheOrbitData p c lam M Bv κ
-      (fun v => rotheSeqOf p c lam M κ Λ v (hprodAll v) hκ hM) u := by
+      (rotheSeqFromTrap p c lam M κ Λ hprodTrap hκ hM) u := by
   refine
-    { iterate_cont := rotheSeqOf_cont (hprodAll u) hκ hM
-      anti_k := rotheSeqOf_anti_k (hprodAll u) hκ hM
-      anti_x := rotheSeqOf_anti_x (hprodAll u) hκ hM
-      nonneg := rotheSeqOf_nonneg (hprodAll u) hκ hM
-      le_M := rotheSeqOf_le_M (hprodAll u) hκ hM
-      le_upperBarrier := rotheSeqOf_le_barrier (hprodAll u) hκ hM
-      bddBelow := rotheSeqOf_bddBelow (hprodAll u) hκ hM
-      equiLip := rotheSeqOf_equiLip (hprodAll u) hκ hM hΛ0 hΛM hbarLip
+    { iterate_cont := by
+        intro k
+        simpa [rotheSeqFromTrap, hu] using
+          rotheSeqOf_cont (hprodTrap u hu) hκ hM k
+      anti_k := by
+        intro x
+        simpa [rotheSeqFromTrap, hu] using
+          rotheSeqOf_anti_k (hprodTrap u hu) hκ hM x
+      anti_x := by
+        intro k
+        simpa [rotheSeqFromTrap, hu] using
+          rotheSeqOf_anti_x (hprodTrap u hu) hκ hM k
+      nonneg := by
+        intro k x
+        simpa [rotheSeqFromTrap, hu] using
+          rotheSeqOf_nonneg (hprodTrap u hu) hκ hM k x
+      le_M := by
+        intro k x
+        simpa [rotheSeqFromTrap, hu] using
+          rotheSeqOf_le_M (hprodTrap u hu) hκ hM k x
+      le_upperBarrier := by
+        intro k x
+        simpa [rotheSeqFromTrap, hu] using
+          rotheSeqOf_le_barrier (hprodTrap u hu) hκ hM k x
+      bddBelow := by
+        intro x
+        simpa [rotheSeqFromTrap, hu] using
+          rotheSeqOf_bddBelow (hprodTrap u hu) hκ hM x
+      equiLip := by
+        intro k x y
+        simpa [rotheSeqFromTrap, hu] using
+          rotheSeqOf_equiLip (hprodTrap u hu) hκ hM hΛ0 hΛM hbarLip k x y
       limitLip := ?_
-      step_rec := rotheSeqOf_step_rec (hprodAll u) hκ hM
+      step_rec := by
+        intro k
+        simpa [rotheSeqFromTrap, hu] using
+          rotheSeqOf_step_rec (hprodTrap u hu) hκ hM k
       V_cont := hVcont
       V_bound := hVbound }
   -- limitLip: the structure's `rotheLimit (rotheSeq u)` is at the global sequence
   -- applied to `u`, defeq to the single-`u` sequence; supply the proof directly.
   intro x y
-  exact rotheSeqOf_limitLip (hprodAll u) hκ hM hΛ0 hΛM hbarLip x y
+  simpa [rotheSeqFromTrap, hu] using
+    rotheSeqOf_limitLip (hprodTrap u hu) hκ hM hΛ0 hΛM hbarLip x y
 
 /-! ## Field 5 — the final B1 χ≤0 existence theorem
 
 We instantiate the committed `b1_chiNeg_existence_rothe` with the concrete map
-`Tmap u := rotheLimit (rotheSeq u)` where
-`rotheSeq u := rotheSeqOf … (hprodAll u) …`.  The selection/dependence inputs are:
+`Tmap u := rotheLimit (rotheSeq u)` where `rotheSeq` is the trap-indexed wrapper
+`rotheSeqFromTrap … hprodTrap …`.  The selection/dependence inputs are:
 
   * `helly_pointwise_selection M` — the committed (PROVED) Helly pointwise
     selection;
@@ -401,22 +457,24 @@ and the per-`u` `RotheOrbitData` is supplied by `rotheOrbitData`.
 The remaining hypotheses are EXACTLY: the G1 abstract principle
 `hprinciple`, the committed per-fixed-point profile lemmas
 `hGreen`/`hpos`/`hbdd`/`hlim_neg`/`hlim_pos`, plus the precise carried inputs
-(`hprodAll` per-step producer, `hdep` continuous-dependence, the trap-derived
+(`hprodTrap` per-step producer, `hdep` continuous-dependence, the trap-derived
 `hVcont`/`hVbound`, the base-barrier Lipschitz `hbarLip`, and the scalar
 constraints).  B1 χ≤0 thereby reduces to ONLY G1 + the profile lemmas, modulo
 those named satisfiable inputs. -/
 
 /-- **B1 χ≤0 existence — the FINAL concrete theorem.**
 The headline traveling-wave existence, with the concrete Rothe map
-`Tmap u := rotheLimit (rotheSeqOf … (hprodAll u) …)`, reduced to the G1 principle
+`Tmap u := rotheLimit ((rotheSeqFromTrap … hprodTrap …) u)`, reduced to the G1
+principle
 `hprinciple` and the committed profile lemmas, plus the precise named carried
 inputs. -/
 theorem b1_chiNeg_existence
     (p : CMParams) (c lam M Bv κ Λ : ℝ)
     (hc : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
     (hκ : 0 ≤ κ) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
-    -- the per-step producer for every frozen profile `u`:
-    (hprodAll : ∀ u, RotheStepProducer p c lam M κ Λ u)
+    -- the per-step producer for every trapped frozen profile `u`:
+    (hprodTrap : ∀ u, InMonotoneWaveTrapSet κ M u →
+      RotheStepProducer p c lam M κ Λ u)
     -- the base super-barrier is `M`-Lipschitz (holds when `κ M ≤ M`):
     (hbarLip : ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
     -- the upper-barrier boundedness:
@@ -429,12 +487,12 @@ theorem b1_chiNeg_existence
     -- the carried continuous-dependence (deep core PROVED; Rothe-limit
     -- propagation carried):
     (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
-        (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκ hM))
+        (rotheSeqFromTrap p c lam M κ Λ hprodTrap hκ hM))
     -- the G1 abstract Schauder principle:
     (hprinciple : LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
     -- the committed per-fixed-point profile lemmas:
     (hGreen : ∀ U, InMonotoneWaveTrapSet κ M U →
-        rotheLimit (rotheSeqOf p c lam M κ Λ U (hprodAll U) hκ hM) = U →
+        rotheLimit ((rotheSeqFromTrap p c lam M κ Λ hprodTrap hκ hM) U) = U →
           GreenIdentity p c lam U)
     (hpos : ∀ U, InMonotoneWaveTrapSet κ M U → (∀ x, 0 < U x))
     (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
@@ -442,50 +500,13 @@ theorem b1_chiNeg_existence
     (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
     ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
   b1_chiNeg_existence_rothe p c lam M Bv κ hc hlam hM hBv
-    (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκ hM)
+    (rotheSeqFromTrap p c lam M κ Λ hprodTrap hκ hM)
     hŪbdd
     (helly_pointwise_selection M)
     hdep
-    (fun u hu => rotheOrbitData hprodAll hκ hM hΛ0 hΛM Bv hbarLip
+    (fun u hu => rotheOrbitData hprodTrap hu hκ hM hΛ0 hΛM Bv hbarLip
       (hVcont u hu) (hVbound u hu))
     hprinciple hGreen hpos hbdd hlim_neg hlim_pos
-
-/-- `b1_chiNeg_existence` with the trap-derived profile obligations discharged.
-
-The remaining profile surface is exactly strict positivity, the left endpoint
-connection, and the Green identity.  Uniform `C`-boundedness comes from
-`InMonotoneWaveTrapSet.trap.cunif_bdd`; right decay comes from the upper-barrier
-squeeze and the strict rate `0 < κ`. -/
-theorem b1_chiNeg_existence_profileClean
-    (p : CMParams) (c lam M Bv κ Λ : ℝ)
-    (hc : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
-    (hκpos : 0 < κ) (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
-    (hprodAll : ∀ u, RotheStepProducer p c lam M κ Λ u)
-    (hbarLip :
-      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
-    (hŪbdd : IsBddFun (upperBarrier κ M))
-    (hVcont : ∀ u, InMonotoneWaveTrapSet κ M u →
-        Continuous (deriv (frozenElliptic p u)))
-    (hVbound : ∀ u, InMonotoneWaveTrapSet κ M u →
-        ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
-    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
-        (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκpos.le hM))
-    (hprinciple :
-      LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
-    (hGreen : ∀ U, InMonotoneWaveTrapSet κ M U →
-        rotheLimit (rotheSeqOf p c lam M κ Λ U
-          (hprodAll U) hκpos.le hM) = U →
-          GreenIdentity p c lam U)
-    (hpos : ∀ U, InMonotoneWaveTrapSet κ M U → (∀ x, 0 < U x))
-    (hlim_neg :
-      ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atBot (𝓝 1)) :
-    ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
-  b1_chiNeg_existence p c lam M Bv κ Λ hc hlam hM hBv
-    hκpos.le hΛ0 hΛM hprodAll hbarLip hŪbdd hVcont hVbound
-    hdep hprinciple hGreen hpos
-    (fun _U hU => hU.trap.cunif_bdd)
-    hlim_neg
-    (fun _U hU => hU.tendsto_atTop_zero hκpos)
 
 /-! ## Axiom audit -/
 
@@ -498,7 +519,6 @@ section AxiomAudit
 #print axioms rotheSeqOf_limitLip
 #print axioms rotheOrbitData
 #print axioms b1_chiNeg_existence
-#print axioms b1_chiNeg_existence_profileClean
 
 end AxiomAudit
 
