@@ -47,6 +47,25 @@ structure PaperDiagonalDifferentiabilityFloor
     ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
       ∀ x, DifferentiableAt ℝ (fun y => (U y) ^ p.m) x
 
+theorem paperDiagonalDifferentiabilityFloor_of_c3BootstrapData
+    {p : CMParams} {κ M : ℝ} {φ : ℝ → ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hc3 :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        PaperC3BootstrapData U (rotheSeq U)) :
+    PaperDiagonalDifferentiabilityFloor p κ M φ where
+  U_diff := by
+    intro U hU x
+    exact ((hc3 U hU).limit_hasDeriv_value x).differentiableAt
+  V_diff := by
+    intro U hU x
+    exact frozenElliptic_deriv_differentiableAt p
+      hU.bare.trap.cunif_bdd hU.bare.nonneg x
+  rpow_diff := by
+    intro U hU x
+    exact (((hc3 U hU).limit_hasDeriv_value x).differentiableAt).rpow_const
+      (Or.inr p.hm)
+
 theorem paperImplicitStep_fixed_paperWaveOperator_zero
     (p : CMParams) (c h : ℝ) (U : ℝ → ℝ)
     (hh : h ≠ 0)
@@ -329,6 +348,45 @@ theorem paperLowerPinnedStationary_of_uniformBounds
       paperC2CompactConvergence_of_uniformBounds hLU_U (hbounds U hU hLU_U))
     hdiff
 
+theorem paperLowerPinnedStationary_of_greenStep
+    {p : CMParams} {c lam κ M Λ : ℝ} {φ : ℝ → ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hlam : 0 < lam) (hM : 0 < M) (hΛ : 0 ≤ Λ)
+    (hLU :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        LocallyUniformConverges (rotheSeq U) (rotheLimit (rotheSeq U)))
+    (hstep :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        ∀ k, paperImplicitStepOp p c (1 / lam) U (rotheSeq U (k + 1)) =
+          rotheSeq U k)
+    (hz_nonneg :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        ∀ k x, 0 ≤ rotheSeq U k x)
+    (hz_le_M :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        ∀ k x, rotheSeq U k x ≤ M)
+    (hgreen :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        ∀ k, PaperStepAnalytic p c lam M κ Λ U
+          (rotheSeq U k) (rotheSeq U (k + 1)))
+    (hc3 :
+      ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+        PaperC3BootstrapData U (rotheSeq U)) :
+    ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
+      rotheLimit (rotheSeq U) = U →
+        ∀ x, frozenWaveOperator p c U U x = 0 :=
+  paperLowerPinnedStationary_of_uniformBounds
+    (p := p) (c := c) (lam := lam) (κ := κ) (M := M) (φ := φ)
+    (rotheSeq := rotheSeq) hlam hLU hstep
+    (fun U hU hLU_U =>
+      paperC2CompactUniformBounds_of_greenStep
+        (p := p) (c := c) (lam := lam) (κ := κ) (M := M) (Λ := Λ)
+        (φ := φ) (U := U) (z := rotheSeq U)
+        hlam hM hΛ hU hLU_U (hz_nonneg U hU) (hz_le_M U hU)
+        (hgreen U hU) (hc3 U hU))
+    (paperDiagonalDifferentiabilityFloor_of_c3BootstrapData
+      (p := p) (κ := κ) (M := M) (φ := φ) (rotheSeq := rotheSeq) hc3)
+
 theorem paperLowerPinnedStationaryFlatFloor_of_termConvergence
     {p : CMParams} {c lam κ M : ℝ} {φ : ℝ → ℝ}
     {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
@@ -443,6 +501,7 @@ theorem paperLowerPinnedStationaryFlatFloor_of_greenStep
 
 #print axioms paperImplicitStep_fixed_paperWaveOperator_zero
 #print axioms paperImplicitStep_fixed_frozenWaveOperator_zero
+#print axioms paperDiagonalDifferentiabilityFloor_of_c3BootstrapData
 #print axioms paperLimit_fixedStepIdentity_of_stepLimitPassage
 #print axioms paperRotheLimitFixedStepIdentity_of_stepLimitPassage
 #print axioms PaperWaveOperatorTermConvergence.implicitStepLimitPassage
@@ -460,6 +519,7 @@ theorem paperLowerPinnedStationaryFlatFloor_of_greenStep
 #print axioms paperRotheStepLimitPassage_of_uniformBounds
 #print axioms paperRotheLimitStepConsistency_of_uniformBounds
 #print axioms paperLowerPinnedStationary_of_uniformBounds
+#print axioms paperLowerPinnedStationary_of_greenStep
 #print axioms paperLowerPinnedStationaryFlatFloor_of_uniformBounds
 #print axioms paperLowerPinnedStationaryFlatFloor_of_greenStep
 
