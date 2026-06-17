@@ -50,6 +50,10 @@ def facetSet {n : ℕ} (p : Fin n → ℤ) (σ : Equiv.Perm (Fin n)) (t : Fin (n
 abbrev Cell (n : ℕ) : Type :=
   (Fin n → ℤ) × Equiv.Perm (Fin n)
 
+/-- Labellings for the `n`-dimensional Freudenthal model. -/
+abbrev Label (n : ℕ) : Type :=
+  (Fin n → ℤ) → Fin (n + 1)
+
 /-- Valid cube-mesh cells: every base coordinate lies in `{0, ..., k-1}`. -/
 def cellValid {n : ℕ} (k : ℕ) (c : Cell n) : Prop :=
   ∀ i, 0 ≤ c.1 i ∧ c.1 i < (k : ℤ)
@@ -674,6 +678,19 @@ noncomputable def bottomLabel {n : ℕ}
     (Fin n → ℤ) → Fin (n + 1) :=
   fun v => (L (appendZero v)).castPred (havoid v)
 
+/-- Extend a lower Freudenthal label to the upper bottom face by post-projection.
+On the literal bottom face it is the lower colour, embedded below `last`; away from that face
+it returns the top colour. -/
+noncomputable def postLabel {n : ℕ} (L : Label n) : Label (n + 1) :=
+  fun v =>
+    if v (Fin.last n) = 0 then (L (dropLast v)).castSucc
+    else Fin.last (n + 1)
+
+theorem postLabel_appendZero_ne_last {n : ℕ} (L : Label n) :
+    ∀ v : Fin n → ℤ, postLabel L (appendZero v) ≠ Fin.last (n + 1) := by
+  intro v
+  simp [postLabel]
+
 theorem bottomLabel_castSucc {n : ℕ}
     (L : (Fin (n + 1) → ℤ) → Fin (n + 2))
     (havoid : ∀ v : Fin n → ℤ, L (appendZero v) ≠ Fin.last (n + 1))
@@ -681,6 +698,13 @@ theorem bottomLabel_castSucc {n : ℕ}
     (bottomLabel L havoid v).castSucc = L (appendZero v) := by
   unfold bottomLabel
   exact Fin.castSucc_castPred _ _
+
+theorem bottomLabel_postLabel {n : ℕ} (L : Label n) :
+    bottomLabel (postLabel L) (postLabel_appendZero_ne_last L) = L := by
+  funext v
+  apply Fin.castSucc_injective
+  rw [bottomLabel_castSucc]
+  simp [postLabel]
 
 /-- On an extended bottom cell, the upper bottom-face colour is the induced lower colour. -/
 theorem bottomFaceColor_extend_eq {n : ℕ}
@@ -2072,6 +2096,16 @@ theorem bottomDoorFacets_odd_of_lower_rainbow_odd {n k : ℕ}
   rw [card_bottomDoorFacets_eq_rainbow L havoid]
   exact hodd
 
+theorem bottomDoorFacets_postLabel_odd_of_lower_rainbow_odd {n k : ℕ}
+    (L : Label n)
+    (hodd : Odd ((cells n k).filter (fun c => isRainbow L c)).card) :
+    Odd (bottomDoorFacets k (postLabel L)).card := by
+  have hstep :=
+    bottomDoorFacets_odd_of_lower_rainbow_odd (n := n) (k := k) (postLabel L)
+      (postLabel_appendZero_ne_last L)
+      (by simpa [bottomLabel_postLabel L] using hodd)
+  exact hstep
+
 theorem finRotate_symm_zero {n : ℕ} :
     (finRotate (n + 1)).symm (0 : Fin (n + 1)) = Fin.last n := by
   apply (finRotate (n + 1)).injective
@@ -2347,10 +2381,6 @@ theorem rainbow_count_succ_odd_of_boundary_vertices_bottom_R2 {n k : ℕ} (hk : 
     (fun _F _hF _hdoor hb => boundary_singleton_invalid (Nat.succ_pos n) hb)
     hbottom hlower
 
-/-- Labellings for the `n`-dimensional Freudenthal model. -/
-abbrev Label (n : ℕ) : Type :=
-  (Fin n → ℤ) → Fin (n + 1)
-
 /-- Recursive boundary data sufficient for the Freudenthal parity induction. -/
 def BoundaryData : (n k : ℕ) → Label n → Prop
   | 0, _k, _L => True
@@ -2418,6 +2448,20 @@ theorem bottomDoors_odd_of_boundaryBottomData {n k : ℕ} (hk : 0 < k)
     Odd (bottomDoors n k L).card := by
   rw [card_bottomDoors_eq_rainbow hk L havoid]
   exact rainbow_count_odd_of_boundaryBottomData hk (bottomLabel L havoid) hdata
+
+theorem bottomDoorFacets_odd_of_boundaryBottomData {n k : ℕ} (hk : 0 < k)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 2))
+    (havoid : ∀ v : Fin n → ℤ, L (appendZero v) ≠ Fin.last (n + 1))
+    (hdata : BoundaryBottomData n k (bottomLabel L havoid)) :
+    Odd (bottomDoorFacets k L).card := by
+  exact bottomDoorFacets_odd_of_lower_rainbow_odd L havoid
+    (rainbow_count_odd_of_boundaryBottomData hk (bottomLabel L havoid) hdata)
+
+theorem bottomDoorFacets_postLabel_odd_of_boundaryBottomData {n k : ℕ} (hk : 0 < k)
+    (L : Label n) (hdata : BoundaryBottomData n k L) :
+    Odd (bottomDoorFacets k (postLabel L)).card := by
+  exact bottomDoorFacets_postLabel_odd_of_lower_rainbow_odd L
+    (rainbow_count_odd_of_boundaryBottomData hk L hdata)
 
 theorem exists_rainbow_cellF_of_boundaryData {n k : ℕ} (hk : 0 < k)
     (L : Label n) (hdata : BoundaryData n k L) :
@@ -3265,6 +3309,11 @@ theorem counterexampleLabelN2_simplexZeroDoorCells_card :
     (simplexZeroDoorCells 2 2 counterexampleLabelN2).card = 1 := by
   decide
 
+theorem counterexampleLabelN2_simplexZeroDoorCells_odd :
+    Odd (simplexZeroDoorCells 2 2 counterexampleLabelN2).card := by
+  rw [counterexampleLabelN2_simplexZeroDoorCells_card]
+  exact ⟨0, rfl⟩
+
 theorem counterexampleLabelN2_simplexZeroDoorCellsOld_card :
     (simplexZeroDoorCellsOld 2 2 counterexampleLabelN2).card = 0 := by
   decide
@@ -4082,6 +4131,7 @@ Still not closed here:
 #print axioms door_iff_bottomFaceColor_bijective
 #print axioms door_iff_extendCell_rainbow
 #print axioms card_bottomDoors_eq_rainbow
+#print axioms bottomLabel_postLabel
 #print axioms unitVec_injective
 #print axioms chainVZ_step
 #print axioms sum_total_facetSet
@@ -4103,11 +4153,13 @@ Still not closed here:
 #print axioms finalFacet_extendCell_injective
 #print axioms card_bottomDoorFacets_eq_rainbow
 #print axioms bottomDoorFacets_odd_of_lower_rainbow_odd
+#print axioms bottomDoorFacets_postLabel_odd_of_lower_rainbow_odd
 #print axioms zeroDoorFaceVertex_pull_eq_appendSlack
 #print axioms zeroDoorPostLabels_door_iff_lower_rainbow
 #print axioms zeroDoorPostLabels_labelN_door_iff_lower_rainbow
 #print axioms mem_simplexZeroDoorCells_labelN_iff_lower_rainbow
 #print axioms counterexampleLabelN2_simplexZeroDoorCells_card
+#print axioms counterexampleLabelN2_simplexZeroDoorCells_odd
 #print axioms counterexampleLabelN2_simplexZeroDoorCellsOld_card
 #print axioms counterexampleLabelN2_boxBottomDoors_card
 #print axioms counterexampleLabelN2_boxBottomDoors_odd
@@ -4125,6 +4177,8 @@ Still not closed here:
 #print axioms exists_rainbow_cellF_of_boundaryData
 #print axioms rainbow_count_odd_of_boundaryBottomData
 #print axioms bottomDoors_odd_of_boundaryBottomData
+#print axioms bottomDoorFacets_odd_of_boundaryBottomData
+#print axioms bottomDoorFacets_postLabel_odd_of_boundaryBottomData
 #print axioms exists_rainbow_cellF_of_boundaryBottomData
 #print axioms zeroDoorFaceVertex_pull_castSucc
 #print axioms oldZeroDoorLowerCell_cellValid
@@ -4165,3 +4219,7 @@ Still not closed here:
 end Freudenthal
 
 end ShenWork.Paper1
+
+#print axioms ShenWork.Paper1.Freudenthal.unitVec_injective
+#print axioms ShenWork.Paper1.Freudenthal.mem_typeACells
+#print axioms ShenWork.Paper1.Freudenthal.mem_typeAFacets_iff

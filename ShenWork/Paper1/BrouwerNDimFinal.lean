@@ -50,7 +50,7 @@ into itself, and — the Sperner output — for every `m : ℕ` there is a famil
 `t`, all pairwise within `C/(m+1)` coordinatewise (`C ≥ 0` a fixed constant).  Then `f` has a
 fixed point in `Δⁿ`. -/
 theorem brouwer_of_rainbow_meshes {n : ℕ} {f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ)}
-    (C : ℝ) (hC : 0 ≤ C)
+    (C : ℝ) (_hC : 0 ≤ C)
     (hf : ContinuousOn f (stdSimplex ℝ (Fin (n + 1))))
     (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (n + 1))) (stdSimplex ℝ (Fin (n + 1))))
     (hrain : ∀ m : ℕ, ∃ P : Fin (n + 1) → (Fin (n + 1) → ℝ),
@@ -97,6 +97,23 @@ theorem brouwer_of_rainbow_meshes {n : ℕ} {f : (Fin (n + 1) → ℝ) → (Fin 
       (tendsto_pi_nhds.mp (hPtend t)) t
     exact le_of_tendsto_of_tendsto hfx_t hxt (Eventually.of_forall (fun j => hPle (φ j) t))
   exact eq_of_forall_le_on_stdSimplex x (f x) hx (hmaps hx) hfx_le
+
+theorem brouwer_simplex_approx_of_rainbow_meshes {n : ℕ}
+    {f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ)}
+    (C : ℝ) (hC : 0 ≤ C)
+    (hf : ContinuousOn f (stdSimplex ℝ (Fin (n + 1))))
+    (hmaps :
+      Set.MapsTo f (stdSimplex ℝ (Fin (n + 1)))
+        (stdSimplex ℝ (Fin (n + 1))))
+    (hrain : ∀ m : ℕ, ∃ P : Fin (n + 1) → (Fin (n + 1) → ℝ),
+      (∀ t, P t ∈ stdSimplex ℝ (Fin (n + 1))) ∧
+      (∀ t, f (P t) t ≤ P t t) ∧
+      (∀ s t r, |P s r - P t r| ≤ C / (m + 1))) :
+    ∀ ε > 0, ∃ x ∈ stdSimplex ℝ (Fin (n + 1)), ‖f x - x‖ ≤ ε := by
+  intro ε hε
+  rcases brouwer_of_rainbow_meshes C hC hf hmaps hrain with ⟨x, hx, hfix⟩
+  refine ⟨x, hx, ?_⟩
+  simpa [hfix] using hε.le
 
 /-! ## The n-D simplex embedding and Sperner labelling (dimension-agnostic)
 
@@ -473,5 +490,7 @@ facet-sharing partners (internal + endpoint base-shift) — are discharged and c
 remains (K2′, K3) is finite combinatorial bookkeeping + a clean induction on `n`, with no
 remaining Mathlib gap (the `finRotate` reindexing, the one missing API, is now used and proven).
 -/
+
+#print axioms brouwer_simplex_approx_of_rainbow_meshes
 
 end ShenWork.Paper1

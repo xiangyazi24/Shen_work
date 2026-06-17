@@ -5649,6 +5649,17 @@ theorem localUniformSchauderFixedPointPrinciple_of_approx_fixed_sequences
     ⟨seq, hseq, happrox⟩
   exact hcompact.exists_fixed_of_approx_fixed hcont hseq happrox
 
+theorem inMonotoneWaveTrap_schauderPrinciple_of_approx_fixed_sequences
+    {κ M : ℝ}
+    (happroxSeq :
+      LocalUniformApproxFixedPointSequences
+        (fun u => InMonotoneWaveTrapSet κ M u)) :
+    LocalUniformSchauderFixedPointPrinciple
+      (fun u => InMonotoneWaveTrapSet κ M u) :=
+  localUniformSchauderFixedPointPrinciple_of_approx_fixed_sequences happroxSeq
+
+#print axioms inMonotoneWaveTrap_schauderPrinciple_of_approx_fixed_sequences
+
 theorem FrozenWaveMapSchauderData.exists_fixed_of_principle
     {p : CMParams} {c κ M : ℝ} {trap : (ℝ → ℝ) → Prop}
     {Tmap : (ℝ → ℝ) → ℝ → ℝ}
