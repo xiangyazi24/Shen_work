@@ -240,6 +240,191 @@ theorem paperWaveOperator_eq_terms
     paperWaveReactionBracket
   ring_nf
 
+/-- Uniform local Lipschitz control of a sequence on compact intervals. -/
+def UniformLipschitzOnCompacts (fs : ℕ → ℝ → ℝ) : Prop :=
+  ∀ R > 0, ∃ L, 0 ≤ L ∧
+    ∀ n x y, x ∈ Set.Icc (-R) R → y ∈ Set.Icc (-R) R →
+      |fs n x - fs n y| ≤ L * |x - y|
+
+/-- Local Lipschitz control of one function on compact intervals. -/
+def LipschitzOnCompacts (f : ℝ → ℝ) : Prop :=
+  ∀ R > 0, ∃ L, 0 ≤ L ∧
+    ∀ x y, x ∈ Set.Icc (-R) R → y ∈ Set.Icc (-R) R →
+      |f x - f y| ≤ L * |x - y|
+
+/-- Uniform local Lipschitz control of the residual `fs n - f`.  This is the
+compact Green/ODE regularity input used by the interpolation step; it is not a
+convergence hypothesis. -/
+def UniformResidualLipschitzOnCompacts
+    (fs : ℕ → ℝ → ℝ) (f : ℝ → ℝ) : Prop :=
+  ∀ R > 0, ∃ L, 0 ≤ L ∧
+    ∀ n x y, x ∈ Set.Icc (-R) R → y ∈ Set.Icc (-R) R →
+      |(fs n x - f x) - (fs n y - f y)| ≤ L * |x - y|
+
+theorem UniformResidualLipschitzOnCompacts.of_pair
+    {fs : ℕ → ℝ → ℝ} {f : ℝ → ℝ}
+    (hfs : UniformLipschitzOnCompacts fs)
+    (hf : LipschitzOnCompacts f) :
+    UniformResidualLipschitzOnCompacts fs f := by
+  intro R hR
+  obtain ⟨Lf, hLf0, hLf⟩ := hfs R hR
+  obtain ⟨Lg, hLg0, hLg⟩ := hf R hR
+  refine ⟨Lf + Lg, by linarith, ?_⟩
+  intro n x y hx hy
+  have htri :
+      |(fs n x - f x) - (fs n y - f y)|
+        ≤ |fs n x - fs n y| + |f x - f y| := by
+    calc
+      |(fs n x - f x) - (fs n y - f y)|
+          = |(fs n x - fs n y) + -(f x - f y)| := by ring_nf
+      _ ≤ |fs n x - fs n y| + |-(f x - f y)| :=
+        abs_add_le _ _
+      _ = |fs n x - fs n y| + |f x - f y| := by rw [abs_neg]
+  calc
+    |(fs n x - f x) - (fs n y - f y)|
+        ≤ |fs n x - fs n y| + |f x - f y| := htri
+    _ ≤ Lf * |x - y| + Lg * |x - y| :=
+      add_le_add (hLf n x y hx hy) (hLg x y hx hy)
+    _ = (Lf + Lg) * |x - y| := by ring
+
+namespace LocallyUniformConverges
+
+/-- Interpolation upgrade on compact intervals.
+
+If `fs n → f` locally uniformly and the derivative residuals `dfs n - df` are
+uniformly locally Lipschitz, then the derivatives converge locally uniformly.
+This is the one-dimensional resolvent/Green compactness step: a short-interval
+MVT slope controls the derivative error by the zeroth-order error plus the
+residual Lipschitz constant. -/
+theorem deriv_of_hasDerivAt_of_residual_lipschitz
+    {fs dfs : ℕ → ℝ → ℝ} {f df : ℝ → ℝ}
+    (hval : LocallyUniformConverges fs f)
+    (hfs : ∀ n x, HasDerivAt (fs n) (dfs n x) x)
+    (hf : ∀ x, HasDerivAt f (df x) x)
+    (hlip : UniformResidualLipschitzOnCompacts dfs df) :
+    LocallyUniformConverges dfs df := by
+  intro R hR ε hε
+  let S : ℝ := R + 1
+  have hS : 0 < S := by dsimp [S]; linarith
+  obtain ⟨L, hL0, hLip⟩ := hlip S hS
+  let t : ℝ := min 1 (ε / (4 * (L + 1)))
+  have hden : 0 < 4 * (L + 1) := by nlinarith
+  have ht_pos : 0 < t := by
+    dsimp [t]
+    exact lt_min zero_lt_one (div_pos hε hden)
+  have ht_le_one : t ≤ 1 := by
+    dsimp [t]
+    exact min_le_left _ _
+  have ht_le_eps : t ≤ ε / (4 * (L + 1)) := by
+    dsimp [t]
+    exact min_le_right _ _
+  have hLt_le : L * t ≤ ε / 4 := by
+    have hLle : L ≤ L + 1 := by linarith
+    have hnonneg_t : 0 ≤ t := ht_pos.le
+    calc
+      L * t ≤ (L + 1) * t :=
+        mul_le_mul_of_nonneg_right hLle hnonneg_t
+      _ ≤ (L + 1) * (ε / (4 * (L + 1))) :=
+        mul_le_mul_of_nonneg_left ht_le_eps (by linarith)
+      _ = ε / 4 := by
+        have hLp : L + 1 ≠ 0 := ne_of_gt (by linarith : 0 < L + 1)
+        field_simp [hLp]
+  let δ : ℝ := ε * t / 4
+  have hδ : 0 < δ := by
+    dsimp [δ]
+    positivity
+  filter_upwards [hval S hS δ hδ] with n hn
+  intro x hx
+  have hxS : x ∈ Set.Icc (-S) S := by
+    constructor
+    · dsimp [S] at *
+      linarith [hx.1]
+    · dsimp [S] at *
+      linarith [hx.2]
+  have hxtS : x + t ∈ Set.Icc (-S) S := by
+    constructor
+    · dsimp [S] at *
+      linarith [hx.1, ht_pos]
+    · dsimp [S] at *
+      linarith [hx.2, ht_le_one]
+  have hsmall_x : |fs n x - f x| < δ := hn x hxS
+  have hsmall_xt : |fs n (x + t) - f (x + t)| < δ := hn (x + t) hxtS
+  let e : ℝ → ℝ := fun y => fs n y - f y
+  have hcont : Continuous e := by
+    refine continuous_iff_continuousAt.mpr ?_
+    intro y
+    exact ((hfs n y).sub (hf y)).continuousAt
+  have hderiv : ∀ y ∈ Set.Ioo x (x + t),
+      HasDerivAt e (dfs n y - df y) y := by
+    intro y _hy
+    exact (hfs n y).sub (hf y)
+  obtain ⟨ξ, hξ, hξeq⟩ :=
+    exists_hasDerivAt_eq_slope e (fun y => dfs n y - df y)
+      (by linarith : x < x + t) hcont.continuousOn hderiv
+  have hξS : ξ ∈ Set.Icc (-S) S := by
+    constructor
+    · dsimp [S] at *
+      linarith [hx.1, hξ.1]
+    · dsimp [S] at *
+      linarith [hx.2, ht_le_one, hξ.2]
+  have hxξ_abs : |x - ξ| ≤ t := by
+    have hnonpos : x - ξ ≤ 0 := by linarith [hξ.1]
+    have hdist : |x - ξ| = ξ - x := by
+      rw [abs_of_nonpos hnonpos]
+      ring
+    rw [hdist]
+    linarith [hξ.2]
+  have hres_lip :
+      |(dfs n x - df x) - (dfs n ξ - df ξ)| ≤ L * t := by
+    calc
+      |(dfs n x - df x) - (dfs n ξ - df ξ)|
+          ≤ L * |x - ξ| := hLip n x ξ hxS hξS
+      _ ≤ L * t := mul_le_mul_of_nonneg_left hxξ_abs hL0
+  have hres_lip_eps :
+      |(dfs n x - df x) - (dfs n ξ - df ξ)| ≤ ε / 4 :=
+    le_trans hres_lip hLt_le
+  have hξeq_t :
+      dfs n ξ - df ξ =
+        ((fs n (x + t) - f (x + t)) - (fs n x - f x)) / t := by
+    simpa [e, sub_eq_add_neg, add_comm, add_left_comm, add_assoc] using hξeq
+  have hslope_lt : |dfs n ξ - df ξ| < ε / 2 := by
+    rw [hξeq_t]
+    have hnum :
+        |(fs n (x + t) - f (x + t)) - (fs n x - f x)| < 2 * δ := by
+      calc
+        |(fs n (x + t) - f (x + t)) - (fs n x - f x)|
+            = |(fs n (x + t) - f (x + t)) + -(fs n x - f x)| := by
+          ring_nf
+        _ ≤ |fs n (x + t) - f (x + t)| + |-(fs n x - f x)| :=
+          abs_add_le _ _
+        _ = |fs n (x + t) - f (x + t)| + |fs n x - f x| := by
+          rw [abs_neg]
+        _ < δ + δ := add_lt_add hsmall_xt hsmall_x
+        _ = 2 * δ := by ring
+    have ht_abs : |t| = t := abs_of_pos ht_pos
+    calc
+      |((fs n (x + t) - f (x + t)) - (fs n x - f x)) / t|
+          = |(fs n (x + t) - f (x + t)) - (fs n x - f x)| / t := by
+        rw [abs_div, ht_abs]
+      _ < (2 * δ) / t := div_lt_div_of_pos_right hnum ht_pos
+      _ = ε / 2 := by
+        dsimp [δ]
+        field_simp [ne_of_gt ht_pos]
+        ring
+  have hsplit :
+      dfs n x - df x =
+        ((dfs n x - df x) - (dfs n ξ - df ξ)) + (dfs n ξ - df ξ) := by
+    ring
+  calc
+    |dfs n x - df x|
+        = |((dfs n x - df x) - (dfs n ξ - df ξ)) + (dfs n ξ - df ξ)| := by
+          exact congrArg abs hsplit
+    _ ≤ |(dfs n x - df x) - (dfs n ξ - df ξ)| + |dfs n ξ - df ξ| :=
+      abs_add_le _ _
+    _ < ε := by linarith
+
+end LocallyUniformConverges
+
 structure PaperC2CompactConvergence
     (p : CMParams) (U : ℝ → ℝ) (z : ℕ → ℝ → ℝ) : Prop where
   value :
@@ -272,6 +457,96 @@ structure PaperC2CompactConvergence
     LocallyBoundedOnCompacts (fun x => (U x) ^ (p.m - 1))
   bdd_reaction_bracket :
     LocallyBoundedOnCompacts (paperWaveReactionBracket p U U)
+
+/-- Uniform Green/ODE compactness data sufficient to upgrade zeroth-order
+local-uniform convergence of a Rothe orbit to `C²` compact convergence.
+
+The derivative convergence fields are deliberately absent: they are produced by
+`paperC2CompactConvergence_of_uniformBounds` from the derivative equations and
+uniform local Lipschitz bounds for the derivative families.  The remaining
+fields are the algebraic power continuity and local boundedness data already
+needed by the paper operator terms. -/
+structure PaperC2CompactUniformBounds
+    (p : CMParams) (U : ℝ → ℝ) (z : ℕ → ℝ → ℝ) : Prop where
+  hasDeriv_value :
+    ∀ k x, HasDerivAt (z (k + 1)) (deriv (z (k + 1)) x) x
+  hasDeriv_U :
+    ∀ x, HasDerivAt U (deriv U x) x
+  hasDeriv_deriv :
+    ∀ k x,
+      HasDerivAt (fun y => deriv (z (k + 1)) y)
+        (iteratedDeriv 2 (z (k + 1)) x) x
+  hasDeriv_deriv_U :
+    ∀ x, HasDerivAt (fun y => deriv U y) (iteratedDeriv 2 U x) x
+  deriv1_uniform_lipschitz :
+    UniformLipschitzOnCompacts
+      (fun k x => deriv (z (k + 1)) x)
+  deriv1_limit_lipschitz :
+    LipschitzOnCompacts (fun x => deriv U x)
+  deriv2_uniform_lipschitz :
+    UniformLipschitzOnCompacts
+      (fun k x => iteratedDeriv 2 (z (k + 1)) x)
+  deriv2_limit_lipschitz :
+    LipschitzOnCompacts (fun x => iteratedDeriv 2 U x)
+  pow_m_sub_one :
+    LocallyUniformConverges
+      (fun k x => (z (k + 1) x) ^ (p.m - 1))
+      (fun x => (U x) ^ (p.m - 1))
+  pow_alpha :
+    LocallyUniformConverges
+      (fun k x => (z (k + 1) x) ^ p.α)
+      (fun x => (U x) ^ p.α)
+  pow_m_gamma_sub_one :
+    LocallyUniformConverges
+      (fun k x => (z (k + 1) x) ^ (p.m + p.γ - 1))
+      (fun x => (U x) ^ (p.m + p.γ - 1))
+  bdd_U : LocallyBoundedOnCompacts U
+  bdd_derivU : LocallyBoundedOnCompacts (fun x => deriv U x)
+  bdd_V : LocallyBoundedOnCompacts (frozenElliptic p U)
+  bdd_derivV : LocallyBoundedOnCompacts (fun x => deriv (frozenElliptic p U) x)
+  bdd_pow_m_sub_one :
+    LocallyBoundedOnCompacts (fun x => (U x) ^ (p.m - 1))
+  bdd_reaction_bracket :
+    LocallyBoundedOnCompacts (paperWaveReactionBracket p U U)
+
+/-- Produce paper `C²` compact convergence from zeroth-order local-uniform
+convergence plus uniform Green/ODE bounds. -/
+def paperC2CompactConvergence_of_uniformBounds
+    {p : CMParams} {U : ℝ → ℝ} {z : ℕ → ℝ → ℝ}
+    (hLU : LocallyUniformConverges z U)
+    (hbounds : PaperC2CompactUniformBounds p U z) :
+    PaperC2CompactConvergence p U z :=
+  let hvalue : LocallyUniformConverges (fun k => z (k + 1)) U :=
+    hLU.comp_strictMono
+      (strictMono_nat_of_lt_succ fun n => Nat.lt_succ_self (n + 1))
+  let hderiv1 :
+      LocallyUniformConverges
+        (fun k x => deriv (z (k + 1)) x)
+        (fun x => deriv U x) :=
+    hvalue.deriv_of_hasDerivAt_of_residual_lipschitz
+      hbounds.hasDeriv_value hbounds.hasDeriv_U
+      (UniformResidualLipschitzOnCompacts.of_pair
+        hbounds.deriv1_uniform_lipschitz hbounds.deriv1_limit_lipschitz)
+  let hderiv2 :
+      LocallyUniformConverges
+        (fun k x => iteratedDeriv 2 (z (k + 1)) x)
+        (fun x => iteratedDeriv 2 U x) :=
+    hderiv1.deriv_of_hasDerivAt_of_residual_lipschitz
+      hbounds.hasDeriv_deriv hbounds.hasDeriv_deriv_U
+      (UniformResidualLipschitzOnCompacts.of_pair
+        hbounds.deriv2_uniform_lipschitz hbounds.deriv2_limit_lipschitz)
+  { value := hvalue
+    deriv1 := hderiv1
+    deriv2 := hderiv2
+    pow_m_sub_one := hbounds.pow_m_sub_one
+    pow_alpha := hbounds.pow_alpha
+    pow_m_gamma_sub_one := hbounds.pow_m_gamma_sub_one
+    bdd_U := hbounds.bdd_U
+    bdd_derivU := hbounds.bdd_derivU
+    bdd_V := hbounds.bdd_V
+    bdd_derivV := hbounds.bdd_derivV
+    bdd_pow_m_sub_one := hbounds.bdd_pow_m_sub_one
+    bdd_reaction_bracket := hbounds.bdd_reaction_bracket }
 
 structure PaperWaveOperatorTermConvergence
     (p : CMParams) (c : ℝ) (U : ℝ → ℝ) (z : ℕ → ℝ → ℝ) : Prop where
