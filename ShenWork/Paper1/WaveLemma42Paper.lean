@@ -1952,6 +1952,1026 @@ theorem b1_chiNeg_existence_paper_clean
     hD_ge_one hΛ0 hΛM hprodAll hbarLip hdep hprinciple hstationary
     hrealize hflat
 
+/-! ## Positive-sensitivity paper branch -/
+
+/-- The exact positive-sensitivity hypotheses used by the paper lower-barrier
+estimate and lower-pinned Rothe close. -/
+structure PositivePaperLemma42ExactConditions
+    (p : CMParams) (c κ κtilde M : ℝ) : Prop where
+  hκ0 : 0 < κ
+  hκ1 : κ < 1
+  hgap : κ < κtilde
+  hrange : κtilde ≤ min ((1 + p.α) * κ) (min (p.m * κ + 1 / 2) 1)
+  hM : 1 ≤ M
+  hc : c = κ + κ⁻¹
+  hχ_nonneg : 0 ≤ p.χ
+  hχ_small : p.χ < min (1 / 2 : ℝ) (chiStar p)
+  hα_eq : p.α = p.m + p.γ - 1
+
+namespace PositivePaperLemma42ExactConditions
+
+theorem chi_lt_half
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
+    p.χ < (1 / 2 : ℝ) :=
+  lt_of_lt_of_le h.hχ_small (min_le_left _ _)
+
+theorem chi_lt_chiStar
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
+    p.χ < chiStar p :=
+  lt_of_lt_of_le h.hχ_small (min_le_right _ _)
+
+theorem chi_abs_eq
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
+    |p.χ| = p.χ :=
+  abs_of_nonneg h.hχ_nonneg
+
+theorem chi_abs_le_one
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
+    |p.χ| ≤ 1 := by
+  rw [h.chi_abs_eq]
+  linarith [h.chi_lt_half]
+
+theorem one_sub_abs_chi_nonneg
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
+    0 ≤ 1 - |p.χ| := by
+  linarith [h.chi_abs_le_one]
+
+theorem kappaTilde_le_one
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
+    κtilde ≤ 1 := by
+  exact le_trans h.hrange
+      (le_trans (min_le_right _ _) (min_le_right _ _))
+
+theorem kappaTilde_le_one_plus_alpha_mul_kappa
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
+    κtilde ≤ (p.α + 1) * κ := by
+  have hle : κtilde ≤ (1 + p.α) * κ :=
+    le_trans h.hrange (min_le_left _ _)
+  convert hle using 1
+  ring
+
+theorem kappaTilde_le_m_gamma_mul_kappa
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
+    κtilde ≤ (p.m + p.γ) * κ := by
+  have hle := h.kappaTilde_le_one_plus_alpha_mul_kappa
+  rw [h.hα_eq] at hle
+  convert hle using 1
+  ring
+
+theorem kappaTilde_le_m_kappa_add_half
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
+    κtilde ≤ p.m * κ + 1 / 2 := by
+  exact le_trans h.hrange
+    (le_trans (min_le_right _ _) (min_le_left _ _))
+
+theorem den_pos
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
+    0 < paperSpeedDenominator c κtilde := by
+  simpa [paperSpeedDenominator] using
+    lowerBarrierRaw_speed_denominator_pos h.hκ0 h.hκ1 h.hgap
+      h.kappaTilde_le_one h.hc
+
+end PositivePaperLemma42ExactConditions
+
+theorem paperSubsolutionK_nonneg_of_positive_conditions
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
+    0 ≤ paperSubsolutionK M κ κtilde p.m p.γ :=
+  paperSubsolutionK_nonneg
+    (le_trans zero_le_one h.hM) h.hκ0.le (le_trans h.hκ0.le h.hgap.le)
+    (le_trans zero_le_one p.hm) (le_trans zero_le_one p.hγ)
+
+theorem paperDMin_pos_of_positive_conditions
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M) :
+    0 < paperDMin p.χ M κ κtilde p.m p.γ c := by
+  unfold paperDMin
+  have hnum_pos :
+      0 < 1 + |p.χ| * paperSubsolutionK M κ κtilde p.m p.γ := by
+    have hmul_nonneg :
+        0 ≤ |p.χ| * paperSubsolutionK M κ κtilde p.m p.γ :=
+      mul_nonneg (abs_nonneg p.χ)
+        (paperSubsolutionK_nonneg_of_positive_conditions h)
+    linarith
+  exact div_pos hnum_pos h.den_pos
+
+theorem D_pos_of_positive_paperDMin_lt
+    {p : CMParams} {c κ κtilde M D : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D) :
+    0 < D :=
+  lt_trans (paperDMin_pos_of_positive_conditions h) hD
+
+theorem lowerBarrierRaw_pos_on_positive_paper_region
+    {p : CMParams} {c κ κtilde M D x : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hx : x ∈ Set.Ioi (lowerBarrierXMinus κ κtilde D)) :
+    0 < lowerBarrierRaw κ κtilde D x := by
+  exact lowerBarrierRaw_pos_of_xminus_lt
+    (sub_pos.mpr h.hgap) (D_pos_of_positive_paperDMin_lt h hD) hx
+
+theorem lowerBarrierRaw_nonneg_on_positive_paper_region
+    {p : CMParams} {c κ κtilde M D x : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hx : x ∈ Set.Ioi (lowerBarrierXMinus κ κtilde D)) :
+    0 ≤ lowerBarrierRaw κ κtilde D x :=
+  (lowerBarrierRaw_pos_on_positive_paper_region h hD hx).le
+
+theorem lowerBarrierRaw_deriv_abs_le_on_positive_paper_region
+    {p : CMParams} {c κ κtilde M D x : ℝ}
+    (h : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hx : x ∈ Set.Ioi (lowerBarrierXMinus κ κtilde D)) :
+    |deriv (lowerBarrierRaw κ κtilde D) x| ≤
+      (κ + κtilde) * Real.exp (-κ * x) := by
+  have hDpos : 0 < D := D_pos_of_positive_paperDMin_lt h hD
+  have hκtilde_nonneg : 0 ≤ κtilde := (lt_trans h.hκ0 h.hgap).le
+  have hraw_nonneg :
+      0 ≤ lowerBarrierRaw κ κtilde D x :=
+    lowerBarrierRaw_nonneg_on_positive_paper_region h hD hx
+  have hDexp_le :
+      D * Real.exp (-κtilde * x) ≤ Real.exp (-κ * x) := by
+    unfold lowerBarrierRaw at hraw_nonneg
+    linarith
+  rw [lowerBarrierRaw_deriv]
+  have htri :
+      |(-κ * Real.exp (-κ * x)) +
+          (D * κtilde * Real.exp (-κtilde * x))| ≤
+        κ * Real.exp (-κ * x) +
+          D * κtilde * Real.exp (-κtilde * x) := by
+    calc
+      |(-κ * Real.exp (-κ * x)) +
+          (D * κtilde * Real.exp (-κtilde * x))|
+          ≤ |(-κ * Real.exp (-κ * x))| +
+              |D * κtilde * Real.exp (-κtilde * x)| := abs_add_le _ _
+      _ = κ * Real.exp (-κ * x) +
+              D * κtilde * Real.exp (-κtilde * x) := by
+          rw [abs_of_nonpos
+            (mul_nonpos_of_nonpos_of_nonneg
+              (neg_nonpos.mpr h.hκ0.le) (Real.exp_pos _).le)]
+          rw [abs_of_nonneg
+            (mul_nonneg (mul_nonneg hDpos.le hκtilde_nonneg)
+              (Real.exp_pos _).le)]
+          ring
+  have hsecond :
+      D * κtilde * Real.exp (-κtilde * x) ≤
+        κtilde * Real.exp (-κ * x) := by
+    have hmul := mul_le_mul_of_nonneg_left hDexp_le hκtilde_nonneg
+    nlinarith
+  calc
+    |(-κ * Real.exp (-κ * x)) +
+        (D * κtilde * Real.exp (-κtilde * x))|
+        ≤ κ * Real.exp (-κ * x) +
+            D * κtilde * Real.exp (-κtilde * x) := htri
+    _ ≤ κ * Real.exp (-κ * x) + κtilde * Real.exp (-κ * x) :=
+        by
+          have hle := add_le_add_left hsecond (κ * Real.exp (-κ * x))
+          simpa [add_comm, add_left_comm, add_assoc] using hle
+    _ = (κ + κtilde) * Real.exp (-κ * x) := by ring
+
+def PaperLemma42EllipticVEstimate
+    (p : CMParams) (κ M : ℝ) : Prop :=
+  ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
+    ∀ x, 0 ≤ x →
+      frozenElliptic p u x ≤ paperEllipticVxBound M κ p.γ x
+
+theorem PaperLemma42EllipticVEstimate_of_positive_conditions
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M) :
+    PaperLemma42EllipticVEstimate p κ M := by
+  intro u hu x hx
+  by_cases hcrit : p.γ * κ = 1
+  · rw [paperEllipticVxBound, if_pos hcrit]
+    exact frozenElliptic_le_paperVxBound_critical hcrit hcond.hM hu hx
+  · by_cases hsub : p.γ * κ < 1
+    · rw [paperEllipticVxBound, if_neg hcrit, if_pos hsub]
+      exact frozenElliptic_le_paperVxBound_subcritical hcond.hκ0 hsub hu x
+    · have hsuper : 1 < p.γ * κ :=
+        lt_of_le_of_ne (le_of_not_gt hsub) (Ne.symm hcrit)
+      rw [paperEllipticVxBound, if_neg hcrit, if_neg hsub]
+      exact frozenElliptic_le_paperVxBound_supercritical hsuper hcond.hM hu hx
+
+theorem PaperLemma42EllipticVxEstimate_of_positive_conditions
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M) :
+    PaperLemma42EllipticVxEstimate p κ M := by
+  intro u hu x hx
+  have hVx_abs := frozenElliptic_deriv_abs_le p hu.cunif_bdd hu.nonneg x
+  refine le_trans hVx_abs ?_
+  exact PaperLemma42EllipticVEstimate_of_positive_conditions hcond u hu x hx
+
+theorem PaperLemma42LogisticEstimate_of_positive_conditions
+    {p : CMParams} {c κ κtilde M D : ℝ}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D) :
+    PaperLemma42LogisticEstimate p c κ κtilde M D := by
+  intro u hu x hx
+  have hgap_pos : 0 < κtilde - κ := sub_pos.mpr hcond.hgap
+  have hx_nonneg : 0 ≤ x := by
+    exact le_trans
+      (lowerBarrierXMinus_nonneg_of_one_le_D hgap_pos hD_ge_one) hx.le
+  have hD_pos : 0 < D := D_pos_of_positive_paperDMin_lt hcond hD
+  have hW_pos :
+      0 < lowerBarrierRaw κ κtilde D x :=
+    lowerBarrierRaw_pos_of_xminus_lt hgap_pos hD_pos hx
+  have hW_le_exp :
+      lowerBarrierRaw κ κtilde D x ≤ Real.exp (-κ * x) :=
+    lowerBarrierRaw_le_exp hD_pos.le
+  have hα1_pos : 0 < p.α + 1 := by linarith [p.hα]
+  have hpow :
+      lowerBarrierRaw κ κtilde D x *
+          (lowerBarrierRaw κ κtilde D x) ^ p.α =
+        (lowerBarrierRaw κ κtilde D x) ^ (p.α + 1) := by
+    calc
+      lowerBarrierRaw κ κtilde D x *
+          (lowerBarrierRaw κ κtilde D x) ^ p.α =
+        (lowerBarrierRaw κ κtilde D x) ^ (1 : ℝ) *
+          (lowerBarrierRaw κ κtilde D x) ^ p.α := by
+          rw [Real.rpow_one]
+      _ = (lowerBarrierRaw κ κtilde D x) ^ ((1 : ℝ) + p.α) := by
+          rw [← Real.rpow_add hW_pos]
+      _ = (lowerBarrierRaw κ κtilde D x) ^ (p.α + 1) := by
+          congr 1
+          ring
+  rw [hpow]
+  calc
+    (lowerBarrierRaw κ κtilde D x) ^ (p.α + 1)
+        ≤ (Real.exp (-κ * x)) ^ (p.α + 1) :=
+      Real.rpow_le_rpow hW_pos.le hW_le_exp hα1_pos.le
+    _ = Real.exp (-(p.α + 1) * κ * x) := by
+      rw [← Real.exp_mul]
+      congr 1
+      ring
+    _ ≤ Real.exp (-κtilde * x) := by
+      apply Real.exp_le_exp.mpr
+      have hκtilde_le := hcond.kappaTilde_le_one_plus_alpha_mul_kappa
+      nlinarith
+
+private theorem paperPositiveK_combine
+    {A C κ κtilde β m x : ℝ}
+    (hA : 0 ≤ A) (hC : 0 ≤ C) (hx : 0 ≤ x)
+    (hle : κtilde ≤ m * κ + β) :
+    A * (C * Real.exp (-β * x)) * (Real.exp (-κ * x)) ^ m +
+        (C * Real.exp (-β * x)) * (Real.exp (-κ * x)) ^ m ≤
+      (A + 1) * C * Real.exp (-κtilde * x) := by
+  have hEpos : 0 < Real.exp (-κ * x) := Real.exp_pos _
+  have hEpow :
+      (Real.exp (-κ * x)) ^ m = Real.exp (-(m * κ) * x) := by
+    rw [← Real.exp_mul]
+    congr 1
+    ring
+  have hexp :
+      C * Real.exp (-β * x) * (Real.exp (-κ * x)) ^ m =
+        C * Real.exp (-(m * κ + β) * x) := by
+    calc
+      C * Real.exp (-β * x) * (Real.exp (-κ * x)) ^ m =
+          C * (Real.exp (-β * x) * Real.exp (-(m * κ) * x)) := by
+          rw [hEpow]
+          ring
+      _ = C * Real.exp (-(m * κ + β) * x) := by
+          rw [← Real.exp_add]
+          congr 1
+          ring
+  have hcoef : 0 ≤ (A + 1) * C := by
+    exact mul_nonneg (by linarith) hC
+  have hexp_le :
+      Real.exp (-(m * κ + β) * x) ≤ Real.exp (-κtilde * x) := by
+    apply Real.exp_le_exp.mpr
+    nlinarith
+  calc
+    A * (C * Real.exp (-β * x)) * (Real.exp (-κ * x)) ^ m +
+        (C * Real.exp (-β * x)) * (Real.exp (-κ * x)) ^ m
+        = (A + 1) *
+            (C * Real.exp (-β * x) * (Real.exp (-κ * x)) ^ m) := by
+          ring
+    _ = (A + 1) * (C * Real.exp (-(m * κ + β) * x)) := by rw [hexp]
+    _ = (A + 1) * C * Real.exp (-(m * κ + β) * x) := by ring
+    _ ≤ (A + 1) * C * Real.exp (-κtilde * x) :=
+        mul_le_mul_of_nonneg_left hexp_le hcoef
+
+def PaperLemma42PositiveKTermEstimate
+    (p : CMParams) (_c κ κtilde M D : ℝ) : Prop :=
+  ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
+    ∀ x ∈ Set.Ioi (lowerBarrierXMinus κ κtilde D),
+      p.m * (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) *
+            |deriv (frozenElliptic p u) x| *
+            |deriv (lowerBarrierRaw κ κtilde D) x| +
+          lowerBarrierRaw κ κtilde D x *
+            (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) *
+            frozenElliptic p u x ≤
+        paperSubsolutionK M κ κtilde p.m p.γ * Real.exp (-κtilde * x)
+
+set_option maxHeartbeats 1000000 in
+theorem PaperLemma42PositiveKTermEstimate_of_elliptic_estimates
+    {p : CMParams} {c κ κtilde M D : ℝ}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hV : PaperLemma42EllipticVEstimate p κ M)
+    (hVx : PaperLemma42EllipticVxEstimate p κ M) :
+    PaperLemma42PositiveKTermEstimate p c κ κtilde M D := by
+  intro u hu x hx
+  have hgap_pos : 0 < κtilde - κ := sub_pos.mpr hcond.hgap
+  have hx_nonneg : 0 ≤ x := by
+    exact le_trans
+      (lowerBarrierXMinus_nonneg_of_one_le_D hgap_pos hD_ge_one) hx.le
+  have hD_pos : 0 < D := D_pos_of_positive_paperDMin_lt hcond hD
+  have hW_pos :
+      0 < lowerBarrierRaw κ κtilde D x :=
+    lowerBarrierRaw_pos_of_xminus_lt hgap_pos hD_pos hx
+  have hW_nonneg : 0 ≤ lowerBarrierRaw κ κtilde D x := hW_pos.le
+  have hE_pos : 0 < Real.exp (-κ * x) := Real.exp_pos _
+  have hW_le_exp :
+      lowerBarrierRaw κ κtilde D x ≤ Real.exp (-κ * x) :=
+    lowerBarrierRaw_le_exp hD_pos.le
+  have hderiv_le :
+      |deriv (lowerBarrierRaw κ κtilde D) x| ≤
+        (κ + κtilde) * Real.exp (-κ * x) :=
+    lowerBarrierRaw_deriv_abs_le_on_positive_paper_region hcond hD hx
+  have hV_le := hV u hu x hx_nonneg
+  have hVx_le := hVx u hu x hx_nonneg
+  have hB_nonneg :
+      0 ≤ paperEllipticVxBound M κ p.γ x :=
+    le_trans (frozenElliptic_nonneg p hu.nonneg x) hV_le
+  have hm_nonneg : 0 ≤ p.m := le_trans zero_le_one p.hm
+  have hm1_nonneg : 0 ≤ p.m - 1 := by linarith [p.hm]
+  have hκsum_nonneg : 0 ≤ κ + κtilde := by
+    have hκtilde_pos : 0 < κtilde := lt_trans hcond.hκ0 hcond.hgap
+    nlinarith [hcond.hκ0, hκtilde_pos]
+  have hWm1_le :
+      (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) ≤
+        (Real.exp (-κ * x)) ^ (p.m - 1) :=
+    Real.rpow_le_rpow hW_nonneg hW_le_exp hm1_nonneg
+  have hterm1 :
+      p.m * (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) *
+            |deriv (frozenElliptic p u) x| *
+            |deriv (lowerBarrierRaw κ κtilde D) x| ≤
+        p.m * (κ + κtilde) *
+          paperEllipticVxBound M κ p.γ x *
+          (Real.exp (-κ * x)) ^ p.m := by
+    have hEmul :
+        (Real.exp (-κ * x)) ^ (p.m - 1) * Real.exp (-κ * x) =
+          (Real.exp (-κ * x)) ^ p.m := by
+      calc
+        (Real.exp (-κ * x)) ^ (p.m - 1) * Real.exp (-κ * x)
+            = (Real.exp (-κ * x)) ^ (p.m - 1) *
+                (Real.exp (-κ * x)) ^ (1 : ℝ) := by rw [Real.rpow_one]
+        _ = (Real.exp (-κ * x)) ^ ((p.m - 1) + 1) := by
+            rw [← Real.rpow_add hE_pos]
+        _ = (Real.exp (-κ * x)) ^ p.m := by
+            congr 1
+            ring
+    calc
+      p.m * (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) *
+            |deriv (frozenElliptic p u) x| *
+            |deriv (lowerBarrierRaw κ κtilde D) x|
+          ≤ p.m * (Real.exp (-κ * x)) ^ (p.m - 1) *
+              paperEllipticVxBound M κ p.γ x *
+              ((κ + κtilde) * Real.exp (-κ * x)) := by
+            gcongr
+      _ = p.m * (κ + κtilde) *
+          paperEllipticVxBound M κ p.γ x *
+          (Real.exp (-κ * x)) ^ p.m := by
+            calc
+              p.m * (Real.exp (-κ * x)) ^ (p.m - 1) *
+                    paperEllipticVxBound M κ p.γ x *
+                    ((κ + κtilde) * Real.exp (-κ * x)) =
+                  p.m * (κ + κtilde) *
+                    paperEllipticVxBound M κ p.γ x *
+                    ((Real.exp (-κ * x)) ^ (p.m - 1) *
+                      Real.exp (-κ * x)) := by
+                    ring
+              _ = p.m * (κ + κtilde) *
+                    paperEllipticVxBound M κ p.γ x *
+                    (Real.exp (-κ * x)) ^ p.m := by
+                    rw [hEmul]
+  have hWm_le :
+      (lowerBarrierRaw κ κtilde D x) ^ p.m ≤
+        (Real.exp (-κ * x)) ^ p.m :=
+    Real.rpow_le_rpow hW_nonneg hW_le_exp hm_nonneg
+  have hWpow :
+      lowerBarrierRaw κ κtilde D x *
+          (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) =
+        (lowerBarrierRaw κ κtilde D x) ^ p.m := by
+    calc
+      lowerBarrierRaw κ κtilde D x *
+          (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) =
+        (lowerBarrierRaw κ κtilde D x) ^ (1 : ℝ) *
+          (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) := by
+          rw [Real.rpow_one]
+      _ = (lowerBarrierRaw κ κtilde D x) ^ ((1 : ℝ) + (p.m - 1)) := by
+          rw [← Real.rpow_add hW_pos]
+      _ = (lowerBarrierRaw κ κtilde D x) ^ p.m := by
+          congr 1
+          ring
+  have hterm2 :
+      lowerBarrierRaw κ κtilde D x *
+            (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) *
+            frozenElliptic p u x ≤
+        paperEllipticVxBound M κ p.γ x *
+          (Real.exp (-κ * x)) ^ p.m := by
+    have hV_nonneg : 0 ≤ frozenElliptic p u x :=
+      frozenElliptic_nonneg p hu.nonneg x
+    rw [hWpow]
+    calc
+      (lowerBarrierRaw κ κtilde D x) ^ p.m * frozenElliptic p u x
+          ≤ (Real.exp (-κ * x)) ^ p.m *
+              paperEllipticVxBound M κ p.γ x := by
+            gcongr
+      _ = paperEllipticVxBound M κ p.γ x *
+              (Real.exp (-κ * x)) ^ p.m := by ring
+  set A := p.m * (κ + κtilde) with hAdef
+  have hA_nonneg : 0 ≤ A := by
+    rw [hAdef]
+    exact mul_nonneg hm_nonneg hκsum_nonneg
+  have hpre :
+      p.m * (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) *
+            |deriv (frozenElliptic p u) x| *
+            |deriv (lowerBarrierRaw κ κtilde D) x| +
+          lowerBarrierRaw κ κtilde D x *
+            (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) *
+            frozenElliptic p u x ≤
+        A * paperEllipticVxBound M κ p.γ x *
+            (Real.exp (-κ * x)) ^ p.m +
+          paperEllipticVxBound M κ p.γ x *
+            (Real.exp (-κ * x)) ^ p.m := by
+    rw [hAdef]
+    exact add_le_add hterm1 hterm2
+  by_cases hcrit : p.γ * κ = 1
+  · set C := M ^ p.γ + 3 / 4 with hCdef
+    have hC_nonneg : 0 ≤ C := by
+      rw [hCdef]
+      exact add_nonneg
+        (Real.rpow_nonneg (le_trans zero_le_one hcond.hM) p.γ) (by norm_num)
+    have hKcrit :
+        paperSubsolutionK M κ κtilde p.m p.γ = (A + 1) * C := by
+      rw [paperSubsolutionK_eq_critical hcrit, hAdef, hCdef]
+      ring
+    rw [paperEllipticVxBound, if_pos hcrit] at hpre
+    refine le_trans hpre ?_
+    rw [hKcrit]
+    exact paperPositiveK_combine hA_nonneg hC_nonneg hx_nonneg
+      hcond.kappaTilde_le_m_kappa_add_half
+  · by_cases hsub : p.γ * κ < 1
+    · set C := 1 / (1 - p.γ ^ 2 * κ ^ 2) with hCdef
+      have hγκ_pos : 0 < p.γ * κ :=
+        mul_pos (by linarith [p.hγ]) hcond.hκ0
+      have hden_pos : 0 < 1 - p.γ ^ 2 * κ ^ 2 := by nlinarith
+      have hC_nonneg : 0 ≤ C := by
+        rw [hCdef]
+        exact (one_div_pos.mpr hden_pos).le
+      have hKsub :
+          paperSubsolutionK M κ κtilde p.m p.γ = (A + 1) * C := by
+        rw [paperSubsolutionK_eq_subcritical hsub, hAdef, hCdef]
+        ring
+      rw [paperEllipticVxBound, if_neg hcrit, if_pos hsub] at hpre
+      refine le_trans hpre ?_
+      rw [hKsub]
+      have hle : κtilde ≤ p.m * κ + p.γ * κ := by
+        have hmain := hcond.kappaTilde_le_m_gamma_mul_kappa
+        nlinarith
+      exact paperPositiveK_combine hA_nonneg hC_nonneg hx_nonneg
+        hle
+    · have hsuper : 1 < p.γ * κ :=
+        lt_of_le_of_ne (le_of_not_gt hsub) (Ne.symm hcrit)
+      set C :=
+        (M ^ p.γ * (κ ^ 2 * p.γ ^ 2 - 1) + p.γ * κ) /
+          (κ ^ 2 * p.γ ^ 2 - 1) with hCdef
+      have hden_pos : 0 < κ ^ 2 * p.γ ^ 2 - 1 := by
+        have hγκ_nonneg : 0 ≤ p.γ * κ :=
+          mul_nonneg (le_trans zero_le_one p.hγ) hcond.hκ0.le
+        have hs : 1 < (p.γ * κ) ^ 2 :=
+          (one_lt_sq_iff₀ hγκ_nonneg).mpr hsuper
+        have hsq : (p.γ * κ) ^ 2 = κ ^ 2 * p.γ ^ 2 := by ring
+        rw [← hsq]
+        exact sub_pos.mpr hs
+      have hC_nonneg : 0 ≤ C := by
+        rw [hCdef]
+        have hnum_nonneg :
+            0 ≤ M ^ p.γ * (κ ^ 2 * p.γ ^ 2 - 1) + p.γ * κ := by
+          exact add_nonneg
+            (mul_nonneg
+              (Real.rpow_nonneg (le_trans zero_le_one hcond.hM) p.γ)
+              hden_pos.le)
+            (mul_nonneg (le_trans zero_le_one p.hγ) hcond.hκ0.le)
+        exact div_nonneg hnum_nonneg hden_pos.le
+      have hKsuper :
+          paperSubsolutionK M κ κtilde p.m p.γ = (A + 1) * C := by
+        rw [paperSubsolutionK_eq_supercritical hsuper, hAdef, hCdef]
+        ring_nf
+      rw [paperEllipticVxBound, if_neg hcrit, if_neg hsub] at hpre
+      refine le_trans hpre ?_
+      rw [hKsuper]
+      have hle : κtilde ≤ p.m * κ + 1 := by
+        have hhalf := hcond.kappaTilde_le_m_kappa_add_half
+        linarith
+      simpa [one_mul] using
+        paperPositiveK_combine hA_nonneg hC_nonneg hx_nonneg hle
+
+theorem PaperLemma42PositiveKTermEstimate_of_positive_conditions
+    {p : CMParams} {c κ κtilde M D : ℝ}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D) :
+    PaperLemma42PositiveKTermEstimate p c κ κtilde M D :=
+  PaperLemma42PositiveKTermEstimate_of_elliptic_estimates hcond hD hD_ge_one
+    (PaperLemma42EllipticVEstimate_of_positive_conditions hcond)
+    (PaperLemma42EllipticVxEstimate_of_positive_conditions hcond)
+
+def paperLemma42PositiveBadTerm
+    (p : CMParams) (u W : ℝ → ℝ) (x : ℝ) : ℝ :=
+  (1 - |p.χ|) * (W x * (W x) ^ p.α) +
+    |p.χ| *
+      (p.m * (W x) ^ (p.m - 1) *
+          |deriv (frozenElliptic p u) x| * |deriv W x| +
+        W x * (W x) ^ (p.m - 1) * frozenElliptic p u x)
+
+def PaperLemma42PositiveBadTermEstimate
+    (p : CMParams) (_c κ κtilde M D : ℝ) : Prop :=
+  ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
+    ∀ x ∈ Set.Ioi (lowerBarrierXMinus κ κtilde D),
+      paperLemma42PositiveBadTerm p u (lowerBarrierRaw κ κtilde D) x ≤
+        (1 + |p.χ| * paperSubsolutionK M κ κtilde p.m p.γ) *
+          Real.exp (-κtilde * x)
+
+theorem PaperLemma42PositiveBadTermEstimate_of_components
+    {p : CMParams} {c κ κtilde M D : ℝ}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hlog : PaperLemma42LogisticEstimate p c κ κtilde M D)
+    (hK : PaperLemma42PositiveKTermEstimate p c κ κtilde M D) :
+    PaperLemma42PositiveBadTermEstimate p c κ κtilde M D := by
+  intro u hu x hx
+  have hlog_x := hlog u hu x hx
+  have hK_x := hK u hu x hx
+  set W : ℝ → ℝ := lowerBarrierRaw κ κtilde D
+  have hW_nonneg : 0 ≤ W x := by
+    change 0 ≤ lowerBarrierRaw κ κtilde D x
+    exact lowerBarrierRaw_nonneg_on_positive_paper_region hcond hD hx
+  have hlog_nonneg : 0 ≤ W x * (W x) ^ p.α :=
+    mul_nonneg hW_nonneg (Real.rpow_nonneg hW_nonneg p.α)
+  have hcoef_nonneg := hcond.one_sub_abs_chi_nonneg
+  have hcoef_le_one : 1 - |p.χ| ≤ 1 := by
+    exact sub_le_self _ (abs_nonneg p.χ)
+  have hlog_weight :
+      (1 - |p.χ|) * (W x * (W x) ^ p.α) ≤
+        Real.exp (-κtilde * x) := by
+    have hmul :
+        (1 - |p.χ|) * (W x * (W x) ^ p.α) ≤
+          W x * (W x) ^ p.α := by
+      nlinarith
+    exact le_trans hmul (by simpa [W] using hlog_x)
+  have hχK := mul_le_mul_of_nonneg_left hK_x (abs_nonneg p.χ)
+  calc
+    paperLemma42PositiveBadTerm p u W x
+        ≤ Real.exp (-κtilde * x) +
+            |p.χ| *
+              (paperSubsolutionK M κ κtilde p.m p.γ *
+                Real.exp (-κtilde * x)) := by
+          dsimp [paperLemma42PositiveBadTerm]
+          exact add_le_add hlog_weight hχK
+    _ = (1 + |p.χ| * paperSubsolutionK M κ κtilde p.m p.γ) *
+          Real.exp (-κtilde * x) := by
+        ring
+
+def PaperLemma42PositivePointwiseEstimate
+    (p : CMParams) (c κ κtilde M D : ℝ) : Prop :=
+  ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
+    ∀ x ∈ Set.Ioi (lowerBarrierXMinus κ κtilde D),
+      (D * paperSpeedDenominator c κtilde - 1 -
+          |p.χ| * paperSubsolutionK M κ κtilde p.m p.γ) *
+        Real.exp (-κtilde * x) ≤
+          paperWaveOperator p c u (lowerBarrierRaw κ κtilde D) x
+
+theorem PaperLemma42PositivePointwiseEstimate_of_badTermEstimate
+    {p : CMParams} {c κ κtilde M D : ℝ}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hbad : PaperLemma42PositiveBadTermEstimate p c κ κtilde M D) :
+    PaperLemma42PositivePointwiseEstimate p c κ κtilde M D := by
+  intro u hu x hx
+  set W : ℝ → ℝ := lowerBarrierRaw κ κtilde D with hWdef
+  set V : ℝ → ℝ := frozenElliptic p u with hVdef
+  set lin : ℝ := D * paperSpeedDenominator c κtilde * Real.exp (-κtilde * x)
+  set chem : ℝ := -p.χ * p.m * (W x) ^ (p.m - 1) * deriv V x * deriv W x
+  set vBad : ℝ := |p.χ| * (W x * (W x) ^ (p.m - 1) * V x)
+  set logistic : ℝ := W x * (W x) ^ p.α
+  set derivBad : ℝ :=
+    |p.χ| * (p.m * (W x) ^ (p.m - 1) *
+      |deriv V x| * |deriv W x|)
+  have hW_pos : 0 < W x := by
+    rw [hWdef]
+    exact lowerBarrierRaw_pos_on_positive_paper_region hcond hD hx
+  have hW_nonneg : 0 ≤ W x := hW_pos.le
+  have hWpow_nonneg : 0 ≤ (W x) ^ (p.m - 1) :=
+    Real.rpow_nonneg hW_nonneg _
+  have hχ_abs : p.χ = |p.χ| := by
+    rw [hcond.chi_abs_eq]
+  have hcoef_nonneg :
+      0 ≤ |p.χ| * (p.m * (W x) ^ (p.m - 1)) := by
+    exact mul_nonneg (abs_nonneg p.χ)
+      (mul_nonneg (le_trans zero_le_one p.hm) hWpow_nonneg)
+  have hcoef_nonpos :
+      -(|p.χ| * (p.m * (W x) ^ (p.m - 1))) ≤ 0 := by
+    exact neg_nonpos.mpr hcoef_nonneg
+  have hprod_upper :
+      deriv V x * deriv W x ≤ |deriv V x| * |deriv W x| := by
+    have h := le_abs_self (deriv V x * deriv W x)
+    rwa [abs_mul] at h
+  have hchem_lower : -derivBad ≤ chem := by
+    have hmul := mul_le_mul_of_nonpos_left hprod_upper hcoef_nonpos
+    calc
+      -derivBad
+          = -(|p.χ| * (p.m * (W x) ^ (p.m - 1))) *
+              (|deriv V x| * |deriv W x|) := by
+            dsimp [derivBad]
+            ring
+      _ ≤ -(|p.χ| * (p.m * (W x) ^ (p.m - 1))) *
+              (deriv V x * deriv W x) := hmul
+      _ = chem := by
+            dsimp [chem]
+            rw [hχ_abs]
+            rw [abs_of_nonneg (abs_nonneg p.χ)]
+            ring
+  have hpow_alpha_raw :
+      (lowerBarrierRaw κ κtilde D x) ^ (p.m + p.γ - 1) =
+        (lowerBarrierRaw κ κtilde D x) ^ p.α := by
+    rw [hcond.hα_eq]
+  have hop :
+      paperWaveOperator p c u W x =
+        lin + chem - vBad - (1 - |p.χ|) * logistic := by
+    rw [hWdef]
+    rw [paperWaveOperator_lowerBarrierRaw_eq_of_kappa_speed p u x
+      (ne_of_gt hcond.hκ0) hcond.hc]
+    dsimp [lin, chem, vBad, logistic]
+    rw [hVdef, hWdef]
+    rw [hχ_abs, hpow_alpha_raw]
+    rw [abs_of_nonneg (abs_nonneg p.χ)]
+    ring_nf
+  have hbad_eq :
+      paperLemma42PositiveBadTerm p u W x =
+        (1 - |p.χ|) * logistic + derivBad + vBad := by
+    dsimp [paperLemma42PositiveBadTerm, logistic, derivBad, vBad]
+    rw [hVdef]
+    ring
+  have hop_lower :
+      lin - paperLemma42PositiveBadTerm p u W x ≤
+        paperWaveOperator p c u W x := by
+    rw [hbad_eq, hop]
+    nlinarith [hchem_lower]
+  have hbad_x := hbad u hu x hx
+  rw [← hWdef] at hbad_x
+  have hleft :
+      (D * paperSpeedDenominator c κtilde - 1 -
+          |p.χ| * paperSubsolutionK M κ κtilde p.m p.γ) *
+          Real.exp (-κtilde * x) =
+        lin -
+          (1 + |p.χ| * paperSubsolutionK M κ κtilde p.m p.γ) *
+            Real.exp (-κtilde * x) := by
+    dsimp [lin]
+    ring
+  rw [hleft]
+  exact le_trans (sub_le_sub_left hbad_x lin) hop_lower
+
+theorem PaperLemma_4_2_positive_paperWaveOperator_from_pointwise_estimate
+    {p : CMParams} {c κ κtilde M D : ℝ}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hpoint : PaperLemma42PositivePointwiseEstimate p c κ κtilde M D)
+    (u : ℝ → ℝ) (hu : InWaveTrapSet κ M u) :
+    IsPaperFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+      (Set.Ioi (lowerBarrierXMinus κ κtilde D)) := by
+  intro x hx
+  exact le_trans
+    (paperDMin_margin_nonneg_exp (χ := p.χ) (M := M) (κ := κ)
+      (κtilde := κtilde) (m := p.m) (gamma := p.γ) (c := c) (D := D)
+      (x := x) hcond.den_pos hD)
+    (hpoint u hu x hx)
+
+theorem PaperLemma_4_2_positive_paperWaveOperator_from_components
+    {p : CMParams} {c κ κtilde M D : ℝ}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hlog : PaperLemma42LogisticEstimate p c κ κtilde M D)
+    (hK : PaperLemma42PositiveKTermEstimate p c κ κtilde M D)
+    (u : ℝ → ℝ) (hu : InWaveTrapSet κ M u) :
+    IsPaperFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+      (Set.Ioi (lowerBarrierXMinus κ κtilde D)) := by
+  exact PaperLemma_4_2_positive_paperWaveOperator_from_pointwise_estimate
+    hcond hD
+    (PaperLemma42PositivePointwiseEstimate_of_badTermEstimate hcond hD
+      (PaperLemma42PositiveBadTermEstimate_of_components hcond hD hlog hK))
+    u hu
+
+theorem PaperLemma_4_2_positive_paperWaveOperator_of_conditions
+    {p : CMParams} {c κ κtilde M D : ℝ}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (u : ℝ → ℝ) (hu : InWaveTrapSet κ M u) :
+    IsPaperFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+      (Set.Ioi (lowerBarrierXMinus κ κtilde D)) :=
+  PaperLemma_4_2_positive_paperWaveOperator_from_components hcond hD
+    (PaperLemma42LogisticEstimate_of_positive_conditions hcond hD hD_ge_one)
+    (PaperLemma42PositiveKTermEstimate_of_positive_conditions
+      hcond hD hD_ge_one)
+    u hu
+
+theorem paperLowerBarrierStepData_lowerBarrierRaw_of_positivePaperStep
+    {p : CMParams} {c lam M κ κtilde D Λ C_chem La Lb : ℝ} {u Z W : ℝ → ℝ}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hu : InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u)
+    (hprev : ∀ x, lowerBarrierRaw κ κtilde D x ≤ Z x)
+    (hlam : 0 < lam)
+    (hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x)
+    (haux : PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u W) :
+    PaperLowerBarrierStepData p c lam M κ Λ C_chem La Lb
+      (Set.Ioi (lowerBarrierXMinus κ κtilde D)) u Z W
+      (lowerBarrierRaw κ κtilde D) := by
+  exact
+    { hlam := hlam
+      step_op := hstep
+      hCB := haux.hCB
+      AZ := hprev
+      φcont := haux.φcont
+      hbot := haux.hbot
+      hLa := haux.hLa
+      htop := haux.htop
+      hLb := haux.hLb
+      paperSub :=
+        PaperLemma_4_2_positive_paperWaveOperator_of_conditions
+          hcond hD hD_ge_one u hu.bare.1
+      region := haux.region
+      paperDiff := haux.paperDiff }
+
+theorem rotheStepLowerInvariant_lowerBarrierRaw_of_positivePaperStepData
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hstepData : ∀ u,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+        ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤ rotheSeq u k x) →
+          ∃ C_chem La Lb,
+            (0 < lam) ∧
+            (∀ x, paperImplicitStepOp p c (1 / lam) u
+              (rotheSeq u (k + 1)) x = rotheSeq u k x) ∧
+            PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+              (rotheSeq u (k + 1))) :
+    RotheStepLowerInvariant κ M (lowerBarrierRaw κ κtilde D) rotheSeq := by
+  apply rotheStepLowerInvariant_of_paperBarrierData
+  intro u hu k hprev
+  obtain ⟨C_chem, La, Lb, hlam, hstep, haux⟩ := hstepData u hu k hprev
+  refine ⟨C_chem, La, Lb, Set.Ioi (lowerBarrierXMinus κ κtilde D), ?_⟩
+  exact paperLowerBarrierStepData_lowerBarrierRaw_of_positivePaperStep
+    (Λ := Λ) hcond hD hD_ge_one hu hprev hlam hstep haux
+
+theorem rotheSeqOfPaper_lowerBarrierRaw_positive_stepInvariant
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hprodAll : ∀ u, PaperRotheStepProducer p c lam M κ Λ u)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+    (hauxData : ∀ u,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+        ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
+          rotheSeqOfPaper p c lam M κ Λ u (hprodAll u) hκ hM k x) →
+          ∃ C_chem La Lb,
+            PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+              (rotheSeqOfPaper p c lam M κ Λ u (hprodAll u) hκ hM
+                (k + 1))) :
+    RotheStepLowerInvariant κ M (lowerBarrierRaw κ κtilde D)
+      (fun u => rotheSeqOfPaper p c lam M κ Λ u (hprodAll u) hκ hM) := by
+  refine rotheStepLowerInvariant_lowerBarrierRaw_of_positivePaperStepData
+    (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
+    (κtilde := κtilde) (D := D) (Λ := Λ)
+    hcond hD hD_ge_one ?_
+  intro u hu k hprev
+  obtain ⟨C_chem, La, Lb, haux⟩ := hauxData u hu k hprev
+  have hfacts := rotheSeqOfPaper_stepFacts (hprodAll u) hκ hM k
+  exact ⟨C_chem, La, Lb, (hprodAll u).hlam, hfacts.step_op, haux⟩
+
+theorem profileNontrivial_of_lowerBarrierRaw_positive_tail_bound
+    {p : CMParams} {c κ κtilde M D : ℝ} {U : ℝ → ℝ}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hUtail : ∀ x ∈ Set.Ioi (lowerBarrierXMinus κ κtilde D),
+      lowerBarrierRaw κ κtilde D x ≤ U x) :
+    ProfileNontrivial U := by
+  let x₀ := lowerBarrierXPlus κ κtilde D
+  have hDpos : 0 < D := D_pos_of_positive_paperDMin_lt hcond hD
+  have hx₀ : x₀ ∈ Set.Ioi (lowerBarrierXMinus κ κtilde D) := by
+    exact lowerBarrierXMinus_lt_xplus hcond.hκ0
+      (sub_pos.mpr hcond.hgap) hDpos
+  have hraw_pos : 0 < lowerBarrierRaw κ κtilde D x₀ :=
+    lowerBarrierRaw_pos_of_xminus_lt (sub_pos.mpr hcond.hgap) hDpos hx₀
+  exact ⟨x₀, lt_of_lt_of_le hraw_pos (hUtail x₀ hx₀)⟩
+
+def rotheSeqOfPaperFromPositiveCond
+    (p : CMParams) (c lam M κ κtilde Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hprodAll : ∀ u, PaperRotheStepProducer p c lam M κ Λ u) :
+    (ℝ → ℝ) → ℕ → ℝ → ℝ :=
+  fun u => rotheSeqOfPaper p c lam M κ Λ u (hprodAll u)
+    hcond.hκ0.le (le_trans zero_le_one hcond.hM)
+
+theorem hauxData_of_positive_conditions
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (_hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (_hD_ge_one : 1 ≤ D)
+    (hprodAll : ∀ u, PaperLowerRawStepProducer p c lam M κ κtilde D Λ
+      hcond.hκ0.le (le_trans zero_le_one hcond.hM) u) :
+    ∀ u,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+        ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
+          rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+            (fun v => (hprodAll v).producer) u k x) →
+          ∃ C_chem La Lb,
+            PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+              (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+                (fun v => (hprodAll v).producer) u (k + 1)) := by
+  intro u hu k hprev
+  simpa [rotheSeqOfPaperFromPositiveCond] using
+    (hprodAll u).lowerRawAux hu k hprev
+
+theorem b1_chiPos_existence_paper
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hprodAll : ∀ u, PaperRotheStepProducer p c lam M κ Λ u)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
+      (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond hprodAll))
+    (hauxData : ∀ u,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+        ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
+          rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+            hprodAll u k x) →
+          ∃ C_chem La Lb,
+            PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+              (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+                hprodAll u (k + 1)))
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple
+        (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D)))
+    (hstationary : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        rotheLimit
+          (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+            hprodAll U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hsmp : StationaryStrongMaxPrinciple p c κ M)
+    (hflat : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U := by
+  let zseq :=
+    rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond hprodAll
+  have hM0 : 0 ≤ M := le_trans zero_le_one hcond.hM
+  have hcpos : 0 < c := by
+    rw [hcond.hc]
+    have hinv : 0 < κ⁻¹ := inv_pos.mpr hcond.hκ0
+    nlinarith [hcond.hκ0, hinv]
+  have hstep :
+      RotheStepLowerInvariant κ M (lowerBarrierRaw κ κtilde D) zseq := by
+    have haux' : ∀ u,
+        InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+          ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
+            rotheSeqOfPaper p c lam M κ Λ u (hprodAll u) hcond.hκ0.le hM0 k x) →
+            ∃ C_chem La Lb,
+              PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+                (rotheSeqOfPaper p c lam M κ Λ u (hprodAll u)
+                  hcond.hκ0.le hM0 (k + 1)) := by
+      simpa [zseq, rotheSeqOfPaperFromPositiveCond, hM0] using hauxData
+    simpa [zseq, rotheSeqOfPaperFromPositiveCond, hM0] using
+      rotheSeqOfPaper_lowerBarrierRaw_positive_stepInvariant hcond hD
+        hD_ge_one hprodAll hcond.hκ0.le hM0 haux'
+  have hlower :
+      RotheOrbitLowerBound κ M (lowerBarrierRaw κ κtilde D) zseq :=
+    rotheOrbitLowerBound_of_stepLowerInvariant
+      (fun u hu => by
+        simpa [zseq, rotheSeqOfPaperFromPositiveCond, hM0] using
+          rotheSeqOfPaper_lowerPinned_base (hprodAll u) hcond.hκ0.le hM0 hu)
+      hstep
+  have hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
+      PaperRotheOrbitData p c lam M κ zseq u := by
+    intro u _hu
+    simpa [zseq, rotheSeqOfPaperFromPositiveCond, hM0] using
+      paperRotheOrbitData (p := p) (c := c) (lam := lam) (M := M)
+        (κ := κ) (Λ := Λ) (u := u) hprodAll hcond.hκ0.le hM0
+        hΛ0 hΛM hbarLip
+  obtain ⟨U, hU, hfix⟩ :=
+    paperLowerPinnedSchauder_fixedPoint p c lam M κ
+      (lowerBarrierRaw κ κtilde D) hM0 zseq hŪbdd
+      (helly_pointwise_selection M) hdep hdata hlower hprinciple
+  have hstat : ∀ x, frozenWaveOperator p c U U x = 0 :=
+    hstationary U hU (by simpa [zseq] using hfix)
+  have hnontriv : ProfileNontrivial U :=
+    profileNontrivial_of_lowerBarrierRaw_positive_tail_bound hcond hD
+      (fun x _hx => hU.lower x)
+  have hpos : ∀ x, 0 < U x :=
+    hsmp U hU.bare hstat hnontriv
+  have hlim_neg : Tendsto U atBot (𝓝 1) :=
+    InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_nontrivial
+      hU.bare hsmp hnontriv (hflat U hU hstat) hstat
+  have hlim_pos : Tendsto U atTop (𝓝 0) :=
+    hU.bare.tendsto_atTop_zero hcond.hκ0
+  exact ⟨U, hU,
+    FrozenStationaryWaveProfile.mk_auto_limits hcpos hpos
+      hU.bare.trap.cunif_bdd hstat hlim_neg hlim_pos⟩
+
+theorem b1_chiPos_existence_paper'
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hprodAll : ∀ u, PaperLowerRawStepProducer p c lam M κ κtilde D Λ
+      hcond.hκ0.le (le_trans zero_le_one hcond.hM) u)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
+      (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+        (fun u => (hprodAll u).producer)))
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple
+        (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D)))
+    (hstationary : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        rotheLimit
+          (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+            (fun u => (hprodAll u).producer) U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hrealize : StationaryStrongMaxPrincipleODERealization p c κ M)
+    (hflat : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U := by
+  exact b1_chiPos_existence_paper p c lam M κ κtilde D Λ hcond hD
+    hD_ge_one hΛ0 hΛM (fun u => (hprodAll u).producer) hbarLip
+    (upperBarrier_isBddFun (le_trans zero_le_one hcond.hM)) hdep
+    (hauxData_of_positive_conditions hcond hD hD_ge_one hprodAll) hprinciple
+    hstationary (hsmp_of_odeRealization hrealize) hflat
+
+theorem b1_chiPos_existence_paper_clean
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hprodAll : ∀ u, PaperLowerRawStepProducer p c lam M κ κtilde D Λ
+      hcond.hκ0.le (le_trans zero_le_one hcond.hM) u)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
+      (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+        (fun u => (hprodAll u).producer)))
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple
+        (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D)))
+    (hstationary : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        rotheLimit
+          (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+            (fun u => (hprodAll u).producer) U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hrealize : StationaryStrongMaxPrincipleODERealization p c κ M)
+    (hflat : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiPos_existence_paper' p c lam M κ κtilde D Λ hcond hD
+    hD_ge_one hΛ0 hΛM hprodAll hbarLip hdep hprinciple hstationary
+    hrealize hflat
+
 /-! ## Axiom audit -/
 
 section AxiomAudit
@@ -1983,6 +3003,20 @@ section AxiomAudit
 #print axioms ShenWork.Paper1.b1_chiNeg_existence_paper
 #print axioms b1_chiNeg_existence_paper'
 #print axioms b1_chiNeg_existence_paper_clean
+#print axioms PaperLemma42EllipticVEstimate_of_positive_conditions
+#print axioms PaperLemma42EllipticVxEstimate_of_positive_conditions
+#print axioms PaperLemma42LogisticEstimate_of_positive_conditions
+#print axioms PaperLemma42PositiveKTermEstimate_of_positive_conditions
+#print axioms PaperLemma42PositiveBadTermEstimate_of_components
+#print axioms PaperLemma42PositivePointwiseEstimate_of_badTermEstimate
+#print axioms PaperLemma_4_2_positive_paperWaveOperator_of_conditions
+#print axioms rotheSeqOfPaper_lowerBarrierRaw_positive_stepInvariant
+#print axioms profileNontrivial_of_lowerBarrierRaw_positive_tail_bound
+#print axioms rotheSeqOfPaperFromPositiveCond
+#print axioms hauxData_of_positive_conditions
+#print axioms b1_chiPos_existence_paper
+#print axioms b1_chiPos_existence_paper'
+#print axioms b1_chiPos_existence_paper_clean
 end AxiomAudit
 
 end ShenWork.Paper1
@@ -1991,5 +3025,10 @@ end ShenWork.Paper1
 #print axioms ShenWork.Paper1.rotheSeqOfPaper_profileNontrivial_of_lowerBarrierRaw
 #print axioms ShenWork.Paper1.b1_chiNeg_existence_paper
 #print axioms ShenWork.Paper1.b1_chiNeg_existence_paper'
+#print axioms ShenWork.Paper1.b1_chiNeg_existence_paper_clean
 
 #print axioms ShenWork.Paper1.b1_chiNeg_existence_paper
+
+#print axioms ShenWork.Paper1.b1_chiNeg_existence_paper_clean
+
+#print axioms ShenWork.Paper1.b1_chiPos_existence_paper
