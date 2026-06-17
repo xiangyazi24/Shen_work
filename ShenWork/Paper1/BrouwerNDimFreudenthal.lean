@@ -1615,6 +1615,78 @@ theorem endpointInv_extendCell_invalid {n k : ℕ} (c : Cell n) :
   rw [hcoord] at hnonneg
   omega
 
+theorem bottom_geometry_of_facet_last_zero {n k : ℕ} {c : Cell (n + 1)}
+    (hc : c ∈ cells (n + 1) k) {t : Fin (n + 2)}
+    (hzero : ∀ v ∈ facetSet c.1 c.2 t, v (Fin.last n) = 0) :
+    c.1 (Fin.last n) = 0 ∧ c.2 (Fin.last n) = Fin.last n ∧
+      t = Fin.last (n + 1) := by
+  classical
+  let s : Fin (n + 1) := c.2.symm (Fin.last n)
+  have hvalid := mem_cells.mp hc
+  have hp_nonneg : 0 ≤ c.1 (Fin.last n) := (hvalid (Fin.last n)).1
+  have hs_le : s.val ≤ n := by
+    have := s.isLt
+    omega
+  have hnot_step : ∀ u : Fin (n + 2), u ≠ t → ¬ s.val < u.val := by
+    intro u hut hlt
+    have hv : chainVZ c.1 c.2 u ∈ facetSet c.1 c.2 t :=
+      (mem_facetSet_iff c.1 c.2 t u).mpr hut
+    have hz := hzero (chainVZ c.1 c.2 u) hv
+    unfold chainVZ at hz
+    have hscoord : c.2.symm (Fin.last n) = s := rfl
+    rw [hscoord, if_pos hlt] at hz
+    omega
+  have hp_zero_of_nonstep : ∀ u : Fin (n + 2), u ≠ t →
+      ¬ s.val < u.val → c.1 (Fin.last n) = 0 := by
+    intro u hut hnlt
+    have hv : chainVZ c.1 c.2 u ∈ facetSet c.1 c.2 t :=
+      (mem_facetSet_iff c.1 c.2 t u).mpr hut
+    have hz := hzero (chainVZ c.1 c.2 u) hv
+    unfold chainVZ at hz
+    have hscoord : c.2.symm (Fin.last n) = s := rfl
+    rw [hscoord, if_neg hnlt] at hz
+    omega
+  have ht_last : t = Fin.last (n + 1) := by
+    by_contra ht
+    have hlt : s.val < (Fin.last (n + 1) : Fin (n + 2)).val := by
+      simp only [Fin.val_last]
+      omega
+    exact hnot_step (Fin.last (n + 1)) (by simpa [eq_comm] using ht) hlt
+  have hs_last : s = Fin.last n := by
+    by_contra hs
+    have hslt : s.val < n := by
+      have hsne : s.val ≠ n := by
+        intro h
+        exact hs (Fin.ext (by simpa [Fin.val_last] using h))
+      omega
+    let u : Fin (n + 2) := ⟨s.val + 1, by omega⟩
+    have hut : u ≠ t := by
+      rw [ht_last]
+      intro h
+      have hval := congrArg Fin.val h
+      simp only [u, Fin.val_last] at hval
+      omega
+    have hlt : s.val < u.val := by
+      simp [u]
+    exact hnot_step u hut hlt
+  have hp_zero : c.1 (Fin.last n) = 0 := by
+    let u : Fin (n + 2) := 0
+    by_cases htu : u = t
+    · let u' : Fin (n + 2) := 1
+      have hu't : u' ≠ t := by
+        rw [← htu]
+        intro h
+        have hval := congrArg Fin.val h
+        simp [u, u'] at hval
+      exact hp_zero_of_nonstep u' hu't (hnot_step u' hu't)
+    · exact hp_zero_of_nonstep u htu (hnot_step u htu)
+  have hσ : c.2 (Fin.last n) = Fin.last n := by
+    have happ := congrArg c.2 hs_last
+    have hraw : Fin.last n = c.2 (Fin.last n) := by
+      simpa [s] using happ
+    exact hraw.symm
+  exact ⟨hp_zero, hσ, ht_last⟩
+
 theorem extendCell_finalFacet_boundary {n k : ℕ} (hk : 0 < k) {c : Cell n}
     (hc : c ∈ cells n k) :
     isBoundary (Nat.succ_pos n) k
@@ -1656,6 +1728,59 @@ theorem bottomDoorFacets_subset_boundaryDoors {n k : ℕ} (hk : 0 < k)
   refine ⟨mem_facets_of_bounds hupper hb, hc.2, ?_⟩
   exact extendCell_finalFacet_boundary hk hc.1
 
+theorem boundaryDoors_subset_bottomDoorFacets_of_vertices_bottom {n k : ℕ}
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 2))
+    (hbottom : ∀ F ∈ facets (n + 1) k,
+      (F.image L = Finset.univ.erase (Fin.last (n + 1))) →
+        isBoundary (Nat.succ_pos n) k F →
+          ∀ v ∈ F, v (Fin.last n) = 0) :
+    (facets (n + 1) k).filter
+        (fun F => (F.image L = Finset.univ.erase (Fin.last (n + 1))) ∧
+          isBoundary (Nat.succ_pos n) k F) ⊆
+      bottomDoorFacets k L := by
+  classical
+  intro F hF
+  rw [Finset.mem_filter] at hF
+  obtain ⟨hFmem, hdoor, hboundary⟩ := hF
+  obtain ⟨c, hc, t, htF⟩ := mem_facets_iff.mp hFmem
+  have hzero : ∀ v ∈ facetSet c.1 c.2 t, v (Fin.last n) = 0 := by
+    intro v hv
+    exact hbottom F hFmem hdoor hboundary v (by simpa [← htF] using hv)
+  obtain ⟨hp, hσ, htlast⟩ := bottom_geometry_of_facet_last_zero hc hzero
+  have hrestrict : restrictCell c hσ ∈ cells n k :=
+    restrictCell_mem_cells_of_bottom (by
+      rw [bottomCells, Finset.mem_filter]
+      exact ⟨hc, hp, hσ⟩)
+  have hceq : extendCell (restrictCell c hσ) = c :=
+    extendCell_restrictCell hp hσ
+  unfold bottomDoorFacets
+  rw [Finset.mem_image]
+  refine ⟨restrictCell c hσ, ?_, ?_⟩
+  · rw [Finset.mem_filter]
+    refine ⟨hrestrict, ?_⟩
+    unfold isBottomDoor
+    rw [hceq]
+    have hdoor' : (facetSet c.1 c.2 (Fin.last (n + 1))).image L =
+        Finset.univ.erase (Fin.last (n + 1)) := by
+      rw [← htF] at hdoor
+      rwa [htlast] at hdoor
+    exact hdoor'
+  · rw [hceq]
+    rw [← htF, htlast]
+
+theorem boundaryDoors_eq_bottomDoorFacets_of_vertices_bottom {n k : ℕ} (hk : 0 < k)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 2))
+    (hbottom : ∀ F ∈ facets (n + 1) k,
+      (F.image L = Finset.univ.erase (Fin.last (n + 1))) →
+        isBoundary (Nat.succ_pos n) k F →
+          ∀ v ∈ F, v (Fin.last n) = 0) :
+    (facets (n + 1) k).filter
+        (fun F => (F.image L = Finset.univ.erase (Fin.last (n + 1))) ∧
+          isBoundary (Nat.succ_pos n) k F) = bottomDoorFacets k L := by
+  apply Finset.Subset.antisymm
+  · exact boundaryDoors_subset_bottomDoorFacets_of_vertices_bottom L hbottom
+  · exact bottomDoorFacets_subset_boundaryDoors hk L
+
 theorem hR3_of_boundaryDoors_eq_bottomDoorFacets {n k : ℕ}
     (L : (Fin (n + 1) → ℤ) → Fin (n + 2))
     (havoid : ∀ v : Fin n → ℤ, L (appendZero v) ≠ Fin.last (n + 1))
@@ -1670,6 +1795,21 @@ theorem hR3_of_boundaryDoors_eq_bottomDoorFacets {n k : ℕ}
         isBoundary (Nat.succ_pos n) k F)).card := by
   rw [hboundary]
   exact bottomDoorFacets_odd_of_lower_rainbow_odd L havoid hodd
+
+theorem hR3_of_boundary_door_vertices_bottom {n k : ℕ} (hk : 0 < k)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 2))
+    (havoid : ∀ v : Fin n → ℤ, L (appendZero v) ≠ Fin.last (n + 1))
+    (hbottom : ∀ F ∈ facets (n + 1) k,
+      (F.image L = Finset.univ.erase (Fin.last (n + 1))) →
+        isBoundary (Nat.succ_pos n) k F →
+          ∀ v ∈ F, v (Fin.last n) = 0)
+    (hodd : Odd ((cells n k).filter
+      (fun c => isRainbow (bottomLabel L havoid) c)).card) :
+    Odd ((facets (n + 1) k).filter
+      (fun F => (F.image L = Finset.univ.erase (Fin.last (n + 1))) ∧
+        isBoundary (Nat.succ_pos n) k F)).card := by
+  exact hR3_of_boundaryDoors_eq_bottomDoorFacets L havoid
+    (boundaryDoors_eq_bottomDoorFacets_of_vertices_bottom hk L hbottom) hodd
 
 theorem rainbow_count_succ_odd_of_boundary_data {n k : ℕ}
     (L : (Fin (n + 1) → ℤ) → Fin (n + 2))
@@ -1690,8 +1830,68 @@ theorem rainbow_count_succ_odd_of_boundary_data {n k : ℕ}
   have hR3 := hR3_of_boundaryDoors_eq_bottomDoorFacets L havoid hboundary hlower
   exact exists_rainbow_cellF_R2 (Nat.succ_pos n) k L hR2 hR3
 
+theorem rainbow_count_succ_odd_of_boundary_vertices_bottom {n k : ℕ} (hk : 0 < k)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 2))
+    (havoid : ∀ v : Fin n → ℤ, L (appendZero v) ≠ Fin.last (n + 1))
+    (hR2 : ∀ F ∈ facets (n + 1) k,
+      (F.image L = Finset.univ.erase (Fin.last (n + 1))) →
+        isBoundary (Nat.succ_pos n) k F →
+          ((cells (n + 1) k).filter
+            (fun c => cellBounds c F ∧
+              ¬ cellValid k (partnerCell (Nat.succ_pos n) c F))).card = 1)
+    (hbottom : ∀ F ∈ facets (n + 1) k,
+      (F.image L = Finset.univ.erase (Fin.last (n + 1))) →
+        isBoundary (Nat.succ_pos n) k F →
+          ∀ v ∈ F, v (Fin.last n) = 0)
+    (hlower : Odd ((cells n k).filter
+      (fun c => isRainbow (bottomLabel L havoid) c)).card) :
+    Odd ((cells (n + 1) k).filter (fun c => isRainbow L c)).card := by
+  exact rainbow_count_succ_odd_of_boundary_data L havoid hR2
+    (boundaryDoors_eq_bottomDoorFacets_of_vertices_bottom hk L hbottom) hlower
+
+/-- Labellings for the `n`-dimensional Freudenthal model. -/
+abbrev Label (n : ℕ) : Type :=
+  (Fin n → ℤ) → Fin (n + 1)
+
+/-- Recursive boundary data sufficient for the Freudenthal parity induction. -/
+def BoundaryData : (n k : ℕ) → Label n → Prop
+  | 0, _k, _L => True
+  | n + 1, k, L =>
+      ∃ havoid : ∀ v : Fin n → ℤ, L (appendZero v) ≠ Fin.last (n + 1),
+        (∀ F ∈ facets (n + 1) k,
+          (F.image L = Finset.univ.erase (Fin.last (n + 1))) →
+            isBoundary (Nat.succ_pos n) k F →
+              ((cells (n + 1) k).filter
+                (fun c => cellBounds c F ∧
+                  ¬ cellValid k (partnerCell (Nat.succ_pos n) c F))).card = 1) ∧
+        (∀ F ∈ facets (n + 1) k,
+          (F.image L = Finset.univ.erase (Fin.last (n + 1))) →
+            isBoundary (Nat.succ_pos n) k F →
+              ∀ v ∈ F, v (Fin.last n) = 0) ∧
+        BoundaryData n k (bottomLabel L havoid)
+
+theorem rainbow_count_odd_of_boundaryData {n k : ℕ} (hk : 0 < k)
+    (L : Label n) (hdata : BoundaryData n k L) :
+    Odd ((cells n k).filter (fun c => isRainbow L c)).card := by
+  induction n with
+  | zero =>
+      exact rainbow_count_zero_odd k L
+  | succ n ih =>
+      rcases hdata with ⟨havoid, hR2, hbottom, hlower⟩
+      exact rainbow_count_succ_odd_of_boundary_vertices_bottom hk L havoid hR2
+        hbottom (ih (bottomLabel L havoid) hlower)
+
+theorem exists_rainbow_cellF_of_boundaryData {n k : ℕ} (hk : 0 < k)
+    (L : Label n) (hdata : BoundaryData n k L) :
+    ∃ c ∈ cells n k, isRainbow L c := by
+  classical
+  have hodd := rainbow_count_odd_of_boundaryData hk L hdata
+  obtain ⟨c, hc⟩ := Finset.card_pos.mp hodd.pos
+  rw [Finset.mem_filter] at hc
+  exact ⟨c, hc.1, hc.2⟩
+
 /-!
-Remaining gap for the full R3/G1 propagation:
+Status for the full R3/G1 propagation:
 
 This file now has the boundary-compatible Freudenthal/type-A finite carrier, global facets,
 drop recovery, per-cell non-overlap (`chainSet_injective`), the partner-cell involution,
@@ -1700,11 +1900,19 @@ the boundary predicate, the interior/boundary parity reduction, and the Freudent
 rainbow cells as global facet sets (`card_bottomDoorFacets_eq_rainbow`) and proves those
 bottom facets are genuine boundary facets.
 
+Closed here, with explicit boundary data:
+* if every boundary door has all vertices on `{last = 0}`, then it is geometrically the
+  final facet of an extended bottom cell (`bottom_geometry_of_facet_last_zero`), hence
+  the global boundary-door set equals `bottomDoorFacets`
+  (`boundaryDoors_eq_bottomDoorFacets_of_vertices_bottom`);
+* `BoundaryData` recursively packages the bottom-colour exclusion, the singleton invalid
+  partner input, and the bottom-only boundary-door exclusion in every dimension, and
+  `rainbow_count_odd_of_boundaryData` supplies the lower-dimensional odd count by induction.
+
 Still not closed here:
-* the label/geometric exclusion that every boundary door is one of these bottom-door facets
-  (`hR3_of_boundaryDoors_eq_bottomDoorFacets` records the exact remaining equality);
-* the recursive Freudenthal rainbow odd theorem that supplies the lower-dimensional `hodd`
-  without an external hypothesis;
+* proving the `BoundaryData` fields for the concrete Sperner labelling used by
+  `BrouwerNDimFinal` (in particular the bottom-only boundary-door exclusion and the R2
+  singleton input in this Freudenthal carrier);
 * the mesh-limit/transport replacement from this cube/type-A model to the existing n-D
   Brouwer/G1/wave statements.
 -/
@@ -1730,10 +1938,17 @@ Still not closed here:
 #print axioms finalFacet_extendCell_injective
 #print axioms card_bottomDoorFacets_eq_rainbow
 #print axioms bottomDoorFacets_odd_of_lower_rainbow_odd
+#print axioms bottom_geometry_of_facet_last_zero
 #print axioms extendCell_finalFacet_boundary
 #print axioms bottomDoorFacets_subset_boundaryDoors
+#print axioms boundaryDoors_subset_bottomDoorFacets_of_vertices_bottom
+#print axioms boundaryDoors_eq_bottomDoorFacets_of_vertices_bottom
 #print axioms hR3_of_boundaryDoors_eq_bottomDoorFacets
+#print axioms hR3_of_boundary_door_vertices_bottom
 #print axioms rainbow_count_succ_odd_of_boundary_data
+#print axioms rainbow_count_succ_odd_of_boundary_vertices_bottom
+#print axioms rainbow_count_odd_of_boundaryData
+#print axioms exists_rainbow_cellF_of_boundaryData
 
 end Freudenthal
 
