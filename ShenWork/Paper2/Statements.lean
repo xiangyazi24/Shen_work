@@ -293,7 +293,7 @@ lemma PositiveInitialDatum.pos
 admissible data together with a *uniform* positive floor on the *closed* domain,
 i.e. `inf_{x} u₀(x) > 0`.  This is strictly stronger than `PositiveInitialDatum`,
 which only asks for positivity on the open interior `D.inside` and would wrongly
-admit data like `x(1−x)` whose infimum is `0` (data the paper excludes). -/
+allow data like `x(1−x)` whose infimum is `0` (data the paper excludes). -/
 def PaperPositiveInitialDatum (D : BoundedDomainData) (u₀ : D.Point → ℝ) : Prop :=
   D.initialAdmissible u₀ ∧ ∃ η : ℝ, 0 < η ∧ ∀ x : D.Point, η ≤ u₀ x
 
@@ -2901,6 +2901,35 @@ def Proposition_2_4 (D : BoundedDomainData) (p : CM2Params) : Prop :=
         (p.a = 0 → p.b = 0 → MassConservedBefore D T u₀ u) ∧
           (0 < p.a → 0 < p.b → LogisticMassUpperBoundBefore D p T u₀ u)
 
+/-- The no-flux mass-balance identity for Proposition 2.4.
+
+This is the analytic step obtained by integrating the `u` equation over the
+domain and killing the diffusion and chemotaxis-divergence boundary fluxes. -/
+def Paper2MassDerivativeIdentity
+    (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
+    IsPaper2ClassicalSolution D p T u v →
+      ∀ t, 0 < t → t < T →
+        deriv (fun τ => D.integral (u τ)) t =
+          D.integral
+            (fun x => u t x * (p.a - p.b * (u t x) ^ p.α))
+
+/-- The ODE-comparison step for Proposition 2.4 once the exact mass derivative
+identity has been proved.  It packages the initial trace at `t = 0`, the
+constant-mass case `a = b = 0`, and the positive-logistic comparison bound. -/
+def Paper2MassComparisonPrinciple
+    (D : BoundedDomainData) (p : CM2Params) : Prop :=
+  ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
+    ∀ T > 0, ∀ u : ℝ → D.Point → ℝ,
+      InitialTrace D u₀ u →
+      (∀ t x, 0 < t → t < T → 0 < u t x) →
+      (∀ t, 0 < t → t < T →
+        deriv (fun τ => D.integral (u τ)) t =
+          D.integral
+            (fun x => u t x * (p.a - p.b * (u t x) ^ p.α))) →
+        (p.a = 0 → p.b = 0 → MassConservedBefore D T u₀ u) ∧
+          (0 < p.a → 0 < p.b → LogisticMassUpperBoundBefore D p T u₀ u)
+
 /-- A fake bounded-domain interface showing that Proposition 2.4 is not a
 consequence of the abstract API alone.  The PDE admits the constant solution
 `u = v = 1`, while the abstract `supNorm` makes the initial trace accept the
@@ -3561,10 +3590,10 @@ lemma threshold_persists_below_of_hasDerivAt_nonpos
 
 /-- **Real proof of Paper2 Lemma 3.1, conditional on `ParabolicMaxPrincipleData`.**
 
-Given the primitive analytic axioms (sup-norm temporal continuity + pointwise
+Given the primitive analytic hypotheses (sup-norm temporal continuity + pointwise
 nonpositive derivative above threshold), the sup-norm is antitone on the
 relevant time intervals, hence `SupNormNonincreasingOn` holds.  Proof uses
-`threshold_persists_below_of_hasDerivAt_nonpos` to lift the conditional axiom
+`threshold_persists_below_of_hasDerivAt_nonpos` to lift the conditional input
 to a global differentiability statement on `(0, t₀]`, then applies
 Mathlib's `antitoneOn_of_deriv_nonpos` on each subinterval. -/
 theorem Lemma_3_1_of_parabolicMaxPrinciple
@@ -4646,18 +4675,17 @@ theorem Proposition_2_3.of_assumed_estimate_branch
     Proposition_2_3 D p :=
   hest
 
-/-- **TAUTOLOGY (no math content)**: body is `:= hmass`, definitionally equal
-to `Proposition_2_4 D p`.  Target signature only. -/
-theorem Proposition_2_4.of_assumed_mass_branch
+/-- Proposition 2.4 from the two named missing analytic facts: the no-flux
+mass derivative identity and the resulting ODE comparison principle. -/
+theorem Proposition_2_4.of_mass_derivative_identity_and_comparison
     {D : BoundedDomainData} {p : CM2Params}
-    (hmass : ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
-      ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
-        IsPaper2ClassicalSolution D p T u v →
-        InitialTrace D u₀ u →
-          (p.a = 0 → p.b = 0 → MassConservedBefore D T u₀ u) ∧
-            (0 < p.a → 0 < p.b → LogisticMassUpperBoundBefore D p T u₀ u)) :
-    Proposition_2_4 D p :=
-  hmass
+    (hmassDeriv : Paper2MassDerivativeIdentity D p)
+    (hcompare : Paper2MassComparisonPrinciple D p) :
+    Proposition_2_4 D p := by
+  intro u₀ hu₀ T hT u v hsol htrace
+  exact hcompare u₀ hu₀ T hT u htrace
+    (fun t x ht0 htT => hsol.u_pos' ht0 htT)
+    (hmassDeriv T hT u v hsol)
 
 /-- **TAUTOLOGY (no math content)**: body is `:= hbound`, definitionally equal
 to `Proposition_2_5 D p`.  Target signature only. -/
@@ -4715,12 +4743,8 @@ theorem propositions_2_2_to_2_5_of_assumed_branches
         ∀ pExp, max 1 p.β < pExp →
           ∀ eps > 0, ∃ Ceps > 0,
             WeightedSignalEstimate D pExp p.β p.γ eps Ceps T u v)
-    (h24 : ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
-      ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
-        IsPaper2ClassicalSolution D p T u v →
-        InitialTrace D u₀ u →
-          (p.a = 0 → p.b = 0 → MassConservedBefore D T u₀ u) ∧
-            (0 < p.a → 0 < p.b → LogisticMassUpperBoundBefore D p T u₀ u))
+    (h24MassDeriv : Paper2MassDerivativeIdentity D p)
+    (h24Compare : Paper2MassComparisonPrinciple D p)
     (h25 : ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
       ∀ Tmax > 0, ∀ u v : ℝ → D.Point → ℝ,
         IsPaper2ClassicalSolution D p Tmax u v →
@@ -4733,7 +4757,8 @@ theorem propositions_2_2_to_2_5_of_assumed_branches
       Proposition_2_4 D p ∧ Proposition_2_5 D p := by
   exact ⟨Proposition_2_2.of_assumed_estimate_branch h22,
     Proposition_2_3.of_assumed_estimate_branch h23,
-    Proposition_2_4.of_assumed_mass_branch h24,
+    Proposition_2_4.of_mass_derivative_identity_and_comparison
+      h24MassDeriv h24Compare,
     Proposition_2_5.of_assumed_bound_branch h25⟩
 
 /-- Combined bridge for the bootstrap and estimate targets most often used
@@ -4763,12 +4788,8 @@ theorem lemma_2_6_2_7_and_propositions_2_2_to_2_5_of_assumed_branches
         ∀ pExp, max 1 p.β < pExp →
           ∀ eps > 0, ∃ Ceps > 0,
             WeightedSignalEstimate D pExp p.β p.γ eps Ceps T u v)
-    (h24 : ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
-      ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
-        IsPaper2ClassicalSolution D p T u v →
-        InitialTrace D u₀ u →
-          (p.a = 0 → p.b = 0 → MassConservedBefore D T u₀ u) ∧
-            (0 < p.a → 0 < p.b → LogisticMassUpperBoundBefore D p T u₀ u))
+    (h24MassDeriv : Paper2MassDerivativeIdentity D p)
+    (h24Compare : Paper2MassComparisonPrinciple D p)
     (h25 : ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
       ∀ Tmax > 0, ∀ u v : ℝ → D.Point → ℝ,
         IsPaper2ClassicalSolution D p Tmax u v →
@@ -4781,7 +4802,8 @@ theorem lemma_2_6_2_7_and_propositions_2_2_to_2_5_of_assumed_branches
       Proposition_2_2 D p ∧ Proposition_2_3 D p ∧
         Proposition_2_4 D p ∧ Proposition_2_5 D p := by
   have hlemmas := lemma_2_6_and_2_7_of_assumed_bound_branches h26 h27
-  have hprops := propositions_2_2_to_2_5_of_assumed_branches h22 h23 h24 h25
+  have hprops := propositions_2_2_to_2_5_of_assumed_branches
+    h22 h23 h24MassDeriv h24Compare h25
   exact ⟨hlemmas.1, hlemmas.2, hprops.1, hprops.2.1,
     hprops.2.2.1, hprops.2.2.2⟩
 
@@ -4819,13 +4841,8 @@ structure Paper2BootstrapEstimateBranchData
         ∀ pExp, max 1 p.β < pExp →
           ∀ eps > 0, ∃ Ceps > 0,
             WeightedSignalEstimate D pExp p.β p.γ eps Ceps T u v
-  prop24 :
-    ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
-      ∀ T > 0, ∀ u v : ℝ → D.Point → ℝ,
-        IsPaper2ClassicalSolution D p T u v →
-        InitialTrace D u₀ u →
-          (p.a = 0 → p.b = 0 → MassConservedBefore D T u₀ u) ∧
-            (0 < p.a → 0 < p.b → LogisticMassUpperBoundBefore D p T u₀ u)
+  prop24MassDeriv : Paper2MassDerivativeIdentity D p
+  prop24Compare : Paper2MassComparisonPrinciple D p
   prop25 :
     ∀ u₀ : D.Point → ℝ, PositiveInitialDatum D u₀ →
       ∀ Tmax > 0, ∀ u v : ℝ → D.Point → ℝ,
@@ -4845,7 +4862,7 @@ theorem lemma_2_6_2_7_and_propositions_2_2_to_2_5_of_branchData
         Proposition_2_4 D p ∧ Proposition_2_5 D p :=
   lemma_2_6_2_7_and_propositions_2_2_to_2_5_of_assumed_branches
     hData.lemma26 hData.lemma27 hData.prop22 hData.prop23
-    hData.prop24 hData.prop25
+    hData.prop24MassDeriv hData.prop24Compare hData.prop25
 
 /-- Instance-facing data-record wrapper for Lemmas 2.6--2.7 and
 Propositions 2.2--2.5. -/
@@ -4923,7 +4940,8 @@ theorem Proposition_2_4.of_branchData
     {D : BoundedDomainData} {p : CM2Params}
     (hData : Paper2BootstrapEstimateBranchData D p) :
     Proposition_2_4 D p :=
-  Proposition_2_4.of_assumed_mass_branch hData.prop24
+  Proposition_2_4.of_mass_derivative_identity_and_comparison
+    hData.prop24MassDeriv hData.prop24Compare
 
 /-- Instance-facing single-target wrapper for Proposition 2.4. -/
 theorem Proposition_2_4.of_branchDataFact
@@ -5729,7 +5747,9 @@ theorem unitPointDomain.Theorem_1_1_minimal_only
       · -- v_nonneg
         intro t x _ _
         have hvnn0 : (0:ℝ) < ustar := by
-          rw [hustar_def]; exact mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos (hu₀.pos trivial) _)
+          rw [hustar_def]
+          exact mul_pos (div_pos p.hν p.hμ)
+            (Real.rpow_pos_of_pos (hu₀.pos trivial) _)
         exact hvnn0.le
       · -- pde_u
         intro t x _ _ _
@@ -5772,7 +5792,9 @@ theorem unitPointDomain.Theorem_1_1_minimal_only
         exact hu₀.pos trivial
       · intro t x _ _
         have hvnn0 : (0:ℝ) < ustar := by
-          rw [hustar_def]; exact mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos (hu₀.pos trivial) _)
+          rw [hustar_def]
+          exact mul_pos (div_pos p.hν p.hμ)
+            (Real.rpow_pos_of_pos (hu₀.pos trivial) _)
         exact hvnn0.le
       · intro t x _ _ _
         show deriv (fun s : ℝ => u₀ ()) t = 0 - p.χ₀ * 0 +
@@ -6048,7 +6070,9 @@ theorem unitPointDomain.Theorem_1_2_minimal_only
       · intro t x _ _; exact hu₀.pos trivial
       · intro t x _ _
         have hvnn0 : (0:ℝ) < ustar := by
-          rw [hustar_def]; exact mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos (hu₀.pos trivial) _)
+          rw [hustar_def]
+          exact mul_pos (div_pos p.hν p.hμ)
+            (Real.rpow_pos_of_pos (hu₀.pos trivial) _)
         exact hvnn0.le
       · intro t x _ _ _
         show deriv (fun s : ℝ => u₀ ()) t =
@@ -6087,7 +6111,9 @@ theorem unitPointDomain.Theorem_1_2_minimal_only
       · intro t x _ _; exact hu₀.pos trivial
       · intro t x _ _
         have hvnn0 : (0:ℝ) < ustar := by
-          rw [hustar_def]; exact mul_pos (div_pos p.hν p.hμ) (Real.rpow_pos_of_pos (hu₀.pos trivial) _)
+          rw [hustar_def]
+          exact mul_pos (div_pos p.hν p.hμ)
+            (Real.rpow_pos_of_pos (hu₀.pos trivial) _)
         exact hvnn0.le
       · intro t x _ _ _
         show deriv (fun s : ℝ => u₀ ()) t =

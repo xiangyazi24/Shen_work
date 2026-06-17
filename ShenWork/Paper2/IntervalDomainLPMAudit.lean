@@ -50,7 +50,8 @@ theorem not_forall_branchData_from_prop24 :
     ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params,
         Paper2BootstrapEstimateBranchData D p) := by
   intro h
-  exact not_forall_Proposition_2_4 (fun D p => (h D p).prop24)
+  exact not_forall_Proposition_2_4
+    (fun D p => Proposition_2_4.of_branchData (h D p))
 
 theorem not_forall_branchData_from_prop25 :
     ¬ (∀ D : BoundedDomainData, ∀ p : CM2Params,
