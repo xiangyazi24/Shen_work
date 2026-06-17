@@ -7,6 +7,13 @@
   input.  The remaining unproved sub-lemma is not the producer itself: it is the
   per-step Green fixed-point existence/trap package `PaperGreenStepInput`.
 
+  Frozen-producer inventory: the frozen `RotheStepProducer` is not closed below
+  this layer either.  It is assembled from the carried `RotheStepFloor` /
+  `RotheStepInput` floor in `WaveRotheStepClose.lean` and
+  `WaveRotheProducer.lean`, where the residual Green tails, flux decay/IBP, and
+  source data are explicitly named.  Consequently this paper-side input is the
+  analogous shared per-step parabolic floor, not a faked Banach existence proof.
+
   For each old iterate `Z`, that package supplies a Green convolution
   `W = greenConv c lam R` with the paper-step source
   `R = paperStepSource p c lam u Z W`, plus source regularity/tails and the
@@ -351,6 +358,15 @@ structure PaperGreenStepInput
       (∀ x, Z x ≤ upperBarrier κ M x) →
       Σ' W : ℝ → ℝ, PaperStepOutput p c lam M κ Λ u Z W
 
+/-- Honest paper-side name for the shared per-step parabolic floor.
+
+This is an alias, not a proof: the frozen construction still carries the same
+analytic layer as `RotheStepFloor`, so the paper construction exposes its
+corresponding floor as `PaperGreenStepInput`. -/
+abbrev PaperPerStepParabolicFloor
+    (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Type :=
+  PaperGreenStepInput p c lam M κ Λ u
+
 /-- `PaperRotheStepProducer` from the precise Green-step input. -/
 def paperRotheStepProducer_of_greenInput
     {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
@@ -391,6 +407,20 @@ theorem paperRotheStepProducer_all_of_greenInput
     ∀ u : ℝ → ℝ, PaperRotheStepProducer p c lam M κ Λ u :=
   fun u => paperRotheStepProducer_of_greenInput (hinput u)
 
+/-- `PaperRotheStepProducer` from the explicitly named shared parabolic floor. -/
+theorem paperRotheStepProducer_of_parabolicFloor
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (hin : PaperPerStepParabolicFloor p c lam M κ Λ u) :
+    PaperRotheStepProducer p c lam M κ Λ u :=
+  paperRotheStepProducer_of_greenInput hin
+
+/-- All paper-step producers from the explicitly named shared parabolic floor. -/
+theorem paperRotheStepProducer_all_of_parabolicFloor
+    {p : CMParams} {c lam M κ Λ : ℝ}
+    (hfloor : ∀ u : ℝ → ℝ, PaperPerStepParabolicFloor p c lam M κ Λ u) :
+    ∀ u : ℝ → ℝ, PaperRotheStepProducer p c lam M κ Λ u :=
+  fun u => paperRotheStepProducer_of_parabolicFloor (hfloor u)
+
 section AxiomAudit
 
 #print axioms paperStepNonlinearity
@@ -407,6 +437,8 @@ section AxiomAudit
 #print axioms paperStep_ge_lower
 #print axioms paperRotheStepProducer_of_greenInput
 #print axioms paperRotheStepProducer_all_of_greenInput
+#print axioms paperRotheStepProducer_of_parabolicFloor
+#print axioms paperRotheStepProducer_all_of_parabolicFloor
 
 end AxiomAudit
 
