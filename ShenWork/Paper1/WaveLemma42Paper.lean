@@ -1,6 +1,7 @@
 import ShenWork.Paper1.WaveLowerBarrierData
 import ShenWork.Paper1.WaveRotheConcrete
 import ShenWork.Paper1.WavePaperRotheProducer
+import ShenWork.Paper1.WavePaperRouteA
 
 open Filter Topology Set Real MeasureTheory intervalIntegral
 
@@ -1771,6 +1772,60 @@ def paperLowerRawStepProducer_of_core
   producer := paperRotheStepProducer_of_greenCore h.green
   lowerRawAux := h.lowerRawAux
 
+/-- Route-A version of the lower-raw step producer core.  The Rothe producer is
+the one assembled from `PaperGreenStepInputRouteACore`; the raw lower-barrier
+auxiliary data is stated against that exact paper Rothe sequence. -/
+structure PaperLowerRawStepProducerRouteACore
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (u : ℝ → ℝ) : Type where
+  green : PaperGreenStepInputRouteACore p c lam M κ Λ u
+  lowerRawAux :
+    InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+      ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
+        rotheSeqOfPaper p c lam M κ Λ u
+          (paperRotheStepProducer_of_routeA_greenCore green) hκ hM k x) →
+        ∃ C_chem La Lb,
+          PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+            (rotheSeqOfPaper p c lam M κ Λ u
+              (paperRotheStepProducer_of_routeA_greenCore green) hκ hM (k + 1))
+
+/-- Fill the live lower-raw producer from the Route-A per-step Green core and
+the lower-raw auxiliary payload for the same induced paper Rothe sequence. -/
+def paperLowerRawStepProducer_of_routeA
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ} {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    {u : ℝ → ℝ}
+    (green : PaperGreenStepInputRouteACore p c lam M κ Λ u)
+    (lowerRawAux :
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+        ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
+          rotheSeqOfPaper p c lam M κ Λ u
+            (paperRotheStepProducer_of_routeA_greenCore green) hκ hM k x) →
+          ∃ C_chem La Lb,
+            PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+              (rotheSeqOfPaper p c lam M κ Λ u
+                (paperRotheStepProducer_of_routeA_greenCore green) hκ hM (k + 1))) :
+    PaperLowerRawStepProducer p c lam M κ κtilde D Λ hκ hM u where
+  producer := paperRotheStepProducer_of_routeA_greenCore green
+  lowerRawAux := lowerRawAux
+
+/-- Core-packaged form of `paperLowerRawStepProducer_of_routeA`. -/
+def paperLowerRawStepProducer_of_routeA_core
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ} {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    {u : ℝ → ℝ}
+    (h : PaperLowerRawStepProducerRouteACore p c lam M κ κtilde D Λ hκ hM u) :
+    PaperLowerRawStepProducer p c lam M κ κtilde D Λ hκ hM u :=
+  paperLowerRawStepProducer_of_routeA h.green h.lowerRawAux
+
+/-- All live lower-raw producers from Route-A per-step Green cores. -/
+theorem paperLowerRawStepProducer_all_of_routeA
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ} {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (hinput :
+      ∀ u : ℝ → ℝ,
+        PaperLowerRawStepProducerRouteACore p c lam M κ κtilde D Λ hκ hM u) :
+    ∀ u : ℝ → ℝ,
+      PaperLowerRawStepProducer p c lam M κ κtilde D Λ hκ hM u :=
+  fun u => paperLowerRawStepProducer_of_routeA_core (hinput u)
+
 /-- The paper Rothe parabolic floor: strengthened one-step production, the
 base-barrier Lipschitz bound, fixed-step dependence, and uniform tail. -/
 structure PaperLowerRawParabolicFloor
@@ -1811,6 +1866,32 @@ def paperLowerRawParabolicFloor_of_core
     (h : PaperLowerRawParabolicFloorCore p c lam M κ κtilde D Λ hκ hM) :
     PaperLowerRawParabolicFloor p c lam M κ κtilde D Λ hκ hM where
   producer := fun u => paperLowerRawStepProducer_of_core (h.producer u)
+  barLip := h.barLip
+  step := h.step
+  tail := h.tail
+
+/-- Route-A paper Rothe parabolic floor after the per-step Route-A producer has
+been paired with the lower-raw auxiliary data. -/
+structure PaperLowerRawParabolicFloorRouteACore
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : Type where
+  producer :
+    ∀ u, PaperLowerRawStepProducerRouteACore p c lam M κ κtilde D Λ hκ hM u
+  barLip :
+    ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|
+  step :
+    PaperRotheSeqStepDependence p c lam M κ Λ
+      (fun u => paperRotheStepProducer_of_routeA_greenCore ((producer u).green)) hκ hM
+  tail :
+    PaperRotheTailUniform p c lam M κ Λ
+      (fun u => paperRotheStepProducer_of_routeA_greenCore ((producer u).green)) hκ hM
+
+/-- Fill the live paper parabolic floor from the Route-A lower-raw core. -/
+def paperLowerRawParabolicFloor_of_routeA_core
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ} {hκ : 0 ≤ κ} {hM : 0 ≤ M}
+    (h : PaperLowerRawParabolicFloorRouteACore p c lam M κ κtilde D Λ hκ hM) :
+    PaperLowerRawParabolicFloor p c lam M κ κtilde D Λ hκ hM where
+  producer := fun u => paperLowerRawStepProducer_of_routeA_core (h.producer u)
   barLip := h.barLip
   step := h.step
   tail := h.tail
