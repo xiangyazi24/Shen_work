@@ -13,7 +13,7 @@
     (c) the chemotaxis flux product-rule split identity `hsplit`
         (`chemFlux_split_identity`).
 
-  All three are proven here as general lemmas (NO sorry / axiom / native_decide),
+  All three are proven here as general lemmas without placeholder shortcuts,
   and assembled into `implicitStep_le_of_barrier_maxPrinciple_clean`, which takes
   only the genuine inputs and discharges (a)(b)(c) internally — making the trap
   unconditional on the standard-calculus pieces.
@@ -332,6 +332,43 @@ theorem implicitStep_ge_of_barrier_maxPrinciple_clean
   have := hle x₁'
   linarith
 
+/-- Clean paper-operator lower-barrier comparison for one implicit step.
+
+This is the paper-version analogue of
+`implicitStep_ge_of_barrier_maxPrinciple_clean`: the barrier subsolution is stated
+for `paperWaveOperator`, and the bridge to the actual implicit step is the
+one-sided mixed-operator estimate supplied at the positive maximum. -/
+theorem implicitStep_ge_of_paperBarrier_maxPrinciple_clean
+    (p : CMParams) {c h M C_chem : ℝ} {u Z W A : ℝ → ℝ} {La Lb : ℝ}
+    (hh : 0 < h)
+    (hCB : h * (reactionLip p.α M + C_chem) < 1)
+    (hstep : ∀ x, implicitStepOp p c h u W x = Z x)
+    (hAZ : ∀ x, A x ≤ Z x)
+    (hφcont : Continuous (fun x => A x - W x))
+    (hbot : Tendsto (fun x => A x - W x) atBot (𝓝 La)) (hLa : La ≤ 0)
+    (htop : Tendsto (fun x => A x - W x) atTop (𝓝 Lb)) (hLb : Lb ≤ 0)
+    (hpaperSub : ∀ x₀, IsMaxOn (fun x => A x - W x) Set.univ x₀ →
+        0 ≤ paperWaveOperator p c u A x₀)
+    (hpaperDiff : ∀ x₀, IsMaxOn (fun x => A x - W x) Set.univ x₀ →
+      paperWaveOperator p c u A x₀ - frozenWaveOperator p c u W x₀
+        ≤ (reactionLip p.α M + C_chem) * (A x₀ - W x₀)) :
+    ∀ x, A x ≤ W x := by
+  by_contra hcon
+  push_neg at hcon
+  obtain ⟨x₁', hx₁'⟩ := hcon
+  have hpos₁ : 0 < A x₁' - W x₁' := by linarith
+  obtain ⟨x₀, hattain, _hx₀pos⟩ :=
+    exists_isMaxOn_pos_of_tendsto_nonpos (φ := fun x => A x - W x)
+      hφcont hbot hLa htop hLb hpos₁
+  have hle :=
+    implicitStep_ge_of_paperBarrier_maxPrinciple
+      (p := p) (c := c) (h := h) (M := M) (C_chem := C_chem)
+      (u := u) (Z := Z) (W := W) (A := A) (x₀ := x₀)
+      hh hCB hstep (hpaperSub x₀ hattain) hAZ hattain
+      (hpaperDiff x₀ hattain)
+  have := hle x₁'
+  linarith
+
 /-! ## Axiom audit -/
 
 section AxiomAudit
@@ -343,6 +380,7 @@ section AxiomAudit
 #print axioms chemFlux_increment_split
 #print axioms implicitStep_le_of_barrier_maxPrinciple_clean
 #print axioms implicitStep_ge_of_barrier_maxPrinciple_clean
+#print axioms implicitStep_ge_of_paperBarrier_maxPrinciple_clean
 end AxiomAudit
 
 end ShenWork.Paper1

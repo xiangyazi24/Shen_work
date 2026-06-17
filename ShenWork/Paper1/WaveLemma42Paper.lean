@@ -1,6 +1,6 @@
 import ShenWork.Paper1.WaveRotheSchauderData
 
-open Filter Topology Set Real
+open Filter Topology Set Real MeasureTheory intervalIntegral
 
 noncomputable section
 
@@ -38,6 +38,7 @@ structure PaperLemma42ExactConditions
   hM : 1 ≤ M
   hc : c = κ + κ⁻¹
   hχ : p.χ ≤ 0
+  hα_le : p.α ≤ p.m + p.γ - 1
 
 namespace PaperLemma42ExactConditions
 
@@ -46,7 +47,31 @@ theorem kappaTilde_le_one
     (h : PaperLemma42ExactConditions p c κ κtilde M) :
     κtilde ≤ 1 := by
   exact le_trans h.hrange
-    (le_trans (min_le_right _ _) (min_le_right _ _))
+      (le_trans (min_le_right _ _) (min_le_right _ _))
+
+theorem kappaTilde_le_one_plus_alpha_mul_kappa
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PaperLemma42ExactConditions p c κ κtilde M) :
+    κtilde ≤ (p.α + 1) * κ := by
+  have hle : κtilde ≤ (1 + p.α) * κ :=
+    le_trans h.hrange (min_le_left _ _)
+  convert hle using 1
+  ring
+
+theorem kappaTilde_le_m_gamma_mul_kappa
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PaperLemma42ExactConditions p c κ κtilde M) :
+    κtilde ≤ (p.m + p.γ) * κ := by
+  have hle := h.kappaTilde_le_one_plus_alpha_mul_kappa
+  have hcoef : p.α + 1 ≤ p.m + p.γ := by linarith [h.hα_le]
+  exact le_trans hle (mul_le_mul_of_nonneg_right hcoef h.hκ0.le)
+
+theorem kappaTilde_le_m_kappa_add_half
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (h : PaperLemma42ExactConditions p c κ κtilde M) :
+    κtilde ≤ p.m * κ + 1 / 2 := by
+  exact le_trans h.hrange
+    (le_trans (min_le_right _ _) (min_le_left _ _))
 
 theorem den_pos
     {p : CMParams} {c κ κtilde M : ℝ}
@@ -307,6 +332,1074 @@ def PaperLemma42KTermEstimate
             (lowerBarrierRaw κ κtilde D x) ^ (p.m + p.γ - 1) ≤
         paperSubsolutionK M κ κtilde p.m p.γ * Real.exp (-κtilde * x)
 
+def paperEllipticVxBound (M κ gamma x : ℝ) : ℝ :=
+  if gamma * κ = 1 then
+    (M ^ gamma + 3 / 4) * Real.exp (-(1 / 2) * x)
+  else if gamma * κ < 1 then
+    (1 / (1 - gamma ^ 2 * κ ^ 2)) * Real.exp (-(gamma * κ) * x)
+  else
+    ((M ^ gamma * (κ ^ 2 * gamma ^ 2 - 1) + gamma * κ) /
+        (κ ^ 2 * gamma ^ 2 - 1)) * Real.exp (-x)
+
+def PaperLemma42EllipticVxEstimate
+    (p : CMParams) (κ M : ℝ) : Prop :=
+  ∀ u : ℝ → ℝ, InWaveTrapSet κ M u →
+    ∀ x, 0 ≤ x →
+      |deriv (frozenElliptic p u) x| ≤
+        paperEllipticVxBound M κ p.γ x
+
+private lemma integral_exp_neg_mul_interval_eq
+    {δ x : ℝ} (hδ : 0 < δ) :
+    (∫ y in (0 : ℝ)..x, Real.exp (-δ * y)) =
+      (1 - Real.exp (-δ * x)) / δ := by
+  have hderiv :
+      ∀ y ∈ uIcc (0 : ℝ) x,
+        HasDerivAt (fun z : ℝ => -Real.exp (-δ * z) / δ)
+          (Real.exp (-δ * y)) y := by
+    intro y _hy
+    have hbase : HasDerivAt (fun z : ℝ => Real.exp (-δ * z))
+        ((-δ) * Real.exp (-δ * y)) y := by
+      simpa [mul_comm, mul_left_comm, mul_assoc] using
+        (((hasDerivAt_const y (-δ)).mul (hasDerivAt_id y)).exp)
+    have hneg : HasDerivAt (fun z : ℝ => -Real.exp (-δ * z))
+        (δ * Real.exp (-δ * y)) y := by
+      simpa using hbase.neg
+    have hdiv := hneg.div_const δ
+    simpa [ne_of_gt hδ, div_eq_mul_inv, mul_comm, mul_left_comm, mul_assoc]
+      using hdiv
+  have hint :
+      IntervalIntegrable (fun y : ℝ => Real.exp (-δ * y)) volume
+        (0 : ℝ) x :=
+    (Real.continuous_exp.comp (continuous_const.mul continuous_id)).intervalIntegrable _ _
+  have h := intervalIntegral.integral_eq_sub_of_hasDerivAt hderiv hint
+  rw [h]
+  field_simp [ne_of_gt hδ]
+  norm_num
+  ring
+
+private lemma critical_linear_exp_bound {x : ℝ} (hx : 0 ≤ x) :
+    1 / 2 * x * Real.exp (-x) + 1 / 4 * Real.exp (-x) ≤
+      3 / 4 * Real.exp (-(1 / 2) * x) := by
+  set t := x / 2 with ht
+  have ht_nonneg : 0 ≤ t := by dsimp [t]; linarith
+  have hx_eq : x = 2 * t := by dsimp [t]; ring
+  have hexp1 : (2 : ℝ) ≤ Real.exp 1 := by
+    have h := add_one_le_exp (1 : ℝ)
+    norm_num at h
+    exact h
+  have htwo_exp_neg_one : 2 * Real.exp (-1) ≤ (1 : ℝ) := by
+    calc
+      2 * Real.exp (-1) ≤ Real.exp 1 * Real.exp (-1) :=
+        mul_le_mul_of_nonneg_right hexp1 (Real.exp_pos _).le
+      _ = 1 := by
+        rw [← Real.exp_add]
+        norm_num
+  have ht_exp_half : t * Real.exp (-t) ≤ (1 / 2 : ℝ) := by
+    have hmain := Real.mul_exp_neg_le_exp_neg_one t
+    nlinarith
+  have hexp_order : Real.exp (-x) ≤ Real.exp (-t) := by
+    apply Real.exp_le_exp.mpr
+    nlinarith
+  have hxterm :
+      1 / 2 * x * Real.exp (-x) ≤ 1 / 2 * Real.exp (-t) := by
+    have hfactor : t * Real.exp (-x) ≤ 1 / 2 * Real.exp (-t) := by
+      have hrewrite : Real.exp (-x) = Real.exp (-t) * Real.exp (-t) := by
+        rw [hx_eq]
+        rw [show -(2 * t) = -t + -t by ring, Real.exp_add]
+      rw [hrewrite]
+      calc
+        t * (Real.exp (-t) * Real.exp (-t)) =
+            (t * Real.exp (-t)) * Real.exp (-t) := by ring
+        _ ≤ (1 / 2) * Real.exp (-t) :=
+            mul_le_mul_of_nonneg_right ht_exp_half (Real.exp_pos _).le
+    calc
+      1 / 2 * x * Real.exp (-x) = t * Real.exp (-x) := by
+        rw [hx_eq]
+        ring
+      _ ≤ 1 / 2 * Real.exp (-t) := hfactor
+  have hconst :
+      1 / 4 * Real.exp (-x) ≤ 1 / 4 * Real.exp (-t) :=
+    mul_le_mul_of_nonneg_left hexp_order (by norm_num)
+  have hsum :
+      1 / 2 * x * Real.exp (-x) + 1 / 4 * Real.exp (-x) ≤
+        3 / 4 * Real.exp (-t) := by
+    linarith
+  convert hsum using 1
+  congr 1
+  dsimp [t]
+  ring
+
+private theorem setIntegral_Ioi_exp_le_of_exp_le_general
+    {a : ℝ} {f : ℝ → ℝ}
+    (ha : 0 < a)
+    (hf_exp : ∀ y, f y ≤ Real.exp (-a * y))
+    (x : ℝ)
+    (hint : IntegrableOn (fun y => Real.exp (-1 * y) * f y) (Set.Ioi x)) :
+    ∫ y in Set.Ioi x, Real.exp (-1 * y) * f y ≤
+      Real.exp (-(1 + a) * x) / (1 + a) := by
+  have h1pa : 0 < 1 + a := by linarith
+  have hneg : -(1 + a) < (0 : ℝ) := by linarith
+  have hint_exp :
+      IntegrableOn (fun y => Real.exp (-(1 + a) * y)) (Set.Ioi x) :=
+    integrableOn_exp_mul_Ioi hneg x
+  calc
+    ∫ y in Set.Ioi x, Real.exp (-1 * y) * f y
+        ≤ ∫ y in Set.Ioi x, Real.exp (-(1 + a) * y) := by
+          apply MeasureTheory.setIntegral_mono hint hint_exp
+          intro y
+          calc
+            Real.exp (-1 * y) * f y
+                ≤ Real.exp (-1 * y) * Real.exp (-a * y) :=
+              mul_le_mul_of_nonneg_left (hf_exp y) (Real.exp_nonneg _)
+            _ = Real.exp (-(1 + a) * y) := by
+              rw [← Real.exp_add]
+              congr 1
+              ring
+    _ = -Real.exp (-(1 + a) * x) / (-(1 + a)) :=
+        integral_exp_mul_Ioi hneg x
+    _ = Real.exp (-(1 + a) * x) / (1 + a) := by
+        field_simp
+
+private lemma supercritical_coeff_bound {a B : ℝ}
+    (ha : 1 < a) (hB : 0 ≤ B) :
+    1 / 2 * (B + 1 / (a - 1)) + 1 / 2 * (1 / (1 + a)) ≤
+      B + a / (a ^ 2 - 1) := by
+  have hm : 0 < a - 1 := by linarith
+  have hp : 0 < 1 + a := by linarith
+  have hden : 0 < a ^ 2 - 1 := by nlinarith
+  have hfrac :
+      1 / 2 * (1 / (a - 1)) + 1 / 2 * (1 / (1 + a)) =
+        a / (a ^ 2 - 1) := by
+    field_simp [ne_of_gt hm, ne_of_gt hp, ne_of_gt hden]
+    ring
+  calc
+    1 / 2 * (B + 1 / (a - 1)) + 1 / 2 * (1 / (1 + a))
+        = 1 / 2 * B +
+            (1 / 2 * (1 / (a - 1)) + 1 / 2 * (1 / (1 + a))) := by
+          ring
+    _ = 1 / 2 * B + a / (a ^ 2 - 1) := by rw [hfrac]
+    _ ≤ B + a / (a ^ 2 - 1) := by linarith
+
+private theorem frozenElliptic_le_paperVxBound_subcritical
+    {p : CMParams} {κ M : ℝ} {u : ℝ → ℝ}
+    (hκ : 0 < κ) (hsub : p.γ * κ < 1)
+    (hu : InWaveTrapSet κ M u) (x : ℝ) :
+    frozenElliptic p u x ≤
+      (1 / (1 - p.γ ^ 2 * κ ^ 2)) *
+        Real.exp (-(p.γ * κ) * x) := by
+  have hγ_nonneg : 0 ≤ p.γ := by linarith [p.hγ]
+  have hγ_pos : 0 < p.γ := by linarith [p.hγ]
+  have hγκ_pos : 0 < p.γ * κ := mul_pos hγ_pos hκ
+  have hf_cub := rpow_cunif_bdd_of_nonneg p hu.cunif_bdd hu.nonneg
+  rcases hf_cub.2 with ⟨B, hB⟩
+  have hB_nonneg : 0 ≤ B :=
+    le_trans (abs_nonneg ((u 0) ^ p.γ)) (hB 0)
+  have hiu :
+      Integrable
+        (fun y => Real.exp (-Real.sqrt (1 : ℝ) * |x - y|) *
+          (u y) ^ p.γ) := by
+    exact psi_kernel_mul_bounded_integrable
+      (by norm_num : (0 : ℝ) < 1) hB_nonneg hB x
+      hf_cub.1.aestronglyMeasurable
+  have huexp :
+      ∀ y, (u y) ^ p.γ ≤ Real.exp (-(p.γ * κ) * y) := by
+    intro y
+    calc
+      (u y) ^ p.γ ≤ (Real.exp (-κ * y)) ^ p.γ :=
+        Real.rpow_le_rpow (hu.nonneg y) (hu.le_exp y) hγ_nonneg
+      _ = Real.exp (-(p.γ * κ) * y) := by
+        rw [← Real.exp_mul]
+        congr 1
+        ring
+  have hpsi :=
+    Psi_le_exp_of_le hγκ_pos hsub huexp x hiu
+  unfold frozenElliptic
+  refine le_trans hpsi ?_
+  have hden_eq : 1 - (p.γ * κ) ^ 2 = 1 - p.γ ^ 2 * κ ^ 2 := by ring
+  rw [hden_eq]
+
+private theorem frozenElliptic_le_paperVxBound_critical
+    {p : CMParams} {κ M : ℝ} {u : ℝ → ℝ} {x : ℝ}
+    (hcrit : p.γ * κ = 1) (hM : 1 ≤ M)
+    (hu : InWaveTrapSet κ M u) (hx : 0 ≤ x) :
+    frozenElliptic p u x ≤
+      (M ^ p.γ + 3 / 4) * Real.exp (-(1 / 2) * x) := by
+  let f : ℝ → ℝ := fun y => (u y) ^ p.γ
+  have hγ_nonneg : 0 ≤ p.γ := by linarith [p.hγ]
+  have hMγ_nonneg : 0 ≤ M ^ p.γ :=
+    Real.rpow_nonneg (le_trans (by norm_num : (0 : ℝ) ≤ 1) hM) p.γ
+  have hf_nonneg : ∀ y, 0 ≤ f y := by
+    intro y
+    exact Real.rpow_nonneg (hu.nonneg y) p.γ
+  have hfM : ∀ y, f y ≤ M ^ p.γ := by
+    intro y
+    dsimp [f]
+    exact hu.rpow_le_M hγ_nonneg y
+  have hfexp : ∀ y, f y ≤ Real.exp (-(p.γ * κ) * y) := by
+    intro y
+    dsimp [f]
+    calc
+      (u y) ^ p.γ ≤ (Real.exp (-κ * y)) ^ p.γ :=
+        Real.rpow_le_rpow (hu.nonneg y) (hu.le_exp y) hγ_nonneg
+      _ = Real.exp (-(p.γ * κ) * y) := by
+        rw [← Real.exp_mul]
+        congr 1
+        ring
+  have hf_cub := rpow_cunif_bdd_of_nonneg p hu.cunif_bdd hu.nonneg
+  have hL_int : ∀ t : ℝ,
+      IntegrableOn (fun y => Real.exp (1 * y) * f y) (Set.Iic t) := by
+    intro t
+    have hbase : IntegrableOn (fun y : ℝ => Real.exp (1 * y)) (Set.Iic t) :=
+      integrableOn_exp_mul_Iic (by norm_num : (0 : ℝ) < 1) t
+    have hdom : IntegrableOn
+        (fun y : ℝ => Real.exp (1 * y) * M ^ p.γ) (Set.Iic t) := by
+      simpa [mul_comm, mul_left_comm, mul_assoc] using
+        hbase.mul_const (M ^ p.γ)
+    refine hdom.mono' ?_ (Filter.Eventually.of_forall fun y => ?_)
+    · exact ((Real.continuous_exp.comp (continuous_const.mul continuous_id)).mul
+        hf_cub.1).aestronglyMeasurable
+    · rw [Real.norm_eq_abs]
+      rw [abs_of_nonneg (mul_nonneg (Real.exp_nonneg _) (hf_nonneg y))]
+      exact mul_le_mul_of_nonneg_left (hfM y) (Real.exp_nonneg _)
+  have hR_int :
+      IntegrableOn (fun y => Real.exp (-1 * y) * f y) (Set.Ioi x) := by
+    have hdom :
+        IntegrableOn (fun y : ℝ => Real.exp (-(1 + p.γ * κ) * y))
+          (Set.Ioi x) :=
+      integrableOn_exp_mul_Ioi (by linarith [hcrit] : -(1 + p.γ * κ) < (0 : ℝ)) x
+    refine hdom.mono' ?_ (Filter.Eventually.of_forall fun y => ?_)
+    · exact ((Real.continuous_exp.comp (continuous_const.mul continuous_id)).mul
+        hf_cub.1).aestronglyMeasurable
+    · rw [Real.norm_eq_abs]
+      rw [abs_of_nonneg (mul_nonneg (Real.exp_nonneg _) (hf_nonneg y))]
+      calc
+        Real.exp (-1 * y) * f y
+            ≤ Real.exp (-1 * y) * Real.exp (-(p.γ * κ) * y) :=
+          mul_le_mul_of_nonneg_left (hfexp y) (Real.exp_nonneg _)
+        _ = Real.exp (-(1 + p.γ * κ) * y) := by
+          rw [← Real.exp_add]
+          congr 1
+          ring
+  set L := ∫ y in Set.Iic x, Real.exp (1 * y) * f y
+  set L0 := ∫ y in Set.Iic (0 : ℝ), Real.exp (1 * y) * f y
+  set I := ∫ y in (0 : ℝ)..x, Real.exp (1 * y) * f y
+  set R := ∫ y in Set.Ioi x, Real.exp (-1 * y) * f y
+  have hL0_bound : L0 ≤ M ^ p.γ := by
+    dsimp [L0]
+    have hdom0 : IntegrableOn
+        (fun y : ℝ => Real.exp (1 * y) * M ^ p.γ) (Set.Iic (0 : ℝ)) := by
+      have hbase : IntegrableOn (fun y : ℝ => Real.exp (1 * y)) (Set.Iic (0 : ℝ)) :=
+        integrableOn_exp_mul_Iic (by norm_num : (0 : ℝ) < 1) 0
+      simpa [mul_comm, mul_left_comm, mul_assoc] using
+        hbase.mul_const (M ^ p.γ)
+    calc
+      ∫ y in Set.Iic (0 : ℝ), Real.exp (1 * y) * f y
+          ≤ ∫ y in Set.Iic (0 : ℝ), Real.exp (1 * y) * M ^ p.γ := by
+            apply MeasureTheory.setIntegral_mono (hL_int 0) hdom0
+            intro y
+            exact mul_le_mul_of_nonneg_left (hfM y) (Real.exp_nonneg _)
+      _ = M ^ p.γ := by
+        rw [MeasureTheory.integral_mul_const]
+        rw [integral_exp_mul_Iic (by norm_num : (0 : ℝ) < 1) 0]
+        norm_num
+  have hcont_I : Continuous (fun y => Real.exp (1 * y) * f y) :=
+    (Real.continuous_exp.comp (continuous_const.mul continuous_id)).mul hf_cub.1
+  have hI_int :
+      IntervalIntegrable (fun y => Real.exp (1 * y) * f y) volume
+        (0 : ℝ) x :=
+    hcont_I.intervalIntegrable _ _
+  have hI_const :
+      IntervalIntegrable (fun _ : ℝ => (1 : ℝ)) volume (0 : ℝ) x :=
+    continuous_const.intervalIntegrable _ _
+  have hI_bound : I ≤ x := by
+    dsimp [I]
+    calc
+      ∫ y in (0 : ℝ)..x, Real.exp (1 * y) * f y
+          ≤ ∫ _y in (0 : ℝ)..x, (1 : ℝ) := by
+            apply intervalIntegral.integral_mono_on hx hI_int hI_const
+            intro y _hy
+            calc
+              Real.exp (1 * y) * f y
+                  ≤ Real.exp (1 * y) * Real.exp (-(p.γ * κ) * y) :=
+                mul_le_mul_of_nonneg_left (hfexp y) (Real.exp_nonneg _)
+              _ = 1 := by
+                rw [hcrit]
+                rw [← Real.exp_add]
+                norm_num
+      _ = x := by
+        rw [intervalIntegral.integral_const]
+        simp
+  have hsplit := integral_Iic_sub_Iic
+    (a := (0 : ℝ)) (b := x) (f := fun y => Real.exp (1 * y) * f y)
+    (μ := volume) (hL_int 0) (hL_int x)
+  have hL_eq : L = L0 + I := by
+    dsimp [L, L0, I] at hsplit ⊢
+    linarith
+  have hL_bound : L ≤ M ^ p.γ + x := by
+    rw [hL_eq]
+    exact add_le_add hL0_bound hI_bound
+  have hR_bound :
+      R ≤ Real.exp (-2 * x) / 2 := by
+    have h :=
+      setIntegral_Ioi_exp_le_of_exp_le_general
+        (by linarith [hcrit] : 0 < p.γ * κ) hfexp x hR_int
+    dsimp [R] at h ⊢
+    have hden : 1 + p.γ * κ = (2 : ℝ) := by linarith [hcrit]
+    rw [hden] at h
+    convert h using 1
+  have hV :
+      frozenElliptic p u x =
+        1 / 2 * (Real.exp (-1 * x) * L + Real.exp (1 * x) * R) := by
+    unfold frozenElliptic
+    dsimp [L, R, f]
+    exact Psi_kernel_splitting hf_cub hf_nonneg x
+  have hLterm :
+      Real.exp (-1 * x) * L ≤ Real.exp (-x) * (M ^ p.γ + x) := by
+    convert mul_le_mul_of_nonneg_left hL_bound (Real.exp_nonneg _) using 1
+    ring
+  have hRterm :
+      Real.exp (1 * x) * R ≤ Real.exp (-x) / 2 := by
+    calc
+      Real.exp (1 * x) * R
+          ≤ Real.exp (1 * x) * (Real.exp (-2 * x) / 2) :=
+        mul_le_mul_of_nonneg_left hR_bound (Real.exp_nonneg _)
+      _ = Real.exp (-x) / 2 := by
+        calc
+          Real.exp (1 * x) * (Real.exp (-2 * x) / 2) =
+              (Real.exp (1 * x) * Real.exp (-2 * x)) / 2 := by ring
+          _ = Real.exp (-x) / 2 := by
+            congr 1
+            rw [← Real.exp_add]
+            congr 1
+            ring
+  have hpre :
+      frozenElliptic p u x ≤
+        1 / 2 * (Real.exp (-x) * (M ^ p.γ + x) + Real.exp (-x) / 2) := by
+    rw [hV]
+    exact mul_le_mul_of_nonneg_left (add_le_add hLterm hRterm) (by norm_num)
+  have hMterm :
+      1 / 2 * (M ^ p.γ) * Real.exp (-x) ≤
+        (M ^ p.γ) * Real.exp (-(1 / 2) * x) := by
+    have hexp_le : Real.exp (-x) ≤ Real.exp (-(1 / 2) * x) := by
+      apply Real.exp_le_exp.mpr
+      nlinarith
+    have hnonneg : 0 ≤ (M ^ p.γ) * Real.exp (-x) :=
+      mul_nonneg hMγ_nonneg (Real.exp_nonneg _)
+    calc
+      1 / 2 * (M ^ p.γ) * Real.exp (-x)
+          = (1 / 2) * ((M ^ p.γ) * Real.exp (-x)) := by ring
+      _ ≤ 1 * ((M ^ p.γ) * Real.exp (-x)) :=
+        mul_le_mul_of_nonneg_right (by norm_num) hnonneg
+      _ = (M ^ p.γ) * Real.exp (-x) := by ring
+      _ ≤ (M ^ p.γ) * Real.exp (-(1 / 2) * x) :=
+        mul_le_mul_of_nonneg_left hexp_le hMγ_nonneg
+  calc
+    frozenElliptic p u x
+        ≤ 1 / 2 * (Real.exp (-x) * (M ^ p.γ + x) + Real.exp (-x) / 2) :=
+      hpre
+    _ = 1 / 2 * (M ^ p.γ) * Real.exp (-x) +
+          (1 / 2 * x * Real.exp (-x) + 1 / 4 * Real.exp (-x)) := by
+      ring
+    _ ≤ (M ^ p.γ) * Real.exp (-(1 / 2) * x) +
+          3 / 4 * Real.exp (-(1 / 2) * x) :=
+      add_le_add hMterm (critical_linear_exp_bound hx)
+    _ = (M ^ p.γ + 3 / 4) * Real.exp (-(1 / 2) * x) := by
+      ring
+
+private theorem frozenElliptic_le_paperVxBound_supercritical
+    {p : CMParams} {κ M : ℝ} {u : ℝ → ℝ} {x : ℝ}
+    (hsuper : 1 < p.γ * κ) (hM : 1 ≤ M)
+    (hu : InWaveTrapSet κ M u) (hx : 0 ≤ x) :
+    frozenElliptic p u x ≤
+      ((M ^ p.γ * (κ ^ 2 * p.γ ^ 2 - 1) + p.γ * κ) /
+          (κ ^ 2 * p.γ ^ 2 - 1)) * Real.exp (-x) := by
+  let a : ℝ := p.γ * κ
+  let f : ℝ → ℝ := fun y => (u y) ^ p.γ
+  have ha : 1 < a := by dsimp [a]; exact hsuper
+  have ha_pos : 0 < a := lt_trans zero_lt_one ha
+  have hdelta_pos : 0 < a - 1 := by linarith
+  have hden_pos : 0 < a ^ 2 - 1 := by nlinarith
+  have hγ_nonneg : 0 ≤ p.γ := by linarith [p.hγ]
+  have hMγ_nonneg : 0 ≤ M ^ p.γ :=
+    Real.rpow_nonneg (le_trans (by norm_num : (0 : ℝ) ≤ 1) hM) p.γ
+  have hf_nonneg : ∀ y, 0 ≤ f y := by
+    intro y
+    exact Real.rpow_nonneg (hu.nonneg y) p.γ
+  have hfM : ∀ y, f y ≤ M ^ p.γ := by
+    intro y
+    dsimp [f]
+    exact hu.rpow_le_M hγ_nonneg y
+  have hfexp : ∀ y, f y ≤ Real.exp (-a * y) := by
+    intro y
+    dsimp [f, a]
+    calc
+      (u y) ^ p.γ ≤ (Real.exp (-κ * y)) ^ p.γ :=
+        Real.rpow_le_rpow (hu.nonneg y) (hu.le_exp y) hγ_nonneg
+      _ = Real.exp (-(p.γ * κ) * y) := by
+        rw [← Real.exp_mul]
+        congr 1
+        ring
+  have hf_cub := rpow_cunif_bdd_of_nonneg p hu.cunif_bdd hu.nonneg
+  have hL_int : ∀ t : ℝ,
+      IntegrableOn (fun y => Real.exp (1 * y) * f y) (Set.Iic t) := by
+    intro t
+    have hbase : IntegrableOn (fun y : ℝ => Real.exp (1 * y)) (Set.Iic t) :=
+      integrableOn_exp_mul_Iic (by norm_num : (0 : ℝ) < 1) t
+    have hdom : IntegrableOn
+        (fun y : ℝ => Real.exp (1 * y) * M ^ p.γ) (Set.Iic t) := by
+      simpa [mul_comm, mul_left_comm, mul_assoc] using
+        hbase.mul_const (M ^ p.γ)
+    refine hdom.mono' ?_ (Filter.Eventually.of_forall fun y => ?_)
+    · exact ((Real.continuous_exp.comp (continuous_const.mul continuous_id)).mul
+        hf_cub.1).aestronglyMeasurable
+    · rw [Real.norm_eq_abs]
+      rw [abs_of_nonneg (mul_nonneg (Real.exp_nonneg _) (hf_nonneg y))]
+      exact mul_le_mul_of_nonneg_left (hfM y) (Real.exp_nonneg _)
+  have hR_int :
+      IntegrableOn (fun y => Real.exp (-1 * y) * f y) (Set.Ioi x) := by
+    have hdom :
+        IntegrableOn (fun y : ℝ => Real.exp (-(1 + a) * y)) (Set.Ioi x) :=
+      integrableOn_exp_mul_Ioi (by linarith : -(1 + a) < (0 : ℝ)) x
+    refine hdom.mono' ?_ (Filter.Eventually.of_forall fun y => ?_)
+    · exact ((Real.continuous_exp.comp (continuous_const.mul continuous_id)).mul
+        hf_cub.1).aestronglyMeasurable
+    · rw [Real.norm_eq_abs]
+      rw [abs_of_nonneg (mul_nonneg (Real.exp_nonneg _) (hf_nonneg y))]
+      calc
+        Real.exp (-1 * y) * f y
+            ≤ Real.exp (-1 * y) * Real.exp (-a * y) :=
+          mul_le_mul_of_nonneg_left (hfexp y) (Real.exp_nonneg _)
+        _ = Real.exp (-(1 + a) * y) := by
+          rw [← Real.exp_add]
+          congr 1
+          ring
+  set L := ∫ y in Set.Iic x, Real.exp (1 * y) * f y
+  set L0 := ∫ y in Set.Iic (0 : ℝ), Real.exp (1 * y) * f y
+  set I := ∫ y in (0 : ℝ)..x, Real.exp (1 * y) * f y
+  set R := ∫ y in Set.Ioi x, Real.exp (-1 * y) * f y
+  have hL0_bound : L0 ≤ M ^ p.γ := by
+    dsimp [L0]
+    have hdom0 : IntegrableOn
+        (fun y : ℝ => Real.exp (1 * y) * M ^ p.γ) (Set.Iic (0 : ℝ)) := by
+      have hbase : IntegrableOn (fun y : ℝ => Real.exp (1 * y)) (Set.Iic (0 : ℝ)) :=
+        integrableOn_exp_mul_Iic (by norm_num : (0 : ℝ) < 1) 0
+      simpa [mul_comm, mul_left_comm, mul_assoc] using
+        hbase.mul_const (M ^ p.γ)
+    calc
+      ∫ y in Set.Iic (0 : ℝ), Real.exp (1 * y) * f y
+          ≤ ∫ y in Set.Iic (0 : ℝ), Real.exp (1 * y) * M ^ p.γ := by
+            apply MeasureTheory.setIntegral_mono (hL_int 0) hdom0
+            intro y
+            exact mul_le_mul_of_nonneg_left (hfM y) (Real.exp_nonneg _)
+      _ = M ^ p.γ := by
+        rw [MeasureTheory.integral_mul_const]
+        rw [integral_exp_mul_Iic (by norm_num : (0 : ℝ) < 1) 0]
+        norm_num
+  have hcont_I : Continuous (fun y => Real.exp (1 * y) * f y) :=
+    (Real.continuous_exp.comp (continuous_const.mul continuous_id)).mul hf_cub.1
+  have hI_int :
+      IntervalIntegrable (fun y => Real.exp (1 * y) * f y) volume
+        (0 : ℝ) x :=
+    hcont_I.intervalIntegrable _ _
+  have hI_exp_int :
+      IntervalIntegrable (fun y : ℝ => Real.exp (-(a - 1) * y)) volume
+        (0 : ℝ) x :=
+    (Real.continuous_exp.comp (continuous_const.mul continuous_id)).intervalIntegrable _ _
+  have hI_bound : I ≤ 1 / (a - 1) := by
+    dsimp [I]
+    have hmono :
+        ∫ y in (0 : ℝ)..x, Real.exp (1 * y) * f y
+            ≤ ∫ y in (0 : ℝ)..x, Real.exp (-(a - 1) * y) := by
+      apply intervalIntegral.integral_mono_on hx hI_int hI_exp_int
+      intro y _hy
+      calc
+        Real.exp (1 * y) * f y
+            ≤ Real.exp (1 * y) * Real.exp (-a * y) :=
+          mul_le_mul_of_nonneg_left (hfexp y) (Real.exp_nonneg _)
+        _ = Real.exp (-(a - 1) * y) := by
+          rw [← Real.exp_add]
+          congr 1
+          ring
+    calc
+      ∫ y in (0 : ℝ)..x, Real.exp (1 * y) * f y
+          ≤ ∫ y in (0 : ℝ)..x, Real.exp (-(a - 1) * y) := hmono
+      _ = (1 - Real.exp (-(a - 1) * x)) / (a - 1) :=
+        integral_exp_neg_mul_interval_eq hdelta_pos
+      _ ≤ 1 / (a - 1) := by
+        have hnum : 1 - Real.exp (-(a - 1) * x) ≤ (1 : ℝ) := by
+          linarith [Real.exp_nonneg (-(a - 1) * x)]
+        exact div_le_div_of_nonneg_right hnum hdelta_pos.le
+  have hsplit := integral_Iic_sub_Iic
+    (a := (0 : ℝ)) (b := x) (f := fun y => Real.exp (1 * y) * f y)
+    (μ := volume) (hL_int 0) (hL_int x)
+  have hL_eq : L = L0 + I := by
+    dsimp [L, L0, I] at hsplit ⊢
+    linarith
+  have hL_bound : L ≤ M ^ p.γ + 1 / (a - 1) := by
+    rw [hL_eq]
+    exact add_le_add hL0_bound hI_bound
+  have hR_bound :
+      R ≤ Real.exp (-(1 + a) * x) / (1 + a) := by
+    dsimp [R]
+    exact setIntegral_Ioi_exp_le_of_exp_le_general ha_pos hfexp x hR_int
+  have hV :
+      frozenElliptic p u x =
+        1 / 2 * (Real.exp (-1 * x) * L + Real.exp (1 * x) * R) := by
+    unfold frozenElliptic
+    dsimp [L, R, f]
+    exact Psi_kernel_splitting hf_cub hf_nonneg x
+  have hLterm :
+      Real.exp (-1 * x) * L ≤
+        Real.exp (-x) * (M ^ p.γ + 1 / (a - 1)) := by
+    convert mul_le_mul_of_nonneg_left hL_bound (Real.exp_nonneg _) using 1
+    ring
+  have hRterm :
+      Real.exp (1 * x) * R ≤ Real.exp (-x) * (1 / (1 + a)) := by
+    calc
+      Real.exp (1 * x) * R
+          ≤ Real.exp (1 * x) * (Real.exp (-(1 + a) * x) / (1 + a)) :=
+        mul_le_mul_of_nonneg_left hR_bound (Real.exp_nonneg _)
+      _ = Real.exp (-a * x) * (1 / (1 + a)) := by
+        calc
+          Real.exp (1 * x) * (Real.exp (-(1 + a) * x) / (1 + a)) =
+              (Real.exp (1 * x) * Real.exp (-(1 + a) * x)) *
+                (1 / (1 + a)) := by ring
+          _ = Real.exp (-a * x) * (1 / (1 + a)) := by
+            congr 1
+            rw [← Real.exp_add]
+            congr 1
+            ring
+      _ ≤ Real.exp (-x) * (1 / (1 + a)) := by
+        have hexp_le : Real.exp (-a * x) ≤ Real.exp (-x) := by
+          apply Real.exp_le_exp.mpr
+          nlinarith
+        exact mul_le_mul_of_nonneg_right hexp_le
+          (by positivity : 0 ≤ (1 / (1 + a)))
+  have hpre :
+      frozenElliptic p u x ≤
+        1 / 2 * (Real.exp (-x) * (M ^ p.γ + 1 / (a - 1)) +
+          Real.exp (-x) * (1 / (1 + a))) := by
+    rw [hV]
+    exact mul_le_mul_of_nonneg_left (add_le_add hLterm hRterm) (by norm_num)
+  have hcoeff :=
+    supercritical_coeff_bound (a := a) (B := M ^ p.γ) ha hMγ_nonneg
+  have hcoeff_exp :
+      (1 / 2 * (M ^ p.γ + 1 / (a - 1)) + 1 / 2 * (1 / (1 + a))) *
+          Real.exp (-x) ≤
+        (M ^ p.γ + a / (a ^ 2 - 1)) * Real.exp (-x) :=
+    mul_le_mul_of_nonneg_right hcoeff (Real.exp_nonneg _)
+  have htarget_coeff :
+      M ^ p.γ + a / (a ^ 2 - 1) =
+        (M ^ p.γ * (κ ^ 2 * p.γ ^ 2 - 1) + p.γ * κ) /
+          (κ ^ 2 * p.γ ^ 2 - 1) := by
+    have hden_eq : a ^ 2 - 1 = κ ^ 2 * p.γ ^ 2 - 1 := by
+      dsimp [a]
+      ring
+    rw [← hden_eq]
+    field_simp [ne_of_gt hden_pos]
+    ring
+  calc
+    frozenElliptic p u x
+        ≤ 1 / 2 * (Real.exp (-x) * (M ^ p.γ + 1 / (a - 1)) +
+          Real.exp (-x) * (1 / (1 + a))) := hpre
+    _ = (1 / 2 * (M ^ p.γ + 1 / (a - 1)) + 1 / 2 * (1 / (1 + a))) *
+          Real.exp (-x) := by
+      ring
+    _ ≤ (M ^ p.γ + a / (a ^ 2 - 1)) * Real.exp (-x) := hcoeff_exp
+    _ = ((M ^ p.γ * (κ ^ 2 * p.γ ^ 2 - 1) + p.γ * κ) /
+          (κ ^ 2 * p.γ ^ 2 - 1)) * Real.exp (-x) := by
+      rw [htarget_coeff]
+
+theorem PaperLemma42EllipticVxEstimate_of_conditions
+    {p : CMParams} {c κ κtilde M : ℝ}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M) :
+    PaperLemma42EllipticVxEstimate p κ M := by
+  intro u hu x hx
+  have hVx_abs := frozenElliptic_deriv_abs_le p hu.cunif_bdd hu.nonneg x
+  refine le_trans hVx_abs ?_
+  by_cases hcrit : p.γ * κ = 1
+  · rw [paperEllipticVxBound, if_pos hcrit]
+    exact frozenElliptic_le_paperVxBound_critical hcrit hcond.hM hu hx
+  · by_cases hsub : p.γ * κ < 1
+    · rw [paperEllipticVxBound, if_neg hcrit, if_pos hsub]
+      exact frozenElliptic_le_paperVxBound_subcritical hcond.hκ0 hsub hu x
+    · have hsuper : 1 < p.γ * κ :=
+        lt_of_le_of_ne (le_of_not_gt hsub) (Ne.symm hcrit)
+      rw [paperEllipticVxBound, if_neg hcrit, if_neg hsub]
+      exact frozenElliptic_le_paperVxBound_supercritical hsuper hcond.hM hu hx
+
+theorem PaperLemma42LogisticEstimate_of_conditions
+    {p : CMParams} {c κ κtilde M D : ℝ}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D) :
+    PaperLemma42LogisticEstimate p c κ κtilde M D := by
+  intro u hu x hx
+  have hgap_pos : 0 < κtilde - κ := sub_pos.mpr hcond.hgap
+  have hx_nonneg : 0 ≤ x := by
+    exact le_trans
+      (lowerBarrierXMinus_nonneg_of_one_le_D hgap_pos hD_ge_one) hx.le
+  have hD_pos : 0 < D := D_pos_of_paperDMin_lt hcond hD
+  have hW_pos :
+      0 < lowerBarrierRaw κ κtilde D x :=
+    lowerBarrierRaw_pos_of_xminus_lt hgap_pos hD_pos hx
+  have hW_le_exp :
+      lowerBarrierRaw κ κtilde D x ≤ Real.exp (-κ * x) :=
+    lowerBarrierRaw_le_exp hD_pos.le
+  have hα1_pos : 0 < p.α + 1 := by linarith [p.hα]
+  have hpow :
+      lowerBarrierRaw κ κtilde D x *
+          (lowerBarrierRaw κ κtilde D x) ^ p.α =
+        (lowerBarrierRaw κ κtilde D x) ^ (p.α + 1) := by
+    calc
+      lowerBarrierRaw κ κtilde D x *
+          (lowerBarrierRaw κ κtilde D x) ^ p.α =
+        (lowerBarrierRaw κ κtilde D x) ^ (1 : ℝ) *
+          (lowerBarrierRaw κ κtilde D x) ^ p.α := by
+          rw [Real.rpow_one]
+      _ = (lowerBarrierRaw κ κtilde D x) ^ ((1 : ℝ) + p.α) := by
+          rw [← Real.rpow_add hW_pos]
+      _ = (lowerBarrierRaw κ κtilde D x) ^ (p.α + 1) := by
+          congr 1
+          ring
+  rw [hpow]
+  calc
+    (lowerBarrierRaw κ κtilde D x) ^ (p.α + 1)
+        ≤ (Real.exp (-κ * x)) ^ (p.α + 1) :=
+      Real.rpow_le_rpow hW_pos.le hW_le_exp hα1_pos.le
+    _ = Real.exp (-(p.α + 1) * κ * x) := by
+      rw [← Real.exp_mul]
+      congr 1
+      ring
+    _ ≤ Real.exp (-κtilde * x) := by
+      apply Real.exp_le_exp.mpr
+      have hκtilde_le := hcond.kappaTilde_le_one_plus_alpha_mul_kappa
+      nlinarith
+
+theorem PaperLemma42KTermEstimate_of_ellipticVxEstimate
+    {p : CMParams} {c κ κtilde M D : ℝ}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hVx : PaperLemma42EllipticVxEstimate p κ M) :
+    PaperLemma42KTermEstimate p c κ κtilde M D := by
+  intro u hu x hx
+  have hgap_pos : 0 < κtilde - κ := sub_pos.mpr hcond.hgap
+  have hx_nonneg : 0 ≤ x := by
+    exact le_trans
+      (lowerBarrierXMinus_nonneg_of_one_le_D hgap_pos hD_ge_one) hx.le
+  have hD_pos : 0 < D := D_pos_of_paperDMin_lt hcond hD
+  have hW_pos :
+      0 < lowerBarrierRaw κ κtilde D x :=
+    lowerBarrierRaw_pos_of_xminus_lt hgap_pos hD_pos hx
+  have hW_nonneg : 0 ≤ lowerBarrierRaw κ κtilde D x := hW_pos.le
+  have hE_pos : 0 < Real.exp (-κ * x) := Real.exp_pos _
+  have hE_nonneg : 0 ≤ Real.exp (-κ * x) := hE_pos.le
+  have hEt_pos : 0 < Real.exp (-κtilde * x) := Real.exp_pos _
+  have hEt_nonneg : 0 ≤ Real.exp (-κtilde * x) := hEt_pos.le
+  have hW_le_exp :
+      lowerBarrierRaw κ κtilde D x ≤ Real.exp (-κ * x) :=
+    lowerBarrierRaw_le_exp hD_pos.le
+  have hderiv_le :
+      |deriv (lowerBarrierRaw κ κtilde D) x| ≤
+        (κ + κtilde) * Real.exp (-κ * x) :=
+    lowerBarrierRaw_deriv_abs_le_on_paper_region hcond hD hx
+  have hVx_le := hVx u hu x hx_nonneg
+  have hB_nonneg :
+      0 ≤ paperEllipticVxBound M κ p.γ x :=
+    le_trans (abs_nonneg _) hVx_le
+  have hm_nonneg : 0 ≤ p.m := le_trans zero_le_one p.hm
+  have hγ_nonneg : 0 ≤ p.γ := le_trans zero_le_one p.hγ
+  have hκsum_nonneg : 0 ≤ κ + κtilde := by
+    have hκtilde_pos : 0 < κtilde := lt_trans hcond.hκ0 hcond.hgap
+    nlinarith [hcond.hκ0, hκtilde_pos]
+  have hm1_nonneg : 0 ≤ p.m - 1 := by linarith [p.hm]
+  have hmγ_pos : 0 < p.m + p.γ := by linarith [p.hm, p.hγ]
+  have hWm1_le :
+      (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) ≤
+        (Real.exp (-κ * x)) ^ (p.m - 1) :=
+    Real.rpow_le_rpow hW_nonneg hW_le_exp hm1_nonneg
+  have hterm1_base :
+      p.m * (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) *
+            |deriv (frozenElliptic p u) x| *
+            |deriv (lowerBarrierRaw κ κtilde D) x| ≤
+        p.m * (κ + κtilde) *
+          paperEllipticVxBound M κ p.γ x *
+          (Real.exp (-κ * x)) ^ p.m := by
+    calc
+      p.m * (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) *
+            |deriv (frozenElliptic p u) x| *
+            |deriv (lowerBarrierRaw κ κtilde D) x|
+          ≤ p.m * (Real.exp (-κ * x)) ^ (p.m - 1) *
+              paperEllipticVxBound M κ p.γ x *
+              ((κ + κtilde) * Real.exp (-κ * x)) := by
+            gcongr
+      _ = p.m * (κ + κtilde) *
+          paperEllipticVxBound M κ p.γ x *
+          (Real.exp (-κ * x)) ^ p.m := by
+            have hEmul :
+                (Real.exp (-κ * x)) ^ (p.m - 1) *
+                    Real.exp (-κ * x) =
+                  (Real.exp (-κ * x)) ^ p.m := by
+              calc
+                (Real.exp (-κ * x)) ^ (p.m - 1) *
+                    Real.exp (-κ * x) =
+                  (Real.exp (-κ * x)) ^ (p.m - 1) *
+                    (Real.exp (-κ * x)) ^ (1 : ℝ) := by
+                    rw [Real.rpow_one]
+                _ = (Real.exp (-κ * x)) ^ ((p.m - 1) + 1) := by
+                    rw [← Real.rpow_add hE_pos]
+                _ = (Real.exp (-κ * x)) ^ p.m := by
+                    congr 1
+                    ring
+            calc
+              p.m * (Real.exp (-κ * x)) ^ (p.m - 1) *
+                    paperEllipticVxBound M κ p.γ x *
+                    ((κ + κtilde) * Real.exp (-κ * x)) =
+                p.m * (κ + κtilde) *
+                    paperEllipticVxBound M κ p.γ x *
+                    ((Real.exp (-κ * x)) ^ (p.m - 1) *
+                      Real.exp (-κ * x)) := by
+                    ring
+              _ = p.m * (κ + κtilde) *
+                    paperEllipticVxBound M κ p.γ x *
+                    (Real.exp (-κ * x)) ^ p.m := by
+                    rw [hEmul]
+  have hterm2_base :
+      lowerBarrierRaw κ κtilde D x *
+          (lowerBarrierRaw κ κtilde D x) ^ (p.m + p.γ - 1) ≤
+        Real.exp (-(p.m + p.γ) * κ * x) := by
+    have hexp_nonneg : 0 ≤ p.m + p.γ - 1 := by linarith [p.hm, p.hγ]
+    have hpow :
+        lowerBarrierRaw κ κtilde D x *
+            (lowerBarrierRaw κ κtilde D x) ^ (p.m + p.γ - 1) =
+          (lowerBarrierRaw κ κtilde D x) ^ (p.m + p.γ) := by
+      calc
+        lowerBarrierRaw κ κtilde D x *
+            (lowerBarrierRaw κ κtilde D x) ^ (p.m + p.γ - 1) =
+          (lowerBarrierRaw κ κtilde D x) ^ (1 : ℝ) *
+            (lowerBarrierRaw κ κtilde D x) ^ (p.m + p.γ - 1) := by
+            rw [Real.rpow_one]
+        _ = (lowerBarrierRaw κ κtilde D x) ^
+            ((1 : ℝ) + (p.m + p.γ - 1)) := by
+            rw [← Real.rpow_add hW_pos]
+        _ = (lowerBarrierRaw κ κtilde D x) ^ (p.m + p.γ) := by
+            congr 1
+            ring
+    rw [hpow]
+    calc
+      (lowerBarrierRaw κ κtilde D x) ^ (p.m + p.γ)
+          ≤ (Real.exp (-κ * x)) ^ (p.m + p.γ) :=
+        Real.rpow_le_rpow hW_nonneg hW_le_exp hmγ_pos.le
+      _ = Real.exp (-(p.m + p.γ) * κ * x) := by
+        rw [← Real.exp_mul]
+        congr 1
+        ring
+  have hterm2 :
+      lowerBarrierRaw κ κtilde D x *
+          (lowerBarrierRaw κ κtilde D x) ^ (p.m + p.γ - 1) ≤
+        Real.exp (-κtilde * x) := by
+    refine le_trans hterm2_base ?_
+    apply Real.exp_le_exp.mpr
+    have hκtilde_le := hcond.kappaTilde_le_m_gamma_mul_kappa
+    nlinarith
+  have hEpow_m :
+      (Real.exp (-κ * x)) ^ p.m = Real.exp (-(p.m * κ) * x) := by
+    rw [← Real.exp_mul]
+    congr 1
+    ring
+  set A := p.m * (κ + κtilde) with hAdef
+  have hA_nonneg : 0 ≤ A := by
+    rw [hAdef]
+    exact mul_nonneg hm_nonneg hκsum_nonneg
+  by_cases hcrit : p.γ * κ = 1
+  · set C := M ^ p.γ + 3 / 4 with hCdef
+    have hC_nonneg : 0 ≤ C := by
+      rw [hCdef]
+      exact add_nonneg
+        (Real.rpow_nonneg (le_trans zero_le_one hcond.hM) p.γ) (by norm_num)
+    have hC_one : 1 ≤ C := by
+      rw [hCdef]
+      have hMγ : 1 ≤ M ^ p.γ :=
+        Real.one_le_rpow hcond.hM (by linarith [p.hγ])
+      linarith
+    have hterm1 :
+        p.m * (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) *
+              |deriv (frozenElliptic p u) x| *
+              |deriv (lowerBarrierRaw κ κtilde D) x| ≤
+          A * C * Real.exp (-κtilde * x) := by
+      rw [paperEllipticVxBound, if_pos hcrit] at hterm1_base
+      refine le_trans hterm1_base ?_
+      have hexp :
+          (M ^ p.γ + 3 / 4) * Real.exp (-(1 / 2) * x) *
+              (Real.exp (-κ * x)) ^ p.m =
+            (M ^ p.γ + 3 / 4) *
+              Real.exp (-(p.m * κ + 1 / 2) * x) := by
+        calc
+          (M ^ p.γ + 3 / 4) * Real.exp (-(1 / 2) * x) *
+              (Real.exp (-κ * x)) ^ p.m =
+            (M ^ p.γ + 3 / 4) *
+              (Real.exp (-(1 / 2) * x) * Real.exp (-(p.m * κ) * x)) := by
+              rw [hEpow_m]
+              ring
+          _ = (M ^ p.γ + 3 / 4) *
+              Real.exp (-(p.m * κ + 1 / 2) * x) := by
+              rw [← Real.exp_add]
+              congr 1
+              ring
+      have hexp_le :
+          Real.exp (-(p.m * κ + 1 / 2) * x) ≤
+            Real.exp (-κtilde * x) := by
+        apply Real.exp_le_exp.mpr
+        have hκtilde_le := hcond.kappaTilde_le_m_kappa_add_half
+        nlinarith
+      calc
+        A * ((M ^ p.γ + 3 / 4) * Real.exp (-(1 / 2) * x)) *
+            (Real.exp (-κ * x)) ^ p.m =
+          A * C * Real.exp (-(p.m * κ + 1 / 2) * x) := by
+            calc
+              A * ((M ^ p.γ + 3 / 4) * Real.exp (-(1 / 2) * x)) *
+                  (Real.exp (-κ * x)) ^ p.m =
+                A * ((M ^ p.γ + 3 / 4) * Real.exp (-(1 / 2) * x) *
+                  (Real.exp (-κ * x)) ^ p.m) := by ring
+              _ = A * ((M ^ p.γ + 3 / 4) *
+                    Real.exp (-(p.m * κ + 1 / 2) * x)) := by
+                    rw [hexp]
+              _ = A * C * Real.exp (-(p.m * κ + 1 / 2) * x) := by
+                    rw [hCdef]
+                    ring
+        _ ≤ A * C * Real.exp (-κtilde * x) :=
+            mul_le_mul_of_nonneg_left hexp_le
+              (mul_nonneg hA_nonneg hC_nonneg)
+    have hKcrit :
+        paperSubsolutionK M κ κtilde p.m p.γ = (A + 1) * C := by
+      rw [paperSubsolutionK_eq_critical hcrit, hAdef, hCdef]
+      ring
+    rw [hKcrit]
+    calc
+      p.m * (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) *
+            |deriv (frozenElliptic p u) x| *
+            |deriv (lowerBarrierRaw κ κtilde D) x| +
+          lowerBarrierRaw κ κtilde D x *
+            (lowerBarrierRaw κ κtilde D x) ^ (p.m + p.γ - 1)
+          ≤ A * C * Real.exp (-κtilde * x) +
+              Real.exp (-κtilde * x) := add_le_add hterm1 hterm2
+      _ ≤ A * C * Real.exp (-κtilde * x) +
+              C * Real.exp (-κtilde * x) := by
+            have hmulC :
+                Real.exp (-κtilde * x) ≤
+                  C * Real.exp (-κtilde * x) :=
+              by
+                simpa [one_mul] using
+                  mul_le_mul_of_nonneg_right hC_one hEt_nonneg
+            linarith
+      _ = (A + 1) * C * Real.exp (-κtilde * x) := by ring
+  · by_cases hsub : p.γ * κ < 1
+    · set C := 1 / (1 - p.γ ^ 2 * κ ^ 2) with hCdef
+      have hγκ_pos : 0 < p.γ * κ :=
+        mul_pos (by linarith [p.hγ]) hcond.hκ0
+      have hden_pos : 0 < 1 - p.γ ^ 2 * κ ^ 2 := by nlinarith
+      have hC_nonneg : 0 ≤ C := by
+        rw [hCdef]
+        exact (one_div_pos.mpr hden_pos).le
+      have hC_one : 1 ≤ C := by
+        rw [hCdef]
+        have hden_le_one : 1 - p.γ ^ 2 * κ ^ 2 ≤ 1 := by nlinarith
+        exact one_le_one_div hden_pos hden_le_one
+      have hterm1 :
+          p.m * (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) *
+                |deriv (frozenElliptic p u) x| *
+                |deriv (lowerBarrierRaw κ κtilde D) x| ≤
+            A * C * Real.exp (-κtilde * x) := by
+        rw [paperEllipticVxBound, if_neg hcrit, if_pos hsub] at hterm1_base
+        refine le_trans hterm1_base ?_
+        have hexp :
+            (1 / (1 - p.γ ^ 2 * κ ^ 2)) *
+                Real.exp (-(p.γ * κ) * x) *
+                (Real.exp (-κ * x)) ^ p.m =
+              (1 / (1 - p.γ ^ 2 * κ ^ 2)) *
+                Real.exp (-(p.m + p.γ) * κ * x) := by
+          calc
+            (1 / (1 - p.γ ^ 2 * κ ^ 2)) *
+                Real.exp (-(p.γ * κ) * x) *
+                (Real.exp (-κ * x)) ^ p.m =
+              (1 / (1 - p.γ ^ 2 * κ ^ 2)) *
+                (Real.exp (-(p.γ * κ) * x) *
+                  Real.exp (-(p.m * κ) * x)) := by
+                rw [hEpow_m]
+                ring
+            _ = (1 / (1 - p.γ ^ 2 * κ ^ 2)) *
+                Real.exp (-(p.m + p.γ) * κ * x) := by
+                rw [← Real.exp_add]
+                congr 1
+                ring
+        have hexp_le :
+            Real.exp (-(p.m + p.γ) * κ * x) ≤
+              Real.exp (-κtilde * x) := by
+          apply Real.exp_le_exp.mpr
+          have hκtilde_le := hcond.kappaTilde_le_m_gamma_mul_kappa
+          nlinarith
+        calc
+          A * (1 / (1 - p.γ ^ 2 * κ ^ 2) *
+              Real.exp (-(p.γ * κ) * x)) *
+              (Real.exp (-κ * x)) ^ p.m =
+            A * C * Real.exp (-(p.m + p.γ) * κ * x) := by
+              calc
+                A * (1 / (1 - p.γ ^ 2 * κ ^ 2) *
+                    Real.exp (-(p.γ * κ) * x)) *
+                    (Real.exp (-κ * x)) ^ p.m =
+                  A * (1 / (1 - p.γ ^ 2 * κ ^ 2) *
+                    Real.exp (-(p.γ * κ) * x) *
+                    (Real.exp (-κ * x)) ^ p.m) := by ring
+                _ = A * (1 / (1 - p.γ ^ 2 * κ ^ 2) *
+                    Real.exp (-(p.m + p.γ) * κ * x)) := by rw [hexp]
+                _ = A * C * Real.exp (-(p.m + p.γ) * κ * x) := by
+                    rw [hCdef]
+                    ring
+          _ ≤ A * C * Real.exp (-κtilde * x) :=
+              mul_le_mul_of_nonneg_left hexp_le
+                (mul_nonneg hA_nonneg hC_nonneg)
+      have hKsub :
+          paperSubsolutionK M κ κtilde p.m p.γ = (A + 1) * C := by
+        rw [paperSubsolutionK_eq_subcritical hsub, hAdef, hCdef]
+        ring
+      rw [hKsub]
+      calc
+        p.m * (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) *
+              |deriv (frozenElliptic p u) x| *
+              |deriv (lowerBarrierRaw κ κtilde D) x| +
+            lowerBarrierRaw κ κtilde D x *
+              (lowerBarrierRaw κ κtilde D x) ^ (p.m + p.γ - 1)
+            ≤ A * C * Real.exp (-κtilde * x) +
+                Real.exp (-κtilde * x) := add_le_add hterm1 hterm2
+        _ ≤ A * C * Real.exp (-κtilde * x) +
+                C * Real.exp (-κtilde * x) := by
+              have hmulC :
+                  Real.exp (-κtilde * x) ≤
+                    C * Real.exp (-κtilde * x) :=
+                by
+                  simpa [one_mul] using
+                    mul_le_mul_of_nonneg_right hC_one hEt_nonneg
+              linarith
+        _ = (A + 1) * C * Real.exp (-κtilde * x) := by ring
+    · have hsuper : 1 < p.γ * κ :=
+        lt_of_le_of_ne (le_of_not_gt hsub) (Ne.symm hcrit)
+      set C :=
+        (M ^ p.γ * (κ ^ 2 * p.γ ^ 2 - 1) + p.γ * κ) /
+          (κ ^ 2 * p.γ ^ 2 - 1) with hCdef
+      have hden_pos : 0 < κ ^ 2 * p.γ ^ 2 - 1 := by
+        have hγκ_nonneg : 0 ≤ p.γ * κ :=
+          mul_nonneg hγ_nonneg hcond.hκ0.le
+        have hs : 1 < (p.γ * κ) ^ 2 :=
+          (one_lt_sq_iff₀ hγκ_nonneg).mpr hsuper
+        have hsq : (p.γ * κ) ^ 2 = κ ^ 2 * p.γ ^ 2 := by ring
+        rw [← hsq]
+        exact sub_pos.mpr hs
+      have hC_one : 1 ≤ C := by
+        rw [hCdef]
+        have hMγ : 1 ≤ M ^ p.γ :=
+          Real.one_le_rpow hcond.hM hγ_nonneg
+        rw [le_div_iff₀ hden_pos]
+        have hden_le :
+            1 * (κ ^ 2 * p.γ ^ 2 - 1) ≤
+              M ^ p.γ * (κ ^ 2 * p.γ ^ 2 - 1) :=
+          mul_le_mul_of_nonneg_right hMγ hden_pos.le
+        have hγκ_nonneg : 0 ≤ p.γ * κ :=
+          mul_nonneg hγ_nonneg hcond.hκ0.le
+        exact le_trans hden_le (le_add_of_nonneg_right hγκ_nonneg)
+      have hC_nonneg : 0 ≤ C := by
+        exact le_trans (by norm_num : (0 : ℝ) ≤ 1) hC_one
+      have hterm1 :
+          p.m * (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) *
+                |deriv (frozenElliptic p u) x| *
+                |deriv (lowerBarrierRaw κ κtilde D) x| ≤
+            A * C * Real.exp (-κtilde * x) := by
+        rw [paperEllipticVxBound, if_neg hcrit, if_neg hsub] at hterm1_base
+        refine le_trans hterm1_base ?_
+        have hexp :
+            ((M ^ p.γ * (κ ^ 2 * p.γ ^ 2 - 1) + p.γ * κ) /
+                (κ ^ 2 * p.γ ^ 2 - 1)) *
+                Real.exp (-x) * (Real.exp (-κ * x)) ^ p.m =
+              ((M ^ p.γ * (κ ^ 2 * p.γ ^ 2 - 1) + p.γ * κ) /
+                (κ ^ 2 * p.γ ^ 2 - 1)) *
+                Real.exp (-(p.m * κ + 1) * x) := by
+          calc
+            ((M ^ p.γ * (κ ^ 2 * p.γ ^ 2 - 1) + p.γ * κ) /
+                (κ ^ 2 * p.γ ^ 2 - 1)) *
+                Real.exp (-x) * (Real.exp (-κ * x)) ^ p.m =
+              ((M ^ p.γ * (κ ^ 2 * p.γ ^ 2 - 1) + p.γ * κ) /
+                (κ ^ 2 * p.γ ^ 2 - 1)) *
+                (Real.exp (-x) * Real.exp (-(p.m * κ) * x)) := by
+                rw [hEpow_m]
+                ring
+            _ = ((M ^ p.γ * (κ ^ 2 * p.γ ^ 2 - 1) + p.γ * κ) /
+                (κ ^ 2 * p.γ ^ 2 - 1)) *
+                Real.exp (-(p.m * κ + 1) * x) := by
+                rw [← Real.exp_add]
+                congr 1
+                ring
+        have hexp_le :
+            Real.exp (-(p.m * κ + 1) * x) ≤
+              Real.exp (-κtilde * x) := by
+          apply Real.exp_le_exp.mpr
+          have hκtilde_le := hcond.kappaTilde_le_m_kappa_add_half
+          have hle : κtilde ≤ p.m * κ + 1 := by linarith
+          have hmul := mul_le_mul_of_nonneg_right hle hx_nonneg
+          linarith
+        calc
+          A * (((M ^ p.γ * (κ ^ 2 * p.γ ^ 2 - 1) + p.γ * κ) /
+              (κ ^ 2 * p.γ ^ 2 - 1)) * Real.exp (-x)) *
+              (Real.exp (-κ * x)) ^ p.m =
+            A * C * Real.exp (-(p.m * κ + 1) * x) := by
+              calc
+                A * (((M ^ p.γ * (κ ^ 2 * p.γ ^ 2 - 1) + p.γ * κ) /
+                    (κ ^ 2 * p.γ ^ 2 - 1)) * Real.exp (-x)) *
+                    (Real.exp (-κ * x)) ^ p.m =
+                  A * (((M ^ p.γ * (κ ^ 2 * p.γ ^ 2 - 1) + p.γ * κ) /
+                    (κ ^ 2 * p.γ ^ 2 - 1)) * Real.exp (-x) *
+                    (Real.exp (-κ * x)) ^ p.m) := by ring
+                _ = A * (((M ^ p.γ * (κ ^ 2 * p.γ ^ 2 - 1) + p.γ * κ) /
+                    (κ ^ 2 * p.γ ^ 2 - 1)) *
+                    Real.exp (-(p.m * κ + 1) * x)) := by rw [hexp]
+                _ = A * C * Real.exp (-(p.m * κ + 1) * x) := by
+                    rw [hCdef]
+                    ring
+          _ ≤ A * C * Real.exp (-κtilde * x) :=
+              mul_le_mul_of_nonneg_left hexp_le
+                (mul_nonneg hA_nonneg hC_nonneg)
+      have hKsuper :
+          paperSubsolutionK M κ κtilde p.m p.γ = (A + 1) * C := by
+        rw [paperSubsolutionK_eq_supercritical hsuper, hAdef, hCdef]
+        ring_nf
+      rw [hKsuper]
+      calc
+        p.m * (lowerBarrierRaw κ κtilde D x) ^ (p.m - 1) *
+              |deriv (frozenElliptic p u) x| *
+              |deriv (lowerBarrierRaw κ κtilde D) x| +
+            lowerBarrierRaw κ κtilde D x *
+              (lowerBarrierRaw κ κtilde D x) ^ (p.m + p.γ - 1)
+            ≤ A * C * Real.exp (-κtilde * x) +
+                Real.exp (-κtilde * x) := add_le_add hterm1 hterm2
+        _ ≤ A * C * Real.exp (-κtilde * x) +
+                C * Real.exp (-κtilde * x) := by
+              have hmulC :
+                  Real.exp (-κtilde * x) ≤
+                    C * Real.exp (-κtilde * x) :=
+                by
+                  simpa [one_mul] using
+                    mul_le_mul_of_nonneg_right hC_one hEt_nonneg
+              linarith
+        _ = (A + 1) * C * Real.exp (-κtilde * x) := by ring
+
+theorem PaperLemma42KTermEstimate_of_conditions
+    {p : CMParams} {c κ κtilde M D : ℝ}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D) :
+    PaperLemma42KTermEstimate p c κ κtilde M D :=
+  PaperLemma42KTermEstimate_of_ellipticVxEstimate hcond hD hD_ge_one
+    (PaperLemma42EllipticVxEstimate_of_conditions hcond)
+
 theorem PaperLemma42BadTermEstimate_of_components
     {p : CMParams} {c κ κtilde M D : ℝ}
     (hlog : PaperLemma42LogisticEstimate p c κ κtilde M D)
@@ -448,6 +1541,19 @@ theorem PaperLemma_4_2_paperWaveOperator_from_components
       (PaperLemma42BadTermEstimate_of_components hlog hK))
     u hu
 
+theorem PaperLemma_4_2_paperWaveOperator_of_conditions
+    {p : CMParams} {c κ κtilde M D : ℝ}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (u : ℝ → ℝ) (hu : InWaveTrapSet κ M u) :
+    IsPaperFrozenSubSolutionOn p c u (lowerBarrierRaw κ κtilde D)
+      (Set.Ioi (lowerBarrierXMinus κ κtilde D)) :=
+  PaperLemma_4_2_paperWaveOperator_from_components hcond hD
+    (PaperLemma42LogisticEstimate_of_conditions hcond hD hD_ge_one)
+    (PaperLemma42KTermEstimate_of_conditions hcond hD hD_ge_one)
+    u hu
+
 theorem profileNontrivial_of_lowerBarrierRaw_tail_bound
     {p : CMParams} {c κ κtilde M D : ℝ} {U : ℝ → ℝ}
     (hcond : PaperLemma42ExactConditions p c κ κtilde M)
@@ -493,12 +1599,18 @@ section AxiomAudit
 #print axioms lowerBarrierRaw_deriv_abs_le_on_paper_region
 #print axioms paperDMin_margin_nonneg_exp
 #print axioms paperWaveOperator_lowerBarrierRaw_eq_of_kappa_speed
+#print axioms PaperLemma42EllipticVxEstimate_of_conditions
+#print axioms PaperLemma42LogisticEstimate_of_conditions
+#print axioms PaperLemma42KTermEstimate_of_conditions
 #print axioms PaperLemma42BadTermEstimate_of_components
 #print axioms PaperLemma42PointwiseEstimate_of_badTermEstimate
 #print axioms PaperLemma_4_2_paperWaveOperator_from_pointwise_estimate
 #print axioms PaperLemma_4_2_paperWaveOperator_from_components
+#print axioms PaperLemma_4_2_paperWaveOperator_of_conditions
 #print axioms profileNontrivial_of_lowerBarrierRaw_tail_bound
 #print axioms rotheOrbit_profileNontrivial_of_lowerBarrierRaw_stepInvariant
 end AxiomAudit
 
 end ShenWork.Paper1
+
+#print axioms ShenWork.Paper1.rotheOrbit_profileNontrivial_of_lowerBarrierRaw_stepInvariant
