@@ -62,7 +62,7 @@
       and not committed), and the `BC2`-of-`Ū` AT THE MAX (here dischargeable, but
       the committed def asks for it EVERYWHERE — see the note).
 
-  No `sorry`/`axiom`/`native_decide`/`admit`.  Touches only Paper1.
+  No proof holes, no extra logical assumptions, no `native_decide`.  Touches only Paper1.
 -/
 import ShenWork.Paper1.WaveRotheFloor
 import ShenWork.Paper1.WaveSuperBarrier
@@ -74,6 +74,54 @@ noncomputable section
 namespace ShenWork.Paper1
 
 variable {c lam : ℝ}
+
+/-! ## 0. Bounded-source Green integrability closures
+
+The source weighted tails and translated kernel integrability used by the Green
+derivative/order bricks are not independent analytic payload: a continuous
+bounded source is enough, because the committed Green roots have the correct
+signs and `greenKernel` is `L¹`. -/
+
+/-- A bounded continuous source has integrable upper weighted tails for every
+positive exponential weight. -/
+theorem gWeight_integrableOn_Ioi_of_bounded {r B : ℝ} {H : ℝ → ℝ}
+    (hr : 0 < r) (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) :
+    ∀ x, IntegrableOn (gWeight r H) (Ioi x) := by
+  intro x
+  have hbase : IntegrableOn (fun y : ℝ => Real.exp ((-r) * y)) (Ioi x) :=
+    integrableOn_exp_mul_Ioi (a := -r) (by linarith) x
+  have hbound : ∀ᵐ y ∂(volume.restrict (Ioi x)), ‖H y‖ ≤ B :=
+    Eventually.of_forall (fun y => by simpa [Real.norm_eq_abs] using hB y)
+  change Integrable (fun y : ℝ => Real.exp ((-r) * y) * H y)
+    (volume.restrict (Ioi x))
+  exact hbase.mul_bdd (c := B) hH.aestronglyMeasurable hbound
+
+/-- A bounded continuous source has integrable lower weighted tails for every
+negative exponential weight. -/
+theorem gWeight_integrableOn_Iic_of_bounded {r B : ℝ} {H : ℝ → ℝ}
+    (hr : r < 0) (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) :
+    ∀ x, IntegrableOn (gWeight r H) (Iic x) := by
+  intro x
+  have hbase : IntegrableOn (fun y : ℝ => Real.exp ((-r) * y)) (Iic x) :=
+    integrableOn_exp_mul_Iic (a := -r) (by linarith) x
+  have hbound : ∀ᵐ y ∂(volume.restrict (Iic x)), ‖H y‖ ≤ B :=
+    Eventually.of_forall (fun y => by simpa [Real.norm_eq_abs] using hB y)
+  change Integrable (fun y : ℝ => Real.exp ((-r) * y) * H y)
+    (volume.restrict (Iic x))
+  exact hbase.mul_bdd (c := B) hH.aestronglyMeasurable hbound
+
+/-- A bounded continuous source can be multiplied by any translate of the
+committed `L¹` Green kernel. -/
+theorem greenKernel_translated_integrable_of_bounded {c lam B : ℝ} {H : ℝ → ℝ}
+    (hlam : 0 < lam) (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) :
+    ∀ x, Integrable (fun t => greenKernel c lam (-t) * H (x + t)) := by
+  intro x
+  have hK : Integrable (fun t : ℝ => greenKernel c lam (-t)) :=
+    (greenKernel_integrable (c := c) hlam).comp_neg
+  exact hK.mul_bdd
+    ((hH.comp (continuous_const.add continuous_id)).aestronglyMeasurable)
+    (Filter.Eventually.of_forall fun t => by
+      simpa [Real.norm_eq_abs] using hB (x + t))
 
 /-! ## 1. `upperBarrier` is `C²` away from the free interface
 
@@ -321,19 +369,72 @@ def rotheFloorResidual_of_core
 
 /-! ## 4a. A thinner core with the already-committed fields discharged
 
-`RotheFloorResidualCoreSlim` removes the fields that are not genuine Green-tail
-analysis:
+`RotheFloorResidualCoreSlim` removes the fields that are already forced by
+committed Green-kernel decay/L¹ bricks and by trivial/max-principle bookkeeping:
 
 * `F_u(Ū) ≤ 0` is supplied to the builder as `hSuper`;
 * `F_u(Z) ≤ 0`, `Z ≤ Z`, and `Z ≤ Ū` are producer inputs/trivial;
 * continuity of `W - Z` and `W - Ū` follows from the Green representation;
 * the at-max `C²` field for `Ū` follows from
   `upperBarrier_BC2_atMax_dischargeable`.
+* the source weighted tails and translated Green-kernel integrability follow
+  from `R_cont`, `R_bound`, the signs of `greenRootPlus`/`greenRootMinus`, and
+  the committed Green-kernel half-line/L¹ integrability bricks.
 
 The remaining fields are the precise per-step analytic gaps: Green source
-regularity/tails, source antitonicity, translated flux integrability, the
-differential step, two-sided decay tails, the `Z` at-max field, range data, and
-the two chem data slots. -/
+regularity/boundedness, the named source-antitonicity residual (not a consequence
+of boundedness/L¹), the differential step, the named endpoint-asymptotic residual,
+the `Z` at-max field, range data, and the two chem data slots. -/
+
+/-- Named residual for the step source monotonicity.
+
+This is not a consequence of `greenKernel` decay/L¹ data alone: decay controls
+integrability of `Kλ * R`, while monotonicity is a property of the source `R`
+itself. -/
+structure RotheSlimSourceAntitone (R : ℝ → ℝ) : Prop where
+  antitone : Antitone R
+
+/-- Named residual for the two max-principle endpoint asymptotics left after the
+Green integrability fields have been discharged.  These are the boundary
+conditions for `W - Z` and `W - Ū`; bounded source plus Green `L¹` does not decide
+their endpoint signs, so this is the precise carried tail information. -/
+structure RotheSlimEndpointAsymptotics (κ M : ℝ) (W Z : ℝ → ℝ)
+    (LaZ LbZ LaB LbB : ℝ) : Prop where
+  hbotZ : Tendsto (fun x => W x - Z x) atBot (𝓝 LaZ)
+  hLaZ : LaZ ≤ 0
+  htopZ : Tendsto (fun x => W x - Z x) atTop (𝓝 LbZ)
+  hLbZ : LbZ ≤ 0
+  hbotB : Tendsto (fun x => W x - upperBarrier κ M x) atBot (𝓝 LaB)
+  hLaB : LaB ≤ 0
+  htopB : Tendsto (fun x => W x - upperBarrier κ M x) atTop (𝓝 LbB)
+  hLbB : LbB ≤ 0
+
+/-- Non-vacuity check for `RotheSlimSourceAntitone`: constant sources satisfy the
+carried source-order residual. -/
+theorem rotheSlimSourceAntitone_const (a : ℝ) :
+    RotheSlimSourceAntitone (fun _ : ℝ => a) :=
+  ⟨antitone_const⟩
+
+/-- Bounded continuous sources need not be antitone; hence `Antitone R` cannot be
+discharged from the bounded-source Green `L¹` hypotheses alone. -/
+theorem bounded_continuous_source_not_forces_antitone :
+    ∃ R : ℝ → ℝ, Continuous R ∧ (∃ B : ℝ, ∀ y, |R y| ≤ B) ∧ ¬ Antitone R := by
+  refine ⟨Real.sin, Real.continuous_sin, ⟨1, fun y => Real.abs_sin_le_one y⟩, ?_⟩
+  intro hanti
+  have hle := hanti (show (0 : ℝ) ≤ Real.pi / 2 by positivity)
+  rw [Real.sin_pi_div_two, Real.sin_zero] at hle
+  norm_num at hle
+
+/-- Non-vacuity check for `RotheSlimEndpointAsymptotics`: the exact barrier
+profile has zero endpoint gaps against itself. -/
+theorem rotheSlimEndpointAsymptotics_barrier (κ M : ℝ) :
+    RotheSlimEndpointAsymptotics κ M (upperBarrier κ M) (upperBarrier κ M)
+      0 0 0 0 := by
+  refine ⟨?_, le_rfl, ?_, le_rfl, ?_, le_rfl, ?_, le_rfl⟩
+  · simp
+  · simp
+  · simp
+  · simp
 
 /-- The genuinely remaining per-profile Green core after the committed/trivial
 max-principle fields are discharged by `rotheFloorResidual_of_slimCore`. -/
@@ -349,23 +450,17 @@ structure RotheFloorResidualCoreSlim
         (W = fun x => ∫ y, greenKernel c lam (x - y) * R y) ∧
         Continuous R ∧
         (∃ B : ℝ, (∀ y, |R y| ≤ B) ∧ Λ = 2 * (greenDelta c lam)⁻¹ * B) ∧
-        (∀ x, IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi x)) ∧
-        (∀ x, IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic x)) ∧
-        Antitone R ∧
-        (∀ x, Integrable (fun t => greenKernel c lam (-t) * R (x + t))) ∧
+        RotheSlimSourceAntitone R ∧
         (∀ x, implicitStepOp p c (1 / lam) u W x = Z x) ∧
         (∀ x, 0 ≤ W x) ∧
         (W = crossImplicitMap p c lam u Z W) ∧
         (0 ≤ C_chem) ∧
         ((1 / lam) * (reactionLip p.α M + C_chem) < 1) ∧
-        Tendsto (fun x => W x - Z x) atBot (𝓝 LaZ) ∧ (LaZ ≤ 0) ∧
-        Tendsto (fun x => W x - Z x) atTop (𝓝 LbZ) ∧ (LbZ ≤ 0) ∧
+        RotheSlimEndpointAsymptotics κ M W Z LaZ LbZ LaB LbB ∧
         (∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
           ContDiffAt ℝ 2 Z x₀) ∧
         (∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
           W x₀ ∈ Set.Icc (0 : ℝ) M ∧ Z x₀ ∈ Set.Icc (0 : ℝ) M) ∧
-        Tendsto (fun x => W x - upperBarrier κ M x) atBot (𝓝 LaB) ∧ (LaB ≤ 0) ∧
-        Tendsto (fun x => W x - upperBarrier κ M x) atTop (𝓝 LbB) ∧ (LbB ≤ 0) ∧
         (∀ x₀, IsMaxOn (fun x => W x - upperBarrier κ M x) Set.univ x₀ →
           W x₀ ∈ Set.Icc (0 : ℝ) M ∧ upperBarrier κ M x₀ ∈ Set.Icc (0 : ℝ) M)) ×'
         ((∀ x₀, IsMaxOn (fun x => W x - Z x) Set.univ x₀ →
@@ -387,10 +482,22 @@ def rotheFloorResidual_of_slimCore
   produce := by
     intro Z hZc hZa hZ0 hZB hZsuper
     obtain ⟨W, R, C_chem, LaZ, LbZ, LaB, LbB,
-        ⟨hgr, hcf, hRc, hRb, hRhi, hRlo, hRanti, hRint, hstepop, hnonneg,
-          hstepeq, hCnn, hCB, hbotZ, hLaZ, htopZ, hLbZ, hBC2Z, hrangeZ,
-          hbotB, hLaB, htopB, hLbB, hrangeB⟩, hchemZ, hchemB⟩ :=
+        ⟨hgr, hcf, hRc, hRb, hRanti, hstepop, hnonneg,
+          hstepeq, hCnn, hCB, htails, hBC2Z, hrangeZ, hrangeB⟩,
+        hchemZ, hchemB⟩ :=
       h.produceCore Z hZc hZa hZ0 hZB hZsuper
+    have hRhi : ∀ x, IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi x) := by
+      rcases hRb with ⟨_B, hRbd, _hΛ⟩
+      exact gWeight_integrableOn_Ioi_of_bounded
+        (greenRootPlus_pos (c := c) (lam := lam) h.hlam) hRc hRbd
+    have hRlo : ∀ x, IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic x) := by
+      rcases hRb with ⟨_B, hRbd, _hΛ⟩
+      exact gWeight_integrableOn_Iic_of_bounded
+        (greenRootMinus_neg (c := c) (lam := lam) h.hlam) hRc hRbd
+    have hRint : ∀ x, Integrable (fun t => greenKernel c lam (-t) * R (x + t)) := by
+      rcases hRb with ⟨_B, hRbd, _hΛ⟩
+      exact greenKernel_translated_integrable_of_bounded
+        (c := c) (lam := lam) h.hlam hRc hRbd
     have hWdiff : Differentiable ℝ W := by
       rw [hgr]
       intro x
@@ -404,12 +511,12 @@ def rotheFloorResidual_of_slimCore
           ContDiffAt ℝ 2 (upperBarrier κ M) x₀ :=
       upperBarrier_BC2_atMax_dischargeable hκ hMpos hWdiff
     exact ⟨W, R, C_chem, LaZ, LbZ, LaB, LbB,
-      ⟨hgr, hcf, hRc, hRb, hRhi, hRlo, hRanti, hRint, hstepop, hnonneg,
+      ⟨hgr, hcf, hRc, hRb, hRhi, hRlo, hRanti.antitone, hRint, hstepop, hnonneg,
         hstepeq, hCnn, hCB,
         hZsuper, fun x => le_refl (Z x),
-        hφcZ, hbotZ, hLaZ, htopZ, hLbZ, hBC2Z, hrangeZ,
+        hφcZ, htails.hbotZ, htails.hLaZ, htails.htopZ, htails.hLbZ, hBC2Z, hrangeZ,
         hSuper, hZB,
-        hφcB, hbotB, hLaB, htopB, hLbB, hBC2B, hrangeB⟩,
+        hφcB, htails.hbotB, htails.hLaB, htails.htopB, htails.hLbB, hBC2B, hrangeB⟩,
       hchemZ, hchemB⟩
 
 /-! ## 5. The trap-level residual + chaining to `b1_chiNeg_existence`
@@ -668,6 +775,12 @@ theorem b1_chiNeg_existence_residualClean
 /-! ## 7. Axiom audit -/
 
 section AxiomAudit
+#print axioms gWeight_integrableOn_Ioi_of_bounded
+#print axioms gWeight_integrableOn_Iic_of_bounded
+#print axioms greenKernel_translated_integrable_of_bounded
+#print axioms rotheSlimSourceAntitone_const
+#print axioms bounded_continuous_source_not_forces_antitone
+#print axioms rotheSlimEndpointAsymptotics_barrier
 #print axioms upperBarrier_contDiffAt_two_of_ne_interface
 #print axioms maxSub_upperBarrier_ne_interface
 #print axioms upperBarrier_BC2_atMax_dischargeable
