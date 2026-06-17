@@ -138,6 +138,276 @@ def paperCmono (p : CMParams) (a M BV BV2 : ℝ) : ℝ :=
     + a * p.m * M ^ (p.m - 1) * BV2
     + a * p.m * M ^ (p.m - 1) * BV
 
+/-- Route-A local bookkeeping at a positive maximum of `q = W'`.
+
+The fields are the paper-expanded differentiated operator, split into:
+
+* `qSecond`, nonpositive at a maximum;
+* `qSlope`, whose transport contribution vanishes at a maximum;
+* genuinely good terms (`slopeQuad`, `vForcing`, `diagonal`) which are
+  nonpositive for negative sensitivity and monotone elliptic signal;
+* the three remaining `q`-coefficients, each bounded by the components of
+  `paperCmono`.
+
+This deliberately records the sign ledger, not the final maximum estimate. -/
+structure PaperWaveOperatorPosMaxBookkeeping
+    (p : CMParams) (c a M BV BV2 : ℝ) (u W : ℝ → ℝ) (x₀ : ℝ) where
+  q : ℝ
+  qSlope : ℝ
+  qSecond : ℝ
+  slopeQuad : ℝ
+  transport : ℝ
+  vForcing : ℝ
+  diagonal : ℝ
+  reactionCoeff : ℝ
+  v2Coeff : ℝ
+  vCoeff : ℝ
+  q_eq : q = deriv W x₀
+  paper_deriv :
+    deriv (fun x => paperWaveOperator p c u W x) x₀ =
+      qSecond + c * qSlope + slopeQuad + transport + vForcing + diagonal
+        + (reactionCoeff + v2Coeff + vCoeff) * q
+  qSlope_zero : qSlope = 0
+  qSecond_nonpos : qSecond ≤ 0
+  slopeQuad_nonpos : slopeQuad ≤ 0
+  transport_zero : transport = 0
+  vForcing_nonpos : vForcing ≤ 0
+  diagonal_nonpos : diagonal ≤ 0
+  reactionCoeff_le : reactionCoeff ≤ reactionLip p.α M
+  v2Coeff_le : v2Coeff ≤ a * p.m * M ^ (p.m - 1) * BV2
+  vCoeff_le : vCoeff ≤ a * p.m * M ^ (p.m - 1) * BV
+
+private theorem paperWaveOperator_hasDerivAt_routeA
+    {p : CMParams} {c a : ℝ} {u W : ℝ → ℝ} {x₀ : ℝ}
+    (ha : a = -p.χ)
+    (hW0 : HasDerivAt W (deriv W x₀) x₀)
+    (hW1 : HasDerivAt (deriv W) (deriv (deriv W) x₀) x₀)
+    (hW2 : HasDerivAt (iteratedDeriv 2 W) (deriv (deriv (deriv W)) x₀) x₀)
+    (hV0 : HasDerivAt (frozenElliptic p u) (deriv (frozenElliptic p u) x₀) x₀)
+    (hV1 : HasDerivAt (deriv (frozenElliptic p u))
+      (deriv (deriv (frozenElliptic p u)) x₀) x₀)
+    (hWpos : 0 < W x₀) :
+    HasDerivAt (fun x => paperWaveOperator p c u W x)
+      (deriv (deriv (deriv W)) x₀ + c * deriv (deriv W) x₀
+        + a * p.m * (p.m - 1) * (W x₀) ^ (p.m - 2) * (deriv W x₀)^2 *
+            deriv (frozenElliptic p u) x₀
+        + a * p.m * (W x₀) ^ (p.m - 1) * deriv (frozenElliptic p u) x₀ *
+            deriv (deriv W) x₀
+        + a * (W x₀) ^ p.m * deriv (frozenElliptic p u) x₀
+        - a * (p.m + p.γ) * (W x₀) ^ (p.m + p.γ - 1) * deriv W x₀
+        + ((1 - (W x₀) ^ p.α - p.α * (W x₀ * (W x₀) ^ (p.α - 1)))
+            + a * p.m * (W x₀) ^ (p.m - 1) *
+                deriv (deriv (frozenElliptic p u)) x₀
+            + a * p.m * (W x₀) ^ (p.m - 1) * frozenElliptic p u x₀) *
+              deriv W x₀)
+      x₀ := by
+  let V := frozenElliptic p u
+  have hpow_m1 := hW0.rpow_const (p := p.m - 1) (Or.inl hWpos.ne')
+  have hpow_m := hW0.rpow_const (p := p.m) (Or.inl hWpos.ne')
+  have hpow_mγ := hW0.rpow_const (p := p.m + p.γ) (Or.inl hWpos.ne')
+  have hlin := hW2.fun_add (hW1.const_mul c)
+  have hchem_core := (hpow_m1.fun_mul hV1).fun_mul hW1
+  have hchem := hchem_core.const_mul (a * p.m)
+  have hrxn : HasDerivAt (fun x => reactionFun p.α (W x))
+      ((1 - (W x₀) ^ p.α - p.α * (W x₀ * (W x₀) ^ (p.α - 1))) *
+        deriv W x₀) x₀ := by
+    simpa [Function.comp_def, mul_comm, mul_left_comm, mul_assoc] using
+      (reactionFun_hasDerivAt p.α p.hα (W x₀)).comp x₀ hW0
+  have hVterm_core := hpow_m.fun_mul hV0
+  have hVterm := hVterm_core.const_mul a
+  have hdiag := hpow_mγ.const_mul (-a)
+  have htotal := ((((hlin.fun_add hchem).fun_add hrxn).fun_add hVterm).fun_add hdiag)
+  have hWpos_ev : ∀ᶠ x in 𝓝 x₀, 0 < W x :=
+    hW0.continuousAt.eventually (lt_mem_nhds hWpos)
+  have heq : (fun x => paperWaveOperator p c u W x) =ᶠ[𝓝 x₀]
+      (fun x => (((iteratedDeriv 2 W x + c * deriv W x)
+        + a * p.m * ((W x) ^ (p.m - 1) * deriv V x * deriv W x))
+        + reactionFun p.α (W x))
+        + a * ((W x) ^ p.m * V x)
+        + (-a) * (W x) ^ (p.m + p.γ)) := by
+    filter_upwards [hWpos_ev] with x hxpos
+    have hm_id : (W x) ^ (p.m - 1) * W x = (W x) ^ p.m := by
+      rw [mul_comm]
+      exact mul_rpow_sub_one p.m p.hm hxpos.le
+    have hmg : 1 ≤ p.m + p.γ := by linarith [p.hm, p.hγ]
+    have hmg_id : W x * (W x) ^ (p.m + p.γ - 1) = (W x) ^ (p.m + p.γ) :=
+      mul_rpow_sub_one (p.m + p.γ) hmg hxpos.le
+    unfold paperWaveOperator reactionFun
+    simp only [V]
+    rw [ha, ← hm_id, ← hmg_id]
+    ring
+  convert htotal.congr_of_eventuallyEq heq using 1
+  · ring_nf
+
+private theorem paperWaveOperator_posMax_value_pos
+    {W : ℝ → ℝ} {M x₀ : ℝ}
+    (hWrange : ∀ x, W x ∈ Set.Icc (0:ℝ) M)
+    (hqpos : 0 < deriv W x₀) :
+    0 < W x₀ := by
+  have hx0_nonneg : 0 ≤ W x₀ := (hWrange x₀).1
+  by_contra hnot
+  have hx0_zero : W x₀ = 0 := le_antisymm (le_of_not_gt hnot) hx0_nonneg
+  have hmin_on : IsMinOn W Set.univ x₀ := by
+    intro y _
+    have hy_nonneg : 0 ≤ W y := (hWrange y).1
+    rw [hx0_zero]
+    exact hy_nonneg
+  have hmin : IsLocalMin W x₀ := hmin_on.isLocalMin univ_mem
+  have hzero : deriv W x₀ = 0 := hmin.deriv_eq_zero
+  linarith
+
+/-- Construct the Route-A local sign ledger for the paper-expanded wave operator
+from the structural smoothness, range, elliptic monotonicity, and elliptic bounds.
+
+No decomposition or sign field is carried: the derivative split is produced by
+`HasDerivAt` product/chain rules, and every sign/bound is discharged from the
+displayed structural assumptions. -/
+def paperWaveOperator_posMax_bookkeeping_of_structural
+    {p : CMParams} {c a M BV BV2 : ℝ} {u W : ℝ → ℝ} {x₀ : ℝ}
+    (ha : a = -p.χ) (hχ : p.χ ≤ 0)
+    (hWreg : ContDiff ℝ 3 W)
+    (hVreg : ContDiff ℝ 2 (frozenElliptic p u))
+    (hWrange : ∀ x, W x ∈ Set.Icc (0:ℝ) M)
+    (hVderiv_nonpos : ∀ x, deriv (frozenElliptic p u) x ≤ 0)
+    (hVbound : ∀ x, |frozenElliptic p u x| ≤ BV)
+    (hV2bound : ∀ x, |deriv (deriv (frozenElliptic p u)) x| ≤ BV2)
+    (hmax : IsMaxOn (fun x => deriv W x) Set.univ x₀)
+    (hqpos : 0 < deriv W x₀) :
+    PaperWaveOperatorPosMaxBookkeeping p c a M BV BV2 u W x₀ := by
+  have ha_nonneg : 0 ≤ a := by
+    rw [ha]
+    linarith
+  have hWpos : 0 < W x₀ :=
+    paperWaveOperator_posMax_value_pos (W := W) (M := M) hWrange hqpos
+  have hW_nonneg : 0 ≤ W x₀ := hWpos.le
+  have hW_le_M : W x₀ ≤ M := (hWrange x₀).2
+  have hM_nonneg : 0 ≤ M := by linarith
+  have hqSlope_zero : deriv (deriv W) x₀ = 0 := by
+    exact (hmax.isLocalMax univ_mem).deriv_eq_zero
+  have hqSecond_nonpos : deriv (deriv (deriv W)) x₀ ≤ 0 := by
+    exact deriv_deriv_nonpos_of_isLocalMax (hmax.isLocalMax univ_mem)
+      ((hWreg.continuous_deriv (by norm_num)).continuousAt)
+  have hW0 : HasDerivAt W (deriv W x₀) x₀ :=
+    (hWreg.differentiable (by norm_num)).differentiableAt.hasDerivAt
+  have hW1 : HasDerivAt (deriv W) (deriv (deriv W) x₀) x₀ := by
+    have h := (hWreg.differentiable_iteratedDeriv 1 (by norm_num)).differentiableAt.hasDerivAt
+      (x := x₀)
+    simpa [iteratedDeriv_one] using h
+  have hW2 : HasDerivAt (iteratedDeriv 2 W) (deriv (deriv (deriv W)) x₀) x₀ := by
+    have h := (hWreg.differentiable_iteratedDeriv 2 (by norm_num)).differentiableAt.hasDerivAt
+      (x := x₀)
+    simpa [iteratedDeriv_succ, iteratedDeriv_zero, iteratedDeriv_one] using h
+  have hV0 : HasDerivAt (frozenElliptic p u) (deriv (frozenElliptic p u) x₀) x₀ :=
+    (hVreg.differentiable (by norm_num)).differentiableAt.hasDerivAt
+  have hV1 : HasDerivAt (deriv (frozenElliptic p u))
+      (deriv (deriv (frozenElliptic p u)) x₀) x₀ := by
+    have h := (hVreg.differentiable_iteratedDeriv 1 (by norm_num)).differentiableAt.hasDerivAt
+      (x := x₀)
+    simpa [iteratedDeriv_one] using h
+  refine
+    { q := deriv W x₀
+      qSlope := deriv (deriv W) x₀
+      qSecond := deriv (deriv (deriv W)) x₀
+      slopeQuad :=
+        a * p.m * (p.m - 1) * (W x₀) ^ (p.m - 2) * (deriv W x₀)^2 *
+          deriv (frozenElliptic p u) x₀
+      transport :=
+        a * p.m * (W x₀) ^ (p.m - 1) * deriv (frozenElliptic p u) x₀ *
+          deriv (deriv W) x₀
+      vForcing := a * (W x₀) ^ p.m * deriv (frozenElliptic p u) x₀
+      diagonal :=
+        -a * (p.m + p.γ) * (W x₀) ^ (p.m + p.γ - 1) * deriv W x₀
+      reactionCoeff :=
+        1 - (W x₀) ^ p.α - p.α * (W x₀ * (W x₀) ^ (p.α - 1))
+      v2Coeff :=
+        a * p.m * (W x₀) ^ (p.m - 1) *
+          deriv (deriv (frozenElliptic p u)) x₀
+      vCoeff :=
+        a * p.m * (W x₀) ^ (p.m - 1) * frozenElliptic p u x₀
+      q_eq := rfl
+      paper_deriv := ?_
+      qSlope_zero := hqSlope_zero
+      qSecond_nonpos := hqSecond_nonpos
+      slopeQuad_nonpos := ?_
+      transport_zero := ?_
+      vForcing_nonpos := ?_
+      diagonal_nonpos := ?_
+      reactionCoeff_le := ?_
+      v2Coeff_le := ?_
+      vCoeff_le := ?_ }
+  · have hderiv := (paperWaveOperator_hasDerivAt_routeA
+      (p := p) (c := c) (a := a) (u := u) (W := W) (x₀ := x₀)
+      ha hW0 hW1 hW2 hV0 hV1 hWpos).deriv
+    convert hderiv using 1
+    ring_nf
+  · have hm0 : 0 ≤ p.m := by linarith [p.hm]
+    have hm1 : 0 ≤ p.m - 1 := by linarith [p.hm]
+    have hpow : 0 ≤ (W x₀) ^ (p.m - 2) := Real.rpow_nonneg hW_nonneg _
+    have hq2 : 0 ≤ (deriv W x₀)^2 := sq_nonneg _
+    have hcoef :
+        0 ≤ a * p.m * (p.m - 1) * (W x₀) ^ (p.m - 2) * (deriv W x₀)^2 := by
+      positivity
+    exact mul_nonpos_of_nonneg_of_nonpos hcoef (hVderiv_nonpos x₀)
+  · rw [hqSlope_zero]
+    ring
+  · have hpow : 0 ≤ (W x₀) ^ p.m := Real.rpow_nonneg hW_nonneg _
+    have hcoef : 0 ≤ a * (W x₀) ^ p.m := by positivity
+    exact mul_nonpos_of_nonneg_of_nonpos hcoef (hVderiv_nonpos x₀)
+  · have hmg0 : 0 ≤ p.m + p.γ := by linarith [p.hm, p.hγ]
+    have hpow : 0 ≤ (W x₀) ^ (p.m + p.γ - 1) := Real.rpow_nonneg hW_nonneg _
+    have hcoef :
+        0 ≤ a * (p.m + p.γ) * (W x₀) ^ (p.m + p.γ - 1) * deriv W x₀ := by
+      positivity
+    nlinarith
+  · have hα0 : 0 ≤ p.α := by linarith [p.hα]
+    have hα1 : 0 ≤ p.α + 1 := by linarith [p.hα]
+    have hWα : 0 ≤ (W x₀) ^ p.α := Real.rpow_nonneg hW_nonneg _
+    have hWαm1 : 0 ≤ (W x₀) ^ (p.α - 1) := Real.rpow_nonneg hW_nonneg _
+    have hprod : 0 ≤ p.α * (W x₀ * (W x₀) ^ (p.α - 1)) := by positivity
+    have hMα : 0 ≤ M ^ p.α := Real.rpow_nonneg hM_nonneg _
+    unfold reactionLip
+    nlinarith
+  · have hpow_le :
+        (W x₀) ^ (p.m - 1) ≤ M ^ (p.m - 1) :=
+      Real.rpow_le_rpow hW_nonneg hW_le_M (by linarith [p.hm])
+    have hm0 : 0 ≤ p.m := by linarith [p.hm]
+    have hleft_nonneg : 0 ≤ a * p.m := mul_nonneg ha_nonneg hm0
+    have hKle :
+        a * p.m * (W x₀) ^ (p.m - 1) ≤ a * p.m * M ^ (p.m - 1) :=
+      mul_le_mul_of_nonneg_left hpow_le hleft_nonneg
+    have hDle : deriv (deriv (frozenElliptic p u)) x₀ ≤ BV2 :=
+      le_trans (le_abs_self _) (hV2bound x₀)
+    have hBV2_nonneg : 0 ≤ BV2 :=
+      le_trans (abs_nonneg _) (hV2bound x₀)
+    have hpow_nonneg : 0 ≤ (W x₀) ^ (p.m - 1) := Real.rpow_nonneg hW_nonneg _
+    have hcoef_nonneg : 0 ≤ a * p.m * (W x₀) ^ (p.m - 1) := by positivity
+    calc
+      a * p.m * (W x₀) ^ (p.m - 1) * deriv (deriv (frozenElliptic p u)) x₀
+          ≤ a * p.m * (W x₀) ^ (p.m - 1) * BV2 := by
+            exact mul_le_mul_of_nonneg_left hDle hcoef_nonneg
+      _ ≤ a * p.m * M ^ (p.m - 1) * BV2 := by
+            exact mul_le_mul_of_nonneg_right hKle hBV2_nonneg
+  · have hpow_le :
+        (W x₀) ^ (p.m - 1) ≤ M ^ (p.m - 1) :=
+      Real.rpow_le_rpow hW_nonneg hW_le_M (by linarith [p.hm])
+    have hm0 : 0 ≤ p.m := by linarith [p.hm]
+    have hleft_nonneg : 0 ≤ a * p.m := mul_nonneg ha_nonneg hm0
+    have hKle :
+        a * p.m * (W x₀) ^ (p.m - 1) ≤ a * p.m * M ^ (p.m - 1) :=
+      mul_le_mul_of_nonneg_left hpow_le hleft_nonneg
+    have hVle : frozenElliptic p u x₀ ≤ BV :=
+      le_trans (le_abs_self _) (hVbound x₀)
+    have hBV_nonneg : 0 ≤ BV :=
+      le_trans (abs_nonneg _) (hVbound x₀)
+    have hpow_nonneg : 0 ≤ (W x₀) ^ (p.m - 1) := Real.rpow_nonneg hW_nonneg _
+    have hcoef_nonneg : 0 ≤ a * p.m * (W x₀) ^ (p.m - 1) := by positivity
+    calc
+      a * p.m * (W x₀) ^ (p.m - 1) * frozenElliptic p u x₀
+          ≤ a * p.m * (W x₀) ^ (p.m - 1) * BV := by
+            exact mul_le_mul_of_nonneg_left hVle hcoef_nonneg
+      _ ≤ a * p.m * M ^ (p.m - 1) * BV := by
+            exact mul_le_mul_of_nonneg_right hKle hBV_nonneg
+
 /-- Algebraic core of the paper-expanded derivative estimate at a positive
 maximum of `q = W'`.
 
@@ -211,6 +481,33 @@ theorem paperWaveOperator_deriv_at_pos_max_le_of_expanded_terms
   · unfold paperCmono at hCmono
     nlinarith
 
+/-- The Route-A bookkeeping discharges the local operator-derivative estimate:
+at a positive maximum of `q = W'`, the differentiated paper operator is bounded
+above by `Cmono * q`. -/
+theorem paperWaveOperator_deriv_at_pos_max_le_of_bookkeeping
+    {p : CMParams} {c a M BV BV2 Cmono : ℝ} {u W : ℝ → ℝ} {x₀ : ℝ}
+    (hCmono : paperCmono p a M BV BV2 ≤ Cmono)
+    (hb : PaperWaveOperatorPosMaxBookkeeping p c a M BV BV2 u W x₀)
+    (hqpos : 0 < deriv W x₀) :
+    deriv (fun x => paperWaveOperator p c u W x) x₀
+      ≤ Cmono * deriv W x₀ := by
+  have hbqpos : 0 < hb.q := by
+    rw [hb.q_eq]
+    exact hqpos
+  have htransport : hb.transport ≤ 0 := by
+    rw [hb.transport_zero]
+  exact paperWaveOperator_deriv_at_pos_max_le_of_expanded_terms
+    (p := p) (c := c) (a := a) (M := M) (BV := BV) (BV2 := BV2)
+    (Cmono := Cmono) (u := u) (W := W) (x₀ := x₀)
+    (q := hb.q) (q' := hb.qSlope) (q'' := hb.qSecond)
+    (goodSlope := hb.slopeQuad) (goodTransport := hb.transport)
+    (goodForcing := hb.vForcing) (goodDiagonal := hb.diagonal)
+    (reactionCoeff := hb.reactionCoeff) (v2Coeff := hb.v2Coeff)
+    (vCoeff := hb.vCoeff)
+    hb.q_eq hb.paper_deriv hbqpos hb.qSlope_zero hb.qSecond_nonpos
+    hb.slopeQuad_nonpos htransport hb.vForcing_nonpos hb.diagonal_nonpos
+    hb.reactionCoeff_le hb.v2Coeff_le hb.vCoeff_le hCmono
+
 /-- Differentiated paper step maximum principle.  If `q = W'` had a positive
 global maximum, the differentiated step equation
 `q - (1/λ) A'(W) = Z'` would contradict `Z' ≤ 0` and
@@ -227,7 +524,7 @@ theorem smooth_paperStep_deriv_nonpos_of_quasiMonotone
     (hqcont : Continuous (fun x => deriv W x))
     (hbot : Tendsto (fun x => deriv W x) atBot (𝓝 La)) (hLa : La ≤ 0)
     (htop : Tendsto (fun x => deriv W x) atTop (𝓝 Lb)) (hLb : Lb ≤ 0)
-    (hmax_est : ∀ x₀,
+    (hmono_bound : ∀ x₀,
       IsMaxOn (fun x => deriv W x) Set.univ x₀ →
         0 < deriv W x₀ →
           deriv (fun x => paperWaveOperator p c u W x) x₀
@@ -239,7 +536,7 @@ theorem smooth_paperStep_deriv_nonpos_of_quasiMonotone
   obtain ⟨x₀, hmax, hqpos⟩ :=
     exists_isMaxOn_pos_of_tendsto_nonpos (φ := fun x => deriv W x)
       hqcont hbot hLa htop hLb hx₁
-  have hA := hmax_est x₀ hmax hqpos
+  have hA := hmono_bound x₀ hmax hqpos
   have hmul :
       (1 / lam) * deriv (fun y => paperWaveOperator p c u W y) x₀
         ≤ (1 / lam) * (Cmono * deriv W x₀) :=
@@ -277,7 +574,7 @@ theorem smooth_paperStep_preserves_antitone_of_quasiMonotone
     (hqcont : Continuous (fun x => deriv W x))
     (hbot : Tendsto (fun x => deriv W x) atBot (𝓝 La)) (hLa : La ≤ 0)
     (htop : Tendsto (fun x => deriv W x) atTop (𝓝 Lb)) (hLb : Lb ≤ 0)
-    (hmax_est : ∀ x₀,
+    (hmono_bound : ∀ x₀,
       IsMaxOn (fun x => deriv W x) Set.univ x₀ →
         0 < deriv W x₀ →
           deriv (fun x => paperWaveOperator p c u W x) x₀
@@ -287,7 +584,7 @@ theorem smooth_paperStep_preserves_antitone_of_quasiMonotone
     (smooth_paperStep_deriv_nonpos_of_quasiMonotone
       (p := p) (c := c) (lam := lam) (Cmono := Cmono)
       (u := u) (Z := Z) (W := W) (La := La) (Lb := Lb)
-      hlam hsmall hstep_deriv hZderiv hqcont hbot hLa htop hLb hmax_est)
+      hlam hsmall hstep_deriv hZderiv hqcont hbot hLa htop hLb hmono_bound)
 
 /-! ## Route-A paper producer interface, without shifted sliding data -/
 
@@ -295,7 +592,8 @@ theorem smooth_paperStep_preserves_antitone_of_quasiMonotone
 
 This replaces `PaperStepAntitoneData`: no shifted comparison residual is carried.
 The data are exactly the differentiated step equation, the mollified-source
-derivative sign, the derivative tails, and the `q`-maximum estimate. -/
+derivative sign, the derivative tails, and the local expanded sign ledger for
+the differentiated paper operator. -/
 structure PaperStepRouteAData
     (p : CMParams) (c lam Cmono : ℝ) (u Z W : ℝ → ℝ) where
   hsmall : (1 / lam) * Cmono < 1
@@ -310,11 +608,61 @@ structure PaperStepRouteAData
   hLa : La ≤ 0
   htop : Tendsto (fun x => deriv W x) atTop (𝓝 Lb)
   hLb : Lb ≤ 0
-  max_est : ∀ x₀,
+  a : ℝ
+  M : ℝ
+  BV : ℝ
+  BV2 : ℝ
+  Cmono_bound : paperCmono p a M BV BV2 ≤ Cmono
+  bookkeeping : ∀ x₀,
     IsMaxOn (fun x => deriv W x) Set.univ x₀ →
       0 < deriv W x₀ →
-        deriv (fun x => paperWaveOperator p c u W x) x₀
-          ≤ Cmono * deriv W x₀
+        PaperWaveOperatorPosMaxBookkeeping p c a M BV BV2 u W x₀
+
+/-- Structural producer for the Route-A derivative maximum-principle data.
+
+The local bookkeeping field is constructed by
+`paperWaveOperator_posMax_bookkeeping_of_structural`, so callers provide only
+smoothness, range, elliptic monotonicity/bounds, the differentiated step equation,
+source derivative sign, tails, and the scalar smallness bound. -/
+def paperStepRouteAData_of_structural
+    {p : CMParams} {c lam Cmono a M BV BV2 : ℝ} {u Z W : ℝ → ℝ}
+    {La Lb : ℝ}
+    (ha : a = -p.χ) (hχ : p.χ ≤ 0)
+    (hWreg : ContDiff ℝ 3 W)
+    (hVreg : ContDiff ℝ 2 (frozenElliptic p u))
+    (hWrange : ∀ x, W x ∈ Set.Icc (0:ℝ) M)
+    (hVderiv_nonpos : ∀ x, deriv (frozenElliptic p u) x ≤ 0)
+    (hVbound : ∀ x, |frozenElliptic p u x| ≤ BV)
+    (hV2bound : ∀ x, |deriv (deriv (frozenElliptic p u)) x| ≤ BV2)
+    (hsmall : (1 / lam) * Cmono < 1)
+    (hstep_deriv : ∀ x,
+      deriv W x - (1 / lam) *
+          deriv (fun y => paperWaveOperator p c u W y) x = deriv Z x)
+    (hZderiv : ∀ x, deriv Z x ≤ 0)
+    (hbot : Tendsto (fun x => deriv W x) atBot (𝓝 La)) (hLa : La ≤ 0)
+    (htop : Tendsto (fun x => deriv W x) atTop (𝓝 Lb)) (hLb : Lb ≤ 0)
+    (hCmono : paperCmono p a M BV BV2 ≤ Cmono) :
+    PaperStepRouteAData p c lam Cmono u Z W where
+  hsmall := hsmall
+  step_deriv := hstep_deriv
+  Z_deriv_nonpos := hZderiv
+  q_cont := hWreg.continuous_deriv (by norm_num)
+  La := La
+  Lb := Lb
+  hbot := hbot
+  hLa := hLa
+  htop := htop
+  hLb := hLb
+  a := a
+  M := M
+  BV := BV
+  BV2 := BV2
+  Cmono_bound := hCmono
+  bookkeeping := fun x₀ hmax hqpos =>
+    paperWaveOperator_posMax_bookkeeping_of_structural
+      (p := p) (c := c) (a := a) (M := M) (BV := BV) (BV2 := BV2)
+      (u := u) (W := W) (x₀ := x₀)
+      ha hχ hWreg hVreg hWrange hVderiv_nonpos hVbound hV2bound hmax hqpos
 
 /-- One smooth paper step is antitone from Route-A derivative data. -/
 theorem paperStep_antitone_by_routeA
@@ -323,11 +671,55 @@ theorem paperStep_antitone_by_routeA
     (hWdiff : Differentiable ℝ W)
     (hd : PaperStepRouteAData p c lam Cmono u Z W) :
     Antitone W := by
+  have hmono : ∀ x₀,
+      IsMaxOn (fun x => deriv W x) Set.univ x₀ →
+        0 < deriv W x₀ →
+          deriv (fun x => paperWaveOperator p c u W x) x₀
+            ≤ Cmono * deriv W x₀ := by
+    intro x₀ hxmax hqpos
+    exact paperWaveOperator_deriv_at_pos_max_le_of_bookkeeping
+      (p := p) (c := c) (a := hd.a) (M := hd.M) (BV := hd.BV)
+      (BV2 := hd.BV2) (Cmono := Cmono) (u := u) (W := W) (x₀ := x₀)
+      hd.Cmono_bound (hd.bookkeeping x₀ hxmax hqpos) hqpos
   exact smooth_paperStep_preserves_antitone_of_quasiMonotone
     (p := p) (c := c) (lam := lam) (Cmono := Cmono)
     (u := u) (Z := Z) (W := W) (La := hd.La) (Lb := hd.Lb)
     hlam hd.hsmall hWdiff hd.step_deriv hd.Z_deriv_nonpos
-    hd.q_cont hd.hbot hd.hLa hd.htop hd.hLb hd.max_est
+    hd.q_cont hd.hbot hd.hLa hd.htop hd.hLb hmono
+
+/-- Smooth paper-expanded implicit steps preserve antitonicity from structural
+Route-A hypotheses alone: no local sign ledger or derivative decomposition is
+carried by the caller. -/
+theorem paperStep_antitone_by_routeA_of_structural
+    {p : CMParams} {c lam Cmono a M BV BV2 : ℝ} {u Z W : ℝ → ℝ}
+    {La Lb : ℝ}
+    (hlam : 0 < lam)
+    (ha : a = -p.χ) (hχ : p.χ ≤ 0)
+    (hWreg : ContDiff ℝ 3 W)
+    (hVreg : ContDiff ℝ 2 (frozenElliptic p u))
+    (hWrange : ∀ x, W x ∈ Set.Icc (0:ℝ) M)
+    (hVderiv_nonpos : ∀ x, deriv (frozenElliptic p u) x ≤ 0)
+    (hVbound : ∀ x, |frozenElliptic p u x| ≤ BV)
+    (hV2bound : ∀ x, |deriv (deriv (frozenElliptic p u)) x| ≤ BV2)
+    (hsmall : (1 / lam) * Cmono < 1)
+    (hstep_deriv : ∀ x,
+      deriv W x - (1 / lam) *
+          deriv (fun y => paperWaveOperator p c u W y) x = deriv Z x)
+    (hZderiv : ∀ x, deriv Z x ≤ 0)
+    (hbot : Tendsto (fun x => deriv W x) atBot (𝓝 La)) (hLa : La ≤ 0)
+    (htop : Tendsto (fun x => deriv W x) atTop (𝓝 Lb)) (hLb : Lb ≤ 0)
+    (hCmono : paperCmono p a M BV BV2 ≤ Cmono) :
+    Antitone W := by
+  exact paperStep_antitone_by_routeA
+    (p := p) (c := c) (lam := lam) (Cmono := Cmono)
+    (u := u) (Z := Z) (W := W) hlam
+    (hWreg.differentiable (by norm_num))
+    (paperStepRouteAData_of_structural
+      (p := p) (c := c) (lam := lam) (Cmono := Cmono)
+      (a := a) (M := M) (BV := BV) (BV2 := BV2)
+      (u := u) (Z := Z) (W := W) (La := La) (Lb := Lb)
+      ha hχ hWreg hVreg hWrange hVderiv_nonpos hVbound hV2bound
+      hsmall hstep_deriv hZderiv hbot hLa htop hLb hCmono)
 
 /-- A paper-step output core whose antitonicity is supplied by Route A rather
 than the shifted sliding wrapper. -/
@@ -438,11 +830,16 @@ section AxiomAudit
 #print axioms smooth_paperStep_step_op_of_core
 #print axioms smooth_paperStep_basic_regular_of_core
 #print axioms paperCmono
+#print axioms PaperWaveOperatorPosMaxBookkeeping
+#print axioms paperWaveOperator_posMax_bookkeeping_of_structural
 #print axioms paperWaveOperator_deriv_at_pos_max_le_of_quasiMonotone
 #print axioms paperWaveOperator_deriv_at_pos_max_le_of_expanded_terms
+#print axioms paperWaveOperator_deriv_at_pos_max_le_of_bookkeeping
 #print axioms smooth_paperStep_deriv_nonpos_of_quasiMonotone
 #print axioms smooth_paperStep_preserves_antitone_of_quasiMonotone
+#print axioms paperStepRouteAData_of_structural
 #print axioms paperStep_antitone_by_routeA
+#print axioms paperStep_antitone_by_routeA_of_structural
 #print axioms paperRotheStepProducer_of_routeA_greenCore
 #print axioms paperRotheStepProducer_all_of_routeA_greenCore
 #print axioms antitone_of_eventual_pointwise_limit
