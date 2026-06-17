@@ -1,4 +1,5 @@
 import ShenWork.Paper1.WavePaperTermConvergence
+import Mathlib.Topology.Order.MonotoneConvergence
 
 namespace ShenWork.Paper1
 
@@ -272,6 +273,37 @@ def FrozenStationaryGreenSourceTail (c lam : ℝ) (U : ℝ → ℝ) : Prop :=
     Continuous R ∧ (∀ y, |R y| ≤ B) ∧ Tendsto R atBot (𝓝 L) ∧
       U = fun x => greenConv c lam R x
 
+/-- A bounded antitone real profile has finite limits at both spatial tails. -/
+theorem antitone_tendsto_atBot_atTop_of_bdd
+    {U : ℝ → ℝ}
+    (hanti : Antitone U)
+    (hbddAbove : BddAbove (Set.range U))
+    (hbddBelow : BddBelow (Set.range U)) :
+    (∃ L, Tendsto U atBot (𝓝 L)) ∧
+      (∃ L, Tendsto U atTop (𝓝 L)) := by
+  exact ⟨⟨⨆ x, U x, tendsto_atBot_ciSup hanti hbddAbove⟩,
+    ⟨⨅ x, U x, tendsto_atTop_ciInf hanti hbddBelow⟩⟩
+
+/-- Every lower-pinned monotone trap profile has finite left and right tail
+limits.  This is the trap-level part of the stationary Green source-tail
+argument. -/
+theorem inLowerPinnedMonotoneTrap_profile_tail_limits
+    {κ M : ℝ} {φ U : ℝ → ℝ}
+    (hU : InLowerPinnedMonotoneTrap κ M φ U) :
+    (∃ L, Tendsto U atBot (𝓝 L)) ∧
+      (∃ L, Tendsto U atTop (𝓝 L)) := by
+  have hbare : InMonotoneWaveTrapSet κ M U := hU.bare
+  have hbddAbove : BddAbove (Set.range U) := by
+    refine ⟨M, ?_⟩
+    rintro y ⟨x, rfl⟩
+    exact hbare.le_M x
+  have hbddBelow : BddBelow (Set.range U) := by
+    refine ⟨0, ?_⟩
+    rintro y ⟨x, rfl⟩
+    exact hbare.nonneg x
+  exact antitone_tendsto_atBot_atTop_of_bdd
+    hbare.antitone hbddAbove hbddBelow
+
 theorem frozenElliptic_tendsto_atBot_of_profile_tendsto
     (p : CMParams) {U : ℝ → ℝ} {L : ℝ}
     (hU : IsCUnifBdd U) (hU_nonneg : ∀ x, 0 ≤ U x)
@@ -399,6 +431,18 @@ theorem frozenElliptic_tendsto_atBot_of_profile_tendsto
     simpa using hpsi
   rw [← hG_integral]
   exact hInt_tendsto.congr' (Eventually.of_forall fun x => (hrepr x).symm)
+
+/-- The frozen elliptic signal of a lower-pinned monotone trap profile also has
+a finite left tail limit. -/
+theorem inLowerPinnedMonotoneTrap_frozenElliptic_tail_atBot
+    (p : CMParams) {κ M : ℝ} {φ U : ℝ → ℝ}
+    (hU : InLowerPinnedMonotoneTrap κ M φ U) :
+    ∃ L, Tendsto (frozenElliptic p U) atBot (𝓝 L) := by
+  rcases (inLowerPinnedMonotoneTrap_profile_tail_limits hU).1 with
+    ⟨LU, hUlim⟩
+  exact ⟨LU ^ p.γ,
+    frozenElliptic_tendsto_atBot_of_profile_tendsto p
+      hU.bare.trap.cunif_bdd hU.bare.nonneg hUlim⟩
 
 theorem frozenChemFlux_deriv_tendsto_atBot_zero_of_profile_tails
     {p : CMParams} {κ M : ℝ} {φ U : ℝ → ℝ} {L : ℝ}
