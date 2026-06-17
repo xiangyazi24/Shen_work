@@ -331,3 +331,23 @@ L=1. The crux: the construction must yield a NON-TRIVIAL fixed point (exclude th
 genuine core of wave existence. The vacuous profileClean_stationary_floor chain must be superseded by the non-triviality +
 strong-max-principle route. LESSON (again): vacuity-check EVERY carried hypothesis's satisfiability BEFORE calling a
 reduction a milestone -- a build-green axiom-clean theorem with an unsatisfiable hypothesis is vacuous.
+
+## P1 wave — VACUITY CORRECTION #3 (23:3x, cx_pde): the "Nontrivial Schauder principle" fix was ITSELF vacuous
+The first attempt to fix the floor (cx_pde, pre-redirect) defined
+  LocalUniformNontrivialSchauderFixedPointPrinciple (trap) := ∀ Tmap, (trap-invariant)→(LUContOn)→(LUSeqCpctRange)
+    → ∃ U, trap U ∧ Tmap U = U ∧ ProfileNontrivial U
+and carried it as a hypothesis of b1_chiNeg_existence_stationary_nontrivial_rootPin. This principle is PROVABLY FALSE on
+trap = InMonotoneWaveTrapSet (which CONTAINS 0): the constant-zero map Tmap₀ u = 0 is trap-invariant, continuous, compact-
+range {0}, with ONLY fixed point 0, and ProfileNontrivial 0 is false. So Tmap₀ refutes the principle ⟹ the theorem carrying
+it is VACUOUSLY true. SAME vacuity class as the floor, relocated into the Schauder principle. REJECTED, not committed.
+CORRECT FIX (ChatGPT cron-audited, repo-verified, route saved ShenWork/Paper1/NONTRIV_ROUTE_chatgpt.md): non-triviality
+must come FROM THE TRAP, not an over-strong principle. The lower barrier ALREADY EXISTS & is fully proven in Statements.lean:
+lowerBarrierPlateau (4248) + _pos (4274, strictly positive at finite x) + _le_exp (4286) + _antitone/_isBddFun/_cunif_bdd +
+_mem_InWaveTrapSet_exp_xplus (4918). Define InLowerPinnedMonotoneTrap κ M φ U := InMonotoneWaveTrapSet ∧ ∀x, φ x ≤ U x with
+φ = lowerBarrierPlateau. The zero fn is NOT in this pinned trap (0<φ but φ≤0 fails) ⟹ the zero-map refutation does NOT apply
+⟹ the STANDARD Schauder principle on the pinned trap IS satisfiable, and its fixed point is automatically non-trivial
+(U ≥ φ > 0). The ONE genuine new field: lower-barrier INVARIANCE φ ≤ Tmap U (φ is a subsolution + order-preserving step).
+hpos then = lt_of_lt_of_le (lowerBarrierPlateau_pos ..) (hU.2 x); hlim_neg via tendsto_atBot_one_..._nontrivial (correct,
+kept). cx_pde redirected (biltdfd4b) to: PROVE ¬principle-on-bare-trap (zero map), KEEP the honest pieces (ProfileNontrivial,
+floor refutation, StationaryStrongMaxPrinciple, the nontrivial pin), build the pinned-trap version. LESSON: a vacuity FIX
+can introduce a NEW vacuity (over-strong universally-quantified principle false on a degenerate input) -- re-audit the fix.
