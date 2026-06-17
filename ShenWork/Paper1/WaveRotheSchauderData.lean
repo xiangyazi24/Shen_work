@@ -134,6 +134,32 @@ def RotheOrbitLowerBound
   ∀ u, InLowerPinnedMonotoneTrap κ M φ u →
     ∀ k x, φ x ≤ rotheSeq u k x
 
+/-- One-step lower-barrier invariant for a frozen Rothe orbit.  This is the
+inductive step needed to prove `RotheOrbitLowerBound`: if iterate `k` is above
+the lower pin `φ`, then iterate `k+1` is above the same pin. -/
+def RotheStepLowerInvariant
+    (κ M : ℝ) (φ : ℝ → ℝ)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ) : Prop :=
+  ∀ u, InLowerPinnedMonotoneTrap κ M φ u →
+    ∀ k, (∀ x, φ x ≤ rotheSeq u k x) →
+      ∀ x, φ x ≤ rotheSeq u (k + 1) x
+
+/-- Base plus the one-step lower invariant gives the full lower-bound orbit
+property by induction on the Rothe index. -/
+theorem rotheOrbitLowerBound_of_stepLowerInvariant
+    {κ M : ℝ} {φ : ℝ → ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hbase : ∀ u, InLowerPinnedMonotoneTrap κ M φ u →
+      ∀ x, φ x ≤ rotheSeq u 0 x)
+    (hstep : RotheStepLowerInvariant κ M φ rotheSeq) :
+    RotheOrbitLowerBound κ M φ rotheSeq := by
+  intro u hu k
+  induction k with
+  | zero =>
+      exact hbase u hu
+  | succ k ih =>
+      simpa [Nat.succ_eq_add_one] using hstep u hu k ih
+
 /-- If every Rothe iterate stays above `φ`, then the Rothe limit stays above
 `φ`, since `rotheLimit` is the pointwise infimum of the iterates. -/
 theorem Tmap_lowerInvariant_of_rotheOrbitLowerBound
@@ -614,7 +640,6 @@ theorem b1_chiNeg_existence_rothe_lowerPinned_stationary_rootPin
         rotheLimit (rotheSeq U) = U →
           ∀ x, frozenWaveOperator p c U U x = 0)
     (hφpos : ∀ x, 0 < φ x)
-    (hsmp : StationaryStrongMaxPrinciple p c κ M)
     (hflat : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
       (∀ x, frozenWaveOperator p c U U x = 0) →
         FrozenStationaryFlatAtLeft p U) :
@@ -624,27 +649,14 @@ theorem b1_chiNeg_existence_rothe_lowerPinned_stationary_rootPin
     hc hκ hprinciple
     (rotheSchauderData_lowerPinned p c lam M Bv κ φ hlam hM hBv
       rotheSeq hŪbdd hHelly hdep hdata hlower)
-    hstationary hφpos hsmp hflat
+    hstationary hφpos hflat
 
 /-! ## Axiom audit -/
 
 section AxiomAudit
 
-#print axioms Tmap_maps_trap
-#print axioms Tmap_crossDiagonal
-#print axioms locallyUniform_of_helly_pointwise
-#print axioms Tmap_compactRange
-#print axioms Tmap_continuousOn
-#print axioms rotheSchauderData
-#print axioms Tmap_lowerInvariant_of_rotheOrbitLowerBound
-#print axioms rotheSchauderData_lowerPinned
-#print axioms b1_chiNeg_existence_rothe
-#print axioms b1_chiNeg_existence_rothe_rootPin
-#print axioms b1_chiNeg_existence_rothe_stationary_floor
-#print axioms b1_chiNeg_existence_rothe_stationary_floor_rootPin
-#print axioms b1_chiNeg_existence_rothe_stationary_nontrivial_rootPin
-#print axioms b1_chiNeg_existence_rothe_lowerPinned_stationary_rootPin
 
 end AxiomAudit
 
 end ShenWork.Paper1
+

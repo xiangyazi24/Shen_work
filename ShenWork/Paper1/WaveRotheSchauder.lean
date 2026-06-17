@@ -465,7 +465,7 @@ It uses the ordinary local-uniform Schauder fixed-point principle on the pinned
 trap `InLowerPinnedMonotoneTrap κ M φ`.  Non-triviality and pointwise positivity
 come from the trap field `φ ≤ U` plus `0 < φ`, not from a strengthened Schauder
 principle.  The left endpoint is still pinned by the honest
-`tendsto_atBot_one_of_stationary_flat_and_nontrivial` route. -/
+`tendsto_atBot_one_of_stationary_flat_and_pos` route. -/
 theorem b1_chiNeg_existence_of_lowerPinnedSchauderData_stationary_rootPin
     {p : CMParams} {c lam κ M : ℝ} {φ : ℝ → ℝ}
     {Tmap : (ℝ → ℝ) → ℝ → ℝ}
@@ -479,7 +479,6 @@ theorem b1_chiNeg_existence_of_lowerPinnedSchauderData_stationary_rootPin
     (hstationary : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
       Tmap U = U → ∀ x, frozenWaveOperator p c U U x = 0)
     (hφpos : ∀ x, 0 < φ x)
-    (hsmp : StationaryStrongMaxPrinciple p c κ M)
     (hflat : ∀ U, InLowerPinnedMonotoneTrap κ M φ U →
       (∀ x, frozenWaveOperator p c U U x = 0) →
         FrozenStationaryFlatAtLeft p U) :
@@ -491,11 +490,9 @@ theorem b1_chiNeg_existence_of_lowerPinnedSchauderData_stationary_rootPin
     hstationary U hU hfix
   have hpos : ∀ x, 0 < U x :=
     hU.pos hφpos
-  have hnontriv : ProfileNontrivial U :=
-    hU.profileNontrivial hφpos
   have hlim_neg : Tendsto U atBot (𝓝 1) :=
-    InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_nontrivial
-      hU.bare hsmp hnontriv (hflat U hU hstat) hstat
+    InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_pos
+      hU.bare hpos (hflat U hU hstat) hstat
   have hlim_pos : Tendsto U atTop (𝓝 0) :=
     hU.bare.tendsto_atTop_zero hκ
   refine ⟨U, hU, ?_⟩
@@ -521,7 +518,6 @@ theorem b1_chiNeg_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin
       InLowerPinnedMonotoneTrap κ M
         (lowerBarrierPlateau κ κtilde D) U →
       Tmap U = U → ∀ x, frozenWaveOperator p c U U x = 0)
-    (hsmp : StationaryStrongMaxPrinciple p c κ M)
     (hflat : ∀ U,
       InLowerPinnedMonotoneTrap κ M
         (lowerBarrierPlateau κ κtilde D) U →
@@ -532,7 +528,7 @@ theorem b1_chiNeg_existence_of_lowerBarrierPinnedSchauderData_stationary_rootPin
       FrozenStationaryWaveProfile p c U :=
   b1_chiNeg_existence_of_lowerPinnedSchauderData_stationary_rootPin
     hc hκ hprinciple hdata hstationary
-    (lowerBarrierPlateau_pos hκ hgap hD) hsmp hflat
+    (lowerBarrierPlateau_pos hκ hgap hD) hflat
 
 section AxiomAudit
 #print axioms not_localUniformNontrivialSchauderFixedPointPrinciple_bareTrap

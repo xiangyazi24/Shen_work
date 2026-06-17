@@ -312,6 +312,33 @@ theorem InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_nontrivia
   exact InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_pos
     hU (hsmp U hU hstat hnontriv) hflat hstat
 
+/-- ODE-uniqueness bridge for the strong maximum principle.
+
+This is the single analytic input supplied by the 1-D traveling-wave ODE:
+if a stationary trapped profile touches the equilibrium component `U = 0`, then
+the Cauchy data agree with `TravelingWaveODE.E0`; Picard-Lindelöf uniqueness for
+`TravelingWaveODE.vectorField` therefore propagates the zero profile. -/
+def StationaryZeroPropagatesByODEUniqueness
+    (p : CMParams) (c κ M : ℝ) : Prop :=
+  ∀ U, InMonotoneWaveTrapSet κ M U →
+    (∀ x, frozenWaveOperator p c U U x = 0) →
+      ∀ x₀, U x₀ = 0 → ∀ x, U x = 0
+
+/-- The ODE-uniqueness bridge gives the stationary strong maximum principle:
+a nonnegative stationary trapped profile cannot touch zero unless it is the zero
+profile, contradicting `ProfileNontrivial`. -/
+theorem stationaryStrongMaxPrinciple_of_odeUniqueness
+    {p : CMParams} {c κ M : ℝ}
+    (huniq : StationaryZeroPropagatesByODEUniqueness p c κ M) :
+    StationaryStrongMaxPrinciple p c κ M := by
+  intro U hU hstat hnontriv x
+  by_contra hnot
+  have hx0 : U x = 0 :=
+    le_antisymm (not_lt.mp hnot) (hU.nonneg x)
+  have hzero : ∀ y, U y = 0 := huniq U hU hstat x hx0
+  have hUzero : U = fun _ : ℝ => (0 : ℝ) := funext hzero
+  exact not_profileNontrivial_zero (by simpa [hUzero] using hnontriv)
+
 /-- Formal route (b): monotone left limit + reaction-root + lower-pin. -/
 theorem monotoneTrap_profile_hlim_neg_of_limit_root_and_pin
     {κ M : ℝ} (p : CMParams)
@@ -471,6 +498,7 @@ section AxiomAudit
 #print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_floor
 #print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_pos
 #print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_stationary_flat_and_nontrivial
+#print axioms stationaryStrongMaxPrinciple_of_odeUniqueness
 #print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_pin
 #print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_pos
 #print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_floor

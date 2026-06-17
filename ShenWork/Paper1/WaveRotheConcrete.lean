@@ -229,6 +229,35 @@ theorem rotheSeqOf_base
     IterateBase p c κ M u (rotheSeqOf p c lam M κ Λ u hprod hκ hM k) :=
   (rotheStep p c lam M κ Λ u hprod hκ hM k).2
 
+/-- Base of the lower-pinned induction: the concrete Rothe seed is the upper
+barrier, and every pinned frozen input lies below that barrier. -/
+theorem rotheSeqOf_lowerPinned_base
+    {p : CMParams} {c lam M κ Λ : ℝ} {φ u : ℝ → ℝ}
+    (hprod : RotheStepProducer p c lam M κ Λ u)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+    (hu : InLowerPinnedMonotoneTrap κ M φ u) :
+    ∀ x, φ x ≤ rotheSeqOf p c lam M κ Λ u hprod hκ hM 0 x := by
+  intro x
+  rw [rotheSeqOf_zero]
+  exact le_trans (hu.lower x) (hu.bare.le_upperBarrier x)
+
+/-- Lower-bound orbit for the concrete Rothe sequence, reduced to the honest
+one-step lower-invariance obligation.  The base case is discharged here. -/
+theorem rotheOrbitLowerBound_lowerBarrierPlateau
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hprodAll : ∀ u, RotheStepProducer p c lam M κ Λ u)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+    (hstepLower :
+      RotheStepLowerInvariant κ M (lowerBarrierPlateau κ κtilde D)
+        (fun u => rotheSeqOf p c lam M κ Λ u
+          (hprodAll u) hκ hM)) :
+    RotheOrbitLowerBound κ M (lowerBarrierPlateau κ κtilde D)
+      (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκ hM) := by
+  apply rotheOrbitLowerBound_of_stepLowerInvariant
+  · intro u hu
+    exact rotheSeqOf_lowerPinned_base (hprodAll u) hκ hM hu
+  · exact hstepLower
+
 /-! ## Per-`k` field extraction (by the step bundle) -/
 
 section PerK
@@ -829,10 +858,9 @@ principle on
 profile is excluded by the pinned trap, and the produced fixed point is
 pointwise positive because it lies above `lowerBarrierPlateau`.
 
-The remaining frontier is the concrete Rothe lower-bound invariant
-`hrotheLower`: every frozen Rothe iterate stays above the plateau lower barrier.
-This is the exact place where the lower-barrier subsolution and the
-order-preserving implicit-step comparison must be supplied. -/
+The remaining frontier is the one-step lower invariant `hstepLower`: each
+implicit step preserves the lower plateau once the previous iterate is above it.
+The base of the induction is discharged by `rotheSeqOf_lowerPinned_base`. -/
 theorem b1_chiNeg_existence_stationary_lowerBarrierPinned_rootPin
     (p : CMParams) (c lam M Bv κ κtilde D Λ : ℝ)
     (hc : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
@@ -848,8 +876,8 @@ theorem b1_chiNeg_existence_stationary_lowerBarrierPinned_rootPin
         ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
     (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
         (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκpos.le hM))
-    (hrotheLower :
-      RotheOrbitLowerBound κ M (lowerBarrierPlateau κ κtilde D)
+    (hstepLower :
+      RotheStepLowerInvariant κ M (lowerBarrierPlateau κ κtilde D)
         (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκpos.le hM))
     (hprinciple :
       LocalUniformSchauderFixedPointPrinciple
@@ -860,7 +888,6 @@ theorem b1_chiNeg_existence_stationary_lowerBarrierPinned_rootPin
         rotheLimit (rotheSeqOf p c lam M κ Λ U
           (hprodAll U) hκpos.le hM) = U →
           ∀ x, frozenWaveOperator p c U U x = 0)
-    (hsmp : StationaryStrongMaxPrinciple p c κ M)
     (hflat : ∀ U,
       InLowerPinnedMonotoneTrap κ M (lowerBarrierPlateau κ κtilde D) U →
       (∀ x, frozenWaveOperator p c U U x = 0) →
@@ -877,8 +904,10 @@ theorem b1_chiNeg_existence_stationary_lowerBarrierPinned_rootPin
     hdep
     (fun u hu => rotheOrbitData hprodAll hκpos.le hM hΛ0 hΛM Bv
       hbarLip (hVcont u hu) (hVbound u hu))
-    hrotheLower hprinciple hstationary
-    (lowerBarrierPlateau_pos hκpos hgap hD) hsmp hflat
+    (rotheOrbitLowerBound_lowerBarrierPlateau p c lam M κ κtilde D Λ
+      hprodAll hκpos.le hM hstepLower)
+    hprinciple hstationary
+    (lowerBarrierPlateau_pos hκpos hgap hD) hflat
 
 /-- Profile-clean entry point for the lower-barrier pinned route.
 
@@ -900,8 +929,8 @@ theorem b1_chiNeg_existence_profileClean_stationary_lowerBarrierPinned_rootPin
         ∀ y, |deriv (frozenElliptic p u) y| ≤ Bv)
     (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
         (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκpos.le hM))
-    (hrotheLower :
-      RotheOrbitLowerBound κ M (lowerBarrierPlateau κ κtilde D)
+    (hstepLower :
+      RotheStepLowerInvariant κ M (lowerBarrierPlateau κ κtilde D)
         (fun u => rotheSeqOf p c lam M κ Λ u (hprodAll u) hκpos.le hM))
     (hprinciple :
       LocalUniformSchauderFixedPointPrinciple
@@ -912,7 +941,6 @@ theorem b1_chiNeg_existence_profileClean_stationary_lowerBarrierPinned_rootPin
         rotheLimit (rotheSeqOf p c lam M κ Λ U
           (hprodAll U) hκpos.le hM) = U →
           ∀ x, frozenWaveOperator p c U U x = 0)
-    (hsmp : StationaryStrongMaxPrinciple p c κ M)
     (hflat : ∀ U,
       InLowerPinnedMonotoneTrap κ M (lowerBarrierPlateau κ κtilde D) U →
       (∀ x, frozenWaveOperator p c U U x = 0) →
@@ -923,7 +951,7 @@ theorem b1_chiNeg_existence_profileClean_stationary_lowerBarrierPinned_rootPin
   b1_chiNeg_existence_stationary_lowerBarrierPinned_rootPin
     p c lam M Bv κ κtilde D Λ hc hlam hM hBv hκpos hgap hD
     hΛ0 hΛM hprodAll hbarLip hŪbdd hVcont hVbound hdep
-    hrotheLower hprinciple hstationary hsmp hflat
+    hstepLower hprinciple hstationary hflat
 
 /-! ## Axiom audit -/
 
@@ -934,6 +962,7 @@ section AxiomAudit
 #print axioms rotheSeqOf_step_rec
 #print axioms rotheSeqOf_equiLip
 #print axioms rotheSeqOf_limitLip
+#print axioms rotheOrbitLowerBound_lowerBarrierPlateau
 #print axioms rotheOrbitData
 #print axioms rotheOrbitData_fromTrap
 #print axioms b1_chiNeg_existence
