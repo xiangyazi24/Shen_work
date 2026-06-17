@@ -492,9 +492,267 @@ theorem rainbow_count_odd_cubeKuhnLabel {n k : ℕ}
     (cubeKuhnLabel (strictify δ T) k)
     (cubeKuhnLabel_boundaryBottomData hk hδ hδle hmaps)
 
+theorem unitCube_eq_pi (n : ℕ) :
+    unitCube n = Set.pi Set.univ (fun _ : Fin n => Set.Icc (0 : ℝ) 1) := by
+  ext x
+  constructor
+  · intro hx
+    intro i _hi
+    exact hx i
+  · intro hx i
+    exact hx i (Set.mem_univ i)
+
+theorem isCompact_unitCube (n : ℕ) : IsCompact (unitCube n) := by
+  rw [unitCube_eq_pi]
+  exact isCompact_univ_pi (fun _ : Fin n => isCompact_Icc)
+
+theorem strictify_mapsTo_unitCube {n : ℕ}
+    {T : (Fin n → ℝ) → Fin n → ℝ} {δ : ℝ}
+    (hδ0 : 0 ≤ δ) (hδle : δ ≤ (1 : ℝ) / 2)
+    (hmaps : Set.MapsTo T (unitCube n) (unitCube n)) :
+    Set.MapsTo (strictify δ T) (unitCube n) (unitCube n) := by
+  intro x hx i
+  have hTx := hmaps hx i
+  have hcoeff : 0 ≤ 1 - 2 * δ := by nlinarith
+  constructor
+  · have hmul : 0 ≤ (1 - 2 * δ) * T x i :=
+      mul_nonneg hcoeff hTx.1
+    unfold strictify
+    nlinarith
+  · have hmul : (1 - 2 * δ) * T x i ≤ (1 - 2 * δ) * 1 :=
+      mul_le_mul_of_nonneg_left hTx.2 hcoeff
+    unfold strictify
+    nlinarith
+
+theorem strictify_continuousOn_unitCube {n : ℕ}
+    {T : (Fin n → ℝ) → Fin n → ℝ} {δ : ℝ}
+    (hTcont : ContinuousOn T (unitCube n)) :
+    ContinuousOn (strictify δ T) (unitCube n) := by
+  rw [continuousOn_pi]
+  intro i
+  have hcoord : ContinuousOn (fun x => T x i) (unitCube n) :=
+    (continuousOn_pi.mp hTcont) i
+  exact (hcoord.const_mul (1 - 2 * δ)).add continuousOn_const
+
+theorem base_cubeGridVertex_of_mem_cells {n k : ℕ} {c : Cell n}
+    (hc : c ∈ cells n k) : cubeGridVertex k c.1 := by
+  intro i
+  have hi := mem_cells.mp hc i
+  exact ⟨hi.1, le_of_lt hi.2⟩
+
+theorem cubePoint_chainVZ_coord_close_base {n k : ℕ} (hk : 0 < k)
+    (c : Cell n) (t : Fin (n + 1)) (i : Fin n) :
+    |cubePoint k (chainVZ c.1 c.2 t) i - cubePoint k c.1 i| ≤ (1 : ℝ) / k := by
+  have hkR : (0 : ℝ) < k := by exact_mod_cast hk
+  have hinv_nonneg : 0 ≤ (1 : ℝ) / k := by positivity
+  unfold cubePoint chainVZ
+  by_cases hlt : (c.2.symm i).val < t.val
+  · rw [if_pos hlt]
+    have hdiff :
+        ((c.1 i + 1 : ℤ) : ℝ) / (k : ℝ) - (c.1 i : ℝ) / (k : ℝ) =
+          (1 : ℝ) / k := by
+      push_cast
+      ring_nf
+    rw [hdiff, abs_of_nonneg hinv_nonneg]
+  · rw [if_neg hlt]
+    simpa using hinv_nonneg
+
+theorem cubeDisp_nonneg_of_label_castSucc {n k : ℕ}
+    {T : (Fin n → ℝ) → Fin n → ℝ} {v : Fin n → ℤ} {i : Fin n}
+    (hv : cubeGridVertex k v)
+    (hlabel : cubeKuhnLabel T k v = i.castSucc) :
+    0 ≤ cubeDisp T k v i := by
+  have hle := cubeKuhnLabel_min_le T hv i.succ
+  rw [hlabel, cubePartialSum_succ] at hle
+  linarith
+
+theorem cubeDisp_nonpos_of_label_succ {n k : ℕ}
+    {T : (Fin n → ℝ) → Fin n → ℝ} {v : Fin n → ℤ} {i : Fin n}
+    (hv : cubeGridVertex k v)
+    (hlabel : cubeKuhnLabel T k v = i.succ) :
+    cubeDisp T k v i ≤ 0 := by
+  have hle := cubeKuhnLabel_min_le T hv i.castSucc
+  rw [hlabel, cubePartialSum_succ] at hle
+  linarith
+
+theorem cubePoint_chainVZ_tendsto_base {n : ℕ} {φ : ℕ → ℕ}
+    (hφ : StrictMono φ) {c : ℕ → Cell n} {x : Fin n → ℝ}
+    (htend :
+      Tendsto (fun j => cubePoint (φ j + 1) (c (φ j)).1) atTop (𝓝 x))
+    (t : ℕ → Fin (n + 1)) :
+    Tendsto
+      (fun j => cubePoint (φ j + 1)
+        (chainVZ (c (φ j)).1 (c (φ j)).2 (t (φ j)))) atTop (𝓝 x) := by
+  rw [tendsto_pi_nhds]
+  intro r
+  have hbase_r : Tendsto
+      (fun j => cubePoint (φ j + 1) (c (φ j)).1 r) atTop (𝓝 (x r)) :=
+    ((continuous_apply r).continuousAt.tendsto).comp htend
+  have hgap0 : Tendsto (fun j => (1 : ℝ) / (φ j + 1)) atTop (𝓝 0) := by
+    have hmono : Tendsto (fun j => (φ j : ℝ) + 1) atTop atTop := by
+      apply tendsto_atTop_add_const_right
+      exact tendsto_natCast_atTop_atTop.comp hφ.tendsto_atTop
+    simpa using hmono.inv_tendsto_atTop.const_mul (1 : ℝ)
+  have hdiff0 : Tendsto
+      (fun j =>
+        cubePoint (φ j + 1)
+            (chainVZ (c (φ j)).1 (c (φ j)).2 (t (φ j))) r -
+          cubePoint (φ j + 1) (c (φ j)).1 r) atTop (𝓝 0) := by
+    apply squeeze_zero_norm (a := fun j => (1 : ℝ) / (φ j + 1))
+    intro j
+    simpa [Real.norm_eq_abs] using
+      cubePoint_chainVZ_coord_close_base (Nat.succ_pos (φ j))
+        (c (φ j)) (t (φ j)) r
+    exact hgap0
+  have := hdiff0.add hbase_r
+  simpa using this
+
+theorem cubeDisp_tendsto_of_chainVZ {n : ℕ}
+    {T : (Fin n → ℝ) → Fin n → ℝ} {φ : ℕ → ℕ} (hφ : StrictMono φ)
+    {c : ℕ → Cell n} {x : Fin n → ℝ} {t : ℕ → Fin (n + 1)}
+    (hx : x ∈ unitCube n)
+    (hc : ∀ m, c m ∈ cells n (m + 1))
+    (hTcont : ContinuousOn T (unitCube n))
+    (htend :
+      Tendsto (fun j => cubePoint (φ j + 1) (c (φ j)).1) atTop (𝓝 x))
+    (i : Fin n) :
+    Tendsto
+      (fun j => cubeDisp T (φ j + 1)
+        (chainVZ (c (φ j)).1 (c (φ j)).2 (t (φ j))) i)
+      atTop (𝓝 (T x i - x i)) := by
+  have hvtend := cubePoint_chainVZ_tendsto_base hφ htend t
+  have hvmem : ∀ j,
+      cubePoint (φ j + 1)
+        (chainVZ (c (φ j)).1 (c (φ j)).2 (t (φ j))) ∈ unitCube n := by
+    intro j
+    exact cubePoint_mem_unitCube (Nat.succ_pos (φ j))
+      (chainVZ_cubeGridVertex_of_mem_cells (hc (φ j)) (t (φ j)))
+  have hTtend : Tendsto
+      (fun j =>
+        T (cubePoint (φ j + 1)
+          (chainVZ (c (φ j)).1 (c (φ j)).2 (t (φ j)))))
+      atTop (𝓝 (T x)) := by
+    apply (hTcont.continuousWithinAt hx).tendsto.comp
+    exact tendsto_nhdsWithin_of_tendsto_nhds_of_eventually_within _
+      hvtend (Eventually.of_forall hvmem)
+  have hTcoord : Tendsto
+      (fun j =>
+        T (cubePoint (φ j + 1)
+          (chainVZ (c (φ j)).1 (c (φ j)).2 (t (φ j)))) i)
+      atTop (𝓝 (T x i)) :=
+    ((continuous_apply i).continuousAt.tendsto).comp hTtend
+  have hvcoord : Tendsto
+      (fun j =>
+        cubePoint (φ j + 1)
+          (chainVZ (c (φ j)).1 (c (φ j)).2 (t (φ j))) i)
+      atTop (𝓝 (x i)) :=
+    (tendsto_pi_nhds.mp hvtend) i
+  simpa [cubeDisp] using hTcoord.sub hvcoord
+
+theorem strictify_fixedPoint_of_cube_parity {n : ℕ}
+    {T : (Fin n → ℝ) → Fin n → ℝ} {δ : ℝ}
+    (hδ : 0 < δ) (hδle : δ ≤ (1 : ℝ) / 2)
+    (hmaps : Set.MapsTo T (unitCube n) (unitCube n))
+    (hTcont : ContinuousOn T (unitCube n)) :
+    ∃ x ∈ unitCube n, strictify δ T x = x := by
+  classical
+  let Tδ := strictify δ T
+  have hTδcont : ContinuousOn Tδ (unitCube n) :=
+    strictify_continuousOn_unitCube hTcont
+  choose c hc hrain using fun m : ℕ =>
+    exists_rainbow_cell_cubeKuhnLabel (Nat.succ_pos m) hδ hδle hmaps
+  set xseq : ℕ → Fin n → ℝ := fun m => cubePoint (m + 1) (c m).1 with hxseq
+  have hxseq_mem : ∀ m, xseq m ∈ unitCube n := by
+    intro m
+    exact cubePoint_mem_unitCube (Nat.succ_pos m)
+      (base_cubeGridVertex_of_mem_cells (hc m))
+  obtain ⟨x, hx, φ, hφ, htend⟩ :=
+    (isCompact_unitCube n).tendsto_subseq hxseq_mem
+  refine ⟨x, hx, ?_⟩
+  funext i
+  have hnonneg : 0 ≤ Tδ x i - x i := by
+    have hsurj : ∀ m, ∃ t : Fin (n + 1),
+        cellColor (cubeKuhnLabel Tδ (m + 1)) (c m) t = i.castSucc := by
+      intro m
+      exact (hrain m).2 i.castSucc
+    choose t ht using hsurj
+    have hdisp_tend :=
+      cubeDisp_tendsto_of_chainVZ hφ hx hc hTδcont htend i (t := t)
+    apply le_of_tendsto_of_tendsto tendsto_const_nhds hdisp_tend
+    exact Eventually.of_forall (fun j => by
+      have hv := chainVZ_cubeGridVertex_of_mem_cells (hc (φ j)) (t (φ j))
+      have hlabel : cubeKuhnLabel Tδ (φ j + 1)
+          (chainVZ (c (φ j)).1 (c (φ j)).2 (t (φ j))) = i.castSucc := by
+        simpa [cellColor] using ht (φ j)
+      exact cubeDisp_nonneg_of_label_castSucc hv hlabel)
+  have hnonpos : Tδ x i - x i ≤ 0 := by
+    have hsurj : ∀ m, ∃ t : Fin (n + 1),
+        cellColor (cubeKuhnLabel Tδ (m + 1)) (c m) t = i.succ := by
+      intro m
+      exact (hrain m).2 i.succ
+    choose t ht using hsurj
+    have hdisp_tend :=
+      cubeDisp_tendsto_of_chainVZ hφ hx hc hTδcont htend i (t := t)
+    apply le_of_tendsto_of_tendsto hdisp_tend tendsto_const_nhds
+    exact Eventually.of_forall (fun j => by
+      have hv := chainVZ_cubeGridVertex_of_mem_cells (hc (φ j)) (t (φ j))
+      have hlabel : cubeKuhnLabel Tδ (φ j + 1)
+          (chainVZ (c (φ j)).1 (c (φ j)).2 (t (φ j))) = i.succ := by
+        simpa [cellColor] using ht (φ j)
+      exact cubeDisp_nonpos_of_label_succ hv hlabel)
+  change Tδ x i = x i
+  linarith
+
+theorem pi_norm_le_of_forall {n : ℕ} {f : Fin n → ℝ} {r : ℝ}
+    (hr : 0 ≤ r) (h : ∀ i, ‖f i‖ ≤ r) : ‖f‖ ≤ r := by
+  cases n with
+  | zero =>
+      simp [Pi.norm_def, hr]
+  | succ n =>
+      haveI : Nonempty (Fin (n + 1)) := ⟨0⟩
+      exact (pi_norm_le_iff_of_nonempty f).2 h
+
+theorem brouwer_cube_approx {n : ℕ}
+    {T : (Fin n → ℝ) → Fin n → ℝ}
+    (hT : Set.MapsTo T (unitCube n) (unitCube n))
+    (hTcont : ContinuousOn T (unitCube n)) :
+    ∀ ε > 0, ∃ x ∈ unitCube n, ‖T x - x‖ ≤ ε := by
+  intro ε hε
+  let δ : ℝ := min (ε / 2) (1 / 4)
+  have hδpos : 0 < δ := by
+    dsimp [δ]
+    positivity
+  have hδle_half : δ ≤ (1 : ℝ) / 2 := by
+    have hmin : δ ≤ (1 : ℝ) / 4 := min_le_right _ _
+    nlinarith
+  have hδε : δ ≤ ε := by
+    have hmin : δ ≤ ε / 2 := min_le_left _ _
+    nlinarith
+  obtain ⟨x, hx, hfix⟩ :=
+    strictify_fixedPoint_of_cube_parity hδpos hδle_half hT hTcont
+  refine ⟨x, hx, ?_⟩
+  have hcoord : ∀ i, ‖(T x - x) i‖ ≤ δ := by
+    intro i
+    have hTx := hT hx i
+    have hxi : strictify δ T x i = x i := congrFun hfix i
+    have hdiff : (T x - x) i = δ * (2 * T x i - 1) := by
+      change T x i - x i = δ * (2 * T x i - 1)
+      rw [← hxi]
+      unfold strictify
+      ring
+    have habs : |2 * T x i - 1| ≤ 1 := by
+      rw [abs_le]
+      constructor <;> nlinarith [hTx.1, hTx.2]
+    rw [hdiff, Real.norm_eq_abs, abs_mul, abs_of_nonneg hδpos.le]
+    have hmul := mul_le_mul_of_nonneg_left habs hδpos.le
+    simpa using hmul
+  exact le_trans (pi_norm_le_of_forall hδpos.le hcoord) hδε
+
 #print axioms cubeKuhnLabel_boundaryBottomData
 #print axioms rainbow_count_odd_cubeKuhnLabel
 #print axioms exists_rainbow_cell_cubeKuhnLabel
+#print axioms strictify_fixedPoint_of_cube_parity
+#print axioms brouwer_cube_approx
 
 end
 
