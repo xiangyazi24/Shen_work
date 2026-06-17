@@ -207,6 +207,67 @@ theorem IsBddFun.rpow_of_nonneg {f : ℝ → ℝ} {a : ℝ}
       _ ≤ |M| := le_abs_self M
   exact Real.rpow_le_rpow (hfnn x) hf_le ha
 
+theorem IsBddFun.norm_isBoundedUnder_le {f : ℝ → ℝ} {l : Filter ℝ}
+    (hf : IsBddFun f) :
+    IsBoundedUnder (· ≤ ·) l ((‖·‖) ∘ f) := by
+  rcases hf with ⟨B, hB⟩
+  refine Filter.isBoundedUnder_of ?_
+  refine ⟨|B|, fun x => ?_⟩
+  change ‖f x‖ ≤ |B|
+  rw [Real.norm_eq_abs]
+  exact le_trans (hB x) (le_abs_self B)
+
+theorem tendsto_mul_zero_of_isBddFun {f g : ℝ → ℝ} {l : Filter ℝ}
+    (hf : Tendsto f l (𝓝 0)) (hg : IsBddFun g) :
+    Tendsto (fun x => f x * g x) l (𝓝 0) :=
+  hf.zero_mul_isBoundedUnder_le (IsBddFun.norm_isBoundedUnder_le hg)
+
+/-- A bounded antitone real profile has a finite right tail limit. -/
+theorem antitone_isBddFun_tendsto_atTop
+    {Z : ℝ → ℝ} (hZ : Antitone Z) (hB : IsBddFun Z) :
+    ∃ L : ℝ, Tendsto Z atTop (𝓝 L) := by
+  rcases tendsto_atTop_of_antitone (f := Z) hZ with hbot | hfin
+  · exfalso
+    rcases hB with ⟨B, hB⟩
+    have hlower : ∀ x, -B ≤ Z x := by
+      intro x
+      have hx := hB x
+      rw [abs_le] at hx
+      exact hx.1
+    have hev : ∀ᶠ x in atTop, Z x < -B - 1 :=
+      hbot (Iio_mem_atBot (-B - 1))
+    have hboth : ∀ᶠ x in atTop, Z x < -B - 1 ∧ -B ≤ Z x :=
+      hev.and (Eventually.of_forall hlower)
+    rcases hboth.exists with ⟨x, hxlt, hxle⟩
+    linarith
+  · exact hfin
+
+/-- A bounded antitone real profile has a finite left tail limit. -/
+theorem antitone_isBddFun_tendsto_atBot
+    {Z : ℝ → ℝ} (hZ : Antitone Z) (hB : IsBddFun Z) :
+    ∃ L : ℝ, Tendsto Z atBot (𝓝 L) := by
+  rcases tendsto_atBot_of_antitone (f := Z) hZ with htop | hfin
+  · exfalso
+    rcases hB with ⟨B, hB⟩
+    have hupper : ∀ x, Z x ≤ B := by
+      intro x
+      exact le_trans (le_abs_self _) (hB x)
+    have hev : ∀ᶠ x in atBot, B + 1 < Z x :=
+      htop (Ioi_mem_atTop (B + 1))
+    have hboth : ∀ᶠ x in atBot, B + 1 < Z x ∧ Z x ≤ B :=
+      hev.and (Eventually.of_forall hupper)
+    rcases hboth.exists with ⟨x, hxlt, hxle⟩
+    linarith
+  · exact hfin
+
+/-- Bounded antitone real profiles have finite limits at both infinities. -/
+theorem antitone_isBddFun_has_tail_limits
+    {Z : ℝ → ℝ} (hZ : Antitone Z) (hB : IsBddFun Z) :
+    (∃ La : ℝ, Tendsto Z atBot (𝓝 La)) ∧
+      ∃ Lb : ℝ, Tendsto Z atTop (𝓝 Lb) :=
+  ⟨antitone_isBddFun_tendsto_atBot hZ hB,
+    antitone_isBddFun_tendsto_atTop hZ hB⟩
+
 /-- Continuity of the expanded paper step source from the expected per-step
 regularity data. -/
 theorem paperStepSource_continuous
@@ -335,6 +396,127 @@ theorem paperStepSource_bddFun
     exact IsBddFun.add hterm1 (IsBddFun.mul hW hinner)
   unfold paperStepSource
   exact IsBddFun.add hnonlin (IsBddFun.const_mul lam hZ)
+
+/-- Structural data sufficient to close the two finite tails of the paper-step
+source.  It deliberately carries no tail limit for `R` itself. -/
+structure PaperStepSourceTailData
+    (p : CMParams) (u Z W : ℝ → ℝ) : Prop where
+  Z_antitone : Antitone Z
+  Z_bdd : IsBddFun Z
+  W_antitone : Antitone W
+  W_bdd : IsBddFun W
+  V_tail_bot : ∃ Va : ℝ, Tendsto (frozenElliptic p u) atBot (𝓝 Va)
+  V_tail_top : ∃ Vb : ℝ, Tendsto (frozenElliptic p u) atTop (𝓝 Vb)
+  V_deriv_tail_bot :
+    Tendsto (fun x => deriv (frozenElliptic p u) x) atBot (𝓝 0)
+  V_deriv_tail_top :
+    Tendsto (fun x => deriv (frozenElliptic p u) x) atTop (𝓝 0)
+
+theorem paperStepSource_tendsto_of_value_tails
+    (p : CMParams) (c lam : ℝ) {u Z W : ℝ → ℝ} {l : Filter ℝ}
+    {Za Wa Va : ℝ}
+    (hZtail : Tendsto Z l (𝓝 Za))
+    (hWtail : Tendsto W l (𝓝 Wa))
+    (hVtail : Tendsto (frozenElliptic p u) l (𝓝 Va))
+    (hVderiv_tail : Tendsto (fun x => deriv (frozenElliptic p u) x) l (𝓝 0))
+    (hWderiv_bdd : IsBddFun (deriv W)) :
+    ∃ Ra : ℝ, Tendsto (paperStepSource p c lam u Z W) l (𝓝 Ra) := by
+  have hm1 : 0 ≤ p.m - 1 := by linarith [p.hm]
+  have hα : 0 ≤ p.α := by linarith [p.hα]
+  have hmg1 : 0 ≤ p.m + p.γ - 1 := by linarith [p.hm, p.hγ]
+  have hWm1 :
+      Tendsto (fun x => (W x) ^ (p.m - 1)) l (𝓝 (Wa ^ (p.m - 1))) :=
+    hWtail.rpow_const (Or.inr hm1)
+  have hWα :
+      Tendsto (fun x => (W x) ^ p.α) l (𝓝 (Wa ^ p.α)) :=
+    hWtail.rpow_const (Or.inr hα)
+  have hWmg1 :
+      Tendsto (fun x => (W x) ^ (p.m + p.γ - 1)) l
+        (𝓝 (Wa ^ (p.m + p.γ - 1))) :=
+    hWtail.rpow_const (Or.inr hmg1)
+  have hVdW :
+      Tendsto (fun x => deriv (frozenElliptic p u) x * deriv W x) l (𝓝 0) :=
+    tendsto_mul_zero_of_isBddFun hVderiv_tail hWderiv_bdd
+  have hchem :
+      Tendsto
+        (fun x =>
+          -p.χ * p.m * (W x) ^ (p.m - 1) *
+            deriv (frozenElliptic p u) x * deriv W x) l
+        (𝓝 0) := by
+    have hmul0 : Tendsto
+        (fun x => (W x) ^ (p.m - 1) *
+          (deriv (frozenElliptic p u) x * deriv W x)) l
+        (𝓝 (Wa ^ (p.m - 1) * 0)) :=
+      hWm1.mul hVdW
+    have hconst := hmul0.const_mul (-p.χ * p.m)
+    simpa [mul_assoc] using hconst
+  have hχWm1V :
+      Tendsto
+        (fun x => p.χ * (W x) ^ (p.m - 1) * frozenElliptic p u x) l
+        (𝓝 (p.χ * Wa ^ (p.m - 1) * Va)) := by
+    have hmul := hWm1.mul hVtail
+    have hconst := hmul.const_mul p.χ
+    simpa [mul_assoc] using hconst
+  have hχWmg1 :
+      Tendsto (fun x => p.χ * (W x) ^ (p.m + p.γ - 1)) l
+        (𝓝 (p.χ * Wa ^ (p.m + p.γ - 1))) :=
+    hWmg1.const_mul p.χ
+  have hinner :
+      Tendsto
+        (fun x =>
+          1 - p.χ * (W x) ^ (p.m - 1) * frozenElliptic p u x
+            - ((W x) ^ p.α - p.χ * (W x) ^ (p.m + p.γ - 1))) l
+        (𝓝
+          (1 - p.χ * Wa ^ (p.m - 1) * Va
+            - (Wa ^ p.α - p.χ * Wa ^ (p.m + p.γ - 1)))) := by
+    exact (tendsto_const_nhds.sub hχWm1V).sub (hWα.sub hχWmg1)
+  have hreac :
+      Tendsto
+        (fun x =>
+          W x *
+            (1 - p.χ * (W x) ^ (p.m - 1) * frozenElliptic p u x
+              - ((W x) ^ p.α - p.χ * (W x) ^ (p.m + p.γ - 1)))) l
+        (𝓝
+          (Wa *
+            (1 - p.χ * Wa ^ (p.m - 1) * Va
+              - (Wa ^ p.α - p.χ * Wa ^ (p.m + p.γ - 1))))) :=
+    hWtail.mul hinner
+  have hlin : Tendsto (fun x => lam * Z x) l (𝓝 (lam * Za)) :=
+    hZtail.const_mul lam
+  refine ⟨
+    0 +
+      Wa *
+        (1 - p.χ * Wa ^ (p.m - 1) * Va
+          - (Wa ^ p.α - p.χ * Wa ^ (p.m + p.γ - 1))) +
+      lam * Za, ?_⟩
+  have htotal := (hchem.add hreac).add hlin
+  refine htotal.congr' ?_
+  filter_upwards with x
+  unfold paperStepSource paperStepNonlinearity
+  ring_nf
+
+/-- The source `R = paperStepSource ...` has finite tails once `Z` and `W` are
+bounded antitone profiles, `W'` is bounded, and the frozen elliptic field has
+the displayed value and derivative tails. -/
+theorem paperStepSource_tail_limits
+    (p : CMParams) (c lam : ℝ) {u Z W : ℝ → ℝ}
+    (hdata : PaperStepSourceTailData p u Z W)
+    (hWderiv_bdd : IsBddFun (deriv W)) :
+    (∃ Ra : ℝ, Tendsto (paperStepSource p c lam u Z W) atBot (𝓝 Ra)) ∧
+      ∃ Rb : ℝ, Tendsto (paperStepSource p c lam u Z W) atTop (𝓝 Rb) := by
+  rcases antitone_isBddFun_has_tail_limits hdata.Z_antitone hdata.Z_bdd with
+    ⟨⟨Za, hZa⟩, ⟨Zb, hZb⟩⟩
+  rcases antitone_isBddFun_has_tail_limits hdata.W_antitone hdata.W_bdd with
+    ⟨⟨Wa, hWa⟩, ⟨Wb, hWb⟩⟩
+  rcases hdata.V_tail_bot with ⟨Va, hVa⟩
+  rcases hdata.V_tail_top with ⟨Vb, hVb⟩
+  constructor
+  · exact paperStepSource_tendsto_of_value_tails
+      (p := p) (c := c) (lam := lam) (u := u) (Z := Z) (W := W)
+      hZa hWa hVa hdata.V_deriv_tail_bot hWderiv_bdd
+  · exact paperStepSource_tendsto_of_value_tails
+      (p := p) (c := c) (lam := lam) (u := u) (Z := Z) (W := W)
+      hZb hWb hVb hdata.V_deriv_tail_top hWderiv_bdd
 
 /-! ## Paper upper comparison -/
 
@@ -951,7 +1133,9 @@ theorem setIntegral_Iic_sub_left (x : ℝ) (f : ℝ → ℝ) :
   rw [← hmap]
   have hme : MeasurableEmbedding T := by
     dsimp [T]
-    convert ((Homeomorph.neg ℝ).trans (Homeomorph.addRight x)).isClosedEmbedding.measurableEmbedding using 1
+    convert
+      ((Homeomorph.neg ℝ).trans
+        (Homeomorph.addRight x)).isClosedEmbedding.measurableEmbedding using 1
     ext s
     simp
     ring
@@ -1336,8 +1520,6 @@ structure PaperStepAnalyticCore
   R_cont : Continuous R
   R_bound_const : ℝ
   R_bound : ∀ y, |R y| ≤ R_bound_const
-  R_tail_bot : ∃ Ra : ℝ, Tendsto R atBot (𝓝 Ra)
-  R_tail_top : ∃ Rb : ℝ, Tendsto R atTop (𝓝 Rb)
   R_bound_eq : Λ = 2 * (greenDelta c lam)⁻¹ * R_bound_const
 
 /-- Build the analytic core once the Banach fixed source has been produced.
@@ -1349,8 +1531,6 @@ def paperStepAnalyticCore_of_fixed_source
     {p : CMParams} {c lam M κ Λ : ℝ} {u Z R : ℝ → ℝ}
     (hsource : R = paperStepSource p c lam u Z (fun x => greenConv c lam R x))
     (hRcont : Continuous R) (B : ℝ) (hRbound : ∀ y, |R y| ≤ B)
-    (hRbot : ∃ Ra : ℝ, Tendsto R atBot (𝓝 Ra))
-    (hRtop : ∃ Rb : ℝ, Tendsto R atTop (𝓝 Rb))
     (hΛ : Λ = 2 * (greenDelta c lam)⁻¹ * B) :
     PaperStepAnalyticCore p c lam M κ Λ u Z (fun x => greenConv c lam R x) :=
   { R := R
@@ -1359,8 +1539,6 @@ def paperStepAnalyticCore_of_fixed_source
     R_cont := hRcont
     R_bound_const := B
     R_bound := hRbound
-    R_tail_bot := hRbot
-    R_tail_top := hRtop
     R_bound_eq := hΛ }
 
 /-- Close the Green bookkeeping fields of `PaperStepAnalytic` from bounded
@@ -1403,13 +1581,32 @@ theorem paperStep_contDiff_two_of_core
 has finite limits at both infinities. -/
 theorem paperStep_deriv_tendsto_zero_of_core
     {p : CMParams} {M κ Λ : ℝ} {u Z W : ℝ → ℝ}
-    (hlam : 0 < lam) (hc : PaperStepAnalyticCore p c lam M κ Λ u Z W) :
+    (hlam : 0 < lam) (hc : PaperStepAnalyticCore p c lam M κ Λ u Z W)
+    (htail : PaperStepSourceTailData p u Z W) :
     Tendsto (fun x => deriv W x) atBot (𝓝 0) ∧
       Tendsto (fun x => deriv W x) atTop (𝓝 0) := by
   have hRbdd : IsBddFun hc.R := ⟨hc.R_bound_const, hc.R_bound⟩
+  have ha : PaperStepAnalytic p c lam M κ Λ u Z W :=
+    paperStepAnalytic_of_core (c := c) (lam := lam) hlam hc
+  have hWderiv_bdd : IsBddFun (deriv W) :=
+    ⟨Λ, paperStep_deriv_le (c := c) (lam := lam) hlam ha⟩
+  have hsource_tails :
+      (∃ Ra : ℝ, Tendsto (paperStepSource p c lam u Z W) atBot (𝓝 Ra)) ∧
+        ∃ Rb : ℝ, Tendsto (paperStepSource p c lam u Z W) atTop (𝓝 Rb) :=
+    paperStepSource_tail_limits
+      (p := p) (c := c) (lam := lam) (u := u) (Z := Z) (W := W)
+      htail hWderiv_bdd
+  have hRtail_bot : ∃ Ra : ℝ, Tendsto hc.R atBot (𝓝 Ra) := by
+    rcases hsource_tails.1 with ⟨Ra, hRa⟩
+    refine ⟨Ra, ?_⟩
+    simpa [hc.source_eq] using hRa
+  have hRtail_top : ∃ Rb : ℝ, Tendsto hc.R atTop (𝓝 Rb) := by
+    rcases hsource_tails.2 with ⟨Rb, hRb⟩
+    refine ⟨Rb, ?_⟩
+    simpa [hc.source_eq] using hRb
   have htails :=
     greenConvDeriv_tendsto_zero_of_source_tail_limits
-      (c := c) (lam := lam) hlam hc.R_cont hRbdd hc.R_tail_bot hc.R_tail_top
+      (c := c) (lam := lam) hlam hc.R_cont hRbdd hRtail_bot hRtail_top
   constructor
   · simpa [hc.green_repr] using htails.1
   · simpa [hc.green_repr] using htails.2
@@ -1451,14 +1648,12 @@ def paperStepAnalytic_of_fixed_source
     (hlam : 0 < lam)
     (hsource : R = paperStepSource p c lam u Z (fun x => greenConv c lam R x))
     (hRcont : Continuous R) (B : ℝ) (hRbound : ∀ y, |R y| ≤ B)
-    (hRbot : ∃ Ra : ℝ, Tendsto R atBot (𝓝 Ra))
-    (hRtop : ∃ Rb : ℝ, Tendsto R atTop (𝓝 Rb))
     (hΛ : Λ = 2 * (greenDelta c lam)⁻¹ * B) :
     PaperStepAnalytic p c lam M κ Λ u Z (fun x => greenConv c lam R x) :=
   paperStepAnalytic_of_core (c := c) (lam := lam) hlam
     (paperStepAnalyticCore_of_fixed_source
       (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
-      (u := u) (Z := Z) hsource hRcont B hRbound hRbot hRtop hΛ)
+      (u := u) (Z := Z) hsource hRcont B hRbound hΛ)
 
 theorem paperStep_le_upper
     {p : CMParams} {M C_chem : ℝ} {u Z W B : ℝ → ℝ}
@@ -1640,13 +1835,21 @@ section AxiomAudit
 #print axioms greenConv_resolvent_solve
 #print axioms paperImplicitStepOp_of_greenConv_source
 #print axioms paperImplicitStepOp_exists_of_green_fixed_source
+#print axioms IsBddFun.norm_isBoundedUnder_le
+#print axioms tendsto_mul_zero_of_isBddFun
+#print axioms antitone_isBddFun_tendsto_atTop
+#print axioms antitone_isBddFun_tendsto_atBot
+#print axioms antitone_isBddFun_has_tail_limits
 #print axioms paperStepSource_continuous
 #print axioms paperStepSource_contDiff_one_of_nonzero
+#print axioms paperStepSource_tendsto_of_value_tails
+#print axioms paperStepSource_tail_limits
 #print axioms paperImplicitStep_le_of_paperBarrier_maxPrinciple
 #print axioms paperImplicitStep_le_of_paperBarrier_maxPrinciple_clean
 #print axioms paperStep_deriv_le
 #print axioms paperStep_diff
 #print axioms paperStep_contDiff_two_of_core
+#print axioms paperStep_deriv_tendsto_zero_of_core
 #print axioms tailHi_contDiff_one
 #print axioms tailLo_contDiff_one
 #print axioms greenConvDeriv2_contDiff_one

@@ -152,52 +152,6 @@ theorem bump_mollify_tendsto_right_of_continuous
 
 /-! ## Step A' — finite tails for bounded antitone profiles -/
 
-/-- A bounded antitone real profile has a finite right tail limit. -/
-theorem antitone_isBddFun_tendsto_atTop
-    {Z : ℝ → ℝ} (hZ : Antitone Z) (hB : IsBddFun Z) :
-    ∃ L : ℝ, Tendsto Z atTop (𝓝 L) := by
-  rcases tendsto_atTop_of_antitone (f := Z) hZ with hbot | hfin
-  · exfalso
-    rcases hB with ⟨B, hB⟩
-    have hlower : ∀ x, -B ≤ Z x := by
-      intro x
-      have hx := hB x
-      rw [abs_le] at hx
-      exact hx.1
-    have hev : ∀ᶠ x in atTop, Z x < -B - 1 :=
-      hbot (Iio_mem_atBot (-B - 1))
-    have hboth : ∀ᶠ x in atTop, Z x < -B - 1 ∧ -B ≤ Z x :=
-      hev.and (Eventually.of_forall hlower)
-    rcases hboth.exists with ⟨x, hxlt, hxle⟩
-    linarith
-  · exact hfin
-
-/-- A bounded antitone real profile has a finite left tail limit. -/
-theorem antitone_isBddFun_tendsto_atBot
-    {Z : ℝ → ℝ} (hZ : Antitone Z) (hB : IsBddFun Z) :
-    ∃ L : ℝ, Tendsto Z atBot (𝓝 L) := by
-  rcases tendsto_atBot_of_antitone (f := Z) hZ with htop | hfin
-  · exfalso
-    rcases hB with ⟨B, hB⟩
-    have hupper : ∀ x, Z x ≤ B := by
-      intro x
-      exact le_trans (le_abs_self _) (hB x)
-    have hev : ∀ᶠ x in atBot, B + 1 < Z x :=
-      htop (Ioi_mem_atTop (B + 1))
-    have hboth : ∀ᶠ x in atBot, B + 1 < Z x ∧ Z x ≤ B :=
-      hev.and (Eventually.of_forall hupper)
-    rcases hboth.exists with ⟨x, hxlt, hxle⟩
-    linarith
-  · exact hfin
-
-/-- Bounded antitone real profiles have finite limits at both infinities. -/
-theorem antitone_isBddFun_has_tail_limits
-    {Z : ℝ → ℝ} (hZ : Antitone Z) (hB : IsBddFun Z) :
-    (∃ La : ℝ, Tendsto Z atBot (𝓝 La)) ∧
-      ∃ Lb : ℝ, Tendsto Z atTop (𝓝 Lb) :=
-  ⟨antitone_isBddFun_tendsto_atBot hZ hB,
-    antitone_isBddFun_tendsto_atTop hZ hB⟩
-
 /-- A bump-mollified bounded antitone profile is antitone, smooth, and has
 finite tail limits. -/
 theorem bump_mollify_antitone_contDiff_tail_limits
@@ -940,12 +894,14 @@ theorem paperStep_antitone_by_routeA_of_structuralData
 
 /-- Data for one smooth Route-A approximating paper step.
 
-Antitonicity is deliberately not a field.  It is derived below from the smooth
-maximum principle, with the derivative tails supplied by the Green source-tail
-lemma in `paperStep_deriv_tendsto_zero_of_core`. -/
+The raw `R` tails are deliberately not fields.  The structural source-tail data
+records the bounded-antitone value-tail input used to derive those `R` tails;
+the derivative tails are then supplied by the Green source-tail lemma in
+`paperStep_deriv_tendsto_zero_of_core`. -/
 structure PaperStepRouteASmoothApproximationData
     (p : CMParams) (c lam Cmono M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
   analytic : PaperStepAnalyticCore p c lam M κ Λ u Z W
+  sourceTail : PaperStepSourceTailData p u Z W
   routeA : PaperStepRouteAStructuralData p c lam Cmono u Z W
   W_reg : ContDiff ℝ 3 W
   wave_diff : Differentiable ℝ (fun y => paperWaveOperator p c u W y)
@@ -968,7 +924,7 @@ theorem PaperStepRouteASmoothApproximationData.antitone
         Tendsto (fun x => deriv W x) atTop (𝓝 0) :=
     paperStep_deriv_tendsto_zero_of_core
       (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
-      hlam hd.analytic
+      hlam hd.analytic hd.sourceTail
   exact paperStep_antitone_by_routeA_of_structuralData
     (p := p) (c := c) (lam := lam) (Cmono := Cmono)
     (u := u) (Z := Z) (W := W)
