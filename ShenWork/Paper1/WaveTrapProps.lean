@@ -13,6 +13,7 @@
   comment at the end.)
 -/
 import ShenWork.Paper1.Statements
+import ShenWork.Paper1.WaveRotheStep
 
 open Filter Topology
 
@@ -51,6 +52,205 @@ theorem monotoneTrap_profile_hlim_pos {κ M : ℝ} (hκ : 0 < κ) :
     ∀ U : ℝ → ℝ,
       InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0) :=
   fun _U hU => hU.tendsto_atTop_zero hκ
+
+/-- A monotone-wave-trap profile has a finite left limit.
+
+This is the monotone-convergence part of the route to the left endpoint:
+antitonicity gives the `atBot` limit as the supremum of the range, while the
+trap bounds place the limit in `[0, M]`. -/
+theorem monotoneTrap_left_limit_exists {κ M : ℝ} {U : ℝ → ℝ}
+    (hU : InMonotoneWaveTrapSet κ M U) :
+    ∃ L : ℝ, Tendsto U atBot (𝓝 L) ∧ 0 ≤ L ∧ L ≤ M := by
+  let L : ℝ := sSup (Set.range U)
+  have hbdd : BddAbove (Set.range U) := by
+    refine ⟨M, ?_⟩
+    rintro y ⟨x, rfl⟩
+    exact hU.le_M x
+  have hlim : Tendsto U atBot (𝓝 L) := by
+    simpa [L] using tendsto_atBot_ciSup hU.antitone hbdd
+  have hL0 : 0 ≤ L := by
+    have hU0_le : U 0 ≤ L := by
+      simpa [L] using le_csSup hbdd (Set.mem_range_self (0 : ℝ))
+    exact le_trans (hU.nonneg 0) hU0_le
+  have hLM : L ≤ M := by
+    have hne : (Set.range U).Nonempty := Set.range_nonempty U
+    simpa [L] using csSup_le hne (by
+      rintro y ⟨x, rfl⟩
+      exact hU.le_M x)
+  exact ⟨L, hlim, hL0, hLM⟩
+
+/-- A genuine left lower pin makes a finite left limit strictly positive. -/
+theorem StrictlyPositiveAtLeft.limit_pos {U : ℝ → ℝ} {L : ℝ}
+    (hleft : StrictlyPositiveAtLeft U) (hlim : Tendsto U atBot (𝓝 L)) :
+    0 < L := by
+  rcases hleft with ⟨δ, hδ, hδle⟩
+  exact lt_of_lt_of_le hδ (ge_of_tendsto hlim hδle)
+
+/-- Positive roots of the logistic reaction `s ↦ s * (1 - s ^ a)` equal `1`. -/
+theorem reactionFun_root_eq_one_of_pos {a L : ℝ}
+    (ha : 0 < a) (hL : 0 < L) (hroot : reactionFun a L = 0) :
+    L = 1 := by
+  have hfactor : 1 - L ^ a = 0 := by
+    unfold reactionFun at hroot
+    rcases mul_eq_zero.mp hroot with hLzero | hfac
+    · exact False.elim ((ne_of_gt hL) hLzero)
+    · exact hfac
+  have hpow : L ^ a = 1 := by linarith
+  by_contra hne
+  rcases lt_or_gt_of_ne hne with hlt | hgt
+  · have hpow_lt : L ^ a < 1 := by
+      rw [← Real.one_rpow a]
+      exact Real.rpow_lt_rpow hL.le hlt ha
+    linarith
+  · have hpow_gt : 1 < L ^ a := by
+      rw [← Real.one_rpow a]
+      exact Real.rpow_lt_rpow zero_le_one hgt ha
+    linarith
+
+/-- Route-b pin step: a left limit that is a positive reaction root is `1`. -/
+theorem tendsto_atBot_one_of_reaction_root_pin
+    {a L : ℝ} {U : ℝ → ℝ}
+    (ha : 0 < a) (hlim : Tendsto U atBot (𝓝 L))
+    (hL : 0 < L) (hroot : reactionFun a L = 0) :
+    Tendsto U atBot (𝓝 1) := by
+  have hLone : L = 1 := reactionFun_root_eq_one_of_pos ha hL hroot
+  simpa [hLone] using hlim
+
+/-- Pointwise positivity plus monotonicity gives the route-b lower pin at
+`-∞`: use `U 0` as the eventual lower bound on the left half-line. -/
+theorem InMonotoneWaveTrapSet.strictlyPositiveAtLeft_of_pos
+    {κ M : ℝ} {U : ℝ → ℝ} (hU : InMonotoneWaveTrapSet κ M U)
+    (hpos : ∀ x, 0 < U x) :
+    StrictlyPositiveAtLeft U := by
+  refine ⟨U 0, hpos 0, ?_⟩
+  refine eventually_atBot.2 ⟨0, ?_⟩
+  intro x hx
+  exact hU.antitone hx
+
+/-- Single-profile route (b): monotone left limit + pointwise positivity
+lower-pin + reaction-root at every left limit. -/
+theorem InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_pos
+    {κ M : ℝ} {U : ℝ → ℝ} (p : CMParams)
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hpos : ∀ x, 0 < U x)
+    (hroot : ∀ L : ℝ, Tendsto U atBot (𝓝 L) → reactionFun p.α L = 0) :
+    Tendsto U atBot (𝓝 1) := by
+  rcases monotoneTrap_left_limit_exists hU with ⟨L, hlim, _hL0, _hLM⟩
+  have hα : 0 < p.α := lt_of_lt_of_le zero_lt_one p.hα
+  have hleft : StrictlyPositiveAtLeft U := hU.strictlyPositiveAtLeft_of_pos hpos
+  have hL : 0 < L := hleft.limit_pos hlim
+  exact tendsto_atBot_one_of_reaction_root_pin hα hlim hL (hroot L hlim)
+
+/-- Single-profile route (b) with the paper-faithful uniform floor as the lower
+pin.  The floor is the whole-line version of paper eq. (1.11). -/
+theorem InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_floor
+    {κ M : ℝ} {U : ℝ → ℝ} (p : CMParams)
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hfloor : PaperPositiveInitialDatum U)
+    (hroot : ∀ L : ℝ, Tendsto U atBot (𝓝 L) → reactionFun p.α L = 0) :
+    Tendsto U atBot (𝓝 1) := by
+  rcases monotoneTrap_left_limit_exists hU with ⟨L, hlim, _hL0, _hLM⟩
+  have hα : 0 < p.α := lt_of_lt_of_le zero_lt_one p.hα
+  have hleft : StrictlyPositiveAtLeft U := hfloor.strictlyPositiveAtLeft
+  have hL : 0 < L := hleft.limit_pos hlim
+  exact tendsto_atBot_one_of_reaction_root_pin hα hlim hL (hroot L hlim)
+
+/-- Stationary-limit root step under the explicit flatness hypotheses at
+`-∞`.  This isolates the analytic input still needed to derive `hroot` from
+the stationary equation. -/
+theorem reactionFun_root_of_stationary_flat_limit
+    {p : CMParams} {c : ℝ} {U : ℝ → ℝ} {L : ℝ}
+    (hlim : Tendsto U atBot (𝓝 L))
+    (hD2 : Tendsto (fun x => iteratedDeriv 2 U x) atBot (𝓝 0))
+    (hD1 : Tendsto (fun x => deriv U x) atBot (𝓝 0))
+    (hFlux : Tendsto
+      (fun x => deriv
+        (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) x)
+      atBot (𝓝 0))
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0) :
+    reactionFun p.α L = 0 := by
+  have hα_nonneg : 0 ≤ p.α := le_trans zero_le_one p.hα
+  have hpow :
+      Tendsto (fun x => (U x) ^ p.α) atBot (𝓝 (L ^ p.α)) :=
+    hlim.rpow_const (Or.inr hα_nonneg)
+  have hreact :
+      Tendsto (fun x => reactionFun p.α (U x)) atBot
+        (𝓝 (reactionFun p.α L)) := by
+    unfold reactionFun
+    exact hlim.mul (tendsto_const_nhds.sub hpow)
+  have hsum :
+      Tendsto
+        (fun x =>
+          iteratedDeriv 2 U x + c * deriv U x -
+            p.χ *
+              deriv
+                (fun y => (U y) ^ p.m * deriv (frozenElliptic p U) y) x +
+            reactionFun p.α (U x))
+        atBot (𝓝 (reactionFun p.α L)) := by
+    simpa using
+      (((hD2.add (hD1.const_mul c)).add (hFlux.const_mul (-p.χ))).add hreact)
+  have hop :
+      Tendsto (fun x => frozenWaveOperator p c U U x) atBot
+        (𝓝 (reactionFun p.α L)) := by
+    simpa [frozenWaveOperator, reactionFun, sub_eq_add_neg, mul_assoc] using hsum
+  have hzero : Tendsto (fun x => frozenWaveOperator p c U U x) atBot (𝓝 0) := by
+    simpa [hstat] using (tendsto_const_nhds : Tendsto (fun _ : ℝ => (0 : ℝ)) atBot (𝓝 0))
+  exact tendsto_nhds_unique hop hzero
+
+/-- Formal route (b): monotone left limit + reaction-root + lower-pin. -/
+theorem monotoneTrap_profile_hlim_neg_of_limit_root_and_pin
+    {κ M : ℝ} (p : CMParams)
+    (hroot : ∀ U : ℝ → ℝ, InMonotoneWaveTrapSet κ M U →
+      ∀ L : ℝ, Tendsto U atBot (𝓝 L) → reactionFun p.α L = 0)
+    (hpin : ∀ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet κ M U → StrictlyPositiveAtLeft U) :
+    ∀ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet κ M U → Tendsto U atBot (𝓝 1) := by
+  intro U hU
+  rcases monotoneTrap_left_limit_exists hU with ⟨L, hlim, _hL0, _hLM⟩
+  have hα : 0 < p.α := lt_of_lt_of_le zero_lt_one p.hα
+  have hL : 0 < L := (hpin U hU).limit_pos hlim
+  exact tendsto_atBot_one_of_reaction_root_pin hα hlim hL (hroot U hU L hlim)
+
+/-- Route (b) with the lower pin supplied by the usual pointwise positivity
+profile obligation.  The remaining input is exactly the stationary-limit
+reaction-root fact. -/
+theorem monotoneTrap_profile_hlim_neg_of_limit_root_and_pos
+    {κ M : ℝ} (p : CMParams)
+    (hroot : ∀ U : ℝ → ℝ, InMonotoneWaveTrapSet κ M U →
+      ∀ L : ℝ, Tendsto U atBot (𝓝 L) → reactionFun p.α L = 0)
+    (hpos : ∀ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet κ M U → ∀ x, 0 < U x) :
+    ∀ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet κ M U → Tendsto U atBot (𝓝 1) :=
+  monotoneTrap_profile_hlim_neg_of_limit_root_and_pin p hroot
+    (fun U hU => hU.strictlyPositiveAtLeft_of_pos (hpos U hU))
+
+/-- Route (b) with the lower pin supplied by `PaperPositiveInitialDatum`, whose
+uniform floor is the faithful paper eq. (1.11) input. -/
+theorem monotoneTrap_profile_hlim_neg_of_limit_root_and_floor
+    {κ M : ℝ} (p : CMParams)
+    (hroot : ∀ U : ℝ → ℝ, InMonotoneWaveTrapSet κ M U →
+      ∀ L : ℝ, Tendsto U atBot (𝓝 L) → reactionFun p.α L = 0)
+    (hfloor : ∀ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet κ M U → PaperPositiveInitialDatum U) :
+    ∀ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet κ M U → Tendsto U atBot (𝓝 1) :=
+  monotoneTrap_profile_hlim_neg_of_limit_root_and_pin p hroot
+    (fun U hU => (hfloor U hU).strictlyPositiveAtLeft)
+
+/-- The route-b lower pin is not a monotone-trap fact: the zero profile refutes it. -/
+theorem not_monotoneTrap_profile_strictlyPositiveAtLeft
+    {κ M : ℝ} (hM : 0 ≤ M) :
+    ¬ (∀ U : ℝ → ℝ,
+      InMonotoneWaveTrapSet κ M U → StrictlyPositiveAtLeft U) := by
+  intro h
+  rcases h (fun _ : ℝ => (0 : ℝ))
+      (InMonotoneWaveTrapSet.zero (κ := κ) (M := M) hM) with
+    ⟨δ, hδ, hδle⟩
+  have hδle0 : δ ≤ 0 := by
+    exact ge_of_tendsto (f := fun _ : ℝ => (0 : ℝ)) tendsto_const_nhds hδle
+  linarith
 
 /-- Strict positivity is not a consequence of monotone-trap membership:
 the zero profile is trapped whenever `0 ≤ M`. -/
@@ -140,6 +340,18 @@ theorem not_monotoneTrap_profile_hlim_neg {κ M : ℝ} (hM : 0 ≤ M) :
 section AxiomAudit
 #print axioms monotoneTrap_profile_hbdd
 #print axioms monotoneTrap_profile_hlim_pos
+#print axioms monotoneTrap_left_limit_exists
+#print axioms StrictlyPositiveAtLeft.limit_pos
+#print axioms reactionFun_root_eq_one_of_pos
+#print axioms tendsto_atBot_one_of_reaction_root_pin
+#print axioms InMonotoneWaveTrapSet.strictlyPositiveAtLeft_of_pos
+#print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_pos
+#print axioms InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_floor
+#print axioms reactionFun_root_of_stationary_flat_limit
+#print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_pin
+#print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_pos
+#print axioms monotoneTrap_profile_hlim_neg_of_limit_root_and_floor
+#print axioms not_monotoneTrap_profile_strictlyPositiveAtLeft
 #print axioms not_monotoneTrap_profile_hpos
 #print axioms not_monotoneTrap_profile_hlim_neg
 end AxiomAudit

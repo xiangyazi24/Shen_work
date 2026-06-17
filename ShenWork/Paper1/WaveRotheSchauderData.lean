@@ -436,6 +436,33 @@ theorem b1_chiNeg_existence_rothe
     (rotheSchauderData p c lam M Bv κ hlam hM hBv rotheSeq hŪbdd hHelly hdep hdata)
     hGreen hpos hbdd hlim_neg hlim_pos
 
+/-- Rothe-Schauder B1 wrapper with `hlim_neg` produced by route (b). -/
+theorem b1_chiNeg_existence_rothe_rootPin
+    (p : CMParams) (c lam M Bv κ : ℝ)
+    (hc : 0 < c) (hlam : 0 < lam) (hM : 0 ≤ M) (hBv : 0 ≤ Bv)
+    (rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ)
+    (hŪbdd : IsBddFun (upperBarrier κ M))
+    (hHelly : HellyPointwiseSelection M)
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M) rotheSeq)
+    (hdata : ∀ u, InMonotoneWaveTrapSet κ M u →
+        RotheOrbitData p c lam M Bv κ rotheSeq u)
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
+    (hGreen : ∀ U, InMonotoneWaveTrapSet κ M U →
+        rotheLimit (rotheSeq U) = U → GreenIdentity p c lam U)
+    (hpos : ∀ U, InMonotoneWaveTrapSet κ M U → (∀ x, 0 < U x))
+    (hfloor : ∀ U, InMonotoneWaveTrapSet κ M U → PaperPositiveInitialDatum U)
+    (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
+    (hroot : ∀ U, InMonotoneWaveTrapSet κ M U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        ∀ L : ℝ, Tendsto U atBot (𝓝 L) → reactionFun p.α L = 0)
+    (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
+    ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U :=
+  b1_chiNeg_existence_of_schauderData_rootPin hc hprinciple
+    (rotheSchauderData p c lam M Bv κ hlam hM hBv rotheSeq
+      hŪbdd hHelly hdep hdata)
+    hGreen hpos hfloor hbdd hroot hlim_pos
+
 /-! ## Axiom audit -/
 
 section AxiomAudit
@@ -447,6 +474,7 @@ section AxiomAudit
 #print axioms Tmap_continuousOn
 #print axioms rotheSchauderData
 #print axioms b1_chiNeg_existence_rothe
+#print axioms b1_chiNeg_existence_rothe_rootPin
 
 end AxiomAudit
 

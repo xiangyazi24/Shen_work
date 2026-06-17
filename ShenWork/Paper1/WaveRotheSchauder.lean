@@ -30,6 +30,7 @@
   contract is defined here, not in Statements.lean.
 -/
 import ShenWork.Paper1.WaveRotheStationary
+import ShenWork.Paper1.WaveTrapProps
 import ShenWork.Paper1.Statements
 
 open Filter Topology
@@ -146,5 +147,42 @@ theorem b1_chiNeg_existence_of_schauderData
   refine ⟨U, hU, ?_⟩
   exact FrozenStationaryWaveProfile.mk_auto_limits hc (hpos U hU) (hbdd U hU)
     hstat (hlim_neg U hU) (hlim_pos U hU)
+
+/-- Monotone-trap Schauder wrapper with the left endpoint produced by route (b).
+
+Compared with `b1_chiNeg_existence_of_schauderData`, this removes the carried
+`hlim_neg` profile input.  It instead consumes the precise stationary-limit
+root statement for the produced profile; the paper uniform floor supplies the
+lower pin at `-∞`. -/
+theorem b1_chiNeg_existence_of_schauderData_rootPin
+    {p : CMParams} {c lam κ M : ℝ} {Tmap : (ℝ → ℝ) → ℝ → ℝ}
+    (hc : 0 < c)
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple (InMonotoneWaveTrapSet κ M))
+    (hdata :
+      FrozenStationaryMapSchauderData p c lam
+        (InMonotoneWaveTrapSet κ M) Tmap)
+    (hGreen : ∀ U, InMonotoneWaveTrapSet κ M U → Tmap U = U →
+      GreenIdentity p c lam U)
+    (hpos : ∀ U, InMonotoneWaveTrapSet κ M U → (∀ x, 0 < U x))
+    (hfloor : ∀ U, InMonotoneWaveTrapSet κ M U → PaperPositiveInitialDatum U)
+    (hbdd : ∀ U, InMonotoneWaveTrapSet κ M U → IsCUnifBdd U)
+    (hroot : ∀ U, InMonotoneWaveTrapSet κ M U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        ∀ L : ℝ, Tendsto U atBot (𝓝 L) → reactionFun p.α L = 0)
+    (hlim_pos : ∀ U, InMonotoneWaveTrapSet κ M U → Tendsto U atTop (𝓝 0)) :
+    ∃ U, InMonotoneWaveTrapSet κ M U ∧ FrozenStationaryWaveProfile p c U := by
+  obtain ⟨U, hU, hstat⟩ :=
+    hdata.exists_self_frozen_stationary hprinciple hGreen
+  have hlim_neg : Tendsto U atBot (𝓝 1) :=
+    InMonotoneWaveTrapSet.tendsto_atBot_one_of_limit_root_and_floor p hU
+      (hfloor U hU) (hroot U hU hstat)
+  refine ⟨U, hU, ?_⟩
+  exact FrozenStationaryWaveProfile.mk_auto_limits hc (hpos U hU) (hbdd U hU)
+    hstat hlim_neg (hlim_pos U hU)
+
+section AxiomAudit
+#print axioms b1_chiNeg_existence_of_schauderData_rootPin
+end AxiomAudit
 
 end ShenWork.Paper1

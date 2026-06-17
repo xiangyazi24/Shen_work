@@ -27,8 +27,36 @@ def NonnegativeInitialDatum (u₀ : ℝ → ℝ) : Prop :=
 def UniformlyPositive (u₀ : ℝ → ℝ) : Prop :=
   ∃ δ > 0, ∀ x, δ ≤ u₀ x
 
+/-- Paper-faithful positive datum on the whole line: admissibility plus the
+uniform positive floor from eq. (1.11), `inf_x u₀(x) > 0`. -/
+def PaperPositiveInitialDatum (u₀ : ℝ → ℝ) : Prop :=
+  NonnegativeInitialDatum u₀ ∧ UniformlyPositive u₀
+
 def StrictlyPositiveAtLeft (u₀ : ℝ → ℝ) : Prop :=
   ∃ δ > 0, ∀ᶠ x in atBot, δ ≤ u₀ x
+
+theorem PaperPositiveInitialDatum.nonnegative {u₀ : ℝ → ℝ}
+    (h : PaperPositiveInitialDatum u₀) :
+    NonnegativeInitialDatum u₀ :=
+  h.1
+
+/-- The paper floor witness: `∃ δ > 0, ∀ x, δ ≤ u₀ x`. -/
+theorem PaperPositiveInitialDatum.floor {u₀ : ℝ → ℝ}
+    (h : PaperPositiveInitialDatum u₀) :
+    UniformlyPositive u₀ :=
+  h.2
+
+theorem PaperPositiveInitialDatum.strictlyPositiveAtLeft {u₀ : ℝ → ℝ}
+    (h : PaperPositiveInitialDatum u₀) :
+    StrictlyPositiveAtLeft u₀ := by
+  rcases h.floor with ⟨δ, hδ, hfloor⟩
+  exact ⟨δ, hδ, Filter.Eventually.of_forall hfloor⟩
+
+section PaperPositiveInitialDatumAxiomAudit
+#print axioms PaperPositiveInitialDatum.nonnegative
+#print axioms PaperPositiveInitialDatum.floor
+#print axioms PaperPositiveInitialDatum.strictlyPositiveAtLeft
+end PaperPositiveInitialDatumAxiomAudit
 
 theorem isCUnifBdd_const (a : ℝ) :
     IsCUnifBdd (fun _ : ℝ => a) := by
