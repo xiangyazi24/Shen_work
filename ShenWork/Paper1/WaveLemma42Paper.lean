@@ -1,4 +1,5 @@
-import ShenWork.Paper1.WaveRotheSchauderData
+import ShenWork.Paper1.WaveLowerBarrierData
+import ShenWork.Paper1.WaveRotheConcrete
 
 open Filter Topology Set Real MeasureTheory intervalIntegral
 
@@ -976,6 +977,7 @@ theorem PaperLemma42LogisticEstimate_of_conditions
       have hκtilde_le := hcond.kappaTilde_le_one_plus_alpha_mul_kappa
       nlinarith
 
+set_option maxHeartbeats 1000000 in
 theorem PaperLemma42KTermEstimate_of_ellipticVxEstimate
     {p : CMParams} {c κ κtilde M D : ℝ}
     (hcond : PaperLemma42ExactConditions p c κ κtilde M)
@@ -1554,6 +1556,106 @@ theorem PaperLemma_4_2_paperWaveOperator_of_conditions
     (PaperLemma42KTermEstimate_of_conditions hcond hD hD_ge_one)
     u hu
 
+/-- The non-step side data needed to compare one paper implicit iterate with the
+raw lower barrier.  The step equation itself is supplied by the paper Rothe
+producer; the paper subsolution is supplied by Lemma 4.2. -/
+structure PaperLowerRawStepAux
+    (p : CMParams) (c lam M κ κtilde D C_chem : ℝ)
+    (La Lb : ℝ) (u W : ℝ → ℝ) : Prop where
+  hCB : (1 / lam) * (reactionLip p.α M + C_chem) < 1
+  φcont : Continuous (fun x => lowerBarrierRaw κ κtilde D x - W x)
+  hbot : Tendsto (fun x => lowerBarrierRaw κ κtilde D x - W x) atBot (𝓝 La)
+  hLa : La ≤ 0
+  htop : Tendsto (fun x => lowerBarrierRaw κ κtilde D x - W x) atTop (𝓝 Lb)
+  hLb : Lb ≤ 0
+  region : ∀ x₀,
+    IsMaxOn (fun x => lowerBarrierRaw κ κtilde D x - W x) Set.univ x₀ →
+      x₀ ∈ Set.Ioi (lowerBarrierXMinus κ κtilde D)
+  paperDiff : ∀ x₀,
+    IsMaxOn (fun x => lowerBarrierRaw κ κtilde D x - W x) Set.univ x₀ →
+      paperWaveOperator p c u (lowerBarrierRaw κ κtilde D) x₀ -
+          paperWaveOperator p c u W x₀
+        ≤ (reactionLip p.α M + C_chem) *
+            (lowerBarrierRaw κ κtilde D x₀ - W x₀)
+
+theorem paperLowerBarrierStepData_lowerBarrierRaw_of_paperStep
+    {p : CMParams} {c lam M κ κtilde D Λ C_chem La Lb : ℝ} {u Z W : ℝ → ℝ}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hu : InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u)
+    (hprev : ∀ x, lowerBarrierRaw κ κtilde D x ≤ Z x)
+    (hlam : 0 < lam)
+    (hstep : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x)
+    (haux : PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u W) :
+    PaperLowerBarrierStepData p c lam M κ Λ C_chem La Lb
+      (Set.Ioi (lowerBarrierXMinus κ κtilde D)) u Z W
+      (lowerBarrierRaw κ κtilde D) := by
+  exact
+    { hlam := hlam
+      step_op := hstep
+      hCB := haux.hCB
+      AZ := hprev
+      φcont := haux.φcont
+      hbot := haux.hbot
+      hLa := haux.hLa
+      htop := haux.htop
+      hLb := haux.hLb
+      paperSub :=
+        PaperLemma_4_2_paperWaveOperator_of_conditions hcond hD hD_ge_one
+          u hu.bare.1
+      region := haux.region
+      paperDiff := haux.paperDiff }
+
+theorem rotheStepLowerInvariant_lowerBarrierRaw_of_paperStepData
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    {rotheSeq : (ℝ → ℝ) → ℕ → ℝ → ℝ}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hstepData : ∀ u,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+        ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤ rotheSeq u k x) →
+          ∃ C_chem La Lb,
+            (0 < lam) ∧
+            (∀ x, paperImplicitStepOp p c (1 / lam) u
+              (rotheSeq u (k + 1)) x = rotheSeq u k x) ∧
+            PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+              (rotheSeq u (k + 1))) :
+    RotheStepLowerInvariant κ M (lowerBarrierRaw κ κtilde D) rotheSeq := by
+  apply rotheStepLowerInvariant_of_paperBarrierData
+  intro u hu k hprev
+  obtain ⟨C_chem, La, Lb, hlam, hstep, haux⟩ := hstepData u hu k hprev
+  refine ⟨C_chem, La, Lb, Set.Ioi (lowerBarrierXMinus κ κtilde D), ?_⟩
+  exact paperLowerBarrierStepData_lowerBarrierRaw_of_paperStep
+    (Λ := Λ) hcond hD hD_ge_one hu hprev hlam hstep haux
+
+theorem rotheSeqOfPaper_lowerBarrierRaw_stepInvariant
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hprodAll : ∀ u, PaperRotheStepProducer p c lam M κ Λ u)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+    (hauxData : ∀ u,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+        ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
+          rotheSeqOfPaper p c lam M κ Λ u (hprodAll u) hκ hM k x) →
+          ∃ C_chem La Lb,
+            PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+              (rotheSeqOfPaper p c lam M κ Λ u (hprodAll u) hκ hM
+                (k + 1))) :
+    RotheStepLowerInvariant κ M (lowerBarrierRaw κ κtilde D)
+      (fun u => rotheSeqOfPaper p c lam M κ Λ u (hprodAll u) hκ hM) := by
+  refine rotheStepLowerInvariant_lowerBarrierRaw_of_paperStepData
+    (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
+    (κtilde := κtilde) (D := D) (Λ := Λ)
+    hcond hD hD_ge_one ?_
+  intro u hu k hprev
+  obtain ⟨C_chem, La, Lb, haux⟩ := hauxData u hu k hprev
+  have hfacts := rotheSeqOfPaper_stepFacts (hprodAll u) hκ hM k
+  exact ⟨C_chem, La, Lb, (hprodAll u).hlam, hfacts.step_op, haux⟩
+
 theorem profileNontrivial_of_lowerBarrierRaw_tail_bound
     {p : CMParams} {c κ κtilde M D : ℝ} {U : ℝ → ℝ}
     (hcond : PaperLemma42ExactConditions p c κ κtilde M)
@@ -1588,6 +1690,33 @@ theorem rotheOrbit_profileNontrivial_of_lowerBarrierRaw_stepInvariant
   exact profileNontrivial_of_lowerBarrierRaw_tail_bound hcond hD
     (fun x _hx => horbit u hu k x)
 
+theorem rotheSeqOfPaper_profileNontrivial_of_lowerBarrierRaw
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hprodAll : ∀ u, PaperRotheStepProducer p c lam M κ Λ u)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+    (hauxData : ∀ u,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+        ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
+          rotheSeqOfPaper p c lam M κ Λ u (hprodAll u) hκ hM k x) →
+          ∃ C_chem La Lb,
+            PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+              (rotheSeqOfPaper p c lam M κ Λ u (hprodAll u) hκ hM
+                (k + 1))) :
+    ∀ u, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+      ∀ k, ProfileNontrivial
+        (rotheSeqOfPaper p c lam M κ Λ u (hprodAll u) hκ hM k) := by
+  have hstep :
+      RotheStepLowerInvariant κ M (lowerBarrierRaw κ κtilde D)
+        (fun u => rotheSeqOfPaper p c lam M κ Λ u (hprodAll u) hκ hM) :=
+    rotheSeqOfPaper_lowerBarrierRaw_stepInvariant hcond hD hD_ge_one
+      hprodAll hκ hM hauxData
+  exact rotheOrbit_profileNontrivial_of_lowerBarrierRaw_stepInvariant hcond hD
+    (fun u hu => rotheSeqOfPaper_lowerPinned_base (hprodAll u) hκ hM hu)
+    hstep
+
 /-! ## Axiom audit -/
 
 section AxiomAudit
@@ -1607,10 +1736,15 @@ section AxiomAudit
 #print axioms PaperLemma_4_2_paperWaveOperator_from_pointwise_estimate
 #print axioms PaperLemma_4_2_paperWaveOperator_from_components
 #print axioms PaperLemma_4_2_paperWaveOperator_of_conditions
+#print axioms paperLowerBarrierStepData_lowerBarrierRaw_of_paperStep
+#print axioms rotheStepLowerInvariant_lowerBarrierRaw_of_paperStepData
+#print axioms rotheSeqOfPaper_lowerBarrierRaw_stepInvariant
 #print axioms profileNontrivial_of_lowerBarrierRaw_tail_bound
 #print axioms rotheOrbit_profileNontrivial_of_lowerBarrierRaw_stepInvariant
+#print axioms rotheSeqOfPaper_profileNontrivial_of_lowerBarrierRaw
 end AxiomAudit
 
 end ShenWork.Paper1
 
 #print axioms ShenWork.Paper1.rotheOrbit_profileNontrivial_of_lowerBarrierRaw_stepInvariant
+#print axioms ShenWork.Paper1.rotheSeqOfPaper_profileNontrivial_of_lowerBarrierRaw

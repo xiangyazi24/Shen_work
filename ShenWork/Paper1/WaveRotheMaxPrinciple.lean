@@ -82,6 +82,16 @@ def implicitStepOp (p : CMParams) (c h : ℝ) (u W : ℝ → ℝ) : ℝ → ℝ 
 @[simp] theorem implicitStepOp_apply (p : CMParams) (c h : ℝ) (u W : ℝ → ℝ) (x : ℝ) :
     implicitStepOp p c h u W x = W x - h * frozenWaveOperator p c u W x := rfl
 
+/-- The paper implicit-Euler step operator, using the expanded paper operator
+`paperWaveOperator` in the Euler residual. -/
+def paperImplicitStepOp (p : CMParams) (c h : ℝ) (u W : ℝ → ℝ) : ℝ → ℝ :=
+  fun x => W x - h * paperWaveOperator p c u W x
+
+@[simp] theorem paperImplicitStepOp_apply
+    (p : CMParams) (c h : ℝ) (u W : ℝ → ℝ) (x : ℝ) :
+    paperImplicitStepOp p c h u W x =
+      W x - h * paperWaveOperator p c u W x := rfl
+
 /-- The chemotaxis flux `Q_u(W) y = (W y)^m · V'(y)`, `V = frozenElliptic p u`, so
 that the chemotaxis term of `F_u` is `−χ · (Q_u W)'`. -/
 def chemFlux (p : CMParams) (u W : ℝ → ℝ) : ℝ → ℝ :=
@@ -370,7 +380,68 @@ theorem implicitStep_ge_of_paperBarrier_maxPrinciple
         ≤ h * (CB * Δ) :=
     mul_le_mul_of_nonneg_left hFdiff hh.le
   have hcoef_pos : 0 < 1 - h * CB := by linarith [hCB]
-  have hbig_pos : 0 < (1 - h * CB) * Δ := mul_pos hcoef_pos hΔpos
+  have hbig_pos : 0 < (1 - h * CB) * Δ := by
+    exact mul_pos hcoef_pos hΔpos
+  nlinarith [hGdiff, hstep_le, hbig_pos]
+
+/-- Paper-operator lower-barrier comparison for one paper implicit step.
+
+Both the barrier side and the unknown step use `paperWaveOperator`.  The only
+operator-specific analytic input is the one-sided paper/paper estimate at the
+positive maximum of `A - W`. -/
+theorem paperImplicitStep_ge_of_paperBarrier_maxPrinciple
+    (p : CMParams) {c h M C_chem : ℝ} {u Z W A : ℝ → ℝ} {x₀ : ℝ}
+    (hh : 0 < h)
+    (hCB : h * (reactionLip p.α M + C_chem) < 1)
+    (hstep : ∀ x, paperImplicitStepOp p c h u W x = Z x)
+    (hAsub : 0 ≤ paperWaveOperator p c u A x₀)
+    (hAZ : ∀ x, A x ≤ Z x)
+    (hattain : IsMaxOn (fun x => A x - W x) Set.univ x₀)
+    (hpaperDiff :
+      paperWaveOperator p c u A x₀ - paperWaveOperator p c u W x₀
+        ≤ (reactionLip p.α M + C_chem) * (A x₀ - W x₀)) :
+    ∀ x, A x ≤ W x := by
+  have hmax : ∀ x, A x - W x ≤ A x₀ - W x₀ := by
+    intro x
+    have := hattain (Set.mem_univ x)
+    simpa using this
+  suffices hx₀_nonpos : A x₀ - W x₀ ≤ 0 by
+    intro x
+    have := hmax x
+    linarith
+  by_contra hpos_not
+  push_neg at hpos_not
+  have hGW :
+      W x₀ - h * paperWaveOperator p c u W x₀ = Z x₀ := by
+    have := hstep x₀
+    simpa [paperImplicitStepOp_apply] using this
+  have hGA_le_A :
+      A x₀ - h * paperWaveOperator p c u A x₀ ≤ A x₀ := by
+    have hmul : 0 ≤ h * paperWaveOperator p c u A x₀ :=
+      mul_nonneg hh.le hAsub
+    linarith
+  have hGA_le_GW :
+      A x₀ - h * paperWaveOperator p c u A x₀
+        ≤ W x₀ - h * paperWaveOperator p c u W x₀ := by
+    calc
+      A x₀ - h * paperWaveOperator p c u A x₀
+          ≤ A x₀ := hGA_le_A
+      _ ≤ Z x₀ := hAZ x₀
+      _ = W x₀ - h * paperWaveOperator p c u W x₀ := hGW.symm
+  have hGdiff :
+      (A x₀ - W x₀) - h *
+          (paperWaveOperator p c u A x₀ - paperWaveOperator p c u W x₀) ≤ 0 := by
+    linarith
+  set Δ := A x₀ - W x₀ with hΔ
+  set CB := reactionLip p.α M + C_chem with hCBdef
+  have hΔpos : 0 < Δ := hpos_not
+  have hstep_le :
+      h * (paperWaveOperator p c u A x₀ - paperWaveOperator p c u W x₀)
+        ≤ h * (CB * Δ) :=
+    mul_le_mul_of_nonneg_left hpaperDiff hh.le
+  have hcoef_pos : 0 < 1 - h * CB := by linarith [hCB]
+  have hbig_pos : 0 < (1 - h * CB) * Δ := by
+    exact mul_pos hcoef_pos hΔpos
   nlinarith [hGdiff, hstep_le, hbig_pos]
 
 /-! ## 3 — the chemotaxis-increment supplier (the carried `hchem`, derived)
@@ -505,6 +576,7 @@ section AxiomAudit
 #print axioms implicitStep_le_of_barrier_maxPrinciple
 #print axioms implicitStep_ge_of_barrier_maxPrinciple
 #print axioms implicitStep_ge_of_paperBarrier_maxPrinciple
+#print axioms paperImplicitStep_ge_of_paperBarrier_maxPrinciple
 #print axioms chemFlux_increment_bound
 end AxiomAudit
 

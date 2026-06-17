@@ -6,7 +6,7 @@
   The point of this file is narrow:
 
   * package the exact lower-barrier data needed by the frozen operator;
-  * derive the one-step lower invariant from the dual clean maximum principle;
+* derive the one-step lower invariant from the dual clean maximum principle;
   * record the paper-hypothesis gap for the advertised lower subsolution.
 
   No Green-representation comparison is used below; the order step calls
@@ -125,13 +125,13 @@ theorem rotheOrbitLowerBound_of_lowerBarrierData
 
 The paper subsolution may only be known on a region `s`; the `region` field is
 the max-principle side condition saying every positive-max candidate for
-`φ - W` lies in that region.  The bridge from the paper operator to the actual
-implicit step is `paperDiff`. -/
+`φ - W` lies in that region.  The step equation is the paper implicit step,
+and `paperDiff` is the paper/paper one-sided estimate at a positive maximum. -/
 structure PaperLowerBarrierStepData
     (p : CMParams) (c lam M κ Λ C_chem : ℝ)
     (La Lb : ℝ) (s : Set ℝ) (u Z W φ : ℝ → ℝ) : Prop where
   hlam : 0 < lam
-  step_op : ∀ x, implicitStepOp p c (1 / lam) u W x = Z x
+  step_op : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x
   hCB : (1 / lam) * (reactionLip p.α M + C_chem) < 1
   AZ : ∀ x, φ x ≤ Z x
   φcont : Continuous (fun x => φ x - W x)
@@ -142,11 +142,11 @@ structure PaperLowerBarrierStepData
   paperSub : IsPaperFrozenSubSolutionOn p c u φ s
   region : ∀ x₀, IsMaxOn (fun x => φ x - W x) Set.univ x₀ → x₀ ∈ s
   paperDiff : ∀ x₀, IsMaxOn (fun x => φ x - W x) Set.univ x₀ →
-    paperWaveOperator p c u φ x₀ - frozenWaveOperator p c u W x₀
+    paperWaveOperator p c u φ x₀ - paperWaveOperator p c u W x₀
       ≤ (reactionLip p.α M + C_chem) * (φ x₀ - W x₀)
 
-/-- A paper subsolution lower barrier is preserved by one implicit Rothe step
-once the max-principle region and mixed-operator difference estimate are
+/-- A paper subsolution lower barrier is preserved by one paper implicit Rothe step
+once the max-principle region and paper-operator difference estimate are
 supplied. -/
 theorem lowerBarrier_step_ge_of_paperData
     {p : CMParams} {c lam M κ Λ C_chem La Lb : ℝ}
@@ -162,8 +162,8 @@ theorem lowerBarrier_step_ge_of_paperData
       (fun x₀ hmax => hd.paperSub x₀ (hd.region x₀ hmax))
       hd.paperDiff
 
-/-- Paper-version lower invariant: if each abstract Rothe step supplies the
-paper subsolution region data and the mixed paper/frozen difference estimate,
+/-- Paper-version lower invariant: if each abstract Rothe step supplies the paper
+step equation, paper subsolution region data, and paper/paper difference estimate,
 then the lower barrier is inductively preserved. -/
 theorem rotheStepLowerInvariant_of_paperBarrierData
     {p : CMParams} {c lam M κ Λ : ℝ} {φ : ℝ → ℝ}
@@ -235,3 +235,5 @@ section AxiomAudit
 end AxiomAudit
 
 end ShenWork.Paper1
+
+#print axioms ShenWork.Paper1.rotheStepLowerInvariant_of_paperBarrierData

@@ -336,13 +336,13 @@ theorem implicitStep_ge_of_barrier_maxPrinciple_clean
 
 This is the paper-version analogue of
 `implicitStep_ge_of_barrier_maxPrinciple_clean`: the barrier subsolution is stated
-for `paperWaveOperator`, and the bridge to the actual implicit step is the
-one-sided mixed-operator estimate supplied at the positive maximum. -/
+for `paperWaveOperator`, and the step equation uses the paper implicit operator.
+The one-sided paper/paper estimate is supplied at the positive maximum. -/
 theorem implicitStep_ge_of_paperBarrier_maxPrinciple_clean
     (p : CMParams) {c h M C_chem : ℝ} {u Z W A : ℝ → ℝ} {La Lb : ℝ}
     (hh : 0 < h)
     (hCB : h * (reactionLip p.α M + C_chem) < 1)
-    (hstep : ∀ x, implicitStepOp p c h u W x = Z x)
+    (hstep : ∀ x, paperImplicitStepOp p c h u W x = Z x)
     (hAZ : ∀ x, A x ≤ Z x)
     (hφcont : Continuous (fun x => A x - W x))
     (hbot : Tendsto (fun x => A x - W x) atBot (𝓝 La)) (hLa : La ≤ 0)
@@ -350,7 +350,7 @@ theorem implicitStep_ge_of_paperBarrier_maxPrinciple_clean
     (hpaperSub : ∀ x₀, IsMaxOn (fun x => A x - W x) Set.univ x₀ →
         0 ≤ paperWaveOperator p c u A x₀)
     (hpaperDiff : ∀ x₀, IsMaxOn (fun x => A x - W x) Set.univ x₀ →
-      paperWaveOperator p c u A x₀ - frozenWaveOperator p c u W x₀
+      paperWaveOperator p c u A x₀ - paperWaveOperator p c u W x₀
         ≤ (reactionLip p.α M + C_chem) * (A x₀ - W x₀)) :
     ∀ x, A x ≤ W x := by
   by_contra hcon
@@ -361,7 +361,7 @@ theorem implicitStep_ge_of_paperBarrier_maxPrinciple_clean
     exists_isMaxOn_pos_of_tendsto_nonpos (φ := fun x => A x - W x)
       hφcont hbot hLa htop hLb hpos₁
   have hle :=
-    implicitStep_ge_of_paperBarrier_maxPrinciple
+    paperImplicitStep_ge_of_paperBarrier_maxPrinciple
       (p := p) (c := c) (h := h) (M := M) (C_chem := C_chem)
       (u := u) (Z := Z) (W := W) (A := A) (x₀ := x₀)
       hh hCB hstep (hpaperSub x₀ hattain) hAZ hattain

@@ -241,6 +241,99 @@ theorem rotheSeqOf_lowerPinned_base
   rw [rotheSeqOf_zero]
   exact le_trans (hu.lower x) (hu.bare.le_upperBarrier x)
 
+/-! ## The paper-step Rothe sequence
+
+The committed `rotheSeqOf` above is the frozen implicit step.  The paper lower
+barrier comparison uses the paper implicit operator instead, so we keep a
+separate lightweight paper-step orbit.  It records only the trap shape and the
+paper step equation; no frozen Schauder data is claimed for this orbit here. -/
+
+/-- Per-step facts for the paper implicit orbit. -/
+structure PaperRotheStepFacts
+    (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) : Prop where
+  step_op : ∀ x, paperImplicitStepOp p c (1 / lam) u W x = Z x
+  cont : Continuous W
+  nonneg : ∀ x, 0 ≤ W x
+  le_barrier : ∀ x, W x ≤ upperBarrier κ M x
+  anti : Antitone W
+
+/-- The base shape needed to keep producing paper iterates. -/
+structure PaperIterateBase (κ M : ℝ) (Z : ℝ → ℝ) : Prop where
+  cont : Continuous Z
+  anti : Antitone Z
+  nonneg : ∀ x, 0 ≤ Z x
+  le_barrier : ∀ x, Z x ≤ upperBarrier κ M x
+
+theorem upperBarrier_paperIterateBase {κ M : ℝ}
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
+    PaperIterateBase κ M (upperBarrier κ M) :=
+  ⟨upperBarrier_continuous κ M, upperBarrier_antitone hκ,
+   fun x => upperBarrier_nonneg hM x, fun _ => le_rfl⟩
+
+theorem PaperRotheStepFacts.toBase
+    {p : CMParams} {c lam M κ Λ : ℝ} {u Z W : ℝ → ℝ}
+    (h : PaperRotheStepFacts p c lam M κ Λ u Z W) :
+    PaperIterateBase κ M W :=
+  ⟨h.cont, h.anti, h.nonneg, h.le_barrier⟩
+
+/-- Producer for the paper implicit orbit.  This is intentionally separate from
+`RotheStepProducer`, whose step equation is frozen. -/
+structure PaperRotheStepProducer
+    (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ) : Prop where
+  hlam : 0 < lam
+  produce : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
+      (∀ x, Z x ≤ upperBarrier κ M x) →
+      ∃ W : ℝ → ℝ, PaperRotheStepFacts p c lam M κ Λ u Z W
+
+def paperRotheStep (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ)
+    (hprod : PaperRotheStepProducer p c lam M κ Λ u)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
+    ∀ k : ℕ, { Z : ℝ → ℝ // PaperIterateBase κ M Z }
+  | 0 => ⟨upperBarrier κ M, upperBarrier_paperIterateBase hκ hM⟩
+  | (k+1) =>
+    let prev := paperRotheStep p c lam M κ Λ u hprod hκ hM k
+    let hex := hprod.produce prev.1 prev.2.cont prev.2.anti prev.2.nonneg
+      prev.2.le_barrier
+    ⟨Classical.choose hex, (Classical.choose_spec hex).toBase⟩
+
+/-- The concrete paper-step Rothe sequence. -/
+def rotheSeqOfPaper (p : CMParams) (c lam M κ Λ : ℝ) (u : ℝ → ℝ)
+    (hprod : PaperRotheStepProducer p c lam M κ Λ u)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) : ℕ → ℝ → ℝ :=
+  fun k => (paperRotheStep p c lam M κ Λ u hprod hκ hM k).1
+
+@[simp] theorem rotheSeqOfPaper_zero
+    (hprod : PaperRotheStepProducer p c lam M κ Λ u)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
+    rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM 0 = upperBarrier κ M := rfl
+
+theorem rotheSeqOfPaper_stepFacts
+    (hprod : PaperRotheStepProducer p c lam M κ Λ u)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (k : ℕ) :
+    PaperRotheStepFacts p c lam M κ Λ u
+      (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k)
+      (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM (k + 1)) := by
+  let prev := paperRotheStep p c lam M κ Λ u hprod hκ hM k
+  have hex := hprod.produce prev.1 prev.2.cont prev.2.anti prev.2.nonneg
+    prev.2.le_barrier
+  exact Classical.choose_spec hex
+
+theorem rotheSeqOfPaper_base
+    (hprod : PaperRotheStepProducer p c lam M κ Λ u)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (k : ℕ) :
+    PaperIterateBase κ M (rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM k) :=
+  (paperRotheStep p c lam M κ Λ u hprod hκ hM k).2
+
+theorem rotheSeqOfPaper_lowerPinned_base
+    {p : CMParams} {c lam M κ Λ : ℝ} {φ u : ℝ → ℝ}
+    (hprod : PaperRotheStepProducer p c lam M κ Λ u)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M)
+    (hu : InLowerPinnedMonotoneTrap κ M φ u) :
+    ∀ x, φ x ≤ rotheSeqOfPaper p c lam M κ Λ u hprod hκ hM 0 x := by
+  intro x
+  rw [rotheSeqOfPaper_zero]
+  exact le_trans (hu.lower x) (hu.bare.le_upperBarrier x)
+
 /-- Lower-bound orbit for the concrete Rothe sequence, reduced to the honest
 one-step lower-invariance obligation.  The base case is discharged here. -/
 theorem rotheOrbitLowerBound_lowerBarrierPlateau
@@ -958,6 +1051,9 @@ theorem b1_chiNeg_existence_profileClean_stationary_lowerBarrierPinned_rootPin
 section AxiomAudit
 
 #print axioms rotheSeqOf
+#print axioms rotheSeqOfPaper
+#print axioms rotheSeqOfPaper_stepFacts
+#print axioms rotheSeqOfPaper_lowerPinned_base
 #print axioms rotheSeqOf_supersol
 #print axioms rotheSeqOf_step_rec
 #print axioms rotheSeqOf_equiLip
@@ -980,3 +1076,6 @@ section AxiomAudit
 end AxiomAudit
 
 end ShenWork.Paper1
+
+#print axioms ShenWork.Paper1.rotheOrbitLowerBound_lowerBarrierPlateau
+#print axioms ShenWork.Paper1.stationaryStrongMaxPrinciple_of_odeUniqueness
