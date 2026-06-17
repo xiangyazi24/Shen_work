@@ -233,6 +233,86 @@ theorem implicitStep_le_of_barrier_maxPrinciple
   -- Δ − h(F_u W − F_u B) ≥ Δ − h(CB Δ) = (1 − h CB)Δ > 0, contradiction with hGdiff
   nlinarith [hGdiff, hstep_le, hbig_pos]
 
+/-- Dual lower-barrier comparison for one implicit step, proved by the same
+maximum-principle calculation as `implicitStep_le_of_barrier_maxPrinciple`.
+
+This is local at the positive maximum of `A - W`; no Green-kernel
+representation is used. -/
+theorem implicitStep_ge_of_barrier_maxPrinciple
+    (p : CMParams) {c h M C_chem : ℝ} {u Z W A : ℝ → ℝ} {x₀ : ℝ}
+    (hh : 0 < h) (hM : 0 ≤ M) (hC_chem_nonneg : 0 ≤ C_chem)
+    (hCB : h * (reactionLip p.α M + C_chem) < 1)
+    (hstep : ∀ x, implicitStepOp p c h u W x = Z x)
+    (hAsub : ∀ x, 0 ≤ frozenWaveOperator p c u A x)
+    (hAZ : ∀ x, A x ≤ Z x)
+    (hattain : IsMaxOn (fun x => A x - W x) Set.univ x₀)
+    (hloc : IsLocalMax (fun x => A x - W x) x₀)
+    (hWdiff : DifferentiableAt ℝ W x₀)
+    (hAdiff : DifferentiableAt ℝ A x₀)
+    (hderiv2 : iteratedDeriv 2 A x₀ ≤ iteratedDeriv 2 W x₀)
+    (hAmem : A x₀ ∈ Set.Icc 0 M)
+    (hWmem : W x₀ ∈ Set.Icc 0 M)
+    (hchem :
+      -p.χ * (deriv (chemFlux p u A) x₀ - deriv (chemFlux p u W) x₀)
+        ≤ C_chem * (A x₀ - W x₀)) :
+    ∀ x, A x ≤ W x := by
+  have hmax : ∀ x, A x - W x ≤ A x₀ - W x₀ := by
+    intro x
+    have := hattain (Set.mem_univ x)
+    simpa using this
+  suffices hx₀_nonpos : A x₀ - W x₀ ≤ 0 by
+    intro x
+    have := hmax x
+    linarith
+  by_contra hpos_not
+  push_neg at hpos_not
+  have hWA : W x₀ ≤ A x₀ := by linarith
+  have hφderiv : deriv (fun x => A x - W x) x₀ = 0 :=
+    hloc.deriv_eq_zero
+  have hderiv_sub :
+      deriv (fun x => A x - W x) x₀ = deriv A x₀ - deriv W x₀ :=
+    deriv_sub hAdiff hWdiff
+  have hderiv_eq : deriv A x₀ = deriv W x₀ := by
+    rw [hderiv_sub] at hφderiv
+    linarith
+  have hFdiff :
+      frozenWaveOperator p c u A x₀ - frozenWaveOperator p c u W x₀
+        ≤ (reactionLip p.α M + C_chem) * (A x₀ - W x₀) :=
+    implicitStep_oneSided_max_estimate (p := p) (c := c) (M := M)
+      (C_chem := C_chem) (u := u) (W := A) (B := W) (x₀ := x₀)
+      hM hAmem hWmem hWA hderiv_eq hderiv2 hchem
+  have hGW :
+      W x₀ - h * frozenWaveOperator p c u W x₀ = Z x₀ := by
+    have := hstep x₀
+    simpa [implicitStepOp_apply] using this
+  have hGA_le_A :
+      A x₀ - h * frozenWaveOperator p c u A x₀ ≤ A x₀ := by
+    have hmul : 0 ≤ h * frozenWaveOperator p c u A x₀ :=
+      mul_nonneg hh.le (hAsub x₀)
+    linarith
+  have hGA_le_GW :
+      A x₀ - h * frozenWaveOperator p c u A x₀
+        ≤ W x₀ - h * frozenWaveOperator p c u W x₀ := by
+    calc
+      A x₀ - h * frozenWaveOperator p c u A x₀
+          ≤ A x₀ := hGA_le_A
+      _ ≤ Z x₀ := hAZ x₀
+      _ = W x₀ - h * frozenWaveOperator p c u W x₀ := hGW.symm
+  have hGdiff :
+      (A x₀ - W x₀) - h *
+          (frozenWaveOperator p c u A x₀ - frozenWaveOperator p c u W x₀) ≤ 0 := by
+    linarith
+  set Δ := A x₀ - W x₀ with hΔ
+  set CB := reactionLip p.α M + C_chem with hCBdef
+  have hΔpos : 0 < Δ := hpos_not
+  have hstep_le :
+      h * (frozenWaveOperator p c u A x₀ - frozenWaveOperator p c u W x₀)
+        ≤ h * (CB * Δ) :=
+    mul_le_mul_of_nonneg_left hFdiff hh.le
+  have hcoef_pos : 0 < 1 - h * CB := by linarith [hCB]
+  have hbig_pos : 0 < (1 - h * CB) * Δ := mul_pos hcoef_pos hΔpos
+  nlinarith [hGdiff, hstep_le, hbig_pos]
+
 /-! ## 3 — the chemotaxis-increment supplier (the carried `hchem`, derived)
 
 At `x₀` the chemotaxis-flux increment splits, using `W'(x₀)=B'(x₀)`, as
@@ -363,6 +443,7 @@ section AxiomAudit
 #print axioms frozenWaveOperator_eq_pieces
 #print axioms implicitStep_oneSided_max_estimate
 #print axioms implicitStep_le_of_barrier_maxPrinciple
+#print axioms implicitStep_ge_of_barrier_maxPrinciple
 #print axioms chemFlux_increment_bound
 end AxiomAudit
 

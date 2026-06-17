@@ -283,6 +283,55 @@ theorem implicitStep_le_of_barrier_maxPrinciple_clean
   have := hle x₁'
   linarith
 
+/-- Dual clean lower-barrier comparison for one implicit step.
+
+The positive maximum of `A - W` and the second-derivative inequality there are
+discharged internally, then the core dual maximum principle is applied. -/
+theorem implicitStep_ge_of_barrier_maxPrinciple_clean
+    (p : CMParams) {c h M C_chem : ℝ} {u Z W A : ℝ → ℝ} {La Lb : ℝ}
+    (hh : 0 < h) (hM : 0 ≤ M) (hC_chem_nonneg : 0 ≤ C_chem)
+    (hCB : h * (reactionLip p.α M + C_chem) < 1)
+    (hstep : ∀ x, implicitStepOp p c h u W x = Z x)
+    (hAsub : ∀ x, 0 ≤ frozenWaveOperator p c u A x)
+    (hAZ : ∀ x, A x ≤ Z x)
+    (hφcont : Continuous (fun x => A x - W x))
+    (hbot : Tendsto (fun x => A x - W x) atBot (𝓝 La)) (hLa : La ≤ 0)
+    (htop : Tendsto (fun x => A x - W x) atTop (𝓝 Lb)) (hLb : Lb ≤ 0)
+    (hWC2 : ∀ y, ContDiffAt ℝ 2 W y)
+    (hAC2 : ∀ x₀, IsMaxOn (fun x => A x - W x) Set.univ x₀ →
+        ContDiffAt ℝ 2 A x₀)
+    (hrange : ∀ x₀, IsMaxOn (fun x => A x - W x) Set.univ x₀ →
+        A x₀ ∈ Set.Icc (0 : ℝ) M ∧ W x₀ ∈ Set.Icc (0 : ℝ) M)
+    (hchem : ∀ x₀, IsMaxOn (fun x => A x - W x) Set.univ x₀ →
+        -p.χ * (deriv (chemFlux p u A) x₀ - deriv (chemFlux p u W) x₀)
+          ≤ C_chem * (A x₀ - W x₀)) :
+    ∀ x, A x ≤ W x := by
+  by_contra hcon
+  push_neg at hcon
+  obtain ⟨x₁', hx₁'⟩ := hcon
+  have hpos₁ : 0 < A x₁' - W x₁' := by linarith
+  obtain ⟨x₀, hattain, hx₀pos⟩ :=
+    exists_isMaxOn_pos_of_tendsto_nonpos (φ := fun x => A x - W x)
+      hφcont hbot hLa htop hLb hpos₁
+  have hloc : IsLocalMax (fun x => A x - W x) x₀ :=
+    hattain.isLocalMax Filter.univ_mem
+  have hAC2₀ : ContDiffAt ℝ 2 A x₀ := hAC2 x₀ hattain
+  have hderiv2 : iteratedDeriv 2 A x₀ ≤ iteratedDeriv 2 W x₀ :=
+    iteratedDeriv2_le_of_isLocalMax_sub hAC2₀ (hWC2 x₀) hloc
+  obtain ⟨hAmem, hWmem⟩ := hrange x₀ hattain
+  have hchem₀ := hchem x₀ hattain
+  have hWdiff : DifferentiableAt ℝ W x₀ :=
+    (hWC2 x₀).differentiableAt (by norm_num)
+  have hAdiff : DifferentiableAt ℝ A x₀ :=
+    hAC2₀.differentiableAt (by norm_num)
+  have hle :=
+    implicitStep_ge_of_barrier_maxPrinciple (p := p) (c := c) (h := h) (M := M)
+      (C_chem := C_chem) (u := u) (Z := Z) (W := W) (A := A) (x₀ := x₀)
+      hh hM hC_chem_nonneg hCB hstep hAsub hAZ hattain hloc hWdiff hAdiff
+      hderiv2 hAmem hWmem hchem₀
+  have := hle x₁'
+  linarith
+
 /-! ## Axiom audit -/
 
 section AxiomAudit
@@ -293,6 +342,7 @@ section AxiomAudit
 #print axioms chemFlux_split_identity
 #print axioms chemFlux_increment_split
 #print axioms implicitStep_le_of_barrier_maxPrinciple_clean
+#print axioms implicitStep_ge_of_barrier_maxPrinciple_clean
 end AxiomAudit
 
 end ShenWork.Paper1
