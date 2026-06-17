@@ -922,6 +922,57 @@ theorem b1_chiNeg_existence_paper_clean_of_cubeApproxData
           (le_trans zero_le_one hcond.hM) hstep htail)
     hstationary hrealize hflat
 
+theorem b1_chiNeg_existence_paper_min_of_cubeApproxData
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hpar :
+      PaperLowerRawParabolicFloor p c lam M κ κtilde D Λ
+        hcond.hκ0.le (le_trans zero_le_one hcond.hM))
+    (hconv :
+      PaperLowerPinnedStationaryFlatFloor p c κ M
+        (lowerBarrierRaw κ κtilde D)
+        (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond
+          (fun u => (hpar.producer u).producer)))
+    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiNeg_existence_paper_of_cubeApproxData p c lam M κ κtilde D Λ
+    hcond hD hD_ge_one hΛ0 hΛM
+    (fun u => (hpar.producer u).producer) hpar.barLip
+    (upperBarrier_isBddFun (le_trans zero_le_one hcond.hM))
+    (by
+      simpa [rotheSeqOfPaperFromCond] using
+        paperRotheContinuousDependence p c lam M κ Λ
+          (fun u => (hpar.producer u).producer) hcond.hκ0.le
+          (le_trans zero_le_one hcond.hM) hpar.step hpar.tail)
+    (hauxData_of_conditions hcond hD hD_ge_one hpar.producer)
+    hconv.stationary hsmp hconv.flat
+
+theorem b1_chiNeg_existence_paper_min_core_of_cubeApproxData
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hpar :
+      PaperLowerRawParabolicFloorCore p c lam M κ κtilde D Λ
+        hcond.hκ0.le (le_trans zero_le_one hcond.hM))
+    (hconv :
+      PaperLowerPinnedStationaryFlatFloor p c κ M
+        (lowerBarrierRaw κ κtilde D)
+        (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond
+          (fun u =>
+            (paperLowerRawParabolicFloor_of_core hpar).producer u |>.producer)))
+    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiNeg_existence_paper_min_of_cubeApproxData p c lam M κ κtilde D Λ
+    hcond hD hD_ge_one hΛ0 hΛM
+    (paperLowerRawParabolicFloor_of_core hpar) hconv hsmp
+
 theorem b1_chiPos_existence_paper_of_cubeApproxData
     (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
     (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
@@ -1096,13 +1147,68 @@ theorem b1_chiPos_existence_paper_clean_of_cubeApproxData
           (le_trans zero_le_one hcond.hM) hstep htail)
     hstationary hrealize hflat
 
+theorem b1_chiPos_existence_paper_min_of_cubeApproxData
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hpar :
+      PaperLowerRawParabolicFloor p c lam M κ κtilde D Λ
+        hcond.hκ0.le (le_trans zero_le_one hcond.hM))
+    (hconv :
+      PaperLowerPinnedStationaryFlatFloor p c κ M
+        (lowerBarrierRaw κ κtilde D)
+        (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+          (fun u => (hpar.producer u).producer)))
+    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiPos_existence_paper_of_cubeApproxData p c lam M κ κtilde D Λ
+    hcond hD hD_ge_one hΛ0 hΛM
+    (fun u => (hpar.producer u).producer) hpar.barLip
+    (upperBarrier_isBddFun (le_trans zero_le_one hcond.hM))
+    (by
+      simpa [rotheSeqOfPaperFromPositiveCond] using
+        paperRotheContinuousDependence p c lam M κ Λ
+          (fun u => (hpar.producer u).producer) hcond.hκ0.le
+          (le_trans zero_le_one hcond.hM) hpar.step hpar.tail)
+    (hauxData_of_positive_conditions hcond hD hD_ge_one hpar.producer)
+    hconv.stationary hsmp hconv.flat
+
+theorem b1_chiPos_existence_paper_min_core_of_cubeApproxData
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PositivePaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hpar :
+      PaperLowerRawParabolicFloorCore p c lam M κ κtilde D Λ
+        hcond.hκ0.le (le_trans zero_le_one hcond.hM))
+    (hconv :
+      PaperLowerPinnedStationaryFlatFloor p c κ M
+        (lowerBarrierRaw κ κtilde D)
+        (rotheSeqOfPaperFromPositiveCond p c lam M κ κtilde Λ hcond
+          (fun u =>
+            (paperLowerRawParabolicFloor_of_core hpar).producer u |>.producer)))
+    (hsmp : StationaryStrongMaxPrinciple p c κ M) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiPos_existence_paper_min_of_cubeApproxData p c lam M κ κtilde D Λ
+    hcond hD hD_ge_one hΛ0 hΛM
+    (paperLowerRawParabolicFloor_of_core hpar) hconv hsmp
+
 #print axioms paperLowerPinnedSchauder_fixedPoint_of_cubeApproxData
 #print axioms b1_chiNeg_existence_paper_of_cubeApproxData
 #print axioms b1_chiNeg_existence_paper'_of_cubeApproxData
 #print axioms b1_chiNeg_existence_paper_clean_of_cubeApproxData
+#print axioms b1_chiNeg_existence_paper_min_of_cubeApproxData
+#print axioms b1_chiNeg_existence_paper_min_core_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper'_of_cubeApproxData
 #print axioms b1_chiPos_existence_paper_clean_of_cubeApproxData
+#print axioms b1_chiPos_existence_paper_min_of_cubeApproxData
+#print axioms b1_chiPos_existence_paper_min_core_of_cubeApproxData
 
 end
 
