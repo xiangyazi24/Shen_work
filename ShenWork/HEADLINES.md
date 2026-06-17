@@ -317,3 +317,17 @@ NET CONCLUSION for the avenue: the χ₀<0 Hölder-bootstrap is fully built down
 paper's real remaining hard theorem (shared with χ₀=0), NOT plumbing — a dedicated Picard-iterate-regularity campaign
 (Codex Jun 18 / fresh context), not one-shot dispatches. This is a TERMINAL verdict, not a stall: the floor is named,
 evidenced, and unified across the two χ₀ regimes.
+
+## P1 wave — VACUITY CORRECTION (23:0x): 45849f7's floor-route profile discharges are VACUOUS
+The "all 5 profile lemmas discharged" milestone (45849f7) carries hfloor = (∀ U, InMonotoneWaveTrapSet κ M U →
+PaperPositiveInitialDatum U), which is UNSATISFIABLE: the ZERO function is a trap member (IsCUnifBdd 0, 0≤0≤Ū, Antitone)
+but PaperPositiveInitialDatum requires UniformlyPositive (∃η>0, η≤U) -- false for 0. Worse, the traveling wave DECAYS to 0
+at +∞, so it is not uniformly-positive either. So the hpos/hlim_neg discharges "under hfloor" are VACUOUS (and used the
+wrong structure). Caught by cx_pde's own flag, verified against source. (hbdd/hlim_pos via Ū-squeeze [31d7599] and hGreen
+via the stationary fixed point are GENUINE; only the floor-route hpos/hlim_neg are vacuous.)
+CORRECT routes (genuine frontiers): hpos = STRONG MAXIMUM PRINCIPLE (a non-trivial nonneg stationary solution is strictly
+positive: U(x₀)=0 ⇒ ODE forces U≡0, contradicting U→1); hlim_neg = root-of-nonlinearity + NON-TRIVIALITY (U≢0) pinning
+L=1. The crux: the construction must yield a NON-TRIVIAL fixed point (exclude the trivial zero solution) -- this is the
+genuine core of wave existence. The vacuous profileClean_stationary_floor chain must be superseded by the non-triviality +
+strong-max-principle route. LESSON (again): vacuity-check EVERY carried hypothesis's satisfiability BEFORE calling a
+reduction a milestone -- a build-green axiom-clean theorem with an unsatisfiable hypothesis is vacuous.
