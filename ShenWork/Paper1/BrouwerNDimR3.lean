@@ -121,6 +121,21 @@ theorem labelN_ne_last_on_face {n k : ℕ}
     simp only [embPt, hq, hlast, Int.toNat_zero, Nat.cast_zero, zero_div]
   exact spernerLabelN_ne_of_zero hv hfv hzero
 
+/-- The integer Sperner label avoids the colour of every vanishing barycentric coordinate.
+This is the face-label condition used in the boundary-door argument. -/
+theorem label_avoids_forbidden_coord_on_face {n k : ℕ}
+    {f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ)} (hk : 0 < k)
+    (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (n + 1))) (stdSimplex ℝ (Fin (n + 1))))
+    {v : Fin (n + 1) → ℤ} (hsum : ∑ i, (v i).toNat = k)
+    {t : Fin (n + 1)} (hzero : v t = 0) :
+    labelN f k v ≠ t := by
+  set q : Fin (n + 1) → ℕ := fun i => (v i).toNat with hq
+  have hv : embPt k q ∈ stdSimplex ℝ (Fin (n + 1)) := embPt_mem_stdSimplex hk hsum
+  have hfv : f (embPt k q) ∈ stdSimplex ℝ (Fin (n + 1)) := hmaps hv
+  have hcoord : embPt k q t = 0 := by
+    simp only [embPt, hq, hzero, Int.toNat_zero, Nat.cast_zero, zero_div]
+  exact spernerLabelN_ne_of_zero hv hfv hcoord
+
 /-! ## The door-colour structure of a boundary door
 
 A *door* facet (`F.image L = univ.erase (Fin.last n)`) carries exactly the `n` lower colours
@@ -141,6 +156,54 @@ theorem door_injOn_of_card {n : ℕ} {L : (Fin (n + 1) → ℤ) → Fin (n + 1)}
       Fintype.card_fin]; omega
   have hle : (F.image L).card = F.card := by rw [himgcard, hcard]
   exact Finset.injOn_of_card_image_eq hle
+
+/-- Every vertex of a present `facetsN` facet is a nonnegative lattice point of total mesh
+mass `k`. -/
+theorem facetN_vertex_nonneg_sum {n k : ℕ} {F : Finset (Fin (n + 1) → ℤ)}
+    (hF : F ∈ facetsN n k) {v : Fin (n + 1) → ℤ} (hv : v ∈ F) :
+    (∀ i, 0 ≤ v i) ∧ ∑ i, (v i).toNat = k := by
+  obtain ⟨c, hc, hb⟩ := mem_facetsN_iff.mp hF
+  obtain ⟨t, ht⟩ := hb
+  have hv' : v ∈ facetSet c.1 c.2 t := by simpa [ht] using hv
+  unfold facetSet at hv'
+  rw [Finset.mem_image] at hv'
+  obtain ⟨u, _hu, huv⟩ := hv'
+  subst v
+  refine ⟨?_, ?_⟩
+  · intro i
+    exact cellValid_nonneg hc u i
+  · have hsumZ : ∑ i, chainVZ c.1 c.2 u i = (k : ℤ) := cellValid_sum hc u
+    have hcast : ∑ i, ((chainVZ c.1 c.2 u i).toNat : ℤ) =
+        ∑ i, chainVZ c.1 c.2 u i := by
+      refine Finset.sum_congr rfl ?_
+      intro i _hi
+      exact Int.toNat_of_nonneg (cellValid_nonneg hc u i)
+    have hnatCast : ((∑ i, (chainVZ c.1 c.2 u i).toNat : ℕ) : ℤ) =
+        ∑ i, ((chainVZ c.1 c.2 u i).toNat : ℤ) := by
+      push_cast
+      rfl
+    have hsumCast : ((∑ i, (chainVZ c.1 c.2 u i).toNat : ℕ) : ℤ) = (k : ℤ) := by
+      rw [hnatCast, hcast, hsumZ]
+    exact_mod_cast hsumCast
+
+/-- A `labelN` door cannot lie entirely in a zero-coordinate face whose forbidden colour is
+one of the required lower colours. -/
+theorem not_labelN_door_of_forbidden_face {n k : ℕ}
+    {f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ)} (hk : 0 < k)
+    (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (n + 1))) (stdSimplex ℝ (Fin (n + 1))))
+    {F : Finset (Fin (n + 1) → ℤ)} (hF : F ∈ facetsN n k)
+    {j : Fin (n + 1)} (hj : j ≠ Fin.last n)
+    (hface : ∀ v ∈ F, v j = 0) :
+    F.image (labelN f k) ≠ Finset.univ.erase (Fin.last n) := by
+  intro hdoor
+  have hjmem : j ∈ Finset.univ.erase (Fin.last n) :=
+    Finset.mem_erase.mpr ⟨hj, Finset.mem_univ _⟩
+  rw [← hdoor] at hjmem
+  rw [Finset.mem_image] at hjmem
+  obtain ⟨v, hvF, hvlabel⟩ := hjmem
+  obtain ⟨_hnn, hsum⟩ := facetN_vertex_nonneg_sum hF hvF
+  have havoid := label_avoids_forbidden_coord_on_face hk hmaps hsum (hface v hvF)
+  exact havoid hvlabel
 
 /-! ## The endpoint (face-end) partner base-shift, coordinatewise
 
@@ -199,6 +262,92 @@ theorem endpointInv_invalid_of_base_zero {n k : ℕ} (hn : 0 < n) (c : KCell n)
   -- now `0 ≤ 0 - 1`, contradiction
   norm_num at hnn
 
+/-- If the coordinate lowered by `endpointInv` is still positive, the endpoint-inverse partner
+is a valid cell. -/
+theorem endpointInv_valid_of_base_pos {n k : ℕ} (hn : 0 < n) {c : KCell n}
+    (hc : cellMemN k c)
+    (hpos : 0 < c.1 ((c.2 * (finRotate n)⁻¹) ⟨0, hn⟩).castSucc) :
+    cellMemN k (endpointInv hn c) := by
+  classical
+  let a : Fin n := (c.2 * (finRotate n)⁻¹) ⟨0, hn⟩
+  constructor
+  · unfold endpointInv
+    rw [Finset.sum_sub_distrib, sum_stepVec, sub_zero]
+    exact hc.1
+  · intro t i
+    by_cases ht0 : t = (0 : Fin (n + 1))
+    · subst t
+      have hbase : chainVZ (endpointInv hn c).1 (endpointInv hn c).2 0 i =
+          (endpointInv hn c).1 i := by
+        rw [chainVZ_apply]
+        have he : (Finset.univ.filter (fun s : Fin n => s.val < (0 : Fin (n + 1)).val)) = ∅ := by
+          apply Finset.filter_eq_empty_iff.mpr
+          intro s _hs
+          simp
+        rw [he, Finset.sum_empty, add_zero]
+      rw [hbase]
+      unfold endpointInv
+      by_cases hia : i = a.castSucc
+      · subst i
+        have hpos_a : 0 < c.1 a.castSucc := by
+          simpa [a] using hpos
+        have hstep : stepVec a a.castSucc = 1 := by
+          unfold stepVec
+          have hne : a.castSucc ≠ Fin.last n := Fin.castSucc_ne_last a
+          rw [if_pos rfl, if_neg hne]
+          ring
+        change 0 ≤ c.1 a.castSucc - stepVec a a.castSucc
+        rw [hstep]
+        omega
+      · have hstep_nonpos : stepVec a i ≤ 0 := by
+          unfold stepVec
+          by_cases hilast : i = Fin.last n
+          · rw [if_neg hia, if_pos hilast]
+            norm_num
+          · rw [if_neg hia, if_neg hilast]
+            norm_num
+        have hbase_nonneg : 0 ≤ c.1 i := by
+          have hbase0 : chainVZ c.1 c.2 0 i = c.1 i := by
+            rw [chainVZ_apply]
+            have he : (Finset.univ.filter (fun s : Fin n => s.val < (0 : Fin (n + 1)).val)) = ∅ := by
+              apply Finset.filter_eq_empty_iff.mpr
+              intro s _hs
+              simp
+            rw [he, Finset.sum_empty, add_zero]
+          rw [← hbase0]
+          exact cellValid_nonneg hc 0 i
+        change 0 ≤ c.1 i - stepVec a i
+        omega
+    · have hmem : chainVZ (endpointInv hn c).1 (endpointInv hn c).2 t ∈
+          facetSet (endpointInv hn c).1 (endpointInv hn c).2 0 :=
+        (mem_facetSet_iff _ _ _ _).mpr ht0
+      rw [endpointInv_facet hn c] at hmem
+      unfold facetSet at hmem
+      rw [Finset.mem_image] at hmem
+      obtain ⟨u, _hu, hu⟩ := hmem
+      rw [← hu]
+      exact cellValid_nonneg hc u i
+
+/-- Conversely, an invalid `endpointInv` partner must have lowered a zero base coordinate. -/
+theorem endpointInv_base_zero_of_invalid {n k : ℕ} (hn : 0 < n) {c : KCell n}
+    (hc : cellMemN k c) (hinv : ¬ cellMemN k (endpointInv hn c)) :
+    c.1 ((c.2 * (finRotate n)⁻¹) ⟨0, hn⟩).castSucc = 0 := by
+  have hnn : 0 ≤ c.1 ((c.2 * (finRotate n)⁻¹) ⟨0, hn⟩).castSucc := by
+    have hbase : chainVZ c.1 c.2 0
+        (((c.2 * (finRotate n)⁻¹) ⟨0, hn⟩).castSucc)
+        = c.1 (((c.2 * (finRotate n)⁻¹) ⟨0, hn⟩).castSucc) := by
+      rw [chainVZ_apply]
+      have he : (Finset.univ.filter (fun s : Fin n => s.val < (0 : Fin (n + 1)).val)) = ∅ := by
+        apply Finset.filter_eq_empty_iff.mpr
+        intro s _hs
+        simp
+      rw [he, Finset.sum_empty, add_zero]
+    rw [← hbase]
+    exact cellValid_nonneg hc 0 _
+  by_contra hne
+  have hpos : 0 < c.1 ((c.2 * (finRotate n)⁻¹) ⟨0, hn⟩).castSucc := by omega
+  exact hinv (endpointInv_valid_of_base_pos hn hc hpos)
+
 /-! ## The top-end (`t = 0`) partner base-shift, coordinatewise
 
 Symmetrically, the `t = 0` drop's partner is `endpointFwd`, shifting the base by
@@ -244,6 +393,106 @@ theorem endpointFwd_invalid_of_base_last_zero {n k : ℕ} (hn : 0 < n) (c : KCel
     cellValid_nonneg hv 0 (Fin.last n)
   rw [hbase (Fin.last n), endpointFwd_base_last hn c, hzero] at hnn
   norm_num at hnn
+
+/-- If a valid-side cell is on the minimal last-coordinate layer `p(last)=n`, its
+endpoint-forward partner leaves the mesh at its final chain vertex. -/
+theorem endpointFwd_invalid_of_base_last_eq {n k : ℕ} (hn : 0 < n) (c : KCell n)
+    (heq : c.1 (Fin.last n) = (n : ℤ)) :
+    ¬ cellMemN k (endpointFwd hn c) := by
+  intro hv
+  have hnn := cellValid_nonneg hv (Fin.last n) (Fin.last n)
+  rw [chainVZ_last, endpointFwd_base_last hn c, heq] at hnn
+  simp only [Fin.val_last] at hnn
+  omega
+
+/-- If the base has more than the minimal `n` units in the last coordinate, the endpoint-forward
+partner is still valid. -/
+theorem endpointFwd_valid_of_base_last_gt {n k : ℕ} (hn : 0 < n) {c : KCell n}
+    (hc : cellMemN k c) (hgt : (n : ℤ) < c.1 (Fin.last n)) :
+    cellMemN k (endpointFwd hn c) := by
+  classical
+  constructor
+  · unfold endpointFwd
+    rw [Finset.sum_add_distrib, sum_stepVec, add_zero]
+    exact hc.1
+  · intro t i
+    by_cases ht : t.val < n
+    · unfold endpointFwd
+      rw [chainVZ_endpoint_shift hn c.1 c.2 ht]
+      exact cellValid_nonneg hc ⟨t.val + 1, by omega⟩ i
+    · have htval : t.val = n := by
+        have hle : t.val ≤ n := Nat.le_of_lt_succ t.isLt
+        omega
+      have htlast : t = Fin.last n := Fin.ext (by simpa [Fin.val_last] using htval)
+      subst t
+      refine Fin.lastCases ?_ ?_ i
+      · rw [chainVZ_apply]
+        have hall : (Finset.univ.filter
+            (fun s : Fin n => s.val < (Fin.last n : Fin (n + 1)).val)) = Finset.univ := by
+          ext s
+          simp [Fin.val_last, s.isLt]
+        rw [hall]
+        unfold endpointFwd
+        have hsumlast : (∑ s : Fin n, stepVec ((c.2 * finRotate n) s) (Fin.last n))
+            = -(n : ℤ) := by
+          rw [Finset.sum_congr rfl (fun s _ => stepVec_last ((c.2 * finRotate n) s))]
+          rw [Finset.sum_const, Finset.card_univ, Fintype.card_fin, nsmul_eq_mul]
+          ring
+        change 0 ≤ c.1 (Fin.last n) + stepVec (c.2 ⟨0, hn⟩) (Fin.last n) +
+          ∑ s : Fin n, stepVec ((c.2 * finRotate n) s) (Fin.last n)
+        rw [stepVec_last (c.2 ⟨0, hn⟩), hsumlast]
+        omega
+      · intro j
+        rw [chainVZ_apply]
+        have hall : (Finset.univ.filter
+            (fun s : Fin n => s.val < (Fin.last n : Fin (n + 1)).val)) = Finset.univ := by
+          ext s
+          simp [Fin.val_last, s.isLt]
+        rw [hall]
+        unfold endpointFwd
+        have hbase_nonneg : 0 ≤ c.1 j.castSucc := by
+          have hbase0 : chainVZ c.1 c.2 0 j.castSucc = c.1 j.castSucc := by
+            rw [chainVZ_apply]
+            have he : (Finset.univ.filter
+                (fun s : Fin n => s.val < (0 : Fin (n + 1)).val)) = ∅ := by
+              apply Finset.filter_eq_empty_iff.mpr
+              intro s _hs
+              simp
+            rw [he, Finset.sum_empty, add_zero]
+          rw [← hbase0]
+          exact cellValid_nonneg hc 0 j.castSucc
+        have hfirst_nonneg : 0 ≤ stepVec (c.2 ⟨0, hn⟩) j.castSucc := by
+          unfold stepVec
+          have hlast : j.castSucc ≠ Fin.last n := Fin.castSucc_ne_last j
+          by_cases h : j.castSucc = (c.2 ⟨0, hn⟩).castSucc
+          · rw [if_pos h, if_neg hlast]
+            norm_num
+          · rw [if_neg h, if_neg hlast]
+            norm_num
+        have hsum_nonneg :
+            0 ≤ ∑ s : Fin n, stepVec ((c.2 * finRotate n) s) j.castSucc := by
+          refine Finset.sum_nonneg ?_
+          intro s _hs
+          unfold stepVec
+          have hlast : j.castSucc ≠ Fin.last n := Fin.castSucc_ne_last j
+          by_cases h : j.castSucc = ((c.2 * finRotate n) s).castSucc
+          · rw [if_pos h, if_neg hlast]
+            norm_num
+          · rw [if_neg h, if_neg hlast]
+            norm_num
+        change 0 ≤ c.1 j.castSucc + stepVec (c.2 ⟨0, hn⟩) j.castSucc +
+          ∑ s : Fin n, stepVec ((c.2 * finRotate n) s) j.castSucc
+        omega
+
+/-- An invalid endpoint-forward partner occurs exactly on the minimal last-coordinate layer
+`p(last)=n`. -/
+theorem endpointFwd_base_last_eq_of_invalid {n k : ℕ} (hn : 0 < n) {c : KCell n}
+    (hc : cellMemN k c) (hinv : ¬ cellMemN k (endpointFwd hn c)) :
+    c.1 (Fin.last n) = (n : ℤ) := by
+  have hge : (n : ℤ) ≤ c.1 (Fin.last n) := cellValid_last_ge hc
+  by_contra hne
+  have hgt : (n : ℤ) < c.1 (Fin.last n) := by omega
+  exact hinv (endpointFwd_valid_of_base_last_gt hn hc hgt)
 
 /-! ## R2 — reconstruction-uniqueness: a facet pins its bounding cells
 
@@ -676,6 +925,21 @@ theorem decomposeFin_fst {n : ℕ} (σ : Equiv.Perm (Fin (n + 1))) :
   rw [Prod.mk.eta, Equiv.symm_apply_apply] at this
   exact this.symm
 
+/-- The inverse of the endpoint rotation sends `0` to the last step index. -/
+theorem finRotate_symm_zero_val {n : ℕ} (hn : 0 < n) :
+    ((finRotate n).symm ⟨0, hn⟩).val = n - 1 := by
+  let z : Fin n := ⟨0, hn⟩
+  have hrot : finRotate n ((finRotate n).symm z) = z := Equiv.apply_symm_apply _ _
+  by_contra hne
+  have hlt : ((finRotate n).symm z).val + 1 < n := by
+    have hxlt : ((finRotate n).symm z).val < n := ((finRotate n).symm z).isLt
+    have hxne : ((finRotate n).symm z).val ≠ n - 1 := hne
+    omega
+  have hval := finRotate_val_of_lt (s := (finRotate n).symm z) hlt
+  have hzero : (finRotate n ((finRotate n).symm z)).val = 0 := by
+    simpa [z] using congrArg Fin.val hrot
+  omega
+
 /-- **`dropLast` of a Kuhn chain vertex.**  The first `n` coordinates of the chain vertex
 `chainVZ p σ t` are the `dropLast`-projected base plus the projected prefix steps:
 `dropLast (chainVZ p σ t) j = dropLast p j + ∑_{s.val < t.val} dropLast (stepVec (σ s)) j`.
@@ -727,6 +991,177 @@ theorem dropLast_chainVZ_count {n : ℕ} (p : Fin (n + 1) → ℤ) (σ : Equiv.P
       rw [h, Equiv.symm_apply_apply]
       exact hs.2
     rw [if_neg hsj]
+
+/-- The coordinate lowered by `endpointInv` is the last step of the original cell order. -/
+theorem endpointInv_lowered_step_last {n : ℕ} (hn : 0 < n) (c : KCell n) :
+    (c.2.symm ((c.2 * (finRotate n)⁻¹) ⟨0, hn⟩)).val = n - 1 := by
+  have hpre :
+      c.2.symm ((c.2 * (finRotate n)⁻¹) ⟨0, hn⟩) =
+        (finRotate n).symm ⟨0, hn⟩ := by
+    simp [Equiv.Perm.coe_mul]
+  rw [hpre]
+  exact finRotate_symm_zero_val hn
+
+/-- If the `endpointInv`-lowered coordinate of the base is zero, the last-drop facet lies
+entirely in that coordinate face. -/
+theorem last_facet_subset_lowered_zero_face {n : ℕ} (hn : 0 < n) (c : KCell n)
+    (hzero : c.1 ((c.2 * (finRotate n)⁻¹) ⟨0, hn⟩).castSucc = 0) :
+    ∀ v ∈ facetSet c.1 c.2 (Fin.last n),
+      v (((c.2 * (finRotate n)⁻¹) ⟨0, hn⟩).castSucc) = 0 := by
+  classical
+  intro v hv
+  unfold facetSet at hv
+  rw [Finset.mem_image] at hv
+  obtain ⟨u, hu, huv⟩ := hv
+  rw [Finset.mem_erase] at hu
+  subst v
+  let a : Fin n := (c.2 * (finRotate n)⁻¹) ⟨0, hn⟩
+  have hdrop := dropLast_chainVZ_count c.1 c.2 u a
+  have hnot : ¬ (c.2.symm a).val < u.val := by
+    have ha_last : (c.2.symm a).val = n - 1 := by
+      simpa [a] using endpointInv_lowered_step_last hn c
+    have hu_lt : u.val < n := by
+      have hne : u.val ≠ n := by
+        intro hval
+        exact hu.1 (Fin.ext (by simpa [Fin.val_last] using hval))
+      omega
+    omega
+  have hcoord : dropLast (chainVZ c.1 c.2 u) a = 0 := by
+    rw [hdrop, if_neg hnot]
+    simpa [dropLast, a] using hzero
+  simpa [dropLast, a] using hcoord
+
+/-- A last-drop facet whose `endpointInv` side exits through a non-last zero coordinate cannot
+be a `labelN` boundary door. -/
+theorem not_labelN_door_of_endpointInv_zero {n k : ℕ} (hn : 0 < n)
+    {f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ)} (hk : 0 < k)
+    (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (n + 1))) (stdSimplex ℝ (Fin (n + 1))))
+    {c : KCell n} (hc : cellMemN k c)
+    (hzero : c.1 ((c.2 * (finRotate n)⁻¹) ⟨0, hn⟩).castSucc = 0) :
+    (facetSet c.1 c.2 (Fin.last n)).image (labelN f k) ≠
+      Finset.univ.erase (Fin.last n) := by
+  let j : Fin (n + 1) := ((c.2 * (finRotate n)⁻¹) ⟨0, hn⟩).castSucc
+  have hj : j ≠ Fin.last n := by
+    exact Fin.castSucc_ne_last _
+  have hFmem : facetSet c.1 c.2 (Fin.last n) ∈ facetsN n k :=
+    mem_facetsN_of_bounds hc ⟨Fin.last n, rfl⟩
+  exact not_labelN_door_of_forbidden_face hk hmaps hFmem hj
+    (by
+      intro v hv
+      simpa [j] using last_facet_subset_lowered_zero_face hn c hzero v hv)
+
+/-- A `labelN` boundary door cannot have its invalid partner on the `endpointInv`/last-drop
+side. -/
+theorem labelN_boundary_door_not_last_drop {n k : ℕ} (hn : 0 < n)
+    {f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ)} (hk : 0 < k)
+    (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (n + 1))) (stdSimplex ℝ (Fin (n + 1))))
+    {F : Finset (Fin (n + 1) → ℤ)}
+    (hdoor : F.image (labelN f k) = Finset.univ.erase (Fin.last n))
+    {c : KCell n} (hc : cellMemN k c) (hcb : cellBounds c F)
+    (hinv : ¬ cellMemN k (partnerCell hn c F))
+    (hlast : (dropOf c F).val = n) : False := by
+  have hdropLast : dropOf c F = Fin.last n := dropOf_eq_last hlast
+  have hfacet : facetSet c.1 c.2 (Fin.last n) = F := by
+    have hf := facetSet_dropOf hcb
+    rwa [hdropLast] at hf
+  have hinvEndpoint : ¬ cellMemN k (endpointInv hn c) := by
+    have h0 : (dropOf c F).val ≠ 0 := by omega
+    rwa [partnerCell_of_last hn c h0 hlast] at hinv
+  have hzero := endpointInv_base_zero_of_invalid hn hc hinvEndpoint
+  exact (not_labelN_door_of_endpointInv_zero hn hk hmaps hc hzero) (by
+    rw [hfacet]
+    exact hdoor)
+
+/-- A `labelN` boundary door is witnessed only at the drop-`0` endpoint, and that witness lies
+on the minimal last-coordinate layer `p(last)=n`. -/
+theorem labelN_boundary_door_zero_witness {n k : ℕ} (hn : 0 < n)
+    {f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ)} (hk : 0 < k)
+    (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (n + 1))) (stdSimplex ℝ (Fin (n + 1))))
+    {F : Finset (Fin (n + 1) → ℤ)}
+    (hdoor : F.image (labelN f k) = Finset.univ.erase (Fin.last n))
+    (hb : isBoundaryN hn k F) :
+    ∃ c, cellMemN k c ∧ cellBounds c F ∧ ¬ cellMemN k (partnerCell hn c F) ∧
+      (dropOf c F).val = 0 ∧ c.1 (Fin.last n) = (n : ℤ) := by
+  obtain ⟨c, hc, hcb, hinv, hend⟩ := isBoundaryN_endpoint hn k hb
+  refine ⟨c, hc, hcb, hinv, ?_, ?_⟩
+  · rcases hend with h0 | hlast
+    · exact h0
+    · exact False.elim
+        (labelN_boundary_door_not_last_drop hn hk hmaps hdoor hc hcb hinv hlast)
+  · have h0 : (dropOf c F).val = 0 := by
+      rcases hend with h0 | hlast
+      · exact h0
+      · exact False.elim
+          (labelN_boundary_door_not_last_drop hn hk hmaps hdoor hc hcb hinv hlast)
+    have hinvEndpoint : ¬ cellMemN k (endpointFwd hn c) := by
+      rwa [partnerCell_of_zero hn c h0] at hinv
+    exact endpointFwd_base_last_eq_of_invalid hn hc hinvEndpoint
+
+/-- The cells whose drop-`0` facet is a boundary door under `labelN`, pinned to
+`p(last)=n`. -/
+noncomputable def zeroDoorCellsN (n k : ℕ)
+    (L : (Fin (n + 1) → ℤ) → Fin (n + 1)) : Finset (KCell n) :=
+  (cellsN n k).filter
+    (fun c => c.1 (Fin.last n) = (n : ℤ) ∧
+      (facetSet c.1 c.2 0).image L = Finset.univ.erase (Fin.last n))
+
+/-- The boundary-door facets for `labelN` are exactly the drop-`0` facets of
+`zeroDoorCellsN`. -/
+theorem image_zeroDoorCellsN_eq_boundaryDoors_labelN {n k : ℕ} (hn : 0 < n)
+    {f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ)} (hk : 0 < k)
+    (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (n + 1))) (stdSimplex ℝ (Fin (n + 1)))) :
+    (zeroDoorCellsN n k (labelN f k)).image (fun c => facetSet c.1 c.2 0) =
+      (facetsN n k).filter
+        (fun F => (F.image (labelN f k) = Finset.univ.erase (Fin.last n)) ∧
+          isBoundaryN hn k F) := by
+  classical
+  ext F
+  constructor
+  · intro hF
+    rw [Finset.mem_image] at hF
+    obtain ⟨c, hc, rfl⟩ := hF
+    rw [zeroDoorCellsN, Finset.mem_filter] at hc
+    obtain ⟨hcMem, hlast, hdoor⟩ := hc
+    rw [Finset.mem_filter]
+    have hcValid : cellMemN k c := mem_cellsN.mp hcMem
+    refine ⟨mem_facetsN_of_bounds hcValid ⟨0, rfl⟩, hdoor, ?_⟩
+    refine ⟨c, hcValid, ⟨0, rfl⟩, ?_⟩
+    rw [partnerCell_of_zero hn c (by
+      have hdrop : dropOf c (facetSet c.1 c.2 0) = 0 := dropOf_eq c rfl
+      rw [hdrop]
+      rfl)]
+    exact endpointFwd_invalid_of_base_last_eq hn c hlast
+  · intro hF
+    rw [Finset.mem_filter] at hF
+    obtain ⟨hFmem, hdoor, hb⟩ := hF
+    obtain ⟨c, hc, hcb, _hinv, hdrop0, hlast⟩ :=
+      labelN_boundary_door_zero_witness hn hk hmaps hdoor hb
+    rw [Finset.mem_image]
+    refine ⟨c, ?_, ?_⟩
+    · rw [zeroDoorCellsN, Finset.mem_filter]
+      refine ⟨mem_cellsN.mpr hc, hlast, ?_⟩
+      have hdrop : dropOf c F = 0 := dropOf_eq_zero hdrop0
+      have hfacet := facetSet_dropOf hcb
+      rw [hdrop] at hfacet
+      rw [hfacet]
+      exact hdoor
+    · have hdrop : dropOf c F = 0 := dropOf_eq_zero hdrop0
+      have hfacet := facetSet_dropOf hcb
+      rwa [hdrop] at hfacet
+
+/-- Therefore the `labelN` boundary-door count equals the pinned drop-`0` cell count. -/
+theorem boundaryDoors_labelN_card_eq_zeroDoorCellsN {n k : ℕ} (hn : 0 < n)
+    {f : (Fin (n + 1) → ℝ) → (Fin (n + 1) → ℝ)} (hk : 0 < k)
+    (hmaps : Set.MapsTo f (stdSimplex ℝ (Fin (n + 1))) (stdSimplex ℝ (Fin (n + 1)))) :
+    ((facetsN n k).filter
+        (fun F => (F.image (labelN f k) = Finset.univ.erase (Fin.last n)) ∧
+          isBoundaryN hn k F)).card =
+      (zeroDoorCellsN n k (labelN f k)).card := by
+  rw [← image_zeroDoorCellsN_eq_boundaryDoors_labelN hn hk hmaps]
+  exact Finset.card_image_of_injective _ (fun c d h =>
+    Prod.ext
+      (cell_eq_of_facetSet_eq_zero hn h).1
+      (cell_eq_of_facetSet_eq_zero hn h).2)
 
 /-- **No valid cell has base on the face.**  For `n ≥ 1`, a valid cell forces
 `p (Fin.last n) ≥ n ≥ 1 > 0`, so its base never lies on `{q (Fin.last n) = 0}`.  Hence the
