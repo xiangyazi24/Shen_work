@@ -1728,6 +1728,61 @@ def rotheSeqOfPaperFromCond
   fun u => rotheSeqOfPaper p c lam M κ Λ u (hprodAll u)
     hcond.hκ0.le (le_trans zero_le_one hcond.hM)
 
+/-- Paper-step producer strengthened with the lower-raw comparison payload.
+
+The extra field is exactly the per-step data consumed by the paper
+max-principle after Lemma 4.2 has supplied the raw lower subsolution. -/
+structure PaperLowerRawStepProducer
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (u : ℝ → ℝ) : Prop where
+  producer : PaperRotheStepProducer p c lam M κ Λ u
+  lowerRawAux :
+    InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+      ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
+        rotheSeqOfPaper p c lam M κ Λ u producer hκ hM k x) →
+        ∃ C_chem La Lb,
+          PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+            (rotheSeqOfPaper p c lam M κ Λ u producer hκ hM (k + 1))
+
+/-- Project the bulky per-step lower comparison data from the strengthened
+paper-step producer.  Lemma 4.2 is then consumed by
+`rotheSeqOfPaper_lowerBarrierRaw_stepInvariant`. -/
+theorem hauxData_of_conditions
+    {p : CMParams} {c lam M κ κtilde D Λ : ℝ}
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (_hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (_hD_ge_one : 1 ≤ D)
+    (hprodAll : ∀ u, PaperLowerRawStepProducer p c lam M κ κtilde D Λ
+      hcond.hκ0.le (le_trans zero_le_one hcond.hM) u) :
+    ∀ u,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) u →
+        ∀ k, (∀ x, lowerBarrierRaw κ κtilde D x ≤
+          rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond
+            (fun v => (hprodAll v).producer) u k x) →
+          ∃ C_chem La Lb,
+            PaperLowerRawStepAux p c lam M κ κtilde D C_chem La Lb u
+              (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond
+                (fun v => (hprodAll v).producer) u (k + 1)) := by
+  intro u hu k hprev
+  simpa [rotheSeqOfPaperFromCond] using
+    (hprodAll u).lowerRawAux hu k hprev
+
+/-- ODE-realization frontier for the stationary strong maximum principle when
+the paper parameters are presented as `CMParams` plus a speed. -/
+def StationaryStrongMaxPrincipleODERealization
+    (p : CMParams) (c κ M : ℝ) : Prop :=
+  ∃ q : ShenWork.PDE.TravelingWaveODE.Params,
+    q.toCMParams = p ∧ q.c = c ∧
+      StationaryTravelingWaveODERealization q κ M
+
+theorem hsmp_of_odeRealization
+    {p : CMParams} {c κ M : ℝ}
+    (hrealize : StationaryStrongMaxPrincipleODERealization p c κ M) :
+    StationaryStrongMaxPrinciple p c κ M := by
+  rcases hrealize with ⟨q, hp, hc, hq⟩
+  rw [← hp, ← hc]
+  exact stationaryStrongMaxPrinciple_of_odeRealization hq
+
 /-- Paper-step χ≤0 existence on the raw lower-pinned trap.
 
 The Schauder fixed point is selected inside
@@ -1825,6 +1880,78 @@ theorem b1_chiNeg_existence_paper
     FrozenStationaryWaveProfile.mk_auto_limits hcpos hpos
       hU.bare.trap.cunif_bdd hstat hlim_neg hlim_pos⟩
 
+/-- Variant with `hauxData` discharged into the named lower-raw paper-step
+producer, and `hsmp` supplied through the ODE realization frontier. -/
+theorem b1_chiNeg_existence_paper'
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hprodAll : ∀ u, PaperLowerRawStepProducer p c lam M κ κtilde D Λ
+      hcond.hκ0.le (le_trans zero_le_one hcond.hM) u)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
+      (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond
+        (fun u => (hprodAll u).producer)))
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple
+        (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D)))
+    (hstationary : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        rotheLimit
+          (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond
+            (fun u => (hprodAll u).producer) U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hrealize : StationaryStrongMaxPrincipleODERealization p c κ M)
+    (hflat : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U := by
+  exact b1_chiNeg_existence_paper p c lam M κ κtilde D Λ hcond hD
+    hD_ge_one hΛ0 hΛM (fun u => (hprodAll u).producer) hbarLip
+    (upperBarrier_isBddFun (le_trans zero_le_one hcond.hM)) hdep
+    (hauxData_of_conditions hcond hD hD_ge_one hprodAll) hprinciple
+    hstationary (hsmp_of_odeRealization hrealize) hflat
+
+/-- Headline χ≤0 paper existence with the lower-raw comparison and stationary
+maximum principle routed through named producer/ODE frontiers. -/
+theorem b1_chiNeg_existence_paper_clean
+    (p : CMParams) (c lam M κ κtilde D Λ : ℝ)
+    (hcond : PaperLemma42ExactConditions p c κ κtilde M)
+    (hD : paperDMin p.χ M κ κtilde p.m p.γ c < D)
+    (hD_ge_one : 1 ≤ D)
+    (hΛ0 : 0 ≤ Λ) (hΛM : Λ ≤ M)
+    (hprodAll : ∀ u, PaperLowerRawStepProducer p c lam M κ κtilde D Λ
+      hcond.hκ0.le (le_trans zero_le_one hcond.hM) u)
+    (hbarLip :
+      ∀ x y, |upperBarrier κ M x - upperBarrier κ M y| ≤ M * |x - y|)
+    (hdep : RotheContinuousDependence p c lam (InMonotoneWaveTrapSet κ M)
+      (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond
+        (fun u => (hprodAll u).producer)))
+    (hprinciple :
+      LocalUniformSchauderFixedPointPrinciple
+        (InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D)))
+    (hstationary : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+        rotheLimit
+          (rotheSeqOfPaperFromCond p c lam M κ κtilde Λ hcond
+            (fun u => (hprodAll u).producer) U) = U →
+          ∀ x, frozenWaveOperator p c U U x = 0)
+    (hrealize : StationaryStrongMaxPrincipleODERealization p c κ M)
+    (hflat : ∀ U,
+      InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        FrozenStationaryFlatAtLeft p U) :
+    ∃ U, InLowerPinnedMonotoneTrap κ M (lowerBarrierRaw κ κtilde D) U ∧
+      FrozenStationaryWaveProfile p c U :=
+  b1_chiNeg_existence_paper' p c lam M κ κtilde D Λ hcond hD
+    hD_ge_one hΛ0 hΛM hprodAll hbarLip hdep hprinciple hstationary
+    hrealize hflat
+
 /-! ## Axiom audit -/
 
 section AxiomAudit
@@ -1851,10 +1978,18 @@ section AxiomAudit
 #print axioms rotheOrbit_profileNontrivial_of_lowerBarrierRaw_stepInvariant
 #print axioms rotheSeqOfPaper_profileNontrivial_of_lowerBarrierRaw
 #print axioms rotheSeqOfPaperFromCond
+#print axioms hauxData_of_conditions
+#print axioms hsmp_of_odeRealization
+#print axioms ShenWork.Paper1.b1_chiNeg_existence_paper
+#print axioms b1_chiNeg_existence_paper'
+#print axioms b1_chiNeg_existence_paper_clean
 end AxiomAudit
 
 end ShenWork.Paper1
 
 #print axioms ShenWork.Paper1.rotheOrbit_profileNontrivial_of_lowerBarrierRaw_stepInvariant
 #print axioms ShenWork.Paper1.rotheSeqOfPaper_profileNontrivial_of_lowerBarrierRaw
+#print axioms ShenWork.Paper1.b1_chiNeg_existence_paper
+#print axioms ShenWork.Paper1.b1_chiNeg_existence_paper'
+
 #print axioms ShenWork.Paper1.b1_chiNeg_existence_paper
