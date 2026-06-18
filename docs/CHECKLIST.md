@@ -48,8 +48,8 @@ The headline is a clean assembly. Everything below `hprodAll` is the ONLY substa
 #### B.2 Box self-invariance — the regularity bricks
 - [x] `map_bound` — weighted sup bound (in `paperFixedSourceMapBoxBounds_of_trap`)
 - [x] **Lemma 1** `paperFixedSourceMap_holder_kernel` — β-Hölder modulus H₀ (1a38d95)
-- [~] **Lemma 2** `greenConv_leftTailCauchy_uniform` + `paperFixedSourceMap_leftTailCauchy_kernel` — uniform left-tail Cauchy modulus ω₀ → 0  *(cx_pde grinding now)*
-- [ ] `map_leftTail` — image has a left limit (composes from greenConv left-tail + V/Z left limits)
+- [x] **Lemma 2** `greenConv_leftTailCauchy_uniform` + `paperFixedSourceMap_leftTailCauchy_kernel` — uniform left-tail Cauchy modulus ω₀ → 0 (b93cf67)
+- [~] `map_leftTail` — image has a left limit (composes from greenConv left-tail + V/Z left limits)  *(next)*
 - [ ] `continuousOn` — source-map continuous dependence (LocalUniformContinuousOn)
 - [ ] `ascoliCompactRange` — Arzelà-Ascoli on the compactified line (from uniform bound + Hölder + left-tail)
 
