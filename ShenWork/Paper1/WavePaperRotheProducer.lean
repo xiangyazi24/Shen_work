@@ -29,6 +29,7 @@
   No placeholder proof commands.
 -/
 import ShenWork.Paper1.WaveRotheStepClose
+import ShenWork.Paper1.WaveRotheResidualClose
 import ShenWork.Paper1.WaveRotheMaxPrincipleClosers
 import ShenWork.Paper1.WaveG1Bridge
 
@@ -100,6 +101,36 @@ theorem paperWeightedHolderExponent_le_one (p : CMParams) :
 def paperWeightedClamp (κ M : ℝ) (W : ℝ → ℝ) (x : ℝ) : ℝ :=
   clampIcc (upperBarrier κ M x) (W x)
 
+/-- The non-`W'' + cW'` part of the spatially truncated paper wave operator.
+
+The linear transport still uses the genuine Green profile `W`; only the spatial
+profile values inside the powers are clamped to `[0, upperBarrier κ M x]`. -/
+def paperStepTruncatedNonlinearity
+    (p : CMParams) (_c M κ : ℝ) (u W : ℝ → ℝ) (x : ℝ) : ℝ :=
+  let Θ : ℝ → ℝ := paperWeightedClamp κ M W
+  let V : ℝ → ℝ := frozenElliptic p u
+  (-p.χ * p.m * (Θ x) ^ (p.m - 1) * deriv V x * deriv W x
+    + Θ x * (1 - p.χ * (Θ x) ^ (p.m - 1) * V x
+      - ((Θ x) ^ p.α - p.χ * (Θ x) ^ (p.m + p.γ - 1))))
+
+/-- The spatially truncated paper wave operator used only for the non-circular
+source-box maximum principle. -/
+def paperWaveOperator_truncated
+    (p : CMParams) (c M κ : ℝ) (u W : ℝ → ℝ) : ℝ → ℝ :=
+  fun x =>
+    iteratedDeriv 2 W x + c * deriv W x +
+      paperStepTruncatedNonlinearity p c M κ u W x
+
+/-- The implicit Euler residual for the spatially truncated paper operator. -/
+def paperImplicitStepOp_truncated
+    (p : CMParams) (c h M κ : ℝ) (u W : ℝ → ℝ) : ℝ → ℝ :=
+  fun x => W x - h * paperWaveOperator_truncated p c M κ u W x
+
+@[simp] theorem paperImplicitStepOp_truncated_apply
+    (p : CMParams) (c h M κ : ℝ) (u W : ℝ → ℝ) (x : ℝ) :
+    paperImplicitStepOp_truncated p c h M κ u W x =
+      W x - h * paperWaveOperator_truncated p c M κ u W x := rfl
+
 /-- The weighted-Hölder source-space box for the corrected fixed-source step.
 
 Besides the weighted right-tail bound and the shared Hölder modulus, the box
@@ -121,12 +152,7 @@ structure PaperWeightedHolderSourceBox
 def paperStepSource_truncated
     (p : CMParams) (c lam M κ : ℝ) (u Z R : ℝ → ℝ) (x : ℝ) : ℝ :=
   let W : ℝ → ℝ := fun y => greenConv c lam R y
-  let Θ : ℝ → ℝ := paperWeightedClamp κ M W
-  let V : ℝ → ℝ := frozenElliptic p u
-  (-p.χ * p.m * (Θ x) ^ (p.m - 1) * deriv V x * deriv W x
-    + Θ x * (1 - p.χ * (Θ x) ^ (p.m - 1) * V x
-      - ((Θ x) ^ p.α - p.χ * (Θ x) ^ (p.m + p.γ - 1))))
-    + lam * Z x
+  paperStepTruncatedNonlinearity p c M κ u W x + lam * Z x
 
 /-- The weighted fixed-source map on source profiles. -/
 def paperFixedSourceMap
@@ -148,8 +174,8 @@ theorem paperStepSource_truncated_eq_paperStepSource_of_Icc
         greenConv c lam R x := by
     exact (clampIcc_eqOn_Icc (M := upperBarrier κ M x)
       (upperBarrier_nonneg hM x)) (hW x)
-  unfold paperFixedSourceMap paperStepSource_truncated paperWeightedClamp
-    paperStepSource paperStepNonlinearity
+  unfold paperFixedSourceMap paperStepSource_truncated paperStepTruncatedNonlinearity
+    paperWeightedClamp paperStepSource paperStepNonlinearity
   dsimp only
   rw [hclamp]
 
@@ -173,6 +199,22 @@ theorem paperWeightedClamp_mem_Icc
       Set.Icc (0 : ℝ) (upperBarrier κ M x) := by
   unfold paperWeightedClamp
   exact clampIcc_mem_Icc (upperBarrier_nonneg hM x) (W x)
+
+theorem paperWeightedClamp_eq_upperBarrier_of_upper_le
+    {κ M : ℝ} {W : ℝ → ℝ} (hM : 0 ≤ M) {x : ℝ}
+    (hx : upperBarrier κ M x ≤ W x) :
+    paperWeightedClamp κ M W x = upperBarrier κ M x := by
+  unfold paperWeightedClamp clampIcc
+  rw [min_eq_left hx, max_eq_right (upperBarrier_nonneg hM x)]
+
+theorem paperWeightedClamp_eq_zero_of_nonpos
+    {κ M : ℝ} {W : ℝ → ℝ} (hM : 0 ≤ M) {x : ℝ}
+    (hx : W x ≤ 0) :
+    paperWeightedClamp κ M W x = 0 := by
+  unfold paperWeightedClamp clampIcc
+  have hWU : W x ≤ upperBarrier κ M x :=
+    le_trans hx (upperBarrier_nonneg hM x)
+  rw [min_eq_right hWU, max_eq_left hx]
 
 theorem paperWeightedClamp_abs_le_upperBarrier
     {κ M : ℝ} {W : ℝ → ℝ} (hM : 0 ≤ M) (x : ℝ) :
@@ -530,6 +572,41 @@ theorem paperImplicitStepOp_exists_of_green_fixed_source
   refine ⟨fun x => greenConv c lam R x, rfl, ?_⟩
   exact paperImplicitStepOp_of_greenConv_source
     (c := c) (lam := lam) hlam hRfix rfl hRcont hRhi hRlo
+
+/-- A Green-represented fixed source for the spatially truncated source solves
+the truncated implicit Euler step. -/
+theorem paperImplicitStepOp_truncated_of_green_fixed_source
+    {p : CMParams} {M κ : ℝ} {u Z R : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hRfix : R = paperFixedSourceMap p c lam M κ u Z R)
+    (hRcont : Continuous R)
+    (hRhi : ∀ x,
+      IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi x))
+    (hRlo : ∀ x,
+      IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic x)) :
+    ∀ x,
+      paperImplicitStepOp_truncated p c (1 / lam) M κ u
+        (fun y => greenConv c lam R y) x = Z x := by
+  intro x
+  have hL :
+      iteratedDeriv 2 (fun y => greenConv c lam R y) x +
+          c * deriv (fun y => greenConv c lam R y) x -
+            lam * greenConv c lam R x = -R x :=
+    greenConv_variation_negative
+      (c := c) (lam := lam) hlam hRcont hRhi hRlo x
+  have hsource_x :
+      R x = paperFixedSourceMap p c lam M κ u Z R x := by
+    exact congrFun hRfix x
+  have hpaper :
+      paperWaveOperator_truncated p c M κ u
+          (fun y => greenConv c lam R y) x =
+        lam * (greenConv c lam R x - Z x) := by
+    unfold paperFixedSourceMap paperStepSource_truncated at hsource_x
+    unfold paperWaveOperator_truncated at ⊢
+    nlinarith
+  rw [paperImplicitStepOp_truncated_apply, hpaper]
+  field_simp [ne_of_gt hlam]
+  ring
 
 theorem IsBddFun.const (a : ℝ) : IsBddFun (fun _ : ℝ => a) :=
   ⟨|a|, fun _ => le_rfl⟩
@@ -2824,7 +2901,8 @@ theorem paperFixedSourceMap_bound_of_sourceBox
       |lam * Z x| = lam * |Z x| := by
         rw [abs_mul, abs_of_nonneg hlam.le]
       _ ≤ lam * Ux := mul_le_mul_of_nonneg_left hZabs hlam.le
-  unfold paperFixedSourceMap paperStepSource_truncated paperWeightedClamp
+  unfold paperFixedSourceMap paperStepSource_truncated paperStepTruncatedNonlinearity
+    paperWeightedClamp
   dsimp only [W, Θ, Ux] at *
   calc
     |(-p.χ * p.m * Θ ^ (p.m - 1) *
@@ -4051,6 +4129,365 @@ theorem paperStep_ge_lower
       (one_div_pos.mpr hlam) hd.hCB hstep hd.AZ hd.φcont
       hd.hbot hd.hLa hd.htop hd.hLb hd.paperSub hd.paperDiff
 
+/-! ## Non-circular truncated-operator barriers -/
+
+/-- Upper-barrier maximum principle for the spatially truncated paper operator.
+
+This is the non-circular comparison used before clamp inactivity is known.  At
+a positive maximum of `W - upperBarrier κ M`, the clamp equals the barrier value,
+the first derivatives agree, and the second derivative of `W` is no larger than
+the barrier's.  Hence the truncated operator at `W` is no larger than the genuine
+paper operator at the barrier; `paperSuper` and `Z ≤ upperBarrier` give the
+contradiction. -/
+theorem paperImplicitStep_truncated_le_of_paperBarrier
+    {p : CMParams} {M κ C_chem : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam) (hκ : 0 < κ) (hM : 0 < M)
+    (hstep :
+      ∀ x, paperImplicitStepOp_truncated p c (1 / lam) M κ u W x = Z x)
+    (hWC2 : ∀ x, ContDiffAt ℝ 2 W x)
+    (hd : PaperStepUpperData p c lam M C_chem u Z W (upperBarrier κ M)) :
+    ∀ x, W x ≤ upperBarrier κ M x := by
+  by_contra hcon
+  push Not at hcon
+  obtain ⟨x₁, hx₁⟩ := hcon
+  have hpos₁ : 0 < W x₁ - upperBarrier κ M x₁ := by
+    linarith
+  obtain ⟨x₀, hattain, hx₀pos⟩ :=
+    exists_isMaxOn_pos_of_tendsto_nonpos
+      (φ := fun x => W x - upperBarrier κ M x)
+      hd.φcont hd.hbot hd.hLa hd.htop hd.hLb hpos₁
+  have hloc : IsLocalMax (fun x => W x - upperBarrier κ M x) x₀ :=
+    hattain.isLocalMax Filter.univ_mem
+  have hWdiff_all : Differentiable ℝ W := by
+    intro x
+    exact (hWC2 x).differentiableAt (by norm_num)
+  have hBC2₀ : ContDiffAt ℝ 2 (upperBarrier κ M) x₀ :=
+    upperBarrier_BC2_atMax_dischargeable hκ hM hWdiff_all x₀ hattain
+  have hderiv2 :
+      iteratedDeriv 2 W x₀ ≤ iteratedDeriv 2 (upperBarrier κ M) x₀ :=
+    iteratedDeriv2_le_of_isLocalMax_sub (hWC2 x₀) hBC2₀ hloc
+  have hWdiff : DifferentiableAt ℝ W x₀ :=
+    (hWC2 x₀).differentiableAt (by norm_num)
+  have hBdiff : DifferentiableAt ℝ (upperBarrier κ M) x₀ :=
+    hBC2₀.differentiableAt (by norm_num)
+  have hφderiv :
+      deriv (fun x => W x - upperBarrier κ M x) x₀ = 0 :=
+    hloc.deriv_eq_zero
+  have hderiv_sub :
+      deriv (fun x => W x - upperBarrier κ M x) x₀ =
+        deriv W x₀ - deriv (upperBarrier κ M) x₀ :=
+    deriv_sub hWdiff hBdiff
+  have hderiv1 : deriv W x₀ = deriv (upperBarrier κ M) x₀ := by
+    rw [hderiv_sub] at hφderiv
+    linarith
+  have hBW : upperBarrier κ M x₀ ≤ W x₀ := by
+    linarith
+  have hclamp :
+      paperWeightedClamp κ M W x₀ = upperBarrier κ M x₀ :=
+    paperWeightedClamp_eq_upperBarrier_of_upper_le
+      (κ := κ) (M := M) (W := W) hM.le hBW
+  have hNL :
+      paperStepTruncatedNonlinearity p c M κ u W x₀ =
+        paperStepNonlinearity p u (upperBarrier κ M) x₀ := by
+    unfold paperStepTruncatedNonlinearity paperStepNonlinearity
+    dsimp only
+    rw [hclamp, hderiv1]
+  have hAtrunc_le :
+      paperWaveOperator_truncated p c M κ u W x₀
+        ≤ paperWaveOperator p c u (upperBarrier κ M) x₀ := by
+    calc
+      paperWaveOperator_truncated p c M κ u W x₀
+          = iteratedDeriv 2 W x₀ + c * deriv W x₀ +
+              paperStepNonlinearity p u (upperBarrier κ M) x₀ := by
+              unfold paperWaveOperator_truncated
+              rw [hNL]
+      _ ≤ iteratedDeriv 2 (upperBarrier κ M) x₀ +
+            c * deriv (upperBarrier κ M) x₀ +
+              paperStepNonlinearity p u (upperBarrier κ M) x₀ := by
+              rw [hderiv1]
+              linarith
+      _ = paperWaveOperator p c u (upperBarrier κ M) x₀ := by
+              rw [paperWaveOperator_eq_linear_add_paperStepNonlinearity]
+  have hAtrunc_nonpos :
+      paperWaveOperator_truncated p c M κ u W x₀ ≤ 0 :=
+    le_trans hAtrunc_le (hd.paperSuper x₀ hattain)
+  have hGW :
+      W x₀ -
+          (1 / lam) * paperWaveOperator_truncated p c M κ u W x₀ =
+        Z x₀ := by
+    simpa [paperImplicitStepOp_truncated_apply] using hstep x₀
+  have hWleZ : W x₀ ≤ Z x₀ := by
+    have hmul :
+        (1 / lam) * paperWaveOperator_truncated p c M κ u W x₀ ≤ 0 :=
+      mul_nonpos_of_nonneg_of_nonpos (one_div_pos.mpr hlam).le hAtrunc_nonpos
+    linarith
+  have hx₀gt : upperBarrier κ M x₀ < W x₀ := by
+    linarith
+  exact not_lt_of_ge (le_trans hWleZ (hd.ZB x₀)) hx₀gt
+
+/-- Lower maximum principle for the spatially truncated paper operator against
+the zero barrier.
+
+At a negative minimum of `W`, the clamp is zero, `W' = 0`, and `W'' ≥ 0`; the
+truncated nonlinearity vanishes, so the truncated operator is nonnegative.  The
+implicit equation would then force `Z < 0`, contradicting `0 ≤ Z`. -/
+theorem paperImplicitStep_truncated_ge_zero
+    {p : CMParams} {M κ C_chem : ℝ} {u Z W : ℝ → ℝ}
+    (hlam : 0 < lam) (hM : 0 ≤ M)
+    (hstep :
+      ∀ x, paperImplicitStepOp_truncated p c (1 / lam) M κ u W x = Z x)
+    (hWC2 : ∀ x, ContDiffAt ℝ 2 W x)
+    (hd : PaperStepLowerData p c lam M C_chem u Z W (fun _ => 0)) :
+    ∀ x, 0 ≤ W x := by
+  by_contra hcon
+  push Not at hcon
+  obtain ⟨x₁, hx₁⟩ := hcon
+  have hpos₁ : 0 < (fun _ : ℝ => (0 : ℝ)) x₁ - W x₁ := by
+    linarith
+  obtain ⟨x₀, hattain, hx₀pos⟩ :=
+    exists_isMaxOn_pos_of_tendsto_nonpos
+      (φ := fun x => (fun _ : ℝ => (0 : ℝ)) x - W x)
+      hd.φcont hd.hbot hd.hLa hd.htop hd.hLb hpos₁
+  have hloc : IsLocalMax (fun x => (fun _ : ℝ => (0 : ℝ)) x - W x) x₀ :=
+    hattain.isLocalMax Filter.univ_mem
+  have hAC2 : ContDiffAt ℝ 2 (fun _ : ℝ => (0 : ℝ)) x₀ := contDiffAt_const
+  have hderiv2 :
+      iteratedDeriv 2 (fun _ : ℝ => (0 : ℝ)) x₀ ≤ iteratedDeriv 2 W x₀ :=
+    iteratedDeriv2_le_of_isLocalMax_sub hAC2 (hWC2 x₀) hloc
+  have hzero2 : iteratedDeriv 2 (fun _ : ℝ => (0 : ℝ)) x₀ = 0 := by
+    simp
+  have hWpp_nonneg : 0 ≤ iteratedDeriv 2 W x₀ := by
+    rwa [hzero2] at hderiv2
+  have hWdiff : DifferentiableAt ℝ W x₀ :=
+    (hWC2 x₀).differentiableAt (by norm_num)
+  have hAdiff : DifferentiableAt ℝ (fun _ : ℝ => (0 : ℝ)) x₀ :=
+    hAC2.differentiableAt (by norm_num)
+  have hφderiv :
+      deriv (fun x => (fun _ : ℝ => (0 : ℝ)) x - W x) x₀ = 0 :=
+    hloc.deriv_eq_zero
+  have hderiv_sub :
+      deriv (fun x => (fun _ : ℝ => (0 : ℝ)) x - W x) x₀ =
+        deriv (fun _ : ℝ => (0 : ℝ)) x₀ - deriv W x₀ :=
+    deriv_sub hAdiff hWdiff
+  have hWderiv_zero : deriv W x₀ = 0 := by
+    rw [hderiv_sub, deriv_const] at hφderiv
+    linarith
+  have hWneg : W x₀ < 0 := by
+    simpa using hx₀pos
+  have hclamp : paperWeightedClamp κ M W x₀ = 0 :=
+    paperWeightedClamp_eq_zero_of_nonpos
+      (κ := κ) (M := M) (W := W) hM (le_of_lt hWneg)
+  have hNL_zero :
+      paperStepTruncatedNonlinearity p c M κ u W x₀ = 0 := by
+    unfold paperStepTruncatedNonlinearity
+    dsimp only
+    rw [hclamp, hWderiv_zero]
+    ring
+  have hAtrunc_nonneg :
+      0 ≤ paperWaveOperator_truncated p c M κ u W x₀ := by
+    unfold paperWaveOperator_truncated
+    rw [hNL_zero, hWderiv_zero]
+    linarith
+  have hGW :
+      W x₀ -
+          (1 / lam) * paperWaveOperator_truncated p c M κ u W x₀ =
+        Z x₀ := by
+    simpa [paperImplicitStepOp_truncated_apply] using hstep x₀
+  have hZleW : Z x₀ ≤ W x₀ := by
+    have hmul :
+        0 ≤ (1 / lam) * paperWaveOperator_truncated p c M κ u W x₀ :=
+      mul_nonneg (one_div_pos.mpr hlam).le hAtrunc_nonneg
+    linarith
+  have hZnonneg : 0 ≤ Z x₀ := hd.AZ x₀
+  linarith
+
+/-- Clamp inactivity for a fixed point of the truncated source map, obtained
+from the two truncated max-principles above. -/
+theorem paperFixedSource_truncation_inactive_of_barriers
+    {p : CMParams} {M κ β B H C_chem : ℝ} {ω : ℝ → ℝ} {u Z R : ℝ → ℝ}
+    (hlam : 0 < lam) (hκ : 0 < κ) (hM : 0 < M) (hBnn : 0 ≤ B)
+    (hR : PaperWeightedHolderSourceBox κ M β B H ω R)
+    (hRfix : paperFixedSourceMap p c lam M κ u Z R = R)
+    (hlower :
+      PaperStepLowerData p c lam M C_chem u Z
+        (fun x => greenConv c lam R x) (fun _ => 0))
+    (hupper :
+      PaperStepUpperData p c lam M C_chem u Z
+        (fun x => greenConv c lam R x) (upperBarrier κ M)) :
+    ∀ x,
+      (fun y => greenConv c lam R y) x ∈
+        Set.Icc (0 : ℝ) (upperBarrier κ M x) := by
+  have hR_const : ∀ y, |R y| ≤ B * M := by
+    intro y
+    calc
+      |R y| ≤ B * upperBarrier κ M y := hR.bound y
+      _ ≤ B * M :=
+        mul_le_mul_of_nonneg_left (upperBarrier_le_M κ M y) hBnn
+  have hHi : ∀ t,
+      IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi t) :=
+    fun t => gWeight_integrableOn_Ioi_of_bounded
+      (greenRootPlus_pos (c := c) hlam) hR.cont hR_const t
+  have hLo : ∀ t,
+      IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic t) :=
+    fun t => gWeight_integrableOn_Iic_of_bounded
+      (greenRootMinus_neg (c := c) hlam) hR.cont hR_const t
+  have hstep :
+      ∀ x,
+        paperImplicitStepOp_truncated p c (1 / lam) M κ u
+            (fun y => greenConv c lam R y) x = Z x :=
+    paperImplicitStepOp_truncated_of_green_fixed_source
+      (c := c) (lam := lam) (p := p) (M := M) (κ := κ)
+      (u := u) (Z := Z) (R := R) hlam hRfix.symm hR.cont hHi hLo
+  have hWC2 :
+      ∀ x, ContDiffAt ℝ 2 (fun y => greenConv c lam R y) x :=
+    greenConv_contDiffAt_two (c := c) (lam := lam) hR.cont hHi hLo
+  have hnonneg :
+      ∀ x, 0 ≤ (fun y => greenConv c lam R y) x :=
+    paperImplicitStep_truncated_ge_zero
+      (c := c) (lam := lam) (p := p) (M := M) (κ := κ)
+      (C_chem := C_chem) (u := u) (Z := Z)
+      (W := fun y => greenConv c lam R y)
+      hlam hM.le hstep hWC2 hlower
+  have hle :
+      ∀ x,
+        (fun y => greenConv c lam R y) x ≤ upperBarrier κ M x :=
+    paperImplicitStep_truncated_le_of_paperBarrier
+      (c := c) (lam := lam) (p := p) (M := M) (κ := κ)
+      (C_chem := C_chem) (u := u) (Z := Z)
+      (W := fun y => greenConv c lam R y)
+      hlam hκ hM hstep hWC2 hupper
+  intro x
+  exact ⟨hnonneg x, hle x⟩
+
+/-- Assemble the source-box bounds from the trap/scalar estimates.
+
+The continuity and weighted bound fields are discharged here.  The genuinely
+Hölder/tail modulus obligations remain explicit inputs, and compactness is then
+derived from the resulting self-map of the weighted source box. -/
+def paperFixedSourceMapBoxBounds_of_trap
+    (p : CMParams) {c lam M κ β B H BV BVd : ℝ} {ω : ℝ → ℝ} {u Z : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) (hBnn : 0 ≤ B)
+    (hHnn : 0 ≤ H) (hβpos : 0 < β)
+    (hBVnn : 0 ≤ BV) (hBVdnn : 0 ≤ BVd)
+    (hu : InWaveTrapSet κ M u)
+    (hZc : Continuous Z)
+    (hZ0 : ∀ x, 0 ≤ Z x)
+    (hZB : ∀ x, Z x ≤ upperBarrier κ M x)
+    (hVbound : ∀ x, |frozenElliptic p u x| ≤ BV)
+    (hVderiv_bound : ∀ x, |deriv (frozenElliptic p u) x| ≤ BVd)
+    (hscalar :
+      |(-p.χ * p.m)| * M ^ (p.m - 1) * BVd *
+            greenWeightedMass1 c lam κ * B
+        + (1 + |p.χ| * M ^ (p.m - 1) * BV
+            + M ^ p.α + |p.χ| * M ^ (p.m + p.γ - 1))
+        + lam ≤ B)
+    (hmap_holder : ∀ R, PaperWeightedHolderSourceBox κ M β B H ω R →
+      ∀ x y,
+        |paperFixedSourceMap p c lam M κ u Z R x -
+            paperFixedSourceMap p c lam M κ u Z R y| ≤ H * |x - y| ^ β)
+    (hmap_leftTail : ∀ R, PaperWeightedHolderSourceBox κ M β B H ω R →
+      ∃ Rm, Tendsto (paperFixedSourceMap p c lam M κ u Z R) atBot (𝓝 Rm))
+    (hmap_leftTailCauchy : ∀ R, PaperWeightedHolderSourceBox κ M β B H ω R →
+      ∀ A x y, x ≤ A → y ≤ A →
+        |paperFixedSourceMap p c lam M κ u Z R x -
+            paperFixedSourceMap p c lam M κ u Z R y| ≤ ω A) :
+    PaperFixedSourceMapBoxBounds p c lam M κ β B H ω u Z := by
+  let map_cont :
+      ∀ R, PaperWeightedHolderSourceBox κ M β B H ω R →
+        Continuous (paperFixedSourceMap p c lam M κ u Z R) := by
+    intro R hR
+    exact paperFixedSourceMap_continuous_of_trap_sourceBox
+      (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
+      (β := β) (B := B) (H := H) (ω := ω)
+      (u := u) (Z := Z) (R := R) hlam hu hZc hBnn hR
+  let map_bound :
+      ∀ R, PaperWeightedHolderSourceBox κ M β B H ω R →
+        ∀ x, |paperFixedSourceMap p c lam M κ u Z R x| ≤
+          B * upperBarrier κ M x := by
+    intro R hR
+    exact paperFixedSourceMap_bound_of_sourceBox
+      (p := p) (c := c) (lam := lam) (M := M) (κ := κ)
+      (β := β) (B := B) (H := H) (BV := BV) (BVd := BVd) (ω := ω)
+      (u := u) (Z := Z) (R := R)
+      hlam hrpκ hrmκ hκ hM hBnn hBVnn hBVdnn hZ0 hZB
+      hVbound hVderiv_bound hscalar hR
+  refine
+    { map_cont := map_cont
+      map_bound := map_bound
+      map_holder := hmap_holder
+      map_leftTail := hmap_leftTail
+      map_leftTailCauchy := hmap_leftTailCauchy
+      ascoliCompactRange := ?_ }
+  apply localUniformSequentiallyCompactRange_weightedHolderSourceBox_of_mapsTo
+    (κ := κ) (M := M) (β := β) (B := B) (H := H) (ω := ω)
+    hM hBnn hHnn hβpos
+  intro R hR
+  exact
+    { cont := map_cont R hR
+      bound := map_bound R hR
+      holder := hmap_holder R hR
+      omega_nonneg := hR.omega_nonneg
+      omega_tendsto := hR.omega_tendsto
+      leftTail := hmap_leftTail R hR
+      leftTailCauchy := hmap_leftTailCauchy R hR }
+
+/-- Assemble the truncated source-box fixed-source data from source-box bounds,
+local-uniform continuity, finite-cube data, and the barrier packets used only to
+prove clamp inactivity.
+
+The resulting record carries the already committed `boxCubeData`; the barrier
+packets are consumed immediately by the truncated max-principles and are not
+stored in the fixed-source data. -/
+def paperTruncatedFixedSourceBoxData_of_trap
+    {p : CMParams} {c lam M κ Λ β B H C_chem : ℝ}
+    {ω : ℝ → ℝ} {u Z : ℝ → ℝ}
+    (hlam : 0 < lam) (hκ : 0 < κ) (hM : 0 < M) (hBnn : 0 ≤ B)
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hsourceBound_eq : Λ = 2 * (greenDelta c lam)⁻¹ * (B * M))
+    (hbeta_eq : β = paperWeightedHolderExponent p)
+    (hbox :
+      PaperFixedSourceMapBoxBounds p c lam M κ β B H ω u Z)
+    (hcontinuousOn :
+      LocalUniformContinuousOn
+        (PaperWeightedHolderSourceBox κ M β B H ω)
+        (paperFixedSourceMap p c lam M κ u Z))
+    (hboxCubeData :
+      ProjectedCubeApproxData
+        (PaperWeightedHolderSourceBox κ M β B H ω)
+        (paperFixedSourceMap p c lam M κ u Z))
+    (hlower : ∀ R, PaperWeightedHolderSourceBox κ M β B H ω R →
+      paperFixedSourceMap p c lam M κ u Z R = R →
+        PaperStepLowerData p c lam M C_chem u Z
+          (fun x => greenConv c lam R x) (fun _ => 0))
+    (hupper : ∀ R, PaperWeightedHolderSourceBox κ M β B H ω R →
+      paperFixedSourceMap p c lam M κ u Z R = R →
+        PaperStepUpperData p c lam M C_chem u Z
+          (fun x => greenConv c lam R x) (upperBarrier κ M)) :
+    PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z := by
+  exact
+    { beta := β
+      B := B
+      H := H
+      omega := ω
+      uTrap := hu
+      hM_nonneg := hM.le
+      B_nonneg := hBnn
+      sourceBound_eq := hsourceBound_eq
+      beta_eq := hbeta_eq
+      boxBounds := hbox
+      continuousOn := hcontinuousOn
+      boxCubeData := hboxCubeData
+      truncation_inactive := by
+        intro R hR hfix
+        exact paperFixedSource_truncation_inactive_of_barriers
+          (c := c) (lam := lam) (p := p) (M := M) (κ := κ)
+          (β := β) (B := B) (H := H) (C_chem := C_chem) (ω := ω)
+          (u := u) (Z := Z) (R := R)
+          hlam hκ hM hBnn hR hfix (hlower R hR hfix) (hupper R hR hfix) }
+
 /-- Full output for one Green-produced paper step. -/
 structure PaperStepOutput
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
@@ -4261,12 +4698,18 @@ section AxiomAudit
 #print axioms paperWeightedClamp
 #print axioms PaperWeightedHolderSourceBox
 #print axioms paperStepSource_truncated
+#print axioms paperImplicitStepOp_truncated_of_green_fixed_source
+#print axioms paperImplicitStep_truncated_le_of_paperBarrier
+#print axioms paperImplicitStep_truncated_ge_zero
+#print axioms paperFixedSource_truncation_inactive_of_barriers
 #print axioms paperStepSource_truncated_eq_paperStepSource_of_Icc
 #print axioms rpowTrunc_continuous
 #print axioms rpowTrunc_abs_le
 #print axioms paperFixedSourceMap_continuous_of_sourceBox
+#print axioms paperFixedSourceMapBoxBounds_of_trap
 #print axioms PaperFixedSourceMapBoxBounds.mapsTo
 #print axioms PaperFixedSourceMapBoxBounds.compactRange
+#print axioms paperTruncatedFixedSourceBoxData_of_trap
 #print axioms PaperTruncatedFixedSourceBoxData.exists_fixed
 #print axioms PaperStepFixedSourceExistsForSuperTrap.of_truncated_sourceBox
 #print axioms paperStepAnalytic_of_core

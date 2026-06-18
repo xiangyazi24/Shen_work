@@ -1174,6 +1174,36 @@ def paperGreenStepInputRouteACore_of_trap_fixedSource
       (u := u) hu hlam hfixed hrest)
     hZsuper
 
+/-- Trap-indexed Route-A core from the truncated source-box fixed-source route.
+
+This is the wiring layer: the source-box fixed point first yields
+`PaperStepFixedSourceExistsForSuperTrap` via
+`PaperStepFixedSourceExistsForSuperTrap.of_truncated_sourceBox`, and the existing
+Route-A fixed-source assembly then produces the Green core consumed by
+`paperRotheStepProducer_of_routeA_greenCore`. -/
+def paperGreenStepInputRouteACore_of_trap_truncatedSourceBox
+    {p : CMParams} {c lam M κ Λ : ℝ} {u : ℝ → ℝ}
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hlam : 0 < lam)
+    (hboxData : InMonotoneWaveTrapSet κ M u →
+      ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z →
+      (∀ x, 0 ≤ Z x) →
+      (∀ x, Z x ≤ upperBarrier κ M x) →
+      (∀ x, frozenWaveOperator p c u Z x ≤ 0) →
+        PaperTruncatedFixedSourceBoxData p c lam M κ Λ u Z)
+    (hrest : PaperGreenStepInputRouteASuperRestProvider p c lam M κ Λ u)
+    (hZsuper : ∀ Z : ℝ → ℝ, Continuous Z → Antitone Z → (∀ x, 0 ≤ Z x) →
+      (∀ x, Z x ≤ upperBarrier κ M x) →
+        ∀ x, frozenWaveOperator p c u Z x ≤ 0) :
+    PaperGreenStepInputRouteACore p c lam M κ Λ u :=
+  paperGreenStepInputRouteACore_of_trap_fixedSource
+    (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+    (u := u) hu hlam
+    (PaperStepFixedSourceExistsForSuperTrap.of_truncated_sourceBox
+      (p := p) (c := c) (lam := lam) (M := M) (κ := κ) (Λ := Λ)
+      (u := u) hboxData)
+    hrest hZsuper
+
 /-- Trap-indexed Route-A Green core assembly.
 
 The trap hypothesis identifies the intended regime for the frozen profile `u`;
@@ -1323,6 +1353,7 @@ section AxiomAudit
 #print axioms paperStep_antitone_by_routeA_of_structuralData
 #print axioms PaperStepRouteAApproximationData
 #print axioms paperStep_antitone_of_trap_via_mollification
+#print axioms paperGreenStepInputRouteACore_of_trap_truncatedSourceBox
 #print axioms paperRotheStepProducer_of_routeA_greenCore
 #print axioms paperRotheStepProducer_all_of_routeA_greenCore
 #print axioms PaperPerStepParabolicFloorRouteA
