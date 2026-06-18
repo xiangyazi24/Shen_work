@@ -700,6 +700,23 @@ theorem StationaryCrossGreenData.crossImplicitMap_eq_greenConv_crossSource
     (hdata.hKG_Iic x) (hdata.hKG_Ioi x)
     (hdata.hdecay_top x) (hdata.hdecay_bot x)
 
+/-- A diagonal cross fixed point is a Green representation of the stationary
+profile, with the differential source `crossSource p lam U U U`.
+
+This is the non-circular bridge used by the C² regularity route: the fixed-point
+identity is an input, and the conclusion is the representation later fed to the
+Green-convolution regularity lemmas. -/
+theorem StationaryCrossGreenData.greenRepresentation_of_crossImplicitMap_fixed
+    {p : CMParams} {c lam : ℝ} {U : ℝ → ℝ}
+    (hlam : 0 < lam) (hdata : StationaryCrossGreenData p c lam U)
+    (hcross : crossImplicitMap p c lam U U U = U) :
+    U = fun x => greenConv c lam (crossSource p lam U U U) x := by
+  calc
+    U = crossImplicitMap p c lam U U U := hcross.symm
+    _ = fun x => greenConv c lam (crossSource p lam U U U) x :=
+      StationaryCrossGreenData.crossImplicitMap_eq_greenConv_crossSource
+        (p := p) (c := c) (lam := lam) (U := U) hlam hdata
+
 /-- Resolvent inversion for a stationary diagonal profile: operator-zero and
 the source/IBP hypotheses force the diagonal cross implicit map to fix `U`. -/
 theorem frozenWaveOperator_zero_crossImplicitMap_fixed
@@ -831,5 +848,7 @@ theorem frozenWaveOperator_zero_crossImplicitMap_fixed
     dsimp [W] at hx
     linarith
   rw [hcross_green, ← hU_green]
+
+#print axioms StationaryCrossGreenData.greenRepresentation_of_crossImplicitMap_fixed
 
 end ShenWork.Paper1

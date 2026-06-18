@@ -14,9 +14,10 @@
 -/
 import ShenWork.Paper1.Statements
 import ShenWork.Paper1.WaveRotheStep
+import ShenWork.Paper1.WaveRotheStationary
 import ShenWork.PDE.TravelingWaveODE
 
-open Filter Topology Set
+open Filter Topology Set MeasureTheory
 
 namespace ShenWork.Paper1
 
@@ -291,6 +292,81 @@ private theorem stationary_flux_deriv_eq
     ext y
     simp [Pi.mul_apply]
   rw [hfun_eq, hprod.deriv]
+
+private theorem frozenElliptic_deriv_continuous_of_trap
+    {p : CMParams} {κ M : ℝ} {U : ℝ → ℝ}
+    (hU : InMonotoneWaveTrapSet κ M U) :
+    Continuous (deriv (frozenElliptic p U)) := by
+  refine continuous_iff_continuousAt.mpr ?_
+  intro x
+  exact (frozenElliptic_deriv_differentiableAt p
+    hU.trap.cunif_bdd hU.nonneg x).continuousAt
+
+private theorem stationary_second_deriv_eq_of_trap
+    {p : CMParams} {c κ M : ℝ} {U : ℝ → ℝ}
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hstat : ∀ x, frozenWaveOperator p c U U x = 0)
+    (hU_diff : Differentiable ℝ U) (x : ℝ) :
+    deriv (deriv U) x =
+      -c * deriv U x +
+        p.χ *
+          (deriv U x * p.m * (U x) ^ (p.m - 1) *
+              deriv (frozenElliptic p U) x +
+            (U x) ^ p.m * (frozenElliptic p U x - (U x) ^ p.γ)) -
+        U x * (1 - (U x) ^ p.α) := by
+  have hflux_eq := stationary_flux_deriv_eq (p := p) hU hU_diff x
+  have hstatx := hstat x
+  unfold frozenWaveOperator at hstatx
+  have hiter : iteratedDeriv 2 U x = deriv (deriv U) x := by
+    rw [show (2 : ℕ) = 1 + 1 from rfl, iteratedDeriv_succ, iteratedDeriv_one]
+  rw [hiter, hflux_eq] at hstatx
+  linarith
+
+private theorem stationary_second_deriv_rhs_continuous_of_trap
+    {p : CMParams} {c κ M : ℝ} {U : ℝ → ℝ}
+    (hU : InMonotoneWaveTrapSet κ M U)
+    (hderivU_cont : Continuous (deriv U)) :
+    Continuous
+      (fun x =>
+        -c * deriv U x +
+          p.χ *
+            (deriv U x * p.m * (U x) ^ (p.m - 1) *
+                deriv (frozenElliptic p U) x +
+              (U x) ^ p.m * (frozenElliptic p U x - (U x) ^ p.γ)) -
+          U x * (1 - (U x) ^ p.α)) := by
+  have hU_cont : Continuous U := hU.trap.cunif_bdd.1
+  have hV_cont : Continuous (frozenElliptic p U) :=
+    frozenElliptic_continuous p hU.trap.cunif_bdd hU.nonneg
+  have hVd_cont : Continuous (deriv (frozenElliptic p U)) :=
+    frozenElliptic_deriv_continuous_of_trap hU
+  have hm0 : 0 ≤ p.m := le_trans zero_le_one p.hm
+  have hm1 : 0 ≤ p.m - 1 := by linarith [p.hm]
+  have hα0 : 0 ≤ p.α := le_trans zero_le_one p.hα
+  have hγ0 : 0 ≤ p.γ := le_trans zero_le_one p.hγ
+  have hUm_cont : Continuous (fun x => (U x) ^ p.m) :=
+    hU_cont.rpow_const (fun _ => Or.inr hm0)
+  have hUm1_cont : Continuous (fun x => (U x) ^ (p.m - 1)) :=
+    hU_cont.rpow_const (fun _ => Or.inr hm1)
+  have hUα_cont : Continuous (fun x => (U x) ^ p.α) :=
+    hU_cont.rpow_const (fun _ => Or.inr hα0)
+  have hUγ_cont : Continuous (fun x => (U x) ^ p.γ) :=
+    hU_cont.rpow_const (fun _ => Or.inr hγ0)
+  have hterm1 :
+      Continuous
+        (fun x =>
+          deriv U x * p.m * (U x) ^ (p.m - 1) *
+            deriv (frozenElliptic p U) x) :=
+    ((hderivU_cont.mul continuous_const).mul hUm1_cont).mul hVd_cont
+  have hterm2 :
+      Continuous
+        (fun x =>
+          (U x) ^ p.m * (frozenElliptic p U x - (U x) ^ p.γ)) :=
+    hUm_cont.mul (hV_cont.sub hUγ_cont)
+  have hreaction :
+      Continuous (fun x => U x * (1 - (U x) ^ p.α)) :=
+    hU_cont.mul (continuous_const.sub hUα_cont)
+  exact ((continuous_const.mul hderivU_cont).add
+    (continuous_const.mul (hterm1.add hterm2))).sub hreaction
 
 private theorem stationary_second_deriv_abs_le_of_trap
     {p : CMParams} {c κ M : ℝ} {U : ℝ → ℝ}
@@ -583,6 +659,101 @@ def StationaryC2RegularityFromEquation
       (∀ x, frozenWaveOperator p c U U x = 0) →
         Differentiable ℝ U ∧ Differentiable ℝ (deriv U)
 
+/-- Exact Green-representation floor for stationary trapped profiles.
+
+This packages the non-circular data needed to turn stationarity into C²
+regularity: the diagonal cross map is fixed, its stationary source is continuous
+with the two weighted Green tails, and the cross-map/Green identity data are
+available. -/
+def StationaryGreenRepresentationFromEquation
+    (p : CMParams) (c lam κ M : ℝ) : Prop :=
+  ∀ U : ℝ → ℝ,
+    InMonotoneWaveTrapSet κ M U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        StationaryCrossGreenData p c lam U ∧
+        Continuous (crossSource p lam U U U) ∧
+        (∀ x,
+          IntegrableOn
+            (gWeight (greenRootPlus c lam) (crossSource p lam U U U))
+            (Ioi x)) ∧
+        (∀ x,
+          IntegrableOn
+            (gWeight (greenRootMinus c lam) (crossSource p lam U U U))
+            (Iic x)) ∧
+        crossImplicitMap p c lam U U U = U
+
+/-- A profile represented by a Green convolution of a continuous source is C²
+for the purposes of the stationary Grönwall route. -/
+theorem stationaryC2Regularity_of_greenRepresentation
+    {c lam : ℝ} {U R : ℝ → ℝ}
+    (hR_cont : Continuous R)
+    (hRhi : ∀ x,
+      IntegrableOn (gWeight (greenRootPlus c lam) R) (Ioi x))
+    (hRlo : ∀ x,
+      IntegrableOn (gWeight (greenRootMinus c lam) R) (Iic x))
+    (hgreen : U = fun x => greenConv c lam R x) :
+    Differentiable ℝ U ∧ Differentiable ℝ (deriv U) := by
+  have hG_diff : Differentiable ℝ (greenConv c lam R) :=
+    fun x =>
+      (greenConv_hasDerivAt
+        (c := c) (lam := lam) (H := R) hR_cont hRhi hRlo x).differentiableAt
+  have hG_deriv_eq :
+      deriv (greenConv c lam R) = fun x => greenConvDeriv c lam R x :=
+    funext fun x =>
+      (greenConv_hasDerivAt
+        (c := c) (lam := lam) (H := R) hR_cont hRhi hRlo x).deriv
+  have hGd_diff : Differentiable ℝ (deriv (greenConv c lam R)) := by
+    rw [hG_deriv_eq]
+    intro x
+    exact (greenConvDeriv_hasDerivAt
+      (c := c) (lam := lam) (H := R) hR_cont hRhi hRlo x).differentiableAt
+  constructor
+  · simpa [hgreen] using hG_diff
+  · simpa [hgreen] using hGd_diff
+
+/-- C² regularity from the diagonal cross fixed point, via the Green
+representation of `crossSource`. -/
+theorem stationaryC2Regularity_of_crossImplicitMap_fixed
+    {p : CMParams} {c lam : ℝ} {U : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hdata : StationaryCrossGreenData p c lam U)
+    (hR_cont : Continuous (crossSource p lam U U U))
+    (hRhi : ∀ x,
+      IntegrableOn
+        (gWeight (greenRootPlus c lam) (crossSource p lam U U U))
+        (Ioi x))
+    (hRlo : ∀ x,
+      IntegrableOn
+        (gWeight (greenRootMinus c lam) (crossSource p lam U U U))
+        (Iic x))
+    (hcross : crossImplicitMap p c lam U U U = U) :
+    Differentiable ℝ U ∧ Differentiable ℝ (deriv U) := by
+  have hgreen :
+      U = fun x => greenConv c lam (crossSource p lam U U U) x := by
+    calc
+      U = crossImplicitMap p c lam U U U := hcross.symm
+      _ = fun x => greenConv c lam (crossSource p lam U U U) x :=
+        StationaryCrossGreenData.crossImplicitMap_eq_greenConv_crossSource
+          (p := p) (c := c) (lam := lam) (U := U) hlam hdata
+  exact stationaryC2Regularity_of_greenRepresentation
+    (c := c) (lam := lam) (U := U) (R := crossSource p lam U U U)
+    hR_cont hRhi hRlo hgreen
+
+/-- Discharge the `StationaryC2RegularityFromEquation` frontier from a
+non-circular Green-representation provider for stationary trapped profiles.  The
+C² source is the Green representation, not the pointwise totalized equation. -/
+theorem stationaryC2RegularityFromEquation_of_trap
+    {p : CMParams} {c lam κ M : ℝ}
+    (hlam : 0 < lam)
+    (hgreen : StationaryGreenRepresentationFromEquation p c lam κ M) :
+    StationaryC2RegularityFromEquation p c κ M := by
+  intro U hU hstat
+  rcases hgreen U hU hstat with
+    ⟨hdata, hR_cont, hRhi, hRlo, hcross⟩
+  exact stationaryC2Regularity_of_crossImplicitMap_fixed
+    (p := p) (c := c) (lam := lam) (U := U)
+    hlam hdata hR_cont hRhi hRlo hcross
+
 /-- Once the missing C² regularity frontier is supplied, the real-exponent
 trap-band estimates construct the `StationaryLinearGronwallData` needed by the
 strong maximum principle.  No integer exponent or traveling-wave ODE
@@ -638,6 +809,17 @@ theorem stationaryStrongMaxPrinciple_of_trap_regularity
     StationaryStrongMaxPrinciple p c κ M :=
   stationaryStrongMaxPrinciple_of_linearGronwall
     (stationaryLinearGronwallData_of_trap hM hreg)
+
+/-- Strong maximum principle closed from the trap Green-representation data,
+without routing through the integer-exponent traveling-wave ODE. -/
+theorem stationaryStrongMaxPrinciple_of_trap
+    {p : CMParams} {c lam κ M : ℝ}
+    (hM : 0 < M) (hlam : 0 < lam)
+    (hgreen : StationaryGreenRepresentationFromEquation p c lam κ M) :
+    StationaryStrongMaxPrinciple p c κ M :=
+  stationaryStrongMaxPrinciple_of_trap_regularity hM
+    (stationaryC2RegularityFromEquation_of_trap
+      (p := p) (c := c) (lam := lam) (κ := κ) (M := M) hlam hgreen)
 
 /-- The paper-positive floor cannot be carried for every trapped profile:
 the zero trapped profile refutes it. -/
@@ -1149,6 +1331,10 @@ section AxiomAudit
 #print axioms frozenWaveOperator_zero_eq_zero
 #print axioms stationaryJet_zero_of_gronwall_right
 #print axioms stationaryStrongMaxPrinciple_of_linearGronwall
+#print axioms stationaryC2Regularity_of_greenRepresentation
+#print axioms stationaryC2Regularity_of_crossImplicitMap_fixed
+#print axioms stationaryC2RegularityFromEquation_of_trap
+#print axioms stationaryStrongMaxPrinciple_of_trap
 #print axioms not_monotoneTrap_profile_paperPositiveInitialDatum
 #print axioms monotoneTrap_profile_hpos_of_floor
 #print axioms monotoneTrap_left_limit_exists
