@@ -52,3 +52,16 @@ rounds produce no structural change (only polish). Track per-round deltas; stop 
 
 ## Design log
 (rounds appended here as they complete)
+
+### R0 — Mathlib audit (done, 2026-06-18)
+Mathlib v4.29 has **NO** parabolic-PDE infrastructure: no heat/parabolic/evolution equations; no semigroups
+(C0/analytic/sectorial — only algebraic subsemigroups); no Sobolev SPACES (only `SobolevInequality`, the GNS
+inequality); no maximum principle; no elliptic regularity. HAS: Hölder continuity + norms
+(`Topology/MetricSpace/Holder`, `HolderNorm`, `Analysis/Calculus/ContDiffHolder`); **Arzelà-Ascoli**
+(`Topology/UniformSpace/Ascoli`); Fourier series; Lebesgue integration; ContDiff/calculus; Banach spaces +
+bounded operators; measure theory. NO Aubin-Lions, NO Rellich.
+Repo already has (Paper 3): `unitIntervalNeumannSpectrum` (eigenvalues n²π², first nonzero π²),
+`unitIntervalNeumannHeatSemigroupP0Compl` (heat semigroup on zero-mean subspace, operator-norm decay e^{-π²t}).
+**Architectural consequence:** build the 1D interval theory CONCRETELY via the explicit Neumann Fourier
+eigenbasis (heat semigroup = Σ e^{-n²π²t}⟨·,φₙ⟩φₙ; regularity = Fourier-coefficient decay), NOT abstract
+semigroup theory. This is the only route buildable on current Mathlib and is faithful for the 1D domain.
