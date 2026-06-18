@@ -21,10 +21,10 @@ Faithfulness fact (settled from paper1.pdf): m,α,γ ≥ 1 **REAL** (not integer
 | hprodAll wiring | RouteA producer → PaperLowerRawStepProducer | ✅ DONE | b961f2b |
 | hprodAll green-core | trap → PaperGreenStepInputRouteACore | ✅ assembly | 614b824 |
 | hprodAll Banach machinery | crossImplicitStep_exists_unique wired + K<1 proven | ✅ DONE | f1c3aa5 |
-| **hprodAll hpoint** | source pointwise contraction (clamp-Lipschitz) | 🔥 cx_pde in flight | /tmp/shen_pde_hpoint.md |
+| **hprodAll per-step existence** | SCHAUDER fixed point (Banach FAILS real m∈(1,2): s^{m-1} not Lip at 0; paper uses comparison/Schauder) | 🔥 cx_pde Schauder | /tmp/shen_pde_schauder.md |
 | hstationary | rotheLimit fixed ⟹ frozenWaveOp U U=0 | ✅ assembled, modulo uniform-bounds | 26cbe80 |
 | hstationary uniform-bounds | PaperC2CompactUniformBounds from concrete green-core | ⬜ coupled to hpoint landing | — |
-| **hsmp / hrealize** | StationaryStrongMaxPrinciple = strict positivity 0<U (DIRECT real-exp Hopf, NOT ℕ-ODE) | 🔥 cx_r3 in flight | /tmp/shen_r3_smp.md |
+| **hsmp / hrealize** | strict positivity 0<U via DIRECT real-exp Grönwall (41971fe) → StationaryLinearGronwallData (732d286) → StationaryC2RegularityFromEquation | 🔥 cx_r3 C²-reg | /tmp/shen_r3_c2reg.md |
 | hstep / htail | PaperRotheSeqStepDependence / PaperRotheTailUniform | ⬜ gap mapped (clamp + step-layer K<1), secondary | — |
 | hcond/hD/hbarLip/scalars | concrete parameter conditions | ⬜ concrete, easy | — |
 
