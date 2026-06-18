@@ -83,3 +83,19 @@ full theorem needs energy/Moser. Mathlib primitives verified present: Contractin
 smoothing + resolvent + composition lemmas. Revised layer order: 1 kernel/semigroup/resolvent → 2 C⁰ mild
 existence → 3 smoothing bootstrap → 4 positivity/comparison/continuation → 5 restricted boundedness →
 6 full energy/Moser → 7 compactness (Fourier tails) → 8 spectral+nonlinear stability → 9 Lyapunov.
+
+### R1 — LAYER 1 (heat semigroup + resolvent) DESIGNED (ChatGPT R1 + Mathlib-verified)
+**Heat semigroup PRIMARY def: E_phys(t)f = G_t * f_{even,2per}** (whole-line Gaussian convolution of the even
+2-periodic extension; G_t=(4πt)^{-1/2}e^{-z²/4t}). All load-bearing estimates from the Gaussian's L¹ norms:
+‖E(t)f‖∞≤‖f‖∞; ‖∂xE(t)f‖∞≤‖G_t'‖_{L¹}‖f‖∞=(πt)^{-1/2}‖f‖∞ (the t^{-1/2} smoothing); ‖∂xxE‖∞≤t^{-1}‖f‖∞;
+positivity (G_t>0); E(t)1=1; Neumann BC (even-symmetry ⟹ ∂xE odd integrand at 0,1 → 0); semigroup
+(G_t*G_s=G_{t+s}). Reflected-Gaussian-sum kernel + Poisson identity = DEFERRED theorems, not the def (dodges
+all the hard convergence/differentiation). SPECTRAL face E_spec(t)a_k=e^{-π²k²t}a_k for A^r (repo has it).
+Bridge = mode-action coeff identity ⟨E_phys(t)f,φ_k⟩=e^{-π²k²t}⟨f,φ_k⟩ (via Gaussian FT on cos modes, NOT
+full Poisson). **Resolvent PRIMARY: R_phys via explicit POSITIVE Green's fn G_R(x,y)=cosh(min(x,y))·
+cosh(1−max(x,y))/sinh1** ⟹ f≥0⟹Rf≥0 free; R1=1; ‖Rf‖∞≤‖f‖∞; R''=Rf−f dodges diagonal diff ⟹ ‖R''‖∞≤2‖f‖∞;
+Neumann BC from the split-derivative formula. Spectral face (1+π²k²)^{-1} for A^r. ONE new utility:
+fold01:ℝ→[0,1] (even 2-periodic fold). MATHLIB VERIFIED present: Gaussian Integral+FourierTransform+
+PoissonSummation, Convolution, ParametricIntegral (∂xE), Floor/fract (fold01), cosh/sinh. TO BUILD: the
+Neumann assembly + estimates + fold01 + Green's-fn resolvent (Gaussian-conv-semigroup likely derivable from
+the Gaussian FT). Full ~25-lemma Layer-1 interface pinned in the R1 transcript. Layer-1 = Mathlib-feasible.
