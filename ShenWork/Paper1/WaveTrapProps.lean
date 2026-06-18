@@ -16,7 +16,7 @@ import ShenWork.Paper1.Statements
 import ShenWork.Paper1.WaveRotheStep
 import ShenWork.PDE.TravelingWaveODE
 
-open Filter Topology
+open Filter Topology Set
 
 namespace ShenWork.Paper1
 
@@ -97,6 +97,152 @@ def StationaryStrongMaxPrinciple
       (∀ x, frozenWaveOperator p c U U x = 0) →
         ProfileNontrivial U →
           ∀ x, 0 < U x
+
+/-- The two-dimensional Cauchy jet `(U,U')` used for the direct
+strong-maximum-principle route. -/
+abbrev StationaryJet : Type := Fin 2 → ℝ
+
+noncomputable def stationaryJet (U : ℝ → ℝ) (x : ℝ) : StationaryJet :=
+  ![U x, deriv U x]
+
+noncomputable def stationaryJetDeriv (U : ℝ → ℝ) (x : ℝ) : StationaryJet :=
+  ![deriv U x, deriv (deriv U) x]
+
+private theorem stationaryJet_hasDerivWithinAt
+    {U : ℝ → ℝ} (hU_diff : Differentiable ℝ U)
+    (hUd_diff : Differentiable ℝ (deriv U)) (x : ℝ) :
+    HasDerivWithinAt (stationaryJet U) (stationaryJetDeriv U x) (Ici x) x := by
+  rw [hasDerivWithinAt_pi]
+  intro i
+  fin_cases i
+  · simpa [stationaryJet, stationaryJetDeriv] using
+      (hU_diff x).hasDerivAt.hasDerivWithinAt
+  · simpa [stationaryJet, stationaryJetDeriv] using
+      (hUd_diff x).hasDerivAt.hasDerivWithinAt
+
+private theorem stationaryJet_continuous
+    {U : ℝ → ℝ} (hU_diff : Differentiable ℝ U)
+    (hUd_diff : Differentiable ℝ (deriv U)) :
+    Continuous (stationaryJet U) := by
+  refine continuous_pi ?_
+  intro i
+  fin_cases i
+  · simpa [stationaryJet] using hU_diff.continuous
+  · simpa [stationaryJet] using hUd_diff.continuous
+
+/-- Grönwall zero-Cauchy uniqueness for a second-order scalar profile written
+as the first-order jet `(U,U')`.
+
+This is the direct linear-ODE uniqueness step used below.  The hypothesis
+`hbound` is exactly the bounded-coefficient estimate
+`‖(U',U'')‖ ≤ K ‖(U,U')‖` on the compact interval. -/
+theorem stationaryJet_zero_of_gronwall_right
+    {U : ℝ → ℝ} {a b K : ℝ}
+    (_hab : a ≤ b)
+    (hU_diff : Differentiable ℝ U)
+    (hUd_diff : Differentiable ℝ (deriv U))
+    (hbound : ∀ x ∈ Ico a b,
+      ‖stationaryJetDeriv U x‖ ≤ K * ‖stationaryJet U x‖)
+    (hUa : U a = 0) (hDa : deriv U a = 0) :
+    ∀ x ∈ Icc a b, U x = 0 ∧ deriv U x = 0 := by
+  have hjet0 : stationaryJet U a = 0 := by
+    ext i
+    fin_cases i <;> simp [stationaryJet, hUa, hDa]
+  have hzero :
+      ∀ x ∈ Icc a b, stationaryJet U x = 0 :=
+    eq_zero_of_abs_deriv_le_mul_abs_self_of_eq_zero_right
+      (f := stationaryJet U) (f' := stationaryJetDeriv U)
+      (K := K) (a := a) (b := b)
+      (stationaryJet_continuous hU_diff hUd_diff).continuousOn
+      (fun x _hx => stationaryJet_hasDerivWithinAt hU_diff hUd_diff x)
+      hjet0 hbound
+  intro x hx
+  have hxzero := hzero x hx
+  constructor
+  · have hcomp := congrFun hxzero 0
+    simpa [stationaryJet] using hcomp
+  · have hcomp := congrFun hxzero 1
+    simpa [stationaryJet] using hcomp
+
+/-- Direct real-exponent linearization data for the stationary strong maximum
+principle.
+
+For a stationary trapped profile, the frozen equation is used only through the
+bounded linear Cauchy-jet estimate on every compact interval, together with the
+same estimate after reflection for the left side.  This is the formal
+strong-max-principle input for real `m, α, γ ≥ 1`; it does not pass through the
+integer-exponent traveling-wave ODE. -/
+def StationaryLinearGronwallData
+    (p : CMParams) (c κ M : ℝ) : Prop :=
+  ∀ U : ℝ → ℝ,
+    InMonotoneWaveTrapSet κ M U →
+      (∀ x, frozenWaveOperator p c U U x = 0) →
+        Differentiable ℝ U ∧
+        Differentiable ℝ (deriv U) ∧
+        ∀ x₀, U x₀ = 0 → deriv U x₀ = 0 →
+          (∀ y, x₀ ≤ y →
+            ∃ K : ℝ, ∀ x ∈ Ico x₀ y,
+              ‖stationaryJetDeriv U x‖ ≤ K * ‖stationaryJet U x‖) ∧
+          (∀ y, y ≤ x₀ →
+            ∃ K : ℝ, ∀ x ∈ Ico (-x₀) (-y),
+              ‖stationaryJetDeriv (fun t => U (-t)) x‖ ≤
+                K * ‖stationaryJet (fun t => U (-t)) x‖)
+
+/-- The direct strong-maximum-principle theorem from the real-exponent
+linear-ODE structure.  If a nonnegative trapped stationary profile touches zero,
+then the interior minimum gives `U'=0`; the Grönwall zero-Cauchy uniqueness
+propagates the zero profile to both sides, contradicting nontriviality. -/
+theorem stationaryStrongMaxPrinciple_of_linearGronwall
+    {p : CMParams} {c κ M : ℝ}
+    (hlin : StationaryLinearGronwallData p c κ M) :
+    StationaryStrongMaxPrinciple p c κ M := by
+  intro U hU hstat hnontriv x₀
+  rcases hlin U hU hstat with
+    ⟨hU_diff, hUd_diff, hzeroCauchy⟩
+  by_contra hnot
+  have hx₀_zero : U x₀ = 0 :=
+    le_antisymm (not_lt.mp hnot) (hU.nonneg x₀)
+  have hmin : IsLocalMin U x₀ := by
+    dsimp [IsLocalMin, IsMinFilter]
+    exact Eventually.of_forall fun x => by
+      simpa [hx₀_zero] using hU.nonneg x
+  have hx₀_deriv : deriv U x₀ = 0 :=
+    hmin.hasDerivAt_eq_zero (hU_diff x₀).hasDerivAt
+  rcases hzeroCauchy x₀ hx₀_zero hx₀_deriv with ⟨hright, hleft⟩
+  have hzero_all : ∀ y, U y = 0 := by
+    intro y
+    by_cases hxy : x₀ ≤ y
+    · rcases hright y hxy with ⟨K, hK⟩
+      exact (stationaryJet_zero_of_gronwall_right hxy
+        hU_diff hUd_diff hK hx₀_zero hx₀_deriv y ⟨hxy, le_rfl⟩).1
+    · have hyx : y ≤ x₀ := le_of_not_ge hxy
+      rcases hleft y hyx with ⟨K, hK⟩
+      let Urev : ℝ → ℝ := fun t => U (-t)
+      have hneg_diff : Differentiable ℝ (fun t : ℝ => -t) :=
+        differentiable_id.neg
+      have hUrev_diff : Differentiable ℝ Urev := by
+        intro t
+        exact (hU_diff (-t)).comp t (hneg_diff t)
+      have hUrev_deriv_eq :
+          deriv Urev = fun t => -deriv U (-t) := by
+        funext t
+        simpa [Urev] using deriv_comp_neg (f := U) (x := t)
+      have hUrev_deriv_diff : Differentiable ℝ (deriv Urev) := by
+        rw [hUrev_deriv_eq]
+        intro t
+        exact ((hUd_diff (-t)).comp t (hneg_diff t)).neg
+      have hrev0 : Urev (-x₀) = 0 := by
+        simp [Urev, hx₀_zero]
+      have hrevD : deriv Urev (-x₀) = 0 := by
+        rw [hUrev_deriv_eq]
+        simp [hx₀_deriv]
+      have hle_rev : -x₀ ≤ -y := neg_le_neg hyx
+      have hrez := stationaryJet_zero_of_gronwall_right hle_rev
+        hUrev_diff hUrev_deriv_diff hK hrev0 hrevD (-y)
+        ⟨hle_rev, le_rfl⟩
+      simpa [Urev] using hrez.1
+  have hUzero : U = fun _ : ℝ => (0 : ℝ) := funext hzero_all
+  exact not_profileNontrivial_zero (by simpa [hUzero] using hnontriv)
 
 /-- The paper-positive floor cannot be carried for every trapped profile:
 the zero trapped profile refutes it. -/
@@ -268,7 +414,7 @@ theorem reactionFun_root_of_stationary_flat_limit
         (𝓝 (reactionFun p.α L)) := by
     simpa [frozenWaveOperator, reactionFun, sub_eq_add_neg, mul_assoc] using hsum
   have hzero : Tendsto (fun x => frozenWaveOperator p c U U x) atBot (𝓝 0) := by
-    simpa [hstat] using (tendsto_const_nhds : Tendsto (fun _ : ℝ => (0 : ℝ)) atBot (𝓝 0))
+    simp [hstat]
   exact tendsto_nhds_unique hop hzero
 
 /-- Single-profile route (b) with all analytic ingredients explicit:
@@ -606,6 +752,8 @@ section AxiomAudit
 #print axioms PaperPositiveInitialDatum.pos
 #print axioms not_profileNontrivial_zero
 #print axioms frozenWaveOperator_zero_eq_zero
+#print axioms stationaryJet_zero_of_gronwall_right
+#print axioms stationaryStrongMaxPrinciple_of_linearGronwall
 #print axioms not_monotoneTrap_profile_paperPositiveInitialDatum
 #print axioms monotoneTrap_profile_hpos_of_floor
 #print axioms monotoneTrap_left_limit_exists
