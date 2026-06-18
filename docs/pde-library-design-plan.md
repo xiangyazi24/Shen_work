@@ -65,3 +65,21 @@ Repo already has (Paper 3): `unitIntervalNeumannSpectrum` (eigenvalues n²π², 
 **Architectural consequence:** build the 1D interval theory CONCRETELY via the explicit Neumann Fourier
 eigenbasis (heat semigroup = Σ e^{-n²π²t}⟨·,φₙ⟩φₙ; regularity = Fourier-coefficient decay), NOT abstract
 semigroup theory. This is the only route buildable on current Mathlib and is faithful for the 1D domain.
+
+### R0 — CORE FORMULATION DECIDED (ChatGPT R0 + Mathlib-verified)
+**Core = physical-space MILD (Duhamel) formulation as the base solution layer; kernel + all estimates
+PROVED from the explicit Neumann Fourier basis. NOT a Gevrey/coefficient fixed point.** Two-layered:
+- BASE: physical C⁰ = `BoundedContinuousFunction` on [0,T]×[0,1] (Banach ✓). Local existence = Banach fixed
+  point (Mathlib `Contracting.lean` ✓) on the Duhamel map. Crux: chemotaxis transport is CLEAN in C⁰ —
+  v=R(u^γ)≥0 keeps 1+v≥1 so S(v)=(1+v)^{-β} is Lipschitz, q=u·S(v)·v_x bounded+Lipschitz, and
+  ‖∂xE(t)f‖∞≤C t^{-1/2} gives the √t contraction (∫₀ᵗ(t-τ)^{-1/2}dτ=2√t). Avoids real-power coefficient
+  composition at the foundation.
+- ENGINE/REGULARITY: A^r = ℓ¹((1+|k|)^r) Fourier-Wiener (Banach algebra under convolution; Mathlib `lp` ✓).
+  Heat smoothing gains derivatives ‖E(t)f‖_{A^{r+m}}≤C t^{-m/2}‖f‖_{A^r}; COMPACTNESS via tail control
+  ‖P_{>N}f‖_{A^r}≤(1+N)^{-δ}‖f‖_{A^{r+δ}} — the interval-Fourier replacement for Rellich/Aubin-Lions.
+Global boundedness: NO pure sup-norm shortcut for full χ₀>0; do χ₀≤0 / small-χ₀ / exponent-dominant first,
+full theorem needs energy/Moser. Mathlib primitives verified present: Contracting, BCF, Fourier
+(FourierMultiplier/Gaussian/AddCircle), lp, Gronwall, PicardLindelof. To BUILD: the explicit kernel + t^{-1/2}
+smoothing + resolvent + composition lemmas. Revised layer order: 1 kernel/semigroup/resolvent → 2 C⁰ mild
+existence → 3 smoothing bootstrap → 4 positivity/comparison/continuation → 5 restricted boundedness →
+6 full energy/Moser → 7 compactness (Fourier tails) → 8 spectral+nonlinear stability → 9 Lyapunov.
