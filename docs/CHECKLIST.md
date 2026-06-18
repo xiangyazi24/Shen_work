@@ -103,8 +103,25 @@ The headline is a clean assembly. Everything below `hprodAll` is the ONLY substa
 - [ ] **P3.4** Sectorial local exponential decay — `SectorialLocalExponentialRaw` (H3.1 framework) on the interval (§5/App A.1)
 - [ ] **P3.5** Compactness/regularization (Lemmas 3.1–3.5, 7.1) — `Paper3CompactnessRegularizationRawData` (§3, §7)
 - [ ] **P3.6** Global stability Thms 2.3–2.5 — `Paper3Stability23To25BranchData` (Lyapunov / rectangle-ODE / `corollary51` dissipation) (§6–8)
-- [ ] **P3.7** Threshold-ordering tails (small) — route `chiStrong2/4Formula` to the spectrum-free floor; discharge A.8 `chiBeta ≤ χ*` (App A.3)
-- [ ] **P3.D** `Paper3MainlineTargets` unconditional on the interval domain
+- [ ] **P3.7** Threshold-ordering tails (small) — route `chiStrong2/4Formula` to the spectrum-free floor (App A.3)
+
+### Paper 3 STRATEGY (ChatGPT triage, full detail in docs/paper3-strategy.md)
+Goal = playbook audit = FAITHFUL, not fully-unconditional. Heavy PDE floors (global existence, sectorial
+semigroups, Aubin-Lions) are multi-month Mathlib-library efforts — keep them CONDITIONAL with PRECISE
+frontier names (not vague). Harvest the genuinely-provable unconditional branches. Per-floor:
+- P3.1 existence: heavy-defer (restricted negative-sensitivity/eventual-bound branch plausible via Paper2 reuse)
+- P3.2 persistence: partial (ODE-comparison tractable; compactness/SMP heavy)
+- P3.3 linear stability: **TRACTABLE** (spectral-formula dichotomy mostly in repo) — best leverage
+- P3.4 sectorial: heavy-defer (interval spectral-decay DONE; nonlinear orbit bound remains)
+- P3.5 compactness: mixed (interval max-principle/bookkeeping tractable; time-translate compactness heavy)
+- P3.6 global stability: partial (Lyapunov algebra tractable; moment-to-uniform + C¹ upgrade heavy)
+ATTACK ORDER: (1) P3.3 formula/spectral partial targets → (2) interval concrete bookkeeping wrappers →
+(3) explicit 1D Neumann resolvent gradient estimate (Lemma 7.1) → (4) P3.2 ODE-comparison subpieces →
+(5) restricted P3.1 via Paper2; LAST: P3.4 + full P3.6 (keep as named frontiers).
+Add honest PARTIAL umbrellas: Paper3FormulaSpectralTargets, IntervalDomainSpectralDecayTargets,
+IntervalDomainConcreteBookkeepingTargets, Paper3ConditionalPDEFrontiers.
+- [ ] **P3.D** `Paper3MainlineTargets`: honest partial-unconditional report (formula/spectral/ODE branches
+  unconditional; named PDE frontiers conditional) — NOT all-unconditional (infeasible without a parabolic library)
 
 ---
 
