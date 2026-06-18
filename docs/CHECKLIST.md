@@ -53,8 +53,9 @@ The headline is a clean assembly. Everything below `hprodAll` is the ONLY substa
 - [x] paperDiff-free truncated max-principle + **direct** `truncation_inactive_direct_of_trap` (820f55b) — bypasses the record (upperBarrier non-diff at kink)
 - [~] `map_leftTail` / `ascoliCompactRange` — GATED on the ω self-consistency below
 - [x] **ω self-consistency** — RESOLVED via the exponential left-rate majorant (A+): `ExpLeftRate` predicate + kernel moments (m_σ=O(λ⁻¹)) + greenConv/frozenElliptic rate preservation + two-orbit (Z inner, u outer) left-rate threading. (d774b63 + 9a40dbd, full-build verified)
-- [~] **box-close assembly** — discharge hmap_holder/leftTailCauchy/rate/lower/upper via the proven kernels → constructor needs ONLY hboxCubeData. *cx_pde now*
-- [ ] **boxCubeData** — route (c): carry as the one permitted finite-net floor (same as outer G1) for hprodAll close; full McShane discharge blueprint in docs/boxCubeData-mcshane-blueprint.md for later full-unconditional
+- [x] **box-close COMPLETE** (aecea7e) — map self-invariance + barrier endpoints all INTERNAL; paperTruncatedFixedSourceBoxData_of_trap carries ONLY: paper parameter conditions + iterate data (hu/hu_rate/hZ/hZ_rate) + hpaperSuper (barrier super-sol, parameter fact) + hboxCubeData. The entire weighted-Hölder Schauder + ExpLeftRate two-radius self-consistency + truncation_inactive + barrier left-endpoint signs are formalized. Full-build verified.
+- [~] **hpaperSuper** — barrier super-solution (upperBarrier is a paper super-sol under wave-speed); parameter fact, provable from the barrier ODE / shared with genuine producer. Small remaining piece.
+- [ ] **hboxCubeData** — route (c) carry (the one finite-net floor, same as outer G1) → hprodAll close; McShane discharge blueprint in docs/ for full-unconditional later
 
 #### B.3 Barrier super-solution — DIRECT (dodge the 2nd circularity)
 - [ ] `hupper` / `hlower` — construct directly via `Lemma_4_1_neg_holds_away_from_interface` + `upperBarrier_BC2_atMax_dischargeable` (root found; NOT via the circular `hrest`)
