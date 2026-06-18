@@ -106,9 +106,9 @@ The headline is a clean assembly. Everything below `hprodAll` is the ONLY substa
 - [ ] **P3.7** Threshold-ordering tails (small) — route `chiStrong2/4Formula` to the spectrum-free floor (App A.3)
 
 ### Paper 3 STRATEGY (ChatGPT triage, full detail in docs/paper3-strategy.md)
-Goal = playbook audit = FAITHFUL, not fully-unconditional. Heavy PDE floors (global existence, sectorial
-semigroups, Aubin-Lions) are multi-month Mathlib-library efforts — keep them CONDITIONAL with PRECISE
-frontier names (not vague). Harvest the genuinely-provable unconditional branches. Per-floor:
+GOAL (corrected, Xiang): BUILD the parabolic PDE library over months and GENUINELY DISCHARGE every floor.
+NOT harvest-easy + label-frontiers. The heavy PDE floors ARE the targets. Build bottom-up (see
+docs/paper3-strategy.md PDE-library build plan, layers 1-7). Per-floor difficulty (for BUILD ORDER, not deferral):
 - P3.1 existence: heavy-defer (restricted negative-sensitivity/eventual-bound branch plausible via Paper2 reuse)
 - P3.2 persistence: partial (ODE-comparison tractable; compactness/SMP heavy)
 - P3.3 linear stability: **TRACTABLE** (spectral-formula dichotomy mostly in repo) — best leverage

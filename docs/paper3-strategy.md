@@ -1,3 +1,39 @@
+# ⚠️ CORRECTED GOAL (Xiang, 2026-06-18)
+
+**The goal is to BUILD THE PARABOLIC PDE LIBRARY over several months and GENUINELY DISCHARGE every
+floor — NOT to harvest the easy unconditional branches and label the heavy PDE floors as named
+frontiers.** That "harvest + honest-label" framing below (from a ChatGPT consult) was answering the
+WRONG question. Playbook audit = ALL floors genuinely proven.
+
+So Paper 3's heavy floors (P3.1 global classical existence/boundedness, P3.4 sectorial/analytic
+semigroups, P3.5 Aubin-Lions/parabolic compactness, P3.6 Lyapunov→global convergence + C¹ exponential)
+are the ACTUAL TARGETS. We build the Lean infrastructure bottom-up to prove them.
+
+## PDE-library build plan (dependency-ordered, the multi-month campaign)
+Target domain = `intervalDomain` (1D, explicit Neumann kernels — the tractable entry to real PDE theory).
+1. **1D Neumann elliptic layer** — Green/resolvent kernel for `−∂xx + 1` on [0,1] Neumann; elliptic
+   regularity + gradient estimates (discharges Lemma 7.1, feeds v-equation `0 = Δv − v + u^γ`).
+2. **Interval parabolic local existence** — Neumann heat semigroup + Duhamel/contraction for the
+   u-equation; positivity, continuation criterion. (entry to P3.1)
+3. **Maximum principles + comparison** — parabolic SMP, sub/super-solutions on the interval. (P3.2 lower
+   envelope, P3.5 upper-envelope monotonicity)
+4. **A-priori bounds / boundedness** — energy + logistic-damping `L^p→L^∞` bootstrap; negative-sensitivity
+   first. (P3.1 global existence from local + boundedness)
+5. **Compactness** — time-translate / parabolic-smoothing compactness on the interval (Arzelà-Ascoli on
+   parabolic Hölder, or an Aubin-Lions slice). (P3.2, P3.5, P3.6 moment→uniform)
+6. **Sectorial / analytic semigroup** — sectoriality of the interval Neumann linearized operator,
+   fractional domains `X_p^σ`, smoothing estimates → nonlinear local exponential stability. (P3.4, P3.3 nonlinear part)
+7. **Lyapunov + LaSalle** — dissipation identities → ω-limit → global convergence → C¹ exponential upgrade. (P3.6)
+Build 1→7; discharge P3.1–P3.6 as each layer matures. Each layer is itself a real campaign.
+
+## Immediate concrete bricks (real proven content, the first stones)
+- Paper 1 per-step (in flight) — genuine elliptic/Rothe PDE; finish it.
+- P3.3 formula/spectral umbrella `Paper3FormulaSpectralTargets` — already-proven linear/spectral content,
+  assemble it (a first honest unconditional brick, NOT the endpoint).
+- Layer 1 (1D Neumann elliptic) — the natural first PDE-library module to start building.
+
+---
+
 ## Bottom line
 
 For a playbook audit, **do not try to turn Paper 3 fully unconditional now**. The honest split is:
