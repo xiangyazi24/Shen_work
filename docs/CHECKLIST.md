@@ -49,9 +49,10 @@ The headline is a clean assembly. Everything below `hprodAll` is the ONLY substa
 - [x] `map_bound` — weighted sup bound (in `paperFixedSourceMapBoxBounds_of_trap`)
 - [x] **Lemma 1** `paperFixedSourceMap_holder_kernel` — β-Hölder modulus H₀ (1a38d95)
 - [x] **Lemma 2** `greenConv_leftTailCauchy_uniform` + `paperFixedSourceMap_leftTailCauchy_kernel` — uniform left-tail Cauchy modulus ω₀ → 0 (b93cf67)
-- [~] `map_leftTail` — image has a left limit (composes from greenConv left-tail + V/Z left limits)  *(next)*
-- [ ] `continuousOn` — source-map continuous dependence (LocalUniformContinuousOn)
-- [ ] `ascoliCompactRange` — Arzelà-Ascoli on the compactified line (from uniform bound + Hölder + left-tail)
+- [x] `continuousOn` — source-map continuous dependence (`paperFixedSourceMap_continuousOn_of_boxBounds`, internal) (820f55b)
+- [x] paperDiff-free truncated max-principle + **direct** `truncation_inactive_direct_of_trap` (820f55b) — bypasses the record (upperBarrier non-diff at kink)
+- [~] `map_leftTail` / `ascoliCompactRange` — GATED on the ω self-consistency below
+- [~] **ω self-consistency** (THE last analytic subtlety) — the box left-tail modulus ω depends on the input modulus (absolute-ω is FALSE: upperBarrier is a left plateau, greenConv preserves oscillation). Resolve via (A) majorant ω=K·φ + orbit threading, or (B) limsup/translation-compactness left-end dropping ω → clean Arzelà-Ascoli. *ChatGPT consulting on cheapest-to-formalize route.*
 
 #### B.3 Barrier super-solution — DIRECT (dodge the 2nd circularity)
 - [ ] `hupper` / `hlower` — construct directly via `Lemma_4_1_neg_holds_away_from_interface` + `upperBarrier_BC2_atMax_dischargeable` (root found; NOT via the circular `hrest`)
