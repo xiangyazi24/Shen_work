@@ -21,10 +21,11 @@ Faithfulness fact (settled from paper1.pdf): m,α,γ ≥ 1 **REAL** (not integer
 | hprodAll wiring | RouteA producer → PaperLowerRawStepProducer | ✅ DONE | b961f2b |
 | hprodAll green-core | trap → PaperGreenStepInputRouteACore | ✅ assembly | 614b824 |
 | hprodAll Banach machinery | crossImplicitStep_exists_unique wired + K<1 proven | ✅ DONE | f1c3aa5 |
-| **hprodAll per-step existence** | SCHAUDER fixed point (Banach FAILS real m∈(1,2): s^{m-1} not Lip at 0; paper uses comparison/Schauder) | 🔥 cx_pde Schauder | /tmp/shen_pde_schauder.md |
+| hprodAll per-step Schauder machinery | of_schauder constructs existence from principle+map data, compactness PROVEN, of_banach deleted | ✅ DONE | f076c50 |
+| **hprodAll Schauder map data** | PaperStepSchauderMapData_of_trap (mapsTo/continuousOn/bounds assembly) | 🔥 cx_pde | /tmp/shen_pde_schaudermapdata.md |
 | hstationary | rotheLimit fixed ⟹ frozenWaveOp U U=0 | ✅ assembled, modulo uniform-bounds | 26cbe80 |
 | hstationary uniform-bounds | PaperC2CompactUniformBounds from concrete green-core | ⬜ coupled to hpoint landing | — |
-| **hsmp / hrealize** | strict positivity 0<U via DIRECT real-exp Grönwall (41971fe) → StationaryLinearGronwallData (732d286) → StationaryC2RegularityFromEquation | 🔥 cx_r3 C²-reg | /tmp/shen_r3_c2reg.md |
+| **hsmp / hrealize** | Grönwall(41971fe)→linearGronwallData(732d286)→C²reg via GREEN REP (U=greenConv R ⟹ C² by greenConv_contDiff_two, NOT totalized pointwise eq) | 🔥 cx_r3 C²-green | /tmp/shen_r3_c2green.md |
 | hstep / htail | PaperRotheSeqStepDependence / PaperRotheTailUniform | ⬜ gap mapped (clamp + step-layer K<1), secondary | — |
 | hcond/hD/hbarLip/scalars | concrete parameter conditions | ⬜ concrete, easy | — |
 
