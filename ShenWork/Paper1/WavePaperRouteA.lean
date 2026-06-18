@@ -978,6 +978,7 @@ than the shifted sliding wrapper. -/
 structure PaperStepOutputRouteACore
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
   analytic : PaperStepAnalyticCore p c lam M κ Λ u Z W
+  left_rate : ExpLeftRateData W
   C_chem : ℝ
   lowerZero : PaperStepLowerData p c lam M C_chem u Z W (fun _ => 0)
   upperOld : PaperStepUpperData p c lam M C_chem u Z W Z
@@ -994,6 +995,7 @@ consumed by `paperRotheStepProducer_of_routeA_greenCore`. -/
 structure PaperStepOutputRouteAAssemblyData
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z : ℝ → ℝ) where
   fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z
+  left_rate : ExpLeftRateData fixed.W
   C_chem : ℝ
   lowerZero :
     PaperStepLowerData p c lam M C_chem u Z fixed.W (fun _ => 0)
@@ -1015,6 +1017,7 @@ def toOutputRouteACore
     Σ' W : ℝ → ℝ, PaperStepOutputRouteACore p c lam M κ Λ u Z W :=
   ⟨h.fixed.W,
     { analytic := h.fixed.analyticCore
+      left_rate := h.left_rate
       C_chem := h.C_chem
       lowerZero := h.lowerZero
       upperOld := h.upperOld
@@ -1032,6 +1035,7 @@ Route-A payloads, so the fixed source can be supplied concretely by
 structure PaperStepOutputRouteAFixedRestData
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z : ℝ → ℝ)
     (fixed : PaperStepFixedSourceCore p c lam M κ Λ u Z) where
+  left_rate : ExpLeftRateData fixed.W
   C_chem : ℝ
   lowerZero :
     PaperStepLowerData p c lam M C_chem u Z fixed.W (fun _ => 0)
@@ -1052,6 +1056,7 @@ def toAssemblyData
     (h : PaperStepOutputRouteAFixedRestData p c lam M κ Λ u Z fixed) :
     PaperStepOutputRouteAAssemblyData p c lam M κ Λ u Z :=
   { fixed := fixed
+    left_rate := h.left_rate
     C_chem := h.C_chem
     lowerZero := h.lowerZero
     upperOld := h.upperOld
@@ -1255,6 +1260,7 @@ def paperRotheStepProducer_of_routeA_greenCore
         cont := hbasic.1
         diff := hbasic.2.1
         deriv_le := hbasic.2.2
+        left_rate := hout.left_rate
         nonneg := hnonneg
         le_barrier := hle_barrier
         le_old := hle_old
@@ -1291,6 +1297,7 @@ def paperRotheStepProducer_of_routeA_greenCore
         cont := hbasic.1
         diff := hbasic.2.1
         deriv_le := hbasic.2.2
+        left_rate := hout.left_rate
         nonneg := hnonneg
         le_barrier := hle_barrier
         le_old := hle_old

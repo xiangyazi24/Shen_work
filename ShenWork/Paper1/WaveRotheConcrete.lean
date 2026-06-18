@@ -248,6 +248,205 @@ barrier comparison uses the paper implicit operator instead, so we keep a
 separate lightweight paper-step orbit.  It records only the trap shape and the
 paper step equation; no frozen Schauder data is claimed for this orbit here. -/
 
+/-! ## Exponential left-rate bookkeeping -/
+
+/-- Exponential approach to a prescribed left limit. -/
+def ExpLeftRate (sigma aL C : ℝ) (f : ℝ → ℝ) (ell : ℝ) : Prop :=
+  ∀ x, |f x - ell| ≤ C * Real.exp (sigma * (x - aL))
+
+/-- The exponential left-tail modulus used by the Route-A+ source box. -/
+def expLeftOmega (sigma aL K : ℝ) : ℝ → ℝ :=
+  fun A => K * Real.exp (sigma * (A - aL))
+
+/-- A packaged exponential left-rate invariant for an orbit iterate. -/
+def ExpLeftRateData (f : ℝ → ℝ) : Prop :=
+  ∃ sigma aL C ell : ℝ, 0 < sigma ∧ ExpLeftRate sigma aL C f ell
+
+namespace ExpLeftRate
+
+theorem C_nonneg {sigma aL C : ℝ} {f : ℝ → ℝ} {ell : ℝ}
+    (h : ExpLeftRate sigma aL C f ell) : 0 ≤ C := by
+  have hx := h aL
+  have hzero : sigma * (aL - aL) = 0 := by ring
+  have hle : |f aL - ell| ≤ C := by
+    simpa [ExpLeftRate, hzero] using hx
+  exact le_trans (abs_nonneg _) hle
+
+/-- An exponential left-rate bound gives the box's uniform left-tail Cauchy
+field with the corresponding exponential modulus. -/
+theorem leftTailCauchy {sigma aL C : ℝ} {f : ℝ → ℝ} {ell : ℝ}
+    (hsigma : 0 ≤ sigma) (h : ExpLeftRate sigma aL C f ell) :
+    ∀ A, A ≤ aL → ∀ x y, x ≤ A → y ≤ A →
+      |f x - f y| ≤ 2 * C * Real.exp (sigma * (A - aL)) := by
+  intro A hA x y hx hy
+  have hC : 0 ≤ C := h.C_nonneg
+  have hxexp :
+      Real.exp (sigma * (x - aL)) ≤ Real.exp (sigma * (A - aL)) := by
+    apply Real.exp_le_exp.mpr
+    exact mul_le_mul_of_nonneg_left (by linarith) hsigma
+  have hyexp :
+      Real.exp (sigma * (y - aL)) ≤ Real.exp (sigma * (A - aL)) := by
+    apply Real.exp_le_exp.mpr
+    exact mul_le_mul_of_nonneg_left (by linarith) hsigma
+  calc
+    |f x - f y| = |(f x - ell) + (ell - f y)| := by ring_nf
+    _ ≤ |f x - ell| + |ell - f y| := abs_add_le _ _
+    _ = |f x - ell| + |f y - ell| := by rw [abs_sub_comm ell (f y)]
+    _ ≤ C * Real.exp (sigma * (x - aL)) +
+        C * Real.exp (sigma * (y - aL)) :=
+      add_le_add (h x) (h y)
+    _ ≤ C * Real.exp (sigma * (A - aL)) +
+        C * Real.exp (sigma * (A - aL)) := by
+      exact add_le_add
+        (mul_le_mul_of_nonneg_left hxexp hC)
+        (mul_le_mul_of_nonneg_left hyexp hC)
+    _ = 2 * C * Real.exp (sigma * (A - aL)) := by ring
+
+end ExpLeftRate
+
+theorem expLeftOmega_nonneg {sigma aL K : ℝ} (hK : 0 ≤ K) :
+    ∀ A, 0 ≤ expLeftOmega sigma aL K A := by
+  intro A
+  exact mul_nonneg hK (Real.exp_pos _).le
+
+theorem expLeftOmega_tendsto_atBot {sigma aL K : ℝ} (hsigma : 0 < sigma) :
+    Tendsto (expLeftOmega sigma aL K) atBot (𝓝 0) := by
+  have hsub : Tendsto (fun A : ℝ => A - aL) atBot atBot := by
+    simpa [sub_eq_add_neg] using
+      tendsto_atBot_add_const_right atBot (-aL)
+        (tendsto_id : Tendsto (fun A : ℝ => A) atBot atBot)
+  have hlin : Tendsto (fun A : ℝ => sigma * (A - aL)) atBot atBot :=
+    hsub.const_mul_atBot hsigma
+  have hexp : Tendsto (fun A : ℝ => Real.exp (sigma * (A - aL))) atBot (𝓝 0) :=
+    Real.tendsto_exp_atBot.comp hlin
+  simpa [expLeftOmega] using hexp.const_mul K
+
+/-- If a function already has a left limit and a global bound, then an
+exponential left-tail Cauchy modulus upgrades to an exponential left-rate bound.
+This is the source-box bridge used after the fixed-source box supplies a genuine
+left limit. -/
+theorem leftTailCauchy_to_ExpLeftRate_of_tendsto
+    {sigma aL K S : ℝ} {f : ℝ → ℝ} {ell : ℝ}
+    (hsigma : 0 < sigma) (hK : 0 ≤ K) (hS : 0 ≤ S)
+    (hbound : ∀ x, |f x| ≤ S)
+    (hlim : Tendsto f atBot (𝓝 ell))
+    (hcauchy : ∀ A, A ≤ aL → ∀ x y, x ≤ A → y ≤ A →
+      |f x - f y| ≤ K * Real.exp (sigma * (A - aL))) :
+    ExpLeftRate sigma aL (K + 2 * S) f ell := by
+  intro x
+  have hEll : |ell| ≤ S := by
+    exact le_of_tendsto_of_tendsto hlim.abs tendsto_const_nhds
+      (Eventually.of_forall hbound)
+  have hcoef_nonneg : 0 ≤ K + 2 * S := by positivity
+  by_cases hx : x ≤ aL
+  · have htend :
+        Tendsto (fun y : ℝ => |f x - f y|) atBot (𝓝 |f x - ell|) := by
+      exact (tendsto_const_nhds.sub hlim).abs
+    have hev :
+        ∀ᶠ y in atBot,
+          |f x - f y| ≤ K * Real.exp (sigma * (x - aL)) := by
+      filter_upwards [eventually_le_atBot x] with y hy
+      exact hcauchy x hx x y le_rfl hy
+    have hleft :
+        |f x - ell| ≤ K * Real.exp (sigma * (x - aL)) :=
+      le_of_tendsto_of_tendsto htend tendsto_const_nhds hev
+    have hmono :
+        K * Real.exp (sigma * (x - aL)) ≤
+          (K + 2 * S) * Real.exp (sigma * (x - aL)) := by
+      have hKS : K ≤ K + 2 * S := by linarith
+      exact mul_le_mul_of_nonneg_right hKS (Real.exp_pos _).le
+    exact le_trans hleft hmono
+  · have hxgt : aL < x := lt_of_not_ge hx
+    have htri :
+        |f x - ell| ≤ 2 * S := by
+      calc
+        |f x - ell| ≤ |f x| + |ell| := abs_sub _ _
+        _ ≤ S + S := add_le_add (hbound x) hEll
+        _ = 2 * S := by ring
+    have hone :
+        1 ≤ Real.exp (sigma * (x - aL)) := by
+      exact Real.one_le_exp (mul_nonneg hsigma.le (sub_nonneg.mpr hxgt.le))
+    calc
+      |f x - ell| ≤ 2 * S := htri
+      _ ≤ (K + 2 * S) := by linarith
+      _ = (K + 2 * S) * 1 := by ring
+      _ ≤ (K + 2 * S) * Real.exp (sigma * (x - aL)) :=
+        mul_le_mul_of_nonneg_left hone hcoef_nonneg
+
+/-- A bounded function that is exactly constant on a left half-line has a
+positive exponential left-rate bound. -/
+theorem expLeftRate_of_left_constant
+    {sigma aL S : ℝ} {f : ℝ → ℝ} {ell : ℝ}
+    (hsigma : 0 < sigma) (hS : 0 ≤ S)
+    (hbound : ∀ x, |f x| ≤ S)
+    (hleft : ∀ x, x ≤ aL → f x = ell) :
+    ExpLeftRate sigma aL (2 * S) f ell := by
+  intro x
+  by_cases hx : x ≤ aL
+  · rw [hleft x hx]
+    rw [sub_self, abs_zero]
+    exact mul_nonneg (mul_nonneg (by norm_num) hS) (Real.exp_pos _).le
+  · have hxlt : aL < x := lt_of_not_ge hx
+    have hell : |ell| ≤ S := by
+      simpa [hleft aL le_rfl] using hbound aL
+    have htri : |f x - ell| ≤ 2 * S := by
+      calc
+        |f x - ell| ≤ |f x| + |ell| := abs_sub _ _
+        _ ≤ S + S := add_le_add (hbound x) hell
+        _ = 2 * S := by ring
+    have hone : 1 ≤ Real.exp (sigma * (x - aL)) :=
+      Real.one_le_exp (mul_nonneg hsigma.le (sub_nonneg.mpr hxlt.le))
+    have hcoef : 0 ≤ 2 * S := by positivity
+    calc
+      |f x - ell| ≤ 2 * S := htri
+      _ = 2 * S * 1 := by ring
+      _ ≤ 2 * S * Real.exp (sigma * (x - aL)) :=
+        mul_le_mul_of_nonneg_left hone hcoef
+
+/-- The paper super-barrier has an exponential left-rate witness. -/
+theorem upperBarrier_expLeftRateData {κ M : ℝ}
+    (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
+    ExpLeftRateData (upperBarrier κ M) := by
+  by_cases hMzero : M = 0
+  · refine
+      ⟨1, 0, 0, 0, by norm_num, ?_⟩
+    intro x
+    have hU : upperBarrier κ M x = 0 := by
+      subst M
+      exact upperBarrier_eq_M_of_le_exp (Real.exp_pos _).le
+    simp [ExpLeftRate, hU]
+  have hMpos : 0 < M := lt_of_le_of_ne hM (Ne.symm hMzero)
+  by_cases hκpos : 0 < κ
+  · let aL : ℝ := -Real.log M / κ
+    refine
+      ⟨κ, aL, 2 * M, M, hκpos, ?_⟩
+    have hbound : ∀ x, |upperBarrier κ M x| ≤ M := by
+      intro x
+      rw [abs_of_nonneg (upperBarrier_nonneg hM x)]
+      exact upperBarrier_le_M κ M x
+    have hleft : ∀ x, x ≤ aL → upperBarrier κ M x = M := by
+      intro x hx
+      have hmul : Real.log M ≤ -κ * x := by
+        have hxmul : κ * x ≤ -Real.log M := by
+          rw [show -Real.log M = κ * aL by
+            dsimp [aL]
+            field_simp [ne_of_gt hκpos]]
+          exact mul_le_mul_of_nonneg_left hx hκ
+        linarith
+      have hexp : M ≤ Real.exp (-κ * x) := by
+        rw [← Real.exp_log hMpos]
+        exact Real.exp_le_exp.mpr hmul
+      exact upperBarrier_eq_M_of_le_exp hexp
+    exact expLeftRate_of_left_constant hκpos hM hbound hleft
+  · have hκzero : κ = 0 := le_antisymm (not_lt.mp hκpos) hκ
+    refine
+      ⟨1, 0, 0, min M 1, by norm_num, ?_⟩
+    intro x
+    have hU : upperBarrier κ M x = min M 1 := by
+      subst κ
+      simp [upperBarrier]
+    simp [ExpLeftRate, hU]
+
 /-- Per-step facts for the paper implicit orbit. -/
 structure PaperRotheStepFacts
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) : Prop where
@@ -255,6 +454,7 @@ structure PaperRotheStepFacts
   cont : Continuous W
   diff : Differentiable ℝ W
   deriv_le : ∀ x, |deriv W x| ≤ Λ
+  left_rate : ExpLeftRateData W
   nonneg : ∀ x, 0 ≤ W x
   le_barrier : ∀ x, W x ≤ upperBarrier κ M x
   le_old : ∀ x, W x ≤ Z x
@@ -268,6 +468,7 @@ structure PaperIterateBase (κ M : ℝ) (Z : ℝ → ℝ) : Prop where
   le_barrier : ∀ x, Z x ≤ upperBarrier κ M x
   diff : Z = upperBarrier κ M ∨ Differentiable ℝ Z
   deriv_le : ∃ L : ℝ, 0 ≤ L ∧ ∀ x, |deriv Z x| ≤ L
+  left_rate : ExpLeftRateData Z
 
 theorem upperBarrier_deriv_abs_le_mul {κ M : ℝ}
     (hκ : 0 ≤ κ) (hM : 0 ≤ M) :
@@ -314,14 +515,16 @@ theorem upperBarrier_paperIterateBase {κ M : ℝ}
   ⟨upperBarrier_continuous κ M, upperBarrier_antitone hκ,
    fun x => upperBarrier_nonneg hM x, fun _ => le_rfl,
    Or.inl rfl, ⟨κ * M, mul_nonneg hκ hM,
-    upperBarrier_deriv_abs_le_mul hκ hM⟩⟩
+    upperBarrier_deriv_abs_le_mul hκ hM⟩,
+   upperBarrier_expLeftRateData hκ hM⟩
 
 theorem PaperRotheStepFacts.toBase
     {p : CMParams} {c lam M κ Λ : ℝ} {u Z W : ℝ → ℝ}
     (h : PaperRotheStepFacts p c lam M κ Λ u Z W) :
     PaperIterateBase κ M W :=
   ⟨h.cont, h.anti, h.nonneg, h.le_barrier, Or.inr h.diff,
-    ⟨Λ, le_trans (abs_nonneg (deriv W 0)) (h.deriv_le 0), h.deriv_le⟩⟩
+    ⟨Λ, le_trans (abs_nonneg (deriv W 0)) (h.deriv_le 0), h.deriv_le⟩,
+    h.left_rate⟩
 
 /-- Producer for the paper implicit orbit.  This is intentionally separate from
 `RotheStepProducer`, whose step equation is frozen. -/

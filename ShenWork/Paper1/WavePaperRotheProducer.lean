@@ -898,6 +898,379 @@ theorem PaperWeightedHolderSourceBox.abs_le_const
     |R y| ≤ B * upperBarrier κ M y := hR.bound y
     _ ≤ B * M := mul_le_mul_of_nonneg_left (upperBarrier_le_M κ M y) hBnn
 
+/-- A source-box element with the exponential left-tail modulus has a packaged
+exponential left-rate witness. -/
+theorem PaperWeightedHolderSourceBox.expLeftRateData_of_expOmega
+    {κ M β B H sigma aL K : ℝ} {R : ℝ → ℝ}
+    (hsigma : 0 < sigma) (hK : 0 ≤ K) (hBnn : 0 ≤ B) (hMnn : 0 ≤ M)
+    (hR : PaperWeightedHolderSourceBox κ M β B H
+      (expLeftOmega sigma aL K) R) :
+    ExpLeftRateData R := by
+  rcases hR.leftTail with ⟨ell, hlim⟩
+  refine ⟨sigma, aL, K + 2 * (B * M), ell, hsigma, ?_⟩
+  exact leftTailCauchy_to_ExpLeftRate_of_tendsto
+    (sigma := sigma) (aL := aL) (K := K) (S := B * M)
+    (f := R) (ell := ell)
+    hsigma hK (mul_nonneg hBnn hMnn)
+    (hR.abs_le_const hBnn) hlim
+    (by
+      intro A _hA x y hx hy
+      simpa [expLeftOmega] using hR.leftTailCauchy A x y hx hy)
+
+/-- Weighted Green-kernel moment for the exponential left-rate estimate. -/
+def greenKernelExpMoment (c lam sigma : ℝ) : ℝ :=
+  ∫ z, |greenKernel c lam z| * Real.exp (-sigma * z)
+
+/-- Weighted differentiated-kernel moment for the exponential left-rate estimate. -/
+def greenKernelDerivExpMoment (c lam sigma : ℝ) : ℝ :=
+  ∫ z, |greenKernelDeriv c lam z| * Real.exp (-sigma * z)
+
+theorem greenKernel_expWeight_eqOn_Iic
+    (hlam : 0 < lam) (sigma : ℝ) :
+    Set.EqOn
+      (fun z => |greenKernel c lam z| * Real.exp (-sigma * z))
+      (fun z => (greenDelta c lam)⁻¹ *
+        Real.exp ((greenRootPlus c lam - sigma) * z))
+      (Set.Iic 0) := by
+  intro z hz
+  rw [Set.mem_Iic] at hz
+  have hKnn : 0 ≤ greenKernel c lam z := greenKernel_nonneg (c := c) hlam z
+  change |greenKernel c lam z| * Real.exp (-sigma * z) =
+    (greenDelta c lam)⁻¹ *
+      Real.exp ((greenRootPlus c lam - sigma) * z)
+  rw [abs_of_nonneg hKnn]
+  simp only [greenKernel, if_pos hz]
+  have hexp :
+      Real.exp (greenRootPlus c lam * z) * Real.exp (-sigma * z) =
+        Real.exp ((greenRootPlus c lam - sigma) * z) := by
+    rw [← Real.exp_add]
+    congr 1
+    ring
+  rw [show ((greenDelta c lam)⁻¹ *
+        Real.exp (greenRootPlus c lam * z)) * Real.exp (-sigma * z) =
+        (greenDelta c lam)⁻¹ *
+          (Real.exp (greenRootPlus c lam * z) * Real.exp (-sigma * z)) by ring,
+    hexp]
+
+theorem greenKernel_expWeight_eqOn_Ioi
+    (hlam : 0 < lam) (sigma : ℝ) :
+    Set.EqOn
+      (fun z => |greenKernel c lam z| * Real.exp (-sigma * z))
+      (fun z => (greenDelta c lam)⁻¹ *
+        Real.exp ((greenRootMinus c lam - sigma) * z))
+      (Set.Ioi 0) := by
+  intro z hz
+  rw [Set.mem_Ioi] at hz
+  have hKnn : 0 ≤ greenKernel c lam z := greenKernel_nonneg (c := c) hlam z
+  change |greenKernel c lam z| * Real.exp (-sigma * z) =
+    (greenDelta c lam)⁻¹ *
+      Real.exp ((greenRootMinus c lam - sigma) * z)
+  rw [abs_of_nonneg hKnn]
+  simp only [greenKernel, if_neg (not_le.mpr hz)]
+  have hexp :
+      Real.exp (greenRootMinus c lam * z) * Real.exp (-sigma * z) =
+        Real.exp ((greenRootMinus c lam - sigma) * z) := by
+    rw [← Real.exp_add]
+    congr 1
+    ring
+  rw [show ((greenDelta c lam)⁻¹ *
+        Real.exp (greenRootMinus c lam * z)) * Real.exp (-sigma * z) =
+        (greenDelta c lam)⁻¹ *
+          (Real.exp (greenRootMinus c lam * z) * Real.exp (-sigma * z)) by ring,
+    hexp]
+
+theorem greenKernelExpMoment_integrable
+    (hlam : 0 < lam) {sigma : ℝ}
+    (hsigma0 : 0 ≤ sigma)
+    (hsigma : sigma < greenRootPlus c lam) :
+    Integrable (fun z => |greenKernel c lam z| * Real.exp (-sigma * z)) := by
+  have hrp : 0 < greenRootPlus c lam - sigma := sub_pos.mpr hsigma
+  have hrm : greenRootMinus c lam - sigma < 0 := by
+    have hminus := greenRootMinus_neg (c := c) hlam
+    linarith
+  have hIic :
+      IntegrableOn
+        (fun z => |greenKernel c lam z| * Real.exp (-sigma * z))
+        (Set.Iic 0) := by
+    have hbase :
+        IntegrableOn
+          (fun z => (greenDelta c lam)⁻¹ *
+            Real.exp ((greenRootPlus c lam - sigma) * z))
+          (Set.Iic 0) :=
+      (integrableOn_exp_mul_Iic
+        (a := greenRootPlus c lam - sigma) hrp 0).const_mul _
+    exact hbase.congr_fun
+      (greenKernel_expWeight_eqOn_Iic (c := c) (lam := lam) hlam sigma).symm
+      measurableSet_Iic
+  have hIoi :
+      IntegrableOn
+        (fun z => |greenKernel c lam z| * Real.exp (-sigma * z))
+        (Set.Ioi 0) := by
+    have hbase :
+        IntegrableOn
+          (fun z => (greenDelta c lam)⁻¹ *
+            Real.exp ((greenRootMinus c lam - sigma) * z))
+          (Set.Ioi 0) :=
+      (integrableOn_exp_mul_Ioi
+        (a := greenRootMinus c lam - sigma) hrm 0).const_mul _
+    exact hbase.congr_fun
+      (greenKernel_expWeight_eqOn_Ioi (c := c) (lam := lam) hlam sigma).symm
+      measurableSet_Ioi
+  rw [← integrableOn_univ,
+    show (Set.univ : Set ℝ) = Set.Iic 0 ∪ Set.Ioi 0 by
+      ext x
+      simp only [Set.mem_univ, Set.mem_union, Set.mem_Iic, Set.mem_Ioi,
+        true_iff]
+      exact le_or_gt x 0]
+  exact hIic.union hIoi
+
+theorem greenKernelExpMoment_eq
+    (hlam : 0 < lam) {sigma : ℝ}
+    (hsigma0 : 0 ≤ sigma)
+    (hsigma : sigma < greenRootPlus c lam) :
+    greenKernelExpMoment c lam sigma =
+      (greenDelta c lam)⁻¹ *
+        ((greenRootPlus c lam - sigma)⁻¹ -
+          (greenRootMinus c lam - sigma)⁻¹) := by
+  have hrp : 0 < greenRootPlus c lam - sigma := sub_pos.mpr hsigma
+  have hrm : greenRootMinus c lam - sigma < 0 := by
+    have hminus := greenRootMinus_neg (c := c) hlam
+    linarith
+  have hfi := greenKernelExpMoment_integrable
+    (c := c) (lam := lam) hlam hsigma0 hsigma
+  have hsplit := MeasureTheory.integral_add_compl
+    (s := Set.Iic (0 : ℝ)) measurableSet_Iic hfi
+  have hIic :
+      ∫ z in Set.Iic (0 : ℝ),
+          |greenKernel c lam z| * Real.exp (-sigma * z)
+        = (greenDelta c lam)⁻¹ / (greenRootPlus c lam - sigma) := by
+    rw [MeasureTheory.setIntegral_congr_fun measurableSet_Iic
+      (greenKernel_expWeight_eqOn_Iic (c := c) (lam := lam) hlam sigma)]
+    rw [MeasureTheory.integral_const_mul, integral_exp_mul_Iic hrp 0]
+    simp [div_eq_mul_inv]
+  have hIoi :
+      ∫ z in Set.Ioi (0 : ℝ),
+          |greenKernel c lam z| * Real.exp (-sigma * z)
+        = -((greenDelta c lam)⁻¹ / (greenRootMinus c lam - sigma)) := by
+    rw [MeasureTheory.setIntegral_congr_fun measurableSet_Ioi
+      (greenKernel_expWeight_eqOn_Ioi (c := c) (lam := lam) hlam sigma)]
+    rw [MeasureTheory.integral_const_mul, integral_exp_mul_Ioi hrm 0]
+    simp [div_eq_mul_inv]
+  simp only [Set.compl_Iic] at hsplit
+  rw [greenKernelExpMoment, ← hsplit, hIic, hIoi]
+  ring
+
+theorem greenKernelDeriv_expWeight_eqOn_Iic
+    (hlam : 0 < lam) (sigma : ℝ) :
+    Set.EqOn
+      (fun z => |greenKernelDeriv c lam z| * Real.exp (-sigma * z))
+      (fun z => (greenDelta c lam)⁻¹ * greenRootPlus c lam *
+        Real.exp ((greenRootPlus c lam - sigma) * z))
+      (Set.Iic 0) := by
+  intro z hz
+  rw [Set.mem_Iic] at hz
+  have hδ : 0 < (greenDelta c lam)⁻¹ :=
+    inv_pos.mpr (greenDelta_pos (c := c) hlam)
+  have hrp := greenRootPlus_pos (c := c) hlam
+  simp only [greenKernelDeriv, if_pos hz]
+  rw [abs_of_nonneg (by positivity)]
+  have hexp :
+      Real.exp (greenRootPlus c lam * z) * Real.exp (-sigma * z) =
+        Real.exp ((greenRootPlus c lam - sigma) * z) := by
+    rw [← Real.exp_add]
+    congr 1
+    ring
+  rw [show ((greenDelta c lam)⁻¹ * greenRootPlus c lam *
+        Real.exp (greenRootPlus c lam * z)) * Real.exp (-sigma * z) =
+        (greenDelta c lam)⁻¹ * greenRootPlus c lam *
+          (Real.exp (greenRootPlus c lam * z) * Real.exp (-sigma * z)) by ring,
+    hexp]
+
+theorem greenKernelDeriv_expWeight_eqOn_Ioi
+    (hlam : 0 < lam) (sigma : ℝ) :
+    Set.EqOn
+      (fun z => |greenKernelDeriv c lam z| * Real.exp (-sigma * z))
+      (fun z => (greenDelta c lam)⁻¹ * (-greenRootMinus c lam) *
+        Real.exp ((greenRootMinus c lam - sigma) * z))
+      (Set.Ioi 0) := by
+  intro z hz
+  rw [Set.mem_Ioi] at hz
+  have hδ : 0 < (greenDelta c lam)⁻¹ :=
+    inv_pos.mpr (greenDelta_pos (c := c) hlam)
+  have hrm := greenRootMinus_neg (c := c) hlam
+  simp only [greenKernelDeriv, if_neg (not_le.mpr hz)]
+  rw [abs_of_nonpos (by
+    have : greenRootMinus c lam * Real.exp (greenRootMinus c lam * z) ≤ 0 :=
+      mul_nonpos_of_nonpos_of_nonneg hrm.le (Real.exp_pos _).le
+    have h2 : (greenDelta c lam)⁻¹ * greenRootMinus c lam
+        * Real.exp (greenRootMinus c lam * z)
+        = (greenDelta c lam)⁻¹
+          * (greenRootMinus c lam * Real.exp (greenRootMinus c lam * z)) := by
+      ring
+    rw [h2]
+    exact mul_nonpos_of_nonneg_of_nonpos hδ.le this)]
+  have hexp :
+      Real.exp (greenRootMinus c lam * z) * Real.exp (-sigma * z) =
+        Real.exp ((greenRootMinus c lam - sigma) * z) := by
+    rw [← Real.exp_add]
+    congr 1
+    ring
+  calc
+    -((greenDelta c lam)⁻¹ * greenRootMinus c lam *
+        Real.exp (greenRootMinus c lam * z)) *
+        Real.exp (-sigma * z)
+        = (greenDelta c lam)⁻¹ * (-greenRootMinus c lam) *
+            (Real.exp (greenRootMinus c lam * z) *
+              Real.exp (-sigma * z)) := by ring
+    _ = (greenDelta c lam)⁻¹ * (-greenRootMinus c lam) *
+          Real.exp ((greenRootMinus c lam - sigma) * z) := by
+        rw [hexp]
+
+theorem greenKernelDerivExpMoment_integrable
+    (hlam : 0 < lam) {sigma : ℝ}
+    (hsigma0 : 0 ≤ sigma)
+    (hsigma : sigma < greenRootPlus c lam) :
+    Integrable (fun z => |greenKernelDeriv c lam z| * Real.exp (-sigma * z)) := by
+  have hrp : 0 < greenRootPlus c lam - sigma := sub_pos.mpr hsigma
+  have hrm : greenRootMinus c lam - sigma < 0 := by
+    have hminus := greenRootMinus_neg (c := c) hlam
+    linarith
+  have hIic :
+      IntegrableOn
+        (fun z => |greenKernelDeriv c lam z| * Real.exp (-sigma * z))
+        (Set.Iic 0) := by
+    have hbase :
+        IntegrableOn
+          (fun z => (greenDelta c lam)⁻¹ * greenRootPlus c lam *
+            Real.exp ((greenRootPlus c lam - sigma) * z))
+          (Set.Iic 0) :=
+      (integrableOn_exp_mul_Iic
+        (a := greenRootPlus c lam - sigma) hrp 0).const_mul _
+    exact hbase.congr_fun
+      (greenKernelDeriv_expWeight_eqOn_Iic
+        (c := c) (lam := lam) hlam sigma).symm
+      measurableSet_Iic
+  have hIoi :
+      IntegrableOn
+        (fun z => |greenKernelDeriv c lam z| * Real.exp (-sigma * z))
+        (Set.Ioi 0) := by
+    have hbase :
+        IntegrableOn
+          (fun z => (greenDelta c lam)⁻¹ * (-greenRootMinus c lam) *
+            Real.exp ((greenRootMinus c lam - sigma) * z))
+          (Set.Ioi 0) :=
+      (integrableOn_exp_mul_Ioi
+        (a := greenRootMinus c lam - sigma) hrm 0).const_mul _
+    exact hbase.congr_fun
+      (greenKernelDeriv_expWeight_eqOn_Ioi
+        (c := c) (lam := lam) hlam sigma).symm
+      measurableSet_Ioi
+  rw [← integrableOn_univ,
+    show (Set.univ : Set ℝ) = Set.Iic 0 ∪ Set.Ioi 0 by
+      ext x
+      simp only [Set.mem_univ, Set.mem_union, Set.mem_Iic, Set.mem_Ioi,
+        true_iff]
+      exact le_or_gt x 0]
+  exact hIic.union hIoi
+
+theorem greenKernelDerivExpMoment_eq
+    (hlam : 0 < lam) {sigma : ℝ}
+    (hsigma0 : 0 ≤ sigma)
+    (hsigma : sigma < greenRootPlus c lam) :
+    greenKernelDerivExpMoment c lam sigma =
+      (greenDelta c lam)⁻¹ *
+        (greenRootPlus c lam * (greenRootPlus c lam - sigma)⁻¹ -
+          (-greenRootMinus c lam) * (greenRootMinus c lam - sigma)⁻¹) := by
+  have hrp : 0 < greenRootPlus c lam - sigma := sub_pos.mpr hsigma
+  have hrm : greenRootMinus c lam - sigma < 0 := by
+    have hminus := greenRootMinus_neg (c := c) hlam
+    linarith
+  have hfi := greenKernelDerivExpMoment_integrable
+    (c := c) (lam := lam) hlam hsigma0 hsigma
+  have hsplit := MeasureTheory.integral_add_compl
+    (s := Set.Iic (0 : ℝ)) measurableSet_Iic hfi
+  have hIic :
+      ∫ z in Set.Iic (0 : ℝ),
+          |greenKernelDeriv c lam z| * Real.exp (-sigma * z)
+        = (greenDelta c lam)⁻¹ * greenRootPlus c lam /
+            (greenRootPlus c lam - sigma) := by
+    rw [MeasureTheory.setIntegral_congr_fun measurableSet_Iic
+      (greenKernelDeriv_expWeight_eqOn_Iic (c := c) (lam := lam) hlam sigma)]
+    rw [MeasureTheory.integral_const_mul, integral_exp_mul_Iic hrp 0]
+    simp [div_eq_mul_inv, mul_assoc]
+  have hIoi :
+      ∫ z in Set.Ioi (0 : ℝ),
+          |greenKernelDeriv c lam z| * Real.exp (-sigma * z)
+        = -((greenDelta c lam)⁻¹ * (-greenRootMinus c lam) /
+            (greenRootMinus c lam - sigma)) := by
+    rw [MeasureTheory.setIntegral_congr_fun measurableSet_Ioi
+      (greenKernelDeriv_expWeight_eqOn_Ioi (c := c) (lam := lam) hlam sigma)]
+    rw [MeasureTheory.integral_const_mul, integral_exp_mul_Ioi hrm 0]
+    simp [div_eq_mul_inv, mul_assoc]
+  simp only [Set.compl_Iic] at hsplit
+  rw [greenKernelDerivExpMoment, ← hsplit, hIic, hIoi]
+  ring
+
+theorem greenKernelExpMoment_translated_integral_eq
+    (hlam : 0 < lam) {sigma : ℝ}
+    (hsigma0 : 0 ≤ sigma)
+    (hsigma : sigma < greenRootPlus c lam) :
+    (∫ t, |greenKernel c lam (-t)| * Real.exp (sigma * t))
+      = greenKernelExpMoment c lam sigma := by
+  let f : ℝ → ℝ := fun z => |greenKernel c lam z| * Real.exp (-sigma * z)
+  have hfun :
+      (fun t : ℝ => |greenKernel c lam (-t)| * Real.exp (sigma * t))
+        = fun t : ℝ => f (-t) := by
+    funext t
+    dsimp [f]
+    congr 2
+    ring
+  rw [hfun, integral_neg_eq_self f volume]
+  rfl
+
+theorem greenKernelDerivExpMoment_translated_integral_eq
+    (hlam : 0 < lam) {sigma : ℝ}
+    (hsigma0 : 0 ≤ sigma)
+    (hsigma : sigma < greenRootPlus c lam) :
+    (∫ t, |greenKernelDeriv c lam (-t)| * Real.exp (sigma * t))
+      = greenKernelDerivExpMoment c lam sigma := by
+  let f : ℝ → ℝ := fun z => |greenKernelDeriv c lam z| * Real.exp (-sigma * z)
+  have hfun :
+      (fun t : ℝ => |greenKernelDeriv c lam (-t)| * Real.exp (sigma * t))
+        = fun t : ℝ => f (-t) := by
+    funext t
+    dsimp [f]
+    congr 2
+    ring
+  rw [hfun, integral_neg_eq_self f volume]
+  rfl
+
+theorem greenKernelExpMoment_translated_integrable
+    (hlam : 0 < lam) {sigma : ℝ}
+    (hsigma0 : 0 ≤ sigma)
+    (hsigma : sigma < greenRootPlus c lam) :
+    Integrable (fun t => |greenKernel c lam (-t)| * Real.exp (sigma * t)) := by
+  have hbase := (greenKernelExpMoment_integrable
+    (c := c) (lam := lam) hlam hsigma0 hsigma).comp_neg
+  refine hbase.congr ?_
+  exact Eventually.of_forall fun t => by
+    dsimp
+    congr 2
+    ring
+
+theorem greenKernelDerivExpMoment_translated_integrable
+    (hlam : 0 < lam) {sigma : ℝ}
+    (hsigma0 : 0 ≤ sigma)
+    (hsigma : sigma < greenRootPlus c lam) :
+    Integrable (fun t => |greenKernelDeriv c lam (-t)| * Real.exp (sigma * t)) := by
+  have hbase := (greenKernelDerivExpMoment_integrable
+    (c := c) (lam := lam) hlam hsigma0 hsigma).comp_neg
+  refine hbase.congr ?_
+  exact Eventually.of_forall fun t => by
+    dsimp
+    congr 2
+    ring
+
 /-- Pointwise estimates proving that the weighted truncated fixed-source map
 preserves the weighted-Hölder source box.  The analytic constants are kept in a
 single record so the self-map proof has a narrow, checkable interface. -/
@@ -951,6 +1324,19 @@ theorem compactRange
       (PaperWeightedHolderSourceBox κ M β B H ω)
       (paperFixedSourceMap p c lam M κ u Z) :=
   h.ascoliCompactRange
+
+/-- With the exponential left-tail modulus, the fixed-source map output carries
+an exponential left-rate witness. -/
+theorem map_expLeftRateData_of_expOmega
+    {p : CMParams} {c lam M κ β B H sigma aL K : ℝ} {u Z R : ℝ → ℝ}
+    (h : PaperFixedSourceMapBoxBounds p c lam M κ β B H
+      (expLeftOmega sigma aL K) u Z)
+    (hsigma : 0 < sigma) (hK : 0 ≤ K) (hBnn : 0 ≤ B) (hMnn : 0 ≤ M)
+    (hR : PaperWeightedHolderSourceBox κ M β B H
+      (expLeftOmega sigma aL K) R) :
+    ExpLeftRateData (paperFixedSourceMap p c lam M κ u Z R) := by
+  exact (h.mapsTo R hR).expLeftRateData_of_expOmega
+    hsigma hK hBnn hMnn
 
 end PaperFixedSourceMapBoxBounds
 
@@ -4222,6 +4608,254 @@ theorem greenKernel_neg_mul_translate_integrable_of_bounded
     (hH.comp (continuous_const.add continuous_id)).aestronglyMeasurable
   exact hK.mul_bdd hshift
     (Eventually.of_forall fun t => by simpa [Real.norm_eq_abs] using hB (x + t))
+
+theorem greenConv_expLeftRate
+    (hlam : 0 < lam) {sigma aL C ell B : ℝ} {R : ℝ → ℝ}
+    (hsigma0 : 0 ≤ sigma)
+    (hsigma : sigma < greenRootPlus c lam)
+    (hRcont : Continuous R) (hRbound : ∀ y, |R y| ≤ B)
+    (hRrate : ExpLeftRate sigma aL C R ell) :
+    ExpLeftRate sigma aL (greenKernelExpMoment c lam sigma * C)
+      (greenConv c lam R) (ell * lam⁻¹) := by
+  intro x
+  have hFx : Integrable (fun t => greenKernel c lam (-t) * R (x + t)) :=
+    greenKernel_neg_mul_translate_integrable_of_bounded
+      (c := c) (lam := lam) hlam hRcont hRbound x
+  have hKsigned : Integrable (fun t => greenKernel c lam (-t)) :=
+    (greenKernel_integrable (c := c) hlam).comp_neg
+  have hFc : Integrable (fun t => greenKernel c lam (-t) * ell) :=
+    hKsigned.mul_const ell
+  have hrepr :
+      greenConv c lam R x =
+        ∫ t, greenKernel c lam (-t) * R (x + t) :=
+    greenConv_eq_translated_integral_of_bounded
+      (c := c) (lam := lam) hlam hRcont hRbound x
+  have hconst :
+      (∫ t, greenKernel c lam (-t) * ell) = ell * lam⁻¹ := by
+    rw [show (fun t : ℝ => greenKernel c lam (-t) * ell)
+        = fun t : ℝ => ell * greenKernel c lam (-t) by
+          funext t
+          ring]
+    rw [MeasureTheory.integral_const_mul]
+    rw [integral_neg_eq_self (greenKernel c lam) volume]
+    rw [greenKernel_integral_eq (c := c) hlam]
+  let F : ℝ → ℝ := fun t => greenKernel c lam (-t) * (R (x + t) - ell)
+  have hFint : Integrable F := by
+    have hdiff := hFx.sub hFc
+    refine hdiff.congr ?_
+    exact Eventually.of_forall fun t => by
+      dsimp [F]
+      ring
+  have hmoment_int :
+      Integrable
+        (fun t => |greenKernel c lam (-t)| * Real.exp (sigma * t)) :=
+    greenKernelExpMoment_translated_integrable
+      (c := c) (lam := lam) hlam hsigma0 hsigma
+  let D : ℝ := C * Real.exp (sigma * (x - aL))
+  have hbound_int :
+      Integrable (fun t =>
+        |greenKernel c lam (-t)| *
+          (C * Real.exp (sigma * (x + t - aL)))) := by
+    have hconst_int : Integrable
+        (fun t => (|greenKernel c lam (-t)| * Real.exp (sigma * t)) * D) :=
+      hmoment_int.mul_const D
+    refine hconst_int.congr ?_
+    exact Eventually.of_forall fun t => by
+      dsimp [D]
+      have hexp :
+          Real.exp (sigma * (x + t - aL)) =
+            Real.exp (sigma * t) * Real.exp (sigma * (x - aL)) := by
+        rw [← Real.exp_add]
+        congr 1
+        ring
+      rw [hexp]
+      ring
+  have hpoint :
+      ∀ t,
+        |F t| ≤
+          |greenKernel c lam (-t)| *
+            (C * Real.exp (sigma * (x + t - aL))) := by
+    intro t
+    dsimp [F]
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (hRrate (x + t)) (abs_nonneg _)
+  have hint_le :
+      (∫ t, |F t|) ≤
+        ∫ t, |greenKernel c lam (-t)| *
+          (C * Real.exp (sigma * (x + t - aL))) := by
+    exact MeasureTheory.integral_mono hFint.norm hbound_int hpoint
+  have hbound_eval :
+      (∫ t, |greenKernel c lam (-t)| *
+          (C * Real.exp (sigma * (x + t - aL))))
+        = greenKernelExpMoment c lam sigma * C *
+            Real.exp (sigma * (x - aL)) := by
+    let D : ℝ := C * Real.exp (sigma * (x - aL))
+    rw [show (fun t : ℝ => |greenKernel c lam (-t)| *
+          (C * Real.exp (sigma * (x + t - aL))))
+        = fun t : ℝ =>
+          (|greenKernel c lam (-t)| * Real.exp (sigma * t)) * D by
+          funext t
+          dsimp [D]
+          have hexp :
+              Real.exp (sigma * (x + t - aL)) =
+                Real.exp (sigma * t) * Real.exp (sigma * (x - aL)) := by
+            rw [← Real.exp_add]
+            congr 1
+            ring
+          rw [hexp]
+          ring]
+    rw [MeasureTheory.integral_mul_const]
+    rw [greenKernelExpMoment_translated_integral_eq
+      (c := c) (lam := lam) hlam hsigma0 hsigma]
+    ring
+  calc
+    |greenConv c lam R x - ell * lam⁻¹|
+        = |(∫ t, greenKernel c lam (-t) * R (x + t)) -
+            ∫ t, greenKernel c lam (-t) * ell| := by
+          rw [hrepr, hconst]
+    _ = |∫ t, F t| := by
+          rw [← integral_sub hFx hFc]
+          congr 1
+          apply integral_congr_ae
+          exact Eventually.of_forall fun t => by
+            dsimp [F]
+            ring
+    _ ≤ ∫ t, |F t| := by
+          simpa [F, Real.norm_eq_abs] using
+            (norm_integral_le_integral_norm (μ := volume) F)
+    _ ≤ ∫ t, |greenKernel c lam (-t)| *
+          (C * Real.exp (sigma * (x + t - aL))) := hint_le
+    _ = greenKernelExpMoment c lam sigma * C *
+          Real.exp (sigma * (x - aL)) := hbound_eval
+    _ = (greenKernelExpMoment c lam sigma * C) *
+          Real.exp (sigma * (x - aL)) := by ring
+
+theorem greenConvDeriv_expLeftRate
+    (hlam : 0 < lam) {sigma aL C ell B : ℝ} {R : ℝ → ℝ}
+    (hsigma0 : 0 ≤ sigma)
+    (hsigma : sigma < greenRootPlus c lam)
+    (hRcont : Continuous R) (hRbound : ∀ y, |R y| ≤ B)
+    (hRrate : ExpLeftRate sigma aL C R ell) :
+    ExpLeftRate sigma aL (greenKernelDerivExpMoment c lam sigma * C)
+      (greenConvDeriv c lam R) 0 := by
+  intro x
+  have hKsigned : Integrable (fun t => greenKernelDeriv c lam (-t)) :=
+    (greenKernelDeriv_integrable_signed_for_leftTail
+      (c := c) (lam := lam) hlam).comp_neg
+  have hRx_meas : AEStronglyMeasurable (fun t : ℝ => R (x + t)) volume :=
+    (hRcont.comp (continuous_const.add continuous_id)).aestronglyMeasurable
+  have hFx : Integrable (fun t => greenKernelDeriv c lam (-t) * R (x + t)) :=
+    hKsigned.mul_bdd hRx_meas
+      (Eventually.of_forall fun t => by
+        simpa [Real.norm_eq_abs] using hRbound (x + t))
+  have hFc : Integrable (fun t => greenKernelDeriv c lam (-t) * ell) :=
+    hKsigned.mul_const ell
+  have hrepr :
+      greenConvDeriv c lam R x =
+        ∫ t, greenKernelDeriv c lam (-t) * R (x + t) :=
+    greenConvDeriv_eq_translated_integral_of_bounded_for_leftTail
+      (c := c) (lam := lam) hlam hRcont hRbound x
+  have hconst :
+      (∫ t, greenKernelDeriv c lam (-t) * ell) = 0 := by
+    rw [show (fun t : ℝ => greenKernelDeriv c lam (-t) * ell)
+        = fun t : ℝ => ell * greenKernelDeriv c lam (-t) by
+          funext t
+          ring]
+    rw [MeasureTheory.integral_const_mul]
+    rw [integral_neg_eq_self (greenKernelDeriv c lam) volume]
+    rw [greenKernelDeriv_integral_eq_zero_for_leftTail
+      (c := c) (lam := lam) hlam]
+    ring
+  let F : ℝ → ℝ := fun t => greenKernelDeriv c lam (-t) * (R (x + t) - ell)
+  have hFint : Integrable F := by
+    have hdiff := hFx.sub hFc
+    refine hdiff.congr ?_
+    exact Eventually.of_forall fun t => by
+      dsimp [F]
+      ring
+  have hmoment_int :
+      Integrable
+        (fun t => |greenKernelDeriv c lam (-t)| * Real.exp (sigma * t)) :=
+    greenKernelDerivExpMoment_translated_integrable
+      (c := c) (lam := lam) hlam hsigma0 hsigma
+  let D : ℝ := C * Real.exp (sigma * (x - aL))
+  have hbound_int :
+      Integrable (fun t =>
+        |greenKernelDeriv c lam (-t)| *
+          (C * Real.exp (sigma * (x + t - aL)))) := by
+    have hconst_int : Integrable
+        (fun t => (|greenKernelDeriv c lam (-t)| * Real.exp (sigma * t)) * D) :=
+      hmoment_int.mul_const D
+    refine hconst_int.congr ?_
+    exact Eventually.of_forall fun t => by
+      dsimp [D]
+      have hexp :
+          Real.exp (sigma * (x + t - aL)) =
+            Real.exp (sigma * t) * Real.exp (sigma * (x - aL)) := by
+        rw [← Real.exp_add]
+        congr 1
+        ring
+      rw [hexp]
+      ring
+  have hpoint :
+      ∀ t,
+        |F t| ≤
+          |greenKernelDeriv c lam (-t)| *
+            (C * Real.exp (sigma * (x + t - aL))) := by
+    intro t
+    dsimp [F]
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (hRrate (x + t)) (abs_nonneg _)
+  have hint_le :
+      (∫ t, |F t|) ≤
+        ∫ t, |greenKernelDeriv c lam (-t)| *
+          (C * Real.exp (sigma * (x + t - aL))) := by
+    exact MeasureTheory.integral_mono hFint.norm hbound_int hpoint
+  have hbound_eval :
+      (∫ t, |greenKernelDeriv c lam (-t)| *
+          (C * Real.exp (sigma * (x + t - aL))))
+        = greenKernelDerivExpMoment c lam sigma * C *
+            Real.exp (sigma * (x - aL)) := by
+    let D : ℝ := C * Real.exp (sigma * (x - aL))
+    rw [show (fun t : ℝ => |greenKernelDeriv c lam (-t)| *
+          (C * Real.exp (sigma * (x + t - aL))))
+        = fun t : ℝ =>
+          (|greenKernelDeriv c lam (-t)| * Real.exp (sigma * t)) * D by
+          funext t
+          dsimp [D]
+          have hexp :
+              Real.exp (sigma * (x + t - aL)) =
+                Real.exp (sigma * t) * Real.exp (sigma * (x - aL)) := by
+            rw [← Real.exp_add]
+            congr 1
+            ring
+          rw [hexp]
+          ring]
+    rw [MeasureTheory.integral_mul_const]
+    rw [greenKernelDerivExpMoment_translated_integral_eq
+      (c := c) (lam := lam) hlam hsigma0 hsigma]
+    ring
+  calc
+    |greenConvDeriv c lam R x - 0|
+        = |(∫ t, greenKernelDeriv c lam (-t) * R (x + t)) -
+            ∫ t, greenKernelDeriv c lam (-t) * ell| := by
+          rw [hrepr, hconst, sub_zero]
+    _ = |∫ t, F t| := by
+          rw [← integral_sub hFx hFc]
+          congr 1
+          apply integral_congr_ae
+          exact Eventually.of_forall fun t => by
+            dsimp [F]
+            ring
+    _ ≤ ∫ t, |F t| := by
+          simpa [F, Real.norm_eq_abs] using
+            (norm_integral_le_integral_norm (μ := volume) F)
+    _ ≤ ∫ t, |greenKernelDeriv c lam (-t)| *
+          (C * Real.exp (sigma * (x + t - aL))) := hint_le
+    _ = greenKernelDerivExpMoment c lam sigma * C *
+          Real.exp (sigma * (x - aL)) := hbound_eval
+    _ = (greenKernelDerivExpMoment c lam sigma * C) *
+          Real.exp (sigma * (x - aL)) := by ring
 
 /-- Pointwise continuity of the Green convolution under locally uniform source
 convergence and a shared uniform bound. -/
@@ -7930,6 +8564,7 @@ def paperTruncatedFixedSourceBoxData_of_trap
 structure PaperStepOutput
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
   analytic : PaperStepAnalytic p c lam M κ Λ u Z W
+  left_rate : ExpLeftRateData W
   C_chem : ℝ
   lowerZero : PaperStepLowerData p c lam M C_chem u Z W (fun _ => 0)
   upperOld : PaperStepUpperData p c lam M C_chem u Z W Z
@@ -7941,6 +8576,7 @@ structure PaperStepOutput
 structure PaperStepOutputCore
     (p : CMParams) (c lam M κ Λ : ℝ) (u Z W : ℝ → ℝ) where
   analytic : PaperStepAnalyticCore p c lam M κ Λ u Z W
+  left_rate : ExpLeftRateData W
   C_chem : ℝ
   lowerZero : PaperStepLowerData p c lam M C_chem u Z W (fun _ => 0)
   upperOld : PaperStepUpperData p c lam M C_chem u Z W Z
@@ -7954,6 +8590,7 @@ def paperStepOutput_of_core
     (hlam : 0 < lam) (hout : PaperStepOutputCore p c lam M κ Λ u Z W) :
     PaperStepOutput p c lam M κ Λ u Z W :=
   { analytic := paperStepAnalytic_of_core hlam hout.analytic
+    left_rate := hout.left_rate
     C_chem := hout.C_chem
     lowerZero := hout.lowerZero
     upperOld := hout.upperOld
@@ -8031,6 +8668,7 @@ def paperRotheStepProducer_of_greenInput
         diff := paperStep_diff (c := c) (lam := lam) hin.hlam hout.analytic
         deriv_le :=
           paperStep_deriv_le (c := c) (lam := lam) hin.hlam hout.analytic
+        left_rate := hout.left_rate
         nonneg := hnonneg
         le_barrier := hle_barrier
         le_old := hle_old
@@ -8059,6 +8697,7 @@ def paperRotheStepProducer_of_greenInput
         diff := paperStep_diff (c := c) (lam := lam) hin.hlam hout.analytic
         deriv_le :=
           paperStep_deriv_le (c := c) (lam := lam) hin.hlam hout.analytic
+        left_rate := hout.left_rate
         nonneg := hnonneg
         le_barrier := hle_barrier
         le_old := hle_old
