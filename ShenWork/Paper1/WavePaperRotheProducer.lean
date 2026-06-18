@@ -3431,6 +3431,715 @@ theorem PaperWeightedHolderSourceBox.deriv_greenConv_tendsto_atBot_zero
   rw [hderiv]
   exact hR.greenConvDeriv_tendsto_atBot_zero (c := c) (lam := lam) hlam hBnn
 
+theorem kernel_abs_neg_tail_tendsto_atBot
+    {K : ℝ → ℝ} (hKabs : Integrable (fun z => |K z|)) :
+    Tendsto (fun A : ℝ => ∫ t in Set.Ioi (-A / 2), |K (-t)|)
+      atBot (𝓝 0) := by
+  let f : ℝ → ℝ := fun t => |K (-t)|
+  have hf : Integrable f := by
+    simpa [f] using hKabs.comp_neg
+  have hanti : Antitone (fun T : ℝ => Set.Ioi T) := by
+    intro a b hab
+    exact Ioi_subset_Ioi hab
+  have htail :
+      Tendsto (fun T : ℝ => ∫ t in Set.Ioi T, f t) atTop
+        (𝓝 (∫ t in (⋂ T : ℝ, Set.Ioi T), f t)) := by
+    exact MeasureTheory.tendsto_setIntegral_of_antitone
+      (μ := volume) (f := f) (s := fun T : ℝ => Set.Ioi T)
+      (fun _ => measurableSet_Ioi) hanti ⟨(0 : ℝ), hf.integrableOn⟩
+  have hInter : (⋂ T : ℝ, Set.Ioi T) = (∅ : Set ℝ) := by
+    ext x
+    constructor
+    · intro hx
+      exact (lt_irrefl x) (by
+        simpa [Set.mem_Ioi] using (Set.mem_iInter.mp hx) x)
+    · intro hx
+      cases hx
+  have hdiv : Tendsto (fun A : ℝ => A / 2) atBot atBot :=
+    tendsto_id.atBot_div_const (by norm_num : (0 : ℝ) < 2)
+  have hneg : Tendsto (fun A : ℝ => -(A / 2)) atBot atTop :=
+    tendsto_neg_atBot_atTop.comp hdiv
+  have htail' := htail.comp hneg
+  simpa [Function.comp_def, f, hInter, neg_div] using htail'
+
+theorem kernel_translated_leftTailCauchy_bound
+    {K R : ℝ → ℝ} {C L1 : ℝ} {ω : ℝ → ℝ}
+    (hKmeas : Measurable K)
+    (hKabs : Integrable (fun z => |K z|))
+    (hL1 : (∫ t, |K (-t)|) = L1)
+    (hRcont : Continuous R)
+    (_hCnn : 0 ≤ C) (hRbound : ∀ z, |R z| ≤ C)
+    (hωnn : ∀ A, 0 ≤ ω A)
+    (hleft : ∀ A x y, x ≤ A → y ≤ A → |R x - R y| ≤ ω A)
+    (A x y : ℝ) (hx : x ≤ A) (hy : y ≤ A) :
+    |(∫ t, K (-t) * R (x + t)) -
+        (∫ t, K (-t) * R (y + t))|
+      ≤ L1 * ω (A / 2) +
+        2 * C * (∫ t in Set.Ioi (-A / 2), |K (-t)|) := by
+  let S : ℝ := -A / 2
+  let F : ℝ → ℝ := fun t => K (-t) * R (x + t) - K (-t) * R (y + t)
+  have hKabs_neg : Integrable (fun t => |K (-t)|) := by
+    simpa using hKabs.comp_neg
+  have hKneg_meas : Measurable (fun t : ℝ => K (-t)) :=
+    hKmeas.comp measurable_neg
+  have hRx_meas : AEStronglyMeasurable (fun t : ℝ => R (x + t)) volume :=
+    (hRcont.comp (continuous_const.add continuous_id)).aestronglyMeasurable
+  have hRy_meas : AEStronglyMeasurable (fun t : ℝ => R (y + t)) volume :=
+    (hRcont.comp (continuous_const.add continuous_id)).aestronglyMeasurable
+  have hdomC : Integrable (fun t : ℝ => |K (-t)| * C) :=
+    hKabs_neg.mul_const C
+  have hFx : Integrable (fun t : ℝ => K (-t) * R (x + t)) := by
+    refine hdomC.mono' (hKneg_meas.aestronglyMeasurable.mul hRx_meas) ?_
+    filter_upwards with t
+    rw [Real.norm_eq_abs, abs_mul]
+    exact mul_le_mul_of_nonneg_left (hRbound (x + t)) (abs_nonneg _)
+  have hFy : Integrable (fun t : ℝ => K (-t) * R (y + t)) := by
+    refine hdomC.mono' (hKneg_meas.aestronglyMeasurable.mul hRy_meas) ?_
+    filter_upwards with t
+    rw [Real.norm_eq_abs, abs_mul]
+    exact mul_le_mul_of_nonneg_left (hRbound (y + t)) (abs_nonneg _)
+  have hFint : Integrable F := by
+    simpa [F] using hFx.sub hFy
+  have hNint : Integrable (fun t : ℝ => |F t|) := by
+    simpa [Real.norm_eq_abs] using hFint.norm
+  have hdiff :
+      |(∫ t, K (-t) * R (x + t)) -
+          (∫ t, K (-t) * R (y + t))|
+        ≤ ∫ t, |F t| := by
+    rw [← integral_sub hFx hFy]
+    simpa [F, Real.norm_eq_abs] using
+      (norm_integral_le_integral_norm (μ := volume) F)
+  have hIic_bound :
+      (∫ t in Set.Iic S, |F t|)
+        ≤ ∫ t in Set.Iic S, |K (-t)| * ω (A / 2) := by
+    refine MeasureTheory.setIntegral_mono_on
+      hNint.integrableOn (hKabs_neg.mul_const (ω (A / 2))).integrableOn
+      measurableSet_Iic ?_
+    intro t ht
+    have htS : t ≤ S := by simpa [S] using ht
+    have hx' : x + t ≤ A / 2 := by
+      dsimp [S] at htS
+      linarith
+    have hy' : y + t ≤ A / 2 := by
+      dsimp [S] at htS
+      linarith
+    have hdiffR : |R (x + t) - R (y + t)| ≤ ω (A / 2) :=
+      hleft (A / 2) (x + t) (y + t) hx' hy'
+    have hFeq :
+        F t = K (-t) * (R (x + t) - R (y + t)) := by
+      dsimp [F]
+      ring
+    rw [hFeq, abs_mul]
+    exact mul_le_mul_of_nonneg_left hdiffR (abs_nonneg _)
+  have hωA : 0 ≤ ω (A / 2) := hωnn (A / 2)
+  have hKω_nonneg :
+      0 ≤ᵐ[volume] fun t : ℝ => |K (-t)| * ω (A / 2) :=
+    Eventually.of_forall fun t => mul_nonneg (abs_nonneg _) hωA
+  have hIic_all :
+      (∫ t in Set.Iic S, |K (-t)| * ω (A / 2))
+        ≤ ∫ t, |K (-t)| * ω (A / 2) :=
+    MeasureTheory.setIntegral_le_integral
+      (s := Set.Iic S) (hKabs_neg.mul_const (ω (A / 2))) hKω_nonneg
+  have hIic_final :
+      (∫ t in Set.Iic S, |F t|) ≤ L1 * ω (A / 2) := by
+    calc
+      (∫ t in Set.Iic S, |F t|)
+          ≤ ∫ t in Set.Iic S, |K (-t)| * ω (A / 2) := hIic_bound
+      _ ≤ ∫ t, |K (-t)| * ω (A / 2) := hIic_all
+      _ = L1 * ω (A / 2) := by
+        rw [integral_mul_const, hL1]
+  have hIoi_bound :
+      (∫ t in Set.Ioi S, |F t|)
+        ≤ ∫ t in Set.Ioi S, |K (-t)| * (2 * C) := by
+    refine MeasureTheory.setIntegral_mono_on
+      hNint.integrableOn (hKabs_neg.mul_const (2 * C)).integrableOn
+      measurableSet_Ioi ?_
+    intro t ht
+    have hRdiff : |R (x + t) - R (y + t)| ≤ 2 * C := by
+      calc
+        |R (x + t) - R (y + t)|
+            ≤ |R (x + t)| + |R (y + t)| := abs_sub _ _
+        _ ≤ C + C := add_le_add (hRbound (x + t)) (hRbound (y + t))
+        _ = 2 * C := by ring
+    have hFeq :
+        F t = K (-t) * (R (x + t) - R (y + t)) := by
+      dsimp [F]
+      ring
+    rw [hFeq, abs_mul]
+    exact mul_le_mul_of_nonneg_left hRdiff (abs_nonneg _)
+  have hsplit := MeasureTheory.integral_add_compl
+    (s := Set.Iic S) measurableSet_Iic hNint
+  simp only [Set.compl_Iic] at hsplit
+  calc
+    |(∫ t, K (-t) * R (x + t)) -
+        (∫ t, K (-t) * R (y + t))|
+        ≤ ∫ t, |F t| := hdiff
+    _ = (∫ t in Set.Iic S, |F t|) +
+          ∫ t in Set.Ioi S, |F t| := hsplit.symm
+    _ ≤ L1 * ω (A / 2) +
+          (∫ t in Set.Ioi S, |K (-t)| * (2 * C)) :=
+        add_le_add hIic_final hIoi_bound
+    _ = L1 * ω (A / 2) +
+          2 * C * (∫ t in Set.Ioi (-A / 2), |K (-t)|) := by
+        dsimp [S]
+        rw [integral_mul_const]
+        ring
+
+theorem PaperWeightedHolderSourceBox.greenConv_leftTailCauchy_uniform
+    (hlam : 0 < lam) {κ M B β Hbox : ℝ} {ω : ℝ → ℝ} (hBnn : 0 ≤ B) :
+    ∃ ωW : ℝ → ℝ,
+      (∀ A, 0 ≤ ωW A) ∧ Tendsto ωW atBot (𝓝 0) ∧
+      ∀ R, PaperWeightedHolderSourceBox κ M β B Hbox ω R →
+      ∀ A x y, x ≤ A → y ≤ A →
+        |greenConv c lam R x - greenConv c lam R y| ≤ ωW A := by
+  by_cases hbox_nonempty :
+      ∃ R, PaperWeightedHolderSourceBox κ M β B Hbox ω R
+  · rcases hbox_nonempty with ⟨R0, hR0⟩
+    let C : ℝ := max (B * M) 0
+    let tail : ℝ → ℝ := fun A =>
+      ∫ t in Set.Ioi (-A / 2), |greenKernel c lam (-t)|
+    let ωW : ℝ → ℝ := fun A => lam⁻¹ * ω (A / 2) + 2 * C * tail A
+    refine ⟨ωW, ?_, ?_, ?_⟩
+    · intro A
+      have hCnn : 0 ≤ C := by dsimp [C]; exact le_max_right _ _
+      have htail_nn : 0 ≤ tail A := by
+        dsimp [tail]
+        exact integral_nonneg fun t => abs_nonneg _
+      exact add_nonneg
+        (mul_nonneg (inv_nonneg.mpr hlam.le) (hR0.omega_nonneg (A / 2)))
+        (mul_nonneg (mul_nonneg (by norm_num) hCnn) htail_nn)
+    · have hdiv : Tendsto (fun A : ℝ => A / 2) atBot atBot :=
+        tendsto_id.atBot_div_const (by norm_num : (0 : ℝ) < 2)
+      have hω : Tendsto (fun A : ℝ => ω (A / 2)) atBot (𝓝 0) :=
+        hR0.omega_tendsto.comp hdiv
+      have hKabs : Integrable (fun z => |greenKernel c lam z|) :=
+        (greenKernel_integrable (c := c) hlam).abs
+      have htail :
+          Tendsto tail atBot (𝓝 0) := by
+        simpa [tail] using
+          (kernel_abs_neg_tail_tendsto_atBot
+            (K := greenKernel c lam) hKabs)
+      have hsum := (hω.const_mul lam⁻¹).add (htail.const_mul (2 * C))
+      simpa [ωW] using hsum
+    · intro R hR A x y hx hy
+      have hCnn : 0 ≤ C := by dsimp [C]; exact le_max_right _ _
+      have hRbound : ∀ z, |R z| ≤ C := by
+        intro z
+        exact (hR.abs_le_const (B := B) hBnn z).trans (le_max_left _ _)
+      have hKmeas : Measurable (greenKernel c lam) :=
+        (greenKernel_continuous (c := c) (lam := lam)).measurable
+      have hKabs : Integrable (fun z => |greenKernel c lam z|) :=
+        (greenKernel_integrable (c := c) hlam).abs
+      have hL1 : (∫ t, |greenKernel c lam (-t)|) = lam⁻¹ := by
+        rw [integral_neg_eq_self (fun z => |greenKernel c lam z|) volume]
+        exact greenKernel_l1_eq (c := c) hlam
+      have hxrepr :
+          greenConv c lam R x =
+            ∫ t, greenKernel c lam (-t) * R (x + t) :=
+        greenConv_eq_translated_integral_of_bounded
+          (c := c) (lam := lam) hlam hR.cont hRbound x
+      have hyrepr :
+          greenConv c lam R y =
+            ∫ t, greenKernel c lam (-t) * R (y + t) :=
+        greenConv_eq_translated_integral_of_bounded
+          (c := c) (lam := lam) hlam hR.cont hRbound y
+      rw [hxrepr, hyrepr]
+      simpa [ωW, tail] using
+        kernel_translated_leftTailCauchy_bound
+          (K := greenKernel c lam) (R := R) (C := C) (L1 := lam⁻¹)
+          (ω := ω) hKmeas hKabs hL1 hR.cont hCnn hRbound
+          hR.omega_nonneg hR.leftTailCauchy A x y hx hy
+  · refine ⟨fun _ => 0, ?_, ?_, ?_⟩
+    · intro A
+      norm_num
+    · exact tendsto_const_nhds
+    · intro R hR
+      exact False.elim (hbox_nonempty ⟨R, hR⟩)
+
+theorem greenKernelDeriv_measurable_for_leftTail :
+    Measurable (greenKernelDeriv c lam) := by
+  unfold greenKernelDeriv
+  refine Measurable.ite (measurableSet_le measurable_id measurable_const) ?_ ?_
+  · simpa [mul_assoc] using
+      (continuous_const.mul (continuous_const.mul
+        (Real.continuous_exp.comp (continuous_const.mul continuous_id)))).measurable
+  · simpa [mul_assoc] using
+      (continuous_const.mul (continuous_const.mul
+        (Real.continuous_exp.comp (continuous_const.mul continuous_id)))).measurable
+
+theorem greenKernelDeriv_integrable_signed_for_leftTail
+    (hlam : 0 < lam) :
+    Integrable (greenKernelDeriv c lam) := by
+  refine (greenKernelDeriv_integrable (c := c) hlam).mono'
+    (greenKernelDeriv_measurable_for_leftTail (c := c) (lam := lam)).aestronglyMeasurable ?_
+  filter_upwards with z
+  simp [Real.norm_eq_abs]
+
+theorem greenKernelDeriv_setIntegral_Iic_for_leftTail
+    (hlam : 0 < lam) :
+    ∫ z in Set.Iic (0 : ℝ), greenKernelDeriv c lam z
+      = (greenDelta c lam)⁻¹ := by
+  have hrp := greenRootPlus_pos (c := c) hlam
+  have hrpne : greenRootPlus c lam ≠ 0 := ne_of_gt hrp
+  have hcongr :
+      ∫ z in Set.Iic (0 : ℝ), greenKernelDeriv c lam z
+        = ∫ z in Set.Iic (0 : ℝ),
+            (greenDelta c lam)⁻¹ * greenRootPlus c lam *
+              Real.exp (greenRootPlus c lam * z) := by
+    apply MeasureTheory.setIntegral_congr_fun measurableSet_Iic
+    intro z hz
+    rw [Set.mem_Iic] at hz
+    simp only [greenKernelDeriv, if_pos hz]
+  rw [hcongr, MeasureTheory.integral_const_mul, integral_exp_mul_Iic hrp 0]
+  rw [mul_zero, Real.exp_zero]
+  field_simp
+
+theorem greenKernelDeriv_setIntegral_Ioi_for_leftTail
+    (hlam : 0 < lam) :
+    ∫ z in Set.Ioi (0 : ℝ), greenKernelDeriv c lam z
+      = -((greenDelta c lam)⁻¹) := by
+  have hrm := greenRootMinus_neg (c := c) hlam
+  have hrmne : greenRootMinus c lam ≠ 0 := ne_of_lt hrm
+  have hcongr :
+      ∫ z in Set.Ioi (0 : ℝ), greenKernelDeriv c lam z
+        = ∫ z in Set.Ioi (0 : ℝ),
+            (greenDelta c lam)⁻¹ * greenRootMinus c lam *
+              Real.exp (greenRootMinus c lam * z) := by
+    apply MeasureTheory.setIntegral_congr_fun measurableSet_Ioi
+    intro z hz
+    rw [Set.mem_Ioi] at hz
+    simp only [greenKernelDeriv, if_neg (not_le.mpr hz)]
+  rw [hcongr, MeasureTheory.integral_const_mul, integral_exp_mul_Ioi hrm 0]
+  rw [mul_zero, Real.exp_zero]
+  field_simp
+
+theorem greenKernelDeriv_integral_eq_zero_for_leftTail
+    (hlam : 0 < lam) :
+    ∫ z, greenKernelDeriv c lam z = 0 := by
+  have hfi := greenKernelDeriv_integrable_signed_for_leftTail
+    (c := c) (lam := lam) hlam
+  have hsplit := MeasureTheory.integral_add_compl
+    (s := Set.Iic (0 : ℝ)) measurableSet_Iic hfi
+  simp only [Set.compl_Iic] at hsplit
+  linarith [hsplit.symm,
+    greenKernelDeriv_setIntegral_Iic_for_leftTail (c := c) hlam,
+    greenKernelDeriv_setIntegral_Ioi_for_leftTail (c := c) hlam]
+
+theorem kernel_translated_leftTailSmall_bound
+    {K R : ℝ → ℝ} {C L1 : ℝ} {ω : ℝ → ℝ}
+    (hKmeas : Measurable K)
+    (hKsigned : Integrable K)
+    (hKabs : Integrable (fun z => |K z|))
+    (hKzero : (∫ t, K (-t)) = 0)
+    (hL1 : (∫ t, |K (-t)|) = L1)
+    (hRcont : Continuous R)
+    (_hCnn : 0 ≤ C) (hRbound : ∀ z, |R z| ≤ C)
+    (hωnn : ∀ A, 0 ≤ ω A)
+    (hleft : ∀ A x y, x ≤ A → y ≤ A → |R x - R y| ≤ ω A)
+    (A x : ℝ) (hx : x ≤ A) :
+    |∫ t, K (-t) * R (x + t)|
+      ≤ if A ≤ 0 then
+          L1 * ω (A / 2) +
+            2 * C * (∫ t in Set.Ioi (-A / 2), |K (-t)|)
+        else L1 * C := by
+  let S : ℝ := -A / 2
+  let Fx : ℝ → ℝ := fun t => K (-t) * R (x + t)
+  have hKabs_neg : Integrable (fun t => |K (-t)|) := by
+    simpa using hKabs.comp_neg
+  have hKsigned_neg : Integrable (fun t => K (-t)) := by
+    simpa using hKsigned.comp_neg
+  have hKneg_meas : Measurable (fun t : ℝ => K (-t)) :=
+    hKmeas.comp measurable_neg
+  have hRx_meas : AEStronglyMeasurable (fun t : ℝ => R (x + t)) volume :=
+    (hRcont.comp (continuous_const.add continuous_id)).aestronglyMeasurable
+  have hdomC : Integrable (fun t : ℝ => |K (-t)| * C) :=
+    hKabs_neg.mul_const C
+  have hFx : Integrable Fx := by
+    refine hdomC.mono' (hKneg_meas.aestronglyMeasurable.mul hRx_meas) ?_
+    filter_upwards with t
+    rw [Real.norm_eq_abs, abs_mul]
+    exact mul_le_mul_of_nonneg_left (hRbound (x + t)) (abs_nonneg _)
+  have hcrude : |∫ t, Fx t| ≤ L1 * C := by
+    calc
+      |∫ t, Fx t| ≤ ∫ t, |Fx t| := by
+        simpa [Fx, Real.norm_eq_abs] using
+          (norm_integral_le_integral_norm (μ := volume) Fx)
+      _ ≤ ∫ t, |K (-t)| * C := by
+        refine MeasureTheory.integral_mono hFx.norm hdomC ?_
+        intro t
+        dsimp [Fx]
+        rw [abs_mul]
+        exact mul_le_mul_of_nonneg_left (hRbound (x + t)) (abs_nonneg _)
+      _ = L1 * C := by
+        rw [integral_mul_const, hL1]
+  by_cases hA : A ≤ 0
+  · simp only [hA, if_true]
+    let F : ℝ → ℝ := fun t => K (-t) * R (x + t) - K (-t) * R x
+    have hFconst : Integrable (fun t : ℝ => K (-t) * R x) :=
+      hKsigned_neg.mul_const (R x)
+    have hFint : Integrable F := by
+      simpa [F, Fx] using hFx.sub hFconst
+    have hNint : Integrable (fun t : ℝ => |F t|) := by
+      simpa [Real.norm_eq_abs] using hFint.norm
+    have hzero_const : (∫ t, K (-t) * R x) = 0 := by
+      rw [integral_mul_const, hKzero, zero_mul]
+    have hdiff :
+        |∫ t, Fx t| ≤ ∫ t, |F t| := by
+      calc
+        |∫ t, Fx t|
+            = |(∫ t, Fx t) - ∫ t, K (-t) * R x| := by
+              rw [hzero_const, sub_zero]
+        _ = |∫ t, F t| := by
+              rw [integral_sub hFx hFconst]
+        _ ≤ ∫ t, |F t| := by
+              simpa [F, Real.norm_eq_abs] using
+                (norm_integral_le_integral_norm (μ := volume) F)
+    have hIic_bound :
+        (∫ t in Set.Iic S, |F t|)
+          ≤ ∫ t in Set.Iic S, |K (-t)| * ω (A / 2) := by
+      refine MeasureTheory.setIntegral_mono_on
+        hNint.integrableOn (hKabs_neg.mul_const (ω (A / 2))).integrableOn
+        measurableSet_Iic ?_
+      intro t ht
+      have htS : t ≤ S := by simpa [S] using ht
+      have hx' : x + t ≤ A / 2 := by
+        dsimp [S] at htS
+        linarith
+      have hxhalf : x ≤ A / 2 := by linarith
+      have hdiffR : |R (x + t) - R x| ≤ ω (A / 2) :=
+        hleft (A / 2) (x + t) x hx' hxhalf
+      have hFeq :
+          F t = K (-t) * (R (x + t) - R x) := by
+        dsimp [F]
+        ring
+      rw [hFeq, abs_mul]
+      exact mul_le_mul_of_nonneg_left hdiffR (abs_nonneg _)
+    have hωA : 0 ≤ ω (A / 2) := hωnn (A / 2)
+    have hKω_nonneg :
+        0 ≤ᵐ[volume] fun t : ℝ => |K (-t)| * ω (A / 2) :=
+      Eventually.of_forall fun t => mul_nonneg (abs_nonneg _) hωA
+    have hIic_all :
+        (∫ t in Set.Iic S, |K (-t)| * ω (A / 2))
+          ≤ ∫ t, |K (-t)| * ω (A / 2) :=
+      MeasureTheory.setIntegral_le_integral
+        (s := Set.Iic S) (hKabs_neg.mul_const (ω (A / 2))) hKω_nonneg
+    have hIic_final :
+        (∫ t in Set.Iic S, |F t|) ≤ L1 * ω (A / 2) := by
+      calc
+        (∫ t in Set.Iic S, |F t|)
+            ≤ ∫ t in Set.Iic S, |K (-t)| * ω (A / 2) := hIic_bound
+        _ ≤ ∫ t, |K (-t)| * ω (A / 2) := hIic_all
+        _ = L1 * ω (A / 2) := by
+          rw [integral_mul_const, hL1]
+    have hIoi_bound :
+        (∫ t in Set.Ioi S, |F t|)
+          ≤ ∫ t in Set.Ioi S, |K (-t)| * (2 * C) := by
+      refine MeasureTheory.setIntegral_mono_on
+        hNint.integrableOn (hKabs_neg.mul_const (2 * C)).integrableOn
+        measurableSet_Ioi ?_
+      intro t ht
+      have hRdiff : |R (x + t) - R x| ≤ 2 * C := by
+        calc
+          |R (x + t) - R x| ≤ |R (x + t)| + |R x| := abs_sub _ _
+          _ ≤ C + C := add_le_add (hRbound (x + t)) (hRbound x)
+          _ = 2 * C := by ring
+      have hFeq :
+          F t = K (-t) * (R (x + t) - R x) := by
+        dsimp [F]
+        ring
+      rw [hFeq, abs_mul]
+      exact mul_le_mul_of_nonneg_left hRdiff (abs_nonneg _)
+    have hsplit := MeasureTheory.integral_add_compl
+      (s := Set.Iic S) measurableSet_Iic hNint
+    simp only [Set.compl_Iic] at hsplit
+    calc
+      |∫ t, Fx t| ≤ ∫ t, |F t| := hdiff
+      _ = (∫ t in Set.Iic S, |F t|) +
+            ∫ t in Set.Ioi S, |F t| := hsplit.symm
+      _ ≤ L1 * ω (A / 2) +
+            (∫ t in Set.Ioi S, |K (-t)| * (2 * C)) :=
+          add_le_add hIic_final hIoi_bound
+      _ = L1 * ω (A / 2) +
+            2 * C * (∫ t in Set.Ioi (-A / 2), |K (-t)|) := by
+          dsimp [S]
+          rw [integral_mul_const]
+          ring
+  · simp only [hA, if_false]
+    simpa [Fx] using hcrude
+
+theorem greenKernelDeriv_comp_const_sub_mul_integrable_of_bounded_for_leftTail
+    (hlam : 0 < lam) {H : ℝ → ℝ} {B : ℝ}
+    (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) (x : ℝ) :
+    Integrable (fun y => greenKernelDeriv c lam (x - y) * H y) := by
+  have hK : Integrable (fun y => greenKernelDeriv c lam (x - y)) := by
+    simpa using
+      (greenKernelDeriv_integrable_signed_for_leftTail
+        (c := c) (lam := lam) hlam).comp_sub_left x
+  exact hK.mul_bdd hH.aestronglyMeasurable
+    (Eventually.of_forall fun y => by simpa [Real.norm_eq_abs] using hB y)
+
+theorem greenKernelDerivConv_eq_translated_for_leftTail
+    (c lam : ℝ) (H : ℝ → ℝ) (x : ℝ) :
+    (∫ y, greenKernelDeriv c lam (x - y) * H y)
+      = ∫ t, greenKernelDeriv c lam (-t) * H (x + t) := by
+  let g : ℝ → ℝ := fun y => greenKernelDeriv c lam (x - y) * H y
+  have htrans := integral_add_right_eq_self (μ := (volume : Measure ℝ)) g x
+  calc
+    (∫ y, greenKernelDeriv c lam (x - y) * H y) = ∫ y, g y := rfl
+    _ = ∫ t, g (t + x) := htrans.symm
+    _ = ∫ t, greenKernelDeriv c lam (-t) * H (x + t) := by
+      apply integral_congr_ae
+      exact Eventually.of_forall fun t => by
+        dsimp [g]
+        rw [show x - (t + x) = -t by ring]
+        ring
+
+theorem greenKernelDerivConv_eq_greenConvDeriv_for_leftTail
+    (hlam : 0 < lam) {H : ℝ → ℝ} {B : ℝ}
+    (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) (x : ℝ) :
+    (∫ y, greenKernelDeriv c lam (x - y) * H y)
+      = greenConvDeriv c lam H x := by
+  have hfull := greenKernelDeriv_comp_const_sub_mul_integrable_of_bounded_for_leftTail
+    (c := c) (lam := lam) hlam hH hB x
+  have hsplit := MeasureTheory.integral_add_compl
+    (s := Set.Iic x) measurableSet_Iic hfull
+  simp only [Set.compl_Iic] at hsplit
+  have hLeft :
+      ∫ y in Set.Iic x, greenKernelDeriv c lam (x - y) * H y
+        = (greenDelta c lam)⁻¹ * greenRootMinus c lam *
+            Real.exp (greenRootMinus c lam * x) *
+              tailLo (greenRootMinus c lam) H x := by
+    have hae : ∀ᵐ y : ℝ ∂volume, y ≠ x := by
+      rw [ae_iff]
+      simpa only [not_not] using (measure_singleton (μ := volume) x)
+    calc
+      ∫ y in Set.Iic x, greenKernelDeriv c lam (x - y) * H y
+          = ∫ y in Set.Iic x,
+              (greenDelta c lam)⁻¹ * greenRootMinus c lam *
+                Real.exp (greenRootMinus c lam * x) *
+                  gWeight (greenRootMinus c lam) H y := by
+            apply MeasureTheory.setIntegral_congr_ae measurableSet_Iic
+            filter_upwards [hae] with y hyne hy
+            rw [Set.mem_Iic] at hy
+            have hxy_pos : 0 < x - y := sub_pos.mpr (lt_of_le_of_ne hy hyne)
+            simp only [greenKernelDeriv, if_neg (not_le.mpr hxy_pos)]
+            simp only [gWeight]
+            rw [show greenRootMinus c lam * (x - y)
+                = greenRootMinus c lam * x + (-greenRootMinus c lam) * y by ring,
+              Real.exp_add]
+            ring
+      _ = (greenDelta c lam)⁻¹ * greenRootMinus c lam *
+            Real.exp (greenRootMinus c lam * x) *
+              tailLo (greenRootMinus c lam) H x := by
+            rw [MeasureTheory.integral_const_mul]
+            rfl
+  have hRight :
+      ∫ y in Set.Ioi x, greenKernelDeriv c lam (x - y) * H y
+        = (greenDelta c lam)⁻¹ * greenRootPlus c lam *
+            Real.exp (greenRootPlus c lam * x) *
+              tailHi (greenRootPlus c lam) H x := by
+    calc
+      ∫ y in Set.Ioi x, greenKernelDeriv c lam (x - y) * H y
+          = ∫ y in Set.Ioi x,
+              (greenDelta c lam)⁻¹ * greenRootPlus c lam *
+                Real.exp (greenRootPlus c lam * x) *
+                  gWeight (greenRootPlus c lam) H y := by
+            apply MeasureTheory.setIntegral_congr_fun measurableSet_Ioi
+            intro y hy
+            rw [Set.mem_Ioi] at hy
+            have hxy_neg : x - y ≤ 0 := by linarith
+            simp only [greenKernelDeriv, if_pos hxy_neg]
+            simp only [gWeight]
+            rw [show greenRootPlus c lam * (x - y)
+                = greenRootPlus c lam * x + (-greenRootPlus c lam) * y by ring,
+              Real.exp_add]
+            ring
+      _ = (greenDelta c lam)⁻¹ * greenRootPlus c lam *
+            Real.exp (greenRootPlus c lam * x) *
+              tailHi (greenRootPlus c lam) H x := by
+            rw [MeasureTheory.integral_const_mul]
+            rfl
+  rw [← hsplit, hLeft, hRight, greenConvDeriv]
+  ring
+
+theorem greenConvDeriv_eq_translated_integral_of_bounded_for_leftTail
+    (hlam : 0 < lam) {H : ℝ → ℝ} {B : ℝ}
+    (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) (x : ℝ) :
+    greenConvDeriv c lam H x =
+      ∫ t, greenKernelDeriv c lam (-t) * H (x + t) := by
+  rw [← greenKernelDerivConv_eq_translated_for_leftTail c lam H x]
+  exact (greenKernelDerivConv_eq_greenConvDeriv_for_leftTail
+    (c := c) (lam := lam) hlam hH hB x).symm
+
+theorem PaperWeightedHolderSourceBox.greenConvDeriv_leftTailCauchy_uniform
+    (hlam : 0 < lam) {κ M B β Hbox : ℝ} {ω : ℝ → ℝ} (hBnn : 0 ≤ B) :
+    ∃ ωWd : ℝ → ℝ,
+      (∀ A, 0 ≤ ωWd A) ∧ Tendsto ωWd atBot (𝓝 0) ∧
+      ∀ R, PaperWeightedHolderSourceBox κ M β B Hbox ω R →
+      ∀ A x y, x ≤ A → y ≤ A →
+        |greenConvDeriv c lam R x - greenConvDeriv c lam R y| ≤ ωWd A := by
+  by_cases hbox_nonempty :
+      ∃ R, PaperWeightedHolderSourceBox κ M β B Hbox ω R
+  · rcases hbox_nonempty with ⟨R0, hR0⟩
+    let C : ℝ := max (B * M) 0
+    let L1 : ℝ := 2 * (greenDelta c lam)⁻¹
+    let tail : ℝ → ℝ := fun A =>
+      ∫ t in Set.Ioi (-A / 2), |greenKernelDeriv c lam (-t)|
+    let ωWd : ℝ → ℝ := fun A => L1 * ω (A / 2) + 2 * C * tail A
+    refine ⟨ωWd, ?_, ?_, ?_⟩
+    · intro A
+      have hCnn : 0 ≤ C := by dsimp [C]; exact le_max_right _ _
+      have hL1nn : 0 ≤ L1 := by
+        dsimp [L1]
+        exact mul_nonneg (by norm_num)
+          (inv_nonneg.mpr (greenDelta_pos (c := c) hlam).le)
+      have htail_nn : 0 ≤ tail A := by
+        dsimp [tail]
+        exact integral_nonneg fun t => abs_nonneg _
+      exact add_nonneg
+        (mul_nonneg hL1nn (hR0.omega_nonneg (A / 2)))
+        (mul_nonneg (mul_nonneg (by norm_num) hCnn) htail_nn)
+    · have hdiv : Tendsto (fun A : ℝ => A / 2) atBot atBot :=
+        tendsto_id.atBot_div_const (by norm_num : (0 : ℝ) < 2)
+      have hω : Tendsto (fun A : ℝ => ω (A / 2)) atBot (𝓝 0) :=
+        hR0.omega_tendsto.comp hdiv
+      have hKabs : Integrable (fun z => |greenKernelDeriv c lam z|) :=
+        greenKernelDeriv_integrable (c := c) hlam
+      have htail :
+          Tendsto tail atBot (𝓝 0) := by
+        simpa [tail] using
+          (kernel_abs_neg_tail_tendsto_atBot
+            (K := greenKernelDeriv c lam) hKabs)
+      have hsum := (hω.const_mul L1).add (htail.const_mul (2 * C))
+      simpa [ωWd] using hsum
+    · intro R hR A x y hx hy
+      have hCnn : 0 ≤ C := by dsimp [C]; exact le_max_right _ _
+      have hRbound : ∀ z, |R z| ≤ C := by
+        intro z
+        exact (hR.abs_le_const (B := B) hBnn z).trans (le_max_left _ _)
+      have hKmeas : Measurable (greenKernelDeriv c lam) :=
+        greenKernelDeriv_measurable_for_leftTail (c := c) (lam := lam)
+      have hKabs : Integrable (fun z => |greenKernelDeriv c lam z|) :=
+        greenKernelDeriv_integrable (c := c) hlam
+      have hL1eq :
+          (∫ t, |greenKernelDeriv c lam (-t)|) = L1 := by
+        dsimp [L1]
+        rw [integral_neg_eq_self (fun z => |greenKernelDeriv c lam z|) volume]
+        exact greenKernelDeriv_l1_eq (c := c) hlam
+      have hxrepr :
+          greenConvDeriv c lam R x =
+            ∫ t, greenKernelDeriv c lam (-t) * R (x + t) :=
+        greenConvDeriv_eq_translated_integral_of_bounded_for_leftTail
+          (c := c) (lam := lam) hlam hR.cont hRbound x
+      have hyrepr :
+          greenConvDeriv c lam R y =
+            ∫ t, greenKernelDeriv c lam (-t) * R (y + t) :=
+        greenConvDeriv_eq_translated_integral_of_bounded_for_leftTail
+          (c := c) (lam := lam) hlam hR.cont hRbound y
+      rw [hxrepr, hyrepr]
+      simpa [ωWd, tail] using
+        kernel_translated_leftTailCauchy_bound
+          (K := greenKernelDeriv c lam) (R := R) (C := C) (L1 := L1)
+          (ω := ω) hKmeas hKabs hL1eq hR.cont hCnn hRbound
+          hR.omega_nonneg hR.leftTailCauchy A x y hx hy
+  · refine ⟨fun _ => 0, ?_, ?_, ?_⟩
+    · intro A
+      norm_num
+    · exact tendsto_const_nhds
+    · intro R hR
+      exact False.elim (hbox_nonempty ⟨R, hR⟩)
+
+theorem PaperWeightedHolderSourceBox.greenConvDeriv_leftTailSmall_uniform
+    (hlam : 0 < lam) {κ M B β Hbox : ℝ} {ω : ℝ → ℝ} (hBnn : 0 ≤ B) :
+    ∃ ωWd0 : ℝ → ℝ,
+      (∀ A, 0 ≤ ωWd0 A) ∧ Tendsto ωWd0 atBot (𝓝 0) ∧
+      ∀ R, PaperWeightedHolderSourceBox κ M β B Hbox ω R →
+      ∀ A x, x ≤ A →
+        |greenConvDeriv c lam R x| ≤ ωWd0 A := by
+  by_cases hbox_nonempty :
+      ∃ R, PaperWeightedHolderSourceBox κ M β B Hbox ω R
+  · rcases hbox_nonempty with ⟨R0, hR0⟩
+    let C : ℝ := max (B * M) 0
+    let L1 : ℝ := 2 * (greenDelta c lam)⁻¹
+    let tail : ℝ → ℝ := fun A =>
+      ∫ t in Set.Ioi (-A / 2), |greenKernelDeriv c lam (-t)|
+    let main : ℝ → ℝ := fun A => L1 * ω (A / 2) + 2 * C * tail A
+    let ωWd0 : ℝ → ℝ := fun A => if A ≤ 0 then main A else L1 * C
+    refine ⟨ωWd0, ?_, ?_, ?_⟩
+    · intro A
+      have hCnn : 0 ≤ C := by dsimp [C]; exact le_max_right _ _
+      have hL1nn : 0 ≤ L1 := by
+        dsimp [L1]
+        exact mul_nonneg (by norm_num)
+          (inv_nonneg.mpr (greenDelta_pos (c := c) hlam).le)
+      by_cases hA : A ≤ 0
+      · have htail_nn : 0 ≤ tail A := by
+          dsimp [tail]
+          exact integral_nonneg fun t => abs_nonneg _
+        have hmain_nn : 0 ≤ main A := by
+          dsimp [main]
+          exact add_nonneg
+            (mul_nonneg hL1nn (hR0.omega_nonneg (A / 2)))
+            (mul_nonneg (mul_nonneg (by norm_num) hCnn) htail_nn)
+        simpa [ωWd0, hA] using hmain_nn
+      · have hprod : 0 ≤ L1 * C := mul_nonneg hL1nn hCnn
+        simpa [ωWd0, hA] using hprod
+    · have hdiv : Tendsto (fun A : ℝ => A / 2) atBot atBot :=
+        tendsto_id.atBot_div_const (by norm_num : (0 : ℝ) < 2)
+      have hω : Tendsto (fun A : ℝ => ω (A / 2)) atBot (𝓝 0) :=
+        hR0.omega_tendsto.comp hdiv
+      have hKabs : Integrable (fun z => |greenKernelDeriv c lam z|) :=
+        greenKernelDeriv_integrable (c := c) hlam
+      have htail :
+          Tendsto tail atBot (𝓝 0) := by
+        simpa [tail] using
+          (kernel_abs_neg_tail_tendsto_atBot
+            (K := greenKernelDeriv c lam) hKabs)
+      have hmain : Tendsto main atBot (𝓝 0) := by
+        have hsum := (hω.const_mul L1).add (htail.const_mul (2 * C))
+        simpa [main] using hsum
+      refine hmain.congr' ?_
+      filter_upwards [eventually_le_atBot (0 : ℝ)] with A hA
+      simp [ωWd0, main, hA]
+    · intro R hR A x hx
+      have hCnn : 0 ≤ C := by dsimp [C]; exact le_max_right _ _
+      have hRbound : ∀ z, |R z| ≤ C := by
+        intro z
+        exact (hR.abs_le_const (B := B) hBnn z).trans (le_max_left _ _)
+      have hKmeas : Measurable (greenKernelDeriv c lam) :=
+        greenKernelDeriv_measurable_for_leftTail (c := c) (lam := lam)
+      have hKsigned : Integrable (greenKernelDeriv c lam) :=
+        greenKernelDeriv_integrable_signed_for_leftTail
+          (c := c) (lam := lam) hlam
+      have hKabs : Integrable (fun z => |greenKernelDeriv c lam z|) :=
+        greenKernelDeriv_integrable (c := c) hlam
+      have hKzero : (∫ t, greenKernelDeriv c lam (-t)) = 0 := by
+        rw [integral_neg_eq_self (greenKernelDeriv c lam) volume]
+        exact greenKernelDeriv_integral_eq_zero_for_leftTail
+          (c := c) (lam := lam) hlam
+      have hL1eq :
+          (∫ t, |greenKernelDeriv c lam (-t)|) = L1 := by
+        dsimp [L1]
+        rw [integral_neg_eq_self (fun z => |greenKernelDeriv c lam z|) volume]
+        exact greenKernelDeriv_l1_eq (c := c) hlam
+      have hxrepr :
+          greenConvDeriv c lam R x =
+            ∫ t, greenKernelDeriv c lam (-t) * R (x + t) :=
+        greenConvDeriv_eq_translated_integral_of_bounded_for_leftTail
+          (c := c) (lam := lam) hlam hR.cont hRbound x
+      rw [hxrepr]
+      simpa [ωWd0, main, tail] using
+        kernel_translated_leftTailSmall_bound
+          (K := greenKernelDeriv c lam) (R := R) (C := C) (L1 := L1)
+          (ω := ω) hKmeas hKsigned hKabs hKzero hL1eq hR.cont
+          hCnn hRbound hR.omega_nonneg hR.leftTailCauchy A x hx
+  · refine ⟨fun _ => 0, ?_, ?_, ?_⟩
+    · intro A
+      norm_num
+    · exact tendsto_const_nhds
+    · intro R hR
+      exact False.elim (hbox_nonempty ⟨R, hR⟩)
+
 theorem greenKernel_neg_mul_translate_integrable_of_bounded
     (hlam : 0 < lam) {H : ℝ → ℝ} {B : ℝ}
     (hH : Continuous H) (hB : ∀ y, |H y| ≤ B) (x : ℝ) :
@@ -5304,6 +6013,230 @@ def PaperIterateBase.holderQuant
     HolderQuant β Z :=
   (hZ.localLipQuant hκ hM).toHolder hβpos hβle
 
+/-! ### Left-tail Cauchy bookkeeping for fixed-source kernel estimates -/
+
+/-- A real function with a uniform absolute bound and an explicit left-tail
+Cauchy modulus. -/
+structure LeftTailQuant (f : ℝ → ℝ) where
+  C : ℝ
+  ω : ℝ → ℝ
+  C_nonneg : 0 ≤ C
+  ω_nonneg : ∀ A, 0 ≤ ω A
+  ω_tendsto : Tendsto ω atBot (𝓝 0)
+  bound : ∀ x, |f x| ≤ C
+  cauchy : ∀ A x y, x ≤ A → y ≤ A → |f x - f y| ≤ ω A
+
+theorem antitone_abs_sub_limit_le_atBot
+    {f : ℝ → ℝ} {L : ℝ}
+    (hanti : Antitone f) (hlim : Tendsto f atBot (𝓝 L)) :
+    ∀ A x, x ≤ A → |f x - L| ≤ |f A - L| := by
+  have hleL : ∀ z, f z ≤ L := by
+    intro z
+    have hev : ∀ᶠ y in atBot, f z ≤ f y := by
+      filter_upwards [eventually_le_atBot z] with y hy
+      exact hanti hy
+    exact le_of_tendsto_of_tendsto tendsto_const_nhds hlim hev
+  intro A x hx
+  have hxL : f x - L ≤ 0 := sub_nonpos.mpr (hleL x)
+  have hAL : f A - L ≤ 0 := sub_nonpos.mpr (hleL A)
+  have hAf : f A ≤ f x := hanti hx
+  rw [abs_of_nonpos hxL, abs_of_nonpos hAL]
+  linarith
+
+namespace LeftTailQuant
+
+def const (a : ℝ) : LeftTailQuant (fun _ : ℝ => a) where
+  C := |a|
+  ω := fun _ => 0
+  C_nonneg := abs_nonneg a
+  ω_nonneg := by intro A; norm_num
+  ω_tendsto := tendsto_const_nhds
+  bound := by intro x; simp
+  cauchy := by intro A x y hx hy; simp
+
+def add {f g : ℝ → ℝ}
+    (hf : LeftTailQuant f) (hg : LeftTailQuant g) :
+    LeftTailQuant (fun x => f x + g x) where
+  C := hf.C + hg.C
+  ω := fun A => hf.ω A + hg.ω A
+  C_nonneg := add_nonneg hf.C_nonneg hg.C_nonneg
+  ω_nonneg := by intro A; exact add_nonneg (hf.ω_nonneg A) (hg.ω_nonneg A)
+  ω_tendsto := by
+    simpa using hf.ω_tendsto.add hg.ω_tendsto
+  bound := by
+    intro x
+    calc
+      |f x + g x| ≤ |f x| + |g x| := abs_add_le _ _
+      _ ≤ hf.C + hg.C := add_le_add (hf.bound x) (hg.bound x)
+  cauchy := by
+    intro A x y hx hy
+    calc
+      |(f x + g x) - (f y + g y)|
+          = |(f x - f y) + (g x - g y)| := by ring_nf
+      _ ≤ |f x - f y| + |g x - g y| := abs_add_le _ _
+      _ ≤ hf.ω A + hg.ω A :=
+        add_le_add (hf.cauchy A x y hx hy) (hg.cauchy A x y hx hy)
+
+def neg {f : ℝ → ℝ} (hf : LeftTailQuant f) :
+    LeftTailQuant (fun x => -f x) where
+  C := hf.C
+  ω := hf.ω
+  C_nonneg := hf.C_nonneg
+  ω_nonneg := hf.ω_nonneg
+  ω_tendsto := hf.ω_tendsto
+  bound := by intro x; simpa using hf.bound x
+  cauchy := by
+    intro A x y hx hy
+    have hdiff : (-f x) - (-f y) = -(f x - f y) := by ring
+    rw [hdiff, abs_neg]
+    exact hf.cauchy A x y hx hy
+
+def sub {f g : ℝ → ℝ}
+    (hf : LeftTailQuant f) (hg : LeftTailQuant g) :
+    LeftTailQuant (fun x => f x - g x) := by
+  simpa [sub_eq_add_neg] using hf.add hg.neg
+
+def const_mul {a : ℝ} {f : ℝ → ℝ} (hf : LeftTailQuant f) :
+    LeftTailQuant (fun x => a * f x) where
+  C := |a| * hf.C
+  ω := fun A => |a| * hf.ω A
+  C_nonneg := mul_nonneg (abs_nonneg a) hf.C_nonneg
+  ω_nonneg := by intro A; exact mul_nonneg (abs_nonneg a) (hf.ω_nonneg A)
+  ω_tendsto := by
+    simpa using hf.ω_tendsto.const_mul |a|
+  bound := by
+    intro x
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (hf.bound x) (abs_nonneg a)
+  cauchy := by
+    intro A x y hx hy
+    rw [← mul_sub, abs_mul]
+    exact mul_le_mul_of_nonneg_left (hf.cauchy A x y hx hy) (abs_nonneg a)
+
+def mul {f g : ℝ → ℝ}
+    (hf : LeftTailQuant f) (hg : LeftTailQuant g) :
+    LeftTailQuant (fun x => f x * g x) where
+  C := hf.C * hg.C
+  ω := fun A => hf.C * hg.ω A + hg.C * hf.ω A
+  C_nonneg := mul_nonneg hf.C_nonneg hg.C_nonneg
+  ω_nonneg := by
+    intro A
+    exact add_nonneg
+      (mul_nonneg hf.C_nonneg (hg.ω_nonneg A))
+      (mul_nonneg hg.C_nonneg (hf.ω_nonneg A))
+  ω_tendsto := by
+    have h1 := hg.ω_tendsto.const_mul hf.C
+    have h2 := hf.ω_tendsto.const_mul hg.C
+    simpa using h1.add h2
+  bound := by
+    intro x
+    rw [abs_mul]
+    exact mul_le_mul (hf.bound x) (hg.bound x)
+      (abs_nonneg _) hf.C_nonneg
+  cauchy := by
+    intro A x y hx hy
+    have hsplit :
+        f x * g x - f y * g y =
+          f x * (g x - g y) + g y * (f x - f y) := by ring
+    rw [hsplit]
+    calc
+      |f x * (g x - g y) + g y * (f x - f y)|
+          ≤ |f x * (g x - g y)| + |g y * (f x - f y)| := abs_add_le _ _
+      _ = |f x| * |g x - g y| + |g y| * |f x - f y| := by
+        rw [abs_mul, abs_mul]
+      _ ≤ hf.C * hg.ω A + hg.C * hf.ω A := by
+        exact add_le_add
+          (mul_le_mul (hf.bound x) (hg.cauchy A x y hx hy)
+            (abs_nonneg _) hf.C_nonneg)
+          (mul_le_mul (hg.bound y) (hf.cauchy A x y hx hy)
+            (abs_nonneg _) hg.C_nonneg)
+
+def of_antitone_tendsto
+    {f : ℝ → ℝ} {C L : ℝ}
+    (hC : 0 ≤ C) (hbound : ∀ x, |f x| ≤ C)
+    (hanti : Antitone f) (hlim : Tendsto f atBot (𝓝 L)) :
+    LeftTailQuant f where
+  C := C
+  ω := fun A => 2 * |f A - L|
+  C_nonneg := hC
+  ω_nonneg := by intro A; positivity
+  ω_tendsto := by
+    have hsub : Tendsto (fun A => f A - L) atBot (𝓝 0) := by
+      have hconst : Tendsto (fun _ : ℝ => L) atBot (𝓝 L) :=
+        tendsto_const_nhds
+      have h := hlim.sub hconst
+      simpa using h
+    simpa using hsub.abs.const_mul 2
+  bound := hbound
+  cauchy := by
+    intro A x y hx hy
+    have hxA := antitone_abs_sub_limit_le_atBot hanti hlim A x hx
+    have hyA := antitone_abs_sub_limit_le_atBot hanti hlim A y hy
+    calc
+      |f x - f y| = |(f x - L) + (L - f y)| := by ring_nf
+      _ ≤ |f x - L| + |L - f y| := abs_add_le _ _
+      _ = |f x - L| + |f y - L| := by rw [abs_sub_comm L (f y)]
+      _ ≤ |f A - L| + |f A - L| := add_le_add hxA hyA
+      _ = 2 * |f A - L| := by ring
+
+def rpow_lipschitz_on_Icc
+    {a M : ℝ} {f : ℝ → ℝ}
+    (hf : LeftTailQuant f) (ha : 1 ≤ a) (hM : 0 ≤ M)
+    (hrange : ∀ x, f x ∈ Set.Icc (0 : ℝ) M) :
+    LeftTailQuant (fun x => (f x) ^ a) where
+  C := M ^ a
+  ω := fun A => rpowLip a M * hf.ω A
+  C_nonneg := Real.rpow_nonneg hM a
+  ω_nonneg := by
+    intro A
+    exact mul_nonneg (rpowLip_nonneg ha hM) (hf.ω_nonneg A)
+  ω_tendsto := by
+    simpa using hf.ω_tendsto.const_mul (rpowLip a M)
+  bound := by
+    intro x
+    have hx := hrange x
+    have hpownn : 0 ≤ (f x) ^ a := Real.rpow_nonneg hx.1 a
+    rw [abs_of_nonneg hpownn]
+    exact Real.rpow_le_rpow hx.1 hx.2 (by linarith)
+  cauchy := by
+    intro A x y hx hy
+    have hL0 : 0 ≤ rpowLip a M := rpowLip_nonneg ha hM
+    calc
+      |(f x) ^ a - (f y) ^ a|
+          ≤ rpowLip a M * |f x - f y| :=
+        rpow_abs_sub_le_lip_on_Icc ha hM (hrange x) (hrange y)
+      _ ≤ rpowLip a M * hf.ω A :=
+        mul_le_mul_of_nonneg_left (hf.cauchy A x y hx hy) hL0
+
+def rpow_selfHolderOnIcc
+    {β M : ℝ} {f : ℝ → ℝ}
+    (hf : LeftTailQuant f) (hβpos : 0 < β) (hβle : β ≤ 1)
+    (hM : 0 ≤ M) (hrange : ∀ x, f x ∈ Set.Icc (0 : ℝ) M) :
+    LeftTailQuant (fun x => (f x) ^ β) where
+  C := M ^ β
+  ω := fun A => (hf.ω A) ^ β
+  C_nonneg := Real.rpow_nonneg hM β
+  ω_nonneg := by intro A; exact Real.rpow_nonneg (hf.ω_nonneg A) β
+  ω_tendsto := by
+    have h := hf.ω_tendsto.rpow_const (Or.inr hβpos.le)
+    simpa [Real.zero_rpow (ne_of_gt hβpos)] using h
+  bound := by
+    intro x
+    have hx := hrange x
+    have hpownn : 0 ≤ (f x) ^ β := Real.rpow_nonneg hx.1 β
+    rw [abs_of_nonneg hpownn]
+    exact Real.rpow_le_rpow hx.1 hx.2 hβpos.le
+  cauchy := by
+    intro A x y hx hy
+    have hpow :
+        |(f x) ^ β - (f y) ^ β| ≤ |f x - f y| ^ β :=
+      rpow_abs_sub_le_abs_sub_rpow hβpos.le hβle (hrange x).1 (hrange y).1
+    have hmod : |f x - f y| ^ β ≤ (hf.ω A) ^ β :=
+      Real.rpow_le_rpow (abs_nonneg _) (hf.cauchy A x y hx hy) hβpos.le
+    exact le_trans hpow hmod
+
+end LeftTailQuant
+
 theorem paperFixedSourceMap_holder_kernel
     (p : CMParams) {c lam M κ B Hbox : ℝ} {ω : ℝ → ℝ} {u Z : ℝ → ℝ}
     (hlam : 0 < lam)
@@ -5641,6 +6574,670 @@ theorem paperFixedSourceMap_holder_kernel
   rw [hWdx, hWdy]
   convert hholder using 1
   ring_nf
+
+theorem paperFixedSourceMap_leftTailCauchy_kernel
+    (p : CMParams) {c lam M κ B Hbox : ℝ} {ω : ℝ → ℝ} {u Z : ℝ → ℝ}
+    (hlam : 0 < lam)
+    (hrpκ : κ < greenRootPlus c lam)
+    (hrmκ : κ < -greenRootMinus c lam)
+    (hκ : 0 ≤ κ) (hM : 0 < M) (hBnn : 0 ≤ B)
+    (hu : InMonotoneWaveTrapSet κ M u)
+    (hZ : PaperIterateBase κ M Z) :
+    ∃ ω0 : ℝ → ℝ,
+      (∀ A, 0 ≤ ω0 A) ∧ Tendsto ω0 atBot (𝓝 0) ∧
+      ∀ R, PaperWeightedHolderSourceBox κ M (paperWeightedHolderExponent p) B Hbox ω R →
+      ∀ A x y, x ≤ A → y ≤ A →
+        |paperFixedSourceMap p c lam M κ u Z R x -
+            paperFixedSourceMap p c lam M κ u Z R y| ≤ ω0 A := by
+  let β : ℝ := paperWeightedHolderExponent p
+  have hβpos : 0 < β := by
+    dsimp [β]
+    exact paperWeightedHolderExponent_pos p
+  have hβle : β ≤ 1 := by
+    dsimp [β]
+    exact paperWeightedHolderExponent_le_one p
+  obtain ⟨ωW, hωWnn, hωWlim, hωWcauchy⟩ :=
+    PaperWeightedHolderSourceBox.greenConv_leftTailCauchy_uniform
+      (c := c) (lam := lam) hlam (κ := κ) (M := M) (B := B)
+      (β := β) (Hbox := Hbox) (ω := ω) hBnn
+  obtain ⟨ωWd0, hωWd0nn, hωWd0lim, hωWd0small⟩ :=
+    PaperWeightedHolderSourceBox.greenConvDeriv_leftTailSmall_uniform
+      (c := c) (lam := lam) hlam (κ := κ) (M := M) (B := B)
+      (β := β) (Hbox := Hbox) (ω := ω) hBnn
+  rcases antitone_isBddFun_tendsto_atBot
+      (upperBarrier_antitone (κ := κ) (M := M) hκ)
+      (upperBarrier_isBddFun (κ := κ) (M := M) hM.le) with
+    ⟨LU, hLU⟩
+  let hUQ : LeftTailQuant (upperBarrier κ M) :=
+    LeftTailQuant.of_antitone_tendsto hM.le
+      (fun x => by
+        rw [abs_of_nonneg (upperBarrier_nonneg hM.le x)]
+        exact upperBarrier_le_M κ M x)
+      (upperBarrier_antitone (κ := κ) (M := M) hκ) hLU
+  let CV : ℝ := M ^ p.γ
+  have hCVnn : 0 ≤ CV := by dsimp [CV]; positivity
+  have hVbound : ∀ x, |frozenElliptic p u x| ≤ CV := by
+    intro x
+    rw [abs_of_nonneg (frozenElliptic_nonneg_of_inWaveTrapSet p hu.trap x)]
+    exact frozenElliptic_le_rpow_of_inWaveTrapSet p hM hu.trap x
+  have hVanti : Antitone (frozenElliptic p u) :=
+    frozenElliptic_antitone_of_monotone_trap p hu
+  rcases antitone_isBddFun_tendsto_atBot hVanti
+      (frozenElliptic_bddFun_of_inWaveTrapSet p hM hu.trap) with
+    ⟨LV, hLV⟩
+  let hVQ : LeftTailQuant (fun z => frozenElliptic p u z) :=
+    LeftTailQuant.of_antitone_tendsto hCVnn hVbound hVanti hLV
+  have hZbound : ∀ x, |Z x| ≤ M := by
+    intro x
+    rw [abs_of_nonneg (hZ.nonneg x)]
+    exact le_trans (hZ.le_barrier x) (upperBarrier_le_M κ M x)
+  rcases antitone_isBddFun_tendsto_atBot hZ.anti ⟨M, hZbound⟩ with
+    ⟨LZ, hLZ⟩
+  let hZQ : LeftTailQuant Z :=
+    LeftTailQuant.of_antitone_tendsto hM.le hZbound hZ.anti hLZ
+  let BM : ℝ := B * M
+  let Cw : ℝ := greenWeightedMass0 c lam κ * BM
+  let Cm1 : ℝ := M ^ (p.m - 1)
+  let Cα : ℝ := M ^ p.α
+  let Cmg : ℝ := M ^ (p.m + p.γ - 1)
+  let ωΘ : ℝ → ℝ := fun A => hUQ.ω A + ωW A
+  let ωm1 : ℝ → ℝ := fun A =>
+    if p.m = 1 then 0
+    else if p.m < 2 then (ωΘ A) ^ β
+    else rpowLip (p.m - 1) M * ωΘ A
+  let ωα : ℝ → ℝ := fun A => rpowLip p.α M * ωΘ A
+  let ωmg : ℝ → ℝ := fun A => rpowLip (p.m + p.γ - 1) M * ωΘ A
+  let Cinner : ℝ :=
+    1 + |p.χ| * (Cm1 * CV) + (Cα + |p.χ| * Cmg)
+  let ωinner : ℝ → ℝ := fun A =>
+    |p.χ| * (Cm1 * hVQ.ω A + CV * ωm1 A) +
+      (ωα A + |p.χ| * ωmg A)
+  let ωreact : ℝ → ℝ := fun A => M * ωinner A + Cinner * ωΘ A
+  let ωlin : ℝ → ℝ := fun A => |lam| * hZQ.ω A
+  let chemCoeff : ℝ := 2 * |(-p.χ * p.m)| * Cm1 * CV
+  let ω0 : ℝ → ℝ := fun A => chemCoeff * ωWd0 A + (ωreact A + ωlin A)
+  have hmass0 : 0 ≤ greenWeightedMass0 c lam κ :=
+    greenWeightedMass0_nonneg (c := c) (lam := lam) hlam hrpκ hrmκ
+  have hBMnn : 0 ≤ BM := by dsimp [BM]; positivity
+  have hCwnn : 0 ≤ Cw := by dsimp [Cw]; positivity
+  have hCm1nn : 0 ≤ Cm1 := by dsimp [Cm1]; positivity
+  have hCαnn : 0 ≤ Cα := by dsimp [Cα]; positivity
+  have hCmgnn : 0 ≤ Cmg := by dsimp [Cmg]; positivity
+  have hCinnernn : 0 ≤ Cinner := by
+    dsimp [Cinner]
+    positivity
+  have hchemCoeffnn : 0 ≤ chemCoeff := by
+    dsimp [chemCoeff]
+    positivity
+  have hωΘnn : ∀ A, 0 ≤ ωΘ A := by
+    intro A
+    dsimp [ωΘ]
+    exact add_nonneg (hUQ.ω_nonneg A) (hωWnn A)
+  have hωΘlim : Tendsto ωΘ atBot (𝓝 0) := by
+    simpa [ωΘ] using hUQ.ω_tendsto.add hωWlim
+  have hωm1nn : ∀ A, 0 ≤ ωm1 A := by
+    intro A
+    dsimp [ωm1]
+    by_cases hm1 : p.m = 1
+    · simp [hm1]
+    · by_cases hm2 : p.m < 2
+      · simp [hm1, hm2, Real.rpow_nonneg (hωΘnn A) β]
+      · have hpow : 1 ≤ p.m - 1 := by linarith
+        have hLip : 0 ≤ rpowLip (p.m - 1) M :=
+          rpowLip_nonneg hpow hM.le
+        simp [hm1, hm2, mul_nonneg hLip (hωΘnn A)]
+  have hωm1lim : Tendsto ωm1 atBot (𝓝 0) := by
+    dsimp [ωm1]
+    by_cases hm1 : p.m = 1
+    · simp [hm1]
+    · by_cases hm2 : p.m < 2
+      · have hpow := hωΘlim.rpow_const (Or.inr hβpos.le)
+        simpa [hm1, hm2, Real.zero_rpow (ne_of_gt hβpos)] using hpow
+      · have hpow : 1 ≤ p.m - 1 := by linarith
+        simpa [hm1, hm2] using
+          hωΘlim.const_mul (rpowLip (p.m - 1) M)
+  have hωαnn : ∀ A, 0 ≤ ωα A := by
+    intro A
+    dsimp [ωα]
+    exact mul_nonneg (rpowLip_nonneg p.hα hM.le) (hωΘnn A)
+  have hωαlim : Tendsto ωα atBot (𝓝 0) := by
+    simpa [ωα] using hωΘlim.const_mul (rpowLip p.α M)
+  have hpow_mg : 1 ≤ p.m + p.γ - 1 := by linarith [p.hm, p.hγ]
+  have hωmgnn : ∀ A, 0 ≤ ωmg A := by
+    intro A
+    dsimp [ωmg]
+    exact mul_nonneg (rpowLip_nonneg hpow_mg hM.le) (hωΘnn A)
+  have hωmglim : Tendsto ωmg atBot (𝓝 0) := by
+    simpa [ωmg] using hωΘlim.const_mul (rpowLip (p.m + p.γ - 1) M)
+  have hωinnernn : ∀ A, 0 ≤ ωinner A := by
+    intro A
+    dsimp [ωinner]
+    exact add_nonneg
+      (mul_nonneg (abs_nonneg _)
+        (add_nonneg
+          (mul_nonneg hCm1nn (hVQ.ω_nonneg A))
+          (mul_nonneg hCVnn (hωm1nn A))))
+      (add_nonneg (hωαnn A)
+        (mul_nonneg (abs_nonneg _) (hωmgnn A)))
+  have hωinnerlim : Tendsto ωinner atBot (𝓝 0) := by
+    have h1 :
+        Tendsto (fun A => Cm1 * hVQ.ω A + CV * ωm1 A) atBot (𝓝 0) :=
+      by
+        simpa using
+          (hVQ.ω_tendsto.const_mul Cm1).add (hωm1lim.const_mul CV)
+    have h2 : Tendsto (fun A => |p.χ| *
+        (Cm1 * hVQ.ω A + CV * ωm1 A)) atBot (𝓝 0) :=
+      by
+        simpa using h1.const_mul |p.χ|
+    have h3 : Tendsto (fun A => ωα A + |p.χ| * ωmg A) atBot (𝓝 0) :=
+      by
+        simpa using hωαlim.add (hωmglim.const_mul |p.χ|)
+    simpa [ωinner] using h2.add h3
+  have hωreactnn : ∀ A, 0 ≤ ωreact A := by
+    intro A
+    dsimp [ωreact]
+    exact add_nonneg
+      (mul_nonneg hM.le (hωinnernn A))
+      (mul_nonneg hCinnernn (hωΘnn A))
+  have hωreactlim : Tendsto ωreact atBot (𝓝 0) := by
+    have h1 := hωinnerlim.const_mul M
+    have h2 := hωΘlim.const_mul Cinner
+    simpa [ωreact] using h1.add h2
+  have hωlinnn : ∀ A, 0 ≤ ωlin A := by
+    intro A
+    dsimp [ωlin]
+    exact mul_nonneg (abs_nonneg _) (hZQ.ω_nonneg A)
+  have hωlinlim : Tendsto ωlin atBot (𝓝 0) := by
+    simpa [ωlin] using hZQ.ω_tendsto.const_mul |lam|
+  refine ⟨ω0, ?_, ?_, ?_⟩
+  · intro A
+    dsimp [ω0]
+    exact add_nonneg
+      (mul_nonneg hchemCoeffnn (hωWd0nn A))
+      (add_nonneg (hωreactnn A) (hωlinnn A))
+  · have hchem := hωWd0lim.const_mul chemCoeff
+    have hrl := hωreactlim.add hωlinlim
+    simpa [ω0] using hchem.add hrl
+  · intro R hR A x y hx hy
+    let W : ℝ → ℝ := fun z => greenConv c lam R z
+    let Θ : ℝ → ℝ := fun z => paperWeightedClamp κ M W z
+    let Wd : ℝ → ℝ := fun z => greenConvDeriv c lam R z
+    let V : ℝ → ℝ := fun z => frozenElliptic p u z
+    let hWQ : LeftTailQuant W := by
+      refine
+        { C := Cw
+          ω := ωW
+          C_nonneg := hCwnn
+          ω_nonneg := hωWnn
+          ω_tendsto := hωWlim
+          bound := ?_
+          cauchy := ?_ }
+      · intro z
+        dsimp [W, Cw, BM]
+        calc
+          |greenConv c lam R z| ≤
+              greenWeightedMass0 c lam κ * (B * upperBarrier κ M z) :=
+            hR.greenConv_abs_le (c := c) (lam := lam) hlam hrpκ hrmκ
+              hκ hM.le hBnn z
+          _ ≤ greenWeightedMass0 c lam κ * (B * M) := by
+            exact mul_le_mul_of_nonneg_left
+              (mul_le_mul_of_nonneg_left (upperBarrier_le_M κ M z) hBnn)
+              hmass0
+      · intro A x y hx hy
+        exact hωWcauchy R hR A x y hx hy
+    have hΘrange : ∀ z, Θ z ∈ Set.Icc (0 : ℝ) M := by
+      intro z
+      have hz := paperWeightedClamp_mem_Icc (κ := κ) (M := M) (W := W) hM.le z
+      exact ⟨hz.1, le_trans hz.2 (upperBarrier_le_M κ M z)⟩
+    let hΘQ : LeftTailQuant Θ := by
+      refine
+        { C := M
+          ω := ωΘ
+          C_nonneg := hM.le
+          ω_nonneg := hωΘnn
+          ω_tendsto := hωΘlim
+          bound := ?_
+          cauchy := ?_ }
+      · intro z
+        have hz := hΘrange z
+        rw [abs_of_nonneg hz.1]
+        exact hz.2
+      · intro A x y hx hy
+        calc
+          |Θ x - Θ y|
+              ≤ |upperBarrier κ M x - upperBarrier κ M y| + |W x - W y| :=
+            paperWeightedClamp_abs_sub_le x y
+          _ ≤ hUQ.ω A + ωW A :=
+            add_le_add (hUQ.cauchy A x y hx hy) (hWQ.cauchy A x y hx hy)
+    let hΘm1Q : LeftTailQuant (fun z => Θ z ^ (p.m - 1)) := by
+      have hm1nn : 0 ≤ p.m - 1 := by linarith [p.hm]
+      refine
+        { C := Cm1
+          ω := ωm1
+          C_nonneg := hCm1nn
+          ω_nonneg := hωm1nn
+          ω_tendsto := hωm1lim
+          bound := ?_
+          cauchy := ?_ }
+      · intro z
+        have hz := hΘrange z
+        have hpownn : 0 ≤ Θ z ^ (p.m - 1) := Real.rpow_nonneg hz.1 (p.m - 1)
+        rw [abs_of_nonneg hpownn]
+        dsimp [Cm1]
+        exact Real.rpow_le_rpow hz.1 hz.2 hm1nn
+      · intro A x y hx hy
+        dsimp [ωm1]
+        by_cases hm1 : p.m = 1
+        · simp [hm1]
+        · by_cases hm2 : p.m < 2
+          · have hm1pos : 0 < p.m - 1 :=
+              sub_pos.mpr (lt_of_le_of_ne p.hm (Ne.symm hm1))
+            have hm1le : p.m - 1 ≤ 1 := by linarith
+            have hpow :
+                |Θ x ^ (p.m - 1) - Θ y ^ (p.m - 1)|
+                  ≤ |Θ x - Θ y| ^ (p.m - 1) :=
+              rpow_abs_sub_le_abs_sub_rpow hm1pos.le hm1le
+                (hΘrange x).1 (hΘrange y).1
+            have hmod :
+                |Θ x - Θ y| ^ (p.m - 1) ≤ (ωΘ A) ^ (p.m - 1) :=
+              Real.rpow_le_rpow (abs_nonneg _) (hΘQ.cauchy A x y hx hy) hm1pos.le
+            have hβeq : β = p.m - 1 := by
+              dsimp [β, paperWeightedHolderExponent]
+              rw [if_neg hm1, if_pos hm2]
+            simpa [hm1, hm2, hβeq] using le_trans hpow hmod
+          · have hpow : 1 ≤ p.m - 1 := by linarith
+            have hLip0 : 0 ≤ rpowLip (p.m - 1) M :=
+              rpowLip_nonneg hpow hM.le
+            calc
+              |Θ x ^ (p.m - 1) - Θ y ^ (p.m - 1)|
+                  ≤ rpowLip (p.m - 1) M * |Θ x - Θ y| :=
+                rpow_abs_sub_le_lip_on_Icc hpow hM.le (hΘrange x) (hΘrange y)
+              _ ≤ rpowLip (p.m - 1) M * ωΘ A :=
+                mul_le_mul_of_nonneg_left (hΘQ.cauchy A x y hx hy) hLip0
+              _ = (if p.m = 1 then 0
+                    else if p.m < 2 then (ωΘ A) ^ β
+                    else rpowLip (p.m - 1) M * ωΘ A) := by
+                simp [hm1, hm2]
+    let hΘαQ : LeftTailQuant (fun z => Θ z ^ p.α) := by
+      refine
+        { C := Cα
+          ω := ωα
+          C_nonneg := hCαnn
+          ω_nonneg := hωαnn
+          ω_tendsto := hωαlim
+          bound := ?_
+          cauchy := ?_ }
+      · intro z
+        have hz := hΘrange z
+        have hpownn : 0 ≤ Θ z ^ p.α := Real.rpow_nonneg hz.1 p.α
+        rw [abs_of_nonneg hpownn]
+        dsimp [Cα]
+        exact Real.rpow_le_rpow hz.1 hz.2 (by linarith [p.hα])
+      · intro A x y hx hy
+        have hLip0 : 0 ≤ rpowLip p.α M := rpowLip_nonneg p.hα hM.le
+        calc
+          |Θ x ^ p.α - Θ y ^ p.α| ≤ rpowLip p.α M * |Θ x - Θ y| :=
+            rpow_abs_sub_le_lip_on_Icc p.hα hM.le (hΘrange x) (hΘrange y)
+          _ ≤ rpowLip p.α M * ωΘ A :=
+            mul_le_mul_of_nonneg_left (hΘQ.cauchy A x y hx hy) hLip0
+    let hΘmgQ : LeftTailQuant (fun z => Θ z ^ (p.m + p.γ - 1)) := by
+      refine
+        { C := Cmg
+          ω := ωmg
+          C_nonneg := hCmgnn
+          ω_nonneg := hωmgnn
+          ω_tendsto := hωmglim
+          bound := ?_
+          cauchy := ?_ }
+      · intro z
+        have hz := hΘrange z
+        have hpownn : 0 ≤ Θ z ^ (p.m + p.γ - 1) :=
+          Real.rpow_nonneg hz.1 (p.m + p.γ - 1)
+        rw [abs_of_nonneg hpownn]
+        dsimp [Cmg]
+        exact Real.rpow_le_rpow hz.1 hz.2 (by linarith [p.hm, p.hγ])
+      · intro A x y hx hy
+        have hLip0 : 0 ≤ rpowLip (p.m + p.γ - 1) M :=
+          rpowLip_nonneg hpow_mg hM.le
+        calc
+          |Θ x ^ (p.m + p.γ - 1) - Θ y ^ (p.m + p.γ - 1)|
+              ≤ rpowLip (p.m + p.γ - 1) M * |Θ x - Θ y| :=
+            rpow_abs_sub_le_lip_on_Icc hpow_mg hM.le (hΘrange x) (hΘrange y)
+          _ ≤ rpowLip (p.m + p.γ - 1) M * ωΘ A :=
+            mul_le_mul_of_nonneg_left (hΘQ.cauchy A x y hx hy) hLip0
+    have hVd_bound : ∀ z, |deriv (frozenElliptic p u) z| ≤ CV := by
+      intro z
+      calc
+        |deriv (frozenElliptic p u) z|
+            ≤ frozenElliptic p u z :=
+          frozenElliptic_deriv_abs_le p hu.trap.cunif_bdd hu.nonneg z
+        _ ≤ CV := frozenElliptic_le_rpow_of_inWaveTrapSet p hM hu.trap z
+    let hLinQ : LeftTailQuant (fun z => lam * Z z) :=
+      LeftTailQuant.const_mul (a := lam) hZQ
+    have hM1V_cauchy :
+        |Θ x ^ (p.m - 1) * V x - Θ y ^ (p.m - 1) * V y|
+          ≤ Cm1 * hVQ.ω A + CV * ωm1 A := by
+      have hsplit :
+          Θ x ^ (p.m - 1) * V x - Θ y ^ (p.m - 1) * V y =
+            Θ x ^ (p.m - 1) * (V x - V y) +
+              V y * (Θ x ^ (p.m - 1) - Θ y ^ (p.m - 1)) := by
+        ring
+      rw [hsplit]
+      calc
+        |Θ x ^ (p.m - 1) * (V x - V y) +
+              V y * (Θ x ^ (p.m - 1) - Θ y ^ (p.m - 1))|
+            ≤ |Θ x ^ (p.m - 1) * (V x - V y)| +
+                |V y * (Θ x ^ (p.m - 1) - Θ y ^ (p.m - 1))| :=
+          abs_add_le _ _
+        _ = |Θ x ^ (p.m - 1)| * |V x - V y| +
+                |V y| * |Θ x ^ (p.m - 1) - Θ y ^ (p.m - 1)| := by
+          rw [abs_mul, abs_mul]
+        _ ≤ Cm1 * hVQ.ω A + CV * ωm1 A :=
+          add_le_add
+            (mul_le_mul (hΘm1Q.bound x) (hVQ.cauchy A x y hx hy)
+              (abs_nonneg _) hCm1nn)
+            (mul_le_mul (hVQ.bound y) (hΘm1Q.cauchy A x y hx hy)
+              (abs_nonneg _) hCVnn)
+    have hPowDiff_cauchy :
+        |(Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1)) -
+            (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1))|
+          ≤ ωα A + |p.χ| * ωmg A := by
+      have hsplit :
+          (Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1)) -
+            (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1)) =
+          (Θ x ^ p.α - Θ y ^ p.α) -
+            p.χ * (Θ x ^ (p.m + p.γ - 1) - Θ y ^ (p.m + p.γ - 1)) := by
+        ring
+      rw [hsplit]
+      calc
+        |(Θ x ^ p.α - Θ y ^ p.α) -
+            p.χ * (Θ x ^ (p.m + p.γ - 1) - Θ y ^ (p.m + p.γ - 1))|
+            ≤ |Θ x ^ p.α - Θ y ^ p.α| +
+                |p.χ * (Θ x ^ (p.m + p.γ - 1) - Θ y ^ (p.m + p.γ - 1))| :=
+          abs_sub _ _
+        _ = |Θ x ^ p.α - Θ y ^ p.α| +
+                |p.χ| * |Θ x ^ (p.m + p.γ - 1) - Θ y ^ (p.m + p.γ - 1)| := by
+          rw [abs_mul]
+        _ ≤ ωα A + |p.χ| * ωmg A :=
+          add_le_add (hΘαQ.cauchy A x y hx hy)
+            (mul_le_mul_of_nonneg_left (hΘmgQ.cauchy A x y hx hy) (abs_nonneg _))
+    have hInner_cauchy :
+        |((1 - p.χ * (Θ x ^ (p.m - 1) * V x)) -
+            (Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1))) -
+          ((1 - p.χ * (Θ y ^ (p.m - 1) * V y)) -
+            (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1)))|
+          ≤ ωinner A := by
+      have hsplit :
+          ((1 - p.χ * (Θ x ^ (p.m - 1) * V x)) -
+            (Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1))) -
+          ((1 - p.χ * (Θ y ^ (p.m - 1) * V y)) -
+            (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1))) =
+          -(p.χ * ((Θ x ^ (p.m - 1) * V x) -
+              (Θ y ^ (p.m - 1) * V y))) -
+            ((Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1)) -
+              (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1))) := by
+        ring
+      rw [hsplit]
+      calc
+        |-(p.χ * (Θ x ^ (p.m - 1) * V x - Θ y ^ (p.m - 1) * V y)) -
+            ((Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1)) -
+              (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1)))|
+            ≤ |p.χ * (Θ x ^ (p.m - 1) * V x - Θ y ^ (p.m - 1) * V y)| +
+                |(Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1)) -
+                  (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1))| := by
+          simpa [abs_neg] using abs_sub
+            (-(p.χ * (Θ x ^ (p.m - 1) * V x - Θ y ^ (p.m - 1) * V y)))
+            ((Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1)) -
+              (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1)))
+        _ = |p.χ| * |Θ x ^ (p.m - 1) * V x - Θ y ^ (p.m - 1) * V y| +
+                |(Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1)) -
+                  (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1))| := by
+          rw [abs_mul]
+        _ ≤ |p.χ| * (Cm1 * hVQ.ω A + CV * ωm1 A) +
+              (ωα A + |p.χ| * ωmg A) :=
+          add_le_add
+            (mul_le_mul_of_nonneg_left hM1V_cauchy (abs_nonneg _))
+            hPowDiff_cauchy
+        _ = ωinner A := by rfl
+    have hInner_bound : ∀ z,
+        |(1 - p.χ * (Θ z ^ (p.m - 1) * V z)) -
+          (Θ z ^ p.α - p.χ * Θ z ^ (p.m + p.γ - 1))| ≤ Cinner := by
+      intro z
+      have hM1V_bound :
+          |Θ z ^ (p.m - 1) * V z| ≤ Cm1 * CV := by
+        rw [abs_mul]
+        exact mul_le_mul (hΘm1Q.bound z) (hVQ.bound z) (abs_nonneg _) hCm1nn
+      have hχM1V_bound :
+          |p.χ * (Θ z ^ (p.m - 1) * V z)| ≤ |p.χ| * (Cm1 * CV) := by
+        rw [abs_mul]
+        exact mul_le_mul_of_nonneg_left hM1V_bound (abs_nonneg _)
+      have hχmg_bound :
+          |p.χ * Θ z ^ (p.m + p.γ - 1)| ≤ |p.χ| * Cmg := by
+        rw [abs_mul]
+        exact mul_le_mul_of_nonneg_left (hΘmgQ.bound z) (abs_nonneg _)
+      have hPow_bound :
+          |Θ z ^ p.α - p.χ * Θ z ^ (p.m + p.γ - 1)| ≤ Cα + |p.χ| * Cmg := by
+        calc
+          |Θ z ^ p.α - p.χ * Θ z ^ (p.m + p.γ - 1)|
+              ≤ |Θ z ^ p.α| + |p.χ * Θ z ^ (p.m + p.γ - 1)| := abs_sub _ _
+          _ ≤ Cα + |p.χ| * Cmg := add_le_add (hΘαQ.bound z) hχmg_bound
+      calc
+        |(1 - p.χ * (Θ z ^ (p.m - 1) * V z)) -
+          (Θ z ^ p.α - p.χ * Θ z ^ (p.m + p.γ - 1))|
+            ≤ |1 - p.χ * (Θ z ^ (p.m - 1) * V z)| +
+                |Θ z ^ p.α - p.χ * Θ z ^ (p.m + p.γ - 1)| := abs_sub _ _
+        _ ≤ (1 + |p.χ| * (Cm1 * CV)) + (Cα + |p.χ| * Cmg) := by
+          exact add_le_add
+            (by
+              calc
+                |1 - p.χ * (Θ z ^ (p.m - 1) * V z)|
+                    ≤ |(1 : ℝ)| + |p.χ * (Θ z ^ (p.m - 1) * V z)| := abs_sub _ _
+                _ ≤ 1 + |p.χ| * (Cm1 * CV) := by
+                  simpa using add_le_add_left hχM1V_bound 1)
+            hPow_bound
+        _ = Cinner := by
+          dsimp [Cinner]
+    have hReact :
+        |Θ x *
+              ((1 - p.χ * (Θ x ^ (p.m - 1) * V x)) -
+                (Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1))) -
+            Θ y *
+              ((1 - p.χ * (Θ y ^ (p.m - 1) * V y)) -
+                (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1)))|
+          ≤ ωreact A := by
+      have hsplit :
+          Θ x *
+              ((1 - p.χ * (Θ x ^ (p.m - 1) * V x)) -
+                (Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1))) -
+            Θ y *
+              ((1 - p.χ * (Θ y ^ (p.m - 1) * V y)) -
+                (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1))) =
+          Θ x *
+              (((1 - p.χ * (Θ x ^ (p.m - 1) * V x)) -
+                (Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1))) -
+              ((1 - p.χ * (Θ y ^ (p.m - 1) * V y)) -
+                (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1)))) +
+            ((1 - p.χ * (Θ y ^ (p.m - 1) * V y)) -
+              (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1))) *
+              (Θ x - Θ y) := by
+        ring
+      rw [hsplit]
+      calc
+        |Θ x *
+              (((1 - p.χ * (Θ x ^ (p.m - 1) * V x)) -
+                (Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1))) -
+              ((1 - p.χ * (Θ y ^ (p.m - 1) * V y)) -
+                (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1)))) +
+            ((1 - p.χ * (Θ y ^ (p.m - 1) * V y)) -
+              (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1))) *
+              (Θ x - Θ y)|
+            ≤ |Θ x *
+              (((1 - p.χ * (Θ x ^ (p.m - 1) * V x)) -
+                (Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1))) -
+              ((1 - p.χ * (Θ y ^ (p.m - 1) * V y)) -
+                (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1))))| +
+              |((1 - p.χ * (Θ y ^ (p.m - 1) * V y)) -
+                (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1))) *
+                (Θ x - Θ y)| := abs_add_le _ _
+        _ = |Θ x| *
+              |((1 - p.χ * (Θ x ^ (p.m - 1) * V x)) -
+                (Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1))) -
+              ((1 - p.χ * (Θ y ^ (p.m - 1) * V y)) -
+                (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1)))| +
+              |(1 - p.χ * (Θ y ^ (p.m - 1) * V y)) -
+                (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1))| *
+                |Θ x - Θ y| := by
+          rw [abs_mul, abs_mul]
+        _ ≤ M * ωinner A + Cinner * ωΘ A :=
+          add_le_add
+            (mul_le_mul (hΘQ.bound x) hInner_cauchy (abs_nonneg _) hM.le)
+            (mul_le_mul (hInner_bound y) (hΘQ.cauchy A x y hx hy)
+              (abs_nonneg _) hCinnernn)
+        _ = ωreact A := by rfl
+    have hLin :
+        |lam * Z x - lam * Z y| ≤ ωlin A := by
+      have h := hLinQ.cauchy A x y hx hy
+      simpa [hLinQ, hZQ, ωlin] using h
+    have hReactLin :
+        |(Θ x *
+              ((1 - p.χ * (Θ x ^ (p.m - 1) * V x)) -
+                (Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1))) +
+            lam * Z x) -
+          (Θ y *
+              ((1 - p.χ * (Θ y ^ (p.m - 1) * V y)) -
+                (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1))) +
+            lam * Z y)| ≤ ωreact A + ωlin A := by
+      calc
+        |(Θ x *
+              ((1 - p.χ * (Θ x ^ (p.m - 1) * V x)) -
+                (Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1))) +
+            lam * Z x) -
+          (Θ y *
+              ((1 - p.χ * (Θ y ^ (p.m - 1) * V y)) -
+                (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1))) +
+            lam * Z y)|
+            = |(Θ x *
+                ((1 - p.χ * (Θ x ^ (p.m - 1) * V x)) -
+                  (Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1))) -
+              Θ y *
+                ((1 - p.χ * (Θ y ^ (p.m - 1) * V y)) -
+                  (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1)))) +
+              (lam * Z x - lam * Z y)| := by ring_nf
+        _ ≤
+            |Θ x *
+                ((1 - p.χ * (Θ x ^ (p.m - 1) * V x)) -
+                  (Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1))) -
+              Θ y *
+                ((1 - p.χ * (Θ y ^ (p.m - 1) * V y)) -
+                  (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1)))| +
+              |lam * Z x - lam * Z y| := abs_add_le _ _
+        _ ≤ ωreact A + ωlin A := add_le_add hReact hLin
+    have hChemPoint : ∀ z, z ≤ A →
+        |(-p.χ * p.m) *
+            ((Θ z ^ (p.m - 1) * deriv (frozenElliptic p u) z) * Wd z)|
+          ≤ |(-p.χ * p.m)| * Cm1 * CV * ωWd0 A := by
+      intro z hz
+      have hm1nn : 0 ≤ p.m - 1 := by linarith [p.hm]
+      have hΘpow : |Θ z ^ (p.m - 1)| ≤ Cm1 := by
+        have hzr := hΘrange z
+        have hpownn : 0 ≤ Θ z ^ (p.m - 1) := Real.rpow_nonneg hzr.1 (p.m - 1)
+        rw [abs_of_nonneg hpownn]
+        dsimp [Cm1]
+        exact Real.rpow_le_rpow hzr.1 hzr.2 hm1nn
+      have hWd : |Wd z| ≤ ωWd0 A := by
+        dsimp [Wd]
+        exact hωWd0small R hR A z hz
+      have hpair :
+          |Θ z ^ (p.m - 1)| * |deriv (frozenElliptic p u) z| ≤ Cm1 * CV :=
+        mul_le_mul hΘpow (hVd_bound z) (abs_nonneg _) hCm1nn
+      have htriple :
+          |Θ z ^ (p.m - 1)| * |deriv (frozenElliptic p u) z| * |Wd z| ≤
+            Cm1 * CV * ωWd0 A :=
+        mul_le_mul hpair hWd (abs_nonneg _) (mul_nonneg hCm1nn hCVnn)
+      calc
+        |(-p.χ * p.m) *
+            ((Θ z ^ (p.m - 1) * deriv (frozenElliptic p u) z) * Wd z)|
+            = |(-p.χ * p.m)| *
+                (|Θ z ^ (p.m - 1)| *
+                  |deriv (frozenElliptic p u) z| * |Wd z|) := by
+              rw [abs_mul (-p.χ * p.m)
+                ((Θ z ^ (p.m - 1) * deriv (frozenElliptic p u) z) * Wd z)]
+              rw [abs_mul (Θ z ^ (p.m - 1) * deriv (frozenElliptic p u) z) (Wd z)]
+              rw [abs_mul (Θ z ^ (p.m - 1)) (deriv (frozenElliptic p u) z)]
+        _ ≤ |(-p.χ * p.m)| * (Cm1 * CV * ωWd0 A) := by
+              exact mul_le_mul_of_nonneg_left htriple (abs_nonneg _)
+        _ = |(-p.χ * p.m)| * Cm1 * CV * ωWd0 A := by ring
+    have hChem :
+        |(-p.χ * p.m) *
+              ((Θ x ^ (p.m - 1) * deriv (frozenElliptic p u) x) * Wd x) -
+            (-p.χ * p.m) *
+              ((Θ y ^ (p.m - 1) * deriv (frozenElliptic p u) y) * Wd y)|
+          ≤ chemCoeff * ωWd0 A := by
+      calc
+        |(-p.χ * p.m) *
+              ((Θ x ^ (p.m - 1) * deriv (frozenElliptic p u) x) * Wd x) -
+            (-p.χ * p.m) *
+              ((Θ y ^ (p.m - 1) * deriv (frozenElliptic p u) y) * Wd y)|
+            ≤
+              |(-p.χ * p.m) *
+                ((Θ x ^ (p.m - 1) * deriv (frozenElliptic p u) x) * Wd x)| +
+              |(-p.χ * p.m) *
+                ((Θ y ^ (p.m - 1) * deriv (frozenElliptic p u) y) * Wd y)| :=
+          abs_sub _ _
+        _ ≤ |(-p.χ * p.m)| * Cm1 * CV * ωWd0 A +
+              |(-p.χ * p.m)| * Cm1 * CV * ωWd0 A :=
+          add_le_add (hChemPoint x hx) (hChemPoint y hy)
+        _ = chemCoeff * ωWd0 A := by
+          dsimp [chemCoeff]
+          ring
+    have hHi := hR.gWeight_Ioi (c := c) (lam := lam) hlam hBnn
+    have hLo := hR.gWeight_Iic (c := c) (lam := lam) hlam hBnn
+    have hWdx :
+        deriv (fun y => greenConv c lam R y) x = Wd x := by
+      dsimp [Wd]
+      exact (greenConv_hasDerivAt (c := c) (lam := lam) hR.cont hHi hLo x).deriv
+    have hWdy :
+        deriv (fun y => greenConv c lam R y) y = Wd y := by
+      dsimp [Wd]
+      exact (greenConv_hasDerivAt (c := c) (lam := lam) hR.cont hHi hLo y).deriv
+    let chemX : ℝ :=
+      (-p.χ * p.m) *
+        ((Θ x ^ (p.m - 1) * deriv (frozenElliptic p u) x) * Wd x)
+    let chemY : ℝ :=
+      (-p.χ * p.m) *
+        ((Θ y ^ (p.m - 1) * deriv (frozenElliptic p u) y) * Wd y)
+    let reactX : ℝ :=
+      Θ x *
+        ((1 - p.χ * (Θ x ^ (p.m - 1) * V x)) -
+          (Θ x ^ p.α - p.χ * Θ x ^ (p.m + p.γ - 1)))
+    let reactY : ℝ :=
+      Θ y *
+        ((1 - p.χ * (Θ y ^ (p.m - 1) * V y)) -
+          (Θ y ^ p.α - p.χ * Θ y ^ (p.m + p.γ - 1)))
+    let linX : ℝ := lam * Z x
+    let linY : ℝ := lam * Z y
+    have hChem' : |chemX - chemY| ≤ chemCoeff * ωWd0 A := by
+      simpa [chemX, chemY] using hChem
+    have hReactLin' : |(reactX + linX) - (reactY + linY)| ≤ ωreact A + ωlin A := by
+      simpa [reactX, reactY, linX, linY] using hReactLin
+    have htotal :
+        |(chemX + reactX + linX) - (chemY + reactY + linY)| ≤ ω0 A := by
+      calc
+        |(chemX + reactX + linX) - (chemY + reactY + linY)|
+            = |(chemX - chemY) + ((reactX + linX) - (reactY + linY))| := by
+          ring_nf
+        _ ≤ |chemX - chemY| + |(reactX + linX) - (reactY + linY)| :=
+          abs_add_le _ _
+        _ ≤ chemCoeff * ωWd0 A + (ωreact A + ωlin A) :=
+          add_le_add hChem' hReactLin'
+        _ = ω0 A := by rfl
+    dsimp [chemX, chemY, reactX, reactY, linX, linY] at htotal
+    unfold paperFixedSourceMap paperStepSource_truncated paperStepTruncatedNonlinearity
+    dsimp only [W, Θ, Wd, V, β] at htotal ⊢
+    rw [hWdx, hWdy]
+    dsimp [Wd]
+    convert htotal using 1
+    ring_nf
 
 /-- Assemble the source-box bounds from the trap/scalar estimates.
 
@@ -5992,6 +7589,9 @@ section AxiomAudit
 #print axioms PaperWeightedHolderSourceBox.greenConv_tendsto_atBot
 #print axioms PaperWeightedHolderSourceBox.greenConvDeriv_tendsto_atBot_zero
 #print axioms PaperWeightedHolderSourceBox.deriv_greenConv_tendsto_atBot_zero
+#print axioms PaperWeightedHolderSourceBox.greenConv_leftTailCauchy_uniform
+#print axioms PaperWeightedHolderSourceBox.greenConvDeriv_leftTailCauchy_uniform
+#print axioms PaperWeightedHolderSourceBox.greenConvDeriv_leftTailSmall_uniform
 #print axioms greenKernel_neg_mul_translate_integrable_of_bounded
 #print axioms paperStepSchauderMap
 #print axioms abs_sub_le_of_deriv_abs_le
@@ -6018,6 +7618,7 @@ section AxiomAudit
 #print axioms rpowTrunc_abs_le
 #print axioms paperFixedSourceMap_continuous_of_sourceBox
 #print axioms paperFixedSourceMap_holder_kernel
+#print axioms paperFixedSourceMap_leftTailCauchy_kernel
 #print axioms paperFixedSourceMapBoxBounds_of_trap
 #print axioms PaperFixedSourceMapBoxBounds.mapsTo
 #print axioms PaperFixedSourceMapBoxBounds.compactRange
