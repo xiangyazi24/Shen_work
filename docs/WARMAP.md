@@ -22,10 +22,10 @@ Faithfulness fact (settled from paper1.pdf): m,α,γ ≥ 1 **REAL** (not integer
 | hprodAll green-core | trap → PaperGreenStepInputRouteACore | ✅ assembly | 614b824 |
 | hprodAll Banach machinery | crossImplicitStep_exists_unique wired + K<1 proven | ✅ DONE | f1c3aa5 |
 | hprodAll per-step Schauder machinery | of_schauder constructs existence from principle+map data, compactness PROVEN, of_banach deleted | ✅ DONE | f076c50 |
-| **hprodAll Schauder map data** | PaperStepSchauderMapData_of_trap via W-FREE IBP form (K'∗(W^m V'), no W^{m-1}/W') — mapsTo by greenConv_mono+barrier | 🔥 cx_pde IBP | /tmp/shen_pde_ibpschauder.md |
+| **hprodAll Schauder map data** | PaperStepSchauderMapData_of_trap for PAPER source (IBP recovers crossSource≠paperStepSource — wrong; Schauder needs only continuity not Lip); mapsTo via super-solution comparison | 🔥 cx_pde paper-src | /tmp/shen_pde_papersourceschauder.md |
 | hstationary | rotheLimit fixed ⟹ frozenWaveOp U U=0 | ✅ assembled, modulo uniform-bounds | 26cbe80 |
 | hstationary uniform-bounds | PaperC2CompactUniformBounds from concrete green-core | ⬜ coupled to hpoint landing | — |
-| **hsmp / hrealize** | Grönwall(41971fe)→linearGronwallData(732d286)→C²reg VERTICAL from convergence floor (U=C²-compact limit of C³ Rothe iterates; Green-rep was CIRCULAR — bridge needs Diff U) | 🔥 cx_r3 C²-conv | /tmp/shen_r3_c2converge.md |
+| **hsmp / hrealize** | chain to stationaryStrongMaxPrinciple_of_trap(5d230b5) modulo StationaryGreenRepresentationFromEquation. §2.6b: U regularity bounced 3× — it's a CONSTRUCTION-SITE fact, threading U=greenConv R from Rothe limit (per-step green_repr + convergence) | 🔥 cx_r3 green-thread | /tmp/shen_r3_greenrepthread.md |
 | hstep / htail | PaperRotheSeqStepDependence / PaperRotheTailUniform | ⬜ gap mapped (clamp + step-layer K<1), secondary | — |
 | hcond/hD/hbarLip/scalars | concrete parameter conditions | ⬜ concrete, easy | — |
 
